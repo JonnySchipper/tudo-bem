@@ -160,7 +160,7 @@ export class World {
     this.cap = Math.max(1, Math.min(DEFAULT_ROOM_CAP, opts.roomCap ?? DEFAULT_ROOM_CAP));
     this.mgGapMs = opts.mgGapMs ?? 1600;
     this.now = opts.now ?? Date.now;
-    this.schedule = opts.schedule ?? ((fn, ms) => void setTimeout(fn, ms).unref?.());
+    this.schedule = opts.schedule ?? ((fn, ms) => void (setTimeout(fn, ms) as unknown as { unref?: () => void }).unref?.());
   }
 
   // ---------- connection lifecycle ----------
@@ -526,6 +526,8 @@ export class World {
       return s.send({ t: 'notice', level: 'block', pt: verdict.note?.pt ?? 'Mensagem bloqueada.', en: verdict.note?.en ?? 'Message blocked.' });
     }
     if (s.instance !== inst) return;
+    if (verdict.action === 'warn') this.services.moderation.push({ kind: 'warn', playerId: p.id, playerName: p.name, room: inst.id, text, labels: verdict.labels, at: now });
+    // Delivered verbatim: player chat is never rewritten (CEO-LOCKS §3).
     const { gloss, lang } = await this.services.gloss.gloss(verdict.text);
     this.broadcast(inst, { t: 'chat', id: p.id, name: p.name, text: verdict.text, gloss, lang, action: verdict.action });
     if (verdict.action === 'warn' && verdict.note) s.send({ t: 'notice', level: 'warn', pt: verdict.note.pt, en: verdict.note.en });

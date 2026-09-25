@@ -1,0 +1,26 @@
+{
+  "_meta": {
+    "status": "engineering-draft",
+    "todo": "TODO(T&S): not in the documented layout — engineering overlay for constitution.md §3 (political campaigning / religious argument → block). Merge into canonical fixtures.",
+    "stack_position": 3
+  },
+  "rules": [
+    {
+      "id": "politics",
+      "label": "politics",
+      "action": "block",
+      "source": "constitution.md §3 — political campaigning, candidates, party slogans → block. Bare 'lula' (squid) is food and stays allowed.",
+      "terms": [
+        "bolsonaro", "bolsonarista", "bolsominion", "presidente lula", "lula presidente", "lula livre", "vote no", "vote na", "vote em", "vota no", "vota em",
+        "trump", "biden", "kamala", "maga", "eleicao", "eleicoes", "election", "comunista", "communist", "fascista", "fascist", "petista", "esquerdista", "direitista", "golpista"
+      ]
+    },
+    {
+      "id": "religion_argument",
+      "label": "politics",
+      "action": "block",
+      "source": "constitution.md §3 — religious argument / proselytizing / mockery.",
+      "terms": ["aceite jesus", "converta se", "sua religiao e falsa", "religiao de merda", "infiel", "herege"]
+    }
+  ]
+}

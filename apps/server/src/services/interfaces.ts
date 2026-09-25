@@ -45,7 +45,7 @@ export interface StudentModelService {
 }
 
 export interface ModerationEvent {
-  kind: 'escalate' | 'block' | 'report';
+  kind: 'escalate' | 'block' | 'warn' | 'report';
   playerId: string;
   playerName: string;
   room: string;

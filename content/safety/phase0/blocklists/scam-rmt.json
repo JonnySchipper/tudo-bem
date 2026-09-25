@@ -1,0 +1,19 @@
+{
+  "_meta": {
+    "status": "engineering-draft",
+    "todo": "TODO(T&S): not in the documented layout — engineering overlay for constitution.md §5 (scam / real-money trading). Merge into canonical fixtures.",
+    "stack_position": 3
+  },
+  "rules": [
+    {
+      "id": "scam_rmt",
+      "label": "scam",
+      "action": "block",
+      "terms": [
+        "free coins", "free rv", "moedas gratis", "rv gratis", "your password", "sua senha", "password", "senha", "credit card", "cartao de credito",
+        "pix", "manda pix", "paypal", "venmo", "cashapp", "crypto", "bitcoin", "gift card", "dinheiro real", "real money", "vendo conta", "compro conta",
+        "sell account", "buy account", "suporte oficial", "official support", "staff do tudo bem"
+      ]
+    }
+  ]
+}

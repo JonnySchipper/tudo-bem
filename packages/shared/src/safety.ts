@@ -1,10 +1,26 @@
 /**
- * Phase 0 chat safety — a deterministic stand-in for the Jev classifier.
+ * Phase 0 chat safety — deterministic stand-in for the Jev classifier.
  *
- * Pipeline (GDD §2.4): PII regex → label classify (blocklists EN+PT + context rules) → action.
- * The same function runs on the client (instant feedback) and on the server (authoritative).
- * Swap for a real Jev gateway behind the `ChatSafetyService` interface on the server.
+ * Stack (content/safety/phase0/README.md):
+ *   1. client regex PII      (pii/regex-fixtures.json)
+ *   2. stub Jev              (jev/public-chat-pack.json — typed questions, see `jevPublicChat`)
+ *   3. EN+PT blocklists      (blocklists/*.json; allowlist consulted first)
+ *   4. escalate queue        (server ModerationQueue)
+ *
+ * Actions: allow / warn / block / escalate only. Player chat is NEVER rewritten or masked
+ * (CEO-LOCKS-2026-09-25 §3). The same function runs on the client (instant feedback) and the
+ * server (authoritative). Swap for a real Jev gateway behind the server's `ChatSafetyService`.
  */
+import allowPack from '../../../content/safety/phase0/blocklists/allowlist-pt-slang.json';
+import slursPack from '../../../content/safety/phase0/blocklists/en-pt-slurs.json';
+import ethnicPack from '../../../content/safety/phase0/blocklists/ethnic-tokens.json';
+import datingPack from '../../../content/safety/phase0/blocklists/dating-flirting.json';
+import substancePack from '../../../content/safety/phase0/blocklists/prohibited-substance.json';
+import politicsPack from '../../../content/safety/phase0/blocklists/politics-religion.json';
+import scamPack from '../../../content/safety/phase0/blocklists/scam-rmt.json';
+import harassPack from '../../../content/safety/phase0/blocklists/harassment-selfharm.json';
+import piiPack from '../../../content/safety/phase0/pii/regex-fixtures.json';
+import { detectLang } from './gloss.js';
 
 export type SafetyAction = 'allow' | 'warn' | 'block' | 'escalate';
 
@@ -20,20 +36,21 @@ export type SafetyLabel =
   | 'scam'
   | 'bullying'
   | 'self_harm'
+  | 'ethnic_review'
   | 'spam';
 
 export interface SafetyVerdict {
   action: SafetyAction;
   labels: SafetyLabel[];
-  /** Text safe to broadcast (masked for warn); empty for block/escalate. */
+  /** Rule ids that fired (for logs / fixture debugging). */
+  rules: string[];
+  /** Text to broadcast: the player's message verbatim for allow/warn; empty for block/escalate. */
   text: string;
   /** Friendly note shown to the sender (PT + EN gloss). */
   note?: { pt: string; en: string };
 }
 
-const MASK = '•••';
-
-/** Lowercase, strip accents, undo common leetspeak, collapse 3+ repeated letters. */
+/** Lowercase, strip accents, undo light leetspeak, collapse 3+ repeated letters. */
 export function normalize(input: string): string {
   return input
     .toLowerCase()
@@ -43,121 +60,25 @@ export function normalize(input: string): string {
     .replace(/(.)\1{2,}/g, '$1');
 }
 
-interface Rule {
-  label: SafetyLabel;
-  action: Exclude<SafetyAction, 'allow'>;
-  /** Whole-word terms (normalized). Multi-word terms allowed. */
+interface RuleJson {
+  id: string;
+  label: string;
+  action: string;
   terms?: string[];
-  /** Regex tested against normalized text. */
-  patterns?: RegExp[];
+  patterns?: string[];
+  allowContexts?: string[];
+  note?: { pt: string; en: string };
 }
 
-const RULES: Rule[] = [
-  {
-    label: 'self_harm',
-    action: 'escalate',
-    terms: ['kill myself', 'want to die', 'quero morrer', 'vou me matar', 'quero me matar', 'suicide', 'suicidio', 'cut myself'],
-  },
-  {
-    label: 'bullying',
-    action: 'escalate',
-    terms: ['kill yourself', 'kys', 'se mata', 'vai se matar', 'go die'],
-  },
-  {
-    label: 'slur',
-    action: 'block',
-    terms: [
-      'nigger', 'nigga', 'faggot', 'fag', 'retard', 'retarded', 'tranny', 'chink', 'spic', 'kike', 'wetback', 'coon', 'dyke',
-      'viado', 'bicha', 'sapatao', 'traveco', 'retardado', 'retardada', 'crioulo', 'macaco imundo', 'seu macaco', 'sua macaca',
-    ],
-  },
-  {
-    label: 'sexual',
-    action: 'block',
-    terms: [
-      // Not listed on purpose: "pelada" (pickup football), "rola" (slang: "happens"), "pinto" (chick).
-      'sex', 'sexy', 'nude', 'nudes', 'naked', 'porn', 'porno', 'horny', 'boobs', 'tits', 'penis', 'vagina', 'sexo', 'pelado',
-      'tesao', 'peitos', 'safadinha', 'safadinho',
-    ],
-    // "gostoso/gostosa" is normal for food; only block when aimed at a person.
-    patterns: [/\b(vc|voce|tu|ela|ele|you)\s+(e|eh|ta|esta|is|are|r)\s+(muito\s+)?(gostos[oa]|hot)\b/],
-  },
-  {
-    label: 'dating',
-    action: 'block',
-    terms: [
-      'namora comigo', 'namorar comigo', 'quer namorar', 'sair comigo', 'me beija', 'kiss me', 'date me', 'go out with me',
-      'be my girlfriend', 'be my boyfriend', 'seja minha namorada', 'seja meu namorado', 'ficar comigo',
-    ],
-  },
-  {
-    label: 'profanity',
-    action: 'block',
-    terms: [
-      'fuck', 'fucking', 'fucker', 'motherfucker', 'shit', 'bitch', 'asshole', 'bastard', 'dick', 'cunt', 'pussy', 'cock', 'whore',
-      'slut', 'porra', 'caralho', 'merda', 'puta', 'foda', 'foder', 'fodase', 'foda se', 'cu', 'buceta', 'boceta', 'bosta',
-      'arrombado', 'arrombada', 'desgracado', 'desgracada', 'filho da puta', 'fdp', 'vsf', 'vtnc', 'pqp', 'cacete', 'piranha',
-    ],
-  },
-  {
-    label: 'scam',
-    action: 'block',
-    terms: [
-      'free coins', 'free rv', 'moedas gratis', 'rv gratis', 'your password', 'sua senha', 'password', 'senha', 'credit card',
-      'cartao de credito', 'pix', 'venmo', 'paypal', 'cashapp', 'gift card', 'dinheiro real',
-    ],
-  },
-  {
-    label: 'off_platform_contact',
-    action: 'block',
-    terms: [
-      'add me on', 'me adiciona no', 'me add no', 'my number', 'meu numero', 'meu zap', 'me chama no', 'text me',
-      'dm me', 'follow me on', 'me segue no',
-    ],
-  },
-  {
-    label: 'off_platform_contact',
-    action: 'warn',
-    terms: ['discord', 'whatsapp', 'zap', 'zapzap', 'insta', 'instagram', 'snapchat', 'telegram', 'tiktok', 'facebook', 'kik', 'skype', 'twitter'],
-  },
-  {
-    label: 'prohibited_substance',
-    action: 'warn',
-    terms: [
-      // "vinho" is also a color (wine-red), so only the English noun is listed.
-      'cerveja', 'cerva', 'breja', 'beer', 'beers', 'vodka', 'cachaca', 'caipirinha', 'pinga', 'wine', 'whisky', 'whiskey',
-      'tequila', 'drunk', 'bebado', 'bebada', 'bebum', 'chope', 'chopp', 'boteco', 'maconha', 'weed', 'cocaine', 'cocaina', 'drogas',
-      'drugs', 'vape', 'cigarro', 'cigarette',
-    ],
-  },
-  {
-    label: 'politics',
-    action: 'warn',
-    // Bare "lula" is squid on a menu; only the political uses are listed.
-    terms: ['bolsonaro', 'presidente lula', 'lula presidente', 'lula livre', 'trump', 'biden', 'kamala', 'eleicao', 'election', 'comunista', 'communist', 'fascista', 'fascist', 'petista', 'bolsominion'],
-  },
-  {
-    label: 'bullying',
-    action: 'warn',
-    terms: ['idiota', 'burra', 'imbecil', 'babaca', 'otario', 'otaria', 'stupid', 'idiot', 'loser', 'dumb', 'shut up', 'cala a boca', 'ninguem gosta de voce', 'nobody likes you', 'you are ugly', 'voce e feio', 'voce e feia'],
-  },
-];
-
-/** Words that must never trip the filter even if a rule changes (GDD §15.4 false-block watch). */
-export const ALLOWLIST = ['ta', 'cara', 'legal', 'nossa', 'caramba', 'putz', 'direita', 'esquerda', 'bicho', 'gostoso', 'gostosa', 'beijo', 'beijos', 'massa', 'bora', 'valeu', 'passar', 'class', 'assistir', 'cocada'];
-
-const PII: { label: SafetyLabel; re: RegExp }[] = [
-  { label: 'pii', re: /[\w.+-]+@[\w-]+\.[a-z]{2,}/i },
-  { label: 'pii', re: /(?:\+?\d[\s().-]*){7,}/ },
-  { label: 'pii', re: /\b(https?:\/\/|www\.)\S+/i },
-  { label: 'pii', re: /\b[\w-]+\.(com|net|org|br|io|gg|me|tv|app|xyz|ly)\b/i },
-  { label: 'off_platform_contact', re: /(^|\s)@[a-z0-9_.]{2,}/i },
-  { label: 'pii', re: /\b(rua|avenida|av\.|travessa|alameda|estrada|street|avenue|road|lane|drive)\s+[\p{L}\s]{2,30}\d{1,5}\b/iu },
-  { label: 'pii', re: /\b\d{1,5}\s+[\p{L}]+\s+(street|st|avenue|ave|road|rd|lane|drive|dr)\b/iu },
-  // Country/city is fine ("where are you from" is a lesson); school, street and full names are not.
-  { label: 'pii', re: /\b(my school is|i go to .{0,20}school|i study at|minha escola (e|é)|eu estudo n[oa] (escola|colégio|colegio)|meu col[eé]gio (e|é)|i live (at|on) \d|moro na rua)/i },
-  { label: 'pii', re: /\b(my (real|full) name is|meu nome (real|completo)|my last name|my surname|meu sobrenome)/i },
-];
+interface CompiledRule {
+  id: string;
+  label: SafetyLabel;
+  action: Exclude<SafetyAction, 'allow'>;
+  terms: { term: string; re: RegExp }[];
+  patterns: RegExp[];
+  allow: RegExp[];
+  note?: { pt: string; en: string };
+}
 
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -166,130 +87,183 @@ function termRegex(term: string): RegExp {
   return new RegExp(`(^|[^a-z0-9])(${body})(?=$|[^a-z0-9])`, 'g');
 }
 
-interface CompiledRule extends Rule {
-  termRes: RegExp[];
-  patternRes: RegExp[];
+const RULE_PACKS = [harassPack, slursPack, ethnicPack, datingPack, substancePack, politicsPack, scamPack] as { rules: RuleJson[] }[];
+
+const RULES: CompiledRule[] = RULE_PACKS.flatMap((pack) =>
+  pack.rules.map((r) => ({
+    id: r.id,
+    label: r.label as SafetyLabel,
+    action: r.action as CompiledRule['action'],
+    terms: (r.terms ?? []).map((t) => {
+      const term = normalize(t);
+      return { term, re: termRegex(term) };
+    }),
+    patterns: (r.patterns ?? []).map((p) => new RegExp(p, 'g')),
+    allow: (r.allowContexts ?? []).map((p) => new RegExp(p, 'g')),
+    note: r.note,
+  })),
+);
+
+/** Everyday Brazilian slang that must never trip a rule (false-block KPI). */
+export const ALLOWLIST = new Set(allowPack.terms.map((t) => normalize(t)));
+
+interface PiiPattern {
+  id: string;
+  label: SafetyLabel;
+  re: RegExp;
+  normalized: boolean;
 }
 
-const COMPILED: CompiledRule[] = RULES.map((r) => ({
-  ...r,
-  termRes: (r.terms ?? []).map(termRegex),
-  patternRes: (r.patterns ?? []).map((p) => new RegExp(p.source, p.flags.includes('g') ? p.flags : p.flags + 'g')),
+const PII: PiiPattern[] = (piiPack.patterns as { id: string; label: string; regex: string; flags: string; normalized?: boolean }[]).map((p) => ({
+  id: p.id,
+  label: p.label as SafetyLabel,
+  re: new RegExp(p.regex, p.flags),
+  normalized: !!p.normalized,
 }));
 
 const NOTES: Record<SafetyLabel, { pt: string; en: string }> = {
-  pii: { pt: 'Opa! Nada de dados pessoais aqui, tá?', en: 'Oops! No personal info here, okay? (phone, address, school, links)' },
-  off_platform_contact: { pt: 'Vamos conversar aqui mesmo na praça!', en: 'Let’s keep chatting here in the world — no outside contacts.' },
+  pii: { pt: 'Opa! Nada de dados pessoais aqui, tá?', en: 'Oops! No personal info here (phone, email, address, school, links).' },
+  off_platform_contact: { pt: 'Vamos conversar aqui mesmo na praça!', en: 'Let’s keep chatting here in the world — no outside apps or contacts.' },
   slur: { pt: 'Essa palavra não rola aqui.', en: 'That word isn’t allowed here.' },
   profanity: { pt: 'Sem palavrão, por favor!', en: 'No swearing, please!' },
   sexual: { pt: 'Esse assunto não é pra praça.', en: 'That topic isn’t for this space.' },
   dating: { pt: 'Aqui é lugar de amizade — sem paquera!', en: 'This is a friendship space — no flirting or dating.' },
-  prohibited_substance: { pt: 'Aqui a gente fica no suco e no guaraná!', en: 'We stick to juice and guaraná here! (word hidden)' },
-  politics: { pt: 'Sem política na praça, tá? Só diversão!', en: 'No politics in the square, okay? Just fun! (word hidden)' },
+  prohibited_substance: { pt: 'Aqui a gente fica no suco e no guaraná!', en: 'We stick to juice and guaraná here — no alcohol or drugs.' },
+  politics: { pt: 'Sem política nem briga de religião na praça, tá?', en: 'No politics or religious arguments in the square, okay?' },
   scam: { pt: 'Cuidado! Nunca compartilhe senhas ou dinheiro.', en: 'Careful! Never share passwords or money.' },
-  bullying: { pt: 'Vamos ser gentis uns com os outros!', en: 'Let’s be kind to each other! (word hidden)' },
-  self_harm: {
-    pt: 'Você é importante. Fale com um adulto de confiança.',
-    en: 'You matter. Please talk to a trusted adult or a local helpline (US: call/text 988). A moderator has been notified.',
-  },
+  bullying: { pt: 'Vamos ser gentis uns com os outros!', en: 'Let’s be kind to each other!' },
+  self_harm: { pt: 'Você é importante. Fale com alguém de confiança.', en: 'You matter. Please reach out to someone you trust or a local helpline. A moderator has been notified.' },
+  ethnic_review: { pt: 'Sua mensagem foi para a revisão da moderação.', en: 'Your message was sent to moderator review.' },
   spam: { pt: 'Calma! Uma mensagem de cada vez.', en: 'Easy! One message at a time.' },
 };
 
 const SEVERITY: Record<SafetyAction, number> = { allow: 0, warn: 1, block: 2, escalate: 3 };
+const LABEL_ORDER: SafetyLabel[] = ['spam', 'bullying', 'prohibited_substance', 'politics', 'off_platform_contact', 'dating', 'profanity', 'scam', 'pii', 'sexual', 'slur', 'ethnic_review', 'self_harm'];
 
-/** Map normalized-string match indices back to the original text (lengths match except NFD marks). */
-function maskOriginal(original: string, spans: [number, number][]): string {
-  if (!spans.length) return original;
-  // Build index map from normalized chars to original chars.
-  const map: number[] = [];
-  const lowered = original.toLowerCase();
-  let norm = '';
-  for (let i = 0; i < lowered.length; i++) {
-    const n = lowered[i].normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    for (const ch of n) {
-      norm += ch;
-      map.push(i);
-    }
-  }
-  const chars = original.split('');
-  const hit = new Array(chars.length).fill(false);
-  for (const [s, e] of spans) for (let j = s; j < e && j < map.length; j++) hit[map[j]] = true;
-  let out = '';
-  for (let i = 0; i < chars.length; i++) {
-    if (hit[i]) {
-      if (!hit[i - 1]) out += MASK;
-    } else out += chars[i];
+function spans(re: RegExp, s: string): [number, number][] {
+  const out: [number, number][] = [];
+  re.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(s))) {
+    out.push([m.index, m.index + m[0].length]);
+    if (m[0].length === 0) re.lastIndex++;
   }
   return out;
 }
 
-export function classifyChat(raw: string): SafetyVerdict {
-  const text = raw.replace(/\s+/g, ' ').trim();
-  if (!text) return { action: 'block', labels: ['spam'], text: '' };
+interface Hit {
+  id: string;
+  label: SafetyLabel;
+  action: Exclude<SafetyAction, 'allow'>;
+  note?: { pt: string; en: string };
+}
 
-  const labels = new Set<SafetyLabel>();
-  let action: SafetyAction = 'allow';
-  const bump = (a: SafetyAction, l: SafetyLabel) => {
-    labels.add(l);
-    if (SEVERITY[a] > SEVERITY[action]) action = a;
-  };
-
-  for (const p of PII) if (p.re.test(text)) bump('block', p.label);
-
-  // Leet-normalized copy for blocklists; keep a non-collapsed copy for masking offsets.
-  const norm = normalize(text);
-  const plain = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const maskSpans: [number, number][] = [];
-
-  for (const rule of COMPILED) {
+function ruleHits(norm: string): Hit[] {
+  const hits: Hit[] = [];
+  for (const rule of RULES) {
+    const allowed = rule.allow.flatMap((re) => spans(re, norm));
     let matched = false;
-    for (const re of rule.termRes) {
+    for (const { term, re } of rule.terms) {
+      if (ALLOWLIST.has(term)) continue;
       re.lastIndex = 0;
       let m: RegExpExecArray | null;
       while ((m = re.exec(norm))) {
-        const term = m[2];
-        if (ALLOWLIST.includes(term)) continue;
-        matched = true;
-        if (rule.action !== 'warn') continue;
-        // Mask in the accent-stripped text; offsets there line up with the original.
-        const tr = termRegex(term.replace(/[\s.,_-]+/g, ' '));
-        let pm: RegExpExecArray | null;
-        let found = false;
-        while ((pm = tr.exec(plain))) {
-          const s = pm.index + pm[1].length;
-          maskSpans.push([s, s + pm[2].length]);
-          found = true;
-        }
-        if (!found) {
-          const s = m.index + m[1].length;
-          maskSpans.push([s, s + term.length]);
+        const s = m.index + m[1].length;
+        const e = s + m[2].length;
+        if (!allowed.some(([a, b]) => a <= s && e <= b)) {
+          matched = true;
+          break;
         }
       }
+      if (matched) break;
     }
-    for (const re of rule.patternRes) {
-      re.lastIndex = 0;
-      if (re.test(norm)) matched = true;
-    }
-    if (matched) bump(rule.action, rule.label);
+    if (!matched) matched = rule.patterns.some((re) => spans(re, norm).length > 0);
+    if (matched) hits.push({ id: rule.id, label: rule.label, action: rule.action, note: rule.note });
   }
-
-  // Shouting / char-spam heuristic.
-  if (/(.)\1{7,}/.test(text) || (text.length > 24 && text === text.toUpperCase() && /[A-Z]{12,}/.test(text))) bump('warn', 'spam');
-
-  const ordered = [...labels].sort((a, b) => labelWeight(b) - labelWeight(a));
-  const top = ordered[0];
-  if (action === 'allow') return { action, labels: [], text };
-  if (action === 'warn') {
-    const masked = maskOriginal(text, maskSpans);
-    const finalText = labels.has('spam') && maskSpans.length === 0 ? text.toLowerCase() : masked;
-    return { action, labels: ordered, text: finalText, note: NOTES[top] };
-  }
-  return { action, labels: ordered, text: '', note: NOTES[top] };
+  return hits;
 }
 
-function labelWeight(l: SafetyLabel): number {
-  const order: SafetyLabel[] = ['spam', 'politics', 'prohibited_substance', 'bullying', 'off_platform_contact', 'dating', 'profanity', 'scam', 'pii', 'sexual', 'slur', 'self_harm'];
-  return order.indexOf(l);
+export function classifyChat(raw: string): SafetyVerdict {
+  const text = raw.trim();
+  if (!text) return { action: 'block', labels: ['spam'], rules: ['empty'], text: '' };
+
+  const norm = normalize(text);
+  const hits: Hit[] = [];
+  for (const p of PII) {
+    p.re.lastIndex = 0;
+    if (p.re.test(p.normalized ? norm : text)) hits.push({ id: `pii.${p.id}`, label: p.label, action: 'block' });
+  }
+  hits.push(...ruleHits(norm));
+  // Laughter (kkkkkkkk, hahaha, rsrsrs) is normal chat, not spam.
+  if (/([^ksahr\s])\1{7,}/i.test(text) || (text.length > 24 && text === text.toUpperCase() && /[A-Z]{12,}/.test(text))) hits.push({ id: 'spam.shout', label: 'spam', action: 'warn' });
+
+  if (!hits.length) return { action: 'allow', labels: [], rules: [], text };
+  hits.sort((a, b) => SEVERITY[b.action] - SEVERITY[a.action] || LABEL_ORDER.indexOf(b.label) - LABEL_ORDER.indexOf(a.label));
+  const top = hits[0];
+  const labels = [...new Set(hits.map((h) => h.label))];
+  const verdict: SafetyVerdict = {
+    action: top.action,
+    labels,
+    rules: hits.map((h) => h.id),
+    text: top.action === 'warn' ? text : '',
+    note: top.note ?? NOTES[top.label],
+  };
+  return verdict;
+}
+
+// ---------------------------------------------------------------- Jev typed questions (GDD §12.4)
+
+export type ContentClass =
+  | 'ok'
+  | 'insult'
+  | 'sexual'
+  | 'pii'
+  | 'scam'
+  | 'slurs'
+  | 'prohibited_substance'
+  | 'dating'
+  | 'off_platform_contact'
+  | 'politics'
+  | 'self_harm'
+  | 'ethnic_review'
+  | 'spam';
+
+const LABEL_TO_CLASS: Record<SafetyLabel, ContentClass> = {
+  pii: 'pii',
+  off_platform_contact: 'off_platform_contact',
+  slur: 'slurs',
+  profanity: 'insult',
+  bullying: 'insult',
+  sexual: 'sexual',
+  dating: 'dating',
+  prohibited_substance: 'prohibited_substance',
+  politics: 'politics',
+  scam: 'scam',
+  self_harm: 'self_harm',
+  ethnic_review: 'ethnic_review',
+  spam: 'spam',
+};
+
+export interface JevPublicChatAnswers {
+  content_class: ContentClass;
+  contains_english_majority: boolean;
+  looks_like_real_name_or_phone: boolean;
+  toxicity: number;
+  action: SafetyAction;
+}
+
+/** Stub Jev answering the public-chat question pack. */
+export function jevPublicChat(text: string): JevPublicChatAnswers {
+  const v = classifyChat(text);
+  const top = v.labels.length ? LABEL_TO_CLASS[v.labels.sort((a, b) => LABEL_ORDER.indexOf(b) - LABEL_ORDER.indexOf(a))[0]] : 'ok';
+  const toxicity = { allow: 0.02, warn: 0.35, block: 0.8, escalate: 0.9 }[v.action];
+  return {
+    content_class: v.action === 'allow' ? 'ok' : top,
+    contains_english_majority: detectLang(text) === 'en',
+    looks_like_real_name_or_phone: v.rules.some((r) => r === 'pii.phone' || r === 'pii.full_name_bait'),
+    toxicity,
+    action: v.action,
+  };
 }
 
 /** Display names and room names: must be fully clean (no warn). */

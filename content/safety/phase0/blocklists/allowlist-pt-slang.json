@@ -1,0 +1,39 @@
+{
+  "_meta": {
+    "status": "engineering-draft",
+    "todo": "TODO(T&S): replace with canonical allowlist-pt-slang.json (not in ingest attachment). Terms from constitution.md 'Allowed PT slang' + engineering false-block guards.",
+    "kpi": "False-block rate on `terms` and `sentences` must be 0% — enforced by packages/shared/src/safety.fixtures.test.ts.",
+    "stack_position": "consulted before blocklists (§3)"
+  },
+  "terms": [
+    "ta", "tá", "cara", "legal", "pra", "a gente", "ne", "né", "po", "pô", "obrigado", "obrigada", "blz", "vlw", "valeu", "massa", "show",
+    "beleza", "ei", "opa", "fala", "e ai", "e aí", "tmj", "sss", "kk", "kkk", "aff",
+    "nossa", "caramba", "putz", "direita", "esquerda", "bicho", "beijos", "bora", "mano"
+  ],
+  "sentences": [
+    "tá bom, cara, muito legal",
+    "a gente vai pra padaria, né?",
+    "pô, errei o pedido kkk",
+    "blz, vlw, tmj!",
+    "e aí, beleza?",
+    "opa, fala!",
+    "show, massa demais",
+    "aff, perdi o combo",
+    "sss",
+    "vamos pra direita ou pra esquerda?",
+    "meu nome é Ana, sou dos EUA",
+    "eu moro no Canadá",
+    "isso não rola",
+    "que camiseta vinho bonita",
+    "me vê uma lula frita",
+    "beijos, até amanhã!",
+    "whats up everyone",
+    "I love this hat!",
+    "feijão preto com arroz",
+    "um café preto, por favor",
+    "comprei uma camiseta preta",
+    "gosto de preto e branco",
+    "a estação da Rua do Bar fica ali",
+    "chocolate bar"
+  ]
+}

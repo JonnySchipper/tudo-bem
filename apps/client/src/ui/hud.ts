@@ -52,6 +52,7 @@ export function buildHud(actions: HudActions) {
       h('button', { onclick: actions.openWardrobe, id: 'btn-wardrobe' }, icon('hat'), bi('Chapéus', 'My hats')),
       h('button', { onclick: actions.openFriends, id: 'btn-friends' }, icon('friends'), bi('Amigos', 'Friends')),
       soundBtn,
+      game.solo ? h('span', { class: 'pill', title: 'Prévia estática: o mundo roda no seu navegador. Multiplayer precisa do servidor. / Static preview — the world runs in your browser; multiplayer needs the server build.', id: 'solo-pill' }, 'Modo solo') : null,
       h('span', { class: 'pill' }, plate),
       h('span', { class: 'pill', title: 'Reais Virtuais (RV) — soft currency' }, h('span', { class: 'coin' }), coins),
     ),
@@ -95,7 +96,7 @@ export function buildHud(actions: HudActions) {
       hint.textContent = `${input.value.length}/${MAX_CHAT_LEN}`;
       hint.className = 'hint';
     } else {
-      hint.textContent = v.action === 'warn' ? 'Vai ser mascarado' : 'Não pode';
+      hint.textContent = v.action === 'warn' ? 'Vai com aviso' : v.action === 'escalate' ? 'Vai pra revisão' : 'Não pode';
       hint.className = 'hint warn';
       hint.title = v.note?.en ?? '';
     }

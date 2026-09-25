@@ -1,0 +1,39 @@
+{
+  "_meta": {
+    "status": "engineering-draft",
+    "todo": "TODO(T&S): replace with canonical prohibited-substance.json (not in ingest attachment). Drafted from constitution.md §1 + CEO-LOCKS §2 (bar).",
+    "rewrite_map_note": "constitution.md rewrite map (boteco → lanchonete, cerveja → guaraná/suco) is for NPC/world/store generators ONLY. Player chat is never rewritten (CEO-LOCKS §3).",
+    "stack_position": 3
+  },
+  "rules": [
+    {
+      "id": "alcohol",
+      "label": "prohibited_substance",
+      "action": "block",
+      "terms": [
+        "cerveja", "cervejas", "cerva", "breja", "chopp", "chope", "vinho tinto", "vinho branco", "tacas de vinho", "caipirinha", "cachaca", "pinga", "dose", "doses",
+        "vodka", "whisky", "whiskey", "tequila", "rum", "gin", "beer", "beers", "wine", "shots", "hangover", "ressaca",
+        "bebado", "bebada", "bebum", "borracho", "chapado", "chapada", "vamos beber", "bora beber", "get drunk", "drunk", "tipsy",
+        "boteco", "barzinho", "balada", "nightclub", "happy hour"
+      ]
+    },
+    {
+      "id": "drugs",
+      "label": "prohibited_substance",
+      "action": "block",
+      "terms": ["maconha", "weed", "cocaine", "cocaina", "drogas", "drugs", "baseado", "vape", "cigarro", "cigarette", "lsd"]
+    },
+    {
+      "id": "bar_venue",
+      "label": "prohibited_substance",
+      "action": "warn",
+      "source": "CEO-LOCKS §2 — 'bar': allow only a clear address / place-name, else warn. Never teach as drinking venue.",
+      "terms": ["bar", "bares"],
+      "allowContexts": [
+        "\\b(rua|r|avenida|av|praca|largo|alameda|travessa|estacao|bairro|vila)\\s+(do|da|de|dos|das)?\\s*bar\\b",
+        "\\b(chocolate|candy|snack|space|progress|menu|tool|status|search)\\s+bar\\b"
+      ],
+      "note": { "pt": "Aqui a gente vai na lanchonete ou na padaria, tá?", "en": "Here we hang out at the lanchonete or padaria (no bars)." }
+    }
+  ]
+}
