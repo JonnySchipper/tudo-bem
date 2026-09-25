@@ -1,6 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import crypto from 'node:crypto';
 import type { PrivateProfile } from '@tudobem/shared';
 
 export interface StoredProfile extends PrivateProfile {
@@ -13,23 +10,39 @@ export interface StoredProfile extends PrivateProfile {
 
 export const today = () => new Date().toISOString().slice(0, 10);
 
-/** JSON-file profile store. Swap for Postgres in Phase 1 (same method surface). */
+/** Where profiles persist. Node: JSON file. Browser solo mode: localStorage. Tests: none. */
+export interface PersistenceAdapter {
+  load(): StoredProfile[];
+  save(rows: StoredProfile[]): void;
+  describe(): string;
+}
+
+function randomHex(bytes: number) {
+  const a = new Uint8Array(bytes);
+  globalThis.crypto.getRandomValues(a);
+  return [...a].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function randomToken(bytes: number) {
+  const a = new Uint8Array(bytes);
+  globalThis.crypto.getRandomValues(a);
+  return btoa(String.fromCharCode(...a)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+/** Profile store (isomorphic). Swap the adapter for Postgres in Phase 1 (same method surface). */
 export class ProfileStore {
   private byId = new Map<string, StoredProfile>();
   private byToken = new Map<string, string>();
-  private timer: NodeJS.Timeout | null = null;
-  private file: string | null;
+  private timer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(dataDir: string | null) {
-    this.file = dataDir ? path.join(dataDir, 'profiles.json') : null;
-    if (this.file && fs.existsSync(this.file)) {
-      try {
-        const rows = JSON.parse(fs.readFileSync(this.file, 'utf8')) as StoredProfile[];
-        for (const p of rows) this.index(p);
-        console.log(`[store] ${rows.length} perfis carregados`);
-      } catch (e) {
-        console.error('[store] could not read profiles, starting fresh', e);
-      }
+  constructor(private adapter: PersistenceAdapter | null) {
+    if (!adapter) return;
+    try {
+      const rows = adapter.load();
+      for (const p of rows) this.index(p);
+      if (rows.length) console.log(`[store] ${rows.length} perfis carregados (${adapter.describe()})`);
+    } catch (e) {
+      console.error('[store] could not read profiles, starting fresh', e);
     }
   }
 
@@ -39,11 +52,11 @@ export class ProfileStore {
   }
 
   newId() {
-    return crypto.randomBytes(6).toString('hex');
+    return randomHex(6);
   }
 
   newToken() {
-    return crypto.randomBytes(24).toString('base64url');
+    return randomToken(24);
   }
 
   byTokenGet(token: string | undefined): StoredProfile | undefined {
@@ -63,7 +76,7 @@ export class ProfileStore {
 
   /** Debounced write. */
   save() {
-    if (!this.file || this.timer) return;
+    if (!this.adapter || this.timer) return;
     this.timer = setTimeout(() => {
       this.timer = null;
       this.flush();
@@ -71,11 +84,7 @@ export class ProfileStore {
   }
 
   flush() {
-    if (!this.file) return;
-    fs.mkdirSync(path.dirname(this.file), { recursive: true });
-    const tmp = this.file + '.tmp';
-    fs.writeFileSync(tmp, JSON.stringify([...this.byId.values()]));
-    fs.renameSync(tmp, this.file);
+    this.adapter?.save([...this.byId.values()]);
   }
 
   count() {

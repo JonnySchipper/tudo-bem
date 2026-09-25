@@ -571,7 +571,7 @@ export function openFriends(actions: { request: (id: string) => void; accept: (i
       h(
         'div',
         { class: 'list-rows' },
-        others.length ? '' : h('div', { class: 'r' }, 'Só você por aqui agora.', en('Just you here right now — open a second tab to test with a friend!')),
+        others.length ? '' : h('div', { class: 'r' }, 'Só você por aqui agora.', en(game.solo ? 'Solo preview: other players appear on the multiplayer server build.' : 'Just you here right now — open a second tab to test with a friend!')),
         ...others.map((a) =>
           h(
             'div',

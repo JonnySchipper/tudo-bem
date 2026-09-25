@@ -4,6 +4,8 @@ import { defineConfig } from 'vite';
 const SERVER = process.env.TB_SERVER ?? 'http://localhost:8787';
 
 export default defineConfig({
+  // GitHub Pages serves under /<repo>/; set VITE_BASE=/tudo-bem/ for that build.
+  base: process.env.VITE_BASE ?? '/',
   server: {
     port: 5173,
     host: true,

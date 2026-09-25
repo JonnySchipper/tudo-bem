@@ -26,6 +26,9 @@ importers:
 
   apps/client:
     devDependencies:
+      '@tudobem/server':
+        specifier: workspace:*
+        version: link:../server
       '@tudobem/shared':
         specifier: workspace:*
         version: link:../../packages/shared

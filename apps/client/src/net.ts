@@ -2,7 +2,17 @@ import type { ClientMsg, ServerMsg } from '@tudobem/shared';
 
 type Handler = (m: ServerMsg) => void;
 
-export class Net {
+export interface NetLike {
+  readonly solo: boolean;
+  onStatus: (s: 'open' | 'closed' | 'connecting') => void;
+  onOpen: () => void;
+  connect(): void;
+  send(m: ClientMsg): void;
+  on(h: Handler): () => boolean;
+}
+
+export class Net implements NetLike {
+  readonly solo = false;
   private ws: WebSocket | null = null;
   private handlers = new Set<Handler>();
   private queue: ClientMsg[] = [];
