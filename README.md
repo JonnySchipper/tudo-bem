@@ -38,6 +38,7 @@ pnpm typecheck    # all packages
 pnpm test         # vitest: safety filter, gloss, scene graph, minigame, rooms, world server
 pnpm e2e          # headless-Chrome play-through of the whole Phase 0 path (needs `pnpm start` running)
 pnpm verify       # typecheck + test + build
+pnpm art          # regenerate + bake all art assets (see docs/art)
 ```
 
 `pnpm e2e` env: `BASE_URL` (default `http://localhost:8787`), `CHROME_PATH`, `SHOTS_DIR` (save screenshots), `VIDEO_DIR` (record a slowed-down webm of player 1), `HEADED=1`.
@@ -82,6 +83,13 @@ scripts/e2e.mjs   Playwright-core end-to-end play-through
 - **No pay-to-win** — RV is earned only from graded language acts (scene, minigame) and the tutorial; nameplates can’t be bought. Everyone is **Verde** in Phase 0.
 - **No generative NPCs yet** — Carlos is an authored chip graph behind `NpcDialogueService`; an LLM provider can drop in later with the authored one as the Jev-down fallback.
 - **Adults only (18+)** — birth-date check plus an explicit 18+ confirmation, both enforced by the server. Only “passed the gate” is stored. No under-13/COPPA or parental-consent flows; younger audiences are a later rollout after thorough testing. The constitution and chat safety above apply fully to adults. See [docs/AGE_POLICY.md](docs/AGE_POLICY.md).
+
+## Art
+
+All Phase 0 art is **generated in-repo** by the build agent as procedural canvas and SVG code. That covers the isometric room backgrounds and floors (calçada paulista, ladrilho hidráulico, taco), props (ipê, orelhão, blue street sign, padaria counter and estufa…), kitnet furniture, paper-doll avatar parts, hats, food icons, and UI chrome (icons, RV coin, logo, azulejo/calçada patterns, Copan skyline).
+
+- `pnpm art` bakes static assets to `apps/client/public/art` (PNG + SVG + `manifest.json`), which the game loads at runtime. Animated pieces render live.
+- Contact sheets for review: [`docs/art/`](docs/art). Live gallery: **`/art.html`**. Style rules and how to override with hand-painted art: [`docs/art/README.md`](docs/art/README.md).
 
 ## Configuration
 

@@ -1,0 +1,483 @@
+{
+ "version": 1,
+ "scale": 3,
+ "generatedBy": "scripts/bake-art.mjs (procedural, in-repo)",
+ "sprites": {
+  "props/canteiro": {
+   "file": "props/canteiro.png",
+   "w": 61.33,
+   "h": 55,
+   "ox": -30.67,
+   "oy": -39
+  },
+  "props/banco_SW": {
+   "file": "props/banco_SW.png",
+   "w": 53.33,
+   "h": 56.67,
+   "ox": -26.67,
+   "oy": -46
+  },
+  "props/banco_SE": {
+   "file": "props/banco_SE.png",
+   "w": 53.33,
+   "h": 56.67,
+   "ox": -26.67,
+   "oy": -46
+  },
+  "props/banco_NE": {
+   "file": "props/banco_NE.png",
+   "w": 53.33,
+   "h": 50.33,
+   "ox": -26.67,
+   "oy": -39.67
+  },
+  "props/lixeira": {
+   "file": "props/lixeira.png",
+   "w": 21.33,
+   "h": 54.33,
+   "ox": -10.67,
+   "oy": -49.67
+  },
+  "props/banca": {
+   "file": "props/banca.png",
+   "w": 102.67,
+   "h": 118,
+   "ox": -67.33,
+   "oy": -86
+  },
+  "props/quiosque": {
+   "file": "props/quiosque.png",
+   "w": 61.33,
+   "h": 94.33,
+   "ox": -30.67,
+   "oy": -81.67
+  },
+  "props/bicicletario": {
+   "file": "props/bicicletario.png",
+   "w": 45.33,
+   "h": 39.33,
+   "ox": -22.67,
+   "oy": -30.67
+  },
+  "props/orelhao": {
+   "file": "props/orelhao.png",
+   "w": 37.33,
+   "h": 104.33,
+   "ox": -17.67,
+   "oy": -97.67
+  },
+  "props/placa_rua": {
+   "file": "props/placa_rua.png",
+   "w": 69.33,
+   "h": 121.33,
+   "ox": -34.67,
+   "oy": -117.67
+  },
+  "props/caixa": {
+   "file": "props/caixa.png",
+   "w": 66,
+   "h": 89.67,
+   "ox": -33,
+   "oy": -73.67
+  },
+  "props/balcao_0_of_5": {
+   "file": "props/balcao_0_of_5.png",
+   "w": 65.33,
+   "h": 76,
+   "ox": -32.67,
+   "oy": -60
+  },
+  "props/balcao_1_of_5": {
+   "file": "props/balcao_1_of_5.png",
+   "w": 65.33,
+   "h": 76,
+   "ox": -32.67,
+   "oy": -60
+  },
+  "props/balcao_2_of_5": {
+   "file": "props/balcao_2_of_5.png",
+   "w": 65.33,
+   "h": 76,
+   "ox": -32.67,
+   "oy": -60
+  },
+  "props/balcao_3_of_5": {
+   "file": "props/balcao_3_of_5.png",
+   "w": 65.33,
+   "h": 76,
+   "ox": -32.67,
+   "oy": -60
+  },
+  "props/balcao_4_of_5": {
+   "file": "props/balcao_4_of_5.png",
+   "w": 65.33,
+   "h": 76,
+   "ox": -32.67,
+   "oy": -60
+  },
+  "props/vitrine": {
+   "file": "props/vitrine.png",
+   "w": 61.33,
+   "h": 80.67,
+   "ox": -30.67,
+   "oy": -64.67
+  },
+  "props/estufa": {
+   "file": "props/estufa.png",
+   "w": 61.33,
+   "h": 82.67,
+   "ox": -30.67,
+   "oy": -66.67
+  },
+  "props/vaso": {
+   "file": "props/vaso.png",
+   "w": 38,
+   "h": 55.33,
+   "ox": -19,
+   "oy": -48.67
+  },
+  "props/banqueta": {
+   "file": "props/banqueta.png",
+   "w": 23.33,
+   "h": 39.33,
+   "ox": -11.67,
+   "oy": -33.67
+  },
+  "props/mesa": {
+   "file": "props/mesa.png",
+   "w": 41.33,
+   "h": 52,
+   "ox": -20.67,
+   "oy": -43.33
+  },
+  "props/cadeira_padaria_SE": {
+   "file": "props/cadeira_padaria_SE.png",
+   "w": 36.33,
+   "h": 53,
+   "ox": -18.33,
+   "oy": -45.67
+  },
+  "props/cadeira_padaria_NE": {
+   "file": "props/cadeira_padaria_NE.png",
+   "w": 36,
+   "h": 34.67,
+   "ox": -18,
+   "oy": -27.33
+  },
+  "props/cama": {
+   "file": "props/cama.png",
+   "w": 120.33,
+   "h": 101.33,
+   "ox": -61,
+   "oy": -55
+  },
+  "props/cozinha": {
+   "file": "props/cozinha.png",
+   "w": 94.67,
+   "h": 91.67,
+   "ox": -31.33,
+   "oy": -60
+  },
+  "furniture/cadeira_madeira_0": {
+   "file": "furniture/cadeira_madeira_0.png",
+   "w": 37.33,
+   "h": 61.33,
+   "ox": -19,
+   "oy": -54
+  },
+  "furniture/cadeira_madeira_1": {
+   "file": "furniture/cadeira_madeira_1.png",
+   "w": 37.33,
+   "h": 61.33,
+   "ox": -18.33,
+   "oy": -54
+  },
+  "furniture/poltrona_verde_0": {
+   "file": "furniture/poltrona_verde_0.png",
+   "w": 54,
+   "h": 68,
+   "ox": -28,
+   "oy": -54.33
+  },
+  "furniture/poltrona_verde_1": {
+   "file": "furniture/poltrona_verde_1.png",
+   "w": 54,
+   "h": 68,
+   "ox": -26,
+   "oy": -54.33
+  },
+  "furniture/pufe_amarelo_0": {
+   "file": "furniture/pufe_amarelo_0.png",
+   "w": 31.33,
+   "h": 36.33,
+   "ox": -15.67,
+   "oy": -29.67
+  },
+  "furniture/pufe_amarelo_1": {
+   "file": "furniture/pufe_amarelo_1.png",
+   "w": 31.33,
+   "h": 36.33,
+   "ox": -15.67,
+   "oy": -29.67
+  },
+  "furniture/mesinha_0": {
+   "file": "furniture/mesinha_0.png",
+   "w": 51.33,
+   "h": 43,
+   "ox": -25.67,
+   "oy": -33.33
+  },
+  "furniture/mesinha_1": {
+   "file": "furniture/mesinha_1.png",
+   "w": 51.33,
+   "h": 43,
+   "ox": -25.67,
+   "oy": -33.33
+  },
+  "furniture/tapete_0": {
+   "file": "furniture/tapete_0.png",
+   "w": 66.67,
+   "h": 34,
+   "ox": -33.33,
+   "oy": -17
+  },
+  "furniture/tapete_1": {
+   "file": "furniture/tapete_1.png",
+   "w": 66.67,
+   "h": 34,
+   "ox": -33.33,
+   "oy": -17
+  },
+  "furniture/luminaria_0": {
+   "file": "furniture/luminaria_0.png",
+   "w": 99.33,
+   "h": 104.67,
+   "ox": -49.67,
+   "oy": -100
+  },
+  "furniture/luminaria_1": {
+   "file": "furniture/luminaria_1.png",
+   "w": 99.33,
+   "h": 104.67,
+   "ox": -49.67,
+   "oy": -100
+  },
+  "furniture/estante_0": {
+   "file": "furniture/estante_0.png",
+   "w": 37.33,
+   "h": 89.67,
+   "ox": -18.67,
+   "oy": -79.67
+  },
+  "furniture/estante_1": {
+   "file": "furniture/estante_1.png",
+   "w": 37.33,
+   "h": 89.67,
+   "ox": -18.67,
+   "oy": -79.67
+  },
+  "furniture/quadro_0": {
+   "file": "furniture/quadro_0.png",
+   "w": 35.33,
+   "h": 70.33,
+   "ox": -17.67,
+   "oy": -63.67
+  },
+  "furniture/quadro_1": {
+   "file": "furniture/quadro_1.png",
+   "w": 35.33,
+   "h": 70.33,
+   "ox": -17.67,
+   "oy": -63.67
+  },
+  "furniture/rede_0": {
+   "file": "furniture/rede_0.png",
+   "w": 57.33,
+   "h": 61.33,
+   "ox": -28.67,
+   "oy": -51.67
+  },
+  "furniture/rede_1": {
+   "file": "furniture/rede_1.png",
+   "w": 57.33,
+   "h": 61.33,
+   "ox": -28.67,
+   "oy": -51.67
+  },
+  "furniture/filtro_0": {
+   "file": "furniture/filtro_0.png",
+   "w": 38.67,
+   "h": 80.67,
+   "ox": -19.33,
+   "oy": -70.33
+  },
+  "furniture/filtro_1": {
+   "file": "furniture/filtro_1.png",
+   "w": 38.67,
+   "h": 80.67,
+   "ox": -19.33,
+   "oy": -70.33
+  },
+  "hats/bone_verde": {
+   "file": "hats/bone_verde.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "hats/chapeu_palha": {
+   "file": "hats/chapeu_palha.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "hats/gorro_listrado": {
+   "file": "hats/gorro_listrado.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "hats/viseira_azul": {
+   "file": "hats/viseira_azul.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "hats/boina_vermelha": {
+   "file": "hats/boina_vermelha.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "hats/chapeu_sol": {
+   "file": "hats/chapeu_sol.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "hats/bucket_amarelo": {
+   "file": "hats/bucket_amarelo.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "hats/capacete_bike": {
+   "file": "hats/capacete_bike.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "hats/panama": {
+   "file": "hats/panama.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "hats/coroa_flores": {
+   "file": "hats/coroa_flores.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "hats/chapeu_chef": {
+   "file": "hats/chapeu_chef.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "hats/cartola": {
+   "file": "hats/cartola.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "food/pao_frances": {
+   "file": "food/pao_frances.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "food/pao_na_chapa": {
+   "file": "food/pao_na_chapa.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "food/pao_de_queijo": {
+   "file": "food/pao_de_queijo.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "food/coxinha": {
+   "file": "food/coxinha.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "food/misto_quente": {
+   "file": "food/misto_quente.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "food/sonho": {
+   "file": "food/sonho.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "food/bolo_de_fuba": {
+   "file": "food/bolo_de_fuba.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "food/cafezinho": {
+   "file": "food/cafezinho.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "food/cafe_com_leite": {
+   "file": "food/cafe_com_leite.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "food/suco_de_laranja": {
+   "file": "food/suco_de_laranja.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "food/guarana": {
+   "file": "food/guarana.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  }
+ }
+}

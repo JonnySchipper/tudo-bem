@@ -24,8 +24,8 @@ Target: `TudoBem-Phase0-MVP.md` (success criteria 1–4) and GDD v1.0 §14.1.
 | Friends stub | Request from a profile card or the Amigos panel, accept/decline, online status + current room, **Ir até** (hop into their instance if there’s a seat), **Visitar kitnet**, remove. |
 | Onboarding | *Primeiros passos* checklist (walk, sit, wave, chat, Carlos, minigame, hat, chair), guide arrows over the next objective, Júlia the scripted guide NPC. |
 | AI seams | `ChatSafetyService`, `GlossService`, `NpcDialogueService`, `StudentModelService`, `ModerationQueue` interfaces with Phase 0 stubs; `GradedAct` logging per GDD §12.5; item-bank `Card` schema per §5.5. |
-| Art | Canvas 2.5D isometric: São Paulo black-and-white wave calçada, ipê amarelo trees, SAMPA and “TUDO BEM?” murals, padaria facade with striped awning, Edifício Ipê, closed Metrô entrance, newsstand, orange *lixeira*, bike rack, pigeons, skyline; padaria azulejos, bread shelves, chalkboard menu, checkered floor, morning light beams; night kitnet. |
-| Tooling | pnpm TS monorepo, `pnpm dev` one command, 60 vitest tests, typecheck, esbuild single-file server, Dockerfile, `fly.toml`, `render.yaml`, GitHub Actions CI incl. browser e2e. |
+| Art | **Generated in-repo by the build agent** (procedural canvas + SVG), baked by `pnpm art` into 68 runtime sprites + 15 UI SVGs + manifest, with review contact sheets in `docs/art` and a live gallery at `/art.html`. New authentic pieces: ladrilho hidráulico padaria floor, taco kitnet floor, cobogó, orelhão, blue street sign, salgados estufa, padaria TV, Copan-style tower, hammock, filtro de barro, outlined avatars, generated icon set / RV coin / logo / azulejo + calçada patterns. Canvas 2.5D isometric: São Paulo black-and-white wave calçada, ipê amarelo trees, SAMPA and “TUDO BEM?” murals, padaria facade with striped awning, Edifício Ipê, closed Metrô entrance, newsstand, orange *lixeira*, bike rack, pigeons, skyline; padaria azulejos, bread shelves, chalkboard menu, checkered floor, morning light beams; night kitnet. |
+| Tooling | pnpm TS monorepo, `pnpm dev` one command, 63 vitest tests, typecheck, esbuild single-file server, Dockerfile, `fly.toml`, `render.yaml`, GitHub Actions CI incl. browser e2e. |
 
 ## Known gaps (honest list)
 
@@ -40,7 +40,8 @@ Target: `TudoBem-Phase0-MVP.md` (success criteria 1–4) and GDD v1.0 §14.1.
 - **Placement test, student-model persistence, spaced repetition, Amarelo+ plates, translation economy:** not in Phase 0 (everyone is Verde).
 - **Audio** uses the browser’s speech synthesis (voice quality varies; some Linux browsers have no pt-BR voice). No music or ambient beds.
 - **Accessibility:** keyboard play for chips/minigame and colorblind-safe plates (icon + color), but no font-scale setting, no screen-reader pass on the canvas, no touch/mobile layout.
-- **Rendering:** Canvas 2D with hand-drawn procedural art (no sprite pipeline yet); 2 facing directions mirrored; long multi-tile props are sliced for depth sorting, but occlusion edge cases exist.
+- **Art review pending:** TB Art hasn’t reviewed the generated art yet (see `docs/art`). Hand-painted overrides currently get overwritten by `pnpm art`; they need a protected `overrides/` folder.
+- **Rendering:** Canvas 2D with procedural art baked to sprites for static pieces (animated pieces, floors, walls and avatars still draw live); 2 facing directions mirrored; long multi-tile props are sliced for depth sorting, but occlusion edge cases exist.
 - **Currency naming:** Carlos quotes prices in *reais* for teaching, but the scene is on the house; RV = Reais Virtuais is the only wallet.
 
 ## Phase 1 tickets (closed alpha, GDD §14.2)
@@ -70,5 +71,5 @@ Target: `TudoBem-Phase0-MVP.md` (success criteria 1–4) and GDD v1.0 §14.1.
 16. Parrot v0 proper: skins (cosmetic), hop animation set, hint driven by the student model.
 17. Multiplayer Me vê um… (2–4 seats + CPU fill), daily kiosk quests (*cumprimente 2 pessoas, peça um suco, jogue um jogo*), first-visit pins.
 18. Private friend messages (filtered), parties (≤6) with sticky instances, “hide my instance”.
-19. Art pass: sprite atlas pipeline, 4-direction avatars, eat/sit/dance polish, day/evening lighting per room; font-scale setting; mobile/touch layout.
+19. Art pass after TB Art review of `docs/art`: `overrides/` folder the bake never touches, texture atlas packing, 4-direction avatars, eat/sit/dance polish, day/evening lighting per room; font-scale setting; mobile/touch layout.
 20. Load test: 16 avatars/instance at 60 fps idle on a mid laptop; server soak with bots.
