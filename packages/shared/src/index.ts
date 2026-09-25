@@ -7,6 +7,7 @@ export * from './safety.js';
 export * from './gloss.js';
 export * from './numbers.js';
 export * from './cards.js';
+export * from './accept.js';
 export * from './meveum.js';
 export * from './carlos.js';
 export * from './protocol.js';

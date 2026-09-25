@@ -1,16 +1,38 @@
-import { PADARIA_CARDS, type Card } from './cards.js';
+import { cardById, type Card } from './cards.js';
 import { ECONOMY } from './constants.js';
 import { joinEn, joinPt, numberEn, numberPt } from './numbers.js';
+import ordersPack from '../../../content/curriculum/phase0/me-ve-um-orders.json';
 
-/** “Me vê um…” — padaria tray assembler (GDD §8.1). Pure logic shared by server (authority) and tests. */
+/**
+ * “Me vê um…” — padaria tray assembler (GDD §8.1). Pure logic shared by server (authority) and tests.
+ * Orders come from content/curriculum/phase0/me-ve-um-orders.(md|json); later rounds combine the
+ * same cards with number/gender agreement.
+ */
 
 export interface MgItem {
   id: string;
   card: Card;
 }
 
-export const MG_ITEMS: MgItem[] = PADARIA_CARDS.map((card) => ({ id: card.id.replace('lex.padaria.', ''), card }));
+/** Shelf order. First nine are the curriculum pack; the rest are engineering seeds (flagged). */
+const SHELF = ['pao', 'pao_na_chapa', 'pastel', 'coxinha', 'bolo', 'cafe', 'cafe_com_leite', 'suco_de_laranja', 'agua', 'pao_de_queijo', 'misto_quente', 'guarana'];
+
+export const MG_ITEMS: MgItem[] = SHELF.map((id) => {
+  const card = cardById(`lex.padaria.${id}`);
+  if (!card) throw new Error(`Me vê um shelf item without card: ${id}`);
+  return { id, card };
+});
 export const mgItemById = (id: string) => MG_ITEMS.find((i) => i.id === id);
+
+export interface MgMod {
+  id: string;
+  pt: string;
+  en: string;
+  group: 'where' | 'coffee';
+}
+
+export const MG_MODS: MgMod[] = ordersPack.mods as MgMod[];
+export const mgModById = (id: string) => MG_MODS.find((m) => m.id === id);
 
 export const MG_ROUNDS = 6;
 export const MG_MAX_TRAY = 9;
@@ -23,10 +45,23 @@ export interface MgOrderLine {
 export interface MgOrder {
   customer: string;
   lines: MgOrderLine[];
+  mods: string[];
   pt: string;
   en: string;
   timeMs: number;
+  /** Authored order from the curriculum pack (vs generated combo). */
+  authored: boolean;
 }
+
+interface AuthoredOrder {
+  level: 'verde' | 'bump';
+  pt: string;
+  en: string;
+  lines: [string, number][];
+  mods: string[];
+}
+
+export const AUTHORED_ORDERS: AuthoredOrder[] = ordersPack.orders as AuthoredOrder[];
 
 export type Rng = () => number;
 
@@ -46,43 +81,61 @@ const CUSTOMERS = ['Dona Ana', 'Seu João', 'Pedro', 'Luana', 'Tio Beto', 'Dona 
 const OPENERS: { pt: (l: string) => string; en: (l: string) => string }[] = [
   { pt: (l) => `Me vê ${l}, por favor.`, en: (l) => `Give me ${l}, please.` },
   { pt: (l) => `Bom dia! Me vê ${l}.`, en: (l) => `Good morning! Give me ${l}.` },
-  { pt: (l) => `Oi, Seu Carlos! Me vê ${l}, por favor.`, en: (l) => `Hi, Seu Carlos! Give me ${l}, please.` },
-  { pt: (l) => `Por favor, me vê ${l}.`, en: (l) => `Please, give me ${l}.` },
+  { pt: (l) => `${cap(l)}, por favor.`, en: (l) => `${cap(l)}, please.` },
+  { pt: (l) => `Me vê ${l}.`, en: (l) => `Give me ${l}.` },
 ];
 
+const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 const pick = <T>(rng: Rng, arr: T[]): T => arr[Math.floor(rng() * arr.length)];
 
 export function linePt(line: MgOrderLine): string {
   const item = mgItemById(line.itemId)!;
   const g = item.card.gender ?? 'm';
-  const noun = line.qty === 1 ? item.card.form : item.card.plural ?? item.card.form;
+  const noun = line.qty === 1 ? item.card.form : (item.card.plural ?? item.card.form);
   return `${numberPt(line.qty, g)} ${noun}`;
 }
 
 export function lineEn(line: MgOrderLine): string {
   const item = mgItemById(line.itemId)!;
   if (line.qty === 1) {
-    const g = item.card.gloss_en;
+    const g = item.card.gloss_en_tray ?? item.card.gloss_en;
     return `${/^[aeiou]/i.test(g) ? 'an' : 'a'} ${g}`;
   }
   return `${numberEn(line.qty)} ${item.card.gloss_en_plural ?? item.card.gloss_en}`;
 }
 
-export function makeOrder(rng: Rng, round: number): MgOrder {
-  const nLines = round < 2 ? 1 : round < 4 ? 2 : 2 + Math.floor(rng() * 2);
-  const maxQty = round < 2 ? 1 : round < 4 ? 2 : 3;
+function timeFor(lines: MgOrderLine[], mods: string[]) {
+  const extraQty = lines.reduce((s, l) => s + l.qty - 1, 0);
+  return 16_000 + 6_000 * lines.length + 2_000 * extraQty + 4_000 * mods.length;
+}
+
+/** Rounds 1–2: Verde authored tickets · 3–4: level-bump authored · 5–6: generated combos. */
+export function makeOrder(rng: Rng, round: number, avoid: string[] = []): MgOrder {
+  const customer = pick(rng, CUSTOMERS);
+  if (round < 4) {
+    const level = round < 2 ? 'verde' : 'bump';
+    const pool = AUTHORED_ORDERS.filter((o) => o.level === level && !avoid.includes(o.pt));
+    const o = pick(rng, pool.length ? pool : AUTHORED_ORDERS.filter((x) => x.level === level));
+    const lines = o.lines.map(([itemId, qty]) => ({ itemId, qty }));
+    return { customer, lines, mods: [...o.mods], pt: o.pt, en: o.en, timeMs: timeFor(lines, o.mods), authored: true };
+  }
+  const nLines = 2 + Math.floor(rng() * 2);
   const pool = [...MG_ITEMS];
   const lines: MgOrderLine[] = [];
   for (let i = 0; i < nLines; i++) {
-    const idx = Math.floor(rng() * pool.length);
-    const item = pool.splice(idx, 1)[0];
-    lines.push({ itemId: item.id, qty: 1 + Math.floor(rng() * maxQty) });
+    const item = pool.splice(Math.floor(rng() * pool.length), 1)[0];
+    lines.push({ itemId: item.id, qty: 1 + Math.floor(rng() * 3) });
   }
+  const where = rng() < 0.5 ? pick(rng, MG_MODS.filter((m) => m.group === 'where')) : null;
+  const mods = where ? [where.id] : [];
   const opener = pick(rng, OPENERS);
-  const pt = opener.pt(joinPt(lines.map(linePt)));
-  const en = opener.en(joinEn(lines.map(lineEn)));
-  const extraQty = lines.reduce((s, l) => s + l.qty - 1, 0);
-  return { customer: pick(rng, CUSTOMERS), lines, pt, en, timeMs: 16_000 + 6_000 * nLines + 2_000 * extraQty };
+  let listPt = joinPt(lines.map(linePt));
+  let listEn = joinEn(lines.map(lineEn));
+  if (where) {
+    listPt += ` ${where.pt}`;
+    listEn += ` ${where.en}`;
+  }
+  return { customer, lines, mods, pt: opener.pt(listPt), en: opener.en(listEn), timeMs: timeFor(lines, mods), authored: false };
 }
 
 export type Tray = Record<string, number>;
@@ -91,6 +144,8 @@ export interface TrayCheck {
   ok: boolean;
   missing: MgOrderLine[];
   extra: MgOrderLine[];
+  missingMods: string[];
+  extraMods: string[];
 }
 
 export function sanitizeTray(raw: unknown): Tray {
@@ -109,7 +164,15 @@ export function sanitizeTray(raw: unknown): Tray {
   return out;
 }
 
-export function checkTray(order: MgOrder, tray: Tray): TrayCheck {
+export function sanitizeMods(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  const ids = [...new Set(raw.filter((m): m is string => typeof m === 'string' && !!mgModById(m)))];
+  // "pra viagem" and "pra comer aqui" are exclusive; keep the last one chosen.
+  const where = ids.filter((m) => mgModById(m)!.group === 'where');
+  return ids.filter((m) => mgModById(m)!.group !== 'where' || m === where.at(-1));
+}
+
+export function checkTray(order: MgOrder, tray: Tray, mods: string[] = []): TrayCheck {
   const missing: MgOrderLine[] = [];
   const extra: MgOrderLine[] = [];
   const want = new Map(order.lines.map((l) => [l.itemId, l.qty]));
@@ -119,7 +182,9 @@ export function checkTray(order: MgOrder, tray: Tray): TrayCheck {
     if (have > qty) extra.push({ itemId, qty: have - qty });
   }
   for (const [itemId, qty] of Object.entries(tray)) if (!want.has(itemId) && qty > 0) extra.push({ itemId, qty });
-  return { ok: missing.length === 0 && extra.length === 0, missing, extra };
+  const missingMods = order.mods.filter((m) => !mods.includes(m));
+  const extraMods = mods.filter((m) => !order.mods.includes(m));
+  return { ok: !missing.length && !extra.length && !missingMods.length && !extraMods.length, missing, extra, missingMods, extraMods };
 }
 
 export type MgOutcome = 'perfeito' | 'segunda' | 'errou' | 'tempo';

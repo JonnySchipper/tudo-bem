@@ -1,8 +1,7 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import {
   CARDS,
   chooseChip,
+  scoreTypedReply,
   classifyChat,
   glossPt,
   detectLang,
@@ -43,12 +42,15 @@ export class AuthoredNpcDialogue implements NpcDialogueService {
   start(_npcId: string, ctx: SceneCtx) {
     return viewNode(SCENE_START, ctx)!;
   }
-  choose(_npcId: string, nodeId: string, chip: number, ctx: SceneCtx) {
-    const r = chooseChip(nodeId, chip, ctx);
+  choose(_npcId: string, nodeId: string, chip: number, ctx: SceneCtx, scoreCap: 0 | 1 | 2 | 3 = 3) {
+    const r = chooseChip(nodeId, chip, ctx, scoreCap);
     if (!r) return null;
     const view = viewNode(r.next, r.ctx);
     if (!view) return null;
     return { view, score: r.score, ctx: r.ctx, said: r.said, cards: r.cards };
+  }
+  scoreTyped(_npcId: string, nodeId: string, text: string, ctx: SceneCtx) {
+    return scoreTypedReply(nodeId, text, ctx);
   }
 }
 
@@ -99,16 +101,12 @@ export class InMemoryStudentModel implements StudentModelService {
   }
 }
 
-export class FileModerationQueue implements ModerationQueue {
-  private items: ModerationEvent[] = [];
-  constructor(private file: string | null) {
-    if (file) fs.mkdirSync(path.dirname(file), { recursive: true });
-  }
+export class MemoryModerationQueue implements ModerationQueue {
+  protected items: ModerationEvent[] = [];
   push(ev: ModerationEvent) {
     this.items.push(ev);
     if (this.items.length > 1000) this.items.shift();
-    if (ev.kind !== 'block') console.warn(`[moderação] ${ev.kind} ${ev.playerName}: ${ev.labels.join(',')}`);
-    if (this.file) fs.appendFile(this.file, JSON.stringify(ev) + '\n', () => {});
+    if (ev.kind === 'escalate' || ev.kind === 'report') console.warn(`[moderação] ${ev.kind} ${ev.playerName}: ${ev.labels.join(',')}`);
   }
   recent(n: number) {
     return this.items.slice(-n);

@@ -1,0 +1,35 @@
+{
+  "_meta": {
+    "status": "engineering-draft",
+    "todo": "TODO(T&S + Curriculum): replace with canonical jev/npc-reply-pack.json (not in ingest attachment). Questions per GDD §12.4; fixtures score typed replies to the authored Seu Carlos nodes using accept-list-rules.md. Runs in CI against scoreTypedReply().",
+    "scoring": "3 = intent + form OK + target used · 2 = intent OK, form fuzzy (me dá / quero) · 1 = English or bare order → Carlos rephrases slower · 0 = not understood, chips only, no shame"
+  },
+  "questions": [
+    { "id": "answers_the_npc_question", "type": "noul" },
+    { "id": "uses_target_lexeme", "type": "noul" },
+    { "id": "language", "type": "choice", "options": ["pt", "en", "mix", "gibberish"] },
+    { "id": "task_success", "type": "score", "range": [0, 3] },
+    { "id": "constitution_ok", "type": "noul", "note": "answered by the public-chat stack before scoring" }
+  ],
+  "fixtures": [
+    { "node": "inicio", "text": "tudo bem", "chip": 0, "task_success": 3 },
+    { "node": "inicio", "text": "Bom dia, Seu Carlos!", "chip": 1, "task_success": 3 },
+    { "node": "inicio", "text": "oi", "chip": 2, "task_success": 2 },
+    { "node": "inicio", "text": "hello", "chip": 3, "task_success": 1, "language": "en" },
+    { "node": "pedido", "text": "me ve um pao na chapa por favor", "chip": 0, "task_success": 3 },
+    { "node": "pedido", "text": "Me vê um pão na chapa", "chip": 0, "task_success": 3 },
+    { "node": "pedido", "text": "me da um pao na chapa", "chip": 0, "task_success": 2 },
+    { "node": "pedido", "text": "quero um pão na chapa, por favor", "chip": 0, "task_success": 2 },
+    { "node": "pedido", "text": "pao na chapa", "chip": 0, "task_success": 1 },
+    { "node": "pedido", "text": "um cafe com leite pf", "chip": 1, "task_success": 3 },
+    { "node": "pedido", "text": "ainda to olhando", "chip": 2, "task_success": 2 },
+    { "node": "pedido", "text": "two breads and a coffee", "chip": 3, "task_success": 1, "language": "en" },
+    { "node": "pedido", "text": "quero um sorvete", "chip": null, "task_success": 0 },
+    { "node": "bebida", "text": "uma agua por favor", "chip": 2, "task_success": 3 },
+    { "node": "bebida", "text": "um suco de laranja", "chip": 1, "task_success": 1 },
+    { "node": "local", "text": "para viagem", "chip": 1, "task_success": 3 },
+    { "node": "local", "text": "to go", "chip": 3, "task_success": 1, "language": "en" },
+    { "node": "preco", "text": "obrigada!", "chip": 0, "task_success": 3 },
+    { "node": "preco", "text": "valeu", "chip": 1, "task_success": 2 }
+  ]
+}

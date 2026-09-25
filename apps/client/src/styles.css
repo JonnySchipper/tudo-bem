@@ -1061,6 +1061,44 @@ button:disabled {
   padding: 1px 6px;
 }
 
+.mods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.mods button {
+  padding: 0.35em 0.5em;
+  font-size: 0.85em;
+  line-height: 1.1;
+  background: #fff8ea;
+}
+
+.mods button.on {
+  background: var(--ink);
+  color: white;
+}
+
+.mods button.on .en {
+  color: #ddd;
+}
+
+.typed-reply {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.typed-reply input {
+  flex: 1;
+  font: inherit;
+  font-weight: 700;
+  border: 2px solid #eadcc3;
+  border-radius: 12px;
+  padding: 0.5em 0.8em;
+  min-width: 0;
+}
+
 .carlos-says {
   background: white;
   border-radius: 14px;

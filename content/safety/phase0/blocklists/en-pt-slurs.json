@@ -1,0 +1,37 @@
+{
+  "_meta": {
+    "status": "engineering-draft",
+    "todo": "TODO(T&S): replace with the canonical Safety v0.1 fixture — this file was not in the ingest attachment; drafted from constitution.md §3 + CEO-LOCKS-2026-09-25 §1–2.",
+    "matching": "Terms are compared whole-word against the normalized message (lowercase, accents stripped, light leetspeak, 3+ repeats collapsed). Patterns are regex source strings over the same normalized text.",
+    "stack_position": 3
+  },
+  "rules": [
+    {
+      "id": "ethnic_insult",
+      "label": "slur",
+      "action": "block",
+      "source": "CEO-LOCKS §1 — macaco / japa / portuga block (insult sense). Known accepted FP: the animal 'macaco' also blocks in Phase 0.",
+      "terms": ["macaco", "macaca", "macacos", "macacas", "japa", "japas", "japinha", "portuga", "portugas", "seu macaco", "sua macaca"]
+    },
+    {
+      "id": "slurs_en_pt",
+      "label": "slur",
+      "action": "block",
+      "terms": [
+        "nigger", "nigga", "faggot", "fag", "retard", "retarded", "tranny", "chink", "spic", "kike", "wetback", "coon", "dyke",
+        "viado", "bicha", "sapatao", "traveco", "retardado", "retardada", "crioulo", "crioula", "baianada", "aleijado"
+      ]
+    },
+    {
+      "id": "profanity_en_pt",
+      "label": "profanity",
+      "action": "block",
+      "source": "constitution.md §3 — mild-to-strong profanity blocks. CEO-LOCKS §2: 'cu' blocks exact (whole word only).",
+      "terms": [
+        "fuck", "fucking", "fucker", "motherfucker", "shit", "bitch", "asshole", "bastard", "dick", "cunt", "pussy", "cock", "whore", "slut", "wtf", "stfu",
+        "porra", "caralho", "merda", "puta", "puto", "foda", "foder", "fodase", "foda se", "cu", "buceta", "boceta", "bosta",
+        "arrombado", "arrombada", "desgracado", "desgracada", "filho da puta", "fdp", "vsf", "vtnc", "pqp", "cacete", "piranha", "corno", "otario", "otaria"
+      ]
+    }
+  ]
+}

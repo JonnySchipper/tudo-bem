@@ -12,7 +12,8 @@ import {
   type Tile,
 } from '@tudobem/shared';
 import { game, type ClientAvatar, type PendingAction } from './state';
-import { Net, wsUrl } from './net';
+import { Net, wsUrl, type NetLike } from './net';
+import { LocalNet } from './localNet';
 import { WorldRenderer, type Hit } from './render/world';
 import { runOnboarding, closeOnboarding } from './ui/onboarding';
 import { buildHud, hoverLabel, overlayMessage, parrotWhisper, toast } from './ui/hud';
@@ -42,7 +43,10 @@ const LAST_ROOM_KEY = 'tb_last_room';
 
 const canvas = document.getElementById('world') as HTMLCanvasElement;
 const renderer = new WorldRenderer(canvas);
-const net = new Net(wsUrl());
+/** Static deploys (no WebSocket server) run the World in-page. `?solo` forces it anywhere. */
+const SOLO = import.meta.env.VITE_LOCAL_WORLD === '1' || new URLSearchParams(location.search).has('solo');
+const net: NetLike = SOLO ? new LocalNet() : new Net(wsUrl());
+game.solo = SOLO;
 
 let hud: ReturnType<typeof buildHud> | null = null;
 let decor: ReturnType<typeof buildDecorPanel> | null = null;
@@ -222,7 +226,7 @@ net.on((m: ServerMsg) => {
     }
     case 'chat': {
       const a = game.avatars.get(m.id);
-      if (a) a.bubbles.push({ text: m.text, gloss: game.profile?.nameplate === 'verde' ? m.gloss : null, at: now(), masked: m.action === 'warn' });
+      if (a) a.bubbles.push({ text: m.text, gloss: game.profile?.nameplate === 'verde' ? m.gloss : null, at: now() });
       break;
     }
     case 'notice':
@@ -241,12 +245,13 @@ net.on((m: ServerMsg) => {
           closeDialogue();
         },
         startMinigame,
+        (text) => net.send({ t: 'scene', action: 'type', text }),
       );
       break;
     case 'mg':
       if (m.phase === 'order' && (!minigame || modalId() !== 'minigame')) {
         minigame = new MinigameUI({
-          submit: (tray) => net.send({ t: 'mg', action: 'submit', tray }),
+          submit: (tray, mods) => net.send({ t: 'mg', action: 'submit', tray, mods }),
           timeout: () => net.send({ t: 'mg', action: 'timeout' }),
           quit: () => net.send({ t: 'mg', action: 'quit' }),
           again: startMinigame,

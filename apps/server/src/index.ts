@@ -7,7 +7,9 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import type { ClientMsg } from '@tudobem/shared';
 import { World } from './world.js';
 import { ProfileStore } from './store.js';
-import { AuthoredNpcDialogue, FileModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
+import { fileAdapter } from './fileStore.js';
+import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
+import { FileModerationQueue } from './services/fileModeration.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);
@@ -16,7 +18,7 @@ const DATA_DIR = process.env.DATA_DIR ?? path.resolve(process.cwd(), 'data');
 const CLIENT_DIST = process.env.CLIENT_DIST ?? [path.resolve(here, '../../client/dist'), path.resolve(process.cwd(), 'apps/client/dist')].find((p) => fs.existsSync(p));
 const ROOM_CAP = Number(process.env.ROOM_CAP ?? 16);
 
-const store = new ProfileStore(DATA_DIR);
+const store = new ProfileStore(fileAdapter(DATA_DIR));
 const world = new World(
   store,
   {

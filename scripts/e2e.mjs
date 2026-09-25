@@ -18,6 +18,8 @@ const CHROME = process.env.CHROME_PATH ?? ['/usr/local/bin/google-chrome', '/usr
 const SHOTS = process.env.SHOTS_DIR ?? '';
 const VIDEO = process.env.VIDEO_DIR ?? '';
 const HEADLESS = process.env.HEADED ? false : true;
+/** Static solo build: no second player, world runs in the page. */
+const SOLO = !!process.env.SOLO;
 
 const log = (...a) => console.log('  ·', ...a);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -81,22 +83,29 @@ async function createAvatar(page, name, pronoun) {
 // ---- parse a Portuguese order back into a tray (proves the order text alone is solvable)
 const NUM = { um: 1, uma: 1, dois: 2, duas: 2, 'três': 3, tres: 3 };
 async function trayFor(page, orderText) {
-  const items = await page.evaluate(() => window.__tb.rooms && window.__tbItems);
-  const list = items ?? [];
-  const text = orderText.toLowerCase();
+  const list = (await page.evaluate(() => window.__tbItems)) ?? [];
   const tray = {};
-  // Longest forms first so "pão de queijo" wins over "pão".
+  // Longest forms first so "pão na chapa" wins over "pão".
   const forms = list.flatMap((i) => [[i.plural, i.id], [i.form, i.id]]).sort((a, b) => b[0].length - a[0].length);
-  let rest = text;
+  let rest = orderText.toLowerCase();
+  const re = (prefix, form) => new RegExp(`${prefix}${form.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}-])`, 'u');
   for (const [form, id] of forms) {
-    const re = new RegExp(`(um|uma|dois|duas|três|tres)\\s+${form.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}-])`, 'u');
     let m;
-    while ((m = rest.match(re))) {
+    while ((m = rest.match(re('(um|uma|dois|duas|três|tres)\\s+', form)))) {
       tray[id] = (tray[id] ?? 0) + NUM[m[1]];
       rest = rest.replace(m[0], ' ');
     }
   }
-  return tray;
+  // Bare noun with no count ("Café sem açúcar, bem quente.") means one.
+  for (const [form, id] of forms) {
+    const m = rest.match(re('(^|[\\s,])', form));
+    if (m) {
+      tray[id] = (tray[id] ?? 0) + 1;
+      rest = rest.replace(m[0], ' ');
+    }
+  }
+  const mods = ['pra viagem', 'pra comer aqui', 'sem açúcar', 'bem quente'].filter((m) => orderText.toLowerCase().includes(m));
+  return { tray, mods };
 }
 
 async function main() {
@@ -150,16 +159,20 @@ async function main() {
   await page.fill('#chat-input', 'Oi, tudo bem? Bom dia, pessoal!');
   await page.press('#chat-input', 'Enter');
   await waitFor(page, () => window.__tb.game.profile?.tutorial.conversar, null, 5000, 'chat step');
-  // Second player joins to chat + befriend
-  const ctxB = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-  const pageB = await ctxB.newPage();
-  const enterB = await createAvatar(pageB, 'Bia', 'ela');
-  await enterB();
-  await clickTile(pageB, 8, 8);
-  await sleep(1200);
-  await pageB.fill('#chat-input', 'Oi, Jonny! Eu sou de Chicago. Vamos na padaria?');
-  await pageB.press('#chat-input', 'Enter');
-  await sleep(300);
+  let pageB = null;
+  let aId = null;
+  if (!SOLO) {
+    // Second player joins to chat + befriend
+    const ctxB = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    pageB = await ctxB.newPage();
+    const enterB = await createAvatar(pageB, 'Bia', 'ela');
+    await enterB();
+    await clickTile(pageB, 8, 8);
+    await sleep(1200);
+    await pageB.fill('#chat-input', 'Oi, Jonny! Eu sou de Chicago. Vamos na padaria?');
+    await pageB.press('#chat-input', 'Enter');
+    await sleep(300);
+  }
   await page.fill('#chat-input', 'Legal! Eu quero um pão de queijo');
   await page.press('#chat-input', 'Enter');
   await sleep(900);
@@ -168,27 +181,34 @@ async function main() {
   await shot(page, '02_praca_chat_gloss');
   await dwell(2500);
 
-  // Filter check: PII is blocked, alcohol word is masked
-  await pageB.fill('#chat-input', 'me liga 11 98765-4321');
-  await pageB.press('#chat-input', 'Enter');
-  await pageB.fill('#chat-input', 'bora tomar uma cerveja');
-  await pageB.press('#chat-input', 'Enter');
-  await sleep(700);
+  // Filter check: PII and alcohol are blocked; player chat is never rewritten.
+  const sender = pageB ?? page;
+  for (const text of ['me liga 11 98765-4321', 'bora tomar uma cerveja']) {
+    await sender.fill('#chat-input', text);
+    await sender.press('#chat-input', 'Enter');
+  }
+  await sender.fill('#chat-input', 'Essa coxinha tá gostosa!');
+  await sender.press('#chat-input', 'Enter');
+  await sleep(800);
   const texts = await page.evaluate(() => [...window.__tb.game.avatars.values()].flatMap((a) => a.bubbles.map((b) => b.text)));
   assert(!texts.some((t) => t.includes('98765')), 'phone number blocked');
-  assert(texts.some((t) => t.includes('•••')), 'alcohol masked');
-  log('filter ok:', texts.filter((t) => t.includes('•••')));
+  assert(!texts.some((t) => /cerveja/i.test(t)), 'alcohol blocked');
+  assert(!texts.some((t) => t.includes('•••')), 'no auto-rewrite of player chat');
+  assert(texts.includes('Essa coxinha tá gostosa!'), 'warned message delivered unchanged');
+  log('filter ok: PII + alcohol blocked, warn delivered verbatim');
 
-  // Friend request B → A, accept on A
-  const bId = await pageB.evaluate(() => window.__tb.game.room.selfId);
-  const aId = await page.evaluate(() => window.__tb.game.room.selfId);
-  await pageB.evaluate((id) => window.__tb.net.send({ t: 'friend', action: 'request', targetId: id }), aId);
-  await page.click('#btn-friends');
-  await page.waitForSelector('button:has-text("Aceitar")');
-  await page.click('button:has-text("Aceitar")');
-  await waitFor(page, (id) => window.__tb.game.profile.friends.includes(id), bId, 5000, 'friends');
-  await page.keyboard.press('Escape');
-  log('friends ok');
+  if (!SOLO) {
+    // Friend request B → A, accept on A
+    const bId = await pageB.evaluate(() => window.__tb.game.room.selfId);
+    aId = await page.evaluate(() => window.__tb.game.room.selfId);
+    await pageB.evaluate((id) => window.__tb.net.send({ t: 'friend', action: 'request', targetId: id }), aId);
+    await page.click('#btn-friends');
+    await page.waitForSelector('button:has-text("Aceitar")');
+    await page.click('button:has-text("Aceitar")');
+    await waitFor(page, (id) => window.__tb.game.profile.friends.includes(id), bId, 5000, 'friends');
+    await page.keyboard.press('Escape');
+    log('friends ok');
+  }
 
   // 3. Enter the Padaria through its door
   await clickTile(page, 5, 0, 40);
@@ -202,11 +222,15 @@ async function main() {
   await page.waitForSelector('#dialogue [data-chip="0"]', { timeout: 12_000 });
   await sleep(300);
   await shot(page, '04_carlos_scene_start');
-  const picks = [0, 1, 0, 0, 1];
+  // First reply is typed (accept-list scoring), the rest are chips.
+  const picks = ['Bom dia, Seu Carlos!', 1, 0, 0, 1];
   for (let i = 0; i < picks.length; i++) {
     const before = await page.textContent('#dialogue .line');
     await dwell(1600);
-    await page.click(`#dialogue [data-chip="${picks[i]}"]`);
+    if (typeof picks[i] === 'string') {
+      await page.fill('#scene-type', picks[i]);
+      await page.press('#scene-type', 'Enter');
+    } else await page.click(`#dialogue [data-chip="${picks[i]}"]`);
     await waitFor(page, (b) => document.querySelector('#dialogue .line')?.textContent !== b, before, 5000, 'next Carlos line');
     if (i === 2) await shot(page, '05_carlos_scene_mid');
   }
@@ -222,17 +246,19 @@ async function main() {
   await page.waitForSelector('#mg-order');
   const forms = await page.evaluate(() => [...document.querySelectorAll('#mg-shelves button')].map((b) => ({ id: b.dataset.item, form: b.querySelector('.pt').textContent })));
   const plurals = {
-    pao_frances: 'pães franceses', pao_na_chapa: 'pães na chapa', pao_de_queijo: 'pães de queijo', coxinha: 'coxinhas', misto_quente: 'mistos-quentes',
-    sonho: 'sonhos', bolo_de_fuba: 'bolos de fubá', cafezinho: 'cafezinhos', cafe_com_leite: 'cafés com leite', suco_de_laranja: 'sucos de laranja', guarana: 'guaranás',
+    pao: 'pães', pao_na_chapa: 'pães na chapa', pastel: 'pastéis', coxinha: 'coxinhas', bolo: 'bolos', cafe: 'cafés', cafe_com_leite: 'cafés com leite',
+    suco_de_laranja: 'sucos de laranja', agua: 'águas', pao_de_queijo: 'pães de queijo', misto_quente: 'mistos-quentes', guarana: 'guaranás',
   };
   await page.evaluate((list) => (window.__tbItems = list), forms.map((f) => ({ ...f, plural: plurals[f.id] })));
   for (let round = 0; round < 6; round++) {
     await page.waitForSelector('#mg-order');
     const text = await page.textContent('#mg-order');
-    const tray = await trayFor(page, text);
-    log(`order ${round + 1}: “${text}” →`, JSON.stringify(tray));
+    const { tray, mods } = await trayFor(page, text);
+    log(`order ${round + 1}: “${text}” →`, JSON.stringify(tray), mods.join(', '));
     await dwell(round < 2 ? 1400 : 700);
     for (const [id, n] of Object.entries(tray)) for (let k = 0; k < n; k++) await page.click(`#mg-shelves [data-item="${id}"]`);
+    const modIds = { 'pra viagem': 'pra_viagem', 'pra comer aqui': 'pra_comer_aqui', 'sem açúcar': 'sem_acucar', 'bem quente': 'bem_quente' };
+    for (const m of mods) await page.click(`#mg-mods [data-mod="${modIds[m]}"]`);
     if (round === 2) await shot(page, '07_meveum_tray');
     await page.click('#mg-submit');
     if (round < 5) await waitFor(page, (t) => document.querySelector('#mg-order')?.textContent !== t, text, 6000, 'next order');
@@ -293,13 +319,16 @@ async function main() {
   await sleep(600);
   await shot(page, '11_kitnet_chair');
 
-  // Friend visits the kitnet
-  await pageB.evaluate((id) => window.__tb.net.send({ t: 'join', room: 'kitnet', ownerId: id }), aId);
-  await waitFor(pageB, () => window.__tb.game.room?.room === 'kitnet', null, 5000, 'friend visits kitnet');
-  await sleep(500);
-  await pageB.fill('#chat-input', 'Que kitnet legal!');
-  await pageB.press('#chat-input', 'Enter');
-  await sleep(800);
+  if (!SOLO) {
+    // Friend visits the kitnet
+    await pageB.evaluate((id) => window.__tb.net.send({ t: 'join', room: 'kitnet', ownerId: id }), aId);
+    await waitFor(pageB, () => window.__tb.game.room?.room === 'kitnet', null, 5000, 'friend visits kitnet');
+    await sleep(500);
+    await pageB.fill('#chat-input', 'Que kitnet legal!');
+    await pageB.press('#chat-input', 'Enter');
+    await sleep(800);
+
+  }
   await shot(page, '12_kitnet_friend_visit');
   await dwell(2500);
 

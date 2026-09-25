@@ -2,10 +2,15 @@ import type { Bilingual, Pronoun } from './types.js';
 import { mgItemById } from './meveum.js';
 import { numberEn, numberPt } from './numbers.js';
 import { ECONOMY } from './constants.js';
+import { acceptAnswer } from './accept.js';
 
 /**
- * Seu Carlos breakfast scene — authored, chip-only (Phase 0 has no generative NPCs).
- * Graph nodes carry target cards so the student model stub can log graded acts.
+ * Seu Carlos breakfast scene — authored, chip-first (Phase 0 has no generative NPCs).
+ * Voice: content/curriculum/phase0/voice-seu-carlos.md (DRAFT — needs BR sign-off).
+ *   - “Pois não” is the primary acknowledgement; never default to “Pode falar”.
+ *   - “meu filho / minha filha” at most once per scene, only when the player chose ele/ela.
+ *   - Verde lines ≤ 18 words. Praise: Isso aí / Pronto / Tá na mão. Exit: Volte sempre.
+ * Nodes carry target cards so the student model stub can log graded acts.
  */
 
 export interface SceneCtx {
@@ -13,6 +18,9 @@ export interface SceneCtx {
   pronoun: Pronoun;
   food?: string;
   drink?: string;
+  where?: 'aqui' | 'viagem';
+  /** Soft kinship already used this scene (CEO lock: max once). */
+  kinUsed?: boolean;
 }
 
 interface ChipDef {
@@ -20,11 +28,16 @@ interface ChipDef {
   en: (c: SceneCtx) => string;
   score: 0 | 1 | 2 | 3;
   next: string;
-  set?: Partial<Pick<SceneCtx, 'food' | 'drink'>>;
+  set?: Partial<Pick<SceneCtx, 'food' | 'drink' | 'where'>>;
+  /** Extra typed variants (accept-list rules apply on top). */
+  accepts?: string[];
 }
 
+/** `kin()` returns “, meu filho” / “, minha filha” the first time it's allowed, else ''. */
+type Kin = () => string;
+
 interface NodeDef {
-  line: (c: SceneCtx) => Bilingual;
+  line: (c: SceneCtx, kin: Kin) => Bilingual;
   chips: ChipDef[];
   cards: string[];
   end?: boolean;
@@ -38,23 +51,21 @@ export interface SceneView {
   end: boolean;
 }
 
-const filho = (c: SceneCtx) => (c.pronoun === 'ele' ? 'meu filho' : c.pronoun === 'ela' ? 'minha filha' : c.name);
-const obrigad = (c: SceneCtx) => (c.pronoun === 'ele' ? 'obrigado' : c.pronoun === 'ela' ? 'obrigada' : 'valeu');
-const Obrigad = (c: SceneCtx) => cap(obrigad(c));
-const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
+const obrigad = (c: SceneCtx) => (c.pronoun === 'ela' ? 'obrigada' : 'obrigado');
 const fixed = (pt: string, en: string) => ({ pt: () => pt, en: () => en });
 
 export const PRICES: Record<string, number> = {
   pao_na_chapa: 6,
-  pao_de_queijo: 5,
   coxinha: 7,
+  pastel: 8,
   cafe_com_leite: 5,
+  cafe: 4,
   suco_de_laranja: 8,
-  cafezinho: 3,
+  agua: 3,
   nada: 0,
 };
 
-function foodPhrase(id: string | undefined): Bilingual {
+function itemPhrase(id: string | undefined): Bilingual {
   const item = id ? mgItemById(id) : undefined;
   if (!item) return { pt: 'Seu pedido', en: 'Your order' };
   const art = item.card.gender === 'f' ? 'Uma' : 'Um';
@@ -65,108 +76,112 @@ export function sceneTotal(c: SceneCtx): number {
   return (PRICES[c.food ?? ''] ?? 0) + (PRICES[c.drink ?? ''] ?? 0);
 }
 
+const FOOD_CHIPS = (score: 2 | 3): ChipDef[] => [
+  { ...fixed('Me vê um pão na chapa, por favor.', 'Give me a grilled buttered bread, please.'), score, next: 'bebida', set: { food: 'pao_na_chapa' } },
+  { ...fixed('Me vê uma coxinha, por favor.', 'Give me a coxinha, please.'), score, next: 'bebida', set: { food: 'coxinha' } },
+  { ...fixed('Me vê um pastel, por favor.', 'Give me a pastel, please.'), score, next: 'bebida', set: { food: 'pastel' } },
+];
+
 const NODES: Record<string, NodeDef> = {
   inicio: {
-    cards: ['lex.geral.bom_dia', 'lex.geral.tudo_bem'],
-    line: (c) =>
-      c.pronoun === 'nome'
-        ? { pt: `Bom dia, ${c.name}! Tudo bem? Que bom te ver na minha padaria!`, en: 'Good morning! How’s it going? So good to see you in my bakery!' }
-        : {
-            pt: `Bom dia, ${filho(c)}! Tudo bem? Seja ${c.pronoun === 'ela' ? 'bem-vinda' : 'bem-vindo'} à minha padaria!`,
-            en: `Good morning, ${c.pronoun === 'ela' ? 'my girl (lit. “my daughter”)' : 'my boy (lit. “my son”)'}! How’s it going? Welcome to my bakery!`,
-          },
+    cards: ['lex.social.bom_dia', 'lex.social.tudo_bem'],
+    line: () => ({ pt: 'Bom dia! Tudo bem?', en: 'Good morning! How’s it going?' }),
     chips: [
-      { ...fixed('Tudo bem, e o senhor?', 'All good, and you, sir?'), score: 3, next: 'pedido' },
-      { ...fixed('Bom dia, Seu Carlos! Tudo ótimo.', 'Good morning, Seu Carlos! All great.'), score: 3, next: 'pedido' },
-      { ...fixed('Oi!', 'Hi!'), score: 2, next: 'pedido' },
-      { ...fixed('Hello! Good morning!', '(answer in English)'), score: 1, next: 'inicio_devagar' },
+      { ...fixed('Tudo bem!', 'All good!'), score: 3, next: 'pedido', accepts: ['tudo bem e o senhor', 'tudo bem e voce', 'to bem', 'estou bem', 'tudo otimo', 'bem'] },
+      { ...fixed('Bom dia!', 'Good morning!'), score: 3, next: 'pedido', accepts: ['bom dia seu carlos', 'bomdia', 'bom dia tudo bem'] },
+      { ...fixed('Olá!', 'Hello!'), score: 2, next: 'pedido', accepts: ['oi', 'oi seu carlos', 'e ai'] },
+      { ...fixed('Hello! Good morning!', '(answer in English)'), score: 1, next: 'inicio_devagar', accepts: ['hello', 'hi', 'good morning'] },
     ],
   },
   inicio_devagar: {
-    cards: ['lex.geral.bom_dia', 'lex.geral.tudo_bem'],
-    line: () => ({
-      pt: 'Ah, aqui a gente fala português! Devagarinho: Bom… dia! Tudo… bem?',
-      en: 'Ah, here we speak Portuguese! Nice and slow: Good… morning! How’s… it going?',
-    }),
+    cards: ['lex.social.bom_dia', 'lex.social.tudo_bem'],
+    line: () => ({ pt: 'Aqui a gente fala português, tá? Devagarinho: Bom… dia! Tudo… bem?', en: 'Here we speak Portuguese, okay? Nice and slow: Good… morning! How’s… it going?' }),
     chips: [
-      { ...fixed('Bom dia! Tudo bem!', 'Good morning! All good!'), score: 2, next: 'pedido' },
-      { ...fixed('Tudo bem, e o senhor?', 'All good, and you, sir?'), score: 2, next: 'pedido' },
+      { ...fixed('Bom dia! Tudo bem!', 'Good morning! All good!'), score: 2, next: 'pedido', accepts: ['bom dia', 'tudo bem'] },
+      { ...fixed('Tudo bem!', 'All good!'), score: 2, next: 'pedido', accepts: ['bem', 'to bem'] },
     ],
   },
   pedido: {
-    cards: ['lex.padaria.me_ve', 'lex.geral.por_favor', 'lex.padaria.pao_na_chapa', 'lex.padaria.pao_de_queijo', 'lex.padaria.coxinha'],
-    line: () => ({
-      pt: 'Tudo ótimo, graças ao pão quentinho! O que você vai querer hoje?',
-      en: 'All great, thanks to the warm bread! What will you have today?',
-    }),
+    cards: ['lex.padaria.pois_nao', 'lex.padaria.o_que_vai_ser', 'lex.padaria.me_ve', 'lex.padaria.por_favor', 'lex.padaria.pao_na_chapa', 'lex.padaria.cafe_com_leite'],
+    line: () => ({ pt: 'Pois não. O que vai ser hoje?', en: 'At your service. What’ll it be today?' }),
     chips: [
       { ...fixed('Me vê um pão na chapa, por favor.', 'Give me a grilled buttered bread, please.'), score: 3, next: 'bebida', set: { food: 'pao_na_chapa' } },
-      { ...fixed('Eu queria um pão de queijo, por favor.', 'I’d like a cheese bread, please.'), score: 3, next: 'bebida', set: { food: 'pao_de_queijo' } },
-      { ...fixed('Uma coxinha.', 'A chicken croquette.'), score: 2, next: 'bebida', set: { food: 'coxinha' } },
-      { ...fixed('Pão.', 'Bread.'), score: 1, next: 'pedido_dica' },
+      { ...fixed('Um café com leite, por favor.', 'A coffee with milk, please.'), score: 3, next: 'comida', set: { drink: 'cafe_com_leite' }, accepts: ['me ve um cafe com leite'] },
+      { ...fixed('Ainda tô olhando.', 'I’m still looking.'), score: 2, next: 'pedido_calma', accepts: ['ainda estou olhando', 'to olhando', 'so olhando', 'deixa eu ver'] },
+      { ...fixed('Pão.', 'Bread.'), score: 1, next: 'pedido_dica', accepts: ['bread'] },
     ],
+  },
+  pedido_calma: {
+    cards: ['lex.padaria.pao_na_chapa', 'lex.padaria.coxinha', 'lex.padaria.pastel', 'lex.padaria.quentinho'],
+    line: (_c, kin) => ({
+      pt: `Sem pressa${kin()}. Tem pão na chapa, coxinha e pastel quentinho.`,
+      en: 'No rush. There’s grilled buttered bread, coxinha and nice warm pastel.',
+    }),
+    chips: FOOD_CHIPS(3),
   },
   pedido_dica: {
-    cards: ['lex.padaria.me_ve', 'lex.geral.por_favor'],
+    cards: ['lex.padaria.me_ve', 'lex.padaria.por_favor'],
     line: () => ({
-      pt: 'Pão francês? Pão na chapa? Pão de queijo? Tenta assim: “Me vê um pão na chapa, por favor.”',
-      en: 'French roll? Grilled bread? Cheese bread? Try it like this: “Give me a grilled buttered bread, please.”',
+      pt: 'Pão na chapa? Coxinha? Pastel? Fala assim: “Me vê um pão na chapa, por favor.”',
+      en: 'Grilled bread? Coxinha? Pastel? Say it like this: “Give me a grilled buttered bread, please.”',
     }),
-    chips: [
-      { ...fixed('Me vê um pão na chapa, por favor.', 'Give me a grilled buttered bread, please.'), score: 2, next: 'bebida', set: { food: 'pao_na_chapa' } },
-      { ...fixed('Me vê um pão de queijo, por favor.', 'Give me a cheese bread, please.'), score: 2, next: 'bebida', set: { food: 'pao_de_queijo' } },
-      { ...fixed('Me vê uma coxinha, por favor.', 'Give me a chicken croquette, please.'), score: 2, next: 'bebida', set: { food: 'coxinha' } },
-    ],
+    chips: FOOD_CHIPS(2),
   },
   bebida: {
-    cards: ['lex.padaria.cafezinho', 'lex.padaria.cafe_com_leite', 'lex.padaria.suco_de_laranja'],
+    cards: ['lex.padaria.isso_ai', 'lex.padaria.cafe_com_leite', 'lex.padaria.suco_de_laranja', 'lex.padaria.agua'],
     line: (c) => {
-      const f = foodPhrase(c.food);
+      const f = itemPhrase(c.food);
       return {
-        pt: `Boa escolha! ${f.pt} saindo! E pra beber? Um cafezinho, um café com leite ou um suco de laranja?`,
-        en: `Good choice! ${f.en} coming up! And to drink? A little coffee, a coffee with milk, or an orange juice?`,
+        pt: `Isso aí! ${f.pt} saindo. E pra beber? Café com leite, suco de laranja ou água?`,
+        en: `That’s it! ${f.en} coming up. And to drink? Coffee with milk, orange juice or water?`,
       };
     },
     chips: [
-      { ...fixed('Um café com leite, por favor.', 'A coffee with milk, please.'), score: 3, next: 'mais', set: { drink: 'cafe_com_leite' } },
-      { ...fixed('Um suco de laranja, por favor.', 'An orange juice, please.'), score: 3, next: 'mais', set: { drink: 'suco_de_laranja' } },
-      { pt: (c) => `Nada, ${obrigad(c)}.`, en: () => 'Nothing, thanks.', score: 2, next: 'mais', set: { drink: 'nada' } },
-      { ...fixed('Café?', 'Coffee?'), score: 1, next: 'bebida_dica' },
+      { ...fixed('Um café com leite, por favor.', 'A coffee with milk, please.'), score: 3, next: 'local', set: { drink: 'cafe_com_leite' } },
+      { ...fixed('Um suco de laranja, por favor.', 'An orange juice, please.'), score: 3, next: 'local', set: { drink: 'suco_de_laranja' } },
+      { ...fixed('Uma água, por favor.', 'A water, please.'), score: 3, next: 'local', set: { drink: 'agua' } },
+      { ...fixed('Café?', 'Coffee?'), score: 1, next: 'bebida_dica', accepts: ['coffee'] },
     ],
   },
   bebida_dica: {
-    cards: ['lex.padaria.cafezinho', 'lex.padaria.cafe_com_leite'],
-    line: () => ({
-      pt: 'Café puro, o cafezinho, ou café com leite? Fala assim: “Um cafezinho, por favor.”',
-      en: 'Black coffee (the “cafezinho”) or coffee with milk? Say it like this: “A little coffee, please.”',
-    }),
+    cards: ['lex.padaria.cafe', 'lex.padaria.cafe_com_leite'],
+    line: () => ({ pt: 'Café puro ou café com leite? Fala: “Um café com leite, por favor.”', en: 'Plain coffee or coffee with milk? Say: “A coffee with milk, please.”' }),
     chips: [
-      { ...fixed('Um cafezinho, por favor.', 'A little black coffee, please.'), score: 2, next: 'mais', set: { drink: 'cafezinho' } },
-      { ...fixed('Um café com leite, por favor.', 'A coffee with milk, please.'), score: 2, next: 'mais', set: { drink: 'cafe_com_leite' } },
+      { ...fixed('Um café, por favor.', 'A coffee, please.'), score: 2, next: 'local', set: { drink: 'cafe' } },
+      { ...fixed('Um café com leite, por favor.', 'A coffee with milk, please.'), score: 2, next: 'local', set: { drink: 'cafe_com_leite' } },
     ],
   },
-  mais: {
-    cards: ['lex.padaria.so_isso'],
-    line: () => ({ pt: 'Anotado! Mais alguma coisa?', en: 'Got it! Anything else?' }),
+  comida: {
+    cards: ['lex.padaria.isso_ai', 'lex.padaria.pao_na_chapa', 'lex.padaria.coxinha', 'lex.padaria.pastel'],
+    line: (c) => {
+      const d = itemPhrase(c.drink);
+      return { pt: `Isso aí! ${d.pt} saindo. E pra comer? Pão na chapa, coxinha ou pastel?`, en: `That’s it! ${d.en} coming up. And to eat? Grilled bread, coxinha or pastel?` };
+    },
     chips: [
-      { ...fixed('Não, só isso. Quanto é?', 'No, that’s all. How much is it?'), score: 3, next: 'preco' },
-      { pt: (c) => `Só isso, ${obrigad(c)}!`, en: () => 'That’s all, thanks!', score: 3, next: 'preco' },
-      { ...fixed('Sim.', 'Yes.'), score: 1, next: 'mais_dica' },
+      ...FOOD_CHIPS(3).map((c) => ({ ...c, next: 'local' })),
+      { pt: (c) => `Só o café, ${obrigad(c)}.`, en: () => 'Just the coffee, thanks.', score: 2, next: 'local', set: { food: 'nada' }, accepts: ['so isso', 'so o cafe', 'nada obrigado'] },
     ],
   },
-  mais_dica: {
-    cards: ['lex.padaria.so_isso'],
-    line: (c) => ({
-      pt: `Sim o quê, ${filho(c)}? Se não quiser mais nada, é só dizer: “Só isso.”`,
-      en: 'Yes what? If you don’t want anything else, just say: “That’s all.”',
-    }),
+  local: {
+    cards: ['lex.padaria.pronto', 'lex.padaria.pra_comer_aqui', 'lex.padaria.pra_viagem'],
+    line: () => ({ pt: 'Pronto. Pra comer aqui ou pra viagem?', en: 'Ready. For here or to go?' }),
     chips: [
-      { pt: (c) => `Só isso, ${obrigad(c)}!`, en: () => 'That’s all, thanks!', score: 2, next: 'preco' },
-      { ...fixed('Não, só isso. Quanto é?', 'No, that’s all. How much is it?'), score: 2, next: 'preco' },
+      { ...fixed('Pra comer aqui, por favor.', 'For here, please.'), score: 3, next: 'preco', set: { where: 'aqui' }, accepts: ['para comer aqui', 'pra comer aqui'] },
+      { ...fixed('Pra viagem, por favor.', 'To go, please.'), score: 3, next: 'preco', set: { where: 'viagem' }, accepts: ['para viagem', 'pra viagem'] },
+      { ...fixed('Aqui.', 'Here.'), score: 2, next: 'preco', set: { where: 'aqui' } },
+      { ...fixed('To go.', '(answer in English)'), score: 1, next: 'local_dica', accepts: ['to go', 'for here'] },
+    ],
+  },
+  local_dica: {
+    cards: ['lex.padaria.pra_viagem', 'lex.padaria.pra_comer_aqui'],
+    line: () => ({ pt: '“To go” é “pra viagem”. E “for here” é “pra comer aqui”.', en: '“To go” is “pra viagem”. And “for here” is “pra comer aqui”.' }),
+    chips: [
+      { ...fixed('Pra viagem, por favor.', 'To go, please.'), score: 2, next: 'preco', set: { where: 'viagem' } },
+      { ...fixed('Pra comer aqui, por favor.', 'For here, please.'), score: 2, next: 'preco', set: { where: 'aqui' } },
     ],
   },
   preco: {
-    cards: ['lex.padaria.por_conta_da_casa'],
+    cards: ['lex.padaria.por_conta_da_casa', 'lex.social.obrigado'],
     line: (c) => {
       const t = sceneTotal(c);
       return {
@@ -175,45 +190,51 @@ const NODES: Record<string, NodeDef> = {
       };
     },
     chips: [
-      { pt: (c) => `Sério? Muito ${obrigad(c) === 'valeu' ? 'obrigado' : obrigad(c)}, Seu Carlos!`, en: () => 'Really? Thank you so much, Seu Carlos!', score: 3, next: 'fim' },
-      { ...fixed('Que legal! Valeu!', 'How cool! Thanks!'), score: 3, next: 'fim' },
-      { ...fixed('Por conta da casa?', 'On the house?'), score: 1, next: 'preco_dica' },
+      { pt: (c) => `Muito ${obrigad(c)}, Seu Carlos!`, en: () => 'Thank you so much, Seu Carlos!', score: 3, next: 'fim', accepts: ['obrigado', 'muito obrigado', 'obrigado seu carlos'] },
+      { ...fixed('Valeu!', 'Thanks!'), score: 2, next: 'fim', accepts: ['valeu seu carlos', 'vlw'] },
+      { ...fixed('Por conta da casa?', 'On the house?'), score: 1, next: 'preco_dica', accepts: ['what', 'como assim'] },
     ],
   },
   preco_dica: {
     cards: ['lex.padaria.por_conta_da_casa'],
-    line: () => ({
-      pt: '“Por conta da casa” quer dizer que você não paga nada. É de graça!',
-      en: '“Por conta da casa” means you pay nothing. It’s free!',
-    }),
+    line: () => ({ pt: '“Por conta da casa” quer dizer que você não paga nada. É de graça!', en: '“Por conta da casa” means you pay nothing. It’s free!' }),
     chips: [
-      { pt: (c) => `Ah, entendi! ${Obrigad(c)}!`, en: () => 'Oh, I get it! Thanks!', score: 2, next: 'fim' },
-      { ...fixed('Que legal! Valeu!', 'How cool! Thanks!'), score: 2, next: 'fim' },
+      { pt: (c) => `Ah, entendi! ${obrigad(c) === 'obrigada' ? 'Obrigada' : 'Obrigado'}!`, en: () => 'Oh, I get it! Thanks!', score: 2, next: 'fim', accepts: ['entendi', 'obrigado'] },
+      { ...fixed('Valeu!', 'Thanks!'), score: 2, next: 'fim' },
     ],
   },
   fim: {
-    cards: [],
+    cards: ['lex.padaria.ta_na_mao', 'lex.padaria.volte_sempre'],
     end: true,
-    line: (c) => ({
-      pt: `Imagina! Bom apetite e volte sempre, ${filho(c)}! Ah — se quiser ganhar uns trocados, me ajuda no balcão com o “Me vê um…”.`,
-      en: 'Don’t mention it! Enjoy your meal and come back anytime! Oh — if you want to earn some coins, help me at the counter with “Me vê um…”.',
+    line: (_c, kin) => ({
+      pt: `Tá na mão${kin()}. Volte sempre! Quer ajudar no balcão? É o “Me vê um…”.`,
+      en: 'Here you go. Come back anytime! Want to help at the counter? It’s the “Me vê um…” game.',
     }),
     chips: [],
   },
 };
 
 export const SCENE_START = 'inicio';
+export const SCENE_NODE_IDS = Object.keys(NODES);
 
-export function viewNode(nodeId: string, ctx: SceneCtx): SceneView | null {
+function render(nodeId: string, ctx: SceneCtx): { view: SceneView; usedKin: boolean } | null {
   const n = NODES[nodeId];
   if (!n) return null;
-  return {
-    nodeId,
-    speaker: 'Seu Carlos',
-    line: n.line(ctx),
-    chips: n.chips.map((c) => ({ pt: c.pt(ctx), en: c.en(ctx) })),
-    end: !!n.end,
+  let usedKin = false;
+  const kin: Kin = () => {
+    if (ctx.kinUsed || usedKin || ctx.pronoun === 'nome') return '';
+    usedKin = true;
+    return ctx.pronoun === 'ela' ? ', minha filha' : ', meu filho';
   };
+  const line = n.line(ctx, kin);
+  return {
+    view: { nodeId, speaker: 'Seu Carlos', line, chips: n.chips.map((c) => ({ pt: c.pt(ctx), en: c.en(ctx) })), end: !!n.end },
+    usedKin,
+  };
+}
+
+export function viewNode(nodeId: string, ctx: SceneCtx): SceneView | null {
+  return render(nodeId, ctx)?.view ?? null;
 }
 
 export interface ChoiceResult {
@@ -224,18 +245,66 @@ export interface ChoiceResult {
   cards: string[];
 }
 
-export function chooseChip(nodeId: string, chipIndex: number, ctx: SceneCtx): ChoiceResult | null {
+export function chooseChip(nodeId: string, chipIndex: number, ctx: SceneCtx, scoreCap: 0 | 1 | 2 | 3 = 3): ChoiceResult | null {
   const n = NODES[nodeId];
   const chip = n?.chips[chipIndex];
   if (!n || !chip) return null;
-  return { score: chip.score, next: chip.next, ctx: { ...ctx, ...(chip.set ?? {}) }, said: { pt: chip.pt(ctx), en: chip.en(ctx) }, cards: n.cards };
+  const nextCtx: SceneCtx = { ...ctx, ...(chip.set ?? {}) };
+  // Kinship is spent when the next line actually uses it.
+  if (render(chip.next, nextCtx)?.usedKin) nextCtx.kinUsed = true;
+  const score = Math.min(chip.score, scoreCap) as 0 | 1 | 2 | 3;
+  return { score, next: chip.next, ctx: nextCtx, said: { pt: chip.pt(ctx), en: chip.en(ctx) }, cards: n.cards };
+}
+
+export interface TypedReplyScore {
+  /** Chip the typed reply maps to, or null when Carlos didn't understand. */
+  chip: number | null;
+  /** Jev NPC-reply pack answers (content/safety/phase0/jev/npc-reply-pack.json). */
+  task_success: 0 | 1 | 2 | 3;
+  language: 'pt' | 'en' | 'mix' | 'gibberish';
+  answers_the_npc_question: boolean;
+  uses_target_lexeme: boolean;
+  why: string;
+}
+
+/** Stub Jev + accept-list rules for a free-typed reply to the current node. */
+export function scoreTypedReply(nodeId: string, text: string, ctx: SceneCtx): TypedReplyScore {
+  const n = NODES[nodeId];
+  const none = (language: TypedReplyScore['language'], why: string): TypedReplyScore => ({ chip: null, task_success: 0, language, answers_the_npc_question: false, uses_target_lexeme: false, why });
+  if (!n || !n.chips.length) return none('gibberish', 'no open question');
+  let best: { chip: number; cap: 0 | 1 | 2 | 3; english: boolean; why: string } | null = null;
+  n.chips.forEach((c, i) => {
+    for (const target of [c.pt(ctx), ...(c.accepts ?? [])]) {
+      const r = acceptAnswer(text, target);
+      if (!r.match) continue;
+      const cap = Math.min(r.cap, c.score) as 0 | 1 | 2 | 3;
+      if (!best || cap > best.cap) best = { chip: i, cap, english: r.english, why: r.why };
+    }
+  });
+  const found = best as { chip: number; cap: 0 | 1 | 2 | 3; english: boolean; why: string } | null;
+  if (!found) {
+    const english = acceptAnswer(text, '_').english;
+    // English with no matching chip: route through the node's English/rephrase chip if it has one.
+    const en = n.chips.findIndex((c) => c.score === 1);
+    if (english && en >= 0) return { chip: en, task_success: 1, language: 'en', answers_the_npc_question: true, uses_target_lexeme: false, why: 'English — Carlos rephrases slower' };
+    return none(english ? 'en' : 'pt', 'did not match any expected reply');
+  }
+  const chip = n.chips[found.chip];
+  return {
+    chip: found.chip,
+    task_success: found.cap,
+    language: found.english ? 'en' : 'pt',
+    answers_the_npc_question: true,
+    uses_target_lexeme: chip.score === 3 && found.cap >= 2,
+    why: found.why,
+  };
 }
 
 export const SCORE_FEEDBACK: Record<0 | 1 | 2 | 3, Bilingual> = {
   3: { pt: 'Perfeito!', en: 'Perfect!' },
   2: { pt: 'Muito bem!', en: 'Well done!' },
   1: { pt: 'Quase! Seu Carlos vai repetir devagar.', en: 'Almost! Seu Carlos will say it slower.' },
-  0: { pt: 'Tudo bem, vamos de novo.', en: 'That’s okay, let’s try again.' },
+  0: { pt: 'Não entendi bem — tenta de novo ou escolhe um botão.', en: 'Carlos didn’t quite get that — try again or pick a reply.' },
 };
 
 /** Scene clear payout (GDD §10.2: 6–14 RV) with daily decay per NPC. */

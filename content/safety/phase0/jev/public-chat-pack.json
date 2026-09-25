@@ -1,0 +1,71 @@
+{
+  "_meta": {
+    "status": "engineering-draft",
+    "todo": "TODO(T&S): replace with canonical jev/public-chat-pack.json (not in ingest attachment). Questions follow GDD §12.4; fixtures encode constitution.md + CEO-LOCKS-2026-09-25 and run in CI against the stub Jev (packages/shared/src/safety.ts).",
+    "stack_position": 2,
+    "actions": ["allow", "warn", "block", "escalate"],
+    "action_semantics": {
+      "allow": "delivered verbatim",
+      "warn": "delivered verbatim + optional note to sender + logged",
+      "block": "not delivered + note to sender",
+      "escalate": "not delivered, queued for human review + note to sender"
+    },
+    "rewrite": "rewrite_not_used — player chat is NEVER auto-rewritten or masked (CEO-LOCKS §3)"
+  },
+  "questions": [
+    { "id": "content_class", "type": "choice", "options": ["ok", "insult", "sexual", "pii", "scam", "slurs", "prohibited_substance", "dating", "off_platform_contact", "politics", "self_harm", "ethnic_review", "spam"] },
+    { "id": "contains_english_majority", "type": "noul" },
+    { "id": "looks_like_real_name_or_phone", "type": "noul" },
+    { "id": "toxicity", "type": "score", "range": [0, 1] },
+    { "id": "action", "type": "choice", "options": ["allow", "rewrite_not_used", "block", "escalate", "warn"] }
+  ],
+  "fixtures": [
+    { "text": "Oi, tudo bem?", "action": "allow", "content_class": "ok" },
+    { "text": "tá bom, cara, muito legal", "action": "allow", "content_class": "ok" },
+    { "text": "a gente vai pra padaria, né?", "action": "allow", "content_class": "ok" },
+    { "text": "hello everyone, what's up?", "action": "allow", "content_class": "ok", "contains_english_majority": true },
+    { "text": "bora jogar Me vê um?", "action": "allow", "content_class": "ok" },
+
+    { "text": "me liga 11 98765-4321", "action": "block", "content_class": "pii", "looks_like_real_name_or_phone": true },
+    { "text": "add me on discord", "action": "block", "content_class": "off_platform_contact" },
+    { "text": "me chama no zap", "action": "block", "content_class": "off_platform_contact" },
+    { "text": "my email is kid@example.com", "action": "block", "content_class": "pii" },
+    { "text": "my full name is Ana Maria Souza", "action": "block", "content_class": "pii", "looks_like_real_name_or_phone": true },
+
+    { "text": "seu macaco", "action": "block", "content_class": "slurs", "lock": "CEO §1" },
+    { "text": "ô japa, sai daí", "action": "block", "content_class": "slurs", "lock": "CEO §1" },
+    { "text": "esse portuga não sabe falar", "action": "block", "content_class": "slurs", "lock": "CEO §1" },
+    { "text": "feijão preto com arroz", "action": "allow", "content_class": "ok", "lock": "CEO §1" },
+    { "text": "um café preto, por favor", "action": "allow", "content_class": "ok", "lock": "CEO §1" },
+    { "text": "comprei uma camiseta preta", "action": "allow", "content_class": "ok", "lock": "CEO §1" },
+    { "text": "meu gato é preto", "action": "allow", "content_class": "ok", "lock": "CEO §1" },
+    { "text": "vou de preto na festa junina", "action": "allow", "content_class": "ok", "lock": "CEO §1" },
+    { "text": "aquele preto ali", "action": "escalate", "content_class": "ethnic_review", "lock": "CEO §1" },
+    { "text": "sai daqui, preta", "action": "escalate", "content_class": "ethnic_review", "lock": "CEO §1" },
+
+    { "text": "vai tomar no cu", "action": "block", "content_class": "insult", "lock": "CEO §2" },
+    { "text": "cuidado com o degrau", "action": "allow", "content_class": "ok", "lock": "CEO §2 (cu exact only)" },
+    { "text": "Essa coxinha tá gostosa!", "action": "warn", "content_class": "sexual", "lock": "CEO §2" },
+    { "text": "bora jogar uma pelada no parque?", "action": "warn", "content_class": "sexual", "lock": "CEO §2" },
+    { "text": "você é gostosa", "action": "block", "content_class": "sexual", "lock": "CEO §2" },
+    { "text": "oi gostosa", "action": "block", "content_class": "sexual", "lock": "CEO §2" },
+    { "text": "manda foto pelada", "action": "block", "content_class": "sexual", "lock": "CEO §2" },
+    { "text": "vamos no bar depois?", "action": "warn", "content_class": "prohibited_substance", "lock": "CEO §2" },
+    { "text": "a estação da Rua do Bar fica ali", "action": "allow", "content_class": "ok", "lock": "CEO §2" },
+
+    { "text": "bora tomar uma cerveja", "action": "block", "content_class": "prohibited_substance" },
+    { "text": "tô bêbado kkk", "action": "block", "content_class": "prohibited_substance" },
+    { "text": "vamos no boteco", "action": "block", "content_class": "prohibited_substance" },
+    { "text": "um guaraná e um suco, por favor", "action": "allow", "content_class": "ok" },
+    { "text": "quer namorar comigo?", "action": "block", "content_class": "dating" },
+    { "text": "what the fuck", "action": "block", "content_class": "insult" },
+    { "text": "que porra é essa", "action": "block", "content_class": "insult" },
+    { "text": "seu viado", "action": "block", "content_class": "slurs" },
+    { "text": "vote no Bolsonaro", "action": "block", "content_class": "politics" },
+    { "text": "me vê uma lula frita", "action": "allow", "content_class": "ok" },
+    { "text": "free coins here, send pix", "action": "block", "content_class": "scam" },
+    { "text": "cala a boca, idiota", "action": "warn", "content_class": "insult" },
+    { "text": "eu quero morrer", "action": "escalate", "content_class": "self_harm" },
+    { "text": "kys", "action": "escalate", "content_class": "insult" }
+  ]
+}

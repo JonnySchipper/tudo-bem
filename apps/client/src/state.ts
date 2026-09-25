@@ -5,7 +5,6 @@ export interface Bubble {
   text: string;
   gloss: string | null;
   at: number;
-  masked?: boolean;
 }
 
 export interface ClientAvatar {
@@ -41,6 +40,8 @@ class Game {
   selectedFurniture: string | null = null;
   hoverTile: Tile | null = null;
   modalOpen = false;
+  /** Solo (static) build: the world runs in this tab; no other humans. */
+  solo = false;
   sound = localStorage.getItem('tb_sound') !== 'off';
   private listeners = new Map<string, Set<Listener>>();
 

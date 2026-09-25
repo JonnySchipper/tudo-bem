@@ -1,0 +1,41 @@
+name: Deploy multiplayer server (Fly.io)
+
+# Runs on every push to main once the repo has a FLY_API_TOKEN secret
+# (Settings → Secrets and variables → Actions). Optional repo variable FLY_APP (default: tudo-bem).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: fly-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      FLY_APP: ${{ vars.FLY_APP || 'tudo-bem' }}
+      FLY_REGION: ${{ vars.FLY_REGION || 'gru' }}
+    steps:
+      - name: Skip without credentials
+        if: env.FLY_API_TOKEN == ''
+        run: echo "::notice::FLY_API_TOKEN secret not set — skipping Fly deploy. Add it to deploy https://$FLY_APP.fly.dev"
+      - uses: actions/checkout@v4
+        if: env.FLY_API_TOKEN != ''
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+        if: env.FLY_API_TOKEN != ''
+      - name: Create app + volume on first run
+        if: env.FLY_API_TOKEN != ''
+        run: |
+          flyctl status -a "$FLY_APP" >/dev/null 2>&1 || flyctl apps create "$FLY_APP"
+          flyctl volumes list -a "$FLY_APP" | grep -q tudobem_data || flyctl volumes create tudobem_data -a "$FLY_APP" --region "$FLY_REGION" --size 1 --yes
+      - name: Deploy
+        if: env.FLY_API_TOKEN != ''
+        run: flyctl deploy --remote-only -a "$FLY_APP" --primary-region "$FLY_REGION"
+      - name: Smoke test
+        if: env.FLY_API_TOKEN != ''
+        run: |
+          for i in $(seq 1 20); do curl -sf "https://$FLY_APP.fly.dev/healthz" && exit 0; sleep 5; done
+          exit 1

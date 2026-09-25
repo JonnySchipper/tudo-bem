@@ -402,8 +402,8 @@
    "ox": 0,
    "oy": 0
   },
-  "food/pao_frances": {
-   "file": "food/pao_frances.png",
+  "food/pao": {
+   "file": "food/pao.png",
    "w": 64,
    "h": 64,
    "ox": 0,
@@ -416,8 +416,8 @@
    "ox": 0,
    "oy": 0
   },
-  "food/pao_de_queijo": {
-   "file": "food/pao_de_queijo.png",
+  "food/pastel": {
+   "file": "food/pastel.png",
    "w": 64,
    "h": 64,
    "ox": 0,
@@ -430,29 +430,15 @@
    "ox": 0,
    "oy": 0
   },
-  "food/misto_quente": {
-   "file": "food/misto_quente.png",
+  "food/bolo": {
+   "file": "food/bolo.png",
    "w": 64,
    "h": 64,
    "ox": 0,
    "oy": 0
   },
-  "food/sonho": {
-   "file": "food/sonho.png",
-   "w": 64,
-   "h": 64,
-   "ox": 0,
-   "oy": 0
-  },
-  "food/bolo_de_fuba": {
-   "file": "food/bolo_de_fuba.png",
-   "w": 64,
-   "h": 64,
-   "ox": 0,
-   "oy": 0
-  },
-  "food/cafezinho": {
-   "file": "food/cafezinho.png",
+  "food/cafe": {
+   "file": "food/cafe.png",
    "w": 64,
    "h": 64,
    "ox": 0,
@@ -467,6 +453,27 @@
   },
   "food/suco_de_laranja": {
    "file": "food/suco_de_laranja.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "food/agua": {
+   "file": "food/agua.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "food/pao_de_queijo": {
+   "file": "food/pao_de_queijo.png",
+   "w": 64,
+   "h": 64,
+   "ox": 0,
+   "oy": 0
+  },
+  "food/misto_quente": {
+   "file": "food/misto_quente.png",
    "w": 64,
    "h": 64,
    "ox": 0,

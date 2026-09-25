@@ -47,7 +47,9 @@ const live = typeof location !== 'undefined' && new URLSearchParams(location.sea
 let manifest: ArtManifest | null = null;
 const images = new Map<string, HTMLImageElement>();
 
-export async function loadArt(base = '/art/') {
+const ART_BASE = `${import.meta.env.BASE_URL ?? '/'}art/`;
+
+export async function loadArt(base = ART_BASE) {
   if (live || manifest) return;
   try {
     const res = await fetch(`${base}manifest.json`, { cache: 'no-cache' });
@@ -82,7 +84,7 @@ export function drawSprite(ctx: CanvasRenderingContext2D, key: string | null, x:
 
 export function spriteUrl(key: string): string | null {
   if (live || !manifest?.sprites[key]) return null;
-  return `/art/${manifest.sprites[key].file}`;
+  return `${ART_BASE}${manifest.sprites[key].file}`;
 }
 
 export function artStats() {

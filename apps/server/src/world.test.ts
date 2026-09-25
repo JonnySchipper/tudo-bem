@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { DEFAULT_APPEARANCE, ECONOMY, type ServerMsg, type ClientMsg } from '@tudobem/shared';
 import { World, type Session } from './world.js';
 import { ProfileStore } from './store.js';
-import { AuthoredNpcDialogue, FileModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
+import { AuthoredNpcDialogue, MemoryModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 
 let clock = 1_000_000;
 const now = () => clock;
@@ -16,7 +16,7 @@ function advance(ms: number) {
 }
 
 function makeWorld(cap = 16) {
-  const moderation = new FileModerationQueue(null);
+  const moderation = new MemoryModerationQueue();
   const world = new World(
     new ProfileStore(null),
     { safety: new JevStubSafety(), gloss: new PhrasebookGloss(), npc: new AuthoredNpcDialogue(), student: new InMemoryStudentModel(), moderation },
@@ -103,7 +103,7 @@ describe('World', () => {
     expect(clients[16].last('roomState')!.instanceName).toBe('Praça Central · Sul');
   });
 
-  it('broadcasts filtered chat with gloss, masks warn, blocks PII', async () => {
+  it('broadcasts chat verbatim with gloss, warns without rewriting, blocks PII + alcohol', async () => {
     const { world, moderation } = makeWorld();
     const a = await client(world, 'Ana');
     const b = await client(world, 'Beto', 'ele');
@@ -111,10 +111,14 @@ describe('World', () => {
     const got = b.last('chat')!;
     expect(got.text).toBe('Oi, tudo bem?');
     expect(got.gloss).toMatch(/hi/i);
-    await a.send({ t: 'chat', text: 'bora tomar uma cerveja' });
-    expect(b.last('chat')!.text).toBe('bora tomar uma •••');
+    await a.send({ t: 'chat', text: 'bora jogar uma pelada?' });
+    expect(b.last('chat')!.text).toBe('bora jogar uma pelada?');
+    expect(b.last('chat')!.action).toBe('warn');
     expect(a.last('notice')!.level).toBe('warn');
+    expect(moderation.recent(5).some((e) => e.kind === 'warn')).toBe(true);
     const before = b.all('chat').length;
+    await a.send({ t: 'chat', text: 'bora tomar uma cerveja' });
+    expect(b.all('chat').length).toBe(before);
     await a.send({ t: 'chat', text: 'me liga 11 98765-4321' });
     expect(b.all('chat').length).toBe(before);
     expect(a.last('notice')!.level).toBe('block');
@@ -148,7 +152,7 @@ describe('World', () => {
 
     // Carlos scene with best chips
     await a.send({ t: 'scene', action: 'start', npc: 'carlos' });
-    expect(a.last('scene')!.view.line.pt).toMatch(/minha filha/);
+    expect(a.last('scene')!.view.line.pt).toBe('Bom dia! Tudo bem?');
     for (let i = 0; i < 5; i++) await a.send({ t: 'scene', action: 'choose', chip: 0 });
     const endScene = a.last('scene')!;
     expect(endScene.view.end).toBe(true);
@@ -160,7 +164,7 @@ describe('World', () => {
       const order = world.debugOrder(a.s)!;
       const tray = Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty]));
       clock += 1000;
-      await a.send({ t: 'mg', action: 'submit', tray });
+      await a.send({ t: 'mg', action: 'submit', tray, mods: order.mods });
     }
     const end = a.last('mg') as Extract<ServerMsg, { t: 'mg'; phase: 'end' }>;
     expect(end.phase).toBe('end');

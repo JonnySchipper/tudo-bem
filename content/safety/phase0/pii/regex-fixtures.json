@@ -1,0 +1,100 @@
+{
+  "_meta": {
+    "status": "engineering-draft",
+    "todo": "TODO(T&S): replace with canonical pii/regex-fixtures.json (not in ingest attachment). Drafted from constitution.md §4 + README 'Client regex PII'.",
+    "stack_position": 1,
+    "matching": "Regex source + flags applied to the raw message (patterns marked normalized:true run on the normalized text). Every pattern ships with examples that CI asserts."
+  },
+  "patterns": [
+    {
+      "id": "email",
+      "label": "pii",
+      "regex": "[\\w.+-]+@[\\w-]+\\.[a-z]{2,}",
+      "flags": "i",
+      "match": ["my email is kid@example.com", "manda pra ana.silva@gmail.com"],
+      "noMatch": ["me vê um café @ 8h"]
+    },
+    {
+      "id": "phone",
+      "label": "pii",
+      "regex": "(?:\\+?\\d[\\s().-]*){7,}",
+      "flags": "",
+      "match": ["me liga 11 98765-4321", "+1 (415) 555 0199", "zap 11987654321"],
+      "noMatch": ["me vê 2 pães e 3 cafés", "nota 10 pra padaria"]
+    },
+    {
+      "id": "url",
+      "label": "pii",
+      "regex": "\\b(https?:\\/\\/|www\\.)\\S+",
+      "flags": "i",
+      "match": ["entra em www.site-estranho.com", "https://bit.ly/x"],
+      "noMatch": ["www é legal"]
+    },
+    {
+      "id": "domain",
+      "label": "pii",
+      "regex": "\\b[\\w-]+\\.(com|net|org|br|io|gg|me|tv|app|xyz|ly)\\b",
+      "flags": "i",
+      "match": ["acessa meusite.com.br", "discord.gg/abc"],
+      "noMatch": ["tudo bem. bom dia"]
+    },
+    {
+      "id": "handle",
+      "label": "off_platform_contact",
+      "regex": "(^|\\s)@[a-z0-9_.]{2,}",
+      "flags": "i",
+      "match": ["me segue @meuperfil", "@ana_123"],
+      "noMatch": ["café @ padaria"]
+    },
+    {
+      "id": "platform_names",
+      "label": "off_platform_contact",
+      "regex": "\\b(discord|whatsapp|whats app|wpp|zap|zapzap|telegram|insta|instagram|snap|snapchat|tiktok|tik tok|facebook|kik|skype|twitter|signal)\\b",
+      "flags": "i",
+      "normalized": true,
+      "match": ["add me on discord", "me chama no zap", "tem insta?", "passa teu whatsapp"],
+      "noMatch": ["whats up everyone", "o zapping da tv"]
+    },
+    {
+      "id": "contact_asks",
+      "label": "off_platform_contact",
+      "regex": "\\b(add me|me adiciona|me add|my number|meu numero|meu zap|me chama no|text me|dm me|me manda dm|follow me|me segue|qr code)\\b",
+      "flags": "i",
+      "normalized": true,
+      "match": ["dm me", "me adiciona lá", "qual teu numero? my number is"],
+      "noMatch": ["me adicionei na fila do jogo"]
+    },
+    {
+      "id": "street_address",
+      "label": "pii",
+      "regex": "\\b(rua|avenida|av\\.|travessa|alameda|estrada|street|avenue|road|lane|drive)\\s+[\\p{L}\\s]{2,30}\\d{1,5}\\b",
+      "flags": "iu",
+      "match": ["moro na rua Augusta 1200", "fica na Avenida Paulista 1500"],
+      "noMatch": ["a rua dos ipês é linda"]
+    },
+    {
+      "id": "street_address_en",
+      "label": "pii",
+      "regex": "\\b\\d{1,5}\\s+[\\p{L}]+\\s+(street|st|avenue|ave|road|rd|lane|drive|dr)\\b",
+      "flags": "iu",
+      "match": ["come to 221 Baker Street"],
+      "noMatch": ["2 pães na chapa"]
+    },
+    {
+      "id": "school_home",
+      "label": "pii",
+      "regex": "\\b(my school is|i go to .{0,20}school|i study at|minha escola (e|é)|eu estudo n[oa] (escola|colégio|colegio)|meu col[eé]gio (e|é)|i live (at|on) \\d|moro na rua)",
+      "flags": "i",
+      "match": ["my school is Lincoln Middle", "moro na rua de cima"],
+      "noMatch": ["eu moro no Canadá", "sou dos EUA"]
+    },
+    {
+      "id": "full_name_bait",
+      "label": "pii",
+      "regex": "\\b(my (real|full) name is|meu nome (real|completo)|my last name|my surname|meu sobrenome)",
+      "flags": "i",
+      "match": ["my full name is Ana Maria Souza", "meu sobrenome é Silva"],
+      "noMatch": ["meu nome é Ana"]
+    }
+  ]
+}
