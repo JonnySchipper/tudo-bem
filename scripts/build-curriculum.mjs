@@ -187,6 +187,23 @@ export function buildOrders(cards = buildCards().cards) {
   };
 }
 
+// ---------------------------------------------------------------- Praça ambiance CPU names
+
+/** `**A–D:** Ana, André, …` lines under “## Names” in cpu-name-allowlist.md. */
+export function buildCpuNames() {
+  const md = fs.readFileSync(path.join(dir, 'cpu-name-allowlist.md'), 'utf8');
+  const section = md.split(/^## /m).find((s) => s.startsWith('Names'));
+  if (!section) throw new Error('cpu-name-allowlist.md: missing “## Names” section');
+  const names = [...section.matchAll(/^\*\*[^*]+:\*\*\s*(.+)$/gm)].flatMap((m) => split(m[1], ','));
+  return {
+    _meta: {
+      generatedBy: 'scripts/build-curriculum.mjs from cpu-name-allowlist.md (markdown is canonical — edit it, then `pnpm content`)',
+      status: 'DRAFT — needs BR sign-off. Praça ambiance CPUs only: first name on a Verde plate, no surnames, no CPU chat.',
+    },
+    names,
+  };
+}
+
 /** One entry per line keeps the ticket file reviewable in diffs. */
 function ordersJson(o) {
   const rows = (arr) => arr.map((x) => `    ${JSON.stringify(x)}`).join(',\n');
@@ -198,6 +215,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   fs.writeFileSync(path.join(dir, 'cards.json'), JSON.stringify(out, null, 1) + '\n');
   const orders = buildOrders(out.cards);
   fs.writeFileSync(path.join(dir, 'me-ve-um-orders.json'), ordersJson(orders));
+  const cpu = buildCpuNames();
+  fs.writeFileSync(path.join(dir, 'cpu-names.json'), JSON.stringify(cpu, null, 1) + '\n');
+  console.log(`✓ cpu-names.json — ${cpu.names.length} ambiance first names`);
   const pending = out.cards.filter((c) => c.signoff !== 'approved').length;
   console.log(`✓ cards.json — ${out._meta.counts.pack} pack cards (${pending} awaiting BR sign-off)`);
   console.log(`✓ me-ve-um-orders.json — ${orders.orders.length} tickets, ${orders.mods.length} modifiers`);

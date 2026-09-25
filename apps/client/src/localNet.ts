@@ -40,7 +40,7 @@ export class LocalNet implements NetLike {
       npc: new AuthoredNpcDialogue(),
       student: new InMemoryStudentModel(),
       moderation: new MemoryModerationQueue(),
-    });
+    }, { ambiance: new URLSearchParams(location.search).get('cpu') !== 'off' });
     // JSON round-trip mirrors the wire so client state never aliases server state.
     this.session = this.world.connect(
       'solo',

@@ -44,6 +44,7 @@ export type ClientMsg =
   | { t: 'furniture'; action: 'pickup'; uid: string }
   | { t: 'friend'; action: 'request' | 'accept' | 'decline' | 'remove'; targetId: string }
   | { t: 'friends' }
+  | { t: 'mission'; action: 'take' }
   | { t: 'ping' };
 
 export interface RoomStateMsg {

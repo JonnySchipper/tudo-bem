@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { buildCards, buildOrders } from '../../../scripts/build-curriculum.mjs';
+import { buildCards, buildCpuNames, buildOrders } from '../../../scripts/build-curriculum.mjs';
 import cardsJson from '../../../content/curriculum/phase0/cards.json';
 import ordersJson from '../../../content/curriculum/phase0/me-ve-um-orders.json';
+import cpuNamesJson from '../../../content/curriculum/phase0/cpu-names.json';
 import dnt from '../../../content/curriculum/phase0/do-not-teach.json';
 import npcPack from '../../../content/safety/phase0/jev/npc-reply-pack.json';
 import { AUTHORED_ORDERS, MG_ITEMS, MG_MODS, makeOrder, mulberry32 } from './meveum.js';
@@ -41,6 +42,18 @@ describe('curriculum pack ingest (content/curriculum/phase0)', () => {
 
   it('me-ve-um-orders.json is in sync with me-ve-um-orders.md (run `pnpm content` after editing .md)', () => {
     expect(JSON.parse(JSON.stringify(buildOrders()))).toEqual(ordersJson);
+  });
+
+  it('cpu-names.json is in sync with cpu-name-allowlist.md: 48 first names, no surnames', () => {
+    expect(JSON.parse(JSON.stringify(buildCpuNames()))).toEqual(cpuNamesJson);
+    const names = cpuNamesJson.names;
+    expect(names).toHaveLength(48);
+    expect(new Set(names).size).toBe(48);
+    for (const n of names) {
+      expect(n, n).toMatch(/^\p{Lu}\p{Ll}+$/u);
+      expect(classifyChat(n).action, n).toBe('allow');
+    }
+    expect(names).toEqual(expect.arrayContaining(['João', 'Letícia', 'Vinícius']));
   });
 
   it('every card comes from the pack markdown and awaits Brazilian sign-off only', () => {
