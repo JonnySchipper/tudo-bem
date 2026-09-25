@@ -18,6 +18,8 @@ const CHROME = process.env.CHROME_PATH ?? ['/usr/local/bin/google-chrome', '/usr
 const SHOTS = process.env.SHOTS_DIR ?? '';
 const VIDEO = process.env.VIDEO_DIR ?? '';
 const HEADLESS = process.env.HEADED ? false : true;
+/** Static solo build: no second player, world runs in the page. */
+const SOLO = !!process.env.SOLO;
 
 const log = (...a) => console.log('  ·', ...a);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -150,16 +152,20 @@ async function main() {
   await page.fill('#chat-input', 'Oi, tudo bem? Bom dia, pessoal!');
   await page.press('#chat-input', 'Enter');
   await waitFor(page, () => window.__tb.game.profile?.tutorial.conversar, null, 5000, 'chat step');
-  // Second player joins to chat + befriend
-  const ctxB = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-  const pageB = await ctxB.newPage();
-  const enterB = await createAvatar(pageB, 'Bia', 'ela');
-  await enterB();
-  await clickTile(pageB, 8, 8);
-  await sleep(1200);
-  await pageB.fill('#chat-input', 'Oi, Jonny! Eu sou de Chicago. Vamos na padaria?');
-  await pageB.press('#chat-input', 'Enter');
-  await sleep(300);
+  let pageB = null;
+  let aId = null;
+  if (!SOLO) {
+    // Second player joins to chat + befriend
+    const ctxB = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    pageB = await ctxB.newPage();
+    const enterB = await createAvatar(pageB, 'Bia', 'ela');
+    await enterB();
+    await clickTile(pageB, 8, 8);
+    await sleep(1200);
+    await pageB.fill('#chat-input', 'Oi, Jonny! Eu sou de Chicago. Vamos na padaria?');
+    await pageB.press('#chat-input', 'Enter');
+    await sleep(300);
+  }
   await page.fill('#chat-input', 'Legal! Eu quero um pão de queijo');
   await page.press('#chat-input', 'Enter');
   await sleep(900);
@@ -168,27 +174,34 @@ async function main() {
   await shot(page, '02_praca_chat_gloss');
   await dwell(2500);
 
-  // Filter check: PII is blocked, alcohol word is masked
-  await pageB.fill('#chat-input', 'me liga 11 98765-4321');
-  await pageB.press('#chat-input', 'Enter');
-  await pageB.fill('#chat-input', 'bora tomar uma cerveja');
-  await pageB.press('#chat-input', 'Enter');
-  await sleep(700);
+  // Filter check: PII and alcohol are blocked; player chat is never rewritten.
+  const sender = pageB ?? page;
+  for (const text of ['me liga 11 98765-4321', 'bora tomar uma cerveja']) {
+    await sender.fill('#chat-input', text);
+    await sender.press('#chat-input', 'Enter');
+  }
+  await sender.fill('#chat-input', 'Essa coxinha tá gostosa!');
+  await sender.press('#chat-input', 'Enter');
+  await sleep(800);
   const texts = await page.evaluate(() => [...window.__tb.game.avatars.values()].flatMap((a) => a.bubbles.map((b) => b.text)));
   assert(!texts.some((t) => t.includes('98765')), 'phone number blocked');
-  assert(texts.some((t) => t.includes('•••')), 'alcohol masked');
-  log('filter ok:', texts.filter((t) => t.includes('•••')));
+  assert(!texts.some((t) => /cerveja/i.test(t)), 'alcohol blocked');
+  assert(!texts.some((t) => t.includes('•••')), 'no auto-rewrite of player chat');
+  assert(texts.includes('Essa coxinha tá gostosa!'), 'warned message delivered unchanged');
+  log('filter ok: PII + alcohol blocked, warn delivered verbatim');
 
-  // Friend request B → A, accept on A
-  const bId = await pageB.evaluate(() => window.__tb.game.room.selfId);
-  const aId = await page.evaluate(() => window.__tb.game.room.selfId);
-  await pageB.evaluate((id) => window.__tb.net.send({ t: 'friend', action: 'request', targetId: id }), aId);
-  await page.click('#btn-friends');
-  await page.waitForSelector('button:has-text("Aceitar")');
-  await page.click('button:has-text("Aceitar")');
-  await waitFor(page, (id) => window.__tb.game.profile.friends.includes(id), bId, 5000, 'friends');
-  await page.keyboard.press('Escape');
-  log('friends ok');
+  if (!SOLO) {
+    // Friend request B → A, accept on A
+    const bId = await pageB.evaluate(() => window.__tb.game.room.selfId);
+    aId = await page.evaluate(() => window.__tb.game.room.selfId);
+    await pageB.evaluate((id) => window.__tb.net.send({ t: 'friend', action: 'request', targetId: id }), aId);
+    await page.click('#btn-friends');
+    await page.waitForSelector('button:has-text("Aceitar")');
+    await page.click('button:has-text("Aceitar")');
+    await waitFor(page, (id) => window.__tb.game.profile.friends.includes(id), bId, 5000, 'friends');
+    await page.keyboard.press('Escape');
+    log('friends ok');
+  }
 
   // 3. Enter the Padaria through its door
   await clickTile(page, 5, 0, 40);
@@ -293,13 +306,16 @@ async function main() {
   await sleep(600);
   await shot(page, '11_kitnet_chair');
 
-  // Friend visits the kitnet
-  await pageB.evaluate((id) => window.__tb.net.send({ t: 'join', room: 'kitnet', ownerId: id }), aId);
-  await waitFor(pageB, () => window.__tb.game.room?.room === 'kitnet', null, 5000, 'friend visits kitnet');
-  await sleep(500);
-  await pageB.fill('#chat-input', 'Que kitnet legal!');
-  await pageB.press('#chat-input', 'Enter');
-  await sleep(800);
+  if (!SOLO) {
+    // Friend visits the kitnet
+    await pageB.evaluate((id) => window.__tb.net.send({ t: 'join', room: 'kitnet', ownerId: id }), aId);
+    await waitFor(pageB, () => window.__tb.game.room?.room === 'kitnet', null, 5000, 'friend visits kitnet');
+    await sleep(500);
+    await pageB.fill('#chat-input', 'Que kitnet legal!');
+    await pageB.press('#chat-input', 'Enter');
+    await sleep(800);
+
+  }
   await shot(page, '12_kitnet_friend_visit');
   await dwell(2500);
 
