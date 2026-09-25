@@ -3,8 +3,7 @@
   "generatedBy": "scripts/build-curriculum.mjs from lexemes-*.md (markdown is canonical — edit it, then `pnpm content`)",
   "status": "DRAFT — every card needs Brazilian human sign-off before default-path (signoff field)",
   "counts": {
-   "pack": 52,
-   "engineering_seed": 6
+   "pack": 58
   }
  },
  "cards": [
@@ -596,6 +595,208 @@
    "wrongs": [],
    "prereq": [],
    "places": [],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.pao_de_queijo",
+   "form": "pão de queijo",
+   "plural": "pães de queijo",
+   "gender": "m",
+   "pos": "noun phrase",
+   "tags": [
+    "food",
+    "padaria",
+    "A1",
+    "geral"
+   ],
+   "gloss_en": "cheese bread (cassava cheese roll)",
+   "gloss_en_tray": "cheese bread",
+   "patterns": [
+    "Me vê um pão de queijo, por favor."
+   ],
+   "accepts": [
+    "pao de queijo",
+    "um pao de queijo",
+    "pães de queijo",
+    "paes de queijo"
+   ],
+   "wrongs": [
+    "cheese bread (EN only)",
+    "pão de queso (ES)",
+    "pão com queijo (different item — nudge)"
+   ],
+   "prereq": [
+    "pão"
+   ],
+   "places": [
+    "padaria",
+    "lanchonete"
+   ],
+   "note": "Minas staple; common SP padaria shelf item. Distinct from pão na chapa.",
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br",
+   "gloss_en_plural": "cheese breads"
+  },
+  {
+   "id": "lex.padaria.misto_quente",
+   "form": "misto-quente",
+   "plural": "mistos-quentes",
+   "gender": "m",
+   "pos": "noun phrase",
+   "tags": [
+    "food",
+    "padaria",
+    "A1"
+   ],
+   "gloss_en": "grilled ham and cheese sandwich",
+   "gloss_en_tray": "ham & cheese toastie",
+   "patterns": [
+    "Me vê um misto-quente."
+   ],
+   "accepts": [
+    "misto-quente",
+    "misto quente",
+    "um misto quente",
+    "um misto-quente"
+   ],
+   "wrongs": [
+    "grilled cheese (US-only as sole answer)",
+    "sanduíche alone"
+   ],
+   "prereq": [],
+   "places": [
+    "padaria",
+    "lanchonete"
+   ],
+   "note": "Hyphen optional in accepts; prefer hyphenated form on cards/UI.",
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br",
+   "gloss_en_plural": "ham & cheese toasties"
+  },
+  {
+   "id": "lex.padaria.guarana",
+   "form": "guaraná",
+   "plural": "guaranás",
+   "gender": "m",
+   "pos": "noun",
+   "tags": [
+    "drink",
+    "padaria",
+    "A1",
+    "brand-culture"
+   ],
+   "gloss_en": "guaraná soda",
+   "gloss_en_tray": "guaraná",
+   "patterns": [
+    "Um guaraná, por favor.",
+    "Me vê um guaraná."
+   ],
+   "accepts": [
+    "guarana",
+    "um guarana",
+    "guaraná",
+    "um guaraná"
+   ],
+   "wrongs": [
+    "soda alone",
+    "guarana energy drink as alcohol (never — soft drink only)"
+   ],
+   "prereq": [],
+   "places": [
+    "padaria",
+    "lanchonete"
+   ],
+   "note": "Allowed drink culture (not alcohol). Do not teach brand logos as required form.",
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br",
+   "gloss_en_plural": "guaranás"
+  },
+  {
+   "id": "lex.padaria.pois_nao",
+   "form": "Pois não.",
+   "pos": "phrase",
+   "tags": [
+    "NPC",
+    "padaria",
+    "A1",
+    "ack"
+   ],
+   "gloss_en": "Yes? / Coming — how can I help?",
+   "patterns": [
+    "Pois não. O que vai ser hoje?"
+   ],
+   "accepts": [
+    "pois nao",
+    "pois não"
+   ],
+   "wrongs": [
+    "pode falar as preferred target (CEO lock: Pois não is primary)"
+   ],
+   "prereq": [],
+   "places": [
+    "padaria"
+   ],
+   "note": "Carlos primary ack per voice-seu-carlos.md CEO lock 2026-09-25. · channels: listen/read (player rarely produces)",
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.ta_na_mao",
+   "form": "Tá na mão.",
+   "pos": "phrase",
+   "tags": [
+    "NPC",
+    "padaria",
+    "A1",
+    "praise / handoff"
+   ],
+   "gloss_en": "Here you go. (friendly handoff)",
+   "patterns": [
+    "Tá na mão!"
+   ],
+   "accepts": [
+    "ta na mao",
+    "tá na mão",
+    "esta na mao"
+   ],
+   "wrongs": [
+    "literal “it’s in the hand” as learner production target"
+   ],
+   "prereq": [],
+   "places": [
+    "padaria"
+   ],
+   "note": "Carlos praise / tray handoff; pairs with Pronto / Pode pegar. · channels: listen/read",
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.por_conta_da_casa",
+   "form": "por conta da casa",
+   "pos": "phrase",
+   "tags": [
+    "padaria",
+    "A1",
+    "generosity beat"
+   ],
+   "gloss_en": "on the house",
+   "patterns": [
+    "Hoje é por conta da casa!"
+   ],
+   "accepts": [
+    "por conta da casa",
+    "e por conta da casa"
+   ],
+   "wrongs": [
+    "free (EN only)",
+    "por conta do bar (alcohol framing — never)"
+   ],
+   "prereq": [],
+   "places": [
+    "padaria"
+   ],
+   "note": "Optional reward line only; never implies alcohol tab. Family-safe.",
    "source": "lexemes-padaria-a1.md",
    "signoff": "needs_br"
   },
@@ -1274,174 +1475,6 @@
    ],
    "source": "lexemes-greetings-numbers-a1.md",
    "signoff": "needs_br"
-  },
-  {
-   "id": "lex.padaria.pao_de_queijo",
-   "form": "pão de queijo",
-   "plural": "pães de queijo",
-   "gender": "m",
-   "pos": "noun phrase",
-   "tags": [
-    "food",
-    "padaria",
-    "A1"
-   ],
-   "gloss_en": "cheese bread",
-   "gloss_en_plural": "cheese breads",
-   "patterns": [
-    "Me vê um pão de queijo, por favor."
-   ],
-   "accepts": [
-    "pao de queijo",
-    "um pao de queijo"
-   ],
-   "wrongs": [
-    "pão de queso"
-   ],
-   "prereq": [
-    "lex.padaria.pao"
-   ],
-   "places": [
-    "padaria",
-    "lanchonete"
-   ],
-   "source": "engineering-seed",
-   "signoff": "needs_curriculum_and_br"
-  },
-  {
-   "id": "lex.padaria.misto_quente",
-   "form": "misto-quente",
-   "plural": "mistos-quentes",
-   "gender": "m",
-   "pos": "noun phrase",
-   "tags": [
-    "food",
-    "padaria",
-    "A1"
-   ],
-   "gloss_en": "grilled ham & cheese",
-   "gloss_en_plural": "grilled ham & cheeses",
-   "patterns": [
-    "Me vê um misto-quente."
-   ],
-   "accepts": [
-    "misto quente",
-    "um misto quente"
-   ],
-   "wrongs": [],
-   "prereq": [],
-   "places": [
-    "padaria",
-    "lanchonete"
-   ],
-   "source": "engineering-seed",
-   "signoff": "needs_curriculum_and_br"
-  },
-  {
-   "id": "lex.padaria.guarana",
-   "form": "guaraná",
-   "plural": "guaranás",
-   "gender": "m",
-   "pos": "noun",
-   "tags": [
-    "drink",
-    "padaria",
-    "A1",
-    "brand-culture"
-   ],
-   "gloss_en": "guaraná soda",
-   "gloss_en_plural": "guaraná sodas",
-   "patterns": [
-    "Um guaraná, por favor."
-   ],
-   "accepts": [
-    "guarana",
-    "um guarana"
-   ],
-   "wrongs": [],
-   "prereq": [],
-   "places": [
-    "padaria",
-    "lanchonete"
-   ],
-   "note": "constitution.md lists guaraná as allowed drink culture",
-   "source": "engineering-seed",
-   "signoff": "needs_curriculum_and_br"
-  },
-  {
-   "id": "lex.padaria.pois_nao",
-   "form": "Pois não.",
-   "pos": "phrase",
-   "tags": [
-    "NPC",
-    "padaria",
-    "A1",
-    "ack"
-   ],
-   "gloss_en": "Yes? / How can I help? (service acknowledgement)",
-   "patterns": [
-    "Pois não. O que vai ser hoje?"
-   ],
-   "accepts": [
-    "pois nao"
-   ],
-   "wrongs": [],
-   "prereq": [],
-   "places": [
-    "padaria"
-   ],
-   "note": "Carlos primary ack per voice-seu-carlos.md (CEO lock); listen/read focus",
-   "source": "engineering-seed",
-   "signoff": "needs_curriculum_and_br"
-  },
-  {
-   "id": "lex.padaria.por_conta_da_casa",
-   "form": "por conta da casa",
-   "pos": "phrase",
-   "tags": [
-    "padaria",
-    "A1"
-   ],
-   "gloss_en": "on the house",
-   "patterns": [
-    "Hoje é por conta da casa!"
-   ],
-   "accepts": [
-    "por conta da casa"
-   ],
-   "wrongs": [],
-   "prereq": [],
-   "places": [
-    "padaria"
-   ],
-   "source": "engineering-seed",
-   "signoff": "needs_curriculum_and_br"
-  },
-  {
-   "id": "lex.padaria.ta_na_mao",
-   "form": "Tá na mão.",
-   "pos": "phrase",
-   "tags": [
-    "NPC",
-    "padaria",
-    "A1",
-    "praise"
-   ],
-   "gloss_en": "Here you go. (lit. “it’s in your hand”)",
-   "patterns": [
-    "Tá na mão!"
-   ],
-   "accepts": [
-    "ta na mao"
-   ],
-   "wrongs": [],
-   "prereq": [],
-   "places": [
-    "padaria"
-   ],
-   "note": "Carlos praise per voice-seu-carlos.md; no lexeme card in pack yet",
-   "source": "engineering-seed",
-   "signoff": "needs_curriculum_and_br"
   }
  ]
 }

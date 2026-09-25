@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 /**
  * Parse the curriculum pack markdown (canonical, owned by TB Curriculum) into cards.json
- * (engineering schema, GDD §5.5).   pnpm content
+ * (engineering schema, GDD §5.5) and me-ve-um-orders.json (tray tickets).   pnpm content
  *
  * The markdown stays the source of truth; packages/shared/src/curriculum.test.ts fails if
- * cards.json drifts from it.
+ * either JSON file drifts from it.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -50,18 +50,24 @@ export function parseLexemes(md, source) {
     const tagField = f['pos/tags'] ?? f.tags ?? '';
     const tagList = split(tagField, ';');
     const hasPos = 'pos/tags' in f;
+    const [plural, gender] = f['plural / gender'] ? split(f['plural / gender'], ';') : [];
+    const channels = f['channels focus'] ?? f.channels;
+    const note = [f.note, f.rule, channels && `channels: ${channels}`].filter(Boolean).join(' · ');
     cards.push({
       id,
       form: f.form,
+      ...(plural ? { plural } : {}),
+      ...(gender ? { gender } : {}),
       pos: hasPos ? tagList[0] : 'phrase',
       tags: hasPos ? tagList.slice(1) : tagList,
       gloss_en: f.gloss_en,
+      ...(f.gloss_en_tray ? { gloss_en_tray: f.gloss_en_tray } : {}),
       patterns: f.patterns ? split(f.patterns, ' / ') : [],
       ...acceptsOf([...(f.accepts ? split(f.accepts, ';') : []), ...(f['reply accepts'] ? split(f['reply accepts'], ';') : [])]),
       wrongs: f.wrongs ? split(f.wrongs, ';') : [],
       prereq: f.prereq ? split(f.prereq, ';') : [],
       places: f.places ? split(f.places, ',') : [],
-      ...(f.note || f.rule || f['channels focus'] ? { note: [f.note, f.rule, f['channels focus'] && `channels: ${f['channels focus']}`].filter(Boolean).join(' · ') } : {}),
+      ...(note ? { note } : {}),
       source,
       signoff: 'needs_br',
     });
@@ -87,8 +93,8 @@ export function parseLexemes(md, source) {
 }
 
 /**
- * Engineering-only fields the markdown doesn't carry (plural/gender for tray agreement) and
- * cards the game already used that are NOT in the curriculum pack (flagged for review).
+ * Engineering-only fields the markdown doesn't carry: plural/gender for tray agreement (where the
+ * card has no `plural / gender` line) and plural EN glosses for generated combo tickets.
  */
 const NOUN = {
   'lex.padaria.pao': { plural: 'pães', gender: 'm', gloss_en_plural: 'bread rolls', gloss_en_tray: 'bread roll' },
@@ -101,39 +107,10 @@ const NOUN = {
   'lex.padaria.bolo': { plural: 'bolos', gender: 'm', gloss_en_plural: 'cakes', gloss_en_tray: 'slice of cake' },
   'lex.padaria.pastel': { plural: 'pastéis', gender: 'm', gloss_en_plural: 'fried pastries' },
   'lex.padaria.coxinha': { plural: 'coxinhas', gender: 'f', gloss_en_plural: 'chicken croquettes' },
+  'lex.padaria.pao_de_queijo': { gloss_en_plural: 'cheese breads' },
+  'lex.padaria.misto_quente': { gloss_en_plural: 'ham & cheese toasties' },
+  'lex.padaria.guarana': { gloss_en_plural: 'guaranás' },
 };
-
-const SEEDS = [
-  {
-    id: 'lex.padaria.pao_de_queijo', form: 'pão de queijo', plural: 'pães de queijo', gender: 'm', pos: 'noun phrase', tags: ['food', 'padaria', 'A1'],
-    gloss_en: 'cheese bread', gloss_en_plural: 'cheese breads', patterns: ['Me vê um pão de queijo, por favor.'], accepts: ['pao de queijo', 'um pao de queijo'],
-    wrongs: ['pão de queso'], prereq: ['lex.padaria.pao'], places: ['padaria', 'lanchonete'],
-  },
-  {
-    id: 'lex.padaria.misto_quente', form: 'misto-quente', plural: 'mistos-quentes', gender: 'm', pos: 'noun phrase', tags: ['food', 'padaria', 'A1'],
-    gloss_en: 'grilled ham & cheese', gloss_en_plural: 'grilled ham & cheeses', patterns: ['Me vê um misto-quente.'], accepts: ['misto quente', 'um misto quente'],
-    wrongs: [], prereq: [], places: ['padaria', 'lanchonete'],
-  },
-  {
-    id: 'lex.padaria.guarana', form: 'guaraná', plural: 'guaranás', gender: 'm', pos: 'noun', tags: ['drink', 'padaria', 'A1', 'brand-culture'],
-    gloss_en: 'guaraná soda', gloss_en_plural: 'guaraná sodas', patterns: ['Um guaraná, por favor.'], accepts: ['guarana', 'um guarana'],
-    wrongs: [], prereq: [], places: ['padaria', 'lanchonete'], note: 'constitution.md lists guaraná as allowed drink culture',
-  },
-  {
-    id: 'lex.padaria.pois_nao', form: 'Pois não.', pos: 'phrase', tags: ['NPC', 'padaria', 'A1', 'ack'],
-    gloss_en: 'Yes? / How can I help? (service acknowledgement)', patterns: ['Pois não. O que vai ser hoje?'], accepts: ['pois nao'],
-    wrongs: [], prereq: [], places: ['padaria'], note: 'Carlos primary ack per voice-seu-carlos.md (CEO lock); listen/read focus',
-  },
-  {
-    id: 'lex.padaria.por_conta_da_casa', form: 'por conta da casa', pos: 'phrase', tags: ['padaria', 'A1'],
-    gloss_en: 'on the house', patterns: ['Hoje é por conta da casa!'], accepts: ['por conta da casa'], wrongs: [], prereq: [], places: ['padaria'],
-  },
-  {
-    id: 'lex.padaria.ta_na_mao', form: 'Tá na mão.', pos: 'phrase', tags: ['NPC', 'padaria', 'A1', 'praise'],
-    gloss_en: 'Here you go. (lit. “it’s in your hand”)', patterns: ['Tá na mão!'], accepts: ['ta na mao'], wrongs: [], prereq: [], places: ['padaria'],
-    note: 'Carlos praise per voice-seu-carlos.md; no lexeme card in pack yet',
-  },
-].map((c) => ({ ...c, source: 'engineering-seed', signoff: 'needs_curriculum_and_br' }));
 
 export function buildCards() {
   const padaria = parseLexemes(fs.readFileSync(path.join(dir, 'lexemes-padaria-a1.md'), 'utf8'), 'lexemes-padaria-a1.md');
@@ -143,14 +120,85 @@ export function buildCards() {
     _meta: {
       generatedBy: 'scripts/build-curriculum.mjs from lexemes-*.md (markdown is canonical — edit it, then `pnpm content`)',
       status: 'DRAFT — every card needs Brazilian human sign-off before default-path (signoff field)',
-      counts: { pack: cards.length, engineering_seed: SEEDS.length },
+      counts: { pack: cards.length },
     },
-    cards: [...cards, ...SEEDS],
+    cards,
   };
+}
+
+// ---------------------------------------------------------------- Me vê um… tickets
+
+/** Modifier toggles on the tray: pt/en come from the lexeme cards, the group is engineering. */
+const MOD_GROUPS = { pra_viagem: 'where', pra_comer_aqui: 'where', sem_acucar: 'coffee', bem_quente: 'coffee' };
+const COUNT = { um: 1, uma: 1, dois: 2, duas: 2, três: 3, quatro: 4, cinco: 5 };
+const FILLER = ['me vê', 'por favor', 'bom dia'];
+const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * Structure one canonical PT ticket as tray lines + mods, using only card forms. Throws on any
+ * word it can't place, so a ticket Curriculum adds that the shelf can't serve fails `pnpm content`.
+ */
+export function parseTicket(pt, items, mods) {
+  let s = ` ${pt.toLowerCase().replace(/[.,!?;:]/g, ' ').replace(/\s+/g, ' ').trim()} `;
+  const found = [];
+  for (const m of [...mods].sort((a, b) => b.pt.length - a.pt.length)) {
+    const at = s.indexOf(` ${m.pt} `);
+    if (at < 0) continue;
+    found.push([at, m.id]);
+    s = s.replace(` ${m.pt} `, ' ');
+  }
+  for (const f of FILLER) s = s.replaceAll(` ${f} `, ' ');
+  const forms = items.flatMap((i) => [[i.form, i.id], [i.plural, i.id]]).sort((a, b) => b[0].length - a[0].length);
+  const byForm = new Map(forms.map(([f, id]) => [f, id]));
+  const re = new RegExp(`(?<=\\s)(?:(${Object.keys(COUNT).join('|')})\\s+)?(${forms.map(([f]) => esc(f)).join('|')})(?=\\s)`, 'gu');
+  const lines = [];
+  for (const m of s.matchAll(re)) lines.push([byForm.get(m[2]), m[1] ? COUNT[m[1]] : 1]);
+  const rest = s.replace(re, ' ').replace(/\s(e)(?=\s)/g, ' ').trim();
+  if (rest || !lines.length) throw new Error(`me-ve-um-orders.md: can't structure “${pt}” (left over: “${rest}”)`);
+  return { lines, mods: found.sort((a, b) => a[0] - b[0]).map(([, id]) => id) };
+}
+
+export function buildOrders(cards = buildCards().cards) {
+  const md = fs.readFileSync(path.join(dir, 'me-ve-um-orders.md'), 'utf8');
+  const padaria = cards.filter((c) => c.id.startsWith('lex.padaria.')).map((c) => ({ ...c, id: c.id.slice('lex.padaria.'.length) }));
+  const items = padaria.filter((c) => c.plural);
+  const mods = Object.entries(MOD_GROUPS).map(([id, group]) => {
+    const card = padaria.find((c) => c.id === id);
+    if (!card) throw new Error(`modifier without card: lex.padaria.${id}`);
+    return { id, pt: card.form, en: card.gloss_en, group };
+  });
+  const orders = [];
+  let level = null;
+  for (const line of md.split('\n')) {
+    if (/^## Level Verde/i.test(line)) level = 'verde';
+    else if (/^## Level bump/i.test(line)) level = 'bump';
+    else if (/^## /.test(line)) level = null;
+    const row = level && line.match(/^\|\s*\d+\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|$/);
+    if (row) orders.push({ level, pt: row[1], en: row[2], ...parseTicket(row[1], items, mods) });
+  }
+  return {
+    _meta: {
+      generatedBy: 'scripts/build-curriculum.mjs from me-ve-um-orders.md (markdown is canonical — edit it, then `pnpm content`)',
+      status: 'DRAFT — needs BR sign-off before default-path. PT + EN ticket glosses by TB Curriculum (review 2026-09-25).',
+      structure: "item ids = card ids minus 'lex.padaria.'; lines/mods are parsed from the PT using card forms + plurals.",
+    },
+    mods,
+    orders,
+  };
+}
+
+/** One entry per line keeps the ticket file reviewable in diffs. */
+function ordersJson(o) {
+  const rows = (arr) => arr.map((x) => `    ${JSON.stringify(x)}`).join(',\n');
+  return `{\n  "_meta": ${JSON.stringify(o._meta, null, 2).replace(/\n/g, '\n  ')},\n  "mods": [\n${rows(o.mods)}\n  ],\n  "orders": [\n${rows(o.orders)}\n  ]\n}\n`;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const out = buildCards();
   fs.writeFileSync(path.join(dir, 'cards.json'), JSON.stringify(out, null, 1) + '\n');
-  console.log(`✓ cards.json — ${out._meta.counts.pack} pack cards + ${out._meta.counts.engineering_seed} engineering seeds (flagged)`);
+  const orders = buildOrders(out.cards);
+  fs.writeFileSync(path.join(dir, 'me-ve-um-orders.json'), ordersJson(orders));
+  const pending = out.cards.filter((c) => c.signoff !== 'approved').length;
+  console.log(`✓ cards.json — ${out._meta.counts.pack} pack cards (${pending} awaiting BR sign-off)`);
+  console.log(`✓ me-ve-um-orders.json — ${orders.orders.length} tickets, ${orders.mods.length} modifiers`);
 }

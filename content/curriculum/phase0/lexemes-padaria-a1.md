@@ -194,3 +194,78 @@ Use scheduled cards; hide EN labels at higher levels later.
 
 ## Coverage note
 This is the Phase 0 **seed** (~25 cards), not the full 300 A1 deck. Next expand: more drinks, savory, numbers in tray combos, and Feira handoff in Phase 1.
+
+---
+
+## Engineering-seed cards — Curriculum review (2026-09-25)
+
+Promoted from `cards.json` engineering-seed. Signoff after this review: **needs_br** only (curriculum accepted; BR human still required). Eng should re-run content build from markdown.
+
+### lex.padaria.pao_de_queijo
+- **form:** pão de queijo  
+- **plural / gender:** pães de queijo; m  
+- **pos/tags:** noun phrase; food; padaria; A1; geral  
+- **gloss_en:** cheese bread (cassava cheese roll)  
+- **gloss_en_tray:** cheese bread  
+- **patterns:** Me vê um pão de queijo, por favor.  
+- **accepts:** pao de queijo; um pao de queijo; pães de queijo; paes de queijo  
+- **wrongs:** cheese bread (EN only); pão de queso (ES); pão com queijo (different item — nudge)  
+- **prereq:** pão  
+- **places:** padaria, lanchonete  
+- **note:** Minas staple; common SP padaria shelf item. Distinct from pão na chapa.
+
+### lex.padaria.misto_quente
+- **form:** misto-quente  
+- **plural / gender:** mistos-quentes; m  
+- **pos/tags:** noun phrase; food; padaria; A1  
+- **gloss_en:** grilled ham and cheese sandwich  
+- **gloss_en_tray:** ham & cheese toastie  
+- **patterns:** Me vê um misto-quente.  
+- **accepts:** misto-quente; misto quente; um misto quente; um misto-quente  
+- **wrongs:** grilled cheese (US-only as sole answer); sanduíche alone  
+- **places:** padaria, lanchonete  
+- **note:** Hyphen optional in accepts; prefer hyphenated form on cards/UI.
+
+### lex.padaria.guarana
+- **form:** guaraná  
+- **plural / gender:** guaranás; m  
+- **pos/tags:** noun; drink; padaria; A1; brand-culture  
+- **gloss_en:** guaraná soda  
+- **gloss_en_tray:** guaraná  
+- **patterns:** Um guaraná, por favor. / Me vê um guaraná.  
+- **accepts:** guarana; um guarana; guaraná; um guaraná  
+- **wrongs:** soda alone; guarana energy drink as alcohol (never — soft drink only)  
+- **places:** padaria, lanchonete  
+- **note:** Allowed drink culture (not alcohol). Do not teach brand logos as required form.
+
+### lex.padaria.pois_nao
+- **form:** Pois não.  
+- **pos/tags:** phrase; NPC; padaria; A1; ack  
+- **gloss_en:** Yes? / Coming — how can I help?  
+- **patterns:** Pois não. O que vai ser hoje?  
+- **accepts:** pois nao; pois não  
+- **wrongs:** pode falar as preferred target (CEO lock: Pois não is primary)  
+- **places:** padaria  
+- **channels:** listen/read (player rarely produces)  
+- **note:** Carlos primary ack per voice-seu-carlos.md CEO lock 2026-09-25.
+
+### lex.padaria.ta_na_mao
+- **form:** Tá na mão.  
+- **pos/tags:** phrase; NPC; padaria; A1; praise / handoff  
+- **gloss_en:** Here you go. (friendly handoff)  
+- **patterns:** Tá na mão!  
+- **accepts:** ta na mao; tá na mão; esta na mao  
+- **wrongs:** literal “it’s in the hand” as learner production target  
+- **places:** padaria  
+- **channels:** listen/read  
+- **note:** Carlos praise / tray handoff; pairs with Pronto / Pode pegar.
+
+### lex.padaria.por_conta_da_casa
+- **form:** por conta da casa  
+- **pos/tags:** phrase; padaria; A1; generosity beat  
+- **gloss_en:** on the house  
+- **patterns:** Hoje é por conta da casa!  
+- **accepts:** por conta da casa; e por conta da casa  
+- **wrongs:** free (EN only); por conta do bar (alcohol framing — never)  
+- **places:** padaria  
+- **note:** Optional reward line only; never implies alcohol tab. Family-safe.
