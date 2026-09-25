@@ -24,6 +24,9 @@ describe('gloss', () => {
     expect(glossPt('Oi, tudo bem?')).toMatch(/hi/i);
     expect(glossPt('Bom dia!')).toBe('Good morning!');
     expect(glossPt('eu quero um pão de queijo')).toMatch(/cheese/);
+    expect(glossPt('Oi, Jonny! Eu sou de Chicago.')).toBe('Hi, Jonny! I’m from Chicago.');
+    expect(glossPt('Que kitnet legal!')).toBe('What a cool studio apartment!');
+    expect(glossPt('Vamos na padaria?')).toBe('Let’s go to the bakery?');
   });
   it('does not gloss English', () => {
     expect(detectLang('hello how are you')).toBe('en');

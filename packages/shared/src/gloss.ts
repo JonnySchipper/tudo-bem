@@ -132,6 +132,17 @@ const WORDS: Record<string, string> = {
   onibus: 'bus', metro: 'subway', rua: 'street', predio: 'building', loja: 'shop',
 };
 
+const ADJ: Record<string, string> = { legal: 'cool', lindo: 'beautiful', linda: 'beautiful', bonito: 'nice', bonita: 'nice', massa: 'awesome', gostoso: 'tasty', gostosa: 'tasty' };
+
+const PATTERNS: [RegExp, (m: RegExpMatchArray, g: (s: string) => string) => string][] = [
+  [/^que (.+) (legal|lindo|linda|bonito|bonita|massa|gostoso|gostosa)$/, (m, g) => `what a ${ADJ[m[2]]} ${g(m[1])}`],
+  [/^(?:eu )?gosto d[oae]s? (.+)$/, (m, g) => `I like ${g(m[1])}`],
+  [/^(?:eu )?adoro (.+)$/, (m, g) => `I love ${g(m[1])}`],
+  [/^(?:vamos|bora) (?:pra|para|na|no|a|ao) (.+)$/, (m, g) => `let’s go to the ${g(m[1])}`],
+  [/^(?:eu )?sou d[eoa]s? (.+)$/, (m, g) => `I’m from ${g(m[1])}`],
+  [/^(?:eu )?(?:me chamo|sou o|sou a) (.+)$/, (m) => `I’m ${m[1]}`],
+];
+
 const EN_HINTS = new Set([
   'the', 'is', 'are', 'you', 'i', 'my', 'your', 'what', 'hello', 'hi', 'hey', 'this', 'that', 'and', 'to', 'it', 'yes', 'no', 'how',
   'where', 'from', 'nice', 'cool', 'want', 'like', 'lol', 'thanks', 'thank', 'please', 'good', 'morning', 'bye', 'we', 'they', 'can',
@@ -173,18 +184,32 @@ export function glossPt(text: string): string | null {
   const bare = clean.replace(/[!?.,;:…]+/g, ' ').replace(/\s+/g, ' ').trim();
   if (!bare) return null;
   if (PHRASES[bare]) return capitalize(PHRASES[bare]) + trailingPunct(clean);
+  const lookup = (s: string) =>
+    s
+      .split(' ')
+      .filter((w) => !['o', 'a', 'os', 'as', 'um', 'uma'].includes(w))
+      .map((w) => WORDS[w] ?? w)
+      .join(' ');
+  for (const [re, render] of PATTERNS) {
+    const m = bare.match(re);
+    if (m) return capitalize(render(m, lookup)) + trailingPunct(clean);
+  }
 
   // Split on sentence punctuation; greedy longest match per chunk (phrases up to 5 words, then words).
-  const chunks = clean.split(/([!?.,;:…]+)/).filter((c) => c.length);
+  const splitChunks = (s: string) => s.split(/([!?.,;:…]+)/).filter((c) => c.length);
+  const chunks = splitChunks(clean);
+  // Same tokenization on the original text so unknown words (names, places) keep their casing.
+  const origChunks = splitChunks(text.replace(/[“”"()]/g, ''));
   const out: string[] = [];
   let known = 0;
   let total = 0;
-  for (const chunk of chunks) {
+  for (const [ci, chunk] of chunks.entries()) {
     if (/^[!?.,;:…]+$/.test(chunk)) {
       if (out.length) out[out.length - 1] += chunk.trim()[0];
       continue;
     }
     const words = chunk.trim().split(/\s+/).filter(Boolean);
+    const orig = (origChunks[ci] ?? chunk).trim().split(/\s+/).filter(Boolean);
     const parts: string[] = [];
     for (let i = 0; i < words.length; ) {
       let matched = false;
@@ -201,7 +226,7 @@ export function glossPt(text: string): string | null {
         }
       }
       if (!matched) {
-        parts.push(words[i]);
+        parts.push(orig.length === words.length ? orig[i] : words[i]);
         total++;
         i++;
       }
