@@ -39,6 +39,7 @@ pnpm test         # vitest: safety filter, gloss, scene graph, minigame, rooms, 
 pnpm e2e          # headless-Chrome play-through of the whole Phase 0 path (needs `pnpm start` running)
 pnpm verify       # typecheck + test + build
 pnpm art          # regenerate + bake all art assets (see docs/art)
+pnpm content      # regenerate content/curriculum/phase0/cards.json from the pack markdown
 ```
 
 `pnpm e2e` env: `BASE_URL` (default `http://localhost:8787`), `CHROME_PATH`, `SHOTS_DIR` (save screenshots), `VIDEO_DIR` (record a slowed-down webm of player 1), `HEADED=1`.
@@ -48,8 +49,8 @@ pnpm art          # regenerate + bake all art assets (see docs/art)
 1. **Age gate** — birth month + year; **18+ only** (the date is not stored).
 2. **Create your avatar** — body, skin, hair, free starter clothes, and how NPCs should address you (*ele / ela / só meu nome*). Tick **“Confirmo que tenho 18 anos ou mais”** to enter.
 3. **Praça Central** — click the floor to walk, click a bench to sit, press **Oi!** to wave, type in chat. Júlia (guide, by the quest kiosk) explains the basics. The *Primeiros passos* checklist tracks it all.
-4. **Padaria do Seu Carlos** — walk through the door with the red awning. Click **Seu Carlos** for the authored breakfast scene: pick reply chips (keys 1–4). Good Portuguese earns more RV; English or vague answers make him rephrase slower. ~5 turns → **6–14 RV**.
-5. **“Me vê um…”** — at the ticket rail on the counter. Read (or 🔊 listen to) each Portuguese order, click items onto the tray (keys 1–0/-), **Entregar** (Enter). Miss once and Carlos repeats slowly; combos pay extra. 6 orders → **8–20 RV**.
+4. **Padaria do Seu Carlos** — walk through the door with the red awning. Click **Seu Carlos** for the authored breakfast scene (“Pois não. O que vai ser hoje?”). Pick reply chips (keys 1–4) **or type your answer**, which is scored with the curriculum accept-list rules: accents optional, *me dá / quero* accepted with a nudge. Good Portuguese earns more RV; English or vague answers make him rephrase slower. ~5 turns → **6–14 RV**.
+5. **“Me vê um…”** — at the ticket rail on the counter. Read (or 🔊 listen to) each Portuguese order from the curriculum ticket list, click items onto the tray (keys 1–0, -, =), toggle modifiers (*pra viagem, pra comer aqui, sem açúcar, bem quente*), then **Entregar** (Enter). Miss once and Carlos repeats slowly; combos pay extra. 6 orders → **8–20 RV**.
 6. **Hat** — back in the Praça, visit **Nanda’s stall** (2 free hats, 10 more at 8–60 RV). Buying equips it; **Chapéus** in the top bar is your wardrobe.
 7. **Kitnet** — door **Nº 42** (Edifício Ipê). Click **Decorar**, pick your free *cadeira de madeira*, click a tile. **R** rotates. The *Atelier* tab sells more furniture. Click the chair (outside edit mode) to sit.
 8. Finish every step → **+25 RV** bonus. Optional: adopt the parrot at the perch (it whispers study words), add friends (click an avatar or **Amigos**), visit a friend’s kitnet.
@@ -79,10 +80,24 @@ scripts/e2e.mjs   Playwright-core end-to-end play-through
 
 - **Brazilian Portuguese only** in world content; English appears only as glosses / UI subtitles.
 - **Disney-safe constitution** — no alcohol, dating, sensuality, slurs, politics. Unit tests run every authored Carlos line, chip, generated order, hat and furniture name through the filter.
-- **Chat safety** — the same filter runs client-side (instant feedback) and server-side (authoritative). PII, contact exchange, slurs, sexual content, dating, scams → **block**; alcohol / politics / platform names / mild insults → **warn** (masked `•••` and delivered); self-harm and “kys” → **escalate** (not delivered, supportive note, moderation log). Tuned against false blocks on normal slang (*tá, cara, legal, pelada, rola, vinho, lula*…). Rate limit 5 msgs / 10 s. Report button on profiles.
+- **Chat safety** — the Jev stub is data-driven from [`content/safety/phase0`](content/safety/phase0) and runs client-side (instant feedback) and server-side (authoritative). Actions are **allow / warn / block / escalate** only, and player chat is **never rewritten** (CEO lock §3).
+  - **block:** PII, contact exchange, slurs (incl. *macaco/japa/portuga*), profanity, alcohol, dating/sexual, politics, scams.
+  - **warn** (delivered verbatim, with a note): *gostoso/gostosa/pelada* (block if flirt-directed), *bar* (unless a clear place-name), mild insults.
+  - **escalate:** self-harm, threats, and *preto/preta* outside color/food context.
+  - Every Jev fixture, PII example and the PT-slang false-block KPI run in CI. Rate limit 5 msgs / 10 s. Report button on profiles.
 - **No pay-to-win** — RV is earned only from graded language acts (scene, minigame) and the tutorial; nameplates can’t be bought. Everyone is **Verde** in Phase 0.
 - **No generative NPCs yet** — Carlos is an authored chip graph behind `NpcDialogueService`; an LLM provider can drop in later with the authored one as the Jev-down fallback.
 - **Adults only (18+)** — birth-date check plus an explicit 18+ confirmation, both enforced by the server. Only “passed the gate” is stored. No under-13/COPPA or parental-consent flows; younger audiences are a later rollout after thorough testing. The constitution and chat safety above apply fully to adults. See [docs/AGE_POLICY.md](docs/AGE_POLICY.md).
+
+## Content packs
+
+Curriculum and Trust & Safety own [`content/`](content); engineering owns the schema and the code that reads it.
+
+- [`content/curriculum/phase0`](content/curriculum/phase0) — do-not-teach, Seu Carlos voice sheet, padaria + greetings/numbers lexemes, Me vê um… orders, accept-list rules.
+  - The markdown is canonical. `pnpm content` regenerates `cards.json`, and CI fails if the two drift.
+  - Every card is **DRAFT — needs Brazilian sign-off** (`signoff` field).
+- [`content/safety/phase0`](content/safety/phase0) — constitution, CEO locks, blocklists, PII regex fixtures, Jev question packs (public chat + NPC replies), ops notes.
+  - Files marked `engineering-draft` / `TODO(T&S)` were drafted from the constitution and CEO locks because the canonical versions weren’t in the handoff. They're waiting on T&S replacement.
 
 ## Art
 
@@ -104,15 +119,33 @@ All Phase 0 art is **generated in-repo** by the build agent as procedural canvas
 
 ## Deploy
 
-The production artifact is one process: `apps/server/dist/index.js` (esbuild bundle, `ws` included, no `node_modules` needed) serving `apps/client/dist` and `/ws`. Health check: `GET /healthz`.
+Two builds:
+
+| Build | What runs | Multiplayer | Command |
+| --- | --- | --- | --- |
+| **Server** (default) | Node process: `apps/server/dist/index.js` (esbuild bundle, `ws` included, no `node_modules`) serving `apps/client/dist` + `/ws`. Health: `GET /healthz`. | yes | `pnpm build && pnpm start` |
+| **Solo** (static) | The same authoritative `World` runs in the browser; profiles in `localStorage`. Any static host works. A “Modo solo” pill shows in the top bar. | no | `VITE_LOCAL_WORLD=1 VITE_BASE=/ pnpm --filter @tudobem/client build` → upload `apps/client/dist` |
+
+`?solo` forces solo mode on any build, which is handy for testing.
+
+### Get a permanent URL (one-time setup, pick one)
+
+1. **Fly.io, multiplayer (recommended).** Create a token (`fly tokens create org` or `fly auth token`) and add it as the repo secret **`FLY_API_TOKEN`** (Settings → Secrets and variables → Actions).
+   - On the next push to `main`, `.github/workflows/deploy-fly.yml` creates the app and volume on first run, deploys to region `gru`, and smoke-tests `/healthz`. The URL is **https://tudo-bem.fly.dev**.
+   - If that name is taken, set the repo variable `FLY_APP`.
+2. **Render, multiplayer.** Dashboard → New → Blueprint → this repo (`render.yaml`, Docker, WebSockets supported). The URL is `https://tudo-bem.onrender.com` or similar. The free plan sleeps and has ephemeral disk.
+3. **GitHub Pages, solo.** Settings → Pages → Source: **GitHub Actions**. `.github/workflows/pages.yml` then builds the solo client, runs the solo e2e against it, and deploys on every push to `main` to **https://jonnyschipper.github.io/tudo-bem/**.
+   - Private repos need GitHub Pro/Team for Pages.
+   - Actions can't enable Pages by itself ("Resource not accessible by integration"), so this one click is required.
+
+Other options:
 
 - **Docker** — `docker build -t tudo-bem . && docker run -p 8787:8787 -v tb-data:/data tudo-bem`
-- **Fly.io** — `fly launch --no-deploy --copy-config`, `fly volumes create tudobem_data --size 1`, `fly deploy` (config in `fly.toml`, region `gru`).
-- **Render** — New → Blueprint → this repo (`render.yaml`, Docker runtime, WebSockets supported). Free plan disk is ephemeral — profiles reset on redeploy.
-- **Railway** — New project → Deploy from repo; it picks up the `Dockerfile`. Add a volume at `/data`.
-- **Vercel / static hosts** — can host only the client (`apps/client/dist`); build with `VITE_WS_URL=wss://your-server/ws` and run the server elsewhere (Vercel functions don’t hold WebSockets).
+- **Fly.io, manual CLI:** `fly launch --no-deploy --copy-config`, `fly volumes create tudobem_data --size 1`, then `fly deploy`.
+- **Railway:** New project → Deploy from repo. It picks up the `Dockerfile`; add a volume at `/data`.
+- **Vercel / Netlify / S3:** upload the **solo** build. Alternatively, build the client with `VITE_WS_URL=wss://your-server/ws` and run the server elsewhere (Vercel functions don’t hold WebSockets).
 - **Instant preview from any machine** — `pnpm build && pnpm start`, then `cloudflared tunnel --url http://localhost:8787` prints a temporary public `https://*.trycloudflare.com` URL.
 
-CI (`.github/workflows/ci.yml`) runs typecheck, unit tests, build, and the browser e2e on every PR.
+CI (`.github/workflows/ci.yml`) runs typecheck, unit tests, build, and the browser e2e on every PR. `pages.yml` also runs the e2e in solo mode (`SOLO=1`) against the static build before deploying.
 
 See **[PHASE0_STATUS.md](PHASE0_STATUS.md)** for what works, known gaps, and Phase 1 tickets. The design source of truth is the GDD v1.0.
