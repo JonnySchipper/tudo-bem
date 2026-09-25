@@ -31,6 +31,11 @@ import {
   showScene,
 } from './ui/panels';
 import { speak } from './audio';
+import { installUiArt } from './art/ui';
+import { artStats, loadArt } from './art/sprites';
+
+installUiArt();
+void loadArt();
 
 const TOKEN_KEY = 'tb_token';
 const LAST_ROOM_KEY = 'tb_last_room';
@@ -494,6 +499,7 @@ window.__tb = {
   renderer,
   net,
   rooms: ROOMS,
+  artStats,
   hatById,
   tileToClient: (x: number, y: number) => renderer.tileToClient(x, y),
   selfTile: () => selfTile(),

@@ -15,6 +15,7 @@
     "typecheck": "pnpm -r typecheck",
     "test": "vitest run",
     "e2e": "node scripts/e2e.mjs",
+    "art": "node scripts/bake-art.mjs",
     "verify": "pnpm typecheck && pnpm test && pnpm build"
   },
   "devDependencies": {

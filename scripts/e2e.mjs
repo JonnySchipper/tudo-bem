@@ -136,6 +136,9 @@ async function main() {
   await dwell(1500);
   const start = await profile(page);
   log('landed in', await room(page), 'coins', start.coins, 'plate', start.nameplate);
+  const art = await page.evaluate(() => window.__tb.artStats());
+  log('baked art sprites loaded', `${art.loaded}/${art.total}`);
+  assert(art.total > 0 && art.loaded === art.total, 'baked art manifest + sprites load');
   assert(start.nameplate === 'verde', 'Verde nameplate');
 
   // 2. Walk, sit on a bench, wave, chat

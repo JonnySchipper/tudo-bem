@@ -22,7 +22,10 @@ export type PropKind =
   | 'vaso'
   | 'cama'
   | 'cozinha'
-  | 'caixa';
+  | 'caixa'
+  | 'orelhao'
+  | 'placa_rua'
+  | 'estufa';
 
 export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog';
 
@@ -44,7 +47,7 @@ export interface PropDef {
 export type WallSide = 'left' | 'right';
 
 export interface WallDecor {
-  kind: 'fachada_padaria' | 'mural' | 'predio' | 'metro' | 'janela_rua' | 'prateleira_paes' | 'lousa' | 'relogio' | 'azulejos' | 'poster' | 'janela' | 'placa';
+  kind: 'fachada_padaria' | 'mural' | 'predio' | 'metro' | 'janela_rua' | 'prateleira_paes' | 'lousa' | 'relogio' | 'azulejos' | 'poster' | 'janela' | 'placa' | 'cobogo' | 'tv';
   wall: WallSide;
   /** Start and end along the wall in tile units. */
   from: number;
@@ -80,7 +83,7 @@ export interface NpcDef {
   idleLines: Bilingual[];
 }
 
-export type FloorKind = 'calcada' | 'grama' | 'tijolo' | 'xadrez' | 'madeira' | 'asfalto';
+export type FloorKind = 'calcada' | 'grama' | 'tijolo' | 'xadrez' | 'ladrilho' | 'madeira' | 'asfalto';
 
 export interface RoomDef {
   id: RoomId;
@@ -108,6 +111,7 @@ export const FLOOR_CHARS: Record<string, FloorKind> = {
   g: 'grama',
   t: 'tijolo',
   k: 'xadrez',
+  l: 'ladrilho',
   m: 'madeira',
   a: 'asfalto',
 };
@@ -183,6 +187,8 @@ const praca: RoomDef = {
       label: { pt: 'Poleiro do papagaio', en: 'Parrot perch' },
     },
     { id: 'bici', kind: 'bicicletario', x: 1, y: 7, blocks: true },
+    { id: 'orelhao', kind: 'orelhao', x: 13, y: 4, blocks: true, label: { pt: 'Orelhão', en: 'Public phone booth (“big ear”)' } },
+    { id: 'placa', kind: 'placa_rua', x: 0, y: 8, blocks: true, label: { pt: 'Rua dos Ipês', en: 'Ipê Street (street sign)' } },
   ],
   walls: [
     { kind: 'predio', wall: 'right', from: 0, to: 3 },
@@ -256,7 +262,7 @@ const padaria: RoomDef = {
   gloss: 'Seu Carlos’s Bakery',
   cols: 10,
   rows: 9,
-  floor: ['kkkkkkkkkk', 'kkkkkkkkkk', 'kkkkkkkkkk', 'kkkkkkkkkk', 'kkkkkkkkkk', 'kkkkkkkkkk', 'kkkkkkkkkk', 'kkkkkkkkkk', 'kkkkkkkkkk'],
+  floor: ['llllllllll', 'llllllllll', 'llllllllll', 'llllllllll', 'llllllllll', 'llllllllll', 'llllllllll', 'llllllllll', 'llllllllll'],
   wallHeight: 140,
   wallColor: '#f3e6cc',
   wallTrim: '#b5452e',
@@ -265,7 +271,8 @@ const padaria: RoomDef = {
   props: [
     { id: 'caixa', kind: 'caixa', x: 0, y: 2, blocks: true, label: { pt: 'Caixa', en: 'Cash register' } },
     { id: 'balcao', kind: 'balcao', x: 1, y: 2, w: 5, h: 1, blocks: true },
-    { id: 'vitrine', kind: 'vitrine', x: 6, y: 2, w: 2, h: 1, blocks: true },
+    { id: 'vitrine', kind: 'vitrine', x: 6, y: 2, blocks: true },
+    { id: 'estufa', kind: 'estufa', x: 7, y: 2, blocks: true, label: { pt: 'Estufa de salgados', en: 'Warm snack display' } },
     {
       id: 'trilho',
       kind: 'trilho_pedidos',
@@ -295,6 +302,7 @@ const padaria: RoomDef = {
     { kind: 'prateleira_paes', wall: 'right', from: 1, to: 7, text: 'PADARIA DO SEU CARLOS · DESDE 1978' },
     { kind: 'lousa', wall: 'right', from: 7, to: 10, text: 'CARDÁPIO' },
     { kind: 'relogio', wall: 'left', from: 7, to: 8 },
+    { kind: 'tv', wall: 'left', from: 0, to: 2 },
   ],
   portals: [
     {
@@ -348,6 +356,8 @@ const kitnet: RoomDef = {
   walls: [
     { kind: 'janela_rua', wall: 'right', from: 3, to: 6 },
     { kind: 'poster', wall: 'left', from: 1, to: 3, text: 'SP' },
+    { kind: 'cobogo', wall: 'left', from: 6, to: 8 },
+    { kind: 'cobogo', wall: 'right', from: 0, to: 1 },
   ],
   portals: [
     {

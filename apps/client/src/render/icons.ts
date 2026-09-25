@@ -1,5 +1,6 @@
 import { hatById, SKIN_TONES } from '@tudobem/shared';
-import { circle, ellipse, rrect, shade, type Ctx } from './draw';
+import { circle, ellipse, rrect, type Ctx } from './draw';
+import { spriteUrl } from '../art/sprites';
 import { drawHat } from './avatar';
 
 const cache = new Map<string, string>();
@@ -160,21 +161,27 @@ const FOOD: Record<string, (ctx: Ctx) => void> = {
   },
 };
 
+/** Food icon in a 64×64 box. */
+export function drawFoodIcon(ctx: Ctx, itemId: string) {
+  ellipse(ctx, 32, 56, 22, 4, 'rgba(0,0,0,0.12)');
+  (FOOD[itemId] ?? FOOD.pao_frances)(ctx);
+}
+
+/** Hat on a mannequin head in a 64×64 box. */
+export function drawHatIcon(ctx: Ctx, hatId: string) {
+  const hat = hatById(hatId);
+  ctx.save();
+  ctx.translate(32, 44);
+  ctx.scale(1.2, 1.2);
+  circle(ctx, 0, 6, 11.5, SKIN_TONES[2], 'rgba(42,26,40,0.5)', 1);
+  if (hat) drawHat(ctx, hat, 6, 11.5, true, 0);
+  ctx.restore();
+}
+
 export function foodIcon(itemId: string, size = 64): string {
-  return make(`food:${itemId}`, size, (ctx) => {
-    ellipse(ctx, 32, 56, 22, 4, 'rgba(0,0,0,0.12)');
-    (FOOD[itemId] ?? FOOD.pao_frances)(ctx);
-  });
+  return spriteUrl(`food/${itemId}`) ?? make(`food:${itemId}`, size, (ctx) => drawFoodIcon(ctx, itemId));
 }
 
 export function hatIcon(hatId: string, size = 72): string {
-  return make(`hat:${hatId}`, size, (ctx) => {
-    const hat = hatById(hatId);
-    ctx.translate(32, 44);
-    ctx.scale(1.2, 1.2);
-    circle(ctx, 0, 6, 11.5, SKIN_TONES[2]);
-    circle(ctx, 0, 6, 11.5, 'rgba(0,0,0,0.05)');
-    if (hat) drawHat(ctx, hat, 6, 11.5, true, 0);
-    ctx.fillStyle = shade('#2a2233', 0);
-  });
+  return spriteUrl(`hats/${hatId}`) ?? make(`hat:${hatId}`, size, (ctx) => drawHatIcon(ctx, hatId));
 }

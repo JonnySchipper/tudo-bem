@@ -32,7 +32,7 @@ export interface FurnitureDef {
   price: number;
   /** Seat furniture can be sat on. */
   seat: boolean;
-  kind: 'cadeira' | 'poltrona' | 'pufe' | 'mesinha' | 'planta' | 'tapete' | 'radio' | 'ventilador' | 'gato' | 'luminaria' | 'estante' | 'quadro';
+  kind: 'cadeira' | 'poltrona' | 'pufe' | 'mesinha' | 'planta' | 'tapete' | 'radio' | 'ventilador' | 'gato' | 'luminaria' | 'estante' | 'quadro' | 'rede' | 'filtro';
   color: string;
   /** Walk-through items (rugs) do not block tiles. */
   walkable?: boolean;
@@ -52,6 +52,8 @@ export const FURNITURE: FurnitureDef[] = [
   { id: 'luminaria', pt: 'Luminária', en: 'Floor lamp', price: 15, seat: false, kind: 'luminaria', color: '#f7d774' },
   { id: 'estante', pt: 'Estante de livros', en: 'Bookshelf', price: 30, seat: false, kind: 'estante', color: '#6a3f22' },
   { id: 'quadro', pt: 'Quadro de ipê', en: 'Ipê painting (floor easel)', price: 20, seat: false, kind: 'quadro', color: '#f2c230' },
+  { id: 'rede', pt: 'Rede de descanso', en: 'Hammock', price: 45, seat: false, kind: 'rede', color: '#e5572f' },
+  { id: 'filtro', pt: 'Filtro de barro', en: 'Clay water filter', price: 25, seat: false, kind: 'filtro', color: '#b8573a' },
 ];
 
 /** Every new kitnet comes with one free chair so the first placement is instant. */

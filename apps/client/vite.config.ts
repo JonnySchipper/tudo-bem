@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 
 const SERVER = process.env.TB_SERVER ?? 'http://localhost:8787';
@@ -15,5 +16,11 @@ export default defineConfig({
     target: 'es2022',
     outDir: 'dist',
     emptyOutDir: true,
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        art: fileURLToPath(new URL('./art.html', import.meta.url)),
+      },
+    },
   },
 });

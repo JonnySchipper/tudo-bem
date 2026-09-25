@@ -12,6 +12,24 @@ export interface AvatarPose {
 }
 
 const BODY_W = { esguio: 16, medio: 20, forte: 25 } as const;
+const OUTLINE = 'rgba(42,26,40,0.6)';
+
+/** Stroke a segment with a dark outline underneath, for a clean cartoon silhouette. */
+function limb(ctx: Ctx, x1: number, y1: number, x2: number, y2: number, w: number, color: string) {
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = w + 2;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = w;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+}
 
 export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId: string | null, parrot: boolean, pose: AvatarPose) {
   const skin = SKIN_TONES[a.skin] ?? SKIN_TONES[3];
@@ -71,18 +89,9 @@ export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId:
     if (pose.sitting) {
       // Thigh forward (toward facing side), shin down.
       const kneeX = lx + (front ? 3 : 2) + 9;
-      ctx.strokeStyle = a.bottom === 'saia' ? skin : bottom;
-      ctx.lineWidth = legW;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(lx, hipY + 2);
-      ctx.lineTo(kneeX, hipY + 5);
-      ctx.stroke();
-      ctx.strokeStyle = legColor;
-      ctx.beginPath();
-      ctx.moveTo(kneeX, hipY + 5);
-      ctx.lineTo(kneeX + 1, -sitDrop + 1 - 3);
-      ctx.stroke();
+      limb(ctx, lx, hipY + 2, kneeX, hipY + 5, legW, a.bottom === 'saia' ? skin : bottom);
+      limb(ctx, kneeX, hipY + 5, kneeX + 1, -sitDrop - 2, legW, legColor);
+      ellipse(ctx, kneeX + 3, -sitDrop - 1, 6, 3.8, OUTLINE);
       ellipse(ctx, kneeX + 3, -sitDrop - 1, 5, 3, shoe);
       return;
     }
@@ -90,26 +99,12 @@ export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId:
     const lift = swing > 0 ? swing * 2 : 0;
     ctx.lineCap = 'round';
     if (a.bottom === 'bermuda') {
-      ctx.strokeStyle = skin;
-      ctx.lineWidth = legW - 1;
-      ctx.beginPath();
-      ctx.moveTo(lx + swing * 1.5, hipY + 10);
-      ctx.lineTo(footX, -3 - lift);
-      ctx.stroke();
-      ctx.strokeStyle = bottom;
-      ctx.lineWidth = legW + 1;
-      ctx.beginPath();
-      ctx.moveTo(lx, hipY + 1);
-      ctx.lineTo(lx + swing * 1.5, hipY + 11);
-      ctx.stroke();
+      limb(ctx, lx + swing * 1.5, hipY + 10, footX, -3 - lift, legW - 1, skin);
+      limb(ctx, lx, hipY + 1, lx + swing * 1.5, hipY + 11, legW + 1, bottom);
     } else {
-      ctx.strokeStyle = legColor;
-      ctx.lineWidth = legW;
-      ctx.beginPath();
-      ctx.moveTo(lx, hipY + 1);
-      ctx.lineTo(footX, -3 - lift);
-      ctx.stroke();
+      limb(ctx, lx, hipY + 1, footX, -3 - lift, legW, legColor);
     }
+    ellipse(ctx, footX + 1.5, -2 - lift, 6, 3.8, OUTLINE);
     ellipse(ctx, footX + 1.5, -2 - lift, 5, 3, shoe);
     ellipse(ctx, footX + 1.5, -3 - lift, 3.5, 1.2, 'rgba(255,255,255,0.35)');
   };
@@ -139,13 +134,7 @@ export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId:
     if (pose.sitting && !emote) ang = Math.PI / 2 - side * 0.1 - 0.35;
     const hx = sx + Math.cos(ang) * len;
     const hy = sy + Math.sin(ang) * len;
-    ctx.lineCap = 'round';
-    ctx.strokeStyle = sleeveLong ? top : skin;
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(sx, sy);
-    ctx.lineTo(hx, hy);
-    ctx.stroke();
+    limb(ctx, sx, sy, hx, hy, 6, sleeveLong ? top : skin);
     if (!sleeveLong && !noSleeve) {
       ctx.strokeStyle = top;
       ctx.lineWidth = 7.5;
@@ -154,7 +143,7 @@ export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId:
       ctx.lineTo(sx + Math.cos(ang) * 7, sy + Math.sin(ang) * 7);
       ctx.stroke();
     }
-    circle(ctx, hx, hy, 3.6, skin);
+    circle(ctx, hx, hy, 3.6, skin, OUTLINE, 1);
     if (emote === 'valeu' && side === 1) {
       ctx.strokeStyle = skin;
       ctx.lineWidth = 2.5;
@@ -182,7 +171,8 @@ export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId:
   } else {
     rrect(ctx, -bw / 2, hipY - 4, bw, 8, 3, bottom);
   }
-  rrect(ctx, -bw / 2, shoulderY, bw, hipY - shoulderY, [9, 9, 4, 4], top);
+  rrect(ctx, -bw / 2, shoulderY, bw, hipY - shoulderY, [9, 9, 4, 4], top, OUTLINE, 1.2);
+  rrect(ctx, -bw / 2 + 3, shoulderY + 2, 3, hipY - shoulderY - 6, 2, 'rgba(255,255,255,0.18)');
   // Torso shading on the far side
   rrect(ctx, bw / 2 - 5, shoulderY + 3, 4, hipY - shoulderY - 5, 2, 'rgba(0,0,0,0.12)');
   if (noSleeve) {
@@ -227,7 +217,8 @@ export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId:
 
   // ---- neck + head
   rrect(ctx, -3.5, headY + 8, 7, 7, 2, shade(skin, -0.08));
-  circle(ctx, 0, headY, headR, skin);
+  circle(ctx, 0, headY, headR, skin, OUTLINE, 1.2);
+  ellipse(ctx, -4, headY - 5, 4, 2.5, 'rgba(255,255,255,0.18)');
   circle(ctx, -headR + 0.5, headY + 1, 2.6, shade(skin, -0.06));
   circle(ctx, headR - 0.5, headY + 1, 2.6, shade(skin, -0.06));
 

@@ -20,6 +20,7 @@ import { diamond, ellipse, FONT_BODY, rrect, wrapText, type Ctx, circle } from '
 import { drawBackground, drawLighting, drawRoomStatic } from './room';
 import { drawFurniture, drawProp, SLICED_PROPS } from './props';
 import { drawAvatar } from './avatar';
+import { drawSprite, furnitureKey, propKey } from '../art/sprites';
 
 export type Hit =
   | { kind: 'avatar'; id: string }
@@ -244,7 +245,7 @@ export class WorldRenderer {
       const def = furnitureById(f.itemId);
       if (def?.kind === 'tapete') {
         const c = tileCenter(f.x, f.y);
-        drawFurniture(ctx, def, f.rot, c.sx, c.sy, t);
+        if (!drawSprite(ctx, furnitureKey(f.itemId, f.rot), c.sx, c.sy)) drawFurniture(ctx, def, f.rot, c.sx, c.sy, t);
         hitRect(c.sx, c.sy + 8, 50, 20, { kind: 'furniture', f }, -1);
       }
     }
@@ -272,13 +273,13 @@ export class WorldRenderer {
       if (SLICED_PROPS.has(p.kind)) {
         propTiles(p).forEach((tile, i) => {
           const c = tileCenter(tile.x, tile.y);
-          items.push({ depth: tile.x + tile.y, draw: () => drawProp(ctx, p, c.sx, c.sy, t, i) });
+          items.push({ depth: tile.x + tile.y, draw: () => drawSprite(ctx, propKey(p, i), c.sx, c.sy) || drawProp(ctx, p, c.sx, c.sy, t, i) });
         });
         continue;
       }
       const c = tileCenter(p.x, p.y);
       const depth = p.x + (p.w ?? 1) - 1 + p.y + (p.h ?? 1) - 1;
-      items.push({ depth, draw: () => drawProp(ctx, p, c.sx, c.sy, t, 0, { parrotAdopted: !!game.profile?.parrotOwned }) });
+      items.push({ depth, draw: () => drawSprite(ctx, propKey(p), c.sx, c.sy) || drawProp(ctx, p, c.sx, c.sy, t, 0, { parrotAdopted: !!game.profile?.parrotOwned }) });
       if (p.action) {
         const [ox, oy] = [((p.w ?? 1) - 1) * HW * 0.5 - ((p.h ?? 1) - 1) * HW * 0.5, (((p.w ?? 1) - 1) + ((p.h ?? 1) - 1)) * HH * 0.5];
         hitRect(c.sx + ox, c.sy + oy + 10, 34 + ((p.w ?? 1) - 1) * 40, PROP_HEIGHT[p.kind] ?? 70, { kind: 'prop', prop: p }, depth);
@@ -295,7 +296,7 @@ export class WorldRenderer {
         depth: f.x + f.y,
         draw: () => {
           if (sel) diamond(ctx, c.sx, c.sy, 1, 1, 'rgba(242,194,48,0.35)', '#f2c230', 2);
-          drawFurniture(ctx, def, f.rot, c.sx, c.sy, t);
+          if (!drawSprite(ctx, furnitureKey(f.itemId, f.rot), c.sx, c.sy)) drawFurniture(ctx, def, f.rot, c.sx, c.sy, t);
         },
       });
       hitRect(c.sx, c.sy + 8, 44, 60, game.editMode || !def.seat ? { kind: 'furniture', f } : { kind: 'seat', tile: { x: f.x, y: f.y } }, f.x + f.y);
@@ -305,7 +306,17 @@ export class WorldRenderer {
       const ht = game.hoverTile;
       if (def) {
         const c = tileCenter(ht.x, ht.y);
-        items.push({ depth: ht.x + ht.y + 0.5, draw: () => drawFurniture(ctx, def, game.placing!.rot, c.sx, c.sy, t, true) });
+        const rot = game.placing.rot;
+        items.push({
+          depth: ht.x + ht.y + 0.5,
+          draw: () => {
+            ctx.save();
+            ctx.globalAlpha = 0.6;
+            const ok = drawSprite(ctx, furnitureKey(def.id, rot), c.sx, c.sy);
+            ctx.restore();
+            if (!ok) drawFurniture(ctx, def, rot, c.sx, c.sy, t, true);
+          },
+        });
       }
     }
     for (const n of room.npcs) {

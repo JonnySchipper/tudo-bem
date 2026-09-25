@@ -1,6 +1,7 @@
 import { classifyChat, ECONOMY, MAX_CHAT_LEN, TUTORIAL_STEPS, type EmoteKind, type NoticeLevel } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi, ui } from './dom';
+import { icon } from '../art/ui';
 
 export interface HudActions {
   chat: (text: string) => void;
@@ -38,18 +39,18 @@ export function buildHud(actions: HudActions) {
   const coins = h('span', { id: 'coins' });
   const plate = h('span', { class: 'plate', title: 'Verde: you see English under Portuguese' }, h('span', { class: 'seed' }), 'Verde');
   const soundBtn = h('button', { onclick: actions.toggleSound, title: 'Som / Sound' });
-  const decorBtn = h('button', { class: 'yellow', onclick: actions.toggleDecor, id: 'btn-decor' }, bi('Decorar', 'Decorate'));
+  const decorBtn = h('button', { class: 'yellow', onclick: actions.toggleDecor, id: 'btn-decor' }, icon('decor'), bi('Decorar', 'Decorate'));
   const topbar = h(
     'div',
     { class: 'topbar' },
-    h('div', { class: 'brand' }, h('div', { class: 'logo' }, 'Tudo ', h('span', null, 'Bem')), roomName),
+    h('div', { class: 'brand' }, h('span', { class: 'mark', 'aria-hidden': 'true' }), h('div', { class: 'logo' }, 'Tudo ', h('span', null, 'Bem')), roomName),
     h(
       'div',
       { class: 'top-right' },
       decorBtn,
-      h('button', { onclick: actions.openMap, id: 'btn-map' }, bi('Mapa', 'Map')),
-      h('button', { onclick: actions.openWardrobe, id: 'btn-wardrobe' }, bi('Chapéus', 'My hats')),
-      h('button', { onclick: actions.openFriends, id: 'btn-friends' }, bi('Amigos', 'Friends')),
+      h('button', { onclick: actions.openMap, id: 'btn-map' }, icon('map'), bi('Mapa', 'Map')),
+      h('button', { onclick: actions.openWardrobe, id: 'btn-wardrobe' }, icon('hat'), bi('Chapéus', 'My hats')),
+      h('button', { onclick: actions.openFriends, id: 'btn-friends' }, icon('friends'), bi('Amigos', 'Friends')),
       soundBtn,
       h('span', { class: 'pill' }, plate),
       h('span', { class: 'pill', title: 'Reais Virtuais (RV) — soft currency' }, h('span', { class: 'coin' }), coins),
@@ -102,6 +103,7 @@ export function buildHud(actions: HudActions) {
   const emoteBtn = (k: EmoteKind, pt: string, e: string) => h('button', { onclick: () => actions.emote(k), 'data-emote': k }, bi(pt, e));
   const standBtn = h('button', { onclick: actions.stand, id: 'btn-stand', style: 'display:none' }, bi('Levantar', 'Stand up'));
   const parrotBtn = h('button', { class: 'green', onclick: actions.parrotHint, id: 'btn-parrot', style: 'display:none' }, bi('Dica do papagaio', 'Parrot hint'));
+  parrotBtn.prepend(icon('parrot', 18));
   const parrotToggle = h('button', { onclick: actions.toggleParrot, id: 'btn-parrot-toggle', style: 'display:none' });
   const bottombar = h(
     'div',
@@ -118,7 +120,7 @@ export function buildHud(actions: HudActions) {
       parrotBtn,
       parrotToggle,
     ),
-    h('div', { class: 'chatbar' }, input, hint, h('button', { class: 'primary', onclick: send, id: 'chat-send' }, 'Enviar')),
+    h('div', { class: 'chatbar' }, input, hint, h('button', { class: 'primary', onclick: send, id: 'chat-send', style: 'display:inline-flex;gap:6px;align-items:center' }, icon('send', 16), 'Enviar')),
   );
 
   toastsEl = h('div', { class: 'toasts', 'aria-live': 'polite' });
@@ -146,7 +148,7 @@ export function buildHud(actions: HudActions) {
     }
     decorBtn.style.display = game.isOwnKitnet ? '' : 'none';
     decorBtn.classList.toggle('primary', game.editMode);
-    soundBtn.replaceChildren(bi(game.sound ? 'Som: sim' : 'Som: não', game.sound ? 'Voice on' : 'Voice off'));
+    soundBtn.replaceChildren(icon(game.sound ? 'soundOn' : 'soundOff'), bi(game.sound ? 'Som: sim' : 'Som: não', game.sound ? 'Voice on' : 'Voice off'));
     const self = game.self;
     standBtn.style.display = self && (self.pub.sitting || self.sitOnArrive) ? '' : 'none';
   };

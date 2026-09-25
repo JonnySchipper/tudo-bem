@@ -22,9 +22,103 @@ function subDiamond(ctx: Ctx, x: number, y: number, i: number, j: number, n: num
   ctx.stroke();
 }
 
-function drawFloorTile(ctx: Ctx, room: RoomDef, x: number, y: number) {
+/** Run `draw` with the unit square [0,1]² mapped onto tile (x, y). */
+export function onTile(ctx: Ctx, x: number, y: number, draw: () => void) {
+  const o = toScreen(x, y);
+  ctx.save();
+  ctx.transform(HW, HH, -HW, HH, o.sx, o.sy);
+  draw();
+  ctx.restore();
+}
+
+/** Ladrilho hidráulico — the cement floor tile of old São Paulo padarias. */
+export function drawLadrilho(ctx: Ctx) {
+  ctx.fillStyle = '#efe3c8';
+  ctx.fillRect(0, 0, 1, 1);
+  ctx.fillStyle = '#5a9690';
+  for (const [cx, cy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, 0.27, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#efe3c8';
+  for (const [cx, cy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, 0.19, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.fillStyle = '#cf7456';
+  for (const [cx, cy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, 0.09, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // Four-petal flower
+  for (let i = 0; i < 4; i++) {
+    ctx.save();
+    ctx.translate(0.5, 0.5);
+    ctx.rotate((i * Math.PI) / 2);
+    ctx.beginPath();
+    ctx.ellipse(0.15, 0, 0.13, 0.065, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#cf7456';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(0.32, 0);
+    ctx.lineTo(0.42, -0.05);
+    ctx.lineTo(0.5, 0);
+    ctx.lineTo(0.42, 0.05);
+    ctx.closePath();
+    ctx.fillStyle = '#5a9690';
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.beginPath();
+  ctx.arc(0.5, 0.5, 0.06, 0, Math.PI * 2);
+  ctx.fillStyle = '#e0a82e';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(90,60,40,0.28)';
+  ctx.lineWidth = 0.02;
+  ctx.strokeRect(0, 0, 1, 1);
+}
+
+/** Taco — the small hardwood block parquet of Brazilian apartments. */
+export function drawTaco(ctx: Ctx, x: number, y: number) {
+  const woods = ['#b98555', '#a8743f', '#c39461', '#9c6a38'];
+  const n = 2;
+  const s = 1 / n;
+  for (let i = 0; i < n; i++)
+    for (let j = 0; j < n; j++) {
+      const horizontal = (i + j + x + y) % 2 === 0;
+      for (let k = 0; k < 3; k++) {
+        const c = woods[Math.floor(hash(x * 7 + i * 3 + k, y * 7 + j * 3, 5) * woods.length)];
+        ctx.fillStyle = shade(c, (hash(x + i, y + j + k, 2) - 0.5) * 0.12);
+        if (horizontal) ctx.fillRect(i * s, j * s + (k * s) / 3, s, s / 3);
+        else ctx.fillRect(i * s + (k * s) / 3, j * s, s / 3, s);
+      }
+      ctx.strokeStyle = 'rgba(70,40,15,0.35)';
+      ctx.lineWidth = 0.012;
+      for (let k = 1; k < 3; k++) {
+        ctx.beginPath();
+        if (horizontal) {
+          ctx.moveTo(i * s, j * s + (k * s) / 3);
+          ctx.lineTo(i * s + s, j * s + (k * s) / 3);
+        } else {
+          ctx.moveTo(i * s + (k * s) / 3, j * s);
+          ctx.lineTo(i * s + (k * s) / 3, j * s + s);
+        }
+        ctx.stroke();
+      }
+      ctx.lineWidth = 0.02;
+      ctx.strokeRect(i * s, j * s, s, s);
+    }
+}
+
+export function drawFloorTile(ctx: Ctx, room: RoomDef, x: number, y: number) {
   const kind = floorAt(room, x, y);
   switch (kind) {
+    case 'ladrilho':
+      onTile(ctx, x, y, () => drawLadrilho(ctx));
+      break;
     case 'calcada': {
       // São Paulo calçada: black & white wave mosaic.
       const n = 4;
@@ -70,18 +164,9 @@ function drawFloorTile(ctx: Ctx, room: RoomDef, x: number, y: number) {
       for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) subDiamond(ctx, x, y, i, j, n, (i + j) % 2 ? '#c8553d' : '#f4ead5');
       break;
     }
-    case 'madeira': {
-      const n = 4;
-      for (let j = 0; j < n; j++) {
-        const r = hash(x, y * 4 + j, 1);
-        const a = toScreen(x, y + j / n);
-        const b = toScreen(x + 1, y + j / n);
-        const c = toScreen(x + 1, y + (j + 1) / n);
-        const d = toScreen(x, y + (j + 1) / n);
-        poly(ctx, [[a.sx, a.sy], [b.sx, b.sy], [c.sx, c.sy], [d.sx, d.sy]], shade('#b98555', (r - 0.5) * 0.2), 'rgba(90,50,20,0.3)', 0.7);
-      }
+    case 'madeira':
+      onTile(ctx, x, y, () => drawTaco(ctx, x, y));
       break;
-    }
     case 'asfalto':
       subDiamond(ctx, x, y, 0, 0, 1, '#5a5a60');
       break;
@@ -425,10 +510,116 @@ function drawDecor(ctx: Ctx, room: RoomDef, d: WallDecor) {
         ctx.fillText('eu ♥ São Paulo', L / 2, -H + 74);
         break;
       }
+      case 'cobogo': {
+        // Modernist breeze-block wall (cobogó), light through the holes.
+        const top = -H + 14;
+        const bottom = -10;
+        const s = 16;
+        const cols = Math.floor((L - 8) / s);
+        const rows = Math.floor((bottom - top) / s);
+        const x0 = (L - cols * s) / 2;
+        rrect(ctx, x0 - 3, top - 3, cols * s + 6, rows * s + 6, 2, shade(room.wallColor, -0.25));
+        for (let i = 0; i < cols; i++)
+          for (let j = 0; j < rows; j++) {
+            const x = x0 + i * s;
+            const y = top + j * s;
+            ctx.fillStyle = '#f7ecd6';
+            ctx.fillRect(x, y, s, s);
+            ctx.fillStyle = 'rgba(255,214,140,0.9)';
+            ctx.beginPath();
+            ctx.arc(x + s / 2, y + s / 2, s * 0.32, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#f7ecd6';
+            ctx.beginPath();
+            ctx.arc(x + s / 2, y + s / 2, s * 0.12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255,214,140,0.9)';
+            for (const [dx, dy] of [[0, 0], [s, 0], [0, s], [s, s]]) {
+              ctx.beginPath();
+              ctx.arc(x + dx, y + dy, s * 0.16, 0, Math.PI * 2);
+              ctx.fill();
+            }
+            ctx.strokeStyle = 'rgba(120,90,60,0.35)';
+            ctx.lineWidth = 0.8;
+            ctx.strokeRect(x, y, s, s);
+          }
+        break;
+      }
+      case 'tv': {
+        const w = Math.min(L - 12, 64);
+        const x = (L - w) / 2;
+        const y = -H + 22;
+        rrect(ctx, x - 3, y - 3, w + 6, 42, 3, '#1e1e24');
+        const g = ctx.createLinearGradient(0, y, 0, y + 36);
+        g.addColorStop(0, '#3fa34d');
+        g.addColorStop(1, '#2e8a3e');
+        ctx.fillStyle = g;
+        ctx.fillRect(x, y, w, 36);
+        ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x + 4, y + 4, w - 8, 28);
+        ctx.beginPath();
+        ctx.moveTo(x + w / 2, y + 4);
+        ctx.lineTo(x + w / 2, y + 32);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(x + w / 2, y + 18, 6, 0, Math.PI * 2);
+        ctx.stroke();
+        for (let i = 0; i < 6; i++) circle(ctx, x + 10 + hash(i, 3) * (w - 20), y + 8 + hash(i, 4) * 20, 1.6, i % 2 ? '#f2c230' : '#2b5ba8');
+        circle(ctx, x + w * 0.62, y + 20, 1.3, '#ffffff');
+        rrect(ctx, x + 3, y + 3, 26, 8, 2, 'rgba(0,0,0,0.6)');
+        ctx.font = `800 6px ${FONT_BODY}`;
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('1 × 0', x + 6, y + 7.5);
+        rrect(ctx, L / 2 - 2, y + 39, 4, 8, 1, '#3a3a44');
+        break;
+      }
       case 'placa':
         break;
     }
   });
+}
+
+/** Copan-style curved modernist tower — the silhouette that says “centro de São Paulo”. */
+function drawCopan(ctx: Ctx, cx: number, baseY: number) {
+  const w = 190;
+  const h = 250;
+  const x0 = cx - w / 2;
+  const top = baseY - h;
+  const wave = (x: number) => Math.sin(((x - x0) / w) * Math.PI * 1.6 - 0.6) * 10;
+  // Body with curvature shading
+  const steps = 38;
+  for (let i = 0; i < steps; i++) {
+    const xa = x0 + (i / steps) * w;
+    const xb = x0 + ((i + 1) / steps) * w;
+    const slope = Math.cos(((xa - x0) / w) * Math.PI * 1.6 - 0.6);
+    const light = 0.1 + slope * 0.12;
+    ctx.fillStyle = shade('#c9bcc9', light);
+    ctx.beginPath();
+    ctx.moveTo(xa, top + wave(xa));
+    ctx.lineTo(xb + 0.5, top + wave(xb));
+    ctx.lineTo(xb + 0.5, baseY);
+    ctx.lineTo(xa, baseY);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // Brise-soleil bands
+  ctx.strokeStyle = 'rgba(95,80,105,0.5)';
+  ctx.lineWidth = 1.4;
+  for (let y = 6; y < h; y += 6) {
+    ctx.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      const x = x0 + (i / steps) * w;
+      const yy = top + y + wave(x) * (1 - y / h) * 0.9;
+      if (i === 0) ctx.moveTo(x, yy);
+      else ctx.lineTo(x, yy);
+    }
+    ctx.stroke();
+  }
+  ctx.fillStyle = 'rgba(40,30,60,0.12)';
+  ctx.fillRect(x0 + w - 12, top, 12, h);
 }
 
 function drawPortalDoor(ctx: Ctx, room: RoomDef, p: PortalDef) {
@@ -467,13 +658,15 @@ function drawSkyline(ctx: Ctx, room: RoomDef) {
   // Buildings behind the walls, drawn back-to-front.
   const items: { x: number; y: number; h: number; c: string; d: number }[] = [];
   for (let k = -2; k < room.rows; k += 1.6) items.push({ x: -2.2 - hash(k * 10, 1) * 1.5, y: k, h: room.wallHeight + 20 + hash(k * 10, 2) * 120, c: '', d: 0 });
-  for (let k = 0; k < room.cols + 1; k += 1.7) items.push({ x: k, y: -2.2 - hash(k * 10, 3) * 1.5, h: room.wallHeight + 20 + hash(k * 10, 4) * 120, c: '', d: 0 });
+  for (let k = 0; k < room.cols + 1; k += 1.7) if (k < room.cols * 0.42 || k > room.cols * 0.84) items.push({ x: k, y: -2.2 - hash(k * 10, 3) * 1.5, h: room.wallHeight + 20 + hash(k * 10, 4) * 120, c: '', d: 0 });
   const palette = ['#b9a9c8', '#c7b2a8', '#a99fb8', '#d0bfb0', '#9c93ad'];
   items.forEach((b, i) => {
     b.c = palette[i % palette.length];
     b.d = b.x + b.y;
   });
   items.sort((a, b) => a.d - b.d);
+  const copanAt = toScreen(room.cols * 0.62, -3.2);
+  drawCopan(ctx, copanAt.sx, copanAt.sx / 2 - room.wallHeight + 40);
   for (const b of items) {
     const c = toScreen(b.x + 0.5, b.y + 0.5);
     box(ctx, c.sx, c.sy, 1.3, 1.3, b.h, b.c, 0, { stroke: 'rgba(0,0,0,0.08)' });

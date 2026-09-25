@@ -1,5 +1,6 @@
 import { furnitureById, type Dir, type FurnitureDef, type PropDef } from '@tudobem/shared';
 import { box, circle, diamond, ellipse, FONT_BODY, FONT_TITLE, iso, poly, rrect, shade, shadow, type Ctx } from './draw';
+import { spriteUrl } from '../art/sprites';
 
 function label(ctx: Ctx, text: string, x: number, y: number, bg: string, fg = '#fff', size = 9) {
   ctx.font = `800 ${size}px ${FONT_BODY}`;
@@ -379,6 +380,113 @@ function cozinha(ctx: Ctx, cx: number, cy: number) {
   rrect(ctx, x + fx - 7, y + fy - 58, 14, 10, 3, '#c23b4e');
 }
 
+/** Orelhão — São Paulo’s egg-shaped public phone shell. */
+function orelhao(ctx: Ctx, cx: number, cy: number) {
+  shadow(ctx, cx, cy, 16, 6);
+  box(ctx, cx, cy, 0.3, 0.3, 4, '#8a8a8a');
+  rrect(ctx, cx - 2, cy - 70, 4, 68, 2, '#5d5d66');
+  // Shell
+  ctx.save();
+  ctx.translate(cx + 2, cy - 76);
+  ctx.fillStyle = '#e8741a';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 17, 21, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#c85c10';
+  ctx.beginPath();
+  ctx.ellipse(-2, 1, 17, 21, 0, Math.PI * 0.5, Math.PI * 1.5);
+  ctx.fill();
+  // Opening facing the viewer
+  ctx.fillStyle = '#3b2a22';
+  ctx.beginPath();
+  ctx.ellipse(4, 6, 10, 14, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.beginPath();
+  ctx.ellipse(-8, -8, 3, 7, -0.4, 0, Math.PI * 2);
+  ctx.fill();
+  // Phone
+  rrect(ctx, 0, 0, 9, 13, 2, '#c9c9cf');
+  rrect(ctx, 1.5, 2, 6, 3, 1, '#2a2233');
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) ctx.fillRect(1.8 + i * 2, 6.5 + j * 2.3, 1.2, 1.2);
+  ctx.strokeStyle = '#2a2233';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(9, 7);
+  ctx.quadraticCurveTo(13, 13, 8, 17);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** Blue São Paulo street sign on a pole. */
+function placaRua(ctx: Ctx, cx: number, cy: number) {
+  shadow(ctx, cx, cy, 8, 3);
+  rrect(ctx, cx - 1.5, cy - 104, 3, 104, 1, '#2f4a3a');
+  const plate = (y: number, w: number, text: string, sub?: string) => {
+    rrect(ctx, cx - w / 2, y, w, sub ? 22 : 15, 2, '#1d4f9c', '#ffffff', 1.5);
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `800 7.5px ${FONT_BODY}`;
+    ctx.fillText(text, cx, y + 7.5);
+    if (sub) {
+      ctx.font = `700 5.5px ${FONT_BODY}`;
+      ctx.fillText(sub, cx, y + 16);
+    }
+  };
+  plate(cy - 116, 66, 'R. DOS IPÊS', 'BAIRRO IPÊ');
+  plate(cy - 92, 54, 'PRAÇA CENTRAL');
+}
+
+/** Estufa — heated glass case of salgados. */
+function estufa(ctx: Ctx, cx: number, cy: number) {
+  box(ctx, cx, cy, 1.0, 0.8, 22, '#d6cfc4', 0, { stroke: 'rgba(0,0,0,0.12)' });
+  box(ctx, cx, cy, 0.96, 0.76, 26, 'rgba(255,196,120,0.4)', 22, { left: 'rgba(255,190,110,0.42)', right: 'rgba(240,170,90,0.45)', stroke: 'rgba(180,120,60,0.6)' });
+  const salgados: [number, number, 'coxinha' | 'pastel' | 'esfiha'][] = [
+    [-0.25, 0.1, 'coxinha'],
+    [0, 0.12, 'pastel'],
+    [0.25, 0.1, 'esfiha'],
+    [-0.12, -0.12, 'coxinha'],
+    [0.14, -0.12, 'pastel'],
+  ];
+  for (const [dx, dy, k] of salgados) {
+    const [ox, oy] = iso(dx, dy);
+    const x = cx + ox;
+    const y = cy + oy - 30;
+    if (k === 'coxinha') {
+      ctx.fillStyle = '#d0822f';
+      ctx.beginPath();
+      ctx.moveTo(x, y - 7);
+      ctx.bezierCurveTo(x + 6, y - 2, x + 5, y + 3, x, y + 3);
+      ctx.bezierCurveTo(x - 5, y + 3, x - 6, y - 2, x, y - 7);
+      ctx.fill();
+    } else if (k === 'pastel') {
+      ctx.fillStyle = '#e8b25a';
+      ctx.beginPath();
+      ctx.ellipse(x, y, 7, 3.5, 0, Math.PI, 0);
+      ctx.lineTo(x - 7, y);
+      ctx.fill();
+      ctx.fillRect(x - 7, y - 0.5, 14, 2);
+    } else {
+      ctx.fillStyle = '#d99a4a';
+      ctx.beginPath();
+      ctx.moveTo(x - 5, y + 2);
+      ctx.lineTo(x + 5, y + 2);
+      ctx.lineTo(x, y - 6);
+      ctx.closePath();
+      ctx.fill();
+      circle(ctx, x, y - 0.5, 1.6, '#b8423a');
+    }
+  }
+  box(ctx, cx, cy, 1.0, 0.8, 3, '#efe9e1', 48, { stroke: 'rgba(0,0,0,0.1)' });
+  const g = ctx.createRadialGradient(cx, cy - 40, 2, cx, cy - 36, 26);
+  g.addColorStop(0, 'rgba(255,190,90,0.35)');
+  g.addColorStop(1, 'rgba(255,190,90,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(cx - 26, cy - 62, 52, 40);
+  label(ctx, 'SALGADOS', cx, cy - 58, '#b5452e', '#fff', 7);
+}
+
 export function drawProp(ctx: Ctx, p: PropDef, cx: number, cy: number, t: number, slice = 0, opts: { parrotAdopted?: boolean } = {}) {
   switch (p.kind) {
     case 'ipe':
@@ -423,6 +531,12 @@ export function drawProp(ctx: Ctx, p: PropDef, cx: number, cy: number, t: number
       return cama(ctx, cx, cy);
     case 'cozinha':
       return cozinha(ctx, cx, cy);
+    case 'orelhao':
+      return orelhao(ctx, cx, cy);
+    case 'placa_rua':
+      return placaRua(ctx, cx, cy);
+    case 'estufa':
+      return estufa(ctx, cx, cy);
   }
 }
 
@@ -443,21 +557,33 @@ export function drawFurniture(ctx: Ctx, def: FurnitureDef, rot: 0 | 1, cx: numbe
         const [lx, ly] = iso(dx, dy);
         rrect(ctx, cx + lx - 1.5, cy + ly - 18, 3, 18, 1, shade(c, -0.25));
       }
-      box(ctx, cx, cy, 0.52, 0.52, 4, c, 16);
+      const wood = { top: shade(c, 0.18), left: shade(c, 0.02), right: shade(c, -0.14), stroke: 'rgba(60,30,10,0.35)' };
       const [bx, by] = iso(...((dir === 'SE' ? [-0.24, 0] : [0, -0.24]) as [number, number]));
-      box(ctx, cx + bx, cy + by, dir === 'SW' ? 0.52 : 0.07, dir === 'SW' ? 0.07 : 0.52, 22, shade(c, -0.1), 20);
+      const back = () => {
+        box(ctx, cx + bx, cy + by, dir === 'SW' ? 0.52 : 0.07, dir === 'SW' ? 0.07 : 0.52, 24, c, 20, wood);
+        const [sx, sy] = iso(...((dir === 'SE' ? [-0.2, 0] : [0, -0.2]) as [number, number]));
+        rrect(ctx, cx + sx - 6, cy + sy - 36, 12, 3, 1, shade(c, 0.3));
+      };
+      back();
+      box(ctx, cx, cy, 0.52, 0.52, 4, c, 16, wood);
       break;
     }
     case 'poltrona': {
-      shadow(ctx, cx, cy, 22, 9, 0.2);
-      box(ctx, cx, cy, 0.8, 0.8, 16, c);
-      const [bx, by] = iso(...((dir === 'SE' ? [-0.3, 0] : [0, -0.3]) as [number, number]));
-      box(ctx, cx + bx, cy + by, dir === 'SW' ? 0.8 : 0.2, dir === 'SW' ? 0.2 : 0.8, 22, shade(c, -0.1), 16);
-      const arms: [number, number][] = dir === 'SE' ? [[0, -0.32], [0, 0.32]] : [[-0.32, 0], [0.32, 0]];
-      for (const a of arms) {
-        const [ax, ay] = iso(...a);
-        box(ctx, cx + ax, cy + ay, dir === 'SE' ? 0.8 : 0.16, dir === 'SE' ? 0.16 : 0.8, 10, shade(c, -0.05), 16);
-      }
+      shadow(ctx, cx, cy, 24, 10, 0.2);
+      const fabric = { top: shade(c, 0.2), left: shade(c, 0.02), right: shade(c, -0.16), stroke: 'rgba(20,50,30,0.35)' };
+      const se = dir === 'SE';
+      const at = (dx: number, dy: number) => iso(...((se ? [dx, dy] : [dy, dx]) as [number, number]));
+      const ext = (ax: number, ay: number): [number, number] => (se ? [ax, ay] : [ay, ax]);
+      // Back first, then the far arm, seat + cushion, and the near arm last.
+      const [bx, by] = at(-0.3, 0);
+      box(ctx, cx + bx, cy + by, ...ext(0.2, 0.84), 40, c, 0, fabric);
+      const [fx, fy] = at(0.02, se ? -0.34 : -0.34);
+      box(ctx, cx + fx, cy + fy, ...ext(0.62, 0.16), 26, c, 0, fabric);
+      const [kx, ky] = at(0.06, 0);
+      box(ctx, cx + kx, cy + ky, ...ext(0.6, 0.54), 16, c, 0, fabric);
+      box(ctx, cx + kx, cy + ky, ...ext(0.56, 0.5), 5, shade(c, 0.12), 16, { ...fabric, top: shade(c, 0.3) });
+      const [nx, ny] = at(0.02, 0.34);
+      box(ctx, cx + nx, cy + ny, ...ext(0.62, 0.16), 26, c, 0, fabric);
       break;
     }
     case 'pufe': {
@@ -589,6 +715,58 @@ export function drawFurniture(ctx: Ctx, def: FurnitureDef, rot: 0 | 1, cx: numbe
         }
       break;
     }
+    case 'rede': {
+      // Hammock between two posts, striped like the ones sold at the feira.
+      shadow(ctx, cx, cy, 28, 9, 0.15);
+      const along: [number, number] = rot === 0 ? [0.42, 0] : [0, 0.42];
+      const [ax, ay] = iso(-along[0], -along[1]);
+      const [bx, by] = iso(along[0], along[1]);
+      rrect(ctx, cx + ax - 2, cy + ay - 44, 4, 44, 1, '#6a3f22');
+      rrect(ctx, cx + bx - 2, cy + by - 44, 4, 44, 1, '#6a3f22');
+      const stripes = [c, '#f2c230', '#2e9e5b', '#2b5ba8', '#f4efe6'];
+      ctx.lineCap = 'round';
+      stripes.forEach((col, i) => {
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(cx + ax, cy + ay - 38 + i * 1.5);
+        ctx.quadraticCurveTo(cx + (ax + bx) / 2, cy + (ay + by) / 2 - 2 + i * 2.6, cx + bx, cy + by - 38 + i * 1.5);
+        ctx.stroke();
+      });
+      ctx.strokeStyle = '#f4efe6';
+      ctx.lineWidth = 0.8;
+      for (let k = 1; k < 8; k++) {
+        const f = k / 8;
+        const px = cx + ax + (bx - ax) * f;
+        const py = cy + ay + (by - ay) * f - 26 + Math.sin(f * Math.PI) * 14;
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(px, py + 5);
+        ctx.stroke();
+      }
+      break;
+    }
+    case 'filtro': {
+      // Filtro de barro: two stacked clay chambers with a little tap.
+      shadow(ctx, cx, cy, 16, 6);
+      box(ctx, cx, cy, 0.55, 0.55, 18, '#8a5433');
+      const clay = c;
+      rrect(ctx, cx - 11, cy - 44, 22, 24, 7, clay);
+      ellipse(ctx, cx, cy - 44, 11, 4, shade(clay, 0.12));
+      rrect(ctx, cx - 10, cy - 64, 20, 20, 7, shade(clay, 0.05));
+      ellipse(ctx, cx, cy - 64, 10, 3.5, shade(clay, 0.18));
+      circle(ctx, cx, cy - 67, 2.5, shade(clay, -0.2));
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx - 6, cy - 60);
+      ctx.lineTo(cx - 6, cy - 48);
+      ctx.stroke();
+      rrect(ctx, cx + 8, cy - 28, 6, 3, 1, '#c9c9cf');
+      rrect(ctx, cx + 12, cy - 28, 2, 5, 1, '#c9c9cf');
+      rrect(ctx, cx - 17, cy - 26, 6, 7, 1, '#ffffff', '#c8c0b4');
+      break;
+    }
     case 'quadro': {
       shadow(ctx, cx, cy, 14, 6);
       ctx.strokeStyle = '#6a3f22';
@@ -610,6 +788,8 @@ export function drawFurniture(ctx: Ctx, def: FurnitureDef, rot: 0 | 1, cx: numbe
 }
 
 export function furnitureIcon(itemId: string, size = 80): string {
+  const baked = spriteUrl(`furniture/${itemId}_0`);
+  if (baked) return baked;
   const def = furnitureById(itemId);
   const canvas = document.createElement('canvas');
   const dpr = 2;

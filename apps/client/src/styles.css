@@ -208,19 +208,28 @@ button:disabled {
 .coin {
   width: 20px;
   height: 20px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, #ffe68a, #f2c230 55%, #c9950e);
-  border: 2px solid #b58112;
-  display: inline-grid;
-  place-items: center;
-  font-size: 9px;
-  font-weight: 900;
-  color: #7a5608;
-  font-family: var(--font-title);
+  display: inline-block;
+  background: var(--art-coin) center / contain no-repeat;
+  flex: none;
 }
 
-.coin::after {
-  content: 'RV';
+.ico {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+}
+
+.top-right button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.brand .mark {
+  width: 34px;
+  height: 34px;
+  background: var(--art-logo) center / contain no-repeat;
+  flex: none;
 }
 
 .plate {
@@ -239,21 +248,7 @@ button:disabled {
   width: 14px;
   height: 14px;
   display: inline-block;
-  background:
-    radial-gradient(ellipse 45% 30% at 30% 40%, #c9f2b8 60%, transparent 62%),
-    radial-gradient(ellipse 45% 30% at 72% 30%, #e7ffd9 60%, transparent 62%);
-  position: relative;
-}
-
-.plate .seed::after {
-  content: '';
-  position: absolute;
-  left: 6px;
-  top: 5px;
-  width: 2px;
-  height: 9px;
-  background: #e7ffd9;
-  border-radius: 2px;
+  background: var(--art-seed) center / contain no-repeat;
 }
 
 .top-right {
@@ -374,6 +369,9 @@ button:disabled {
 }
 
 .emotes button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 0.4em 0.8em;
   box-shadow: var(--shadow);
 }
@@ -498,10 +496,13 @@ button:disabled {
 }
 
 .panel {
-  background: var(--cream);
+  background:
+    var(--art-azulejo) top left / 24px 24px repeat-x,
+    var(--cream);
   border-radius: 22px;
   box-shadow: var(--shadow);
   padding: 20px;
+  padding-top: 38px;
   width: min(720px, calc(100vw - 24px));
   max-height: calc(100vh - 40px);
   overflow: auto;
@@ -547,6 +548,8 @@ button:disabled {
   justify-content: safe center;
   z-index: 30;
   background:
+    var(--art-calcada) bottom left / 120px 48px repeat-x,
+    var(--art-skyline) left calc(100% - 44px) / 600px 160px repeat-x,
     radial-gradient(circle at 20% 20%, rgba(242, 194, 48, 0.55), transparent 40%),
     radial-gradient(circle at 80% 30%, rgba(229, 87, 47, 0.45), transparent 45%),
     radial-gradient(circle at 50% 90%, rgba(46, 158, 91, 0.45), transparent 50%),
@@ -736,6 +739,10 @@ button:disabled {
   border-radius: 22px;
   box-shadow: var(--shadow);
   padding: 16px 18px;
+  padding-top: 26px;
+  background:
+    var(--art-azulejo) top left / 14px 14px repeat-x,
+    var(--paper);
   display: grid;
   grid-template-columns: 96px 1fr;
   gap: 14px;
@@ -850,8 +857,10 @@ button:disabled {
 
 .mg {
   width: min(980px, calc(100vw - 20px));
-  background: #fbead0;
-  background-image: repeating-linear-gradient(45deg, rgba(229, 87, 47, 0.05) 0 12px, transparent 12px 24px);
+  background:
+    var(--art-azulejo) top left / 24px 24px repeat-x,
+    repeating-linear-gradient(45deg, rgba(229, 87, 47, 0.05) 0 12px, transparent 12px 24px),
+    #fbead0;
 }
 
 .mg-head {
