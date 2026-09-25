@@ -1,0 +1,28 @@
+{
+  "name": "tudo-bem",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Tudo Bem — Brazilian Portuguese social virtual world (Phase 0 vertical slice)",
+  "type": "module",
+  "packageManager": "pnpm@10.33.3",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n server,client -c green,yellow \"pnpm --filter @tudobem/server dev\" \"pnpm --filter @tudobem/client dev\"",
+    "build": "pnpm --filter @tudobem/client build && pnpm --filter @tudobem/server build",
+    "start": "node apps/server/dist/index.js",
+    "typecheck": "pnpm -r typecheck",
+    "test": "vitest run",
+    "e2e": "node scripts/e2e.mjs",
+    "art": "node scripts/bake-art.mjs",
+    "verify": "pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "concurrently": "^10.0.5",
+    "playwright-core": "^1.63.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.2"
+  }
+}
