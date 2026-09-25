@@ -69,6 +69,8 @@ async function createAvatar(page, name, pronoun) {
   await page.fill('#avatar-name', name);
   const label = { ele: 'ele (he)', ela: 'ela (she)', nome: 'só meu nome (name only)' }[pronoun];
   await page.click(`button:has-text("${label}")`);
+  assert(await page.isDisabled('#enter-praca'), 'cannot enter before confirming 18+');
+  await page.check('#confirm-18');
   return async () => {
     await page.click('#enter-praca');
     await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
@@ -111,7 +113,22 @@ async function main() {
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => m.type() === 'error' && !/fonts\.g/.test(m.text()) && errors.push(m.text()));
 
-  // 1. Age gate + avatar creation
+  // 0. Under-18 is turned away at the gate
+  {
+    const ctxMinor = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const pm = await ctxMinor.newPage();
+    await pm.goto(BASE);
+    await pm.waitForSelector('#birth-month');
+    await pm.selectOption('#birth-month', '1');
+    await pm.selectOption('#birth-year', String(new Date().getFullYear() - 16));
+    await pm.click('#age-next');
+    await pm.waitForSelector('text=Só para maiores de 18 anos');
+    assert(!(await pm.$('#avatar-name')), 'no avatar creator for under-18');
+    await ctxMinor.close();
+    log('under-18 blocked');
+  }
+
+  // 1. Age gate + avatar creation (18+ confirmation required)
   const enter = await createAvatar(page, 'Jonny', 'ele');
   await sleep(300);
   await shot(page, '01_avatar_creator');

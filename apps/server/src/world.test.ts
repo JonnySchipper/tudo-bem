@@ -45,7 +45,7 @@ async function client(world: World, name = `Ana${n++}`, pronoun: 'ele' | 'ela' |
     all: (t) => inbox.filter((m) => m.t === t) as never,
   };
   await c.send({ t: 'hello' });
-  await c.send({ t: 'createProfile', name, pronoun, appearance: DEFAULT_APPEARANCE, birthYear: 2000, birthMonth: 1 });
+  await c.send({ t: 'createProfile', name, pronoun, appearance: DEFAULT_APPEARANCE, birthYear: 2000, birthMonth: 1, confirm18: true });
   await c.send({ t: 'join', room: 'praca' });
   return c;
 }
@@ -56,16 +56,41 @@ describe('World', () => {
     pending.length = 0;
   });
 
-  it('enforces the 13+ age gate and name filter', async () => {
+  it('enforces the 18+ age gate, explicit adult confirmation, and name filter', async () => {
     const { world } = makeWorld();
     const inbox: ServerMsg[] = [];
     const s = world.connect('x', (m) => inbox.push(m), () => {});
-    const year = new Date().getFullYear();
-    await world.handle(s, { t: 'createProfile', name: 'Kiddo', pronoun: 'ele', appearance: DEFAULT_APPEARANCE, birthYear: year - 10, birthMonth: 1 });
-    expect(inbox.at(-1)).toMatchObject({ t: 'error', code: 'age_gate' });
-    await world.handle(s, { t: 'createProfile', name: 'shit', pronoun: 'ele', appearance: DEFAULT_APPEARANCE, birthYear: 1990, birthMonth: 1 });
+    const now = new Date();
+    const year = now.getFullYear();
+    const base = { t: 'createProfile' as const, name: 'Teste', pronoun: 'ele' as const, appearance: DEFAULT_APPEARANCE, birthMonth: 1, confirm18: true };
+    for (const age of [10, 13, 16, 17]) {
+      await world.handle(s, { ...base, birthYear: year - age - 1, birthMonth: 12 });
+      expect(inbox.at(-1), `age ${age}`).toMatchObject({ t: 'error', code: 'age_gate' });
+    }
+    // Turns 18 later this year → still 17 today.
+    if (now.getMonth() < 11) {
+      await world.handle(s, { ...base, birthYear: year - 18, birthMonth: 12 });
+      expect(inbox.at(-1)).toMatchObject({ t: 'error', code: 'age_gate' });
+    }
+    await world.handle(s, { ...base, birthYear: 1990, confirm18: false });
+    expect(inbox.at(-1)).toMatchObject({ t: 'error', code: 'age_confirm' });
+    await world.handle(s, { ...base, birthYear: 1990, name: 'shit' });
     expect(inbox.at(-1)).toMatchObject({ t: 'error', code: 'name' });
     expect(s.profile).toBeUndefined();
+    await world.handle(s, { ...base, birthYear: year - 18, birthMonth: 1 });
+    expect(inbox.at(-1)).toMatchObject({ t: 'welcome' });
+    expect(s.profile?.ageGate18).toBe(true);
+  });
+
+  it('makes profiles from the old 13+ policy sign up again', async () => {
+    const { world } = makeWorld();
+    const a = await client(world, 'Legacy');
+    const token = a.s.profile!.token;
+    delete (a.s.profile as unknown as Record<string, unknown>).ageGate18;
+    const inbox: ServerMsg[] = [];
+    const s = world.connect('y', (m) => inbox.push(m), () => {});
+    await world.handle(s, { t: 'hello', token });
+    expect(inbox.at(-1)).toMatchObject({ t: 'needProfile' });
   });
 
   it('places the 17th player in a new instance (cap 16)', async () => {

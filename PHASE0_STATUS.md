@@ -2,13 +2,13 @@
 
 Target: `TudoBem-Phase0-MVP.md` (success criteria 1–4) and GDD v1.0 §14.1.
 
-**Verdict: the slice is playable end-to-end.** `pnpm e2e` drives a fresh user through every success-criteria step in headless Chrome, plus a second player for chat, gloss, friends, and a kitnet visit. It passes against the production build, the Vite dev server, and a public tunnel URL.
+**Verdict: the slice is playable end-to-end.** `pnpm e2e` checks that an under-18 birth date is turned away, then drives a fresh adult user through every success-criteria step in headless Chrome, plus a second player for chat, gloss, friends, and a kitnet visit. It passes against the production build, the Vite dev server, and a public tunnel URL.
 
 ## What works
 
 | Area | Status |
 | --- | --- |
-| Age gate | 13+ by birth month/year; under-13 sees a friendly block screen (sticky on that browser). Server re-checks. Birth date is **not stored** — only `ageGate13: true`. |
+| Age gate | **Adults only (18+)** per CEO decision. Birth month/year must compute to 18+, **and** the create-avatar screen requires ticking “Confirmo que tenho 18 anos ou mais” (`confirm18`). The server enforces both. Under-18 users get an adults-only screen (sticky on that browser). Birth date is **not stored** — only `ageGate18: true`. Pre-policy profiles must sign up again. No COPPA, parental-consent, or kid UI is built. See `docs/AGE_POLICY.md`. |
 | Avatar create | Body type (3), skin (8), hair style (7) + color (8), top (4) + color (10), bottoms (3) + color, sneakers (5); addressed as *ele / ela / nome*. Name filtered (no PII, no long numbers, constitution). |
 | Rooms | **Praça Central** (spawn), **Padaria do Seu Carlos**, **Kitnet** (private per owner). Walk (A*, 8-dir), sit on benches/stools/chairs/placed furniture, doors between rooms, free fast travel via **Mapa**. |
 | Instances | Authoritative server, cap **16** per instance (`ROOM_CAP` to soft-cap). Overflow opens *Praça Central · Sul / · Leste / …*; empty overflow instances are dropped. Kitnets: owner + friends, cap 16. Second login kicks the older tab. |
@@ -25,11 +25,12 @@ Target: `TudoBem-Phase0-MVP.md` (success criteria 1–4) and GDD v1.0 §14.1.
 | Onboarding | *Primeiros passos* checklist (walk, sit, wave, chat, Carlos, minigame, hat, chair), guide arrows over the next objective, Júlia the scripted guide NPC. |
 | AI seams | `ChatSafetyService`, `GlossService`, `NpcDialogueService`, `StudentModelService`, `ModerationQueue` interfaces with Phase 0 stubs; `GradedAct` logging per GDD §12.5; item-bank `Card` schema per §5.5. |
 | Art | Canvas 2.5D isometric: São Paulo black-and-white wave calçada, ipê amarelo trees, SAMPA and “TUDO BEM?” murals, padaria facade with striped awning, Edifício Ipê, closed Metrô entrance, newsstand, orange *lixeira*, bike rack, pigeons, skyline; padaria azulejos, bread shelves, chalkboard menu, checkered floor, morning light beams; night kitnet. |
-| Tooling | pnpm TS monorepo, `pnpm dev` one command, 59 vitest tests, typecheck, esbuild single-file server, Dockerfile, `fly.toml`, `render.yaml`, GitHub Actions CI incl. browser e2e. |
+| Tooling | pnpm TS monorepo, `pnpm dev` one command, 60 vitest tests, typecheck, esbuild single-file server, Dockerfile, `fly.toml`, `render.yaml`, GitHub Actions CI incl. browser e2e. |
 
 ## Known gaps (honest list)
 
 - **No permanent public deploy.** No hosting credentials were available to the build agent. The configs are ready (Fly / Render / Railway / Docker). A temporary `trycloudflare.com` tunnel was used for verification only.
+- **Age assurance is self-declared** (birth date + 18+ checkbox), with no ID or age-estimation check. That fits an internal adult preview; revisit before a public launch.
 - **Persistence** is a JSON file; fine for internal testers, not for concurrency or scale. Guest identity is a random token in `localStorage` (no accounts, email, or password; clearing storage loses the avatar).
 - **Safety is a stub**, not Jev: blocklists and regex miss creative obfuscation (e.g. `f*ck`, spaced letters) and can’t judge context beyond a few rules. No human review UI for the queue; no mute/kick/ban tools yet.
 - **Gloss is a phrasebook**, so it’s literal or partial on free-form sentences (unknown words pass through untranslated).
@@ -46,7 +47,7 @@ Target: `TudoBem-Phase0-MVP.md` (success criteria 1–4) and GDD v1.0 §14.1.
 
 **Platform / backend**
 1. Postgres (profiles, inventory, apartments, friendships, graded acts) behind the existing `ProfileStore` surface; migrations.
-2. Real accounts: email magic link, session tokens, device list; keep 13+ gate until the COPPA/GDPR-K flow ships (legal ticket).
+2. Real accounts: email magic link, session tokens, device list; keep the **18+** gate (adult product). Younger audiences are a separate, later rollout after thorough testing — not a Phase 1 ticket.
 3. Horizontal instances: room shards across processes (Redis pub/sub or a room router), friend hop across shards, VMK-style queue pass for full rooms.
 4. Moderation tools: staff console for the queue, mute / kick / temp-ban / permaban, owner boot in kitnets, per-user rate limits, report reasons.
 5. Telemetry: GDD §15 metrics (D1/D7, session length, % sessions with another human, % with a graded act, RV source/sink).

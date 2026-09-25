@@ -5,8 +5,8 @@ import type { PrivateProfile } from '@tudobem/shared';
 
 export interface StoredProfile extends PrivateProfile {
   token: string;
-  /** Only the fact of passing the 13+ gate is kept — never the birth date. */
-  ageGate13: true;
+  /** Only the fact of passing the 18+ gate (birth date check + explicit confirmation) is kept — never the birth date. */
+  ageGate18: true;
   daily: { date: string; sceneClears: Record<string, number> };
   lastSeen: number;
 }
@@ -84,6 +84,6 @@ export class ProfileStore {
 }
 
 export function toPrivate(p: StoredProfile): PrivateProfile {
-  const { token: _t, ageGate13: _a, daily: _d, lastSeen: _l, ...rest } = p;
+  const { token: _t, ageGate18: _a, daily: _d, lastSeen: _l, ...rest } = p;
   return structuredClone(rest);
 }

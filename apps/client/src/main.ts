@@ -149,7 +149,7 @@ net.on((m: ServerMsg) => {
       break;
     }
     case 'error':
-      if (onboarding && (m.code === 'name' || m.code === 'age' || m.code === 'age_gate')) onboarding.setError(m.pt, m.en);
+      if (onboarding && (m.code === 'name' || m.code === 'age' || m.code === 'age_gate' || m.code === 'age_confirm')) onboarding.setError(m.pt, m.en);
       else toast('error', m.pt, m.en);
       break;
     case 'profile':

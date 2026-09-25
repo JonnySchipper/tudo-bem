@@ -1,6 +1,7 @@
 # Tudo Bem
 
 Brazilian Portuguese learning social virtual world (VMK-inspired). Browser, desktop-first, modern 2.5D isometric.
+**Phase 0 is an adult game: 18+ only** ([age policy](docs/AGE_POLICY.md)).
 **Friendly hangout first — learning is the weather.**
 
 This repo contains the **Phase 0 vertical slice**: Praça Central → Padaria do Seu Carlos → your Kitnet, fully playable end-to-end.
@@ -43,8 +44,8 @@ pnpm verify       # typecheck + test + build
 
 ## Play path (≈10 minutes)
 
-1. **Age gate** — birth month + year; 13+ only for now (the date is not stored).
-2. **Create your avatar** — body, skin, hair, free starter clothes, and how NPCs should address you (*ele / ela / só meu nome*).
+1. **Age gate** — birth month + year; **18+ only** (the date is not stored).
+2. **Create your avatar** — body, skin, hair, free starter clothes, and how NPCs should address you (*ele / ela / só meu nome*). Tick **“Confirmo que tenho 18 anos ou mais”** to enter.
 3. **Praça Central** — click the floor to walk, click a bench to sit, press **Oi!** to wave, type in chat. Júlia (guide, by the quest kiosk) explains the basics. The *Primeiros passos* checklist tracks it all.
 4. **Padaria do Seu Carlos** — walk through the door with the red awning. Click **Seu Carlos** for the authored breakfast scene: pick reply chips (keys 1–4). Good Portuguese earns more RV; English or vague answers make him rephrase slower. ~5 turns → **6–14 RV**.
 5. **“Me vê um…”** — at the ticket rail on the counter. Read (or 🔊 listen to) each Portuguese order, click items onto the tray (keys 1–0/-), **Entregar** (Enter). Miss once and Carlos repeats slowly; combos pay extra. 6 orders → **8–20 RV**.
@@ -80,7 +81,7 @@ scripts/e2e.mjs   Playwright-core end-to-end play-through
 - **Chat safety** — the same filter runs client-side (instant feedback) and server-side (authoritative). PII, contact exchange, slurs, sexual content, dating, scams → **block**; alcohol / politics / platform names / mild insults → **warn** (masked `•••` and delivered); self-harm and “kys” → **escalate** (not delivered, supportive note, moderation log). Tuned against false blocks on normal slang (*tá, cara, legal, pelada, rola, vinho, lula*…). Rate limit 5 msgs / 10 s. Report button on profiles.
 - **No pay-to-win** — RV is earned only from graded language acts (scene, minigame) and the tutorial; nameplates can’t be bought. Everyone is **Verde** in Phase 0.
 - **No generative NPCs yet** — Carlos is an authored chip graph behind `NpcDialogueService`; an LLM provider can drop in later with the authored one as the Jev-down fallback.
-- **13+ age gate** until a real parental-consent flow exists. Only “passed the gate” is stored.
+- **Adults only (18+)** — birth-date check plus an explicit 18+ confirmation, both enforced by the server. Only “passed the gate” is stored. No under-13/COPPA or parental-consent flows; younger audiences are a later rollout after thorough testing. The constitution and chat safety above apply fully to adults. See [docs/AGE_POLICY.md](docs/AGE_POLICY.md).
 
 ## Configuration
 

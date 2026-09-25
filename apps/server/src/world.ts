@@ -233,7 +233,8 @@ export class World {
 
   private hello(s: Session, token?: string) {
     const p = this.store.byTokenGet(token);
-    if (!p) return s.send({ t: 'needProfile' });
+    // Profiles from before the 18+ policy never confirmed adulthood; they must sign up again.
+    if (!p || p.ageGate18 !== true) return s.send({ t: 'needProfile' });
     this.attachProfile(s, p);
   }
 
@@ -262,7 +263,9 @@ export class World {
     if (!(year > 1900 && year <= new Date().getFullYear() && month >= 1 && month <= 12))
       return this.err(s, 'age', 'Data inválida.', 'Please enter a valid birth month and year.');
     if (ageFrom(year, month) < MIN_AGE)
-      return this.err(s, 'age_gate', 'Tudo Bem é para maiores de 13 anos, por enquanto.', `Tudo Bem is for players ${MIN_AGE}+ for now. See you soon!`);
+      return this.err(s, 'age_gate', `Tudo Bem é só para maiores de ${MIN_AGE} anos.`, `Tudo Bem is for adults (${MIN_AGE}+) only.`);
+    if (m.confirm18 !== true)
+      return this.err(s, 'age_confirm', `Confirme que você tem ${MIN_AGE} anos ou mais.`, `Please confirm you are ${MIN_AGE} or older.`);
     const nameCheck = validateName(String(m.name ?? ''));
     if (!nameCheck.ok) return this.err(s, 'name', nameCheck.reason.pt, nameCheck.reason.en);
     const appearance = sanitizeAppearance(m.appearance);
@@ -271,7 +274,7 @@ export class World {
     const p: StoredProfile = {
       id: this.store.newId(),
       token: this.store.newToken(),
-      ageGate13: true,
+      ageGate18: true,
       name: nameCheck.name,
       pronoun,
       appearance,

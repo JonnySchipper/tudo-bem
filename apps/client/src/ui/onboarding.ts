@@ -27,6 +27,7 @@ export interface NewProfile {
   appearance: Appearance;
   birthYear: number;
   birthMonth: number;
+  confirm18: true;
 }
 
 function hero() {
@@ -45,8 +46,8 @@ function blockedScreen(root: HTMLElement) {
     h(
       'div',
       { class: 'panel', style: 'max-width:480px;text-align:center' },
-      h('h2', null, 'Até breve!'),
-      en(`Tudo Bem is for players ${MIN_AGE} and older for now. We’re working on a parent-approved version — see you then!`),
+      h('h2', null, `Só para maiores de ${MIN_AGE} anos`),
+      en(`Tudo Bem is an adult (${MIN_AGE}+) world for now. Younger audiences may come in a later rollout, after thorough testing.`),
     ),
   );
 }
@@ -85,11 +86,11 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
         'div',
         { class: 'panel age-gate', style: 'max-width:520px' },
         h('h2', null, 'Quando você nasceu?'),
-        en('When were you born? We only check that you’re 13+ — your birth date is not stored.'),
+        en(`When were you born? Tudo Bem is ${MIN_AGE}+ only. We just check your age — your birth date is not stored.`),
         h('div', { class: 'years', style: 'margin:12px 0' }, month, year),
         err,
         h('div', { class: 'row' }, h('span', { class: 'spacer' }), ageNext),
-        h('div', { class: 'legal' }, 'Phase 0 preview · 13+ only until a real parental-consent flow exists.'),
+        h('div', { class: 'legal' }, `Phase 0 preview · adults (${MIN_AGE}+) only.`),
       ),
     );
 
@@ -109,7 +110,9 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
         loop(ts);
       });
 
-      const go = h('button', { class: 'primary', style: 'font-size:1.1em', id: 'enter-praca' }, 'Entrar na Praça →');
+      const go = h('button', { class: 'primary', style: 'font-size:1.1em', id: 'enter-praca', disabled: true }, 'Entrar na Praça →');
+      const adult = h('input', { type: 'checkbox', id: 'confirm-18', required: true });
+      adult.addEventListener('change', () => (go.disabled = !adult.checked));
       const name = h('input', { type: 'text', maxLength: 16, placeholder: 'Ex.: Jonny, Bia, Leo…', 'aria-label': 'Nome', id: 'avatar-name' });
       const nameErr = h('div', { class: 'feedback s1', style: 'display:none' });
       const setErr = (pt: string, enText: string) => {
@@ -153,8 +156,9 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
       go.addEventListener('click', () => {
         const check = validateName(name.value);
         if (!check.ok) return setErr(check.reason.pt, check.reason.en);
+        if (!adult.checked) return setErr(`Confirme que você tem ${MIN_AGE} anos ou mais.`, `Please confirm you are ${MIN_AGE} or older.`);
         go.disabled = true;
-        submit({ name: check.name, pronoun, appearance: { ...a }, birthYear, birthMonth });
+        submit({ name: check.name, pronoun, appearance: { ...a }, birthYear, birthMonth, confirm18: true });
       });
       name.addEventListener('keydown', (e) => e.key === 'Enter' && go.click());
 
@@ -193,6 +197,12 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
               field('Parte de baixo', 'Bottoms', chips(BOTTOM_STYLES, (v) => LABELS.bottom[v], () => a.bottom, (v) => (a.bottom = v))),
               field('Cor', 'Bottoms color', swatches(CLOTH_COLORS, () => a.bottomColor, (i) => (a.bottomColor = i))),
               field('Tênis', 'Sneakers', swatches(SHOE_COLORS, () => a.shoes, (i) => (a.shoes = i))),
+              h(
+                'label',
+                { class: 'adult-confirm', for: 'confirm-18' },
+                adult,
+                h('span', null, `Confirmo que tenho ${MIN_AGE} anos ou mais.`, en(`I confirm I am ${MIN_AGE} or older. Tudo Bem is an adult world.`, true)),
+              ),
               h('div', { class: 'row', style: 'margin-top:8px' }, h('span', { class: 'spacer' }), go),
             ),
           ),

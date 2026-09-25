@@ -1,7 +1,8 @@
 import type { Appearance, BodyType, BottomStyle, HairStyle, TopStyle, TutorialStep } from './types.js';
 
 export const DEFAULT_ROOM_CAP = 16;
-export const MIN_AGE = 13;
+/** Phase 0 is an adult (18+) game. Younger audiences are a later rollout after thorough testing. */
+export const MIN_AGE = 18;
 export const MAX_NAME_LEN = 16;
 export const MAX_CHAT_LEN = 140;
 export const BUBBLE_MS = 7000;
