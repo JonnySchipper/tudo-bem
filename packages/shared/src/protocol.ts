@@ -30,9 +30,10 @@ export type ClientMsg =
   | { t: 'portal'; portalId: string }
   | { t: 'scene'; action: 'start'; npc: NpcId }
   | { t: 'scene'; action: 'choose'; chip: number }
+  | { t: 'scene'; action: 'type'; text: string }
   | { t: 'scene'; action: 'close' }
   | { t: 'mg'; action: 'start' }
-  | { t: 'mg'; action: 'submit'; tray: Tray }
+  | { t: 'mg'; action: 'submit'; tray: Tray; mods?: string[] }
   | { t: 'mg'; action: 'timeout' }
   | { t: 'mg'; action: 'quit' }
   | { t: 'buy'; kind: 'hat' | 'furniture'; itemId: string }
@@ -62,7 +63,7 @@ export type NoticeLevel = 'info' | 'warn' | 'block' | 'reward' | 'error';
 
 export type MgServerMsg =
   | { t: 'mg'; phase: 'order'; round: number; rounds: number; customer: string; pt: string; en: string; timeMs: number; repeat: boolean; points: number; streak: number }
-  | { t: 'mg'; phase: 'result'; round: number; outcome: MgOutcome | 'repita'; carlos: Bilingual; expected?: MgOrderLine[]; points: number; streak: number }
+  | { t: 'mg'; phase: 'result'; round: number; outcome: MgOutcome | 'repita'; carlos: Bilingual; expected?: MgOrderLine[]; expectedMods?: string[]; points: number; streak: number }
   | { t: 'mg'; phase: 'end'; points: number; coins: number; perfect: number; rounds: number; carlos: Bilingual };
 
 /** Server → client messages. */

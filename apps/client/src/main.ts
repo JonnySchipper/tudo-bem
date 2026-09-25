@@ -245,12 +245,13 @@ net.on((m: ServerMsg) => {
           closeDialogue();
         },
         startMinigame,
+        (text) => net.send({ t: 'scene', action: 'type', text }),
       );
       break;
     case 'mg':
       if (m.phase === 'order' && (!minigame || modalId() !== 'minigame')) {
         minigame = new MinigameUI({
-          submit: (tray) => net.send({ t: 'mg', action: 'submit', tray }),
+          submit: (tray, mods) => net.send({ t: 'mg', action: 'submit', tray, mods }),
           timeout: () => net.send({ t: 'mg', action: 'timeout' }),
           quit: () => net.send({ t: 'mg', action: 'quit' }),
           again: startMinigame,

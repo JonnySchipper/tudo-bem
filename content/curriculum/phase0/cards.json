@@ -1,0 +1,1447 @@
+{
+ "_meta": {
+  "generatedBy": "scripts/build-curriculum.mjs from lexemes-*.md (markdown is canonical — edit it, then `pnpm content`)",
+  "status": "DRAFT — every card needs Brazilian human sign-off before default-path (signoff field)",
+  "counts": {
+   "pack": 52,
+   "engineering_seed": 6
+  }
+ },
+ "cards": [
+  {
+   "id": "lex.padaria.pao_na_chapa",
+   "form": "pão na chapa",
+   "pos": "noun phrase",
+   "tags": [
+    "food",
+    "padaria",
+    "A1",
+    "geral"
+   ],
+   "gloss_en": "grilled buttered bread",
+   "patterns": [
+    "Me vê um pão na chapa, por favor."
+   ],
+   "accepts": [
+    "pao na chapa",
+    "um pao na chapa",
+    "me ve um pao na chapa",
+    "me vê um pão na chapa por favor"
+   ],
+   "wrongs": [
+    "bread on the grill (EN)",
+    "pão com manteiga alone if scene cues na chapa",
+    "pan tostado (ES)"
+   ],
+   "prereq": [
+    "pão",
+    "por favor"
+   ],
+   "places": [
+    "padaria",
+    "lanchonete"
+   ],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br",
+   "plural": "pães na chapa",
+   "gender": "m",
+   "gloss_en_plural": "grilled buttered breads"
+  },
+  {
+   "id": "lex.padaria.pao",
+   "form": "pão",
+   "pos": "noun",
+   "tags": [
+    "food",
+    "padaria",
+    "A1",
+    "masculine"
+   ],
+   "gloss_en": "bread",
+   "patterns": [
+    "Quero pão.",
+    "Um pão, por favor."
+   ],
+   "accepts": [
+    "pao",
+    "um pao",
+    "o pao"
+   ],
+   "wrongs": [
+    "bread",
+    "pan"
+   ],
+   "prereq": [],
+   "places": [
+    "padaria"
+   ],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br",
+   "plural": "pães",
+   "gender": "m",
+   "gloss_en_plural": "bread rolls",
+   "gloss_en_tray": "bread roll"
+  },
+  {
+   "id": "lex.padaria.cafe_com_leite",
+   "form": "café com leite",
+   "pos": "noun phrase",
+   "tags": [
+    "drink",
+    "padaria",
+    "A1"
+   ],
+   "gloss_en": "coffee with milk",
+   "patterns": [
+    "Me vê um café com leite."
+   ],
+   "accepts": [
+    "cafe com leite",
+    "um cafe com leite",
+    "café c/ leite"
+   ],
+   "wrongs": [
+    "coffee with milk",
+    "latte (as sole answer)",
+    "leite com café (reorder hint)"
+   ],
+   "prereq": [
+    "café"
+   ],
+   "places": [
+    "padaria"
+   ],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br",
+   "plural": "cafés com leite",
+   "gender": "m",
+   "gloss_en_plural": "coffees with milk"
+  },
+  {
+   "id": "lex.padaria.cafe",
+   "form": "café",
+   "pos": "noun",
+   "tags": [
+    "drink",
+    "padaria",
+    "A1",
+    "masculine"
+   ],
+   "gloss_en": "coffee",
+   "patterns": [],
+   "accepts": [
+    "cafe",
+    "um cafe"
+   ],
+   "wrongs": [
+    "coffee",
+    "cafézinho required (bonus only)"
+   ],
+   "prereq": [],
+   "places": [
+    "padaria"
+   ],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br",
+   "plural": "cafés",
+   "gender": "m",
+   "gloss_en_plural": "coffees"
+  },
+  {
+   "id": "lex.padaria.suco_de_laranja",
+   "form": "suco de laranja",
+   "pos": "noun phrase",
+   "tags": [
+    "drink",
+    "padaria",
+    "A1"
+   ],
+   "gloss_en": "orange juice",
+   "patterns": [
+    "Me vê um suco de laranja."
+   ],
+   "accepts": [
+    "suco de laranja",
+    "um suco de laranja",
+    "suco laranja"
+   ],
+   "wrongs": [
+    "orange juice",
+    "jugo de naranja"
+   ],
+   "prereq": [],
+   "places": [
+    "padaria"
+   ],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br",
+   "plural": "sucos de laranja",
+   "gender": "m",
+   "gloss_en_plural": "orange juices"
+  },
+  {
+   "id": "lex.padaria.agua",
+   "form": "água",
+   "pos": "noun",
+   "tags": [
+    "drink",
+    "padaria",
+    "A1",
+    "feminine"
+   ],
+   "gloss_en": "water",
+   "patterns": [
+    "Uma água, por favor."
+   ],
+   "accepts": [
+    "agua",
+    "uma agua",
+    "um agua"
+   ],
+   "accept_notes": {
+    "um agua": "tolerate + gender hint"
+   },
+   "wrongs": [
+    "water",
+    "aqua"
+   ],
+   "prereq": [],
+   "places": [
+    "padaria"
+   ],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br",
+   "plural": "águas",
+   "gender": "f",
+   "gloss_en_plural": "waters"
+  },
+  {
+   "id": "lex.padaria.paozinho",
+   "form": "pãozinho",
+   "pos": "noun",
+   "tags": [
+    "food",
+    "padaria",
+    "A1",
+    "diminutive",
+    "bonus"
+   ],
+   "gloss_en": "little roll / soft bread",
+   "patterns": [],
+   "accepts": [
+    "paozinho",
+    "um paozinho"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [],
+   "note": "bonus synonym; not required for 3/3 on pão cards",
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br",
+   "plural": "pãezinhos",
+   "gender": "m",
+   "gloss_en_plural": "little rolls"
+  },
+  {
+   "id": "lex.padaria.bolo",
+   "form": "bolo",
+   "pos": "noun",
+   "tags": [
+    "food",
+    "padaria",
+    "A1",
+    "masculine"
+   ],
+   "gloss_en": "cake",
+   "patterns": [],
+   "accepts": [
+    "bolo",
+    "um bolo"
+   ],
+   "wrongs": [
+    "cake",
+    "pastel (different item — keep distinct)"
+   ],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br",
+   "plural": "bolos",
+   "gender": "m",
+   "gloss_en_plural": "cakes",
+   "gloss_en_tray": "slice of cake"
+  },
+  {
+   "id": "lex.padaria.pastel",
+   "form": "pastel",
+   "pos": "noun",
+   "tags": [
+    "food",
+    "padaria",
+    "A1",
+    "masculine"
+   ],
+   "gloss_en": "fried pastry (savory)",
+   "patterns": [],
+   "accepts": [
+    "pastel",
+    "um pastel"
+   ],
+   "wrongs": [
+    "pastry alone",
+    "cake"
+   ],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br",
+   "plural": "pastéis",
+   "gender": "m",
+   "gloss_en_plural": "fried pastries"
+  },
+  {
+   "id": "lex.padaria.coxinha",
+   "form": "coxinha",
+   "pos": "noun",
+   "tags": [
+    "food",
+    "padaria",
+    "A1",
+    "feminine"
+   ],
+   "gloss_en": "chicken croquette",
+   "patterns": [],
+   "accepts": [
+    "coxinha",
+    "uma coxinha"
+   ],
+   "wrongs": [
+    "chicken nugget as sole gloss target"
+   ],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br",
+   "plural": "coxinhas",
+   "gender": "f",
+   "gloss_en_plural": "chicken croquettes"
+  },
+  {
+   "id": "lex.padaria.me_ve",
+   "form": "me vê",
+   "pos": "phrase",
+   "tags": [
+    "request",
+    "padaria",
+    "A1",
+    "paulista-friendly"
+   ],
+   "gloss_en": "I’ll take / get me (polite order)",
+   "patterns": [
+    "Me vê um café, por favor."
+   ],
+   "accepts": [
+    "me ve",
+    "me vê",
+    "me da",
+    "quero"
+   ],
+   "accept_notes": {
+    "me da": "→ score 2 + nudge",
+    "quero": "→ score 2 in padaria"
+   },
+   "wrongs": [
+    "give me (EN only)"
+   ],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.por_favor",
+   "form": "por favor",
+   "pos": "phrase",
+   "tags": [
+    "politeness",
+    "A1",
+    "geral"
+   ],
+   "gloss_en": "please",
+   "patterns": [],
+   "accepts": [
+    "por favor",
+    "pf",
+    "porfavor"
+   ],
+   "wrongs": [
+    "please alone as full order"
+   ],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.pra_viagem",
+   "form": "pra viagem",
+   "pos": "phrase",
+   "tags": [
+    "modifier",
+    "padaria",
+    "A1"
+   ],
+   "gloss_en": "to go",
+   "patterns": [],
+   "accepts": [
+    "pra viagem",
+    "para viagem",
+    "pra viagem por favor"
+   ],
+   "wrongs": [
+    "to go",
+    "para llevar"
+   ],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.pra_comer_aqui",
+   "form": "pra comer aqui",
+   "pos": "phrase",
+   "tags": [
+    "modifier",
+    "padaria",
+    "A1"
+   ],
+   "gloss_en": "for here",
+   "patterns": [],
+   "accepts": [
+    "pra comer aqui",
+    "para comer aqui",
+    "pra comer aqui por favor"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.bem_quente",
+   "form": "bem quente",
+   "pos": "phrase",
+   "tags": [
+    "modifier",
+    "padaria",
+    "A1"
+   ],
+   "gloss_en": "nice and hot",
+   "patterns": [],
+   "accepts": [
+    "bem quente",
+    "bem quentinho"
+   ],
+   "accept_notes": {
+    "bem quentinho": "bonus"
+   },
+   "wrongs": [],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.sem_acucar",
+   "form": "sem açúcar",
+   "pos": "phrase",
+   "tags": [
+    "modifier",
+    "padaria",
+    "A1"
+   ],
+   "gloss_en": "no sugar",
+   "patterns": [],
+   "accepts": [
+    "sem acucar",
+    "sem açúcar",
+    "sem acúcar"
+   ],
+   "wrongs": [
+    "no sugar",
+    "sin azucar"
+   ],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.quentinho",
+   "form": "quentinho",
+   "pos": "adjective",
+   "tags": [
+    "padaria",
+    "A1",
+    "warm tone"
+   ],
+   "gloss_en": "nice and warm (diminutive)",
+   "patterns": [],
+   "accepts": [
+    "quentinho",
+    "bem quentinho"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.o_que_vai_ser",
+   "form": "O que vai ser?",
+   "pos": "phrase",
+   "tags": [
+    "NPC",
+    "padaria",
+    "A1",
+    "listen/read"
+   ],
+   "gloss_en": "What’ll it be?",
+   "patterns": [],
+   "accepts": [],
+   "wrongs": [],
+   "prereq": [],
+   "places": [],
+   "note": "channels: listen, read (player rarely produces)",
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.pronto",
+   "form": "Pronto.",
+   "pos": "interjection",
+   "tags": [
+    "padaria",
+    "A1"
+   ],
+   "gloss_en": "Ready / Here you go.",
+   "patterns": [],
+   "accepts": [
+    "pronto"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.pode_pegar",
+   "form": "Pode pegar.",
+   "pos": "phrase",
+   "tags": [
+    "padaria",
+    "A1"
+   ],
+   "gloss_en": "You can take it.",
+   "patterns": [],
+   "accepts": [
+    "pode pegar"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.volte_sempre",
+   "form": "Volte sempre.",
+   "pos": "phrase",
+   "tags": [
+    "padaria",
+    "A1",
+    "farewell"
+   ],
+   "gloss_en": "Come back anytime.",
+   "patterns": [],
+   "accepts": [
+    "volte sempre"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.isso_ai",
+   "form": "Isso aí.",
+   "pos": "phrase",
+   "tags": [
+    "praise",
+    "padaria",
+    "A1",
+    "paulista flavor"
+   ],
+   "gloss_en": "That’s it. / Nice.",
+   "patterns": [],
+   "accepts": [
+    "isso ai",
+    "isso aí"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.social.bom_dia",
+   "form": "Bom dia",
+   "pos": "phrase",
+   "tags": [
+    "greeting",
+    "A1",
+    "morning"
+   ],
+   "gloss_en": "Good morning",
+   "patterns": [],
+   "accepts": [
+    "bom dia",
+    "bomdia"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.social.boa_tarde",
+   "form": "Boa tarde",
+   "pos": "phrase",
+   "tags": [
+    "greeting",
+    "A1",
+    "afternoon"
+   ],
+   "gloss_en": "Good afternoon",
+   "patterns": [],
+   "accepts": [
+    "boa tarde"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.social.boa_noite",
+   "form": "Boa noite",
+   "pos": "phrase",
+   "tags": [
+    "greeting",
+    "A1",
+    "evening"
+   ],
+   "gloss_en": "Good evening / good night",
+   "patterns": [],
+   "accepts": [
+    "boa noite"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [],
+   "note": "Phase 0 morning padaria light — keep in bank, light use",
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.social.ola",
+   "form": "Olá",
+   "pos": "phrase",
+   "tags": [
+    "greeting",
+    "A1"
+   ],
+   "gloss_en": "Hi / hello",
+   "patterns": [],
+   "accepts": [
+    "ola",
+    "olá",
+    "oi"
+   ],
+   "accept_notes": {
+    "oi": "synonym accept"
+   },
+   "wrongs": [],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.social.oi",
+   "form": "Oi",
+   "pos": "phrase",
+   "tags": [
+    "greeting",
+    "A1",
+    "informal"
+   ],
+   "gloss_en": "Hi",
+   "patterns": [],
+   "accepts": [
+    "oi"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.social.tudo_bem",
+   "form": "Tudo bem?",
+   "pos": "phrase",
+   "tags": [
+    "greeting",
+    "A1",
+    "check-in"
+   ],
+   "gloss_en": "How’s it going? / All good?",
+   "patterns": [],
+   "accepts": [
+    "tudo bem",
+    "tudo bem?",
+    "tudobem",
+    "tudo bem",
+    "tudo bem!",
+    "bem",
+    "estou bem",
+    "tô bem"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.social.beleza",
+   "form": "Beleza",
+   "pos": "phrase",
+   "tags": [
+    "greeting/ack",
+    "A1",
+    "informal",
+    "paulista-friendly"
+   ],
+   "gloss_en": "Cool / all good",
+   "patterns": [],
+   "accepts": [
+    "beleza",
+    "beleza?"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.social.obrigado",
+   "form": "Obrigado / Obrigada",
+   "pos": "phrase",
+   "tags": [
+    "thanks",
+    "A1",
+    "gender pair"
+   ],
+   "gloss_en": "Thank you",
+   "patterns": [],
+   "accepts": [
+    "obrigado",
+    "obrigada",
+    "obrigado!",
+    "valeu"
+   ],
+   "accept_notes": {
+    "valeu": "score 2 + optional strengthen"
+   },
+   "wrongs": [],
+   "prereq": [],
+   "places": [],
+   "note": "both genders always accepted for player production",
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.social.de_nada",
+   "form": "De nada",
+   "pos": "phrase",
+   "tags": [
+    "thanks-reply",
+    "A1"
+   ],
+   "gloss_en": "You’re welcome",
+   "patterns": [],
+   "accepts": [
+    "de nada"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.social.tchau",
+   "form": "Tchau",
+   "pos": "phrase",
+   "tags": [
+    "farewell",
+    "A1"
+   ],
+   "gloss_en": "Bye",
+   "patterns": [],
+   "accepts": [
+    "tchau",
+    "chau",
+    "adeus"
+   ],
+   "accept_notes": {
+    "adeus": "tolerate, prefer tchau"
+   },
+   "wrongs": [],
+   "prereq": [],
+   "places": [],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.1",
+   "form": "um / uma",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "one",
+   "patterns": [],
+   "accepts": [
+    "um",
+    "uma",
+    "1"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.2",
+   "form": "dois / duas",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "two",
+   "patterns": [],
+   "accepts": [
+    "dois",
+    "duas",
+    "2"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.3",
+   "form": "três",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "three",
+   "patterns": [],
+   "accepts": [
+    "três",
+    "3",
+    "tres"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.4",
+   "form": "quatro",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "four",
+   "patterns": [],
+   "accepts": [
+    "quatro",
+    "4"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.5",
+   "form": "cinco",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "five",
+   "patterns": [],
+   "accepts": [
+    "cinco",
+    "5"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.6",
+   "form": "seis",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "six",
+   "patterns": [],
+   "accepts": [
+    "seis",
+    "6"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.7",
+   "form": "sete",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "seven",
+   "patterns": [],
+   "accepts": [
+    "sete",
+    "7"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.8",
+   "form": "oito",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "eight",
+   "patterns": [],
+   "accepts": [
+    "oito",
+    "8"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.9",
+   "form": "nove",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "nine",
+   "patterns": [],
+   "accepts": [
+    "nove",
+    "9"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.10",
+   "form": "dez",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "ten",
+   "patterns": [],
+   "accepts": [
+    "dez",
+    "10"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.11",
+   "form": "onze",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "eleven",
+   "patterns": [],
+   "accepts": [
+    "onze",
+    "11"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.12",
+   "form": "doze",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "twelve",
+   "patterns": [],
+   "accepts": [
+    "doze",
+    "12"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.13",
+   "form": "treze",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "thirteen",
+   "patterns": [],
+   "accepts": [
+    "treze",
+    "13"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.14",
+   "form": "quatorze / catorze",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "fourteen",
+   "patterns": [],
+   "accepts": [
+    "quatorze",
+    "catorze",
+    "14",
+    "quatorze",
+    "catorze"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.15",
+   "form": "quinze",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "fifteen",
+   "patterns": [],
+   "accepts": [
+    "quinze",
+    "15"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.16",
+   "form": "dezesseis",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "sixteen",
+   "patterns": [],
+   "accepts": [
+    "dezesseis",
+    "16",
+    "dezesseis",
+    "dezasseis"
+   ],
+   "accept_notes": {
+    "dezasseis": "EU tolerate≠teach"
+   },
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.17",
+   "form": "dezessete",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "seventeen",
+   "patterns": [],
+   "accepts": [
+    "dezessete",
+    "17"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.18",
+   "form": "dezoito",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "eighteen",
+   "patterns": [],
+   "accepts": [
+    "dezoito",
+    "18"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.19",
+   "form": "dezenove",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "nineteen",
+   "patterns": [],
+   "accepts": [
+    "dezenove",
+    "19"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.num.20",
+   "form": "vinte",
+   "pos": "number",
+   "tags": [
+    "number",
+    "A1"
+   ],
+   "gloss_en": "twenty",
+   "patterns": [],
+   "accepts": [
+    "vinte",
+    "20"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "*"
+   ],
+   "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.pao_de_queijo",
+   "form": "pão de queijo",
+   "plural": "pães de queijo",
+   "gender": "m",
+   "pos": "noun phrase",
+   "tags": [
+    "food",
+    "padaria",
+    "A1"
+   ],
+   "gloss_en": "cheese bread",
+   "gloss_en_plural": "cheese breads",
+   "patterns": [
+    "Me vê um pão de queijo, por favor."
+   ],
+   "accepts": [
+    "pao de queijo",
+    "um pao de queijo"
+   ],
+   "wrongs": [
+    "pão de queso"
+   ],
+   "prereq": [
+    "lex.padaria.pao"
+   ],
+   "places": [
+    "padaria",
+    "lanchonete"
+   ],
+   "source": "engineering-seed",
+   "signoff": "needs_curriculum_and_br"
+  },
+  {
+   "id": "lex.padaria.misto_quente",
+   "form": "misto-quente",
+   "plural": "mistos-quentes",
+   "gender": "m",
+   "pos": "noun phrase",
+   "tags": [
+    "food",
+    "padaria",
+    "A1"
+   ],
+   "gloss_en": "grilled ham & cheese",
+   "gloss_en_plural": "grilled ham & cheeses",
+   "patterns": [
+    "Me vê um misto-quente."
+   ],
+   "accepts": [
+    "misto quente",
+    "um misto quente"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "padaria",
+    "lanchonete"
+   ],
+   "source": "engineering-seed",
+   "signoff": "needs_curriculum_and_br"
+  },
+  {
+   "id": "lex.padaria.guarana",
+   "form": "guaraná",
+   "plural": "guaranás",
+   "gender": "m",
+   "pos": "noun",
+   "tags": [
+    "drink",
+    "padaria",
+    "A1",
+    "brand-culture"
+   ],
+   "gloss_en": "guaraná soda",
+   "gloss_en_plural": "guaraná sodas",
+   "patterns": [
+    "Um guaraná, por favor."
+   ],
+   "accepts": [
+    "guarana",
+    "um guarana"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "padaria",
+    "lanchonete"
+   ],
+   "note": "constitution.md lists guaraná as allowed drink culture",
+   "source": "engineering-seed",
+   "signoff": "needs_curriculum_and_br"
+  },
+  {
+   "id": "lex.padaria.pois_nao",
+   "form": "Pois não.",
+   "pos": "phrase",
+   "tags": [
+    "NPC",
+    "padaria",
+    "A1",
+    "ack"
+   ],
+   "gloss_en": "Yes? / How can I help? (service acknowledgement)",
+   "patterns": [
+    "Pois não. O que vai ser hoje?"
+   ],
+   "accepts": [
+    "pois nao"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "padaria"
+   ],
+   "note": "Carlos primary ack per voice-seu-carlos.md (CEO lock); listen/read focus",
+   "source": "engineering-seed",
+   "signoff": "needs_curriculum_and_br"
+  },
+  {
+   "id": "lex.padaria.por_conta_da_casa",
+   "form": "por conta da casa",
+   "pos": "phrase",
+   "tags": [
+    "padaria",
+    "A1"
+   ],
+   "gloss_en": "on the house",
+   "patterns": [
+    "Hoje é por conta da casa!"
+   ],
+   "accepts": [
+    "por conta da casa"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "padaria"
+   ],
+   "source": "engineering-seed",
+   "signoff": "needs_curriculum_and_br"
+  },
+  {
+   "id": "lex.padaria.ta_na_mao",
+   "form": "Tá na mão.",
+   "pos": "phrase",
+   "tags": [
+    "NPC",
+    "padaria",
+    "A1",
+    "praise"
+   ],
+   "gloss_en": "Here you go. (lit. “it’s in your hand”)",
+   "patterns": [
+    "Tá na mão!"
+   ],
+   "accepts": [
+    "ta na mao"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "padaria"
+   ],
+   "note": "Carlos praise per voice-seu-carlos.md; no lexeme card in pack yet",
+   "source": "engineering-seed",
+   "signoff": "needs_curriculum_and_br"
+  }
+ ]
+}

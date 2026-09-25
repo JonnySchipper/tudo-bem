@@ -102,6 +102,19 @@ const PHRASES: Record<string, string> = {
   'quer ser meu amigo': 'want to be my friend',
   'quer ser minha amiga': 'want to be my friend',
   'bom apetite': 'enjoy your meal',
+  'pois nao': 'at your service / how can I help?',
+  'o que vai ser': 'what’ll it be?',
+  'ta na mao': 'here you go',
+  'isso ai': 'that’s it / nice',
+  'pronto': 'ready / here you go',
+  'pode pegar': 'you can take it',
+  'pra viagem': 'to go',
+  'pra comer aqui': 'for here',
+  'sem acucar': 'no sugar',
+  'bem quente': 'nice and hot',
+  'sem pressa': 'no rush',
+  'ainda to olhando': 'I’m still looking',
+  'de graca': 'for free',
 };
 
 const WORDS: Record<string, string> = {
@@ -118,7 +131,7 @@ const WORDS: Record<string, string> = {
   amigo: 'friend', amiga: 'friend', amigos: 'friends', gente: 'people/folks', pessoal: 'everyone', galera: 'everyone',
   padaria: 'bakery', praca: 'square', casa: 'home', kitnet: 'studio apartment', chapeu: 'hat', bone: 'cap', cadeira: 'chair',
   pao: 'bread', paes: 'breads', queijo: 'cheese', cafe: 'coffee', leite: 'milk', suco: 'juice', laranja: 'orange', coxinha: 'coxinha (croquette)',
-  cafezinho: 'little coffee', bolo: 'cake', agua: 'water', guarana: 'guaraná soda', fome: 'hunger', sede: 'thirst',
+  cafezinho: 'little coffee', pastel: 'pastel (fried pastry)', bolo: 'cake', agua: 'water', guarana: 'guaraná soda', fome: 'hunger', sede: 'thirst',
   hoje: 'today', amanha: 'tomorrow', ontem: 'yesterday', agora: 'now', depois: 'later', sempre: 'always', nunca: 'never', ja: 'already',
   dia: 'day', noite: 'night', tarde: 'afternoon', manha: 'morning', semana: 'week',
   jogo: 'game', musica: 'music', papagaio: 'parrot', gato: 'cat', cachorro: 'dog',
@@ -148,6 +161,7 @@ const EN_HINTS = new Set([
   'where', 'from', 'nice', 'cool', 'want', 'like', 'lol', 'thanks', 'thank', 'please', 'good', 'morning', 'bye', 'we', 'they', 'can',
   'do', 'dont', "don't", 'im', "i'm", 'with', 'have', 'here', 'there', 'friend', 'hat', 'play', 'game', 'let', "let's", 'lets', 'of', 'in',
   'am', 'was', 'be', 'so', 'just', 'go', 'going', 'really', 'omg', 'wow', 'awesome', 'love', 'sorry', 'name', 'who', 'why', 'when',
+  'one', 'two', 'three', 'coffee', 'bread', 'breads', 'water', 'juice', 'milk', 'cake', 'orange', 'cheese', 'for', 'give', 'some', 'want',
 ]);
 
 export type ChatLang = 'pt' | 'en' | 'mix';

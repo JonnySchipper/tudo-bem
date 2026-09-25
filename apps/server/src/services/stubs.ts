@@ -1,6 +1,7 @@
 import {
   CARDS,
   chooseChip,
+  scoreTypedReply,
   classifyChat,
   glossPt,
   detectLang,
@@ -41,12 +42,15 @@ export class AuthoredNpcDialogue implements NpcDialogueService {
   start(_npcId: string, ctx: SceneCtx) {
     return viewNode(SCENE_START, ctx)!;
   }
-  choose(_npcId: string, nodeId: string, chip: number, ctx: SceneCtx) {
-    const r = chooseChip(nodeId, chip, ctx);
+  choose(_npcId: string, nodeId: string, chip: number, ctx: SceneCtx, scoreCap: 0 | 1 | 2 | 3 = 3) {
+    const r = chooseChip(nodeId, chip, ctx, scoreCap);
     if (!r) return null;
     const view = viewNode(r.next, r.ctx);
     if (!view) return null;
     return { view, score: r.score, ctx: r.ctx, said: r.said, cards: r.cards };
+  }
+  scoreTyped(_npcId: string, nodeId: string, text: string, ctx: SceneCtx) {
+    return scoreTypedReply(nodeId, text, ctx);
   }
 }
 

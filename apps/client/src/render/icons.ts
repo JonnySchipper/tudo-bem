@@ -37,7 +37,7 @@ function cup(ctx: Ctx, color: string, small: boolean, foam?: string) {
 }
 
 const FOOD: Record<string, (ctx: Ctx) => void> = {
-  pao_frances: (ctx) => {
+  pao: (ctx) => {
     ellipse(ctx, 32, 40, 22, 13, '#c9822f');
     ellipse(ctx, 32, 37, 20, 10, '#e2a04a');
     ctx.strokeStyle = '#f7d38f';
@@ -102,13 +102,8 @@ const FOOD: Record<string, (ctx: Ctx) => void> = {
     ctx.lineTo(12, 51);
     ctx.fill();
   },
-  sonho: (ctx) => {
-    ellipse(ctx, 32, 40, 22, 14, '#d9913f');
-    ellipse(ctx, 32, 36, 20, 11, '#f0c27a');
-    ellipse(ctx, 32, 40, 16, 4, '#fff3cf');
-    for (let i = 0; i < 14; i++) circle(ctx, 16 + (i * 13) % 32, 28 + (i * 7) % 9, 1.2, '#ffffff');
-  },
-  bolo_de_fuba: (ctx) => {
+
+  bolo: (ctx) => {
     ctx.fillStyle = '#e9b949';
     ctx.beginPath();
     ctx.moveTo(12, 46);
@@ -128,8 +123,50 @@ const FOOD: Record<string, (ctx: Ctx) => void> = {
     ctx.fill();
     for (let i = 0; i < 8; i++) circle(ctx, 18 + (i * 9) % 30, 36 + (i * 5) % 8, 1, '#c98f2a');
   },
-  cafezinho: (ctx) => cup(ctx, '#3b2012', true),
+  cafe: (ctx) => cup(ctx, '#3b2012', true),
   cafe_com_leite: (ctx) => cup(ctx, '#b07a4a', false, '#f4e3cf'),
+  pastel: (ctx) => {
+    // Half-moon fried pastry with a crimped edge.
+    ctx.fillStyle = '#d9913f';
+    ctx.beginPath();
+    ctx.moveTo(8, 44);
+    ctx.quadraticCurveTo(32, 6, 56, 44);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#f0bd6a';
+    ctx.beginPath();
+    ctx.moveTo(12, 42);
+    ctx.quadraticCurveTo(32, 12, 52, 42);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#c47a2c';
+    for (let i = 0; i < 9; i++) {
+      ctx.beginPath();
+      ctx.arc(10 + i * 5.5, 44, 2.6, 0, Math.PI);
+      ctx.fill();
+    }
+    for (let i = 0; i < 6; i++) circle(ctx, 22 + (i * 7) % 22, 30 + (i * 5) % 8, 1.3, '#fbe3a8');
+  },
+  agua: (ctx) => {
+    rrect(ctx, 24, 10, 16, 6, 2, '#2b5ba8');
+    ctx.fillStyle = 'rgba(190,225,255,0.9)';
+    ctx.beginPath();
+    ctx.moveTo(24, 16);
+    ctx.lineTo(40, 16);
+    ctx.quadraticCurveTo(46, 22, 45, 30);
+    ctx.lineTo(45, 54);
+    ctx.lineTo(19, 54);
+    ctx.lineTo(19, 30);
+    ctx.quadraticCurveTo(18, 22, 24, 16);
+    ctx.fill();
+    rrect(ctx, 19, 32, 26, 12, 1, '#3aa6a0');
+    ctx.fillStyle = '#fff';
+    ctx.font = '800 7px Nunito, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('ÁGUA', 32, 40.5);
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.fillRect(22, 20, 3, 30);
+  },
   suco_de_laranja: (ctx) => {
     ctx.fillStyle = 'rgba(220,240,255,0.7)';
     ctx.beginPath();
@@ -164,7 +201,7 @@ const FOOD: Record<string, (ctx: Ctx) => void> = {
 /** Food icon in a 64×64 box. */
 export function drawFoodIcon(ctx: Ctx, itemId: string) {
   ellipse(ctx, 32, 56, 22, 4, 'rgba(0,0,0,0.12)');
-  (FOOD[itemId] ?? FOOD.pao_frances)(ctx);
+  (FOOD[itemId] ?? FOOD.pao)(ctx);
 }
 
 /** Hat on a mannequin head in a 64×64 box. */

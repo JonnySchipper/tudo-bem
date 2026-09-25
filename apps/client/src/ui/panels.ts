@@ -3,6 +3,8 @@ import {
   HATS,
   MG_ITEMS,
   MG_MAX_TRAY,
+  MG_MODS,
+  mgModById,
   ROOMS,
   furnitureById,
   hatById,
@@ -90,6 +92,8 @@ export interface DialogueOpts {
   onChoose: (i: number) => void;
   onClose: () => void;
   footer?: HTMLElement;
+  /** Free-typed reply (scored with accept-list rules). */
+  onType?: (text: string) => void;
 }
 
 let dialogueEl: HTMLElement | null = null;
@@ -128,6 +132,7 @@ export function showDialogue(o: DialogueOpts) {
       h('div', { class: 'line' }, o.line.pt),
       en(o.line.en),
       chips.length ? h('div', { class: 'reply-chips' }, ...chips) : null,
+      chips.length && o.onType ? typedReply(o.onType) : null,
       o.footer ?? null,
     ),
   );
@@ -142,7 +147,20 @@ export function showDialogue(o: DialogueOpts) {
   game.modalOpen = true;
 }
 
-export function showScene(view: SceneView, extra: { said?: Bilingual; feedback?: Bilingual; score?: number; payout?: number }, onChoose: (i: number) => void, onClose: () => void, onPlay: () => void) {
+function typedReply(onType: (text: string) => void) {
+  const input = h('input', { type: 'text', maxLength: 140, placeholder: 'Ou escreva sua resposta… (or type your reply)', 'aria-label': 'Resposta', id: 'scene-type' });
+  const send = () => {
+    const t = input.value.trim();
+    if (t) onType(t);
+  };
+  input.addEventListener('keydown', (e) => {
+    e.stopPropagation();
+    if (e.key === 'Enter') send();
+  });
+  return h('div', { class: 'typed-reply' }, input, h('button', { class: 'primary', onclick: send, id: 'scene-type-send' }, 'Responder'));
+}
+
+export function showScene(view: SceneView, extra: { said?: Bilingual; feedback?: Bilingual; score?: number; payout?: number }, onChoose: (i: number) => void, onClose: () => void, onPlay: () => void, onType?: (text: string) => void) {
   const carlos = ROOMS.padaria.npcs.find((n) => n.id === 'carlos')!;
   speak(view.line.pt);
   const footer = view.end
@@ -166,6 +184,7 @@ export function showScene(view: SceneView, extra: { said?: Bilingual; feedback?:
     onChoose,
     onClose,
     footer,
+    onType,
   });
 }
 
@@ -315,6 +334,8 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
 
 export class MinigameUI {
   private tray: Tray = {};
+  private mods = new Set<string>();
+  private modsEl = h('div', { class: 'mods', id: 'mg-mods' });
   private order: Extract<MgServerMsg, { phase: 'order' }> | null = null;
   private orderAt = 0;
   private raf = 0;
@@ -329,10 +350,10 @@ export class MinigameUI {
   private panel: HTMLElement;
   private timedOut = false;
 
-  constructor(private actions: { submit: (t: Tray) => void; timeout: () => void; quit: () => void; again: () => void }) {
+  constructor(private actions: { submit: (t: Tray, mods: string[]) => void; timeout: () => void; quit: () => void; again: () => void }) {
     const shelves = h('div', { class: 'shelves', id: 'mg-shelves' });
     MG_ITEMS.forEach((item, i) => {
-      const keyLabel = i < 9 ? String(i + 1) : i === 9 ? '0' : '-';
+      const keyLabel = i < 9 ? String(i + 1) : ['0', '-', '='][i - 9] ?? '';
       shelves.append(
         h(
           'button',
@@ -354,6 +375,7 @@ export class MinigameUI {
         this.carlos,
         h('div', null, h('b', null, 'Bandeja'), en('Tray — click an item to remove it', true)),
         this.trayEl,
+        this.modsEl,
         h('div', { class: 'row' }, h('button', { onclick: () => this.clearTray() }, bi('Limpar', 'Clear')), h('span', { class: 'spacer' }), h('button', { class: 'green', onclick: () => this.submit(), id: 'mg-submit' }, bi('Entregar ✓', 'Serve (Enter)'))),
         this.score,
       ),
@@ -380,8 +402,8 @@ export class MinigameUI {
 
   private onKey = (e: KeyboardEvent) => {
     if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
-    const idx = e.key === '0' ? 9 : e.key === '-' ? 10 : Number(e.key) - 1;
-    if (idx >= 0 && idx < MG_ITEMS.length && /^[0-9-]$/.test(e.key)) this.add(MG_ITEMS[idx].id);
+    const idx = e.key === '0' ? 9 : e.key === '-' ? 10 : e.key === '=' ? 11 : Number(e.key) - 1;
+    if (idx >= 0 && idx < MG_ITEMS.length && /^[0-9=-]$/.test(e.key)) this.add(MG_ITEMS[idx].id);
     if (e.key === 'Enter') this.submit();
     if (e.key === 'Backspace') this.clearTray();
   };
@@ -401,7 +423,27 @@ export class MinigameUI {
 
   private clearTray() {
     this.tray = {};
+    this.mods.clear();
     this.renderTray();
+  }
+
+  private toggleMod(id: string) {
+    if (this.locked || !this.order) return;
+    const mod = mgModById(id)!;
+    if (this.mods.has(id)) this.mods.delete(id);
+    else {
+      if (mod.group === 'where') for (const m of MG_MODS) if (m.group === 'where') this.mods.delete(m.id);
+      this.mods.add(id);
+    }
+    this.renderMods();
+  }
+
+  private renderMods() {
+    this.modsEl.replaceChildren(
+      ...MG_MODS.map((m) =>
+        h('button', { class: this.mods.has(m.id) ? 'on' : '', onclick: () => this.toggleMod(m.id), 'data-mod': m.id, 'aria-pressed': String(this.mods.has(m.id)) }, h('span', { class: 'pt' }, m.pt), en(m.en, true)),
+      ),
+    );
   }
 
   private renderTray() {
@@ -432,7 +474,7 @@ export class MinigameUI {
   private submit() {
     if (this.locked || !this.order) return;
     this.locked = true;
-    this.actions.submit({ ...this.tray });
+    this.actions.submit({ ...this.tray }, [...this.mods]);
   }
 
   private quit() {
@@ -462,7 +504,9 @@ export class MinigameUI {
       this.locked = false;
       this.timedOut = false;
       this.tray = {};
+      this.mods.clear();
       this.renderTray();
+      this.renderMods();
       this.ticket.className = `ticket ${m.repeat ? 'repeat' : ''}`;
       this.ticket.replaceChildren(
         h('div', { class: 'row' }, h('span', { class: 'customer' }, `Pedido ${m.round + 1}/${m.rounds} · ${m.customer}${m.repeat ? ' · de novo, devagar' : ''}`), h('span', { class: 'spacer' }), h('button', { class: 'speak-btn', onclick: () => speak(m.pt, { force: true, rate: 0.8 }) }, '🔊 Ouvir')),
@@ -479,7 +523,13 @@ export class MinigameUI {
       this.score.replaceChildren(h('span', null, `Pontos: ${m.points}`), m.streak >= 2 ? h('span', { class: 'combo' }, `Combo ×${m.streak}!`) : h('span'));
       if (m.expected) {
         this.carlos.append(
-          h('div', { style: 'margin-top:6px;font-size:.85em' }, 'Era: ', ...m.expected.map((l) => h('span', { style: 'margin-right:6px' }, `${l.qty}× `, h('img', { src: foodIcon(l.itemId, 22), style: 'width:22px;height:22px;vertical-align:middle' })))),
+          h(
+            'div',
+            { style: 'margin-top:6px;font-size:.85em' },
+            'Era: ',
+            ...m.expected.map((l) => h('span', { style: 'margin-right:6px' }, `${l.qty}× `, h('img', { src: foodIcon(l.itemId, 22), style: 'width:22px;height:22px;vertical-align:middle' }))),
+            ...(m.expectedMods ?? []).map((id) => h('span', { class: 'feedback', style: 'margin-left:4px' }, mgModById(id)?.pt ?? id)),
+          ),
         );
       }
     } else {

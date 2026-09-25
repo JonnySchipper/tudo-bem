@@ -1,0 +1,59 @@
+{
+  "_meta": {
+    "source": "do-not-teach.md (canonical). Machine-readable subset for CI: whole-word, accent-insensitive scan of every authored NPC line, chip, tray order, card, parrot hint, item name and gloss phrasebook key.",
+    "status": "DRAFT — additions require Curriculum + CEO note; removals require Brazilian human sign-off.",
+    "not_automatable": "Sense-dependent items (ficar romantic, abraço romantic, false friends explained in context, grammar-dump style) are reviewed by humans, not scanned."
+  },
+  "sections": {
+    "alcohol_nightlife": [
+      "cerveja",
+      "chopp",
+      "chope",
+      "vinho",
+      "caipirinha",
+      "dose",
+      "barzinho",
+      "bar",
+      "vamos beber",
+      "chapado",
+      "ressaca",
+      "boteco"
+    ],
+    "dating_flirting": [
+      "crush",
+      "ficante",
+      "paquera",
+      "beijo",
+      "beijos",
+      "hermoso",
+      "hermosa"
+    ],
+    "politics_religion": [
+      "eleição",
+      "eleições",
+      "partido",
+      "candidato"
+    ],
+    "european_forms": [
+      "tu",
+      "vós",
+      "vossa senhoria",
+      "pequeno-almoço",
+      "autocarro",
+      "telemóvel",
+      "dezasseis"
+    ],
+    "slang_dumps": [
+      "topzérrimo",
+      "top"
+    ],
+    "spanglish": [
+      "order",
+      "coffee"
+    ],
+    "false_friends": [
+      "esquisito",
+      "pasta"
+    ]
+  }
+}

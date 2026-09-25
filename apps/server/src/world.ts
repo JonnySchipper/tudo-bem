@@ -38,6 +38,8 @@ import {
   validateName,
   mgItemById,
   cardById,
+  sanitizeMods,
+  viewNode,
   type Appearance,
   type Bilingual,
   type ClientMsg,
@@ -104,6 +106,8 @@ interface MgState {
   perfect: number;
   waiting: boolean;
   token: number;
+  /** Authored tickets already served this shift (no repeats). */
+  served: string[];
 }
 
 export interface Session {
@@ -551,7 +555,7 @@ export class World {
 
   // ---------- Seu Carlos scene ----------
 
-  private scene(s: Session, m: Extract<ClientMsg, { t: 'scene' }>) {
+  private async scene(s: Session, m: Extract<ClientMsg, { t: 'scene' }>) {
     const p = s.profile!;
     if (m.action === 'close') {
       s.scene = undefined;
@@ -568,12 +572,35 @@ export class World {
     }
     const sc = s.scene;
     if (!sc) return;
-    const res = this.services.npc.choose(sc.npc, sc.node, Math.floor(Number(m.chip)), sc.ctx);
+    if (m.action === 'choose') return this.applyChoice(s, sc, Math.floor(Number(m.chip)), 3, 'chip');
+
+    // Free-typed reply: same safety stack as chat, then accept-list scoring onto the chips.
+    const text = String(m.text ?? '').slice(0, MAX_CHAT_LEN).trim();
+    if (!text) return;
+    const verdict = await this.services.safety.classify(text, { playerId: p.id, room: s.instance?.id ?? '-', nameplate: p.nameplate });
+    if (verdict.action === 'block' || verdict.action === 'escalate') {
+      this.services.moderation.push({ kind: verdict.action, playerId: p.id, playerName: p.name, room: s.instance?.id ?? '-', text, labels: verdict.labels, at: this.now() });
+      return s.send({ t: 'notice', level: 'block', pt: verdict.note?.pt ?? 'Mensagem bloqueada.', en: verdict.note?.en ?? 'Message blocked.' });
+    }
+    if (s.scene !== sc) return;
+    const scored = this.services.npc.scoreTyped(sc.npc, sc.node, text, sc.ctx);
+    if (scored.chip === null) {
+      this.services.student.record({ playerId: p.id, itemIds: [], channel: 'type', score: 0, latencyMs: this.now() - sc.shownAt, place: 'padaria', nameplate: p.nameplate, at: this.now() });
+      const current = viewNode(sc.node, sc.ctx);
+      if (current) s.send({ t: 'scene', view: current, lastScore: 0, feedback: SCORE_FEEDBACK[0], said: { pt: text, en: '' } });
+      return;
+    }
+    return this.applyChoice(s, sc, scored.chip, scored.task_success, 'type', text);
+  }
+
+  private applyChoice(s: Session, sc: SceneState, chip: number, cap: 0 | 1 | 2 | 3, channel: 'chip' | 'type', typed?: string) {
+    const p = s.profile!;
+    const res = this.services.npc.choose(sc.npc, sc.node, chip, sc.ctx, cap);
     if (!res) return;
     this.services.student.record({
       playerId: p.id,
       itemIds: res.cards,
-      channel: 'chip',
+      channel,
       score: res.score,
       latencyMs: this.now() - sc.shownAt,
       place: 'padaria',
@@ -595,7 +622,8 @@ export class World {
       if (payout > 0) this.reward(s, payout, { pt: 'Café da manhã com o Seu Carlos', en: 'Breakfast with Seu Carlos' });
       else s.send({ t: 'notice', level: 'info', pt: 'Seu Carlos: “Você já me ajudou muito hoje!”', en: 'Seu Carlos: “You’ve already helped me a lot today!” (daily cap reached)' });
     }
-    s.send({ t: 'scene', view: res.view, lastScore: res.score, feedback: SCORE_FEEDBACK[res.score], said: res.said, payout });
+    const said = typed ? { pt: typed, en: res.said.pt } : res.said;
+    s.send({ t: 'scene', view: res.view, lastScore: res.score, feedback: SCORE_FEEDBACK[res.score], said, payout });
   }
 
   private rollDaily(p: StoredProfile) {
@@ -611,7 +639,7 @@ export class World {
       s.scene = undefined;
       const rng = mulberry32((this.now() ^ (Math.random() * 1e9)) >>> 0);
       const order = makeOrder(rng, 0);
-      s.mg = { rng, round: 0, order, orderAt: this.now(), repeated: false, points: 0, streak: 0, perfect: 0, waiting: false, token: ++this.seq };
+      s.mg = { rng, round: 0, order, orderAt: this.now(), repeated: false, points: 0, streak: 0, perfect: 0, waiting: false, token: ++this.seq, served: [order.pt] };
       return this.sendOrder(s);
     }
     const mg = s.mg;
@@ -629,7 +657,7 @@ export class World {
       timedOut = true;
     } else {
       timedOut = elapsed > mg.order.timeMs + 1500;
-      ok = !timedOut && checkTray(mg.order, sanitizeTray(m.tray)).ok;
+      ok = !timedOut && checkTray(mg.order, sanitizeTray(m.tray), sanitizeMods(m.mods)).ok;
     }
     const cards = mg.order.lines.map((l) => mgItemById(l.itemId)!.card.id);
     this.services.student.record({
@@ -660,7 +688,7 @@ export class World {
     }
     mg.points += pointsFor(outcome, mg.streak);
     const line = outcome === 'perfeito' && mg.streak >= 2 ? MG_LINES.combo : MG_LINES[outcome];
-    s.send({ t: 'mg', phase: 'result', round: mg.round, outcome, carlos: line, expected: ok ? undefined : mg.order.lines, points: mg.points, streak: mg.streak });
+    s.send({ t: 'mg', phase: 'result', round: mg.round, outcome, carlos: line, expected: ok ? undefined : mg.order.lines, expectedMods: ok ? undefined : mg.order.mods, points: mg.points, streak: mg.streak });
     mg.round++;
     if (mg.round >= MG_ROUNDS) {
       const coins = mgPayout(mg.points);
@@ -683,7 +711,8 @@ export class World {
     const next = () => {
       if (s.mg?.token !== token) return;
       mg.waiting = false;
-      mg.order = makeOrder(mg.rng, mg.round);
+      mg.order = makeOrder(mg.rng, mg.round, mg.served);
+      mg.served.push(mg.order.pt);
       mg.repeated = false;
       mg.orderAt = this.now();
       this.sendOrder(s);

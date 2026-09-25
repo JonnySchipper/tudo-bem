@@ -1,4 +1,4 @@
-import type { Bilingual, Nameplate, PrivateProfile, SafetyVerdict, SceneCtx, SceneView } from '@tudobem/shared';
+import type { Bilingual, Nameplate, PrivateProfile, SafetyVerdict, SceneCtx, SceneView, TypedReplyScore } from '@tudobem/shared';
 
 /**
  * Seams for the AI services described in GDD §5.9 / §12.3.
@@ -22,7 +22,9 @@ export interface GlossService {
  */
 export interface NpcDialogueService {
   start(npcId: string, ctx: SceneCtx): SceneView;
-  choose(npcId: string, nodeId: string, chip: number, ctx: SceneCtx): { view: SceneView; score: 0 | 1 | 2 | 3; ctx: SceneCtx; said: Bilingual; cards: string[] } | null;
+  choose(npcId: string, nodeId: string, chip: number, ctx: SceneCtx, scoreCap?: 0 | 1 | 2 | 3): { view: SceneView; score: 0 | 1 | 2 | 3; ctx: SceneCtx; said: Bilingual; cards: string[] } | null;
+  /** Map a free-typed reply onto the node's chips (stub Jev NPC-reply pack + accept-list rules). */
+  scoreTyped(npcId: string, nodeId: string, text: string, ctx: SceneCtx): TypedReplyScore;
 }
 
 export interface GradedAct {

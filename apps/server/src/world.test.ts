@@ -152,7 +152,7 @@ describe('World', () => {
 
     // Carlos scene with best chips
     await a.send({ t: 'scene', action: 'start', npc: 'carlos' });
-    expect(a.last('scene')!.view.line.pt).toMatch(/minha filha/);
+    expect(a.last('scene')!.view.line.pt).toBe('Bom dia! Tudo bem?');
     for (let i = 0; i < 5; i++) await a.send({ t: 'scene', action: 'choose', chip: 0 });
     const endScene = a.last('scene')!;
     expect(endScene.view.end).toBe(true);
@@ -164,7 +164,7 @@ describe('World', () => {
       const order = world.debugOrder(a.s)!;
       const tray = Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty]));
       clock += 1000;
-      await a.send({ t: 'mg', action: 'submit', tray });
+      await a.send({ t: 'mg', action: 'submit', tray, mods: order.mods });
     }
     const end = a.last('mg') as Extract<ServerMsg, { t: 'mg'; phase: 'end' }>;
     expect(end.phase).toBe('end');
