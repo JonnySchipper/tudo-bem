@@ -4,7 +4,7 @@ name: Deploy solo preview (GitHub Pages)
 # One-time: Settings → Pages → Build and deployment → Source: "GitHub Actions".
 on:
   push:
-    branches: [main, cursor/deploy-content-ingest-09f2]
+    branches: [main]
   workflow_dispatch:
 
 permissions:

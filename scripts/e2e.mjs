@@ -83,22 +83,29 @@ async function createAvatar(page, name, pronoun) {
 // ---- parse a Portuguese order back into a tray (proves the order text alone is solvable)
 const NUM = { um: 1, uma: 1, dois: 2, duas: 2, 'três': 3, tres: 3 };
 async function trayFor(page, orderText) {
-  const items = await page.evaluate(() => window.__tb.rooms && window.__tbItems);
-  const list = items ?? [];
-  const text = orderText.toLowerCase();
+  const list = (await page.evaluate(() => window.__tbItems)) ?? [];
   const tray = {};
-  // Longest forms first so "pão de queijo" wins over "pão".
+  // Longest forms first so "pão na chapa" wins over "pão".
   const forms = list.flatMap((i) => [[i.plural, i.id], [i.form, i.id]]).sort((a, b) => b[0].length - a[0].length);
-  let rest = text;
+  let rest = orderText.toLowerCase();
+  const re = (prefix, form) => new RegExp(`${prefix}${form.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}-])`, 'u');
   for (const [form, id] of forms) {
-    const re = new RegExp(`(um|uma|dois|duas|três|tres)\\s+${form.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}-])`, 'u');
     let m;
-    while ((m = rest.match(re))) {
+    while ((m = rest.match(re('(um|uma|dois|duas|três|tres)\\s+', form)))) {
       tray[id] = (tray[id] ?? 0) + NUM[m[1]];
       rest = rest.replace(m[0], ' ');
     }
   }
-  return tray;
+  // Bare noun with no count ("Café sem açúcar, bem quente.") means one.
+  for (const [form, id] of forms) {
+    const m = rest.match(re('(^|[\\s,])', form));
+    if (m) {
+      tray[id] = (tray[id] ?? 0) + 1;
+      rest = rest.replace(m[0], ' ');
+    }
+  }
+  const mods = ['pra viagem', 'pra comer aqui', 'sem açúcar', 'bem quente'].filter((m) => orderText.toLowerCase().includes(m));
+  return { tray, mods };
 }
 
 async function main() {
@@ -215,11 +222,15 @@ async function main() {
   await page.waitForSelector('#dialogue [data-chip="0"]', { timeout: 12_000 });
   await sleep(300);
   await shot(page, '04_carlos_scene_start');
-  const picks = [0, 1, 0, 0, 1];
+  // First reply is typed (accept-list scoring), the rest are chips.
+  const picks = ['Bom dia, Seu Carlos!', 1, 0, 0, 1];
   for (let i = 0; i < picks.length; i++) {
     const before = await page.textContent('#dialogue .line');
     await dwell(1600);
-    await page.click(`#dialogue [data-chip="${picks[i]}"]`);
+    if (typeof picks[i] === 'string') {
+      await page.fill('#scene-type', picks[i]);
+      await page.press('#scene-type', 'Enter');
+    } else await page.click(`#dialogue [data-chip="${picks[i]}"]`);
     await waitFor(page, (b) => document.querySelector('#dialogue .line')?.textContent !== b, before, 5000, 'next Carlos line');
     if (i === 2) await shot(page, '05_carlos_scene_mid');
   }
@@ -235,17 +246,19 @@ async function main() {
   await page.waitForSelector('#mg-order');
   const forms = await page.evaluate(() => [...document.querySelectorAll('#mg-shelves button')].map((b) => ({ id: b.dataset.item, form: b.querySelector('.pt').textContent })));
   const plurals = {
-    pao_frances: 'pães franceses', pao_na_chapa: 'pães na chapa', pao_de_queijo: 'pães de queijo', coxinha: 'coxinhas', misto_quente: 'mistos-quentes',
-    sonho: 'sonhos', bolo_de_fuba: 'bolos de fubá', cafezinho: 'cafezinhos', cafe_com_leite: 'cafés com leite', suco_de_laranja: 'sucos de laranja', guarana: 'guaranás',
+    pao: 'pães', pao_na_chapa: 'pães na chapa', pastel: 'pastéis', coxinha: 'coxinhas', bolo: 'bolos', cafe: 'cafés', cafe_com_leite: 'cafés com leite',
+    suco_de_laranja: 'sucos de laranja', agua: 'águas', pao_de_queijo: 'pães de queijo', misto_quente: 'mistos-quentes', guarana: 'guaranás',
   };
   await page.evaluate((list) => (window.__tbItems = list), forms.map((f) => ({ ...f, plural: plurals[f.id] })));
   for (let round = 0; round < 6; round++) {
     await page.waitForSelector('#mg-order');
     const text = await page.textContent('#mg-order');
-    const tray = await trayFor(page, text);
-    log(`order ${round + 1}: “${text}” →`, JSON.stringify(tray));
+    const { tray, mods } = await trayFor(page, text);
+    log(`order ${round + 1}: “${text}” →`, JSON.stringify(tray), mods.join(', '));
     await dwell(round < 2 ? 1400 : 700);
     for (const [id, n] of Object.entries(tray)) for (let k = 0; k < n; k++) await page.click(`#mg-shelves [data-item="${id}"]`);
+    const modIds = { 'pra viagem': 'pra_viagem', 'pra comer aqui': 'pra_comer_aqui', 'sem açúcar': 'sem_acucar', 'bem quente': 'bem_quente' };
+    for (const m of mods) await page.click(`#mg-mods [data-mod="${modIds[m]}"]`);
     if (round === 2) await shot(page, '07_meveum_tray');
     await page.click('#mg-submit');
     if (round < 5) await waitFor(page, (t) => document.querySelector('#mg-order')?.textContent !== t, text, 6000, 'next order');
