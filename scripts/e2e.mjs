@@ -16,10 +16,13 @@ import path from 'node:path';
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
 const CHROME = process.env.CHROME_PATH ?? ['/usr/local/bin/google-chrome', '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find((p) => fs.existsSync(p));
 const SHOTS = process.env.SHOTS_DIR ?? '';
+const VIDEO = process.env.VIDEO_DIR ?? '';
 const HEADLESS = process.env.HEADED ? false : true;
 
 const log = (...a) => console.log('  ·', ...a);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+/** Extra dwell time on key moments when recording a video. */
+const dwell = (ms) => (VIDEO ? sleep(ms) : Promise.resolve());
 
 async function shot(page, name) {
   if (!SHOTS) return;
@@ -97,8 +100,12 @@ async function trayFor(page, orderText) {
 async function main() {
   assert(CHROME, 'Chrome/Chromium not found — set CHROME_PATH');
   console.log(`\nTudo Bem e2e → ${BASE}`);
-  const browser = await chromium.launch({ executablePath: CHROME, headless: HEADLESS, args: ['--autoplay-policy=no-user-gesture-required'] });
-  const ctxA = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+  const browser = await chromium.launch({ executablePath: CHROME, headless: HEADLESS, slowMo: VIDEO ? 90 : 0, args: ['--autoplay-policy=no-user-gesture-required'] });
+  const ctxA = await browser.newContext({
+    viewport: { width: 1440, height: 900 },
+    deviceScaleFactor: 1,
+    ...(VIDEO ? { recordVideo: { dir: VIDEO, size: { width: 1440, height: 900 } } } : {}),
+  });
   const page = await ctxA.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(String(e)));
@@ -109,10 +116,7 @@ async function main() {
   await sleep(300);
   await shot(page, '01_avatar_creator');
   await enter();
-  await page.evaluate(() => {
-    // Expose item forms for the order parser.
-    window.__tbItems = null;
-  });
+  await dwell(1500);
   const start = await profile(page);
   log('landed in', await room(page), 'coins', start.coins, 'plate', start.nameplate);
   assert(start.nameplate === 'verde', 'Verde nameplate');
@@ -142,6 +146,7 @@ async function main() {
   const glossSeen = await page.evaluate(() => [...window.__tb.game.avatars.values()].some((a) => a.bubbles.some((b) => b.gloss)));
   assert(glossSeen, 'English gloss under Portuguese bubble');
   await shot(page, '02_praca_chat_gloss');
+  await dwell(2500);
 
   // Filter check: PII is blocked, alcohol word is masked
   await pageB.fill('#chat-input', 'me liga 11 98765-4321');
@@ -170,6 +175,7 @@ async function main() {
   await waitFor(page, () => window.__tb.game.room?.room === 'padaria', null, 15_000, 'padaria');
   await sleep(700);
   await shot(page, '03_padaria');
+  await dwell(1200);
 
   // 4. Seu Carlos breakfast scene (chips only)
   await clickTile(page, 3, 1, 50);
@@ -179,24 +185,22 @@ async function main() {
   const picks = [0, 1, 0, 0, 1];
   for (let i = 0; i < picks.length; i++) {
     const before = await page.textContent('#dialogue .line');
+    await dwell(1600);
     await page.click(`#dialogue [data-chip="${picks[i]}"]`);
     await waitFor(page, (b) => document.querySelector('#dialogue .line')?.textContent !== b, before, 5000, 'next Carlos line');
     if (i === 2) await shot(page, '05_carlos_scene_mid');
   }
   await page.waitForSelector('#btn-play-mg');
   await shot(page, '06_carlos_scene_end');
+  await dwell(2200);
   const afterScene = await profile(page);
   log('scene payout →', afterScene.coins - start.coins, 'RV');
   assert(afterScene.tutorial.carlos, 'carlos step');
 
   // 5. Me vê um… minigame
-  const itemForms = await page.evaluate(() =>
-    [...document.querySelectorAll('#mg-shelves button')].map((b) => b.getAttribute('data-item')),
-  );
   await page.click('#btn-play-mg');
   await page.waitForSelector('#mg-order');
   const forms = await page.evaluate(() => [...document.querySelectorAll('#mg-shelves button')].map((b) => ({ id: b.dataset.item, form: b.querySelector('.pt').textContent })));
-  void itemForms;
   const plurals = {
     pao_frances: 'pães franceses', pao_na_chapa: 'pães na chapa', pao_de_queijo: 'pães de queijo', coxinha: 'coxinhas', misto_quente: 'mistos-quentes',
     sonho: 'sonhos', bolo_de_fuba: 'bolos de fubá', cafezinho: 'cafezinhos', cafe_com_leite: 'cafés com leite', suco_de_laranja: 'sucos de laranja', guarana: 'guaranás',
@@ -207,6 +211,7 @@ async function main() {
     const text = await page.textContent('#mg-order');
     const tray = await trayFor(page, text);
     log(`order ${round + 1}: “${text}” →`, JSON.stringify(tray));
+    await dwell(round < 2 ? 1400 : 700);
     for (const [id, n] of Object.entries(tray)) for (let k = 0; k < n; k++) await page.click(`#mg-shelves [data-item="${id}"]`);
     if (round === 2) await shot(page, '07_meveum_tray');
     await page.click('#mg-submit');
@@ -215,6 +220,7 @@ async function main() {
   await page.waitForSelector('#mg-end', { timeout: 8000 });
   await sleep(300);
   await shot(page, '08_meveum_end');
+  await dwell(2200);
   const afterMg = await profile(page);
   log('minigame payout →', afterMg.coins - afterScene.coins, 'RV');
   assert(afterMg.coins - afterScene.coins >= 18, 'perfect-ish minigame payout');
@@ -231,6 +237,7 @@ async function main() {
   await waitFor(page, () => window.__tb.game.profile.hat === 'boina_vermelha', null, 5000, 'hat equipped');
   await sleep(300);
   await shot(page, '09_hat_shop');
+  await dwell(1800);
   await page.keyboard.press('Escape');
   // Adopt the parrot (optional cosmetic) and ask for a hint
   await clickTile(page, 10, 9, 50);
@@ -241,6 +248,7 @@ async function main() {
   await page.waitForSelector('.parrot-whisper', { timeout: 5000 });
   await sleep(400);
   await shot(page, '10_praca_hat_parrot');
+  await dwell(1500);
 
   // 7. Kitnet: place the free chair
   await clickTile(page, 0, 4, 40);
@@ -273,6 +281,7 @@ async function main() {
   await pageB.press('#chat-input', 'Enter');
   await sleep(800);
   await shot(page, '12_kitnet_friend_visit');
+  await dwell(2500);
 
   const final = await profile(page);
   const steps = Object.entries(final.tutorial).filter(([, v]) => !v).map(([k]) => k);
@@ -280,7 +289,10 @@ async function main() {
   assert(!steps.length && final.tutorialRewarded, 'all first steps done + bonus');
   assert(!errors.length, `no page errors: ${errors.join(' | ')}`);
 
+  const video = VIDEO ? await page.video()?.path() : null;
+  await ctxA.close();
   await browser.close();
+  if (video) log('video', video);
   console.log('\n  ✓ Phase 0 play path passed\n');
 }
 

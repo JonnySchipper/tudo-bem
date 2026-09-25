@@ -39,7 +39,7 @@ pnpm e2e          # headless-Chrome play-through of the whole Phase 0 path (need
 pnpm verify       # typecheck + test + build
 ```
 
-`pnpm e2e` env: `BASE_URL` (default `http://localhost:8787`), `CHROME_PATH`, `SHOTS_DIR` (save screenshots), `HEADED=1`.
+`pnpm e2e` env: `BASE_URL` (default `http://localhost:8787`), `CHROME_PATH`, `SHOTS_DIR` (save screenshots), `VIDEO_DIR` (record a slowed-down webm of player 1), `HEADED=1`.
 
 ## Play path (≈10 minutes)
 
