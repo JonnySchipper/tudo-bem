@@ -1,0 +1,13 @@
+# Render Blueprint: New → Blueprint → pick this repo. WebSockets work on Render web services.
+services:
+  - type: web
+    name: tudo-bem
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: ROOM_CAP
+        value: "16"
+      - key: DATA_DIR
+        value: /data

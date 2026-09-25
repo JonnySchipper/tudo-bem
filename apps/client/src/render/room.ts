@@ -327,14 +327,14 @@ function drawDecor(ctx: Ctx, room: RoomDef, d: WallDecor) {
           ['Suco de laranja', 8],
           ['Cafezinho', 3],
         ];
-        ctx.font = `700 8.5px ${FONT_BODY}`;
+        ctx.font = `700 7.5px ${FONT_BODY}`;
         items.forEach(([name, p], i) => {
           ctx.textAlign = 'left';
           ctx.fillStyle = '#e8f3e9';
-          ctx.fillText(name, 18, -H + 44 + i * 9.5);
+          ctx.fillText(name, 17, -H + 44 + i * 9.5, L - 52);
           ctx.textAlign = 'right';
           ctx.fillStyle = '#f2c230';
-          ctx.fillText(`R$ ${p}`, L - 18, -H + 44 + i * 9.5);
+          ctx.fillText(String(p), L - 17, -H + 44 + i * 9.5);
         });
         break;
       }
