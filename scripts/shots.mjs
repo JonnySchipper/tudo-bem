@@ -28,6 +28,7 @@ async function clickTile(page, x, y, lift = 0) {
 async function shot(page, name) {
   fs.mkdirSync(OUT, { recursive: true });
   await page.screenshot({ path: path.join(OUT, `${name}.png`) });
+  if (process.env.ZOOM) await page.screenshot({ path: path.join(OUT, `${name}_zoom.png`), clip: { x: 330, y: 110, width: 720, height: 540 } });
   console.log('  ·', name);
 }
 
@@ -44,6 +45,8 @@ await page.waitForSelector('#avatar-name');
 await page.fill('#avatar-name', 'Jonny');
 await page.click('button:has-text("ele (he)")');
 await page.check('#confirm-18');
+await page.click('button:has-text("Black power")').catch(() => {});
+await page.evaluate(() => document.querySelectorAll('.onboarding, .onboarding *').forEach((el) => (el.scrollTop = 0)));
 await sleep(300);
 await shot(page, '00_avatar_creator');
 await page.click('#enter-praca');
