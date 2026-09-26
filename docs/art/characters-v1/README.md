@@ -58,6 +58,17 @@ To regenerate: build and serve the solo build, then run `SHOTS_DIR=docs/art/char
 | **6 Hats** | All 12 were rebaked on the new skull. Each hat scales to the hair volume, with brims tipped so faces stay visible. In the straight-on front view, cap and visor brims point at the camera. [`sheet_hatfit`](after/sheet_hatfit.png) shows every hat on the afro, curls, bun, undercut and waves with no clipping. The hats carry a stronger ink halo, so they're the first read at 1280. The shop icons were rebaked too. |
 | **7 Materials / light** | <ul><li>Skin: key + fill + cheek warmth.</li><li>Hair: 2–3 value clumps + rim.</li><li>Cloth: fold breaks (apron, jeans, blouse).</li><li>Accents, used sparingly: belt buckle, cap button, watch, pochete zip.</li><li>Contact shadow under the feet: warm-ink ellipse at ≈35% core, plus a tight occlusion under each sole.</li><li>Rim light per room: Praça late-afternoon gold, Padaria morning cream on Carlos, Kitnet neutral daylight on the player.</li></ul> |
 
+## Safety + Live Ops locks (hard fails)
+
+| Lock | How it holds |
+| --- | --- |
+| Family-safe silhouettes | Starter clothes are tees, blouses, shirts, hoodies, tanks, jeans, shorts and knee-length skirts. There are no flirt or body-focus poses: the hand-on-hip is a relaxed stance with a small hip shift, and the emotes are oi / valeu / rir / desculpa / dançar, with arms only. Seu Carlos's kinship reads warm-uncle (see the Curriculum lock), with no nightlife or dating silhouette on any NPC. |
+| No alcohol / bar cues | The only held drink is a white **xícara de cafezinho** on a saucer, with dark coffee and steam. The earlier copo americano could read as a beer glass, so it's gone. No bar costumes, and the CPU look formerly called “barista” is `cafe_da_esquina`. |
+| No nightlife on the crowd | The carnival top hat stays a player-bought shop item. CPUs never wear it, or Carlos's toque; a test enforces both. |
+| Verde plates + CPU allowlist | CPUs still use `CPU_NAMES` first names on Verde plates, checked by the e2e. The wardrobe only changes their clothes. |
+| CPUs ≥5 distinct reads | Five authored neighbors, 14 archetypes, and tests that any two CPUs who can share the square differ on ≥3 reads. |
+| Júlia reads as Praça host | Her plate says **Júlia · Guia da praça**. She wears a coral lanyard with a large sp-green **GUIA** badge, keeps an open stance, and every ~9 s points toward the loop for the tutorial / Seu Carlos handoff. Her position, interact tile and dialogue are unchanged. |
+
 ## Gameplay and data (the Phase 0 loop is unchanged)
 
 - `Appearance` gains optional `face`, `extra` and `idle`, sanitized server-side. Older saves load with defaults.

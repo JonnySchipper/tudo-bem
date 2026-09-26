@@ -181,7 +181,8 @@ export function buildRig(s: RigState): Rig {
       // Posture lean (TB Art: CPUs differ in lean, Nanda leans toward the player)
       const lean: Partial<Record<IdlePose, number>> = { bolsos: -0.9, bracos: -1, celular: 0.7, cintura: 0.3, bolsa: 0.4 };
       bx += (lean[idle] ?? 0) * turn;
-      if (idle === 'cintura') hipSway = 1.9 * turn;
+      // Hand on hip stays a relaxed stance, not a pose (family-safe lock)
+      if (idle === 'cintura') hipSway = 1.1 * turn;
       if (s.npc === 'nanda') bx += 2.2 * turn;
       if (s.npc === 'julia') bx -= 0.4 * turn;
       if (s.npc === 'carlos') {
@@ -320,7 +321,7 @@ export function buildRig(s: RigState): Rig {
       if (p > 0 && still) {
         const sh = shoulders[0];
         const reach = { x: sh.x + 17 * p + 2 * (1 - p), y: sh.y + 23.5 - 31 * p };
-        far = arm(0, reach, 1, p > 0.5 ? 'point' : 'relaxed', true);
+        far = arm(0, reach, p > 0.35 ? 1 : -1, p > 0.5 ? 'point' : 'relaxed', true);
         brows = 'up';
         mouth = 'open';
       }

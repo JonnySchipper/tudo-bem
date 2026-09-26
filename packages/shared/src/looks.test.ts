@@ -23,7 +23,8 @@ describe('CPU wardrobe (character redesign v1)', () => {
       expect(x.bottomColor).toBeLessThan(CLOTH_COLORS.length);
       expect(x.shoes).toBeLessThan(SHOE_COLORS.length);
       if (a.hat) expect(hatById(a.hat), `${name}: ${a.hat}`).toBeTruthy();
-      expect(a.hat).not.toBe('chapeu_chef');
+      // Carlos's hat stays his; no carnival/nightlife read on the everyday Praça crowd
+      expect(['chapeu_chef', 'cartola']).not.toContain(a.hat);
     }
   });
 
@@ -32,7 +33,7 @@ describe('CPU wardrobe (character redesign v1)', () => {
     expect(cpuArchetype('Daniel')).toBe('executivo');
     expect(cpuArchetype('Mateus')).toBe('skatista');
     expect(cpuArchetype('Felipe')).toBe('ciclista');
-    expect(cpuArchetype('Rafael')).toBe('barista');
+    expect(cpuArchetype('Rafael')).toBe('cafe_da_esquina');
   });
 
   // TB Art override 5: each pair differs on ≥3 of hair, top, bottoms, posture, accessory.

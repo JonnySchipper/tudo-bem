@@ -48,9 +48,9 @@ export const CPU_LOOKS_B: Record<string, Archetype> = {
   skatista: A({ body: ['esguio', 'medio'], hair: ['cacheado'], hairColor: [0, 1, 2], top: 'moletom', topColor: [11, 5, 6], bottom: 'bermuda', bottomColor: [10, 2], shoes: [0, 4], face: ['doce', 'suave'], extra: ['nenhum', 'sardas'], idle: 'bolsos', hats: ['bone_verde'] }),
   aposentado: A({ body: ['forte', 'medio'], hair: ['raspado'], hairColor: [5], top: 'camisa', topColor: [10, 4], bottom: 'calca', bottomColor: [5, 10], shoes: [1, 2], face: ['maduro'], extra: ['bigode'], idle: 'bracos', hats: ['panama'] }),
   ciclista: A({ body: ['esguio', 'medio'], hair: ['raspado', 'curto'], hairColor: [0, 2, 4], top: 'camiseta', topColor: [4, 1], bottom: 'bermuda', bottomColor: [2, 5], shoes: [3, 0], face: ['suave'], extra: ['sardas', 'nenhum'], idle: 'solto', hats: ['capacete_bike'] }),
-  barista: A({ body: ['medio', 'forte'], hair: ['curto', 'coque'], hairColor: [0, 1], top: 'camisa', topColor: [2, 11], bottom: 'calca', bottomColor: [5], shoes: [2, 1], face: ['marcante'], extra: ['barba'], idle: 'cafe', hats: ['boina_vermelha'] }),
+  cafe_da_esquina: A({ body: ['medio', 'forte'], hair: ['curto', 'coque'], hairColor: [0, 1], top: 'camisa', topColor: [2, 11], bottom: 'calca', bottomColor: [5], shoes: [2, 1], face: ['marcante'], extra: ['barba'], idle: 'cafe', hats: ['boina_vermelha'] }),
   musico: A({ body: ['esguio'], hair: ['longo', 'trancas'], hairColor: [0, 1], top: 'camiseta', topColor: [5, 6], bottom: 'calca', bottomColor: [5, 2], shoes: [1, 0], face: ['suave'], extra: ['barba', 'brincos'], idle: 'bolsos', hats: ['bucket_amarelo', null] }),
-  black_power: A({ body: ['medio', 'forte'], hair: ['black'], hairColor: [0], top: 'regata', topColor: [4, 1], bottom: 'bermuda', bottomColor: [11, 5], shoes: [0, 1], face: ['doce', 'marcante'], extra: ['nenhum', 'barba'], idle: 'bracos', hats: [null, 'cartola'] }),
+  black_power: A({ body: ['medio', 'forte'], hair: ['black'], hairColor: [0], top: 'regata', topColor: [4, 1], bottom: 'bermuda', bottomColor: [11, 5], shoes: [0, 1], face: ['doce', 'marcante'], extra: ['nenhum', 'barba'], idle: 'bracos', hats: [null, 'bucket_amarelo'] }),
 };
 
 /**
@@ -71,7 +71,7 @@ const NAMED: Record<string, string> = {
   Daniel: 'executivo',
   Mateus: 'skatista',
   Felipe: 'ciclista',
-  Rafael: 'barista',
+  Rafael: 'cafe_da_esquina',
   Beatriz: 'estudante',
   Camila: 'corredora',
   Paulo: 'aposentado',

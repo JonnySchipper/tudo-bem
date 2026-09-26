@@ -701,32 +701,35 @@ export function drawHeld(ctx: Ctx, r: Rig, i: 0 | 1, k: Look, drawHatAt: (ctx: C
   const hy = wr.y + Math.sin(ang) * 2;
   const o = po(k, { lw: 0.4, rimA: 0.4 });
   if (what === 'cup') {
-    // Copo americano with pingado
-    const glass = tone('#e9eef0');
+    // Cafezinho: small white xícara on a saucer, dark coffee (never a glass that could read as beer)
+    const china = tone('#f6f3ee');
+    ctx.beginPath();
+    ctx.ellipse(hx, hy - 0.4, 2.4, 0.7, 0, 0, Math.PI * 2);
+    ctx.fillStyle = china.lo;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(hx, hy - 0.6, 2.2, 0.55, 0, 0, Math.PI * 2);
+    ctx.fillStyle = china.base;
+    ctx.fill();
     const pts: P[] = [
-      [hx - 1.5, hy - 4.6],
-      [hx + 1.5, hy - 4.6],
-      [hx + 1.2, hy - 0.2],
-      [hx - 1.2, hy - 0.2],
+      [hx - 1.5, hy - 3.2],
+      [hx + 1.5, hy - 3.2],
+      [hx + 1.1, hy - 0.7],
+      [hx - 1.1, hy - 0.7],
     ];
-    paint(ctx, () => roundPoly(ctx, pts, 0.4), glass, ptsBox(pts), o);
-    const fill: P[] = [
-      [hx - 1.35, hy - 3.6],
-      [hx + 1.35, hy - 3.6],
-      [hx + 1.1, hy - 0.5],
-      [hx - 1.1, hy - 0.5],
-    ];
+    paint(ctx, () => roundPoly(ctx, pts, [0.3, 0.3, 0.8, 0.8]), china, ptsBox(pts), o);
     ctx.beginPath();
-    roundPoly(ctx, fill, 0.3);
-    ctx.fillStyle = '#b98555';
-    ctx.fill();
-    for (let n = -1; n <= 1; n++) line(ctx, [[hx + n * 0.75, hy - 3.9], [hx + n * 0.65, hy - 0.6]], rgba('#ffffff', 0.45), 0.25, false);
+    ctx.arc(hx + 1.9, hy - 2.1, 0.6, -Math.PI / 2, Math.PI / 2);
+    ctx.strokeStyle = china.lo;
+    ctx.lineWidth = 0.4;
+    ctx.stroke();
     ctx.beginPath();
-    ctx.ellipse(hx, hy - 3.6, 1.35, 0.4, 0, 0, Math.PI * 2);
-    ctx.fillStyle = '#e0c29a';
+    ctx.ellipse(hx, hy - 3.2, 1.45, 0.38, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#4a2a1a';
     ctx.fill();
+    line(ctx, [[hx - 0.9, hy - 2.6], [hx - 0.7, hy - 1.1]], rgba('#ffffff', 0.6), 0.3, false);
     // Steam
-    line(ctx, [[hx - 0.4, hy - 5.4], [hx + 0.4, hy - 6.6], [hx - 0.2, hy - 8]], rgba('#ffffff', 0.4), 0.35);
+    line(ctx, [[hx - 0.4, hy - 4], [hx + 0.4, hy - 5.2], [hx - 0.2, hy - 6.6]], rgba('#ffffff', 0.45), 0.35);
   } else if (what === 'phone') {
     ctx.save();
     ctx.translate(hx, hy - 1.2);
@@ -879,16 +882,20 @@ export function drawSignature(ctx: Ctx, r: Rig, k: Look) {
       const badge = { x: cx + 0.4, y: r.chestY + 3.2 };
       line(ctx, [[r.neck.x - 2.2, r.shY - 0.6], [badge.x - 0.6, badge.y - 2.4]], '#e07a5f', 0.65);
       line(ctx, [[r.neck.x + 2.8, r.shY - 0.6], [badge.x + 0.6, badge.y - 2.4]], '#e07a5f', 0.65);
+      // Host badge big enough to read as “Guia” at Praça distance (tutorial / Seu Carlos handoff)
       const b: P[] = [
-        [badge.x - 1.9, badge.y - 2.4],
-        [badge.x + 1.9, badge.y - 2.4],
-        [badge.x + 1.9, badge.y + 2.4],
-        [badge.x - 1.9, badge.y + 2.4],
+        [badge.x - 2.4, badge.y - 2.6],
+        [badge.x + 2.4, badge.y - 2.6],
+        [badge.x + 2.4, badge.y + 3],
+        [badge.x - 2.4, badge.y + 3],
       ];
-      paint(ctx, () => roundPoly(ctx, b, 0.5), tone('#f6eedc'), ptsBox(b), po(k, { lw: 0.4, rimA: 0.3 }));
-      ctx.fillStyle = '#2F5D50';
-      ctx.fillRect(badge.x - 1.9, badge.y - 2.4, 3.8, 1.4);
-      glow(ctx, badge.x, badge.y + 0.9, 0.8, 0.8, '#3f8a4a', 0.95);
+      paint(ctx, () => roundPoly(ctx, b, 0.6), tone('#2F5D50'), ptsBox(b), po(k, { lw: 0.4, rimA: 0.3 }));
+      ctx.beginPath();
+      ctx.roundRect(badge.x - 1.7, badge.y - 0.4, 3.4, 2.8, 0.4);
+      ctx.fillStyle = '#f6eedc';
+      ctx.fill();
+      glow(ctx, badge.x, badge.y - 1.5, 0.75, 0.6, '#f6eedc', 0.95);
+      glow(ctx, badge.x, badge.y + 1, 0.8, 0.8, '#3f8a4a', 0.95);
       // Crossbody strap to a small leather bag on the far hip
       line(ctx, [[-m.sh + 2.8 + x, r.shY - 0.4], [m.wa + 1.2 + x, r.hipY - 4.5]], tone(LEATHER).lo, 1, false);
       line(ctx, [[-m.sh + 2.8 + x, r.shY - 0.8], [m.wa + 1.2 + x, r.hipY - 5]], rgba(tone(LEATHER).hi, 0.6), 0.35, false);
