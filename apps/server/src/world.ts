@@ -40,6 +40,7 @@ import {
   cardById,
   sanitizeMods,
   viewNode,
+  jevNpcReply,
   freshMission,
   MISSION_COPY,
   MISSION_REWARD,
@@ -49,6 +50,8 @@ import {
   type Appearance,
   type Bilingual,
   type ClientMsg,
+  type JevNpcReplyAnswers,
+  type SafetyVerdict,
   type Dir,
   type EmoteKind,
   type FriendInfo,
@@ -580,11 +583,11 @@ export class World {
     s.chatTimes.push(now);
     const verdict = await this.services.safety.classify(text, { playerId: p.id, room: inst.id, nameplate: p.nameplate });
     if (verdict.action === 'block' || verdict.action === 'escalate') {
-      this.services.moderation.push({ kind: verdict.action, playerId: p.id, playerName: p.name, room: inst.id, text, labels: verdict.labels, at: now });
+      this.flag(s, 'chat', verdict, text);
       return s.send({ t: 'notice', level: 'block', pt: verdict.note?.pt ?? 'Mensagem bloqueada.', en: verdict.note?.en ?? 'Message blocked.' });
     }
     if (s.instance !== inst) return;
-    if (verdict.action === 'warn') this.services.moderation.push({ kind: 'warn', playerId: p.id, playerName: p.name, room: inst.id, text, labels: verdict.labels, at: now });
+    if (verdict.action === 'warn') this.flag(s, 'chat', verdict, text);
     // Delivered verbatim: player chat is never rewritten (CEO-LOCKS §3).
     const { gloss, lang } = await this.services.gloss.gloss(verdict.text);
     this.broadcast(inst, { t: 'chat', id: p.id, name: p.name, text: verdict.text, gloss, lang, action: verdict.action });
@@ -593,16 +596,36 @@ export class World {
     if (inst.def.id === 'praca' && GREETING.test(verdict.text) && this.hasCompany(inst)) this.missionStep(s, 'cumprimenta');
   }
 
+  /** Log a non-allow Jev verdict; escalations are queued for human review. */
+  private flag(s: Session, surface: 'chat' | 'npc_reply', verdict: SafetyVerdict, text: string) {
+    const p = s.profile!;
+    this.services.moderation.push({
+      kind: verdict.action as 'warn' | 'block' | 'escalate',
+      surface,
+      playerId: p.id,
+      playerName: p.name,
+      room: s.instance?.id ?? '-',
+      text,
+      labels: verdict.labels,
+      rules: verdict.rules,
+      toxicity: verdict.toxicity,
+      ...(verdict.action === 'escalate' ? { status: 'pending' as const } : {}),
+      at: this.now(),
+    });
+  }
+
   private report(s: Session, targetId: string, text?: string) {
     const p = s.profile!;
     this.services.moderation.push({
       kind: 'report',
+      surface: 'profile',
       playerId: p.id,
       playerName: p.name,
       room: s.instance?.id ?? '-',
       text: String(text ?? '').slice(0, 200),
       labels: [],
       targetId: String(targetId).slice(0, 32),
+      status: 'pending',
       at: this.now(),
     });
     s.send({ t: 'notice', level: 'info', pt: 'Obrigado! Nossa equipe vai dar uma olhada.', en: 'Thanks! Our safety team will take a look.' });
@@ -634,21 +657,23 @@ export class World {
     if (!text) return;
     const verdict = await this.services.safety.classify(text, { playerId: p.id, room: s.instance?.id ?? '-', nameplate: p.nameplate });
     if (verdict.action === 'block' || verdict.action === 'escalate') {
-      this.services.moderation.push({ kind: verdict.action, playerId: p.id, playerName: p.name, room: s.instance?.id ?? '-', text, labels: verdict.labels, at: this.now() });
+      this.flag(s, 'npc_reply', verdict, text);
       return s.send({ t: 'notice', level: 'block', pt: verdict.note?.pt ?? 'Mensagem bloqueada.', en: verdict.note?.en ?? 'Message blocked.' });
     }
     if (s.scene !== sc) return;
+    if (verdict.action === 'warn') this.flag(s, 'npc_reply', verdict, text);
+    const current = viewNode(sc.node, sc.ctx);
+    const jev = jevNpcReply(current?.line.pt ?? '', text);
     const scored = this.services.npc.scoreTyped(sc.npc, sc.node, text, sc.ctx);
     if (scored.chip === null) {
-      this.services.student.record({ playerId: p.id, itemIds: [], channel: 'type', score: 0, latencyMs: this.now() - sc.shownAt, place: 'padaria', nameplate: p.nameplate, at: this.now() });
-      const current = viewNode(sc.node, sc.ctx);
+      this.services.student.record({ playerId: p.id, itemIds: [], channel: 'type', score: 0, latencyMs: this.now() - sc.shownAt, place: 'padaria', nameplate: p.nameplate, at: this.now(), jev });
       if (current) s.send({ t: 'scene', view: current, lastScore: 0, feedback: SCORE_FEEDBACK[0], said: { pt: text, en: '' } });
       return;
     }
-    return this.applyChoice(s, sc, scored.chip, scored.task_success, 'type', text);
+    return this.applyChoice(s, sc, scored.chip, scored.task_success, 'type', text, jev);
   }
 
-  private applyChoice(s: Session, sc: SceneState, chip: number, cap: 0 | 1 | 2 | 3, channel: 'chip' | 'type', typed?: string) {
+  private applyChoice(s: Session, sc: SceneState, chip: number, cap: 0 | 1 | 2 | 3, channel: 'chip' | 'type', typed?: string, jev?: JevNpcReplyAnswers) {
     const p = s.profile!;
     const res = this.services.npc.choose(sc.npc, sc.node, chip, sc.ctx, cap);
     if (!res) return;
@@ -661,6 +686,7 @@ export class World {
       place: 'padaria',
       nameplate: p.nameplate,
       at: this.now(),
+      ...(jev ? { jev } : {}),
     });
     sc.scores.push(res.score);
     sc.node = res.view.nodeId;

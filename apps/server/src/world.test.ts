@@ -17,12 +17,13 @@ function advance(ms: number) {
 
 function makeWorld(cap = 16, extra: Partial<WorldOptions> = {}) {
   const moderation = new MemoryModerationQueue();
+  const student = new InMemoryStudentModel();
   const world = new World(
     new ProfileStore(null),
-    { safety: new JevStubSafety(), gloss: new PhrasebookGloss(), npc: new AuthoredNpcDialogue(), student: new InMemoryStudentModel(), moderation },
+    { safety: new JevStubSafety(), gloss: new PhrasebookGloss(), npc: new AuthoredNpcDialogue(), student, moderation },
     { roomCap: cap, mgGapMs: 0, now, schedule: (fn, ms) => pending.push({ fn, at: clock + ms }), ...extra },
   );
-  return { world, moderation };
+  return { world, moderation, student };
 }
 
 /** Advance in 1 s steps so the CPU tick loop (which reschedules itself) keeps running. */
@@ -128,6 +129,25 @@ describe('World', () => {
     expect(b.all('chat').length).toBe(before);
     expect(a.last('notice')!.level).toBe('block');
     expect(moderation.recent(5).some((e) => e.labels.includes('pii'))).toBe(true);
+    await a.send({ t: 'chat', text: 'aquele preto ali' });
+    expect(b.all('chat').length).toBe(before);
+    const esc = moderation.recent(1)[0];
+    expect(esc).toMatchObject({ kind: 'escalate', surface: 'chat', status: 'pending', text: 'aquele preto ali', rules: ['slurs.preto'] });
+    expect(esc.toxicity).toBeGreaterThan(0);
+  });
+
+  it('runs typed Carlos replies through safety and logs Jev NPC-reply answers', async () => {
+    const { world, moderation, student } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'scene', action: 'start', npc: 'carlos' });
+    const node = a.last('scene')!.view.nodeId;
+    await a.send({ t: 'scene', action: 'type', text: 'Me vê uma cerveja' });
+    expect(a.last('notice')!.level).toBe('block');
+    expect(a.last('scene')!.view.nodeId).toBe(node);
+    expect(moderation.recent(1)[0]).toMatchObject({ kind: 'block', surface: 'npc_reply', labels: ['prohibited_substance'] });
+    await a.send({ t: 'scene', action: 'type', text: 'Bom dia, Seu Carlos!' });
+    expect(student.log.at(-1)).toMatchObject({ channel: 'type', score: 3, jev: { constitution_ok: true, language: 'pt' } });
   });
 
   it('rate-limits chat', async () => {
