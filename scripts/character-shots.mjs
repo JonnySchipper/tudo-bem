@@ -131,6 +131,8 @@ await clickTile(3, 1, 40);
 await page.waitForSelector('#dialogue', { timeout: 15_000 }).catch(() => {});
 await sleep(1500);
 await shot('08_carlos_dialogue');
+const portrait = await page.$('#dialogue .portrait');
+if (portrait) await portrait.screenshot({ path: path.join(OUT, '08b_carlos_portrait.png') });
 
 // Counter stool (back view, seated at the counter)
 await page.keyboard.press('Escape');

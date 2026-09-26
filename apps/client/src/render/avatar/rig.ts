@@ -101,9 +101,9 @@ export interface Rig {
   held: [Held, Held];
   hipSway: number;
   skirtSwing: number;
-  mouth: 'smile' | 'open' | 'laugh' | 'small' | 'calm' | 'grin';
-  brows: 'rest' | 'up' | 'worried' | 'soft';
-  eyes: 'open' | 'closed' | 'happy';
+  mouth: 'smile' | 'open' | 'laugh' | 'small' | 'ready' | 'grin';
+  brows: 'rest' | 'up' | 'worried' | 'kind';
+  eyes: 'open' | 'closed' | 'happy' | 'warm';
 }
 
 export interface RigState {
@@ -165,7 +165,7 @@ export function buildRig(s: RigState): Rig {
   let hipSway = 0;
   let skirtSwing = 0;
   let tilt = 0;
-  let mouth: Rig['mouth'] = s.npc === 'carlos' ? 'calm' : 'smile';
+  let mouth: Rig['mouth'] = s.npc === 'carlos' ? 'ready' : 'smile';
   let brows: Rig['brows'] = 'rest';
   let eyes: Rig['eyes'] = s.blink ? 'closed' : 'open';
 
@@ -184,6 +184,11 @@ export function buildRig(s: RigState): Rig {
       if (idle === 'cintura') hipSway = 1.9 * turn;
       if (s.npc === 'nanda') bx += 2.2 * turn;
       if (s.npc === 'julia') bx -= 0.4 * turn;
+      if (s.npc === 'carlos') {
+        // Leans in a touch toward the customer, head slightly inclined: attentive, not stiff
+        bx += 0.8 * turn;
+        tilt = 0.05;
+      }
     }
   }
   const e = s.emote;
@@ -211,7 +216,11 @@ export function buildRig(s: RigState): Rig {
     tilt = 0.09;
     by -= 0.8;
   }
-  if (!e && s.npc === 'carlos') brows = 'soft';
+  // Curriculum lock: “Pois não” — patient, warm-uncle eyes, a slight ready smile
+  if (!e && s.npc === 'carlos') {
+    brows = 'kind';
+    if (!s.blink) eyes = 'warm';
+  }
 
   const drop = s.sitting ? sitDrop(s.seatH) : 0;
   const hipY = Y.hip + drop + by * 0.6;

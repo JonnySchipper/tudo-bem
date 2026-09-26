@@ -225,17 +225,36 @@ function features(ctx: Ctx, r: Rig, k: Look, f: FaceSpec, v: View) {
     ctx.lineCap = 'round';
     ctx.stroke();
     if (f.lines) line(ctx, [[x - rx * 1.2, eyeY - ry * 1.1], [x, eyeY - ry * 1.45], [x + rx * 1.2, eyeY - ry * 1.05]], rgba(s.line, 0.45), 0.3);
+    if (r.eyes === 'warm') {
+      // Smiling eyes: the lower lid lifts over the iris, with a soft crease under it
+      ctx.beginPath();
+      ctx.ellipse(x, eyeY + ry * 1.25, rx * 1.5, ry * 0.75, 0, Math.PI * 1.02, Math.PI * 1.98);
+      ctx.lineTo(x + rx * 1.6, eyeY + ry * 1.6);
+      ctx.lineTo(x - rx * 1.6, eyeY + ry * 1.6);
+      ctx.closePath();
+      ctx.fillStyle = s.base;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(x, eyeY + ry * 1.25, rx * 1.35, ry * 0.75, 0, Math.PI * 1.12, Math.PI * 1.88);
+      ctx.strokeStyle = rgba(s.line, 0.6);
+      ctx.lineWidth = 0.35;
+      ctx.stroke();
+      line(ctx, [[x - rx * 1.1, eyeY + ry * 1.25], [x, eyeY + ry * 1.55], [x + rx * 1.1, eyeY + ry * 1.2]], rgba(s.lo, 0.55), 0.3);
+    }
   };
   for (const [x, w] of eyesAt) eye(x, w);
 
   // Brows carry the emotion
   const by = eyeY - 2.35 - f.browLift - (r.brows === 'up' ? 0.5 : 0);
   const worried = r.brows === 'worried';
-  const soft = r.brows === 'soft';
+  const kind = r.brows === 'kind';
   for (const [x, w, d] of eyesAt) {
     const outer = x - d * 1.45 * w;
     const inner = x + d * 1.2 * w;
-    line(ctx, [[outer, by + (worried ? 0.5 : 0.35)], [x - d * 0.1, by - (soft ? 0.25 : 0.35)], [inner, by + (worried ? -0.45 : 0.05)]], brow.base, f.brow * (w < 0.9 ? 0.85 : 1));
+    // Kind: a gentle arch with the inner ends eased up (warm, never stern)
+    const oy = worried ? 0.5 : kind ? 0.5 : 0.35;
+    const iy = worried ? -0.45 : kind ? -0.15 : 0.05;
+    line(ctx, [[outer, by + oy], [x - d * 0.1, by - (kind ? 0.3 : 0.35)], [inner, by + iy]], brow.base, f.brow * (w < 0.9 ? 0.85 : 1));
   }
 
   // Nose: soft planes, never a triangle
@@ -299,10 +318,17 @@ function features(ctx: Ctx, r: Rig, k: Look, f: FaceSpec, v: View) {
     case 'small':
       line(ctx, [[0.9, my + 0.3], [1.6, my + 0.05], [2.4, my + 0.3]], lipLine, 0.45);
       break;
-    case 'calm':
-      line(ctx, [[0.3, my - 0.05], [1.5, my + 0.5], [2.9, my - 0.05]], lipLine, 0.45);
-      glow(ctx, 1.5, my + 1.1, 1, 0.45, lip, 0.35);
+    case 'ready': {
+      // Slight ready smile that shows below a mustache: corners lifted, soft lower lip, cheek apples up
+      const ry = my + 0.35;
+      line(ctx, [[-0.4, ry - 0.55], [0.5, ry + 0.35], [1.5, ry + 0.6], [2.6, ry + 0.35], [3.4, ry - 0.6]], lipLine, 0.48);
+      glow(ctx, 1.5, ry + 1.2, 1.1, 0.45, lip, 0.45);
+      line(ctx, [[-0.55, ry - 0.9], [-0.4, ry - 0.45]], rgba(s.lo, 0.6), 0.3, false);
+      line(ctx, [[3.55, ry - 0.95], [3.4, ry - 0.5]], rgba(s.lo, 0.6), 0.3, false);
+      glow(ctx, -1.4, 2.4, 1.8, 1.1, '#fff1e4', 0.22);
+      glow(ctx, 4.4, 2.2, 1.2, 0.9, '#fff1e4', 0.18);
       break;
+    }
     case 'grin':
       line(ctx, [[0, my - 0.4], [1.5, my + 0.8], [3.1, my - 0.35]], lipLine, 0.55);
       line(ctx, [[0.5, my + 0.05], [1.5, my + 0.55], [2.6, my + 0.05]], '#fbf6f0', 0.35);

@@ -24,6 +24,7 @@ const SHEETS = [
     rows: [
       ['sheet_player', 'Player — front · 3/4 · back · hat on (Jeans + camiseta · Blusa + calça)'],
       ['07_carlos_zoom', 'Seu Carlos behind the counter (Padaria, morning light)'],
+      ['08b_carlos_portrait', 'Seu Carlos — dialogue portrait (Pois não: ready smile, warm-uncle eyes, kind brows)'],
       ['03_julia_zoom', 'Júlia in the Praça (late afternoon)'],
       ['04_nanda_zoom', 'Nanda at the hat stall'],
       ['sheet_crowd', 'CPU lineup (authored wardrobe)'],
@@ -106,6 +107,7 @@ for (const s of SHEETS) {
     img{width:100%;display:block;border-radius:8px}
     .none{padding:40px;text-align:center;color:#9a8a74}
     figure.solo{max-width:1100px}
+    figure.solo img{width:auto;max-width:100%}
   </style></head><body><h1>${s.title}</h1>${rows}</body></html>`);
   await page.waitForTimeout(300);
   await page.screenshot({ path: path.join(DIR, s.out), fullPage: true });
