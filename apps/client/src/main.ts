@@ -34,7 +34,7 @@ import {
   showParrotPerch,
   showScene,
 } from './ui/panels';
-import { openConversa, closeConversa, isConversaOpen } from './ui/conversa';
+import { closeConversa, isConversaOpen, openConversa } from './ui/conversa';
 import { speak } from './audio';
 import { installUiArt } from './art/ui';
 import { artStats, loadArt } from './art/sprites';
@@ -94,54 +94,13 @@ function runPending() {
 
 function talkTo(npc: NpcDef['id']) {
   if (npc === 'carlos') {
-    const p = game.profile;
-    // Conversa unlocks after first chip scene or Me vê um… — additive, does not replace chips.
-    if (p && (p.tutorial.carlos || p.tutorial.meveum)) {
-      offerCarlosTable();
-    } else {
-      net.send({ t: 'scene', action: 'start', npc: 'carlos' });
-    }
+    closeDialogue();
+    // Always the private AI mesa. Pedido rápido is a ghost button inside that overlay.
+    void openConversa('carlos', undefined, {
+      onQuickOrder: () => net.send({ t: 'scene', action: 'start', npc: 'carlos' }),
+    });
   } else if (npc === 'nanda') openShop();
   else showJulia();
-}
-
-/** Café-counter choice: Conversar (private mesa) or Pedido rápido (authored chips). */
-function offerCarlosTable() {
-  closeDialogue();
-  const root = document.getElementById('ui');
-  if (!root) return;
-  const existing = root.querySelector('[data-modal="carlos-table"]');
-  if (existing) existing.remove();
-  const backdrop = document.createElement('div');
-  backdrop.className = 'conversa-backdrop carlos-table-choice';
-  backdrop.dataset.modal = 'carlos-table';
-  backdrop.innerHTML = '';
-  const panel = document.createElement('div');
-  panel.className = 'conversa-panel carlos-table-panel';
-  const title = document.createElement('h2');
-  title.textContent = 'Seu Carlos';
-  const sub = document.createElement('p');
-  sub.className = 'carlos-table-sub';
-  sub.innerHTML = 'Senta no balcão… <span class="en plain">Sit at the counter…</span>';
-  const row = document.createElement('div');
-  row.className = 'carlos-table-actions';
-  const conversar = document.createElement('button');
-  conversar.className = 'primary';
-  conversar.innerHTML = '<span class="pt">Conversar</span><span class="en">Private café chat</span>';
-  conversar.onclick = () => { backdrop.remove(); openConversa('carlos', () => {}); };
-  const pedido = document.createElement('button');
-  pedido.className = 'ghost';
-  pedido.innerHTML = '<span class="pt">Pedido rápido</span><span class="en">Chip order scene</span>';
-  pedido.onclick = () => { backdrop.remove(); net.send({ t: 'scene', action: 'start', npc: 'carlos' }); };
-  const cancel = document.createElement('button');
-  cancel.className = 'ghost';
-  cancel.textContent = 'Sair';
-  cancel.onclick = () => backdrop.remove();
-  row.append(conversar, pedido, cancel);
-  panel.append(title, sub, row);
-  backdrop.append(panel);
-  backdrop.addEventListener('click', (e) => { if (e.target === backdrop) backdrop.remove(); });
-  root.append(backdrop);
 }
 
 function propAction(action: string) {
@@ -176,8 +135,8 @@ function updateGuides() {
     else if (!t.chapeu) renderer.guides.push({ x: 11, y: 6, lift: 138, label: 'Chapéus' });
     else if (!t.cadeira) renderer.guides.push({ x: 0, y: 4, lift: 110, label: 'Minha kitnet' });
   } else if (r.room === 'padaria') {
-    if (!t.carlos) renderer.guides.push({ x: 3, y: 1, lift: 130, label: 'Fale com o Seu Carlos' });
-    else renderer.guides.push({ x: 3, y: 1, lift: 130, label: 'Conversar' });
+    // Click opens AI Conversa. Don't label the tile "Conversar" — that word was the chip-scene trap.
+    renderer.guides.push({ x: 3, y: 1, lift: 130, label: t.carlos ? 'Falar com Carlos' : 'Fale com o Seu Carlos' });
     if (t.carlos && !t.meveum) renderer.guides.push({ x: 8, y: 2, lift: 128, label: 'Me vê um…' });
     else if (t.carlos && t.meveum && !t.chapeu) renderer.guides.push({ x: 0, y: 6, lift: 110, label: '← Praça' });
   }
@@ -289,6 +248,7 @@ net.on((m: ServerMsg) => {
       else toast('reward', m.reason.pt, m.reason.en, m.amount);
       break;
     case 'scene':
+      if (isConversaOpen()) closeConversa();
       showScene(
         m.view,
         { said: m.said, feedback: m.feedback, score: m.lastScore, payout: m.payout },

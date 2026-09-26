@@ -67,7 +67,8 @@ interface ConversaTurnRequestBody {
   nameplate: Nameplate;
   playerId: string;
   text: string;
-  history: ConversaLine[];
+  /** Omitted by a bad client. Never assume it is an array. */
+  history?: ConversaLine[];
   turn: number;
   priorChips?: string[];
   daily: {
@@ -305,7 +306,7 @@ async function handleTurn(req: ConversaTurnRequestBody, res: ServerResponse): Pr
 
   turnResponse = presentConversaTurn(turnResponse, priorChips);
 
-  const historyWithScores: { scores?: ConversaScores }[] = req.history.map(() => ({ scores: undefined }));
+  const historyWithScores: { scores?: ConversaScores }[] = (req.history ?? []).map(() => ({ scores: undefined }));
   historyWithScores.push({ scores: turnResponse.scores });
   const meter = metersFromHistory(historyWithScores);
 

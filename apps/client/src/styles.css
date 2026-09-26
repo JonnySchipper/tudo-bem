@@ -1812,28 +1812,6 @@ button:disabled {
   padding: 20px 24px;
 }
 
-.carlos-table-panel h2 {
-  margin: 0 0 6px;
-  font-family: var(--font-display, inherit);
-  color: var(--ink);
-}
-.carlos-table-sub {
-  margin: 0 0 16px;
-  color: var(--muted, #6b5344);
-}
-.carlos-table-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.carlos-table-actions .primary .en,
-.carlos-table-actions .ghost .en {
-  display: block;
-  font-size: 0.75em;
-  opacity: 0.75;
-  font-weight: 400;
-}
-
 .conversa-header {
   display: flex;
   align-items: flex-start;
@@ -2049,8 +2027,11 @@ button:disabled {
 
 .conversa-footer {
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
   margin-top: 8px;
+  flex-wrap: wrap;
 }
 
 /* Score card */

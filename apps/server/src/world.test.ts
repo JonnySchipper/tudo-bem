@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { buildGrid, CPU_NAMES, DEFAULT_APPEARANCE, ECONOMY, isCpuId, isWalkable, MISSION_REWARD, mulberry32, ROOMS, type ServerMsg, type ClientMsg, type PublicAvatar } from '@tudobem/shared';
+import { buildGrid, CPU_NAMES, DEFAULT_APPEARANCE, ECONOMY, isCpuId, isWalkable, MISSION_REWARD, mulberry32, ROOMS, SCORE_FEEDBACK, TYPED_MISS_HINT, type ServerMsg, type ClientMsg, type PublicAvatar } from '@tudobem/shared';
 import { sanitizeAppearance, World, type Session, type WorldOptions } from './world.js';
 import { ProfileStore } from './store.js';
 import { AuthoredNpcDialogue, MemoryModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
@@ -155,6 +155,21 @@ describe('World', () => {
     expect(moderation.recent(1)[0]).toMatchObject({ kind: 'block', surface: 'npc_reply', labels: ['prohibited_substance'] });
     await a.send({ t: 'scene', action: 'type', text: 'Bom dia, Seu Carlos!' });
     expect(student.log.at(-1)).toMatchObject({ channel: 'type', score: 3, jev: { constitution_ok: true, language: 'pt' } });
+  });
+
+  it('points a typed Pedido rápido miss at Conversa instead of the chip miss line', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'scene', action: 'start', npc: 'carlos' });
+    const node = a.last('scene')!.view.nodeId;
+    await a.send({ t: 'scene', action: 'type', text: 'Tudo e com voce?' });
+    const scene = a.last('scene')!;
+    expect(scene.view.nodeId).toBe(node);
+    expect(scene.lastScore).toBe(0);
+    expect(scene.feedback).toEqual(TYPED_MISS_HINT);
+    expect(scene.feedback).not.toEqual(SCORE_FEEDBACK[0]);
+    expect(TYPED_MISS_HINT.pt.toLowerCase()).toMatch(/convers/);
   });
 
   it('rate-limits chat', async () => {

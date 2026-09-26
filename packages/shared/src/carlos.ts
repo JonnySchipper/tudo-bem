@@ -307,6 +307,12 @@ export const SCORE_FEEDBACK: Record<0 | 1 | 2 | 3, Bilingual> = {
   0: { pt: 'Não entendi bem — tenta de novo ou escolhe um botão.', en: 'Carlos didn’t quite get that — try again or pick a reply.' },
 };
 
+/** Typed Pedido rápido reply that matched no chip. Points at the open Conversa instead of another chip. */
+export const TYPED_MISS_HINT: Bilingual = {
+  pt: 'Não entendi bem. Para conversar à vontade, fecha isto e clica em mim de novo.',
+  en: 'I did not quite get that. For a real chat, close this and click me again.',
+};
+
 /** Scene clear payout (GDD §10.2: 6–14 RV) with daily decay per NPC. */
 export function scenePayout(scores: number[], clearsToday: number): number {
   if (!scores.length) return 0;

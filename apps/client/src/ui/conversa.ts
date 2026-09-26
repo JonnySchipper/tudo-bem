@@ -51,6 +51,8 @@ let state: ConversaState | null = null;
 let containerEl: HTMLElement | null = null;
 let closeCallback: (() => void) | null = null;
 let onKey: ((e: KeyboardEvent) => void) | null = null;
+/** Carlos only: leave the mesa and open the authored chip order. */
+let quickOrder: (() => void) | null = null;
 
 function findNpc(npcId: NpcId): NpcDef | null {
   for (const room of Object.values(ROOMS)) {
@@ -198,6 +200,13 @@ function render() {
       h(
         'div',
         { class: 'conversa-footer' },
+        quickOrder
+          ? h(
+              'button',
+              { class: 'ghost', onclick: handleQuickOrder, 'data-action': 'pedido-rapido' },
+              bi('Pedido rápido', 'Quick order'),
+            )
+          : null,
         h('button', { class: 'ghost', onclick: handleClose }, CONVERSA_COPY.sair.pt),
       ),
     );
@@ -394,6 +403,12 @@ function handleClose() {
   closeConversa();
 }
 
+function handleQuickOrder() {
+  const go = quickOrder;
+  closeConversa();
+  go?.();
+}
+
 export function closeConversa() {
   if (onKey) {
     document.removeEventListener('keydown', onKey);
@@ -402,6 +417,7 @@ export function closeConversa() {
   containerEl?.parentElement?.remove();
   containerEl = null;
   state = null;
+  quickOrder = null;
   game.modalOpen = false;
   closeCallback?.();
   closeCallback = null;
@@ -411,13 +427,18 @@ export function isConversaOpen(): boolean {
   return state !== null;
 }
 
-export async function openConversa(npcId: NpcId, onClose?: () => void): Promise<void> {
+export async function openConversa(
+  npcId: NpcId,
+  onClose?: () => void,
+  opts?: { onQuickOrder?: () => void },
+): Promise<void> {
   if (state) return;
 
   const p = game.profile;
   if (!p) return;
 
   closeCallback = onClose ?? null;
+  quickOrder = npcId === 'carlos' ? opts?.onQuickOrder ?? null : null;
 
   const daily: ConversaDaily = {};
 
@@ -433,6 +454,8 @@ export async function openConversa(npcId: NpcId, onClose?: () => void): Promise<
 
     if (response.phase === 'blocked') {
       console.log('[conversa] Blocked:', response.reason);
+      quickOrder = null;
+      closeCallback = null;
       return;
     }
 
@@ -476,6 +499,8 @@ function openOfflineConversa(npcId: NpcId) {
   const opened = offlineConversaOpen(npcId);
   if (!opened) {
     state = null;
+    quickOrder = null;
+    closeCallback = null;
     return;
   }
   state = {
