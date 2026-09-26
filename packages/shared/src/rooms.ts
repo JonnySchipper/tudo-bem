@@ -245,7 +245,7 @@ const praca: RoomDef = {
       y: 5,
       dir: 'SW',
       interact: { x: 11, y: 7 },
-      appearance: { body: 'esguio', skin: 5, hair: 'trancas', hairColor: 0, top: 'camisa', topColor: 8, bottom: 'saia', bottomColor: 1, shoes: 2 },
+      appearance: { body: 'esguio', skin: 5, hair: 'trancas', hairColor: 0, top: 'camisa', topColor: 8, bottom: 'saia', bottomColor: 1, shoes: 2, face: 'suave', extra: 'brincos', idle: 'cintura' },
       hat: 'coroa_flores',
       idleLines: [
         { pt: 'Chapéu novo? Fica bem em todo mundo!', en: 'New hat? Looks good on everyone!' },
@@ -261,7 +261,7 @@ const praca: RoomDef = {
       y: 4,
       dir: 'SW',
       interact: { x: 8, y: 5 },
-      appearance: { body: 'medio', skin: 2, hair: 'coque', hairColor: 2, top: 'camiseta', topColor: 0, bottom: 'calca', bottomColor: 5, shoes: 0 },
+      appearance: { body: 'medio', skin: 2, hair: 'cacheado', hairColor: 2, top: 'camiseta', topColor: 0, bottom: 'calca', bottomColor: 2, shoes: 0, face: 'doce', extra: 'brincos', idle: 'solto' },
       hat: 'viseira_azul',
       idleLines: [
         { pt: 'Oi! Precisa de ajuda? Fala comigo!', en: 'Hi! Need help? Talk to me!' },
@@ -342,7 +342,7 @@ const padaria: RoomDef = {
       y: 1,
       dir: 'SE',
       interact: { x: 3, y: 3 },
-      appearance: { body: 'forte', skin: 3, hair: 'raspado', hairColor: 5, top: 'camisa', topColor: 4, bottom: 'calca', bottomColor: 5, shoes: 1 },
+      appearance: { body: 'forte', skin: 3, hair: 'raspado', hairColor: 5, top: 'camisa', topColor: 4, bottom: 'calca', bottomColor: 5, shoes: 1, face: 'maduro', extra: 'bigode', idle: 'solto' },
       hat: 'chapeu_chef',
       idleLines: [
         { pt: 'Pão quentinho saindo!', en: 'Warm bread coming out!' },

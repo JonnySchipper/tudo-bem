@@ -14,20 +14,21 @@ import {
   LABELS,
   MG_ITEMS,
   ROOMS,
-  SHOE_COLORS,
   SKIN_TONES,
   TOP_STYLES,
+  cpuLook,
   furnitureById,
   propTiles,
   type Appearance,
   type Bilingual,
   type FloorKind,
+  type NpcId,
   type PropDef,
   type RoomDef,
 } from '@tudobem/shared';
 import type { Ctx } from '../render/draw';
 import { drawFurniture, drawProp, SLICED_PROPS } from '../render/props';
-import { drawAvatar } from '../render/avatar';
+import { drawAvatar, type AvatarPose } from '../render/avatar';
 import { drawFoodIcon, drawHatIcon } from '../render/icons';
 import { drawFloorTile, drawRoomStatic } from '../render/room';
 import { tileCenter } from '../render/iso';
@@ -142,7 +143,7 @@ function foodAssets(): ArtAsset[] {
 function avatarAssets(): ArtAsset[] {
   const out: ArtAsset[] = [];
   const box = { x: -40, y: -112, w: 80, h: 120 };
-  const add = (key: string, label: Bilingual, a: Appearance, hat: string | null = null, parrot = false) =>
+  const add = (key: string, label: Bilingual, a: Appearance, hat: string | null = null, parrot = false, npc?: NpcId) =>
     out.push({
       key: `avatars/${key}`,
       category: 'avatars',
@@ -151,14 +152,14 @@ function avatarAssets(): ArtAsset[] {
       bounds: box,
       crop: false,
       scale: 3,
-      draw: (ctx) => drawAvatar(ctx, 0, 0, a, hat, parrot, { dir: 'SE', t: 0.3, moving: false, sitting: false }),
+      draw: (ctx) => drawAvatar(ctx, 0, 0, a, hat, parrot, { dir: 'SE', t: 0.3, moving: false, sitting: false, npc }),
     });
   BODY_TYPES.forEach((b, i) => add(`corpo_${b}`, { pt: `Corpo: ${LABELS.body[b]}`, en: 'Body type' }, { ...DEFAULT_APPEARANCE, body: b, skin: i * 3 }));
   SKIN_TONES.forEach((_, i) => add(`pele_${i + 1}`, { pt: `Pele ${i + 1}`, en: 'Skin tone' }, { ...DEFAULT_APPEARANCE, skin: i }));
   HAIR_STYLES.forEach((hs, i) => add(`cabelo_${hs}`, { pt: `Cabelo: ${LABELS.hair[hs]}`, en: 'Hair style' }, { ...DEFAULT_APPEARANCE, hair: hs, hairColor: i % HAIR_COLORS.length, skin: (i * 2) % 8 }));
   TOP_STYLES.forEach((ts, i) => add(`blusa_${ts}`, { pt: `Blusa: ${LABELS.top[ts]}`, en: 'Top' }, { ...DEFAULT_APPEARANCE, top: ts, topColor: i + 2 }));
   BOTTOM_STYLES.forEach((bs, i) => add(`baixo_${bs}`, { pt: `Baixo: ${LABELS.bottom[bs]}`, en: 'Bottoms' }, { ...DEFAULT_APPEARANCE, bottom: bs, bottomColor: i + 5, skin: 5 }));
-  for (const n of [...ROOMS.praca.npcs, ...ROOMS.padaria.npcs]) add(`npc_${n.id}`, { pt: n.name, en: n.role.en }, n.appearance, n.hat);
+  for (const n of [...ROOMS.praca.npcs, ...ROOMS.padaria.npcs]) add(`npc_${n.id}`, { pt: n.name, en: n.role.en }, n.appearance, n.hat, false, n.id);
   add('com_papagaio', { pt: 'Com papagaio', en: 'With parrot companion' }, { ...DEFAULT_APPEARANCE, skin: 6, hair: 'black' }, 'bucket_amarelo', true);
   // Back view + poses
   out.push({
@@ -180,54 +181,31 @@ function avatarAssets(): ArtAsset[] {
   return out;
 }
 
-/** Deterministic PRNG so review sheets are stable between bakes. */
-function mulberry(seed: number) {
-  return () => {
-    seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-/** The Praça crowd as the server would dress it (CPU_NAMES order, seeded). */
+/** The Praça crowd as the server dresses it (authored wardrobe, `cpuLook`). */
 function crowdLineup(n: number): { name: string; a: Appearance; hat: string | null }[] {
-  const rng = mulberry(7);
-  const pick = <T,>(arr: readonly T[]) => arr[Math.floor(rng() * arr.length)];
-  const names = ['Helena', 'Daniel', 'Mateus', 'Felipe', 'Rafael', 'Beatriz', 'Camila', 'André', 'Larissa', 'Paulo'];
-  const hats = HATS.map((h) => h.id).filter((id) => id !== 'chapeu_chef');
-  return names.slice(0, n).map((name) => ({
-    name,
-    a: {
-      body: pick(BODY_TYPES),
-      skin: Math.floor(rng() * SKIN_TONES.length),
-      hair: pick(HAIR_STYLES),
-      hairColor: Math.floor(rng() * 6),
-      top: pick(TOP_STYLES),
-      topColor: Math.floor(rng() * CLOTH_COLORS.length),
-      bottom: pick(BOTTOM_STYLES),
-      bottomColor: Math.floor(rng() * CLOTH_COLORS.length),
-      shoes: Math.floor(rng() * SHOE_COLORS.length),
-    },
-    hat: rng() < 0.6 ? pick(hats) : null,
-  }));
+  const names = ['Helena', 'Daniel', 'Mateus', 'Felipe', 'Rafael', 'Beatriz', 'Camila', 'André', 'Larissa', 'Paulo', 'Renata', 'Diego', 'Natasha', 'Fernanda'];
+  return names.slice(0, n).map((name) => {
+    const look = cpuLook(name);
+    return { name, a: look.appearance, hat: look.hat };
+  });
 }
 
 /** Review lineups for the character pass: big, side by side, on a neutral floor. */
 function characterAssets(): ArtAsset[] {
   const out: ArtAsset[] = [];
   const GAP = 64;
-  const lineup = (key: string, label: Bilingual, figs: { a: Appearance; hat: string | null; parrot?: boolean; pose?: Partial<Parameters<typeof drawAvatar>[5]>; name?: string }[], gap = GAP) => {
+  const lineup = (key: string, label: Bilingual, figs: { a: Appearance; hat: string | null; parrot?: boolean; pose?: Partial<AvatarPose>; name?: string }[], gap = GAP, zoom = 1) => {
     const w = figs.length * gap + 40;
     out.push({
       key: `characters/${key}`,
       category: 'characters',
       label,
       runtime: false,
-      bounds: { x: -w / 2, y: -128, w, h: 150 },
+      bounds: { x: (-w / 2) * zoom, y: -128 * zoom, w: w * zoom, h: 150 * zoom },
       crop: false,
       scale: 3,
       draw: (ctx) => {
+        ctx.scale(zoom, zoom);
         const bg = ctx.createLinearGradient(0, -128, 0, 22);
         bg.addColorStop(0, '#f6ead8');
         bg.addColorStop(0.78, '#eadcc6');
@@ -250,21 +228,32 @@ function characterAssets(): ArtAsset[] {
   };
   const npcs = [...ROOMS.padaria.npcs, ...ROOMS.praca.npcs];
   lineup(
+    'closeup',
+    { pt: 'De perto', en: 'Closeup at 2× — Seu Carlos, Júlia, Nanda and two players' },
+    [
+      ...npcs.map((n) => ({ a: n.appearance, hat: n.hat, pose: { npc: n.id, t: 0.2 }, name: n.name })),
+      { a: { ...DEFAULT_APPEARANCE, hair: 'black' as const, skin: 1, hairColor: 1, topColor: 3 }, hat: null, name: 'Jogador' },
+      { a: { ...DEFAULT_APPEARANCE, hair: 'longo' as const, skin: 6, hairColor: 0, top: 'moletom' as const, topColor: 11, bottom: 'saia' as const, bottomColor: 5, face: 'doce' as const, extra: 'brincos' as const }, hat: 'bucket_amarelo', name: 'Jogadora' },
+    ],
+    62,
+    2,
+  );
+  lineup(
     'npcs',
     { pt: 'Seu Carlos · Júlia · Nanda', en: 'Authored NPCs — front, three-quarter back' },
     npcs.flatMap((n) => [
-      { a: n.appearance, hat: n.hat, name: n.name },
-      { a: n.appearance, hat: n.hat, pose: { dir: 'NE' as const }, name: '' },
+      { a: n.appearance, hat: n.hat, pose: { npc: n.id }, name: n.name },
+      { a: n.appearance, hat: n.hat, pose: { dir: 'NE' as const, npc: n.id }, name: '' },
     ]),
     58,
   );
-  lineup('crowd', { pt: 'Vizinhos (CPU)', en: 'Praça CPU neighbors as the server dresses them' }, crowdLineup(10).map((c) => ({ a: c.a, hat: c.hat, name: c.name })), 56);
+  lineup('crowd', { pt: 'Vizinhos (CPU)', en: 'Praça CPU neighbors as the server dresses them' }, crowdLineup(12).map((c) => ({ a: c.a, hat: c.hat, name: c.name })), 56);
   const skins = [0, 2, 4, 6, 7, 3, 1, 5, 2, 6, 0, 4];
   lineup(
     'hats',
     { pt: 'Chapéus na cabeça', en: 'All 12 hats worn — silhouette heroes' },
-    HATS.map((h, i) => ({ a: { ...DEFAULT_APPEARANCE, skin: skins[i], hair: HAIR_STYLES[i % HAIR_STYLES.length], hairColor: i % 6, topColor: (i * 3) % CLOTH_COLORS.length }, hat: h.id, name: h.pt })),
-    54,
+    HATS.map((h, i) => ({ a: { ...DEFAULT_APPEARANCE, skin: skins[i], hair: HAIR_STYLES[i % HAIR_STYLES.length], hairColor: i % 6, topColor: (i * 3) % CLOTH_COLORS.length }, hat: h.id, name: h.pt.replace(/^Chapéu (de )?/, '') })),
+    56,
   );
   lineup(
     'creator',
@@ -349,7 +338,7 @@ function roomAssets(): ArtAsset[] {
         }
         for (const n of room.npcs) {
           const c = tileCenter(n.x, n.y);
-          items.push({ d: n.x + n.y + 0.02, f: () => drawAvatar(ctx, c.sx, c.sy, n.appearance, n.hat, false, { dir: n.dir, t: 0.4, moving: false, sitting: false }) });
+          items.push({ d: n.x + n.y + 0.02, f: () => drawAvatar(ctx, c.sx, c.sy, n.appearance, n.hat, false, { dir: n.dir, t: 0.4, moving: false, sitting: false, npc: n.id, light: room.lighting }) });
         }
         if (room.id === 'kitnet') {
           const demo: [string, number, number, 0 | 1][] = [['tapete', 3, 4, 0], ['cadeira_madeira', 2, 3, 0], ['rede', 4, 6, 0], ['filtro', 3, 1, 0], ['planta', 5, 3, 0], ['gato', 4, 3, 0]];

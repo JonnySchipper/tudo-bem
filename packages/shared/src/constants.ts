@@ -1,4 +1,4 @@
-import type { Appearance, BodyType, BottomStyle, HairStyle, TopStyle, TutorialStep } from './types.js';
+import type { Appearance, BodyType, BottomStyle, ExtraStyle, FaceStyle, HairStyle, IdlePose, TopStyle, TutorialStep } from './types.js';
 
 export const DEFAULT_ROOM_CAP = 16;
 /** Phase 0 is an adult (18+) game. Younger audiences are a later rollout after thorough testing. */
@@ -10,25 +10,31 @@ export const BUBBLE_MS = 7000;
 export const STEP_MS = 260;
 
 export const SKIN_TONES = ['#f6d7c3', '#eec1a0', '#d9a07a', '#c68a5f', '#a86c45', '#8a5433', '#6b3f24', '#4a2a17'];
-export const HAIR_COLORS = ['#1b1210', '#3b2418', '#6a3f22', '#a8662f', '#d8b05a', '#8a8a8a', '#b8325a', '#2f5fa8'];
+export const HAIR_COLORS = ['#1d1716', '#3a241a', '#5f3b22', '#9a5f30', '#cfa65a', '#9c9792', '#a8395f', '#34599a'];
+/** Fashion-muted street colors (palette.md warmth, no cartoon primaries). Indices are stable across saves. */
 export const CLOTH_COLORS = [
-  '#2e9e5b', // verde bandeira
-  '#f2c230', // amarelo
-  '#2b5ba8', // azul
-  '#e5572f', // laranja-telha
-  '#f4efe6', // off-white
-  '#2a2a33', // grafite
-  '#c23b4e', // vermelho
-  '#7a4fb0', // roxo
-  '#3aa6a0', // turquesa
-  '#e889a8', // rosa
+  '#3a8a5c', // verde
+  '#e0ae3c', // mostarda
+  '#3d5d8f', // jeans
+  '#c9582c', // terracota
+  '#eee6d9', // off-white
+  '#34343c', // grafite
+  '#b03a46', // vermelho-tijolo
+  '#6e4e8f', // ameixa
+  '#2e8a86', // petróleo
+  '#d98a9b', // rosa antigo
+  '#b89a6c', // cáqui
+  '#66753f', // oliva
 ];
-export const SHOE_COLORS = ['#f4f4f4', '#222222', '#b5452e', '#2b5ba8', '#f2c230'];
+export const SHOE_COLORS = ['#f1eee8', '#26252a', '#b5452e', '#34599a', '#e0b23a'];
 
 export const BODY_TYPES: BodyType[] = ['esguio', 'medio', 'forte'];
 export const HAIR_STYLES: HairStyle[] = ['curto', 'raspado', 'cacheado', 'black', 'longo', 'coque', 'trancas'];
 export const TOP_STYLES: TopStyle[] = ['camiseta', 'regata', 'moletom', 'camisa'];
 export const BOTTOM_STYLES: BottomStyle[] = ['calca', 'bermuda', 'saia'];
+export const FACE_STYLES: FaceStyle[] = ['suave', 'marcante', 'doce', 'maduro'];
+export const EXTRA_STYLES: ExtraStyle[] = ['nenhum', 'oculos', 'barba', 'bigode', 'brincos', 'sardas'];
+export const IDLE_POSES: IdlePose[] = ['solto', 'bolsos', 'bracos', 'celular', 'cafe', 'cintura', 'bolsa'];
 
 export const LABELS = {
   body: { esguio: 'Esguio', medio: 'Médio', forte: 'Forte' } as Record<BodyType, string>,
@@ -43,6 +49,8 @@ export const LABELS = {
   } as Record<HairStyle, string>,
   top: { camiseta: 'Camiseta', regata: 'Regata', moletom: 'Moletom', camisa: 'Camisa' } as Record<TopStyle, string>,
   bottom: { calca: 'Calça', bermuda: 'Bermuda', saia: 'Saia' } as Record<BottomStyle, string>,
+  face: { suave: 'Suave', marcante: 'Marcante', doce: 'Doce', maduro: 'Maduro' } as Record<FaceStyle, string>,
+  extra: { nenhum: 'Nenhum', oculos: 'Óculos', barba: 'Barba', bigode: 'Bigode', brincos: 'Brincos', sardas: 'Sardas' } as Record<ExtraStyle, string>,
 };
 
 export const DEFAULT_APPEARANCE: Appearance = {
@@ -55,6 +63,9 @@ export const DEFAULT_APPEARANCE: Appearance = {
   bottom: 'calca',
   bottomColor: 2,
   shoes: 0,
+  face: 'suave',
+  extra: 'nenhum',
+  idle: 'solto',
 };
 
 export const TUTORIAL_STEPS: { id: TutorialStep; pt: string; en: string }[] = [

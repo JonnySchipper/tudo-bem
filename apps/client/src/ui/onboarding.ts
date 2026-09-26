@@ -4,6 +4,8 @@ import {
   BOTTOM_STYLES,
   CLOTH_COLORS,
   DEFAULT_APPEARANCE,
+  EXTRA_STYLES,
+  FACE_STYLES,
   HAIR_COLORS,
   HAIR_STYLES,
   LABELS,
@@ -102,7 +104,7 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
       let raf = 0;
       let wave = 0;
       const loop = (ts: number) => {
-        renderAvatarPreview(canvas, a, null, false, ts / 1000, { scale: 2.02, emote: ts / 1000 - wave < 2.5 ? 'oi' : null, emoteT0: wave });
+        renderAvatarPreview(canvas, a, null, false, ts / 1000, { scale: 2.45, footY: 266, emote: ts / 1000 - wave < 2.5 ? 'oi' : null, emoteT0: wave });
         raf = requestAnimationFrame(loop);
       };
       raf = requestAnimationFrame((ts) => {
@@ -190,6 +192,8 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
               field('Como devemos te chamar?', 'How should NPCs address you? (grammar agreement)', pronounChips),
               field('Corpo', 'Body', chips(BODY_TYPES, (v) => LABELS.body[v], () => a.body, (v) => (a.body = v))),
               field('Tom de pele', 'Skin tone', swatches(SKIN_TONES, () => a.skin, (i) => (a.skin = i))),
+              field('Rosto', 'Face', chips(FACE_STYLES, (v) => LABELS.face[v], () => a.face ?? 'suave', (v) => (a.face = v))),
+              field('Detalhe', 'Detail — glasses, beard, earrings…', chips(EXTRA_STYLES, (v) => LABELS.extra[v], () => a.extra ?? 'nenhum', (v) => (a.extra = v))),
               field('Cabelo', 'Hair', chips(HAIR_STYLES, (v) => LABELS.hair[v], () => a.hair, (v) => (a.hair = v))),
               field('Cor do cabelo', 'Hair color', swatches(HAIR_COLORS, () => a.hairColor, (i) => (a.hairColor = i))),
               field('Blusa', 'Top', chips(TOP_STYLES, (v) => LABELS.top[v], () => a.top, (v) => (a.top = v))),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cpuTarget, ROOMS, type ServerMsg, type Tile } from '@tudobem/shared';
+import { cpuArchetype, cpuLook, cpuTarget, ROOMS, type ServerMsg, type Tile } from '@tudobem/shared';
 import { CpuCrowd, CPU_TICK_MS, type HumanSpot } from './ambiance.js';
 
 function harness(humans: HumanSpot[], rng = () => 0) {
@@ -37,6 +37,18 @@ describe('CpuCrowd (Praça ambiance)', () => {
     expect(cpus).toHaveLength(cpuTarget(1));
     expect(cpus.filter((c) => c.sitting).length).toBe(3);
     expect(cpus.every((c) => c.cpu && c.nameplate === 'verde' && c.pronoun === 'nome' && !c.parrot)).toBe(true);
+  });
+
+  it('dresses each CPU in its authored look, never two of the same look at once', () => {
+    let seed = 3;
+    const rng = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+    for (let run = 0; run < 20; run++) {
+      const { crowd } = harness([at(7, 9)], rng);
+      crowd.sync();
+      const cpus = crowd.avatars();
+      expect(cpus.every((c) => JSON.stringify(c.appearance) === JSON.stringify(cpuLook(c.name).appearance) && c.hat === cpuLook(c.name).hat)).toBe(true);
+      expect(new Set(cpus.map((c) => cpuArchetype(c.name))).size).toBe(cpus.length);
+    }
   });
 
   it('presence targets follow the Live Ops table', () => {

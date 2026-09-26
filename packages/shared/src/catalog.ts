@@ -11,18 +11,18 @@ export interface HatDef {
 
 /** Nanda’s stall. Cheap joy items; cosmetic only. */
 export const HATS: HatDef[] = [
-  { id: 'bone_verde', pt: 'Boné verde', en: 'Green cap', price: 0, shape: 'bone', color: '#2e9e5b', accent: '#f2c230' },
-  { id: 'chapeu_palha', pt: 'Chapéu de palha', en: 'Straw hat', price: 0, shape: 'palha', color: '#e2c078', accent: '#b5452e' },
-  { id: 'gorro_listrado', pt: 'Gorro listrado', en: 'Striped beanie', price: 8, shape: 'gorro', color: '#c23b4e', accent: '#f4efe6' },
-  { id: 'viseira_azul', pt: 'Viseira azul', en: 'Blue visor', price: 10, shape: 'viseira', color: '#2b5ba8', accent: '#f4efe6' },
-  { id: 'boina_vermelha', pt: 'Boina vermelha', en: 'Red beret', price: 12, shape: 'boina', color: '#b8283e', accent: '#7a1a28' },
-  { id: 'chapeu_sol', pt: 'Chapéu de sol', en: 'Sun hat', price: 15, shape: 'sol', color: '#f3a6bf', accent: '#f4efe6' },
-  { id: 'bucket_amarelo', pt: 'Chapéu bucket amarelo', en: 'Yellow bucket hat', price: 18, shape: 'bucket', color: '#f2c230', accent: '#d9a21a' },
-  { id: 'capacete_bike', pt: 'Capacete de bike', en: 'Bike helmet', price: 20, shape: 'capacete', color: '#3aa6a0', accent: '#1d4f4c' },
+  { id: 'bone_verde', pt: 'Boné verde', en: 'Green cap', price: 0, shape: 'bone', color: '#2e8f58', accent: '#e8b634' },
+  { id: 'chapeu_palha', pt: 'Chapéu de palha', en: 'Straw hat', price: 0, shape: 'palha', color: '#dcbc7a', accent: '#b5452e' },
+  { id: 'gorro_listrado', pt: 'Gorro listrado', en: 'Striped beanie', price: 8, shape: 'gorro', color: '#b8374a', accent: '#f1e9dc' },
+  { id: 'viseira_azul', pt: 'Viseira azul', en: 'Blue visor', price: 10, shape: 'viseira', color: '#2f5e9e', accent: '#f1e9dc' },
+  { id: 'boina_vermelha', pt: 'Boina vermelha', en: 'Red beret', price: 12, shape: 'boina', color: '#a82b3c', accent: '#6e1a26' },
+  { id: 'chapeu_sol', pt: 'Chapéu de sol', en: 'Sun hat', price: 15, shape: 'sol', color: '#e9a3b4', accent: '#f4ede2' },
+  { id: 'bucket_amarelo', pt: 'Chapéu bucket amarelo', en: 'Yellow bucket hat', price: 18, shape: 'bucket', color: '#e8b634', accent: '#c9921c' },
+  { id: 'capacete_bike', pt: 'Capacete de bike', en: 'Bike helmet', price: 20, shape: 'capacete', color: '#2f9a94', accent: '#1d4f4c' },
   { id: 'panama', pt: 'Chapéu panamá', en: 'Panama hat', price: 25, shape: 'panama', color: '#efe3c4', accent: '#2a2a33' },
   { id: 'coroa_flores', pt: 'Coroa de flores', en: 'Flower crown', price: 30, shape: 'flores', color: '#f2c230', accent: '#e5572f' },
   { id: 'chapeu_chef', pt: 'Chapéu de padeiro', en: 'Baker’s hat', price: 40, shape: 'chef', color: '#ffffff', accent: '#e0dcd2' },
-  { id: 'cartola', pt: 'Cartola de Carnaval', en: 'Carnival top hat', price: 60, shape: 'cartola', color: '#7a4fb0', accent: '#f2c230' },
+  { id: 'cartola', pt: 'Cartola de Carnaval', en: 'Carnival top hat', price: 60, shape: 'cartola', color: '#6a45a0', accent: '#e8b634' },
 ];
 
 export interface FurnitureDef {

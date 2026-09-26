@@ -5,6 +5,10 @@ export type BodyType = 'esguio' | 'medio' | 'forte';
 export type HairStyle = 'curto' | 'raspado' | 'cacheado' | 'black' | 'longo' | 'coque' | 'trancas';
 export type TopStyle = 'camiseta' | 'regata' | 'moletom' | 'camisa';
 export type BottomStyle = 'calca' | 'bermuda' | 'saia';
+export type FaceStyle = 'suave' | 'marcante' | 'doce' | 'maduro';
+export type ExtraStyle = 'nenhum' | 'oculos' | 'barba' | 'bigode' | 'brincos' | 'sardas';
+/** Resting posture. Players stand relaxed; CPUs and NPCs get their own so a crowd never reads as clones. */
+export type IdlePose = 'solto' | 'bolsos' | 'bracos' | 'celular' | 'cafe' | 'cintura' | 'bolsa';
 
 export interface Appearance {
   body: BodyType;
@@ -16,6 +20,10 @@ export interface Appearance {
   bottom: BottomStyle;
   bottomColor: number;
   shoes: number;
+  /** Optional so saves from before the character redesign still load (default suave / nenhum / solto). */
+  face?: FaceStyle;
+  extra?: ExtraStyle;
+  idle?: IdlePose;
 }
 
 /** Fluency band. Driven by the student model, never purchasable. Phase 0: everyone is Verde. */

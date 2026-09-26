@@ -68,7 +68,7 @@ function portrait(npc: NpcDef | null) {
   let raf = 0;
   const loop = (ts: number) => {
     if (!c.isConnected && ts > 1000) return cancelAnimationFrame(raf);
-    if (npc) renderAvatarPreview(c, npc.appearance, npc.hat, false, ts / 1000, { scale: 1.7, footY: 167 });
+    if (npc) renderAvatarPreview(c, npc.appearance, npc.hat, false, ts / 1000, { scale: 1.7, footY: 186, npc: npc.id });
     else {
       const ctx = c.getContext('2d')!;
       const dpr = window.devicePixelRatio || 1;

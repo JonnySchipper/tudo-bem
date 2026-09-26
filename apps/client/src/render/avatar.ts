@@ -1,5 +1,22 @@
-import { CLOTH_COLORS, HAIR_COLORS, SHOE_COLORS, SKIN_TONES, hatById, type Appearance, type Dir, type EmoteKind, type HatDef } from '@tudobem/shared';
-import { circle, ellipse, rrect, shade, shadow, type Ctx } from './draw';
+/**
+ * Paper-doll characters (TB Art character redesign v1).
+ *
+ * The figure is rigged (IK legs/arms, ~6 heads tall) and painted in layers — hair behind → far arm →
+ * legs → bottoms → neck → top → signature layers (apron, lanyard, pochete) → near arm → head/face →
+ * hair → hat — with form shading, warm shadows and a room-matched rim light. Each pose is rendered
+ * once per device scale into a cached frame with a soft silhouette outline (and a stronger halo on
+ * the hat so it reads first), then blitted, so a full Praça crowd stays cheap to draw.
+ */
+import { CLOTH_COLORS, HAIR_COLORS, SHOE_COLORS, SKIN_TONES, hatById, type Appearance, type Dir, type EmoteKind, type HatDef, type NpcId } from '@tudobem/shared';
+import { rrect, shadow, type Ctx } from './draw';
+import { drawArm, drawHeld, drawLeg, drawNeck, drawPelvis, drawSignature, drawTorso, type Look } from './avatar/body';
+import { mix, rgba, RIM, tone, type Light } from './avatar/color';
+import { clipHead, drawHairBehind, drawHairFront, drawHead, hatFit } from './avatar/head';
+import { brimShade, drawHat as drawHatShape, drawHatIconArt, HAT_W, hatHeight } from './avatar/hats';
+import { buildRig, HEAD, SIT_DROP, Y, type Rig, type RigState } from './avatar/rig';
+import { glow, smoothClosed, type P } from './avatar/shape';
+
+export { SIT_DROP } from './avatar/rig';
 
 export interface AvatarPose {
   dir: Dir;
@@ -7,554 +24,432 @@ export interface AvatarPose {
   moving: boolean;
   sitting: boolean;
   emote?: { kind: EmoteKind; t0: number } | null;
-  /** Seed so avatars don't bob in sync. */
+  /** Seed so avatars don't bob or blink in sync. */
   seed?: number;
+  /** Room mood for the rim light (Praça tarde, Padaria manhã, Kitnet dia). */
+  light?: Light;
+  /** Authored NPC signature layers. */
+  npc?: NpcId;
 }
 
-const BODY_W = { esguio: 16, medio: 20, forte: 25 } as const;
-/** Brimmed hats keep the old, larger head size so the hat is the avatar's silhouette hero; snug caps hug the head. */
-const HAT_R = 11.5;
-const SNUG_HATS = new Set<HatDef['shape']>(['bone', 'viseira', 'gorro', 'capacete']);
-const OUTLINE = 'rgba(42,26,40,0.6)';
+// ---------------------------------------------------------------- pose → frame state
 
-/** Stroke a segment with a dark outline underneath, for a clean cartoon silhouette. */
-function limb(ctx: Ctx, x1: number, y1: number, x2: number, y2: number, w: number, color: string) {
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = OUTLINE;
-  ctx.lineWidth = w + 2;
-  ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.stroke();
-  ctx.strokeStyle = color;
-  ctx.lineWidth = w;
-  ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.stroke();
+interface FrameState {
+  rs: RigState;
+  hat: HatDef | undefined;
+  hatT: number;
+  flip: boolean;
+  light: Light;
+  key: string;
 }
 
-export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId: string | null, parrot: boolean, pose: AvatarPose) {
-  const skin = SKIN_TONES[a.skin] ?? SKIN_TONES[3];
-  const hair = HAIR_COLORS[a.hairColor] ?? HAIR_COLORS[0];
-  const top = CLOTH_COLORS[a.topColor] ?? CLOTH_COLORS[0];
-  const bottom = CLOTH_COLORS[a.bottomColor] ?? CLOTH_COLORS[2];
-  const shoe = SHOE_COLORS[a.shoes] ?? SHOE_COLORS[0];
-  const bw = BODY_W[a.body] ?? 20;
+const TAU = Math.PI * 2;
+const JULIA_CYCLE = 9;
+const NANDA_CYCLE = 7;
+
+function frameState(a: Appearance, hatId: string | null, pose: AvatarPose): FrameState {
   const front = pose.dir === 'SE' || pose.dir === 'SW';
   const flip = pose.dir === 'SW' || pose.dir === 'NW';
   const t = pose.t + (pose.seed ?? 0);
-  const emoteAge = pose.emote ? pose.t - pose.emote.t0 : 99;
-  const emote = pose.emote && emoteAge < 2.6 ? pose.emote.kind : null;
-
-  const phase = t * 11;
-  const walk = pose.moving ? Math.sin(phase) : 0;
-  let bob = pose.moving ? -Math.abs(Math.sin(phase)) * 2.2 : Math.sin(t * 2) * 0.6;
-  let sway = 0;
-  if (emote === 'dancar') {
-    bob = -Math.abs(Math.sin(emoteAge * 9)) * 6;
-    sway = Math.sin(emoteAge * 9) * 3;
+  const age = pose.emote ? pose.t - pose.emote.t0 : 99;
+  const emote = pose.emote && age < 2.6 ? pose.emote.kind : null;
+  const ageQ = emote ? Math.floor(age * 15) / 15 : 0;
+  const phaseQ = pose.moving ? ((Math.round(((((t * 11) % TAU) + TAU) % TAU) / TAU * 12) % 12) + 12) % 12 : 0;
+  const breathQ = pose.moving || pose.sitting ? 0 : Math.round(((Math.sin(t * 1.7) + 1) / 2) * 3);
+  const blink = !emote && Math.sin(t * 1.3) > 0.984;
+  let gestQ = 0;
+  if (pose.npc === 'julia' || pose.npc === 'nanda') {
+    const cyc = pose.npc === 'julia' ? JULIA_CYCLE : NANDA_CYCLE;
+    const win = pose.npc === 'julia' ? 2.4 : 1.8;
+    const p = (((t % cyc) + cyc) % cyc) / win;
+    gestQ = p < 1 ? Math.round(p * 14) : 0;
   }
-  if (emote === 'rir') sway = Math.sin(emoteAge * 30) * 1.2;
-  const sitDrop = pose.sitting ? 13 : 0;
+  const hat = hatById(hatId);
+  let hatQ = 0;
+  if (hat?.shape === 'sol') hatQ = Math.round((((t * 2) % TAU) / TAU) * 8) % 8;
+  if (hat?.shape === 'cartola') hatQ = Math.round((((t * 3) % TAU) / TAU) * 6) % 6;
+  const hatT = hat?.shape === 'sol' ? (hatQ / 8) * Math.PI : hat?.shape === 'cartola' ? ((hatQ / 6) * TAU) / 3 : 0;
+  const light = pose.light ?? 'tarde';
+  const rs: RigState = {
+    a,
+    front,
+    moving: pose.moving,
+    sitting: pose.sitting,
+    phase: (phaseQ / 12) * TAU,
+    breath: breathQ / 3,
+    blink,
+    emote,
+    age: ageQ,
+    npc: pose.npc,
+    gesture: gestQ / 14,
+  };
+  const ak = `${a.body}${a.skin}${a.hair}${a.hairColor}${a.top}${a.topColor}${a.bottom}${a.bottomColor}${a.shoes}${a.face ?? ''}${a.extra ?? ''}${a.idle ?? ''}`;
+  const key = `${ak}|${hatId ?? ''}|${pose.npc ?? ''}|${pose.dir}|${light}|${pose.sitting ? 1 : 0}${pose.moving ? 1 : 0}|${phaseQ}|${breathQ}|${blink ? 1 : 0}|${emote ?? ''}${ageQ}|${gestQ}|${hatQ}`;
+  return { rs, hat, hatT, flip, light, key };
+}
 
+function lookFor(a: Appearance, fs: FrameState): Look {
+  const L = fs.flip ? 1 : -1;
+  return {
+    a,
+    skin: tone(SKIN_TONES[a.skin] ?? SKIN_TONES[3], 'skin'),
+    top: tone(CLOTH_COLORS[a.topColor] ?? CLOTH_COLORS[0]),
+    bottom: tone(CLOTH_COLORS[a.bottomColor] ?? CLOTH_COLORS[2]),
+    shoe: tone(SHOE_COLORS[a.shoes] ?? SHOE_COLORS[0], 'shoe'),
+    hair: tone(HAIR_COLORS[a.hairColor] ?? HAIR_COLORS[0], 'hair'),
+    L,
+    rim: RIM[fs.light],
+    npc: fs.rs.npc,
+    front: fs.rs.front,
+  };
+}
+
+// ---------------------------------------------------------------- layered painter
+
+function hatPlacement(a: Appearance) {
+  const fit = hatFit(a.hair);
+  return { band: fit.band, s: Math.max(0.94, Math.min(1.3, fit.w / HAT_W)) };
+}
+
+function inHead(ctx: Ctx, r: Rig, fn: () => void) {
+  ctx.save();
+  ctx.translate(r.head.x, r.head.y);
+  ctx.rotate(r.head.tilt);
+  fn();
+  ctx.restore();
+}
+
+function heldHat(ctx: Ctx, id: string, x: number, y: number, s: number, rot: number) {
+  const h = hatById(id);
+  if (!h) return;
   ctx.save();
   ctx.translate(x, y);
-  shadow(ctx, pose.sitting ? 3 : 0, pose.sitting ? 4 : 0, bw * 0.75 + 5, 6.5, 0.3);
-  if (flip) ctx.scale(-1, 1);
-  ctx.translate(sway, bob + sitDrop);
+  ctx.rotate(rot);
+  ctx.scale(s, s);
+  drawHatShape(ctx, h, { L: -1, rim: '#ffcf8c', front: true, t: 0 });
+  ctx.restore();
+}
 
-  // Grown-up proportions (head ≈ ¼ of height, not chibi ⅓), a touch taller for a clearer silhouette.
-  const hipY = -29;
-  const shoulderY = -58;
-  const headY = -70;
-  const headR = 9.8;
-  const legW = a.body === 'forte' ? 8 : 7;
-  const legX = bw / 2 - legW / 2 - 1;
-
-  // ---- back hair layer
-  if (a.hair === 'black') circle(ctx, 0, headY - 3, headR * 1.5, hair);
-  if (a.hair === 'longo') rrect(ctx, -headR - 1, headY - 4, headR * 2 + 2, 26, 8, shade(hair, -0.1));
-  if (a.hair === 'trancas' && !front) {
-    ctx.strokeStyle = hair;
-    ctx.lineWidth = 5;
-    ctx.lineCap = 'round';
-    for (const s of [-1, 1]) {
-      ctx.beginPath();
-      ctx.moveTo(s * 7, headY);
-      ctx.lineTo(s * 8, headY + 26);
-      ctx.stroke();
-    }
+function paintBody(ctx: Ctx, r: Rig, k: Look, fs: FrameState) {
+  const front = r.front;
+  const [far, near] = r.arms;
+  const [legFar, legNear] = r.legs;
+  // In back view the +x side is the one nearer the camera.
+  const behindArm = front ? far : near;
+  const frontArm = front ? near : far;
+  const bi = front ? 0 : 1;
+  const fi = front ? 1 : 0;
+  if (front) inHead(ctx, r, () => drawHairBehind(ctx, r, k));
+  if (!behindArm.over) {
+    drawArm(ctx, r, behindArm, bi, k);
+    drawHeld(ctx, r, bi as 0 | 1, k, heldHat);
   }
-
-  // ---- legs
-  const legColor = a.bottom === 'calca' ? bottom : skin;
-  const drawLeg = (lx: number, swing: number) => {
-    if (pose.sitting) {
-      // Thigh forward (toward facing side), shin down.
-      const kneeX = lx + (front ? 3 : 2) + 9;
-      limb(ctx, lx, hipY + 2, kneeX, hipY + 5, legW, a.bottom === 'saia' ? skin : bottom);
-      limb(ctx, kneeX, hipY + 5, kneeX + 1, -sitDrop - 2, legW, legColor);
-      ellipse(ctx, kneeX + 3, -sitDrop - 1, 6, 3.8, OUTLINE);
-      ellipse(ctx, kneeX + 3, -sitDrop - 1, 5, 3, shoe);
-      return;
-    }
-    const footX = lx + swing * 4;
-    const lift = swing > 0 ? swing * 2 : 0;
-    ctx.lineCap = 'round';
-    if (a.bottom === 'bermuda') {
-      limb(ctx, lx + swing * 1.5, hipY + 10, footX, -3 - lift, legW - 1, skin);
-      limb(ctx, lx, hipY + 1, lx + swing * 1.5, hipY + 11, legW + 1, bottom);
-    } else {
-      limb(ctx, lx, hipY + 1, footX, -3 - lift, legW, legColor);
-    }
-    ellipse(ctx, footX + 1.5, -2 - lift, 6, 3.8, OUTLINE);
-    ellipse(ctx, footX + 1.5, -2 - lift, 5, 3, shoe);
-    ellipse(ctx, footX + 1.5, -3 - lift, 3.5, 1.2, 'rgba(255,255,255,0.35)');
-  };
-  drawLeg(-legX, walk);
-  drawLeg(legX, -walk);
-
-  // ---- arms (behind torso when seen from the back)
-  const armSwing = pose.moving ? Math.sin(phase + Math.PI) * 0.5 : 0;
-  const sleeveLong = a.top === 'moletom' || a.top === 'camisa';
-  const noSleeve = a.top === 'regata';
-  const drawArm = (side: -1 | 1) => {
-    const sx = side * (bw / 2 + 1);
-    const sy = shoulderY + 4;
-    let ang = Math.PI / 2 + side * 0.18 + (side === 1 ? armSwing : -armSwing);
-    let len = 22;
-    if (emote === 'oi' && side === 1) ang = -Math.PI / 2 + 0.35 + Math.sin(emoteAge * 14) * 0.45;
-    if (emote === 'dancar') ang = -Math.PI / 2 + side * (0.5 + Math.sin(emoteAge * 9 + (side === 1 ? 0 : Math.PI)) * 0.35);
-    if (emote === 'valeu' && side === 1) {
-      ang = -Math.PI / 4;
-      len = 17;
-    }
-    if (emote === 'desculpa') {
-      ang = Math.PI / 2 - side * 0.9;
-      len = 15;
-    }
-    if (emote === 'rir' && side === 1) ang = Math.PI / 2 - 0.9;
-    if (pose.sitting && !emote) ang = Math.PI / 2 - side * 0.1 - 0.35;
-    const hx = sx + Math.cos(ang) * len;
-    const hy = sy + Math.sin(ang) * len;
-    limb(ctx, sx, sy, hx, hy, 6, sleeveLong ? top : skin);
-    if (!sleeveLong && !noSleeve) {
-      ctx.strokeStyle = top;
-      ctx.lineWidth = 7.5;
-      ctx.beginPath();
-      ctx.moveTo(sx, sy);
-      ctx.lineTo(sx + Math.cos(ang) * 7, sy + Math.sin(ang) * 7);
-      ctx.stroke();
-    }
-    circle(ctx, hx, hy, 3.6, skin, OUTLINE, 1);
-    if (emote === 'valeu' && side === 1) {
-      ctx.strokeStyle = skin;
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.moveTo(hx, hy);
-      ctx.lineTo(hx, hy - 6);
-      ctx.stroke();
-    }
-  };
-  if (!front) {
-    drawArm(-1);
-    drawArm(1);
-  }
-
-  // ---- torso
-  if (a.bottom === 'saia') {
-    ctx.beginPath();
-    ctx.moveTo(-bw / 2 + 1, hipY - 3);
-    ctx.lineTo(bw / 2 - 1, hipY - 3);
-    ctx.lineTo(bw / 2 + 5, hipY + 12);
-    ctx.lineTo(-bw / 2 - 5, hipY + 12);
-    ctx.closePath();
-    ctx.fillStyle = bottom;
-    ctx.fill();
+  if (front) {
+    drawLeg(ctx, r, legFar, 0, k);
+    drawLeg(ctx, r, legNear, 1, k);
   } else {
-    rrect(ctx, -bw / 2, hipY - 4, bw, 8, 3, bottom);
+    drawLeg(ctx, r, legNear, 1, k);
+    drawLeg(ctx, r, legFar, 0, k);
   }
-  rrect(ctx, -bw / 2, shoulderY, bw, hipY - shoulderY, [9, 9, 4, 4], top, OUTLINE, 1.2);
-  rrect(ctx, -bw / 2 + 3, shoulderY + 2, 3, hipY - shoulderY - 6, 2, 'rgba(255,255,255,0.18)');
-  // Torso shading on the far side
-  rrect(ctx, bw / 2 - 5, shoulderY + 3, 4, hipY - shoulderY - 5, 2, 'rgba(0,0,0,0.12)');
-  if (noSleeve) {
-    circle(ctx, -bw / 2 + 1, shoulderY + 4, 3.5, skin);
-    circle(ctx, bw / 2 - 1, shoulderY + 4, 3.5, skin);
+  drawPelvis(ctx, r, k);
+  drawNeck(ctx, r, k);
+  drawTorso(ctx, r, k);
+  drawSignature(ctx, r, k);
+  const head = () =>
+    inHead(ctx, r, () => {
+      drawHead(ctx, r, k);
+      drawHairFront(ctx, r, k, !!fs.hat);
+      if (fs.hat) brimShadow(ctx, k, fs.hat, front);
+    });
+  // From behind, hair falls over the back, so the head goes before the arms.
+  if (!front) head();
+  if (behindArm.over) {
+    drawArm(ctx, r, behindArm, bi, k);
+    drawHeld(ctx, r, bi as 0 | 1, k, heldHat);
   }
-  if (front) {
-    if (a.top === 'camisa') {
-      ctx.fillStyle = shade(top, 0.35);
-      ctx.beginPath();
-      ctx.moveTo(-5, shoulderY);
-      ctx.lineTo(0, shoulderY + 6);
-      ctx.lineTo(5, shoulderY);
-      ctx.closePath();
-      ctx.fill();
-      for (let i = 0; i < 3; i++) circle(ctx, 0.5, shoulderY + 10 + i * 5, 1, shade(top, -0.4));
-    } else if (a.top === 'moletom') {
-      rrect(ctx, -bw / 2 + 4, hipY - 11, bw - 8, 7, 3, shade(top, -0.15));
-      ctx.strokeStyle = shade(top, 0.4);
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.moveTo(-3, shoulderY + 2);
-      ctx.lineTo(-3, shoulderY + 10);
-      ctx.moveTo(3, shoulderY + 2);
-      ctx.lineTo(3, shoulderY + 10);
-      ctx.stroke();
-    } else {
-      ctx.strokeStyle = shade(top, -0.25);
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.arc(0, shoulderY, 5, 0.15 * Math.PI, 0.85 * Math.PI);
-      ctx.stroke();
-    }
-  } else if (a.top === 'moletom') {
-    rrect(ctx, -8, shoulderY - 2, 16, 8, 5, shade(top, -0.12));
-  }
+  drawArm(ctx, r, frontArm, fi, k);
+  drawHeld(ctx, r, fi as 0 | 1, k, heldHat);
+  if (front) head();
+}
 
-  if (front) {
-    drawArm(-1);
-    drawArm(1);
+/** The hat's own shade on the forehead/eyes. */
+function brimShadow(ctx: Ctx, k: Look, hat: HatDef, front: boolean) {
+  const hp = hatPlacement(k.a);
+  const depth = brimShade(hat.shape);
+  ctx.save();
+  clipHead(ctx, k.a.face, front);
+  const g = ctx.createLinearGradient(0, hp.band, 0, hp.band + 6.5);
+  g.addColorStop(0, rgba(k.skin.lo, depth + 0.1));
+  g.addColorStop(0.55, rgba(k.skin.lo, depth * 0.45));
+  g.addColorStop(1, rgba(k.skin.lo, 0));
+  ctx.fillStyle = g;
+  ctx.fillRect(-HEAD.rx - 1, hp.band - 1, HEAD.rx * 2 + 2, 8);
+  ctx.restore();
+}
+
+function paintHat(ctx: Ctx, r: Rig, k: Look, fs: FrameState) {
+  if (!fs.hat) return;
+  const hp = hatPlacement(k.a);
+  inHead(ctx, r, () => {
+    ctx.translate(0.15, hp.band);
+    ctx.scale(hp.s, hp.s);
+    drawHatShape(ctx, fs.hat!, { L: k.L, rim: k.rim, front: r.front, t: fs.hatT });
+  });
+}
+
+// ---------------------------------------------------------------- frame cache + compositing
+
+const X0 = -34;
+const X1 = 34;
+const Y0 = -124;
+const Y1 = 11;
+const PAD = 3;
+const OUTLINE_INK = 'rgba(38,20,30,0.5)';
+const HAT_INK = 'rgba(38,20,30,0.78)';
+const BUDGET_PX = 12_000_000;
+
+interface Frame {
+  c: HTMLCanvasElement;
+  ax: number;
+  ay: number;
+  px: number;
+}
+
+const frames = new Map<string, Frame>();
+let framePx = 0;
+const scratch: HTMLCanvasElement[] = [];
+
+function canvas(i: number, w: number, h: number): HTMLCanvasElement {
+  let c = scratch[i];
+  if (!c) c = scratch[i] = document.createElement('canvas');
+  if (c.width < w || c.height < h) {
+    c.width = Math.max(c.width, w);
+    c.height = Math.max(c.height, h);
   }
+  const x = c.getContext('2d')!;
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  x.clearRect(0, 0, c.width, c.height);
+  return c;
+}
 
-  // ---- neck + head
-  rrect(ctx, -3.2, headY + 7, 6.4, shoulderY - headY - 5, 2, shade(skin, -0.08));
-  circle(ctx, 0, headY, headR, skin, OUTLINE, 1.2);
-  ellipse(ctx, -4, headY - 5, 4, 2.5, 'rgba(255,255,255,0.18)');
-  circle(ctx, -headR + 0.5, headY + 1, 2.6, shade(skin, -0.06));
-  circle(ctx, headR - 0.5, headY + 1, 2.6, shade(skin, -0.06));
-
-  if (front) {
-    const fx = 2;
-    const blink = Math.sin(t * 1.3) > 0.985;
-    ctx.fillStyle = '#231a1f';
-    if (blink) {
-      ctx.fillRect(fx - 5.5, headY - 0.5, 3.5, 1.2);
-      ctx.fillRect(fx + 2, headY - 0.5, 3.5, 1.2);
-    } else {
-      ellipse(ctx, fx - 3.8, headY, 1.7, 2.3, '#231a1f');
-      ellipse(ctx, fx + 3.8, headY, 1.7, 2.3, '#231a1f');
-      circle(ctx, fx - 3.3, headY - 0.9, 0.6, '#fff');
-      circle(ctx, fx + 4.3, headY - 0.9, 0.6, '#fff');
-    }
-    ctx.strokeStyle = shade(hair, 0.05);
-    ctx.lineWidth = 1.4;
-    ctx.beginPath();
-    ctx.moveTo(fx - 5.6, headY - 4.4);
-    ctx.lineTo(fx - 2, headY - 5);
-    ctx.moveTo(fx + 2, headY - 5);
-    ctx.lineTo(fx + 5.6, headY - 4.4);
-    ctx.stroke();
-    ellipse(ctx, fx - 5.6, headY + 3.2, 1.9, 1.1, 'rgba(232,110,110,0.3)');
-    ellipse(ctx, fx + 5.6, headY + 3.2, 1.9, 1.1, 'rgba(232,110,110,0.3)');
-    ctx.strokeStyle = '#7a3b2e';
-    ctx.lineWidth = 1.5;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    if (emote === 'rir' || emote === 'oi' || emote === 'dancar') {
-      ctx.fillStyle = '#7a2e2e';
-      ctx.arc(fx, headY + 3.6, 3, 0, Math.PI);
-      ctx.fill();
-    } else if (emote === 'desculpa') {
-      ctx.arc(fx, headY + 5.8, 2.2, 1.15 * Math.PI, 1.85 * Math.PI);
-      ctx.stroke();
-    } else {
-      ctx.arc(fx, headY + 3.2, 2.6, 0.15 * Math.PI, 0.85 * Math.PI);
-      ctx.stroke();
-    }
+function tint(dst: CanvasRenderingContext2D, src: HTMLCanvasElement, w: number, h: number, r: number, ink: string, tmpIndex: number) {
+  const t = canvas(tmpIndex, w, h);
+  const tc = t.getContext('2d')!;
+  const steps = r > 1.6 ? 12 : 8;
+  for (let i = 0; i < steps; i++) {
+    const a = (i / steps) * TAU;
+    tc.drawImage(src, Math.cos(a) * r, Math.sin(a) * r);
   }
+  tc.globalCompositeOperation = 'source-in';
+  tc.fillStyle = ink;
+  tc.fillRect(0, 0, w, h);
+  tc.globalCompositeOperation = 'source-over';
+  dst.drawImage(t, 0, 0);
+}
 
-  drawHair(ctx, a.hair, hair, headY, headR, front);
-  const hat = hatById(hatId);
+function renderFrame(a: Appearance, fs: FrameState, ps: number, out?: HTMLCanvasElement): Frame {
+  const w = Math.ceil((X1 - X0) * ps) + PAD * 2;
+  const h = Math.ceil((Y1 - Y0) * ps) + PAD * 2;
+  const ax = PAD - X0 * ps;
+  const ay = PAD - Y0 * ps;
+  const r = buildRig(fs.rs);
+  const k = lookFor(a, fs);
+  const layer = (i: number, fn: (c: Ctx) => void) => {
+    const c = canvas(i, w, h);
+    const x = c.getContext('2d')!;
+    x.setTransform(ps, 0, 0, ps, ax, ay);
+    if (fs.flip) x.scale(-1, 1);
+    fn(x);
+    return c;
+  };
+  const body = layer(0, (x) => paintBody(x, r, k, fs));
+  const hat = fs.hat ? layer(1, (x) => paintHat(x, r, k, fs)) : null;
+  const dst = out ?? document.createElement('canvas');
+  if (dst.width !== w || dst.height !== h) {
+    dst.width = w;
+    dst.height = h;
+  }
+  const o = dst.getContext('2d')!;
+  o.setTransform(1, 0, 0, 1, 0, 0);
+  o.clearRect(0, 0, w, h);
+  const rad = Math.max(0.9, Math.min(2.2, ps * 0.42));
+  tint(o, body, w, h, rad, OUTLINE_INK, 2);
+  o.drawImage(body, 0, 0);
   if (hat) {
-    const hr = SNUG_HATS.has(hat.shape) ? headR + 0.8 : HAT_R;
-    // Soft ink halo around the hat so it's the first thing the eye reads on the silhouette.
-    ctx.save();
-    ctx.shadowColor = 'rgba(42,26,40,0.8)';
-    ctx.shadowBlur = 2.5;
-    drawHat(ctx, hat, headY + hr - headR, hr, front, t);
-    ctx.restore();
+    tint(o, hat, w, h, rad * 1.45, HAT_INK, 2);
+    o.drawImage(hat, 0, 0);
   }
-  if (parrot) drawParrot(ctx, bw / 2 + 1, shoulderY - 2, t, front);
+  return { c: dst, ax, ay, px: w * h };
+}
 
+let preview: HTMLCanvasElement | null = null;
+
+function getFrame(a: Appearance, fs: FrameState, ps: number): Frame {
+  // Big previews (creator, shop) repaint every frame instead of filling the cache.
+  if (ps > 3.2) {
+    preview ??= document.createElement('canvas');
+    return renderFrame(a, fs, ps, preview);
+  }
+  const key = `${fs.key}@${ps}`;
+  const hit = frames.get(key);
+  if (hit) {
+    frames.delete(key);
+    frames.set(key, hit);
+    return hit;
+  }
+  const f = renderFrame(a, fs, ps);
+  frames.set(key, f);
+  framePx += f.px;
+  while (framePx > BUDGET_PX && frames.size > 1) {
+    const [k0, f0] = frames.entries().next().value as [string, Frame];
+    frames.delete(k0);
+    framePx -= f0.px;
+  }
+  return f;
+}
+
+// ---------------------------------------------------------------- public API
+
+export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId: string | null, parrot: boolean, pose: AvatarPose) {
+  const fs = frameState(a, hatId, pose);
+  shadow(ctx, x + (pose.sitting ? 5 : 0.5), y + (pose.sitting ? 4 : 0), BODY_SHADOW[a.body] ?? 13, 6.2, 0.32);
+  const m = ctx.getTransform();
+  const ps = Math.round(Math.hypot(m.a, m.b) * 100) / 100;
+  const f = getFrame(a, fs, ps);
+  const dx = m.a * x + m.c * y + m.e;
+  const dy = m.b * x + m.d * y + m.f;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(f.c, Math.round(dx - f.ax), Math.round(dy - f.ay));
   ctx.restore();
 
-  if (emote) drawEmoteTag(ctx, x, y - 108 + (pose.sitting ? 13 : 0), emote, emoteAge);
+  const r = parrot ? buildRig(fs.rs) : null;
+  if (parrot && r) {
+    ctx.save();
+    ctx.translate(x, y);
+    if (fs.flip) ctx.scale(-1, 1);
+    drawParrot(ctx, r.m.sh - 1.4 + r.bx, r.shY - 0.4, pose.t + (pose.seed ?? 0), fs.rs.front);
+    ctx.restore();
+  }
+  if (fs.rs.emote) drawEmoteTag(ctx, x, y + avatarTop(a, hatId, pose.sitting) - 14, fs.rs.emote, pose.t - pose.emote!.t0);
 }
 
-function drawHair(ctx: Ctx, style: Appearance['hair'], color: string, hy: number, r: number, front: boolean) {
-  ctx.fillStyle = color;
-  const cap = (depth: number) => {
-    ctx.beginPath();
-    ctx.arc(0, hy, r + 1.2, Math.PI, 0);
-    ctx.lineTo(r + 1.2, hy - depth);
-    ctx.quadraticCurveTo(0, hy - r * 0.35, -r - 1.2, hy - depth);
-    ctx.closePath();
-    ctx.fill();
-  };
-  if (!front && style !== 'raspado') {
-    circle(ctx, 0, hy - 0.5, r + 1.2, color);
+const BODY_SHADOW: Record<Appearance['body'], number> = { esguio: 11.5, medio: 12.5, forte: 14.5 };
+
+/** Highest point of the silhouette above the floor point (negative y), for plates and tags. */
+export function avatarTop(a: Appearance, hatId: string | null, sitting: boolean): number {
+  const hairTop: Record<Appearance['hair'], number> = { raspado: 0.3, curto: 1.4, cacheado: 2.8, black: 10, longo: 1.2, coque: 5.4, trancas: 1 };
+  let top = Y.head - HEAD.top - (hairTop[a.hair] ?? 1);
+  const hat = hatById(hatId);
+  if (hat) {
+    const hp = hatPlacement(a);
+    top = Math.min(top, Y.head + hp.band - hatHeight(hat.shape) * hp.s - (hat.shape === 'gorro' ? 3 : 0));
   }
-  switch (style) {
-    case 'raspado':
-      ctx.globalAlpha = 0.55;
-      cap(1);
-      ctx.globalAlpha = 1;
-      break;
-    case 'curto':
-      cap(-2);
-      ctx.beginPath();
-      ctx.moveTo(-r, hy - 3);
-      ctx.quadraticCurveTo(-2, hy - r - 6, r + 1, hy - 5);
-      ctx.lineTo(r + 1, hy - 2);
-      ctx.quadraticCurveTo(0, hy - 6, -r, hy - 1);
-      ctx.fill();
-      break;
-    case 'cacheado':
-      for (let i = 0; i < 9; i++) {
-        const ang = Math.PI + (i / 8) * Math.PI;
-        circle(ctx, Math.cos(ang) * (r + 0.5), hy + Math.sin(ang) * (r + 0.5) - 1, 4.4, color);
-      }
-      circle(ctx, -3, hy - r - 2, 4.2, color);
-      circle(ctx, 4, hy - r - 2, 4.2, color);
-      circle(ctx, -r - 1, hy + 3, 3.6, color);
-      circle(ctx, r + 1, hy + 3, 3.6, color);
-      break;
-    case 'black':
-      if (front) {
-        ctx.beginPath();
-        ctx.arc(0, hy - 3, r * 1.5, Math.PI * 1.05, Math.PI * 1.95);
-        ctx.quadraticCurveTo(0, hy - 8, -r * 1.45, hy - 7);
-        ctx.fill();
-      }
-      break;
-    case 'longo':
-      cap(-1);
-      if (front) {
-        rrect(ctx, -r - 2, hy - 4, 5, 22, 3, color);
-        rrect(ctx, r - 3, hy - 4, 5, 22, 3, color);
-      }
-      break;
-    case 'coque':
-      cap(-1);
-      circle(ctx, 0, hy - r - 4, 5.5, color);
-      circle(ctx, -1.5, hy - r - 5.5, 1.8, shade(color, 0.2));
-      break;
-    case 'trancas':
-      cap(0);
-      if (front) {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 4.5;
-        ctx.lineCap = 'round';
-        for (const s of [-1, 1]) {
-          ctx.beginPath();
-          ctx.moveTo(s * (r - 1), hy);
-          ctx.lineTo(s * (r + 1), hy + 22);
-          ctx.stroke();
-          circle(ctx, s * (r + 1), hy + 23, 2.4, '#f2c230');
-        }
-      }
-      break;
-  }
+  return top + (sitting ? SIT_DROP : 0);
 }
 
-export function drawHat(ctx: Ctx, hat: HatDef, hy: number, r: number, front: boolean, t = 0) {
-  const top = hy - r;
-  const c = hat.color;
-  const acc = hat.accent;
-  const fwd = front ? 1 : -1;
-  switch (hat.shape) {
-    case 'bone': {
-      ctx.fillStyle = c;
-      ctx.beginPath();
-      ctx.ellipse(0, top + 6, r + 1.5, r * 0.8, 0, Math.PI, 0);
-      ctx.fill();
-      ellipse(ctx, fwd * 8, top + 6, 11, 3.2, shade(c, -0.2));
-      circle(ctx, 0, top - 3.2, 1.8, acc);
-      rrect(ctx, -6, top + 0, 12, 3, 1.5, acc);
-      break;
-    }
-    case 'palha': {
-      ellipse(ctx, 0, top + 6, 20, 5.5, c);
-      ellipse(ctx, 0, top + 6, 20, 5.5, 'rgba(120,80,20,0.12)');
-      rrect(ctx, -9, top - 6, 18, 12, [8, 8, 2, 2], shade(c, 0.05));
-      rrect(ctx, -9, top + 1, 18, 3, 1, acc);
-      ctx.strokeStyle = 'rgba(120,80,20,0.35)';
-      ctx.lineWidth = 0.8;
-      for (let i = -16; i <= 16; i += 4) {
-        ctx.beginPath();
-        ctx.moveTo(i, top + 3);
-        ctx.lineTo(i * 1.15, top + 9);
-        ctx.stroke();
-      }
-      break;
-    }
-    case 'gorro': {
-      ctx.save();
-      ctx.beginPath();
-      ctx.ellipse(0, top + 7, r + 2, r + 2, 0, Math.PI, 0);
-      ctx.closePath();
-      ctx.clip();
-      ctx.fillStyle = c;
-      ctx.fillRect(-r - 3, top - 8, 2 * r + 6, 16);
-      ctx.fillStyle = acc;
-      for (let i = 0; i < 3; i++) ctx.fillRect(-r - 3, top - 5 + i * 5, 2 * r + 6, 2);
-      ctx.restore();
-      rrect(ctx, -r - 2, top + 3, 2 * r + 4, 5, 2, shade(c, -0.2));
-      circle(ctx, 0, top - 7, 4, acc);
-      break;
-    }
-    case 'viseira': {
-      rrect(ctx, -r - 1, top + 3, 2 * r + 2, 5, 2, c);
-      ellipse(ctx, fwd * 9, top + 7, 10, 3, shade(c, -0.15));
-      rrect(ctx, -3, top + 4, 6, 2.5, 1, acc);
-      break;
-    }
-    case 'boina': {
-      ctx.save();
-      ctx.translate(0, top + 1);
-      ctx.rotate(fwd * -0.18);
-      ellipse(ctx, 0, 0, r + 4, 5.5, c);
-      ellipse(ctx, 0, 2, r + 1, 3, shade(c, -0.25));
-      rrect(ctx, -1, -8, 2, 4, 1, acc);
-      ctx.restore();
-      break;
-    }
-    case 'sol': {
-      const wob = Math.sin(t * 2) * 0.6;
-      ellipse(ctx, 0, top + 6 + wob, 23, 6.5, c);
-      ctx.fillStyle = shade(c, -0.12);
-      ctx.beginPath();
-      ctx.ellipse(0, top + 5, r + 0.5, r * 0.85, 0, Math.PI, 0);
-      ctx.fill();
-      rrect(ctx, -r, top + 2, 2 * r, 3.5, 1.5, acc);
-      circle(ctx, fwd * (r - 2), top + 3.5, 3, acc);
-      break;
-    }
-    case 'bucket': {
-      ctx.fillStyle = shade(c, -0.1);
-      ctx.beginPath();
-      ctx.moveTo(-r - 7, top + 10);
-      ctx.lineTo(r + 7, top + 10);
-      ctx.lineTo(r + 2, top + 4);
-      ctx.lineTo(-r - 2, top + 4);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = c;
-      ctx.beginPath();
-      ctx.moveTo(-r - 1, top + 5);
-      ctx.lineTo(r + 1, top + 5);
-      ctx.lineTo(r - 2, top - 5);
-      ctx.quadraticCurveTo(0, top - 8, -r + 2, top - 5);
-      ctx.closePath();
-      ctx.fill();
-      rrect(ctx, -r - 1, top + 2, 2 * r + 2, 2.5, 1, acc);
-      break;
-    }
-    case 'capacete': {
-      ctx.fillStyle = c;
-      ctx.beginPath();
-      ctx.ellipse(0, top + 6, r + 3, r + 1, 0, Math.PI, 0);
-      ctx.fill();
-      ctx.fillStyle = acc;
-      for (let i = -1; i <= 1; i++) rrect(ctx, i * 5 - 1.5, top - 3, 3, 8, 1.5, acc);
-      ellipse(ctx, fwd * 10, top + 6, 5, 2, shade(c, -0.25));
-      ctx.strokeStyle = '#333';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(-r, top + 7);
-      ctx.lineTo(-r + 2, hy + 9);
-      ctx.moveTo(r, top + 7);
-      ctx.lineTo(r - 2, hy + 9);
-      ctx.stroke();
-      break;
-    }
-    case 'panama': {
-      ellipse(ctx, 0, top + 6, 18, 4.8, c);
-      rrect(ctx, -9, top - 6, 18, 12, [5, 5, 1, 1], shade(c, 0.05));
-      ctx.fillStyle = shade(c, -0.12);
-      ctx.beginPath();
-      ctx.moveTo(-4, top - 6);
-      ctx.lineTo(0, top - 3);
-      ctx.lineTo(4, top - 6);
-      ctx.fill();
-      rrect(ctx, -9, top + 1, 18, 3.2, 1, acc);
-      break;
-    }
-    case 'flores': {
-      const colors = [c, acc, '#e889a8', '#ffffff', '#7a4fb0'];
-      for (let i = 0; i < 9; i++) {
-        const ang = Math.PI + (i / 8) * Math.PI;
-        const fx = Math.cos(ang) * (r + 1);
-        const fy = top + 5 + Math.sin(ang) * 5;
-        const col = colors[i % colors.length];
-        for (let p = 0; p < 5; p++) circle(ctx, fx + Math.cos((p / 5) * Math.PI * 2) * 2.2, fy + Math.sin((p / 5) * Math.PI * 2) * 2.2, 1.9, col);
-        circle(ctx, fx, fy, 1.3, '#f2c230');
-      }
-      ctx.fillStyle = '#2e9e5b';
-      ellipse(ctx, -r - 2, top + 8, 3, 1.4, '#2e9e5b');
-      ellipse(ctx, r + 2, top + 8, 3, 1.4, '#2e9e5b');
-      break;
-    }
-    case 'chef': {
-      rrect(ctx, -r + 1, top - 2, 2 * r - 2, 8, 2, c, acc, 1);
-      circle(ctx, -6, top - 8, 6.5, c);
-      circle(ctx, 6, top - 8, 6.5, c);
-      circle(ctx, 0, top - 12, 7.5, c);
-      ctx.strokeStyle = acc;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(0, top - 12, 7.5, Math.PI * 1.1, Math.PI * 1.9);
-      ctx.stroke();
-      break;
-    }
-    case 'cartola': {
-      ellipse(ctx, 0, top + 5, 15, 4, shade(c, -0.25));
-      rrect(ctx, -9, top - 17, 18, 22, 2, c);
-      ellipse(ctx, 0, top - 17, 9, 2.4, shade(c, 0.15));
-      rrect(ctx, -9, top - 2, 18, 4, 1, acc);
-      const sp = (Math.sin(t * 3) + 1) / 2;
-      ctx.fillStyle = `rgba(255,240,150,${0.5 + sp * 0.5})`;
-      star(ctx, fwd * 12, top - 16, 3 + sp);
-      break;
-    }
-  }
-}
-
-function star(ctx: Ctx, x: number, y: number, r: number) {
-  ctx.beginPath();
-  for (let i = 0; i < 8; i++) {
-    const rr = i % 2 ? r * 0.35 : r;
-    const a = (i / 8) * Math.PI * 2;
-    ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
-  }
-  ctx.closePath();
-  ctx.fill();
-}
-
-export function drawParrot(ctx: Ctx, x: number, y: number, t: number, front: boolean) {
-  const hop = Math.abs(Math.sin(t * 3)) * 1.5;
+/** A hat on its own with the in-world ink outline, for shop icons (64×64 box at the ctx origin). */
+export function drawHatIcon(ctx: Ctx, hat: HatDef) {
+  const m = ctx.getTransform();
+  const ps = Math.hypot(m.a, m.b);
+  const size = Math.ceil(64 * ps);
+  const art = canvas(0, size, size);
+  const ax = art.getContext('2d')!;
+  ax.setTransform(ps, 0, 0, ps, 0, 0);
+  drawHatIconArt(ax, hat);
+  const out = document.createElement('canvas');
+  out.width = size;
+  out.height = size;
+  const o = out.getContext('2d')!;
+  tint(o, art, size, size, Math.max(1, ps * 0.6), HAT_INK, 2);
+  o.drawImage(art, 0, 0);
   ctx.save();
-  ctx.translate(x + 2, y - hop);
-  ctx.fillStyle = '#1f8a3a';
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(out, Math.round(m.e), Math.round(m.f));
+  ctx.restore();
+}
+
+/** Papagaio-verdadeiro: green, blue forehead, yellow face, red wing patch. */
+export function drawParrot(ctx: Ctx, x: number, y: number, t: number, front: boolean) {
+  const hop = Math.abs(Math.sin(t * 3)) * 1.2;
+  const g = tone('#3a9a4a');
+  ctx.save();
+  ctx.translate(x, y - hop);
+  const tail: P[] = [
+    [-1.6, 1],
+    [-5.4, 11],
+    [-3.6, 11.6],
+    [0.4, 3],
+  ];
   ctx.beginPath();
-  ctx.moveTo(-2, 2);
-  ctx.lineTo(-6, 13);
-  ctx.lineTo(0, 5);
+  smoothClosed(ctx, tail, 0.6);
+  ctx.fillStyle = mix(g.base, '#1f5a8a', 0.35);
   ctx.fill();
-  ellipse(ctx, 0, -3, 5, 7, '#2fb350');
-  ellipse(ctx, -1.5, -2, 3, 5, '#1f8a3a');
-  circle(ctx, 1.5, -11, 4.5, '#3fcf60');
-  ellipse(ctx, 2, -9, 2, 1.5, '#f2c230');
-  ctx.fillStyle = '#f08a24';
+  const body: P[] = [
+    [0.2, -9],
+    [3.4, -6.4],
+    [3.2, -0.6],
+    [0.4, 3.6],
+    [-2.6, 1],
+    [-2.6, -5.6],
+  ];
   ctx.beginPath();
-  ctx.moveTo(front ? 5 : 4, -12);
-  ctx.quadraticCurveTo(9, -11, 5.5, -8);
+  smoothClosed(ctx, body, 1);
+  const bg = ctx.createLinearGradient(-3, 0, 3.5, 0);
+  bg.addColorStop(0, g.hi);
+  bg.addColorStop(0.5, g.base);
+  bg.addColorStop(1, g.lo);
+  ctx.fillStyle = bg;
+  ctx.fill();
+  ctx.strokeStyle = g.line;
+  ctx.lineWidth = 0.4;
+  ctx.stroke();
+  // Wing with scalloped feathers + red patch
+  const wing: P[] = [
+    [-2.2, -5],
+    [1.4, -4],
+    [1.6, 1],
+    [-1.4, 3],
+    [-2.8, 0],
+  ];
+  ctx.beginPath();
+  smoothClosed(ctx, wing, 0.9);
+  ctx.fillStyle = g.lo;
+  ctx.fill();
+  for (let i = 0; i < 3; i++) {
+    ctx.beginPath();
+    ctx.arc(-1 + i * 0.3, -2 + i * 1.6, 1.4, 0.2, Math.PI - 0.2);
+    ctx.strokeStyle = rgba(g.deep, 0.7);
+    ctx.lineWidth = 0.35;
+    ctx.stroke();
+  }
+  glow(ctx, -0.6, -4.2, 1.2, 0.8, '#d8342c', 0.95);
+  glow(ctx, -1.4, 2.4, 1.3, 0.8, '#2f6fb8', 0.8);
+  // Head: blue forehead, yellow face, eye ring, hooked beak
+  ctx.beginPath();
+  ctx.arc(1.6, -10.2, 3.4, 0, TAU);
+  ctx.fillStyle = g.base;
+  ctx.fill();
+  ctx.strokeStyle = g.line;
+  ctx.lineWidth = 0.4;
+  ctx.stroke();
+  glow(ctx, 1.4, -12.6, 2.2, 1.2, '#4a86d0', 0.95);
+  glow(ctx, 2.8, -9.4, 1.8, 1.6, '#f2cc3a', 0.95);
+  ctx.beginPath();
+  ctx.arc(2.6, -10.6, 0.9, 0, TAU);
+  ctx.fillStyle = '#f7f1ea';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(2.8, -10.6, 0.5, 0, TAU);
+  ctx.fillStyle = '#1b1210';
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(front ? 4.4 : 4, -11);
+  ctx.quadraticCurveTo(7, -10.6, 5.4, -7.8);
+  ctx.quadraticCurveTo(4.6, -8.8, 4.2, -8.8);
   ctx.closePath();
+  ctx.fillStyle = '#4a4550';
   ctx.fill();
-  circle(ctx, 3, -12.5, 1.1, '#111');
   ctx.restore();
 }
 
@@ -576,7 +471,14 @@ function drawEmoteTag(ctx: Ctx, x: number, y: number, kind: EmoteKind, age: numb
 }
 
 /** Standalone preview renderer (creator, shop, portraits). */
-export function renderAvatarPreview(canvas: HTMLCanvasElement, a: Appearance, hat: string | null, parrot: boolean, t: number, opts: { scale?: number; dir?: Dir; emote?: EmoteKind | null; emoteT0?: number; footY?: number } = {}) {
+export function renderAvatarPreview(
+  canvas: HTMLCanvasElement,
+  a: Appearance,
+  hat: string | null,
+  parrot: boolean,
+  t: number,
+  opts: { scale?: number; dir?: Dir; emote?: EmoteKind | null; emoteT0?: number; footY?: number; npc?: NpcId; light?: Light } = {},
+) {
   const dpr = window.devicePixelRatio || 1;
   const w = canvas.clientWidth || canvas.width;
   const h = canvas.clientHeight || canvas.height;
@@ -597,6 +499,8 @@ export function renderAvatarPreview(canvas: HTMLCanvasElement, a: Appearance, ha
     moving: false,
     sitting: false,
     emote: opts.emote ? { kind: opts.emote, t0: opts.emoteT0 ?? 0 } : null,
+    npc: opts.npc,
+    light: opts.light,
   });
   ctx.restore();
 }

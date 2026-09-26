@@ -1,22 +1,16 @@
 import {
-  BODY_TYPES,
-  BOTTOM_STYLES,
   buildGrid,
-  CLOTH_COLORS,
   CPU_ID_PREFIX,
   CPU_NAMES,
   CPU_SITTER_SHARE,
+  cpuArchetype,
+  cpuLook,
   cpuTarget,
   findPath,
-  HAIR_STYLES,
-  HATS,
   key,
   pathDuration,
   positionAlong,
   PRACA_AMBIANCE,
-  SHOE_COLORS,
-  SKIN_TONES,
-  TOP_STYLES,
   type Appearance,
   type Dir,
   type PublicAvatar,
@@ -31,8 +25,6 @@ export const CPU_TICK_MS = 1000;
 const SPAWN_GAP_MS = 4000;
 const APPROACH_WAVE_COOLDOWN_MS = 20_000;
 const WAVE_BACK_COOLDOWN_MS = 8_000;
-/** Seu Carlos's signature hat stays his. */
-const CPU_HATS = HATS.map((h) => h.id).filter((id) => id !== 'chapeu_chef');
 
 export interface HumanSpot {
   tile: Tile;
@@ -206,21 +198,13 @@ export class CpuCrowd {
     const dest = seat?.tile ?? this.freeSpot(PRACA_AMBIANCE.spots);
     const pick = <T>(arr: readonly T[]) => arr[Math.floor(rng() * arr.length)];
     const entry = pick(PRACA_AMBIANCE.entries);
+    const name = this.nextName();
+    const look = cpuLook(name);
     const c: Cpu = {
       id: `${CPU_ID_PREFIX}${++nextCpu}`,
-      name: this.nextName(),
-      appearance: {
-        body: pick(BODY_TYPES),
-        skin: Math.floor(rng() * SKIN_TONES.length),
-        hair: pick(HAIR_STYLES),
-        hairColor: Math.floor(rng() * 6),
-        top: pick(TOP_STYLES),
-        topColor: Math.floor(rng() * CLOTH_COLORS.length),
-        bottom: pick(BOTTOM_STYLES),
-        bottomColor: Math.floor(rng() * CLOTH_COLORS.length),
-        shoes: Math.floor(rng() * SHOE_COLORS.length),
-      },
-      hat: rng() < 0.6 ? pick(CPU_HATS) : null,
+      name,
+      appearance: look.appearance,
+      hat: look.hat,
       role: seat ? 'sitter' : 'walker',
       from: instant ? dest : entry,
       path: [],
@@ -263,14 +247,19 @@ export class CpuCrowd {
     return [...this.cpus.values()].filter((c) => !c.leaving);
   }
 
+  /** Next name from a shuffled bag, skipping ahead to one whose look isn't already on the square. */
   private nextName() {
+    const inUse = new Set([...this.cpus.values()].map((c) => c.name));
     if (!this.bag.length) {
-      const inUse = new Set([...this.cpus.values()].map((c) => c.name));
       this.bag = CPU_NAMES.filter((n) => !inUse.has(n));
       for (let i = this.bag.length - 1; i > 0; i--) {
         const j = Math.floor(this.host.rng() * (i + 1));
         [this.bag[i], this.bag[j]] = [this.bag[j], this.bag[i]];
       }
+    }
+    const worn = new Set([...this.cpus.values()].map((c) => cpuArchetype(c.name)));
+    for (let i = this.bag.length - 1; i >= 0; i--) {
+      if (!inUse.has(this.bag[i]) && !worn.has(cpuArchetype(this.bag[i]))) return this.bag.splice(i, 1)[0];
     }
     return this.bag.pop()!;
   }
