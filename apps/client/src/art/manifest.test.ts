@@ -36,6 +36,16 @@ describe('baked art manifest', () => {
     for (const i of MG_ITEMS) expectSprite(`food/${i.id}`);
   });
 
+  it('keeps every hand-painted override from apps/client/art-overrides (pnpm art never replaces them)', () => {
+    const overridesDir = path.resolve(__dirname, '../../art-overrides');
+    const walk = (dir: string): string[] => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]));
+    for (const abs of walk(overridesDir).filter((f) => f.endsWith('.png') || f.endsWith('.svg'))) {
+      const rel = path.relative(overridesDir, abs).split(path.sep).join('/');
+      expect(fs.readFileSync(path.join(artDir, rel)).equals(fs.readFileSync(abs)), `${rel} was overwritten — rerun pnpm art`).toBe(true);
+      if (rel.endsWith('.png')) expect((manifest.sprites[rel.slice(0, -4)] as { override?: boolean }).override).toBe(true);
+    }
+  });
+
   it('ships the generated UI chrome as SVG files', () => {
     for (const f of ['coin_rv', 'logo_mark', 'pattern_azulejo', 'pattern_calcada', 'icon_map']) expect(fs.existsSync(path.join(artDir, 'ui', `${f}.svg`))).toBe(true);
   });

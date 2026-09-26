@@ -113,26 +113,39 @@ export function drawTaco(ctx: Ctx, x: number, y: number) {
     }
 }
 
+/**
+ * Outline of São Paulo state in a unit square — the motif of the city's black-and-white
+ * sidewalk mosaic (Mirthes Bernardes, 1966). The Copacabana wave is Rio's, not ours.
+ */
+export const SP_MAP: [number, number][] = [
+  [0.08, 0.47], [0.19, 0.37], [0.31, 0.34], [0.42, 0.26], [0.53, 0.24], [0.63, 0.15], [0.74, 0.16],
+  [0.83, 0.24], [0.93, 0.29], [0.9, 0.41], [0.81, 0.5], [0.71, 0.59], [0.6, 0.67], [0.5, 0.78],
+  [0.42, 0.73], [0.38, 0.62], [0.29, 0.58], [0.19, 0.56], [0.11, 0.53],
+];
+
+/** Calçada paulista: one charcoal state-map stone on cream limestone per tile. */
+export function drawCalcadaSP(ctx: Ctx, x: number, y: number) {
+  ctx.fillStyle = shade('#ece4d3', -hash(x, y, 11) * 0.05);
+  ctx.fillRect(0, 0, 1, 1);
+  ctx.fillStyle = shade('#2f2d31', hash(x, y, 12) * 0.08);
+  ctx.beginPath();
+  SP_MAP.forEach(([u, v], i) => (i ? ctx.lineTo(u, v) : ctx.moveTo(u, v)));
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(60,50,40,0.18)';
+  ctx.lineWidth = 0.015;
+  ctx.strokeRect(0, 0, 1, 1);
+}
+
 export function drawFloorTile(ctx: Ctx, room: RoomDef, x: number, y: number) {
   const kind = floorAt(room, x, y);
   switch (kind) {
     case 'ladrilho':
       onTile(ctx, x, y, () => drawLadrilho(ctx));
       break;
-    case 'calcada': {
-      // São Paulo calçada: black & white wave mosaic.
-      const n = 4;
-      for (let i = 0; i < n; i++)
-        for (let j = 0; j < n; j++) {
-          const X = x + (i + 0.5) / n;
-          const Y = y + (j + 0.5) / n;
-          const s = Math.sin((X + Y) * 1.25 + Math.sin((X - Y) * 0.55) * 2.1);
-          const dark = s > 0.42;
-          const jitter = hash(x * 7 + i, y * 7 + j) * 0.06;
-          subDiamond(ctx, x, y, i, j, n, dark ? shade('#2c2a2e', jitter) : shade('#ece4d3', -jitter));
-        }
+    case 'calcada':
+      onTile(ctx, x, y, () => drawCalcadaSP(ctx, x, y));
       break;
-    }
     case 'grama': {
       const n = 3;
       for (let i = 0; i < n; i++)
@@ -348,28 +361,34 @@ function drawDecor(ctx: Ctx, room: RoomDef, d: WallDecor) {
         break;
       }
       case 'azulejos': {
+        // Glazed terracotta wainscot with cream grout and a mustard cap (palette.md: cream + terracotta).
         const top = -46;
-        rrect(ctx, 0, top, L, -top, 0, '#f6f8fb');
         const s = 11.5;
+        rrect(ctx, 0, top, L, -top, 0, '#C45C26');
         for (let i = 0; i < L / s; i++)
           for (let j = 0; j < 4; j++) {
             const x = i * s;
             const y = top + j * s;
-            ctx.strokeStyle = 'rgba(40,80,160,0.25)';
-            ctx.lineWidth = 0.6;
+            ctx.fillStyle = shade('#C45C26', (i + j) % 2 ? -0.07 : 0.05);
+            ctx.fillRect(x, y, s, s);
+            ctx.fillStyle = 'rgba(255,255,255,0.12)';
+            ctx.fillRect(x + 1.5, y + 1.5, s * 0.35, 1.4);
+            ctx.strokeStyle = 'rgba(245,230,211,0.7)';
+            ctx.lineWidth = 0.8;
             ctx.strokeRect(x, y, s, s);
-            ctx.fillStyle = '#2b5ba8';
-            ctx.beginPath();
-            ctx.arc(x + s / 2, y + s / 2, 2.2, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = 'rgba(43,91,168,0.5)';
-            for (const [dx, dy] of [[0, 0], [s, 0], [0, s], [s, s]]) {
+            if ((i + j) % 2 === 0) {
+              ctx.fillStyle = '#F5E6D3';
               ctx.beginPath();
-              ctx.arc(x + dx, y + dy, 2.4, 0, Math.PI * 2);
+              ctx.moveTo(x, y - 2);
+              ctx.lineTo(x + 2, y);
+              ctx.lineTo(x, y + 2);
+              ctx.lineTo(x - 2, y);
+              ctx.closePath();
               ctx.fill();
             }
           }
-        rrect(ctx, 0, top - 4, L, 4, 0, '#2b5ba8');
+        rrect(ctx, 0, top - 5, L, 5, 0, '#D4A017');
+        rrect(ctx, 0, top - 6, L, 1.2, 0, '#8B5E3C');
         break;
       }
       case 'prateleira_paes': {
@@ -456,38 +475,79 @@ function drawDecor(ctx: Ctx, room: RoomDef, d: WallDecor) {
         break;
       }
       case 'janela_rua': {
-        rrect(ctx, 4, -H + 18, L - 8, 78, 4, '#f4efe6');
+        // Painted daylight street across from the kitnet (palette.md: neutral daylight through a painted street window).
+        rrect(ctx, 4, -H + 18, L - 8, 78, 4, '#F5E6D3', '#8B5E3C', 2);
         const x0 = 10;
         const y0 = -H + 24;
         const w = L - 20;
         const h = 66;
-        const g = ctx.createLinearGradient(0, y0, 0, y0 + h);
-        g.addColorStop(0, '#3b2c6b');
-        g.addColorStop(0.55, '#e5572f');
-        g.addColorStop(1, '#f2c230');
-        ctx.fillStyle = g;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x0, y0, w, h);
+        ctx.clip();
+        const sky = ctx.createLinearGradient(0, y0, 0, y0 + h);
+        sky.addColorStop(0, '#A8C5D4');
+        sky.addColorStop(1, '#e3ecef');
+        ctx.fillStyle = sky;
         ctx.fillRect(x0, y0, w, h);
-        let bx = x0;
+        ellipse(ctx, x0 + w * 0.25, y0 + 9, 10, 3.5, 'rgba(255,255,255,0.85)');
+        ellipse(ctx, x0 + w * 0.7, y0 + 6, 8, 3, 'rgba(255,255,255,0.7)');
+        // Row of low buildings across the street, lit by day.
+        const facades = ['#E8C9A0', '#C45C26', '#D4A017', '#9A9A92', '#E07A5F', '#F5E6D3'];
+        const street = y0 + h - 12;
+        let bx = x0 - 4;
         let k = 0;
         while (bx < x0 + w) {
-          const bw = 14 + hash(k, 1) * 16;
-          const bh = 22 + hash(k, 2) * 36;
-          ctx.fillStyle = k % 2 ? '#2a2233' : '#3a3050';
-          ctx.fillRect(bx, y0 + h - bh, Math.min(bw, x0 + w - bx), bh);
-          for (let wy = y0 + h - bh + 4; wy < y0 + h - 4; wy += 7)
-            for (let wx = bx + 3; wx < bx + bw - 3 && wx < x0 + w - 3; wx += 5) if (hash(wx, wy) > 0.55) {
-              ctx.fillStyle = '#ffd98a';
-              ctx.fillRect(wx, wy, 2, 3);
+          const bw = 18 + hash(k, 1) * 12;
+          const bh = 24 + hash(k, 2) * 22;
+          const c = facades[k % facades.length];
+          ctx.fillStyle = c;
+          ctx.fillRect(bx, street - bh, bw, bh);
+          ctx.fillStyle = shade(c, -0.18);
+          ctx.fillRect(bx, street - bh, bw, 3);
+          for (let wy = street - bh + 7; wy < street - 12; wy += 9)
+            for (let wx = bx + 3; wx < bx + bw - 5; wx += 7) {
+              ctx.fillStyle = '#C5D5DE';
+              ctx.fillRect(wx, wy, 4, 5);
+              ctx.fillStyle = 'rgba(255,255,255,0.55)';
+              ctx.fillRect(wx, wy, 1.2, 5);
             }
-          bx += bw + 2;
+          if (k % 3 === 1) {
+            for (let i = 0; i < bw / 4; i++) {
+              ctx.fillStyle = i % 2 ? '#F5E6D3' : '#2F5D50';
+              ctx.fillRect(bx + i * 4, street - 12, 4, 4);
+            }
+          }
+          ctx.fillStyle = shade(c, -0.3);
+          ctx.fillRect(bx + bw / 2 - 2.5, street - 8, 5, 8);
+          bx += bw + 1;
           k++;
         }
-        circle(ctx, x0 + w * 0.8, y0 + 14, 6, '#fff3c0');
-        ctx.fillStyle = '#f4efe6';
+        // Street tree (ipê) and a lamp post on the far sidewalk.
+        ctx.fillStyle = '#6b4a2e';
+        ctx.fillRect(x0 + w * 0.78, street - 18, 2.5, 18);
+        for (const [dx, dy, r] of [[0, -22, 8], [-6, -18, 6], [6, -19, 6], [0, -28, 5]] as const) circle(ctx, x0 + w * 0.78 + 1 + dx, street + dy, r, '#f2c230');
+        ctx.fillStyle = '#4a4a50';
+        ctx.fillRect(x0 + w * 0.15, street - 26, 1.6, 26);
+        rrect(ctx, x0 + w * 0.15 - 2, street - 28, 6, 3, 1, '#4a4a50');
+        // Sidewalk (calçada) + street.
+        ctx.fillStyle = '#ece4d3';
+        ctx.fillRect(x0, street, w, 5);
+        for (let i = 0; i < w / 8; i++) {
+          ctx.fillStyle = '#2f2d31';
+          ctx.fillRect(x0 + i * 8 + 2, street + 1.5, 3, 2);
+        }
+        ctx.fillStyle = '#6a6a70';
+        ctx.fillRect(x0, street + 5, w, 7);
+        ctx.fillStyle = '#f2c230';
+        for (let i = 0; i < w / 12; i++) ctx.fillRect(x0 + i * 12 + 3, street + 8, 6, 1.2);
+        ctx.restore();
+        // Mullions, sill and curtains
+        ctx.fillStyle = '#F5E6D3';
         ctx.fillRect(L / 2 - 1.5, y0, 3, h);
         ctx.fillRect(x0, y0 + h / 2 - 1, w, 3);
-        // Curtains
-        ctx.fillStyle = '#e5572f';
+        rrect(ctx, 2, -H + 94, L - 4, 5, 2, '#8B5E3C');
+        ctx.fillStyle = '#C45C26';
         ctx.beginPath();
         ctx.moveTo(0, -H + 12);
         ctx.quadraticCurveTo(20, -H + 50, 6, -H + 100);
@@ -695,8 +755,8 @@ export function drawBackground(ctx: Ctx, room: RoomDef, w: number, h: number) {
     g.addColorStop(0, '#5a3a2c');
     g.addColorStop(1, '#8a5a3c');
   } else {
-    g.addColorStop(0, '#1b1838');
-    g.addColorStop(1, '#3a2c55');
+    g.addColorStop(0, '#A8C5D4');
+    g.addColorStop(1, '#e9dccb');
   }
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
@@ -769,9 +829,11 @@ export function drawLighting(ctx: Ctx, room: RoomDef, w: number, h: number, t: n
       ctx.fill();
     }
   } else {
-    const g = ctx.createRadialGradient(w * 0.6, h * 0.45, 40, w * 0.5, h * 0.5, Math.max(w, h) * 0.75);
-    g.addColorStop(0, 'rgba(255,200,120,0.08)');
-    g.addColorStop(1, 'rgba(20,20,60,0.35)');
+    // Neutral daylight from the street window (right wall).
+    const g = ctx.createLinearGradient(w, 0, 0, h);
+    g.addColorStop(0, 'rgba(255,250,235,0.16)');
+    g.addColorStop(0.7, 'rgba(255,250,235,0.02)');
+    g.addColorStop(1, 'rgba(60,70,90,0.08)');
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
   }

@@ -3,6 +3,7 @@
  * surface patterns. Applied as CSS variables at boot and exported to /art/ui/*.svg by `pnpm art`.
  */
 import { PALETTE as P } from './palette';
+import { SP_MAP } from '../render/room';
 
 const svg = (w: number, h: number, body: string) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${body}</svg>`;
 
@@ -56,13 +57,11 @@ export const AZULEJO = svg(
   <rect width="40" height="40" fill="none" stroke="rgba(43,91,168,.25)"/>`,
 );
 
-/** São Paulo calçada — black & white wave mosaic strip (repeat-x). */
-export const CALCADA = svg(
-  120,
-  48,
-  `<rect width="120" height="48" fill="#ece4d3"/>
-  <path d="M0 14 C20 2 40 2 60 14 S100 26 120 14 V34 C100 46 80 46 60 34 S20 22 0 34Z" fill="#2c2a2e"/>`,
-);
+/** Calçada paulista — São Paulo state-map mosaic strip (repeat-x). Not the Copacabana wave. */
+export const CALCADA = (() => {
+  const map = (x0: number, y0: number, s: number) => `<path d="M${SP_MAP.map(([u, v]) => `${(x0 + u * s).toFixed(1)} ${(y0 + v * s).toFixed(1)}`).join(' L')}Z" fill="${P.calcadaEscura}"/>`;
+  return svg(120, 48, `<rect width="120" height="48" fill="${P.calcadaClara}"/>${map(4, 2, 44)}${map(64, 2, 44)}<path d="M60 0V48" stroke="rgba(60,50,40,.18)"/>`);
+})();
 
 /** Skyline silhouette with a Copan-like curved tower, for onboarding. */
 export const SKYLINE = (() => {

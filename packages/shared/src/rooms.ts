@@ -3,7 +3,6 @@ import { furnitureById } from './catalog.js';
 
 export type PropKind =
   | 'ipe'
-  | 'palmeira'
   | 'banco'
   | 'poste'
   | 'banca'
@@ -42,6 +41,8 @@ export interface PropDef {
   /** Tile the avatar walks to before an action fires. */
   interact?: Tile;
   label?: Bilingual;
+  /** Landmark scale (the Praça's hero ipê). */
+  hero?: boolean;
 }
 
 export type WallSide = 'left' | 'right';
@@ -96,7 +97,7 @@ export interface RoomDef {
   wallHeight: number;
   wallColor: string;
   wallTrim: string;
-  lighting: 'tarde' | 'manha' | 'noite';
+  lighting: 'tarde' | 'manha' | 'dia';
   spawn: Tile;
   props: PropDef[];
   walls: WallDecor[];
@@ -142,14 +143,16 @@ const praca: RoomDef = {
   lighting: 'tarde',
   spawn: { x: 7, y: 9 },
   props: [
-    { id: 'ipe_centro', kind: 'ipe', x: 5, y: 6, blocks: true },
+    { id: 'ipe_centro', kind: 'ipe', x: 5, y: 6, blocks: true, hero: true },
     { id: 'ipe_canto', kind: 'ipe', x: 1, y: 10, blocks: true },
-    { id: 'palmeira', kind: 'palmeira', x: 12, y: 10, blocks: true },
+    { id: 'ipe_esquina', kind: 'ipe', x: 12, y: 10, blocks: true },
     { id: 'canteiro', kind: 'canteiro', x: 4, y: 5, blocks: true },
     { id: 'banco_1', kind: 'banco', x: 7, y: 5, blocks: false, seat: 'SW' },
     { id: 'banco_2', kind: 'banco', x: 7, y: 7, blocks: false, seat: 'SW' },
     { id: 'banco_3', kind: 'banco', x: 4, y: 8, blocks: false, seat: 'SE' },
     { id: 'banco_4', kind: 'banco', x: 9, y: 11, blocks: false, seat: 'NE' },
+    { id: 'banco_5', kind: 'banco', x: 10, y: 4, blocks: false, seat: 'SW' },
+    { id: 'banco_6', kind: 'banco', x: 5, y: 10, blocks: false, seat: 'NE' },
     { id: 'poste_1', kind: 'poste', x: 8, y: 3, blocks: true },
     { id: 'poste_2', kind: 'poste', x: 3, y: 9, blocks: true },
     { id: 'lixeira', kind: 'lixeira', x: 9, y: 3, blocks: true },
@@ -264,8 +267,8 @@ const padaria: RoomDef = {
   rows: 9,
   floor: ['llllllllll', 'llllllllll', 'llllllllll', 'llllllllll', 'llllllllll', 'llllllllll', 'llllllllll', 'llllllllll', 'llllllllll'],
   wallHeight: 140,
-  wallColor: '#f3e6cc',
-  wallTrim: '#b5452e',
+  wallColor: '#F5E6D3',
+  wallTrim: '#C45C26',
   lighting: 'manha',
   spawn: { x: 1, y: 6 },
   props: [
@@ -345,9 +348,9 @@ const kitnet: RoomDef = {
   rows: 8,
   floor: ['mmmmmmmm', 'mmmmmmmm', 'mmmmmmmm', 'mmmmmmmm', 'mmmmmmmm', 'mmmmmmmm', 'mmmmmmmm', 'mmmmmmmm'],
   wallHeight: 130,
-  wallColor: '#8fc4bd',
-  wallTrim: '#f4efe6',
-  lighting: 'noite',
+  wallColor: '#F5E6D3',
+  wallTrim: '#8B5E3C',
+  lighting: 'dia',
   spawn: { x: 1, y: 5 },
   props: [
     { id: 'cama', kind: 'cama', x: 6, y: 1, w: 2, h: 2, blocks: true },

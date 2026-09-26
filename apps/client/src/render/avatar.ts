@@ -12,6 +12,9 @@ export interface AvatarPose {
 }
 
 const BODY_W = { esguio: 16, medio: 20, forte: 25 } as const;
+/** Brimmed hats keep the old, larger head size so the hat is the avatar's silhouette hero; snug caps hug the head. */
+const HAT_R = 11.5;
+const SNUG_HATS = new Set<HatDef['shape']>(['bone', 'viseira', 'gorro', 'capacete']);
 const OUTLINE = 'rgba(42,26,40,0.6)';
 
 /** Stroke a segment with a dark outline underneath, for a clean cartoon silhouette. */
@@ -61,15 +64,16 @@ export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId:
   if (flip) ctx.scale(-1, 1);
   ctx.translate(sway, bob + sitDrop);
 
-  const hipY = -24;
-  const shoulderY = -50;
-  const headY = -63;
-  const headR = 11.5;
+  // Grown-up proportions (head ≈ ¼ of height, not chibi ⅓).
+  const hipY = -27;
+  const shoulderY = -54;
+  const headY = -66;
+  const headR = 9.8;
   const legW = a.body === 'forte' ? 8 : 7;
   const legX = bw / 2 - legW / 2 - 1;
 
   // ---- back hair layer
-  if (a.hair === 'black') circle(ctx, 0, headY - 3, 17, hair);
+  if (a.hair === 'black') circle(ctx, 0, headY - 3, headR * 1.5, hair);
   if (a.hair === 'longo') rrect(ctx, -headR - 1, headY - 4, headR * 2 + 2, 26, 8, shade(hair, -0.1));
   if (a.hair === 'trancas' && !front) {
     ctx.strokeStyle = hair;
@@ -119,7 +123,7 @@ export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId:
     const sx = side * (bw / 2 + 1);
     const sy = shoulderY + 4;
     let ang = Math.PI / 2 + side * 0.18 + (side === 1 ? armSwing : -armSwing);
-    let len = 21;
+    let len = 22;
     if (emote === 'oi' && side === 1) ang = -Math.PI / 2 + 0.35 + Math.sin(emoteAge * 14) * 0.45;
     if (emote === 'dancar') ang = -Math.PI / 2 + side * (0.5 + Math.sin(emoteAge * 9 + (side === 1 ? 0 : Math.PI)) * 0.35);
     if (emote === 'valeu' && side === 1) {
@@ -216,7 +220,7 @@ export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId:
   }
 
   // ---- neck + head
-  rrect(ctx, -3.5, headY + 8, 7, 7, 2, shade(skin, -0.08));
+  rrect(ctx, -3.2, headY + 7, 6.4, shoulderY - headY - 5, 2, shade(skin, -0.08));
   circle(ctx, 0, headY, headR, skin, OUTLINE, 1.2);
   ellipse(ctx, -4, headY - 5, 4, 2.5, 'rgba(255,255,255,0.18)');
   circle(ctx, -headR + 0.5, headY + 1, 2.6, shade(skin, -0.06));
@@ -238,33 +242,36 @@ export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId:
     ctx.strokeStyle = shade(hair, 0.05);
     ctx.lineWidth = 1.4;
     ctx.beginPath();
-    ctx.moveTo(fx - 6, headY - 4.8);
-    ctx.lineTo(fx - 2, headY - 5.4);
-    ctx.moveTo(fx + 2, headY - 5.4);
-    ctx.lineTo(fx + 6, headY - 4.8);
+    ctx.moveTo(fx - 5.6, headY - 4.4);
+    ctx.lineTo(fx - 2, headY - 5);
+    ctx.moveTo(fx + 2, headY - 5);
+    ctx.lineTo(fx + 5.6, headY - 4.4);
     ctx.stroke();
-    ellipse(ctx, fx - 6.5, headY + 3.5, 2.2, 1.3, 'rgba(232,110,110,0.35)');
-    ellipse(ctx, fx + 6.5, headY + 3.5, 2.2, 1.3, 'rgba(232,110,110,0.35)');
+    ellipse(ctx, fx - 5.6, headY + 3.2, 1.9, 1.1, 'rgba(232,110,110,0.3)');
+    ellipse(ctx, fx + 5.6, headY + 3.2, 1.9, 1.1, 'rgba(232,110,110,0.3)');
     ctx.strokeStyle = '#7a3b2e';
     ctx.lineWidth = 1.5;
     ctx.lineCap = 'round';
     ctx.beginPath();
     if (emote === 'rir' || emote === 'oi' || emote === 'dancar') {
       ctx.fillStyle = '#7a2e2e';
-      ctx.arc(fx, headY + 4, 3.4, 0, Math.PI);
+      ctx.arc(fx, headY + 3.6, 3, 0, Math.PI);
       ctx.fill();
     } else if (emote === 'desculpa') {
-      ctx.arc(fx, headY + 6.5, 2.4, 1.15 * Math.PI, 1.85 * Math.PI);
+      ctx.arc(fx, headY + 5.8, 2.2, 1.15 * Math.PI, 1.85 * Math.PI);
       ctx.stroke();
     } else {
-      ctx.arc(fx, headY + 3.4, 3, 0.15 * Math.PI, 0.85 * Math.PI);
+      ctx.arc(fx, headY + 3.2, 2.6, 0.15 * Math.PI, 0.85 * Math.PI);
       ctx.stroke();
     }
   }
 
   drawHair(ctx, a.hair, hair, headY, headR, front);
   const hat = hatById(hatId);
-  if (hat) drawHat(ctx, hat, headY, headR, front, t);
+  if (hat) {
+    const hr = SNUG_HATS.has(hat.shape) ? headR + 0.8 : HAT_R;
+    drawHat(ctx, hat, headY + hr - headR, hr, front, t);
+  }
   if (parrot) drawParrot(ctx, bw / 2 + 1, shoulderY - 2, t, front);
 
   ctx.restore();
@@ -313,8 +320,8 @@ function drawHair(ctx: Ctx, style: Appearance['hair'], color: string, hy: number
     case 'black':
       if (front) {
         ctx.beginPath();
-        ctx.arc(0, hy - 3, 17, Math.PI * 1.05, Math.PI * 1.95);
-        ctx.quadraticCurveTo(0, hy - 8, -16.5, hy - 7);
+        ctx.arc(0, hy - 3, r * 1.5, Math.PI * 1.05, Math.PI * 1.95);
+        ctx.quadraticCurveTo(0, hy - 8, -r * 1.45, hy - 7);
         ctx.fill();
       }
       break;
