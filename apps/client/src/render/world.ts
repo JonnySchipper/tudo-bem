@@ -19,7 +19,7 @@ import { game, type Bubble, type ClientAvatar } from '../state';
 import { computeCamera, HH, HW, tileCenter, toScreen, toTile, screenToWorld, worldToClient, type Camera } from './iso';
 import { diamond, ellipse, FONT_BODY, rrect, shadow, wrapText, type Ctx, circle } from './draw';
 import { drawBackground, drawLighting, drawRoomStatic } from './room';
-import { drawFurniture, drawProp, SLICED_PROPS } from './props';
+import { clearFurnitureIconCache, drawFurniture, drawProp, SLICED_PROPS } from './props';
 import { avatarTop, clearFrameCache, drawAvatar } from './avatar';
 import { drawSprite, furnitureKey, propKey } from '../art/sprites';
 
@@ -127,7 +127,10 @@ export class WorldRenderer {
     const k = `${room.id}:${this.w}x${this.h}:${this.cam.scale.toFixed(3)}`;
     if (k !== this.staticKey) {
       // Clear frame cache on room change to free memory
-      if (this.lastRoom && this.lastRoom !== room.id) clearFrameCache();
+      if (this.lastRoom && this.lastRoom !== room.id) {
+      clearFrameCache();
+      clearFurnitureIconCache();
+    }
       this.lastRoom = room.id;
       this.staticKey = k;
       this.buildStatic(room);

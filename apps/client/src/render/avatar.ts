@@ -221,6 +221,10 @@ const PAD = 3;
 const OUTLINE_INK = 'rgba(38,20,30,0.5)';
 const HAT_INK = 'rgba(38,20,30,0.78)';
 const BUDGET_PX = 8_000_000;
+/** Cap scratch pool to prevent unbounded growth from varied canvas sizes. */
+const MAX_SCRATCH = 6;
+/** Cap latest fallback map to limit memory during sit/stand thrash. */
+const MAX_LATEST = 200;
 
 interface Frame {
   c: HTMLCanvasElement;
@@ -250,8 +254,10 @@ function canvas(i: number, w: number, h: number): HTMLCanvasElement {
   // Cap scratch canvas dimensions to prevent unbounded growth
   w = Math.min(w, MAX_SCRATCH_DIM);
   h = Math.min(h, MAX_SCRATCH_DIM);
-  let c = scratch[i];
-  if (!c) c = scratch[i] = document.createElement('canvas');
+  // Wrap index to prevent unbounded scratch array growth
+  const idx = i % MAX_SCRATCH;
+  let c = scratch[idx];
+  if (!c) c = scratch[idx] = document.createElement('canvas');
   if (c.width < w || c.height < h) {
     c.width = Math.min(Math.max(c.width, w), MAX_SCRATCH_DIM);
     c.height = Math.min(Math.max(c.height, h), MAX_SCRATCH_DIM);
@@ -347,7 +353,8 @@ function getFrame(a: Appearance, fs: FrameState, ps: number): Frame {
     frames.delete(k0);
     framePx -= f0.px;
   }
-  if (latest.size > 600) latest.clear();
+  // Clear latest when it grows too large to prevent sit/stand thrash OOM
+  if (latest.size > MAX_LATEST) latest.clear();
   return f;
 }
 
