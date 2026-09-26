@@ -2,7 +2,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CONVERSA_SUBJECTS, DEFAULT_APPEARANCE, TUTORIAL_STEPS, conversaDateKey, type TutorialStep } from '@tudobem/shared';
 import { handleConversaApi } from './conversaApi.js';
 import { fileAdapter } from './fileStore.js';
@@ -149,5 +149,34 @@ describe('Conversa RV persist', () => {
     expect(res.body.payout).toBe(20);
     expect(store.get('p2')?.coins).toBe(70);
     expect(store.get('p2')?.daily.conversaRvGranted?.carlos).toBe(conversaDateKey());
+  });
+
+  it('answers a turn when history is missing instead of throwing', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('no network in unit test'));
+    try {
+      dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tb-conversa-'));
+      store = new ProfileStore(fileAdapter(dir));
+      store.add(profile('p3'));
+      const port = await listen(() => store);
+      const res = await post(port, {
+        action: 'turn',
+        npcId: 'carlos',
+        subjectId: 'cafe_da_manha',
+        playerName: 'Ana',
+        pronoun: 'ela',
+        nameplate: 'verde',
+        playerId: 'p3',
+        text: 'Oi tudo bom',
+        turn: 1,
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.phase).toBe('turn');
+      expect(res.body.mode === 'ai' || res.body.mode === 'authored').toBe(true);
+      const line = res.body.line as { pt?: string };
+      expect(typeof line?.pt).toBe('string');
+      expect(line.pt!.length).toBeGreaterThan(0);
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 });

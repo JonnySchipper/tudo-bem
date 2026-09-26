@@ -31,6 +31,7 @@ import {
   ROOMS,
   sanitizeTray,
   SCORE_FEEDBACK,
+  TYPED_MISS_HINT,
   scenePayout,
   SHOE_COLORS,
   SKIN_TONES,
@@ -670,7 +671,7 @@ export class World {
     const scored = this.services.npc.scoreTyped(sc.npc, sc.node, text, sc.ctx);
     if (scored.chip === null) {
       this.services.student.record({ playerId: p.id, itemIds: [], channel: 'type', score: 0, latencyMs: this.now() - sc.shownAt, place: 'padaria', nameplate: p.nameplate, at: this.now(), jev });
-      if (current) s.send({ t: 'scene', view: current, lastScore: 0, feedback: SCORE_FEEDBACK[0], said: { pt: text, en: '' } });
+      if (current) s.send({ t: 'scene', view: current, lastScore: 0, feedback: TYPED_MISS_HINT, said: { pt: text, en: '' } });
       return;
     }
     return this.applyChoice(s, sc, scored.chip, scored.task_success, 'type', text, jev);
