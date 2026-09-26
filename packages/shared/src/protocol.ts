@@ -15,6 +15,7 @@ import type { SceneView } from './carlos.js';
 import type { MgOrderLine, MgOutcome, Tray } from './meveum.js';
 import type { SafetyAction } from './safety.js';
 import type { NpcId } from './rooms.js';
+import type { ConversaGrade, ConversaMeter, ConversaScores, ConversaSubject } from './conversa.js';
 
 /** Client → server messages. JSON over a single WebSocket at /ws. */
 export type ClientMsg =
@@ -32,6 +33,10 @@ export type ClientMsg =
   | { t: 'scene'; action: 'choose'; chip: number }
   | { t: 'scene'; action: 'type'; text: string }
   | { t: 'scene'; action: 'close' }
+  | { t: 'conversa'; action: 'start'; npc: NpcId; subjectId?: string }
+  | { t: 'conversa'; action: 'say'; text: string }
+  | { t: 'conversa'; action: 'chip'; chip: number }
+  | { t: 'conversa'; action: 'close' }
   | { t: 'mg'; action: 'start' }
   | { t: 'mg'; action: 'submit'; tray: Tray; mods?: string[] }
   | { t: 'mg'; action: 'timeout' }
@@ -67,6 +72,57 @@ export type MgServerMsg =
   | { t: 'mg'; phase: 'result'; round: number; outcome: MgOutcome | 'repita'; carlos: Bilingual; expected?: MgOrderLine[]; expectedMods?: string[]; points: number; streak: number }
   | { t: 'mg'; phase: 'end'; points: number; coins: number; perfect: number; rounds: number; carlos: Bilingual };
 
+/**
+ * Conversa (GDD §5.6). Only ever sent to the player having the conversation — never broadcast.
+ * `mode` is 'ai' for generative turns, 'authored' for the Carlos graph fallback.
+ */
+export type ConversaServerMsg =
+  | {
+      t: 'conversa';
+      phase: 'open';
+      npc: NpcId;
+      npcName: string;
+      subject: ConversaSubject;
+      mode: 'ai' | 'authored';
+      offline: boolean;
+      line: Bilingual;
+      chips: Bilingual[];
+      turn: number;
+      maxTurns: number;
+    }
+  | { t: 'conversa'; phase: 'said'; text: string; turn: number; maxTurns: number }
+  | { t: 'conversa'; phase: 'rejected'; pt: string; en: string }
+  | {
+      t: 'conversa';
+      phase: 'turn';
+      mode: 'ai' | 'authored';
+      offline: boolean;
+      line: Bilingual;
+      chips: Bilingual[];
+      scores: ConversaScores;
+      meter: ConversaMeter;
+      tip: Bilingual | null;
+      turn: number;
+      maxTurns: number;
+    }
+  | {
+      t: 'conversa';
+      phase: 'end';
+      mode: 'ai' | 'authored';
+      offline: boolean;
+      line: Bilingual;
+      scores: ConversaScores;
+      meter: ConversaMeter;
+      tip: Bilingual | null;
+      grade: ConversaGrade;
+      gradeLabel: Bilingual;
+      payout: number;
+      reason: 'natural' | 'cap' | 'early';
+      turn: number;
+      maxTurns: number;
+    }
+  | { t: 'conversa'; phase: 'blocked'; reason: 'daily' | 'unavailable'; pt: string; en: string };
+
 /** Server → client messages. */
 export type ServerMsg =
   | { t: 'welcome'; profile: PrivateProfile; token: string }
@@ -83,6 +139,7 @@ export type ServerMsg =
   | { t: 'reward'; amount: number; coins: number; reason: Bilingual }
   | { t: 'scene'; view: SceneView; lastScore?: 0 | 1 | 2 | 3; feedback?: Bilingual; said?: Bilingual; payout?: number }
   | MgServerMsg
+  | ConversaServerMsg
   | { t: 'furnitureState'; furniture: PlacedFurniture[] }
   | { t: 'friends'; friends: FriendInfo[]; incoming: { id: string; name: string }[] }
   | { t: 'friendRequest'; fromId: string; fromName: string }

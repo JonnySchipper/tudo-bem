@@ -1780,3 +1780,360 @@ button:disabled {
     display: none;
   }
 }
+
+/* ---------------------------------------------------------------- Conversa (private NPC conversation) */
+
+.conversa-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(44, 34, 28, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.conversa-panel {
+  background: var(--cream);
+  border: 1px solid var(--edge);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  width: min(680px, calc(100vw - 32px));
+  max-height: calc(100vh - 64px);
+  overflow: auto;
+  padding: 20px 24px;
+}
+
+.conversa-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.conversa-portrait {
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--cream-wall), var(--paper));
+  border: 1px solid var(--wood);
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.conversa-portrait canvas {
+  display: block;
+  border-radius: 8px;
+}
+
+.conversa-header .info {
+  flex: 1;
+}
+
+.conversa-header .npc-name {
+  font-family: var(--font-title);
+  font-size: 1.4em;
+  color: var(--ink);
+  line-height: 1.1;
+}
+
+.conversa-header .subject {
+  font-weight: 700;
+  color: var(--terracota);
+  margin-top: 4px;
+}
+
+.conversa-header .offline-note {
+  display: block;
+  color: var(--ink-soft);
+  font-size: 0.85em;
+  font-style: italic;
+  margin-top: 4px;
+}
+
+.conversa-header .private-note {
+  display: block;
+  color: var(--sp-green);
+  font-size: 0.8em;
+  margin-top: 6px;
+}
+
+.conversa-header .turn-counter {
+  position: absolute;
+  top: 0;
+  right: 36px;
+  background: var(--paper);
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-weight: 800;
+  font-size: 0.9em;
+  color: var(--ink-soft);
+}
+
+.conversa-header .close-btn {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+}
+
+.conversa-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.conversa-transcript {
+  background: var(--paper);
+  border: 1px solid rgba(44, 44, 44, 0.2);
+  border-radius: 12px;
+  padding: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.conversa-strip {
+  padding: 8px 12px;
+  border-radius: 10px;
+  max-width: 85%;
+}
+
+.conversa-strip.npc {
+  background: linear-gradient(135deg, var(--cream-wall), var(--cream));
+  border-left: 3px solid var(--terracota);
+  align-self: flex-start;
+}
+
+.conversa-strip.player {
+  background: linear-gradient(135deg, #e8f5e9, #dcedc8);
+  border-right: 3px solid var(--sp-green);
+  align-self: flex-end;
+}
+
+.conversa-strip .text {
+  display: block;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.conversa-strip .en {
+  font-size: 0.85em;
+}
+
+.conversa-meters {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.conversa-meter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.conversa-meter-row .label {
+  width: 90px;
+  font-weight: 700;
+  font-size: 0.85em;
+  color: var(--ink-soft);
+}
+
+.conversa-meter-row .track {
+  flex: 1;
+  height: 10px;
+  background: rgba(44, 44, 44, 0.12);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.conversa-meter-row .fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--sp-green), var(--verde));
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.conversa-meter-row .pct {
+  width: 40px;
+  text-align: right;
+  font-weight: 700;
+  font-size: 0.85em;
+  color: var(--ink-soft);
+}
+
+.conversa-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.conversa-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--paper);
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.conversa-chip:hover {
+  background: var(--cream);
+  transform: translateY(-1px);
+}
+
+.conversa-chip .num {
+  background: var(--mustard);
+  color: var(--ink);
+  font-size: 0.75em;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.conversa-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.conversa-input-row input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  font-size: 1em;
+  font-family: var(--font-body);
+  background: var(--paper);
+}
+
+.conversa-input-row input:focus {
+  outline: 2px solid var(--terracota);
+  outline-offset: 1px;
+}
+
+.conversa-footer {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 8px;
+}
+
+/* Score card */
+
+.conversa-score-card {
+  background: linear-gradient(135deg, var(--paper), var(--cream-wall));
+  border: 2px solid var(--wood);
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+}
+
+.conversa-score-card .grade {
+  font-family: var(--font-title);
+  font-size: 2em;
+  font-weight: 800;
+  padding: 8px 24px;
+  border-radius: 12px;
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+.conversa-score-card .grade.pass {
+  background: var(--sp-green);
+  color: white;
+}
+
+.conversa-score-card .grade.almost {
+  background: var(--mustard);
+  color: var(--ink);
+}
+
+.conversa-score-card .grade.try-again {
+  background: var(--paper);
+  border: 2px solid var(--terracota);
+  color: var(--terracota);
+}
+
+.conversa-score-card .grade-line {
+  font-weight: 700;
+  font-size: 1.1em;
+  margin-bottom: 16px;
+}
+
+.conversa-score-card .payout {
+  font-family: var(--font-title);
+  font-size: 1.5em;
+  color: var(--mustard);
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+
+.conversa-score-card .axes {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+  margin-top: 16px;
+}
+
+.conversa-score-card .score-axis {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.conversa-score-card .axis-label {
+  font-weight: 700;
+  font-size: 0.9em;
+  color: var(--ink);
+}
+
+.conversa-score-card .score-axis .track {
+  height: 12px;
+  background: rgba(44, 44, 44, 0.12);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.conversa-score-card .score-axis .fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--terracota), var(--mustard));
+  border-radius: 6px;
+}
+
+.conversa-score-card .tip {
+  color: var(--ink-soft);
+  font-size: 0.8em;
+}
+
+.conversa-body.ended .actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 500px) {
+  .conversa-panel {
+    padding: 16px;
+  }
+  .conversa-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .conversa-header .turn-counter {
+    position: static;
+    margin-top: 8px;
+  }
+  .conversa-header .close-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+  }
+}

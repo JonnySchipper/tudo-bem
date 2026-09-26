@@ -12,6 +12,7 @@ export default defineConfig({
     proxy: {
       '/ws': { target: SERVER, ws: true },
       '/healthz': { target: SERVER },
+      '/api/conversa': { target: SERVER },
     },
   },
   build: {

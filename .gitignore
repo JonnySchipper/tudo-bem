@@ -6,3 +6,6 @@ data/
 .vite/
 coverage/
 artifacts/
+
+.conversa-briefs/
+CONVERSA_ART_LOCK.md

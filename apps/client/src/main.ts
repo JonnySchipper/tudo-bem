@@ -34,6 +34,7 @@ import {
   showParrotPerch,
   showScene,
 } from './ui/panels';
+import { openConversa, closeConversa, isConversaOpen } from './ui/conversa';
 import { speak } from './audio';
 import { installUiArt } from './art/ui';
 import { artStats, loadArt } from './art/sprites';
@@ -92,8 +93,14 @@ function runPending() {
 }
 
 function talkTo(npc: NpcDef['id']) {
-  if (npc === 'carlos') net.send({ t: 'scene', action: 'start', npc: 'carlos' });
-  else if (npc === 'nanda') openShop();
+  if (npc === 'carlos') {
+    const p = game.profile;
+    if (p && (p.tutorial.carlos || p.tutorial.meveum)) {
+      openConversa('carlos', () => {});
+    } else {
+      net.send({ t: 'scene', action: 'start', npc: 'carlos' });
+    }
+  } else if (npc === 'nanda') openShop();
   else showJulia();
 }
 
