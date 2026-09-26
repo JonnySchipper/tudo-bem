@@ -1,19 +1,14 @@
 import {
   ageFrom,
   BODY_TYPES,
-  BOTTOM_STYLES,
-  CLOTH_COLORS,
   DEFAULT_APPEARANCE,
-  EXTRA_STYLES,
   FACE_STYLES,
   HAIR_COLORS,
   HAIR_STYLES,
   LABELS,
   MIN_AGE,
-  SHOE_COLORS,
   SKIN_TONES,
   STARTER_OUTFITS,
-  TOP_STYLES,
   validateName,
   type Appearance,
   type Pronoun,
@@ -101,11 +96,13 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
     function creator(birthYear: number, birthMonth: number) {
       const a: Appearance = { ...DEFAULT_APPEARANCE, ...STARTER_OUTFITS[0].set, skin: Math.floor(Math.random() * SKIN_TONES.length) };
       let pronoun: Pronoun = 'nome';
-      const canvas = h('canvas', { width: 220, height: 280, style: 'width:220px;height:280px' });
+      const canvas = h('canvas', { width: 220, height: 280, class: 'creator-canvas' });
       let raf = 0;
       let wave = 0;
       const loop = (ts: number) => {
-        renderAvatarPreview(canvas, a, null, false, ts / 1000, { scale: 2.45, footY: 266, view: 'front', emote: ts / 1000 - wave < 2.5 ? 'oi' : null, emoteT0: wave });
+        const ch = canvas.clientHeight || 280;
+        const scale = Math.min(2.45, Math.max(1.35, (ch - 28) / 100));
+        renderAvatarPreview(canvas, a, null, false, ts / 1000, { scale, footY: ch - 14, view: 'front', emote: ts / 1000 - wave < 2.5 ? 'oi' : null, emoteT0: wave });
         raf = requestAnimationFrame(loop);
       };
       raf = requestAnimationFrame((ts) => {
@@ -194,15 +191,16 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
         hero(),
         h(
           'div',
-          { class: 'panel', style: 'width:min(880px, calc(100vw - 24px))' },
+          { class: 'panel creator-panel' },
           h('h2', null, 'Crie seu avatar'),
-          en('Create your avatar. Starter clothes are free — hats and more wait for you in the square.'),
+          h('p', { class: 'creator-lead' }, 'Nome, pronome, corpo, pele, rosto e cabelo — de graça. A roupa inicial já vem pronta.'),
+          en('Name, pronoun, body, skin, face and hair are free. One starter outfit — hats and more clothes are at Nanda’s stall.'),
           h(
             'div',
             { class: 'creator' },
             h(
               'div',
-              null,
+              { class: 'creator-side' },
               h('div', { class: 'preview' }, canvas),
               h(
                 'div',
@@ -213,28 +211,26 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
             ),
             h(
               'div',
-              null,
+              { class: 'creator-fields' },
               field('Como você se chama?', 'Display name (not your full real name)', h('div', null, name, nameErr)),
               field('Como devemos te chamar?', 'How should NPCs address you? (grammar agreement)', pronounChips),
-              field('Visual inicial', 'Free starter looks — tweak anything below', presets),
+              field('Visual inicial', 'Starter outfit (tee and jeans only). Hats and more clothes are at Nanda’s stall.', presets),
               field('Corpo', 'Body', chips(BODY_TYPES, (v) => LABELS.body[v], () => a.body, (v) => (a.body = v))),
               field('Tom de pele', 'Skin tone', swatches(SKIN_TONES, () => a.skin, (i) => (a.skin = i))),
               field('Rosto', 'Face', chips(FACE_STYLES, (v) => LABELS.face[v], () => a.face ?? 'suave', (v) => (a.face = v))),
-              field('Detalhe', 'Detail — glasses, beard, earrings…', chips(EXTRA_STYLES, (v) => LABELS.extra[v], () => a.extra ?? 'nenhum', (v) => (a.extra = v))),
               field('Cabelo', 'Hair', chips(HAIR_STYLES, (v) => LABELS.hair[v], () => a.hair, (v) => (a.hair = v))),
               field('Cor do cabelo', 'Hair color', swatches(HAIR_COLORS, () => a.hairColor, (i) => (a.hairColor = i))),
-              field('Blusa', 'Top', chips(TOP_STYLES, (v) => LABELS.top[v], () => a.top, (v) => (a.top = v))),
-              field('Cor da blusa', 'Top color', swatches(CLOTH_COLORS, () => a.topColor, (i) => (a.topColor = i))),
-              field('Parte de baixo', 'Bottoms', chips(BOTTOM_STYLES, (v) => LABELS.bottom[v], () => a.bottom, (v) => (a.bottom = v))),
-              field('Cor', 'Bottoms color', swatches(CLOTH_COLORS, () => a.bottomColor, (i) => (a.bottomColor = i))),
-              field('Tênis', 'Sneakers', swatches(SHOE_COLORS, () => a.shoes, (i) => (a.shoes = i))),
               h(
-                'label',
-                { class: 'adult-confirm', for: 'confirm-18' },
-                adult,
-                h('span', null, `Confirmo que tenho ${MIN_AGE} anos ou mais.`, en(`I confirm I am ${MIN_AGE} or older. Tudo Bem is an adult world.`, true)),
+                'div',
+                { class: 'creator-cta' },
+                h(
+                  'label',
+                  { class: 'adult-confirm', for: 'confirm-18' },
+                  adult,
+                  h('span', null, `Confirmo que tenho ${MIN_AGE} anos ou mais.`, en(`I confirm I am ${MIN_AGE} or older. Tudo Bem is an adult world.`, true)),
+                ),
+                h('div', { class: 'row', style: 'margin-top:8px' }, h('span', { class: 'spacer' }), go),
               ),
-              h('div', { class: 'row', style: 'margin-top:8px' }, h('span', { class: 'spacer' }), go),
             ),
           ),
         ),

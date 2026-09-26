@@ -235,12 +235,11 @@ function characterAssets(): ArtAsset[] {
       },
     });
   };
-  // Required TB Art shot: player front + 3/4 + back + hat-on, in both starter presets.
-  const presets = STARTER_OUTFITS.slice(0, 2).map((o, i) => ({
-    ...DEFAULT_APPEARANCE,
-    ...o.set,
-    ...(i === 0 ? { hair: 'curto' as const, skin: 4, hairColor: 0, face: 'marcante' as const } : { hair: 'ondulado' as const, skin: 1, hairColor: 3, face: 'doce' as const, extra: 'brincos' as const }),
-  }));
+  // Art sheet still shows two clothing looks. The creator itself only offers STARTER_OUTFITS[0].
+  const presets = [
+    { ...DEFAULT_APPEARANCE, ...STARTER_OUTFITS[0].set, hair: 'curto' as const, skin: 4, hairColor: 0, face: 'marcante' as const },
+    { ...DEFAULT_APPEARANCE, top: 'blusa' as const, topColor: 12, bottom: 'calca' as const, bottomColor: 10, shoes: 2, hair: 'ondulado' as const, skin: 1, hairColor: 3, face: 'doce' as const, extra: 'brincos' as const },
+  ];
   lineup(
     'player',
     { pt: 'Jogador: frente · 3/4 · costas · com chapéu', en: 'Player paper-doll — front, three-quarter, back, hat on (Jeans + camiseta · Blusa + calça)' },

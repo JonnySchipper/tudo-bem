@@ -92,6 +92,8 @@ export class WorldRenderer {
   private pigeons: Pigeon[] = [];
   private w = 0;
   private h = 0;
+  private safeTop = 0;
+  private safeBot = 0;
   private lastT = 0;
   private lastRoom = '';
   /** Tiles to point a guide arrow at (tutorial hints). */
@@ -100,16 +102,25 @@ export class WorldRenderer {
   constructor(readonly canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d')!;
     window.addEventListener('resize', () => this.resize());
+    window.visualViewport?.addEventListener('resize', () => this.resize());
+    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => this.resize()).observe(canvas);
     this.resize();
   }
 
   resize() {
+    const rect = this.canvas.getBoundingClientRect();
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    this.w = window.innerWidth;
-    this.h = window.innerHeight;
+    const w = Math.max(1, Math.round(rect.width || window.innerWidth));
+    const h = Math.max(1, Math.round(rect.height || window.innerHeight));
+    if (w === this.w && h === this.h && this.canvas.width === Math.round(w * dpr)) return;
+    this.w = w;
+    this.h = h;
     this.canvas.width = Math.round(this.w * dpr);
     this.canvas.height = Math.round(this.h * dpr);
     this.cam.dpr = dpr;
+    const cs = getComputedStyle(document.documentElement);
+    this.safeTop = parseFloat(cs.getPropertyValue('--safe-top')) || 0;
+    this.safeBot = parseFloat(cs.getPropertyValue('--safe-bottom')) || 0;
     this.staticKey = '';
   }
 
@@ -119,9 +130,9 @@ export class WorldRenderer {
     const checklist = !!p && !(p.tutorialRewarded && Object.values(p.tutorial).every(Boolean));
     const wide = this.w > 1100;
     this.cam = computeCamera(this.w, this.h, room.cols, room.rows, room.wallHeight, this.cam.dpr, {
-      top: narrow ? 60 : 64,
-      bottom: narrow ? 130 : 110,
-      left: checklist && wide ? 250 : 0,
+      top: (narrow ? 124 : 64) + this.safeTop,
+      bottom: (narrow ? 168 : 110) + this.safeBot,
+      left: checklist && wide ? 250 : narrow ? 8 : 0,
       right: game.editMode && wide ? 300 : 0,
     });
     const k = `${room.id}:${this.w}x${this.h}:${this.cam.scale.toFixed(3)}`;

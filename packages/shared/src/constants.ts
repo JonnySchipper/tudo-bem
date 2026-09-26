@@ -56,12 +56,12 @@ export const LABELS = {
   extra: { nenhum: 'Nenhum', oculos: 'Óculos', barba: 'Barba', bigode: 'Bigode', brincos: 'Brincos', sardas: 'Sardas' } as Record<ExtraStyle, string>,
 };
 
-/** Free starter looks for the creator (TB Art: at least two presentation presets). */
+/**
+ * One free starter outfit. The creator only applies these clothing fields —
+ * hats and further clothes stay on Nanda’s stall. Existing profiles keep whatever they saved.
+ */
 export const STARTER_OUTFITS: { id: string; pt: string; en: string; set: Pick<Appearance, 'top' | 'topColor' | 'bottom' | 'bottomColor' | 'shoes'> }[] = [
-  { id: 'jeans_camiseta', pt: 'Jeans + camiseta', en: 'Jeans + tee', set: { top: 'camiseta', topColor: 4, bottom: 'calca', bottomColor: 2, shoes: 0 } },
-  { id: 'blusa_calca', pt: 'Blusa + calça', en: 'Soft blouse + trousers', set: { top: 'blusa', topColor: 12, bottom: 'calca', bottomColor: 10, shoes: 2 } },
-  { id: 'camisa_calca', pt: 'Camisa + calça', en: 'Shirt + trousers', set: { top: 'camisa', topColor: 2, bottom: 'calca', bottomColor: 5, shoes: 1 } },
-  { id: 'moletom_bermuda', pt: 'Moletom + bermuda', en: 'Hoodie + shorts', set: { top: 'moletom', topColor: 11, bottom: 'bermuda', bottomColor: 10, shoes: 0 } },
+  { id: 'visual_inicial', pt: 'Visual inicial', en: 'Starter outfit', set: { top: 'camiseta', topColor: 4, bottom: 'calca', bottomColor: 2, shoes: 0 } },
 ];
 
 export const DEFAULT_APPEARANCE: Appearance = {

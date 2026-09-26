@@ -6,9 +6,10 @@
  *   pnpm e2e                            # in another (BASE_URL / CHROME_PATH / SHOTS_DIR optional)
  *
  * Plays: age gate → avatar → Praça (ambiance CPUs, daily kiosk, walk, sit, wave, chat) → Padaria →
- * Seu Carlos chips → Me vê um… (parses each Portuguese order to fill the tray) → hat shop → Kitnet
- * chair, plus a second player for chat gloss + friend request. Expects LIVEOPS_CPU_AMBIANCE on
- * (the default); set CPU_AMBIANCE=off when the server runs with it off.
+ * Seu Carlos (AI Conversa on click, then Pedido rápido chips) → Me vê um… (parses each Portuguese
+ * order to fill the tray) → hat shop → Kitnet chair, plus a second player for chat gloss + friend
+ * request. Expects LIVEOPS_CPU_AMBIANCE on (the default); set CPU_AMBIANCE=off when the server
+ * runs with it off.
  */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
@@ -74,6 +75,13 @@ async function createAvatar(page, name, pronoun) {
   await page.click('#age-next');
   await page.waitForSelector('#avatar-name');
   await page.fill('#avatar-name', name);
+  const labels = await page.$$eval('.field > label', (els) => els.map((e) => (e.childNodes[0]?.textContent ?? '').trim()));
+  assert(labels.includes('Visual inicial'), `visual inicial preset (${labels.join(' | ')})`);
+  assert(labels.includes('Corpo') && labels.includes('Rosto') && labels.includes('Cabelo'), `body, face and hair stay (${labels.join(' | ')})`);
+  for (const gone of ['Detalhe', 'Blusa', 'Cor da blusa', 'Parte de baixo', 'Tênis']) {
+    assert(!labels.includes(gone), `create no longer asks for ${gone}`);
+  }
+  assert((await page.$$('[data-outfit]')).length === 1 && (await page.$('[data-outfit="visual_inicial"]')), 'one Visual inicial clothing preset');
   const label = { ele: 'ele (he)', ela: 'ela (she)', nome: 'só meu nome (name only)' }[pronoun];
   await page.click(`button:has-text("${label}")`);
   assert(await page.isDisabled('#enter-praca'), 'cannot enter before confirming 18+');
@@ -154,6 +162,10 @@ async function main() {
   log('baked art sprites loaded', `${art.loaded}/${art.total}`);
   assert(art.total > 0 && art.loaded === art.total, 'baked art manifest + sprites load');
   assert(start.nameplate === 'verde', 'Verde nameplate');
+  assert(start.appearance.top === 'camiseta' && start.appearance.bottom === 'calca' && start.appearance.shoes === 0, 'starter outfit is tee + jeans');
+  assert(start.appearance.extra === 'nenhum', 'create does not pick glasses/beard/earrings');
+  assert(/Música/.test((await page.textContent('#btn-music')) ?? ''), 'room music toggle on the praça bar');
+  assert(/Voz/.test((await page.textContent('#btn-sound')) ?? ''), 'voice toggle on the praça bar');
 
   // 1b. Praça ambiance: Verde CPUs from the Curriculum allowlist, outside the 16-seat count
   if (AMBIANCE) {
@@ -251,9 +263,19 @@ async function main() {
   assert((await cpus(page)).length === 0, 'CPUs stay out of the Padaria');
   await dwell(1200);
 
-  // 4. Seu Carlos breakfast scene (chips only)
+  // 4. Clicking Carlos opens AI Conversa. Pedido rápido (footer) is the chip breakfast.
   await clickTile(page, 3, 1, 50);
+  await page.waitForSelector('[data-modal="conversa"] .conversa-panel', { timeout: 12_000 });
+  const conversaName = ((await page.textContent('[data-modal="conversa"] .npc-name')) ?? '').trim();
+  assert(conversaName === 'Seu Carlos', `Conversa is Seu Carlos at the mesa (${conversaName})`);
+  assert(await page.$('[data-modal="conversa"] .conversa-portrait'), 'Conversa portrait (café mesa)');
+  assert(await page.$('[data-modal="conversa"] [data-chip="0"]'), 'Conversa opens with a reply chip');
+  assert(!(await page.$('#dialogue')), 'chip dialogue is not the default Carlos click');
+  await page.waitForSelector('[data-action="pedido-rapido"]', { state: 'visible', timeout: 5_000 });
+  await shot(page, '04_carlos_conversa');
+  await page.click('[data-action="pedido-rapido"]');
   await page.waitForSelector('#dialogue [data-chip="0"]', { timeout: 12_000 });
+  assert(!(await page.$('[data-modal="conversa"]')), 'Pedido rápido closes Conversa');
   await sleep(300);
   await shot(page, '04_carlos_scene_start');
   // First reply is typed (accept-list scoring), the rest are chips.
