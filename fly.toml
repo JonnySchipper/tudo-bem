@@ -1,6 +1,6 @@
 # fly launch --no-deploy --copy-config  (then)  fly volumes create tudobem_data --size 1  &&  fly deploy
 app = "tudo-bem"
-primary_region = "gru"
+primary_region = "iad"
 
 [build]
   dockerfile = "Dockerfile"
