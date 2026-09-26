@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { buildGrid, CPU_NAMES, DEFAULT_APPEARANCE, ECONOMY, isCpuId, isWalkable, MISSION_REWARD, mulberry32, ROOMS, type ServerMsg, type ClientMsg, type PublicAvatar } from '@tudobem/shared';
-import { World, type Session, type WorldOptions } from './world.js';
+import { sanitizeAppearance, World, type Session, type WorldOptions } from './world.js';
 import { ProfileStore } from './store.js';
 import { AuthoredNpcDialogue, MemoryModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 
@@ -60,6 +60,13 @@ describe('World', () => {
   beforeEach(() => {
     clock = 1_000_000;
     pending.length = 0;
+  });
+
+  it('sanitizes the character-redesign fields and fills them in for older saves', () => {
+    const legacy = { body: 'medio', skin: 2, hair: 'curto', hairColor: 1, top: 'camiseta', topColor: 1, bottom: 'calca', bottomColor: 2, shoes: 0 } as const;
+    expect(sanitizeAppearance(legacy)).toMatchObject({ face: 'suave', extra: 'nenhum', idle: 'solto' });
+    expect(sanitizeAppearance({ ...legacy, face: 'maduro', extra: 'oculos', idle: 'cafe' })).toMatchObject({ face: 'maduro', extra: 'oculos', idle: 'cafe' });
+    expect(sanitizeAppearance({ ...legacy, face: 'x' as never, extra: '<b>' as never, idle: 'dance' as never })).toMatchObject({ face: 'suave', extra: 'nenhum', idle: 'solto' });
   });
 
   it('enforces the 18+ age gate, explicit adult confirmation, and name filter', async () => {

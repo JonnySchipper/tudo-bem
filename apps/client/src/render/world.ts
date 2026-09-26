@@ -20,7 +20,7 @@ import { computeCamera, HH, HW, tileCenter, toScreen, toTile, screenToWorld, wor
 import { diamond, ellipse, FONT_BODY, rrect, shadow, wrapText, type Ctx, circle } from './draw';
 import { drawBackground, drawLighting, drawRoomStatic } from './room';
 import { drawFurniture, drawProp, SLICED_PROPS } from './props';
-import { drawAvatar } from './avatar';
+import { avatarTop, drawAvatar } from './avatar';
 import { drawSprite, furnitureKey, propKey } from '../art/sprites';
 
 export type Hit =
@@ -63,6 +63,14 @@ const PROP_HEIGHT: Partial<Record<PropDef['kind'], number>> = {
   trilho_pedidos: 110,
   banca: 80,
 };
+
+/** Seat surface height of whatever the avatar sits on (counter stools are taller than benches). */
+function seatHeight(room: RoomDef, t: Tile): number | undefined {
+  const p = room.props.find((q) => q.seat && q.x === t.x && q.y === t.y);
+  if (p?.kind === 'banqueta') return 28;
+  if (p?.kind === 'cadeira_padaria') return 18;
+  return undefined;
+}
 
 export class WorldRenderer {
   readonly ctx: Ctx;
@@ -324,15 +332,16 @@ export class WorldRenderer {
         });
       }
     }
+    const light = room.lighting;
     for (const n of room.npcs) {
       const c = tileCenter(n.x, n.y);
       items.push({
         depth: n.x + n.y + 0.02,
-        draw: () => drawAvatar(ctx, c.sx, c.sy, n.appearance, n.hat, false, { dir: n.dir, t, moving: false, sitting: false, seed: n.x * 1.7 }),
+        draw: () => drawAvatar(ctx, c.sx, c.sy, n.appearance, n.hat, false, { dir: n.dir, t, moving: false, sitting: false, seed: n.x * 1.7, light, npc: n.id }),
       });
-      hitRect(c.sx, c.sy + 6, 36, 104, { kind: 'npc', npc: n }, n.x + n.y + 0.5);
+      hitRect(c.sx, c.sy + 6, 36, 6 - avatarTop(n.appearance, n.hat, false), { kind: 'npc', npc: n }, n.x + n.y + 0.5);
     }
-    const avatarScreen: { a: ClientAvatar; sx: number; sy: number; sitting: boolean }[] = [];
+    const avatarScreen: { a: ClientAvatar; sx: number; sy: number; sitting: boolean; seatH?: number }[] = [];
     for (const a of game.avatars.values()) {
       const pos = this.avatarPos(a, now);
       const sitting = !pos.moving && (a.pub.sitting || a.sitOnArrive);
@@ -340,13 +349,14 @@ export class WorldRenderer {
       if (sitting) dir = grid.seats.get(key(pos.tile.x, pos.tile.y)) ?? dir;
       if (!pos.moving && !sitting && !a.path.length) dir = a.pub.dir;
       const c = tileCenter(pos.x, pos.y);
-      avatarScreen.push({ a, sx: c.sx, sy: c.sy, sitting });
+      const seatH = sitting ? seatHeight(room, pos.tile) : undefined;
+      avatarScreen.push({ a, sx: c.sx, sy: c.sy, sitting, seatH });
       items.push({
         depth: pos.x + pos.y + 0.05,
         draw: () =>
-          drawAvatar(ctx, c.sx, c.sy, a.pub.appearance, a.pub.hat, a.pub.parrot, { dir, t, moving: pos.moving, sitting, emote: a.emote, seed: a.seed }),
+          drawAvatar(ctx, c.sx, c.sy, a.pub.appearance, a.pub.hat, a.pub.parrot, { dir, t, moving: pos.moving, sitting, emote: a.emote, seed: a.seed, light, seatH }),
       });
-      hitRect(c.sx, c.sy + 6 + (sitting ? 13 : 0), 34, 100, { kind: 'avatar', id: a.pub.id }, pos.x + pos.y + 0.6);
+      hitRect(c.sx, c.sy + 6 + (sitting ? 6 : 0), 34, 6 - avatarTop(a.pub.appearance, null, sitting, seatH), { kind: 'avatar', id: a.pub.id }, pos.x + pos.y + 0.6);
     }
     if (this.pigeons.length) {
       this.updatePigeons(
@@ -379,14 +389,13 @@ export class WorldRenderer {
     }
     for (const n of room.npcs) {
       const c = tileCenter(n.x, n.y);
-      const p = worldToClient(this.cam, c.sx, c.sy - 97);
+      const p = worldToClient(this.cam, c.sx, c.sy + avatarTop(n.appearance, n.hat, false) - 12);
       this.drawPlate(p.px, p.py, n.name, 'npc', n.role.pt);
       const b = game.npcBubbles.get(n.id);
       if (b) this.drawBubbles(p.px, p.py - 18, [b], now);
     }
     for (const s of avatarScreen) {
-      const hatLift = s.a.pub.hat ? 10 : 0;
-      const p = worldToClient(this.cam, s.sx, s.sy - 93 - hatLift + (s.sitting ? 13 : 0));
+      const p = worldToClient(this.cam, s.sx, s.sy + avatarTop(s.a.pub.appearance, s.a.pub.hat, s.sitting, s.seatH) - 12);
       const isSelf = s.a.pub.id === game.room.selfId;
       this.drawPlate(p.px, p.py, s.a.pub.name, isSelf ? 'self' : 'verde');
       s.a.bubbles = s.a.bubbles.filter((b) => now - b.at < 7000);

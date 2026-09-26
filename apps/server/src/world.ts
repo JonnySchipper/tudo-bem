@@ -9,6 +9,9 @@ import {
   checkTray,
   DEFAULT_ROOM_CAP,
   ECONOMY,
+  EXTRA_STYLES,
+  FACE_STYLES,
+  IDLE_POSES,
   findPath,
   furnitureById,
   HAIR_COLORS,
@@ -1082,5 +1085,8 @@ export function sanitizeAppearance(a: Partial<Appearance> | undefined): Appearan
     bottom: pickOf(x.bottom, BOTTOM_STYLES, 'calca'),
     bottomColor: pickIdx(x.bottomColor, CLOTH_COLORS.length, 2),
     shoes: pickIdx(x.shoes, SHOE_COLORS.length, 0),
+    face: pickOf(x.face, FACE_STYLES, 'suave'),
+    extra: pickOf(x.extra, EXTRA_STYLES, 'nenhum'),
+    idle: pickOf(x.idle, IDLE_POSES, 'solto'),
   };
 }

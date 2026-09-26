@@ -1,7 +1,7 @@
-import { hatById, SKIN_TONES } from '@tudobem/shared';
+import { hatById } from '@tudobem/shared';
 import { circle, ellipse, rrect, type Ctx } from './draw';
 import { spriteUrl } from '../art/sprites';
-import { drawHat } from './avatar';
+import { drawHatIcon as drawHatArt } from './avatar';
 
 const cache = new Map<string, string>();
 
@@ -204,15 +204,10 @@ export function drawFoodIcon(ctx: Ctx, itemId: string) {
   (FOOD[itemId] ?? FOOD.pao)(ctx);
 }
 
-/** Hat on a mannequin head in a 64×64 box. */
+/** A hat on its own with a soft floor shadow, in a 64×64 box. */
 export function drawHatIcon(ctx: Ctx, hatId: string) {
   const hat = hatById(hatId);
-  ctx.save();
-  ctx.translate(32, 44);
-  ctx.scale(1.2, 1.2);
-  circle(ctx, 0, 6, 11.5, SKIN_TONES[2], 'rgba(42,26,40,0.5)', 1);
-  if (hat) drawHat(ctx, hat, 6, 11.5, true, 0);
-  ctx.restore();
+  if (hat) drawHatArt(ctx, hat);
 }
 
 export function foodIcon(itemId: string, size = 64): string {
