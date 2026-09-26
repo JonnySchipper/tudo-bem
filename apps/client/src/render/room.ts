@@ -506,19 +506,37 @@ function drawDecor(ctx: Ctx, room: RoomDef, d: WallDecor) {
         // Striped valance over the counter; its shadow falls on the counter top (props.ts).
         const y0 = -H + 34;
         const sw = 12;
-        rrect(ctx, 0, y0 - 3, L, 4, 1, '#8B5E3C');
-        for (let i = 0; i < L / sw; i++) {
-          ctx.fillStyle = i % 2 ? '#F5E6D3' : '#C45C26';
-          ctx.fillRect(i * sw, y0, sw, 10);
-          ctx.beginPath();
-          ctx.arc(i * sw + sw / 2, y0 + 10, sw / 2, 0, Math.PI);
-          ctx.fill();
-        }
-        const shadeG = ctx.createLinearGradient(0, y0 + 10, 0, y0 + 30);
-        shadeG.addColorStop(0, 'rgba(70,35,15,0.22)');
+        const n = Math.floor(L / sw);
+        const shadeG = ctx.createLinearGradient(0, y0 + 12, 0, y0 + 32);
+        shadeG.addColorStop(0, 'rgba(70,35,15,0.26)');
         shadeG.addColorStop(1, 'rgba(70,35,15,0)');
         ctx.fillStyle = shadeG;
-        ctx.fillRect(0, y0 + 12, L, 18);
+        ctx.fillRect(0, y0 + 10, n * sw, 22);
+        const scallops = () => {
+          ctx.beginPath();
+          ctx.moveTo(0, y0);
+          ctx.lineTo(n * sw, y0);
+          ctx.lineTo(n * sw, y0 + 10);
+          for (let i = n - 1; i >= 0; i--) ctx.arc(i * sw + sw / 2, y0 + 10, sw / 2, 0, Math.PI);
+          ctx.closePath();
+        };
+        ctx.save();
+        scallops();
+        ctx.clip();
+        for (let i = 0; i < n; i++) {
+          ctx.fillStyle = i % 2 ? '#fbf1e0' : '#C45C26';
+          ctx.fillRect(i * sw, y0, sw, 17);
+        }
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.fillRect(0, y0, n * sw, 2);
+        ctx.fillStyle = 'rgba(90,40,15,0.18)';
+        ctx.fillRect(0, y0 + 8, n * sw, 9);
+        ctx.restore();
+        scallops();
+        ctx.strokeStyle = 'rgba(90,50,25,0.85)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        rrect(ctx, -2, y0 - 3, n * sw + 4, 4, 1, '#8B5E3C');
         break;
       }
       case 'foto': {

@@ -68,7 +68,7 @@ function portrait(npc: NpcDef | null) {
   let raf = 0;
   const loop = (ts: number) => {
     if (!c.isConnected && ts > 1000) return cancelAnimationFrame(raf);
-    if (npc) renderAvatarPreview(c, npc.appearance, npc.hat, false, ts / 1000, { scale: 1.7, footY: 160 });
+    if (npc) renderAvatarPreview(c, npc.appearance, npc.hat, false, ts / 1000, { scale: 1.7, footY: 167 });
     else {
       const ctx = c.getContext('2d')!;
       const dpr = window.devicePixelRatio || 1;
@@ -316,7 +316,7 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
   const grid = h('div', { class: 'grid-items' });
   let raf = 0;
   const loop = (ts: number) => {
-    renderAvatarPreview(canvas, p.appearance, sel, p.parrotOwned && p.parrotEquipped, ts / 1000, { scale: 2.2 });
+    renderAvatarPreview(canvas, p.appearance, sel, p.parrotOwned && p.parrotEquipped, ts / 1000, { scale: 2.05 });
     raf = requestAnimationFrame(loop);
   };
   raf = requestAnimationFrame(loop);
@@ -703,7 +703,7 @@ export function openProfileCard(a: PublicAvatar, actions: { request: (id: string
   const canvas = h('canvas', { width: 160, height: 200, style: 'width:160px;height:200px' });
   let raf = 0;
   const loop = (ts: number) => {
-    renderAvatarPreview(canvas, a.appearance, a.hat, a.parrot, ts / 1000, { scale: 2 });
+    renderAvatarPreview(canvas, a.appearance, a.hat, a.parrot, ts / 1000, { scale: 1.8 });
     raf = requestAnimationFrame(loop);
   };
   raf = requestAnimationFrame(loop);

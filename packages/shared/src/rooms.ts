@@ -256,11 +256,11 @@ const praca: RoomDef = {
       id: 'julia',
       name: 'Júlia',
       role: { pt: 'Guia da praça', en: 'Square guide' },
-      // Clear of the Missão kiosk so her nameplate and idle bubbles never cover the kiosk sign.
-      x: 5,
-      y: 3,
+      // Mid-praça, far enough forward that her nameplate and idle bubbles never cover the kiosk sign.
+      x: 8,
+      y: 4,
       dir: 'SW',
-      interact: { x: 5, y: 4 },
+      interact: { x: 8, y: 5 },
       appearance: { body: 'medio', skin: 2, hair: 'coque', hairColor: 2, top: 'camiseta', topColor: 0, bottom: 'calca', bottomColor: 5, shoes: 0 },
       hat: 'viseira_azul',
       idleLines: [

@@ -582,18 +582,21 @@ button:disabled {
   background:
     var(--art-calcada) bottom left / 120px 48px repeat-x,
     var(--art-skyline) left calc(100% - 44px) / 600px 160px repeat-x,
-    radial-gradient(circle at 20% 20%, rgba(242, 194, 48, 0.55), transparent 40%),
-    radial-gradient(circle at 80% 30%, rgba(229, 87, 47, 0.45), transparent 45%),
-    radial-gradient(circle at 50% 90%, rgba(46, 158, 91, 0.45), transparent 50%),
-    #3a2c40;
+    radial-gradient(circle at 12% 12%, rgba(255, 236, 196, 0.9), transparent 38%),
+    radial-gradient(circle at 85% 70%, rgba(224, 122, 95, 0.28), transparent 45%),
+    linear-gradient(#a8c5d4, #dcd6c6 55%, #f0c89a);
   overflow: auto;
   padding: 20px;
 }
 
 .onboarding .hero {
   text-align: center;
-  color: var(--cream);
+  color: var(--ink);
   margin-bottom: 14px;
+}
+
+.onboarding .hero .en {
+  color: var(--ink-soft);
 }
 
 .onboarding .hero h1 {
@@ -601,8 +604,8 @@ button:disabled {
   font-size: clamp(2.6em, 7vw, 4.2em);
   margin: 0;
   line-height: 0.95;
-  color: var(--amarelo);
-  text-shadow: 0 4px 0 var(--terracota-dark);
+  color: var(--terracota);
+  text-shadow: 0 3px 0 #fff3e0, 0 5px 0 rgba(44, 44, 44, 0.8);
 }
 
 .onboarding .hero p {

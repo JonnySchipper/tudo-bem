@@ -94,13 +94,13 @@ export const SKYLINE = (() => {
       k++;
       continue;
     }
-    blocks.push(`<rect x="${x}" y="${160 - h}" width="${w - 3}" height="${h}" fill="#4a3553"/>`);
+    blocks.push(`<rect x="${x}" y="${160 - h}" width="${w - 3}" height="${h}" fill="${k % 2 ? '#9aa6ab' : '#a9b2b3'}"/><rect x="${x}" y="${160 - h}" width="4" height="${h}" fill="#e9c9a4" opacity=".6"/>`);
     for (let wy = 160 - h + 8; wy < 152; wy += 12)
-      for (let wx = x + 5; wx < x + w - 8; wx += 8) if ((wx * 7 + wy * 3 + k) % 5 < 2) blocks.push(`<rect x="${wx}" y="${wy}" width="3" height="5" fill="#ffd98a" opacity=".8"/>`);
+      for (let wx = x + 5; wx < x + w - 8; wx += 8) if ((wx * 7 + wy * 3 + k) % 5 < 2) blocks.push(`<rect x="${wx}" y="${wy}" width="3" height="5" fill="#f3dcb8" opacity=".75"/>`);
     x += w;
     k++;
   }
-  const copan = `<path d="M262 160 V38 C290 22 318 44 346 30 C360 24 372 26 380 32 V160Z" fill="#5b4466"/>${Array.from({ length: 20 }, (_, i) => `<path d="M262 ${44 + i * 6} C290 ${30 + i * 6.5} 318 ${50 + i * 5.8} 380 ${38 + i * 6.1}" stroke="#7b6386" stroke-width="1.6" fill="none"/>`).join('')}`;
+  const copan = `<path d="M262 160 V38 C290 22 318 44 346 30 C360 24 372 26 380 32 V160Z" fill="#b9c0c0"/>${Array.from({ length: 20 }, (_, i) => `<path d="M262 ${44 + i * 6} C290 ${30 + i * 6.5} 318 ${50 + i * 5.8} 380 ${38 + i * 6.1}" stroke="#8f9a9e" stroke-width="1.6" fill="none"/>`).join('')}`;
   return svg(600, 160, copan + blocks.join(''));
 })();
 
