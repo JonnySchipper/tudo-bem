@@ -17,7 +17,7 @@ import {
 } from '@tudobem/shared';
 import { game, type Bubble, type ClientAvatar } from '../state';
 import { computeCamera, HH, HW, tileCenter, toScreen, toTile, screenToWorld, worldToClient, type Camera } from './iso';
-import { diamond, ellipse, FONT_BODY, rrect, wrapText, type Ctx, circle } from './draw';
+import { diamond, ellipse, FONT_BODY, rrect, shadow, wrapText, type Ctx, circle } from './draw';
 import { drawBackground, drawLighting, drawRoomStatic } from './room';
 import { drawFurniture, drawProp, SLICED_PROPS } from './props';
 import { drawAvatar } from './avatar';
@@ -58,7 +58,7 @@ interface Pigeon {
 
 const PROP_HEIGHT: Partial<Record<PropDef['kind'], number>> = {
   barraca_chapeus: 120,
-  quiosque: 80,
+  quiosque: 156,
   poleiro: 95,
   trilho_pedidos: 110,
   banca: 80,
@@ -136,9 +136,13 @@ export class WorldRenderer {
     const g = buildGrid(room);
     const spots: Tile[] = [];
     for (let y = 0; y < room.rows; y++) for (let x = 0; x < room.cols; x++) if (isWalkable(g, x, y)) spots.push({ x, y });
-    for (let i = 0; i < 5; i++) {
-      const s = spots[(i * 37 + 11) % spots.length];
-      this.pigeons.push({ x: s.x + 0.3, y: s.y + 0.3, tx: s.x + 0.3, ty: s.y + 0.3, wait: i, flip: false, peck: 0 });
+    // A few loners plus two little flocks pecking together (pigeons cluster in real praças).
+    const flocks = [spots[(11 * 37 + 5) % spots.length], spots[(3 * 53 + 17) % spots.length]];
+    for (let i = 0; i < 10; i++) {
+      const s = i < 3 ? spots[(i * 37 + 11) % spots.length] : flocks[i % 2];
+      const jx = i < 3 ? 0.3 : 0.15 + ((i * 0.37) % 0.7);
+      const jy = i < 3 ? 0.3 : 0.15 + ((i * 0.61) % 0.7);
+      this.pigeons.push({ x: s.x + jx, y: s.y + jy, tx: s.x + jx, ty: s.y + jy, wait: i * 0.7, flip: i % 2 === 0, peck: 0 });
     }
   }
 
@@ -182,7 +186,7 @@ export class WorldRenderer {
     if (p.flip) ctx.scale(-1, 1);
     const peck = p.peck > 0 ? Math.max(0, Math.sin(p.peck * 6 + p.x)) * 3 : 0;
     const hop = p.peck === 0 ? Math.abs(Math.sin(t * 18 + p.y)) * 1.5 : 0;
-    ellipse(ctx, 0, 0, 6, 2.5, 'rgba(0,0,0,0.18)');
+    shadow(ctx, 0, 0, 6, 2.5, 0.28);
     ellipse(ctx, 0, -6 - hop, 7, 5, '#8d8d99');
     ellipse(ctx, -3, -6 - hop, 4, 3, '#6e6e7a');
     circle(ctx, 5, -10 - hop + peck, 3.2, '#6b6b7d');
@@ -326,7 +330,7 @@ export class WorldRenderer {
         depth: n.x + n.y + 0.02,
         draw: () => drawAvatar(ctx, c.sx, c.sy, n.appearance, n.hat, false, { dir: n.dir, t, moving: false, sitting: false, seed: n.x * 1.7 }),
       });
-      hitRect(c.sx, c.sy + 6, 36, 100, { kind: 'npc', npc: n }, n.x + n.y + 0.5);
+      hitRect(c.sx, c.sy + 6, 36, 104, { kind: 'npc', npc: n }, n.x + n.y + 0.5);
     }
     const avatarScreen: { a: ClientAvatar; sx: number; sy: number; sitting: boolean }[] = [];
     for (const a of game.avatars.values()) {
@@ -342,7 +346,7 @@ export class WorldRenderer {
         draw: () =>
           drawAvatar(ctx, c.sx, c.sy, a.pub.appearance, a.pub.hat, a.pub.parrot, { dir, t, moving: pos.moving, sitting, emote: a.emote, seed: a.seed }),
       });
-      hitRect(c.sx, c.sy + 6 + (sitting ? 13 : 0), 34, 96, { kind: 'avatar', id: a.pub.id }, pos.x + pos.y + 0.6);
+      hitRect(c.sx, c.sy + 6 + (sitting ? 13 : 0), 34, 100, { kind: 'avatar', id: a.pub.id }, pos.x + pos.y + 0.6);
     }
     if (this.pigeons.length) {
       this.updatePigeons(
@@ -375,14 +379,14 @@ export class WorldRenderer {
     }
     for (const n of room.npcs) {
       const c = tileCenter(n.x, n.y);
-      const p = worldToClient(this.cam, c.sx, c.sy - 92);
+      const p = worldToClient(this.cam, c.sx, c.sy - 97);
       this.drawPlate(p.px, p.py, n.name, 'npc', n.role.pt);
       const b = game.npcBubbles.get(n.id);
       if (b) this.drawBubbles(p.px, p.py - 18, [b], now);
     }
     for (const s of avatarScreen) {
       const hatLift = s.a.pub.hat ? 10 : 0;
-      const p = worldToClient(this.cam, s.sx, s.sy - 88 - hatLift + (s.sitting ? 13 : 0));
+      const p = worldToClient(this.cam, s.sx, s.sy - 93 - hatLift + (s.sitting ? 13 : 0));
       const isSelf = s.a.pub.id === game.room.selfId;
       this.drawPlate(p.px, p.py, s.a.pub.name, isSelf ? 'self' : 'verde');
       s.a.bubbles = s.a.bubbles.filter((b) => now - b.at < 7000);
@@ -427,23 +431,38 @@ export class WorldRenderer {
     ctx.textBaseline = 'middle';
     const label = role ? `${name} · ${role}` : name;
     const tw = ctx.measureText(label).width;
-    const icon = style === 'npc' ? 0 : 14;
+    const icon = style === 'npc' ? 0 : 16;
     const w = tw + 16 + icon;
-    const bg = style === 'npc' ? '#e5572f' : '#2e9e5b';
-    rrect(ctx, x - w / 2, y - 10, w, 20, 10, bg, style === 'self' ? '#f2c230' : 'rgba(0,0,0,0.25)', style === 'self' ? 2.5 : 1);
+    // Solid plates in palette.md tokens: sp-green Verde, terracotta NPC, mustard ring on yourself.
+    const bg = style === 'npc' ? '#C45C26' : '#2F5D50';
+    rrect(ctx, x - w / 2 + 1, y - 8, w, 20, 10, 'rgba(44,30,20,0.3)');
+    rrect(ctx, x - w / 2, y - 10, w, 20, 10, bg, '#2C2C2C', 1);
+    ctx.fillStyle = 'rgba(255,255,255,0.14)';
+    ctx.beginPath();
+    ctx.roundRect(x - w / 2 + 3, y - 8.5, w - 6, 7, 5);
+    ctx.fill();
+    if (style === 'self') rrect(ctx, x - w / 2 - 2.5, y - 12.5, w + 5, 25, 12.5, undefined, '#D4A017', 2.5);
     if (icon) {
       // Seedling icon (Verde plate) — shape + color so it reads for colorblind players.
-      const ix = x - w / 2 + 12;
-      ctx.strokeStyle = '#e7ffd9';
-      ctx.lineWidth = 1.6;
+      const ix = x - w / 2 + 13;
+      circle(ctx, ix, y, 7.5, '#F5E6D3');
+      ctx.strokeStyle = '#2F5D50';
+      ctx.lineWidth = 1.7;
+      ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.moveTo(ix, y + 6);
-      ctx.lineTo(ix, y - 1);
+      ctx.moveTo(ix, y + 5);
+      ctx.lineTo(ix, y - 0.5);
       ctx.stroke();
-      ellipse(ctx, ix - 3, y - 2, 3.2, 1.8, '#c9f2b8');
-      ellipse(ctx, ix + 3, y - 4, 3.2, 1.8, '#e7ffd9');
+      ctx.fillStyle = '#3f8a4a';
+      ctx.beginPath();
+      ctx.ellipse(ix - 2.8, y - 1.8, 3, 1.7, -0.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#5fb35a';
+      ctx.beginPath();
+      ctx.ellipse(ix + 2.8, y - 3.2, 3, 1.7, 0.5, 0, Math.PI * 2);
+      ctx.fill();
     }
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = '#FFF8EC';
     ctx.textAlign = 'left';
     ctx.fillText(label, x - w / 2 + 8 + icon, y + 0.5);
     ctx.restore();
@@ -470,15 +489,18 @@ export class WorldRenderer {
       w += 20;
       const h = lines.length * 17 + (glines.length ? glines.length * 15 + 9 : 0) + 12;
       const top = by - h - 8;
-      rrect(ctx, x - w / 2, top, w, h, 12, '#ffffff', 'rgba(42,34,51,0.35)', 1.5);
+      rrect(ctx, x - w / 2 + 1.5, top + 2.5, w, h, 12, 'rgba(44,30,20,0.18)');
+      rrect(ctx, x - w / 2, top, w, h, 12, '#FFFBF2', 'rgba(44,44,44,0.8)', 1);
       if (i === bubbles.length - 1) {
         ctx.beginPath();
-        ctx.moveTo(x - 7, top + h - 1);
-        ctx.lineTo(x + 7, top + h - 1);
+        ctx.moveTo(x - 7, top + h - 0.5);
         ctx.lineTo(x, top + h + 8);
-        ctx.closePath();
-        ctx.fillStyle = '#ffffff';
+        ctx.lineTo(x + 7, top + h - 0.5);
+        ctx.fillStyle = '#FFFBF2';
         ctx.fill();
+        ctx.strokeStyle = 'rgba(44,44,44,0.8)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
       }
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';

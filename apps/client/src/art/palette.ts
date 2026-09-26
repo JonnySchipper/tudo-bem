@@ -27,3 +27,17 @@ export const PALETTE = {
   madeira: '#b98555',
   concreto: '#cfc4b0',
 } as const;
+
+/** TB Art palette lock (`palette.md`, Phase 0). Room surfaces, plates and UI chrome use these. */
+export const TB = {
+  creamWall: '#F5E6D3',
+  terracotta: '#C45C26',
+  mustard: '#D4A017',
+  spGreen: '#2F5D50',
+  softSky: '#A8C5D4',
+  charcoal: '#2C2C2C',
+  concrete: '#9A9A92',
+  muralCoral: '#E07A5F',
+  glassCool: '#C5D5DE',
+  woodWarm: '#8B5E3C',
+} as const;

@@ -2,7 +2,7 @@
  * Generated UI chrome (SVG). Single source of truth for icons, coin, plate badge, logo mark and
  * surface patterns. Applied as CSS variables at boot and exported to /art/ui/*.svg by `pnpm art`.
  */
-import { PALETTE as P } from './palette';
+import { PALETTE as P, TB } from './palette';
 import { SP_MAP } from '../render/room';
 
 const svg = (w: number, h: number, body: string) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${body}</svg>`;
@@ -19,6 +19,24 @@ export const ICONS: Record<string, string> = {
   parrot: svg(24, 24, `<path d="M6 20l3-7" stroke="${P.verdeEscuro}" stroke-width="3" stroke-linecap="round"/><ellipse cx="11" cy="12" rx="5" ry="6.5" fill="${P.verde}" stroke="${P.ink}" stroke-width="1.6"/><circle cx="13" cy="6.5" r="4" fill="${P.verdeClaro}" stroke="${P.ink}" stroke-width="1.6"/><path d="M16.5 5.5c3 .3 3 3.5.5 4" fill="${P.laranja}" stroke="${P.ink}" stroke-width="1.4"/><circle cx="14" cy="6" r="1" fill="${P.ink}"/>`),
   send: svg(24, 24, `<path d="M3 11l18-8-6 18-3-7z" fill="${P.cream}" stroke="${P.cream}" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 14l9-11" stroke="${P.terracota}" stroke-width="1.6"/>`),
   close: svg(24, 24, `<path d="M6 6l12 12M18 6L6 18" ${stroke} stroke-width="2.6"/>`),
+  // Missão do dia steps (Cumprimenta · Pede · Monta) — same glyphs as the kiosk sign in the Praça.
+  cumprimenta: svg(
+    24,
+    24,
+    `<rect x="6" y="11" width="10" height="9" rx="3.5" fill="#f2c9a0" stroke="${TB.charcoal}" stroke-width="1.6"/>${[0, 1, 2, 3]
+      .map((i) => `<rect x="${6 + i * 2.6}" y="${i === 0 || i === 3 ? 5.5 : 4}" width="2.3" height="9" rx="1.15" fill="#f2c9a0" stroke="${TB.charcoal}" stroke-width="1.4"/>`)
+      .join('')}<path d="M19 5c1.6 1.4 1.6 4 0 5.5M21 3c2.4 2.4 2.4 7 0 9.4" fill="none" stroke="${TB.terracotta}" stroke-width="1.6" stroke-linecap="round"/>`,
+  ),
+  pede: svg(
+    24,
+    24,
+    `<path d="M5 10h11l-1.2 9H6.2z" fill="${TB.creamWall}" stroke="${TB.charcoal}" stroke-width="1.6" stroke-linejoin="round"/><path d="M16 12h1.5a2.5 2.5 0 010 5H15.4" fill="none" stroke="${TB.charcoal}" stroke-width="1.6"/><rect x="6" y="11" width="9" height="2" fill="#6b3f1f"/><path d="M8.5 7.5c-1-1.2 1-2.2 0-3.6M12 7.5c-1-1.2 1-2.2 0-3.6" fill="none" stroke="${TB.terracotta}" stroke-width="1.5" stroke-linecap="round"/><path d="M3.5 20.5h15" stroke="${TB.charcoal}" stroke-width="1.6" stroke-linecap="round"/>`,
+  ),
+  monta: svg(
+    24,
+    24,
+    `<path d="M2.5 15.5h19l-2 4h-15z" fill="${TB.terracotta}" stroke="${TB.charcoal}" stroke-width="1.6" stroke-linejoin="round"/><ellipse cx="8.5" cy="12.5" rx="4.2" ry="2.8" fill="#d9913f" stroke="${TB.charcoal}" stroke-width="1.4"/><path d="M6.8 11.4l1 2M9.2 11.2l1 2" stroke="#9a5a22" stroke-width="1"/><rect x="14" y="7.5" width="5" height="7" rx="1.3" fill="${TB.creamWall}" stroke="${TB.charcoal}" stroke-width="1.4"/><rect x="14.8" y="9" width="3.4" height="1.6" fill="#6b3f1f"/>`,
+  ),
 };
 
 /** RV coin — a gold real virtual with an ipê flower. */
@@ -46,15 +64,15 @@ export const LOGO_MARK = svg(
   ${[0, 1, 2, 3, 4].map((i) => `<path d="M${4 + i * 6.4} 32a3.2 3.2 0 006.4 0z" fill="${i % 2 ? P.cream : P.terracota}"/>`).join('')}`,
 );
 
-/** Portuguese-style azulejo tile (repeatable). */
+/** Glazed terracotta tile strip (repeatable) — the padaria wainscot, reused as panel trim. */
 export const AZULEJO = svg(
   40,
   40,
-  `<rect width="40" height="40" fill="#f6f8fb"/>
-  ${[[0, 0], [40, 0], [0, 40], [40, 40]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="9" fill="${P.azul}"/><circle cx="${x}" cy="${y}" r="5" fill="#f6f8fb"/>`).join('')}
-  ${[0, 1, 2, 3].map((i) => `<ellipse cx="20" cy="12.5" rx="3.6" ry="6.5" fill="${P.azul}" transform="rotate(${i * 90} 20 20)"/>`).join('')}
-  <circle cx="20" cy="20" r="3" fill="${P.amarelo}"/>
-  <rect width="40" height="40" fill="none" stroke="rgba(43,91,168,.25)"/>`,
+  `<rect width="40" height="40" fill="${TB.creamWall}"/>
+  ${[[0, 0], [40, 0], [0, 40], [40, 40]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="9" fill="${TB.terracotta}"/><circle cx="${x}" cy="${y}" r="5" fill="${TB.creamWall}"/>`).join('')}
+  ${[0, 1, 2, 3].map((i) => `<ellipse cx="20" cy="12.5" rx="3.6" ry="6.5" fill="${TB.terracotta}" transform="rotate(${i * 90} 20 20)"/>`).join('')}
+  <circle cx="20" cy="20" r="3" fill="${TB.mustard}"/>
+  <rect width="40" height="40" fill="none" stroke="rgba(139,94,60,.3)"/>`,
 );
 
 /** Calçada paulista — São Paulo state-map mosaic strip (repeat-x). Not the Copacabana wave. */

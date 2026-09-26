@@ -25,6 +25,7 @@ import { drawParrot, renderAvatarPreview } from '../render/avatar';
 import { foodIcon, hatIcon } from '../render/icons';
 import { furnitureIcon } from '../render/props';
 import { speak } from '../audio';
+import { icon } from '../art/ui';
 
 // ---------------------------------------------------------------- modal base
 
@@ -231,32 +232,55 @@ export function showJulia() {
 
 // ---------------------------------------------------------------- daily kiosk
 
+/** “+25 RV” coin badge used on the kiosk panel and its completion banner. */
+export const rvBadge = (amount = MISSION_REWARD) => h('span', { class: 'rv-badge' }, h('span', { class: 'coin' }), `+${amount} RV`);
+
 export function openKiosk(take: () => void) {
   const body = h('div');
   const render = () => {
     const m = game.profile?.mission;
+    const steps: HTMLElement[] = [];
+    MISSION_STEPS.forEach((s, i) => {
+      const [verb, ...rest] = s.pt.split(' ');
+      const done = !!m?.steps[s.id];
+      if (i) steps.push(h('span', { class: 'mission-sep', 'aria-hidden': 'true' }, '·'));
+      steps.push(
+        h(
+          'li',
+          { class: `mission-step ${done ? 'done' : ''}`, 'data-mission-step': s.id },
+          h('span', { class: 'mission-ico' }, icon(s.id, 34)),
+          h('b', null, verb),
+          h('span', { class: 'detail' }, ` ${rest.join(' ')}`),
+          en(s.en, true),
+          done ? h('span', { class: 'tick', 'aria-label': 'feito' }, '✓') : null,
+        ),
+      );
+    });
     body.replaceChildren(
-      h(
-        'ol',
-        { class: 'mission-steps' },
-        ...MISSION_STEPS.map((s) => h('li', { class: m?.steps[s.id] ? 'done' : '', 'data-mission-step': s.id }, h('span', { class: 'box' }), h('div', null, s.pt, en(s.en, true)))),
-      ),
-      h(
-        'div',
-        { class: 'mission-footer' },
-        m?.rewarded
-          ? h('span', { class: 'feedback s3', id: 'mission-done' }, `${MISSION_COPY.done.pt} · ${MISSION_COPY.done.en}`)
-          : m?.taken
-            ? h('span', { class: 'feedback', id: 'mission-active' }, 'Missão em andamento · In progress — steps tick off as you play')
-            : h('button', { class: 'primary', id: 'mission-take', onclick: take }, bi(MISSION_COPY.cta.pt, MISSION_COPY.cta.en)),
-      ),
+      h('ol', { class: 'mission-row', 'aria-label': MISSION_STEPS.map((s) => s.pt.split(' ')[0]).join(' · ') }, ...steps),
+      m?.rewarded
+        ? h('div', { class: 'mission-complete', id: 'mission-done' }, h('span', { class: 'big' }, MISSION_COPY.done.pt), en(MISSION_COPY.done.en))
+        : h(
+            'div',
+            { class: 'mission-footer' },
+            m?.taken
+              ? h('span', { class: 'feedback', id: 'mission-active' }, `${MISSION_STEPS.filter((s) => m.steps[s.id]).length}/${MISSION_STEPS.length} · Missão em andamento`, en('In progress — steps tick off as you play', true))
+              : h('button', { class: 'primary big-cta', id: 'mission-take', onclick: take }, bi(MISSION_COPY.cta.pt, MISSION_COPY.cta.en)),
+          ),
     );
   };
   render();
   const off = game.on('profile', render);
   const close = openModal(
     'kiosk',
-    h('div', { class: 'panel kiosk' }, closeBtn(() => close()), h('h2', null, MISSION_COPY.header.pt), en(`${MISSION_COPY.header.en} · +${MISSION_REWARD} RV once a day`), body),
+    h(
+      'div',
+      { class: 'panel kiosk' },
+      closeBtn(() => close()),
+      h('div', { class: 'kiosk-head' }, h('h2', null, MISSION_COPY.header.pt), rvBadge()),
+      en(`${MISSION_COPY.header.en} · once a day`),
+      body,
+    ),
     { onClose: off },
   );
 }

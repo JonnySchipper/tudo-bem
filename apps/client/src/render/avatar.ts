@@ -60,14 +60,14 @@ export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId:
 
   ctx.save();
   ctx.translate(x, y);
-  shadow(ctx, 0, 0, bw * 0.8 + 4, 7);
+  shadow(ctx, pose.sitting ? 3 : 0, pose.sitting ? 4 : 0, bw * 0.75 + 5, 6.5, 0.3);
   if (flip) ctx.scale(-1, 1);
   ctx.translate(sway, bob + sitDrop);
 
-  // Grown-up proportions (head ≈ ¼ of height, not chibi ⅓).
-  const hipY = -27;
-  const shoulderY = -54;
-  const headY = -66;
+  // Grown-up proportions (head ≈ ¼ of height, not chibi ⅓), a touch taller for a clearer silhouette.
+  const hipY = -29;
+  const shoulderY = -58;
+  const headY = -70;
   const headR = 9.8;
   const legW = a.body === 'forte' ? 8 : 7;
   const legX = bw / 2 - legW / 2 - 1;
@@ -270,13 +270,18 @@ export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId:
   const hat = hatById(hatId);
   if (hat) {
     const hr = SNUG_HATS.has(hat.shape) ? headR + 0.8 : HAT_R;
+    // Soft ink halo around the hat so it's the first thing the eye reads on the silhouette.
+    ctx.save();
+    ctx.shadowColor = 'rgba(42,26,40,0.8)';
+    ctx.shadowBlur = 2.5;
     drawHat(ctx, hat, headY + hr - headR, hr, front, t);
+    ctx.restore();
   }
   if (parrot) drawParrot(ctx, bw / 2 + 1, shoulderY - 2, t, front);
 
   ctx.restore();
 
-  if (emote) drawEmoteTag(ctx, x, y - 104 + (pose.sitting ? 13 : 0), emote, emoteAge);
+  if (emote) drawEmoteTag(ctx, x, y - 108 + (pose.sitting ? 13 : 0), emote, emoteAge);
 }
 
 function drawHair(ctx: Ctx, style: Appearance['hair'], color: string, hy: number, r: number, front: boolean) {

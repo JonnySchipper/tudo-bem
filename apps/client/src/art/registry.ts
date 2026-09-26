@@ -75,6 +75,10 @@ const PROP_LABELS: Partial<Record<PropDef['kind'], Bilingual>> = {
   cozinha: { pt: 'Cozinha americana', en: 'Kitchenette' },
   orelhao: { pt: 'Orelhão', en: 'Public phone booth' },
   placa_rua: { pt: 'Placa de rua', en: 'Street sign' },
+  mesa_cafe: { pt: 'Mesinha da padaria', en: 'Bakery sidewalk table' },
+  jornais: { pt: 'Pilha de jornais', en: 'Newspaper stack' },
+  saco_lixo: { pt: 'Saco de lixo', en: 'Trash bag' },
+  floreira: { pt: 'Floreira', en: 'Concrete planter' },
 };
 
 function propAssets(): ArtAsset[] {

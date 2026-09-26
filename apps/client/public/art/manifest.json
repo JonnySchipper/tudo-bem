@@ -5,37 +5,37 @@
  "sprites": {
   "props/canteiro": {
    "file": "props/canteiro.png",
-   "w": 61.33,
+   "w": 63,
    "h": 55,
    "ox": -30.67,
    "oy": -39
   },
   "props/banco_SW": {
    "file": "props/banco_SW.png",
-   "w": 53.33,
-   "h": 56.67,
-   "ox": -26.67,
+   "w": 61,
+   "h": 58,
+   "ox": -28.33,
    "oy": -46
   },
   "props/banco_SE": {
    "file": "props/banco_SE.png",
-   "w": 53.33,
-   "h": 56.67,
-   "ox": -26.67,
+   "w": 61,
+   "h": 58,
+   "ox": -28.33,
    "oy": -46
   },
   "props/banco_NE": {
    "file": "props/banco_NE.png",
-   "w": 53.33,
-   "h": 50.33,
-   "ox": -26.67,
+   "w": 61,
+   "h": 51.67,
+   "ox": -28.33,
    "oy": -39.67
   },
   "props/lixeira": {
    "file": "props/lixeira.png",
-   "w": 21.33,
-   "h": 54.33,
-   "ox": -10.67,
+   "w": 24.33,
+   "h": 55,
+   "ox": -11.33,
    "oy": -49.67
   },
   "props/banca": {
@@ -47,31 +47,59 @@
   },
   "props/quiosque": {
    "file": "props/quiosque.png",
-   "w": 61.33,
-   "h": 94.33,
-   "ox": -30.67,
-   "oy": -81.67
+   "w": 117,
+   "h": 178.33,
+   "ox": -56.67,
+   "oy": -163
   },
   "props/bicicletario": {
    "file": "props/bicicletario.png",
-   "w": 45.33,
-   "h": 39.33,
-   "ox": -22.67,
-   "oy": -30.67
+   "w": 61.33,
+   "h": 39,
+   "ox": -28.67,
+   "oy": -26.67
   },
   "props/orelhao": {
    "file": "props/orelhao.png",
-   "w": 37.33,
-   "h": 104.33,
-   "ox": -17.67,
+   "w": 38.33,
+   "h": 105.33,
+   "ox": -18,
    "oy": -97.67
   },
   "props/placa_rua": {
    "file": "props/placa_rua.png",
    "w": 69.33,
-   "h": 121.33,
+   "h": 121.67,
    "ox": -34.67,
    "oy": -117.67
+  },
+  "props/mesa_cafe": {
+   "file": "props/mesa_cafe.png",
+   "w": 61.33,
+   "h": 54,
+   "ox": -28.67,
+   "oy": -40.67
+  },
+  "props/jornais": {
+   "file": "props/jornais.png",
+   "w": 43,
+   "h": 42.33,
+   "ox": -20,
+   "oy": -29.67
+  },
+  "props/saco_lixo": {
+   "file": "props/saco_lixo.png",
+   "w": 31.33,
+   "h": 36.33,
+   "ox": -14.67,
+   "oy": -28.67
+  },
+  "props/floreira": {
+   "file": "props/floreira.png",
+   "w": 57,
+   "h": 54,
+   "ox": -26.67,
+   "oy": -41
   },
   "props/caixa": {
    "file": "props/caixa.png",
@@ -97,9 +125,9 @@
   "props/balcao_2_of_5": {
    "file": "props/balcao_2_of_5.png",
    "w": 65.33,
-   "h": 76,
+   "h": 76.67,
    "ox": -32.67,
-   "oy": -60
+   "oy": -60.67
   },
   "props/balcao_3_of_5": {
    "file": "props/balcao_3_of_5.png",
@@ -132,23 +160,23 @@
   "props/vaso": {
    "file": "props/vaso.png",
    "w": 38,
-   "h": 55.33,
+   "h": 56.33,
    "ox": -19,
    "oy": -48.67
   },
   "props/banqueta": {
    "file": "props/banqueta.png",
-   "w": 23.33,
-   "h": 39.33,
-   "ox": -11.67,
+   "w": 26.33,
+   "h": 40,
+   "ox": -12.33,
    "oy": -33.67
   },
   "props/mesa": {
    "file": "props/mesa.png",
-   "w": 41.33,
-   "h": 52,
-   "ox": -20.67,
-   "oy": -43.33
+   "w": 47.33,
+   "h": 56.67,
+   "ox": -22,
+   "oy": -46.67
   },
   "props/cadeira_padaria_SE": {
    "file": "props/cadeira_padaria_SE.png",
@@ -166,7 +194,7 @@
   },
   "props/cama": {
    "file": "props/cama.png",
-   "w": 120.33,
+   "w": 123,
    "h": 101.33,
    "ox": -61,
    "oy": -55
@@ -194,43 +222,43 @@
   },
   "furniture/poltrona_verde_0": {
    "file": "furniture/poltrona_verde_0.png",
-   "w": 54,
+   "w": 58,
    "h": 68,
    "ox": -28,
    "oy": -54.33
   },
   "furniture/poltrona_verde_1": {
    "file": "furniture/poltrona_verde_1.png",
-   "w": 54,
+   "w": 56.33,
    "h": 68,
-   "ox": -26,
+   "ox": -26.33,
    "oy": -54.33
   },
   "furniture/pufe_amarelo_0": {
    "file": "furniture/pufe_amarelo_0.png",
-   "w": 31.33,
-   "h": 36.33,
-   "ox": -15.67,
+   "w": 35.67,
+   "h": 37.33,
+   "ox": -16.67,
    "oy": -29.67
   },
   "furniture/pufe_amarelo_1": {
    "file": "furniture/pufe_amarelo_1.png",
-   "w": 31.33,
-   "h": 36.33,
-   "ox": -15.67,
+   "w": 35.67,
+   "h": 37.33,
+   "ox": -16.67,
    "oy": -29.67
   },
   "furniture/mesinha_0": {
    "file": "furniture/mesinha_0.png",
    "w": 51.33,
-   "h": 43,
+   "h": 43.33,
    "ox": -25.67,
    "oy": -33.33
   },
   "furniture/mesinha_1": {
    "file": "furniture/mesinha_1.png",
    "w": 51.33,
-   "h": 43,
+   "h": 43.33,
    "ox": -25.67,
    "oy": -33.33
   },
@@ -251,69 +279,69 @@
   "furniture/luminaria_0": {
    "file": "furniture/luminaria_0.png",
    "w": 99.33,
-   "h": 104.67,
+   "h": 105.33,
    "ox": -49.67,
    "oy": -100
   },
   "furniture/luminaria_1": {
    "file": "furniture/luminaria_1.png",
    "w": 99.33,
-   "h": 104.67,
+   "h": 105.33,
    "ox": -49.67,
    "oy": -100
   },
   "furniture/estante_0": {
    "file": "furniture/estante_0.png",
-   "w": 37.33,
+   "w": 42.67,
    "h": 89.67,
-   "ox": -18.67,
+   "ox": -20,
    "oy": -79.67
   },
   "furniture/estante_1": {
    "file": "furniture/estante_1.png",
-   "w": 37.33,
+   "w": 42.67,
    "h": 89.67,
-   "ox": -18.67,
+   "ox": -20,
    "oy": -79.67
   },
   "furniture/quadro_0": {
    "file": "furniture/quadro_0.png",
-   "w": 35.33,
-   "h": 70.33,
+   "w": 35.67,
+   "h": 71.33,
    "ox": -17.67,
    "oy": -63.67
   },
   "furniture/quadro_1": {
    "file": "furniture/quadro_1.png",
-   "w": 35.33,
-   "h": 70.33,
+   "w": 35.67,
+   "h": 71.33,
    "ox": -17.67,
    "oy": -63.67
   },
   "furniture/rede_0": {
    "file": "furniture/rede_0.png",
-   "w": 57.33,
-   "h": 61.33,
-   "ox": -28.67,
+   "w": 65,
+   "h": 62.67,
+   "ox": -30.33,
    "oy": -51.67
   },
   "furniture/rede_1": {
    "file": "furniture/rede_1.png",
-   "w": 57.33,
-   "h": 61.33,
-   "ox": -28.67,
+   "w": 65,
+   "h": 62.67,
+   "ox": -30.33,
    "oy": -51.67
   },
   "furniture/filtro_0": {
    "file": "furniture/filtro_0.png",
-   "w": 38.67,
+   "w": 39.67,
    "h": 80.67,
    "ox": -19.33,
    "oy": -70.33
   },
   "furniture/filtro_1": {
    "file": "furniture/filtro_1.png",
-   "w": 38.67,
+   "w": 39.67,
    "h": 80.67,
    "ox": -19.33,
    "oy": -70.33

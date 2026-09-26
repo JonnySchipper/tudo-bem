@@ -1,5 +1,6 @@
 import './styles.css';
 import {
+  MISSION_COPY,
   ROOMS,
   TUTORIAL_STEPS,
   furnitureById,
@@ -17,7 +18,7 @@ import { Net, wsUrl, type NetLike } from './net';
 import { LocalNet } from './localNet';
 import { WorldRenderer, type Hit } from './render/world';
 import { runOnboarding, closeOnboarding } from './ui/onboarding';
-import { buildHud, hoverLabel, overlayMessage, parrotWhisper, toast } from './ui/hud';
+import { buildHud, hoverLabel, missionBanner, overlayMessage, parrotWhisper, toast } from './ui/hud';
 import {
   buildDecorPanel,
   closeDialogue,
@@ -235,7 +236,8 @@ net.on((m: ServerMsg) => {
       toast(m.level, m.pt, m.en);
       break;
     case 'reward':
-      toast('reward', m.reason.pt, m.reason.en, m.amount);
+      if (m.reason.pt === MISSION_COPY.done.pt) missionBanner();
+      else toast('reward', m.reason.pt, m.reason.en, m.amount);
       break;
     case 'scene':
       showScene(
