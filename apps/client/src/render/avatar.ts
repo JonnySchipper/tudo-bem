@@ -13,10 +13,10 @@ import { drawArm, drawHeld, drawLeg, drawNeck, drawPelvis, drawSignature, drawTo
 import { mix, rgba, RIM, tone, type Light } from './avatar/color';
 import { clipHead, drawHairBehind, drawHairFront, drawHead, hatFit } from './avatar/head';
 import { brimShade, drawHat as drawHatShape, drawHatIconArt, HAT_W, hatHeight } from './avatar/hats';
-import { buildRig, HEAD, SIT_DROP, Y, type Rig, type RigState } from './avatar/rig';
+import { buildRig, HEAD, sitDrop, Y, type Rig, type RigState } from './avatar/rig';
 import { glow, smoothClosed, type P } from './avatar/shape';
 
-export { SIT_DROP } from './avatar/rig';
+export { SEAT_H } from './avatar/rig';
 
 export interface AvatarPose {
   dir: Dir;
@@ -30,6 +30,8 @@ export interface AvatarPose {
   light?: Light;
   /** Authored NPC signature layers. */
   npc?: NpcId;
+  /** Seat surface height when sitting (defaults to bench height). */
+  seatH?: number;
 }
 
 // ---------------------------------------------------------------- pose → frame state
@@ -82,9 +84,10 @@ function frameState(a: Appearance, hatId: string | null, pose: AvatarPose): Fram
     age: ageQ,
     npc: pose.npc,
     gesture: gestQ / 14,
+    seatH: pose.sitting ? pose.seatH : undefined,
   };
   const ak = `${a.body}${a.skin}${a.hair}${a.hairColor}${a.top}${a.topColor}${a.bottom}${a.bottomColor}${a.shoes}${a.face ?? ''}${a.extra ?? ''}${a.idle ?? ''}`;
-  const key = `${ak}|${hatId ?? ''}|${pose.npc ?? ''}|${pose.dir}|${light}|${pose.sitting ? 1 : 0}${pose.moving ? 1 : 0}|${phaseQ}|${breathQ}|${blink ? 1 : 0}|${emote ?? ''}${ageQ}|${gestQ}|${hatQ}`;
+  const key = `${ak}|${hatId ?? ''}|${pose.npc ?? ''}|${pose.dir}|${light}|${pose.sitting ? (pose.seatH ?? 's') : 0}${pose.moving ? 1 : 0}|${phaseQ}|${breathQ}|${blink ? 1 : 0}|${emote ?? ''}${ageQ}|${gestQ}|${hatQ}`;
   return { rs, hat, hatT, flip, light, key };
 }
 
@@ -216,7 +219,11 @@ interface Frame {
 }
 
 const frames = new Map<string, Frame>();
+/** Most recent frame per avatar look + facing, reused while the paint budget is spent. */
+const latest = new Map<string, Frame>();
 let framePx = 0;
+let budgetTick = -1;
+let budget = 2;
 const scratch: HTMLCanvasElement[] = [];
 
 function canvas(i: number, w: number, h: number): HTMLCanvasElement {
@@ -291,13 +298,25 @@ function getFrame(a: Appearance, fs: FrameState, ps: number): Frame {
     return renderFrame(a, fs, ps, preview);
   }
   const key = `${fs.key}@${ps}`;
+  const base = `${fs.key.split('|', 6).join('|')}@${ps}`;
   const hit = frames.get(key);
   if (hit) {
     frames.delete(key);
     frames.set(key, hit);
+    latest.set(base, hit);
     return hit;
   }
+  // Spread first-time paints across ticks so a crowd walking in doesn't hitch.
+  const tick = Math.floor(performance.now() / 16);
+  if (tick !== budgetTick) {
+    budgetTick = tick;
+    budget = 2;
+  }
+  const stale = latest.get(base);
+  if (budget <= 0 && stale) return stale;
+  budget--;
   const f = renderFrame(a, fs, ps);
+  latest.set(base, f);
   frames.set(key, f);
   framePx += f.px;
   while (framePx > BUDGET_PX && frames.size > 1) {
@@ -305,6 +324,7 @@ function getFrame(a: Appearance, fs: FrameState, ps: number): Frame {
     frames.delete(k0);
     framePx -= f0.px;
   }
+  if (latest.size > 600) latest.clear();
   return f;
 }
 
@@ -331,13 +351,13 @@ export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId:
     drawParrot(ctx, r.m.sh - 1.4 + r.bx, r.shY - 0.4, pose.t + (pose.seed ?? 0), fs.rs.front);
     ctx.restore();
   }
-  if (fs.rs.emote) drawEmoteTag(ctx, x, y + avatarTop(a, hatId, pose.sitting) - 14, fs.rs.emote, pose.t - pose.emote!.t0);
+  if (fs.rs.emote) drawEmoteTag(ctx, x, y + avatarTop(a, hatId, pose.sitting, pose.seatH) - 14, fs.rs.emote, pose.t - pose.emote!.t0);
 }
 
 const BODY_SHADOW: Record<Appearance['body'], number> = { esguio: 11.5, medio: 12.5, forte: 14.5 };
 
 /** Highest point of the silhouette above the floor point (negative y), for plates and tags. */
-export function avatarTop(a: Appearance, hatId: string | null, sitting: boolean): number {
+export function avatarTop(a: Appearance, hatId: string | null, sitting: boolean, seatH?: number): number {
   const hairTop: Record<Appearance['hair'], number> = { raspado: 0.3, curto: 1.4, cacheado: 2.8, black: 10, longo: 1.2, coque: 5.4, trancas: 1 };
   let top = Y.head - HEAD.top - (hairTop[a.hair] ?? 1);
   const hat = hatById(hatId);
@@ -345,7 +365,7 @@ export function avatarTop(a: Appearance, hatId: string | null, sitting: boolean)
     const hp = hatPlacement(a);
     top = Math.min(top, Y.head + hp.band - hatHeight(hat.shape) * hp.s - (hat.shape === 'gorro' ? 3 : 0));
   }
-  return top + (sitting ? SIT_DROP : 0);
+  return top + (sitting ? sitDrop(seatH) : 0);
 }
 
 /** A hat on its own with the in-world ink outline, for shop icons (64×64 box at the ctx origin). */

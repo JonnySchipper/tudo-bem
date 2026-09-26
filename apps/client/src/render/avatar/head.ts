@@ -75,6 +75,10 @@ export function drawHead(ctx: Ctx, r: Rig, k: Look) {
     glow(ctx, -1.2, 2.8, 2.2, 1.6, '#e0685c', 0.16);
     glow(ctx, 4.4, 2.4, 1.4, 1.2, '#e0685c', 0.12);
     glow(ctx, -4.8, 3.6, 3.2, 3.4, s.lo, 0.35);
+    // Under-cheekbone plane on the shadow side + jaw turn
+    glow(ctx, 4.6, 3.6, 1.8, 1.4, s.lo, 0.3);
+    glow(ctx, 1.4, 7.4, 3.6, 1.2, s.lo, 0.35);
+    glow(ctx, -1.2, -4.8, 3.6, 1.8, '#fff4ea', 0.16);
   } else {
     glow(ctx, 4.8, 2.6, 1.6, 1.4, '#e0685c', 0.1);
   }
@@ -286,19 +290,31 @@ function beard(ctx: Ctx, k: Look, f: FaceSpec, front: boolean) {
 }
 
 function mustache(ctx: Ctx, k: Look) {
-  const mt = tone(mix(k.hair.base, '#2a1a14', k.hair.base === '#9c9792' ? 0.22 : 0), 'hair');
+  const grey = k.hair.base === 'rgb(156,151,146)' || k.a.hairColor === 5;
+  const mt = tone(grey ? '#8f8a86' : mix(k.hair.base, '#2a1a14', 0.1), 'hair');
+  // Full chevron mustache: thick over the lip, tapering past the mouth corners
   const pts: P[] = [
-    [-0.2, 4.35],
-    [0.6, 3.55],
-    [1.7, 3.45],
-    [2.7, 3.5],
-    [3.45, 4.2],
-    [2.9, 4.6],
-    [1.7, 4.2],
-    [0.5, 4.75],
+    [-0.7, 4.9],
+    [-0.2, 3.9],
+    [0.8, 3.3],
+    [1.9, 3.4],
+    [2.9, 3.3],
+    [3.7, 3.9],
+    [3.9, 4.8],
+    [3.1, 4.7],
+    [1.9, 4.3],
+    [0.7, 4.8],
   ];
-  paint(ctx, () => smoothClosed(ctx, pts), mt, ptsBox(pts), { L: k.L, rim: k.rim, lw: 0.35, rimA: 0.3 });
-  line(ctx, [[0.6, 3.95], [1.8, 3.75], [2.8, 3.9]], rgba(mt.hi, 0.6), 0.3);
+  paint(ctx, () => smoothClosed(ctx, pts), mt, ptsBox(pts), { L: k.L, rim: k.rim, lw: 0.35, rimA: 0.35, top: 0.15 });
+  ctx.save();
+  ctx.beginPath();
+  smoothClosed(ctx, pts);
+  ctx.clip();
+  for (let i = 0; i < 9; i++) {
+    const x = -0.4 + i * 0.5;
+    line(ctx, [[x + 0.2, 3.5], [x - 0.1, 4.7]], rgba(i % 2 ? mt.hi : mt.deep, 0.55), 0.25, false);
+  }
+  ctx.restore();
 }
 
 // ---------------------------------------------------------------- hair

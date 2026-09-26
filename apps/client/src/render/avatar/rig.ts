@@ -24,9 +24,9 @@ export interface Metrics {
 }
 
 export const BODY: Record<BodyType, Metrics> = {
-  esguio: { sh: 8.1, ch: 7.1, wa: 5.7, hp: 6.5, belly: 0, arm: 1.95, fore: 1.65, wrist: 1.2, thigh: 3.3, knee: 2.25, calf: 2.5, ankle: 1.4, neck: 1.35, hand: 1 },
-  medio: { sh: 9.1, ch: 8.1, wa: 6.7, hp: 7.3, belly: 0.4, arm: 2.2, fore: 1.85, wrist: 1.3, thigh: 3.75, knee: 2.5, calf: 2.8, ankle: 1.55, neck: 1.5, hand: 1.05 },
-  forte: { sh: 10.5, ch: 9.9, wa: 9, hp: 8.7, belly: 1.9, arm: 2.7, fore: 2.25, wrist: 1.55, thigh: 4.3, knee: 2.95, calf: 3.2, ankle: 1.8, neck: 1.85, hand: 1.15 },
+  esguio: { sh: 8.1, ch: 7.1, wa: 5.7, hp: 6.5, belly: 0, arm: 1.95, fore: 1.65, wrist: 1.2, thigh: 3.3, knee: 2.25, calf: 2.5, ankle: 1.4, neck: 1.75, hand: 1 },
+  medio: { sh: 9.1, ch: 8.1, wa: 6.7, hp: 7.3, belly: 0.4, arm: 2.2, fore: 1.85, wrist: 1.3, thigh: 3.75, knee: 2.5, calf: 2.8, ankle: 1.55, neck: 1.95, hand: 1.05 },
+  forte: { sh: 10.5, ch: 9.9, wa: 9, hp: 8.7, belly: 1.9, arm: 2.7, fore: 2.25, wrist: 1.55, thigh: 4.3, knee: 2.95, calf: 3.2, ankle: 1.8, neck: 2.45, hand: 1.15 },
 };
 
 export const Y = {
@@ -34,9 +34,9 @@ export const Y = {
   hip: -41.5,
   waist: -50.5,
   chest: -58.5,
-  sh: -65,
-  neck: -67,
-  head: -78.8,
+  sh: -65.8,
+  neck: -67.8,
+  head: -78.4,
 };
 export const HEAD = { rx: 6.3, top: 7.4, chin: 7.2 };
 export const THIGH = 19.2;
@@ -45,6 +45,9 @@ export const UPPER_ARM = 12.4;
 export const FOREARM = 11.4;
 /** Sitting lowers the hips from −41.5 to ≈ −18 (bench/chair seat height). */
 export const SIT_DROP = 23.5;
+/** Seat surface height the default drop is tuned for. */
+export const SEAT_H = 17;
+export const sitDrop = (seatH = SEAT_H) => SIT_DROP - (seatH - SEAT_H);
 
 export interface J {
   x: number;
@@ -113,6 +116,8 @@ export interface RigState {
   npc?: NpcId;
   /** 0..1 progress through an NPC's periodic gesture (Júlia points, Nanda shows a hat). */
   gesture: number;
+  /** Seat surface height when sitting (bench ≈ 17, counter stool 28). */
+  seatH?: number;
 }
 
 /** Two-bone IK; `bend` = which side of the root→target line the middle joint falls on (+x / −x). */
@@ -192,7 +197,7 @@ export function buildRig(s: RigState): Rig {
   }
   if (!e && s.npc === 'carlos') brows = 'soft';
 
-  const drop = s.sitting ? SIT_DROP : 0;
+  const drop = s.sitting ? sitDrop(s.seatH) : 0;
   const hipY = Y.hip + drop + by * 0.6;
   const upper = drop + by;
   const waistY = Y.waist + upper;

@@ -14,6 +14,8 @@ export interface HatCtx {
   rim: string;
   front: boolean;
   t: number;
+  /** Shop icon: no head, so skip chin straps. */
+  icon?: boolean;
 }
 
 /** How far a hat's brim shades the face below the band (0 = none). */
@@ -39,7 +41,7 @@ export function hatHeight(shape: HatDef['shape']): number {
     case 'cartola':
       return 17.5;
     case 'chef':
-      return 13;
+      return 12;
     case 'gorro':
       return 11;
     case 'capacete':
@@ -448,7 +450,7 @@ function helmet(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone, f: number) {
   glow(ctx, -2.4 * -h.L, -7, 3.4, 1.4, '#ffffff', 0.45);
   ctx.restore();
   // Strap from the temple to under the chin
-  if (f > 0) {
+  if (f > 0 && !h.icon) {
     line(ctx, [[5.8, 1.6], [4.8, 6.6], [3.2, 11.2]], '#26252a', 0.6);
     line(ctx, [[-3.2, 1.8], [-1.6, 7.4], [2.2, 11.4]], '#26252a', 0.55);
     ctx.beginPath();
@@ -541,12 +543,13 @@ function chef(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
   // Pleated body
   const body: P[] = [
     [-7.4, -1.2],
-    [-8.2, -8.8],
-    [-6.6, -12.4],
-    [-2.4, -13.6],
-    [2.4, -13.8],
-    [6.8, -12.6],
-    [8.6, -9],
+    [-8.9, -6.8],
+    [-8.4, -10.4],
+    [-4.4, -12.2],
+    [0.6, -12.6],
+    [5.4, -12],
+    [9, -10],
+    [9.2, -6.6],
     [7.6, -1.4],
   ];
   paint(ctx, () => smoothClosed(ctx, body, 0.7), white, ptsBox(body), { ...o(h, { top: 0.1 }), rimA: 0.5 });
@@ -556,11 +559,12 @@ function chef(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
   ctx.clip();
   for (let i = -3; i <= 3; i++) {
     const x = i * 2.3 + 0.4;
-    line(ctx, [[x * 0.95, -1.4], [x * 1.08, -8], [x * 1.02, -13.6]], rgba(shadow.lo, 0.7), 0.5);
-    line(ctx, [[x * 0.95 + 0.6, -1.4], [x * 1.08 + 0.6, -8], [x * 1.02 + 0.5, -13]], rgba('#ffffff', 0.8), 0.35);
+    line(ctx, [[x * 0.95, -1.4], [x * 1.14, -7], [x * 1.1, -12.4]], rgba(shadow.lo, 0.7), 0.5);
+    line(ctx, [[x * 0.95 + 0.6, -1.4], [x * 1.14 + 0.6, -7], [x * 1.1 + 0.5, -11.8]], rgba('#ffffff', 0.8), 0.35);
   }
-  // Soft puffed crown edge
-  for (let i = -3; i <= 3; i++) glow(ctx, i * 2.3 + 0.4, -13.2, 1.3, 0.9, shadow.lo, 0.4);
+  // Soft puffed crown: the pleats gather into a domed top
+  for (let i = -3; i <= 3; i++) glow(ctx, i * 2.5 + 0.4, -11.4 + Math.abs(i) * 0.35, 1.5, 1, shadow.lo, 0.35);
+  glow(ctx, -2.4, -10.8, 4, 1.6, '#ffffff', 0.7);
   glow(ctx, 6.4 * -h.L * -1, -8, 3, 6, shadow.lo, 0.4);
   ctx.restore();
   const band: P[] = [
@@ -655,6 +659,6 @@ export function drawHatIconArt(ctx: Ctx, hat: HatDef) {
   ctx.scale(s, s);
   glow(ctx, 0.4, 3.6, 12, 3, '#3a2216', 0.28);
   ctx.translate(0, big ? 4 : 1.5);
-  drawHat(ctx, hat, { L: -1, rim: '#ffcf8c', front: true, t: 0 });
+  drawHat(ctx, hat, { L: -1, rim: '#ffcf8c', front: true, t: 0, icon: true });
   ctx.restore();
 }
