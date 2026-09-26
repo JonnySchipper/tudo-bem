@@ -10,6 +10,7 @@ import { ProfileStore } from './store.js';
 import { fileAdapter } from './fileStore.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 import { FileModerationQueue } from './services/fileModeration.js';
+import { handleConversaApi } from './conversaApi.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);
@@ -45,11 +46,14 @@ const MIME: Record<string, string> = {
   '.woff2': 'font/woff2',
 };
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://x');
   if (url.pathname === '/healthz') {
     res.writeHead(200, { 'content-type': 'application/json' });
     return res.end(JSON.stringify({ ok: true, ...world.stats() }));
+  }
+  if (url.pathname === '/api/conversa') {
+    return handleConversaApi(req, res);
   }
   if (!CLIENT_DIST) {
     res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
