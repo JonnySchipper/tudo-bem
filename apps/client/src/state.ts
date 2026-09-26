@@ -43,6 +43,8 @@ class Game {
   /** Solo (static) build: the world runs in this tab; no other humans. */
   solo = false;
   sound = localStorage.getItem('tb_sound') !== 'off';
+  /** Background beds. Separate from voice so Carlos can stay on while the room is quiet. */
+  music = localStorage.getItem('tb_music') !== 'off';
   private listeners = new Map<string, Set<Listener>>();
 
   get roomDef(): RoomDef | null {

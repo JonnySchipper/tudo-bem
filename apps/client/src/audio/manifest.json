@@ -1,0 +1,969 @@
+{
+  "version": 1,
+  "voices": {
+    "carlos": "pt-BR-AntonioNeural",
+    "ui": "pt-BR-FranciscaNeural"
+  },
+  "lines": [
+    {
+      "id": "ui-bfc1d05b9b",
+      "voice": "ui",
+      "text": "pão na chapa",
+      "file": "ui-bfc1d05b9b.mp3"
+    },
+    {
+      "id": "ui-3464c04fd9",
+      "voice": "ui",
+      "text": "pão",
+      "file": "ui-3464c04fd9.mp3"
+    },
+    {
+      "id": "ui-d4aedcf372",
+      "voice": "ui",
+      "text": "café com leite",
+      "file": "ui-d4aedcf372.mp3"
+    },
+    {
+      "id": "ui-f424452a96",
+      "voice": "ui",
+      "text": "café",
+      "file": "ui-f424452a96.mp3"
+    },
+    {
+      "id": "ui-d90e7a44e1",
+      "voice": "ui",
+      "text": "suco de laranja",
+      "file": "ui-d90e7a44e1.mp3"
+    },
+    {
+      "id": "ui-513cba5814",
+      "voice": "ui",
+      "text": "água",
+      "file": "ui-513cba5814.mp3"
+    },
+    {
+      "id": "ui-284a9dccec",
+      "voice": "ui",
+      "text": "pãozinho",
+      "file": "ui-284a9dccec.mp3"
+    },
+    {
+      "id": "ui-214189b326",
+      "voice": "ui",
+      "text": "bolo",
+      "file": "ui-214189b326.mp3"
+    },
+    {
+      "id": "ui-85739b845e",
+      "voice": "ui",
+      "text": "pastel",
+      "file": "ui-85739b845e.mp3"
+    },
+    {
+      "id": "ui-987dcc3d8e",
+      "voice": "ui",
+      "text": "coxinha",
+      "file": "ui-987dcc3d8e.mp3"
+    },
+    {
+      "id": "ui-84d728a77e",
+      "voice": "ui",
+      "text": "me vê",
+      "file": "ui-84d728a77e.mp3"
+    },
+    {
+      "id": "ui-e392209eb2",
+      "voice": "ui",
+      "text": "por favor",
+      "file": "ui-e392209eb2.mp3"
+    },
+    {
+      "id": "ui-c3327c70d0",
+      "voice": "ui",
+      "text": "pra viagem",
+      "file": "ui-c3327c70d0.mp3"
+    },
+    {
+      "id": "ui-d40ee273dc",
+      "voice": "ui",
+      "text": "pra comer aqui",
+      "file": "ui-d40ee273dc.mp3"
+    },
+    {
+      "id": "ui-9cb6d2fa10",
+      "voice": "ui",
+      "text": "bem quente",
+      "file": "ui-9cb6d2fa10.mp3"
+    },
+    {
+      "id": "ui-3eb694a357",
+      "voice": "ui",
+      "text": "sem açúcar",
+      "file": "ui-3eb694a357.mp3"
+    },
+    {
+      "id": "ui-c0d00b77ba",
+      "voice": "ui",
+      "text": "quentinho",
+      "file": "ui-c0d00b77ba.mp3"
+    },
+    {
+      "id": "ui-46bb70bd70",
+      "voice": "ui",
+      "text": "O que vai ser?",
+      "file": "ui-46bb70bd70.mp3"
+    },
+    {
+      "id": "ui-f78676d157",
+      "voice": "ui",
+      "text": "Pronto.",
+      "file": "ui-f78676d157.mp3"
+    },
+    {
+      "id": "ui-40ffc43d8c",
+      "voice": "ui",
+      "text": "Pode pegar.",
+      "file": "ui-40ffc43d8c.mp3"
+    },
+    {
+      "id": "ui-e053664a2e",
+      "voice": "ui",
+      "text": "Volte sempre.",
+      "file": "ui-e053664a2e.mp3"
+    },
+    {
+      "id": "ui-31a9d79ea0",
+      "voice": "ui",
+      "text": "Isso aí.",
+      "file": "ui-31a9d79ea0.mp3"
+    },
+    {
+      "id": "ui-2687598818",
+      "voice": "ui",
+      "text": "pão de queijo",
+      "file": "ui-2687598818.mp3"
+    },
+    {
+      "id": "ui-f5a502d222",
+      "voice": "ui",
+      "text": "misto-quente",
+      "file": "ui-f5a502d222.mp3"
+    },
+    {
+      "id": "ui-3d62135dc8",
+      "voice": "ui",
+      "text": "guaraná",
+      "file": "ui-3d62135dc8.mp3"
+    },
+    {
+      "id": "ui-3776da2797",
+      "voice": "ui",
+      "text": "Pois não.",
+      "file": "ui-3776da2797.mp3"
+    },
+    {
+      "id": "ui-e3044e1be6",
+      "voice": "ui",
+      "text": "Tá na mão.",
+      "file": "ui-e3044e1be6.mp3"
+    },
+    {
+      "id": "ui-f3e10e138a",
+      "voice": "ui",
+      "text": "por conta da casa",
+      "file": "ui-f3e10e138a.mp3"
+    },
+    {
+      "id": "ui-8f97792d48",
+      "voice": "ui",
+      "text": "Bom dia",
+      "file": "ui-8f97792d48.mp3"
+    },
+    {
+      "id": "ui-6278b6448c",
+      "voice": "ui",
+      "text": "Boa tarde",
+      "file": "ui-6278b6448c.mp3"
+    },
+    {
+      "id": "ui-06124de222",
+      "voice": "ui",
+      "text": "Boa noite",
+      "file": "ui-06124de222.mp3"
+    },
+    {
+      "id": "ui-528e385040",
+      "voice": "ui",
+      "text": "Olá",
+      "file": "ui-528e385040.mp3"
+    },
+    {
+      "id": "ui-3c89984cef",
+      "voice": "ui",
+      "text": "Oi",
+      "file": "ui-3c89984cef.mp3"
+    },
+    {
+      "id": "ui-03e5de8e41",
+      "voice": "ui",
+      "text": "Tudo bem?",
+      "file": "ui-03e5de8e41.mp3"
+    },
+    {
+      "id": "ui-fba9f79414",
+      "voice": "ui",
+      "text": "Beleza",
+      "file": "ui-fba9f79414.mp3"
+    },
+    {
+      "id": "ui-04781fbbf2",
+      "voice": "ui",
+      "text": "Obrigado / Obrigada",
+      "file": "ui-04781fbbf2.mp3"
+    },
+    {
+      "id": "ui-329997c41f",
+      "voice": "ui",
+      "text": "De nada",
+      "file": "ui-329997c41f.mp3"
+    },
+    {
+      "id": "ui-a122883786",
+      "voice": "ui",
+      "text": "Tchau",
+      "file": "ui-a122883786.mp3"
+    },
+    {
+      "id": "ui-162065ffc2",
+      "voice": "ui",
+      "text": "um / uma",
+      "file": "ui-162065ffc2.mp3"
+    },
+    {
+      "id": "ui-1c5eb92803",
+      "voice": "ui",
+      "text": "dois / duas",
+      "file": "ui-1c5eb92803.mp3"
+    },
+    {
+      "id": "ui-a4316f3116",
+      "voice": "ui",
+      "text": "três",
+      "file": "ui-a4316f3116.mp3"
+    },
+    {
+      "id": "ui-a7943ca9b9",
+      "voice": "ui",
+      "text": "quatro",
+      "file": "ui-a7943ca9b9.mp3"
+    },
+    {
+      "id": "ui-a097b33b77",
+      "voice": "ui",
+      "text": "cinco",
+      "file": "ui-a097b33b77.mp3"
+    },
+    {
+      "id": "ui-ba15793485",
+      "voice": "ui",
+      "text": "seis",
+      "file": "ui-ba15793485.mp3"
+    },
+    {
+      "id": "ui-0f961cd8ac",
+      "voice": "ui",
+      "text": "sete",
+      "file": "ui-0f961cd8ac.mp3"
+    },
+    {
+      "id": "ui-2a67c257c1",
+      "voice": "ui",
+      "text": "oito",
+      "file": "ui-2a67c257c1.mp3"
+    },
+    {
+      "id": "ui-7f52fd1901",
+      "voice": "ui",
+      "text": "nove",
+      "file": "ui-7f52fd1901.mp3"
+    },
+    {
+      "id": "ui-b5ab4a29b6",
+      "voice": "ui",
+      "text": "dez",
+      "file": "ui-b5ab4a29b6.mp3"
+    },
+    {
+      "id": "ui-9fd8fa2d0e",
+      "voice": "ui",
+      "text": "onze",
+      "file": "ui-9fd8fa2d0e.mp3"
+    },
+    {
+      "id": "ui-b4bd4cbd7e",
+      "voice": "ui",
+      "text": "doze",
+      "file": "ui-b4bd4cbd7e.mp3"
+    },
+    {
+      "id": "ui-153619ddd5",
+      "voice": "ui",
+      "text": "treze",
+      "file": "ui-153619ddd5.mp3"
+    },
+    {
+      "id": "ui-19355528a8",
+      "voice": "ui",
+      "text": "quatorze / catorze",
+      "file": "ui-19355528a8.mp3"
+    },
+    {
+      "id": "ui-6c00d38dec",
+      "voice": "ui",
+      "text": "quinze",
+      "file": "ui-6c00d38dec.mp3"
+    },
+    {
+      "id": "ui-78423d6954",
+      "voice": "ui",
+      "text": "dezesseis",
+      "file": "ui-78423d6954.mp3"
+    },
+    {
+      "id": "ui-2f452a7495",
+      "voice": "ui",
+      "text": "dezessete",
+      "file": "ui-2f452a7495.mp3"
+    },
+    {
+      "id": "ui-c5d18ab40f",
+      "voice": "ui",
+      "text": "dezoito",
+      "file": "ui-c5d18ab40f.mp3"
+    },
+    {
+      "id": "ui-c0fd8b9edd",
+      "voice": "ui",
+      "text": "dezenove",
+      "file": "ui-c0fd8b9edd.mp3"
+    },
+    {
+      "id": "ui-d6b8c826b9",
+      "voice": "ui",
+      "text": "vinte",
+      "file": "ui-d6b8c826b9.mp3"
+    },
+    {
+      "id": "ui-7542e6b8ff",
+      "voice": "ui",
+      "text": "Me vê um pão na chapa.",
+      "file": "ui-7542e6b8ff.mp3"
+    },
+    {
+      "id": "ui-525a814374",
+      "voice": "ui",
+      "text": "Me vê um café com leite.",
+      "file": "ui-525a814374.mp3"
+    },
+    {
+      "id": "ui-be970e4171",
+      "voice": "ui",
+      "text": "Um suco de laranja, por favor.",
+      "file": "ui-be970e4171.mp3"
+    },
+    {
+      "id": "ui-7c3d9b5ca9",
+      "voice": "ui",
+      "text": "Uma água, por favor.",
+      "file": "ui-7c3d9b5ca9.mp3"
+    },
+    {
+      "id": "ui-995e798b55",
+      "voice": "ui",
+      "text": "Me vê um pastel.",
+      "file": "ui-995e798b55.mp3"
+    },
+    {
+      "id": "ui-69ab3d3cef",
+      "voice": "ui",
+      "text": "Me vê uma coxinha.",
+      "file": "ui-69ab3d3cef.mp3"
+    },
+    {
+      "id": "ui-9e6a54e294",
+      "voice": "ui",
+      "text": "Dois pães na chapa.",
+      "file": "ui-9e6a54e294.mp3"
+    },
+    {
+      "id": "ui-93e666b89a",
+      "voice": "ui",
+      "text": "Um café e uma água.",
+      "file": "ui-93e666b89a.mp3"
+    },
+    {
+      "id": "ui-b8203536a8",
+      "voice": "ui",
+      "text": "Me vê um pão na chapa pra viagem.",
+      "file": "ui-b8203536a8.mp3"
+    },
+    {
+      "id": "ui-de59a02cef",
+      "voice": "ui",
+      "text": "Café sem açúcar, bem quente.",
+      "file": "ui-de59a02cef.mp3"
+    },
+    {
+      "id": "ui-7051b00bc9",
+      "voice": "ui",
+      "text": "Dois pães na chapa e um café com leite.",
+      "file": "ui-7051b00bc9.mp3"
+    },
+    {
+      "id": "ui-e44ae11bfa",
+      "voice": "ui",
+      "text": "Uma coxinha e um suco de laranja.",
+      "file": "ui-e44ae11bfa.mp3"
+    },
+    {
+      "id": "ui-bce57d80f5",
+      "voice": "ui",
+      "text": "Três pães e uma água.",
+      "file": "ui-bce57d80f5.mp3"
+    },
+    {
+      "id": "ui-a00239cb37",
+      "voice": "ui",
+      "text": "Me vê um bolo pra comer aqui.",
+      "file": "ui-a00239cb37.mp3"
+    },
+    {
+      "id": "carlos-a827756ccf",
+      "voice": "carlos",
+      "text": "Bom dia! Tudo bem?",
+      "file": "carlos-a827756ccf.mp3"
+    },
+    {
+      "id": "carlos-f74714d123",
+      "voice": "carlos",
+      "text": "Aqui a gente fala português, tá? Devagarinho: Bom… dia! Tudo… bem?",
+      "file": "carlos-f74714d123.mp3"
+    },
+    {
+      "id": "carlos-58d1817c1f",
+      "voice": "carlos",
+      "text": "Pois não. O que vai ser hoje?",
+      "file": "carlos-58d1817c1f.mp3"
+    },
+    {
+      "id": "carlos-ffa2e1e600",
+      "voice": "carlos",
+      "text": "Sem pressa. Tem pão na chapa, coxinha e pastel quentinho.",
+      "file": "carlos-ffa2e1e600.mp3"
+    },
+    {
+      "id": "carlos-06bfa995ae",
+      "voice": "carlos",
+      "text": "Sem pressa, meu filho. Tem pão na chapa, coxinha e pastel quentinho.",
+      "file": "carlos-06bfa995ae.mp3"
+    },
+    {
+      "id": "carlos-b3488bd746",
+      "voice": "carlos",
+      "text": "Sem pressa, minha filha. Tem pão na chapa, coxinha e pastel quentinho.",
+      "file": "carlos-b3488bd746.mp3"
+    },
+    {
+      "id": "carlos-8435eae903",
+      "voice": "carlos",
+      "text": "Pão na chapa? Coxinha? Pastel? Fala assim: “Me vê um pão na chapa, por favor.”",
+      "file": "carlos-8435eae903.mp3"
+    },
+    {
+      "id": "carlos-02bbd005aa",
+      "voice": "carlos",
+      "text": "Café puro ou café com leite? Fala: “Um café com leite, por favor.”",
+      "file": "carlos-02bbd005aa.mp3"
+    },
+    {
+      "id": "carlos-6e84b923ca",
+      "voice": "carlos",
+      "text": "Pronto. Pra comer aqui ou pra viagem?",
+      "file": "carlos-6e84b923ca.mp3"
+    },
+    {
+      "id": "carlos-237ce86696",
+      "voice": "carlos",
+      "text": "“To go” é “pra viagem”. E “for here” é “pra comer aqui”.",
+      "file": "carlos-237ce86696.mp3"
+    },
+    {
+      "id": "carlos-c6e4408958",
+      "voice": "carlos",
+      "text": "“Por conta da casa” quer dizer que você não paga nada. É de graça!",
+      "file": "carlos-c6e4408958.mp3"
+    },
+    {
+      "id": "carlos-42b5830da2",
+      "voice": "carlos",
+      "text": "Tá na mão. Volte sempre! Quer ajudar no balcão? É o “Me vê um…”.",
+      "file": "carlos-42b5830da2.mp3"
+    },
+    {
+      "id": "carlos-c87c0326bc",
+      "voice": "carlos",
+      "text": "Tá na mão, meu filho. Volte sempre! Quer ajudar no balcão? É o “Me vê um…”.",
+      "file": "carlos-c87c0326bc.mp3"
+    },
+    {
+      "id": "carlos-a147d35e38",
+      "voice": "carlos",
+      "text": "Tá na mão, minha filha. Volte sempre! Quer ajudar no balcão? É o “Me vê um…”.",
+      "file": "carlos-a147d35e38.mp3"
+    },
+    {
+      "id": "carlos-6ecd9e3967",
+      "voice": "carlos",
+      "text": "Isso aí! Um pão na chapa saindo. E pra beber? Café com leite, suco de laranja ou água?",
+      "file": "carlos-6ecd9e3967.mp3"
+    },
+    {
+      "id": "carlos-693af29dcc",
+      "voice": "carlos",
+      "text": "Isso aí! Uma coxinha saindo. E pra beber? Café com leite, suco de laranja ou água?",
+      "file": "carlos-693af29dcc.mp3"
+    },
+    {
+      "id": "carlos-fee86fc006",
+      "voice": "carlos",
+      "text": "Isso aí! Um pastel saindo. E pra beber? Café com leite, suco de laranja ou água?",
+      "file": "carlos-fee86fc006.mp3"
+    },
+    {
+      "id": "carlos-e9cc749489",
+      "voice": "carlos",
+      "text": "Isso aí! Seu pedido saindo. E pra beber? Café com leite, suco de laranja ou água?",
+      "file": "carlos-e9cc749489.mp3"
+    },
+    {
+      "id": "carlos-02110349d5",
+      "voice": "carlos",
+      "text": "Isso aí! Um café com leite saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
+      "file": "carlos-02110349d5.mp3"
+    },
+    {
+      "id": "carlos-a692336d87",
+      "voice": "carlos",
+      "text": "Isso aí! Um café saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
+      "file": "carlos-a692336d87.mp3"
+    },
+    {
+      "id": "carlos-c381098918",
+      "voice": "carlos",
+      "text": "Isso aí! Um suco de laranja saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
+      "file": "carlos-c381098918.mp3"
+    },
+    {
+      "id": "carlos-245454ef42",
+      "voice": "carlos",
+      "text": "Isso aí! Uma água saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
+      "file": "carlos-245454ef42.mp3"
+    },
+    {
+      "id": "carlos-570ce30ae2",
+      "voice": "carlos",
+      "text": "Isso aí! Seu pedido saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
+      "file": "carlos-570ce30ae2.mp3"
+    },
+    {
+      "id": "carlos-affe1730bb",
+      "voice": "carlos",
+      "text": "Deu três reais (R$ 3)… Mas hoje é por conta da casa!",
+      "file": "carlos-affe1730bb.mp3"
+    },
+    {
+      "id": "carlos-e1a294132c",
+      "voice": "carlos",
+      "text": "Deu quatro reais (R$ 4)… Mas hoje é por conta da casa!",
+      "file": "carlos-e1a294132c.mp3"
+    },
+    {
+      "id": "carlos-50e855e5d6",
+      "voice": "carlos",
+      "text": "Deu cinco reais (R$ 5)… Mas hoje é por conta da casa!",
+      "file": "carlos-50e855e5d6.mp3"
+    },
+    {
+      "id": "carlos-fe1ead49d1",
+      "voice": "carlos",
+      "text": "Deu oito reais (R$ 8)… Mas hoje é por conta da casa!",
+      "file": "carlos-fe1ead49d1.mp3"
+    },
+    {
+      "id": "carlos-1e05a47149",
+      "voice": "carlos",
+      "text": "Deu nove reais (R$ 9)… Mas hoje é por conta da casa!",
+      "file": "carlos-1e05a47149.mp3"
+    },
+    {
+      "id": "carlos-6f36615f93",
+      "voice": "carlos",
+      "text": "Deu dez reais (R$ 10)… Mas hoje é por conta da casa!",
+      "file": "carlos-6f36615f93.mp3"
+    },
+    {
+      "id": "carlos-5405ce9f40",
+      "voice": "carlos",
+      "text": "Deu onze reais (R$ 11)… Mas hoje é por conta da casa!",
+      "file": "carlos-5405ce9f40.mp3"
+    },
+    {
+      "id": "carlos-c6a881318b",
+      "voice": "carlos",
+      "text": "Deu doze reais (R$ 12)… Mas hoje é por conta da casa!",
+      "file": "carlos-c6a881318b.mp3"
+    },
+    {
+      "id": "carlos-4710b3c77f",
+      "voice": "carlos",
+      "text": "Deu treze reais (R$ 13)… Mas hoje é por conta da casa!",
+      "file": "carlos-4710b3c77f.mp3"
+    },
+    {
+      "id": "carlos-962ca9b11d",
+      "voice": "carlos",
+      "text": "Deu catorze reais (R$ 14)… Mas hoje é por conta da casa!",
+      "file": "carlos-962ca9b11d.mp3"
+    },
+    {
+      "id": "carlos-299ff12cde",
+      "voice": "carlos",
+      "text": "Deu quinze reais (R$ 15)… Mas hoje é por conta da casa!",
+      "file": "carlos-299ff12cde.mp3"
+    },
+    {
+      "id": "carlos-06ec1e53e5",
+      "voice": "carlos",
+      "text": "Deu dezesseis reais (R$ 16)… Mas hoje é por conta da casa!",
+      "file": "carlos-06ec1e53e5.mp3"
+    },
+    {
+      "id": "carlos-a4bcebcdbc",
+      "voice": "carlos",
+      "text": "Bom dia! O que vai ser hoje?",
+      "file": "carlos-a4bcebcdbc.mp3"
+    },
+    {
+      "id": "carlos-7e70995d33",
+      "voice": "carlos",
+      "text": "E aí, tudo bem? Vai querer o quê?",
+      "file": "carlos-7e70995d33.mp3"
+    },
+    {
+      "id": "carlos-1eeb369b55",
+      "voice": "carlos",
+      "text": "Pronto. O que posso servir?",
+      "file": "carlos-1eeb369b55.mp3"
+    },
+    {
+      "id": "carlos-009c352c69",
+      "voice": "carlos",
+      "text": "Deixa eu anotar — o que vai ser?",
+      "file": "carlos-009c352c69.mp3"
+    },
+    {
+      "id": "carlos-31470ecd7b",
+      "voice": "carlos",
+      "text": "Tá com fome? Me fala o pedido.",
+      "file": "carlos-31470ecd7b.mp3"
+    },
+    {
+      "id": "carlos-be87716ee9",
+      "voice": "carlos",
+      "text": "Oi! Café da manhã pra você?",
+      "file": "carlos-be87716ee9.mp3"
+    },
+    {
+      "id": "carlos-070acb03e8",
+      "voice": "carlos",
+      "text": "Oi, beleza?",
+      "file": "carlos-070acb03e8.mp3"
+    },
+    {
+      "id": "carlos-ccad2a3d05",
+      "voice": "carlos",
+      "text": "E aí, tudo bem?",
+      "file": "carlos-ccad2a3d05.mp3"
+    },
+    {
+      "id": "carlos-0ef5411305",
+      "voice": "carlos",
+      "text": "Pão na chapa saindo! E pra beber?",
+      "file": "carlos-0ef5411305.mp3"
+    },
+    {
+      "id": "carlos-f72c6b457d",
+      "voice": "carlos",
+      "text": "Pão na chapa, anotei. Quer café, suco ou água?",
+      "file": "carlos-f72c6b457d.mp3"
+    },
+    {
+      "id": "carlos-a3fc934d91",
+      "voice": "carlos",
+      "text": "Isso aí, pão na chapa. Deixa eu anotar. E pra beber?",
+      "file": "carlos-a3fc934d91.mp3"
+    },
+    {
+      "id": "carlos-851e9165c9",
+      "voice": "carlos",
+      "text": "Uma coxinha quentinha! E pra beber?",
+      "file": "carlos-851e9165c9.mp3"
+    },
+    {
+      "id": "carlos-7246892990",
+      "voice": "carlos",
+      "text": "Coxinha, boa. Deixa eu anotar. E pra beber?",
+      "file": "carlos-7246892990.mp3"
+    },
+    {
+      "id": "carlos-3bdca53d90",
+      "voice": "carlos",
+      "text": "Pastel de carne ou queijo? E pra beber?",
+      "file": "carlos-3bdca53d90.mp3"
+    },
+    {
+      "id": "carlos-4db7e39c8c",
+      "voice": "carlos",
+      "text": "Pastel, anotei. Carne ou queijo — e pra beber?",
+      "file": "carlos-4db7e39c8c.mp3"
+    },
+    {
+      "id": "carlos-e03258372b",
+      "voice": "carlos",
+      "text": "Café com leite saindo! Pra comer aqui ou pra viagem?",
+      "file": "carlos-e03258372b.mp3"
+    },
+    {
+      "id": "carlos-70d86fda4d",
+      "voice": "carlos",
+      "text": "Café com leite, tá na mão. Pra comer aqui ou pra viagem?",
+      "file": "carlos-70d86fda4d.mp3"
+    },
+    {
+      "id": "carlos-63ad1689fb",
+      "voice": "carlos",
+      "text": "Anotei o café com leite. Aqui ou pra viagem?",
+      "file": "carlos-63ad1689fb.mp3"
+    },
+    {
+      "id": "carlos-a3556ef33c",
+      "voice": "carlos",
+      "text": "Suco de laranja fresquinho! Pra comer aqui ou pra viagem?",
+      "file": "carlos-a3556ef33c.mp3"
+    },
+    {
+      "id": "carlos-93c6b4f025",
+      "voice": "carlos",
+      "text": "Suco de laranja, anotei. Aqui ou pra viagem?",
+      "file": "carlos-93c6b4f025.mp3"
+    },
+    {
+      "id": "carlos-9207a5dafb",
+      "voice": "carlos",
+      "text": "Uma água geladinha! Pra comer aqui ou pra viagem?",
+      "file": "carlos-9207a5dafb.mp3"
+    },
+    {
+      "id": "carlos-a67c22fa10",
+      "voice": "carlos",
+      "text": "Água, tá na mão. Pra comer aqui ou pra viagem?",
+      "file": "carlos-a67c22fa10.mp3"
+    },
+    {
+      "id": "carlos-7ebd994c36",
+      "voice": "carlos",
+      "text": "Pronto! Tá na mão. Volte sempre!",
+      "file": "carlos-7ebd994c36.mp3"
+    },
+    {
+      "id": "carlos-7076e8544f",
+      "voice": "carlos",
+      "text": "Tá na mão. Pode sentar. Volte sempre!",
+      "file": "carlos-7076e8544f.mp3"
+    },
+    {
+      "id": "carlos-75cfb8f63a",
+      "voice": "carlos",
+      "text": "Pra viagem, então. Tá na mão. Volte sempre!",
+      "file": "carlos-75cfb8f63a.mp3"
+    },
+    {
+      "id": "carlos-a235d6f8b8",
+      "voice": "carlos",
+      "text": "Volte sempre!",
+      "file": "carlos-a235d6f8b8.mp3"
+    },
+    {
+      "id": "carlos-2580a39618",
+      "voice": "carlos",
+      "text": "Volte sempre! Até amanhã.",
+      "file": "carlos-2580a39618.mp3"
+    },
+    {
+      "id": "carlos-6cc2fedb94",
+      "voice": "carlos",
+      "text": "Bom dia! Tudo bem? O que vai ser hoje?",
+      "file": "carlos-6cc2fedb94.mp3"
+    },
+    {
+      "id": "carlos-b1c1987bbc",
+      "voice": "carlos",
+      "text": "Bom dia! Beleza? Me conta o que vai ser.",
+      "file": "carlos-b1c1987bbc.mp3"
+    },
+    {
+      "id": "carlos-1d6d88ddfb",
+      "voice": "carlos",
+      "text": "Bom dia! E aí, o que vai querer?",
+      "file": "carlos-1d6d88ddfb.mp3"
+    },
+    {
+      "id": "carlos-bacee5ea37",
+      "voice": "carlos",
+      "text": "Não entendi bem. O que você quer pedir?",
+      "file": "carlos-bacee5ea37.mp3"
+    },
+    {
+      "id": "carlos-e7b0e274f8",
+      "voice": "carlos",
+      "text": "Hmm. Mais alguma coisa?",
+      "file": "carlos-e7b0e274f8.mp3"
+    },
+    {
+      "id": "carlos-f6e8976040",
+      "voice": "carlos",
+      "text": "Quer mais alguma coisa?",
+      "file": "carlos-f6e8976040.mp3"
+    },
+    {
+      "id": "carlos-0ce6e36ab7",
+      "voice": "carlos",
+      "text": "Deixa eu anotar. O que mais?",
+      "file": "carlos-0ce6e36ab7.mp3"
+    },
+    {
+      "id": "carlos-2371a57aaa",
+      "voice": "carlos",
+      "text": "Isso mesmo! Cliente feliz!",
+      "file": "carlos-2371a57aaa.mp3"
+    },
+    {
+      "id": "carlos-ff36b8e84c",
+      "voice": "carlos",
+      "text": "Que rapidez! Tá pegando o jeito!",
+      "file": "carlos-ff36b8e84c.mp3"
+    },
+    {
+      "id": "carlos-19b2c74884",
+      "voice": "carlos",
+      "text": "Agora sim! Muito bem.",
+      "file": "carlos-19b2c74884.mp3"
+    },
+    {
+      "id": "carlos-98d9f9c0c2",
+      "voice": "carlos",
+      "text": "Opa, não é bem isso. Vou repetir devagar…",
+      "file": "carlos-98d9f9c0c2.mp3"
+    },
+    {
+      "id": "carlos-ffd5d5345d",
+      "voice": "carlos",
+      "text": "Tudo bem, acontece! Próximo cliente.",
+      "file": "carlos-ffd5d5345d.mp3"
+    },
+    {
+      "id": "carlos-99c2c3bc5a",
+      "voice": "carlos",
+      "text": "Ih, o cliente cansou de esperar! Próximo.",
+      "file": "carlos-99c2c3bc5a.mp3"
+    },
+    {
+      "id": "carlos-b43a5fb04d",
+      "voice": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 8 reais virtuais.",
+      "file": "carlos-b43a5fb04d.mp3"
+    },
+    {
+      "id": "carlos-dd0886588b",
+      "voice": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 9 reais virtuais.",
+      "file": "carlos-dd0886588b.mp3"
+    },
+    {
+      "id": "carlos-e18dd34b18",
+      "voice": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 10 reais virtuais.",
+      "file": "carlos-e18dd34b18.mp3"
+    },
+    {
+      "id": "carlos-25365642fa",
+      "voice": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 11 reais virtuais.",
+      "file": "carlos-25365642fa.mp3"
+    },
+    {
+      "id": "carlos-5e7db82d9c",
+      "voice": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 12 reais virtuais.",
+      "file": "carlos-5e7db82d9c.mp3"
+    },
+    {
+      "id": "carlos-2bc94d39e0",
+      "voice": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 13 reais virtuais.",
+      "file": "carlos-2bc94d39e0.mp3"
+    },
+    {
+      "id": "carlos-20de7d6f0e",
+      "voice": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 14 reais virtuais.",
+      "file": "carlos-20de7d6f0e.mp3"
+    },
+    {
+      "id": "carlos-8758d88e14",
+      "voice": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 15 reais virtuais.",
+      "file": "carlos-8758d88e14.mp3"
+    },
+    {
+      "id": "carlos-fb03e08b5b",
+      "voice": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 16 reais virtuais.",
+      "file": "carlos-fb03e08b5b.mp3"
+    },
+    {
+      "id": "carlos-6bf1cebd16",
+      "voice": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 17 reais virtuais.",
+      "file": "carlos-6bf1cebd16.mp3"
+    },
+    {
+      "id": "carlos-775bc96787",
+      "voice": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 18 reais virtuais.",
+      "file": "carlos-775bc96787.mp3"
+    },
+    {
+      "id": "carlos-8f6ed1ae1f",
+      "voice": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 19 reais virtuais.",
+      "file": "carlos-8f6ed1ae1f.mp3"
+    },
+    {
+      "id": "carlos-240a9218aa",
+      "voice": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 20 reais virtuais.",
+      "file": "carlos-240a9218aa.mp3"
+    }
+  ]
+}

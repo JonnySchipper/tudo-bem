@@ -35,12 +35,22 @@ import {
   showScene,
 } from './ui/panels';
 import { closeConversa, isConversaOpen, openConversa } from './ui/conversa';
-import { speak } from './audio';
+import { speak, stopSpeaking, unlockSpeech } from './audio';
+import { ambience } from './ambience';
+import { installViewport } from './ui/viewport';
+import { mountJoystick } from './ui/joystick';
 import { installUiArt } from './art/ui';
 import { artStats, loadArt } from './art/sprites';
 
 installUiArt();
+installViewport();
 void loadArt();
+const armAudio = () => {
+  unlockSpeech();
+  ambience.unlock();
+};
+window.addEventListener('pointerdown', armAudio, { once: true });
+window.addEventListener('keydown', armAudio, { once: true });
 
 const TOKEN_KEY = 'tb_token';
 const LAST_ROOM_KEY = 'tb_last_room';
@@ -189,6 +199,7 @@ net.on((m: ServerMsg) => {
       game.selectedFurniture = null;
       game.npcBubbles.clear();
       if (m.room !== 'kitnet' || m.ownerId === game.profile?.id) sessionStorage.setItem(LAST_ROOM_KEY, m.room);
+      ambience.setRoom(m.room);
       updateGuides();
       game.emit('room');
       game.emit('decor');
@@ -335,9 +346,24 @@ function startGame() {
     toggleSound: () => {
       game.sound = !game.sound;
       localStorage.setItem('tb_sound', game.sound ? 'on' : 'off');
-      if (!game.sound) speechSynthesis?.cancel();
+      if (!game.sound) stopSpeaking();
       game.emit('hud');
     },
+    toggleMusic: () => {
+      game.music = !game.music;
+      ambience.setEnabled(game.music);
+      game.emit('hud');
+    },
+  });
+  mountJoystick((dx, dy) => {
+    if (game.modalOpen || game.editMode || game.placing) return;
+    const room = game.roomDef;
+    const cur = selfTile();
+    if (!room || !cur) return;
+    const x = Math.max(0, Math.min(room.cols - 1, cur.tile.x + dx));
+    const y = Math.max(0, Math.min(room.rows - 1, cur.tile.y + dy));
+    if (x === cur.tile.x && y === cur.tile.y) return;
+    walkTo({ x, y }, null);
   });
   decor = buildDecorPanel({
     buy: (id) => net.send({ t: 'buy', kind: 'furniture', itemId: id }),

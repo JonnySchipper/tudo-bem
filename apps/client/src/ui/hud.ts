@@ -14,6 +14,7 @@ export interface HudActions {
   parrotHint: () => void;
   toggleParrot: () => void;
   toggleSound: () => void;
+  toggleMusic: () => void;
 }
 
 let toastsEl: HTMLElement;
@@ -52,7 +53,8 @@ export function buildHud(actions: HudActions) {
   const coins = h('span', { id: 'coins' });
   const missionPill = h('span', { class: 'pill', id: 'mission-pill', title: `${MISSION_COPY.header.en} — quest kiosk in the Praça` });
   const plate = h('span', { class: 'plate', title: 'Verde: you see English under Portuguese' }, h('span', { class: 'seed' }), 'Verde');
-  const soundBtn = h('button', { onclick: actions.toggleSound, title: 'Som / Sound' });
+  const soundBtn = h('button', { onclick: actions.toggleSound, title: 'Voz / Voice', id: 'btn-sound' });
+  const musicBtn = h('button', { onclick: actions.toggleMusic, title: 'Música / Music', id: 'btn-music' });
   const decorBtn = h('button', { class: 'yellow', onclick: actions.toggleDecor, id: 'btn-decor' }, icon('decor'), bi('Decorar', 'Decorate'));
   const topbar = h(
     'div',
@@ -65,6 +67,7 @@ export function buildHud(actions: HudActions) {
       h('button', { onclick: actions.openMap, id: 'btn-map' }, icon('map'), bi('Mapa', 'Map')),
       h('button', { onclick: actions.openWardrobe, id: 'btn-wardrobe' }, icon('hat'), bi('Chapéus', 'My hats')),
       h('button', { onclick: actions.openFriends, id: 'btn-friends' }, icon('friends'), bi('Amigos', 'Friends')),
+      musicBtn,
       soundBtn,
       game.solo ? h('span', { class: 'pill', title: 'Prévia estática: o mundo roda no seu navegador. Multiplayer precisa do servidor. / Static preview — the world runs in your browser; multiplayer needs the server build.', id: 'solo-pill' }, 'Modo solo') : null,
       missionPill,
@@ -173,7 +176,8 @@ export function buildHud(actions: HudActions) {
     }
     decorBtn.style.display = game.isOwnKitnet ? '' : 'none';
     decorBtn.classList.toggle('primary', game.editMode);
-    soundBtn.replaceChildren(icon(game.sound ? 'soundOn' : 'soundOff'), bi(game.sound ? 'Som: sim' : 'Som: não', game.sound ? 'Voice on' : 'Voice off'));
+    soundBtn.replaceChildren(icon(game.sound ? 'soundOn' : 'soundOff'), bi(game.sound ? 'Voz: sim' : 'Voz: não', game.sound ? 'Voice on' : 'Voice off'));
+    musicBtn.replaceChildren(icon(game.music ? 'musicOn' : 'musicOff'), bi(game.music ? 'Música: sim' : 'Música: não', game.music ? 'Music on' : 'Music off'));
     const self = game.self;
     standBtn.style.display = self && (self.pub.sitting || self.sitOnArrive) ? '' : 'none';
   };

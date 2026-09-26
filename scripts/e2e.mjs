@@ -74,6 +74,13 @@ async function createAvatar(page, name, pronoun) {
   await page.click('#age-next');
   await page.waitForSelector('#avatar-name');
   await page.fill('#avatar-name', name);
+  const labels = await page.$$eval('.field > label', (els) => els.map((e) => (e.childNodes[0]?.textContent ?? '').trim()));
+  assert(labels.includes('Visual inicial'), `visual inicial preset (${labels.join(' | ')})`);
+  assert(labels.includes('Corpo') && labels.includes('Rosto') && labels.includes('Cabelo'), `body, face and hair stay (${labels.join(' | ')})`);
+  for (const gone of ['Detalhe', 'Blusa', 'Cor da blusa', 'Parte de baixo', 'Tênis']) {
+    assert(!labels.includes(gone), `create no longer asks for ${gone}`);
+  }
+  assert((await page.$$('[data-outfit]')).length === 1 && (await page.$('[data-outfit="visual_inicial"]')), 'one Visual inicial clothing preset');
   const label = { ele: 'ele (he)', ela: 'ela (she)', nome: 'só meu nome (name only)' }[pronoun];
   await page.click(`button:has-text("${label}")`);
   assert(await page.isDisabled('#enter-praca'), 'cannot enter before confirming 18+');
@@ -154,6 +161,8 @@ async function main() {
   log('baked art sprites loaded', `${art.loaded}/${art.total}`);
   assert(art.total > 0 && art.loaded === art.total, 'baked art manifest + sprites load');
   assert(start.nameplate === 'verde', 'Verde nameplate');
+  assert(start.appearance.top === 'camiseta' && start.appearance.bottom === 'calca' && start.appearance.shoes === 0, 'starter outfit is tee + jeans');
+  assert(start.appearance.extra === 'nenhum', 'create does not pick glasses/beard/earrings');
 
   // 1b. Praça ambiance: Verde CPUs from the Curriculum allowlist, outside the 16-seat count
   if (AMBIANCE) {

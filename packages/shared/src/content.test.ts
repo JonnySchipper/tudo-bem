@@ -7,6 +7,7 @@ import { buildGrid, canPlaceFurniture, ROOMS, isWalkable } from './rooms.js';
 import { findPath, positionAlong, pathDuration } from './path.js';
 import { classifyChat } from './safety.js';
 import { HATS, FURNITURE } from './catalog.js';
+import { DEFAULT_APPEARANCE, STARTER_OUTFITS } from './constants.js';
 
 describe('numbers', () => {
   it('spells Portuguese numbers with agreement', () => {
@@ -168,5 +169,17 @@ describe('catalog', () => {
     expect(HATS).toHaveLength(12);
     expect(HATS.filter((h) => h.price === 0).length).toBeGreaterThanOrEqual(2);
     for (const item of [...HATS, ...FURNITURE]) expect(classifyChat(item.pt).action).toBe('allow');
+  });
+});
+
+describe('slim avatar create', () => {
+  it('offers one clothing-only starter outfit and keeps a full saved appearance', () => {
+    expect(STARTER_OUTFITS).toHaveLength(1);
+    expect(STARTER_OUTFITS[0].id).toBe('visual_inicial');
+    expect(Object.keys(STARTER_OUTFITS[0].set).sort()).toEqual(['bottom', 'bottomColor', 'shoes', 'top', 'topColor']);
+    expect(STARTER_OUTFITS[0].set).toMatchObject({ top: 'camiseta', bottom: 'calca' });
+    expect(DEFAULT_APPEARANCE.extra).toBe('nenhum');
+    expect(DEFAULT_APPEARANCE.hair).toBeTruthy();
+    expect(DEFAULT_APPEARANCE.face).toBeTruthy();
   });
 });
