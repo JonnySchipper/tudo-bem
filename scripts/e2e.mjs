@@ -185,7 +185,8 @@ async function main() {
   await page.fill('#chat-input', 'Oi, tudo bem? Bom dia, pessoal!');
   await page.press('#chat-input', 'Enter');
   await waitFor(page, () => window.__tb.game.profile?.tutorial.conversar, null, 5000, 'chat step');
-  await waitFor(page, () => window.__tb.game.profile?.mission?.steps.cumprimenta, null, 5000, 'mission: Cumprimenta');
+  // Alone with CPUs off there's nobody to greet yet, so Cumprimenta (and the mission) only complete with ambiance.
+  if (AMBIANCE) await waitFor(page, () => window.__tb.game.profile?.mission?.steps.cumprimenta, null, 5000, 'mission: Cumprimenta');
   let pageB = null;
   let aId = null;
   if (!SOLO) {
@@ -298,8 +299,10 @@ async function main() {
   const afterMg = await profile(page);
   log('minigame payout →', afterMg.coins - afterScene.coins, 'RV');
   assert(afterMg.coins - afterScene.coins >= 18, 'perfect-ish minigame payout');
-  assert(afterMg.mission?.rewarded && Object.values(afterMg.mission.steps).every(Boolean), 'daily mission complete (+25 RV)');
-  log('mission complete: Cumprimenta ✓ Pede ✓ Monta ✓');
+  if (AMBIANCE) {
+    assert(afterMg.mission?.rewarded && Object.values(afterMg.mission.steps).every(Boolean), 'daily mission complete (+25 RV)');
+    log('mission complete: Cumprimenta ✓ Pede ✓ Monta ✓');
+  } else assert(afterMg.mission?.steps.pede && afterMg.mission?.steps.monta, 'mission: Pede + Monta');
   await page.click('#mg-end button:has-text("Sair")');
 
   // 6. Back to the praça via the door, buy + equip a hat at Nanda's stall
