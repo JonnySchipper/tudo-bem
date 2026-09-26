@@ -16,6 +16,8 @@ export interface HatCtx {
   t: number;
   /** Shop icon: no head, so skip chin straps. */
   icon?: boolean;
+  /** 0 = straight-on front (brims point at the camera), 1 = three-quarter. */
+  turn?: number;
 }
 
 /** How far a hat's brim shades the face below the band (0 = none). */
@@ -23,7 +25,7 @@ export function brimShade(shape: HatDef['shape']): number {
   switch (shape) {
     case 'palha':
     case 'sol':
-      return 0.42;
+      return 0.32;
     case 'panama':
     case 'bucket':
       return 0.34;
@@ -41,7 +43,7 @@ export function hatHeight(shape: HatDef['shape']): number {
     case 'cartola':
       return 17.5;
     case 'chef':
-      return 12;
+      return 10;
     case 'gorro':
       return 11;
     case 'capacete':
@@ -115,6 +117,24 @@ export function drawHat(ctx: Ctx, hat: HatDef, h: HatCtx) {
 }
 
 function capBrim(ctx: Ctx, h: HatCtx, c: Tone, f: number) {
+  if ((h.turn ?? 1) < 0.5) {
+    // Brim pointing at the camera
+    const fp: P[] = [
+      [-6.6, -0.8],
+      [6.8, -0.8],
+      [7.8, 1.2],
+      [4.4, 3.4],
+      [0.2, 3.9],
+      [-4, 3.4],
+      [-7.4, 1.2],
+    ];
+    paint(ctx, () => smoothClosed(ctx, fp, 0.8), c, ptsBox(fp), o(h, { top: 0.22 }));
+    line(ctx, [[-6.6, 1.8], [0.2, 3.3], [6.8, 1.8]], rgba(c.deep, 0.8), 0.6);
+    ctx.setLineDash([0.6, 0.6]);
+    line(ctx, [[-5.6, 0.6], [0.2, 2.2], [5.8, 0.6]], rgba(c.hi, 0.7), 0.3);
+    ctx.setLineDash([]);
+    return;
+  }
   const pts: P[] =
     f > 0
       ? [
@@ -166,11 +186,12 @@ function cap(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone, f: number) {
   glow(ctx, -2.2 * -h.L, -5.2, 3.6, 2, c.hi, 0.5);
   if (f > 0) {
     // Front panel emblem: a small ipê flower
+    const ex = (h.turn ?? 1) < 0.5 ? 0.3 : 4;
     for (let i = 0; i < 5; i++) {
       const a = (i / 5) * Math.PI * 2;
-      glow(ctx, 4 + Math.cos(a) * 0.8, -3.2 + Math.sin(a) * 0.8, 0.8, 0.8, acc.base, 1);
+      glow(ctx, ex + Math.cos(a) * 0.8, -3.2 + Math.sin(a) * 0.8, 0.8, 0.8, acc.base, 1);
     }
-    glow(ctx, 4, -3.2, 0.45, 0.45, acc.deep, 1);
+    glow(ctx, ex, -3.2, 0.45, 0.45, acc.deep, 1);
   } else {
     // Snapback opening + strap
     const op: P[] = [
@@ -195,9 +216,10 @@ function cap(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone, f: number) {
 }
 
 function straw(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
-  const brim = brimPts(14.8, 4, -0.4, 0.6, 0.18);
+  // Worn tipped back so the brim frames the face instead of hiding the eyes
+  const brim = brimPts(14.8, 3.4, -1.1, 0.3, 0.18);
   paint(ctx, () => smoothClosed(ctx, brim, 0.9), c, ptsBox(brim), o(h, { top: 0.2 }));
-  weave(ctx, brim, c, 14.8, 4, -0.4);
+  weave(ctx, brim, c, 14.8, 3.4, -1.1);
   // Underside lip at the front edge
   line(ctx, brim.slice(2, 13).map(([x, y]) => [x, y + 0.2] as P), rgba(c.deep, 0.75), 0.7);
   const crown = crownPts(6.7, -7.4, 0.86, 1.2);
@@ -344,9 +366,9 @@ function beret(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
 
 function sunHat(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
   const wob = Math.sin(h.t * 2) * 0.4;
-  const brim = brimPts(16.4, 4.6, -0.2 + wob * 0.3, 1.2 + wob, 0.55, 36);
+  const brim = brimPts(16.4, 3.9, -0.9 + wob * 0.3, 0.8 + wob, 0.55, 36);
   paint(ctx, () => smoothClosed(ctx, brim, 0.9), c, ptsBox(brim), o(h, { top: 0.2 }));
-  weave(ctx, brim, c, 16.4, 4.6, -0.2);
+  weave(ctx, brim, c, 16.4, 3.9, -0.9);
   line(ctx, brim.slice(3, 16).map(([x, y]) => [x, y + 0.3] as P), rgba(c.deep, 0.7), 0.7);
   const crown = crownPts(6.8, -6.6, 0.9, -0.6);
   paint(ctx, () => smoothClosed(ctx, crown, 0.9), c, ptsBox(crown), o(h, { fall: 0.2, top: 0.12 }));
@@ -450,7 +472,9 @@ function helmet(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone, f: number) {
   glow(ctx, -2.4 * -h.L, -7, 3.4, 1.4, '#ffffff', 0.45);
   ctx.restore();
   // Strap from the temple to under the chin
-  if (f > 0 && !h.icon) {
+  if (f > 0 && !h.icon && (h.turn ?? 1) < 0.5) {
+    for (const s of [-1, 1]) line(ctx, [[s * 6.6, 1.6], [s * 5.4, 6.6], [s * 1.2, 11.2]], '#26252a', 0.55);
+  } else if (f > 0 && !h.icon) {
     line(ctx, [[5.8, 1.6], [4.8, 6.6], [3.2, 11.2]], '#26252a', 0.6);
     line(ctx, [[-3.2, 1.8], [-1.6, 7.4], [2.2, 11.4]], '#26252a', 0.55);
     ctx.beginPath();
@@ -538,6 +562,9 @@ function flowers(ctx: Ctx, h: HatCtx, hat: HatDef) {
 }
 
 function chef(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
+  // A padaria toque: pleated and soft-topped, kept low so it reads baker, not costume.
+  ctx.save();
+  ctx.scale(1, 0.8);
   const white = tone('#fbfaf6');
   const shadow = tone('#e6e4de');
   // Pleated body
@@ -577,6 +604,7 @@ function chef(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
   ];
   paint(ctx, () => roundPoly(ctx, band, 1), tone(acc.base), ptsBox(band), o(h, { top: 0.12 }));
   line(ctx, [[-7.2, -1.2], [0.4, -0.3], [7.4, -1.4]], rgba(tone(acc.base).lo, 0.6), 0.35);
+  ctx.restore();
   void c;
 }
 

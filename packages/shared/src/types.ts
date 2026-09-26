@@ -2,8 +2,8 @@ import type { DailyMission } from './ambiance.js';
 
 export type Pronoun = 'ele' | 'ela' | 'nome';
 export type BodyType = 'esguio' | 'medio' | 'forte';
-export type HairStyle = 'curto' | 'raspado' | 'cacheado' | 'black' | 'longo' | 'coque' | 'trancas';
-export type TopStyle = 'camiseta' | 'regata' | 'moletom' | 'camisa';
+export type HairStyle = 'curto' | 'raspado' | 'cacheado' | 'black' | 'longo' | 'coque' | 'trancas' | 'ondulado' | 'undercut';
+export type TopStyle = 'camiseta' | 'regata' | 'moletom' | 'camisa' | 'blusa';
 export type BottomStyle = 'calca' | 'bermuda' | 'saia';
 export type FaceStyle = 'suave' | 'marcante' | 'doce' | 'maduro';
 export type ExtraStyle = 'nenhum' | 'oculos' | 'barba' | 'bigode' | 'brincos' | 'sardas';

@@ -35,6 +35,27 @@ describe('CPU wardrobe (character redesign v1)', () => {
     expect(cpuArchetype('Rafael')).toBe('barista');
   });
 
+  // TB Art override 5: each pair differs on ≥3 of hair, top, bottoms, posture, accessory.
+  const reads = (n: string) => {
+    const l = cpuLook(n);
+    const a = l.appearance;
+    return [a.hair, `${a.top}/${a.topColor}`, `${a.bottom}/${a.bottomColor}`, a.idle, `${a.extra}/${l.hat}`];
+  };
+  const differ = (x: string, y: string) => reads(x).filter((v, i) => v !== reads(y)[i]).length;
+
+  it('the named five read as five different people (≥3 differences each pair)', () => {
+    const named = ['Helena', 'Daniel', 'Mateus', 'Felipe', 'Rafael'];
+    for (const x of named) for (const y of named) if (x < y) expect(differ(x, y), `${x} vs ${y}`).toBeGreaterThanOrEqual(3);
+    expect(new Set(named.map((n) => cpuLook(n).appearance.face + cpuLook(n).appearance.skin)).size).toBe(5);
+  });
+
+  it('any two neighbors that can share the square differ on ≥3 reads (no shirt-recolor clones)', () => {
+    const bad: string[] = [];
+    for (const x of CPU_NAMES)
+      for (const y of CPU_NAMES) if (x < y && cpuArchetype(x) !== cpuArchetype(y) && differ(x, y) < 3) bad.push(`${x}/${y}`);
+    expect(bad).toEqual([]);
+  });
+
   it('has enough distinct silhouettes for a full crowd (5+ reads, no clones)', () => {
     for (const pool of [CPU_LOOKS_A, CPU_LOOKS_B]) {
       const reads = new Set(Object.values(pool).map((x) => `${x.top}/${x.bottom}/${x.hair[0]}/${x.hats[0]}/${x.idle}`));

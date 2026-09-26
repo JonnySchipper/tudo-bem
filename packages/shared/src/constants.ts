@@ -25,12 +25,13 @@ export const CLOTH_COLORS = [
   '#d98a9b', // rosa antigo
   '#b89a6c', // cáqui
   '#66753f', // oliva
+  '#e07a5f', // coral (mural-coral)
 ];
 export const SHOE_COLORS = ['#f1eee8', '#26252a', '#b5452e', '#34599a', '#e0b23a'];
 
 export const BODY_TYPES: BodyType[] = ['esguio', 'medio', 'forte'];
-export const HAIR_STYLES: HairStyle[] = ['curto', 'raspado', 'cacheado', 'black', 'longo', 'coque', 'trancas'];
-export const TOP_STYLES: TopStyle[] = ['camiseta', 'regata', 'moletom', 'camisa'];
+export const HAIR_STYLES: HairStyle[] = ['curto', 'raspado', 'undercut', 'cacheado', 'black', 'ondulado', 'longo', 'coque', 'trancas'];
+export const TOP_STYLES: TopStyle[] = ['camiseta', 'blusa', 'camisa', 'moletom', 'regata'];
 export const BOTTOM_STYLES: BottomStyle[] = ['calca', 'bermuda', 'saia'];
 export const FACE_STYLES: FaceStyle[] = ['suave', 'marcante', 'doce', 'maduro'];
 export const EXTRA_STYLES: ExtraStyle[] = ['nenhum', 'oculos', 'barba', 'bigode', 'brincos', 'sardas'];
@@ -40,18 +41,28 @@ export const LABELS = {
   body: { esguio: 'Esguio', medio: 'Médio', forte: 'Forte' } as Record<BodyType, string>,
   hair: {
     curto: 'Curto',
-    raspado: 'Raspado',
+    raspado: 'Degradê',
+    undercut: 'Undercut',
+    ondulado: 'Ondulado',
     cacheado: 'Cacheado',
     black: 'Black power',
     longo: 'Longo',
     coque: 'Coque',
     trancas: 'Tranças',
   } as Record<HairStyle, string>,
-  top: { camiseta: 'Camiseta', regata: 'Regata', moletom: 'Moletom', camisa: 'Camisa' } as Record<TopStyle, string>,
+  top: { camiseta: 'Camiseta', blusa: 'Blusa', regata: 'Regata', moletom: 'Moletom', camisa: 'Camisa' } as Record<TopStyle, string>,
   bottom: { calca: 'Calça', bermuda: 'Bermuda', saia: 'Saia' } as Record<BottomStyle, string>,
   face: { suave: 'Suave', marcante: 'Marcante', doce: 'Doce', maduro: 'Maduro' } as Record<FaceStyle, string>,
   extra: { nenhum: 'Nenhum', oculos: 'Óculos', barba: 'Barba', bigode: 'Bigode', brincos: 'Brincos', sardas: 'Sardas' } as Record<ExtraStyle, string>,
 };
+
+/** Free starter looks for the creator (TB Art: at least two presentation presets). */
+export const STARTER_OUTFITS: { id: string; pt: string; en: string; set: Pick<Appearance, 'top' | 'topColor' | 'bottom' | 'bottomColor' | 'shoes'> }[] = [
+  { id: 'jeans_camiseta', pt: 'Jeans + camiseta', en: 'Jeans + tee', set: { top: 'camiseta', topColor: 4, bottom: 'calca', bottomColor: 2, shoes: 0 } },
+  { id: 'blusa_calca', pt: 'Blusa + calça', en: 'Soft blouse + trousers', set: { top: 'blusa', topColor: 12, bottom: 'calca', bottomColor: 10, shoes: 2 } },
+  { id: 'camisa_calca', pt: 'Camisa + calça', en: 'Shirt + trousers', set: { top: 'camisa', topColor: 2, bottom: 'calca', bottomColor: 5, shoes: 1 } },
+  { id: 'moletom_bermuda', pt: 'Moletom + bermuda', en: 'Hoodie + shorts', set: { top: 'moletom', topColor: 11, bottom: 'bermuda', bottomColor: 10, shoes: 0 } },
+];
 
 export const DEFAULT_APPEARANCE: Appearance = {
   body: 'medio',

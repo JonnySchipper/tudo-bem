@@ -2,7 +2,8 @@ import type { Appearance, BodyType, EmoteKind, IdlePose, NpcId } from '@tudobem/
 
 /**
  * Skeleton for the paper-doll. Local space: feet at y=0, up is −y, the figure faces +x (the caller
- * mirrors for SW/NW). ~6 heads tall (crown ≈ −88, head ≈ 14.6 high), per character brief v1.
+ * mirrors for SW/NW). ≈6.3 heads tall (crown ≈ −88, head ≈ 14 high) with the legs carrying the length,
+ * per TB Art character deltas (6–6.5 heads, no bobble/chibi).
  */
 export interface Metrics {
   /** Half-widths. */
@@ -31,20 +32,22 @@ export const BODY: Record<BodyType, Metrics> = {
 
 export const Y = {
   ankle: -3.4,
-  hip: -41.5,
-  waist: -50.5,
-  chest: -58.5,
-  sh: -65.8,
-  neck: -67.8,
-  head: -78.4,
+  hip: -44,
+  waist: -53,
+  chest: -61,
+  sh: -68.3,
+  neck: -70.3,
+  head: -81.2,
 };
-export const HEAD = { rx: 6.3, top: 7.4, chin: 7.2 };
-export const THIGH = 19.2;
-export const SHIN = 19.4;
-export const UPPER_ARM = 12.4;
-export const FOREARM = 11.4;
-/** Sitting lowers the hips from −41.5 to ≈ −18 (bench/chair seat height). */
-export const SIT_DROP = 23.5;
+/** Head drawing scale (head-local space is authored at 1; 0.95 keeps the figure at ≈6.3 heads). */
+export const HEAD_S = 0.95;
+export const HEAD = { rx: 6.3 * HEAD_S, top: 7.4 * HEAD_S, chin: 7.2 * HEAD_S };
+export const THIGH = 20.4;
+export const SHIN = 20.6;
+export const UPPER_ARM = 13;
+export const FOREARM = 12;
+/** Sitting lowers the hips from −44 to ≈ −18 (bench/chair seat height). */
+export const SIT_DROP = 26;
 /** Seat surface height the default drop is tuned for. */
 export const SEAT_H = 17;
 export const sitDrop = (seatH = SEAT_H) => SIT_DROP - (seatH - SEAT_H);
@@ -79,6 +82,8 @@ export type Held = 'cup' | 'phone' | 'map' | 'hat' | 'towel' | null;
 export interface Rig {
   m: Metrics;
   front: boolean;
+  /** 1 = three-quarter view (in game), 0 = straight-on front (creator preview). */
+  turn: number;
   sitting: boolean;
   /** Far leg/arm first (drawn behind), near second. */
   legs: [Leg, Leg];
@@ -118,6 +123,8 @@ export interface RigState {
   gesture: number;
   /** Seat surface height when sitting (bench ≈ 17, counter stool 28). */
   seatH?: number;
+  /** 1 = three-quarter (default), 0 = straight-on front. */
+  turn?: number;
 }
 
 /** Two-bone IK; `bend` = which side of the root→target line the middle joint falls on (+x / −x). */
@@ -151,6 +158,7 @@ const bell = (p: number) => (p <= 0 || p >= 1 ? 0 : p < 0.25 ? smooth(p / 0.25) 
 export function buildRig(s: RigState): Rig {
   const m = BODY[s.a.body] ?? BODY.medio;
   const f = s.front ? 1 : -1;
+  const turn = s.turn ?? 1;
   const idle: IdlePose = s.a.idle ?? 'solto';
   let bx = 0;
   let by = 0;
@@ -168,7 +176,15 @@ export function buildRig(s: RigState): Rig {
     skirtSwing = walkS;
   } else if (!s.sitting) {
     by -= s.breath * 0.35;
-    if (!s.emote) hipSway = 0.9;
+    if (!s.emote) {
+      hipSway = 0.9 * turn;
+      // Posture lean (TB Art: CPUs differ in lean, Nanda leans toward the player)
+      const lean: Partial<Record<IdlePose, number>> = { bolsos: -0.9, bracos: -1, celular: 0.7, cintura: 0.3, bolsa: 0.4 };
+      bx += (lean[idle] ?? 0) * turn;
+      if (idle === 'cintura') hipSway = 1.9 * turn;
+      if (s.npc === 'nanda') bx += 2.2 * turn;
+      if (s.npc === 'julia') bx -= 0.4 * turn;
+    }
   }
   const e = s.emote;
   if (e === 'dancar') {
@@ -222,10 +238,12 @@ export function buildRig(s: RigState): Rig {
     // Relaxed stance: weight on the far leg, the near foot eased forward with a soft knee.
     const easy = !s.moving && !e && i === 1 ? 1 : 0;
     const stance = idle === 'cintura' && easy ? -1.2 : 0;
-    const baseX = sgn * m.hp * 0.44 + stance + easy * 1.6;
-    const ax = baseX + sw * 6.4 + (e === 'dancar' ? hipSway * 0.3 : 0);
-    const ay = Y.ankle + sw * 1.1 * f - lift + easy * 0.9 * f;
+    const baseX = sgn * m.hp * (0.44 + (1 - turn) * 0.1) + stance + easy * 1.6 * turn;
+    const ax = baseX + sw * 6.8 + (e === 'dancar' ? hipSway * 0.3 : 0);
+    const ay = Y.ankle + sw * 1.1 * f - lift + easy * 0.9 * f * turn;
     const k = ik(hip, { x: ax, y: ay }, THIGH, SHIN, 1);
+    // Straight-on, knees don't bend sideways
+    if (turn < 0.5) k.mid = { x: hip.x + (k.end.x - hip.x) * 0.5, y: hip.y + (k.end.y - hip.y) * 0.5 };
     return { hip, knee: k.mid, ankle: k.end, pitch: s.moving ? -sw * 0.35 + (cw < 0 ? 0 : cw * 0.25) : 0, lift };
   }) as [Leg, Leg];
 
@@ -251,7 +269,7 @@ export function buildRig(s: RigState): Rig {
   let far = hang(0, sw, 0.1);
   let near = hang(1, -sw, -0.15);
   const hipAt = (i: 0 | 1): J => ({ x: (i === 0 ? m.hp + 0.6 : -m.hp - 0.6) + bx, y: hipY - 4.5 });
-  const chestFront = (dx: number, dy = 0): J => ({ x: 2.6 + dx + bx, y: chestY + 4 + dy });
+  const chestFront = (dx: number, dy = 0): J => ({ x: 2.6 * turn + dx + bx, y: chestY + 4 + dy });
 
   if (s.sitting && !e) {
     far = arm(0, { x: legs[0].knee.x - 4, y: legs[0].knee.y - 3.2 }, -1, 'relaxed');
@@ -287,12 +305,12 @@ export function buildRig(s: RigState): Rig {
     }
     if (s.npc === 'carlos') held[0] = 'towel';
     if (s.npc === 'julia') {
-      held[1] = 'map';
-      near = arm(1, chestFront(1.2, 4.2), -1, 'hold', true);
+      // Open, welcoming stance: near palm turned out, then she points toward the loop.
+      if (still) near = arm(1, { x: shoulders[1].x - 3.4, y: shoulders[1].y + 23.4 }, -1, 'open');
       const p = bell(s.gesture);
       if (p > 0 && still) {
         const sh = shoulders[0];
-        const reach = { x: sh.x + 17 * p + 5 * (1 - p), y: sh.y + 22 - 30 * p };
+        const reach = { x: sh.x + 17 * p + 2 * (1 - p), y: sh.y + 23.5 - 31 * p };
         far = arm(0, reach, 1, p > 0.5 ? 'point' : 'relaxed', true);
         brows = 'up';
         mouth = 'open';
@@ -301,9 +319,11 @@ export function buildRig(s: RigState): Rig {
     if (s.npc === 'nanda') {
       held[1] = 'hat';
       const p = bell(s.gesture);
-      near = arm(1, chestFront(4.8, 3.4 - p * 9), -1, 'hold', true);
+      near = arm(1, chestFront(5.4, 3 - p * 9), -1, 'hold', true);
       if (still) far = arm(0, hipAt(0), 1, 'hip');
-      if (p > 0.3) mouth = 'grin';
+      brows = 'up';
+      mouth = p > 0.3 ? 'open' : 'grin';
+      if (still) tilt = 0.05;
     }
   } else {
     const shN = shoulders[1];
@@ -329,7 +349,12 @@ export function buildRig(s: RigState): Rig {
     }
   }
 
-  const neck = { x: 0.5 + bx * 0.9, y: Y.neck + upper - s.breath * 0.25 };
-  const head = { x: 0.8 + bx + (s.moving ? 0.4 : 0), y: Y.head + upper - s.breath * 0.3 + (tilt > 0.1 ? 0.7 : 0), tilt };
-  return { m, front: s.front, sitting: s.sitting, legs, arms: [far, near], bx, by, hipY, waistY, chestY, shY, neck, head, held, hipSway, skirtSwing, mouth, brows, eyes };
+  if (turn < 0.5) {
+    // Straight-on both arms sit in front of the torso edge
+    far.over = true;
+    near.over = true;
+  }
+  const neck = { x: 0.5 * turn + bx * 0.9, y: Y.neck + upper - s.breath * 0.25 };
+  const head = { x: 0.8 * turn + bx * 1.1 + (s.moving ? 0.4 : 0), y: Y.head + upper - s.breath * 0.3 + (tilt > 0.1 ? 0.7 : 0), tilt };
+  return { m, front: s.front, turn, sitting: s.sitting, legs, arms: [far, near], bx, by, hipY, waistY, chestY, shY, neck, head, held, hipSway, skirtSwing, mouth, brows, eyes };
 }

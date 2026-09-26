@@ -16,11 +16,13 @@ export interface Look {
   rim: string;
   npc?: NpcId;
   front: boolean;
+  /** 1 = three-quarter, 0 = straight-on front. */
+  turn: number;
 }
 
 const po = (k: Look, extra: Partial<PaintOpts> = {}): PaintOpts => ({ L: k.L, rim: k.rim, ...extra });
 
-export const APRON = '#a15e38';
+export const APRON = '#f4efe6';
 const LEATHER = '#8e4a2a';
 const GOLD = '#d6a53a';
 
@@ -106,6 +108,7 @@ export function drawLeg(ctx: Ctx, r: Rig, leg: Leg, i: number, k: Look) {
 
 /** Sneaker (foot-local: x toward the toe, y down), rotated to the leg's heading. */
 function drawShoe(ctx: Ctx, leg: Leg, k: Look, i: number) {
+  if (k.turn < 0.5) return drawShoeFront(ctx, leg, k, i);
   const ang = (k.front ? 0.3 : -0.28) + leg.pitch + (i === 0 ? -0.05 : 0.05);
   const upper = k.shoe;
   const white = k.a.shoes === 0;
@@ -141,6 +144,31 @@ function drawShoe(ctx: Ctx, leg: Leg, k: Look, i: number) {
   ctx.restore();
 }
 
+/** Sneaker seen toe-on (straight front view): rounded toe box, laces, sole band. */
+function drawShoeFront(ctx: Ctx, leg: Leg, k: Look, i: number) {
+  const white = k.a.shoes === 0;
+  const sole = tone(white ? '#dcd7ce' : '#f3efe6');
+  const out = i === 0 ? 0.5 : -0.5;
+  ctx.save();
+  ctx.translate(leg.ankle.x + out, leg.ankle.y);
+  const up: P[] = [
+    [-2.1, -0.8],
+    [2.1, -0.8],
+    [2.7, 2.4],
+    [-2.7, 2.4],
+  ];
+  paint(ctx, () => roundPoly(ctx, up, [1.4, 1.4, 1.6, 1.6]), k.shoe, ptsBox(up), po(k, { lw: 0.45, top: 0.2, rimA: 0.4 }));
+  for (let n = 0; n < 3; n++) line(ctx, [[-0.9, -0.3 + n * 0.75], [0.9, -0.3 + n * 0.75]], white ? '#b9b3aa' : rgba('#fff6e6', 0.85), 0.35, false);
+  const so: P[] = [
+    [-2.9, 2],
+    [2.9, 2],
+    [2.9, 3.4],
+    [-2.9, 3.4],
+  ];
+  paint(ctx, () => roundPoly(ctx, so, 0.8), sole, ptsBox(so), po(k, { lw: 0.4, rimA: 0.2 }));
+  ctx.restore();
+}
+
 // ---------------------------------------------------------------- bottoms (pelvis, skirt)
 
 export function drawPelvis(ctx: Ctx, r: Rig, k: Look) {
@@ -161,7 +189,8 @@ export function drawPelvis(ctx: Ctx, r: Rig, k: Look) {
   if (r.front) {
     // Front pocket curves + fly
     line(ctx, [[-m.hp + 0.6 + x, r.hipY - 4.8], [-m.hp + 2.6 + x, r.hipY - 2.2], [-m.hp + 2.1 + x, r.hipY + 0.6]], rgba(k.bottom.lo, 0.8), 0.4);
-    line(ctx, [[1.6 + x, r.waistY + 3.6], [1.9 + x, r.hipY + 2.4]], rgba(k.bottom.lo, 0.7), 0.35);
+    line(ctx, [[1.6 * r.turn + x, r.waistY + 3.6], [1.9 * r.turn + x, r.hipY + 2.4]], rgba(k.bottom.lo, 0.7), 0.35);
+    if (r.turn < 0.5) line(ctx, [[m.hp - 0.6 + x, r.hipY - 4.8], [m.hp - 2.6 + x, r.hipY - 2.2], [m.hp - 2.1 + x, r.hipY + 0.6]], rgba(k.bottom.lo, 0.8), 0.4);
   } else {
     line(ctx, [[-4 + x, r.hipY - 3.8], [-1 + x, r.hipY - 3], [-1.4 + x, r.hipY]], rgba(k.bottom.lo, 0.7), 0.4);
     line(ctx, [[4.4 + x, r.hipY - 3.8], [1.6 + x, r.hipY - 3], [1.9 + x, r.hipY]], rgba(k.bottom.lo, 0.7), 0.4);
@@ -239,9 +268,9 @@ function torsoPts(r: Rig, bulk: number, hemY: number, front: boolean): P[] {
     [m.ch + bulk * 0.8 + m.belly * 0.4 + x, c + 2.6],
     [m.sh + 0.3 + bulk + x, s + 2.6],
     [m.sh - 2 + x, s - 1.2 - bulk * 0.35],
-    [nx + (front ? 3.1 : 2.6), s - 2.6],
-    [nx + (front ? 0.9 : 0.2), s + (front ? 0.4 : -1.9)],
-    [nx - 2.5, s - 2.5],
+    [nx + (front ? 2.7 + 0.4 * r.turn : 2.6), s - 2.6],
+    [nx + (front ? 0.9 * r.turn : 0.2), s + (front ? 0.4 + (1 - r.turn) * 0.4 : -1.9)],
+    [nx - 2.5 - (front ? (1 - r.turn) * 0.2 : 0), s - 2.5],
   ];
 }
 
@@ -268,10 +297,10 @@ export function drawTorso(ctx: Ctx, r: Rig, k: Look) {
   const t = k.top;
   const f = r.front;
   const x = r.bx;
-  const cx = r.neck.x + (f ? 1.5 : -0.6);
+  const cx = r.neck.x + (f ? 1.5 * r.turn : -0.6);
 
   // Hem occlusion onto the bottoms
-  const hemY = r.hipY + (style === 'moletom' ? 4.8 : style === 'camisa' ? 3.4 : 2.9);
+  const hemY = style === 'blusa' ? r.waistY + 3.6 : r.hipY + (style === 'moletom' ? 4.8 : style === 'camisa' ? 3.4 : 2.9);
   if (k.a.bottom !== 'saia' || !r.sitting) glow(ctx, x * 0.5 + 0.6, hemY + 0.8, m.hp + 2.2, 1.9, k.bottom.deep, 0.45);
 
   if (style === 'regata') {
@@ -298,8 +327,14 @@ export function drawTorso(ctx: Ctx, r: Rig, k: Look) {
     return;
   }
 
-  const bulk = style === 'moletom' ? 1.2 : style === 'camisa' ? 0.55 : 0.3;
+  const bulk = style === 'moletom' ? 1.2 : style === 'camisa' ? 0.55 : style === 'blusa' ? 0.6 : 0.3;
   const pts = torsoPts(r, bulk, hemY, f);
+  if (style === 'blusa') {
+    // Soft V neckline; the tuck blouses a little over the waistband at the sides
+    pts[11] = [r.neck.x + (f ? 0.9 * r.turn : 0.2), r.shY + (f ? 3.6 : -1.6)];
+    pts[3] = [pts[3][0] - 0.4, pts[3][1]];
+    pts[6] = [pts[6][0] + 0.4, pts[6][1]];
+  }
   if (style === 'camisa') {
     // Shirt tail dips in the middle
     pts[4] = [pts[4][0], hemY - 0.8];
@@ -317,8 +352,9 @@ export function drawTorso(ctx: Ctx, r: Rig, k: Look) {
   if (style === 'camiseta') {
     // Crew-neck rib
     const nx = r.neck.x;
-    line(ctx, [[nx - 2.6, r.shY - 2.3], [nx + (f ? 0.9 : 0.2), r.shY + (f ? 0.9 : -1.4)], [nx + 3.2, r.shY - 2.4]], t.lo, 0.9);
-    line(ctx, [[nx - 2.2, r.shY - 1.5], [nx + (f ? 0.9 : 0.2), r.shY + (f ? 1.5 : -0.8)], [nx + 2.8, r.shY - 1.6]], rgba(t.hi, 0.5), 0.35);
+    const dip = f ? 0.9 * r.turn : 0.2;
+    line(ctx, [[nx - 2.6, r.shY - 2.3], [nx + dip, r.shY + (f ? 0.9 : -1.4)], [nx + 3.2 - (f ? (1 - r.turn) * 0.5 : 0), r.shY - 2.4]], t.lo, 0.9);
+    line(ctx, [[nx - 2.2, r.shY - 1.5], [nx + dip, r.shY + (f ? 1.5 : -0.8)], [nx + 2.8 - (f ? (1 - r.turn) * 0.5 : 0), r.shY - 1.6]], rgba(t.hi, 0.5), 0.35);
     if (!f) line(ctx, [[-m.sh + 2 + x, r.shY + 1.5], [m.sh - 2 + x, r.shY + 1.5]], rgba(t.lo, 0.35), 0.4);
   } else if (style === 'moletom') {
     // Ribbed hem band + kangaroo pocket
@@ -357,6 +393,15 @@ export function drawTorso(ctx: Ctx, r: Rig, k: Look) {
       paint(ctx, () => roundPoly(ctx, hd, [2.4, 2.4, 3, 3, 3]), t, ptsBox(hd), po(k, { lw: 0.5, top: 0.12 }));
       line(ctx, [[r.neck.x - 0.2, r.shY - 1], [r.neck.x - 0.6, r.chestY + 3.4]], rgba(t.lo, 0.8), 0.5);
     }
+  } else if (style === 'blusa') {
+    const sd = -k.L;
+    const nx = r.neck.x;
+    // Drape from the shoulders, gathers at the tuck
+    line(ctx, [[nx - 4.4, r.shY], [cx - 2.6, r.chestY + 3], [cx - 1.4, hemY - 1]], rgba(t.lo, 0.55), 0.5);
+    line(ctx, [[nx + 4.6, r.shY], [cx + 3.4, r.chestY + 3.4], [cx + 2.2, hemY - 1]], rgba(t.lo, 0.55), 0.5);
+    line(ctx, [[nx - 4, r.shY + 0.4], [cx - 2, r.chestY + 3.2], [cx - 0.8, hemY - 1.2]], rgba(t.hi, 0.45), 0.4);
+    for (let i = -3; i <= 3; i++) line(ctx, [[cx + i * 1.5, hemY - 2.6], [cx + i * 1.6 + sd * 0.2, hemY + 0.2]], rgba(t.lo, 0.5), 0.35, false);
+    if (f) line(ctx, [[nx - 2.2, r.shY - 2], [nx + 0.9 * r.turn, r.shY + 3.4], [nx + 3 - (1 - r.turn) * 0.5, r.shY - 2.1]], rgba(t.deep, 0.5), 0.45);
   } else if (style === 'camisa') {
     if (f) {
       // Placket + buttons + chest pocket
@@ -389,6 +434,7 @@ export function drawTorso(ctx: Ctx, r: Rig, k: Look) {
   ctx.restore();
 
   if (style === 'camisa') collar(ctx, r, k);
+  if (style === 'blusa' && k.a.bottom !== 'saia') belt(ctx, r, k, hemY);
   if (style === 'moletom' && f) {
     // Hood collar around the neck + drawstrings
     const nx = r.neck.x;
@@ -413,6 +459,29 @@ export function drawTorso(ctx: Ctx, r: Rig, k: Look) {
     line(ctx, [[nx - 0.4, r.shY + 2.6], [nx - 0.9, r.chestY + 3.5]], cord, 0.55, false);
     line(ctx, [[nx + 2.6, r.shY + 2.4], [nx + 3.1, r.chestY + 3.2]], cord, 0.55, false);
     for (const [ax, ay] of [[nx - 0.9, r.chestY + 3.5], [nx + 3.1, r.chestY + 3.2]]) line(ctx, [[ax, ay], [ax, ay + 1.2]], '#b9ad98', 0.7, false);
+  }
+}
+
+/** Leather belt with a small metal buckle (TB Art: leather/metal accents sparingly). */
+function belt(ctx: Ctx, r: Rig, k: Look, y: number) {
+  const m = r.m;
+  const x = r.bx * 0.7;
+  const leather = tone('#6b4430');
+  const band: P[] = [
+    [-m.wa - 0.8 + x, y - 1],
+    [m.wa + m.belly * 0.6 + 0.8 + x, y - 1.1],
+    [m.wa + m.belly * 0.6 + 0.9 + x, y + 0.5],
+    [-m.wa - 0.9 + x, y + 0.6],
+  ];
+  paint(ctx, () => roundPoly(ctx, band, 0.5), leather, ptsBox(band), po(k, { lw: 0.35, top: 0.2, rimA: 0.3 }));
+  const bx = r.neck.x + (r.front ? 1.5 * r.turn : -0.6) + x * 0.3;
+  if (r.front) {
+    ctx.beginPath();
+    ctx.roundRect(bx - 1.1, y - 1.3, 2.2, 2.1, 0.5);
+    ctx.strokeStyle = '#c9b27a';
+    ctx.lineWidth = 0.55;
+    ctx.stroke();
+    glow(ctx, bx - 0.6, y - 0.9, 0.5, 0.4, '#fff6d8', 0.9);
   }
 }
 
@@ -535,6 +604,17 @@ export function drawArm(ctx: Ctx, r: Rig, arm: Arm, i: number, k: Look) {
     ];
     paint(ctx, () => limbShape(ctx, cuff), tone(t.lo), limbBox(cuff), po(k, { lw: 0.35, rimA: 0.2 }));
     line(ctx, [[el.x - 1.6, el.y - 1.2], [el.x + 0.4, el.y + 0.2], [el.x + 1.6, el.y - 0.8]], rgba(t.lo, 0.8), 0.45);
+  } else if (style === 'blusa') {
+    // Flutter sleeve, flaring toward the hem
+    const end = lerp(sh, el, 0.42);
+    const sl = [
+      { ...sh, r: m.arm + 0.6 },
+      { ...end, r: m.arm + 1.35 },
+    ];
+    paint(ctx, () => limbShape(ctx, sl), t, limbBox(sl), po(k, { lw: 0.5, top: 0.12 }));
+    line(ctx, [[end.x - m.arm - 1, end.y + 0.3], [end.x, end.y + 0.9], [end.x + m.arm + 1, end.y - 0.2]], rgba(t.lo, 0.7), 0.4);
+    const mid = lerp(sh, el, 0.25);
+    line(ctx, [[mid.x - 0.8, mid.y - 1.2], [end.x - 0.9, end.y + 0.4]], rgba(t.lo, 0.45), 0.35, false);
   } else if (style === 'camisa') {
     const sl = [
       { ...sh, r: m.arm + 0.6 },
@@ -671,7 +751,7 @@ export function drawHeld(ctx: Ctx, r: Rig, i: 0 | 1, k: Look, drawHatAt: (ctx: C
     line(ctx, [[-1.8, -1.2], [2.2, 1.2]], '#3a8a5c', 0.35, false);
     ctx.restore();
   } else if (what === 'hat') {
-    drawHatAt(ctx, 'chapeu_palha', hx + 1.8, hy - 0.4, 0.62, -0.35);
+    drawHatAt(ctx, 'bucket_amarelo', hx + 1.8, hy - 0.8, 0.62, -0.35);
   }
 }
 
@@ -732,11 +812,16 @@ export function drawSignature(ctx: Ctx, r: Rig, k: Look) {
       roundPoly(ctx, pts, [0.8, 0.8, 3, 1.2, 1.2, 3]);
       ctx.clip();
       ctx.setLineDash([0.8, 0.7]);
-      line(ctx, pts.concat([pts[0]]).map(([px, py]) => [px + (px > cx ? -0.9 : 0.9), py + (py > r.waistY ? -0.9 : 0.9)] as P), rgba('#e0ae3c', 0.7), 0.3, false);
+      line(ctx, pts.concat([pts[0]]).map(([px, py]) => [px + (px > cx ? -0.9 : 0.9), py + (py > r.waistY ? -0.9 : 0.9)] as P), rgba('#b9ad98', 0.8), 0.3, false);
       ctx.setLineDash([]);
-      line(ctx, [[cx - 0.4, r.waistY + 3], [cx + 0.9, r.hipY + 9]], rgba(ap.lo, 0.8), 0.6);
-      line(ctx, [[cx + 4.6, r.waistY + 4], [cx + 5.8, r.hipY + 9]], rgba(ap.lo, 0.6), 0.5);
-      for (let n = 0; n < 14; n++) glow(ctx, cx - 5 + rnd(n, 3) * 11, r.hipY - 4 + rnd(n, 9) * 14, 0.9 + rnd(n, 5), 0.6 + rnd(n, 5) * 0.6, '#fffaf0', 0.28);
+      // Cloth fold breaks + a soft flour smudge (not slapstick)
+      line(ctx, [[cx - 0.4, r.waistY + 3], [cx + 0.9, r.hipY + 9]], rgba(ap.lo, 0.9), 0.6);
+      line(ctx, [[cx + 4.6, r.waistY + 4], [cx + 5.8, r.hipY + 9]], rgba(ap.lo, 0.7), 0.5);
+      line(ctx, [[cx - 4, r.waistY + 5], [cx - 3.4, r.hipY + 9.5]], rgba(ap.lo, 0.55), 0.45);
+      line(ctx, [[cx - 3.2, r.chestY], [cx - 1.6, r.waistY - 1]], rgba(ap.lo, 0.5), 0.4);
+      glow(ctx, cx + 2.4, r.hipY + 5.6, 2.6, 1.6, '#d9cfbf', 0.55);
+      glow(ctx, cx - 3, r.chestY + 2, 1.6, 1.1, '#e2d9ca', 0.45);
+      for (let n = 0; n < 12; n++) glow(ctx, cx - 5 + rnd(n, 3) * 11, r.hipY - 4 + rnd(n, 9) * 14, 0.7 + rnd(n, 5) * 0.8, 0.5 + rnd(n, 5) * 0.5, '#d4c9b6', 0.35);
       ctx.restore();
       const pk: P[] = [
         [cx - 4.6, r.hipY - 2.2],
@@ -783,8 +868,8 @@ export function drawSignature(ctx: Ctx, r: Rig, k: Look) {
     if (f) {
       // Lanyard + host badge
       const badge = { x: cx + 0.4, y: r.chestY + 3.2 };
-      line(ctx, [[r.neck.x - 2.2, r.shY - 0.6], [badge.x - 0.6, badge.y - 2.4]], '#d6a53a', 0.6);
-      line(ctx, [[r.neck.x + 2.8, r.shY - 0.6], [badge.x + 0.6, badge.y - 2.4]], '#d6a53a', 0.6);
+      line(ctx, [[r.neck.x - 2.2, r.shY - 0.6], [badge.x - 0.6, badge.y - 2.4]], '#e07a5f', 0.65);
+      line(ctx, [[r.neck.x + 2.8, r.shY - 0.6], [badge.x + 0.6, badge.y - 2.4]], '#e07a5f', 0.65);
       const b: P[] = [
         [badge.x - 1.9, badge.y - 2.4],
         [badge.x + 1.9, badge.y - 2.4],
@@ -813,7 +898,7 @@ export function drawSignature(ctx: Ctx, r: Rig, k: Look) {
     glow(ctx, bx + 0.1, r.hipY - 3.6, 0.6, 0.6, GOLD, 1);
   } else if (k.npc === 'nanda') {
     // Pochete across the waist
-    const pc = tone('#66753f');
+    const pc = tone('#e07a5f');
     line(ctx, [[-m.wa - 0.6 + x, r.waistY + 1.8], [m.wa + 0.6 + x, r.waistY + 1.4]], pc.lo, 1.1, false);
     if (f) {
       const px = cx - 1.6;

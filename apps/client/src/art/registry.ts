@@ -7,6 +7,8 @@ import {
   BOTTOM_STYLES,
   CLOTH_COLORS,
   DEFAULT_APPEARANCE,
+  FACE_STYLES,
+  STARTER_OUTFITS,
   FURNITURE,
   HAIR_COLORS,
   HAIR_STYLES,
@@ -183,7 +185,7 @@ function avatarAssets(): ArtAsset[] {
 
 /** The Praça crowd as the server dresses it (authored wardrobe, `cpuLook`). */
 function crowdLineup(n: number): { name: string; a: Appearance; hat: string | null }[] {
-  const names = ['Helena', 'Daniel', 'Mateus', 'Felipe', 'Rafael', 'Beatriz', 'Camila', 'André', 'Larissa', 'Paulo', 'Renata', 'Diego', 'Natasha', 'Fernanda'];
+  const names = ['Helena', 'Daniel', 'Mateus', 'Felipe', 'Rafael', 'André', 'Beatriz', 'Camila', 'Larissa', 'Paulo', 'Renata', 'Diego', 'Natasha', 'Fernanda'];
   return names.slice(0, n).map((name) => {
     const look = cpuLook(name);
     return { name, a: look.appearance, hat: look.hat };
@@ -194,38 +196,92 @@ function crowdLineup(n: number): { name: string; a: Appearance; hat: string | nu
 function characterAssets(): ArtAsset[] {
   const out: ArtAsset[] = [];
   const GAP = 64;
-  const lineup = (key: string, label: Bilingual, figs: { a: Appearance; hat: string | null; parrot?: boolean; pose?: Partial<AvatarPose>; name?: string }[], gap = GAP, zoom = 1) => {
-    const w = figs.length * gap + 40;
+  const lineup = (key: string, label: Bilingual, figs: { a: Appearance; hat: string | null; parrot?: boolean; pose?: Partial<AvatarPose>; name?: string }[], gap = GAP, zoom = 1, perRow = figs.length) => {
+    const cols = Math.min(perRow, figs.length);
+    const rows = Math.ceil(figs.length / perRow);
+    const w = cols * gap + 40;
+    const RH = 150;
     out.push({
       key: `characters/${key}`,
       category: 'characters',
       label,
       runtime: false,
-      bounds: { x: (-w / 2) * zoom, y: -128 * zoom, w: w * zoom, h: 150 * zoom },
+      bounds: { x: (-w / 2) * zoom, y: -128 * zoom, w: w * zoom, h: RH * rows * zoom },
       crop: false,
       scale: 3,
       draw: (ctx) => {
         ctx.scale(zoom, zoom);
-        const bg = ctx.createLinearGradient(0, -128, 0, 22);
-        bg.addColorStop(0, '#f6ead8');
-        bg.addColorStop(0.78, '#eadcc6');
-        bg.addColorStop(0.8, '#dccab0');
-        bg.addColorStop(1, '#d3c0a4');
-        ctx.fillStyle = bg;
-        ctx.fillRect(-w / 2, -128, w, 150);
+        for (let row = 0; row < rows; row++) {
+          const oy = row * RH;
+          const bg = ctx.createLinearGradient(0, oy - 128, 0, oy + 22);
+          bg.addColorStop(0, '#f6ead8');
+          bg.addColorStop(0.78, '#eadcc6');
+          bg.addColorStop(0.8, '#dccab0');
+          bg.addColorStop(1, '#d3c0a4');
+          ctx.fillStyle = bg;
+          ctx.fillRect(-w / 2, oy - 128, w, RH);
+        }
         figs.forEach((f, i) => {
-          const x = -w / 2 + 20 + gap / 2 + i * gap;
-          drawAvatar(ctx, x, 0, f.a, f.hat, !!f.parrot, { dir: 'SE', t: 0.35 + i * 0.37, moving: false, sitting: false, seed: 0, ...f.pose });
+          const x = -w / 2 + 20 + gap / 2 + (i % perRow) * gap;
+          const y = Math.floor(i / perRow) * RH;
+          drawAvatar(ctx, x, y, f.a, f.hat, !!f.parrot, { dir: 'SE', t: 0.35 + i * 0.37, moving: false, sitting: false, seed: 0, ...f.pose });
           if (f.name) {
             ctx.font = `800 7px Nunito, system-ui, sans-serif`;
             ctx.textAlign = 'center';
             ctx.fillStyle = '#2a2233';
-            ctx.fillText(f.name, x, 16);
+            ctx.fillText(f.name, x, y + 16);
           }
         });
       },
     });
   };
+  // Required TB Art shot: player front + 3/4 + back + hat-on, in both starter presets.
+  const presets = STARTER_OUTFITS.slice(0, 2).map((o, i) => ({
+    ...DEFAULT_APPEARANCE,
+    ...o.set,
+    ...(i === 0 ? { hair: 'curto' as const, skin: 4, hairColor: 0, face: 'marcante' as const } : { hair: 'ondulado' as const, skin: 1, hairColor: 3, face: 'doce' as const, extra: 'brincos' as const }),
+  }));
+  lineup(
+    'player',
+    { pt: 'Jogador: frente · 3/4 · costas · com chapéu', en: 'Player paper-doll — front, three-quarter, back, hat on (Jeans + camiseta · Blusa + calça)' },
+    presets.flatMap((a, i) => {
+      const hat = i === 0 ? 'bone_verde' : 'chapeu_palha';
+      return [
+        { a, hat: null, pose: { view: 'front' as const }, name: 'frente' },
+        { a, hat: null, name: '3/4' },
+        { a, hat: null, pose: { dir: 'NE' as const }, name: 'costas' },
+        { a, hat, pose: { view: 'front' as const }, name: 'chapéu · frente' },
+        { a, hat, name: 'chapéu · 3/4' },
+      ];
+    }),
+    60,
+    1.6,
+    5,
+  );
+  lineup(
+    'hair',
+    { pt: 'Cabelos (9 silhuetas)', en: 'Nine hair silhouettes — front and three-quarter' },
+    [false, true].flatMap((q) =>
+      HAIR_STYLES.map((hs, i) => ({
+        a: { ...DEFAULT_APPEARANCE, hair: hs, skin: [1, 3, 5, 6, 2, 7, 0, 4, 5][i], hairColor: [0, 1, 2, 0, 3, 4, 1, 0, 0][i], topColor: 4, face: FACE_STYLES[i % 4] },
+        hat: null,
+        pose: q ? {} : { view: 'front' as const },
+        name: q ? '' : LABELS.hair[hs],
+      })),
+    ),
+    54,
+    1.3,
+    HAIR_STYLES.length,
+  );
+  const fitHair = ['black', 'cacheado', 'coque', 'undercut', 'ondulado'] as const;
+  lineup(
+    'hatfit',
+    { pt: 'Chapéus × cabelos', en: 'Every hat on the big hair silhouettes — no skull or hair clip' },
+    fitHair.flatMap((hs, r) => HATS.map((h, i) => ({ a: { ...DEFAULT_APPEARANCE, hair: hs, skin: (i + r * 3) % 8, hairColor: r % 3, topColor: (i + r) % 12 }, hat: h.id, name: r === 0 ? h.pt.replace(/^Chapéu (de )?/, '') : '' }))),
+    54,
+    1,
+    HATS.length,
+  );
   const npcs = [...ROOMS.padaria.npcs, ...ROOMS.praca.npcs];
   lineup(
     'closeup',
@@ -257,10 +313,11 @@ function characterAssets(): ArtAsset[] {
   );
   lineup(
     'creator',
-    { pt: 'Criador: pele × cabelo', en: 'Creator range — 8 skin tones across the 7 hair styles' },
+    { pt: 'Criador: pele × cabelo', en: 'Creator range — 8 skin tones (light → deep) across the hair styles, front view' },
     SKIN_TONES.map((_, i) => ({
-      a: { ...DEFAULT_APPEARANCE, skin: i, hair: HAIR_STYLES[i % HAIR_STYLES.length], hairColor: [0, 1, 2, 3, 4, 1, 0, 5][i], body: BODY_TYPES[i % 3], top: TOP_STYLES[i % 4], topColor: [1, 2, 3, 4, 5, 7, 8, 0][i], bottom: BOTTOM_STYLES[i % 3], bottomColor: [2, 5, 1, 4, 5, 2, 9, 6][i] },
+      a: { ...DEFAULT_APPEARANCE, skin: i, hair: HAIR_STYLES[i % HAIR_STYLES.length], hairColor: [0, 1, 2, 3, 4, 1, 0, 5][i], body: BODY_TYPES[i % 3], top: TOP_STYLES[i % TOP_STYLES.length], topColor: [1, 12, 3, 4, 5, 7, 8, 0][i], bottom: BOTTOM_STYLES[i % 3], bottomColor: [2, 5, 1, 10, 5, 2, 9, 6][i], face: FACE_STYLES[i % 4] },
       hat: null,
+      pose: { view: 'front' as const },
       name: `${LABELS.hair[HAIR_STYLES[i % HAIR_STYLES.length]]}`,
     })),
     56,

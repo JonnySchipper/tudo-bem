@@ -12,6 +12,7 @@ import {
   MIN_AGE,
   SHOE_COLORS,
   SKIN_TONES,
+  STARTER_OUTFITS,
   TOP_STYLES,
   validateName,
   type Appearance,
@@ -98,13 +99,13 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
 
     // ---------- Step 2: avatar creator ----------
     function creator(birthYear: number, birthMonth: number) {
-      const a: Appearance = { ...DEFAULT_APPEARANCE, skin: Math.floor(Math.random() * SKIN_TONES.length), topColor: Math.floor(Math.random() * 4) };
+      const a: Appearance = { ...DEFAULT_APPEARANCE, ...STARTER_OUTFITS[0].set, skin: Math.floor(Math.random() * SKIN_TONES.length) };
       let pronoun: Pronoun = 'nome';
       const canvas = h('canvas', { width: 220, height: 280, style: 'width:220px;height:280px' });
       let raf = 0;
       let wave = 0;
       const loop = (ts: number) => {
-        renderAvatarPreview(canvas, a, null, false, ts / 1000, { scale: 2.45, footY: 266, emote: ts / 1000 - wave < 2.5 ? 'oi' : null, emoteT0: wave });
+        renderAvatarPreview(canvas, a, null, false, ts / 1000, { scale: 2.45, footY: 266, view: 'front', emote: ts / 1000 - wave < 2.5 ? 'oi' : null, emoteT0: wave });
         raf = requestAnimationFrame(loop);
       };
       raf = requestAnimationFrame((ts) => {
@@ -124,6 +125,7 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
       };
       api.setError = setErr;
 
+      const refresh: (() => void)[] = [];
       const chips = <T extends string>(opts: readonly T[], label: (v: T) => string, get: () => T, set: (v: T) => void) => {
         const wrap = h('div', { class: 'chips' });
         const render = () =>
@@ -133,6 +135,7 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
             ),
           );
         render();
+        refresh.push(render);
         return wrap;
       };
       const swatches = (colors: string[], get: () => number, set: (i: number) => void) => {
@@ -144,8 +147,31 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
             ),
           );
         render();
+        refresh.push(render);
         return wrap;
       };
+      const outfit = () => STARTER_OUTFITS.find((o) => (Object.keys(o.set) as (keyof typeof o.set)[]).every((k) => a[k] === o.set[k]))?.id ?? '';
+      const presets = h('div', { class: 'chips' });
+      const renderPresets = () =>
+        presets.replaceChildren(
+          ...STARTER_OUTFITS.map((o) =>
+            h(
+              'button',
+              {
+                class: outfit() === o.id ? 'on' : '',
+                type: 'button',
+                'data-outfit': o.id,
+                onclick: () => {
+                  Object.assign(a, o.set);
+                  refresh.forEach((r) => r());
+                },
+              },
+              o.pt,
+            ),
+          ),
+        );
+      renderPresets();
+      refresh.push(renderPresets);
       const field = (pt: string, enText: string, control: HTMLElement) => h('div', { class: 'field' }, h('label', null, pt, en(enText)), control);
 
       const pronounChips = chips(
@@ -190,6 +216,7 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
               null,
               field('Como você se chama?', 'Display name (not your full real name)', h('div', null, name, nameErr)),
               field('Como devemos te chamar?', 'How should NPCs address you? (grammar agreement)', pronounChips),
+              field('Visual inicial', 'Free starter looks — tweak anything below', presets),
               field('Corpo', 'Body', chips(BODY_TYPES, (v) => LABELS.body[v], () => a.body, (v) => (a.body = v))),
               field('Tom de pele', 'Skin tone', swatches(SKIN_TONES, () => a.skin, (i) => (a.skin = i))),
               field('Rosto', 'Face', chips(FACE_STYLES, (v) => LABELS.face[v], () => a.face ?? 'suave', (v) => (a.face = v))),

@@ -11,9 +11,9 @@ import { CLOTH_COLORS, HAIR_COLORS, SHOE_COLORS, SKIN_TONES, hatById, type Appea
 import { rrect, shadow, type Ctx } from './draw';
 import { drawArm, drawHeld, drawLeg, drawNeck, drawPelvis, drawSignature, drawTorso, drawTote, type Look } from './avatar/body';
 import { mix, rgba, RIM, tone, type Light } from './avatar/color';
-import { clipHead, drawHairBehind, drawHairFront, drawHead, hatFit } from './avatar/head';
+import { clipHead, drawFace, drawHairBehind, drawHairFront, drawHead, HAIR_TOP, hatFit, viewOf } from './avatar/head';
 import { brimShade, drawHat as drawHatShape, drawHatIconArt, HAT_W, hatHeight } from './avatar/hats';
-import { buildRig, HEAD, sitDrop, Y, type Rig, type RigState } from './avatar/rig';
+import { buildRig, HEAD, HEAD_S, sitDrop, Y, type Rig, type RigState } from './avatar/rig';
 import { glow, smoothClosed, type P } from './avatar/shape';
 
 export { SEAT_H } from './avatar/rig';
@@ -32,6 +32,8 @@ export interface AvatarPose {
   npc?: NpcId;
   /** Seat surface height when sitting (defaults to bench height). */
   seatH?: number;
+  /** `front` = straight-on (creator preview); default is the in-game three-quarter view. */
+  view?: 'front';
 }
 
 // ---------------------------------------------------------------- pose → frame state
@@ -50,8 +52,9 @@ const JULIA_CYCLE = 9;
 const NANDA_CYCLE = 7;
 
 function frameState(a: Appearance, hatId: string | null, pose: AvatarPose): FrameState {
-  const front = pose.dir === 'SE' || pose.dir === 'SW';
-  const flip = pose.dir === 'SW' || pose.dir === 'NW';
+  const straight = pose.view === 'front';
+  const front = straight || pose.dir === 'SE' || pose.dir === 'SW';
+  const flip = !straight && (pose.dir === 'SW' || pose.dir === 'NW');
   const t = pose.t + (pose.seed ?? 0);
   const age = pose.emote ? pose.t - pose.emote.t0 : 99;
   const emote = pose.emote && age < 2.6 ? pose.emote.kind : null;
@@ -85,9 +88,10 @@ function frameState(a: Appearance, hatId: string | null, pose: AvatarPose): Fram
     npc: pose.npc,
     gesture: gestQ / 14,
     seatH: pose.sitting ? pose.seatH : undefined,
+    turn: straight ? 0 : 1,
   };
   const ak = `${a.body}${a.skin}${a.hair}${a.hairColor}${a.top}${a.topColor}${a.bottom}${a.bottomColor}${a.shoes}${a.face ?? ''}${a.extra ?? ''}${a.idle ?? ''}`;
-  const key = `${ak}|${hatId ?? ''}|${pose.npc ?? ''}|${pose.dir}|${light}|${pose.sitting ? (pose.seatH ?? 's') : 0}${pose.moving ? 1 : 0}|${phaseQ}|${breathQ}|${blink ? 1 : 0}|${emote ?? ''}${ageQ}|${gestQ}|${hatQ}`;
+  const key = `${ak}|${hatId ?? ''}|${pose.npc ?? ''}|${straight ? 'F' : pose.dir}|${light}|${pose.sitting ? (pose.seatH ?? 's') : 0}${pose.moving ? 1 : 0}|${phaseQ}|${breathQ}|${blink ? 1 : 0}|${emote ?? ''}${ageQ}|${gestQ}|${hatQ}`;
   return { rs, hat, hatT, flip, light, key };
 }
 
@@ -104,6 +108,7 @@ function lookFor(a: Appearance, fs: FrameState): Look {
     rim: RIM[fs.light],
     npc: fs.rs.npc,
     front: fs.rs.front,
+    turn: fs.rs.turn ?? 1,
   };
 }
 
@@ -118,6 +123,7 @@ function inHead(ctx: Ctx, r: Rig, fn: () => void) {
   ctx.save();
   ctx.translate(r.head.x, r.head.y);
   ctx.rotate(r.head.tilt);
+  ctx.scale(HEAD_S, HEAD_S);
   fn();
   ctx.restore();
 }
@@ -143,6 +149,8 @@ function paintBody(ctx: Ctx, r: Rig, k: Look, fs: FrameState) {
   const bi = front ? 0 : 1;
   const fi = front ? 1 : 0;
   if (front) inHead(ctx, r, () => drawHairBehind(ctx, r, k));
+  // Tight occlusion where each sole meets the floor
+  if (!r.sitting) for (const l of r.legs) if (l.lift < 1) glow(ctx, l.ankle.x + (r.turn > 0.5 ? 1.4 : 0), 0.2, 3.6, 1.1, '#3a2216', 0.3);
   if (!behindArm.over) {
     drawArm(ctx, r, behindArm, bi, k);
     drawHeld(ctx, r, bi as 0 | 1, k, heldHat);
@@ -161,9 +169,11 @@ function paintBody(ctx: Ctx, r: Rig, k: Look, fs: FrameState) {
   drawTote(ctx, r, k);
   const head = () =>
     inHead(ctx, r, () => {
+      // TB Art layer lock: skin → hair → face → hat
       drawHead(ctx, r, k);
       drawHairFront(ctx, r, k, !!fs.hat);
-      if (fs.hat) brimShadow(ctx, k, fs.hat, front);
+      drawFace(ctx, r, k);
+      if (fs.hat) brimShadow(ctx, k, fs.hat, r);
     });
   // From behind, hair falls over the back, so the head goes before the arms.
   if (!front) head();
@@ -177,11 +187,11 @@ function paintBody(ctx: Ctx, r: Rig, k: Look, fs: FrameState) {
 }
 
 /** The hat's own shade on the forehead/eyes. */
-function brimShadow(ctx: Ctx, k: Look, hat: HatDef, front: boolean) {
+function brimShadow(ctx: Ctx, k: Look, hat: HatDef, r: Rig) {
   const hp = hatPlacement(k.a);
   const depth = brimShade(hat.shape);
   ctx.save();
-  clipHead(ctx, k.a.face, front);
+  clipHead(ctx, k.a.face, viewOf(r));
   const g = ctx.createLinearGradient(0, hp.band, 0, hp.band + 6.5);
   g.addColorStop(0, rgba(k.skin.lo, depth + 0.1));
   g.addColorStop(0.55, rgba(k.skin.lo, depth * 0.45));
@@ -197,7 +207,7 @@ function paintHat(ctx: Ctx, r: Rig, k: Look, fs: FrameState) {
   inHead(ctx, r, () => {
     ctx.translate(0.15, hp.band);
     ctx.scale(hp.s, hp.s);
-    drawHatShape(ctx, fs.hat!, { L: k.L, rim: k.rim, front: r.front, t: fs.hatT });
+    drawHatShape(ctx, fs.hat!, { L: k.L, rim: k.rim, front: r.front, t: fs.hatT, turn: r.turn });
   });
 }
 
@@ -333,7 +343,8 @@ function getFrame(a: Appearance, fs: FrameState, ps: number): Frame {
 
 export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId: string | null, parrot: boolean, pose: AvatarPose) {
   const fs = frameState(a, hatId, pose);
-  shadow(ctx, x + (pose.sitting ? 5 : 0.5), y + (pose.sitting ? 4 : 0), BODY_SHADOW[a.body] ?? 13, 6.2, 0.32);
+  // Warm-ink contact shadow, core ≈ 35% (TB Art: 20–35%, matches the rooms)
+  shadow(ctx, x + (pose.sitting ? 5 : 0.5), y + (pose.sitting ? 4 : 0), BODY_SHADOW[a.body] ?? 13, 6.2, 0.24);
   const m = ctx.getTransform();
   const ps = Math.round(Math.hypot(m.a, m.b) * 100) / 100;
   const f = getFrame(a, fs, ps);
@@ -359,12 +370,11 @@ const BODY_SHADOW: Record<Appearance['body'], number> = { esguio: 11.5, medio: 1
 
 /** Highest point of the silhouette above the floor point (negative y), for plates and tags. */
 export function avatarTop(a: Appearance, hatId: string | null, sitting: boolean, seatH?: number): number {
-  const hairTop: Record<Appearance['hair'], number> = { raspado: 0.3, curto: 1.4, cacheado: 2.8, black: 10, longo: 1.2, coque: 5.4, trancas: 1 };
-  let top = Y.head - HEAD.top - (hairTop[a.hair] ?? 1);
+  let top = Y.head - HEAD.top - (HAIR_TOP[a.hair] ?? 1) * HEAD_S;
   const hat = hatById(hatId);
   if (hat) {
     const hp = hatPlacement(a);
-    top = Math.min(top, Y.head + hp.band - hatHeight(hat.shape) * hp.s - (hat.shape === 'gorro' ? 3 : 0));
+    top = Math.min(top, Y.head + (hp.band - hatHeight(hat.shape) * hp.s - (hat.shape === 'gorro' ? 3 : 0)) * HEAD_S);
   }
   return top + (sitting ? sitDrop(seatH) : 0);
 }
@@ -498,7 +508,7 @@ export function renderAvatarPreview(
   hat: string | null,
   parrot: boolean,
   t: number,
-  opts: { scale?: number; dir?: Dir; emote?: EmoteKind | null; emoteT0?: number; footY?: number; npc?: NpcId; light?: Light } = {},
+  opts: { scale?: number; dir?: Dir; emote?: EmoteKind | null; emoteT0?: number; footY?: number; npc?: NpcId; light?: Light; view?: 'front' } = {},
 ) {
   const dpr = window.devicePixelRatio || 1;
   const w = canvas.clientWidth || canvas.width;
@@ -522,6 +532,7 @@ export function renderAvatarPreview(
     emote: opts.emote ? { kind: opts.emote, t0: opts.emoteT0 ?? 0 } : null,
     npc: opts.npc,
     light: opts.light,
+    view: opts.view,
   });
   ctx.restore();
 }

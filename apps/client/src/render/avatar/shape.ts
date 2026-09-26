@@ -103,10 +103,12 @@ export function paint(ctx: Ctx, build: () => void, t: Tone, b: Box, o: PaintOpts
   const dark = o.L < 0 ? b.x1 : b.x0;
   ctx.beginPath();
   build();
+  // 2–3 value bands: light plane → body tone → a tighter core-shadow step → reflected shadow
   const g = ctx.createLinearGradient(lit, 0, dark, 0);
   g.addColorStop(0, t.hi);
-  g.addColorStop(0.3, t.base);
-  g.addColorStop(0.66, t.base);
+  g.addColorStop(0.24, t.base);
+  g.addColorStop(0.6, t.base);
+  g.addColorStop(0.72, t.lo);
   g.addColorStop(1, t.lo);
   ctx.fillStyle = g;
   ctx.fill();

@@ -53,6 +53,12 @@ async function shot(name, clip) {
 
 /** 2× closeup around a floor point (client px), framed so a standing avatar + plate fit. */
 async function closeup(name, px, py, w = 300, h = 230) {
+  // Idle speech bubbles would cover the NPC being reviewed
+  await page.evaluate(() => {
+    window.__tb.game.npcBubbles.clear();
+    for (const a of window.__tb.game.avatars.values()) a.bubbles = [];
+  });
+  await sleep(120);
   const x = Math.max(0, Math.min(1280 - w, px - w / 2));
   const y = Math.max(0, Math.min(800 - h, py - h * 0.72));
   await shot(name, { x, y, width: w, height: h });
@@ -134,5 +140,15 @@ await clickTile(5, 3, 10);
 await sleep(4000);
 const stool = await tileClient(5, 3);
 await closeup('09_counter_stool_zoom', stool.px, stool.py, 340, 260);
+
+// Kitnet daylight on the player
+await page.evaluate(() => window.__tb.net.send({ t: 'join', room: 'kitnet' }));
+await page.waitForFunction(() => window.__tb.game.room?.room === 'kitnet', null, { timeout: 15_000 }).catch(() => {});
+await sleep(1500);
+const me = await page.evaluate(() => {
+  const t = window.__tb.selfTile();
+  return t ? window.__tb.tileToClient(t.tile.x, t.tile.y) : null;
+});
+if (me) await closeup('10_kitnet_player_zoom', me.px, me.py, 300, 230);
 
 await browser.close();
