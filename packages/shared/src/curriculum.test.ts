@@ -185,34 +185,11 @@ describe('accept-list rules (accept-list-rules.md)', () => {
     expect(acceptAnswer('two breads and a coffee', 'Dois pães e um café.').match).toBe(false);
   });
 
-  // Typed replies to the authored Seu Carlos nodes, scored onto chips by accept-list-rules.md.
-  // [node, typed text, chip, task_success, language?]
-  const TYPED: [string, string, number | null, number, string?][] = [
-    ['inicio', 'tudo bem', 0, 3],
-    ['inicio', 'Bom dia, Seu Carlos!', 1, 3],
-    ['inicio', 'oi', 2, 2],
-    ['inicio', 'hello', 3, 1, 'en'],
-    ['pedido', 'me ve um pao na chapa por favor', 0, 3],
-    ['pedido', 'Me vê um pão na chapa', 0, 3],
-    ['pedido', 'me da um pao na chapa', 0, 2],
-    ['pedido', 'quero um pão na chapa, por favor', 0, 2],
-    ['pedido', 'pao na chapa', 0, 1],
-    ['pedido', 'um cafe com leite pf', 1, 3],
-    ['pedido', 'ainda to olhando', 2, 2],
-    ['pedido', 'two breads and a coffee', 3, 1, 'en'],
-    ['pedido', 'quero um sorvete', null, 0],
-    ['bebida', 'uma agua por favor', 2, 3],
-    ['bebida', 'um suco de laranja', 1, 1],
-    ['local', 'para viagem', 1, 3],
-    ['local', 'to go', 3, 1, 'en'],
-    ['preco', 'obrigada!', 0, 3],
-    ['preco', 'valeu', 1, 2],
-  ];
-  it.each(TYPED)('typed reply %s: “%s”', (node, text, chip, taskSuccess, language) => {
+  it.each(npcPack.fixtures.map((f) => [f.node, f.text, f] as const))('Jev NPC reply %s: “%s”', (node, text, f) => {
     const r = scoreTypedReply(node, text, { name: 'Ana', pronoun: 'ela', food: 'pao_na_chapa' });
-    expect(r.chip, r.why).toBe(chip);
-    expect(r.task_success, r.why).toBe(taskSuccess);
-    if (language) expect(r.language).toBe(language);
+    expect(r.chip, r.why).toBe(f.chip);
+    expect(r.task_success, r.why).toBe(f.task_success);
+    if ('language' in f) expect(r.language).toBe(f.language);
   });
 
   it('Carlos never offers what the Jev NPC-reply pack forbids', () => {

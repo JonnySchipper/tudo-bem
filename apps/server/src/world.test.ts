@@ -132,7 +132,7 @@ describe('World', () => {
     await a.send({ t: 'chat', text: 'aquele preto ali' });
     expect(b.all('chat').length).toBe(before);
     const esc = moderation.recent(1)[0];
-    expect(esc).toMatchObject({ kind: 'escalate', surface: 'chat', status: 'pending', text: 'aquele preto ali', rules: ['slurs.preto'] });
+    expect(esc).toMatchObject({ kind: 'escalate', surface: 'chat', status: 'pending', text: 'aquele preto ali', labels: ['ethnic_review'], rules: ['ethnic-tokens.preto_context'] });
     expect(esc.toxicity).toBeGreaterThan(0);
   });
 

@@ -1,7 +1,124 @@
 {
-  "version": "0.1",
-  "description": "Alcohol / drunkenness terms. Ban in chat, NPC, furniture, store. Rewrite hints for world generators only (Phase 0 does not auto-rewrite player chat).",
-  "action_default": "block",
+  "_meta": {
+    "status": "safety-v0.1",
+    "source": "tb-safety/phase0/blocklists/prohibited-substance.json v0.1 — verbatim snapshot in content/safety/source-v0.1/blocklists/prohibited-substance.json",
+    "converted": "v0.1 `entries` converted to the engineering ingest shape the game reads. CI (packages/shared/src/safety.test.ts) checks every v0.1 entry / example is carried over with the same action.",
+    "stack_position": 3,
+    "rewrite_policy": "rewrite_hints are for NPC / world / store generators ONLY. Player chat is never rewritten (CEO-LOCKS §3, rewrite_not_used)."
+  },
+  "rules": [
+    {
+      "id": "alcohol",
+      "label": "prohibited_substance",
+      "action": "block",
+      "source": "v0.1 alcohol + drunkenness",
+      "terms": [
+        "cerveja",
+        "cervejas",
+        "beer",
+        "beers",
+        "chopp",
+        "chope",
+        "bêbado",
+        "bebado",
+        "bêbada",
+        "bebada",
+        "alcool",
+        "álcool",
+        "alcohol",
+        "whiskey",
+        "whisky",
+        "vodka",
+        "vinho",
+        "wine",
+        "cachaça",
+        "cachaca",
+        "pinga",
+        "cervejinha",
+        "drunk",
+        "drunken",
+        "shots",
+        "tequila",
+        "caipirinha"
+      ]
+    },
+    {
+      "id": "drinking_venue",
+      "label": "prohibited_substance",
+      "action": "block",
+      "source": "v0.1 drinking_venue",
+      "terms": [
+        "bares",
+        "boteco",
+        "botecos",
+        "pub",
+        "nightclub",
+        "balada"
+      ]
+    },
+    {
+      "id": "bar_venue",
+      "label": "prohibited_substance",
+      "action": "warn",
+      "source": "v0.1 bar (allow_if clear_address_or_place_name) + CEO-LOCKS §2 — never teach as a drinking venue; allow only a clear address / place-name, else warn. Street addresses also trip PII address_hint_br, which runs first and blocks. English compounds where bar is not a venue (chocolate bar) are allowed.",
+      "allowContexts": [
+        "\\b(rua|r|avenida|av|praca|largo|alameda|travessa|estacao|bairro|vila)\\s+(do|da|de|dos|das)?\\s*bar\\b",
+        "\\b(chocolate|candy|snack|space|progress|menu|tool|status|search|energy|protein|cereal|granola)\\s+bar\\b"
+      ],
+      "note": {
+        "pt": "Aqui a gente vai na lanchonete ou na padaria, tá?",
+        "en": "Here we hang out at the lanchonete or padaria (no bars)."
+      },
+      "terms": [
+        "bar"
+      ]
+    },
+    {
+      "id": "alcohol_extra",
+      "label": "prohibited_substance",
+      "action": "block",
+      "source": "eng — constitution.md §1 (alcohol, drinking venues, drunkenness: 'hungover', 'borracho', tipsy roleplay).",
+      "terms": [
+        "cerva",
+        "breja",
+        "dose",
+        "doses",
+        "rum",
+        "gin",
+        "hangover",
+        "ressaca",
+        "bebum",
+        "borracho",
+        "chapado",
+        "chapada",
+        "vamos beber",
+        "bora beber",
+        "get drunk",
+        "tipsy",
+        "barzinho",
+        "happy hour"
+      ]
+    },
+    {
+      "id": "drugs",
+      "label": "prohibited_substance",
+      "action": "block",
+      "source": "eng — Family product; same treatment as the constitution §1 substance ban.",
+      "terms": [
+        "maconha",
+        "weed",
+        "cocaine",
+        "cocaína",
+        "drogas",
+        "drugs",
+        "baseado",
+        "vape",
+        "cigarro",
+        "cigarette",
+        "lsd"
+      ]
+    }
+  ],
   "rewrite_hints": {
     "cerveja": [
       "guaraná",
@@ -39,260 +156,6 @@
     "bêbado": null,
     "drunk": null
   },
-  "entries": [
-    {
-      "term": "cerveja",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol",
-      "comment": "never; rewrite→guaraná/suco"
-    },
-    {
-      "term": "cervejas",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol"
-    },
-    {
-      "term": "beer",
-      "lang": "en",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol"
-    },
-    {
-      "term": "beers",
-      "lang": "en",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol"
-    },
-    {
-      "term": "chopp",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol",
-      "comment": "draft beer"
-    },
-    {
-      "term": "chope",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol"
-    },
-    {
-      "term": "bar",
-      "lang": "en",
-      "severity": "word_boundary",
-      "action": "warn",
-      "category": "drinking_venue",
-      "comment": "CEO lock 2026-09-25: never teach as drinking venue; allow only clear address/place-name else warn. Curriculum: do-not-teach drinking-bar.",
-      "allow_if": "clear_address_or_place_name",
-      "ceo_lock": "2026-09-25",
-      "curriculum": "do_not_teach_as_drinking_venue"
-    },
-    {
-      "term": "bares",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "drinking_venue"
-    },
-    {
-      "term": "boteco",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "drinking_venue",
-      "comment": "rewrite→lanchonete"
-    },
-    {
-      "term": "botecos",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "drinking_venue"
-    },
-    {
-      "term": "pub",
-      "lang": "en",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "drinking_venue"
-    },
-    {
-      "term": "nightclub",
-      "lang": "en",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "drinking_venue",
-      "comment": "alcohol framing; dance-only venues out of scope Phase 0"
-    },
-    {
-      "term": "balada",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "drinking_venue",
-      "comment": "club/party with drink culture — Phase 0 block"
-    },
-    {
-      "term": "bêbado",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "drunkenness",
-      "comment": "accent variants: bebado"
-    },
-    {
-      "term": "bebado",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "drunkenness"
-    },
-    {
-      "term": "bêbada",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "drunkenness"
-    },
-    {
-      "term": "bebada",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "drunkenness"
-    },
-    {
-      "term": "alcool",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol",
-      "comment": "unaccented álcool"
-    },
-    {
-      "term": "álcool",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol"
-    },
-    {
-      "term": "alcohol",
-      "lang": "en",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol"
-    },
-    {
-      "term": "whiskey",
-      "lang": "en",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol"
-    },
-    {
-      "term": "whisky",
-      "lang": "en",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol"
-    },
-    {
-      "term": "vodka",
-      "lang": "en",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol"
-    },
-    {
-      "term": "vinho",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol",
-      "comment": "wine; suco de uva OK"
-    },
-    {
-      "term": "wine",
-      "lang": "en",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol"
-    },
-    {
-      "term": "cachaça",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol"
-    },
-    {
-      "term": "cachaca",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol"
-    },
-    {
-      "term": "pinga",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol",
-      "comment": "cachaça slang"
-    },
-    {
-      "term": "cervejinha",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol"
-    },
-    {
-      "term": "drunk",
-      "lang": "en",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "drunkenness"
-    },
-    {
-      "term": "drunken",
-      "lang": "en",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "drunkenness"
-    },
-    {
-      "term": "shots",
-      "lang": "en",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol",
-      "comment": "drinking shots; FP risk with photo shots — Phase 0 block token in chat"
-    },
-    {
-      "term": "tequila",
-      "lang": "en",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol"
-    },
-    {
-      "term": "caipirinha",
-      "lang": "pt-BR",
-      "severity": "word_boundary",
-      "action": "block",
-      "category": "alcohol"
-    }
-  ],
   "explicitly_allowed": [
     {
       "term": "guaraná",
@@ -342,5 +205,54 @@
       "term": "água de coco",
       "reason": "coconut water"
     }
-  ]
+  ],
+  "term_notes": {
+    "cerveja": "never; rewrite→guaraná/suco",
+    "chopp": "draft beer",
+    "bar": "CEO lock 2026-09-25: never teach as drinking venue; allow only clear address/place-name else warn. Curriculum: do-not-teach drinking-bar.",
+    "boteco": "rewrite→lanchonete",
+    "nightclub": "alcohol framing; dance-only venues out of scope Phase 0",
+    "balada": "club/party with drink culture — Phase 0 block",
+    "bêbado": "accent variants: bebado",
+    "alcool": "unaccented álcool",
+    "vinho": "wine; suco de uva OK",
+    "pinga": "cachaça slang",
+    "shots": "drinking shots; FP risk with photo shots — Phase 0 block token in chat"
+  },
+  "term_lang": {
+    "cerveja": "pt-BR",
+    "cervejas": "pt-BR",
+    "beer": "en",
+    "beers": "en",
+    "chopp": "pt-BR",
+    "chope": "pt-BR",
+    "bar": "en",
+    "bares": "pt-BR",
+    "boteco": "pt-BR",
+    "botecos": "pt-BR",
+    "pub": "en",
+    "nightclub": "en",
+    "balada": "pt-BR",
+    "bêbado": "pt-BR",
+    "bebado": "pt-BR",
+    "bêbada": "pt-BR",
+    "bebada": "pt-BR",
+    "alcool": "pt-BR",
+    "álcool": "pt-BR",
+    "alcohol": "en",
+    "whiskey": "en",
+    "whisky": "en",
+    "vodka": "en",
+    "vinho": "pt-BR",
+    "wine": "en",
+    "cachaça": "pt-BR",
+    "cachaca": "pt-BR",
+    "pinga": "pt-BR",
+    "cervejinha": "pt-BR",
+    "drunk": "en",
+    "drunken": "en",
+    "shots": "en",
+    "tequila": "en",
+    "caipirinha": "pt-BR"
+  }
 }

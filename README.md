@@ -97,9 +97,8 @@ Curriculum and Trust & Safety own [`content/`](content); engineering owns the sc
 - [`content/curriculum/phase0`](content/curriculum/phase0) — do-not-teach, Seu Carlos voice sheet, padaria + greetings/numbers lexemes, Me vê um… orders, accept-list rules.
   - The markdown is canonical. `pnpm content` regenerates `cards.json`, `me-ve-um-orders.json` (tickets parsed into tray lines + modifiers) and `cpu-names.json` (Praça ambiance allowlist), and CI fails if any of them drift.
   - Every card is **DRAFT — needs Brazilian sign-off** (`signoff` field).
-- [`content/safety/phase0`](content/safety/phase0) — **TB Safety v0.1**, verbatim from T&S: constitution, CEO locks, blocklists, PII regex fixtures, Jev question packs (public chat + NPC replies), ops note, under-13 design note (design only).
-  - Don't edit these files in engineering PRs; changes come from T&S.
-  - [`content/safety/engine`](content/safety/engine) holds what the stub needs on top of the pack: the named conditions the pack references, inflection variants, stub-Jev class rules, PII hardening, and the one documented divergence. See its [README](content/safety/engine/README.md).
+- [`content/safety/phase0`](content/safety/phase0) — **TB Safety v0.1**: constitution, CEO locks, blocklists, PII regex fixtures, Jev question packs (public chat + NPC replies), ops note, under-13 design note (design only). The JSON packs are converted to the engineering ingest shape (`_meta.status: safety-v0.1`), alongside four engineering overlays (ethnic tokens, politics/religion, scam/RMT, harassment/self-harm).
+  - [`content/safety/source-v0.1`](content/safety/source-v0.1) is a verbatim copy of the v0.1 JSON. CI checks that the conversion drops nothing.
 
 ## Art
 

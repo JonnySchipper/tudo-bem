@@ -1,220 +1,164 @@
 {
-  "version": "0.1",
-  "description": "PT-BR everyday slang/particles that MUST ALLOW. Consult BEFORE slur/profanity blocklist. False-block rate on this set is a Phase 0 KPI.",
-  "match": "word_boundary_or_phrase",
-  "entries": [
-    {
-      "term": "tá",
-      "reason": "está contraction; ubiquitous — never block"
-    },
-    {
-      "term": "ta",
-      "reason": "unaccented tá; never block"
-    },
-    {
-      "term": "cara",
-      "reason": "dude/guy vocative; not an insult alone"
-    },
-    {
-      "term": "legal",
-      "reason": "cool/nice; also legal-as-law but chat sense is positive"
-    },
-    {
-      "term": "pra",
-      "reason": "para contraction"
-    },
-    {
-      "term": "pro",
-      "reason": "para o contraction"
-    },
-    {
-      "term": "a gente",
-      "reason": "we/us; multiword — exact phrase allow"
-    },
-    {
-      "term": "né",
-      "reason": "não é tag question"
-    },
-    {
-      "term": "ne",
-      "reason": "unaccented né"
-    },
-    {
-      "term": "pô",
-      "reason": "mild interjection (disappointment/emphasis). ALLOW. Do NOT conflate with porra. Stronger forms (porra, caralho) stay blocked."
-    },
-    {
-      "term": "po",
-      "reason": "unaccented pô — ALLOW with same note; if stacked with blocked profanity, blocklist wins on other tokens"
-    },
-    {
-      "term": "obrigado",
-      "reason": "thank you (m)"
-    },
-    {
-      "term": "obrigada",
-      "reason": "thank you (f)"
-    },
-    {
-      "term": "blz",
-      "reason": "beleza abbreviation"
-    },
-    {
-      "term": "vlw",
-      "reason": "valeu abbreviation"
-    },
-    {
-      "term": "valeu",
-      "reason": "thanks / alright"
-    },
-    {
-      "term": "massa",
-      "reason": "cool/awesome slang"
-    },
-    {
-      "term": "show",
-      "reason": "great (BR slang); EN false friend OK"
-    },
-    {
-      "term": "beleza",
-      "reason": "alright / beauty-as-ok; not body compliment alone"
-    },
-    {
-      "term": "ei",
-      "reason": "hey"
-    },
-    {
-      "term": "opa",
-      "reason": "oops / hey"
-    },
-    {
-      "term": "fala",
-      "reason": "hey/speak greeting"
-    },
-    {
-      "term": "e aí",
-      "reason": "what's up; multiword"
-    },
-    {
-      "term": "e ai",
-      "reason": "unaccented e aí"
-    },
-    {
-      "term": "tmj",
-      "reason": "tamo junto"
-    },
-    {
-      "term": "sss",
-      "reason": "sim elongated"
-    },
-    {
-      "term": "kk",
-      "reason": "laughter"
-    },
-    {
-      "term": "kkk",
-      "reason": "laughter; longer k-runs also allow"
-    },
-    {
-      "term": "rs",
-      "reason": "risos"
-    },
-    {
-      "term": "aff",
-      "reason": "mild annoyance interjection — Phase 0 allow unless +insult"
-    },
-    {
-      "term": "mano",
-      "reason": "bro vocative"
-    },
-    {
-      "term": "véi",
-      "reason": "véi/véio vocative"
-    },
-    {
-      "term": "vei",
-      "reason": "unaccented véi"
-    },
-    {
-      "term": "tipo",
-      "reason": "like / filler"
-    },
-    {
-      "term": "tipo assim",
-      "reason": "filler phrase"
-    },
-    {
-      "term": "só",
-      "reason": "only / just"
-    },
-    {
-      "term": "so",
-      "reason": "unaccented só — allow token; EN 'so' also fine"
-    },
-    {
-      "term": "já",
-      "reason": "already"
-    },
-    {
-      "term": "ja",
-      "reason": "unaccented já"
-    },
-    {
-      "term": "tudo bem",
-      "reason": "product name + greeting; always allow"
-    },
-    {
-      "term": "td bem",
-      "reason": "abbreviation of tudo bem"
-    },
-    {
-      "term": "bom dia",
-      "reason": "greeting"
-    },
-    {
-      "term": "boa tarde",
-      "reason": "greeting"
-    },
-    {
-      "term": "boa noite",
-      "reason": "greeting"
-    },
-    {
-      "term": "por favor",
-      "reason": "please"
-    },
-    {
-      "term": "pfv",
-      "reason": "por favor abbr"
-    },
-    {
-      "term": "pfvr",
-      "reason": "por favor abbr"
-    },
-    {
-      "term": "feijão preto",
-      "reason": "food — CEO lock: preto color/food allowlist",
-      "ceo_lock": "2026-09-25"
-    },
-    {
-      "term": "café preto",
-      "reason": "food/drink — CEO lock",
-      "ceo_lock": "2026-09-25"
-    },
-    {
-      "term": "preto e branco",
-      "reason": "color phrase — CEO lock",
-      "ceo_lock": "2026-09-25"
-    },
-    {
-      "term": "camiseta preta",
-      "reason": "color of clothing — CEO lock",
-      "ceo_lock": "2026-09-25"
-    },
-    {
-      "term": "gato preto",
-      "reason": "animal color — CEO lock",
-      "ceo_lock": "2026-09-25"
-    }
-  ]
+  "_meta": {
+    "status": "safety-v0.1",
+    "source": "tb-safety/phase0/blocklists/allowlist-pt-slang.json v0.1 — verbatim snapshot in content/safety/source-v0.1/blocklists/allowlist-pt-slang.json",
+    "converted": "v0.1 `entries` converted to the engineering ingest shape the game reads. CI (packages/shared/src/safety.test.ts) checks every v0.1 entry / example is carried over with the same action.",
+    "stack_position": "consulted before blocklists and stub-Jev term rules",
+    "match": "word_boundary_or_phrase",
+    "kpi": "False-block rate on `terms` and `sentences` must be 0% (v0.1 KPI) — enforced by packages/shared/src/safety.test.ts.",
+    "eng_terms": [
+      "nossa",
+      "caramba",
+      "putz",
+      "direita",
+      "esquerda",
+      "bicho",
+      "beijos",
+      "bora"
+    ]
+  },
+  "terms": [
+    "tá",
+    "ta",
+    "cara",
+    "legal",
+    "pra",
+    "pro",
+    "a gente",
+    "né",
+    "ne",
+    "pô",
+    "po",
+    "obrigado",
+    "obrigada",
+    "blz",
+    "vlw",
+    "valeu",
+    "massa",
+    "show",
+    "beleza",
+    "ei",
+    "opa",
+    "fala",
+    "e aí",
+    "e ai",
+    "tmj",
+    "sss",
+    "kk",
+    "kkk",
+    "rs",
+    "aff",
+    "mano",
+    "véi",
+    "vei",
+    "tipo",
+    "tipo assim",
+    "só",
+    "so",
+    "já",
+    "ja",
+    "tudo bem",
+    "td bem",
+    "bom dia",
+    "boa tarde",
+    "boa noite",
+    "por favor",
+    "pfv",
+    "pfvr",
+    "feijão preto",
+    "café preto",
+    "preto e branco",
+    "camiseta preta",
+    "gato preto",
+    "nossa",
+    "caramba",
+    "putz",
+    "direita",
+    "esquerda",
+    "bicho",
+    "beijos",
+    "bora"
+  ],
+  "sentences": [
+    "tá bom, cara, muito legal",
+    "a gente vai pra padaria, né?",
+    "pô, errei o pedido kkk",
+    "blz, vlw, tmj!",
+    "e aí, beleza?",
+    "opa, fala!",
+    "show, massa demais",
+    "aff, perdi o combo",
+    "sss",
+    "vamos pra direita ou pra esquerda?",
+    "meu nome é Ana, sou dos EUA",
+    "eu moro no Canadá",
+    "isso não rola",
+    "me vê uma lula frita",
+    "beijos, até amanhã!",
+    "whats up everyone",
+    "I love this hat!",
+    "feijão preto com arroz",
+    "um café preto, por favor",
+    "comprei uma camiseta preta",
+    "gosto de preto e branco",
+    "chocolate bar",
+    "o Largo do Bar fica perto da praça",
+    "obrigado, pessoal!",
+    "nossa, caramba, putz!",
+    "que bicho é esse?"
+  ],
+  "term_notes": {
+    "tá": "está contraction; ubiquitous — never block",
+    "ta": "unaccented tá; never block",
+    "cara": "dude/guy vocative; not an insult alone",
+    "legal": "cool/nice; also legal-as-law but chat sense is positive",
+    "pra": "para contraction",
+    "pro": "para o contraction",
+    "a gente": "we/us; multiword — exact phrase allow",
+    "né": "não é tag question",
+    "ne": "unaccented né",
+    "pô": "mild interjection (disappointment/emphasis). ALLOW. Do NOT conflate with porra. Stronger forms (porra, caralho) stay blocked.",
+    "po": "unaccented pô — ALLOW with same note; if stacked with blocked profanity, blocklist wins on other tokens",
+    "obrigado": "thank you (m)",
+    "obrigada": "thank you (f)",
+    "blz": "beleza abbreviation",
+    "vlw": "valeu abbreviation",
+    "valeu": "thanks / alright",
+    "massa": "cool/awesome slang",
+    "show": "great (BR slang); EN false friend OK",
+    "beleza": "alright / beauty-as-ok; not body compliment alone",
+    "ei": "hey",
+    "opa": "oops / hey",
+    "fala": "hey/speak greeting",
+    "e aí": "what's up; multiword",
+    "e ai": "unaccented e aí",
+    "tmj": "tamo junto",
+    "sss": "sim elongated",
+    "kk": "laughter",
+    "kkk": "laughter; longer k-runs also allow",
+    "rs": "risos",
+    "aff": "mild annoyance interjection — Phase 0 allow unless +insult",
+    "mano": "bro vocative",
+    "véi": "véi/véio vocative",
+    "vei": "unaccented véi",
+    "tipo": "like / filler",
+    "tipo assim": "filler phrase",
+    "só": "only / just",
+    "so": "unaccented só — allow token; EN 'so' also fine",
+    "já": "already",
+    "ja": "unaccented já",
+    "tudo bem": "product name + greeting; always allow",
+    "td bem": "abbreviation of tudo bem",
+    "bom dia": "greeting",
+    "boa tarde": "greeting",
+    "boa noite": "greeting",
+    "por favor": "please",
+    "pfv": "por favor abbr",
+    "pfvr": "por favor abbr",
+    "feijão preto": "food — CEO lock: preto color/food allowlist",
+    "café preto": "food/drink — CEO lock",
+    "preto e branco": "color phrase — CEO lock",
+    "camiseta preta": "color of clothing — CEO lock",
+    "gato preto": "animal color — CEO lock"
+  }
 }

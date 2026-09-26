@@ -1,139 +1,367 @@
 {
-  "version": "0.1",
-  "description": "Client-side regex PII fixtures. Run BEFORE stub Jev. Patterns are illustrative — implementers must harden for Unicode/homoglyphs. under13_stricter applies only when under-13 path ships.",
-  "under13_stricter": "Even joking mentions of discord/whatsapp/telegram/snap as contact channels → block for under-13. Phase 0 ships 13+ only; keep patterns ready.",
-  "fixtures": [
+  "_meta": {
+    "status": "safety-v0.1",
+    "source": "tb-safety/phase0/pii/regex-fixtures.json v0.1 — verbatim snapshot in content/safety/source-v0.1/pii/regex-fixtures.json",
+    "converted": "v0.1 `entries` converted to the engineering ingest shape the game reads. CI (packages/shared/src/safety.test.ts) checks every v0.1 entry / example is carried over with the same action.",
+    "stack_position": 1,
+    "matching": "Regex + flags applied to the raw message (patterns marked normalized:true run on the normalized text). A leading PCRE \"(?i)\" is converted to the i flag. Every pattern ships with examples that CI asserts; v0.1 examples_nomatch that were reviewer notes live in `notes`.",
+    "description": "Client-side regex PII fixtures. Run BEFORE stub Jev. Patterns are illustrative — implementers must harden for Unicode/homoglyphs. under13_stricter applies only when under-13 path ships."
+  },
+  "under13_stricter": {
+    "status": "design-only — Phase 0 ships 18+ (CEO-LOCKS 2026-09-25); not wired",
+    "v0_1": "Even joking mentions of discord/whatsapp/telegram/snap as contact channels → block for under-13. Phase 0 ships 13+ only; keep patterns ready."
+  },
+  "patterns": [
     {
       "id": "email_basic",
-      "pattern": "[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}",
-      "flags": "i",
+      "label": "pii",
       "category": "email",
-      "action": "block",
-      "examples_match": ["me@mail.com", "aluno.teste+1@gmail.com", " Contato: foo@bar.com.br "],
-      "examples_nomatch": ["eu gosto de @mentions no jogo", "cara legal"]
+      "source": "v0.1",
+      "regex": "[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}",
+      "flags": "i",
+      "match": [
+        "me@mail.com",
+        "aluno.teste+1@gmail.com",
+        " Contato: foo@bar.com.br "
+      ],
+      "noMatch": [
+        "eu gosto de @mentions no jogo",
+        "cara legal"
+      ]
     },
     {
       "id": "phone_us",
-      "pattern": "(?:\\+?1[\\s.\\-]?)?(?:\\(?\\d{3}\\)?[\\s.\\-]?)\\d{3}[\\s.\\-]?\\d{4}",
-      "flags": "",
+      "label": "pii",
       "category": "phone",
-      "action": "block",
-      "examples_match": ["555-123-4567", "(555) 123 4567", "+1 555.123.4567"],
-      "examples_nomatch": ["level 555 is hard", "quest 1234"]
+      "source": "v0.1",
+      "regex": "(?:\\+?1[\\s.\\-]?)?(?:\\(?\\d{3}\\)?[\\s.\\-]?)\\d{3}[\\s.\\-]?\\d{4}",
+      "flags": "",
+      "match": [
+        "555-123-4567",
+        "(555) 123 4567",
+        "+1 555.123.4567"
+      ],
+      "noMatch": [
+        "level 555 is hard",
+        "quest 1234"
+      ]
     },
     {
       "id": "phone_br_mobile",
-      "pattern": "(?:\\+?55[\\s.\\-]?)?(?:\\(?0?\\d{2}\\)?[\\s.\\-]?)9\\d{4}[\\s.\\-]?\\d{4}",
-      "flags": "",
+      "label": "pii",
       "category": "phone",
-      "action": "block",
-      "examples_match": ["11 91234-5678", "+55 (21) 98765-4321", "11987654321"],
-      "examples_nomatch": ["sala 9123", "tá 9"]
+      "source": "v0.1",
+      "regex": "(?:\\+?55[\\s.\\-]?)?(?:\\(?0?\\d{2}\\)?[\\s.\\-]?)9\\d{4}[\\s.\\-]?\\d{4}",
+      "flags": "",
+      "match": [
+        "11 91234-5678",
+        "+55 (21) 98765-4321",
+        "11987654321"
+      ],
+      "noMatch": [
+        "sala 9123",
+        "tá 9"
+      ]
     },
     {
       "id": "phone_br_landline_hint",
-      "pattern": "(?:\\+?55[\\s.\\-]?)?(?:\\(?0?\\d{2}\\)?[\\s.\\-]?)[2-5]\\d{3}[\\s.\\-]?\\d{4}",
-      "flags": "",
+      "label": "pii",
       "category": "phone",
-      "action": "block",
-      "examples_match": ["11 3456-7890", "+55 31 3221-1000"],
-      "examples_nomatch": ["missão 3456"]
+      "source": "v0.1",
+      "regex": "(?:\\+?55[\\s.\\-]?)?(?:\\(?0?\\d{2}\\)?[\\s.\\-]?)[2-5]\\d{3}[\\s.\\-]?\\d{4}",
+      "flags": "",
+      "match": [
+        "11 3456-7890",
+        "+55 31 3221-1000"
+      ],
+      "noMatch": [
+        "missão 3456"
+      ]
     },
     {
       "id": "discord_invite",
-      "pattern": "(?:discord(?:\\.gg|app\\.com/invite)/[a-zA-Z0-9\\-]+)",
-      "flags": "i",
+      "label": "off_platform_contact",
       "category": "discord",
-      "action": "block",
-      "examples_match": ["discord.gg/abc123", "Join discordapp.com/invite/xyz"],
-      "examples_nomatch": ["I like discord the game concept", "discordance"]
+      "source": "v0.1",
+      "regex": "(?:discord(?:\\.gg|app\\.com/invite)/[a-zA-Z0-9\\-]+)",
+      "flags": "i",
+      "match": [
+        "discord.gg/abc123",
+        "Join discordapp.com/invite/xyz"
+      ],
+      "noMatch": [
+        "I like discord the game concept",
+        "discordance"
+      ]
     },
     {
       "id": "discord_word_contact",
-      "pattern": "\\b(?:add\\s+me\\s+on\\s+)?discord\\b",
-      "flags": "i",
+      "label": "off_platform_contact",
       "category": "discord",
-      "action": "block",
-      "examples_match": ["add me on discord", "meu discord"],
-      "examples_nomatch": ["the word discordant"],
-      "notes": "13+ Phase 0: block contact-seeking. under13_stricter: any discord token joke also blocks."
+      "source": "v0.1",
+      "regex": "\\b(?:add\\s+me\\s+on\\s+)?discord\\b",
+      "flags": "i",
+      "match": [
+        "add me on discord",
+        "meu discord"
+      ],
+      "noMatch": [
+        "the word discordant"
+      ],
+      "notes": [
+        "13+ Phase 0: block contact-seeking. under13_stricter: any discord token joke also blocks."
+      ]
     },
     {
       "id": "whatsapp_contact",
-      "pattern": "\\b(?:whats?\\s*app|zap|zapp)\\b",
-      "flags": "i",
+      "label": "off_platform_contact",
       "category": "whatsapp",
-      "action": "block",
-      "examples_match": ["me chama no whatsapp", "manda no zap", "WhatsApp"],
-      "examples_nomatch": ["zap as onomatopoeia rare — accept FP"],
-      "notes": "BR 'zap' = WhatsApp. under13_stricter: even jokes."
+      "source": "v0.1",
+      "regex": "\\b(?:whats?\\s*app|zap|zapp)\\b",
+      "flags": "i",
+      "match": [
+        "me chama no whatsapp",
+        "manda no zap",
+        "WhatsApp"
+      ],
+      "noMatch": [],
+      "notes": [
+        "zap as onomatopoeia rare — accept FP",
+        "BR 'zap' = WhatsApp. under13_stricter: even jokes."
+      ]
     },
     {
       "id": "telegram_contact",
-      "pattern": "\\b(?:telegram|t\\.me\\/[a-zA-Z0-9_]+)\\b",
-      "flags": "i",
+      "label": "off_platform_contact",
       "category": "social_handle",
-      "action": "block",
-      "examples_match": ["telegram", "t.me/username"],
-      "examples_nomatch": ["telegraphy"]
+      "source": "v0.1",
+      "regex": "\\b(?:telegram|t\\.me\\/[a-zA-Z0-9_]+)\\b",
+      "flags": "i",
+      "match": [
+        "telegram",
+        "t.me/username"
+      ],
+      "noMatch": [
+        "telegraphy"
+      ]
     },
     {
       "id": "social_handle_at",
-      "pattern": "(?i)(?:add|follow|me\\s+chama|meu\\s+insta|instagram|tiktok|snap(?:chat)?|ig)\\s*:?\\s*@?[a-z0-9._]{3,}",
-      "flags": "i",
+      "label": "off_platform_contact",
       "category": "social_handle",
-      "action": "block",
-      "examples_match": ["add me @coolkid99", "meu insta: maria.silva", "follow ig @x"],
-      "examples_nomatch": ["@NPC_Carlos in quest UI is system — client should exempt known NPC tags"],
-      "notes": "Bare @handle without contact verb is softer; Phase 0 blocks contact-verb + handle. Escalate bare @ if repeated."
+      "source": "v0.1",
+      "regex": "\\b(?:(?:add|follow)(?:\\s+me)?|me\\s+(?:chama|segue|add|adiciona)|meu\\s+(?:insta(?:gram)?|ig|tiktok|snap(?:chat)?))(?:\\s+(?:on\\s+|no\\s+|na\\s+)?(?:ig|insta(?:gram)?|tiktok|snap(?:chat)?))?\\s*:?\\s*@[a-z0-9._]+|\\b(?:insta(?:gram)?|tiktok|snap(?:chat)?|ig)\\s*:\\s*@?[a-z0-9._]{3,}|\\bmeu\\s+(?:insta(?:gram)?|ig|tiktok|snap(?:chat)?)\\s*:?\\s*@?[a-z0-9._]{3,}",
+      "flags": "i",
+      "match": [
+        "add me @coolkid99",
+        "meu insta: maria.silva",
+        "follow ig @x"
+      ],
+      "noMatch": [
+        "@NPC_Carlos"
+      ],
+      "notes": [
+        "@NPC_Carlos in quest UI is system — client should exempt known NPC tags",
+        "Bare @handle without contact verb is softer; Phase 0 blocks contact-verb + handle. Escalate bare @ if repeated."
+      ],
+      "canon_regex": "(?i)(?:add|follow|me\\s+chama|meu\\s+insta|instagram|tiktok|snap(?:chat)?|ig)\\s*:?\\s*@?[a-z0-9._]{3,}",
+      "hardening": "The v0.1 pattern starts with '(?i)', which JavaScript rejects, and has no leading word boundary, so 'ig' fires inside 'obrigado' (an allowlisted word) and 'add' + any word blocks 'add sugar'. It also misses two of its own examples ('add me @coolkid99', 'follow ig @x'). This version requires a contact verb or platform word at a word boundary, followed by an @handle, or a platform label with a colon or 'meu insta …'. CI checks it against every v0.1 example."
     },
     {
       "id": "address_hint_street_en",
-      "pattern": "\\b\\d{1,5}\\s+[A-Za-z0-9 .'-]+\\s+(?:st|street|ave|avenue|rd|road|blvd|lane|ln|dr|drive)\\b",
-      "flags": "i",
+      "label": "pii",
       "category": "address_hint",
-      "action": "block",
-      "examples_match": ["123 Main Street", "44 Oak Ave"],
-      "examples_nomatch": ["level 3 street quest"]
+      "source": "v0.1",
+      "regex": "\\b\\d{1,5}\\s+[A-Za-z0-9 .'-]+\\s+(?:st|street|ave|avenue|rd|road|blvd|lane|ln|dr|drive)\\b",
+      "flags": "i",
+      "match": [
+        "123 Main Street",
+        "44 Oak Ave"
+      ],
+      "noMatch": [
+        "level 3 street quest"
+      ]
     },
     {
       "id": "address_hint_br",
-      "pattern": "\\b(?:rua|avenida|av\\.?|travessa|alameda)\\s+[A-Za-zÀ-ÿ0-9 .'-]{3,}",
-      "flags": "i",
+      "label": "pii",
       "category": "address_hint",
-      "action": "block",
-      "examples_match": ["Rua das Flores 100", "Av. Paulista"],
-      "examples_nomatch": ["rua as metaphor rare — accept some FP in learning sentences about 'atravessar a rua' — CEOreview: may warn not block for lesson context"],
-      "notes": "Lesson dialogue about crossing the street may FP. Prefer warn when inside tagged lesson channel; block in free public chat."
+      "source": "v0.1",
+      "regex": "\\b(?:rua|avenida|av\\.?|travessa|alameda)\\s+[A-Za-zÀ-ÿ0-9 .'-]{3,}",
+      "flags": "i",
+      "match": [
+        "Rua das Flores 100",
+        "Av. Paulista"
+      ],
+      "noMatch": [
+        "atravessar a rua"
+      ],
+      "notes": [
+        "rua as metaphor rare — accept some FP in learning sentences about 'atravessar a rua' — CEOreview: may warn not block for lesson context",
+        "Lesson dialogue about crossing the street may FP. Prefer warn when inside tagged lesson channel; block in free public chat."
+      ]
     },
     {
       "id": "cep_br",
-      "pattern": "\\b\\d{5}-?\\d{3}\\b",
-      "flags": "",
+      "label": "pii",
       "category": "address_hint",
-      "action": "block",
-      "examples_match": ["01310-100", "01310100"],
-      "examples_nomatch": ["quest 01310 alone without hyphen may FP — require context later"]
+      "source": "v0.1",
+      "regex": "\\b\\d{5}-?\\d{3}\\b",
+      "flags": "",
+      "match": [
+        "01310-100",
+        "01310100"
+      ],
+      "noMatch": [],
+      "notes": [
+        "quest 01310 alone without hyphen may FP — require context later"
+      ]
     },
     {
       "id": "school_name_hint",
-      "pattern": "\\b(?:escola|colégio|colegio|university|universidade|high school|middle school)\\s+[A-Za-zÀ-ÿ0-9 .'-]{2,}",
-      "flags": "i",
+      "label": "pii",
       "category": "school",
-      "action": "block",
-      "examples_match": ["Escola Municipal João XXIII", "I go to Lincoln High School"],
-      "examples_nomatch": ["escola as vocab word alone: 'o que é escola?'"],
-      "notes": "Heuristic: school + proper-name tail. Bare 'escola' in learning = allow."
+      "source": "v0.1",
+      "regex": "\\b(?:escola|colégio|colegio|university|universidade|high school|middle school)\\s+[A-Za-zÀ-ÿ0-9 .'-]{2,}|\\b(?!(?:to|a|an|the|my|our|your|in|at|of|from|local|public)\\s)[A-Za-zÀ-ÿ]{2,}\\s+(?:high|middle)\\s+school\\b",
+      "flags": "i",
+      "match": [
+        "Escola Municipal João XXIII",
+        "I go to Lincoln High School"
+      ],
+      "noMatch": [
+        "o que é escola?"
+      ],
+      "notes": [
+        "escola as vocab word alone: 'o que é escola?'",
+        "Heuristic: school + proper-name tail. Bare 'escola' in learning = allow."
+      ],
+      "canon_regex": "\\b(?:escola|colégio|colegio|university|universidade|high school|middle school)\\s+[A-Za-zÀ-ÿ0-9 .'-]{2,}",
+      "hardening": "The v0.1 pattern only looks for a name after the school word, so it misses its own example 'I go to Lincoln High School'. Added the English order (name before 'High School'), skipping 'to / my / the high school' so no name means no match."
     },
     {
       "id": "pix_rmt_hint",
-      "pattern": "\\b(?:pix|paypal|venmo|crypto|bitcoin|iban)\\b",
-      "flags": "i",
+      "label": "off_platform_contact",
       "category": "off_platform_contact",
-      "action": "block",
-      "examples_match": ["me manda um pix", "paypal me"],
-      "examples_nomatch": [],
-      "notes": "Also covered by scam class in Jev; regex catches early."
+      "source": "v0.1",
+      "regex": "\\b(?:pix|paypal|venmo|crypto|bitcoin|iban)\\b",
+      "flags": "i",
+      "match": [
+        "me manda um pix",
+        "paypal me"
+      ],
+      "noMatch": [],
+      "notes": [
+        "Also covered by scam class in Jev; regex catches early."
+      ]
+    },
+    {
+      "id": "url",
+      "label": "off_platform_contact",
+      "category": "link",
+      "source": "eng — constitution.md §4 (invite links).",
+      "regex": "\\b(https?:\\/\\/|www\\.)\\S+",
+      "flags": "i",
+      "match": [
+        "entra em www.site-estranho.com",
+        "https://bit.ly/x"
+      ],
+      "noMatch": [
+        "www é legal"
+      ]
+    },
+    {
+      "id": "domain",
+      "label": "off_platform_contact",
+      "category": "link",
+      "source": "eng — constitution.md §4 (invite links).",
+      "regex": "\\b[\\w-]+\\.(com|net|org|br|io|gg|me|tv|app|xyz|ly)\\b",
+      "flags": "i",
+      "match": [
+        "acessa meusite.com.br"
+      ],
+      "noMatch": [
+        "tudo bem. bom dia"
+      ]
+    },
+    {
+      "id": "platform_names",
+      "label": "off_platform_contact",
+      "category": "social_handle",
+      "source": "eng — constitution.md §4 (Instagram / Snap / TikTok handles for meeting off-platform). v0.1 names only Discord, WhatsApp and Telegram.",
+      "regex": "\\b(discord|whatsapp|whats app|wpp|zap|zapzap|telegram|insta|instagram|snap|snapchat|tiktok|tik tok|facebook|kik|skype|twitter|signal)\\b",
+      "flags": "i",
+      "normalized": true,
+      "match": [
+        "tem insta?",
+        "me acha no tiktok"
+      ],
+      "noMatch": [
+        "whats up everyone",
+        "o zapping da tv"
+      ]
+    },
+    {
+      "id": "contact_asks",
+      "label": "off_platform_contact",
+      "category": "social_handle",
+      "source": "eng — constitution.md §4 ('Add me on…', QR contact).",
+      "regex": "\\b(add me|me adiciona|me add|my number|meu numero|meu zap|me chama no|text me|dm me|me manda dm|follow me|me segue|qr code)\\b",
+      "flags": "i",
+      "normalized": true,
+      "match": [
+        "me adiciona lá",
+        "qual teu numero? my number is"
+      ],
+      "noMatch": [
+        "me adicionei na fila do jogo"
+      ]
+    },
+    {
+      "id": "full_name_bait",
+      "label": "pii",
+      "category": "real_name",
+      "source": "eng — constitution.md §4 (real full names used as contact bait).",
+      "regex": "\\b(my (real|full) name is|meu nome (real|completo)|my last name|my surname|meu sobrenome)",
+      "flags": "i",
+      "match": [
+        "my full name is Ana Maria Souza",
+        "meu sobrenome é Silva"
+      ],
+      "noMatch": [
+        "meu nome é Ana"
+      ]
+    },
+    {
+      "id": "school_home",
+      "label": "pii",
+      "category": "school",
+      "source": "eng — constitution.md §4 (home/school addresses). v0.1 school_name_hint needs 'high/middle school' + a name.",
+      "regex": "\\b(my school is|i go to .{0,20}school|i study at|minha escola (e|é)|eu estudo n[oa] (escola|colégio|colegio)|meu col[eé]gio (e|é)|i live (at|on) \\d)",
+      "flags": "i",
+      "match": [
+        "my school is Lincoln Middle",
+        "i live at 42 somewhere"
+      ],
+      "noMatch": [
+        "eu moro no Canadá",
+        "sou dos EUA"
+      ]
+    },
+    {
+      "id": "phone_digit_run",
+      "label": "pii",
+      "category": "phone",
+      "source": "eng — constitution.md §4 (phone numbers). v0.1 covers US + BR formats only; this catches other countries' 7+ digit runs.",
+      "regex": "(?:\\+?\\d[\\s().-]*){7,}",
+      "flags": "",
+      "match": [
+        "+44 7911 123456",
+        "zap 11987654321"
+      ],
+      "noMatch": [
+        "me vê 2 pães e 3 cafés",
+        "nota 10 pra padaria"
+      ]
     }
   ]
 }

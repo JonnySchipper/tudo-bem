@@ -1,0 +1,39 @@
+{
+  "_meta": {
+    "status": "safety-v0.1",
+    "owner": "engineering overlay (outside the v0.1 layout)",
+    "basis": "CEO-LOCKS §1 + v0.1 en-pt-slurs \"preto\" (escalate; allowlist_senses color / food).",
+    "stack_position": 3
+  },
+  "rules": [
+    {
+      "id": "preto_context",
+      "label": "ethnic_review",
+      "action": "escalate",
+      "source": "v0.1 preto (escalate) + CEO-LOCKS §1 — preto / preta escalate unless color / food. The v0.1 allowlist phrases (feijão preto, café preto, camiseta preta, preto e branco, gato preto) are consulted first; these contexts extend them to other clothing, objects, animals and color pairs.",
+      "terms": [
+        "preto",
+        "preta",
+        "pretos",
+        "pretas",
+        "pretinho",
+        "pretinha"
+      ],
+      "allowContexts": [
+        "\\b(feijao|cafe|cafezinho|cha|arroz|pao|chocolate|acai|azeitona|uva)\\s+pret[oa]s?\\b",
+        "\\b(camiseta|camisa|calca|saia|bermuda|tenis|sapato|sapatos|bone|chapeu|gorro|vestido|casaco|moletom|jaqueta|meia|meias|bolsa|mochila|oculos|roupa|roupas|blusa|regata|cadeira|mesa|poltrona|sofa|tapete|carro|bicicleta|bike|gato|cachorro|cavalo|passaro|cabelo|olho|olhos|quadro|piso|chao|cor|linha|faixa|botao|pixel|fundo)s?\\s+(bem\\s+|todo\\s+|toda\\s+)?pret[oa]s?\\b",
+        "\\b(camiseta|camisa|calca|saia|bermuda|tenis|sapato|sapatos|bone|chapeu|gorro|vestido|casaco|moletom|jaqueta|meia|meias|bolsa|mochila|oculos|roupa|roupas|blusa|regata|cadeira|mesa|poltrona|sofa|tapete|carro|bicicleta|bike|gato|cachorro|cavalo|passaro|cabelo|olho|olhos|quadro|piso|chao|cor|linha|faixa|botao|pixel|fundo)s?\\s+(e|eh|ta|esta|era|sao|ficou|fica)\\s+(bem\\s+|todo\\s+|toda\\s+|meio\\s+)?pret[oa]s?\\b",
+        "\\b(de|em|no|na)\\s+pret[oa]\\b",
+        "\\bpret[oa]s?\\s+e\\s+branc[oa]s?\\b",
+        "\\bbranc[oa]s?\\s+e\\s+pret[oa]s?\\b",
+        "\\bpret[oa]s?\\s+(e|ou)\\s+(azul|verde|vermelh[oa]|amarel[oa]|rosa|roxo|laranja|cinza)\\b",
+        "\\b(azul|verde|vermelh[oa]|amarel[oa]|rosa|roxo|laranja|cinza)\\s+(e|ou)\\s+pret[oa]s?\\b",
+        "\\b(quadro|lousa)\\s+pret[oa]\\b"
+      ],
+      "note": {
+        "pt": "Sua mensagem foi para a revisão da moderação.",
+        "en": "Your message was sent to moderator review before showing."
+      }
+    }
+  ]
+}

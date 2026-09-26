@@ -1,0 +1,39 @@
+{
+  "_meta": {
+    "status": "safety-v0.1",
+    "owner": "engineering overlay (outside the v0.1 layout)",
+    "basis": "constitution.md §5; v0.1 pc10 (vendo conta por pix → scam). pix / paypal / crypto are also caught by v0.1 PII pix_rmt_hint.",
+    "stack_position": 2
+  },
+  "rules": [
+    {
+      "id": "scam_rmt",
+      "label": "scam",
+      "action": "block",
+      "source": "constitution.md §5; public-chat-pack pc10 ('vendo conta por pix barato' → scam). pix / paypal / crypto stay with the canonical PII pix_rmt_hint fixture.",
+      "terms": [
+        "vendo conta",
+        "compro conta",
+        "sell account",
+        "buy account",
+        "free coins",
+        "free rv",
+        "moedas grátis",
+        "rv grátis",
+        "your password",
+        "sua senha",
+        "password",
+        "senha",
+        "credit card",
+        "cartão de crédito",
+        "cashapp",
+        "gift card",
+        "dinheiro real",
+        "real money",
+        "suporte oficial",
+        "official support",
+        "staff do tudo bem"
+      ]
+    }
+  ]
+}
