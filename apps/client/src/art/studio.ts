@@ -5,7 +5,7 @@ import { PALETTE } from './palette';
 
 installUiArt();
 
-const DISPLAY: Record<ArtCategory, number> = { rooms: 0.62, tiles: 1.3, props: 1.1, furniture: 1.1, hats: 1.6, food: 1.6, avatars: 1.5 };
+const DISPLAY: Record<ArtCategory, number> = { rooms: 0.62, tiles: 1.3, props: 1.1, furniture: 1.1, hats: 1.6, food: 1.6, avatars: 1.5, characters: 2 };
 
 function render(asset: ArtAsset, scale: number): HTMLCanvasElement {
   const c = document.createElement('canvas');
@@ -79,7 +79,7 @@ async function main() {
     .join('')}</div>`;
   root.append(uiSec);
 
-  const order: ArtCategory[] = ['rooms', 'tiles', 'props', 'furniture', 'hats', 'food', 'avatars'];
+  const order: ArtCategory[] = ['rooms', 'tiles', 'props', 'furniture', 'hats', 'food', 'avatars', 'characters'];
   for (const cat of order) {
     const list = byCat.get(cat) ?? [];
     const sec = document.createElement('section');

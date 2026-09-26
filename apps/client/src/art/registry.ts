@@ -5,6 +5,7 @@
 import {
   BODY_TYPES,
   BOTTOM_STYLES,
+  CLOTH_COLORS,
   DEFAULT_APPEARANCE,
   FURNITURE,
   HAIR_COLORS,
@@ -13,6 +14,7 @@ import {
   LABELS,
   MG_ITEMS,
   ROOMS,
+  SHOE_COLORS,
   SKIN_TONES,
   TOP_STYLES,
   furnitureById,
@@ -31,7 +33,7 @@ import { drawFloorTile, drawRoomStatic } from '../render/room';
 import { tileCenter } from '../render/iso';
 import { ANIMATED_FURNITURE, ANIMATED_PROPS, propKey } from './sprites';
 
-export type ArtCategory = 'props' | 'furniture' | 'hats' | 'food' | 'avatars' | 'tiles' | 'rooms';
+export type ArtCategory = 'props' | 'furniture' | 'hats' | 'food' | 'avatars' | 'characters' | 'tiles' | 'rooms';
 
 export interface ArtAsset {
   key: string;
@@ -178,6 +180,121 @@ function avatarAssets(): ArtAsset[] {
   return out;
 }
 
+/** Deterministic PRNG so review sheets are stable between bakes. */
+function mulberry(seed: number) {
+  return () => {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** The Praça crowd as the server would dress it (CPU_NAMES order, seeded). */
+function crowdLineup(n: number): { name: string; a: Appearance; hat: string | null }[] {
+  const rng = mulberry(7);
+  const pick = <T,>(arr: readonly T[]) => arr[Math.floor(rng() * arr.length)];
+  const names = ['Helena', 'Daniel', 'Mateus', 'Felipe', 'Rafael', 'Beatriz', 'Camila', 'André', 'Larissa', 'Paulo'];
+  const hats = HATS.map((h) => h.id).filter((id) => id !== 'chapeu_chef');
+  return names.slice(0, n).map((name) => ({
+    name,
+    a: {
+      body: pick(BODY_TYPES),
+      skin: Math.floor(rng() * SKIN_TONES.length),
+      hair: pick(HAIR_STYLES),
+      hairColor: Math.floor(rng() * 6),
+      top: pick(TOP_STYLES),
+      topColor: Math.floor(rng() * CLOTH_COLORS.length),
+      bottom: pick(BOTTOM_STYLES),
+      bottomColor: Math.floor(rng() * CLOTH_COLORS.length),
+      shoes: Math.floor(rng() * SHOE_COLORS.length),
+    },
+    hat: rng() < 0.6 ? pick(hats) : null,
+  }));
+}
+
+/** Review lineups for the character pass: big, side by side, on a neutral floor. */
+function characterAssets(): ArtAsset[] {
+  const out: ArtAsset[] = [];
+  const GAP = 64;
+  const lineup = (key: string, label: Bilingual, figs: { a: Appearance; hat: string | null; parrot?: boolean; pose?: Partial<Parameters<typeof drawAvatar>[5]>; name?: string }[], gap = GAP) => {
+    const w = figs.length * gap + 40;
+    out.push({
+      key: `characters/${key}`,
+      category: 'characters',
+      label,
+      runtime: false,
+      bounds: { x: -w / 2, y: -128, w, h: 150 },
+      crop: false,
+      scale: 3,
+      draw: (ctx) => {
+        const bg = ctx.createLinearGradient(0, -128, 0, 22);
+        bg.addColorStop(0, '#f6ead8');
+        bg.addColorStop(0.78, '#eadcc6');
+        bg.addColorStop(0.8, '#dccab0');
+        bg.addColorStop(1, '#d3c0a4');
+        ctx.fillStyle = bg;
+        ctx.fillRect(-w / 2, -128, w, 150);
+        figs.forEach((f, i) => {
+          const x = -w / 2 + 20 + gap / 2 + i * gap;
+          drawAvatar(ctx, x, 0, f.a, f.hat, !!f.parrot, { dir: 'SE', t: 0.35 + i * 0.37, moving: false, sitting: false, seed: 0, ...f.pose });
+          if (f.name) {
+            ctx.font = `800 7px Nunito, system-ui, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#2a2233';
+            ctx.fillText(f.name, x, 16);
+          }
+        });
+      },
+    });
+  };
+  const npcs = [...ROOMS.padaria.npcs, ...ROOMS.praca.npcs];
+  lineup(
+    'npcs',
+    { pt: 'Seu Carlos · Júlia · Nanda', en: 'Authored NPCs — front, three-quarter back' },
+    npcs.flatMap((n) => [
+      { a: n.appearance, hat: n.hat, name: n.name },
+      { a: n.appearance, hat: n.hat, pose: { dir: 'NE' as const }, name: '' },
+    ]),
+    58,
+  );
+  lineup('crowd', { pt: 'Vizinhos (CPU)', en: 'Praça CPU neighbors as the server dresses them' }, crowdLineup(10).map((c) => ({ a: c.a, hat: c.hat, name: c.name })), 56);
+  const skins = [0, 2, 4, 6, 7, 3, 1, 5, 2, 6, 0, 4];
+  lineup(
+    'hats',
+    { pt: 'Chapéus na cabeça', en: 'All 12 hats worn — silhouette heroes' },
+    HATS.map((h, i) => ({ a: { ...DEFAULT_APPEARANCE, skin: skins[i], hair: HAIR_STYLES[i % HAIR_STYLES.length], hairColor: i % 6, topColor: (i * 3) % CLOTH_COLORS.length }, hat: h.id, name: h.pt })),
+    54,
+  );
+  lineup(
+    'creator',
+    { pt: 'Criador: pele × cabelo', en: 'Creator range — 8 skin tones across the 7 hair styles' },
+    SKIN_TONES.map((_, i) => ({
+      a: { ...DEFAULT_APPEARANCE, skin: i, hair: HAIR_STYLES[i % HAIR_STYLES.length], hairColor: [0, 1, 2, 3, 4, 1, 0, 5][i], body: BODY_TYPES[i % 3], top: TOP_STYLES[i % 4], topColor: [1, 2, 3, 4, 5, 7, 8, 0][i], bottom: BOTTOM_STYLES[i % 3], bottomColor: [2, 5, 1, 4, 5, 2, 9, 6][i] },
+      hat: null,
+      name: `${LABELS.hair[HAIR_STYLES[i % HAIR_STYLES.length]]}`,
+    })),
+    56,
+  );
+  const poser = { ...DEFAULT_APPEARANCE, skin: 4, hair: 'coque' as const, top: 'moletom' as const, topColor: 7 };
+  lineup(
+    'poses',
+    { pt: 'Poses', en: 'Walk (two frames), back, sit, oi, valeu, rir, dançar' },
+    [
+      { a: poser, hat: 'bone_verde', pose: { moving: true, t: 0.07 }, name: 'andar' },
+      { a: poser, hat: 'bone_verde', pose: { moving: true, t: 0.21 }, name: 'andar' },
+      { a: poser, hat: 'bone_verde', pose: { dir: 'NW' as const }, name: 'costas' },
+      { a: poser, hat: null, parrot: true, pose: { dir: 'SW' as const, sitting: true }, name: 'sentar' },
+      { a: poser, hat: 'viseira_azul', pose: { emote: { kind: 'oi' as const, t0: 0 }, t: 0.6 }, name: 'oi' },
+      { a: poser, hat: 'panama', pose: { emote: { kind: 'valeu' as const, t0: 0 }, t: 0.6 }, name: 'valeu' },
+      { a: poser, hat: 'gorro_listrado', pose: { emote: { kind: 'rir' as const, t0: 0 }, t: 0.6 }, name: 'rir' },
+      { a: poser, hat: 'cartola', pose: { emote: { kind: 'dancar' as const, t0: 0 }, t: 0.25 }, name: 'dançar' },
+    ],
+    60,
+  );
+  return out;
+}
+
 const FLOORS: { kind: FloorKind; ch: string; label: Bilingual }[] = [
   { kind: 'calcada', ch: 'c', label: { pt: 'Calçada paulista', en: 'São Paulo state-map sidewalk mosaic' } },
   { kind: 'grama', ch: 'g', label: { pt: 'Grama', en: 'Grass' } },
@@ -248,7 +365,7 @@ function roomAssets(): ArtAsset[] {
 }
 
 export function allAssets(): ArtAsset[] {
-  return [...roomAssets(), ...tileAssets(), ...propAssets(), ...furnitureAssets(), ...hatAssets(), ...foodAssets(), ...avatarAssets()];
+  return [...roomAssets(), ...tileAssets(), ...propAssets(), ...furnitureAssets(), ...hatAssets(), ...foodAssets(), ...avatarAssets(), ...characterAssets()];
 }
 
 export const CATEGORY_LABELS: Record<ArtCategory, Bilingual> = {
@@ -259,4 +376,5 @@ export const CATEGORY_LABELS: Record<ArtCategory, Bilingual> = {
   hats: { pt: 'Chapéus', en: 'Hat shop icons' },
   food: { pt: 'Comidas', en: '“Me vê um…” items' },
   avatars: { pt: 'Avatares', en: 'Paper-doll parts, NPCs and poses' },
+  characters: { pt: 'Personagens', en: 'Character lineups for review — NPCs, CPU neighbors, hats worn, creator range, poses' },
 };
