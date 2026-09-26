@@ -1795,14 +1795,43 @@ button:disabled {
 }
 
 .conversa-panel {
-  background: var(--cream);
-  border: 1px solid var(--edge);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
+  /* Wood-warm mesa / placemat — not a generic chat modal */
+  background:
+    linear-gradient(180deg, rgba(251, 241, 227, 0.96), var(--cream)),
+    repeating-linear-gradient(90deg, transparent, transparent 11px, rgba(139, 94, 60, 0.04) 11px, rgba(139, 94, 60, 0.04) 12px);
+  border: 1px solid var(--wood);
+  border-radius: 14px;
+  box-shadow:
+    0 1px 0 rgba(255, 250, 242, 0.7) inset,
+    0 4px 0 var(--wood),
+    0 5px 0 var(--edge),
+    0 18px 36px rgba(58, 34, 22, 0.28);
   width: min(680px, calc(100vw - 32px));
   max-height: calc(100vh - 64px);
   overflow: auto;
   padding: 20px 24px;
+}
+
+.carlos-table-panel h2 {
+  margin: 0 0 6px;
+  font-family: var(--font-display, inherit);
+  color: var(--ink);
+}
+.carlos-table-sub {
+  margin: 0 0 16px;
+  color: var(--muted, #6b5344);
+}
+.carlos-table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.carlos-table-actions .primary .en,
+.carlos-table-actions .ghost .en {
+  display: block;
+  font-size: 0.75em;
+  opacity: 0.75;
+  font-weight: 400;
 }
 
 .conversa-header {

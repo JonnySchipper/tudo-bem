@@ -8,6 +8,7 @@ import {
   CONVERSA_WORD_CAP,
   parseAiResponse,
   sanitizeConversaTurn,
+  filterNpcLine,
   authoredFallbackTurn,
   type ConversaTurnRequest,
   type ConversaTurnResponse,
@@ -46,7 +47,9 @@ function getApiKey(): string | null {
   return null;
 }
 
-const MODEL = process.env.CONVERSA_MODEL || 'grok-3-mini';
+/** Current xAI cheap-quality default (CEO: grok-4-1-fast or equivalent; list has no 4-1-fast). */
+export const DEFAULT_CONVERSA_MODEL = 'grok-4.3';
+const MODEL = process.env.CONVERSA_MODEL || DEFAULT_CONVERSA_MODEL;
 const REASONING_EFFORT = process.env.CONVERSA_REASONING_EFFORT || 'none';
 
 export async function isXaiReady(): Promise<boolean> {
@@ -150,6 +153,9 @@ export async function conversaTurn(req: ConversaTurnRequest): Promise<ConversaTu
 
   const wordCap = CONVERSA_WORD_CAP[req.nameplate];
   parsed.line.pt = sanitizeConversaTurn(parsed.line.pt, wordCap);
+  if (!parsed.line.pt || !filterNpcLine(parsed.line.pt)) {
+    return authoredConversaTurn(req);
+  }
 
   if (isLastTurn) {
     parsed.end = true;

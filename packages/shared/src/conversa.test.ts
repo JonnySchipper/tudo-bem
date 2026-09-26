@@ -10,6 +10,7 @@ import {
   metersFromHistory,
   mentionedPrices,
   sanitizeConversaTurn,
+  filterNpcLine,
   authoredFallbackTurn,
   canStartConversa,
   shouldGrantRV,
@@ -305,5 +306,24 @@ describe('conversaDateKey', () => {
   it('returns a date string', () => {
     const key = conversaDateKey();
     expect(key).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+
+describe('filterNpcLine Gate B', () => {
+  it('allows padaria lines', () => {
+    expect(filterNpcLine('Pois não. O que vai ser hoje?')).toContain('Pois não');
+  });
+
+  it('blocks alcohol', () => {
+    expect(filterNpcLine('Quer uma cerveja gelada?')).toBeNull();
+  });
+
+  it('blocks flirt/body', () => {
+    expect(filterNpcLine('Você tá gostosa hoje')).toBeNull();
+  });
+
+  it('blocks phone-looking PII', () => {
+    expect(filterNpcLine('Me liga no 11 98765-4321')).toBeNull();
   });
 });

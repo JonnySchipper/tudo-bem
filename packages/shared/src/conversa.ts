@@ -218,13 +218,24 @@ export function mentionedPrices(text: string): number[] {
   return results;
 }
 
+/** NPC-side Gate B bans (Safety): alcohol / flirt-body / slurs / PII markers — drop line if hit. */
+const NPC_BAN_RE =
+  /\b(cerveja|vinho|cachaça|cachaca|pinga|barzinho|bêbado|bebado|drunk|gostos[ao]|tesão|tesao|nu[ao]|pelad[ao]|foder|porra|merda|caralho|puta|viado|macaco|nigger|kike)\b|\b(\+?\d[\d\s.\-]{8,}\d)\b|\b[\w.+-]+@[\w.-]+\.\w{2,}\b/i;
+
+/** Returns null when the NPC line must not be painted (Gate B fail). */
+export function filterNpcLine(text: string): string | null {
+  const trimmed = text.trim();
+  if (!trimmed) return null;
+  if (NPC_BAN_RE.test(trimmed)) return null;
+  return trimmed;
+}
+
 export function sanitizeConversaTurn(text: string, wordCap: number): string {
-  const words = text.split(/\s+/);
-  if (words.length > wordCap) {
-    return words.slice(0, wordCap).join(' ') + '…';
-  }
-  const invalidPrices = mentionedPrices(text).filter((p) => !Object.values(PRICES).includes(p));
-  let result = text;
+  const filtered = filterNpcLine(text);
+  if (!filtered) return '';
+  const words = filtered.split(/\s+/);
+  let result = words.length > wordCap ? words.slice(0, wordCap).join(' ') + '…' : filtered;
+  const invalidPrices = mentionedPrices(result).filter((p) => !Object.values(PRICES).includes(p));
   for (const p of invalidPrices) {
     result = result.replace(new RegExp(`\\b${p}\\s*(?:reais|real)?\\b`, 'gi'), '—');
   }
