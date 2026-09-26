@@ -16,6 +16,13 @@ import {
   shouldGrantRV,
   conversaDateKey,
   parseAiResponse,
+  buildCarlosSystemPrompt,
+  pickConversaOpener,
+  applyConversaGateB,
+  presentConversaTurn,
+  diverseChips,
+  offlineConversaOpen,
+  CONVERSA_WORD_CAP,
   type ConversaScores,
   type Score03,
 } from './conversa.js';
@@ -197,6 +204,70 @@ describe('authoredFallbackTurn', () => {
     expect(result.chips.length).toBeGreaterThan(0);
     expect(result.end).toBe(false);
   });
+
+  it('varies the food beat instead of repeating one line', () => {
+    const first = authoredFallbackTurn('pão na chapa', []);
+    const later = authoredFallbackTurn('pão na chapa', [{ who: 'npc', pt: 'Bom dia!' }]);
+    expect(first.response.pt.toLowerCase()).toContain('pão');
+    expect(later.response.pt.toLowerCase()).toContain('pão');
+    expect(later.response.pt).not.toBe(first.response.pt);
+    expect(later.chips.map((c) => c.pt).join('|')).not.toBe(first.chips.map((c) => c.pt).join('|'));
+  });
+});
+
+describe('Carlos variety', () => {
+  it('prefers Pois não but does not require it on every line, and never defaults to Pode falar', () => {
+    const prompt = buildCarlosSystemPrompt(CONVERSA_SUBJECTS.cafe_da_manha, {
+      playerName: 'Ana',
+      pronoun: 'ela',
+      nameplate: 'verde',
+    });
+    expect(prompt).toContain('Pois não');
+    expect(prompt).toContain('NOT required on every line');
+    expect(prompt).toContain('Never use "Pode falar"');
+    expect(prompt).not.toContain('Primary acknowledgment');
+    for (const phrase of ['Bom dia', 'E aí', 'Pronto', 'Tá na mão', 'Deixa eu anotar', 'Quer mais alguma coisa']) {
+      expect(prompt).toContain(phrase);
+    }
+    expect(prompt).toContain(`Max ${CONVERSA_WORD_CAP.verde} words`);
+    expect(prompt).toContain('pão na chapa R$6');
+    expect(prompt).toContain('"response"');
+    expect(prompt).toContain('"chips"');
+    expect(prompt).toContain('minha filha');
+    expect(prompt).toMatch(/at most once/i);
+
+    const unnamed = buildCarlosSystemPrompt(CONVERSA_SUBJECTS.cafe_da_manha, {
+      playerName: 'Sam',
+      pronoun: 'nome',
+      nameplate: 'verde',
+    });
+    expect(unnamed).toContain('Do not use kinship');
+  });
+
+  it('rotates seed openers; Pois não is one option and Pode falar is never a default', () => {
+    const subject = CONVERSA_SUBJECTS.cafe_da_manha;
+    expect(subject.seedOpeners.some((l) => l.includes('Pois não'))).toBe(true);
+    expect(subject.seedOpeners.every((l) => l.startsWith('Pois não'))).toBe(false);
+    expect(subject.seedOpeners.join('\n')).not.toMatch(/Pode falar/i);
+
+    const lines = new Set<string>();
+    const chips = new Set<string>();
+    for (let i = 0; i < subject.seedOpeners.length; i++) {
+      const picked = pickConversaOpener(subject, () => i / subject.seedOpeners.length);
+      lines.add(picked.line);
+      chips.add(picked.chips.join('|'));
+      expect(picked.chips.length).toBeGreaterThanOrEqual(2);
+      expect(picked.chips.join('\n')).not.toMatch(/Pode falar/i);
+    }
+    expect(lines.size).toBe(subject.seedOpeners.length);
+    expect(chips.size).toBeGreaterThan(1);
+  });
+
+  it('does not repeat an identical chip set when another set exists', () => {
+    const prior = ['Um café, por favor.', 'Uma água, por favor.'];
+    const next = diverseChips([...prior], prior);
+    expect(next.map((s) => s.toLowerCase()).sort().join('|')).not.toBe(prior.map((s) => s.toLowerCase()).sort().join('|'));
+  });
 });
 
 describe('canStartConversa', () => {
@@ -325,5 +396,61 @@ describe('filterNpcLine Gate B', () => {
 
   it('blocks phone-looking PII', () => {
     expect(filterNpcLine('Me liga no 11 98765-4321')).toBeNull();
+  });
+});
+
+/** Fixed bad model payload: clean counter line, one banned chip, a banned tip. */
+const GATE_B_TURN_FIXTURE = {
+  line: 'Pão na chapa saindo. Quer mais alguma coisa?',
+  chips: ['Um café com leite, por favor.', 'Quer uma cerveja gelada?', 'Pra comer aqui, por favor.'],
+  tip: 'Me liga no 11 98765-4321.',
+};
+
+describe('Gate B fixture on chips and tips', () => {
+  it('strips banned chips and tips and keeps a clean line', () => {
+    const gated = applyConversaGateB(GATE_B_TURN_FIXTURE);
+    expect(gated.line).toBe(GATE_B_TURN_FIXTURE.line);
+    expect(gated.chips).toEqual(['Um café com leite, por favor.', 'Pra comer aqui, por favor.']);
+    expect(gated.tip).toBeNull();
+    expect(JSON.stringify(gated)).not.toMatch(/cerveja|98765/);
+  });
+
+  it('drops a banned NPC line', () => {
+    const gated = applyConversaGateB({
+      line: 'Quer uma cachaça?',
+      chips: ['Um café, por favor.'],
+      tip: 'Isso aí.',
+    });
+    expect(gated.line).toBeNull();
+    expect(gated.chips).toEqual(['Um café, por favor.']);
+    expect(gated.tip).toBe('Isso aí.');
+  });
+
+  it('presentConversaTurn does not return the banned chip or tip', () => {
+    const presented = presentConversaTurn({
+      line: { pt: GATE_B_TURN_FIXTURE.line, en: 'Grilled bread. Anything else?' },
+      chips: GATE_B_TURN_FIXTURE.chips.map((pt) => ({ pt, en: '' })),
+      scores: { portuguese: 3, grammar: 3, conversation: 3 },
+      tip: { pt: GATE_B_TURN_FIXTURE.tip, en: 'call me' },
+      end: false,
+      order: {},
+    });
+    expect(presented.line.pt).toContain('Pão na chapa');
+    expect(presented.chips.map((c) => c.pt)).toEqual(['Um café com leite, por favor.', 'Pra comer aqui, por favor.']);
+    expect(presented.tip).toBeNull();
+    expect(JSON.stringify(presented)).not.toMatch(/cerveja|98765/);
+  });
+});
+
+describe('offline Conversa open', () => {
+  it('opens Carlos with an authored line and chips, and refuses disabled NPCs', () => {
+    const open = offlineConversaOpen('carlos');
+    expect(open).not.toBeNull();
+    expect(open!.npcName).toBe('Seu Carlos');
+    expect(open!.line.pt.length).toBeGreaterThan(0);
+    expect(open!.chips.length).toBeGreaterThanOrEqual(2);
+    expect(open!.line.pt + open!.chips.map((c) => c.pt).join(' ')).not.toMatch(/Pode falar/i);
+    expect(offlineConversaOpen('nanda')).toBeNull();
+    expect(offlineConversaOpen('julia')).toBeNull();
   });
 });

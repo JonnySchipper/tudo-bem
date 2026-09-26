@@ -53,7 +53,10 @@ const server = http.createServer(async (req, res) => {
     return res.end(JSON.stringify({ ok: true, ...world.stats() }));
   }
   if (url.pathname === '/api/conversa') {
-    return handleConversaApi(req, res);
+    return handleConversaApi(req, res, {
+      store,
+      onProfileChanged: (playerId) => world.pushProfileById(playerId),
+    });
   }
   if (!CLIENT_DIST) {
     res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
