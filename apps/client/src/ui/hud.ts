@@ -31,6 +31,19 @@ export function toast(level: NoticeLevel, pt: string, enText?: string, amount?: 
   setTimeout(() => el.remove(), level === 'reward' ? 5200 : 4500);
 }
 
+/** Celebration card when the daily kiosk mission pays out. */
+export function missionBanner() {
+  document.querySelector('.mission-banner')?.remove();
+  const el = h(
+    'div',
+    { class: 'mission-banner', role: 'status', id: 'mission-banner' },
+    h('span', { class: 'mini-steps' }, ...MISSION_STEPS.map((s) => h('span', { class: 'mini done', title: s.pt }, icon(s.id, 26)))),
+    h('div', null, h('b', null, MISSION_COPY.done.pt), en(MISSION_COPY.done.en)),
+  );
+  ui().append(el);
+  setTimeout(() => el.remove(), 5200);
+}
+
 export function buildHud(actions: HudActions) {
   const root = ui();
 
@@ -144,7 +157,10 @@ export function buildHud(actions: HudActions) {
       const m = p.mission;
       const done = m ? MISSION_STEPS.filter((s) => m.steps[s.id]).length : 0;
       missionPill.style.display = m?.taken && !m.rewarded ? '' : 'none';
-      missionPill.textContent = `${MISSION_COPY.header.pt} ${done}/${MISSION_STEPS.length}`;
+      missionPill.replaceChildren(
+        `${MISSION_COPY.header.pt} ${done}/${MISSION_STEPS.length}`,
+        h('span', { class: 'mini-steps', 'aria-hidden': 'true' }, ...MISSION_STEPS.map((s) => h('span', { class: `mini ${m?.steps[s.id] ? 'done' : ''}`, title: s.pt }, icon(s.id, 16)))),
+      );
       list.replaceChildren(
         ...TUTORIAL_STEPS.map((s) =>
           h('li', { class: p.tutorial[s.id] ? 'done' : '', 'data-step': s.id }, h('span', { class: 'box' }), h('div', null, s.pt, en(s.en, true))),

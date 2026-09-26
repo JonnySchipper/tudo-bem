@@ -24,7 +24,11 @@ export type PropKind =
   | 'caixa'
   | 'orelhao'
   | 'placa_rua'
-  | 'estufa';
+  | 'estufa'
+  | 'mesa_cafe'
+  | 'jornais'
+  | 'saco_lixo'
+  | 'floreira';
 
 export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog';
 
@@ -48,7 +52,7 @@ export interface PropDef {
 export type WallSide = 'left' | 'right';
 
 export interface WallDecor {
-  kind: 'fachada_padaria' | 'mural' | 'predio' | 'metro' | 'janela_rua' | 'prateleira_paes' | 'lousa' | 'relogio' | 'azulejos' | 'poster' | 'janela' | 'placa' | 'cobogo' | 'tv';
+  kind: 'fachada_padaria' | 'mural' | 'predio' | 'metro' | 'janela_rua' | 'prateleira_paes' | 'lousa' | 'relogio' | 'azulejos' | 'poster' | 'janela' | 'placa' | 'cobogo' | 'tv' | 'toldo' | 'foto';
   wall: WallSide;
   /** Start and end along the wall in tile units. */
   from: number;
@@ -143,7 +147,8 @@ const praca: RoomDef = {
   lighting: 'tarde',
   spawn: { x: 7, y: 9 },
   props: [
-    { id: 'ipe_centro', kind: 'ipe', x: 5, y: 6, blocks: true, hero: true },
+    // Hero ipê sits left of centre so its canopy never hides the Missão do dia kiosk or Júlia.
+    { id: 'ipe_centro', kind: 'ipe', x: 4, y: 7, blocks: true, hero: true },
     { id: 'ipe_canto', kind: 'ipe', x: 1, y: 10, blocks: true },
     { id: 'ipe_esquina', kind: 'ipe', x: 12, y: 10, blocks: true },
     { id: 'canteiro', kind: 'canteiro', x: 4, y: 5, blocks: true },
@@ -192,6 +197,13 @@ const praca: RoomDef = {
     { id: 'bici', kind: 'bicicletario', x: 1, y: 7, blocks: true },
     { id: 'orelhao', kind: 'orelhao', x: 13, y: 4, blocks: true, label: { pt: 'Orelhão', en: 'Public phone booth (“big ear”)' } },
     { id: 'placa', kind: 'placa_rua', x: 0, y: 8, blocks: true, label: { pt: 'Rua dos Ipês', en: 'Ipê Street (street sign)' } },
+    // Midground life (polish v2). All off the CPU lanes, doors, arrival and interact tiles.
+    { id: 'mesa_cafe', kind: 'mesa_cafe', x: 7, y: 1, blocks: true, label: { pt: 'Mesinha da padaria', en: 'Bakery sidewalk table' } },
+    { id: 'jornais', kind: 'jornais', x: 11, y: 2, blocks: true, label: { pt: 'Pilha de jornais', en: 'Newspaper stack' } },
+    { id: 'saco_lixo', kind: 'saco_lixo', x: 9, y: 2, blocks: true },
+    { id: 'floreira_1', kind: 'floreira', x: 8, y: 0, blocks: true },
+    { id: 'floreira_2', kind: 'floreira', x: 13, y: 0, blocks: true },
+    { id: 'floreira_3', kind: 'floreira', x: 0, y: 6, blocks: true },
   ],
   walls: [
     { kind: 'predio', wall: 'right', from: 0, to: 3 },
@@ -244,10 +256,11 @@ const praca: RoomDef = {
       id: 'julia',
       name: 'Júlia',
       role: { pt: 'Guia da praça', en: 'Square guide' },
-      x: 3,
-      y: 2,
+      // Mid-praça, far enough forward that her nameplate and idle bubbles never cover the kiosk sign.
+      x: 8,
+      y: 4,
       dir: 'SW',
-      interact: { x: 3, y: 3 },
+      interact: { x: 8, y: 5 },
       appearance: { body: 'medio', skin: 2, hair: 'coque', hairColor: 2, top: 'camiseta', topColor: 0, bottom: 'calca', bottomColor: 5, shoes: 0 },
       hat: 'viseira_azul',
       idleLines: [
@@ -303,6 +316,7 @@ const padaria: RoomDef = {
     { kind: 'azulejos', wall: 'right', from: 0, to: 10 },
     { kind: 'janela', wall: 'left', from: 2, to: 4 },
     { kind: 'prateleira_paes', wall: 'right', from: 1, to: 7, text: 'PADARIA DO SEU CARLOS · DESDE 1978' },
+    { kind: 'toldo', wall: 'right', from: 1, to: 6 },
     { kind: 'lousa', wall: 'right', from: 7, to: 10, text: 'CARDÁPIO' },
     { kind: 'relogio', wall: 'left', from: 7, to: 8 },
     { kind: 'tv', wall: 'left', from: 0, to: 2 },
@@ -361,6 +375,7 @@ const kitnet: RoomDef = {
     { kind: 'poster', wall: 'left', from: 1, to: 3, text: 'SP' },
     { kind: 'cobogo', wall: 'left', from: 6, to: 8 },
     { kind: 'cobogo', wall: 'right', from: 0, to: 1 },
+    { kind: 'foto', wall: 'right', from: 6, to: 8 },
   ],
   portals: [
     {

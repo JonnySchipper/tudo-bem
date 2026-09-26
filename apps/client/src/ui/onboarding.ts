@@ -102,7 +102,7 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
       let raf = 0;
       let wave = 0;
       const loop = (ts: number) => {
-        renderAvatarPreview(canvas, a, null, false, ts / 1000, { scale: 2.25, emote: ts / 1000 - wave < 2.5 ? 'oi' : null, emoteT0: wave });
+        renderAvatarPreview(canvas, a, null, false, ts / 1000, { scale: 2.02, emote: ts / 1000 - wave < 2.5 ? 'oi' : null, emoteT0: wave });
         raf = requestAnimationFrame(loop);
       };
       raf = requestAnimationFrame((ts) => {

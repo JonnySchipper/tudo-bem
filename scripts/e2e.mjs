@@ -171,6 +171,11 @@ async function main() {
   await page.waitForSelector('[data-modal="kiosk"] #mission-take', { timeout: 12_000 });
   const steps = await page.$$eval('[data-mission-step]', (els) => els.map((e) => e.textContent));
   assert(steps[0].startsWith('Cumprimenta') && steps[1].startsWith('Pede') && steps[2].startsWith('Monta'), `kiosk steps Cumprimenta / Pede / Monta (${steps})`);
+  // Curriculum-locked kiosk copy
+  assert((await page.textContent('[data-modal="kiosk"] h2')) === 'Missão do dia', 'kiosk header: Missão do dia');
+  assert((await page.textContent('[data-modal="kiosk"] .rv-badge')).trim() === '+25 RV', 'kiosk +25 RV badge');
+  assert((await page.textContent('#mission-take .pt')) === 'Pegar missão', 'kiosk CTA: Pegar missão');
+  assert((await page.getAttribute('[data-modal="kiosk"] .mission-row', 'aria-label')) === 'Cumprimenta · Pede · Monta', 'kiosk steps row: Cumprimenta · Pede · Monta');
   await page.click('#mission-take');
   await waitFor(page, () => window.__tb.game.profile?.mission?.taken, null, 5000, 'mission taken');
   await shot(page, '01b_praca_kiosk');
@@ -313,6 +318,14 @@ async function main() {
     const crowd = await cpus(page);
     assert(crowd.length > 0, 'CPUs still in the praça');
     assert(crowd.every((c) => c.bubbles === 0), 'CPUs never chat');
+    // Kiosk now shows the completion state
+    await clickTile(page, 2, 2, 40);
+    await page.waitForSelector('[data-modal="kiosk"] #mission-done', { timeout: 12_000 });
+    const done = await page.textContent('#mission-done .big');
+    assert(done === 'Missão completa! +25 RV', `kiosk complete copy (${done})`);
+    await shot(page, '08b_kiosk_complete');
+    await page.keyboard.press('Escape');
+    log('kiosk shows “Missão completa! +25 RV”');
   }
   await clickTile(page, 11, 6, 50);
   await page.waitForSelector('[data-modal="hats"]', { timeout: 12_000 });

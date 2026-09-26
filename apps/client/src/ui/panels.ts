@@ -25,6 +25,7 @@ import { drawParrot, renderAvatarPreview } from '../render/avatar';
 import { foodIcon, hatIcon } from '../render/icons';
 import { furnitureIcon } from '../render/props';
 import { speak } from '../audio';
+import { icon } from '../art/ui';
 
 // ---------------------------------------------------------------- modal base
 
@@ -67,7 +68,7 @@ function portrait(npc: NpcDef | null) {
   let raf = 0;
   const loop = (ts: number) => {
     if (!c.isConnected && ts > 1000) return cancelAnimationFrame(raf);
-    if (npc) renderAvatarPreview(c, npc.appearance, npc.hat, false, ts / 1000, { scale: 1.7, footY: 160 });
+    if (npc) renderAvatarPreview(c, npc.appearance, npc.hat, false, ts / 1000, { scale: 1.7, footY: 167 });
     else {
       const ctx = c.getContext('2d')!;
       const dpr = window.devicePixelRatio || 1;
@@ -231,32 +232,55 @@ export function showJulia() {
 
 // ---------------------------------------------------------------- daily kiosk
 
+/** “+25 RV” coin badge used on the kiosk panel and its completion banner. */
+export const rvBadge = (amount = MISSION_REWARD) => h('span', { class: 'rv-badge' }, h('span', { class: 'coin' }), `+${amount} RV`);
+
 export function openKiosk(take: () => void) {
   const body = h('div');
   const render = () => {
     const m = game.profile?.mission;
+    const steps: HTMLElement[] = [];
+    MISSION_STEPS.forEach((s, i) => {
+      const [verb, ...rest] = s.pt.split(' ');
+      const done = !!m?.steps[s.id];
+      if (i) steps.push(h('span', { class: 'mission-sep', 'aria-hidden': 'true' }, '·'));
+      steps.push(
+        h(
+          'li',
+          { class: `mission-step ${done ? 'done' : ''}`, 'data-mission-step': s.id },
+          h('span', { class: 'mission-ico' }, icon(s.id, 34)),
+          h('b', null, verb),
+          h('span', { class: 'detail' }, ` ${rest.join(' ')}`),
+          en(s.en, true),
+          done ? h('span', { class: 'tick', 'aria-label': 'feito' }, '✓') : null,
+        ),
+      );
+    });
     body.replaceChildren(
-      h(
-        'ol',
-        { class: 'mission-steps' },
-        ...MISSION_STEPS.map((s) => h('li', { class: m?.steps[s.id] ? 'done' : '', 'data-mission-step': s.id }, h('span', { class: 'box' }), h('div', null, s.pt, en(s.en, true)))),
-      ),
-      h(
-        'div',
-        { class: 'mission-footer' },
-        m?.rewarded
-          ? h('span', { class: 'feedback s3', id: 'mission-done' }, `${MISSION_COPY.done.pt} · ${MISSION_COPY.done.en}`)
-          : m?.taken
-            ? h('span', { class: 'feedback', id: 'mission-active' }, 'Missão em andamento · In progress — steps tick off as you play')
-            : h('button', { class: 'primary', id: 'mission-take', onclick: take }, bi(MISSION_COPY.cta.pt, MISSION_COPY.cta.en)),
-      ),
+      h('ol', { class: 'mission-row', 'aria-label': MISSION_STEPS.map((s) => s.pt.split(' ')[0]).join(' · ') }, ...steps),
+      m?.rewarded
+        ? h('div', { class: 'mission-complete', id: 'mission-done' }, h('span', { class: 'big' }, MISSION_COPY.done.pt), en(MISSION_COPY.done.en))
+        : h(
+            'div',
+            { class: 'mission-footer' },
+            m?.taken
+              ? h('span', { class: 'feedback', id: 'mission-active' }, `${MISSION_STEPS.filter((s) => m.steps[s.id]).length}/${MISSION_STEPS.length} · Missão em andamento`, en('In progress — steps tick off as you play', true))
+              : h('button', { class: 'primary big-cta', id: 'mission-take', onclick: take }, bi(MISSION_COPY.cta.pt, MISSION_COPY.cta.en)),
+          ),
     );
   };
   render();
   const off = game.on('profile', render);
   const close = openModal(
     'kiosk',
-    h('div', { class: 'panel kiosk' }, closeBtn(() => close()), h('h2', null, MISSION_COPY.header.pt), en(`${MISSION_COPY.header.en} · +${MISSION_REWARD} RV once a day`), body),
+    h(
+      'div',
+      { class: 'panel kiosk' },
+      closeBtn(() => close()),
+      h('div', { class: 'kiosk-head' }, h('h2', null, MISSION_COPY.header.pt), rvBadge()),
+      en(`${MISSION_COPY.header.en} · once a day`),
+      body,
+    ),
     { onClose: off },
   );
 }
@@ -292,7 +316,7 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
   const grid = h('div', { class: 'grid-items' });
   let raf = 0;
   const loop = (ts: number) => {
-    renderAvatarPreview(canvas, p.appearance, sel, p.parrotOwned && p.parrotEquipped, ts / 1000, { scale: 2.2 });
+    renderAvatarPreview(canvas, p.appearance, sel, p.parrotOwned && p.parrotEquipped, ts / 1000, { scale: 2.05 });
     raf = requestAnimationFrame(loop);
   };
   raf = requestAnimationFrame(loop);
@@ -679,7 +703,7 @@ export function openProfileCard(a: PublicAvatar, actions: { request: (id: string
   const canvas = h('canvas', { width: 160, height: 200, style: 'width:160px;height:200px' });
   let raf = 0;
   const loop = (ts: number) => {
-    renderAvatarPreview(canvas, a.appearance, a.hat, a.parrot, ts / 1000, { scale: 2 });
+    renderAvatarPreview(canvas, a.appearance, a.hat, a.parrot, ts / 1000, { scale: 1.8 });
     raf = requestAnimationFrame(loop);
   };
   raf = requestAnimationFrame(loop);

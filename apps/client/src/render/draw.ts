@@ -109,8 +109,60 @@ export function rrect(ctx: Ctx, x: number, y: number, w: number, h: number, r: n
   }
 }
 
+/** Warm-ink tint for every contact shadow (TB Art brief v2: ~20–35% opacity, soft blob). */
+const SHADOW_INK = '58,34,22';
+
+/**
+ * Soft contact shadow: a dense core where the object touches the floor that feathers out, so
+ * props and avatars sit on the ground instead of floating. `a` is the core opacity.
+ */
 export function shadow(ctx: Ctx, x: number, y: number, rx = 18, ry = 8, a = 0.22) {
-  ellipse(ctx, x, y, rx, ry, `rgba(20,10,30,${a})`);
+  const core = Math.min(0.42, a * 1.45);
+  ctx.save();
+  ctx.translate(x + rx * 0.08, y);
+  ctx.scale(1, ry / rx);
+  const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx * 1.18);
+  g.addColorStop(0, `rgba(${SHADOW_INK},${core})`);
+  g.addColorStop(0.45, `rgba(${SHADOW_INK},${core * 0.75})`);
+  g.addColorStop(0.8, `rgba(${SHADOW_INK},${core * 0.25})`);
+  g.addColorStop(1, `rgba(${SHADOW_INK},0)`);
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.arc(0, 0, rx * 1.18, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** Two-tone grain strokes across a rectangle (wood without photo texture). */
+export function grain(ctx: Ctx, x: number, y: number, w: number, h: number, dark: string, light: string, seed = 0, vertical = false) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
+  ctx.lineWidth = 0.7;
+  const n = Math.max(2, Math.round((vertical ? w : h) / 3.2));
+  for (let i = 0; i < n; i++) {
+    const r = hash(i, seed, 41);
+    ctx.strokeStyle = r > 0.5 ? dark : light;
+    ctx.beginPath();
+    if (vertical) {
+      const gx = x + ((i + 0.5) / n) * w;
+      ctx.moveTo(gx, y);
+      ctx.bezierCurveTo(gx + (r - 0.5) * 2, y + h * 0.35, gx - (r - 0.5) * 2, y + h * 0.7, gx, y + h);
+    } else {
+      const gy = y + ((i + 0.5) / n) * h;
+      ctx.moveTo(x, gy);
+      ctx.bezierCurveTo(x + w * 0.35, gy + (r - 0.5) * 2, x + w * 0.7, gy - (r - 0.5) * 2, x + w, gy);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** Hard specular edge for metal (orelhão pole, lamp posts). */
+export function metalEdge(ctx: Ctx, x: number, y: number, h: number, w = 1) {
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.fillRect(x, y, w, h);
 }
 
 /** Deterministic hash noise in [0,1). */
