@@ -248,7 +248,7 @@ const praca: RoomDef = {
       appearance: { body: 'esguio', skin: 5, hair: 'trancas', hairColor: 0, top: 'camisa', topColor: 1, bottom: 'calca', bottomColor: 2, shoes: 2, face: 'doce', extra: 'brincos', idle: 'cintura' },
       hat: 'chapeu_palha',
       idleLines: [
-        { pt: 'Chapéu novo? Fica bem em todo mundo!', en: 'New hat? Looks good on everyone!' },
+        { pt: 'Esse boné verde fica legal!', en: 'That green cap looks great!' },
         { pt: 'Hoje tem boné verde de graça!', en: 'Free green caps today!' },
       ],
     },

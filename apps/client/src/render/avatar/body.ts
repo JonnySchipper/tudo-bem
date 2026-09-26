@@ -882,20 +882,23 @@ export function drawSignature(ctx: Ctx, r: Rig, k: Look) {
       const badge = { x: cx + 0.4, y: r.chestY + 3.2 };
       line(ctx, [[r.neck.x - 2.2, r.shY - 0.6], [badge.x - 0.6, badge.y - 2.4]], '#e07a5f', 0.65);
       line(ctx, [[r.neck.x + 2.8, r.shY - 0.6], [badge.x + 0.6, badge.y - 2.4]], '#e07a5f', 0.65);
-      // Host badge big enough to read as “Guia” at Praça distance (tutorial / Seu Carlos handoff)
+      // Host badge — larger sp-green to read as “GUIA” across Praça distance
       const b: P[] = [
-        [badge.x - 2.4, badge.y - 2.6],
-        [badge.x + 2.4, badge.y - 2.6],
-        [badge.x + 2.4, badge.y + 3],
-        [badge.x - 2.4, badge.y + 3],
+        [badge.x - 3.2, badge.y - 3.2],
+        [badge.x + 3.2, badge.y - 3.2],
+        [badge.x + 3.2, badge.y + 3.8],
+        [badge.x - 3.2, badge.y + 3.8],
       ];
-      paint(ctx, () => roundPoly(ctx, b, 0.6), tone('#2F5D50'), ptsBox(b), po(k, { lw: 0.4, rimA: 0.3 }));
+      paint(ctx, () => roundPoly(ctx, b, 0.8), tone('#2F5D50'), ptsBox(b), po(k, { lw: 0.5, rimA: 0.35 }));
+      // Cream inner panel
       ctx.beginPath();
-      ctx.roundRect(badge.x - 1.7, badge.y - 0.4, 3.4, 2.8, 0.4);
+      ctx.roundRect(badge.x - 2.4, badge.y - 1.2, 4.8, 4, 0.5);
       ctx.fillStyle = '#f6eedc';
       ctx.fill();
-      glow(ctx, badge.x, badge.y - 1.5, 0.75, 0.6, '#f6eedc', 0.95);
-      glow(ctx, badge.x, badge.y + 1, 0.8, 0.8, '#3f8a4a', 0.95);
+      // Seedling icon (matches Verde plate)
+      glow(ctx, badge.x, badge.y - 0.4, 0.9, 0.7, '#f6eedc', 0.95);
+      glow(ctx, badge.x - 0.6, badge.y + 1.2, 1.1, 0.8, '#3f8a4a', 0.98);
+      glow(ctx, badge.x + 0.6, badge.y + 0.6, 1.0, 0.7, '#5fb35a', 0.95);
       // Crossbody strap to a small leather bag on the far hip
       line(ctx, [[-m.sh + 2.8 + x, r.shY - 0.4], [m.wa + 1.2 + x, r.hipY - 4.5]], tone(LEATHER).lo, 1, false);
       line(ctx, [[-m.sh + 2.8 + x, r.shY - 0.8], [m.wa + 1.2 + x, r.hipY - 5]], rgba(tone(LEATHER).hi, 0.6), 0.35, false);

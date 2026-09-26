@@ -1158,15 +1158,30 @@ export function drawFurniture(ctx: Ctx, def: FurnitureDef, rot: 0 | 1, cx: numbe
   ctx.restore();
 }
 
+const furnitureIconCache = new Map<string, string>();
+/** Pooled canvas for icon rendering to prevent allocation thrash. */
+let iconCanvas: HTMLCanvasElement | null = null;
+const MAX_ICON_CACHE = 64;
+
 export function furnitureIcon(itemId: string, size = 80): string {
   const baked = spriteUrl(`furniture/${itemId}_0`);
   if (baked) return baked;
+  const cacheKey = `${itemId}@${size}`;
+  const cached = furnitureIconCache.get(cacheKey);
+  if (cached) return cached;
   const def = furnitureById(itemId);
-  const canvas = document.createElement('canvas');
   const dpr = 2;
-  canvas.width = size * dpr;
-  canvas.height = size * dpr;
-  const ctx = canvas.getContext('2d')!;
+  const w = size * dpr;
+  const h = size * dpr;
+  // Reuse pooled canvas if it fits; only reallocate when needed
+  if (!iconCanvas || iconCanvas.width < w || iconCanvas.height < h) {
+    iconCanvas = document.createElement('canvas');
+    iconCanvas.width = Math.max(w, 160);
+    iconCanvas.height = Math.max(h, 160);
+  }
+  const ctx = iconCanvas.getContext('2d')!;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, iconCanvas.width, iconCanvas.height);
   ctx.scale(dpr, dpr);
   if (def) {
     ctx.translate(size / 2, size * 0.78);
@@ -1174,5 +1189,22 @@ export function furnitureIcon(itemId: string, size = 80): string {
     ctx.scale(s, s);
     drawFurniture(ctx, def, 0, 0, 0, 1);
   }
-  return canvas.toDataURL();
+  // Draw only the portion we need to the data URL
+  const out = document.createElement('canvas');
+  out.width = w;
+  out.height = h;
+  out.getContext('2d')!.drawImage(iconCanvas, 0, 0, w, h, 0, 0, w, h);
+  const url = out.toDataURL();
+  // Evict oldest entries when cache grows too large
+  if (furnitureIconCache.size >= MAX_ICON_CACHE) {
+    const first = furnitureIconCache.keys().next().value;
+    if (first) furnitureIconCache.delete(first);
+  }
+  furnitureIconCache.set(cacheKey, url);
+  return url;
+}
+
+/** Clear furniture icon cache on room change to free memory. */
+export function clearFurnitureIconCache() {
+  furnitureIconCache.clear();
 }

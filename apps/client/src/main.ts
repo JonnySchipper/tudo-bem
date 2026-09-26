@@ -229,7 +229,8 @@ net.on((m: ServerMsg) => {
     }
     case 'chat': {
       const a = game.avatars.get(m.id);
-      if (a) a.bubbles.push({ text: m.text, gloss: game.profile?.nameplate === 'verde' ? m.gloss : null, at: now() });
+      // Live Ops lock: CPUs never chat — guard against server bugs/injection
+      if (a && !a.pub.cpu) a.bubbles.push({ text: m.text, gloss: game.profile?.nameplate === 'verde' ? m.gloss : null, at: now() });
       break;
     }
     case 'notice':
@@ -383,6 +384,14 @@ function hitLabel(hit: Hit | null): [string, string] | null {
 }
 
 function handleClick(hit: Hit | null) {
+  try {
+    handleClickInner(hit);
+  } catch (e) {
+    console.error('[TB] click error:', e);
+  }
+}
+
+function handleClickInner(hit: Hit | null) {
   if (!hit || !game.room) return;
   if (game.placing) {
     const tile = hit.kind === 'tile' ? hit.tile : renderer.tileAt(lastPointer.x, lastPointer.y);
@@ -488,14 +497,18 @@ document.addEventListener('keydown', (e) => {
 // ---------------------------------------------------------------- loop
 
 function frame(ts: number) {
-  renderer.frame(ts);
-  if (game.pending) {
-    const cur = selfTile();
-    if (cur && !cur.moving) {
-      const t = game.pending.tile;
-      const d = Math.max(Math.abs(cur.tile.x - t.x), Math.abs(cur.tile.y - t.y));
-      if (d === 0 || (game.pending.kind === 'portal' && d <= 1 && game.self?.path.length === 0)) runPending();
+  try {
+    renderer.frame(ts);
+    if (game.pending) {
+      const cur = selfTile();
+      if (cur && !cur.moving) {
+        const t = game.pending.tile;
+        const d = Math.max(Math.abs(cur.tile.x - t.x), Math.abs(cur.tile.y - t.y));
+        if (d === 0 || (game.pending.kind === 'portal' && d <= 1 && game.self?.path.length === 0)) runPending();
+      }
     }
+  } catch (e) {
+    console.error('[TB] frame error:', e);
   }
   requestAnimationFrame(frame);
 }
