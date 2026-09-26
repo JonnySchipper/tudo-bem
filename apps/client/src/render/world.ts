@@ -389,13 +389,13 @@ export class WorldRenderer {
     }
     for (const n of room.npcs) {
       const c = tileCenter(n.x, n.y);
-      const p = worldToClient(this.cam, c.sx, c.sy + avatarTop(n.appearance, n.hat, false) - 9);
+      const p = worldToClient(this.cam, c.sx, c.sy + avatarTop(n.appearance, n.hat, false) - 12);
       this.drawPlate(p.px, p.py, n.name, 'npc', n.role.pt);
       const b = game.npcBubbles.get(n.id);
       if (b) this.drawBubbles(p.px, p.py - 18, [b], now);
     }
     for (const s of avatarScreen) {
-      const p = worldToClient(this.cam, s.sx, s.sy + avatarTop(s.a.pub.appearance, s.a.pub.hat, s.sitting, s.seatH) - 9);
+      const p = worldToClient(this.cam, s.sx, s.sy + avatarTop(s.a.pub.appearance, s.a.pub.hat, s.sitting, s.seatH) - 12);
       const isSelf = s.a.pub.id === game.room.selfId;
       this.drawPlate(p.px, p.py, s.a.pub.name, isSelf ? 'self' : 'verde');
       s.a.bubbles = s.a.bubbles.filter((b) => now - b.at < 7000);

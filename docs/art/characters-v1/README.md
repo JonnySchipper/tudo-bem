@@ -1,8 +1,26 @@
-# Character redesign v1 (TB Art brief, 2026-09-26)
+# Character redesign v1 (TB Art, 2026-09-26)
 
-This pass redoes the characters only. The founder's read was that they looked cheap and 1990s next to the room polish v2 rooms. The rooms are unchanged. The one room-adjacent change is that counter stools now report their seat height, so people sit *on* them instead of sinking in.
+This pass is characters only: bodies, faces, clothes, hats and NPCs. The rooms stay exactly as room polish v2 left them. The TB Art hard overrides (`character-redesign-v1-art-deltas.md`) are binding wherever they conflict with the softer interim brief.
 
-**Contact sheets:** [`contact_lineups.png`](contact_lineups.png) (studio lineups) · [`contact_ingame.png`](contact_ingame.png) (solo Pages build at 1280×800, closeups at 2×). Individual shots are in [`before/`](before) and [`after/`](after).
+**Contact sheets:**
+- [`contact_required.png`](contact_required.png): the acceptance #7 shots
+- [`contact_lineups.png`](contact_lineups.png): before/after studio lineups
+- [`contact_ingame.png`](contact_ingame.png): before/after in the solo Pages build at 1280×800, closeups at 2×
+
+Individual shots are in [`before/`](before) and [`after/`](after).
+
+## Required shots (Art acceptance #7)
+
+| Shot | File |
+| --- | --- |
+| Player front + 3/4 + back + hat on (both starter presets) | [`after/sheet_player.png`](after/sheet_player.png) |
+| Seu Carlos behind the counter | [`after/07_carlos_zoom.png`](after/07_carlos_zoom.png) · [dialogue](after/08_carlos_dialogue.png) |
+| Júlia in the Praça | [`after/03_julia_zoom.png`](after/03_julia_zoom.png) |
+| Nanda at her stall | [`after/04_nanda_zoom.png`](after/04_nanda_zoom.png) |
+| CPU lineup | [`after/sheet_crowd.png`](after/sheet_crowd.png) · [in the Praça](after/02_crowd_zoom.png) |
+| Extra: hats × big hair (no clip) · 9 hair silhouettes · Kitnet daylight · counter stool | [`sheet_hatfit`](after/sheet_hatfit.png) · [`sheet_hair`](after/sheet_hair.png) · [`10_kitnet_player`](after/10_kitnet_player_zoom.png) · [`09_counter_stool`](after/09_counter_stool_zoom.png) |
+
+## Before / after
 
 | | Before | After |
 | --- | --- | --- |
@@ -13,62 +31,47 @@ This pass redoes the characters only. The founder's read was that they looked ch
 | Poses + emotes | [sheet_poses](before/sheet_poses.png) | [sheet_poses](after/sheet_poses.png) |
 | Praça | [01_praca](before/01_praca.png) · [zoom](before/01_praca_zoom.png) · [crowd](before/02_crowd_zoom.png) | [01_praca](after/01_praca.png) · [zoom](after/01_praca_zoom.png) · [crowd](after/02_crowd_zoom.png) |
 | Júlia / Nanda | [03_julia](before/03_julia_zoom.png) · [04_nanda](before/04_nanda_zoom.png) | [03_julia](after/03_julia_zoom.png) · [04_nanda](after/04_nanda_zoom.png) |
-| Seu Carlos | [07_carlos](before/07_carlos_zoom.png) · [dialogue](before/08_carlos_dialogue.png) | [07_carlos](after/07_carlos_zoom.png) · [dialogue](after/08_carlos_dialogue.png) · [counter stool](after/09_counter_stool_zoom.png) |
+| Seu Carlos | [07_carlos](before/07_carlos_zoom.png) · [dialogue](before/08_carlos_dialogue.png) | [07_carlos](after/07_carlos_zoom.png) · [dialogue](after/08_carlos_dialogue.png) |
 | Hat shop | [05_hat_shop](before/05_hat_shop.png) | [05_hat_shop](after/05_hat_shop.png) |
 
-To regenerate, build and serve the solo build, then run `SHOTS_DIR=docs/art/characters-v1/after node scripts/character-shots.mjs` and `node scripts/character-contact.mjs`. The header of each script has the full commands.
+To regenerate: build and serve the solo build, then run `SHOTS_DIR=docs/art/characters-v1/after node scripts/character-shots.mjs` and `node scripts/character-contact.mjs`. Each script's header has the full commands.
 
-## What changed
+## Art overrides, lock by lock
 
-**Design levers from the brief:**
+| Override | What shipped |
+| --- | --- |
+| **1 North star** | Premium iso-social quality matched to room polish v2, with SP street-casual fashion: adult proportions and faces, soft rendering, intentional silhouettes. No AC/Cozy Grove softness, no chibi. |
+| **2 Height / head** | ≈6.3 heads (crown ≈ −88, head ≈ 14 units). The legs carry the length: hip at −44, thigh 20.4, shin 20.6. Normal adult head, no bobble. |
+| **2 Limbs** | Tapered variable-width limbs (thigh → knee → calf → ankle, shoulder → elbow → wrist) with 2–3 value bands: light plane, body tone, then a tighter core-shadow step into reflected shadow. Warm rim on the shadow edge. |
+| **2 Outline** | A soft warm plum-ink silhouette edge at about 1 device px in game, plus colored line work inside. Never a black comic outline. |
+| **2 Face** | The nose is soft planes: bridge shadow, tip glow and nostril wings, no triangle. Eyes are almond or round with sclera, iris (warm lower ring), catchlight, a lid shade and a lash line; no pie-cut. Brows carry emotion (rest, up, worried, soft). The mouth has a lip line and a lower-lip value, with cheek warmth. There are 4 face styles and 6 details. |
+| **2 Skin** | 8 creator tones spanning the Brazilian range from light to deep. Each has a warm key, a red-brown subsurface fill, cheek warmth and a jaw turn. |
+| **2 Hair** | 9 silhouettes: curto, degradê (fade), **undercut / side-part**, cacheado, black power, **ondulado (shoulder waves)**, longo, coque, tranças. Each is built from clumped masses with a broken sheen and a light rim, and grey hair gets salt-and-pepper strands. All nine are drawn in three views: three-quarter, back, and straight-on front. |
+| **2 Starter clothes** | Free presets in the creator (**Visual inicial**): Jeans + camiseta, **Blusa + calça**, Camisa + calça, Moletom + bermuda. Details: <ul><li>Jeans: fade, knee breaks, stitched seam and a flat rolled cuff.</li><li>Tee: rib and drag folds.</li><li>Soft blouse: V neck, flutter sleeves, drape, and gathers at the tuck, with a leather belt and metal buckle.</li><li>Button shirt: collar, placket, pocket and rolled sleeves.</li><li>Hoodie: hood, drawstrings, pocket and ribbed hem.</li><li>Skirt: pleats.</li></ul> |
+| **3 Layer order** | Body/skin → starter clothes → hair → face → hat. The face features are painted after the hair, and the hat sits on the skull above the hair volume. Hair peeks out at the sides and nape (bun under the hat, braids, afro sides). The creator and hat equip work unchanged. |
+| **4 Seu Carlos** | Mid-age, solid build, salt-and-pepper hair and a full mustache. Patient brow and calm mouth. A **white flour-dusted apron over a warm terracotta shirt** with a soft flour smudge, no slapstick. Also a pano de prato, a slim watch and a low padaria toque. Reads half-body behind the counter. |
+| **4 Júlia** | A contemporary SP young adult in an open, welcoming stance, palm out. **Shoulder waves, a cream blouse with a coral lanyard, jeans**, a crossbody bag and no visor. Every ~9 s she points toward the loop. |
+| **4 Nanda** | **Mustard shirt + jeans, a coral pochete, and her own straw hat**, which reads at stall distance. She leans toward the player, has playful brows and a grin, and every ~7 s lifts a yellow bucket hat to show it. Box braids with gold cuffs. |
+| **4 Player** | Customizable, with a straight-on front view in the creator. The hat reads first. |
+| **5 CPUs** | Helena, Daniel, Mateus, Felipe and Rafael are fully authored. Every other name maps to one of 14 archetypes. Tests enforce that any two neighbors who can share the square differ on **≥3 of hair / top / bottoms / posture / accessory**. The named five also all have distinct faces. Postures vary in lean: pockets lean back, arms crossed, phone leans forward, hand on hip, tote. Verde plates stay, and there's no CPU chat art. |
+| **6 Hats** | All 12 were rebaked on the new skull. Each hat scales to the hair volume, with brims tipped so faces stay visible. In the straight-on front view, cap and visor brims point at the camera. [`sheet_hatfit`](after/sheet_hatfit.png) shows every hat on the afro, curls, bun, undercut and waves with no clipping. The hats carry a stronger ink halo, so they're the first read at 1280. The shop icons were rebaked too. |
+| **7 Materials / light** | <ul><li>Skin: key + fill + cheek warmth.</li><li>Hair: 2–3 value clumps + rim.</li><li>Cloth: fold breaks (apron, jeans, blouse).</li><li>Accents, used sparingly: belt buckle, cap button, watch, pochete zip.</li><li>Contact shadow under the feet: warm-ink ellipse at ≈35% core, plus a tight occlusion under each sole.</li><li>Rim light per room: Praça late-afternoon gold, Padaria morning cream on Carlos, Kitnet neutral daylight on the player.</li></ul> |
 
-1. **Proportions:** figures are now about 6 heads tall: crown ≈ 86 units, head ≈ 14.6. Bobble heads are gone. The legs, arms and neck lengths are real, with a trapezius slope into the neck, and the three body types differ in shoulders, waist, hips, belly and limb thickness. Standing idle has a gentle contrapposto: weight on the back leg, front knee soft.
-2. **Faces:** a 3/4 head shape with jaw and chin that vary by face style. Eyes are built from sclera, iris, catchlight and a heavier upper lid. Brows, a soft nose plane with a tip highlight, and a lip line with a lower-lip glow replace the old dots and pie-cut shapes. Emotion states: idle smile, Carlos's patient calm, open smile (oi), laugh with happy eyes (rir), grin (valeu), and worried brows with a small mouth (desculpa). Blinks.
-3. **Materials:**
-   - Every part is form-shaded. There is a lit-side → shadow-side ramp, the shadows are warm (plum-brown for cloth, red-brown for skin), and line work is colored rather than black.
-   - Jeans have fades, knee creases, stitched outer seams and rolled cuffs. Tees have crew ribs and drag folds; hoodies have a hood, drawstrings, a kangaroo pocket and ribbed hems. Button shirts have collars, placket, buttons, a pocket and sleeves rolled at the elbow. Skirts have soft pleats.
-   - Sneakers have soles, laces and a side panel. Hair is built from clumps with a broken sheen band. The afro and curls are coily volumes.
-4. **Silhouette variety:**
-   - Seven hair shapes. Four face styles and six details: glasses, beard, mustache, earrings, freckles.
-   - Seven idle postures: relaxed, hands in pockets, arms crossed, phone, copo americano, hand on hip, tote bag.
-5. **Lighting:** each frame gets a rim light matched to the room. The Praça is late-afternoon gold, the Padaria warm morning cream, the Kitnet cool daylight. The key light stays on the upper-left of the screen even when the figure is mirrored. A soft contact shadow sits under the feet, and brimmed hats cast shade onto the face.
-6. **Paper-doll tech:** the layer order is kept (hair behind → body → clothes → signature layers → arms → head/face → hair → hat), and the creator and hat equip work unchanged.
+## Gameplay and data (the Phase 0 loop is unchanged)
 
-**Hats (silhouette heroes):** all 12 are redrawn as objects:
-- caps: 6-panel cap with stitched brim, snapback from behind; visor; bike helmet with vents and strap
-- knit and felt: knit beanie with ribbed cuff and pompom; felt beret
-- brimmed straw and felt: woven straw brim with ribbon; floppy sun hat with bow; stitched bucket; panamá with dent, pinch and band
-- novelty: flower crown with shaded petals and leaves; pleated baker's toque; satin top hat with a sequin band and plume
-
-Hats scale to the hair volume (the afro wears hats higher and wider) and never clip into the skull. The hat also gets a stronger ink halo than the body, so it reads first. The shop icons are the same hats on a soft floor shadow.
-
-**Authored NPCs:**
-
-- **Seu Carlos:** a stocky, mid-age padaria owner. Salt-and-pepper hair and a full mustache, patient calm brows and smile. He wears a canvas bib apron with mustard stitching, a pocket with a pencil and a light dusting of flour, over a white shirt with rolled sleeves. A *pano de prato* hangs over his shoulder, plus a slim leather watch and the pleated toque. There's no slapstick, and he reads clearly above the counter.
-- **Júlia:** the Praça host, a contemporary young paulistana. She has curls under the blue visor, earrings, a green tee, jeans, a mustard lanyard with a GUIA badge, a crossbody leather bag and a folded map. Every ~9 s she **points toward the loop**.
-- **Nanda:** the hat merchant. Box braids with gold cuffs under the flower crown, earrings, beaded bracelets, a petróleo shirt, a mustard skirt and a pochete. She holds a straw hat and **lifts it to show you** every ~7 s, with her other hand on her hip.
-
-**CPU neighbors:** there's no clone army anymore. `packages/shared/src/looks.ts` is an authored wardrobe of 14 São Paulo street looks. Each name always wears the same look. Helena is the tia do bairro, Daniel the executivo, Mateus the skatista, Felipe the ciclista and Rafael the barista. The rest map to archetypes by name. When the server fills the Praça, it picks names whose look isn't already there, so a crowd of 4–6 is always 4–6 different silhouettes.
-
-**Palette:** clothing moved to fashion-muted street colors in `palette.md` warmth: verde, mostarda, jeans, terracota, off-white, grafite, tijolo, ameixa, petróleo, rosa antigo, cáqui, oliva. The indices are stable, so existing saves keep their color family. Skin tones are unchanged.
-
-## Gameplay and data (unchanged loop)
-
-- `Appearance` gains optional `face`, `extra` and `idle`. The server sanitizes them, and saves from before the redesign load with defaults (`suave` / `nenhum` / `solto`).
-- The creator adds **Rosto** and **Detalhe** chips. Everything else is the same flow, including the 18+ confirmation.
-- Paper-doll creation, hat equip, Seu Carlos's *Me vê um…*, the Missão do dia, sitting, the 18+ gate, curriculum and safety all still work. The server e2e and the solo Pages e2e both pass.
-- Nameplates (Verde / NPC / self) and hit boxes now follow each silhouette's real height, so tall hats and afros never cover their plate.
+- `Appearance` gains optional `face`, `extra` and `idle`, sanitized server-side. Older saves load with defaults.
+- `HAIR_STYLES` gains `undercut` and `ondulado`, and `TOP_STYLES` gains `blusa`; `CLOTH_COLORS` gains coral. All existing indices are stable.
+- The creator adds **Visual inicial**, **Rosto** and **Detalhe**. The 18+ confirmation is untouched.
+- Paper-doll creation, hat equip, Seu Carlos's *Me vê um…*, the Missão do dia, sitting, the 18+ gate, curriculum and safety are all unchanged. The server e2e and the solo Pages e2e both pass.
+- Nameplates and hit boxes follow each silhouette's real height, so tall hats and afros never hide under the plate. Counter stools report their seat height so people sit on them.
 
 ## Pipeline
 
 - **Renderer:** `apps/client/src/render/avatar.ts` (compositor + public API) and `render/avatar/`:
-  - `rig.ts`: skeleton, IK, walk cycle, postures, emotes, NPC gestures
+  - `rig.ts`: skeleton, IK, walk cycle, postures and lean, emotes, NPC gestures, front/three-quarter turn
   - `body.ts`: legs, shoes, bottoms, tops, arms, hands, held props, NPC layers
-  - `head.ts`: head, face, extras, hair
+  - `head.ts`: three views of the head, face, extras and 9 hair styles
   - `hats.ts`: hats and shop icons
   - `shape.ts`, `color.ts`: shading and tone math
-- **Frame cache:** avatars still draw live, because they animate. Each distinct pose is painted once per device scale into a cached frame with the silhouette outline composited in, then blitted.
-  - Walk is quantized to 12 frames, idle breath to 4, emotes to 15 fps.
-  - Warm frames cost about 1 ms for a full Praça in headless Chrome.
-  - First-time paints are capped at two per tick. Big previews (creator, shop) repaint directly instead of filling the cache.
-- `pnpm art` rebakes the hat icons and the avatar/character review renders. The `/art.html` studio has a new **Personagens** section with these lineups.
+- **Frame cache:** each distinct pose is painted once per device scale into a cached frame with the silhouette outline composited in, then blitted. A warm Praça frame is about 1 ms in headless Chrome. First-time paints are capped at two per tick.
+- `pnpm art` rebakes the hat icons and all avatar and character review renders. The `/art.html` studio's **Personagens** section has every lineup above.

@@ -4,7 +4,21 @@
 
 ## Character redesign v1 (TB Art, 2026-09-26)
 
-This pass redoes the characters only; the rooms are untouched. The paper-doll is now a rigged figure about 6 heads tall, with form-shaded cloth, 3/4 faces with emotion states and room-matched rim light. All 12 hats are redrawn as the silhouette heroes. Seu Carlos, Júlia and Nanda get authored signature layers and gestures, and the Praça CPUs wear an authored São Paulo wardrobe with no duplicate looks on the square. Before/after contact sheets and the full change list are in [`characters-v1/`](characters-v1/README.md): [`contact_lineups.png`](characters-v1/contact_lineups.png) · [`contact_ingame.png`](characters-v1/contact_ingame.png).
+This pass redoes the characters only; the rooms are untouched. It follows the TB Art hard overrides:
+- A rigged paper-doll at about 6.3 heads, with the legs carrying the length.
+- Form-shaded 2–3 value bands and a soft warm-ink edge.
+- Faces with soft noses, iris + lid eyes and emotive brows.
+- Nine hair silhouettes, including undercut and shoulder waves.
+- Starter presets, including a soft blouse.
+- The layer order skin → clothes → hair → face → hat.
+- All 12 hats rebaked on the new skull.
+
+NPC silhouette locks:
+- **Carlos:** a white apron over a warm shirt.
+- **Júlia:** a blouse with jeans.
+- **Nanda:** a mustard top with jeans and her own straw hat.
+
+The CPU wardrobe is authored, and tests keep any two neighbors ≥3 reads apart. Shots and the lock-by-lock table are in [`characters-v1/`](characters-v1/README.md): [`contact_required.png`](characters-v1/contact_required.png) · [`contact_lineups.png`](characters-v1/contact_lineups.png) · [`contact_ingame.png`](characters-v1/contact_ingame.png).
 
 ## Polish v2 (TB Art brief v2, 2026-09-26)
 
@@ -49,7 +63,7 @@ The same gallery is live in the app at **`/art.html`** (dev: http://localhost:51
 - **Authentic, not generic.** Calçada paulista in the São Paulo state-map mosaic (the Copacabana wave is Rio's — don't use it), ipê amarelo as the Praça's hero tree (no palms), padaria striped awning and bread shelves, azulejos, ladrilho hidráulico, taco floors, cobogó breeze blocks, orelhão, blue street signs, orange *lixeira*, newsstand, the Copan-style curved tower, metrô line colors.
 - **Modern 2.5D isometric**: 2:1 tiles (64×32 world units), light from the upper right, soft cast shadows.
 - **Readable first**: soft plum-ink silhouette outline on avatars (colored line work inside, never black comic outlines), a stronger ink halo on the hat, names on solid plates above heads, bubbles in screen space.
-- **Avatars aren't chibi**: about 6 heads tall, with a 3/4 view, warm form shading and a rim light matched to the room. Hats scale to the hair volume and read first; they never clip into the skull.
+- **Avatars aren't chibi**: about 6.3 heads tall (legs carry the length), with a 3/4 view in game and a straight-on front view in the creator, warm form shading and a rim light matched to the room. Hats scale to the hair volume and read first; they never clip into the skull.
 - **Lighting per room**: Praça late afternoon, Padaria warm morning, Kitnet neutral daylight through a painted street window.
 - **Constitution applies to art too**: no alcohol, bar signage, flirting, or sensual poses. Carnival is color, not nightlife.
 

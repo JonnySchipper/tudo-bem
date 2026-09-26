@@ -64,7 +64,7 @@ export function drawLeg(ctx: Ctx, r: Rig, leg: Leg, i: number, k: Look) {
     drawShoe(ctx, leg, k, i);
   }
   if (pants) {
-    const pts = legPts(leg, { hip: m.thigh + 0.6, mid: m.thigh + 0.3, knee: m.knee + 0.95, calf: m.knee + 1.05, ankle: m.ankle + 1.35 });
+    const pts = legPts(leg, { hip: m.thigh + 0.6, mid: m.thigh + 0.3, knee: m.knee + 0.95, calf: m.knee + 1.05, ankle: m.ankle + 1.25 });
     paint(ctx, () => limbShape(ctx, pts), k.bottom, limbBox(pts), po(k, { lw: 0.5, rimA: 0.5 }));
     ctx.save();
     ctx.beginPath();
@@ -83,14 +83,22 @@ export function drawLeg(ctx: Ctx, r: Rig, leg: Leg, i: number, k: Look) {
     line(ctx, [[leg.hip.x + seamSide * (m.thigh - 0.2), leg.hip.y + 1], [kx + seamSide * (m.knee + 0.5), ky], [leg.ankle.x + seamSide * (m.ankle + 0.9), leg.ankle.y - 2]], rgba(k.bottom.hi, 0.55), 0.3);
     ctx.setLineDash([]);
     ctx.restore();
-    // Rolled cuff
-    const c1 = lerp(leg.ankle, leg.knee, 0.02);
-    const c2 = lerp(leg.ankle, leg.knee, 0.1);
-    const cuff = [
-      { ...c1, r: m.ankle + 1.55 },
-      { ...c2, r: m.ankle + 1.5 },
+    // Rolled cuff: a flat band across the leg, not a round cap
+    const c1 = lerp(leg.ankle, leg.knee, -0.01);
+    const c2 = lerp(leg.ankle, leg.knee, 0.085);
+    const dx = leg.knee.x - leg.ankle.x;
+    const dy = leg.knee.y - leg.ankle.y;
+    const dl = Math.hypot(dx, dy) || 1;
+    const nx = -dy / dl;
+    const ny = dx / dl;
+    const cr = m.ankle + 1.45;
+    const cuff: P[] = [
+      [c1.x + nx * cr, c1.y + ny * cr],
+      [c2.x + nx * cr, c2.y + ny * cr],
+      [c2.x - nx * cr, c2.y - ny * cr],
+      [c1.x - nx * cr, c1.y - ny * cr],
     ];
-    paint(ctx, () => limbShape(ctx, cuff), tone(mix(k.bottom.base, '#fff6e6', 0.14)), limbBox(cuff), po(k, { lw: 0.4, rimA: 0.3 }));
+    paint(ctx, () => roundPoly(ctx, cuff, 0.6), tone(mix(k.bottom.base, '#fff6e6', 0.14)), ptsBox(cuff), po(k, { lw: 0.4, rimA: 0.3 }));
   } else if (b === 'bermuda') {
     const end = lerp(leg.hip, leg.knee, 0.8);
     const pts = [
@@ -150,7 +158,8 @@ function drawShoeFront(ctx: Ctx, leg: Leg, k: Look, i: number) {
   const sole = tone(white ? '#dcd7ce' : '#f3efe6');
   const out = i === 0 ? 0.5 : -0.5;
   ctx.save();
-  ctx.translate(leg.ankle.x + out, leg.ankle.y);
+  ctx.translate(leg.ankle.x + out, leg.ankle.y + 0.6);
+  ctx.scale(1.12, 1.12);
   const up: P[] = [
     [-2.1, -0.8],
     [2.1, -0.8],

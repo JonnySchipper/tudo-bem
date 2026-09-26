@@ -18,10 +18,26 @@ const img = (side, name) => {
 
 const SHEETS = [
   {
+    out: 'contact_required.png',
+    title: 'TB Art acceptance #7 — required shots (after)',
+    afterOnly: true,
+    rows: [
+      ['sheet_player', 'Player — front · 3/4 · back · hat on (Jeans + camiseta · Blusa + calça)'],
+      ['07_carlos_zoom', 'Seu Carlos behind the counter (Padaria, morning light)'],
+      ['03_julia_zoom', 'Júlia in the Praça (late afternoon)'],
+      ['04_nanda_zoom', 'Nanda at the hat stall'],
+      ['sheet_crowd', 'CPU lineup (authored wardrobe)'],
+      ['02_crowd_zoom', 'CPU neighbors in the Praça'],
+      ['sheet_hatfit', 'Hats × big hair silhouettes — no skull / hair clip'],
+      ['10_kitnet_player_zoom', 'Player in Kitnet daylight'],
+    ],
+  },
+  {
     out: 'contact_lineups.png',
     title: 'Character redesign v1 — lineups',
     rows: [
       ['sheet_npcs', 'Seu Carlos · Nanda · Júlia (front + back)'],
+      ['sheet_closeup', 'Closeup 2× (NPCs + players)'],
       ['sheet_crowd', 'Praça CPU neighbors'],
       ['sheet_hats', 'All 12 hats worn'],
       ['sheet_creator', 'Creator range'],
@@ -69,8 +85,10 @@ for (const side of ['before', 'after']) {
 
 for (const s of SHEETS) {
   const rows = s.rows
-    .map(
-      ([name, label]) => `<section><h2>${label}</h2><div class="pair">
+    .map(([name, label]) =>
+      s.afterOnly
+        ? `<section><h2>${label}</h2><figure class="after solo"><img src="${img('after', name)}"></figure></section>`
+        : `<section><h2>${label}</h2><div class="pair">
         <figure><figcaption>Before</figcaption>${img('before', name) ? `<img src="${img('before', name)}">` : '<div class="none">—</div>'}</figure>
         <figure class="after"><figcaption>After</figcaption><img src="${img('after', name)}"></figure></div></section>`,
     )
@@ -87,6 +105,7 @@ for (const s of SHEETS) {
     figure.after figcaption{color:#2f5d50}
     img{width:100%;display:block;border-radius:8px}
     .none{padding:40px;text-align:center;color:#9a8a74}
+    figure.solo{max-width:1100px}
   </style></head><body><h1>${s.title}</h1>${rows}</body></html>`);
   await page.waitForTimeout(300);
   await page.screenshot({ path: path.join(DIR, s.out), fullPage: true });

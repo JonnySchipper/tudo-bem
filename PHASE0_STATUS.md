@@ -15,7 +15,23 @@ Target: `TudoBem-Phase0-MVP.md` (success criteria 1–4) and GDD v1.0 §14.1.
 
 ## Character redesign v1 (2026-09-26)
 
-TB Art **character redesign v1**: the characters only (rooms unchanged). There's a new rigged paper-doll renderer (about 6 heads tall, form-shaded cloth, 3/4 faces with emotions, room rim light, cached frames). All 12 hats are redrawn. Seu Carlos (apron, pano de prato, mustache), Júlia (lanyard, map, points toward the loop) and Nanda (braids, pochete, shows a hat) are authored. The CPU wardrobe has 14 looks and never repeats a look on the square. The creator gains **Rosto** and **Detalhe**. The Phase 0 loop is unchanged, and both e2e runs pass. Before/after contact sheets are in [`docs/art/characters-v1/`](docs/art/characters-v1/README.md).
+TB Art **character redesign v1**, with the Art hard overrides binding. The rooms are unchanged.
+
+**Renderer:**
+- A rigged paper-doll at about 6.3 heads, with form-shaded cloth and 2–3 value bands.
+- A soft warm-ink edge, and faces with iris + lid eyes and soft noses.
+- The layer order skin → clothes → hair → face → hat.
+- A straight-on front view in the creator.
+
+**Content:**
+- 9 hair silhouettes and 4 starter presets, including Blusa + calça.
+- All 12 hats rebaked on the new skull.
+
+**NPC locks:** Carlos in a white apron over a warm shirt, Júlia in a blouse with jeans, and Nanda in a mustard top with jeans and her own straw hat.
+
+**CPUs:** the named five are authored, and tests enforce ≥3 read differences between any two neighbors.
+
+The Phase 0 loop is unchanged, and both e2e runs pass. Shots are in [`docs/art/characters-v1/`](docs/art/characters-v1/README.md).
 
 ## Art polish v2 (2026-09-26)
 
@@ -95,7 +111,7 @@ A verbatim copy of the v0.1 JSON is in `content/safety/source-v0.1/` (the game d
 | Area | Status |
 | --- | --- |
 | Age gate | **Adults only (18+)** per CEO decision. Birth month/year must compute to 18+, **and** the create-avatar screen requires ticking “Confirmo que tenho 18 anos ou mais” (`confirm18`). The server enforces both. Under-18 users get an adults-only screen (sticky on that browser). Birth date is **not stored** — only `ageGate18: true`. Pre-policy profiles must sign up again. No COPPA, parental-consent, or kid UI is built. See `docs/AGE_POLICY.md`. |
-| Avatar create | Body type (3), skin (8), face (4), detail (6: glasses, beard, mustache, earrings, freckles), hair style (7) + color (8), top (4) + color (12), bottoms (3) + color, sneakers (5); addressed as *ele / ela / nome*. Name filtered (no PII, no long numbers, constitution). |
+| Avatar create | Starter look preset (4), body type (3), skin (8), face (4), detail (6: glasses, beard, mustache, earrings, freckles), hair style (9) + color (8), top (5) + color (13), bottoms (3) + color, sneakers (5); addressed as *ele / ela / nome*. Name filtered (no PII, no long numbers, constitution). |
 | Praça ambiance | Scripted Verde-plate CPUs (allowlisted first names) outside the 16 cap: sit, stroll to the Padaria door, wave. No chat, never in Padaria/Kitnet, yield benches to players. `LIVEOPS_CPU_AMBIANCE`. |
 | Daily kiosk | *Missão do dia* Set A: Cumprimenta / Pede / Monta → +25 RV once a day. |
 | Rooms | **Praça Central** (spawn), **Padaria do Seu Carlos**, **Kitnet** (private per owner). Walk (A*, 8-dir), sit on benches/stools/chairs/placed furniture, doors between rooms, free fast travel via **Mapa**. |
