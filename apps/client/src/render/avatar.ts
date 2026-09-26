@@ -9,7 +9,7 @@
  */
 import { CLOTH_COLORS, HAIR_COLORS, SHOE_COLORS, SKIN_TONES, hatById, type Appearance, type Dir, type EmoteKind, type HatDef, type NpcId } from '@tudobem/shared';
 import { rrect, shadow, type Ctx } from './draw';
-import { drawArm, drawHeld, drawLeg, drawNeck, drawPelvis, drawSignature, drawTorso, type Look } from './avatar/body';
+import { drawArm, drawHeld, drawLeg, drawNeck, drawPelvis, drawSignature, drawTorso, drawTote, type Look } from './avatar/body';
 import { mix, rgba, RIM, tone, type Light } from './avatar/color';
 import { clipHead, drawHairBehind, drawHairFront, drawHead, hatFit } from './avatar/head';
 import { brimShade, drawHat as drawHatShape, drawHatIconArt, HAT_W, hatHeight } from './avatar/hats';
@@ -158,6 +158,7 @@ function paintBody(ctx: Ctx, r: Rig, k: Look, fs: FrameState) {
   drawNeck(ctx, r, k);
   drawTorso(ctx, r, k);
   drawSignature(ctx, r, k);
+  drawTote(ctx, r, k);
   const head = () =>
     inHead(ctx, r, () => {
       drawHead(ctx, r, k);

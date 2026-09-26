@@ -282,7 +282,7 @@ export function buildRig(s: RigState): Rig {
         if (still) far = arm(0, hipAt(0), 1, 'hip');
         break;
       case 'bolsa':
-        near = arm(1, { x: -m.sh + 1.6 + bx, y: chestY + 1.5 }, -1, 'fist');
+        if (still) near = arm(1, { x: -m.hp - 2 + bx, y: hipY - 3.6 }, -1, 'fist');
         break;
     }
     if (s.npc === 'carlos') held[0] = 'towel';

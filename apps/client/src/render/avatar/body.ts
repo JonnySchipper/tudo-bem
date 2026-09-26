@@ -675,6 +675,36 @@ export function drawHeld(ctx: Ctx, r: Rig, i: 0 | 1, k: Look, drawHatAt: (ctx: C
   }
 }
 
+/** Canvas tote on the near shoulder for the `bolsa` posture (feira / faculdade cue). */
+export function drawTote(ctx: Ctx, r: Rig, k: Look) {
+  if (k.a.idle !== 'bolsa' || k.npc) return;
+  const m = r.m;
+  const x = r.bx;
+  const light = k.a.topColor === 4 || k.a.topColor === 1;
+  const bag = tone(light ? '#c9582c' : '#e8dcc2');
+  const sx = r.front ? -m.sh + 2.6 + x : m.sh - 2.6 + x;
+  const bx = r.front ? -m.hp - 2.6 + x * 0.5 : m.hp + 2.6 + x * 0.5;
+  const top = r.hipY - 3.4;
+  line(ctx, [[sx - 0.6, r.shY - 1], [bx - 1.6, top + 0.4]], bag.lo, 0.9, false);
+  line(ctx, [[sx + 0.8, r.shY - 0.8], [bx + 2.2, top + 0.4]], bag.lo, 0.9, false);
+  const pts: P[] = [
+    [bx - 3.2, top],
+    [bx + 3.4, top],
+    [bx + 3.9, top + 8.6],
+    [bx - 3.6, top + 8.8],
+  ];
+  paint(ctx, () => roundPoly(ctx, pts, [0.6, 0.6, 1.2, 1.2]), bag, ptsBox(pts), po(k, { lw: 0.45, fall: 0.2, top: 0.1 }));
+  ctx.save();
+  ctx.beginPath();
+  roundPoly(ctx, pts, [0.6, 0.6, 1.2, 1.2]);
+  ctx.clip();
+  ctx.fillStyle = light ? '#f1e6d2' : '#2F5D50';
+  ctx.fillRect(bx - 4, top + 3, 8.2, 1.6);
+  glow(ctx, bx + 0.2, top + 6.2, 1, 1, light ? '#e0ae3c' : '#c9582c', 0.95);
+  line(ctx, [[bx - 1.6, top + 0.6], [bx - 1.2, top + 8.2]], rgba(bag.lo, 0.5), 0.4);
+  ctx.restore();
+}
+
 // ---------------------------------------------------------------- NPC signature layers
 
 export function drawSignature(ctx: Ctx, r: Rig, k: Look) {

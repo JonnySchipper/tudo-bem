@@ -126,4 +126,13 @@ await page.waitForSelector('#dialogue', { timeout: 15_000 }).catch(() => {});
 await sleep(1500);
 await shot('08_carlos_dialogue');
 
+// Counter stool (back view, seated at the counter)
+await page.keyboard.press('Escape');
+await page.evaluate(() => document.querySelector('#dialogue .ghost')?.click());
+await sleep(400);
+await clickTile(5, 3, 10);
+await sleep(4000);
+const stool = await tileClient(5, 3);
+await closeup('09_counter_stool_zoom', stool.px, stool.py, 340, 260);
+
 await browser.close();
