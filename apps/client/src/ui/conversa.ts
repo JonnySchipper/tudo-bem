@@ -1,12 +1,11 @@
 import {
   CONVERSA_AXES,
   CONVERSA_COPY,
-  CONVERSA_MAX_PLAYER_MSGS,
-  CONVERSA_MIN_MSGS_TO_SCORE,
+  authoredFallbackTurn,
   gradeFromScores,
   gradeCopy,
-  gradeRV,
-  metersFromHistory,
+  offlineConversaOpen,
+  presentConversaTurn,
   ROOMS,
   type Bilingual,
   type ConversaGrade,
@@ -51,6 +50,7 @@ interface ConversaState {
 let state: ConversaState | null = null;
 let containerEl: HTMLElement | null = null;
 let closeCallback: (() => void) | null = null;
+let onKey: ((e: KeyboardEvent) => void) | null = null;
 
 function findNpc(npcId: NpcId): NpcDef | null {
   for (const room of Object.values(ROOMS)) {
@@ -216,9 +216,14 @@ async function handleSend(input: HTMLInputElement) {
 
   state.turn++;
   state.history.push({ who: 'player', pt: text });
+  const priorChips = state.chips.map((c) => c.pt);
   render();
 
   try {
+    if (state.offline) {
+      applyOfflineTurn(text, priorChips);
+      return;
+    }
     const response = await sendConversaTurn(
       state.npcId,
       state.subjectId,
@@ -230,21 +235,49 @@ async function handleSend(input: HTMLInputElement) {
       state.history,
       state.turn,
       state.daily,
+      priorChips,
     );
 
     handleApiResponse(response);
   } catch (e) {
-    console.error('[conversa] Turn failed:', e);
-    state.history.push({
-      who: 'npc',
-      pt: 'Hmm. Repete, por favor?',
-      en: 'Hmm. Could you repeat that?',
-    });
-    render();
+    console.error('[conversa] Turn failed, using authored Carlos:', e);
+    applyOfflineTurn(text, priorChips);
   } finally {
-    input.disabled = false;
-    input.focus();
+    const next = document.getElementById('conversa-input') as HTMLInputElement | null;
+    if (next && state && !state.ended) {
+      next.disabled = false;
+      next.focus();
+    }
   }
+}
+
+/** Scripted Carlos when the API is down (GitHub Pages answers POST /api/conversa with 405). */
+function applyOfflineTurn(text: string, priorChips: string[]) {
+  if (!state) return;
+  state.mode = 'authored';
+  state.offline = true;
+  const fb = authoredFallbackTurn(text, state.history);
+  const presented = presentConversaTurn(
+    {
+      line: fb.response,
+      chips: fb.chips,
+      scores: { portuguese: 2, grammar: 2, conversation: 2 },
+      tip: null,
+      end: fb.end,
+      order: {},
+    },
+    priorChips,
+  );
+  state.chips = presented.chips;
+  state.history.push({
+    who: 'npc',
+    pt: presented.line.pt,
+    en: presented.line.en || undefined,
+    scores: presented.scores,
+  });
+  speak(presented.line.pt);
+  if (presented.end || state.turn >= state.maxTurns) finishConversa('natural');
+  else render();
 }
 
 function handleChip(index: number) {
@@ -305,8 +338,9 @@ function handleApiResponse(response: ConversaApiResponse) {
       state.daily = { ...state.daily, ...response.updateDaily };
     }
 
-    if (response.payout > 0 && game.profile) {
-      game.profile.coins += response.payout;
+    if (game.profile) {
+      if (typeof response.coins === 'number') game.profile.coins = response.coins;
+      else if (response.payout > 0) game.profile.coins += response.payout;
       game.emit('profile');
     }
 
@@ -325,6 +359,14 @@ async function finishConversa(reason: 'natural' | 'cap' | 'early') {
         conversation: Math.round(historyWithScores.reduce((a, h) => a + h.scores.conversation, 0) / historyWithScores.length) as 0 | 1 | 2 | 3,
       }
     : { portuguese: 2, grammar: 2, conversation: 2 };
+
+  if (state.offline) {
+    state.ended = true;
+    state.grade = gradeFromScores(finalScores, state.turn);
+    state.payout = 0;
+    render();
+    return;
+  }
 
   try {
     const response = await endConversa(
@@ -353,10 +395,12 @@ function handleClose() {
 }
 
 export function closeConversa() {
-  if (containerEl) {
-    containerEl.remove();
-    containerEl = null;
+  if (onKey) {
+    document.removeEventListener('keydown', onKey);
+    onKey = null;
   }
+  containerEl?.parentElement?.remove();
+  containerEl = null;
   state = null;
   game.modalOpen = false;
   closeCallback?.();
@@ -393,7 +437,8 @@ export async function openConversa(npcId: NpcId, onClose?: () => void): Promise<
     }
 
     if (response.phase !== 'open') {
-      console.error('[conversa] Unexpected response:', response);
+      console.error('[conversa] Unexpected response, opening authored Carlos:', response);
+      openOfflineConversa(npcId);
       return;
     }
 
@@ -420,31 +465,63 @@ export async function openConversa(npcId: NpcId, onClose?: () => void): Promise<
     };
 
     speak(response.line.pt);
-
-    const backdrop = h('div', { class: 'conversa-backdrop', 'data-modal': 'conversa' });
-    containerEl = h('div', { class: 'conversa-panel' });
-    backdrop.append(containerEl);
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleClose();
-        document.removeEventListener('keydown', onKey);
-      }
-      const n = Number(e.key);
-      if (n >= 1 && n <= (state?.chips.length ?? 0)) {
-        handleChip(n - 1);
-      }
-    };
-    document.addEventListener('keydown', onKey);
-
-    ui().append(backdrop);
-    game.modalOpen = true;
-    render();
-
-    const input = document.getElementById('conversa-input') as HTMLInputElement | null;
-    input?.focus();
+    showConversaPanel();
   } catch (e) {
-    console.error('[conversa] Start failed:', e);
-    state = null;
+    console.error('[conversa] Start failed, opening authored Carlos:', e);
+    openOfflineConversa(npcId);
   }
+}
+
+function openOfflineConversa(npcId: NpcId) {
+  const opened = offlineConversaOpen(npcId);
+  if (!opened) {
+    state = null;
+    return;
+  }
+  state = {
+    npcId,
+    npcName: opened.npcName,
+    npc: findNpc(npcId),
+    subjectId: opened.subject.id,
+    subjectTitle: opened.subject.title,
+    subjectGoal: opened.subject.goal,
+    mode: 'authored',
+    offline: true,
+    history: [{ who: 'npc', pt: opened.line.pt, en: opened.line.en || undefined }],
+    chips: opened.chips,
+    turn: 0,
+    maxTurns: opened.maxTurns,
+    ended: false,
+    grade: null,
+    payout: 0,
+    meter: { portuguese: 0, grammar: 0, conversation: 0 },
+    daily: {},
+  };
+  speak(opened.line.pt);
+  showConversaPanel();
+}
+
+function showConversaPanel() {
+  if (!state) return;
+  const backdrop = h('div', { class: 'conversa-backdrop', 'data-modal': 'conversa' });
+  containerEl = h('div', { class: 'conversa-panel' });
+  backdrop.append(containerEl);
+
+  onKey = (e: KeyboardEvent) => {
+    if (!state) return;
+    if (e.key === 'Escape') {
+      handleClose();
+      return;
+    }
+    const n = Number(e.key);
+    if (n >= 1 && n <= state.chips.length) handleChip(n - 1);
+  };
+  document.addEventListener('keydown', onKey);
+
+  ui().append(backdrop);
+  game.modalOpen = true;
+  render();
+
+  const input = document.getElementById('conversa-input') as HTMLInputElement | null;
+  input?.focus();
 }

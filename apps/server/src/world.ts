@@ -712,7 +712,21 @@ export class World {
   }
 
   private rollDaily(p: StoredProfile) {
-    if (p.daily.date !== today()) p.daily = { date: today(), sceneClears: {} };
+    if (p.daily.date !== today()) {
+      const { conversaClears, conversaRvGranted } = p.daily;
+      p.daily = {
+        date: today(),
+        sceneClears: {},
+        ...(conversaClears ? { conversaClears } : {}),
+        ...(conversaRvGranted ? { conversaRvGranted } : {}),
+      };
+    }
+  }
+
+  /** Push the stored profile to a connected player (after Conversa RV lands on the file store). */
+  pushProfileById(playerId: string) {
+    const s = this.sessionByProfile(playerId);
+    if (s) this.pushProfile(s);
   }
 
   // ---------- Me vê um… ----------

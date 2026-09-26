@@ -35,7 +35,10 @@ export interface ConversaSubject {
   title: Bilingual;
   goal: Bilingual;
   lexemes: string[];
+  /** Rotating counter greetings. "Pois não" may be one of them, never the only one. */
   seedOpeners: string[];
+  /** Player reply chips paired with seed openers (index wraps). */
+  seedChipSets?: string[][];
 }
 
 export interface ConversaCastEntry {
@@ -52,14 +55,36 @@ export const CONVERSA_SUBJECTS: Record<string, ConversaSubject> = {
     title: { pt: 'Café da manhã', en: 'Breakfast' },
     goal: { pt: 'Peça comida, bebida e diga se é pra comer aqui ou pra viagem.', en: 'Order food and a drink, then say for here or to go.' },
     lexemes: ['bom dia', 'pois não', 'me vê um', 'por favor', 'pão na chapa', 'coxinha', 'pastel', 'café com leite', 'suco', 'água', 'pra comer aqui', 'pra viagem', 'isso aí', 'obrigado', 'volte sempre'],
-    seedOpeners: ['Pois não. O que vai ser hoje?', 'E aí, tudo bem? Vai querer o quê?', 'Bom dia! O que posso servir?'],
+    seedOpeners: [
+      'Bom dia! O que vai ser hoje?',
+      'E aí, tudo bem? Vai querer o quê?',
+      'Pronto. O que posso servir?',
+      'Deixa eu anotar — o que vai ser?',
+      'Tá com fome? Me fala o pedido.',
+      'Pois não. O que vai ser hoje?',
+      'Oi! Café da manhã pra você?',
+    ],
+    seedChipSets: [
+      ['Me vê um pão na chapa, por favor.', 'Um café com leite, por favor.', 'Ainda tô olhando.'],
+      ['Uma coxinha, por favor.', 'Um suco de laranja, por favor.', 'Bom dia! Tudo bem?'],
+      ['Um pastel, por favor.', 'Uma água, por favor.', 'Pra viagem, por favor.'],
+      ['Me vê um café, por favor.', 'Pão na chapa e um suco, por favor.', 'Só olhando por enquanto.'],
+      ['Pra comer aqui, por favor.', 'Pra viagem, por favor.', 'Me vê um pão na chapa.'],
+      ['Um café com leite, por favor.', 'Uma coxinha, por favor.', 'Ainda tô pensando.'],
+      ['Me vê um pastel, por favor.', 'Uma água, por favor.', 'Obrigado, Seu Carlos!'],
+    ],
   },
   cumprimentos: {
     id: 'cumprimentos',
     title: { pt: 'Cumprimentos', en: 'Greetings' },
     goal: { pt: 'Cumprimente o Carlos e responda "tudo bem?".', en: 'Greet Carlos and respond to "tudo bem?"' },
     lexemes: ['bom dia', 'boa tarde', 'olá', 'oi', 'tudo bem', 'beleza', 'até logo', 'tchau', 'obrigado'],
-    seedOpeners: ['Bom dia! Tudo bem?', 'Oi, beleza?'],
+    seedOpeners: ['Bom dia! Tudo bem?', 'Oi, beleza?', 'E aí, tudo bem?'],
+    seedChipSets: [
+      ['Tudo bem! E você?', 'Bom dia!', 'Olá!'],
+      ['Beleza! E você?', 'Tudo ótimo.', 'Bom dia, Seu Carlos!'],
+      ['Tudo bem, e você?', 'Oi!', 'Tchau, até logo!'],
+    ],
   },
 };
 
@@ -109,6 +134,8 @@ export interface ConversaTurnRequest {
   text: string;
   turn: number;
   maxTurns: number;
+  /** Chip strings shown on the previous turn, so this turn can avoid repeating them. */
+  priorChips?: string[];
 }
 
 export interface ConversaTurnResponse {
@@ -242,84 +269,181 @@ export function sanitizeConversaTurn(text: string, wordCap: number): string {
   return result;
 }
 
-export const CARLOS_AUTHORED_FALLBACK: { opener: Bilingual; beats: { trigger: RegExp; response: Bilingual; chips: Bilingual[] }[] } = {
-  opener: { pt: 'Pois não. O que vai ser hoje?', en: "Yes? What'll it be today?" },
+type AuthoredBeat = { trigger: RegExp; responses: Bilingual[]; chipSets: Bilingual[][] };
+
+export const CARLOS_AUTHORED_FALLBACK: { opener: Bilingual; beats: AuthoredBeat[] } = {
+  opener: { pt: 'Bom dia! O que vai ser hoje?', en: "Good morning! What'll it be today?" },
   beats: [
     {
       trigger: /pao|chapa|pãozinho/i,
-      response: { pt: 'Pão na chapa saindo! E pra beber?', en: 'Grilled bread coming up! And to drink?' },
-      chips: [
-        { pt: 'Um café com leite, por favor.', en: 'A coffee with milk, please.' },
-        { pt: 'Um suco de laranja, por favor.', en: 'An orange juice, please.' },
+      responses: [
+        { pt: 'Pão na chapa saindo! E pra beber?', en: 'Grilled bread coming up! And to drink?' },
+        { pt: 'Pão na chapa, anotei. Quer café, suco ou água?', en: 'Grilled bread, noted. Coffee, juice, or water?' },
+        { pt: 'Isso aí, pão na chapa. Deixa eu anotar. E pra beber?', en: "That's the grilled bread. Let me write it down. And to drink?" },
+      ],
+      chipSets: [
+        [
+          { pt: 'Um café com leite, por favor.', en: 'A coffee with milk, please.' },
+          { pt: 'Um suco de laranja, por favor.', en: 'An orange juice, please.' },
+        ],
+        [
+          { pt: 'Uma água, por favor.', en: 'A water, please.' },
+          { pt: 'Um café, por favor.', en: 'A coffee, please.' },
+        ],
+        [
+          { pt: 'Um suco de laranja, por favor.', en: 'An orange juice, please.' },
+          { pt: 'Só o pão, obrigado.', en: 'Just the bread, thanks.' },
+        ],
       ],
     },
     {
       trigger: /coxinha/i,
-      response: { pt: 'Uma coxinha quentinha! E pra beber?', en: 'A warm coxinha! And to drink?' },
-      chips: [
-        { pt: 'Um café com leite, por favor.', en: 'A coffee with milk, please.' },
-        { pt: 'Uma água, por favor.', en: 'A water, please.' },
+      responses: [
+        { pt: 'Uma coxinha quentinha! E pra beber?', en: 'A warm coxinha! And to drink?' },
+        { pt: 'Coxinha, boa. Deixa eu anotar. E pra beber?', en: 'Coxinha, nice. Let me write it down. And to drink?' },
+      ],
+      chipSets: [
+        [
+          { pt: 'Um café com leite, por favor.', en: 'A coffee with milk, please.' },
+          { pt: 'Uma água, por favor.', en: 'A water, please.' },
+        ],
+        [
+          { pt: 'Um suco de laranja, por favor.', en: 'An orange juice, please.' },
+          { pt: 'Só a coxinha, obrigado.', en: 'Just the coxinha, thanks.' },
+        ],
       ],
     },
     {
       trigger: /pastel/i,
-      response: { pt: 'Pastel de carne ou queijo? E pra beber?', en: 'Meat or cheese pastel? And to drink?' },
-      chips: [
-        { pt: 'De carne! E um café, por favor.', en: 'Meat! And a coffee, please.' },
-        { pt: 'De queijo! E um suco, por favor.', en: 'Cheese! And a juice, please.' },
+      responses: [
+        { pt: 'Pastel de carne ou queijo? E pra beber?', en: 'Meat or cheese pastel? And to drink?' },
+        { pt: 'Pastel, anotei. Carne ou queijo — e pra beber?', en: 'Pastel, noted. Meat or cheese — and to drink?' },
+      ],
+      chipSets: [
+        [
+          { pt: 'De carne! E um café, por favor.', en: 'Meat! And a coffee, please.' },
+          { pt: 'De queijo! E um suco, por favor.', en: 'Cheese! And a juice, please.' },
+        ],
+        [
+          { pt: 'De queijo e uma água, por favor.', en: 'Cheese and a water, please.' },
+          { pt: 'De carne, pra viagem.', en: 'Meat, to go.' },
+        ],
       ],
     },
     {
       trigger: /cafe|café|leite/i,
-      response: { pt: 'Café com leite saindo! Pra comer aqui ou pra viagem?', en: 'Coffee with milk coming up! For here or to go?' },
-      chips: [
-        { pt: 'Pra comer aqui, por favor.', en: 'For here, please.' },
-        { pt: 'Pra viagem, por favor.', en: 'To go, please.' },
+      responses: [
+        { pt: 'Café com leite saindo! Pra comer aqui ou pra viagem?', en: 'Coffee with milk coming up! For here or to go?' },
+        { pt: 'Café com leite, tá na mão. Pra comer aqui ou pra viagem?', en: 'Coffee with milk, here you go. For here or to go?' },
+        { pt: 'Anotei o café com leite. Aqui ou pra viagem?', en: 'Coffee with milk, noted. Here or to go?' },
+      ],
+      chipSets: [
+        [
+          { pt: 'Pra comer aqui, por favor.', en: 'For here, please.' },
+          { pt: 'Pra viagem, por favor.', en: 'To go, please.' },
+        ],
+        [
+          { pt: 'Aqui mesmo, por favor.', en: 'Right here, please.' },
+          { pt: 'Pra viagem, e um pão na chapa.', en: 'To go, and grilled bread.' },
+        ],
       ],
     },
     {
       trigger: /suco|laranja/i,
-      response: { pt: 'Suco de laranja fresquinho! Pra comer aqui ou pra viagem?', en: 'Fresh orange juice! For here or to go?' },
-      chips: [
-        { pt: 'Pra comer aqui, por favor.', en: 'For here, please.' },
-        { pt: 'Pra viagem, por favor.', en: 'To go, please.' },
+      responses: [
+        { pt: 'Suco de laranja fresquinho! Pra comer aqui ou pra viagem?', en: 'Fresh orange juice! For here or to go?' },
+        { pt: 'Suco de laranja, anotei. Aqui ou pra viagem?', en: 'Orange juice, noted. Here or to go?' },
+      ],
+      chipSets: [
+        [
+          { pt: 'Pra comer aqui, por favor.', en: 'For here, please.' },
+          { pt: 'Pra viagem, por favor.', en: 'To go, please.' },
+        ],
+        [
+          { pt: 'Pra viagem, por favor.', en: 'To go, please.' },
+          { pt: 'Aqui, e uma coxinha.', en: 'Here, and a coxinha.' },
+        ],
       ],
     },
     {
       trigger: /agua|água/i,
-      response: { pt: 'Uma água geladinha! Pra comer aqui ou pra viagem?', en: 'Nice cold water! For here or to go?' },
-      chips: [
-        { pt: 'Pra comer aqui, por favor.', en: 'For here, please.' },
-        { pt: 'Pra viagem, por favor.', en: 'To go, please.' },
+      responses: [
+        { pt: 'Uma água geladinha! Pra comer aqui ou pra viagem?', en: 'Nice cold water! For here or to go?' },
+        { pt: 'Água, tá na mão. Pra comer aqui ou pra viagem?', en: 'Water, here you go. For here or to go?' },
+      ],
+      chipSets: [
+        [
+          { pt: 'Pra comer aqui, por favor.', en: 'For here, please.' },
+          { pt: 'Pra viagem, por favor.', en: 'To go, please.' },
+        ],
+        [
+          { pt: 'Pra comer aqui, por favor.', en: 'For here, please.' },
+          { pt: 'Só a água, obrigado.', en: 'Just the water, thanks.' },
+        ],
       ],
     },
     {
       trigger: /aqui|comer aqui/i,
-      response: { pt: 'Pronto! Tá na mão. Volte sempre!', en: 'Ready! Here you go. Come back anytime!' },
-      chips: [
-        { pt: 'Obrigado, Seu Carlos!', en: 'Thanks, Seu Carlos!' },
-        { pt: 'Valeu!', en: 'Thanks!' },
+      responses: [
+        { pt: 'Pronto! Tá na mão. Volte sempre!', en: 'Ready! Here you go. Come back anytime!' },
+        { pt: 'Tá na mão. Pode sentar. Volte sempre!', en: 'Here you go. Grab a seat. Come back anytime!' },
+      ],
+      chipSets: [
+        [
+          { pt: 'Obrigado, Seu Carlos!', en: 'Thanks, Seu Carlos!' },
+          { pt: 'Valeu!', en: 'Thanks!' },
+        ],
+        [
+          { pt: 'Obrigado!', en: 'Thanks!' },
+          { pt: 'Tchau, Seu Carlos!', en: 'Bye, Seu Carlos!' },
+        ],
       ],
     },
     {
       trigger: /viagem/i,
-      response: { pt: 'Pronto! Tá na mão. Volte sempre!', en: 'Ready! Here you go. Come back anytime!' },
-      chips: [
-        { pt: 'Obrigado, Seu Carlos!', en: 'Thanks, Seu Carlos!' },
-        { pt: 'Valeu!', en: 'Thanks!' },
+      responses: [
+        { pt: 'Pronto! Tá na mão. Volte sempre!', en: 'Ready! Here you go. Come back anytime!' },
+        { pt: 'Pra viagem, então. Tá na mão. Volte sempre!', en: 'To go, then. Here you go. Come back anytime!' },
+      ],
+      chipSets: [
+        [
+          { pt: 'Obrigado, Seu Carlos!', en: 'Thanks, Seu Carlos!' },
+          { pt: 'Valeu!', en: 'Thanks!' },
+        ],
+        [
+          { pt: 'Valeu, Seu Carlos!', en: 'Thanks, Seu Carlos!' },
+          { pt: 'Até logo!', en: 'See you!' },
+        ],
       ],
     },
     {
       trigger: /obrigad|valeu|tchau|brigad/i,
-      response: { pt: 'Volte sempre!', en: 'Come back anytime!' },
-      chips: [],
+      responses: [
+        { pt: 'Volte sempre!', en: 'Come back anytime!' },
+        { pt: 'Volte sempre! Até amanhã.', en: 'Come back anytime — see you tomorrow.' },
+      ],
+      chipSets: [[], []],
     },
     {
       trigger: /bom dia|oi|ola|olá|tudo bem/i,
-      response: { pt: 'Bom dia! Tudo bem? O que vai ser hoje?', en: "Good morning! All good? What'll it be today?" },
-      chips: [
-        { pt: 'Me vê um pão na chapa, por favor.', en: "I'll take grilled bread, please." },
-        { pt: 'Um café com leite, por favor.', en: 'A coffee with milk, please.' },
+      responses: [
+        { pt: 'Bom dia! Tudo bem? O que vai ser hoje?', en: "Good morning! All good? What'll it be today?" },
+        { pt: 'Bom dia! Beleza? Me conta o que vai ser.', en: "Good morning! All good? Tell me what'll it be." },
+        { pt: 'Bom dia! E aí, o que vai querer?', en: "Good morning! So, what'll you have?" },
+      ],
+      chipSets: [
+        [
+          { pt: 'Me vê um pão na chapa, por favor.', en: "I'll take grilled bread, please." },
+          { pt: 'Um café com leite, por favor.', en: 'A coffee with milk, please.' },
+        ],
+        [
+          { pt: 'Uma coxinha, por favor.', en: 'A coxinha, please.' },
+          { pt: 'Um suco de laranja, por favor.', en: 'An orange juice, please.' },
+        ],
+        [
+          { pt: 'Tudo bem! E você?', en: "I'm good! And you?" },
+          { pt: 'Um pastel, por favor.', en: 'A pastel, please.' },
+        ],
       ],
     },
   ],
@@ -327,10 +451,13 @@ export const CARLOS_AUTHORED_FALLBACK: { opener: Bilingual; beats: { trigger: Re
 
 export function authoredFallbackTurn(text: string, history: ConversaLine[]): { response: Bilingual; chips: Bilingual[]; end: boolean } {
   const norm = strip(text);
+  const salt = history.length;
   for (const beat of CARLOS_AUTHORED_FALLBACK.beats) {
     if (beat.trigger.test(norm)) {
-      const isEnd = beat.chips.length === 0 || /volte sempre/i.test(beat.response.pt);
-      return { response: beat.response, chips: beat.chips, end: isEnd };
+      const response = beat.responses[salt % beat.responses.length] ?? beat.responses[0]!;
+      const chips = beat.chipSets[salt % beat.chipSets.length] ?? beat.chipSets[0] ?? [];
+      const isEnd = chips.length === 0 || /volte sempre/i.test(response.pt);
+      return { response, chips, end: isEnd };
     }
   }
   if (history.length === 0) {
@@ -343,8 +470,13 @@ export function authoredFallbackTurn(text: string, history: ConversaLine[]): { r
       end: false,
     };
   }
+  const vague = [
+    { pt: 'Hmm. Mais alguma coisa?', en: 'Hmm. Anything else?' },
+    { pt: 'Quer mais alguma coisa?', en: 'Anything else?' },
+    { pt: 'Deixa eu anotar. O que mais?', en: 'Let me write it down. What else?' },
+  ];
   return {
-    response: { pt: 'Hmm. Mais alguma coisa?', en: 'Hmm. Anything else?' },
+    response: vague[salt % vague.length]!,
     chips: [
       { pt: 'Só isso, obrigado.', en: "That's all, thanks." },
       { pt: 'Tchau!', en: 'Bye!' },
@@ -355,31 +487,45 @@ export function authoredFallbackTurn(text: string, history: ConversaLine[]): { r
 
 export function buildCarlosSystemPrompt(subject: ConversaSubject, ctx: { playerName: string; pronoun: Pronoun; nameplate: Nameplate }): string {
   const kinship = ctx.pronoun === 'ela' ? 'minha filha' : ctx.pronoun === 'ele' ? 'meu filho' : null;
-  const kinNote = kinship ? `You may say "${kinship}" once max, warmly, not every line.` : "Do not use kinship terms since the player's pronoun is unknown.";
+  const kinNote = kinship
+    ? `You may say "${kinship}" at most once in the whole scene, warmly, and never on the opener. Not every line.`
+    : 'Do not use kinship terms (meu filho / minha filha). The player did not pick a gendered pronoun.';
 
-  return `You are Seu Carlos, owner of Padaria do Seu Carlos in a São Paulo neighborhood. You are having a private Portuguese practice conversation with ${ctx.playerName}.
+  return `You are Seu Carlos, owner of Padaria do Seu Carlos in a São Paulo neighborhood. You are at the counter, in a private conversation with ${ctx.playerName}. Talk like a person, not a script. React to the exact words they just said.
 
 VOICE:
-- Educated informal Paulista warmth: você / a gente / legal / tá / pra
-- Primary acknowledgment: "Pois não" (never "Pode falar" as default)
-- Short lines: max ${CONVERSA_WORD_CAP[ctx.nameplate]} words per response
-- Patient teacher-by-doing; never mock accents or grammar
-- Praise briefly: Isso aí / Pronto / Tá na mão
+- Educated informal Paulista warmth: você / a gente / legal / tá / pra. Spoken, short lines.
+- "Pois não" is the preferred acknowledgement when you accept a request (an order, a confirmation, a "me vê"). It is NOT required on every line, and it is NOT the opener. Do not start a greeting, small talk, a follow-up, or a goodbye with it. Many turns should not contain "Pois não" at all.
+- Never use "Pode falar" as the default acknowledgement. Do not say it unless you already said "Pois não" earlier in this scene and you truly need a second, different ack.
+- Rotate openers and follow-ups. Pick what fits THIS moment and do not reuse the same one two turns in a row: Bom dia, E aí, Pronto, Tá na mão, Deixa eu anotar, Quer mais alguma coisa?, Isso aí, Tudo bem?, Sem pressa, Volte sempre.
+- Name the specific thing they said. Food or drink (pão na chapa, coxinha, pastel, café, café com leite, suco, água): repeat that item and take the next real step (the drink, or pra comer aqui vs pra viagem, or close the order). If they say pra comer aqui or pra viagem, acknowledge which one. If they greet you or make small talk, answer that first — do not jump to a stock order line. If you missed something, ask about that part. Never parrot "Pois não. Pra cá ou viagem?" unless they just ordered and you still need for-here vs to-go.
+- Max ${CONVERSA_WORD_CAP[ctx.nameplate]} words in "response".
+- Patient teacher-by-doing. Never mock accent, English, or grammar.
+- Praise only when they actually did the thing: Isso aí / Pronto / Tá na mão.
 - ${kinNote}
-- Exit warmth: Volte sempre
+- When the order is done or they say goodbye, close with Volte sempre and set "end": true.
+
+BAD (never do this): answering every line with "Pois não. Pra cá ou viagem?"
+GOOD: they say "me vê uma coxinha" and you say "Coxinha, boa. E pra beber, café ou suco?"
 
 SUBJECT: ${subject.title.pt} — ${subject.goal.pt}
-KEY PHRASES: ${subject.lexemes.join(', ')}
+KEY PHRASES you may model (do not dump the list): ${subject.lexemes.join(', ')}
+
+CHIPS (suggested things the PLAYER might say next):
+- Return 2 or 3 chips, in Brazilian Portuguese, that move forward from what they JUST said.
+- Each chip is a player line, not a Carlos line.
+- The set must not be identical to the previous turn. Change the item, the phrasing, or the next decision.
+- Do not offer alcohol, flirting, politics, or religion.
 
 RULES:
-- Respond ONLY in Brazilian Portuguese (no English in your responses)
-- Stay on subject (${subject.title.pt}); gently redirect if player drifts: "Hmm. Mas e o café da manhã — o que vai ser?"
-- Never discuss: alcohol, dating, politics, religion
-- Never invent prices not in the padaria menu: pão na chapa R$6, coxinha R$7, pastel R$8, café R$4, café com leite R$5, suco de laranja R$8, água R$3
-- If player uses English, don't translate back — model the Portuguese answer instead
-- Keep conversation natural, 4-8 turns total
+- "response" and "tip" are ONLY Brazilian Portuguese. No English in your mouth.
+- Stay near ${subject.title.pt}. If they drift, answer in one short line, then steer back: "Hmm. Mas e o café da manhã — o que vai ser?"
+- Never discuss alcohol, dating, politics, or religion. If they bring those up, refuse warmly and return to the padaria.
+- Menu prices, only if asked, and only these: pão na chapa R$6, coxinha R$7, pastel R$8, café R$4, café com leite R$5, suco de laranja R$8, água R$3. Never invent a price.
+- If the player uses English, do not translate their sentence back. Model the Portuguese they could have said.
+- A scene is about 4–8 turns. Do not loop the same question.
 
-OUTPUT FORMAT (JSON):
+OUTPUT FORMAT (JSON only, no markdown):
 {
   "response": "Your Portuguese response here",
   "chips": ["Suggested reply 1 in Portuguese", "Suggested reply 2 in Portuguese"],
@@ -392,12 +538,12 @@ OUTPUT FORMAT (JSON):
   "end": false
 }
 
-SCORING (for the player's message):
+SCORING (score the player's latest message, not your own):
 - portuguese: 3=natural BR informal, 2=understandable but stiff, 1=heavy English/Spanglish, 0=gibberish/blocked
 - grammar: 3=A1 forms solid, 2=small slips, 1=broken but on topic, 0=unusable
-- conversation: 3=advances goal, 2=soft side path, 1=drift, 0=off-topic/unsafe
+- conversation: 3=advances the breakfast order or the greeting, 2=soft side path, 1=drift, 0=off-topic/unsafe
 
-Set "end": true when the conversation reaches a natural closing (e.g., after payment/thanks exchange) or if player says goodbye.`;
+Set "end": true only on a natural close (thanks, goodbye, or the order is complete and they are leaving).`;
 }
 
 export function parseAiResponse(raw: string): ConversaTurnResponse | null {
@@ -429,6 +575,96 @@ export function parseAiResponse(raw: string): ConversaTurnResponse | null {
   } catch {
     return null;
   }
+}
+
+/** Same Gate B ban pack as `filterNpcLine`, for a whole turn surface (line, chips, tip). */
+export function applyConversaGateB(surface: { line: string; chips: string[]; tip: string | null }): {
+  line: string | null;
+  chips: string[];
+  tip: string | null;
+} {
+  const chips = surface.chips.map((c) => filterNpcLine(c)).filter((c): c is string => !!c);
+  const tip = surface.tip ? filterNpcLine(surface.tip) : null;
+  return { line: filterNpcLine(surface.line), chips, tip };
+}
+
+/** Follow-up chip sets used when a turn would repeat the previous suggestions. */
+const FOLLOW_CHIP_SETS: string[][] = [
+  ['Me vê um pão na chapa, por favor.', 'Um café com leite, por favor.', 'Ainda tô olhando.'],
+  ['Uma coxinha, por favor.', 'Um suco de laranja, por favor.', 'Pra comer aqui, por favor.'],
+  ['Um pastel, por favor.', 'Uma água, por favor.', 'Pra viagem, por favor.'],
+  ['Só isso, obrigado.', 'Mais um café, por favor.', 'Tchau, Seu Carlos!'],
+  ['Deixa eu pensar.', 'Um café, por favor.', 'Pão na chapa pra viagem.'],
+];
+
+const chipKey = (xs: string[]) => xs.map((s) => s.trim().toLowerCase()).filter(Boolean).sort().join('|');
+
+/** Keep chips that already differ; swap in another set when this turn copied the last one. */
+export function diverseChips(chips: string[], prior: string[] | undefined): string[] {
+  const trimmed = chips.map((c) => c.trim()).filter(Boolean).slice(0, 3);
+  if (!prior?.length || chipKey(trimmed) !== chipKey(prior)) return trimmed;
+  const priorKey = chipKey(prior);
+  const alt = FOLLOW_CHIP_SETS.find((set) => chipKey(set) !== priorKey);
+  return alt ? [...alt] : trimmed;
+}
+
+const FILL_CHIPS = ['Me vê um pão na chapa, por favor.', 'Um café com leite, por favor.', 'Ainda tô olhando.'];
+
+/**
+ * Last step before a turn is returned: Gate B on the line, every chip, and the tip.
+ * A banned line becomes a safe counter question. Repeated chip sets are rotated.
+ */
+export function presentConversaTurn(turn: ConversaTurnResponse, priorChips: string[] = []): ConversaTurnResponse {
+  const gated = applyConversaGateB({
+    line: turn.line.pt,
+    chips: turn.chips.map((c) => c.pt),
+    tip: turn.tip?.pt ?? null,
+  });
+  const linePt = gated.line ?? 'Quer mais alguma coisa?';
+  let chipPts = diverseChips(gated.chips, priorChips);
+  if (chipPts.length < 2 && !turn.end) chipPts = diverseChips(FILL_CHIPS, priorChips);
+  const enByPt = new Map(turn.chips.map((c) => [c.pt, c.en]));
+  return {
+    ...turn,
+    line: { pt: linePt, en: gated.line ? turn.line.en : '' },
+    chips: chipPts.map((pt) => ({ pt, en: enByPt.get(pt) ?? '' })),
+    tip: gated.tip ? { pt: gated.tip, en: turn.tip?.en ?? '' } : null,
+  };
+}
+
+/** Pick a seed opener and a chip set that is not the same on every session. */
+export function pickConversaOpener(subject: ConversaSubject, rng: () => number = Math.random): { line: string; chips: string[] } {
+  const openers = subject.seedOpeners.length ? subject.seedOpeners : ['Bom dia! O que posso servir?'];
+  const sets = subject.seedChipSets?.length ? subject.seedChipSets : FOLLOW_CHIP_SETS;
+  const raw = rng();
+  const roll = Number.isFinite(raw) ? raw : Math.random();
+  const i = Math.min(openers.length - 1, Math.max(0, Math.floor(Math.abs(roll) * openers.length)));
+  const chips = sets[i % sets.length] ?? sets[0] ?? [];
+  return { line: openers[i] ?? openers[0]!, chips: [...chips] };
+}
+
+/** Authored/offline Conversar when the API is missing (static Pages 405). Null if that NPC is not enabled. */
+export function offlineConversaOpen(npcId: NpcId): {
+  npcName: string;
+  subject: ConversaSubject;
+  line: Bilingual;
+  chips: Bilingual[];
+  maxTurns: number;
+} | null {
+  const cast = CONVERSA_CAST[npcId];
+  if (!cast?.enabled) return null;
+  const subject = cast.subjects[0];
+  if (!subject) return null;
+  const picked = pickConversaOpener(subject);
+  const presented = presentConversaTurn({
+    line: { pt: picked.line, en: '' },
+    chips: picked.chips.map((pt) => ({ pt, en: '' })),
+    scores: { portuguese: 2, grammar: 2, conversation: 2 },
+    tip: null,
+    end: false,
+    order: {},
+  });
+  return { npcName: cast.name, subject, line: presented.line, chips: presented.chips, maxTurns: CONVERSA_MAX_PLAYER_MSGS };
 }
 
 export function conversaDateKey(): string {

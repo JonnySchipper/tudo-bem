@@ -4,7 +4,14 @@ export interface StoredProfile extends PrivateProfile {
   token: string;
   /** Only the fact of passing the 18+ gate (birth date check + explicit confirmation) is kept — never the birth date. */
   ageGate18: true;
-  daily: { date: string; sceneClears: Record<string, number> };
+  daily: {
+    date: string;
+    sceneClears: Record<string, number>;
+    /** Conversa daily cap: npcId -> America/Sao_Paulo date (YYYY-MM-DD). */
+    conversaClears?: Record<string, string>;
+    /** Conversa RV already paid: npcId -> America/Sao_Paulo date. */
+    conversaRvGranted?: Record<string, string>;
+  };
   lastSeen: number;
 }
 
@@ -84,6 +91,10 @@ export class ProfileStore {
   }
 
   flush() {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
     this.adapter?.save([...this.byId.values()]);
   }
 

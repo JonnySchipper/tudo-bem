@@ -449,3 +449,19 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
     expect(a.last('profile')!.profile.mission).toMatchObject({ taken: false, steps: { cumprimenta: false } });
   });
 });
+
+describe('pushProfileById', () => {
+  beforeEach(() => {
+    clock = 1_000_000;
+    pending.length = 0;
+  });
+
+  it('sends the stored profile to the live session', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    a.s.profile!.coins = 77;
+    world.pushProfileById(a.s.profile!.id);
+    expect(a.last('profile')!.profile.coins).toBe(77);
+    expect(a.last('profile')!.profile.id).toBe(a.s.profile!.id);
+  });
+});

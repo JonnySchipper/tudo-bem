@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {
   buildCarlosSystemPrompt,
-  CARLOS_AUTHORED_FALLBACK,
   CONVERSA_CAST,
   CONVERSA_SUBJECTS,
   CONVERSA_WORD_CAP,
@@ -10,10 +9,13 @@ import {
   sanitizeConversaTurn,
   filterNpcLine,
   authoredFallbackTurn,
+  pickConversaOpener,
+  presentConversaTurn,
   type ConversaTurnRequest,
   type ConversaTurnResponse,
   type ConversaScores,
   type Score03,
+  type ConversaSubject,
 } from '@tudobem/shared';
 
 const XAI_API_URL = 'https://api.x.ai/v1/chat/completions';
@@ -73,7 +75,7 @@ export async function callXai(messages: XaiMessage[], timeoutMs = 15000): Promis
       model: MODEL,
       messages,
       max_tokens: 512,
-      temperature: 0.7,
+      temperature: 0.85,
     };
 
     if (REASONING_EFFORT !== 'none') {
@@ -124,7 +126,9 @@ export async function conversaTurn(req: ConversaTurnRequest): Promise<ConversaTu
 
   const messages: XaiMessage[] = [{ role: 'system', content: systemPrompt }];
 
-  for (const line of req.history) {
+  const last = req.history[req.history.length - 1];
+  const history = last?.who === 'player' && last.pt === req.text ? req.history.slice(0, -1) : req.history;
+  for (const line of history) {
     messages.push({
       role: line.who === 'player' ? 'user' : 'assistant',
       content: line.pt,
@@ -132,6 +136,18 @@ export async function conversaTurn(req: ConversaTurnRequest): Promise<ConversaTu
   }
 
   messages.push({ role: 'user', content: req.text });
+
+  const prior = (req.priorChips ?? []).filter((c) => c.trim()).slice(0, 4);
+  if (prior.length) {
+    messages.push({
+      role: 'system',
+      content: `The player already saw these suggested replies. Do not offer the same set again: ${prior.join(' | ')}`,
+    });
+  }
+  messages.push({
+    role: 'system',
+    content: `Reply to exactly what the player just said (${JSON.stringify(req.text.slice(0, 180))}). Do not answer with a stock "Pois não. Pra cá ou viagem?" unless that is the real missing detail. JSON only.`,
+  });
 
   const isLastTurn = req.turn >= req.maxTurns;
 
@@ -161,7 +177,7 @@ export async function conversaTurn(req: ConversaTurnRequest): Promise<ConversaTu
     parsed.end = true;
   }
 
-  return parsed;
+  return presentConversaTurn(parsed, req.priorChips ?? []);
 }
 
 export function authoredConversaTurn(req: ConversaTurnRequest): ConversaTurnResponse {
@@ -175,21 +191,20 @@ export function authoredConversaTurn(req: ConversaTurnRequest): ConversaTurnResp
 
   const isLastTurn = req.turn >= req.maxTurns;
 
-  return {
-    line: response,
-    chips,
-    scores,
-    tip: null,
-    end: end || isLastTurn,
-    order: {},
-  };
+  return presentConversaTurn(
+    {
+      line: response,
+      chips,
+      scores,
+      tip: null,
+      end: end || isLastTurn,
+      order: {},
+    },
+    req.priorChips ?? [],
+  );
 }
 
-export function getAuthoredOpener(): { line: string; chips: string[] } {
-  const opener = CARLOS_AUTHORED_FALLBACK.opener.pt;
-  const firstBeat = CARLOS_AUTHORED_FALLBACK.beats.find((b) => /bom dia|oi/i.test(b.trigger.source));
-  return {
-    line: opener,
-    chips: firstBeat?.chips.map((c) => c.pt) ?? ['Me vê um pão na chapa, por favor.', 'Um café com leite, por favor.'],
-  };
+/** Authored start: rotate seed openers and chip sets instead of one fixed line. */
+export function getAuthoredOpener(subject: ConversaSubject = CONVERSA_SUBJECTS.cafe_da_manha): { line: string; chips: string[] } {
+  return pickConversaOpener(subject);
 }

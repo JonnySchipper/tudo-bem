@@ -44,6 +44,8 @@ interface ConversaEndResponse {
   gradeLabel: Bilingual;
   payout: number;
   grantRv: boolean;
+  /** Absolute RV balance when the server persisted the grant. */
+  coins?: number;
   updateDaily: {
     conversaClears?: Record<string, string>;
     conversaRvGranted?: Record<string, string>;
@@ -110,6 +112,7 @@ export async function sendConversaTurn(
   history: ConversaLine[],
   turn: number,
   daily: ConversaDaily,
+  priorChips: string[] = [],
 ): Promise<ConversaApiResponse> {
   return callApi({
     action: 'turn',
@@ -123,6 +126,7 @@ export async function sendConversaTurn(
     history,
     turn,
     daily,
+    priorChips,
   });
 }
 
