@@ -292,7 +292,8 @@ button:disabled {
   display: none;
 }
 
-.checklist ol {
+.checklist ol,
+.mission-steps {
   list-style: none;
   padding: 0;
   margin: 8px 0 0;
@@ -300,7 +301,8 @@ button:disabled {
   gap: 6px;
 }
 
-.checklist li {
+.checklist li,
+.mission-steps li {
   display: grid;
   grid-template-columns: 22px 1fr;
   gap: 6px;
@@ -310,7 +312,8 @@ button:disabled {
   line-height: 1.2;
 }
 
-.checklist li .box {
+.checklist li .box,
+.mission-steps li .box {
   width: 20px;
   height: 20px;
   border-radius: 6px;
@@ -322,18 +325,34 @@ button:disabled {
   font-size: 13px;
 }
 
-.checklist li.done .box {
+.checklist li.done .box,
+.mission-steps li.done .box {
   background: var(--verde);
   border-color: var(--verde);
 }
 
-.checklist li.done .box::after {
+.checklist li.done .box::after,
+.mission-steps li.done .box::after {
   content: '✓';
 }
 
-.checklist li.done > div {
+.checklist li.done > div,
+.mission-steps li.done > div {
   opacity: 0.55;
   text-decoration: line-through;
+}
+
+.mission-steps {
+  margin: 14px 0;
+  gap: 10px;
+  font-size: 1.05em;
+}
+
+.kiosk .mission-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
 }
 
 .checklist .reward-note {

@@ -1,4 +1,4 @@
-import { classifyChat, ECONOMY, MAX_CHAT_LEN, TUTORIAL_STEPS, type EmoteKind, type NoticeLevel } from '@tudobem/shared';
+import { classifyChat, ECONOMY, MAX_CHAT_LEN, MISSION_COPY, MISSION_STEPS, TUTORIAL_STEPS, type EmoteKind, type NoticeLevel } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi, ui } from './dom';
 import { icon } from '../art/ui';
@@ -37,6 +37,7 @@ export function buildHud(actions: HudActions) {
   // ---- top bar
   const roomName = h('div', { class: 'room' });
   const coins = h('span', { id: 'coins' });
+  const missionPill = h('span', { class: 'pill', id: 'mission-pill', title: `${MISSION_COPY.header.en} — quest kiosk in the Praça` });
   const plate = h('span', { class: 'plate', title: 'Verde: you see English under Portuguese' }, h('span', { class: 'seed' }), 'Verde');
   const soundBtn = h('button', { onclick: actions.toggleSound, title: 'Som / Sound' });
   const decorBtn = h('button', { class: 'yellow', onclick: actions.toggleDecor, id: 'btn-decor' }, icon('decor'), bi('Decorar', 'Decorate'));
@@ -53,6 +54,7 @@ export function buildHud(actions: HudActions) {
       h('button', { onclick: actions.openFriends, id: 'btn-friends' }, icon('friends'), bi('Amigos', 'Friends')),
       soundBtn,
       game.solo ? h('span', { class: 'pill', title: 'Prévia estática: o mundo roda no seu navegador. Multiplayer precisa do servidor. / Static preview — the world runs in your browser; multiplayer needs the server build.', id: 'solo-pill' }, 'Modo solo') : null,
+      missionPill,
       h('span', { class: 'pill' }, plate),
       h('span', { class: 'pill', title: 'Reais Virtuais (RV) — soft currency' }, h('span', { class: 'coin' }), coins),
     ),
@@ -131,12 +133,18 @@ export function buildHud(actions: HudActions) {
     const p = game.profile;
     const r = game.room;
     if (r) {
-      const count = game.avatars.size;
-      roomName.replaceChildren(r.instanceName, h('small', null, `${game.roomDef?.gloss ?? ''} · ${count}/${r.cap} aqui`));
+      const all = [...game.avatars.values()];
+      const count = all.filter((a) => !a.pub.cpu).length;
+      const neighbors = all.length - count;
+      roomName.replaceChildren(r.instanceName, h('small', null, `${game.roomDef?.gloss ?? ''} · ${count}/${r.cap} aqui${neighbors ? ` · ${neighbors} vizinhos` : ''}`));
       document.title = `Tudo Bem · ${r.instanceName}`;
     }
     if (p) {
       coins.textContent = `${p.coins} RV`;
+      const m = p.mission;
+      const done = m ? MISSION_STEPS.filter((s) => m.steps[s.id]).length : 0;
+      missionPill.style.display = m?.taken && !m.rewarded ? '' : 'none';
+      missionPill.textContent = `${MISSION_COPY.header.pt} ${done}/${MISSION_STEPS.length}`;
       list.replaceChildren(
         ...TUTORIAL_STEPS.map((s) =>
           h('li', { class: p.tutorial[s.id] ? 'done' : '', 'data-step': s.id }, h('span', { class: 'box' }), h('div', null, s.pt, en(s.en, true))),

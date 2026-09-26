@@ -1,3 +1,5 @@
+import type { DailyMission } from './ambiance.js';
+
 export type Pronoun = 'ele' | 'ela' | 'nome';
 export type BodyType = 'esguio' | 'medio' | 'forte';
 export type HairStyle = 'curto' | 'raspado' | 'cacheado' | 'black' | 'longo' | 'coque' | 'trancas';
@@ -43,6 +45,8 @@ export interface PublicAvatar {
   y: number;
   dir: Dir;
   sitting: boolean;
+  /** Praça ambiance CPU (scripted scenery, outside the player cap, never chats). */
+  cpu?: boolean;
 }
 
 export interface PlacedFurniture {
@@ -90,6 +94,8 @@ export interface PrivateProfile {
   tutorial: Record<TutorialStep, boolean>;
   tutorialRewarded: boolean;
   createdAt: number;
+  /** Today's kiosk mission (the server rolls it over each day). */
+  mission?: DailyMission;
 }
 
 export interface Bilingual {

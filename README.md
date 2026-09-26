@@ -39,16 +39,16 @@ pnpm test         # vitest: safety filter, gloss, scene graph, minigame, rooms, 
 pnpm e2e          # headless-Chrome play-through of the whole Phase 0 path (needs `pnpm start` running)
 pnpm verify       # typecheck + test + build
 pnpm art          # regenerate + bake all art assets (see docs/art)
-pnpm content      # regenerate content/curriculum/phase0/cards.json from the pack markdown
+pnpm content      # regenerate cards.json, me-ve-um-orders.json, cpu-names.json from the pack markdown
 ```
 
-`pnpm e2e` env: `BASE_URL` (default `http://localhost:8787`), `CHROME_PATH`, `SHOTS_DIR` (save screenshots), `VIDEO_DIR` (record a slowed-down webm of player 1), `HEADED=1`.
+`pnpm e2e` env: `BASE_URL` (default `http://localhost:8787`), `CHROME_PATH`, `SHOTS_DIR` (save screenshots), `VIDEO_DIR` (record a slowed-down webm of player 1), `HEADED=1`, `CPU_AMBIANCE=off` (when the server runs with `LIVEOPS_CPU_AMBIANCE=off`).
 
 ## Play path (≈10 minutes)
 
 1. **Age gate** — birth month + year; **18+ only** (the date is not stored).
 2. **Create your avatar** — body, skin, hair, free starter clothes, and how NPCs should address you (*ele / ela / só meu nome*). Tick **“Confirmo que tenho 18 anos ou mais”** to enter.
-3. **Praça Central** — click the floor to walk, click a bench to sit, press **Oi!** to wave, type in chat. Júlia (guide, by the quest kiosk) explains the basics. The *Primeiros passos* checklist tracks it all.
+3. **Praça Central** — click the floor to walk, click a bench to sit, press **Oi!** to wave, type in chat. Júlia (guide, by the quest kiosk) explains the basics. The *Primeiros passos* checklist tracks it all. A few scripted **neighbors** (Verde plates, first names only) sit on benches and stroll to the Padaria door so the square never looks empty; they wave back but never chat, and they don’t take player seats. The **quest kiosk** hands out the *Missão do dia* (Cumprimenta / Pede / Monta → **+25 RV**, once a day).
 4. **Padaria do Seu Carlos** — walk through the door with the red awning. Click **Seu Carlos** for the authored breakfast scene (“Pois não. O que vai ser hoje?”). Pick reply chips (keys 1–4) **or type your answer**, which is scored with the curriculum accept-list rules: accents optional, *me dá / quero* accepted with a nudge. Good Portuguese earns more RV; English or vague answers make him rephrase slower. ~5 turns → **6–14 RV**.
 5. **“Me vê um…”** — at the ticket rail on the counter. Read (or 🔊 listen to) each Portuguese order from the curriculum ticket list, click items onto the tray (keys 1–0, -, =), toggle modifiers (*pra viagem, pra comer aqui, sem açúcar, bem quente*), then **Entregar** (Enter). Miss once and Carlos repeats slowly; combos pay extra. 6 orders → **8–20 RV**.
 6. **Hat** — back in the Praça, visit **Nanda’s stall** (2 free hats, 10 more at 8–60 RV). Buying equips it; **Chapéus** in the top bar is your wardrobe.
@@ -69,7 +69,8 @@ packages/shared   Content + rules shared by client and server (pure TS, tested)
   protocol.ts       Typed WebSocket messages
 apps/server       Authoritative Node room server (ws). Client is a puppet.
   world.ts          Instances (cap 16, overflow → “· Sul”, “· Leste”…), movement, chat, scene, minigame,
-                    shop, kitnet, friends, parrot, tutorial rewards
+                    shop, kitnet, friends, parrot, tutorial rewards, daily kiosk mission
+  ambiance.ts       Praça ambiance CPUs (Live Ops): outside the cap, scripted sit / walk / wave, no chat
   services/         Interfaces + Phase 0 stubs for Jev safety, gloss, NPC dialogue, student model, moderation queue
   store.ts          JSON-file profile store (swap for Postgres)
 apps/client       Vite + Canvas 2D isometric renderer, DOM UI
@@ -94,7 +95,7 @@ scripts/e2e.mjs   Playwright-core end-to-end play-through
 Curriculum and Trust & Safety own [`content/`](content); engineering owns the schema and the code that reads it.
 
 - [`content/curriculum/phase0`](content/curriculum/phase0) — do-not-teach, Seu Carlos voice sheet, padaria + greetings/numbers lexemes, Me vê um… orders, accept-list rules.
-  - The markdown is canonical. `pnpm content` regenerates `cards.json`, and CI fails if the two drift.
+  - The markdown is canonical. `pnpm content` regenerates `cards.json`, `me-ve-um-orders.json` (tickets parsed into tray lines + modifiers) and `cpu-names.json` (Praça ambiance allowlist), and CI fails if any of them drift.
   - Every card is **DRAFT — needs Brazilian sign-off** (`signoff` field).
 - [`content/safety/phase0`](content/safety/phase0) — constitution, CEO locks, blocklists, PII regex fixtures, Jev question packs (public chat + NPC replies), ops notes.
   - Files marked `engineering-draft` / `TODO(T&S)` were drafted from the constitution and CEO locks because the canonical versions weren’t in the handoff. They're waiting on T&S replacement.
@@ -113,6 +114,7 @@ All Phase 0 art is **generated in-repo** by the build agent as procedural canvas
 | `PORT` / `HOST` | `8787` / `0.0.0.0` | Server listen address |
 | `DATA_DIR` | `./data` | Profiles (`profiles.json`) + moderation log (`moderation.jsonl`) |
 | `ROOM_CAP` | `16` | Players per instance (lower it to demo overflow instances, e.g. `ROOM_CAP=2`) |
+| `LIVEOPS_CPU_AMBIANCE` | `on` | Praça ambiance CPUs. `off` for empty-room playtests. Solo/static builds: add `?cpu=off` to the URL |
 | `CLIENT_DIST` | auto | Built client directory served by the server |
 | `VITE_WS_URL` | same origin `/ws` | Build-time override when the client is hosted separately |
 | `TB_SERVER` | `http://localhost:8787` | Dev only: where Vite proxies `/ws` |

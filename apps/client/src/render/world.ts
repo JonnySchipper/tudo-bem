@@ -1,6 +1,7 @@
 import {
   buildGrid,
   furnitureById,
+  isCpuId,
   isWalkable,
   key,
   positionAlong,
@@ -522,7 +523,7 @@ export class WorldRenderer {
       if (f && !game.placing) return f.hit;
     } else if (hits.length) {
       // Prefer people and actions over seats/furniture when stacked.
-      const rank = (h: Hit) => (h.kind === 'npc' || h.kind === 'avatar' ? 3 : h.kind === 'prop' || h.kind === 'portal' ? 2 : 1);
+      const rank = (h: Hit) => (h.kind === 'avatar' && isCpuId(h.id) ? 0 : h.kind === 'npc' || h.kind === 'avatar' ? 3 : h.kind === 'prop' || h.kind === 'portal' ? 2 : 1);
       hits.sort((a, b) => rank(b.hit) - rank(a.hit) || b.depth - a.depth);
       const top = hits[0].hit;
       if (!(top.kind === 'avatar' && top.id === game.room?.selfId)) return top;

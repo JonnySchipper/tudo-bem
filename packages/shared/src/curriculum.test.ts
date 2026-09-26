@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { buildCards } from '../../../scripts/build-curriculum.mjs';
+import { buildCards, buildCpuNames, buildOrders } from '../../../scripts/build-curriculum.mjs';
 import cardsJson from '../../../content/curriculum/phase0/cards.json';
+import ordersJson from '../../../content/curriculum/phase0/me-ve-um-orders.json';
+import cpuNamesJson from '../../../content/curriculum/phase0/cpu-names.json';
 import dnt from '../../../content/curriculum/phase0/do-not-teach.json';
 import npcPack from '../../../content/safety/phase0/jev/npc-reply-pack.json';
 import { AUTHORED_ORDERS, MG_ITEMS, MG_MODS, makeOrder, mulberry32 } from './meveum.js';
@@ -12,6 +14,7 @@ import { CARDS, cardById } from './cards.js';
 import { HATS, FURNITURE } from './catalog.js';
 import { ROOMS } from './rooms.js';
 import { classifyChat } from './safety.js';
+import { glossPt } from './gloss.js';
 
 const dir = path.resolve(__dirname, '../../../content/curriculum/phase0');
 const md = (f: string) => fs.readFileSync(path.join(dir, f), 'utf8');
@@ -37,10 +40,56 @@ describe('curriculum pack ingest (content/curriculum/phase0)', () => {
     expect(JSON.parse(JSON.stringify(buildCards()))).toEqual(cardsJson);
   });
 
-  it('every pack card is DRAFT awaiting Brazilian sign-off; engineering seeds are flagged', () => {
-    for (const c of CARDS) expect(['needs_br', 'needs_curriculum_and_br']).toContain(c.signoff);
-    for (const c of CARDS.filter((c) => c.source === 'engineering-seed')) expect(c.signoff).toBe('needs_curriculum_and_br');
+  it('me-ve-um-orders.json is in sync with me-ve-um-orders.md (run `pnpm content` after editing .md)', () => {
+    expect(JSON.parse(JSON.stringify(buildOrders()))).toEqual(ordersJson);
+  });
+
+  it('cpu-names.json is in sync with cpu-name-allowlist.md: 48 first names, no surnames', () => {
+    expect(JSON.parse(JSON.stringify(buildCpuNames()))).toEqual(cpuNamesJson);
+    const names = cpuNamesJson.names;
+    expect(names).toHaveLength(48);
+    expect(new Set(names).size).toBe(48);
+    for (const n of names) {
+      expect(n, n).toMatch(/^\p{Lu}\p{Ll}+$/u);
+      expect(classifyChat(n).action, n).toBe('allow');
+    }
+    expect(names).toEqual(expect.arrayContaining(['João', 'Letícia', 'Vinícius']));
+  });
+
+  it('every card comes from the pack markdown and awaits Brazilian sign-off only', () => {
+    for (const c of CARDS) {
+      expect(c.signoff, c.id).toBe('needs_br');
+      expect(c.source, c.id).toMatch(/^lexemes-.*\.md$/);
+    }
     expect(cardById('lex.social.obrigado')!.accepts).toEqual(expect.arrayContaining(['obrigado', 'obrigada']));
+  });
+
+  it.each([
+    ['pao_de_queijo', 'cheese bread (cassava cheese roll)'],
+    ['misto_quente', 'grilled ham and cheese sandwich'],
+    ['guarana', 'guaraná soda'],
+    ['pois_nao', 'Yes? / Coming — how can I help?'],
+    ['ta_na_mao', 'Here you go. (friendly handoff)'],
+    ['por_conta_da_casa', 'on the house'],
+  ])('former engineering seed %s carries the locked Curriculum gloss (ENG-SEED-REVIEW 2026-09-25)', (id, gloss) => {
+    const c = cardById(`lex.padaria.${id}`)!;
+    expect(c.gloss_en).toBe(gloss);
+    expect(c.source).toBe('lexemes-padaria-a1.md');
+  });
+
+  it('“Me vê” is never glossed as “Give me” on any EN surface', () => {
+    const en: string[] = [...AUTHORED_ORDERS.map((o) => o.en), ...ordersJson.orders.map((o) => o.en)];
+    const rng = mulberry32(5);
+    for (let i = 0; i < 60; i++) en.push(makeOrder(rng, 4 + (i % 2)).en);
+    for (const pronoun of ['ele', 'ela', 'nome'] as const)
+      for (const id of SCENE_NODE_IDS) {
+        const v = viewNode(id, { name: 'Ana', pronoun, food: 'coxinha', drink: 'agua' })!;
+        en.push(v.line.en, ...v.chips.map((c) => c.en));
+      }
+    for (const room of Object.values(ROOMS)) en.push(...room.props.map((p) => p.label?.en ?? ''));
+    en.push(glossPt('Me vê um pão na chapa, por favor.') ?? '');
+    expect(en.filter((s) => /give me/i.test(s))).toEqual([]);
+    expect(AUTHORED_ORDERS.find((o) => o.pt === 'Me vê um café com leite.')!.en).toBe('I’ll take a coffee with milk.');
   });
 
   it('authored Me vê um tickets match me-ve-um-orders.md verbatim and use only shelf items + mods', () => {

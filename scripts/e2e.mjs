@@ -5,13 +5,15 @@
  *   pnpm build && pnpm start            # in one terminal
  *   pnpm e2e                            # in another (BASE_URL / CHROME_PATH / SHOTS_DIR optional)
  *
- * Plays: age gate → avatar → Praça (walk, sit, wave, chat) → Padaria → Seu Carlos chips →
- * Me vê um… (parses each Portuguese order to fill the tray) → hat shop → Kitnet chair,
- * plus a second player for chat gloss + friend request.
+ * Plays: age gate → avatar → Praça (ambiance CPUs, daily kiosk, walk, sit, wave, chat) → Padaria →
+ * Seu Carlos chips → Me vê um… (parses each Portuguese order to fill the tray) → hat shop → Kitnet
+ * chair, plus a second player for chat gloss + friend request. Expects LIVEOPS_CPU_AMBIANCE on
+ * (the default); set CPU_AMBIANCE=off when the server runs with it off.
  */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
 const CHROME = process.env.CHROME_PATH ?? ['/usr/local/bin/google-chrome', '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find((p) => fs.existsSync(p));
@@ -20,6 +22,8 @@ const VIDEO = process.env.VIDEO_DIR ?? '';
 const HEADLESS = process.env.HEADED ? false : true;
 /** Static solo build: no second player, world runs in the page. */
 const SOLO = !!process.env.SOLO;
+const AMBIANCE = (process.env.CPU_AMBIANCE ?? 'on') !== 'off';
+const CPU_NAMES = JSON.parse(fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../content/curriculum/phase0/cpu-names.json'), 'utf8')).names;
 
 const log = (...a) => console.log('  ·', ...a);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -46,6 +50,7 @@ async function waitFor(page, fn, arg, timeout = 10_000, label = 'condition') {
 }
 
 const room = (page) => page.evaluate(() => window.__tb.game.room?.room);
+const cpus = (page) => page.evaluate(() => [...window.__tb.game.avatars.values()].filter((a) => a.pub.cpu).map((a) => ({ ...a.pub, bubbles: a.bubbles.length })));
 const profile = (page) => page.evaluate(() => window.__tb.game.profile);
 
 async function clickTile(page, x, y, lift = 0) {
@@ -150,6 +155,27 @@ async function main() {
   assert(art.total > 0 && art.loaded === art.total, 'baked art manifest + sprites load');
   assert(start.nameplate === 'verde', 'Verde nameplate');
 
+  // 1b. Praça ambiance: Verde CPUs from the Curriculum allowlist, outside the 16-seat count
+  if (AMBIANCE) {
+    await waitFor(page, () => [...window.__tb.game.avatars.values()].filter((a) => a.pub.cpu).length >= 4, null, 8000, 'ambiance CPUs');
+    const crowd = await cpus(page);
+    assert(crowd.length >= 4 && crowd.length <= 6, `4–6 CPUs for one player (got ${crowd.length})`);
+    assert(crowd.every((c) => c.nameplate === 'verde' && CPU_NAMES.includes(c.name) && !/\s/.test(c.name)), 'CPU plates: Verde, allowlisted first names only');
+    const head = await page.textContent('.topbar .room small');
+    assert(/ 1\/16 aqui/.test(head), `head-count ignores CPUs (${head})`);
+    log('ambiance:', crowd.map((c) => c.name).join(', '), '·', head.trim());
+  }
+
+  // 1c. Daily kiosk: Missão do dia (Set A)
+  await clickTile(page, 2, 2, 40);
+  await page.waitForSelector('[data-modal="kiosk"] #mission-take', { timeout: 12_000 });
+  const steps = await page.$$eval('[data-mission-step]', (els) => els.map((e) => e.textContent));
+  assert(steps[0].startsWith('Cumprimenta') && steps[1].startsWith('Pede') && steps[2].startsWith('Monta'), `kiosk steps Cumprimenta / Pede / Monta (${steps})`);
+  await page.click('#mission-take');
+  await waitFor(page, () => window.__tb.game.profile?.mission?.taken, null, 5000, 'mission taken');
+  await shot(page, '01b_praca_kiosk');
+  await page.keyboard.press('Escape');
+
   // 2. Walk, sit on a bench, wave, chat
   await clickTile(page, 8, 6);
   await waitIdleAt(page, 8, 6);
@@ -159,6 +185,8 @@ async function main() {
   await page.fill('#chat-input', 'Oi, tudo bem? Bom dia, pessoal!');
   await page.press('#chat-input', 'Enter');
   await waitFor(page, () => window.__tb.game.profile?.tutorial.conversar, null, 5000, 'chat step');
+  // Alone with CPUs off there's nobody to greet yet, so Cumprimenta (and the mission) only complete with ambiance.
+  if (AMBIANCE) await waitFor(page, () => window.__tb.game.profile?.mission?.steps.cumprimenta, null, 5000, 'mission: Cumprimenta');
   let pageB = null;
   let aId = null;
   if (!SOLO) {
@@ -215,6 +243,7 @@ async function main() {
   await waitFor(page, () => window.__tb.game.room?.room === 'padaria', null, 15_000, 'padaria');
   await sleep(700);
   await shot(page, '03_padaria');
+  assert((await cpus(page)).length === 0, 'CPUs stay out of the Padaria');
   await dwell(1200);
 
   // 4. Seu Carlos breakfast scene (chips only)
@@ -270,12 +299,21 @@ async function main() {
   const afterMg = await profile(page);
   log('minigame payout →', afterMg.coins - afterScene.coins, 'RV');
   assert(afterMg.coins - afterScene.coins >= 18, 'perfect-ish minigame payout');
+  if (AMBIANCE) {
+    assert(afterMg.mission?.rewarded && Object.values(afterMg.mission.steps).every(Boolean), 'daily mission complete (+25 RV)');
+    log('mission complete: Cumprimenta ✓ Pede ✓ Monta ✓');
+  } else assert(afterMg.mission?.steps.pede && afterMg.mission?.steps.monta, 'mission: Pede + Monta');
   await page.click('#mg-end button:has-text("Sair")');
 
   // 6. Back to the praça via the door, buy + equip a hat at Nanda's stall
   await clickTile(page, 0, 6, 40);
   await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 15_000, 'back in praça');
   await sleep(500);
+  if (AMBIANCE) {
+    const crowd = await cpus(page);
+    assert(crowd.length > 0, 'CPUs still in the praça');
+    assert(crowd.every((c) => c.bubbles === 0), 'CPUs never chat');
+  }
   await clickTile(page, 11, 6, 50);
   await page.waitForSelector('[data-modal="hats"]', { timeout: 12_000 });
   await page.click('[data-hat="boina_vermelha"]');
@@ -333,9 +371,9 @@ async function main() {
   await dwell(2500);
 
   const final = await profile(page);
-  const steps = Object.entries(final.tutorial).filter(([, v]) => !v).map(([k]) => k);
-  log('final coins', final.coins, 'hat', final.hat, 'missing steps', steps.length ? steps : 'none', 'bonus', final.tutorialRewarded);
-  assert(!steps.length && final.tutorialRewarded, 'all first steps done + bonus');
+  const missing = Object.entries(final.tutorial).filter(([, v]) => !v).map(([k]) => k);
+  log('final coins', final.coins, 'hat', final.hat, 'missing steps', missing.length ? missing : 'none', 'bonus', final.tutorialRewarded);
+  assert(!missing.length && final.tutorialRewarded, 'all first steps done + bonus');
   assert(!errors.length, `no page errors: ${errors.join(' | ')}`);
 
   const video = VIDEO ? await page.video()?.path() : null;

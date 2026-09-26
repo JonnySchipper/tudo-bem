@@ -1,29 +1,29 @@
 {
   "_meta": {
-    "source": "me-ve-um-orders.md (canonical). Engineering structure: item ids = card ids minus 'lex.padaria.', mods = modifier card ids minus 'lex.padaria.'.",
-    "status": "DRAFT — needs BR sign-off before default-path. English glosses written by engineering (Verde tickets) — TODO(Curriculum): review.",
-    "sync": "packages/shared/src/curriculum.test.ts asserts every `pt` string appears verbatim in me-ve-um-orders.md."
+    "generatedBy": "scripts/build-curriculum.mjs from me-ve-um-orders.md (markdown is canonical — edit it, then `pnpm content`)",
+    "status": "DRAFT — needs BR sign-off before default-path. PT + EN ticket glosses by TB Curriculum (review 2026-09-25).",
+    "structure": "item ids = card ids minus 'lex.padaria.'; lines/mods are parsed from the PT using card forms + plurals."
   },
   "mods": [
-    { "id": "pra_viagem", "pt": "pra viagem", "en": "to go", "group": "where" },
-    { "id": "pra_comer_aqui", "pt": "pra comer aqui", "en": "for here", "group": "where" },
-    { "id": "sem_acucar", "pt": "sem açúcar", "en": "no sugar", "group": "coffee" },
-    { "id": "bem_quente", "pt": "bem quente", "en": "nice and hot", "group": "coffee" }
+    {"id":"pra_viagem","pt":"pra viagem","en":"to go","group":"where"},
+    {"id":"pra_comer_aqui","pt":"pra comer aqui","en":"for here","group":"where"},
+    {"id":"sem_acucar","pt":"sem açúcar","en":"no sugar","group":"coffee"},
+    {"id":"bem_quente","pt":"bem quente","en":"nice and hot","group":"coffee"}
   ],
   "orders": [
-    { "level": "verde", "pt": "Me vê um pão na chapa.", "en": "Give me a grilled buttered bread.", "lines": [["pao_na_chapa", 1]], "mods": [] },
-    { "level": "verde", "pt": "Me vê um café com leite.", "en": "Give me a coffee with milk.", "lines": [["cafe_com_leite", 1]], "mods": [] },
-    { "level": "verde", "pt": "Um suco de laranja, por favor.", "en": "An orange juice, please.", "lines": [["suco_de_laranja", 1]], "mods": [] },
-    { "level": "verde", "pt": "Uma água, por favor.", "en": "A water, please.", "lines": [["agua", 1]], "mods": [] },
-    { "level": "verde", "pt": "Me vê um pastel.", "en": "Give me a pastel (fried pastry).", "lines": [["pastel", 1]], "mods": [] },
-    { "level": "verde", "pt": "Me vê uma coxinha.", "en": "Give me a coxinha (chicken croquette).", "lines": [["coxinha", 1]], "mods": [] },
-    { "level": "verde", "pt": "Dois pães na chapa.", "en": "Two grilled buttered breads.", "lines": [["pao_na_chapa", 2]], "mods": [] },
-    { "level": "verde", "pt": "Um café e uma água.", "en": "A coffee and a water.", "lines": [["cafe", 1], ["agua", 1]], "mods": [] },
-    { "level": "bump", "pt": "Me vê um pão na chapa pra viagem.", "en": "Give me a grilled buttered bread to go.", "lines": [["pao_na_chapa", 1]], "mods": ["pra_viagem"] },
-    { "level": "bump", "pt": "Café sem açúcar, bem quente.", "en": "Coffee, no sugar, nice and hot.", "lines": [["cafe", 1]], "mods": ["sem_acucar", "bem_quente"] },
-    { "level": "bump", "pt": "Dois pães na chapa e um café com leite.", "en": "Two grilled buttered breads and a coffee with milk.", "lines": [["pao_na_chapa", 2], ["cafe_com_leite", 1]], "mods": [] },
-    { "level": "bump", "pt": "Uma coxinha e um suco de laranja.", "en": "A coxinha and an orange juice.", "lines": [["coxinha", 1], ["suco_de_laranja", 1]], "mods": [] },
-    { "level": "bump", "pt": "Três pães e uma água.", "en": "Three bread rolls and a water.", "lines": [["pao", 3], ["agua", 1]], "mods": [] },
-    { "level": "bump", "pt": "Me vê um bolo pra comer aqui.", "en": "Give me a (slice of) cake for here.", "lines": [["bolo", 1]], "mods": ["pra_comer_aqui"] }
+    {"level":"verde","pt":"Me vê um pão na chapa.","en":"I’ll take a pão na chapa (grilled buttered bread).","lines":[["pao_na_chapa",1]],"mods":[]},
+    {"level":"verde","pt":"Me vê um café com leite.","en":"I’ll take a coffee with milk.","lines":[["cafe_com_leite",1]],"mods":[]},
+    {"level":"verde","pt":"Um suco de laranja, por favor.","en":"An orange juice, please.","lines":[["suco_de_laranja",1]],"mods":[]},
+    {"level":"verde","pt":"Uma água, por favor.","en":"A water, please.","lines":[["agua",1]],"mods":[]},
+    {"level":"verde","pt":"Me vê um pastel.","en":"I’ll take a pastel (savory fried pastry).","lines":[["pastel",1]],"mods":[]},
+    {"level":"verde","pt":"Me vê uma coxinha.","en":"I’ll take a coxinha (chicken croquette).","lines":[["coxinha",1]],"mods":[]},
+    {"level":"verde","pt":"Dois pães na chapa.","en":"Two pães na chapa.","lines":[["pao_na_chapa",2]],"mods":[]},
+    {"level":"verde","pt":"Um café e uma água.","en":"A coffee and a water.","lines":[["cafe",1],["agua",1]],"mods":[]},
+    {"level":"bump","pt":"Me vê um pão na chapa pra viagem.","en":"I’ll take a pão na chapa to go.","lines":[["pao_na_chapa",1]],"mods":["pra_viagem"]},
+    {"level":"bump","pt":"Café sem açúcar, bem quente.","en":"Coffee, no sugar, nice and hot.","lines":[["cafe",1]],"mods":["sem_acucar","bem_quente"]},
+    {"level":"bump","pt":"Dois pães na chapa e um café com leite.","en":"Two pães na chapa and a coffee with milk.","lines":[["pao_na_chapa",2],["cafe_com_leite",1]],"mods":[]},
+    {"level":"bump","pt":"Uma coxinha e um suco de laranja.","en":"A coxinha and an orange juice.","lines":[["coxinha",1],["suco_de_laranja",1]],"mods":[]},
+    {"level":"bump","pt":"Três pães e uma água.","en":"Three bread rolls and a water.","lines":[["pao",3],["agua",1]],"mods":[]},
+    {"level":"bump","pt":"Me vê um bolo pra comer aqui.","en":"I’ll take a cake (slice) for here.","lines":[["bolo",1]],"mods":["pra_comer_aqui"]}
   ]
 }

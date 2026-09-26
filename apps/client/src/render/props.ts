@@ -12,7 +12,13 @@ function label(ctx: Ctx, text: string, x: number, y: number, bg: string, fg = '#
   ctx.fillText(text, x, y - size * 0.05);
 }
 
-function ipe(ctx: Ctx, cx: number, cy: number, t: number) {
+function ipe(ctx: Ctx, cx: number, cy: number, t: number, scale = 1) {
+  if (scale !== 1) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(scale, scale);
+    ctx.translate(-cx, -cy);
+  }
   shadow(ctx, cx, cy, 34, 14, 0.25);
   box(ctx, cx, cy, 0.18, 0.18, 70, '#6b4a2e');
   ctx.strokeStyle = '#6b4a2e';
@@ -40,31 +46,7 @@ function ipe(ctx: Ctx, cx: number, cy: number, t: number) {
     const a = i * 2.39;
     circle(ctx, cx + Math.cos(a) * (8 + (i % 5) * 5) + sway, cy - 110 + Math.sin(a) * (6 + (i % 4) * 5), 2, '#fff1a8');
   }
-}
-
-function palmeira(ctx: Ctx, cx: number, cy: number, t: number) {
-  shadow(ctx, cx, cy, 24, 10);
-  ctx.strokeStyle = '#8a6a44';
-  ctx.lineWidth = 7;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - 2);
-  ctx.quadraticCurveTo(cx + 10, cy - 60, cx + 4, cy - 120);
-  ctx.stroke();
-  const sway = Math.sin(t * 0.9) * 0.08;
-  for (let i = 0; i < 7; i++) {
-    const a = -Math.PI / 2 + (i - 3) * 0.55 + sway;
-    ctx.save();
-    ctx.translate(cx + 4, cy - 122);
-    ctx.rotate(a + Math.PI / 2);
-    ctx.fillStyle = i % 2 ? '#2e8a4a' : '#3aa65a';
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.quadraticCurveTo(12, -24, 0, -48);
-    ctx.quadraticCurveTo(-10, -24, 0, 0);
-    ctx.fill();
-    ctx.restore();
-  }
+  if (scale !== 1) ctx.restore();
 }
 
 function banco(ctx: Ctx, cx: number, cy: number, dir: Dir) {
@@ -490,9 +472,7 @@ function estufa(ctx: Ctx, cx: number, cy: number) {
 export function drawProp(ctx: Ctx, p: PropDef, cx: number, cy: number, t: number, slice = 0, opts: { parrotAdopted?: boolean } = {}) {
   switch (p.kind) {
     case 'ipe':
-      return ipe(ctx, cx, cy, t);
-    case 'palmeira':
-      return palmeira(ctx, cx, cy, t);
+      return ipe(ctx, cx, cy, t, p.hero ? 1.35 : 1);
     case 'banco':
       return banco(ctx, cx, cy, p.seat ?? 'SE');
     case 'poste':

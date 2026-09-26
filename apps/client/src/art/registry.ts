@@ -53,7 +53,6 @@ const SPRITE_BOUNDS = { x: -170, y: -260, w: 340, h: 360 };
 
 const PROP_LABELS: Partial<Record<PropDef['kind'], Bilingual>> = {
   ipe: { pt: 'Ipê amarelo', en: 'Yellow ipê tree' },
-  palmeira: { pt: 'Palmeira', en: 'Palm tree' },
   banco: { pt: 'Banco de praça', en: 'Park bench' },
   poste: { pt: 'Poste', en: 'Street lamp' },
   banca: { pt: 'Banca de jornal', en: 'Newsstand' },
@@ -176,7 +175,7 @@ function avatarAssets(): ArtAsset[] {
 }
 
 const FLOORS: { kind: FloorKind; ch: string; label: Bilingual }[] = [
-  { kind: 'calcada', ch: 'c', label: { pt: 'Calçada paulista', en: 'São Paulo wave sidewalk mosaic' } },
+  { kind: 'calcada', ch: 'c', label: { pt: 'Calçada paulista', en: 'São Paulo state-map sidewalk mosaic' } },
   { kind: 'grama', ch: 'g', label: { pt: 'Grama', en: 'Grass' } },
   { kind: 'tijolo', ch: 't', label: { pt: 'Piso de tijolo', en: 'Brick pavers' } },
   { kind: 'ladrilho', ch: 'l', label: { pt: 'Ladrilho hidráulico', en: 'Hydraulic cement tile (padaria)' } },

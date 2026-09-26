@@ -77,9 +77,9 @@ export function sceneTotal(c: SceneCtx): number {
 }
 
 const FOOD_CHIPS = (score: 2 | 3): ChipDef[] => [
-  { ...fixed('Me vê um pão na chapa, por favor.', 'Give me a grilled buttered bread, please.'), score, next: 'bebida', set: { food: 'pao_na_chapa' } },
-  { ...fixed('Me vê uma coxinha, por favor.', 'Give me a coxinha, please.'), score, next: 'bebida', set: { food: 'coxinha' } },
-  { ...fixed('Me vê um pastel, por favor.', 'Give me a pastel, please.'), score, next: 'bebida', set: { food: 'pastel' } },
+  { ...fixed('Me vê um pão na chapa, por favor.', 'I’ll take a pão na chapa (grilled buttered bread), please.'), score, next: 'bebida', set: { food: 'pao_na_chapa' } },
+  { ...fixed('Me vê uma coxinha, por favor.', 'I’ll take a coxinha (chicken croquette), please.'), score, next: 'bebida', set: { food: 'coxinha' } },
+  { ...fixed('Me vê um pastel, por favor.', 'I’ll take a pastel (savory fried pastry), please.'), score, next: 'bebida', set: { food: 'pastel' } },
 ];
 
 const NODES: Record<string, NodeDef> = {
@@ -103,9 +103,9 @@ const NODES: Record<string, NodeDef> = {
   },
   pedido: {
     cards: ['lex.padaria.pois_nao', 'lex.padaria.o_que_vai_ser', 'lex.padaria.me_ve', 'lex.padaria.por_favor', 'lex.padaria.pao_na_chapa', 'lex.padaria.cafe_com_leite'],
-    line: () => ({ pt: 'Pois não. O que vai ser hoje?', en: 'At your service. What’ll it be today?' }),
+    line: () => ({ pt: 'Pois não. O que vai ser hoje?', en: 'Yes? What’ll it be today?' }),
     chips: [
-      { ...fixed('Me vê um pão na chapa, por favor.', 'Give me a grilled buttered bread, please.'), score: 3, next: 'bebida', set: { food: 'pao_na_chapa' } },
+      { ...fixed('Me vê um pão na chapa, por favor.', 'I’ll take a pão na chapa (grilled buttered bread), please.'), score: 3, next: 'bebida', set: { food: 'pao_na_chapa' } },
       { ...fixed('Um café com leite, por favor.', 'A coffee with milk, please.'), score: 3, next: 'comida', set: { drink: 'cafe_com_leite' }, accepts: ['me ve um cafe com leite'] },
       { ...fixed('Ainda tô olhando.', 'I’m still looking.'), score: 2, next: 'pedido_calma', accepts: ['ainda estou olhando', 'to olhando', 'so olhando', 'deixa eu ver'] },
       { ...fixed('Pão.', 'Bread.'), score: 1, next: 'pedido_dica', accepts: ['bread'] },
@@ -123,7 +123,7 @@ const NODES: Record<string, NodeDef> = {
     cards: ['lex.padaria.me_ve', 'lex.padaria.por_favor'],
     line: () => ({
       pt: 'Pão na chapa? Coxinha? Pastel? Fala assim: “Me vê um pão na chapa, por favor.”',
-      en: 'Grilled bread? Coxinha? Pastel? Say it like this: “Give me a grilled buttered bread, please.”',
+      en: 'Grilled bread? Coxinha? Pastel? Say it like this: “I’ll take a pão na chapa, please.”',
     }),
     chips: FOOD_CHIPS(2),
   },

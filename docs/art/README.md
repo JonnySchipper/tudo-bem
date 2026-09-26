@@ -20,10 +20,12 @@ The same gallery is live in the app at **`/art.html`** (dev: http://localhost:51
 
 ## Style rules
 
-- **Warm São Paulo afternoon.** Terracotta, ipê yellow, flag green, azulejo blue on cream. Palette: `apps/client/src/art/palette.ts`.
-- **Authentic, not generic.** Calçada wave mosaic, ipê amarelo, padaria striped awning and bread shelves, azulejos, ladrilho hidráulico, taco floors, cobogó breeze blocks, orelhão, blue street signs, orange *lixeira*, newsstand, the Copan-style curved tower, metrô line colors.
+- **Warm São Paulo afternoon.** Terracotta, ipê yellow, flag green on cream (TB Art `palette.md`: cream-wall `#F5E6D3`, terracotta `#C45C26`, mustard `#D4A017`, wood-warm `#8B5E3C`, soft-sky `#A8C5D4`). Interior walls are cream with terracotta or wood trim — no pastel blue/mint walls. Palette: `apps/client/src/art/palette.ts`.
+- **Authentic, not generic.** Calçada paulista in the São Paulo state-map mosaic (the Copacabana wave is Rio's — don't use it), ipê amarelo as the Praça's hero tree (no palms), padaria striped awning and bread shelves, azulejos, ladrilho hidráulico, taco floors, cobogó breeze blocks, orelhão, blue street signs, orange *lixeira*, newsstand, the Copan-style curved tower, metrô line colors.
 - **Modern 2.5D isometric**: 2:1 tiles (64×32 world units), light from the upper right, soft cast shadows.
 - **Readable first**: dark soft outline on avatars, names on solid plates above heads, bubbles in screen space.
+- **Avatars aren't chibi**: head ≈ ¼ of height. Brimmed hats keep their larger size so the hat is the silhouette hero; snug caps hug the head.
+- **Lighting per room**: Praça late afternoon, Padaria warm morning, Kitnet neutral daylight through a painted street window.
 - **Constitution applies to art too**: no alcohol, bar signage, flirting, or sensual poses. Carnival is color, not nightlife.
 
 ## Where the art lives
@@ -51,7 +53,11 @@ pnpm art        # build → render /art.html in headless Chrome → bake → reb
 
 ## Overriding with hand-made art (TB Art)
 
-1. Pick the file in `apps/client/public/art/…` (e.g. `props/orelhao.png`).
-2. Paint a replacement at **3× world scale** with the same framing. The anchor sits at `(-ox·3, -oy·3)` px from the image's top-left (see `manifest.json`).
-3. Save it over the file. If the size changes, update `w`/`h`/`ox`/`oy` in the manifest, or add a new key with different metadata.
-4. Don't run `pnpm art` over hand-painted files without excluding them. The bake rewrites the whole folder. Phase 1 ticket: an `overrides/` folder the bake never touches.
+`pnpm art` wipes and regenerates `apps/client/public/art` and `docs/art/assets` every time. Hand-painted files go in **`apps/client/art-overrides/`**, which the bake never touches:
+
+1. Pick the sprite key from `apps/client/public/art/manifest.json` (e.g. `props/orelhao`).
+2. Paint a replacement at **3× world scale** with the same framing. The anchor sits at `(-ox·3, -oy·3)` px from the image's top-left.
+3. Save it as `apps/client/art-overrides/<key>.png` (e.g. `art-overrides/props/orelhao.png`). If the framing differs, add `<key>.json` next to it with `{ "w", "h", "ox", "oy" }` in world units. UI chrome overrides go in `art-overrides/ui/<name>.svg`.
+4. Run `pnpm art`. The bake copies each override over the generated file and flags it `"override": true` in the manifest; `manifest.test.ts` fails CI if an override ever gets clobbered.
+
+Only static sprites and UI SVGs can be overridden this way. Floors, walls, trees and avatars are drawn live in code.

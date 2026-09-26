@@ -1,0 +1,351 @@
+import {
+  BODY_TYPES,
+  BOTTOM_STYLES,
+  buildGrid,
+  CLOTH_COLORS,
+  CPU_ID_PREFIX,
+  CPU_NAMES,
+  CPU_SITTER_SHARE,
+  cpuTarget,
+  findPath,
+  HAIR_STYLES,
+  HATS,
+  key,
+  pathDuration,
+  positionAlong,
+  PRACA_AMBIANCE,
+  SHOE_COLORS,
+  SKIN_TONES,
+  TOP_STYLES,
+  type Appearance,
+  type Dir,
+  type PublicAvatar,
+  type RoomDef,
+  type RoomGrid,
+  type ServerMsg,
+  type Tile,
+} from '@tudobem/shared';
+
+export const CPU_TICK_MS = 1000;
+/** Gap between CPUs walking in when the crowd needs to grow. */
+const SPAWN_GAP_MS = 4000;
+const APPROACH_WAVE_COOLDOWN_MS = 20_000;
+const WAVE_BACK_COOLDOWN_MS = 8_000;
+/** Seu Carlos's signature hat stays his. */
+const CPU_HATS = HATS.map((h) => h.id).filter((id) => id !== 'chapeu_chef');
+
+export interface HumanSpot {
+  tile: Tile;
+  /** Where the player's current walk ends (their tile when idle). */
+  target: Tile;
+}
+
+export interface CrowdHost {
+  now(): number;
+  schedule(fn: () => void, ms: number): void;
+  rng(): number;
+  /** Broadcast to every player in the instance. */
+  send(m: ServerMsg): void;
+  humans(): HumanSpot[];
+}
+
+interface Cpu {
+  id: string;
+  name: string;
+  appearance: Appearance;
+  hat: string | null;
+  role: 'sitter' | 'walker';
+  from: Tile;
+  path: Tile[];
+  start: number;
+  dir: Dir;
+  sit: boolean;
+  /** Tile key this CPU is standing on or walking to. */
+  dest: string;
+  leg: number;
+  nextAt: number;
+  leaving: boolean;
+  lastWave: number;
+  humanNear: boolean;
+}
+
+let nextCpu = 0;
+const cheb = (a: Tile, b: Tile) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+
+/**
+ * Scripted Praça ambiance for one instance. CPUs live here, not in `Instance.members`, so they are
+ * outside the player cap. They only ever emit avatarJoined / avatarMoved / avatarLeft / emote(oi).
+ */
+export class CpuCrowd {
+  private cpus = new Map<string, Cpu>();
+  private bag: string[] = [];
+  private ticking = false;
+  private stopped = false;
+  private nextSpawnAt = 0;
+  private readonly grid: RoomGrid;
+  private readonly seats: { tile: Tile; dir: Dir }[];
+
+  constructor(
+    private readonly room: RoomDef,
+    private readonly host: CrowdHost,
+  ) {
+    this.grid = buildGrid(room);
+    this.seats = room.props.filter((p) => p.seat).map((p) => ({ tile: { x: p.x, y: p.y }, dir: p.seat! }));
+  }
+
+  /** CPUs currently in the room (including any walking out). */
+  get size() {
+    return this.cpus.size;
+  }
+
+  avatars(): PublicAvatar[] {
+    return [...this.cpus.values()].map((c) => this.publicOf(c));
+  }
+
+  /** Players joined or left the instance. */
+  sync() {
+    if (this.stopped) return;
+    const humans = this.host.humans();
+    if (!humans.length) return;
+    const active = this.active();
+    const target = cpuTarget(humans.length);
+    if (!active.length) for (let i = 0; i < target; i++) this.spawn(true);
+    else if (active.length > target) {
+      const byWalkersFirst = active.sort((a, b) => (a.role === 'walker' ? 0 : 1) - (b.role === 'walker' ? 0 : 1));
+      for (const c of byWalkersFirst.slice(0, active.length - target)) this.leave(c);
+    }
+    if (!this.ticking) {
+      this.ticking = true;
+      this.host.schedule(() => this.tick(), CPU_TICK_MS);
+    }
+  }
+
+  /** A player is heading to sit on `t`: any CPU there gets up and moves on. */
+  yieldSeat(t: Tile) {
+    const k = key(t.x, t.y);
+    for (const c of this.cpus.values()) {
+      if (c.dest !== k || c.leaving) continue;
+      const seat = c.role === 'sitter' ? this.freeSeat(k) : null;
+      if (!(seat && this.walk(c, seat.tile, true))) this.walk(c, this.freeSpot(PRACA_AMBIANCE.spots), false);
+      c.nextAt = this.host.now() + this.travel(c) + this.dwell(c);
+    }
+  }
+
+  /** A player waved (Oi): the nearest CPU within 3 tiles waves back. */
+  onWave(from: Tile) {
+    const now = this.host.now();
+    const near = [...this.cpus.values()]
+      .filter((c) => !c.leaving && now - c.lastWave > WAVE_BACK_COOLDOWN_MS)
+      .map((c) => ({ c, pos: this.pos(c) }))
+      .filter(({ pos }) => cheb(pos.tile, from) <= 3)
+      .sort((a, b) => cheb(a.pos.tile, from) - cheb(b.pos.tile, from))[0];
+    if (!near) return;
+    near.c.lastWave = now;
+    this.host.schedule(() => this.cpus.has(near.c.id) && !this.stopped && this.wave(near.c), 700);
+  }
+
+  stop() {
+    this.stopped = true;
+    this.ticking = false;
+  }
+
+  // ---------------------------------------------------------------- loop
+
+  private tick() {
+    if (this.stopped) return;
+    const humans = this.host.humans();
+    if (!humans.length) {
+      this.ticking = false;
+      return;
+    }
+    const now = this.host.now();
+    if (this.active().length < cpuTarget(humans.length) && now >= this.nextSpawnAt) {
+      this.spawn(false);
+      this.nextSpawnAt = now + SPAWN_GAP_MS;
+    }
+    for (const c of [...this.cpus.values()]) {
+      const p = this.pos(c);
+      if (c.leaving) {
+        if (!p.moving) this.remove(c);
+        continue;
+      }
+      if (p.moving) continue;
+      const near = humans.some((h) => cheb(h.tile, p.tile) <= 1);
+      if (near && !c.humanNear && now - c.lastWave > APPROACH_WAVE_COOLDOWN_MS && this.host.rng() < 0.6) this.wave(c);
+      c.humanNear = near;
+      if (now >= c.nextAt) this.act(c);
+    }
+    this.host.schedule(() => this.tick(), CPU_TICK_MS);
+  }
+
+  private act(c: Cpu) {
+    const rng = this.host.rng;
+    const sittingNow = c.sit && this.seats.some((s) => key(s.tile.x, s.tile.y) === c.dest);
+    if (c.role === 'sitter') {
+      if (!sittingNow || rng() < 0.25) {
+        const seat = this.freeSeat(c.dest);
+        if (seat) this.walk(c, seat.tile, true);
+      }
+    } else {
+      c.leg = (c.leg + 1) % 3;
+      const seat = c.leg === 2 ? this.freeSeat(c.dest) : null;
+      if (seat) this.walk(c, seat.tile, true);
+      else this.walk(c, this.freeSpot(c.leg === 1 ? PRACA_AMBIANCE.doorSpots : PRACA_AMBIANCE.spots), false);
+    }
+    c.nextAt = this.host.now() + this.travel(c) + this.dwell(c);
+  }
+
+  // ---------------------------------------------------------------- crowd changes
+
+  private spawn(instant: boolean) {
+    const rng = this.host.rng;
+    const active = this.active();
+    const sitters = active.filter((c) => c.role === 'sitter').length;
+    const role: Cpu['role'] = sitters < Math.round((active.length + 1) * CPU_SITTER_SHARE) ? 'sitter' : 'walker';
+    const seat = role === 'sitter' ? this.freeSeat(null) : null;
+    const dest = seat?.tile ?? this.freeSpot(PRACA_AMBIANCE.spots);
+    const pick = <T>(arr: readonly T[]) => arr[Math.floor(rng() * arr.length)];
+    const entry = pick(PRACA_AMBIANCE.entries);
+    const c: Cpu = {
+      id: `${CPU_ID_PREFIX}${++nextCpu}`,
+      name: this.nextName(),
+      appearance: {
+        body: pick(BODY_TYPES),
+        skin: Math.floor(rng() * SKIN_TONES.length),
+        hair: pick(HAIR_STYLES),
+        hairColor: Math.floor(rng() * 6),
+        top: pick(TOP_STYLES),
+        topColor: Math.floor(rng() * CLOTH_COLORS.length),
+        bottom: pick(BOTTOM_STYLES),
+        bottomColor: Math.floor(rng() * CLOTH_COLORS.length),
+        shoes: Math.floor(rng() * SHOE_COLORS.length),
+      },
+      hat: rng() < 0.6 ? pick(CPU_HATS) : null,
+      role: seat ? 'sitter' : 'walker',
+      from: instant ? dest : entry,
+      path: [],
+      start: this.host.now(),
+      dir: seat?.dir ?? 'SE',
+      sit: instant && !!seat,
+      dest: key(dest.x, dest.y),
+      leg: 0,
+      nextAt: 0,
+      leaving: false,
+      lastWave: -Infinity,
+      humanNear: false,
+    };
+    this.cpus.set(c.id, c);
+    this.host.send({ t: 'avatarJoined', avatar: this.publicOf(c) });
+    if (!instant) this.walk(c, dest, !!seat);
+    c.nextAt = this.host.now() + this.travel(c) + this.dwell(c) * (instant ? rng() : 1);
+  }
+
+  private leave(c: Cpu) {
+    c.leaving = true;
+    const here = this.pos(c).tile;
+    const exit = [...PRACA_AMBIANCE.entries].sort((a, b) => cheb(a, here) - cheb(b, here))[0];
+    if (!this.walk(c, exit, false)) this.remove(c);
+  }
+
+  private remove(c: Cpu) {
+    this.cpus.delete(c.id);
+    this.host.send({ t: 'avatarLeft', id: c.id });
+  }
+
+  private wave(c: Cpu) {
+    c.lastWave = this.host.now();
+    this.host.send({ t: 'emote', id: c.id, kind: 'oi' });
+  }
+
+  // ---------------------------------------------------------------- helpers
+
+  private active() {
+    return [...this.cpus.values()].filter((c) => !c.leaving);
+  }
+
+  private nextName() {
+    if (!this.bag.length) {
+      const inUse = new Set([...this.cpus.values()].map((c) => c.name));
+      this.bag = CPU_NAMES.filter((n) => !inUse.has(n));
+      for (let i = this.bag.length - 1; i > 0; i--) {
+        const j = Math.floor(this.host.rng() * (i + 1));
+        [this.bag[i], this.bag[j]] = [this.bag[j], this.bag[i]];
+      }
+    }
+    return this.bag.pop()!;
+  }
+
+  private taken(except: string | null) {
+    const out = new Set<string>();
+    for (const c of this.cpus.values()) if (c.dest !== except) out.add(c.dest);
+    for (const h of this.host.humans()) {
+      out.add(key(h.tile.x, h.tile.y));
+      out.add(key(h.target.x, h.target.y));
+    }
+    return out;
+  }
+
+  private freeSeat(except: string | null) {
+    const taken = this.taken(except);
+    const free = this.seats.filter((s) => {
+      const k = key(s.tile.x, s.tile.y);
+      return k !== except && !taken.has(k);
+    });
+    return free.length ? free[Math.floor(this.host.rng() * free.length)] : null;
+  }
+
+  private freeSpot(from: Tile[]) {
+    const taken = this.taken(null);
+    const free = from.filter((t) => !taken.has(key(t.x, t.y)));
+    const pool = free.length ? free : from;
+    return pool[Math.floor(this.host.rng() * pool.length)];
+  }
+
+  private pos(c: Cpu) {
+    return positionAlong(c.from, c.path, this.host.now() - c.start, c.dir);
+  }
+
+  private travel(c: Cpu) {
+    return Math.max(0, pathDuration(c.from, c.path) - (this.host.now() - c.start));
+  }
+
+  private dwell(c: Cpu) {
+    const r = this.host.rng();
+    return c.role === 'sitter' ? 30_000 + r * 40_000 : c.sit ? 12_000 + r * 13_000 : 5_000 + r * 7_000;
+  }
+
+  private walk(c: Cpu, to: Tile, sit: boolean): boolean {
+    const p = this.pos(c);
+    const from = p.moving ? { x: Math.round(p.x), y: Math.round(p.y) } : p.tile;
+    const path = findPath(this.grid, from, to);
+    if (!path) return false;
+    c.from = from;
+    c.path = path;
+    c.start = this.host.now();
+    c.dir = p.dir;
+    c.sit = sit;
+    c.dest = key(to.x, to.y);
+    this.host.send({ t: 'avatarMoved', id: c.id, from, path, sit });
+    return true;
+  }
+
+  private publicOf(c: Cpu): PublicAvatar {
+    const p = this.pos(c);
+    const sitting = !p.moving && c.sit;
+    const seatDir = sitting ? this.seats.find((s) => s.tile.x === p.tile.x && s.tile.y === p.tile.y)?.dir : undefined;
+    return {
+      id: c.id,
+      name: c.name,
+      pronoun: 'nome',
+      appearance: c.appearance,
+      hat: c.hat,
+      parrot: false,
+      nameplate: 'verde',
+      x: p.tile.x,
+      y: p.tile.y,
+      dir: seatDir ?? p.dir,
+      sitting,
+      cpu: true,
+    };
+  }
+}

@@ -26,13 +26,10 @@ export interface Card {
   prereq: string[];
   places: string[];
   note?: string;
-  /** lexemes-*.md file, or 'engineering-seed' for cards the game needs that the pack doesn't have yet. */
+  /** lexemes-*.md file the card was parsed from. */
   source: string;
   signoff: Signoff;
 }
 
 export const CARDS: Card[] = pack.cards as Card[];
 export const cardById = (id: string) => CARDS.find((c) => c.id === id);
-
-/** Cards used by the game that are not in the curriculum pack (flagged in PHASE0_STATUS.md). */
-export const ENGINEERING_SEED_CARDS = CARDS.filter((c) => c.source === 'engineering-seed');

@@ -4,6 +4,7 @@ import {
   TUTORIAL_STEPS,
   furnitureById,
   hatById,
+  isCpuId,
   type EmoteKind,
   type NpcDef,
   type PropDef,
@@ -22,6 +23,7 @@ import {
   closeDialogue,
   closeModal,
   MinigameUI,
+  openKiosk,
   modalId,
   openFriends,
   openHatShop,
@@ -97,7 +99,7 @@ function talkTo(npc: NpcDef['id']) {
 function propAction(action: string) {
   if (action === 'shop_hats') openShop();
   else if (action === 'minigame') startMinigame();
-  else if (action === 'kiosk') showJulia();
+  else if (action === 'kiosk') openKiosk(() => net.send({ t: 'mission', action: 'take' }));
   else if (action === 'parrot_perch') showParrotPerch(() => net.send({ t: 'parrot', action: 'adopt' }));
 }
 
@@ -364,6 +366,7 @@ function hitLabel(hit: Hit | null): [string, string] | null {
       return [hit.portal.label.pt, hit.portal.label.en];
     case 'avatar': {
       const a = game.avatars.get(hit.id);
+      if (a && isCpuId(a.pub.id)) return [a.pub.name, 'Praça regular (scripted neighbor — waves back, doesn’t chat)'];
       return a ? [a.pub.name, 'Click for profile / add friend'] : null;
     }
     case 'seat':
@@ -402,6 +405,11 @@ function handleClick(hit: Hit | null) {
   }
   switch (hit.kind) {
     case 'avatar': {
+      if (isCpuId(hit.id)) {
+        const t = renderer.tileAt(lastPointer.x, lastPointer.y);
+        if (t) walkTo(t, null);
+        break;
+      }
       const a = game.avatars.get(hit.id);
       if (a && a.pub.id !== game.room.selfId)
         openProfileCard(a.pub, {

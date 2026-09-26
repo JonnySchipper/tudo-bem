@@ -14,7 +14,7 @@ export interface MgItem {
   card: Card;
 }
 
-/** Shelf order. First nine are the curriculum pack; the rest are engineering seeds (flagged). */
+/** Shelf order (all lexeme cards in lexemes-padaria-a1.md). */
 const SHELF = ['pao', 'pao_na_chapa', 'pastel', 'coxinha', 'bolo', 'cafe', 'cafe_com_leite', 'suco_de_laranja', 'agua', 'pao_de_queijo', 'misto_quente', 'guarana'];
 
 export const MG_ITEMS: MgItem[] = SHELF.map((id) => {
@@ -79,10 +79,10 @@ export function mulberry32(seed: number): Rng {
 const CUSTOMERS = ['Dona Ana', 'Seu João', 'Pedro', 'Luana', 'Tio Beto', 'Dona Cida', 'Gabi', 'Rafa', 'Dona Lurdes', 'Téo'];
 
 const OPENERS: { pt: (l: string) => string; en: (l: string) => string }[] = [
-  { pt: (l) => `Me vê ${l}, por favor.`, en: (l) => `Give me ${l}, please.` },
-  { pt: (l) => `Bom dia! Me vê ${l}.`, en: (l) => `Good morning! Give me ${l}.` },
+  { pt: (l) => `Me vê ${l}, por favor.`, en: (l) => `I’ll take ${l}, please.` },
+  { pt: (l) => `Bom dia! Me vê ${l}.`, en: (l) => `Good morning! I’ll take ${l}.` },
   { pt: (l) => `${cap(l)}, por favor.`, en: (l) => `${cap(l)}, please.` },
-  { pt: (l) => `Me vê ${l}.`, en: (l) => `Give me ${l}.` },
+  { pt: (l) => `Me vê ${l}.`, en: (l) => `I’ll take ${l}.` },
 ];
 
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);

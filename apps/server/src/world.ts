@@ -40,6 +40,12 @@ import {
   cardById,
   sanitizeMods,
   viewNode,
+  freshMission,
+  MISSION_COPY,
+  MISSION_REWARD,
+  MISSION_STEPS,
+  type DailyMission,
+  type MissionStep,
   type Appearance,
   type Bilingual,
   type ClientMsg,
@@ -60,6 +66,7 @@ import {
 } from '@tudobem/shared';
 import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
 import { ProfileStore, today, toPrivate, type StoredProfile } from './store.js';
+import { CpuCrowd } from './ambiance.js';
 
 export interface Services {
   safety: ChatSafetyService;
@@ -75,6 +82,9 @@ export interface WorldOptions {
   mgGapMs?: number;
   now?: () => number;
   schedule?: (fn: () => void, ms: number) => void;
+  /** Praça ambiance CPUs (LIVEOPS_CPU_AMBIANCE). Off unless the host turns it on. */
+  ambiance?: boolean;
+  rng?: () => number;
 }
 
 interface AvatarState {
@@ -127,6 +137,8 @@ const INSTANCE_SUFFIX = ['Norte', 'Sul', 'Leste', 'Oeste'];
 
 export class Instance {
   readonly members = new Map<string, Session>();
+  /** Praça ambiance CPUs. Not members, so they never take a player seat. */
+  crowd?: CpuCrowd;
   constructor(
     readonly id: string,
     readonly def: RoomDef,
@@ -136,6 +148,8 @@ export class Instance {
 }
 
 const EMOTES: EmoteKind[] = ['oi', 'dancar', 'rir', 'valeu', 'desculpa'];
+/** “oi” / “olá” in chat counts as greeting someone for the kiosk mission. */
+const GREETING = /(^|[^\p{L}])(oi|ol[aá])($|[^\p{L}])/iu;
 
 const MG_LINES: Record<MgOutcome | 'repita' | 'combo', Bilingual> = {
   perfeito: { pt: 'Isso mesmo! Cliente feliz!', en: 'That’s it! Happy customer!' },
@@ -154,6 +168,8 @@ export class World {
   private readonly mgGapMs: number;
   private readonly now: () => number;
   private readonly schedule: (fn: () => void, ms: number) => void;
+  private readonly ambiance: boolean;
+  private readonly rng: () => number;
   private seq = 0;
 
   constructor(
@@ -165,6 +181,8 @@ export class World {
     this.mgGapMs = opts.mgGapMs ?? 1600;
     this.now = opts.now ?? Date.now;
     this.schedule = opts.schedule ?? ((fn, ms) => void (setTimeout(fn, ms) as unknown as { unref?: () => void }).unref?.());
+    this.ambiance = !!opts.ambiance;
+    this.rng = opts.rng ?? Math.random;
   }
 
   // ---------- connection lifecycle ----------
@@ -187,8 +205,12 @@ export class World {
 
   stats() {
     const rooms: Record<string, number> = {};
-    for (const i of this.instances.values()) rooms[i.id] = i.members.size;
-    return { players: [...this.sessions.values()].filter((s) => s.profile).length, instances: rooms, profiles: this.store.count() };
+    const cpus: Record<string, number> = {};
+    for (const i of this.instances.values()) {
+      rooms[i.id] = i.members.size;
+      if (i.crowd) cpus[i.id] = i.crowd.size;
+    }
+    return { players: [...this.sessions.values()].filter((s) => s.profile).length, instances: rooms, ambiance: this.ambiance ? cpus : 'off', profiles: this.store.count() };
   }
 
   async handle(s: Session, msg: ClientMsg): Promise<void> {
@@ -230,6 +252,8 @@ export class World {
         return this.friend(s, msg.action, msg.targetId);
       case 'friends':
         return this.sendFriends(s);
+      case 'mission':
+        return this.takeMission(s);
     }
   }
 
@@ -362,6 +386,7 @@ export class World {
       if (!inst) {
         const suffix = INSTANCE_SUFFIX[n - 1] ?? String(n);
         inst = new Instance(id, def, `${def.name} · ${suffix}`, null);
+        if (this.ambiance && def.id === 'praca') inst.crowd = this.makeCrowd(inst);
         this.instances.set(id, inst);
       }
       if (inst.members.size < this.cap) return inst;
@@ -388,10 +413,11 @@ export class World {
       ownerName: target.ownerId ? (this.store.get(target.ownerId)?.name ?? null) : null,
       cap: this.cap,
       selfId: s.profile!.id,
-      avatars: [...target.members.values()].map((m) => this.publicAvatar(m)),
+      avatars: [...[...target.members.values()].map((m) => this.publicAvatar(m)), ...(target.crowd?.avatars() ?? [])],
       furniture,
     });
     this.broadcast(target, { t: 'avatarJoined', avatar: this.publicAvatar(s) }, s);
+    target.crowd?.sync();
     this.notifyFriendsOfPresence(s.profile!.id);
   }
 
@@ -404,7 +430,31 @@ export class World {
     s.instance = undefined;
     if (s.profile) this.broadcast(inst, { t: 'avatarLeft', id: s.profile.id });
     // Idle overflow instances sleep (are dropped); the first public instance always stays.
-    if (inst.members.size === 0 && !inst.id.endsWith('#1')) this.instances.delete(inst.id);
+    if (inst.members.size === 0 && !inst.id.endsWith('#1')) {
+      inst.crowd?.stop();
+      this.instances.delete(inst.id);
+    } else inst.crowd?.sync();
+  }
+
+  private makeCrowd(inst: Instance) {
+    return new CpuCrowd(inst.def, {
+      now: this.now,
+      schedule: this.schedule,
+      rng: this.rng,
+      send: (m) => this.broadcast(inst, m),
+      humans: () =>
+        [...inst.members.values()]
+          .filter((m) => m.avatar)
+          .map((m) => {
+            const tile = this.currentTile(m).tile;
+            return { tile, target: m.avatar!.path.at(-1) ?? tile };
+          }),
+    });
+  }
+
+  /** Anyone else here to greet — a player or an ambiance CPU. */
+  private hasCompany(inst: Instance) {
+    return inst.members.size > 1 || (inst.crowd?.size ?? 0) > 0;
   }
 
   private furnitureOf(inst: Instance): PlacedFurniture[] {
@@ -469,6 +519,7 @@ export class World {
     a.sitOnArrive = wantsSit;
     const seq = ++a.seq;
     this.broadcast(inst, { t: 'avatarMoved', id: s.profile!.id, from, path, sit: wantsSit });
+    if (wantsSit) inst.crowd?.yieldSeat({ x, y });
     const done = () => {
       if (s.avatar !== a || a.seq !== seq || s.instance !== inst) return;
       if (path.length) this.completeStep(s, 'andar');
@@ -509,7 +560,10 @@ export class World {
   private emote(s: Session, kind: EmoteKind) {
     if (!s.instance || !EMOTES.includes(kind)) return;
     this.broadcast(s.instance, { t: 'emote', id: s.profile!.id, kind });
-    if (kind === 'oi') this.completeStep(s, 'acenar');
+    if (kind !== 'oi') return;
+    this.completeStep(s, 'acenar');
+    s.instance.crowd?.onWave(this.currentTile(s).tile);
+    if (s.instance.def.id === 'praca' && this.hasCompany(s.instance)) this.missionStep(s, 'cumprimenta');
   }
 
   // ---------- chat ----------
@@ -536,6 +590,7 @@ export class World {
     this.broadcast(inst, { t: 'chat', id: p.id, name: p.name, text: verdict.text, gloss, lang, action: verdict.action });
     if (verdict.action === 'warn' && verdict.note) s.send({ t: 'notice', level: 'warn', pt: verdict.note.pt, en: verdict.note.en });
     this.completeStep(s, 'conversar');
+    if (inst.def.id === 'praca' && GREETING.test(verdict.text) && this.hasCompany(inst)) this.missionStep(s, 'cumprimenta');
   }
 
   private report(s: Session, targetId: string, text?: string) {
@@ -619,6 +674,7 @@ export class World {
       p.daily.sceneClears[sc.npc] = clears + 1;
       s.scene = undefined;
       this.completeStep(s, 'carlos');
+      this.missionStep(s, 'pede');
       if (payout > 0) this.reward(s, payout, { pt: 'Café da manhã com o Seu Carlos', en: 'Breakfast with Seu Carlos' });
       else s.send({ t: 'notice', level: 'info', pt: 'Seu Carlos: “Você já me ajudou muito hoje!”', en: 'Seu Carlos: “You’ve already helped me a lot today!” (daily cap reached)' });
     }
@@ -677,6 +733,7 @@ export class World {
       mg.orderAt = this.now();
       return this.sendOrder(s);
     }
+    if (ok) this.missionStep(s, 'monta');
     let outcome: MgOutcome;
     if (ok) {
       outcome = mg.repeated ? 'segunda' : 'perfeito';
@@ -741,6 +798,40 @@ export class World {
   /** Test hook: peek the current order (the client never receives item ids). */
   debugOrder(s: Session) {
     return s.mg?.order;
+  }
+
+  // ---------- daily kiosk (Missão do dia) ----------
+
+  private missionOf(p: StoredProfile): DailyMission {
+    if (p.mission?.date !== today()) p.mission = freshMission(today());
+    return p.mission;
+  }
+
+  private takeMission(s: Session) {
+    if (s.instance?.def.id !== 'praca') return this.err(s, 'mission', 'O quiosque de missões fica na praça.', 'The mission kiosk is in the square.');
+    const m = this.missionOf(s.profile!);
+    if (!m.taken) {
+      m.taken = true;
+      this.store.save();
+    }
+    this.pushProfile(s);
+  }
+
+  private missionStep(s: Session, step: MissionStep) {
+    const p = s.profile;
+    if (!p) return;
+    const m = this.missionOf(p);
+    if (!m.taken || m.steps[step]) return;
+    m.steps[step] = true;
+    const def = MISSION_STEPS.find((x) => x.id === step)!;
+    s.send({ t: 'notice', level: 'info', pt: `✓ ${def.pt}`, en: def.en });
+    if (!m.rewarded && MISSION_STEPS.every((x) => m.steps[x.id])) {
+      m.rewarded = true;
+      this.reward(s, MISSION_REWARD, MISSION_COPY.done);
+    } else {
+      this.store.save();
+      this.pushProfile(s);
+    }
   }
 
   // ---------- shop ----------
