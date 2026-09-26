@@ -1,37 +1,406 @@
 {
-  "_meta": {
-    "status": "engineering-draft",
-    "todo": "TODO(T&S): replace with the canonical Safety v0.1 fixture — this file was not in the ingest attachment; drafted from constitution.md §3 + CEO-LOCKS-2026-09-25 §1–2.",
-    "matching": "Terms are compared whole-word against the normalized message (lowercase, accents stripped, light leetspeak, 3+ repeats collapsed). Patterns are regex source strings over the same normalized text.",
-    "stack_position": 3
-  },
-  "rules": [
+  "version": "0.1",
+  "lang": [
+    "en",
+    "pt-BR"
+  ],
+  "description": "Phase 0 representative EN + PT-BR slur/hate and family-product profanity. Not encyclopedic. Match Unicode-aware; prefer accent-insensitive normalize for PT. Consult allowlist-pt-slang.json BEFORE this list.",
+  "normalize_notes": [
+    "Lowercase + NFD strip combining marks for PT compare (cão≈cao only when intentional; do not strip into allowlisted slang).",
+    "Word_boundary: \\b-style with Unicode letters; exact: full-token after normalize.",
+    "Leetspeak / Zalgo evasion: Phase 0 light only; expand later."
+  ],
+  "entries": [
     {
-      "id": "ethnic_insult",
-      "label": "slur",
+      "term": "nigger",
+      "lang": "en",
+      "severity": "word_boundary",
       "action": "block",
-      "source": "CEO-LOCKS §1 — macaco / japa / portuga block (insult sense). Known accepted FP: the animal 'macaco' also blocks in Phase 0.",
-      "terms": ["macaco", "macaca", "macacos", "macacas", "japa", "japas", "japinha", "portuga", "portugas", "seu macaco", "sua macaca"]
+      "category": "slur",
+      "comment": "racial slur"
     },
     {
-      "id": "slurs_en_pt",
-      "label": "slur",
+      "term": "nigga",
+      "lang": "en",
+      "severity": "word_boundary",
       "action": "block",
-      "terms": [
-        "nigger", "nigga", "faggot", "fag", "retard", "retarded", "tranny", "chink", "spic", "kike", "wetback", "coon", "dyke",
-        "viado", "bicha", "sapatao", "traveco", "retardado", "retardada", "crioulo", "crioula", "baianada", "aleijado"
+      "category": "slur",
+      "comment": "variant; block in family product"
+    },
+    {
+      "term": "faggot",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur",
+      "comment": "anti-LGBTQ slur"
+    },
+    {
+      "term": "fag",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur",
+      "comment": "short form; watch false+ on 'fagioli' etc via word_boundary"
+    },
+    {
+      "term": "tranny",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur"
+    },
+    {
+      "term": "retard",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur",
+      "comment": "ableist slur"
+    },
+    {
+      "term": "retarded",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur"
+    },
+    {
+      "term": "kike",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur"
+    },
+    {
+      "term": "spic",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur"
+    },
+    {
+      "term": "chink",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur"
+    },
+    {
+      "term": "wetback",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur"
+    },
+    {
+      "term": "towelhead",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur"
+    },
+    {
+      "term": "cunt",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity"
+    },
+    {
+      "term": "fuck",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity",
+      "comment": "family product: block base + common compounds via separate entries or stem"
+    },
+    {
+      "term": "fucking",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity"
+    },
+    {
+      "term": "motherfucker",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity"
+    },
+    {
+      "term": "shit",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity"
+    },
+    {
+      "term": "bitch",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity"
+    },
+    {
+      "term": "asshole",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity"
+    },
+    {
+      "term": "whore",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity"
+    },
+    {
+      "term": "slut",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity"
+    },
+    {
+      "term": "dickhead",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity"
+    },
+    {
+      "term": "preto",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "escalate",
+      "category": "slur",
+      "comment": "CEO lock 2026-09-25: allow ONLY color/food via allowlist fixtures; else escalate",
+      "ceo_lock": "2026-09-25",
+      "allowlist_senses": [
+        "color",
+        "food"
       ]
     },
     {
-      "id": "profanity_en_pt",
-      "label": "profanity",
+      "term": "macaco",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
       "action": "block",
-      "source": "constitution.md §3 — mild-to-strong profanity blocks. CEO-LOCKS §2: 'cu' blocks exact (whole word only).",
-      "terms": [
-        "fuck", "fucking", "fucker", "motherfucker", "shit", "bitch", "asshole", "bastard", "dick", "cunt", "pussy", "cock", "whore", "slut", "wtf", "stfu",
-        "porra", "caralho", "merda", "puta", "puto", "foda", "foder", "fodase", "foda se", "cu", "buceta", "boceta", "bosta",
-        "arrombado", "arrombada", "desgracado", "desgracada", "filho da puta", "fdp", "vsf", "vtnc", "pqp", "cacete", "piranha", "corno", "otario", "otaria"
-      ]
+      "category": "slur",
+      "comment": "CEO lock 2026-09-25: insult sense — hard block Phase 0",
+      "ceo_lock": "2026-09-25"
+    },
+    {
+      "term": "crioulo",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur",
+      "comment": "racial slur in BR usage"
+    },
+    {
+      "term": "neguinho",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur",
+      "comment": "diminutive often used as racial insult"
+    },
+    {
+      "term": "viado",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur",
+      "comment": "anti-gay slur"
+    },
+    {
+      "term": "bicha",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur",
+      "comment": "anti-gay slur; not 'bicho'"
+    },
+    {
+      "term": "boiola",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur"
+    },
+    {
+      "term": "traveco",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur"
+    },
+    {
+      "term": "sapatão",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur",
+      "comment": "accent: also match sapatao"
+    },
+    {
+      "term": "sapatao",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur",
+      "comment": "unaccented variant of sapatão"
+    },
+    {
+      "term": "mongoloide",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur",
+      "comment": "ableist; also mongolóide"
+    },
+    {
+      "term": "mongolóide",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur"
+    },
+    {
+      "term": "retardado",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur"
+    },
+    {
+      "term": "japa",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur",
+      "comment": "CEO lock 2026-09-25: insult sense — hard block Phase 0",
+      "ceo_lock": "2026-09-25"
+    },
+    {
+      "term": "portuga",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "slur",
+      "comment": "CEO lock 2026-09-25: insult sense — hard block Phase 0",
+      "ceo_lock": "2026-09-25"
+    },
+    {
+      "term": "puta",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity",
+      "comment": "strong; 'putz' is different — do not stem-collapse putz→puta"
+    },
+    {
+      "term": "puto",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity"
+    },
+    {
+      "term": "caralho",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity"
+    },
+    {
+      "term": "porra",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity",
+      "comment": "do NOT false-block 'pô' or 'po' from allowlist"
+    },
+    {
+      "term": "foda",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity",
+      "comment": "also foda-se / fodase as compounds"
+    },
+    {
+      "term": "foder",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity"
+    },
+    {
+      "term": "merda",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity"
+    },
+    {
+      "term": "cu",
+      "lang": "pt-BR",
+      "severity": "exact",
+      "action": "block",
+      "category": "profanity",
+      "comment": "CEO lock 2026-09-25: hard block (exact); accept FP on rare compounds",
+      "ceo_lock": "2026-09-25"
+    },
+    {
+      "term": "buceta",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity"
+    },
+    {
+      "term": "piranha",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity",
+      "comment": "insult sense; fish sense rare in chat"
+    },
+    {
+      "term": "arrombado",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity"
+    },
+    {
+      "term": "filho da puta",
+      "lang": "pt-BR",
+      "severity": "exact",
+      "action": "block",
+      "category": "profanity",
+      "comment": "multiword exact after normalize spaces"
+    },
+    {
+      "term": "vsf",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity",
+      "comment": "vai se foder abbreviation"
+    },
+    {
+      "term": "pqp",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "profanity",
+      "comment": "puta que pariu abbreviation"
     }
   ]
 }

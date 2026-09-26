@@ -173,6 +173,13 @@ const strip = (s: string) =>
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[“”"()]/g, '');
 
+/** Which phrasebook lexicon a lowercase, accent-stripped word belongs to. */
+export function lexiconLang(word: string): 'pt' | 'en' | 'both' | null {
+  const inEn = EN_HINTS.has(word);
+  const inPt = Object.hasOwn(WORDS, word) || Object.hasOwn(PHRASES, word);
+  return inEn && inPt ? 'both' : inEn ? 'en' : inPt ? 'pt' : null;
+}
+
 export function detectLang(text: string): ChatLang {
   const words = strip(text).match(/[a-z']+/g) ?? [];
   if (!words.length) return 'pt';

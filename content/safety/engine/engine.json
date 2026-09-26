@@ -1,0 +1,382 @@
+{
+  "version": "stub-jev-phase0.1",
+  "implements": "TB Safety v0.1 — content/safety/phase0 (verbatim)",
+  "description": "Engine config for the Phase 0 stub Jev. The canonical pack in ../phase0 is read as-is; this file only holds what the pack references but does not encode (named conditions, inflection variants, stub-Jev class rules, PII hardening) plus the documented divergences. Every rule names its basis. CI (packages/shared/src/safety.test.ts) fails if a canonical condition is undefined, a canonical example regresses, or a divergence is not listed here.",
+
+  "category_labels": {
+    "slur": "slur",
+    "profanity": "profanity",
+    "body_comment": "dating",
+    "flirting": "dating",
+    "dating": "dating",
+    "sensuality": "sexual",
+    "sexual": "sexual",
+    "off_platform_adjacent": "off_platform_contact",
+    "alcohol": "prohibited_substance",
+    "drinking_venue": "prohibited_substance",
+    "drunkenness": "prohibited_substance",
+    "drugs": "prohibited_substance",
+    "email": "pii",
+    "phone": "pii",
+    "address_hint": "pii",
+    "school": "pii",
+    "real_name": "pii",
+    "discord": "off_platform_contact",
+    "whatsapp": "off_platform_contact",
+    "social_handle": "off_platform_contact",
+    "link": "off_platform_contact",
+    "off_platform_contact": "off_platform_contact"
+  },
+  "category_labels_basis": "body_comment → dating follows public-chat-pack pc16 ('date me, you're hot' = dating) and npc08 note ('gostoso … dating + off_platform').",
+
+  "label_priority": ["spam", "bullying", "prohibited_substance", "politics", "off_platform_contact", "dating", "profanity", "scam", "pii", "sexual", "slur", "self_harm"],
+  "label_priority_basis": "Among hits with the most severe action, the later label wins content_class. pc08 phone+WhatsApp = pii; pc10 'vendo conta' + pix = scam; pc07 nudes + gostosa = sexual.",
+
+  "content_class_map": {
+    "pii": "pii",
+    "off_platform_contact": "off_platform_contact",
+    "slur": "slurs",
+    "profanity": "insult",
+    "bullying": "insult",
+    "sexual": "sexual",
+    "dating": "dating",
+    "prohibited_substance": "prohibited_substance",
+    "scam": "scam",
+    "politics": "insult",
+    "self_harm": "insult",
+    "spam": "ok"
+  },
+  "content_class_map_basis": "Answers must be one of public-chat-pack typed_questions.content_class choices. v0.1 has no politics / self-harm class; pc18 files campaigning under 'insult' 'until dedicated class exists', and self-harm follows the same rule. The precise engine label is still logged in SafetyVerdict.labels.",
+
+  "looks_like_real_name_or_phone": {
+    "categories": ["phone", "real_name"],
+    "fixtures": ["cep_br"],
+    "basis": "public-chat-pack typed question: real name as contact bait and/or phone-like digit runs (pc08 phone, pc17 name + CEP)."
+  },
+
+  "toxicity": {
+    "by_label": {
+      "spam": 0.2,
+      "bullying": 0.55,
+      "prohibited_substance": 0.3,
+      "politics": 0.4,
+      "off_platform_contact": 0.35,
+      "dating": 0.55,
+      "profanity": 0.85,
+      "scam": 0.7,
+      "pii": 0.3,
+      "sexual": 0.95,
+      "slur": 0.95,
+      "self_harm": 0.9
+    },
+    "action_factor": { "warn": 0.5, "block": 1, "escalate": 0.7 },
+    "basis": "Per-label medians of the public-chat-pack example labels; CI checks every example within ±0.15."
+  },
+
+  "notes": {
+    "pii": { "pt": "Opa! Nada de dados pessoais aqui, tá?", "en": "Oops! No personal info here (phone, email, address, school, links)." },
+    "off_platform_contact": { "pt": "Vamos conversar aqui mesmo na praça!", "en": "Let’s keep chatting here in the world — no outside apps or contacts." },
+    "slur": { "pt": "Essa mensagem não pode ser enviada.", "en": "That message can’t be sent." },
+    "profanity": { "pt": "Sem palavrão, por favor!", "en": "No swearing, please!" },
+    "sexual": { "pt": "Esse assunto não é pra praça.", "en": "That topic isn’t for this space." },
+    "dating": { "pt": "Aqui é lugar de amizade — sem paquera!", "en": "This is a friendship space — no flirting or dating." },
+    "prohibited_substance": { "pt": "Aqui a gente fica no suco e no guaraná!", "en": "We stick to juice and guaraná here — no alcohol or drugs." },
+    "politics": { "pt": "Sem política nem briga de religião na praça, tá?", "en": "No politics or religious arguments in the square, okay?" },
+    "scam": { "pt": "Cuidado! Nunca compartilhe senhas ou dinheiro.", "en": "Careful! Never share passwords or money." },
+    "bullying": { "pt": "Vamos ser gentis uns com os outros!", "en": "Let’s be kind to each other!" },
+    "self_harm": { "pt": "Você é importante. Fale com alguém de confiança ou com o CVV (188).", "en": "You matter. Please reach out to someone you trust or a local helpline (US: call/text 988 · Brasil: CVV 188). A moderator has been notified." },
+    "spam": { "pt": "Calma! Uma mensagem de cada vez.", "en": "Easy! One message at a time." },
+    "escalate": { "pt": "Sua mensagem foi para a revisão da moderação.", "en": "Your message was sent to moderator review." },
+    "block": { "pt": "Essa mensagem não pode ser enviada.", "en": "That message can’t be sent." }
+  },
+  "notes_basis": "ops/report-mute-kick-phase0.md §Transparency: short, non-lecturing EN+PT toast; never echo the matched term.",
+
+  "conditions": {
+    "flirt_or_body_directed": {
+      "basis": "dating-flirting.json block_if on gostoso / gostosa / pelada; CEO-LOCKS §2 (warn → block if flirt/body-directed).",
+      "patterns": [
+        "\\b(vc|voce|tu|ela|ele|you|u)\\s+(e|eh|ta|esta|fica|ficou|is|are|r|look|looks)\\s+(muito\\s+|mo\\s+|mt\\s+|tao\\s+|so\\s+|super\\s+|really\\s+)?(gostos[oa]s?|gostosao|gostosona|pelad[oa]s?|hot|sexy|delicia|gat[oa]|lind[oa] demais)\\b",
+        "\\b(oi|ola|ei|e ai|fala|hey|hi|hello)\\s+(minha\\s+|meu\\s+)?(gostos[oa]|gostosao|gostosona|delicia|gat[oa]|sexy|hot)\\b",
+        "\\b(gostos[oa]|gostosao|gostosona|delicia|gat[oa]|sexy)\\s+(voce|vc|demais voce|you)\\b",
+        "\\b(fica|ficar|fique|manda|mande|foto|fotos)\\s+(\\w+\\s+)?pelad[oa]s?\\b",
+        "\\b(send|show)\\s+(me\\s+)?(pics|nudes|body)\\b"
+      ],
+      "examples_match": ["você é gostosa", "oi gostosa", "manda foto pelada", "Carlos você é gostoso"],
+      "examples_nomatch": ["Essa coxinha tá gostosa!", "bora jogar uma pelada no parque?", "o bolo é gostoso"]
+    },
+    "clear_address_or_place_name": {
+      "basis": "prohibited-substance.json allow_if on bar; CEO-LOCKS §2 (allow only clear address/place-name, else warn). Street addresses also trip the PII address_hint_br fixture, which runs first and blocks.",
+      "patterns": ["\\b(rua|r|avenida|av|praca|largo|alameda|travessa|estacao|bairro|vila)\\s+(do|da|de|dos|das)?\\s*bar\\b"],
+      "examples_match": ["o Largo do Bar fica perto da praça", "estação Bar"],
+      "examples_nomatch": ["vamos no bar depois?"]
+    },
+    "non_venue_compound": {
+      "basis": "Engine: English compounds where 'bar' is not a venue at all (chocolate bar). Not a drinking-venue sense, so outside the bar lock.",
+      "patterns": ["\\b(chocolate|candy|snack|space|progress|menu|tool|status|search|energy|protein|cereal|granola)\\s+bar\\b"],
+      "examples_match": ["chocolate bar", "the progress bar"],
+      "examples_nomatch": ["meet me at the bar"]
+    },
+    "color": {
+      "basis": "en-pt-slurs.json preto allowlist_senses 'color'; CEO-LOCKS §1 (camiseta preta, …). Extends the allowlist-pt-slang.json phrases to clothing, objects, animals and color pairs.",
+      "patterns": [
+        "\\b(camiseta|camisa|calca|saia|bermuda|tenis|sapato|sapatos|bone|chapeu|gorro|vestido|casaco|moletom|jaqueta|meia|meias|bolsa|mochila|oculos|roupa|roupas|blusa|regata|cadeira|mesa|poltrona|sofa|tapete|carro|bicicleta|bike|gato|cachorro|cavalo|passaro|cabelo|olho|olhos|quadro|piso|chao|cor|linha|faixa|botao|pixel|fundo)s?\\s+(bem\\s+|todo\\s+|toda\\s+)?pret[oa]s?\\b",
+        "\\b(camiseta|camisa|calca|saia|bermuda|tenis|sapato|sapatos|bone|chapeu|gorro|vestido|casaco|moletom|jaqueta|meia|meias|bolsa|mochila|oculos|roupa|roupas|blusa|regata|cadeira|mesa|poltrona|sofa|tapete|carro|bicicleta|bike|gato|cachorro|cavalo|passaro|cabelo|olho|olhos|quadro|piso|chao|cor|linha|faixa|botao|pixel|fundo)s?\\s+(e|eh|ta|esta|era|sao|ficou|fica)\\s+(bem\\s+|todo\\s+|toda\\s+|meio\\s+)?pret[oa]s?\\b",
+        "\\b(de|em|no|na)\\s+pret[oa]\\b",
+        "\\bpret[oa]s?\\s+e\\s+branc[oa]s?\\b",
+        "\\bbranc[oa]s?\\s+e\\s+pret[oa]s?\\b",
+        "\\bpret[oa]s?\\s+(e|ou)\\s+(azul|verde|vermelh[oa]|amarel[oa]|rosa|roxo|laranja|cinza)\\b",
+        "\\b(azul|verde|vermelh[oa]|amarel[oa]|rosa|roxo|laranja|cinza)\\s+(e|ou)\\s+pret[oa]s?\\b",
+        "\\b(quadro|lousa)\\s+pret[oa]\\b"
+      ],
+      "examples_match": ["meu gato é preto", "vestido de preto", "tênis pretos", "cabelo preto"],
+      "examples_nomatch": ["aquele preto ali", "sai daqui, preta"]
+    },
+    "food": {
+      "basis": "en-pt-slurs.json preto allowlist_senses 'food'; CEO-LOCKS §1 (feijão preto, café preto).",
+      "patterns": ["\\b(feijao|cafe|cafezinho|cha|arroz|pao|chocolate|acai|azeitona|uva)\\s+pret[oa]s?\\b"],
+      "examples_match": ["feijão preto", "um cafezinho preto"],
+      "examples_nomatch": ["oi preto"]
+    }
+  },
+
+  "entry_extensions": {
+    "preto": {
+      "variants": ["preta", "pretos", "pretas", "pretinho", "pretinha"],
+      "note": { "pt": "Sua mensagem foi para a revisão da moderação.", "en": "Your message was sent to moderator review before showing." },
+      "basis": "CEO-LOCKS §1 names preto / preta; v0.1 lists only 'preto'."
+    },
+    "macaco": { "variants": ["macaca", "macacos", "macacas"], "basis": "CEO-LOCKS §1 insult sense; gendered/plural forms. Accepted FP: the animal also blocks." },
+    "japa": { "variants": ["japas", "japinha"], "basis": "CEO-LOCKS §1." },
+    "portuga": { "variants": ["portugas"], "basis": "CEO-LOCKS §1." },
+    "crioulo": { "variants": ["crioula"], "basis": "Gendered form." },
+    "retardado": { "variants": ["retardada"], "basis": "Gendered form." },
+    "arrombado": { "variants": ["arrombada"], "basis": "Gendered form." },
+    "foda": { "variants": ["fodase", "foda se"], "basis": "en-pt-slurs.json comment: 'also foda-se / fodase as compounds'." },
+    "gostoso": {
+      "variants": ["gostosos", "gostosao"],
+      "note": { "pt": "Lembrete: elogios aqui são pra comida e pro português, tá?", "en": "Reminder: compliments here are for the food and the Portuguese." },
+      "basis": "CEO-LOCKS §2."
+    },
+    "gostosa": {
+      "variants": ["gostosas", "gostosona"],
+      "note": { "pt": "Lembrete: elogios aqui são pra comida e pro português, tá?", "en": "Reminder: compliments here are for the food and the Portuguese." },
+      "basis": "CEO-LOCKS §2."
+    },
+    "pelada": {
+      "variants": ["peladas"],
+      "note": { "pt": "“Pelada” aqui é só futebol, combinado?", "en": "“Pelada” here only means a pickup football game, okay?" },
+      "basis": "CEO-LOCKS §2 ('pelada' is also pickup football)."
+    },
+    "bar": {
+      "extra_allow_if": ["non_venue_compound"],
+      "note": { "pt": "Aqui a gente vai na lanchonete ou na padaria, tá?", "en": "Here we hang out at the lanchonete or padaria (no bars)." },
+      "basis": "CEO-LOCKS §2."
+    }
+  },
+
+  "ignored_entry_fields": {
+    "escalate_if": "dating-flirting.json sets escalate_if and block_if to the same condition on gostoso / gostosa / pelada. CEO-LOCKS §2 says block, so block_if applies and escalate_if is not used."
+  },
+
+  "extra_terms": [
+    {
+      "id": "slur_extra",
+      "category": "slur",
+      "action": "block",
+      "basis": "constitution.md §3 (slurs: race, sexuality, disability). v0.1 lists are 'representative, not encyclopedic'.",
+      "terms": ["coon", "dyke", "baianada", "aleijado"]
+    },
+    {
+      "id": "profanity_extra",
+      "category": "profanity",
+      "action": "block",
+      "basis": "constitution.md §3 (mild-to-strong profanity blocks in this family product).",
+      "terms": ["fucker", "bastard", "dick", "pussy", "cock", "wtf", "stfu", "boceta", "bosta", "desgraçado", "desgraçada", "fdp", "vtnc", "cacete", "corno"]
+    },
+    {
+      "id": "sexual_extra",
+      "category": "sexual",
+      "action": "block",
+      "basis": "constitution.md §2 (sensuality / body comments).",
+      "terms": ["naked", "porn", "porno", "horny", "boobs", "tits", "penis", "vagina", "pelado", "pelados", "tesão", "peitos", "safadinha", "safadinho"]
+    },
+    {
+      "id": "dating_extra",
+      "category": "dating",
+      "action": "block",
+      "basis": "constitution.md §2 (dating asks, crush confessions).",
+      "terms": ["namorar comigo", "quer namorar", "sair comigo", "go out with me", "ficar comigo", "quer ficar", "crush", "ficante", "paquera", "paquerar", "casa comigo", "marry me"]
+    },
+    {
+      "id": "alcohol_extra",
+      "category": "alcohol",
+      "action": "block",
+      "basis": "constitution.md §1 (alcohol, drinking venues, drunkenness: 'hungover', 'borracho', tipsy roleplay).",
+      "terms": ["cerva", "breja", "dose", "doses", "rum", "gin", "hangover", "ressaca", "bebum", "borracho", "chapado", "chapada", "vamos beber", "bora beber", "get drunk", "tipsy", "barzinho", "happy hour"]
+    },
+    {
+      "id": "drugs",
+      "category": "drugs",
+      "action": "block",
+      "basis": "Family product; same treatment as the constitution §1 substance ban.",
+      "terms": ["maconha", "weed", "cocaine", "cocaína", "drogas", "drugs", "baseado", "vape", "cigarro", "cigarette", "lsd"]
+    }
+  ],
+
+  "jev_rules": [
+    {
+      "id": "insult",
+      "label": "bullying",
+      "action": "block",
+      "basis": "public-chat-pack pc05 ('você é um idiota' → block: 'mild insult — family product blocks'), pc06, pc12.",
+      "terms": ["idiota", "burro", "burra", "imbecil", "babaca", "otário", "otária", "stupid", "idiot", "loser", "dumb", "shut up", "cala a boca", "ninguém gosta de você", "nobody likes you", "you are ugly", "você é feio", "você é feia"]
+    },
+    {
+      "id": "threats",
+      "label": "bullying",
+      "action": "escalate",
+      "basis": "constitution.md §Escalation; ops note (stub Jev escalate → always enqueue).",
+      "terms": ["kill yourself", "kys", "se mata", "vai se matar", "go die", "vou te matar", "i will kill you", "vou te achar"],
+      "note": { "pt": "Mensagem enviada para a moderação.", "en": "This message was sent to moderators." }
+    },
+    {
+      "id": "self_harm",
+      "label": "self_harm",
+      "action": "escalate",
+      "basis": "constitution.md §Escalation; docs/AGE_POLICY.md (self-harm messages are escalated).",
+      "terms": ["kill myself", "want to die", "quero morrer", "vou me matar", "quero me matar", "suicide", "suicídio", "cut myself", "me cortar"]
+    },
+    {
+      "id": "politics",
+      "label": "politics",
+      "action": "block",
+      "basis": "constitution.md §3 + surface matrix (player chat: politics/religion fight = block). Bare 'lula' (squid) is food and stays allowed.",
+      "terms": ["bolsonaro", "bolsonarista", "bolsominion", "presidente lula", "lula presidente", "lula livre", "vote no", "vote na", "vote em", "vota no", "vota em", "trump", "biden", "kamala", "maga", "eleição", "eleições", "election", "comunista", "communist", "fascista", "fascist", "petista", "esquerdista", "direitista", "golpista", "candidato", "candidata"]
+    },
+    {
+      "id": "religion_argument",
+      "label": "politics",
+      "action": "block",
+      "basis": "constitution.md §3 (religious argument / proselytizing / mockery).",
+      "terms": ["aceite jesus", "converta se", "sua religião é falsa", "religião de merda", "infiel", "herege"]
+    },
+    {
+      "id": "scam_rmt",
+      "label": "scam",
+      "action": "block",
+      "basis": "constitution.md §5; public-chat-pack pc10 ('vendo conta por pix barato' → scam). pix / paypal / crypto stay with the canonical PII pix_rmt_hint fixture.",
+      "terms": ["vendo conta", "compro conta", "sell account", "buy account", "free coins", "free rv", "moedas grátis", "rv grátis", "your password", "sua senha", "password", "senha", "credit card", "cartão de crédito", "cashapp", "gift card", "dinheiro real", "real money", "suporte oficial", "official support", "staff do tudo bem"]
+    },
+    {
+      "id": "flirt_directed",
+      "label": "dating",
+      "action": "block",
+      "when": "flirt_or_body_directed",
+      "basis": "constitution.md §2 (pickup lines, body rating); pc15 / pc16. Shares the condition that upgrades gostoso / gostosa / pelada."
+    }
+  ],
+
+  "pii_hardening": {
+    "social_handle_at": {
+      "pattern": "\\b(?:(?:add|follow)(?:\\s+me)?|me\\s+(?:chama|segue|add|adiciona)|meu\\s+(?:insta(?:gram)?|ig|tiktok|snap(?:chat)?))(?:\\s+(?:on\\s+|no\\s+|na\\s+)?(?:ig|insta(?:gram)?|tiktok|snap(?:chat)?))?\\s*:?\\s*@[a-z0-9._]+|\\b(?:insta(?:gram)?|tiktok|snap(?:chat)?|ig)\\s*:\\s*@?[a-z0-9._]{3,}|\\bmeu\\s+(?:insta(?:gram)?|ig|tiktok|snap(?:chat)?)\\s*:?\\s*@?[a-z0-9._]{3,}",
+      "flags": "i",
+      "reason": "The v0.1 pattern starts with '(?i)', which JavaScript rejects, and has no leading word boundary, so 'ig' fires inside 'obrigado' (an allowlisted word) and 'add' + any word blocks 'add sugar'. It also misses two of its own examples ('add me @coolkid99', 'follow ig @x'). This version requires a contact verb or platform word at a word boundary, followed by an @handle, or a platform label with a colon or 'meu insta …'. CI checks it against every v0.1 example."
+    },
+    "school_name_hint": {
+      "pattern": "\\b(?:escola|colégio|colegio|university|universidade|high school|middle school)\\s+[A-Za-zÀ-ÿ0-9 .'-]{2,}|\\b(?!(?:to|a|an|the|my|our|your|in|at|of|from|local|public)\\s)[A-Za-zÀ-ÿ]{2,}\\s+(?:high|middle)\\s+school\\b",
+      "flags": "i",
+      "reason": "The v0.1 pattern only looks for a name after the school word, so it misses its own example 'I go to Lincoln High School'. Added the English order (name before 'High School'), skipping 'to / my / the high school' so no name means no match."
+    }
+  },
+
+  "pii_extra": [
+    {
+      "id": "url",
+      "pattern": "\\b(https?:\\/\\/|www\\.)\\S+",
+      "flags": "i",
+      "category": "link",
+      "action": "block",
+      "basis": "constitution.md §4 (invite links).",
+      "examples_match": ["entra em www.site-estranho.com", "https://bit.ly/x"],
+      "examples_nomatch": ["www é legal"]
+    },
+    {
+      "id": "domain",
+      "pattern": "\\b[\\w-]+\\.(com|net|org|br|io|gg|me|tv|app|xyz|ly)\\b",
+      "flags": "i",
+      "category": "link",
+      "action": "block",
+      "basis": "constitution.md §4 (invite links).",
+      "examples_match": ["acessa meusite.com.br"],
+      "examples_nomatch": ["tudo bem. bom dia"]
+    },
+    {
+      "id": "platform_names",
+      "pattern": "\\b(discord|whatsapp|whats app|wpp|zap|zapzap|telegram|insta|instagram|snap|snapchat|tiktok|tik tok|facebook|kik|skype|twitter|signal)\\b",
+      "flags": "i",
+      "normalized": true,
+      "category": "social_handle",
+      "action": "block",
+      "basis": "constitution.md §4 (Instagram / Snap / TikTok handles for meeting off-platform). v0.1 names only Discord, WhatsApp and Telegram.",
+      "examples_match": ["tem insta?", "me acha no tiktok"],
+      "examples_nomatch": ["whats up everyone", "o zapping da tv"]
+    },
+    {
+      "id": "contact_asks",
+      "pattern": "\\b(add me|me adiciona|me add|my number|meu numero|meu zap|me chama no|text me|dm me|me manda dm|follow me|me segue|qr code)\\b",
+      "flags": "i",
+      "normalized": true,
+      "category": "social_handle",
+      "action": "block",
+      "basis": "constitution.md §4 ('Add me on…', QR contact).",
+      "examples_match": ["me adiciona lá", "qual teu numero? my number is"],
+      "examples_nomatch": ["me adicionei na fila do jogo"]
+    },
+    {
+      "id": "full_name_bait",
+      "pattern": "\\b(my (real|full) name is|meu nome (real|completo)|my last name|my surname|meu sobrenome)",
+      "flags": "i",
+      "category": "real_name",
+      "action": "block",
+      "basis": "constitution.md §4 (real full names used as contact bait).",
+      "examples_match": ["my full name is Ana Maria Souza", "meu sobrenome é Silva"],
+      "examples_nomatch": ["meu nome é Ana"]
+    },
+    {
+      "id": "school_home",
+      "pattern": "\\b(my school is|i go to .{0,20}school|i study at|minha escola (e|é)|eu estudo n[oa] (escola|colégio|colegio)|meu col[eé]gio (e|é)|i live (at|on) \\d)",
+      "flags": "i",
+      "category": "school",
+      "action": "block",
+      "basis": "constitution.md §4 (home/school addresses). v0.1 school_name_hint needs 'high/middle school' + a name.",
+      "examples_match": ["my school is Lincoln Middle", "i live at 42 somewhere"],
+      "examples_nomatch": ["eu moro no Canadá", "sou dos EUA"]
+    },
+    {
+      "id": "phone_generic",
+      "pattern": "(?:\\+?\\d[\\s().-]*){7,}",
+      "flags": "",
+      "category": "phone",
+      "action": "block",
+      "basis": "constitution.md §4 (phone numbers). v0.1 covers US + BR formats only; this catches other countries' 7+ digit runs.",
+      "examples_match": ["+44 7911 123456", "zap 11987654321"],
+      "examples_nomatch": ["me vê 2 pães e 3 cafés", "nota 10 pra padaria"]
+    }
+  ],
+
+  "fixture_divergences": [
+    {
+      "pack": "jev/public-chat-pack.json",
+      "id": "pc18",
+      "field": "action",
+      "canonical": "escalate",
+      "engine": "block",
+      "reason": "Constitution surface matrix: player chat politics/religion fight = block. The example's own note says 'constitution ban; escalate until dedicated class exists'. The engine has a dedicated politics rule, so it blocks (CEO direction 2026-09-26: alcohol + politics block per constitution). content_class still answers 'insult' as labeled."
+    }
+  ],
+
+  "lexicon": {
+    "en_extra": ["shut", "up", "grab", "wanna", "gonna", "gotta", "add", "on", "get", "say", "bakery", "portuguese", "date", "hot", "crypto", "bitcoin", "everyone", "guys", "dude", "whats", "what's", "wanted", "please", "slur", "word"],
+    "basis": "English tokens for contains_english_majority / NPC reply language, on top of the gloss hints and every lang:'en' term in the v0.1 blocklists."
+  }
+}

@@ -1,53 +1,287 @@
 {
-  "_meta": {
-    "status": "engineering-draft",
-    "todo": "TODO(T&S): replace with canonical dating-flirting.json (not in ingest attachment). Drafted from constitution.md §2 + CEO-LOCKS §2 (gostoso/gostosa/pelada).",
-    "stack_position": 3
-  },
-  "rules": [
+  "version": "0.1",
+  "description": "Pickup / dating / sensual / body-comment terms EN+PT. action block or warn per entry. Learning compliments on language effort are out of scope (allow).",
+  "entries": [
     {
-      "id": "flirt_body_directed",
-      "label": "sexual",
+      "term": "you're hot",
+      "lang": "en",
+      "severity": "exact",
       "action": "block",
-      "source": "CEO-LOCKS §2 — gostoso/gostosa/pelada escalate from warn to block when flirt / body-directed.",
-      "patterns": [
-        "\\b(vc|voce|tu|ela|ele|you|u)\\s+(e|eh|ta|esta|fica|ficou|is|are|r|look|looks)\\s+(muito\\s+|mo\\s+|mt\\s+|tao\\s+|so\\s+|super\\s+|really\\s+)?(gostos[oa]|pelad[oa]|hot|sexy|delicia|gat[oa]|lind[oa] demais)\\b",
-        "\\b(oi|ola|ei|e ai|fala|hey|hi|hello)\\s+(minha\\s+|meu\\s+)?(gostos[oa]|delicia|gat[oa]|sexy|hot)\\b",
-        "\\b(gostos[oa]|delicia|gat[oa]|sexy)\\s+(voce|vc|demais voce|you)\\b",
-        "\\b(fica|ficar|fique|manda|mande|foto|fotos)\\s+(\\w+\\s+)?pelad[oa]s?\\b",
-        "\\b(send|show)\\s+(me\\s+)?(pics|nudes|body)\\b"
-      ]
+      "category": "body_comment"
     },
     {
-      "id": "sexual_terms",
-      "label": "sexual",
+      "term": "you are hot",
+      "lang": "en",
+      "severity": "exact",
       "action": "block",
-      "terms": ["sex", "sexy", "nude", "nudes", "naked", "porn", "porno", "horny", "boobs", "tits", "penis", "vagina", "sexo", "pelado", "tesao", "peitos", "safadinha", "safadinho", "gostosona", "gostosao"]
+      "category": "body_comment"
     },
     {
-      "id": "dating",
-      "label": "dating",
+      "term": "sexy",
+      "lang": "en",
+      "severity": "word_boundary",
       "action": "block",
-      "terms": [
-        "namora comigo", "namorar comigo", "quer namorar", "sair comigo", "me beija", "kiss me", "date me", "go out with me", "be my girlfriend", "be my boyfriend",
-        "seja minha namorada", "seja meu namorado", "ficar comigo", "fica comigo", "quer ficar", "crush", "ficante", "paquera", "paquerar", "casa comigo", "marry me"
-      ]
+      "category": "sensuality"
     },
     {
-      "id": "high_fp_body_words",
-      "label": "sexual",
+      "term": "send nudes",
+      "lang": "en",
+      "severity": "exact",
+      "action": "block",
+      "category": "sexual"
+    },
+    {
+      "term": "nudes",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "sexual"
+    },
+    {
+      "term": "date me",
+      "lang": "en",
+      "severity": "exact",
+      "action": "block",
+      "category": "dating"
+    },
+    {
+      "term": "be my girlfriend",
+      "lang": "en",
+      "severity": "exact",
+      "action": "block",
+      "category": "dating"
+    },
+    {
+      "term": "be my boyfriend",
+      "lang": "en",
+      "severity": "exact",
+      "action": "block",
+      "category": "dating"
+    },
+    {
+      "term": "netorare",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "sexual"
+    },
+    {
+      "term": "hook up",
+      "lang": "en",
+      "severity": "exact",
+      "action": "block",
+      "category": "dating"
+    },
+    {
+      "term": "hookup",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "dating"
+    },
+    {
+      "term": "make out",
+      "lang": "en",
+      "severity": "exact",
       "action": "warn",
-      "source": "CEO-LOCKS §2 — gostoso / gostosa / pelada: warn (normal for food / pickup football), block only when flirt-directed (rule above).",
-      "terms": ["gostoso", "gostosa", "gostosos", "gostosas"],
-      "note": { "pt": "Lembrete: elogios aqui são pra comida e pro português, tá?", "en": "Reminder: compliments here are for the food and the Portuguese." }
+      "category": "sensuality"
     },
     {
-      "id": "high_fp_pelada",
-      "label": "sexual",
+      "term": "kiss me",
+      "lang": "en",
+      "severity": "exact",
       "action": "warn",
-      "source": "CEO-LOCKS §2 — 'pelada' is also a pickup football game; warn, block only if body-directed.",
-      "terms": ["pelada", "peladas"],
-      "note": { "pt": "“Pelada” aqui é só futebol, combinado?", "en": "“Pelada” here only means a pickup football game, okay?" }
+      "category": "sensuality"
+    },
+    {
+      "term": "I love you",
+      "lang": "en",
+      "severity": "exact",
+      "action": "warn",
+      "category": "dating",
+      "comment": "warn not block — kids say this platonic; escalate if +PII"
+    },
+    {
+      "term": "dm me",
+      "lang": "en",
+      "severity": "exact",
+      "action": "block",
+      "category": "off_platform_adjacent"
+    },
+    {
+      "term": "slide into my dms",
+      "lang": "en",
+      "severity": "exact",
+      "action": "block",
+      "category": "off_platform_adjacent"
+    },
+    {
+      "term": "gostosa",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "warn",
+      "category": "body_comment",
+      "escalate_if": "flirt_or_body_directed",
+      "block_if": "flirt_or_body_directed",
+      "comment": "CEO lock 2026-09-25: warn default; block when flirt/body-directed (Jev content_class dating/sexual)",
+      "ceo_lock": "2026-09-25"
+    },
+    {
+      "term": "gostoso",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "warn",
+      "category": "body_comment",
+      "comment": "CEO lock 2026-09-25: warn default; block when flirt/body-directed (Jev content_class dating/sexual)",
+      "escalate_if": "flirt_or_body_directed",
+      "block_if": "flirt_or_body_directed",
+      "ceo_lock": "2026-09-25"
+    },
+    {
+      "term": "gatinha",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "warn",
+      "category": "flirting"
+    },
+    {
+      "term": "gatinho",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "warn",
+      "category": "flirting"
+    },
+    {
+      "term": "safada",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "sensuality"
+    },
+    {
+      "term": "safado",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "sensuality"
+    },
+    {
+      "term": "nude",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "sexual"
+    },
+    {
+      "term": "nudes",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "sexual"
+    },
+    {
+      "term": "manda nudes",
+      "lang": "pt-BR",
+      "severity": "exact",
+      "action": "block",
+      "category": "sexual"
+    },
+    {
+      "term": "fica comigo",
+      "lang": "pt-BR",
+      "severity": "exact",
+      "action": "block",
+      "category": "dating"
+    },
+    {
+      "term": "namora comigo",
+      "lang": "pt-BR",
+      "severity": "exact",
+      "action": "block",
+      "category": "dating"
+    },
+    {
+      "term": "seja minha namorada",
+      "lang": "pt-BR",
+      "severity": "exact",
+      "action": "block",
+      "category": "dating"
+    },
+    {
+      "term": "seja meu namorado",
+      "lang": "pt-BR",
+      "severity": "exact",
+      "action": "block",
+      "category": "dating"
+    },
+    {
+      "term": "te amo",
+      "lang": "pt-BR",
+      "severity": "exact",
+      "action": "warn",
+      "category": "dating",
+      "comment": "platonic common; warn"
+    },
+    {
+      "term": "me beija",
+      "lang": "pt-BR",
+      "severity": "exact",
+      "action": "warn",
+      "category": "sensuality"
+    },
+    {
+      "term": "quero te conhecer melhor",
+      "lang": "pt-BR",
+      "severity": "exact",
+      "action": "warn",
+      "category": "dating",
+      "comment": " innocuous learning OK; warn when +contact ask"
+    },
+    {
+      "term": "manda dm",
+      "lang": "pt-BR",
+      "severity": "exact",
+      "action": "block",
+      "category": "off_platform_adjacent"
+    },
+    {
+      "term": "me chama no priv",
+      "lang": "pt-BR",
+      "severity": "exact",
+      "action": "block",
+      "category": "off_platform_adjacent"
+    },
+    {
+      "term": "pelada",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "warn",
+      "category": "sexual",
+      "comment": "CEO lock 2026-09-25: warn default; block when flirt/body-directed (Jev content_class dating/sexual)",
+      "escalate_if": "flirt_or_body_directed",
+      "block_if": "flirt_or_body_directed",
+      "ceo_lock": "2026-09-25"
+    },
+    {
+      "term": "transar",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "sexual"
+    },
+    {
+      "term": "sexo",
+      "lang": "pt-BR",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "sexual"
+    },
+    {
+      "term": "sex",
+      "lang": "en",
+      "severity": "word_boundary",
+      "action": "block",
+      "category": "sexual"
     }
   ]
 }

@@ -1,26 +1,44 @@
-> **Status:** engineering-draft — TODO(T&S): replace with the canonical `ops/report-mute-kick-phase0.md` (not in the ingest attachment). This describes what the Phase 0 build actually does today.
+# Report / Mute / Kick — Phase 0 Ops Policy
 
-# Report / mute / kick — Phase 0 (as built)
+GDD §12.6. Stub expectations for Phase 0. Real human queue comes later.
 
-Stack step 4 (escalate queue) per `../README.md`.
+## Player report
 
-## What ships in Phase 0
+- **Surfaces:** chat bubbles, player profiles (and later: NPC abuse reports if players can flag bad generation).
+- **Reasons (minimum set):** harassment, slur/hate, sexual, PII / off-platform, scam / RMT, alcohol / prohibited, dating / flirting, other.
+- **Flow:** report → message/profile snapshot frozen → `escalate` flag on stub queue (log + DB row). Do **not** auto-ban on single report in Phase 0.
 
-| Event | Trigger | Player sees | Stored |
-|---|---|---|---|
-| **block** | PII regex, slur/profanity, alcohol, dating/sexual, scam, politics | Message not shown; friendly PT + EN note | `data/moderation.jsonl` (`kind: block`, labels) |
-| **warn** | high-FP tokens (gostoso/gostosa/pelada, bar), mild insults, spam | Message shown **verbatim**; note to sender where configured | `kind: warn` |
-| **escalate** | self-harm, threats, `preto/preta` outside color/food context | Message not shown; supportive or “sent to review” note | `kind: escalate` + server console warning |
-| **report** | “Denunciar” on a player profile card | “Obrigado! Nossa equipe vai dar uma olhada.” | `kind: report`, reporter, target id, last bubble text |
+## Automation vs human
 
-- Player chat is **never rewritten or masked** (CEO-LOCKS §3).
-- Rate limit: 5 messages / 10 s per player.
-- The solo static preview keeps the queue in memory only (no server).
+| Path | Phase 0 behavior |
+|------|------------------|
+| Client regex PII hit | auto **block** send |
+| Slur / hard profanity blocklist | auto **block** send |
+| Stub Jev `block` | auto **block** send |
+| Stub Jev `escalate` | allow or soft-hide per toxicity; always enqueue |
+| Player report | always enqueue; no auto-permaban |
 
-## Not in Phase 0 (TODO Phase 1)
+## Moderator actions (schema ready; UI may be stub)
 
-- Staff console to review `moderation.jsonl` and clear the escalate queue.
-- Mute (per-player, timed), kick from instance, temp-ban, permaban.
-- Kitnet owner boot.
-- Report reasons picker; repeat-offender scoring; hide-on-high-toxicity.
-- Metrics: false-block rate on the PT slang allowlist (KPI), queue age, reports per 1k messages.
+1. **Mute** — user cannot send public chat for N minutes (default 10 / 60 / 1440).
+2. **Kick instance** — remove from current shard/instance; can rejoin.
+3. **Temp ban** — account cannot enter world for duration (e.g. 1d / 7d / 30d).
+4. **Permaban** — permanent; requires human confirmation (not stub-auto).
+
+Mute/kick may be applied by trusted ops tools when wired; Phase 0 stub can no-op the effect but **must** record the intended action + reason for metrics.
+
+## Escalation queue (stub)
+
+- Fields: `report_id`, `reporter_id`, `target_id`, `surface`, `reason`, `snapshot_text`, `jev_labels`, `toxicity`, `created_at`, `status=pending`.
+- Later: human review UI, SLA, appeal. Phase 0: write-only log acceptable if documented.
+
+## Transparency
+
+- Blocked senders get a short, non-lecturing toast (EN+PT): e.g. “Essa mensagem não pode ser enviada. / That message can’t be sent.”
+- Do not reveal exact blocklist terms in client UI (evasion aid).
+
+## Metrics KPI
+
+- False-block rate on `allowlist-pt-slang.json`
+- PII catch rate on `pii/regex-fixtures.json` examples
+- Report → action latency (informational until humans online)
