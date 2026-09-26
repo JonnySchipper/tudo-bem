@@ -13,6 +13,18 @@ Target: `TudoBem-Phase0-MVP.md` (success criteria 1–4) and GDD v1.0 §14.1.
   3. Settings → Pages → Source: GitHub Actions (needs Pro/Team for a private repo) → `pages.yml` deploys the **solo** build to **https://jonnyschipper.github.io/tudo-bem/**.
 - **Solo build:** the authoritative `World` runs in the browser, so the whole play path works from any static host. The solo e2e passes against it under `/tudo-bem/`, including on GitHub Actions.
 
+## Art polish v2 (2026-09-26)
+
+TB Art **polish brief v2**: all five levers, applied inside Praça, Padaria, Kitnet, the paper-doll, hats, Verde plates and the UI. No new rooms, no deploy changes. Details and before/after screenshots at 1280 are in [`docs/art/README.md`](docs/art/README.md#polish-v2-tb-art-brief-v2-2026-09-26) and `docs/art/polish-v2/`.
+
+- **Depth:** soft warm-ink contact shadows everywhere, floor and wall AO, and a hazy far skyline.
+- **Lighting:** Praça late-afternoon key from the upper-left with lamp pools. Padaria warm morning with a window sun patch, glass specular and a toldo stripe shadow on the counter. Kitnet daylight with the window as the brightest plane and a vignette into the corners.
+- **Materials:** petit-pavé calçada with the SP map set in as mosaic, grass curbs, wood grain, ladrilho wear, plaster mottling, metal highlights, and an ipê canopy made of leaf clusters.
+- **Praça density:** café table, newspaper stack, trash bag, planters, filled bike rack, pigeon flocks and metrô posters, all off the CPU lanes and interact tiles. The hero ipê moved to (4,7) and Júlia to (8,4) so the kiosk is never covered.
+- **Avatar + UI:** slightly taller avatars with a hat halo, solid sp-green / terracotta plates, cream chrome with a 1px ink edge, a terracotta CTA, and a chat bar that sits on a wood edge like a counter.
+- **Missão do dia:** the kiosk totem and panel carry the Curriculum-locked copy (**Missão do dia** · **Pegar missão** · **Cumprimenta · Pede · Monta** · **Missão completa! +25 RV**) with an icon row and a +25 RV badge. It works in the solo Pages build, and e2e asserts the strings on both builds.
+- `node scripts/shots.mjs` regenerates the review screenshots from a served solo build.
+
 ## Phase 0 polish (2026-09-25, second pass)
 
 Landed on top of the vertical slice. No deploy changes; the permanent URL still needs the one-time action above.
@@ -23,7 +35,7 @@ Landed on top of the vertical slice. No deploy changes; the permanent URL still 
 - **Art deltas** (rebaked with `pnpm art`). Padaria and Kitnet walls are palette cream `#F5E6D3` with terracotta / wood-warm trim; the padaria's pale-blue azulejo band is a glazed terracotta wainscot. The palm is gone: three ipês, with the centre one at hero scale. The Kitnet window is a painted **daylight street** under a new neutral `dia` lighting (it was a night skyline). The calçada floor and `pattern_calcada` use the **São Paulo state-map mosaic** instead of the Copacabana wave. Avatars have a smaller head and longer body; brimmed hats keep their size as the silhouette hero, and snug caps hug the head. Two extra Praça benches (6 total) give players and CPUs room to share.
 - **Hand-painted overrides are protected.** `pnpm art` copies anything in `apps/client/art-overrides/<key>.png` (optional `<key>.json` framing) over the generated sprite and flags it in the manifest; a test fails if one gets clobbered. The folder is empty today. Before this, the bake overwrote hand-painted files in `public/art`.
 
-**Smoke the ambiance locally:** `pnpm build && pnpm start`, open http://localhost:8787 and create an avatar. You land with 5 neighbors (`1/16 aqui · 5 vizinhos`). Press **Oi!** near one and it waves back. Click a bench a CPU is sitting on and it gets up for you. Open a second window and the crowd thins to 4. `curl localhost:8787/healthz` shows `ambiance` counts per instance. Run the server with `LIVEOPS_CPU_AMBIANCE=off` for an empty Praça. For the kiosk, click the quest kiosk next to Júlia at the back of the Praça → *Pegar missão*.
+**Smoke the ambiance locally:** `pnpm build && pnpm start`, open http://localhost:8787 and create an avatar. You land with 5 neighbors (`1/16 aqui · 5 vizinhos`). Press **Oi!** near one and it waves back. Click a bench a CPU is sitting on and it gets up for you. Open a second window and the crowd thins to 4. `curl localhost:8787/healthz` shows `ambiance` counts per instance. Run the server with `LIVEOPS_CPU_AMBIANCE=off` for an empty Praça. For the kiosk, click the terracotta *Missão do dia* kiosk at the back-left of the Praça → *Pegar missão*.
 
 ## Safety v0.1 fold (2026-09-26)
 
