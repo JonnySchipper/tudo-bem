@@ -259,7 +259,7 @@ export function chooseChip(nodeId: string, chipIndex: number, ctx: SceneCtx, sco
 export interface TypedReplyScore {
   /** Chip the typed reply maps to, or null when Carlos didn't understand. */
   chip: number | null;
-  /** Jev NPC-reply pack answers (content/safety/phase0/jev/npc-reply-pack.json). */
+  /** Accept-list score (content/curriculum/phase0/accept-list-rules.md); Jev's pack view is `jevNpcReply`. */
   task_success: 0 | 1 | 2 | 3;
   language: 'pt' | 'en' | 'mix' | 'gibberish';
   answers_the_npc_question: boolean;

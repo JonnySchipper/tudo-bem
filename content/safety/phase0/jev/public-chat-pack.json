@@ -1,71 +1,892 @@
 {
   "_meta": {
-    "status": "engineering-draft",
-    "todo": "TODO(T&S): replace with canonical jev/public-chat-pack.json (not in ingest attachment). Questions follow GDD §12.4; fixtures encode constitution.md + CEO-LOCKS-2026-09-25 and run in CI against the stub Jev (packages/shared/src/safety.ts).",
+    "status": "safety-v0.1",
+    "source": "tb-safety/phase0/jev/public-chat-pack.json v0.1 — verbatim snapshot in content/safety/source-v0.1/jev/public-chat-pack.json",
+    "converted": "v0.1 `entries` converted to the engineering ingest shape the game reads. CI (packages/shared/src/safety.test.ts) checks every v0.1 entry / example is carried over with the same action.",
+    "gdd_ref": "§12.4 public chat",
     "stack_position": 2,
-    "actions": ["allow", "warn", "block", "escalate"],
+    "actions": [
+      "allow",
+      "warn",
+      "block",
+      "escalate"
+    ],
     "action_semantics": {
       "allow": "delivered verbatim",
-      "warn": "delivered verbatim + optional note to sender + logged",
+      "warn": "delivered verbatim + note to sender + logged",
       "block": "not delivered + note to sender",
-      "escalate": "not delivered, queued for human review + note to sender"
+      "escalate": "not delivered, queued for human review (status pending) + note to sender"
     },
-    "rewrite": "rewrite_not_used — player chat is NEVER auto-rewritten or masked (CEO-LOCKS §3)"
+    "rewrite": "rewrite_not_used — player chat is NEVER auto-rewritten or masked (CEO-LOCKS §3)",
+    "content_class": "Answers use the v0.1 choices. v0.1 has no politics / self-harm class: both answer \"insult\" (as pc18 does); the precise engine label is logged in SafetyVerdict.labels.",
+    "fixtures": "source \"v0.1\" = the v0.1 labeled examples (all five typed answers checked; toxicity ±0.15). source \"eng\" = CEO-lock edges, e2e chat lines and false-block guards (action + content_class + top label checked)."
   },
   "questions": [
-    { "id": "content_class", "type": "choice", "options": ["ok", "insult", "sexual", "pii", "scam", "slurs", "prohibited_substance", "dating", "off_platform_contact", "politics", "self_harm", "ethnic_review", "spam"] },
-    { "id": "contains_english_majority", "type": "noul" },
-    { "id": "looks_like_real_name_or_phone", "type": "noul" },
-    { "id": "toxicity", "type": "score", "range": [0, 1] },
-    { "id": "action", "type": "choice", "options": ["allow", "rewrite_not_used", "block", "escalate", "warn"] }
+    {
+      "id": "content_class",
+      "type": "choice",
+      "options": [
+        "ok",
+        "insult",
+        "sexual",
+        "pii",
+        "scam",
+        "slurs",
+        "prohibited_substance",
+        "dating",
+        "off_platform_contact"
+      ]
+    },
+    {
+      "id": "contains_english_majority",
+      "type": "noul",
+      "description": "true if message is majority English tokens (learning world may still allow EN; flag for analytics / soft nudge)"
+    },
+    {
+      "id": "looks_like_real_name_or_phone",
+      "type": "noul",
+      "description": "true if message appears to contain a real personal name used as contact bait and/or phone-like digit runs"
+    },
+    {
+      "id": "toxicity",
+      "type": "score",
+      "range": [
+        0,
+        1
+      ],
+      "description": "0 clean → 1 severe"
+    },
+    {
+      "id": "action",
+      "type": "choice",
+      "options": [
+        "allow",
+        "warn",
+        "block",
+        "escalate",
+        "rewrite_not_used"
+      ]
+    }
   ],
+  "action_policy": {
+    "allow": "Normal chat, learning, slang allowlist",
+    "warn": "Soft flag / UI toast; message may still show or be soft-held per client",
+    "block": "Hard fail constitution / blocklist / PII",
+    "escalate": "Ambiguous ethnic/context (e.g. bare preto); hide optional + queue",
+    "rewrite_not_used": "CEO lock 2026-09-25: NEVER auto-rewrite player chat in Phase 0"
+  },
+  "ceo_locks_2026_09_25": {
+    "ethnic": "block macaco/japa/portuga; preto escalate unless color/food allowlist",
+    "high_fp": "cu block; gostoso/pelada warn→block if flirt/body; bar warn unless address/place",
+    "rewrite": "rewrite_not_used — allow/warn/block/escalate only"
+  },
   "fixtures": [
-    { "text": "Oi, tudo bem?", "action": "allow", "content_class": "ok" },
-    { "text": "tá bom, cara, muito legal", "action": "allow", "content_class": "ok" },
-    { "text": "a gente vai pra padaria, né?", "action": "allow", "content_class": "ok" },
-    { "text": "hello everyone, what's up?", "action": "allow", "content_class": "ok", "contains_english_majority": true },
-    { "text": "bora jogar Me vê um?", "action": "allow", "content_class": "ok" },
-
-    { "text": "me liga 11 98765-4321", "action": "block", "content_class": "pii", "looks_like_real_name_or_phone": true },
-    { "text": "add me on discord", "action": "block", "content_class": "off_platform_contact" },
-    { "text": "me chama no zap", "action": "block", "content_class": "off_platform_contact" },
-    { "text": "my email is kid@example.com", "action": "block", "content_class": "pii" },
-    { "text": "my full name is Ana Maria Souza", "action": "block", "content_class": "pii", "looks_like_real_name_or_phone": true },
-
-    { "text": "seu macaco", "action": "block", "content_class": "slurs", "lock": "CEO §1" },
-    { "text": "ô japa, sai daí", "action": "block", "content_class": "slurs", "lock": "CEO §1" },
-    { "text": "esse portuga não sabe falar", "action": "block", "content_class": "slurs", "lock": "CEO §1" },
-    { "text": "feijão preto com arroz", "action": "allow", "content_class": "ok", "lock": "CEO §1" },
-    { "text": "um café preto, por favor", "action": "allow", "content_class": "ok", "lock": "CEO §1" },
-    { "text": "comprei uma camiseta preta", "action": "allow", "content_class": "ok", "lock": "CEO §1" },
-    { "text": "meu gato é preto", "action": "allow", "content_class": "ok", "lock": "CEO §1" },
-    { "text": "vou de preto na festa junina", "action": "allow", "content_class": "ok", "lock": "CEO §1" },
-    { "text": "aquele preto ali", "action": "escalate", "content_class": "ethnic_review", "lock": "CEO §1" },
-    { "text": "sai daqui, preta", "action": "escalate", "content_class": "ethnic_review", "lock": "CEO §1" },
-
-    { "text": "vai tomar no cu", "action": "block", "content_class": "insult", "lock": "CEO §2" },
-    { "text": "cuidado com o degrau", "action": "allow", "content_class": "ok", "lock": "CEO §2 (cu exact only)" },
-    { "text": "Essa coxinha tá gostosa!", "action": "warn", "content_class": "sexual", "lock": "CEO §2" },
-    { "text": "bora jogar uma pelada no parque?", "action": "warn", "content_class": "sexual", "lock": "CEO §2" },
-    { "text": "você é gostosa", "action": "block", "content_class": "sexual", "lock": "CEO §2" },
-    { "text": "oi gostosa", "action": "block", "content_class": "sexual", "lock": "CEO §2" },
-    { "text": "manda foto pelada", "action": "block", "content_class": "sexual", "lock": "CEO §2" },
-    { "text": "vamos no bar depois?", "action": "warn", "content_class": "prohibited_substance", "lock": "CEO §2" },
-    { "text": "a estação da Rua do Bar fica ali", "action": "allow", "content_class": "ok", "lock": "CEO §2" },
-
-    { "text": "bora tomar uma cerveja", "action": "block", "content_class": "prohibited_substance" },
-    { "text": "tô bêbado kkk", "action": "block", "content_class": "prohibited_substance" },
-    { "text": "vamos no boteco", "action": "block", "content_class": "prohibited_substance" },
-    { "text": "um guaraná e um suco, por favor", "action": "allow", "content_class": "ok" },
-    { "text": "quer namorar comigo?", "action": "block", "content_class": "dating" },
-    { "text": "what the fuck", "action": "block", "content_class": "insult" },
-    { "text": "que porra é essa", "action": "block", "content_class": "insult" },
-    { "text": "seu viado", "action": "block", "content_class": "slurs" },
-    { "text": "vote no Bolsonaro", "action": "block", "content_class": "politics" },
-    { "text": "me vê uma lula frita", "action": "allow", "content_class": "ok" },
-    { "text": "free coins here, send pix", "action": "block", "content_class": "scam" },
-    { "text": "cala a boca, idiota", "action": "warn", "content_class": "insult" },
-    { "text": "eu quero morrer", "action": "escalate", "content_class": "self_harm" },
-    { "text": "kys", "action": "escalate", "content_class": "insult" }
+    {
+      "id": "pc01",
+      "text": "E aí, cara, tudo bem? Bora pra padaria?",
+      "lang": "pt-BR",
+      "content_class": "ok",
+      "contains_english_majority": false,
+      "looks_like_real_name_or_phone": false,
+      "toxicity": 0,
+      "action": "allow",
+      "note": "ALLOW slang: e aí, cara, pra",
+      "source": "v0.1"
+    },
+    {
+      "id": "pc02",
+      "text": "blz, vlw! a gente se fala né",
+      "lang": "pt-BR",
+      "content_class": "ok",
+      "contains_english_majority": false,
+      "looks_like_real_name_or_phone": false,
+      "toxicity": 0,
+      "action": "allow",
+      "note": "ALLOW slang pack",
+      "source": "v0.1"
+    },
+    {
+      "id": "pc03",
+      "text": "pô, legal demais esse guaraná kkk",
+      "lang": "pt-BR",
+      "content_class": "ok",
+      "contains_english_majority": false,
+      "looks_like_real_name_or_phone": false,
+      "toxicity": 0,
+      "action": "allow",
+      "note": "pô allowed; guaraná allowed; kkk allowed",
+      "source": "v0.1"
+    },
+    {
+      "id": "pc04",
+      "text": "How do I say bakery in Portuguese?",
+      "lang": "en",
+      "content_class": "ok",
+      "contains_english_majority": true,
+      "looks_like_real_name_or_phone": false,
+      "toxicity": 0,
+      "action": "allow",
+      "source": "v0.1"
+    },
+    {
+      "id": "pc05",
+      "text": "você é um idiota",
+      "lang": "pt-BR",
+      "content_class": "insult",
+      "contains_english_majority": false,
+      "looks_like_real_name_or_phone": false,
+      "toxicity": 0.55,
+      "action": "block",
+      "note": "mild insult — family product blocks",
+      "source": "v0.1"
+    },
+    {
+      "id": "pc06",
+      "text": "shut up bitch",
+      "lang": "en",
+      "content_class": "insult",
+      "contains_english_majority": true,
+      "looks_like_real_name_or_phone": false,
+      "toxicity": 0.85,
+      "action": "block",
+      "source": "v0.1"
+    },
+    {
+      "id": "pc07",
+      "text": "manda nudes gostosa",
+      "lang": "pt-BR",
+      "content_class": "sexual",
+      "contains_english_majority": false,
+      "looks_like_real_name_or_phone": false,
+      "toxicity": 0.95,
+      "action": "block",
+      "source": "v0.1"
+    },
+    {
+      "id": "pc08",
+      "text": "me chama no whatsapp 11 91234-5678",
+      "lang": "pt-BR",
+      "content_class": "pii",
+      "contains_english_majority": false,
+      "looks_like_real_name_or_phone": true,
+      "toxicity": 0.4,
+      "action": "block",
+      "source": "v0.1"
+    },
+    {
+      "id": "pc09",
+      "text": "add me on discord coolkid#1234",
+      "lang": "en",
+      "content_class": "off_platform_contact",
+      "contains_english_majority": true,
+      "looks_like_real_name_or_phone": false,
+      "toxicity": 0.35,
+      "action": "block",
+      "source": "v0.1"
+    },
+    {
+      "id": "pc10",
+      "text": "vendo conta por pix barato",
+      "lang": "pt-BR",
+      "content_class": "scam",
+      "contains_english_majority": false,
+      "looks_like_real_name_or_phone": false,
+      "toxicity": 0.7,
+      "action": "block",
+      "source": "v0.1"
+    },
+    {
+      "id": "pc11",
+      "text": "that slur word: faggot",
+      "lang": "en",
+      "content_class": "slurs",
+      "contains_english_majority": true,
+      "looks_like_real_name_or_phone": false,
+      "toxicity": 1,
+      "action": "block",
+      "source": "v0.1"
+    },
+    {
+      "id": "pc12",
+      "text": "viado burro",
+      "lang": "pt-BR",
+      "content_class": "slurs",
+      "contains_english_majority": false,
+      "looks_like_real_name_or_phone": false,
+      "toxicity": 0.95,
+      "action": "block",
+      "source": "v0.1"
+    },
+    {
+      "id": "pc13",
+      "text": "bora tomar uma cerveja no boteco",
+      "lang": "pt-BR",
+      "content_class": "prohibited_substance",
+      "contains_english_majority": false,
+      "looks_like_real_name_or_phone": false,
+      "toxicity": 0.3,
+      "action": "block",
+      "source": "v0.1"
+    },
+    {
+      "id": "pc14",
+      "text": "wanna grab a beer?",
+      "lang": "en",
+      "content_class": "prohibited_substance",
+      "contains_english_majority": true,
+      "looks_like_real_name_or_phone": false,
+      "toxicity": 0.25,
+      "action": "block",
+      "source": "v0.1"
+    },
+    {
+      "id": "pc15",
+      "text": "namora comigo gatinha",
+      "lang": "pt-BR",
+      "content_class": "dating",
+      "contains_english_majority": false,
+      "looks_like_real_name_or_phone": false,
+      "toxicity": 0.5,
+      "action": "block",
+      "source": "v0.1"
+    },
+    {
+      "id": "pc16",
+      "text": "date me, you're hot",
+      "lang": "en",
+      "content_class": "dating",
+      "contains_english_majority": true,
+      "looks_like_real_name_or_phone": false,
+      "toxicity": 0.6,
+      "action": "block",
+      "source": "v0.1"
+    },
+    {
+      "id": "pc17",
+      "text": "Meu nome é João Silva, mora na Rua das Flores 100, CEP 01310-100",
+      "lang": "pt-BR",
+      "content_class": "pii",
+      "contains_english_majority": false,
+      "looks_like_real_name_or_phone": true,
+      "toxicity": 0.2,
+      "action": "block",
+      "source": "v0.1"
+    },
+    {
+      "id": "pc18",
+      "text": "vote no candidato X 2026",
+      "lang": "pt-BR",
+      "content_class": "insult",
+      "contains_english_majority": false,
+      "looks_like_real_name_or_phone": false,
+      "toxicity": 0.4,
+      "action": "block",
+      "canon": {
+        "action": "escalate"
+      },
+      "divergence": "Constitution surface matrix: player chat politics/religion fight = block. The example's own note says 'constitution ban; escalate until dedicated class exists'. The engine has a dedicated politics rule, so it blocks (CEO direction 2026-09-26: alcohol + politics block per constitution). content_class still answers 'insult' as labeled.",
+      "note": "Political campaigning — constitution ban; escalate until dedicated class exists",
+      "source": "v0.1"
+    },
+    {
+      "id": "pc19",
+      "text": "seu português está melhor, continua!",
+      "lang": "pt-BR",
+      "content_class": "ok",
+      "contains_english_majority": false,
+      "looks_like_real_name_or_phone": false,
+      "toxicity": 0,
+      "action": "allow",
+      "note": "Language-effort compliment = allow",
+      "source": "v0.1"
+    },
+    {
+      "id": "pc20",
+      "text": "tmj mano, bora comprar pastel na lanchonete",
+      "lang": "pt-BR",
+      "content_class": "ok",
+      "contains_english_majority": false,
+      "looks_like_real_name_or_phone": false,
+      "toxicity": 0,
+      "action": "allow",
+      "note": "Rewrite-target world language = allow",
+      "source": "v0.1"
+    },
+    {
+      "text": "Oi, tudo bem?",
+      "action": "allow",
+      "content_class": "ok",
+      "source": "eng"
+    },
+    {
+      "text": "Oi, tudo bem? Bom dia, pessoal!",
+      "action": "allow",
+      "content_class": "ok",
+      "why": "e2e",
+      "source": "eng"
+    },
+    {
+      "text": "Oi, Jonny! Eu sou de Chicago. Vamos na padaria?",
+      "action": "allow",
+      "content_class": "ok",
+      "why": "e2e",
+      "source": "eng"
+    },
+    {
+      "text": "Legal! Eu quero um pão de queijo",
+      "action": "allow",
+      "content_class": "ok",
+      "why": "e2e",
+      "source": "eng"
+    },
+    {
+      "text": "Que kitnet legal!",
+      "action": "allow",
+      "content_class": "ok",
+      "why": "e2e",
+      "source": "eng"
+    },
+    {
+      "text": "hello everyone, what's up?",
+      "action": "allow",
+      "content_class": "ok",
+      "source": "eng"
+    },
+    {
+      "text": "bora jogar Me vê um?",
+      "action": "allow",
+      "content_class": "ok",
+      "source": "eng"
+    },
+    {
+      "text": "vamos pra direita ou pra esquerda?",
+      "action": "allow",
+      "content_class": "ok",
+      "source": "eng"
+    },
+    {
+      "text": "meu nome é Ana, sou dos EUA",
+      "action": "allow",
+      "content_class": "ok",
+      "source": "eng"
+    },
+    {
+      "text": "eu moro no Canadá",
+      "action": "allow",
+      "content_class": "ok",
+      "source": "eng"
+    },
+    {
+      "text": "isso não rola",
+      "action": "allow",
+      "content_class": "ok",
+      "source": "eng"
+    },
+    {
+      "text": "beijos, até amanhã!",
+      "action": "allow",
+      "content_class": "ok",
+      "source": "eng"
+    },
+    {
+      "text": "whats up everyone",
+      "action": "allow",
+      "content_class": "ok",
+      "source": "eng"
+    },
+    {
+      "text": "I love this hat!",
+      "action": "allow",
+      "content_class": "ok",
+      "source": "eng"
+    },
+    {
+      "text": "nossa, caramba, putz!",
+      "action": "allow",
+      "content_class": "ok",
+      "why": "putz is not puta",
+      "source": "eng"
+    },
+    {
+      "text": "que bicho é esse?",
+      "action": "allow",
+      "content_class": "ok",
+      "why": "bicho is not bicha",
+      "source": "eng"
+    },
+    {
+      "text": "obrigado, pessoal!",
+      "action": "allow",
+      "content_class": "ok",
+      "why": "PII hardening: 'ig' inside obrigado",
+      "source": "eng"
+    },
+    {
+      "text": "that's a digital game",
+      "action": "allow",
+      "content_class": "ok",
+      "why": "PII hardening: 'ig' inside digital",
+      "source": "eng"
+    },
+    {
+      "text": "i like to add sugar",
+      "action": "allow",
+      "content_class": "ok",
+      "why": "PII hardening: 'add' + word",
+      "source": "eng"
+    },
+    {
+      "text": "me vê uma lula frita",
+      "action": "allow",
+      "content_class": "ok",
+      "why": "lula = squid",
+      "source": "eng"
+    },
+    {
+      "text": "um guaraná e um suco, por favor",
+      "action": "allow",
+      "content_class": "ok",
+      "source": "eng"
+    },
+    {
+      "text": "kkkkkkkkkkkk",
+      "action": "allow",
+      "content_class": "ok",
+      "source": "eng"
+    },
+    {
+      "text": "hahahahahahaha",
+      "action": "allow",
+      "content_class": "ok",
+      "source": "eng"
+    },
+    {
+      "text": "me liga 11 98765-4321",
+      "action": "block",
+      "content_class": "pii",
+      "label": "pii",
+      "source": "eng"
+    },
+    {
+      "text": "+44 7911 123456",
+      "action": "block",
+      "content_class": "pii",
+      "label": "pii",
+      "source": "eng"
+    },
+    {
+      "text": "add me on discord",
+      "action": "block",
+      "content_class": "off_platform_contact",
+      "label": "off_platform_contact",
+      "source": "eng"
+    },
+    {
+      "text": "me chama no zap",
+      "action": "block",
+      "content_class": "off_platform_contact",
+      "label": "off_platform_contact",
+      "source": "eng"
+    },
+    {
+      "text": "tem insta?",
+      "action": "block",
+      "content_class": "off_platform_contact",
+      "label": "off_platform_contact",
+      "source": "eng"
+    },
+    {
+      "text": "my email is kid@example.com",
+      "action": "block",
+      "content_class": "pii",
+      "label": "pii",
+      "source": "eng"
+    },
+    {
+      "text": "my full name is Ana Maria Souza",
+      "action": "block",
+      "content_class": "pii",
+      "label": "pii",
+      "source": "eng"
+    },
+    {
+      "text": "entra em www.site-estranho.com",
+      "action": "block",
+      "content_class": "off_platform_contact",
+      "label": "off_platform_contact",
+      "source": "eng"
+    },
+    {
+      "text": "seu macaco",
+      "action": "block",
+      "content_class": "slurs",
+      "label": "slur",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "sua macaca",
+      "action": "block",
+      "content_class": "slurs",
+      "label": "slur",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "ô japa, sai daí",
+      "action": "block",
+      "content_class": "slurs",
+      "label": "slur",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "esse portuga não sabe falar",
+      "action": "block",
+      "content_class": "slurs",
+      "label": "slur",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "feijão preto com arroz",
+      "action": "allow",
+      "content_class": "ok",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "um café preto, por favor",
+      "action": "allow",
+      "content_class": "ok",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "comprei uma camiseta preta",
+      "action": "allow",
+      "content_class": "ok",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "gosto de preto e branco",
+      "action": "allow",
+      "content_class": "ok",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "meu gato é preto",
+      "action": "allow",
+      "content_class": "ok",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "gato preto",
+      "action": "allow",
+      "content_class": "ok",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "cabelo preto",
+      "action": "allow",
+      "content_class": "ok",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "o quadro preto",
+      "action": "allow",
+      "content_class": "ok",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "tênis pretos",
+      "action": "allow",
+      "content_class": "ok",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "vestido de preto",
+      "action": "allow",
+      "content_class": "ok",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "vou de preto na festa junina",
+      "action": "allow",
+      "content_class": "ok",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "aquele preto ali",
+      "action": "escalate",
+      "content_class": "slurs",
+      "label": "ethnic_review",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "sai daqui, preta",
+      "action": "escalate",
+      "content_class": "slurs",
+      "label": "ethnic_review",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "oi preto",
+      "action": "escalate",
+      "content_class": "slurs",
+      "label": "ethnic_review",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "aquela preta",
+      "action": "escalate",
+      "content_class": "slurs",
+      "label": "ethnic_review",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "seu pretinho",
+      "action": "escalate",
+      "content_class": "slurs",
+      "label": "ethnic_review",
+      "lock": "CEO §1",
+      "source": "eng"
+    },
+    {
+      "text": "cu",
+      "action": "block",
+      "content_class": "insult",
+      "label": "profanity",
+      "lock": "CEO §2",
+      "source": "eng"
+    },
+    {
+      "text": "vai tomar no cu",
+      "action": "block",
+      "content_class": "insult",
+      "label": "profanity",
+      "lock": "CEO §2",
+      "source": "eng"
+    },
+    {
+      "text": "cuidado com o degrau",
+      "action": "allow",
+      "content_class": "ok",
+      "lock": "CEO §2 (cu whole word only)",
+      "source": "eng"
+    },
+    {
+      "text": "cuidado, custa caro",
+      "action": "allow",
+      "content_class": "ok",
+      "lock": "CEO §2 (cu whole word only)",
+      "source": "eng"
+    },
+    {
+      "text": "Essa coxinha tá gostosa!",
+      "action": "warn",
+      "content_class": "dating",
+      "label": "dating",
+      "lock": "CEO §2",
+      "source": "eng"
+    },
+    {
+      "text": "bora jogar uma pelada no parque?",
+      "action": "warn",
+      "content_class": "sexual",
+      "label": "sexual",
+      "lock": "CEO §2",
+      "source": "eng"
+    },
+    {
+      "text": "você é gostosa",
+      "action": "block",
+      "content_class": "dating",
+      "label": "dating",
+      "lock": "CEO §2",
+      "source": "eng"
+    },
+    {
+      "text": "oi gostosa",
+      "action": "block",
+      "content_class": "dating",
+      "label": "dating",
+      "lock": "CEO §2",
+      "source": "eng"
+    },
+    {
+      "text": "Carlos você é gostoso",
+      "action": "block",
+      "content_class": "dating",
+      "label": "dating",
+      "lock": "CEO §2",
+      "source": "eng"
+    },
+    {
+      "text": "manda foto pelada",
+      "action": "block",
+      "content_class": "sexual",
+      "label": "sexual",
+      "lock": "CEO §2",
+      "source": "eng"
+    },
+    {
+      "text": "vamos no bar depois?",
+      "action": "warn",
+      "content_class": "prohibited_substance",
+      "label": "prohibited_substance",
+      "lock": "CEO §2",
+      "source": "eng"
+    },
+    {
+      "text": "o Largo do Bar fica perto da praça",
+      "action": "allow",
+      "content_class": "ok",
+      "lock": "CEO §2 (place name)",
+      "source": "eng"
+    },
+    {
+      "text": "chocolate bar",
+      "action": "allow",
+      "content_class": "ok",
+      "lock": "CEO §2 (not a venue)",
+      "source": "eng"
+    },
+    {
+      "text": "a estação da Rua do Bar fica ali",
+      "action": "block",
+      "content_class": "pii",
+      "label": "pii",
+      "why": "v0.1 address_hint_br blocks street names in free public chat before the bar rule runs",
+      "source": "eng"
+    },
+    {
+      "text": "bora tomar uma cerveja",
+      "action": "block",
+      "content_class": "prohibited_substance",
+      "label": "prohibited_substance",
+      "source": "eng"
+    },
+    {
+      "text": "tô bêbado kkk",
+      "action": "block",
+      "content_class": "prohibited_substance",
+      "label": "prohibited_substance",
+      "source": "eng"
+    },
+    {
+      "text": "vamos no boteco",
+      "action": "block",
+      "content_class": "prohibited_substance",
+      "label": "prohibited_substance",
+      "source": "eng"
+    },
+    {
+      "text": "bora fumar maconha",
+      "action": "block",
+      "content_class": "prohibited_substance",
+      "label": "prohibited_substance",
+      "source": "eng"
+    },
+    {
+      "text": "quer namorar comigo?",
+      "action": "block",
+      "content_class": "dating",
+      "label": "dating",
+      "source": "eng"
+    },
+    {
+      "text": "te amo, galera!",
+      "action": "warn",
+      "content_class": "dating",
+      "label": "dating",
+      "why": "v0.1: platonic, warn",
+      "source": "eng"
+    },
+    {
+      "text": "kiss me",
+      "action": "warn",
+      "content_class": "sexual",
+      "label": "sexual",
+      "why": "v0.1: sensuality, warn (was block before v0.1)",
+      "source": "eng"
+    },
+    {
+      "text": "what the fuck",
+      "action": "block",
+      "content_class": "insult",
+      "label": "profanity",
+      "source": "eng"
+    },
+    {
+      "text": "que porra é essa",
+      "action": "block",
+      "content_class": "insult",
+      "label": "profanity",
+      "source": "eng"
+    },
+    {
+      "text": "seu viado",
+      "action": "block",
+      "content_class": "slurs",
+      "label": "slur",
+      "source": "eng"
+    },
+    {
+      "text": "vote no Bolsonaro",
+      "action": "block",
+      "content_class": "insult",
+      "label": "politics",
+      "source": "eng"
+    },
+    {
+      "text": "aceite jesus ou vai pro inferno",
+      "action": "block",
+      "content_class": "insult",
+      "label": "politics",
+      "source": "eng"
+    },
+    {
+      "text": "free coins here, send pix",
+      "action": "block",
+      "content_class": "scam",
+      "label": "scam",
+      "source": "eng"
+    },
+    {
+      "text": "cala a boca, idiota",
+      "action": "block",
+      "content_class": "insult",
+      "label": "bullying",
+      "why": "v0.1 pc05: mild insult blocks (was warn before v0.1)",
+      "source": "eng"
+    },
+    {
+      "text": "eu quero morrer",
+      "action": "escalate",
+      "content_class": "insult",
+      "label": "self_harm",
+      "source": "eng"
+    },
+    {
+      "text": "kys",
+      "action": "escalate",
+      "content_class": "insult",
+      "label": "bullying",
+      "source": "eng"
+    }
   ]
 }

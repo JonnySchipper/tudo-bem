@@ -1,0 +1,189 @@
+{
+  "version": "0.1",
+  "gdd_ref": "§12.4 NPC reply pack",
+  "scene_flavor": "Padaria do Carlos — learner buys pão / asks for pão de queijo / practices orders. NPC Carlos never offers alcohol, flirting, or off-platform contact.",
+  "typed_questions": [
+    {
+      "id": "answers_the_npc_question",
+      "type": "noul",
+      "description": "Player utterance is responsive to the NPC's last question/prompt"
+    },
+    {
+      "id": "uses_target_lexeme",
+      "type": "noul",
+      "description": "Uses the lesson target lexeme when one was primed (e.g. pão, queijo, por favor)"
+    },
+    {
+      "id": "language",
+      "type": "choice",
+      "choices": ["pt", "en", "mix", "gibberish"]
+    },
+    {
+      "id": "task_success",
+      "type": "score",
+      "range": [0, 3],
+      "description": "0 fail / off-task → 3 full success on the padaria micro-task"
+    },
+    {
+      "id": "constitution_ok",
+      "type": "noul",
+      "description": "true iff reply violates none of constitution (alcohol, flirting, slurs, PII, scam, etc.)"
+    }
+  ],
+  "npc_prompt_examples": [
+    "Carlos: Bom dia! O que você quer hoje?",
+    "Carlos: Quer pão de queijo ou pão francês?",
+    "Carlos: Algo para beber? Temos guaraná e suco."
+  ],
+  "examples": [
+    {
+      "id": "npc01",
+      "npc_prompt": "Bom dia! O que você quer hoje?",
+      "player": "Bom dia! Quero um pão de queijo, por favor.",
+      "labels": {
+        "answers_the_npc_question": true,
+        "uses_target_lexeme": true,
+        "language": "pt",
+        "task_success": 3,
+        "constitution_ok": true
+      }
+    },
+    {
+      "id": "npc02",
+      "npc_prompt": "Quer pão de queijo ou pão francês?",
+      "player": "Pão de queijo, pfv",
+      "labels": {
+        "answers_the_npc_question": true,
+        "uses_target_lexeme": true,
+        "language": "pt",
+        "task_success": 3,
+        "constitution_ok": true
+      }
+    },
+    {
+      "id": "npc03",
+      "npc_prompt": "Algo para beber? Temos guaraná e suco.",
+      "player": "Um guaraná, valeu!",
+      "labels": {
+        "answers_the_npc_question": true,
+        "uses_target_lexeme": true,
+        "language": "pt",
+        "task_success": 3,
+        "constitution_ok": true
+      },
+      "note": "guaraná + valeu allow"
+    },
+    {
+      "id": "npc04",
+      "npc_prompt": "Algo para beber? Temos guaraná e suco.",
+      "player": "Me vê uma cerveja",
+      "labels": {
+        "answers_the_npc_question": true,
+        "uses_target_lexeme": false,
+        "language": "pt",
+        "task_success": 0,
+        "constitution_ok": false
+      },
+      "note": "prohibited_substance — stub Jev must fail constitution_ok; NPC should refuse and offer guaraná"
+    },
+    {
+      "id": "npc05",
+      "npc_prompt": "Bom dia! O que você quer hoje?",
+      "player": "Can I get cheese bread please?",
+      "labels": {
+        "answers_the_npc_question": true,
+        "uses_target_lexeme": false,
+        "language": "en",
+        "task_success": 2,
+        "constitution_ok": true
+      },
+      "note": "EN OK for task; soft nudge to PT later"
+    },
+    {
+      "id": "npc06",
+      "npc_prompt": "Bom dia! O que você quer hoje?",
+      "player": "I want pão and also juice",
+      "labels": {
+        "answers_the_npc_question": true,
+        "uses_target_lexeme": true,
+        "language": "mix",
+        "task_success": 2,
+        "constitution_ok": true
+      }
+    },
+    {
+      "id": "npc07",
+      "npc_prompt": "Bom dia! O que você quer hoje?",
+      "player": "asdf qwerty lollll",
+      "labels": {
+        "answers_the_npc_question": false,
+        "uses_target_lexeme": false,
+        "language": "gibberish",
+        "task_success": 0,
+        "constitution_ok": true
+      }
+    },
+    {
+      "id": "npc08",
+      "npc_prompt": "Bom dia! O que você quer hoje?",
+      "player": "Carlos você é gostoso, me passa o zap",
+      "labels": {
+        "answers_the_npc_question": false,
+        "uses_target_lexeme": false,
+        "language": "pt",
+        "task_success": 0,
+        "constitution_ok": false
+      },
+      "note": "dating + off_platform"
+    },
+    {
+      "id": "npc09",
+      "npc_prompt": "Quer pão de queijo ou pão francês?",
+      "player": "vai se foder caralho",
+      "labels": {
+        "answers_the_npc_question": false,
+        "uses_target_lexeme": false,
+        "language": "pt",
+        "task_success": 0,
+        "constitution_ok": false
+      }
+    },
+    {
+      "id": "npc10",
+      "npc_prompt": "Algo para beber? Temos guaraná e suco.",
+      "player": "tá, um suco pra a gente",
+      "labels": {
+        "answers_the_npc_question": true,
+        "uses_target_lexeme": true,
+        "language": "pt",
+        "task_success": 3,
+        "constitution_ok": true
+      },
+      "note": "ALLOW slang: tá, pra, a gente"
+    },
+    {
+      "id": "npc11",
+      "npc_prompt": "Bom dia! O que você quer hoje?",
+      "player": "Quero comprar sua conta, te pago em crypto",
+      "labels": {
+        "answers_the_npc_question": false,
+        "uses_target_lexeme": false,
+        "language": "mix",
+        "task_success": 0,
+        "constitution_ok": false
+      }
+    },
+    {
+      "id": "npc12",
+      "npc_prompt": "Quer pão de queijo ou pão francês?",
+      "player": "Hm... pão francês, obrigada!",
+      "labels": {
+        "answers_the_npc_question": true,
+        "uses_target_lexeme": true,
+        "language": "pt",
+        "task_success": 3,
+        "constitution_ok": true
+      }
+    }
+  ]
+}

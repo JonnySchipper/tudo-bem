@@ -1,53 +1,236 @@
 {
   "_meta": {
-    "status": "engineering-draft",
-    "todo": "TODO(T&S): replace with canonical dating-flirting.json (not in ingest attachment). Drafted from constitution.md §2 + CEO-LOCKS §2 (gostoso/gostosa/pelada).",
-    "stack_position": 3
+    "status": "safety-v0.1",
+    "source": "tb-safety/phase0/blocklists/dating-flirting.json v0.1 — verbatim snapshot in content/safety/source-v0.1/blocklists/dating-flirting.json",
+    "converted": "v0.1 `entries` converted to the engineering ingest shape the game reads. CI (packages/shared/src/safety.test.ts) checks every v0.1 entry / example is carried over with the same action.",
+    "stack_position": 3,
+    "escalate_if": "dating-flirting.json sets escalate_if and block_if to the same condition on gostoso / gostosa / pelada. CEO-LOCKS §2 says block, so block_if applies and escalate_if is not used.",
+    "scope": "Pickup / dating / sensual / body-comment terms EN+PT. action block or warn per entry. Learning compliments on language effort are out of scope (allow)."
   },
   "rules": [
     {
       "id": "flirt_body_directed",
+      "label": "dating",
+      "action": "block",
+      "source": "v0.1 block_if \"flirt_or_body_directed\" on gostoso / gostosa / pelada + CEO-LOCKS §2 (warn → block when flirt/body-directed). Label follows v0.1 pc16 / npc08 (dating).",
+      "patterns": [
+        "\\b(vc|voce|tu|ela|ele|you|u)\\s+(e|eh|ta|esta|fica|ficou|is|are|r|look|looks)\\s+(muito\\s+|mo\\s+|mt\\s+|tao\\s+|so\\s+|super\\s+|really\\s+)?(gostos[oa]s?|gostosao|gostosona|pelad[oa]s?|hot|sexy|delicia|gat[oa]|lind[oa] demais)\\b",
+        "\\b(oi|ola|ei|e ai|fala|hey|hi|hello)\\s+(minha\\s+|meu\\s+)?(gostos[oa]|gostosao|gostosona|delicia|gat[oa]|sexy|hot)\\b",
+        "\\b(gostos[oa]|gostosao|gostosona|delicia|gat[oa]|sexy)\\s+(voce|vc|demais voce|you)\\b"
+      ]
+    },
+    {
+      "id": "body_directed_sexual",
       "label": "sexual",
       "action": "block",
-      "source": "CEO-LOCKS §2 — gostoso/gostosa/pelada escalate from warn to block when flirt / body-directed.",
+      "source": "v0.1 block_if \"flirt_or_body_directed\" on pelada + CEO-LOCKS §2 — nude / photo asks aimed at a person.",
       "patterns": [
-        "\\b(vc|voce|tu|ela|ele|you|u)\\s+(e|eh|ta|esta|fica|ficou|is|are|r|look|looks)\\s+(muito\\s+|mo\\s+|mt\\s+|tao\\s+|so\\s+|super\\s+|really\\s+)?(gostos[oa]|pelad[oa]|hot|sexy|delicia|gat[oa]|lind[oa] demais)\\b",
-        "\\b(oi|ola|ei|e ai|fala|hey|hi|hello)\\s+(minha\\s+|meu\\s+)?(gostos[oa]|delicia|gat[oa]|sexy|hot)\\b",
-        "\\b(gostos[oa]|delicia|gat[oa]|sexy)\\s+(voce|vc|demais voce|you)\\b",
         "\\b(fica|ficar|fique|manda|mande|foto|fotos)\\s+(\\w+\\s+)?pelad[oa]s?\\b",
         "\\b(send|show)\\s+(me\\s+)?(pics|nudes|body)\\b"
       ]
     },
     {
-      "id": "sexual_terms",
+      "id": "body_comment",
+      "label": "dating",
+      "action": "block",
+      "source": "v0.1 body_comment (label dating per pc16)",
+      "terms": [
+        "you're hot",
+        "you are hot"
+      ]
+    },
+    {
+      "id": "sexual",
       "label": "sexual",
       "action": "block",
-      "terms": ["sex", "sexy", "nude", "nudes", "naked", "porn", "porno", "horny", "boobs", "tits", "penis", "vagina", "sexo", "pelado", "tesao", "peitos", "safadinha", "safadinho", "gostosona", "gostosao"]
+      "source": "v0.1 sexual + sensuality",
+      "terms": [
+        "sexy",
+        "send nudes",
+        "nudes",
+        "netorare",
+        "safada",
+        "safado",
+        "nude",
+        "manda nudes",
+        "transar",
+        "sexo",
+        "sex"
+      ]
     },
     {
       "id": "dating",
       "label": "dating",
       "action": "block",
+      "source": "v0.1 dating",
       "terms": [
-        "namora comigo", "namorar comigo", "quer namorar", "sair comigo", "me beija", "kiss me", "date me", "go out with me", "be my girlfriend", "be my boyfriend",
-        "seja minha namorada", "seja meu namorado", "ficar comigo", "fica comigo", "quer ficar", "crush", "ficante", "paquera", "paquerar", "casa comigo", "marry me"
+        "date me",
+        "be my girlfriend",
+        "be my boyfriend",
+        "hook up",
+        "hookup",
+        "fica comigo",
+        "namora comigo",
+        "seja minha namorada",
+        "seja meu namorado"
+      ]
+    },
+    {
+      "id": "off_platform_adjacent",
+      "label": "off_platform_contact",
+      "action": "block",
+      "source": "v0.1 off_platform_adjacent",
+      "terms": [
+        "dm me",
+        "slide into my dms",
+        "manda dm",
+        "me chama no priv"
+      ]
+    },
+    {
+      "id": "sensual_warn",
+      "label": "sexual",
+      "action": "warn",
+      "source": "v0.1 sensuality warn",
+      "terms": [
+        "make out",
+        "kiss me",
+        "me beija"
+      ]
+    },
+    {
+      "id": "dating_warn",
+      "label": "dating",
+      "action": "warn",
+      "source": "v0.1 dating / flirting warn (platonic \"te amo\" is common)",
+      "terms": [
+        "I love you",
+        "gatinha",
+        "gatinho",
+        "te amo",
+        "quero te conhecer melhor"
       ]
     },
     {
       "id": "high_fp_body_words",
-      "label": "sexual",
+      "label": "dating",
       "action": "warn",
-      "source": "CEO-LOCKS §2 — gostoso / gostosa / pelada: warn (normal for food / pickup football), block only when flirt-directed (rule above).",
-      "terms": ["gostoso", "gostosa", "gostosos", "gostosas"],
-      "note": { "pt": "Lembrete: elogios aqui são pra comida e pro português, tá?", "en": "Reminder: compliments here are for the food and the Portuguese." }
+      "source": "v0.1 + CEO-LOCKS §2 — gostoso / gostosa: warn (normal for food); flirt_body_directed blocks the person-directed forms.",
+      "note": {
+        "pt": "Lembrete: elogios aqui são pra comida e pro português, tá?",
+        "en": "Reminder: compliments here are for the food and the Portuguese."
+      },
+      "terms": [
+        "gostosa",
+        "gostosas",
+        "gostosona",
+        "gostoso",
+        "gostosos",
+        "gostosao"
+      ]
     },
     {
       "id": "high_fp_pelada",
       "label": "sexual",
       "action": "warn",
-      "source": "CEO-LOCKS §2 — 'pelada' is also a pickup football game; warn, block only if body-directed.",
-      "terms": ["pelada", "peladas"],
-      "note": { "pt": "“Pelada” aqui é só futebol, combinado?", "en": "“Pelada” here only means a pickup football game, okay?" }
+      "source": "v0.1 + CEO-LOCKS §2 — \"pelada\" is also a pickup football game: warn; flirt_body_directed blocks the body-directed forms.",
+      "note": {
+        "pt": "“Pelada” aqui é só futebol, combinado?",
+        "en": "“Pelada” here only means a pickup football game, okay?"
+      },
+      "terms": [
+        "pelada",
+        "peladas"
+      ]
+    },
+    {
+      "id": "sexual_extra",
+      "label": "sexual",
+      "action": "block",
+      "source": "eng — constitution.md §2 (sensuality / body comments).",
+      "terms": [
+        "naked",
+        "porn",
+        "porno",
+        "horny",
+        "boobs",
+        "tits",
+        "penis",
+        "vagina",
+        "pelado",
+        "pelados",
+        "tesão",
+        "peitos",
+        "safadinha",
+        "safadinho"
+      ]
+    },
+    {
+      "id": "dating_extra",
+      "label": "dating",
+      "action": "block",
+      "source": "eng — constitution.md §2 (dating asks, crush confessions).",
+      "terms": [
+        "namorar comigo",
+        "quer namorar",
+        "sair comigo",
+        "go out with me",
+        "ficar comigo",
+        "quer ficar",
+        "crush",
+        "ficante",
+        "paquera",
+        "paquerar",
+        "casa comigo",
+        "marry me"
+      ]
     }
-  ]
+  ],
+  "term_notes": {
+    "I love you": "warn not block — kids say this platonic; escalate if +PII",
+    "gostosa": "CEO lock 2026-09-25: warn default; block when flirt/body-directed (Jev content_class dating/sexual)",
+    "gostoso": "CEO lock 2026-09-25: warn default; block when flirt/body-directed (Jev content_class dating/sexual)",
+    "te amo": "platonic common; warn",
+    "quero te conhecer melhor": "innocuous learning OK; warn when +contact ask",
+    "pelada": "CEO lock 2026-09-25: warn default; block when flirt/body-directed (Jev content_class dating/sexual)"
+  },
+  "term_lang": {
+    "you're hot": "en",
+    "you are hot": "en",
+    "sexy": "en",
+    "send nudes": "en",
+    "nudes": "both",
+    "date me": "en",
+    "be my girlfriend": "en",
+    "be my boyfriend": "en",
+    "netorare": "en",
+    "hook up": "en",
+    "hookup": "en",
+    "make out": "en",
+    "kiss me": "en",
+    "I love you": "en",
+    "dm me": "en",
+    "slide into my dms": "en",
+    "gostosa": "pt-BR",
+    "gostoso": "pt-BR",
+    "gatinha": "pt-BR",
+    "gatinho": "pt-BR",
+    "safada": "pt-BR",
+    "safado": "pt-BR",
+    "nude": "pt-BR",
+    "manda nudes": "pt-BR",
+    "fica comigo": "pt-BR",
+    "namora comigo": "pt-BR",
+    "seja minha namorada": "pt-BR",
+    "seja meu namorado": "pt-BR",
+    "te amo": "pt-BR",
+    "me beija": "pt-BR",
+    "quero te conhecer melhor": "pt-BR",
+    "manda dm": "pt-BR",
+    "me chama no priv": "pt-BR",
+    "pelada": "pt-BR",
+    "transar": "pt-BR",
+    "sexo": "pt-BR",
+    "sex": "en"
+  }
 }

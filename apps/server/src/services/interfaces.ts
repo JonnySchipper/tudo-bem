@@ -1,4 +1,4 @@
-import type { Bilingual, Nameplate, PrivateProfile, SafetyVerdict, SceneCtx, SceneView, TypedReplyScore } from '@tudobem/shared';
+import type { Bilingual, JevNpcReplyAnswers, Nameplate, PrivateProfile, SafetyVerdict, SceneCtx, SceneView, TypedReplyScore } from '@tudobem/shared';
 
 /**
  * Seams for the AI services described in GDD §5.9 / §12.3.
@@ -23,7 +23,7 @@ export interface GlossService {
 export interface NpcDialogueService {
   start(npcId: string, ctx: SceneCtx): SceneView;
   choose(npcId: string, nodeId: string, chip: number, ctx: SceneCtx, scoreCap?: 0 | 1 | 2 | 3): { view: SceneView; score: 0 | 1 | 2 | 3; ctx: SceneCtx; said: Bilingual; cards: string[] } | null;
-  /** Map a free-typed reply onto the node's chips (stub Jev NPC-reply pack + accept-list rules). */
+  /** Map a free-typed reply onto the node's chips (curriculum accept-list rules). */
   scoreTyped(npcId: string, nodeId: string, text: string, ctx: SceneCtx): TypedReplyScore;
 }
 
@@ -36,6 +36,8 @@ export interface GradedAct {
   place: string;
   nameplate: Nameplate;
   at: number;
+  /** Typed NPC replies: stub Jev answers to content/safety/phase0/jev/npc-reply-pack.json. */
+  jev?: JevNpcReplyAnswers;
 }
 
 /** Student model: per-player, per-card memory (GDD §5.4). Writes on every graded act. */
@@ -46,14 +48,20 @@ export interface StudentModelService {
   nameplateFor(profile: PrivateProfile): Nameplate;
 }
 
+/** Escalation-queue row (content/safety/phase0/ops/report-mute-kick-phase0.md). `text` is the frozen snapshot. */
 export interface ModerationEvent {
   kind: 'escalate' | 'block' | 'warn' | 'report';
+  surface: 'chat' | 'npc_reply' | 'profile';
   playerId: string;
   playerName: string;
   room: string;
   text: string;
   labels: string[];
+  rules?: string[];
+  toxicity?: number;
   targetId?: string;
+  /** Escalations and reports wait for a human; nothing is auto-actioned in Phase 0. */
+  status?: 'pending';
   at: number;
 }
 

@@ -81,11 +81,11 @@ scripts/e2e.mjs   Playwright-core end-to-end play-through
 
 - **Brazilian Portuguese only** in world content; English appears only as glosses / UI subtitles.
 - **Disney-safe constitution** — no alcohol, dating, sensuality, slurs, politics. Unit tests run every authored Carlos line, chip, generated order, hat and furniture name through the filter.
-- **Chat safety** — the Jev stub is data-driven from [`content/safety/phase0`](content/safety/phase0) and runs client-side (instant feedback) and server-side (authoritative). Actions are **allow / warn / block / escalate** only, and player chat is **never rewritten** (CEO lock §3).
-  - **block:** PII, contact exchange, slurs (incl. *macaco/japa/portuga*), profanity, alcohol, dating/sexual, politics, scams.
-  - **warn** (delivered verbatim, with a note): *gostoso/gostosa/pelada* (block if flirt-directed), *bar* (unless a clear place-name), mild insults.
-  - **escalate:** self-harm, threats, and *preto/preta* outside color/food context.
-  - Every Jev fixture, PII example and the PT-slang false-block KPI run in CI. Rate limit 5 msgs / 10 s. Report button on profiles.
+- **Chat safety** — the Jev stub reads **TB Safety v0.1** from [`content/safety/phase0`](content/safety/phase0) and runs client-side (instant feedback) and server-side (authoritative). Actions are **allow / warn / block / escalate** only, and player chat is **never rewritten** (CEO lock §3).
+  - **block:** PII, contact exchange, slurs (incl. *macaco/japa/portuga*), profanity, insults, alcohol, dating/sexual, politics, scams.
+  - **warn** (delivered verbatim, with a note): *gostoso/gostosa/pelada* (block if flirt/body-directed), *bar* (unless a clear place-name), platonic *te amo* / *kiss me*, pet names like *gatinha*.
+  - **escalate** (hidden, queued as `pending`): self-harm, threats, and *preto/preta* outside color/food context.
+  - Every v0.1 Jev example (public chat + NPC replies), every PII example and the PT-slang false-block KPI run in CI. Rate limit 5 msgs / 10 s. Report button on profiles.
 - **No pay-to-win** — RV is earned only from graded language acts (scene, minigame) and the tutorial; nameplates can’t be bought. Everyone is **Verde** in Phase 0.
 - **No generative NPCs yet** — Carlos is an authored chip graph behind `NpcDialogueService`; an LLM provider can drop in later with the authored one as the Jev-down fallback.
 - **Adults only (18+)** — birth-date check plus an explicit 18+ confirmation, both enforced by the server. Only “passed the gate” is stored. No under-13/COPPA or parental-consent flows; younger audiences are a later rollout after thorough testing. The constitution and chat safety above apply fully to adults. See [docs/AGE_POLICY.md](docs/AGE_POLICY.md).
@@ -97,8 +97,8 @@ Curriculum and Trust & Safety own [`content/`](content); engineering owns the sc
 - [`content/curriculum/phase0`](content/curriculum/phase0) — do-not-teach, Seu Carlos voice sheet, padaria + greetings/numbers lexemes, Me vê um… orders, accept-list rules.
   - The markdown is canonical. `pnpm content` regenerates `cards.json`, `me-ve-um-orders.json` (tickets parsed into tray lines + modifiers) and `cpu-names.json` (Praça ambiance allowlist), and CI fails if any of them drift.
   - Every card is **DRAFT — needs Brazilian sign-off** (`signoff` field).
-- [`content/safety/phase0`](content/safety/phase0) — constitution, CEO locks, blocklists, PII regex fixtures, Jev question packs (public chat + NPC replies), ops notes.
-  - Files marked `engineering-draft` / `TODO(T&S)` were drafted from the constitution and CEO locks because the canonical versions weren’t in the handoff. They're waiting on T&S replacement.
+- [`content/safety/phase0`](content/safety/phase0) — **TB Safety v0.1**: constitution, CEO locks, blocklists, PII regex fixtures, Jev question packs (public chat + NPC replies), ops note, under-13 design note (design only). The JSON packs are converted to the engineering ingest shape (`_meta.status: safety-v0.1`), alongside four engineering overlays (ethnic tokens, politics/religion, scam/RMT, harassment/self-harm).
+  - [`content/safety/source-v0.1`](content/safety/source-v0.1) is a verbatim copy of the v0.1 JSON. CI checks that the conversion drops nothing.
 
 ## Art
 

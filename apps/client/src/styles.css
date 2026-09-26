@@ -1372,6 +1372,15 @@ button:disabled {
   content: '';
 }
 
+.map-card.light {
+  color: #2a2233;
+  border: 2px solid #8B5E3C;
+}
+
+.map-card.light .en {
+  color: rgba(42, 34, 51, 0.75);
+}
+
 .map-card.locked {
   background: #9c8f9f !important;
   cursor: not-allowed;

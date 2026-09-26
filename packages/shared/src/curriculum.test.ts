@@ -191,4 +191,11 @@ describe('accept-list rules (accept-list-rules.md)', () => {
     expect(r.task_success, r.why).toBe(f.task_success);
     if ('language' in f) expect(r.language).toBe(f.language);
   });
+
+  it('Carlos never offers what the Jev NPC-reply pack forbids', () => {
+    for (const id of SCENE_NODE_IDS) {
+      const line = viewNode(id, { name: 'Ana', pronoun: 'ela', food: 'pao_na_chapa' })?.line.pt;
+      if (line) expect(classifyChat(line).action, `${npcPack.scene_flavor}\n${line}`).toBe('allow');
+    }
+  });
 });

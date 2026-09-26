@@ -589,10 +589,10 @@ export class MinigameUI {
 // ---------------------------------------------------------------- map
 
 export function openMap(go: (room: RoomId) => void) {
-  const card = (room: RoomId | null, pt: string, enText: string, bg: string, locked = false) =>
+  const card = (room: RoomId | null, pt: string, enText: string, bg: string, locked = false, light = false) =>
     h(
       'button',
-      { class: `map-card ${locked ? 'locked' : ''}`, style: `background:${bg}`, disabled: locked, onclick: () => room && (go(room), close()), 'data-room': room ?? '' },
+      { class: `map-card ${locked ? 'locked' : ''} ${light ? 'light' : ''}`, style: `background:${bg}`, disabled: locked, onclick: () => room && (go(room), close()), 'data-room': room ?? '' },
       h('div', null, h('b', null, pt), en(enText)),
       h('div', null, h('span', { class: 'linecolor' }), locked ? h('span', { style: 'margin-left:8px;font-weight:800' }, 'Em breve') : null),
     );
@@ -609,7 +609,7 @@ export function openMap(go: (room: RoomId) => void) {
         { class: 'map-grid' },
         card('praca', 'Praça Central', 'Central Square — hang out, hats, parrot', 'linear-gradient(135deg,#e5572f,#f2c230)'),
         card('padaria', 'Padaria do Seu Carlos', 'Bakery — breakfast + “Me vê um…”', 'linear-gradient(135deg,#b5452e,#e8a94f)'),
-        card('kitnet', 'Minha kitnet', 'My studio apartment — decorate', 'linear-gradient(135deg,#3aa6a0,#2b5ba8)'),
+        card('kitnet', 'Minha kitnet', 'My studio apartment — decorate', 'linear-gradient(135deg,#F5E6D3 45%,#A8C5D4)', false, true),
         card(null, 'Feira', 'Street market (Phase 1)', '', true),
         card(null, 'Estação de Metrô', 'Subway (Phase 1)', '', true),
         card(null, 'Praia', 'Beach day trip (Phase 2)', '', true),

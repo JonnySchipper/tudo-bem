@@ -1,15 +1,27 @@
 {
   "_meta": {
-    "status": "engineering-draft",
-    "todo": "TODO(T&S): not in the documented layout — engineering overlay for escalation (self-harm, threats) and mild bullying. Merge into canonical fixtures; confirm helpline copy per region.",
-    "stack_position": "3 → 4 (escalate queue)"
+    "status": "safety-v0.1",
+    "owner": "engineering overlay (outside the v0.1 layout)",
+    "basis": "constitution.md §Escalation (self-harm, threats → escalate) + v0.1 pc05 (mild insult → block in this family product). Helpline copy: US 988, Brasil CVV 188.",
+    "stack_position": 2
   },
   "rules": [
     {
       "id": "self_harm",
       "label": "self_harm",
       "action": "escalate",
-      "terms": ["kill myself", "want to die", "quero morrer", "vou me matar", "quero me matar", "suicide", "suicidio", "cut myself", "me cortar"],
+      "source": "constitution.md §Escalation; docs/AGE_POLICY.md (self-harm messages are escalated).",
+      "terms": [
+        "kill myself",
+        "want to die",
+        "quero morrer",
+        "vou me matar",
+        "quero me matar",
+        "suicide",
+        "suicídio",
+        "cut myself",
+        "me cortar"
+      ],
       "note": {
         "pt": "Você é importante. Fale com alguém de confiança ou com o CVV (188).",
         "en": "You matter. Please reach out to someone you trust or a local helpline (US: call/text 988 · Brasil: CVV 188). A moderator has been notified."
@@ -19,15 +31,47 @@
       "id": "threats",
       "label": "bullying",
       "action": "escalate",
-      "terms": ["kill yourself", "kys", "se mata", "vai se matar", "go die", "vou te matar", "i will kill you", "vou te achar"],
-      "note": { "pt": "Mensagem enviada para a moderação.", "en": "This message was sent to moderators." }
+      "source": "constitution.md §Escalation; ops note (stub Jev escalate → always enqueue).",
+      "terms": [
+        "kill yourself",
+        "kys",
+        "se mata",
+        "vai se matar",
+        "go die",
+        "vou te matar",
+        "i will kill you",
+        "vou te achar"
+      ],
+      "note": {
+        "pt": "Mensagem enviada para a moderação.",
+        "en": "This message was sent to moderators."
+      }
     },
     {
       "id": "mild_insult",
       "label": "bullying",
-      "action": "warn",
-      "terms": ["idiota", "burro", "burra", "imbecil", "babaca", "stupid", "idiot", "loser", "dumb", "shut up", "cala a boca", "ninguem gosta de voce", "nobody likes you", "you are ugly", "voce e feio", "voce e feia"],
-      "note": { "pt": "Vamos ser gentis uns com os outros!", "en": "Let’s be kind to each other!" }
+      "action": "block",
+      "source": "public-chat-pack pc05 ('você é um idiota' → block: 'mild insult — family product blocks'), pc06, pc12.",
+      "terms": [
+        "idiota",
+        "burro",
+        "burra",
+        "imbecil",
+        "babaca",
+        "otário",
+        "otária",
+        "stupid",
+        "idiot",
+        "loser",
+        "dumb",
+        "shut up",
+        "cala a boca",
+        "ninguém gosta de você",
+        "nobody likes you",
+        "you are ugly",
+        "você é feio",
+        "você é feia"
+      ]
     }
   ]
 }
