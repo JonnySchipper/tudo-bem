@@ -1,6 +1,9 @@
 import {
   FURNITURE,
   HATS,
+  MISSION_COPY,
+  MISSION_REWARD,
+  MISSION_STEPS,
   MG_ITEMS,
   MG_MAX_TRAY,
   MG_MODS,
@@ -224,6 +227,38 @@ export function showJulia() {
     });
   };
   root({ pt: `Oi, ${name}! Eu sou a Júlia, guia da praça. Posso te ajudar?`, en: 'Hi! I’m Júlia, the square’s guide. Can I help you?' });
+}
+
+// ---------------------------------------------------------------- daily kiosk
+
+export function openKiosk(take: () => void) {
+  const body = h('div');
+  const render = () => {
+    const m = game.profile?.mission;
+    body.replaceChildren(
+      h(
+        'ol',
+        { class: 'mission-steps' },
+        ...MISSION_STEPS.map((s) => h('li', { class: m?.steps[s.id] ? 'done' : '', 'data-mission-step': s.id }, h('span', { class: 'box' }), h('div', null, s.pt, en(s.en, true)))),
+      ),
+      h(
+        'div',
+        { class: 'mission-footer' },
+        m?.rewarded
+          ? h('span', { class: 'feedback s3', id: 'mission-done' }, `${MISSION_COPY.done.pt} · ${MISSION_COPY.done.en}`)
+          : m?.taken
+            ? h('span', { class: 'feedback', id: 'mission-active' }, 'Missão em andamento · In progress — steps tick off as you play')
+            : h('button', { class: 'primary', id: 'mission-take', onclick: take }, bi(MISSION_COPY.cta.pt, MISSION_COPY.cta.en)),
+      ),
+    );
+  };
+  render();
+  const off = game.on('profile', render);
+  const close = openModal(
+    'kiosk',
+    h('div', { class: 'panel kiosk' }, closeBtn(() => close()), h('h2', null, MISSION_COPY.header.pt), en(`${MISSION_COPY.header.en} · +${MISSION_REWARD} RV once a day`), body),
+    { onClose: off },
+  );
 }
 
 export function showParrotPerch(adopt: () => void) {
@@ -588,7 +623,7 @@ export function openMap(go: (room: RoomId) => void) {
 export function openFriends(actions: { request: (id: string) => void; accept: (id: string) => void; decline: (id: string) => void; remove: (id: string) => void; hop: (roomId: RoomId, instanceId: string | null, ownerId?: string) => void; refresh: () => void }) {
   const body = h('div');
   const render = () => {
-    const others = [...game.avatars.values()].filter((a) => a.pub.id !== game.room?.selfId);
+    const others = [...game.avatars.values()].filter((a) => a.pub.id !== game.room?.selfId && !a.pub.cpu);
     body.replaceChildren(
       game.incoming.length ? h('div', { class: 'section-title' }, 'Pedidos de amizade', en(' Friend requests', true)) : '',
       h(
