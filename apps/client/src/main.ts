@@ -229,7 +229,8 @@ net.on((m: ServerMsg) => {
     }
     case 'chat': {
       const a = game.avatars.get(m.id);
-      if (a) a.bubbles.push({ text: m.text, gloss: game.profile?.nameplate === 'verde' ? m.gloss : null, at: now() });
+      // Live Ops lock: CPUs never chat — guard against server bugs/injection
+      if (a && !a.pub.cpu) a.bubbles.push({ text: m.text, gloss: game.profile?.nameplate === 'verde' ? m.gloss : null, at: now() });
       break;
     }
     case 'notice':

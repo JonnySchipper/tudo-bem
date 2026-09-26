@@ -20,7 +20,7 @@ import { computeCamera, HH, HW, tileCenter, toScreen, toTile, screenToWorld, wor
 import { diamond, ellipse, FONT_BODY, rrect, shadow, wrapText, type Ctx, circle } from './draw';
 import { drawBackground, drawLighting, drawRoomStatic } from './room';
 import { drawFurniture, drawProp, SLICED_PROPS } from './props';
-import { avatarTop, drawAvatar } from './avatar';
+import { avatarTop, clearFrameCache, drawAvatar } from './avatar';
 import { drawSprite, furnitureKey, propKey } from '../art/sprites';
 
 export type Hit =
@@ -57,11 +57,16 @@ interface Pigeon {
 }
 
 const PROP_HEIGHT: Partial<Record<PropDef['kind'], number>> = {
-  barraca_chapeus: 120,
+  barraca_chapeus: 130,
   quiosque: 156,
   poleiro: 95,
-  trilho_pedidos: 110,
+  trilho_pedidos: 120,
   banca: 80,
+};
+
+const PROP_WIDTH: Partial<Record<PropDef['kind'], number>> = {
+  barraca_chapeus: 60,
+  trilho_pedidos: 50,
 };
 
 /** Seat surface height of whatever the avatar sits on (counter stools are taller than benches). */
@@ -71,6 +76,11 @@ function seatHeight(room: RoomDef, t: Tile): number | undefined {
   if (p?.kind === 'cadeira_padaria') return 18;
   return undefined;
 }
+
+/** Maximum canvas dimension to prevent browser OOM (Chrome crashes ~16k px). */
+const MAX_CANVAS_DIM = 8192;
+/** Maximum total pixels per offscreen canvas. */
+const MAX_CANVAS_PX = 32_000_000;
 
 export class WorldRenderer {
   readonly ctx: Ctx;
@@ -83,6 +93,7 @@ export class WorldRenderer {
   private w = 0;
   private h = 0;
   private lastT = 0;
+  private lastRoom = '';
   /** Tiles to point a guide arrow at (tutorial hints). */
   guides: { x: number; y: number; lift: number; label: string }[] = [];
 
@@ -115,6 +126,9 @@ export class WorldRenderer {
     });
     const k = `${room.id}:${this.w}x${this.h}:${this.cam.scale.toFixed(3)}`;
     if (k !== this.staticKey) {
+      // Clear frame cache on room change to free memory
+      if (this.lastRoom && this.lastRoom !== room.id) clearFrameCache();
+      this.lastRoom = room.id;
       this.staticKey = k;
       this.buildStatic(room);
       this.initPigeons(room);
@@ -127,11 +141,29 @@ export class WorldRenderer {
     const x1 = room.cols * HW + pad;
     const y0 = -room.wallHeight - (room.id === 'praca' ? 320 : 40);
     const y1 = (room.cols + room.rows) * HH + 30;
-    const s = this.cam.scale * this.cam.dpr;
-    const c = document.createElement('canvas');
-    c.width = Math.ceil((x1 - x0) * s);
-    c.height = Math.ceil((y1 - y0) * s);
-    const ctx = c.getContext('2d')!;
+    let s = this.cam.scale * this.cam.dpr;
+
+    // Calculate desired dimensions and cap to safe limits
+    let w = Math.ceil((x1 - x0) * s);
+    let h = Math.ceil((y1 - y0) * s);
+    if (w > MAX_CANVAS_DIM || h > MAX_CANVAS_DIM || w * h > MAX_CANVAS_PX) {
+      const scaleDown = Math.min(MAX_CANVAS_DIM / w, MAX_CANVAS_DIM / h, Math.sqrt(MAX_CANVAS_PX / (w * h)));
+      s *= scaleDown;
+      w = Math.ceil((x1 - x0) * s);
+      h = Math.ceil((y1 - y0) * s);
+    }
+    // Guard against zero/negative dimensions
+    if (w <= 0 || h <= 0 || !Number.isFinite(w) || !Number.isFinite(h)) return;
+
+    // Reuse existing canvas if possible, else create new
+    const c = this.staticLayer ?? document.createElement('canvas');
+    if (c.width !== w || c.height !== h) {
+      c.width = w;
+      c.height = h;
+    }
+    const ctx = c.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, w, h);
     ctx.setTransform(s, 0, 0, s, -x0 * s, -y0 * s);
     drawRoomStatic(ctx, room);
     this.staticLayer = c;
@@ -295,7 +327,8 @@ export class WorldRenderer {
       items.push({ depth, draw: () => drawSprite(ctx, propKey(p), c.sx, c.sy) || drawProp(ctx, p, c.sx, c.sy, t, 0, { parrotAdopted: !!game.profile?.parrotOwned }) });
       if (p.action) {
         const [ox, oy] = [((p.w ?? 1) - 1) * HW * 0.5 - ((p.h ?? 1) - 1) * HW * 0.5, (((p.w ?? 1) - 1) + ((p.h ?? 1) - 1)) * HH * 0.5];
-        hitRect(c.sx + ox, c.sy + oy + 10, 34 + ((p.w ?? 1) - 1) * 40, PROP_HEIGHT[p.kind] ?? 70, { kind: 'prop', prop: p }, depth);
+        const baseW = PROP_WIDTH[p.kind] ?? 34;
+        hitRect(c.sx + ox, c.sy + oy + 10, baseW + ((p.w ?? 1) - 1) * 40, PROP_HEIGHT[p.kind] ?? 70, { kind: 'prop', prop: p }, depth);
       } else if (p.seat) {
         hitRect(c.sx, c.sy + 10, 40, 40, { kind: 'seat', tile: { x: p.x, y: p.y } }, depth);
       }
@@ -339,7 +372,7 @@ export class WorldRenderer {
         depth: n.x + n.y + 0.02,
         draw: () => drawAvatar(ctx, c.sx, c.sy, n.appearance, n.hat, false, { dir: n.dir, t, moving: false, sitting: false, seed: n.x * 1.7, light, npc: n.id }),
       });
-      hitRect(c.sx, c.sy + 6, 36, 6 - avatarTop(n.appearance, n.hat, false), { kind: 'npc', npc: n }, n.x + n.y + 0.5);
+      hitRect(c.sx, c.sy + 6, 50, 6 - avatarTop(n.appearance, n.hat, false), { kind: 'npc', npc: n }, n.x + n.y + 0.5);
     }
     const avatarScreen: { a: ClientAvatar; sx: number; sy: number; sitting: boolean; seatH?: number }[] = [];
     for (const a of game.avatars.values()) {
@@ -397,9 +430,13 @@ export class WorldRenderer {
     for (const s of avatarScreen) {
       const p = worldToClient(this.cam, s.sx, s.sy + avatarTop(s.a.pub.appearance, s.a.pub.hat, s.sitting, s.seatH) - 12);
       const isSelf = s.a.pub.id === game.room.selfId;
+      const isCpu = s.a.pub.cpu;
       this.drawPlate(p.px, p.py, s.a.pub.name, isSelf ? 'self' : 'verde');
-      s.a.bubbles = s.a.bubbles.filter((b) => now - b.at < 7000);
-      if (s.a.bubbles.length) this.drawBubbles(p.px, p.py - 16, s.a.bubbles.slice(-2), now);
+      // Live Ops lock: CPUs never show chat bubbles
+      if (!isCpu) {
+        s.a.bubbles = s.a.bubbles.filter((b) => now - b.at < 7000);
+        if (s.a.bubbles.length) this.drawBubbles(p.px, p.py - 16, s.a.bubbles.slice(-2), now);
+      }
     }
   }
 

@@ -220,7 +220,7 @@ const Y1 = 11;
 const PAD = 3;
 const OUTLINE_INK = 'rgba(38,20,30,0.5)';
 const HAT_INK = 'rgba(38,20,30,0.78)';
-const BUDGET_PX = 12_000_000;
+const BUDGET_PX = 8_000_000;
 
 interface Frame {
   c: HTMLCanvasElement;
@@ -237,12 +237,24 @@ let budgetTick = -1;
 let budget = 2;
 const scratch: HTMLCanvasElement[] = [];
 
+/** Clear frame cache on room change to free memory. */
+export function clearFrameCache() {
+  frames.clear();
+  latest.clear();
+  framePx = 0;
+}
+
+const MAX_SCRATCH_DIM = 1024;
+
 function canvas(i: number, w: number, h: number): HTMLCanvasElement {
+  // Cap scratch canvas dimensions to prevent unbounded growth
+  w = Math.min(w, MAX_SCRATCH_DIM);
+  h = Math.min(h, MAX_SCRATCH_DIM);
   let c = scratch[i];
   if (!c) c = scratch[i] = document.createElement('canvas');
   if (c.width < w || c.height < h) {
-    c.width = Math.max(c.width, w);
-    c.height = Math.max(c.height, h);
+    c.width = Math.min(Math.max(c.width, w), MAX_SCRATCH_DIM);
+    c.height = Math.min(Math.max(c.height, h), MAX_SCRATCH_DIM);
   }
   const x = c.getContext('2d')!;
   x.setTransform(1, 0, 0, 1, 0, 0);
@@ -343,8 +355,8 @@ function getFrame(a: Appearance, fs: FrameState, ps: number): Frame {
 
 export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId: string | null, parrot: boolean, pose: AvatarPose) {
   const fs = frameState(a, hatId, pose);
-  // Warm-ink contact shadow, core ≈ 35% (TB Art: 20–35%, matches the rooms)
-  shadow(ctx, x + (pose.sitting ? 5 : 0.5), y + (pose.sitting ? 4 : 0), BODY_SHADOW[a.body] ?? 13, 6.2, 0.24);
+  // Warm-ink contact shadow, core ≈ 32% (TB Art: 30–35% for taller silhouettes — prevents float)
+  shadow(ctx, x + (pose.sitting ? 5 : 0.5), y + (pose.sitting ? 4 : 0), BODY_SHADOW[a.body] ?? 13, 6.2, 0.32);
   const m = ctx.getTransform();
   const ps = Math.round(Math.hypot(m.a, m.b) * 100) / 100;
   const f = getFrame(a, fs, ps);
