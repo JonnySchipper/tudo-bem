@@ -1158,9 +1158,14 @@ export function drawFurniture(ctx: Ctx, def: FurnitureDef, rot: 0 | 1, cx: numbe
   ctx.restore();
 }
 
+const furnitureIconCache = new Map<string, string>();
+
 export function furnitureIcon(itemId: string, size = 80): string {
   const baked = spriteUrl(`furniture/${itemId}_0`);
   if (baked) return baked;
+  const cacheKey = `${itemId}@${size}`;
+  const cached = furnitureIconCache.get(cacheKey);
+  if (cached) return cached;
   const def = furnitureById(itemId);
   const canvas = document.createElement('canvas');
   const dpr = 2;
@@ -1174,5 +1179,7 @@ export function furnitureIcon(itemId: string, size = 80): string {
     ctx.scale(s, s);
     drawFurniture(ctx, def, 0, 0, 0, 1);
   }
-  return canvas.toDataURL();
+  const url = canvas.toDataURL();
+  furnitureIconCache.set(cacheKey, url);
+  return url;
 }

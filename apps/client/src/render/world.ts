@@ -406,9 +406,10 @@ export class WorldRenderer {
     for (const it of items) it.draw();
 
     // ---- portals hit areas (door on the wall + its floor tile)
+    // Enlarged hit areas so the visible "Padaria →" sign / door is reliably clickable.
     for (const p of room.portals) {
       const along = p.wall === 'left' ? toScreen(0, p.y + 0.5) : toScreen(p.x + 0.5, 0);
-      hitRect(along.sx, along.sy + 4, 34, 96, { kind: 'portal', portal: p }, -0.5);
+      hitRect(along.sx, along.sy + 4, 70, 110, { kind: 'portal', portal: p }, -0.5);
     }
 
     ctx.setTransform(this.cam.dpr, 0, 0, this.cam.dpr, 0, 0);
