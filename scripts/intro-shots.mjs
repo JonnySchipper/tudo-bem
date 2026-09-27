@@ -6,7 +6,8 @@
  *   node scripts/serve-static.mjs apps/client/dist 4173 /tudo-bem/ &
  *   SHOTS_DIR=docs/art/intro-signin/after node scripts/intro-shots.mjs
  *
- * Captures 390×844 + 1440×900: title beat mid-flock, auth card, register (18+), reduced-motion.
+ * Captures 390×844, 1280×800 and 1440×900: title beat mid-flock, settled auth card
+ * (natural reveal, no skip), register (18+), reduced-motion.
  */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
@@ -19,8 +20,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const VIEWPORTS = [
   { tag: '390', width: 390, height: 844, dpr: 2, mobile: true },
+  { tag: '1280', width: 1280, height: 800, dpr: 1, mobile: false },
   { tag: 'desktop', width: 1440, height: 900, dpr: 1, mobile: false },
-];
+].filter((vp) => !process.env.SHOTS_ONLY || process.env.SHOTS_ONLY.split(',').includes(vp.tag));
+/** Title-beat capture time (ms after load) — mid-flock. */
+const TITLE_AT = Number(process.env.TITLE_AT ?? 1800);
 
 fs.mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch({ executablePath: CHROME, headless: true });
@@ -48,10 +52,10 @@ for (const vp of VIEWPORTS) {
       await ctx.close();
       continue;
     }
-    await sleep(1500);
+    await sleep(TITLE_AT);
     await shot('title-beat');
-    await page.click('#intro-skip');
-    await sleep(1400);
+    await page.waitForSelector('.intro-phase-auth', { timeout: 12_000 });
+    await sleep(2200);
     await shot('sign-in');
     await page.click('#intro-tab-register');
     await page.click('#intro-submit');

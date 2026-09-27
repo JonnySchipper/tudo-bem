@@ -71,7 +71,7 @@ export function runIntroGate(): Promise<IntroGateResult> {
       autocomplete: mode === 'login' ? 'current-password' : 'new-password',
       id: 'intro-password',
       'aria-label': 'Senha',
-      placeholder: '••••••••',
+      placeholder: 'Sua senha',
     });
     const adult = h('input', { type: 'checkbox', id: 'intro-18', name: 'confirm18' });
     const adultRow = h(
@@ -111,6 +111,7 @@ export function runIntroGate(): Promise<IntroGateResult> {
       submit.textContent = login ? 'Entrar' : 'Criar conta';
       panelTitle.textContent = login ? 'Bem-vindo de volta' : 'Crie sua conta';
       password.setAttribute('autocomplete', login ? 'current-password' : 'new-password');
+      password.placeholder = login ? 'Sua senha' : 'Crie uma senha';
       adultRow.style.display = login ? 'none' : 'flex';
       if (login) adult.checked = false;
     };
@@ -148,7 +149,7 @@ export function runIntroGate(): Promise<IntroGateResult> {
       { class: 'intro-form', novalidate: true },
       tabsEl,
       field('E-mail', 'Email address', email),
-      field('Senha', 'Password (8+ characters)', password),
+      field('Senha (8+ caracteres)', 'Password (8+ characters)', password),
       adultRow,
       err,
       h('div', { class: 'intro-actions' }, submit),
@@ -172,18 +173,15 @@ export function runIntroGate(): Promise<IntroGateResult> {
       finish({ mode: 'auth', email: result.session.email });
     });
 
-    const hero = h(
-      'header',
-      { class: 'intro-hero' },
-      h('div', { class: 'intro-mark-wrap', 'aria-hidden': 'true' }, h('div', { class: 'intro-mark-sun' }), h('div', { class: 'intro-mark' })),
-      wordmark('Tudo Bem'),
-      h(
-        'div',
-        { class: 'intro-taglines' },
-        h('p', { class: 'intro-tagline' }, 'Chega na praça — café, vizinhos e português no dia a dia.'),
-        h('p', { class: 'intro-tagline en', 'aria-hidden': 'true' }, 'A friendly São Paulo square to learn Portuguese.'),
-      ),
+    const markWrap = h('div', { class: 'intro-mark-wrap', 'aria-hidden': 'true' }, h('div', { class: 'intro-mark-sun' }), h('div', { class: 'intro-mark' }));
+    const title = wordmark('Tudo Bem');
+    const taglines = h(
+      'div',
+      { class: 'intro-taglines' },
+      h('p', { class: 'intro-tagline' }, 'Chega na praça — café, vizinhos e português no dia a dia.'),
+      h('p', { class: 'intro-tagline en', 'aria-hidden': 'true' }, 'A friendly São Paulo square to learn Portuguese.'),
     );
+    const hero = h('header', { class: 'intro-hero' }, markWrap, title, taglines);
     const panel = h(
       'section',
       { class: 'panel intro-panel tb-world-card', 'aria-labelledby': 'intro-panel-title' },
@@ -211,7 +209,7 @@ export function runIntroGate(): Promise<IntroGateResult> {
       root.classList.add('intro-hold', 'intro-measure');
       const rr = root.getBoundingClientRect();
       const r = hero.getBoundingClientRect();
-      heroScene.frame(panel.getBoundingClientRect().top - rr.top);
+      heroScene.frame({ cardTop: panel.getBoundingClientRect().top - rr.top, heroBottom: r.bottom - rr.top });
       const vh = rr.height;
       const wide = window.matchMedia(WIDE_QUERY).matches;
       // Wide screens keep the wordmark in its column (the Praça is the centrepiece); phones centre it.
@@ -232,9 +230,11 @@ export function runIntroGate(): Promise<IntroGateResult> {
     layoutHero();
 
     teardowns.push(mountIntroAtmosphere(atmosphere, reduced));
+    if (!reduced) teardowns.push(heroScene.mountParallax());
     const parrots = mountIntroParrots(root, panel, reduced, {
       band: () => skyBand,
-      keepClear: () => [hero, root.classList.contains('intro-phase-auth') ? panel : null],
+      // The painted parts only — the header box spans the whole empty left column on desktop.
+      keepClear: () => [markWrap, title, taglines, root.classList.contains('intro-phase-auth') ? panel : null],
     });
     teardowns.push(parrots.teardown);
 

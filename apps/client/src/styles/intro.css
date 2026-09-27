@@ -8,6 +8,8 @@ body.intro-active #world {
 .intro-gate {
   --ease-cam: cubic-bezier(0.65, 0, 0.25, 1);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --sun-x: 12%;
+  --sun-y: 42%;
   position: fixed;
   inset: 0;
   z-index: 35;
@@ -17,7 +19,7 @@ body.intro-active #world {
   overflow: hidden auto;
   overscroll-behavior: contain;
   padding: calc(14px + var(--safe-top)) calc(12px + var(--safe-right)) calc(14px + var(--safe-bottom)) calc(12px + var(--safe-left));
-  background: #a8c5d4;
+  background: #d9b99a;
   opacity: 0;
   transition: opacity 0.6s ease;
 }
@@ -44,6 +46,7 @@ body.intro-active #world {
 
 /* ---------- world ---------- */
 
+/* Late-afternoon golden hour: low sun from the left, dusty-blue zenith, apricot horizon. */
 .intro-hero-scene {
   position: fixed;
   inset: 0;
@@ -56,32 +59,38 @@ body.intro-active #world {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(240, 200, 148, 0.55), transparent 70%),
-    linear-gradient(180deg, #93b5c8 0%, #a8c5d4 34%, #c8cdc6 58%, #efcf9f 78%, #e9b98a 100%);
+    radial-gradient(ellipse 70% 30% at var(--sun-x) calc(var(--sun-y) + 8%), rgba(255, 186, 110, 0.55), transparent 72%),
+    linear-gradient(180deg, #7d97b1 0%, #9eaabb 18%, #cdb8ab 36%, #edc393 50%, #f4b378 62%, #e9975f 78%, #d98355 100%);
 }
 
 .intro-sun {
   position: absolute;
-  left: -14vmax;
-  top: -12vmax;
-  width: 52vmax;
-  height: 52vmax;
+  left: var(--sun-x);
+  top: var(--sun-y);
+  width: 90vmax;
+  height: 90vmax;
+  translate: -50% -50%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 244, 214, 0.95) 0%, rgba(255, 228, 170, 0.6) 16%, rgba(255, 214, 150, 0.22) 38%, transparent 66%);
+  background: radial-gradient(
+    circle,
+    rgba(255, 250, 230, 1) 0 1.6%,
+    rgba(255, 232, 178, 0.95) 2.4%,
+    rgba(255, 206, 130, 0.62) 6%,
+    rgba(255, 176, 104, 0.32) 16%,
+    rgba(255, 160, 96, 0.12) 30%,
+    transparent 52%
+  );
 }
 
 .intro-rays {
   position: absolute;
-  left: -20vmax;
-  top: -20vmax;
-  width: 90vmax;
-  height: 90vmax;
-  background: repeating-conic-gradient(from 95deg at 22% 22%, rgba(255, 236, 196, 0.2) 0deg 4deg, transparent 4deg 11deg);
-  mask-image: radial-gradient(circle at 22% 22%, #000 0%, rgba(0, 0, 0, 0.5) 30%, transparent 62%);
-  -webkit-mask-image: radial-gradient(circle at 22% 22%, #000 0%, rgba(0, 0, 0, 0.5) 30%, transparent 62%);
+  inset: 0;
+  background: repeating-conic-gradient(from 60deg at var(--sun-x) var(--sun-y), rgba(255, 226, 170, 0.22) 0deg 3deg, transparent 3deg 10deg);
+  mask-image: radial-gradient(circle at var(--sun-x) var(--sun-y), #000 0%, rgba(0, 0, 0, 0.45) 26%, transparent 58%);
+  -webkit-mask-image: radial-gradient(circle at var(--sun-x) var(--sun-y), #000 0%, rgba(0, 0, 0, 0.45) 26%, transparent 58%);
   mix-blend-mode: soft-light;
   animation: intro-rays 28s ease-in-out infinite alternate;
-  transform-origin: 22% 22%;
+  transform-origin: var(--sun-x) var(--sun-y);
 }
 
 @keyframes intro-rays {
@@ -95,21 +104,29 @@ body.intro-active #world {
   }
 }
 
-.intro-hero-svg {
+.intro-cam,
+.intro-depth {
   position: absolute;
   inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  transform-origin: 50% 60%;
-  transition: transform 1.5s var(--ease-cam);
-  animation: intro-push 26s ease-in-out infinite alternate;
 }
 
-/* Camera tilts down to the Praça when the card arrives (portrait only; --intro-tilt is 0 wide). */
-.intro-phase-auth .intro-hero-svg {
-  transform: translateY(var(--intro-tilt, 0px));
+/* Portrait: the camera pulls back when the card arrives so fountain + ipês stay above it
+   (--cam-zoom / --cam-shift are 1 / 0 on wide layouts). */
+.intro-cam {
+  transform-origin: 50% 0;
+  transition: transform 1.6s var(--ease-cam);
+}
+
+.intro-phase-auth .intro-cam {
+  transform: translateY(var(--cam-shift, 0px)) scale(var(--cam-zoom, 1));
+}
+
+/* Each depth pushes in at its own rate (dolly parallax); pointer parallax sets `translate`. */
+.intro-depth {
+  transform-origin: 50% 60%;
+  will-change: transform;
+  transition: translate 1.4s var(--ease-out);
+  animation: intro-push 26s ease-in-out infinite alternate;
 }
 
 @keyframes intro-push {
@@ -117,8 +134,40 @@ body.intro-active #world {
     scale: 1;
   }
   to {
-    scale: 1.035;
+    scale: var(--push, 1.035);
   }
+}
+
+.intro-hero-svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.intro-hero-scene:not(.is-portrait) .portrait-only {
+  display: none;
+}
+
+/* Colour grade over the whole world: warm the whites, key from the sun, cool violet shade to the right. */
+.intro-grade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.intro-grade-warm {
+  mix-blend-mode: multiply;
+  background: linear-gradient(180deg, rgba(255, 232, 206, 0.5) 0%, rgba(255, 226, 190, 0.7) 55%, rgba(246, 206, 170, 0.8) 100%);
+}
+
+.intro-grade-light {
+  mix-blend-mode: soft-light;
+  background:
+    radial-gradient(ellipse 60% 55% at var(--sun-x) var(--sun-y), rgba(255, 206, 130, 0.75), rgba(255, 190, 120, 0.2) 55%, transparent 80%),
+    linear-gradient(100deg, rgba(255, 170, 96, 0.35) 0%, rgba(255, 190, 130, 0.1) 45%, rgba(92, 70, 140, 0.32) 100%);
 }
 
 .intro-hero-svg .edge {
@@ -137,26 +186,177 @@ body.intro-active #world {
 
 .intro-hero-svg .layer-landmarks path[stroke-width],
 .intro-hero-svg .lm-banespa path {
-  stroke: #8ea6b5;
+  stroke: #a597a6;
 }
 
 .intro-hero-svg .lm-copan-louvers path {
-  stroke: rgba(236, 240, 238, 0.55);
+  stroke: rgba(255, 232, 206, 0.42);
   stroke-width: 2.2;
 }
 
 .intro-hero-svg .lm-copan-rim {
   fill: none;
-  stroke: rgba(255, 236, 200, 0.7);
+  stroke: rgba(255, 216, 160, 0.9);
+  stroke-width: 3.5;
+}
+
+.intro-hero-svg .lm-banespa .lm-sunlit,
+.intro-hero-svg .lm-sunlit {
+  fill: none;
+  stroke: rgba(255, 210, 150, 0.85);
   stroke-width: 3;
 }
 
 .intro-hero-svg .sk-win {
-  fill: rgba(236, 240, 238, 0.28);
+  fill: rgba(255, 226, 196, 0.26);
+}
+
+.intro-hero-svg .sk-glint {
+  fill: rgba(255, 214, 140, 0.75);
+}
+
+.intro-hero-svg .sk-rim {
+  fill: rgba(255, 210, 150, 0.6);
+}
+
+.intro-hero-svg .horizon-glow {
+  fill: rgba(255, 190, 120, 0.5);
+}
+
+.intro-hero-svg .treeline-rim {
+  fill: none;
+  stroke: rgba(255, 206, 120, 0.55);
+  stroke-width: 6;
+  stroke-linecap: round;
 }
 
 .intro-hero-svg .cloud {
-  fill: rgba(255, 250, 242, 0.78);
+  fill: url(#tb-cloud);
+  opacity: 0.9;
+}
+
+.intro-hero-svg .cloud-rim {
+  fill: none;
+  stroke: rgba(255, 176, 120, 0.7);
+  stroke-width: 5;
+  stroke-linecap: round;
+}
+
+/* Long low-sun shadows fall to the right; violet-brown, never black. */
+.intro-hero-svg .cast-shadow {
+  fill: rgba(84, 50, 72, 0.2);
+}
+
+.intro-hero-svg .wall-shade {
+  fill: rgba(84, 52, 86, 0.16);
+}
+
+.intro-hero-svg .wall-sunlit {
+  fill: rgba(255, 214, 150, 0.65);
+}
+
+.intro-hero-svg .pole-sunlit {
+  fill: rgba(255, 206, 140, 0.7);
+}
+
+.intro-hero-svg .tree-rim {
+  fill: none;
+  stroke: rgba(255, 206, 140, 0.7);
+  stroke-linecap: round;
+}
+
+.intro-hero-svg .tree-canopy-rim {
+  fill: none;
+  stroke: rgba(255, 232, 160, 0.65);
+  stroke-linecap: round;
+}
+
+.intro-hero-svg .water-glint {
+  animation: intro-glint 3.6s ease-in-out infinite alternate;
+}
+
+@keyframes intro-glint {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---------- a touch of life: steam + passer-by ---------- */
+
+.intro-hero-svg .steam-wisp {
+  fill: none;
+  stroke: rgba(255, 250, 240, 0.85);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  opacity: 0;
+  animation: intro-steam 3.9s ease-out infinite;
+}
+
+@keyframes intro-steam {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.7, 0.6);
+  }
+  30% {
+    opacity: 0.75;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px) scale(1.25, 1.1);
+  }
+}
+
+.intro-hero-svg .passer-walk {
+  animation: intro-walk 58s linear -21s infinite;
+}
+
+@keyframes intro-walk {
+  from {
+    transform: translateX(1660px);
+  }
+  to {
+    transform: translateX(-80px);
+  }
+}
+
+.intro-hero-svg .passer-shadow {
+  fill: rgba(84, 50, 72, 0.22);
+}
+
+.intro-hero-svg .passer-bob {
+  animation: intro-bob 0.55s ease-in-out infinite alternate;
+}
+
+@keyframes intro-bob {
+  to {
+    transform: translateY(-1.2px);
+  }
+}
+
+.intro-hero-svg .passer-leg {
+  stroke: #3a2a20;
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  transform-origin: 0 -22px;
+  animation: intro-stride 0.55s ease-in-out infinite alternate;
+}
+
+.intro-hero-svg .passer-leg-b {
+  animation-direction: alternate-reverse;
+}
+
+@keyframes intro-stride {
+  from {
+    transform: rotate(-16deg);
+  }
+  to {
+    transform: rotate(16deg);
+  }
 }
 
 .intro-hero-svg .layer-clouds {
@@ -210,11 +410,11 @@ body.intro-active #world {
 }
 
 .intro-hero-svg .win-glass {
-  fill: #a9c8d3;
+  fill: #b7b8c0;
 }
 
 .intro-hero-svg .win-glass.lit {
-  fill: #f7d9a0;
+  fill: #ffd58a;
 }
 
 .intro-hero-svg .win-bars {
@@ -298,12 +498,6 @@ body.intro-active #world {
   }
 }
 
-.intro-hero-svg .keylight {
-  mix-blend-mode: soft-light;
-  pointer-events: none;
-}
-
-/* Golden-hour key from upper-left over the whole frame */
 .intro-layer {
   position: absolute;
   inset: 0;
@@ -314,8 +508,8 @@ body.intro-active #world {
   position: fixed;
   z-index: 1;
   background:
-    radial-gradient(ellipse 70% 45% at 8% 6%, rgba(255, 236, 196, 0.45), transparent 60%),
-    linear-gradient(180deg, transparent 70%, rgba(120, 72, 40, 0.14) 100%);
+    radial-gradient(ellipse 55% 40% at var(--sun-x) var(--sun-y), rgba(255, 220, 160, 0.3), transparent 60%),
+    linear-gradient(180deg, transparent 70%, rgba(120, 60, 40, 0.16) 100%);
 }
 
 .intro-particles {
@@ -768,8 +962,13 @@ body.intro-active #world {
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* Hints must never read as typed values: lighter, italic, regular weight. */
 .intro-field input::placeholder {
-  color: #b39a7c;
+  color: #bba58a;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 0;
+  opacity: 1;
 }
 
 .intro-field input:focus-visible {
@@ -1057,6 +1256,8 @@ body.intro-active #world {
 
 @media (min-width: 900px) and (min-aspect-ratio: 5/4), (min-width: 600px) and (min-aspect-ratio: 3/2) and (max-height: 520px) {
   .intro-gate {
+    --sun-x: 38%;
+    --sun-y: 31%;
     padding: 32px 5vw;
     justify-content: center;
   }
@@ -1179,6 +1380,14 @@ body.intro-active #world {
 
   .intro-parrots-front-wrap {
     display: none;
+  }
+
+  .intro-hero-svg .passer-walk {
+    transform: translateX(790px);
+  }
+
+  .intro-hero-svg .steam-wisp {
+    opacity: 0.45;
   }
 
   .intro-shell,

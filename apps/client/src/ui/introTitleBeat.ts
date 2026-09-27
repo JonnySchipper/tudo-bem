@@ -1,5 +1,5 @@
-/** Title-screen beat before auth card (TB Art brief: 2–4s or skippable). */
-export const INTRO_TITLE_BEAT_MS = 3400;
+/** Title-screen beat before auth card (TB Art brief: short and always skippable; Art delta 2026-09-27: +1s). */
+export const INTRO_TITLE_BEAT_MS = 4400;
 
 export function runIntroTitleBeat(root: HTMLElement, onReveal: () => void, reducedMotion: boolean): () => void {
   if (reducedMotion) {
