@@ -257,8 +257,9 @@ function handleClose() {
 }
 
 function handlePlay() {
+  const play = playCallback;
   closePedido();
-  playCallback?.();
+  play?.();
 }
 
 export function closePedido() {
