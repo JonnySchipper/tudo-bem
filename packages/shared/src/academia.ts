@@ -1,5 +1,5 @@
 /**
- * Academia Gracie da Praça — flagship BJJ roll v0 (GDD §7).
+ * Academia do Bairro — flagship BJJ roll v0 (GDD §7).
  * Language duels on real positions; first submission wins. Pure logic for server + tests.
  */
 import type { Bilingual } from './types.js';

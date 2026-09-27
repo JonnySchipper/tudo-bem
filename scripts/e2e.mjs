@@ -433,7 +433,7 @@ async function main() {
   await shot(page, '10_praca_hat_parrot');
   await dwell(1500);
 
-  // 6b. Academia Gracie — enter + one CPU roll duel (TB_TEST_ROLL + ROLL_QUEUE_MS on server)
+  // 6b. Academia do Bairro — enter + one CPU roll duel (TB_TEST_ROLL + ROLL_QUEUE_MS on server)
   await clickTile(page, 10, 0, 40);
   await waitFor(page, () => window.__tb.game.room?.room === 'academia', null, 15_000, 'academia');
   await sleep(500);

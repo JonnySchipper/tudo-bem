@@ -250,7 +250,7 @@ const praca: RoomDef = {
       to: 'academia',
       arrive: { x: 1, y: 6 },
       arriveDir: 'SE',
-      label: { pt: 'Academia Gracie da Praça', en: 'Gracie da Praça Academy' },
+      label: { pt: 'Academia do Bairro', en: 'Neighborhood Academy' },
     },
   ],
   npcs: [
@@ -412,8 +412,8 @@ const kitnet: RoomDef = {
 
 const academia: RoomDef = {
   id: 'academia',
-  name: 'Academia Gracie da Praça',
-  gloss: 'Gracie da Praça Academy',
+  name: 'Academia do Bairro',
+  gloss: 'Neighborhood Academy',
   cols: 11,
   rows: 9,
   floor: [
@@ -445,13 +445,13 @@ const academia: RoomDef = {
       label: { pt: 'Fila do tatame', en: 'Open-mat queue' },
     },
     { id: 'faixas', kind: 'parede_faixas', x: 0, y: 1, blocks: true, label: { pt: 'Parede de faixas', en: 'Belt wall' } },
-    { id: 'quadro', kind: 'quadro_foto', x: 10, y: 4, blocks: true, label: { pt: 'Gracie da Praça', en: 'Academy photo' } },
+    { id: 'quadro', kind: 'quadro_foto', x: 10, y: 4, blocks: true, label: { pt: 'Academia do Bairro', en: 'Academy photo' } },
     { id: 'banco_esp', kind: 'banco_espectador', x: 9, y: 6, blocks: false, seat: 'SW', label: { pt: 'Banco dos espectadores', en: 'Spectator bench' } },
     { id: 'banco_esp_2', kind: 'banco_espectador', x: 7, y: 7, blocks: false, seat: 'SE', label: { pt: 'Banco', en: 'Bench' } },
     { id: 'vestiario', kind: 'vestiario', x: 0, y: 7, blocks: true, label: { pt: 'Vestiário · alongamento', en: 'Changing / stretch corner' } },
   ],
   walls: [
-    { kind: 'placa', wall: 'right', from: 0, to: 4, text: 'ACADEMIA GRACIE DA PRAÇA' },
+    { kind: 'placa', wall: 'right', from: 0, to: 4, text: 'ACADEMIA DO BAIRRO' },
     { kind: 'janela', wall: 'left', from: 2, to: 5 },
     { kind: 'poster', wall: 'left', from: 6, to: 8, text: 'OSS · RESPEITO' },
     { kind: 'mural', wall: 'right', from: 5, to: 9, text: 'TREINO · COMUNIDADE' },

@@ -1,5 +1,5 @@
 /**
- * Academia Gracie da Praça — flagship BJJ roll UI (language duels on positions).
+ * Academia do Bairro — flagship BJJ roll UI (language duels on positions).
  */
 import { ROLL_CPU_PARTNER, ROLL_WORD_GAME_DISCLAIMER, type RollServerMsg } from '@tudobem/shared';
 import { game } from '../state';
