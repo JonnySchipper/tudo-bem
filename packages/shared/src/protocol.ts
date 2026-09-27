@@ -137,7 +137,19 @@ export type ServerMsg =
   | { t: 'chat'; id: string; name: string; text: string; gloss: string | null; lang: 'pt' | 'en' | 'mix'; action: SafetyAction }
   | { t: 'notice'; level: NoticeLevel; pt: string; en: string }
   | { t: 'reward'; amount: number; coins: number; reason: Bilingual }
-  | { t: 'scene'; view: SceneView; lastScore?: 0 | 1 | 2 | 3; feedback?: Bilingual; said?: Bilingual; payout?: number; dailyBlocked?: boolean }
+  | {
+      t: 'scene';
+      view: SceneView;
+      lastScore?: 0 | 1 | 2 | 3;
+      feedback?: Bilingual;
+      said?: Bilingual;
+      /** False when Gate A warned — echo only, do not slot-parse into the Pedido ticket. */
+      fillTicket?: boolean;
+      /** Gate A backstop toast when the client did not already show one. */
+      notice?: { level: 'warn' | 'block'; pt: string; en: string };
+      payout?: number;
+      dailyBlocked?: boolean;
+    }
   | MgServerMsg
   | ConversaServerMsg
   | { t: 'furnitureState'; furniture: PlacedFurniture[] }

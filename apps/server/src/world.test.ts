@@ -169,6 +169,24 @@ describe('World', () => {
     expect(student.log.at(-1)).toMatchObject({ channel: 'type', score: 3, jev: { constitution_ok: true, language: 'pt' } });
   });
 
+  it('Gate A warn on typed Pedido echoes verbatim without advancing or scoring the order', async () => {
+    const { world, moderation, student } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'scene', action: 'start', npc: 'carlos' });
+    const node = a.last('scene')!.view.nodeId;
+    const line = 'Essa coxinha tá gostosa!';
+    await a.send({ t: 'scene', action: 'type', text: line });
+    const scene = a.last('scene')!;
+    expect(scene.view.nodeId).toBe(node);
+    expect(scene.said).toEqual({ pt: line, en: '' });
+    expect(scene.fillTicket).toBe(false);
+    expect(scene.notice?.level).toBe('warn');
+    expect(scene.lastScore).toBeUndefined();
+    expect(student.log.filter((e) => e.channel === 'type').length).toBe(0);
+    expect(moderation.recent(3).some((e) => e.kind === 'warn')).toBe(true);
+  });
+
   it('points a typed Pedido rápido miss at Conversa instead of the chip miss line', async () => {
     const { world } = makeWorld();
     const a = await client(world);
