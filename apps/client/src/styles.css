@@ -902,9 +902,18 @@ button:disabled {
 
 /* ---------- minigame ---------- */
 
+.backdrop.mg-backdrop,
+.backdrop[data-modal='minigame'] {
+  z-index: 100;
+}
+
 .backdrop[data-modal='minigame']:not(.clear) {
-  background: rgba(44, 34, 28, 0.55);
-  backdrop-filter: blur(4px);
+  background: rgba(44, 34, 28, 0.4);
+  backdrop-filter: blur(3px);
+}
+
+body:has([data-modal='minigame']) {
+  overflow: hidden;
 }
 
 body:has([data-modal='minigame']) #ui {
@@ -914,6 +923,54 @@ body:has([data-modal='minigame']) #ui {
 
 body:has([data-modal='minigame']) .toasts {
   z-index: 120;
+}
+
+/* ~390×844 bar — full-bleed sheet (Art: no left-dock + white void) */
+@media (max-width: 900px) {
+  .backdrop.mg-backdrop,
+  .backdrop[data-modal='minigame'] {
+    display: flex !important;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: stretch;
+    position: fixed;
+    inset: 0;
+    left: 0;
+    right: 0;
+    width: 100vw;
+    max-width: 100vw;
+    min-width: 100vw;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  .backdrop[data-modal='minigame'] > .panel.mg {
+    align-self: stretch;
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0;
+    margin: 0 !important;
+    border-radius: 0;
+    max-height: calc(100dvh - var(--kb));
+    min-height: min(72dvh, calc(100dvh - var(--kb) - 48px));
+    padding-top: calc(12px + var(--safe-top));
+    padding-bottom: calc(12px + var(--safe-bottom));
+    padding-left: calc(12px + var(--safe-left));
+    padding-right: calc(12px + var(--safe-right));
+    overflow-x: clip;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-sizing: border-box;
+  }
+
+  .mg-kitchen .station {
+    min-height: 100px;
+  }
+
+  .mg-kitchen .station.shelf {
+    min-height: 0;
+  }
 }
 
 .mg {
