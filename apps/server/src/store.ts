@@ -11,11 +11,18 @@ export interface StoredProfile extends PrivateProfile {
     conversaClears?: Record<string, string>;
     /** Conversa RV already paid: npcId -> America/Sao_Paulo date. */
     conversaRvGranted?: Record<string, string>;
+    /** Pedido rápido RV already paid: npcId -> America/Sao_Paulo date. Once per calendar day. */
+    pedidoRvGranted?: Record<string, string>;
   };
   lastSeen: number;
 }
 
 export const today = () => new Date().toISOString().slice(0, 10);
+
+/** Get today's date in America/São_Paulo timezone (YYYY-MM-DD). */
+export function todaySaoPaulo(): string {
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+}
 
 /** Where profiles persist. Node: JSON file. Browser solo mode: localStorage. Tests: none. */
 export interface PersistenceAdapter {

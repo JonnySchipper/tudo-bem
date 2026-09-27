@@ -246,6 +246,30 @@ describe('World', () => {
     expect(p.coins).toBe(start + ECONOMY.sceneMax + ECONOMY.minigameMax - 12 + ECONOMY.tutorialBonus);
   });
 
+  it('Pedido rápido daily RV gate: once per America/São_Paulo calendar day', async () => {
+    const { world } = makeWorld();
+    const a = await client(world, 'Ana', 'ela');
+
+    // First Pedido rápido: should get RV
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'scene', action: 'start', npc: 'carlos' });
+    for (let i = 0; i < 5; i++) await a.send({ t: 'scene', action: 'choose', chip: 0 });
+    const first = a.last('scene')!;
+    expect(first.view.end).toBe(true);
+    expect(first.payout).toBe(ECONOMY.sceneMax);
+    expect(first.dailyBlocked).toBeFalsy();
+    const coinsAfterFirst = a.s.profile!.coins;
+
+    // Second Pedido rápido same day: should get 0 RV and dailyBlocked flag
+    await a.send({ t: 'scene', action: 'start', npc: 'carlos' });
+    for (let i = 0; i < 5; i++) await a.send({ t: 'scene', action: 'choose', chip: 0 });
+    const second = a.last('scene')!;
+    expect(second.view.end).toBe(true);
+    expect(second.payout).toBe(0);
+    expect(second.dailyBlocked).toBe(true);
+    expect(a.s.profile!.coins).toBe(coinsAfterFirst);
+  });
+
   it('Carlos repeats once on a wrong tray, then moves on', async () => {
     const { world } = makeWorld();
     const a = await client(world);

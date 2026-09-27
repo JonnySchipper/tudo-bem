@@ -34,6 +34,7 @@ import {
   showParrotPerch,
   showScene,
 } from './ui/panels';
+import { openPedido, updatePedido, closePedido, isPedidoOpen } from './ui/pedido';
 import { closeConversa, isConversaOpen, openConversa } from './ui/conversa';
 import { speak, stopSpeaking, unlockSpeech } from './audio';
 import { ambience } from './ambience';
@@ -301,17 +302,19 @@ net.on((m: ServerMsg) => {
       break;
     case 'scene':
       if (isConversaOpen()) closeConversa();
-      showScene(
-        m.view,
-        { said: m.said, feedback: m.feedback, score: m.lastScore, payout: m.payout },
-        (i) => net.send({ t: 'scene', action: 'choose', chip: i }),
-        () => {
-          net.send({ t: 'scene', action: 'close' });
-          closeDialogue();
-        },
-        startMinigame,
-        (text) => net.send({ t: 'scene', action: 'type', text }),
-      );
+      if (isPedidoOpen()) {
+        updatePedido(m.view, { said: m.said, feedback: m.feedback, score: m.lastScore, payout: m.payout, dailyBlocked: m.dailyBlocked });
+      } else {
+        openPedido(m.view, {
+          onChoose: (i) => net.send({ t: 'scene', action: 'choose', chip: i }),
+          onClose: () => {
+            net.send({ t: 'scene', action: 'close' });
+            closePedido();
+          },
+          onPlay: startMinigame,
+          onType: (text) => net.send({ t: 'scene', action: 'type', text }),
+        });
+      }
       break;
     case 'mg':
       clearMgResumeWatch();
