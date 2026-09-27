@@ -10,7 +10,7 @@ const HOST = process.env.HOST ?? '0.0.0.0';
 const DATA_DIR = process.env.DATA_DIR ?? path.resolve(process.cwd(), 'data');
 const CLIENT_DIST = process.env.CLIENT_DIST ?? [path.resolve(here, '../../client/dist'), path.resolve(process.cwd(), 'apps/client/dist')].find((p) => fs.existsSync(p));
 const ROOM_CAP = Number(process.env.ROOM_CAP ?? 16);
-/** Praça ambiance CPUs: `on` for “feel” playtests (default), `off` for empty-room playtests. */
+/** Praça / Academia ambiance CPUs: `on` for “feel” playtests (default), `off` for empty-room playtests. */
 const CPU_AMBIANCE = (process.env.LIVEOPS_CPU_AMBIANCE ?? 'on').toLowerCase() !== 'off';
 /** Idle kick after this many seconds without real input (default 15 min). */
 const IDLE_KICK_SECONDS = Number(process.env.IDLE_KICK_SECONDS ?? 900);

@@ -154,15 +154,23 @@ const MG_PREP = {
 };
 const MOD_IDS = { 'pra viagem': 'pra_viagem', 'pra comer aqui': 'pra_comer_aqui', 'sem açúcar': 'sem_acucar', 'bem quente': 'bem_quente' };
 
+async function wipHint(page) {
+  return (await page.textContent('#mg-wip')) ?? '';
+}
+
 async function buildTrayItem(page, itemId, needsPack, coffeeMods) {
   const wipBusy = await page.locator('#mg-wip img').isVisible();
   if (!wipBusy) await page.click(`#mg-shelves [data-item="${itemId}"]`);
-  if (MG_PREP.chapa.has(itemId)) await page.click('#mg-station-chapa .station-go');
-  if (MG_PREP.bebidas.has(itemId)) {
-    for (const m of coffeeMods) await page.click(`#mg-mods [data-mod="${MOD_IDS[m]}"]`);
+  const hint = await wipHint(page);
+  if (MG_PREP.chapa.has(itemId) && /Chapa|Grill/.test(hint)) await page.click('#mg-station-chapa .station-go');
+  if (MG_PREP.bebidas.has(itemId) && /Bebidas|Drinks|Pour/.test(hint)) {
+    for (const m of coffeeMods) {
+      const pressed = await page.getAttribute(`#mg-mods [data-mod="${MOD_IDS[m]}"]`, 'aria-pressed');
+      if (pressed !== 'true') await page.click(`#mg-mods [data-mod="${MOD_IDS[m]}"]`);
+    }
     await page.click('#mg-station-bebidas .station-go');
   }
-  if (needsPack) await page.click('#mg-station-pack .station-go');
+  if (needsPack && /Embalagem|Pack/.test(await wipHint(page))) await page.click('#mg-station-pack .station-go');
   await page.click('#mg-tray-place');
 }
 
@@ -369,6 +377,24 @@ async function main() {
   // 5. Me vê um… minigame
   await page.click('#btn-pedido-play-mg');
   await page.waitForSelector('#mg-order');
+  await page.click('#mg-shelves button');
+  for (const size of [
+    { width: 1280, height: 800 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(size);
+    const placeInView = await page.evaluate(() => {
+      const el = document.querySelector('#mg-tray-place');
+      const panel = document.querySelector('.panel.mg');
+      if (!el || !panel) return false;
+      const r = el.getBoundingClientRect();
+      const pr = panel.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 && r.top >= pr.top - 1 && r.bottom <= pr.bottom + 1;
+    });
+    assert(placeInView, `Colocar na bandeja stays tappable at ${size.width}×${size.height}`);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.click('#mg-clear');
   const forms = await page.evaluate(() => [...document.querySelectorAll('#mg-shelves button')].map((b) => ({ id: b.dataset.item, form: b.querySelector('.pt').textContent })));
   const plurals = {
     pao: 'pães', pao_na_chapa: 'pães na chapa', pastel: 'pastéis', coxinha: 'coxinhas', bolo: 'bolos', cafe: 'cafés', cafe_com_leite: 'cafés com leite',
