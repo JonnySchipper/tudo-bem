@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { buildGrid, CPU_NAMES, DEFAULT_APPEARANCE, ECONOMY, isCpuId, isWalkable, MISSION_REWARD, mulberry32, ROOMS, SCORE_FEEDBACK, TYPED_MISS_HINT, type ServerMsg, type ClientMsg, type PublicAvatar } from '@tudobem/shared';
-import { sanitizeAppearance, World, type Session, type WorldOptions } from './world.js';
+import { sanitizeAppearance, World, MG_RESUME_MS, type Session, type WorldOptions } from './world.js';
 import { ProfileStore } from './store.js';
 import { AuthoredNpcDialogue, MemoryModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 
@@ -40,6 +40,18 @@ interface Client {
 }
 
 let n = 0;
+function connectBare(world: World): Client {
+  const inbox: ServerMsg[] = [];
+  const s = world.connect(`c${n++}`, (m) => inbox.push(m), () => {});
+  return {
+    s,
+    inbox,
+    send: (m) => world.handle(s, m),
+    last: (t) => [...inbox].reverse().find((m) => m.t === t) as never,
+    all: (t) => inbox.filter((m) => m.t === t) as never,
+  };
+}
+
 async function client(world: World, name = `Ana${n++}`, pronoun: 'ele' | 'ela' | 'nome' = 'ela'): Promise<Client> {
   const inbox: ServerMsg[] = [];
   const s = world.connect(`c${n++}`, (m) => inbox.push(m), () => {});
@@ -298,6 +310,109 @@ describe('World', () => {
     const order = world.debugOrder(a.s)!;
     await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods });
     expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 1 });
+  });
+
+  it('reconnect keeps the repeat grace, then a real tray still advances', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'mg', action: 'start' });
+    await a.send({ t: 'mg', action: 'submit', tray: {} });
+    const mid = world.debugOrder(a.s)!;
+    expect(a.s.mg).toMatchObject({ round: 0, repeated: true });
+    const token = a.s.profile!.token;
+    world.disconnect(a.s);
+
+    const b = connectBare(world);
+    await b.send({ t: 'hello', token });
+    await b.send({ t: 'join', room: 'padaria' });
+    expect(world.debugOrder(b.s)!.pt).toBe(mid.pt);
+    expect(b.last('mg')).toMatchObject({ phase: 'order', round: 0, repeat: true, resync: true, pt: mid.pt });
+
+    // Echo of the empty tray still must not burn the retry.
+    await b.send({ t: 'mg', action: 'submit', tray: {} });
+    expect(b.s.mg!.round).toBe(0);
+    expect(b.s.mg!.repeated).toBe(true);
+    expect(b.all('mg').some((m) => m.phase === 'result')).toBe(false);
+    expect(b.last('mg')).toMatchObject({ phase: 'order', round: 0, repeat: true, resync: true });
+
+    clock += 50;
+    await b.send({
+      t: 'mg',
+      action: 'submit',
+      tray: Object.fromEntries(mid.lines.map((l) => [l.itemId, l.qty])),
+      mods: mid.mods,
+    });
+    expect(b.all('mg').filter((m) => m.phase === 'result').at(-1)).toMatchObject({ outcome: 'segunda', round: 0 });
+    expect(b.last('mg')).toMatchObject({ phase: 'order', round: 1 });
+    expect(b.last('mg')).not.toMatchObject({ pt: mid.pt });
+  });
+
+  it('a dropped connection during the order gap still deals the next ticket once', async () => {
+    const { world } = makeWorld(16, { mgGapMs: 5_000 });
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'mg', action: 'start' });
+    const first = world.debugOrder(a.s)!;
+    clock += 1000;
+    await a.send({
+      t: 'mg',
+      action: 'submit',
+      tray: Object.fromEntries(first.lines.map((l) => [l.itemId, l.qty])),
+      mods: first.mods,
+    });
+    expect(a.s.mg).toMatchObject({ waiting: true, round: 1 });
+    const token = a.s.profile!.token;
+    world.disconnect(a.s);
+    advance(5_000);
+
+    const b = connectBare(world);
+    await b.send({ t: 'hello', token });
+    await b.send({ t: 'join', room: 'padaria' });
+    expect(b.last('mg')).toMatchObject({ phase: 'order', round: 1 });
+    expect(world.debugOrder(b.s)!.pt).not.toBe(first.pt);
+    expect(b.s.mg?.waiting).toBe(false);
+    const pt = world.debugOrder(b.s)!.pt;
+    advance(5_000);
+    expect(world.debugOrder(b.s)!.pt).toBe(pt);
+    expect(b.all('mg').filter((m) => m.phase === 'order')).toHaveLength(1);
+  });
+
+  it('does not resume a ticket after the reconnect window', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'mg', action: 'start' });
+    const token = a.s.profile!.token;
+    world.disconnect(a.s);
+    clock += MG_RESUME_MS + 1;
+    const b = connectBare(world);
+    await b.send({ t: 'hello', token });
+    await b.send({ t: 'join', room: 'padaria' });
+    expect(b.all('mg')).toHaveLength(0);
+    expect(b.s.mg).toBeUndefined();
+  });
+
+  it('a second hello resumes the open ticket instead of deleting it', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'mg', action: 'start' });
+    const pt = world.debugOrder(a.s)!.pt;
+    const token = a.s.profile!.token;
+    let kicked = false;
+    const orig = a.s.close;
+    a.s.close = () => {
+      kicked = true;
+      orig();
+    };
+    const b = connectBare(world);
+    await b.send({ t: 'hello', token });
+    expect(kicked).toBe(true);
+    expect(a.s.profile).toBeUndefined();
+    await b.send({ t: 'join', room: 'padaria' });
+    expect(b.last('mg')).toMatchObject({ phase: 'order', round: 0, resync: true, pt });
+    expect(world.debugOrder(b.s)!.pt).toBe(pt);
   });
 
   it('missing ticket history still advances to the next order', async () => {

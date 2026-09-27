@@ -4,6 +4,7 @@ import {
   authoredFallbackTurn,
   gradeFromScores,
   gradeCopy,
+  contaRvLine,
   metersFromHistory,
   gateConversaPlayerLine,
   offlineConversaOpen,
@@ -15,6 +16,7 @@ import {
   type ConversaLine,
   type ConversaMeter,
   type ConversaScores,
+  type RvNote,
   type NpcDef,
   type NpcId,
 } from '@tudobem/shared';
@@ -47,6 +49,7 @@ interface ConversaState {
   ended: boolean;
   grade: ConversaGrade | null;
   payout: number;
+  rvNote: RvNote | null;
   meter: ConversaMeter;
   daily: ConversaDaily;
 }
@@ -109,9 +112,10 @@ function speakContaStamp(grade: ConversaGrade) {
 }
 
 /** The conta: a paper bill with a PT-primary rubber stamp (Mandou bem! / Quase! / Tenta de novo). */
-function buildScoreCard(grade: ConversaGrade, payout: number, meter: ConversaMeter): HTMLElement {
+function buildScoreCard(grade: ConversaGrade, payout: number, meter: ConversaMeter, rvNote: RvNote | null): HTMLElement {
   const copy = gradeCopy(grade);
   const gradeClass = grade === 'pass' ? 'pass' : grade === 'almost' ? 'almost' : 'try-again';
+  const rvLine = contaRvLine(payout, rvNote);
 
   const axes = CONVERSA_AXES.map((axis) => {
     const pct = meter[axis.id];
@@ -130,7 +134,8 @@ function buildScoreCard(grade: ConversaGrade, payout: number, meter: ConversaMet
     h('div', { class: 'conta-head' }, 'A conta', h('small', {}, 'The bill')),
     h('div', { class: `grade ${gradeClass}`, lang: 'pt-BR' }, copy.label.pt, h('small', { class: 'grade-en', lang: 'en' }, copy.label.en)),
     h('div', { class: 'grade-line' }, copy.line.pt, en(copy.line.en, true)),
-    payout > 0 ? h('div', { class: 'payout' }, `+${payout} RV`) : null,
+    rvLine && payout > 0 ? h('div', { class: 'payout' }, rvLine.pt) : null,
+    rvLine && payout <= 0 ? h('div', { class: 'payout withheld', lang: 'pt-BR' }, rvLine.pt, en(rvLine.en, true)) : null,
     h('div', { class: 'axes' }, ...axes),
   );
 }
@@ -161,7 +166,7 @@ function render() {
     body = h(
       'div',
       { class: 'conversa-body ended' },
-      buildScoreCard(state.grade, state.payout, state.meter),
+      buildScoreCard(state.grade, state.payout, state.meter, state.rvNote),
       h(
         'div',
         { class: 'actions' },
@@ -358,6 +363,7 @@ function handleApiResponse(response: ConversaApiResponse) {
     state.ended = true;
     state.grade = response.grade;
     state.payout = response.payout;
+    state.rvNote = response.rvNote ?? null;
 
     if (response.updateDaily) {
       state.daily = { ...state.daily, ...response.updateDaily };
@@ -504,6 +510,7 @@ export async function openConversa(
       ended: false,
       grade: null,
       payout: 0,
+      rvNote: null,
       meter: { portuguese: 0, grammar: 0, conversation: 0 },
       daily,
     };
@@ -540,6 +547,7 @@ function openOfflineConversa(npcId: NpcId) {
     ended: false,
     grade: null,
     payout: 0,
+    rvNote: null,
     meter: { portuguese: 0, grammar: 0, conversation: 0 },
     daily: {},
   };

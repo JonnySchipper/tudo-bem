@@ -163,6 +163,8 @@ export const CONVERSA_COPY = {
   passLine: { pt: 'Isso aí. Volte sempre.', en: 'Nice work. Come back anytime.' } as Bilingual,
   almostLine: { pt: 'Quase! Na próxima, tenta mais português.', en: 'Almost — try more Portuguese next time.' } as Bilingual,
   tryAgainLine: { pt: 'Sem pressa. Quer tentar de novo depois?', en: 'No rush. Try again later?' } as Bilingual,
+  /** Conta line when this NPC's RV was already granted today. The grade stamp still shows. */
+  rvAlready: { pt: 'Você já ganhou hoje. Volte amanhã.', en: "You already earned today's RV. Come back tomorrow." } as Bilingual,
   sair: { pt: 'Sair', en: 'Leave' } as Bilingual,
   enviar: { pt: 'Enviar', en: 'Send' } as Bilingual,
   continuar: { pt: 'Continuar', en: 'Continue' } as Bilingual,
@@ -216,6 +218,16 @@ export function gradeFromScores(scores: ConversaScores, turnCount: number): Conv
 
 export function gradeRV(grade: ConversaGrade): number {
   return CONVERSA_RV[grade];
+}
+
+/** Why a conta shows no coins even though the grade would have paid. */
+export type RvNote = 'already_today';
+
+/** What the conta prints in the RV slot. Null stays quiet (try again, offline, no profile). */
+export function contaRvLine(payout: number, rvNote?: RvNote | null): Bilingual | null {
+  if (payout > 0) return { pt: `+${payout} RV`, en: `+${payout} RV` };
+  if (rvNote === 'already_today') return CONVERSA_COPY.rvAlready;
+  return null;
 }
 
 export function gradeCopy(grade: ConversaGrade): { label: Bilingual; line: Bilingual } {

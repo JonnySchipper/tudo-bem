@@ -7,6 +7,8 @@ import {
   gradeFromScores,
   gradeRV,
   gradeCopy,
+  contaRvLine,
+  CONVERSA_COPY,
   metersFromHistory,
   mentionedPrices,
   sanitizeConversaTurn,
@@ -326,6 +328,23 @@ describe('shouldGrantRV', () => {
 
   it('grants RV when no previous grant', () => {
     expect(shouldGrantRV('carlos', {}, true)).toBe(true);
+  });
+});
+
+describe('contaRvLine', () => {
+  it('prints the payout when RV was granted', () => {
+    expect(contaRvLine(20, null)).toEqual({ pt: '+20 RV', en: '+20 RV' });
+    expect(contaRvLine(5)).toEqual({ pt: '+5 RV', en: '+5 RV' });
+  });
+
+  it('says the day was already earned when RV is withheld', () => {
+    expect(contaRvLine(0, 'already_today')).toEqual(CONVERSA_COPY.rvAlready);
+    expect(CONVERSA_COPY.rvAlready.pt.toLowerCase()).toContain('já ganhou hoje');
+  });
+
+  it('stays quiet when nothing was withheld', () => {
+    expect(contaRvLine(0, null)).toBeNull();
+    expect(contaRvLine(0)).toBeNull();
   });
 });
 

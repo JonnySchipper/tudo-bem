@@ -12,6 +12,7 @@ import {
   gradeRV,
   gradeCopy,
   metersFromHistory,
+  type RvNote,
   pickConversaOpener,
   presentConversaTurn,
   shouldGrantRV,
@@ -126,6 +127,8 @@ interface ConversaEndResponse {
   gradeLabel: Bilingual;
   payout: number;
   grantRv: boolean;
+  /** Set when the grade would have paid but today's RV for this NPC was already granted. */
+  rvNote?: RvNote;
   /** Absolute coin balance after a persisted grant. Omitted when the player has no profile. */
   coins?: number;
   updateDaily: {
@@ -337,6 +340,7 @@ async function handleEnd(req: ConversaEndRequest, res: ServerResponse, deps: Con
   const copy = gradeCopy(grade);
 
   const grantRv = rv > 0 && shouldGrantRV(req.npcId, daily, rvOnceFromEnv());
+  const rvNote: RvNote | undefined = !grantRv && rv > 0 ? 'already_today' : undefined;
 
   const todayKey = conversaDateKey();
   const updateDaily: ConversaEndResponse['updateDaily'] = {
@@ -367,6 +371,7 @@ async function handleEnd(req: ConversaEndRequest, res: ServerResponse, deps: Con
     gradeLabel: copy.label,
     payout: grantRv ? rv : 0,
     grantRv,
+    ...(rvNote ? { rvNote } : {}),
     ...(coins !== undefined ? { coins } : {}),
     updateDaily,
   };

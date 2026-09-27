@@ -212,7 +212,47 @@ export function hoverLabel(x: number, y: number, pt: string | null, enText?: str
   hoverEl.style.top = `${y}px`;
 }
 
-export function overlayMessage(text: string | null) {
+export function overlayMessage(text: string | null, onRetry?: () => void) {
   document.querySelector('.overlay-msg')?.remove();
-  if (text) ui().append(h('div', { class: 'overlay-msg' }, text));
+  if (!text) return;
+  ui().append(
+    h(
+      'div',
+      { class: 'overlay-msg', role: 'status' },
+      h(
+        'div',
+        { class: 'overlay-card' },
+        h('p', null, text),
+        onRetry ? h('button', { class: 'primary', type: 'button', onclick: onRetry }, bi('Tentar de novo', 'Try again')) : null,
+      ),
+    ),
+  );
+}
+
+/** Non-blocking recovery after reconnect gives up or this tab is replaced. Clears any previous banner. */
+export function reconnectBanner(opts: { kind: 'failed' | 'replaced'; midOrder: boolean; onRetry: () => void } | null) {
+  document.querySelector('.reconnect-banner')?.remove();
+  if (!opts) return;
+  const pt =
+    opts.kind === 'replaced'
+      ? 'Você entrou em outra aba.'
+      : opts.midOrder
+        ? 'A conexão caiu no meio do pedido.'
+        : 'A conexão caiu.';
+  const enText =
+    opts.kind === 'replaced'
+      ? 'You signed in from another tab.'
+      : opts.midOrder
+        ? 'The connection dropped mid-order. You can play again.'
+        : 'Couldn’t reconnect.';
+  const button =
+    opts.kind === 'replaced' ? bi('Entrar de novo', 'Join again') : bi('Tentar de novo', 'Try again');
+  ui().append(
+    h(
+      'div',
+      { class: 'reconnect-banner', role: 'status' },
+      h('p', null, pt, en(enText)),
+      h('button', { class: 'primary', type: 'button', onclick: opts.onRetry }, button),
+    ),
+  );
 }

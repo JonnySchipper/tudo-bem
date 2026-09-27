@@ -46,6 +46,8 @@ interface ConversaEndResponse {
   gradeLabel: Bilingual;
   payout: number;
   grantRv: boolean;
+  /** Set when the grade would have paid but today's RV was already granted. */
+  rvNote?: 'already_today';
   /** Absolute RV balance when the server persisted the grant. */
   coins?: number;
   updateDaily: {

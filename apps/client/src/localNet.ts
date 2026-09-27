@@ -7,7 +7,7 @@ import type { ClientMsg, ServerMsg } from '@tudobem/shared';
 import { World, type Session } from '@tudobem/server/world';
 import { ProfileStore, type PersistenceAdapter, type StoredProfile } from '@tudobem/server/store';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, MemoryModerationQueue, PhrasebookGloss } from '@tudobem/server/services';
-import type { NetLike } from './net';
+import type { NetLike, NetStatus } from './net';
 
 const KEY = 'tb_solo_profiles_v1';
 
@@ -30,8 +30,10 @@ export class LocalNet implements NetLike {
   private handlers = new Set<Handler>();
   private world: World | null = null;
   private session: Session | null = null;
-  onStatus: (s: 'open' | 'closed' | 'connecting') => void = () => {};
+  onStatus: (s: NetStatus) => void = () => {};
   onOpen: () => void = () => {};
+
+  retry() {}
 
   connect() {
     this.world = new World(new ProfileStore(localAdapter), {
