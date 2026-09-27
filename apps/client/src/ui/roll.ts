@@ -6,7 +6,7 @@ import { game } from '../state';
 import { h, en, bi } from './dom';
 import { openModal, closeModal, modalId } from './panels';
 import { speak } from '../audio';
-import { bjjPoseIdFromPt, paintBjjPoseCanvas, type BjjPoseId } from '../render/bjjPoses';
+import { bjjPoseIdFromPt, paintBjjPoseCanvas, type BjjPoseId, type BjjPoseOpts } from '../render/bjjPoses';
 
 type RollMsg = Extract<RollServerMsg, { t: 'roll' }>;
 
@@ -78,8 +78,8 @@ export class RollUI {
     );
   }
 
-  private showPose(pose: BjjPoseId) {
-    paintBjjPoseCanvas(this.poseCanvas, pose);
+  private showPose(pose: BjjPoseId, opts?: BjjPoseOpts) {
+    paintBjjPoseCanvas(this.poseCanvas, pose, opts);
   }
 
   handle(m: RollMsg) {
@@ -120,7 +120,8 @@ export class RollUI {
       this.duelEnd = performance.now() + m.timeMs;
       this.tickTimer();
       const pid = bjjPoseIdFromPt(m.positionPt);
-      this.showPose(m.submissionPt ? 'tap' : pid);
+      if (m.submissionPt) this.showPose('tap', { tapFrom: pid });
+      else this.showPose(pid);
       if (m.puzzle.kind === 'reorder' && m.puzzle.tokens) {
         const row = h('div', { class: 'roll-reorder-pick', id: 'roll-reorder-pick' });
         const bank = h('div', { class: 'roll-chips', id: 'roll-chips' });
@@ -186,7 +187,7 @@ export class RollUI {
       return;
     }
     if (m.phase === 'end') {
-      this.showPose('fist_bump');
+      this.showPose('fist_bump', { badge: m.reason === 'submission' ? 'finalizacao' : 'decisao' });
       this.locked = true;
       cancelAnimationFrame(this.raf);
       if (game.profile) game.profile.bjj = m.bjj;

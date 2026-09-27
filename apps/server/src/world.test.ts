@@ -989,17 +989,55 @@ describe('World with email/password accounts', () => {
     pending.length = 0;
   });
 
-  it('refuses sockets without a signed-in account', async () => {
+  it('lets a guest (no session) play with a token avatar that stays unlinked', async () => {
     const accounts = new FakeAccounts();
     const { world } = makeWorld(16, { accounts });
     const guest = connectAs(world);
     await guest.send({ t: 'hello' });
-    expect(guest.inbox.at(-1)).toEqual({ t: 'authRequired' });
-    await guest.send({ t: 'createProfile', name: 'Pirata', pronoun: 'ele', appearance: DEFAULT_APPEARANCE });
-    expect(guest.inbox.at(-1)).toEqual({ t: 'authRequired' });
-    await guest.send({ t: 'join', room: 'praca' });
-    expect(guest.inbox.at(-1)).toMatchObject({ t: 'error', code: 'no_profile' });
-    expect(world.store.count()).toBe(0);
+    expect(guest.inbox.at(-1)).toEqual({ t: 'needProfile' });
+    await guest.send({ t: 'createProfile', name: 'Visita', pronoun: 'ela', appearance: DEFAULT_APPEARANCE });
+    const welcome = guest.inbox.at(-1) as Extract<ServerMsg, { t: 'welcome' }>;
+    expect(welcome.t).toBe('welcome');
+    await guest.send({ t: 'join', room: 'padaria' });
+    expect(guest.inbox.at(-1)).toMatchObject({ t: 'roomState', room: 'padaria' });
+    expect(guest.s.profile!.accountId).toBeUndefined();
+    expect(accounts.links.size).toBe(0);
+    world.disconnect(guest.s);
+
+    const back = connectAs(world);
+    await back.send({ t: 'hello', token: welcome.token });
+    expect(back.inbox.at(-1)).toMatchObject({ t: 'welcome', profile: { id: welcome.profile.id } });
+  });
+
+  it('a guest token never opens an account\'s avatar (e.g. a stale token left after logout)', async () => {
+    const accounts = new FakeAccounts();
+    const { world } = makeWorld(16, { accounts });
+    const owner = connectAs(world, 'acc-1');
+    await owner.send({ t: 'hello' });
+    await owner.send({ t: 'createProfile', name: 'Jonny', pronoun: 'ele', appearance: DEFAULT_APPEARANCE });
+    const { token } = owner.inbox.at(-1) as Extract<ServerMsg, { t: 'welcome' }>;
+    world.disconnect(owner.s);
+
+    const sneaky = connectAs(world);
+    await sneaky.send({ t: 'hello', token });
+    expect(sneaky.inbox.at(-1)).toEqual({ t: 'needProfile' });
+    expect(sneaky.s.profile).toBeUndefined();
+  });
+
+  it('a guest who creates an account keeps the same avatar and RV', async () => {
+    const accounts = new FakeAccounts();
+    const { world } = makeWorld(16, { accounts });
+    const guest = connectAs(world);
+    await guest.send({ t: 'hello' });
+    await guest.send({ t: 'createProfile', name: 'Visita', pronoun: 'ela', appearance: DEFAULT_APPEARANCE });
+    const { token, profile } = guest.inbox.at(-1) as Extract<ServerMsg, { t: 'welcome' }>;
+    guest.s.profile!.coins = 42;
+    world.disconnect(guest.s);
+
+    const signedUp = connectAs(world, 'acc-new');
+    await signedUp.send({ t: 'hello', token });
+    expect(signedUp.inbox.at(-1)).toMatchObject({ t: 'welcome', profile: { id: profile.id, coins: 42 } });
+    expect(accounts.links.get('acc-new')).toBe(profile.id);
   });
 
   it('creates the avatar for the account, then finds it on the next visit', async () => {

@@ -1,6 +1,9 @@
 import './styles.css';
+import './styles/intro.css';
+import { runIntroGate } from './ui/intro';
+import { hasServerSession, signOut } from './auth/client';
+import { INTRO_PASSED_KEY } from './auth/session';
 import {
-  AUTH_COPY,
   MISSION_COPY,
   ROOMS,
   TUTORIAL_STEPS,
@@ -19,8 +22,6 @@ import { Net, wsUrl, type NetLike } from './net';
 import { LocalNet } from './localNet';
 import { WorldRenderer, type Hit } from './render/world';
 import { runOnboarding, closeOnboarding } from './ui/onboarding';
-import { runAuth, closeAuth } from './ui/auth';
-import { authApi } from './auth';
 import { buildHud, hoverLabel, idleKickedCard, missionBanner, overlayMessage, parrotWhisper, reconnectBanner, toast } from './ui/hud';
 import {
   buildDecorPanel,
@@ -229,6 +230,15 @@ net.onOpen = () => net.send({ t: 'hello', token: localStorage.getItem(TOKEN_KEY)
 /** Kick copy from the server's last message before it closed the socket. */
 let kickedCopy: { pt: string; en: string } | null = null;
 let leaving = false;
+/** Set at boot: a live account session (the HUD shows "Sair"); otherwise a guest (the HUD offers "Criar conta"). */
+let signedIn = false;
+
+/** Back to the title screen's sign-in card on the next load (logout, or signing up from guest mode). */
+function reloadToSignIn() {
+  leaving = true;
+  sessionStorage.removeItem(INTRO_PASSED_KEY);
+  location.reload();
+}
 
 function showIdleKick() {
   failClearMinigame();
@@ -249,7 +259,8 @@ function showIdleKick() {
 
 net.onStatus = (s) => {
   if (s === 'loggedOut') {
-    if (!leaving) location.reload();
+    // This account signed out in another tab.
+    if (!leaving) void signOut().then(reloadToSignIn);
     return;
   }
   if (!started) return;
@@ -272,12 +283,6 @@ net.onStatus = (s) => {
 
 net.on((m: ServerMsg) => {
   switch (m.t) {
-    case 'authRequired':
-      // Session expired or was revoked while the page stayed open. Sign in, then reconnect with the new cookie.
-      closeOnboarding();
-      onboarding = null;
-      runAuth({ notice: AUTH_COPY.unauthenticated, onAuthed: () => net.retry() });
-      break;
     case 'needProfile':
       localStorage.removeItem(TOKEN_KEY);
       if (!onboarding) onboarding = runOnboarding((p) => net.send({ t: 'createProfile', ...p }));
@@ -291,7 +296,6 @@ net.on((m: ServerMsg) => {
     case 'welcome': {
       localStorage.setItem(TOKEN_KEY, m.token);
       game.profile = m.profile;
-      closeAuth();
       closeOnboarding();
       onboarding = null;
       if (!started) startGame();
@@ -534,13 +538,19 @@ function startGame() {
       ambience.setEnabled(game.music);
       game.emit('hud');
     },
-    logout: SOLO
+    account: SOLO
       ? undefined
-      : async () => {
-          leaving = true;
-          await authApi.logout();
-          location.reload();
-        },
+      : signedIn
+        ? {
+            kind: 'logout',
+            run: async () => {
+              leaving = true;
+              await signOut();
+              localStorage.removeItem(TOKEN_KEY);
+              reloadToSignIn();
+            },
+          }
+        : { kind: 'signup', run: reloadToSignIn },
   });
   mountJoystick((dx, dy) => {
     if (game.modalOpen || game.editMode || game.placing) return;
@@ -760,10 +770,13 @@ setInterval(() => {
 // ---------------------------------------------------------------- boot
 
 async function boot() {
-  if (SOLO) return net.connect();
-  const me = await authApi.me();
-  if (me.ok && me.account) net.connect();
-  else runAuth({ onAuthed: () => net.connect() });
+  // A live session skips the title screen, so a refresh drops straight back into the world.
+  if (!SOLO) signedIn = await hasServerSession();
+  if (!signedIn) {
+    const entry = await runIntroGate();
+    signedIn = !SOLO && entry.mode === 'auth';
+  }
+  net.connect();
 }
 void boot();
 

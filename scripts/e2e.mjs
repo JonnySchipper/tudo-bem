@@ -73,34 +73,45 @@ const emailFor = (name) => `${name.toLowerCase()}+${RUN}@exemplo.com`;
 /** Solo builds need `?rolltest` for the Academia roll debug hints (the server build uses TB_TEST_ROLL=1). */
 const START_URL = SOLO ? `${BASE}${BASE.includes('?') ? '&' : '?'}rolltest` : BASE;
 
-/** Multiplayer: the first screen is sign in / create account (email + password). No birth date anywhere; 18+ is an optional tick on register only. */
-async function signUp(page, name, tick18) {
-  await page.waitForSelector('#auth-form');
+/** Title screen → sign-in card (the intro's own skip keeps runs short). */
+async function toSignInCard(page) {
+  await page.waitForSelector('#intro-skip', { timeout: 12_000 });
   assert(!(await page.$('#birth-month')) && !(await page.$('#birth-year')), 'no birth-date step before play');
-  if (!(await page.isVisible('#auth-confirm-18'))) await page.click('#auth-tab-register');
-  await page.click('#auth-tab-login');
-  assert(!(await page.isVisible('#auth-confirm-18')), '18+ tick is not on the login form');
-  await page.click('#auth-tab-register');
-  assert(await page.isVisible('#auth-confirm-18'), '18+ tick is on the register form');
-  await page.fill('#auth-email', emailFor(name));
-  await page.fill('#auth-password', PASSWORD);
-  assert(await page.isEnabled('#auth-submit'), 'the 18+ tick is optional');
-  if (tick18) await page.check('#auth-confirm-18');
-  await page.click('#auth-submit');
+  await page.click('#intro-skip');
+  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+}
+
+/** Guest path (“Explorar como visitante”): shipped by the intro, so it must reach the world. */
+async function enterAsGuest(page) {
+  await toSignInCard(page);
+  await page.click('#intro-guest');
+}
+
+/** Create account: email + password; 18+ is an optional tick on register only. */
+async function signUp(page, name, tick18) {
+  await toSignInCard(page);
+  assert(!(await page.isVisible('#intro-18')), '18+ tick is not on the login form');
+  await page.click('#intro-tab-register');
+  assert(await page.isVisible('#intro-18'), '18+ tick is on the register form');
+  await page.fill('#intro-email', emailFor(name));
+  await page.fill('#intro-password', PASSWORD);
+  if (tick18) await page.check('#intro-18');
+  await page.click('#intro-submit');
 }
 
 async function signIn(page, name, password = PASSWORD) {
-  await page.waitForSelector('#auth-form');
-  if (await page.isVisible('#auth-confirm-18')) await page.click('#auth-tab-login');
-  await page.fill('#auth-email', emailFor(name));
-  await page.fill('#auth-password', password);
-  await page.click('#auth-submit');
+  await toSignInCard(page);
+  if (await page.isVisible('#intro-18')) await page.click('#intro-tab-login');
+  await page.fill('#intro-email', emailFor(name));
+  await page.fill('#intro-password', password);
+  await page.click('#intro-submit');
 }
 
-async function createAvatar(page, name, pronoun, tick18 = false) {
+async function createAvatar(page, name, pronoun, { tick18 = false, guest = SOLO } = {}) {
   await page.goto(START_URL);
-  if (!SOLO) await signUp(page, name, tick18);
-  await page.waitForSelector('#avatar-name');
+  if (guest) await enterAsGuest(page);
+  else await signUp(page, name, tick18);
+  await page.waitForSelector('#avatar-name', { timeout: 12_000 });
   assert(!(await page.$('#birth-month')), 'avatar creator has no birth-date step');
   await page.fill('#avatar-name', name);
   const labels = await page.$$eval('.field > label', (els) => els.map((e) => (e.childNodes[0]?.textContent ?? '').trim()));
@@ -154,6 +165,17 @@ const MG_PREP = {
 };
 const MOD_IDS = { 'pra viagem': 'pra_viagem', 'pra comer aqui': 'pra_comer_aqui', 'sem açúcar': 'sem_acucar', 'bem quente': 'bem_quente' };
 
+/** Ticket + Seu Carlos line, so a stalled shift says why (e.g. “repita” after a wrong tray). */
+function mgState(page) {
+  return page
+    .evaluate(() => {
+      const t = document.querySelector('#mg-ticket');
+      const carlos = document.querySelector('#minigame .carlos-says')?.textContent ?? '';
+      return `ticket round ${t?.dataset.round} repeat ${t?.dataset.repeat} · ${document.querySelector('#mg-order')?.textContent ?? ''} · ${carlos}`;
+    })
+    .catch(() => 'minigame panel gone');
+}
+
 async function wipHint(page) {
   return (await page.textContent('#mg-wip')) ?? '';
 }
@@ -188,16 +210,13 @@ async function main() {
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => m.type() === 'error' && !/fonts\.g/.test(m.text()) && errors.push(m.text()));
 
-  // 0. Multiplayer requires an account: the world stays closed until you sign in
-  if (!SOLO) {
-    await page.goto(START_URL);
-    await page.waitForSelector('#auth-form');
-    await shot(page, '00_sign_up');
-    assert(!(await page.$('#avatar-name')) && !(await room(page)), 'no avatar creator or world before signing in');
-  }
+  // 0. The title screen comes first: no avatar creator, no world, no birth date
+  await page.goto(START_URL);
+  await page.waitForSelector('#intro-skip', { timeout: 12_000 });
+  assert(!(await page.$('#avatar-name')) && !(await room(page)) && !(await page.$('#birth-month')), 'intro first: no DOB, no creator, no world');
 
-  // 1. Account (email + password + 18+ tick) → avatar creation
-  const enter = await createAvatar(page, 'Jonny', 'ele', true);
+  // 1. Account (email + password, optional 18+ tick) → avatar creation. Solo builds enter as guests.
+  const enter = await createAvatar(page, 'Jonny', 'ele', { tick18: true });
   await sleep(300);
   await shot(page, '01_avatar_creator');
   await enter();
@@ -207,7 +226,7 @@ async function main() {
     const before = (await profile(page)).id;
     await page.reload();
     await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça after reload');
-    assert(!(await page.$('#auth-form')), 'no login screen after reload');
+    assert(!(await page.$('#intro-skip')), 'no title screen after reload');
     assert((await profile(page)).id === before, 'same avatar after reload');
     log('session persists across reload');
     await sleep(400);
@@ -272,10 +291,11 @@ async function main() {
     const biaId = (await profile(pageB)).id;
     await pageB.click('#btn-logout');
     await signIn(pageB, 'Bia', 'senha-errada-123');
-    await pageB.waitForSelector('#auth-error:has-text("E-mail ou senha incorretos")');
+    await pageB.waitForSelector('.intro-feedback:has-text("E-mail ou senha incorretos")');
+    if (SHOTS) await sleep(1200);
     await shot(pageB, '02a_login_error');
-    await pageB.fill('#auth-password', PASSWORD);
-    await pageB.click('#auth-submit');
+    await pageB.fill('#intro-password', PASSWORD);
+    await pageB.click('#intro-submit');
     await waitFor(pageB, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'Bia back in the praça');
     assert((await profile(pageB)).id === biaId, 'login returns the same avatar');
     log('logout → wrong password → login ok');
@@ -414,7 +434,7 @@ async function main() {
     try {
       await page.waitForFunction((seen) => window.__mgResults.length > seen, seen, { timeout: 20_000, polling: 100 });
     } catch {
-      throw new Error(`timeout waiting for Carlos after order ${n + 1}`);
+      throw new Error(`timeout waiting for Carlos after order ${n + 1} — ${await mgState(page)}`);
     }
     return page.evaluate(() => window.__mgResults.at(-1));
   };
@@ -428,7 +448,9 @@ async function main() {
       round,
       8000,
       `order ${round + 1}`,
-    );
+    ).catch(async (e) => {
+      throw new Error(`${e.message} — ${await mgState(page)}`);
+    });
     const text = await page.textContent('#mg-order');
     const { tray, mods } = await trayFor(page, text);
     const items = Object.values(tray).reduce((a, b) => a + b, 0);
@@ -442,6 +464,8 @@ async function main() {
       if (attempt) await page.click('#mg-clear');
       for (const m of whereMods) await page.click(`#mg-mods [data-mod="${MOD_IDS[m]}"]`);
       for (const [id, n] of Object.entries(tray)) for (let k = 0; k < n; k++) await buildTrayItem(page, id, needsPack, coffeeMods);
+      const onTray = await page.$$eval('#mg-tray button span', (els) => els.reduce((s, e) => s + Number(e.textContent.replace('×', '')), 0));
+      assert(onTray === items, `tray holds ${onTray}, order “${text}” wants ${items} (one tap placed two units?)`);
       if (round === 2 && !attempt) await shot(page, '07_meveum_tray');
       const seen = await page.evaluate(() => window.__mgResults.length);
       await page.click('#mg-submit');
@@ -451,7 +475,9 @@ async function main() {
       assert(attempt < 1, `order ${round + 1}: missed twice`);
     }
   }
-  await page.waitForSelector('#mg-end', { timeout: 20_000 });
+  await page.waitForSelector('#mg-end', { timeout: 20_000 }).catch(async (e) => {
+    throw new Error(`${e.message} — ${await mgState(page)}`);
+  });
   await sleep(300);
   await shot(page, '08_meveum_end');
   await dwell(2200);
@@ -613,11 +639,30 @@ async function main() {
     const before = await profile(page);
     await page.reload();
     await waitFor(page, () => !!window.__tb.game.room, null, 10_000, 'back in the world after reload');
-    assert(!(await page.$('#auth-form')), 'still signed in after reload');
+    assert(!(await page.$('#intro-skip')), 'still signed in after reload (no title screen)');
     const after = await profile(page);
     assert(after.id === before.id && after.coins === before.coins && after.hat === before.hat, `avatar + RV survive reload (${before.coins} → ${after.coins} RV)`);
     assert(after.apartment.length === before.apartment.length, 'kitnet furniture survives reload');
     log('reload keeps auth, avatar and', after.coins, 'RV');
+
+    // Guest path (shipped by the intro): play, refresh keeps the guest avatar, then “Criar conta” keeps it for good.
+    const ctxG = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const pageG = await ctxG.newPage();
+    const enterG = await createAvatar(pageG, 'Visita', 'nome', { guest: true });
+    await enterG();
+    const guest = await profile(pageG);
+    assert(await pageG.isVisible('#btn-signup') && !(await pageG.$('#btn-logout')), 'guests get “Criar conta”, not “Sair”');
+    await pageG.reload();
+    await waitFor(pageG, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'guest back after reload');
+    assert((await profile(pageG)).id === guest.id, 'guest avatar survives reload');
+    await pageG.click('#btn-signup');
+    await signUp(pageG, 'Visita', false);
+    await waitFor(pageG, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'signed-up guest back in the praça');
+    const upgraded = await profile(pageG);
+    assert(upgraded.id === guest.id && upgraded.coins === guest.coins, 'signing up keeps the guest avatar and RV');
+    assert(await pageG.isVisible('#btn-logout'), 'now signed in (“Sair”)');
+    log('guest → reload → Criar conta keeps the same avatar');
+    await ctxG.close();
   }
 
   const final = await profile(page);

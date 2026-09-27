@@ -6,8 +6,8 @@
 
 ## What ships
 
-- **Signup (server build):** the Create account form (email + password) shows an optional **“Tenho 18 anos ou mais”** checkbox. When it's ticked, the account records *when* (`confirmed18At`). Signup works either way. The checkbox is not on the login form, and the avatar creator asks no age question.
-- **Solo (static build, no accounts):** no age prompt. It's a guest preview of the same 18+ content.
+- **Signup (intro screen, server build):** the Create account form (email + password) shows an optional **“Tenho 18 anos ou mais”** checkbox. When it's ticked, the account records *when* (`confirmed18At`). Signup works either way. The checkbox is not on the login form, and the avatar creator asks no age question.
+- **Guests (“Explorar como visitante”) and the solo static build:** no age prompt. They preview the same 18+ content, with the same filters.
 - **Data minimization:** no birth date is asked for, sent, or stored. Old clients that still send birth or confirm fields have them ignored.
 - Profiles created under the earlier 13+ build (no `ageGate18` marker) are sent back through signup.
 - The age threshold is the single constant `MIN_AGE` in `packages/shared/src/constants.ts`.

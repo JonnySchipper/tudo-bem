@@ -444,7 +444,7 @@ const academia: RoomDef = {
       interact: { x: 9, y: 2 },
       label: { pt: 'Fila do tatame', en: 'Open-mat queue' },
     },
-    { id: 'faixas', kind: 'parede_faixas', x: 0, y: 1, blocks: true, label: { pt: 'Parede de faixas', en: 'Belt wall' } },
+    { id: 'faixas', kind: 'parede_faixas', x: 0, y: 1, h: 2, blocks: true, label: { pt: 'Parede de faixas', en: 'Belt wall' } },
     { id: 'quadro', kind: 'quadro_foto', x: 10, y: 4, blocks: true, label: { pt: 'Academia do Bairro', en: 'Academy photo' } },
     { id: 'banco_esp', kind: 'banco_espectador', x: 9, y: 6, blocks: false, seat: 'SW', label: { pt: 'Banco dos espectadores', en: 'Spectator bench' } },
     { id: 'banco_esp_2', kind: 'banco_espectador', x: 7, y: 7, blocks: false, seat: 'SE', label: { pt: 'Banco', en: 'Bench' } },
@@ -452,7 +452,7 @@ const academia: RoomDef = {
   ],
   walls: [
     { kind: 'placa', wall: 'right', from: 0, to: 4, text: 'ACADEMIA DO BAIRRO' },
-    { kind: 'janela', wall: 'left', from: 2, to: 5 },
+    { kind: 'janela', wall: 'left', from: 3, to: 5 },
     { kind: 'poster', wall: 'left', from: 6, to: 8, text: 'OSS · RESPEITO' },
     { kind: 'mural', wall: 'right', from: 5, to: 9, text: 'TREINO · COMUNIDADE' },
   ],
@@ -486,6 +486,11 @@ export function propTiles(p: { x: number; y: number; w?: number; h?: number }): 
   const out: Tile[] = [];
   for (let dx = 0; dx < (p.w ?? 1); dx++) for (let dy = 0; dy < (p.h ?? 1); dy++) out.push({ x: p.x + dx, y: p.y + dy });
   return out;
+}
+
+/** Open-mat footprint (the tatame prop). Players and the roll queue may stand here; ambiance may not. */
+export function openMatTiles(room: RoomDef): Tile[] {
+  return room.props.filter((p) => p.kind === 'tatame').flatMap((p) => propTiles(p));
 }
 
 export interface RoomGrid {

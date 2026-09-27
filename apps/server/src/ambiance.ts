@@ -1,5 +1,5 @@
 import {
-  buildGrid,
+  ambianceNavGrid,
   CPU_ID_PREFIX,
   CPU_NAMES,
   CPU_SITTER_SHARE,
@@ -7,6 +7,7 @@ import {
   cpuLook,
   cpuTarget,
   findPath,
+  isWalkable,
   key,
   pathDuration,
   positionAlong,
@@ -65,8 +66,8 @@ let nextCpu = 0;
 const cheb = (a: Tile, b: Tile) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 
 /**
- * Scripted Praça ambiance for one instance. CPUs live here, not in `Instance.members`, so they are
- * outside the player cap. They only ever emit avatarJoined / avatarMoved / avatarLeft / emote(oi).
+ * Scripted Praça / Academia ambiance for one instance. CPUs live here, not in `Instance.members`,
+ * so they are outside the player cap. They only ever emit avatarJoined / avatarMoved / avatarLeft / emote(oi).
  */
 export class CpuCrowd {
   private cpus = new Map<string, Cpu>();
@@ -86,7 +87,7 @@ export class CpuCrowd {
     const map = ROOM_AMBIANCE[room.id];
     if (!map) throw new Error(`No ambiance map for room ${room.id}`);
     this.map = map;
-    this.grid = buildGrid(room);
+    this.grid = ambianceNavGrid(room);
     this.seats = room.props.filter((p) => p.seat).map((p) => ({ tile: { x: p.x, y: p.y }, dir: p.seat! }));
   }
 
@@ -290,8 +291,10 @@ export class CpuCrowd {
 
   private freeSpot(from: Tile[]) {
     const taken = this.taken(null);
-    const free = from.filter((t) => !taken.has(key(t.x, t.y)));
-    const pool = free.length ? free : from;
+    const open = from.filter((t) => isWalkable(this.grid, t.x, t.y));
+    const poolFrom = open.length ? open : from;
+    const free = poolFrom.filter((t) => !taken.has(key(t.x, t.y)));
+    const pool = free.length ? free : poolFrom;
     return pool[Math.floor(this.host.rng() * pool.length)];
   }
 
