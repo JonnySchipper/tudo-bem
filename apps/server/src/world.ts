@@ -28,6 +28,7 @@ import {
   pathDuration,
   pointsFor,
   positionAlong,
+  ROOM_AMBIANCE,
   ROOMS,
   sanitizeTray,
   SCORE_FEEDBACK,
@@ -110,7 +111,7 @@ export interface WorldOptions {
   mgGapMs?: number;
   now?: () => number;
   schedule?: (fn: () => void, ms: number) => void;
-  /** Praça ambiance CPUs (LIVEOPS_CPU_AMBIANCE). Off unless the host turns it on. */
+  /** Praça / Academia ambiance CPUs (LIVEOPS_CPU_AMBIANCE). Off unless the host turns it on. */
   ambiance?: boolean;
   rng?: () => number;
   /** Open-mat CPU match wait (ms). Env `ROLL_QUEUE_MS` overrides default 12s. */
@@ -191,7 +192,7 @@ const INSTANCE_SUFFIX = ['Norte', 'Sul', 'Leste', 'Oeste'];
 
 export class Instance {
   readonly members = new Map<string, Session>();
-  /** Praça ambiance CPUs. Not members, so they never take a player seat. */
+  /** Ambiance CPUs (Praça, Academia). Not members, so they never take a player seat. */
   crowd?: CpuCrowd;
   constructor(
     readonly id: string,
@@ -466,7 +467,7 @@ export class World {
       if (!inst) {
         const suffix = INSTANCE_SUFFIX[n - 1] ?? String(n);
         inst = new Instance(id, def, `${def.name} · ${suffix}`, null);
-        if (this.ambiance && def.id === 'praca') inst.crowd = this.makeCrowd(inst);
+        if (this.ambiance && ROOM_AMBIANCE[def.id]) inst.crowd = this.makeCrowd(inst);
         this.instances.set(id, inst);
       }
       if (inst.members.size < this.cap) return inst;

@@ -17,6 +17,7 @@ import {
   type ServerMsg,
   type ClientMsg,
   type PublicAvatar,
+  type Tile,
 } from '@tudobem/shared';
 import { sanitizeAppearance, World, MG_RESUME_MS, type Session, type WorldOptions } from './world.js';
 import { ProfileStore } from './store.js';
@@ -647,9 +648,8 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
     expect(a.all('chat').filter((m) => isCpuId(m.id))).toEqual([]);
   });
 
-  it('keeps every ambiance tile walkable and off doors, spawn and interact tiles', async () => {
-    const { PRACA_AMBIANCE } = await import('@tudobem/shared');
-    const room = ROOMS.praca;
+  const ambianceTilesOk = (roomId: 'praca' | 'academia', map: { spots: Tile[]; doorSpots: Tile[]; entries: Tile[] }) => {
+    const room = ROOMS[roomId];
     const grid = buildGrid(room);
     const reserved = new Set([
       `${room.spawn.x},${room.spawn.y}`,
@@ -657,10 +657,38 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
       ...room.props.filter((p) => p.interact).map((p) => `${p.interact!.x},${p.interact!.y}`),
       ...room.npcs.map((n) => `${n.interact.x},${n.interact.y}`),
     ]);
-    for (const t of [...PRACA_AMBIANCE.spots, ...PRACA_AMBIANCE.doorSpots, ...PRACA_AMBIANCE.entries]) {
-      expect(isWalkable(grid, t.x, t.y), `${t.x},${t.y}`).toBe(true);
-      expect(reserved.has(`${t.x},${t.y}`), `${t.x},${t.y}`).toBe(false);
+    for (const t of [...map.spots, ...map.doorSpots, ...map.entries]) {
+      expect(isWalkable(grid, t.x, t.y), `${roomId} ${t.x},${t.y}`).toBe(true);
+      expect(reserved.has(`${t.x},${t.y}`), `${roomId} ${t.x},${t.y}`).toBe(false);
     }
+  };
+
+  it('keeps every ambiance tile walkable and off doors, spawn and interact tiles', async () => {
+    const { PRACA_AMBIANCE, ACADEMIA_AMBIANCE } = await import('@tudobem/shared');
+    ambianceTilesOk('praca', PRACA_AMBIANCE);
+    ambianceTilesOk('academia', ACADEMIA_AMBIANCE);
+  });
+
+  it('fills Academia do Bairro with Verde CPUs outside the player cap (roll queue untouched)', async () => {
+    const { world } = ambient();
+    const a = connectBare(world);
+    await a.send({ t: 'hello' });
+    await a.send({ t: 'createProfile', name: 'Rafa', pronoun: 'ele', appearance: DEFAULT_APPEARANCE, birthYear: 2000, birthMonth: 1, confirm18: true });
+    await a.send({ t: 'join', room: 'academia' });
+    const cpus = cpusSeen(a);
+    expect(cpus.length).toBeGreaterThanOrEqual(1);
+    expect(cpus.length).toBeLessThanOrEqual(6);
+    for (const c of cpus) {
+      expect(c.cpu).toBe(true);
+      expect(c.nameplate).toBe('verde');
+      expect(CPU_NAMES).toContain(c.name);
+    }
+    const amb = world.stats().ambiance;
+    expect(typeof amb).toBe('object');
+    expect((amb as Record<string, number>)['academia#1']).toBeGreaterThanOrEqual(1);
+    await a.send({ t: 'roll', action: 'queue' });
+    expect(a.all('roll').some((m) => m.phase === 'queue' && m.opponent === 'cpu')).toBe(true);
+    expect(world.stats().instances['academia#1']).toBe(1);
   });
 
   it('a CPU gets up when a player heads for its bench', async () => {
