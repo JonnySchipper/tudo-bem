@@ -43,6 +43,11 @@ export interface ConversaApiDeps {
   store?: ProfileStore;
   /** Tell the live session its profile changed (coins / daily). */
   onProfileChanged?: (playerId: string) => void;
+  /**
+   * When set, the player is whoever the session cookie says (the body's playerId is ignored), and
+   * requests without a signed-in profile get 401. Unset in solo-style/test setups.
+   */
+  playerIdFor?: (req: IncomingMessage) => string | undefined;
 }
 
 interface ConversaStartRequest {
@@ -195,6 +200,19 @@ export async function handleConversaApi(req: IncomingMessage, res: ServerRespons
   } catch {
     json(res, 400, { error: 'Invalid JSON' });
     return;
+  }
+  if (!body || typeof body !== 'object') {
+    json(res, 400, { error: 'Invalid JSON' });
+    return;
+  }
+
+  if (deps.playerIdFor) {
+    const playerId = deps.playerIdFor(req);
+    if (!playerId) {
+      json(res, 401, { error: 'unauthenticated' });
+      return;
+    }
+    body.playerId = playerId;
   }
 
   const dailyCapOn = parseDailyCap(req);

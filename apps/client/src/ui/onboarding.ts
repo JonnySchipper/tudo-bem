@@ -5,14 +5,12 @@ import {
   HAIR_COLORS,
   HAIR_STYLES,
   LABELS,
-  MIN_AGE,
   SKIN_TONES,
   STARTER_OUTFITS,
   validateName,
   type Appearance,
   type Pronoun,
 } from '@tudobem/shared';
-import { readAuthSession } from '../auth/session';
 import { h, en, ui } from './dom';
 import { renderAvatarPreview } from '../render/avatar';
 
@@ -20,7 +18,6 @@ export interface NewProfile {
   name: string;
   pronoun: Pronoun;
   appearance: Appearance;
-  confirm18: true;
 }
 
 function hero() {
@@ -33,6 +30,7 @@ function hero() {
   );
 }
 
+/** Avatar creator. No age questions here: the only 18+ prompt is the optional tick on account signup. */
 export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt: string, en: string) => void } {
   const api = { setError: (_pt: string, _en: string) => {} };
   const root = h('div', { class: 'onboarding' });
@@ -54,20 +52,13 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
     loop(ts);
   });
 
-  const go = h('button', { class: 'primary', style: 'font-size:1.1em', id: 'enter-praca', disabled: true }, 'Entrar na Praça →');
-  const adult = h('input', { type: 'checkbox', id: 'confirm-18', required: true });
-  const preconfirmed = readAuthSession()?.ageGateConfirmed === true;
-  if (preconfirmed) {
-    adult.checked = true;
-    go.disabled = false;
-  }
-  adult.addEventListener('change', () => (go.disabled = !adult.checked));
+  const go = h('button', { class: 'primary', style: 'font-size:1.1em', id: 'enter-praca' }, 'Entrar na Praça →');
   const name = h('input', { type: 'text', maxLength: 16, placeholder: 'Ex.: Jonny, Bia, Leo…', 'aria-label': 'Nome', id: 'avatar-name' });
   const nameErr = h('div', { class: 'feedback s1', style: 'display:none' });
   const setErr = (pt: string, enText: string) => {
     nameErr.style.display = 'inline-block';
     nameErr.replaceChildren(pt, h('br'), h('i', null, enText));
-    go.disabled = !adult.checked;
+    go.disabled = false;
   };
   api.setError = setErr;
 
@@ -130,9 +121,8 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
   go.addEventListener('click', () => {
     const check = validateName(name.value);
     if (!check.ok) return setErr(check.reason.pt, check.reason.en);
-    if (!adult.checked) return setErr(`Marque que você tem ${MIN_AGE} anos ou mais.`, `Please confirm you are ${MIN_AGE} or older.`);
     go.disabled = true;
-    submit({ name: check.name, pronoun, appearance: { ...a }, confirm18: true });
+    submit({ name: check.name, pronoun, appearance: { ...a } });
   });
   name.addEventListener('keydown', (e) => e.key === 'Enter' && go.click());
 
@@ -172,12 +162,6 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
           h(
             'div',
             { class: 'creator-cta' },
-            h(
-              'label',
-              { class: 'adult-confirm', for: 'confirm-18' },
-              adult,
-              h('span', null, `Tenho ${MIN_AGE} anos ou mais.`, en(`I am ${MIN_AGE} or older. Tudo Bem is an adult world.`, true)),
-            ),
             h('div', { class: 'row', style: 'margin-top:8px' }, h('span', { class: 'spacer' }), go),
           ),
         ),

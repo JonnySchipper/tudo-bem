@@ -55,19 +55,55 @@ async function waitIdleAt(page, x, y, label) {
   }, [x, y], 12_000, label ?? `avatar at ${x},${y}`);
 }
 
-async function passIntro(page) {
+const PASSWORD = 'pao-de-queijo-2026';
+const RUN = Date.now().toString(36);
+const emailFor = (name) => `${name.toLowerCase()}+${RUN}@exemplo.com`;
+/** Solo builds need `?rolltest` for the Academia roll debug hints (the server build uses TB_TEST_ROLL=1). */
+const START_URL = SOLO ? `${BASE}${BASE.includes('?') ? '&' : '?'}rolltest` : BASE;
+
+/** Title screen → sign-in card (the intro's own skip keeps runs short). */
+async function toSignInCard(page) {
+  // One tap starts the intro (music + flock together), then the title beat can be skipped.
   await page.waitForSelector('#intro-enter', { timeout: 12_000 });
   await page.click('#intro-enter');
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
+  assert(!(await page.$('#birth-month')) && !(await page.$('#birth-year')), 'no birth-date step before play');
   await page.click('#intro-skip');
-  await page.waitForSelector('#intro-guest', { timeout: 12_000 });
-  await page.click('#intro-guest');
-  await page.waitForSelector('#avatar-name', { timeout: 12_000 });
+  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
 }
 
-async function createAvatar(page, name, pronoun) {
-  await page.goto(BASE);
-  await passIntro(page);
+/** Guest path (“Explorar como visitante”): shipped by the intro, so it must reach the world. */
+async function enterAsGuest(page) {
+  await toSignInCard(page);
+  await page.click('#intro-guest');
+}
+
+/** Create account: email + password; 18+ is an optional tick on register only. */
+async function signUp(page, name, tick18) {
+  await toSignInCard(page);
+  assert(!(await page.isVisible('#intro-18')), '18+ tick is not on the login form');
+  await page.click('#intro-tab-register');
+  assert(await page.isVisible('#intro-18'), '18+ tick is on the register form');
+  await page.fill('#intro-email', emailFor(name));
+  await page.fill('#intro-password', PASSWORD);
+  if (tick18) await page.check('#intro-18');
+  await page.click('#intro-submit');
+}
+
+async function signIn(page, name, password = PASSWORD) {
+  await toSignInCard(page);
+  if (await page.isVisible('#intro-18')) await page.click('#intro-tab-login');
+  await page.fill('#intro-email', emailFor(name));
+  await page.fill('#intro-password', password);
+  await page.click('#intro-submit');
+}
+
+async function createAvatar(page, name, pronoun, { tick18 = false, guest = SOLO } = {}) {
+  await page.goto(START_URL);
+  if (guest) await enterAsGuest(page);
+  else await signUp(page, name, tick18);
+  await page.waitForSelector('#avatar-name', { timeout: 12_000 });
+  assert(!(await page.$('#birth-month')), 'avatar creator has no birth-date step');
   await page.fill('#avatar-name', name);
   const labels = await page.$$eval('.field > label', (els) => els.map((e) => (e.childNodes[0]?.textContent ?? '').trim()));
   assert(labels.includes('Visual inicial'), `visual inicial preset (${labels.join(' | ')})`);
@@ -78,8 +114,7 @@ async function createAvatar(page, name, pronoun) {
   assert((await page.$$('[data-outfit]')).length === 1 && (await page.$('[data-outfit="visual_inicial"]')), 'one Visual inicial clothing preset');
   const label = { ele: 'ele (he)', ela: 'ela (she)', nome: 'só meu nome (name only)' }[pronoun];
   await page.click(`button:has-text("${label}")`);
-  assert(await page.isDisabled('#enter-praca'), 'cannot enter before confirming 18+');
-  await page.check('#confirm-18');
+  assert(!(await page.$('#confirm-18')), 'the avatar creator asks no age question');
   return async () => {
     await page.click('#enter-praca');
     await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
@@ -101,26 +136,37 @@ async function main() {
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => m.type() === 'error' && !/fonts\.g/.test(m.text()) && errors.push(m.text()));
 
-  // 0. Avatar entry requires the 18+ attestation (no birth-date calendar)
-  {
-    const ctxMinor = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-    const pm = await ctxMinor.newPage();
-    await pm.goto(BASE);
-    await passIntro(pm);
-    await pm.fill('#avatar-name', 'Menor');
-    assert(await pm.isDisabled('#enter-praca'), 'cannot enter praça without 18+ checkbox');
-    await pm.check('#confirm-18');
-    assert(!(await pm.isDisabled('#enter-praca')), 'can enter after 18+ attestation');
-    await ctxMinor.close();
-    log('18+ attestation on avatar creator');
+  // 0. The title screen comes first: no avatar creator, no world, no birth date
+  await page.goto(START_URL);
+  await page.waitForSelector('#intro-enter', { timeout: 12_000 });
+  assert(!(await page.$('#avatar-name')) && !(await room(page)) && !(await page.$('#birth-month')), 'intro first: no DOB, no creator, no world');
+  if (!SOLO) {
+    // Multiplayer is account-only: the guest CTA steers to Criar conta instead of entering the world.
+    await toSignInCard(page);
+    await page.click('#intro-guest');
+    await page.waitForSelector('.intro-feedback:has-text("crie sua conta")', { timeout: 5000 });
+    await sleep(600);
+    assert(!(await page.$('#avatar-name')) && !(await room(page)), 'guest does not enter multiplayer');
+    assert(await page.isVisible('#intro-18'), 'guest CTA switches to Criar conta');
+    log('guest CTA → Criar conta (no multiplayer without an account)');
   }
 
-  // 1. Age gate + avatar creation (18+ confirmation required)
-  const enter = await createAvatar(page, 'Jonny', 'ele');
+  // 1. Account (email + password, optional 18+ tick) → avatar creation. Solo builds enter as guests.
+  const enter = await createAvatar(page, 'Jonny', 'ele', { tick18: true });
   await sleep(300);
   await shot(page, '01_avatar_creator');
   await enter();
   await dwell(1500);
+  if (!SOLO) {
+    // The session cookie survives a reload: straight back into the Praça, same avatar.
+    const before = (await profile(page)).id;
+    await page.reload();
+    await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça after reload');
+    assert(!(await page.$('#intro-skip')), 'no title screen after reload');
+    assert((await profile(page)).id === before, 'same avatar after reload');
+    log('session persists across reload');
+    await sleep(400);
+  }
   const start = await profile(page);
   log('landed in', await room(page), 'coins', start.coins, 'plate', start.nameplate);
   const art = await page.evaluate(() => window.__tb.artStats());
@@ -177,6 +223,18 @@ async function main() {
     pageB = await ctxB.newPage();
     const enterB = await createAvatar(pageB, 'Bia', 'ela');
     await enterB();
+    // Log out, fail once with a wrong password, then sign back in to the same avatar.
+    const biaId = (await profile(pageB)).id;
+    await pageB.click('#btn-logout');
+    await signIn(pageB, 'Bia', 'senha-errada-123');
+    await pageB.waitForSelector('.intro-feedback:has-text("E-mail ou senha incorretos")');
+    if (SHOTS) await sleep(1200);
+    await shot(pageB, '02a_login_error');
+    await pageB.fill('#intro-password', PASSWORD);
+    await pageB.click('#intro-submit');
+    await waitFor(pageB, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'Bia back in the praça');
+    assert((await profile(pageB)).id === biaId, 'login returns the same avatar');
+    log('logout → wrong password → login ok');
     await clickTile(pageB, 8, 8);
     await sleep(1200);
     await pageB.fill('#chat-input', 'Oi, Jonny! Eu sou de Chicago. Vamos na padaria?');
@@ -458,6 +516,19 @@ async function main() {
   }
   await shot(page, '12_kitnet_friend_visit');
   await dwell(2500);
+
+  if (!SOLO) {
+    // Refresh keeps the session, the avatar, its RV, hat and kitnet.
+    const before = await profile(page);
+    await page.reload();
+    await waitFor(page, () => !!window.__tb.game.room, null, 10_000, 'back in the world after reload');
+    assert(!(await page.$('#intro-skip')), 'still signed in after reload (no title screen)');
+    const after = await profile(page);
+    assert(after.id === before.id && after.coins === before.coins && after.hat === before.hat, `avatar + RV survive reload (${before.coins} → ${after.coins} RV)`);
+    assert(after.apartment.length === before.apartment.length, 'kitnet furniture survives reload');
+    log('reload keeps auth, avatar and', after.coins, 'RV');
+
+  }
 
   const final = await profile(page);
   const missing = Object.entries(final.tutorial).filter(([, v]) => !v).map(([k]) => k);

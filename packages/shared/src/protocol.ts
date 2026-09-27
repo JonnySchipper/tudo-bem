@@ -21,7 +21,9 @@ import type { BjjProgress, RollPuzzleView } from './academia.js';
 /** Client → server messages. JSON over a single WebSocket at /ws. */
 export type ClientMsg =
   | { t: 'hello'; token?: string }
-  | { t: 'createProfile'; name: string; pronoun: Pronoun; appearance: Appearance; confirm18: boolean }
+  | { t: 'createProfile'; name: string; pronoun: Pronoun; appearance: Appearance }
+  /** Real player input (pointer / key / touch) since the last report. Resets the server idle clock; `ping` never does. */
+  | { t: 'active' }
   | { t: 'updateAppearance'; appearance: Appearance }
   | { t: 'join'; room: RoomId; instanceId?: string; ownerId?: string }
   | { t: 'move'; x: number; y: number; sit?: boolean }
@@ -193,6 +195,11 @@ export type RollServerMsg =
 export type ServerMsg =
   | { t: 'welcome'; profile: PrivateProfile; token: string }
   | { t: 'needProfile' }
+  /** Multiplayer needs an email + password account; this socket has no valid session cookie. */
+  | { t: 'authRequired' }
+  | { t: 'idleWarning'; msLeft: number; pt: string; en: string }
+  /** Sent right before the server closes the socket (code 4001) to free the seat. */
+  | { t: 'kicked'; reason: 'idle'; pt: string; en: string }
   | { t: 'profile'; profile: PrivateProfile }
   | RoomStateMsg
   | { t: 'avatarJoined'; avatar: PublicAvatar }

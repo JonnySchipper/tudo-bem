@@ -103,10 +103,3 @@ export const ECONOMY = {
 };
 
 export const CHAT_RATE = { windowMs: 10_000, max: 5 };
-
-/** Age in whole years from birth month (1–12) and year. */
-export function ageFrom(birthYear: number, birthMonth: number, now = new Date()): number {
-  let age = now.getFullYear() - birthYear;
-  if (now.getMonth() + 1 < birthMonth) age--;
-  return age;
-}

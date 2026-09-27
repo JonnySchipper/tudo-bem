@@ -2,6 +2,7 @@ import { classifyChat, ECONOMY, MAX_CHAT_LEN, MISSION_COPY, MISSION_STEPS, TUTOR
 import { game } from '../state';
 import { h, en, bi, ui } from './dom';
 import { icon } from '../art/ui';
+import { mountIdleKickBirds } from './introParrots';
 
 export interface HudActions {
   chat: (text: string) => void;
@@ -15,6 +16,8 @@ export interface HudActions {
   toggleParrot: () => void;
   toggleSound: () => void;
   toggleMusic: () => void;
+  /** Multiplayer only (solo has no account). */
+  logout?: () => void;
 }
 
 let toastsEl: HTMLElement;
@@ -69,6 +72,7 @@ export function buildHud(actions: HudActions) {
       h('button', { onclick: actions.openFriends, id: 'btn-friends' }, icon('friends'), bi('Amigos', 'Friends')),
       musicBtn,
       soundBtn,
+      actions.logout ? h('button', { onclick: actions.logout, id: 'btn-logout', title: 'Sair da conta / Log out', 'aria-label': 'Sair da conta' }, icon('logout'), bi('Sair', 'Log out')) : null,
       game.solo ? h('span', { class: 'pill', title: 'Prévia estática: o mundo roda no seu navegador. Multiplayer precisa do servidor. / Static preview — the world runs in your browser; multiplayer needs the server build.', id: 'solo-pill' }, 'Modo solo') : null,
       missionPill,
       h('span', { class: 'pill' }, plate),
@@ -227,6 +231,45 @@ export function overlayMessage(text: string | null, onRetry?: () => void) {
       ),
     ),
   );
+}
+
+/**
+ * Soft idle-kick interstitial (art brief §3): the intro's cream `tb-world-card` + awning over a warm veil.
+ * The seat is already freed server-side; the session cookie stays, so one tap rejoins.
+ * Mounts into `#tb-idle-kick-slot` when a visible entry shell provides one, else into #ui.
+ * Hooks for the visual track: `.idle-kicked` (veil) › `.idle-card` › `#idle-title`, `#idle-back`.
+ * Art lock: birds here are capped at 1–2 distant parrots (`mountIdleKickBirds`); the full flock is intro-only.
+ */
+let stopIdleBirds: (() => void) | null = null;
+export function idleKickedCard(copy: { pt: string; en: string } | null, onBack?: () => void) {
+  stopIdleBirds?.();
+  stopIdleBirds = null;
+  document.querySelector('.idle-kicked')?.remove();
+  if (!copy) return;
+  const back = h('button', { class: 'primary', type: 'button', id: 'idle-back' }, bi('Voltar pra Praça', 'Back to the Praça'));
+  back.addEventListener('click', () => {
+    idleKickedCard(null);
+    onBack?.();
+  });
+  const birds = h('div', { class: 'idle-birds', 'aria-hidden': 'true' });
+  (document.querySelector<HTMLElement>('#tb-idle-kick-slot:not([hidden])') ?? ui()).append(
+    h(
+      'div',
+      { class: 'idle-kicked', role: 'alertdialog', 'aria-modal': 'true', 'aria-labelledby': 'idle-title', 'aria-describedby': 'idle-body' },
+      h(
+        'div',
+        { class: 'idle-card tb-world-card' },
+        h('div', { class: 'intro-card-awning', 'aria-hidden': 'true' }),
+        birds,
+        h('h2', { id: 'idle-title' }, 'Volte quando quiser'),
+        h('p', { id: 'idle-body' }, copy.pt),
+        en(copy.en, true),
+        back,
+      ),
+    ),
+  );
+  stopIdleBirds = mountIdleKickBirds(birds);
+  back.focus();
 }
 
 /** Non-blocking recovery after reconnect gives up or this tab is replaced. Clears any previous banner. */

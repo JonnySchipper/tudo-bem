@@ -47,7 +47,6 @@ await page.click('#intro-guest');
 await page.waitForSelector('#avatar-name');
 await page.fill('#avatar-name', 'Jonny');
 await page.click('button:has-text("ele (he)")');
-await page.check('#confirm-18');
 await page.click('#enter-praca');
 await page.waitForFunction(() => window.__tb.game.room?.room === 'praca');
 await sleep(800);

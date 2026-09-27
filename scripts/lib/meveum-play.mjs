@@ -117,7 +117,26 @@ export async function waitForTicket(page, round, timeout = 8000) {
  * Serve all six orders from the ticket text, then wait for the end card.
  * `onRound(round)` runs with the tray built, just before Entregar.
  */
+/**
+ * Play six pedidos. A miss is part of the game (Carlos repeats “de novo, devagar”), e.g. when a slow
+ * runner lets the bar expire before Entregar lands: rebuild once like a player would and log why,
+ * instead of waiting for a round that won't come. A second miss on the same pedido fails.
+ */
 export async function playShift(page, { log = () => {}, dwell = () => Promise.resolve(), onRound } = {}) {
+  await page.evaluate(() => {
+    window.__mgResults = [];
+    window.__tb.net.on((m) => {
+      if (m.t === 'mg' && m.phase === 'result') window.__mgResults.push(m);
+    });
+  });
+  const verdict = async (seen, round) => {
+    try {
+      await page.waitForFunction((seen) => window.__mgResults.length > seen, seen, { timeout: 20_000, polling: 100 });
+    } catch {
+      throw new Error(`timeout waiting for Carlos after order ${round + 1} — ${await mgState(page)}`);
+    }
+    return page.evaluate(() => window.__mgResults.at(-1));
+  };
   for (let round = 0; round < 6; round++) {
     await waitForTicket(page, round);
     const text = await page.textContent('#mg-order');
@@ -129,12 +148,20 @@ export async function playShift(page, { log = () => {}, dwell = () => Promise.re
     const needsPack = mods.some((m) => m.startsWith('pra '));
     const coffeeMods = mods.filter((m) => m === 'sem açúcar' || m === 'bem quente');
     const whereMods = mods.filter((m) => m.startsWith('pra '));
-    for (const m of whereMods) await page.click(`#mg-mods [data-mod="${MOD_IDS[m]}"]`);
-    for (const [id, n] of Object.entries(tray)) for (let k = 0; k < n; k++) await buildTrayItem(page, id, needsPack, coffeeMods);
-    const onTray = await page.$$eval('#mg-tray button span', (els) => els.reduce((s, e) => s + Number(e.textContent.replace('×', '')), 0));
-    assert(onTray === items, `tray holds ${onTray}, order “${text}” wants ${items} (one tap placed two units?)`);
-    if (onRound) await onRound(round);
-    await page.click('#mg-submit');
+    for (let attempt = 0; ; attempt++) {
+      if (attempt) await page.click('#mg-clear');
+      for (const m of whereMods) await page.click(`#mg-mods [data-mod="${MOD_IDS[m]}"]`);
+      for (const [id, n] of Object.entries(tray)) for (let k = 0; k < n; k++) await buildTrayItem(page, id, needsPack, coffeeMods);
+      const onTray = await page.$$eval('#mg-tray button span', (els) => els.reduce((s, e) => s + Number(e.textContent.replace('×', '')), 0));
+      assert(onTray === items, `tray holds ${onTray}, order “${text}” wants ${items} (one tap placed two units?)`);
+      if (onRound && !attempt) await onRound(round);
+      const seen = await page.evaluate(() => window.__mgResults.length);
+      await page.click('#mg-submit');
+      const r = await verdict(seen, round);
+      if (r.outcome !== 'repita') break;
+      log(`order ${round + 1}: Carlos asked again (expected ${JSON.stringify(r.expected ?? [])}) → rebuilding once`);
+      assert(attempt < 1, `order ${round + 1}: missed twice`);
+    }
   }
   await page.waitForSelector('#mg-end', { timeout: 20_000 }).catch(async (e) => {
     throw new Error(`${e.message} — ${await mgState(page)}`);

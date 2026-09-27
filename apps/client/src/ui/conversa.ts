@@ -267,7 +267,7 @@ async function handleSend(input: HTMLInputElement) {
 
     handleApiResponse(response);
   } catch (e) {
-    console.error('[conversa] Turn failed, using authored Carlos:', e);
+    console.warn('[conversa] Turn failed, using authored Carlos:', e);
     applyOfflineTurn(gate.text, priorChips);
   } finally {
     const next = document.getElementById('conversa-input') as HTMLInputElement | null;
@@ -487,7 +487,7 @@ export async function openConversa(
     }
 
     if (response.phase !== 'open') {
-      console.error('[conversa] Unexpected response, opening authored Carlos:', response);
+      console.warn('[conversa] Unexpected response, opening authored Carlos:', response);
       openOfflineConversa(npcId);
       return;
     }
@@ -518,7 +518,7 @@ export async function openConversa(
     speak(response.line.pt);
     showConversaPanel();
   } catch (e) {
-    console.error('[conversa] Start failed, opening authored Carlos:', e);
+    console.warn('[conversa] Start failed, opening authored Carlos:', e);
     openOfflineConversa(npcId);
   }
 }

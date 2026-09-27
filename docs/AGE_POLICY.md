@@ -2,14 +2,14 @@
 
 **Decision (CEO, Jonny — 25 Sep 2026): Phase 0 of Tudo Bem is an adult game. 18+ only.**
 
+**Update (27 Sep 2026, Product A–F lock):** the birth-date (month + year) step was removed from the start of the entry flow. The only age prompt is an **optional “Tenho 18 anos ou mais / I am 18+” checkbox on signup**. No date of birth is collected anywhere. The product is still 18+ in intent: the content constitution and Gate A filters are unchanged. This slice is not a COPPA flow.
+
 ## What ships
 
-- **Signup requires both:**
-  1. A birth month + year that computes to **18 or older** (checked on the client and again on the server).
-  2. An explicit **“Tenho 18 anos ou mais / I am 18 or older”** attestation on register (intro) and on the create-avatar screen for guests. No birth-date calendar on entry. The server rejects `createProfile` without `confirm18: true`.
-- Under-18 users see an “adults only” screen with no avatar creator; it is sticky on that browser.
-- **Data minimization:** the birth date is never stored. The profile keeps only `ageGate18: true`.
-- Profiles created under the earlier 13+ build (no `ageGate18`) are sent back through signup.
+- **Signup (intro screen, server build):** the Create account form (email + password) shows an optional **“Tenho 18 anos ou mais”** checkbox. When it's ticked, the account records *when* (`confirmed18At`). Signup works either way. The checkbox is not on the login form, and the avatar creator asks no age question.
+- **Solo static build (guest-only, no server):** no age prompt. It previews the same 18+ content, with the same filters. Multiplayer has no guests: it needs an account.
+- **Data minimization:** no birth date is asked for, sent, or stored. Old clients that still send birth or confirm fields have them ignored.
+- Profiles created under the earlier 13+ build (no `ageGate18` marker) are sent back through signup.
 - The age threshold is the single constant `MIN_AGE` in `packages/shared/src/constants.ts`.
 
 ## What stays exactly the same
@@ -36,6 +36,6 @@ Younger audiences (teens, and later kids per the GDD’s 10+ vision) are a **lat
 - A production Jev classifier with a labeled PT+EN safety set and measured precision and recall.
 - Human moderation coverage and staff tools.
 - Legal review.
-- For under-13s: a real COPPA / GDPR-K consent flow.
+- For under-13s: a real COPPA / GDPR-K consent flow, which would bring back a proper age check at signup.
 
 Until then, `MIN_AGE` stays at 18.

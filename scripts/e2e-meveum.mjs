@@ -94,12 +94,15 @@ async function signUp(page, name) {
   await page.click('#intro-enter');
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
   await page.click('#intro-skip');
-  await page.waitForSelector('#intro-guest', { timeout: 12_000 });
-  await page.click('#intro-guest');
+  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+  // Multiplayer is account-only; the session survives the restarts below (accounts.json lives in DATA_DIR).
+  await page.click('#intro-tab-register');
+  await page.fill('#intro-email', `${name.toLowerCase()}+${Date.now().toString(36)}@exemplo.com`);
+  await page.fill('#intro-password', 'pao-de-queijo-2026');
+  await page.click('#intro-submit');
   await page.waitForSelector('#avatar-name', { timeout: 12_000 });
   await page.fill('#avatar-name', name);
   await page.click('button:has-text("ele (he)")');
-  await page.check('#confirm-18');
   await page.click('#enter-praca');
   await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
 }

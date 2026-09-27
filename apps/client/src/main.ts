@@ -1,6 +1,8 @@
 import './styles.css';
 import './styles/intro.css';
 import { runIntroGate } from './ui/intro';
+import { hasServerSession, signOut } from './auth/client';
+import { INTRO_PASSED_KEY } from './auth/session';
 import {
   MISSION_COPY,
   ROOMS,
@@ -20,7 +22,7 @@ import { Net, wsUrl, type NetLike } from './net';
 import { LocalNet } from './localNet';
 import { WorldRenderer, type Hit } from './render/world';
 import { runOnboarding, closeOnboarding } from './ui/onboarding';
-import { buildHud, hoverLabel, missionBanner, overlayMessage, parrotWhisper, reconnectBanner, toast } from './ui/hud';
+import { buildHud, hoverLabel, idleKickedCard, missionBanner, overlayMessage, parrotWhisper, reconnectBanner, toast } from './ui/hud';
 import {
   buildDecorPanel,
   closeDialogue,
@@ -225,8 +227,44 @@ function updateGuides() {
 // ---------------------------------------------------------------- server messages
 
 net.onOpen = () => net.send({ t: 'hello', token: localStorage.getItem(TOKEN_KEY) ?? undefined });
+/** Kick copy from the server's last message before it closed the socket. */
+let kickedCopy: { pt: string; en: string } | null = null;
+let leaving = false;
+/** Set at boot: a live account session (multiplayer only). */
+let signedIn = false;
+
+/** Back to the title screen's sign-in card on the next load (logout, or a session that expired). */
+function reloadToSignIn() {
+  leaving = true;
+  sessionStorage.removeItem(INTRO_PASSED_KEY);
+  location.reload();
+}
+
+function showIdleKick() {
+  failClearMinigame();
+  closeModal();
+  closeDialogue();
+  overlayMessage(null);
+  reconnectBanner(null);
+  // The room stays drawn as a still behind the soft veil; nobody is in it for this tab anymore.
+  game.avatars = new Map();
+  game.npcBubbles.clear();
+  game.pending = null;
+  game.emit('avatars');
+  idleKickedCard(kickedCopy ?? { pt: 'Você saiu da Praça por inatividade.', en: 'You left the Praça for being idle.' }, () => {
+    kickedCopy = null;
+    net.retry();
+  });
+}
+
 net.onStatus = (s) => {
+  if (s === 'loggedOut') {
+    // This account signed out in another tab.
+    if (!leaving) void signOut().then(reloadToSignIn);
+    return;
+  }
   if (!started) return;
+  if (s === 'idle') return showIdleKick();
   if (s === 'open') {
     overlayMessage(null);
     reconnectBanner(null);
@@ -245,9 +283,19 @@ net.onStatus = (s) => {
 
 net.on((m: ServerMsg) => {
   switch (m.t) {
+    case 'authRequired':
+      // No valid session on this socket (expired or revoked): sign in again.
+      if (!leaving) void signOut().then(reloadToSignIn);
+      break;
     case 'needProfile':
       localStorage.removeItem(TOKEN_KEY);
       if (!onboarding) onboarding = runOnboarding((p) => net.send({ t: 'createProfile', ...p }));
+      break;
+    case 'idleWarning':
+      toast('warn', m.pt, m.en);
+      break;
+    case 'kicked':
+      kickedCopy = { pt: m.pt, en: m.en };
       break;
     case 'welcome': {
       localStorage.setItem(TOKEN_KEY, m.token);
@@ -261,7 +309,7 @@ net.on((m: ServerMsg) => {
       break;
     }
     case 'error':
-      if (onboarding && (m.code === 'name' || m.code === 'age' || m.code === 'age_gate' || m.code === 'age_confirm')) onboarding.setError(m.pt, m.en);
+      if (onboarding && m.code === 'name') onboarding.setError(m.pt, m.en);
       else toast('error', m.pt, m.en);
       break;
     case 'profile':
@@ -500,6 +548,15 @@ function startGame() {
       ambience.setEnabled(game.music);
       game.emit('hud');
     },
+    logout:
+      SOLO || !signedIn
+        ? undefined
+        : async () => {
+            leaving = true;
+            await signOut();
+            localStorage.removeItem(TOKEN_KEY);
+            reloadToSignIn();
+          },
   });
   mountJoystick((dx, dy) => {
     if (game.modalOpen || game.editMode || game.placing) return;
@@ -659,7 +716,7 @@ canvas.addEventListener('click', (e) => {
 });
 document.addEventListener('keydown', (e) => {
   const tag = (e.target as HTMLElement)?.tagName;
-  if (tag === 'INPUT' || tag === 'SELECT' || modalId()) return;
+  if (tag === 'INPUT' || tag === 'SELECT' || modalId() || document.querySelector('.idle-kicked')) return;
   if (e.key === 'Enter' && started && !game.modalOpen) {
     e.preventDefault();
     hud?.focusChat();
@@ -694,10 +751,43 @@ function frame(ts: number) {
 }
 requestAnimationFrame(frame);
 
-void runIntroGate().then(() => {
+// ---------------------------------------------------------------- idle: report real input
+
+/** The server kicks after 15 min without real input. Pings don't count, so tell it when a human did something. */
+const ACTIVE_EVERY_MS = 15_000;
+let lastActiveSent = 0;
+let activePending = false;
+function noteInput() {
+  if (!started || SOLO) return;
+  if (Date.now() - lastActiveSent >= ACTIVE_EVERY_MS) {
+    lastActiveSent = Date.now();
+    activePending = false;
+    net.send({ t: 'active' });
+  } else activePending = true;
+}
+for (const ev of ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const) window.addEventListener(ev, noteInput, { capture: true, passive: true });
+setInterval(() => {
+  if (!activePending) return;
+  activePending = false;
+  lastActiveSent = Date.now();
+  net.send({ t: 'active' });
+}, ACTIVE_EVERY_MS);
+
+// ---------------------------------------------------------------- boot
+
+async function boot() {
+  // A live session skips the title screen, so a refresh drops straight back into the world.
+  if (!SOLO) signedIn = await hasServerSession();
+  if (!signedIn) {
+    // Multiplayer is account-only, so a tab without a session always gets the sign-in card.
+    if (!SOLO) sessionStorage.removeItem(INTRO_PASSED_KEY);
+    const entry = await runIntroGate({ guestEntersWorld: SOLO });
+    signedIn = !SOLO && entry.mode === 'auth';
+  }
   game.music = ambience.enabled;
   net.connect();
-});
+}
+void boot();
 
 // ---------------------------------------------------------------- test / debug hooks
 

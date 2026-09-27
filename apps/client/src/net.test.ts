@@ -78,6 +78,27 @@ describe('Net reconnect', () => {
     expect(sockets[1]!.sent.map((raw) => JSON.parse(raw).t)).toEqual(['hello']);
   });
 
+  it('stops after an idle kick (4001) or logout (4002) and only comes back when the player asks', () => {
+    for (const [code, status] of [
+      [4001, 'idle'],
+      [4002, 'loggedOut'],
+    ] as const) {
+      const { net, sockets, statuses } = harness();
+      net.connect();
+      sockets[0]!.open();
+      sockets[0]!.serverClose(code);
+      expect(statuses.at(-1)).toBe(status);
+      net.send({ t: 'active' });
+      vi.advanceTimersByTime(60_000);
+      expect(sockets).toHaveLength(1);
+
+      net.retry();
+      sockets[1]!.open();
+      expect(statuses.at(-1)).toBe('open');
+      expect(sockets[1]!.sent.map((raw) => JSON.parse(raw).t)).toEqual(['hello']);
+    }
+  });
+
   it('gives up when a connecting socket never opens, instead of overlaying forever', () => {
     const { net, sockets, statuses } = harness();
     net.connect();

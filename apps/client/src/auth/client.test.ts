@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, beforeEach, vi } from 'vitest';
-import { signIn, signUp } from './client';
+import { hasServerSession, signIn, signUp } from './client';
 import { AUTH_SESSION_KEY, clearAuthSession } from './session';
 
 function mockStorage() {
@@ -22,9 +22,9 @@ describe('auth client scaffold', () => {
     if (!r.ok) expect(r.code).toBe('password');
   });
 
-  it('falls back to stub when auth API is unavailable', async () => {
+  it('falls back to a stub in solo builds when the auth API is unavailable', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
-    const r = await signUp({ email: 'bia@example.com', password: 'senha1234' });
+    const r = await signUp({ email: 'bia@example.com', password: 'senha1234' }, { offlineStub: true });
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.session.stub).toBe(true);
@@ -33,5 +33,41 @@ describe('auth client scaffold', () => {
     const stored = JSON.parse(localStorage.getItem(AUTH_SESSION_KEY)!);
     expect(stored.email).toBe('bia@example.com');
     clearAuthSession();
+  });
+
+  it('sends the optional 18+ tick with register', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true, account: { email: 'leo@example.com', hasProfile: false } }), { status: 201, headers: { 'content-type': 'application/json' } }));
+    vi.stubGlobal('fetch', fetchMock);
+    await signUp({ email: 'leo@example.com', password: 'senha1234' }, { confirm18: true });
+    await signUp({ email: 'leo2@example.com', password: 'senha1234' });
+    expect(JSON.parse(fetchMock.mock.calls[0]![1].body)).toMatchObject({ email: 'leo@example.com', confirm18: true });
+    expect(JSON.parse(fetchMock.mock.calls[1]![1].body)).toMatchObject({ confirm18: false });
+    clearAuthSession();
+  });
+
+  it('only counts a JSON { ok, account } from /api/auth/me as a live session', async () => {
+    const json = (body: unknown) => new Response(JSON.stringify(body), { status: 200, headers: { 'content-type': 'application/json' } });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ ok: true, account: { email: 'a@b.com', hasProfile: true } })));
+    expect(await hasServerSession()).toBe(true);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json({ ok: false, code: 'unauthenticated' })));
+    expect(await hasServerSession()).toBe(false);
+    // Static hosts answer every path with index.html.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<!doctype html>', { status: 200, headers: { 'content-type': 'text/html' } })));
+    expect(await hasServerSession()).toBe(false);
+  });
+
+  it('never pretends to sign in on the multiplayer server when the API is missing or down', async () => {
+    for (const fetchImpl of [
+      vi.fn().mockRejectedValue(new Error('offline')),
+      vi.fn().mockResolvedValue(new Response('{}', { status: 501, headers: { 'content-type': 'application/json' } })),
+      vi.fn().mockResolvedValue(new Response('<!doctype html>', { status: 200, headers: { 'content-type': 'text/html' } })),
+    ]) {
+      vi.stubGlobal('fetch', fetchImpl);
+      const up = await signUp({ email: 'bia@example.com', password: 'senha1234' });
+      const inn = await signIn({ email: 'bia@example.com', password: 'senha1234' });
+      expect(up).toMatchObject({ ok: false, code: 'offline' });
+      expect(inn).toMatchObject({ ok: false, code: 'offline' });
+      expect(localStorage.getItem(AUTH_SESSION_KEY)).toBeNull();
+    }
   });
 });

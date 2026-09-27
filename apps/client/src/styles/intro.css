@@ -1260,6 +1260,14 @@ body.intro-active #world {
   outline-offset: 2px;
 }
 
+.intro-guest-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.84em;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
 .intro-guest .en {
   display: block;
   font-size: 0.8em;

@@ -1,6 +1,6 @@
 import { signIn, signUp } from '../auth/client';
 import { introAlreadyPassed, markIntroPassed, readAuthSession, writeAuthSession } from '../auth/session';
-import { h, en, ui } from './dom';
+import { h, ui } from './dom';
 import { mountIntroParrots, type SkyBand } from './introParrots';
 import { createIntroHeroScene } from './introHeroScene';
 import { mountIntroAtmosphere } from './introAtmosphere';
@@ -22,8 +22,8 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-function field(pt: string, enText: string, control: HTMLElement) {
-  return h('div', { class: 'intro-field' }, h('label', { for: control.id }, pt, en(enText)), control);
+function field(pt: string, control: HTMLElement) {
+  return h('div', { class: 'intro-field' }, h('label', { for: control.id }, pt), control);
 }
 
 function wordmark(text: string) {
@@ -39,9 +39,10 @@ function wordmark(text: string) {
 
 /**
  * Title-screen gate: Praça + parrot flock beat, then sign-in / register or continue as Phase 0 guest.
- * Resolves when the player may connect to the world socket.
+ * Resolves when the player may connect to the world socket. `guestEntersWorld: false` (the multiplayer
+ * server) keeps the guest CTA but steers it to Criar conta instead of resolving.
  */
-export function runIntroGate(): Promise<IntroGateResult> {
+export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: boolean } = {}): Promise<IntroGateResult> {
   if (introAlreadyPassed()) {
     const session = readAuthSession();
     return Promise.resolve({ mode: session ? 'auth' : 'guest', email: session?.email });
@@ -145,7 +146,9 @@ export function runIntroGate(): Promise<IntroGateResult> {
       'button',
       { type: 'button', class: 'intro-guest', id: 'intro-guest' },
       h('span', { class: 'intro-guest-pt' }, 'Explorar como visitante', h('span', { class: 'intro-guest-arrow', 'aria-hidden': 'true' }, '→')),
-      h('span', { class: 'en' }, 'Try the square without an account'),
+      guestEntersWorld
+        ? h('span', { class: 'intro-guest-sub' }, 'Conheça a praça sem conta', h('span', { class: 'en' }, 'Try the square without an account'))
+        : h('span', { class: 'intro-guest-sub' }, 'Pra jogar com a galera, crie uma conta', h('span', { class: 'en' }, 'To play with others, create an account')),
     );
 
     const setError = (pt: string, enText: string) => {
@@ -197,7 +200,14 @@ export function runIntroGate(): Promise<IntroGateResult> {
       }, reduced ? 0 : 420);
     };
 
-    guest.addEventListener('click', () => finish({ mode: 'guest' }));
+    guest.addEventListener('click', () => {
+      if (guestEntersWorld) return finish({ mode: 'guest' });
+      // Multiplayer is account-only (the server answers authRequired); visitors are pointed at Criar conta.
+      mode = 'register';
+      syncTabs();
+      setError('Pra entrar na Praça com a galera, crie sua conta — é rapidinho.', 'To join the shared Praça, create an account — it only takes a moment.');
+      email.focus({ preventScroll: true });
+    });
 
     const tabsEl = h('div', { class: 'intro-tabs', role: 'tablist', 'aria-label': 'Entrar ou criar conta' }, h('span', { class: 'intro-tab-thumb', 'aria-hidden': 'true' }), tabLogin, tabRegister);
 
@@ -205,28 +215,27 @@ export function runIntroGate(): Promise<IntroGateResult> {
       'form',
       { class: 'intro-form', novalidate: true },
       tabsEl,
-      field('E-mail', 'Email address', email),
-      field('Senha (8+ caracteres)', 'Password (8+ characters)', password),
+      field('E-mail', email),
+      field('Senha (8+ caracteres)', password),
       adultRow,
       err,
       h('div', { class: 'intro-actions' }, submit),
       h('div', { class: 'intro-or', 'aria-hidden': 'true' }, h('span', null, 'ou')),
       guest,
-      h('p', { class: 'intro-legal' }, 'Demonstração da Praça e da Padaria — contas completas em breve.'),
+      h('p', { class: 'intro-legal' }, 'Fase 0 · sua conta guarda seu avatar, suas RV e sua kitnet.'),
     );
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       clearError();
-      if (mode === 'register' && !adult.checked) {
-        return setError('Marque “Tenho 18 anos ou mais” para criar sua conta.', 'Check “I am 18 or older” to register.');
-      }
       submit.disabled = true;
       const creds = { email: email.value, password: password.value };
-      const result = mode === 'login' ? await signIn(creds) : await signUp(creds);
+      // Only solo builds (no auth server) may fall back to a local stub session.
+      const offlineStub = guestEntersWorld;
+      const result = mode === 'login' ? await signIn(creds, { offlineStub }) : await signUp(creds, { confirm18: adult.checked, offlineStub });
       submit.disabled = false;
       if (!result.ok) return setError(result.pt, result.en);
-      if (mode === 'register') writeAuthSession({ ...result.session, ageGateConfirmed: true });
+      if (mode === 'register') writeAuthSession({ ...result.session, ageGateConfirmed: adult.checked });
       finish({ mode: 'auth', email: result.session.email });
     });
 
