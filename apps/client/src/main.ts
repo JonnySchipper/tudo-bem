@@ -205,7 +205,7 @@ function updateGuides() {
     if (!t.carlos) renderer.guides.push({ x: 5, y: 0, lift: 110, label: 'Padaria →' });
     else if (!t.chapeu) renderer.guides.push({ x: 11, y: 6, lift: 138, label: 'Chapéus' });
     else if (!t.cadeira) renderer.guides.push({ x: 0, y: 4, lift: 110, label: 'Minha kitnet' });
-    if (t.meveum) renderer.guides.push({ x: 10, y: 0, lift: 110, label: 'Academia →' });
+    if (t.meveum) renderer.guides.push({ x: 10, y: 0, lift: 110, label: 'Academia do Bairro →' });
   } else if (r.room === 'padaria') {
     // Click opens AI Conversa. Don't label the tile "Conversar" — that word was the chip-scene trap.
     renderer.guides.push({ x: 3, y: 1, lift: 130, label: t.carlos ? 'Falar com Carlos' : 'Fale com o Seu Carlos' });
@@ -295,8 +295,8 @@ net.on((m: ServerMsg) => {
           () =>
             toast(
               'info',
-              'Bem-vindo à academia! Jogo de palavras no tatame — não é treino de luta.',
-              'Welcome! Word-game rolls on the mat — not martial-arts training.',
+              'Bem-vindo à Academia do Bairro! Jogo de palavras no tatame — não é treino de luta.',
+              'Welcome to Academia do Bairro! Word-game rolls on the mat — not martial-arts training.',
             ),
           700,
         );

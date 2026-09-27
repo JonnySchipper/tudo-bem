@@ -767,6 +767,7 @@ describe('pushProfileById', () => {
     const a = await client(world);
     await a.send({ t: 'join', room: 'academia' });
     expect(a.last('roomState')!.room).toBe('academia');
+    expect(a.last('roomState')!.instanceName).toMatch(/^Academia do Bairro/);
     const coins0 = a.s.profile!.coins;
     await a.send({ t: 'roll', action: 'queue' });
     expect(a.all('roll').some((m) => m.phase === 'queue')).toBe(true);
