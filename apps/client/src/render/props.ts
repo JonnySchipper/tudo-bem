@@ -511,25 +511,6 @@ function bicicletario(ctx: Ctx, cx: number, cy: number) {
 type Pt = [number, number];
 const lerp2 = (p: Pt, q: Pt, f: number): Pt => [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f];
 
-/** Glass streaks on a box face (W→S or S→E base edge, extruded up by h). Cool specular, not plain white. */
-function glassStreaks(ctx: Ctx, a: Pt, b: Pt, h: number, lift: number, tint = '236,246,252') {
-  const up = (p: Pt, k: number): Pt => [p[0], p[1] - lift - h * k];
-  for (const [f0, w, al] of [[0.16, 0.11, 0.62], [0.36, 0.04, 0.5], [0.72, 0.03, 0.3]] as const) {
-    const p1 = up(lerp2(a, b, f0), 0.05);
-    const p2 = up(lerp2(a, b, f0 + w), 0.05);
-    const p3 = up(lerp2(a, b, Math.min(1, f0 + w + 0.22)), 0.95);
-    const p4 = up(lerp2(a, b, Math.min(1, f0 + 0.22)), 0.95);
-    poly(ctx, [p1, p2, p3, p4], `rgba(${tint},${al})`);
-  }
-  // Bright top-edge catch where the glass meets the lid.
-  ctx.strokeStyle = `rgba(${tint},0.85)`;
-  ctx.lineWidth = 0.8;
-  ctx.beginPath();
-  ctx.moveTo(...up(a, 0.97));
-  ctx.lineTo(...up(b, 0.97));
-  ctx.stroke();
-}
-
 /** Clip to a polygon, run `draw`, restore. */
 function clipTo(ctx: Ctx, pts: Pt[], draw: () => void) {
   ctx.save();
@@ -539,6 +520,124 @@ function clipTo(ctx: Ctx, pts: Pt[], draw: () => void) {
   ctx.clip();
   draw();
   ctx.restore();
+}
+
+type CaseGeo = { N: Pt; E: Pt; S: Pt; W: Pt; up: (p: Pt, k?: number) => Pt };
+
+/** Fill a polygon with any fill style (gradients included). */
+function fillPts(ctx: Ctx, pts: Pt[], style: string | CanvasGradient) {
+  ctx.beginPath();
+  pts.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.closePath();
+  ctx.fillStyle = style;
+  ctx.fill();
+}
+
+/**
+ * Glass case shell: brushed-steel plinth with a dark kick, then the case interior (back walls + floor)
+ * the goods sit in front of. The interior is kept a few values darker than the glass so the goods
+ * and the specular streaks read — a pale interior behind pale glass is what made the case a flat box.
+ */
+function caseShell(ctx: Ctx, cx: number, cy: number, gh: number, warm: boolean): CaseGeo {
+  const base = box(ctx, cx, cy, 1.0, 0.8, 22, '#c3c7ce', 0, { left: '#a7acb5', right: '#7f848e', stroke: 'rgba(40,44,52,0.4)' });
+  for (const [a, b] of [[base.W, base.S], [base.S, base.E]] as [Pt, Pt][]) {
+    poly(ctx, [a, b, [b[0], b[1] - 4], [a[0], a[1] - 4]], '#3e4048');
+    ctx.lineWidth = 0.8;
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.beginPath();
+    ctx.moveTo(a[0], a[1] - 12);
+    ctx.lineTo(b[0], b[1] - 12);
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(30,34,40,0.28)';
+    ctx.beginPath();
+    ctx.moveTo(a[0], a[1] - 11);
+    ctx.lineTo(b[0], b[1] - 11);
+    ctx.stroke();
+  }
+  const [ax, ay] = iso(0.48, 0);
+  const [bx, by] = iso(0, 0.38);
+  const y0 = cy - 22;
+  const N: Pt = [cx - ax - bx, y0 - ay - by];
+  const E: Pt = [cx + ax - bx, y0 + ay - by];
+  const S: Pt = [cx + ax + bx, y0 + ay + by];
+  const W: Pt = [cx - ax + bx, y0 - ay + by];
+  const up = (p: Pt, k = 1): Pt => [p[0], p[1] - gh * k];
+  const wall = ctx.createLinearGradient(0, N[1] - gh, 0, S[1]);
+  wall.addColorStop(0, warm ? '#9a6436' : '#a9bcc8');
+  wall.addColorStop(1, warm ? '#4e2e1a' : '#647e8e');
+  fillPts(ctx, [W, N, up(N), up(W)], wall);
+  fillPts(ctx, [N, E, up(E), up(N)], wall);
+  fillPts(ctx, [N, E, S, W], warm ? '#b88a58' : '#e6e0d6');
+  if (warm) {
+    // Heat lamp: a hot core under the lid spilling down onto the trays.
+    const lamp = ctx.createRadialGradient(cx, y0 - gh + 4, 2, cx, y0 - gh * 0.4, 30);
+    lamp.addColorStop(0, 'rgba(255,206,120,0.75)');
+    lamp.addColorStop(0.5, 'rgba(255,180,90,0.25)');
+    lamp.addColorStop(1, 'rgba(255,180,90,0)');
+    ctx.fillStyle = lamp;
+    ctx.fillRect(cx - 32, y0 - gh - 2, 64, gh + 14);
+  }
+  return { N, E, S, W, up };
+}
+
+/**
+ * Front panes over the goods (palette.md glass-cool #C5D5DE): a cool sky reflection across the top of
+ * each pane, clear through the middle, a cool floor reflection at the foot, then hard specular streaks
+ * (soft band + crisp core) and a dark steel frame so the box edges hold against the cream floor.
+ */
+function caseGlass(ctx: Ctx, g: CaseGeo) {
+  const { E, S, W, up } = g;
+  const pane = (a: Pt, b: Pt, k: number, streaks: readonly (readonly [number, number])[]) => {
+    const pts: Pt[] = [a, b, up(b), up(a)];
+    const top = Math.min(up(a)[1], up(b)[1]);
+    const bot = Math.max(a[1], b[1]);
+    const gr = ctx.createLinearGradient(0, top, 0, bot);
+    gr.addColorStop(0, `rgba(226,240,248,${0.55 * k})`);
+    gr.addColorStop(0.22, `rgba(197,213,222,${0.34 * k})`);
+    gr.addColorStop(0.5, 'rgba(197,213,222,0.04)');
+    gr.addColorStop(0.8, 'rgba(120,150,170,0.14)');
+    gr.addColorStop(1, 'rgba(70,98,120,0.42)');
+    fillPts(ctx, pts, gr);
+    clipTo(ctx, pts, () => {
+      for (const [f0, w] of streaks) {
+        const band = (fa: number, fb: number, al: number) => {
+          const p1 = up(lerp2(a, b, fa), -0.1);
+          const p2 = up(lerp2(a, b, fb), -0.1);
+          const p3 = up(lerp2(a, b, fb + 0.3), 1.1);
+          const p4 = up(lerp2(a, b, fa + 0.3), 1.1);
+          poly(ctx, [p1, p2, p3, p4], `rgba(236,246,255,${al * k})`);
+        };
+        band(f0 - 0.05, f0 + w + 0.05, 0.28);
+        band(f0, f0 + w, 0.9);
+      }
+    });
+  };
+  pane(W, S, 1, [[0.1, 0.07], [0.24, 0.025], [0.62, 0.04]]);
+  pane(S, E, 0.75, [[0.14, 0.05], [0.5, 0.02]]);
+  // Steel frame: base channel, top rail and corner posts.
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#4e5a66';
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  for (const p of [W, S, E]) {
+    ctx.moveTo(...p);
+    ctx.lineTo(...up(p));
+  }
+  ctx.moveTo(...W);
+  ctx.lineTo(...S);
+  ctx.lineTo(...E);
+  ctx.stroke();
+  // Lit edges: the front post and the top rail catch the window key.
+  ctx.strokeStyle = 'rgba(240,248,255,0.95)';
+  ctx.lineWidth = 0.9;
+  ctx.beginPath();
+  ctx.moveTo(S[0] - 1.2, S[1] - 1);
+  ctx.lineTo(S[0] - 1.2, S[1] - (S[1] - up(S)[1]) + 1);
+  ctx.moveTo(...up(W, 0.97));
+  ctx.lineTo(...up(S, 0.97));
+  ctx.lineTo(...up(E, 0.97));
+  ctx.stroke();
+  ctx.lineCap = 'butt';
 }
 
 /** Wood-warm plank grain across an iso top face, running along the N→E (x) axis. */
@@ -606,7 +705,7 @@ function balcaoSlice(ctx: Ctx, cx: number, cy: number, i: number, n: number) {
   const [N, E, S, W] = top as [Pt, Pt, Pt, Pt];
   // The toldo's soft stripe shadow falling across the counter top.
   clipTo(ctx, top, () => {
-    for (let k = 0; k < 4; k += 2) poly(ctx, [lerp2(N, E, k / 4), lerp2(N, E, (k + 1) / 4), lerp2(W, S, (k + 1) / 4), lerp2(W, S, k / 4)], 'rgba(60,28,10,0.14)');
+    for (let k = 0; k < 4; k += 2) poly(ctx, [lerp2(N, E, k / 4), lerp2(N, E, (k + 1) / 4), lerp2(W, S, (k + 1) / 4), lerp2(W, S, k / 4)], 'rgba(60,28,10,0.2)');
   });
   // Cream rail on the customer edge.
   const [rx, ry] = iso(0, 0.42);
@@ -663,9 +762,7 @@ function balcaoSlice(ctx: Ctx, cx: number, cy: number, i: number, n: number) {
 }
 
 function vitrineSlice(ctx: Ctx, cx: number, cy: number, i: number) {
-  box(ctx, cx, cy, 1.0, 0.8, 22, '#d6cfc4', 0, { stroke: 'rgba(0,0,0,0.12)' });
-  // Cool glass-cool body (palette.md #C5D5DE), darker at the base so the sweets read against it.
-  const glass = box(ctx, cx, cy, 0.96, 0.76, 24, 'rgba(197,213,222,0.38)', 22, { left: 'rgba(182,204,218,0.5)', right: 'rgba(150,180,202,0.58)', stroke: 'rgba(96,136,164,0.8)' });
+  const glass = caseShell(ctx, cx, cy, 24, false);
   // Back row: tall slices of bolo (layer wedges) on a doily; front row: brigadeiro pyramid + sonhos.
   const cakes = ['#c77b3a', '#e889a8', '#f2d27a'];
   cakes.forEach((c, k) => {
@@ -689,9 +786,8 @@ function vitrineSlice(ctx: Ctx, cx: number, cy: number, i: number) {
     ellipse(ctx, cx + dx, cy + dy - 30, 5, 3.6, i ? '#d59a4c' : '#c98a3e');
     ellipse(ctx, cx + dx, cy + dy - 32, 4, 1.6, 'rgba(255,250,240,0.85)');
   }
-  glassStreaks(ctx, glass.W, glass.S, 24, 22);
-  glassStreaks(ctx, glass.S, glass.E, 24, 22, '214,232,244');
-  box(ctx, cx, cy, 1.0, 0.8, 3, '#efe9e1', 46, { stroke: 'rgba(0,0,0,0.1)' });
+  caseGlass(ctx, glass);
+  box(ctx, cx, cy, 1.0, 0.8, 3, '#dfe3e8', 46, { left: '#b4bac2', right: '#8f959e', stroke: 'rgba(40,44,52,0.35)' });
   // Redoma on top: a bolo de fubá under a glass dome — breaks the flat case top line.
   ellipse(ctx, cx + 1, cy - 49, 12, 3.6, 'rgba(58,34,22,0.22)');
   ellipse(ctx, cx, cy - 50, 11, 3.4, '#d6cfc4');
@@ -719,29 +815,15 @@ function caixa(ctx: Ctx, cx: number, cy: number) {
   box(ctx, cx, cy, 1.0, 0.8, 38, '#a8662f', 0, { left: '#b5452e', right: '#8e3620' });
   const top = box(ctx, cx, cy, 1.02, 0.92, 5, '#9c6a44', 38, { left: '#7a4f30', right: '#6a4228', stroke: 'rgba(60,30,12,0.25)' }).top;
   woodTop(ctx, top, 11);
-  // Register + its soft contact on the wood.
-  ellipse(ctx, cx - 1, cy - 43, 12, 4.5, 'rgba(58,34,22,0.32)');
-  box(ctx, cx, cy, 0.45, 0.4, 14, '#3a3a44', 43);
-  box(ctx, cx - 3, cy - 2, 0.3, 0.1, 10, '#1e2a3a', 57);
+  // Register pushed to the back corner (+ its soft contact on the wood) so the tray owns the front.
+  const [rx, ry] = iso(-0.12, -0.2);
+  ellipse(ctx, cx + rx - 1, cy + ry - 43, 12, 4.5, 'rgba(58,34,22,0.32)');
+  box(ctx, cx + rx, cy + ry, 0.45, 0.4, 14, '#3a3a44', 43);
+  box(ctx, cx + rx - 3, cy + ry - 2, 0.3, 0.1, 10, '#1e2a3a', 57);
   ctx.fillStyle = '#7ff0a0';
   ctx.font = `800 6px ${FONT_BODY}`;
   ctx.textAlign = 'center';
-  ctx.fillText('R$', cx - 3, cy - 62);
-  // Steel bandeja by the till: kraft bread bags standing in a row, the top one folded over.
-  const [bx, by] = iso(0.3, 0.2);
-  const tx = cx + bx;
-  const ty = cy + by - 43;
-  ellipse(ctx, tx + 1, ty + 0.5, 11, 3.6, 'rgba(58,34,22,0.34)');
-  diamond(ctx, tx, ty, 0.42, 0.3, '#b8b8c0', '#7e7e88', 0.7);
-  diamond(ctx, tx, ty - 1, 0.38, 0.26, '#d4d4da');
-  for (let k = 0; k < 3; k++) {
-    const x = tx - 5 + k * 4.5;
-    const y = ty + 1 - k * 1.2;
-    rrect(ctx, x - 2.6, y - 11, 5.2, 11, 0.6, k % 2 ? '#c9a172' : '#d8b384', 'rgba(90,60,30,0.5)', 0.5);
-    poly(ctx, [[x - 2.6, y - 11], [x + 2.6, y - 11], [x + 1.8, y - 13], [x - 1.8, y - 13]], k % 2 ? '#b58c5c' : '#c49a68');
-    ctx.fillStyle = 'rgba(196,92,38,0.8)';
-    ctx.fillRect(x - 1.8, y - 7, 3.6, 1.2);
-  }
+  ctx.fillText('R$', cx + rx - 3, cy + ry - 62);
   // Porta-guardanapo: the chrome V holder with a fan of paper napkins — the SP balcão classic.
   const [nx, ny] = iso(-0.32, 0.28);
   const hx = cx + nx;
@@ -752,7 +834,7 @@ function caixa(ctx: Ctx, cx: number, cy: number) {
   ctx.fillStyle = 'rgba(255,255,255,0.8)';
   ctx.fillRect(hx - 4.5, hy - 1.6, 9, 0.7);
   // Açúcar + canela shakers by the napkins.
-  const [kx, ky] = iso(0.02, 0.36);
+  const [kx, ky] = iso(0.3, -0.3);
   for (const [dx, cap, fill] of [[-3.2, '#b8b8c0', '#fff'], [3.2, '#C45C26', '#8a5a3c']] as const) {
     const x = cx + kx + dx;
     const y = cy + ky - 43;
@@ -763,6 +845,51 @@ function caixa(ctx: Ctx, cx: number, cy: number) {
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
     ctx.fillRect(x - 2.1, y - 8, 0.9, 6.5);
     rrect(ctx, x - 2.6, y - 11.5, 5.2, 3, 1.2, cap, 'rgba(0,0,0,0.3)', 0.4);
+  }
+  // Bandeja by the till: a steel serving tray with a raised rim and a paper liner, holding a
+  // cafezinho on its saucer and a pair of pães de queijo — one clear silhouette, not loose clutter.
+  const [bx, by] = iso(0.2, 0.16);
+  const tx = cx + bx;
+  const ty = cy + by - 43;
+  ellipse(ctx, tx + 1.5, ty + 1.5, 17, 6.5, 'rgba(58,34,22,0.4)');
+  diamond(ctx, tx, ty, 0.58, 0.42, '#6e737c', '#3a3e46', 0.8);
+  diamond(ctx, tx, ty - 1.6, 0.58, 0.42, '#dfe3e8', '#565b64', 0.7);
+  diamond(ctx, tx, ty - 1.6, 0.48, 0.32, '#9ca2ab');
+  diamond(ctx, tx, ty - 1.9, 0.44, 0.29, '#fbf4e4', 'rgba(196,92,38,0.55)', 0.6);
+  const [ex, ey] = iso(-0.29, 0);
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(tx + ex, ty + ey - 1.9);
+  ctx.lineTo(tx + ex + iso(0, -0.21)[0], ty + ey - 1.9 + iso(0, -0.21)[1]);
+  ctx.stroke();
+  // Cafezinho: saucer, white demitasse, dark coffee, tiny handle.
+  const [qx, qy] = iso(-0.06, 0.06);
+  const x0 = tx + qx;
+  const y0 = ty + qy - 2;
+  ellipse(ctx, x0 + 0.5, y0 + 0.6, 6, 2.2, 'rgba(58,34,22,0.3)');
+  ellipse(ctx, x0, y0, 5.6, 2.1, '#fffaf2');
+  ctx.strokeStyle = '#b9b0a2';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.ellipse(x0, y0, 5.6, 2.1, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  rrect(ctx, x0 - 3, y0 - 6, 6, 6, [0, 0, 2.5, 2.5], '#ffffff', '#a8a092', 0.5);
+  ctx.strokeStyle = '#a8a092';
+  ctx.lineWidth = 0.9;
+  ctx.beginPath();
+  ctx.arc(x0 + 3.6, y0 - 3.4, 1.4, -Math.PI / 2, Math.PI / 2);
+  ctx.stroke();
+  ellipse(ctx, x0, y0 - 6, 3, 1.1, '#4a2616');
+  ellipse(ctx, x0 - 0.8, y0 - 6.2, 1.2, 0.4, 'rgba(230,180,120,0.8)');
+  // Two pães de queijo on the liner beside the cup.
+  const [px, py] = iso(0.12, -0.04);
+  for (const [dx, dy] of [[-2.8, 0], [2.6, 0.6]] as const) {
+    const x = tx + px + dx;
+    const y = ty + py - 2 + dy;
+    ellipse(ctx, x + 0.4, y + 1.6, 3, 1.1, 'rgba(58,34,22,0.3)');
+    circle(ctx, x, y - 1, 2.8, '#eac566', 'rgba(96,44,12,0.55)', 0.5);
+    circle(ctx, x - 0.9, y - 2, 0.9, 'rgba(255,248,220,0.85)');
   }
 }
 
@@ -824,10 +951,20 @@ function mesa(ctx: Ctx, cx: number, cy: number) {
 }
 
 function cadeiraPadaria(ctx: Ctx, cx: number, cy: number, dir: Dir) {
-  shadow(ctx, cx, cy, 14, 6, 0.28);
-  for (const [dx, dy] of [[-0.2, -0.2], [0.2, -0.2], [0.2, 0.2], [-0.2, 0.2]] as [number, number][]) {
+  shadow(ctx, cx, cy, 14, 6, 0.3);
+  // Seat cast: the window key is behind-left, so the seat's shadow falls forward-right of the legs.
+  const [sx, sy] = iso(0.1, 0.06);
+  diamond(ctx, cx + sx, cy + sy, 0.56, 0.5, 'rgba(58,34,22,0.2)');
+  const legs = [[-0.2, -0.2], [0.2, -0.2], [0.2, 0.2], [-0.2, 0.2]] as [number, number][];
+  for (const [dx, dy] of legs) {
     const [lx, ly] = iso(dx, dy);
-    ellipse(ctx, cx + lx, cy + ly, 2.4, 1, 'rgba(58,34,22,0.35)');
+    // Tight dark contact under each foot + a short cast streak away from the window.
+    ellipse(ctx, cx + lx + 0.6, cy + ly + 0.2, 3.4, 1.5, 'rgba(40,22,14,0.3)');
+    ellipse(ctx, cx + lx, cy + ly, 2, 0.9, 'rgba(30,16,10,0.6)');
+    poly(ctx, [[cx + lx - 0.8, cy + ly], [cx + lx + 0.8, cy + ly], [cx + lx + 6, cy + ly + 2.6], [cx + lx + 4.6, cy + ly + 2.8]], 'rgba(40,22,14,0.22)');
+  }
+  for (const [dx, dy] of legs) {
+    const [lx, ly] = iso(dx, dy);
     rrect(ctx, cx + lx - 1, cy + ly - 18, 2, 18, 1, '#2a2233');
   }
   diamond(ctx, cx, cy - 17, 0.5, 0.5, '#7a2a18');
@@ -995,103 +1132,112 @@ function placaRua(ctx: Ctx, cx: number, cy: number) {
   plate(cy - 92, 54, 'PRAÇA CENTRAL');
 }
 
-/** Estufa — heated glass case of salgados. */
+type Salgado = 'coxinha' | 'pastel' | 'esfiha' | 'paoqueijo' | 'empada' | 'kibe';
+
+/** One salgado at (x, y), its base on the tray. Dark outline so the packed trays keep readable silhouettes. */
+function salgado(ctx: Ctx, x: number, y: number, k: Salgado) {
+  const ink = 'rgba(96,44,12,0.55)';
+  ellipse(ctx, x + 0.6, y + 2.6, 5.4, 1.9, 'rgba(60,24,6,0.4)');
+  if (k === 'coxinha') {
+    ctx.fillStyle = '#c9772a';
+    ctx.strokeStyle = ink;
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.moveTo(x, y - 8);
+    ctx.bezierCurveTo(x + 6.5, y - 2, x + 5.5, y + 3, x, y + 3);
+    ctx.bezierCurveTo(x - 5.5, y + 3, x - 6.5, y - 2, x, y - 8);
+    ctx.fill();
+    ctx.stroke();
+    ellipse(ctx, x - 1.8, y - 1.5, 1.4, 2.8, 'rgba(255,214,150,0.6)');
+    circle(ctx, x, y - 7.6, 0.8, '#8a4a1a');
+  } else if (k === 'pastel') {
+    ctx.fillStyle = '#e8b25a';
+    ctx.strokeStyle = ink;
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.ellipse(x, y + 1, 7.5, 4.5, 0, Math.PI, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(160,100,40,0.8)';
+    ctx.beginPath();
+    for (let q = -6; q <= 6; q += 2.4) {
+      ctx.moveTo(x + q, y + 1);
+      ctx.lineTo(x + q * 0.9, y - 0.6);
+    }
+    ctx.stroke();
+    ellipse(ctx, x - 2, y - 1.8, 2.6, 0.9, 'rgba(255,240,200,0.6)');
+  } else if (k === 'esfiha') {
+    poly(ctx, [[x - 5.5, y + 2], [x + 5.5, y + 2], [x, y - 7]], '#d99a4a', ink, 0.6);
+    circle(ctx, x, y - 0.5, 1.8, '#b8423a');
+    ctx.fillStyle = 'rgba(255,230,180,0.55)';
+    ctx.fillRect(x - 3, y - 2.5, 1, 3);
+  } else if (k === 'empada') {
+    rrect(ctx, x - 4.5, y - 3.5, 9, 5.5, 1.5, '#c98a3e', ink, 0.6);
+    ellipse(ctx, x, y - 3.5, 4.5, 1.8, '#e5b865');
+    ctx.strokeStyle = 'rgba(140,80,30,0.6)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    for (let q = -3; q <= 3; q += 1.5) {
+      ctx.moveTo(x + q, y - 2);
+      ctx.lineTo(x + q, y + 1.6);
+    }
+    ctx.stroke();
+  } else if (k === 'kibe') {
+    ctx.fillStyle = '#8a4e28';
+    ctx.strokeStyle = ink;
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    ctx.ellipse(x, y - 1.5, 6, 3.6, -0.25, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ellipse(ctx, x - 2, y - 3, 2.2, 0.9, 'rgba(255,200,150,0.45)');
+  } else {
+    circle(ctx, x - 2.6, y, 2.6, '#eac566', ink, 0.5);
+    circle(ctx, x + 2.4, y + 0.4, 2.6, '#f0cc6e', ink, 0.5);
+    circle(ctx, x, y - 2.6, 2.5, '#f2d27a', ink, 0.5);
+    circle(ctx, x - 0.8, y - 3.4, 0.9, 'rgba(255,248,220,0.85)');
+  }
+}
+
+/** Estufa — heated glass case of salgados, packed: two steel trays heaped two deep. */
 function estufa(ctx: Ctx, cx: number, cy: number) {
-  box(ctx, cx, cy, 1.0, 0.8, 22, '#d6cfc4', 0, { stroke: 'rgba(0,0,0,0.12)' });
-  // Glass-cool panes (palette.md #C5D5DE) over a warm heat-lamp interior: the glass reads cool, the food reads hot.
-  const warmGlass = box(ctx, cx, cy, 0.96, 0.76, 26, 'rgba(214,222,222,0.34)', 22, { left: 'rgba(226,214,192,0.46)', right: 'rgba(170,192,208,0.52)', stroke: 'rgba(96,136,164,0.85)' });
-  const lamp = ctx.createRadialGradient(cx, cy - 44, 2, cx, cy - 36, 30);
-  lamp.addColorStop(0, 'rgba(255,200,110,0.5)');
-  lamp.addColorStop(1, 'rgba(255,200,110,0)');
-  ctx.fillStyle = lamp;
-  ctx.fillRect(cx - 30, cy - 50, 60, 30);
-  // Two tiers, full trays: back tier sits higher (a wire shelf), front tier on the case floor.
-  type Salgado = 'coxinha' | 'pastel' | 'esfiha' | 'paoqueijo' | 'empada';
-  const back: [number, number, Salgado][] = [
-    [-0.32, -0.22, 'esfiha'], [-0.12, -0.24, 'coxinha'], [0.06, -0.22, 'empada'], [0.26, -0.22, 'esfiha'],
-    [-0.22, -0.08, 'paoqueijo'], [0.0, -0.1, 'coxinha'], [0.2, -0.08, 'paoqueijo'],
+  const gh = 26;
+  const glass = caseShell(ctx, cx, cy, gh, true);
+  // Each tier: a steel tray with a paper liner, then salgados packed shoulder to shoulder and a
+  // second layer heaped on top — back rows first so the front rows overlap them.
+  const tiers: { dy0: number; dy1: number; lift: number; kinds: Salgado[] }[] = [
+    { dy0: -0.3, dy1: -0.06, lift: 36, kinds: ['esfiha', 'coxinha', 'empada', 'kibe', 'paoqueijo', 'coxinha'] },
+    { dy0: 0.02, dy1: 0.3, lift: 25, kinds: ['coxinha', 'pastel', 'coxinha', 'paoqueijo', 'coxinha', 'kibe'] },
   ];
-  const front: [number, number, Salgado][] = [
-    [-0.32, 0.06, 'coxinha'], [-0.12, 0.08, 'pastel'], [0.1, 0.06, 'coxinha'], [0.3, 0.06, 'empada'],
-    [-0.24, 0.2, 'paoqueijo'], [-0.02, 0.22, 'coxinha'], [0.2, 0.2, 'pastel'],
-  ];
-  // Heaped middle layer so the trays read piled, not a single row.
-  const heap: [number, number, Salgado][] = [
-    [-0.26, 0.12, 'coxinha'], [0.04, 0.14, 'paoqueijo'], [0.24, 0.12, 'coxinha'],
-    [-0.18, -0.16, 'coxinha'], [0.12, -0.16, 'esfiha'],
-  ];
-  const [sx, sy] = iso(0, -0.16);
-  box(ctx, cx + sx, cy + sy, 0.9, 0.34, 1, 'rgba(200,200,205,0.7)', 34, { stroke: 'rgba(120,120,130,0.5)' });
-  const draw = (list: [number, number, Salgado][], lift: number) => {
-    for (const [dx, dy, k] of list) {
-      const [ox, oy] = iso(dx, dy);
-      const x = cx + ox;
-      const y = cy + oy - lift;
-      ellipse(ctx, x + 0.5, y + 2.5, 5, 1.8, 'rgba(90,40,10,0.28)');
-      if (k === 'coxinha') {
-        ctx.fillStyle = '#c9772a';
-        ctx.beginPath();
-        ctx.moveTo(x, y - 7);
-        ctx.bezierCurveTo(x + 6, y - 2, x + 5, y + 3, x, y + 3);
-        ctx.bezierCurveTo(x - 5, y + 3, x - 6, y - 2, x, y - 7);
-        ctx.fill();
-        ellipse(ctx, x - 1.6, y - 1.5, 1.4, 2.6, 'rgba(255,214,150,0.55)');
-      } else if (k === 'pastel') {
-        ctx.fillStyle = '#e8b25a';
-        ctx.beginPath();
-        ctx.ellipse(x, y, 7, 3.5, 0, Math.PI, 0);
-        ctx.lineTo(x - 7, y);
-        ctx.fill();
-        ctx.fillRect(x - 7, y - 0.5, 14, 2);
-        ctx.strokeStyle = 'rgba(160,100,40,0.7)';
-        ctx.lineWidth = 0.6;
-        ctx.beginPath();
-        for (let q = -5; q <= 5; q += 2.5) {
-          ctx.moveTo(x + q, y + 1.5);
-          ctx.lineTo(x + q + 0.8, y - 0.3);
-        }
-        ctx.stroke();
-      } else if (k === 'esfiha') {
-        ctx.fillStyle = '#d99a4a';
-        ctx.beginPath();
-        ctx.moveTo(x - 5, y + 2);
-        ctx.lineTo(x + 5, y + 2);
-        ctx.lineTo(x, y - 6);
-        ctx.closePath();
-        ctx.fill();
-        circle(ctx, x, y - 0.5, 1.6, '#b8423a');
-      } else if (k === 'empada') {
-        rrect(ctx, x - 4, y - 3, 8, 5, 1.5, '#c98a3e');
-        ellipse(ctx, x, y - 3, 4, 1.6, '#e5b865');
-        ctx.strokeStyle = 'rgba(140,80,30,0.6)';
-        ctx.lineWidth = 0.5;
-        for (let q = -3; q <= 3; q += 1.5) {
-          ctx.beginPath();
-          ctx.moveTo(x + q, y - 2);
-          ctx.lineTo(x + q, y + 2);
-          ctx.stroke();
-        }
-      } else {
-        circle(ctx, x - 2.5, y, 2.4, '#eac566');
-        circle(ctx, x + 2.2, y + 0.4, 2.4, '#f0cc6e');
-        circle(ctx, x, y - 2.4, 2.3, '#f2d27a');
-        circle(ctx, x - 0.8, y - 3.2, 0.9, 'rgba(255,248,220,0.8)');
+  for (const [ti, tier] of tiers.entries()) {
+    const [tx, ty] = iso(0, (tier.dy0 + tier.dy1) / 2);
+    const tray = box(ctx, cx + tx, cy + ty, 0.9, tier.dy1 - tier.dy0 + 0.1, 2, '#c8ccd2', tier.lift - 2, { left: '#9ea3ac', right: '#80858e', stroke: 'rgba(40,44,52,0.5)' });
+    poly(ctx, tray.top, '#f4ead6');
+    const rows = 3;
+    for (let r = 0; r < rows; r++) {
+      const dy = tier.dy0 + ((tier.dy1 - tier.dy0) * r) / (rows - 1);
+      for (let c = 0; c < 6; c++) {
+        const dx = -0.36 + c * 0.144;
+        const k = tier.kinds[(c + r * 2 + ti) % tier.kinds.length];
+        const [ox, oy] = iso(dx, dy);
+        salgado(ctx, cx + ox, cy + oy - tier.lift, k);
+      }
+      if (r === 0) continue;
+      // Heaped layer riding in the gaps of the row behind.
+      const hy = dy - (tier.dy1 - tier.dy0) / (rows - 1) / 2;
+      for (let c = 0; c < 5; c++) {
+        const dx = -0.29 + c * 0.144;
+        const k = tier.kinds[(c * 3 + r + ti + 1) % tier.kinds.length];
+        const [ox, oy] = iso(dx, hy);
+        salgado(ctx, cx + ox, cy + oy - tier.lift - 4.5, k);
       }
     }
-  };
-  draw(back, 38);
-  draw(heap.slice(3), 43);
-  draw(front, 26);
-  draw(heap.slice(0, 3), 31);
-  glassStreaks(ctx, warmGlass.W, warmGlass.S, 26, 22, '232,244,252');
-  glassStreaks(ctx, warmGlass.S, warmGlass.E, 26, 22, '214,232,244');
-  box(ctx, cx, cy, 1.0, 0.8, 3, '#efe9e1', 48, { stroke: 'rgba(0,0,0,0.1)' });
-  const g = ctx.createRadialGradient(cx, cy - 40, 2, cx, cy - 36, 26);
-  g.addColorStop(0, 'rgba(255,190,90,0.22)');
-  g.addColorStop(1, 'rgba(255,190,90,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(cx - 26, cy - 62, 52, 40);
-  label(ctx, 'SALGADOS', cx, cy - 58, '#b5452e', '#fff', 7);
+  }
+  caseGlass(ctx, glass);
+  box(ctx, cx, cy, 1.0, 0.8, 3, '#dfe3e8', 22 + gh, { left: '#b4bac2', right: '#8f959e', stroke: 'rgba(40,44,52,0.35)' });
+  // Nudged left so the trilho's hanging comandas (next tile) don't cover the sign.
+  label(ctx, 'SALGADOS', cx - 9, cy - 58, '#b5452e', '#fff', 7);
 }
 
 export function drawProp(ctx: Ctx, p: PropDef, cx: number, cy: number, t: number, slice = 0, opts: { parrotAdopted?: boolean } = {}) {

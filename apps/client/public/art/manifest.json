@@ -104,9 +104,9 @@
   "props/caixa": {
    "file": "props/caixa.png",
    "w": 66,
-   "h": 89.67,
+   "h": 94.67,
    "ox": -33,
-   "oy": -73.67
+   "oy": -78.67
   },
   "props/balcao_0_of_5": {
    "file": "props/balcao_0_of_5.png",
@@ -146,16 +146,16 @@
   "props/vitrine": {
    "file": "props/vitrine.png",
    "w": 61.33,
-   "h": 86,
+   "h": 84.33,
    "ox": -30.67,
-   "oy": -70
+   "oy": -68.33
   },
   "props/estufa": {
    "file": "props/estufa.png",
-   "w": 61.33,
-   "h": 88,
-   "ox": -30.67,
-   "oy": -72
+   "w": 65.33,
+   "h": 82.67,
+   "ox": -34.67,
+   "oy": -66.67
   },
   "props/vaso": {
    "file": "props/vaso.png",
@@ -180,15 +180,15 @@
   },
   "props/cadeira_padaria_SE": {
    "file": "props/cadeira_padaria_SE.png",
-   "w": 36.33,
-   "h": 54,
+   "w": 37.67,
+   "h": 57.33,
    "ox": -18.33,
    "oy": -45.67
   },
   "props/cadeira_padaria_NE": {
    "file": "props/cadeira_padaria_NE.png",
-   "w": 36,
-   "h": 35.67,
+   "w": 37.33,
+   "h": 39,
    "ox": -18,
    "oy": -27.33
   },

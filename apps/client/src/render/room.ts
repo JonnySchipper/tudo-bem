@@ -1455,15 +1455,25 @@ const COUNTER_KINDS = new Set(['balcao', 'caixa', 'vitrine', 'estufa', 'trilho_p
 function drawFloorAO(ctx: Ctx, room: RoomDef) {
   floorSpace(ctx, () => {
     if (room.lighting === 'manha') {
-      // Soft AO at the counter's feet: three feathered rings around each footprint.
+      // AO at the counter's feet: a hard contact band that swallows the tile pattern, then feathered
+      // rings out to ~0.7 tile so the run sits in the floor instead of on it.
       for (const p of room.props) {
         if (!COUNTER_KINDS.has(p.kind)) continue;
         const w = p.w ?? 1;
         const h = p.h ?? 1;
-        for (const [pad, a] of [[0.04, 0.28], [0.12, 0.16], [0.24, 0.09], [0.4, 0.045]] as const) {
-          ctx.fillStyle = `rgba(58,34,22,${a})`;
+        for (const [pad, a] of [[0.03, 0.5], [0.09, 0.26], [0.18, 0.16], [0.32, 0.1], [0.5, 0.06], [0.72, 0.035]] as const) {
+          ctx.fillStyle = `rgba(52,28,16,${a})`;
           ctx.fillRect(p.x + 0.02 - pad, p.y + 0.1 - pad, w - 0.04 + pad * 2, h - 0.2 + pad * 2);
         }
+      }
+      // Loose furniture (mesas, cadeiras, banquetas, vasos) gets a soft pool too.
+      for (const p of room.props) {
+        if (COUNTER_KINDS.has(p.kind) || p.kind === 'trilho_pedidos') continue;
+        const g = ctx.createRadialGradient(p.x + 0.5, p.y + 0.5, 0, p.x + 0.5, p.y + 0.5, 0.62);
+        g.addColorStop(0, 'rgba(52,28,16,0.2)');
+        g.addColorStop(1, 'rgba(52,28,16,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(p.x - 0.2, p.y - 0.2, 1.4, 1.4);
       }
       // Floor falls off away from the window key (left wall), so the front corner sits back.
       const win = room.walls.find((d) => d.kind === 'janela' && d.wall === 'left');
@@ -1476,20 +1486,27 @@ function drawFloorAO(ctx: Ctx, room: RoomDef) {
       ctx.fillRect(0, 0, room.cols, room.rows);
     }
     // Wall feet: a tight dark contact line plus a wider soft falloff (stronger in the padaria).
-    const deep = room.lighting === 'manha' ? 1.8 : 1;
-    const reach = room.lighting === 'manha' ? 1.2 : 0.9;
-    const gl = ctx.createLinearGradient(0, 0, reach, 0);
-    gl.addColorStop(0, `rgba(58,34,22,${0.26 * deep})`);
-    gl.addColorStop(0.2, `rgba(58,34,22,${0.12 * deep})`);
-    gl.addColorStop(1, 'rgba(58,34,22,0)');
-    ctx.fillStyle = gl;
-    ctx.fillRect(0, 0, reach, room.rows);
-    const gr = ctx.createLinearGradient(0, 0, 0, reach);
-    gr.addColorStop(0, `rgba(58,34,22,${0.22 * deep})`);
-    gr.addColorStop(0.2, `rgba(58,34,22,${0.1 * deep})`);
-    gr.addColorStop(1, 'rgba(58,34,22,0)');
-    ctx.fillStyle = gr;
-    ctx.fillRect(0, 0, room.cols, reach);
+    // Padaria: a near-opaque contact line, a dense first 0.15 tile, and a long soft tail to ~1.7 tiles.
+    const manha = room.lighting === 'manha';
+    const reach = manha ? 1.7 : 0.9;
+    const stops: [number, number][] = manha
+      ? [[0, 0.62], [0.03, 0.46], [0.09, 0.3], [0.25, 0.15], [0.55, 0.05], [1, 0]]
+      : [[0, 0.26], [0.2, 0.12], [1, 0]];
+    for (const [side, len, darker] of [['left', room.rows, 1], ['right', room.cols, 0.88]] as const) {
+      const g = side === 'left' ? ctx.createLinearGradient(0, 0, reach, 0) : ctx.createLinearGradient(0, 0, 0, reach);
+      for (const [f, a] of stops) g.addColorStop(f, `rgba(52,28,16,${a * darker})`);
+      ctx.fillStyle = g;
+      if (side === 'left') ctx.fillRect(0, 0, reach, len);
+      else ctx.fillRect(0, 0, len, reach);
+    }
+    if (manha) {
+      // Inner corner: both walls occlude, so the floor at the corner goes a step darker.
+      const c = ctx.createRadialGradient(0, 0, 0, 0, 0, 1.6);
+      c.addColorStop(0, 'rgba(52,28,16,0.3)');
+      c.addColorStop(1, 'rgba(52,28,16,0)');
+      ctx.fillStyle = c;
+      ctx.fillRect(0, 0, 1.6, 1.6);
+    }
   });
 }
 
@@ -1539,7 +1556,7 @@ export function drawRoomStatic(ctx: Ctx, room: RoomDef) {
     onWall(ctx, side, 0, len, (L) => {
       const ao = ctx.createLinearGradient(0, -34, 0, 0);
       ao.addColorStop(0, 'rgba(58,34,22,0)');
-      ao.addColorStop(1, `rgba(58,34,22,${room.lighting === 'manha' ? 0.32 : 0.2})`);
+      ao.addColorStop(1, `rgba(58,34,22,${room.lighting === 'manha' ? 0.42 : 0.2})`);
       ctx.fillStyle = ao;
       ctx.fillRect(0, -34, L, 34);
       rrect(ctx, 0, -7, L, 7, 0, shade(room.wallTrim, -0.1));
@@ -1714,9 +1731,8 @@ export function drawWorldLight(ctx: Ctx, room: RoomDef, t: number) {
       ctx.fill();
     }
   }
-  // Glass-cool speculars on the case fronts (vitrine + SALGADOS estufa): a cool sheen that is
-  // brightest at the top of each pane, two hard diagonal streaks, a lit vertical corner, and a
-  // slow glint that sweeps across now and then — reads as glass even over the warm lamp inside.
+  // Live glass on the case fronts (vitrine + SALGADOS estufa): the hard streaks and steel frame are
+  // baked into the sprite; here a light top sheen, a lit corner and a slow glint sweeping across.
   for (const p of room.props) {
     if (p.kind !== 'vitrine' && p.kind !== 'estufa') continue;
     const lift = 22;
@@ -1727,21 +1743,14 @@ export function drawWorldLight(ctx: Ctx, room: RoomDef, t: number) {
     const pane = (a: { sx: number; sy: number }, b: { sx: number; sy: number }, strength: number, phase: number) => {
       const at = (f: number, k: number): [number, number] => [a.sx + (b.sx - a.sx) * f, a.sy + (b.sy - a.sy) * f - lift - gh * k];
       const sheen = ctx.createLinearGradient(0, a.sy - lift - gh, 0, a.sy - lift);
-      sheen.addColorStop(0, `rgba(197,213,222,${0.42 * strength})`);
-      sheen.addColorStop(0.45, `rgba(197,213,222,${0.1 * strength})`);
+      sheen.addColorStop(0, `rgba(197,213,222,${0.24 * strength})`);
+      sheen.addColorStop(0.35, `rgba(197,213,222,${0.04 * strength})`);
       sheen.addColorStop(1, 'rgba(197,213,222,0)');
       ctx.fillStyle = sheen;
       ctx.beginPath();
       [at(0, 0), at(1, 0), at(1, 1), at(0, 1)].forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
       ctx.closePath();
       ctx.fill();
-      for (const [f0, w, al] of [[0.1, 0.16, 0.7], [0.34, 0.05, 0.6], [0.62, 0.09, 0.35]] as const) {
-        ctx.fillStyle = `rgba(232,244,252,${al * strength})`;
-        ctx.beginPath();
-        [at(f0, 0.08), at(f0 + w, 0.08), at(Math.min(1, f0 + w + 0.26), 0.94), at(Math.min(1, f0 + 0.26), 0.94)].forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
-        ctx.closePath();
-        ctx.fill();
-      }
       // Glint sweeping across the pane every ~7s.
       const sweep = ((t + phase) % 7) / 1.4;
       if (sweep < 1) {
