@@ -28,9 +28,15 @@ export type PropKind =
   | 'mesa_cafe'
   | 'jornais'
   | 'saco_lixo'
-  | 'floreira';
+  | 'floreira'
+  | 'tatame'
+  | 'parede_faixas'
+  | 'quadro_fila'
+  | 'banco_espectador'
+  | 'vestiario'
+  | 'quadro_foto';
 
-export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog';
+export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll';
 
 export interface PropDef {
   id: string;
@@ -88,7 +94,7 @@ export interface NpcDef {
   idleLines: Bilingual[];
 }
 
-export type FloorKind = 'calcada' | 'grama' | 'tijolo' | 'xadrez' | 'ladrilho' | 'madeira' | 'asfalto';
+export type FloorKind = 'calcada' | 'grama' | 'tijolo' | 'xadrez' | 'ladrilho' | 'madeira' | 'asfalto' | 'tatame';
 
 export interface RoomDef {
   id: RoomId;
@@ -119,6 +125,7 @@ export const FLOOR_CHARS: Record<string, FloorKind> = {
   l: 'ladrilho',
   m: 'madeira',
   a: 'asfalto',
+  j: 'tatame',
 };
 
 const praca: RoomDef = {
@@ -234,6 +241,16 @@ const praca: RoomDef = {
       arrive: { x: 1, y: 5 },
       arriveDir: 'SE',
       label: { pt: 'Edifício Ipê — Minha kitnet', en: 'Ipê Building — my studio apartment' },
+    },
+    {
+      id: 'praca_academia',
+      x: 10,
+      y: 0,
+      wall: 'right',
+      to: 'academia',
+      arrive: { x: 1, y: 6 },
+      arriveDir: 'SE',
+      label: { pt: 'Academia Gracie da Praça', en: 'Gracie da Praça Academy' },
     },
   ],
   npcs: [
@@ -393,7 +410,69 @@ const kitnet: RoomDef = {
   private: true,
 };
 
-export const ROOMS: Record<RoomId, RoomDef> = { praca, padaria, kitnet };
+const academia: RoomDef = {
+  id: 'academia',
+  name: 'Academia Gracie da Praça',
+  gloss: 'Gracie da Praça Academy',
+  cols: 11,
+  rows: 9,
+  floor: [
+    'jjjjjjjjjjj',
+    'jjjjjjjjjjj',
+    'jjjjjjjjjjj',
+    'jjjjjjjjjjj',
+    'jjjjjjjjjjj',
+    'jjjjjjjjjjj',
+    'mmmmmmmmmmm',
+    'mmmmmmmmmmm',
+    'mmmmmmmmmmm',
+  ],
+  wallHeight: 148,
+  wallColor: '#F5E6D3',
+  wallTrim: '#8B5E3C',
+  lighting: 'manha',
+  spawn: { x: 1, y: 7 },
+  props: [
+    { id: 'tatame', kind: 'tatame', x: 2, y: 1, w: 6, h: 4, blocks: false, label: { pt: 'Tatame aberto', en: 'Open mat' } },
+    {
+      id: 'fila',
+      kind: 'quadro_fila',
+      x: 9,
+      y: 1,
+      blocks: true,
+      action: 'bjj_roll',
+      interact: { x: 9, y: 2 },
+      label: { pt: 'Fila do tatame', en: 'Open-mat queue' },
+    },
+    { id: 'faixas', kind: 'parede_faixas', x: 0, y: 1, blocks: true, label: { pt: 'Parede de faixas', en: 'Belt wall' } },
+    { id: 'quadro', kind: 'quadro_foto', x: 10, y: 4, blocks: true, label: { pt: 'Gracie da Praça', en: 'Academy photo' } },
+    { id: 'banco_esp', kind: 'banco_espectador', x: 9, y: 6, blocks: false, seat: 'SW', label: { pt: 'Banco dos espectadores', en: 'Spectator bench' } },
+    { id: 'banco_esp_2', kind: 'banco_espectador', x: 7, y: 7, blocks: false, seat: 'SE', label: { pt: 'Banco', en: 'Bench' } },
+    { id: 'vestiario', kind: 'vestiario', x: 0, y: 7, blocks: true, label: { pt: 'Vestiário · alongamento', en: 'Changing / stretch corner' } },
+  ],
+  walls: [
+    { kind: 'placa', wall: 'right', from: 0, to: 4, text: 'ACADEMIA GRACIE DA PRAÇA' },
+    { kind: 'janela', wall: 'left', from: 2, to: 5 },
+    { kind: 'poster', wall: 'left', from: 6, to: 8, text: 'OSS · RESPEITO' },
+    { kind: 'mural', wall: 'right', from: 5, to: 9, text: 'TREINO · COMUNIDADE' },
+  ],
+  portals: [
+    {
+      id: 'academia_praca',
+      x: 0,
+      y: 6,
+      wall: 'left',
+      to: 'praca',
+      arrive: { x: 10, y: 1 },
+      arriveDir: 'SW',
+      label: { pt: 'SAÍDA · Praça', en: 'Exit to the square' },
+    },
+  ],
+  npcs: [],
+  private: false,
+};
+
+export const ROOMS: Record<RoomId, RoomDef> = { praca, padaria, kitnet, academia };
 export const ROOM_IDS = Object.keys(ROOMS) as RoomId[];
 
 export const isRoomId = (v: unknown): v is RoomId => typeof v === 'string' && v in ROOMS;

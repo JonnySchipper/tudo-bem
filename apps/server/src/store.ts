@@ -1,4 +1,4 @@
-import { freshMission, type PrivateProfile } from '@tudobem/shared';
+import { freshMission, normalizeBjj, type PrivateProfile } from '@tudobem/shared';
 
 export interface StoredProfile extends PrivateProfile {
   token: string;
@@ -113,5 +113,5 @@ export class ProfileStore {
 export function toPrivate(p: StoredProfile): PrivateProfile {
   const { token: _t, ageGate18: _a, daily: _d, lastSeen: _l, ...rest } = p;
   const mission = p.mission?.date === today() ? p.mission : freshMission(today());
-  return structuredClone({ ...rest, mission });
+  return structuredClone({ ...rest, mission, bjj: normalizeBjj(p.bjj) });
 }

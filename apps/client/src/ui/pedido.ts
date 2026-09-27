@@ -3,10 +3,11 @@
  * A+ overhaul: ticket/receipt chrome, visual order journey, soft score feedback.
  * Distinct from Conversa mesa and Me vê um… tray game.
  */
-import type { Bilingual, SceneView } from '@tudobem/shared';
-import { ROOMS, SCORE_FEEDBACK } from '@tudobem/shared';
+import type { Bilingual, ConversaSafetyNotice, SceneView } from '@tudobem/shared';
+import { ROOMS, SCORE_FEEDBACK, gateConversaPlayerLine } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi, ui } from './dom';
+import { toast } from './hud';
 import { renderAvatarPreview } from '../render/avatar';
 import { speak } from '../audio';
 import { ticketLinesFromSaid, type TicketLine } from './pedido-ticket';
@@ -29,6 +30,14 @@ let playCallback: (() => void) | null = null;
 let onChoose: ((i: number) => void) | null = null;
 let onType: ((text: string) => void) | null = null;
 let onKey: ((e: KeyboardEvent) => void) | null = null;
+/** One safety toast per send; server notice is a backstop when the client has not already shown it. */
+let safetyToastShown = false;
+
+function showSafetyToast(notice: ConversaSafetyNotice | null | undefined) {
+  if (!notice || safetyToastShown) return;
+  safetyToastShown = true;
+  toast(notice.level, notice.pt, notice.en);
+}
 
 function portrait() {
   const carlos = ROOMS.padaria.npcs.find((n) => n.id === 'carlos')!;
@@ -206,11 +215,24 @@ function handleSend(input: HTMLInputElement) {
   if (!state || state.view.end || !onType) return;
   const text = input.value.trim();
   if (!text) return;
+
+  safetyToastShown = false;
+  const gate = gateConversaPlayerLine(text);
+  if (!gate.deliver) {
+    showSafetyToast(gate.notice);
+    return;
+  }
+  showSafetyToast(gate.notice);
   input.value = '';
 
-  state.ticket = [...state.ticket, ...ticketLinesFromSaid({ pt: text, en: '' })];
+  if (gate.action !== 'warn') {
+    state.ticket = [...state.ticket, ...ticketLinesFromSaid({ pt: gate.text, en: '' })];
+  } else {
+    state.said = { pt: gate.text, en: '' };
+  }
 
-  onType(text);
+  onType(gate.text);
+  if (gate.action === 'warn') render();
 }
 
 function handleClose() {
@@ -246,15 +268,27 @@ export function isPedidoOpen(): boolean {
 
 export function updatePedido(
   view: SceneView,
-  extra: { said?: Bilingual; feedback?: Bilingual; score?: number; payout?: number; dailyBlocked?: boolean }
+  extra: {
+    said?: Bilingual;
+    feedback?: Bilingual;
+    score?: number;
+    payout?: number;
+    dailyBlocked?: boolean;
+    fillTicket?: boolean;
+    notice?: ConversaSafetyNotice;
+  }
 ) {
   if (!state) return;
 
+  showSafetyToast(extra.notice);
+
   if (extra.said) {
-    state.ticket = [
-      ...state.ticket.filter((l) => !ticketLinesFromSaid(extra.said).some((nl) => nl.kind === l.kind)),
-      ...ticketLinesFromSaid(extra.said),
-    ];
+    if (extra.fillTicket !== false) {
+      state.ticket = [
+        ...state.ticket.filter((l) => !ticketLinesFromSaid(extra.said).some((nl) => nl.kind === l.kind)),
+        ...ticketLinesFromSaid(extra.said),
+      ];
+    }
   }
 
   state.view = view;

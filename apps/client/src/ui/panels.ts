@@ -378,6 +378,7 @@ export function openMap(go: (room: RoomId) => void) {
         { class: 'map-grid' },
         card('praca', 'Praça Central', 'Central Square — hang out, hats, parrot', 'linear-gradient(135deg,#e5572f,#f2c230)'),
         card('padaria', 'Padaria do Seu Carlos', 'Bakery — breakfast + “Me vê um…”', 'linear-gradient(135deg,#b5452e,#e8a94f)'),
+        card('academia', 'Academia Gracie da Praça', 'Word-game roll — academy Portuguese (not real MA training)', 'linear-gradient(135deg,#2f5f7a,#8ab4c8)'),
         card('kitnet', 'Minha kitnet', 'My studio apartment — decorate', 'linear-gradient(135deg,#F5E6D3 45%,#A8C5D4)', false, true),
         card(null, 'Feira', 'Street market (Phase 1)', '', true),
         card(null, 'Estação de Metrô', 'Subway (Phase 1)', '', true),
