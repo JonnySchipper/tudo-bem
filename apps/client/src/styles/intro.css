@@ -572,6 +572,88 @@ body.intro-active #world {
   opacity: 1;
 }
 
+/* ---------- enter gate (one deliberate tap → music + flock + title beat) ---------- */
+
+.intro-phase-enter .intro-shell {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.intro-phase-enter .intro-skip,
+.intro-phase-enter .intro-music {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.intro-enter-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: calc(20px + var(--safe-bottom)) calc(20px + var(--safe-left)) calc(28px + var(--safe-bottom)) calc(20px + var(--safe-right));
+  pointer-events: none;
+}
+
+.intro-enter-hint {
+  margin: 0;
+  max-width: 28ch;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.92rem;
+  line-height: 1.35;
+  color: rgba(58, 34, 22, 0.88);
+  text-shadow: 0 1px 0 rgba(255, 246, 228, 0.9);
+  pointer-events: none;
+}
+
+.intro-enter-hint .en {
+  display: block;
+  font-weight: 600;
+  font-style: italic;
+  font-size: 0.82rem;
+  color: rgba(58, 34, 22, 0.72);
+  margin-top: 2px;
+}
+
+.intro-enter {
+  pointer-events: auto;
+  min-width: min(100%, 280px);
+  min-height: 52px;
+  padding: 0.65em 1.6em;
+  font-family: var(--font-title);
+  font-weight: 800;
+  font-size: 1.15rem;
+  border-radius: 999px;
+  border: 2px solid rgba(44, 44, 44, 0.85);
+  box-shadow:
+    0 3px 0 rgba(44, 44, 44, 0.55),
+    0 14px 32px -8px rgba(58, 34, 22, 0.45);
+}
+
+.intro-enter .en {
+  display: block;
+  font-size: 0.72em;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.intro-enter:focus-visible {
+  outline: 3px solid var(--mustard);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-phase-enter .intro-rays,
+  .intro-mark,
+  .intro-mark-sun {
+    animation: none !important;
+  }
+}
+
 /* ---------- skip ---------- */
 
 .intro-skip {

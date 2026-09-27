@@ -90,6 +90,8 @@ async function restartServer() {
 
 async function signUp(page, name) {
   await page.goto(BASE);
+  await page.waitForSelector('#intro-enter', { timeout: 12_000 });
+  await page.click('#intro-enter');
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
   await page.click('#intro-skip');
   await page.waitForSelector('#intro-guest', { timeout: 12_000 });
