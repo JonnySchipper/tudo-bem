@@ -11,8 +11,9 @@ import { CLOTH_COLORS, HAIR_COLORS, SHOE_COLORS, SKIN_TONES, hatById, type Appea
 import { rrect, shadow, type Ctx } from './draw';
 import { drawArm, drawHeld, drawLeg, drawNeck, drawPelvis, drawSignature, drawTorso, drawTote, type Look } from './avatar/body';
 import { mix, rgba, RIM, tone, type Light } from './avatar/color';
-import { clipHead, drawFace, drawHairBehind, drawHairFront, drawHead, HAIR_TOP, hatFit, viewOf } from './avatar/head';
-import { brimShade, drawHat as drawHatShape, drawHatIconArt, HAT_W, hatHeight } from './avatar/hats';
+import { hatSeat } from './avatar/fit';
+import { clipHead, drawFace, drawHairBehind, drawHairFront, drawHead, HAIR_TOP, viewOf } from './avatar/head';
+import { brimShade, drawHat as drawHatShape, drawHatIconArt, hatHeight } from './avatar/hats';
 import { buildRig, HEAD, HEAD_S, sitDrop, Y, type Rig, type RigState } from './avatar/rig';
 import { glow, smoothClosed, type P } from './avatar/shape';
 
@@ -114,11 +115,6 @@ function lookFor(a: Appearance, fs: FrameState): Look {
 
 // ---------------------------------------------------------------- layered painter
 
-function hatPlacement(a: Appearance) {
-  const fit = hatFit(a.hair);
-  return { band: fit.band, s: Math.max(0.94, Math.min(1.3, fit.w / HAT_W)) };
-}
-
 function inHead(ctx: Ctx, r: Rig, fn: () => void) {
   ctx.save();
   ctx.translate(r.head.x, r.head.y);
@@ -188,7 +184,7 @@ function paintBody(ctx: Ctx, r: Rig, k: Look, fs: FrameState) {
 
 /** The hat's own shade on the forehead/eyes. */
 function brimShadow(ctx: Ctx, k: Look, hat: HatDef, r: Rig) {
-  const hp = hatPlacement(k.a);
+  const hp = hatSeat(k.a.hair, hat.shape);
   const depth = brimShade(hat.shape);
   ctx.save();
   clipHead(ctx, k.a.face, viewOf(r));
@@ -203,7 +199,7 @@ function brimShadow(ctx: Ctx, k: Look, hat: HatDef, r: Rig) {
 
 function paintHat(ctx: Ctx, r: Rig, k: Look, fs: FrameState) {
   if (!fs.hat) return;
-  const hp = hatPlacement(k.a);
+  const hp = hatSeat(k.a.hair, fs.hat.shape);
   inHead(ctx, r, () => {
     ctx.translate(0.15, hp.band);
     ctx.scale(hp.s, hp.s);
@@ -441,7 +437,7 @@ export function avatarTop(a: Appearance, hatId: string | null, sitting: boolean,
   let top = Y.head - HEAD.top - (HAIR_TOP[a.hair] ?? 1) * HEAD_S;
   const hat = hatById(hatId);
   if (hat) {
-    const hp = hatPlacement(a);
+    const hp = hatSeat(a.hair, hat.shape);
     top = Math.min(top, Y.head + (hp.band - hatHeight(hat.shape) * hp.s - (hat.shape === 'gorro' ? 3 : 0)) * HEAD_S);
   }
   return top + (sitting ? sitDrop(seatH) : 0);

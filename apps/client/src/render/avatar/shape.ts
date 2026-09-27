@@ -22,6 +22,27 @@ export function smoothClosed(ctx: Ctx, pts: P[], k = 1) {
   ctx.closePath();
 }
 
+/** Points along the same curve `smoothClosed` draws (for fit checks without a canvas). */
+export function smoothClosedSamples(pts: P[], k = 1, steps = 16): P[] {
+  const n = pts.length;
+  const out: P[] = [];
+  for (let i = 0; i < n; i++) {
+    const p0 = pts[(i - 1 + n) % n];
+    const p1 = pts[i];
+    const p2 = pts[(i + 1) % n];
+    const p3 = pts[(i + 2) % n];
+    const c1: P = [p1[0] + ((p2[0] - p0[0]) / 6) * k, p1[1] + ((p2[1] - p0[1]) / 6) * k];
+    const c2: P = [p2[0] - ((p3[0] - p1[0]) / 6) * k, p2[1] - ((p3[1] - p1[1]) / 6) * k];
+    for (let s = 0; s < steps; s++) {
+      const t = s / steps;
+      const u = 1 - t;
+      const b = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t];
+      out.push([b[0] * p1[0] + b[1] * c1[0] + b[2] * c2[0] + b[3] * p2[0], b[0] * p1[1] + b[1] * c1[1] + b[2] * c2[1] + b[3] * p2[1]]);
+    }
+  }
+  return out;
+}
+
 /** Open Catmull-Rom spline (continues the current subpath unless `move`). */
 export function smoothOpen(ctx: Ctx, pts: P[], move = true, k = 1) {
   const n = pts.length;

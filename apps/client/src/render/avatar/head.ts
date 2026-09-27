@@ -14,6 +14,9 @@ const W = 6.3;
 const T = 7.4;
 const B = 7.2;
 
+/** Eye line in head-local space. */
+export const EYE_Y = 0.4;
+
 export type View = 'q' | 'b' | 'f';
 export const viewOf = (r: Rig): View => (!r.front ? 'b' : r.turn < 0.5 ? 'f' : 'q');
 
@@ -179,7 +182,7 @@ function features(ctx: Ctx, r: Rig, k: Look, f: FaceSpec, v: View) {
       ];
   const gaze = q ? 0.12 : 0;
   const mouthX = q ? 0 : -1.55;
-  const eyeY = 0.4;
+  const eyeY = EYE_Y;
   const happy = r.eyes === 'happy';
   const closed = r.eyes === 'closed';
 

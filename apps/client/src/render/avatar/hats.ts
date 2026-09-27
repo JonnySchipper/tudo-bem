@@ -1,13 +1,179 @@
 import type { HatDef } from '@tudobem/shared';
 import type { Ctx } from '../draw';
 import { mix, rgba, tone, type Tone } from './color';
-import { glow, line, paint, ptsBox, rnd, roundPoly, smoothClosed, type P, type PaintOpts } from './shape';
+import { glow, line, paint, ptsBox, rnd, roundPoly, smoothClosed, smoothClosedSamples, type P, type PaintOpts } from './shape';
 
 /**
  * Hats are the silhouette heroes. Hat space: origin = band center on the head, +x = facing side,
  * designed for a band half-width of 7.2 (scaled to the hair volume by the caller).
  */
 export const HAT_W = 7.2;
+
+interface Ring {
+  rx: number;
+  ry: number;
+  cy: number;
+  droop: number;
+  wave: number;
+}
+
+// Wide brims are worn tipped back: flat enough that the front edge clears the eyes at Praça distance
+// while the sides stay down on the band, so the hat still sits on the skull instead of hovering.
+const STRAW: Ring = { rx: 14.8, ry: 3.4, cy: -1.1, droop: 0.3, wave: 0.18 };
+const SUN: Ring = { rx: 16.4, ry: 3.3, cy: -1.2, droop: 0.5, wave: 0.5 };
+const SUN_WOB = 0.25;
+const PANAMA: Ring = { rx: 11.8, ry: 2.9, cy: -0.6, droop: 0.6, wave: 0.05 };
+const FLOWER_RING = { rx: 7.6, ry: 2.3, cy: -1.7 };
+
+const CAP_FRONT: P[] = [
+  [-6.6, -0.8],
+  [6.8, -0.8],
+  [7.8, 1],
+  [4.4, 2.3],
+  [0.2, 2.6],
+  [-4, 2.3],
+  [-7.4, 1],
+];
+const CAP_SIDE: P[] = [
+  [2.4, -0.9],
+  [6.8, -1.1],
+  [10.2, 0.2],
+  [12.4, 2.2],
+  [10.6, 3.2],
+  [6.4, 2.4],
+  [2.6, 1.2],
+];
+const BEANIE_CUFF: P[] = [
+  [-8, -2.4],
+  [0.4, -1.4],
+  [8, -2.6],
+  [8.2, 1],
+  [0.4, 2.4],
+  [-8.2, 1.2],
+];
+const BERET: P[] = [
+  [-10, -3],
+  [-8.6, -6.6],
+  [-3, -8.6],
+  [3.8, -8.2],
+  [8.6, -5.4],
+  [8.8, -2],
+  [5, 0],
+  [-2, 0.4],
+  [-8.2, -0.8],
+];
+const BERET_TILT = -0.14;
+const BUCKET_BRIM: P[] = [
+  [-7.4, -1.2],
+  [0.4, -0.4],
+  [7.4, -1.4],
+  [10.8, 1.6],
+  [6, 2.9],
+  [0.4, 3.1],
+  [-5.4, 2.7],
+  [-10.4, 1.2],
+];
+const BUCKET_TOP: P[] = [
+  [-7.4, -1.2],
+  [0.4, -0.4],
+  [7.4, -1.4],
+  [10.6, 1.1],
+  [6, 2],
+  [0.4, 2.3],
+  [-5.4, 1.9],
+  [-10.2, 0.8],
+];
+const HELMET_SHELL: P[] = [
+  [-8.4, 1.4],
+  [-8.6, -3.8],
+  [-5, -8.4],
+  [0.6, -9.2],
+  [5.8, -7.4],
+  [8.8, -3],
+  [9.8, 0.4],
+  [7.2, 1.6],
+  [0.4, 1],
+];
+const CHEF_SQUASH = 0.68;
+const CHEF_BAND: P[] = [
+  [-7.6, -3.2],
+  [0.4, -2.4],
+  [7.8, -3.4],
+  [7.8, 0.6],
+  [0.4, 1.6],
+  [-7.6, 0.6],
+];
+const TOPHAT_BRIM: P[] = [
+  [-10.6, -2],
+  [-8.4, -1.2],
+  [0.4, -0.2],
+  [9.4, -1.4],
+  [11.2, -2.6],
+  [10.6, 0.4],
+  [6, 2.3],
+  [0.4, 2.7],
+  [-5.6, 2.1],
+  [-10, 0.4],
+];
+
+/** Hat-space x span of the eyes (three-quarter and straight-on views). */
+const FACE_X: [number, number] = [-3.8, 4.8];
+
+function lowestOverFace(pts: P[]): number {
+  let y = -Infinity;
+  for (const [x, py] of pts) if (x >= FACE_X[0] && x <= FACE_X[1]) y = Math.max(y, py);
+  return y;
+}
+
+function polySamples(pts: P[], steps = 16): P[] {
+  return pts.flatMap((p, i) => {
+    const q = pts[(i + 1) % pts.length];
+    return Array.from({ length: steps }, (_, s): P => [p[0] + ((q[0] - p[0]) * s) / steps, p[1] + ((q[1] - p[1]) * s) / steps]);
+  });
+}
+
+const flowerSize = (i: number, back: boolean) => (back ? 1.25 : 1.45 + (i % 3) * 0.2);
+const flowerAt = (a: number): P => [Math.cos(a) * FLOWER_RING.rx + 0.4, FLOWER_RING.cy + Math.sin(a) * FLOWER_RING.ry];
+const FRONT_FLOWERS = Array.from({ length: 7 }, (_, i) => ({ a: 0.15 + (i / 6) * (Math.PI - 0.3), i: i + 3 }));
+
+/**
+ * Lowest point of the hat's front edge across the eyes, in hat space. Placement uses it to keep the
+ * eyes readable under any brim (TB Art: hats sit on the skull, never swallow the face).
+ */
+export function faceReach(shape: HatDef['shape']): number {
+  switch (shape) {
+    case 'palha':
+      return lowestOverFace(smoothClosedSamples(brimPts(STRAW.rx, STRAW.ry, STRAW.cy, STRAW.droop, STRAW.wave), 0.9));
+    case 'sol':
+      return lowestOverFace(smoothClosedSamples(brimPts(SUN.rx, SUN.ry, SUN.cy + SUN_WOB * 0.3, SUN.droop + SUN_WOB, SUN.wave, 36), 0.9));
+    case 'panama':
+      return lowestOverFace(smoothClosedSamples(brimPts(PANAMA.rx, PANAMA.ry, PANAMA.cy, PANAMA.droop, PANAMA.wave), 0.9));
+    case 'bone':
+    case 'viseira':
+      return Math.max(lowestOverFace(smoothClosedSamples(CAP_FRONT, 0.8)), lowestOverFace(smoothClosedSamples(CAP_SIDE, 0.8)));
+    case 'gorro':
+      return lowestOverFace(polySamples(BEANIE_CUFF));
+    case 'boina': {
+      const c = Math.cos(BERET_TILT);
+      const s = Math.sin(BERET_TILT);
+      return lowestOverFace(smoothClosedSamples(BERET).map(([x, y]): P => [x * c - y * s, x * s + y * c]));
+    }
+    case 'bucket':
+      return lowestOverFace(smoothClosedSamples(BUCKET_BRIM, 0.7));
+    case 'capacete':
+      return lowestOverFace(smoothClosedSamples(HELMET_SHELL, 0.8));
+    case 'flores':
+      // Petals reach ≈1.45× the flower size below its center
+      return lowestOverFace(FRONT_FLOWERS.map(({ a, i }): P => {
+        const [x, y] = flowerAt(a);
+        return [x, y + flowerSize(i, false) * 1.45];
+      }));
+    case 'chef':
+      return lowestOverFace(polySamples(CHEF_BAND)) * CHEF_SQUASH;
+    case 'cartola':
+      return lowestOverFace(smoothClosedSamples(TOPHAT_BRIM, 0.7));
+  }
+}
 
 export interface HatCtx {
   L: number;
@@ -118,34 +284,18 @@ export function drawHat(ctx: Ctx, hat: HatDef, h: HatCtx) {
 
 function capBrim(ctx: Ctx, h: HatCtx, c: Tone, f: number) {
   if ((h.turn ?? 1) < 0.5) {
-    // Brim pointing at the camera
-    const fp: P[] = [
-      [-6.6, -0.8],
-      [6.8, -0.8],
-      [7.8, 1.2],
-      [4.4, 3.4],
-      [0.2, 3.9],
-      [-4, 3.4],
-      [-7.4, 1.2],
-    ];
+    // Brim pointing at the camera, foreshortened so the eyes stay in view
+    const fp = CAP_FRONT;
     paint(ctx, () => smoothClosed(ctx, fp, 0.8), c, ptsBox(fp), o(h, { top: 0.22 }));
-    line(ctx, [[-6.6, 1.8], [0.2, 3.3], [6.8, 1.8]], rgba(c.deep, 0.8), 0.6);
+    line(ctx, [[-6.6, 1.3], [0.2, 2.2], [6.8, 1.3]], rgba(c.deep, 0.8), 0.6);
     ctx.setLineDash([0.6, 0.6]);
-    line(ctx, [[-5.6, 0.6], [0.2, 2.2], [5.8, 0.6]], rgba(c.hi, 0.7), 0.3);
+    line(ctx, [[-5.6, 0.3], [0.2, 1.3], [5.8, 0.3]], rgba(c.hi, 0.7), 0.3);
     ctx.setLineDash([]);
     return;
   }
   const pts: P[] =
     f > 0
-      ? [
-          [2.4, -0.9],
-          [6.8, -1.1],
-          [10.2, 0.2],
-          [12.4, 2.2],
-          [10.6, 3.2],
-          [6.4, 2.4],
-          [2.6, 1.2],
-        ]
+      ? CAP_SIDE
       : [
           [2.6, -1.2],
           [6.8, -2.4],
@@ -217,9 +367,9 @@ function cap(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone, f: number) {
 
 function straw(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
   // Worn tipped back so the brim frames the face instead of hiding the eyes
-  const brim = brimPts(14.8, 3.4, -1.1, 0.3, 0.18);
+  const brim = brimPts(STRAW.rx, STRAW.ry, STRAW.cy, STRAW.droop, STRAW.wave);
   paint(ctx, () => smoothClosed(ctx, brim, 0.9), c, ptsBox(brim), o(h, { top: 0.2 }));
-  weave(ctx, brim, c, 14.8, 3.4, -1.1);
+  weave(ctx, brim, c, STRAW.rx, STRAW.ry, STRAW.cy);
   // Underside lip at the front edge
   line(ctx, brim.slice(2, 13).map(([x, y]) => [x, y + 0.2] as P), rgba(c.deep, 0.75), 0.7);
   const crown = crownPts(6.7, -7.4, 0.86, 1.2);
@@ -291,14 +441,7 @@ function beanie(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
   }
   ctx.restore();
   // Folded cuff (ribbed)
-  const cuff: P[] = [
-    [-8, -2.4],
-    [0.4, -1.4],
-    [8, -2.6],
-    [8.2, 1],
-    [0.4, 2.4],
-    [-8.2, 1.2],
-  ];
+  const cuff = BEANIE_CUFF;
   paint(ctx, () => roundPoly(ctx, cuff, 1.2), c, ptsBox(cuff), o(h, { top: 0.1, fall: 0.25 }));
   for (let i = -7; i <= 7; i++) line(ctx, [[i * 1.05, -2 + Math.abs(i) * 0.02 + (i > 0 ? -0.1 : 0)], [i * 1.08, 1.6 - Math.abs(i) * 0.08]], rgba(c.lo, 0.55), 0.3, false);
   // Pompom
@@ -337,18 +480,8 @@ function visor(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone, f: number) {
 
 function beret(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
   ctx.save();
-  ctx.rotate(-0.14);
-  const pts: P[] = [
-    [-10, -3],
-    [-8.6, -6.6],
-    [-3, -8.6],
-    [3.8, -8.2],
-    [8.6, -5.4],
-    [8.8, -2],
-    [5, 0],
-    [-2, 0.4],
-    [-8.2, -0.8],
-  ];
+  ctx.rotate(BERET_TILT);
+  const pts = BERET;
   paint(ctx, () => smoothClosed(ctx, pts, 1), c, ptsBox(pts), o(h, { top: 0.18, fall: 0.2 }));
   ctx.save();
   ctx.beginPath();
@@ -365,10 +498,10 @@ function beret(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
 }
 
 function sunHat(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
-  const wob = Math.sin(h.t * 2) * 0.4;
-  const brim = brimPts(16.4, 3.9, -0.9 + wob * 0.3, 0.8 + wob, 0.55, 36);
+  const wob = Math.sin(h.t * 2) * SUN_WOB;
+  const brim = brimPts(SUN.rx, SUN.ry, SUN.cy + wob * 0.3, SUN.droop + wob, SUN.wave, 36);
   paint(ctx, () => smoothClosed(ctx, brim, 0.9), c, ptsBox(brim), o(h, { top: 0.2 }));
-  weave(ctx, brim, c, 16.4, 3.9, -0.9);
+  weave(ctx, brim, c, SUN.rx, SUN.ry, SUN.cy);
   line(ctx, brim.slice(3, 16).map(([x, y]) => [x, y + 0.3] as P), rgba(c.deep, 0.7), 0.7);
   const crown = crownPts(6.8, -6.6, 0.9, -0.6);
   paint(ctx, () => smoothClosed(ctx, crown, 0.9), c, ptsBox(crown), o(h, { fall: 0.2, top: 0.12 }));
@@ -394,30 +527,22 @@ function sunHat(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
 }
 
 function bucket(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
-  const brim: P[] = [
-    [-7.4, -1.2],
-    [0.4, -0.4],
-    [7.4, -1.4],
-    [11.2, 2.8],
-    [6, 5.2],
-    [0.4, 5.6],
-    [-5.4, 5],
-    [-10.6, 2.4],
-  ];
+  // A short, stiff brim so the eyes stay visible under it (a deep droop reads as a faceless sticker)
+  const brim = BUCKET_BRIM;
   paint(ctx, () => smoothClosed(ctx, brim, 0.7), tone(c.lo), ptsBox(brim), o(h, { top: 0.1 }));
-  const brimTop: P[] = [
-    [-7.4, -1.2],
-    [0.4, -0.4],
-    [7.4, -1.4],
-    [11, 2.2],
-    [6, 3.6],
-    [0.4, 4],
-    [-5.4, 3.4],
-    [-10.4, 1.8],
-  ];
+  const brimTop = BUCKET_TOP;
   paint(ctx, () => smoothClosed(ctx, brimTop, 0.7), c, ptsBox(brimTop), o(h, { top: 0.16, lw: 0 }));
+  // Stitch rings between the crown base and the brim edge
+  const edge: P[] = [brimTop[7], brimTop[6], brimTop[5], brimTop[4], brimTop[3]];
+  const base: P[] = [
+    [-7.2, -0.5],
+    [-5, 0.2],
+    [0.4, 0.5],
+    [5.6, 0],
+    [7.4, -0.7],
+  ];
   ctx.setLineDash([0.7, 0.6]);
-  for (const k of [0.45, 0.75]) line(ctx, [[-10.4 + 3 * k, 1.8 - 0.6 * k], [-5.4 + 1.2 * k, 3.4 - 2.6 * k + 1.4], [0.4, 4 - 3.2 * k + 1.2], [6 - 1 * k, 3.6 - 2.8 * k + 1.2], [11 - 3.2 * k, 2.2 - 0.6 * k]], rgba(c.deep, 0.6), 0.3);
+  for (const k of [0.5, 0.8]) line(ctx, edge.map(([x, y], i): P => [base[i][0] + (x - base[i][0]) * k, base[i][1] + (y - base[i][1]) * k]), rgba(c.deep, 0.6), 0.3);
   ctx.setLineDash([]);
   const crown: P[] = [
     [-7.2, -0.4],
@@ -438,17 +563,7 @@ function bucket(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
 }
 
 function helmet(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone, f: number) {
-  const shell: P[] = [
-    [-8.4, 1.4],
-    [-8.6, -3.8],
-    [-5, -8.4],
-    [0.6, -9.2],
-    [5.8, -7.4],
-    [8.8, -3],
-    [9.8, 0.4],
-    [7.2, 1.6],
-    [0.4, 1],
-  ];
+  const shell = HELMET_SHELL;
   paint(ctx, () => smoothClosed(ctx, shell, 0.8), c, ptsBox(shell), o(h, { top: 0.28, fall: 0.18 }));
   ctx.save();
   ctx.beginPath();
@@ -485,9 +600,9 @@ function helmet(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone, f: number) {
 }
 
 function panama(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
-  const brim = brimPts(11.8, 3.2, -0.4, 0.9, 0.05);
+  const brim = brimPts(PANAMA.rx, PANAMA.ry, PANAMA.cy, PANAMA.droop, PANAMA.wave);
   paint(ctx, () => smoothClosed(ctx, brim, 0.9), c, ptsBox(brim), o(h, { top: 0.22 }));
-  weave(ctx, brim, c, 11.8, 3.2, -0.4);
+  weave(ctx, brim, c, PANAMA.rx, PANAMA.ry, PANAMA.cy);
   line(ctx, brim.slice(3, 12).map(([x, y]) => [x, y + 0.2] as P), rgba(c.deep, 0.7), 0.6);
   const crown: P[] = [
     [-6.4, -0.4],
@@ -518,11 +633,11 @@ function panama(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
 function flowers(ctx: Ctx, h: HatCtx, hat: HatDef) {
   const cols = [hat.color, hat.accent, '#e8a0b0', '#f4efe6', '#8a64b0', hat.color, '#e07a5f'];
   const leaf = tone('#4f8a4a');
-  const ring = (a: number): P => [Math.cos(a) * 7.6 + 0.4, -1.4 + Math.sin(a) * 2.8];
+  const ring = flowerAt;
   // Back half first (smaller, shaded), then leaves, then the front flowers
   const draw = (a: number, i: number, back: boolean) => {
     const [x, y] = ring(a);
-    const s = back ? 1.25 : 1.6 + (i % 3) * 0.2;
+    const s = flowerSize(i, back);
     const col = tone(cols[i % cols.length]);
     for (let p = 0; p < 5; p++) {
       const pa = (p / 5) * Math.PI * 2 + i;
@@ -555,17 +670,14 @@ function flowers(ctx: Ctx, h: HatCtx, hat: HatDef) {
     paint(ctx, () => ctx.ellipse(0, 0, 1.9, 0.8, 0, 0, Math.PI * 2), leaf, { x0: -2, x1: 2, y0: -1, y1: 1 }, o(h, { lw: 0.3, rimA: 0.2 }));
     ctx.restore();
   }
-  for (let i = 0; i < 7; i++) {
-    const a = 0.15 + (i / 6) * (Math.PI - 0.3);
-    draw(a, i + 3, false);
-  }
+  for (const { a, i } of FRONT_FLOWERS) draw(a, i, false);
 }
 
 function chef(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
   // A padaria toque: pleated and soft-topped, kept low so it reads baker, not costume. v2 shortens it
   // again (parked Art #4) so Carlos's face + apron win the silhouette.
   ctx.save();
-  ctx.scale(1, 0.68);
+  ctx.scale(1, CHEF_SQUASH);
   const white = tone('#fbfaf6');
   const shadow = tone('#e6e4de');
   // Pleated body
@@ -595,14 +707,7 @@ function chef(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
   glow(ctx, -2.4, -10.8, 4, 1.6, '#ffffff', 0.7);
   glow(ctx, 6.4 * -h.L * -1, -8, 3, 6, shadow.lo, 0.4);
   ctx.restore();
-  const band: P[] = [
-    [-7.6, -3.2],
-    [0.4, -2.4],
-    [7.8, -3.4],
-    [7.8, 0.6],
-    [0.4, 1.6],
-    [-7.6, 0.6],
-  ];
+  const band = CHEF_BAND;
   paint(ctx, () => roundPoly(ctx, band, 1), tone(acc.base), ptsBox(band), o(h, { top: 0.12 }));
   line(ctx, [[-7.2, -1.2], [0.4, -0.3], [7.4, -1.4]], rgba(tone(acc.base).lo, 0.6), 0.35);
   ctx.restore();
@@ -610,18 +715,7 @@ function chef(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
 }
 
 function topHat(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
-  const brim: P[] = [
-    [-10.6, -2],
-    [-8.4, -1.2],
-    [0.4, -0.2],
-    [9.4, -1.4],
-    [11.2, -2.6],
-    [10.6, 0.6],
-    [6, 2.8],
-    [0.4, 3.2],
-    [-5.6, 2.6],
-    [-10, 0.6],
-  ];
+  const brim = TOPHAT_BRIM;
   paint(ctx, () => smoothClosed(ctx, brim, 0.7), tone(c.lo), ptsBox(brim), o(h, { top: 0.2 }));
   const crown: P[] = [
     [-6, 0.2],
