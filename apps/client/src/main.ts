@@ -212,7 +212,7 @@ function updateGuides() {
     if (t.carlos && !t.meveum) renderer.guides.push({ x: 8, y: 2, lift: 128, label: 'Me vê um…' });
     else if (t.carlos && t.meveum && !t.chapeu) renderer.guides.push({ x: 0, y: 6, lift: 110, label: '← Praça' });
   } else if (r.room === 'academia') {
-    renderer.guides.push({ x: 9, y: 1, lift: 130, label: 'Fila do tatame' });
+    renderer.guides.push({ x: 9, y: 1, lift: 190, label: 'Fila do tatame' });
     renderer.guides.push({ x: 0, y: 6, lift: 110, label: '← Praça' });
   }
 }
