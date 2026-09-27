@@ -26,7 +26,17 @@ function validateCredentials({ email, password }: AuthCredentials): AuthResponse
   return null;
 }
 
-/** Local stub until server auth lands on main — never blocks play. */
+export interface AuthCallOptions {
+  /**
+   * Solo / static builds have no auth server, so a local stub session stands in. Off by default: on the
+   * multiplayer server a missing or failing API must be an error, never a pretend sign-in.
+   */
+  offlineStub?: boolean;
+}
+
+const OFFLINE: AuthResponse = { ok: false, pt: 'Sem conexão com a Praça. Tenta de novo em instantes.', en: 'Can’t reach the server. Try again in a moment.', code: 'offline' };
+
+/** Local stand-in session for solo / static builds (see `offlineStub`). */
 function stubAuth(mode: 'login' | 'register', creds: AuthCredentials): AuthResponse {
   const session: AuthSession = {
     email: creds.email.trim().toLowerCase(),
@@ -37,15 +47,15 @@ function stubAuth(mode: 'login' | 'register', creds: AuthCredentials): AuthRespo
   return { ok: true, session };
 }
 
-async function handleApiResponse(res: Response, creds: AuthCredentials, mode: 'login' | 'register'): Promise<AuthResponse> {
-  if (res.status === 404 || res.status === 501) return stubAuth(mode, creds);
+async function handleApiResponse(res: Response, creds: AuthCredentials, mode: 'login' | 'register', offline: () => AuthResponse): Promise<AuthResponse> {
+  if (res.status === 404 || res.status === 501) return offline();
   const ct = res.headers.get('content-type') ?? '';
-  if (!ct.includes('json')) return stubAuth(mode, creds);
+  if (!ct.includes('json')) return offline();
   let data: { accessToken?: string; token?: string; error?: string; pt?: string; en?: string };
   try {
     data = await res.json();
   } catch {
-    return stubAuth(mode, creds);
+    return offline();
   }
   if (!res.ok) {
     return {
@@ -64,21 +74,23 @@ async function handleApiResponse(res: Response, creds: AuthCredentials, mode: 'l
   return { ok: true, session };
 }
 
-export async function signIn(creds: AuthCredentials): Promise<AuthResponse> {
+export async function signIn(creds: AuthCredentials, { offlineStub = false }: AuthCallOptions = {}): Promise<AuthResponse> {
   const invalid = validateCredentials(creds);
   if (invalid) return invalid;
+  const offline = () => (offlineStub ? stubAuth('login', creds) : OFFLINE);
   const res = await postJson('/login', creds);
-  if (!res) return stubAuth('login', creds);
-  return handleApiResponse(res, creds, 'login');
+  if (!res) return offline();
+  return handleApiResponse(res, creds, 'login', offline);
 }
 
 /** `confirm18`: the optional “Tenho 18 anos ou mais” tick; the server records it when true. */
-export async function signUp(creds: AuthCredentials, confirm18 = false): Promise<AuthResponse> {
+export async function signUp(creds: AuthCredentials, { confirm18 = false, offlineStub = false }: AuthCallOptions & { confirm18?: boolean } = {}): Promise<AuthResponse> {
   const invalid = validateCredentials(creds);
   if (invalid) return invalid;
+  const offline = () => (offlineStub ? stubAuth('register', creds) : OFFLINE);
   const res = await postJson('/register', { ...creds, confirm18 });
-  if (!res) return stubAuth('register', creds);
-  return handleApiResponse(res, creds, 'register');
+  if (!res) return offline();
+  return handleApiResponse(res, creds, 'register', offline);
 }
 
 /** True when this browser holds a live server session (HttpOnly cookie). Always false on static / solo hosts. */

@@ -1,6 +1,6 @@
 import { signIn, signUp } from '../auth/client';
 import { introAlreadyPassed, markIntroPassed, readAuthSession, writeAuthSession } from '../auth/session';
-import { h, en, ui } from './dom';
+import { h, ui } from './dom';
 import { mountIntroParrots, type SkyBand } from './introParrots';
 import { createIntroHeroScene } from './introHeroScene';
 import { mountIntroAtmosphere } from './introAtmosphere';
@@ -22,8 +22,8 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-function field(pt: string, enText: string, control: HTMLElement) {
-  return h('div', { class: 'intro-field' }, h('label', { for: control.id }, pt, en(enText)), control);
+function field(pt: string, control: HTMLElement) {
+  return h('div', { class: 'intro-field' }, h('label', { for: control.id }, pt), control);
 }
 
 function wordmark(text: string) {
@@ -146,7 +146,9 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       'button',
       { type: 'button', class: 'intro-guest', id: 'intro-guest' },
       h('span', { class: 'intro-guest-pt' }, 'Explorar como visitante', h('span', { class: 'intro-guest-arrow', 'aria-hidden': 'true' }, '→')),
-      h('span', { class: 'en' }, 'Try the square without an account'),
+      guestEntersWorld
+        ? h('span', { class: 'intro-guest-sub' }, 'Conheça a praça sem conta', h('span', { class: 'en' }, 'Try the square without an account'))
+        : h('span', { class: 'intro-guest-sub' }, 'Pra jogar com a galera, crie uma conta', h('span', { class: 'en' }, 'To play with others, create an account')),
     );
 
     const setError = (pt: string, enText: string) => {
@@ -213,8 +215,8 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       'form',
       { class: 'intro-form', novalidate: true },
       tabsEl,
-      field('E-mail', 'Email address', email),
-      field('Senha (8+ caracteres)', 'Password (8+ characters)', password),
+      field('E-mail', email),
+      field('Senha (8+ caracteres)', password),
       adultRow,
       err,
       h('div', { class: 'intro-actions' }, submit),
@@ -228,7 +230,9 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       clearError();
       submit.disabled = true;
       const creds = { email: email.value, password: password.value };
-      const result = mode === 'login' ? await signIn(creds) : await signUp(creds, adult.checked);
+      // Only solo builds (no auth server) may fall back to a local stub session.
+      const offlineStub = guestEntersWorld;
+      const result = mode === 'login' ? await signIn(creds, { offlineStub }) : await signUp(creds, { confirm18: adult.checked, offlineStub });
       submit.disabled = false;
       if (!result.ok) return setError(result.pt, result.en);
       if (mode === 'register') writeAuthSession({ ...result.session, ageGateConfirmed: adult.checked });
