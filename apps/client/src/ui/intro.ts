@@ -177,8 +177,12 @@ export function runIntroGate(): Promise<IntroGateResult> {
       { class: 'intro-hero' },
       h('div', { class: 'intro-mark-wrap', 'aria-hidden': 'true' }, h('div', { class: 'intro-mark-sun' }), h('div', { class: 'intro-mark' })),
       wordmark('Tudo Bem'),
-      h('p', { class: 'intro-tagline' }, 'Chega na praça — café, vizinhos e português no dia a dia.'),
-      h('p', { class: 'intro-tagline en', 'aria-hidden': 'true' }, 'A friendly São Paulo square to learn Portuguese.'),
+      h(
+        'div',
+        { class: 'intro-taglines' },
+        h('p', { class: 'intro-tagline' }, 'Chega na praça — café, vizinhos e português no dia a dia.'),
+        h('p', { class: 'intro-tagline en', 'aria-hidden': 'true' }, 'A friendly São Paulo square to learn Portuguese.'),
+      ),
     );
     const panel = h(
       'section',
