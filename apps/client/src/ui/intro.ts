@@ -56,11 +56,10 @@ export function runIntroGate(): Promise<IntroGateResult> {
     const glow = h('div', { class: 'intro-layer intro-glow', 'aria-hidden': 'true' });
     const skipBtn = h('button', { type: 'button', class: 'intro-skip', id: 'intro-skip' }, 'Pular', h('span', { class: 'intro-skip-arrow', 'aria-hidden': 'true' }, '›'));
 
-    // Music bed: honours the saved tb_music choice; reduced motion stays silent until asked.
-    let wantMusic = !reduced;
+    // Music bed: the one switch is the saved tb_music choice (same as the HUD).
     const musicBtn = h('button', { type: 'button', class: 'intro-music', id: 'intro-music' });
     const renderMusic = () => {
-      const on = ambience.enabled && wantMusic;
+      const on = ambience.enabled;
       const waiting = on && !ambience.running;
       musicBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
       musicBtn.classList.toggle('is-waiting', waiting);
@@ -72,24 +71,21 @@ export function runIntroGate(): Promise<IntroGateResult> {
     };
     let audibleAtPress = false;
     const notePress = () => {
-      audibleAtPress = ambience.enabled && wantMusic && ambience.running;
+      audibleAtPress = ambience.enabled && ambience.running;
     };
     musicBtn.addEventListener('pointerdown', notePress);
     musicBtn.addEventListener('keydown', notePress);
     musicBtn.addEventListener('pointerup', (e) => e.stopPropagation());
     musicBtn.addEventListener('click', () => {
-      const on = ambience.enabled && wantMusic;
-      if (on && !audibleAtPress) {
+      if (ambience.enabled && !audibleAtPress) {
         // Autoplay was blocked: this first press starts the music rather than muting it.
         ambience.unlock();
-      } else if (on) {
-        ambience.setEnabled(false);
       } else {
-        wantMusic = true;
-        ambience.setEnabled(true);
-        ambience.setScene('intro');
-        ambience.unlock();
-        if (root.classList.contains('intro-phase-auth')) ambience.introReveal();
+        ambience.setEnabled(!ambience.enabled);
+        if (ambience.enabled) {
+          ambience.unlock();
+          if (root.classList.contains('intro-phase-auth')) ambience.introReveal();
+        }
       }
       renderMusic();
     });
@@ -271,12 +267,19 @@ export function runIntroGate(): Promise<IntroGateResult> {
     };
     layoutHero();
 
-    if (wantMusic) ambience.setScene('intro');
+    // The bed starts with the shell; setScene is a no-op for sound while tb_music is off.
+    ambience.setScene('intro');
     teardowns.push(ambience.onChange(renderMusic));
-    // Tapping Pular / the scene is a gesture: let it open audio if autoplay was blocked.
+    // First tap / click / key on the intro (Pular included) opens audio if autoplay was blocked.
     const armMusic = () => ambience.unlock();
+    root.addEventListener('pointerdown', armMusic);
     root.addEventListener('click', armMusic);
-    teardowns.push(() => root.removeEventListener('click', armMusic));
+    window.addEventListener('keydown', armMusic);
+    teardowns.push(() => {
+      root.removeEventListener('pointerdown', armMusic);
+      root.removeEventListener('click', armMusic);
+      window.removeEventListener('keydown', armMusic);
+    });
     teardowns.push(mountIntroAtmosphere(atmosphere, reduced));
     if (!reduced) teardowns.push(heroScene.mountParallax());
     const parrots = mountIntroParrots(root, panel, reduced, {

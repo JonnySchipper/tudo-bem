@@ -10,7 +10,7 @@ export const STEP_S = 60 / INTRO_BPM / 4;
 export const BAR_S = STEP_S * 16;
 export const LOOP_BARS = 8;
 /** Bed level under the ambience master — modest, so future bird SFX and speech sit on top. */
-export const INTRO_BED_LEVEL = 0.5;
+export const INTRO_BED_LEVEL = 0.4;
 
 export type IntroVoice = 'bass' | 'comp' | 'pad' | 'mel' | 'shaker';
 
