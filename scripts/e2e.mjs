@@ -67,13 +67,17 @@ async function waitIdleAt(page, x, y, label) {
   }, [x, y], 12_000, label ?? `avatar at ${x},${y}`);
 }
 
+async function passIntro(page) {
+  await page.waitForSelector('#intro-skip', { timeout: 12_000 });
+  await page.click('#intro-skip');
+  await page.waitForSelector('#intro-guest', { timeout: 12_000 });
+  await page.click('#intro-guest');
+  await page.waitForSelector('#avatar-name', { timeout: 12_000 });
+}
+
 async function createAvatar(page, name, pronoun) {
   await page.goto(BASE);
-  await page.waitForSelector('#birth-month');
-  await page.selectOption('#birth-month', '5');
-  await page.selectOption('#birth-year', '2001');
-  await page.click('#age-next');
-  await page.waitForSelector('#avatar-name');
+  await passIntro(page);
   await page.fill('#avatar-name', name);
   const labels = await page.$$eval('.field > label', (els) => els.map((e) => (e.childNodes[0]?.textContent ?? '').trim()));
   assert(labels.includes('Visual inicial'), `visual inicial preset (${labels.join(' | ')})`);
@@ -127,6 +131,17 @@ const MG_PREP = {
 };
 const MOD_IDS = { 'pra viagem': 'pra_viagem', 'pra comer aqui': 'pra_comer_aqui', 'sem açúcar': 'sem_acucar', 'bem quente': 'bem_quente' };
 
+/** Ticket + Seu Carlos line, so a stalled shift says why (e.g. “repita” after a wrong tray). */
+function mgState(page) {
+  return page
+    .evaluate(() => {
+      const t = document.querySelector('#mg-ticket');
+      const carlos = document.querySelector('#minigame .carlos-says')?.textContent ?? '';
+      return `ticket round ${t?.dataset.round} repeat ${t?.dataset.repeat} · ${document.querySelector('#mg-order')?.textContent ?? ''} · ${carlos}`;
+    })
+    .catch(() => 'minigame panel gone');
+}
+
 async function wipHint(page) {
   return (await page.textContent('#mg-wip')) ?? '';
 }
@@ -161,19 +176,18 @@ async function main() {
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => m.type() === 'error' && !/fonts\.g/.test(m.text()) && errors.push(m.text()));
 
-  // 0. Under-18 is turned away at the gate
+  // 0. Avatar entry requires the 18+ attestation (no birth-date calendar)
   {
     const ctxMinor = await browser.newContext({ viewport: { width: 1280, height: 800 } });
     const pm = await ctxMinor.newPage();
     await pm.goto(BASE);
-    await pm.waitForSelector('#birth-month');
-    await pm.selectOption('#birth-month', '1');
-    await pm.selectOption('#birth-year', String(new Date().getFullYear() - 16));
-    await pm.click('#age-next');
-    await pm.waitForSelector('text=Só para maiores de 18 anos');
-    assert(!(await pm.$('#avatar-name')), 'no avatar creator for under-18');
+    await passIntro(pm);
+    await pm.fill('#avatar-name', 'Menor');
+    assert(await pm.isDisabled('#enter-praca'), 'cannot enter praça without 18+ checkbox');
+    await pm.check('#confirm-18');
+    assert(!(await pm.isDisabled('#enter-praca')), 'can enter after 18+ attestation');
     await ctxMinor.close();
-    log('under-18 blocked');
+    log('18+ attestation on avatar creator');
   }
 
   // 1. Age gate + avatar creation (18+ confirmation required)
@@ -370,7 +384,9 @@ async function main() {
       round,
       8000,
       `order ${round + 1}`,
-    );
+    ).catch(async (e) => {
+      throw new Error(`${e.message} — ${await mgState(page)}`);
+    });
     const text = await page.textContent('#mg-order');
     const { tray, mods } = await trayFor(page, text);
     const items = Object.values(tray).reduce((a, b) => a + b, 0);
@@ -382,10 +398,14 @@ async function main() {
     const whereMods = mods.filter((m) => m.startsWith('pra '));
     for (const m of whereMods) await page.click(`#mg-mods [data-mod="${MOD_IDS[m]}"]`);
     for (const [id, n] of Object.entries(tray)) for (let k = 0; k < n; k++) await buildTrayItem(page, id, needsPack, coffeeMods);
+    const onTray = await page.$$eval('#mg-tray button span', (els) => els.reduce((s, e) => s + Number(e.textContent.replace('×', '')), 0));
+    assert(onTray === items, `tray holds ${onTray}, order “${text}” wants ${items} (one tap placed two units?)`);
     if (round === 2) await shot(page, '07_meveum_tray');
     await page.click('#mg-submit');
   }
-  await page.waitForSelector('#mg-end', { timeout: 20_000 });
+  await page.waitForSelector('#mg-end', { timeout: 20_000 }).catch(async (e) => {
+    throw new Error(`${e.message} — ${await mgState(page)}`);
+  });
   await sleep(300);
   await shot(page, '08_meveum_end');
   await dwell(2200);

@@ -1,5 +1,4 @@
 import {
-  ageFrom,
   BODY_TYPES,
   BOTTOM_STYLES,
   buildGrid,
@@ -374,14 +373,8 @@ export class World {
 
   private createProfile(s: Session, m: Extract<ClientMsg, { t: 'createProfile' }>) {
     if (s.profile) return this.attachProfile(s, s.profile);
-    const year = Math.floor(Number(m.birthYear));
-    const month = Math.floor(Number(m.birthMonth));
-    if (!(year > 1900 && year <= new Date().getFullYear() && month >= 1 && month <= 12))
-      return this.err(s, 'age', 'Data inválida.', 'Please enter a valid birth month and year.');
-    if (ageFrom(year, month) < MIN_AGE)
-      return this.err(s, 'age_gate', `Tudo Bem é só para maiores de ${MIN_AGE} anos.`, `Tudo Bem is for adults (${MIN_AGE}+) only.`);
     if (m.confirm18 !== true)
-      return this.err(s, 'age_confirm', `Confirme que você tem ${MIN_AGE} anos ou mais.`, `Please confirm you are ${MIN_AGE} or older.`);
+      return this.err(s, 'age_confirm', `Marque que você tem ${MIN_AGE} anos ou mais.`, `Please confirm you are ${MIN_AGE} or older.`);
     const nameCheck = validateName(String(m.name ?? ''));
     if (!nameCheck.ok) return this.err(s, 'name', nameCheck.reason.pt, nameCheck.reason.en);
     const appearance = sanitizeAppearance(m.appearance);

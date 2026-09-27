@@ -105,7 +105,7 @@ export class MinigameUI {
           class: `station ${id}`,
           id: `mg-station-${id}`,
           'data-station': id,
-          onpointerup: (e: PointerEvent) => this.onStationDrop(id, e),
+          onpointerup: (e: PointerEvent) => this.onStationTap(id, e),
         },
         h('div', { class: 'station-label' }, h('span', { class: 'pt' }, pt), en(enText, true)),
         extra,
@@ -160,7 +160,7 @@ export class MinigameUI {
       mkStation('pack', 'Embalagem', 'Bag or plate', modsEl, 'Embalar ✓', 'Pack it', () => this.runStation('pack')),
       h(
         'div',
-        { class: 'station tray-station', id: 'mg-station-tray', 'data-station': 'tray', onpointerup: (e: PointerEvent) => this.onStationDrop('tray', e) },
+        { class: 'station tray-station', id: 'mg-station-tray', 'data-station': 'tray', onpointerup: (e: PointerEvent) => this.onStationTap('tray', e) },
         h('div', { class: 'station-label' }, h('span', { class: 'pt' }, 'Bandeja'), en('Place on tray', true)),
         this.wipEl,
         this.trayEl,
@@ -209,6 +209,13 @@ export class MinigameUI {
     this.grab(id);
     const st = station.dataset.station;
     if (st) this.onStationDrop(st, e);
+  }
+
+  /** Tap on a station's open area. Taps on its own buttons are left to their click handlers. */
+  private onStationTap(stationId: string, e: PointerEvent) {
+    // Acting here too would run the button twice (one "Colocar na bandeja" tap placing two batch units).
+    if ((e.target as HTMLElement | null)?.closest('button')) return;
+    this.onStationDrop(stationId, e);
   }
 
   private onStationDrop(stationId: string, _e: PointerEvent) {

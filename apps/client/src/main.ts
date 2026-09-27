@@ -1,4 +1,6 @@
 import './styles.css';
+import './styles/intro.css';
+import { runIntroGate } from './ui/intro';
 import {
   MISSION_COPY,
   ROOMS,
@@ -685,7 +687,8 @@ function frame(ts: number) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-net.connect();
+
+void runIntroGate().then(() => net.connect());
 
 // ---------------------------------------------------------------- test / debug hooks
 

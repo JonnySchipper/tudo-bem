@@ -13,6 +13,7 @@ export default defineConfig({
       '/ws': { target: SERVER, ws: true },
       '/healthz': { target: SERVER },
       '/api/conversa': { target: SERVER },
+      '/api/auth': { target: SERVER },
     },
   },
   build: {

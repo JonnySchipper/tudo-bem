@@ -88,7 +88,7 @@ async function client(world: World, name = `Ana${n++}`, pronoun: 'ele' | 'ela' |
     all: (t) => inbox.filter((m) => m.t === t) as never,
   };
   await c.send({ t: 'hello' });
-  await c.send({ t: 'createProfile', name, pronoun, appearance: DEFAULT_APPEARANCE, birthYear: 2000, birthMonth: 1, confirm18: true });
+  await c.send({ t: 'createProfile', name, pronoun, appearance: DEFAULT_APPEARANCE, confirm18: true });
   await c.send({ t: 'join', room: 'praca' });
   return c;
 }
@@ -106,28 +106,17 @@ describe('World', () => {
     expect(sanitizeAppearance({ ...legacy, face: 'x' as never, extra: '<b>' as never, idle: 'dance' as never })).toMatchObject({ face: 'suave', extra: 'nenhum', idle: 'solto' });
   });
 
-  it('enforces the 18+ age gate, explicit adult confirmation, and name filter', async () => {
+  it('requires explicit 18+ confirmation and name filter on createProfile', async () => {
     const { world } = makeWorld();
     const inbox: ServerMsg[] = [];
     const s = world.connect('x', (m) => inbox.push(m), () => {});
-    const now = new Date();
-    const year = now.getFullYear();
-    const base = { t: 'createProfile' as const, name: 'Teste', pronoun: 'ele' as const, appearance: DEFAULT_APPEARANCE, birthMonth: 1, confirm18: true };
-    for (const age of [10, 13, 16, 17]) {
-      await world.handle(s, { ...base, birthYear: year - age - 1, birthMonth: 12 });
-      expect(inbox.at(-1), `age ${age}`).toMatchObject({ t: 'error', code: 'age_gate' });
-    }
-    // Turns 18 later this year → still 17 today.
-    if (now.getMonth() < 11) {
-      await world.handle(s, { ...base, birthYear: year - 18, birthMonth: 12 });
-      expect(inbox.at(-1)).toMatchObject({ t: 'error', code: 'age_gate' });
-    }
-    await world.handle(s, { ...base, birthYear: 1990, confirm18: false });
+    const base = { t: 'createProfile' as const, name: 'Teste', pronoun: 'ele' as const, appearance: DEFAULT_APPEARANCE, confirm18: true };
+    await world.handle(s, { ...base, confirm18: false });
     expect(inbox.at(-1)).toMatchObject({ t: 'error', code: 'age_confirm' });
-    await world.handle(s, { ...base, birthYear: 1990, name: 'shit' });
+    await world.handle(s, { ...base, name: 'shit' });
     expect(inbox.at(-1)).toMatchObject({ t: 'error', code: 'name' });
     expect(s.profile).toBeUndefined();
-    await world.handle(s, { ...base, birthYear: year - 18, birthMonth: 1 });
+    await world.handle(s, base);
     expect(inbox.at(-1)).toMatchObject({ t: 'welcome' });
     expect(s.profile?.ageGate18).toBe(true);
   });
@@ -827,7 +816,7 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
     const { world } = ambient();
     const a = connectBare(world);
     await a.send({ t: 'hello' });
-    await a.send({ t: 'createProfile', name: 'Rafa', pronoun: 'ele', appearance: DEFAULT_APPEARANCE, birthYear: 2000, birthMonth: 1, confirm18: true });
+    await a.send({ t: 'createProfile', name: 'Rafa', pronoun: 'ele', appearance: DEFAULT_APPEARANCE, confirm18: true });
     await a.send({ t: 'join', room: 'academia' });
     const cpus = cpusSeen(a);
     expect(cpus.length).toBeGreaterThanOrEqual(1);
