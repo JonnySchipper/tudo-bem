@@ -143,6 +143,10 @@ interface MgState {
   round: number;
   order: MgOrder;
   orderAt: number;
+  /** When this round's first attempt started. A retry resets `orderAt` but not this. */
+  roundStartedAt?: number;
+  /** Bumped each time the attempt clock starts, so a stale deadline cannot close the next ticket. */
+  attempt?: number;
   repeated: boolean;
   points: number;
   streak: number;
@@ -208,6 +212,10 @@ const GREETING = /(^|[^\p{L}])(oi|ol[aá])($|[^\p{L}])/iu;
 
 /** After Carlos repeats, an identical or empty tray in this window is an echo (double-click / Enter repeat), not the retry. */
 const MG_REPEAT_GRACE_MS = 700;
+/** If the client never reports the empty bar, close the attempt this long after `timeMs`. */
+const MG_DEADLINE_SLACK_MS = 2_000;
+/** First attempt plus one full retry. After this, another miss cannot restart the clock. */
+const MG_ROUND_BUDGET_SLACK_MS = 3_000;
 /** How long a dropped connection can reclaim the open Me vê um ticket. */
 export const MG_RESUME_MS = 20_000;
 
@@ -839,23 +847,26 @@ export class World {
       s.scene = undefined;
       const rng = mulberry32((this.now() ^ (Math.random() * 1e9)) >>> 0);
       const order = makeOrder(rng, 0);
-      s.mg = { rng, round: 0, order, orderAt: this.now(), repeated: false, points: 0, streak: 0, perfect: 0, waiting: false, token: ++this.seq, served: [order.pt] };
+      const t0 = this.now();
+      s.mg = { rng, round: 0, order, orderAt: t0, roundStartedAt: t0, repeated: false, points: 0, streak: 0, perfect: 0, waiting: false, token: ++this.seq, served: [order.pt] };
       return this.sendOrder(s);
     }
     const mg = s.mg;
     if (!mg) return;
-    if (m.action === 'quit') {
-      s.mg = undefined;
-      return s.send({ t: 'notice', level: 'info', pt: 'Até a próxima, ajudante!', en: 'See you next time, helper!' });
+    if (m.action === 'quit') return this.abandonMinigame(s);
+    if (m.action === 'sync') {
+      if (mg.waiting) return this.releaseMgGap(s);
+      return this.sendOrder(s, true);
     }
-    if (m.action === 'sync') return this.sendOrder(s, true);
     if (mg.waiting) return;
     const elapsed = this.now() - mg.orderAt;
+    const overBudget = this.now() - (mg.roundStartedAt ?? mg.orderAt) > mg.order.timeMs * 2 + MG_ROUND_BUDGET_SLACK_MS;
     let ok = false;
     let timedOut = false;
     if (m.action === 'timeout') {
       // Client clock ahead of the server: don't drop the message (the UI locks until we answer).
-      if (elapsed < mg.order.timeMs - 750) return this.sendOrder(s, true);
+      // Once the round has already had a full attempt and a full retry, stop resyncing a dead bar.
+      if (!overBudget && elapsed < mg.order.timeMs - 750) return this.sendOrder(s, true);
       timedOut = true;
     } else if (m.action === 'submit') {
       const tray = sanitizeTray(m.tray);
@@ -880,7 +891,7 @@ export class World {
       nameplate: p.nameplate,
       at: this.now(),
     });
-    if (!ok && !mg.repeated) {
+    if (!ok && !mg.repeated && !overBudget) {
       mg.repeated = true;
       mg.streak = 0;
       s.send({ t: 'mg', phase: 'result', round: mg.round, outcome: 'repita', carlos: MG_LINES.repita, points: mg.points, streak: 0 });
@@ -928,6 +939,37 @@ export class World {
     else this.schedule(next, this.mgGapMs);
   }
 
+  /** Closing the panel mid-shift settles what was already served. A fresh Pedido 1/6 with 0 RV is only for a shift that never scored. */
+  private abandonMinigame(s: Session) {
+    const mg = s.mg;
+    if (!mg) return;
+    const progressed = mg.points > 0 || mg.round > 0;
+    s.mg = undefined;
+    if (!progressed) {
+      return s.send({ t: 'notice', level: 'info', pt: 'Até a próxima, ajudante!', en: 'See you next time, helper!' });
+    }
+    const coins = mg.points > 0 ? mgPayout(mg.points) : 0;
+    s.send({
+      t: 'mg',
+      phase: 'end',
+      points: mg.points,
+      coins,
+      perfect: mg.perfect,
+      rounds: MG_ROUNDS,
+      carlos:
+        coins > 0
+          ? {
+              pt: `Turno encerrado. Aqui estão ${coins} reais virtuais pelo que você já serviu.`,
+              en: `Shift closed. Here are ${coins} RV for what you already served.`,
+            }
+          : {
+              pt: 'Turno encerrado. Dessa vez não deu RV — pode começar de novo quando quiser.',
+              en: 'Shift closed. No RV this time — you can start again whenever you want.',
+            },
+    });
+    if (coins > 0) this.reward(s, coins, { pt: 'Turno encerrado no balcão', en: 'Shift closed at the counter' });
+  }
+
   /** The between-orders gap ended (timer, or a reconnect that orphaned the timer). */
   private releaseMgGap(s: Session) {
     const mg = s.mg;
@@ -939,6 +981,7 @@ export class World {
     mg.served.push(mg.order.pt);
     mg.repeated = false;
     mg.orderAt = this.now();
+    mg.roundStartedAt = mg.orderAt;
     this.sendOrder(s);
   }
 
@@ -961,12 +1004,34 @@ export class World {
     this.parkedMg.delete(id);
     s.mg = park.mg;
     if (s.mg.waiting) this.releaseMgGap(s);
-    else this.sendOrder(s, true);
+    else {
+      this.sendOrder(s, true);
+      const left = s.mg.order.timeMs - (this.now() - s.mg.orderAt);
+      this.armMgDeadline(s, Math.max(0, left) + MG_DEADLINE_SLACK_MS);
+    }
+  }
+
+  /** Close this attempt if the client never reports the empty bar. A new attempt id cancels the previous timer. */
+  private armMgDeadline(s: Session, waitMs?: number) {
+    const mg = s.mg;
+    if (!mg) return;
+    const token = mg.token;
+    const attempt = mg.attempt ?? 0;
+    const wait = waitMs ?? mg.order.timeMs + MG_DEADLINE_SLACK_MS;
+    this.schedule(() => {
+      const cur = s.mg;
+      if (!cur || cur.token !== token || (cur.attempt ?? 0) !== attempt || cur.waiting) return;
+      this.minigame(s, { t: 'mg', action: 'timeout' });
+    }, wait);
   }
 
   private sendOrder(s: Session, resync = false) {
     const mg = s.mg;
     if (!mg) return;
+    if (!resync) {
+      mg.attempt = (mg.attempt ?? 0) + 1;
+      this.armMgDeadline(s);
+    }
     s.send({
       t: 'mg',
       phase: 'order',

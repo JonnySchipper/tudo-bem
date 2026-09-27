@@ -62,11 +62,13 @@ const PROP_HEIGHT: Partial<Record<PropDef['kind'], number>> = {
   poleiro: 95,
   trilho_pedidos: 120,
   banca: 80,
+  quadro_fila: 176,
 };
 
 const PROP_WIDTH: Partial<Record<PropDef['kind'], number>> = {
   barraca_chapeus: 60,
   trilho_pedidos: 50,
+  quadro_fila: 60,
 };
 
 /** Seat surface height of whatever the avatar sits on (counter stools are taller than benches). */
@@ -337,7 +339,7 @@ export class WorldRenderer {
         continue;
       }
       const c = tileCenter(p.x, p.y);
-      const depth = p.x + (p.w ?? 1) - 1 + p.y + (p.h ?? 1) - 1;
+      const depth = p.kind === 'tatame' ? -1 : p.x + (p.w ?? 1) - 1 + p.y + (p.h ?? 1) - 1;
       items.push({ depth, draw: () => drawSprite(ctx, propKey(p), c.sx, c.sy) || drawProp(ctx, p, c.sx, c.sy, t, 0, { parrotAdopted: !!game.profile?.parrotOwned }) });
       if (p.action) {
         const [ox, oy] = [((p.w ?? 1) - 1) * HW * 0.5 - ((p.h ?? 1) - 1) * HW * 0.5, (((p.w ?? 1) - 1) + ((p.h ?? 1) - 1)) * HH * 0.5];
