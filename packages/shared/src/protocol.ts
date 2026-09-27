@@ -97,7 +97,8 @@ export type MgServerMsg =
       resync?: boolean;
     }
   | { t: 'mg'; phase: 'result'; round: number; outcome: MgOutcome | 'repita'; carlos: Bilingual; expected?: MgOrderLine[]; expectedMods?: string[]; points: number; streak: number }
-  | { t: 'mg'; phase: 'end'; points: number; coins: number; perfect: number; rounds: number; carlos: Bilingual };
+  /** `lost`: the server has no shift for this player (restart, or the resume window ran out). Nothing is paid. */
+  | { t: 'mg'; phase: 'end'; points: number; coins: number; perfect: number; rounds: number; carlos: Bilingual; lost?: boolean };
 
 /**
  * Conversa (GDD §5.6). Only ever sent to the player having the conversation — never broadcast.

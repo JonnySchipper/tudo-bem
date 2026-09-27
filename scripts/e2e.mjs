@@ -15,6 +15,7 @@ import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { assert, expectFirstTimeoutRearms, learnShelf, playShift, sleep, waitFor } from './lib/meveum-play.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
 const CHROME = process.env.CHROME_PATH ?? ['/usr/local/bin/google-chrome', '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find((p) => fs.existsSync(p));
@@ -27,7 +28,6 @@ const AMBIANCE = (process.env.CPU_AMBIANCE ?? 'on') !== 'off';
 const CPU_NAMES = JSON.parse(fs.readFileSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../content/curriculum/phase0/cpu-names.json'), 'utf8')).names;
 
 const log = (...a) => console.log('  ·', ...a);
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** Extra dwell time on key moments when recording a video. */
 const dwell = (ms) => (VIDEO ? sleep(ms) : Promise.resolve());
 
@@ -36,18 +36,6 @@ async function shot(page, name) {
   fs.mkdirSync(SHOTS, { recursive: true });
   await page.screenshot({ path: path.join(SHOTS, `${name}.png`) });
   log('screenshot', name);
-}
-
-function assert(cond, msg) {
-  if (!cond) throw new Error(`ASSERT: ${msg}`);
-}
-
-async function waitFor(page, fn, arg, timeout = 10_000, label = 'condition') {
-  try {
-    await page.waitForFunction(fn, arg, { timeout, polling: 100 });
-  } catch (e) {
-    throw new Error(`timeout waiting for ${label}`);
-  }
 }
 
 const room = (page) => page.evaluate(() => window.__tb.game.room?.room);
@@ -129,71 +117,6 @@ async function createAvatar(page, name, pronoun, { tick18 = false, guest = SOLO 
     await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
     await sleep(400);
   };
-}
-
-// ---- parse a Portuguese order back into a tray (proves the order text alone is solvable)
-const NUM = { um: 1, uma: 1, dois: 2, duas: 2, 'três': 3, tres: 3 };
-async function trayFor(page, orderText) {
-  const list = (await page.evaluate(() => window.__tbItems)) ?? [];
-  const tray = {};
-  // Longest forms first so "pão na chapa" wins over "pão".
-  const forms = list.flatMap((i) => [[i.plural, i.id], [i.form, i.id]]).sort((a, b) => b[0].length - a[0].length);
-  let rest = orderText.toLowerCase();
-  const re = (prefix, form) => new RegExp(`${prefix}${form.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\p{L}-])`, 'u');
-  for (const [form, id] of forms) {
-    let m;
-    while ((m = rest.match(re('(um|uma|dois|duas|três|tres)\\s+', form)))) {
-      tray[id] = (tray[id] ?? 0) + NUM[m[1]];
-      rest = rest.replace(m[0], ' ');
-    }
-  }
-  // Bare noun with no count ("Café sem açúcar, bem quente.") means one.
-  for (const [form, id] of forms) {
-    const m = rest.match(re('(^|[\\s,])', form));
-    if (m) {
-      tray[id] = (tray[id] ?? 0) + 1;
-      rest = rest.replace(m[0], ' ');
-    }
-  }
-  const mods = ['pra viagem', 'pra comer aqui', 'sem açúcar', 'bem quente'].filter((m) => orderText.toLowerCase().includes(m));
-  return { tray, mods };
-}
-
-const MG_PREP = {
-  chapa: new Set(['pao_na_chapa', 'misto_quente', 'pastel', 'coxinha']),
-  bebidas: new Set(['cafe', 'cafe_com_leite', 'suco_de_laranja', 'agua', 'guarana']),
-};
-const MOD_IDS = { 'pra viagem': 'pra_viagem', 'pra comer aqui': 'pra_comer_aqui', 'sem açúcar': 'sem_acucar', 'bem quente': 'bem_quente' };
-
-/** Ticket + Seu Carlos line, so a stalled shift says why (e.g. “repita” after a wrong tray). */
-function mgState(page) {
-  return page
-    .evaluate(() => {
-      const t = document.querySelector('#mg-ticket');
-      const carlos = document.querySelector('#minigame .carlos-says')?.textContent ?? '';
-      return `ticket round ${t?.dataset.round} repeat ${t?.dataset.repeat} · ${document.querySelector('#mg-order')?.textContent ?? ''} · ${carlos}`;
-    })
-    .catch(() => 'minigame panel gone');
-}
-
-async function wipHint(page) {
-  return (await page.textContent('#mg-wip')) ?? '';
-}
-
-async function buildTrayItem(page, itemId, needsPack, coffeeMods) {
-  const wipBusy = await page.locator('#mg-wip img').isVisible();
-  if (!wipBusy) await page.click(`#mg-shelves [data-item="${itemId}"]`);
-  const hint = await wipHint(page);
-  if (MG_PREP.chapa.has(itemId) && /Chapa|Grill/.test(hint)) await page.click('#mg-station-chapa .station-go');
-  if (MG_PREP.bebidas.has(itemId) && /Bebidas|Drinks|Pour/.test(hint)) {
-    for (const m of coffeeMods) {
-      const pressed = await page.getAttribute(`#mg-mods [data-mod="${MOD_IDS[m]}"]`, 'aria-pressed');
-      if (pressed !== 'true') await page.click(`#mg-mods [data-mod="${MOD_IDS[m]}"]`);
-    }
-    await page.click('#mg-station-bebidas .station-go');
-  }
-  if (needsPack && /Embalagem|Pack/.test(await wipHint(page))) await page.click('#mg-station-pack .station-go');
-  await page.click('#mg-tray-place');
 }
 
 async function main() {
@@ -415,69 +338,8 @@ async function main() {
   }
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.click('#mg-clear');
-  const forms = await page.evaluate(() => [...document.querySelectorAll('#mg-shelves button')].map((b) => ({ id: b.dataset.item, form: b.querySelector('.pt').textContent })));
-  const plurals = {
-    pao: 'pães', pao_na_chapa: 'pães na chapa', pastel: 'pastéis', coxinha: 'coxinhas', bolo: 'bolos', cafe: 'cafés', cafe_com_leite: 'cafés com leite',
-    suco_de_laranja: 'sucos de laranja', agua: 'águas', pao_de_queijo: 'pães de queijo', misto_quente: 'mistos-quentes', guarana: 'guaranás',
-  };
-  await page.evaluate((list) => (window.__tbItems = list), forms.map((f) => ({ ...f, plural: plurals[f.id] })));
-  // A miss is part of the game (Carlos repeats "de novo, devagar"), e.g. when a slow runner lets the bar expire
-  // before Entregar lands. Retry once like a player would, and log why, instead of waiting for a round that won't come.
-  await page.evaluate(() => {
-    window.__mgResults = [];
-    window.__tb.net.on((m) => {
-      if (m.t === 'mg' && m.phase === 'result') window.__mgResults.push(m);
-    });
-  });
-  /** Wait for Carlos to judge the tray just served and return his result (`outcome: 'repita'` = try again). */
-  const carlosVerdict = async (seen, n) => {
-    try {
-      await page.waitForFunction((seen) => window.__mgResults.length > seen, seen, { timeout: 20_000, polling: 100 });
-    } catch {
-      throw new Error(`timeout waiting for Carlos after order ${n + 1} — ${await mgState(page)}`);
-    }
-    return page.evaluate(() => window.__mgResults.at(-1));
-  };
-  for (let round = 0; round < 6; round++) {
-    await waitFor(
-      page,
-      (n) => {
-        const ticket = document.querySelector('#mg-ticket');
-        return ticket?.dataset.round === String(n) && ticket.dataset.repeat !== '1';
-      },
-      round,
-      8000,
-      `order ${round + 1}`,
-    ).catch(async (e) => {
-      throw new Error(`${e.message} — ${await mgState(page)}`);
-    });
-    const text = await page.textContent('#mg-order');
-    const { tray, mods } = await trayFor(page, text);
-    const items = Object.values(tray).reduce((a, b) => a + b, 0);
-    if (!items) throw new Error(`could not parse Me vê um order: ${text}`);
-    log(`order ${round + 1}: “${text}” →`, JSON.stringify(tray), mods.join(', '));
-    await dwell(round < 2 ? 1400 : 700);
-    const needsPack = mods.some((m) => m.startsWith('pra '));
-    const coffeeMods = mods.filter((m) => m === 'sem açúcar' || m === 'bem quente');
-    const whereMods = mods.filter((m) => m.startsWith('pra '));
-    for (let attempt = 0; ; attempt++) {
-      if (attempt) await page.click('#mg-clear');
-      for (const m of whereMods) await page.click(`#mg-mods [data-mod="${MOD_IDS[m]}"]`);
-      for (const [id, n] of Object.entries(tray)) for (let k = 0; k < n; k++) await buildTrayItem(page, id, needsPack, coffeeMods);
-      const onTray = await page.$$eval('#mg-tray button span', (els) => els.reduce((s, e) => s + Number(e.textContent.replace('×', '')), 0));
-      assert(onTray === items, `tray holds ${onTray}, order “${text}” wants ${items} (one tap placed two units?)`);
-      if (round === 2 && !attempt) await shot(page, '07_meveum_tray');
-      const seen = await page.evaluate(() => window.__mgResults.length);
-      await page.click('#mg-submit');
-      const r = await carlosVerdict(seen, round);
-      if (r.outcome !== 'repita') break;
-      log(`order ${round + 1}: Carlos asked again (expected ${JSON.stringify(r.expected ?? [])}) → rebuilding once`);
-      assert(attempt < 1, `order ${round + 1}: missed twice`);
-    }
-  }
-  await page.waitForSelector('#mg-end', { timeout: 20_000 }).catch(async (e) => {
-    throw new Error(`${e.message} — ${await mgState(page)}`);
-  });
+  await learnShelf(page);
+  await playShift(page, { log, dwell, onRound: (round) => (round === 2 ? shot(page, '07_meveum_tray') : undefined) });
   await sleep(300);
   await shot(page, '08_meveum_end');
   await dwell(2200);
@@ -488,7 +350,15 @@ async function main() {
     assert(afterMg.mission?.rewarded && Object.values(afterMg.mission.steps).every(Boolean), 'daily mission complete (+25 RV)');
     log('mission complete: Cumprimenta ✓ Pede ✓ Monta ✓');
   } else assert(afterMg.mission?.steps.pede && afterMg.mission?.steps.monta, 'mission: Pede + Monta');
-  await page.click('#mg-end button:has-text("Sair")');
+  const endFooter = await page.isVisible('#mg-tray-place');
+  assert(!endFooter, 'Fim do turno hides Colocar / Limpar / Entregar');
+
+  // 5a. Jogar de novo: the first Pedido 1 timeout must re-arm, not soft-lock the tray.
+  await page.click('#mg-end button:has-text("Jogar de novo")');
+  await expectFirstTimeoutRearms(page, log);
+  await shot(page, '08a_meveum_again_denovo');
+  await page.click('#minigame .mg-head button.ghost');
+  await waitFor(page, () => !document.querySelector('[data-modal="minigame"]'), null, 5000, 'Me vê um closes after ✕ with nothing served');
 
   // 5b. Test daily RV gate: second Pedido rápido same day → 0 RV, "já pediu hoje" message
   const coinsBeforeSecond = (await profile(page)).coins;

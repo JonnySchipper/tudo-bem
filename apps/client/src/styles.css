@@ -575,6 +575,10 @@ button:disabled {
   flex-wrap: wrap;
 }
 
+.row[hidden] {
+  display: none;
+}
+
 .spacer {
   flex: 1;
 }

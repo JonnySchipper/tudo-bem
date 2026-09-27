@@ -601,13 +601,22 @@ export class MinigameUI {
       cancelAnimationFrame(this.raf);
       this.order = null;
       this.trayActions.hidden = true;
+      const bar = this.timer.firstElementChild as HTMLElement | null;
+      if (bar) bar.style.transform = 'scaleX(0)';
+      this.timer.classList.remove('low');
       this.ticket.replaceChildren(h('div', { class: 'order' }, 'Fim do turno!'), en('Shift over!'));
+      // A lost shift was never scored, so a "+0 RV · 0/6" line would read as a real result.
+      const tally = m.lost
+        ? []
+        : [
+            h('div', { class: 'big' }, `+${m.coins} RV`),
+            h('p', null, h('b', null, `${m.perfect}/${m.rounds} pedidos perfeitos · ${m.points} pontos`), en(`${m.perfect} of ${m.rounds} perfect orders`)),
+          ];
       this.body.replaceChildren(
         h(
           'div',
-          { class: 'mg-end', style: 'grid-column:1/-1', id: 'mg-end' },
-          h('div', { class: 'big' }, `+${m.coins} RV`),
-          h('p', null, h('b', null, `${m.perfect}/${m.rounds} pedidos perfeitos · ${m.points} pontos`), en(`${m.perfect} of ${m.rounds} perfect orders`)),
+          { class: `mg-end${m.lost ? ' lost' : ''}`, style: 'grid-column:1/-1', id: 'mg-end', 'data-lost': m.lost ? '1' : undefined },
+          ...tally,
           h('p', null, h('b', null, 'Seu Carlos: '), `“${m.carlos.pt}”`, en(m.carlos.en)),
           h('div', { class: 'row', style: 'justify-content:center' }, h('button', { type: 'button', onclick: () => this.close() }, bi('Sair', 'Leave')), h('button', { class: 'primary', type: 'button', onclick: () => (this.close(), this.actions.again()) }, bi('Jogar de novo', 'Play again'))),
         ),

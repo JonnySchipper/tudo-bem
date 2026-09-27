@@ -350,7 +350,11 @@ net.on((m: ServerMsg) => {
           700,
         );
       }
-      if (keepMg) armMgResumeWatch();
+      if (keepMg) {
+        // A restart can drop the shift with the socket back before the bar runs out. Ask now.
+        minigame?.requestSync();
+        armMgResumeWatch();
+      }
       break;
     }
     case 'avatarJoined':
@@ -432,9 +436,11 @@ net.on((m: ServerMsg) => {
       }
       break;
     case 'mg':
+      // A lost-shift reply to a resync sent just before this shift ended or was quit.
+      if (m.phase === 'end' && m.lost && !mgShiftActive) break;
       clearMgResumeWatch();
       if (m.phase === 'order') mgShiftActive = true;
-      if (m.phase === 'order' && (!minigame || modalId() !== 'minigame')) {
+      if ((m.phase === 'order' || (m.phase === 'end' && m.lost)) && (!minigame || modalId() !== 'minigame')) {
         minigame = newMinigameUI();
       }
       try {

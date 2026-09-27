@@ -254,6 +254,8 @@ const MG_LINES: Record<MgOutcome | 'repita' | 'combo', Bilingual> = {
   errou: { pt: 'Tudo bem, acontece! Próximo cliente.', en: 'It’s fine, it happens! Next customer.' },
   tempo: { pt: 'Ih, o cliente cansou de esperar! Próximo.', en: 'Oh no, the customer got tired of waiting! Next.' },
 };
+const MG_LOST: Bilingual = { pt: 'Ih, perdi a comanda! Bora começar um turno novo?', en: 'Oops, I lost the order slip! Shall we start a fresh shift?' };
+const MG_BYE: Bilingual = { pt: 'Até a próxima, ajudante!', en: 'See you next time, helper!' };
 
 export class World {
   readonly sessions = new Map<string, Session>();
@@ -933,7 +935,7 @@ export class World {
       return this.sendOrder(s);
     }
     const mg = s.mg;
-    if (!mg) return;
+    if (!mg) return this.noOpenShift(s, m.action);
     if (m.action === 'quit') return this.abandonMinigame(s);
     if (m.action === 'sync') {
       if (mg.waiting) return this.releaseMgGap(s);
@@ -1026,9 +1028,7 @@ export class World {
     if (!mg) return;
     const progressed = mg.points > 0 || mg.round > 0;
     s.mg = undefined;
-    if (!progressed) {
-      return s.send({ t: 'notice', level: 'info', pt: 'Até a próxima, ajudante!', en: 'See you next time, helper!' });
-    }
+    if (!progressed) return s.send({ t: 'notice', level: 'info', ...MG_BYE });
     const coins = mg.points > 0 ? mgPayout(mg.points) : 0;
     s.send({
       t: 'mg',
@@ -1072,17 +1072,45 @@ export class World {
     this.parkedMg.set(s.profile.id, { mg: s.mg, room: s.instance.def.id, at: this.now() });
   }
 
-  private maybeResumeMg(s: Session) {
+  /** The parked shift this player can still reclaim. An expired one is dropped. */
+  private freshParkedMg(s: Session) {
     const id = s.profile?.id;
-    if (!id || !s.instance) return;
+    if (!id) return undefined;
     const park = this.parkedMg.get(id);
-    if (!park) return;
+    if (!park) return undefined;
     if (this.now() - park.at > MG_RESUME_MS) {
       this.parkedMg.delete(id);
+      return undefined;
+    }
+    return park;
+  }
+
+  /**
+   * The client still holds a ticket this session has no shift for. Its tray is locked waiting on
+   * this reply, so never drop it: resume a parked shift, or end in the open with nothing paid.
+   * State is memory-only, so a restart lands here with no park.
+   */
+  private noOpenShift(s: Session, action: Extract<ClientMsg, { t: 'mg' }>['action']) {
+    const park = this.freshParkedMg(s);
+    if (park) {
+      if (action === 'quit') {
+        this.parkedMg.delete(s.profile!.id);
+        s.mg = park.mg;
+        return this.abandonMinigame(s);
+      }
+      // Before the rejoin lands (e.g. the 2 s resync right after hello), the join itself resumes it.
+      if (s.instance?.def.id === park.room) this.maybeResumeMg(s);
       return;
     }
-    if (park.room !== s.instance.def.id) return;
-    this.parkedMg.delete(id);
+    if (action === 'quit') return s.send({ t: 'notice', level: 'info', ...MG_BYE });
+    s.send({ t: 'mg', phase: 'end', points: 0, coins: 0, perfect: 0, rounds: MG_ROUNDS, carlos: MG_LOST, lost: true });
+  }
+
+  private maybeResumeMg(s: Session) {
+    if (!s.instance) return;
+    const park = this.freshParkedMg(s);
+    if (!park || park.room !== s.instance.def.id) return;
+    this.parkedMg.delete(s.profile!.id);
     s.mg = park.mg;
     if (s.mg.waiting) this.releaseMgGap(s);
     else {
