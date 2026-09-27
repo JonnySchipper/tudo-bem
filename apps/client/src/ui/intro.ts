@@ -1,6 +1,7 @@
 import { signIn, signUp } from '../auth/client';
 import { introAlreadyPassed, markIntroPassed, readAuthSession, writeAuthSession } from '../auth/session';
 import { h, en, ui } from './dom';
+import { mountIntroParrots } from './introParrots';
 
 type IntroMode = 'login' | 'register';
 
@@ -159,10 +160,12 @@ export function runIntroGate(): Promise<IntroGateResult> {
 
     let teardownParticles = () => {};
     teardownParticles = mountParticles(particles);
+    let teardownParrots = () => {};
 
     const finish = (result: IntroGateResult) => {
       markIntroPassed();
       teardownParticles();
+      teardownParrots();
       root.classList.add('intro-exit');
       window.setTimeout(() => {
         root.remove();
@@ -231,6 +234,11 @@ export function runIntroGate(): Promise<IntroGateResult> {
     document.body.classList.add('intro-active');
     ui().append(root);
     requestAnimationFrame(() => root.classList.add('intro-ready'));
+
+    const panelEl = root.querySelector('.intro-panel') as HTMLElement | null;
+    const parrots = mountIntroParrots(root, panelEl, prefersReducedMotion());
+    teardownParrots = parrots.teardown;
+    requestAnimationFrame(() => requestAnimationFrame(() => parrots.syncClip()));
 
     email.focus();
   });
