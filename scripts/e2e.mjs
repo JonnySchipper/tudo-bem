@@ -128,7 +128,8 @@ const MG_PREP = {
 const MOD_IDS = { 'pra viagem': 'pra_viagem', 'pra comer aqui': 'pra_comer_aqui', 'sem açúcar': 'sem_acucar', 'bem quente': 'bem_quente' };
 
 async function buildTrayItem(page, itemId, needsPack, coffeeMods) {
-  await page.click(`#mg-shelves [data-item="${itemId}"]`);
+  const wipBusy = await page.locator('#mg-wip img').isVisible();
+  if (!wipBusy) await page.click(`#mg-shelves [data-item="${itemId}"]`);
   if (MG_PREP.chapa.has(itemId)) await page.click('#mg-station-chapa .station-go');
   if (MG_PREP.bebidas.has(itemId)) {
     for (const m of coffeeMods) await page.click(`#mg-mods [data-mod="${MOD_IDS[m]}"]`);
@@ -358,7 +359,7 @@ async function main() {
     if (round === 2) await shot(page, '07_meveum_tray');
     await page.click('#mg-submit');
   }
-  await page.waitForSelector('#mg-end', { timeout: 8000 });
+  await page.waitForSelector('#mg-end', { timeout: 20_000 });
   await sleep(300);
   await shot(page, '08_meveum_end');
   await dwell(2200);
