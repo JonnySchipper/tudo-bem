@@ -15,6 +15,7 @@ import {
   mulberry32,
   ROOMS,
   SCORE_FEEDBACK,
+  seatTiles,
   TYPED_MISS_HINT,
   type ServerMsg,
   type ClientMsg,
@@ -803,7 +804,7 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
       expect(reserved.has(`${t.x},${t.y}`), `${roomId} ${t.x},${t.y}`).toBe(false);
       expect(mat.has(`${t.x},${t.y}`), `${roomId} ${t.x},${t.y} on tatame`).toBe(false);
     }
-    for (const p of room.props) if (p.seat) expect(mat.has(`${p.x},${p.y}`), `${roomId} seat ${p.id}`).toBe(false);
+    for (const s of seatTiles(room)) expect(mat.has(`${s.x},${s.y}`), `${roomId} seat ${s.prop.id} ${s.x},${s.y}`).toBe(false);
   };
 
   it('keeps every ambiance tile walkable and off doors, spawn and interact tiles', async () => {

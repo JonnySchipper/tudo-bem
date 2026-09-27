@@ -3,7 +3,7 @@ import { chooseChip, scenePayout, SCENE_NODE_IDS, SCENE_START, viewNode, type Sc
 import { AUTHORED_ORDERS, checkBuild, checkTray, makeOrder, mgPayout, MG_MAX_POINTS, mulberry32, orderTimeMs, sanitizeMods, sanitizeTray, linePt, mgPrepStation, mgPerfectBuilt } from './meveum.js';
 import { detectLang, glossPt } from './gloss.js';
 import { numberPt } from './numbers.js';
-import { buildGrid, canPlaceFurniture, key, openMatTiles, ROOMS, isWalkable } from './rooms.js';
+import { buildGrid, canPlaceFurniture, key, openMatTiles, ROOMS, isWalkable, seatTiles } from './rooms.js';
 import { findPath, positionAlong, pathDuration } from './path.js';
 import { ACADEMIA_AMBIANCE, ambianceNavGrid } from './ambiance.js';
 import { classifyChat } from './safety.js';
@@ -170,7 +170,7 @@ describe('rooms + pathing', () => {
         expect(findPath(buildGrid(dest), dest.spawn, p.arrive), `${p.id} arrive`).not.toBeNull();
       }
       for (const p of room.props) if (p.interact) targets.push(p.interact);
-      for (const p of room.props) if (p.seat) targets.push({ x: p.x, y: p.y });
+      for (const s of seatTiles(room)) targets.push({ x: s.x, y: s.y });
       for (const n of room.npcs) targets.push(n.interact);
       for (const t of targets) expect(findPath(g, room.spawn, t), `${room.id} → ${t.x},${t.y}`).not.toBeNull();
     }
@@ -193,7 +193,7 @@ describe('rooms + pathing', () => {
     const room = ROOMS.academia;
     const mat = new Set(openMatTiles(room).map((t) => key(t.x, t.y)));
     expect(mat.size).toBe(24);
-    const seats = room.props.filter((p) => p.seat).map((p) => ({ x: p.x, y: p.y }));
+    const seats = seatTiles(room).map((s) => ({ x: s.x, y: s.y }));
     const idle = [...ACADEMIA_AMBIANCE.spots, ...ACADEMIA_AMBIANCE.doorSpots, ...ACADEMIA_AMBIANCE.entries, ...seats];
     expect(idle.length).toBeGreaterThanOrEqual(8);
     for (const t of idle) expect(mat.has(key(t.x, t.y)), `${t.x},${t.y} on tatame`).toBe(false);
@@ -212,6 +212,29 @@ describe('rooms + pathing', () => {
     const player = buildGrid(room);
     const across = findPath(player, { x: 1, y: 5 }, { x: 4, y: 3 });
     expect(across?.some((t) => mat.has(key(t.x, t.y)))).toBe(true);
+  });
+
+  it('seats the Academia arquibancada as one continuous run along the mat edge', () => {
+    const room = ROOMS.academia;
+    const stands = room.props.filter((p) => p.kind === 'banco_espectador');
+    expect(stands).toHaveLength(1);
+    const [stand] = stands;
+    expect(stand.w ?? 1).toBeGreaterThanOrEqual(4);
+    expect(stand.h ?? 1).toBe(1);
+
+    const seats = seatTiles(room).filter((s) => s.prop === stand);
+    expect(seats.map((s) => s.x)).toEqual([1, 2, 3, 4]);
+    for (const s of seats) expect(s.dir).toBe('SW');
+
+    // Every seat is off the mat, walkable, and a sit spot on the grid; the row in front is the tatame.
+    const mat = new Set(openMatTiles(room).map((t) => key(t.x, t.y)));
+    const grid = buildGrid(room);
+    for (const s of seats) {
+      expect(mat.has(key(s.x, s.y))).toBe(false);
+      expect(isWalkable(grid, s.x, s.y)).toBe(true);
+      expect(grid.seats.get(key(s.x, s.y))).toBe('SW');
+    }
+    expect(seats.filter((s) => mat.has(key(s.x, s.y + 1))).length).toBeGreaterThanOrEqual(3);
   });
 
   it('furniture cannot go on doors or fixed props', () => {

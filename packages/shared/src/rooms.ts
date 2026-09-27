@@ -446,8 +446,8 @@ const academia: RoomDef = {
     },
     { id: 'faixas', kind: 'parede_faixas', x: 0, y: 1, h: 2, blocks: true, label: { pt: 'Parede de faixas', en: 'Belt wall' } },
     { id: 'quadro', kind: 'quadro_foto', x: 10, y: 4, blocks: true, label: { pt: 'Academia do Bairro', en: 'Academy photo' } },
-    { id: 'banco_esp', kind: 'banco_espectador', x: 9, y: 6, blocks: false, seat: 'SW', label: { pt: 'Banco dos espectadores', en: 'Spectator bench' } },
-    { id: 'banco_esp_2', kind: 'banco_espectador', x: 7, y: 7, blocks: false, seat: 'SE', label: { pt: 'Banco', en: 'Bench' } },
+    // One continuous arquibancada along the back edge of the mat: spectators face the tatame and the camera.
+    { id: 'arquibancada', kind: 'banco_espectador', x: 1, y: 0, w: 4, blocks: false, seat: 'SW', label: { pt: 'Arquibancada', en: 'Bleachers' } },
     { id: 'vestiario', kind: 'vestiario', x: 0, y: 7, blocks: true, label: { pt: 'Vestiário · alongamento', en: 'Changing / stretch corner' } },
   ],
   walls: [
@@ -488,6 +488,11 @@ export function propTiles(p: { x: number; y: number; w?: number; h?: number }): 
   return out;
 }
 
+/** Every sit spot in the room. A seated prop wider than one tile (the Academia arquibancada) seats one per tile. */
+export function seatTiles(room: RoomDef): (Tile & { dir: Dir; prop: PropDef })[] {
+  return room.props.flatMap((p) => (p.seat ? propTiles(p).map((t) => ({ ...t, dir: p.seat!, prop: p })) : []));
+}
+
 /** Open-mat footprint (the tatame prop). Players and the roll queue may stand here; ambiance may not. */
 export function openMatTiles(room: RoomDef): Tile[] {
   return room.props.filter((p) => p.kind === 'tatame').flatMap((p) => propTiles(p));
@@ -516,8 +521,8 @@ export function buildGrid(room: RoomDef, furniture: PlacedFurniture[] = []): Roo
       reserved.add(key(t.x, t.y));
       if (p.blocks) blocked.add(key(t.x, t.y));
     }
-    if (p.seat) seats.set(key(p.x, p.y), p.seat);
   }
+  for (const s of seatTiles(room)) seats.set(key(s.x, s.y), s.dir);
   for (const n of room.npcs) {
     blocked.add(key(n.x, n.y));
     reserved.add(key(n.x, n.y));
