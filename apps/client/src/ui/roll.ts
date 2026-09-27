@@ -6,6 +6,7 @@ import { game } from '../state';
 import { h, en, bi } from './dom';
 import { openModal, closeModal, modalId } from './panels';
 import { speak } from '../audio';
+import { bjjPoseIdFromPt, paintBjjPoseCanvas, type BjjPoseId } from '../render/bjjPoses';
 
 type RollMsg = Extract<RollServerMsg, { t: 'roll' }>;
 
@@ -20,6 +21,7 @@ export class RollUI {
   private duelMs = 0;
   private reorderPick: number[] = [];
   private puzzleId = '';
+  private poseCanvas: HTMLCanvasElement;
 
   constructor(
     private actions: {
@@ -32,6 +34,7 @@ export class RollUI {
   ) {
     this.body = h('div', { class: 'roll-body', id: 'roll-body' });
     this.timerBar = h('div', { class: 'timer' }, h('div'));
+    this.poseCanvas = h('canvas', { class: 'roll-pose', id: 'roll-pose', width: 220, height: 100 }) as HTMLCanvasElement;
     this.panel = h(
       'div',
       { class: 'panel roll', id: 'roll' },
@@ -45,6 +48,7 @@ export class RollUI {
       ),
       h('p', { class: 'roll-disclaimer' }, h('b', null, ROLL_WORD_GAME_DISCLAIMER.pt), en(ROLL_WORD_GAME_DISCLAIMER.en)),
       h('div', { class: 'roll-belt', id: 'roll-belt' }),
+      this.poseCanvas,
       h('div', { class: 'rail' }, h('div', { class: 'roll-position', id: 'roll-position' }), this.timerBar),
       this.body,
     );
@@ -74,8 +78,13 @@ export class RollUI {
     );
   }
 
+  private showPose(pose: BjjPoseId) {
+    paintBjjPoseCanvas(this.poseCanvas, pose);
+  }
+
   handle(m: RollMsg) {
     if (m.phase === 'queue') {
+      this.showPose('de_pe');
       this.locked = true;
       this.body.replaceChildren(
         h(
@@ -91,6 +100,7 @@ export class RollUI {
       return;
     }
     if (m.phase === 'bow') {
+      this.showPose('de_pe');
       this.locked = true;
       this.body.replaceChildren(h('div', { class: 'roll-bow' }, h('b', null, m.line.pt), en(m.line.en), h('p', null, bi('Oss!', 'Oss!'))));
       speak(m.line.pt);
@@ -109,6 +119,8 @@ export class RollUI {
       this.duelMs = m.timeMs;
       this.duelEnd = performance.now() + m.timeMs;
       this.tickTimer();
+      const pid = bjjPoseIdFromPt(m.positionPt);
+      this.showPose(m.submissionPt ? 'tap' : pid);
       if (m.puzzle.kind === 'reorder' && m.puzzle.tokens) {
         const row = h('div', { class: 'roll-reorder-pick', id: 'roll-reorder-pick' });
         const bank = h('div', { class: 'roll-chips', id: 'roll-chips' });
@@ -161,12 +173,14 @@ export class RollUI {
       return;
     }
     if (m.phase === 'scramble') {
+      this.showPose(bjjPoseIdFromPt(m.positionPt));
       this.locked = true;
       cancelAnimationFrame(this.raf);
       this.body.replaceChildren(h('div', { class: 'roll-scramble' }, h('b', null, m.line.pt), en(m.line.en), h('p', null, m.positionPt, en(` · ${m.positionEn}`, true))));
       return;
     }
     if (m.phase === 'end') {
+      this.showPose('fist_bump');
       this.locked = true;
       cancelAnimationFrame(this.raf);
       if (game.profile) game.profile.bjj = m.bjj;

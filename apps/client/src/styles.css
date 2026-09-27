@@ -1460,6 +1460,15 @@ button:disabled {
   color: var(--verde);
 }
 
+.roll-pose {
+  display: block;
+  width: 100%;
+  max-width: 220px;
+  height: 100px;
+  margin: 0 auto 8px;
+  border-radius: 10px;
+}
+
 .roll-disclaimer {
   margin: 0 0 10px;
   padding: 8px 10px;

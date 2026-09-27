@@ -33,7 +33,8 @@ export type PropKind =
   | 'parede_faixas'
   | 'quadro_fila'
   | 'banco_espectador'
-  | 'vestiario';
+  | 'vestiario'
+  | 'quadro_foto';
 
 export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll';
 
@@ -426,31 +427,34 @@ const academia: RoomDef = {
     'mmmmmmmmmmm',
     'mmmmmmmmmmm',
   ],
-  wallHeight: 145,
-  wallColor: '#e8e2d6',
-  wallTrim: '#2f4f6f',
-  lighting: 'dia',
-  spawn: { x: 1, y: 6 },
+  wallHeight: 148,
+  wallColor: '#F5E6D3',
+  wallTrim: '#8B5E3C',
+  lighting: 'manha',
+  spawn: { x: 1, y: 7 },
   props: [
-    { id: 'tatame', kind: 'tatame', x: 3, y: 2, w: 5, h: 3, blocks: false, label: { pt: 'Tatame aberto', en: 'Open mat' } },
+    { id: 'tatame', kind: 'tatame', x: 2, y: 1, w: 6, h: 4, blocks: false, label: { pt: 'Tatame aberto', en: 'Open mat' } },
     {
       id: 'fila',
       kind: 'quadro_fila',
-      x: 8,
-      y: 2,
+      x: 9,
+      y: 1,
       blocks: true,
       action: 'bjj_roll',
-      interact: { x: 8, y: 3 },
+      interact: { x: 9, y: 2 },
       label: { pt: 'Fila do tatame', en: 'Open-mat queue' },
     },
     { id: 'faixas', kind: 'parede_faixas', x: 0, y: 1, blocks: true, label: { pt: 'Parede de faixas', en: 'Belt wall' } },
+    { id: 'quadro', kind: 'quadro_foto', x: 10, y: 4, blocks: true, label: { pt: 'Gracie da Praça', en: 'Academy photo' } },
     { id: 'banco_esp', kind: 'banco_espectador', x: 9, y: 6, blocks: false, seat: 'SW', label: { pt: 'Banco dos espectadores', en: 'Spectator bench' } },
-    { id: 'vestiario', kind: 'vestiario', x: 0, y: 7, blocks: true, label: { pt: 'Vestiário', en: 'Changing area' } },
+    { id: 'banco_esp_2', kind: 'banco_espectador', x: 7, y: 7, blocks: false, seat: 'SE', label: { pt: 'Banco', en: 'Bench' } },
+    { id: 'vestiario', kind: 'vestiario', x: 0, y: 7, blocks: true, label: { pt: 'Vestiário · alongamento', en: 'Changing / stretch corner' } },
   ],
   walls: [
     { kind: 'placa', wall: 'right', from: 0, to: 4, text: 'ACADEMIA GRACIE DA PRAÇA' },
-    { kind: 'poster', wall: 'left', from: 1, to: 4, text: 'OSS' },
-    { kind: 'mural', wall: 'right', from: 5, to: 9, text: 'TREINO · RESPEITO' },
+    { kind: 'janela', wall: 'left', from: 2, to: 5 },
+    { kind: 'poster', wall: 'left', from: 6, to: 8, text: 'OSS · RESPEITO' },
+    { kind: 'mural', wall: 'right', from: 5, to: 9, text: 'TREINO · COMUNIDADE' },
   ],
   portals: [
     {
@@ -461,7 +465,7 @@ const academia: RoomDef = {
       to: 'praca',
       arrive: { x: 10, y: 1 },
       arriveDir: 'SW',
-      label: { pt: 'Voltar para a praça', en: 'Back to the square' },
+      label: { pt: 'SAÍDA · Praça', en: 'Exit to the square' },
     },
   ],
   npcs: [],

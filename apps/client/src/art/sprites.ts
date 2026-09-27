@@ -40,6 +40,7 @@ export const ANIMATED_PROPS = new Set<PropDef['kind']>([
   'quadro_fila',
   'banco_espectador',
   'vestiario',
+  'quadro_foto',
 ]);
 export const ANIMATED_FURNITURE = new Set(['planta', 'radio', 'ventilador', 'gato']);
 

@@ -289,7 +289,14 @@ export function drawFloorTile(ctx: Ctx, room: RoomDef, x: number, y: number) {
       break;
     case 'tatame': {
       const r = hash(x, y, 31);
-      subDiamond(ctx, x, y, 0, 0, 1, shade('#3a6f8c', (r - 0.5) * 0.12));
+      const light = (x + y) % 2 === 0;
+      subDiamond(ctx, x, y, 0, 0, 1, shade(light ? '#3a8a5c' : '#2f5f7a', (r - 0.5) * 0.1));
+      if (x === 0 || y === 0) {
+        onTile(ctx, x, y, () => {
+          ctx.fillStyle = 'rgba(20,40,30,0.12)';
+          ctx.fillRect(0.02, 0.02, 0.96, 0.96);
+        });
+      }
       break;
     }
     case 'asfalto':
@@ -1178,6 +1185,13 @@ function drawPortalDoor(ctx: Ctx, room: RoomDef, p: PortalDef) {
       ctx.fillRect(x + 5, -dh + 6, 4, dh - 12);
       rrect(ctx, x + 4, -dh + 30, w - 8, 12, 3, '#2e9e5b');
       wallText(ctx, 'ABERTO', L / 2, -dh + 36, 7.5, '#fff', { font: FONT_BODY });
+    } else if (p.to === 'academia') {
+      rrect(ctx, x - 2, -dh - 4, w + 4, dh + 4, 3, '#8B5E3C');
+      rrect(ctx, x, -dh, w, dh, 2, '#F5E6D3');
+      rrect(ctx, x + 3, -dh + 8, w - 6, dh - 16, 2, '#3a8a5c');
+      wallText(ctx, 'ACADEMIA', L / 2, -dh + 22, 7, '#fff', { font: FONT_BODY });
+      rrect(ctx, L / 2 - 16, -dh - 18, 32, 12, 3, '#2f4f6f');
+      wallText(ctx, 'GRACIE', L / 2, -dh - 12, 6.5, '#f5f2ea', { font: FONT_BODY });
     } else if (p.to === 'kitnet') {
       rrect(ctx, x - 3, -dh - 6, w + 6, dh + 6, 3, '#8d7f6a');
       rrect(ctx, x, -dh, w, dh, 2, '#2f7a52');
@@ -1185,6 +1199,12 @@ function drawPortalDoor(ctx: Ctx, room: RoomDef, p: PortalDef) {
       rrect(ctx, x + w / 2 + 1, -dh + 6, w / 2 - 4, dh - 12, 2, '#9fd3c7');
       rrect(ctx, L / 2 - 10, -dh - 20, 20, 12, 2, '#2a2233');
       wallText(ctx, 'Nº 42', L / 2, -dh - 14, 7, '#f2c230', { font: FONT_BODY });
+    } else if (room.id === 'academia' && p.to === 'praca') {
+      rrect(ctx, x - 2, -dh - 4, w + 4, dh + 4, 3, '#8B5E3C');
+      rrect(ctx, x, -dh, w, dh, 2, '#e8e2d6');
+      rrect(ctx, x + 4, -dh + 10, w - 8, dh - 20, 2, '#c9baa8');
+      rrect(ctx, L / 2 - 18, -dh - 20, 36, 13, 3, '#3a8a5c');
+      wallText(ctx, 'SAÍDA · PRAÇA', L / 2, -dh - 13, 6.5, '#fff', { font: FONT_BODY });
     } else {
       rrect(ctx, x - 2, -dh - 3, w + 4, dh + 3, 3, shade(room.wallTrim, -0.25));
       rrect(ctx, x, -dh, w, dh, 2, '#a8662f');
