@@ -29,7 +29,19 @@ export interface ArtManifest {
 }
 
 /** Props that animate (or depend on live state) stay procedural. */
-export const ANIMATED_PROPS = new Set<PropDef['kind']>(['ipe', 'poste', 'barraca_chapeus', 'trilho_pedidos', 'poleiro']);
+export const ANIMATED_PROPS = new Set<PropDef['kind']>([
+  'ipe',
+  'poste',
+  'barraca_chapeus',
+  'trilho_pedidos',
+  'poleiro',
+  'tatame',
+  'parede_faixas',
+  'quadro_fila',
+  'banco_espectador',
+  'vestiario',
+  'quadro_foto',
+]);
 export const ANIMATED_FURNITURE = new Set(['planta', 'radio', 'ventilador', 'gato']);
 
 export function propKey(p: PropDef, slice = 0): string | null {

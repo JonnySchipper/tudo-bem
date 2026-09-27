@@ -5,7 +5,7 @@ import {
   canPlaceFurniture,
   CHAT_RATE,
   CLOTH_COLORS,
-  checkTray,
+  checkBuild,
   DEFAULT_ROOM_CAP,
   ECONOMY,
   EXTRA_STYLES,
@@ -70,9 +70,29 @@ import {
   type Tile,
   type Tray,
   type TutorialStep,
+  ROLL_MAX_DUELS,
+  ROLL_QUEUE_MS_DEFAULT,
+  ROLL_RV_LOSS,
+  ROLL_RV_WIN,
+  checkRollAnswer,
+  cpuGetsIt,
+  decisaoWinner,
+  displayPosition,
+  makeRollPuzzle,
+  normalizeBjj,
+  rollBow,
+  rollDecisaoLine,
+  rollFistBump,
+  rollPuzzleTimeMs,
+  rollTapLine,
+  resolveDuel,
+  stripesForWins,
+  toPuzzleView,
+  type RollAnswer,
+  type RollPuzzle,
 } from '@tudobem/shared';
 import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
-import { ProfileStore, today, toPrivate, type StoredProfile } from './store.js';
+import { ProfileStore, today, todaySaoPaulo, toPrivate, type StoredProfile } from './store.js';
 import { CpuCrowd } from './ambiance.js';
 
 export interface Services {
@@ -92,6 +112,10 @@ export interface WorldOptions {
   /** Praça ambiance CPUs (LIVEOPS_CPU_AMBIANCE). Off unless the host turns it on. */
   ambiance?: boolean;
   rng?: () => number;
+  /** Open-mat CPU match wait (ms). Env `ROLL_QUEUE_MS` overrides default 12s. */
+  rollQueueMs?: number;
+  /** When true, duel messages include `debugCorrect` for CI e2e (TB_TEST_ROLL=1). */
+  testRollHints?: boolean;
 }
 
 interface AvatarState {
@@ -129,6 +153,25 @@ interface MgState {
   lastSig?: string;
 }
 
+interface RollState {
+  rng: Rng;
+  token: number;
+  phase: 'queue' | 'match';
+  queueAt: number;
+  playerIdx: number;
+  cpuIdx: number;
+  round: number;
+  used: string[];
+  puzzle?: RollPuzzle;
+  puzzleAt: number;
+  timeMs: number;
+  playerAnswered: boolean;
+  cpuAnswered: boolean;
+  playerCorrect: boolean;
+  cpuCorrect: boolean;
+  resolving: boolean;
+}
+
 export interface Session {
   id: string;
   send: (m: ServerMsg) => void;
@@ -138,6 +181,7 @@ export interface Session {
   avatar?: AvatarState;
   scene?: SceneState;
   mg?: MgState;
+  roll?: RollState;
   chatTimes: number[];
   lastHintAt: number;
 }
@@ -193,6 +237,8 @@ export class World {
   private readonly schedule: (fn: () => void, ms: number) => void;
   private readonly ambiance: boolean;
   private readonly rng: () => number;
+  private readonly rollQueueMs: number;
+  private readonly testRollHints: boolean;
   private seq = 0;
   /** Mid-order Me vê um state kept across a socket drop so reconnect can resync the same ticket. */
   private parkedMg = new Map<string, { mg: MgState; room: RoomId; at: number }>();
@@ -208,6 +254,9 @@ export class World {
     this.schedule = opts.schedule ?? ((fn, ms) => void (setTimeout(fn, ms) as unknown as { unref?: () => void }).unref?.());
     this.ambiance = !!opts.ambiance;
     this.rng = opts.rng ?? Math.random;
+    const envQueue = Number(process.env.ROLL_QUEUE_MS);
+    this.rollQueueMs = opts.rollQueueMs ?? (Number.isFinite(envQueue) && envQueue >= 0 ? envQueue : ROLL_QUEUE_MS_DEFAULT);
+    this.testRollHints = opts.testRollHints ?? process.env.TB_TEST_ROLL === '1';
   }
 
   // ---------- connection lifecycle ----------
@@ -280,6 +329,8 @@ export class World {
         return this.sendFriends(s);
       case 'mission':
         return this.takeMission(s);
+      case 'roll':
+        return this.rollGame(s, msg);
     }
   }
 
@@ -339,6 +390,7 @@ export class World {
       tutorial,
       tutorialRewarded: false,
       createdAt: this.now(),
+      bjj: { belt: 'branca', stripes: 0, wins: 0 },
       daily: { date: today(), sceneClears: {} },
       lastSeen: this.now(),
     };
@@ -446,6 +498,7 @@ export class World {
   private leaveInstance(s: Session) {
     const inst = s.instance;
     if (s.mg) s.mg = undefined;
+    if (s.roll) s.roll = undefined;
     s.scene = undefined;
     if (!inst) return;
     inst.members.delete(s.id);
@@ -680,8 +733,21 @@ export class World {
       return s.send({ t: 'notice', level: 'block', pt: verdict.note?.pt ?? 'Mensagem bloqueada.', en: verdict.note?.en ?? 'Message blocked.' });
     }
     if (s.scene !== sc) return;
-    if (verdict.action === 'warn') this.flag(s, 'npc_reply', verdict, text);
     const current = viewNode(sc.node, sc.ctx);
+    if (verdict.action === 'warn') {
+      this.flag(s, 'npc_reply', verdict, text);
+      const note = verdict.note ?? { pt: 'Essa mensagem segue com um aviso.', en: 'That message goes through with a warning.' };
+      if (current) {
+        s.send({
+          t: 'scene',
+          view: current,
+          said: { pt: text, en: '' },
+          fillTicket: false,
+          notice: { level: 'warn', pt: note.pt, en: note.en },
+        });
+      }
+      return;
+    }
     const jev = jevNpcReply(current?.line.pt ?? '', text);
     const scored = this.services.npc.scoreTyped(sc.npc, sc.node, text, sc.ctx);
     if (scored.chip === null) {
@@ -691,6 +757,7 @@ export class World {
     }
     return this.applyChoice(s, sc, scored.chip, scored.task_success, 'type', text, jev);
   }
+
 
   private applyChoice(s: Session, sc: SceneState, chip: number, cap: 0 | 1 | 2 | 3, channel: 'chip' | 'type', typed?: string, jev?: JevNpcReplyAnswers) {
     const p = s.profile!;
@@ -712,19 +779,29 @@ export class World {
     sc.ctx = res.ctx;
     sc.shownAt = this.now();
     let payout: number | undefined;
+    let dailyBlocked = false;
     if (res.view.end) {
       this.rollDaily(p);
-      const clears = p.daily.sceneClears[sc.npc] ?? 0;
-      payout = scenePayout(sc.scores, clears);
-      p.daily.sceneClears[sc.npc] = clears + 1;
       s.scene = undefined;
       this.completeStep(s, 'carlos');
       this.missionStep(s, 'pede');
-      if (payout > 0) this.reward(s, payout, { pt: 'Café da manhã com o Seu Carlos', en: 'Breakfast with Seu Carlos' });
-      else s.send({ t: 'notice', level: 'info', pt: 'Seu Carlos: “Você já me ajudou muito hoje!”', en: 'Seu Carlos: “You’ve already helped me a lot today!” (daily cap reached)' });
+
+      // Pedido rápido RV: once per America/São_Paulo calendar day (fixes double-dip after Missão/prior Pedido)
+      const spDate = todaySaoPaulo();
+      const lastGrant = p.daily.pedidoRvGranted?.[sc.npc];
+      if (lastGrant === spDate) {
+        dailyBlocked = true;
+        payout = 0;
+      } else {
+        payout = scenePayout(sc.scores, 0);
+        if (!p.daily.pedidoRvGranted) p.daily.pedidoRvGranted = {};
+        p.daily.pedidoRvGranted[sc.npc] = spDate;
+        if (payout > 0) this.reward(s, payout, { pt: 'Café da manhã com o Seu Carlos', en: 'Breakfast with Seu Carlos' });
+      }
+      this.store.save();
     }
     const said = typed ? { pt: typed, en: res.said.pt } : res.said;
-    s.send({ t: 'scene', view: res.view, lastScore: res.score, feedback: SCORE_FEEDBACK[res.score], said, payout });
+    s.send({ t: 'scene', view: res.view, lastScore: res.score, feedback: SCORE_FEEDBACK[res.score], said, payout, dailyBlocked });
   }
 
   private rollDaily(p: StoredProfile) {
@@ -763,6 +840,7 @@ export class World {
       s.mg = undefined;
       return s.send({ t: 'notice', level: 'info', pt: 'Até a próxima, ajudante!', en: 'See you next time, helper!' });
     }
+    if (m.action === 'sync') return this.sendOrder(s, true);
     if (mg.waiting) return;
     const elapsed = this.now() - mg.orderAt;
     let ok = false;
@@ -780,7 +858,8 @@ export class World {
       }
       mg.lastSig = signature;
       timedOut = elapsed > mg.order.timeMs + 1500;
-      ok = !timedOut && checkTray(mg.order, tray, mods).ok;
+      const build = checkBuild(mg.order, tray, mods, m.built, { requireBuilt: true });
+      ok = !timedOut && build.ok;
     } else return;
     const cards = mg.order.lines.map((l) => mgItemById(l.itemId)!.card.id);
     this.services.student.record({
@@ -892,6 +971,8 @@ export class World {
       repeat: mg.repeated,
       points: mg.points,
       streak: mg.streak,
+      mods: mg.order.mods,
+      lines: mg.order.lines,
       ...(resync ? { resync: true } : {}),
     });
   }
@@ -899,6 +980,235 @@ export class World {
   /** Test hook: peek the current order (the client never receives item ids). */
   debugOrder(s: Session) {
     return s.mg?.order;
+  }
+
+  // ---------- Academia BJJ roll ----------
+
+  private clearRoll(s: Session) {
+    if (s.roll) s.roll = undefined;
+  }
+
+  private rollGame(s: Session, m: Extract<ClientMsg, { t: 'roll' }>): void {
+    const p = s.profile!;
+    if (m.action === 'queue') {
+      if (s.instance?.def.id !== 'academia')
+        return this.err(s, 'roll', 'A fila do tatame fica na academia.', 'The open-mat queue is in the academy.');
+      if (s.roll) return;
+      s.scene = undefined;
+      s.mg = undefined;
+      const rng = mulberry32((this.now() ^ (this.rng() * 1e9)) >>> 0);
+      const token = ++this.seq;
+      s.roll = {
+        rng,
+        token,
+        phase: 'queue',
+        queueAt: this.now(),
+        playerIdx: 0,
+        cpuIdx: 0,
+        round: 0,
+        used: [],
+        puzzleAt: 0,
+        timeMs: 0,
+        playerAnswered: false,
+        cpuAnswered: false,
+        playerCorrect: false,
+        cpuCorrect: false,
+        resolving: false,
+      };
+      s.send({ t: 'roll', phase: 'queue', waitMs: this.rollQueueMs, opponent: 'cpu' });
+      this.schedule(() => this.rollStartMatch(s, token), this.rollQueueMs);
+      return;
+    }
+    const roll = s.roll;
+    if (!roll) return;
+    if (m.action === 'cancel' || m.action === 'quit') {
+      this.clearRoll(s);
+      return s.send({ t: 'notice', level: 'info', pt: 'Saiu da fila. Até a próxima rola!', en: 'Left the queue. See you on the mat!' });
+    }
+    if (m.action === 'rematch') {
+      this.clearRoll(s);
+      return this.rollGame(s, { t: 'roll', action: 'queue' });
+    }
+    if (roll.phase === 'queue') return;
+    if (roll.resolving) return;
+    const puzzle = roll.puzzle;
+    if (!puzzle) return;
+
+    if (m.action === 'timeout') {
+      const elapsed = this.now() - roll.puzzleAt;
+      if (elapsed < roll.timeMs - 750) return;
+      if (!roll.playerAnswered) roll.playerCorrect = false;
+      roll.playerAnswered = true;
+      if (!roll.cpuAnswered) {
+        roll.cpuCorrect = cpuGetsIt(roll.rng);
+        roll.cpuAnswered = true;
+      }
+      return this.rollResolveDuel(s);
+    }
+
+    if (m.action === 'answer') {
+      let answer: RollAnswer;
+      if ('order' in m && Array.isArray(m.order)) answer = { kind: 'reorder', order: m.order.map((n) => Math.floor(Number(n))) };
+      else answer = { kind: 'choice', index: Math.floor(Number((m as { choice: number }).choice)) };
+      if (!roll.playerAnswered) {
+        roll.playerAnswered = true;
+        roll.playerCorrect = checkRollAnswer(puzzle, answer);
+      }
+      if (roll.cpuAnswered) return this.rollResolveDuel(s);
+      return;
+    }
+  }
+
+  private rollStartMatch(s: Session, token: number) {
+    const roll = s.roll;
+    if (!roll || roll.token !== token || roll.phase !== 'queue') return;
+    roll.phase = 'match';
+    s.send({ t: 'roll', phase: 'bow', line: rollBow() });
+    this.schedule(() => this.rollBeginDuel(s, token), 1400);
+  }
+
+  private rollBeginDuel(s: Session, token: number) {
+    const roll = s.roll;
+    if (!roll || roll.token !== token) return;
+    if (roll.round >= ROLL_MAX_DUELS) return this.rollFinish(s, 'decisao');
+    roll.round++;
+    roll.resolving = false;
+    roll.playerAnswered = false;
+    roll.cpuAnswered = false;
+    roll.playerCorrect = false;
+    roll.cpuCorrect = false;
+    const used = new Set(roll.used);
+    roll.puzzle = makeRollPuzzle(roll.rng, used);
+    roll.used.push(roll.puzzle.id);
+    roll.timeMs = rollPuzzleTimeMs(roll.rng);
+    roll.puzzleAt = this.now();
+    const view = toPuzzleView(roll.rng, roll.puzzle);
+    const pos = displayPosition(roll.playerIdx, roll.cpuIdx);
+    const debug = this.rollDebugHint(roll.puzzle);
+    s.send({
+      t: 'roll',
+      phase: 'duel',
+      round: roll.round,
+      maxRounds: ROLL_MAX_DUELS,
+      puzzle: view,
+      timeMs: roll.timeMs,
+      playerIdx: roll.playerIdx,
+      cpuIdx: roll.cpuIdx,
+      positionPt: pos.label.pt,
+      positionEn: pos.label.en,
+      submissionPt: pos.submissionHint?.pt ?? null,
+      submissionEn: pos.submissionHint?.en ?? null,
+      ...(debug !== undefined ? { debugCorrect: debug } : {}),
+    });
+    const puzzleId = roll.puzzle.id;
+    const cpuDelay = Math.min(roll.timeMs - 400, 1200 + Math.floor(roll.rng() * (roll.timeMs - 1600)));
+    this.schedule(() => {
+      const r = s.roll;
+      if (!r || r.token !== token || r.puzzle?.id !== puzzleId || r.resolving) return;
+      r.cpuAnswered = true;
+      r.cpuCorrect = cpuGetsIt(r.rng);
+      if (r.playerAnswered) this.rollResolveDuel(s);
+    }, Math.max(800, cpuDelay));
+    this.schedule(() => {
+      const r = s.roll;
+      if (!r || r.token !== token || r.puzzle?.id !== puzzleId || r.resolving) return;
+      if (!r.playerAnswered) {
+        r.playerAnswered = true;
+        r.playerCorrect = false;
+      }
+      if (!r.cpuAnswered) {
+        r.cpuAnswered = true;
+        r.cpuCorrect = cpuGetsIt(r.rng);
+      }
+      this.rollResolveDuel(s);
+    }, roll.timeMs + 200);
+  }
+
+  private rollDebugHint(puzzle: RollPuzzle): number | number[] | undefined {
+    if (!this.testRollHints) return undefined;
+    if (puzzle.kind === 'reorder' && puzzle.correctOrder) return puzzle.correctOrder;
+    return puzzle.correct;
+  }
+
+  private rollResolveDuel(s: Session) {
+    const roll = s.roll;
+    if (!roll || roll.resolving || !roll.playerAnswered || !roll.cpuAnswered) return;
+    roll.resolving = true;
+    const res = resolveDuel(roll.playerCorrect, roll.cpuCorrect, roll.playerIdx, roll.cpuIdx);
+    roll.playerIdx = res.playerIdx;
+    roll.cpuIdx = res.cpuIdx;
+    const pos = displayPosition(roll.playerIdx, roll.cpuIdx);
+    const scrambleLine: Bilingual =
+      res.advance === 'player'
+        ? { pt: 'Você passou a guarda!', en: 'You passed the guard!' }
+        : res.advance === 'cpu'
+          ? { pt: 'Eles avançaram — segura!', en: 'They advanced — hang on!' }
+          : { pt: 'Empate no scramble — mesma posição.', en: 'Scramble tie — same position.' };
+    s.send({
+      t: 'roll',
+      phase: 'scramble',
+      advance: res.advance,
+      line: scrambleLine,
+      playerIdx: roll.playerIdx,
+      cpuIdx: roll.cpuIdx,
+      positionPt: pos.label.pt,
+      positionEn: pos.label.en,
+    });
+    if (res.submission) {
+      this.schedule(() => this.rollFinish(s, 'submission', res.submission!), 1200);
+      return;
+    }
+    if (roll.round >= ROLL_MAX_DUELS) {
+      this.schedule(() => this.rollFinish(s, 'decisao'), 1200);
+      return;
+    }
+    this.schedule(() => this.rollBeginDuel(s, roll.token), 1500);
+  }
+
+  private rollFinish(s: Session, reason: 'submission' | 'decisao', submissionWinner?: 'player' | 'cpu') {
+    const roll = s.roll;
+    const p = s.profile!;
+    if (!roll) return;
+    let winner: 'player' | 'cpu' | 'draw';
+    if (reason === 'submission' && submissionWinner) winner = submissionWinner;
+    else {
+      const d = decisaoWinner(roll.playerIdx, roll.cpuIdx);
+      winner = d === 'draw' ? 'draw' : d;
+    }
+    const playerWon = winner === 'player';
+    const rv = playerWon ? ROLL_RV_WIN : winner === 'draw' ? ROLL_RV_LOSS : ROLL_RV_LOSS;
+    const bjj = normalizeBjj(p.bjj);
+    if (playerWon) {
+      bjj.wins++;
+      bjj.stripes = Math.max(bjj.stripes, stripesForWins(bjj.wins));
+    }
+    p.bjj = bjj;
+    this.store.save();
+    const line =
+      reason === 'submission' && winner !== 'draw'
+        ? rollTapLine(winner as 'player' | 'cpu')
+        : rollDecisaoLine(winner);
+    s.send({
+      t: 'roll',
+      phase: 'end',
+      winner,
+      reason,
+      rv,
+      bjj,
+      line,
+      fistBump: rollFistBump(),
+    });
+    this.reward(s, rv, {
+      pt: playerWon ? 'Duelo de português — vitória!' : 'Duelo de português na academia',
+      en: playerWon ? 'Portuguese duel — win!' : 'Academy Portuguese duel',
+    });
+    this.pushProfile(s);
+    this.clearRoll(s);
+  }
+
+  /** Test hook: current roll puzzle (answers stay server-side unless TB_TEST_ROLL). */
+  debugRollPuzzle(s: Session) {
+    return s.roll?.puzzle;
   }
 
   // ---------- daily kiosk (Missão do dia) ----------

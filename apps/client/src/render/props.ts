@@ -1287,6 +1287,236 @@ function estufa(ctx: Ctx, cx: number, cy: number) {
   label(ctx, 'SALGADOS', cx - 13, cy - 60, '#b5452e', '#fff', 7);
 }
 
+function tatameMat(ctx: Ctx, cx: number, cy: number, w: number, h: number) {
+  shadow(ctx, cx, cy, 44 * w, 20 * h, 0.28);
+  // Terracotta safety border framing the hero mat, just proud of the floor mats.
+  const [mx, my] = iso(((w - 1) * 0.92) / 2, ((h - 1) * 0.92) / 2);
+  box(ctx, cx + mx, cy + my, (w - 1) * 0.92 + 1.26, (h - 1) * 0.92 + 1.26, 4, TB_TERRACOTTA, 0, { left: '#a44a1e', right: '#8a3c16', stroke: 'rgba(44,44,44,0.45)' });
+  const light = '#3a8a5c';
+  const dark = '#2f5f7a';
+  for (let dx = 0; dx < w; dx++)
+    for (let dy = 0; dy < h; dy++) {
+      const [ox, oy] = iso(dx * 0.92, dy * 0.92);
+      const base = (dx + dy) % 2 ? dark : light;
+      box(ctx, cx + ox, cy + oy, 0.9, 0.9, 3, base, 2);
+      if (dx > 0) {
+        ctx.strokeStyle = 'rgba(30,50,40,0.35)';
+        ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(cx + ox - 6, cy + oy);
+        ctx.lineTo(cx + ox - 6, cy + oy - 10);
+        ctx.stroke();
+      }
+    }
+  ctx.font = `800 5.5px ${FONT_BODY}`;
+  ctx.fillStyle = 'rgba(255,255,255,0.22)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('ACADEMIA DO BAIRRO', cx, cy - Math.max(8, h * 3.5));
+}
+
+const TB_TERRACOTTA = '#C45C26';
+const TB_WOOD = '#8B5E3C';
+const TB_INK = '#2C2C2C';
+const TB_GREEN = '#2F5D50';
+const TB_MUSTARD = '#D4A017';
+const TB_CONCRETE = '#9A9A92';
+
+/**
+ * Run `draw` in a wall-aligned frame: x runs along the wall in screen px, y is screen-up height.
+ * `slope` is -0.5 for planes facing +x (the left wall), +0.5 for planes facing +y (the right wall).
+ */
+function onPlane(ctx: Ctx, ox: number, oy: number, slope: number, draw: () => void) {
+  ctx.save();
+  ctx.transform(1, slope, 0, 1, ox, oy);
+  draw();
+  ctx.restore();
+}
+
+function planeText(ctx: Ctx, text: string, x: number, y: number, size: number, color: string, weight = 900) {
+  ctx.font = `${weight} ${size}px ${FONT_BODY}`;
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y);
+}
+
+/** A belt draped over a peg: band across the board, knot, and two tails; black belt gets its red bar. */
+function draped(ctx: Ctx, x: number, y: number, w: number, color: string, black = false) {
+  const edge = color === '#f7f4ec' ? 'rgba(44,44,44,0.7)' : 'rgba(0,0,0,0.35)';
+  rrect(ctx, x - w / 2, y, w, 5, 2, color, edge, 0.8);
+  for (const [dx, len] of [[-3, 13], [3, 11]] as const) {
+    rrect(ctx, x + dx - 2, y + 3, 4, len, 1.5, color, edge, 0.8);
+    if (black) rrect(ctx, x + dx - 2, y + len - 4, 4, 4, 1, '#c23b2e');
+  }
+  rrect(ctx, x - 3.5, y - 1, 7, 7, 2, color, edge, 0.8);
+  circle(ctx, x, y - 3, 1.6, '#b8b0a2');
+}
+
+/** Parede de faixas — a wall-hung belt board over a cubby of folded gis, on the left wall. */
+function paredeFaixas(ctx: Ctx, cx: number, cy: number) {
+  const [wx, wy] = iso(-0.46, 0);
+  onPlane(ctx, cx + wx, cy + wy, -0.5, () => {
+    rrect(ctx, -27, -126, 58, 98, 4, 'rgba(58,34,22,0.22)');
+    rrect(ctx, -30, -130, 60, 98, 4, TB_WOOD, TB_INK, 1.4);
+    rrect(ctx, -26, -112, 52, 76, 2, '#efe0c6');
+    rrect(ctx, -30, -130, 60, 18, [4, 4, 0, 0], TB_GREEN, TB_INK, 1.4);
+    planeText(ctx, 'FAIXAS', 0, -121, 11, '#F5E6D3');
+    const belts: [string, boolean][] = [
+      ['#f7f4ec', false],
+      ['#2b5ba8', false],
+      ['#7a4fb0', false],
+      ['#6b3f24', false],
+      ['#2a2a2e', true],
+    ];
+    belts.forEach(([c, black], i) => draped(ctx, i % 2 ? 9 : -9, -106 + i * 13, 26, c, black));
+    ctx.fillStyle = 'rgba(255,240,210,0.35)';
+    ctx.fillRect(-26, -112, 3, 76);
+  });
+  // Cubby shelf on the floor under the board, with folded gis (white, blue, white).
+  const [bx, by] = iso(-0.26, 0);
+  shadow(ctx, cx + bx, cy + by, 30, 13, 0.26);
+  const shelf = box(ctx, cx + bx, cy + by, 0.44, 1.6, 26, TB_WOOD, 0, { left: '#9a6a45', right: '#6f4a2e', stroke: 'rgba(44,44,44,0.45)' });
+  for (let k = 1; k < 4; k++) {
+    const a = lerp2(shelf.S, shelf.E, k / 4);
+    poly(ctx, [[a[0] - 0.6, a[1]], [a[0] + 0.6, a[1]], [a[0] + 0.6, a[1] - 26], [a[0] - 0.6, a[1] - 26]], 'rgba(40,24,12,0.45)');
+  }
+  const gis = ['#fbf8f1', '#3f6ea8', '#fbf8f1'];
+  gis.forEach((c, i) => {
+    const [gx, gy] = iso(-0.26, -0.5 + i * 0.5);
+    for (let k = 0; k < 2; k++) box(ctx, cx + gx, cy + gy, 0.3, 0.34, 4, c, 26 + k * 4, { stroke: 'rgba(44,44,44,0.35)' });
+  });
+}
+
+/** Fila do tatame — a tall lectern clipboard facing the approach tile, with a big ROLAR plate. */
+function quadroFila(ctx: Ctx, cx: number, cy: number, t: number) {
+  shadow(ctx, cx, cy, 26, 12, 0.28);
+  box(ctx, cx, cy, 0.7, 0.44, 6, '#6f4a2e', 0, { stroke: 'rgba(44,44,44,0.45)' });
+  box(ctx, cx, cy, 0.14, 0.14, 62, TB_WOOD, 6, { stroke: 'rgba(44,44,44,0.45)' });
+  const [fx, fy] = iso(0, 0.1);
+  onPlane(ctx, cx + fx, cy + fy, 0.5, () => {
+    rrect(ctx, -23, -128, 50, 66, 4, 'rgba(58,34,22,0.25)');
+    rrect(ctx, -26, -132, 52, 66, 4, '#9a6a45', TB_INK, 1.4);
+    rrect(ctx, -22, -126, 44, 56, 2, '#fffdf7', 'rgba(44,44,44,0.35)', 0.8);
+    rrect(ctx, -9, -136, 18, 9, 2, TB_MUSTARD, TB_INK, 1);
+    planeText(ctx, 'FILA DO', 0, -118, 8, TB_INK);
+    planeText(ctx, 'TATAME', 0, -109, 9.5, TB_INK);
+    for (let i = 0; i < 3; i++) {
+      const y = -99 + i * 7;
+      circle(ctx, -15, y, 2.2, i === 0 ? '#3a8a5c' : '#fff', 'rgba(44,44,44,0.6)', 0.7);
+      rrect(ctx, -10, y - 1.2, i === 0 ? 26 : 20 - i * 3, 2.4, 1, 'rgba(44,44,44,0.45)');
+    }
+    const pulse = 0.5 + Math.sin(t * 2.4) * 0.5;
+    rrect(ctx, -19, -81, 38, 10, 5, '#3a8a5c');
+    circle(ctx, -13.5, -76, 1.8 + pulse * 0.8, '#d8f5c0');
+    planeText(ctx, 'ABERTO', 3, -76, 6.5, '#fff', 800);
+    // ROLAR plate on its own post above the board — the room's call to action.
+    rrect(ctx, -1.5, -150, 3, 16, 1, '#6f4a2e');
+    rrect(ctx, -26, -166, 52, 18, 5, 'rgba(58,34,22,0.3)');
+    rrect(ctx, -27, -168, 52, 18, 5, TB_TERRACOTTA, TB_INK, 1.4);
+    planeText(ctx, 'ROLAR', -1, -158.5, 11, '#F5E6D3');
+  });
+}
+
+function quadroFoto(ctx: Ctx, cx: number, cy: number) {
+  shadow(ctx, cx, cy, 18, 8, 0.2);
+  box(ctx, cx, cy, 0.3, 0.7, 42, '#8B5E3C', 8);
+  rrect(ctx, cx - 11, cy - 38, 22, 18, 2, '#d8cbb6', '#6a5040', 1);
+  rrect(ctx, cx - 9, cy - 36, 18, 14, 1, '#3a6f8c');
+  circle(ctx, cx - 3, cy - 30, 3, '#f5f2ea');
+  circle(ctx, cx + 4, cy - 28, 3, '#f5f2ea');
+  label(ctx, 'ACAD. DO BAIRRO', cx, cy - 48, '#2f4f6f', '#fff', 5);
+}
+
+/**
+ * Spectator bleacher: a front seat step at the default sit height (17, so seated avatars line up) and a
+ * taller back step with a rail, a towel and a squeeze bottle. Runs along the tile axis perpendicular to
+ * the seat's facing.
+ */
+function bancoEspectador(ctx: Ctx, cx: number, cy: number, dir: Dir = 'SW') {
+  const face: Record<Dir, [number, number]> = { SE: [1, 0], SW: [0, 1], NE: [0, -1], NW: [-1, 0] };
+  const [fx, fy] = face[dir];
+  const alongX = fy !== 0;
+  const L = 1.25;
+  const D = 0.42;
+  const ext = (a: number, d: number): [number, number] => (alongX ? [a, d] : [d, a]);
+  const wood = { left: '#9a6a45', right: '#6f4a2e', stroke: 'rgba(44,44,44,0.45)' };
+  const frame = { left: '#8e8a82', right: '#6e6a64', stroke: 'rgba(44,44,44,0.4)' };
+  const step = (k: number, lift: number) => {
+    const [ox, oy] = iso(-fx * D * k, -fy * D * k);
+    const x = cx + ox;
+    const y = cy + oy;
+    box(ctx, x, y, ...ext(L * 0.96, D * 0.9), lift - 4, TB_CONCRETE, 0, frame);
+    const top = box(ctx, x, y, ...ext(L, D), 4, TB_WOOD, lift - 4, wood).top;
+    woodTop(ctx, top, 20 + k);
+    return { x, y };
+  };
+  shadow(ctx, cx + iso(-fx * 0.2, -fy * 0.2)[0], cy + iso(-fx * 0.2, -fy * 0.2)[1], 42, 18, 0.26);
+  const steps = [
+    { k: 1, lift: 34 },
+    { k: 0, lift: 17 },
+  ];
+  if (fx + fy < 0) steps.reverse();
+  let back = { x: cx, y: cy };
+  for (const s of steps) {
+    const at = step(s.k, s.lift);
+    if (s.k === 1) {
+      back = at;
+      const [rx, ry] = iso(-fx * D * 0.45, -fy * D * 0.45);
+      for (const e of [-0.55, 0.55]) {
+        const [px, py] = iso(...ext(e, 0));
+        rrect(ctx, back.x + rx + px - 1.5, back.y + ry + py - 58, 3, 24, 1, '#5d5d66');
+      }
+      box(ctx, back.x + rx, back.y + ry, ...ext(L * 0.98, 0.06), 4, TB_TERRACOTTA, 54, { stroke: 'rgba(44,44,44,0.5)' });
+      // Mustard towel folded over the step edge + a squeeze bottle.
+      const [tx, ty] = iso(...ext(-0.3, 0));
+      box(ctx, back.x + tx, back.y + ty, ...ext(0.3, 0.34), 3, TB_MUSTARD, 34, { stroke: 'rgba(44,44,44,0.35)' });
+      const [qx, qy] = iso(...ext(0.32, 0));
+      rrect(ctx, back.x + qx - 3, back.y + qy - 48, 6, 12, 2.5, '#3aa6a0', 'rgba(44,44,44,0.5)', 0.8);
+      rrect(ctx, back.x + qx - 1.5, back.y + qy - 51, 3, 3, 1, '#fff');
+    }
+  }
+}
+
+/** Vestiário · alongamento — a bank of lockers on the left wall with a rolled stretch mat beside it. */
+function vestiario(ctx: Ctx, cx: number, cy: number) {
+  const [bx, by] = iso(-0.31, 0.2);
+  shadow(ctx, cx + bx, cy + by, 26, 12, 0.28);
+  const lk = box(ctx, cx + bx, cy + by, 0.34, 0.74, 80, '#7f97a8', 0, { top: '#9fb3c1', left: '#8aa1b2', right: '#6c8292', stroke: 'rgba(44,44,44,0.5)' });
+  const w = lk.E[0] - lk.S[0];
+  onPlane(ctx, lk.S[0], lk.S[1], -0.5, () => {
+    const dw = (w - 4) / 3;
+    for (let i = 0; i < 3; i++) {
+      const x0 = 2 + i * dw;
+      rrect(ctx, x0 + 0.6, -62, dw - 1.2, 56, 1.5, undefined, 'rgba(30,40,50,0.55)', 0.9);
+      for (let k = 0; k < 3; k++) rrect(ctx, x0 + 2.5, -57 + k * 3, dw - 5, 1.2, 0.5, 'rgba(30,40,50,0.45)');
+      rrect(ctx, x0 + dw - 3.5, -36, 2, 6, 1, i === 1 ? TB_MUSTARD : '#d8dde2');
+    }
+    rrect(ctx, 1, -77, w - 2, 12, 2, '#4a5560', TB_INK, 1);
+    planeText(ctx, 'VESTIÁRIO', w / 2, -71, 6.5, '#F5E6D3');
+  });
+  // Rolled stretch mat standing on end next to the lockers.
+  const [mx, my] = iso(0.08, 0.42);
+  shadow(ctx, cx + mx, cy + my, 8, 4, 0.3);
+  rrect(ctx, cx + mx - 5, cy + my - 38, 10, 38, 5, TB_TERRACOTTA, TB_INK, 1);
+  ellipse(ctx, cx + mx, cy + my - 36, 4.4, 2.2, '#e27a45');
+  ctx.strokeStyle = '#8a3c16';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.ellipse(cx + mx, cy + my - 36, 2.4, 1.1, 0, 0, Math.PI * 2);
+  ctx.stroke();
+}
+
+/** Scale a prop about its floor anchor. */
+function scaled(ctx: Ctx, cx: number, cy: number, s: number, draw: () => void) {
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(s, s);
+  ctx.translate(-cx, -cy);
+  draw();
+  ctx.restore();
+}
+
 export function drawProp(ctx: Ctx, p: PropDef, cx: number, cy: number, t: number, slice = 0, opts: { parrotAdopted?: boolean } = {}) {
   switch (p.kind) {
     case 'ipe':
@@ -1343,6 +1573,19 @@ export function drawProp(ctx: Ctx, p: PropDef, cx: number, cy: number, t: number
       return sacoLixo(ctx, cx, cy);
     case 'floreira':
       return floreira(ctx, cx, cy);
+    case 'tatame':
+      if (slice === 0) return tatameMat(ctx, cx, cy, p.w ?? 1, p.h ?? 1);
+      return;
+    case 'parede_faixas':
+      return paredeFaixas(ctx, cx, cy);
+    case 'quadro_fila':
+      return quadroFila(ctx, cx, cy, t);
+    case 'banco_espectador':
+      return bancoEspectador(ctx, cx, cy, p.seat ?? 'SW');
+    case 'vestiario':
+      return vestiario(ctx, cx, cy);
+    case 'quadro_foto':
+      return scaled(ctx, cx, cy, 1.5, () => quadroFoto(ctx, cx, cy));
   }
 }
 

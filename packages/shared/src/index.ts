@@ -14,3 +14,4 @@ export * from './protocol.js';
 export * from './ambiance.js';
 export * from './looks.js';
 export * from './conversa.js';
+export * from './academia.js';

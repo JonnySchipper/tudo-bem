@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { chooseChip, scenePayout, SCENE_NODE_IDS, SCENE_START, viewNode, type SceneCtx } from './carlos.js';
-import { AUTHORED_ORDERS, checkTray, makeOrder, mgPayout, MG_MAX_POINTS, mulberry32, sanitizeMods, sanitizeTray, linePt } from './meveum.js';
+import { AUTHORED_ORDERS, checkBuild, checkTray, makeOrder, mgPayout, MG_MAX_POINTS, mulberry32, orderTimeMs, sanitizeMods, sanitizeTray, linePt, mgPrepStation, mgPerfectBuilt } from './meveum.js';
 import { detectLang, glossPt } from './gloss.js';
 import { numberPt } from './numbers.js';
 import { buildGrid, canPlaceFurniture, ROOMS, isWalkable } from './rooms.js';
@@ -48,6 +48,17 @@ describe('Me vê um…', () => {
     expect(linePt({ itemId: 'pao_de_queijo', qty: 3 })).toBe('três pães de queijo');
   });
 
+  it('requires station prep when built units are sent', () => {
+    const order = { customer: 'x', pt: '', en: '', timeMs: 1, authored: false, mods: ['pra_viagem'], lines: [{ itemId: 'coxinha', qty: 1 }, { itemId: 'cafe', qty: 1 }] };
+    const tray = { coxinha: 1, cafe: 1 };
+    const built = mgPerfectBuilt(order);
+    expect(checkBuild(order, tray, ['pra_viagem'], built, { requireBuilt: true }).ok).toBe(true);
+    expect(checkBuild(order, tray, ['pra_viagem'], undefined, { requireBuilt: true }).prepMiss).toBe(true);
+    expect(checkBuild(order, tray, ['pra_viagem'], [{ itemId: 'coxinha', shelf: true, chapa: true, pack: true }, { itemId: 'cafe', shelf: true, pack: true }]).prepMiss).toBe(true);
+    expect(mgPrepStation('pao')).toBeNull();
+    expect(mgPrepStation('cafe')).toBe('bebidas');
+  });
+
   it('checks trays and modifiers exactly', () => {
     const order = { customer: 'x', pt: '', en: '', timeMs: 1, authored: false, mods: ['pra_viagem'], lines: [{ itemId: 'coxinha', qty: 2 }, { itemId: 'cafe', qty: 1 }] };
     expect(checkTray(order, { coxinha: 2, cafe: 1 }, ['pra_viagem']).ok).toBe(true);
@@ -66,6 +77,13 @@ describe('Me vê um…', () => {
   it('pays 8–20 RV', () => {
     expect(mgPayout(0)).toBe(8);
     expect(mgPayout(MG_MAX_POINTS)).toBe(20);
+  });
+
+  it('gives more time for big station-build tickets', () => {
+    const small = orderTimeMs([{ itemId: 'pao_na_chapa', qty: 1 }], []);
+    const big = orderTimeMs([{ itemId: 'pao_na_chapa', qty: 3 }, { itemId: 'cafe_com_leite', qty: 3 }], ['pra_viagem']);
+    expect(big).toBeGreaterThan(small * 2);
+    expect(big).toBeGreaterThanOrEqual(70_000);
   });
 
   it('never puts banned content in generated orders', () => {
@@ -158,6 +176,10 @@ describe('rooms + pathing', () => {
   });
 
   it('interpolates along paths', () => {
+    const gAcad = buildGrid(ROOMS.academia);
+    expect(isWalkable(gAcad, 1, 6)).toBe(true);
+    expect(ROOMS.praca.portals.some((p) => p.to === 'academia')).toBe(true);
+    expect(ROOMS.academia.portals.some((p) => p.to === 'praca')).toBe(true);
     const g = buildGrid(ROOMS.praca);
     const path = findPath(g, { x: 7, y: 9 }, { x: 9, y: 9 })!;
     expect(path.at(-1)).toEqual({ x: 9, y: 9 });

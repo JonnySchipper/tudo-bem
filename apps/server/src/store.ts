@@ -1,4 +1,4 @@
-import { freshMission, type PrivateProfile } from '@tudobem/shared';
+import { freshMission, normalizeBjj, type PrivateProfile } from '@tudobem/shared';
 
 export interface StoredProfile extends PrivateProfile {
   token: string;
@@ -11,11 +11,18 @@ export interface StoredProfile extends PrivateProfile {
     conversaClears?: Record<string, string>;
     /** Conversa RV already paid: npcId -> America/Sao_Paulo date. */
     conversaRvGranted?: Record<string, string>;
+    /** Pedido rápido RV already paid: npcId -> America/Sao_Paulo date. Once per calendar day. */
+    pedidoRvGranted?: Record<string, string>;
   };
   lastSeen: number;
 }
 
 export const today = () => new Date().toISOString().slice(0, 10);
+
+/** Get today's date in America/São_Paulo timezone (YYYY-MM-DD). */
+export function todaySaoPaulo(): string {
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
+}
 
 /** Where profiles persist. Node: JSON file. Browser solo mode: localStorage. Tests: none. */
 export interface PersistenceAdapter {
@@ -106,5 +113,5 @@ export class ProfileStore {
 export function toPrivate(p: StoredProfile): PrivateProfile {
   const { token: _t, ageGate18: _a, daily: _d, lastSeen: _l, ...rest } = p;
   const mission = p.mission?.date === today() ? p.mission : freshMission(today());
-  return structuredClone({ ...rest, mission });
+  return structuredClone({ ...rest, mission, bjj: normalizeBjj(p.bjj) });
 }

@@ -4,62 +4,28 @@ import {
   MISSION_COPY,
   MISSION_REWARD,
   MISSION_STEPS,
-  MG_ITEMS,
-  MG_MAX_TRAY,
-  MG_MODS,
-  mgModById,
   ROOMS,
   furnitureById,
   hatById,
   type Bilingual,
-  type MgServerMsg,
   type NpcDef,
   type PublicAvatar,
   type RoomId,
   type SceneView,
-  type Tray,
 } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi, ui, clear } from './dom';
 import { drawParrot, renderAvatarPreview } from '../render/avatar';
-import { foodIcon, hatIcon } from '../render/icons';
+import { hatIcon } from '../render/icons';
+export { MinigameUI } from './meveum-ui.js';
 import { furnitureIcon } from '../render/props';
 import { speak } from '../audio';
 import { icon } from '../art/ui';
 
 // ---------------------------------------------------------------- modal base
 
-let current: { el: HTMLElement; close: () => void; id: string } | null = null;
-
-export function closeModal() {
-  current?.close();
-}
-
-export function modalId() {
-  return current?.id ?? null;
-}
-
-export function openModal(id: string, content: HTMLElement, opts: { onClose?: () => void; clear?: boolean; dismissable?: boolean } = {}) {
-  closeModal();
-  const backdrop = h('div', { class: `backdrop ${opts.clear ? 'clear' : ''}`, 'data-modal': id });
-  backdrop.append(content);
-  const close = () => {
-    backdrop.remove();
-    document.removeEventListener('keydown', onKey);
-    if (current?.el === backdrop) current = null;
-    game.modalOpen = !!current;
-    opts.onClose?.();
-  };
-  const onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && opts.dismissable !== false) close();
-  };
-  document.addEventListener('keydown', onKey);
-  if (opts.dismissable !== false && !opts.clear) backdrop.addEventListener('mousedown', (e) => e.target === backdrop && close());
-  ui().append(backdrop);
-  current = { el: backdrop, close, id };
-  game.modalOpen = true;
-  return close;
-}
+export { closeModal, modalId, openModal } from './modal.js';
+import { closeModal, modalId, openModal } from './modal.js';
 
 const closeBtn = (close: () => void) => h('button', { class: 'close ghost', onclick: close, 'aria-label': 'Fechar' }, '✕');
 
@@ -108,7 +74,7 @@ export function closeDialogue() {
   dialogueEl = null;
   if (dialogueKey) document.removeEventListener('keydown', dialogueKey);
   dialogueKey = null;
-  game.modalOpen = !!current;
+  game.modalOpen = !!modalId();
 }
 
 export function showDialogue(o: DialogueOpts) {
@@ -389,246 +355,6 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
   });
 }
 
-// ---------------------------------------------------------------- Me vê um…
-
-export class MinigameUI {
-  private tray: Tray = {};
-  private mods = new Set<string>();
-  private modsEl = h('div', { class: 'mods', id: 'mg-mods' });
-  private order: Extract<MgServerMsg, { phase: 'order' }> | null = null;
-  private orderAt = 0;
-  private raf = 0;
-  private locked = false;
-  private close: () => void;
-  private ticket = h('div', { class: 'ticket', id: 'mg-ticket' });
-  private timer = h('div', { class: 'timer' }, h('div'));
-  private trayEl = h('div', { class: 'tray', id: 'mg-tray' });
-  private carlos = h('div', { class: 'carlos-says' });
-  private score = h('div', { class: 'score' });
-  private body: HTMLElement;
-  private panel: HTMLElement;
-  private timedOut = false;
-  /** Don't re-send a timeout the server just rejected as early — it would tight-loop. */
-  private timeoutNotBefore = 0;
-
-  constructor(private actions: { submit: (t: Tray, mods: string[]) => void; timeout: () => void; quit: () => void; again: () => void }) {
-    const shelves = h('div', { class: 'shelves', id: 'mg-shelves' });
-    MG_ITEMS.forEach((item, i) => {
-      const keyLabel = i < 9 ? String(i + 1) : ['0', '-', '='][i - 9] ?? '';
-      shelves.append(
-        h(
-          'button',
-          { onclick: () => this.add(item.id), 'data-item': item.id, title: item.card.gloss_en },
-          h('kbd', null, keyLabel),
-          h('img', { src: foodIcon(item.id), alt: '' }),
-          h('span', { class: 'pt' }, item.card.form),
-          en(item.card.gloss_en),
-        ),
-      );
-    });
-    this.body = h(
-      'div',
-      { class: 'mg-body' },
-      shelves,
-      h(
-        'div',
-        { class: 'side' },
-        this.carlos,
-        h('div', null, h('b', null, 'Bandeja'), en('Tray — click an item to remove it', true)),
-        this.trayEl,
-        this.modsEl,
-        h('div', { class: 'row' }, h('button', { onclick: () => this.clearTray() }, bi('Limpar', 'Clear')), h('span', { class: 'spacer' }), h('button', { class: 'green', onclick: () => this.submit(), id: 'mg-submit' }, bi('Entregar ✓', 'Serve (Enter)'))),
-        this.score,
-      ),
-    );
-    this.panel = h(
-      'div',
-      { class: 'panel mg', id: 'minigame' },
-      h(
-        'div',
-        { class: 'mg-head' },
-        h('h2', null, 'Me vê um…'),
-        en('Read the order, fill the tray, serve it! Carlos repeats once if you miss.', true),
-        h('span', { class: 'spacer' }),
-        h('button', { class: 'ghost', onclick: () => this.quit() }, '✕'),
-      ),
-      h('div', { class: 'rail' }, this.ticket, this.timer),
-      this.body,
-    );
-    this.close = openModal('minigame', this.panel, { dismissable: false, onClose: () => this.cleanup() });
-    document.addEventListener('keydown', this.onKey);
-    this.renderTray();
-    this.carlos.replaceChildren(h('b', null, 'Seu Carlos: '), '“Chegou cliente! Presta atenção no pedido.”', en('A customer is here! Pay attention to the order.'));
-  }
-
-  private onKey = (e: KeyboardEvent) => {
-    if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
-    const idx = e.key === '0' ? 9 : e.key === '-' ? 10 : e.key === '=' ? 11 : Number(e.key) - 1;
-    if (idx >= 0 && idx < MG_ITEMS.length && /^[0-9=-]$/.test(e.key)) this.add(MG_ITEMS[idx].id);
-    if (e.key === 'Enter' && !e.repeat) this.submit();
-    if (e.key === 'Backspace') this.clearTray();
-  };
-
-  private cleanup() {
-    cancelAnimationFrame(this.raf);
-    document.removeEventListener('keydown', this.onKey);
-  }
-
-  private add(id: string) {
-    if (this.locked || !this.order) return;
-    const total = Object.values(this.tray).reduce((a, b) => a + b, 0);
-    if (total >= MG_MAX_TRAY) return;
-    this.tray[id] = (this.tray[id] ?? 0) + 1;
-    this.renderTray();
-  }
-
-  private clearTray() {
-    if (this.locked) return;
-    this.tray = {};
-    this.mods.clear();
-    this.renderTray();
-  }
-
-  private toggleMod(id: string) {
-    if (this.locked || !this.order) return;
-    const mod = mgModById(id)!;
-    if (this.mods.has(id)) this.mods.delete(id);
-    else {
-      if (mod.group === 'where') for (const m of MG_MODS) if (m.group === 'where') this.mods.delete(m.id);
-      this.mods.add(id);
-    }
-    this.renderMods();
-  }
-
-  private renderMods() {
-    this.modsEl.replaceChildren(
-      ...MG_MODS.map((m) =>
-        h('button', { class: this.mods.has(m.id) ? 'on' : '', onclick: () => this.toggleMod(m.id), 'data-mod': m.id, 'aria-pressed': String(this.mods.has(m.id)) }, h('span', { class: 'pt' }, m.pt), en(m.en, true)),
-      ),
-    );
-  }
-
-  private renderTray() {
-    const entries = Object.entries(this.tray).filter(([, n]) => n > 0);
-    if (!entries.length) {
-      this.trayEl.replaceChildren(h('div', { class: 'empty' }, 'Bandeja vazia', en('Empty tray', true)));
-      return;
-    }
-    this.trayEl.replaceChildren(
-      ...entries.map(([id, n]) =>
-        h(
-          'button',
-          {
-            onclick: () => {
-              if (this.locked || !this.order) return;
-              this.tray[id]--;
-              if (this.tray[id] <= 0) delete this.tray[id];
-              this.renderTray();
-            },
-            title: 'Tirar / remove',
-          },
-          h('img', { src: foodIcon(id, 48), alt: id }),
-          h('span', null, `×${n}`),
-        ),
-      ),
-    );
-  }
-
-  private submit() {
-    if (this.locked || !this.order) return;
-    this.locked = true;
-    this.actions.submit({ ...this.tray }, [...this.mods]);
-  }
-
-  private quit() {
-    this.actions.quit();
-    this.close();
-  }
-
-  private tick = () => {
-    if (!this.order) return;
-    const left = Math.max(0, this.order.timeMs - (performance.now() - this.orderAt));
-    const f = left / this.order.timeMs;
-    const bar = this.timer.firstElementChild as HTMLElement;
-    bar.style.transform = `scaleX(${f})`;
-    this.timer.classList.toggle('low', f < 0.25);
-    if (left <= 0 && !this.locked && !this.timedOut && performance.now() >= this.timeoutNotBefore) {
-      this.timedOut = true;
-      this.locked = true;
-      this.actions.timeout();
-    }
-    this.raf = requestAnimationFrame(this.tick);
-  };
-
-  handle(m: MgServerMsg) {
-    if (m.phase === 'order') {
-      // Server echo of the ticket already on the rail (early timeout, or an accidental second submit).
-      // Unlock without wiping a partial tray or restarting the clock.
-      if (m.resync && this.order && this.order.round === m.round && this.order.pt === m.pt) {
-        this.order = m;
-        this.locked = false;
-        this.timedOut = false;
-        this.timeoutNotBefore = performance.now() + 1000;
-        return;
-      }
-      const keepTray = !!m.repeat && this.order?.round === m.round && this.order.pt === m.pt;
-      this.order = m;
-      this.orderAt = performance.now();
-      this.locked = false;
-      this.timedOut = false;
-      this.timeoutNotBefore = 0;
-      if (!keepTray) {
-        this.tray = {};
-        this.mods.clear();
-      }
-      this.renderTray();
-      this.renderMods();
-      this.ticket.className = `ticket ${m.repeat ? 'repeat' : ''}`;
-      this.ticket.dataset.round = String(m.round);
-      this.ticket.dataset.repeat = m.repeat ? '1' : '0';
-      this.ticket.replaceChildren(
-        h('div', { class: 'row' }, h('span', { class: 'customer' }, `Pedido ${m.round + 1}/${m.rounds} · ${m.customer}${m.repeat ? ' · de novo, devagar' : ''}`), h('span', { class: 'spacer' }), h('button', { class: 'speak-btn', onclick: () => speak(m.pt, { force: true, rate: 0.8 }) }, '🔊 Ouvir')),
-        h('div', { class: 'order', id: 'mg-order' }, m.pt),
-        en(m.en),
-      );
-      speak(m.pt, { rate: m.repeat ? 0.75 : 0.92 });
-      this.score.replaceChildren(h('span', null, `Pontos: ${m.points}`), m.streak >= 2 ? h('span', { class: 'combo' }, `Combo ×${m.streak}!`) : h('span'));
-      cancelAnimationFrame(this.raf);
-      this.raf = requestAnimationFrame(this.tick);
-    } else if (m.phase === 'result') {
-      this.carlos.replaceChildren(h('b', null, 'Seu Carlos: '), `“${m.carlos.pt}”`, en(m.carlos.en));
-      if (m.outcome !== 'repita') this.locked = true;
-      this.score.replaceChildren(h('span', null, `Pontos: ${m.points}`), m.streak >= 2 ? h('span', { class: 'combo' }, `Combo ×${m.streak}!`) : h('span'));
-      if (m.expected) {
-        this.carlos.append(
-          h(
-            'div',
-            { style: 'margin-top:6px;font-size:.85em' },
-            'Era: ',
-            ...m.expected.map((l) => h('span', { style: 'margin-right:6px' }, `${l.qty}× `, h('img', { src: foodIcon(l.itemId, 22), style: 'width:22px;height:22px;vertical-align:middle' }))),
-            ...(m.expectedMods ?? []).map((id) => h('span', { class: 'feedback', style: 'margin-left:4px' }, mgModById(id)?.pt ?? id)),
-          ),
-        );
-      }
-    } else {
-      cancelAnimationFrame(this.raf);
-      this.order = null;
-      this.ticket.replaceChildren(h('div', { class: 'order' }, 'Fim do turno!'), en('Shift over!'));
-      this.body.replaceChildren(
-        h(
-          'div',
-          { class: 'mg-end', style: 'grid-column:1/-1', id: 'mg-end' },
-          h('div', { class: 'big' }, `+${m.coins} RV`),
-          h('p', null, h('b', null, `${m.perfect}/${m.rounds} pedidos perfeitos · ${m.points} pontos`), en(`${m.perfect} of ${m.rounds} perfect orders`)),
-          h('p', null, h('b', null, 'Seu Carlos: '), `“${m.carlos.pt}”`, en(m.carlos.en)),
-          h('div', { class: 'row', style: 'justify-content:center' }, h('button', { onclick: () => this.close() }, bi('Sair', 'Leave')), h('button', { class: 'primary', onclick: () => (this.close(), this.actions.again()) }, bi('Jogar de novo', 'Play again'))),
-        ),
-      );
-      speak(m.carlos.pt);
-    }
-  }
-}
-
 // ---------------------------------------------------------------- map
 
 export function openMap(go: (room: RoomId) => void) {
@@ -652,6 +378,7 @@ export function openMap(go: (room: RoomId) => void) {
         { class: 'map-grid' },
         card('praca', 'Praça Central', 'Central Square — hang out, hats, parrot', 'linear-gradient(135deg,#e5572f,#f2c230)'),
         card('padaria', 'Padaria do Seu Carlos', 'Bakery — breakfast + “Me vê um…”', 'linear-gradient(135deg,#b5452e,#e8a94f)'),
+        card('academia', 'Academia do Bairro', 'Word-game roll — academy Portuguese (not real MA training)', 'linear-gradient(135deg,#2f5f7a,#8ab4c8)'),
         card('kitnet', 'Minha kitnet', 'My studio apartment — decorate', 'linear-gradient(135deg,#F5E6D3 45%,#A8C5D4)', false, true),
         card(null, 'Feira', 'Street market (Phase 1)', '', true),
         card(null, 'Estação de Metrô', 'Subway (Phase 1)', '', true),

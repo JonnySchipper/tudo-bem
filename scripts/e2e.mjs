@@ -125,6 +125,24 @@ async function trayFor(page, orderText) {
   return { tray, mods };
 }
 
+const MG_PREP = {
+  chapa: new Set(['pao_na_chapa', 'misto_quente', 'pastel', 'coxinha']),
+  bebidas: new Set(['cafe', 'cafe_com_leite', 'suco_de_laranja', 'agua', 'guarana']),
+};
+const MOD_IDS = { 'pra viagem': 'pra_viagem', 'pra comer aqui': 'pra_comer_aqui', 'sem açúcar': 'sem_acucar', 'bem quente': 'bem_quente' };
+
+async function buildTrayItem(page, itemId, needsPack, coffeeMods) {
+  const wipBusy = await page.locator('#mg-wip img').isVisible();
+  if (!wipBusy) await page.click(`#mg-shelves [data-item="${itemId}"]`);
+  if (MG_PREP.chapa.has(itemId)) await page.click('#mg-station-chapa .station-go');
+  if (MG_PREP.bebidas.has(itemId)) {
+    for (const m of coffeeMods) await page.click(`#mg-mods [data-mod="${MOD_IDS[m]}"]`);
+    await page.click('#mg-station-bebidas .station-go');
+  }
+  if (needsPack) await page.click('#mg-station-pack .station-go');
+  await page.click('#mg-tray-place');
+}
+
 async function main() {
   assert(CHROME, 'Chrome/Chromium not found — set CHROME_PATH');
   console.log(`\nTudo Bem e2e → ${BASE}`);
@@ -277,23 +295,33 @@ async function main() {
   await page.waitForSelector('[data-action="pedido-rapido"]', { state: 'visible', timeout: 5_000 });
   await shot(page, '04_carlos_conversa');
   await page.click('[data-action="pedido-rapido"]');
-  await page.waitForSelector('#dialogue [data-chip="0"]', { timeout: 12_000 });
+  await page.waitForSelector('[data-modal="pedido"] .pedido-panel', { timeout: 12_000 });
   assert(!(await page.$('[data-modal="conversa"]')), 'Pedido rápido closes Conversa');
+  assert(await page.$('[data-modal="pedido"] #pedido-ticket'), 'Pedido rápido has ticket visual');
+  assert(await page.$('[data-modal="pedido"] .speak-btn'), 'Pedido rápido has speak button on Carlos line');
   await sleep(300);
   await shot(page, '04_carlos_scene_start');
   // First reply is typed (accept-list scoring), the rest are chips.
   const picks = ['Bom dia, Seu Carlos!', 1, 0, 0, 1];
   for (let i = 0; i < picks.length; i++) {
-    const before = await page.textContent('#dialogue .line');
+    const before = await page.textContent('[data-modal="pedido"] .line-bubble .pt');
     await dwell(1600);
     if (typeof picks[i] === 'string') {
-      await page.fill('#scene-type', picks[i]);
-      await page.press('#scene-type', 'Enter');
-    } else await page.click(`#dialogue [data-chip="${picks[i]}"]`);
-    await waitFor(page, (b) => document.querySelector('#dialogue .line')?.textContent !== b, before, 5000, 'next Carlos line');
-    if (i === 2) await shot(page, '05_carlos_scene_mid');
+      await page.fill('#pedido-input', picks[i]);
+      await page.press('#pedido-input', 'Enter');
+    } else await page.click(`[data-modal="pedido"] [data-chip="${picks[i]}"]`);
+    await waitFor(page, (b) => document.querySelector('[data-modal="pedido"] .line-bubble .pt')?.textContent !== b, before, 5000, 'next Carlos line');
+    if (i === 2) {
+      // Verify ticket items are filling in
+      const filledItems = await page.$$eval('.ticket-item.filled', els => els.length);
+      assert(filledItems >= 1, `ticket items filling in (${filledItems} filled)`);
+      await shot(page, '05_carlos_scene_mid');
+    }
   }
-  await page.waitForSelector('#btn-play-mg');
+  await page.waitForSelector('#btn-pedido-play-mg');
+  // Verify payout is shown
+  const payoutEl = await page.$('.pedido-payout');
+  assert(payoutEl, 'scene end shows RV payout');
   await shot(page, '06_carlos_scene_end');
   await dwell(2200);
   const afterScene = await profile(page);
@@ -301,7 +329,7 @@ async function main() {
   assert(afterScene.tutorial.carlos, 'carlos step');
 
   // 5. Me vê um… minigame
-  await page.click('#btn-play-mg');
+  await page.click('#btn-pedido-play-mg');
   await page.waitForSelector('#mg-order');
   const forms = await page.evaluate(() => [...document.querySelectorAll('#mg-shelves button')].map((b) => ({ id: b.dataset.item, form: b.querySelector('.pt').textContent })));
   const plurals = {
@@ -326,13 +354,15 @@ async function main() {
     if (!items) throw new Error(`could not parse Me vê um order: ${text}`);
     log(`order ${round + 1}: “${text}” →`, JSON.stringify(tray), mods.join(', '));
     await dwell(round < 2 ? 1400 : 700);
-    for (const [id, n] of Object.entries(tray)) for (let k = 0; k < n; k++) await page.click(`#mg-shelves [data-item="${id}"]`);
-    const modIds = { 'pra viagem': 'pra_viagem', 'pra comer aqui': 'pra_comer_aqui', 'sem açúcar': 'sem_acucar', 'bem quente': 'bem_quente' };
-    for (const m of mods) await page.click(`#mg-mods [data-mod="${modIds[m]}"]`);
+    const needsPack = mods.some((m) => m.startsWith('pra '));
+    const coffeeMods = mods.filter((m) => m === 'sem açúcar' || m === 'bem quente');
+    const whereMods = mods.filter((m) => m.startsWith('pra '));
+    for (const m of whereMods) await page.click(`#mg-mods [data-mod="${MOD_IDS[m]}"]`);
+    for (const [id, n] of Object.entries(tray)) for (let k = 0; k < n; k++) await buildTrayItem(page, id, needsPack, coffeeMods);
     if (round === 2) await shot(page, '07_meveum_tray');
     await page.click('#mg-submit');
   }
-  await page.waitForSelector('#mg-end', { timeout: 8000 });
+  await page.waitForSelector('#mg-end', { timeout: 20_000 });
   await sleep(300);
   await shot(page, '08_meveum_end');
   await dwell(2200);
@@ -344,6 +374,30 @@ async function main() {
     log('mission complete: Cumprimenta ✓ Pede ✓ Monta ✓');
   } else assert(afterMg.mission?.steps.pede && afterMg.mission?.steps.monta, 'mission: Pede + Monta');
   await page.click('#mg-end button:has-text("Sair")');
+
+  // 5b. Test daily RV gate: second Pedido rápido same day → 0 RV, "já pediu hoje" message
+  const coinsBeforeSecond = (await profile(page)).coins;
+  await clickTile(page, 3, 1, 50);
+  await page.waitForSelector('[data-modal="conversa"] .conversa-panel', { timeout: 12_000 });
+  await page.click('[data-action="pedido-rapido"]');
+  await page.waitForSelector('[data-modal="pedido"] .pedido-panel', { timeout: 12_000 });
+  // Quick path through Pedido rápido again
+  const picks2 = [0, 0, 0, 0, 0];
+  for (let i = 0; i < picks2.length; i++) {
+    const before2 = await page.textContent('[data-modal="pedido"] .line-bubble .pt');
+    await page.click(`[data-modal="pedido"] [data-chip="${picks2[i]}"]`);
+    await waitFor(page, (b) => document.querySelector('[data-modal="pedido"] .line-bubble .pt')?.textContent !== b, before2, 5000, 'next Carlos line (2nd)');
+  }
+  await page.waitForSelector('#btn-pedido-play-mg');
+  // Should show daily blocked message instead of payout
+  const dailyBlocked = await page.$('.daily-blocked');
+  const payoutEl2 = await page.$('.pedido-payout');
+  assert(dailyBlocked || !payoutEl2, 'second Pedido same day: daily blocked or no payout');
+  await shot(page, '05c_daily_rv_gate');
+  const coinsAfterSecond = (await profile(page)).coins;
+  assert(coinsAfterSecond === coinsBeforeSecond, `second Pedido same day: 0 RV (before ${coinsBeforeSecond}, after ${coinsAfterSecond})`);
+  log('daily RV gate ok: second Pedido same day → 0 RV');
+  await page.keyboard.press('Escape');
 
   // 6. Back to the praça via the door, buy + equip a hat at Nanda's stall
   await clickTile(page, 0, 6, 40);
@@ -381,6 +435,53 @@ async function main() {
   await sleep(400);
   await shot(page, '10_praca_hat_parrot');
   await dwell(1500);
+
+  // 6b. Academia do Bairro — enter + one CPU roll duel (TB_TEST_ROLL + ROLL_QUEUE_MS on server)
+  await clickTile(page, 10, 0, 40);
+  await waitFor(page, () => window.__tb.game.room?.room === 'academia', null, 15_000, 'academia');
+  await waitFor(
+    page,
+    () => document.querySelector('.topbar .room')?.textContent?.includes('Academia do Bairro'),
+    null,
+    5000,
+    'academia header name',
+  );
+  await sleep(500);
+  await shot(page, '09b_academia');
+  await page.evaluate(() => window.__tb.net.send({ t: 'roll', action: 'queue' }));
+  await page.waitForSelector('[data-modal="roll"]', { timeout: 15_000 });
+  await waitFor(page, () => document.querySelector('#roll-duel'), null, 20_000, 'roll duel');
+  await shot(page, '09b2_roll_duel');
+  const solveOnce = async () => {
+    const ok = await page.evaluate(() => {
+      const raw = document.querySelector('#roll-duel')?.getAttribute('data-debug');
+      if (!raw) return false;
+      const hint = JSON.parse(raw);
+      if (Array.isArray(hint)) window.__tb.net.send({ t: 'roll', action: 'answer', order: hint });
+      else window.__tb.net.send({ t: 'roll', action: 'answer', choice: hint });
+      return true;
+    });
+    if (!ok) throw new Error('roll debug hint missing — start server with TB_TEST_ROLL=1');
+    await sleep(400);
+  };
+  let lastPid = '';
+  for (let i = 0; i < 55 && !(await page.$('#roll-end')); i++) {
+    const duel = await page.$('#roll-duel');
+    if (duel) {
+      const pid = await duel.getAttribute('data-puzzle-id');
+      if (pid && pid !== lastPid) {
+        lastPid = pid;
+        await solveOnce();
+      }
+    }
+    await sleep(2500);
+  }
+  await page.waitForSelector('#roll-end', { timeout: 45_000 });
+  await shot(page, '09c_roll_end');
+  await page.click('#roll-end button:has-text("Sair")');
+  await clickTile(page, 0, 6, 50);
+  await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 15_000, 'back from academia');
+  log('academia CPU roll path ok');
 
   // 7. Kitnet: place the free chair
   await clickTile(page, 0, 4, 40);

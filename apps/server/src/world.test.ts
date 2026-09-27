@@ -1,5 +1,23 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { buildGrid, CPU_NAMES, DEFAULT_APPEARANCE, ECONOMY, isCpuId, isWalkable, MISSION_REWARD, mulberry32, ROOMS, SCORE_FEEDBACK, TYPED_MISS_HINT, type ServerMsg, type ClientMsg, type PublicAvatar } from '@tudobem/shared';
+import {
+  buildGrid,
+  CPU_NAMES,
+  DEFAULT_APPEARANCE,
+  ECONOMY,
+  ROLL_RV_WIN,
+  isCpuId,
+  isWalkable,
+  MISSION_REWARD,
+  mgBuiltForTray,
+  mgPerfectBuilt,
+  mulberry32,
+  ROOMS,
+  SCORE_FEEDBACK,
+  TYPED_MISS_HINT,
+  type ServerMsg,
+  type ClientMsg,
+  type PublicAvatar,
+} from '@tudobem/shared';
 import { sanitizeAppearance, World, MG_RESUME_MS, type Session, type WorldOptions } from './world.js';
 import { ProfileStore } from './store.js';
 import { AuthoredNpcDialogue, MemoryModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
@@ -9,9 +27,13 @@ const now = () => clock;
 const pending: { fn: () => void; at: number }[] = [];
 function advance(ms: number) {
   clock += ms;
-  for (const p of pending.splice(0)) {
-    if (p.at <= clock) p.fn();
-    else pending.push(p);
+  for (let guard = 0; guard < 200; guard++) {
+    const ready = pending.filter((p) => p.at <= clock);
+    if (!ready.length) break;
+    for (const p of ready) {
+      pending.splice(pending.indexOf(p), 1);
+      p.fn();
+    }
   }
 }
 
@@ -158,6 +180,24 @@ describe('World', () => {
     expect(student.log.at(-1)).toMatchObject({ channel: 'type', score: 3, jev: { constitution_ok: true, language: 'pt' } });
   });
 
+  it('Gate A warn on typed Pedido echoes verbatim without advancing or scoring the order', async () => {
+    const { world, moderation, student } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'scene', action: 'start', npc: 'carlos' });
+    const node = a.last('scene')!.view.nodeId;
+    const line = 'Essa coxinha tá gostosa!';
+    await a.send({ t: 'scene', action: 'type', text: line });
+    const scene = a.last('scene')!;
+    expect(scene.view.nodeId).toBe(node);
+    expect(scene.said).toEqual({ pt: line, en: '' });
+    expect(scene.fillTicket).toBe(false);
+    expect(scene.notice?.level).toBe('warn');
+    expect(scene.lastScore).toBeUndefined();
+    expect(student.log.filter((e) => e.channel === 'type').length).toBe(0);
+    expect(moderation.recent(3).some((e) => e.kind === 'warn')).toBe(true);
+  });
+
   it('points a typed Pedido rápido miss at Conversa instead of the chip miss line', async () => {
     const { world } = makeWorld();
     const a = await client(world);
@@ -212,7 +252,7 @@ describe('World', () => {
       const order = world.debugOrder(a.s)!;
       const tray = Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty]));
       clock += 1000;
-      await a.send({ t: 'mg', action: 'submit', tray, mods: order.mods });
+      await a.send({ t: 'mg', action: 'submit', tray, mods: order.mods, built: mgPerfectBuilt(order) });
     }
     const end = a.last('mg') as Extract<ServerMsg, { t: 'mg'; phase: 'end' }>;
     expect(end.phase).toBe('end');
@@ -233,6 +273,47 @@ describe('World', () => {
     expect(Object.values(p.tutorial).every(Boolean)).toBe(true);
     expect(p.tutorialRewarded).toBe(true);
     expect(p.coins).toBe(start + ECONOMY.sceneMax + ECONOMY.minigameMax - 12 + ECONOMY.tutorialBonus);
+  });
+
+  it('Pedido rápido daily RV gate: once per America/São_Paulo calendar day', async () => {
+    const { world } = makeWorld();
+    const a = await client(world, 'Ana', 'ela');
+
+    // First Pedido rápido: should get RV
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'scene', action: 'start', npc: 'carlos' });
+    for (let i = 0; i < 5; i++) await a.send({ t: 'scene', action: 'choose', chip: 0 });
+    const first = a.last('scene')!;
+    expect(first.view.end).toBe(true);
+    expect(first.payout).toBe(ECONOMY.sceneMax);
+    expect(first.dailyBlocked).toBeFalsy();
+    const coinsAfterFirst = a.s.profile!.coins;
+
+    // Second Pedido rápido same day: should get 0 RV and dailyBlocked flag
+    await a.send({ t: 'scene', action: 'start', npc: 'carlos' });
+    for (let i = 0; i < 5; i++) await a.send({ t: 'scene', action: 'choose', chip: 0 });
+    const second = a.last('scene')!;
+    expect(second.view.end).toBe(true);
+    expect(second.payout).toBe(0);
+    expect(second.dailyBlocked).toBe(true);
+    expect(a.s.profile!.coins).toBe(coinsAfterFirst);
+  });
+
+  it('rejects a correct tray without station-built units (no shelf→tray bypass)', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'mg', action: 'start' });
+    const order = world.debugOrder(a.s)!;
+    clock += 1000;
+    await a.send({
+      t: 'mg',
+      action: 'submit',
+      tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])),
+      mods: order.mods,
+    });
+    expect(a.all('mg').at(-2)).toMatchObject({ phase: 'result', outcome: 'repita' });
+    expect(a.s.mg!.repeated).toBe(true);
   });
 
   it('Carlos repeats once on a wrong tray, then moves on', async () => {
@@ -259,19 +340,19 @@ describe('World', () => {
     for (let r = 0; r < 2; r++) {
       const order = world.debugOrder(a.s)!;
       clock += 1000;
-      await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods });
+      await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods, built: mgPerfectBuilt(order) });
     }
     expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 2 });
     const mid = world.debugOrder(a.s)!;
     const partial = { [mid.lines[0]!.itemId]: 1 };
     clock += 1000;
-    await a.send({ t: 'mg', action: 'submit', tray: partial });
+    await a.send({ t: 'mg', action: 'submit', tray: partial, built: mgBuiltForTray(mid, partial) });
     expect(a.all('mg').at(-2)).toMatchObject({ phase: 'result', outcome: 'repita', round: 2 });
     expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 2, repeat: true });
 
     // Double-click / empty tray in the same beat as the repeat must not burn it.
     await a.send({ t: 'mg', action: 'submit', tray: {} });
-    await a.send({ t: 'mg', action: 'submit', tray: partial });
+    await a.send({ t: 'mg', action: 'submit', tray: partial, built: mgBuiltForTray(mid, partial) });
     expect(world.debugOrder(a.s)!.pt).toBe(mid.pt);
     expect(a.s.mg!.round).toBe(2);
     expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 2, repeat: true, resync: true });
@@ -279,7 +360,7 @@ describe('World', () => {
 
     // A real correction still inside the grace window scores and advances with a new ticket.
     clock += 50;
-    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(mid.lines.map((l) => [l.itemId, l.qty])), mods: mid.mods });
+    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(mid.lines.map((l) => [l.itemId, l.qty])), mods: mid.mods, built: mgPerfectBuilt(mid) });
     expect(a.all('mg').filter((m) => m.phase === 'result').at(-1)).toMatchObject({ outcome: 'segunda', round: 2 });
     expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 3 });
     expect(a.all('mg').at(-1)).not.toMatchObject({ pt: mid.pt });
@@ -297,7 +378,7 @@ describe('World', () => {
     expect(a.s.mg!.round).toBe(0);
     clock += 1000;
     const order = world.debugOrder(a.s)!;
-    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods });
+    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods, built: mgPerfectBuilt(order) });
     expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 1 });
   });
 
@@ -331,6 +412,7 @@ describe('World', () => {
       action: 'submit',
       tray: Object.fromEntries(mid.lines.map((l) => [l.itemId, l.qty])),
       mods: mid.mods,
+      built: mgPerfectBuilt(mid),
     });
     expect(b.all('mg').filter((m) => m.phase === 'result').at(-1)).toMatchObject({ outcome: 'segunda', round: 0 });
     expect(b.last('mg')).toMatchObject({ phase: 'order', round: 1 });
@@ -349,6 +431,7 @@ describe('World', () => {
       action: 'submit',
       tray: Object.fromEntries(first.lines.map((l) => [l.itemId, l.qty])),
       mods: first.mods,
+      built: mgPerfectBuilt(first),
     });
     expect(a.s.mg).toMatchObject({ waiting: true, round: 1 });
     const token = a.s.profile!.token;
@@ -382,6 +465,17 @@ describe('World', () => {
     expect(b.s.mg).toBeUndefined();
   });
 
+  it('mg sync re-sends the open ticket with resync', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'mg', action: 'start' });
+    const pt = world.debugOrder(a.s)!.pt;
+    a.inbox.length = 0;
+    await a.send({ t: 'mg', action: 'sync' });
+    expect(a.last('mg')).toMatchObject({ phase: 'order', round: 0, resync: true, pt });
+  });
+
   it('a second hello resumes the open ticket instead of deleting it', async () => {
     const { world } = makeWorld();
     const a = await client(world);
@@ -412,7 +506,7 @@ describe('World', () => {
     a.s.mg!.served = undefined;
     const order = world.debugOrder(a.s)!;
     clock += 1000;
-    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods });
+    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods, built: mgPerfectBuilt(order) });
     expect(a.all('mg').at(-2)).toMatchObject({ phase: 'result', outcome: 'perfeito', round: 0 });
     expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 1 });
     expect(world.debugOrder(a.s)!.pt.length).toBeGreaterThan(0);
@@ -604,7 +698,7 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
     await a.send({ t: 'mg', action: 'start' });
     const order = world.debugOrder(a.s)!;
     clock += 1000;
-    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods });
+    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods, built: mgPerfectBuilt(order) });
     const m = a.s.profile!.mission!;
     expect(m.steps).toEqual({ cumprimenta: true, pede: true, monta: true });
     expect(m.rewarded).toBe(true);
@@ -614,7 +708,7 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
     // A second correct order doesn't pay again.
     const o2 = world.debugOrder(a.s)!;
     clock += 1000;
-    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(o2.lines.map((l) => [l.itemId, l.qty])), mods: o2.mods });
+    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(o2.lines.map((l) => [l.itemId, l.qty])), mods: o2.mods, built: mgPerfectBuilt(o2) });
     expect(a.all('reward').filter((r) => r.amount === MISSION_REWARD).length).toBe(1);
   });
 
@@ -649,5 +743,45 @@ describe('pushProfileById', () => {
     world.pushProfileById(a.s.profile!.id);
     expect(a.last('profile')!.profile.coins).toBe(77);
     expect(a.last('profile')!.profile.id).toBe(a.s.profile!.id);
+  });
+
+  it('plays a CPU roll in the Academia through queue → duel → end', async () => {
+    const { world } = makeWorld(16, {
+      rollQueueMs: 0,
+      testRollHints: true,
+      schedule: (fn) => {
+        pending.push({ fn, at: clock });
+      },
+    });
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'academia' });
+    expect(a.last('roomState')!.room).toBe('academia');
+    expect(a.last('roomState')!.instanceName).toMatch(/^Academia do Bairro/);
+    const coins0 = a.s.profile!.coins;
+    await a.send({ t: 'roll', action: 'queue' });
+    expect(a.all('roll').some((m) => m.phase === 'queue')).toBe(true);
+    advance(1);
+    advance(5000);
+    const answerDuel = async (duel: Extract<ServerMsg, { t: 'roll'; phase: 'duel' }>) => {
+      const hint = duel.debugCorrect;
+      if (duel.puzzle.kind === 'reorder' && Array.isArray(hint)) await a.send({ t: 'roll', action: 'answer', order: hint });
+      else await a.send({ t: 'roll', action: 'answer', choice: hint as number });
+    };
+    let duel = a.all('roll').find((m) => m.phase === 'duel') as Extract<ServerMsg, { t: 'roll'; phase: 'duel' }> | undefined;
+    expect(duel).toBeTruthy();
+    await answerDuel(duel!);
+    for (let i = 0; i < 40 && !a.all('roll').some((m) => m.phase === 'end'); i++) {
+      advance(2500);
+      const next = a.all('roll').filter((m) => m.phase === 'duel').at(-1) as Extract<ServerMsg, { t: 'roll'; phase: 'duel' }> | undefined;
+      if (next && next.round !== duel?.round) {
+        duel = next;
+        await answerDuel(duel);
+      }
+    }
+    const end = a.last('roll') as Extract<ServerMsg, { t: 'roll'; phase: 'end' }>;
+    expect(end?.phase).toBe('end');
+    expect(end.rv).toBeGreaterThanOrEqual(5);
+    expect(a.s.profile!.bjj?.belt).toBe('branca');
+    if (end.winner === 'player') expect(a.s.profile!.coins).toBeGreaterThanOrEqual(coins0 + ROLL_RV_WIN - 1);
   });
 });

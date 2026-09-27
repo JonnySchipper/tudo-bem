@@ -388,7 +388,7 @@ function roomAssets(): ArtAsset[] {
           propTiles(p).forEach((t, i) => {
             if (!SLICED_PROPS.has(p.kind) && i > 0) return;
             const c = tileCenter(SLICED_PROPS.has(p.kind) ? t.x : p.x, SLICED_PROPS.has(p.kind) ? t.y : p.y);
-            const d = SLICED_PROPS.has(p.kind) ? t.x + t.y : p.x + (p.w ?? 1) - 1 + p.y + (p.h ?? 1) - 1;
+            const d = p.kind === 'tatame' ? -1 : SLICED_PROPS.has(p.kind) ? t.x + t.y : p.x + (p.w ?? 1) - 1 + p.y + (p.h ?? 1) - 1;
             items.push({ d, f: () => drawProp(ctx, p, c.sx, c.sy, 0.3, i) });
           });
         }
