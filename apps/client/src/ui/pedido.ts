@@ -4,11 +4,12 @@
  * Distinct from Conversa mesa and Me vê um… tray game.
  */
 import type { Bilingual, SceneView } from '@tudobem/shared';
-import { SCORE_FEEDBACK } from '@tudobem/shared';
+import { ROOMS, SCORE_FEEDBACK } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi, ui } from './dom';
 import { renderAvatarPreview } from '../render/avatar';
 import { speak } from '../audio';
+import { ticketLinesFromSaid, type TicketLine } from './pedido-ticket';
 
 interface PedidoState {
   view: SceneView;
@@ -20,12 +21,6 @@ interface PedidoState {
   dailyBlocked?: boolean;
 }
 
-interface TicketLine {
-  kind: 'food' | 'drink' | 'where' | 'pay';
-  pt: string;
-  en: string;
-}
-
 let state: PedidoState | null = null;
 let containerEl: HTMLElement | null = null;
 let backdropEl: HTMLElement | null = null;
@@ -35,55 +30,13 @@ let onChoose: ((i: number) => void) | null = null;
 let onType: ((text: string) => void) | null = null;
 let onKey: ((e: KeyboardEvent) => void) | null = null;
 
-function inferTicketFromCtx(view: SceneView): TicketLine[] {
-  const lines: TicketLine[] = [];
-  const pt = view.line.pt.toLowerCase();
-
-  if (pt.includes('pão na chapa') || pt.includes('coxinha') || pt.includes('pastel')) {
-    const food = pt.includes('pão na chapa') ? { pt: 'Pão na chapa', en: 'Grilled bread' }
-      : pt.includes('coxinha') ? { pt: 'Coxinha', en: 'Coxinha' }
-      : { pt: 'Pastel', en: 'Pastel' };
-    lines.push({ kind: 'food', ...food });
-  }
-  if (pt.includes('café com leite') || pt.includes('suco') || pt.includes('água') || pt.includes('café puro')) {
-    const drink = pt.includes('café com leite') ? { pt: 'Café com leite', en: 'Coffee w/ milk' }
-      : pt.includes('suco') ? { pt: 'Suco de laranja', en: 'Orange juice' }
-      : pt.includes('água') ? { pt: 'Água', en: 'Water' }
-      : { pt: 'Café', en: 'Coffee' };
-    lines.push({ kind: 'drink', ...drink });
-  }
-  if (pt.includes('aqui') || pt.includes('viagem')) {
-    lines.push({ kind: 'where', pt: pt.includes('viagem') ? 'Pra viagem' : 'Pra comer aqui', en: pt.includes('viagem') ? 'To go' : 'For here' });
-  }
-  return lines;
-}
-
-function buildTicketFromSceneProgress(nodeId: string, said?: Bilingual): TicketLine[] {
-  const lines: TicketLine[] = [];
-  const saidPt = said?.pt?.toLowerCase() ?? '';
-
-  if (saidPt.includes('pão na chapa')) lines.push({ kind: 'food', pt: 'Pão na chapa', en: 'Grilled bread' });
-  else if (saidPt.includes('coxinha')) lines.push({ kind: 'food', pt: 'Coxinha', en: 'Coxinha' });
-  else if (saidPt.includes('pastel')) lines.push({ kind: 'food', pt: 'Pastel', en: 'Pastel' });
-
-  if (saidPt.includes('café com leite')) lines.push({ kind: 'drink', pt: 'Café com leite', en: 'Coffee w/ milk' });
-  else if (saidPt.includes('suco')) lines.push({ kind: 'drink', pt: 'Suco de laranja', en: 'Orange juice' });
-  else if (saidPt.includes('água')) lines.push({ kind: 'drink', pt: 'Água', en: 'Water' });
-  else if (saidPt.includes('café')) lines.push({ kind: 'drink', pt: 'Café', en: 'Coffee' });
-
-  if (saidPt.includes('viagem')) lines.push({ kind: 'where', pt: 'Pra viagem', en: 'To go' });
-  else if (saidPt.includes('aqui')) lines.push({ kind: 'where', pt: 'Pra comer aqui', en: 'For here' });
-
-  return lines;
-}
-
 function portrait() {
-  const carlos = { id: 'carlos', appearance: { body: 'medio', skin: 4, hair: 'curto', hairColor: 6, top: 'camisa', topColor: 4, bottom: 'calca', bottomColor: 2, shoes: 1, face: 'maduro', extra: 'bigode', idle: 'bracos' } };
+  const carlos = ROOMS.padaria.npcs.find((n) => n.id === 'carlos')!;
   const c = h('canvas', { width: 96, height: 110, style: 'width:96px;height:110px' });
   let raf = 0;
   const loop = (ts: number) => {
     if (!c.isConnected && ts > 1000) return cancelAnimationFrame(raf);
-    renderAvatarPreview(c, carlos.appearance as any, null, false, ts / 1000, { scale: 2.35, footY: 236, npc: 'carlos' });
+    renderAvatarPreview(c, carlos.appearance, carlos.hat, false, ts / 1000, { scale: 2.35, footY: 236, npc: 'carlos' });
     raf = requestAnimationFrame(loop);
   };
   raf = requestAnimationFrame(loop);
@@ -126,13 +79,19 @@ function buildTicketVisual(ticket: TicketLine[]): HTMLElement {
   return ticketEl;
 }
 
+const PEDIDO_MISS: Bilingual = {
+  pt: 'Eita, não peguei — tenta de novo ou escolhe um botão.',
+  en: 'Hmm, I missed that — try again or tap a button.',
+};
+
 function buildScoreIndicator(score: 0 | 1 | 2 | 3): HTMLElement {
   const stars = '★'.repeat(score) + '☆'.repeat(3 - score);
   const cls = score === 3 ? 'perfect' : score === 2 ? 'good' : score === 1 ? 'ok' : 'miss';
+  const copy = score === 0 ? PEDIDO_MISS : SCORE_FEEDBACK[score];
   return h('div', { class: `pedido-score ${cls}` },
     h('span', { class: 'score-stars' }, stars),
-    h('span', { class: 'score-text' }, SCORE_FEEDBACK[score].pt),
-    en(SCORE_FEEDBACK[score].en, true)
+    h('span', { class: 'score-text' }, copy.pt),
+    en(copy.en, true)
   );
 }
 
@@ -153,10 +112,17 @@ function render() {
 
   const carlosLine = h('div', { class: 'pedido-carlos-line' },
     h('div', { class: 'line-bubble' },
+      h('div', { class: 'line-head' },
+        h('span', { class: 'line-label' }, 'Seu Carlos'),
+        h('button', {
+          class: 'speak-btn',
+          onclick: () => speak(state!.view.line.pt, { force: true }),
+          title: 'Ouvir / Listen',
+        }, '🔊'),
+      ),
       h('span', { class: 'pt' }, state.view.line.pt),
       en(state.view.line.en, true),
-      h('button', { class: 'speak-btn', onclick: () => speak(state!.view.line.pt, { force: true }), title: 'Ouvir / Listen' }, '🔊')
-    )
+    ),
   );
 
   let body: HTMLElement;
@@ -231,10 +197,7 @@ function handleChip(index: number) {
   const chip = state.view.chips[index];
   if (!chip) return;
 
-  state.ticket = [
-    ...state.ticket,
-    ...buildTicketFromSceneProgress(state.view.nodeId, chip)
-  ];
+  state.ticket = [...state.ticket, ...ticketLinesFromSaid(chip)];
 
   onChoose(index);
 }
@@ -245,10 +208,7 @@ function handleSend(input: HTMLInputElement) {
   if (!text) return;
   input.value = '';
 
-  state.ticket = [
-    ...state.ticket,
-    ...buildTicketFromSceneProgress(state.view.nodeId, { pt: text, en: '' })
-  ];
+  state.ticket = [...state.ticket, ...ticketLinesFromSaid({ pt: text, en: '' })];
 
   onType(text);
 }
@@ -292,8 +252,8 @@ export function updatePedido(
 
   if (extra.said) {
     state.ticket = [
-      ...state.ticket.filter(l => !buildTicketFromSceneProgress(view.nodeId, extra.said).some(nl => nl.kind === l.kind)),
-      ...buildTicketFromSceneProgress(view.nodeId, extra.said)
+      ...state.ticket.filter((l) => !ticketLinesFromSaid(extra.said).some((nl) => nl.kind === l.kind)),
+      ...ticketLinesFromSaid(extra.said),
     ];
   }
 
