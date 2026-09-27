@@ -601,6 +601,9 @@ export class MinigameUI {
       cancelAnimationFrame(this.raf);
       this.order = null;
       this.trayActions.hidden = true;
+      const bar = this.timer.firstElementChild as HTMLElement | null;
+      if (bar) bar.style.transform = 'scaleX(0)';
+      this.timer.classList.remove('low');
       this.ticket.replaceChildren(h('div', { class: 'order' }, 'Fim do turno!'), en('Shift over!'));
       // A lost shift was never scored, so a "+0 RV · 0/6" line would read as a real result.
       const tally = m.lost
