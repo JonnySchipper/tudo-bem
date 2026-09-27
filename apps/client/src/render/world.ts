@@ -7,6 +7,7 @@ import {
   positionAlong,
   propTiles,
   ROOMS,
+  seatTiles,
   type Dir,
   type NpcDef,
   type PlacedFurniture,
@@ -73,9 +74,11 @@ const PROP_WIDTH: Partial<Record<PropDef['kind'], number>> = {
 
 /** Seat surface height of whatever the avatar sits on (counter stools are taller than benches). */
 function seatHeight(room: RoomDef, t: Tile): number | undefined {
-  const p = room.props.find((q) => q.seat && q.x === t.x && q.y === t.y);
+  const p = seatTiles(room).find((s) => s.x === t.x && s.y === t.y)?.prop;
   if (p?.kind === 'banqueta') return 28;
   if (p?.kind === 'cadeira_padaria') return 18;
+  // Middle riser of the arquibancada; feet rest on the front riser.
+  if (p?.kind === 'banco_espectador') return 34;
   return undefined;
 }
 
@@ -335,6 +338,7 @@ export class WorldRenderer {
         propTiles(p).forEach((tile, i) => {
           const c = tileCenter(tile.x, tile.y);
           items.push({ depth: tile.x + tile.y, draw: () => drawSprite(ctx, propKey(p, i), c.sx, c.sy) || drawProp(ctx, p, c.sx, c.sy, t, i) });
+          if (p.seat) hitRect(c.sx, c.sy + 10, 36, 56, { kind: 'seat', tile }, tile.x + tile.y);
         });
         continue;
       }

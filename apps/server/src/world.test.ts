@@ -2,6 +2,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import {
   buildGrid,
   CPU_NAMES,
+  openMatTiles,
   DEFAULT_APPEARANCE,
   ECONOMY,
   ROLL_RV_WIN,
@@ -14,6 +15,7 @@ import {
   mulberry32,
   ROOMS,
   SCORE_FEEDBACK,
+  seatTiles,
   TYPED_MISS_HINT,
   type ServerMsg,
   type ClientMsg,
@@ -798,10 +800,13 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
       ...room.props.filter((p) => p.interact).map((p) => `${p.interact!.x},${p.interact!.y}`),
       ...room.npcs.map((n) => `${n.interact.x},${n.interact.y}`),
     ]);
+    const mat = new Set(openMatTiles(room).map((t) => `${t.x},${t.y}`));
     for (const t of [...map.spots, ...map.doorSpots, ...map.entries]) {
       expect(isWalkable(grid, t.x, t.y), `${roomId} ${t.x},${t.y}`).toBe(true);
       expect(reserved.has(`${t.x},${t.y}`), `${roomId} ${t.x},${t.y}`).toBe(false);
+      expect(mat.has(`${t.x},${t.y}`), `${roomId} ${t.x},${t.y} on tatame`).toBe(false);
     }
+    for (const s of seatTiles(room)) expect(mat.has(`${s.x},${s.y}`), `${roomId} seat ${s.prop.id} ${s.x},${s.y}`).toBe(false);
   };
 
   it('keeps every ambiance tile walkable and off doors, spawn and interact tiles', async () => {
@@ -819,10 +824,12 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
     const cpus = cpusSeen(a);
     expect(cpus.length).toBeGreaterThanOrEqual(1);
     expect(cpus.length).toBeLessThanOrEqual(6);
+    const mat = new Set(openMatTiles(ROOMS.academia).map((t) => `${t.x},${t.y}`));
     for (const c of cpus) {
       expect(c.cpu).toBe(true);
       expect(c.nameplate).toBe('verde');
       expect(CPU_NAMES).toContain(c.name);
+      expect(mat.has(`${c.x},${c.y}`), `${c.name} spawned on tatame`).toBe(false);
     }
     const amb = world.stats().ambiance;
     expect(typeof amb).toBe('object');

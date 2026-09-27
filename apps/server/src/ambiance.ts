@@ -12,6 +12,7 @@ import {
   pathDuration,
   positionAlong,
   ROOM_AMBIANCE,
+  seatTiles,
   type Appearance,
   type Dir,
   type PublicAvatar,
@@ -88,7 +89,7 @@ export class CpuCrowd {
     if (!map) throw new Error(`No ambiance map for room ${room.id}`);
     this.map = map;
     this.grid = ambianceNavGrid(room);
-    this.seats = room.props.filter((p) => p.seat).map((p) => ({ tile: { x: p.x, y: p.y }, dir: p.seat! }));
+    this.seats = seatTiles(room).map((s) => ({ tile: { x: s.x, y: s.y }, dir: s.dir }));
   }
 
   /** CPUs currently in the room (including any walking out). */
