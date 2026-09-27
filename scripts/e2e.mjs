@@ -274,23 +274,33 @@ async function main() {
   await page.waitForSelector('[data-action="pedido-rapido"]', { state: 'visible', timeout: 5_000 });
   await shot(page, '04_carlos_conversa');
   await page.click('[data-action="pedido-rapido"]');
-  await page.waitForSelector('#dialogue [data-chip="0"]', { timeout: 12_000 });
+  await page.waitForSelector('[data-modal="pedido"] .pedido-panel', { timeout: 12_000 });
   assert(!(await page.$('[data-modal="conversa"]')), 'Pedido rápido closes Conversa');
+  assert(await page.$('[data-modal="pedido"] #pedido-ticket'), 'Pedido rápido has ticket visual');
+  assert(await page.$('[data-modal="pedido"] .speak-btn'), 'Pedido rápido has speak button on Carlos line');
   await sleep(300);
   await shot(page, '04_carlos_scene_start');
   // First reply is typed (accept-list scoring), the rest are chips.
   const picks = ['Bom dia, Seu Carlos!', 1, 0, 0, 1];
   for (let i = 0; i < picks.length; i++) {
-    const before = await page.textContent('#dialogue .line');
+    const before = await page.textContent('[data-modal="pedido"] .line-bubble .pt');
     await dwell(1600);
     if (typeof picks[i] === 'string') {
-      await page.fill('#scene-type', picks[i]);
-      await page.press('#scene-type', 'Enter');
-    } else await page.click(`#dialogue [data-chip="${picks[i]}"]`);
-    await waitFor(page, (b) => document.querySelector('#dialogue .line')?.textContent !== b, before, 5000, 'next Carlos line');
-    if (i === 2) await shot(page, '05_carlos_scene_mid');
+      await page.fill('#pedido-input', picks[i]);
+      await page.press('#pedido-input', 'Enter');
+    } else await page.click(`[data-modal="pedido"] [data-chip="${picks[i]}"]`);
+    await waitFor(page, (b) => document.querySelector('[data-modal="pedido"] .line-bubble .pt')?.textContent !== b, before, 5000, 'next Carlos line');
+    if (i === 2) {
+      // Verify ticket items are filling in
+      const filledItems = await page.$$eval('.ticket-item.filled', els => els.length);
+      assert(filledItems >= 1, `ticket items filling in (${filledItems} filled)`);
+      await shot(page, '05_carlos_scene_mid');
+    }
   }
-  await page.waitForSelector('#btn-play-mg');
+  await page.waitForSelector('#btn-pedido-play-mg');
+  // Verify payout is shown
+  const payoutEl = await page.$('.pedido-payout');
+  assert(payoutEl, 'scene end shows RV payout');
   await shot(page, '06_carlos_scene_end');
   await dwell(2200);
   const afterScene = await profile(page);
@@ -298,7 +308,7 @@ async function main() {
   assert(afterScene.tutorial.carlos, 'carlos step');
 
   // 5. Me vê um… minigame
-  await page.click('#btn-play-mg');
+  await page.click('#btn-pedido-play-mg');
   await page.waitForSelector('#mg-order');
   const forms = await page.evaluate(() => [...document.querySelectorAll('#mg-shelves button')].map((b) => ({ id: b.dataset.item, form: b.querySelector('.pt').textContent })));
   const plurals = {
@@ -341,6 +351,30 @@ async function main() {
     log('mission complete: Cumprimenta ✓ Pede ✓ Monta ✓');
   } else assert(afterMg.mission?.steps.pede && afterMg.mission?.steps.monta, 'mission: Pede + Monta');
   await page.click('#mg-end button:has-text("Sair")');
+
+  // 5b. Test daily RV gate: second Pedido rápido same day → 0 RV, "já pediu hoje" message
+  const coinsBeforeSecond = (await profile(page)).coins;
+  await clickTile(page, 3, 1, 50);
+  await page.waitForSelector('[data-modal="conversa"] .conversa-panel', { timeout: 12_000 });
+  await page.click('[data-action="pedido-rapido"]');
+  await page.waitForSelector('[data-modal="pedido"] .pedido-panel', { timeout: 12_000 });
+  // Quick path through Pedido rápido again
+  const picks2 = [0, 0, 0, 0, 0];
+  for (let i = 0; i < picks2.length; i++) {
+    const before2 = await page.textContent('[data-modal="pedido"] .line-bubble .pt');
+    await page.click(`[data-modal="pedido"] [data-chip="${picks2[i]}"]`);
+    await waitFor(page, (b) => document.querySelector('[data-modal="pedido"] .line-bubble .pt')?.textContent !== b, before2, 5000, 'next Carlos line (2nd)');
+  }
+  await page.waitForSelector('#btn-pedido-play-mg');
+  // Should show daily blocked message instead of payout
+  const dailyBlocked = await page.$('.daily-blocked');
+  const payoutEl2 = await page.$('.pedido-payout');
+  assert(dailyBlocked || !payoutEl2, 'second Pedido same day: daily blocked or no payout');
+  await shot(page, '05c_daily_rv_gate');
+  const coinsAfterSecond = (await profile(page)).coins;
+  assert(coinsAfterSecond === coinsBeforeSecond, `second Pedido same day: 0 RV (before ${coinsBeforeSecond}, after ${coinsAfterSecond})`);
+  log('daily RV gate ok: second Pedido same day → 0 RV');
+  await page.keyboard.press('Escape');
 
   // 6. Back to the praça via the door, buy + equip a hat at Nanda's stall
   await clickTile(page, 0, 6, 40);
