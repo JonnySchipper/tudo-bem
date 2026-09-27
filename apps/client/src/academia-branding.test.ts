@@ -31,6 +31,16 @@ describe('Academia do Bairro branding (no Gracie)', () => {
     expect(placa?.text).toBe('ACADEMIA DO BAIRRO');
   });
 
+  it('mat, door, and photo art labels use Academia do Bairro (not Gracie)', () => {
+    const roomTs = fs.readFileSync(path.join(ROOT, 'apps/client/src/render/room.ts'), 'utf8');
+    const propsTs = fs.readFileSync(path.join(ROOT, 'apps/client/src/render/props.ts'), 'utf8');
+    expect(roomTs).toMatch(/DO BAIRRO/);
+    expect(propsTs).toMatch(/ACADEMIA DO BAIRRO/);
+    expect(propsTs).toMatch(/ACAD\. DO BAIRRO/);
+    expect(roomTs).not.toMatch(/GRACIE/i);
+    expect(propsTs).not.toMatch(/GRACIE/i);
+  });
+
   for (const rel of NO_GRACIE_FILES) {
     it(`${rel} contains no Gracie / GRACIE`, () => {
       const text = fs.readFileSync(path.join(ROOT, rel), 'utf8');

@@ -436,6 +436,13 @@ async function main() {
   // 6b. Academia do Bairro — enter + one CPU roll duel (TB_TEST_ROLL + ROLL_QUEUE_MS on server)
   await clickTile(page, 10, 0, 40);
   await waitFor(page, () => window.__tb.game.room?.room === 'academia', null, 15_000, 'academia');
+  await waitFor(
+    page,
+    () => document.querySelector('.topbar .room')?.textContent?.includes('Academia do Bairro'),
+    null,
+    5000,
+    'academia header name',
+  );
   await sleep(500);
   await shot(page, '09b_academia');
   await page.evaluate(() => window.__tb.net.send({ t: 'roll', action: 'queue' }));
