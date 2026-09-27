@@ -847,6 +847,7 @@ export class World {
       s.mg = undefined;
       return s.send({ t: 'notice', level: 'info', pt: 'Até a próxima, ajudante!', en: 'See you next time, helper!' });
     }
+    if (m.action === 'sync') return this.sendOrder(s, true);
     if (mg.waiting) return;
     const elapsed = this.now() - mg.orderAt;
     let ok = false;
@@ -978,6 +979,7 @@ export class World {
       points: mg.points,
       streak: mg.streak,
       mods: mg.order.mods,
+      lines: mg.order.lines,
       ...(resync ? { resync: true } : {}),
     });
   }

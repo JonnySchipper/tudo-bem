@@ -69,9 +69,31 @@ let decor: ReturnType<typeof buildDecorPanel> | null = null;
 let onboarding: ReturnType<typeof runOnboarding> | null = null;
 let minigame: MinigameUI | null = null;
 let rollUi: RollUI | null = null;
+/** True between mg start and end/quit — used to recover if the panel disappears mid-shift. */
+let mgShiftActive = false;
 let started = false;
 /** If a reconnect doesn't bring the open ticket back, don't leave Me vê um locked. */
 let mgResumeWatch = 0;
+
+function newMinigameUI() {
+  return new MinigameUI({
+    submit: (tray, mods, built) => net.send({ t: 'mg', action: 'submit', tray, mods, built }),
+    timeout: () => net.send({ t: 'mg', action: 'timeout' }),
+    quit: () => {
+      mgShiftActive = false;
+      net.send({ t: 'mg', action: 'quit' });
+    },
+    again: startMinigame,
+    sync: () => net.send({ t: 'mg', action: 'sync' }),
+  });
+}
+
+/** Server still has a shift but the modal is gone — ask for the open ticket again. */
+function resurrectMinigamePanel() {
+  if (!mgShiftActive || modalId() === 'minigame') return;
+  net.send({ t: 'mg', action: 'sync' });
+  toast('info', 'Reabrindo o balcão…', 'Re-opening the counter…');
+}
 
 function clearMgResumeWatch() {
   window.clearTimeout(mgResumeWatch);
@@ -82,7 +104,12 @@ function armMgResumeWatch() {
   clearMgResumeWatch();
   mgResumeWatch = window.setTimeout(() => {
     mgResumeWatch = 0;
-    if (modalId() !== 'minigame') return;
+    if (modalId() === 'minigame') return;
+    if (mgShiftActive) {
+      resurrectMinigamePanel();
+      armMgResumeWatch();
+      return;
+    }
     closeModal();
     minigame = null;
     toast('info', 'A conexão caiu no meio do pedido. Pode jogar de novo.', 'The connection dropped mid-order. You can play again.');
@@ -91,6 +118,7 @@ function armMgResumeWatch() {
 
 function failClearMinigame() {
   clearMgResumeWatch();
+  mgShiftActive = false;
   if (modalId() === 'minigame') closeModal();
   minigame = null;
 }
@@ -352,16 +380,20 @@ net.on((m: ServerMsg) => {
       break;
     case 'mg':
       clearMgResumeWatch();
+      if (m.phase === 'order') mgShiftActive = true;
       if (m.phase === 'order' && (!minigame || modalId() !== 'minigame')) {
-        minigame = new MinigameUI({
-          submit: (tray, mods, built) => net.send({ t: 'mg', action: 'submit', tray, mods, built }),
-          timeout: () => net.send({ t: 'mg', action: 'timeout' }),
-          quit: () => net.send({ t: 'mg', action: 'quit' }),
-          again: startMinigame,
-        });
+        minigame = newMinigameUI();
       }
-      minigame?.handle(m);
-      if (m.phase === 'end') minigame = null;
+      try {
+        minigame?.handle(m);
+      } catch (err) {
+        console.error('Me vê um… handler', err);
+        resurrectMinigamePanel();
+      }
+      if (m.phase === 'end') {
+        mgShiftActive = false;
+        minigame = null;
+      }
       break;
     case 'roll':
       if (m.phase === 'queue' && (!rollUi || modalId() !== 'roll')) {
@@ -411,6 +443,12 @@ function npcSay(id: string, line: { pt: string; en: string }) {
 function startGame() {
   started = true;
   window.dispatchEvent(new Event('tb:game-start'));
+  window.addEventListener('error', () => {
+    if (mgShiftActive && modalId() !== 'minigame') resurrectMinigamePanel();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') resurrectMinigamePanel();
+  });
   hud = buildHud({
     chat: (text) => net.send({ t: 'chat', text }),
     emote: (kind: EmoteKind) => net.send({ t: 'emote', kind }),

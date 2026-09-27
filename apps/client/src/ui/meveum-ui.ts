@@ -28,6 +28,21 @@ function wipReady(wip: Wip, order: Extract<MgServerMsg, { phase: 'order' }> | nu
   return wipNeeds(wip, order) === 'tray';
 }
 
+function stillNeeded(
+  order: Extract<MgServerMsg, { phase: 'order' }>,
+  tray: Tray,
+  wip: Wip | null,
+  prepQueue: Wip[],
+  itemId: string,
+): number {
+  const line = order.lines?.find((l) => l.itemId === itemId);
+  if (!line) return 0;
+  const onTray = tray[itemId] ?? 0;
+  let pipeline = prepQueue.filter((u) => u.itemId === itemId).length;
+  if (wip?.itemId === itemId) pipeline++;
+  return Math.max(0, line.qty - onTray - pipeline);
+}
+
 // ---------------------------------------------------------------- Me vê um… — station builder
 
 export class MinigameUI {
@@ -52,6 +67,9 @@ export class MinigameUI {
   private timeoutNotBefore = 0;
   private dragItem: string | null = null;
   private stationEls: Record<string, HTMLElement> = {};
+  /** Units past chapa/bebidas waiting for pack / tray (batch prep). */
+  private prepQueue: Wip[] = [];
+  private stationGoBtns: Partial<Record<'chapa' | 'bebidas', HTMLButtonElement>> = {};
 
   constructor(
     private actions: {
@@ -59,6 +77,7 @@ export class MinigameUI {
       timeout: () => void;
       quit: () => void;
       again: () => void;
+      sync: () => void;
     },
   ) {
     const shelfGrid = h('div', { class: 'station-items', id: 'mg-shelves' });
@@ -84,7 +103,9 @@ export class MinigameUI {
       shelfGrid.append(btn);
     });
 
-    const mkStation = (id: string, pt: string, enText: string, extra: HTMLElement, goPt: string, goEn: string, onGo: () => void) => {
+    const mkStation = (id: string, pt: string, enText: string, extra: HTMLElement, goPt: string, goEn: string, onGo: () => void, batchStation?: 'chapa' | 'bebidas') => {
+      const goBtn = h('button', { class: 'station-go', type: 'button', onclick: onGo }, bi(goPt, goEn)) as HTMLButtonElement;
+      if (batchStation) this.stationGoBtns[batchStation] = goBtn;
       const el = h(
         'div',
         {
@@ -95,7 +116,7 @@ export class MinigameUI {
         },
         h('div', { class: 'station-label' }, h('span', { class: 'pt' }, pt), en(enText, true)),
         extra,
-        h('button', { class: 'station-go', type: 'button', onclick: onGo }, bi(goPt, goEn)),
+        goBtn,
       );
       this.stationEls[id] = el;
       return el;
@@ -123,8 +144,26 @@ export class MinigameUI {
       'div',
       { class: 'mg-kitchen', id: 'mg-kitchen' },
       h('div', { class: 'station shelf', id: 'mg-station-shelf' }, h('div', { class: 'station-label' }, h('span', { class: 'pt' }, 'Prateleira'), en('Grab from the case', true)), shelfGrid),
-      mkStation('chapa', 'Chapa', 'Grill / heat', h('div', { class: 'station-slot', id: 'mg-chapa-slot' }), 'Grelhar ✓', 'Grill it', () => this.runStation('chapa')),
-      mkStation('bebidas', 'Bebidas', 'Pour drinks', h('div', { class: 'station-slot', id: 'mg-bebidas-slot' }), 'Servir ✓', 'Pour it', () => this.runStation('bebidas')),
+      mkStation(
+        'chapa',
+        'Chapa',
+        'Grill / heat',
+        h('div', { class: 'station-slot', id: 'mg-chapa-slot' }),
+        'Grelhar ✓',
+        'Grill it',
+        () => this.runStation('chapa'),
+        'chapa',
+      ),
+      mkStation(
+        'bebidas',
+        'Bebidas',
+        'Pour drinks',
+        h('div', { class: 'station-slot', id: 'mg-bebidas-slot' }),
+        'Servir ✓',
+        'Pour it',
+        () => this.runStation('bebidas'),
+        'bebidas',
+      ),
       mkStation('pack', 'Embalagem', 'Bag or plate', modsEl, 'Embalar ✓', 'Pack it', () => this.runStation('pack')),
       h(
         'div',
@@ -200,6 +239,10 @@ export class MinigameUI {
     if (this.locked || !this.order || !this.wip) return;
     const need = wipNeeds(this.wip, this.order);
     if (need !== id) return;
+    if (id === 'chapa' || id === 'bebidas') {
+      const batch = this.batchSizeFor(id);
+      if (batch > 1) return this.runStationBatch(id, batch);
+    }
     if (id === 'chapa') this.wip = { ...this.wip, chapa: true };
     else if (id === 'bebidas') this.wip = { ...this.wip, bebidas: true };
     else if (id === 'pack') {
@@ -211,12 +254,56 @@ export class MinigameUI {
         this.renderMods();
       }
     }
+    this.flashStation(id);
+    this.renderWip();
+    this.renderStationButtons();
+    this.pulseNext();
+    if (wipReady(this.wip, this.order)) this.wipEl.classList.add('ready');
+  }
+
+  private batchSizeFor(station: 'chapa' | 'bebidas'): number {
+    if (!this.order || !this.wip) return 1;
+    if (wipNeeds(this.wip, this.order) !== station) return 1;
+    if (mgPrepStation(this.wip.itemId) !== station) return 1;
+    const trayTotal = Object.values(this.tray).reduce((a, b) => a + b, 0);
+    const cap = MG_MAX_TRAY - trayTotal;
+    const need = stillNeeded(this.order, this.tray, this.wip, this.prepQueue, this.wip.itemId);
+    return Math.max(1, Math.min(need, cap));
+  }
+
+  private runStationBatch(station: 'chapa' | 'bebidas', n: number) {
+    if (!this.order || !this.wip) return;
+    const itemId = this.wip.itemId;
+    const units: Wip[] = [];
+    for (let i = 0; i < n; i++) {
+      const u: Wip = { itemId, shelf: true };
+      if (station === 'chapa') u.chapa = true;
+      else u.bebidas = true;
+      units.push(u);
+    }
+    this.prepQueue = [...units.slice(1), ...this.prepQueue];
+    this.wip = units[0]!;
+    this.flashStation(station);
+    this.renderAll();
+  }
+
+  private flashStation(id: string) {
     const stEl = this.stationEls[id];
     stEl?.classList.add('pop');
     window.setTimeout(() => stEl?.classList.remove('pop'), 320);
-    this.renderWip();
-    this.pulseNext();
-    if (wipReady(this.wip, this.order)) this.wipEl.classList.add('ready');
+  }
+
+  private renderStationButtons() {
+    if (!this.order) return;
+    for (const station of ['chapa', 'bebidas'] as const) {
+      const btn = this.stationGoBtns[station];
+      if (!btn) continue;
+      const batch = this.batchSizeFor(station);
+      const pt = station === 'chapa' ? (batch > 1 ? `Grelhar ×${batch}` : 'Grelhar ✓') : batch > 1 ? `Servir ×${batch}` : 'Servir ✓';
+      const en = station === 'chapa' ? (batch > 1 ? `Grill ×${batch}` : 'Grill it') : batch > 1 ? `Pour ×${batch}` : 'Pour it';
+      btn.replaceChildren(bi(pt, en));
+      btn.classList.toggle('batch', batch > 1);
+    }
   }
 
   private placeOnTray() {
@@ -225,7 +312,7 @@ export class MinigameUI {
     this.built.push({ ...this.wip });
     const id = this.wip.itemId;
     this.tray[id] = (this.tray[id] ?? 0) + 1;
-    this.wip = null;
+    this.wip = this.prepQueue.shift() ?? null;
     this.renderAll();
     this.pulseNext();
   }
@@ -254,6 +341,7 @@ export class MinigameUI {
     this.tray = {};
     this.built = [];
     this.wip = null;
+    this.prepQueue = [];
     this.mods.clear();
     this.renderAll();
   }
@@ -320,6 +408,7 @@ export class MinigameUI {
     this.renderWip();
     this.renderTray();
     this.renderMods();
+    this.renderStationButtons();
     this.pulseNext();
   }
 
@@ -338,7 +427,7 @@ export class MinigameUI {
 
   private submit() {
     if (this.locked || !this.order) return;
-    if (this.wip) return;
+    if (this.wip || this.prepQueue.length) return;
     this.locked = true;
     this.actions.submit({ ...this.tray }, [...this.mods], [...this.built]);
   }
@@ -364,6 +453,21 @@ export class MinigameUI {
   };
 
   handle(m: MgServerMsg) {
+    try {
+      this.handleMsg(m);
+    } catch (err) {
+      console.error('Me vê um… UI error', err);
+      this.locked = false;
+      this.timedOut = false;
+      this.carlos.replaceChildren(
+        h('b', null, 'Seu Carlos: '),
+        '“Ops, travou um instante — continua o pedido!”',
+        en('Oops, a tiny glitch — keep building the order!'),
+      );
+    }
+  }
+
+  private handleMsg(m: MgServerMsg) {
     if (m.phase === 'order') {
       if (m.resync && this.order && this.order.round === m.round && this.order.pt === m.pt) {
         this.order = m;
@@ -383,6 +487,7 @@ export class MinigameUI {
         this.built = [];
         this.mods.clear();
         this.wip = null;
+        this.prepQueue = [];
       }
       this.renderAll();
       this.ticket.className = `ticket ${m.repeat ? 'repeat' : ''}`;
@@ -436,6 +541,12 @@ export class MinigameUI {
       );
       speak(m.carlos.pt);
     }
+  }
+
+  /** Panel was removed but shift may still be active on the server — ask for a ticket resync. */
+  requestSync() {
+    if (!this.order) return;
+    this.actions.sync();
   }
 }
 
