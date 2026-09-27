@@ -432,6 +432,45 @@ async function main() {
   await shot(page, '10_praca_hat_parrot');
   await dwell(1500);
 
+  // 6b. Academia Gracie — enter + one CPU roll duel (TB_TEST_ROLL + ROLL_QUEUE_MS on server)
+  await clickTile(page, 10, 0, 40);
+  await waitFor(page, () => window.__tb.game.room?.room === 'academia', null, 15_000, 'academia');
+  await sleep(500);
+  await shot(page, '09b_academia');
+  await page.evaluate(() => window.__tb.net.send({ t: 'roll', action: 'queue' }));
+  await page.waitForSelector('[data-modal="roll"]', { timeout: 15_000 });
+  await waitFor(page, () => document.querySelector('#roll-duel'), null, 20_000, 'roll duel');
+  const solveOnce = async () => {
+    const ok = await page.evaluate(() => {
+      const raw = document.querySelector('#roll-duel')?.getAttribute('data-debug');
+      if (!raw) return false;
+      const hint = JSON.parse(raw);
+      if (Array.isArray(hint)) window.__tb.net.send({ t: 'roll', action: 'answer', order: hint });
+      else window.__tb.net.send({ t: 'roll', action: 'answer', choice: hint });
+      return true;
+    });
+    if (!ok) throw new Error('roll debug hint missing — start server with TB_TEST_ROLL=1');
+    await sleep(400);
+  };
+  let lastPid = '';
+  for (let i = 0; i < 55 && !(await page.$('#roll-end')); i++) {
+    const duel = await page.$('#roll-duel');
+    if (duel) {
+      const pid = await duel.getAttribute('data-puzzle-id');
+      if (pid && pid !== lastPid) {
+        lastPid = pid;
+        await solveOnce();
+      }
+    }
+    await sleep(2500);
+  }
+  await page.waitForSelector('#roll-end', { timeout: 45_000 });
+  await shot(page, '09c_roll_end');
+  await page.click('#roll-end button:has-text("Sair")');
+  await clickTile(page, 0, 6, 50);
+  await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 15_000, 'back from academia');
+  log('academia CPU roll path ok');
+
   // 7. Kitnet: place the free chair
   await clickTile(page, 0, 4, 40);
   await waitFor(page, () => window.__tb.game.room?.room === 'kitnet', null, 15_000, 'kitnet');

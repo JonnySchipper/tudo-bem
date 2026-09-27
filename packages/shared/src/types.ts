@@ -1,4 +1,5 @@
 import type { DailyMission } from './ambiance.js';
+import type { BjjProgress } from './academia.js';
 
 export type Pronoun = 'ele' | 'ela' | 'nome';
 export type BodyType = 'esguio' | 'medio' | 'forte';
@@ -32,7 +33,7 @@ export type Nameplate = 'verde' | 'amarelo' | 'azul' | 'roxo' | 'dourado';
 /** Screen-facing: S = toward camera. SE = moving +x, SW = +y, NE = -y, NW = -x. */
 export type Dir = 'SE' | 'SW' | 'NE' | 'NW';
 
-export type RoomId = 'praca' | 'padaria' | 'kitnet';
+export type RoomId = 'praca' | 'padaria' | 'kitnet' | 'academia';
 
 export type EmoteKind = 'oi' | 'dancar' | 'rir' | 'valeu' | 'desculpa';
 
@@ -104,6 +105,8 @@ export interface PrivateProfile {
   createdAt: number;
   /** Today's kiosk mission (the server rolls it over each day). */
   mission?: DailyMission;
+  /** Academia BJJ — earned belt progress (never purchased). */
+  bjj?: BjjProgress;
 }
 
 export interface Bilingual {

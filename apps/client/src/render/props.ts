@@ -1287,6 +1287,91 @@ function estufa(ctx: Ctx, cx: number, cy: number) {
   label(ctx, 'SALGADOS', cx - 13, cy - 60, '#b5452e', '#fff', 7);
 }
 
+function tatameMat(ctx: Ctx, cx: number, cy: number, w: number, h: number) {
+  shadow(ctx, cx, cy, 44 * w, 20 * h, 0.28);
+  const light = '#3a8a5c';
+  const dark = '#2f5f7a';
+  for (let dx = 0; dx < w; dx++)
+    for (let dy = 0; dy < h; dy++) {
+      const [ox, oy] = iso(dx * 0.92, dy * 0.92);
+      const base = (dx + dy) % 2 ? dark : light;
+      box(ctx, cx + ox, cy + oy, 0.9, 0.9, 3, base, 2);
+      if (dx > 0) {
+        ctx.strokeStyle = 'rgba(30,50,40,0.35)';
+        ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        ctx.moveTo(cx + ox - 6, cy + oy);
+        ctx.lineTo(cx + ox - 6, cy + oy - 10);
+        ctx.stroke();
+      }
+    }
+  ctx.strokeStyle = 'rgba(20,40,55,0.45)';
+  ctx.lineWidth = 1.2;
+  const [lx, ly] = iso(-0.15, -0.15);
+  const [rx, ry] = iso(w * 0.92 + 0.1, h * 0.92 + 0.1);
+  ctx.strokeRect(cx + lx, cy + ly - h * 8, rx - lx, ry - ly + h * 8);
+}
+
+function paredeFaixas(ctx: Ctx, cx: number, cy: number) {
+  shadow(ctx, cx, cy, 26, 12, 0.24);
+  box(ctx, cx, cy, 0.4, 0.95, 52, '#8B5E3C', 10);
+  rrect(ctx, cx - 10, cy - 46, 20, 40, 2, '#F5E6D3');
+  const belts: [string, string][] = [
+    ['#f5f5f5', 'branca'],
+    ['#3a8a5c', 'verde'],
+    ['#3d5d8f', 'azul'],
+    ['#6b3f24', 'marrom'],
+    ['#34343c', 'preta'],
+  ];
+  belts.forEach(([c], i) => {
+    rrect(ctx, cx - 8, cy - 42 + i * 8, 16, 5, 1.5, c);
+    ctx.fillStyle = 'rgba(47,79,111,0.5)';
+    ctx.font = `600 5px ${FONT_BODY}`;
+    ctx.textAlign = 'left';
+    ctx.fillText(belts[i][1], cx + 10, cy - 38 + i * 8);
+  });
+  label(ctx, 'FAIXAS', cx, cy - 56, '#2f4f6f', '#fff', 7);
+}
+
+function quadroFila(ctx: Ctx, cx: number, cy: number, t: number) {
+  shadow(ctx, cx, cy, 22, 11, 0.22);
+  box(ctx, cx, cy, 0.45, 0.18, 38, '#8B5E3C', 8);
+  rrect(ctx, cx - 15, cy - 46, 30, 26, 3, '#f8f4ea', '#c9baa8', 1);
+  rrect(ctx, cx - 12, cy - 42, 24, 8, 2, '#eee6d9');
+  ctx.fillStyle = '#2f4f6f';
+  ctx.font = `800 7px ${FONT_BODY}`;
+  ctx.textAlign = 'center';
+  ctx.fillText('FILA', cx, cy - 36);
+  ctx.fillText('TATAME', cx, cy - 28);
+  const pulse = 0.5 + Math.sin(t * 2) * 0.12;
+  circle(ctx, cx + 11, cy - 20, 2.5 + pulse, '#3a8a5c');
+  label(ctx, 'ROLAR', cx, cy - 60, '#c9582c', '#fff', 7);
+}
+
+function quadroFoto(ctx: Ctx, cx: number, cy: number) {
+  shadow(ctx, cx, cy, 18, 8, 0.2);
+  box(ctx, cx, cy, 0.3, 0.7, 42, '#8B5E3C', 8);
+  rrect(ctx, cx - 11, cy - 38, 22, 18, 2, '#d8cbb6', '#6a5040', 1);
+  rrect(ctx, cx - 9, cy - 36, 18, 14, 1, '#3a6f8c');
+  circle(ctx, cx - 3, cy - 30, 3, '#f5f2ea');
+  circle(ctx, cx + 4, cy - 28, 3, '#f5f2ea');
+  label(ctx, 'GRACIE', cx, cy - 48, '#2f4f6f', '#fff', 6);
+}
+
+function bancoEspectador(ctx: Ctx, cx: number, cy: number, dir: Dir = 'SW') {
+  shadow(ctx, cx, cy, 28, 11, 0.2);
+  banco(ctx, cx, cy, dir);
+  box(ctx, cx, cy, 0.5, 0.25, 8, '#9a9a9a', 4);
+}
+
+function vestiario(ctx: Ctx, cx: number, cy: number) {
+  shadow(ctx, cx, cy, 28, 13, 0.22);
+  box(ctx, cx, cy, 0.6, 0.38, 30, '#9a9a9a', 6);
+  rrect(ctx, cx - 11, cy - 34, 22, 24, 2, '#7a8a96');
+  rrect(ctx, cx + 4, cy - 20, 14, 8, 1, '#3a8a5c');
+  label(ctx, 'VESTIÁRIO', cx, cy - 44, '#4a5560', '#fff', 6);
+}
+
 export function drawProp(ctx: Ctx, p: PropDef, cx: number, cy: number, t: number, slice = 0, opts: { parrotAdopted?: boolean } = {}) {
   switch (p.kind) {
     case 'ipe':
@@ -1343,6 +1428,19 @@ export function drawProp(ctx: Ctx, p: PropDef, cx: number, cy: number, t: number
       return sacoLixo(ctx, cx, cy);
     case 'floreira':
       return floreira(ctx, cx, cy);
+    case 'tatame':
+      if (slice === 0) return tatameMat(ctx, cx, cy, p.w ?? 1, p.h ?? 1);
+      return;
+    case 'parede_faixas':
+      return paredeFaixas(ctx, cx, cy);
+    case 'quadro_fila':
+      return quadroFila(ctx, cx, cy, t);
+    case 'banco_espectador':
+      return bancoEspectador(ctx, cx, cy, p.seat ?? 'SW');
+    case 'vestiario':
+      return vestiario(ctx, cx, cy);
+    case 'quadro_foto':
+      return quadroFoto(ctx, cx, cy);
   }
 }
 
