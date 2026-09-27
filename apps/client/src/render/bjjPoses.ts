@@ -194,10 +194,11 @@ function mat(ctx: Ctx, w: number, h: number, floorY: number) {
   const g = ctx.createLinearGradient(0, 0, 0, h);
   g.addColorStop(0, '#fbf1e2');
   g.addColorStop(1, TB.creamWall);
-  rrect(ctx, 2, 2, w - 4, h - 4, 12, g);
   ctx.save();
   ctx.beginPath();
   ctx.roundRect(2, 2, w - 4, h - 4, 12);
+  ctx.fillStyle = g;
+  ctx.fill();
   ctx.clip();
   // Wood wainscot + terracotta trim behind the mat.
   ctx.fillStyle = 'rgba(139,94,60,0.18)';
