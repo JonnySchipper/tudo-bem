@@ -555,6 +555,143 @@ describe('World', () => {
     await b.send({ t: 'join', room: 'padaria' });
     expect(b.all('mg')).toHaveLength(0);
     expect(b.s.mg).toBeUndefined();
+
+    // The panel is still up on that client. Its resync must close the shift in the open, not go unanswered.
+    const coins = b.s.profile!.coins;
+    await b.send({ t: 'mg', action: 'sync' });
+    expect(b.last('mg')).toMatchObject({ phase: 'end', lost: true, coins: 0, carlos: { pt: 'Ih, perdi a comanda! Bora começar um turno novo?' } });
+    expect(b.s.profile!.coins).toBe(coins);
+    expect(b.all('reward')).toHaveLength(0);
+  });
+
+  it('a server restart that lost the shift answers resync, timeout and submit with a lost card and no RV', async () => {
+    const store = new ProfileStore(null);
+    const services = () => ({ safety: new JevStubSafety(), gloss: new PhrasebookGloss(), npc: new AuthoredNpcDialogue(), student: new InMemoryStudentModel(), moderation: new MemoryModerationQueue() });
+    const opts = { mgGapMs: 0, now, schedule: (fn: () => void, ms: number) => pending.push({ fn, at: clock + ms }) };
+    const before = new World(store, services(), opts);
+    const a = await client(before);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'mg', action: 'start' });
+    const token = a.s.profile!.token;
+    const coins = a.s.profile!.coins;
+
+    // Same profile store, fresh in-memory World: what a Fly deploy leaves behind.
+    pending.length = 0;
+    const after = new World(store, services(), opts);
+    for (const action of [{ t: 'mg', action: 'sync' }, { t: 'mg', action: 'timeout' }, { t: 'mg', action: 'submit', tray: {} }] as const) {
+      const b = connectBare(after);
+      await b.send({ t: 'hello', token });
+      await b.send({ t: 'join', room: 'padaria' });
+      expect(b.all('mg')).toHaveLength(0);
+      await b.send(action);
+      expect(b.all('mg')).toEqual([expect.objectContaining({ phase: 'end', lost: true, points: 0, coins: 0 })]);
+      expect(b.all('reward')).toHaveLength(0);
+      expect(b.s.profile!.coins).toBe(coins);
+      expect(b.s.mg).toBeUndefined();
+      after.disconnect(b.s);
+    }
+
+    // ✕ on that dead ticket is the usual goodbye; Jogar de novo is a fresh Pedido 1.
+    const c = connectBare(after);
+    await c.send({ t: 'hello', token });
+    await c.send({ t: 'join', room: 'padaria' });
+    await c.send({ t: 'mg', action: 'quit' });
+    expect(c.last('notice')).toMatchObject({ level: 'info', pt: 'Até a próxima, ajudante!' });
+    expect(c.all('mg')).toHaveLength(0);
+    await c.send({ t: 'mg', action: 'start' });
+    expect(c.last('mg')).toMatchObject({ phase: 'order', round: 0, points: 0 });
+  });
+
+  it('a resync that beats the rejoin does not call a resumable shift lost', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'mg', action: 'start' });
+    const pt = world.debugOrder(a.s)!.pt;
+    const token = a.s.profile!.token;
+    world.disconnect(a.s);
+
+    const b = connectBare(world);
+    await b.send({ t: 'hello', token });
+    await b.send({ t: 'mg', action: 'sync' });
+    await b.send({ t: 'mg', action: 'timeout' });
+    expect(b.all('mg')).toHaveLength(0);
+    await b.send({ t: 'join', room: 'padaria' });
+    expect(b.last('mg')).toMatchObject({ phase: 'order', round: 0, resync: true, pt });
+    await b.send({ t: 'mg', action: 'sync' });
+    expect(b.last('mg')).toMatchObject({ phase: 'order', round: 0, resync: true, pt });
+    expect(b.all('mg').some((m) => m.phase === 'end')).toBe(false);
+  });
+
+  it('quitting a parked shift before the rejoin still settles what was served', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'mg', action: 'start' });
+    const order = world.debugOrder(a.s)!;
+    clock += 1000;
+    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods, built: mgPerfectBuilt(order) });
+    const points = a.s.mg!.points;
+    const before = a.s.profile!.coins;
+    const token = a.s.profile!.token;
+    world.disconnect(a.s);
+
+    const b = connectBare(world);
+    await b.send({ t: 'hello', token });
+    await b.send({ t: 'mg', action: 'quit' });
+    expect(b.last('mg')).toMatchObject({ phase: 'end', points, coins: mgPayout(points) });
+    expect(b.last('mg')).not.toHaveProperty('lost');
+    expect(b.s.profile!.coins).toBe(before + mgPayout(points));
+    await b.send({ t: 'join', room: 'padaria' });
+    expect(b.all('mg').filter((m) => m.phase === 'order')).toHaveLength(0);
+  });
+
+  describe('Jogar de novo', () => {
+    async function secondShift() {
+      const { world } = makeWorld();
+      const a = await client(world);
+      await a.send({ t: 'join', room: 'padaria' });
+      await a.send({ t: 'mg', action: 'start' });
+      for (let r = 0; r < 6; r++) {
+        const order = world.debugOrder(a.s)!;
+        clock += 1000;
+        await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods, built: mgPerfectBuilt(order) });
+      }
+      expect(a.last('mg')).toMatchObject({ phase: 'end' });
+      expect(a.s.mg).toBeUndefined();
+      await a.send({ t: 'mg', action: 'start' });
+      expect(a.last('mg')).toMatchObject({ phase: 'order', round: 0, repeat: false, points: 0 });
+      a.inbox.length = 0;
+      return { world, a, order: world.debugOrder(a.s)! };
+    }
+
+    it('the first Pedido 1 timeout re-arms “de novo, devagar”, then the next one advances (client timeout)', async () => {
+      const { a, order } = await secondShift();
+      clock += order.timeMs;
+      await a.send({ t: 'mg', action: 'timeout' });
+      expect(a.all('mg').map((m) => m.phase)).toEqual(['result', 'order']);
+      expect(a.all('mg')[0]).toMatchObject({ outcome: 'repita', round: 0 });
+      expect(a.last('mg')).toMatchObject({ phase: 'order', round: 0, repeat: true, pt: order.pt });
+      expect(a.last('mg')).not.toHaveProperty('resync');
+
+      clock += order.timeMs;
+      await a.send({ t: 'mg', action: 'timeout' });
+      expect(a.all('mg').filter((m) => m.phase === 'result').at(-1)).toMatchObject({ outcome: 'tempo', round: 0 });
+      expect(a.last('mg')).toMatchObject({ phase: 'order', round: 1, repeat: false });
+      expect(a.s.mg!.round).toBe(1);
+    });
+
+    it('the first Pedido 1 timeout re-arms “de novo, devagar”, then the next one advances (server deadline)', async () => {
+      const { a, order } = await secondShift();
+      advance(order.timeMs + 2_000);
+      expect(a.all('mg').filter((m) => m.phase === 'result')).toEqual([expect.objectContaining({ outcome: 'repita', round: 0 })]);
+      expect(a.last('mg')).toMatchObject({ phase: 'order', round: 0, repeat: true, pt: order.pt });
+
+      advance(order.timeMs + 2_000);
+      expect(a.all('mg').filter((m) => m.phase === 'result').at(-1)).toMatchObject({ outcome: 'tempo', round: 0 });
+      expect(a.last('mg')).toMatchObject({ phase: 'order', round: 1 });
+      expect(a.s.mg!.round).toBe(1);
+    });
   });
 
   it('mg sync re-sends the open ticket with resync', async () => {
