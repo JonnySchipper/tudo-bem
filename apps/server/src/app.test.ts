@@ -88,7 +88,7 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     const a = wsClient(base, { cookie });
     await a.open();
     a.send({ t: 'hello' });
-    expect(await a.waitFor('needProfile')).toEqual({ t: 'needProfile', confirm18: false });
+    expect(await a.waitFor('needProfile')).toEqual({ t: 'needProfile' });
     a.send({ t: 'createProfile', name: 'Jonny', pronoun: 'ele', appearance: DEFAULT_APPEARANCE });
     const welcome = await a.waitFor('welcome');
     a.send({ t: 'join', room: 'praca' });
@@ -130,14 +130,14 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     await a.open();
     a.send({ t: 'hello' });
     await a.waitFor('authRequired');
-    a.send({ t: 'createProfile', name: 'Pirata', pronoun: 'ele', appearance: DEFAULT_APPEARANCE, confirm18: true });
+    a.send({ t: 'createProfile', name: 'Pirata', pronoun: 'ele', appearance: DEFAULT_APPEARANCE });
     await new Promise((r) => setTimeout(r, 100));
     expect(a.inbox.some((m) => m.t === 'welcome')).toBe(false);
     expect(app!.store.count()).toBe(0);
     a.ws.close();
   });
 
-  it('refuses cross-site requests and duplicate / under-affirmed signups', async () => {
+  it('refuses cross-site requests, weak passwords and duplicate signups', async () => {
     await start();
     const evil = await post('/api/auth/register', { email: 'x@exemplo.com', password: 'senha-senha-1', confirm18: true }, { origin: 'https://evil.example' });
     expect(evil.status).toBe(403);
@@ -145,8 +145,9 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     expect(form.status).toBe(403);
     await expect(wsClient(base, { origin: 'https://evil.example' }).open()).rejects.toThrow(/403/);
 
-    expect((await post('/api/auth/register', { email: 'y@exemplo.com', password: 'senha-senha-1' })).status).toBe(400);
-    expect((await post('/api/auth/register', { email: 'y@exemplo.com', password: 'senha-senha-1', confirm18: true })).status).toBe(201);
+    expect((await post('/api/auth/register', { email: 'y@exemplo.com', password: 'curta' })).status).toBe(400);
+    // The 18+ tick is optional, so a bare { email, password } signup succeeds.
+    expect((await post('/api/auth/register', { email: 'y@exemplo.com', password: 'senha-senha-1' })).status).toBe(201);
     const dup = await post('/api/auth/register', { email: 'Y@exemplo.com', password: 'senha-senha-2', confirm18: true });
     expect(dup.status).toBe(409);
     expect(await dup.json()).toMatchObject({ code: 'taken' });

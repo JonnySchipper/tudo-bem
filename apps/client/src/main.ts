@@ -276,7 +276,7 @@ net.on((m: ServerMsg) => {
       break;
     case 'needProfile':
       localStorage.removeItem(TOKEN_KEY);
-      if (!onboarding) onboarding = runOnboarding((p) => net.send({ t: 'createProfile', ...p }), { askAdult: m.confirm18 });
+      if (!onboarding) onboarding = runOnboarding((p) => net.send({ t: 'createProfile', ...p }));
       break;
     case 'idleWarning':
       toast('warn', m.pt, m.en);
@@ -297,7 +297,7 @@ net.on((m: ServerMsg) => {
       break;
     }
     case 'error':
-      if (onboarding && (m.code === 'name' || m.code === 'age_confirm')) onboarding.setError(m.pt, m.en);
+      if (onboarding && m.code === 'name') onboarding.setError(m.pt, m.en);
       else toast('error', m.pt, m.en);
       break;
     case 'profile':

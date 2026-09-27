@@ -35,7 +35,7 @@ export function validatePassword(raw: string): Check<string> {
   return { ok: true, value: pw };
 }
 
-export type AuthErrorCode = 'email' | 'password' | 'confirm18' | 'taken' | 'credentials' | 'rate' | 'bad_request' | 'unauthenticated';
+export type AuthErrorCode = 'email' | 'password' | 'taken' | 'credentials' | 'rate' | 'bad_request' | 'unauthenticated';
 
 /** JSON shape of every /api/auth response. `account: null` after logout. */
 export type AuthResponse = { ok: true; account: { email: string; hasProfile: boolean } | null } | { ok: false; code: AuthErrorCode; pt: string; en: string };
@@ -44,7 +44,6 @@ export const AUTH_COPY = {
   taken: { pt: 'Já existe uma conta com esse e-mail. Que tal entrar?', en: 'An account with this email already exists. Try signing in.' },
   credentials: { pt: 'E-mail ou senha incorretos.', en: 'Wrong email or password.' },
   rate: { pt: 'Muitas tentativas. Respira, toma um café e tenta de novo em alguns minutos.', en: 'Too many attempts. Grab a coffee and try again in a few minutes.' },
-  confirm18: { pt: 'Confirme que você tem 18 anos ou mais.', en: 'Please confirm you are 18 or older.' },
   unauthenticated: { pt: 'Entre na sua conta pra continuar.', en: 'Sign in to continue.' },
   badRequest: { pt: 'Algo deu errado. Tenta de novo?', en: 'Something went wrong. Try again?' },
 } satisfies Record<string, Bilingual>;

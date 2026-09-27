@@ -2,14 +2,14 @@
 
 **Decision (CEO, Jonny — 25 Sep 2026): Phase 0 of Tudo Bem is an adult game. 18+ only.**
 
-**Update (27 Sep 2026):** the birth-date (month + year) step was removed from the start of the entry flow. Adulthood is now a one-time self-affirmation at signup. No date of birth is collected anywhere.
+**Update (27 Sep 2026, Product A–F lock):** the birth-date (month + year) step was removed from the start of the entry flow. The only age prompt is an **optional “Tenho 18 anos ou mais / I am 18+” checkbox on signup**. No date of birth is collected anywhere. The product is still 18+ in intent: the content constitution and Gate A filters are unchanged. This slice is not a COPPA flow.
 
 ## What ships
 
-- **Multiplayer (server build):** creating an account (email + password) requires ticking **“Confirmo que tenho 18 anos ou mais / I confirm I am 18 or older.”** The server rejects `/api/auth/register` without `confirm18: true` and records only *when* it was ticked (`confirmed18At`). The avatar creator doesn't ask again.
-- **Solo (static build, no accounts):** the avatar creator shows the same checkbox. The `World` rejects `createProfile` without `confirm18: true`.
-- **Data minimization:** no birth date is asked for, sent, or stored. Old clients that still send birth fields have them ignored. Profiles keep only `ageGate18: true`.
-- Profiles created under the earlier 13+ build (no `ageGate18`) are sent back through signup.
+- **Signup (server build):** the Create account form (email + password) shows an optional **“Tenho 18 anos ou mais”** checkbox. When it's ticked, the account records *when* (`confirmed18At`). Signup works either way. The checkbox is not on the login form, and the avatar creator asks no age question.
+- **Solo (static build, no accounts):** no age prompt. It's a guest preview of the same 18+ content.
+- **Data minimization:** no birth date is asked for, sent, or stored. Old clients that still send birth or confirm fields have them ignored.
+- Profiles created under the earlier 13+ build (no `ageGate18` marker) are sent back through signup.
 - The age threshold is the single constant `MIN_AGE` in `packages/shared/src/constants.ts`.
 
 ## What stays exactly the same

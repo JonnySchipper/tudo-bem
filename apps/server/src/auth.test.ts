@@ -35,14 +35,17 @@ describe('AccountStore', () => {
     const store = new AccountStore(null, { scrypt: FAST });
     expect(await store.register('nope', 'senha-boa-123', true)).toMatchObject({ ok: false, code: 'email' });
     expect(await store.register('ana@exemplo.com', 'curta', true)).toMatchObject({ ok: false, code: 'password' });
-    expect(await store.register('ana@exemplo.com', 'senha-boa-123', false)).toMatchObject({ ok: false, code: 'confirm18' });
     const r = await store.register('  Ana@Exemplo.com ', 'senha-boa-123', true);
     expect(r).toMatchObject({ ok: true, account: { email: 'ana@exemplo.com' } });
     expect(await store.register('ana@exemplo.com', 'outra-senha-9', true)).toMatchObject({ ok: false, code: 'taken' });
     expect(await store.login('ANA@exemplo.com', 'senha-boa-123')).toMatchObject({ ok: true });
     expect(await store.login('ana@exemplo.com', 'errada-123')).toMatchObject({ ok: false, code: 'credentials' });
     expect(await store.login('ninguem@exemplo.com', 'senha-boa-123')).toMatchObject({ ok: false, code: 'credentials' });
-    if (r.ok) expect(store.confirmed18(r.account.id)).toBe(true);
+    if (r.ok) expect(r.account.confirmed18At).toBeGreaterThan(0);
+    // The 18+ tick is optional: an unticked signup still works and simply isn't marked.
+    const quiet = await store.register('leo@exemplo.com', 'senha-boa-123', false);
+    expect(quiet).toMatchObject({ ok: true });
+    if (quiet.ok) expect(quiet.account.confirmed18At).toBeUndefined();
   });
 
   it('persists accounts + hashed sessions to disk and survives a restart', async () => {

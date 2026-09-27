@@ -54,7 +54,7 @@ export function mountAuthForm(container: HTMLElement, opts: AuthFormOptions): vo
     'label',
     { class: 'auth-adult', for: 'auth-confirm-18' },
     adult,
-    h('span', null, `Confirmo que tenho ${MIN_AGE} anos ou mais.`, en(`I confirm I am ${MIN_AGE} or older.`, true)),
+    h('span', null, `Tenho ${MIN_AGE} anos ou mais.`, en(`I am ${MIN_AGE}+. Optional — Tudo Bem is made for adults.`, true)),
   );
   const pwHint = h('small', { class: 'auth-hint' }, `Pelo menos ${PASSWORD_MIN} caracteres.`);
   const err = h('div', { class: 'auth-error', id: 'auth-error', role: 'alert', hidden: true });
@@ -88,7 +88,7 @@ export function mountAuthForm(container: HTMLElement, opts: AuthFormOptions): vo
     pwHint.hidden = !reg;
     if (legacyNote) legacyNote.hidden = !reg;
     submit.textContent = reg ? 'Criar conta' : 'Entrar';
-    submit.disabled = busy || (reg && !adult.checked);
+    submit.disabled = busy;
   };
   const setMode = (m: AuthMode) => {
     mode = m;
@@ -96,7 +96,6 @@ export function mountAuthForm(container: HTMLElement, opts: AuthFormOptions): vo
     refresh();
     email.focus();
   };
-  adult.addEventListener('change', refresh);
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -107,12 +106,11 @@ export function mountAuthForm(container: HTMLElement, opts: AuthFormOptions): vo
     if (reg) {
       const p1 = validatePassword(password.value);
       if (!p1.ok) return showError(p1.reason);
-      if (!adult.checked) return showError({ pt: `Confirme que você tem ${MIN_AGE} anos ou mais.`, en: `Please confirm you are ${MIN_AGE} or older.` });
     } else if (!password.value) return showError({ pt: 'Digite sua senha.', en: 'Enter your password.' });
     busy = true;
     refresh();
     showError(null);
-    const r = reg ? await authApi.register(e1.value, password.value, true) : await authApi.login(e1.value, password.value);
+    const r = reg ? await authApi.register(e1.value, password.value, adult.checked) : await authApi.login(e1.value, password.value);
     busy = false;
     if (r.ok) {
       localStorage.setItem(KNOWN_KEY, '1');

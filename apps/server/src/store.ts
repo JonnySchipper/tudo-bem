@@ -2,7 +2,7 @@ import { freshMission, normalizeBjj, type PrivateProfile } from '@tudobem/shared
 
 export interface StoredProfile extends PrivateProfile {
   token: string;
-  /** The player affirmed 18+ (signup checkbox). No birth date is ever collected. */
+  /** Created under the Phase 0 adult (18+) policy; older 13+ profiles lack it and sign up again. No birth date is ever collected. */
   ageGate18: true;
   /** Email/password account that owns this profile. Absent for solo guests and not-yet-claimed legacy profiles. */
   accountId?: string;

@@ -5,7 +5,6 @@ import {
   HAIR_COLORS,
   HAIR_STYLES,
   LABELS,
-  MIN_AGE,
   SKIN_TONES,
   STARTER_OUTFITS,
   validateName,
@@ -19,7 +18,6 @@ export interface NewProfile {
   name: string;
   pronoun: Pronoun;
   appearance: Appearance;
-  confirm18?: true;
 }
 
 function hero() {
@@ -32,11 +30,8 @@ function hero() {
   );
 }
 
-/**
- * Avatar creator. `askAdult`: show the one-time “Confirmo que tenho 18 anos ou mais” checkbox —
- * only for solo guests; account holders already affirmed it at signup. No birth date is asked.
- */
-export function runOnboarding(submit: (p: NewProfile) => void, opts: { askAdult: boolean }): { setError: (pt: string, en: string) => void } {
+/** Avatar creator. No age questions here: the only 18+ prompt is the optional tick on account signup. */
+export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt: string, en: string) => void } {
   const api = { setError: (_pt: string, _en: string) => {} };
   {
     const root = h('div', { class: 'onboarding' });
@@ -60,10 +55,7 @@ export function runOnboarding(submit: (p: NewProfile) => void, opts: { askAdult:
         loop(ts);
       });
 
-      const go = h('button', { class: 'primary', style: 'font-size:1.1em', id: 'enter-praca', disabled: opts.askAdult }, 'Entrar na Praça →');
-      const adult = h('input', { type: 'checkbox', id: 'confirm-18', required: true });
-      adult.addEventListener('change', () => (go.disabled = !adult.checked));
-      const adultOk = () => !opts.askAdult || adult.checked;
+      const go = h('button', { class: 'primary', style: 'font-size:1.1em', id: 'enter-praca' }, 'Entrar na Praça →');
       const name = h('input', { type: 'text', maxLength: 16, placeholder: 'Ex.: Jonny, Bia, Leo…', 'aria-label': 'Nome', id: 'avatar-name' });
       const nameErr = h('div', { class: 'feedback s1', style: 'display:none' });
       const setErr = (pt: string, enText: string) => {
@@ -132,9 +124,8 @@ export function runOnboarding(submit: (p: NewProfile) => void, opts: { askAdult:
       go.addEventListener('click', () => {
         const check = validateName(name.value);
         if (!check.ok) return setErr(check.reason.pt, check.reason.en);
-        if (!adultOk()) return setErr(`Confirme que você tem ${MIN_AGE} anos ou mais.`, `Please confirm you are ${MIN_AGE} or older.`);
         go.disabled = true;
-        submit({ name: check.name, pronoun, appearance: { ...a }, ...(opts.askAdult ? { confirm18: true as const } : {}) });
+        submit({ name: check.name, pronoun, appearance: { ...a } });
       });
       name.addEventListener('keydown', (e) => e.key === 'Enter' && go.click());
 
@@ -174,14 +165,6 @@ export function runOnboarding(submit: (p: NewProfile) => void, opts: { askAdult:
               h(
                 'div',
                 { class: 'creator-cta' },
-                opts.askAdult
-                  ? h(
-                      'label',
-                      { class: 'adult-confirm', for: 'confirm-18' },
-                      adult,
-                      h('span', null, `Confirmo que tenho ${MIN_AGE} anos ou mais.`, en(`I confirm I am ${MIN_AGE} or older. Tudo Bem is an adult world.`, true)),
-                    )
-                  : null,
                 h('div', { class: 'row', style: 'margin-top:8px' }, h('span', { class: 'spacer' }), go),
               ),
             ),

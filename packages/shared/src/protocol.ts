@@ -21,8 +21,7 @@ import type { BjjProgress, RollPuzzleView } from './academia.js';
 /** Client → server messages. JSON over a single WebSocket at /ws. */
 export type ClientMsg =
   | { t: 'hello'; token?: string }
-  /** `confirm18` is only required when the account (or solo guest) hasn't affirmed 18+ yet. */
-  | { t: 'createProfile'; name: string; pronoun: Pronoun; appearance: Appearance; confirm18?: boolean }
+  | { t: 'createProfile'; name: string; pronoun: Pronoun; appearance: Appearance }
   /** Real player input (pointer / key / touch) since the last report. Resets the server idle clock; `ping` never does. */
   | { t: 'active' }
   | { t: 'updateAppearance'; appearance: Appearance }
@@ -194,8 +193,7 @@ export type RollServerMsg =
 /** Server → client messages. */
 export type ServerMsg =
   | { t: 'welcome'; profile: PrivateProfile; token: string }
-  /** `confirm18`: the avatar creator must still ask for the 18+ affirmation (solo guests; accounts affirm at signup). */
-  | { t: 'needProfile'; confirm18: boolean }
+  | { t: 'needProfile' }
   /** This server requires an email + password account; the socket has no valid session cookie. */
   | { t: 'authRequired' }
   | { t: 'idleWarning'; msLeft: number; pt: string; en: string }

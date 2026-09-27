@@ -26,7 +26,6 @@ import {
   MAX_CHAT_LEN,
   MG_ROUNDS,
   mgPayout,
-  MIN_AGE,
   mulberry32,
   pathDuration,
   pointsFor,
@@ -130,7 +129,6 @@ export interface WorldOptions {
 export interface AccountLink {
   profileIdFor(accountId: string): string | undefined;
   linkProfile(accountId: string, profileId: string): void;
-  confirmed18(accountId: string): boolean;
 }
 
 export type CloseReason = 'replaced' | 'idle' | 'logout';
@@ -407,7 +405,7 @@ export class World {
     if (!this.accounts) {
       const p = this.store.byTokenGet(token);
       // Profiles from before the 18+ policy never confirmed adulthood; they must sign up again.
-      if (!p || p.ageGate18 !== true) return s.send({ t: 'needProfile', confirm18: true });
+      if (!p || p.ageGate18 !== true) return s.send({ t: 'needProfile' });
       return this.attachProfile(s, p);
     }
     if (!s.accountId) return s.send({ t: 'authRequired' });
@@ -419,7 +417,7 @@ export class World {
       this.linkAccount(s.accountId, legacy);
       return this.attachProfile(s, legacy);
     }
-    s.send({ t: 'needProfile', confirm18: !this.accounts.confirmed18(s.accountId) });
+    s.send({ t: 'needProfile' });
   }
 
   private linkAccount(accountId: string, p: StoredProfile) {
@@ -454,9 +452,6 @@ export class World {
       const owned = this.store.get(this.accounts.profileIdFor(s.accountId) ?? '');
       if (owned) return this.attachProfile(s, owned);
     }
-    const affirmed = this.accounts && s.accountId ? this.accounts.confirmed18(s.accountId) : false;
-    if (!affirmed && m.confirm18 !== true)
-      return this.err(s, 'age_confirm', `Confirme que você tem ${MIN_AGE} anos ou mais.`, `Please confirm you are ${MIN_AGE} or older.`);
     const nameCheck = validateName(String(m.name ?? ''));
     if (!nameCheck.ok) return this.err(s, 'name', nameCheck.reason.pt, nameCheck.reason.en);
     const appearance = sanitizeAppearance(m.appearance);

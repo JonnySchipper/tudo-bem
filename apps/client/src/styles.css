@@ -728,26 +728,6 @@ button:disabled {
   outline: 3px solid var(--ink);
 }
 
-.adult-confirm {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  background: #fff1d6;
-  border: 2px solid var(--amarelo);
-  border-radius: 12px;
-  padding: 10px 12px;
-  margin-top: 6px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.adult-confirm input {
-  width: 20px;
-  height: 20px;
-  margin-top: 2px;
-  accent-color: var(--verde);
-}
-
 /* ================================================================
    ENTRY SCREEN — functional scaffold (ui/auth.ts).
    Skin-only: layout/visuals below may be replaced wholesale. Logic lives in

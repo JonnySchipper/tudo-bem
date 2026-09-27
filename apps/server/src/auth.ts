@@ -11,8 +11,8 @@ export interface Account {
   /** `scrypt$N$r$p$salt$hash` (base64url). Never the password. */
   passwordHash: string;
   profileId?: string;
-  /** When the player ticked “Confirmo que tenho 18 anos ou mais” at signup. */
-  confirmed18At: number;
+  /** When the player ticked the optional “Tenho 18 anos ou mais” box at signup. Absent if left unticked. */
+  confirmed18At?: number;
   createdAt: number;
   lastLoginAt?: number;
 }
@@ -178,13 +178,12 @@ export class AccountStore implements AccountLink {
     if (!email.ok) return { ok: false, code: 'email', ...email.reason };
     const pw = validatePassword(password);
     if (!pw.ok) return { ok: false, code: 'password', ...pw.reason };
-    if (confirm18 !== true) return { ok: false, code: 'confirm18', ...AUTH_COPY.confirm18 };
     if (this.byEmail.has(email.value)) return { ok: false, code: 'taken', ...AUTH_COPY.taken };
     const passwordHash = await hashPassword(pw.value, this.params);
     // Two racing signups for one email: the first one to finish hashing wins.
     if (this.byEmail.has(email.value)) return { ok: false, code: 'taken', ...AUTH_COPY.taken };
     const t = this.now();
-    const account: Account = { id: crypto.randomUUID(), email: email.value, passwordHash, confirmed18At: t, createdAt: t, lastLoginAt: t };
+    const account: Account = { id: crypto.randomUUID(), email: email.value, passwordHash, createdAt: t, lastLoginAt: t, ...(confirm18 === true ? { confirmed18At: t } : {}) };
     this.byId.set(account.id, account);
     this.byEmail.set(account.email, account.id);
     this.save();
@@ -252,10 +251,6 @@ export class AccountStore implements AccountLink {
     if (!a) return;
     a.profileId = profileId;
     this.save();
-  }
-
-  confirmed18(accountId: string) {
-    return !!this.byId.get(accountId)?.confirmed18At;
   }
 
   private save() {

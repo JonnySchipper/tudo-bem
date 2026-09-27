@@ -73,15 +73,19 @@ const emailFor = (name) => `${name.toLowerCase()}+${RUN}@exemplo.com`;
 /** Solo builds need `?rolltest` for the Academia roll debug hints (the server build uses TB_TEST_ROLL=1). */
 const START_URL = SOLO ? `${BASE}${BASE.includes('?') ? '&' : '?'}rolltest` : BASE;
 
-/** Multiplayer: the first screen is sign in / create account (email + password + one 18+ tick). No birth date anywhere. */
-async function signUp(page, name) {
+/** Multiplayer: the first screen is sign in / create account (email + password). No birth date anywhere; 18+ is an optional tick on register only. */
+async function signUp(page, name, tick18) {
   await page.waitForSelector('#auth-form');
   assert(!(await page.$('#birth-month')) && !(await page.$('#birth-year')), 'no birth-date step before play');
   if (!(await page.isVisible('#auth-confirm-18'))) await page.click('#auth-tab-register');
+  await page.click('#auth-tab-login');
+  assert(!(await page.isVisible('#auth-confirm-18')), '18+ tick is not on the login form');
+  await page.click('#auth-tab-register');
+  assert(await page.isVisible('#auth-confirm-18'), '18+ tick is on the register form');
   await page.fill('#auth-email', emailFor(name));
   await page.fill('#auth-password', PASSWORD);
-  assert(await page.isDisabled('#auth-submit'), 'cannot create an account before confirming 18+');
-  await page.check('#auth-confirm-18');
+  assert(await page.isEnabled('#auth-submit'), 'the 18+ tick is optional');
+  if (tick18) await page.check('#auth-confirm-18');
   await page.click('#auth-submit');
 }
 
@@ -93,9 +97,9 @@ async function signIn(page, name, password = PASSWORD) {
   await page.click('#auth-submit');
 }
 
-async function createAvatar(page, name, pronoun) {
+async function createAvatar(page, name, pronoun, tick18 = false) {
   await page.goto(START_URL);
-  if (!SOLO) await signUp(page, name);
+  if (!SOLO) await signUp(page, name, tick18);
   await page.waitForSelector('#avatar-name');
   assert(!(await page.$('#birth-month')), 'avatar creator has no birth-date step');
   await page.fill('#avatar-name', name);
@@ -108,13 +112,7 @@ async function createAvatar(page, name, pronoun) {
   assert((await page.$$('[data-outfit]')).length === 1 && (await page.$('[data-outfit="visual_inicial"]')), 'one Visual inicial clothing preset');
   const label = { ele: 'ele (he)', ela: 'ela (she)', nome: 'só meu nome (name only)' }[pronoun];
   await page.click(`button:has-text("${label}")`);
-  if (SOLO) {
-    // Solo guests have no account, so the creator asks for the one-time 18+ tick.
-    assert(await page.isDisabled('#enter-praca'), 'cannot enter before confirming 18+');
-    await page.check('#confirm-18');
-  } else {
-    assert(!(await page.$('#confirm-18')), 'account holders are not asked 18+ twice');
-  }
+  assert(!(await page.$('#confirm-18')), 'the avatar creator asks no age question');
   return async () => {
     await page.click('#enter-praca');
     await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
@@ -191,7 +189,7 @@ async function main() {
   }
 
   // 1. Account (email + password + 18+ tick) → avatar creation
-  const enter = await createAvatar(page, 'Jonny', 'ele');
+  const enter = await createAvatar(page, 'Jonny', 'ele', true);
   await sleep(300);
   await shot(page, '01_avatar_creator');
   await enter();
@@ -558,6 +556,18 @@ async function main() {
   }
   await shot(page, '12_kitnet_friend_visit');
   await dwell(2500);
+
+  if (!SOLO) {
+    // Refresh keeps the session, the avatar, its RV, hat and kitnet.
+    const before = await profile(page);
+    await page.reload();
+    await waitFor(page, () => !!window.__tb.game.room, null, 10_000, 'back in the world after reload');
+    assert(!(await page.$('#auth-form')), 'still signed in after reload');
+    const after = await profile(page);
+    assert(after.id === before.id && after.coins === before.coins && after.hat === before.hat, `avatar + RV survive reload (${before.coins} → ${after.coins} RV)`);
+    assert(after.apartment.length === before.apartment.length, 'kitnet furniture survives reload');
+    log('reload keeps auth, avatar and', after.coins, 'RV');
+  }
 
   const final = await profile(page);
   const missing = Object.entries(final.tutorial).filter(([, v]) => !v).map(([k]) => k);

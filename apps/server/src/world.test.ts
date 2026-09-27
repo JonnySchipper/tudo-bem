@@ -85,7 +85,7 @@ async function client(world: World, name = `Ana${n++}`, pronoun: 'ele' | 'ela' |
     all: (t) => inbox.filter((m) => m.t === t) as never,
   };
   await c.send({ t: 'hello' });
-  await c.send({ t: 'createProfile', name, pronoun, appearance: DEFAULT_APPEARANCE, confirm18: true });
+  await c.send({ t: 'createProfile', name, pronoun, appearance: DEFAULT_APPEARANCE });
   await c.send({ t: 'join', room: 'praca' });
   return c;
 }
@@ -103,25 +103,21 @@ describe('World', () => {
     expect(sanitizeAppearance({ ...legacy, face: 'x' as never, extra: '<b>' as never, idle: 'dance' as never })).toMatchObject({ face: 'suave', extra: 'nenhum', idle: 'solto' });
   });
 
-  it('asks for no birth date: a solo guest only affirms 18+ once, and the name filter still applies', async () => {
+  it('asks no age questions in the avatar creator (no birth date, no 18+ tick); the name filter still applies', async () => {
     const { world } = makeWorld();
     const inbox: ServerMsg[] = [];
     const s = world.connect('x', (m) => inbox.push(m), () => {});
     await world.handle(s, { t: 'hello' });
-    expect(inbox.at(-1)).toEqual({ t: 'needProfile', confirm18: true });
+    expect(inbox.at(-1)).toEqual({ t: 'needProfile' });
     const base = { t: 'createProfile' as const, name: 'Teste', pronoun: 'ele' as const, appearance: DEFAULT_APPEARANCE };
-    await world.handle(s, base);
-    expect(inbox.at(-1)).toMatchObject({ t: 'error', code: 'age_confirm' });
-    await world.handle(s, { ...base, confirm18: false });
-    expect(inbox.at(-1)).toMatchObject({ t: 'error', code: 'age_confirm' });
-    await world.handle(s, { ...base, confirm18: true, name: 'shit' });
+    await world.handle(s, { ...base, name: 'shit' });
     expect(inbox.at(-1)).toMatchObject({ t: 'error', code: 'name' });
     expect(s.profile).toBeUndefined();
-    // Old clients may still send birth fields; they're ignored and never stored.
+    // Old clients may still send birth / confirm fields; they're ignored and never stored.
     await world.handle(s, { ...base, confirm18: true, birthYear: 2015, birthMonth: 1 } as ClientMsg);
     expect(inbox.at(-1)).toMatchObject({ t: 'welcome' });
     expect(s.profile?.ageGate18).toBe(true);
-    expect(JSON.stringify(s.profile)).not.toMatch(/birth/i);
+    expect(JSON.stringify(s.profile)).not.toMatch(/birth|confirm18/i);
   });
 
   it('makes profiles from the old 13+ policy sign up again', async () => {
@@ -794,15 +790,11 @@ describe('pushProfileById', () => {
 
 class FakeAccounts implements AccountLink {
   links = new Map<string, string>();
-  adults = new Set<string>();
   profileIdFor(id: string) {
     return this.links.get(id);
   }
   linkProfile(id: string, profileId: string) {
     this.links.set(id, profileId);
-  }
-  confirmed18(id: string) {
-    return this.adults.has(id);
   }
 }
 
@@ -825,20 +817,19 @@ describe('World with email/password accounts', () => {
     const guest = connectAs(world);
     await guest.send({ t: 'hello' });
     expect(guest.inbox.at(-1)).toEqual({ t: 'authRequired' });
-    await guest.send({ t: 'createProfile', name: 'Pirata', pronoun: 'ele', appearance: DEFAULT_APPEARANCE, confirm18: true });
+    await guest.send({ t: 'createProfile', name: 'Pirata', pronoun: 'ele', appearance: DEFAULT_APPEARANCE });
     expect(guest.inbox.at(-1)).toEqual({ t: 'authRequired' });
     await guest.send({ t: 'join', room: 'praca' });
     expect(guest.inbox.at(-1)).toMatchObject({ t: 'error', code: 'no_profile' });
     expect(world.store.count()).toBe(0);
   });
 
-  it('creates the avatar for the account without re-asking 18+, then finds it on the next visit', async () => {
+  it('creates the avatar for the account, then finds it on the next visit', async () => {
     const accounts = new FakeAccounts();
-    accounts.adults.add('acc-1');
     const { world } = makeWorld(16, { accounts });
     const a = connectAs(world, 'acc-1');
     await a.send({ t: 'hello' });
-    expect(a.inbox.at(-1)).toEqual({ t: 'needProfile', confirm18: false });
+    expect(a.inbox.at(-1)).toEqual({ t: 'needProfile' });
     await a.send({ t: 'createProfile', name: 'Jonny', pronoun: 'ele', appearance: DEFAULT_APPEARANCE });
     expect(a.inbox.at(-1)).toMatchObject({ t: 'welcome' });
     const id = a.s.profile!.id;
@@ -868,13 +859,12 @@ describe('World with email/password accounts', () => {
 
     const thief = connectAs(world, 'acc-other');
     await thief.send({ t: 'hello', token: legacy.token });
-    expect(thief.inbox.at(-1)).toEqual({ t: 'needProfile', confirm18: true });
+    expect(thief.inbox.at(-1)).toEqual({ t: 'needProfile' });
     expect(thief.s.profile).toBeUndefined();
   });
 
   it('logout closes every socket of that account', async () => {
     const accounts = new FakeAccounts();
-    accounts.adults.add('acc-1');
     const { world } = makeWorld(16, { accounts });
     const a = connectAs(world, 'acc-1');
     await a.send({ t: 'hello' });
