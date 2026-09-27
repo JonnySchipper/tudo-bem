@@ -1542,8 +1542,8 @@ body:has([data-modal='minigame']) .toasts {
 .roll-pose {
   display: block;
   width: 100%;
-  max-width: 220px;
-  height: 100px;
+  max-width: 300px;
+  height: 124px;
   margin: 0 auto 8px;
   border-radius: 10px;
 }
@@ -1718,6 +1718,10 @@ body:has([data-modal='minigame']) .toasts {
 
   .roll-end p.muted {
     display: none;
+  }
+
+  .roll-pose {
+    height: 100px;
   }
 
   .roll .row button {
