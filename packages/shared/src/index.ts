@@ -15,3 +15,4 @@ export * from './ambiance.js';
 export * from './looks.js';
 export * from './conversa.js';
 export * from './academia.js';
+export * from './auth.js';

@@ -1,5 +1,6 @@
 import './styles.css';
 import {
+  AUTH_COPY,
   MISSION_COPY,
   ROOMS,
   TUTORIAL_STEPS,
@@ -18,7 +19,9 @@ import { Net, wsUrl, type NetLike } from './net';
 import { LocalNet } from './localNet';
 import { WorldRenderer, type Hit } from './render/world';
 import { runOnboarding, closeOnboarding } from './ui/onboarding';
-import { buildHud, hoverLabel, missionBanner, overlayMessage, parrotWhisper, reconnectBanner, toast } from './ui/hud';
+import { runAuth, closeAuth } from './ui/auth';
+import { authApi } from './auth';
+import { buildHud, hoverLabel, idleKickedCard, missionBanner, overlayMessage, parrotWhisper, reconnectBanner, toast } from './ui/hud';
 import {
   buildDecorPanel,
   closeDialogue,
@@ -192,8 +195,33 @@ function updateGuides() {
 // ---------------------------------------------------------------- server messages
 
 net.onOpen = () => net.send({ t: 'hello', token: localStorage.getItem(TOKEN_KEY) ?? undefined });
+/** Kick copy from the server's last message before it closed the socket. */
+let kickedCopy: { pt: string; en: string } | null = null;
+let leaving = false;
+
+function showIdleKick() {
+  failClearMinigame();
+  closeModal();
+  closeDialogue();
+  overlayMessage(null);
+  reconnectBanner(null);
+  game.room = null;
+  game.avatars = new Map();
+  game.emit('room');
+  game.emit('avatars');
+  idleKickedCard(kickedCopy ?? { pt: 'Você saiu da Praça por inatividade.', en: 'You left the Praça for being idle.' }, () => {
+    kickedCopy = null;
+    net.retry();
+  });
+}
+
 net.onStatus = (s) => {
+  if (s === 'loggedOut') {
+    if (!leaving) location.reload();
+    return;
+  }
   if (!started) return;
+  if (s === 'idle') return showIdleKick();
   if (s === 'open') {
     overlayMessage(null);
     reconnectBanner(null);
@@ -212,13 +240,26 @@ net.onStatus = (s) => {
 
 net.on((m: ServerMsg) => {
   switch (m.t) {
+    case 'authRequired':
+      // Session expired or was revoked while the page stayed open. Sign in, then reconnect with the new cookie.
+      closeOnboarding();
+      onboarding = null;
+      runAuth({ notice: AUTH_COPY.unauthenticated, onAuthed: () => net.retry() });
+      break;
     case 'needProfile':
       localStorage.removeItem(TOKEN_KEY);
-      if (!onboarding) onboarding = runOnboarding((p) => net.send({ t: 'createProfile', ...p }));
+      if (!onboarding) onboarding = runOnboarding((p) => net.send({ t: 'createProfile', ...p }), { askAdult: m.confirm18 });
+      break;
+    case 'idleWarning':
+      toast('warn', m.pt, m.en);
+      break;
+    case 'kicked':
+      kickedCopy = { pt: m.pt, en: m.en };
       break;
     case 'welcome': {
       localStorage.setItem(TOKEN_KEY, m.token);
       game.profile = m.profile;
+      closeAuth();
       closeOnboarding();
       onboarding = null;
       if (!started) startGame();
@@ -228,7 +269,7 @@ net.on((m: ServerMsg) => {
       break;
     }
     case 'error':
-      if (onboarding && (m.code === 'name' || m.code === 'age' || m.code === 'age_gate' || m.code === 'age_confirm')) onboarding.setError(m.pt, m.en);
+      if (onboarding && (m.code === 'name' || m.code === 'age_confirm')) onboarding.setError(m.pt, m.en);
       else toast('error', m.pt, m.en);
       break;
     case 'profile':
@@ -446,6 +487,13 @@ function startGame() {
       ambience.setEnabled(game.music);
       game.emit('hud');
     },
+    logout: SOLO
+      ? undefined
+      : async () => {
+          leaving = true;
+          await authApi.logout();
+          location.reload();
+        },
   });
   mountJoystick((dx, dy) => {
     if (game.modalOpen || game.editMode || game.placing) return;
@@ -639,7 +687,38 @@ function frame(ts: number) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-net.connect();
+
+// ---------------------------------------------------------------- idle: report real input
+
+/** The server kicks after 15 min without real input. Pings don't count, so tell it when a human did something. */
+const ACTIVE_EVERY_MS = 15_000;
+let lastActiveSent = 0;
+let activePending = false;
+function noteInput() {
+  if (!started || SOLO) return;
+  if (Date.now() - lastActiveSent >= ACTIVE_EVERY_MS) {
+    lastActiveSent = Date.now();
+    activePending = false;
+    net.send({ t: 'active' });
+  } else activePending = true;
+}
+for (const ev of ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const) window.addEventListener(ev, noteInput, { capture: true, passive: true });
+setInterval(() => {
+  if (!activePending) return;
+  activePending = false;
+  lastActiveSent = Date.now();
+  net.send({ t: 'active' });
+}, ACTIVE_EVERY_MS);
+
+// ---------------------------------------------------------------- boot
+
+async function boot() {
+  if (SOLO) return net.connect();
+  const me = await authApi.me();
+  if (me.ok && me.account) net.connect();
+  else runAuth({ onAuthed: () => net.connect() });
+}
+void boot();
 
 // ---------------------------------------------------------------- test / debug hooks
 

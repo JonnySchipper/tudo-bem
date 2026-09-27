@@ -748,9 +748,142 @@ button:disabled {
   accent-color: var(--verde);
 }
 
-.age-gate .years {
+/* ---------- sign in / create account ---------- */
+
+.auth-panel {
+  width: min(460px, calc(100vw - 24px));
+}
+
+.auth-tabs {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  background: #f3e2c6;
+  border-radius: 999px;
+  padding: 4px;
+  margin-bottom: 14px;
+}
+
+.auth-tabs button {
+  flex: 1;
+  border-radius: 999px;
+  box-shadow: none;
+  background: transparent;
+  font-weight: 800;
+}
+
+.auth-tabs button.on {
+  background: var(--terracota);
+  color: white;
+  box-shadow: 0 3px 0 #7d3714;
+}
+
+.auth-lead {
+  margin: 2px 0 0;
+  font-weight: 700;
+}
+
+.auth-form > .en {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.field input[type='email'],
+.field input[type='password'],
+.auth-password-row input[type='text'] {
+  font: inherit;
+  font-weight: 700;
+  padding: 0.5em 0.8em;
+  border-radius: 12px;
+  border: 2px solid #eadcc3;
+  background: white;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.field input:focus-visible {
+  outline: 3px solid var(--amarelo);
+  outline-offset: 1px;
+}
+
+.auth-password-row {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.auth-password-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.auth-reveal {
+  font-size: 0.8em;
+  padding: 0 0.8em;
+  white-space: nowrap;
+}
+
+.auth-hint {
+  font-size: 0.82em;
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+
+.auth-hint .en {
+  display: inline;
+  margin-left: 6px;
+}
+
+.auth-notice,
+.auth-legacy {
+  background: #fff1d6;
+  border-left: 5px solid var(--mustard);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: 0.9em;
+  margin-bottom: 12px;
+}
+
+.auth-notice .en,
+.auth-legacy .en {
+  display: block;
+}
+
+.auth-error {
+  margin-top: 10px;
+}
+
+.auth-submit {
+  font-size: 1.05em;
+}
+
+.idle-card {
+  background:
+    var(--art-azulejo) top left / 24px 24px repeat-x,
+    var(--cream);
+  color: var(--ink);
+  border-radius: 22px;
+  box-shadow: var(--shadow);
+  padding: 34px 24px 22px;
+  font-size: 0.9em;
+}
+
+.idle-card h2 {
+  font-family: var(--font-title);
+  color: var(--terracota);
+  font-size: 1.8em;
+  margin: 0;
+}
+
+.idle-card .en {
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.idle-cup {
+  font-size: 2.2em;
+  line-height: 1;
 }
 
 .legal {
@@ -2863,14 +2996,6 @@ body:has(.onboarding) .joystick {
   .conversa-header .close-btn {
     min-width: 44px;
     min-height: 44px;
-  }
-
-  .age-gate .years {
-    flex-direction: column;
-  }
-
-  .age-gate select {
-    width: 100%;
   }
 
   .decor {

@@ -1,5 +1,4 @@
 import {
-  ageFrom,
   BODY_TYPES,
   DEFAULT_APPEARANCE,
   FACE_STYLES,
@@ -16,19 +15,14 @@ import {
 import { h, en, ui } from './dom';
 import { renderAvatarPreview } from '../render/avatar';
 
-const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
-const BLOCK_KEY = 'tb_age_block';
-
 export interface NewProfile {
   name: string;
   pronoun: Pronoun;
   appearance: Appearance;
-  birthYear: number;
-  birthMonth: number;
-  confirm18: true;
+  confirm18?: true;
 }
 
-function hero() {
+export function hero() {
   return h(
     'div',
     { class: 'hero' },
@@ -38,62 +32,18 @@ function hero() {
   );
 }
 
-function blockedScreen(root: HTMLElement) {
-  root.replaceChildren(
-    hero(),
-    h(
-      'div',
-      { class: 'panel', style: 'max-width:480px;text-align:center' },
-      h('h2', null, `Só para maiores de ${MIN_AGE} anos`),
-      en(`Tudo Bem is an adult (${MIN_AGE}+) world for now. Younger audiences may come in a later rollout, after thorough testing.`),
-    ),
-  );
-}
-
-export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt: string, en: string) => void } {
+/**
+ * Avatar creator. `askAdult`: show the one-time “Confirmo que tenho 18 anos ou mais” checkbox —
+ * only for solo guests; account holders already affirmed it at signup. No birth date is asked.
+ */
+export function runOnboarding(submit: (p: NewProfile) => void, opts: { askAdult: boolean }): { setError: (pt: string, en: string) => void } {
   const api = { setError: (_pt: string, _en: string) => {} };
   {
     const root = h('div', { class: 'onboarding' });
     ui().append(root);
-    if (localStorage.getItem(BLOCK_KEY)) {
-      blockedScreen(root);
-      return api;
-    }
+    creator();
 
-    // ---------- Step 1: age gate ----------
-    const now = new Date();
-    const years = Array.from({ length: 90 }, (_, i) => now.getFullYear() - i);
-    const month = h('select', { 'aria-label': 'Mês de nascimento', id: 'birth-month' }, h('option', { value: '' }, 'Mês…'), ...MONTHS.map((m, i) => h('option', { value: String(i + 1) }, m)));
-    const year = h('select', { 'aria-label': 'Ano de nascimento', id: 'birth-year' }, h('option', { value: '' }, 'Ano…'), ...years.map((y) => h('option', { value: String(y) }, String(y))));
-    const err = h('div', { class: 'feedback s1', style: 'display:none' });
-    const ageNext = h('button', { class: 'primary', disabled: true, id: 'age-next' }, 'Continuar →');
-    const upd = () => (ageNext.disabled = !(month.value && year.value));
-    month.addEventListener('change', upd);
-    year.addEventListener('change', upd);
-    ageNext.addEventListener('click', () => {
-      const age = ageFrom(Number(year.value), Number(month.value));
-      if (age < MIN_AGE) {
-        localStorage.setItem(BLOCK_KEY, '1');
-        return blockedScreen(root);
-      }
-      creator(Number(year.value), Number(month.value));
-    });
-    root.replaceChildren(
-      hero(),
-      h(
-        'div',
-        { class: 'panel age-gate', style: 'max-width:520px' },
-        h('h2', null, 'Quando você nasceu?'),
-        en(`When were you born? Tudo Bem is ${MIN_AGE}+ only. We just check your age — your birth date is not stored.`),
-        h('div', { class: 'years', style: 'margin:12px 0' }, month, year),
-        err,
-        h('div', { class: 'row' }, h('span', { class: 'spacer' }), ageNext),
-        h('div', { class: 'legal' }, `Phase 0 preview · adults (${MIN_AGE}+) only.`),
-      ),
-    );
-
-    // ---------- Step 2: avatar creator ----------
-    function creator(birthYear: number, birthMonth: number) {
+    function creator() {
       const a: Appearance = { ...DEFAULT_APPEARANCE, ...STARTER_OUTFITS[0].set, skin: Math.floor(Math.random() * SKIN_TONES.length) };
       let pronoun: Pronoun = 'nome';
       const canvas = h('canvas', { width: 220, height: 280, class: 'creator-canvas' });
@@ -110,9 +60,10 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
         loop(ts);
       });
 
-      const go = h('button', { class: 'primary', style: 'font-size:1.1em', id: 'enter-praca', disabled: true }, 'Entrar na Praça →');
+      const go = h('button', { class: 'primary', style: 'font-size:1.1em', id: 'enter-praca', disabled: opts.askAdult }, 'Entrar na Praça →');
       const adult = h('input', { type: 'checkbox', id: 'confirm-18', required: true });
       adult.addEventListener('change', () => (go.disabled = !adult.checked));
+      const adultOk = () => !opts.askAdult || adult.checked;
       const name = h('input', { type: 'text', maxLength: 16, placeholder: 'Ex.: Jonny, Bia, Leo…', 'aria-label': 'Nome', id: 'avatar-name' });
       const nameErr = h('div', { class: 'feedback s1', style: 'display:none' });
       const setErr = (pt: string, enText: string) => {
@@ -181,9 +132,9 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
       go.addEventListener('click', () => {
         const check = validateName(name.value);
         if (!check.ok) return setErr(check.reason.pt, check.reason.en);
-        if (!adult.checked) return setErr(`Confirme que você tem ${MIN_AGE} anos ou mais.`, `Please confirm you are ${MIN_AGE} or older.`);
+        if (!adultOk()) return setErr(`Confirme que você tem ${MIN_AGE} anos ou mais.`, `Please confirm you are ${MIN_AGE} or older.`);
         go.disabled = true;
-        submit({ name: check.name, pronoun, appearance: { ...a }, birthYear, birthMonth, confirm18: true });
+        submit({ name: check.name, pronoun, appearance: { ...a }, ...(opts.askAdult ? { confirm18: true as const } : {}) });
       });
       name.addEventListener('keydown', (e) => e.key === 'Enter' && go.click());
 
@@ -223,12 +174,14 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
               h(
                 'div',
                 { class: 'creator-cta' },
-                h(
-                  'label',
-                  { class: 'adult-confirm', for: 'confirm-18' },
-                  adult,
-                  h('span', null, `Confirmo que tenho ${MIN_AGE} anos ou mais.`, en(`I confirm I am ${MIN_AGE} or older. Tudo Bem is an adult world.`, true)),
-                ),
+                opts.askAdult
+                  ? h(
+                      'label',
+                      { class: 'adult-confirm', for: 'confirm-18' },
+                      adult,
+                      h('span', null, `Confirmo que tenho ${MIN_AGE} anos ou mais.`, en(`I confirm I am ${MIN_AGE} or older. Tudo Bem is an adult world.`, true)),
+                    )
+                  : null,
                 h('div', { class: 'row', style: 'margin-top:8px' }, h('span', { class: 'spacer' }), go),
               ),
             ),

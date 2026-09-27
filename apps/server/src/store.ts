@@ -2,8 +2,10 @@ import { freshMission, normalizeBjj, type PrivateProfile } from '@tudobem/shared
 
 export interface StoredProfile extends PrivateProfile {
   token: string;
-  /** Only the fact of passing the 18+ gate (birth date check + explicit confirmation) is kept — never the birth date. */
+  /** The player affirmed 18+ (signup checkbox). No birth date is ever collected. */
   ageGate18: true;
+  /** Email/password account that owns this profile. Absent for solo guests and not-yet-claimed legacy profiles. */
+  accountId?: string;
   daily: {
     date: string;
     sceneClears: Record<string, number>;
@@ -111,7 +113,7 @@ export class ProfileStore {
 }
 
 export function toPrivate(p: StoredProfile): PrivateProfile {
-  const { token: _t, ageGate18: _a, daily: _d, lastSeen: _l, ...rest } = p;
+  const { token: _t, ageGate18: _a, accountId: _acc, daily: _d, lastSeen: _l, ...rest } = p;
   const mission = p.mission?.date === today() ? p.mission : freshMission(today());
   return structuredClone({ ...rest, mission, bjj: normalizeBjj(p.bjj) });
 }

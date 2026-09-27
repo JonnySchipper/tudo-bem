@@ -2,7 +2,10 @@ import type { ClientMsg, ServerMsg } from '@tudobem/shared';
 
 type Handler = (m: ServerMsg) => void;
 
-export type NetStatus = 'open' | 'closed' | 'connecting' | 'failed' | 'replaced';
+export type NetStatus = 'open' | 'closed' | 'connecting' | 'failed' | 'replaced' | 'idle' | 'loggedOut';
+
+/** Server close codes that mean "don't reconnect on your own" (apps/server/src/app.ts CLOSE_CODES). */
+const TERMINAL_CLOSE: Record<number, NetStatus> = { 4000: 'replaced', 4001: 'idle', 4002: 'loggedOut' };
 
 export interface NetLike {
   readonly solo: boolean;
@@ -129,8 +132,9 @@ export class Net implements NetLike {
       if (gen !== this.generation) return;
       this.clearTimers();
       this.ws = null;
-      if (e.code === 4000) {
-        this.onStatus('replaced');
+      const terminal = TERMINAL_CLOSE[e.code];
+      if (terminal) {
+        this.onStatus(terminal);
         return;
       }
       this.attempts += 1;
@@ -149,7 +153,7 @@ export class Net implements NetLike {
 
   send(m: ClientMsg) {
     if (this.ws?.readyState === WS_OPEN) this.ws.send(JSON.stringify(m));
-    else if (m.t !== 'ping' && m.t !== 'hello') this.queue.push(m);
+    else if (m.t !== 'ping' && m.t !== 'hello' && m.t !== 'active') this.queue.push(m);
   }
 
   on(h: Handler) {

@@ -67,13 +67,37 @@ async function waitIdleAt(page, x, y, label) {
   }, [x, y], 12_000, label ?? `avatar at ${x},${y}`);
 }
 
+const PASSWORD = 'pao-de-queijo-2026';
+const RUN = Date.now().toString(36);
+const emailFor = (name) => `${name.toLowerCase()}+${RUN}@exemplo.com`;
+/** Solo builds need `?rolltest` for the Academia roll debug hints (the server build uses TB_TEST_ROLL=1). */
+const START_URL = SOLO ? `${BASE}${BASE.includes('?') ? '&' : '?'}rolltest` : BASE;
+
+/** Multiplayer: the first screen is sign in / create account (email + password + one 18+ tick). No birth date anywhere. */
+async function signUp(page, name) {
+  await page.waitForSelector('#auth-form');
+  assert(!(await page.$('#birth-month')) && !(await page.$('#birth-year')), 'no birth-date step before play');
+  if (!(await page.isVisible('#auth-confirm-18'))) await page.click('#auth-tab-register');
+  await page.fill('#auth-email', emailFor(name));
+  await page.fill('#auth-password', PASSWORD);
+  assert(await page.isDisabled('#auth-submit'), 'cannot create an account before confirming 18+');
+  await page.check('#auth-confirm-18');
+  await page.click('#auth-submit');
+}
+
+async function signIn(page, name, password = PASSWORD) {
+  await page.waitForSelector('#auth-form');
+  if (await page.isVisible('#auth-confirm-18')) await page.click('#auth-tab-login');
+  await page.fill('#auth-email', emailFor(name));
+  await page.fill('#auth-password', password);
+  await page.click('#auth-submit');
+}
+
 async function createAvatar(page, name, pronoun) {
-  await page.goto(BASE);
-  await page.waitForSelector('#birth-month');
-  await page.selectOption('#birth-month', '5');
-  await page.selectOption('#birth-year', '2001');
-  await page.click('#age-next');
+  await page.goto(START_URL);
+  if (!SOLO) await signUp(page, name);
   await page.waitForSelector('#avatar-name');
+  assert(!(await page.$('#birth-month')), 'avatar creator has no birth-date step');
   await page.fill('#avatar-name', name);
   const labels = await page.$$eval('.field > label', (els) => els.map((e) => (e.childNodes[0]?.textContent ?? '').trim()));
   assert(labels.includes('Visual inicial'), `visual inicial preset (${labels.join(' | ')})`);
@@ -84,8 +108,13 @@ async function createAvatar(page, name, pronoun) {
   assert((await page.$$('[data-outfit]')).length === 1 && (await page.$('[data-outfit="visual_inicial"]')), 'one Visual inicial clothing preset');
   const label = { ele: 'ele (he)', ela: 'ela (she)', nome: 'só meu nome (name only)' }[pronoun];
   await page.click(`button:has-text("${label}")`);
-  assert(await page.isDisabled('#enter-praca'), 'cannot enter before confirming 18+');
-  await page.check('#confirm-18');
+  if (SOLO) {
+    // Solo guests have no account, so the creator asks for the one-time 18+ tick.
+    assert(await page.isDisabled('#enter-praca'), 'cannot enter before confirming 18+');
+    await page.check('#confirm-18');
+  } else {
+    assert(!(await page.$('#confirm-18')), 'account holders are not asked 18+ twice');
+  }
   return async () => {
     await page.click('#enter-praca');
     await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
@@ -152,27 +181,30 @@ async function main() {
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => m.type() === 'error' && !/fonts\.g/.test(m.text()) && errors.push(m.text()));
 
-  // 0. Under-18 is turned away at the gate
-  {
-    const ctxMinor = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-    const pm = await ctxMinor.newPage();
-    await pm.goto(BASE);
-    await pm.waitForSelector('#birth-month');
-    await pm.selectOption('#birth-month', '1');
-    await pm.selectOption('#birth-year', String(new Date().getFullYear() - 16));
-    await pm.click('#age-next');
-    await pm.waitForSelector('text=Só para maiores de 18 anos');
-    assert(!(await pm.$('#avatar-name')), 'no avatar creator for under-18');
-    await ctxMinor.close();
-    log('under-18 blocked');
+  // 0. Multiplayer requires an account: the world stays closed until you sign in
+  if (!SOLO) {
+    await page.goto(START_URL);
+    await page.waitForSelector('#auth-form');
+    await shot(page, '00_sign_up');
+    assert(!(await page.$('#avatar-name')) && !(await room(page)), 'no avatar creator or world before signing in');
   }
 
-  // 1. Age gate + avatar creation (18+ confirmation required)
+  // 1. Account (email + password + 18+ tick) → avatar creation
   const enter = await createAvatar(page, 'Jonny', 'ele');
   await sleep(300);
   await shot(page, '01_avatar_creator');
   await enter();
   await dwell(1500);
+  if (!SOLO) {
+    // The session cookie survives a reload: straight back into the Praça, same avatar.
+    const before = (await profile(page)).id;
+    await page.reload();
+    await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça after reload');
+    assert(!(await page.$('#auth-form')), 'no login screen after reload');
+    assert((await profile(page)).id === before, 'same avatar after reload');
+    log('session persists across reload');
+    await sleep(400);
+  }
   const start = await profile(page);
   log('landed in', await room(page), 'coins', start.coins, 'plate', start.nameplate);
   const art = await page.evaluate(() => window.__tb.artStats());
@@ -229,6 +261,17 @@ async function main() {
     pageB = await ctxB.newPage();
     const enterB = await createAvatar(pageB, 'Bia', 'ela');
     await enterB();
+    // Log out, fail once with a wrong password, then sign back in to the same avatar.
+    const biaId = (await profile(pageB)).id;
+    await pageB.click('#btn-logout');
+    await signIn(pageB, 'Bia', 'senha-errada-123');
+    await pageB.waitForSelector('#auth-error:has-text("E-mail ou senha incorretos")');
+    await shot(pageB, '02a_login_error');
+    await pageB.fill('#auth-password', PASSWORD);
+    await pageB.click('#auth-submit');
+    await waitFor(pageB, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'Bia back in the praça');
+    assert((await profile(pageB)).id === biaId, 'login returns the same avatar');
+    log('logout → wrong password → login ok');
     await clickTile(pageB, 8, 8);
     await sleep(1200);
     await pageB.fill('#chat-input', 'Oi, Jonny! Eu sou de Chicago. Vamos na padaria?');

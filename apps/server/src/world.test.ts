@@ -18,8 +18,8 @@ import {
   type ClientMsg,
   type PublicAvatar,
 } from '@tudobem/shared';
-import { sanitizeAppearance, World, MG_RESUME_MS, type Session, type WorldOptions } from './world.js';
-import { ProfileStore } from './store.js';
+import { sanitizeAppearance, World, MG_RESUME_MS, type AccountLink, type Session, type WorldOptions } from './world.js';
+import { ProfileStore, type StoredProfile } from './store.js';
 import { AuthoredNpcDialogue, MemoryModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 
 let clock = 1_000_000;
@@ -85,7 +85,7 @@ async function client(world: World, name = `Ana${n++}`, pronoun: 'ele' | 'ela' |
     all: (t) => inbox.filter((m) => m.t === t) as never,
   };
   await c.send({ t: 'hello' });
-  await c.send({ t: 'createProfile', name, pronoun, appearance: DEFAULT_APPEARANCE, birthYear: 2000, birthMonth: 1, confirm18: true });
+  await c.send({ t: 'createProfile', name, pronoun, appearance: DEFAULT_APPEARANCE, confirm18: true });
   await c.send({ t: 'join', room: 'praca' });
   return c;
 }
@@ -103,30 +103,25 @@ describe('World', () => {
     expect(sanitizeAppearance({ ...legacy, face: 'x' as never, extra: '<b>' as never, idle: 'dance' as never })).toMatchObject({ face: 'suave', extra: 'nenhum', idle: 'solto' });
   });
 
-  it('enforces the 18+ age gate, explicit adult confirmation, and name filter', async () => {
+  it('asks for no birth date: a solo guest only affirms 18+ once, and the name filter still applies', async () => {
     const { world } = makeWorld();
     const inbox: ServerMsg[] = [];
     const s = world.connect('x', (m) => inbox.push(m), () => {});
-    const now = new Date();
-    const year = now.getFullYear();
-    const base = { t: 'createProfile' as const, name: 'Teste', pronoun: 'ele' as const, appearance: DEFAULT_APPEARANCE, birthMonth: 1, confirm18: true };
-    for (const age of [10, 13, 16, 17]) {
-      await world.handle(s, { ...base, birthYear: year - age - 1, birthMonth: 12 });
-      expect(inbox.at(-1), `age ${age}`).toMatchObject({ t: 'error', code: 'age_gate' });
-    }
-    // Turns 18 later this year → still 17 today.
-    if (now.getMonth() < 11) {
-      await world.handle(s, { ...base, birthYear: year - 18, birthMonth: 12 });
-      expect(inbox.at(-1)).toMatchObject({ t: 'error', code: 'age_gate' });
-    }
-    await world.handle(s, { ...base, birthYear: 1990, confirm18: false });
+    await world.handle(s, { t: 'hello' });
+    expect(inbox.at(-1)).toEqual({ t: 'needProfile', confirm18: true });
+    const base = { t: 'createProfile' as const, name: 'Teste', pronoun: 'ele' as const, appearance: DEFAULT_APPEARANCE };
+    await world.handle(s, base);
     expect(inbox.at(-1)).toMatchObject({ t: 'error', code: 'age_confirm' });
-    await world.handle(s, { ...base, birthYear: 1990, name: 'shit' });
+    await world.handle(s, { ...base, confirm18: false });
+    expect(inbox.at(-1)).toMatchObject({ t: 'error', code: 'age_confirm' });
+    await world.handle(s, { ...base, confirm18: true, name: 'shit' });
     expect(inbox.at(-1)).toMatchObject({ t: 'error', code: 'name' });
     expect(s.profile).toBeUndefined();
-    await world.handle(s, { ...base, birthYear: year - 18, birthMonth: 1 });
+    // Old clients may still send birth fields; they're ignored and never stored.
+    await world.handle(s, { ...base, confirm18: true, birthYear: 2015, birthMonth: 1 } as ClientMsg);
     expect(inbox.at(-1)).toMatchObject({ t: 'welcome' });
     expect(s.profile?.ageGate18).toBe(true);
+    expect(JSON.stringify(s.profile)).not.toMatch(/birth/i);
   });
 
   it('makes profiles from the old 13+ policy sign up again', async () => {
@@ -485,9 +480,9 @@ describe('World', () => {
     const token = a.s.profile!.token;
     let kicked = false;
     const orig = a.s.close;
-    a.s.close = () => {
+    a.s.close = (reason) => {
       kicked = true;
-      orig();
+      orig(reason);
     };
     const b = connectBare(world);
     await b.send({ t: 'hello', token });
@@ -782,5 +777,208 @@ describe('pushProfileById', () => {
     expect(end.rv).toBeGreaterThanOrEqual(5);
     expect(a.s.profile!.bjj?.belt).toBe('branca');
     if (end.winner === 'player') expect(a.s.profile!.coins).toBeGreaterThanOrEqual(coins0 + ROLL_RV_WIN - 1);
+  });
+});
+
+class FakeAccounts implements AccountLink {
+  links = new Map<string, string>();
+  adults = new Set<string>();
+  profileIdFor(id: string) {
+    return this.links.get(id);
+  }
+  linkProfile(id: string, profileId: string) {
+    this.links.set(id, profileId);
+  }
+  confirmed18(id: string) {
+    return this.adults.has(id);
+  }
+}
+
+function connectAs(world: World, accountId?: string) {
+  const inbox: ServerMsg[] = [];
+  const closed: string[] = [];
+  const s = world.connect(`acc${n++}`, (m) => inbox.push(m), (r) => closed.push(r), { accountId });
+  return { s, inbox, closed, send: (m: ClientMsg) => world.handle(s, m) };
+}
+
+describe('World with email/password accounts', () => {
+  beforeEach(() => {
+    clock = 1_000_000;
+    pending.length = 0;
+  });
+
+  it('refuses sockets without a signed-in account', async () => {
+    const accounts = new FakeAccounts();
+    const { world } = makeWorld(16, { accounts });
+    const guest = connectAs(world);
+    await guest.send({ t: 'hello' });
+    expect(guest.inbox.at(-1)).toEqual({ t: 'authRequired' });
+    await guest.send({ t: 'createProfile', name: 'Pirata', pronoun: 'ele', appearance: DEFAULT_APPEARANCE, confirm18: true });
+    expect(guest.inbox.at(-1)).toEqual({ t: 'authRequired' });
+    await guest.send({ t: 'join', room: 'praca' });
+    expect(guest.inbox.at(-1)).toMatchObject({ t: 'error', code: 'no_profile' });
+    expect(world.store.count()).toBe(0);
+  });
+
+  it('creates the avatar for the account without re-asking 18+, then finds it on the next visit', async () => {
+    const accounts = new FakeAccounts();
+    accounts.adults.add('acc-1');
+    const { world } = makeWorld(16, { accounts });
+    const a = connectAs(world, 'acc-1');
+    await a.send({ t: 'hello' });
+    expect(a.inbox.at(-1)).toEqual({ t: 'needProfile', confirm18: false });
+    await a.send({ t: 'createProfile', name: 'Jonny', pronoun: 'ele', appearance: DEFAULT_APPEARANCE });
+    expect(a.inbox.at(-1)).toMatchObject({ t: 'welcome' });
+    const id = a.s.profile!.id;
+    expect(accounts.links.get('acc-1')).toBe(id);
+    expect(a.s.profile!.accountId).toBe('acc-1');
+    expect(JSON.stringify(a.inbox.at(-1))).not.toContain('acc-1');
+    world.disconnect(a.s);
+
+    const again = connectAs(world, 'acc-1');
+    await again.send({ t: 'hello' });
+    expect(again.inbox.at(-1)).toMatchObject({ t: 'welcome', profile: { id, name: 'Jonny' } });
+  });
+
+  it('lets a pre-accounts browser claim its old avatar once, by token', async () => {
+    const accounts = new FakeAccounts();
+    const { world } = makeWorld(16, { accounts });
+    const legacy: StoredProfile = {
+      ...(await client(makeWorld().world, 'Antiga')).s.profile!,
+    };
+    world.store.add(legacy);
+
+    const owner = connectAs(world, 'acc-owner');
+    await owner.send({ t: 'hello', token: legacy.token });
+    expect(owner.inbox.at(-1)).toMatchObject({ t: 'welcome', profile: { id: legacy.id } });
+    expect(accounts.links.get('acc-owner')).toBe(legacy.id);
+    world.disconnect(owner.s);
+
+    const thief = connectAs(world, 'acc-other');
+    await thief.send({ t: 'hello', token: legacy.token });
+    expect(thief.inbox.at(-1)).toEqual({ t: 'needProfile', confirm18: true });
+    expect(thief.s.profile).toBeUndefined();
+  });
+
+  it('logout closes every socket of that account', async () => {
+    const accounts = new FakeAccounts();
+    accounts.adults.add('acc-1');
+    const { world } = makeWorld(16, { accounts });
+    const a = connectAs(world, 'acc-1');
+    await a.send({ t: 'hello' });
+    await a.send({ t: 'createProfile', name: 'Jonny', pronoun: 'ele', appearance: DEFAULT_APPEARANCE });
+    await a.send({ t: 'join', room: 'praca' });
+    const other = connectAs(world, 'acc-2');
+    world.dropAccount('acc-1');
+    expect(a.closed).toEqual(['logout']);
+    expect(other.closed).toEqual([]);
+    expect(world.stats().players).toBe(0);
+  });
+});
+
+describe('Idle kick', () => {
+  beforeEach(() => {
+    clock = 1_000_000;
+    pending.length = 0;
+  });
+
+  const MIN = 60_000;
+
+  it('warns at 14 min and kicks at 15 min with no real input, freeing the seat', async () => {
+    const { world } = makeWorld(2);
+    const a = await client(world, 'Parado');
+    const b = await client(world, 'Beto', 'ele');
+    let closed: string | null = null;
+    a.s.close = (r) => (closed = r);
+    expect(world.stats().instances['praca#1']).toBe(2);
+
+    for (let t = 25_000; t < 14 * MIN; t += 25_000) {
+      clock += 25_000;
+      await a.send({ t: 'ping' });
+      await a.send({ t: 'hello', token: a.s.profile!.token });
+      await b.send({ t: 'active' });
+      world.sweepIdle();
+    }
+    expect(a.all('idleWarning')).toHaveLength(0);
+    clock += 15_000;
+    world.sweepIdle();
+    const warn = a.last('idleWarning')!;
+    expect(warn.msLeft).toBeLessThanOrEqual(MIN);
+    expect(warn.pt).toMatch(/Ainda tá aí\?/);
+    world.sweepIdle();
+    expect(a.all('idleWarning')).toHaveLength(1);
+
+    clock += MIN;
+    world.sweepIdle();
+    expect(a.last('kicked')).toMatchObject({ reason: 'idle', pt: expect.stringContaining('15 minutos') });
+    expect(closed).toBe('idle');
+    expect(a.s.profile).toBeUndefined();
+    expect(world.stats().instances['praca#1']).toBe(1);
+    expect(b.last('avatarLeft')).toMatchObject({ id: expect.any(String) });
+    expect(b.s.profile).toBeTruthy();
+  });
+
+  it('real input (move, chat, UI activity) resets the clock; client timers do not', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    let closed: string | null = null;
+    a.s.close = (r) => (closed = r);
+
+    clock += 10 * MIN;
+    await a.send({ t: 'move', x: 8, y: 6 });
+    clock += 10 * MIN;
+    await a.send({ t: 'chat', text: 'Oi, tudo bem?' });
+    clock += 10 * MIN;
+    await a.send({ t: 'active' });
+    clock += 10 * MIN;
+    world.sweepIdle();
+    expect(closed).toBeNull();
+
+    await a.send({ t: 'mg', action: 'timeout' });
+    await a.send({ t: 'roll', action: 'timeout' });
+    clock += 5 * MIN;
+    world.sweepIdle();
+    expect(closed).toBe('idle');
+  });
+
+  it('input after the warning cancels it', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    let closed: string | null = null;
+    a.s.close = (r) => (closed = r);
+    clock += 14.5 * MIN;
+    world.sweepIdle();
+    expect(a.all('idleWarning')).toHaveLength(1);
+    await a.send({ t: 'active' });
+    clock += 1 * MIN;
+    world.sweepIdle();
+    expect(closed).toBeNull();
+    clock += 13 * MIN;
+    world.sweepIdle();
+    expect(a.all('idleWarning')).toHaveLength(2);
+    expect(closed).toBeNull();
+  });
+
+  it('ignores sockets that are still on the login / avatar screen', async () => {
+    const { world } = makeWorld();
+    const bare = connectBare(world);
+    let closed = false;
+    bare.s.close = () => (closed = true);
+    clock += 60 * MIN;
+    world.sweepIdle();
+    expect(closed).toBe(false);
+  });
+
+  it('honors a custom idle window', async () => {
+    const { world } = makeWorld(16, { idleKickMs: 90_000 });
+    const a = await client(world);
+    let closed: string | null = null;
+    a.s.close = (r) => (closed = r);
+    clock += 45_000;
+    world.sweepIdle();
+    expect(a.last('idleWarning')?.pt).toMatch(/45 segundos/);
+    clock += 45_000;
+    world.sweepIdle();
+    expect(closed).toBe('idle');
   });
 });

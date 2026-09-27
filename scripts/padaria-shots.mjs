@@ -38,10 +38,6 @@ const ctx = await browser.newContext({ viewport: { width: Number(process.env.SHO
 const page = await ctx.newPage();
 page.on('pageerror', (e) => console.error('pageerror', String(e)));
 await page.goto(BASE + QUERY);
-await page.waitForSelector('#birth-month');
-await page.selectOption('#birth-month', '5');
-await page.selectOption('#birth-year', '1995');
-await page.click('#age-next');
 await page.waitForSelector('#avatar-name');
 await page.fill('#avatar-name', 'Jonny');
 await page.click('button:has-text("ele (he)")');

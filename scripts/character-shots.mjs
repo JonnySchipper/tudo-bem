@@ -67,10 +67,6 @@ async function closeup(name, px, py, w = 300, h = 230) {
 const tileClient = (x, y) => page.evaluate(([x, y]) => window.__tb.tileToClient(x, y), [x, y]);
 
 await page.goto(BASE);
-await page.waitForSelector('#birth-month');
-await page.selectOption('#birth-month', '5');
-await page.selectOption('#birth-year', '1995');
-await page.click('#age-next');
 await page.waitForSelector('#avatar-name');
 await page.fill('#avatar-name', 'Jonny');
 await page.click('button:has-text("ele (he)")');

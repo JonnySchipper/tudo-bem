@@ -15,6 +15,8 @@ export interface HudActions {
   toggleParrot: () => void;
   toggleSound: () => void;
   toggleMusic: () => void;
+  /** Multiplayer only (solo has no account). */
+  logout?: () => void;
 }
 
 let toastsEl: HTMLElement;
@@ -69,6 +71,7 @@ export function buildHud(actions: HudActions) {
       h('button', { onclick: actions.openFriends, id: 'btn-friends' }, icon('friends'), bi('Amigos', 'Friends')),
       musicBtn,
       soundBtn,
+      actions.logout ? h('button', { onclick: actions.logout, id: 'btn-logout', title: 'Sair da conta / Log out' }, bi('Sair', 'Log out')) : null,
       game.solo ? h('span', { class: 'pill', title: 'Prévia estática: o mundo roda no seu navegador. Multiplayer precisa do servidor. / Static preview — the world runs in your browser; multiplayer needs the server build.', id: 'solo-pill' }, 'Modo solo') : null,
       missionPill,
       h('span', { class: 'pill' }, plate),
@@ -227,6 +230,33 @@ export function overlayMessage(text: string | null, onRetry?: () => void) {
       ),
     ),
   );
+}
+
+/** Full-screen “you were idle” card. The seat is already freed server-side; the button rejoins. */
+export function idleKickedCard(copy: { pt: string; en: string } | null, onBack?: () => void) {
+  document.querySelector('.idle-kicked')?.remove();
+  if (!copy) return;
+  const back = h('button', { class: 'primary', type: 'button', id: 'idle-back' }, bi('Voltar pra Praça', 'Back to the Praça'));
+  back.addEventListener('click', () => {
+    document.querySelector('.idle-kicked')?.remove();
+    onBack?.();
+  });
+  ui().append(
+    h(
+      'div',
+      { class: 'overlay-msg idle-kicked', role: 'alertdialog', 'aria-labelledby': 'idle-title' },
+      h(
+        'div',
+        { class: 'overlay-card idle-card' },
+        h('span', { class: 'idle-cup', 'aria-hidden': 'true' }, '☕'),
+        h('h2', { id: 'idle-title' }, 'Até já!'),
+        h('p', null, copy.pt),
+        en(copy.en, true),
+        back,
+      ),
+    ),
+  );
+  back.focus();
 }
 
 /** Non-blocking recovery after reconnect gives up or this tab is replaced. Clears any previous banner. */

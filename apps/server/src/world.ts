@@ -1,5 +1,4 @@
 import {
-  ageFrom,
   BODY_TYPES,
   BOTTOM_STYLES,
   buildGrid,
@@ -17,6 +16,10 @@ import {
   HAIR_COLORS,
   HAIR_STYLES,
   hatById,
+  IDLE_KICK_MS,
+  IDLE_WARN_MS,
+  idleKickedCopy,
+  idleWarningCopy,
   isRoomId,
   key,
   makeOrder,
@@ -117,7 +120,20 @@ export interface WorldOptions {
   rollQueueMs?: number;
   /** When true, duel messages include `debugCorrect` for CI e2e (TB_TEST_ROLL=1). */
   testRollHints?: boolean;
+  /** Email/password accounts. When set, only sockets with a signed-in account can play (the Node server). Solo mode leaves it unset. */
+  accounts?: AccountLink;
+  /** No real input for this long → kicked and the seat is freed. Default 15 min. */
+  idleKickMs?: number;
 }
+
+/** What the World needs from the account store (kept tiny so world.ts stays browser-safe for solo mode). */
+export interface AccountLink {
+  profileIdFor(accountId: string): string | undefined;
+  linkProfile(accountId: string, profileId: string): void;
+  confirmed18(accountId: string): boolean;
+}
+
+export type CloseReason = 'replaced' | 'idle' | 'logout';
 
 interface AvatarState {
   from: Tile;
@@ -176,7 +192,11 @@ interface RollState {
 export interface Session {
   id: string;
   send: (m: ServerMsg) => void;
-  close: () => void;
+  close: (reason: CloseReason) => void;
+  /** Signed-in account (from the session cookie on the WebSocket upgrade). */
+  accountId?: string;
+  lastActiveAt: number;
+  idleWarned: boolean;
   profile?: StoredProfile;
   instance?: Instance;
   avatar?: AvatarState;
@@ -240,6 +260,8 @@ export class World {
   private readonly rng: () => number;
   private readonly rollQueueMs: number;
   private readonly testRollHints: boolean;
+  private readonly accounts?: AccountLink;
+  readonly idleKickMs: number;
   private seq = 0;
   /** Mid-order Me vê um state kept across a socket drop so reconnect can resync the same ticket. */
   private parkedMg = new Map<string, { mg: MgState; room: RoomId; at: number }>();
@@ -258,17 +280,20 @@ export class World {
     const envQueue = Number(process.env.ROLL_QUEUE_MS);
     this.rollQueueMs = opts.rollQueueMs ?? (Number.isFinite(envQueue) && envQueue >= 0 ? envQueue : ROLL_QUEUE_MS_DEFAULT);
     this.testRollHints = opts.testRollHints ?? process.env.TB_TEST_ROLL === '1';
+    this.accounts = opts.accounts;
+    this.idleKickMs = Math.max(1000, opts.idleKickMs ?? IDLE_KICK_MS);
   }
 
   // ---------- connection lifecycle ----------
 
-  connect(id: string, send: (m: ServerMsg) => void, close: () => void): Session {
-    const s: Session = { id, send, close, chatTimes: [], lastHintAt: 0 };
+  connect(id: string, send: (m: ServerMsg) => void, close: (reason: CloseReason) => void, auth: { accountId?: string } = {}): Session {
+    const s: Session = { id, send, close, accountId: auth.accountId, lastActiveAt: this.now(), idleWarned: false, chatTimes: [], lastHintAt: 0 };
     this.sessions.set(id, s);
     return s;
   }
 
   disconnect(s: Session) {
+    if (this.sessions.get(s.id) !== s) return;
     this.rememberMg(s);
     this.leaveInstance(s);
     this.sessions.delete(s.id);
@@ -277,6 +302,43 @@ export class World {
       this.store.save();
       this.notifyFriendsOfPresence(s.profile.id);
     }
+  }
+
+  /**
+   * Server-authoritative AFK check (call every few seconds). Only players in the world count: a
+   * socket still on the login / avatar screen holds no seat. Client pings don't reset the clock.
+   */
+  sweepIdle() {
+    const t = this.now();
+    const warnAt = this.idleKickMs - Math.min(IDLE_WARN_MS, Math.floor(this.idleKickMs / 2));
+    for (const s of [...this.sessions.values()]) {
+      if (!s.profile) continue;
+      const idle = t - s.lastActiveAt;
+      if (idle >= this.idleKickMs) {
+        this.kick(s, 'idle', { t: 'kicked', reason: 'idle', ...idleKickedCopy(this.idleKickMs) });
+      } else if (idle >= warnAt && !s.idleWarned) {
+        s.idleWarned = true;
+        const msLeft = this.idleKickMs - idle;
+        s.send({ t: 'idleWarning', msLeft, ...idleWarningCopy(msLeft) });
+      }
+    }
+  }
+
+  /** Close every live socket of an account (used on logout). */
+  dropAccount(accountId: string) {
+    for (const s of [...this.sessions.values()]) if (s.accountId === accountId) this.kick(s, 'logout');
+  }
+
+  private kick(s: Session, reason: CloseReason, last?: ServerMsg) {
+    if (last) s.send(last);
+    this.disconnect(s);
+    s.profile = undefined;
+    s.close(reason);
+  }
+
+  private markActive(s: Session) {
+    s.lastActiveAt = this.now();
+    s.idleWarned = false;
   }
 
   stats() {
@@ -291,11 +353,15 @@ export class World {
 
   async handle(s: Session, msg: ClientMsg): Promise<void> {
     if (!msg || typeof msg !== 'object' || typeof (msg as { t?: unknown }).t !== 'string') return;
+    if (this.sessions.get(s.id) !== s) return;
     if (msg.t === 'ping') return s.send({ t: 'pong' });
+    if (isRealInput(msg)) this.markActive(s);
     if (msg.t === 'hello') return this.hello(s, msg.token);
     if (msg.t === 'createProfile') return this.createProfile(s, msg);
     if (!s.profile) return this.err(s, 'no_profile', 'Crie seu avatar primeiro.', 'Create your avatar first.');
     switch (msg.t) {
+      case 'active':
+        return;
       case 'updateAppearance':
         return this.updateAppearance(s, msg.appearance);
       case 'join':
@@ -338,10 +404,28 @@ export class World {
   // ---------- profile ----------
 
   private hello(s: Session, token?: string) {
-    const p = this.store.byTokenGet(token);
-    // Profiles from before the 18+ policy never confirmed adulthood; they must sign up again.
-    if (!p || p.ageGate18 !== true) return s.send({ t: 'needProfile' });
-    this.attachProfile(s, p);
+    if (!this.accounts) {
+      const p = this.store.byTokenGet(token);
+      // Profiles from before the 18+ policy never confirmed adulthood; they must sign up again.
+      if (!p || p.ageGate18 !== true) return s.send({ t: 'needProfile', confirm18: true });
+      return this.attachProfile(s, p);
+    }
+    if (!s.accountId) return s.send({ t: 'authRequired' });
+    const owned = this.store.get(this.accounts.profileIdFor(s.accountId) ?? '');
+    if (owned) return this.attachProfile(s, owned);
+    // First sign-in from a browser that played before accounts: the old token claims that avatar, once.
+    const legacy = this.store.byTokenGet(token);
+    if (legacy && legacy.ageGate18 === true && !legacy.accountId) {
+      this.linkAccount(s.accountId, legacy);
+      return this.attachProfile(s, legacy);
+    }
+    s.send({ t: 'needProfile', confirm18: !this.accounts.confirmed18(s.accountId) });
+  }
+
+  private linkAccount(accountId: string, p: StoredProfile) {
+    p.accountId = accountId;
+    this.accounts!.linkProfile(accountId, p.id);
+    this.store.save();
   }
 
   private attachProfile(s: Session, p: StoredProfile) {
@@ -351,7 +435,7 @@ export class World {
         this.rememberMg(other);
         this.leaveInstance(other);
         other.profile = undefined;
-        other.close();
+        other.close('replaced');
       }
     }
     s.profile = p;
@@ -365,13 +449,13 @@ export class World {
 
   private createProfile(s: Session, m: Extract<ClientMsg, { t: 'createProfile' }>) {
     if (s.profile) return this.attachProfile(s, s.profile);
-    const year = Math.floor(Number(m.birthYear));
-    const month = Math.floor(Number(m.birthMonth));
-    if (!(year > 1900 && year <= new Date().getFullYear() && month >= 1 && month <= 12))
-      return this.err(s, 'age', 'Data inválida.', 'Please enter a valid birth month and year.');
-    if (ageFrom(year, month) < MIN_AGE)
-      return this.err(s, 'age_gate', `Tudo Bem é só para maiores de ${MIN_AGE} anos.`, `Tudo Bem is for adults (${MIN_AGE}+) only.`);
-    if (m.confirm18 !== true)
+    if (this.accounts) {
+      if (!s.accountId) return s.send({ t: 'authRequired' });
+      const owned = this.store.get(this.accounts.profileIdFor(s.accountId) ?? '');
+      if (owned) return this.attachProfile(s, owned);
+    }
+    const affirmed = this.accounts && s.accountId ? this.accounts.confirmed18(s.accountId) : false;
+    if (!affirmed && m.confirm18 !== true)
       return this.err(s, 'age_confirm', `Confirme que você tem ${MIN_AGE} anos ou mais.`, `Please confirm you are ${MIN_AGE} or older.`);
     const nameCheck = validateName(String(m.name ?? ''));
     if (!nameCheck.ok) return this.err(s, 'name', nameCheck.reason.pt, nameCheck.reason.en);
@@ -402,6 +486,7 @@ export class World {
       lastSeen: this.now(),
     };
     this.store.add(p);
+    if (this.accounts && s.accountId) this.linkAccount(s.accountId, p);
     this.attachProfile(s, p);
   }
 
@@ -1449,6 +1534,13 @@ export class World {
   private err(s: Session, code: string, pt: string, en: string) {
     s.send({ t: 'error', code, pt, en });
   }
+}
+
+/** Client timers fire these on their own (reconnect hello, order/duel timeouts), so they don't prove anyone is there. */
+function isRealInput(msg: ClientMsg): boolean {
+  if (msg.t === 'hello') return false;
+  if ((msg.t === 'mg' || msg.t === 'roll') && msg.action === 'timeout') return false;
+  return true;
 }
 
 function pickIdx(v: unknown, len: number, fallback: number) {
