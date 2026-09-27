@@ -43,7 +43,7 @@ export function hatHeight(shape: HatDef['shape']): number {
     case 'cartola':
       return 17.5;
     case 'chef':
-      return 10;
+      return 8.6;
     case 'gorro':
       return 11;
     case 'capacete':
@@ -562,9 +562,10 @@ function flowers(ctx: Ctx, h: HatCtx, hat: HatDef) {
 }
 
 function chef(ctx: Ctx, h: HatCtx, c: Tone, acc: Tone) {
-  // A padaria toque: pleated and soft-topped, kept low so it reads baker, not costume.
+  // A padaria toque: pleated and soft-topped, kept low so it reads baker, not costume. v2 shortens it
+  // again (parked Art #4) so Carlos's face + apron win the silhouette.
   ctx.save();
-  ctx.scale(1, 0.8);
+  ctx.scale(1, 0.68);
   const white = tone('#fbfaf6');
   const shadow = tone('#e6e4de');
   // Pleated body

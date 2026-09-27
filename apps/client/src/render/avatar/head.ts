@@ -183,7 +183,9 @@ function features(ctx: Ctx, r: Rig, k: Look, f: FaceSpec, v: View) {
   const happy = r.eyes === 'happy';
   const closed = r.eyes === 'closed';
 
-  for (const [x, w] of eyesAt) glow(ctx, x + 0.05, eyeY - 0.6, 1.9 * w, 1, s.lo, 0.26);
+  // Soft eye sockets + under-brow plane (subsurface-ish depth, reads as a face at Praça distance)
+  for (const [x, w] of eyesAt) glow(ctx, x + 0.05, eyeY - 0.6, 1.9 * w, 1, s.lo, 0.32);
+  for (const [x, w] of eyesAt) glow(ctx, x, eyeY + 1.5, 1.5 * w, 0.6, '#fff1e4', 0.14);
 
   const eye = (x: number, w: number) => {
     const rx = f.eyeRx * w;
@@ -220,7 +222,8 @@ function features(ctx: Ctx, r: Rig, k: Look, f: FaceSpec, v: View) {
     ctx.stroke();
     ctx.beginPath();
     ctx.ellipse(x, eyeY - 0.08, rx * 1.3, ry * 0.95, 0, Math.PI * 1.08, Math.PI * 1.98);
-    ctx.strokeStyle = '#1e1212';
+    // Warm dark lash, not a black comic line
+    ctx.strokeStyle = mix(s.deep, '#1e1212', 0.6);
     ctx.lineWidth = 0.55;
     ctx.lineCap = 'round';
     ctx.stroke();

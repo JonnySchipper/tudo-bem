@@ -218,7 +218,8 @@ const X1 = 34;
 const Y0 = -124;
 const Y1 = 11;
 const PAD = 3;
-const OUTLINE_INK = 'rgba(38,20,30,0.5)';
+/** v2: a thin warm-ink edge, not the v1 sticker halo (TB Art avatar enhance v2: no paper-doll cutout). */
+const OUTLINE_INK = 'rgba(48,24,28,0.58)';
 const HAT_INK = 'rgba(38,20,30,0.78)';
 const BUDGET_PX = 8_000_000;
 /** Cap scratch pool to prevent unbounded growth from varied canvas sizes. */
@@ -283,6 +284,52 @@ function tint(dst: CanvasRenderingContext2D, src: HTMLCanvasElement, w: number, 
   dst.drawImage(t, 0, 0);
 }
 
+/**
+ * Whole-figure light pass (avatar enhance v2). Painted over the finished body layer and clipped to
+ * its silhouette, so skin, cloth and hair share one light instead of reading as a stack of flat
+ * stickers: ambient occlusion rising from the floor, a soft key from screen-left with a shadow-side
+ * falloff, and a room-colored rim that wraps the far edge and the shoulders/crown.
+ */
+function lightPass(body: HTMLCanvasElement, w: number, h: number, ax: number, ay: number, ps: number, rim: string, sitting: boolean) {
+  const x = body.getContext('2d')!;
+  x.save();
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  x.globalCompositeOperation = 'source-atop';
+  // Grounding: legs darken toward the floor so the figure sits in the room
+  const floor = ay;
+  const hip = ay + (sitting ? -20 : -44) * ps;
+  const g = x.createLinearGradient(0, hip, 0, floor);
+  g.addColorStop(0, 'rgba(42,22,36,0)');
+  g.addColorStop(1, 'rgba(42,22,36,0.26)');
+  x.fillStyle = g;
+  x.fillRect(0, hip, w, floor - hip + 2);
+  // Key/shadow side across the whole body
+  const kx = x.createLinearGradient(ax - 16 * ps, 0, ax + 16 * ps, 0);
+  kx.addColorStop(0, 'rgba(255,240,220,0.1)');
+  kx.addColorStop(0.45, 'rgba(255,240,220,0)');
+  kx.addColorStop(0.62, 'rgba(42,22,36,0)');
+  kx.addColorStop(1, 'rgba(42,22,36,0.16)');
+  x.fillStyle = kx;
+  x.fillRect(0, 0, w, h);
+  x.restore();
+  // Rim: body minus itself shifted toward the key leaves a thin far-side crescent
+  const d = Math.max(1, ps * 0.9);
+  const t = canvas(3, w, h);
+  const tc = t.getContext('2d')!;
+  tc.drawImage(body, 0, 0);
+  tc.globalCompositeOperation = 'destination-out';
+  tc.drawImage(body, -d, d * 0.55);
+  tc.globalCompositeOperation = 'source-in';
+  tc.fillStyle = rgba(rim, 0.5);
+  tc.fillRect(0, 0, w, h);
+  tc.globalCompositeOperation = 'source-over';
+  x.save();
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  x.globalCompositeOperation = 'source-atop';
+  x.drawImage(t, 0, 0);
+  x.restore();
+}
+
 function renderFrame(a: Appearance, fs: FrameState, ps: number, out?: HTMLCanvasElement): Frame {
   const w = Math.ceil((X1 - X0) * ps) + PAD * 2;
   const h = Math.ceil((Y1 - Y0) * ps) + PAD * 2;
@@ -299,6 +346,7 @@ function renderFrame(a: Appearance, fs: FrameState, ps: number, out?: HTMLCanvas
     return c;
   };
   const body = layer(0, (x) => paintBody(x, r, k, fs));
+  lightPass(body, w, h, ax, ay, ps, k.rim, r.sitting);
   const hat = fs.hat ? layer(1, (x) => paintHat(x, r, k, fs)) : null;
   const dst = out ?? document.createElement('canvas');
   if (dst.width !== w || dst.height !== h) {
@@ -308,11 +356,12 @@ function renderFrame(a: Appearance, fs: FrameState, ps: number, out?: HTMLCanvas
   const o = dst.getContext('2d')!;
   o.setTransform(1, 0, 0, 1, 0, 0);
   o.clearRect(0, 0, w, h);
-  const rad = Math.max(0.9, Math.min(2.2, ps * 0.42));
+  const rad = Math.max(0.75, Math.min(1.4, ps * 0.3));
   tint(o, body, w, h, rad, OUTLINE_INK, 2);
   o.drawImage(body, 0, 0);
   if (hat) {
-    tint(o, hat, w, h, rad * 1.45, HAT_INK, 2);
+    // Hats keep a stronger halo so they stay the first read at 1280
+    tint(o, hat, w, h, Math.max(1, Math.min(2.2, ps * 0.42)) * 1.35, HAT_INK, 2);
     o.drawImage(hat, 0, 0);
   }
   return { c: dst, ax, ay, px: w * h };
@@ -363,7 +412,7 @@ function getFrame(a: Appearance, fs: FrameState, ps: number): Frame {
 export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId: string | null, parrot: boolean, pose: AvatarPose) {
   const fs = frameState(a, hatId, pose);
   // Warm-ink contact shadow, core ≈ 32% (TB Art: 30–35% for taller silhouettes — prevents float)
-  shadow(ctx, x + (pose.sitting ? 5 : 0.5), y + (pose.sitting ? 4 : 0), BODY_SHADOW[a.body] ?? 13, 6.2, 0.32);
+  shadow(ctx, x + (pose.sitting ? 5 : 0.5), y + (pose.sitting ? 4 : 0), BODY_SHADOW[a.body] ?? 13, 6.2, 0.34);
   const m = ctx.getTransform();
   const ps = Math.round(Math.hypot(m.a, m.b) * 100) / 100;
   const f = getFrame(a, fs, ps);

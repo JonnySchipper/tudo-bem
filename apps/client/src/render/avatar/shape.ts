@@ -1,5 +1,5 @@
 import type { Ctx } from '../draw';
-import { rgba, type Tone } from './color';
+import { mix, rgba, type Tone } from './color';
 
 export type P = [number, number];
 export interface LimbPt {
@@ -103,12 +103,16 @@ export function paint(ctx: Ctx, build: () => void, t: Tone, b: Box, o: PaintOpts
   const dark = o.L < 0 ? b.x1 : b.x0;
   ctx.beginPath();
   build();
-  // 2–3 value bands: light plane → body tone → a tighter core-shadow step → reflected shadow
+  // v2 value bands: light plane → body tone → half-tone step → core shadow → reflected bounce, so
+  // cloth and skin turn like a form instead of a flat paper-doll fill.
   const g = ctx.createLinearGradient(lit, 0, dark, 0);
+  const half = mix(t.base, t.lo, 0.5);
   g.addColorStop(0, t.hi);
-  g.addColorStop(0.24, t.base);
-  g.addColorStop(0.6, t.base);
-  g.addColorStop(0.72, t.lo);
+  g.addColorStop(0.2, t.base);
+  g.addColorStop(0.5, t.base);
+  g.addColorStop(0.6, half);
+  g.addColorStop(0.7, t.lo);
+  g.addColorStop(0.84, mix(t.lo, t.deep, 0.35));
   g.addColorStop(1, t.lo);
   ctx.fillStyle = g;
   ctx.fill();
