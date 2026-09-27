@@ -1102,6 +1102,12 @@ button:disabled {
   padding: 0.35em 0.5em;
 }
 
+.station-go.batch {
+  font-weight: 800;
+  background: linear-gradient(180deg, #fff6d6, #f0d080);
+  border-color: #c48a20;
+}
+
 .station-slot {
   flex: 1;
   min-height: 36px;

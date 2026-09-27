@@ -476,6 +476,17 @@ describe('World', () => {
     expect(b.s.mg).toBeUndefined();
   });
 
+  it('mg sync re-sends the open ticket with resync', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'mg', action: 'start' });
+    const pt = world.debugOrder(a.s)!.pt;
+    a.inbox.length = 0;
+    await a.send({ t: 'mg', action: 'sync' });
+    expect(a.last('mg')).toMatchObject({ phase: 'order', round: 0, resync: true, pt });
+  });
+
   it('a second hello resumes the open ticket instead of deleting it', async () => {
     const { world } = makeWorld();
     const a = await client(world);
