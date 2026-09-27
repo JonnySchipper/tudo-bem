@@ -1005,9 +1005,156 @@ button:disabled {
   margin-top: 12px;
 }
 
+.mg-body-stations {
+  grid-template-columns: 1fr 220px;
+}
+
+.mg-kitchen {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.mg-kitchen .station {
+  background: linear-gradient(180deg, #fff8ea 0%, #f3dfc0 100%);
+  border-radius: 14px;
+  padding: 8px;
+  box-shadow: inset 0 -4px 0 rgba(107, 74, 46, 0.25);
+  border: 2px solid rgba(107, 74, 46, 0.35);
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.mg-kitchen .station.shelf {
+  grid-column: 1 / -1;
+  background: #b98a57;
+}
+
+.mg-kitchen .station.tray-station {
+  grid-column: 1 / -1;
+}
+
+.mg-kitchen .station.pulse {
+  box-shadow: 0 0 0 3px var(--amarelo), inset 0 -4px 0 rgba(107, 74, 46, 0.25);
+  transform: translateY(-2px);
+}
+
+.mg-kitchen .station.pop {
+  animation: station-pop 0.32s ease;
+}
+
+@keyframes station-pop {
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+.station-label {
+  font-weight: 800;
+  font-size: 0.85em;
+  text-align: center;
+}
+
+.station-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 6px;
+}
+
+.station-items button {
+  background: #fff8ea;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  line-height: 1.1;
+  position: relative;
+}
+
+.station-items button img {
+  width: 48px;
+  height: 48px;
+}
+
+.station-go {
+  margin-top: auto;
+  font-size: 0.85em;
+  padding: 0.35em 0.5em;
+}
+
+.station-slot {
+  flex: 1;
+  min-height: 36px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.pack-mods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+.wip-slot {
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  margin-bottom: 6px;
+}
+
+.wip-slot.ready {
+  outline: 2px dashed var(--verde);
+}
+
+.wip-hint {
+  font-weight: 800;
+  font-size: 0.85em;
+}
+
+.tray-station .tray {
+  min-height: 100px;
+}
+
+.panel.mg.perfect-serve {
+  animation: perfect-flash 0.55s ease;
+}
+
+@keyframes perfect-flash {
+  0% {
+    filter: brightness(1);
+  }
+  40% {
+    filter: brightness(1.08);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+.combo-burst {
+  animation: combo-burst 0.5s ease;
+}
+
+@keyframes combo-burst {
+  50% {
+    transform: scale(1.15);
+  }
+}
+
 @media (max-width: 760px) {
   .mg-body {
     grid-template-columns: 1fr;
+  }
+
+  .mg-kitchen {
+    grid-template-columns: 1fr 1fr;
   }
 }
 

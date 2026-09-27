@@ -12,7 +12,7 @@ import type {
   TutorialStep,
 } from './types.js';
 import type { SceneView } from './carlos.js';
-import type { MgOrderLine, MgOutcome, Tray } from './meveum.js';
+import type { MgBuiltUnit, MgOrderLine, MgOutcome, Tray } from './meveum.js';
 import type { SafetyAction } from './safety.js';
 import type { NpcId } from './rooms.js';
 import type { ConversaGrade, ConversaMeter, ConversaScores, ConversaSubject } from './conversa.js';
@@ -38,7 +38,7 @@ export type ClientMsg =
   | { t: 'conversa'; action: 'chip'; chip: number }
   | { t: 'conversa'; action: 'close' }
   | { t: 'mg'; action: 'start' }
-  | { t: 'mg'; action: 'submit'; tray: Tray; mods?: string[] }
+  | { t: 'mg'; action: 'submit'; tray: Tray; mods?: string[]; built?: MgBuiltUnit[] }
   | { t: 'mg'; action: 'timeout' }
   | { t: 'mg'; action: 'quit' }
   | { t: 'buy'; kind: 'hat' | 'furniture'; itemId: string }

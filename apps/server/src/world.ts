@@ -6,7 +6,7 @@ import {
   canPlaceFurniture,
   CHAT_RATE,
   CLOTH_COLORS,
-  checkTray,
+  checkBuild,
   DEFAULT_ROOM_CAP,
   ECONOMY,
   EXTRA_STYLES,
@@ -798,7 +798,8 @@ export class World {
       }
       mg.lastSig = signature;
       timedOut = elapsed > mg.order.timeMs + 1500;
-      ok = !timedOut && checkTray(mg.order, tray, mods).ok;
+      const build = checkBuild(mg.order, tray, mods, m.built);
+      ok = !timedOut && build.ok;
     } else return;
     const cards = mg.order.lines.map((l) => mgItemById(l.itemId)!.card.id);
     this.services.student.record({
