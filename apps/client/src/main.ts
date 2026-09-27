@@ -18,7 +18,7 @@ import { Net, wsUrl, type NetLike } from './net';
 import { LocalNet } from './localNet';
 import { WorldRenderer, type Hit } from './render/world';
 import { runOnboarding, closeOnboarding } from './ui/onboarding';
-import { buildHud, hoverLabel, missionBanner, overlayMessage, parrotWhisper, toast } from './ui/hud';
+import { buildHud, hoverLabel, missionBanner, overlayMessage, parrotWhisper, reconnectBanner, toast } from './ui/hud';
 import {
   buildDecorPanel,
   closeDialogue,
@@ -67,6 +67,30 @@ let decor: ReturnType<typeof buildDecorPanel> | null = null;
 let onboarding: ReturnType<typeof runOnboarding> | null = null;
 let minigame: MinigameUI | null = null;
 let started = false;
+/** If a reconnect doesn't bring the open ticket back, don't leave Me vê um locked. */
+let mgResumeWatch = 0;
+
+function clearMgResumeWatch() {
+  window.clearTimeout(mgResumeWatch);
+  mgResumeWatch = 0;
+}
+
+function armMgResumeWatch() {
+  clearMgResumeWatch();
+  mgResumeWatch = window.setTimeout(() => {
+    mgResumeWatch = 0;
+    if (modalId() !== 'minigame') return;
+    closeModal();
+    minigame = null;
+    toast('info', 'A conexão caiu no meio do pedido. Pode jogar de novo.', 'The connection dropped mid-order. You can play again.');
+  }, 2500);
+}
+
+function failClearMinigame() {
+  clearMgResumeWatch();
+  if (modalId() === 'minigame') closeModal();
+  minigame = null;
+}
 
 // ---------------------------------------------------------------- helpers
 
@@ -157,7 +181,20 @@ function updateGuides() {
 net.onOpen = () => net.send({ t: 'hello', token: localStorage.getItem(TOKEN_KEY) ?? undefined });
 net.onStatus = (s) => {
   if (!started) return;
-  overlayMessage(s === 'open' ? null : 'Reconectando… · Reconnecting…');
+  if (s === 'open') {
+    overlayMessage(null);
+    reconnectBanner(null);
+    return;
+  }
+  if (s === 'failed' || s === 'replaced') {
+    const midOrder = modalId() === 'minigame';
+    failClearMinigame();
+    overlayMessage(null);
+    reconnectBanner({ kind: s, midOrder, onRetry: () => net.retry() });
+    return;
+  }
+  reconnectBanner(null);
+  overlayMessage('Reconectando… · Reconnecting…', () => net.retry());
 };
 
 net.on((m: ServerMsg) => {
@@ -187,9 +224,12 @@ net.on((m: ServerMsg) => {
       updateGuides();
       break;
     case 'roomState': {
-      closeModal();
+      const keepMg = !!minigame && modalId() === 'minigame' && game.room?.room === m.room;
+      if (!keepMg) {
+        closeModal();
+        minigame = null;
+      }
       closeDialogue();
-      minigame = null;
       game.room = m;
       game.avatars = new Map(m.avatars.map((a) => [a.id, toClientAvatar(a)]));
       game.furniture = m.furniture;
@@ -206,6 +246,7 @@ net.on((m: ServerMsg) => {
       if (m.room === 'kitnet' && m.ownerId === game.profile?.id && !game.profile?.tutorial.cadeira)
         toast('info', 'Sua kitnet! Clique em “Decorar” e coloque sua cadeira.', 'Your apartment! Click “Decorar” (top right) and place your free chair.');
       if (m.room === 'padaria' && !game.profile?.tutorial.carlos) setTimeout(() => npcSay('carlos', { pt: 'Bom dia! Chega mais, pode pedir!', en: 'Good morning! Come on over, go ahead and order!' }), 600);
+      if (keepMg) armMgResumeWatch();
       break;
     }
     case 'avatarJoined':
@@ -273,6 +314,7 @@ net.on((m: ServerMsg) => {
       );
       break;
     case 'mg':
+      clearMgResumeWatch();
       if (m.phase === 'order' && (!minigame || modalId() !== 'minigame')) {
         minigame = new MinigameUI({
           submit: (tray, mods) => net.send({ t: 'mg', action: 'submit', tray, mods }),

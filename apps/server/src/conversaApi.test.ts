@@ -121,7 +121,9 @@ describe('Conversa RV persist', () => {
     const second = await post(port, passBody('p1'));
     expect(second.body.grantRv).toBe(false);
     expect(second.body.payout).toBe(0);
+    expect(second.body.rvNote).toBe('already_today');
     expect(second.body.coins).toBe(120);
+    expect(first.body.rvNote).toBeUndefined();
     expect(store.get('p1')?.coins).toBe(120);
 
     const start = await post(port, {
@@ -149,6 +151,19 @@ describe('Conversa RV persist', () => {
     expect(res.body.payout).toBe(20);
     expect(store.get('p2')?.coins).toBe(70);
     expect(store.get('p2')?.daily.conversaRvGranted?.carlos).toBe(conversaDateKey());
+  });
+
+  it('does not call a short chat an already-earned day', async () => {
+    process.env.CONVERSA_RV_ONCE_PER_DAY = 'on';
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tb-conversa-'));
+    store = new ProfileStore(fileAdapter(dir));
+    store.add(profile('p4'));
+    const port = await listen(() => store);
+    const res = await post(port, { ...passBody('p4'), turnCount: 1 });
+    expect(res.body.grantRv).toBe(false);
+    expect(res.body.payout).toBe(0);
+    expect(res.body.grade).toBe('tryAgain');
+    expect(res.body.rvNote).toBeUndefined();
   });
 
   it('answers a turn when history is missing instead of throwing', async () => {

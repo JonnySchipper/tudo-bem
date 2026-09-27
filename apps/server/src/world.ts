@@ -163,6 +163,8 @@ const GREETING = /(^|[^\p{L}])(oi|ol[aá])($|[^\p{L}])/iu;
 
 /** After Carlos repeats, an identical or empty tray in this window is an echo (double-click / Enter repeat), not the retry. */
 const MG_REPEAT_GRACE_MS = 700;
+/** How long a dropped connection can reclaim the open Me vê um ticket. */
+export const MG_RESUME_MS = 20_000;
 
 function traySig(tray: Tray, mods: string[]): string {
   const items = Object.entries(tray)
@@ -193,6 +195,8 @@ export class World {
   private readonly ambiance: boolean;
   private readonly rng: () => number;
   private seq = 0;
+  /** Mid-order Me vê um state kept across a socket drop so reconnect can resync the same ticket. */
+  private parkedMg = new Map<string, { mg: MgState; room: RoomId; at: number }>();
 
   constructor(
     readonly store: ProfileStore,
@@ -216,6 +220,7 @@ export class World {
   }
 
   disconnect(s: Session) {
+    this.rememberMg(s);
     this.leaveInstance(s);
     this.sessions.delete(s.id);
     if (s.profile) {
@@ -292,6 +297,7 @@ export class World {
     for (const other of this.sessions.values()) {
       if (other !== s && other.profile?.id === p.id) {
         other.send({ t: 'notice', level: 'warn', pt: 'Você entrou em outra aba.', en: 'You signed in from another tab.' });
+        this.rememberMg(other);
         this.leaveInstance(other);
         other.profile = undefined;
         other.close();
@@ -438,6 +444,7 @@ export class World {
       avatars: [...[...target.members.values()].map((m) => this.publicAvatar(m)), ...(target.crowd?.avatars() ?? [])],
       furniture,
     });
+    this.maybeResumeMg(s);
     this.broadcast(target, { t: 'avatarJoined', avatar: this.publicAvatar(s) }, s);
     target.crowd?.sync();
     this.notifyFriendsOfPresence(s.profile!.id);
@@ -833,18 +840,48 @@ export class World {
     mg.waiting = true;
     const token = mg.token;
     const next = () => {
+      // Same session only. A reconnect parks this object on a new session; this timer must not also advance it.
       if (s.mg?.token !== token) return;
-      mg.waiting = false;
-      if (!Array.isArray(mg.served)) mg.served = mg.order.pt ? [mg.order.pt] : [];
-      mg.lastSig = undefined;
-      mg.order = makeOrder(mg.rng, mg.round, mg.served);
-      mg.served.push(mg.order.pt);
-      mg.repeated = false;
-      mg.orderAt = this.now();
-      this.sendOrder(s);
+      this.releaseMgGap(s);
     };
     if (this.mgGapMs <= 0) next();
     else this.schedule(next, this.mgGapMs);
+  }
+
+  /** The between-orders gap ended (timer, or a reconnect that orphaned the timer). */
+  private releaseMgGap(s: Session) {
+    const mg = s.mg;
+    if (!mg?.waiting) return;
+    mg.waiting = false;
+    if (!Array.isArray(mg.served)) mg.served = mg.order.pt ? [mg.order.pt] : [];
+    mg.lastSig = undefined;
+    mg.order = makeOrder(mg.rng, mg.round, mg.served);
+    mg.served.push(mg.order.pt);
+    mg.repeated = false;
+    mg.orderAt = this.now();
+    this.sendOrder(s);
+  }
+
+  /** Park before leaveInstance clears s.mg. A later disconnect of the old socket must not drop this. */
+  private rememberMg(s: Session) {
+    if (!s.profile || !s.mg || !s.instance) return;
+    this.parkedMg.set(s.profile.id, { mg: s.mg, room: s.instance.def.id, at: this.now() });
+  }
+
+  private maybeResumeMg(s: Session) {
+    const id = s.profile?.id;
+    if (!id || !s.instance) return;
+    const park = this.parkedMg.get(id);
+    if (!park) return;
+    if (this.now() - park.at > MG_RESUME_MS) {
+      this.parkedMg.delete(id);
+      return;
+    }
+    if (park.room !== s.instance.def.id) return;
+    this.parkedMg.delete(id);
+    s.mg = park.mg;
+    if (s.mg.waiting) this.releaseMgGap(s);
+    else this.sendOrder(s, true);
   }
 
   private sendOrder(s: Session, resync = false) {
