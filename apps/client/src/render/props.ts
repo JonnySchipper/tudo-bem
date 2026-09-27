@@ -1320,8 +1320,6 @@ const TB_WOOD = '#8B5E3C';
 const TB_INK = '#2C2C2C';
 const TB_GREEN = '#2F5D50';
 const TB_MUSTARD = '#D4A017';
-const TB_CONCRETE = '#9A9A92';
-
 /**
  * Run `draw` in a wall-aligned frame: x runs along the wall in screen px, y is screen-up height.
  * `slope` is -0.5 for planes facing +x (the left wall), +0.5 for planes facing +y (the right wall).
@@ -1342,7 +1340,12 @@ function planeText(ctx: Ctx, text: string, x: number, y: number, size: number, c
 }
 
 /** A belt draped over a peg: band across the board, knot, and two tails; black belt gets its red bar. */
-function draped(ctx: Ctx, x: number, y: number, w: number, color: string, black = false) {
+function draped(ctx: Ctx, x0: number, y0: number, w: number, color: string, black = false, s = 1) {
+  ctx.save();
+  ctx.translate(x0, y0);
+  ctx.scale(s, s);
+  const x = 0;
+  const y = 0;
   const edge = color === '#f7f4ec' ? 'rgba(44,44,44,0.7)' : 'rgba(0,0,0,0.35)';
   rrect(ctx, x - w / 2, y, w, 5, 2, color, edge, 0.8);
   for (const [dx, len] of [[-3, 13], [3, 11]] as const) {
@@ -1351,40 +1354,44 @@ function draped(ctx: Ctx, x: number, y: number, w: number, color: string, black 
   }
   rrect(ctx, x - 3.5, y - 1, 7, 7, 2, color, edge, 0.8);
   circle(ctx, x, y - 3, 1.6, '#b8b0a2');
+  ctx.restore();
 }
 
-/** Parede de faixas — a wall-hung belt board over a cubby of folded gis, on the left wall. */
+/**
+ * Parede de faixas — a near-full-height belt board hung on the left wall across the prop's two tiles
+ * (the window starts after it), over a long cubby of folded gis.
+ */
 function paredeFaixas(ctx: Ctx, cx: number, cy: number) {
-  const [wx, wy] = iso(-0.46, 0);
+  const [wx, wy] = iso(-0.46, 0.5);
   onPlane(ctx, cx + wx, cy + wy, -0.5, () => {
-    rrect(ctx, -27, -126, 58, 98, 4, 'rgba(58,34,22,0.22)');
-    rrect(ctx, -30, -130, 60, 98, 4, TB_WOOD, TB_INK, 1.4);
-    rrect(ctx, -26, -112, 52, 76, 2, '#efe0c6');
-    rrect(ctx, -30, -130, 60, 18, [4, 4, 0, 0], TB_GREEN, TB_INK, 1.4);
-    planeText(ctx, 'FAIXAS', 0, -121, 11, '#F5E6D3');
-    const belts: [string, boolean][] = [
-      ['#f7f4ec', false],
-      ['#2b5ba8', false],
-      ['#7a4fb0', false],
-      ['#6b3f24', false],
-      ['#2a2a2e', true],
+    rrect(ctx, -41, -138, 88, 118, 5, 'rgba(58,34,22,0.24)');
+    rrect(ctx, -45, -142, 90, 118, 5, TB_WOOD, TB_INK, 1.6);
+    rrect(ctx, -40, -118, 80, 88, 3, '#efe0c6');
+    rrect(ctx, -45, -142, 90, 24, [5, 5, 0, 0], TB_GREEN, TB_INK, 1.6);
+    planeText(ctx, 'FAIXAS', 0, -129.5, 16, '#F5E6D3');
+    const belts: [number, number, string, boolean][] = [
+      [-25, -108, '#f7f4ec', false],
+      [0, -108, '#2b5ba8', false],
+      [25, -108, '#7a4fb0', false],
+      [-13, -72, '#6b3f24', false],
+      [13, -72, '#2a2a2e', true],
     ];
-    belts.forEach(([c, black], i) => draped(ctx, i % 2 ? 9 : -9, -106 + i * 13, 26, c, black));
+    for (const [x, y, c, black] of belts) draped(ctx, x, y, 14, c, black, 1.5);
     ctx.fillStyle = 'rgba(255,240,210,0.35)';
-    ctx.fillRect(-26, -112, 3, 76);
+    ctx.fillRect(-40, -118, 4, 88);
   });
-  // Cubby shelf on the floor under the board, with folded gis (white, blue, white).
-  const [bx, by] = iso(-0.26, 0);
-  shadow(ctx, cx + bx, cy + by, 30, 13, 0.26);
-  const shelf = box(ctx, cx + bx, cy + by, 0.44, 1.6, 26, TB_WOOD, 0, { left: '#9a6a45', right: '#6f4a2e', stroke: 'rgba(44,44,44,0.45)' });
-  for (let k = 1; k < 4; k++) {
-    const a = lerp2(shelf.S, shelf.E, k / 4);
-    poly(ctx, [[a[0] - 0.6, a[1]], [a[0] + 0.6, a[1]], [a[0] + 0.6, a[1] - 26], [a[0] - 0.6, a[1] - 26]], 'rgba(40,24,12,0.45)');
+  // Long cubby shelf on the floor under the board, packed with folded gis.
+  const [bx, by] = iso(-0.24, 0.5);
+  shadow(ctx, cx + bx, cy + by, 44, 20, 0.28);
+  const shelf = box(ctx, cx + bx, cy + by, 0.5, 1.9, 30, TB_WOOD, 0, { left: '#9a6a45', right: '#6f4a2e', stroke: 'rgba(44,44,44,0.45)' });
+  for (let k = 1; k < 5; k++) {
+    const a = lerp2(shelf.S, shelf.E, k / 5);
+    poly(ctx, [[a[0] - 0.7, a[1]], [a[0] + 0.7, a[1]], [a[0] + 0.7, a[1] - 30], [a[0] - 0.7, a[1] - 30]], 'rgba(40,24,12,0.45)');
   }
-  const gis = ['#fbf8f1', '#3f6ea8', '#fbf8f1'];
+  const gis = ['#fbf8f1', '#3f6ea8', '#fbf8f1', '#3f6ea8', '#fbf8f1'];
   gis.forEach((c, i) => {
-    const [gx, gy] = iso(-0.26, -0.5 + i * 0.5);
-    for (let k = 0; k < 2; k++) box(ctx, cx + gx, cy + gy, 0.3, 0.34, 4, c, 26 + k * 4, { stroke: 'rgba(44,44,44,0.35)' });
+    const [gx, gy] = iso(-0.24, -0.26 + i * 0.38);
+    for (let k = 0; k < 3; k++) box(ctx, cx + gx, cy + gy, 0.34, 0.3, 4, c, 30 + k * 4, { stroke: 'rgba(44,44,44,0.35)' });
   });
 }
 
@@ -1429,51 +1436,67 @@ function quadroFoto(ctx: Ctx, cx: number, cy: number) {
 }
 
 /**
- * Spectator bleacher: a front seat step at the default sit height (17, so seated avatars line up) and a
- * taller back step with a rail, a towel and a squeeze bottle. Runs along the tile axis perpendicular to
- * the seat's facing.
+ * Arquibancada — a three-riser spectator stand. The front riser is the seat at the default sit height
+ * (17, so seated avatars line up); risers climb 17 px per step away from the seat's facing, with dark
+ * stepped side stringers, a terracotta back rail, and kit (towel, bottle, gym bag) on the upper rows.
  */
 function bancoEspectador(ctx: Ctx, cx: number, cy: number, dir: Dir = 'SW') {
   const face: Record<Dir, [number, number]> = { SE: [1, 0], SW: [0, 1], NE: [0, -1], NW: [-1, 0] };
   const [fx, fy] = face[dir];
   const alongX = fy !== 0;
-  const L = 1.25;
-  const D = 0.42;
+  const L = 1.3;
+  const D = 0.34;
+  const RISE = 17;
   const ext = (a: number, d: number): [number, number] => (alongX ? [a, d] : [d, a]);
-  const wood = { left: '#9a6a45', right: '#6f4a2e', stroke: 'rgba(44,44,44,0.45)' };
-  const frame = { left: '#8e8a82', right: '#6e6a64', stroke: 'rgba(44,44,44,0.4)' };
-  const step = (k: number, lift: number) => {
-    const [ox, oy] = iso(-fx * D * k, -fy * D * k);
-    const x = cx + ox;
-    const y = cy + oy;
-    box(ctx, x, y, ...ext(L * 0.96, D * 0.9), lift - 4, TB_CONCRETE, 0, frame);
-    const top = box(ctx, x, y, ...ext(L, D), 4, TB_WOOD, lift - 4, wood).top;
-    woodTop(ctx, top, 20 + k);
-    return { x, y };
+  const at = (a: number, back: number): [number, number] => {
+    const [ox, oy] = iso(...((alongX ? [a, -fy * back] : [-fx * back, a]) as [number, number]));
+    return [cx + ox, cy + oy];
   };
-  shadow(ctx, cx + iso(-fx * 0.2, -fy * 0.2)[0], cy + iso(-fx * 0.2, -fy * 0.2)[1], 42, 18, 0.26);
-  const steps = [
-    { k: 1, lift: 34 },
-    { k: 0, lift: 17 },
-  ];
-  if (fx + fy < 0) steps.reverse();
-  let back = { x: cx, y: cy };
-  for (const s of steps) {
-    const at = step(s.k, s.lift);
-    if (s.k === 1) {
-      back = at;
-      const [rx, ry] = iso(-fx * D * 0.45, -fy * D * 0.45);
-      for (const e of [-0.55, 0.55]) {
+  const wood = { left: '#a8764c', right: '#7a5234', stroke: 'rgba(44,44,44,0.5)' };
+  const riser = { left: '#c9bfae', right: '#a79d8c', stroke: 'rgba(44,44,44,0.45)' };
+  const [sx, sy] = at(0, D);
+  shadow(ctx, sx, sy, 54, 26, 0.3);
+  const order = fx + fy < 0 ? [0, 1, 2] : [2, 1, 0];
+  const stringer = (x: number, y: number, e: -1 | 1, lift: number) => {
+    const [ex, ey] = iso(...ext((e * L) / 2, 0));
+    box(ctx, x + ex, y + ey, ...ext(0.06, D), lift, '#7a5234', 0, { left: '#8a5e3c', right: '#5e3e26', stroke: 'rgba(44,44,44,0.55)' });
+  };
+  for (const k of order) {
+    const [x, y] = at(0, D * k);
+    const lift = RISE * (k + 1);
+    stringer(x, y, -1, lift);
+    box(ctx, x, y, ...ext(L * 0.94, D), lift - 4, '#d8cfbf', 0, riser);
+    const top = box(ctx, x, y, ...ext(L, D * 0.96), 4, TB_WOOD, lift - 4, wood).top;
+    woodTop(ctx, top, 20 + k);
+    // Terracotta kick stripe along the riser face, under the plank lip.
+    const [kx, ky] = iso(fx * D * 0.49, fy * D * 0.49);
+    box(ctx, x + kx, y + ky, ...ext(L * 0.94, 0.02), 2, TB_TERRACOTTA, lift - 8, { stroke: 'rgba(0,0,0,0)' });
+    // Stepped wood side stringers (far one behind the riser, near one in front) tie the rows into one stand.
+    stringer(x, y, 1, lift);
+    if (k === 2) {
+      const [rx, ry] = at(0, D * 2.45);
+      for (const e of [-0.6, 0, 0.6]) {
         const [px, py] = iso(...ext(e, 0));
-        rrect(ctx, back.x + rx + px - 1.5, back.y + ry + py - 58, 3, 24, 1, '#5d5d66');
+        rrect(ctx, rx + px - 1.5, ry + py - lift - 26, 3, 26, 1, '#5d5d66');
       }
-      box(ctx, back.x + rx, back.y + ry, ...ext(L * 0.98, 0.06), 4, TB_TERRACOTTA, 54, { stroke: 'rgba(44,44,44,0.5)' });
-      // Mustard towel folded over the step edge + a squeeze bottle.
-      const [tx, ty] = iso(...ext(-0.3, 0));
-      box(ctx, back.x + tx, back.y + ty, ...ext(0.3, 0.34), 3, TB_MUSTARD, 34, { stroke: 'rgba(44,44,44,0.35)' });
-      const [qx, qy] = iso(...ext(0.32, 0));
-      rrect(ctx, back.x + qx - 3, back.y + qy - 48, 6, 12, 2.5, '#3aa6a0', 'rgba(44,44,44,0.5)', 0.8);
-      rrect(ctx, back.x + qx - 1.5, back.y + qy - 51, 3, 3, 1, '#fff');
+      box(ctx, rx, ry, ...ext(L * 1.02, 0.07), 5, TB_TERRACOTTA, lift + 22, { stroke: 'rgba(44,44,44,0.55)' });
+      // Gym bag on the top row.
+      const [gx, gy] = at(-0.32, D * 2);
+      ellipse(ctx, gx, gy - lift - 1, 11, 4, 'rgba(44,44,44,0.3)');
+      rrect(ctx, gx - 11, gy - lift - 15, 22, 14, 6, TB_GREEN, TB_INK, 1);
+      rrect(ctx, gx - 11, gy - lift - 10, 22, 2.4, 1, TB_MUSTARD);
+      ctx.strokeStyle = TB_INK;
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(gx, gy - lift - 15, 6, Math.PI, 0);
+      ctx.stroke();
+      const [qx, qy] = at(0.4, D * 2);
+      rrect(ctx, qx - 3, qy - lift - 13, 6, 13, 2.5, '#3aa6a0', 'rgba(44,44,44,0.55)', 0.8);
+      rrect(ctx, qx - 1.5, qy - lift - 16, 3, 3, 1, '#fff');
+    }
+    if (k === 1) {
+      const [tx, ty] = at(0.28, D);
+      box(ctx, tx, ty, ...ext(0.3, D * 0.8), 3, TB_MUSTARD, lift, { stroke: 'rgba(44,44,44,0.4)' });
     }
   }
 }
