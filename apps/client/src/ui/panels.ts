@@ -408,6 +408,8 @@ export class MinigameUI {
   private body: HTMLElement;
   private panel: HTMLElement;
   private timedOut = false;
+  /** Don't re-send a timeout the server just rejected as early — it would tight-loop. */
+  private timeoutNotBefore = 0;
 
   constructor(private actions: { submit: (t: Tray, mods: string[]) => void; timeout: () => void; quit: () => void; again: () => void }) {
     const shelves = h('div', { class: 'shelves', id: 'mg-shelves' });
@@ -463,7 +465,7 @@ export class MinigameUI {
     if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
     const idx = e.key === '0' ? 9 : e.key === '-' ? 10 : e.key === '=' ? 11 : Number(e.key) - 1;
     if (idx >= 0 && idx < MG_ITEMS.length && /^[0-9=-]$/.test(e.key)) this.add(MG_ITEMS[idx].id);
-    if (e.key === 'Enter') this.submit();
+    if (e.key === 'Enter' && !e.repeat) this.submit();
     if (e.key === 'Backspace') this.clearTray();
   };
 
@@ -481,6 +483,7 @@ export class MinigameUI {
   }
 
   private clearTray() {
+    if (this.locked) return;
     this.tray = {};
     this.mods.clear();
     this.renderTray();
@@ -517,6 +520,7 @@ export class MinigameUI {
           'button',
           {
             onclick: () => {
+              if (this.locked || !this.order) return;
               this.tray[id]--;
               if (this.tray[id] <= 0) delete this.tray[id];
               this.renderTray();
@@ -548,7 +552,7 @@ export class MinigameUI {
     const bar = this.timer.firstElementChild as HTMLElement;
     bar.style.transform = `scaleX(${f})`;
     this.timer.classList.toggle('low', f < 0.25);
-    if (left <= 0 && !this.locked && !this.timedOut) {
+    if (left <= 0 && !this.locked && !this.timedOut && performance.now() >= this.timeoutNotBefore) {
       this.timedOut = true;
       this.locked = true;
       this.actions.timeout();
@@ -558,15 +562,30 @@ export class MinigameUI {
 
   handle(m: MgServerMsg) {
     if (m.phase === 'order') {
+      // Server echo of the ticket already on the rail (early timeout, or an accidental second submit).
+      // Unlock without wiping a partial tray or restarting the clock.
+      if (m.resync && this.order && this.order.round === m.round && this.order.pt === m.pt) {
+        this.order = m;
+        this.locked = false;
+        this.timedOut = false;
+        this.timeoutNotBefore = performance.now() + 1000;
+        return;
+      }
+      const keepTray = !!m.repeat && this.order?.round === m.round && this.order.pt === m.pt;
       this.order = m;
       this.orderAt = performance.now();
       this.locked = false;
       this.timedOut = false;
-      this.tray = {};
-      this.mods.clear();
+      this.timeoutNotBefore = 0;
+      if (!keepTray) {
+        this.tray = {};
+        this.mods.clear();
+      }
       this.renderTray();
       this.renderMods();
       this.ticket.className = `ticket ${m.repeat ? 'repeat' : ''}`;
+      this.ticket.dataset.round = String(m.round);
+      this.ticket.dataset.repeat = m.repeat ? '1' : '0';
       this.ticket.replaceChildren(
         h('div', { class: 'row' }, h('span', { class: 'customer' }, `Pedido ${m.round + 1}/${m.rounds} · ${m.customer}${m.repeat ? ' · de novo, devagar' : ''}`), h('span', { class: 'spacer' }), h('button', { class: 'speak-btn', onclick: () => speak(m.pt, { force: true, rate: 0.8 }) }, '🔊 Ouvir')),
         h('div', { class: 'order', id: 'mg-order' }, m.pt),

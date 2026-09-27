@@ -85,8 +85,8 @@ const OPENERS: { pt: (l: string) => string; en: (l: string) => string }[] = [
   { pt: (l) => `Me vê ${l}.`, en: (l) => `I’ll take ${l}.` },
 ];
 
-const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
-const pick = <T>(rng: Rng, arr: T[]): T => arr[Math.floor(rng() * arr.length)];
+const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+const pick = <T>(rng: Rng, arr: readonly T[]): T => arr[Math.floor(rng() * arr.length)];
 
 export function linePt(line: MgOrderLine): string {
   const item = mgItemById(line.itemId)!;
@@ -109,24 +109,18 @@ function timeFor(lines: MgOrderLine[], mods: string[]) {
   return 16_000 + 6_000 * lines.length + 2_000 * extraQty + 4_000 * mods.length;
 }
 
-/** Rounds 1–2: Verde authored tickets · 3–4: level-bump authored · 5–6: generated combos. */
-export function makeOrder(rng: Rng, round: number, avoid: string[] = []): MgOrder {
-  const customer = pick(rng, CUSTOMERS);
-  if (round < 4) {
-    const level = round < 2 ? 'verde' : 'bump';
-    const pool = AUTHORED_ORDERS.filter((o) => o.level === level && !avoid.includes(o.pt));
-    const o = pick(rng, pool.length ? pool : AUTHORED_ORDERS.filter((x) => x.level === level));
-    const lines = o.lines.map(([itemId, qty]) => ({ itemId, qty }));
-    return { customer, lines, mods: [...o.mods], pt: o.pt, en: o.en, timeMs: timeFor(lines, o.mods), authored: true };
-  }
+function generateCombo(rng: Rng, customer: string): MgOrder {
   const nLines = 2 + Math.floor(rng() * 2);
   const pool = [...MG_ITEMS];
   const lines: MgOrderLine[] = [];
-  for (let i = 0; i < nLines; i++) {
+  for (let i = 0; i < nLines && pool.length; i++) {
     const item = pool.splice(Math.floor(rng() * pool.length), 1)[0];
+    if (!item) break;
     lines.push({ itemId: item.id, qty: 1 + Math.floor(rng() * 3) });
   }
-  const where = rng() < 0.5 ? pick(rng, MG_MODS.filter((m) => m.group === 'where')) : null;
+  if (!lines.length && MG_ITEMS[0]) lines.push({ itemId: MG_ITEMS[0].id, qty: 1 });
+  const whereMods = MG_MODS.filter((m) => m.group === 'where');
+  const where = whereMods.length && rng() < 0.5 ? pick(rng, whereMods) : null;
   const mods = where ? [where.id] : [];
   const opener = pick(rng, OPENERS);
   let listPt = joinPt(lines.map(linePt));
@@ -136,6 +130,30 @@ export function makeOrder(rng: Rng, round: number, avoid: string[] = []): MgOrde
     listEn += ` ${where.en}`;
   }
   return { customer, lines, mods, pt: opener.pt(listPt), en: opener.en(listEn), timeMs: timeFor(lines, mods), authored: false };
+}
+
+/**
+ * Rounds 1–2: Verde authored tickets · 3–4: level-bump authored · 5–6: generated combos.
+ * `avoid` is tickets already served this shift. Null or undefined means none — it must not throw.
+ */
+export function makeOrder(rng: Rng, round: number, avoid?: readonly string[] | null): MgOrder {
+  const skip = new Set(Array.isArray(avoid) ? avoid.filter((pt) => typeof pt === 'string') : []);
+  const customer = pick(rng, CUSTOMERS);
+  if (round < 4) {
+    const level = round < 2 ? 'verde' : 'bump';
+    const levelPool = AUTHORED_ORDERS.filter((o) => o.level === level && o.lines?.length);
+    const fresh = levelPool.filter((o) => !skip.has(o.pt));
+    const choices = fresh.length ? fresh : levelPool;
+    if (choices.length) {
+      const o = pick(rng, choices);
+      const lines = o.lines.map(([itemId, qty]) => ({ itemId, qty }));
+      const mods = [...(o.mods ?? [])];
+      return { customer, lines, mods, pt: o.pt, en: o.en, timeMs: timeFor(lines, mods), authored: true };
+    }
+  }
+  let made = generateCombo(rng, customer);
+  for (let attempt = 1; attempt < 8 && skip.has(made.pt); attempt++) made = generateCombo(rng, customer);
+  return made;
 }
 
 export type Tray = Record<string, number>;
