@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { FURNITURE, HATS, MG_ITEMS, ROOMS, propTiles } from '@tudobem/shared';
@@ -43,6 +44,13 @@ describe('baked art manifest', () => {
       const rel = path.relative(overridesDir, abs).split(path.sep).join('/');
       expect(fs.readFileSync(path.join(artDir, rel)).equals(fs.readFileSync(abs)), `${rel} was overwritten — rerun pnpm art`).toBe(true);
       if (rel.endsWith('.png')) expect((manifest.sprites[rel.slice(0, -4)] as { override?: boolean }).override).toBe(true);
+    }
+  });
+
+  it('stamps every sprite with its current content hash (cache-busting ?v=) — rerun node scripts/art-stamp.mjs', () => {
+    for (const [key, meta] of Object.entries(manifest.sprites)) {
+      const hash = crypto.createHash('sha1').update(fs.readFileSync(path.join(artDir, meta.file))).digest('hex').slice(0, 10);
+      expect(meta.v, `${key} has a stale or missing v`).toBe(hash);
     }
   });
 
