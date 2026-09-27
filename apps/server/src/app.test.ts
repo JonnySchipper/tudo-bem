@@ -153,6 +153,18 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     expect(await dup.json()).toMatchObject({ code: 'taken' });
   });
 
+  it('logs in with a plus-addressed email in any casing, exactly as it was registered', async () => {
+    await start();
+    expect((await post('/api/auth/register', { email: 'Name+Tag@Exemplo.com', password: 'senha-senha-1' })).status).toBe(201);
+    for (const email of ['name+tag@exemplo.com', 'NAME+TAG@EXEMPLO.COM', '  Name+Tag@Exemplo.com ']) {
+      const r = await post('/api/auth/login', { email, password: 'senha-senha-1' });
+      expect(r.status, email).toBe(200);
+      expect(await r.json()).toMatchObject({ ok: true, account: { email: 'name+tag@exemplo.com' } });
+    }
+    // The tag is part of the address: a different tag is a different account.
+    expect((await post('/api/auth/login', { email: 'name+other@exemplo.com', password: 'senha-senha-1' })).status).toBe(401);
+  });
+
   it('rate-limits repeated wrong passwords for one email', async () => {
     await start();
     await post('/api/auth/register', { email: 'z@exemplo.com', password: 'senha-senha-1', confirm18: true });

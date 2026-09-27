@@ -1,3 +1,4 @@
+import { validateEmail, validatePassword } from '@tudobem/shared';
 import type { AuthCredentials, AuthResponse, AuthSession } from './types';
 import { clearAuthSession, writeAuthSession } from './session';
 
@@ -15,14 +16,12 @@ async function postJson(path: string, body: unknown): Promise<Response | null> {
   }
 }
 
+/** Same rules as the server (shared validators), for register and login alike, so no valid shape passes one and fails the other. */
 function validateCredentials({ email, password }: AuthCredentials): AuthResponse | null {
-  const trimmed = email.trim().toLowerCase();
-  if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-    return { ok: false, pt: 'Digite um e-mail válido.', en: 'Enter a valid email address.', code: 'email' };
-  }
-  if (password.length < 8) {
-    return { ok: false, pt: 'A senha precisa ter pelo menos 8 caracteres.', en: 'Password must be at least 8 characters.', code: 'password' };
-  }
+  const e = validateEmail(email);
+  if (!e.ok) return { ok: false, ...e.reason, code: 'email' };
+  const p = validatePassword(password);
+  if (!p.ok) return { ok: false, ...p.reason, code: 'password' };
   return null;
 }
 

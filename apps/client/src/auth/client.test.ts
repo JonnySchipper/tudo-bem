@@ -70,4 +70,19 @@ describe('auth client scaffold', () => {
       expect(localStorage.getItem(AUTH_SESSION_KEY)).toBeNull();
     }
   });
+
+  it('login and register accept (and reject) the same email shapes, including plus-addressing', async () => {
+    const ok = () => new Response(JSON.stringify({ ok: true, account: { email: 'x', hasProfile: false } }), { status: 200, headers: { 'content-type': 'application/json' } });
+    const fetchMock = vi.fn().mockImplementation(async () => ok());
+    vi.stubGlobal('fetch', fetchMock);
+    const creds = { email: 'name+tag@domain.com', password: 'senha1234' };
+    expect(await signUp(creds)).toMatchObject({ ok: true });
+    expect(await signIn(creds)).toMatchObject({ ok: true });
+    expect(fetchMock.mock.calls.map((c) => JSON.parse(c[1].body).email)).toEqual(['name+tag@domain.com', 'name+tag@domain.com']);
+    for (const email of ['a@b.c', 'no-at-sign']) {
+      expect(await signUp({ email, password: 'senha1234' })).toMatchObject({ ok: false, code: 'email' });
+      expect(await signIn({ email, password: 'senha1234' })).toMatchObject({ ok: false, code: 'email' });
+    }
+    clearAuthSession();
+  });
 });
