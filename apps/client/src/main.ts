@@ -236,9 +236,10 @@ function showIdleKick() {
   closeDialogue();
   overlayMessage(null);
   reconnectBanner(null);
-  game.room = null;
+  // The room stays drawn as a still behind the soft veil; nobody is in it for this tab anymore.
   game.avatars = new Map();
-  game.emit('room');
+  game.npcBubbles.clear();
+  game.pending = null;
   game.emit('avatars');
   idleKickedCard(kickedCopy ?? { pt: 'Você saiu da Praça por inatividade.', en: 'You left the Praça for being idle.' }, () => {
     kickedCopy = null;
@@ -699,7 +700,7 @@ canvas.addEventListener('click', (e) => {
 });
 document.addEventListener('keydown', (e) => {
   const tag = (e.target as HTMLElement)?.tagName;
-  if (tag === 'INPUT' || tag === 'SELECT' || modalId()) return;
+  if (tag === 'INPUT' || tag === 'SELECT' || modalId() || document.querySelector('.idle-kicked')) return;
   if (e.key === 'Enter' && started && !game.modalOpen) {
     e.preventDefault();
     hud?.focusChat();

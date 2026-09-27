@@ -1129,6 +1129,8 @@ describe('Idle kick', () => {
     clock += 14.5 * MIN;
     world.sweepIdle();
     expect(a.all('idleWarning')).toHaveLength(1);
+    // A late sweep still reads as the calm nominal "1 minuto", while msLeft carries the exact figure.
+    expect(a.last('idleWarning')).toMatchObject({ msLeft: 0.5 * MIN, pt: expect.stringContaining('Em 1 minuto') });
     await a.send({ t: 'active' });
     clock += 1 * MIN;
     world.sweepIdle();

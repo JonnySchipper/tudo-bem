@@ -191,7 +191,7 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     try {
       expect(await afk.waitFor('idleWarning')).toMatchObject({ pt: expect.stringContaining('Ainda tá aí?') });
       const kicked = await afk.waitFor('kicked');
-      expect(kicked).toMatchObject({ reason: 'idle', pt: expect.stringContaining('liberar a vaga') });
+      expect(kicked).toMatchObject({ reason: 'idle', pt: expect.stringContaining('continua conectada') });
       expect(await afk.waitClose()).toBe(4001);
       expect(app!.world.stats().instances['praca#1']).toBe(1);
       expect(busy.closeCode()).toBeNull();

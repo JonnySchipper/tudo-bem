@@ -71,7 +71,7 @@ export function buildHud(actions: HudActions) {
       h('button', { onclick: actions.openFriends, id: 'btn-friends' }, icon('friends'), bi('Amigos', 'Friends')),
       musicBtn,
       soundBtn,
-      actions.logout ? h('button', { onclick: actions.logout, id: 'btn-logout', title: 'Sair da conta / Log out' }, bi('Sair', 'Log out')) : null,
+      actions.logout ? h('button', { onclick: actions.logout, id: 'btn-logout', title: 'Sair da conta / Log out', 'aria-label': 'Sair da conta' }, icon('logout'), bi('Sair', 'Log out')) : null,
       game.solo ? h('span', { class: 'pill', title: 'Prévia estática: o mundo roda no seu navegador. Multiplayer precisa do servidor. / Static preview — the world runs in your browser; multiplayer needs the server build.', id: 'solo-pill' }, 'Modo solo') : null,
       missionPill,
       h('span', { class: 'pill' }, plate),
@@ -233,8 +233,10 @@ export function overlayMessage(text: string | null, onRetry?: () => void) {
 }
 
 /**
- * Full-screen “you were idle” card. The seat is already freed server-side; the button rejoins.
+ * Soft idle-kick interstitial (art brief §3: same cream-card / soft-veil family as the intro).
+ * The seat is already freed server-side; the session cookie stays, so one tap rejoins.
  * Mounts into `#tb-idle-kick-slot` when the entry shell provides one, else into #ui.
+ * Hooks for the visual track: `.idle-kicked` (veil) › `.idle-card` › `#idle-title`, `#idle-back`.
  */
 export function idleKickedCard(copy: { pt: string; en: string } | null, onBack?: () => void) {
   document.querySelector('.idle-kicked')?.remove();
@@ -247,13 +249,12 @@ export function idleKickedCard(copy: { pt: string; en: string } | null, onBack?:
   (document.getElementById('tb-idle-kick-slot') ?? ui()).append(
     h(
       'div',
-      { class: 'overlay-msg idle-kicked', role: 'alertdialog', 'aria-labelledby': 'idle-title' },
+      { class: 'idle-kicked', role: 'alertdialog', 'aria-modal': 'true', 'aria-labelledby': 'idle-title', 'aria-describedby': 'idle-body' },
       h(
         'div',
-        { class: 'overlay-card idle-card' },
-        h('span', { class: 'idle-cup', 'aria-hidden': 'true' }, '☕'),
-        h('h2', { id: 'idle-title' }, 'Até já!'),
-        h('p', null, copy.pt),
+        { class: 'idle-card' },
+        h('h2', { id: 'idle-title' }, 'Volte quando quiser'),
+        h('p', { id: 'idle-body' }, copy.pt),
         en(copy.en, true),
         back,
       ),

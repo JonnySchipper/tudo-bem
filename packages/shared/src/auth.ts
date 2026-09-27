@@ -65,7 +65,7 @@ export function idleWarningCopy(leftMs: number): Bilingual {
 export function idleKickedCopy(idleMs: number): Bilingual {
   const t = ptSpan(idleMs);
   return {
-    pt: `Você ficou ${t.pt} parado, então saiu da Praça pra liberar a vaga. Volta quando quiser!`,
-    en: `You were idle for ${t.en}, so you left the Praça to free up your spot. Come back anytime!`,
+    pt: `Você ficou ${t.pt} sem mexer, então liberamos sua vaga na Praça. Sua conta continua conectada.`,
+    en: `You were idle for ${t.en}, so we freed up your spot in the Praça. You’re still signed in.`,
   };
 }

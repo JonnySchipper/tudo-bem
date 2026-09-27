@@ -317,7 +317,8 @@ export class World {
    */
   sweepIdle() {
     const t = this.now();
-    const warnAt = this.idleKickMs - Math.min(IDLE_WARN_MS, Math.floor(this.idleKickMs / 2));
+    const warnWindow = Math.min(IDLE_WARN_MS, Math.floor(this.idleKickMs / 2));
+    const warnAt = this.idleKickMs - warnWindow;
     for (const s of [...this.sessions.values()]) {
       if (!s.profile) continue;
       const idle = t - s.lastActiveAt;
@@ -326,7 +327,8 @@ export class World {
       } else if (idle >= warnAt && !s.idleWarned) {
         s.idleWarned = true;
         const msLeft = this.idleKickMs - idle;
-        s.send({ t: 'idleWarning', msLeft, ...idleWarningCopy(msLeft) });
+        // Copy says the nominal window ("1 minuto"); the sweep cadence makes the exact figure wobble.
+        s.send({ t: 'idleWarning', msLeft, ...idleWarningCopy(warnWindow) });
       }
     }
   }
