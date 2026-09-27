@@ -397,7 +397,8 @@ export async function handleAuthApi(req: IncomingMessage, res: ServerResponse, d
   if (action === 'me' && req.method === 'GET') {
     const raw = sessionCookieOf(req);
     const account = accounts.accountForSession(raw);
-    if (!account) return send(res, 401, fail('unauthenticated', AUTH_COPY.unauthenticated), raw ? cookie('', 0, secure) : undefined);
+    // Signed out is a normal state for this probe, so 200 (a 401 would log a console error for every new visitor).
+    if (!account) return send(res, 200, fail('unauthenticated', AUTH_COPY.unauthenticated), raw ? cookie('', 0, secure) : undefined);
     return send(res, 200, okBody(account), cookie(raw!, maxAge, secure));
   }
 

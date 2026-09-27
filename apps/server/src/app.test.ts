@@ -71,7 +71,7 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
 
   it('register → play → reload keeps you signed in → logout → login with the same email', async () => {
     await start();
-    expect((await fetch(base + '/api/auth/me')).status).toBe(401);
+    expect(await (await fetch(base + '/api/auth/me')).json()).toMatchObject({ ok: false, code: 'unauthenticated' });
 
     const reg = await post('/api/auth/register', { email: 'Jonny@Exemplo.com', password: 'pao-na-chapa-1', confirm18: true });
     expect(reg.status).toBe(201);
@@ -106,7 +106,7 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     const out = await post('/api/auth/logout', {}, { cookie });
     expect(out.headers.get('set-cookie')).toMatch(/tb_session=; .*Max-Age=0/);
     expect(await b.waitClose()).toBe(4002);
-    expect((await fetch(base + '/api/auth/me', { headers: { cookie } })).status).toBe(401);
+    expect(await (await fetch(base + '/api/auth/me', { headers: { cookie } })).json()).toMatchObject({ ok: false, code: 'unauthenticated' });
 
     const bad = await post('/api/auth/login', { email: 'jonny@exemplo.com', password: 'errada-errada' });
     expect(bad.status).toBe(401);
