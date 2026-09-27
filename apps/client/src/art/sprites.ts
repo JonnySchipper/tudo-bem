@@ -17,6 +17,8 @@ export interface SpriteMeta {
   /** Offset of the image's top-left from the anchor (tile-center floor point), world units. */
   ox: number;
   oy: number;
+  /** Content hash stamped by `pnpm art`; appended as ?v= so a re-baked sprite never hits a stale cache. */
+  v?: string;
 }
 
 export interface ArtManifest {
@@ -49,6 +51,9 @@ const images = new Map<string, HTMLImageElement>();
 
 const ART_BASE = `${import.meta.env.BASE_URL ?? '/'}art/`;
 
+/** Sprite URL, versioned by content hash (art is served immutable under fixed file names). */
+export const spriteSrc = (base: string, meta: SpriteMeta) => base + meta.file + (meta.v ? `?v=${meta.v}` : '');
+
 export async function loadArt(base = ART_BASE) {
   if (live || manifest) return;
   try {
@@ -58,7 +63,7 @@ export async function loadArt(base = ART_BASE) {
     for (const [key, meta] of Object.entries(manifest.sprites)) {
       const img = new Image();
       img.decoding = 'async';
-      img.src = base + meta.file;
+      img.src = spriteSrc(base, meta);
       images.set(key, img);
     }
   } catch {
@@ -84,7 +89,7 @@ export function drawSprite(ctx: CanvasRenderingContext2D, key: string | null, x:
 
 export function spriteUrl(key: string): string | null {
   if (live || !manifest?.sprites[key]) return null;
-  return `${ART_BASE}${manifest.sprites[key].file}`;
+  return spriteSrc(ART_BASE, manifest.sprites[key]);
 }
 
 export function artStats() {

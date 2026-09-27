@@ -563,16 +563,16 @@ function caseShell(ctx: Ctx, cx: number, cy: number, gh: number, warm: boolean):
   const W: Pt = [cx - ax + bx, y0 - ay + by];
   const up = (p: Pt, k = 1): Pt => [p[0], p[1] - gh * k];
   const wall = ctx.createLinearGradient(0, N[1] - gh, 0, S[1]);
-  wall.addColorStop(0, warm ? '#9a6436' : '#a9bcc8');
-  wall.addColorStop(1, warm ? '#4e2e1a' : '#647e8e');
+  wall.addColorStop(0, warm ? '#6a3f22' : '#a9bcc8');
+  wall.addColorStop(1, warm ? '#2e1a0e' : '#647e8e');
   fillPts(ctx, [W, N, up(N), up(W)], wall);
   fillPts(ctx, [N, E, up(E), up(N)], wall);
-  fillPts(ctx, [N, E, S, W], warm ? '#b88a58' : '#e6e0d6');
+  fillPts(ctx, [N, E, S, W], warm ? '#7a5534' : '#e6e0d6');
   if (warm) {
     // Heat lamp: a hot core under the lid spilling down onto the trays.
     const lamp = ctx.createRadialGradient(cx, y0 - gh + 4, 2, cx, y0 - gh * 0.4, 30);
-    lamp.addColorStop(0, 'rgba(255,206,120,0.75)');
-    lamp.addColorStop(0.5, 'rgba(255,180,90,0.25)');
+    lamp.addColorStop(0, 'rgba(255,206,120,0.5)');
+    lamp.addColorStop(0.5, 'rgba(255,180,90,0.14)');
     lamp.addColorStop(1, 'rgba(255,180,90,0)');
     ctx.fillStyle = lamp;
     ctx.fillRect(cx - 32, y0 - gh - 2, 64, gh + 14);
@@ -581,9 +581,10 @@ function caseShell(ctx: Ctx, cx: number, cy: number, gh: number, warm: boolean):
 }
 
 /**
- * Front panes over the goods (palette.md glass-cool #C5D5DE): a cool sky reflection across the top of
- * each pane, clear through the middle, a cool floor reflection at the foot, then hard specular streaks
- * (soft band + crisp core) and a dark steel frame so the box edges hold against the cream floor.
+ * Front panes over the goods (palette.md glass-cool #C5D5DE). Judged at game scale — a pane is only
+ * ~40×20 px on a 1024 px screen — so the glass is drawn as obvious shapes, not subtle gradients: a cool
+ * cyan wash over the whole pane, then bold diagonal specular streaks (a wide cyan band with a
+ * near-white core, plus a thin partner), a cool floor reflection at the foot and a dark steel frame.
  */
 function caseGlass(ctx: Ctx, g: CaseGeo) {
   const { E, S, W, up } = g;
@@ -592,32 +593,35 @@ function caseGlass(ctx: Ctx, g: CaseGeo) {
     const top = Math.min(up(a)[1], up(b)[1]);
     const bot = Math.max(a[1], b[1]);
     const gr = ctx.createLinearGradient(0, top, 0, bot);
-    gr.addColorStop(0, `rgba(226,240,248,${0.55 * k})`);
-    gr.addColorStop(0.22, `rgba(197,213,222,${0.34 * k})`);
-    gr.addColorStop(0.5, 'rgba(197,213,222,0.04)');
-    gr.addColorStop(0.8, 'rgba(120,150,170,0.14)');
-    gr.addColorStop(1, 'rgba(70,98,120,0.42)');
+    gr.addColorStop(0, `rgba(150,214,238,${0.55 * k})`);
+    gr.addColorStop(0.25, `rgba(130,200,230,${0.18 * k})`);
+    gr.addColorStop(0.75, `rgba(120,190,225,${0.1 * k})`);
+    gr.addColorStop(1, `rgba(60,110,140,${0.4 * k})`);
     fillPts(ctx, pts, gr);
     clipTo(ctx, pts, () => {
+      // Diagonal streaks: foot at f0 along the pane, leaning 0.3 of the pane toward b at the top.
+      const band = (fa: number, fb: number, style: string) => {
+        const p1 = up(lerp2(a, b, fa), -0.1);
+        const p2 = up(lerp2(a, b, fb), -0.1);
+        const p3 = up(lerp2(a, b, fb + 0.3), 1.1);
+        const p4 = up(lerp2(a, b, fa + 0.3), 1.1);
+        poly(ctx, [p1, p2, p3, p4], style);
+      };
       for (const [f0, w] of streaks) {
-        const band = (fa: number, fb: number, al: number) => {
-          const p1 = up(lerp2(a, b, fa), -0.1);
-          const p2 = up(lerp2(a, b, fb), -0.1);
-          const p3 = up(lerp2(a, b, fb + 0.3), 1.1);
-          const p4 = up(lerp2(a, b, fa + 0.3), 1.1);
-          poly(ctx, [p1, p2, p3, p4], `rgba(236,246,255,${al * k})`);
-        };
-        band(f0 - 0.05, f0 + w + 0.05, 0.28);
-        band(f0, f0 + w, 0.9);
+        band(f0 - 0.04, f0 + w + 0.04, `rgba(120,214,246,${0.55 * k})`);
+        band(f0, f0 + w, `rgba(178,236,255,${0.85 * k})`);
+        band(f0 + w * 0.3, f0 + w * 0.7, `rgba(246,253,255,${0.95 * k})`);
       }
     });
   };
-  pane(W, S, 1, [[0.1, 0.07], [0.24, 0.025], [0.62, 0.04]]);
-  pane(S, E, 0.75, [[0.14, 0.05], [0.5, 0.02]]);
+  // Two streaks on the long pane (a wide one off the left post, a thin partner past the middle) and one
+  // on the short pane, leaving the goods clear between them.
+  pane(W, S, 1, [[-0.1, 0.13], [0.56, 0.05]]);
+  pane(S, E, 0.8, [[0.02, 0.1]]);
   // Steel frame: base channel, top rail and corner posts.
   ctx.lineCap = 'round';
-  ctx.strokeStyle = '#4e5a66';
-  ctx.lineWidth = 1.6;
+  ctx.strokeStyle = '#3e4a56';
+  ctx.lineWidth = 1.8;
   ctx.beginPath();
   for (const p of [W, S, E]) {
     ctx.moveTo(...p);
@@ -627,17 +631,29 @@ function caseGlass(ctx: Ctx, g: CaseGeo) {
   ctx.lineTo(...S);
   ctx.lineTo(...E);
   ctx.stroke();
-  // Lit edges: the front post and the top rail catch the window key.
-  ctx.strokeStyle = 'rgba(240,248,255,0.95)';
+  // Lit front post catching the window key (cool, not white, so it reads as glass-edge light).
+  ctx.strokeStyle = 'rgba(190,238,255,0.95)';
   ctx.lineWidth = 0.9;
   ctx.beginPath();
   ctx.moveTo(S[0] - 1.2, S[1] - 1);
   ctx.lineTo(S[0] - 1.2, S[1] - (S[1] - up(S)[1]) + 1);
-  ctx.moveTo(...up(W, 0.97));
-  ctx.lineTo(...up(S, 0.97));
-  ctx.lineTo(...up(E, 0.97));
   ctx.stroke();
   ctx.lineCap = 'butt';
+}
+
+/** Glass lid over a case: a cool-tinted pane (not a white slab) with its own diagonal glints. */
+function caseLid(ctx: Ctx, cx: number, cy: number, lift: number) {
+  const lid = box(ctx, cx, cy, 1.0, 0.8, 3, '#9fd0e4', lift, { left: '#7fb2c8', right: '#5f8ea4', stroke: 'rgba(30,60,80,0.55)' });
+  const [N, E, S, W] = lid.top as [Pt, Pt, Pt, Pt];
+  clipTo(ctx, lid.top as Pt[], () => {
+    const sky = ctx.createLinearGradient(W[0], W[1], E[0], E[1]);
+    sky.addColorStop(0, 'rgba(210,244,255,0.55)');
+    sky.addColorStop(1, 'rgba(90,150,180,0.25)');
+    ctx.fillStyle = sky;
+    ctx.fillRect(W[0] - 2, N[1] - 2, E[0] - W[0] + 4, S[1] - N[1] + 4);
+    poly(ctx, [lerp2(N, E, 0.18), lerp2(N, E, 0.36), lerp2(W, S, 0.2), lerp2(W, S, 0.02)], 'rgba(240,252,255,0.85)');
+    poly(ctx, [lerp2(N, E, 0.46), lerp2(N, E, 0.52), lerp2(W, S, 0.36), lerp2(W, S, 0.3)], 'rgba(220,248,255,0.7)');
+  });
 }
 
 /** Wood-warm plank grain across an iso top face, running along the N→E (x) axis. */
@@ -787,7 +803,7 @@ function vitrineSlice(ctx: Ctx, cx: number, cy: number, i: number) {
     ellipse(ctx, cx + dx, cy + dy - 32, 4, 1.6, 'rgba(255,250,240,0.85)');
   }
   caseGlass(ctx, glass);
-  box(ctx, cx, cy, 1.0, 0.8, 3, '#dfe3e8', 46, { left: '#b4bac2', right: '#8f959e', stroke: 'rgba(40,44,52,0.35)' });
+  caseLid(ctx, cx, cy, 46);
   // Redoma on top: a bolo de fubá under a glass dome — breaks the flat case top line.
   ellipse(ctx, cx + 1, cy - 49, 12, 3.6, 'rgba(58,34,22,0.22)');
   ellipse(ctx, cx, cy - 50, 11, 3.4, '#d6cfc4');
@@ -824,17 +840,8 @@ function caixa(ctx: Ctx, cx: number, cy: number) {
   ctx.font = `800 6px ${FONT_BODY}`;
   ctx.textAlign = 'center';
   ctx.fillText('R$', cx + rx - 3, cy + ry - 62);
-  // Porta-guardanapo: the chrome V holder with a fan of paper napkins — the SP balcão classic.
-  const [nx, ny] = iso(-0.32, 0.28);
-  const hx = cx + nx;
-  const hy = cy + ny - 43;
-  ellipse(ctx, hx + 0.5, hy + 0.5, 7, 2.2, 'rgba(58,34,22,0.32)');
-  for (let k = 0; k < 5; k++) poly(ctx, [[hx - 5 + k * 0.5, hy - 2], [hx + 5 + k * 0.5, hy - 2], [hx + 4 + k * 0.9, hy - 11 - k * 0.4], [hx - 4 + k * 0.9, hy - 11 - k * 0.4]], k % 2 ? '#fffdf7' : '#f1ece2', 'rgba(0,0,0,0.14)', 0.4);
-  poly(ctx, [[hx - 6, hy], [hx + 6, hy], [hx + 7, hy - 7], [hx + 5.5, hy - 7], [hx + 4.5, hy - 2], [hx - 4.5, hy - 2], [hx - 5.5, hy - 7], [hx - 7, hy - 7]], '#c4c8d0', '#6e7078', 0.6);
-  ctx.fillStyle = 'rgba(255,255,255,0.8)';
-  ctx.fillRect(hx - 4.5, hy - 1.6, 9, 0.7);
-  // Açúcar + canela shakers by the napkins.
-  const [kx, ky] = iso(0.3, -0.3);
+  // Açúcar + canela shakers at the back-right corner.
+  const [kx, ky] = iso(0.32, -0.3);
   for (const [dx, cap, fill] of [[-3.2, '#b8b8c0', '#fff'], [3.2, '#C45C26', '#8a5a3c']] as const) {
     const x = cx + kx + dx;
     const y = cy + ky - 43;
@@ -846,50 +853,74 @@ function caixa(ctx: Ctx, cx: number, cy: number) {
     ctx.fillRect(x - 2.1, y - 8, 0.9, 6.5);
     rrect(ctx, x - 2.6, y - 11.5, 5.2, 3, 1.2, cap, 'rgba(0,0,0,0.3)', 0.4);
   }
-  // Bandeja by the till: a steel serving tray with a raised rim and a paper liner, holding a
-  // cafezinho on its saucer and a pair of pães de queijo — one clear silhouette, not loose clutter.
-  const [bx, by] = iso(0.2, 0.16);
-  const tx = cx + bx;
-  const ty = cy + by - 43;
-  ellipse(ctx, tx + 1.5, ty + 1.5, 17, 6.5, 'rgba(58,34,22,0.4)');
-  diamond(ctx, tx, ty, 0.58, 0.42, '#6e737c', '#3a3e46', 0.8);
-  diamond(ctx, tx, ty - 1.6, 0.58, 0.42, '#dfe3e8', '#565b64', 0.7);
-  diamond(ctx, tx, ty - 1.6, 0.48, 0.32, '#9ca2ab');
-  diamond(ctx, tx, ty - 1.9, 0.44, 0.29, '#fbf4e4', 'rgba(196,92,38,0.55)', 0.6);
-  const [ex, ey] = iso(-0.29, 0);
-  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-  ctx.lineWidth = 0.8;
+  // Bandeja: a big oval wooden serving tray in front of the till, judged at game scale (~30×14 px on a
+  // 1024 px screen) — a pale honey-wood dish with a dark raised rim and a hard cast shadow, so it reads as
+  // its own object on the darker counter wood, not a pad. Holds a cafezinho and three pães de queijo.
+  const tx = cx + iso(0.08, 0.2)[0];
+  const ty = cy + iso(0.08, 0.2)[1] - 43;
+  const oval = (dy: number, rx: number, ry: number, fill: string | CanvasGradient, stroke?: string, lw = 1) => {
+    ctx.beginPath();
+    ctx.ellipse(tx, ty + dy, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+    if (stroke) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = lw;
+      ctx.stroke();
+    }
+  };
+  oval(2.6, 23, 9.6, 'rgba(40,18,6,0.5)');
+  // Rim wall (the tray's side), then the rim lip, then the recessed floor with grain.
+  oval(0, 22, 9.2, '#6e3c18', '#2e1406', 1.1);
+  oval(-2.4, 22, 9.2, '#c98a4a', '#3a1a08', 1.1);
+  const floor = ctx.createLinearGradient(tx - 18, ty - 8, tx + 18, ty + 4);
+  floor.addColorStop(0, '#f2c486');
+  floor.addColorStop(1, '#d99a58');
+  oval(-2.2, 18.5, 7.4, floor, 'rgba(90,44,12,0.7)', 0.8);
+  ctx.save();
   ctx.beginPath();
-  ctx.moveTo(tx + ex, ty + ey - 1.9);
-  ctx.lineTo(tx + ex + iso(0, -0.21)[0], ty + ey - 1.9 + iso(0, -0.21)[1]);
+  ctx.ellipse(tx, ty - 2.2, 18.5, 7.4, 0, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(150,84,30,0.45)';
+  ctx.lineWidth = 0.7;
+  for (const gy of [-6, -3, 0, 3]) {
+    ctx.beginPath();
+    ctx.moveTo(tx - 20, ty - 2.2 + gy);
+    ctx.bezierCurveTo(tx - 6, ty - 3.2 + gy, tx + 6, ty - 1.2 + gy, tx + 20, ty - 2.2 + gy);
+    ctx.stroke();
+  }
+  ctx.restore();
+  // Window-key catch on the near rim lip.
+  ctx.strokeStyle = 'rgba(255,232,190,0.9)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(tx, ty - 2.4, 21, 8.6, 0, Math.PI * 0.62, Math.PI * 0.95);
   ctx.stroke();
   // Cafezinho: saucer, white demitasse, dark coffee, tiny handle.
-  const [qx, qy] = iso(-0.06, 0.06);
-  const x0 = tx + qx;
-  const y0 = ty + qy - 2;
-  ellipse(ctx, x0 + 0.5, y0 + 0.6, 6, 2.2, 'rgba(58,34,22,0.3)');
-  ellipse(ctx, x0, y0, 5.6, 2.1, '#fffaf2');
-  ctx.strokeStyle = '#b9b0a2';
-  ctx.lineWidth = 0.5;
+  const x0 = tx - 8;
+  const y0 = ty - 2;
+  ellipse(ctx, x0 + 0.6, y0 + 0.8, 6.4, 2.4, 'rgba(58,34,22,0.35)');
+  ellipse(ctx, x0, y0, 6, 2.3, '#fffaf2');
+  ctx.strokeStyle = '#8a8070';
+  ctx.lineWidth = 0.6;
   ctx.beginPath();
-  ctx.ellipse(x0, y0, 5.6, 2.1, 0, 0, Math.PI * 2);
+  ctx.ellipse(x0, y0, 6, 2.3, 0, 0, Math.PI * 2);
   ctx.stroke();
-  rrect(ctx, x0 - 3, y0 - 6, 6, 6, [0, 0, 2.5, 2.5], '#ffffff', '#a8a092', 0.5);
-  ctx.strokeStyle = '#a8a092';
-  ctx.lineWidth = 0.9;
+  rrect(ctx, x0 - 3.2, y0 - 6.5, 6.4, 6.5, [0, 0, 2.6, 2.6], '#ffffff', '#6e665a', 0.6);
+  ctx.strokeStyle = '#6e665a';
+  ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.arc(x0 + 3.6, y0 - 3.4, 1.4, -Math.PI / 2, Math.PI / 2);
+  ctx.arc(x0 + 3.8, y0 - 3.6, 1.5, -Math.PI / 2, Math.PI / 2);
   ctx.stroke();
-  ellipse(ctx, x0, y0 - 6, 3, 1.1, '#4a2616');
-  ellipse(ctx, x0 - 0.8, y0 - 6.2, 1.2, 0.4, 'rgba(230,180,120,0.8)');
-  // Two pães de queijo on the liner beside the cup.
-  const [px, py] = iso(0.12, -0.04);
-  for (const [dx, dy] of [[-2.8, 0], [2.6, 0.6]] as const) {
-    const x = tx + px + dx;
-    const y = ty + py - 2 + dy;
-    ellipse(ctx, x + 0.4, y + 1.6, 3, 1.1, 'rgba(58,34,22,0.3)');
-    circle(ctx, x, y - 1, 2.8, '#eac566', 'rgba(96,44,12,0.55)', 0.5);
-    circle(ctx, x - 0.9, y - 2, 0.9, 'rgba(255,248,220,0.85)');
+  ellipse(ctx, x0, y0 - 6.5, 3.2, 1.2, '#4a2616');
+  ellipse(ctx, x0 - 0.8, y0 - 6.7, 1.3, 0.45, 'rgba(230,180,120,0.8)');
+  // Three pães de queijo heaped on the right of the tray.
+  for (const [dx, dy] of [[4, -1], [10, -0.4], [7, -4.2]] as const) {
+    const x = tx + dx;
+    const y = ty - 2 + dy;
+    ellipse(ctx, x + 0.4, y + 2.2, 3.4, 1.2, 'rgba(58,34,22,0.35)');
+    circle(ctx, x, y, 3.4, '#f0cc6e', 'rgba(96,44,12,0.8)', 0.7);
+    circle(ctx, x - 1.1, y - 1.2, 1.1, 'rgba(255,250,225,0.9)');
   }
 }
 
@@ -1132,14 +1163,25 @@ function placaRua(ctx: Ctx, cx: number, cy: number) {
   plate(cy - 92, 54, 'PRAÇA CENTRAL');
 }
 
+/** Glass height of the SALGADOS estufa (the live glass overlay in room.ts matches it). */
+export const ESTUFA_GLASS_H = 34;
+
 type Salgado = 'coxinha' | 'pastel' | 'esfiha' | 'paoqueijo' | 'empada' | 'kibe';
 
-/** One salgado at (x, y), its base on the tray. Dark outline so the packed trays keep readable silhouettes. */
-function salgado(ctx: Ctx, x: number, y: number, k: Salgado) {
-  const ink = 'rgba(96,44,12,0.55)';
+/**
+ * One salgado at (x0, y0), its base on the tray, drawn `s`× size. Heavy ink outline so each one keeps
+ * its silhouette (teardrop coxinha, ball cluster pão de queijo, crimped empada) at game scale.
+ */
+function salgado(ctx: Ctx, x0: number, y0: number, k: Salgado, s = 1) {
+  ctx.save();
+  ctx.translate(x0, y0);
+  ctx.scale(s, s);
+  const x = 0;
+  const y = 0;
+  const ink = 'rgba(70,28,6,0.85)';
   ellipse(ctx, x + 0.6, y + 2.6, 5.4, 1.9, 'rgba(60,24,6,0.4)');
   if (k === 'coxinha') {
-    ctx.fillStyle = '#c9772a';
+    ctx.fillStyle = '#e08a34';
     ctx.strokeStyle = ink;
     ctx.lineWidth = 0.6;
     ctx.beginPath();
@@ -1173,8 +1215,9 @@ function salgado(ctx: Ctx, x: number, y: number, k: Salgado) {
     ctx.fillStyle = 'rgba(255,230,180,0.55)';
     ctx.fillRect(x - 3, y - 2.5, 1, 3);
   } else if (k === 'empada') {
-    rrect(ctx, x - 4.5, y - 3.5, 9, 5.5, 1.5, '#c98a3e', ink, 0.6);
-    ellipse(ctx, x, y - 3.5, 4.5, 1.8, '#e5b865');
+    rrect(ctx, x - 4.5, y - 3.5, 9, 5.5, 1.5, '#a8621f', ink, 0.6);
+    ellipse(ctx, x, y - 3.5, 4.5, 1.8, '#f6d98c');
+    ellipse(ctx, x - 1.2, y - 3.9, 1.8, 0.6, 'rgba(255,252,236,0.9)');
     ctx.strokeStyle = 'rgba(140,80,30,0.6)';
     ctx.lineWidth = 0.5;
     ctx.beginPath();
@@ -1193,51 +1236,55 @@ function salgado(ctx: Ctx, x: number, y: number, k: Salgado) {
     ctx.stroke();
     ellipse(ctx, x - 2, y - 3, 2.2, 0.9, 'rgba(255,200,150,0.45)');
   } else {
-    circle(ctx, x - 2.6, y, 2.6, '#eac566', ink, 0.5);
-    circle(ctx, x + 2.4, y + 0.4, 2.6, '#f0cc6e', ink, 0.5);
-    circle(ctx, x, y - 2.6, 2.5, '#f2d27a', ink, 0.5);
+    circle(ctx, x - 2.6, y, 2.6, '#f4d888', ink, 0.5);
+    circle(ctx, x + 2.4, y + 0.4, 2.6, '#f8e09a', ink, 0.5);
+    circle(ctx, x, y - 2.6, 2.5, '#fbe7a8', ink, 0.5);
     circle(ctx, x - 0.8, y - 3.4, 0.9, 'rgba(255,248,220,0.85)');
   }
+  ctx.restore();
 }
 
-/** Estufa — heated glass case of salgados, packed: two steel trays heaped two deep. */
+/**
+ * Estufa — heated glass case of salgados, packed with a few big, outlined pieces rather than many tiny
+ * ones (at game scale the front pane is ~25 px wide): an upper tray of three, a lower tray of two
+ * staggered rows of three. Back rows first so the front rows overlap them.
+ */
 function estufa(ctx: Ctx, cx: number, cy: number) {
-  const gh = 26;
+  // Taller than the vitrine so the pane (and the salgados behind it) stays readable at game scale.
+  const gh = ESTUFA_GLASS_H;
   const glass = caseShell(ctx, cx, cy, gh, true);
-  // Each tier: a steel tray with a paper liner, then salgados packed shoulder to shoulder and a
-  // second layer heaped on top — back rows first so the front rows overlap them.
-  const tiers: { dy0: number; dy1: number; lift: number; kinds: Salgado[] }[] = [
-    { dy0: -0.3, dy1: -0.06, lift: 36, kinds: ['esfiha', 'coxinha', 'empada', 'kibe', 'paoqueijo', 'coxinha'] },
-    { dy0: 0.02, dy1: 0.3, lift: 25, kinds: ['coxinha', 'pastel', 'coxinha', 'paoqueijo', 'coxinha', 'kibe'] },
+  const trays: { dy0: number; dy1: number; lift: number; rows: { dy: number; s: number; items: [number, Salgado][] }[] }[] = [
+    {
+      dy0: -0.36,
+      dy1: -0.1,
+      lift: 40,
+      rows: [{ dy: -0.22, s: 1.3, items: [[-0.3, 'paoqueijo'], [0, 'coxinha'], [0.3, 'empada']] }],
+    },
+    {
+      dy0: -0.04,
+      dy1: 0.34,
+      lift: 22,
+      rows: [
+        { dy: 0.04, s: 1.55, items: [[-0.3, 'empada'], [0, 'paoqueijo'], [0.3, 'coxinha']] },
+        { dy: 0.24, s: 1.85, items: [[-0.27, 'coxinha'], [0.02, 'paoqueijo'], [0.3, 'empada']] },
+      ],
+    },
   ];
-  for (const [ti, tier] of tiers.entries()) {
-    const [tx, ty] = iso(0, (tier.dy0 + tier.dy1) / 2);
-    const tray = box(ctx, cx + tx, cy + ty, 0.9, tier.dy1 - tier.dy0 + 0.1, 2, '#c8ccd2', tier.lift - 2, { left: '#9ea3ac', right: '#80858e', stroke: 'rgba(40,44,52,0.5)' });
+  for (const tr of trays) {
+    const [tx, ty] = iso(0, (tr.dy0 + tr.dy1) / 2);
+    const tray = box(ctx, cx + tx, cy + ty, 0.92, tr.dy1 - tr.dy0, 2, '#c8ccd2', tr.lift - 2, { left: '#9ea3ac', right: '#80858e', stroke: 'rgba(40,44,52,0.6)' });
     poly(ctx, tray.top, '#f4ead6');
-    const rows = 3;
-    for (let r = 0; r < rows; r++) {
-      const dy = tier.dy0 + ((tier.dy1 - tier.dy0) * r) / (rows - 1);
-      for (let c = 0; c < 6; c++) {
-        const dx = -0.36 + c * 0.144;
-        const k = tier.kinds[(c + r * 2 + ti) % tier.kinds.length];
-        const [ox, oy] = iso(dx, dy);
-        salgado(ctx, cx + ox, cy + oy - tier.lift, k);
-      }
-      if (r === 0) continue;
-      // Heaped layer riding in the gaps of the row behind.
-      const hy = dy - (tier.dy1 - tier.dy0) / (rows - 1) / 2;
-      for (let c = 0; c < 5; c++) {
-        const dx = -0.29 + c * 0.144;
-        const k = tier.kinds[(c * 3 + r + ti + 1) % tier.kinds.length];
-        const [ox, oy] = iso(dx, hy);
-        salgado(ctx, cx + ox, cy + oy - tier.lift - 4.5, k);
+    for (const row of tr.rows) {
+      for (const [dx, k] of row.items) {
+        const [ox, oy] = iso(dx, row.dy);
+        salgado(ctx, cx + ox, cy + oy - tr.lift, k, row.s);
       }
     }
   }
   caseGlass(ctx, glass);
-  box(ctx, cx, cy, 1.0, 0.8, 3, '#dfe3e8', 22 + gh, { left: '#b4bac2', right: '#8f959e', stroke: 'rgba(40,44,52,0.35)' });
+  caseLid(ctx, cx, cy, 22 + gh);
   // Nudged left so the trilho's hanging comandas (next tile) don't cover the sign.
-  label(ctx, 'SALGADOS', cx - 9, cy - 58, '#b5452e', '#fff', 7);
+  label(ctx, 'SALGADOS', cx - 13, cy - 60, '#b5452e', '#fff', 7);
 }
 
 export function drawProp(ctx: Ctx, p: PropDef, cx: number, cy: number, t: number, slice = 0, opts: { parrotAdopted?: boolean } = {}) {

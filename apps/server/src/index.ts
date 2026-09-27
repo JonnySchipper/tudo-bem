@@ -11,6 +11,7 @@ import { fileAdapter } from './fileStore.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 import { FileModerationQueue } from './services/fileModeration.js';
 import { handleConversaApi } from './conversaApi.js';
+import { staticCacheControl } from './cacheControl.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);
@@ -68,7 +69,7 @@ const server = http.createServer(async (req, res) => {
   const ext = path.extname(file);
   res.writeHead(200, {
     'content-type': MIME[ext] ?? 'application/octet-stream',
-    'cache-control': ext === '.html' ? 'no-cache' : 'public, max-age=31536000, immutable',
+    'cache-control': staticCacheControl(url, ext),
   });
   fs.createReadStream(file).pipe(res);
 });

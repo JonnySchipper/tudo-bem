@@ -7,7 +7,8 @@
  * 1. builds the client (includes the /art.html studio),
  * 2. serves apps/client/dist on a local port and renders the studio in headless Chrome,
  * 3. writes PNG sprites + UI SVGs + manifest.json to apps/client/public/art,
- * 4. copies hand-painted overrides from apps/client/art-overrides over the generated files,
+ * 4. copies hand-painted overrides from apps/client/art-overrides over the generated files and
+ *    stamps each sprite's content hash into the manifest (cache-busting, see art-stamp.mjs),
  * 5. writes contact sheets for art review to docs/art,
  * 6. rebuilds the client so dist ships the fresh art.
  *
@@ -22,6 +23,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { stampArtVersions } from './art-stamp.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dist = path.join(root, 'apps/client/dist');
@@ -118,6 +120,8 @@ async function main() {
   fs.mkdirSync(path.join(outDir, 'ui'), { recursive: true });
   for (const [name, svg] of Object.entries(ui)) fs.writeFileSync(path.join(outDir, 'ui', `${name}.svg`), svg);
   const overrides = applyOverrides(manifest);
+  // Content-hash every sprite so a re-bake changes its URL (see art-stamp.mjs).
+  stampArtVersions(outDir, manifest);
   fs.writeFileSync(path.join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 1));
 
   // Contact sheets for TB Art review
