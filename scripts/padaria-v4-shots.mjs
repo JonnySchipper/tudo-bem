@@ -26,6 +26,8 @@ page.on('pageerror', (e) => console.error('pageerror', String(e)));
 const tile = (x, y) => page.evaluate(([x, y]) => window.__tb.tileToClient(x, y), [x, y]);
 
 await page.goto(BASE);
+await page.waitForSelector('#intro-enter');
+await page.click('#intro-enter');
 await page.waitForSelector('#intro-skip');
 await page.click('#intro-skip');
 await page.waitForSelector('#intro-guest');

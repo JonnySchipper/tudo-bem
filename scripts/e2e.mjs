@@ -63,6 +63,9 @@ const START_URL = SOLO ? `${BASE}${BASE.includes('?') ? '&' : '?'}rolltest` : BA
 
 /** Title screen → sign-in card (the intro's own skip keeps runs short). */
 async function toSignInCard(page) {
+  // One tap starts the intro (music + flock together), then the title beat can be skipped.
+  await page.waitForSelector('#intro-enter', { timeout: 12_000 });
+  await page.click('#intro-enter');
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
   assert(!(await page.$('#birth-month')) && !(await page.$('#birth-year')), 'no birth-date step before play');
   await page.click('#intro-skip');
@@ -135,7 +138,7 @@ async function main() {
 
   // 0. The title screen comes first: no avatar creator, no world, no birth date
   await page.goto(START_URL);
-  await page.waitForSelector('#intro-skip', { timeout: 12_000 });
+  await page.waitForSelector('#intro-enter', { timeout: 12_000 });
   assert(!(await page.$('#avatar-name')) && !(await room(page)) && !(await page.$('#birth-month')), 'intro first: no DOB, no creator, no world');
   if (!SOLO) {
     // Multiplayer is account-only: the guest CTA steers to Criar conta instead of entering the world.

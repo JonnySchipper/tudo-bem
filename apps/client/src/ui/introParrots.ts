@@ -538,6 +538,8 @@ export interface IntroParrotsOptions {
   band?: () => SkyBand;
   /** Elements near birds must never paint over (wordmark, card). */
   keepClear?: () => (HTMLElement | null)[];
+  /** Flock animation (or reduced-motion still) waits until this promise resolves — sync with Enter + music. */
+  waitForStart?: Promise<void>;
 }
 
 /** Narrow screens cross faster so birds keep a similar px/s instead of crawling. */
@@ -602,9 +604,11 @@ export function mountIntroParrots(
       ctx.clearRect(0, 0, w, mid.clientHeight);
       drawStaticFlock(ctx, w, band());
     };
-    paint();
     const ro = new ResizeObserver(paint);
     ro.observe(root);
+    const start = () => paint();
+    if (opts.waitForStart) void opts.waitForStart.then(start);
+    else start();
     return {
       syncClip: paint,
       teardown: () => {
@@ -640,6 +644,7 @@ export function mountIntroParrots(
   let raf = 0;
   let idleTimer = 0;
   let running = true;
+  let flockStarted = !opts.waitForStart;
 
   const clipNear = (ctx: CanvasRenderingContext2D) => {
     const rr = root.getBoundingClientRect();
@@ -669,6 +674,7 @@ export function mountIntroParrots(
   };
 
   const loop = () => {
+    if (!flockStarted) return;
     cancelAnimationFrame(raf);
     const frame = () => {
       const t = (performance.now() - t0) / 1000;
@@ -716,7 +722,13 @@ export function mountIntroParrots(
   };
   document.addEventListener('visibilitychange', onVis);
 
-  loop();
+  const beginFlock = () => {
+    flockStarted = true;
+    t0 = performance.now();
+    loop();
+  };
+  if (opts.waitForStart) void opts.waitForStart.then(beginFlock);
+  else beginFlock();
 
   return {
     syncClip: sync,
