@@ -225,6 +225,247 @@ function mat(ctx: Ctx, w: number, h: number, floorY: number) {
   rrect(ctx, 2, 2, w - 4, h - 4, 12, undefined, 'rgba(44,44,44,0.35)', 1.2);
 }
 
+const lerpN = (a: number, b: number, t: number) => a + (b - a) * t;
+const lerpP = (a: P, b: P, t: number): P => [lerpN(a[0], b[0], t), lerpN(a[1], b[1], t)];
+
+function lerpFig(a: Fig, b: Fig, t: number): Fig {
+  return {
+    head: lerpP(a.head, b.head, t),
+    neck: lerpP(a.neck, b.neck, t),
+    hip: lerpP(a.hip, b.hip, t),
+    armN: [lerpP(a.armN[0], b.armN[0], t), lerpP(a.armN[1], b.armN[1], t)],
+    armF: [lerpP(a.armF[0], b.armF[0], t), lerpP(a.armF[1], b.armF[1], t)],
+    legN: [lerpP(a.legN[0], b.legN[0], t), lerpP(a.legN[1], b.legN[1], t)],
+    legF: [lerpP(a.legF[0], b.legF[0], t), lerpP(a.legF[1], b.legF[1], t)],
+    gi: t < 0.5 ? a.gi : b.gi,
+    face: t < 0.5 ? a.face : b.face,
+    hair: t < 0.5 ? a.hair : b.hair,
+  };
+}
+
+type PositionPair = { blue: Fig; white: Fig; contactX: number; contactW: number };
+
+function positionPair(id: BjjPositionId): PositionPair {
+  switch (id) {
+    case 'de_pe': {
+      const white: Fig = {
+        head: [101, 24],
+        neck: [99, 35],
+        hip: [93, 66],
+        armN: [[108, 48], [120, 42]],
+        armF: [[106, 54], [118, 58]],
+        legN: [[99, 85], [104, 104]],
+        legF: [[86, 85], [78, 104]],
+        gi: 'white',
+        face: 1,
+      };
+      const blue = { ...mirror(white), gi: 'blue' as const, hair: '#1f1a17' };
+      return { blue, white, contactX: 120, contactW: 56 };
+    }
+    case 'guarda_fechada': {
+      const blue = lying('blue', {
+        head: [50, 95],
+        neck: [62, 95],
+        hip: [110, 94],
+        armN: [[88, 80], [114, 60]],
+        armF: [[84, 86], [110, 66]],
+        legN: [[134, 64], [156, 74]],
+        legF: [[130, 68], [154, 80]],
+      });
+      const white: Fig = {
+        head: [124, 34],
+        neck: [128, 45],
+        hip: [138, 80],
+        armN: [[120, 66], [106, 86]],
+        armF: [[124, 70], [112, 90]],
+        legN: [[122, 101], [164, 104]],
+        legF: [[128, 100], [168, 101]],
+        gi: 'white',
+        face: -1,
+      };
+      return { blue, white, contactX: 110, contactW: 74 };
+    }
+    case 'meia_guarda': {
+      const blue = lying('blue', {
+        head: [42, 96],
+        neck: [54, 96],
+        hip: [100, 97],
+        armN: [[72, 82], [92, 66]],
+        legN: [[124, 82], [148, 98]],
+        legF: [[126, 101], [150, 86]],
+      });
+      const white: Fig = {
+        head: [60, 78],
+        neck: [71, 74],
+        hip: [128, 44],
+        armN: [[54, 90], [40, 86]],
+        armF: [[84, 90], [90, 104]],
+        legN: [[134, 76], [160, 98]],
+        legF: [[168, 70], [204, 104]],
+        gi: 'white',
+        face: -1,
+      };
+      return { blue, white, contactX: 122, contactW: 92 };
+    }
+    case 'cem_quilos': {
+      const blue = lying('blue', {
+        armN: [[62, 106], [48, 110]],
+        armF: [[60, 88], [74, 82]],
+        legN: [[126, 96], [152, 101]],
+        legF: [[122, 99], [148, 103]],
+      });
+      const white: Fig = {
+        head: [40, 80],
+        neck: [52, 82],
+        hip: [100, 88],
+        armN: [[34, 96], [24, 104]],
+        armF: [[88, 98], [110, 102]],
+        legN: [[112, 110], [140, 114]],
+        legF: [[118, 104], [146, 108]],
+        gi: 'white',
+        face: 1,
+      };
+      return { blue, white, contactX: 94, contactW: 92 };
+    }
+    case 'joelho': {
+      const blue = lying('blue', { armN: [[64, 86], [76, 76]] });
+      const white: Fig = {
+        head: [100, 21],
+        neck: [102, 32],
+        hip: [112, 62],
+        armN: [[92, 52], [80, 72]],
+        armF: [[122, 42], [134, 30]],
+        legN: [[92, 84], [118, 90]],
+        legF: [[136, 80], [148, 104]],
+        gi: 'white',
+        face: -1,
+      };
+      return { blue, white, contactX: 100, contactW: 70 };
+    }
+    case 'montada': {
+      const blue = lying('blue', {
+        armN: [[60, 84], [68, 74]],
+        armF: [[58, 88], [62, 78]],
+        legN: [[124, 97], [150, 101]],
+        legF: [[120, 100], [146, 103]],
+      });
+      const white: Fig = {
+        head: [80, 36],
+        neck: [82, 47],
+        hip: [88, 82],
+        armN: [[72, 64], [62, 88]],
+        armF: [[78, 68], [66, 91]],
+        legN: [[68, 102], [94, 106]],
+        legF: [[108, 98], [100, 104]],
+        gi: 'white',
+        face: -1,
+      };
+      return { blue, white, contactX: 94, contactW: 70 };
+    }
+    case 'costas': {
+      const blue: Fig = {
+        head: [134, 47],
+        neck: [129, 59],
+        hip: [136, 98],
+        armN: [[154, 92], [160, 84]],
+        armF: [[150, 94], [156, 88]],
+        legN: [[158, 84], [182, 102]],
+        legF: [[154, 88], [178, 104]],
+        gi: 'blue',
+        face: 1,
+        hair: '#1f1a17',
+      };
+      const white: Fig = {
+        head: [102, 38],
+        neck: [104, 50],
+        hip: [106, 100],
+        armN: [[122, 70], [146, 84]],
+        armF: [[124, 92], [144, 88]],
+        legN: [[136, 80], [152, 92]],
+        legF: [[130, 88], [148, 98]],
+        gi: 'white',
+        face: 1,
+      };
+      return { blue, white, contactX: 140, contactW: 62 };
+    }
+    default:
+      return positionPair('de_pe');
+  }
+}
+
+function renderPositionPair(ctx: Ctx, id: BjjPositionId, blue: Fig, white: Fig, decorT = 1) {
+  switch (id) {
+    case 'de_pe':
+      figure(ctx, blue);
+      figure(ctx, white);
+      break;
+    case 'guarda_fechada':
+      figure(ctx, blue, ['legN', 'legF']);
+      figure(ctx, white);
+      overlay(ctx, blue, 'legF');
+      overlay(ctx, blue, 'legN');
+      break;
+    case 'meia_guarda':
+      figure(ctx, blue, ['legN', 'legF']);
+      figure(ctx, white, ['legN']);
+      overlay(ctx, white, 'legN');
+      overlay(ctx, blue, 'legF');
+      overlay(ctx, blue, 'legN');
+      if (decorT > 0.35) ring(ctx, 146, 92, 13 * Math.min(1, decorT));
+      break;
+    case 'cem_quilos':
+      figure(ctx, blue);
+      figure(ctx, white);
+      break;
+    case 'joelho':
+      figure(ctx, blue);
+      figure(ctx, white);
+      break;
+    case 'montada':
+      figure(ctx, blue);
+      figure(ctx, white, ['legN']);
+      overlay(ctx, white, 'legN');
+      break;
+    case 'costas':
+      figure(ctx, white, ['armN', 'legN']);
+      figure(ctx, blue, []);
+      overlay(ctx, white, 'legN');
+      overlay(ctx, white, 'armN');
+      break;
+    default:
+      figure(ctx, blue);
+      figure(ctx, white);
+  }
+}
+
+function drawTweenedPosition(ctx: Ctx, from: BjjPositionId, to: BjjPositionId, t: number) {
+  const a = positionPair(from);
+  const b = positionPair(to);
+  const blue = lerpFig(a.blue, b.blue, t);
+  const white = lerpFig(a.white, b.white, t);
+  contact(ctx, lerpN(a.contactX, b.contactX, t), lerpN(a.contactW, b.contactW, t));
+  const recipe = t < 0.5 ? from : to;
+  renderPositionPair(ctx, recipe, blue, white, t);
+}
+
+export type BjjGroundFx = 'gain' | 'loss' | 'hold';
+
+function groundFx(ctx: Ctx, w: number, h: number, fx: BjjGroundFx, strength: number) {
+  if (fx === 'hold' || strength <= 0) return;
+  const g = ctx.createLinearGradient(0, 0, w, 0);
+  const c = fx === 'gain' ? 'rgba(58,138,92,' : 'rgba(180,72,52,';
+  const a = strength * 0.22;
+  if (fx === 'gain') {
+    g.addColorStop(0, `${c}${a})`);
+    g.addColorStop(0.35, 'rgba(0,0,0,0)');
+  } else {
+    g.addColorStop(0.65, 'rgba(0,0,0,0)');
+    g.addColorStop(1, `${c}${a})`);
+  }
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+}
+
 /** Soft contact shadow on the mat under a pose. */
 function contact(ctx: Ctx, x: number, w: number) {
   ctx.fillStyle = 'rgba(90,60,20,0.22)';
@@ -310,157 +551,18 @@ function backControl(ctx: Ctx, tapping: boolean) {
 
 function drawPose(ctx: Ctx, pose: BjjPoseId, tapFrom: BjjPositionId | undefined) {
   switch (pose) {
-    case 'de_pe': {
-      // Grip fight: both upright in a staggered stance, hands on collar + sleeve.
-      const a: Fig = {
-        head: [101, 24],
-        neck: [99, 35],
-        hip: [93, 66],
-        armN: [[108, 48], [120, 42]],
-        armF: [[106, 54], [118, 58]],
-        legN: [[99, 85], [104, 104]],
-        legF: [[86, 85], [78, 104]],
-        gi: 'white',
-        face: 1,
-      };
-      const b = { ...mirror(a), gi: 'blue' as const, hair: '#1f1a17' };
-      contact(ctx, 120, 56);
-      figure(ctx, b);
-      figure(ctx, a);
+    case 'de_pe':
+    case 'guarda_fechada':
+    case 'meia_guarda':
+    case 'cem_quilos':
+    case 'joelho':
+    case 'montada':
+    case 'costas': {
+      const { blue, white, contactX, contactW } = positionPair(pose);
+      contact(ctx, contactX, contactW);
+      renderPositionPair(ctx, pose, blue, white, 1);
       break;
     }
-    case 'guarda_fechada': {
-      // Bottom on their back, legs locked around the kneeling partner's waist (crossed ankles behind).
-      const bottom = lying('blue', {
-        head: [50, 95],
-        neck: [62, 95],
-        hip: [110, 94],
-        armN: [[88, 80], [114, 60]],
-        armF: [[84, 86], [110, 66]],
-        legN: [[134, 64], [156, 74]],
-        legF: [[130, 68], [154, 80]],
-      });
-      const top: Fig = {
-        head: [124, 34],
-        neck: [128, 45],
-        hip: [138, 80],
-        armN: [[120, 66], [106, 86]],
-        armF: [[124, 70], [112, 90]],
-        legN: [[122, 101], [164, 104]],
-        legF: [[128, 100], [168, 101]],
-        gi: 'white',
-        face: -1,
-      };
-      contact(ctx, 110, 74);
-      figure(ctx, bottom, ['legN', 'legF']);
-      figure(ctx, top);
-      overlay(ctx, bottom, 'legF');
-      overlay(ctx, bottom, 'legN');
-      break;
-    }
-    case 'meia_guarda': {
-      // Tall wedge: top's head down by the partner's head, hips the peak of the card, far leg posted long
-      // and straight; the near shin is trapped in a blue leg-cross, ringed so the trap reads at card size.
-      const bottom = lying('blue', {
-        head: [42, 96],
-        neck: [54, 96],
-        hip: [100, 97],
-        armN: [[72, 82], [92, 66]],
-        legN: [[124, 82], [148, 98]],
-        legF: [[126, 101], [150, 86]],
-      });
-      const top: Fig = {
-        head: [60, 78],
-        neck: [71, 74],
-        hip: [128, 44],
-        armN: [[54, 90], [40, 86]],
-        armF: [[84, 90], [90, 104]],
-        legN: [[134, 76], [160, 98]],
-        legF: [[168, 70], [204, 104]],
-        gi: 'white',
-        face: -1,
-      };
-      contact(ctx, 122, 92);
-      figure(ctx, bottom, ['legN', 'legF']);
-      figure(ctx, top, ['legN']);
-      overlay(ctx, top, 'legN');
-      overlay(ctx, bottom, 'legF');
-      overlay(ctx, bottom, 'legN');
-      ring(ctx, 146, 92, 13);
-      break;
-    }
-    case 'cem_quilos': {
-      // Flat slab: top lies chest-to-chest across the partner (perpendicular, legs sprawled toward us on the
-      // front of the mat), nothing higher than a shoulder; the partner's legs stay flat and free.
-      const bottom = lying('blue', {
-        armN: [[62, 106], [48, 110]],
-        armF: [[60, 88], [74, 82]],
-        legN: [[126, 96], [152, 101]],
-        legF: [[122, 99], [148, 103]],
-      });
-      const top: Fig = {
-        head: [40, 80],
-        neck: [52, 82],
-        hip: [100, 88],
-        armN: [[34, 96], [24, 104]],
-        armF: [[88, 98], [110, 102]],
-        legN: [[112, 110], [140, 114]],
-        legF: [[118, 104], [146, 108]],
-        gi: 'white',
-        face: 1,
-      };
-      contact(ctx, 94, 92);
-      figure(ctx, bottom);
-      figure(ctx, top);
-      break;
-    }
-    case 'joelho': {
-      // Knee on belly: top tall and upright, shin across the belly, far leg posted wide, arm up for balance.
-      const bottom = lying('blue', { armN: [[64, 86], [76, 76]] });
-      const top: Fig = {
-        head: [100, 21],
-        neck: [102, 32],
-        hip: [112, 62],
-        armN: [[92, 52], [80, 72]],
-        armF: [[122, 42], [134, 30]],
-        legN: [[92, 84], [118, 90]],
-        legF: [[136, 80], [148, 104]],
-        gi: 'white',
-        face: -1,
-      };
-      contact(ctx, 100, 70);
-      figure(ctx, bottom);
-      figure(ctx, top);
-      break;
-    }
-    case 'montada': {
-      // Mount: top sits upright on the partner's belly, knees on the mat on both sides, hands on chest.
-      const bottom = lying('blue', {
-        armN: [[60, 84], [68, 74]],
-        armF: [[58, 88], [62, 78]],
-        legN: [[124, 97], [150, 101]],
-        legF: [[120, 100], [146, 103]],
-      });
-      const top: Fig = {
-        head: [80, 36],
-        neck: [82, 47],
-        hip: [88, 82],
-        armN: [[72, 64], [62, 88]],
-        armF: [[78, 68], [66, 91]],
-        legN: [[68, 102], [94, 106]],
-        legF: [[108, 98], [100, 104]],
-        gi: 'white',
-        face: -1,
-      };
-      contact(ctx, 94, 70);
-      figure(ctx, bottom);
-      figure(ctx, top, ['legN']);
-      overlay(ctx, top, 'legN');
-      break;
-    }
-    case 'costas':
-      backControl(ctx, false);
-      break;
     case 'tap': {
       if (tapFrom === 'costas') {
         // Back take finish: the front partner taps the mat beside their own knee.
@@ -538,6 +640,11 @@ export interface BjjPoseOpts {
   tapFrom?: BjjPositionId;
   /** End-card ribbon: how the roll was won. */
   badge?: 'finalizacao' | 'decisao';
+  /** Scramble tween between two mat positions (progress 0→1). */
+  tween?: { from: BjjPositionId; to: BjjPositionId; progress: number };
+  /** Ground gained / lost accent during scramble tween. */
+  groundFx?: BjjGroundFx;
+  fxStrength?: number;
 }
 
 /** Ribbon drawn in canvas px (not design space) so it stays legible on the small phone end card. */
@@ -580,15 +687,53 @@ export function drawBjjPose(ctx: Ctx, pose: BjjPoseId, w: number, h: number, opt
   ctx.save();
   ctx.translate((w - VW * s) / 2 + nudge, h - VH * s);
   ctx.scale(s, s);
-  drawPose(ctx, pose, opts.tapFrom);
+  if (opts.tween) drawTweenedPosition(ctx, opts.tween.from, opts.tween.to, opts.tween.progress);
+  else drawPose(ctx, pose, opts.tapFrom);
   ctx.restore();
+  if (opts.groundFx) groundFx(ctx, w, h, opts.groundFx, opts.fxStrength ?? 0.65);
   if (opts.badge) badge(ctx, opts.badge, h);
+}
+
+/** Ease-in-out scramble tween; respects prefers-reduced-motion. */
+export function animateBjjPoseCanvas(
+  canvas: HTMLCanvasElement,
+  from: BjjPositionId,
+  to: BjjPositionId,
+  ms: number,
+  opts: BjjPoseOpts = {},
+): Promise<void> {
+  const reduce = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce || ms <= 0 || from === to) {
+    paintBjjPoseCanvas(canvas, to, opts);
+    return Promise.resolve();
+  }
+  const fx = opts.groundFx ?? 'hold';
+  return new Promise((resolve) => {
+    const t0 = performance.now();
+    const tick = (now: number) => {
+      const raw = Math.min(1, (now - t0) / ms);
+      const ease = raw < 0.5 ? 2 * raw * raw : 1 - Math.pow(-2 * raw + 2, 2) / 2;
+      const pulse = 1 - Math.abs(0.5 - ease) * 1.6;
+      paintBjjPoseCanvas(canvas, to, {
+        ...opts,
+        tween: { from, to, progress: ease },
+        groundFx: fx,
+        fxStrength: Math.max(0, pulse),
+      });
+      if (raw < 1) requestAnimationFrame(tick);
+      else {
+        paintBjjPoseCanvas(canvas, to, opts);
+        resolve();
+      }
+    };
+    requestAnimationFrame(tick);
+  });
 }
 
 export function paintBjjPoseCanvas(canvas: HTMLCanvasElement, pose: BjjPoseId, opts: BjjPoseOpts = {}) {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const dpr = Math.min(2, globalThis.devicePixelRatio ?? 1);
   const w = canvas.clientWidth || 280;
   const h = canvas.clientHeight || 120;
   canvas.width = w * dpr;

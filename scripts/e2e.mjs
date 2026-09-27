@@ -448,6 +448,7 @@ async function main() {
   await shot(page, '09b_academia');
   await page.evaluate(() => window.__tb.net.send({ t: 'roll', action: 'queue' }));
   await page.waitForSelector('[data-modal="roll"]', { timeout: 15_000 });
+  await page.waitForSelector('#roll-fight-stage', { timeout: 10_000 });
   await waitFor(page, () => document.querySelector('#roll-duel'), null, 20_000, 'roll duel');
   await shot(page, '09b2_roll_duel');
   const solveOnce = async () => {

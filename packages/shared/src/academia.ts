@@ -69,7 +69,8 @@ function submissionHintForSeat(
   return labels[seatIdx % labels.length];
 }
 
-export type RollPuzzleKind = 'cloze' | 'technique' | 'reorder';
+/** Portuguese-learning prompts only — no BJJ technique trivia (CEO lock). */
+export type RollPuzzleKind = 'cloze' | 'choice' | 'reorder';
 
 export interface RollPuzzle {
   id: string;
@@ -126,98 +127,270 @@ export function rollPuzzleTimeMs(rng: Rng): number {
 
 const PUZZLE_BANK: RollPuzzle[] = [
   {
-    id: 'cloze_obrigado',
+    id: 'cloze_ola',
     kind: 'cloze',
-    prompt: { pt: '___ , professor!', en: '___ , coach! (thanks)' },
+    prompt: { pt: '___ , tudo bem?', en: '___ , how are you? (hi)' },
     options: [
-      { pt: 'Obrigado', en: 'Thank you (m.)' },
-      { pt: 'Por favor', en: 'Please' },
+      { pt: 'Olá', en: 'Hello' },
+      { pt: 'Adeus', en: 'Farewell' },
       { pt: 'Desculpa', en: 'Sorry' },
-      { pt: 'Tchau', en: 'Bye' },
-    ],
-    correct: 0,
-  },
-  {
-    id: 'cloze_permissao',
-    kind: 'cloze',
-    prompt: { pt: 'Com ___!', en: 'With ___! (may I?)' },
-    options: [
-      { pt: 'permissão', en: 'permission' },
-      { pt: 'fome', en: 'hunger' },
-      { pt: 'pressa', en: 'hurry' },
-      { pt: 'sorte', en: 'luck' },
-    ],
-    correct: 0,
-  },
-  {
-    id: 'cloze_valeu',
-    kind: 'cloze',
-    prompt: { pt: '___ pela rola!', en: '___ for the roll!' },
-    options: [
-      { pt: 'Valeu', en: 'Thanks (informal)' },
-      { pt: 'Parabéns', en: 'Congrats' },
-      { pt: 'Cuidado', en: 'Careful' },
       { pt: 'Calma', en: 'Easy' },
     ],
     correct: 0,
   },
   {
-    id: 'tech_chave',
-    kind: 'technique',
-    prompt: { pt: 'Qual é a chave de braço?', en: 'Which one is the arm lock?' },
+    id: 'cloze_bom_dia',
+    kind: 'cloze',
+    prompt: { pt: '___ dia!', en: '___ day! (good morning)' },
     options: [
-      { pt: 'Chave de braço', en: 'Arm lock' },
-      { pt: 'Triângulo', en: 'Triangle' },
-      { pt: 'Mata-leão', en: 'Rear naked choke' },
-      { pt: 'Guilhotina', en: 'Guillotine' },
+      { pt: 'Bom', en: 'Good (m.)' },
+      { pt: 'Boa', en: 'Good (f.)' },
+      { pt: 'Boas', en: 'Good (f. pl.)' },
+      { pt: 'Belo', en: 'Beautiful (m.)' },
     ],
     correct: 0,
   },
   {
-    id: 'tech_triangulo',
-    kind: 'technique',
-    prompt: { pt: 'Triângulo é…', en: '“Triângulo” is…' },
+    id: 'cloze_me_ve',
+    kind: 'cloze',
+    prompt: { pt: '___ um café, por favor.', en: '___ a coffee, please. (bakery ask)' },
     options: [
-      { pt: 'um estrangulamento de pernas', en: 'a leg choke' },
-      { pt: 'um abraço', en: 'a hug' },
-      { pt: 'um cumprimento', en: 'a greeting' },
-      { pt: 'um aquecimento', en: 'a warm-up only' },
+      { pt: 'Me vê', en: 'Can I have (lit. “see me”)' },
+      { pt: 'Me dá logo', en: 'Give me already' },
+      { pt: 'Eu quero ver', en: 'I want to see' },
+      { pt: 'Olha só', en: 'Look here' },
     ],
     correct: 0,
   },
   {
-    id: 'tech_mata',
-    kind: 'technique',
-    prompt: { pt: 'Mata-leão costuma sair das…', en: 'Rear naked choke often comes from…' },
+    id: 'cloze_boa_tarde',
+    kind: 'cloze',
+    prompt: { pt: '___ tarde, galera!', en: '___ afternoon, everyone!' },
     options: [
-      { pt: 'costas', en: 'back control' },
-      { pt: 'de pé', en: 'standing only' },
-      { pt: 'guarda fechada', en: 'closed guard only' },
-      { pt: 'banheiro', en: 'restroom' },
+      { pt: 'Boa', en: 'Good (f.)' },
+      { pt: 'Bom', en: 'Good (m.)' },
+      { pt: 'Bem', en: 'Well' },
+      { pt: 'Bons', en: 'Good (m. pl.)' },
     ],
     correct: 0,
   },
   {
-    id: 'reorder_treinar',
+    id: 'cloze_tchau',
+    kind: 'cloze',
+    prompt: { pt: 'Até amanhã! ___ !', en: 'See you tomorrow! ___ ! (bye)' },
+    options: [
+      { pt: 'Tchau', en: 'Bye' },
+      { pt: 'Olá', en: 'Hello' },
+      { pt: 'Por favor', en: 'Please' },
+      { pt: 'Obrigado', en: 'Thanks' },
+    ],
+    correct: 0,
+  },
+  {
+    id: 'cloze_por_favor',
+    kind: 'cloze',
+    prompt: { pt: 'Um café, ___ .', en: 'A coffee, ___ . (please)' },
+    options: [
+      { pt: 'por favor', en: 'please' },
+      { pt: 'por conta', en: 'on the house' },
+      { pt: 'com pressa', en: 'in a hurry' },
+      { pt: 'sem açúcar', en: 'no sugar' },
+    ],
+    correct: 0,
+  },
+  {
+    id: 'cloze_obrigada',
+    kind: 'cloze',
+    prompt: { pt: '___ pela água!', en: '___ for the water! (thanks, f.)' },
+    options: [
+      { pt: 'Obrigada', en: 'Thank you (f.)' },
+      { pt: 'Obrigado', en: 'Thank you (m.)' },
+      { pt: 'Por favor', en: 'Please' },
+      { pt: 'Desculpa', en: 'Sorry' },
+    ],
+    correct: 0,
+  },
+  {
+    id: 'cloze_de_nada',
+    kind: 'cloze',
+    prompt: { pt: 'De ___ !', en: 'You’re welcome! (lit. “of nothing”)' },
+    options: [
+      { pt: 'nada', en: 'nothing' },
+      { pt: 'verdade', en: 'truth' },
+      { pt: 'repente', en: 'sudden' },
+      { pt: 'vez', en: 'time' },
+    ],
+    correct: 0,
+  },
+  {
+    id: 'cloze_dois_cafes',
+    kind: 'cloze',
+    prompt: { pt: '___ cafés, por favor.', en: '___ coffees, please.' },
+    options: [
+      { pt: 'Dois', en: 'Two' },
+      { pt: 'Duas', en: 'Two (f.)' },
+      { pt: 'Doze', en: 'Twelve' },
+      { pt: 'Duzentos', en: 'Two hundred' },
+    ],
+    correct: 0,
+  },
+  {
+    id: 'cloze_tres_reais',
+    kind: 'cloze',
+    prompt: { pt: 'São ___ reais.', en: 'It’s ___ reais.' },
+    options: [
+      { pt: 'três', en: 'three' },
+      { pt: 'treze', en: 'thirteen' },
+      { pt: 'trinta', en: 'thirty' },
+      { pt: 'tres', en: 'three (no accent — wrong)' },
+    ],
+    correct: 0,
+  },
+  {
+    id: 'cloze_quanto',
+    kind: 'cloze',
+    prompt: { pt: '___ custa o pão?', en: '___ does the bread cost?' },
+    options: [
+      { pt: 'Quanto', en: 'How much' },
+      { pt: 'Quantos', en: 'How many (m.)' },
+      { pt: 'Quando', en: 'When' },
+      { pt: 'Qual', en: 'Which' },
+    ],
+    correct: 0,
+  },
+  {
+    id: 'cloze_um_pao',
+    kind: 'cloze',
+    prompt: { pt: 'Um ___ de queijo, por favor.', en: 'One cheese ___, please.' },
+    options: [
+      { pt: 'pão', en: 'bread / roll' },
+      { pt: 'copo', en: 'cup' },
+      { pt: 'prato', en: 'plate' },
+      { pt: 'mapa', en: 'map' },
+    ],
+    correct: 0,
+  },
+  {
+    id: 'cloze_com_leite',
+    kind: 'cloze',
+    prompt: { pt: 'Café com ___.', en: 'Coffee with ___.' },
+    options: [
+      { pt: 'leite', en: 'milk' },
+      { pt: 'sal', en: 'salt' },
+      { pt: 'gelo só', en: 'ice only' },
+      { pt: 'farinha', en: 'flour' },
+    ],
+    correct: 0,
+  },
+  {
+    id: 'cloze_feira',
+    kind: 'cloze',
+    prompt: { pt: 'Amanhã tem ___ na praça.', en: 'Tomorrow there’s a ___ in the square.' },
+    options: [
+      { pt: 'feira', en: 'street market' },
+      { pt: 'padaria', en: 'bakery' },
+      { pt: 'academia', en: 'gym' },
+      { pt: 'festa', en: 'party' },
+    ],
+    correct: 0,
+  },
+  {
+    id: 'cloze_padaria',
+    kind: 'cloze',
+    prompt: { pt: 'O pão fresco está na ___.', en: 'Fresh bread is at the ___.' },
+    options: [
+      { pt: 'padaria', en: 'bakery' },
+      { pt: 'feira', en: 'market' },
+      { pt: 'praça', en: 'square' },
+      { pt: 'rua', en: 'street' },
+    ],
+    correct: 0,
+  },
+  {
+    id: 'cloze_com_licenca',
+    kind: 'cloze',
+    prompt: { pt: '___ ! Posso passar?', en: '___ ! May I pass? (excuse me)' },
+    options: [
+      { pt: 'Com licença', en: 'Excuse me' },
+      { pt: 'Com fome', en: 'Hungry' },
+      { pt: 'Com sorte', en: 'Lucky' },
+      { pt: 'Com pressa', en: 'In a hurry' },
+    ],
+    correct: 0,
+  },
+  {
+    id: 'lex_pao_chapa',
+    kind: 'choice',
+    prompt: { pt: 'Qual é o pão na chapa?', en: 'Which one is pão na chapa?' },
+    options: [
+      { pt: 'pão na chapa', en: 'griddled bread roll' },
+      { pt: 'pão doce', en: 'sweet bread' },
+      { pt: 'bolo de pote', en: 'jar cake' },
+      { pt: 'água com gás', en: 'sparkling water' },
+    ],
+    correct: 0,
+  },
+  {
+    id: 'lex_suco',
+    kind: 'choice',
+    prompt: { pt: 'Suco de ___ é bem comum na padaria.', en: '___ juice is common at the bakery.' },
+    options: [
+      { pt: 'laranja', en: 'orange' },
+      { pt: 'cebola', en: 'onion' },
+      { pt: 'feijão', en: 'bean' },
+      { pt: 'queijo', en: 'cheese' },
+    ],
+    correct: 0,
+  },
+  {
+    id: 'lex_numero_dois',
+    kind: 'choice',
+    prompt: { pt: 'Como se diz 2?', en: 'How do you say 2?' },
+    options: [
+      { pt: 'dois', en: 'two' },
+      { pt: 'doze', en: 'twelve' },
+      { pt: 'vinte', en: 'twenty' },
+      { pt: 'duo', en: 'duo (not Portuguese)' },
+    ],
+    correct: 0,
+  },
+  {
+    id: 'reorder_me_ve_cafe',
     kind: 'reorder',
     prompt: { pt: 'Monte a frase:', en: 'Build the sentence:' },
-    words: ['Posso', 'treinar', 'com', 'você?'],
+    words: ['Me vê', 'um', 'café', 'por favor.'],
     correctOrder: [0, 1, 2, 3],
     correct: 0,
   },
   {
-    id: 'reorder_oss',
+    id: 'reorder_tudo_bem',
     kind: 'reorder',
     prompt: { pt: 'Monte a frase:', en: 'Build the sentence:' },
-    words: ['Oss!', 'Boa', 'rola!'],
+    words: ['Tudo', 'bem?'],
+    correctOrder: [0, 1],
+    correct: 0,
+  },
+  {
+    id: 'reorder_obrigado_pao',
+    kind: 'reorder',
+    prompt: { pt: 'Monte a frase:', en: 'Build the sentence:' },
+    words: ['Obrigado', 'pelo', 'pão!'],
     correctOrder: [0, 1, 2],
     correct: 0,
   },
   {
-    id: 'reorder_prof',
+    id: 'reorder_dois_cafes',
     kind: 'reorder',
     prompt: { pt: 'Monte a frase:', en: 'Build the sentence:' },
-    words: ['Obrigado', 'pela', 'aula,', 'professor!'],
+    words: ['Dois', 'cafés,', 'por', 'favor.'],
+    correctOrder: [0, 1, 2, 3],
+    correct: 0,
+  },
+  {
+    id: 'reorder_feira',
+    kind: 'reorder',
+    prompt: { pt: 'Monte a frase:', en: 'Build the sentence:' },
+    words: ['A', 'feira', 'é', 'amanhã.'],
     correctOrder: [0, 1, 2, 3],
     correct: 0,
   },
@@ -225,6 +398,11 @@ const PUZZLE_BANK: RollPuzzle[] = [
 
 export function puzzleById(id: string): RollPuzzle | undefined {
   return PUZZLE_BANK.find((p) => p.id === id);
+}
+
+/** Test / QA hook — full roll puzzle bank (Portuguese learning only). */
+export function rollPuzzleBank(): readonly RollPuzzle[] {
+  return PUZZLE_BANK;
 }
 
 function shuffleTokens(rng: Rng, words: string[]): { i: number; pt: string }[] {
@@ -267,6 +445,7 @@ export function checkRollAnswer(puzzle: RollPuzzle, answer: RollAnswer): boolean
     const b = puzzle.correctOrder;
     return a.length === b.length && a.every((v, i) => v === b[i]);
   }
+  if (puzzle.kind !== 'cloze' && puzzle.kind !== 'choice') return false;
   if (answer.kind !== 'choice' || puzzle.options == null) return false;
   return answer.index === puzzle.correct;
 }

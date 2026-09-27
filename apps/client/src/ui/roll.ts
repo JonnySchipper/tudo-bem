@@ -1,12 +1,19 @@
 /**
  * Academia do Bairro — flagship BJJ roll UI (language duels on positions).
  */
-import { ROLL_CPU_PARTNER, ROLL_WORD_GAME_DISCLAIMER, type RollServerMsg } from '@tudobem/shared';
+import { ROLL_CPU_PARTNER, ROLL_WORD_GAME_DISCLAIMER, type BjjPositionId, type RollServerMsg } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi } from './dom';
 import { openModal, closeModal, modalId } from './panels';
 import { speak } from '../audio';
-import { bjjPoseIdFromPt, paintBjjPoseCanvas, type BjjPoseId, type BjjPoseOpts } from '../render/bjjPoses';
+import {
+  animateBjjPoseCanvas,
+  bjjPoseIdFromPt,
+  paintBjjPoseCanvas,
+  type BjjGroundFx,
+  type BjjPoseId,
+  type BjjPoseOpts,
+} from '../render/bjjPoses';
 
 type RollMsg = Extract<RollServerMsg, { t: 'roll' }>;
 
@@ -22,6 +29,10 @@ export class RollUI {
   private reorderPick: number[] = [];
   private puzzleId = '';
   private poseCanvas: HTMLCanvasElement;
+  private fightStage: HTMLElement;
+  private fightBadge: HTMLElement;
+  private poseId: BjjPositionId = 'de_pe';
+  private reducedMotion = false;
 
   constructor(
     private actions: {
@@ -34,7 +45,15 @@ export class RollUI {
   ) {
     this.body = h('div', { class: 'roll-body', id: 'roll-body' });
     this.timerBar = h('div', { class: 'timer' }, h('div'));
-    this.poseCanvas = h('canvas', { class: 'roll-pose', id: 'roll-pose', width: 220, height: 100 }) as HTMLCanvasElement;
+    this.poseCanvas = h('canvas', { class: 'roll-pose', id: 'roll-pose', width: 320, height: 140 }) as HTMLCanvasElement;
+    this.fightBadge = h('span', { class: 'roll-fight-badge', id: 'roll-fight-badge', hidden: '' });
+    this.fightStage = h(
+      'div',
+      { class: 'roll-fight-stage', id: 'roll-fight-stage', 'aria-hidden': 'false' },
+      this.poseCanvas,
+      this.fightBadge,
+    );
+    this.reducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.panel = h(
       'div',
       { class: 'panel roll', id: 'roll' },
@@ -48,7 +67,7 @@ export class RollUI {
       ),
       h('p', { class: 'roll-disclaimer' }, h('b', null, ROLL_WORD_GAME_DISCLAIMER.pt), en(ROLL_WORD_GAME_DISCLAIMER.en)),
       h('div', { class: 'roll-belt', id: 'roll-belt' }),
-      this.poseCanvas,
+      this.fightStage,
       h('div', { class: 'rail' }, h('div', { class: 'roll-position', id: 'roll-position' }), this.timerBar),
       this.body,
     );
@@ -79,7 +98,32 @@ export class RollUI {
   }
 
   private showPose(pose: BjjPoseId, opts?: BjjPoseOpts) {
+    if (pose !== 'tap' && pose !== 'fist_bump') this.poseId = pose;
     paintBjjPoseCanvas(this.poseCanvas, pose, opts);
+    this.fightStage.dataset.pose = pose;
+  }
+
+  private setFightBadge(advance: 'player' | 'cpu' | 'none') {
+    if (advance === 'none') {
+      this.fightBadge.hidden = true;
+      this.fightBadge.className = 'roll-fight-badge';
+      this.fightBadge.textContent = '';
+      return;
+    }
+    this.fightBadge.hidden = false;
+    this.fightBadge.className = `roll-fight-badge ${advance === 'player' ? 'gain' : 'loss'}`;
+    this.fightBadge.textContent = advance === 'player' ? 'Posição melhor!' : 'Recuou no tatame';
+  }
+
+  private async tweenToPosition(next: BjjPositionId, advance: 'player' | 'cpu' | 'none') {
+    const from = this.poseId;
+    this.setFightBadge(advance);
+    const fx: BjjGroundFx = advance === 'player' ? 'gain' : advance === 'cpu' ? 'loss' : 'hold';
+    const ms = this.reducedMotion ? 0 : 680;
+    await animateBjjPoseCanvas(this.poseCanvas, from, next, ms, { groundFx: fx });
+    this.poseId = next;
+    this.fightStage.dataset.pose = next;
+    window.setTimeout(() => this.setFightBadge('none'), ms ? 900 : 0);
   }
 
   handle(m: RollMsg) {
@@ -180,10 +224,19 @@ export class RollUI {
       return;
     }
     if (m.phase === 'scramble') {
-      this.showPose(bjjPoseIdFromPt(m.positionPt));
       this.locked = true;
       cancelAnimationFrame(this.raf);
-      this.body.replaceChildren(h('div', { class: 'roll-scramble' }, h('b', null, m.line.pt), en(m.line.en), h('p', null, m.positionPt, en(` · ${m.positionEn}`, true))));
+      const nextPose = bjjPoseIdFromPt(m.positionPt);
+      void this.tweenToPosition(nextPose, m.advance);
+      this.body.replaceChildren(
+        h(
+          'div',
+          { class: 'roll-scramble', id: 'roll-scramble', 'data-advance': m.advance },
+          h('b', null, m.line.pt),
+          en(m.line.en),
+          h('p', null, m.positionPt, en(` · ${m.positionEn}`, true)),
+        ),
+      );
       return;
     }
     if (m.phase === 'end') {
