@@ -45,6 +45,7 @@ export type ClientMsg =
   | { t: 'mg'; action: 'submit'; tray: Tray; mods?: string[]; built?: MgBuiltUnit[] }
   | { t: 'mg'; action: 'timeout' }
   | { t: 'mg'; action: 'quit' }
+  | { t: 'mg'; action: 'sync' }
   | { t: 'buy'; kind: 'hat' | 'furniture'; itemId: string }
   | { t: 'equipHat'; hatId: string | null }
   | { t: 'parrot'; action: 'adopt' | 'toggle' | 'hint' }
@@ -79,7 +80,23 @@ export interface RoomStateMsg {
 export type NoticeLevel = 'info' | 'warn' | 'block' | 'reward' | 'error';
 
 export type MgServerMsg =
-  | { t: 'mg'; phase: 'order'; round: number; rounds: number; customer: string; pt: string; en: string; timeMs: number; repeat: boolean; points: number; streak: number; mods: string[]; resync?: boolean }
+  | {
+      t: 'mg';
+      phase: 'order';
+      round: number;
+      rounds: number;
+      customer: string;
+      pt: string;
+      en: string;
+      timeMs: number;
+      repeat: boolean;
+      points: number;
+      streak: number;
+      mods: string[];
+      /** Item ids + qty for station batch buttons (server still validates submit). */
+      lines: MgOrderLine[];
+      resync?: boolean;
+    }
   | { t: 'mg'; phase: 'result'; round: number; outcome: MgOutcome | 'repita'; carlos: Bilingual; expected?: MgOrderLine[]; expectedMods?: string[]; points: number; streak: number }
   | { t: 'mg'; phase: 'end'; points: number; coins: number; perfect: number; rounds: number; carlos: Bilingual };
 

@@ -1123,8 +1123,11 @@ function drawDecor(ctx: Ctx, room: RoomDef, d: WallDecor) {
         rrect(ctx, L / 2 - 2, y + 39, 4, 8, 1, '#3a3a44');
         break;
       }
-      case 'placa':
+      case 'placa': {
+        rrect(ctx, 6, -H + 10, L - 12, 26, 4, '#2f4f6f', '#8B5E3C', 1.2);
+        wallText(ctx, d.text ?? 'ACADEMIA DO BAIRRO', L / 2, -H + 23, 10, '#fff6e6', { maxW: L - 20, font: FONT_BODY });
         break;
+      }
     }
   });
 }
@@ -1190,8 +1193,8 @@ function drawPortalDoor(ctx: Ctx, room: RoomDef, p: PortalDef) {
       rrect(ctx, x, -dh, w, dh, 2, '#F5E6D3');
       rrect(ctx, x + 3, -dh + 8, w - 6, dh - 16, 2, '#3a8a5c');
       wallText(ctx, 'ACADEMIA', L / 2, -dh + 22, 7, '#fff', { font: FONT_BODY });
-      rrect(ctx, L / 2 - 16, -dh - 18, 32, 12, 3, '#2f4f6f');
-      wallText(ctx, 'GRACIE', L / 2, -dh - 12, 6.5, '#f5f2ea', { font: FONT_BODY });
+      rrect(ctx, L / 2 - 26, -dh - 18, 52, 12, 3, '#2f4f6f');
+      wallText(ctx, 'DO BAIRRO', L / 2, -dh - 12, 5.5, '#f5f2ea', { font: FONT_BODY });
     } else if (p.to === 'kitnet') {
       rrect(ctx, x - 3, -dh - 6, w + 6, dh + 6, 3, '#8d7f6a');
       rrect(ctx, x, -dh, w, dh, 2, '#2f7a52');

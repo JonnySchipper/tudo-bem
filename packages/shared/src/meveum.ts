@@ -104,9 +104,23 @@ export function lineEn(line: MgOrderLine): string {
   return `${numberEn(line.qty)} ${item.card.gloss_en_plural ?? item.card.gloss_en}`;
 }
 
-function timeFor(lines: MgOrderLine[], mods: string[]) {
-  const extraQty = lines.reduce((s, l) => s + l.qty - 1, 0);
-  return 16_000 + 6_000 * lines.length + 2_000 * extraQty + 4_000 * mods.length;
+/**
+ * Order timer — scales with each physical build step (grab → station → pack → tray).
+ * Big multi-item + pra viagem tickets get enough runway on ~390px mobile without panic.
+ */
+export function orderTimeMs(lines: MgOrderLine[], mods: string[]): number {
+  const totalItems = lines.reduce((s, l) => s + l.qty, 0);
+  const needsPack = ticketNeedsPack(mods);
+  const prepItems = lines.reduce((s, l) => s + (mgPrepStation(l.itemId) ? l.qty : 0), 0);
+  let ms = 12_000 + totalItems * 7_500 + prepItems * 1_500;
+  if (needsPack) ms += totalItems * 2_500;
+  for (const id of mods) {
+    const mod = mgModById(id);
+    if (mod?.group === 'coffee') ms += 2_500;
+    else if (mod?.group === 'where') ms += 2_000;
+    else ms += 2_000;
+  }
+  return Math.min(120_000, Math.max(18_000, ms));
 }
 
 function generateCombo(rng: Rng, customer: string): MgOrder {
@@ -129,7 +143,7 @@ function generateCombo(rng: Rng, customer: string): MgOrder {
     listPt += ` ${where.pt}`;
     listEn += ` ${where.en}`;
   }
-  return { customer, lines, mods, pt: opener.pt(listPt), en: opener.en(listEn), timeMs: timeFor(lines, mods), authored: false };
+  return { customer, lines, mods, pt: opener.pt(listPt), en: opener.en(listEn), timeMs: orderTimeMs(lines, mods), authored: false };
 }
 
 /**
@@ -148,7 +162,7 @@ export function makeOrder(rng: Rng, round: number, avoid?: readonly string[] | n
       const o = pick(rng, choices);
       const lines = o.lines.map(([itemId, qty]) => ({ itemId, qty }));
       const mods = [...(o.mods ?? [])];
-      return { customer, lines, mods, pt: o.pt, en: o.en, timeMs: timeFor(lines, mods), authored: true };
+      return { customer, lines, mods, pt: o.pt, en: o.en, timeMs: orderTimeMs(lines, mods), authored: true };
     }
   }
   let made = generateCombo(rng, customer);

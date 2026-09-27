@@ -471,6 +471,17 @@ describe('World', () => {
     expect(b.s.mg).toBeUndefined();
   });
 
+  it('mg sync re-sends the open ticket with resync', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'mg', action: 'start' });
+    const pt = world.debugOrder(a.s)!.pt;
+    a.inbox.length = 0;
+    await a.send({ t: 'mg', action: 'sync' });
+    expect(a.last('mg')).toMatchObject({ phase: 'order', round: 0, resync: true, pt });
+  });
+
   it('a second hello resumes the open ticket instead of deleting it', async () => {
     const { world } = makeWorld();
     const a = await client(world);
@@ -751,6 +762,7 @@ describe('pushProfileById', () => {
     const a = await client(world);
     await a.send({ t: 'join', room: 'academia' });
     expect(a.last('roomState')!.room).toBe('academia');
+    expect(a.last('roomState')!.instanceName).toMatch(/^Academia do Bairro/);
     const coins0 = a.s.profile!.coins;
     await a.send({ t: 'roll', action: 'queue' });
     expect(a.all('roll').some((m) => m.phase === 'queue')).toBe(true);

@@ -157,7 +157,8 @@ const MG_PREP = {
 const MOD_IDS = { 'pra viagem': 'pra_viagem', 'pra comer aqui': 'pra_comer_aqui', 'sem açúcar': 'sem_acucar', 'bem quente': 'bem_quente' };
 
 async function buildTrayItem(page, itemId, needsPack, coffeeMods) {
-  await page.click(`#mg-shelves [data-item="${itemId}"]`);
+  const wipBusy = await page.locator('#mg-wip img').isVisible();
+  if (!wipBusy) await page.click(`#mg-shelves [data-item="${itemId}"]`);
   if (MG_PREP.chapa.has(itemId)) await page.click('#mg-station-chapa .station-go');
   if (MG_PREP.bebidas.has(itemId)) {
     for (const m of coffeeMods) await page.click(`#mg-mods [data-mod="${MOD_IDS[m]}"]`);
@@ -401,7 +402,7 @@ async function main() {
     if (round === 2) await shot(page, '07_meveum_tray');
     await page.click('#mg-submit');
   }
-  await page.waitForSelector('#mg-end', { timeout: 8000 });
+  await page.waitForSelector('#mg-end', { timeout: 20_000 });
   await sleep(300);
   await shot(page, '08_meveum_end');
   await dwell(2200);
@@ -475,9 +476,16 @@ async function main() {
   await shot(page, '10_praca_hat_parrot');
   await dwell(1500);
 
-  // 6b. Academia Gracie — enter + one CPU roll duel (TB_TEST_ROLL + ROLL_QUEUE_MS on server)
+  // 6b. Academia do Bairro — enter + one CPU roll duel (TB_TEST_ROLL + ROLL_QUEUE_MS on server)
   await clickTile(page, 10, 0, 40);
   await waitFor(page, () => window.__tb.game.room?.room === 'academia', null, 15_000, 'academia');
+  await waitFor(
+    page,
+    () => document.querySelector('.topbar .room')?.textContent?.includes('Academia do Bairro'),
+    null,
+    5000,
+    'academia header name',
+  );
   await sleep(500);
   await shot(page, '09b_academia');
   await page.evaluate(() => window.__tb.net.send({ t: 'roll', action: 'queue' }));

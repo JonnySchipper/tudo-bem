@@ -1310,6 +1310,11 @@ function tatameMat(ctx: Ctx, cx: number, cy: number, w: number, h: number) {
   const [lx, ly] = iso(-0.15, -0.15);
   const [rx, ry] = iso(w * 0.92 + 0.1, h * 0.92 + 0.1);
   ctx.strokeRect(cx + lx, cy + ly - h * 8, rx - lx, ry - ly + h * 8);
+  ctx.font = `800 5.5px ${FONT_BODY}`;
+  ctx.fillStyle = 'rgba(255,255,255,0.22)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('ACADEMIA DO BAIRRO', cx, cy - Math.max(8, h * 3.5));
 }
 
 function paredeFaixas(ctx: Ctx, cx: number, cy: number) {
@@ -1355,7 +1360,7 @@ function quadroFoto(ctx: Ctx, cx: number, cy: number) {
   rrect(ctx, cx - 9, cy - 36, 18, 14, 1, '#3a6f8c');
   circle(ctx, cx - 3, cy - 30, 3, '#f5f2ea');
   circle(ctx, cx + 4, cy - 28, 3, '#f5f2ea');
-  label(ctx, 'GRACIE', cx, cy - 48, '#2f4f6f', '#fff', 6);
+  label(ctx, 'ACAD. DO BAIRRO', cx, cy - 48, '#2f4f6f', '#fff', 5);
 }
 
 function bancoEspectador(ctx: Ctx, cx: number, cy: number, dir: Dir = 'SW') {

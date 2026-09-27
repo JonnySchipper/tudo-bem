@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { chooseChip, scenePayout, SCENE_NODE_IDS, SCENE_START, viewNode, type SceneCtx } from './carlos.js';
-import { AUTHORED_ORDERS, checkBuild, checkTray, makeOrder, mgPayout, MG_MAX_POINTS, mulberry32, sanitizeMods, sanitizeTray, linePt, mgPrepStation, mgPerfectBuilt } from './meveum.js';
+import { AUTHORED_ORDERS, checkBuild, checkTray, makeOrder, mgPayout, MG_MAX_POINTS, mulberry32, orderTimeMs, sanitizeMods, sanitizeTray, linePt, mgPrepStation, mgPerfectBuilt } from './meveum.js';
 import { detectLang, glossPt } from './gloss.js';
 import { numberPt } from './numbers.js';
 import { buildGrid, canPlaceFurniture, ROOMS, isWalkable } from './rooms.js';
@@ -77,6 +77,13 @@ describe('Me vê um…', () => {
   it('pays 8–20 RV', () => {
     expect(mgPayout(0)).toBe(8);
     expect(mgPayout(MG_MAX_POINTS)).toBe(20);
+  });
+
+  it('gives more time for big station-build tickets', () => {
+    const small = orderTimeMs([{ itemId: 'pao_na_chapa', qty: 1 }], []);
+    const big = orderTimeMs([{ itemId: 'pao_na_chapa', qty: 3 }, { itemId: 'cafe_com_leite', qty: 3 }], ['pra_viagem']);
+    expect(big).toBeGreaterThan(small * 2);
+    expect(big).toBeGreaterThanOrEqual(70_000);
   });
 
   it('never puts banned content in generated orders', () => {
