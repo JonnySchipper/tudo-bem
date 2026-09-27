@@ -92,6 +92,11 @@ function buildTranscript(history: ConversaState['history']): HTMLElement {
   return h('div', { class: 'conversa-transcript' }, ...strips);
 }
 
+/** Speak the Portuguese rubber stamp only. `speak()` plays the prebaked clip when the text matches. */
+function speakContaStamp(grade: ConversaGrade) {
+  speak(gradeCopy(grade).label.pt);
+}
+
 /** The conta: a paper bill with a PT-primary rubber stamp (Mandou bem! / Quase! / Tenta de novo). */
 function buildScoreCard(grade: ConversaGrade, payout: number, meter: ConversaMeter): HTMLElement {
   const copy = gradeCopy(grade);
@@ -342,6 +347,7 @@ function handleApiResponse(response: ConversaApiResponse) {
       game.emit('profile');
     }
 
+    speakContaStamp(response.grade);
     render();
   }
 }
@@ -363,6 +369,7 @@ async function finishConversa(reason: 'natural' | 'cap' | 'early') {
     state.grade = gradeFromScores(finalScores, state.turn);
     state.payout = 0;
     state.meter = metersFromHistory(state.history);
+    speakContaStamp(state.grade);
     render();
     return;
   }
@@ -382,6 +389,7 @@ async function finishConversa(reason: 'natural' | 'cap' | 'early') {
     state.grade = gradeFromScores(finalScores, state.turn);
     state.payout = 0;
     state.meter = metersFromHistory(state.history);
+    speakContaStamp(state.grade);
     render();
   }
 }

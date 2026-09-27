@@ -456,6 +456,12 @@
       "file": "carlos-58d1817c1f.mp3"
     },
     {
+      "id": "carlos-f0eea8e48e",
+      "voice": "carlos",
+      "text": "Sem pressa.",
+      "file": "carlos-f0eea8e48e.mp3"
+    },
+    {
       "id": "carlos-ffa2e1e600",
       "voice": "carlos",
       "text": "Sem pressa. Tem pão na chapa, coxinha e pastel quentinho.",
@@ -472,6 +478,18 @@
       "voice": "carlos",
       "text": "Sem pressa, minha filha. Tem pão na chapa, coxinha e pastel quentinho.",
       "file": "carlos-b3488bd746.mp3"
+    },
+    {
+      "id": "carlos-5da0d5de4f",
+      "voice": "carlos",
+      "text": "Tá bom, meu filho.",
+      "file": "carlos-5da0d5de4f.mp3"
+    },
+    {
+      "id": "carlos-114dbcba09",
+      "voice": "carlos",
+      "text": "Tá bom, minha filha.",
+      "file": "carlos-114dbcba09.mp3"
     },
     {
       "id": "carlos-8435eae903",
@@ -652,6 +670,12 @@
       "voice": "carlos",
       "text": "Bom dia! O que vai ser hoje?",
       "file": "carlos-a4bcebcdbc.mp3"
+    },
+    {
+      "id": "carlos-2033321b98",
+      "voice": "carlos",
+      "text": "Bom dia! O que posso servir?",
+      "file": "carlos-2033321b98.mp3"
     },
     {
       "id": "carlos-7e70995d33",
@@ -868,6 +892,30 @@
       "voice": "carlos",
       "text": "Agora sim! Muito bem.",
       "file": "carlos-19b2c74884.mp3"
+    },
+    {
+      "id": "carlos-f259ff9ca0",
+      "voice": "carlos",
+      "text": "Mandou bem!",
+      "file": "carlos-f259ff9ca0.mp3"
+    },
+    {
+      "id": "carlos-195273f902",
+      "voice": "carlos",
+      "text": "Passou",
+      "file": "carlos-195273f902.mp3"
+    },
+    {
+      "id": "carlos-35c46ffad7",
+      "voice": "carlos",
+      "text": "Quase!",
+      "file": "carlos-35c46ffad7.mp3"
+    },
+    {
+      "id": "carlos-26209f5da1",
+      "voice": "carlos",
+      "text": "Tenta de novo",
+      "file": "carlos-26209f5da1.mp3"
     },
     {
       "id": "carlos-98d9f9c0c2",
