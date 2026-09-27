@@ -2,6 +2,8 @@ import { signIn, signUp } from '../auth/client';
 import { introAlreadyPassed, markIntroPassed, readAuthSession, writeAuthSession } from '../auth/session';
 import { h, en, ui } from './dom';
 import { mountIntroParrots } from './introParrots';
+import { createIntroHeroScene } from './introHeroScene';
+import { runIntroTitleBeat } from './introTitleBeat';
 
 type IntroMode = 'login' | 'register';
 
@@ -46,8 +48,8 @@ function mountParticles(canvas: HTMLCanvasElement) {
         d.x = Math.random() * w;
       }
       const g = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, d.r * 4);
-      g.addColorStop(0, `rgba(255, 220, 150, ${d.a})`);
-      g.addColorStop(1, 'rgba(255, 220, 150, 0)');
+      g.addColorStop(0, `rgba(212, 160, 23, ${d.a * 0.9})`);
+      g.addColorStop(1, 'rgba(245, 207, 63, 0)');
       ctx.fillStyle = g;
       ctx.beginPath();
       ctx.arc(d.x, d.y, d.r * 3, 0, Math.PI * 2);
@@ -82,10 +84,10 @@ export function runIntroGate(): Promise<IntroGateResult> {
   return new Promise((resolve) => {
     const root = h('div', { class: 'intro-gate', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'intro-title' });
     const particles = h('canvas', { class: 'intro-particles', 'aria-hidden': 'true' });
-    const skylineNear = h('div', { class: 'intro-layer intro-skyline-near', 'aria-hidden': 'true' });
-    const skylineFar = h('div', { class: 'intro-layer intro-skyline-far', 'aria-hidden': 'true' });
+    const heroScene = createIntroHeroScene();
+    const veil = h('div', { class: 'intro-veil tb-world-veil', 'aria-hidden': 'true' });
     const glow = h('div', { class: 'intro-layer intro-glow', 'aria-hidden': 'true' });
-    const cafe = h('div', { class: 'intro-cafe-scene', 'aria-hidden': 'true' });
+    const skipBtn = h('button', { type: 'button', class: 'intro-skip', id: 'intro-skip' }, 'Pular');
 
     let mode: IntroMode = 'login';
     const err = h('div', { class: 'intro-feedback', role: 'alert', style: 'display:none' });
@@ -116,7 +118,7 @@ export function runIntroGate(): Promise<IntroGateResult> {
 
     const tabLogin = h('button', { type: 'button', class: 'intro-tab on', id: 'intro-tab-login', role: 'tab', 'aria-selected': 'true' }, 'Entrar');
     const tabRegister = h('button', { type: 'button', class: 'intro-tab', id: 'intro-tab-register', role: 'tab', 'aria-selected': 'false' }, 'Criar conta');
-    const submit = h('button', { type: 'submit', class: 'primary intro-submit', id: 'intro-submit' }, 'Entrar');
+    const submit = h('button', { type: 'submit', class: 'primary intro-submit intro-cta', id: 'intro-submit' }, 'Entrar');
     const panelTitle = h('h2', { id: 'intro-panel-title' }, 'Bem-vindo de volta');
     const guest = h(
       'button',
@@ -161,11 +163,13 @@ export function runIntroGate(): Promise<IntroGateResult> {
     let teardownParticles = () => {};
     teardownParticles = mountParticles(particles);
     let teardownParrots = () => {};
+    let teardownTitleBeat = () => {};
 
     const finish = (result: IntroGateResult) => {
       markIntroPassed();
       teardownParticles();
       teardownParrots();
+      teardownTitleBeat();
       root.classList.add('intro-exit');
       window.setTimeout(() => {
         root.remove();
@@ -205,11 +209,11 @@ export function runIntroGate(): Promise<IntroGateResult> {
     });
 
     root.append(
+      heroScene,
       particles,
       glow,
-      skylineFar,
-      skylineNear,
-      cafe,
+      veil,
+      skipBtn,
       h(
         'div',
         { class: 'intro-shell' },
@@ -218,12 +222,12 @@ export function runIntroGate(): Promise<IntroGateResult> {
           { class: 'intro-hero' },
           h('div', { class: 'intro-mark', 'aria-hidden': 'true' }),
           h('h1', { id: 'intro-title' }, 'Tudo Bem'),
-          h('p', { class: 'intro-tagline' }, 'Um cantinho de São Paulo para aprender português com café, praça e vizinhos.'),
-          h('p', { class: 'intro-tagline en' }, 'A friendly Brazilian square to learn Portuguese together.'),
+          h('p', { class: 'intro-tagline' }, 'Chega na praça — café, vizinhos e português no dia a dia.'),
+          h('p', { class: 'intro-tagline en', 'aria-hidden': 'true' }, 'A friendly São Paulo square to learn Portuguese.'),
         ),
         h(
           'section',
-          { class: 'panel intro-panel', 'aria-label': 'Entrar na conta' },
+          { class: 'panel intro-panel tb-world-card', 'aria-label': 'Entrar na conta' },
           panelTitle,
           form,
           h('div', { id: 'tb-idle-kick-slot', class: 'tb-idle-kick-slot', hidden: true, 'aria-hidden': 'true', 'data-tb-region': 'idle-kick-interstitial' }),
@@ -240,7 +244,8 @@ export function runIntroGate(): Promise<IntroGateResult> {
     teardownParrots = parrots.teardown;
     requestAnimationFrame(() => requestAnimationFrame(() => parrots.syncClip()));
 
-    email.focus();
+    const reduced = prefersReducedMotion();
+    teardownTitleBeat = runIntroTitleBeat(root, () => email.focus(), reduced);
   });
 }
 

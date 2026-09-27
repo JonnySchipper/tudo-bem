@@ -229,8 +229,8 @@ export function mountIntroParrots(root: HTMLElement, panelEl: HTMLElement | null
   front.setAttribute('aria-hidden', 'true');
   frontWrap.append(front);
 
-  const cafe = root.querySelector('.intro-cafe-scene');
-  if (cafe) root.insertBefore(back, cafe);
+  const veil = root.querySelector('.intro-veil');
+  if (veil) root.insertBefore(back, veil);
   else root.append(back);
   root.append(frontWrap);
 

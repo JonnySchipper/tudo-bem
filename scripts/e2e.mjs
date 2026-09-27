@@ -68,6 +68,8 @@ async function waitIdleAt(page, x, y, label) {
 }
 
 async function passIntro(page) {
+  await page.waitForSelector('#intro-skip', { timeout: 12_000 });
+  await page.click('#intro-skip');
   await page.waitForSelector('#intro-guest', { timeout: 12_000 });
   await page.click('#intro-guest');
   await page.waitForSelector('#avatar-name', { timeout: 12_000 });
