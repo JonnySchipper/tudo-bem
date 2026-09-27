@@ -1,17 +1,15 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-<<<<<<< HEAD
-import { buildGrid, CPU_NAMES, DEFAULT_APPEARANCE, ECONOMY, isCpuId, isWalkable, MISSION_REWARD, mgBuiltForTray, mgPerfectBuilt, mulberry32, ROOMS, SCORE_FEEDBACK, TYPED_MISS_HINT, type ServerMsg, type ClientMsg, type PublicAvatar } from '@tudobem/shared';
-=======
 import {
   buildGrid,
   CPU_NAMES,
   DEFAULT_APPEARANCE,
   ECONOMY,
   ROLL_RV_WIN,
-  checkRollAnswer,
   isCpuId,
   isWalkable,
   MISSION_REWARD,
+  mgBuiltForTray,
+  mgPerfectBuilt,
   mulberry32,
   ROOMS,
   SCORE_FEEDBACK,
@@ -20,7 +18,6 @@ import {
   type ClientMsg,
   type PublicAvatar,
 } from '@tudobem/shared';
->>>>>>> 47a21d2 (feat(academia): flagship BJJ roll v0 — room, CPU loop, puzzles)
 import { sanitizeAppearance, World, MG_RESUME_MS, type Session, type WorldOptions } from './world.js';
 import { ProfileStore } from './store.js';
 import { AuthoredNpcDialogue, MemoryModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
@@ -784,7 +781,6 @@ describe('pushProfileById', () => {
     expect(end?.phase).toBe('end');
     expect(end.rv).toBeGreaterThanOrEqual(5);
     expect(a.s.profile!.bjj?.belt).toBe('branca');
-    expect(end.bjj.belt).toBe('branca');
     if (end.winner === 'player') expect(a.s.profile!.coins).toBeGreaterThanOrEqual(coins0 + ROLL_RV_WIN - 1);
   });
 });

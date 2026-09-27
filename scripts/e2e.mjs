@@ -467,7 +467,7 @@ async function main() {
   await page.waitForSelector('#roll-end', { timeout: 20_000 });
   await shot(page, '09c_roll_end');
   await page.click('#roll-end button:has-text("Sair")');
-  await clickTile(page, 0, 6, 40);
+  await clickTile(page, 0, 6, 50);
   await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 15_000, 'back from academia');
   log('academia CPU roll path ok');
 
