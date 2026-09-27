@@ -5,6 +5,7 @@
  * the Padaria or a Kitnet, and never count against the 16-seat player cap (TB Product lock).
  */
 import namePack from '../../../content/curriculum/phase0/cpu-names.json';
+import { buildGrid, key, openMatTiles, type RoomDef, type RoomGrid } from './rooms.js';
 import type { Bilingual, RoomId, Tile } from './types.js';
 
 /** Curriculum allowlist (cpu-name-allowlist.md → cpu-names.json): first names only. */
@@ -50,14 +51,18 @@ export const PRACA_AMBIANCE: { spots: Tile[]; doorSpots: Tile[]; entries: Tile[]
   ],
 };
 
-/** Academia do Bairro — off the tatame queue tile, benches, spawn and portal. */
+/**
+ * Academia do Bairro idle and wander targets. Sidelines, the fila wall, and the wood
+ * in front of the benches — never the open-mat footprint. The roll queue still uses the mat.
+ */
 export const ACADEMIA_AMBIANCE: { spots: Tile[]; doorSpots: Tile[]; entries: Tile[] } = {
+  /** Stand along the walls and the spectator floor, not on the tatame. */
   spots: [
-    { x: 4, y: 3 },
-    { x: 6, y: 2 },
-    { x: 3, y: 4 },
-    { x: 5, y: 5 },
-    { x: 8, y: 6 },
+    { x: 1, y: 3 },
+    { x: 1, y: 5 },
+    { x: 8, y: 3 },
+    { x: 10, y: 3 },
+    { x: 4, y: 6 },
   ],
   /** Near the Praça exit (CPUs never leave through it). */
   doorSpots: [
@@ -71,6 +76,16 @@ export const ACADEMIA_AMBIANCE: { spots: Tile[]; doorSpots: Tile[]; entries: Til
     { x: 8, y: 8 },
   ],
 };
+
+/**
+ * Grid ambiance CPUs path on. The open mat is blocked so a wander between sidelines
+ * does not cut across it. Player movement and the roll queue keep the normal room grid.
+ */
+export function ambianceNavGrid(room: RoomDef): RoomGrid {
+  const grid = buildGrid(room);
+  for (const t of openMatTiles(room)) grid.blocked.add(key(t.x, t.y));
+  return grid;
+}
 
 export const ROOM_AMBIANCE: Partial<Record<RoomId, { spots: Tile[]; doorSpots: Tile[]; entries: Tile[] }>> = {
   praca: PRACA_AMBIANCE,

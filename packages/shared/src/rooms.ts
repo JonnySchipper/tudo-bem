@@ -488,6 +488,11 @@ export function propTiles(p: { x: number; y: number; w?: number; h?: number }): 
   return out;
 }
 
+/** Open-mat footprint (the tatame prop). Players and the roll queue may stand here; ambiance may not. */
+export function openMatTiles(room: RoomDef): Tile[] {
+  return room.props.filter((p) => p.kind === 'tatame').flatMap((p) => propTiles(p));
+}
+
 export interface RoomGrid {
   cols: number;
   rows: number;
