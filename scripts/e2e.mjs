@@ -131,6 +131,17 @@ const MG_PREP = {
 };
 const MOD_IDS = { 'pra viagem': 'pra_viagem', 'pra comer aqui': 'pra_comer_aqui', 'sem açúcar': 'sem_acucar', 'bem quente': 'bem_quente' };
 
+/** Ticket + Seu Carlos line, so a stalled shift says why (e.g. “repita” after a wrong tray). */
+function mgState(page) {
+  return page
+    .evaluate(() => {
+      const t = document.querySelector('#mg-ticket');
+      const carlos = document.querySelector('#minigame .carlos-says')?.textContent ?? '';
+      return `ticket round ${t?.dataset.round} repeat ${t?.dataset.repeat} · ${document.querySelector('#mg-order')?.textContent ?? ''} · ${carlos}`;
+    })
+    .catch(() => 'minigame panel gone');
+}
+
 async function buildTrayItem(page, itemId, needsPack, coffeeMods) {
   const wipBusy = await page.locator('#mg-wip img').isVisible();
   if (!wipBusy) await page.click(`#mg-shelves [data-item="${itemId}"]`);
@@ -347,7 +358,9 @@ async function main() {
       round,
       8000,
       `order ${round + 1}`,
-    );
+    ).catch(async (e) => {
+      throw new Error(`${e.message} — ${await mgState(page)}`);
+    });
     const text = await page.textContent('#mg-order');
     const { tray, mods } = await trayFor(page, text);
     const items = Object.values(tray).reduce((a, b) => a + b, 0);
@@ -359,10 +372,14 @@ async function main() {
     const whereMods = mods.filter((m) => m.startsWith('pra '));
     for (const m of whereMods) await page.click(`#mg-mods [data-mod="${MOD_IDS[m]}"]`);
     for (const [id, n] of Object.entries(tray)) for (let k = 0; k < n; k++) await buildTrayItem(page, id, needsPack, coffeeMods);
+    const onTray = await page.$$eval('#mg-tray button span', (els) => els.reduce((s, e) => s + Number(e.textContent.replace('×', '')), 0));
+    assert(onTray === items, `tray holds ${onTray}, order “${text}” wants ${items} (one tap placed two units?)`);
     if (round === 2) await shot(page, '07_meveum_tray');
     await page.click('#mg-submit');
   }
-  await page.waitForSelector('#mg-end', { timeout: 20_000 });
+  await page.waitForSelector('#mg-end', { timeout: 20_000 }).catch(async (e) => {
+    throw new Error(`${e.message} — ${await mgState(page)}`);
+  });
   await sleep(300);
   await shot(page, '08_meveum_end');
   await dwell(2200);
