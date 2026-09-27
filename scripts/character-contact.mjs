@@ -4,12 +4,14 @@
  * Run after scripts/character-shots.mjs has filled before/ and after/.
  *
  *   node scripts/character-contact.mjs
+ *   DIR=docs/art/characters-v2 NAME="Avatar enhance v2" node scripts/character-contact.mjs
  */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import path from 'node:path';
 
 const DIR = path.resolve(process.env.DIR ?? 'docs/art/characters-v1');
+const NAME = process.env.NAME ?? 'Character redesign v1';
 const CHROME = process.env.CHROME_PATH ?? ['/usr/local/bin/google-chrome', '/usr/bin/google-chrome', '/usr/bin/chromium'].find((p) => fs.existsSync(p));
 const img = (side, name) => {
   const f = path.join(DIR, side, `${name}.png`);
@@ -35,7 +37,7 @@ const SHEETS = [
   },
   {
     out: 'contact_lineups.png',
-    title: 'Character redesign v1 — lineups',
+    title: `${NAME} — lineups`,
     rows: [
       ['sheet_npcs', 'Seu Carlos · Nanda · Júlia (front + back)'],
       ['sheet_closeup', 'Closeup 2× (NPCs + players)'],
@@ -47,7 +49,7 @@ const SHEETS = [
   },
   {
     out: 'contact_ingame.png',
-    title: 'Character redesign v1 — in game (solo Pages build, 1280×800, 2× closeups)',
+    title: `${NAME} — in game (solo Pages build, 1280×800, 2× closeups)`,
     rows: [
       ['01_praca_zoom', 'Praça'],
       ['02_crowd_zoom', 'Crowd'],

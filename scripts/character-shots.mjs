@@ -128,15 +128,15 @@ await shot('06_padaria');
 const carlos = await tileClient(3, 1);
 await closeup('07_carlos_zoom', carlos.px, carlos.py + 10, 320, 250);
 await clickTile(3, 1, 40);
-await page.waitForSelector('#dialogue', { timeout: 15_000 }).catch(() => {});
+await page.waitForSelector('#dialogue, .conversa-portrait', { timeout: 15_000 }).catch(() => {});
 await sleep(1500);
 await shot('08_carlos_dialogue');
-const portrait = await page.$('#dialogue .portrait');
+const portrait = await page.$('#dialogue .portrait, .conversa-portrait');
 if (portrait) await portrait.screenshot({ path: path.join(OUT, '08b_carlos_portrait.png') });
 
 // Counter stool (back view, seated at the counter)
 await page.keyboard.press('Escape');
-await page.evaluate(() => document.querySelector('#dialogue .ghost')?.click());
+await page.evaluate(() => document.querySelector('.conversa-header .close-btn, #dialogue .ghost')?.click());
 await sleep(400);
 await clickTile(5, 3, 10);
 await sleep(4000);
