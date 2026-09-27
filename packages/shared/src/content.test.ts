@@ -3,8 +3,9 @@ import { chooseChip, scenePayout, SCENE_NODE_IDS, SCENE_START, viewNode, type Sc
 import { AUTHORED_ORDERS, checkBuild, checkTray, makeOrder, mgPayout, MG_MAX_POINTS, mulberry32, orderTimeMs, sanitizeMods, sanitizeTray, linePt, mgPrepStation, mgPerfectBuilt } from './meveum.js';
 import { detectLang, glossPt } from './gloss.js';
 import { numberPt } from './numbers.js';
-import { buildGrid, canPlaceFurniture, ROOMS, isWalkable } from './rooms.js';
+import { buildGrid, canPlaceFurniture, key, openMatTiles, ROOMS, isWalkable } from './rooms.js';
 import { findPath, positionAlong, pathDuration } from './path.js';
+import { ACADEMIA_AMBIANCE, ambianceNavGrid } from './ambiance.js';
 import { classifyChat } from './safety.js';
 import { HATS, FURNITURE } from './catalog.js';
 import { DEFAULT_APPEARANCE, STARTER_OUTFITS } from './constants.js';
@@ -186,6 +187,31 @@ describe('rooms + pathing', () => {
     const end = positionAlong({ x: 7, y: 9 }, path, pathDuration({ x: 7, y: 9 }, path) + 1, 'SE');
     expect(end.moving).toBe(false);
     expect(end.tile).toEqual({ x: 9, y: 9 });
+  });
+
+  it('keeps Academia ambiance idle spots outside the tatame footprint', () => {
+    const room = ROOMS.academia;
+    const mat = new Set(openMatTiles(room).map((t) => key(t.x, t.y)));
+    expect(mat.size).toBe(24);
+    const seats = room.props.filter((p) => p.seat).map((p) => ({ x: p.x, y: p.y }));
+    const idle = [...ACADEMIA_AMBIANCE.spots, ...ACADEMIA_AMBIANCE.doorSpots, ...ACADEMIA_AMBIANCE.entries, ...seats];
+    expect(idle.length).toBeGreaterThanOrEqual(8);
+    for (const t of idle) expect(mat.has(key(t.x, t.y)), `${t.x},${t.y} on tatame`).toBe(false);
+
+    const around = ambianceNavGrid(room);
+    for (const t of openMatTiles(room)) expect(isWalkable(around, t.x, t.y), `${t.x},${t.y}`).toBe(false);
+    for (const from of idle) {
+      for (const to of idle) {
+        const path = findPath(around, from, to);
+        expect(path, `${from.x},${from.y} → ${to.x},${to.y}`).not.toBeNull();
+        for (const step of path!) expect(mat.has(key(step.x, step.y)), `${from.x},${from.y} → ${to.x},${to.y}`).toBe(false);
+      }
+    }
+
+    // Players and the roll queue still cross the mat on the normal room grid.
+    const player = buildGrid(room);
+    const across = findPath(player, { x: 1, y: 5 }, { x: 4, y: 3 });
+    expect(across?.some((t) => mat.has(key(t.x, t.y)))).toBe(true);
   });
 
   it('furniture cannot go on doors or fixed props', () => {

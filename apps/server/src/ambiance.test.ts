@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { cpuArchetype, cpuLook, cpuTarget, ROOMS, type ServerMsg, type Tile } from '@tudobem/shared';
+import { cpuArchetype, cpuLook, cpuTarget, key, openMatTiles, ROOMS, type ServerMsg, type Tile } from '@tudobem/shared';
 import { CpuCrowd, CPU_TICK_MS, type HumanSpot } from './ambiance.js';
 
-function harness(humans: HumanSpot[], rng = () => 0) {
+function harness(humans: HumanSpot[], rng = () => 0, room: keyof typeof ROOMS = 'praca') {
   let clock = 0;
   let queue: { fn: () => void; at: number }[] = [];
   const sent: ServerMsg[] = [];
-  const crowd = new CpuCrowd(ROOMS.praca, {
+  const crowd = new CpuCrowd(ROOMS[room], {
     now: () => clock,
     schedule: (fn, ms) => queue.push({ fn, at: clock + ms }),
     rng,
@@ -109,5 +109,33 @@ describe('CpuCrowd (Praça ambiance)', () => {
     const count = sent.length;
     advance(60_000);
     expect(sent.length).toBe(count);
+  });
+});
+
+describe('CpuCrowd (Academia ambiance)', () => {
+  it('idles and wanders off the tatame while still filling the room', () => {
+    const mat = new Set(openMatTiles(ROOMS.academia).map((t) => key(t.x, t.y)));
+    expect(mat.size).toBeGreaterThan(0);
+    let seed = 11;
+    const rng = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+    const { crowd, advance, sent } = harness([at(1, 7)], rng, 'academia');
+    crowd.sync();
+    const spawned = crowd.avatars();
+    expect(spawned.length).toBeGreaterThanOrEqual(3);
+    expect(spawned.length).toBeLessThanOrEqual(6);
+    for (const c of spawned) expect(mat.has(key(c.x, c.y)), `${c.name} at ${c.x},${c.y}`).toBe(false);
+
+    advance(90_000);
+    const later = crowd.avatars();
+    expect(later.length).toBeGreaterThanOrEqual(3);
+    expect(later.length).toBeLessThanOrEqual(6);
+    for (const c of later) expect(mat.has(key(c.x, c.y)), `${c.name} idling at ${c.x},${c.y}`).toBe(false);
+
+    const moves = sent.filter((m) => m.t === 'avatarMoved');
+    expect(moves.length).toBeGreaterThan(0);
+    for (const m of moves) {
+      if (m.t !== 'avatarMoved') continue;
+      for (const step of m.path) expect(mat.has(key(step.x, step.y)), `${m.id} via ${step.x},${step.y}`).toBe(false);
+    }
   });
 });
