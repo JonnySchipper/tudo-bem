@@ -1308,19 +1308,11 @@ function tatameMat(ctx: Ctx, cx: number, cy: number, w: number, h: number) {
         ctx.stroke();
       }
     }
-<<<<<<< HEAD
-  ctx.strokeStyle = 'rgba(20,40,55,0.45)';
-  ctx.lineWidth = 1.2;
-  const [lx, ly] = iso(-0.15, -0.15);
-  const [rx, ry] = iso(w * 0.92 + 0.1, h * 0.92 + 0.1);
-  ctx.strokeRect(cx + lx, cy + ly - h * 8, rx - lx, ry - ly + h * 8);
   ctx.font = `800 5.5px ${FONT_BODY}`;
   ctx.fillStyle = 'rgba(255,255,255,0.22)';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('ACADEMIA DO BAIRRO', cx, cy - Math.max(8, h * 3.5));
-=======
->>>>>>> c9ed402 (art(academia): scale up belt wall, queue lectern, bleachers and stubs)
 }
 
 const TB_TERRACOTTA = '#C45C26';
