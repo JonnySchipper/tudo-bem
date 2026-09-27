@@ -1,4 +1,5 @@
-import { signIn, signUp } from '../auth/client';
+import { signIn, signInOpsSmoke, signUp } from '../auth/client';
+import { fetchPublicConfig } from '../auth/config';
 import { introAlreadyPassed, markIntroPassed, readAuthSession, writeAuthSession } from '../auth/session';
 import { h, ui } from './dom';
 import { mountIntroParrots, type SkyBand } from './introParrots';
@@ -142,6 +143,12 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
     const tabRegister = h('button', { type: 'button', class: 'intro-tab', id: 'intro-tab-register', role: 'tab', 'aria-selected': 'false' }, 'Criar conta');
     const submit = h('button', { type: 'submit', class: 'primary intro-submit intro-cta', id: 'intro-submit' }, 'Entrar');
     const panelTitle = h('h2', { id: 'intro-panel-title', tabindex: '-1' }, 'Bem-vindo de volta');
+    const smoke = h(
+      'button',
+      { type: 'button', class: 'intro-smoke', id: 'intro-smoke', style: 'display:none' },
+      'Entrar (Ops smoke)',
+      h('span', { class: 'en' }, 'Ops smoke sign-in'),
+    );
     const guest = h(
       'button',
       { type: 'button', class: 'intro-guest', id: 'intro-guest' },
@@ -200,6 +207,19 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       }, reduced ? 0 : 420);
     };
 
+    smoke.addEventListener('click', async () => {
+      clearError();
+      smoke.disabled = true;
+      const result = await signInOpsSmoke();
+      smoke.disabled = false;
+      if (!result.ok) return setError(result.pt, result.en);
+      finish({ mode: 'auth', email: result.session.email });
+    });
+
+    void fetchPublicConfig().then((cfg) => {
+      if (cfg.opsSmoke) smoke.style.display = '';
+    });
+
     guest.addEventListener('click', () => {
       if (guestEntersWorld) return finish({ mode: 'guest' });
       // Multiplayer is account-only (the server answers authRequired); visitors are pointed at Criar conta.
@@ -221,6 +241,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       err,
       h('div', { class: 'intro-actions' }, submit),
       h('div', { class: 'intro-or', 'aria-hidden': 'true' }, h('span', null, 'ou')),
+      smoke,
       guest,
       h('p', { class: 'intro-legal' }, 'Fase 0 · sua conta guarda seu avatar, suas RV e sua kitnet.'),
     );

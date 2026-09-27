@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { AUTH_COPY, validateEmail, validatePassword, normalizeEmail, type AuthErrorCode, type AuthResponse } from '@tudobem/shared';
+import type { OpsSmokeConfig } from './opsSmoke.js';
 import type { AccountLink } from './world.js';
 
 export interface Account {
@@ -253,6 +254,42 @@ export class AccountStore implements AccountLink {
     this.save();
   }
 
+  private smokeEnsure = new Map<string, Promise<Account>>();
+
+  /** Idempotent seed for Ops smoke (`ops-smoke@tudobem.dev`). Updates the hash when the env password rotates. */
+  async ensureSmokeAccount(emailRaw: string, password: string): Promise<Account> {
+    const email = normalizeEmail(emailRaw);
+    let pending = this.smokeEnsure.get(email);
+    if (!pending) {
+      pending = this.ensureSmokeAccountOnce(email, password).finally(() => this.smokeEnsure.delete(email));
+      this.smokeEnsure.set(email, pending);
+    }
+    return pending;
+  }
+
+  private async ensureSmokeAccountOnce(email: string, password: string): Promise<Account> {
+    const existing = this.byId.get(this.byEmail.get(email) ?? '');
+    const t = this.now();
+    if (existing) {
+      if (!(await verifyPassword(password, existing.passwordHash))) {
+        const pw = validatePassword(password);
+        if (!pw.ok) throw new Error(pw.reason.en);
+        existing.passwordHash = await hashPassword(pw.value, this.params);
+      }
+      existing.lastLoginAt = t;
+      this.save();
+      return existing;
+    }
+    const pw = validatePassword(password);
+    if (!pw.ok) throw new Error(pw.reason.en);
+    const passwordHash = await hashPassword(pw.value, this.params);
+    const account: Account = { id: crypto.randomUUID(), email, passwordHash, createdAt: t, lastLoginAt: t };
+    this.byId.set(account.id, account);
+    this.byEmail.set(account.email, account.id);
+    this.save();
+    return account;
+  }
+
   private save() {
     if (!this.adapter) return;
     const t = this.now();
@@ -325,6 +362,7 @@ export interface AuthApiDeps {
   /** Close live sockets of an account that just logged out. */
   onLogout?: (accountId: string) => void;
   limiters: AuthLimiters;
+  opsSmoke?: OpsSmokeConfig;
 }
 
 export interface AuthLimiters {
@@ -395,6 +433,17 @@ export async function handleAuthApi(req: IncomingMessage, res: ServerResponse, d
     // Signed out is a normal state for this probe, so 200 (a 401 would log a console error for every new visitor).
     if (!account) return send(res, 200, fail('unauthenticated', AUTH_COPY.unauthenticated), raw ? cookie('', 0, secure) : undefined);
     return send(res, 200, okBody(account), cookie(raw!, maxAge, secure));
+  }
+
+  if (action === 'ops-smoke' && req.method === 'POST') {
+    if (!deps.opsSmoke?.ready || !deps.opsSmoke.password) {
+      return send(res, 403, fail('bad_request', AUTH_COPY.badRequest));
+    }
+    if (!originAllowed(req, deps.allowedOrigins) || !String(req.headers['content-type'] ?? '').includes('application/json')) {
+      return send(res, 403, fail('bad_request', AUTH_COPY.badRequest));
+    }
+    const account = await accounts.ensureSmokeAccount(deps.opsSmoke.email, deps.opsSmoke.password);
+    return send(res, 200, okBody(account), cookie(accounts.createSession(account.id), maxAge, secure));
   }
 
   if (req.method !== 'POST' || !['register', 'login', 'logout'].includes(action)) {

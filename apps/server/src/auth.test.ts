@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { OPS_SMOKE_EMAIL } from '@tudobem/shared';
 import { AccountStore, AttemptLimiter, accountsFileAdapter, hashPassword, parseCookies, verifyPassword, type ScryptParams } from './auth.js';
 
 /** Cheap params keep the suite fast; production uses SCRYPT_DEFAULT. */
@@ -63,6 +64,19 @@ describe('AccountStore', () => {
     expect(b.accountForSession(cookie)?.email).toBe('bia@exemplo.com');
     expect(b.profileIdFor(r.account.id)).toBe('p-123');
     expect(await b.login('bia@exemplo.com', 'coxinha-quente')).toMatchObject({ ok: true });
+  });
+
+  it('ensures the Ops smoke account idempotently and rotates the hash when the password changes', async () => {
+    const store = new AccountStore(null, { scrypt: FAST });
+    const pw1 = 'smoke-password-1';
+    const a = await store.ensureSmokeAccount(OPS_SMOKE_EMAIL, pw1);
+    expect(a.email).toBe(OPS_SMOKE_EMAIL);
+    const again = await store.ensureSmokeAccount(OPS_SMOKE_EMAIL, pw1);
+    expect(again.id).toBe(a.id);
+    const pw2 = 'smoke-password-2';
+    await store.ensureSmokeAccount(OPS_SMOKE_EMAIL, pw2);
+    expect(await store.login(OPS_SMOKE_EMAIL, pw2)).toMatchObject({ ok: true });
+    expect(await store.login(OPS_SMOKE_EMAIL, pw1)).toMatchObject({ ok: false, code: 'credentials' });
   });
 
   it('expires sessions, slides active ones, and revokes on logout', async () => {
