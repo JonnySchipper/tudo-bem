@@ -11,7 +11,8 @@
  * 5. writes contact sheets for art review to docs/art,
  * 6. rebuilds the client so dist ships the fresh art.
  *
- * public/art is wiped on every bake; art-overrides/ never is. Put TB Art's hand-painted PNGs there
+ * public/art is wiped on every bake; art-overrides/ never is. On a low-memory host, ART_ONLY=props/balcao,hats
+ * (comma-separated categories or key prefixes) re-renders just those sprites and merges them into the existing manifest. Put TB Art's hand-painted PNGs there
  * under the same key (e.g. art-overrides/props/orelhao.png), with an optional sidecar
  * <key>.json ({ w, h, ox, oy } in world units) when the framing differs from the generated sprite.
  */
@@ -80,18 +81,26 @@ async function main() {
   build();
   const server = await serve();
   const port = server.address().port;
-  const browser = await chromium.launch({ executablePath: CHROME, headless: true });
+  const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--disable-dev-shm-usage'] });
   const page = await (await browser.newContext({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 1 })).newPage();
-  await page.goto(`http://127.0.0.1:${port}/art.html?art=live`);
+  const only = (process.env.ART_ONLY ?? '').split(',').filter(Boolean);
+  await page.goto(`http://127.0.0.1:${port}/art.html?art=live${only.length ? `&only=${only.join(',')}` : ''}`);
   await page.waitForFunction(() => window.__artReady, null, { timeout: 60_000 });
 
   const assets = await page.evaluate(() => window.__artExport());
   const ui = await page.evaluate(() => window.__artUi);
 
-  fs.rmSync(outDir, { recursive: true, force: true });
-  fs.rmSync(path.join(sheets, 'assets'), { recursive: true, force: true });
-  fs.mkdirSync(outDir, { recursive: true });
   const manifest = { version: 1, scale: 3, generatedBy: 'scripts/bake-art.mjs (procedural, in-repo)', sprites: {} };
+  if (only.length) {
+    // Keep the previous key order so the manifest diff shows only what changed.
+    const prev = JSON.parse(fs.readFileSync(path.join(outDir, 'manifest.json'), 'utf8'));
+    const fresh = new Set(assets.filter((a) => a.runtime).map((a) => a.key));
+    for (const [key, meta] of Object.entries(prev.sprites)) if (fresh.has(key) || !only.some((o) => key.startsWith(o))) manifest.sprites[key] = meta;
+  } else {
+    fs.rmSync(outDir, { recursive: true, force: true });
+    fs.rmSync(path.join(sheets, 'assets'), { recursive: true, force: true });
+  }
+  fs.mkdirSync(outDir, { recursive: true });
   let bytes = 0;
   for (const a of assets) {
     // Review-only large sheets (rooms, avatars, tiles) go to docs/art, not the runtime bundle.
@@ -113,13 +122,13 @@ async function main() {
 
   // Contact sheets for TB Art review
   fs.mkdirSync(sheets, { recursive: true });
-  for (const cat of ['palette', 'ui', 'rooms', 'tiles', 'props', 'furniture', 'hats', 'food', 'avatars']) {
+  for (const cat of only.length ? only : ['palette', 'ui', 'rooms', 'tiles', 'props', 'furniture', 'hats', 'food', 'avatars']) {
     const el = await page.$(`section[data-cat="${cat}"]`);
     if (el) await el.screenshot({ path: path.join(sheets, `sheet_${cat}.png`) });
   }
   await browser.close();
   server.close();
-  console.log(`\n  ✓ baked ${Object.keys(manifest.sprites).length} runtime sprites (${(bytes / 1024).toFixed(0)} KB), ${Object.keys(ui).length} UI SVGs, ${assets.length - Object.keys(manifest.sprites).length} review renders`);
+  console.log(`\n  ✓ baked ${Object.keys(manifest.sprites).length} runtime sprites (${(bytes / 1024).toFixed(0)} KB), ${Object.keys(ui).length} UI SVGs, ${assets.filter((a) => !a.runtime).length} review renders`);
   console.log(`    ${overrides.length ? `kept ${overrides.length} hand-painted override(s): ${overrides.join(', ')}` : 'no hand-painted overrides in apps/client/art-overrides'}`);
   console.log(`    → ${path.relative(root, outDir)}  ·  contact sheets → ${path.relative(root, sheets)}\n`);
   build();

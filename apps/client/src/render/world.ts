@@ -18,7 +18,7 @@ import {
 import { game, type Bubble, type ClientAvatar } from '../state';
 import { computeCamera, HH, HW, tileCenter, toScreen, toTile, screenToWorld, worldToClient, type Camera } from './iso';
 import { diamond, ellipse, FONT_BODY, rrect, shadow, wrapText, type Ctx, circle } from './draw';
-import { drawBackground, drawLighting, drawRoomStatic } from './room';
+import { drawBackground, drawLighting, drawRoomStatic, drawWorldLight } from './room';
 import { clearFurnitureIconCache, drawFurniture, drawProp, SLICED_PROPS } from './props';
 import { avatarTop, clearFrameCache, drawAvatar } from './avatar';
 import { drawSprite, furnitureKey, propKey } from '../art/sprites';
@@ -426,6 +426,7 @@ export class WorldRenderer {
       hitRect(along.sx, along.sy + 4, 70, 110, { kind: 'portal', portal: p }, -0.5);
     }
 
+    drawWorldLight(ctx, room, t);
     ctx.setTransform(this.cam.dpr, 0, 0, this.cam.dpr, 0, 0);
     drawLighting(ctx, room, this.w, this.h, t);
 
