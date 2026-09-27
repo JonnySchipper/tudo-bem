@@ -35,6 +35,22 @@ describe('prebaked Portuguese speech', () => {
     expect(findClip(viewNode('preco', { name: 'Ana', pronoun: 'nome', food: 'pao_na_chapa', drink: 'cafe_com_leite' })!.line.pt)?.voice).toBe('carlos');
   });
 
+  it('bakes Carlos Conversa gaps: opener, short Sem pressa, kinship, and conta stamps', () => {
+    for (const text of [
+      'Bom dia! O que posso servir?',
+      'Sem pressa.',
+      'Tá bom, meu filho.',
+      'Tá bom, minha filha.',
+      'Mandou bem!',
+      'Passou',
+      'Quase!',
+      'Tenta de novo',
+    ]) {
+      expect(findClip(text)?.voice, text).toBe('carlos');
+    }
+    expect(findClip('Sem pressa.')?.text).toBe('Sem pressa.');
+  });
+
   it('uses Francisca for parrot words and tray orders', () => {
     expect(findClip('pão na chapa')?.voice).toBe('ui');
     expect(findClip('Me vê um pão na chapa.')?.voice).toBe('ui');
