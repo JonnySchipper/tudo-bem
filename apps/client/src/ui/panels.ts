@@ -74,7 +74,7 @@ export function closeDialogue() {
   dialogueEl = null;
   if (dialogueKey) document.removeEventListener('keydown', dialogueKey);
   dialogueKey = null;
-  game.modalOpen = !!current;
+  game.modalOpen = !!modalId();
 }
 
 export function showDialogue(o: DialogueOpts) {

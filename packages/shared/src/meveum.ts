@@ -214,8 +214,12 @@ export function mgPrepStation(itemId: string): MgPrepStation | null {
   return null;
 }
 
+export function ticketNeedsPack(mods: string[]): boolean {
+  return mods.some((m) => mgModById(m)?.group === 'where');
+}
+
 export function orderNeedsPack(order: MgOrder): boolean {
-  return order.mods.some((m) => mgModById(m)?.group === 'where');
+  return ticketNeedsPack(order.mods);
 }
 
 export interface MgBuiltUnit {

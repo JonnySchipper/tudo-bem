@@ -68,7 +68,7 @@ export interface RoomStateMsg {
 export type NoticeLevel = 'info' | 'warn' | 'block' | 'reward' | 'error';
 
 export type MgServerMsg =
-  | { t: 'mg'; phase: 'order'; round: number; rounds: number; customer: string; pt: string; en: string; timeMs: number; repeat: boolean; points: number; streak: number; resync?: boolean }
+  | { t: 'mg'; phase: 'order'; round: number; rounds: number; customer: string; pt: string; en: string; timeMs: number; repeat: boolean; points: number; streak: number; mods: string[]; resync?: boolean }
   | { t: 'mg'; phase: 'result'; round: number; outcome: MgOutcome | 'repita'; carlos: Bilingual; expected?: MgOrderLine[]; expectedMods?: string[]; points: number; streak: number }
   | { t: 'mg'; phase: 'end'; points: number; coins: number; perfect: number; rounds: number; carlos: Bilingual };
 

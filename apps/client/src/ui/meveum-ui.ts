@@ -4,7 +4,7 @@ import {
   MG_MODS,
   mgModById,
   mgPrepStation,
-  orderNeedsPack,
+  ticketNeedsPack,
   type MgBuiltUnit,
   type MgServerMsg,
   type Tray,
@@ -20,7 +20,7 @@ function wipNeeds(wip: Wip, order: Extract<MgServerMsg, { phase: 'order' }> | nu
   const prep = mgPrepStation(wip.itemId);
   if (prep === 'chapa' && !wip.chapa) return 'chapa';
   if (prep === 'bebidas' && !wip.bebidas) return 'bebidas';
-  if (order && orderNeedsPack(order) && !wip.pack) return 'pack';
+  if (order && ticketNeedsPack(order.mods) && !wip.pack) return 'pack';
   return 'tray';
 }
 
@@ -204,7 +204,7 @@ export class MinigameUI {
     else if (id === 'bebidas') this.wip = { ...this.wip, bebidas: true };
     else if (id === 'pack') {
       this.wip = { ...this.wip, pack: true };
-      const where = this.order.mods.find((m) => mgModById(m)?.group === 'where');
+      const where = this.order.mods.find((m: string) => mgModById(m)?.group === 'where');
       if (where) {
         for (const m of MG_MODS) if (m.group === 'where') this.mods.delete(m.id);
         this.mods.add(where);
@@ -288,7 +288,13 @@ export class MinigameUI {
               if (this.locked || !this.order) return;
               this.tray[id]--;
               if (this.tray[id] <= 0) delete this.tray[id];
-              const idx = this.built.findLastIndex((u) => u.itemId === id);
+              let idx = -1;
+              for (let i = this.built.length - 1; i >= 0; i--) {
+                if (this.built[i]!.itemId === id) {
+                  idx = i;
+                  break;
+                }
+              }
               if (idx >= 0) this.built.splice(idx, 1);
               this.renderTray();
             },

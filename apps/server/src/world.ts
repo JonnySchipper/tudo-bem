@@ -911,6 +911,7 @@ export class World {
       repeat: mg.repeated,
       points: mg.points,
       streak: mg.streak,
+      mods: mg.order.mods,
       ...(resync ? { resync: true } : {}),
     });
   }
