@@ -232,7 +232,10 @@ export function overlayMessage(text: string | null, onRetry?: () => void) {
   );
 }
 
-/** Full-screen “you were idle” card. The seat is already freed server-side; the button rejoins. */
+/**
+ * Full-screen “you were idle” card. The seat is already freed server-side; the button rejoins.
+ * Mounts into `#tb-idle-kick-slot` when the entry shell provides one, else into #ui.
+ */
 export function idleKickedCard(copy: { pt: string; en: string } | null, onBack?: () => void) {
   document.querySelector('.idle-kicked')?.remove();
   if (!copy) return;
@@ -241,7 +244,7 @@ export function idleKickedCard(copy: { pt: string; en: string } | null, onBack?:
     document.querySelector('.idle-kicked')?.remove();
     onBack?.();
   });
-  ui().append(
+  (document.getElementById('tb-idle-kick-slot') ?? ui()).append(
     h(
       'div',
       { class: 'overlay-msg idle-kicked', role: 'alertdialog', 'aria-labelledby': 'idle-title' },
