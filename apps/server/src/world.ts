@@ -798,7 +798,7 @@ export class World {
       }
       mg.lastSig = signature;
       timedOut = elapsed > mg.order.timeMs + 1500;
-      const build = checkBuild(mg.order, tray, mods, m.built);
+      const build = checkBuild(mg.order, tray, mods, m.built, { requireBuilt: true });
       ok = !timedOut && build.ok;
     } else return;
     const cards = mg.order.lines.map((l) => mgItemById(l.itemId)!.card.id);

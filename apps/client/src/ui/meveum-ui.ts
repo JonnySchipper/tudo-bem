@@ -16,7 +16,7 @@ import { openModal } from './modal.js';
 
 type Wip = MgBuiltUnit;
 
-function wipNeeds(wip: Wip, order: MgOrder | null): 'chapa' | 'bebidas' | 'pack' | 'tray' | null {
+function wipNeeds(wip: Wip, order: Extract<MgServerMsg, { phase: 'order' }> | null): 'chapa' | 'bebidas' | 'pack' | 'tray' | null {
   const prep = mgPrepStation(wip.itemId);
   if (prep === 'chapa' && !wip.chapa) return 'chapa';
   if (prep === 'bebidas' && !wip.bebidas) return 'bebidas';
@@ -24,7 +24,7 @@ function wipNeeds(wip: Wip, order: MgOrder | null): 'chapa' | 'bebidas' | 'pack'
   return 'tray';
 }
 
-function wipReady(wip: Wip, order: MgOrder | null): boolean {
+function wipReady(wip: Wip, order: Extract<MgServerMsg, { phase: 'order' }> | null): boolean {
   return wipNeeds(wip, order) === 'tray';
 }
 
@@ -191,7 +191,7 @@ export class MinigameUI {
     if (this.wip) return;
     const total = Object.values(this.tray).reduce((a, b) => a + b, 0);
     if (total >= MG_MAX_TRAY) return;
-    this.wip = { itemId: id };
+    this.wip = { itemId: id, shelf: true };
     this.renderWip();
     this.pulseNext();
   }
@@ -383,7 +383,13 @@ export class MinigameUI {
       this.ticket.dataset.round = String(m.round);
       this.ticket.dataset.repeat = m.repeat ? '1' : '0';
       this.ticket.replaceChildren(
-        h('div', { class: 'row' }, h('span', { class: 'customer' }, `Pedido ${m.round + 1}/${m.rounds} · ${m.customer}${m.repeat ? ' · de novo, devagar' : ''}`), h('span', { class: 'spacer' }), h('button', { class: 'speak-btn', type: 'button', onclick: () => speak(m.pt, { force: true, rate: 0.8 }) }, '🔊 Ouvir')),
+        h(
+          'div',
+          { class: 'row' },
+          h('span', { class: 'customer' }, `Pedido ${m.round + 1}/${m.rounds} · ${m.customer}${m.repeat ? ' · de novo, devagar' : ''}`),
+          m.streak >= 2 ? h('span', { class: 'combo combo-rail', id: 'mg-combo' }, `🔥 Combo ×${m.streak}`) : h('span', { class: 'spacer' }),
+          h('button', { class: 'speak-btn', type: 'button', onclick: () => speak(m.pt, { force: true, rate: 0.8 }) }, '🔊 Ouvir'),
+        ),
         h('div', { class: 'order', id: 'mg-order' }, m.pt),
         en(m.en),
       );

@@ -998,6 +998,23 @@ button:disabled {
   background: var(--terracota);
 }
 
+.timer.low {
+  animation: timer-urgent 0.45s ease-in-out infinite alternate;
+}
+
+@keyframes timer-urgent {
+  50% {
+    transform: scaleY(1.15);
+  }
+}
+
+.combo-rail {
+  font-weight: 900;
+  color: var(--terracota);
+  font-size: 0.95em;
+  white-space: nowrap;
+}
+
 .mg-body {
   display: grid;
   grid-template-columns: 1fr 250px;
@@ -2586,9 +2603,39 @@ body:has(.onboarding) .joystick {
     max-height: min(92dvh, calc(100dvh - var(--safe-top) - 8px - var(--kb)));
     border-radius: 18px 18px 0 0;
     margin: 0;
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
     overscroll-behavior: contain;
     padding-bottom: calc(16px + var(--safe-bottom));
+  }
+
+  .mg-body-stations {
+    grid-template-columns: 1fr;
+  }
+
+  .mg-head .en {
+    display: none;
+  }
+
+  .mg-kitchen {
+    grid-template-columns: 1fr;
+  }
+
+  .station-items {
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  }
+
+  .ticket .order {
+    font-size: 1.2em;
+  }
+
+  .tray-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .tray-actions .serve-bell {
+    flex: 1 1 100%;
   }
 
   .panel .close {

@@ -220,10 +220,46 @@ export function orderNeedsPack(order: MgOrder): boolean {
 
 export interface MgBuiltUnit {
   itemId: string;
+  /** Picked from prateleira (required — blocks tray-only cheats). */
+  shelf?: boolean;
   chapa?: boolean;
   bebidas?: boolean;
   /** Passed embalagem when the ticket needs pra viagem / pra comer aqui. */
   pack?: boolean;
+}
+
+/** Test / server hook: fully prepped units for a ticket (station flags set). */
+export function mgPerfectBuilt(order: MgOrder): MgBuiltUnit[] {
+  const needsPack = orderNeedsPack(order);
+  const units: MgBuiltUnit[] = [];
+  for (const line of order.lines) {
+    for (let i = 0; i < line.qty; i++) {
+      const u: MgBuiltUnit = { itemId: line.itemId, shelf: true };
+      const st = mgPrepStation(line.itemId);
+      if (st === 'chapa') u.chapa = true;
+      if (st === 'bebidas') u.bebidas = true;
+      if (needsPack) u.pack = true;
+      units.push(u);
+    }
+  }
+  return units;
+}
+
+/** Station-complete built rows for whatever is currently on the tray (tests / bots). */
+export function mgBuiltForTray(order: MgOrder, tray: Tray): MgBuiltUnit[] {
+  const needsPack = orderNeedsPack(order);
+  const units: MgBuiltUnit[] = [];
+  for (const [itemId, qty] of Object.entries(sanitizeTray(tray))) {
+    for (let i = 0; i < qty; i++) {
+      const u: MgBuiltUnit = { itemId, shelf: true };
+      const st = mgPrepStation(itemId);
+      if (st === 'chapa') u.chapa = true;
+      if (st === 'bebidas') u.bebidas = true;
+      if (needsPack) u.pack = true;
+      units.push(u);
+    }
+  }
+  return units;
 }
 
 export function trayFromBuilt(units: MgBuiltUnit[]): Tray {
@@ -248,6 +284,7 @@ export function sanitizeBuilt(raw: unknown, tray: Tray): MgBuiltUnit[] {
     counts[itemId] = left - 1;
     out.push({
       itemId,
+      shelf: !!(row as MgBuiltUnit).shelf,
       chapa: !!(row as MgBuiltUnit).chapa,
       bebidas: !!(row as MgBuiltUnit).bebidas,
       pack: !!(row as MgBuiltUnit).pack,
@@ -262,6 +299,7 @@ export interface MgBuildCheck extends TrayCheck {
 }
 
 function prepOk(unit: MgBuiltUnit, needsPack: boolean): boolean {
+  if (!unit.shelf) return false;
   const st = mgPrepStation(unit.itemId);
   if (st === 'chapa' && !unit.chapa) return false;
   if (st === 'bebidas' && !unit.bebidas) return false;
@@ -269,9 +307,17 @@ function prepOk(unit: MgBuiltUnit, needsPack: boolean): boolean {
   return true;
 }
 
-/** Full submission check. Omit `built` for legacy tray-only submits (server tests). */
-export function checkBuild(order: MgOrder, tray: Tray, mods: string[] = [], built?: MgBuiltUnit[] | null): MgBuildCheck {
+export interface MgBuildOptions {
+  /** Production submits must include station-built units (A+ — no shelf→tray bypass). */
+  requireBuilt?: boolean;
+}
+
+/** Full submission check. */
+export function checkBuild(order: MgOrder, tray: Tray, mods: string[] = [], built?: MgBuiltUnit[] | null, opts?: MgBuildOptions): MgBuildCheck {
   const trayCheck = checkTray(order, tray, mods);
+  const trayTotal = Object.values(sanitizeTray(tray)).reduce((a, b) => a + b, 0);
+  const requireBuilt = opts?.requireBuilt ?? false;
+  if (requireBuilt && trayTotal > 0 && !built?.length) return { ...trayCheck, ok: false, prepMiss: true };
   if (!built?.length) return { ...trayCheck, prepMiss: false };
   const units = sanitizeBuilt(built, tray);
   const fromBuilt = sanitizeTray(trayFromBuilt(units));
