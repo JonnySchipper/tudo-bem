@@ -67,9 +67,15 @@ async function waitIdleAt(page, x, y, label) {
   }, [x, y], 12_000, label ?? `avatar at ${x},${y}`);
 }
 
+async function passIntro(page) {
+  await page.waitForSelector('#intro-guest', { timeout: 12_000 });
+  await page.click('#intro-guest');
+  await page.waitForSelector('#birth-month', { timeout: 12_000 });
+}
+
 async function createAvatar(page, name, pronoun) {
   await page.goto(BASE);
-  await page.waitForSelector('#birth-month');
+  await passIntro(page);
   await page.selectOption('#birth-month', '5');
   await page.selectOption('#birth-year', '2001');
   await page.click('#age-next');
@@ -140,7 +146,7 @@ async function main() {
     const ctxMinor = await browser.newContext({ viewport: { width: 1280, height: 800 } });
     const pm = await ctxMinor.newPage();
     await pm.goto(BASE);
-    await pm.waitForSelector('#birth-month');
+    await passIntro(pm);
     await pm.selectOption('#birth-month', '1');
     await pm.selectOption('#birth-year', String(new Date().getFullYear() - 16));
     await pm.click('#age-next');

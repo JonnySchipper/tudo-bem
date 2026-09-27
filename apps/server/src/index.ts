@@ -11,6 +11,7 @@ import { fileAdapter } from './fileStore.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 import { FileModerationQueue } from './services/fileModeration.js';
 import { handleConversaApi } from './conversaApi.js';
+import { handleAuthApi } from './authApi.js';
 import { staticCacheControl } from './cacheControl.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -59,6 +60,7 @@ const server = http.createServer(async (req, res) => {
       onProfileChanged: (playerId) => world.pushProfileById(playerId),
     });
   }
+  if (handleAuthApi(req, res, url.pathname)) return;
   if (!CLIENT_DIST) {
     res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
     return res.end('Tudo Bem server is running. In dev, open the Vite client at http://localhost:5173');
