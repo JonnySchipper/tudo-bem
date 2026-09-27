@@ -303,7 +303,15 @@ net.on((m: ServerMsg) => {
     case 'scene':
       if (isConversaOpen()) closeConversa();
       if (isPedidoOpen()) {
-        updatePedido(m.view, { said: m.said, feedback: m.feedback, score: m.lastScore, payout: m.payout, dailyBlocked: m.dailyBlocked });
+        updatePedido(m.view, {
+          said: m.said,
+          feedback: m.feedback,
+          score: m.lastScore,
+          payout: m.payout,
+          dailyBlocked: m.dailyBlocked,
+          fillTicket: m.fillTicket,
+          notice: m.notice,
+        });
       } else {
         openPedido(m.view, {
           onChoose: (i) => net.send({ t: 'scene', action: 'choose', chip: i }),

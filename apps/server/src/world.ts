@@ -687,8 +687,21 @@ export class World {
       return s.send({ t: 'notice', level: 'block', pt: verdict.note?.pt ?? 'Mensagem bloqueada.', en: verdict.note?.en ?? 'Message blocked.' });
     }
     if (s.scene !== sc) return;
-    if (verdict.action === 'warn') this.flag(s, 'npc_reply', verdict, text);
     const current = viewNode(sc.node, sc.ctx);
+    if (verdict.action === 'warn') {
+      this.flag(s, 'npc_reply', verdict, text);
+      const note = verdict.note ?? { pt: 'Essa mensagem segue com um aviso.', en: 'That message goes through with a warning.' };
+      if (current) {
+        s.send({
+          t: 'scene',
+          view: current,
+          said: { pt: text, en: '' },
+          fillTicket: false,
+          notice: { level: 'warn', pt: note.pt, en: note.en },
+        });
+      }
+      return;
+    }
     const jev = jevNpcReply(current?.line.pt ?? '', text);
     const scored = this.services.npc.scoreTyped(sc.npc, sc.node, text, sc.ctx);
     if (scored.chip === null) {
