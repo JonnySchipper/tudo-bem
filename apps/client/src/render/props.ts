@@ -1355,7 +1355,7 @@ function quadroFoto(ctx: Ctx, cx: number, cy: number) {
   rrect(ctx, cx - 9, cy - 36, 18, 14, 1, '#3a6f8c');
   circle(ctx, cx - 3, cy - 30, 3, '#f5f2ea');
   circle(ctx, cx + 4, cy - 28, 3, '#f5f2ea');
-  label(ctx, 'GRACIE', cx, cy - 48, '#2f4f6f', '#fff', 6);
+  label(ctx, 'BAIRRO', cx, cy - 48, '#2f4f6f', '#fff', 6);
 }
 
 function bancoEspectador(ctx: Ctx, cx: number, cy: number, dir: Dir = 'SW') {

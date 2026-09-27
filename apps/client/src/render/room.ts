@@ -1191,7 +1191,7 @@ function drawPortalDoor(ctx: Ctx, room: RoomDef, p: PortalDef) {
       rrect(ctx, x + 3, -dh + 8, w - 6, dh - 16, 2, '#3a8a5c');
       wallText(ctx, 'ACADEMIA', L / 2, -dh + 22, 7, '#fff', { font: FONT_BODY });
       rrect(ctx, L / 2 - 16, -dh - 18, 32, 12, 3, '#2f4f6f');
-      wallText(ctx, 'GRACIE', L / 2, -dh - 12, 6.5, '#f5f2ea', { font: FONT_BODY });
+      wallText(ctx, 'BAIRRO', L / 2, -dh - 12, 6.5, '#f5f2ea', { font: FONT_BODY });
     } else if (p.to === 'kitnet') {
       rrect(ctx, x - 3, -dh - 6, w + 6, dh + 6, 3, '#8d7f6a');
       rrect(ctx, x, -dh, w, dh, 2, '#2f7a52');
