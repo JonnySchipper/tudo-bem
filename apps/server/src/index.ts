@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from './app.js';
 import type { CookieSecure } from './auth.js';
+import { readOpsSmokeConfig } from './opsSmoke.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);
@@ -20,6 +21,7 @@ const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS ?? '').split(',').map((s) =
 const SESSION_TTL_DAYS = Number(process.env.SESSION_TTL_DAYS ?? 30);
 
 const idleKickMs = Number.isFinite(IDLE_KICK_SECONDS) && IDLE_KICK_SECONDS > 0 ? IDLE_KICK_SECONDS * 1000 : 900_000;
+const opsSmoke = readOpsSmokeConfig();
 
 const app = createApp({
   dataDir: DATA_DIR,
@@ -31,12 +33,13 @@ const app = createApp({
   cookieSecure: COOKIE_SECURE,
   allowedOrigins: ALLOWED_ORIGINS,
   sessionTtlMs: Number.isFinite(SESSION_TTL_DAYS) && SESSION_TTL_DAYS > 0 ? SESSION_TTL_DAYS * 24 * 60 * 60_000 : undefined,
+  opsSmoke,
 });
 
 app.server.listen(PORT, HOST, () => {
   console.log(`\n  Tudo Bem · servidor da praça em http://localhost:${PORT}`);
   console.log(
-    `  client: ${CLIENT_DIST ?? '(dev mode — use Vite on :5173)'} · data: ${DATA_DIR} · cap ${ROOM_CAP}/instância · CPUs ${CPU_AMBIANCE ? 'on' : 'off'} · idle kick ${app.world.idleKickMs / 1000}s\n`,
+    `  client: ${CLIENT_DIST ?? '(dev mode — use Vite on :5173)'} · data: ${DATA_DIR} · cap ${ROOM_CAP}/instância · CPUs ${CPU_AMBIANCE ? 'on' : 'off'} · idle kick ${app.world.idleKickMs / 1000}s · ops smoke ${opsSmoke.ready ? 'on' : 'off'}\n`,
   );
 });
 

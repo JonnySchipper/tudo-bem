@@ -14,6 +14,7 @@ export default defineConfig({
       '/healthz': { target: SERVER },
       '/api/conversa': { target: SERVER },
       '/api/auth': { target: SERVER },
+      '/api/config': { target: SERVER },
     },
   },
   build: {

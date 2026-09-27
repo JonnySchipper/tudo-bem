@@ -21,10 +21,13 @@ import {
   type CookieSecure,
   type ScryptParams,
 } from './auth.js';
+import { publicAppConfig, readOpsSmokeConfig, type OpsSmokeConfig } from './opsSmoke.js';
 
 export interface AppOptions {
   dataDir: string;
   clientDist?: string;
+  /** Override env-based Ops smoke config (tests). */
+  opsSmoke?: OpsSmokeConfig;
   roomCap?: number;
   ambiance?: boolean;
   idleKickMs?: number;
@@ -69,6 +72,10 @@ export function createApp(opts: AppOptions) {
   );
   const limiters = defaultLimiters();
   const allowedOrigins = opts.allowedOrigins ?? [];
+  const opsSmoke = opts.opsSmoke ?? readOpsSmokeConfig();
+  if (opsSmoke.ready && opsSmoke.password) {
+    void accounts.ensureSmokeAccount(opsSmoke.email, opsSmoke.password).catch((e) => console.error('[ops-smoke] seed failed', e));
+  }
 
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://x');
@@ -76,12 +83,17 @@ export function createApp(opts: AppOptions) {
       res.writeHead(200, { 'content-type': 'application/json' });
       return res.end(JSON.stringify({ ok: true, ...world.stats(), accounts: accounts.count() }));
     }
+    if (url.pathname === '/api/config') {
+      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+      return res.end(JSON.stringify(publicAppConfig(opsSmoke)));
+    }
     if (url.pathname.startsWith('/api/auth/')) {
       return handleAuthApi(req, res, {
         accounts,
         cookieSecure: opts.cookieSecure,
         allowedOrigins,
         limiters,
+        opsSmoke,
         onLogout: (accountId) => world.dropAccount(accountId),
       }).catch((e) => {
         console.error('[auth] handler error', e);

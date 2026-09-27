@@ -1218,6 +1218,40 @@ body.intro-active #world {
   background: repeating-linear-gradient(90deg, #d9c09a 0 6px, transparent 6px 10px);
 }
 
+.intro-smoke {
+  display: block;
+  width: 100%;
+  font: inherit;
+  font-weight: 800;
+  min-height: 48px;
+  margin-bottom: 8px;
+  padding: 0.5em 0.6em;
+  border: 2px dashed #7a9e6a;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(232, 248, 226, 0.95), rgba(210, 235, 200, 0.88));
+  color: #2d4a28;
+  box-shadow: 0 2px 0 #5a8a4a;
+  cursor: pointer;
+}
+
+.intro-smoke:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 #5a8a4a;
+}
+
+.intro-smoke:focus-visible {
+  outline: 3px solid #5a8a4a;
+  outline-offset: 2px;
+}
+
+.intro-smoke .en {
+  display: block;
+  font-size: 0.78em;
+  font-style: italic;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
 .intro-guest {
   display: block;
   width: 100%;

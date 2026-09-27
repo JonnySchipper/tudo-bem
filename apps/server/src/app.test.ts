@@ -4,8 +4,9 @@ import path from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
-import { DEFAULT_APPEARANCE, type ServerMsg } from '@tudobem/shared';
+import { DEFAULT_APPEARANCE, OPS_SMOKE_EMAIL, type ServerMsg } from '@tudobem/shared';
 import { createApp } from './app.js';
+import type { OpsSmokeConfig } from './opsSmoke.js';
 
 type App = ReturnType<typeof createApp>;
 
@@ -189,6 +190,48 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     a.ws.close();
     const mine = await post('/api/conversa', { action: 'start', npcId: 'carlos', playerId: 'someone-else', daily: {} }, { cookie: cookieOf(reg) });
     expect(mine.status).toBe(200);
+  });
+
+  const smokeOn = (password = 'ops-smoke-test-password-1'): OpsSmokeConfig => ({
+    enabled: true,
+    ready: true,
+    email: OPS_SMOKE_EMAIL,
+    password,
+  });
+  const smokeOff: OpsSmokeConfig = { enabled: false, ready: false, email: OPS_SMOKE_EMAIL };
+
+  it('hides Ops smoke when the flag is off (403 on endpoint, no public config)', async () => {
+    await start({ opsSmoke: smokeOff });
+    expect((await post('/api/auth/ops-smoke', {})).status).toBe(403);
+    expect(await (await fetch(base + '/api/config')).json()).toEqual({ opsSmoke: false });
+  });
+
+  it('Ops smoke establishes a session and can enter multiplayer (not a guest bypass)', async () => {
+    await start({ opsSmoke: smokeOn() });
+    expect(await (await fetch(base + '/api/config')).json()).toEqual({ opsSmoke: true });
+    const login = await post('/api/auth/ops-smoke', {});
+    expect(login.status).toBe(200);
+    expect(await login.json()).toEqual({ ok: true, account: { email: OPS_SMOKE_EMAIL, hasProfile: false } });
+    const cookie = cookieOf(login);
+    const player = wsClient(base, { cookie });
+    await player.open();
+    player.send({ t: 'hello' });
+    expect(await player.waitFor('needProfile')).toEqual({ t: 'needProfile' });
+    player.send({ t: 'createProfile', name: 'Ops', pronoun: 'ele', appearance: DEFAULT_APPEARANCE });
+    await player.waitFor('welcome');
+    player.send({ t: 'join', room: 'praca' });
+    await player.waitFor('roomState');
+    player.ws.close();
+
+    const guest = wsClient(base);
+    await guest.open();
+    guest.send({ t: 'hello' });
+    expect(await guest.waitFor('authRequired')).toEqual({ t: 'authRequired' });
+    guest.ws.close();
+
+    const again = await post('/api/auth/ops-smoke', {});
+    expect(again.status).toBe(200);
+    expect(app!.accounts.count()).toBe(1);
   });
 
   it('kicks an AFK player (pings only) with close code 4001 and frees the seat; activity keeps you in', async () => {

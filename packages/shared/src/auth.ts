@@ -2,6 +2,8 @@ import type { Bilingual } from './types.js';
 
 export const EMAIL_MAX = 254;
 export const PASSWORD_MIN = 8;
+/** Ops / Curriculum smoke sign-in (`TB_OPS_SMOKE=1` on the server). Not a guest bypass. */
+export const OPS_SMOKE_EMAIL = 'ops-smoke@tudobem.dev';
 /** Bounded so a huge body can't make scrypt chew on megabytes. */
 export const PASSWORD_MAX = 128;
 

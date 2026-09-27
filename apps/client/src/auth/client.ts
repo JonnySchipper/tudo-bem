@@ -1,4 +1,4 @@
-import { validateEmail, validatePassword } from '@tudobem/shared';
+import { OPS_SMOKE_EMAIL, validateEmail, validatePassword } from '@tudobem/shared';
 import type { AuthCredentials, AuthResponse, AuthSession } from './types';
 import { clearAuthSession, writeAuthSession } from './session';
 
@@ -109,3 +109,32 @@ export async function signOut(): Promise<void> {
   await postJson('/logout', {});
   clearAuthSession();
 }
+
+/** One-click Ops smoke sign-in when the server advertises `opsSmoke` on `/api/config`. */
+export async function signInOpsSmoke(): Promise<AuthResponse> {
+  const res = await postJson('/ops-smoke', {});
+  if (!res) return OFFLINE;
+  const ct = res.headers.get('content-type') ?? '';
+  if (!ct.includes('json')) {
+    return { ok: false, pt: 'Ops smoke indisponível.', en: 'Ops smoke sign-in is unavailable.', code: 'server' };
+  }
+  let data: { ok?: boolean; account?: { email?: string }; pt?: string; en?: string; code?: string };
+  try {
+    data = await res.json();
+  } catch {
+    return OFFLINE;
+  }
+  if (!res.ok || data.ok !== true || !data.account?.email) {
+    return {
+      ok: false,
+      pt: data.pt ?? 'Ops smoke indisponível.',
+      en: data.en ?? 'Ops smoke sign-in is unavailable.',
+      code: data.code ?? 'server',
+    };
+  }
+  const session: AuthSession = { email: data.account.email, stub: false };
+  writeAuthSession(session);
+  return { ok: true, session };
+}
+
+export { OPS_SMOKE_EMAIL };
