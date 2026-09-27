@@ -255,7 +255,8 @@ export class World {
   ) {
     this.cap = Math.max(1, Math.min(DEFAULT_ROOM_CAP, opts.roomCap ?? DEFAULT_ROOM_CAP));
     const envMgGap = Number(process.env.MG_GAP_MS);
-    this.mgGapMs = opts.mgGapMs ?? (Number.isFinite(envMgGap) && envMgGap >= 0 ? envMgGap : 1600);
+    const defaultMgGap = process.env.CI === 'true' ? 400 : 1600;
+    this.mgGapMs = opts.mgGapMs ?? (Number.isFinite(envMgGap) && envMgGap >= 0 ? envMgGap : defaultMgGap);
     this.now = opts.now ?? Date.now;
     this.schedule = opts.schedule ?? ((fn, ms) => void (setTimeout(fn, ms) as unknown as { unref?: () => void }).unref?.());
     this.ambiance = !!opts.ambiance;
@@ -264,7 +265,7 @@ export class World {
     this.rollQueueMs = opts.rollQueueMs ?? (Number.isFinite(envQueue) && envQueue >= 0 ? envQueue : ROLL_QUEUE_MS_DEFAULT);
     this.testRollHints = opts.testRollHints ?? process.env.TB_TEST_ROLL === '1';
     if (opts.mgTimeScale !== undefined) this.mgTimeScale = opts.mgTimeScale;
-    else if (process.env.TB_TEST_MG === '1') this.mgTimeScale = 0.2;
+    else if (process.env.TB_TEST_MG === '1' || process.env.CI === 'true') this.mgTimeScale = 0.2;
     else {
       const envScale = Number(process.env.MG_ORDER_TIME_SCALE);
       this.mgTimeScale = Number.isFinite(envScale) && envScale > 0 && envScale <= 1 ? envScale : 1;
