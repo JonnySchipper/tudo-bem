@@ -1436,67 +1436,119 @@ function quadroFoto(ctx: Ctx, cx: number, cy: number) {
 }
 
 /**
- * Arquibancada — a three-riser spectator stand. The front riser is the seat at the default sit height
- * (17, so seated avatars line up); risers climb 17 px per step away from the seat's facing, with dark
- * stepped side stringers, a terracotta back rail, and kit (towel, bottle, gym bag) on the upper rows.
+ * Arquibancada — one tile-long slice of a continuous three-riser wooden stand (risers at 17/34/51).
+ * Slices butt together seamlessly; only the run's ends get the stepped side stringers, so `n` slices
+ * read as a single bleacher. The whole stand fits inside its tile row (back rail against the wall,
+ * front lip short of the mat border). Sitters sit on the middle riser at the tile center with their
+ * feet on the front riser (seat height 34 in world.ts).
  */
-function bancoEspectador(ctx: Ctx, cx: number, cy: number, dir: Dir = 'SW') {
+function bancoEspectador(ctx: Ctx, cx: number, cy: number, dir: Dir = 'SW', i = 0, n = 1) {
   const face: Record<Dir, [number, number]> = { SE: [1, 0], SW: [0, 1], NE: [0, -1], NW: [-1, 0] };
   const [fx, fy] = face[dir];
   const alongX = fy !== 0;
-  const L = 1.3;
-  const D = 0.34;
+  const D = 0.28;
   const RISE = 17;
+  const tier = (k: number) => -0.23 + k * D;
   const ext = (a: number, d: number): [number, number] => (alongX ? [a, d] : [d, a]);
-  const at = (a: number, back: number): [number, number] => {
+  const at = (a: number, back: number, z = 0): Pt => {
     const [ox, oy] = iso(...((alongX ? [a, -fy * back] : [-fx * back, a]) as [number, number]));
-    return [cx + ox, cy + oy];
+    return [cx + ox, cy + oy - z];
   };
-  const wood = { left: '#a8764c', right: '#7a5234', stroke: 'rgba(44,44,44,0.5)' };
-  const riser = { left: '#c9bfae', right: '#a79d8c', stroke: 'rgba(44,44,44,0.45)' };
-  const [sx, sy] = at(0, D);
-  shadow(ctx, sx, sy, 54, 26, 0.3);
+  const line = (a0: number, a1: number, back: number, z: number, color: string, w: number) => {
+    const p = at(a0, back, z);
+    const q = at(a1, back, z);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = w;
+    ctx.beginPath();
+    ctx.moveTo(p[0], p[1]);
+    ctx.lineTo(q[0], q[1]);
+    ctx.stroke();
+  };
+  const first = i === 0;
+  const last = i === n - 1;
+  const seam = 'rgba(44,44,44,0.16)';
+  const wood = { left: '#a8764c', right: '#7a5234', stroke: seam };
+  const riser = { left: '#c9bfae', right: '#a79d8c', stroke: seam };
+  const post = { left: '#8a5e3c', right: '#5e3e26', stroke: 'rgba(44,44,44,0.55)' };
+
+  // Flat contact shadow that tiles along the run (radial blobs would band at every slice).
+  const back0 = tier(0) - D / 2 - 0.08;
+  const back1 = tier(2) + D / 2;
+  poly(ctx, [at(-0.5, back1), at(0.5, back1), at(0.5, back0), at(-0.5, back0)], 'rgba(58,34,22,0.2)');
+
   const order = fx + fy < 0 ? [0, 1, 2] : [2, 1, 0];
-  const stringer = (x: number, y: number, e: -1 | 1, lift: number) => {
-    const [ex, ey] = iso(...ext((e * L) / 2, 0));
-    box(ctx, x + ex, y + ey, ...ext(0.06, D), lift, '#7a5234', 0, { left: '#8a5e3c', right: '#5e3e26', stroke: 'rgba(44,44,44,0.55)' });
+  const stringer = (k: number, e: -1 | 1) => {
+    const [x, y] = at(e * 0.47, tier(k));
+    box(ctx, x, y, ...ext(0.06, D), RISE * (k + 1) + 2, '#7a5234', 0, post);
   };
   for (const k of order) {
-    const [x, y] = at(0, D * k);
+    const b = tier(k);
     const lift = RISE * (k + 1);
-    stringer(x, y, -1, lift);
-    box(ctx, x, y, ...ext(L * 0.94, D), lift - 4, '#d8cfbf', 0, riser);
-    const top = box(ctx, x, y, ...ext(L, D * 0.96), 4, TB_WOOD, lift - 4, wood).top;
+    const [x, y] = at(0, b);
+    if (first) stringer(k, -1);
+    box(ctx, x, y, ...ext(1, D), lift - 4, '#d8cfbf', 0, riser);
+    const top = box(ctx, x, y, ...ext(1, D), 4, TB_WOOD, lift - 4, wood).top;
+    // Same grain seed on every slice so the boards run unbroken across seams.
     woodTop(ctx, top, 20 + k);
-    // Terracotta kick stripe along the riser face, under the plank lip.
-    const [kx, ky] = iso(fx * D * 0.49, fy * D * 0.49);
-    box(ctx, x + kx, y + ky, ...ext(L * 0.94, 0.02), 2, TB_TERRACOTTA, lift - 8, { stroke: 'rgba(0,0,0,0)' });
-    // Stepped wood side stringers (far one behind the riser, near one in front) tie the rows into one stand.
-    stringer(x, y, 1, lift);
+    // Terracotta kick stripe on the riser face under the plank lip, then crisp long edges so the
+    // run reads as one board per row.
+    const [kx, ky] = at(0, b - D / 2 + 0.01);
+    box(ctx, kx, ky, ...ext(1, 0.02), 2.4, TB_TERRACOTTA, lift - 8.5, { stroke: 'rgba(0,0,0,0)' });
+    line(-0.5, 0.5, b - D / 2, lift, 'rgba(255,226,186,0.55)', 0.8);
+    line(-0.5, 0.5, b - D / 2, lift - 4, 'rgba(44,44,44,0.55)', 1);
+    if (k === 2) line(-0.5, 0.5, b + D / 2, lift, 'rgba(44,44,44,0.5)', 1);
+    if (k === 0) line(-0.5, 0.5, b - D / 2, 0, 'rgba(44,44,44,0.5)', 1);
+    // Upright under the lip at every slice seam: the stand's frame, not a gap between units.
+    if (!first) {
+      const [ux, uy] = at(-0.5, b - D / 2 + 0.015);
+      rrect(ctx, ux - 1, uy - (lift - 4), 2, lift - 4, 0.6, 'rgba(94,62,38,0.4)');
+    }
+    if (last) stringer(k, 1);
+
     if (k === 2) {
-      const [rx, ry] = at(0, D * 2.45);
-      for (const e of [-0.6, 0, 0.6]) {
-        const [px, py] = iso(...ext(e, 0));
-        rrect(ctx, rx + px - 1.5, ry + py - lift - 26, 3, 26, 1, '#5d5d66');
+      // Back rail on steel posts, continuous along the run.
+      const rb = b + D / 2 - 0.03;
+      const posts = [0, ...(first ? [-0.44] : []), ...(last ? [0.44] : [])];
+      for (const e of posts) {
+        const [px, py] = at(e, rb, lift);
+        rrect(ctx, px - 1.5, py - 24, 3, 24, 1, '#5d5d66');
       }
-      box(ctx, rx, ry, ...ext(L * 1.02, 0.07), 5, TB_TERRACOTTA, lift + 22, { stroke: 'rgba(44,44,44,0.55)' });
+      const [rx, ry] = at(0, rb);
+      box(ctx, rx, ry, ...ext(1, 0.07), 5, TB_TERRACOTTA, lift + 22, { stroke: 'rgba(0,0,0,0)', left: '#a44a1e', right: '#8a3c16', top: TB_TERRACOTTA });
+      line(-0.5, 0.5, rb - 0.035, lift + 27, 'rgba(44,44,44,0.55)', 1);
+      line(-0.5, 0.5, rb - 0.035, lift + 22, 'rgba(44,44,44,0.55)', 1);
+      kit(lift, b);
+    }
+  }
+
+  function kit(lift: number, b: number) {
+    if (first) {
       // Gym bag on the top row.
-      const [gx, gy] = at(-0.32, D * 2);
-      ellipse(ctx, gx, gy - lift - 1, 11, 4, 'rgba(44,44,44,0.3)');
-      rrect(ctx, gx - 11, gy - lift - 15, 22, 14, 6, TB_GREEN, TB_INK, 1);
-      rrect(ctx, gx - 11, gy - lift - 10, 22, 2.4, 1, TB_MUSTARD);
+      const [gx, gy] = at(-0.12, b, lift);
+      ellipse(ctx, gx, gy - 1, 11, 4, 'rgba(44,44,44,0.3)');
+      rrect(ctx, gx - 11, gy - 15, 22, 14, 6, TB_GREEN, TB_INK, 1);
+      rrect(ctx, gx - 11, gy - 10, 22, 2.4, 1, TB_MUSTARD);
       ctx.strokeStyle = TB_INK;
       ctx.lineWidth = 1.4;
       ctx.beginPath();
-      ctx.arc(gx, gy - lift - 15, 6, Math.PI, 0);
+      ctx.arc(gx, gy - 15, 6, Math.PI, 0);
       ctx.stroke();
-      const [qx, qy] = at(0.4, D * 2);
-      rrect(ctx, qx - 3, qy - lift - 13, 6, 13, 2.5, '#3aa6a0', 'rgba(44,44,44,0.55)', 0.8);
-      rrect(ctx, qx - 1.5, qy - lift - 16, 3, 3, 1, '#fff');
     }
-    if (k === 1) {
-      const [tx, ty] = at(0.28, D);
-      box(ctx, tx, ty, ...ext(0.3, D * 0.8), 3, TB_MUSTARD, lift, { stroke: 'rgba(44,44,44,0.4)' });
+    if (i === 1 || (n < 3 && last)) {
+      // Folded towel on the top row.
+      const [tx, ty] = at(0.2, b);
+      box(ctx, tx, ty, ...ext(0.3, D * 0.7), 3, TB_MUSTARD, lift, { stroke: 'rgba(44,44,44,0.4)' });
+    }
+    if (i === 2) {
+      // Towel hung over the back rail.
+      const [hx, hy] = at(-0.2, b + D / 2 - 0.03, lift + 27);
+      rrect(ctx, hx - 5, hy - 1, 10, 20, 1.5, '#fbf8f1', 'rgba(44,44,44,0.5)', 0.8);
+      rrect(ctx, hx - 5, hy + 14, 10, 2, 0.5, TB_TERRACOTTA);
+    }
+    if (last) {
+      const [qx, qy] = at(0.28, b, lift);
+      rrect(ctx, qx - 3, qy - 13, 6, 13, 2.5, '#3aa6a0', 'rgba(44,44,44,0.55)', 0.8);
+      rrect(ctx, qx - 1.5, qy - 16, 3, 3, 1, '#fff');
     }
   }
 }
@@ -1604,7 +1656,7 @@ export function drawProp(ctx: Ctx, p: PropDef, cx: number, cy: number, t: number
     case 'quadro_fila':
       return quadroFila(ctx, cx, cy, t);
     case 'banco_espectador':
-      return bancoEspectador(ctx, cx, cy, p.seat ?? 'SW');
+      return bancoEspectador(ctx, cx, cy, p.seat ?? 'SW', slice, (p.w ?? 1) * (p.h ?? 1));
     case 'vestiario':
       return vestiario(ctx, cx, cy);
     case 'quadro_foto':
@@ -1613,7 +1665,7 @@ export function drawProp(ctx: Ctx, p: PropDef, cx: number, cy: number, t: number
 }
 
 /** Props with multi-tile footprints that must be depth-sorted per tile. */
-export const SLICED_PROPS = new Set(['balcao', 'vitrine']);
+export const SLICED_PROPS = new Set(['balcao', 'vitrine', 'banco_espectador']);
 
 // ---------------- furniture ----------------
 
