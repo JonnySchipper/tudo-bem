@@ -233,7 +233,82 @@ function contact(ctx: Ctx, x: number, w: number) {
   ctx.fill();
 }
 
-function drawPose(ctx: Ctx, pose: BjjPoseId) {
+/** Dashed mustard ring calling out the trapped leg in half guard. */
+function ring(ctx: Ctx, x: number, y: number, r: number) {
+  ctx.save();
+  ctx.strokeStyle = TB.mustard;
+  ctx.lineWidth = 2.2;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.ellipse(x, y, r, r * 0.8, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** Tap cue: motion arcs + a mustard burst at the tapping hand and a big green TAP chip. */
+function tapAccent(ctx: Ctx, hx: number, hy: number, chipX: number, chipY: number) {
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = TB.mustard;
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 5; i++) {
+    const a = -Math.PI + 0.35 + i * 0.6;
+    ctx.beginPath();
+    ctx.moveTo(hx + Math.cos(a) * 7, hy + Math.sin(a) * 7);
+    ctx.lineTo(hx + Math.cos(a) * 12, hy + Math.sin(a) * 12);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = '#3a8a5c';
+  ctx.lineWidth = 2.4;
+  for (const r of [16, 22]) {
+    ctx.beginPath();
+    ctx.arc(hx, hy, r, -Math.PI * 0.85, -Math.PI * 0.15);
+    ctx.stroke();
+  }
+  rrect(ctx, chipX, chipY, 46, 22, 7, '#3a8a5c', INK, 1.6);
+  ctx.fillStyle = '#fff';
+  ctx.font = '900 14px Nunito, system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('TAP', chipX + 23, chipY + 11.5);
+}
+
+/**
+ * Back control: both seated facing right, the front partner leaning back into the back-taker, whose
+ * white shins hook over the blue thighs and whose arms cross the chest in a seatbelt hug (never the neck).
+ */
+function backControl(ctx: Ctx, tapping: boolean) {
+  const front: Fig = {
+    head: [134, 47],
+    neck: [129, 59],
+    hip: [136, 98],
+    armN: tapping ? [[152, 96], [188, 108]] : [[154, 92], [160, 84]],
+    armF: [[150, 94], [156, 88]],
+    legN: [[158, 84], [182, 102]],
+    legF: [[154, 88], [178, 104]],
+    gi: 'blue',
+    face: 1,
+    hair: '#1f1a17',
+  };
+  const back: Fig = {
+    head: [102, 38],
+    neck: [104, 50],
+    hip: [106, 100],
+    armN: [[122, 70], [146, 84]],
+    armF: [[124, 92], [144, 88]],
+    legN: [[136, 80], [152, 92]],
+    legF: [[130, 88], [148, 98]],
+    gi: 'white',
+    face: 1,
+  };
+  contact(ctx, 140, 62);
+  figure(ctx, back, ['armN', 'legN']);
+  figure(ctx, front, tapping ? ['armN'] : []);
+  overlay(ctx, back, 'legN');
+  overlay(ctx, back, 'armN');
+  if (tapping) overlay(ctx, front, 'armN');
+}
+
+function drawPose(ctx: Ctx, pose: BjjPoseId, tapFrom: BjjPositionId | undefined) {
   switch (pose) {
     case 'de_pe': {
       // Grip fight: both upright in a staggered stance, hands on collar + sleeve.
@@ -284,53 +359,57 @@ function drawPose(ctx: Ctx, pose: BjjPoseId) {
       break;
     }
     case 'meia_guarda': {
-      // Low wedge: top chest-down with hips high, one leg trapped between the bottom player's legs.
+      // Tall wedge: top's head down by the partner's head, hips the peak of the card, far leg posted long
+      // and straight; the near shin is trapped in a blue leg-cross, ringed so the trap reads at card size.
       const bottom = lying('blue', {
-        head: [44, 94],
-        neck: [56, 95],
-        hip: [104, 97],
-        armN: [[74, 84], [88, 74]],
-        legN: [[130, 88], [150, 98]],
-        legF: [[128, 100], [154, 90]],
+        head: [42, 96],
+        neck: [54, 96],
+        hip: [100, 97],
+        armN: [[72, 82], [92, 66]],
+        legN: [[124, 82], [148, 98]],
+        legF: [[126, 101], [150, 86]],
       });
       const top: Fig = {
-        head: [66, 76],
-        neck: [78, 78],
-        hip: [130, 64],
-        armN: [[68, 90], [52, 88]],
-        armF: [[92, 90], [100, 100]],
-        legN: [[138, 90], [162, 103]],
-        legF: [[158, 82], [182, 102]],
+        head: [60, 78],
+        neck: [71, 74],
+        hip: [128, 44],
+        armN: [[54, 90], [40, 86]],
+        armF: [[84, 90], [90, 104]],
+        legN: [[134, 76], [160, 98]],
+        legF: [[168, 70], [204, 104]],
         gi: 'white',
         face: -1,
       };
-      contact(ctx, 112, 84);
+      contact(ctx, 122, 92);
       figure(ctx, bottom, ['legN', 'legF']);
       figure(ctx, top, ['legN']);
       overlay(ctx, top, 'legN');
       overlay(ctx, bottom, 'legF');
       overlay(ctx, bottom, 'legN');
+      ring(ctx, 146, 92, 13);
       break;
     }
     case 'cem_quilos': {
-      // Side control: top kneels beside the flat partner, chest pressed across their chest, head low.
+      // Flat slab: top lies chest-to-chest across the partner (perpendicular, legs sprawled toward us on the
+      // front of the mat), nothing higher than a shoulder; the partner's legs stay flat and free.
       const bottom = lying('blue', {
-        armN: [[62, 84], [70, 72]],
-        legN: [[126, 78], [148, 102]],
-        legF: [[122, 82], [142, 103]],
+        armN: [[62, 106], [48, 110]],
+        armF: [[60, 88], [74, 82]],
+        legN: [[126, 96], [152, 101]],
+        legF: [[122, 99], [148, 103]],
       });
       const top: Fig = {
-        head: [52, 72],
-        neck: [64, 76],
-        hip: [104, 76],
-        armN: [[48, 88], [36, 100]],
-        armF: [[80, 92], [94, 100]],
-        legN: [[106, 100], [130, 108]],
-        legF: [[116, 96], [138, 104]],
+        head: [40, 80],
+        neck: [52, 82],
+        hip: [100, 88],
+        armN: [[34, 96], [24, 104]],
+        armF: [[88, 98], [110, 102]],
+        legN: [[112, 110], [140, 114]],
+        legF: [[118, 104], [146, 108]],
         gi: 'white',
         face: 1,
       };
-      contact(ctx, 96, 80);
+      contact(ctx, 94, 92);
       figure(ctx, bottom);
       figure(ctx, top);
       break;
@@ -379,40 +458,17 @@ function drawPose(ctx: Ctx, pose: BjjPoseId) {
       overlay(ctx, top, 'legN');
       break;
     }
-    case 'costas': {
-      // Back control: both seated facing right, the back-taker behind with hooks in and a seatbelt hug.
-      const front: Fig = {
-        head: [132, 50],
-        neck: [128, 61],
-        hip: [118, 96],
-        armN: [[140, 80], [152, 90]],
-        armF: [[136, 84], [148, 94]],
-        legN: [[146, 84], [170, 102]],
-        legF: [[142, 88], [164, 104]],
-        gi: 'blue',
-        face: 1,
-        hair: '#1f1a17',
-      };
-      const back: Fig = {
-        head: [112, 44],
-        neck: [108, 56],
-        hip: [94, 96],
-        armN: [[126, 66], [140, 78]],
-        armF: [[114, 84], [130, 86]],
-        legN: [[122, 86], [140, 94]],
-        legF: [[118, 90], [136, 98]],
-        gi: 'white',
-        face: 1,
-      };
-      contact(ctx, 132, 58);
-      figure(ctx, back, ['armN', 'legN']);
-      figure(ctx, front);
-      overlay(ctx, back, 'legN');
-      overlay(ctx, back, 'armN');
+    case 'costas':
+      backControl(ctx, false);
       break;
-    }
     case 'tap': {
-      // Mount with the bottom player's free hand tapping the mat — the respectful "that's enough".
+      if (tapFrom === 'costas') {
+        // Back take finish: the front partner taps the mat beside their own knee.
+        backControl(ctx, true);
+        tapAccent(ctx, 188, 108, 150, 40);
+        break;
+      }
+      // Mount finish: the bottom partner's free hand taps the mat — the respectful "that's enough".
       const bottom = lying('blue', {
         armN: [[46, 106], [30, 110]],
         armF: [[58, 88], [62, 78]],
@@ -434,20 +490,7 @@ function drawPose(ctx: Ctx, pose: BjjPoseId) {
       figure(ctx, bottom);
       figure(ctx, top, ['legN']);
       overlay(ctx, top, 'legN');
-      ctx.strokeStyle = '#3a8a5c';
-      ctx.lineWidth = 2.2;
-      ctx.lineCap = 'round';
-      for (const [r, a0, a1] of [[9, -2.4, -0.9], [15, -2.5, -0.8]] as const) {
-        ctx.beginPath();
-        ctx.arc(30, 110, r, a0, a1);
-        ctx.stroke();
-      }
-      rrect(ctx, 14, 58, 38, 19, 6, '#3a8a5c', INK, 1.4);
-      ctx.fillStyle = '#fff';
-      ctx.font = '900 12px Nunito, system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('TAP', 33, 68);
+      tapAccent(ctx, 30, 110, 12, 50);
       break;
     }
     case 'fist_bump': {
@@ -490,18 +533,57 @@ export function bjjPoseIdFromPt(positionPt: string): BjjPositionId {
   return 'de_pe';
 }
 
-export function drawBjjPose(ctx: Ctx, pose: BjjPoseId, w: number, h: number) {
+export interface BjjPoseOpts {
+  /** Position the submission is finished from (tap card): back control or mount. */
+  tapFrom?: BjjPositionId;
+  /** End-card ribbon: how the roll was won. */
+  badge?: 'finalizacao' | 'decisao';
+}
+
+/** Ribbon drawn in canvas px (not design space) so it stays legible on the small phone end card. */
+function badge(ctx: Ctx, kind: NonNullable<BjjPoseOpts['badge']>, h: number) {
+  const size = Math.max(9, Math.min(12, h * 0.1));
+  const text = kind === 'finalizacao' ? 'FINALIZAÇÃO' : 'DECISÃO';
+  ctx.font = `900 ${size}px Nunito, system-ui, sans-serif`;
+  const tw = ctx.measureText(text).width;
+  const icon = kind === 'finalizacao' ? size * 1.2 : 0;
+  const bw = tw + icon + size * 1.4;
+  const bh = size * 1.8;
+  const x = 8;
+  const y = 8;
+  rrect(ctx, x, y, bw, bh, bh / 2, kind === 'finalizacao' ? TB.terracotta : TB.spGreen, INK, 1.2);
+  if (icon) {
+    const sx = x + size * 0.7 + icon / 2 - 1;
+    const sy = y + bh / 2;
+    ctx.fillStyle = TB.mustard;
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const r = i % 2 ? size * 0.25 : size * 0.55;
+      const a = -Math.PI / 2 + (i * Math.PI) / 5;
+      ctx.lineTo(sx + Math.cos(a) * r, sy + Math.sin(a) * r);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.fillStyle = TB.creamWall;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x + size * 0.7 + icon, y + bh / 2 + 0.5);
+}
+
+export function drawBjjPose(ctx: Ctx, pose: BjjPoseId, w: number, h: number, opts: BjjPoseOpts = {}) {
   ctx.clearRect(0, 0, w, h);
   const s = Math.min(w / VW, h / VH);
   mat(ctx, w, h, h - (VH - 86) * s);
   ctx.save();
   ctx.translate((w - VW * s) / 2, h - VH * s);
   ctx.scale(s, s);
-  drawPose(ctx, pose);
+  drawPose(ctx, pose, opts.tapFrom);
   ctx.restore();
+  if (opts.badge) badge(ctx, opts.badge, h);
 }
 
-export function paintBjjPoseCanvas(canvas: HTMLCanvasElement, pose: BjjPoseId) {
+export function paintBjjPoseCanvas(canvas: HTMLCanvasElement, pose: BjjPoseId, opts: BjjPoseOpts = {}) {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -510,6 +592,6 @@ export function paintBjjPoseCanvas(canvas: HTMLCanvasElement, pose: BjjPoseId) {
   canvas.width = w * dpr;
   canvas.height = h * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  drawBjjPose(ctx as Ctx, pose, w, h);
-  canvas.dataset.pose = pose;
+  drawBjjPose(ctx as Ctx, pose, w, h, opts);
+  canvas.dataset.pose = opts.tapFrom ? `${pose}:${opts.tapFrom}` : opts.badge ? `${pose}:${opts.badge}` : pose;
 }
