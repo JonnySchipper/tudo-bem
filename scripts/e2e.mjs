@@ -401,6 +401,23 @@ async function main() {
     suco_de_laranja: 'sucos de laranja', agua: 'águas', pao_de_queijo: 'pães de queijo', misto_quente: 'mistos-quentes', guarana: 'guaranás',
   };
   await page.evaluate((list) => (window.__tbItems = list), forms.map((f) => ({ ...f, plural: plurals[f.id] })));
+  // A miss is part of the game (Carlos repeats "de novo, devagar"), e.g. when a slow runner lets the bar expire
+  // before Entregar lands. Retry once like a player would, and log why, instead of waiting for a round that won't come.
+  await page.evaluate(() => {
+    window.__mgResults = [];
+    window.__tb.net.on((m) => {
+      if (m.t === 'mg' && m.phase === 'result') window.__mgResults.push(m);
+    });
+  });
+  /** Wait for Carlos to judge the tray just served and return his result (`outcome: 'repita'` = try again). */
+  const carlosVerdict = async (seen, n) => {
+    try {
+      await page.waitForFunction((seen) => window.__mgResults.length > seen, seen, { timeout: 20_000, polling: 100 });
+    } catch {
+      throw new Error(`timeout waiting for Carlos after order ${n + 1}`);
+    }
+    return page.evaluate(() => window.__mgResults.at(-1));
+  };
   for (let round = 0; round < 6; round++) {
     await waitFor(
       page,
@@ -421,10 +438,18 @@ async function main() {
     const needsPack = mods.some((m) => m.startsWith('pra '));
     const coffeeMods = mods.filter((m) => m === 'sem açúcar' || m === 'bem quente');
     const whereMods = mods.filter((m) => m.startsWith('pra '));
-    for (const m of whereMods) await page.click(`#mg-mods [data-mod="${MOD_IDS[m]}"]`);
-    for (const [id, n] of Object.entries(tray)) for (let k = 0; k < n; k++) await buildTrayItem(page, id, needsPack, coffeeMods);
-    if (round === 2) await shot(page, '07_meveum_tray');
-    await page.click('#mg-submit');
+    for (let attempt = 0; ; attempt++) {
+      if (attempt) await page.click('#mg-clear');
+      for (const m of whereMods) await page.click(`#mg-mods [data-mod="${MOD_IDS[m]}"]`);
+      for (const [id, n] of Object.entries(tray)) for (let k = 0; k < n; k++) await buildTrayItem(page, id, needsPack, coffeeMods);
+      if (round === 2 && !attempt) await shot(page, '07_meveum_tray');
+      const seen = await page.evaluate(() => window.__mgResults.length);
+      await page.click('#mg-submit');
+      const r = await carlosVerdict(seen, round);
+      if (r.outcome !== 'repita') break;
+      log(`order ${round + 1}: Carlos asked again (expected ${JSON.stringify(r.expected ?? [])}) → rebuilding once`);
+      assert(attempt < 1, `order ${round + 1}: missed twice`);
+    }
   }
   await page.waitForSelector('#mg-end', { timeout: 20_000 });
   await sleep(300);
