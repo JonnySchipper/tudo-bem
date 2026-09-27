@@ -73,7 +73,7 @@ import {
   type TutorialStep,
 } from '@tudobem/shared';
 import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
-import { ProfileStore, today, toPrivate, type StoredProfile } from './store.js';
+import { ProfileStore, today, todaySaoPaulo, toPrivate, type StoredProfile } from './store.js';
 import { CpuCrowd } from './ambiance.js';
 
 export interface Services {
@@ -699,6 +699,7 @@ export class World {
     return this.applyChoice(s, sc, scored.chip, scored.task_success, 'type', text, jev);
   }
 
+
   private applyChoice(s: Session, sc: SceneState, chip: number, cap: 0 | 1 | 2 | 3, channel: 'chip' | 'type', typed?: string, jev?: JevNpcReplyAnswers) {
     const p = s.profile!;
     const res = this.services.npc.choose(sc.npc, sc.node, chip, sc.ctx, cap);
@@ -719,19 +720,29 @@ export class World {
     sc.ctx = res.ctx;
     sc.shownAt = this.now();
     let payout: number | undefined;
+    let dailyBlocked = false;
     if (res.view.end) {
       this.rollDaily(p);
-      const clears = p.daily.sceneClears[sc.npc] ?? 0;
-      payout = scenePayout(sc.scores, clears);
-      p.daily.sceneClears[sc.npc] = clears + 1;
       s.scene = undefined;
       this.completeStep(s, 'carlos');
       this.missionStep(s, 'pede');
-      if (payout > 0) this.reward(s, payout, { pt: 'Café da manhã com o Seu Carlos', en: 'Breakfast with Seu Carlos' });
-      else s.send({ t: 'notice', level: 'info', pt: 'Seu Carlos: “Você já me ajudou muito hoje!”', en: 'Seu Carlos: “You’ve already helped me a lot today!” (daily cap reached)' });
+
+      // Pedido rápido RV: once per America/São_Paulo calendar day (fixes double-dip after Missão/prior Pedido)
+      const spDate = todaySaoPaulo();
+      const lastGrant = p.daily.pedidoRvGranted?.[sc.npc];
+      if (lastGrant === spDate) {
+        dailyBlocked = true;
+        payout = 0;
+      } else {
+        payout = scenePayout(sc.scores, 0);
+        if (!p.daily.pedidoRvGranted) p.daily.pedidoRvGranted = {};
+        p.daily.pedidoRvGranted[sc.npc] = spDate;
+        if (payout > 0) this.reward(s, payout, { pt: 'Café da manhã com o Seu Carlos', en: 'Breakfast with Seu Carlos' });
+      }
+      this.store.save();
     }
     const said = typed ? { pt: typed, en: res.said.pt } : res.said;
-    s.send({ t: 'scene', view: res.view, lastScore: res.score, feedback: SCORE_FEEDBACK[res.score], said, payout });
+    s.send({ t: 'scene', view: res.view, lastScore: res.score, feedback: SCORE_FEEDBACK[res.score], said, payout, dailyBlocked });
   }
 
   private rollDaily(p: StoredProfile) {
