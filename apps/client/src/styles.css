@@ -1634,12 +1634,46 @@ body:has([data-modal='minigame']) .toasts {
   color: var(--verde);
 }
 
+.roll-fight-stage {
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto 8px;
+}
+
+.roll-fight-badge {
+  position: absolute;
+  left: 50%;
+  bottom: 6px;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  background: var(--cream);
+  border: 2px solid var(--line);
+  box-shadow: 0 2px 8px rgba(44, 44, 44, 0.12);
+  pointer-events: none;
+}
+
+.roll-fight-badge.gain {
+  border-color: var(--verde);
+  color: var(--verde);
+}
+
+.roll-fight-badge.loss {
+  border-color: var(--terracotta);
+  color: var(--terracotta);
+}
+
 .roll-pose {
   display: block;
   width: 100%;
-  max-width: 300px;
-  height: 124px;
-  margin: 0 auto 8px;
+  max-width: 360px;
+  height: 148px;
+  margin: 0 auto;
   border-radius: 10px;
 }
 
@@ -1652,6 +1686,16 @@ body:has([data-modal='minigame']) .toasts {
   font-weight: 700;
   line-height: 1.35;
   color: var(--ink-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roll-fight-badge {
+    transition: none;
+  }
+
+  .roll-fight-stage[data-pose] .roll-pose {
+    animation: none;
+  }
 }
 
 @media (max-width: 430px) {
@@ -1706,20 +1750,21 @@ body:has([data-modal='minigame']) .toasts {
     display: none;
   }
 
-  .roll-pose {
-    flex-shrink: 0;
-    max-width: 168px;
-    height: 72px;
+  .roll-fight-stage {
+    max-width: min(100%, 390px);
     margin-bottom: 4px;
   }
 
-  .panel.roll:has(#roll-duel) .roll-pose {
-    display: none;
+  .roll-pose {
+    flex-shrink: 0;
+    max-width: 100%;
+    height: 112px;
+    margin-bottom: 0;
   }
 
   .panel.roll:has(#roll-end) .roll-pose {
-    max-width: 140px;
-    height: 56px;
+    max-width: 100%;
+    height: 96px;
   }
 
   .panel.roll .rail {

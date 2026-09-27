@@ -9,6 +9,7 @@ import {
   makeRollPuzzle,
   normalizeBjj,
   resolveDuel,
+  rollPuzzleBank,
   stripesForWins,
   toPuzzleView,
 } from './index.js';
@@ -63,6 +64,19 @@ describe('academia roll', () => {
 
   it('respects max duel cap constant', () => {
     expect(ROLL_MAX_DUELS).toBe(10);
+  });
+
+  it('puzzle bank is Portuguese A1 only — no technique trivia', () => {
+    const bank = rollPuzzleBank();
+    expect(bank.length).toBeGreaterThanOrEqual(20);
+    for (const p of bank) {
+      expect(p.kind === 'cloze' || p.kind === 'reorder').toBe(true);
+      expect(p.id).not.toMatch(/^tech_/);
+    }
+    const ids = new Set(bank.map((p) => p.id));
+    expect(ids.has('cloze_obrigado')).toBe(true);
+    expect(ids.has('cloze_feira')).toBe(true);
+    expect(ids.has('reorder_treinar')).toBe(true);
   });
 
   it('shows Mata-leão HUD accent on Costas (rear naked choke, not Guilhotina)', () => {
