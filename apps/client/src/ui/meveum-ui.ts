@@ -12,6 +12,8 @@ import {
 import { h, en, bi } from './dom';
 import { foodIcon } from '../render/icons';
 import { speak } from '../audio';
+import { stationBatchSize } from './meveum-batch.js';
+import { nextMgClock } from './meveum-clock.js';
 import { openModal } from './modal.js';
 
 type Wip = MgBuiltUnit;
@@ -26,21 +28,6 @@ function wipNeeds(wip: Wip, order: Extract<MgServerMsg, { phase: 'order' }> | nu
 
 function wipReady(wip: Wip, order: Extract<MgServerMsg, { phase: 'order' }> | null): boolean {
   return wipNeeds(wip, order) === 'tray';
-}
-
-function stillNeeded(
-  order: Extract<MgServerMsg, { phase: 'order' }>,
-  tray: Tray,
-  wip: Wip | null,
-  prepQueue: Wip[],
-  itemId: string,
-): number {
-  const line = order.lines?.find((l) => l.itemId === itemId);
-  if (!line) return 0;
-  const onTray = tray[itemId] ?? 0;
-  let pipeline = prepQueue.filter((u) => u.itemId === itemId).length;
-  if (wip?.itemId === itemId) pipeline++;
-  return Math.max(0, line.qty - onTray - pipeline);
 }
 
 // ---------------------------------------------------------------- Me vê um… — station builder
@@ -65,11 +52,17 @@ export class MinigameUI {
   private panel: HTMLElement;
   private timedOut = false;
   private timeoutNotBefore = 0;
+  /** When the UI locked waiting for the server. A dropped reply must not freeze the shift. */
+  private lockedAt = 0;
+  /** Retry clock has been started for this ticket (so a later resync does not add another full bar). */
+  private repeatArmed = false;
   private dragItem: string | null = null;
   private stationEls: Record<string, HTMLElement> = {};
   /** Units past chapa/bebidas waiting for pack / tray (batch prep). */
   private prepQueue: Wip[] = [];
   private stationGoBtns: Partial<Record<'chapa' | 'bebidas', HTMLButtonElement>> = {};
+  /** Place / clear / serve, pinned under the scrolling kitchen so a tall staging card cannot push them off. */
+  private trayActions!: HTMLElement;
 
   constructor(
     private actions: {
@@ -171,16 +164,18 @@ export class MinigameUI {
         h('div', { class: 'station-label' }, h('span', { class: 'pt' }, 'Bandeja'), en('Place on tray', true)),
         this.wipEl,
         this.trayEl,
-        h(
-          'div',
-          { class: 'row tray-actions' },
-          h('button', { type: 'button', id: 'mg-tray-place', onclick: () => this.placeOnTray() }, bi('Colocar na bandeja', 'Place on tray')),
-          h('button', { type: 'button', onclick: () => this.clearTray() }, bi('Limpar', 'Clear')),
-          h('span', { class: 'spacer' }),
-          h('button', { class: 'green serve-bell', type: 'button', onclick: () => this.submit(), id: 'mg-submit' }, bi('Entregar 🔔', 'Serve (Enter)')),
-        ),
       ),
     );
+
+    const trayActions = h(
+      'div',
+      { class: 'row tray-actions' },
+      h('button', { type: 'button', id: 'mg-tray-place', onclick: () => this.placeOnTray() }, bi('Colocar na bandeja', 'Place on tray')),
+      h('button', { type: 'button', id: 'mg-clear', onclick: () => this.clearTray() }, bi('Limpar', 'Clear')),
+      h('span', { class: 'spacer' }),
+      h('button', { class: 'green serve-bell', type: 'button', onclick: () => this.submit(), id: 'mg-submit' }, bi('Entregar 🔔', 'Serve (Enter)')),
+    );
+    this.trayActions = trayActions;
 
     this.body = h('div', { class: 'mg-body mg-body-stations' }, kitchen, h('div', { class: 'side' }, this.carlos, this.score));
     this.panel = h(
@@ -196,6 +191,7 @@ export class MinigameUI {
       ),
       h('div', { class: 'rail' }, this.ticket, this.timer),
       this.body,
+      trayActions,
     );
     this.close = openModal('minigame', this.panel, { dismissable: false, onClose: () => this.cleanup() });
     document.addEventListener('keydown', this.onKey);
@@ -232,6 +228,7 @@ export class MinigameUI {
     if (total >= MG_MAX_TRAY) return;
     this.wip = { itemId: id, shelf: true };
     this.renderWip();
+    this.renderStationButtons();
     this.pulseNext();
   }
 
@@ -264,11 +261,20 @@ export class MinigameUI {
   private batchSizeFor(station: 'chapa' | 'bebidas'): number {
     if (!this.order || !this.wip) return 1;
     if (wipNeeds(this.wip, this.order) !== station) return 1;
-    if (mgPrepStation(this.wip.itemId) !== station) return 1;
+    const itemId = this.wip.itemId;
+    if (mgPrepStation(itemId) !== station) return 1;
+    const line = this.order.lines?.find((l) => l.itemId === itemId);
+    if (!line) return 1;
     const trayTotal = Object.values(this.tray).reduce((a, b) => a + b, 0);
-    const cap = MG_MAX_TRAY - trayTotal;
-    const need = stillNeeded(this.order, this.tray, this.wip, this.prepQueue, this.wip.itemId);
-    return Math.max(1, Math.min(need, cap));
+    const queuedSame = this.prepQueue.filter((u) => u.itemId === itemId).length;
+    return stationBatchSize({
+      lineQty: line.qty,
+      onTray: this.tray[itemId] ?? 0,
+      queuedSame,
+      trayTotal,
+      queuedOther: this.prepQueue.length - queuedSame,
+      maxTray: MG_MAX_TRAY,
+    });
   }
 
   private runStationBatch(station: 'chapa' | 'bebidas', n: number) {
@@ -309,12 +315,28 @@ export class MinigameUI {
   private placeOnTray() {
     if (this.locked || !this.order || !this.wip) return;
     if (!wipReady(this.wip, this.order)) return;
+    this.takeOne();
+    this.renderAll();
+    this.pulseNext();
+  }
+
+  private takeOne() {
+    if (!this.wip) return;
     this.built.push({ ...this.wip });
     const id = this.wip.itemId;
     this.tray[id] = (this.tray[id] ?? 0) + 1;
     this.wip = this.prepQueue.shift() ?? null;
-    this.renderAll();
-    this.pulseNext();
+  }
+
+  /** Entregar / Enter: commit every unit that's already ready, then stop at the first that still needs a station. */
+  private commitReady(): boolean {
+    if (!this.order) return false;
+    let placed = false;
+    while (this.wip && wipReady(this.wip, this.order)) {
+      this.takeOne();
+      placed = true;
+    }
+    return placed;
   }
 
   private toggleMod(id: string) {
@@ -355,7 +377,7 @@ export class MinigameUI {
     const need = this.order ? wipNeeds(this.wip, this.order) : null;
     this.wipEl.replaceChildren(
       h('img', { src: foodIcon(this.wip.itemId, 56), alt: '' }),
-      h('div', { class: 'wip-hint' }, need === 'tray' ? bi('Na bandeja!', 'On tray!') : bi(`Próximo: ${stationLabel(need)}`, `Next: ${stationLabelEn(need)}`)),
+      h('div', { class: 'wip-hint' }, need === 'tray' ? bi('Pronto pra colocar', 'Ready to place') : bi(`Próximo: ${stationLabel(need)}`, `Next: ${stationLabelEn(need)}`)),
     );
     this.wipEl.classList.toggle('ready', !!this.order && wipReady(this.wip, this.order));
   }
@@ -427,29 +449,62 @@ export class MinigameUI {
 
   private submit() {
     if (this.locked || !this.order) return;
-    if (this.wip || this.prepQueue.length) return;
-    this.locked = true;
+    if (this.commitReady()) this.renderAll();
+    if (this.wip || this.prepQueue.length) {
+      this.pulseNext();
+      return;
+    }
+    this.lockUi();
     this.actions.submit({ ...this.tray }, [...this.mods], [...this.built]);
   }
 
+  private lockUi() {
+    this.locked = true;
+    this.lockedAt = performance.now();
+  }
+
+  private unlockUi() {
+    this.locked = false;
+    this.timedOut = false;
+    this.lockedAt = 0;
+  }
+
   private quit() {
+    if (!this.order) {
+      this.close();
+      return;
+    }
+    this.lockUi();
     this.actions.quit();
-    this.close();
+  }
+
+  private ensureTick() {
+    cancelAnimationFrame(this.raf);
+    this.raf = requestAnimationFrame(this.tick);
   }
 
   private tick = () => {
-    if (!this.order) return;
-    const left = Math.max(0, this.order.timeMs - (performance.now() - this.orderAt));
-    const f = left / this.order.timeMs;
-    const bar = this.timer.firstElementChild as HTMLElement;
-    bar.style.transform = `scaleX(${f})`;
-    this.timer.classList.toggle('low', f < 0.25);
-    if (left <= 0 && !this.locked && !this.timedOut && performance.now() >= this.timeoutNotBefore) {
-      this.timedOut = true;
-      this.locked = true;
-      this.actions.timeout();
+    try {
+      if (!this.order) return;
+      const now = performance.now();
+      if (this.locked && this.lockedAt && now - this.lockedAt > 2_000) {
+        this.lockedAt = now;
+        this.actions.sync();
+      }
+      const left = Math.max(0, this.order.timeMs - (now - this.orderAt));
+      const f = this.order.timeMs > 0 ? left / this.order.timeMs : 0;
+      const bar = this.timer.firstElementChild as HTMLElement | null;
+      if (bar) bar.style.transform = `scaleX(${f})`;
+      this.timer.classList.toggle('low', f < 0.25);
+      if (left <= 0 && !this.locked && !this.timedOut && now >= this.timeoutNotBefore) {
+        this.timedOut = true;
+        this.lockUi();
+        this.actions.timeout();
+      }
+    } catch (err) {
+      console.error('Me vê um… timer', err);
     }
-    this.raf = requestAnimationFrame(this.tick);
+    if (this.order) this.raf = requestAnimationFrame(this.tick);
   };
 
   handle(m: MgServerMsg) {
@@ -457,8 +512,7 @@ export class MinigameUI {
       this.handleMsg(m);
     } catch (err) {
       console.error('Me vê um… UI error', err);
-      this.locked = false;
-      this.timedOut = false;
+      this.unlockUi();
       this.carlos.replaceChildren(
         h('b', null, 'Seu Carlos: '),
         '“Ops, travou um instante — continua o pedido!”',
@@ -469,19 +523,25 @@ export class MinigameUI {
 
   private handleMsg(m: MgServerMsg) {
     if (m.phase === 'order') {
-      if (m.resync && this.order && this.order.round === m.round && this.order.pt === m.pt) {
+      const clock = nextMgClock(
+        { orderAt: this.orderAt, timeoutNotBefore: this.timeoutNotBefore, repeatArmed: this.repeatArmed },
+        m,
+        this.order ? { round: this.order.round, pt: this.order.pt } : null,
+        performance.now(),
+      );
+      if (clock.hold) {
         this.order = m;
-        this.locked = false;
-        this.timedOut = false;
-        this.timeoutNotBefore = performance.now() + 1000;
+        this.timeoutNotBefore = clock.clock.timeoutNotBefore;
+        this.unlockUi();
+        this.ensureTick();
         return;
       }
       const keepTray = !!m.repeat && this.order?.round === m.round && this.order.pt === m.pt;
       this.order = m;
-      this.orderAt = performance.now();
-      this.locked = false;
-      this.timedOut = false;
-      this.timeoutNotBefore = 0;
+      this.orderAt = clock.clock.orderAt;
+      this.timeoutNotBefore = clock.clock.timeoutNotBefore;
+      this.repeatArmed = clock.clock.repeatArmed;
+      this.unlockUi();
       if (!keepTray) {
         this.tray = {};
         this.built = [];
@@ -506,13 +566,18 @@ export class MinigameUI {
       );
       speak(m.pt, { rate: m.repeat ? 0.75 : 0.92 });
       this.score.replaceChildren(h('span', null, `Pontos: ${m.points}`), m.streak >= 2 ? h('span', { class: 'combo' }, `Combo ×${m.streak}!`) : h('span'));
-      cancelAnimationFrame(this.raf);
-      this.raf = requestAnimationFrame(this.tick);
+      this.ensureTick();
     } else if (m.phase === 'result') {
       if (m.outcome === 'perfeito') this.panel.classList.add('perfect-serve');
       window.setTimeout(() => this.panel.classList.remove('perfect-serve'), 600);
       this.carlos.replaceChildren(h('b', null, 'Seu Carlos: '), `“${m.carlos.pt}”`, en(m.carlos.en));
-      if (m.outcome !== 'repita') this.locked = true;
+      if (m.outcome === 'repita') {
+        this.locked = false;
+        this.timedOut = false;
+        this.lockedAt = 0;
+        // The repeat ticket re-arms the bar. Don't expire the old one in the gap.
+        this.timeoutNotBefore = performance.now() + 1200;
+      } else this.lockUi();
       this.score.replaceChildren(h('span', null, `Pontos: ${m.points}`), m.streak >= 2 ? h('span', { class: 'combo combo-burst' }, `Combo ×${m.streak}!`) : h('span'));
       if (m.expected) {
         this.carlos.append(
@@ -528,6 +593,7 @@ export class MinigameUI {
     } else {
       cancelAnimationFrame(this.raf);
       this.order = null;
+      this.trayActions.hidden = true;
       this.ticket.replaceChildren(h('div', { class: 'order' }, 'Fim do turno!'), en('Shift over!'));
       this.body.replaceChildren(
         h(
