@@ -1020,7 +1020,7 @@ export class World {
         cpuCorrect: false,
         resolving: false,
       };
-      s.send({ t: 'roll', phase: 'queue', waitMs: this.rollQueueMs, opponent: null });
+      s.send({ t: 'roll', phase: 'queue', waitMs: this.rollQueueMs, opponent: 'cpu' });
       this.schedule(() => this.rollStartMatch(s, token), this.rollQueueMs);
       return;
     }
@@ -1203,7 +1203,10 @@ export class World {
       line,
       fistBump: rollFistBump(),
     });
-    this.reward(s, rv, { pt: playerWon ? 'Vitória no tatame' : 'Rola na academia', en: playerWon ? 'Mat win' : 'Academy roll' });
+    this.reward(s, rv, {
+      pt: playerWon ? 'Duelo de português — vitória!' : 'Duelo de português na academia',
+      en: playerWon ? 'Portuguese duel — win!' : 'Academy Portuguese duel',
+    });
     this.pushProfile(s);
     this.clearRoll(s);
   }

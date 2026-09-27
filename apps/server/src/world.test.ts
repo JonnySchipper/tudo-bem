@@ -784,6 +784,7 @@ describe('pushProfileById', () => {
     expect(end?.phase).toBe('end');
     expect(end.rv).toBeGreaterThanOrEqual(5);
     expect(a.s.profile!.bjj?.belt).toBe('branca');
+    expect(end.bjj.belt).toBe('branca');
     if (end.winner === 'player') expect(a.s.profile!.coins).toBeGreaterThanOrEqual(coins0 + ROLL_RV_WIN - 1);
   });
 });

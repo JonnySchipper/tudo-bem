@@ -20,6 +20,10 @@ describe('academia roll', () => {
     expect(stripesForWins(12)).toBe(4);
   });
 
+  it('never promotes past faixa branca in v0 (stripes only)', () => {
+    expect(normalizeBjj({ belt: 'azul' as 'branca', stripes: 2, wins: 5 })).toEqual({ belt: 'branca', stripes: 2, wins: 5 });
+  });
+
   it('resolves duels: first correct advances; ties do not', () => {
     expect(resolveDuel(true, false, 0, 0)).toMatchObject({ advance: 'player', playerIdx: 1, submission: null });
     expect(resolveDuel(false, true, 2, 2)).toMatchObject({ advance: 'cpu', cpuIdx: 3, submission: null });

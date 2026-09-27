@@ -1,7 +1,7 @@
 /**
  * Academia Gracie da Praça — flagship BJJ roll UI (language duels on positions).
  */
-import type { RollServerMsg } from '@tudobem/shared';
+import { ROLL_CPU_PARTNER, ROLL_WORD_GAME_DISCLAIMER, type RollServerMsg } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi } from './dom';
 import { openModal, closeModal, modalId } from './panels';
@@ -39,10 +39,11 @@ export class RollUI {
         'div',
         { class: 'roll-head' },
         h('h2', null, 'Rola no tatame'),
-        en('Portuguese duels on real positions — first submission wins.', true),
+        en('Portuguese word duels on BJJ positions — first “submission” wins the puzzle.', true),
         h('span', { class: 'spacer' }),
         h('button', { class: 'ghost', onclick: () => this.quit() }, '✕'),
       ),
+      h('p', { class: 'roll-disclaimer' }, h('b', null, ROLL_WORD_GAME_DISCLAIMER.pt), en(ROLL_WORD_GAME_DISCLAIMER.en)),
       h('div', { class: 'roll-belt', id: 'roll-belt' }),
       h('div', { class: 'rail' }, h('div', { class: 'roll-position', id: 'roll-position' }), this.timerBar),
       this.body,
@@ -66,8 +67,8 @@ export class RollUI {
     if (!el) return;
     const stripes = bjj?.stripes ?? 0;
     el.replaceChildren(
-      h('span', { class: 'belt-chip' }, 'Faixa branca'),
-      en('White belt — earned on the mat, never bought.', true),
+      h('span', { class: 'belt-chip' }, 'Faixa branca (v0)'),
+      en('White belt only in v0 — stripes show progress; never bought.', true),
       h('span', { class: 'stripe-row' }, ...Array.from({ length: 4 }, (_, i) => h('span', { class: `stripe ${i < stripes ? 'on' : ''}` }))),
       h('span', { class: 'wins' }, `${bjj?.wins ?? 0} vitórias`, en(` ${bjj?.wins ?? 0} wins`, true)),
     );
@@ -77,7 +78,15 @@ export class RollUI {
     if (m.phase === 'queue') {
       this.locked = true;
       this.body.replaceChildren(
-        h('div', { class: 'roll-queue' }, h('b', null, 'Fila do tatame aberto'), en('Open-mat queue', true), h('p', null, bi('Procurando parceiro…', 'Looking for a partner…')), h('p', { class: 'muted' }, `CPU em ~${Math.round(m.waitMs / 1000)}s se ninguém entrar.`)),
+        h(
+          'div',
+          { class: 'roll-queue' },
+          h('b', null, 'Tatame aberto'),
+          en('Open mat', true),
+          h('p', null, bi(`${ROLL_CPU_PARTNER.pt} está aquecendo…`, `${ROLL_CPU_PARTNER.en} is warming up…`)),
+          h('p', { class: 'muted' }, bi(`Rola em ~${Math.max(1, Math.round(m.waitMs / 1000))}s — oss!`, `Roll starts in ~${Math.max(1, Math.round(m.waitMs / 1000))}s — oss!`)),
+          h('p', { class: 'muted' }, bi('PvP em breve; por agora a diversão é solo.', 'PvP later — solo roll is the fun path for now.')),
+        ),
       );
       return;
     }
@@ -168,7 +177,13 @@ export class RollUI {
           h('div', { class: 'big' }, `+${m.rv} RV`),
           h('p', null, h('b', null, m.line.pt), en(m.line.en)),
           h('p', null, m.fistBump.pt, en(m.fistBump.en)),
-          h('p', { class: 'muted' }, won ? bi('Faixa branca — faixas só sobem!', 'White belt — stripes only go up!') : bi('Boa rola. O português treina também.', 'Good roll. Your Portuguese trained too.')),
+          h(
+            'p',
+            { class: 'muted' },
+            won
+              ? bi('Listras sobem com vitórias — faixa branca em v0.', 'Stripes grow with wins — white belt only in v0.')
+              : bi('Oss — valeu pela rola. +português, sempre com respeito.', 'Oss — thanks for the roll. Portuguese practice, always respectful.'),
+          ),
           h('div', { class: 'row', style: 'justify-content:center;margin-top:12px' },
             h('button', { onclick: () => this.close() }, bi('Sair', 'Leave')),
             h('button', { class: 'primary', onclick: () => (this.close(), this.actions.rematch()) }, bi('De novo', 'Rematch')),

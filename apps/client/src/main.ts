@@ -261,6 +261,18 @@ net.on((m: ServerMsg) => {
       if (m.room === 'kitnet' && m.ownerId === game.profile?.id && !game.profile?.tutorial.cadeira)
         toast('info', 'Sua kitnet! Clique em “Decorar” e coloque sua cadeira.', 'Your apartment! Click “Decorar” (top right) and place your free chair.');
       if (m.room === 'padaria' && !game.profile?.tutorial.carlos) setTimeout(() => npcSay('carlos', { pt: 'Bom dia! Chega mais, pode pedir!', en: 'Good morning! Come on over, go ahead and order!' }), 600);
+      if (m.room === 'academia' && !sessionStorage.getItem('tb_academia_hi')) {
+        sessionStorage.setItem('tb_academia_hi', '1');
+        setTimeout(
+          () =>
+            toast(
+              'info',
+              'Bem-vindo à academia! Jogo de palavras no tatame — não é treino de luta.',
+              'Welcome! Word-game rolls on the mat — not martial-arts training.',
+            ),
+          700,
+        );
+      }
       if (keepMg) armMgResumeWatch();
       break;
     }

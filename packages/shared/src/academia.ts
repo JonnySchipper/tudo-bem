@@ -6,7 +6,8 @@ import type { Bilingual } from './types.js';
 import type { Rng } from './meveum.js';
 import { mulberry32 } from './meveum.js';
 
-export const ROLL_QUEUE_MS_DEFAULT = 12_000;
+/** Short queue — v0 magnet is CPU solo roll (humans later). Override with `ROLL_QUEUE_MS`. */
+export const ROLL_QUEUE_MS_DEFAULT = 6_000;
 export const ROLL_MAX_DUELS = 10;
 export const ROLL_RV_WIN = 12;
 export const ROLL_RV_LOSS = 5;
@@ -80,11 +81,20 @@ export interface BjjProgress {
   wins: number;
 }
 
+/** v0: always faixa branca — stripes/wins only; never promote past branca in this bake. */
 export function normalizeBjj(p?: BjjProgress | null): BjjProgress {
-  if (p && p.belt === 'branca' && Number.isFinite(p.stripes) && Number.isFinite(p.wins))
-    return { belt: 'branca', stripes: Math.min(4, Math.max(0, p.stripes)), wins: Math.max(0, p.wins) };
-  return { belt: 'branca', stripes: 0, wins: 0 };
+  const wins = Math.max(0, Number(p?.wins) || 0);
+  const stripes = Math.min(4, Math.max(0, Number.isFinite(p?.stripes) ? Number(p!.stripes) : stripesForWins(wins)));
+  return { belt: 'branca', stripes, wins };
 }
+
+/** Shown in Academia UI — word game, not martial-arts training (CEO / Product lock). */
+export const ROLL_WORD_GAME_DISCLAIMER: Bilingual = {
+  pt: 'Jogo de palavras com kimono — aprende o português da academia, não é treino de luta.',
+  en: 'A word game in a gi — learn academy Portuguese, not real martial-arts training.',
+};
+
+export const ROLL_CPU_PARTNER = { name: 'Rafael', pt: 'Rafael (CPU)', en: 'Rafael (CPU partner)' };
 
 export function stripesForWins(wins: number): number {
   return Math.min(4, Math.floor(wins / 3));
