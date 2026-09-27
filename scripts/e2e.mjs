@@ -121,6 +121,23 @@ async function trayFor(page, orderText) {
   return { tray, mods };
 }
 
+const MG_PREP = {
+  chapa: new Set(['pao_na_chapa', 'misto_quente', 'pastel', 'coxinha']),
+  bebidas: new Set(['cafe', 'cafe_com_leite', 'suco_de_laranja', 'agua', 'guarana']),
+};
+const MOD_IDS = { 'pra viagem': 'pra_viagem', 'pra comer aqui': 'pra_comer_aqui', 'sem açúcar': 'sem_acucar', 'bem quente': 'bem_quente' };
+
+async function buildTrayItem(page, itemId, needsPack, coffeeMods) {
+  await page.click(`#mg-shelves [data-item="${itemId}"]`);
+  if (MG_PREP.chapa.has(itemId)) await page.click('#mg-station-chapa .station-go');
+  if (MG_PREP.bebidas.has(itemId)) {
+    for (const m of coffeeMods) await page.click(`#mg-mods [data-mod="${MOD_IDS[m]}"]`);
+    await page.click('#mg-station-bebidas .station-go');
+  }
+  if (needsPack) await page.click('#mg-station-pack .station-go');
+  await page.click('#mg-tray-place');
+}
+
 async function main() {
   assert(CHROME, 'Chrome/Chromium not found — set CHROME_PATH');
   console.log(`\nTudo Bem e2e → ${BASE}`);
@@ -333,9 +350,11 @@ async function main() {
     if (!items) throw new Error(`could not parse Me vê um order: ${text}`);
     log(`order ${round + 1}: “${text}” →`, JSON.stringify(tray), mods.join(', '));
     await dwell(round < 2 ? 1400 : 700);
-    for (const [id, n] of Object.entries(tray)) for (let k = 0; k < n; k++) await page.click(`#mg-shelves [data-item="${id}"]`);
-    const modIds = { 'pra viagem': 'pra_viagem', 'pra comer aqui': 'pra_comer_aqui', 'sem açúcar': 'sem_acucar', 'bem quente': 'bem_quente' };
-    for (const m of mods) await page.click(`#mg-mods [data-mod="${modIds[m]}"]`);
+    const needsPack = mods.some((m) => m.startsWith('pra '));
+    const coffeeMods = mods.filter((m) => m === 'sem açúcar' || m === 'bem quente');
+    const whereMods = mods.filter((m) => m.startsWith('pra '));
+    for (const m of whereMods) await page.click(`#mg-mods [data-mod="${MOD_IDS[m]}"]`);
+    for (const [id, n] of Object.entries(tray)) for (let k = 0; k < n; k++) await buildTrayItem(page, id, needsPack, coffeeMods);
     if (round === 2) await shot(page, '07_meveum_tray');
     await page.click('#mg-submit');
   }

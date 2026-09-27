@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { chooseChip, scenePayout, SCENE_NODE_IDS, SCENE_START, viewNode, type SceneCtx } from './carlos.js';
-import { AUTHORED_ORDERS, checkTray, makeOrder, mgPayout, MG_MAX_POINTS, mulberry32, sanitizeMods, sanitizeTray, linePt } from './meveum.js';
+import { AUTHORED_ORDERS, checkBuild, checkTray, makeOrder, mgPayout, MG_MAX_POINTS, mulberry32, sanitizeMods, sanitizeTray, linePt, mgPrepStation, mgPerfectBuilt } from './meveum.js';
 import { detectLang, glossPt } from './gloss.js';
 import { numberPt } from './numbers.js';
 import { buildGrid, canPlaceFurniture, ROOMS, isWalkable } from './rooms.js';
@@ -46,6 +46,17 @@ describe('Me vê um…', () => {
     expect(linePt({ itemId: 'agua', qty: 2 })).toBe('duas águas');
     expect(linePt({ itemId: 'pastel', qty: 3 })).toBe('três pastéis');
     expect(linePt({ itemId: 'pao_de_queijo', qty: 3 })).toBe('três pães de queijo');
+  });
+
+  it('requires station prep when built units are sent', () => {
+    const order = { customer: 'x', pt: '', en: '', timeMs: 1, authored: false, mods: ['pra_viagem'], lines: [{ itemId: 'coxinha', qty: 1 }, { itemId: 'cafe', qty: 1 }] };
+    const tray = { coxinha: 1, cafe: 1 };
+    const built = mgPerfectBuilt(order);
+    expect(checkBuild(order, tray, ['pra_viagem'], built, { requireBuilt: true }).ok).toBe(true);
+    expect(checkBuild(order, tray, ['pra_viagem'], undefined, { requireBuilt: true }).prepMiss).toBe(true);
+    expect(checkBuild(order, tray, ['pra_viagem'], [{ itemId: 'coxinha', shelf: true, chapa: true, pack: true }, { itemId: 'cafe', shelf: true, pack: true }]).prepMiss).toBe(true);
+    expect(mgPrepStation('pao')).toBeNull();
+    expect(mgPrepStation('cafe')).toBe('bebidas');
   });
 
   it('checks trays and modifiers exactly', () => {

@@ -320,7 +320,7 @@ net.on((m: ServerMsg) => {
       clearMgResumeWatch();
       if (m.phase === 'order' && (!minigame || modalId() !== 'minigame')) {
         minigame = new MinigameUI({
-          submit: (tray, mods) => net.send({ t: 'mg', action: 'submit', tray, mods }),
+          submit: (tray, mods, built) => net.send({ t: 'mg', action: 'submit', tray, mods, built }),
           timeout: () => net.send({ t: 'mg', action: 'timeout' }),
           quit: () => net.send({ t: 'mg', action: 'quit' }),
           again: startMinigame,
