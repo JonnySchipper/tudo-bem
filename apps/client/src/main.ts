@@ -694,7 +694,10 @@ function frame(ts: number) {
 }
 requestAnimationFrame(frame);
 
-void runIntroGate().then(() => net.connect());
+void runIntroGate().then(() => {
+  game.music = ambience.enabled;
+  net.connect();
+});
 
 // ---------------------------------------------------------------- test / debug hooks
 
