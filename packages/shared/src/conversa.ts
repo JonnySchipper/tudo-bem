@@ -2,6 +2,7 @@ import type { Bilingual, Nameplate, Pronoun } from './types.js';
 import type { NpcId } from './rooms.js';
 import { PRICES, type SceneCtx } from './carlos.js';
 import { numberPt } from './numbers.js';
+import { classifyChat, type SafetyAction } from './safety.js';
 
 /**
  * Conversa (GDD §5.6): a short, private, scored conversation with an NPC.
@@ -166,6 +167,42 @@ export const CONVERSA_COPY = {
   enviar: { pt: 'Enviar', en: 'Send' } as Bilingual,
   continuar: { pt: 'Continuar', en: 'Continue' } as Bilingual,
 };
+
+/** Toast the mesa shows for a player line. Warn is yellow; block and escalate share the block toast. */
+export interface ConversaSafetyNotice {
+  level: 'warn' | 'block';
+  pt: string;
+  en: string;
+}
+
+export interface ConversaPlayerGate {
+  action: SafetyAction;
+  /** False for block / escalate — the line must not be painted. */
+  deliver: boolean;
+  /** Verbatim player text when it delivers. Empty when it does not. Never rewritten. */
+  text: string;
+  /** Null only on allow. Warn and block always carry a toast. */
+  notice: ConversaSafetyNotice | null;
+}
+
+/**
+ * Gate A for a player line on the Conversa mesa.
+ * Warn delivers the words unchanged (CEO-LOCKS §3 rewrite_not_used) and asks for a warn toast.
+ * Carlos still replies — room chat does the same, and warn stays constitution_ok.
+ * Block and escalate stay out of the transcript and ask for a block toast.
+ */
+export function gateConversaPlayerLine(raw: string): ConversaPlayerGate {
+  const verdict = classifyChat(raw);
+  if (verdict.action === 'block' || verdict.action === 'escalate') {
+    const note = verdict.note ?? CONVERSA_COPY.blocked;
+    return { action: verdict.action, deliver: false, text: '', notice: { level: 'block', pt: note.pt, en: note.en } };
+  }
+  if (verdict.action === 'warn') {
+    const note = verdict.note ?? { pt: 'Essa mensagem segue com um aviso.', en: 'That message goes through with a warning.' };
+    return { action: 'warn', deliver: true, text: verdict.text, notice: { level: 'warn', pt: note.pt, en: note.en } };
+  }
+  return { action: 'allow', deliver: true, text: verdict.text, notice: null };
+}
 
 export function gradeFromScores(scores: ConversaScores, turnCount: number): ConversaGrade {
   if (turnCount < CONVERSA_MIN_MSGS_TO_SCORE) return 'tryAgain';
