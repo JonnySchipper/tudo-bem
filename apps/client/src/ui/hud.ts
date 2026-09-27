@@ -237,6 +237,7 @@ export function overlayMessage(text: string | null, onRetry?: () => void) {
  * The seat is already freed server-side; the session cookie stays, so one tap rejoins.
  * Mounts into `#tb-idle-kick-slot` when the entry shell provides one, else into #ui.
  * Hooks for the visual track: `.idle-kicked` (veil) › `.idle-card` › `#idle-title`, `#idle-back`.
+ * Art lock: birds here are optional and capped at 1–2 distant parrots; the full flock is intro-only.
  */
 export function idleKickedCard(copy: { pt: string; en: string } | null, onBack?: () => void) {
   document.querySelector('.idle-kicked')?.remove();
