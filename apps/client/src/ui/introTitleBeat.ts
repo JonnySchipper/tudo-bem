@@ -25,6 +25,8 @@ export function runIntroTitleBeat(root: HTMLElement, onReveal: () => void, reduc
     if (e.button === 0) reveal();
   };
   const onKey = (e: KeyboardEvent) => {
+    // Enter / Space on the music toggle belongs to the toggle.
+    if (e.key !== 'Escape' && (e.target as Element | null)?.closest?.('#intro-music')) return;
     if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
       e.preventDefault();
       reveal();

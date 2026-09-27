@@ -5,6 +5,8 @@ import { mountIntroParrots, type SkyBand } from './introParrots';
 import { createIntroHeroScene } from './introHeroScene';
 import { mountIntroAtmosphere } from './introAtmosphere';
 import { runIntroTitleBeat } from './introTitleBeat';
+import { ambience } from '../ambience';
+import { icon } from '../art/ui';
 
 type IntroMode = 'login' | 'register';
 
@@ -53,6 +55,45 @@ export function runIntroGate(): Promise<IntroGateResult> {
     const veil = h('div', { class: 'intro-veil tb-world-veil', 'aria-hidden': 'true' });
     const glow = h('div', { class: 'intro-layer intro-glow', 'aria-hidden': 'true' });
     const skipBtn = h('button', { type: 'button', class: 'intro-skip', id: 'intro-skip' }, 'Pular', h('span', { class: 'intro-skip-arrow', 'aria-hidden': 'true' }, '›'));
+
+    // Music bed: honours the saved tb_music choice; reduced motion stays silent until asked.
+    let wantMusic = !reduced;
+    const musicBtn = h('button', { type: 'button', class: 'intro-music', id: 'intro-music' });
+    const renderMusic = () => {
+      const on = ambience.enabled && wantMusic;
+      const waiting = on && !ambience.running;
+      musicBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      musicBtn.classList.toggle('is-waiting', waiting);
+      musicBtn.title = on ? 'Música: sim / Music on' : 'Música: não / Music off';
+      musicBtn.replaceChildren(
+        icon(on ? 'musicOn' : 'musicOff', 18),
+        h('span', { class: 'intro-music-label' }, waiting ? 'Tocar música' : on ? 'Música' : 'Sem música'),
+      );
+    };
+    let audibleAtPress = false;
+    const notePress = () => {
+      audibleAtPress = ambience.enabled && wantMusic && ambience.running;
+    };
+    musicBtn.addEventListener('pointerdown', notePress);
+    musicBtn.addEventListener('keydown', notePress);
+    musicBtn.addEventListener('pointerup', (e) => e.stopPropagation());
+    musicBtn.addEventListener('click', () => {
+      const on = ambience.enabled && wantMusic;
+      if (on && !audibleAtPress) {
+        // Autoplay was blocked: this first press starts the music rather than muting it.
+        ambience.unlock();
+      } else if (on) {
+        ambience.setEnabled(false);
+      } else {
+        wantMusic = true;
+        ambience.setEnabled(true);
+        ambience.setScene('intro');
+        ambience.unlock();
+        if (root.classList.contains('intro-phase-auth')) ambience.introReveal();
+      }
+      renderMusic();
+    });
+    renderMusic();
 
     let mode: IntroMode = 'login';
     const err = h('div', { class: 'intro-feedback', role: 'alert', style: 'display:none' });
@@ -131,6 +172,7 @@ export function runIntroGate(): Promise<IntroGateResult> {
 
     const finish = (result: IntroGateResult) => {
       markIntroPassed();
+      ambience.setScene(null);
       for (const t of teardowns) t();
       root.classList.add('intro-exit');
       window.setTimeout(() => {
@@ -191,7 +233,7 @@ export function runIntroGate(): Promise<IntroGateResult> {
       h('div', { id: 'tb-idle-kick-slot', class: 'tb-idle-kick-slot', hidden: true, 'aria-hidden': 'true', 'data-tb-region': 'idle-kick-interstitial' }),
     );
 
-    root.append(heroScene.el, glow, atmosphere, veil, skipBtn, h('div', { class: 'intro-shell' }, hero, panel));
+    root.append(heroScene.el, glow, atmosphere, veil, musicBtn, skipBtn, h('div', { class: 'intro-shell' }, hero, panel));
 
     document.body.classList.add('intro-active');
     if (!reduced) {
@@ -229,6 +271,12 @@ export function runIntroGate(): Promise<IntroGateResult> {
     };
     layoutHero();
 
+    if (wantMusic) ambience.setScene('intro');
+    teardowns.push(ambience.onChange(renderMusic));
+    // Tapping Pular / the scene is a gesture: let it open audio if autoplay was blocked.
+    const armMusic = () => ambience.unlock();
+    root.addEventListener('click', armMusic);
+    teardowns.push(() => root.removeEventListener('click', armMusic));
     teardowns.push(mountIntroAtmosphere(atmosphere, reduced));
     if (!reduced) teardowns.push(heroScene.mountParallax());
     const parrots = mountIntroParrots(root, panel, reduced, {
@@ -257,6 +305,7 @@ export function runIntroGate(): Promise<IntroGateResult> {
     const coarse = window.matchMedia('(pointer: coarse)').matches;
     const reveal = () => {
       panel.inert = false;
+      ambience.introReveal();
       // Opening the soft keyboard on reveal would bury the Praça on phones.
       if (coarse) panelTitle.focus({ preventScroll: true });
       else email.focus({ preventScroll: true });

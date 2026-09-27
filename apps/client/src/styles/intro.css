@@ -614,6 +614,62 @@ body.intro-active #world {
   transform: translateY(-6px);
 }
 
+/* Music toggle — stays for the card too; same pill as Pular, quieter. */
+.intro-music {
+  position: fixed;
+  top: calc(12px + var(--safe-top));
+  left: calc(12px + var(--safe-left));
+  z-index: 9;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: inherit;
+  font-weight: 800;
+  font-size: 0.86em;
+  min-height: 40px;
+  padding: 0.3em 0.9em 0.3em 0.6em;
+  border-radius: 999px;
+  border: 2px solid rgba(44, 44, 44, 0.45);
+  background: rgba(245, 230, 211, 0.66);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--ink);
+  box-shadow: 0 2px 0 rgba(44, 44, 44, 0.25);
+  cursor: pointer;
+  animation: intro-fade 0.8s ease 1.2s both;
+}
+
+.intro-music[aria-pressed='false'] {
+  color: var(--ink-soft);
+}
+
+.intro-music.is-waiting {
+  border-color: var(--mustard);
+  box-shadow: 0 2px 0 #b88a14;
+}
+
+.intro-music.is-waiting .ico {
+  animation: intro-note 1.6s ease-in-out infinite;
+}
+
+@keyframes intro-note {
+  50% {
+    transform: translateY(-2px) rotate(-6deg);
+  }
+}
+
+.intro-music:focus-visible {
+  outline: 3px solid var(--mustard);
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .intro-music {
+    min-height: 36px;
+    padding-inline: 0.5em 0.75em;
+  }
+}
+
 /* ---------- layout ---------- */
 
 .intro-shell {
