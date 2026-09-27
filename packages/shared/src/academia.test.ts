@@ -69,14 +69,39 @@ describe('academia roll', () => {
   it('puzzle bank is Portuguese A1 only — no technique trivia', () => {
     const bank = rollPuzzleBank();
     expect(bank.length).toBeGreaterThanOrEqual(20);
+    const bannedIds = [
+      'cloze_valeu',
+      'cloze_oss',
+      'reorder_oss',
+      'reorder_prof',
+      'cloze_obrigado',
+      'reorder_treinar',
+    ];
+    const bjjQuizTokens = /\b(oss|rola|professor|treinar|tatame|kimono)\b/i;
     for (const p of bank) {
-      expect(p.kind === 'cloze' || p.kind === 'reorder').toBe(true);
+      expect(p.kind === 'cloze' || p.kind === 'choice' || p.kind === 'reorder').toBe(true);
       expect(p.id).not.toMatch(/^tech_/);
+      expect(bannedIds).not.toContain(p.id);
+      const promptPt = p.prompt.pt;
+      expect(promptPt).not.toMatch(bjjQuizTokens);
+      if (p.options) {
+        for (const o of p.options) {
+          expect(o.pt).not.toMatch(/^Oss$/i);
+        }
+      }
+      if (p.words) {
+        for (const w of p.words) {
+          expect(w).not.toMatch(bjjQuizTokens);
+        }
+      }
     }
     const ids = new Set(bank.map((p) => p.id));
-    expect(ids.has('cloze_obrigado')).toBe(true);
+    expect(ids.has('cloze_bom_dia')).toBe(true);
+    expect(ids.has('cloze_me_ve')).toBe(true);
     expect(ids.has('cloze_feira')).toBe(true);
-    expect(ids.has('reorder_treinar')).toBe(true);
+    expect(ids.has('lex_pao_chapa')).toBe(true);
+    expect(ids.has('reorder_obrigado_pao')).toBe(true);
+    expect(ids.has('reorder_tudo_bem')).toBe(true);
   });
 
   it('shows Mata-leão HUD accent on Costas (rear naked choke, not Guilhotina)', () => {
