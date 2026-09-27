@@ -575,8 +575,10 @@ export function drawBjjPose(ctx: Ctx, pose: BjjPoseId, w: number, h: number, opt
   ctx.clearRect(0, 0, w, h);
   const s = Math.min(w / VW, h / VH);
   mat(ctx, w, h, h - (VH - 86) * s);
+  // Narrow cards (the phone end card) slide the figures right so the ribbon doesn't sit on their heads.
+  const nudge = opts.badge && w < 220 ? Math.min(w * 0.2, 36) : 0;
   ctx.save();
-  ctx.translate((w - VW * s) / 2, h - VH * s);
+  ctx.translate((w - VW * s) / 2 + nudge, h - VH * s);
   ctx.scale(s, s);
   drawPose(ctx, pose, opts.tapFrom);
   ctx.restore();
