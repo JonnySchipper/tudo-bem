@@ -41,6 +41,17 @@ describe('Academia do Bairro branding (no Gracie)', () => {
     expect(propsTs).not.toMatch(/GRACIE/i);
   });
 
+  it('Academia interior exit door shows DO BAIRRO and SAÍDA · PRAÇA', () => {
+    const roomTs = fs.readFileSync(path.join(ROOT, 'apps/client/src/render/room.ts'), 'utf8');
+    const exitBlock = roomTs.match(
+      /room\.id === 'academia' && p\.to === 'praca'[\s\S]*?} else \{/,
+    )?.[0];
+    expect(exitBlock).toBeDefined();
+    expect(exitBlock).toMatch(/DO BAIRRO/);
+    expect(exitBlock).toMatch(/SAÍDA · PRAÇA/);
+    expect(exitBlock).toMatch(/ACADEMIA/);
+  });
+
   for (const rel of NO_GRACIE_FILES) {
     it(`${rel} contains no Gracie / GRACIE`, () => {
       const text = fs.readFileSync(path.join(ROOT, rel), 'utf8');

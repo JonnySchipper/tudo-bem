@@ -1205,7 +1205,10 @@ function drawPortalDoor(ctx: Ctx, room: RoomDef, p: PortalDef) {
     } else if (room.id === 'academia' && p.to === 'praca') {
       rrect(ctx, x - 2, -dh - 4, w + 4, dh + 4, 3, '#8B5E3C');
       rrect(ctx, x, -dh, w, dh, 2, '#e8e2d6');
-      rrect(ctx, x + 4, -dh + 10, w - 8, dh - 20, 2, '#c9baa8');
+      rrect(ctx, x + 3, -dh + 8, w - 6, dh - 16, 2, '#3a8a5c');
+      wallText(ctx, 'ACADEMIA', L / 2, -dh + 22, 7, '#fff', { font: FONT_BODY });
+      rrect(ctx, L / 2 - 26, -dh - 34, 52, 12, 3, '#2f4f6f');
+      wallText(ctx, 'DO BAIRRO', L / 2, -dh - 28, 5.5, '#f5f2ea', { font: FONT_BODY });
       rrect(ctx, L / 2 - 18, -dh - 20, 36, 13, 3, '#3a8a5c');
       wallText(ctx, 'SAÍDA · PRAÇA', L / 2, -dh - 13, 6.5, '#fff', { font: FONT_BODY });
     } else {
