@@ -287,6 +287,11 @@ export function drawFloorTile(ctx: Ctx, room: RoomDef, x: number, y: number) {
     case 'madeira':
       onTile(ctx, x, y, () => drawTaco(ctx, x, y));
       break;
+    case 'tatame': {
+      const r = hash(x, y, 31);
+      subDiamond(ctx, x, y, 0, 0, 1, shade('#3a6f8c', (r - 0.5) * 0.12));
+      break;
+    }
     case 'asfalto':
       subDiamond(ctx, x, y, 0, 0, 1, '#5a5a60');
       break;

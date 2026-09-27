@@ -16,6 +16,7 @@ import type { MgBuiltUnit, MgOrderLine, MgOutcome, Tray } from './meveum.js';
 import type { SafetyAction } from './safety.js';
 import type { NpcId } from './rooms.js';
 import type { ConversaGrade, ConversaMeter, ConversaScores, ConversaSubject } from './conversa.js';
+import type { BjjProgress, RollPuzzleView } from './academia.js';
 
 /** Client → server messages. JSON over a single WebSocket at /ws. */
 export type ClientMsg =
@@ -50,6 +51,13 @@ export type ClientMsg =
   | { t: 'friend'; action: 'request' | 'accept' | 'decline' | 'remove'; targetId: string }
   | { t: 'friends' }
   | { t: 'mission'; action: 'take' }
+  | { t: 'roll'; action: 'queue' }
+  | { t: 'roll'; action: 'cancel' }
+  | { t: 'roll'; action: 'answer'; choice: number }
+  | { t: 'roll'; action: 'answer'; order: number[] }
+  | { t: 'roll'; action: 'timeout' }
+  | { t: 'roll'; action: 'rematch' }
+  | { t: 'roll'; action: 'quit' }
   | { t: 'ping' };
 
 export interface RoomStateMsg {
@@ -123,6 +131,46 @@ export type ConversaServerMsg =
     }
   | { t: 'conversa'; phase: 'blocked'; reason: 'daily' | 'unavailable'; pt: string; en: string };
 
+export type RollServerMsg =
+  | { t: 'roll'; phase: 'queue'; waitMs: number; opponent: 'cpu' | null }
+  | { t: 'roll'; phase: 'bow'; line: Bilingual }
+  | {
+      t: 'roll';
+      phase: 'duel';
+      round: number;
+      maxRounds: number;
+      puzzle: RollPuzzleView;
+      timeMs: number;
+      playerIdx: number;
+      cpuIdx: number;
+      positionPt: string;
+      positionEn: string;
+      submissionPt: string | null;
+      submissionEn: string | null;
+      /** Test / CI only when TB_TEST_ROLL=1 on server. */
+      debugCorrect?: number | number[];
+    }
+  | {
+      t: 'roll';
+      phase: 'scramble';
+      advance: 'player' | 'cpu' | 'none';
+      line: Bilingual;
+      playerIdx: number;
+      cpuIdx: number;
+      positionPt: string;
+      positionEn: string;
+    }
+  | {
+      t: 'roll';
+      phase: 'end';
+      winner: 'player' | 'cpu' | 'draw';
+      reason: 'submission' | 'decisao';
+      rv: number;
+      bjj: BjjProgress;
+      line: Bilingual;
+      fistBump: Bilingual;
+    };
+
 /** Server → client messages. */
 export type ServerMsg =
   | { t: 'welcome'; profile: PrivateProfile; token: string }
@@ -152,6 +200,7 @@ export type ServerMsg =
     }
   | MgServerMsg
   | ConversaServerMsg
+  | RollServerMsg
   | { t: 'furnitureState'; furniture: PlacedFurniture[] }
   | { t: 'friends'; friends: FriendInfo[]; incoming: { id: string; name: string }[] }
   | { t: 'friendRequest'; fromId: string; fromName: string }

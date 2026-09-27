@@ -36,6 +36,7 @@ import {
 } from './ui/panels';
 import { openPedido, updatePedido, closePedido, isPedidoOpen } from './ui/pedido';
 import { closeConversa, isConversaOpen, openConversa } from './ui/conversa';
+import { RollUI, closeRoll } from './ui/roll';
 import { speak, stopSpeaking, unlockSpeech } from './audio';
 import { ambience } from './ambience';
 import { installViewport } from './ui/viewport';
@@ -67,6 +68,7 @@ let hud: ReturnType<typeof buildHud> | null = null;
 let decor: ReturnType<typeof buildDecorPanel> | null = null;
 let onboarding: ReturnType<typeof runOnboarding> | null = null;
 let minigame: MinigameUI | null = null;
+let rollUi: RollUI | null = null;
 let started = false;
 /** If a reconnect doesn't bring the open ticket back, don't leave Me vê um locked. */
 let mgResumeWatch = 0;
@@ -143,6 +145,12 @@ function propAction(action: string) {
   else if (action === 'minigame') startMinigame();
   else if (action === 'kiosk') openKiosk(() => net.send({ t: 'mission', action: 'take' }));
   else if (action === 'parrot_perch') showParrotPerch(() => net.send({ t: 'parrot', action: 'adopt' }));
+  else if (action === 'bjj_roll') startRoll();
+}
+
+function startRoll() {
+  closeDialogue();
+  net.send({ t: 'roll', action: 'queue' });
 }
 
 function openShop() {
@@ -169,11 +177,15 @@ function updateGuides() {
     if (!t.carlos) renderer.guides.push({ x: 5, y: 0, lift: 110, label: 'Padaria →' });
     else if (!t.chapeu) renderer.guides.push({ x: 11, y: 6, lift: 138, label: 'Chapéus' });
     else if (!t.cadeira) renderer.guides.push({ x: 0, y: 4, lift: 110, label: 'Minha kitnet' });
+    if (t.meveum) renderer.guides.push({ x: 10, y: 0, lift: 110, label: 'Academia →' });
   } else if (r.room === 'padaria') {
     // Click opens AI Conversa. Don't label the tile "Conversar" — that word was the chip-scene trap.
     renderer.guides.push({ x: 3, y: 1, lift: 130, label: t.carlos ? 'Falar com Carlos' : 'Fale com o Seu Carlos' });
     if (t.carlos && !t.meveum) renderer.guides.push({ x: 8, y: 2, lift: 128, label: 'Me vê um…' });
     else if (t.carlos && t.meveum && !t.chapeu) renderer.guides.push({ x: 0, y: 6, lift: 110, label: '← Praça' });
+  } else if (r.room === 'academia') {
+    renderer.guides.push({ x: 8, y: 2, lift: 130, label: 'Fila do tatame' });
+    renderer.guides.push({ x: 0, y: 6, lift: 110, label: '← Praça' });
   }
 }
 
@@ -211,7 +223,7 @@ net.on((m: ServerMsg) => {
       onboarding = null;
       if (!started) startGame();
       const last = sessionStorage.getItem(LAST_ROOM_KEY);
-      joinRoom(last === 'padaria' || last === 'kitnet' ? last : 'praca');
+      joinRoom(last === 'padaria' || last === 'kitnet' || last === 'academia' ? last : 'praca');
       game.emit('profile');
       break;
     }
@@ -226,9 +238,11 @@ net.on((m: ServerMsg) => {
       break;
     case 'roomState': {
       const keepMg = !!minigame && modalId() === 'minigame' && game.room?.room === m.room;
-      if (!keepMg) {
+      const keepRoll = !!rollUi && modalId() === 'roll' && m.room === 'academia';
+      if (!keepMg && !keepRoll) {
         closeModal();
         minigame = null;
+        rollUi = null;
       }
       closeDialogue();
       game.room = m;
@@ -336,6 +350,19 @@ net.on((m: ServerMsg) => {
       }
       minigame?.handle(m);
       if (m.phase === 'end') minigame = null;
+      break;
+    case 'roll':
+      if (m.phase === 'queue' && (!rollUi || modalId() !== 'roll')) {
+        rollUi = new RollUI({
+          answerChoice: (i) => net.send({ t: 'roll', action: 'answer', choice: i }),
+          answerOrder: (order) => net.send({ t: 'roll', action: 'answer', order }),
+          timeout: () => net.send({ t: 'roll', action: 'timeout' }),
+          quit: () => net.send({ t: 'roll', action: 'quit' }),
+          rematch: startRoll,
+        });
+      }
+      rollUi?.handle(m);
+      if (m.phase === 'end') rollUi = null;
       break;
     case 'furnitureState':
       game.furniture = m.furniture;

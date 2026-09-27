@@ -169,6 +169,10 @@ describe('rooms + pathing', () => {
   });
 
   it('interpolates along paths', () => {
+    const gAcad = buildGrid(ROOMS.academia);
+    expect(isWalkable(gAcad, 1, 6)).toBe(true);
+    expect(ROOMS.praca.portals.some((p) => p.to === 'academia')).toBe(true);
+    expect(ROOMS.academia.portals.some((p) => p.to === 'praca')).toBe(true);
     const g = buildGrid(ROOMS.praca);
     const path = findPath(g, { x: 7, y: 9 }, { x: 9, y: 9 })!;
     expect(path.at(-1)).toEqual({ x: 9, y: 9 });

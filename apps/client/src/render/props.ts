@@ -1287,6 +1287,52 @@ function estufa(ctx: Ctx, cx: number, cy: number) {
   label(ctx, 'SALGADOS', cx - 13, cy - 60, '#b5452e', '#fff', 7);
 }
 
+function tatameMat(ctx: Ctx, cx: number, cy: number, w: number, h: number) {
+  shadow(ctx, cx, cy, 40 * w, 18 * h, 0.22);
+  for (let dx = 0; dx < w; dx++)
+    for (let dy = 0; dy < h; dy++) {
+      const [ox, oy] = iso(dx * 0.9, dy * 0.9);
+      box(ctx, cx + ox, cy + oy, 0.88, 0.88, 3, (dx + dy) % 2 ? '#2f5f7a' : '#3a6f8c', 2);
+    }
+  label(ctx, 'TATAME', cx, cy - 8 - h * 6, '#1e3d4f', '#fff', 7);
+}
+
+function paredeFaixas(ctx: Ctx, cx: number, cy: number) {
+  shadow(ctx, cx, cy, 22, 10, 0.2);
+  box(ctx, cx, cy, 0.35, 0.9, 48, '#d8cbb6', 8);
+  const colors = ['#f5f5f5', '#3a8a5c', '#3d5d8f', '#6b3f24', '#34343c'];
+  colors.forEach((c, i) => {
+    rrect(ctx, cx - 8, cy - 40 + i * 9, 16, 6, 2, c);
+  });
+  label(ctx, 'FAIXAS', cx, cy - 52, '#2f4f6f');
+}
+
+function quadroFila(ctx: Ctx, cx: number, cy: number, t: number) {
+  shadow(ctx, cx, cy, 20, 10, 0.2);
+  box(ctx, cx, cy, 0.5, 0.2, 36, '#4a4a52', 6);
+  rrect(ctx, cx - 14, cy - 44, 28, 22, 3, '#f8f4ea');
+  ctx.fillStyle = '#2f4f6f';
+  ctx.font = `800 8px ${FONT_BODY}`;
+  ctx.textAlign = 'center';
+  ctx.fillText('FILA', cx, cy - 36);
+  ctx.fillText('OPEN MAT', cx, cy - 26);
+  const pulse = 0.5 + Math.sin(t * 2) * 0.15;
+  circle(ctx, cx + 12, cy - 18, 3 + pulse, '#3a8a5c');
+  label(ctx, 'ROLAR', cx, cy - 58, '#c9582c');
+}
+
+function bancoEspectador(ctx: Ctx, cx: number, cy: number) {
+  banco(ctx, cx, cy, 'SW');
+  label(ctx, 'BANCO', cx, cy - 22, '#5a5a62', '#fff', 7);
+}
+
+function vestiario(ctx: Ctx, cx: number, cy: number) {
+  shadow(ctx, cx, cy, 24, 12, 0.18);
+  box(ctx, cx, cy, 0.55, 0.35, 28, '#9a9a9a', 6);
+  rrect(ctx, cx - 10, cy - 32, 20, 26, 2, '#7a8a96');
+  label(ctx, 'VESTIÁRIO', cx, cy - 42, '#4a5560', '#fff', 6);
+}
+
 export function drawProp(ctx: Ctx, p: PropDef, cx: number, cy: number, t: number, slice = 0, opts: { parrotAdopted?: boolean } = {}) {
   switch (p.kind) {
     case 'ipe':
@@ -1343,6 +1389,17 @@ export function drawProp(ctx: Ctx, p: PropDef, cx: number, cy: number, t: number
       return sacoLixo(ctx, cx, cy);
     case 'floreira':
       return floreira(ctx, cx, cy);
+    case 'tatame':
+      if (slice === 0) return tatameMat(ctx, cx, cy, p.w ?? 1, p.h ?? 1);
+      return;
+    case 'parede_faixas':
+      return paredeFaixas(ctx, cx, cy);
+    case 'quadro_fila':
+      return quadroFila(ctx, cx, cy, t);
+    case 'banco_espectador':
+      return bancoEspectador(ctx, cx, cy);
+    case 'vestiario':
+      return vestiario(ctx, cx, cy);
   }
 }
 
