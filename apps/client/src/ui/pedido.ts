@@ -161,11 +161,13 @@ function render() {
 
   let body: HTMLElement;
   if (state.view.end) {
+    // Daily RV gate copy: eng-locked, PT-primary (Curriculum needs_br)
+    // "Já pediu hoje! Volte amanhã." — No inline English; gloss shown only in Verde plate tooltip if needed.
     const dailyCopy = state.dailyBlocked
-      ? h('div', { class: 'daily-blocked' },
+      ? h('div', { class: 'daily-blocked', 'data-needs-br': 'true' },
           h('span', { class: 'blocked-icon' }, '📅'),
-          h('b', null, 'Já pediu hoje!'),
-          en('Come back tomorrow for more RV', true)
+          h('b', { lang: 'pt-BR' }, 'Já pediu hoje!'),
+          h('small', { lang: 'pt-BR' }, 'Volte amanhã.')
         )
       : null;
 
