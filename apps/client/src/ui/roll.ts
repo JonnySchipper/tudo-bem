@@ -142,7 +142,13 @@ export class RollUI {
           h('p', { class: 'prompt' }, h('b', null, m.puzzle.prompt.pt), en(m.puzzle.prompt.en)),
           row,
           bank,
-          h('div', { class: 'row' }, h('button', { class: 'ghost', onclick: () => this.resetReorder(row, bank) }, bi('Limpar', 'Clear')), h('span', { class: 'spacer' }), h('button', { class: 'green', onclick: () => this.submitReorder() }, bi('Confirmar', 'Confirm'))),
+          h(
+            'div',
+            { class: 'row roll-actions' },
+            h('button', { class: 'ghost', onclick: () => this.resetReorder(row, bank) }, bi('Limpar', 'Clear')),
+            h('span', { class: 'spacer' }),
+            h('button', { class: 'green', onclick: () => this.submitReorder() }, bi('Confirmar', 'Confirm')),
+          ),
         );
       } else {
         const chips = h('div', { class: 'roll-chips' });
@@ -198,7 +204,9 @@ export class RollUI {
               ? bi('Listras sobem com vitórias — faixa branca em v0.', 'Stripes grow with wins — white belt only in v0.')
               : bi('Oss — valeu pela rola. +português, sempre com respeito.', 'Oss — thanks for the roll. Portuguese practice, always respectful.'),
           ),
-          h('div', { class: 'row', style: 'justify-content:center;margin-top:12px' },
+          h(
+            'div',
+            { class: 'row roll-actions roll-actions-end', style: 'justify-content:center;margin-top:8px' },
             h('button', { onclick: () => this.close() }, bi('Sair', 'Leave')),
             h('button', { class: 'primary', onclick: () => (this.close(), this.actions.rematch()) }, bi('De novo', 'Rematch')),
           ),

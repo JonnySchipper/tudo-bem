@@ -1560,30 +1560,173 @@ body:has([data-modal='minigame']) .toasts {
 }
 
 @media (max-width: 430px) {
+  .backdrop[data-modal='roll'] .panel.roll,
   .panel.roll,
   .roll.panel {
     width: min(100vw - 16px, 390px);
-    max-height: min(92vh, 844px);
+    max-height: min(92dvh, calc(100dvh - var(--safe-top) - 8px - var(--kb)));
     margin: 8px auto;
-    padding: 12px 14px calc(12px + var(--safe-bottom));
+    padding: calc(10px + var(--safe-top)) 14px calc(10px + var(--safe-bottom));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
   }
 
   .roll-head h2 {
     font-size: 1.15rem;
+    margin: 0;
   }
 
-  .roll-chips button {
-    min-height: 44px;
-    font-size: 1rem;
+  .roll-head .en,
+  .roll-disclaimer .en,
+  .roll-belt .en {
+    display: none;
+  }
+
+  .roll-head {
+    margin-bottom: 4px;
+    flex-shrink: 0;
+  }
+
+  .roll-disclaimer {
+    margin-bottom: 6px;
+    padding: 6px 8px;
+    font-size: 0.78em;
+    flex-shrink: 0;
+  }
+
+  .panel.roll:has(#roll-duel) .roll-disclaimer,
+  .panel.roll:has(#roll-end) .roll-disclaimer {
+    display: none;
   }
 
   .roll-belt {
-    font-size: 0.8em;
+    font-size: 0.78em;
+    margin-bottom: 4px;
+    flex-shrink: 0;
+  }
+
+  .panel.roll:has(#roll-duel) .roll-belt {
+    display: none;
+  }
+
+  .roll-pose {
+    flex-shrink: 0;
+    max-width: 168px;
+    height: 72px;
+    margin-bottom: 4px;
+  }
+
+  .panel.roll:has(#roll-duel) .roll-pose {
+    display: none;
+  }
+
+  .panel.roll:has(#roll-end) .roll-pose {
+    max-width: 140px;
+    height: 56px;
+  }
+
+  .panel.roll .rail {
+    flex-shrink: 0;
+    padding: 8px 10px;
+    border-radius: 10px;
+  }
+
+  .panel.roll:has(#roll-end) .rail {
+    display: none;
+  }
+
+  .panel.roll .timer {
+    margin-top: 6px;
+    height: 8px;
+  }
+
+  .roll-position {
+    font-size: 0.88em;
+    line-height: 1.25;
+  }
+
+  .roll-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin-top: 6px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .roll-duel,
+  .roll-end {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 4px 0 0;
+    text-align: left;
+  }
+
+  .roll-end {
+    text-align: center;
+  }
+
+  .roll-duel .prompt {
+    flex-shrink: 0;
+    margin: 0 0 6px;
+  }
+
+  .roll-reorder-pick {
+    flex-shrink: 0;
+    min-height: 32px;
+    margin: 4px 0;
+    padding: 6px;
+  }
+
+  .roll-chips {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .roll-chips button {
+    flex: 1 1 calc(50% - 3px);
+    min-height: 40px;
+    font-size: 0.92rem;
+    padding: 8px 10px;
+  }
+
+  .roll-actions {
+    flex-shrink: 0;
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-top: auto;
+    padding-top: 8px;
+    padding-bottom: 2px;
+    background: linear-gradient(180deg, rgba(251, 241, 227, 0), var(--cream) 12px);
+  }
+
+  .roll-end .big {
+    font-size: 2.1em;
+    line-height: 1.05;
+  }
+
+  .roll-end p.muted {
+    display: none;
   }
 
   .roll .row button {
     min-height: 44px;
     flex: 1 1 auto;
+  }
+
+  .roll-actions-end {
+    justify-content: center;
   }
 }
 
