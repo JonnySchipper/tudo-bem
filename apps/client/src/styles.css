@@ -1472,13 +1472,26 @@ body:has([data-modal='minigame']) .toasts {
   background: var(--verde);
 }
 
+/* Sits on the brown .rail: cream text, not the default ink. */
 .roll-position {
+  position: relative;
+  margin-top: 6px;
   font-weight: 800;
   font-size: 0.95em;
+  color: #fff6e6;
+  text-shadow: 0 1px 0 rgba(44, 24, 10, 0.55);
+}
+
+.roll-position b {
+  color: #fff;
+}
+
+.roll-position .en {
+  color: #ecdcc3;
 }
 
 .roll-position .sub-hint {
-  color: var(--terracota);
+  color: #ffc46b;
 }
 
 .roll-body {
