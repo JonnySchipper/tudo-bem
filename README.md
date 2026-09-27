@@ -35,7 +35,7 @@ Checks:
 
 ```bash
 pnpm typecheck    # all packages
-pnpm test         # vitest: safety filter, gloss, scene graph, minigame, rooms, world server
+pnpm test         # vitest: safety filter, gloss, scene graph, minigame, rooms, world server, accounts + idle kick over real HTTP/WS
 pnpm e2e          # headless-Chrome play-through of the whole Phase 0 path (needs `pnpm start` running)
 pnpm verify       # typecheck + test + build
 pnpm art          # regenerate + bake all art assets (see docs/art)
@@ -46,8 +46,8 @@ pnpm content      # regenerate cards.json, me-ve-um-orders.json, cpu-names.json 
 
 ## Play path (≈10 minutes)
 
-1. **Age gate** — birth month + year; **18+ only** (the date is not stored).
-2. **Create your avatar** — body, skin, face and detail (glasses, beard, earrings…), hair, free starter clothes, and how NPCs should address you (*ele / ela / só meu nome*). Tick **“Confirmo que tenho 18 anos ou mais”** to enter.
+1. **Create an account** — email + password, plus a one-time **“Confirmo que tenho 18 anos ou mais”** tick (**18+ only**; no birth date is asked). Returning players pick **Entrar**. The session cookie keeps you signed in across reloads; **Sair** in the top bar logs out. Solo builds skip this step (no server, no accounts) and ask for the 18+ tick in the avatar creator instead.
+2. **Create your avatar** — body, skin, face and detail (glasses, beard, earrings…), hair, free starter clothes, and how NPCs should address you (*ele / ela / só meu nome*).
 3. **Praça Central** — click the floor to walk, click a bench to sit, press **Oi!** to wave, type in chat. Júlia (guide, by the quest kiosk) explains the basics. The *Primeiros passos* checklist tracks it all. A few scripted **neighbors** (Verde plates, first names only) sit on benches and stroll to the Padaria door so the square never looks empty; they wave back but never chat, and they don’t take player seats. The **quest kiosk** hands out the *Missão do dia* (Cumprimenta / Pede / Monta → **+25 RV**, once a day).
 4. **Padaria do Seu Carlos** — walk through the door with the red awning. Click **Seu Carlos** for the authored breakfast scene (“Pois não. O que vai ser hoje?”). Pick reply chips (keys 1–4) **or type your answer**, which is scored with the curriculum accept-list rules: accents optional, *me dá / quero* accepted with a nudge. Good Portuguese earns more RV; English or vague answers make him rephrase slower. ~5 turns → **6–14 RV**.
 5. **“Me vê um…”** — at the ticket rail on the counter. Read (or 🔊 listen to) each Portuguese order from the curriculum ticket list, click items onto the tray (keys 1–0, -, =), toggle modifiers (*pra viagem, pra comer aqui, sem açúcar, bem quente*), then **Entregar** (Enter). Miss once and Carlos repeats slowly; combos pay extra. 6 orders → **8–20 RV**.
@@ -73,6 +73,8 @@ apps/server       Authoritative Node room server (ws). Client is a puppet.
   ambiance.ts       Praça ambiance CPUs (Live Ops): outside the cap, scripted sit / walk / wave, no chat
   services/         Interfaces + Phase 0 stubs for Jev safety, gloss, NPC dialogue, student model, moderation queue
   store.ts          JSON-file profile store (swap for Postgres)
+  auth.ts           Email/password accounts: scrypt hashes, hashed cookie sessions, rate limits, /api/auth/*
+  app.ts            HTTP + WebSocket server (createApp), idle sweep; index.ts reads env and listens
 apps/client       Vite + Canvas 2D isometric renderer, DOM UI
 scripts/e2e.mjs   Playwright-core end-to-end play-through
 ```
@@ -88,7 +90,9 @@ scripts/e2e.mjs   Playwright-core end-to-end play-through
   - Every v0.1 Jev example (public chat + NPC replies), every PII example and the PT-slang false-block KPI run in CI. Rate limit 5 msgs / 10 s. Report button on profiles.
 - **No pay-to-win** — RV is earned only from graded language acts (scene, minigame) and the tutorial; nameplates can’t be bought. Everyone is **Verde** in Phase 0.
 - **No generative NPCs yet** — Carlos is an authored chip graph behind `NpcDialogueService`; an LLM provider can drop in later with the authored one as the Jev-down fallback.
-- **Adults only (18+)** — birth-date check plus an explicit 18+ confirmation, both enforced by the server. Only “passed the gate” is stored. No under-13/COPPA or parental-consent flows; younger audiences are a later rollout after thorough testing. The constitution and chat safety above apply fully to adults. See [docs/AGE_POLICY.md](docs/AGE_POLICY.md).
+- **Adults only (18+)** — an explicit 18+ confirmation at signup, enforced by the server. No birth date is collected. No under-13/COPPA or parental-consent flows; younger audiences are a later rollout after thorough testing. The constitution and chat safety above apply fully to adults. See [docs/AGE_POLICY.md](docs/AGE_POLICY.md).
+- **Accounts** — multiplayer requires an email + password account. Passwords are hashed with scrypt (salted, never stored or logged in plain text). The session is an `HttpOnly; SameSite=Lax` cookie (`Secure` over HTTPS) whose value is stored only as a SHA-256 hash in `DATA_DIR/accounts.json`, with a 30-day sliding expiry. Failed logins are rate-limited per email and per IP. Auth POSTs and the WebSocket upgrade reject other sites’ origins. A browser that played before accounts existed gets its old avatar linked on first signup. `/api/conversa` pays RV to the signed-in player, not to a client-supplied id.
+- **Idle kick** — a player with no real input (walking, chat, clicks, keys; pings don’t count) gets a warning at 14 minutes and is sent home at **15 minutes**, freeing their seat. The server decides, so an AFK tab gets kicked even if its client keeps pinging. **Voltar pra Praça** rejoins.
 
 ## Content packs
 
@@ -112,7 +116,11 @@ All Phase 0 art is **generated in-repo** by the build agent as procedural canvas
 | Env | Default | Meaning |
 | --- | --- | --- |
 | `PORT` / `HOST` | `8787` / `0.0.0.0` | Server listen address |
-| `DATA_DIR` | `./data` | Profiles (`profiles.json`) + moderation log (`moderation.jsonl`) |
+| `DATA_DIR` | `./data` | Profiles (`profiles.json`), accounts + hashed sessions (`accounts.json`), moderation log (`moderation.jsonl`) |
+| `IDLE_KICK_SECONDS` | `900` | Kick players after this long without real input (warning 60 s before) |
+| `SESSION_TTL_DAYS` | `30` | Sliding login session lifetime |
+| `COOKIE_SECURE` | auto | `auto` sets `Secure` when the request arrived over HTTPS (Fly’s `X-Forwarded-Proto`). `1` forces it on, `0` forces it off |
+| `ALLOWED_ORIGINS` | *(none)* | Comma-separated extra browser origins allowed to call `/api/auth` and open `/ws`. Same-origin is always allowed |
 | `ROOM_CAP` | `16` | Players per instance (lower it to demo overflow instances, e.g. `ROOM_CAP=2`) |
 | `LIVEOPS_CPU_AMBIANCE` | `on` | Praça ambiance CPUs. `off` for empty-room playtests. Solo/static builds: add `?cpu=off` to the URL |
 | `CLIENT_DIST` | auto | Built client directory served by the server |

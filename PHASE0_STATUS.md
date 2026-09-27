@@ -2,7 +2,7 @@
 
 Target: `TudoBem-Phase0-MVP.md` (success criteria 1–4) and GDD v1.0 §14.1.
 
-**Verdict: the slice is playable end-to-end.** `pnpm e2e` checks that an under-18 birth date is turned away, then drives a fresh adult user through every success-criteria step in headless Chrome, plus a second player for chat, gloss, friends, and a kitnet visit. It passes against the production build, the Vite dev server, and a public tunnel URL.
+**Verdict: the slice is playable end-to-end.** `pnpm e2e` signs up with email + password (one 18+ tick, no birth date), checks the session survives a reload and that logout → wrong password → login works, then drives a fresh adult user through every success-criteria step in headless Chrome, plus a second player for chat, gloss, friends, and a kitnet visit. It passes against the production build, the Vite dev server, and a public tunnel URL.
 
 ## Live URL
 
@@ -110,7 +110,9 @@ A verbatim copy of the v0.1 JSON is in `content/safety/source-v0.1/` (the game d
 
 | Area | Status |
 | --- | --- |
-| Age gate | **Adults only (18+)** per CEO decision. Birth month/year must compute to 18+, **and** the create-avatar screen requires ticking “Confirmo que tenho 18 anos ou mais” (`confirm18`). The server enforces both. Under-18 users get an adults-only screen (sticky on that browser). Birth date is **not stored** — only `ageGate18: true`. Pre-policy profiles must sign up again. No COPPA, parental-consent, or kid UI is built. See `docs/AGE_POLICY.md`. |
+| Age gate | **Adults only (18+)** per CEO decision. **No birth-date step** (removed 27 Sep 2026). Signup requires ticking “Confirmo que tenho 18 anos ou mais” (`confirm18`); the server enforces it and records only when it was ticked. Solo guests tick it in the avatar creator. No date of birth is collected or stored — profiles keep only `ageGate18: true`. Pre-policy profiles must sign up again. No COPPA, parental-consent, or kid UI is built. See `docs/AGE_POLICY.md`. |
+| Accounts | **Email + password** required for multiplayer (`/api/auth/register · login · logout · me`). scrypt-hashed passwords, `HttpOnly; SameSite=Lax` session cookie (`Secure` over HTTPS) stored hashed in `DATA_DIR/accounts.json`, 30-day sliding expiry, per-email/IP rate limits, same-origin checks on auth POSTs and `/ws`. A pre-accounts browser links its old avatar on first signup. Solo mode stays guest-only. |
+| Idle kick | Server-authoritative: no real input for **15 min** → warning at 14 min, then kicked (WS close 4001) and the seat is freed. Pings, reconnect hellos and client timers don't count as activity. The client shows *Até já!* with **Voltar pra Praça**. `IDLE_KICK_SECONDS` to tune. |
 | Avatar create | Starter look preset (4), body type (3), skin (8), face (4), detail (6: glasses, beard, mustache, earrings, freckles), hair style (9) + color (8), top (5) + color (13), bottoms (3) + color, sneakers (5); addressed as *ele / ela / nome*. Name filtered (no PII, no long numbers, constitution). |
 | Praça ambiance | Scripted Verde-plate CPUs (allowlisted first names) outside the 16 cap: sit, stroll to the Padaria door, wave. No chat, never in Padaria/Kitnet, yield benches to players. `LIVEOPS_CPU_AMBIANCE`. |
 | Daily kiosk | *Missão do dia* Set A: Cumprimenta / Pede / Monta → +25 RV once a day. |
@@ -134,8 +136,8 @@ A verbatim copy of the v0.1 JSON is in `content/safety/source-v0.1/` (the game d
 ## Known gaps (honest list)
 
 - **No permanent public deploy yet.** It needs the one-time action above (Fly token, Render blueprint, or enabling Pages). Until then the tunnel URL is temporary.
-- **Age assurance is self-declared** (birth date + 18+ checkbox), with no ID or age-estimation check. That fits an internal adult preview; revisit before a public launch.
-- **Persistence** is a JSON file; fine for internal testers, not for concurrency or scale. Guest identity is a random token in `localStorage` (no accounts, email, or password; clearing storage loses the avatar).
+- **Age assurance is self-declared** (an 18+ checkbox at signup), with no ID or age-estimation check. That fits an internal adult preview; revisit before a public launch.
+- **Persistence** is a JSON file; fine for internal testers, not for concurrency or scale. Accounts (email + password) live in `accounts.json` on the same volume. There's no email verification or password reset yet (Phase 1: needs an email provider). Solo mode is still a guest token in `localStorage`.
 - **Safety is a stub**, not Jev. Blocklists and regex miss creative obfuscation (e.g. `f*ck`, spaced letters). Context comes only from the named conditions (*preto* color/food, *bar* place-names, flirt/body-directed patterns). There's no human review UI for the queue, no report-reason picker (v0.1 ops lists a minimum set), and no mute/kick/ban tools yet. Carlos doesn't yet use the substance pack's `rewrite_hints` to offer guaraná when a typed order is blocked.
 - **Accepted false positives:** the animal *macaco* blocks. Food compliments (*coxinha gostosa*) and pickup football (*pelada*) get a warn note, though they're delivered verbatim. From v0.1: street names and *escola* + name block as PII in free chat, and *vinho* as a color blocks.
 - **Gloss is a phrasebook**, so it’s literal or partial on free-form sentences (unknown words pass through untranslated).
