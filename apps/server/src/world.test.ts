@@ -9,6 +9,7 @@ import {
   isWalkable,
   MISSION_REWARD,
   mgBuiltForTray,
+  mgPayout,
   mgPerfectBuilt,
   mulberry32,
   ROOMS,
@@ -595,6 +596,67 @@ describe('World', () => {
     await b.send({ t: 'join', room: 'padaria' });
     expect(b.last('mg')).toMatchObject({ phase: 'order', round: 0, resync: true, pt });
     expect(world.debugOrder(b.s)!.pt).toBe(pt);
+  });
+
+  it('quitting mid-shift pays for points already scored instead of wiping them', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'mg', action: 'start' });
+    const before = a.s.profile!.coins;
+    const order = world.debugOrder(a.s)!;
+    clock += 1000;
+    await a.send({
+      t: 'mg',
+      action: 'submit',
+      tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])),
+      mods: order.mods,
+      built: mgPerfectBuilt(order),
+    });
+    expect(a.s.mg).toMatchObject({ round: 1 });
+    const points = a.s.mg!.points;
+    expect(points).toBeGreaterThan(0);
+    await a.send({ t: 'mg', action: 'quit' });
+    const end = a.last('mg') as Extract<ServerMsg, { t: 'mg'; phase: 'end' }>;
+    expect(end).toMatchObject({ phase: 'end', points, coins: mgPayout(points) });
+    expect(a.s.mg).toBeUndefined();
+    expect(a.s.profile!.coins).toBe(before + mgPayout(points));
+    advance(120_000);
+    expect(a.all('mg').filter((m) => m.phase === 'order' && m.round > 1)).toHaveLength(0);
+    await a.send({ t: 'mg', action: 'start' });
+    expect(a.last('mg')).toMatchObject({ phase: 'order', round: 0 });
+    expect(a.s.mg!.points).toBe(0);
+  });
+
+  it('quitting before any point does not pay the shift minimum', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'mg', action: 'start' });
+    const before = a.s.profile!.coins;
+    await a.send({ t: 'mg', action: 'quit' });
+    expect(a.all('mg').some((m) => m.phase === 'end')).toBe(false);
+    expect(a.last('notice')).toMatchObject({ level: 'info' });
+    expect(a.s.mg).toBeUndefined();
+    expect(a.s.profile!.coins).toBe(before);
+  });
+
+  it('quitting after only misses ends the shift in the open instead of restarting silently', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'mg', action: 'start' });
+    const before = a.s.profile!.coins;
+    clock += 1000;
+    await a.send({ t: 'mg', action: 'submit', tray: {} });
+    clock += 1000;
+    await a.send({ t: 'mg', action: 'submit', tray: {} });
+    expect(a.s.mg).toMatchObject({ round: 1, points: 0 });
+    await a.send({ t: 'mg', action: 'quit' });
+    expect(a.last('mg')).toMatchObject({ phase: 'end', points: 0, coins: 0 });
+    expect(a.s.mg).toBeUndefined();
+    expect(a.s.profile!.coins).toBe(before);
+    expect(a.s.profile!.tutorial.meveum).toBeFalsy();
   });
 
   it('missing ticket history still advances to the next order', async () => {

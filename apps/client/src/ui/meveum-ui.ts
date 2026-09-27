@@ -12,6 +12,7 @@ import {
 import { h, en, bi } from './dom';
 import { foodIcon } from '../render/icons';
 import { speak } from '../audio';
+import { stationBatchSize } from './meveum-batch.js';
 import { nextMgClock } from './meveum-clock.js';
 import { openModal } from './modal.js';
 
@@ -27,21 +28,6 @@ function wipNeeds(wip: Wip, order: Extract<MgServerMsg, { phase: 'order' }> | nu
 
 function wipReady(wip: Wip, order: Extract<MgServerMsg, { phase: 'order' }> | null): boolean {
   return wipNeeds(wip, order) === 'tray';
-}
-
-function stillNeeded(
-  order: Extract<MgServerMsg, { phase: 'order' }>,
-  tray: Tray,
-  wip: Wip | null,
-  prepQueue: Wip[],
-  itemId: string,
-): number {
-  const line = order.lines?.find((l) => l.itemId === itemId);
-  if (!line) return 0;
-  const onTray = tray[itemId] ?? 0;
-  let pipeline = prepQueue.filter((u) => u.itemId === itemId).length;
-  if (wip?.itemId === itemId) pipeline++;
-  return Math.max(0, line.qty - onTray - pipeline);
 }
 
 // ---------------------------------------------------------------- Me vê um… — station builder
@@ -75,6 +61,8 @@ export class MinigameUI {
   /** Units past chapa/bebidas waiting for pack / tray (batch prep). */
   private prepQueue: Wip[] = [];
   private stationGoBtns: Partial<Record<'chapa' | 'bebidas', HTMLButtonElement>> = {};
+  /** Place / clear / serve, pinned under the scrolling kitchen so a tall staging card cannot push them off. */
+  private trayActions!: HTMLElement;
 
   constructor(
     private actions: {
@@ -176,16 +164,18 @@ export class MinigameUI {
         h('div', { class: 'station-label' }, h('span', { class: 'pt' }, 'Bandeja'), en('Place on tray', true)),
         this.wipEl,
         this.trayEl,
-        h(
-          'div',
-          { class: 'row tray-actions' },
-          h('button', { type: 'button', id: 'mg-tray-place', onclick: () => this.placeOnTray() }, bi('Colocar na bandeja', 'Place on tray')),
-          h('button', { type: 'button', id: 'mg-clear', onclick: () => this.clearTray() }, bi('Limpar', 'Clear')),
-          h('span', { class: 'spacer' }),
-          h('button', { class: 'green serve-bell', type: 'button', onclick: () => this.submit(), id: 'mg-submit' }, bi('Entregar 🔔', 'Serve (Enter)')),
-        ),
       ),
     );
+
+    const trayActions = h(
+      'div',
+      { class: 'row tray-actions' },
+      h('button', { type: 'button', id: 'mg-tray-place', onclick: () => this.placeOnTray() }, bi('Colocar na bandeja', 'Place on tray')),
+      h('button', { type: 'button', id: 'mg-clear', onclick: () => this.clearTray() }, bi('Limpar', 'Clear')),
+      h('span', { class: 'spacer' }),
+      h('button', { class: 'green serve-bell', type: 'button', onclick: () => this.submit(), id: 'mg-submit' }, bi('Entregar 🔔', 'Serve (Enter)')),
+    );
+    this.trayActions = trayActions;
 
     this.body = h('div', { class: 'mg-body mg-body-stations' }, kitchen, h('div', { class: 'side' }, this.carlos, this.score));
     this.panel = h(
@@ -201,6 +191,7 @@ export class MinigameUI {
       ),
       h('div', { class: 'rail' }, this.ticket, this.timer),
       this.body,
+      trayActions,
     );
     this.close = openModal('minigame', this.panel, { dismissable: false, onClose: () => this.cleanup() });
     document.addEventListener('keydown', this.onKey);
@@ -237,6 +228,7 @@ export class MinigameUI {
     if (total >= MG_MAX_TRAY) return;
     this.wip = { itemId: id, shelf: true };
     this.renderWip();
+    this.renderStationButtons();
     this.pulseNext();
   }
 
@@ -269,11 +261,20 @@ export class MinigameUI {
   private batchSizeFor(station: 'chapa' | 'bebidas'): number {
     if (!this.order || !this.wip) return 1;
     if (wipNeeds(this.wip, this.order) !== station) return 1;
-    if (mgPrepStation(this.wip.itemId) !== station) return 1;
+    const itemId = this.wip.itemId;
+    if (mgPrepStation(itemId) !== station) return 1;
+    const line = this.order.lines?.find((l) => l.itemId === itemId);
+    if (!line) return 1;
     const trayTotal = Object.values(this.tray).reduce((a, b) => a + b, 0);
-    const cap = MG_MAX_TRAY - trayTotal;
-    const need = stillNeeded(this.order, this.tray, this.wip, this.prepQueue, this.wip.itemId);
-    return Math.max(1, Math.min(need, cap));
+    const queuedSame = this.prepQueue.filter((u) => u.itemId === itemId).length;
+    return stationBatchSize({
+      lineQty: line.qty,
+      onTray: this.tray[itemId] ?? 0,
+      queuedSame,
+      trayTotal,
+      queuedOther: this.prepQueue.length - queuedSame,
+      maxTray: MG_MAX_TRAY,
+    });
   }
 
   private runStationBatch(station: 'chapa' | 'bebidas', n: number) {
@@ -469,8 +470,12 @@ export class MinigameUI {
   }
 
   private quit() {
+    if (!this.order) {
+      this.close();
+      return;
+    }
+    this.lockUi();
     this.actions.quit();
-    this.close();
   }
 
   private ensureTick() {
@@ -588,6 +593,7 @@ export class MinigameUI {
     } else {
       cancelAnimationFrame(this.raf);
       this.order = null;
+      this.trayActions.hidden = true;
       this.ticket.replaceChildren(h('div', { class: 'order' }, 'Fim do turno!'), en('Shift over!'));
       this.body.replaceChildren(
         h(

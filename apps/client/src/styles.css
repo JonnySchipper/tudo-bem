@@ -958,10 +958,12 @@ body:has([data-modal='minigame']) .toasts {
     padding-bottom: calc(12px + var(--safe-bottom));
     padding-left: calc(12px + var(--safe-left));
     padding-right: calc(12px + var(--safe-right));
-    overflow-x: clip;
-    overflow-y: auto;
+    overflow: hidden;
     overscroll-behavior: contain;
     box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - var(--kb));
   }
 
   .mg-kitchen .station {
@@ -1195,7 +1197,8 @@ body:has([data-modal='minigame']) .toasts {
 }
 
 .wip-slot {
-  min-height: 72px;
+  min-height: 56px;
+  max-height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1203,6 +1206,14 @@ body:has([data-modal='minigame']) .toasts {
   background: rgba(255, 255, 255, 0.5);
   border-radius: 12px;
   margin-bottom: 6px;
+  overflow: hidden;
+}
+
+.wip-slot img {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  object-fit: contain;
 }
 
 .wip-slot.ready {
@@ -1215,7 +1226,42 @@ body:has([data-modal='minigame']) .toasts {
 }
 
 .tray-station .tray {
-  min-height: 100px;
+  min-height: 72px;
+  padding: 8px 12px;
+}
+
+.panel.mg {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: calc(100dvh - 40px);
+  max-height: calc(100dvh - 40px);
+}
+
+.panel.mg .mg-head,
+.panel.mg .rail,
+.panel.mg .tray-actions {
+  flex: none;
+}
+
+.panel.mg .mg-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.panel.mg .tray-actions {
+  position: relative;
+  z-index: 3;
+  background: var(--cream);
+  margin-top: 8px;
+  padding: 8px 2px 2px;
+  box-shadow: 0 -8px 16px rgba(44, 34, 28, 0.12);
+}
+
+.panel.mg .tray-actions #mg-tray-place {
+  flex: 1 1 auto;
 }
 
 .panel.mg.perfect-serve {
@@ -3015,8 +3061,9 @@ body:has(.onboarding) .joystick {
   .backdrop[data-modal='minigame'] .panel.mg {
     border-radius: 0;
     max-height: calc(100dvh - var(--kb));
-    height: auto;
+    height: calc(100dvh - var(--kb));
     min-height: 0;
+    overflow: hidden;
     padding-top: calc(14px + var(--safe-top));
   }
 

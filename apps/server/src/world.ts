@@ -852,10 +852,7 @@ export class World {
     }
     const mg = s.mg;
     if (!mg) return;
-    if (m.action === 'quit') {
-      s.mg = undefined;
-      return s.send({ t: 'notice', level: 'info', pt: 'Até a próxima, ajudante!', en: 'See you next time, helper!' });
-    }
+    if (m.action === 'quit') return this.abandonMinigame(s);
     if (m.action === 'sync') {
       if (mg.waiting) return this.releaseMgGap(s);
       return this.sendOrder(s, true);
@@ -939,6 +936,37 @@ export class World {
     };
     if (this.mgGapMs <= 0) next();
     else this.schedule(next, this.mgGapMs);
+  }
+
+  /** Closing the panel mid-shift settles what was already served. A fresh Pedido 1/6 with 0 RV is only for a shift that never scored. */
+  private abandonMinigame(s: Session) {
+    const mg = s.mg;
+    if (!mg) return;
+    const progressed = mg.points > 0 || mg.round > 0;
+    s.mg = undefined;
+    if (!progressed) {
+      return s.send({ t: 'notice', level: 'info', pt: 'Até a próxima, ajudante!', en: 'See you next time, helper!' });
+    }
+    const coins = mg.points > 0 ? mgPayout(mg.points) : 0;
+    s.send({
+      t: 'mg',
+      phase: 'end',
+      points: mg.points,
+      coins,
+      perfect: mg.perfect,
+      rounds: MG_ROUNDS,
+      carlos:
+        coins > 0
+          ? {
+              pt: `Turno encerrado. Aqui estão ${coins} reais virtuais pelo que você já serviu.`,
+              en: `Shift closed. Here are ${coins} RV for what you already served.`,
+            }
+          : {
+              pt: 'Turno encerrado. Dessa vez não deu RV — pode começar de novo quando quiser.',
+              en: 'Shift closed. No RV this time — you can start again whenever you want.',
+            },
+    });
+    if (coins > 0) this.reward(s, coins, { pt: 'Turno encerrado no balcão', en: 'Shift closed at the counter' });
   }
 
   /** The between-orders gap ended (timer, or a reconnect that orphaned the timer). */
