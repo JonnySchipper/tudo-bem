@@ -410,6 +410,40 @@ function drawLoaf(ctx: Ctx, type: number, bx: number, y: number, tone: number, s
       rim(bx, y - 2.5, 6 * s, 3.6 * s);
       break;
     }
+    case 7: {
+      // Wicker cesto of bisnagas standing on end — the tallest silhouette on the shelf.
+      for (const [dx, h, rot, col] of [[-3, 17, -0.18, '#c98239'], [0, 19, 0.02, '#d18c42'], [3, 16, 0.2, '#bf7532']] as const) {
+        ctx.save();
+        ctx.translate(bx + dx, y - 5);
+        ctx.rotate(rot);
+        rrect(ctx, -1.8, -h * s, 3.6, h * s, 1.8, c(col));
+        ctx.fillStyle = 'rgba(255,206,120,0.6)';
+        ctx.fillRect(-1.5, -h * s + 1.5, 0.9, h * s - 4);
+        ctx.restore();
+      }
+      rrect(ctx, bx - 6, y - 6, 12, 6, [1, 1, 3, 3], c('#a8743c'), 'rgba(70,38,16,0.6)', 0.6);
+      ctx.strokeStyle = 'rgba(70,38,16,0.45)';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      for (const q of [-3, 0, 3]) {
+        ctx.moveTo(bx + q, y - 6);
+        ctx.lineTo(bx + q, y);
+      }
+      ctx.moveTo(bx - 6, y - 3);
+      ctx.lineTo(bx + 6, y - 3);
+      ctx.stroke();
+      break;
+    }
+    case 8:
+      // Two pães de forma stacked in their paper sleeve — a squat, tall block.
+      rrect(ctx, bx - 5, y - 9 * s, 10, 9 * s, 2, c('#b87a3a'));
+      rrect(ctx, bx - 4.5, y - 18 * s, 9, 9 * s, 3, c('#c4893f'));
+      rrect(ctx, bx - 4.5, y - 18 * s, 9, 3, 3, c('#9c5f28'));
+      ctx.fillStyle = 'rgba(245,230,211,0.85)';
+      ctx.fillRect(bx - 5, y - 6 * s, 10, 3);
+      ctx.fillStyle = 'rgba(255,206,120,0.55)';
+      ctx.fillRect(bx - 4.5, y - 16 * s, 1.1, 14 * s);
+      break;
     default:
       // Sonho dusted with sugar, a peek of creme
       ellipse(ctx, bx, y - 4 * s, 5.5 * s, 4 * s, c('#d59a4c'));
@@ -738,9 +772,11 @@ function drawDecor(ctx: Ctx, room: RoomDef, d: WallDecor) {
         ctx.fillStyle = 'rgba(255,220,180,0.3)';
         ctx.fillRect(8, -H + 10, L - 16, 1.2);
         wallText(ctx, d.text ?? '', L / 2, -H + 20, 12, '#fff6e6', { maxW: L - 20 });
-        // Soft warm fill into the shelves so the bread glows against the plaster.
-        const fill = ctx.createRadialGradient(L * 0.4, -H + 90, 10, L * 0.4, -H + 90, L * 0.6);
-        fill.addColorStop(0, 'rgba(255,214,150,0.22)');
+        // Soft fill into the shelves: warm at the window end, falling off along the run so the far
+        // shelves sit back (drawWallFalloff cools them further) and the bread glows against the plaster.
+        const fill = ctx.createLinearGradient(0, 0, L, 0);
+        fill.addColorStop(0, 'rgba(255,214,150,0.3)');
+        fill.addColorStop(0.55, 'rgba(255,214,150,0.1)');
         fill.addColorStop(1, 'rgba(255,214,150,0)');
         ctx.fillStyle = fill;
         ctx.fillRect(0, -H + 36, L, 100);
@@ -760,8 +796,10 @@ function drawDecor(ctx: Ctx, room: RoomDef, d: WallDecor) {
               const bx = 11 + k * 9 + (row ? 4.5 : 0) + (hash(k, s, row + 3) - 0.5) * 2;
               if (coffee && bx > cafe0 - 4 && bx < cafe1 + 4) continue;
               if (bx > L - 9) continue;
-              const type = Math.floor(hash(k * 3 + row, s * 7 + 1, 17) * 7);
-              drawLoaf(ctx, type, bx, y - (row ? 0 : 2.5), row ? 0 : -0.14, 0.9 + hash(k, s, row) * 0.25);
+              // Every so often a tall piece (cesto of bisnagas / stacked forma) breaks the skyline.
+              const tall = hash(k, s * 5 + row, 23);
+              const type = tall > 0.84 ? (tall > 0.92 ? 7 : 8) : Math.floor(hash(k * 3 + row, s * 7 + 1, 17) * 7);
+              drawLoaf(ctx, type, bx, y - (row ? 0 : 2.5), row ? 0 : -0.14, type >= 7 ? 0.9 : 0.78 + hash(k, s, row) * 0.5);
             }
           }
           if (coffee) {
@@ -1305,33 +1343,68 @@ function drawFloorLight(ctx: Ctx, room: RoomDef) {
     }
     if (d.kind === 'janela' && d.wall === 'left') {
       const m = (d.from + d.to) / 2;
-      patch([[0, d.from + 0.2], [0, d.to - 0.2], [3.2, d.to + 1.3], [3.2, d.from + 1.4]], [0, m], [3.2, m + 1.2], 0.36, [[[0, m], [3.2, m + 1.2]]]);
+      patch([[0, d.from + 0.1], [0, d.to - 0.1], [3.8, d.to + 1.6], [3.8, d.from + 1.6]], [0, m], [3.8, m + 1.5], 0.62, [[[0, m], [3.8, m + 1.5]]]);
     }
   }
   ctx.restore();
 }
 
-/** Upper-wall value bands for the padaria: dado band + picture rail over plaster that isn't one slab. */
+/**
+ * Upper-wall value bands for the padaria — three readable plaster bands over the azulejos:
+ * a deeper warm dado above the tile cap, the lit mid field, and a cooler frieze under the ceiling,
+ * split by a picture rail and a terracotta pinstripe. Faint mottling + trowel strokes so no band is a slab.
+ */
 function drawWallBands(ctx: Ctx, room: RoomDef) {
   const H = room.wallHeight;
+  const RAIL = -76;
+  const FRIEZE = -H + 26;
   for (const side of ['left', 'right'] as const) {
     const len = side === 'left' ? room.rows : room.cols;
     onWall(ctx, side, 0, len, (L) => {
-      for (let i = 0; i < L / 14; i++) {
+      // Mottling: warm lifts and umber dips, larger and a touch stronger than the base plaster.
+      for (let i = 0; i < L / 10; i++) {
         const r = hash(i, len, 61);
-        ellipse(ctx, hash(i, len, 62) * L, -52 - hash(i, len, 63) * (H - 60), 12 + r * 20, 6 + r * 10, r > 0.5 ? 'rgba(255,252,240,0.07)' : 'rgba(139,94,60,0.05)');
+        ellipse(ctx, hash(i, len, 62) * L, -50 - hash(i, len, 63) * (H - 56), 10 + r * 24, 5 + r * 12, r > 0.5 ? 'rgba(255,252,240,0.11)' : 'rgba(139,94,60,0.08)');
       }
-      ctx.fillStyle = 'rgba(139,94,60,0.07)';
-      ctx.fillRect(0, -74, L, 22);
-      ctx.fillStyle = 'rgba(139,94,60,0.28)';
-      ctx.fillRect(0, -75, L, 1.4);
-      ctx.fillStyle = 'rgba(255,250,236,0.5)';
-      ctx.fillRect(0, -73.6, L, 0.8);
-      const ceil = ctx.createLinearGradient(0, -H, 0, -H + 40);
-      ceil.addColorStop(0, 'rgba(139,94,60,0.12)');
-      ceil.addColorStop(1, 'rgba(139,94,60,0)');
-      ctx.fillStyle = ceil;
-      ctx.fillRect(0, -H, L, 40);
+      // Trowel strokes: short diagonal sweeps that catch the light.
+      ctx.lineWidth = 3;
+      for (let i = 0; i < L / 18; i++) {
+        const x = hash(i, len, 64) * L;
+        const y = -52 - hash(i, len, 65) * (H - 60);
+        ctx.strokeStyle = hash(i, len, 66) > 0.5 ? 'rgba(255,250,236,0.09)' : 'rgba(120,80,50,0.06)';
+        ctx.beginPath();
+        ctx.moveTo(x - 9, y + 2);
+        ctx.quadraticCurveTo(x, y - 3, x + 10, y);
+        ctx.stroke();
+      }
+      // Band 1 — dado: deeper warm plaster between the tile cap and the picture rail.
+      const dado = ctx.createLinearGradient(0, RAIL, 0, -46);
+      dado.addColorStop(0, 'rgba(139,94,60,0.3)');
+      dado.addColorStop(1, 'rgba(139,94,60,0.18)');
+      ctx.fillStyle = dado;
+      ctx.fillRect(0, RAIL, L, RAIL * -1 - 46);
+      // Picture rail: wood-warm with a lit top edge and a drop shadow onto the dado.
+      rrect(ctx, 0, RAIL - 2.5, L, 3, 0, '#8B5E3C');
+      ctx.fillStyle = 'rgba(255,236,200,0.6)';
+      ctx.fillRect(0, RAIL - 2.5, L, 0.8);
+      ctx.fillStyle = 'rgba(58,34,22,0.18)';
+      ctx.fillRect(0, RAIL + 0.5, L, 2.5);
+      // Band 2 — the lit field: the lightest plaster in the room.
+      const field = ctx.createLinearGradient(0, FRIEZE, 0, RAIL);
+      field.addColorStop(0, 'rgba(255,250,236,0.05)');
+      field.addColorStop(0.5, 'rgba(255,250,236,0.2)');
+      field.addColorStop(1, 'rgba(255,250,236,0.04)');
+      ctx.fillStyle = field;
+      ctx.fillRect(0, FRIEZE, L, RAIL - FRIEZE - 2.5);
+      // Band 3 — frieze under the ceiling: cooler, darker, with a terracotta pinstripe.
+      const frieze = ctx.createLinearGradient(0, -H, 0, FRIEZE);
+      frieze.addColorStop(0, 'rgba(84,70,66,0.38)');
+      frieze.addColorStop(1, 'rgba(84,70,66,0.2)');
+      ctx.fillStyle = frieze;
+      ctx.fillRect(0, -H, L, FRIEZE + H);
+      rrect(ctx, 0, FRIEZE - 1, L, 2.2, 0, 'rgba(196,92,38,0.85)');
+      ctx.fillStyle = 'rgba(255,244,220,0.35)';
+      ctx.fillRect(0, FRIEZE + 1, L, 0.7);
     });
   }
 }
@@ -1343,14 +1416,16 @@ function drawWallBands(ctx: Ctx, room: RoomDef) {
 function drawWallFalloff(ctx: Ctx, room: RoomDef) {
   const H = room.wallHeight;
   onWall(ctx, 'right', 0, room.cols, (L) => {
+    // Key → fill: warm where the window light lands (near the corner), a soft cool fill by the far end.
     const g = ctx.createLinearGradient(0, 0, L, 0);
-    g.addColorStop(0, 'rgba(255,214,150,0.10)');
-    g.addColorStop(0.45, 'rgba(255,214,150,0)');
-    g.addColorStop(1, 'rgba(70,90,112,0.13)');
+    g.addColorStop(0, 'rgba(255,214,150,0.22)');
+    g.addColorStop(0.3, 'rgba(255,214,150,0.08)');
+    g.addColorStop(0.6, 'rgba(255,214,150,0)');
+    g.addColorStop(1, 'rgba(70,90,112,0.3)');
     ctx.fillStyle = g;
     ctx.fillRect(0, -H, L, H);
     const top = ctx.createLinearGradient(0, -H, 0, -H * 0.45);
-    top.addColorStop(0, 'rgba(70,90,112,0.12)');
+    top.addColorStop(0, 'rgba(70,90,112,0.18)');
     top.addColorStop(1, 'rgba(70,90,112,0)');
     ctx.fillStyle = top;
     ctx.fillRect(0, -H, L, H * 0.55);
@@ -1360,12 +1435,13 @@ function drawWallFalloff(ctx: Ctx, room: RoomDef) {
     const win = room.walls.find((d) => d.kind === 'janela' && d.wall === 'left');
     const wu = win ? (room.rows - (win.from + win.to) / 2) * HW : L * 0.6;
     const glow = ctx.createRadialGradient(wu, -H * 0.55, 8, wu, -H * 0.55, L * 0.45);
-    glow.addColorStop(0, 'rgba(255,226,170,0.2)');
+    glow.addColorStop(0, 'rgba(255,226,170,0.34)');
+    glow.addColorStop(0.5, 'rgba(255,226,170,0.1)');
     glow.addColorStop(1, 'rgba(255,226,170,0)');
     ctx.fillStyle = glow;
     ctx.fillRect(0, -H, L, H);
     const g = ctx.createLinearGradient(0, 0, L, 0);
-    g.addColorStop(0, 'rgba(70,90,112,0.12)');
+    g.addColorStop(0, 'rgba(70,90,112,0.2)');
     g.addColorStop(0.45, 'rgba(70,90,112,0)');
     ctx.fillStyle = g;
     ctx.fillRect(0, -H, L, H);
@@ -1384,7 +1460,7 @@ function drawFloorAO(ctx: Ctx, room: RoomDef) {
         if (!COUNTER_KINDS.has(p.kind)) continue;
         const w = p.w ?? 1;
         const h = p.h ?? 1;
-        for (const [pad, a] of [[0.05, 0.14], [0.14, 0.09], [0.26, 0.05]] as const) {
+        for (const [pad, a] of [[0.04, 0.28], [0.12, 0.16], [0.24, 0.09], [0.4, 0.045]] as const) {
           ctx.fillStyle = `rgba(58,34,22,${a})`;
           ctx.fillRect(p.x + 0.02 - pad, p.y + 0.1 - pad, w - 0.04 + pad * 2, h - 0.2 + pad * 2);
         }
@@ -1395,20 +1471,25 @@ function drawFloorAO(ctx: Ctx, room: RoomDef) {
       const r = Math.hypot(room.cols, room.rows);
       const g = ctx.createRadialGradient(0, wy, 2, 0, wy, r);
       g.addColorStop(0, 'rgba(58,34,22,0)');
-      g.addColorStop(1, 'rgba(58,34,22,0.16)');
+      g.addColorStop(1, 'rgba(58,34,22,0.3)');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, room.cols, room.rows);
     }
-    const gl = ctx.createLinearGradient(0, 0, 0.9, 0);
-    gl.addColorStop(0, 'rgba(58,34,22,0.26)');
+    // Wall feet: a tight dark contact line plus a wider soft falloff (stronger in the padaria).
+    const deep = room.lighting === 'manha' ? 1.8 : 1;
+    const reach = room.lighting === 'manha' ? 1.2 : 0.9;
+    const gl = ctx.createLinearGradient(0, 0, reach, 0);
+    gl.addColorStop(0, `rgba(58,34,22,${0.26 * deep})`);
+    gl.addColorStop(0.2, `rgba(58,34,22,${0.12 * deep})`);
     gl.addColorStop(1, 'rgba(58,34,22,0)');
     ctx.fillStyle = gl;
-    ctx.fillRect(0, 0, 0.9, room.rows);
-    const gr = ctx.createLinearGradient(0, 0, 0, 0.9);
-    gr.addColorStop(0, 'rgba(58,34,22,0.22)');
+    ctx.fillRect(0, 0, reach, room.rows);
+    const gr = ctx.createLinearGradient(0, 0, 0, reach);
+    gr.addColorStop(0, `rgba(58,34,22,${0.22 * deep})`);
+    gr.addColorStop(0.2, `rgba(58,34,22,${0.1 * deep})`);
     gr.addColorStop(1, 'rgba(58,34,22,0)');
     ctx.fillStyle = gr;
-    ctx.fillRect(0, 0, room.cols, 0.9);
+    ctx.fillRect(0, 0, room.cols, reach);
   });
 }
 
@@ -1458,7 +1539,7 @@ export function drawRoomStatic(ctx: Ctx, room: RoomDef) {
     onWall(ctx, side, 0, len, (L) => {
       const ao = ctx.createLinearGradient(0, -34, 0, 0);
       ao.addColorStop(0, 'rgba(58,34,22,0)');
-      ao.addColorStop(1, 'rgba(58,34,22,0.2)');
+      ao.addColorStop(1, `rgba(58,34,22,${room.lighting === 'manha' ? 0.32 : 0.2})`);
       ctx.fillStyle = ao;
       ctx.fillRect(0, -34, L, 34);
       rrect(ctx, 0, -7, L, 7, 0, shade(room.wallTrim, -0.1));
@@ -1522,9 +1603,9 @@ export function drawLighting(ctx: Ctx, room: RoomDef, w: number, h: number, t: n
     // Warm morning interior: warm key from the left (window side), cooler toward the right.
     // Beams, dust and the counter pool live in world space (drawWorldLight).
     const warm = ctx.createLinearGradient(0, 0, w, h * 0.6);
-    warm.addColorStop(0, 'rgba(255,210,140,0.14)');
-    warm.addColorStop(0.55, 'rgba(255,210,140,0.03)');
-    warm.addColorStop(1, 'rgba(80,100,130,0.08)');
+    warm.addColorStop(0, 'rgba(255,210,140,0.2)');
+    warm.addColorStop(0.5, 'rgba(255,210,140,0.03)');
+    warm.addColorStop(1, 'rgba(80,100,130,0.14)');
     ctx.fillStyle = warm;
     ctx.fillRect(0, 0, w, h);
     vignette('rgba(60,30,15,0.24)');
@@ -1563,8 +1644,8 @@ export function drawWorldLight(ctx: Ctx, room: RoomDef, t: number) {
     ctx.translate(c.sx, c.sy - 40);
     ctx.scale(1, 0.55);
     const g = ctx.createRadialGradient(0, 0, 10, 0, 0, 230);
-    g.addColorStop(0, 'rgba(255,206,140,0.16)');
-    g.addColorStop(0.6, 'rgba(255,206,140,0.05)');
+    g.addColorStop(0, 'rgba(255,206,140,0.2)');
+    g.addColorStop(0.6, 'rgba(255,206,140,0.06)');
     g.addColorStop(1, 'rgba(255,206,140,0)');
     ctx.fillStyle = g;
     ctx.fillRect(-240, -240, 480, 480);
@@ -1573,6 +1654,24 @@ export function drawWorldLight(ctx: Ctx, room: RoomDef, t: number) {
   // Window beams: two shafts split by the mullion, from the glass down to the floor patch.
   const win = room.walls.find((d) => d.kind === 'janela' && d.wall === 'left');
   if (win) {
+    // Broad soft key: the whole window's light spilling wide into the room, under the crisp shafts.
+    const ka = leftWallPt(win.from - 0.3, -H + 24);
+    const kb = leftWallPt(win.to + 0.3, -H + 24);
+    const kc = toScreen(5.2, win.to + 3.2);
+    const kd = toScreen(5.2, win.from + 0.6);
+    const key = ctx.createLinearGradient(ka[0], ka[1], kc.sx, kc.sy);
+    key.addColorStop(0, 'rgba(255,224,170,0.22)');
+    key.addColorStop(0.6, 'rgba(255,224,170,0.07)');
+    key.addColorStop(1, 'rgba(255,224,170,0)');
+    ctx.fillStyle = key;
+    ctx.beginPath();
+    ctx.moveTo(...ka);
+    ctx.lineTo(...kb);
+    ctx.lineTo(...leftWallPt(win.to + 0.3, 0));
+    ctx.lineTo(kc.sx, kc.sy);
+    ctx.lineTo(kd.sx, kd.sy);
+    ctx.closePath();
+    ctx.fill();
     const y0 = win.to - 10 / HW;
     const y1 = win.from + 10 / HW;
     const mid = (y0 + y1) / 2;
@@ -1583,13 +1682,13 @@ export function drawWorldLight(ctx: Ctx, room: RoomDef, t: number) {
       [mid + 0.05, y0],
     ];
     for (const [a, b] of shafts) {
-      const fa = toScreen(3.2, a + 1.3);
-      const fb = toScreen(3.2, b + 1.3);
+      const fa = toScreen(3.8, a + 1.6);
+      const fb = toScreen(3.8, b + 1.6);
       const wa = leftWallPt(a, top);
       const wb = leftWallPt(b, top);
       const g = ctx.createLinearGradient(wa[0], wa[1], fa.sx, fa.sy);
-      g.addColorStop(0, 'rgba(255,236,190,0.34)');
-      g.addColorStop(0.7, 'rgba(255,236,190,0.1)');
+      g.addColorStop(0, 'rgba(255,236,190,0.5)');
+      g.addColorStop(0.7, 'rgba(255,236,190,0.16)');
       g.addColorStop(1, 'rgba(255,236,190,0)');
       ctx.fillStyle = g;
       ctx.beginPath();
@@ -1606,7 +1705,7 @@ export function drawWorldLight(ctx: Ctx, room: RoomDef, t: number) {
       const u = (i * 0.137 + t * 0.012 * (1 + (i % 3))) % 1;
       const along = y1 + ((i * 0.61) % 1) * (y0 - y1);
       const wp = leftWallPt(along, top + 20);
-      const fp = toScreen(3, along + 1.2);
+      const fp = toScreen(3.6, along + 1.5);
       const x = wp[0] + (fp.sx - wp[0]) * u + Math.sin(t * 0.5 + i) * 4;
       const y = wp[1] + (fp.sy - wp[1]) * u + Math.cos(t * 0.4 + i * 1.7) * 3;
       ctx.fillStyle = `rgba(255,240,200,${(0.35 + Math.sin(t * 1.3 + i) * 0.15) * (1 - u)})`;
@@ -1615,11 +1714,62 @@ export function drawWorldLight(ctx: Ctx, room: RoomDef, t: number) {
       ctx.fill();
     }
   }
+  // Glass-cool speculars on the case fronts (vitrine + SALGADOS estufa): a cool sheen that is
+  // brightest at the top of each pane, two hard diagonal streaks, a lit vertical corner, and a
+  // slow glint that sweeps across now and then — reads as glass even over the warm lamp inside.
+  for (const p of room.props) {
+    if (p.kind !== 'vitrine' && p.kind !== 'estufa') continue;
+    const lift = 22;
+    const gh = p.kind === 'estufa' ? 26 : 24;
+    const Wc = toScreen(p.x + 0.02, p.y + 0.88);
+    const Sc = toScreen(p.x + 0.98, p.y + 0.88);
+    const Ec = toScreen(p.x + 0.98, p.y + 0.12);
+    const pane = (a: { sx: number; sy: number }, b: { sx: number; sy: number }, strength: number, phase: number) => {
+      const at = (f: number, k: number): [number, number] => [a.sx + (b.sx - a.sx) * f, a.sy + (b.sy - a.sy) * f - lift - gh * k];
+      const sheen = ctx.createLinearGradient(0, a.sy - lift - gh, 0, a.sy - lift);
+      sheen.addColorStop(0, `rgba(197,213,222,${0.42 * strength})`);
+      sheen.addColorStop(0.45, `rgba(197,213,222,${0.1 * strength})`);
+      sheen.addColorStop(1, 'rgba(197,213,222,0)');
+      ctx.fillStyle = sheen;
+      ctx.beginPath();
+      [at(0, 0), at(1, 0), at(1, 1), at(0, 1)].forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.closePath();
+      ctx.fill();
+      for (const [f0, w, al] of [[0.1, 0.16, 0.7], [0.34, 0.05, 0.6], [0.62, 0.09, 0.35]] as const) {
+        ctx.fillStyle = `rgba(232,244,252,${al * strength})`;
+        ctx.beginPath();
+        [at(f0, 0.08), at(f0 + w, 0.08), at(Math.min(1, f0 + w + 0.26), 0.94), at(Math.min(1, f0 + 0.26), 0.94)].forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+        ctx.closePath();
+        ctx.fill();
+      }
+      // Glint sweeping across the pane every ~7s.
+      const sweep = ((t + phase) % 7) / 1.4;
+      if (sweep < 1) {
+        const f = -0.2 + sweep * 1.2;
+        ctx.fillStyle = `rgba(245,251,255,${0.55 * strength * Math.sin(sweep * Math.PI)})`;
+        ctx.beginPath();
+        [at(Math.max(0, f), 0.05), at(Math.max(0, Math.min(1, f + 0.06)), 0.05), at(Math.min(1, f + 0.2), 0.95), at(Math.min(1, Math.max(0, f + 0.14)), 0.95)].forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+        ctx.closePath();
+        ctx.fill();
+      }
+    };
+    pane(Wc, Sc, 1, p.x);
+    pane(Sc, Ec, 0.6, p.x + 3.5);
+    // Lit vertical corner + top-edge catch.
+    ctx.strokeStyle = 'rgba(236,246,255,0.85)';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(Sc.sx, Sc.sy - lift - 1);
+    ctx.lineTo(Sc.sx, Sc.sy - lift - gh + 1);
+    ctx.moveTo(Wc.sx, Wc.sy - lift - gh + 0.5);
+    ctx.lineTo(Sc.sx, Sc.sy - lift - gh + 0.5);
+    ctx.stroke();
+  }
   // Cool twinkle on the glass case corners (specular, not warm).
   for (const p of room.props) {
-    if (p.kind !== 'vitrine') continue;
+    if (p.kind !== 'vitrine' && p.kind !== 'estufa') continue;
     const c = toScreen(p.x + 0.98, p.y + 0.9);
-    const tw = 0.5 + Math.sin(t * 1.7 + p.x) * 0.5;
+    const tw = 0.5 + Math.sin(t * 1.7 + p.x * 2.3) * 0.5;
     ctx.strokeStyle = `rgba(226,242,255,${0.45 + tw * 0.4})`;
     ctx.lineWidth = 1;
     const s = 3 + tw * 2;
