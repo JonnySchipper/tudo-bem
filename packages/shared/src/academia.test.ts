@@ -5,6 +5,7 @@ import {
   checkRollAnswer,
   cpuGetsIt,
   decisaoWinner,
+  displayPosition,
   makeRollPuzzle,
   normalizeBjj,
   resolveDuel,
@@ -62,5 +63,12 @@ describe('academia roll', () => {
 
   it('respects max duel cap constant', () => {
     expect(ROLL_MAX_DUELS).toBe(10);
+  });
+
+  it('shows Mata-leão HUD accent on Costas (rear naked choke, not Guilhotina)', () => {
+    const atFinish = displayPosition(0, ROLL_FINISH_INDEX);
+    expect(atFinish.position).toBe('costas');
+    expect(atFinish.label.pt).toBe('Costas');
+    expect(atFinish.submissionHint).toEqual({ pt: 'Mata-leão', en: 'Rear naked choke' });
   });
 });

@@ -49,6 +49,26 @@ export const SUBMISSION_LABELS: Record<'player' | 'cpu', Bilingual[]> = {
   ],
 };
 
+/** Gold HUD submission accent by mat position (overrides seat-index rotation). */
+export const POSITION_SUBMISSION_ACCENT: Partial<Record<BjjPositionId, Bilingual>> = {
+  de_pe: { pt: 'Guilhotina', en: 'Guillotine' },
+  guarda_fechada: { pt: 'Guilhotina', en: 'Guillotine' },
+  meia_guarda: { pt: 'Guilhotina', en: 'Guillotine' },
+  costas: { pt: 'Mata-leão', en: 'Rear naked choke' },
+};
+
+function submissionHintForSeat(
+  side: 'player' | 'cpu',
+  positionId: BjjPositionId,
+  seatIdx: number,
+): Bilingual | null {
+  if (seatIdx < ROLL_FINISH_INDEX) return null;
+  const accent = POSITION_SUBMISSION_ACCENT[positionId];
+  if (accent) return accent;
+  const labels = SUBMISSION_LABELS[side];
+  return labels[seatIdx % labels.length];
+}
+
 export type RollPuzzleKind = 'cloze' | 'technique' | 'reorder';
 
 export interface RollPuzzle {
@@ -254,12 +274,12 @@ export function checkRollAnswer(puzzle: RollPuzzle, answer: RollAnswer): boolean
 export function displayPosition(playerIdx: number, cpuIdx: number): { position: BjjPositionId; label: Bilingual; submissionHint: Bilingual | null } {
   if (playerIdx > cpuIdx) {
     const id = PLAYER_POSITIONS[Math.min(playerIdx, PLAYER_POSITIONS.length - 1)];
-    const hint = playerIdx >= ROLL_FINISH_INDEX ? SUBMISSION_LABELS.player[playerIdx % SUBMISSION_LABELS.player.length] : null;
+    const hint = submissionHintForSeat('player', id, playerIdx);
     return { position: id, label: POSITION_LABELS[id], submissionHint: hint };
   }
   if (cpuIdx > playerIdx) {
     const id = CPU_POSITIONS[Math.min(cpuIdx, CPU_POSITIONS.length - 1)];
-    const hint = cpuIdx >= ROLL_FINISH_INDEX ? SUBMISSION_LABELS.cpu[cpuIdx % SUBMISSION_LABELS.cpu.length] : null;
+    const hint = submissionHintForSeat('cpu', id, cpuIdx);
     return { position: id, label: POSITION_LABELS[id], submissionHint: hint };
   }
   return { position: 'de_pe', label: POSITION_LABELS.de_pe, submissionHint: null };
