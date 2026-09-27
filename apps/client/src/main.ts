@@ -230,10 +230,10 @@ net.onOpen = () => net.send({ t: 'hello', token: localStorage.getItem(TOKEN_KEY)
 /** Kick copy from the server's last message before it closed the socket. */
 let kickedCopy: { pt: string; en: string } | null = null;
 let leaving = false;
-/** Set at boot: a live account session (the HUD shows "Sair"); otherwise a guest (the HUD offers "Criar conta"). */
+/** Set at boot: a live account session (multiplayer only). */
 let signedIn = false;
 
-/** Back to the title screen's sign-in card on the next load (logout, or signing up from guest mode). */
+/** Back to the title screen's sign-in card on the next load (logout, or a session that expired). */
 function reloadToSignIn() {
   leaving = true;
   sessionStorage.removeItem(INTRO_PASSED_KEY);
@@ -283,6 +283,10 @@ net.onStatus = (s) => {
 
 net.on((m: ServerMsg) => {
   switch (m.t) {
+    case 'authRequired':
+      // No valid session on this socket (expired or revoked): sign in again.
+      if (!leaving) void signOut().then(reloadToSignIn);
+      break;
     case 'needProfile':
       localStorage.removeItem(TOKEN_KEY);
       if (!onboarding) onboarding = runOnboarding((p) => net.send({ t: 'createProfile', ...p }));
@@ -544,19 +548,15 @@ function startGame() {
       ambience.setEnabled(game.music);
       game.emit('hud');
     },
-    account: SOLO
-      ? undefined
-      : signedIn
-        ? {
-            kind: 'logout',
-            run: async () => {
-              leaving = true;
-              await signOut();
-              localStorage.removeItem(TOKEN_KEY);
-              reloadToSignIn();
-            },
-          }
-        : { kind: 'signup', run: reloadToSignIn },
+    logout:
+      SOLO || !signedIn
+        ? undefined
+        : async () => {
+            leaving = true;
+            await signOut();
+            localStorage.removeItem(TOKEN_KEY);
+            reloadToSignIn();
+          },
   });
   mountJoystick((dx, dy) => {
     if (game.modalOpen || game.editMode || game.placing) return;
@@ -779,7 +779,9 @@ async function boot() {
   // A live session skips the title screen, so a refresh drops straight back into the world.
   if (!SOLO) signedIn = await hasServerSession();
   if (!signedIn) {
-    const entry = await runIntroGate();
+    // Multiplayer is account-only, so a tab without a session always gets the sign-in card.
+    if (!SOLO) sessionStorage.removeItem(INTRO_PASSED_KEY);
+    const entry = await runIntroGate({ guestEntersWorld: SOLO });
     signedIn = !SOLO && entry.mode === 'auth';
   }
   net.connect();

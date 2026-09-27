@@ -16,8 +16,8 @@ export interface HudActions {
   toggleParrot: () => void;
   toggleSound: () => void;
   toggleMusic: () => void;
-  /** Multiplayer only (solo has no account): "Sair" when signed in, "Criar conta" for guests. */
-  account?: { kind: 'logout' | 'signup'; run: () => void };
+  /** Multiplayer only (solo has no account). */
+  logout?: () => void;
 }
 
 let toastsEl: HTMLElement;
@@ -72,12 +72,7 @@ export function buildHud(actions: HudActions) {
       h('button', { onclick: actions.openFriends, id: 'btn-friends' }, icon('friends'), bi('Amigos', 'Friends')),
       musicBtn,
       soundBtn,
-      actions.account?.kind === 'logout'
-        ? h('button', { onclick: actions.account.run, id: 'btn-logout', title: 'Sair da conta / Log out', 'aria-label': 'Sair da conta' }, icon('logout'), bi('Sair', 'Log out'))
-        : null,
-      actions.account?.kind === 'signup'
-        ? h('button', { class: 'yellow', onclick: actions.account.run, id: 'btn-signup', title: 'Criar conta e guardar seu avatar / Sign up to keep your avatar', 'aria-label': 'Criar conta' }, icon('signup'), bi('Criar conta', 'Keep your avatar'))
-        : null,
+      actions.logout ? h('button', { onclick: actions.logout, id: 'btn-logout', title: 'Sair da conta / Log out', 'aria-label': 'Sair da conta' }, icon('logout'), bi('Sair', 'Log out')) : null,
       game.solo ? h('span', { class: 'pill', title: 'Prévia estática: o mundo roda no seu navegador. Multiplayer precisa do servidor. / Static preview — the world runs in your browser; multiplayer needs the server build.', id: 'solo-pill' }, 'Modo solo') : null,
       missionPill,
       h('span', { class: 'pill' }, plate),

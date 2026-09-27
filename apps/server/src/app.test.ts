@@ -124,32 +124,17 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     c.ws.close();
   });
 
-  it('guests play without a cookie, then sign up and keep the same avatar', async () => {
+  it('a socket without a session cookie cannot create an avatar (no guests in multiplayer)', async () => {
     await start();
-    const g = wsClient(base);
-    await g.open();
-    g.send({ t: 'hello' });
-    await g.waitFor('needProfile');
-    g.send({ t: 'createProfile', name: 'Visita', pronoun: 'ela', appearance: DEFAULT_APPEARANCE });
-    const guestWelcome = await g.waitFor('welcome');
-    g.ws.close();
-    await g.waitClose();
-
-    const reg = await post('/api/auth/register', { email: 'visita@exemplo.com', password: 'senha-senha-1' });
-    const a = wsClient(base, { cookie: cookieOf(reg) });
+    const a = wsClient(base);
     await a.open();
-    a.send({ t: 'hello', token: guestWelcome.token });
-    expect((await a.waitFor('welcome')).profile.id).toBe(guestWelcome.profile.id);
+    a.send({ t: 'hello' });
+    await a.waitFor('authRequired');
+    a.send({ t: 'createProfile', name: 'Pirata', pronoun: 'ele', appearance: DEFAULT_APPEARANCE });
+    await new Promise((r) => setTimeout(r, 100));
+    expect(a.inbox.some((m) => m.t === 'welcome')).toBe(false);
+    expect(app!.store.count()).toBe(0);
     a.ws.close();
-    await a.waitClose();
-
-    // Signed out again, the leftover token can't reopen the avatar that now belongs to the account.
-    const stale = wsClient(base);
-    await stale.open();
-    stale.send({ t: 'hello', token: guestWelcome.token });
-    await stale.waitFor('needProfile');
-    expect(stale.inbox.some((m) => m.t === 'welcome')).toBe(false);
-    stale.ws.close();
   });
 
   it('refuses cross-site requests, weak passwords and duplicate signups', async () => {
@@ -178,21 +163,18 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     expect((await post('/api/auth/login', { email: 'z@exemplo.com', password: 'senha-senha-1' })).status).toBe(429);
   });
 
-  it('binds /api/conversa to the signed-in player; without a session only guest avatars can be named', async () => {
+  it('binds /api/conversa to the signed-in player instead of the body playerId', async () => {
     await start();
+    const anon = await post('/api/conversa', { action: 'start', npcId: 'carlos', playerId: 'someone-else', daily: {} });
+    expect(anon.status).toBe(401);
     const reg = await post('/api/auth/register', { email: 'dona@exemplo.com', password: 'senha-senha-1' });
     const a = wsClient(base, { cookie: cookieOf(reg) });
     await a.open();
     a.send({ t: 'hello' });
     await a.waitFor('needProfile');
     a.send({ t: 'createProfile', name: 'Dona', pronoun: 'ela', appearance: DEFAULT_APPEARANCE });
-    const owned = (await a.waitFor('welcome')).profile.id;
+    await a.waitFor('welcome');
     a.ws.close();
-
-    const hijack = await post('/api/conversa', { action: 'start', npcId: 'carlos', playerId: owned, daily: {} });
-    expect(hijack.status).toBe(401);
-    const guest = await post('/api/conversa', { action: 'start', npcId: 'carlos', playerId: 'guest-123', daily: {} });
-    expect(guest.status).toBe(200);
     const mine = await post('/api/conversa', { action: 'start', npcId: 'carlos', playerId: 'someone-else', daily: {} }, { cookie: cookieOf(reg) });
     expect(mine.status).toBe(200);
   });

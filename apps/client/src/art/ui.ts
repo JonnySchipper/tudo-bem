@@ -21,7 +21,6 @@ export const ICONS: Record<string, string> = {
   parrot: svg(24, 24, `<path d="M6 20l3-7" stroke="${P.verdeEscuro}" stroke-width="3" stroke-linecap="round"/><ellipse cx="11" cy="12" rx="5" ry="6.5" fill="${P.verde}" stroke="${P.ink}" stroke-width="1.6"/><circle cx="13" cy="6.5" r="4" fill="${P.verdeClaro}" stroke="${P.ink}" stroke-width="1.6"/><path d="M16.5 5.5c3 .3 3 3.5.5 4" fill="${P.laranja}" stroke="${P.ink}" stroke-width="1.4"/><circle cx="14" cy="6" r="1" fill="${P.ink}"/>`),
   send: svg(24, 24, `<path d="M3 11l18-8-6 18-3-7z" fill="${P.cream}" stroke="${P.cream}" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 14l9-11" stroke="${P.terracota}" stroke-width="1.6"/>`),
   close: svg(24, 24, `<path d="M6 6l12 12M18 6L6 18" ${stroke} stroke-width="2.6"/>`),
-  signup: svg(24, 24, `<circle cx="9.5" cy="8" r="3.6" fill="${P.verde}" stroke="${P.ink}" stroke-width="1.6"/><path d="M3 20c.6-4.2 3.2-6.4 6.5-6.4s5.9 2.2 6.5 6.4z" fill="${P.verde}" stroke="${P.ink}" stroke-width="1.6"/><path d="M18.5 7.5v6M15.5 10.5h6" stroke="${P.terracota}" stroke-width="2.2" stroke-linecap="round"/>`),
   logout: svg(24, 24, `<path d="M4 3.5h9v17H4z" fill="${P.terracota}" stroke="${P.ink}" stroke-width="1.8" stroke-linejoin="round"/><circle cx="10.5" cy="12" r="1" fill="${P.amarelo}"/><path d="M15 12h6.5M18.5 9l3 3-3 3" ${stroke}/>`),
   // Missão do dia steps (Cumprimenta · Pede · Monta) — same glyphs as the kiosk sign in the Praça.
   cumprimenta: svg(

@@ -37,9 +37,10 @@ function wordmark(text: string) {
 
 /**
  * Title-screen gate: Praça + parrot flock beat, then sign-in / register or continue as Phase 0 guest.
- * Resolves when the player may connect to the world socket.
+ * Resolves when the player may connect to the world socket. `guestEntersWorld: false` (the multiplayer
+ * server) keeps the guest CTA but steers it to Criar conta instead of resolving.
  */
-export function runIntroGate(): Promise<IntroGateResult> {
+export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: boolean } = {}): Promise<IntroGateResult> {
   if (introAlreadyPassed()) {
     const session = readAuthSession();
     return Promise.resolve({ mode: session ? 'auth' : 'guest', email: session?.email });
@@ -139,7 +140,14 @@ export function runIntroGate(): Promise<IntroGateResult> {
       }, reduced ? 0 : 420);
     };
 
-    guest.addEventListener('click', () => finish({ mode: 'guest' }));
+    guest.addEventListener('click', () => {
+      if (guestEntersWorld) return finish({ mode: 'guest' });
+      // Multiplayer is account-only (the server answers authRequired); visitors are pointed at Criar conta.
+      mode = 'register';
+      syncTabs();
+      setError('Pra entrar na Praça com a galera, crie sua conta — é rapidinho.', 'To join the shared Praça, create an account — it only takes a moment.');
+      email.focus({ preventScroll: true });
+    });
 
     const tabsEl = h('div', { class: 'intro-tabs', role: 'tablist', 'aria-label': 'Entrar ou criar conta' }, h('span', { class: 'intro-tab-thumb', 'aria-hidden': 'true' }), tabLogin, tabRegister);
 

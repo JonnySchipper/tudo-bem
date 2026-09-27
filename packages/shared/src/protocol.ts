@@ -195,6 +195,8 @@ export type RollServerMsg =
 export type ServerMsg =
   | { t: 'welcome'; profile: PrivateProfile; token: string }
   | { t: 'needProfile' }
+  /** Multiplayer needs an email + password account; this socket has no valid session cookie. */
+  | { t: 'authRequired' }
   | { t: 'idleWarning'; msLeft: number; pt: string; en: string }
   /** Sent right before the server closes the socket (code 4001) to free the seat. */
   | { t: 'kicked'; reason: 'idle'; pt: string; en: string }

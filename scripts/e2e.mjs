@@ -137,6 +137,16 @@ async function main() {
   await page.goto(START_URL);
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
   assert(!(await page.$('#avatar-name')) && !(await room(page)) && !(await page.$('#birth-month')), 'intro first: no DOB, no creator, no world');
+  if (!SOLO) {
+    // Multiplayer is account-only: the guest CTA steers to Criar conta instead of entering the world.
+    await toSignInCard(page);
+    await page.click('#intro-guest');
+    await page.waitForSelector('.intro-feedback:has-text("crie sua conta")', { timeout: 5000 });
+    await sleep(600);
+    assert(!(await page.$('#avatar-name')) && !(await room(page)), 'guest does not enter multiplayer');
+    assert(await page.isVisible('#intro-18'), 'guest CTA switches to Criar conta');
+    log('guest CTA → Criar conta (no multiplayer without an account)');
+  }
 
   // 1. Account (email + password, optional 18+ tick) → avatar creation. Solo builds enter as guests.
   const enter = await createAvatar(page, 'Jonny', 'ele', { tick18: true });
@@ -515,24 +525,6 @@ async function main() {
     assert(after.apartment.length === before.apartment.length, 'kitnet furniture survives reload');
     log('reload keeps auth, avatar and', after.coins, 'RV');
 
-    // Guest path (shipped by the intro): play, refresh keeps the guest avatar, then “Criar conta” keeps it for good.
-    const ctxG = await browser.newContext({ viewport: { width: 1280, height: 800 } });
-    const pageG = await ctxG.newPage();
-    const enterG = await createAvatar(pageG, 'Visita', 'nome', { guest: true });
-    await enterG();
-    const guest = await profile(pageG);
-    assert(await pageG.isVisible('#btn-signup') && !(await pageG.$('#btn-logout')), 'guests get “Criar conta”, not “Sair”');
-    await pageG.reload();
-    await waitFor(pageG, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'guest back after reload');
-    assert((await profile(pageG)).id === guest.id, 'guest avatar survives reload');
-    await pageG.click('#btn-signup');
-    await signUp(pageG, 'Visita', false);
-    await waitFor(pageG, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'signed-up guest back in the praça');
-    const upgraded = await profile(pageG);
-    assert(upgraded.id === guest.id && upgraded.coins === guest.coins, 'signing up keeps the guest avatar and RV');
-    assert(await pageG.isVisible('#btn-logout'), 'now signed in (“Sair”)');
-    log('guest → reload → Criar conta keeps the same avatar');
-    await ctxG.close();
   }
 
   const final = await profile(page);

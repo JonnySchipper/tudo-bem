@@ -120,7 +120,7 @@ export interface WorldOptions {
   rollQueueMs?: number;
   /** When true, duel messages include `debugCorrect` for CI e2e (TB_TEST_ROLL=1). */
   testRollHints?: boolean;
-  /** Email/password accounts (the Node server). Sockets without a session play as guests. Solo mode leaves it unset. */
+  /** Email/password accounts (the Node server). When set, only sockets with a signed-in session can play. Solo mode leaves it unset. */
   accounts?: AccountLink;
   /** No real input for this long → kicked and the seat is freed. Default 15 min. */
   idleKickMs?: number;
@@ -418,18 +418,19 @@ export class World {
     // Profiles from before the 18+ policy never confirmed adulthood; they must sign up again.
     const fromToken = this.store.byTokenGet(token);
     const tokenProfile = fromToken?.ageGate18 === true ? fromToken : undefined;
-    if (this.accounts && s.accountId) {
-      const owned = this.store.get(this.accounts.profileIdFor(s.accountId) ?? '');
-      if (owned) return this.attachProfile(s, owned);
-      // First sign-in from a browser that played as a guest (or before accounts): that avatar joins the account, once.
-      if (tokenProfile && !tokenProfile.accountId) {
-        this.linkAccount(s.accountId, tokenProfile);
-        return this.attachProfile(s, tokenProfile);
-      }
+    if (!this.accounts) {
+      if (tokenProfile) return this.attachProfile(s, tokenProfile);
       return s.send({ t: 'needProfile' });
     }
-    // Guests reopen guest avatars by token. An account's avatar needs its session, even if a stale token is left behind.
-    if (tokenProfile && !tokenProfile.accountId) return this.attachProfile(s, tokenProfile);
+    // Multiplayer is account-only: no session, no avatar (the intro's guest path stays in solo builds).
+    if (!s.accountId) return s.send({ t: 'authRequired' });
+    const owned = this.store.get(this.accounts.profileIdFor(s.accountId) ?? '');
+    if (owned) return this.attachProfile(s, owned);
+    // First sign-in from a browser that played before accounts: that avatar joins the account, once.
+    if (tokenProfile && !tokenProfile.accountId) {
+      this.linkAccount(s.accountId, tokenProfile);
+      return this.attachProfile(s, tokenProfile);
+    }
     s.send({ t: 'needProfile' });
   }
 
@@ -460,7 +461,8 @@ export class World {
 
   private createProfile(s: Session, m: Extract<ClientMsg, { t: 'createProfile' }>) {
     if (s.profile) return this.attachProfile(s, s.profile);
-    if (this.accounts && s.accountId) {
+    if (this.accounts) {
+      if (!s.accountId) return s.send({ t: 'authRequired' });
       const owned = this.store.get(this.accounts.profileIdFor(s.accountId) ?? '');
       if (owned) return this.attachProfile(s, owned);
     }

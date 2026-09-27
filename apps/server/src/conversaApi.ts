@@ -44,10 +44,10 @@ export interface ConversaApiDeps {
   /** Tell the live session its profile changed (coins / daily). */
   onProfileChanged?: (playerId: string) => void;
   /**
-   * When set, decides who the request is for: the signed-in player, or the claimed (body) playerId when
-   * that's allowed (guest avatars). Returning undefined answers 401. Unset in solo-style/test setups.
+   * When set, the player is whoever the session cookie says (the body's playerId is ignored), and
+   * requests without a signed-in profile get 401. Unset in solo-style/test setups.
    */
-  playerIdFor?: (req: IncomingMessage, claimed: string | undefined) => string | undefined;
+  playerIdFor?: (req: IncomingMessage) => string | undefined;
 }
 
 interface ConversaStartRequest {
@@ -207,7 +207,7 @@ export async function handleConversaApi(req: IncomingMessage, res: ServerRespons
   }
 
   if (deps.playerIdFor) {
-    const playerId = deps.playerIdFor(req, typeof body.playerId === 'string' ? body.playerId : undefined);
+    const playerId = deps.playerIdFor(req);
     if (!playerId) {
       json(res, 401, { error: 'unauthenticated' });
       return;

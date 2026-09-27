@@ -93,12 +93,7 @@ export function createApp(opts: AppOptions) {
       return handleConversaApi(req, res, {
         store,
         onProfileChanged: (playerId) => world.pushProfileById(playerId),
-        playerIdFor: (r, claimed) => {
-          const account = accounts.accountForSession(sessionCookieOf(r));
-          if (account) return account.profileId;
-          // Guests: the body id, unless that avatar belongs to an account (only its session may credit it).
-          return claimed && !store.get(claimed)?.accountId ? claimed : undefined;
-        },
+        playerIdFor: (r) => accounts.accountForSession(sessionCookieOf(r))?.profileId,
       });
     }
     if (!clientDist) {
