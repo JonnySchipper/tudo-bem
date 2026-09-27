@@ -10,7 +10,7 @@ import {
   key,
   pathDuration,
   positionAlong,
-  PRACA_AMBIANCE,
+  ROOM_AMBIANCE,
   type Appearance,
   type Dir,
   type PublicAvatar,
@@ -77,10 +77,15 @@ export class CpuCrowd {
   private readonly grid: RoomGrid;
   private readonly seats: { tile: Tile; dir: Dir }[];
 
+  private readonly map: { spots: Tile[]; doorSpots: Tile[]; entries: Tile[] };
+
   constructor(
     private readonly room: RoomDef,
     private readonly host: CrowdHost,
   ) {
+    const map = ROOM_AMBIANCE[room.id];
+    if (!map) throw new Error(`No ambiance map for room ${room.id}`);
+    this.map = map;
     this.grid = buildGrid(room);
     this.seats = room.props.filter((p) => p.seat).map((p) => ({ tile: { x: p.x, y: p.y }, dir: p.seat! }));
   }
@@ -118,7 +123,7 @@ export class CpuCrowd {
     for (const c of this.cpus.values()) {
       if (c.dest !== k || c.leaving) continue;
       const seat = c.role === 'sitter' ? this.freeSeat(k) : null;
-      if (!(seat && this.walk(c, seat.tile, true))) this.walk(c, this.freeSpot(PRACA_AMBIANCE.spots), false);
+      if (!(seat && this.walk(c, seat.tile, true))) this.walk(c, this.freeSpot(this.map.spots), false);
       c.nextAt = this.host.now() + this.travel(c) + this.dwell(c);
     }
   }
@@ -182,7 +187,7 @@ export class CpuCrowd {
       c.leg = (c.leg + 1) % 3;
       const seat = c.leg === 2 ? this.freeSeat(c.dest) : null;
       if (seat) this.walk(c, seat.tile, true);
-      else this.walk(c, this.freeSpot(c.leg === 1 ? PRACA_AMBIANCE.doorSpots : PRACA_AMBIANCE.spots), false);
+      else this.walk(c, this.freeSpot(c.leg === 1 ? this.map.doorSpots : this.map.spots), false);
     }
     c.nextAt = this.host.now() + this.travel(c) + this.dwell(c);
   }
@@ -195,9 +200,9 @@ export class CpuCrowd {
     const sitters = active.filter((c) => c.role === 'sitter').length;
     const role: Cpu['role'] = sitters < Math.round((active.length + 1) * CPU_SITTER_SHARE) ? 'sitter' : 'walker';
     const seat = role === 'sitter' ? this.freeSeat(null) : null;
-    const dest = seat?.tile ?? this.freeSpot(PRACA_AMBIANCE.spots);
+    const dest = seat?.tile ?? this.freeSpot(this.map.spots);
     const pick = <T>(arr: readonly T[]) => arr[Math.floor(rng() * arr.length)];
-    const entry = pick(PRACA_AMBIANCE.entries);
+    const entry = pick(this.map.entries);
     const name = this.nextName();
     const look = cpuLook(name);
     const c: Cpu = {
@@ -227,7 +232,7 @@ export class CpuCrowd {
   private leave(c: Cpu) {
     c.leaving = true;
     const here = this.pos(c).tile;
-    const exit = [...PRACA_AMBIANCE.entries].sort((a, b) => cheb(a, here) - cheb(b, here))[0];
+    const exit = [...this.map.entries].sort((a, b) => cheb(a, here) - cheb(b, here))[0];
     if (!this.walk(c, exit, false)) this.remove(c);
   }
 
