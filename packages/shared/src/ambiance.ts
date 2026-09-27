@@ -1,11 +1,11 @@
 /**
- * Praça ambiance CPUs + daily kiosk (TB Live Ops, “Praça Central spawn vitality — Phase 0”).
+ * Praça / Academia ambiance CPUs + daily kiosk (TB Live Ops, spawn vitality — Phase 0).
  *
  * CPUs are scripted scenery: they sit, walk a short loop and wave. They never chat, never enter
  * the Padaria or a Kitnet, and never count against the 16-seat player cap (TB Product lock).
  */
 import namePack from '../../../content/curriculum/phase0/cpu-names.json';
-import type { Bilingual, Tile } from './types.js';
+import type { Bilingual, RoomId, Tile } from './types.js';
 
 /** Curriculum allowlist (cpu-name-allowlist.md → cpu-names.json): first names only. */
 export const CPU_NAMES: readonly string[] = namePack.names;
@@ -49,6 +49,35 @@ export const PRACA_AMBIANCE: { spots: Tile[]; doorSpots: Tile[]; entries: Tile[]
     { x: 0, y: 11 },
   ],
 };
+
+/** Academia do Bairro — off the tatame queue tile, benches, spawn and portal. */
+export const ACADEMIA_AMBIANCE: { spots: Tile[]; doorSpots: Tile[]; entries: Tile[] } = {
+  spots: [
+    { x: 4, y: 3 },
+    { x: 6, y: 2 },
+    { x: 3, y: 4 },
+    { x: 5, y: 5 },
+    { x: 8, y: 6 },
+  ],
+  /** Near the Praça exit (CPUs never leave through it). */
+  doorSpots: [
+    { x: 2, y: 6 },
+    { x: 1, y: 6 },
+    { x: 3, y: 7 },
+  ],
+  entries: [
+    { x: 10, y: 7 },
+    { x: 10, y: 8 },
+    { x: 8, y: 8 },
+  ],
+};
+
+export const ROOM_AMBIANCE: Partial<Record<RoomId, { spots: Tile[]; doorSpots: Tile[]; entries: Tile[] }>> = {
+  praca: PRACA_AMBIANCE,
+  academia: ACADEMIA_AMBIANCE,
+};
+
+export const ambianceRoomIds = (): RoomId[] => Object.keys(ROOM_AMBIANCE) as RoomId[];
 
 // ---------------------------------------------------------------- daily kiosk
 

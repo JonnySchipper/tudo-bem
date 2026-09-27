@@ -73,6 +73,8 @@ let minigame: MinigameUI | null = null;
 let rollUi: RollUI | null = null;
 /** True between mg start and end/quit — used to recover if the panel disappears mid-shift. */
 let mgShiftActive = false;
+/** X was pressed; a goodbye notice (nothing served yet) should close the panel. An end card clears this itself. */
+let mgQuitPending = false;
 let started = false;
 /** If a reconnect doesn't bring the open ticket back, don't leave Me vê um locked. */
 let mgResumeWatch = 0;
@@ -82,6 +84,7 @@ function newMinigameUI() {
     submit: (tray, mods, built) => net.send({ t: 'mg', action: 'submit', tray, mods, built }),
     timeout: () => net.send({ t: 'mg', action: 'timeout' }),
     quit: () => {
+      mgQuitPending = true;
       mgShiftActive = false;
       net.send({ t: 'mg', action: 'quit' });
     },
@@ -351,6 +354,10 @@ net.on((m: ServerMsg) => {
     }
     case 'notice':
       toast(m.level, m.pt, m.en);
+      if (mgQuitPending) {
+        mgQuitPending = false;
+        failClearMinigame();
+      }
       break;
     case 'reward':
       if (m.reason.pt === MISSION_COPY.done.pt) missionBanner();
@@ -393,6 +400,7 @@ net.on((m: ServerMsg) => {
         resurrectMinigamePanel();
       }
       if (m.phase === 'end') {
+        mgQuitPending = false;
         mgShiftActive = false;
         minigame = null;
       }
