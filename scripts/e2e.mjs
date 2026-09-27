@@ -70,16 +70,12 @@ async function waitIdleAt(page, x, y, label) {
 async function passIntro(page) {
   await page.waitForSelector('#intro-guest', { timeout: 12_000 });
   await page.click('#intro-guest');
-  await page.waitForSelector('#birth-month', { timeout: 12_000 });
+  await page.waitForSelector('#avatar-name', { timeout: 12_000 });
 }
 
 async function createAvatar(page, name, pronoun) {
   await page.goto(BASE);
   await passIntro(page);
-  await page.selectOption('#birth-month', '5');
-  await page.selectOption('#birth-year', '2001');
-  await page.click('#age-next');
-  await page.waitForSelector('#avatar-name');
   await page.fill('#avatar-name', name);
   const labels = await page.$$eval('.field > label', (els) => els.map((e) => (e.childNodes[0]?.textContent ?? '').trim()));
   assert(labels.includes('Visual inicial'), `visual inicial preset (${labels.join(' | ')})`);
@@ -141,19 +137,18 @@ async function main() {
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => m.type() === 'error' && !/fonts\.g/.test(m.text()) && errors.push(m.text()));
 
-  // 0. Under-18 is turned away at the gate
+  // 0. Avatar entry requires the 18+ attestation (no birth-date calendar)
   {
     const ctxMinor = await browser.newContext({ viewport: { width: 1280, height: 800 } });
     const pm = await ctxMinor.newPage();
     await pm.goto(BASE);
     await passIntro(pm);
-    await pm.selectOption('#birth-month', '1');
-    await pm.selectOption('#birth-year', String(new Date().getFullYear() - 16));
-    await pm.click('#age-next');
-    await pm.waitForSelector('text=Só para maiores de 18 anos');
-    assert(!(await pm.$('#avatar-name')), 'no avatar creator for under-18');
+    await pm.fill('#avatar-name', 'Menor');
+    assert(await pm.isDisabled('#enter-praca'), 'cannot enter praça without 18+ checkbox');
+    await pm.check('#confirm-18');
+    assert(!(await pm.isDisabled('#enter-praca')), 'can enter after 18+ attestation');
     await ctxMinor.close();
-    log('under-18 blocked');
+    log('18+ attestation on avatar creator');
   }
 
   // 1. Age gate + avatar creation (18+ confirmation required)

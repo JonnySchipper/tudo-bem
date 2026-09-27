@@ -5,6 +5,8 @@ export interface AuthSession {
   accessToken?: string;
   /** True when the client fell back to the local stub (merge-safe). */
   stub?: boolean;
+  /** Set when the player confirmed 18+ on intro register (skips re-ask on avatar creator). */
+  ageGateConfirmed?: boolean;
 }
 
 export interface AuthCredentials {

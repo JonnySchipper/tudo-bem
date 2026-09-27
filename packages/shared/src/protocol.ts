@@ -20,7 +20,7 @@ import type { ConversaGrade, ConversaMeter, ConversaScores, ConversaSubject } fr
 /** Client → server messages. JSON over a single WebSocket at /ws. */
 export type ClientMsg =
   | { t: 'hello'; token?: string }
-  | { t: 'createProfile'; name: string; pronoun: Pronoun; appearance: Appearance; birthYear: number; birthMonth: number; confirm18: boolean }
+  | { t: 'createProfile'; name: string; pronoun: Pronoun; appearance: Appearance; confirm18: boolean }
   | { t: 'updateAppearance'; appearance: Appearance }
   | { t: 'join'; room: RoomId; instanceId?: string; ownerId?: string }
   | { t: 'move'; x: number; y: number; sit?: boolean }

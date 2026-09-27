@@ -1,5 +1,5 @@
 import { signIn, signUp } from '../auth/client';
-import { introAlreadyPassed, markIntroPassed, readAuthSession } from '../auth/session';
+import { introAlreadyPassed, markIntroPassed, readAuthSession, writeAuthSession } from '../auth/session';
 import { h, en, ui } from './dom';
 
 type IntroMode = 'login' | 'register';
@@ -110,17 +110,18 @@ export function runIntroGate(): Promise<IntroGateResult> {
       'label',
       { class: 'intro-adult', for: 'intro-18', style: 'display:none' },
       adult,
-      h('span', null, 'Confirmo que tenho 18 anos ou mais.'),
+      h('span', null, 'Tenho 18 anos ou mais.'),
     );
 
     const tabLogin = h('button', { type: 'button', class: 'intro-tab on', id: 'intro-tab-login', role: 'tab', 'aria-selected': 'true' }, 'Entrar');
     const tabRegister = h('button', { type: 'button', class: 'intro-tab', id: 'intro-tab-register', role: 'tab', 'aria-selected': 'false' }, 'Criar conta');
     const submit = h('button', { type: 'submit', class: 'primary intro-submit', id: 'intro-submit' }, 'Entrar');
+    const panelTitle = h('h2', { id: 'intro-panel-title' }, 'Bem-vindo de volta');
     const guest = h(
       'button',
       { type: 'button', class: 'intro-guest', id: 'intro-guest' },
-      'Continuar como visitante',
-      h('span', { class: 'en' }, 'Continue as guest — Phase 0 preview'),
+      'Explorar como visitante',
+      h('span', { class: 'en' }, 'Try the square without an account'),
     );
 
     const setError = (pt: string, enText: string) => {
@@ -139,6 +140,7 @@ export function runIntroGate(): Promise<IntroGateResult> {
       tabLogin.setAttribute('aria-selected', login ? 'true' : 'false');
       tabRegister.setAttribute('aria-selected', login ? 'false' : 'true');
       submit.textContent = login ? 'Entrar' : 'Criar conta';
+      panelTitle.textContent = login ? 'Bem-vindo de volta' : 'Crie sua conta';
       password.setAttribute('autocomplete', login ? 'current-password' : 'new-password');
       adultRow.style.display = login ? 'none' : 'flex';
       if (login) adult.checked = false;
@@ -166,7 +168,7 @@ export function runIntroGate(): Promise<IntroGateResult> {
         root.remove();
         document.body.classList.remove('intro-active');
         resolve(result);
-      }, prefersReducedMotion() ? 0 : 520);
+      }, prefersReducedMotion() ? 0 : 240);
     };
 
     guest.addEventListener('click', () => finish({ mode: 'guest' }));
@@ -181,20 +183,21 @@ export function runIntroGate(): Promise<IntroGateResult> {
       err,
       h('div', { class: 'intro-actions' }, submit),
       guest,
-      h('p', { class: 'intro-legal' }, 'Phase 0 · Praça & Padaria · contas reais em breve.'),
+      h('p', { class: 'intro-legal' }, 'Demonstração da Praça e da Padaria — contas completas em breve.'),
     );
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       clearError();
       if (mode === 'register' && !adult.checked) {
-        return setError('Marque que você tem 18 anos ou mais para criar conta.', 'Check the 18+ box to register.');
+        return setError('Marque “Tenho 18 anos ou mais” para criar sua conta.', 'Check “I am 18 or older” to register.');
       }
       submit.disabled = true;
       const creds = { email: email.value, password: password.value };
       const result = mode === 'login' ? await signIn(creds) : await signUp(creds);
       submit.disabled = false;
       if (!result.ok) return setError(result.pt, result.en);
+      if (mode === 'register') writeAuthSession({ ...result.session, ageGateConfirmed: true });
       finish({ mode: 'auth', email: result.session.email });
     });
 
@@ -212,10 +215,16 @@ export function runIntroGate(): Promise<IntroGateResult> {
           { class: 'intro-hero' },
           h('div', { class: 'intro-mark', 'aria-hidden': 'true' }),
           h('h1', { id: 'intro-title' }, 'Tudo Bem'),
-          h('p', { class: 'intro-tagline' }, 'Um bairro brasileiro para aprender português — café, praça e vizinhos.'),
-          h('p', { class: 'intro-tagline en' }, 'A warm São Paulo square to hang out and learn Brazilian Portuguese.'),
+          h('p', { class: 'intro-tagline' }, 'Um cantinho de São Paulo para aprender português com café, praça e vizinhos.'),
+          h('p', { class: 'intro-tagline en' }, 'A friendly Brazilian square to learn Portuguese together.'),
         ),
-        h('section', { class: 'panel intro-panel', 'aria-label': 'Entrar na conta' }, h('h2', null, mode === 'login' ? 'Bem-vindo de volta' : 'Crie sua conta'), form),
+        h(
+          'section',
+          { class: 'panel intro-panel', 'aria-label': 'Entrar na conta' },
+          panelTitle,
+          form,
+          h('div', { id: 'tb-idle-kick-slot', class: 'tb-idle-kick-slot', hidden: true, 'aria-hidden': 'true', 'data-tb-region': 'idle-kick-interstitial' }),
+        ),
       ),
     );
 

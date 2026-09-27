@@ -6,7 +6,7 @@
 
 - **Signup requires both:**
   1. A birth month + year that computes to **18 or older** (checked on the client and again on the server).
-  2. An explicit **“Confirmo que tenho 18 anos ou mais / I confirm I am 18 or older”** checkbox on the create-avatar screen. The server rejects `createProfile` without `confirm18: true`.
+  2. An explicit **“Tenho 18 anos ou mais / I am 18 or older”** attestation on register (intro) and on the create-avatar screen for guests. No birth-date calendar on entry. The server rejects `createProfile` without `confirm18: true`.
 - Under-18 users see an “adults only” screen with no avatar creator; it is sticky on that browser.
 - **Data minimization:** the birth date is never stored. The profile keeps only `ageGate18: true`.
 - Profiles created under the earlier 13+ build (no `ageGate18`) are sent back through signup.

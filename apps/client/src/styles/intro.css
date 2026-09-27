@@ -348,6 +348,16 @@ body.intro-active #world {
   margin: 10px 0 0;
 }
 
+/** Auth-agent mount for idle soft-kick interstitial (stay logged in / return CTA). */
+.tb-idle-kick-slot {
+  display: none;
+  margin-top: 12px;
+}
+
+.tb-idle-kick-slot:not([hidden]) {
+  display: block;
+}
+
 @media (max-width: 420px) {
   .intro-shell {
     width: 100%;
