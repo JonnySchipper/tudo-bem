@@ -4,6 +4,7 @@ import {
   authoredFallbackTurn,
   gradeFromScores,
   gradeCopy,
+  metersFromHistory,
   offlineConversaOpen,
   presentConversaTurn,
   ROOMS,
@@ -74,6 +75,7 @@ function portrait(npc: NpcDef | null) {
   return h('div', { class: 'conversa-portrait' }, c);
 }
 
+/** Placemat strips laid on the mesa: Carlos's side on the left, yours on the right. */
 function buildTranscript(history: ConversaState['history']): HTMLElement {
   const strips: HTMLElement[] = [];
   for (const line of history.slice(-5)) {
@@ -90,19 +92,7 @@ function buildTranscript(history: ConversaState['history']): HTMLElement {
   return h('div', { class: 'conversa-transcript' }, ...strips);
 }
 
-function buildMeter(meter: ConversaMeter): HTMLElement {
-  const bars = CONVERSA_AXES.map((axis) =>
-    h(
-      'div',
-      { class: 'conversa-meter-row' },
-      h('span', { class: 'label' }, axis.en),
-      h('div', { class: 'track' }, h('div', { class: 'fill', style: `width:${meter[axis.id]}%` })),
-      h('span', { class: 'pct' }, `${meter[axis.id]}%`),
-    ),
-  );
-  return h('div', { class: 'conversa-meters' }, ...bars);
-}
-
+/** The conta: a paper bill with a PT-primary rubber stamp (Mandou bem! / Quase! / Tenta de novo). */
 function buildScoreCard(grade: ConversaGrade, payout: number, meter: ConversaMeter): HTMLElement {
   const copy = gradeCopy(grade);
   const gradeClass = grade === 'pass' ? 'pass' : grade === 'almost' ? 'almost' : 'try-again';
@@ -112,16 +102,17 @@ function buildScoreCard(grade: ConversaGrade, payout: number, meter: ConversaMet
     return h(
       'div',
       { class: 'score-axis' },
-      h('span', { class: 'axis-label' }, axis.en),
+      h('span', { class: 'axis-label' }, axis.pt, h('small', { class: 'axis-en' }, axis.en)),
       h('div', { class: 'track' }, h('div', { class: 'fill', style: `width:${pct}%` })),
-      h('small', { class: 'tip' }, axis.tip.en),
+      h('small', { class: 'tip' }, axis.tip.pt),
     );
   });
 
   return h(
     'div',
     { class: 'conversa-score-card' },
-    h('div', { class: `grade ${gradeClass}` }, copy.label.en),
+    h('div', { class: 'conta-head' }, 'A conta', h('small', {}, 'The bill')),
+    h('div', { class: `grade ${gradeClass}`, lang: 'pt-BR' }, copy.label.pt, h('small', { class: 'grade-en', lang: 'en' }, copy.label.en)),
     h('div', { class: 'grade-line' }, copy.line.pt, en(copy.line.en, true)),
     payout > 0 ? h('div', { class: 'payout' }, `+${payout} RV`) : null,
     h('div', { class: 'axes' }, ...axes),
@@ -148,7 +139,6 @@ function render() {
   );
 
   const transcript = buildTranscript(state.history);
-  const meter = buildMeter(state.meter);
 
   let body: HTMLElement;
   if (state.ended && state.grade) {
@@ -189,7 +179,6 @@ function render() {
       'div',
       { class: 'conversa-body' },
       transcript,
-      meter,
       h('div', { class: 'conversa-chips' }, ...chips),
       h(
         'div',
@@ -373,6 +362,7 @@ async function finishConversa(reason: 'natural' | 'cap' | 'early') {
     state.ended = true;
     state.grade = gradeFromScores(finalScores, state.turn);
     state.payout = 0;
+    state.meter = metersFromHistory(state.history);
     render();
     return;
   }
@@ -391,6 +381,7 @@ async function finishConversa(reason: 'natural' | 'cap' | 'early') {
     state.ended = true;
     state.grade = gradeFromScores(finalScores, state.turn);
     state.payout = 0;
+    state.meter = metersFromHistory(state.history);
     render();
   }
 }

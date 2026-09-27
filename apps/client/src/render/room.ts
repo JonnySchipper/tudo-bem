@@ -212,6 +212,13 @@ export function drawFloorTile(ctx: Ctx, room: RoomDef, x: number, y: number) {
         const r = hash(x, y, 21);
         ctx.fillStyle = r > 0.5 ? `rgba(255,248,230,${(r - 0.5) * 0.22})` : `rgba(90,60,40,${(0.5 - r) * 0.12})`;
         ctx.fillRect(0, 0, 1, 1);
+        // Grout depth: recessed shadow on the back edges, a lit bevel just inside them.
+        ctx.fillStyle = 'rgba(70,45,28,0.22)';
+        ctx.fillRect(0, 0, 1, 0.022);
+        ctx.fillRect(0, 0, 0.022, 1);
+        ctx.fillStyle = 'rgba(255,250,236,0.28)';
+        ctx.fillRect(0.022, 0.022, 0.976, 0.014);
+        ctx.fillRect(0.022, 0.022, 0.014, 0.976);
         if (hash(x, y, 22) > 0.6) {
           ctx.fillStyle = 'rgba(255,255,255,0.12)';
           ctx.beginPath();
@@ -311,6 +318,105 @@ function wallText(ctx: Ctx, text: string, x: number, y: number, size: number, co
   }
   ctx.fillStyle = color;
   ctx.fillText(text, x, y, opts.maxW);
+}
+
+/**
+ * One loaf on a shelf, bottom at y. `tone` darkens the back row; the key light from the left
+ * window gives every loaf a warm rim on its left shoulder and a lip shadow where it sits.
+ */
+function drawLoaf(ctx: Ctx, type: number, bx: number, y: number, tone: number, s: number) {
+  const c = (hex: string) => (tone ? shade(hex, tone) : hex);
+  ellipse(ctx, bx + 0.8, y - 0.4, 5.5 * s, 1.4, 'rgba(58,30,12,0.34)');
+  const rim = (x: number, yy: number, rx: number, ry: number) => {
+    ctx.strokeStyle = 'rgba(255,206,120,0.7)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(x, yy, rx, ry, 0, Math.PI * 0.95, Math.PI * 1.5);
+    ctx.stroke();
+  };
+  switch (type) {
+    case 0: {
+      // Pão francês with its slashes
+      ellipse(ctx, bx, y - 4.5 * s, 6.5 * s, 4.5 * s, c('#c97f35'));
+      rim(bx, y - 4.5 * s, 6 * s, 4 * s);
+      ctx.strokeStyle = c('#9a5a22');
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(bx - 3, y - 7 * s);
+      ctx.lineTo(bx - 1, y - 3 * s);
+      ctx.moveTo(bx + 1, y - 7 * s);
+      ctx.lineTo(bx + 3, y - 3 * s);
+      ctx.stroke();
+      break;
+    }
+    case 1:
+      // Pile of pães de queijo
+      circle(ctx, bx - 3, y - 3.5, 3.5 * s, c('#eac566'));
+      circle(ctx, bx + 3, y - 3.5, 3.5 * s, c('#e2bb58'));
+      circle(ctx, bx, y - 8 * s, 3.3 * s, c('#f0cc6e'));
+      rim(bx - 3, y - 3.5, 3 * s, 3 * s);
+      rim(bx, y - 8 * s, 2.8 * s, 2.8 * s);
+      break;
+    case 2: {
+      // Bisnagas leaning on each other
+      for (const [dx, rot, col] of [[0, -0.5, '#d18c42'], [3, -0.3, '#c47d36']] as const) {
+        ctx.save();
+        ctx.translate(bx + dx, y - 7 * s);
+        ctx.rotate(rot);
+        rrect(ctx, -2.5, -8 * s, 5, 16 * s, 2.5, c(col));
+        ctx.fillStyle = 'rgba(255,206,120,0.55)';
+        ctx.fillRect(-2.2, -7 * s, 1, 13 * s);
+        ctx.restore();
+      }
+      break;
+    }
+    case 3:
+      // Pão de forma
+      rrect(ctx, bx - 5, y - 12 * s, 10, 12 * s, 3, c('#b87a3a'));
+      rrect(ctx, bx - 5, y - 12 * s, 10, 4, 3, c('#9c5f28'));
+      ctx.fillStyle = 'rgba(255,206,120,0.55)';
+      ctx.fillRect(bx - 5, y - 10 * s, 1.2, 9 * s);
+      break;
+    case 4:
+      // Round pão italiano with a cross score
+      ellipse(ctx, bx, y - 5 * s, 6 * s, 5.4 * s, c('#a9652c'));
+      rim(bx, y - 5 * s, 5.5 * s, 5 * s);
+      ctx.strokeStyle = c('#e8c38a');
+      ctx.lineWidth = 0.9;
+      ctx.beginPath();
+      ctx.moveTo(bx - 3, y - 6 * s);
+      ctx.lineTo(bx + 3, y - 6 * s);
+      ctx.moveTo(bx, y - 8.5 * s);
+      ctx.lineTo(bx, y - 3.5 * s);
+      ctx.stroke();
+      break;
+    case 5: {
+      // Croissant
+      ctx.fillStyle = c('#d6953f');
+      ctx.beginPath();
+      ctx.ellipse(bx, y - 2.5, 6.5 * s, 4 * s, 0, Math.PI, 0);
+      ctx.lineTo(bx + 3, y - 1);
+      ctx.ellipse(bx, y - 1, 3, 1.5, 0, 0, Math.PI, true);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = c('#a8682a');
+      ctx.lineWidth = 0.7;
+      ctx.beginPath();
+      for (const q of [-3, 0, 3]) {
+        ctx.moveTo(bx + q - 0.8, y - 6 * s);
+        ctx.lineTo(bx + q + 0.8, y - 2);
+      }
+      ctx.stroke();
+      rim(bx, y - 2.5, 6 * s, 3.6 * s);
+      break;
+    }
+    default:
+      // Sonho dusted with sugar, a peek of creme
+      ellipse(ctx, bx, y - 4 * s, 5.5 * s, 4 * s, c('#d59a4c'));
+      ellipse(ctx, bx, y - 5.5 * s, 4.5 * s, 2 * s, 'rgba(255,250,240,0.75)');
+      ellipse(ctx, bx + 2, y - 3.2, 2, 1.2, c('#f6e3a0'));
+      rim(bx, y - 4 * s, 5 * s, 3.6 * s);
+  }
 }
 
 function drawDecor(ctx: Ctx, room: RoomDef, d: WallDecor) {
@@ -611,62 +717,104 @@ function drawDecor(ctx: Ctx, room: RoomDef, d: WallDecor) {
               ctx.fill();
             }
           }
+        // Value bands: the glaze catches more light near the cap and falls off toward the floor.
+        const bands = ctx.createLinearGradient(0, top, 0, 0);
+        bands.addColorStop(0, 'rgba(255,226,190,0.12)');
+        bands.addColorStop(0.45, 'rgba(255,226,190,0)');
+        bands.addColorStop(1, 'rgba(70,24,8,0.22)');
+        ctx.fillStyle = bands;
+        ctx.fillRect(0, top, L, -top);
         rrect(ctx, 0, top - 5, L, 5, 0, '#D4A017');
+        ctx.fillStyle = 'rgba(255,245,210,0.45)';
+        ctx.fillRect(0, top - 5, L, 1);
+        rrect(ctx, 0, top - 0.2, L, 1.4, 0, shade('#C45C26', -0.35));
         rrect(ctx, 0, top - 6, L, 1.2, 0, '#8B5E3C');
         break;
       }
       case 'prateleira_paes': {
-        rrect(ctx, 4, -H + 8, L - 8, 24, 5, '#b5452e');
+        // Sign: ink edge + soft drop so it hangs in space.
+        rrect(ctx, 6, -H + 11, L - 8, 24, 5, 'rgba(58,34,22,0.28)');
+        rrect(ctx, 4, -H + 8, L - 8, 24, 5, '#b5452e', '#2C2C2C', 1.2);
+        ctx.fillStyle = 'rgba(255,220,180,0.3)';
+        ctx.fillRect(8, -H + 10, L - 16, 1.2);
         wallText(ctx, d.text ?? '', L / 2, -H + 20, 12, '#fff6e6', { maxW: L - 20 });
+        // Soft warm fill into the shelves so the bread glows against the plaster.
+        const fill = ctx.createRadialGradient(L * 0.4, -H + 90, 10, L * 0.4, -H + 90, L * 0.6);
+        fill.addColorStop(0, 'rgba(255,214,150,0.22)');
+        fill.addColorStop(1, 'rgba(255,214,150,0)');
+        ctx.fillStyle = fill;
+        ctx.fillRect(0, -H + 36, L, 100);
+        // Coffee corner behind Seu Carlos: bule + stacked xícaras on the bottom shelf.
+        const cafe0 = 30;
+        const cafe1 = 86;
         for (let s = 0; s < 3; s++) {
           const y = -H + 66 + s * 24;
-          rrect(ctx, 6, y, L - 12, 5, 1, '#7a4a24');
-          grain(ctx, 6, y, L - 12, 5, 'rgba(60,30,10,0.4)', 'rgba(255,220,170,0.25)', s);
-          ctx.fillStyle = 'rgba(60,30,10,0.18)';
-          ctx.fillRect(6, y + 5, L - 12, 3);
-          for (let k = 0; k < (L - 16) / 11; k++) {
-            const bx = 12 + k * 11;
-            const type = (k + s) % 4;
-            if (type === 0) {
-              ellipse(ctx, bx, y - 5, 6.5, 4.5, '#c97f35');
-              ellipse(ctx, bx - 1.5, y - 7, 3.5, 1.6, 'rgba(255,230,170,0.55)');
-              ctx.strokeStyle = '#9a5a22';
-              ctx.lineWidth = 0.8;
-              ctx.beginPath();
-              ctx.moveTo(bx - 3, y - 7);
-              ctx.lineTo(bx - 1, y - 3);
-              ctx.moveTo(bx + 1, y - 7);
-              ctx.lineTo(bx + 3, y - 3);
-              ctx.stroke();
-            } else if (type === 1) {
-              circle(ctx, bx - 3, y - 4, 3.5, '#f2d27a');
-              circle(ctx, bx + 3, y - 4, 3.5, '#eac566');
-              circle(ctx, bx, y - 8, 3.3, '#f0cc6e');
-            } else if (type === 3) {
-              // Baguette-style bisnagas leaning on each other
-              ctx.save();
-              ctx.translate(bx, y - 7);
-              ctx.rotate(-0.5);
-              rrect(ctx, -2.5, -8, 5, 16, 2.5, '#d18c42');
-              ctx.restore();
-              ctx.save();
-              ctx.translate(bx + 3, y - 7);
-              ctx.rotate(-0.3);
-              rrect(ctx, -2.5, -8, 5, 16, 2.5, '#c47d36');
-              ctx.restore();
-            } else {
-              rrect(ctx, bx - 5, y - 12, 10, 12, 3, '#b87a3a');
-              rrect(ctx, bx - 4, y - 11, 4, 3, 1.5, 'rgba(255,225,170,0.4)');
-              ctx.strokeStyle = '#8f5a26';
-              ctx.lineWidth = 1;
-              ctx.beginPath();
-              ctx.moveTo(bx - 3, y - 10);
-              ctx.lineTo(bx - 1.5, y - 2);
-              ctx.moveTo(bx + 1.5, y - 10);
-              ctx.lineTo(bx + 3, y - 2);
-              ctx.stroke();
+          // Back wall shadow of the shelf bracket + plank.
+          ctx.fillStyle = 'rgba(58,34,22,0.12)';
+          ctx.fillRect(6, y - 16, L - 12, 16);
+          for (const bx of [10, L / 2, L - 14]) rrect(ctx, bx, y + 4, 3, 7, 1, '#5e3a1c');
+          const coffee = s === 2;
+          // Back row (darker, a touch higher) then front row, shapes varied by hash — never one repeated sprite.
+          for (const row of [0, 1]) {
+            for (let k = 0; k < (L - 14) / 9; k++) {
+              const bx = 11 + k * 9 + (row ? 4.5 : 0) + (hash(k, s, row + 3) - 0.5) * 2;
+              if (coffee && bx > cafe0 - 4 && bx < cafe1 + 4) continue;
+              if (bx > L - 9) continue;
+              const type = Math.floor(hash(k * 3 + row, s * 7 + 1, 17) * 7);
+              drawLoaf(ctx, type, bx, y - (row ? 0 : 2.5), row ? 0 : -0.14, 0.9 + hash(k, s, row) * 0.25);
             }
           }
+          if (coffee) {
+            // Bule (enamel pot)
+            ellipse(ctx, cafe0 + 8, y - 0.5, 8, 1.8, 'rgba(58,34,22,0.35)');
+            rrect(ctx, cafe0 + 1, y - 15, 14, 15, [4, 4, 3, 3], '#e9e2d4', '#2C2C2C', 0.8);
+            rrect(ctx, cafe0 + 3, y - 18, 10, 4, 2, '#C45C26', '#2C2C2C', 0.6);
+            ctx.strokeStyle = '#2C2C2C';
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.moveTo(cafe0 + 15, y - 12);
+            ctx.quadraticCurveTo(cafe0 + 21, y - 10, cafe0 + 15, y - 4);
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            ctx.fillRect(cafe0 + 3, y - 13, 1.4, 10);
+            // Steam
+            ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(cafe0 + 8, y - 20);
+            ctx.bezierCurveTo(cafe0 + 5, y - 24, cafe0 + 11, y - 26, cafe0 + 7, y - 31);
+            ctx.stroke();
+            // Two stacks of xícaras on pires
+            for (const [sx, n] of [[cafe0 + 28, 3], [cafe0 + 44, 2]] as const) {
+              ellipse(ctx, sx, y - 0.5, 7, 1.6, 'rgba(58,34,22,0.3)');
+              for (let q = 0; q < n; q++) {
+                const cy = y - 1 - q * 6;
+                ellipse(ctx, sx, cy, 6.5, 1.6, q % 2 ? '#F5E6D3' : '#fffaf2');
+                rrect(ctx, sx - 4, cy - 5, 8, 5, [0, 0, 3, 3], q === n - 1 ? '#C45C26' : '#fffaf2', 'rgba(44,44,44,0.5)', 0.5);
+              }
+            }
+            // Hanging canecas under the shelf above
+            for (let q = 0; q < 3; q++) {
+              const hx = cafe0 + 8 + q * 16;
+              ctx.strokeStyle = '#5e3a1c';
+              ctx.lineWidth = 0.8;
+              ctx.beginPath();
+              ctx.moveTo(hx, y - 24 + 5);
+              ctx.lineTo(hx, y - 24 + 8);
+              ctx.stroke();
+              rrect(ctx, hx - 3.5, y - 24 + 8, 7, 7, [1, 1, 2.5, 2.5], q === 1 ? '#2F5D50' : '#fffaf2', 'rgba(44,44,44,0.5)', 0.5);
+            }
+          }
+          // Plank with grain, lit front lip, and a soft shadow under it.
+          rrect(ctx, 6, y, L - 12, 5, 1, '#7a4a24');
+          grain(ctx, 6, y, L - 12, 5, 'rgba(60,30,10,0.4)', 'rgba(255,220,170,0.25)', s);
+          ctx.fillStyle = 'rgba(255,214,160,0.45)';
+          ctx.fillRect(6, y, L - 12, 1);
+          const under = ctx.createLinearGradient(0, y + 5, 0, y + 12);
+          under.addColorStop(0, 'rgba(58,30,12,0.34)');
+          under.addColorStop(1, 'rgba(58,30,12,0)');
+          ctx.fillStyle = under;
+          ctx.fillRect(6, y + 5, L - 12, 7);
         }
         break;
       }
@@ -723,6 +871,15 @@ function drawDecor(ctx: Ctx, room: RoomDef, d: WallDecor) {
         ctx.fillRect(10, -H + 56, L - 20, 3);
         ctx.fillStyle = 'rgba(255,255,255,0.5)';
         ctx.fillRect(14, -H + 33, 4, 20);
+        // Morning key: the window is the brightest plane in the room and blooms onto the plaster.
+        const bloom = ctx.createRadialGradient(L / 2, -H + 58, 12, L / 2, -H + 58, L * 0.9);
+        bloom.addColorStop(0, 'rgba(255,244,214,0.4)');
+        bloom.addColorStop(1, 'rgba(255,244,214,0)');
+        ctx.fillStyle = bloom;
+        ctx.fillRect(-L * 0.5, -H, L * 2, H);
+        rrect(ctx, 2, -H + 90, L - 4, 4, 1.5, '#8B5E3C');
+        ctx.fillStyle = 'rgba(255,236,196,0.6)';
+        ctx.fillRect(3, -H + 90, L - 6, 1);
         break;
       }
       case 'janela_rua': {
@@ -1148,15 +1305,100 @@ function drawFloorLight(ctx: Ctx, room: RoomDef) {
     }
     if (d.kind === 'janela' && d.wall === 'left') {
       const m = (d.from + d.to) / 2;
-      patch([[0, d.from + 0.2], [0, d.to - 0.2], [2.6, d.to + 0.9], [2.6, d.from + 1.1]], [0, m], [2.6, m + 0.9], 0.24, [[[0, m], [2.6, m + 1]]]);
+      patch([[0, d.from + 0.2], [0, d.to - 0.2], [3.2, d.to + 1.3], [3.2, d.from + 1.4]], [0, m], [3.2, m + 1.2], 0.36, [[[0, m], [3.2, m + 1.2]]]);
     }
   }
   ctx.restore();
 }
 
+/** Upper-wall value bands for the padaria: dado band + picture rail over plaster that isn't one slab. */
+function drawWallBands(ctx: Ctx, room: RoomDef) {
+  const H = room.wallHeight;
+  for (const side of ['left', 'right'] as const) {
+    const len = side === 'left' ? room.rows : room.cols;
+    onWall(ctx, side, 0, len, (L) => {
+      for (let i = 0; i < L / 14; i++) {
+        const r = hash(i, len, 61);
+        ellipse(ctx, hash(i, len, 62) * L, -52 - hash(i, len, 63) * (H - 60), 12 + r * 20, 6 + r * 10, r > 0.5 ? 'rgba(255,252,240,0.07)' : 'rgba(139,94,60,0.05)');
+      }
+      ctx.fillStyle = 'rgba(139,94,60,0.07)';
+      ctx.fillRect(0, -74, L, 22);
+      ctx.fillStyle = 'rgba(139,94,60,0.28)';
+      ctx.fillRect(0, -75, L, 1.4);
+      ctx.fillStyle = 'rgba(255,250,236,0.5)';
+      ctx.fillRect(0, -73.6, L, 0.8);
+      const ceil = ctx.createLinearGradient(0, -H, 0, -H + 40);
+      ceil.addColorStop(0, 'rgba(139,94,60,0.12)');
+      ceil.addColorStop(1, 'rgba(139,94,60,0)');
+      ctx.fillStyle = ceil;
+      ctx.fillRect(0, -H, L, 40);
+    });
+  }
+}
+
+/**
+ * Morning key comes in the left window: the walls warm near it and fall off cooler toward the
+ * far end and the ceiling, so the counter (warm, lit) pops against the back wall.
+ */
+function drawWallFalloff(ctx: Ctx, room: RoomDef) {
+  const H = room.wallHeight;
+  onWall(ctx, 'right', 0, room.cols, (L) => {
+    const g = ctx.createLinearGradient(0, 0, L, 0);
+    g.addColorStop(0, 'rgba(255,214,150,0.10)');
+    g.addColorStop(0.45, 'rgba(255,214,150,0)');
+    g.addColorStop(1, 'rgba(70,90,112,0.13)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, -H, L, H);
+    const top = ctx.createLinearGradient(0, -H, 0, -H * 0.45);
+    top.addColorStop(0, 'rgba(70,90,112,0.12)');
+    top.addColorStop(1, 'rgba(70,90,112,0)');
+    ctx.fillStyle = top;
+    ctx.fillRect(0, -H, L, H * 0.55);
+  });
+  onWall(ctx, 'left', 0, room.rows, (L) => {
+    // u = 0 is the front (door) end of the left wall; the window sits near the back.
+    const win = room.walls.find((d) => d.kind === 'janela' && d.wall === 'left');
+    const wu = win ? (room.rows - (win.from + win.to) / 2) * HW : L * 0.6;
+    const glow = ctx.createRadialGradient(wu, -H * 0.55, 8, wu, -H * 0.55, L * 0.45);
+    glow.addColorStop(0, 'rgba(255,226,170,0.2)');
+    glow.addColorStop(1, 'rgba(255,226,170,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, -H, L, H);
+    const g = ctx.createLinearGradient(0, 0, L, 0);
+    g.addColorStop(0, 'rgba(70,90,112,0.12)');
+    g.addColorStop(0.45, 'rgba(70,90,112,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, -H, L, H);
+  });
+}
+
+/** Floor-level footprints of the fixed counter run (balcão, caixa, vitrine, estufa, trilho). */
+const COUNTER_KINDS = new Set(['balcao', 'caixa', 'vitrine', 'estufa', 'trilho_pedidos']);
+
 /** Ambient occlusion where the floor meets the back walls. */
 function drawFloorAO(ctx: Ctx, room: RoomDef) {
   floorSpace(ctx, () => {
+    if (room.lighting === 'manha') {
+      // Soft AO at the counter's feet: three feathered rings around each footprint.
+      for (const p of room.props) {
+        if (!COUNTER_KINDS.has(p.kind)) continue;
+        const w = p.w ?? 1;
+        const h = p.h ?? 1;
+        for (const [pad, a] of [[0.05, 0.14], [0.14, 0.09], [0.26, 0.05]] as const) {
+          ctx.fillStyle = `rgba(58,34,22,${a})`;
+          ctx.fillRect(p.x + 0.02 - pad, p.y + 0.1 - pad, w - 0.04 + pad * 2, h - 0.2 + pad * 2);
+        }
+      }
+      // Floor falls off away from the window key (left wall), so the front corner sits back.
+      const win = room.walls.find((d) => d.kind === 'janela' && d.wall === 'left');
+      const wy = win ? (win.from + win.to) / 2 : room.rows / 2;
+      const r = Math.hypot(room.cols, room.rows);
+      const g = ctx.createRadialGradient(0, wy, 2, 0, wy, r);
+      g.addColorStop(0, 'rgba(58,34,22,0)');
+      g.addColorStop(1, 'rgba(58,34,22,0.16)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, room.cols, room.rows);
+    }
     const gl = ctx.createLinearGradient(0, 0, 0.9, 0);
     gl.addColorStop(0, 'rgba(58,34,22,0.26)');
     gl.addColorStop(1, 'rgba(58,34,22,0)');
@@ -1207,7 +1449,9 @@ export function drawRoomStatic(ctx: Ctx, room: RoomDef) {
   // Walls
   onWall(ctx, 'left', 0, room.rows, (L) => plaster(ctx, L, H, shade(room.wallColor, -0.07), 1));
   onWall(ctx, 'right', 0, room.cols, (L) => plaster(ctx, L, H, room.wallColor, 2));
+  if (room.lighting === 'manha') drawWallBands(ctx, room);
   for (const d of room.walls) drawDecor(ctx, room, d);
+  if (room.lighting === 'manha') drawWallFalloff(ctx, room);
   // AO where the wall meets the floor, then baseboards + top caps
   for (const side of ['left', 'right'] as const) {
     const len = side === 'left' ? room.rows : room.cols;
@@ -1275,24 +1519,15 @@ export function drawLighting(ctx: Ctx, room: RoomDef, w: number, h: number, t: n
     ctx.fillRect(0, 0, w, h);
     vignette('rgba(70,45,40,0.16)');
   } else if (room.lighting === 'manha') {
-    // Warm morning interior; soft beams from the side window.
-    const warm = ctx.createLinearGradient(0, 0, w, h);
-    warm.addColorStop(0, 'rgba(255,214,150,0.14)');
-    warm.addColorStop(1, 'rgba(120,60,30,0.08)');
+    // Warm morning interior: warm key from the left (window side), cooler toward the right.
+    // Beams, dust and the counter pool live in world space (drawWorldLight).
+    const warm = ctx.createLinearGradient(0, 0, w, h * 0.6);
+    warm.addColorStop(0, 'rgba(255,210,140,0.14)');
+    warm.addColorStop(0.55, 'rgba(255,210,140,0.03)');
+    warm.addColorStop(1, 'rgba(80,100,130,0.08)');
     ctx.fillStyle = warm;
     ctx.fillRect(0, 0, w, h);
-    // Faint dust shimmer in the window light (floor patch is baked into the static layer).
-    ctx.globalCompositeOperation = 'lighter';
-    for (let i = 0; i < 14; i++) {
-      const px = w * (0.3 + ((i * 0.137) % 0.3)) + Math.sin(t * 0.4 + i) * 12;
-      const py = h * (0.3 + ((i * 0.211) % 0.35)) + Math.cos(t * 0.3 + i * 1.7) * 10;
-      ctx.fillStyle = `rgba(255,236,190,${0.18 + Math.sin(t + i) * 0.08})`;
-      ctx.beginPath();
-      ctx.arc(px, py, 1.3, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.globalCompositeOperation = 'source-over';
-    vignette('rgba(60,30,15,0.22)');
+    vignette('rgba(60,30,15,0.24)');
   } else {
     // Neutral daylight from the street window (right wall), soft falloff into the corners.
     const g = ctx.createRadialGradient(w * 0.66, h * 0.3, 20, w * 0.66, h * 0.3, Math.max(w, h) * 0.6);
@@ -1301,6 +1536,100 @@ export function drawLighting(ctx: Ctx, room: RoomDef, w: number, h: number, t: n
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
     vignette('rgba(50,60,80,0.18)');
+  }
+  ctx.restore();
+}
+
+/** Screen point on the left wall at tile row y, height v (v ≤ 0 goes up). */
+const leftWallPt = (y: number, v: number): [number, number] => {
+  const p = toScreen(0, y);
+  return [p.sx, p.sy + v];
+};
+
+/**
+ * World-space light over props and avatars (Padaria morning): the window beam with dust in it,
+ * a warm pool on the hero counter, and cool glints on the glass case. Call with the world transform.
+ */
+export function drawWorldLight(ctx: Ctx, room: RoomDef, t: number) {
+  if (room.lighting !== 'manha') return;
+  const H = room.wallHeight;
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  // Counter pool (focal #1): Carlos + the balcão + Me vê um… sit in the warmest light.
+  const balcao = room.props.find((p) => p.kind === 'balcao');
+  if (balcao) {
+    const c = toScreen(balcao.x + (balcao.w ?? 1) / 2 + 0.5, balcao.y + 0.6);
+    ctx.save();
+    ctx.translate(c.sx, c.sy - 40);
+    ctx.scale(1, 0.55);
+    const g = ctx.createRadialGradient(0, 0, 10, 0, 0, 230);
+    g.addColorStop(0, 'rgba(255,206,140,0.16)');
+    g.addColorStop(0.6, 'rgba(255,206,140,0.05)');
+    g.addColorStop(1, 'rgba(255,206,140,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(-240, -240, 480, 480);
+    ctx.restore();
+  }
+  // Window beams: two shafts split by the mullion, from the glass down to the floor patch.
+  const win = room.walls.find((d) => d.kind === 'janela' && d.wall === 'left');
+  if (win) {
+    const y0 = win.to - 10 / HW;
+    const y1 = win.from + 10 / HW;
+    const mid = (y0 + y1) / 2;
+    const top = -H + 30;
+    const bot = -H + 86;
+    const shafts: [number, number][] = [
+      [y1, mid - 0.05],
+      [mid + 0.05, y0],
+    ];
+    for (const [a, b] of shafts) {
+      const fa = toScreen(3.2, a + 1.3);
+      const fb = toScreen(3.2, b + 1.3);
+      const wa = leftWallPt(a, top);
+      const wb = leftWallPt(b, top);
+      const g = ctx.createLinearGradient(wa[0], wa[1], fa.sx, fa.sy);
+      g.addColorStop(0, 'rgba(255,236,190,0.34)');
+      g.addColorStop(0.7, 'rgba(255,236,190,0.1)');
+      g.addColorStop(1, 'rgba(255,236,190,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(...wa);
+      ctx.lineTo(...wb);
+      ctx.lineTo(...leftWallPt(b, bot));
+      ctx.lineTo(fb.sx, fb.sy);
+      ctx.lineTo(fa.sx, fa.sy);
+      ctx.closePath();
+      ctx.fill();
+    }
+    // Dust drifting in the beam.
+    for (let i = 0; i < 18; i++) {
+      const u = (i * 0.137 + t * 0.012 * (1 + (i % 3))) % 1;
+      const along = y1 + ((i * 0.61) % 1) * (y0 - y1);
+      const wp = leftWallPt(along, top + 20);
+      const fp = toScreen(3, along + 1.2);
+      const x = wp[0] + (fp.sx - wp[0]) * u + Math.sin(t * 0.5 + i) * 4;
+      const y = wp[1] + (fp.sy - wp[1]) * u + Math.cos(t * 0.4 + i * 1.7) * 3;
+      ctx.fillStyle = `rgba(255,240,200,${(0.35 + Math.sin(t * 1.3 + i) * 0.15) * (1 - u)})`;
+      ctx.beginPath();
+      ctx.arc(x, y, 1.1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  // Cool twinkle on the glass case corners (specular, not warm).
+  for (const p of room.props) {
+    if (p.kind !== 'vitrine') continue;
+    const c = toScreen(p.x + 0.98, p.y + 0.9);
+    const tw = 0.5 + Math.sin(t * 1.7 + p.x) * 0.5;
+    ctx.strokeStyle = `rgba(226,242,255,${0.45 + tw * 0.4})`;
+    ctx.lineWidth = 1;
+    const s = 3 + tw * 2;
+    const y = c.sy - 44;
+    ctx.beginPath();
+    ctx.moveTo(c.sx - s, y);
+    ctx.lineTo(c.sx + s, y);
+    ctx.moveTo(c.sx, y - s);
+    ctx.lineTo(c.sx, y + s);
+    ctx.stroke();
   }
   ctx.restore();
 }

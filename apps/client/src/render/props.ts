@@ -1,5 +1,5 @@
 import { furnitureById, type Dir, type FurnitureDef, type PropDef } from '@tudobem/shared';
-import { box, circle, diamond, ellipse, FONT_BODY, FONT_TITLE, grain, iso, metalEdge, poly, rrect, shade, shadow, type Ctx } from './draw';
+import { box, circle, diamond, ellipse, FONT_BODY, FONT_TITLE, grain, hash, iso, metalEdge, poly, rrect, shade, shadow, type Ctx } from './draw';
 import { spriteUrl } from '../art/sprites';
 
 function label(ctx: Ctx, text: string, x: number, y: number, bg: string, fg = '#fff', size = 9) {
@@ -511,117 +511,245 @@ function bicicletario(ctx: Ctx, cx: number, cy: number) {
 type Pt = [number, number];
 const lerp2 = (p: Pt, q: Pt, f: number): Pt => [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f];
 
-/** Glass streaks on a box face (W→S or S→E base edge, extruded up by h). */
-function glassStreaks(ctx: Ctx, a: Pt, b: Pt, h: number, lift: number) {
+/** Glass streaks on a box face (W→S or S→E base edge, extruded up by h). Cool specular, not plain white. */
+function glassStreaks(ctx: Ctx, a: Pt, b: Pt, h: number, lift: number, tint = '236,246,252') {
   const up = (p: Pt, k: number): Pt => [p[0], p[1] - lift - h * k];
-  for (const [f0, w] of [[0.18, 0.1], [0.36, 0.04]] as const) {
+  for (const [f0, w, al] of [[0.16, 0.11, 0.62], [0.36, 0.04, 0.5], [0.72, 0.03, 0.3]] as const) {
     const p1 = up(lerp2(a, b, f0), 0.05);
     const p2 = up(lerp2(a, b, f0 + w), 0.05);
-    const p3 = up(lerp2(a, b, f0 + w + 0.22), 0.95);
-    const p4 = up(lerp2(a, b, f0 + 0.22), 0.95);
-    poly(ctx, [p1, p2, p3, p4], 'rgba(255,255,255,0.55)');
+    const p3 = up(lerp2(a, b, Math.min(1, f0 + w + 0.22)), 0.95);
+    const p4 = up(lerp2(a, b, Math.min(1, f0 + 0.22)), 0.95);
+    poly(ctx, [p1, p2, p3, p4], `rgba(${tint},${al})`);
   }
+  // Bright top-edge catch where the glass meets the lid.
+  ctx.strokeStyle = `rgba(${tint},0.85)`;
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(...up(a, 0.97));
+  ctx.lineTo(...up(b, 0.97));
+  ctx.stroke();
+}
+
+/** Clip to a polygon, run `draw`, restore. */
+function clipTo(ctx: Ctx, pts: Pt[], draw: () => void) {
+  ctx.save();
+  ctx.beginPath();
+  pts.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.closePath();
+  ctx.clip();
+  draw();
+  ctx.restore();
+}
+
+/** Wood-warm plank grain across an iso top face, running along the N→E (x) axis. */
+function woodTop(ctx: Ctx, top: Pt[], seed: number) {
+  const [N, E, S, W] = top as [Pt, Pt, Pt, Pt];
+  clipTo(ctx, top, () => {
+    const rows = 9;
+    for (let r = 0; r < rows; r++) {
+      const f = (r + 0.5) / rows;
+      const a = lerp2(N, W, f);
+      const b = lerp2(E, S, f);
+      const wob = (hash(r, seed, 3) - 0.5) * 1.6;
+      ctx.strokeStyle = r % 3 === 1 ? 'rgba(255,222,176,0.32)' : 'rgba(70,38,16,0.28)';
+      ctx.lineWidth = r % 3 === 1 ? 0.9 : 0.6;
+      ctx.beginPath();
+      ctx.moveTo(a[0], a[1]);
+      ctx.bezierCurveTo(a[0] + (b[0] - a[0]) * 0.35, a[1] + (b[1] - a[1]) * 0.35 + wob, a[0] + (b[0] - a[0]) * 0.7, a[1] + (b[1] - a[1]) * 0.7 - wob, b[0], b[1]);
+      ctx.stroke();
+    }
+    // Plank seams + a knot now and then.
+    for (const f of [0.34, 0.67]) poly(ctx, [lerp2(N, W, f), lerp2(E, S, f), lerp2(E, S, f + 0.012), lerp2(N, W, f + 0.012)], 'rgba(60,30,12,0.35)');
+    if (hash(seed, 7) > 0.4) {
+      const k = lerp2(lerp2(N, W, 0.5), lerp2(E, S, 0.5), 0.2 + hash(seed, 8) * 0.6);
+      ellipse(ctx, k[0], k[1], 2.4, 1, 'rgba(70,38,16,0.35)');
+    }
+    // Window key from the left: sheen on the near-left half, falling off to the right.
+    const g = ctx.createLinearGradient(W[0], W[1], E[0], E[1]);
+    g.addColorStop(0, 'rgba(255,236,196,0.22)');
+    g.addColorStop(1, 'rgba(255,236,196,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(Math.min(W[0], N[0]) - 2, N[1] - 2, E[0] - W[0] + 4, S[1] - N[1] + 4);
+  });
 }
 
 function balcaoSlice(ctx: Ctx, cx: number, cy: number, i: number, n: number) {
-  box(ctx, cx, cy, 1.0, 0.8, 38, '#a8662f', 0, { left: '#b5452e', right: '#8e3620', stroke: 'rgba(0,0,0,0.12)' });
-  // Wood-grain kick panel on the customer side
-  const [kx, ky] = iso(0, 0.4);
-  ctx.save();
-  ctx.transform(1, -0.5, 0, 1, cx + kx - 16, cy + ky + 8);
-  grain(ctx, 0, -40, 32, 30, 'rgba(70,25,10,0.3)', 'rgba(255,190,150,0.18)', i, true);
-  ctx.restore();
-  const top = box(ctx, cx, cy, 1.02, 0.92, 5, '#efe9e1', 38, { stroke: 'rgba(0,0,0,0.1)' }).top;
-  // Marble veining + the toldo's soft stripe shadow falling across the counter top.
-  ctx.save();
-  ctx.beginPath();
-  top.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
-  ctx.closePath();
-  ctx.clip();
-  ctx.strokeStyle = 'rgba(150,140,130,0.35)';
-  ctx.lineWidth = 0.6;
-  ctx.beginPath();
-  ctx.moveTo(cx - 24, cy - 44 + i);
-  ctx.bezierCurveTo(cx - 8, cy - 48, cx + 4, cy - 40, cx + 24, cy - 45 - i);
-  ctx.stroke();
+  const body = box(ctx, cx, cy, 1.0, 0.8, 38, '#a8662f', 0, { left: '#b5452e', right: '#8e3620', stroke: 'rgba(0,0,0,0.12)' });
+  const front: Pt[] = [body.W, body.S, [body.S[0], body.S[1] - 38], [body.W[0], body.W[1] - 38]];
+  clipTo(ctx, front, () => {
+    // Wood-grain kick panel on the customer side
+    const [kx, ky] = iso(0, 0.4);
+    ctx.save();
+    ctx.transform(1, -0.5, 0, 1, cx + kx - 16, cy + ky + 8);
+    grain(ctx, 0, -40, 32, 30, 'rgba(70,25,10,0.3)', 'rgba(255,190,150,0.18)', i, true);
+    ctx.restore();
+    // Awning stripe shadow across the front edge, under the top lip.
+    for (let k = 0; k < 4; k += 2) {
+      const a = lerp2(body.W, body.S, k / 4);
+      const b = lerp2(body.W, body.S, (k + 1) / 4);
+      poly(ctx, [[a[0], a[1] - 38], [b[0], b[1] - 38], [b[0], b[1] - 22], [a[0], a[1] - 26]], 'rgba(70,30,12,0.28)');
+    }
+    const lip = ctx.createLinearGradient(0, cy - 44, 0, cy - 28);
+    lip.addColorStop(0, 'rgba(58,24,10,0.3)');
+    lip.addColorStop(1, 'rgba(58,24,10,0)');
+    ctx.fillStyle = lip;
+    ctx.fillRect(body.W[0] - 2, cy - 60, 70, 36);
+    // Floor AO at the kick.
+    const kick = ctx.createLinearGradient(0, cy - 2, 0, cy + 22);
+    kick.addColorStop(0, 'rgba(58,24,10,0)');
+    kick.addColorStop(1, 'rgba(58,24,10,0.3)');
+    ctx.fillStyle = kick;
+    ctx.fillRect(body.W[0] - 2, cy - 8, 70, 36);
+  });
+  const top = box(ctx, cx, cy, 1.02, 0.92, 5, '#9c6a44', 38, { left: '#7a4f30', right: '#6a4228', stroke: 'rgba(60,30,12,0.25)' }).top;
+  woodTop(ctx, top, i);
   const [N, E, S, W] = top as [Pt, Pt, Pt, Pt];
-  for (let k = 0; k < 4; k += 2) {
-    poly(ctx, [lerp2(N, E, k / 4), lerp2(N, E, (k + 1) / 4), lerp2(W, S, (k + 1) / 4), lerp2(W, S, k / 4)], 'rgba(90,45,20,0.13)');
-  }
-  ctx.restore();
+  // The toldo's soft stripe shadow falling across the counter top.
+  clipTo(ctx, top, () => {
+    for (let k = 0; k < 4; k += 2) poly(ctx, [lerp2(N, E, k / 4), lerp2(N, E, (k + 1) / 4), lerp2(W, S, (k + 1) / 4), lerp2(W, S, k / 4)], 'rgba(60,28,10,0.14)');
+  });
+  // Cream rail on the customer edge.
+  const [rx, ry] = iso(0, 0.42);
+  box(ctx, cx + rx, cy + ry, 1.02, 0.1, 3, '#F5E6D3', 42, { left: '#e2cfb6', right: '#cdb89c', stroke: 'rgba(90,60,30,0.3)' });
   const [lx, ly] = iso(0, 0.4);
   rrect(ctx, cx + lx - 12, cy + ly - 30, 24, 3, 1, '#f2c230');
   if (i === 0) {
-    // Açucareiro + canela shakers
+    // Açucareiro + canela shakers, with the paper napkin stack beside them.
     for (const [dx, cap] of [[-6, '#b8b8c0'], [0, '#C45C26']] as const) {
-      rrect(ctx, cx + dx - 2.5, cy - 52, 5, 8, 1.5, 'rgba(235,242,246,0.9)', '#9aa4a8', 0.6);
+      ellipse(ctx, cx + dx + 0.5, cy - 44, 3.4, 1.3, 'rgba(58,34,22,0.3)');
+      rrect(ctx, cx + dx - 2.5, cy - 52, 5, 8, 1.5, 'rgba(225,238,246,0.9)', '#8fa2ac', 0.6);
       ctx.fillStyle = dx ? '#fff' : '#8a5a3c';
       ctx.fillRect(cx + dx - 1.8, cy - 48, 3.6, 3.5);
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      ctx.fillRect(cx + dx - 2, cy - 51, 0.9, 6);
       rrect(ctx, cx + dx - 2.5, cy - 54, 5, 2.5, 1, cap);
     }
+    ellipse(ctx, cx + 9, cy - 43, 5, 1.8, 'rgba(58,34,22,0.25)');
+    for (let k = 0; k < 5; k++) diamond(ctx, cx + 9, cy - 44 - k * 1.1, 0.26, 0.2, k % 2 ? '#fffdf7' : '#efe8da', 'rgba(0,0,0,0.1)', 0.4);
   }
   if (i === 1) {
-    ellipse(ctx, cx - 4, cy - 47, 9, 4, '#d9913f');
-    ellipse(ctx, cx - 6, cy - 49, 4, 1.4, 'rgba(255,230,170,0.6)');
-    ellipse(ctx, cx + 8, cy - 46, 7, 3, '#e8a94f');
+    // Tábua with a fresh pão italiano + two pães franceses.
+    ellipse(ctx, cx - 2, cy - 44, 13, 4.5, 'rgba(58,34,22,0.28)');
+    ellipse(ctx, cx - 2, cy - 45.5, 12, 4.4, '#c9a06a');
+    ellipse(ctx, cx - 4, cy - 48, 8, 4.4, '#b87433');
+    ellipse(ctx, cx - 6, cy - 50, 4, 1.4, 'rgba(255,230,170,0.6)');
+    ctx.strokeStyle = 'rgba(255,228,180,0.8)';
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(cx - 9, cy - 48);
+    ctx.lineTo(cx + 1, cy - 49);
+    ctx.stroke();
+    ellipse(ctx, cx + 8, cy - 47, 6.5, 2.8, '#d9913f');
+    ellipse(ctx, cx + 6.5, cy - 48.5, 3, 0.9, 'rgba(255,230,170,0.6)');
   }
   if (i === 2) {
     // Porta-guardanapo with a stack of paper napkins
+    ellipse(ctx, cx, cy - 44, 8, 2.4, 'rgba(58,34,22,0.28)');
     rrect(ctx, cx - 6, cy - 50, 12, 6, 1, '#b8b8c0', '#8a8a92', 0.6);
     for (let k = 0; k < 4; k++) poly(ctx, [[cx - 5 + k * 0.6, cy - 50 - k * 1.2], [cx + 5 + k * 0.6, cy - 50 - k * 1.2], [cx + 4 + k * 0.6, cy - 56 - k * 1.2], [cx - 4 + k * 0.6, cy - 56 - k * 1.2]], k % 2 ? '#fffdf7' : '#f1ece2', 'rgba(0,0,0,0.12)', 0.4);
   }
   if (i === n - 2) {
-    rrect(ctx, cx - 6, cy - 55, 10, 12, 2, '#fff6e6', '#2a2233');
-    ctx.fillStyle = '#6b3f1f';
-    ctx.fillRect(cx - 5, cy - 52, 8, 3);
+    // Copo americano of pingado on a saucer.
+    ellipse(ctx, cx - 1, cy - 44, 7, 2.4, 'rgba(58,34,22,0.3)');
+    ellipse(ctx, cx - 1, cy - 45, 6.5, 2.2, '#fffaf2');
+    rrect(ctx, cx - 5, cy - 56, 8, 11, 1.5, 'rgba(236,244,248,0.85)', '#8fa2ac', 0.6);
+    ctx.fillStyle = '#b58250';
+    ctx.fillRect(cx - 4.4, cy - 52, 6.8, 6.4);
+    ctx.fillStyle = '#e9d2b0';
+    ctx.fillRect(cx - 4.4, cy - 53, 6.8, 1.4);
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.fillRect(cx - 4, cy - 55, 1, 9);
   }
 }
 
 function vitrineSlice(ctx: Ctx, cx: number, cy: number, i: number) {
   box(ctx, cx, cy, 1.0, 0.8, 22, '#d6cfc4', 0, { stroke: 'rgba(0,0,0,0.12)' });
-  const glass = box(ctx, cx, cy, 0.96, 0.76, 24, 'rgba(197,213,222,0.35)', 22, { left: 'rgba(197,213,222,0.42)', right: 'rgba(160,190,210,0.5)', stroke: 'rgba(110,150,180,0.7)' });
+  // Cool glass-cool body (palette.md #C5D5DE), darker at the base so the sweets read against it.
+  const glass = box(ctx, cx, cy, 0.96, 0.76, 24, 'rgba(197,213,222,0.38)', 22, { left: 'rgba(182,204,218,0.5)', right: 'rgba(150,180,202,0.58)', stroke: 'rgba(96,136,164,0.8)' });
   const sweets = i === 0 ? ['#f2d27a', '#e889a8', '#f4efe6', '#c77b3a'] : ['#c77b3a', '#f2c230', '#8a4a2a', '#e889a8'];
   for (let row = 0; row < 2; row++)
     sweets.forEach((c, k) => {
       const [dx, dy] = iso(-0.3 + k * 0.2, row ? -0.15 : 0.12);
+      ellipse(ctx, cx + dx + 0.5, cy + dy - 27.5 - row * 2, 5, 2, 'rgba(58,34,22,0.22)');
       ellipse(ctx, cx + dx, cy + dy - 29 - row * 2, 5, 3, row ? shade(c, -0.08) : c);
       ellipse(ctx, cx + dx - 1, cy + dy - 30 - row * 2, 3, 1.2, 'rgba(255,255,255,0.5)');
     });
-  // Cool specular on the glass: 1–2 highlight streaks per face.
   glassStreaks(ctx, glass.W, glass.S, 24, 22);
-  glassStreaks(ctx, glass.S, glass.E, 24, 22);
+  glassStreaks(ctx, glass.S, glass.E, 24, 22, '214,232,244');
   box(ctx, cx, cy, 1.0, 0.8, 3, '#efe9e1', 46, { stroke: 'rgba(0,0,0,0.1)' });
 }
 
 function caixa(ctx: Ctx, cx: number, cy: number) {
+  shadow(ctx, cx, cy + 2, 26, 11, 0.3);
   box(ctx, cx, cy, 1.0, 0.8, 38, '#a8662f', 0, { left: '#b5452e', right: '#8e3620' });
-  box(ctx, cx, cy, 1.02, 0.92, 5, '#efe9e1', 38);
+  const top = box(ctx, cx, cy, 1.02, 0.92, 5, '#9c6a44', 38, { left: '#7a4f30', right: '#6a4228', stroke: 'rgba(60,30,12,0.25)' }).top;
+  woodTop(ctx, top, 11);
+  // Register + its soft contact on the wood.
+  ellipse(ctx, cx - 1, cy - 43, 12, 4.5, 'rgba(58,34,22,0.32)');
   box(ctx, cx, cy, 0.45, 0.4, 14, '#3a3a44', 43);
   box(ctx, cx - 3, cy - 2, 0.3, 0.1, 10, '#1e2a3a', 57);
   ctx.fillStyle = '#7ff0a0';
   ctx.font = `800 6px ${FONT_BODY}`;
   ctx.textAlign = 'center';
   ctx.fillText('R$', cx - 3, cy - 62);
+  // Tray of kraft bread bags + a napkin stack by the till.
+  const [bx, by] = iso(0.28, 0.18);
+  ellipse(ctx, cx + bx, cy + by - 43, 8, 3, 'rgba(58,34,22,0.3)');
+  box(ctx, cx + bx, cy + by, 0.34, 0.26, 2, '#8B5E3C', 43);
+  for (let k = 0; k < 4; k++) box(ctx, cx + bx - 0.5, cy + by - 0.3, 0.28, 0.2, 1.1, k % 2 ? '#c9a172' : '#d8b384', 45 + k * 1.1, { stroke: 'rgba(90,60,30,0.35)' });
+  const [nx, ny] = iso(-0.3, 0.26);
+  ellipse(ctx, cx + nx, cy + ny - 43, 5, 1.8, 'rgba(58,34,22,0.25)');
+  for (let k = 0; k < 4; k++) diamond(ctx, cx + nx, cy + ny - 44 - k * 1.1, 0.22, 0.18, k % 2 ? '#fffdf7' : '#efe8da', 'rgba(0,0,0,0.1)', 0.4);
 }
 
 function banqueta(ctx: Ctx, cx: number, cy: number) {
-  shadow(ctx, cx, cy, 11, 5, 0.18);
+  shadow(ctx, cx, cy, 13, 5.5, 0.3);
   rrect(ctx, cx - 1.5, cy - 24, 3, 24, 1, '#b8b8c0');
-  ellipse(ctx, cx, cy - 1, 8, 3.5, '#9a9aa4');
-  ellipse(ctx, cx, cy - 26, 11, 5, '#b8283e');
-  ellipse(ctx, cx, cy - 28, 11, 5, '#d8354d');
+  metalEdge(ctx, cx - 1, cy - 23, 21, 0.7);
+  ellipse(ctx, cx, cy - 1, 8, 3.5, '#8a8a94');
+  ellipse(ctx, cx - 1.5, cy - 2, 4.5, 1.4, 'rgba(255,255,255,0.35)');
+  // Seat: dark underside, red cushion, a rim catching the window key from the left.
+  ellipse(ctx, cx, cy - 25, 11.5, 5.2, '#8e1f30');
+  ellipse(ctx, cx, cy - 27, 11, 5, '#b8283e');
+  ellipse(ctx, cx, cy - 29, 11, 5, '#d8354d');
+  ctx.strokeStyle = 'rgba(255,214,190,0.75)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.ellipse(cx, cy - 29, 10.4, 4.5, 0, Math.PI * 0.8, Math.PI * 1.45);
+  ctx.stroke();
+  ellipse(ctx, cx - 3, cy - 30.5, 4, 1.4, 'rgba(255,255,255,0.28)');
 }
 
 function mesa(ctx: Ctx, cx: number, cy: number) {
-  shadow(ctx, cx, cy, 20, 8, 0.2);
+  shadow(ctx, cx, cy, 22, 9, 0.3);
   rrect(ctx, cx - 2, cy - 30, 4, 30, 1, '#3a3a44');
+  metalEdge(ctx, cx - 1.4, cy - 29, 27, 0.8);
   ellipse(ctx, cx, cy - 1, 10, 4, '#3a3a44');
+  ellipse(ctx, cx - 2, cy - 2, 5, 1.5, 'rgba(255,255,255,0.18)');
   ellipse(ctx, cx, cy - 31, 20, 9, '#d8d2c8');
   ellipse(ctx, cx, cy - 33, 20, 9, '#f2eee8');
   ellipse(ctx, cx - 5, cy - 35, 8, 2.4, 'rgba(255,255,255,0.8)');
-  rrect(ctx, cx - 9, cy - 42, 7, 8, 2, '#fff', '#c8c0b4');
+  // Média on its saucer — the cup sits, it doesn't float.
+  ellipse(ctx, cx - 5.5, cy - 34, 6.5, 2.6, 'rgba(58,34,22,0.22)');
+  ellipse(ctx, cx - 5.5, cy - 35, 6, 2.4, '#fffaf2');
+  ctx.strokeStyle = '#c8c0b4';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.ellipse(cx - 5.5, cy - 35, 6, 2.4, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  rrect(ctx, cx - 9, cy - 42, 7, 7, 2, '#fff', '#c8c0b4', 0.6);
+  ellipse(ctx, cx - 5.5, cy - 42, 3.3, 1, '#b58250');
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(cx - 1.6, cy - 38.5, 1.8, -Math.PI / 2, Math.PI / 2);
+  ctx.stroke();
+  // Pão de queijo on a plate.
+  ellipse(ctx, cx + 7, cy - 34, 6.5, 2.5, 'rgba(58,34,22,0.2)');
   ellipse(ctx, cx + 7, cy - 35, 6, 2.5, '#fff');
-  ellipse(ctx, cx + 7, cy - 37, 3.5, 2, '#e8a94f');
+  circle(ctx, cx + 5.5, cy - 37, 2.2, '#eac566');
+  circle(ctx, cx + 8.8, cy - 36.6, 2.2, '#f0cc6e');
+  circle(ctx, cx + 7, cy - 38.8, 2, '#f2d27a');
   // Sugar shaker + napkin holder: the padaria table kit
   rrect(ctx, cx - 1, cy - 44, 4, 7, 1.2, 'rgba(235,242,246,0.9)', '#9aa4a8', 0.5);
   ctx.fillStyle = '#fff';
@@ -632,12 +760,16 @@ function mesa(ctx: Ctx, cx: number, cy: number) {
 }
 
 function cadeiraPadaria(ctx: Ctx, cx: number, cy: number, dir: Dir) {
-  shadow(ctx, cx, cy, 13, 5, 0.18);
+  shadow(ctx, cx, cy, 14, 6, 0.28);
   for (const [dx, dy] of [[-0.2, -0.2], [0.2, -0.2], [0.2, 0.2], [-0.2, 0.2]] as [number, number][]) {
     const [lx, ly] = iso(dx, dy);
+    ellipse(ctx, cx + lx, cy + ly, 2.4, 1, 'rgba(58,34,22,0.35)');
     rrect(ctx, cx + lx - 1, cy + ly - 18, 2, 18, 1, '#2a2233');
   }
+  diamond(ctx, cx, cy - 17, 0.5, 0.5, '#7a2a18');
   diamond(ctx, cx, cy - 18, 0.5, 0.5, '#b5452e', '#7a2a18');
+  const [hx, hy] = iso(-0.12, -0.12);
+  ellipse(ctx, cx + hx, cy + hy - 18, 5, 1.6, 'rgba(255,214,190,0.3)');
   const back: Record<Dir, [number, number]> = { SE: [-0.24, 0], SW: [0, -0.24], NE: [0, 0.24], NW: [0.24, 0] };
   if (dir === 'SE' || dir === 'SW') {
     const [bx, by] = iso(...back[dir]);
@@ -803,46 +935,79 @@ function placaRua(ctx: Ctx, cx: number, cy: number) {
 function estufa(ctx: Ctx, cx: number, cy: number) {
   box(ctx, cx, cy, 1.0, 0.8, 22, '#d6cfc4', 0, { stroke: 'rgba(0,0,0,0.12)' });
   const warmGlass = box(ctx, cx, cy, 0.96, 0.76, 26, 'rgba(255,196,120,0.4)', 22, { left: 'rgba(255,190,110,0.42)', right: 'rgba(240,170,90,0.45)', stroke: 'rgba(180,120,60,0.6)' });
-  const salgados: [number, number, 'coxinha' | 'pastel' | 'esfiha'][] = [
-    [-0.28, -0.2, 'esfiha'],
-    [-0.02, -0.22, 'coxinha'],
-    [0.24, -0.2, 'esfiha'],
-    [-0.14, -0.04, 'coxinha'],
-    [0.12, -0.04, 'pastel'],
-    [-0.3, 0.12, 'coxinha'],
-    [-0.04, 0.14, 'pastel'],
-    [0.22, 0.12, 'coxinha'],
+  // Two tiers, full trays: back tier sits higher (a wire shelf), front tier on the case floor.
+  type Salgado = 'coxinha' | 'pastel' | 'esfiha' | 'paoqueijo' | 'empada';
+  const back: [number, number, Salgado][] = [
+    [-0.32, -0.22, 'esfiha'], [-0.12, -0.24, 'coxinha'], [0.06, -0.22, 'empada'], [0.26, -0.22, 'esfiha'],
+    [-0.22, -0.08, 'paoqueijo'], [0.0, -0.1, 'coxinha'], [0.2, -0.08, 'paoqueijo'],
   ];
-  for (const [dx, dy, k] of salgados) {
-    const [ox, oy] = iso(dx, dy);
-    const x = cx + ox;
-    const y = cy + oy - 30;
-    if (k === 'coxinha') {
-      ctx.fillStyle = '#d0822f';
-      ctx.beginPath();
-      ctx.moveTo(x, y - 7);
-      ctx.bezierCurveTo(x + 6, y - 2, x + 5, y + 3, x, y + 3);
-      ctx.bezierCurveTo(x - 5, y + 3, x - 6, y - 2, x, y - 7);
-      ctx.fill();
-    } else if (k === 'pastel') {
-      ctx.fillStyle = '#e8b25a';
-      ctx.beginPath();
-      ctx.ellipse(x, y, 7, 3.5, 0, Math.PI, 0);
-      ctx.lineTo(x - 7, y);
-      ctx.fill();
-      ctx.fillRect(x - 7, y - 0.5, 14, 2);
-    } else {
-      ctx.fillStyle = '#d99a4a';
-      ctx.beginPath();
-      ctx.moveTo(x - 5, y + 2);
-      ctx.lineTo(x + 5, y + 2);
-      ctx.lineTo(x, y - 6);
-      ctx.closePath();
-      ctx.fill();
-      circle(ctx, x, y - 0.5, 1.6, '#b8423a');
+  const front: [number, number, Salgado][] = [
+    [-0.32, 0.06, 'coxinha'], [-0.12, 0.08, 'pastel'], [0.1, 0.06, 'coxinha'], [0.3, 0.06, 'empada'],
+    [-0.24, 0.2, 'paoqueijo'], [-0.02, 0.22, 'coxinha'], [0.2, 0.2, 'pastel'],
+  ];
+  const [sx, sy] = iso(0, -0.16);
+  box(ctx, cx + sx, cy + sy, 0.9, 0.34, 1, 'rgba(200,200,205,0.7)', 34, { stroke: 'rgba(120,120,130,0.5)' });
+  const draw = (list: [number, number, Salgado][], lift: number) => {
+    for (const [dx, dy, k] of list) {
+      const [ox, oy] = iso(dx, dy);
+      const x = cx + ox;
+      const y = cy + oy - lift;
+      ellipse(ctx, x + 0.5, y + 2.5, 5, 1.8, 'rgba(90,40,10,0.28)');
+      if (k === 'coxinha') {
+        ctx.fillStyle = '#c9772a';
+        ctx.beginPath();
+        ctx.moveTo(x, y - 7);
+        ctx.bezierCurveTo(x + 6, y - 2, x + 5, y + 3, x, y + 3);
+        ctx.bezierCurveTo(x - 5, y + 3, x - 6, y - 2, x, y - 7);
+        ctx.fill();
+        ellipse(ctx, x - 1.6, y - 1.5, 1.4, 2.6, 'rgba(255,214,150,0.55)');
+      } else if (k === 'pastel') {
+        ctx.fillStyle = '#e8b25a';
+        ctx.beginPath();
+        ctx.ellipse(x, y, 7, 3.5, 0, Math.PI, 0);
+        ctx.lineTo(x - 7, y);
+        ctx.fill();
+        ctx.fillRect(x - 7, y - 0.5, 14, 2);
+        ctx.strokeStyle = 'rgba(160,100,40,0.7)';
+        ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        for (let q = -5; q <= 5; q += 2.5) {
+          ctx.moveTo(x + q, y + 1.5);
+          ctx.lineTo(x + q + 0.8, y - 0.3);
+        }
+        ctx.stroke();
+      } else if (k === 'esfiha') {
+        ctx.fillStyle = '#d99a4a';
+        ctx.beginPath();
+        ctx.moveTo(x - 5, y + 2);
+        ctx.lineTo(x + 5, y + 2);
+        ctx.lineTo(x, y - 6);
+        ctx.closePath();
+        ctx.fill();
+        circle(ctx, x, y - 0.5, 1.6, '#b8423a');
+      } else if (k === 'empada') {
+        rrect(ctx, x - 4, y - 3, 8, 5, 1.5, '#c98a3e');
+        ellipse(ctx, x, y - 3, 4, 1.6, '#e5b865');
+        ctx.strokeStyle = 'rgba(140,80,30,0.6)';
+        ctx.lineWidth = 0.5;
+        for (let q = -3; q <= 3; q += 1.5) {
+          ctx.beginPath();
+          ctx.moveTo(x + q, y - 2);
+          ctx.lineTo(x + q, y + 2);
+          ctx.stroke();
+        }
+      } else {
+        circle(ctx, x - 2.5, y, 2.4, '#eac566');
+        circle(ctx, x + 2.2, y + 0.4, 2.4, '#f0cc6e');
+        circle(ctx, x, y - 2.4, 2.3, '#f2d27a');
+        circle(ctx, x - 0.8, y - 3.2, 0.9, 'rgba(255,248,220,0.8)');
+      }
     }
-  }
-  glassStreaks(ctx, warmGlass.W, warmGlass.S, 26, 22);
+  };
+  draw(back, 38);
+  draw(front, 26);
+  glassStreaks(ctx, warmGlass.W, warmGlass.S, 26, 22, '255,244,226');
+  glassStreaks(ctx, warmGlass.S, warmGlass.E, 26, 22, '236,246,252');
   box(ctx, cx, cy, 1.0, 0.8, 3, '#efe9e1', 48, { stroke: 'rgba(0,0,0,0.1)' });
   const g = ctx.createRadialGradient(cx, cy - 40, 2, cx, cy - 36, 26);
   g.addColorStop(0, 'rgba(255,190,90,0.35)');

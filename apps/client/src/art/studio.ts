@@ -48,7 +48,9 @@ async function main() {
   await Promise.all(['800 12px Nunito', '700 12px Nunito', 'italic 600 12px Nunito', '800 12px "Baloo 2"'].map((f) => document.fonts.load(f).catch(() => null)));
   await document.fonts.ready;
   const root = document.getElementById('studio')!;
-  const assets = allAssets();
+  // `?only=props,hats/chef` renders just those categories / key prefixes (low-memory partial bake: ART_ONLY=… pnpm art).
+  const only = new URLSearchParams(location.search).get('only')?.split(',').filter(Boolean);
+  const assets = allAssets().filter((a) => !only?.length || only.some((o) => a.category === o || a.key.startsWith(o)));
   const byCat = new Map<ArtCategory, ArtAsset[]>();
   for (const a of assets) byCat.set(a.category, [...(byCat.get(a.category) ?? []), a]);
 
