@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { buildGrid, CPU_NAMES, DEFAULT_APPEARANCE, ECONOMY, isCpuId, isWalkable, MISSION_REWARD, mulberry32, ROOMS, SCORE_FEEDBACK, TYPED_MISS_HINT, type ServerMsg, type ClientMsg, type PublicAvatar } from '@tudobem/shared';
+import { buildGrid, CPU_NAMES, DEFAULT_APPEARANCE, ECONOMY, isCpuId, isWalkable, MISSION_REWARD, mgBuiltForTray, mgPerfectBuilt, mulberry32, ROOMS, SCORE_FEEDBACK, TYPED_MISS_HINT, type ServerMsg, type ClientMsg, type PublicAvatar } from '@tudobem/shared';
 import { sanitizeAppearance, World, MG_RESUME_MS, type Session, type WorldOptions } from './world.js';
 import { ProfileStore } from './store.js';
 import { AuthoredNpcDialogue, MemoryModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
@@ -223,7 +223,7 @@ describe('World', () => {
       const order = world.debugOrder(a.s)!;
       const tray = Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty]));
       clock += 1000;
-      await a.send({ t: 'mg', action: 'submit', tray, mods: order.mods });
+      await a.send({ t: 'mg', action: 'submit', tray, mods: order.mods, built: mgPerfectBuilt(order) });
     }
     const end = a.last('mg') as Extract<ServerMsg, { t: 'mg'; phase: 'end' }>;
     expect(end.phase).toBe('end');
@@ -270,6 +270,23 @@ describe('World', () => {
     expect(a.s.profile!.coins).toBe(coinsAfterFirst);
   });
 
+  it('rejects a correct tray without station-built units (no shelf→tray bypass)', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'mg', action: 'start' });
+    const order = world.debugOrder(a.s)!;
+    clock += 1000;
+    await a.send({
+      t: 'mg',
+      action: 'submit',
+      tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])),
+      mods: order.mods,
+    });
+    expect(a.all('mg').at(-2)).toMatchObject({ phase: 'result', outcome: 'repita' });
+    expect(a.s.mg!.repeated).toBe(true);
+  });
+
   it('Carlos repeats once on a wrong tray, then moves on', async () => {
     const { world } = makeWorld();
     const a = await client(world);
@@ -294,19 +311,19 @@ describe('World', () => {
     for (let r = 0; r < 2; r++) {
       const order = world.debugOrder(a.s)!;
       clock += 1000;
-      await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods });
+      await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods, built: mgPerfectBuilt(order) });
     }
     expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 2 });
     const mid = world.debugOrder(a.s)!;
     const partial = { [mid.lines[0]!.itemId]: 1 };
     clock += 1000;
-    await a.send({ t: 'mg', action: 'submit', tray: partial });
+    await a.send({ t: 'mg', action: 'submit', tray: partial, built: mgBuiltForTray(mid, partial) });
     expect(a.all('mg').at(-2)).toMatchObject({ phase: 'result', outcome: 'repita', round: 2 });
     expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 2, repeat: true });
 
     // Double-click / empty tray in the same beat as the repeat must not burn it.
     await a.send({ t: 'mg', action: 'submit', tray: {} });
-    await a.send({ t: 'mg', action: 'submit', tray: partial });
+    await a.send({ t: 'mg', action: 'submit', tray: partial, built: mgBuiltForTray(mid, partial) });
     expect(world.debugOrder(a.s)!.pt).toBe(mid.pt);
     expect(a.s.mg!.round).toBe(2);
     expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 2, repeat: true, resync: true });
@@ -314,7 +331,7 @@ describe('World', () => {
 
     // A real correction still inside the grace window scores and advances with a new ticket.
     clock += 50;
-    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(mid.lines.map((l) => [l.itemId, l.qty])), mods: mid.mods });
+    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(mid.lines.map((l) => [l.itemId, l.qty])), mods: mid.mods, built: mgPerfectBuilt(mid) });
     expect(a.all('mg').filter((m) => m.phase === 'result').at(-1)).toMatchObject({ outcome: 'segunda', round: 2 });
     expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 3 });
     expect(a.all('mg').at(-1)).not.toMatchObject({ pt: mid.pt });
@@ -332,7 +349,7 @@ describe('World', () => {
     expect(a.s.mg!.round).toBe(0);
     clock += 1000;
     const order = world.debugOrder(a.s)!;
-    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods });
+    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods, built: mgPerfectBuilt(order) });
     expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 1 });
   });
 
@@ -366,6 +383,7 @@ describe('World', () => {
       action: 'submit',
       tray: Object.fromEntries(mid.lines.map((l) => [l.itemId, l.qty])),
       mods: mid.mods,
+      built: mgPerfectBuilt(mid),
     });
     expect(b.all('mg').filter((m) => m.phase === 'result').at(-1)).toMatchObject({ outcome: 'segunda', round: 0 });
     expect(b.last('mg')).toMatchObject({ phase: 'order', round: 1 });
@@ -384,6 +402,7 @@ describe('World', () => {
       action: 'submit',
       tray: Object.fromEntries(first.lines.map((l) => [l.itemId, l.qty])),
       mods: first.mods,
+      built: mgPerfectBuilt(first),
     });
     expect(a.s.mg).toMatchObject({ waiting: true, round: 1 });
     const token = a.s.profile!.token;
@@ -447,7 +466,7 @@ describe('World', () => {
     a.s.mg!.served = undefined;
     const order = world.debugOrder(a.s)!;
     clock += 1000;
-    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods });
+    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods, built: mgPerfectBuilt(order) });
     expect(a.all('mg').at(-2)).toMatchObject({ phase: 'result', outcome: 'perfeito', round: 0 });
     expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 1 });
     expect(world.debugOrder(a.s)!.pt.length).toBeGreaterThan(0);
@@ -639,7 +658,7 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
     await a.send({ t: 'mg', action: 'start' });
     const order = world.debugOrder(a.s)!;
     clock += 1000;
-    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods });
+    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods, built: mgPerfectBuilt(order) });
     const m = a.s.profile!.mission!;
     expect(m.steps).toEqual({ cumprimenta: true, pede: true, monta: true });
     expect(m.rewarded).toBe(true);
@@ -649,7 +668,7 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
     // A second correct order doesn't pay again.
     const o2 = world.debugOrder(a.s)!;
     clock += 1000;
-    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(o2.lines.map((l) => [l.itemId, l.qty])), mods: o2.mods });
+    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(o2.lines.map((l) => [l.itemId, l.qty])), mods: o2.mods, built: mgPerfectBuilt(o2) });
     expect(a.all('reward').filter((r) => r.amount === MISSION_REWARD).length).toBe(1);
   });
 

@@ -205,6 +205,145 @@ export function checkTray(order: MgOrder, tray: Tray, mods: string[] = []): Tray
   return { ok: !missing.length && !extra.length && !missingMods.length && !extraMods.length, missing, extra, missingMods, extraMods };
 }
 
+/** Station prep required before an item can go on the tray (pizza-style build loop). */
+export type MgPrepStation = 'chapa' | 'bebidas';
+
+export function mgPrepStation(itemId: string): MgPrepStation | null {
+  if (itemId === 'pao_na_chapa' || itemId === 'misto_quente' || itemId === 'pastel' || itemId === 'coxinha') return 'chapa';
+  if (itemId === 'cafe' || itemId === 'cafe_com_leite' || itemId === 'suco_de_laranja' || itemId === 'agua' || itemId === 'guarana') return 'bebidas';
+  return null;
+}
+
+export function ticketNeedsPack(mods: string[]): boolean {
+  return mods.some((m) => mgModById(m)?.group === 'where');
+}
+
+export function orderNeedsPack(order: MgOrder): boolean {
+  return ticketNeedsPack(order.mods);
+}
+
+export interface MgBuiltUnit {
+  itemId: string;
+  /** Picked from prateleira (required — blocks tray-only cheats). */
+  shelf?: boolean;
+  chapa?: boolean;
+  bebidas?: boolean;
+  /** Passed embalagem when the ticket needs pra viagem / pra comer aqui. */
+  pack?: boolean;
+}
+
+/** Test / server hook: fully prepped units for a ticket (station flags set). */
+export function mgPerfectBuilt(order: MgOrder): MgBuiltUnit[] {
+  const needsPack = orderNeedsPack(order);
+  const units: MgBuiltUnit[] = [];
+  for (const line of order.lines) {
+    for (let i = 0; i < line.qty; i++) {
+      const u: MgBuiltUnit = { itemId: line.itemId, shelf: true };
+      const st = mgPrepStation(line.itemId);
+      if (st === 'chapa') u.chapa = true;
+      if (st === 'bebidas') u.bebidas = true;
+      if (needsPack) u.pack = true;
+      units.push(u);
+    }
+  }
+  return units;
+}
+
+/** Station-complete built rows for whatever is currently on the tray (tests / bots). */
+export function mgBuiltForTray(order: MgOrder, tray: Tray): MgBuiltUnit[] {
+  const needsPack = orderNeedsPack(order);
+  const units: MgBuiltUnit[] = [];
+  for (const [itemId, qty] of Object.entries(sanitizeTray(tray))) {
+    for (let i = 0; i < qty; i++) {
+      const u: MgBuiltUnit = { itemId, shelf: true };
+      const st = mgPrepStation(itemId);
+      if (st === 'chapa') u.chapa = true;
+      if (st === 'bebidas') u.bebidas = true;
+      if (needsPack) u.pack = true;
+      units.push(u);
+    }
+  }
+  return units;
+}
+
+export function trayFromBuilt(units: MgBuiltUnit[]): Tray {
+  const out: Tray = {};
+  for (const u of units) {
+    if (!mgItemById(u.itemId)) continue;
+    out[u.itemId] = (out[u.itemId] ?? 0) + 1;
+  }
+  return out;
+}
+
+export function sanitizeBuilt(raw: unknown, tray: Tray): MgBuiltUnit[] {
+  if (!Array.isArray(raw)) return [];
+  const out: MgBuiltUnit[] = [];
+  const counts: Tray = { ...sanitizeTray(tray) };
+  for (const row of raw) {
+    if (!row || typeof row !== 'object') continue;
+    const itemId = (row as MgBuiltUnit).itemId;
+    if (!mgItemById(itemId)) continue;
+    const left = counts[itemId] ?? 0;
+    if (left <= 0) continue;
+    counts[itemId] = left - 1;
+    out.push({
+      itemId,
+      shelf: !!(row as MgBuiltUnit).shelf,
+      chapa: !!(row as MgBuiltUnit).chapa,
+      bebidas: !!(row as MgBuiltUnit).bebidas,
+      pack: !!(row as MgBuiltUnit).pack,
+    });
+  }
+  return out;
+}
+
+export interface MgBuildCheck extends TrayCheck {
+  /** Tray contents match but a required chapa/bebidas/pack step was skipped. */
+  prepMiss: boolean;
+}
+
+function prepOk(unit: MgBuiltUnit, needsPack: boolean): boolean {
+  if (!unit.shelf) return false;
+  const st = mgPrepStation(unit.itemId);
+  if (st === 'chapa' && !unit.chapa) return false;
+  if (st === 'bebidas' && !unit.bebidas) return false;
+  if (needsPack && !unit.pack) return false;
+  return true;
+}
+
+export interface MgBuildOptions {
+  /** Production submits must include station-built units (A+ — no shelf→tray bypass). */
+  requireBuilt?: boolean;
+}
+
+/** Full submission check. */
+export function checkBuild(order: MgOrder, tray: Tray, mods: string[] = [], built?: MgBuiltUnit[] | null, opts?: MgBuildOptions): MgBuildCheck {
+  const trayCheck = checkTray(order, tray, mods);
+  const trayTotal = Object.values(sanitizeTray(tray)).reduce((a, b) => a + b, 0);
+  const requireBuilt = opts?.requireBuilt ?? false;
+  if (requireBuilt && trayTotal > 0 && !built?.length) return { ...trayCheck, ok: false, prepMiss: true };
+  if (!built?.length) return { ...trayCheck, prepMiss: false };
+  const units = sanitizeBuilt(built, tray);
+  const fromBuilt = sanitizeTray(trayFromBuilt(units));
+  const wantTray = sanitizeTray(tray);
+  const trayMatch = Object.keys(wantTray).length === Object.keys(fromBuilt).length && Object.entries(wantTray).every(([k, v]) => fromBuilt[k] === v);
+  if (!trayMatch || units.length !== Object.values(wantTray).reduce((a, b) => a + b, 0)) {
+    return { ...trayCheck, ok: false, prepMiss: false };
+  }
+  const needsPack = orderNeedsPack(order);
+  const pool = [...units];
+  for (const line of order.lines) {
+    for (let i = 0; i < line.qty; i++) {
+      const idx = pool.findIndex((u) => u.itemId === line.itemId);
+      if (idx < 0) return { ...trayCheck, ok: false, prepMiss: false };
+      const u = pool.splice(idx, 1)[0]!;
+      if (!prepOk(u, needsPack)) return { ...trayCheck, ok: false, prepMiss: true };
+    }
+  }
+  if (pool.length) return { ...trayCheck, ok: false, prepMiss: false };
+  return { ...trayCheck, prepMiss: false };
+}
+
 export type MgOutcome = 'perfeito' | 'segunda' | 'errou' | 'tempo';
 
 /** Points: first try 3, after Carlos repeats 1, miss 0. Streak of first-try hits adds +1 from the 2nd on. */
