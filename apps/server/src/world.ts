@@ -69,6 +69,7 @@ import {
   type SceneCtx,
   type ServerMsg,
   type Tile,
+  type Tray,
   type TutorialStep,
 } from '@tudobem/shared';
 import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
@@ -123,8 +124,10 @@ interface MgState {
   perfect: number;
   waiting: boolean;
   token: number;
-  /** Authored tickets already served this shift (no repeats). */
-  served: string[];
+  /** Authored tickets already served this shift (no repeats). Missing history must not throw. */
+  served?: string[];
+  /** Tray signature last judged, so an accidental echo of that tray can be ignored. */
+  lastSig?: string;
 }
 
 export interface Session {
@@ -157,6 +160,18 @@ export class Instance {
 const EMOTES: EmoteKind[] = ['oi', 'dancar', 'rir', 'valeu', 'desculpa'];
 /** “oi” / “olá” in chat counts as greeting someone for the kiosk mission. */
 const GREETING = /(^|[^\p{L}])(oi|ol[aá])($|[^\p{L}])/iu;
+
+/** After Carlos repeats, an identical or empty tray in this window is an echo (double-click / Enter repeat), not the retry. */
+const MG_REPEAT_GRACE_MS = 700;
+
+function traySig(tray: Tray, mods: string[]): string {
+  const items = Object.entries(tray)
+    .filter(([, n]) => n > 0)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([id, n]) => `${id}:${n}`)
+    .join(',');
+  return `${items}|${[...mods].sort().join(',')}`;
+}
 
 const MG_LINES: Record<MgOutcome | 'repita' | 'combo', Bilingual> = {
   perfeito: { pt: 'Isso mesmo! Cliente feliz!', en: 'That’s it! Happy customer!' },
@@ -753,12 +768,20 @@ export class World {
     let ok = false;
     let timedOut = false;
     if (m.action === 'timeout') {
-      if (elapsed < mg.order.timeMs - 750) return;
+      // Client clock ahead of the server: don't drop the message (the UI locks until we answer).
+      if (elapsed < mg.order.timeMs - 750) return this.sendOrder(s, true);
       timedOut = true;
-    } else {
+    } else if (m.action === 'submit') {
+      const tray = sanitizeTray(m.tray);
+      const mods = sanitizeMods(m.mods);
+      const signature = traySig(tray, mods);
+      if (mg.repeated && elapsed < MG_REPEAT_GRACE_MS && (signature === mg.lastSig || signature === '|')) {
+        return this.sendOrder(s, true);
+      }
+      mg.lastSig = signature;
       timedOut = elapsed > mg.order.timeMs + 1500;
-      ok = !timedOut && checkTray(mg.order, sanitizeTray(m.tray), sanitizeMods(m.mods)).ok;
-    }
+      ok = !timedOut && checkTray(mg.order, tray, mods).ok;
+    } else return;
     const cards = mg.order.lines.map((l) => mgItemById(l.itemId)!.card.id);
     this.services.student.record({
       playerId: p.id,
@@ -812,6 +835,8 @@ export class World {
     const next = () => {
       if (s.mg?.token !== token) return;
       mg.waiting = false;
+      if (!Array.isArray(mg.served)) mg.served = mg.order.pt ? [mg.order.pt] : [];
+      mg.lastSig = undefined;
       mg.order = makeOrder(mg.rng, mg.round, mg.served);
       mg.served.push(mg.order.pt);
       mg.repeated = false;
@@ -822,8 +847,9 @@ export class World {
     else this.schedule(next, this.mgGapMs);
   }
 
-  private sendOrder(s: Session) {
-    const mg = s.mg!;
+  private sendOrder(s: Session, resync = false) {
+    const mg = s.mg;
+    if (!mg) return;
     s.send({
       t: 'mg',
       phase: 'order',
@@ -836,6 +862,7 @@ export class World {
       repeat: mg.repeated,
       points: mg.points,
       streak: mg.streak,
+      ...(resync ? { resync: true } : {}),
     });
   }
 

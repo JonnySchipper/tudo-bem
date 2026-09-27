@@ -307,9 +307,20 @@ async function main() {
   };
   await page.evaluate((list) => (window.__tbItems = list), forms.map((f) => ({ ...f, plural: plurals[f.id] })));
   for (let round = 0; round < 6; round++) {
-    await page.waitForSelector('#mg-order');
+    await waitFor(
+      page,
+      (n) => {
+        const ticket = document.querySelector('#mg-ticket');
+        return ticket?.dataset.round === String(n) && ticket.dataset.repeat !== '1';
+      },
+      round,
+      8000,
+      `order ${round + 1}`,
+    );
     const text = await page.textContent('#mg-order');
     const { tray, mods } = await trayFor(page, text);
+    const items = Object.values(tray).reduce((a, b) => a + b, 0);
+    if (!items) throw new Error(`could not parse Me vê um order: ${text}`);
     log(`order ${round + 1}: “${text}” →`, JSON.stringify(tray), mods.join(', '));
     await dwell(round < 2 ? 1400 : 700);
     for (const [id, n] of Object.entries(tray)) for (let k = 0; k < n; k++) await page.click(`#mg-shelves [data-item="${id}"]`);
@@ -317,7 +328,6 @@ async function main() {
     for (const m of mods) await page.click(`#mg-mods [data-mod="${modIds[m]}"]`);
     if (round === 2) await shot(page, '07_meveum_tray');
     await page.click('#mg-submit');
-    if (round < 5) await waitFor(page, (t) => document.querySelector('#mg-order')?.textContent !== t, text, 6000, 'next order');
   }
   await page.waitForSelector('#mg-end', { timeout: 8000 });
   await sleep(300);

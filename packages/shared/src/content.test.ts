@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { chooseChip, scenePayout, SCENE_NODE_IDS, SCENE_START, viewNode, type SceneCtx } from './carlos.js';
-import { checkTray, makeOrder, mgPayout, MG_MAX_POINTS, mulberry32, sanitizeMods, sanitizeTray, linePt } from './meveum.js';
+import { AUTHORED_ORDERS, checkTray, makeOrder, mgPayout, MG_MAX_POINTS, mulberry32, sanitizeMods, sanitizeTray, linePt } from './meveum.js';
 import { detectLang, glossPt } from './gloss.js';
 import { numberPt } from './numbers.js';
 import { buildGrid, canPlaceFurniture, ROOMS, isWalkable } from './rooms.js';
@@ -71,6 +71,17 @@ describe('Me vê um…', () => {
   it('never puts banned content in generated orders', () => {
     const rng = mulberry32(7);
     for (let i = 0; i < 200; i++) expect(classifyChat(makeOrder(rng, i % 6).pt).action).toBe('allow');
+  });
+
+  it('treats a missing ticket history as empty instead of throwing', () => {
+    const rng = mulberry32(4);
+    expect(makeOrder(rng, 0, null).authored).toBe(true);
+    expect(makeOrder(rng, 2, undefined).authored).toBe(true);
+    expect(makeOrder(rng, 5, undefined).lines.length).toBeGreaterThanOrEqual(2);
+    const allBump = AUTHORED_ORDERS.filter((o) => o.level === 'bump').map((o) => o.pt);
+    const again = makeOrder(mulberry32(4), 2, allBump);
+    expect(again.authored).toBe(true);
+    expect(allBump).toContain(again.pt);
   });
 });
 

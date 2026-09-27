@@ -243,9 +243,76 @@ describe('World', () => {
     const mgs = a.all('mg');
     expect(mgs.at(-2)).toMatchObject({ phase: 'result', outcome: 'repita' });
     expect(mgs.at(-1)).toMatchObject({ phase: 'order', repeat: true, round: 0 });
+    // Outside the repeat-grace window, an empty tray is the real second miss.
+    clock += 1000;
     await a.send({ t: 'mg', action: 'submit', tray: {} });
     expect(a.all('mg').at(-2)).toMatchObject({ phase: 'result', outcome: 'errou' });
     expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 1 });
+  });
+
+  it('mid-order echo does not skip the retry or advance without a ticket', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'mg', action: 'start' });
+    for (let r = 0; r < 2; r++) {
+      const order = world.debugOrder(a.s)!;
+      clock += 1000;
+      await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods });
+    }
+    expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 2 });
+    const mid = world.debugOrder(a.s)!;
+    const partial = { [mid.lines[0]!.itemId]: 1 };
+    clock += 1000;
+    await a.send({ t: 'mg', action: 'submit', tray: partial });
+    expect(a.all('mg').at(-2)).toMatchObject({ phase: 'result', outcome: 'repita', round: 2 });
+    expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 2, repeat: true });
+
+    // Double-click / empty tray in the same beat as the repeat must not burn it.
+    await a.send({ t: 'mg', action: 'submit', tray: {} });
+    await a.send({ t: 'mg', action: 'submit', tray: partial });
+    expect(world.debugOrder(a.s)!.pt).toBe(mid.pt);
+    expect(a.s.mg!.round).toBe(2);
+    expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 2, repeat: true, resync: true });
+    expect(a.all('mg').flatMap((m) => (m.phase === 'result' && m.round === 2 ? [m.outcome] : []))).toEqual(['repita']);
+
+    // A real correction still inside the grace window scores and advances with a new ticket.
+    clock += 50;
+    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(mid.lines.map((l) => [l.itemId, l.qty])), mods: mid.mods });
+    expect(a.all('mg').filter((m) => m.phase === 'result').at(-1)).toMatchObject({ outcome: 'segunda', round: 2 });
+    expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 3 });
+    expect(a.all('mg').at(-1)).not.toMatchObject({ pt: mid.pt });
+  });
+
+  it('an early timeout resyncs the same ticket instead of stalling', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'mg', action: 'start' });
+    const pt = world.debugOrder(a.s)!.pt;
+    await a.send({ t: 'mg', action: 'timeout' });
+    expect(a.all('mg').some((m) => m.phase === 'result')).toBe(false);
+    expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 0, resync: true, pt });
+    expect(a.s.mg!.round).toBe(0);
+    clock += 1000;
+    const order = world.debugOrder(a.s)!;
+    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods });
+    expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 1 });
+  });
+
+  it('missing ticket history still advances to the next order', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'mg', action: 'start' });
+    a.s.mg!.served = undefined;
+    const order = world.debugOrder(a.s)!;
+    clock += 1000;
+    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods });
+    expect(a.all('mg').at(-2)).toMatchObject({ phase: 'result', outcome: 'perfeito', round: 0 });
+    expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 1 });
+    expect(world.debugOrder(a.s)!.pt.length).toBeGreaterThan(0);
+    expect(Array.isArray(a.s.mg!.served)).toBe(true);
   });
 
   it('refuses to buy without coins and only decorates your own kitnet', async () => {
