@@ -666,17 +666,52 @@ function vitrineSlice(ctx: Ctx, cx: number, cy: number, i: number) {
   box(ctx, cx, cy, 1.0, 0.8, 22, '#d6cfc4', 0, { stroke: 'rgba(0,0,0,0.12)' });
   // Cool glass-cool body (palette.md #C5D5DE), darker at the base so the sweets read against it.
   const glass = box(ctx, cx, cy, 0.96, 0.76, 24, 'rgba(197,213,222,0.38)', 22, { left: 'rgba(182,204,218,0.5)', right: 'rgba(150,180,202,0.58)', stroke: 'rgba(96,136,164,0.8)' });
-  const sweets = i === 0 ? ['#f2d27a', '#e889a8', '#f4efe6', '#c77b3a'] : ['#c77b3a', '#f2c230', '#8a4a2a', '#e889a8'];
-  for (let row = 0; row < 2; row++)
-    sweets.forEach((c, k) => {
-      const [dx, dy] = iso(-0.3 + k * 0.2, row ? -0.15 : 0.12);
-      ellipse(ctx, cx + dx + 0.5, cy + dy - 27.5 - row * 2, 5, 2, 'rgba(58,34,22,0.22)');
-      ellipse(ctx, cx + dx, cy + dy - 29 - row * 2, 5, 3, row ? shade(c, -0.08) : c);
-      ellipse(ctx, cx + dx - 1, cy + dy - 30 - row * 2, 3, 1.2, 'rgba(255,255,255,0.5)');
-    });
+  // Back row: tall slices of bolo (layer wedges) on a doily; front row: brigadeiro pyramid + sonhos.
+  const cakes = ['#c77b3a', '#e889a8', '#f2d27a'];
+  cakes.forEach((c, k) => {
+    const [dx, dy] = iso(-0.26 + k * 0.26, -0.16);
+    const x = cx + dx;
+    const y = cy + dy - 28;
+    ellipse(ctx, x, y + 1, 6, 2, 'rgba(255,253,247,0.9)');
+    poly(ctx, [[x - 5, y], [x + 4, y + 1], [x + 4, y - 10], [x - 5, y - 11]], shade(c, -0.05), 'rgba(90,50,20,0.35)', 0.5);
+    ctx.fillStyle = 'rgba(255,248,232,0.9)';
+    ctx.fillRect(x - 5, y - 6.5, 9, 1.4);
+    poly(ctx, [[x - 5, y - 11], [x + 4, y - 10], [x + 6, y - 12], [x - 3, y - 13]], shade(c, 0.18));
+  });
+  const [px, py] = iso(-0.2, 0.14);
+  for (const [dx, dy, r] of [[-4, 0, 0], [0, 0, 0], [4, 0, 0], [-2, -3.2, 1], [2, -3.2, 1], [0, -6.4, 2]] as const) {
+    circle(ctx, cx + px + dx, cy + py - 28 + dy, 2.2, r === 2 ? '#8a4a2a' : '#6e3a22');
+    circle(ctx, cx + px + dx - 0.6, cy + py - 28.8 + dy, 0.7, 'rgba(255,230,190,0.6)');
+  }
+  for (const k of [0, 1]) {
+    const [dx, dy] = iso(0.12 + k * 0.2, 0.12);
+    ellipse(ctx, cx + dx + 0.5, cy + dy - 27.5, 5, 2, 'rgba(58,34,22,0.22)');
+    ellipse(ctx, cx + dx, cy + dy - 30, 5, 3.6, i ? '#d59a4c' : '#c98a3e');
+    ellipse(ctx, cx + dx, cy + dy - 32, 4, 1.6, 'rgba(255,250,240,0.85)');
+  }
   glassStreaks(ctx, glass.W, glass.S, 24, 22);
   glassStreaks(ctx, glass.S, glass.E, 24, 22, '214,232,244');
   box(ctx, cx, cy, 1.0, 0.8, 3, '#efe9e1', 46, { stroke: 'rgba(0,0,0,0.1)' });
+  // Redoma on top: a bolo de fubá under a glass dome — breaks the flat case top line.
+  ellipse(ctx, cx + 1, cy - 49, 12, 3.6, 'rgba(58,34,22,0.22)');
+  ellipse(ctx, cx, cy - 50, 11, 3.4, '#d6cfc4');
+  rrect(ctx, cx - 7.5, cy - 58, 15, 7, 2, '#e0a83e', 'rgba(120,70,20,0.45)', 0.5);
+  ellipse(ctx, cx, cy - 58, 7.5, 2.4, '#f2c65a');
+  ellipse(ctx, cx - 2, cy - 58.5, 3, 0.9, 'rgba(255,250,230,0.8)');
+  ctx.fillStyle = 'rgba(197,213,222,0.3)';
+  ctx.strokeStyle = 'rgba(96,136,164,0.75)';
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(cx - 10, cy - 50);
+  ctx.bezierCurveTo(cx - 10, cy - 70, cx + 10, cy - 70, cx + 10, cy - 50);
+  ctx.fill();
+  ctx.stroke();
+  circle(ctx, cx, cy - 66, 1.6, '#8fa2ac');
+  ctx.strokeStyle = 'rgba(240,250,255,0.9)';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(cx, cy - 55, 7.5, Math.PI * 1.1, Math.PI * 1.4);
+  ctx.stroke();
 }
 
 function caixa(ctx: Ctx, cx: number, cy: number) {
@@ -692,14 +727,43 @@ function caixa(ctx: Ctx, cx: number, cy: number) {
   ctx.font = `800 6px ${FONT_BODY}`;
   ctx.textAlign = 'center';
   ctx.fillText('R$', cx - 3, cy - 62);
-  // Tray of kraft bread bags + a napkin stack by the till.
-  const [bx, by] = iso(0.28, 0.18);
-  ellipse(ctx, cx + bx, cy + by - 43, 8, 3, 'rgba(58,34,22,0.3)');
-  box(ctx, cx + bx, cy + by, 0.34, 0.26, 2, '#8B5E3C', 43);
-  for (let k = 0; k < 4; k++) box(ctx, cx + bx - 0.5, cy + by - 0.3, 0.28, 0.2, 1.1, k % 2 ? '#c9a172' : '#d8b384', 45 + k * 1.1, { stroke: 'rgba(90,60,30,0.35)' });
-  const [nx, ny] = iso(-0.3, 0.26);
-  ellipse(ctx, cx + nx, cy + ny - 43, 5, 1.8, 'rgba(58,34,22,0.25)');
-  for (let k = 0; k < 4; k++) diamond(ctx, cx + nx, cy + ny - 44 - k * 1.1, 0.22, 0.18, k % 2 ? '#fffdf7' : '#efe8da', 'rgba(0,0,0,0.1)', 0.4);
+  // Steel bandeja by the till: kraft bread bags standing in a row, the top one folded over.
+  const [bx, by] = iso(0.3, 0.2);
+  const tx = cx + bx;
+  const ty = cy + by - 43;
+  ellipse(ctx, tx + 1, ty + 0.5, 11, 3.6, 'rgba(58,34,22,0.34)');
+  diamond(ctx, tx, ty, 0.42, 0.3, '#b8b8c0', '#7e7e88', 0.7);
+  diamond(ctx, tx, ty - 1, 0.38, 0.26, '#d4d4da');
+  for (let k = 0; k < 3; k++) {
+    const x = tx - 5 + k * 4.5;
+    const y = ty + 1 - k * 1.2;
+    rrect(ctx, x - 2.6, y - 11, 5.2, 11, 0.6, k % 2 ? '#c9a172' : '#d8b384', 'rgba(90,60,30,0.5)', 0.5);
+    poly(ctx, [[x - 2.6, y - 11], [x + 2.6, y - 11], [x + 1.8, y - 13], [x - 1.8, y - 13]], k % 2 ? '#b58c5c' : '#c49a68');
+    ctx.fillStyle = 'rgba(196,92,38,0.8)';
+    ctx.fillRect(x - 1.8, y - 7, 3.6, 1.2);
+  }
+  // Porta-guardanapo: the chrome V holder with a fan of paper napkins — the SP balcão classic.
+  const [nx, ny] = iso(-0.32, 0.28);
+  const hx = cx + nx;
+  const hy = cy + ny - 43;
+  ellipse(ctx, hx + 0.5, hy + 0.5, 7, 2.2, 'rgba(58,34,22,0.32)');
+  for (let k = 0; k < 5; k++) poly(ctx, [[hx - 5 + k * 0.5, hy - 2], [hx + 5 + k * 0.5, hy - 2], [hx + 4 + k * 0.9, hy - 11 - k * 0.4], [hx - 4 + k * 0.9, hy - 11 - k * 0.4]], k % 2 ? '#fffdf7' : '#f1ece2', 'rgba(0,0,0,0.14)', 0.4);
+  poly(ctx, [[hx - 6, hy], [hx + 6, hy], [hx + 7, hy - 7], [hx + 5.5, hy - 7], [hx + 4.5, hy - 2], [hx - 4.5, hy - 2], [hx - 5.5, hy - 7], [hx - 7, hy - 7]], '#c4c8d0', '#6e7078', 0.6);
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';
+  ctx.fillRect(hx - 4.5, hy - 1.6, 9, 0.7);
+  // Açúcar + canela shakers by the napkins.
+  const [kx, ky] = iso(0.02, 0.36);
+  for (const [dx, cap, fill] of [[-3.2, '#b8b8c0', '#fff'], [3.2, '#C45C26', '#8a5a3c']] as const) {
+    const x = cx + kx + dx;
+    const y = cy + ky - 43;
+    ellipse(ctx, x + 0.5, y + 0.4, 3.4, 1.3, 'rgba(58,34,22,0.32)');
+    rrect(ctx, x - 2.6, y - 9, 5.2, 9, 1.6, 'rgba(225,238,246,0.92)', '#8fa2ac', 0.6);
+    ctx.fillStyle = fill;
+    ctx.fillRect(x - 1.9, y - 4.5, 3.8, 4);
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillRect(x - 2.1, y - 8, 0.9, 6.5);
+    rrect(ctx, x - 2.6, y - 11.5, 5.2, 3, 1.2, cap, 'rgba(0,0,0,0.3)', 0.4);
+  }
 }
 
 function banqueta(ctx: Ctx, cx: number, cy: number) {
@@ -934,7 +998,13 @@ function placaRua(ctx: Ctx, cx: number, cy: number) {
 /** Estufa — heated glass case of salgados. */
 function estufa(ctx: Ctx, cx: number, cy: number) {
   box(ctx, cx, cy, 1.0, 0.8, 22, '#d6cfc4', 0, { stroke: 'rgba(0,0,0,0.12)' });
-  const warmGlass = box(ctx, cx, cy, 0.96, 0.76, 26, 'rgba(255,196,120,0.4)', 22, { left: 'rgba(255,190,110,0.42)', right: 'rgba(240,170,90,0.45)', stroke: 'rgba(180,120,60,0.6)' });
+  // Glass-cool panes (palette.md #C5D5DE) over a warm heat-lamp interior: the glass reads cool, the food reads hot.
+  const warmGlass = box(ctx, cx, cy, 0.96, 0.76, 26, 'rgba(214,222,222,0.34)', 22, { left: 'rgba(226,214,192,0.46)', right: 'rgba(170,192,208,0.52)', stroke: 'rgba(96,136,164,0.85)' });
+  const lamp = ctx.createRadialGradient(cx, cy - 44, 2, cx, cy - 36, 30);
+  lamp.addColorStop(0, 'rgba(255,200,110,0.5)');
+  lamp.addColorStop(1, 'rgba(255,200,110,0)');
+  ctx.fillStyle = lamp;
+  ctx.fillRect(cx - 30, cy - 50, 60, 30);
   // Two tiers, full trays: back tier sits higher (a wire shelf), front tier on the case floor.
   type Salgado = 'coxinha' | 'pastel' | 'esfiha' | 'paoqueijo' | 'empada';
   const back: [number, number, Salgado][] = [
@@ -944,6 +1014,11 @@ function estufa(ctx: Ctx, cx: number, cy: number) {
   const front: [number, number, Salgado][] = [
     [-0.32, 0.06, 'coxinha'], [-0.12, 0.08, 'pastel'], [0.1, 0.06, 'coxinha'], [0.3, 0.06, 'empada'],
     [-0.24, 0.2, 'paoqueijo'], [-0.02, 0.22, 'coxinha'], [0.2, 0.2, 'pastel'],
+  ];
+  // Heaped middle layer so the trays read piled, not a single row.
+  const heap: [number, number, Salgado][] = [
+    [-0.26, 0.12, 'coxinha'], [0.04, 0.14, 'paoqueijo'], [0.24, 0.12, 'coxinha'],
+    [-0.18, -0.16, 'coxinha'], [0.12, -0.16, 'esfiha'],
   ];
   const [sx, sy] = iso(0, -0.16);
   box(ctx, cx + sx, cy + sy, 0.9, 0.34, 1, 'rgba(200,200,205,0.7)', 34, { stroke: 'rgba(120,120,130,0.5)' });
@@ -1005,12 +1080,14 @@ function estufa(ctx: Ctx, cx: number, cy: number) {
     }
   };
   draw(back, 38);
+  draw(heap.slice(3), 43);
   draw(front, 26);
-  glassStreaks(ctx, warmGlass.W, warmGlass.S, 26, 22, '255,244,226');
-  glassStreaks(ctx, warmGlass.S, warmGlass.E, 26, 22, '236,246,252');
+  draw(heap.slice(0, 3), 31);
+  glassStreaks(ctx, warmGlass.W, warmGlass.S, 26, 22, '232,244,252');
+  glassStreaks(ctx, warmGlass.S, warmGlass.E, 26, 22, '214,232,244');
   box(ctx, cx, cy, 1.0, 0.8, 3, '#efe9e1', 48, { stroke: 'rgba(0,0,0,0.1)' });
   const g = ctx.createRadialGradient(cx, cy - 40, 2, cx, cy - 36, 26);
-  g.addColorStop(0, 'rgba(255,190,90,0.35)');
+  g.addColorStop(0, 'rgba(255,190,90,0.22)');
   g.addColorStop(1, 'rgba(255,190,90,0)');
   ctx.fillStyle = g;
   ctx.fillRect(cx - 26, cy - 62, 52, 40);
