@@ -57,6 +57,26 @@ describe('CPU wardrobe (character redesign v1)', () => {
     expect(bad).toEqual([]);
   });
 
+  // Avatar enhance v2: at Praça distance color blocks read before garment shape, so two neighbors in
+  // the same top + bottom colors look like one recolored clone even when the cut differs.
+  const blocks = (id: string) => {
+    const x = (CPU_LOOKS_A[id] ?? CPU_LOOKS_B[id])!;
+    const out = new Set(x.topColor.flatMap((t) => x.bottomColor.map((b) => `${t}/${b}`)));
+    for (const n of CPU_NAMES) if (cpuArchetype(n) === id) out.add(`${cpuLook(n).appearance.topColor}/${cpuLook(n).appearance.bottomColor}`);
+    return out;
+  };
+  const ids = [...Object.keys(CPU_LOOKS_A), ...Object.keys(CPU_LOOKS_B)];
+
+  it('no two archetypes can dress in the same top + bottom color block', () => {
+    const bad: string[] = [];
+    for (const x of ids) for (const y of ids) if (x < y) for (const b of blocks(x)) if (blocks(y).has(b)) bad.push(`${x}/${y}: ${b}`);
+    expect(bad).toEqual([]);
+  });
+
+  it('off-white tops stay an accent, not the crowd uniform', () => {
+    expect(ids.filter((id) => [...blocks(id)].some((b) => b.startsWith('4/')))).toHaveLength(1);
+  });
+
   it('has enough distinct silhouettes for a full crowd (5+ reads, no clones)', () => {
     for (const pool of [CPU_LOOKS_A, CPU_LOOKS_B]) {
       const reads = new Set(Object.values(pool).map((x) => `${x.top}/${x.bottom}/${x.hair[0]}/${x.hats[0]}/${x.idle}`));
