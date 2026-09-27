@@ -137,7 +137,7 @@ export type ServerMsg =
   | { t: 'chat'; id: string; name: string; text: string; gloss: string | null; lang: 'pt' | 'en' | 'mix'; action: SafetyAction }
   | { t: 'notice'; level: NoticeLevel; pt: string; en: string }
   | { t: 'reward'; amount: number; coins: number; reason: Bilingual }
-  | { t: 'scene'; view: SceneView; lastScore?: 0 | 1 | 2 | 3; feedback?: Bilingual; said?: Bilingual; payout?: number }
+  | { t: 'scene'; view: SceneView; lastScore?: 0 | 1 | 2 | 3; feedback?: Bilingual; said?: Bilingual; payout?: number; dailyBlocked?: boolean }
   | MgServerMsg
   | ConversaServerMsg
   | { t: 'furnitureState'; furniture: PlacedFurniture[] }
