@@ -1,7 +1,9 @@
 import type { RoomId } from '@tudobem/shared';
+import { INTRO_BED_LEVEL, IntroMusic } from './audio/introBed';
 
 /**
  * Room beds made in Web Audio — no samples, no paid service.
+ * Intro: a soft late-afternoon bossa for the title beat + sign-in card (see audio/introBed).
  * Praça: wind, distant birds, a quiet pentatonic pluck.
  * Padaria: warm drone, murmur, a soft counter rhythm.
  * Kitnet: room tone and a slow fan.
@@ -9,15 +11,23 @@ import type { RoomId } from '@tudobem/shared';
  */
 
 type Source = AudioBufferSourceNode | OscillatorNode;
+type BedId = RoomId | 'intro';
 
 interface Bed {
   gain: GainNode;
   sources: Source[];
   nodes: AudioNode[];
   timers: number[];
+  /** Intro only: the tone filter that opens when the sign-in card arrives. */
+  tone?: BiquadFilterNode;
 }
 
 const FADE = 0.7;
+const INTRO_FADE_IN = 3.2;
+const INTRO_FADE_OUT = 1.6;
+/** Title beat sounds a little distant; the card arrival opens it up. */
+const INTRO_TONE_TITLE = 1100;
+const INTRO_TONE_OPEN = 5200;
 
 function noiseBuffer(ctx: AudioContext, seconds = 2) {
   const len = Math.floor(ctx.sampleRate * seconds);
@@ -99,11 +109,14 @@ function schedule(bed: Bed, fn: () => void, ms: number) {
   bed.timers.push(id);
 }
 
-function buildBed(ctx: AudioContext, dest: AudioNode, room: RoomId): Bed {
+function buildBed(ctx: AudioContext, dest: AudioNode, room: BedId): Bed {
   const gain = ctx.createGain();
   const now = ctx.currentTime;
+  const intro = room === 'intro';
   gain.gain.setValueAtTime(0, now);
-  gain.gain.linearRampToValueAtTime(1, now + FADE);
+  // Exponential-feeling swell for the intro so it never arrives at full level.
+  if (intro) gain.gain.setTargetAtTime(INTRO_BED_LEVEL, now + 0.2, INTRO_FADE_IN / 3);
+  else gain.gain.linearRampToValueAtTime(1, now + FADE);
   gain.connect(dest);
   const bed: Bed = { gain, sources: [], nodes: [gain], timers: [] };
   const buf = noiseBuffer(ctx);
@@ -114,7 +127,20 @@ function buildBed(ctx: AudioContext, dest: AudioNode, room: RoomId): Bed {
     }
   };
 
-  if (room === 'praca') {
+  if (intro) {
+    const tone = ctx.createBiquadFilter();
+    tone.type = 'lowpass';
+    tone.frequency.value = INTRO_TONE_TITLE;
+    tone.Q.value = 0.5;
+    tone.connect(gain);
+    bed.tone = tone;
+    keep(tone);
+    // A breath of Praça air under the band.
+    keep(...loopNoise(ctx, gain, buf, 520, 'lowpass', 0.014, 0.5));
+    const music = new IntroMusic(ctx, tone, now + 0.15);
+    music.tick();
+    bed.timers.push(window.setInterval(() => music.tick(), 250));
+  } else if (room === 'praca') {
     keep(...loopNoise(ctx, gain, buf, 700, 'lowpass', 0.05, 0.6));
     const wind = bed.nodes.at(-1) as GainNode;
     const lfo = ctx.createOscillator();
@@ -177,13 +203,16 @@ function buildBed(ctx: AudioContext, dest: AudioNode, room: RoomId): Bed {
   return bed;
 }
 
-function stopBed(ctx: AudioContext, bed: Bed) {
+function stopBed(ctx: AudioContext, bed: Bed, fade = FADE) {
   const t = ctx.currentTime;
   bed.gain.gain.cancelScheduledValues(t);
   bed.gain.gain.setValueAtTime(bed.gain.gain.value, t);
-  bed.gain.gain.linearRampToValueAtTime(0, t + FADE);
+  bed.gain.gain.linearRampToValueAtTime(0, t + fade);
   window.setTimeout(() => {
-    for (const id of bed.timers) window.clearTimeout(id);
+    for (const id of bed.timers) {
+      window.clearTimeout(id);
+      window.clearInterval(id);
+    }
     for (const src of bed.sources) {
       try {
         src.stop();
@@ -198,7 +227,7 @@ function stopBed(ctx: AudioContext, bed: Bed) {
         /* already disconnected */
       }
     }
-  }, FADE * 1000 + 80);
+  }, fade * 1000 + 80);
 }
 
 class Ambience {
@@ -207,42 +236,90 @@ class Ambience {
   private duckGain: GainNode | null = null;
   private bedIn: GainNode | null = null;
   private room: RoomId | null = null;
-  private playing: RoomId | null = null;
+  private scene: 'intro' | null = null;
+  private playing: BedId | null = null;
   private bed: Bed | null = null;
   private unlocked = false;
   private ducked = false;
+  private listeners = new Set<() => void>();
   enabled = typeof localStorage !== 'undefined' && localStorage.getItem('tb_music') !== 'off';
 
-  unlock() {
+  /** Audible right now (the browser has let the context run). */
+  get running() {
+    return this.ctx?.state === 'running';
+  }
+
+  /** Notified when enabled / running changes (intro music toggle). */
+  onChange(fn: () => void): () => void {
+    this.listeners.add(fn);
+    return () => this.listeners.delete(fn);
+  }
+
+  private emit() {
+    for (const fn of this.listeners) fn();
+  }
+
+  private ensureContext(): AudioContext | null {
+    if (this.ctx) return this.ctx;
     const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AC) return;
-    if (!this.ctx) {
-      this.ctx = new AC();
-      this.master = this.ctx.createGain();
-      this.master.gain.value = 0.85;
-      this.duckGain = this.ctx.createGain();
-      this.duckGain.gain.value = 1;
-      this.bedIn = this.ctx.createGain();
-      this.bedIn.connect(this.duckGain);
-      this.duckGain.connect(this.master);
-      this.master.connect(this.ctx.destination);
-      const buf = this.ctx.createBuffer(1, 1, this.ctx.sampleRate);
-      const src = this.ctx.createBufferSource();
-      src.buffer = buf;
-      src.connect(this.ctx.destination);
+    if (!AC) return null;
+    const ctx = new AC();
+    this.ctx = ctx;
+    this.master = ctx.createGain();
+    this.master.gain.value = 0.85;
+    this.duckGain = ctx.createGain();
+    this.duckGain.gain.value = this.ducked ? 0.18 : 1;
+    this.bedIn = ctx.createGain();
+    this.bedIn.connect(this.duckGain);
+    this.duckGain.connect(this.master);
+    this.master.connect(ctx.destination);
+    ctx.addEventListener('statechange', () => this.emit());
+    return ctx;
+  }
+
+  /** Call from a user gesture. Safe to call repeatedly. */
+  unlock() {
+    const ctx = this.ensureContext();
+    if (!ctx) return;
+    if (!this.unlocked) {
+      // A silent buffer inside the gesture is what iOS needs to open the output.
+      const src = ctx.createBufferSource();
+      src.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+      src.connect(ctx.destination);
       src.start();
     }
-    void this.ctx.resume();
+    ctx.resume().catch(() => {});
     this.unlocked = true;
     if (this.ducked) this.duck(true);
-    if (this.enabled && this.room) this.play(this.room);
+    this.sync();
+  }
+
+  /**
+   * Scene beds outrank the room bed. The intro may start before any gesture: if the
+   * browser blocks autoplay the context waits suspended and the swell begins on unlock.
+   */
+  setScene(scene: 'intro' | null) {
+    if (this.scene === scene) return;
+    const leaving = this.playing === 'intro' && scene !== 'intro';
+    this.scene = scene;
+    if (scene && this.enabled) this.ensureContext()?.resume().catch(() => {});
+    this.sync(leaving ? INTRO_FADE_OUT : FADE);
+  }
+
+  /** Sign-in card arrived: open the intro bed's tone (title beat reads a touch distant). */
+  introReveal() {
+    const tone = this.playing === 'intro' ? this.bed?.tone : undefined;
+    if (!tone || !this.ctx) return;
+    const t = this.ctx.currentTime;
+    tone.frequency.cancelScheduledValues(t);
+    tone.frequency.setValueAtTime(tone.frequency.value, t);
+    tone.frequency.setTargetAtTime(INTRO_TONE_OPEN, t + 0.1, 0.9);
   }
 
   setRoom(room: RoomId) {
     const changed = this.room !== room;
     this.room = room;
-    if (!this.unlocked || !this.enabled) return;
-    if (changed || this.playing !== room) this.play(room);
+    if (changed || this.playing !== this.target()) this.sync();
   }
 
   setEnabled(on: boolean) {
@@ -252,8 +329,9 @@ class Ambience {
     } catch {
       /* private mode */
     }
-    if (!on) this.halt();
-    else if (this.unlocked && this.room) this.play(this.room);
+    if (on && this.scene) this.ensureContext()?.resume().catch(() => {});
+    this.sync(this.playing === 'intro' ? INTRO_FADE_OUT : FADE);
+    this.emit();
   }
 
   duck(on: boolean) {
@@ -267,19 +345,30 @@ class Ambience {
     g.linearRampToValueAtTime(on ? 0.18 : 1, t + 0.12);
   }
 
-  private halt() {
-    if (this.ctx && this.bed) stopBed(this.ctx, this.bed);
+  private target(): BedId | null {
+    if (!this.enabled) return null;
+    if (this.scene) return this.scene;
+    return this.unlocked ? this.room : null;
+  }
+
+  private sync(fade = FADE) {
+    const next = this.target();
+    if (!next) return this.halt(fade);
+    if (this.playing !== next) this.play(next, fade);
+  }
+
+  private halt(fade = FADE) {
+    if (this.ctx && this.bed) stopBed(this.ctx, this.bed, fade);
     this.bed = null;
     this.playing = null;
   }
 
-  private play(room: RoomId) {
+  private play(id: BedId, fadeOutPrev = FADE) {
     if (!this.ctx || !this.bedIn) return;
-    void this.ctx.resume();
     const prev = this.bed;
-    this.bed = buildBed(this.ctx, this.bedIn, room);
-    this.playing = room;
-    if (prev) stopBed(this.ctx, prev);
+    this.bed = buildBed(this.ctx, this.bedIn, id);
+    this.playing = id;
+    if (prev) stopBed(this.ctx, prev, fadeOutPrev);
   }
 }
 

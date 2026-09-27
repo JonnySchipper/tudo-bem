@@ -5,6 +5,8 @@ import { mountIntroParrots, type SkyBand } from './introParrots';
 import { createIntroHeroScene } from './introHeroScene';
 import { mountIntroAtmosphere } from './introAtmosphere';
 import { runIntroTitleBeat } from './introTitleBeat';
+import { ambience } from '../ambience';
+import { icon } from '../art/ui';
 
 type IntroMode = 'login' | 'register';
 
@@ -55,6 +57,41 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
     const glow = h('div', { class: 'intro-layer intro-glow', 'aria-hidden': 'true' });
     const skipBtn = h('button', { type: 'button', class: 'intro-skip', id: 'intro-skip' }, 'Pular', h('span', { class: 'intro-skip-arrow', 'aria-hidden': 'true' }, '›'));
 
+    // Music bed: the one switch is the saved tb_music choice (same as the HUD).
+    const musicBtn = h('button', { type: 'button', class: 'intro-music', id: 'intro-music' });
+    const renderMusic = () => {
+      const on = ambience.enabled;
+      const waiting = on && !ambience.running;
+      musicBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      musicBtn.classList.toggle('is-waiting', waiting);
+      musicBtn.title = on ? 'Música: sim / Music on' : 'Música: não / Music off';
+      musicBtn.replaceChildren(
+        icon(on ? 'musicOn' : 'musicOff', 18),
+        h('span', { class: 'intro-music-label' }, waiting ? 'Tocar música' : on ? 'Música' : 'Sem música'),
+      );
+    };
+    let audibleAtPress = false;
+    const notePress = () => {
+      audibleAtPress = ambience.enabled && ambience.running;
+    };
+    musicBtn.addEventListener('pointerdown', notePress);
+    musicBtn.addEventListener('keydown', notePress);
+    musicBtn.addEventListener('pointerup', (e) => e.stopPropagation());
+    musicBtn.addEventListener('click', () => {
+      if (ambience.enabled && !audibleAtPress) {
+        // Autoplay was blocked: this first press starts the music rather than muting it.
+        ambience.unlock();
+      } else {
+        ambience.setEnabled(!ambience.enabled);
+        if (ambience.enabled) {
+          ambience.unlock();
+          if (root.classList.contains('intro-phase-auth')) ambience.introReveal();
+        }
+      }
+      renderMusic();
+    });
+    renderMusic();
+
     let mode: IntroMode = 'login';
     const err = h('div', { class: 'intro-feedback', role: 'alert', style: 'display:none' });
     const email = h('input', {
@@ -72,7 +109,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       autocomplete: mode === 'login' ? 'current-password' : 'new-password',
       id: 'intro-password',
       'aria-label': 'Senha',
-      placeholder: '••••••••',
+      placeholder: 'Sua senha',
     });
     const adult = h('input', { type: 'checkbox', id: 'intro-18', name: 'confirm18' });
     const adultRow = h(
@@ -112,6 +149,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       submit.textContent = login ? 'Entrar' : 'Criar conta';
       panelTitle.textContent = login ? 'Bem-vindo de volta' : 'Crie sua conta';
       password.setAttribute('autocomplete', login ? 'current-password' : 'new-password');
+      password.placeholder = login ? 'Sua senha' : 'Crie uma senha';
       adultRow.style.display = login ? 'none' : 'flex';
       if (login) adult.checked = false;
     };
@@ -131,6 +169,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
 
     const finish = (result: IntroGateResult) => {
       markIntroPassed();
+      ambience.setScene(null);
       for (const t of teardowns) t();
       root.classList.add('intro-exit');
       window.setTimeout(() => {
@@ -156,7 +195,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       { class: 'intro-form', novalidate: true },
       tabsEl,
       field('E-mail', 'Email address', email),
-      field('Senha', 'Password (8+ characters)', password),
+      field('Senha (8+ caracteres)', 'Password (8+ characters)', password),
       adultRow,
       err,
       h('div', { class: 'intro-actions' }, submit),
@@ -177,18 +216,15 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       finish({ mode: 'auth', email: result.session.email });
     });
 
-    const hero = h(
-      'header',
-      { class: 'intro-hero' },
-      h('div', { class: 'intro-mark-wrap', 'aria-hidden': 'true' }, h('div', { class: 'intro-mark-sun' }), h('div', { class: 'intro-mark' })),
-      wordmark('Tudo Bem'),
-      h(
-        'div',
-        { class: 'intro-taglines' },
-        h('p', { class: 'intro-tagline' }, 'Chega na praça — café, vizinhos e português no dia a dia.'),
-        h('p', { class: 'intro-tagline en', 'aria-hidden': 'true' }, 'A friendly São Paulo square to learn Portuguese.'),
-      ),
+    const markWrap = h('div', { class: 'intro-mark-wrap', 'aria-hidden': 'true' }, h('div', { class: 'intro-mark-sun' }), h('div', { class: 'intro-mark' }));
+    const title = wordmark('Tudo Bem');
+    const taglines = h(
+      'div',
+      { class: 'intro-taglines' },
+      h('p', { class: 'intro-tagline' }, 'Chega na praça — café, vizinhos e português no dia a dia.'),
+      h('p', { class: 'intro-tagline en', 'aria-hidden': 'true' }, 'A friendly São Paulo square to learn Portuguese.'),
     );
+    const hero = h('header', { class: 'intro-hero' }, markWrap, title, taglines);
     const panel = h(
       'section',
       { class: 'panel intro-panel tb-world-card', 'aria-labelledby': 'intro-panel-title' },
@@ -198,7 +234,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       h('div', { id: 'tb-idle-kick-slot', class: 'tb-idle-kick-slot', hidden: true, 'aria-hidden': 'true', 'data-tb-region': 'idle-kick-interstitial' }),
     );
 
-    root.append(heroScene.el, glow, atmosphere, veil, skipBtn, h('div', { class: 'intro-shell' }, hero, panel));
+    root.append(heroScene.el, glow, atmosphere, veil, musicBtn, skipBtn, h('div', { class: 'intro-shell' }, hero, panel));
 
     document.body.classList.add('intro-active');
     if (!reduced) {
@@ -216,7 +252,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       root.classList.add('intro-hold', 'intro-measure');
       const rr = root.getBoundingClientRect();
       const r = hero.getBoundingClientRect();
-      heroScene.frame(panel.getBoundingClientRect().top - rr.top);
+      heroScene.frame({ cardTop: panel.getBoundingClientRect().top - rr.top, heroBottom: r.bottom - rr.top });
       const vh = rr.height;
       const wide = window.matchMedia(WIDE_QUERY).matches;
       // Wide screens keep the wordmark in its column (the Praça is the centrepiece); phones centre it.
@@ -236,10 +272,25 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
     };
     layoutHero();
 
+    // The bed starts with the shell; setScene is a no-op for sound while tb_music is off.
+    ambience.setScene('intro');
+    teardowns.push(ambience.onChange(renderMusic));
+    // First tap / click / key on the intro (Pular included) opens audio if autoplay was blocked.
+    const armMusic = () => ambience.unlock();
+    root.addEventListener('pointerdown', armMusic);
+    root.addEventListener('click', armMusic);
+    window.addEventListener('keydown', armMusic);
+    teardowns.push(() => {
+      root.removeEventListener('pointerdown', armMusic);
+      root.removeEventListener('click', armMusic);
+      window.removeEventListener('keydown', armMusic);
+    });
     teardowns.push(mountIntroAtmosphere(atmosphere, reduced));
+    if (!reduced) teardowns.push(heroScene.mountParallax());
     const parrots = mountIntroParrots(root, panel, reduced, {
       band: () => skyBand,
-      keepClear: () => [hero, root.classList.contains('intro-phase-auth') ? panel : null],
+      // The painted parts only — the header box spans the whole empty left column on desktop.
+      keepClear: () => [markWrap, title, taglines, root.classList.contains('intro-phase-auth') ? panel : null],
     });
     teardowns.push(parrots.teardown);
 
@@ -262,6 +313,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
     const coarse = window.matchMedia('(pointer: coarse)').matches;
     const reveal = () => {
       panel.inert = false;
+      ambience.introReveal();
       // Opening the soft keyboard on reveal would bury the Praça on phones.
       if (coarse) panelTitle.focus({ preventScroll: true });
       else email.focus({ preventScroll: true });

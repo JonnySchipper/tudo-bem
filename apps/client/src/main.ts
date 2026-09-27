@@ -784,6 +784,7 @@ async function boot() {
     const entry = await runIntroGate({ guestEntersWorld: SOLO });
     signedIn = !SOLO && entry.mode === 'auth';
   }
+  game.music = ambience.enabled;
   net.connect();
 }
 void boot();

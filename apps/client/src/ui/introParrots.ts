@@ -55,6 +55,8 @@ export interface FlockBird {
   /** +1 flies left→right, −1 right→left. */
   dir: 1 | -1;
   seed: number;
+  /** The one slow, close glider that sells depth (near layer, but unhurried). */
+  hero?: boolean;
 }
 
 export interface SkyBand {
@@ -63,7 +65,8 @@ export interface SkyBand {
 }
 
 const LAYER_HAZE: Record<DepthLayer, number> = { far: 0.42, mid: 0.12, near: 0 };
-const SKY = [168, 197, 212];
+/** Golden-hour upper sky the far birds dissolve into. */
+const SKY = [176, 174, 186];
 
 function pick<T>(pool: T[]): T {
   return pool[Math.floor(Math.random() * pool.length)]!;
@@ -134,13 +137,14 @@ function makeBird(
 
 /**
  * One cinematic pass: 6–12 birds, mixed species, far / mid / near layers.
- * Far birds ride high and slow; the near pair crosses fast and low for parallax.
+ * Far birds ride high and slow; the near pair crosses fast and low for parallax;
+ * one large near arara glides through slowly and late, so the frame reads deep.
  */
 export function spawnCinematicFlock(birds: FlockBird[], targetCount: number) {
   const n = Math.max(6, Math.min(12, targetCount));
-  const near = n >= 10 ? 2 : 1;
-  const far = Math.max(2, Math.round((n - near) * 0.4));
-  const mid = n - near - far;
+  const near = n >= 11 ? 2 : 1;
+  const far = Math.max(2, Math.round((n - near - 1) * 0.4));
+  const mid = n - near - far - 1;
   for (let i = 0; i < far; i++) {
     birds.push(
       makeBird(i % 2 ? 'papagaio' : 'arara', 'far', 0.12 + i * 0.05, -1.6 + i * 0.5, 11 + Math.random(), [0.4, 0.02, 0.22], (i % 2 ? -1 : 1) * (6 + i * 5), 0.46 + Math.random() * 0.08),
@@ -155,6 +159,11 @@ export function spawnCinematicFlock(birds: FlockBird[], targetCount: number) {
   for (let i = 0; i < near; i++) {
     birds.push(makeBird(i ? 'papagaio' : 'arara', 'near', 0.85 + i * 0.05, 1.1 + i * 1.1, 4.4, [0.86, 0.34, 0.66], i * -30, 1.3 - i * 0.12));
   }
+  const hero = makeBird('arara', 'near', 0.95, 1.9, 10.5, [0.62, 0.3, 0.08], 14, 1.5);
+  hero.hero = true;
+  hero.scheme = ARARA_SCHEMES[2]!;
+  hero.wingHz = 1.35;
+  birds.push(hero);
 }
 
 const RIM = 'rgba(255, 228, 176, 0.7)';
@@ -179,49 +188,119 @@ function scallopTo(ctx: CanvasRenderingContext2D, ax: number, ay: number, cx: nu
   }
 }
 
+function smoothstep(e0: number, e1: number, x: number): number {
+  const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
+  return t * t * (3 - 2 * t);
+}
+
 /**
- * Wing in a 3/4 side view: flap 1 = up, −1 = down. On the downstroke the underside
- * turns to the viewer and reads as the warm red-gold flash.
+ * Wing in a 3/4 side view: flap 1 = up, −1 = down. Through the downstroke the underside
+ * rolls toward the viewer and blends in as a painted red-gold flash: layered feather
+ * strokes, dark primary tips, and low sun glowing through the feathers.
  */
-function drawWing(ctx: CanvasRenderingContext2D, sx: number, sy: number, span: number, flap: number, c: ParrotPalette, far: boolean) {
+function drawWing(ctx: CanvasRenderingContext2D, sx: number, sy: number, span: number, flap: number, c: ParrotPalette, back: boolean, detail: boolean) {
   const theta = flap * 1.1;
   const sin = Math.sin(theta);
   const tipX = sx - span * (0.3 + 0.42 * (1 - Math.abs(sin)));
   const tipY = sy - span * sin * 0.95;
-  const under = sin < -0.18;
+  const under = smoothstep(0.08, -0.62, sin);
   const frontX = sx + 7;
   const backX = sx - 13;
 
   const trailing = Math.hypot(tipX - backX, tipY - sy);
-  ctx.beginPath();
-  ctx.moveTo(frontX, sy);
-  ctx.quadraticCurveTo(sx + 6, sy + (tipY - sy) * 0.6, tipX, tipY);
-  scallopTo(ctx, tipX, tipY, sx - 18, sy + (tipY - sy) * 0.45, backX, sy + 2, 5, Math.min(3, trailing / 12));
-  ctx.closePath();
+  const outline = () => {
+    ctx.beginPath();
+    ctx.moveTo(frontX, sy);
+    ctx.quadraticCurveTo(sx + 6, sy + (tipY - sy) * 0.6, tipX, tipY);
+    scallopTo(ctx, tipX, tipY, sx - 18, sy + (tipY - sy) * 0.45, backX, sy + 2, 5, Math.min(3, trailing / 12));
+    ctx.closePath();
+  };
+  outline();
 
-  const g = ctx.createLinearGradient(sx, sy, tipX, tipY);
-  if (under) {
-    g.addColorStop(0, c.flash);
-    g.addColorStop(1, c.flashDeep);
-  } else {
-    g.addColorStop(0, c.body);
-    g.addColorStop(1, c.wing);
+  const a0 = ctx.globalAlpha;
+  if (back) {
+    ctx.fillStyle = darken(c.wing, 0.9);
+    ctx.fill();
+    if (under > 0) {
+      ctx.globalAlpha = a0 * under * 0.7;
+      ctx.fillStyle = darken(c.flashDeep, 0.8);
+      ctx.fill();
+      ctx.globalAlpha = a0;
+    }
+    return;
   }
-  ctx.fillStyle = far ? darken(under ? c.flashDeep : c.wing, 0.9) : g;
-  ctx.fill();
-  if (!far) ctx.stroke();
 
-  if (!under && !far) {
+  const top = ctx.createLinearGradient(sx, sy, tipX, tipY);
+  top.addColorStop(0, c.body);
+  top.addColorStop(1, c.wing);
+  ctx.fillStyle = top;
+  ctx.fill();
+
+  if (under > 0) {
+    const g = ctx.createLinearGradient(sx, sy, tipX, tipY);
+    g.addColorStop(0, c.flash);
+    g.addColorStop(0.5, c.flashDeep);
+    g.addColorStop(0.82, c.flashDeep);
+    g.addColorStop(1, c.wing);
+    ctx.globalAlpha = a0 * under;
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.globalAlpha = a0;
+  }
+  ctx.stroke();
+
+  if (detail && under > 0.12) {
+    ctx.save();
+    outline();
+    ctx.clip();
+    // Feather rows fan from the wrist to the trailing edge, alternating gold / terracotta.
+    const lw = Math.max(1.2, span * 0.085);
+    ctx.lineWidth = lw;
+    ctx.lineCap = 'round';
+    for (let i = 0; i < 6; i++) {
+      const f = i / 5;
+      const ex = tipX + (backX - tipX) * f;
+      const ey = tipY + (sy + 2 - tipY) * f;
+      ctx.globalAlpha = a0 * under * (0.5 - f * 0.18);
+      ctx.strokeStyle = i % 2 ? c.flash : darken(c.flashDeep, 0.88);
+      ctx.beginPath();
+      ctx.moveTo(sx + 2, sy + (tipY - sy) * 0.12);
+      ctx.quadraticCurveTo(sx + (ex - sx) * 0.5 + 3, sy + (ey - sy) * 0.42, ex, ey);
+      ctx.stroke();
+    }
+    // Backlit glow at the wrist — the low sun reads through the feathers.
+    const glow = ctx.createRadialGradient(sx + 2, sy + (tipY - sy) * 0.25, 0, sx + 2, sy + (tipY - sy) * 0.25, span * 0.55);
+    glow.addColorStop(0, 'rgba(255, 226, 150, 0.75)');
+    glow.addColorStop(1, 'rgba(255, 200, 120, 0)');
+    ctx.globalAlpha = a0 * under;
+    ctx.fillStyle = glow;
+    ctx.fillRect(sx - span, sy - span, span * 2, span * 2);
+    ctx.restore();
+  }
+
+  if (under < 1) {
+    // Upper-side covert band (the flash seen from above).
     ctx.beginPath();
     ctx.moveTo(frontX - 1, sy + 1);
     ctx.quadraticCurveTo(sx + 3, sy + (tipY - sy) * 0.42, sx + (tipX - sx) * 0.46, sy + (tipY - sy) * 0.5);
     ctx.quadraticCurveTo(sx - 6, sy + (tipY - sy) * 0.25, backX + 4, sy + 1);
     ctx.closePath();
     ctx.fillStyle = c.flash;
-    ctx.globalAlpha *= 0.85;
+    ctx.globalAlpha = a0 * 0.85 * (1 - under);
     ctx.fill();
-    ctx.globalAlpha /= 0.85;
+    ctx.globalAlpha = a0;
   }
+
+  // Warm rim on the leading edge.
+  ctx.save();
+  ctx.strokeStyle = RIM;
+  ctx.lineWidth = 1.4;
+  ctx.globalAlpha = a0 * (0.5 + 0.4 * under);
+  ctx.beginPath();
+  ctx.moveTo(frontX, sy);
+  ctx.quadraticCurveTo(sx + 6, sy + (tipY - sy) * 0.6, tipX, tipY);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawArara(ctx: CanvasRenderingContext2D, flap: number, c: ParrotPalette, sway: number, detail: boolean) {
@@ -229,7 +308,7 @@ function drawArara(ctx: CanvasRenderingContext2D, flap: number, c: ParrotPalette
   ctx.strokeStyle = edge;
   ctx.lineWidth = 1.2;
 
-  drawWing(ctx, 3, -6, 36, flap * 0.9 + 0.08, c, true);
+  drawWing(ctx, 3, -6, 36, flap * 0.9 + 0.08, c, true, false);
 
   ctx.fillStyle = c.tail;
   ctx.beginPath();
@@ -301,7 +380,7 @@ function drawArara(ctx: CanvasRenderingContext2D, flap: number, c: ParrotPalette
   ctx.arc(21.5, -6, 1.2, 0, Math.PI * 2);
   ctx.fill();
 
-  drawWing(ctx, 6, -5, 40, flap, c, false);
+  drawWing(ctx, 6, -5, 40, flap, c, false, detail);
 }
 
 function drawPapagaio(ctx: CanvasRenderingContext2D, flap: number, c: ParrotPalette, sway: number, detail: boolean) {
@@ -309,7 +388,7 @@ function drawPapagaio(ctx: CanvasRenderingContext2D, flap: number, c: ParrotPale
   ctx.strokeStyle = edge;
   ctx.lineWidth = 1.2;
 
-  drawWing(ctx, 2, -5, 27, flap * 0.9 + 0.08, c, true);
+  drawWing(ctx, 2, -5, 27, flap * 0.9 + 0.08, c, true, false);
 
   ctx.fillStyle = c.tail;
   ctx.beginPath();
@@ -368,12 +447,13 @@ function drawPapagaio(ctx: CanvasRenderingContext2D, flap: number, c: ParrotPale
   ctx.arc(16, -6, 1.15, 0, Math.PI * 2);
   ctx.fill();
 
-  drawWing(ctx, 4, -4, 30, flap, c, false);
+  drawWing(ctx, 4, -4, 30, flap, c, false, detail);
 }
 
 /** Flap envelope: steady beats that ease into short glides (wings held slightly up). */
 function flapAt(b: FlockBird, t: number): number {
-  const env = Math.min(1, Math.max(0, 0.5 + 0.9 * Math.sin(t * 0.8 + b.seed)));
+  // The hero glider holds long glides between a few deep beats.
+  const env = b.hero ? Math.min(1, Math.max(0, 0.15 + 1.1 * Math.sin(t * 0.55 + b.seed))) : Math.min(1, Math.max(0, 0.5 + 0.9 * Math.sin(t * 0.8 + b.seed)));
   const beat = Math.sin(b.wingPhase + t * b.wingHz * Math.PI * 2);
   return beat * (0.25 + 0.75 * env) + (1 - env) * 0.18;
 }
@@ -387,7 +467,7 @@ export function drawParrot(ctx: CanvasRenderingContext2D, b: FlockBird, x: numbe
   ctx.scale(size * b.dir, size);
   ctx.lineJoin = 'round';
   ctx.lineCap = 'round';
-  const detail = size > 0.7;
+  const detail = size > 0.55;
   if (b.species === 'arara') drawArara(ctx, flap, b.scheme, sway, detail);
   else drawPapagaio(ctx, flap, b.scheme, sway, detail);
   ctx.restore();
@@ -537,7 +617,7 @@ export function mountIntroParrots(
   }
 
   const birds: FlockBird[] = [];
-  spawnCinematicFlock(birds, mobile ? 8 : 11);
+  spawnCinematicFlock(birds, mobile ? 9 : 12);
   const pace = crossingPace(root.clientWidth);
   for (const b of birds) {
     b.duration *= pace;
