@@ -47,11 +47,13 @@ for (const vp of VIEWPORTS) {
       console.log('  ·', `${vp.tag}-${name}`);
     };
     if (reduced) {
+      await page.click('#intro-enter');
       await sleep(600);
       await shot('reduced-motion');
       await ctx.close();
       continue;
     }
+    await page.click('#intro-enter');
     await sleep(TITLE_AT);
     await shot('title-beat');
     await page.waitForSelector('.intro-phase-auth', { timeout: 12_000 });

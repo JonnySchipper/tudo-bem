@@ -56,6 +56,25 @@ export function runIntroGate(): Promise<IntroGateResult> {
     const glow = h('div', { class: 'intro-layer intro-glow', 'aria-hidden': 'true' });
     const skipBtn = h('button', { type: 'button', class: 'intro-skip', id: 'intro-skip' }, 'Pular', h('span', { class: 'intro-skip-arrow', 'aria-hidden': 'true' }, '›'));
 
+    let enterDone = false;
+    let resolveEnter!: () => void;
+    const enterReady = new Promise<void>((r) => {
+      resolveEnter = r;
+    });
+    const enterBtn = h(
+      'button',
+      { type: 'button', class: 'intro-enter primary intro-cta', id: 'intro-enter', 'aria-describedby': 'intro-enter-hint' },
+      'Entrar',
+      h('span', { class: 'en' }, 'Enter'),
+    );
+    const enterHint = h(
+      'p',
+      { id: 'intro-enter-hint', class: 'intro-enter-hint' },
+      'Um toque para a praça — música e araras juntas.',
+      h('span', { class: 'en' }, 'One tap — music and parrots together.'),
+    );
+    const enterLayer = h('div', { class: 'intro-enter-layer', role: 'group', 'aria-label': 'Começar' }, enterHint, enterBtn);
+
     // Music bed: the one switch is the saved tb_music choice (same as the HUD).
     const musicBtn = h('button', { type: 'button', class: 'intro-music', id: 'intro-music' });
     const renderMusic = () => {
@@ -229,13 +248,11 @@ export function runIntroGate(): Promise<IntroGateResult> {
       h('div', { id: 'tb-idle-kick-slot', class: 'tb-idle-kick-slot', hidden: true, 'aria-hidden': 'true', 'data-tb-region': 'idle-kick-interstitial' }),
     );
 
-    root.append(heroScene.el, glow, atmosphere, veil, musicBtn, skipBtn, h('div', { class: 'intro-shell' }, hero, panel));
+    root.append(heroScene.el, glow, atmosphere, veil, musicBtn, skipBtn, h('div', { class: 'intro-shell' }, hero, panel), enterLayer);
 
     document.body.classList.add('intro-active');
-    if (!reduced) {
-      root.classList.add('intro-phase-title');
-      panel.inert = true;
-    }
+    root.classList.add('intro-phase-enter');
+    panel.inert = true;
     ui().append(root);
 
     let skyBand: SkyBand = { top: 24, bottom: 160 };
@@ -267,23 +284,12 @@ export function runIntroGate(): Promise<IntroGateResult> {
     };
     layoutHero();
 
-    // The bed starts with the shell; setScene is a no-op for sound while tb_music is off.
-    ambience.setScene('intro');
     teardowns.push(ambience.onChange(renderMusic));
-    // First tap / click / key on the intro (Pular included) opens audio if autoplay was blocked.
-    const armMusic = () => ambience.unlock();
-    root.addEventListener('pointerdown', armMusic);
-    root.addEventListener('click', armMusic);
-    window.addEventListener('keydown', armMusic);
-    teardowns.push(() => {
-      root.removeEventListener('pointerdown', armMusic);
-      root.removeEventListener('click', armMusic);
-      window.removeEventListener('keydown', armMusic);
-    });
     teardowns.push(mountIntroAtmosphere(atmosphere, reduced));
     if (!reduced) teardowns.push(heroScene.mountParallax());
     const parrots = mountIntroParrots(root, panel, reduced, {
       band: () => skyBand,
+      waitForStart: enterReady,
       // The painted parts only — the header box spans the whole empty left column on desktop.
       keepClear: () => [markWrap, title, taglines, root.classList.contains('intro-phase-auth') ? panel : null],
     });
@@ -313,7 +319,36 @@ export function runIntroGate(): Promise<IntroGateResult> {
       if (coarse) panelTitle.focus({ preventScroll: true });
       else email.focus({ preventScroll: true });
     };
-    teardowns.push(runIntroTitleBeat(root, reveal, reduced));
+
+    const beginIntro = () => {
+      if (enterDone) return;
+      enterDone = true;
+      enterLayer.remove();
+      root.classList.remove('intro-phase-enter');
+      ambience.unlock();
+      ambience.setScene('intro');
+      renderMusic();
+      resolveEnter();
+      if (reduced) {
+        root.classList.add('intro-phase-auth');
+        reveal();
+      } else {
+        root.classList.add('intro-phase-title');
+        teardowns.push(runIntroTitleBeat(root, reveal, false));
+      }
+    };
+
+    enterBtn.addEventListener('click', beginIntro);
+    const onEnterKey = (e: KeyboardEvent) => {
+      if (enterDone) return;
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      if ((e.target as Element | null)?.closest?.('input, textarea, select, button:not(#intro-enter)')) return;
+      e.preventDefault();
+      beginIntro();
+    };
+    window.addEventListener('keydown', onEnterKey);
+    teardowns.push(() => window.removeEventListener('keydown', onEnterKey));
+    requestAnimationFrame(() => enterBtn.focus({ preventScroll: true }));
   });
 }
 

@@ -37,6 +37,8 @@ const ctx = await browser.newContext({ viewport: { width: W, height: H }, device
 const page = await ctx.newPage();
 page.on('pageerror', (e) => console.error('pageerror', String(e)));
 await page.goto(BASE);
+await page.waitForSelector('#intro-enter');
+await page.click('#intro-enter');
 await page.waitForSelector('#intro-skip');
 await page.click('#intro-skip');
 await page.waitForSelector('#intro-guest');
