@@ -22,10 +22,12 @@ import {
   presentConversaTurn,
   diverseChips,
   offlineConversaOpen,
+  gateConversaPlayerLine,
   CONVERSA_WORD_CAP,
   type ConversaScores,
   type Score03,
 } from './conversa.js';
+import { classifyChat } from './safety.js';
 
 describe('conversa constants', () => {
   it('has correct max player messages', () => {
@@ -380,6 +382,45 @@ describe('conversaDateKey', () => {
   });
 });
 
+
+describe('Gate A player line on the mesa', () => {
+  it('warns on the exact coxinha line, keeps it verbatim, and asks for a warn toast', () => {
+    const line = 'Essa coxinha tá gostosa!';
+    const gate = gateConversaPlayerLine(line);
+    const verdict = classifyChat(line);
+    expect(gate.action).toBe('warn');
+    expect(gate.deliver).toBe(true);
+    expect(gate.text).toBe(line);
+    expect(verdict.text).toBe(line);
+    expect(gate.notice).toEqual({ level: 'warn', pt: verdict.note?.pt, en: verdict.note?.en });
+    expect(gate.notice?.pt.length).toBeGreaterThan(0);
+    expect(gate.notice?.en.length).toBeGreaterThan(0);
+  });
+
+  it('blocks alcohol out of the transcript and asks for a block toast', () => {
+    const line = 'bora tomar uma cerveja';
+    const gate = gateConversaPlayerLine(line);
+    expect(gate.action).toBe('block');
+    expect(gate.deliver).toBe(false);
+    expect(gate.text).toBe('');
+    expect(gate.notice?.level).toBe('block');
+    expect(gate.notice?.pt.length).toBeGreaterThan(0);
+    expect(gate.notice?.en.length).toBeGreaterThan(0);
+  });
+
+  it('allows a padaria line with no toast', () => {
+    const line = 'Pra comer aqui, por favor.';
+    expect(gateConversaPlayerLine(line)).toEqual({ action: 'allow', deliver: true, text: line, notice: null });
+  });
+
+  it('still blocks a person-directed gostosa instead of warning', () => {
+    const gate = gateConversaPlayerLine('você é gostosa');
+    expect(gate.action).toBe('block');
+    expect(gate.deliver).toBe(false);
+    expect(gate.text).toBe('');
+    expect(gate.notice?.level).toBe('block');
+  });
+});
 
 describe('filterNpcLine Gate B', () => {
   it('allows padaria lines', () => {

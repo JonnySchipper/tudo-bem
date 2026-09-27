@@ -1,6 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import {
-  classifyChat,
   CONVERSA_CAST,
   CONVERSA_COPY,
   CONVERSA_MAX_PLAYER_MSGS,
@@ -8,6 +7,7 @@ import {
   CONVERSA_WORD_CAP,
   canStartConversa,
   conversaDateKey,
+  gateConversaPlayerLine,
   gradeFromScores,
   gradeRV,
   gradeCopy,
@@ -116,6 +116,8 @@ interface ConversaTurnResponse {
   turn: number;
   maxTurns: number;
   end: boolean;
+  /** Set when Gate A warns. The player line was delivered verbatim. */
+  notice?: { level: 'warn'; pt: string; en: string };
 }
 
 interface ConversaEndResponse {
@@ -262,13 +264,13 @@ async function handleStart(req: ConversaStartRequest, dailyCapOn: boolean, res: 
 }
 
 async function handleTurn(req: ConversaTurnRequestBody, res: ServerResponse): Promise<void> {
-  const verdict = classifyChat(req.text);
-  if (verdict.action === 'block' || verdict.action === 'escalate') {
+  const gate = gateConversaPlayerLine(req.text);
+  if (!gate.deliver) {
     const response: ConversaBlockedResponse = {
       phase: 'blocked',
       reason: 'safety',
-      pt: verdict.note?.pt ?? CONVERSA_COPY.blocked.pt,
-      en: verdict.note?.en ?? CONVERSA_COPY.blocked.en,
+      pt: gate.notice?.pt ?? CONVERSA_COPY.blocked.pt,
+      en: gate.notice?.en ?? CONVERSA_COPY.blocked.en,
     };
     json(res, 200, response);
     return;
@@ -289,7 +291,7 @@ async function handleTurn(req: ConversaTurnRequestBody, res: ServerResponse): Pr
     pronoun: req.pronoun,
     nameplate: req.nameplate,
     history: req.history ?? [],
-    text: req.text,
+    text: gate.text,
     turn: req.turn,
     maxTurns: CONVERSA_MAX_PLAYER_MSGS,
     priorChips,
@@ -322,6 +324,7 @@ async function handleTurn(req: ConversaTurnRequestBody, res: ServerResponse): Pr
     turn: req.turn,
     maxTurns: CONVERSA_MAX_PLAYER_MSGS,
     end: turnResponse.end,
+    ...(gate.notice?.level === 'warn' ? { notice: { level: 'warn' as const, pt: gate.notice.pt, en: gate.notice.en } } : {}),
   };
 
   json(res, 200, response);

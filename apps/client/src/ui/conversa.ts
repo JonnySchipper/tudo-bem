@@ -5,9 +5,11 @@ import {
   gradeFromScores,
   gradeCopy,
   metersFromHistory,
+  gateConversaPlayerLine,
   offlineConversaOpen,
   presentConversaTurn,
   ROOMS,
+  type ConversaSafetyNotice,
   type Bilingual,
   type ConversaGrade,
   type ConversaLine,
@@ -20,6 +22,7 @@ import { game } from '../state';
 import { h, en, bi, ui } from './dom';
 import { renderAvatarPreview } from '../render/avatar';
 import { speak } from '../audio';
+import { toast } from './hud';
 import {
   startConversa,
   sendConversaTurn,
@@ -54,6 +57,14 @@ let closeCallback: (() => void) | null = null;
 let onKey: ((e: KeyboardEvent) => void) | null = null;
 /** Carlos only: leave the mesa and open the authored chip order. */
 let quickOrder: (() => void) | null = null;
+/** One safety toast per send. The server notice is a backstop when the client has not already shown it. */
+let safetyToastShown = false;
+
+function showSafetyToast(notice: ConversaSafetyNotice | null | undefined) {
+  if (!notice || safetyToastShown) return;
+  safetyToastShown = true;
+  toast(notice.level, notice.pt, notice.en);
+}
 
 function findNpc(npcId: NpcId): NpcDef | null {
   for (const room of Object.values(ROOMS)) {
@@ -214,17 +225,25 @@ async function handleSend(input: HTMLInputElement) {
   const text = input.value.trim();
   if (!text) return;
 
+  safetyToastShown = false;
+  const gate = gateConversaPlayerLine(text);
+  if (!gate.deliver) {
+    showSafetyToast(gate.notice);
+    return;
+  }
+  showSafetyToast(gate.notice);
+
   input.value = '';
   input.disabled = true;
 
   state.turn++;
-  state.history.push({ who: 'player', pt: text });
+  state.history.push({ who: 'player', pt: gate.text });
   const priorChips = state.chips.map((c) => c.pt);
   render();
 
   try {
     if (state.offline) {
-      applyOfflineTurn(text, priorChips);
+      applyOfflineTurn(gate.text, priorChips);
       return;
     }
     const response = await sendConversaTurn(
@@ -234,7 +253,7 @@ async function handleSend(input: HTMLInputElement) {
       game.profile?.pronoun ?? 'nome',
       game.profile?.nameplate ?? 'verde',
       game.profile?.id ?? '',
-      text,
+      gate.text,
       state.history,
       state.turn,
       state.daily,
@@ -244,7 +263,7 @@ async function handleSend(input: HTMLInputElement) {
     handleApiResponse(response);
   } catch (e) {
     console.error('[conversa] Turn failed, using authored Carlos:', e);
-    applyOfflineTurn(text, priorChips);
+    applyOfflineTurn(gate.text, priorChips);
   } finally {
     const next = document.getElementById('conversa-input') as HTMLInputElement | null;
     if (next && state && !state.ended) {
@@ -299,6 +318,8 @@ function handleApiResponse(response: ConversaApiResponse) {
 
   if (response.phase === 'blocked') {
     if (response.reason === 'safety') {
+      toast('block', response.pt, response.en);
+      safetyToastShown = true;
       const input = document.getElementById('conversa-input') as HTMLInputElement | null;
       if (input) input.disabled = false;
       state.history.pop();
@@ -309,6 +330,7 @@ function handleApiResponse(response: ConversaApiResponse) {
   }
 
   if (response.phase === 'turn') {
+    if (response.notice) showSafetyToast(response.notice);
     state.mode = response.mode;
     state.offline = response.offline;
     state.chips = response.chips;

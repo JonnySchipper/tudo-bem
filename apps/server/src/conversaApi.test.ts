@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CONVERSA_SUBJECTS, DEFAULT_APPEARANCE, TUTORIAL_STEPS, conversaDateKey, type TutorialStep } from '@tudobem/shared';
+import { CONVERSA_SUBJECTS, DEFAULT_APPEARANCE, TUTORIAL_STEPS, classifyChat, conversaDateKey, type TutorialStep } from '@tudobem/shared';
 import { handleConversaApi } from './conversaApi.js';
 import { fileAdapter } from './fileStore.js';
 import { ProfileStore, type StoredProfile } from './store.js';
@@ -175,6 +175,59 @@ describe('Conversa RV persist', () => {
       const line = res.body.line as { pt?: string };
       expect(typeof line?.pt).toBe('string');
       expect(line.pt!.length).toBeGreaterThan(0);
+    } finally {
+      fetchSpy.mockRestore();
+    }
+  });
+
+  it('Gate A exact warn returns a warn toast and Carlos continues; alcohol is a block toast', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('no network in unit test'));
+    try {
+      dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tb-conversa-'));
+      store = new ProfileStore(fileAdapter(dir));
+      store.add(profile('p4'));
+      const port = await listen(() => store);
+      const turn = (text: string) =>
+        post(port, {
+          action: 'turn',
+          npcId: 'carlos',
+          subjectId: 'cafe_da_manha',
+          playerName: 'Ana',
+          pronoun: 'ela',
+          nameplate: 'verde',
+          playerId: 'p4',
+          text,
+          history: [],
+          turn: 1,
+          priorChips: [],
+          daily: {},
+        });
+
+      const coxinha = 'Essa coxinha tá gostosa!';
+      const warned = classifyChat(coxinha);
+      const warn = await turn(coxinha);
+      expect(warn.status).toBe(200);
+      expect(warn.body.phase).toBe('turn');
+      expect(warned.action).toBe('warn');
+      expect(warned.text).toBe(coxinha);
+      expect(warn.body.notice).toEqual({ level: 'warn', pt: warned.note?.pt, en: warned.note?.en });
+      const line = warn.body.line as { pt?: string };
+      expect(line.pt && line.pt.length).toBeGreaterThan(0);
+
+      const alcohol = 'bora tomar uma cerveja';
+      const blocked = classifyChat(alcohol);
+      const block = await turn(alcohol);
+      expect(block.status).toBe(200);
+      expect(block.body.phase).toBe('blocked');
+      expect(block.body.reason).toBe('safety');
+      expect(blocked.text).toBe('');
+      expect(block.body.pt).toBe(blocked.note?.pt);
+      expect(block.body.en).toBe(blocked.note?.en);
+      expect(block.body.line).toBeUndefined();
+
+      const allow = await turn('Pra comer aqui, por favor.');
+      expect(allow.body.phase).toBe('turn');
+      expect(allow.body.notice).toBeUndefined();
     } finally {
       fetchSpy.mockRestore();
     }

@@ -1806,6 +1806,11 @@ button:disabled {
   z-index: 100;
 }
 
+/* Gate A toasts have to paint over the mesa. .toasts is otherwise z-index 50. */
+body:has(.conversa-backdrop) .toasts {
+  z-index: 120;
+}
+
 .conversa-panel {
   /* The mesa: a wood-warm café tabletop (planks, grain, window key from the left) — not a cream modal. */
   --mesa-wood: #8b5e3c;

@@ -36,6 +36,8 @@ interface ConversaTurnResponse {
   turn: number;
   maxTurns: number;
   end: boolean;
+  /** Gate A warn. The player line was kept verbatim. */
+  notice?: { level: 'warn'; pt: string; en: string };
 }
 
 interface ConversaEndResponse {
