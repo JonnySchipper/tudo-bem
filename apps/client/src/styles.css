@@ -1720,10 +1720,6 @@ body:has([data-modal='minigame']) .toasts {
     display: none;
   }
 
-  .roll-pose {
-    height: 100px;
-  }
-
   .roll .row button {
     min-height: 44px;
     flex: 1 1 auto;
