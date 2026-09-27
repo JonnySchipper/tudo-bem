@@ -814,7 +814,7 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
     const { world } = ambient();
     const a = connectBare(world);
     await a.send({ t: 'hello' });
-    await a.send({ t: 'createProfile', name: 'Rafa', pronoun: 'ele', appearance: DEFAULT_APPEARANCE, birthYear: 2000, birthMonth: 1, confirm18: true });
+    await a.send({ t: 'createProfile', name: 'Rafa', pronoun: 'ele', appearance: DEFAULT_APPEARANCE });
     await a.send({ t: 'join', room: 'academia' });
     const cpus = cpusSeen(a);
     expect(cpus.length).toBeGreaterThanOrEqual(1);
