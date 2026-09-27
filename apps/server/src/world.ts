@@ -117,6 +117,8 @@ export interface WorldOptions {
   rollQueueMs?: number;
   /** When true, duel messages include `debugCorrect` for CI e2e (TB_TEST_ROLL=1). */
   testRollHints?: boolean;
+  /** Scale Me vê um order timers (0–1). Env `TB_TEST_MG=1` → 0.2; `MG_ORDER_TIME_SCALE` overrides. */
+  mgTimeScale?: number;
 }
 
 interface AvatarState {
@@ -240,6 +242,8 @@ export class World {
   private readonly rng: () => number;
   private readonly rollQueueMs: number;
   private readonly testRollHints: boolean;
+  /** 1 = production timers; lower only when TB_TEST_MG / MG_ORDER_TIME_SCALE (CI e2e). */
+  private readonly mgTimeScale: number;
   private seq = 0;
   /** Mid-order Me vê um state kept across a socket drop so reconnect can resync the same ticket. */
   private parkedMg = new Map<string, { mg: MgState; room: RoomId; at: number }>();
@@ -250,7 +254,8 @@ export class World {
     opts: WorldOptions = {},
   ) {
     this.cap = Math.max(1, Math.min(DEFAULT_ROOM_CAP, opts.roomCap ?? DEFAULT_ROOM_CAP));
-    this.mgGapMs = opts.mgGapMs ?? 1600;
+    const envMgGap = Number(process.env.MG_GAP_MS);
+    this.mgGapMs = opts.mgGapMs ?? (Number.isFinite(envMgGap) && envMgGap >= 0 ? envMgGap : 1600);
     this.now = opts.now ?? Date.now;
     this.schedule = opts.schedule ?? ((fn, ms) => void (setTimeout(fn, ms) as unknown as { unref?: () => void }).unref?.());
     this.ambiance = !!opts.ambiance;
@@ -258,6 +263,18 @@ export class World {
     const envQueue = Number(process.env.ROLL_QUEUE_MS);
     this.rollQueueMs = opts.rollQueueMs ?? (Number.isFinite(envQueue) && envQueue >= 0 ? envQueue : ROLL_QUEUE_MS_DEFAULT);
     this.testRollHints = opts.testRollHints ?? process.env.TB_TEST_ROLL === '1';
+    if (opts.mgTimeScale !== undefined) this.mgTimeScale = opts.mgTimeScale;
+    else if (process.env.TB_TEST_MG === '1') this.mgTimeScale = 0.2;
+    else {
+      const envScale = Number(process.env.MG_ORDER_TIME_SCALE);
+      this.mgTimeScale = Number.isFinite(envScale) && envScale > 0 && envScale <= 1 ? envScale : 1;
+    }
+  }
+
+  private applyMgOrderTime(order: MgOrder): MgOrder {
+    if (this.mgTimeScale >= 1) return order;
+    const timeMs = Math.max(6_000, Math.round(order.timeMs * this.mgTimeScale));
+    return { ...order, timeMs };
   }
 
   // ---------- connection lifecycle ----------
@@ -837,7 +854,7 @@ export class World {
       if (s.instance?.def.id !== 'padaria') return this.err(s, 'mg', 'O jogo fica no balcão da padaria.', 'The game is at the bakery counter.');
       s.scene = undefined;
       const rng = mulberry32((this.now() ^ (Math.random() * 1e9)) >>> 0);
-      const order = makeOrder(rng, 0);
+      const order = this.applyMgOrderTime(makeOrder(rng, 0));
       s.mg = { rng, round: 0, order, orderAt: this.now(), repeated: false, points: 0, streak: 0, perfect: 0, waiting: false, token: ++this.seq, served: [order.pt] };
       return this.sendOrder(s);
     }
@@ -934,7 +951,7 @@ export class World {
     mg.waiting = false;
     if (!Array.isArray(mg.served)) mg.served = mg.order.pt ? [mg.order.pt] : [];
     mg.lastSig = undefined;
-    mg.order = makeOrder(mg.rng, mg.round, mg.served);
+    mg.order = this.applyMgOrderTime(makeOrder(mg.rng, mg.round, mg.served));
     mg.served.push(mg.order.pt);
     mg.repeated = false;
     mg.orderAt = this.now();

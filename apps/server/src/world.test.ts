@@ -11,6 +11,7 @@ import {
   mgBuiltForTray,
   mgPerfectBuilt,
   mulberry32,
+  orderTimeMs,
   ROOMS,
   SCORE_FEEDBACK,
   TYPED_MISS_HINT,
@@ -474,6 +475,19 @@ describe('World', () => {
     await b.send({ t: 'join', room: 'padaria' });
     expect(b.all('mg')).toHaveLength(0);
     expect(b.s.mg).toBeUndefined();
+  });
+
+  it('scales Me vê um order timers when mgTimeScale < 1 (TB_TEST_MG / CI)', async () => {
+    const { world } = makeWorld(16, { mgTimeScale: 0.2, mgGapMs: 0 });
+    const a = await client(world);
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'mg', action: 'start' });
+    const order = world.debugOrder(a.s)!;
+    const production = orderTimeMs(order.lines, order.mods);
+    const msg = a.last('mg') as Extract<ServerMsg, { t: 'mg'; phase: 'order' }>;
+    expect(order.timeMs).toBe(Math.max(6000, Math.round(production * 0.2)));
+    expect(msg.timeMs).toBe(order.timeMs);
+    expect(order.timeMs).toBeLessThan(production);
   });
 
   it('mg sync re-sends the open ticket with resync', async () => {

@@ -2,7 +2,7 @@
 /**
  * End-to-end smoke test of the Phase 0 play path in a real browser.
  *
- *   pnpm build && pnpm start            # in one terminal
+ *   pnpm build && TB_TEST_MG=1 MG_GAP_MS=400 pnpm start   # in one terminal (fast MG timers for e2e)
  *   pnpm e2e                            # in another (BASE_URL / CHROME_PATH / SHOTS_DIR optional)
  *
  * Plays: age gate → avatar → Praça (ambiance CPUs, daily kiosk, walk, sit, wave, chat) → Padaria →
