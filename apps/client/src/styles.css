@@ -748,67 +748,108 @@ button:disabled {
   accent-color: var(--verde);
 }
 
-/* ---------- sign in / create account ---------- */
+/* ================================================================
+   ENTRY SCREEN — functional scaffold (ui/auth.ts).
+   Skin-only: layout/visuals below may be replaced wholesale. Logic lives in
+   mountAuthForm; keep the ids listed at the top of ui/auth.ts.
+   ================================================================ */
 
-.auth-panel {
-  width: min(460px, calc(100vw - 24px));
+/* ---- shell */
+.auth-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: safe center;
+  gap: 16px;
+  padding: calc(16px + var(--safe-top)) 16px calc(16px + var(--safe-bottom));
+  overflow: auto;
+  background: var(--cream);
+}
+
+/* ---- region: hero (empty stage for backdrop / motion) */
+.auth-region-hero {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* ---- region: brand */
+.auth-region-brand {
+  text-align: center;
+}
+
+.auth-region-brand h1 {
+  font-family: var(--font-title);
+  color: var(--terracota);
+  margin: 0;
+  font-size: 2.6em;
+  line-height: 1;
+}
+
+.auth-region-brand p {
+  margin: 4px 0 0;
+  font-weight: 700;
+}
+
+/* ---- region: form */
+.auth-region-form {
+  width: min(400px, 100%);
+  background: var(--paper);
+  border: 2px solid #eadcc3;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .auth-tabs {
   display: flex;
   gap: 6px;
-  background: #f3e2c6;
-  border-radius: 999px;
-  padding: 4px;
-  margin-bottom: 14px;
 }
 
 .auth-tabs button {
   flex: 1;
-  border-radius: 999px;
-  box-shadow: none;
-  background: transparent;
-  font-weight: 800;
 }
 
 .auth-tabs button.on {
-  background: var(--terracota);
+  background: var(--ink);
   color: white;
-  box-shadow: 0 3px 0 #7d3714;
 }
 
-.auth-lead {
-  margin: 2px 0 0;
-  font-weight: 700;
+.auth-title {
+  margin: 0;
+  font-family: var(--font-title);
 }
 
-.auth-form > .en {
-  display: block;
-  margin-bottom: 12px;
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 800;
 }
 
-.field input[type='email'],
-.field input[type='password'],
-.auth-password-row input[type='text'] {
+.auth-field input,
+.auth-password-row input {
   font: inherit;
-  font-weight: 700;
   padding: 0.5em 0.8em;
-  border-radius: 12px;
+  border-radius: 10px;
   border: 2px solid #eadcc3;
   background: white;
   width: 100%;
   box-sizing: border-box;
 }
 
-.field input:focus-visible {
-  outline: 3px solid var(--amarelo);
-  outline-offset: 1px;
-}
-
 .auth-password-row {
   display: flex;
   gap: 6px;
-  align-items: stretch;
 }
 
 .auth-password-row input {
@@ -816,47 +857,53 @@ button:disabled {
   min-width: 0;
 }
 
-.auth-reveal {
-  font-size: 0.8em;
-  padding: 0 0.8em;
-  white-space: nowrap;
-}
-
 .auth-hint {
-  font-size: 0.82em;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--ink-soft);
-  margin-top: 4px;
 }
 
-.auth-hint .en {
-  display: inline;
-  margin-left: 6px;
+.auth-adult {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.auth-adult input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--verde);
 }
 
 .auth-notice,
 .auth-legacy {
-  background: #fff1d6;
-  border-left: 5px solid var(--mustard);
-  border-radius: 10px;
-  padding: 8px 12px;
+  margin: 0;
   font-weight: 700;
-  font-size: 0.9em;
-  margin-bottom: 12px;
-}
-
-.auth-notice .en,
-.auth-legacy .en {
-  display: block;
 }
 
 .auth-error {
-  margin-top: 10px;
+  color: #9b2c1e;
+  font-weight: 800;
 }
 
-.auth-submit {
-  font-size: 1.05em;
+.auth-error .en {
+  display: block;
+  font-weight: 600;
 }
+
+[data-region] [hidden] {
+  display: none !important;
+}
+
+/* ---- region: footer */
+.auth-region-footer {
+  font-size: 0.8em;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+/* ================================================================ /ENTRY SCREEN */
 
 .idle-card {
   background:
@@ -2804,7 +2851,8 @@ body:has(.conversa-backdrop) .toasts {
 #ui textarea,
 .onboarding input,
 .onboarding select,
-.onboarding textarea {
+.onboarding textarea,
+.auth-screen input {
   font-size: 16px;
 }
 
@@ -2853,7 +2901,8 @@ body:has(.conversa-backdrop) .toasts {
 body:has(#dialogue) .joystick,
 body:has([data-modal]) .joystick,
 body:has(.conversa-backdrop) .joystick,
-body:has(.onboarding) .joystick {
+body:has(.onboarding) .joystick,
+body:has(.auth-screen) .joystick {
   display: none;
 }
 

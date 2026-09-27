@@ -22,7 +22,7 @@ export interface NewProfile {
   confirm18?: true;
 }
 
-export function hero() {
+function hero() {
   return h(
     'div',
     { class: 'hero' },
