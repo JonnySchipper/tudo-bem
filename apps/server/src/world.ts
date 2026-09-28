@@ -1207,7 +1207,7 @@ export class World {
     if (!roll) return;
     if (m.action === 'cancel' || m.action === 'quit') {
       this.clearRoll(s);
-      return s.send({ t: 'notice', level: 'info', pt: 'Saiu da fila. Até a próxima rola!', en: 'Left the queue. See you on the mat!' });
+      return s.send({ t: 'notice', level: 'info', pt: 'Saiu da fila. Até a próxima partida!', en: 'Left the queue. See you at the next match!' });
     }
     if (m.action === 'rematch') {
       this.clearRoll(s);

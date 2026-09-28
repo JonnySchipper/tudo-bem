@@ -60,7 +60,7 @@ export class RollUI {
       h(
         'div',
         { class: 'roll-head' },
-        h('h2', null, 'Rola no tatame'),
+        h('h2', null, 'Partida no tatame'),
         en('Portuguese word duels on BJJ positions — first “submission” wins the puzzle.', true),
         h('span', { class: 'spacer' }),
         h('button', { class: 'ghost', onclick: () => this.quit() }, '✕'),
@@ -137,8 +137,8 @@ export class RollUI {
           h('b', null, 'Tatame aberto'),
           en('Open mat', true),
           h('p', null, bi(`${ROLL_CPU_PARTNER.pt} está aquecendo…`, `${ROLL_CPU_PARTNER.en} is warming up…`)),
-          h('p', { class: 'muted' }, bi(`Rola em ~${Math.max(1, Math.round(m.waitMs / 1000))}s — oss!`, `Roll starts in ~${Math.max(1, Math.round(m.waitMs / 1000))}s — oss!`)),
-          h('p', { class: 'muted' }, bi('PvP em breve; por agora a diversão é solo.', 'PvP later — solo roll is the fun path for now.')),
+          h('p', { class: 'muted' }, bi(`Partida em ~${Math.max(1, Math.round(m.waitMs / 1000))}s`, `Match starts in ~${Math.max(1, Math.round(m.waitMs / 1000))}s`)),
+          h('p', { class: 'muted' }, bi('PvP em breve; por agora a diversão é solo.', 'PvP later — solo matches are the fun path for now.')),
         ),
       );
       return;
@@ -146,7 +146,9 @@ export class RollUI {
     if (m.phase === 'bow') {
       this.showPose('de_pe');
       this.locked = true;
-      this.body.replaceChildren(h('div', { class: 'roll-bow' }, h('b', null, m.line.pt), en(m.line.en), h('p', null, bi('Oss!', 'Oss!'))));
+      this.body.replaceChildren(
+        h('div', { class: 'roll-bow' }, h('b', null, m.line.pt), en(m.line.en), h('p', null, bi('Sempre com respeito.', 'Always with respect.'))),
+      );
       speak(m.line.pt);
       return;
     }
@@ -256,7 +258,7 @@ export class RollUI {
             { class: 'muted' },
             won
               ? bi('Listras sobem com vitórias — faixa branca em v0.', 'Stripes grow with wins — white belt only in v0.')
-              : bi('Oss — valeu pela rola. +português, sempre com respeito.', 'Oss — thanks for the roll. Portuguese practice, always respectful.'),
+              : bi('Valeu — +português, sempre com respeito.', 'Thanks — Portuguese practice, always respectful.'),
           ),
           h(
             'div',
