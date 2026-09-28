@@ -11,8 +11,9 @@ import { CLOTH_COLORS, HAIR_COLORS, SHOE_COLORS, SKIN_TONES, hatById, type Appea
 import { rrect, shadow, type Ctx } from './draw';
 import { drawArm, drawHeld, drawLeg, drawNeck, drawPelvis, drawSignature, drawTorso, drawTote, type Look } from './avatar/body';
 import { mix, rgba, RIM, tone, type Light } from './avatar/color';
-import { clipHead, drawFace, drawHairBehind, drawHairFront, drawHead, HAIR_TOP, hatFit, viewOf } from './avatar/head';
-import { brimShade, drawHat as drawHatShape, drawHatIconArt, HAT_W, hatHeight } from './avatar/hats';
+import { hatSeat } from './avatar/fit';
+import { clipHead, drawFace, drawHairBehind, drawHairFront, drawHead, HAIR_TOP, viewOf } from './avatar/head';
+import { brimShade, drawHat as drawHatShape, drawHatIconArt, hatHeight } from './avatar/hats';
 import { buildRig, HEAD, HEAD_S, sitDrop, Y, type Rig, type RigState } from './avatar/rig';
 import { glow, smoothClosed, type P } from './avatar/shape';
 
@@ -114,11 +115,6 @@ function lookFor(a: Appearance, fs: FrameState): Look {
 
 // ---------------------------------------------------------------- layered painter
 
-function hatPlacement(a: Appearance) {
-  const fit = hatFit(a.hair);
-  return { band: fit.band, s: Math.max(0.94, Math.min(1.3, fit.w / HAT_W)) };
-}
-
 function inHead(ctx: Ctx, r: Rig, fn: () => void) {
   ctx.save();
   ctx.translate(r.head.x, r.head.y);
@@ -188,7 +184,7 @@ function paintBody(ctx: Ctx, r: Rig, k: Look, fs: FrameState) {
 
 /** The hat's own shade on the forehead/eyes. */
 function brimShadow(ctx: Ctx, k: Look, hat: HatDef, r: Rig) {
-  const hp = hatPlacement(k.a);
+  const hp = hatSeat(k.a.hair, hat.shape);
   const depth = brimShade(hat.shape);
   ctx.save();
   clipHead(ctx, k.a.face, viewOf(r));
@@ -203,7 +199,7 @@ function brimShadow(ctx: Ctx, k: Look, hat: HatDef, r: Rig) {
 
 function paintHat(ctx: Ctx, r: Rig, k: Look, fs: FrameState) {
   if (!fs.hat) return;
-  const hp = hatPlacement(k.a);
+  const hp = hatSeat(k.a.hair, fs.hat.shape);
   inHead(ctx, r, () => {
     ctx.translate(0.15, hp.band);
     ctx.scale(hp.s, hp.s);
@@ -218,7 +214,9 @@ const X1 = 34;
 const Y0 = -124;
 const Y1 = 11;
 const PAD = 3;
-const OUTLINE_INK = 'rgba(38,20,30,0.5)';
+/** v2: a thin warm-ink edge, not the v1 sticker halo (TB Art avatar enhance v2: no paper-doll cutout). */
+// Near-solid but ≤1.1 px: a translucent edge came out lighter than dark cloth and read as a pale ring.
+const OUTLINE_INK = 'rgba(44,22,28,0.82)';
 const HAT_INK = 'rgba(38,20,30,0.78)';
 const BUDGET_PX = 8_000_000;
 /** Cap scratch pool to prevent unbounded growth from varied canvas sizes. */
@@ -283,6 +281,60 @@ function tint(dst: CanvasRenderingContext2D, src: HTMLCanvasElement, w: number, 
   dst.drawImage(t, 0, 0);
 }
 
+/**
+ * Whole-figure light pass (avatar enhance v2). Painted over the finished body layer and clipped to
+ * its silhouette, so skin, cloth and hair share one light instead of reading as a stack of flat
+ * stickers: ambient occlusion rising from the floor, a soft key from screen-left with a shadow-side
+ * falloff, and a room-colored rim that wraps the far edge and the shoulders/crown.
+ */
+function lightPass(body: HTMLCanvasElement, w: number, h: number, ax: number, ay: number, ps: number, rim: string, sitting: boolean) {
+  const x = body.getContext('2d')!;
+  x.save();
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  x.globalCompositeOperation = 'source-atop';
+  // Grounding: legs darken toward the floor so the figure sits in the room
+  const floor = ay;
+  const hip = ay + (sitting ? -20 : -44) * ps;
+  const g = x.createLinearGradient(0, hip, 0, floor);
+  g.addColorStop(0, 'rgba(42,22,36,0)');
+  g.addColorStop(1, 'rgba(42,22,36,0.26)');
+  x.fillStyle = g;
+  x.fillRect(0, hip, w, floor - hip + 2);
+  // Key/shadow side across the whole body
+  const kx = x.createLinearGradient(ax - 16 * ps, 0, ax + 16 * ps, 0);
+  kx.addColorStop(0, 'rgba(255,240,220,0.1)');
+  kx.addColorStop(0.45, 'rgba(255,240,220,0)');
+  kx.addColorStop(0.62, 'rgba(42,22,36,0)');
+  kx.addColorStop(1, 'rgba(42,22,36,0.16)');
+  x.fillStyle = kx;
+  x.fillRect(0, 0, w, h);
+  x.restore();
+  // Rim: body minus itself shifted toward the key leaves a far-side crescent. Capped in device px and
+  // feathered (wide + faint, then thin + brighter), screened so it lifts the cloth's own hue instead of
+  // laying a flat tan band that reads as a misregistered sticker cutout at closeup zoom.
+  const t = canvas(3, w, h);
+  const tc = t.getContext('2d')!;
+  for (const [d, a] of [
+    [Math.min(3, Math.max(1.2, ps * 0.75)), 0.22],
+    [Math.min(1.5, Math.max(0.8, ps * 0.4)), 0.36],
+  ]) {
+    tc.globalCompositeOperation = 'source-over';
+    tc.clearRect(0, 0, w, h);
+    tc.drawImage(body, 0, 0);
+    tc.globalCompositeOperation = 'destination-out';
+    tc.drawImage(body, -d, d * 0.55);
+    tc.globalCompositeOperation = 'source-in';
+    tc.fillStyle = rgba(rim, a);
+    tc.fillRect(0, 0, w, h);
+    x.save();
+    x.setTransform(1, 0, 0, 1, 0, 0);
+    x.globalCompositeOperation = 'screen';
+    x.drawImage(t, 0, 0);
+    x.restore();
+  }
+  tc.globalCompositeOperation = 'source-over';
+}
+
 function renderFrame(a: Appearance, fs: FrameState, ps: number, out?: HTMLCanvasElement): Frame {
   const w = Math.ceil((X1 - X0) * ps) + PAD * 2;
   const h = Math.ceil((Y1 - Y0) * ps) + PAD * 2;
@@ -299,6 +351,7 @@ function renderFrame(a: Appearance, fs: FrameState, ps: number, out?: HTMLCanvas
     return c;
   };
   const body = layer(0, (x) => paintBody(x, r, k, fs));
+  lightPass(body, w, h, ax, ay, ps, k.rim, r.sitting);
   const hat = fs.hat ? layer(1, (x) => paintHat(x, r, k, fs)) : null;
   const dst = out ?? document.createElement('canvas');
   if (dst.width !== w || dst.height !== h) {
@@ -308,11 +361,12 @@ function renderFrame(a: Appearance, fs: FrameState, ps: number, out?: HTMLCanvas
   const o = dst.getContext('2d')!;
   o.setTransform(1, 0, 0, 1, 0, 0);
   o.clearRect(0, 0, w, h);
-  const rad = Math.max(0.9, Math.min(2.2, ps * 0.42));
+  const rad = Math.max(0.75, Math.min(1.1, ps * 0.3));
   tint(o, body, w, h, rad, OUTLINE_INK, 2);
   o.drawImage(body, 0, 0);
   if (hat) {
-    tint(o, hat, w, h, rad * 1.45, HAT_INK, 2);
+    // Hats keep a stronger halo so they stay the first read at 1280
+    tint(o, hat, w, h, Math.max(1, Math.min(2.2, ps * 0.42)) * 1.35, HAT_INK, 2);
     o.drawImage(hat, 0, 0);
   }
   return { c: dst, ax, ay, px: w * h };
@@ -363,7 +417,7 @@ function getFrame(a: Appearance, fs: FrameState, ps: number): Frame {
 export function drawAvatar(ctx: Ctx, x: number, y: number, a: Appearance, hatId: string | null, parrot: boolean, pose: AvatarPose) {
   const fs = frameState(a, hatId, pose);
   // Warm-ink contact shadow, core ≈ 32% (TB Art: 30–35% for taller silhouettes — prevents float)
-  shadow(ctx, x + (pose.sitting ? 5 : 0.5), y + (pose.sitting ? 4 : 0), BODY_SHADOW[a.body] ?? 13, 6.2, 0.32);
+  shadow(ctx, x + (pose.sitting ? 5 : 0.5), y + (pose.sitting ? 4 : 0), BODY_SHADOW[a.body] ?? 13, 6.2, 0.34);
   const m = ctx.getTransform();
   const ps = Math.round(Math.hypot(m.a, m.b) * 100) / 100;
   const f = getFrame(a, fs, ps);
@@ -392,7 +446,7 @@ export function avatarTop(a: Appearance, hatId: string | null, sitting: boolean,
   let top = Y.head - HEAD.top - (HAIR_TOP[a.hair] ?? 1) * HEAD_S;
   const hat = hatById(hatId);
   if (hat) {
-    const hp = hatPlacement(a);
+    const hp = hatSeat(a.hair, hat.shape);
     top = Math.min(top, Y.head + (hp.band - hatHeight(hat.shape) * hp.s - (hat.shape === 'gorro' ? 3 : 0)) * HEAD_S);
   }
   return top + (sitting ? sitDrop(seatH) : 0);

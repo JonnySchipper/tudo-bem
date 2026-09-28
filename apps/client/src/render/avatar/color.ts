@@ -74,9 +74,10 @@ export function tone(base: string, kind: 'cloth' | 'skin' | 'hair' | 'shoe' | 'm
     t = {
       hi: mix(base, '#fff6e6', light ? 0.5 : L < 0.25 ? 0.2 : 0.24),
       base,
-      lo: light ? mix(base, '#6f6477', 0.22) : mix(base, INK, L < 0.25 ? 0.36 : 0.3),
-      deep: light ? mix(base, '#4f4458', 0.4) : mix(base, INK, 0.55),
-      line: light ? mix(base, '#3f3346', 0.5) : mix(base, INK, L < 0.25 ? 0.62 : 0.58),
+      // Light cloth folds lean warm taupe, not grey-violet (no sterile white; avatar enhance v2)
+      lo: light ? mix(base, '#806658', 0.22) : mix(base, INK, L < 0.25 ? 0.36 : 0.3),
+      deep: light ? mix(base, '#5a4148', 0.4) : mix(base, INK, 0.55),
+      line: light ? mix(base, '#45303a', 0.5) : mix(base, INK, L < 0.25 ? 0.62 : 0.58),
     };
   }
   tones.set(k, t);

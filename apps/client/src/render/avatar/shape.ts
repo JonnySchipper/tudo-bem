@@ -1,5 +1,5 @@
 import type { Ctx } from '../draw';
-import { rgba, type Tone } from './color';
+import { mix, rgba, type Tone } from './color';
 
 export type P = [number, number];
 export interface LimbPt {
@@ -20,6 +20,27 @@ export function smoothClosed(ctx: Ctx, pts: P[], k = 1) {
     ctx.bezierCurveTo(p1[0] + ((p2[0] - p0[0]) / 6) * k, p1[1] + ((p2[1] - p0[1]) / 6) * k, p2[0] - ((p3[0] - p1[0]) / 6) * k, p2[1] - ((p3[1] - p1[1]) / 6) * k, p2[0], p2[1]);
   }
   ctx.closePath();
+}
+
+/** Points along the same curve `smoothClosed` draws (for fit checks without a canvas). */
+export function smoothClosedSamples(pts: P[], k = 1, steps = 16): P[] {
+  const n = pts.length;
+  const out: P[] = [];
+  for (let i = 0; i < n; i++) {
+    const p0 = pts[(i - 1 + n) % n];
+    const p1 = pts[i];
+    const p2 = pts[(i + 1) % n];
+    const p3 = pts[(i + 2) % n];
+    const c1: P = [p1[0] + ((p2[0] - p0[0]) / 6) * k, p1[1] + ((p2[1] - p0[1]) / 6) * k];
+    const c2: P = [p2[0] - ((p3[0] - p1[0]) / 6) * k, p2[1] - ((p3[1] - p1[1]) / 6) * k];
+    for (let s = 0; s < steps; s++) {
+      const t = s / steps;
+      const u = 1 - t;
+      const b = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t];
+      out.push([b[0] * p1[0] + b[1] * c1[0] + b[2] * c2[0] + b[3] * p2[0], b[0] * p1[1] + b[1] * c1[1] + b[2] * c2[1] + b[3] * p2[1]]);
+    }
+  }
+  return out;
 }
 
 /** Open Catmull-Rom spline (continues the current subpath unless `move`). */
@@ -103,12 +124,16 @@ export function paint(ctx: Ctx, build: () => void, t: Tone, b: Box, o: PaintOpts
   const dark = o.L < 0 ? b.x1 : b.x0;
   ctx.beginPath();
   build();
-  // 2–3 value bands: light plane → body tone → a tighter core-shadow step → reflected shadow
+  // v2 value bands: light plane → body tone → half-tone step → core shadow → reflected bounce, so
+  // cloth and skin turn like a form instead of a flat paper-doll fill.
   const g = ctx.createLinearGradient(lit, 0, dark, 0);
+  const half = mix(t.base, t.lo, 0.5);
   g.addColorStop(0, t.hi);
-  g.addColorStop(0.24, t.base);
-  g.addColorStop(0.6, t.base);
-  g.addColorStop(0.72, t.lo);
+  g.addColorStop(0.2, t.base);
+  g.addColorStop(0.5, t.base);
+  g.addColorStop(0.6, half);
+  g.addColorStop(0.7, t.lo);
+  g.addColorStop(0.84, mix(t.lo, t.deep, 0.35));
   g.addColorStop(1, t.lo);
   ctx.fillStyle = g;
   ctx.fill();
@@ -128,14 +153,16 @@ export function paint(ctx: Ctx, build: () => void, t: Tone, b: Box, o: PaintOpts
     ctx.fillStyle = v;
     ctx.fillRect(b.x0 - 1, b.y0 - 1, b.x1 - b.x0 + 2, b.y1 - b.y0 + 2);
   }
-  const ra = o.rimA ?? 0.55;
+  // Per-part rim stays a hairline accent: the whole-figure light pass owns the silhouette rim, and a
+  // wide band inside every part's contour read as a doubled sticker edge at closeup.
+  const ra = (o.rimA ?? 0.55) * 0.6;
   if (ra > 0) {
     const rg = ctx.createLinearGradient(lit, 0, dark, 0);
     rg.addColorStop(0, rgba(o.rim, 0));
-    rg.addColorStop(0.62, rgba(o.rim, 0));
+    rg.addColorStop(0.7, rgba(o.rim, 0));
     rg.addColorStop(1, rgba(o.rim, ra));
     ctx.strokeStyle = rg;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1;
     ctx.stroke();
   }
   ctx.restore();
