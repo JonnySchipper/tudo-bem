@@ -1395,7 +1395,7 @@ function paredeFaixas(ctx: Ctx, cx: number, cy: number) {
   });
 }
 
-/** Fila do tatame — a tall lectern clipboard facing the approach tile, with a big ROLAR plate. */
+/** Fila do tatame — a tall lectern clipboard facing the approach tile, with a big PARTIDA plate. */
 function quadroFila(ctx: Ctx, cx: number, cy: number, t: number) {
   shadow(ctx, cx, cy, 26, 12, 0.28);
   box(ctx, cx, cy, 0.7, 0.44, 6, '#6f4a2e', 0, { stroke: 'rgba(44,44,44,0.45)' });
@@ -1417,11 +1417,11 @@ function quadroFila(ctx: Ctx, cx: number, cy: number, t: number) {
     rrect(ctx, -19, -81, 38, 10, 5, '#3a8a5c');
     circle(ctx, -13.5, -76, 1.8 + pulse * 0.8, '#d8f5c0');
     planeText(ctx, 'ABERTO', 3, -76, 6.5, '#fff', 800);
-    // ROLAR plate on its own post above the board — the room's call to action.
+    // PARTIDA plate on its own post above the board — the room's call to action.
     rrect(ctx, -1.5, -150, 3, 16, 1, '#6f4a2e');
     rrect(ctx, -26, -166, 52, 18, 5, 'rgba(58,34,22,0.3)');
     rrect(ctx, -27, -168, 52, 18, 5, TB_TERRACOTTA, TB_INK, 1.4);
-    planeText(ctx, 'ROLAR', -1, -158.5, 11, '#F5E6D3');
+    planeText(ctx, 'PARTIDA', -1, -158.5, 10, '#F5E6D3');
   });
 }
 

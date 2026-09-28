@@ -36,37 +36,18 @@ export const POSITION_LABELS: Record<BjjPositionId, Bilingual> = {
   costas: { pt: 'Costas', en: 'Back control' },
 };
 
-export const SUBMISSION_LABELS: Record<'player' | 'cpu', Bilingual[]> = {
-  player: [
-    { pt: 'Chave de braço', en: 'Arm lock' },
-    { pt: 'Triângulo', en: 'Triangle choke' },
-    { pt: 'Kimura', en: 'Kimura' },
-  ],
-  cpu: [
-    { pt: 'Mata-leão', en: 'Rear naked choke' },
-    { pt: 'Guilhotina', en: 'Guillotine' },
-    { pt: 'Kimura', en: 'Kimura' },
-  ],
-};
+/** Neutral bout-step chrome at finishing seats — not BJJ technique trivia (Product B). */
+export const BOUT_STEP_CHROME: Bilingual[] = [
+  { pt: 'Vantagem', en: 'Advantage' },
+  { pt: 'Pressão', en: 'Pressure' },
+  { pt: 'Quase lá', en: 'Almost there' },
+  { pt: 'Virada', en: 'Turn' },
+  { pt: 'Final', en: 'Finish' },
+];
 
-/** Gold HUD submission accent by mat position (overrides seat-index rotation). */
-export const POSITION_SUBMISSION_ACCENT: Partial<Record<BjjPositionId, Bilingual>> = {
-  de_pe: { pt: 'Guilhotina', en: 'Guillotine' },
-  guarda_fechada: { pt: 'Guilhotina', en: 'Guillotine' },
-  meia_guarda: { pt: 'Guilhotina', en: 'Guillotine' },
-  costas: { pt: 'Mata-leão', en: 'Rear naked choke' },
-};
-
-function submissionHintForSeat(
-  side: 'player' | 'cpu',
-  positionId: BjjPositionId,
-  seatIdx: number,
-): Bilingual | null {
+function submissionHintForSeat(_side: 'player' | 'cpu', _positionId: BjjPositionId, seatIdx: number): Bilingual | null {
   if (seatIdx < ROLL_FINISH_INDEX) return null;
-  const accent = POSITION_SUBMISSION_ACCENT[positionId];
-  if (accent) return accent;
-  const labels = SUBMISSION_LABELS[side];
-  return labels[seatIdx % labels.length];
+  return BOUT_STEP_CHROME[Math.min(seatIdx, BOUT_STEP_CHROME.length - 1)];
 }
 
 /** Portuguese-learning prompts only — no BJJ technique trivia (CEO lock). */
@@ -506,7 +487,7 @@ export function cpuGetsIt(rng: Rng): boolean {
 }
 
 export function rollBow(): Bilingual {
-  return { pt: 'Oss! Com respeito — boa rola!', en: 'Oss! With respect — good roll!' };
+  return { pt: 'Boa! Continua assim.', en: 'Nice! Keep it up.' };
 }
 
 export function rollTapLine(winner: 'player' | 'cpu'): Bilingual {
@@ -516,10 +497,10 @@ export function rollTapLine(winner: 'player' | 'cpu'): Bilingual {
 
 export function rollDecisaoLine(winner: 'player' | 'cpu' | 'draw'): Bilingual {
   if (winner === 'player') return { pt: 'Decisão: você estava na melhor posição!', en: 'Decision: you had the better position!' };
-  if (winner === 'cpu') return { pt: 'Decisão: posição deles. Valeu a rola!', en: 'Decision: their position. Thanks for the roll!' };
+  if (winner === 'cpu') return { pt: 'Decisão: vantagem deles. Valeu!', en: 'Decision: their advantage. Thanks!' };
   return { pt: 'Empate na decisão. Fist bump!', en: 'Draw on points. Fist bump!' };
 }
 
 export function rollFistBump(): Bilingual {
-  return { pt: 'Fist bump! Oss — obrigado pela rola.', en: 'Fist bump! Oss — thanks for the roll.' };
+  return { pt: 'Obrigado pela partida.', en: 'Thanks for the match.' };
 }

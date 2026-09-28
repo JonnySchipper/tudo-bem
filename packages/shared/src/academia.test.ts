@@ -9,6 +9,9 @@ import {
   makeRollPuzzle,
   normalizeBjj,
   resolveDuel,
+  rollBow,
+  rollDecisaoLine,
+  rollFistBump,
   rollPuzzleBank,
   stripesForWins,
   toPuzzleView,
@@ -104,10 +107,23 @@ describe('academia roll', () => {
     expect(ids.has('reorder_tudo_bem')).toBe(true);
   });
 
-  it('shows Mata-leão HUD accent on Costas (rear naked choke, not Guilhotina)', () => {
+  it('roll chrome lines avoid Oss/rola and technique trivia', () => {
+    const chromePt = [
+      rollBow().pt,
+      rollFistBump().pt,
+      rollDecisaoLine('cpu').pt,
+      rollDecisaoLine('player').pt,
+      rollDecisaoLine('draw').pt,
+    ].join(' ');
+    expect(chromePt).not.toMatch(/\boss\b/i);
+    expect(chromePt).not.toMatch(/\brola\b/i);
+    expect(chromePt).not.toMatch(/Triângulo|Chave de braço|Mata-leão|Guilhotina|Kimura/i);
+  });
+
+  it('shows neutral bout-step chrome at finish seats (no technique nameplates)', () => {
     const atFinish = displayPosition(0, ROLL_FINISH_INDEX);
     expect(atFinish.position).toBe('costas');
     expect(atFinish.label.pt).toBe('Costas');
-    expect(atFinish.submissionHint).toEqual({ pt: 'Mata-leão', en: 'Rear naked choke' });
+    expect(atFinish.submissionHint).toEqual({ pt: 'Final', en: 'Finish' });
   });
 });
