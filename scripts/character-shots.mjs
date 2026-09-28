@@ -24,7 +24,8 @@ const browser = await chromium.launch({ executablePath: CHROME, headless: true }
 // ---- 1. studio lineups
 {
   const page = await (await browser.newContext({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 1 })).newPage();
-  await page.goto(`${BASE}art.html?art=live`);
+  // Only the characters section: the full studio can OOM-crash headless Chrome on a busy box
+  await page.goto(`${BASE}art.html?art=live&only=characters`);
   await page.waitForFunction(() => window.__artReady, null, { timeout: 60_000 });
   const figs = await page.$$('section[data-cat="characters"] figure');
   for (const f of figs) {
@@ -127,17 +128,20 @@ await sleep(2500);
 await shot('06_padaria');
 const carlos = await tileClient(3, 1);
 await closeup('07_carlos_zoom', carlos.px, carlos.py + 10, 320, 250);
-await clickTile(3, 1, 40);
-await page.waitForSelector('#dialogue, .conversa-portrait', { timeout: 15_000 }).catch(() => {});
-await sleep(1500);
-await shot('08_carlos_dialogue');
-const portrait = await page.$('#dialogue .portrait, .conversa-portrait');
-if (portrait) await portrait.screenshot({ path: path.join(OUT, '08b_carlos_portrait.png') });
+// SKIP_DIALOGUE=1: the 2× Conversa panel screenshot can OOM-crash headless Chrome on a busy box
+if (!process.env.SKIP_DIALOGUE) {
+  await clickTile(3, 1, 40);
+  await page.waitForSelector('#dialogue, .conversa-portrait', { timeout: 15_000 }).catch(() => {});
+  await sleep(1500);
+  await shot('08_carlos_dialogue');
+  const portrait = await page.$('#dialogue .portrait, .conversa-portrait');
+  if (portrait) await portrait.screenshot({ path: path.join(OUT, '08b_carlos_portrait.png') });
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => document.querySelector('.conversa-header .close-btn, #dialogue .ghost')?.click());
+  await sleep(400);
+}
 
 // Counter stool (back view, seated at the counter)
-await page.keyboard.press('Escape');
-await page.evaluate(() => document.querySelector('.conversa-header .close-btn, #dialogue .ghost')?.click());
-await sleep(400);
 await clickTile(5, 3, 10);
 await sleep(4000);
 const stool = await tileClient(5, 3);

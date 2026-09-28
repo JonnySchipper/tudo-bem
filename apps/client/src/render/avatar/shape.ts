@@ -153,14 +153,16 @@ export function paint(ctx: Ctx, build: () => void, t: Tone, b: Box, o: PaintOpts
     ctx.fillStyle = v;
     ctx.fillRect(b.x0 - 1, b.y0 - 1, b.x1 - b.x0 + 2, b.y1 - b.y0 + 2);
   }
-  const ra = o.rimA ?? 0.55;
+  // Per-part rim stays a hairline accent: the whole-figure light pass owns the silhouette rim, and a
+  // wide band inside every part's contour read as a doubled sticker edge at closeup.
+  const ra = (o.rimA ?? 0.55) * 0.6;
   if (ra > 0) {
     const rg = ctx.createLinearGradient(lit, 0, dark, 0);
     rg.addColorStop(0, rgba(o.rim, 0));
-    rg.addColorStop(0.62, rgba(o.rim, 0));
+    rg.addColorStop(0.7, rgba(o.rim, 0));
     rg.addColorStop(1, rgba(o.rim, ra));
     ctx.strokeStyle = rg;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1;
     ctx.stroke();
   }
   ctx.restore();

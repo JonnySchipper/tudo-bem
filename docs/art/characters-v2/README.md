@@ -16,8 +16,9 @@ The Praça shots use live CPUs, so who is standing where changes between runs.
 
 | Lock | v1 | v2 |
 | --- | --- | --- |
-| Paper-doll / sticker feel | A grey 50% halo up to 2.2 device px around the whole figure, so it read as a cutout sticker | A thin warm-ink edge (≤1.4 px, `OUTLINE_INK`). Hats keep a stronger halo so they're still the first read at 1280. |
-| Material parity with rooms | Each part is shaded on its own, so they read as stacked flat pieces | A **whole-figure light pass** (`lightPass` in `render/avatar.ts`), clipped to the silhouette. It adds occlusion that rises from the floor to the hip, a soft key from screen-left with shadow-side falloff, and a rim in the room's color wrapping the far edge, crown and shoulders. Skin, cloth and hair now share one light. |
+| Paper-doll / sticker feel | A grey 50% halo up to 2.2 device px around the whole figure, so it read as a cutout sticker | A thin, near-solid warm-ink edge (≤1.1 px, `OUTLINE_INK` at 82%). At 58% the edge came out lighter than dark cloth and read as a pale ring at closeup. The per-part rim is now a hairline accent (60% strength, 1 unit wide), not a tan band inside every contour. Hats keep a stronger halo so they're still the first read at 1280. |
+| Material parity with rooms | Each part is shaded on its own, so they read as stacked flat pieces | A **whole-figure light pass** (`lightPass` in `render/avatar.ts`), clipped to the silhouette. It adds occlusion that rises from the floor to the hip, a soft key from screen-left with shadow-side falloff, and a rim in the room's color wrapping the far edge, crown and shoulders. The rim is feathered (a wide faint pass, then a thin bright one), capped in device px and screen-blended, so it lifts the cloth's own hue. Skin, cloth and hair now share one light. |
+| No sterile white | Off-white folds shaded toward a cool grey-violet | Light cloth folds shade toward a warm taupe (`tone` in `color.ts`) |
 | Cloth ≥2 value bands | Light → base → core shadow | Light → base → **half-tone** → core shadow → **reflected bounce** (`paint` in `shape.ts`). This applies to jeans, tops, aprons, skin and hair. |
 | Soft-shaded face | Near-black lash line | A warm dark lash mixed from the skin's deep tone, deeper eye sockets and a soft lower-lid light plane |
 | Contact shadow 30–35% | 32% | 34%, plus the existing tight occlusion under each sole |
@@ -41,6 +42,8 @@ SHOTS_DIR=docs/art/characters-v2/after node scripts/character-shots.mjs
 mkdir -p docs/art/characters-v2/before && cp docs/art/characters-v1/after/*.png docs/art/characters-v2/before/
 DIR=docs/art/characters-v2 NAME="Avatar enhance v2" node scripts/character-contact.mjs
 ```
+
+On a box with little free memory, headless Chrome can crash on the 2× Conversa dialogue shot. Set `SKIP_DIALOGUE=1` to skip `08_carlos_dialogue` / `08b_carlos_portrait` (the previous files are kept), and `BASE_URL` if port 4173 is taken. In the 2026-09-27 rebake, `08*` and `contact_ingame.png` are from the previous bake of this branch because of that. They predate the edge and rim fix, but the proportions, face and wardrobe are the same.
 
 The scripts look for Chrome at `/usr/local/bin/google-chrome`, `/usr/bin/google-chrome` or `/usr/bin/chromium`. Set `CHROME_PATH` to use a different one.
 

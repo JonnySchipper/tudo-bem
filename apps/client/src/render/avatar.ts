@@ -215,7 +215,8 @@ const Y0 = -124;
 const Y1 = 11;
 const PAD = 3;
 /** v2: a thin warm-ink edge, not the v1 sticker halo (TB Art avatar enhance v2: no paper-doll cutout). */
-const OUTLINE_INK = 'rgba(48,24,28,0.58)';
+// Near-solid but ≤1.1 px: a translucent edge came out lighter than dark cloth and read as a pale ring.
+const OUTLINE_INK = 'rgba(44,22,28,0.82)';
 const HAT_INK = 'rgba(38,20,30,0.78)';
 const BUDGET_PX = 8_000_000;
 /** Cap scratch pool to prevent unbounded growth from varied canvas sizes. */
@@ -308,22 +309,30 @@ function lightPass(body: HTMLCanvasElement, w: number, h: number, ax: number, ay
   x.fillStyle = kx;
   x.fillRect(0, 0, w, h);
   x.restore();
-  // Rim: body minus itself shifted toward the key leaves a thin far-side crescent
-  const d = Math.max(1, ps * 0.9);
+  // Rim: body minus itself shifted toward the key leaves a far-side crescent. Capped in device px and
+  // feathered (wide + faint, then thin + brighter), screened so it lifts the cloth's own hue instead of
+  // laying a flat tan band that reads as a misregistered sticker cutout at closeup zoom.
   const t = canvas(3, w, h);
   const tc = t.getContext('2d')!;
-  tc.drawImage(body, 0, 0);
-  tc.globalCompositeOperation = 'destination-out';
-  tc.drawImage(body, -d, d * 0.55);
-  tc.globalCompositeOperation = 'source-in';
-  tc.fillStyle = rgba(rim, 0.5);
-  tc.fillRect(0, 0, w, h);
+  for (const [d, a] of [
+    [Math.min(3, Math.max(1.2, ps * 0.75)), 0.22],
+    [Math.min(1.5, Math.max(0.8, ps * 0.4)), 0.36],
+  ]) {
+    tc.globalCompositeOperation = 'source-over';
+    tc.clearRect(0, 0, w, h);
+    tc.drawImage(body, 0, 0);
+    tc.globalCompositeOperation = 'destination-out';
+    tc.drawImage(body, -d, d * 0.55);
+    tc.globalCompositeOperation = 'source-in';
+    tc.fillStyle = rgba(rim, a);
+    tc.fillRect(0, 0, w, h);
+    x.save();
+    x.setTransform(1, 0, 0, 1, 0, 0);
+    x.globalCompositeOperation = 'screen';
+    x.drawImage(t, 0, 0);
+    x.restore();
+  }
   tc.globalCompositeOperation = 'source-over';
-  x.save();
-  x.setTransform(1, 0, 0, 1, 0, 0);
-  x.globalCompositeOperation = 'source-atop';
-  x.drawImage(t, 0, 0);
-  x.restore();
 }
 
 function renderFrame(a: Appearance, fs: FrameState, ps: number, out?: HTMLCanvasElement): Frame {
@@ -352,7 +361,7 @@ function renderFrame(a: Appearance, fs: FrameState, ps: number, out?: HTMLCanvas
   const o = dst.getContext('2d')!;
   o.setTransform(1, 0, 0, 1, 0, 0);
   o.clearRect(0, 0, w, h);
-  const rad = Math.max(0.75, Math.min(1.4, ps * 0.3));
+  const rad = Math.max(0.75, Math.min(1.1, ps * 0.3));
   tint(o, body, w, h, rad, OUTLINE_INK, 2);
   o.drawImage(body, 0, 0);
   if (hat) {
