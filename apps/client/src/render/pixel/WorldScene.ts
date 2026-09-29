@@ -23,7 +23,7 @@ import { lookForAppearance, lookForNpc, lookHeadLift, type Look } from './looks'
 import { LightingRig } from './lightingRig';
 import { buildTerrainLayers } from './terrainLayers';
 import { LabelLayer, type GuideItem, type StackItem } from './labels';
-import { T, cameraCenter, cssZoomFor, deviceZoomFor, feet, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
+import { T, cssZoomFor, feet, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
 import { pickHit, type HitBox } from './hit';
 import { roomKey, syncViews } from './reconcile';
 import { DEPTH, PROP_LIGHT, footprintRect, inflate, propAnchor, furnitureArtKey, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
@@ -48,10 +48,13 @@ import {
   northFacades,
   portalHitRect,
   roomBounds,
+  windowPatches,
   westDoorRect,
   westStripRect,
 } from './roomLayout';
 import { ensureAnim, originOf } from './spriteUtil';
+import { GHOST_ALPHA, ghostFor, type GhostSpec } from './decorate';
+import { modalId } from '../../ui/modal';
 
 export interface SceneHost {
   labels: LabelLayer;
@@ -96,7 +99,9 @@ interface FurnitureView {
   /** contact shadow under a sprite */
   shadow: Phaser.GameObjects.Image | null;
   /** selection outline (edit mode) */
-  sel: Phaser.GameObjects.Rectangle;
+  sel: Phaser.GameObjects.Graphics;
+  /** what the outline was last drawn for (rebuilt when the piece moves, turns or is selected) */
+  selSig: string;
   itemId: string;
   rot: 0 | 1;
   x: number;
@@ -148,6 +153,12 @@ export class WorldScene extends Phaser.Scene {
   private snapCamera = true;
   private hoverRect!: Phaser.GameObjects.Rectangle;
   private lastT = 0;
+  /** decorate-mode ghost of the piece being placed or moved (scene-level: it outlives room rebuilds) */
+  private ghost: Phaser.GameObjects.Sprite | null = null;
+  private ghostKey = '';
+  /** the padaria order rail: still until Me vê um is open */
+  private trilho: Phaser.GameObjects.Sprite | null = null;
+  private trilhoLive = false;
 
   constructor(
     private readonly m: Manifest,
@@ -240,6 +251,8 @@ export class WorldScene extends Phaser.Scene {
     this.staticHits = [];
     this.placeholders = [];
     this.canopies = [];
+    this.trilho = null;
+    this.trilhoLive = false;
     // furniture rectangles were registered with the room objects
     this.furniture.clear();
     this.rig.clearRoom();
@@ -298,6 +311,12 @@ export class WorldScene extends Phaser.Scene {
     for (const d of allNorthDecor(def)) {
       if (decorCoveredByFacade(d, facades)) continue;
       this.buildDecor(d);
+    }
+
+    // ---- window light on the floor under every north-wall window (interiors): a warm slanted patch, ADD blended, in the lighting rig
+    for (const w of windowPatches(def)) {
+      const pd = m.sprites[w.key];
+      if (pd) this.rig.patches.push(this.reg(this.add.image(w.x, w.y, pd.atlas, pd.frame)).setOrigin(0, 0).setDepth(DEPTH.groundDecal + 60).setBlendMode(Phaser.BlendModes.ADD));
     }
 
     // ---- doors
@@ -398,7 +417,14 @@ export class WorldScene extends Phaser.Scene {
         } else this.placeholder(`${s.key}#${p.id}`, { x0: s.x * T, y0: s.y * T, x1: (s.x + 1) * T, y1: (s.y + 1) * T }, depth);
       }
     } else if (artKey && d) {
-      this.sprite(artKey, a.wx, a.wy, depth);
+      const main = this.sprite(artKey, a.wx, a.wy, depth);
+      if (p.kind === 'trilho_pedidos' && main && d.anim) {
+        // the ticket rail is still until Me vê um opens (updateTrilho)
+        main.anims.stop();
+        main.setFrame(d.anim.frames[0]);
+        this.trilho = main;
+        this.trilhoLive = false;
+      }
       if (d.lit && m.sprites[d.lit]) {
         const ld = m.sprites[d.lit];
         this.rig.litOverlays.push(this.reg(this.add.image(Math.round(a.wx), Math.round(a.wy), ld.atlas, ld.frame)).setOrigin(...originOf(ld)).setDepth(depth + 0.01).setAlpha(0));
@@ -483,22 +509,18 @@ export class WorldScene extends Phaser.Scene {
     this.syncAvatars(def, now, dyn);
     this.updateCanopies(dt);
     this.updateHover(def);
+    this.updateTrilho();
     this.hitBoxes = this.staticHits.concat(dyn);
     this.updateCamera(dt, def);
     this.rig.apply(ROOM_HOUR[def.lighting], this.cameras.main.zoom, (wx, wy) => this.toDevice(wx, wy));
     this.pushLabels(def, now);
   }
 
+  /** Canvas size and DPR for this frame; the zoom itself is chosen per room in `updateCamera` (roomFraming). */
   private applyZoom(): void {
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    const css = cssZoomFor(window.innerWidth, window.innerHeight);
-    const zoom = deviceZoomFor(css, dpr);
-    this.cam.zoom = zoom;
     this.cam.dpr = this.scale.width / Math.max(1, window.innerWidth);
     this.cam.w = this.scale.width;
     this.cam.h = this.scale.height;
-    this.cssScale = zoom / this.cam.dpr;
-    if (this.cameras.main.zoom !== zoom) this.cameras.main.setZoom(zoom);
   }
 
   /** World px -> fx-camera (device) px, using the main camera as it is drawn. */
@@ -514,7 +536,16 @@ export class WorldScene extends Phaser.Scene {
     const focus = self ? { x: self.wx, y: self.wy - 10 } : { x: (def.cols * T) / 2, y: (def.rows * T) / 2 };
     const ins = this.host.insets();
     const k = this.cam.dpr;
-    const target = cameraCenter({ w: this.cam.w, h: this.cam.h, zoom: this.cam.zoom }, this.bounds, focus, { top: ins.top * k, bottom: ins.bottom * k, left: ins.left * k, right: ins.right * k });
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    // the whole room (walls included) when it fits at this or the next lower integer zoom, else follow the avatar with the north wall kept in view
+    const f = roomFraming({ w: this.cam.w, h: this.cam.h }, this.bounds, focus, { top: ins.top * k, bottom: ins.bottom * k, left: ins.left * k, right: ins.right * k }, cssZoomFor(window.innerWidth, window.innerHeight), dpr);
+    const target = { cx: f.cx, cy: f.cy };
+    this.cam.zoom = f.zoom;
+    if (this.cameras.main.zoom !== f.zoom) {
+      this.cameras.main.setZoom(f.zoom);
+      this.snapCamera = true;
+    }
+    this.cssScale = f.zoom / this.cam.dpr;
     if (this.snapCamera) {
       this.cam.cx = target.cx;
       this.cam.cy = target.cy;
@@ -684,17 +715,40 @@ export class WorldScene extends Phaser.Scene {
     return { obj, shadow };
   }
 
+  /** World rect of a placed piece: its tile plus its sprite (what the selection outline hugs). */
+  private furnitureBox(f: PlacedFurniture): Rect {
+    const tile: Rect = { x0: f.x * T, y0: f.y * T, x1: (f.x + 1) * T, y1: (f.y + 1) * T };
+    const sd = this.m.sprites[furnitureArtKey(f.itemId, f.rot)];
+    return sd ? unionRect(tile, spriteRect(Math.round(f.x * T + T / 2), (f.y + 1) * T, sd)) : tile;
+  }
+
+  /** Two 1 px rings, mustard inside navy, drawn as filled bars so every edge is a whole art pixel. */
+  private drawSelection(g: Phaser.GameObjects.Graphics, r: Rect): void {
+    g.clear();
+    const ring = (b: Rect, color: number) => {
+      g.fillStyle(color, 1);
+      g.fillRect(b.x0, b.y0, b.x1 - b.x0, 1);
+      g.fillRect(b.x0, b.y1 - 1, b.x1 - b.x0, 1);
+      g.fillRect(b.x0, b.y0 + 1, 1, b.y1 - b.y0 - 2);
+      g.fillRect(b.x1 - 1, b.y0 + 1, 1, b.y1 - b.y0 - 2);
+    };
+    ring(inflate(r, 1), 0x2a2233);
+    ring(r, 0xf2c230);
+    // corner studs make the outline read even over busy floors
+    g.fillStyle(0xfff3b0, 1);
+    for (const [x, y] of [[r.x0, r.y0], [r.x1 - 1, r.y0], [r.x0, r.y1 - 1], [r.x1 - 1, r.y1 - 1]]) g.fillRect(x, y, 1, 1);
+  }
+
   private syncFurniture(dyn: HitBox[]): void {
     const items = new Map<string, PlacedFurniture>(game.furniture.map((f) => [f.uid, f]));
     syncViews(this.furniture, items, {
       create: (_uid, f) => {
         const { obj, shadow } = this.furnitureObj(null, f);
-        const sel = this.reg(this.add.rectangle(f.x * T + T / 2, f.y * T + T / 2, T, T, 0xffffff, 0)).setStrokeStyle(2, 0xf2c230, 1).setDepth(DEPTH.overhead - 1).setVisible(false);
-        return { obj, shadow, sel, itemId: f.itemId, rot: f.rot, x: f.x, y: f.y };
+        const sel = this.reg(this.add.graphics()).setDepth(DEPTH.overhead - 1).setVisible(false);
+        return { obj, shadow, sel, selSig: '', itemId: f.itemId, rot: f.rot, x: f.x, y: f.y };
       },
       update: (v, f) => {
         const def = furnitureById(f.itemId);
-        const rug = def?.kind === 'tapete';
         if (v.rot !== f.rot) {
           v.rot = f.rot;
           Object.assign(v, this.furnitureObj(v, f));
@@ -703,12 +757,18 @@ export class WorldScene extends Phaser.Scene {
           v.x = f.x;
           v.y = f.y;
           Object.assign(v, this.furnitureObj(v, f));
-          v.sel.setPosition(f.x * T + T / 2, f.y * T + T / 2);
         }
         const selected = game.selectedFurniture === f.uid;
         v.sel.setVisible(selected);
+        if (selected) {
+          const sig = `${f.x},${f.y},${f.rot}`;
+          if (sig !== v.selSig) {
+            v.selSig = sig;
+            this.drawSelection(v.sel, this.furnitureBox(f));
+          }
+          v.sel.setAlpha(0.8 + 0.2 * Math.sin(performance.now() / 180));
+        } else v.selSig = '';
         if (v.obj instanceof Phaser.GameObjects.Rectangle) v.obj.setStrokeStyle(selected ? 2 : 1, selected ? 0xf2c230 : 0xff00ff, 1);
-        void rug;
         const seat = !!def?.seat && !game.editMode;
         const hit: Hit = seat ? { kind: 'seat', tile: { x: f.x, y: f.y } } : { kind: 'furniture', f };
         dyn.push({ x0: f.x * T - 2, y0: f.y * T - 8, x1: (f.x + 1) * T + 2, y1: (f.y + 1) * T, hit, depth: (f.y + 1) * T });
@@ -725,9 +785,50 @@ export class WorldScene extends Phaser.Scene {
     const t = game.hoverTile;
     const show = !!t && !game.modalOpen && t.x >= 0 && t.y >= 0 && t.x < def.cols && t.y < def.rows;
     this.hoverRect.setVisible(show);
+    // decorate mode: a translucent ghost of the piece in hand (or being moved), green where it can go and red where it cannot
+    const ghost = show ? ghostFor(def, game.furniture, t, game.placing, game.selectedFurniture, game.editMode) : null;
+    this.updateGhost(ghost);
     if (!show || !t) return;
+    if (ghost) {
+      this.hoverRect.setPosition(t.x * T, t.y * T).setFillStyle(ghost.tile, 0.3).setStrokeStyle(1, ghost.tile, 0.9);
+      return;
+    }
     const ok = game.placing ? canPlaceFurniture(def, game.furniture, t.x, t.y) : !!this.grid && !this.grid.blocked.has(tileKey(t.x, t.y));
     this.hoverRect.setPosition(t.x * T, t.y * T).setFillStyle(ok ? 0xffffff : 0xe5572f, 0.25).setStrokeStyle(1, ok ? 0xffffff : 0xe5572f, 0.8);
+  }
+
+  private updateGhost(g: GhostSpec | null): void {
+    const sd = g ? this.m.sprites[furnitureArtKey(g.itemId, g.rot)] : undefined;
+    if (!g || !sd) {
+      this.ghost?.setVisible(false);
+      return;
+    }
+    if (!this.ghost) this.ghost = this.rig.world(this.add.sprite(0, 0, sd.atlas, sd.frame));
+    const spr = this.ghost;
+    if (this.ghostKey !== `${g.itemId}_${g.rot}`) {
+      this.ghostKey = `${g.itemId}_${g.rot}`;
+      spr.setTexture(sd.atlas, sd.frame).setOrigin(...originOf(sd));
+    }
+    // sits like a standing piece on its tile but always in front of it: the player is choosing where it goes
+    spr.setPosition(Math.round(g.x * T + T / 2), (g.y + 1) * T).setDepth(49500).setTint(g.tint).setAlpha(GHOST_ALPHA + 0.08 * Math.sin(performance.now() / 220)).setVisible(true);
+  }
+
+  /** The order rail on the padaria counter is still until Me vê um is open, then its tickets flutter. */
+  private updateTrilho(): void {
+    const t = this.trilho;
+    if (!t) return;
+    const open = modalId() === 'minigame';
+    if (open === this.trilhoLive) return;
+    this.trilhoLive = open;
+    const d = this.m.sprites['props/trilho_pedidos'];
+    if (!d?.anim) return;
+    if (open) {
+      t.play({ key: ensureAnim(this, 'props/trilho_pedidos', d) });
+      t.anims.timeScale = 2.4;
+    } else {
+      t.anims.stop();
+      t.setFrame(d.anim.frames[0]);
+    }
   }
 
   /** Overhead layers fade to 0.45 alpha while the local avatar's feet are inside (HOWTO §5.4). */
@@ -778,7 +879,7 @@ export class WorldScene extends Phaser.Scene {
       return { key: `g${i}`, x: p.px, y: p.py, label: g.label };
     });
     const view = { w: k.w / k.dpr, h: k.h / k.dpr };
-    this.host.labels.update(stacks, guides, view);
+    this.host.labels.update(stacks, guides, view, this.host.insets());
     if (this.host.debugArt) {
       this.host.labels.updateArtKeys(
         this.placeholders.map((ph, i) => {

@@ -73,6 +73,33 @@ export function grime(w, h, seed = 3) {
   return img;
 }
 
+/**
+ * Window light on an interior floor (Phase 4a): the window's shape cast down and to the right (light comes from the upper left), with the
+ * mullions and the transom as unlit gaps. Warm, three alpha bands with dithered band edges and a dithered far end; drawn with the ADD blend at
+ * a low alpha. `w` is the window width in px (the patch is `w` + 16 wide, 40 tall), `panes` the number of window panes across.
+ */
+export function lightPatch(w, panes = 2) {
+  const H = 40, shift = 16;
+  const img = blank(w + shift, H);
+  const bayer = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+  const gaps = [];
+  for (let i = 1; i < panes; i++) gaps.push(Math.round((w * i) / panes));
+  for (let y = 0; y < H; y++) {
+    const x0 = Math.round((y * shift) / H);
+    const t = y / H;
+    for (let x = 0; x < w; x++) {
+      if (gaps.some((g) => x >= g - 1 && x <= g)) continue; // mullion shadows
+      if (y >= 13 && y < 15) continue; // transom shadow
+      const d = bayer[y & 3][x & 3] / 16 - 0.5; // -0.5..0.5
+      const u = t + d * 0.09;
+      if (u > 0.93) continue;
+      const a = u < 0.5 ? 78 : u < 0.78 ? 52 : 30;
+      setPx(img, x0 + x, y, [255, 216, 146, a]);
+    }
+  }
+  return img;
+}
+
 /** Soft radial light (white, alpha falloff). Used for light holes in the night darkness and for additive glow. */
 export function glow(size) {
   const img = blank(size, size);

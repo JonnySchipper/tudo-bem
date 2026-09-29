@@ -664,3 +664,47 @@ The generated SVG icons in the top bar are smooth vector art next to pixel frame
 ### Needs BR review
 
 New PT strings: "Créditos", "Arte", "Vozes", "Fontes", "Motor do mundo", "Música e sons" and the credit notes (with English glosses) in `creditsData.ts`. No curriculum cards.
+
+---
+
+## Decisions made in Phase 4a (in-world polish of the pixel view)
+
+Scope: the in-world half of HOWTO Phase 4 (labels, guides, camera, calmer floors, west door, dropped decor, decorate mode, padaria life). The DOM chrome, credits, icons and the switch of the default view are Phase 4b. Branch `lifesim/p4a-world-polish`, shots in `docs/lifesim/shots/p4a/` (`node scripts/lifesim-shots.mjs --view=pixel --phase=p4a --decorate --chat`).
+
+### Labels and guides (`labels.ts`, `guides.ts`, `pixel.css`)
+
+1. **Bubbles use the art track 2 `ui/bubble` 9-slice at 2x**, file, slice and size read from the manifest's `images` (`LabelLayer.setArt`, called by `PixelView` once the manifest has loaded; `manifest.ts` is untouched, its `images` type already existed). The tail is bottom-left; a canvas-mirrored copy (tail bottom-right, slice insets swapped) is used when the speaker is in the right half of the screen, with 24 px of hysteresis (`bubbleSide`). The tail tip sits over the speaker (`bubbleLeft`), the bubble is clamped inside the screen, older lines stack above with their tail tips touching the bubble below. Until the manifest arrives (or if the art is missing) a plain cream box is used.
+2. **Nameplates**: stepped-corner pixel plates (two `clip-path` layers, 2 px edge): Verde for players, terracotta for NPCs, mustard edge on yourself. Plate and bubble sizes are measured only when their text changes and the plate width is forced even, so positions are always whole CSS px and text stays crisp. DOM elements are keyed and reused; bubble lines are rewritten only when their text changes; transforms and opacity are written only when they change.
+3. **Guides**: the bouncing arrow is `ui/guide_arrow_strip` (4 frames, the bounce is drawn into the strip) as a CSS steps animation at 2x, with the label in a mustard plate. `pinGuide` (pure, tested) clamps the tip to the HUD-free part of the screen (`host.insets()` plus 4 px) and picks down / up / left / right by the larger overshoot; the arrow is turned with `rotate()` in multiples of 90 degrees, which is lossless for pixel art.
+
+### Camera (`coords.ts`: `roomZoom`, `roomFraming`)
+
+4. **Interiors fit whole when they can.** The zoom is still an integer in device px. `roomZoom` starts from the HOWTO 5.3 zoom for the window and takes one integer CSS zoom lower (never below 2) if that makes the whole room, walls included, fit in the HUD-free region: the padaria, academia and kitnet on a 1280 x 800 desktop go 4 -> 3 and are centred with the whole north wall band in view; phones already fit. Rooms that still do not fit (the praça, 288 art px tall with its facade) keep the window zoom and follow the avatar. `cam.scale` follows the chosen zoom, so e2e's `clickTile` is unaffected.
+5. **North wall rule when following**: while the avatar is in the top 3 rows the view sits at the top of the 3-tile wall band; over the next 4 rows it eases into plain following (`NORTH_ROWS`). The band, not a facade rising above it, is what is kept (using the facade top pushed the avatar under the chat bar and broke the e2e floor click; found and fixed by the e2e). The camera target can move up to about 2.5x the avatar's speed while easing; `WorldScene` smooths it further.
+
+### Floors, door, decor
+
+6. **Contrast -38%** for the ladrilho, the taco parquet and the tatame checker: `calm()` in `custom/floors.mjs` pulls every pixel toward the mean colour of the whole fill set (all tatame phases together) with gain 0.62; luma standard deviation 30.2 -> 18.7, 45.2 -> 28.2, 20.3 -> 12.7 (tested against those baselines, 0.58..0.67). The taco is also 12 luma lighter. The drawings are unchanged, only the tones are closer. Brick, checker and calçada are untouched.
+7. **West door redrawn** (`doors/west`): a closed door in a frame in the wall strip: the wall cap runs on past it, navy outline, wooden jambs and lintel, a light wood leaf with a small glass window and glint, a lower panel, a brass handle. No open leaf. The doormat is still the portal tile in front of it.
+8. **Dropped decor is authored on the north wall** through a new optional `RoomDef.pixelWalls` in `rooms.ts` (the whole top-down north wall, all `wall: 'right'`, columns -1..cols-1 with -1 = the corner). When present the pixel view draws exactly it and the relocation heuristic is off for that room; the isometric view keeps using `walls` untouched (its left-wall decor also drives the iso window lighting, so moving those items would have changed the iso view). Padaria: TV | 4 tiles of shelves under the toldo | window | clock | blackboard (shelf, toldo and blackboard art re-cut to 64, 64, 32 px). Academia: OSS poster | ACADEMIA DO BAIRRO sign | window | mural. Praça: EDIFICIO building from the west corner to the facade with a slim METRO sign hung on it (`walls/metro` is now 32 x 14), the padaria facade, the SAMPA mural around the academia door. Not shown: the second praça `predio` ("EDIFÍCIO IPÊ", the same art as the first) and the "TUDO BEM?" mural: the facade covers columns 2-9 and the academia door column 10, so 2.5 + 3 tiles were free. Kitnet is unchanged (its relocation already shows everything). Interact tiles, portals, props and both room test suites are unchanged.
+
+### Decorate mode (`decorate.ts`)
+
+9. **Ghost**: `ghostFor` (pure, tested against `canPlaceFurniture` on every tile) returns the piece, rotation, tile and validity for `game.placing`, or for the selected piece in edit mode (moving it; its own uid is ignored). The scene draws the real `furniture/<id>_<rot>` sprite at alpha 0.72 with a light multiplicative tint (green `0x9dffb0`, red `0xff8272`) above the tile highlight (green / red). R rotates through the existing key handler (`game.placing.rot`). The selected placed piece gets a navy + mustard 1 px outline hugging its sprite with corner studs, pulsing slightly.
+
+### Padaria life
+
+10. **Ticket rail**: `props/trilho_pedidos` is still (frame 0) until `modalId() === 'minigame'`, then plays its 2 frames at 2.4x speed; back to still when it closes (read-only use of `ui/modal`). Checked in a browser: idle `playing: false`, with Me vê um open `playing: true`.
+11. **Window light patch**: `fx/light_patch_32|48` (generated in `custom/fx.mjs`: a slanted, warm, three-band dithered parallelogram with the mullion and transom shadows as gaps, light from the upper left) drawn ADD-blended on the floor under every north-wall window (`windowPatches`), registered in the lighting rig (`LightingRig.patches`, faded out with the night darkness). Padaria, academia and kitnet windows all get one.
+
+### Tests
+
+Guide edge pinning, camera framing (zoom step-down, top rows, easing, phone), ghost validity colour, bubble placement, room decor layout (pixelWalls disjoint, in bounds, kinds present, windows), floor contrast and the door / decor art (`scripts/lib/pixel/art4a.test.mjs`). 759 -> 801+ tests.
+
+### Environment notes
+
+`pnpm verify` can fail once on a Windows EPERM tmp rename in `app.test.ts` / auth tests (passes alone and on rerun). The e2e signup rate limit needs a server restart between runs. `e2e:meveum` was run with `BASE_URL=.../?view=pixel`.
+
+### Known weaknesses
+
+The praça's second building and the TUDO BEM mural are still not shown; the slim METRO sign is small and simple; the ghost chair is only 16 px, so the green tile does most of the signalling; the window light patch on the green tatame tints toward cyan; on a desktop the interiors are at zoom 3, so characters are smaller than in the praça (zoom 4); bubbles of two neighbours can overlap each other's plates (no collision handling).

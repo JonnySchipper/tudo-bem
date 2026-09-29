@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ROOMS } from '@tudobem/shared';
 import { T } from './coords';
-import { allNorthDecor, decorArt, relocatedWestDecor, describeSkipped, doormatRect, northBandRect, northDecor, northFacades, portalHitRect, roomBounds, skippedWestDecor, westDoorRect, westStripRect } from './roomLayout';
+import { allNorthDecor, decorArt, relocatedWestDecor, describeSkipped, doormatRect, northBandRect, northDecor, northFacades, portalHitRect, roomBounds, skippedWestDecor, westDoorRect, westStripRect, windowPatches } from './roomLayout';
 import { footprintRect, idTiebreak, propAnchor, propArtKey, propSlices, standingDepth } from './props';
 
 describe('interior walls (top-down)', () => {
@@ -20,14 +20,15 @@ describe('interior walls (top-down)', () => {
     expect(hit.x1).toBe(T);
   });
 
-  it('every wall decor is either drawn on the north wall or listed as skipped', () => {
-    for (const r of Object.values(ROOMS)) expect(northDecor(r).length + skippedWestDecor(r).length).toBe(r.walls.length);
+  it('every wall decor is either drawn on the north wall or listed as skipped (rooms with pixelWalls author the whole north wall)', () => {
+    for (const r of Object.values(ROOMS)) expect(northDecor(r).length + skippedWestDecor(r).length).toBe(r.pixelWalls ? r.pixelWalls.length : r.walls.length);
   });
 
-  it('lists the skipped west decor for the report', () => {
+  it('lists the skipped west decor for the report (only rooms without their own pixelWalls)', () => {
     const lines = describeSkipped(ROOMS);
-    expect(lines).toContain('padaria: tv 0-2');
-    expect(lines.some((l) => l.startsWith('praca: metro 9-12'))).toBe(true);
+    expect(lines).toContain('kitnet: poster 1-3 "SP"');
+    expect(lines.some((l) => l.startsWith('kitnet: cobogo 6-8'))).toBe(true);
+    expect(lines.some((l) => l.startsWith('padaria') || l.startsWith('praca') || l.startsWith('academia'))).toBe(false);
     expect(lines.length).toBe(Object.values(ROOMS).reduce((n, r) => n + skippedWestDecor(r).length, 0));
   });
 
@@ -95,9 +96,49 @@ describe('art track 3 wall art and props', () => {
         for (const o of moved) if (o !== m) expect(m.to <= o.from || m.from >= o.to).toBe(true);
       }
     }
-    // the padaria TV lands in the corner above the west strip, the kitnet SP poster right of the cobogo
-    expect(relocatedWestDecor(ROOMS.padaria).find((d) => d.kind === 'tv')).toMatchObject({ from: -1, to: 1 });
+    // the kitnet SP poster lands right of the cobogo; rooms with pixelWalls move nothing
     expect(relocatedWestDecor(ROOMS.kitnet).find((d) => d.kind === 'poster')).toMatchObject({ from: 1, to: 3 });
+    for (const id of ['praca', 'padaria', 'academia'] as const) expect(relocatedWestDecor(ROOMS[id])).toEqual([]);
+  });
+
+  it('Phase 4a: the dropped decor is authored on the north wall (padaria clock + window, academia window, praça predio / mural / metro)', () => {
+    const kinds = (id: keyof typeof ROOMS) => northDecor(ROOMS[id]).map((d) => d.kind);
+    expect(kinds('padaria')).toEqual(expect.arrayContaining(['relogio', 'janela', 'tv', 'prateleira_paes', 'lousa', 'toldo', 'azulejos']));
+    expect(kinds('academia')).toEqual(expect.arrayContaining(['janela', 'placa', 'poster', 'mural']));
+    expect(kinds('praca')).toEqual(expect.arrayContaining(['predio', 'mural', 'metro', 'fachada_padaria']));
+  });
+
+  it('pixelWalls stay on the wall (columns -1..cols) and only overlap on purpose (awning over shelves, wainscot, sign on the building)', () => {
+    const layers = new Set(['azulejos', 'toldo', 'metro']);
+    for (const r of Object.values(ROOMS)) {
+      const flat = northDecor(r).filter((d) => !layers.has(d.kind) && d.kind !== 'fachada_padaria');
+      for (const d of northDecor(r)) {
+        expect(d.wall, r.id + ' ' + d.kind).toBe('right');
+        expect(d.from, r.id + ' ' + d.kind).toBeGreaterThanOrEqual(-1);
+        expect(d.to, r.id + ' ' + d.kind).toBeLessThanOrEqual(r.cols);
+      }
+      for (const a of flat) for (const b of flat) if (a !== b) expect(a.to <= b.from || a.from >= b.to, `${r.id}: ${a.kind} ${a.from}-${a.to} vs ${b.kind} ${b.from}-${b.to}`).toBe(true);
+    }
+  });
+
+  it('a north decor never covers a north door', () => {
+    for (const r of Object.values(ROOMS)) {
+      for (const p of r.portals.filter((q) => q.wall === 'right')) {
+        for (const d of northDecor(r)) {
+          if (d.kind === 'fachada_padaria' || d.kind === 'mural' || d.kind === 'predio') continue; // building fronts sit behind their doors on purpose
+          expect(p.x < d.from || p.x >= d.to, `${r.id}: ${d.kind} over door ${p.id}`).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('every interior window casts a light patch on the floor under it', () => {
+    const w = windowPatches(ROOMS.padaria);
+    expect(w).toEqual([{ key: 'fx/light_patch_32', x: 5 * T, y: 0 }]);
+    expect(windowPatches(ROOMS.academia)).toEqual([{ key: 'fx/light_patch_32', x: 5 * T, y: 0 }]);
+    // the kitnet's street window is 3 tiles wide (48 px) and centred on 3..6
+    expect(windowPatches(ROOMS.kitnet)).toEqual([{ key: 'fx/light_patch_48', x: 3 * T, y: 0 }]);
+    expect(windowPatches(ROOMS.praca)).toEqual([]);
   });
 
   it('the counter and the bleachers are drawn as one slice per footprint tile', () => {

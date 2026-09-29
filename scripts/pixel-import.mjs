@@ -29,7 +29,7 @@ import { calcadaFill, spMosaic } from '../apps/client/assets-src/custom/calcada.
 import { banca, BANCA } from '../apps/client/assets-src/custom/banca.mjs';
 import { patchSign, findGlass } from '../apps/client/assets-src/custom/shop.mjs';
 import { crosswalk, laneDash, flowerScatter, tuft } from '../apps/client/assets-src/custom/street.mjs';
-import { shadowEllipse, petal, petalScatter, glow, cloudShadow, grime } from '../apps/client/assets-src/custom/fx.mjs';
+import { shadowEllipse, petal, petalScatter, glow, cloudShadow, grime, lightPatch } from '../apps/client/assets-src/custom/fx.mjs';
 import { DERIVE, IMAGES } from '../apps/client/assets-src/custom/derive.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -221,6 +221,9 @@ fxSprite('fx/petal_a', petal(0), [1, 1]);
 fxSprite('fx/petal_b', petal(1), [1, 1]);
 fxSprite('decals/petals_large', petalScatter(44, 22, 26, 3), [22, 11], { decal: true });
 fxSprite('decals/petals_medium', petalScatter(30, 16, 15, 9), [15, 8], { decal: true });
+// window light on the floor (interiors): a slanted patch with the window's mullion shadows, drawn ADD; anchor = top-left corner under the window's left edge
+fxSprite('fx/light_patch_32', lightPatch(32, 2), [0, 0]);
+fxSprite('fx/light_patch_48', lightPatch(48, 3), [0, 0]);
 {
   const g = glow(128);
   await savePng(g, path.join(OUT, 'fx/glow_128.png'));
