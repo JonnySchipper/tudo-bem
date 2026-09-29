@@ -121,6 +121,13 @@ export interface RoomDef {
   spawn: Tile;
   props: PropDef[];
   walls: WallDecor[];
+  /**
+   * The complete north-wall decor of the top-down pixel view, authored for it (all `wall: 'right'`, columns -1..cols-1 where -1 is the
+   * corner above the west wall). When present the pixel view draws exactly this and ignores `walls` (the isometric view keeps using
+   * `walls`, whose left-wall items cannot be seen edge-on from above). Without it the pixel view uses the room's own right-wall decor and
+   * moves the left-wall decor to free stretches (client `relocatedWestDecor`).
+   */
+  pixelWalls?: WallDecor[];
   portals: PortalDef[];
   npcs: NpcDef[];
   /** Private rooms (kitnet) are instanced per owner. */
@@ -230,6 +237,14 @@ const praca: RoomDef = {
     { kind: 'predio', wall: 'left', from: 2, to: 6, text: 'EDIFÍCIO IPÊ' },
     { kind: 'mural', wall: 'left', from: 6, to: 9, text: 'TUDO BEM?' },
     { kind: 'metro', wall: 'left', from: 9, to: 12, text: 'METRÔ' },
+  ],
+  // Top-down layout: the padaria facade (8 tiles, centred on its door) covers columns 2-9, so the left building starts in the west corner and
+  // shows to the facade's edge (the METRO sign hangs on it), and the SAMPA mural fills the wall right of the facade around the academia door.
+  pixelWalls: [
+    { kind: 'predio', wall: 'right', from: -1, to: 2, text: 'EDIFÍCIO IPÊ' },
+    { kind: 'metro', wall: 'right', from: -1, to: 1, text: 'METRÔ' },
+    { kind: 'fachada_padaria', wall: 'right', from: 3, to: 7, text: 'PADARIA DO SEU CARLOS' },
+    { kind: 'mural', wall: 'right', from: 7, to: 14, text: 'SAMPA' },
   ],
   portals: [
     {
@@ -348,6 +363,16 @@ const padaria: RoomDef = {
     { kind: 'relogio', wall: 'left', from: 7, to: 8 },
     { kind: 'tv', wall: 'left', from: 0, to: 2 },
   ],
+  // Top-down layout (10 columns + the corner): TV | 4 tiles of bread shelves under the toldo | street window | clock | blackboard.
+  pixelWalls: [
+    { kind: 'azulejos', wall: 'right', from: 0, to: 10 },
+    { kind: 'tv', wall: 'right', from: -1, to: 1 },
+    { kind: 'prateleira_paes', wall: 'right', from: 1, to: 5, text: 'PADARIA DO SEU CARLOS · DESDE 1978' },
+    { kind: 'toldo', wall: 'right', from: 1, to: 5 },
+    { kind: 'janela', wall: 'right', from: 5, to: 7 },
+    { kind: 'relogio', wall: 'right', from: 7, to: 8 },
+    { kind: 'lousa', wall: 'right', from: 8, to: 10, text: 'CARDÁPIO' },
+  ],
   portals: [
     {
       id: 'padaria_praca',
@@ -465,6 +490,13 @@ const academia: RoomDef = {
     { kind: 'janela', wall: 'left', from: 3, to: 5 },
     { kind: 'poster', wall: 'left', from: 6, to: 8, text: 'OSS · RESPEITO' },
     { kind: 'mural', wall: 'right', from: 5, to: 9, text: 'TREINO · COMUNIDADE' },
+  ],
+  // Top-down layout (11 columns + the corner): OSS poster | sign | window | mural.
+  pixelWalls: [
+    { kind: 'poster', wall: 'right', from: -1, to: 1, text: 'OSS · RESPEITO' },
+    { kind: 'placa', wall: 'right', from: 1, to: 5, text: 'ACADEMIA DO BAIRRO' },
+    { kind: 'janela', wall: 'right', from: 5, to: 7 },
+    { kind: 'mural', wall: 'right', from: 7, to: 11, text: 'TREINO · COMUNIDADE' },
   ],
   portals: [
     {

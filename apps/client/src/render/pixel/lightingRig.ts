@@ -32,6 +32,8 @@ export class LightingRig {
   litOverlays: Phaser.GameObjects.Image[] = [];
   /** generated window glow rectangles for facades without a lit overlay */
   windowRects: Phaser.GameObjects.Rectangle[] = [];
+  /** window light patches on interior floors (world sprites, ADD blend): full strength by day, gone at night */
+  patches: Phaser.GameObjects.Image[] = [];
   /** cast-shadow sprites (fade out as it gets dark) */
   castShadows: Phaser.GameObjects.Image[] = [];
   private grade: Phaser.GameObjects.RenderTexture;
@@ -83,6 +85,7 @@ export class LightingRig {
     this.litOverlays = [];
     this.windowRects = [];
     this.castShadows = [];
+    this.patches = [];
     this.syncLights();
   }
 
@@ -107,6 +110,7 @@ export class LightingRig {
     const sf = shadowFill(hour);
     this.fill.setFillStyle(rgbToInt(sf.color), sf.alpha);
     for (const o of this.litOverlays) o.setAlpha(Math.min(1, gs * 0.95));
+    for (const o of this.patches) o.setAlpha(Math.max(0, 1 - dark * 2.5));
     this.dark.clear();
     if (dark > 0.001) this.dark.fill(0x0b1030, dark);
     this.lights.forEach((l, i) => {

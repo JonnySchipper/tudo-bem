@@ -13,6 +13,27 @@ import { recolorRamp } from './kit.mjs';
 
 const tile = () => blank(16, 16);
 
+/**
+ * Phase 4a: the ladrilho, the taco parquet and the tatame checker were loud at 4x. `calm` pulls every pixel of a floor's fill tiles toward the
+ * mean colour of the whole set (all phases together, so alternating phases stay consistent): `gain` 0.62 cuts the luma standard deviation by
+ * about 38%. The patterns keep their drawing, only the contrast between their tones drops; `lift` raises the mean (the parquet was dark).
+ * Fully opaque fills only.
+ */
+export function calm(fills, gain, lift = 0) {
+  let n = 0;
+  const sum = [0, 0, 0];
+  for (const t of fills) for (let i = 0; i < t.data.length; i += 4) { for (let c = 0; c < 3; c++) sum[c] += t.data[i + c]; n++; }
+  const mean = sum.map((s) => s / n);
+  return fills.map((t) => {
+    const out = { w: t.w, h: t.h, data: new Uint8Array(t.data) };
+    for (let i = 0; i < out.data.length; i += 4) for (let c = 0; c < 3; c++) out.data[i + c] = Math.max(0, Math.min(255, Math.round(mean[c] + lift + (t.data[i + c] - mean[c]) * gain)));
+    return out;
+  });
+}
+
+/** Contrast gain per calmed floor (1 = the art track 3 original). */
+export const CALM = { ladrilho: 0.62, taco: 0.62, tatame: 0.62 };
+
 // ------------------------------------------------------------------ t: tijolo
 const BRICK = [K.te2, K.te3, K.te4, K.or6, K.te1];
 const MORTAR = '#7d5a4c';
@@ -73,7 +94,7 @@ function ladrilhoCell(inverted) {
 }
 
 export function ladrilho() {
-  return [ladrilhoCell(false)]; // one calm colourway; the pattern reads through the diamond lattice the neighbouring corners make
+  return calm([ladrilhoCell(false)], CALM.ladrilho); // one calm colourway; the pattern reads through the diamond lattice the neighbouring corners make
 }
 
 // ------------------------------------------------------------------ m: madeira / taco (herringbone parquet)
@@ -81,7 +102,7 @@ const TACO_RAMP = ['#5a3a26', '#7a4a2c', '#8f5a34', '#a9764f', '#c08a56', '#d29d
 
 export function taco(pack) {
   const src = crop(pack, 144, 160, 16, 16);
-  return [recolorRamp(src, TACO_RAMP, [])];
+  return calm([recolorRamp(src, TACO_RAMP, [])], CALM.taco, 12);
 }
 
 // ------------------------------------------------------------------ k: xadrez
@@ -145,7 +166,7 @@ export function tatame() {
     const mx = px >> 1, my = py >> 1;
     out.push(matTile((mx + my) % 2 === 0 ? MAT.blue : MAT.green, px & 1, py & 1));
   }
-  return out; // 4x4 phases
+  return calm(out, CALM.tatame); // 4x4 phases
 }
 
 export const FLOORS = {

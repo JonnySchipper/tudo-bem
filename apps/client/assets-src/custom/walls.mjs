@@ -4,7 +4,7 @@
 // North band (3 tiles = 48 px above row 0): `walls/north_<style>_l|_m|_r` (16 x 48, plus 4 rows of soft floor shadow below the anchor row 48).
 // West strip (1 tile wide left of column 0): `walls/west_<style>` and `_b` (bottom end), 16 x 16 plus 4 columns of floor shadow on the right.
 import { blank, put, fillRect, line, mix, h2, C, K, NAVY } from './paint.mjs';
-import { drawText5, width5 } from './font5.mjs';
+import { drawText5, width5, drawText3, width3 } from './font5.mjs';
 
 export const STYLES = {
   praca: { face: '#e2d3b8', faceLo: '#d3c3a6', faceHi: '#eee2cc', cap: '#f2ece0', capLo: '#cfc4b2', trim: '#8f7a62', base: '#9c8b74', block: false },
@@ -429,6 +429,19 @@ function metro() {
   return { img, anchor: [0, h] };
 }
 
+// the METRO sign that hangs on the left building of the praça (Phase 4a: only 2 tiles of wall are free there): 32 x 14, 3x5 lettering
+function metroSlim() {
+  const w = 32, h = 14;
+  const img = blankImg(w, h);
+  fillRect(img, 0, 0, w, h, NAVY);
+  fillRect(img, 1, 1, w - 2, h - 2, '#2f4f9c');
+  fillRect(img, 1, 1, w - 2, 1, '#5b7fd0');
+  fillRect(img, 3, 2, w - 6, 1, '#f8f8f8');
+  drawText3(img, Math.floor((w - width3('METRO')) / 2), 4, 'METRO', '#f8f8f8');
+  fillRect(img, 4, 10, w - 8, 2, '#e63f38');
+  return { img, anchor: [0, h] };
+}
+
 function faixasWall() {
   const w = 32, h = 22;
   const img = blankImg(w, h);
@@ -445,13 +458,13 @@ function faixasWall() {
 }
 
 const DECOR = {
-  azulejos, prateleira: () => prateleira(96), lousa: () => lousa(48),
+  azulejos, prateleira: () => prateleira(64), lousa: () => lousa(32),
   janela_rua: () => janela(48, 34, 'city', '#f8f2e4'), janela: () => janela(32, 30, 'plain', '#f3ecdf'),
   relogio, tv, cobogo, foto: () => foto(32), placa,
   poster_sp: () => poster('sp'), poster_oss: () => poster('oss'),
-  toldo: () => toldo(80),
+  toldo: () => toldo(64),
   mural: () => mural(112, 'SAMPA'), mural_s: () => mural(64, null),
-  predio: () => predio(48), metro, faixas: faixasWall,
+  predio: () => predio(48), metro: metroSlim, faixas: faixasWall,
 };
 
 export function wallDecor(_ctx, { kind }) {
@@ -476,15 +489,31 @@ function doorNorth() {
 }
 
 function doorWest() {
+  // A closed door in the west wall strip (Phase 4a). The strip's wall cap (x 0..5) runs on past the door; from x 6 the inner face is a wooden
+  // frame with a closed leaf, a small window with a glint, a panel and a brass handle. The doormat is the portal tile in front of it.
   const img = blankImg(16, 16);
-  // doorway cut in the wall strip: jambs top and bottom, warm daylight in the opening, the door leaf open at an angle
-  fillRect(img, 0, 0, 16, 16, '#f0d9a4');
-  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) if (h2(x, y, 31) < 0.08) put(img, x, y, '#f8ecc4');
-  fillRect(img, 0, 0, 16, 3, NAVY); fillRect(img, 0, 1, 16, 1, WOOD.mid); fillRect(img, 0, 2, 16, 1, WOOD.lo);
-  fillRect(img, 0, 13, 16, 3, NAVY); fillRect(img, 0, 13, 16, 1, WOOD.hi); fillRect(img, 0, 14, 16, 1, WOOD.mid);
-  // open leaf, seen from above: a wooden slab swung into the room
-  for (let i = 0; i < 9; i++) { put(img, 3 + i, 3 + Math.floor(i * 0.9), NAVY); put(img, 3 + i, 4 + Math.floor(i * 0.9), WOOD.hi); put(img, 3 + i, 5 + Math.floor(i * 0.9), WOOD.mid); put(img, 3 + i, 6 + Math.floor(i * 0.9), NAVY); }
-  put(img, 12, 11, '#f2c230');
+  const face = '#e6d9c2';
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) put(img, x, y, h2(x, y, 9) < 0.06 ? mix(face, NAVY, 0.1) : face);
+  const cap = '#f6efe2', capLo = '#d3c7b3';
+  fillRect(img, 0, 0, 1, 16, NAVY); fillRect(img, 1, 0, 1, 16, '#ffffff'); fillRect(img, 2, 0, 4, 16, cap);
+  // door frame: navy outline, wooden jambs and lintel
+  fillRect(img, 6, 1, 10, 15, NAVY);
+  fillRect(img, 7, 2, 8, 13, WOOD.mid);
+  fillRect(img, 7, 2, 8, 1, WOOD.hi); fillRect(img, 7, 2, 1, 13, WOOD.hi); // lit lintel and hinge-side jamb
+  fillRect(img, 14, 3, 1, 12, WOOD.lo); fillRect(img, 7, 14, 8, 1, WOOD.lo);
+  // the leaf: light wood, lit on the top / left, shaded on the bottom / right
+  fillRect(img, 8, 3, 6, 11, '#a9764f');
+  fillRect(img, 8, 3, 6, 1, WOOD.hi); fillRect(img, 8, 3, 1, 11, WOOD.hi);
+  fillRect(img, 13, 4, 1, 10, WOOD.mid); fillRect(img, 9, 13, 5, 1, WOOD.mid);
+  // small window: dark frame, glass with a glint
+  fillRect(img, 9, 4, 4, 5, WOOD.lo);
+  fillRect(img, 10, 5, 2, 3, '#a9d2f0'); put(img, 10, 5, '#ffffff'); put(img, 11, 7, '#7fb0dc');
+  // lower panel and the brass handle
+  fillRect(img, 9, 10, 4, 3, WOOD.mid); fillRect(img, 9, 10, 4, 1, WOOD.lo); fillRect(img, 9, 10, 1, 3, WOOD.lo);
+  put(img, 12, 9, '#f2c230'); put(img, 12, 10, '#c99a2a');
+  // wall edge shading, like the plain strip
+  fillRect(img, 15, 0, 1, 16, NAVY);
+  fillRect(img, 6, 0, 1, 1, capLo); fillRect(img, 7, 0, 8, 1, mix(face, NAVY, 0.25));
   return { img, anchor: [16, 16] };
 }
 

@@ -1,4 +1,6 @@
-/* DOM overlay of the pixel view (labels.ts). Phase 2: minimal, Phase 4 restyles it with 9-slice pixel borders. */
+/* DOM overlay of the pixel view (labels.ts, HOWTO §5.9): nameplates, speech bubbles and guide arrows.
+ * Pixel look: stepped corners, 2 px edges, the 9-slice bubble and the arrow strip from public/pixel/ui (set as CSS variables by
+ * LabelLayer.setArt from the manifest). Everything is positioned with whole-px transforms by labels.ts. */
 
 #world-labels {
   position: fixed;
@@ -15,29 +17,129 @@
   will-change: transform;
 }
 
-.wl-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding-bottom: 5px;
+/* ---- nameplates: Verde for players, terracotta for NPCs, a mustard ring on yourself ---- */
+.wl-plate {
+  --edge: #1d3a31;
+  --fill: #2f5d50;
+  --ink: #f5e6d3;
+  --step: 2px;
+  position: absolute;
+  isolation: isolate;
+  padding: 3px 9px 4px;
+  font-weight: 800;
+  font-size: 11.5px;
+  line-height: 1.15;
+  color: var(--ink);
+  white-space: nowrap;
+  text-align: center;
+  background: var(--edge);
+  clip-path: polygon(
+    var(--step) 0,
+    calc(100% - var(--step)) 0,
+    calc(100% - var(--step)) var(--step),
+    100% var(--step),
+    100% calc(100% - var(--step)),
+    calc(100% - var(--step)) calc(100% - var(--step)),
+    calc(100% - var(--step)) 100%,
+    var(--step) 100%,
+    var(--step) calc(100% - var(--step)),
+    0 calc(100% - var(--step)),
+    0 var(--step),
+    var(--step) var(--step)
+  );
 }
 
-.wl-bubbles {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
+.wl-plate::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  z-index: -1;
+  background: var(--fill);
+  clip-path: polygon(
+    var(--step) 0,
+    calc(100% - var(--step)) 0,
+    calc(100% - var(--step)) var(--step),
+    100% var(--step),
+    100% calc(100% - var(--step)),
+    calc(100% - var(--step)) calc(100% - var(--step)),
+    calc(100% - var(--step)) 100%,
+    var(--step) 100%,
+    var(--step) calc(100% - var(--step)),
+    0 calc(100% - var(--step)),
+    0 var(--step),
+    var(--step) var(--step)
+  );
+}
+
+.wl-stack .wl-plate {
+  left: 0;
+  bottom: 3px;
+}
+
+.wl-plate-npc {
+  --edge: #7a3a16;
+  --fill: #c45c26;
+}
+
+.wl-plate-player {
+  --edge: #1d3a31;
+  --fill: #2f5d50;
+}
+
+.wl-plate-me {
+  --edge: #d4a017;
+  --fill: #2f5d50;
+  padding: 3px 9px 4px;
+}
+
+.wl-plate-guide {
+  --edge: #2a2233;
+  --fill: #f2c230;
+  --ink: #2a2233;
+}
+
+/* ---- speech bubbles: the ui/bubble 9-slice at 2x; the tail is bottom-left (mirrored copy: bottom-right) ---- */
+.wl-stack {
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
 }
 
 .wl-bubble {
-  max-width: 220px;
-  padding: 5px 9px 6px;
-  background: #f8f3ea;
-  color: #2c2c2c;
-  border-radius: 4px;
-  box-shadow: 0 0 0 2px #3a3a50, 0 3px 0 2px #3a3a50;
+  position: absolute;
+  box-sizing: border-box;
+  width: max-content;
+  max-width: 250px;
   text-align: center;
+  color: #2c2c2c;
+}
+
+.wl-art-bubble .wl-bubble {
+  border-style: solid;
+  border-width: var(--wl-bubble-width);
+  border-image: var(--wl-bubble) var(--wl-bubble-slice) fill / var(--wl-bubble-width) stretch;
+  image-rendering: pixelated;
+}
+
+.wl-art-bubble .wl-b-in {
+  margin: var(--wl-bubble-in);
+}
+
+.wl-art-bubble .wl-mirror .wl-bubble {
+  border-width: var(--wl-bubble-width-m);
+  border-image: var(--wl-bubble-m) var(--wl-bubble-slice-m) fill / var(--wl-bubble-width-m) stretch;
+}
+
+.wl-art-bubble .wl-mirror .wl-b-in {
+  margin: var(--wl-bubble-in-m);
+}
+
+/* until the manifest has loaded (or if the art is missing): a plain cream box */
+#world-labels:not(.wl-art-bubble) .wl-bubble {
+  padding: 5px 9px 9px;
+  background: #f8f3ea;
+  box-shadow: 0 0 0 2px #3a3a50;
 }
 
 .wl-bubble .pt {
@@ -55,48 +157,33 @@
   color: #6a6660;
 }
 
-.wl-plate {
-  padding: 2px 8px 3px;
-  border-radius: 999px;
-  font-weight: 800;
-  font-size: 11.5px;
-  line-height: 1.15;
-  color: #f5e6d3;
-  white-space: nowrap;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+/* ---- guides: the bouncing pixel arrow (4 frames, the bounce is drawn into the strip) + a small label ---- */
+.wl-guide {
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
 }
 
-.wl-plate-npc {
-  background: #c45c26;
+.wl-guide-arrow {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--wl-arrow-w, 32px);
+  height: var(--wl-arrow-h, 40px);
+  transform-origin: 50% 100%;
+  image-rendering: pixelated;
+  background: var(--wl-arrow, none) 0 0 / var(--wl-arrow-size, 128px 40px) no-repeat;
+  animation: wl-arrow var(--wl-arrow-ms, 667ms) steps(var(--wl-arrow-steps, 4)) infinite;
 }
 
-.wl-plate-player {
-  background: #2f5d50;
-}
-
-.wl-plate-me {
-  background: #2f5d50;
-  box-shadow: 0 0 0 2px #d4a017, 0 1px 0 2px rgba(0, 0, 0, 0.35);
-}
-
-.wl-guide-in {
-  padding: 3px 9px 4px;
-  background: #f2c230;
-  color: #2a2233;
-  border: 2px solid #2a2233;
-  border-radius: 4px;
-  font-weight: 800;
-  font-size: 12px;
-  white-space: nowrap;
-  animation: wl-bob 0.9s steps(2, end) infinite;
-}
-
-@keyframes wl-bob {
-  0% {
-    transform: translateY(0);
+/* steps(N) from 0 to -N*frameW shows the N frames once each */
+@keyframes wl-arrow {
+  from {
+    background-position-x: 0;
   }
-  100% {
-    transform: translateY(-4px);
+  to {
+    background-position-x: var(--wl-arrow-end, -128px);
   }
 }
 
@@ -111,7 +198,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wl-guide-in {
+  .wl-guide-arrow {
     animation: none;
   }
 }
