@@ -17,6 +17,7 @@ import type { SafetyAction } from './safety.js';
 import type { NpcId } from './rooms.js';
 import type { ConversaGrade, ConversaMeter, ConversaScores, ConversaSubject } from './conversa.js';
 import type { BjjProgress, RollPuzzleView } from './academia.js';
+import type { RecadoActiveView, RecadoOfferView } from './recados.js';
 
 /** Client → server messages. JSON over a single WebSocket at /ws. */
 export type ClientMsg =
@@ -54,6 +55,11 @@ export type ClientMsg =
   | { t: 'friend'; action: 'request' | 'accept' | 'decline' | 'remove'; targetId: string }
   | { t: 'friends' }
   | { t: 'mission'; action: 'take' }
+  /** Hand one recado's worth of an item from the bag to an NPC standing next to you. */
+  | { t: 'give'; npc: NpcId; itemId: string }
+  /** Read a sign (a hotspot id from HOTSPOTS), within 3 tiles. */
+  | { t: 'read'; hotspotId: string }
+  | { t: 'recados'; action: 'accept' | 'list'; id?: string }
   | { t: 'roll'; action: 'queue' }
   | { t: 'roll'; action: 'cancel' }
   | { t: 'roll'; action: 'answer'; choice: number }
@@ -233,5 +239,7 @@ export type ServerMsg =
   | { t: 'friendRequest'; fromId: string; fromName: string }
   | { t: 'parrotHint'; word: Bilingual }
   | { t: 'tutorial'; step: TutorialStep }
+  /** The recados board: offered (not yet accepted), in progress, and ids finished today. Sent on `recados` requests, on join and after every change. */
+  | { t: 'recados'; day: number; offered: RecadoOfferView[]; active: RecadoActiveView[]; done: string[] }
   | { t: 'error'; code: string; pt: string; en: string }
   | { t: 'pong' };
