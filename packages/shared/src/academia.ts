@@ -50,6 +50,12 @@ function submissionHintForSeat(_side: 'player' | 'cpu', _positionId: BjjPosition
   return BOUT_STEP_CHROME[Math.min(seatIdx, BOUT_STEP_CHROME.length - 1)];
 }
 
+/** Learner-facing step for the leading seat. Pose ids stay internal. */
+export function rollChromeLabel(playerIdx: number, cpuIdx: number): Bilingual {
+  const seat = Math.max(0, Math.min(Math.max(playerIdx, cpuIdx), BOUT_STEP_CHROME.length - 1));
+  return BOUT_STEP_CHROME[seat];
+}
+
 /** Portuguese-learning prompts only — no BJJ technique trivia (CEO lock). */
 export type RollPuzzleKind = 'cloze' | 'choice' | 'reorder';
 
@@ -491,14 +497,20 @@ export function rollBow(): Bilingual {
 }
 
 export function rollTapLine(winner: 'player' | 'cpu'): Bilingual {
-  if (winner === 'player') return { pt: 'Tap! Você pegou a finalização!', en: 'Tap! You got the submission!' };
-  return { pt: 'Tap! Boa pressão — amanhã tem mais.', en: 'Tap! Good pressure — see you tomorrow.' };
+  if (winner === 'player') return { pt: 'Boa! Você chegou no final.', en: 'Nice! You reached the finish.' };
+  return { pt: 'Boa pressão — amanhã tem mais.', en: 'Good pressure — see you tomorrow.' };
+}
+
+export function rollScrambleLine(advance: 'player' | 'cpu' | 'none'): Bilingual {
+  if (advance === 'player') return { pt: 'Você avançou!', en: 'You moved ahead!' };
+  if (advance === 'cpu') return { pt: 'Eles avançaram — segura!', en: 'They moved ahead — hang on!' };
+  return { pt: 'Empate — mesma etapa.', en: 'Tie — same step.' };
 }
 
 export function rollDecisaoLine(winner: 'player' | 'cpu' | 'draw'): Bilingual {
   if (winner === 'player') return { pt: 'Decisão: você estava na melhor posição!', en: 'Decision: you had the better position!' };
   if (winner === 'cpu') return { pt: 'Decisão: vantagem deles. Valeu!', en: 'Decision: their advantage. Thanks!' };
-  return { pt: 'Empate na decisão. Fist bump!', en: 'Draw on points. Fist bump!' };
+  return { pt: 'Empate na decisão. Valeu!', en: 'Draw on the decision. Thanks!' };
 }
 
 export function rollFistBump(): Bilingual {

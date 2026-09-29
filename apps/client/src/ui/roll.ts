@@ -8,7 +8,6 @@ import { openModal, closeModal, modalId } from './panels';
 import { speak } from '../audio';
 import {
   animateBjjPoseCanvas,
-  bjjPoseIdFromPt,
   paintBjjPoseCanvas,
   type BjjGroundFx,
   type BjjPoseId,
@@ -61,7 +60,7 @@ export class RollUI {
         'div',
         { class: 'roll-head' },
         h('h2', null, 'Partida no tatame'),
-        en('Portuguese word duels on BJJ positions — first “submission” wins the puzzle.', true),
+        en('Portuguese word duels — first to the finish wins the puzzle.', true),
         h('span', { class: 'spacer' }),
         h('button', { class: 'ghost', onclick: () => this.quit() }, '✕'),
       ),
@@ -160,13 +159,12 @@ export class RollUI {
       pos?.replaceChildren(
         h('span', null, `Rodada ${m.round}/${m.maxRounds} · `, h('b', null, m.positionPt)),
         en(` Round ${m.round}/${m.maxRounds} · ${m.positionEn}`, true),
-        m.submissionPt ? h('span', { class: 'sub-hint' }, ` · ${m.submissionPt}`) : '',
       );
       this.duelMs = m.timeMs;
       this.duelEnd = performance.now() + m.timeMs;
       this.tickTimer();
-      const pid = bjjPoseIdFromPt(m.positionPt);
-      if (m.submissionPt) this.showPose('tap', { tapFrom: pid });
+      const pid = m.pose;
+      if (pid === 'montada' || pid === 'costas') this.showPose('tap', { tapFrom: pid });
       else this.showPose(pid);
       if (m.puzzle.kind === 'reorder' && m.puzzle.tokens) {
         const row = h('div', { class: 'roll-reorder-pick', id: 'roll-reorder-pick' });
@@ -228,7 +226,7 @@ export class RollUI {
     if (m.phase === 'scramble') {
       this.locked = true;
       cancelAnimationFrame(this.raf);
-      const nextPose = bjjPoseIdFromPt(m.positionPt);
+      const nextPose = m.pose;
       void this.tweenToPosition(nextPose, m.advance);
       this.body.replaceChildren(
         h(
@@ -258,7 +256,7 @@ export class RollUI {
             { class: 'muted' },
             won
               ? bi('Listras sobem com vitórias — faixa branca em v0.', 'Stripes grow with wins — white belt only in v0.')
-              : bi('Valeu — +português, sempre com respeito.', 'Thanks — Portuguese practice, always respectful.'),
+              : bi('Valeu — +português!', 'Thanks — more Portuguese!'),
           ),
           h(
             'div',

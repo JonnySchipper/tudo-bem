@@ -5,7 +5,6 @@
  * seated mount, stacked back take. Family-safe: grips and hugs only, no pain acting.
  */
 import type { BjjPositionId } from '@tudobem/shared';
-import { POSITION_LABELS } from '@tudobem/shared';
 import { TB } from '../art/palette';
 import { circle, rrect, type Ctx } from './draw';
 
@@ -627,14 +626,6 @@ function drawPose(ctx: Ctx, pose: BjjPoseId, tapFrom: BjjPositionId | undefined)
   }
 }
 
-export function bjjPoseIdFromPt(positionPt: string): BjjPositionId {
-  for (const [id, labels] of Object.entries(POSITION_LABELS) as [BjjPositionId, { pt: string }][]) {
-    if (labels.pt === positionPt) return id;
-  }
-  if (/de pé/i.test(positionPt)) return 'de_pe';
-  return 'de_pe';
-}
-
 export interface BjjPoseOpts {
   /** Position the submission is finished from (tap card): back control or mount. */
   tapFrom?: BjjPositionId;
@@ -650,7 +641,7 @@ export interface BjjPoseOpts {
 /** Ribbon drawn in canvas px (not design space) so it stays legible on the small phone end card. */
 function badge(ctx: Ctx, kind: NonNullable<BjjPoseOpts['badge']>, h: number) {
   const size = Math.max(9, Math.min(12, h * 0.1));
-  const text = kind === 'finalizacao' ? 'FINALIZAÇÃO' : 'DECISÃO';
+  const text = kind === 'finalizacao' ? 'FINAL' : 'DECISÃO';
   ctx.font = `900 ${size}px Nunito, system-ui, sans-serif`;
   const tw = ctx.measureText(text).width;
   const icon = kind === 'finalizacao' ? size * 1.2 : 0;
