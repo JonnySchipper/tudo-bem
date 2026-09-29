@@ -125,7 +125,20 @@ export class WorldScene extends Phaser.Scene {
     this.scale.on('resize', () => this.applyZoom());
   }
 
+  private updateFailed = false;
+
   override update(): void {
+    try {
+      this.step();
+    } catch (e) {
+      if (!this.updateFailed) {
+        this.updateFailed = true;
+        console.error('[TB] pixel update failed', e);
+      }
+    }
+  }
+
+  private step(): void {
     this.paintGrade();
     const room = game.roomDef;
     const state = game.room;
@@ -178,8 +191,9 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private applyZoom(): void {
-    const rect = this.game.canvas.getBoundingClientRect();
-    this.cssZoom = cssZoomFor(rect.width || window.innerWidth, rect.height || window.innerHeight);
+    const cssW = this.game.canvas.clientWidth || window.innerWidth;
+    const cssH = this.game.canvas.clientHeight || window.innerHeight;
+    this.cssZoom = cssZoomFor(cssW, cssH);
     this.cameras.main.setZoom(cameraZoom(this.cssZoom, this.dpr));
     this.grade?.setSize(this.scale.width, this.scale.height);
   }

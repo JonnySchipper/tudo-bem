@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cssToWorld, feet, tileToWorld, worldToCss, worldToTile, type PixelCam } from './coords';
+import { bufferPixels, cssToWorld, feet, tileToWorld, worldToCss, worldToTile, type PixelCam } from './coords';
 
 const cam: PixelCam = {
   scrollX: -24,
@@ -37,6 +37,18 @@ describe('tile coordinates', () => {
       expect(back.wy).toBeCloseTo(center.wy, 6);
       expect(worldToTile(back.wx, back.wy)).toEqual({ x, y });
     }
+  });
+
+  it('keeps the backing store inside the WebGL texture limit', () => {
+    const desktop = bufferPixels(1280, 800, 1);
+    expect(desktop).toEqual({ dpr: 1, width: 1280, height: 800 });
+    const retina = bufferPixels(2500, 1400, 2);
+    expect(retina.width).toBeLessThanOrEqual(4096);
+    expect(retina.height).toBeLessThanOrEqual(4096);
+    expect(retina.dpr).toBeCloseTo(4096 / 2500, 5);
+    const phone = bufferPixels(390, 844, 3);
+    expect(phone.dpr).toBe(3);
+    expect(phone.width).toBe(1170);
   });
 
   it('round-trips a fractional point the way positionAlong does', () => {

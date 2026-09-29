@@ -6,22 +6,29 @@ import Phaser from 'phaser';
 import { positionAlong, type Tile } from '@tudobem/shared';
 import type { ClientAvatar } from '../../state';
 import type { Guide, Hit, WorldView } from '../view';
+import { bufferPixels } from './coords';
 import { loadManifest } from './manifest';
 import { WorldScene } from './WorldScene';
 
 export class PixelView implements WorldView {
   readonly cam = { scale: 3 };
   guides: Guide[] = [];
+  readonly ready: Promise<void>;
   private scene: WorldScene;
   private phaser: Phaser.Game | null = null;
   private dpr = 1;
 
   constructor(readonly canvas: HTMLCanvasElement) {
-    this.dpr = Math.min(window.devicePixelRatio || 1, 3);
     this.scene = new WorldScene(() => this.guides);
-    this.scene.dpr = this.dpr;
     window.addEventListener('resize', () => this.resize());
-    void this.boot();
+    this.ready = this.boot();
+  }
+
+  private cssBox(): { width: number; height: number } {
+    return {
+      width: this.canvas.clientWidth || window.innerWidth,
+      height: this.canvas.clientHeight || window.innerHeight,
+    };
   }
 
   private async boot(): Promise<void> {
@@ -29,28 +36,40 @@ export class PixelView implements WorldView {
     const manifest = await loadManifest(base);
     this.scene.manifest = manifest;
     this.scene.base = base;
-    const rect = this.canvas.getBoundingClientRect();
-    const w = Math.max(1, Math.round((rect.width || window.innerWidth) * this.dpr));
-    const h = Math.max(1, Math.round((rect.height || window.innerHeight) * this.dpr));
+    try {
+      this.mount(Phaser.WEBGL);
+    } catch (e) {
+      console.error('[TB] webgl failed, using canvas', e);
+      this.mount(Phaser.CANVAS);
+    }
+  }
+
+  private mount(type: number): void {
+    const box = this.cssBox();
+    const buf = bufferPixels(box.width, box.height, window.devicePixelRatio || 1);
+    this.dpr = buf.dpr;
+    this.scene.dpr = buf.dpr;
     this.phaser = new Phaser.Game({
-      type: Phaser.WEBGL,
+      type,
       canvas: this.canvas,
       pixelArt: true,
       roundPixels: true,
       backgroundColor: '#1d1b26',
       banner: false,
       input: { keyboard: false, mouse: false, touch: false, gamepad: false },
-      scale: { mode: Phaser.Scale.NONE, width: w, height: h, zoom: 1 / this.dpr },
+      scale: { mode: Phaser.Scale.NONE, width: buf.width, height: buf.height, zoom: 1 / buf.dpr },
       scene: this.scene,
     });
   }
 
   resize(): void {
     if (!this.phaser) return;
-    const rect = this.canvas.getBoundingClientRect();
-    const w = Math.max(1, Math.round((rect.width || window.innerWidth) * this.dpr));
-    const h = Math.max(1, Math.round((rect.height || window.innerHeight) * this.dpr));
-    this.phaser.scale.resize(w, h);
+    const box = this.cssBox();
+    const buf = bufferPixels(box.width, box.height, window.devicePixelRatio || 1);
+    this.dpr = buf.dpr;
+    this.scene.dpr = buf.dpr;
+    this.phaser.scale.resize(buf.width, buf.height);
+    this.phaser.scale.setZoom(1 / buf.dpr);
     this.cam.scale = this.scene.cssZoom;
   }
 
