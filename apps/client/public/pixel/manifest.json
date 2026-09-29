@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 512,
    "h": 2048,
-   "frames": 342
+   "frames": 346
   }
  },
  "terrain": {
@@ -1225,6 +1225,29 @@
     "ax": 8,
     "ay": 1
    }
+  },
+  "chars/parrot": {
+   "atlas": "outdoor",
+   "frame": "chars/parrot/0",
+   "w": 10,
+   "h": 15,
+   "ax": 5,
+   "ay": 14,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "chars/parrot/0",
+     "chars/parrot/1",
+     "chars/parrot/2",
+     "chars/parrot/3"
+    ],
+    "fps": 3
+   },
+   "overhead": null,
+   "shadow": null
   },
   "props/poste_fios": {
    "atlas": "outdoor",
@@ -4173,16 +4196,112 @@
    "frames": 4,
    "frameW": 16,
    "fps": 6
+  },
+  "chars/parrot_strip": {
+   "file": "chars/parrot_strip.png",
+   "w": 40,
+   "h": 15,
+   "frames": 4,
+   "frameW": 10,
+   "fps": 3
   }
  },
  "chars": {
+  "acc_phone": "chars/acc_phone.png",
   "body_medio": "chars/body_medio.png",
-  "outfit_o01": "chars/outfit_o01.png",
-  "outfit_o13": "chars/outfit_o13.png",
-  "outfit_o16": "chars/outfit_o16.png",
-  "hair_h02": "chars/hair_h02.png",
-  "hair_h12": "chars/hair_h12.png",
-  "hair_h05": "chars/hair_h05.png"
+  "body_medio__esguio": "chars/body_medio__esguio.png",
+  "body_medio__forte": "chars/body_medio__forte.png",
+  "emote_gestures": "chars/emote_gestures.png",
+  "extra_barba": "chars/extra_barba.png",
+  "extra_bigode": "chars/extra_bigode.png",
+  "extra_brincos": "chars/extra_brincos.png",
+  "extra_oculos": "chars/extra_oculos.png",
+  "extra_sardas": "chars/extra_sardas.png",
+  "eyes_doce": "chars/eyes_doce.png",
+  "eyes_maduro": "chars/eyes_maduro.png",
+  "eyes_marcante": "chars/eyes_marcante.png",
+  "eyes_suave": "chars/eyes_suave.png",
+  "face_doce": "chars/face_doce.png",
+  "face_maduro": "chars/face_maduro.png",
+  "face_marcante": "chars/face_marcante.png",
+  "face_suave": "chars/face_suave.png",
+  "hair_black": "chars/hair_black.png",
+  "hair_cacheado": "chars/hair_cacheado.png",
+  "hair_coque": "chars/hair_coque.png",
+  "hair_curto": "chars/hair_curto.png",
+  "hair_longo": "chars/hair_longo.png",
+  "hair_ondulado": "chars/hair_ondulado.png",
+  "hair_raspado": "chars/hair_raspado.png",
+  "hair_trancas": "chars/hair_trancas.png",
+  "hair_undercut": "chars/hair_undercut.png",
+  "hat_boina_vermelha": "chars/hat_boina_vermelha.png",
+  "hat_bone_verde": "chars/hat_bone_verde.png",
+  "hat_bucket_amarelo": "chars/hat_bucket_amarelo.png",
+  "hat_capacete_bike": "chars/hat_capacete_bike.png",
+  "hat_cartola": "chars/hat_cartola.png",
+  "hat_chapeu_chef": "chars/hat_chapeu_chef.png",
+  "hat_chapeu_palha": "chars/hat_chapeu_palha.png",
+  "hat_chapeu_sol": "chars/hat_chapeu_sol.png",
+  "hat_coroa_flores": "chars/hat_coroa_flores.png",
+  "hat_gorro_listrado": "chars/hat_gorro_listrado.png",
+  "hat_panama": "chars/hat_panama.png",
+  "hat_pano": "chars/hat_pano.png",
+  "hat_viseira_azul": "chars/hat_viseira_azul.png",
+  "npc_apron": "chars/npc_apron.png",
+  "npc_apron__esguio": "chars/npc_apron__esguio.png",
+  "npc_apron__forte": "chars/npc_apron__forte.png",
+  "outfit_blusa_bermuda": "chars/outfit_blusa_bermuda.png",
+  "outfit_blusa_bermuda__esguio": "chars/outfit_blusa_bermuda__esguio.png",
+  "outfit_blusa_bermuda__forte": "chars/outfit_blusa_bermuda__forte.png",
+  "outfit_blusa_calca": "chars/outfit_blusa_calca.png",
+  "outfit_blusa_calca__esguio": "chars/outfit_blusa_calca__esguio.png",
+  "outfit_blusa_calca__forte": "chars/outfit_blusa_calca__forte.png",
+  "outfit_blusa_saia": "chars/outfit_blusa_saia.png",
+  "outfit_blusa_saia__esguio": "chars/outfit_blusa_saia__esguio.png",
+  "outfit_blusa_saia__forte": "chars/outfit_blusa_saia__forte.png",
+  "outfit_camisa_bermuda": "chars/outfit_camisa_bermuda.png",
+  "outfit_camisa_bermuda__esguio": "chars/outfit_camisa_bermuda__esguio.png",
+  "outfit_camisa_bermuda__forte": "chars/outfit_camisa_bermuda__forte.png",
+  "outfit_camisa_calca": "chars/outfit_camisa_calca.png",
+  "outfit_camisa_calca__esguio": "chars/outfit_camisa_calca__esguio.png",
+  "outfit_camisa_calca__forte": "chars/outfit_camisa_calca__forte.png",
+  "outfit_camisa_saia": "chars/outfit_camisa_saia.png",
+  "outfit_camisa_saia__esguio": "chars/outfit_camisa_saia__esguio.png",
+  "outfit_camisa_saia__forte": "chars/outfit_camisa_saia__forte.png",
+  "outfit_camiseta_bermuda": "chars/outfit_camiseta_bermuda.png",
+  "outfit_camiseta_bermuda__esguio": "chars/outfit_camiseta_bermuda__esguio.png",
+  "outfit_camiseta_bermuda__forte": "chars/outfit_camiseta_bermuda__forte.png",
+  "outfit_camiseta_calca": "chars/outfit_camiseta_calca.png",
+  "outfit_camiseta_calca__esguio": "chars/outfit_camiseta_calca__esguio.png",
+  "outfit_camiseta_calca__forte": "chars/outfit_camiseta_calca__forte.png",
+  "outfit_camiseta_saia": "chars/outfit_camiseta_saia.png",
+  "outfit_camiseta_saia__esguio": "chars/outfit_camiseta_saia__esguio.png",
+  "outfit_camiseta_saia__forte": "chars/outfit_camiseta_saia__forte.png",
+  "outfit_moletom_bermuda": "chars/outfit_moletom_bermuda.png",
+  "outfit_moletom_bermuda__esguio": "chars/outfit_moletom_bermuda__esguio.png",
+  "outfit_moletom_bermuda__forte": "chars/outfit_moletom_bermuda__forte.png",
+  "outfit_moletom_calca": "chars/outfit_moletom_calca.png",
+  "outfit_moletom_calca__esguio": "chars/outfit_moletom_calca__esguio.png",
+  "outfit_moletom_calca__forte": "chars/outfit_moletom_calca__forte.png",
+  "outfit_moletom_saia": "chars/outfit_moletom_saia.png",
+  "outfit_moletom_saia__esguio": "chars/outfit_moletom_saia__esguio.png",
+  "outfit_moletom_saia__forte": "chars/outfit_moletom_saia__forte.png",
+  "outfit_regata_bermuda": "chars/outfit_regata_bermuda.png",
+  "outfit_regata_bermuda__esguio": "chars/outfit_regata_bermuda__esguio.png",
+  "outfit_regata_bermuda__forte": "chars/outfit_regata_bermuda__forte.png",
+  "outfit_regata_calca": "chars/outfit_regata_calca.png",
+  "outfit_regata_calca__esguio": "chars/outfit_regata_calca__esguio.png",
+  "outfit_regata_calca__forte": "chars/outfit_regata_calca__forte.png",
+  "outfit_regata_saia": "chars/outfit_regata_saia.png",
+  "outfit_regata_saia__esguio": "chars/outfit_regata_saia__esguio.png",
+  "outfit_regata_saia__forte": "chars/outfit_regata_saia__forte.png",
+  "pose_bolsa": "chars/pose_bolsa.png",
+  "pose_bolsos": "chars/pose_bolsos.png",
+  "pose_bracos": "chars/pose_bracos.png",
+  "pose_bracos__esguio": "chars/pose_bracos__esguio.png",
+  "pose_bracos__forte": "chars/pose_bracos__forte.png",
+  "pose_cafe": "chars/pose_cafe.png",
+  "pose_cintura": "chars/pose_cintura.png"
  },
  "sheet": {
   "frame": [
@@ -4190,7 +4309,7 @@
    32
   ],
   "cols": 8,
-  "rows": 17,
+  "rows": 18,
   "anims": {
    "idle": {
     "rows": [
@@ -4225,13 +4344,13 @@
    },
    "oi": {
     "row": 12,
-    "frames": 4,
+    "frames": 6,
     "fps": 8,
     "repeat": 2
    },
    "dancar": {
     "row": 13,
-    "frames": 4,
+    "frames": 6,
     "fps": 8,
     "repeat": 3
    },
@@ -4239,7 +4358,7 @@
     "row": 14,
     "frames": 4,
     "fps": 8,
-    "repeat": 2
+    "repeat": 3
    },
    "valeu": {
     "row": 15,
@@ -4250,10 +4369,16 @@
    },
    "desculpa": {
     "row": 16,
-    "frames": 4,
+    "frames": 8,
     "fps": 8,
     "repeat": 1,
     "hold": 600
+   },
+   "phone": {
+    "row": 17,
+    "frames": 6,
+    "fps": 6,
+    "loop": true
    }
   },
   "facingRow": {
@@ -4292,6 +4417,17 @@
    "#a000a0",
    "#d000d0",
    "#ff20ff"
+  ],
+  "hat": [
+   "#80a000",
+   "#a0c000",
+   "#c0e000",
+   "#e0ff20"
+  ],
+  "accent": [
+   "#00a0a0",
+   "#00d0d0",
+   "#20ffff"
   ]
  },
  "fx": {

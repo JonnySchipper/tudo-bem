@@ -10,7 +10,7 @@
  * same rank from a ramp generated from the appearance color.
  */
 
-export type RampName = 'skin' | 'hair' | 'top' | 'bottom' | 'shoes';
+export type RampName = 'skin' | 'hair' | 'top' | 'bottom' | 'shoes' | 'hat' | 'accent';
 
 /** Exact key colors per ramp, darkest to lightest. Layers in the canonical sheets use these. */
 export const KEY_RAMPS: Record<RampName, readonly string[]> = {
@@ -19,6 +19,9 @@ export const KEY_RAMPS: Record<RampName, readonly string[]> = {
   top: ['#00a03a', '#00c050', '#00e068', '#20ff80'],
   bottom: ['#a08000', '#c09c00', '#e0b800', '#ffd420'],
   shoes: ['#a000a0', '#d000d0', '#ff20ff'],
+  /** hat body color (catalog HatDef.color) and trim color (HatDef.accent) */
+  hat: ['#80a000', '#a0c000', '#c0e000', '#e0ff20'],
+  accent: ['#00a0a0', '#00d0d0', '#20ffff'],
 };
 
 /**
@@ -175,11 +178,23 @@ export function mergeTables(...tables: Map<number, number>[]): Map<number, numbe
  * Converts source shades (hex list, any order) into key colors by luminance rank. `shades` are the layer's own
  * distinct colors for one group (for example the 3 hair browns). Used by the import script.
  */
+export function ranksFor(count: number, keyLen: number): number[] {
+  if (keyLen === 3) {
+    if (count === 1) return [1];
+    if (count === 2) return [1, 2];
+  }
+  const fixed = RANKS_FOR_COUNT[count];
+  if (fixed && keyLen === 4) return [...fixed];
+  if (count <= keyLen) return Array.from({ length: count }, (_, i) => keyLen - count + i);
+  // more source shades than key ranks: spread them evenly over the ranks by luminance order
+  return Array.from({ length: count }, (_, i) => Math.round((i * (keyLen - 1)) / (count - 1)));
+}
+
 export function keyMapForShades(shades: readonly string[], ramp: RampName): Map<number, number> {
   const sorted = [...shades].sort((a, b) => luma(...hexToRgb(a)) - luma(...hexToRgb(b)));
-  const ranks = RANKS_FOR_COUNT[sorted.length];
-  if (!ranks) throw new Error(`unsupported shade count ${sorted.length} for ${ramp}`);
+  if (sorted.length === 0) return new Map();
   const keys = KEY_RAMPS[ramp];
+  const ranks = ranksFor(sorted.length, keys.length);
   const m = new Map<number, number>();
   sorted.forEach((hex, i) => {
     const [r, g, b] = hexToRgb(hex);

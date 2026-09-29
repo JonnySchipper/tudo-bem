@@ -108,6 +108,94 @@ Every new PT string is marked here so it can go into the content review list: sh
 SAPATOS, PIZZA; sign BANCA; frame demo bubble "Boa tarde! Pão de queijo, açaí, você, não, avó, Nº 42" (gloss: "Good afternoon!
 Cheese bread, açaí, you, no, grandma, No. 42"). None of it enters the game yet. No new curriculum cards were added.
 
+## Decisions: art track 1 (Brazilian set pieces)
+
+Branch `lifesim/art1-set-pieces` (folded in from `decisions-art1.md`). Contact sheet: `docs/lifesim/shots/art1/pieces.png`;
+frame screenshots (17:30 and 19:30): `docs/lifesim/shots/art1/frame_*_1280x800.png`.
+
+### Pipeline
+
+1. **New import kind `derive`** (`scripts/pixel-import.mjs` -> `emitParts`, generators in `assets-src/custom/derive.mjs`). A generator gets
+   `{ load(spec), sheet(alias), map }` and returns *parts* (`{ key?, img | frames[], fps?, anchor, meta? }`). The first part inherits the
+   import-map line (footprint, shadow, cast, light); extra parts (lit-window overlays, canopy, wire spans, the west facing) carry their own
+   `meta`. Rendered PNGs of every part land in `assets-src/custom/png/` like the P1 custom pieces. `pnpm pixel` stays deterministic.
+2. **Two new optional manifest fields** (`SpriteDef` in `manifest.ts`): `lit` (key of a same-size overlay sprite with the lit window panes) and
+   `attach` (offset from the anchor to the wire attach point, on `props/poste_fios`). Existing fields reused: `overhead` (also on the hat
+   stall now, not only trees), `windows`, `anim`.
+3. **Shared toolkit** `custom/kit.mjs`: rank recolor, exact swap, band stretch/cut (`stretchCols`, `stackRows`), mask shading with the pack's
+   edge lighting (`drawShaded`: 1 px lit rim on the north/west edge, 2-3 px shaded rim on the south/east edge, navy outline outside), grid stamping.
+   `custom/font5.mjs`: a 5x7 sign font (capitals + 2, 4) and a 3x5 extension with digits and the "º" of "Nº". No accented glyphs in pixels (HOWTO D8):
+   the sign say PADARIA, ACADEMIA DO BAIRRO, EDIFICIO IPE, R. DOS IPES; the accented forms are DOM labels.
+
+### Key naming and facings
+
+4. **East/west facings use suffixes `_e` / `_w`** (`vehicles/onibus_e`, `critters/vira_lata_walk_w`), matching the compass in HOWTO 5.2. P1's cars
+   keep their `_l` / `_r` names. The west variant of authored pieces is a mirror of the east one (fusca, moto, dog); the LimeZu-derived bus and
+   kombi use the pack's own west sprites so the light stays upper-left.
+5. **Footprints follow the brief** (facades `[8,6]`, `[10,6]`, `[10,6]`; bus `[6,2]`; kombi `[4,2]`, fusca `[3,1]`, moto `[2,1]`). For the facades
+   the footprint is the whole 6-tile-tall front; Phase 5 can block only the base row if it prefers. The Edifício sprite is 160x124: the 96 px body
+   plus 28 px of rooftop (caixa d'água, dish, antenna) that pokes above the 6 tiles. Its anchor is the bottom centre of the body.
+6. **Animated pieces**: bus, fusca, moto have 2 wheel frames (hub rotated 90 degrees, or lug pattern flipped); `props/poleiro` has 4 idle frames
+   (blink, head turn, head bob, tail flick); dog: idle 4 (tail wag), walk 4, sleep 2 (breathing), each in E and W.
+7. **Utility wires** (`props/fios_seg` 16 px tileable, `props/fios_4/6/8` = 4/6/8 tiles pole to pole) are `overhead` sprites. Place the sprite's
+   anchor (its left end, first wire row) at `pole.x`, `pole.y - 51 px` (`props/poste_fios` `attach`), lay spans end to end. The frame draws them at alpha 0.7
+   so three cables plus a tangle do not fight the plaza art. `fios_6` carries a pair of sneakers thrown over the wire (a common bairro sight).
+
+### Lit windows
+
+8. **Night windows are an overlay sprite** (`facades/*_lit`, same size as the facade, only the panes are opaque: warm gradient, bread on the
+   padaria shelves, gym silhouettes) referenced by `lit` on the facade. The frame fades it in with `glowStrength` and still punches light holes
+   from the facade's `windows` rects. Without `lit` the frame falls back to the P1 additive rectangles.
+
+### Lighting
+
+9. **Golden-hour shadow fill.** `lighting.ts` gains `shadowFillStrength(hour)` / `shadowFill(hour)`: 0 before 16:30, ramp to 1 at 17:30, held to
+   18:15, out by 19:45 (smooth steps). The frame draws a full-screen `#3454a8` rectangle with the SCREEN blend at alpha `0.2 * strength`, between the
+   multiply grade and the night darkness, so shadows read cool blue against the warm ground instead of one orange wash. Three unit tests added
+   (`lighting.test.ts`). Chosen values are constants (`SHADOW_FILL_COLOR`, `SHADOW_FILL_MAX`) if the boss wants more or less.
+
+### Terrain
+
+10. **Calçada contrast about 40% lower.** The light/dark stone pools (`PAVE` in `custom/calcada.mjs`) moved to pack lavenders: light stones ~luma 192
+    (was 233), dark ~128 (was 125): contrast 64 vs 108 (-41%, tested in `art1.test.mjs`: ratio between 0.5 and 0.7). Pattern unchanged. The São Paulo
+    mosaic keeps the old stone values (`STONE`), so it now stands out a little more than the paving, as requested. The mask tile edges (curb, lip) are unchanged.
+
+### What is derived, authored, placeholder
+
+| Key | How |
+|---|---|
+| `props/orelhao` | authored (mask shading + orange ramp + pack greys/reds), inspired by `Public_Phone` |
+| `props/placa_rua` | LimeZu plain sign pole (`3_City_Props`, cropped) + authored blue plate, 3x5 text "R.DOS / IPES" |
+| `props/lixeira` | authored orange cylinder bin (orange/terracotta ramp) |
+| `props/quiosque` | authored terracotta totem with mustard screen and star (kiosk silhouette from the pack's ticket kiosk) |
+| `props/barraca_chapeus` + `_canopy` | LimeZu `Street_Food_Cart_1` split into standing part + overhead canopy, 7 authored hats |
+| `props/poleiro` | authored perch + parrot (4 frames); the pack has no parrot |
+| `props/poste_fios`, `props/fios_*` | LimeZu crossarm utility pole (cropped) + authored wire spans |
+| `facades/padaria` (+`_lit`) | LimeZu Market front (tan/brown) cut and widened, red/white toldo recolor + continuous awning, authored sign and bread |
+| `facades/edificio_ipe` (+`_lit`) | LimeZu Generic Building yellow modules (48+32+32+48), authored grilles, varal, tank, dish, plaque, garage shutter |
+| `facades/academia` (+`_lit`) | LimeZu Market front (ochre/blue) cut and widened, blue/white toldo, authored sign and gym silhouettes |
+| `vehicles/onibus_e/w` | LimeZu `Bus_Right_5` / `Bus_Left_5` (red, green stripe), wheel hub spin as frame 2 |
+| `vehicles/kombi_e/w` | LimeZu `Camper` shortened by 22 px, roof clutter painted out, two-tone white / teal |
+| `vehicles/fusca_e/w`, `vehicles/moto_e/w` | authored (mask shading + pack palette), 2 wheel frames |
+| `critters/vira_lata_*` | authored caramel dog (pack has none) |
+| `critters/gato` | not added: the pack cat is already `critters/cat` (18-frame lying/tail flick). A sitting/walking cat is not made |
+| `terrain` calçada | retuned, see 10 |
+
+No sprite is a magenta placeholder. Gaps: no gato walk/sit, no dog N/S facings (E/W only), no bus stop (P6), fontain unchanged.
+
+### Known weaknesses (honest list)
+
+- The moto and the dog are the weakest pieces: tiny hand-built silhouettes next to LimeZu's polish. The sleeping dog reads as a caramel loaf.
+- The kombi is a repainted camper (boxy); it says "van" rather than "Kombi" (no V-nose, no split windscreen).
+- Wires are 1 px lines in the pack's wire grey; from far away they read as a dark band, hence the 0.7 alpha in the frame.
+- Facade rooftops: only the Edifício has rooftop details; padaria and academia are flat parapets. Facade side walls and corner pieces are not made.
+- The mirrored west facings of fusca / moto / dog flip the highlight to the wrong side (barely visible at 1 art px rims).
+
+### Needs BR review
+
+New PT text painted into signs (uppercase, no accents in pixels): PADARIA / DO SEU CARLOS, ACADEMIA / DO BAIRRO, EDIFICIO IPE, Nº 42, R. DOS IPES.
+Accented forms for the DOM labels: Padaria do Seu Carlos, Academia do Bairro, Edifício Ipê Nº 42, R. dos Ipês.
+
 ## Decisions: logic track 2 (recados, bag, bonds)
 
 Scope: HOWTO Phase 8 steps 1, 2 and 4, plus the data model. Server engine only. No client, no schedules (step 6), no NPC memory (step 5), no tutorial re-skin (step 3), no final 15 recados (step 7).
@@ -474,3 +562,63 @@ the same sprite; the bikes read as a blob at 1x; the taco parquet is dark; deskt
 ### Needs BR review
 
 Pixel text added: ACADEMIA / DO BAIRRO (placa), SAMPA (mural), METRO, SP and OSS (posters). No accents in pixels; the DOM labels carry the accented forms.
+
+## Decisions made in Phase 3 (layered characters)
+
+Scope: HOWTO Phase 3 steps 1-6 plus the boss directives (outfit table, every creator option visible, 12 hats, real emote frames, parrot companion, NPC looks, idle variety, pixel creator preview and hat icons in both views). Branch `lifesim/p3-characters`. Contact sheet `docs/lifesim/shots/p3/lineup.png` (`node scripts/character-lineup.mjs`, composed with the same code the game runs); creator shot `docs/lifesim/shots/p3/1280x800_avatar_creator.png`.
+
+### Structure
+
+1. **Pure pipeline, three consumers.** `charcompose.ts` (key-color swap + alpha-over, pure), `composeLook.ts` (look -> sheet pixels), `characters.ts` (`CHAR_LAYERS`, `OUTFITS`, `HAT_LIFT`, `pick` with log-once fallback), `looks.ts` (`lookForAppearance`, `NPC_STYLES`, `lookKey`), `charAssets.ts` (decoded layer PNGs, one shared load per page), `bodytype.ts` (height), `charPreview.ts` (DOM preview and hat icons), `charsheet.ts` / `charCache.ts` (Phaser texture + animations, LRU cache with an injected backend so eviction is tested without Phaser). The Phaser scene, the creator preview, the hat shop and the style frame all compose through `composeLook`, so what the creator shows is what the world draws.
+2. **Layers are decoded once (all 95 PNGs, about 28 MB of RGBA in memory) instead of loaded as Phaser textures**, because the iso view has no Phaser but needs the same composition for the creator and the shop. The whole set is about 90 KB of PNG on the wire.
+3. **`pnpm pixel` builds the layers** (`assets-src/custom/chars.mjs`; the old per-layer list in `import-map.json` is gone). Everything is deterministic (two runs give identical hashes).
+
+### Outfits: the (top x bottom) table
+
+4. All 33 LimeZu outfits share one silhouette (long pants and shoes), so bermuda / saia / regata cannot be picked from the pack. The table (`OUTFITS` in `characters.ts`, tested to resolve all 15 at all 3 body types) maps each top style to a real outfit for the torso (camiseta and regata -> Outfit_01, moletom -> 10, camisa -> 08, blusa -> 11) and **edits** that outfit's legs: `bermuda` (pants stop a row early, legs split from the front), `saia` (A-line flare), `regata` (sleeves cut off). Documented in the table (`source`, `edit`) and in `assets-src/README.md`.
+5. **Every outfit is recolorable in all three ramps**: torso -> `topColor`, pants -> `bottomColor`, shoes -> `SHOE_COLORS[shoes]`. Bands are cut by row relative to the feet row (not by color), so a white shirt over white pants still gets two colors.
+6. The 5 tops do look different, but at 16x32 (a 3-row torso and 2 rows of pants) the differences are small: collar and placket (camisa), wide cuffs (moletom), bare arms (regata), the ruffle pattern (blusa).
+
+### Every creator option is visible
+
+7. **Body type**: width is baked per layer (`__esguio`, `__forte`: 2 torso columns dropped or doubled on body-attached layers), height is applied to the composed sheet (`esguio` +1 px taller, `forte` -1 px shorter and the head sinks with it). Feet never move.
+8. **Hair (9)**: curto (Hairstyle 12), raspado (20, close crop), undercut (26), cacheado (25), black power (25 grown 2 px with a redrawn outline), ondulado (07), longo (15), coque (16 + an authored bun), trancas (16 + authored braids). **Face (4)**: the pack's eyes differ by iris color only, so `suave / marcante / doce / maduro` = 4 iris colors + authored brows, blush, smile lines. **Extras**: oculos, barba, bigode from the pack; brincos and sardas authored. Beard and mustache follow the hair color.
+9. Hat art is stamped on each frame's head anchor, so hats follow the walk bob, the sit poses and the bow.
+
+### Hats
+
+10. **Derived from the pack** (recolored onto the `hat` / `accent` ramps with the catalog colors): bone_verde (snapback), panama (detective hat), chapeu_chef (chef), gorro_listrado (beanie + authored stripes). **Authored in the pack style** (`custom/hats.mjs`): chapeu_palha, viseira_azul, boina_vermelha, chapeu_sol, bucket_amarelo, capacete_bike, coroa_flores, cartola, plus Tia Lu's `pano` headscarf. The `hat` and `accent` key ramps were added to `KEY_RAMPS` (`palette.ts`); `keyMapForShades` now spreads layers with more shades than ranks by luminance (`ranksFor`).
+11. Nameplates stand above the hat (`HAT_LIFT`, `lookHeadLift`).
+
+### Emotes (canonical rows 12-16) and poses
+
+12. **Sources** (`assets-src/README.md` has the row table): `oi` = idle S frames 0-5 (real) + authored raised hand; `dancar` = the real walk-S cycle in place + authored hands up; `rir` = idle S frames 0-3 (real) + authored mouth; `valeu` = idle S frames 0-3 (real) + authored fist with thumb up; `desculpa` = **all real**, the pack's "pick up" bow (source row 9, S block). The pack has no wave, dance, laugh or thumbs-up rows, so four of five are real body frames plus a small authored gesture layer (drawn over the hair so a raised hand shows beside the head). **The 2 px bounce is no longer used** for any emote; the scene keeps it only as the fallback for a sheet with no such animation (none today). Emotes play the real frames facing S for their duration plus the hold, then go back to idle.
+13. **Idle poses**: `celular` plays the pack's phone loop (row 17, facing S only, other facings use the idle) with the Smartphone layer; `cafe` (cup), `bolsa` (shoulder bag), `bracos` (crossed arms), `bolsos` (hands covered, pocket slits) and `cintura` (fists on the hips) are authored props on the idle rows; `solto` is the plain idle. Every pose also has its own pace and every avatar a per-seed start frame and +-10% speed jitter, so a crowd never breathes in sync.
+
+### Parrot
+
+14. `PublicAvatar.parrot` draws the poleiro parrot (head and body cropped free of the perch, 4 idle frames, `chars/parrot` sprite + `chars/parrot_strip` for the DOM previews) hovering at the avatar's far side, mirrored to face its owner, with a small bob. It is 10x15 px, big next to a 14 px head (known weakness).
+
+### NPC looks (`NPC_STYLES`, keyed by id, so `graca` and `tia_lu` work before they have a room)
+
+15. Carlos: forte, chef hat, apron (white) over a terracotta camisa, grey mustache, arms crossed. Nanda: esguio, straw hat, mustard camiseta, dark curls, hoops, hands on hips. Júlia: blusa, long chestnut hair, jeans, shoulder bag. Dona Graça: grey bun (coque, grey), round glasses, pale-blue apron over a plum blusa. Tia Lu: red headscarf (`pano`, red with cream), gold hoops, green top, orange apron. The style's appearance wins over the room's `appearance`, so portraits and sprites agree. The `Appearance` model and `sanitizeAppearance` are untouched.
+
+### Avatar creator and shop (both views)
+
+16. `ui/onboarding.ts` shows the composed character at **8x** (6x on phones) with `image-rendering: pixelated`, a turn button (`#turn-avatar`, S -> E -> N -> W) and the wave on entry; all e2e ids are unchanged. The hat shop and wardrobe use the same preview (with the selected hat and the parrot) and the **S-facing hat layer at 4x** as icons (`hatIconUrl`, a tight crop in a fixed 72 px box so the scale is never stretched). The profile card uses the pixel preview too. The Conversa NPC portrait card and the tutorial NPC card still use the iso `renderAvatarPreview` (Phase 7 rebuilds the dialogue).
+
+### Tests
+
+17. New: layer table coverage (every enum, all 15 outfits x 3 body types, all 12 hats, every key in the manifest), look colors and NPC looks, compose (swap, alpha blend, size guard), cache eviction (cap, LRU, in-use sheets survive), body height, import build checks (15 different outfits, all layers key-colored, hats follow the head, gestures and props only touch their rows).
+
+### Environment note
+
+18. Port 8791 was taken by another process on this machine, so the local server and e2e runs used `PORT=8793`.
+
+### Known weaknesses
+
+Body types and the 15 outfits are subtle at 16x32; the gestures (raised hand, thumb) are 2-4 px and low contrast on skin-toned heads; the parrot is oversized; dark hair on dark skin hides the face at small sizes (a pack limitation); `panama` is a recolored detective hat (pointed crown); the dark-skin `maduro` smile lines read reddish; walking frames of `bermuda` and `saia` are only approximations because the legs stride.
+
+### Needs BR review
+
+New PT strings: the creator turn button "Girar" and its label "Girar o avatar" (EN: "turn around"). Hat and face names already exist in `LABELS` / `catalog.ts`. No curriculum cards.

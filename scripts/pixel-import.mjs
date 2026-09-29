@@ -22,7 +22,8 @@ import { packAtlas } from './lib/pixel/pack.mjs';
 import { buildSlabTiles, buildFlatTiles, buildFlushTiles } from './lib/pixel/terrain-gen.mjs';
 import { splitTree, swayFrames } from './lib/pixel/tree.mjs';
 import { castShadow } from './lib/pixel/shadow.mjs';
-import { toCanonicalSheet, mergeLayers, keyLayer, CANON_ANIMS, CANON_COLS, CANON_ROWS, FRAME_W, FRAME_H } from './lib/pixel/chars.mjs';
+import { CANON_ANIMS, CANON_COLS, CANON_ROWS, FRAME_W, FRAME_H } from './lib/pixel/chars.mjs';
+import { buildChars } from '../apps/client/assets-src/custom/chars.mjs';
 import { KEY_RAMPS } from '../apps/client/src/render/pixel/palette.ts';
 import { calcadaFill, spMosaic } from '../apps/client/assets-src/custom/calcada.mjs';
 import { banca, BANCA } from '../apps/client/assets-src/custom/banca.mjs';
@@ -285,27 +286,13 @@ for (const [name, items] of Object.entries(atlasItems)) {
 
 // ------------------------------------------------------------------ characters
 {
-  const base = resolveSrc(map.chars.base);
-  const missing = [];
-  for (const layer of map.chars.layers) {
-    const parts = [];
-    for (const s of layer.sources) parts.push(crop(await loadPng(path.join(base, s)), 0, 0, 896, 224));
-    const merged = mergeLayers(parts);
-    const keyed = keyLayer(merged, layer.groups);
-    const sheetImg = toCanonicalSheet(keyed);
-    await savePng(sheetImg, path.join(OUT, `chars/${layer.key}.png`));
-    manifest.chars[layer.key] = `chars/${layer.key}.png`;
-    // sanity: any opaque non-outline color left that is not a key (only interesting to the human running the script)
-    const keys = new Set(Object.values(KEY_RAMPS).flat());
-    const left = distinctColors(sheetImg, (rgb) => {
-      const hex = '#' + rgb.map((v) => v.toString(16).padStart(2, '0')).join('');
-      return !keys.has(hex) && !['#3a3a50', '#46465e', '#000000', '#ffffff', '#ebe4f2', '#e8e8f6', '#6c5981', '#674d49'].includes(hex);
-    });
-    if (left.length) missing.push(`${layer.key}: unkeyed ${left.map((c) => c.hex + ':' + c.n).join(' ')}`);
+  const { layers } = await buildChars({ base: resolveSrc(map.chars.base) });
+  for (const key of Object.keys(layers).sort()) {
+    await savePng(layers[key], path.join(OUT, `chars/${key}.png`));
+    manifest.chars[key] = `chars/${key}.png`;
   }
   manifest.sheet = { frame: [FRAME_W, FRAME_H], cols: CANON_COLS, rows: CANON_ROWS, anims: CANON_ANIMS, facingRow: { S: 0, W: 1, E: 2, N: 3 } };
   manifest.keyRamps = Object.fromEntries(Object.entries(KEY_RAMPS).map(([k, v]) => [k, [...v]]));
-  if (missing.length) console.log('[pixel] note: colors left unkeyed (shared outline/white are expected):\n  ' + missing.join('\n  '));
 }
 
 // ------------------------------------------------------------------ manifest

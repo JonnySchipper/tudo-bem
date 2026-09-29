@@ -34,6 +34,7 @@ export const DERIVE = {
   fios: wires.fios,
   barracaChapeus: stall.barracaChapeus,
   poleiro: critters.poleiro,
+  parrotCompanion: critters.parrotCompanion,
   viraLata: critters.viraLata,
   onibus: vehicles.onibus,
   kombi: vauth.kombi,
@@ -51,4 +52,5 @@ export const IMAGES = {
   portraits: portraits.portraitParts,
   icons: iconsMod.iconParts,
   ui: uiMod.uiParts,
+  parrot: critters.parrotStrip,
 };

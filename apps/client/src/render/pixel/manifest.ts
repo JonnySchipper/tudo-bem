@@ -45,6 +45,8 @@ export interface Manifest {
   sheet: SheetMeta & { facingRow: Record<string, number> };
   keyRamps: Record<string, string[]>;
   fx: Record<string, { file: string; w: number; h: number }>;
+  /** standalone images for the DOM (portraits, icons, ui kit, the parrot strip) */
+  images?: Record<string, { file: string; w: number; h: number; frames?: number; frameW?: number; fps?: number; slice?: { top: number; right: number; bottom: number; left: number }; css?: string }>;
 }
 
 export async function loadManifest(base: string): Promise<Manifest> {

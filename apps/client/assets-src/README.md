@@ -86,46 +86,67 @@ Two kinds of terrain (`import-map.json` -> `terrain`):
 Tests: `terrain.test.ts` (mask order, borders, variants, phases) and `scripts/lib/pixel/pixel.test.mjs` (mask 15 is the
 untouched fill, adjacent display tiles agree along every shared edge, so there are no seams).
 
-## Characters: source rows -> canonical sheet
+## Characters (Phase 3): LimeZu layers + authored pieces -> canonical key-colored sheets
 
-LimeZu's Character Generator ships layered sheets, one PNG per body / eyes / outfit / hairstyle / accessory, all in the same
-layout: 56 columns of 16x32 frames, row `r` at `y = 32 r`. We use the layered sheets (never the desktop GUI tool). The canonical
-sheet (HOWTO 5.5) is 8 columns x 17 rows of 16x32, facing row order **S, W, E, N**.
+`custom/chars.mjs` (with `charart.mjs`, `hats.mjs` and the helpers in `scripts/lib/pixel/chars.mjs` + `charedit.mjs`) builds every character layer
+into `public/pixel/chars/<key>.png`: 8 columns x 18 rows of 16x32 frames, facing row order **S, W, E, N**, all pixels in **key colors**
+(`KEY_RAMPS` in `palette.ts`: skin, hair, top, bottom, shoes, hat, accent) that the client swaps for the appearance colors.
 
-Source layout used (row index = y / 32):
+### Source rows -> canonical rows
 
-| Source row | Content | Frames |
-|---|---|---|
-| 1 | idle | 24 = 4 facings x 6, block order **E, N, W, S** (verified from the eyes layer: eye x-centroid 11 / none / 4 / 8) |
-| 2 | walk | 24 = 4 x 6, same block order |
-| 4 | sit | 12: cols 0-5 face E, cols 6-11 face W (there is no front or back sit) |
-| 0, 3, 5+ | previews, sleep, phone, gift, lift, throw, hit, punch, gun... | not used yet |
-
-Canonical rows produced by `scripts/lib/pixel/chars.mjs`:
+LimeZu layer sheets are 56 columns of 16x32 frames, row `r` at `y = 32 r`; facing block order is **E, N, W, S**.
 
 | Canonical row | Animation | Built from |
 |---|---|---|
 | 0-3 | idle S, W, E, N (6 frames, 5 fps) | source row 1, blocks S(3), W(2), E(0), N(1) |
 | 4-7 | walk S, W, E, N (6 frames, 10 fps) | source row 2, same blocks |
-| 8 | sit S | idle S frame lowered by 4 px (the bench seat hides the legs) |
-| 9 | sit W | source row 4, col 6 |
-| 10 | sit E | source row 4, col 0 |
-| 11 | sit N | idle N frame lowered by 4 px |
-| 12-16 | oi, dancar, rir, valeu, desculpa | **placeholder: idle S frames 0-3** (the pack has no wave/dance/laugh/thumbs/sorry rows). The renderer bounces the sprite 2 px until the art exists |
+| 8-11 | sit S, W, E, N | W / E: source row 4 (cols 6 / 0); S / N: the idle frame lowered 4 px (the bench seat hides the legs) |
+| 12 | `oi` (wave), 6 frames | idle S frames 0-5 (real) + the authored raised hand (`emote_gestures`) |
+| 13 | `dancar`, 6 frames | the real walk-S cycle played in place (source row 2, block S) + authored hands up (`emote_gestures`) |
+| 14 | `rir` (laugh), 4 frames | idle S frames 0-3 (real) + authored open / closed mouth |
+| 15 | `valeu` (thumbs up), 4 frames, hold 600 ms | idle S frames 0-3 (real) + authored outlined fist with the thumb up |
+| 16 | `desculpa` (sorry), 8 frames, hold 600 ms | **all real**: the pack's "pick up" row (source row 9, block S = cols 36-42, 46): a bow and back up |
+| 17 | `phone` (idle pose *celular*), 6 frames, loop | source row 6, cols 3-8 (the pack's phone-in-hand loop, facing S) |
 
-Layers in the P1 map: `body_medio` (Body_01 + Eyes_01 baked together), three outfits, three hairstyles. The pack's outfits are
-one layer for top + bottom, so P1 has an `outfit_*` layer instead of separate `top_*` / `bottom_*` / `shoes_*` layers (Phase 3
-decides how to split or extend). No hat art exists in the pack for the straw hat; that stays a Phase 3 item.
+No emote falls back to the 2 px bounce any more; the renderer keeps that bounce only for a sheet that has no such animation.
+
+### Layers
+
+| Layer key | Derived from LimeZu | Authored |
+|---|---|---|
+| `body_medio` (skin ramp), `body_medio__esguio`, `__forte` | Body_01 | the two width variants (see below) |
+| `eyes_suave / marcante / doce / maduro` | Eyes_01 / 04 / 02 / 05 (the pack's eyes differ by iris color only) | |
+| `face_marcante / doce / maduro` (`face_suave` is empty) | | brows, blush (semi-transparent) and smile lines, anchored to the eye row |
+| `outfit_<top>_<bottom>` x 3 body types (15 x 3) | Outfit_01 (camiseta, regata), 10 (moletom), 08 (camisa), 11 (blusa); torso, pants and shoes are re-keyed onto the top, bottom and shoes ramps | pants edits: bermuda (pants stop a row early, legs split), saia (A-line flare); regata (sleeves removed) |
+| `hair_curto`, `raspado`, `undercut`, `cacheado`, `ondulado`, `longo` | Hairstyle 12 / 20 / 26 / 25 / 07 / 15 | |
+| `hair_black` (black power) | Hairstyle 25, grown by 2 px with a redrawn outline | the puff |
+| `hair_coque`, `hair_trancas` | Hairstyle 16 | the bun, and two front braids (one long back braid seen from behind) |
+| `extra_oculos`, `extra_barba`, `extra_bigode` | Accessory 15 (glasses), 13 (beard), 12 (mustache, on the hair ramp) | |
+| `extra_brincos`, `extra_sardas` | | gold hoops, freckles |
+| `hat_bone_verde`, `hat_panama`, `hat_chapeu_chef`, `hat_gorro_listrado` | Accessory 04 (snapback), 08 (detective hat), 18 (chef), 11 (beanie) recolored onto the hat / accent ramps | the beanie stripes |
+| `hat_chapeu_palha`, `viseira_azul`, `boina_vermelha`, `chapeu_sol`, `bucket_amarelo`, `capacete_bike`, `coroa_flores`, `cartola`, `pano` | | drawn in `hats.mjs`, stamped on each frame's head (S, E, N; W is E mirrored) so they follow the walk bob and the bow |
+| `emote_gestures`, `pose_cafe`, `pose_bolsa`, `pose_bracos`, `pose_bolsos`, `pose_cintura`, `npc_apron` | | body-anchored props (`charart.mjs`); `pose_*` only have pixels on the idle rows |
+| `acc_phone` | Smartphone_1 (row 6) | |
+
+**Recolorable ramps.** Every outfit has all three: torso -> `top`, pants -> `bottom`, shoes -> `shoes`. Bands are cut by row relative to the frame's feet
+row, so a white shirt over white pants still gets two different colors. Hair, beard, mustache, brows and braids use `hair`; hats use `hat`
+(HatDef.color) and `accent` (HatDef.accent); gestures and pose props use `skin` and `top`; the NPC apron uses `accent`. Outline navy is never swapped.
+
+**Body types.** Width is baked per layer at import (`charedit.mjs warpLayer`, on body-attached layers only: body, outfits, the crossed-arms pose, the
+apron): `esguio` drops the 2 center columns of the torso rows, `forte` doubles them (skipped where the row is already the full 16 px). Height is applied to
+the fully composed sheet at runtime (`bodytype.ts`): `esguio` duplicates the arm row and lifts everything above it 1 px (taller), `forte` deletes it (shorter);
+the feet never move, and the head, hair and hat move with the torso.
+
+### Anchoring authored pieces
+
+`charedit.mjs anchors()` measures each body frame (head top, feet row, head and torso x extent). A pattern (ASCII rows + a legend of key colors) is authored
+against the reference frame of its facing and shifted by the frame's own offset, so one drawing works for idle, walk, sit and the emotes.
 
 ### Palette swap
 
-Every layer is stored in **key colors** (`KEY_RAMPS` in `apps/client/src/render/pixel/palette.ts`: skin 4, hair 4, top 4,
-bottom 4, shoes 3). At import time `import-map.json` lists each layer's source shades per group (for example hair
-`#ab6736 #b37b3f #cc9659`); they are sorted by luminance and mapped to key ranks (2 shades -> ranks 2,3; 3 shades -> 1,2,3;
-4 shades -> 0..3). At load time `buildRamp(base)` makes the target ramp (shadows darker and shifted toward purple, highlights
-lighter and shifted toward yellow, HOWTO 5.5) and `swapKeys` replaces key -> target on an RGBA buffer. The outline navy
-(`#3a3a50`, `#46465e`) and the white details are shared and never swapped. Pure functions, unit-tested
-(`palette.test.ts`).
+Every layer is stored in **key colors**. At load time `buildRamp(base)` makes the target ramp (shadows darker and shifted toward purple, highlights
+lighter and shifted toward yellow, HOWTO 5.5) and `swapKeys` replaces key -> target on an RGBA buffer (`charcompose.ts`, pure, unit-tested). Ramps with more
+source shades than key ranks are spread over the ranks by luminance (`ranksFor`). Contact sheet of the result: `node scripts/character-lineup.mjs`.
 
 ## Notes on the LimeZu art
 
