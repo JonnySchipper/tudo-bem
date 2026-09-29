@@ -75,6 +75,10 @@ export const PROPS: Placement[] = [
   { key: 'props/quiosque', x: 8.2, y: 10.4 },
   { key: 'props/poleiro', x: 22.7, y: 11.6 },
   { key: 'critters/vira_lata_sleep_e', x: 11.8, y: 8.0 },
+  // art2: feira stall (open, the fruit one) with crates and a price slate
+  { key: 'feira/frutas', x: 28.0, y: 10.6 },
+  { key: 'feira/caixotes', x: 26.4, y: 11.0 },
+  { key: 'feira/preco_lousa', x: 27.0, y: 11.9 },
 ];
 
 /** Utility poles along the curb; wires span between them (overhead sprites, see WIRE_SPANS). */

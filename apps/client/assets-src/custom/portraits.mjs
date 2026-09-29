@@ -273,35 +273,35 @@ RENDER.nanda = (img, expr) => {
   neck(img, skin);
   head(img, skin, kp);
   // brim shadow across the forehead
-  for (let x = 17; x < 47; x++) if (profile(CX, kp)(x + 0.5, 21.5)) put(img, x, 21, skin[0]);
-  for (let x = 18; x < 46; x++) if (profile(CX, kp)(x + 0.5, 22.5)) put(img, x, 22, skin[1]);
-  faceSet(img, 'nanda', expr, skin, { brow: HAIR.black[0], browY: 22, lash: true, mouth: { y: 38, lip: '#a83c46' }, blush: 1 });
+  for (let x = 17; x < 47; x++) if (profile(CX, kp)(x + 0.5, 17.5)) put(img, x, 17, skin[0]);
+  for (let x = 18; x < 46; x++) if (profile(CX, kp)(x + 0.5, 18.5)) put(img, x, 18, skin[1]);
+  faceSet(img, 'nanda', expr, skin, { brow: HAIR.black[0], browY: 21, lash: true, mouth: { y: 38, lip: '#a83c46' }, blush: 1 });
   // curls falling over the shoulders in front of the ears
   for (const s of [-1, 1]) shape(img, ell(CX + s * 19.5, 34, 4.6, 13.5), [CX + s * 19.5, 34, 5, 14], HAIR.black, { ol: '#231f2e', pattern: curly });
   // gold hoops
-  for (const s of [-1, 1]) hoop(img, CX + s * 17.5, 44, 3.3);
+  for (const s of [-1, 1]) hoop(img, CX + s * 17.2, 42.5, 2.7);
   // straw hat: brim first, then the crown with a terracotta band
-  const brim = ell(CX, 14.5, 29, 5.6);
-  shape(img, brim, [CX, 14.5, 29, 6], CLOTH.straw, {
+  const brim = ell(CX, 11.6, 29, 5.6);
+  shape(img, brim, [CX, 11.6, 29, 6], CLOTH.straw, {
     ol: '#7b5b3a',
     pattern: (x, y) => {
-      const r = Math.hypot((x - CX) / 29, (y - 14.5) / 5.6);
+      const r = Math.hypot((x - CX) / 29, (y - 11.6) / 5.6);
       const ring = Math.floor(r * 13);
-      const lit = (x - CX) + (y - 14.5) * 1.5 < -6 ? 3 : 2;
+      const lit = (x - CX) + (y - 11.6) * 1.5 < -6 ? 3 : 2;
       if (r > 0.9) return 1;
       return ring % 2 ? (lit === 3 ? 2 : 1) : lit;
     },
   });
-  const crown = or(ell(CX, 9.5, 12.5, 8), box(19.5, 10, 44.5, 15.5));
-  shape(img, crown, [CX, 10, 12.5, 8], CLOTH.straw, {
+  const crown = or(ell(CX, 6.6, 12.5, 7.4), box(19.5, 7, 44.5, 12.5));
+  shape(img, crown, [CX, 7, 12.5, 7.4], CLOTH.straw, {
     ol: '#7b5b3a',
     pattern: (x, y, idx) => {
       const weave = (Math.floor(x / 2) + y) % 3 === 0;
       return weave ? Math.max(0, idx - 1) : idx;
     },
   });
-  fillRect(img, 20, 12, 24, 3, CLOTH.terracotta[2]); fillRect(img, 20, 12, 24, 1, CLOTH.terracotta[3]); fillRect(img, 20, 14, 24, 1, CLOTH.terracotta[0]);
-  put(img, 32, 13, '#f8d239'); put(img, 33, 13, '#f8d239');
+  fillRect(img, 20, 9, 24, 3, CLOTH.terracotta[2]); fillRect(img, 20, 9, 24, 1, CLOTH.terracotta[3]); fillRect(img, 20, 11, 24, 1, CLOTH.terracotta[0]);
+  put(img, 32, 10, '#f8d239'); put(img, 33, 10, '#f8d239');
 };
 
 RENDER.julia = (img, expr) => {
@@ -393,7 +393,7 @@ RENDER.tia_lu = (img, expr) => {
   shape(img, ell(CX, 6.5, 2.6, 2.6), [CX, 6.5, 3, 3], CLOTH.red, { ol: '#7a1c20', t: [0.7, 0.2, -0.2] });
   for (const [x, y] of [[22, 5], [25, 6], [39, 5], [42, 6]]) put(img, x, y, '#f8ecd0');
   // big hoops
-  for (const s of [-1, 1]) hoop(img, CX + s * 18.6, 38.5, 3.6);
+  for (const s of [-1, 1]) hoop(img, CX + s * 17.9, 36.6, 2.9);
 };
 
 export function renderPortrait(npc, expr, bgFn) {

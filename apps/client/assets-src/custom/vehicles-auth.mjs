@@ -172,57 +172,55 @@ const BOX = ['#7a1c20', C.r4, C.r2, C.r0];
 function motoFrame(phase) {
   const W = 44, H = 34;
   const img = blank(W, H);
-  const gy = H - 2;
-  const rw = [9.5, gy - 6.6], fw = [34.5, gy - 6.6];
+  const gy = 33;
+  const rw = [9.5, 26], fw = [34.5, 26];
+  const JEANS = ['#2a3e8f', C.b4, C.b3, C.b2];
+  const JACK = ['#c46823', C.y4, C.y3, C.y1];
+  const RED = ['#7a1c20', C.r4, C.r2, C.r0];
+  const SILVER = ['#565972', '#6c6e85', '#8b8bab', '#b2aecb'];
   // wheels (big, chunky) behind the bike
   for (const [cx, cy] of [rw, fw]) { disc(img, cx, cy, 7, NAVY); wheel(img, cx, cy, 6, phase); }
   // exhaust: a long pipe from the engine to the rear, chrome tip
-  line(img, 15, gy - 5, 3, gy - 7, NAVY); line(img, 15, gy - 6, 3, gy - 8, CHROME[1]); line(img, 15, gy - 7, 4, gy - 9, CHROME[2]);
-  fillRect(img, 1, gy - 9, 3, 3, NAVY); fillRect(img, 1, gy - 8, 2, 1, CHROME[3]);
+  line(img, 15, 29, 3, 27, NAVY); line(img, 15, 28, 3, 26, CHROME[1]); line(img, 15, 27, 4, 25, CHROME[2]);
+  fillRect(img, 1, 25, 3, 3, NAVY); fillRect(img, 1, 26, 2, 1, CHROME[3]);
   // swing arm + engine block with cooling fins
-  line(img, rw[0], rw[1], 17, rw[1] - 2, NAVY); line(img, rw[0], rw[1] - 1, 17, rw[1] - 3, C.slate2);
-  shape(img, rr(15, 18, 25.5, 28.5, 1.6), [20, 23, 5, 5], ['#565972', '#6c6e85', '#8b8bab', '#b2aecb'], { ol: NAVY, t: [0.85, 0.3, -0.1] });
-  for (const y of [20, 22, 24]) fillRect(img, 16, y, 8, 1, '#565972');
-  fillRect(img, 17, 26, 6, 1, NAVY); put(img, 18, 27, CHROME[3]);
+  line(img, rw[0], rw[1], 17, 25, NAVY); line(img, rw[0], rw[1] - 1, 17, 24, SILVER[1]);
+  shape(img, rr(15, 19.5, 26.5, 30, 1.6), [21, 25, 5.5, 5], SILVER, { ol: NAVY, t: [0.85, 0.3, -0.1] });
+  for (const y of [22, 24, 26]) fillRect(img, 16, y, 9, 1, SILVER[0]);
+  fillRect(img, 17, 28, 7, 1, NAVY); put(img, 18, 29, CHROME[3]);
   // rear fender over the rear wheel + tail light
-  shape(img, poly([[3, 20], [16, 17], [17, 19], [4, 22]]), [10, 19, 6, 2], ['#2a2f7c', C.b4, C.b3, C.b1], { ol: NAVY, t: [0.85, 0.3, -0.1] });
-  put(img, 2, 21, C.r2); put(img, 2, 22, C.r4);
-  // rack and the delivery box (bau): red with a lit top-left rim, a mustard band, a lid seam and a reflective patch
-  fillRect(img, 3, 16, 12, 2, NAVY); fillRect(img, 4, 16, 10, 1, C.slate2);
-  shape(img, rr(0, 3, 14, 16.5, 2), [7, 9.5, 7, 6.5], BOX, { ol: NAVY, t: [0.86, 0.34, -0.1] });
-  fillRect(img, 1, 6, 12, 1, BOX[0]); fillRect(img, 1, 5, 12, 1, BOX[3]); // lid seam
+  shape(img, poly([[3, 19.5], [16, 17.5], [16.5, 19.5], [4, 21.5]]), [10, 19, 6, 2], RED, { ol: NAVY, t: [0.85, 0.3, -0.1] });
+  put(img, 2, 21, C.r2); put(img, 2, 22, C.r0);
+  // rack and the delivery box (bau): red, lit top-left rim, lid seam, mustard band, a reflective patch
+  fillRect(img, 3, 16, 12, 2, NAVY); fillRect(img, 4, 16, 10, 1, SILVER[1]);
+  shape(img, rr(0, 2.5, 14, 16.5, 2), [7, 9.5, 7, 7], RED, { ol: NAVY, t: [0.86, 0.34, -0.1] });
+  fillRect(img, 1, 6, 12, 1, RED[0]); fillRect(img, 1, 5, 12, 1, RED[3]);
   fillRect(img, 1, 9, 12, 3, C.y3); fillRect(img, 1, 9, 12, 1, C.y1); fillRect(img, 1, 11, 12, 1, C.y4);
   fillRect(img, 4, 13, 6, 1, WHITE[2]); put(img, 4, 13, WHITE[3]);
-  // seat and tank
-  shape(img, rr(13, 15, 23, 19, 1.6), [18, 17, 5, 2], ['#26263a', C.navy2, C.slate, C.slate2], { ol: NAVY, t: [0.85, 0.3, -0.1] });
-  shape(img, rr(22, 12.5, 31, 19.5, 3), [26.5, 16, 4.5, 3.5], TANK, { ol: NAVY, t: [0.85, 0.32, -0.1] });
-  put(img, 24, 14, TANK[3]); put(img, 25, 14, TANK[3]); put(img, 23, 15, TANK[3]);
   // front fork, fender and headlight
-  line(img, 29, 15, fw[0], fw[1], NAVY); line(img, 30, 15, fw[0] + 1, fw[1], C.slate2); line(img, 29, 16, fw[0], fw[1] - 1, CHROME[1]);
-  shape(img, poly([[30, 19], [40, 20], [41, 22], [31, 21]]), [35, 20, 5, 1.5], ['#2a2f7c', C.b4, C.b3, C.b1], { ol: NAVY, t: [0.85, 0.3, -0.1] });
-  disc(img, 37, 16.6, 2.8, NAVY); disc(img, 37, 16.6, 2.1, CHROME[2]); disc(img, 37, 16.6, 1.3, '#fff59a'); put(img, 36, 15, '#ffffff');
-  // handlebar with a mirror
-  line(img, 27, 11, 31, 10, NAVY); line(img, 27, 10, 31, 9, C.slate2);
-  line(img, 31, 9, 33, 5, NAVY); put(img, 33, 4, CHROME[2]); put(img, 32, 4, NAVY);
-  // ---- the rider: legs (far leg darker), jacket, arm to the bar, big white helmet with a visor
-  shape(img, poly([[18, 15], [24, 16.5], [27, 22], [24, 24], [20, 19]]), [22, 19, 4, 4], ['#2a3e8f', C.b4, C.b3, C.b2], { ol: NAVY, t: [0.85, 0.3, -0.1] }); // thigh + shin
-  fillRect(img, 22, 24, 6, 2, NAVY); fillRect(img, 22, 24, 5, 1, C.slate2); // boot on the peg
-  shape(img, ell(19.5, 11.5, 5.3, 6.4), [19.5, 11.5, 5.3, 6.4], JACKET, { ol: NAVY, t: [0.86, 0.32, -0.1] }); // torso, leaning slightly forward
-  fillRect(img, 15, 15, 6, 1, C.y4); // hem
-  for (const [x, y] of [[17, 8], [18, 7], [17, 10], [16, 11]]) put(img, x, y, JACKET[3]);
-  // stripe of reflective tape across the jacket
-  fillRect(img, 15, 12, 9, 1, WHITE[2]); put(img, 15, 12, WHITE[3]);
-  // arm: shoulder -> elbow -> hand on the grip
-  line(img, 22, 9, 27, 11, NAVY); line(img, 22, 10, 27, 12, JACKET[1]); line(img, 22, 9, 27, 10, JACKET[2]);
-  fillRect(img, 27, 10, 3, 3, NAVY); fillRect(img, 27, 10, 2, 2, C.navy2);
-  // helmet
-  shape(img, ell(21.6, 4.6, 5.4, 4.9), [21.6, 4.6, 5.4, 4.9], WHITE, { ol: NAVY, t: [0.84, 0.3, -0.1] });
-  fillRect(img, 19, 1, 6, 1, WHITE[3]); put(img, 18, 3, WHITE[3]);
-  // helmet stripe (terracotta) and a dark visor facing east
-  for (let x = 17; x < 27; x++) if (Math.abs(x - 21.6) < 5.2) put(img, x, 3, C.r2);
-  shape(img, poly([[24, 3], [27.4, 4.2], [27.4, 8], [24.2, 8]]), [25.6, 5.6, 2, 2.5], ['#1c1c30', C.navy2, C.slate, '#8b8bab'], { ol: NAVY, t: [0.9, 0.35, -0.3] });
-  put(img, 25, 4, '#b2aecb'); put(img, 26, 5, '#b2aecb');
-  fillRect(img, 18, 8, 5, 2, WHITE[0]); // chin strap area in shade
+  line(img, 31, 14, fw[0], fw[1], NAVY); line(img, 32, 14, fw[0] + 1, fw[1], SILVER[1]); line(img, 31, 15, fw[0], fw[1] - 1, CHROME[1]);
+  shape(img, poly([[30, 19.5], [40, 20], [41, 22], [31, 21.5]]), [35, 20, 5, 1.5], RED, { ol: NAVY, t: [0.85, 0.3, -0.1] });
+  disc(img, 37.5, 16.4, 2.9, NAVY); disc(img, 37.5, 16.4, 2.2, CHROME[2]); disc(img, 37.5, 16.4, 1.4, '#fff59a'); put(img, 36, 15, '#ffffff');
+  // fuel tank (red) and the dark seat
+  shape(img, rr(23.5, 13, 32.5, 19.5, 3), [28, 16, 4.5, 3.3], RED, { ol: NAVY, t: [0.85, 0.32, -0.1] });
+  put(img, 25, 14, RED[3]); put(img, 26, 14, RED[3]); put(img, 24, 15, RED[3]);
+  shape(img, rr(14, 16, 24, 19.5, 1.6), [19, 17.5, 5, 2], ['#26263a', C.navy2, C.slate, SILVER[1]], { ol: NAVY, t: [0.85, 0.3, -0.1] });
+  // ---- rider: jeans (thigh + shin + boot), jacket, sleeve + glove, white helmet with a dark visor
+  shape(img, poly([[14, 15.5], [21, 14.5], [29, 19.5], [27, 23], [19, 19.5]]), [22, 19, 6, 4], JEANS, { ol: NAVY, t: [0.85, 0.3, -0.1] }); // thigh
+  shape(img, poly([[25, 20.5], [29.5, 20], [27.5, 27], [23.5, 27]]), [26.5, 24, 2.5, 3.5], JEANS, { ol: NAVY, t: [0.9, 0.35, -0.1] }); // shin
+  shape(img, rr(22, 26, 29.5, 29.5, 1.2), [26, 27.5, 3.5, 1.7], ['#1c1c30', C.navy2, C.slate, SILVER[1]], { ol: NAVY, t: [0.9, 0.3, -0.2] }); // boot
+  shape(img, poly([[15, 8.5], [24, 8], [27, 11.5], [23, 17.5], [14, 17]]), [20, 13, 6, 5], JACK, { ol: NAVY, t: [0.86, 0.32, -0.1] }); // jacket
+  fillRect(img, 15, 13, 10, 1, WHITE[2]); put(img, 15, 13, WHITE[3]); put(img, 16, 14, WHITE[1]); // reflective stripe
+  for (const [x, y] of [[16, 10], [17, 9], [16, 11]]) put(img, x, y, JACK[3]);
+  shape(img, poly([[23, 10], [26, 10], [31, 12.5], [30.5, 15], [26, 13]]), [27.5, 12.5, 3.5, 2.5], JACK, { ol: NAVY, t: [0.9, 0.34, -0.1] }); // sleeve to the grip
+  shape(img, rr(30, 11.5, 33.5, 15, 1.2), [32, 13, 1.7, 1.7], ['#1c1c30', C.navy2, C.slate, SILVER[1]], { ol: NAVY, t: [0.9, 0.3, -0.2] }); // glove
+  line(img, 33, 11, 34, 7, NAVY); put(img, 34, 6, CHROME[2]); put(img, 33, 6, NAVY); // handlebar mirror
+  shape(img, ell(20.6, 4.8, 5.3, 4.6), [20.6, 4.8, 5.3, 4.6], WHITE, { ol: NAVY, t: [0.84, 0.3, -0.1] }); // helmet
+  for (let x = 16; x < 26; x++) if (Math.abs(x - 20.6) < 5) put(img, x, 3, C.r2);
+  put(img, 17, 2, WHITE[3]); put(img, 18, 1, WHITE[3]);
+  shape(img, poly([[23.6, 2.8], [26.6, 4], [26.6, 8], [23.8, 8]]), [25.2, 5.4, 2, 2.5], ['#1c1c30', C.navy2, C.slate, SILVER[1]], { ol: NAVY, t: [0.9, 0.35, -0.3] }); // visor
+  put(img, 25, 4, '#b2aecb'); put(img, 25, 5, '#b2aecb');
+  fillRect(img, 17, 8, 5, 1, WHITE[0]);
   return img;
 }
 
@@ -230,8 +228,8 @@ export async function moto() {
   const f = [motoFrame(0), motoFrame(1)];
   const meta = { footprint: [2, 1], shadow: 'fx/shadow_32' };
   return [
-    { key: 'vehicles/moto_e', frames: f, fps: 10, anchor: [22, 31], meta },
-    { key: 'vehicles/moto_w', frames: f.map(flipH), fps: 10, anchor: [21, 31], meta },
+    { key: 'vehicles/moto_e', frames: f, fps: 10, anchor: [22, 32], meta },
+    { key: 'vehicles/moto_w', frames: f.map(flipH), fps: 10, anchor: [21, 32], meta },
   ];
 }
 

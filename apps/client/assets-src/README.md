@@ -45,14 +45,20 @@ plaque text + find the window glass), `custom` (a generator from `custom/`).
 | Orelhão, lixeira laranja, placa de rua, quiosque Missão, poleiro + papagaio, poste com fios + fios | **authored / derived** (`custom/props.mjs`, `wires.mjs`, `critters.mjs`), see docs/lifesim/decisions-art1.md | pole and sign pole cropped from `3_City_Props` |
 | Barraca de chapéus | **derived**: street-food cart split into standing part + overhead canopy, authored hats (`custom/stall.mjs`) | `10_Vehicles` Street_Food_Cart_1 |
 | Padaria, Edifício Ipê, Academia facades (+ lit overlays) | **derived + authored**: pack building fronts cut/widened, authored signs, toldo, grilles, varal, tank, bread, gym silhouettes (`custom/facades.mjs`, `edificio.mjs`, `academia.mjs`) | `9_Shopping_Center_and_Markets`, `4_Generic_Buildings` |
-| Ônibus, kombi | **derived**: pack bus (wheel spin frame) and camper (shortened, repainted) (`custom/vehicles.mjs`) | `10_Vehicles` singles |
-| Fusca, moto (motoboy), vira-lata | **authored** (`custom/vehicles-auth.mjs`, `critters.mjs`) | none |
+| Ônibus | **derived**: pack bus (wheel spin frame) (`custom/vehicles.mjs`) | `10_Vehicles` singles |
+| Kombi, fusca, moto (motoboy) | **authored** (art2 redraw): white-over-turquoise kombi with split windscreen and V nose, round beetle, motoboy with delivery box (`custom/vehicles-auth.mjs`) | none |
+| Vira-lata caramelo | **authored** (art2 redraw, 24x17): big head, perky ears, curled tail; idle / walk / curled sleep (`custom/dog.mjs`) | none |
+| Feira livre stalls (frutas, verduras, pastel + caldo de cana, flores), closed variants, crates, price tags | **authored** (`custom/feira.mjs`): 3x2 stalls with the striped tarp as an overhead part, folded-tarp roll when closed | none |
+| NPC portraits (5 x 4 expressions, 64x64) | **authored** (`custom/portraits.mjs`, painter helpers in `custom/paint.mjs`) | none (the Interiors pack has no face art) |
+| Item icons (15, 16x16) | **authored** (`custom/icons.mjs`) | none (the packs only have a few tiny food pieces) |
+| UI kit: paper panel, speech bubble, button x3 states, guide arrow | **authored** (`custom/ui.mjs`), after the pack's bubble and bobbing arrow in `UI_16x16.png` | `4_User_Interface_Elements` (reference only) |
 | Contact shadows, cast shadows | **generated** from sprite silhouettes (down-right) | none |
 | Glow, cloud shadow | **generated** light textures (allowed by D6) | none |
 
 No placeholder (magenta) piece is on the P1 frame. Everything still missing from the custom set-piece list in the HOWTO
 (4.3) is simply not on the frame yet: orelhão, padaria/edifício/academia facades, poste com fios, chapéus stall, missão
 kiosk, parrot perch, bus, kombi/fusca/moto, dogs and cats, feira stalls, portraits.
+(Art tracks 1 and 2 have since added all of those except the cat walk/sit poses; see the tables above.)
 In the renderer a missing manifest key draws a flat magenta box (HOWTO 5.10); the frame page does the same
 (`window.__frame.artMissing`).
 
@@ -128,3 +134,27 @@ lighter and shifted toward yellow, HOWTO 5.5) and `swapKeys` replaces key -> tar
   (`fx/shadow_10/16/32/48`) plus a generated cast shadow per sprite (`<key>#cast`).
 - Sprites in the theme sorters are cropped by rectangle; a few neighbors overlap the crop box, hence the `isolate` option
   (keep one connected component).
+
+## Standalone images: portraits, icons, UI kit (art2)
+
+Portraits, item icons and the UI kit are shown by the DOM (`<img>`, CSS `border-image`), at 2-4x, so they are **not** in the Phaser
+atlas. `import-map.json` has an `images` list (`{ "fn": "portraits" | "icons" | "ui" }`, generators registered as `IMAGES` in
+`custom/derive.mjs`); each returns `[{ key, img, meta? }]` and `pnpm pixel` writes `public/pixel/<key>.png` and
+`manifest.images[key] = { file, w, h, ...meta }`:
+
+| Key | Size | meta |
+|---|---|---|
+| `portraits/<npc>_<expr>` (`carlos`, `nanda`, `julia`, `graca`, `tia_lu` x `neutro`, `feliz`, `surpreso`, `pensativo`) | 64x64 (bust in a 2 px framed card) | none |
+| `icons/<itemId>` (the 12 padaria shelf ids + `jornal`, `flores`, `banana`) | 16x16 | none |
+| `ui/panel`, `ui/bubble`, `ui/button`, `ui/button_hover`, `ui/button_pressed` | 20x20, 30x27, 16x16 | `slice: { top, right, bottom, left }`, `css: "t r b l"`, `demo` |
+| `ui/guide_arrow_strip` | 64x20 (4 frames of 16x20) | `frames: 4, frameW: 16, fps: 6` |
+
+Use a 9-slice like this (integer display scale, `image-rendering: pixelated`):
+
+```css
+.panel { border-style: solid; border-width: 21px; /* slice x scale 3 */
+  border-image: url(/pixel/ui/panel.png) 7 7 7 7 fill / 21px / 0 stretch; image-rendering: pixelated; }
+```
+
+The guide arrow is also a normal atlas sprite, `ui/guide_arrow` (4 frames, anchored at the bottom centre of the bounce range) for the world.
+Contact sheets: `node scripts/pixel-contact.mjs --set portraits|feira|icons|ui|fixes` (writes `docs/lifesim/shots/art2/`).
