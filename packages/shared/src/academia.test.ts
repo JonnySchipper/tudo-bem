@@ -136,7 +136,7 @@ describe('academia roll', () => {
   it('keeps pose ids for the mat while chrome stays a neutral step', () => {
     const atFinish = displayPosition(0, ROLL_FINISH_INDEX);
     expect(atFinish.position).toBe('costas');
-    expect(atFinish.label.pt).toBe('Costas');
+    expect(atFinish.label).toEqual({ pt: 'Final', en: 'Finish' });
     expect(rollChromeLabel(0, ROLL_FINISH_INDEX)).toEqual({ pt: 'Final', en: 'Finish' });
     expect(atFinish.submissionHint).toEqual({ pt: 'Final', en: 'Finish' });
   });

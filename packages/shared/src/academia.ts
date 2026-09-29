@@ -26,17 +26,7 @@ export type BjjPositionId =
 export const PLAYER_POSITIONS: BjjPositionId[] = ['de_pe', 'guarda_fechada', 'cem_quilos', 'joelho', 'montada'];
 export const CPU_POSITIONS: BjjPositionId[] = ['de_pe', 'meia_guarda', 'cem_quilos', 'joelho', 'costas'];
 
-export const POSITION_LABELS: Record<BjjPositionId, Bilingual> = {
-  de_pe: { pt: 'De pé', en: 'Standing' },
-  guarda_fechada: { pt: 'Guarda fechada', en: 'Closed guard' },
-  meia_guarda: { pt: 'Meia-guarda', en: 'Half guard' },
-  cem_quilos: { pt: 'Cem quilos', en: 'Side control' },
-  joelho: { pt: 'Joelho na barriga', en: 'Knee on belly' },
-  montada: { pt: 'Montada', en: 'Mount' },
-  costas: { pt: 'Costas', en: 'Back control' },
-};
-
-/** Neutral bout-step chrome at finishing seats — not BJJ technique trivia (Product B). */
+/** Neutral bout-step chrome. Pose ids stay internal and are not shown as copy. */
 export const BOUT_STEP_CHROME: Bilingual[] = [
   { pt: 'Vantagem', en: 'Advantage' },
   { pt: 'Pressão', en: 'Pressure' },
@@ -441,14 +431,14 @@ export function displayPosition(playerIdx: number, cpuIdx: number): { position: 
   if (playerIdx > cpuIdx) {
     const id = PLAYER_POSITIONS[Math.min(playerIdx, PLAYER_POSITIONS.length - 1)];
     const hint = submissionHintForSeat('player', id, playerIdx);
-    return { position: id, label: POSITION_LABELS[id], submissionHint: hint };
+    return { position: id, label: rollChromeLabel(playerIdx, cpuIdx), submissionHint: hint };
   }
   if (cpuIdx > playerIdx) {
     const id = CPU_POSITIONS[Math.min(cpuIdx, CPU_POSITIONS.length - 1)];
     const hint = submissionHintForSeat('cpu', id, cpuIdx);
-    return { position: id, label: POSITION_LABELS[id], submissionHint: hint };
+    return { position: id, label: rollChromeLabel(playerIdx, cpuIdx), submissionHint: hint };
   }
-  return { position: 'de_pe', label: POSITION_LABELS.de_pe, submissionHint: null };
+  return { position: 'de_pe', label: rollChromeLabel(playerIdx, cpuIdx), submissionHint: null };
 }
 
 export type DuelAdvance = 'player' | 'cpu' | 'none';
