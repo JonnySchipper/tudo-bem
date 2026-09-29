@@ -48,6 +48,18 @@ async function clickTile(page, x, y, lift = 0) {
   await page.mouse.click(p.px, p.py - lift * scale);
 }
 
+/**
+ * Renderer-independent input (Phase 0): reach a prop / NPC / portal by id through the same handler a click uses.
+ * Real pointer input stays covered by clickTile (one floor tile, one bench).
+ */
+async function interact(page, target) {
+  const ok = await page.evaluate((t) => window.__tb.interact(t), target);
+  assert(ok, `interact target exists in the current room: ${JSON.stringify(target)}`);
+}
+const walkTo = (page, x, y, sit = false) => page.evaluate(([x, y, sit]) => window.__tb.walkTo(x, y, sit), [x, y, sit]);
+/** A tile click routed through the click handler without pointer coordinates (decor placement needs a tile hit). */
+const clickTileHit = (page, x, y) => page.evaluate(([x, y]) => window.__tb.clickHit({ kind: 'tile', tile: { x, y } }), [x, y]);
+
 async function waitIdleAt(page, x, y, label) {
   await waitFor(page, ([x, y]) => {
     const t = window.__tb.selfTile();
@@ -190,7 +202,7 @@ async function main() {
   }
 
   // 1c. Daily kiosk: Missão do dia (Set A)
-  await clickTile(page, 2, 2, 40);
+  await interact(page, { prop: 'quiosque' });
   await page.waitForSelector('[data-modal="kiosk"] #mission-take', { timeout: 12_000 });
   const steps = await page.$$eval('[data-mission-step]', (els) => els.map((e) => e.textContent));
   assert(steps[0].startsWith('Cumprimenta') && steps[1].startsWith('Pede') && steps[2].startsWith('Monta'), `kiosk steps Cumprimenta / Pede / Monta (${steps})`);
@@ -235,7 +247,7 @@ async function main() {
     await waitFor(pageB, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'Bia back in the praça');
     assert((await profile(pageB)).id === biaId, 'login returns the same avatar');
     log('logout → wrong password → login ok');
-    await clickTile(pageB, 8, 8);
+    await walkTo(pageB, 8, 8);
     await sleep(1200);
     await pageB.fill('#chat-input', 'Oi, Jonny! Eu sou de Chicago. Vamos na padaria?');
     await pageB.press('#chat-input', 'Enter');
@@ -279,7 +291,7 @@ async function main() {
   }
 
   // 3. Enter the Padaria through its door
-  await clickTile(page, 5, 0, 40);
+  await interact(page, { portal: 'praca_padaria' });
   await waitFor(page, () => window.__tb.game.room?.room === 'padaria', null, 15_000, 'padaria');
   await sleep(700);
   await shot(page, '03_padaria');
@@ -287,7 +299,7 @@ async function main() {
   await dwell(1200);
 
   // 4. Clicking Carlos opens AI Conversa. Pedido rápido (footer) is the chip breakfast.
-  await clickTile(page, 3, 1, 50);
+  await interact(page, { npc: 'carlos' });
   await page.waitForSelector('[data-modal="conversa"] .conversa-panel', { timeout: 12_000 });
   const conversaName = ((await page.textContent('[data-modal="conversa"] .npc-name')) ?? '').trim();
   assert(conversaName === 'Seu Carlos', `Conversa is Seu Carlos at the mesa (${conversaName})`);
@@ -375,7 +387,7 @@ async function main() {
 
   // 5b. Test daily RV gate: second Pedido rápido same day → 0 RV, "já pediu hoje" message
   const coinsBeforeSecond = (await profile(page)).coins;
-  await clickTile(page, 3, 1, 50);
+  await interact(page, { npc: 'carlos' });
   await page.waitForSelector('[data-modal="conversa"] .conversa-panel', { timeout: 12_000 });
   await page.click('[data-action="pedido-rapido"]');
   await page.waitForSelector('[data-modal="pedido"] .pedido-panel', { timeout: 12_000 });
@@ -398,7 +410,7 @@ async function main() {
   await page.keyboard.press('Escape');
 
   // 6. Back to the praça via the door, buy + equip a hat at Nanda's stall
-  await clickTile(page, 0, 6, 40);
+  await interact(page, { portal: 'padaria_praca' });
   await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 15_000, 'back in praça');
   await sleep(500);
   if (AMBIANCE) {
@@ -406,7 +418,7 @@ async function main() {
     assert(crowd.length > 0, 'CPUs still in the praça');
     assert(crowd.every((c) => c.bubbles === 0), 'CPUs never chat');
     // Kiosk now shows the completion state
-    await clickTile(page, 2, 2, 40);
+    await interact(page, { prop: 'quiosque' });
     await page.waitForSelector('[data-modal="kiosk"] #mission-done', { timeout: 12_000 });
     const done = await page.textContent('#mission-done .big');
     assert(done === 'Missão completa! +25 RV', `kiosk complete copy (${done})`);
@@ -414,7 +426,7 @@ async function main() {
     await page.keyboard.press('Escape');
     log('kiosk shows “Missão completa! +25 RV”');
   }
-  await clickTile(page, 11, 6, 50);
+  await interact(page, { prop: 'barraca' });
   await page.waitForSelector('[data-modal="hats"]', { timeout: 12_000 });
   await page.click('[data-hat="boina_vermelha"]');
   await page.click('[data-hat-action="boina_vermelha"]');
@@ -424,7 +436,7 @@ async function main() {
   await dwell(1800);
   await page.keyboard.press('Escape');
   // Adopt the parrot (optional cosmetic) and ask for a hint
-  await clickTile(page, 10, 9, 50);
+  await interact(page, { prop: 'poleiro' });
   await page.waitForSelector('#dialogue [data-chip="0"]', { timeout: 12_000 });
   await page.click('#dialogue [data-chip="0"]');
   await waitFor(page, () => window.__tb.game.profile.parrotOwned, null, 5000, 'parrot');
@@ -435,7 +447,7 @@ async function main() {
   await dwell(1500);
 
   // 6b. Academia do Bairro — enter + one CPU roll duel (TB_TEST_ROLL + ROLL_QUEUE_MS on server)
-  await clickTile(page, 10, 0, 40);
+  await interact(page, { portal: 'praca_academia' });
   await waitFor(page, () => window.__tb.game.room?.room === 'academia', null, 15_000, 'academia');
   await waitFor(
     page,
@@ -478,17 +490,17 @@ async function main() {
   await page.waitForSelector('#roll-end', { timeout: 45_000 });
   await shot(page, '09c_roll_end');
   await page.click('#roll-end button:has-text("Sair")');
-  await clickTile(page, 0, 6, 50);
+  await interact(page, { portal: 'academia_praca' });
   await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 15_000, 'back from academia');
   log('academia CPU roll path ok');
 
   // 7. Kitnet: place the free chair
-  await clickTile(page, 0, 4, 40);
+  await interact(page, { portal: 'praca_kitnet' });
   await waitFor(page, () => window.__tb.game.room?.room === 'kitnet', null, 15_000, 'kitnet');
   await sleep(500);
   await page.click('#btn-decor');
   await page.click('[data-furniture="cadeira_madeira"]');
-  await clickTile(page, 3, 4);
+  await clickTileHit(page, 3, 4);
   await waitFor(page, () => window.__tb.game.furniture.length === 1, null, 5000, 'chair placed');
   // Buy + place a plant too
   await page.click('#tab-loja');
@@ -496,11 +508,11 @@ async function main() {
   await sleep(300);
   await page.click('button:has-text("Meus móveis")');
   await page.click('[data-furniture="planta"]');
-  await clickTile(page, 5, 4);
+  await clickTileHit(page, 5, 4);
   await waitFor(page, () => window.__tb.game.furniture.length === 2, null, 5000, 'plant placed');
   await page.click('#decor-panel button.ghost');
   await sleep(400);
-  await clickTile(page, 3, 4, 10);
+  await walkTo(page, 3, 4, true);
   await waitIdleAt(page, 3, 4, 'sit on chair');
   await sleep(600);
   await shot(page, '11_kitnet_chair');

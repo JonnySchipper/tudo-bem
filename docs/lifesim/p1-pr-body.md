@@ -22,7 +22,7 @@ Extra 4x detail shots: [17:30](https://github.com/JonnySchipper/tudo-bem/blob/li
 ### Files
 - `scripts/pixel-import.mjs` + `scripts/lib/pixel/*` + `apps/client/assets-src/import-map.json`; root script `"pixel"`. Output: `public/pixel/**` + `manifest.json` (about 150 KB).
 - `apps/client/src/render/pixel/`: `palette.ts` (ramp + key swap, pure), `terrain.ts` (dual-grid masks, pure), `lighting.ts` (grade/darkness, pure), `charsheet.ts`, `manifest.ts`, `frame/*` (scene, layout, labels, page entry). New files only; `facing.ts` and `render/*` untouched.
-- `apps/client/assets-src/LICENSES.md` (credit line + both licenses summarized), `assets-src/README.md` (source -> canonical row mapping, terrain conversion), `docs/lifesim/decisions-p1.md` (for the boss to merge into DECISIONS.md).
+- `apps/client/assets-src/LICENSES.md` (credit line + both licenses summarized), `assets-src/README.md` (source -> canonical row mapping, terrain conversion), `docs/lifesim/DECISIONS.md` (Phase 1 section).
 - Footer on the page: "Art: LimeZu — limezu.itch.io".
 
 ### Tests
@@ -31,7 +31,7 @@ Extra 4x detail shots: [17:30](https://github.com/JonnySchipper/tudo-bem/blob/li
 - `pnpm test`: **506 passed, 2 failed, both pre-existing on this Windows machine** (they fail identically on `lifesim/main` before my change): `safety.test.ts` compares `\\` vs `/` paths, `curriculum.test.ts` me-ve-um-orders sync fails under a CRLF checkout. Because of them `pnpm verify` exits before its build step, so I ran typecheck, build and e2e separately.
 - e2e against the production build (`TB_TEST_ROLL=1`, Chrome): `pnpm e2e` passed ("Phase 0 play path passed") and `pnpm e2e:meveum` passed.
 
-### Decisions I made (full list in `docs/lifesim/decisions-p1.md`)
+### Decisions I made (full list in `docs/lifesim/DECISIONS.md`, Phase 1 section)
 - Custom pieces route (c), agent-made, no placeholders needed for P1.
 - Terrain mask tiles are derived from a fill tile, not converted from the pack autotiles (those paint X over a base terrain, both opaque). Two kinds: `slab` (calçada, on top) and `flat` underlays (grama, asfalto). Deviates from the priority list in 5.6 (g above c).
 - The wave paving has 2 phases (32 px wave over 16 px tiles). Mosaic is 3x2 tiles instead of 2x2 (aspect ratio of the state).

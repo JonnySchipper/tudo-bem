@@ -5,11 +5,10 @@
  * The pure swap math lives in palette.ts (unit tested); this file only touches the DOM canvas and Phaser.
  */
 import Phaser from 'phaser';
+import { FACING_ROW, type Facing } from './facing';
 import { KEY_RAMPS, buildRamp, mergeTables, rampMap, swapKeys, type RampName } from './palette';
 
-export type Facing = 'S' | 'W' | 'E' | 'N';
-/** Row order of the canonical sheet (same as FACING_ROW in HOWTO §5.2). */
-export const CANON_FACING_ROW: Record<Facing, number> = { S: 0, W: 1, E: 2, N: 3 };
+export type { Facing };
 
 export interface SheetMeta {
   frame: [number, number];
@@ -75,8 +74,8 @@ function createAnims(scene: Phaser.Scene, sheetKey: string, meta: SheetMeta): vo
   for (const name of ['idle', 'walk'] as const) {
     const a = meta.anims[name];
     if (!a?.rows) continue;
-    (Object.keys(CANON_FACING_ROW) as Facing[]).forEach((f) => {
-      const row = a.rows![CANON_FACING_ROW[f]];
+    (Object.keys(FACING_ROW) as Facing[]).forEach((f) => {
+      const row = a.rows![FACING_ROW[f]];
       scene.anims.create({
         key: animKey(sheetKey, name, f),
         frames: Array.from({ length: a.frames }, (_, c) => ({ key: sheetKey, frame: frameIndex(meta, row, c) })),
@@ -89,5 +88,5 @@ function createAnims(scene: Phaser.Scene, sheetKey: string, meta: SheetMeta): vo
 
 /** Frame index of the single-frame sit pose for a facing. */
 export function sitFrame(meta: SheetMeta, facing: Facing): number {
-  return frameIndex(meta, meta.anims.sit.rows![CANON_FACING_ROW[facing]], 0);
+  return frameIndex(meta, meta.anims.sit.rows![FACING_ROW[facing]], 0);
 }

@@ -24,14 +24,10 @@ import { clearFurnitureIconCache, drawFurniture, drawProp, SLICED_PROPS } from '
 import { avatarTop, clearFrameCache, drawAvatar } from './avatar';
 import { drawSprite, furnitureKey, propKey } from '../art/sprites';
 
-export type Hit =
-  | { kind: 'avatar'; id: string }
-  | { kind: 'npc'; npc: NpcDef }
-  | { kind: 'prop'; prop: PropDef }
-  | { kind: 'portal'; portal: PortalDef }
-  | { kind: 'seat'; tile: Tile }
-  | { kind: 'furniture'; f: PlacedFurniture }
-  | { kind: 'tile'; tile: Tile };
+import type { Guide, Hit, WorldView } from './view';
+
+// `Hit` now lives in ./view (renderer-independent); re-exported so existing imports keep working.
+export type { Hit };
 
 interface HitBox {
   x0: number;
@@ -87,7 +83,7 @@ const MAX_CANVAS_DIM = 8192;
 /** Maximum total pixels per offscreen canvas. */
 const MAX_CANVAS_PX = 32_000_000;
 
-export class WorldRenderer {
+export class WorldRenderer implements WorldView {
   readonly ctx: Ctx;
   cam: Camera = { scale: 1, ox: 0, oy: 0, dpr: 1 };
   private staticLayer: HTMLCanvasElement | null = null;
@@ -102,7 +98,7 @@ export class WorldRenderer {
   private lastT = 0;
   private lastRoom = '';
   /** Tiles to point a guide arrow at (tutorial hints). */
-  guides: { x: number; y: number; lift: number; label: string }[] = [];
+  guides: Guide[] = [];
 
   constructor(readonly canvas: HTMLCanvasElement) {
     this.ctx = canvas.getContext('2d')!;

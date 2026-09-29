@@ -244,7 +244,7 @@ export class FrameScene extends Phaser.Scene {
     const map = this.make.tilemap({ tileWidth: T, tileHeight: T, width: COLS + 1, height: ROWS + 1 });
     const ts = map.addTilesetImage('terrain', 'terrainTs', T, T, t.margin, t.spacing);
     if (!ts) throw new Error('terrain tileset failed');
-    // flat underlays first (grass, asphalt), then slab terrains on top (see decisions-p1.md)
+    // flat underlays first (grass, asphalt), then slab terrains on top (see docs/lifesim/DECISIONS.md)
     const order = [...TERRAIN_PRIORITY].filter((c) => t.layers[c]);
     order.sort((a, b) => Number(t.layers[a].edge === 'slab') - Number(t.layers[b].edge === 'slab'));
     order.forEach((ch, li) => {
