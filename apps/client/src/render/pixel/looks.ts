@@ -3,7 +3,7 @@
  * swap in. Pure: no Phaser, no DOM. The layers are drawn back to front by `composeRgba` (charcompose.ts).
  */
 import { CLOTH_COLORS, DEFAULT_APPEARANCE, HAIR_COLORS, SHOE_COLORS, SKIN_TONES, hatById, type Appearance, type BodyType, type NpcId } from '@tudobem/shared';
-import { CHAR_LAYERS, hatLayer, outfitKey, pick, type IdleEntry } from './characters';
+import { CHAR_LAYERS, HAT_LIFT, hatLayer, outfitKey, pick, type IdleEntry } from './characters';
 import type { Ramps } from './charcompose';
 
 export interface LookLayer {
@@ -82,6 +82,12 @@ export function lookForAppearance(a: Appearance, opts: LookOptions = {}): Look {
   const hat = hatSpec(opts.hat);
   if (hat) layers.push({ key: hat.layer, ramps: { hat: hat.color, accent: hat.accent } });
   return { body, layers, idle };
+}
+
+/** Art px from the top of a bare head to the top of this look's sprite (hat, plus the body height change): labels stand above it. */
+export function lookHeadLift(look: Look): number {
+  const hat = look.layers.find((l) => l.key.startsWith('hat_'));
+  return (hat ? (HAT_LIFT[hat.key] ?? 3) : 0) + (look.body === 'esguio' ? 1 : look.body === 'forte' ? -1 : 0);
 }
 
 /** Everything that makes an NPC read like their portrait (public/pixel/portraits): the appearance, plus a hat and an apron. */

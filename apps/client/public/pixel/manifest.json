@@ -2700,10 +2700,12 @@
   "outfit_regata_saia__esguio": "chars/outfit_regata_saia__esguio.png",
   "outfit_regata_saia__forte": "chars/outfit_regata_saia__forte.png",
   "pose_bolsa": "chars/pose_bolsa.png",
+  "pose_bolsos": "chars/pose_bolsos.png",
   "pose_bracos": "chars/pose_bracos.png",
   "pose_bracos__esguio": "chars/pose_bracos__esguio.png",
   "pose_bracos__forte": "chars/pose_bracos__forte.png",
-  "pose_cafe": "chars/pose_cafe.png"
+  "pose_cafe": "chars/pose_cafe.png",
+  "pose_cintura": "chars/pose_cintura.png"
  },
  "sheet": {
   "frame": [

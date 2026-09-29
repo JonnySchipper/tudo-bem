@@ -100,14 +100,14 @@ export const CHAR_LAYERS = {
     chapeu_chef: 'hat_chapeu_chef',
     cartola: 'hat_cartola',
   } as Record<string, string>,
-  /** standing poses: props on the idle rows, or the pack's phone loop (S only). solto / bolsos / cintura only differ in pace. */
+  /** standing poses: props on the idle rows, or the pack's phone loop (S only). `solto` is the plain pack idle. */
   idle: {
     solto: { layers: [], anim: 'idle', speed: 1 },
-    bolsos: { layers: [], anim: 'idle', speed: 0.8 },
+    bolsos: { layers: ['pose_bolsos'], anim: 'idle', speed: 0.8 },
     bracos: { layers: ['pose_bracos'], warped: true, anim: 'idle', speed: 0.9 },
     celular: { layers: ['acc_phone'], anim: 'phone', speed: 1 },
     cafe: { layers: ['pose_cafe'], anim: 'idle', speed: 0.8 },
-    cintura: { layers: [], anim: 'idle', speed: 1.2 },
+    cintura: { layers: ['pose_cintura'], anim: 'idle', speed: 1.2 },
     bolsa: { layers: ['pose_bolsa'], anim: 'idle', speed: 1 },
   } as Record<IdlePose, IdleEntry>,
   /** hats that are not in the shop (NPC pieces) */
@@ -131,6 +131,23 @@ export function pick<V>(table: Record<string, V>, key: string | null | undefined
   }
   return table[fallback];
 }
+
+/** Art px a hat rises above the top of the head (nameplates and bubbles stand above it). */
+export const HAT_LIFT: Record<string, number> = {
+  hat_bone_verde: 1,
+  hat_chapeu_palha: 4,
+  hat_gorro_listrado: 1,
+  hat_viseira_azul: 0,
+  hat_boina_vermelha: 3,
+  hat_chapeu_sol: 3,
+  hat_bucket_amarelo: 3,
+  hat_capacete_bike: 3,
+  hat_panama: 2,
+  hat_coroa_flores: 1,
+  hat_chapeu_chef: 5,
+  hat_cartola: 7,
+  hat_pano: 2,
+};
 
 /** Layer key of an outfit at a body type (an unknown top or bottom falls back to camiseta / calca and logs once). */
 export function outfitKey(top: string | undefined, bottom: string | undefined, body: BodyType): string {

@@ -19,7 +19,7 @@ import { addSheetTexture, animKey, animNames, emoteDuration, sitFrame } from './
 import { CharSheets } from './charCache';
 import type { CharAssets } from './charAssets';
 import { composeLook } from './composeLook';
-import { lookForAppearance, lookForNpc, type Look } from './looks';
+import { lookForAppearance, lookForNpc, lookHeadLift, type Look } from './looks';
 import { LightingRig } from './lightingRig';
 import { buildTerrainLayers } from './terrainLayers';
 import { LabelLayer, type GuideItem, type StackItem } from './labels';
@@ -81,6 +81,8 @@ interface NpcView {
   sprite: Phaser.GameObjects.Sprite;
   shadow: Phaser.GameObjects.Image;
   sheet: string;
+  /** art px the sprite rises above a bare head (hats) */
+  lift: number;
 }
 
 interface FurnitureView {
@@ -387,7 +389,7 @@ export class WorldScene extends Phaser.Scene {
     spr.anims.timeScale = look.idle.speed * (0.9 + 0.2 * hash01(seed + 7));
     const s16 = this.m.sprites['fx/shadow_16'];
     const shadow = this.reg(this.add.image(f.wx, Math.round(f.wy) - 1, s16.atlas, s16.frame)).setOrigin(...originOf(s16)).setDepth(DEPTH.shadowContact);
-    this.npcs.push({ npc: n, sprite: spr, shadow, sheet });
+    this.npcs.push({ npc: n, sprite: spr, shadow, sheet, lift: lookHeadLift(look) });
     this.staticHits.push({ x0: f.wx - 9, y0: f.wy - 32, x1: f.wx + 9, y1: f.wy + 2, hit: { kind: 'npc', npc: n }, depth: f.wy + 0.5 });
   }
 
@@ -651,7 +653,7 @@ export class WorldScene extends Phaser.Scene {
     const stacks: StackItem[] = [];
     const selfId = game.room?.selfId;
     for (const n of this.npcs) {
-      const p = at((n.npc.x + 0.5) * T, (n.npc.y + 1) * T - 3 - HEAD_LIFT);
+      const p = at((n.npc.x + 0.5) * T, (n.npc.y + 1) * T - 3 - HEAD_LIFT - n.lift);
       const b = game.npcBubbles.get(n.npc.id);
       const age = b ? now - b.at : Infinity;
       stacks.push({
@@ -665,7 +667,7 @@ export class WorldScene extends Phaser.Scene {
     for (const [id, v] of this.avatars) {
       const a = game.avatars.get(id);
       if (!a) continue;
-      const p = at(v.wx, v.wy - (v.sitting ? HEAD_LIFT_SIT : HEAD_LIFT));
+      const p = at(v.wx, v.wy - (v.sitting ? HEAD_LIFT_SIT : HEAD_LIFT) - lookHeadLift(v.look));
       const bubbles = isCpuId(id)
         ? [] // Live Ops lock: CPUs never show chat bubbles
         : a.bubbles

@@ -33,7 +33,7 @@ export const EXTRA_ART = {
     E: P(9, [T(5, 'Y'), T(5, 'y')]),
   },
   sardas: {
-    S: P(10, [T(3, 'p...........p'.slice(0, 1) + '.'.repeat(8) + 'p'), T(2, 'p.p......p.p'), T(4, 'p......p')]),
+    S: P(10, [T(3, 'q' + '.'.repeat(8) + 'q'), T(2, 'q.q......q.q'), T(4, 'q......q')]),
     E: P(10, [T(9, 'p'), T(10, 'p.p'), T(11, 'p')]),
   },
 };
@@ -113,9 +113,21 @@ export const GESTURE_FRAMES = {
 // ---- idle-pose props (body anchored, idle rows 0-3)
 export const POSE_ART = {
   cafe: {
-    S: P(-9, [T(14, 'W'), T(13, 'oBo'), T(13, 'owo'), T(13, 'oWo'), T(14, 'o')]),
-    E: P(-9, [T(12, 'W'), T(11, 'oBo'), T(11, 'owo'), T(11, 'oWo'), T(12, 'o')]),
+    S: P(-9, [T(13, 'W'), T(12, 'oBBo'), T(12, 'owwo'), T(12, 'oWWo'), T(13, 'oo')]),
+    E: P(-9, [T(11, 'W'), T(10, 'oBBo'), T(10, 'owwo'), T(10, 'oWWo'), T(11, 'oo')]),
     N: NONE.S,
+  },
+  // hands in the pockets: the hands are covered by sleeve-colored cuffs and the pants get pocket slits
+  bolsos: {
+    S: P(-7, [T(0, 'o' + DOTS(14) + 'o'), T(0, 'u' + DOTS(14) + 'u'), T(0, 'u' + DOTS(14) + 'u'), T(0, DOTS(4) + 'O' + DOTS(6) + 'O'), '.'.repeat(16)].map((r) => r.padEnd(16, '.'))),
+    E: P(-6, [T(5, 'u'), T(5, 'u'), T(5, 'O')]),
+    N: NONE.S,
+  },
+  // hands on the hips: fists at the waist, elbows out
+  cintura: {
+    S: P(-5, [T(2, 'or' + DOTS(8) + 'ro'), T(3, 'r' + DOTS(8) + 'r')]),
+    E: P(-5, [T(4, 'or'), T(4, 'r')]),
+    N: P(-5, [T(2, 'or' + DOTS(8) + 'ro'), T(3, 'r' + DOTS(8) + 'r')]),
   },
   bolsa: {
     S: P(-6, [T(0, '.oo.'), T(0, 'oBBo'), T(0, 'oyBo'), T(0, 'oyyo'), T(0, '.oo.')]),
