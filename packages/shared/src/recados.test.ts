@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { CLOCK_OFFSET_MS, GAME_DAY_MS, gameDay, greetingFor } from './clock.js';
 import { MG_ITEMS, mulberry32 } from './meveum.js';
 import { cardById } from './cards.js';
+import { ECONOMY } from './constants.js';
+import { isNpcId } from './bonds.js';
+import { ROOMS } from './rooms.js';
 import {
   addToBag,
   advance,
@@ -13,14 +16,18 @@ import {
   itemById,
   normalizeBag,
   normalizeRecados,
+  npcName,
   offerFor,
+  RECADO_FLAGS,
   RECADOS,
+  recadoEnabled,
   recadoById,
   rollRecadoDay,
   stepMatches,
   takeFromBag,
   type RecadoDef,
   type RecadoEvent,
+  type RecadoFlag,
   type RecadoStep,
 } from './recados.js';
 
@@ -155,23 +162,155 @@ describe('advance', () => {
   });
 });
 
-describe('starter recados', () => {
-  it('are well formed: unique ids, needs_br, real items, real cards', () => {
+describe('the recados pack (recados.md)', () => {
+  const gated = RECADOS.filter((d) => d.requires);
+
+  it('are well formed: unique ids, needs_br, real items, real cards, real NPCs and rooms', () => {
     expect(new Set(RECADOS.map((d) => d.id)).size).toBe(RECADOS.length);
     for (const d of RECADOS) {
-      expect(d.needs_br).toBe(true);
-      expect(d.steps.length).toBeGreaterThan(0);
-      expect(d.reward.rv).toBeGreaterThan(0);
-      expect(d.reward.bond).toBeGreaterThan(0);
+      expect(d.needs_br, d.id).toBe(true);
+      expect(d.steps.length, d.id).toBeGreaterThan(0);
+      expect(isNpcId(d.giver), d.id).toBe(true);
       for (const c of d.cards) expect(cardById(c), c).toBeTruthy();
-      if (d.reward.itemId) expect(itemById(d.reward.itemId)).toBeTruthy();
-      for (const s of d.steps) if (s.kind === 'pedir' || s.kind === 'entregar') expect(itemById(s.itemId), s.itemId).toBeTruthy();
-      for (const t of [d.title, d.ask, d.thanks]) expect(t.pt && t.en).toBeTruthy();
-      expect(describeStep(d.steps[0]!).pt).toBeTruthy();
+      expect(d.cards.length, d.id).toBeGreaterThan(0);
+      if (d.reward.itemId) expect(itemById(d.reward.itemId), d.id).toBeTruthy();
+      for (const t of [d.title, d.ask, d.thanks]) expect(t.pt && t.en, d.id).toBeTruthy();
+      for (const st of d.steps) {
+        expect(describeStep(st).pt && describeStep(st).en, d.id).toBeTruthy();
+        if (st.kind === 'pedir' || st.kind === 'entregar') expect(itemById(st.itemId), st.itemId).toBeTruthy();
+        if ('npc' in st && st.npc) expect(isNpcId(st.npc), d.id).toBe(true);
+        if (st.kind === 'ir') expect(ROOMS[st.room], d.id).toBeTruthy();
+      }
+      expect(d.title.pt.length, d.id).toBeLessThanOrEqual(40);
+      expect(d.ask.pt.split(/\s+/).length, d.id).toBeLessThanOrEqual(24);
     }
     expect(recadoById('carlos_cafe_pra_nanda')?.giver).toBe('carlos');
     expect(recadoById('nope')).toBeUndefined();
     expect(recadoById(undefined)).toBeUndefined();
+  });
+
+  it('are the first 15: five givers, the bond spread 6 / 5 / 4, rewards in the economy', () => {
+    expect(RECADOS).toHaveLength(15);
+    expect(new Set(RECADOS.map((d) => d.giver))).toEqual(new Set(['carlos', 'nanda', 'julia', 'graca', 'tia_lu']));
+    expect(RECADOS.filter((d) => d.minBond === 0)).toHaveLength(6);
+    expect(RECADOS.filter((d) => d.minBond === 10)).toHaveLength(5);
+    expect(RECADOS.filter((d) => d.minBond >= 20 && d.minBond <= 30)).toHaveLength(4);
+    for (const d of RECADOS) {
+      expect(d.reward.rv, d.id).toBeGreaterThanOrEqual(8);
+      expect(d.reward.rv, d.id).toBeLessThanOrEqual(15);
+      expect(d.reward.bond, d.id).toBeGreaterThanOrEqual(3);
+      expect(d.reward.bond, d.id).toBeLessThanOrEqual(6);
+      // no single recado outpays a full Carlos scene (ECONOMY.sceneMax)
+      expect(d.reward.rv, d.id).toBeLessThanOrEqual(ECONOMY.sceneMax + 1);
+    }
+  });
+
+  it('use every step kind the brief asks for, mostly pedir + entregar', () => {
+    const kinds = RECADOS.flatMap((d) => d.steps.map((s) => s.kind));
+    for (const k of ['pedir', 'entregar', 'cumprimentar', 'ir', 'falar'] as const) expect(kinds, k).toContain(k);
+    expect(RECADOS.filter((d) => d.steps.some((s) => s.kind === 'pedir') && d.steps.some((s) => s.kind === 'entregar')).length).toBeGreaterThanOrEqual(8);
+    expect(RECADOS.some((d) => d.steps.some((s) => s.kind === 'cumprimentar' && s.timeCorrect))).toBe(true);
+  });
+
+  it('gate exactly what cannot be finished yet: feira recados (Tia Lu) and falar with anyone but Seu Carlos', () => {
+    expect(gated.map((d) => [d.id, d.requires]).sort()).toEqual(
+      [
+        ['julia_conhecer_nanda', 'dialogue'],
+        ['nanda_pergunta_pro_carlos', 'dialogue'],
+        ['tia_lu_banana_pra_nanda', 'feira'],
+        ['tia_lu_flores_pra_julia', 'feira'],
+      ].sort(),
+    );
+    for (const d of RECADOS) {
+      const usesFeira = d.giver === 'tia_lu' || d.steps.some((s) => 'npc' in s && s.npc === 'tia_lu');
+      const talksToOthers = d.steps.some((s) => s.kind === 'falar' && s.npc !== 'carlos');
+      if (usesFeira) expect(d.requires, d.id).toBe('feira');
+      else if (talksToOthers) expect(d.requires, d.id).toBe('dialogue');
+      else expect(d.requires, d.id).toBeUndefined();
+    }
+    for (const id of ['banana', 'flores']) expect(RECADOS.some((d) => d.requires === 'feira' && d.steps.some((s) => 'itemId' in s && s.itemId === id))).toBe(true);
+  });
+
+  it('have no dead ends today: ungated steps only involve NPCs that exist and items the padaria scene can put in the bag', () => {
+    const inWorld = new Set(Object.values(ROOMS).flatMap((r) => r.npcs.map((n) => n.id)));
+    const orderable = new Set(['pao_na_chapa', 'coxinha', 'pastel', 'cafe', 'cafe_com_leite', 'suco_de_laranja', 'agua']);
+    for (const d of RECADOS.filter((r) => !r.requires)) {
+      let inBag = new Set<string>();
+      let prev: RecadoDef['steps'][number] | undefined;
+      for (const st of d.steps) {
+        if ('npc' in st && st.npc) expect(inWorld.has(st.npc), `${d.id}: ${st.kind} ${st.npc}`).toBe(true);
+        if (st.kind === 'pedir') {
+          expect(orderable.has(st.itemId), `${d.id}: ${st.itemId}`).toBe(true);
+          expect(st.npc, d.id).toBe('carlos');
+          expect(st.qty, d.id).toBe(1);
+          // one scene orders one food and one drink: two pedir in a row would need two scenes
+          expect(prev?.kind, d.id).not.toBe('pedir');
+          inBag = new Set([...inBag, st.itemId]);
+        }
+        if (st.kind === 'entregar') expect(inBag.has(st.itemId), `${d.id}: hands over ${st.itemId} without ordering it`).toBe(true);
+        prev = st;
+      }
+    }
+  });
+
+  it('the givers who are not in the world yet (Graça, Tia Lu) are only ever the giver, never a step target, until they arrive', () => {
+    for (const d of RECADOS.filter((r) => !r.requires)) for (const st of d.steps) if ('npc' in st) expect(['graca', 'tia_lu']).not.toContain(st.npc);
+    expect(npcName('graca')).toBe('Dona Graça');
+    expect(npcName('tia_lu')).toBe('Tia Lu');
+    expect(npcName('carlos')).toBe('Seu Carlos');
+  });
+
+  it('stay in the A1 register: você/tá/pra, never “Give me”, and the pack keeps the Portuguese thanks and asks', () => {
+    for (const d of RECADOS) {
+      for (const t of [d.title.en, d.ask.en, d.thanks.en]) expect(t, d.id).not.toMatch(/give me/i);
+      expect(`${d.ask.pt} ${d.thanks.pt}`, d.id).not.toMatch(/\btu\b|\bvocês\b|\bvós\b/i);
+    }
+  });
+});
+
+describe('RECADO_FLAGS (feature gating in the offer logic)', () => {
+  const day = 777;
+  const everything = { carlos: 100, nanda: 100, julia: 100, graca: 100, tia_lu: 100 };
+  const seen = (flags?: Record<RecadoFlag, boolean>) => new Set(Array.from({ length: 40 }, (_, i) => offerFor({ bond: everything }, day, mulberry32(i), RECADOS, 15, flags)).flat());
+
+  it('are off by default, so gated recados are never offered', () => {
+    expect(RECADO_FLAGS).toEqual({ feira: false, dialogue: false });
+    const ids = seen();
+    expect(ids.size).toBe(11);
+    for (const d of RECADOS) expect(ids.has(d.id), d.id).toBe(!d.requires);
+    expect(recadoEnabled(RECADOS[0]!)).toBe(true);
+    expect(recadoEnabled({ requires: 'feira' })).toBe(false);
+  });
+
+  it('each flag unlocks only its own recados', () => {
+    const feira = seen({ feira: true, dialogue: false });
+    expect(feira.has('tia_lu_banana_pra_nanda') && feira.has('tia_lu_flores_pra_julia')).toBe(true);
+    expect(feira.has('julia_conhecer_nanda')).toBe(false);
+    const dialogue = seen({ feira: false, dialogue: true });
+    expect(dialogue.has('julia_conhecer_nanda') && dialogue.has('nanda_pergunta_pro_carlos')).toBe(true);
+    expect(dialogue.has('tia_lu_banana_pra_nanda')).toBe(false);
+    expect(seen({ feira: true, dialogue: true }).size).toBe(15);
+  });
+
+  it('can be overridden globally (tests, and the later phases that ship the features) and restored', () => {
+    const before = { ...RECADO_FLAGS };
+    try {
+      RECADO_FLAGS.feira = true;
+      RECADO_FLAGS.dialogue = true;
+      expect(seen().size).toBe(15);
+      // the rollover reads the live flags too
+      const st = rollRecadoDay({ bond: everything }, day, mulberry32(3), RECADOS);
+      expect(st.offered).toHaveLength(3);
+    } finally {
+      Object.assign(RECADO_FLAGS, before);
+    }
+    expect(seen().size).toBe(11);
+  });
+
+  it('a new player at bond 0 is offered three of the five open recados', () => {
+    const pool = new Set(Array.from({ length: 60 }, (_, i) => offerFor({}, day, mulberry32(i), RECADOS, 15)).flat());
+    expect([...pool].sort()).toEqual(['carlos_cafe_pra_nanda', 'graca_pao_pra_julia', 'julia_cumprimento_certo', 'nanda_coxinha', 'nanda_um_oi_pro_carlos']);
+    expect(offerFor({}, day, mulberry32(1))).toHaveLength(3);
   });
 });
 
@@ -224,10 +363,9 @@ describe('offerFor', () => {
     expect(offerFor({}, day, mulberry32(1), defs.slice(0, 2))).toHaveLength(2);
   });
 
-  it('the shipped starter set offers exactly the three unlocked recados to a new player', () => {
-    const ids = offerFor({}, day, mulberry32(1));
-    expect(ids.sort()).toEqual(['carlos_cafe_pra_nanda', 'julia_cumprimento_certo', 'nanda_coxinha']);
-    expect(offerFor({ bond: { carlos: 10 } }, day, mulberry32(1), RECADOS, 6)).toContain('carlos_agua_pra_julia');
+  it('the shipped pack unlocks the bond-10 recados for their giver only', () => {
+    expect(offerFor({ bond: { carlos: 10 } }, day, mulberry32(1), RECADOS, 15)).toContain('carlos_agua_pra_julia');
+    expect(offerFor({ bond: { nanda: 100 } }, day, mulberry32(1), RECADOS, 15)).not.toContain('carlos_agua_pra_julia');
   });
 });
 

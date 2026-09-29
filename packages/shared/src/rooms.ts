@@ -78,7 +78,17 @@ export interface PortalDef {
   label: Bilingual;
 }
 
-export type NpcId = 'carlos' | 'nanda' | 'julia';
+/**
+ * NPCs that give recados and can be befriended before they have a room to stand in: Dona Graça (the padaria's
+ * night shift, arrives with the schedules) and Tia Lu (the feira's fruit stall, Phase 9). When one gets a room
+ * it moves into that room's `npcs`; the id stays valid the whole time.
+ */
+export const OFFSTAGE_NPCS = {
+  graca: { name: 'Dona Graça', role: { pt: 'Padeira do turno da noite', en: 'Night-shift baker' } },
+  tia_lu: { name: 'Tia Lu', role: { pt: 'Barraca de frutas da feira', en: 'Fruit stall at the feira' } },
+} as const satisfies Record<string, { name: string; role: Bilingual }>;
+
+export type NpcId = 'carlos' | 'nanda' | 'julia' | keyof typeof OFFSTAGE_NPCS;
 
 export interface NpcDef {
   id: NpcId;
