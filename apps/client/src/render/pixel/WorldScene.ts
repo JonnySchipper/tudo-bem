@@ -21,7 +21,7 @@ import type { CharAssets } from './charAssets';
 import { composeLook } from './composeLook';
 import { lookForAppearance, lookForNpc, lookHeadLift, type Look } from './looks';
 import { LightingRig, type Light } from './lightingRig';
-import { computeLook, isOutdoor, lightDelay, type SceneLook } from './dayNight';
+import { computeLook, isOutdoor, lightDelay, windowPanes, type SceneLook } from './dayNight';
 import { WeatherBlend, type FxLevel } from './weatherLook';
 import { WeatherFx } from './weatherFx';
 import { FrameProbe, LowFxGovernor, reducedMotion } from './perf';
@@ -351,6 +351,11 @@ export class WorldScene extends Phaser.Scene {
       const pd = m.sprites[w.key];
       if (pd) this.rig.patches.push(this.reg(this.add.image(w.x, w.y, pd.atlas, pd.frame)).setOrigin(0, 0).setDepth(DEPTH.groundDecal + 60).setBlendMode(Phaser.BlendModes.ADD));
     }
+
+    // ---- the night sky in the window glass (alpha follows the live clock in the rig), with a few stars
+    const wp = windowPanes(def);
+    for (const r of wp.panes) this.rig.panes.push(this.reg(this.add.rectangle(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0, 0x15264f, 1)).setOrigin(0, 0).setDepth(DEPTH.wallDecor + 1).setAlpha(0));
+    for (const s of wp.stars) this.rig.panes.push(this.reg(this.add.rectangle(s.x, s.y, 1, 1, 0xf4f0d0, 1)).setOrigin(0, 0).setDepth(DEPTH.wallDecor + 2).setAlpha(0));
 
     // ---- doors
     for (const p of def.portals) {

@@ -9,6 +9,8 @@
  */
 import { darknessAlpha, glowStrength, gradeAt, rgbToInt, shadowFill, sunGlow, type Rgb } from './lighting';
 import { weatherGrade, type WeatherParams } from './weatherLook';
+import { T, type Rect } from './coords';
+import { allNorthDecor, decorArt } from './roomLayout';
 
 /** Game minute the lights switch on / off. */
 export const LIGHTS_ON_MIN = 18 * 60;
@@ -21,6 +23,38 @@ export const LIGHT_FADE_MIN = 5;
 /** Outdoor rooms have grass or asphalt in their floor; interiors have tile, parquet or tatame. Outdoor rooms follow the live clock and weather. */
 export function isOutdoor(def: { floor: readonly string[] }): boolean {
   return def.floor.some((row) => row.includes('g') || row.includes('a'));
+}
+
+/**
+ * The glass of the north-wall windows (`walls/janela` 32x30, `walls/janela_rua` 48x34, both anchored bottom-left on the wall base): panes as
+ * [x, y, w, h] relative to the sprite's top-left corner, mullions left out. At night a dark sky with a few stars goes over them, so an
+ * interior window does not show a blue afternoon at 23:00.
+ */
+const WINDOW_PANES: Partial<Record<string, { w: number; h: number; panes: [number, number, number, number][] }>> = {
+  janela: { w: 32, h: 30, panes: [[3, 3, 12, 22], [17, 3, 12, 22]] },
+  janela_rua: { w: 48, h: 34, panes: [[3, 3, 13, 22], [18, 3, 12, 22], [32, 3, 13, 22]] },
+};
+
+/** Window panes and a few star pixels for a room's north wall, in world px. */
+export function windowPanes(room: Parameters<typeof allNorthDecor>[0]): { panes: Rect[]; stars: { x: number; y: number }[] } {
+  const panes: Rect[] = [];
+  const stars: { x: number; y: number }[] = [];
+  for (const d of allNorthDecor(room)) {
+    const win = WINDOW_PANES[d.kind];
+    if (!win) continue;
+    const x0 = Math.round(((d.from + d.to) * T) / 2 - win.w / 2);
+    const y0 = (decorArt(d)?.bottom ?? 0) - win.h;
+    for (const [px, py, pw, ph] of win.panes) {
+      const r = { x0: x0 + px, y0: y0 + py, x1: x0 + px + pw, y1: y0 + py + ph };
+      panes.push(r);
+      for (let i = 0; i < 2; i++) {
+        const h1 = hashPos01(r.x0 * 3 + i * 11, r.y0 + 5);
+        const h2 = hashPos01(r.y0 * 7 + i * 5, r.x0 + 9);
+        stars.push({ x: r.x0 + 1 + Math.floor(h1 * (pw - 2)), y: r.y0 + 1 + Math.floor(h2 * (ph * 0.6)) });
+      }
+    }
+  }
+  return { panes, stars };
 }
 
 const smooth = (t: number) => t * t * (3 - 2 * t);
@@ -72,6 +106,8 @@ export interface SceneLook {
   /** alpha and tint of the window light patches on the floor */
   patchAlpha: number;
   patchTint: number;
+  /** 0..1 alpha of the night sky over the window panes (the live sky, also seen from inside) */
+  windowNight: number;
   /** 0..1 strength of a scheduled light (lamp, lit window, estufa, banca) with this delay */
   lampOn: (delay: number) => number;
 }
@@ -107,6 +143,7 @@ export function computeLook(inp: LookInput): SceneLook {
   const tintC = [0, 1, 2].map((k) => Math.round(lerp(255, MOON_TINT[k], smooth(clamp01(night * 1.3))))) as Rgb;
   const patchAlpha = dayK * patchSun + moon;
   const patchTint = rgbToInt(tintC);
+  const windowNight = 0.85 * smooth(clamp01(night * 1.4));
   const lampOn = (delay: number) => lightState(inp.minutes, delay);
 
   if (!inp.outdoor) {
@@ -122,6 +159,7 @@ export function computeLook(inp: LookInput): SceneLook {
       cast: 1,
       patchAlpha,
       patchTint,
+      windowNight,
       lampOn,
     };
   }
@@ -139,6 +177,7 @@ export function computeLook(inp: LookInput): SceneLook {
     cast: Math.max(0.15, 1 - dark0 * 1.1) * w.sun,
     patchAlpha,
     patchTint,
+    windowNight,
     lampOn,
   };
 }
@@ -159,6 +198,7 @@ export function hourLook(hour: number): SceneLook {
     cast: Math.max(0.15, 1 - dark * 1.1),
     patchAlpha: Math.max(0, 1 - dark * 2.5),
     patchTint: 0xffffff,
+    windowNight: 0,
     lampOn: () => gs,
   };
 }

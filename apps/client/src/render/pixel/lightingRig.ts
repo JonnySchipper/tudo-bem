@@ -37,6 +37,8 @@ export class LightingRig {
   windowRects: Phaser.GameObjects.Rectangle[] = [];
   /** window light patches on interior floors (world sprites, ADD blend): full strength by day, gone at night */
   patches: Phaser.GameObjects.Image[] = [];
+  /** night sky over the window panes and its stars (alpha follows the live clock) */
+  panes: Phaser.GameObjects.Rectangle[] = [];
   /** cast-shadow sprites (fade out as it gets dark) */
   castShadows: Phaser.GameObjects.Image[] = [];
   private grade: Phaser.GameObjects.RenderTexture;
@@ -88,6 +90,7 @@ export class LightingRig {
     this.litOverlays = [];
     this.windowRects = [];
     this.castShadows = [];
+    this.panes = [];
     this.patches = [];
     this.syncLights();
   }
@@ -119,6 +122,7 @@ export class LightingRig {
       o.setAlpha(Math.min(1, (d === undefined ? look.glow : look.lampOn(d)) * 0.95));
     }
     for (const o of this.patches) o.setAlpha(look.patchAlpha).setTint(look.patchTint);
+    for (const o of this.panes) o.setAlpha(look.windowNight);
     this.dark.clear();
     if (dark > 0.001) this.dark.fill(0x0b1030, dark);
     this.lights.forEach((l, i) => {

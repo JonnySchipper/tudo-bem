@@ -21,6 +21,9 @@ const PHASE = argv.phase ?? 'p6a';
 const OUT = process.env.SHOTS_DIR ?? path.join('docs', 'lifesim', 'shots', PHASE);
 const SPOT = (argv.spot ?? '').split(',').map(Number);
 const LOWFX = 'lowfx' in argv;
+const PERF = 'perf' in argv;
+const THROTTLE = Number(argv.throttle ?? 1);
+const INTERIORS = 'interiors' in argv;
 const ONLY = argv.only ? argv.only.split(',') : null;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -46,7 +49,7 @@ function url() {
 }
 
 async function enter(browser, vp) {
-  const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 1, hasTouch: !!vp.touch });
+  const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 1, hasTouch: !!vp.touch, reducedMotion: 'reduced' in argv ? 'reduce' : 'no-preference' });
   const page = await ctx.newPage();
   page.on('pageerror', (e) => console.error('pageerror', String(e)));
   await page.goto(url());
@@ -85,9 +88,21 @@ if (!CHROME) throw new Error('Chrome/Chromium not found: set CHROME_PATH');
 fs.mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch({ executablePath: CHROME, headless: true });
 try {
-  for (const vp of [DESKTOP, PHONE]) {
+  for (const vp of PERF ? [DESKTOP] : [DESKTOP, PHONE]) {
     const { ctx, page } = await enter(browser, vp);
     await goSpot(page);
+    if (PERF && vp === DESKTOP) {
+      // busiest outdoor scenes: night lamps + rain over the CPU crowd. `--throttle=6` slows the CPU 6x to exercise the low-fx fallback,
+      // `--lowfx` starts in low-fx, `--reduced` emulates prefers-reduced-motion. Prints window.__tb.perf after a 6.5 s window.
+      if (THROTTLE > 1) await (await ctx.newCDPSession(page)).send('Emulation.setCPUThrottlingRate', { rate: THROTTLE });
+      for (const s of [{ time: '19:30', weather: 'sol' }, { time: '19:30', weather: 'garoa' }, { time: '19:30', weather: 'chuva' }, { time: '15:00', weather: 'chuva' }]) {
+        await page.evaluate((s) => window.__tb.setClock(s), s);
+        await sleep(9000);
+        console.log('  perf', s.time, s.weather, await page.evaluate(() => JSON.stringify(window.__tb.perf)));
+      }
+      await ctx.close();
+      continue;
+    }
     for (const s of SHOTS.filter((s) => s.vp === vp && (!ONLY || ONLY.some((o) => s.name.includes(o))))) {
       await page.evaluate((s) => window.__tb.setClock({ time: s.time, weather: s.weather }), s);
       await sleep(s.settle ?? 3500);
@@ -95,6 +110,29 @@ try {
       await page.screenshot({ path: file });
       const perf = await page.evaluate(() => JSON.stringify(window.__tb.perf));
       console.log('  ·', vp.name, s.name, s.time, s.weather, perf);
+    }
+    if (INTERIORS && vp === DESKTOP) {
+      // interiors keep their grade; only the window light and the lit pieces follow the clock
+      for (const room of ['padaria', 'academia']) {
+        await page.evaluate((room) => {
+          const p = window.__tb.game.roomDef.portals.find((q) => q.to === room);
+          window.__tb.interact({ portal: p.id });
+        }, room);
+        await page.waitForFunction((room) => window.__tb.game.room?.room === room, room, { timeout: 15_000 });
+        await sleep(1500);
+        for (const s of [{ n: '1200_sol', time: '12:00', weather: 'sol' }, { n: '1200_chuva', time: '12:00', weather: 'chuva' }, { n: '2300_sol', time: '23:00', weather: 'sol' }]) {
+          await page.evaluate((s) => window.__tb.setClock({ time: s.time, weather: s.weather }), s);
+          await sleep(3500);
+          await page.screenshot({ path: path.join(OUT, `${vp.name}_${room}_${s.n}.png`) });
+          console.log('  ·', vp.name, room, s.n);
+        }
+        await page.evaluate(() => {
+          const p = window.__tb.game.roomDef.portals[0];
+          window.__tb.interact({ portal: p.id });
+        });
+        await page.waitForFunction(() => window.__tb.game.room?.room === 'praca', null, { timeout: 15_000 });
+        await sleep(800);
+      }
     }
     await ctx.close();
   }

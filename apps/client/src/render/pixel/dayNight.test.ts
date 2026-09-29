@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ROOMS } from '@tudobem/shared';
-import { LIGHT_FADE_MIN, MAX_LIGHT_DELAY, computeLook, hourLook, isOutdoor, lightDelay, lightState } from './dayNight';
+import { LIGHT_FADE_MIN, MAX_LIGHT_DELAY, computeLook, hourLook, isOutdoor, lightDelay, lightState, windowPanes } from './dayNight';
 import { darknessAlpha, gradeAt } from './lighting';
 import { WEATHER_PARAMS } from './weatherLook';
 import { ROOM_HOUR } from './roomLayout';
@@ -177,5 +177,35 @@ describe('computeLook', () => {
     expect(l.lampOn(0)).toBe(l.glow);
     expect(l.lampOn(30)).toBe(l.glow);
     expect(hourLook(12).glow).toBe(0);
+  });
+});
+
+describe('windowPanes (night sky in the window glass)', () => {
+  it('padaria and academia have window panes inside their north wall band', () => {
+    for (const id of ['padaria', 'academia'] as const) {
+      const { panes, stars } = windowPanes(ROOMS[id]);
+      expect(panes.length).toBeGreaterThan(0);
+      for (const r of panes) {
+        expect(r.x1).toBeGreaterThan(r.x0);
+        expect(r.y1).toBeLessThanOrEqual(0); // above the wall base line
+        expect(r.y0).toBeGreaterThanOrEqual(-48); // inside the 3-tile band
+        expect(r.x0).toBeGreaterThanOrEqual(0);
+        expect(r.x1).toBeLessThanOrEqual(ROOMS[id].cols * 16);
+      }
+      expect(stars.length).toBe(panes.length * 2);
+      for (const s of stars) expect(panes.some((r) => s.x >= r.x0 && s.x < r.x1 && s.y >= r.y0 && s.y < r.y1)).toBe(true);
+    }
+    expect(windowPanes(ROOMS.padaria)).toEqual(windowPanes(ROOMS.padaria));
+  });
+
+  it('the night sky fades in after dusk and is gone by day, also for interiors', () => {
+    const at = (m: number, outdoorRoom: boolean) => computeLook({ outdoor: outdoorRoom, roomHour: 12, minutes: m, weather: WEATHER_PARAMS.sol }).windowNight;
+    for (const o of [true, false]) {
+      expect(at(T(12), o)).toBe(0);
+      expect(at(T(17), o)).toBe(0);
+      expect(at(T(19, 30), o)).toBeGreaterThan(0.3);
+      expect(at(T(23), o)).toBeGreaterThan(0.8);
+      expect(at(T(8), o)).toBe(0);
+    }
   });
 });

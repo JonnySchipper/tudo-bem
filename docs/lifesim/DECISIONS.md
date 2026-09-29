@@ -708,3 +708,49 @@ Guide edge pinning, camera framing (zoom step-down, top rows, easing, phone), gh
 ### Known weaknesses
 
 The praça's second building and the TUDO BEM mural are still not shown; the slim METRO sign is small and simple; the ghost chair is only 16 px, so the green tile does most of the signalling; the window light patch on the green tatame tints toward cyan; on a desktop the interiors are at zoom 3, so characters are smaller than in the praça (zoom 4); bubbles of two neighbours can overlap each other's plates (no collision handling).
+
+## Decisions made in Phase 6a (clock, day/night lighting, weather)
+
+Scope: HOWTO Phase 6 steps 1 to 4 plus the performance and accessibility rules of section 5.11. Ambient life, audio zones and the intro rebuild (steps 5 to 7) are not part of this track. New code lives in new modules; `WorldScene.ts`, `lightingRig.ts`, `main.ts`, `ui/hud.ts` and `props.ts` got small hooks.
+
+### Clock
+
+1. **`gameClock.ts`** (client, `GameClock` + a singleton `clock`). `skew = serverNow - Date.now()` is taken from the first `welcome` / `roomState` stamp and only replaced when a later stamp disagrees by more than 1 s, so latency jitter never moves the sky. `minutesExact()` is the smooth (fractional) version of `gameMinutes` that the lighting uses, so the grade does not step once per game minute.
+2. **Overrides.** `?clock=N` (1..600), `?time=HH:MM` (freezes the time of day; runs at `?clock` speed if both are given) and `?weather=` are honoured only when `import.meta.env.DEV`. The scripts and e2e run against the production build, so the same controls are also `window.__tb.setClock({ time, weather, speed })`, next to the other `__tb` test hooks (`walkTo`, `interact`). `__tb.clock` is the clock itself.
+
+### Lighting (outdoor rooms live, interiors fixed)
+
+3. **`dayNight.ts` is the pure look.** `computeLook({ outdoor, roomHour, minutes, weather })` returns everything the rig draws (grade, shadow fill, darkness, sun glow, cast shadows, window patches, lamp strength function); the rig only draws it (`LightingRig.apply(look | hour)`; the style frame still passes a plain hour and gets the old look). Outdoor is decided by floor chars (`g` or `a` present), so it survives a new map. The Phase 1 keyframes, softened golden hour and `shadowFill` are used unchanged.
+4. **Night is capped at 0.50 darkness** (the doc says 0.55): with the cool grade and the navy overlay the plaza read as flat dark; 0.50 keeps the blue night and lets the warm lamp pools carry it. Lamp halo and pool glow alphas went up (0.4 to 0.6, 0.26 to 0.55) and the local player has a small warm light (a `player` light that follows the avatar, radius 30 art px), as HOWTO 5.8 asks.
+5. **Light schedule** (`lightState`): on from 18:00, off from 06:00, each light shifted by `lightDelay(x, y)` = a hash of its world position mapped to 0..40 game minutes, and eased over 5 game minutes (10 real seconds) so nothing pops. It drives lamps (`poste`, `poste_fios`, the manifest `light` of the lamp sprites and the quiosque), facade windows, the estufa `_lit` overlay and a new synthetic banca light (`PROP_LIGHT.banca`). Interiors use the same schedule for their own lit pieces (the estufa), although their grade is fixed.
+6. **Every facade window is its own light.** The facade `_lit` overlay is cropped per window rectangle (`setCrop`, 1 px slack; the overlay's opaque pixels are inside the manifest window rects except 36 and 16 edge pixels on the padaria and academia), so windows of one building switch on at different minutes. Each window also owns its light hole and glow.
+7. **Interiors**: the grade is `gradeAt(ROOM_HOUR[lighting])` whatever the time. What follows the live clock is the sky: the window light patches lose the warm sun after dusk, take a faint cool moon tint (alpha up to 0.3) and are dimmed by weather; the window glass gets a dark night sky with two stars per pane (`windowPanes`, drawn over the pane rectangles of `walls/janela` and `walls/janela_rua`, mullions left alone), faded by the live clock. These are flat rectangles and single pixels, not art.
+
+### Weather
+
+8. **`weatherLook.ts` (pure) holds what each weather does**: grade tint and desaturation, sun left, storm gloom, rain density, puddles. `WeatherBlend` eases the live numbers toward the target weather (time constant 2 s) so the 06:00 roll or a dev change fades instead of popping. Weather tint and desaturation are multiplied by a night factor so the night grade is not doubled down.
+9. **Grades.** nublado: desaturated 0.5, cool tint, sun 0.28 (cast shadows, sun glow and window patches shrink with it). garoa: blue-grey, sun 0.12, gloom +0.08. chuva: darker blue-grey, no sun (no cast shadows, no low-sun glow), gloom +0.17, car headlights on. There are no cloud shadows in the scene yet (`fx/cloud_shadow` is not used), so nublado has nothing to switch off there; the ambient track can read `params.sun`.
+10. **Rain is a pool of images, not an emitter** (`weatherFx.ts`), so the particle count is exact: `MAX_DROPS` 190 + `MAX_SPLASHES` 34 + `MAX_RIPPLES` 14 = 238 at most, under the 300 cap with room for petals and critters (a test asserts drops + splashes + ripples <= cap - 40 for every weather and fx level). Streaks are tiny canvas textures drawn in art pixels (3x7 slanted, a shorter far layer) scaled by the integer camera zoom, in screen space on the `fx` camera. Garoa: about 100 fine drops. Chuva: 190 drops, splash crowns where drops land, and ripples on puddles.
+11. **Puddles** are runtime pixel-ellipse decals (soft lip on the lit upper edge, darker below, three sizes, two shapes) on free calçada and asfalto tiles (`c`, `a`, not blocked by props or NPCs), chosen by a tile hash (11% of eligible tiles, at most 160), so every player sees the same wet street. They fade with the weather. Nothing about weather is drawn in interiors (rain fades in 0.45 s at the door).
+
+### NPC small talk
+
+12. **Idle lines are chosen on the client** (`main.ts`), so the mix lives in `idleTalk.ts`: `IdleTalk.next` takes a weather line (`WEATHER_IDLE_LINES`) only after at least three ordinary lines, with a 50% chance, so it is at most 1 in 4 (tested with an always-yes roll). Sunny and cloudy chat is kept out of the night (21:00 to 06:00); rain lines are allowed any time. No new PT strings were written (the weather lines were already `needs_br`).
+
+### Performance and accessibility
+
+13. **`perf.ts`**: `FrameProbe` (5 s rolling window of frame times, stalls over 500 ms ignored), `LowFxGovernor` (trips once when p90 > 25 ms across a full 5 s window; never un-trips) and `reducedMotion()` (re-read once a second). `window.__tb.perf` returns fps, avg / p50 / p90 / max ms, low-fx state and reason, reduced motion, particle counts, weather and darkness. Low-fx (`?lowfx=1` or the fallback): vignette removed, rain halved, no splashes or ripples. Reduced motion: 40% of the rain, slower, no splashes. There is no tweened zoom in the scene yet (the camera zoom is an integer step per room), so that clause has nothing to switch off; Phase 7's dialogue zoom must read `reducedMotion()`.
+14. **Fallback verified** by throttling the CPU 12x through CDP: the governor tripped after the first 5 s window with p90 25.1 ms.
+
+### HUD
+
+15. **Clock pill** (`ui/clockPill.ts`, `styles/clock.css`): `.top-left` wraps the brand and the pill; it is a normal `.pill`, so the pixel chrome applies. `Seg · 17:40 · ☀️`, tooltip and `aria-label` `Monday · 5:40 pm · Sunny`; a clear night shows a moon; garoa 🌦️, chuva 🌧️, nublado ☁️. It re-renders only when the text changes (polled every 500 ms). **On a phone (<= 640 px) the weekday and the separator move to the tooltip** (`17:40 ☀️`) and the brand's English sub-line is hidden so the row still fits brand + clock + Verde + RV at 390 px.
+
+### Tests and tools
+
+16. New unit tests: skew and clock progression (`gameClock.test.ts`), schedule with per-light delay, no-pop, interior fixed grade, window dimming, weather look (`dayNight.test.ts`), weather to FX mapping and particle plan (`weatherLook.test.ts`), probe and governor (`perf.test.ts`), NPC talk ratio (`idleTalk.test.ts`), pill text (`ui/clockPill.test.ts`).
+17. `scripts/lifesim-shots-p6a.mjs`: the time-of-day and weather shots (`--interiors` adds padaria and academia at 12:00, chuva and 23:00; `--perf` prints `__tb.perf` per scene; `--throttle=N`, `--lowfx`, `--reduced`, `--only=`). The shots use `__tb.setClock`.
+
+### Known weaknesses
+
+Rain streaks are screen-space, so they do not react to the buildings (they fall over facades and the dark backdrop outside the map); the splash crowns are drawn where a drop lands on screen, which can be on a wall; the night is blue-grey outside the lamp pools and the pools themselves are more white than amber (the erased hole shows the neutral ground; the amber comes from the additive glow); interior lit pieces (estufa) barely change at night because the interior grade is fixed; the weather tint is a multiply on a screen grade, so saturated props stay fairly colourful under chuva; the weekday is only in the tooltip on phones.
