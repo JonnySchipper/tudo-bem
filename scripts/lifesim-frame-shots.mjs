@@ -22,13 +22,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** name, viewport, dpr, camera params per viewport */
 const VIEWS = [
   { tag: '1280x800', w: 1280, h: 800, q: 'zoom=3&cx=15&cy=9.2' },
-  { tag: '390x844', w: 390, h: 844, q: 'zoom=3&cx=14.6&cy=9.6' },
+  { tag: '390x844', w: 390, h: 844, q: 'zoom=3&cx=12.8&cy=9.6' },
 ];
 const HOURS = [
   { tag: '1730', t: 17.5 },
   { tag: '1930', t: 19.5 },
 ];
 const extra = process.argv.includes('--zoom4');
+const DPR = Number(process.env.DPR ?? 1);
+const SUFFIX = DPR === 1 ? '' : `_dpr${DPR}`;
 
 fs.mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch({
@@ -37,7 +39,7 @@ const browser = await chromium.launch({
   args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'],
 });
 for (const v of VIEWS) {
-  const ctx = await browser.newContext({ viewport: { width: v.w, height: v.h }, deviceScaleFactor: 1 });
+  const ctx = await browser.newContext({ viewport: { width: v.w, height: v.h }, deviceScaleFactor: DPR });
   for (const hr of HOURS) {
     const page = await ctx.newPage();
     page.on('pageerror', (e) => console.error('pageerror', String(e)));
@@ -45,14 +47,14 @@ for (const v of VIEWS) {
     await page.goto(`${BASE}lifesim-frame.html?t=${hr.t}&${v.q}`, { waitUntil: 'domcontentloaded', timeout: 90000 });
     await page.waitForFunction(() => window.__frame?.scene?.scene?.isActive?.('frame'), null, { timeout: 30000 });
     await sleep(4500); // let the walker move, petals fall, pigeons wander
-    const file = path.join(OUT, `frame_${hr.tag}_${v.tag}.png`);
+    const file = path.join(OUT, `frame_${hr.tag}_${v.tag}${SUFFIX}.png`);
     await page.screenshot({ path: file });
     console.log('  ·', file);
-    if (extra) {
+    if (extra && v.w > 600) {
       await page.goto(`${BASE}lifesim-frame.html?t=${hr.t}&zoom=4&cx=${v.w > 600 ? 16 : 14.6}&cy=9.5&ui=0`, { waitUntil: 'domcontentloaded', timeout: 90000 });
       await page.waitForFunction(() => window.__frame?.scene?.scene?.isActive?.('frame'), null, { timeout: 30000 });
       await sleep(3000);
-      await page.screenshot({ path: path.join(OUT, `frame_${hr.tag}_${v.tag}_z4.png`) });
+      await page.screenshot({ path: path.join(OUT, `frame_${hr.tag}_${v.tag}_z4${SUFFIX}.png`) });
     }
     await page.close();
   }

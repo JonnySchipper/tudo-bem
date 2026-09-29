@@ -14,10 +14,10 @@ export const GRADE_KEYS: readonly [number, string][] = [
   [7, '#fff1e0'],
   [9, '#ffffff'],
   [15, '#fff6e6'],
-  [16.5, '#ffd9a0'],
-  [17.5, '#ffbd80'],
-  [18.3, '#e08c78'],
-  [19, '#6b6fa8'],
+  [16.5, '#ffe3bd'],
+  [17.5, '#ffcd9e'],
+  [18.3, '#f2a48f'],
+  [19, '#7a78ae'],
   [20, '#3b4a7c'],
   [24, '#3b4a7c'],
 ];
@@ -67,6 +67,13 @@ export const lightsOn = (hour: number) => darknessAlpha(hour) > 0.06;
 /** 0..1 strength of the lit-window/lamp glow, easing in a little before full dark so the switch-on is gradual. */
 export function glowStrength(hour: number): number {
   return Math.min(1, darknessAlpha(hour) / 0.3);
+}
+
+/** 0..1 warm low-sun glow from the upper left: fades in from 16:00, peaks around 17:30, gone by 19:00. */
+export function sunGlow(hour: number): number {
+  const h = ((hour % 24) + 24) % 24;
+  if (h < 16 || h > 19) return 0;
+  return h < 17.5 ? smooth((h - 16) / 1.5) : smooth((19 - h) / 1.5);
 }
 
 export function formatHour(hour: number): string {

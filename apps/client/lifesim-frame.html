@@ -21,6 +21,15 @@
       #time-label { min-width: 3.4em; font-variant-numeric: tabular-nums; text-align: right; }
       #credit { position: fixed; right: 10px; top: 8px; font: 600 11px/1 Nunito, system-ui, sans-serif; color: rgba(245, 230, 211, 0.78); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); pointer-events: none; }
       #credit a { color: inherit; pointer-events: auto; }
+      #world-labels { position: fixed; inset: 0; overflow: hidden; pointer-events: none; font-family: Nunito, system-ui, sans-serif; }
+      #world-labels > * { position: absolute; left: 0; top: 0; will-change: transform; }
+      .plate { padding: 2px 7px 3px; border-radius: 999px; font-weight: 800; font-size: 11px; line-height: 1.1; color: #f5e6d3; white-space: nowrap; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.35); }
+      .plate-npc { background: #c45c26; }
+      .plate-player { background: #2f5d50; }
+      .plate-me { background: #2f5d50; box-shadow: 0 0 0 2px #d4a017, 0 1px 0 2px rgba(0, 0, 0, 0.35); }
+      .bubble { max-width: 210px; padding: 5px 9px 6px; background: #f8f3ea; color: #2c2c2c; border-radius: 4px; box-shadow: 0 0 0 2px #3a3a50, 0 3px 0 2px #3a3a50; }
+      .bubble .pt { font-weight: 800; font-size: 12px; line-height: 1.25; }
+      .bubble .en { margin-top: 2px; font-weight: 600; font-style: italic; font-size: 10.5px; line-height: 1.2; color: #6a6660; }
       #err { position: fixed; left: 8px; top: 8px; color: #ff9a9a; font: 12px monospace; white-space: pre-wrap; }
     </style>
   </head>

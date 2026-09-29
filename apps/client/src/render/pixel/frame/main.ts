@@ -8,6 +8,7 @@ import Phaser from 'phaser';
 import { loadManifest } from '../manifest';
 import { FrameScene } from './FrameScene';
 import { formatHour } from '../lighting';
+import { createLabels } from './labels';
 
 const q = new URLSearchParams(location.search);
 const num = (k: string): number | undefined => {
@@ -59,11 +60,13 @@ async function boot() {
     playBtn.textContent = '▶';
     setHour(Number(slider.value));
   });
+  const labels = q.get('labels') === '0' ? null : createLabels(document.body);
   let playing = q.get('play') === '1';
   let last = performance.now();
   const tick = (now: number) => {
     const dt = (now - last) / 1000;
     last = now;
+    if (labels && scene.ready) labels.update(scene);
     if (playing) {
       let h = scene.getHour() + dt * (H_MAX - H_MIN) / 45; // 45 s for the whole range
       if (h > H_MAX) h = H_MIN;
@@ -80,7 +83,7 @@ async function boot() {
   if (q.get('ui') === '0') document.getElementById('hud')?.classList.add('hidden');
 
   // debugging / screenshot hooks
-  (window as unknown as { __frame: unknown }).__frame = { game, scene, setHour, info: () => scene.info() };
+  (window as unknown as { __frame: unknown }).__frame = { game, scene, setHour, info: () => scene.info(), artMissing: scene.artMissing };
 }
 
 boot().catch((e) => {

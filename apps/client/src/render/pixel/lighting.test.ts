@@ -1,20 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { darknessAlpha, formatHour, glowStrength, gradeAt, lightsOn, rgbToInt } from './lighting';
+import { darknessAlpha, formatHour, glowStrength, gradeAt, lightsOn, rgbToInt, sunGlow } from './lighting';
 
 describe('gradeAt', () => {
   it('hits the doc keyframes exactly', () => {
     expect(gradeAt(9)).toEqual([255, 255, 255]);
-    expect(gradeAt(17.5)).toEqual([0xff, 0xbd, 0x80]);
-    expect(gradeAt(19)).toEqual([0x6b, 0x6f, 0xa8]);
+    expect(gradeAt(17.5)).toEqual([0xff, 0xcd, 0x9e]);
+    expect(gradeAt(19)).toEqual([0x7a, 0x78, 0xae]);
     expect(rgbToInt(gradeAt(20))).toBe(0x3b4a7c);
   });
   it('interpolates between keyframes (17:00 sits between 16:30 and 17:30)', () => {
     const [r, g, b] = gradeAt(17);
     expect(r).toBeGreaterThan(0xf0);
-    expect(g).toBeGreaterThan(0xbd);
-    expect(g).toBeLessThan(0xd9);
-    expect(b).toBeGreaterThan(0x80);
-    expect(b).toBeLessThan(0xa0);
+    expect(g).toBeGreaterThan(0xcd);
+    expect(g).toBeLessThan(0xe3);
+    expect(b).toBeGreaterThan(0x9e);
+    expect(b).toBeLessThan(0xbd);
   });
   it('wraps the hour and is dark at midnight', () => {
     expect(gradeAt(24)).toEqual(gradeAt(0));
@@ -50,6 +50,18 @@ describe('darknessAlpha', () => {
     expect(lightsOn(19.5)).toBe(true);
     expect(glowStrength(17.5)).toBe(0);
     expect(glowStrength(19.5)).toBeGreaterThan(0.9);
+  });
+});
+
+describe('sunGlow', () => {
+  it('peaks at 17:30 and is zero outside 16:00-19:00', () => {
+    expect(sunGlow(12)).toBe(0);
+    expect(sunGlow(17.5)).toBeCloseTo(1, 5);
+    expect(sunGlow(16)).toBe(0);
+    expect(sunGlow(19)).toBe(0);
+    expect(sunGlow(16.75)).toBeGreaterThan(0);
+    expect(sunGlow(16.75)).toBeLessThan(1);
+    expect(sunGlow(19.5)).toBe(0);
   });
 });
 
