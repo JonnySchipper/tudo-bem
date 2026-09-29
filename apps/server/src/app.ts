@@ -105,6 +105,7 @@ export function createApp(opts: AppOptions) {
       return handleConversaApi(req, res, {
         store,
         onProfileChanged: (playerId) => world.pushProfileById(playerId),
+        onConversaEnd: (playerId, npc, grade, order) => world.conversaEnded(playerId, npc, grade, order),
         playerIdFor: (r) => accounts.accountForSession(sessionCookieOf(r))?.profileId,
       });
     }

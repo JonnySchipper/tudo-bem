@@ -1,4 +1,4 @@
-import { freshMission, normalizeBjj, type PrivateProfile } from '@tudobem/shared';
+import { freshMission, normalizeBag, normalizeBjj, normalizeBond, normalizeRecados, type PrivateProfile } from '@tudobem/shared';
 
 export interface StoredProfile extends PrivateProfile {
   token: string;
@@ -63,6 +63,7 @@ export class ProfileStore {
   }
 
   private index(p: StoredProfile) {
+    normalizeProfile(p);
     this.byId.set(p.id, p);
     this.byToken.set(p.token, p.id);
   }
@@ -110,6 +111,14 @@ export class ProfileStore {
   count() {
     return this.byId.size;
   }
+}
+
+/** Default the optional Phase 8 fields so saves from before them load unchanged. Idempotent. */
+export function normalizeProfile(p: StoredProfile): StoredProfile {
+  p.bag = normalizeBag(p.bag);
+  p.bond = normalizeBond(p.bond);
+  p.recados = normalizeRecados(p.recados);
+  return p;
 }
 
 export function toPrivate(p: StoredProfile): PrivateProfile {
