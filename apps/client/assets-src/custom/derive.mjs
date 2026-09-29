@@ -16,9 +16,11 @@ import * as uiMod from './ui.mjs';
 
 import * as wallsMod from './walls.mjs';
 import * as padariaMod from './padaria.mjs';
+import * as kitnetMod from './kitnet.mjs';
 
 export const DERIVE = {
   ...padariaMod.DERIVE_PADARIA,
+  ...kitnetMod.DERIVE_KITNET,
   wallSet: wallsMod.wallSet,
   wallDecor: wallsMod.wallDecor,
   doorPart: wallsMod.doorPart,

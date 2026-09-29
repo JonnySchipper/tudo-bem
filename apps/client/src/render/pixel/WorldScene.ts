@@ -24,7 +24,7 @@ import { LabelLayer, type GuideItem, type StackItem } from './labels';
 import { T, cameraCenter, cssZoomFor, deviceZoomFor, feet, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
 import { pickHit, type HitBox } from './hit';
 import { roomKey, syncViews } from './reconcile';
-import { DEPTH, PROP_LIGHT, footprintRect, inflate, propAnchor, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
+import { DEPTH, PROP_LIGHT, footprintRect, inflate, propAnchor, furnitureArtKey, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
 import {
   FLOOR_PLACEHOLDER,
   FLOOR_SUBSTITUTE,
@@ -84,8 +84,14 @@ interface NpcView {
 }
 
 interface FurnitureView {
-  rect: Phaser.GameObjects.Rectangle;
+  /** the sprite (art) or the magenta placeholder box (art missing) */
+  obj: Phaser.GameObjects.Sprite | Phaser.GameObjects.Rectangle;
+  /** contact shadow under a sprite */
+  shadow: Phaser.GameObjects.Image | null;
+  /** selection outline (edit mode) */
+  sel: Phaser.GameObjects.Rectangle;
   itemId: string;
+  rot: 0 | 1;
   x: number;
   y: number;
 }
@@ -596,33 +602,66 @@ export class WorldScene extends Phaser.Scene {
     void def;
   }
 
-  // ---- placed furniture (placeholders until Phase 4)
+  // ---- placed furniture: `furniture/<id>_<rot>` sprites (art track 3); a magenta box when the art is missing
+  private furnitureObj(v: FurnitureView | null, f: PlacedFurniture): Pick<FurnitureView, 'obj' | 'shadow'> {
+    const def = furnitureById(f.itemId);
+    const rug = def?.kind === 'tapete';
+    const key = furnitureArtKey(f.itemId, f.rot);
+    const sd = this.m.sprites[key];
+    const depth = rug ? DEPTH.groundDecal + 20 : standingDepth((f.y + 1) * T, f.uid);
+    const wx = f.x * T + T / 2;
+    const wy = (f.y + 1) * T;
+    if (v) {
+      v.obj.destroy();
+      v.shadow?.destroy();
+    }
+    if (!sd) {
+      this.noteMissing(key.replace(/_[01]$/, ''));
+      const r: Rect = { x0: f.x * T + 1, y0: f.y * T + 1, x1: (f.x + 1) * T - 1, y1: (f.y + 1) * T - 1 };
+      const obj = this.reg(this.add.rectangle((r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2, r.x1 - r.x0, r.y1 - r.y0, 0xff00ff, 0.35)).setStrokeStyle(1, 0xff00ff, 1).setDepth(depth);
+      return { obj, shadow: null };
+    }
+    const obj = this.reg(this.add.sprite(wx, wy, sd.atlas, sd.frame)).setOrigin(...originOf(sd)).setDepth(depth);
+    if (sd.anim) obj.play({ key: ensureAnim(this, key, sd), startFrame: Math.floor(hash01(f.x * 31 + f.y) * sd.anim.frames.length) });
+    const s = sd.shadow ? this.m.sprites[sd.shadow] : null;
+    const shadow = s ? this.reg(this.add.image(wx, wy - 1, s.atlas, s.frame)).setOrigin(...originOf(s)).setDepth(DEPTH.shadowContact) : null;
+    return { obj, shadow };
+  }
+
   private syncFurniture(dyn: HitBox[]): void {
     const items = new Map<string, PlacedFurniture>(game.furniture.map((f) => [f.uid, f]));
     syncViews(this.furniture, items, {
       create: (_uid, f) => {
-        const def = furnitureById(f.itemId);
-        const r: Rect = { x0: f.x * T + 1, y0: f.y * T + 1, x1: (f.x + 1) * T - 1, y1: (f.y + 1) * T - 1 };
-        const rug = def?.kind === 'tapete';
-        this.noteMissing(`furniture/${f.itemId}`);
-        const rect = this.reg(this.add.rectangle((r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2, r.x1 - r.x0, r.y1 - r.y0, 0xff00ff, 0.35)).setStrokeStyle(1, 0xff00ff, 1).setDepth(rug ? DEPTH.groundDecal + 20 : standingDepth((f.y + 1) * T, f.uid));
-        return { rect, itemId: f.itemId, x: f.x, y: f.y };
+        const { obj, shadow } = this.furnitureObj(null, f);
+        const sel = this.reg(this.add.rectangle(f.x * T + T / 2, f.y * T + T / 2, T, T, 0xffffff, 0)).setStrokeStyle(2, 0xf2c230, 1).setDepth(DEPTH.overhead - 1).setVisible(false);
+        return { obj, shadow, sel, itemId: f.itemId, rot: f.rot, x: f.x, y: f.y };
       },
       update: (v, f) => {
+        const def = furnitureById(f.itemId);
+        const rug = def?.kind === 'tapete';
+        if (v.rot !== f.rot) {
+          v.rot = f.rot;
+          Object.assign(v, this.furnitureObj(v, f));
+        }
         if (v.x !== f.x || v.y !== f.y) {
           v.x = f.x;
           v.y = f.y;
-          v.rect.setPosition(f.x * T + T / 2, f.y * T + T / 2);
-          if (furnitureById(f.itemId)?.kind !== 'tapete') v.rect.setDepth(standingDepth((f.y + 1) * T, f.uid));
+          Object.assign(v, this.furnitureObj(v, f));
+          v.sel.setPosition(f.x * T + T / 2, f.y * T + T / 2);
         }
-        const sel = game.selectedFurniture === f.uid;
-        v.rect.setStrokeStyle(sel ? 2 : 1, sel ? 0xf2c230 : 0xff00ff, 1);
-        const def = furnitureById(f.itemId);
+        const selected = game.selectedFurniture === f.uid;
+        v.sel.setVisible(selected);
+        if (v.obj instanceof Phaser.GameObjects.Rectangle) v.obj.setStrokeStyle(selected ? 2 : 1, selected ? 0xf2c230 : 0xff00ff, 1);
+        void rug;
         const seat = !!def?.seat && !game.editMode;
         const hit: Hit = seat ? { kind: 'seat', tile: { x: f.x, y: f.y } } : { kind: 'furniture', f };
         dyn.push({ x0: f.x * T - 2, y0: f.y * T - 8, x1: (f.x + 1) * T + 2, y1: (f.y + 1) * T, hit, depth: (f.y + 1) * T });
       },
-      destroy: (v) => v.rect.destroy(),
+      destroy: (v) => {
+        v.obj.destroy();
+        v.shadow?.destroy();
+        v.sel.destroy();
+      },
     });
   }
 

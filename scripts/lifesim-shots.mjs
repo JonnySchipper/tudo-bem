@@ -37,6 +37,8 @@ const PHASE = argv.phase ?? process.env.PHASE ?? 'p0';
 const OUT = process.env.SHOTS_DIR ?? path.join('docs', 'lifesim', 'shots', PHASE);
 const SOLO = !!process.env.SOLO;
 // --clean: hide every DOM overlay (HUD, labels, chat) so only the canvas is in the shot (art reviews: nothing covers the sprites)
+// --furnish: put one of every catalog item in the kitnet (client side only, for art reviews)
+const FURNISH = 'furnish' in argv;
 const CLEAN = 'clean' in argv || !!process.env.CLEAN;
 const VIEWPORTS = [
   { name: '1280x800', width: 1280, height: 800 },
@@ -121,6 +123,13 @@ async function runViewport(browser, vp) {
   await sleep(500);
   await interact(page, { portal: 'praca_kitnet' });
   await waitRoom(page, 'kitnet');
+  if (FURNISH) {
+    await page.evaluate(() => {
+      const ids = ['cadeira_madeira', 'poltrona_verde', 'pufe_amarelo', 'mesinha', 'planta', 'tapete', 'radio', 'ventilador', 'gato', 'luminaria', 'estante', 'quadro', 'rede', 'filtro'];
+      const at = [[2, 3, 0], [5, 4, 1], [3, 5, 0], [4, 3, 0], [4, 1, 0], [3, 4, 1], [7, 3, 0], [6, 5, 1], [2, 2, 1], [7, 5, 0], [0, 1, 0], [6, 7, 1], [5, 2, 0], [3, 2, 0]];
+      window.__tb.game.furniture = ids.map((itemId, i) => ({ uid: 'shot' + i, itemId, x: at[i][0], y: at[i][1], rot: at[i][2] }));
+    });
+  }
   await sleep(1500);
   await shot(page, vp, 'kitnet');
 

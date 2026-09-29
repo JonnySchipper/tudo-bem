@@ -64,6 +64,9 @@ export function propArtKey(p: PropDef): string | null {
   return ART[p.kind] ?? null;
 }
 
+/** Manifest key of a placed furniture item: `furniture/<itemId>_<rot>` (rot 0 faces SE, rot 1 faces SW). */
+export const furnitureArtKey = (itemId: string, rot: 0 | 1): string => `furniture/${itemId}_${rot}`;
+
 /** The key reported in `window.__tb.artMissing` for a prop with no art. */
 export const propPlaceholderKey = (p: PropDef): string => `props/${p.kind}`;
 
