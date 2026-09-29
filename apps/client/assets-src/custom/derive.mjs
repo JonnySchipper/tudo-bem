@@ -14,7 +14,12 @@ import * as feiraMod from './feira.mjs';
 import * as iconsMod from './icons.mjs';
 import * as uiMod from './ui.mjs';
 
+import * as wallsMod from './walls.mjs';
+
 export const DERIVE = {
+  wallSet: wallsMod.wallSet,
+  wallDecor: wallsMod.wallDecor,
+  doorPart: wallsMod.doorPart,
   orelhao: props.orelhao,
   lixeira: props.lixeira,
   quiosque: props.quiosque,

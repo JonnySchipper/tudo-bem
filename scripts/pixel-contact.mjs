@@ -26,7 +26,7 @@ const DEFAULTS = { ...Object.fromEntries(Object.entries(ART3).map(([k, v]) => [k
 if (!DEFAULTS[SET]) throw new Error('unknown --set ' + SET);
 const OUT = path.resolve(argv[0] ?? path.join(ROOT, 'docs/lifesim/shots', DEFAULTS[SET][0]));
 const S = Number(argv[1] ?? DEFAULTS[SET][1]);
-const MAX_W = { portraits: 1120, icons: 1400, ui: 1000, feira: 900 }[SET] ?? 2300;
+const MAX_W = { floors: 2300, walls: 1900, portraits: 1120, icons: 1400, ui: 1000, feira: 900 }[SET] ?? 2300;
 const BG = { r: 138, g: 138, b: 148 };
 
 const manifest = JSON.parse(fs.readFileSync(path.join(PIX, 'manifest.json'), 'utf8'));
@@ -242,7 +242,7 @@ async function buildCells() {
     const out = [];
     let last = '';
     for (const k of Object.keys(manifest.sprites).filter(A3[SET])) {
-      const g = k.replace(/_(\d+_of_\d+|[0-9]|e|w|n|s|se|sw|ne|nw|lit)$/, '');
+      const g = SET === 'walls' ? (k.startsWith('walls/north') ? 'n:' + k.split('_')[1] : k.startsWith('walls/west') ? 'w' : 'x') : k.replace(/_(\d+_of_\d+|[0-9]|e|w|n|s|se|sw|ne|nw|lit)$/, '');
       if (last && g !== last) out.push(NL);
       last = g;
       out.push({ key: k, frames: cellImage(k) });

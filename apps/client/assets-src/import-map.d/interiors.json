@@ -4,10 +4,37 @@
     "rbFloors": "int:1_Interiors/16x16/Room_Builder_subfiles/Room_Builder_Floors_16x16.png"
   },
   "terrain": {
-    "t": { "name": "tijolo", "kind": "flush", "custom": "tijolo" },
-    "l": { "name": "ladrilho", "kind": "flush", "custom": "ladrilho", "rim": "#7a5a48" },
-    "m": { "name": "madeira", "kind": "flush", "custom": "taco", "sheet": "rbFloors", "rim": "#4a2f22" },
-    "k": { "name": "xadrez", "kind": "flush", "custom": "xadrez", "rim": "#3a3a50" },
-    "j": { "name": "tatame", "kind": "flush", "custom": "tatame", "rim": "#2b3a5c" }
-  }
+    "t": {"name":"tijolo","kind":"flush","custom":"tijolo"},
+    "l": {"name":"ladrilho","kind":"flush","custom":"ladrilho","rim":"#7a5a48"},
+    "m": {"name":"madeira","kind":"flush","custom":"taco","sheet":"rbFloors","rim":"#4a2f22"},
+    "k": {"name":"xadrez","kind":"flush","custom":"xadrez","rim":"#3a3a50"},
+    "j": {"name":"tatame","kind":"flush","custom":"tatame","rim":"#2b3a5c"}
+  },
+  "sprites": [
+    {"key":"walls/north_praca_l","kind":"derive","fn":"wallSet","args":{"style":"praca"}},
+    {"key":"walls/north_padaria_l","kind":"derive","fn":"wallSet","args":{"style":"padaria"}},
+    {"key":"walls/north_kitnet_l","kind":"derive","fn":"wallSet","args":{"style":"kitnet"}},
+    {"key":"walls/north_academia_l","kind":"derive","fn":"wallSet","args":{"style":"academia"}},
+    {"key":"walls/azulejos","kind":"derive","fn":"wallDecor","args":{"kind":"azulejos"}},
+    {"key":"walls/prateleira_paes","kind":"derive","fn":"wallDecor","args":{"kind":"prateleira"}},
+    {"key":"walls/lousa","kind":"derive","fn":"wallDecor","args":{"kind":"lousa"}},
+    {"key":"walls/janela_rua","kind":"derive","fn":"wallDecor","args":{"kind":"janela_rua"}},
+    {"key":"walls/janela","kind":"derive","fn":"wallDecor","args":{"kind":"janela"}},
+    {"key":"walls/relogio","kind":"derive","fn":"wallDecor","args":{"kind":"relogio"}},
+    {"key":"walls/tv","kind":"derive","fn":"wallDecor","args":{"kind":"tv"}},
+    {"key":"walls/cobogo","kind":"derive","fn":"wallDecor","args":{"kind":"cobogo"}},
+    {"key":"walls/foto","kind":"derive","fn":"wallDecor","args":{"kind":"foto"}},
+    {"key":"walls/placa","kind":"derive","fn":"wallDecor","args":{"kind":"placa"}},
+    {"key":"walls/poster","kind":"derive","fn":"wallDecor","args":{"kind":"poster_sp"}},
+    {"key":"walls/poster_oss","kind":"derive","fn":"wallDecor","args":{"kind":"poster_oss"}},
+    {"key":"walls/toldo","kind":"derive","fn":"wallDecor","args":{"kind":"toldo"}},
+    {"key":"walls/mural","kind":"derive","fn":"wallDecor","args":{"kind":"mural"}},
+    {"key":"walls/mural_s","kind":"derive","fn":"wallDecor","args":{"kind":"mural_s"}},
+    {"key":"walls/predio","kind":"derive","fn":"wallDecor","args":{"kind":"predio"}},
+    {"key":"walls/metro","kind":"derive","fn":"wallDecor","args":{"kind":"metro"}},
+    {"key":"walls/parede_faixas","kind":"derive","fn":"wallDecor","args":{"kind":"faixas"}},
+    {"key":"doors/north","kind":"derive","fn":"doorPart","args":{"kind":"north"}},
+    {"key":"doors/west","kind":"derive","fn":"doorPart","args":{"kind":"west"}},
+    {"key":"props/doormat","kind":"derive","fn":"doorPart","args":{"kind":"mat"}}
+  ]
 }
