@@ -41,4 +41,5 @@ export const IMAGES = {
   portraits: portraits.portraitParts,
   icons: iconsMod.iconParts,
   ui: uiMod.uiParts,
+  parrot: critters.parrotStrip,
 };

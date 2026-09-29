@@ -2600,6 +2600,14 @@
    "frames": 4,
    "frameW": 16,
    "fps": 6
+  },
+  "chars/parrot_strip": {
+   "file": "chars/parrot_strip.png",
+   "w": 40,
+   "h": 15,
+   "frames": 4,
+   "frameW": 10,
+   "fps": 3
   }
  },
  "chars": {

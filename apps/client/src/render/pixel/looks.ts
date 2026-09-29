@@ -13,6 +13,7 @@ export interface LookLayer {
 }
 
 export interface Look {
+  body: BodyType;
   /** back to front */
   layers: LookLayer[];
   /** the standing pose (prop layers are already in `layers`; the scene picks the animation and pace) */
@@ -73,13 +74,14 @@ export function lookForAppearance(a: Appearance, opts: LookOptions = {}): Look {
   layers.push({ key: outfitKey(a.top, a.bottom, body), ramps: { top, bottom, shoes } });
   if (opts.apron) layers.push({ key: CHAR_LAYERS.apron + suffix, ramps: { accent: opts.apron } });
   for (const l of idle.layers) layers.push({ key: idle.warped ? l + suffix : l, ramps: { top, skin } });
-  layers.push({ key: CHAR_LAYERS.gestures, ramps: { skin, top } });
   if (under) layers.push({ key: under.layer, ramps: under.ramps.length ? { hair } : undefined });
   layers.push({ key: pick(CHAR_LAYERS.hair, a.hair, 'curto', 'hair'), ramps: { hair } });
   if (over) layers.push({ key: over.layer });
+  // gestures (raised hands) are drawn over the hair: they reach up beside the head
+  layers.push({ key: CHAR_LAYERS.gestures, ramps: { skin, top } });
   const hat = hatSpec(opts.hat);
   if (hat) layers.push({ key: hat.layer, ramps: { hat: hat.color, accent: hat.accent } });
-  return { layers, idle };
+  return { body, layers, idle };
 }
 
 /** Everything that makes an NPC read like their portrait (public/pixel/portraits): the appearance, plus a hat and an apron. */

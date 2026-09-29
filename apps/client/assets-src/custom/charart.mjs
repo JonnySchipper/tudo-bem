@@ -68,29 +68,43 @@ export const HAIR_ADDON = {
 
 // ---- emote gestures (body anchored, canonical rows 12-16; frames are the emote's frames)
 const NONE = { S: P(0, []) };
-const wave = (dy) => ({
-  S: P(-12 + dy, [T(14, 'oo'), T(14, 'ss'), T(14, 'rr'), T(14, 'or'), T(15, 'r'), T(15, 'r'), T(15, 'r')]),
-});
-const thumb = {
-  S: P(-11, [T(15, 'o'), T(14, 'or'), T(14, 'or'), T(14, 'rr'), T(14, 'rr'), T(14, 'qq')]),
-};
-const armsUp = (n) => ({
-  S: P(-17 + (n === 2 ? 3 : 0), [
-    T(0, 'r' + '.'.repeat(14) + 'r'), T(0, 's' + '.'.repeat(14) + 's'), T(0, 'r' + '.'.repeat(14) + 'r'),
-    ...Array.from({ length: n === 2 ? 4 : 7 }, () => T(0, 'q' + '.'.repeat(14) + 'q')),
+const DOTS = (n) => '.'.repeat(n);
+// waving hand: an outlined 2x2 hand beside the cheek on the right, forearm below; frame B is 1 px higher with the fingers spread
+const wave = (b) => ({
+  S: P(b ? -16 : -15, [
+    T(13, b ? 'o.o' : 'ooo'),
+    T(12, 'orso'),
+    T(12, 'orro'),
+    T(13, 'ooo'),
+    T(14, 'or'), T(14, 'or'), T(14, 'or'), T(14, 'or'),
   ]),
 });
-const oneArmUp = (side) => {
-  const col = (ch) => (side === 'L' ? ch + '.'.repeat(15) : '.'.repeat(15) + ch);
-  return { S: P(-15, [col('r'), col('s'), col('r'), ...Array.from({ length: 6 }, () => col('q'))]) };
+// thumbs-up: an outlined fist with the thumb straight up, at cheek height
+const thumb = {
+  S: P(-13, [T(14, 'o'), T(13, 'oro'), T(13, 'oro'), T(12, 'orro'), T(12, 'orro'), T(12, 'orso'), T(13, 'ooo')]),
 };
+// dancing: both hands up beside the head (2 wide, outlined on top), 1 px arms down to the sleeves
+const handsUp = (len, side = 'LR') => {
+  const L = side.includes('L');
+  const R = side.includes('R');
+  const row = (l, r) => (L ? l : '..') + DOTS(12) + (R ? r : '..');
+  const arm = (ch) => (L ? ch : '.') + DOTS(14) + (R ? ch : '.');
+  return {
+    S: P(-18, [
+      row('oo', 'oo'), row('rr', 'rr'), row('sr', 'rs'), row('or', 'ro'),
+      ...Array.from({ length: len }, () => arm('q')),
+    ]),
+  };
+};
+const armsUp = (n) => handsUp(n === 2 ? 3 : 7);
+const oneArmUp = (side) => handsUp(6, side === 'L' ? 'L' : 'R');
 const laugh = (open) => ({
   S: P(-10, open ? [T(6, 'wwww'), T(6, 'KRRK')] : [T(6, 'K..K'), T(7, 'KK')]),
 });
 
 /** rows of the emote layer: row 12 oi (6 frames), 13 dancar (6), 14 rir (4), 15 valeu (4), 16 desculpa (none) */
 export const GESTURE_FRAMES = {
-  12: [wave(0), wave(1), wave(0), wave(1), wave(0), wave(1)],
+  12: [wave(false), wave(true), wave(false), wave(true), wave(false), wave(true)],
   13: [armsUp(7), armsUp(2), oneArmUp('R'), armsUp(7), armsUp(2), oneArmUp('L')],
   14: [laugh(true), laugh(false), laugh(true), laugh(false)],
   15: [thumb, thumb, thumb, thumb],

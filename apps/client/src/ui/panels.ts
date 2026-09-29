@@ -16,7 +16,7 @@ import {
 import { game } from '../state';
 import { h, en, bi, ui, clear } from './dom';
 import { drawParrot, renderAvatarPreview } from '../render/avatar';
-import { hatIcon } from '../render/icons';
+import { mountCharPreview, setHatIcon } from '../render/pixel/charPreview';
 export { MinigameUI } from './meveum-ui.js';
 import { furnitureIcon } from '../render/props';
 import { speak } from '../audio';
@@ -274,18 +274,24 @@ export function showParrotPerch(adopt: () => void) {
 
 // ---------------------------------------------------------------- hat shop / wardrobe
 
+/** The S-facing hat layer at 4x, in a fixed box so the integer scale is never stretched. */
+function hatIconBox(id: string, alt: string): HTMLElement {
+  const img = h('img', { alt, 'data-hat-icon': id }) as HTMLImageElement;
+  setHatIcon(img, id, 4);
+  return h('div', { class: 'hat-icon-box' }, img);
+}
+
 export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: string) => void; equip: (id: string | null) => void }) {
   const p = game.profile!;
   let sel = p.hat ?? (mode === 'shop' ? HATS[0].id : null);
-  const canvas = h('canvas', { width: 180, height: 230, style: 'width:180px;height:230px' });
+  // the composed pixel character wearing the selected hat (6x, integer scale, both views)
+  const canvas = h('canvas', { id: 'hat-preview', style: 'width:168px;height:216px;image-rendering:pixelated' });
   const nandaSays = h('div', { class: 'nanda-says' });
   const grid = h('div', { class: 'grid-items' });
-  let raf = 0;
-  const loop = (ts: number) => {
-    renderAvatarPreview(canvas, p.appearance, sel, p.parrotOwned && p.parrotEquipped, ts / 1000, { scale: 2.05 });
-    raf = requestAnimationFrame(loop);
-  };
-  raf = requestAnimationFrame(loop);
+  const preview = mountCharPreview(canvas, () => {
+    const cur = game.profile ?? p;
+    return { appearance: cur.appearance, hat: sel, parrot: cur.parrotOwned && cur.parrotEquipped };
+  });
 
   const render = () => {
     const prof = game.profile!;
@@ -316,7 +322,7 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
         h(
           'div',
           { class: `item-card ${sel === hatDef.id ? 'sel' : ''}`, onclick: () => ((sel = hatDef.id), render()), 'data-hat': hatDef.id },
-          h('img', { src: hatIcon(hatDef.id), alt: hatDef.pt }),
+          hatIconBox(hatDef.id, hatDef.pt),
           h('div', { class: 'name' }, hatDef.pt),
           en(hatDef.en),
           owned
@@ -344,7 +350,7 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
     ),
     {
       onClose: () => {
-        cancelAnimationFrame(raf);
+        preview.stop();
         off();
       },
     },
@@ -446,13 +452,8 @@ export function openFriends(actions: { request: (id: string) => void; accept: (i
 }
 
 export function openProfileCard(a: PublicAvatar, actions: { request: (id: string) => void; report: (id: string) => void; wave: () => void }) {
-  const canvas = h('canvas', { width: 160, height: 200, style: 'width:160px;height:200px' });
-  let raf = 0;
-  const loop = (ts: number) => {
-    renderAvatarPreview(canvas, a.appearance, a.hat, a.parrot, ts / 1000, { scale: 1.8 });
-    raf = requestAnimationFrame(loop);
-  };
-  raf = requestAnimationFrame(loop);
+  const canvas = h('canvas', { style: 'width:168px;height:216px;image-rendering:pixelated' });
+  const preview = mountCharPreview(canvas, () => ({ appearance: a.appearance, hat: a.hat, parrot: a.parrot }));
   const isFriend = game.profile?.friends.includes(a.id);
   const pronoun = { ele: 'ele', ela: 'ela', nome: 'só o nome' }[a.pronoun];
   const close = openModal(
@@ -473,7 +474,7 @@ export function openProfileCard(a: PublicAvatar, actions: { request: (id: string
         h('button', { class: 'ghost', onclick: () => (actions.report(a.id), close()) }, bi('Denunciar', 'Report')),
       ),
     ),
-    { onClose: () => cancelAnimationFrame(raf) },
+    { onClose: () => preview.stop() },
   );
 }
 

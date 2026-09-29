@@ -47,7 +47,7 @@ describe('composeRgba (2x1 test image)', () => {
       ['hair_curto', { data: buf(px('#000000', 0), px(KEY_RAMPS.hair[2])) }],
     ]);
     const a: Appearance = { body: 'medio', skin: 0, hair: 'curto', hairColor: 0, top: 'camiseta', topColor: 0, bottom: 'calca', bottomColor: 0, shoes: 0 };
-    const out = composeLook({ sheetW: 2, sheetH: 1, layer: (k) => layers.get(k) }, lookForAppearance(a));
+    const out = composeLook({ sheetW: 2, sheetH: 1, geometry: { frameW: 2, frameH: 1, cols: 1, rows: 1 }, layer: (k) => layers.get(k) }, lookForAppearance(a));
     expect(out[3]).toBe(255);
     expect(out[7]).toBe(255);
   });

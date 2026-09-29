@@ -69,3 +69,11 @@ export async function parrotCompanion() {
   const crops = frames.map((f) => crop(f, 3, 0, 10, 15));
   return [{ frames: crops, fps: 3, anchor: [5, 14] }];
 }
+
+/** The same 4 frames side by side (40x15) for the DOM previews (creator, wardrobe), as a standalone image. */
+export async function parrotStrip() {
+  const [{ frames }] = await parrotCompanion();
+  const strip = blank(frames.length * 10, 15);
+  frames.forEach((f, i) => paste(strip, f, i * 10, 0));
+  return [{ key: 'chars/parrot_strip', img: strip, meta: { frames: frames.length, frameW: 10, fps: 3 } }];
+}

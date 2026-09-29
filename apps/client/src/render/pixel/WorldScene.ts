@@ -589,7 +589,7 @@ export class WorldScene extends Phaser.Scene {
     // it hovers beside the head on the far shoulder: behind the body when walking away, mirrored so it always looks toward its owner
     const side = facing === 'W' ? 1 : -1;
     const bob = Math.round(Math.sin(now / 420 + a.seed) * 1.5);
-    v.parrot.setPosition(wx + side * 11, wy - 12 + bob);
+    v.parrot.setPosition(wx + side * 9, wy - 12 + bob);
     v.parrot.setFlipX(side === 1);
     v.parrot.setDepth(facing === 'N' ? depth - 0.05 : depth + 0.05);
   }

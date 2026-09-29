@@ -1929,6 +1929,20 @@ body:has([data-modal='minigame']) .toasts {
   height: 72px;
 }
 
+.item-card .hat-icon-box {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.item-card .hat-icon-box img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  image-rendering: pixelated;
+}
+
 .item-card .name {
   font-weight: 800;
   line-height: 1.1;
@@ -2988,10 +3002,27 @@ body:has(.conversa-backdrop) .toasts {
   font-weight: 700;
 }
 
+/* the pixel preview is 28 x 36 art px: 8x on desktop, 6x on phones (integer scales only) */
 .creator-canvas {
-  width: min(200px, 62vw);
-  height: auto;
-  aspect-ratio: 220 / 280;
+  width: 224px;
+  height: 288px;
+  image-rendering: pixelated;
+}
+
+.turn-btn {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 700px) {
+  .creator-canvas {
+    width: 168px;
+    height: 216px;
+  }
 }
 
 .creator-cta {

@@ -4,6 +4,7 @@
  */
 import type { Manifest } from './manifest';
 import { loadManifest } from './manifest';
+import type { Geometry } from './bodytype';
 
 export interface Decoded {
   w: number;
@@ -14,12 +15,14 @@ export interface Decoded {
 export class CharAssets {
   readonly sheetW: number;
   readonly sheetH: number;
+  readonly geometry: Geometry;
   constructor(
     readonly manifest: Manifest,
     private readonly layers: Map<string, Decoded>,
   ) {
     this.sheetW = manifest.sheet.frame[0] * manifest.sheet.cols;
     this.sheetH = manifest.sheet.frame[1] * manifest.sheet.rows;
+    this.geometry = { frameW: manifest.sheet.frame[0], frameH: manifest.sheet.frame[1], cols: manifest.sheet.cols, rows: manifest.sheet.rows };
   }
 
   has(key: string): boolean {

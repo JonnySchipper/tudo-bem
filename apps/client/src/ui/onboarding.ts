@@ -12,7 +12,7 @@ import {
   type Pronoun,
 } from '@tudobem/shared';
 import { h, en, ui } from './dom';
-import { renderAvatarPreview } from '../render/avatar';
+import { mountCharPreview } from '../render/pixel/charPreview';
 
 export interface NewProfile {
   name: string;
@@ -38,19 +38,10 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
 
   const a: Appearance = { ...DEFAULT_APPEARANCE, ...STARTER_OUTFITS[0].set, skin: Math.floor(Math.random() * SKIN_TONES.length) };
   let pronoun: Pronoun = 'nome';
-  const canvas = h('canvas', { width: 220, height: 280, class: 'creator-canvas' });
-  let raf = 0;
-  let wave = 0;
-  const loop = (ts: number) => {
-    const ch = canvas.clientHeight || 280;
-    const scale = Math.min(2.45, Math.max(1.35, (ch - 28) / 100));
-    renderAvatarPreview(canvas, a, null, false, ts / 1000, { scale, footY: ch - 14, view: 'front', emote: ts / 1000 - wave < 2.5 ? 'oi' : null, emoteT0: wave });
-    raf = requestAnimationFrame(loop);
-  };
-  raf = requestAnimationFrame((ts) => {
-    wave = ts / 1000;
-    loop(ts);
-  });
+  // the composed pixel character (same layers as the world), shown at an integer scale with image-rendering: pixelated
+  const canvas = h('canvas', { class: 'creator-canvas', id: 'avatar-preview' });
+  const preview = mountCharPreview(canvas, () => ({ appearance: a, hat: null, parrot: false }), { waveOnStart: true });
+  const turn = h('button', { class: 'turn-btn', type: 'button', id: 'turn-avatar', 'aria-label': 'Girar o avatar (turn around)', onclick: () => preview.turn() }, '↻ Girar');
 
   const go = h('button', { class: 'primary', style: 'font-size:1.1em', id: 'enter-praca' }, 'Entrar na Praça →');
   const name = h('input', { type: 'text', maxLength: 16, placeholder: 'Ex.: Jonny, Bia, Leo…', 'aria-label': 'Nome', id: 'avatar-name' });
@@ -140,7 +131,7 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
         h(
           'div',
           { class: 'creator-side' },
-          h('div', { class: 'preview' }, canvas),
+          h('div', { class: 'preview' }, canvas, turn),
           h(
             'div',
             { class: 'rules' },
@@ -169,7 +160,7 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
     ),
   );
   name.focus();
-  window.addEventListener('tb:game-start', () => cancelAnimationFrame(raf), { once: true });
+  window.addEventListener('tb:game-start', () => preview.stop(), { once: true });
 
   return api;
 }
