@@ -103,6 +103,8 @@ export const DEPTH = {
 /** Synthetic light for props whose manifest entry carries none (the lamp on the utility pole). */
 export const PROP_LIGHT: Partial<Record<PropKind, { x: number; y: number; r: number; color: string }>> = {
   poste: { x: 0, y: -50, r: 46, color: '#ffb45a' },
+  /** the strip light under the newsstand's awning */
+  banca: { x: 0, y: -30, r: 38, color: '#ffc46a' },
 };
 
 /** World rect a sprite covers when its anchor is at (wx, wy). */

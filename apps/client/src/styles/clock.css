@@ -1,0 +1,64 @@
+/*
+ * HUD clock pill (Phase 6a): `Seg · 17:40 · ☀️` next to the brand, top-left. It is a normal `.pill`, so the pixel chrome
+ * (html.px-ui 9-slice, pixel font) applies to it like to the coin and the Verde plate.
+ */
+
+.top-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.clock-pill {
+  gap: 6px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock-pill .cp-sep {
+  opacity: 0.4;
+}
+
+.clock-pill .cp-time {
+  min-width: 5ch;
+  text-align: center;
+}
+
+.clock-pill .cp-wx {
+  font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+  font-size: 1em;
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  /* phone: the brand shrinks (mark hidden, name over room), the clock pill stays whole beside it */
+  .top-left {
+    order: 1;
+    flex: 1 1 0;
+    gap: 3px;
+  }
+
+  .top-left .brand {
+    order: 0;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .clock-pill {
+    flex: none;
+    gap: 4px;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+
+  /* the weekday moves to the tooltip on a phone: `17:40 ☀️` fits beside the brand and the Verde / RV pills */
+  .clock-pill .cp-day,
+  .clock-pill .cp-sep {
+    display: none;
+  }
+
+  .top-left .brand .room small {
+    display: none;
+  }
+}

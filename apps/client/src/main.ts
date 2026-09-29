@@ -1,6 +1,7 @@
 import './styles.css';
 import './styles/intro.css';
 import './styles/pixel-ui.css';
+import './styles/clock.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
@@ -23,6 +24,8 @@ import {
 } from '@tudobem/shared';
 import { game, type ClientAvatar, type PendingAction } from './state';
 import { Net, wsUrl, type NetLike } from './net';
+import { clock, parseTimeOfDay } from './gameClock';
+import { IdleTalk } from './idleTalk';
 import { LocalNet } from './localNet';
 import { WorldRenderer } from './render/world';
 import { pickView } from './render/pickView';
@@ -313,6 +316,7 @@ net.on((m: ServerMsg) => {
       kickedCopy = { pt: m.pt, en: m.en };
       break;
     case 'welcome': {
+      clock.syncServer(m.serverNow);
       localStorage.setItem(TOKEN_KEY, m.token);
       game.profile = m.profile;
       closeOnboarding();
@@ -333,6 +337,7 @@ net.on((m: ServerMsg) => {
       updateGuides();
       break;
     case 'roomState': {
+      clock.syncServer(m.serverNow);
       const keepMg = !!minigame && modalId() === 'minigame' && game.room?.room === m.room;
       const keepRoll = !!rollUi && modalId() === 'roll' && m.room === 'academia';
       if (!keepMg && !keepRoll) {
@@ -602,12 +607,12 @@ function startGame() {
       game.emit('hud');
     },
   });
+  const idleTalk = new IdleTalk();
   setInterval(() => {
     const room = game.roomDef;
     if (!room?.npcs.length || document.hidden) return;
     const n = room.npcs[Math.floor(Math.random() * room.npcs.length)];
-    const line = n.idleLines[Math.floor(Math.random() * n.idleLines.length)];
-    npcSay(n.id, line);
+    npcSay(n.id, idleTalk.next(n.idleLines, clock.weather(), clock.minutes()));
   }, 11_000);
 }
 
@@ -897,6 +902,18 @@ window.__tb = {
     return 'artMissing' in renderer ? (renderer as { artMissing: string[] }).artMissing : [];
   },
   hatById,
+  /** The shared game clock (skew from the server's `serverNow`). */
+  clock,
+  /** Frame-time probe, low-fx state and particle counts of the pixel view (null in the iso view). */
+  get perf(): unknown {
+    return 'perf' in renderer ? (renderer as { perf: () => unknown }).perf() : null;
+  },
+  /** Test/shots hook: pin the time of day ("19:30"), the weather ("garoa"), and/or the clock speed. `null` clears a pin. */
+  setClock: (o: { time?: string | null; weather?: 'sol' | 'nublado' | 'garoa' | 'chuva' | null; speed?: number }) => {
+    if (o.time !== undefined) clock.setTime(o.time === null ? null : parseTimeOfDay(o.time));
+    if (o.weather !== undefined) clock.setWeather(o.weather);
+    if (o.speed !== undefined) clock.setSpeed(o.speed);
+  },
   tileToClient: (x: number, y: number) => renderer.tileToClient(x, y),
   selfTile: () => selfTile(),
   clickHit: (hit: Hit) => handleClick(hit),

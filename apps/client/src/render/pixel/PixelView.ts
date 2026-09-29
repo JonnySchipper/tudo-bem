@@ -134,6 +134,11 @@ export class PixelView implements WorldView {
     return tileAtWorld(w.wx, w.wy, room.cols, room.rows);
   }
 
+  /** Frame-time probe and fx level (`window.__tb.perf`). */
+  perf() {
+    return this.scene?.perfInfo() ?? null;
+  }
+
   /** For debugging and the shots script. */
   info() {
     return this.scene?.info() ?? null;
