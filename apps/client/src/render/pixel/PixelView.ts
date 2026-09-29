@@ -47,6 +47,7 @@ export class PixelView implements WorldView {
       insets: () => this.insetsCss,
       lowfx: q.get('lowfx') === '1',
       debugArt: q.get('debug') === 'art',
+      shot: q.get('shot'),
     });
     this.artMissing = scene.artMissing;
     this.phaser = new Phaser.Game({

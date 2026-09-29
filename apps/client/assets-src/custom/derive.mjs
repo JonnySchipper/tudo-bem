@@ -14,6 +14,7 @@ import * as feiraMod from './feira.mjs';
 import * as iconsMod from './icons.mjs';
 import * as uiMod from './ui.mjs';
 import * as uiIconsMod from './uiicons.mjs';
+import * as vilaMod from './vila.mjs';
 
 import * as wallsMod from './walls.mjs';
 import * as padariaMod from './padaria.mjs';
@@ -46,6 +47,9 @@ export const DERIVE = {
   moto: vauth.moto,
   feira: feiraMod.feira,
   guideArrow: uiMod.guideArrow,
+  casas: vilaMod.casas,
+  pontoOnibus: vilaMod.pontoOnibusPart,
+  emBreve: vilaMod.emBrevePart,
 };
 
 /** Standalone images for the DOM (`images` in import-map.json): generators return [{ key, img, meta? }]. */

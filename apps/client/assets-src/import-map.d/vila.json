@@ -1,0 +1,599 @@
+{
+  "$comment": "Vila Ipê (Phase 5): houses, roofs, bus stop, banner, flower planters, street furniture and fences.",
+  "sheets": {
+    "s_flor1": "ext:ME_Theme_Sorter_16x16/3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Flower_Bush_1.png",
+    "s_flor2": "ext:ME_Theme_Sorter_16x16/3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Flower_Bush_2.png",
+    "s_flor3": "ext:ME_Theme_Sorter_16x16/3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Flower_Bush_3.png",
+    "s_flor4": "ext:ME_Theme_Sorter_16x16/3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Flower_Bush_4.png",
+    "s_flor5": "ext:ME_Theme_Sorter_16x16/3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Flower_Bush_5.png",
+    "s_flor6": "ext:ME_Theme_Sorter_16x16/3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Flower_Bush_6.png",
+    "s_hid1": "ext:ME_Theme_Sorter_16x16/3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Hydrant_1.png",
+    "s_hid2": "ext:ME_Theme_Sorter_16x16/3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Hydrant_2.png",
+    "s_mail": "ext:ME_Theme_Sorter_16x16/3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Mailbox_1.png",
+    "s_park": "ext:ME_Theme_Sorter_16x16/3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Parking_Meter_1.png",
+    "s_f2tl": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_2_Top_Left_16x16.png",
+    "s_f2tm": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_2_Top_Middle_16x16.png",
+    "s_f2tr": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_2_Top_Right_16x16.png",
+    "s_f2ml": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_2_Middle_Left_16x16.png",
+    "s_f2mr": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_2_Middle_Right_16x16.png",
+    "s_f2bl": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_2_Bottom_Left_16x16.png",
+    "s_f2bm": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_2_Bottom_Middle_16x16.png",
+    "s_f2br": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_2_Bottom_Right_16x16.png",
+    "s_f3tl": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_3_Top_Left_16x16.png",
+    "s_f3tm": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_3_Top_Middle_16x16.png",
+    "s_f3tr": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_3_Top_Right_16x16.png",
+    "s_f3ml": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_3_Middle_Left_16x16.png",
+    "s_f3mr": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_3_Middle_Right_16x16.png",
+    "s_f3bl": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_3_Bottom_Left_16x16.png",
+    "s_f3bm": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_3_Bottom_Middle_16x16.png",
+    "s_f3br": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_3_Bottom_Right_16x16.png"
+  },
+  "sprites": [
+    {
+      "key": "casas/sobrado_salmao",
+      "kind": "derive",
+      "fn": "casas"
+    },
+    {
+      "key": "props/ponto_onibus",
+      "kind": "derive",
+      "fn": "pontoOnibus",
+      "footprint": [
+        3,
+        1
+      ],
+      "shadow": "fx/shadow_48",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/em_breve",
+      "kind": "derive",
+      "fn": "emBreve",
+      "footprint": [
+        4,
+        1
+      ],
+      "shadow": "fx/shadow_48",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/flor_rosa",
+      "sheet": "s_flor1",
+      "rect": [
+        0,
+        0,
+        32,
+        16
+      ],
+      "trim": true,
+      "foot": 0,
+      "footprint": [
+        2,
+        1
+      ],
+      "shadow": "fx/shadow_32",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/flor_vermelha",
+      "sheet": "s_flor2",
+      "rect": [
+        0,
+        0,
+        32,
+        16
+      ],
+      "trim": true,
+      "foot": 0,
+      "footprint": [
+        2,
+        1
+      ],
+      "shadow": "fx/shadow_32",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/flor_branca",
+      "sheet": "s_flor3",
+      "rect": [
+        0,
+        0,
+        32,
+        16
+      ],
+      "trim": true,
+      "foot": 0,
+      "footprint": [
+        2,
+        1
+      ],
+      "shadow": "fx/shadow_32",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/flor_mista",
+      "sheet": "s_flor4",
+      "rect": [
+        0,
+        0,
+        48,
+        16
+      ],
+      "trim": true,
+      "foot": 0,
+      "footprint": [
+        3,
+        1
+      ],
+      "shadow": "fx/shadow_48",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/flor_mista_b",
+      "sheet": "s_flor5",
+      "rect": [
+        0,
+        0,
+        48,
+        16
+      ],
+      "trim": true,
+      "foot": 0,
+      "footprint": [
+        3,
+        1
+      ],
+      "shadow": "fx/shadow_48",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/flor_branca_l",
+      "sheet": "s_flor6",
+      "rect": [
+        0,
+        0,
+        48,
+        16
+      ],
+      "trim": true,
+      "foot": 0,
+      "footprint": [
+        3,
+        1
+      ],
+      "shadow": "fx/shadow_48",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/hidrante",
+      "sheet": "s_hid1",
+      "rect": [
+        0,
+        0,
+        16,
+        32
+      ],
+      "trim": true,
+      "foot": 0,
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/hidrante_amarelo",
+      "sheet": "s_hid2",
+      "rect": [
+        0,
+        0,
+        16,
+        32
+      ],
+      "trim": true,
+      "foot": 0,
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/caixa_correio",
+      "sheet": "s_mail",
+      "rect": [
+        0,
+        0,
+        16,
+        32
+      ],
+      "trim": true,
+      "foot": 0,
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/parquimetro",
+      "sheet": "s_park",
+      "rect": [
+        0,
+        0,
+        16,
+        32
+      ],
+      "trim": true,
+      "foot": 0,
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "fence/2_tl",
+      "sheet": "s_f2tl",
+      "rect": [
+        0,
+        0,
+        16,
+        16
+      ],
+      "anchor": [
+        8,
+        15
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": null
+    },
+    {
+      "key": "fence/2_tm",
+      "sheet": "s_f2tm",
+      "rect": [
+        0,
+        0,
+        16,
+        16
+      ],
+      "anchor": [
+        8,
+        15
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": null
+    },
+    {
+      "key": "fence/2_tr",
+      "sheet": "s_f2tr",
+      "rect": [
+        0,
+        0,
+        16,
+        16
+      ],
+      "anchor": [
+        8,
+        15
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": null
+    },
+    {
+      "key": "fence/2_ml",
+      "sheet": "s_f2ml",
+      "rect": [
+        0,
+        0,
+        16,
+        16
+      ],
+      "anchor": [
+        8,
+        15
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": null
+    },
+    {
+      "key": "fence/2_mr",
+      "sheet": "s_f2mr",
+      "rect": [
+        0,
+        0,
+        16,
+        16
+      ],
+      "anchor": [
+        8,
+        15
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": null
+    },
+    {
+      "key": "fence/2_bl",
+      "sheet": "s_f2bl",
+      "rect": [
+        0,
+        0,
+        16,
+        16
+      ],
+      "anchor": [
+        8,
+        15
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": null
+    },
+    {
+      "key": "fence/2_bm",
+      "sheet": "s_f2bm",
+      "rect": [
+        0,
+        0,
+        16,
+        16
+      ],
+      "anchor": [
+        8,
+        15
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": null
+    },
+    {
+      "key": "fence/2_br",
+      "sheet": "s_f2br",
+      "rect": [
+        0,
+        0,
+        16,
+        16
+      ],
+      "anchor": [
+        8,
+        15
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": null
+    },
+    {
+      "key": "fence/3_tl",
+      "sheet": "s_f3tl",
+      "rect": [
+        0,
+        0,
+        16,
+        16
+      ],
+      "anchor": [
+        8,
+        15
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": null
+    },
+    {
+      "key": "fence/3_tm",
+      "sheet": "s_f3tm",
+      "rect": [
+        0,
+        0,
+        16,
+        16
+      ],
+      "anchor": [
+        8,
+        15
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": null
+    },
+    {
+      "key": "fence/3_tr",
+      "sheet": "s_f3tr",
+      "rect": [
+        0,
+        0,
+        16,
+        16
+      ],
+      "anchor": [
+        8,
+        15
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": null
+    },
+    {
+      "key": "fence/3_ml",
+      "sheet": "s_f3ml",
+      "rect": [
+        0,
+        0,
+        16,
+        16
+      ],
+      "anchor": [
+        8,
+        15
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": null
+    },
+    {
+      "key": "fence/3_mr",
+      "sheet": "s_f3mr",
+      "rect": [
+        0,
+        0,
+        16,
+        16
+      ],
+      "anchor": [
+        8,
+        15
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": null
+    },
+    {
+      "key": "fence/3_bl",
+      "sheet": "s_f3bl",
+      "rect": [
+        0,
+        0,
+        16,
+        16
+      ],
+      "anchor": [
+        8,
+        15
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": null
+    },
+    {
+      "key": "fence/3_bm",
+      "sheet": "s_f3bm",
+      "rect": [
+        0,
+        0,
+        16,
+        16
+      ],
+      "anchor": [
+        8,
+        15
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": null
+    },
+    {
+      "key": "fence/3_br",
+      "sheet": "s_f3br",
+      "rect": [
+        0,
+        0,
+        16,
+        16
+      ],
+      "anchor": [
+        8,
+        15
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": null
+    },
+    {
+      "key": "decals/faixa_onibus",
+      "sheet": "city",
+      "rect": [
+        224,
+        6,
+        112,
+        34
+      ],
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        7,
+        2
+      ],
+      "shadow": null
+    }
+  ]
+}

@@ -26,7 +26,8 @@ import { LabelLayer, type GuideItem, type StackItem } from './labels';
 import { T, cssZoomFor, feet, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
 import { pickHit, type HitBox } from './hit';
 import { roomKey, syncViews } from './reconcile';
-import { DEPTH, PROP_LIGHT, footprintRect, inflate, propAnchor, furnitureArtKey, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
+import { DEPTH, PROP_LIGHT, fencePieces, footprintRect, inflate, propAnchor, propDepth, furnitureArtKey, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
+import { sceneryFor } from './scenery';
 import {
   FLOOR_PLACEHOLDER,
   FLOOR_SUBSTITUTE,
@@ -63,6 +64,8 @@ export interface SceneHost {
   insets: () => Insets;
   lowfx: boolean;
   debugArt: boolean;
+  /** `?shot=map`: zoom out to fit the whole outdoor map (screenshots) */
+  shot?: string | null;
 }
 
 interface AvatarView {
@@ -265,7 +268,7 @@ export class WorldScene extends Phaser.Scene {
     const missingBefore = this.artMissing.length;
 
     // ---- terrain: dual-grid layers for the floor chars that have art; substitutes and flat placeholders for the rest
-    const res = buildTerrainLayers(this, def.floor, m.terrain, 'terrainTs', { outside: 'x', wrap: (o) => this.rig.world(o), substitute: FLOOR_SUBSTITUTE });
+    const res = buildTerrainLayers(this, def.floor, m.terrain, 'terrainTs', { outside: def.outdoor ? undefined : 'x', wrap: (o) => this.rig.world(o), substitute: FLOOR_SUBSTITUTE });
     this.roomMap = res.map;
     const chars = new Set(def.floor.join(''));
     for (const ch of chars) {
@@ -288,10 +291,10 @@ export class WorldScene extends Phaser.Scene {
     }
 
     // ---- walls: north band and west strip from 16 px wall tiles per room style (flat placeholders in the room's colors when the art is missing)
-    this.buildWalls(def);
+    if (!def.outdoor) this.buildWalls(def);
 
-    // ---- facades on north doors
-    const facades = northFacades(def, has);
+    // ---- facades on north doors (an open-air map has its building fronts as props)
+    const facades = def.outdoor ? [] : northFacades(def, has);
     let tallest = 0;
     for (const f of facades) {
       const d = m.sprites[f.key];
@@ -321,6 +324,12 @@ export class WorldScene extends Phaser.Scene {
 
     // ---- doors
     for (const p of def.portals) {
+      if (!p.wall) {
+        // an outdoor door is part of its facade sprite: only the click box is needed
+        const r = portalHitRect(p);
+        this.staticHits.push({ ...r, hit: { kind: 'portal', portal: p }, depth: r.y1 });
+        continue;
+      }
       if (isNorthPortal(p)) {
         if (!facades.some((f) => f.portal.id === p.id) && !this.sprite('doors/north', (p.x + 0.5) * T, 0, DEPTH.wallDecor, false)) this.placeholder('doors/north', northDoorRect(p), DEPTH.wallDecor);
       } else {
@@ -339,6 +348,9 @@ export class WorldScene extends Phaser.Scene {
       if (pd) this.reg(this.add.image(Math.round(a.wx) + 3, Math.round(a.wy) - 1, pd.atlas, pd.frame)).setOrigin(0.5, 0.5).setDepth(-4900);
     }
 
+    // ---- ground dressing and wires of an open-air map
+    this.buildScenery(def);
+
     // ---- props
     for (const p of def.props) this.buildProp(p);
 
@@ -348,6 +360,7 @@ export class WorldScene extends Phaser.Scene {
     this.rig.syncLights();
     this.bounds = roomBounds(def, tallest);
     this.snapCamera = true;
+    this.hoverRect.setVisible(false);
     const skipped = describeSkipped({ [def.id]: def });
     if (skipped.length) console.info('[pixel] west-wall decor skipped in Phase 2:', skipped.join('; '));
     if (this.artMissing.length !== missingBefore) console.info('[pixel] missing art (placeholders):', this.artMissing.join(', '));
@@ -397,9 +410,13 @@ export class WorldScene extends Phaser.Scene {
 
   private buildProp(p: PropDef): void {
     const m = this.m;
+    if (p.kind === 'cerca') {
+      this.buildFence(p);
+      return;
+    }
     const a = propAnchor(p);
     const flat = p.kind === 'tatame';
-    const depth = flat ? DEPTH.groundDecal + 10 : standingDepth(a.wy, p.id);
+    const depth = flat ? DEPTH.groundDecal + 10 : propDepth(p, a.wy);
     const foot = footprintRect(p);
     let visual: Rect = foot;
     const artKey = propArtKey(p);
@@ -430,6 +447,10 @@ export class WorldScene extends Phaser.Scene {
         this.rig.litOverlays.push(this.reg(this.add.image(Math.round(a.wx), Math.round(a.wy), ld.atlas, ld.frame)).setOrigin(...originOf(ld)).setDepth(depth + 0.01).setAlpha(0));
       }
       visual = unionRect(foot, spriteRect(Math.round(a.wx), Math.round(a.wy), d));
+      // lit windows of a building front: light pools on the sidewalk at night
+      for (const [wx, wy, ww, wh] of d.windows ?? []) {
+        this.rig.lights.push({ x: Math.round(a.wx) - d.ax + wx + ww / 2, y: Math.round(a.wy) - d.ay + wy + wh + 5, r: 22 + ww * 0.5, color: 0xffc060, squash: 0.6, kind: 'window' });
+      }
       if (typeof d.overhead === 'string' && m.sprites[d.overhead]) {
         const od = m.sprites[d.overhead];
         const x = Math.round(a.wx);
@@ -455,6 +476,45 @@ export class WorldScene extends Phaser.Scene {
         // a single-tile seat (bench, stool) is clickable over its whole sprite, with a little slack; long seats per tile, taller
         const r = w === 1 && h === 1 ? inflate(unionRect(visual, tile), 3) : { ...tile, y0: tile.y0 - 6 };
         this.staticHits.push({ ...r, hit: { kind: 'seat', tile: { x: t.x, y: t.y } }, depth: a.wy });
+      }
+    }
+  }
+
+  /** A fenced rectangle: the perimeter pieces of the pack's fence set (the inside is blocked and dressed by other props). */
+  private buildFence(p: PropDef): void {
+    for (const piece of fencePieces(p)) {
+      if (!this.m.sprites[piece.key]) {
+        this.noteMissing(piece.key);
+        continue;
+      }
+      this.sprite(piece.key, (piece.x + 0.5) * T, (piece.y + 1) * T, standingDepth((piece.y + 1) * T, `${p.id}:${piece.x},${piece.y}`), false);
+    }
+  }
+
+  /** Ground decals (crosswalks, mosaic, flowers, tufts, grime) and the overhead wires of an open-air map. */
+  private buildScenery(def: RoomDef): void {
+    const sc = sceneryFor(def, (k) => !!this.m.sprites[k]);
+    if (!sc) return;
+    for (const d of sc.decals) {
+      const sd = this.m.sprites[d.key];
+      const img = this.reg(this.add.image(d.x, d.y, sd.atlas, sd.frame)).setDepth(d.depth);
+      if (d.origin === 'tl') img.setOrigin(0, 0);
+      else img.setOrigin(...originOf(sd));
+    }
+    const pole = this.m.sprites['props/poste_fios'];
+    const attachY = pole?.attach?.[1] ?? -51;
+    for (const run of sc.wires) {
+      let wx = run.x;
+      const wy = run.y + attachY;
+      for (const key of run.keys) {
+        const wd = this.m.sprites[key];
+        if (!wd) {
+          this.noteMissing(key);
+          continue;
+        }
+        // wires cross over everything: overhead layer, a little see-through so they never fight the art below
+        this.reg(this.add.image(wx, wy, wd.atlas, wd.frame)).setOrigin(...originOf(wd)).setDepth(DEPTH.overhead + 200).setAlpha(0.7);
+        wx += wd.w - 1;
       }
     }
   }
@@ -538,7 +598,12 @@ export class WorldScene extends Phaser.Scene {
     const k = this.cam.dpr;
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     // the whole room (walls included) when it fits at this or the next lower integer zoom, else follow the avatar with the north wall kept in view
-    const f = roomFraming({ w: this.cam.w, h: this.cam.h }, this.bounds, focus, { top: ins.top * k, bottom: ins.bottom * k, left: ins.left * k, right: ins.right * k }, cssZoomFor(window.innerWidth, window.innerHeight), dpr);
+    let f = roomFraming({ w: this.cam.w, h: this.cam.h }, this.bounds, focus, { top: ins.top * k, bottom: ins.bottom * k, left: ins.left * k, right: ins.right * k }, cssZoomFor(window.innerWidth, window.innerHeight), dpr, !def.outdoor);
+    if (this.host.shot === 'map' && def.outdoor) {
+      // debug `?shot=map`: the whole map in one frame, at the biggest integer zoom that fits (1x on a 1280 x 800 window), centred, no follow
+      const zoom = Math.max(1, Math.floor(Math.min(this.cam.w / (def.cols * T), this.cam.h / (def.rows * T))));
+      f = { zoom, cx: (def.cols * T) / 2, cy: (def.rows * T) / 2, fits: true };
+    }
     const target = { cx: f.cx, cy: f.cy };
     this.cam.zoom = f.zoom;
     if (this.cameras.main.zoom !== f.zoom) {
