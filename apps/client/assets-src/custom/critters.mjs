@@ -1,6 +1,6 @@
 // Parrot perch (art1) and the vira-lata re-export (art2). Hand-authored with LimeZu palette colors: the pack has no dog and no parrot.
 import { blank, paste, setPx, hexPx, C, K, rect, hline, vline, dot, drawShaded, newMask, fillMask, ellipse, union, rectP, stampGrid, outlineAround } from './kit.mjs';
-import { flipH } from '../../../../scripts/lib/pixel/img.mjs';
+import { flipH, crop } from '../../../../scripts/lib/pixel/img.mjs';
 
 // ------------------------------------------------------------------ parrot on a perch (1x1, 4 idle frames)
 const PARROT_PAL = { o: C.navy, y: C.y2, Y: C.y1, w: '#f8f8f8', k: C.navy, b: C.y4, B: K.br2, g: C.g2, G: C.g1, d: C.g3, r: C.r2, R: C.r4, f: C.y4, t: '#2e7177' };
@@ -61,3 +61,11 @@ export async function poleiro() {
 
 // The vira-lata caramelo lives in dog.mjs (redrawn in art track 2).
 export { viraLata } from './dog.mjs';
+
+// ------------------------------------------------------------------ parrot companion (Phase 3): the perch parrot without the perch
+/** The poleiro parrot's head and body (4 idle frames) cropped free of the perch, for the shoulder / hovering companion of `profile.parrotEquipped`. */
+export async function parrotCompanion() {
+  const [{ frames }] = await poleiro();
+  const crops = frames.map((f) => crop(f, 3, 0, 10, 15));
+  return [{ frames: crops, fps: 3, anchor: [5, 14] }];
+}

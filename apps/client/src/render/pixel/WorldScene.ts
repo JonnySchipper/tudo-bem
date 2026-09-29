@@ -15,9 +15,11 @@ import { game, type ClientAvatar } from '../../state';
 import type { Guide, Hit } from '../view';
 import type { Manifest } from './manifest';
 import { FACING, type Facing } from './facing';
-import { animKey, sitFrame } from './charsheet';
+import { addSheetTexture, animKey, animNames, emoteDuration, sitFrame } from './charsheet';
 import { CharSheets } from './charCache';
-import { lookForAppearance, lookForNpc } from './looks';
+import type { CharAssets } from './charAssets';
+import { composeLook } from './composeLook';
+import { lookForAppearance, lookForNpc, type Look } from './looks';
 import { LightingRig } from './lightingRig';
 import { buildTerrainLayers } from './terrainLayers';
 import { LabelLayer, type GuideItem, type StackItem } from './labels';
@@ -60,6 +62,9 @@ interface AvatarView {
   shadow: Phaser.GameObjects.Image;
   sheet: string;
   appearance: unknown;
+  hat: string | null;
+  look: Look;
+  parrot: Phaser.GameObjects.Sprite | null;
   anim: string;
   facing: Facing;
   /** world px of the feet */
@@ -134,6 +139,7 @@ export class WorldScene extends Phaser.Scene {
   constructor(
     private readonly m: Manifest,
     private readonly base: string,
+    private readonly assets: CharAssets,
     private readonly host: SceneHost,
   ) {
     super('world');
@@ -145,7 +151,6 @@ export class WorldScene extends Phaser.Scene {
     const b = this.base;
     for (const [name, a] of Object.entries(m.atlases)) this.load.atlas(name, b + a.image, b + a.data);
     this.load.image('terrainTs', b + m.terrain.tileset);
-    for (const [key, file] of Object.entries(m.chars)) this.load.image(`layer:${key}`, b + file);
     for (const [key, f] of Object.entries(m.fx)) this.load.image(`fx:${key}`, b + f.file);
   }
 
@@ -154,7 +159,13 @@ export class WorldScene extends Phaser.Scene {
     cam.setBackgroundColor('#1d1b26');
     cam.setRoundPixels(true);
     this.rig = new LightingRig(this, cam, 'fx:glow');
-    this.sheets = new CharSheets(this, this.m.sheet);
+    this.sheets = new CharSheets({
+      add: (key, look) => addSheetTexture(this, key, composeLook(this.assets, look), this.m.sheet),
+      remove: (key) => {
+        for (const name of animNames(this.m.sheet)) for (const f of ['S', 'W', 'E', 'N'] as Facing[]) this.anims.remove(animKey(key, name, f));
+        if (this.textures.exists(key)) this.textures.remove(key);
+      },
+    });
     // the hover marker belongs to the scene, not to a room layer
     this.hoverRect = this.rig.world(this.add.rectangle(0, 0, T, T, 0xffffff, 0.22)).setOrigin(0, 0).setStrokeStyle(1, 0xffffff, 0.8).setDepth(49000).setVisible(false);
     if (!this.host.lowfx) cam.postFX.addVignette(0.5, 0.5, 0.88, 0.22);
@@ -366,10 +377,14 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private buildNpc(n: NpcDef): void {
-    const sheet = this.sheets.acquire(lookForNpc(n.id, n.appearance));
+    const look = lookForNpc(n.id, n.appearance, n.hat);
+    const sheet = this.sheets.acquire(look);
     const f = feet(n.x, n.y);
     const spr = this.reg(this.add.sprite(f.wx, Math.round(f.wy), sheet, 0)).setOrigin(0.5, 1).setDepth(standingDepth(f.wy, n.id));
-    spr.play({ key: animKey(sheet, 'idle', FACING[n.dir]), startFrame: Math.floor(hash01(n.x * 100 + n.y) * 6) });
+    const seed = n.x * 100 + n.y;
+    const facing = FACING[n.dir];
+    spr.play({ key: animKey(sheet, look.idle.anim === 'phone' && facing === 'S' ? 'phone' : 'idle', facing), startFrame: Math.floor(hash01(seed) * 6) });
+    spr.anims.timeScale = look.idle.speed * (0.9 + 0.2 * hash01(seed + 7));
     const s16 = this.m.sprites['fx/shadow_16'];
     const shadow = this.reg(this.add.image(f.wx, Math.round(f.wy) - 1, s16.atlas, s16.frame)).setOrigin(...originOf(s16)).setDepth(DEPTH.shadowContact);
     this.npcs.push({ npc: n, sprite: spr, shadow, sheet });
@@ -462,25 +477,28 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private createAvatar(a: ClientAvatar): AvatarView {
-    const look = lookForAppearance(a.pub.appearance);
+    const look = lookForAppearance(a.pub.appearance, { hat: a.pub.hat });
     const sheet = this.sheets.acquire(look);
     const sprite = this.rig.world(this.add.sprite(0, 0, sheet, 0)).setOrigin(0.5, 1);
     const s16 = this.m.sprites['fx/shadow_16'];
     const shadow = this.rig.world(this.add.image(0, 0, s16.atlas, s16.frame)).setOrigin(...originOf(s16)).setDepth(DEPTH.shadowContact);
-    return { sprite, shadow, sheet, appearance: a.pub.appearance, anim: '', facing: 'S', wx: 0, wy: 0, lastX: Number.NaN, lastY: 0, sitting: false, moving: false };
+    return { sprite, shadow, sheet, appearance: a.pub.appearance, hat: a.pub.hat, look, parrot: null, anim: '', facing: 'S', wx: 0, wy: 0, lastX: Number.NaN, lastY: 0, sitting: false, moving: false };
   }
 
   private destroyAvatar(v: AvatarView): void {
+    v.parrot?.destroy();
     v.sprite.destroy();
     v.shadow.destroy();
     this.sheets.release(v.sheet);
   }
 
   private updateAvatar(v: AvatarView, a: ClientAvatar, def: RoomDef, now: number, dyn: HitBox[]): void {
-    // appearance changed (wardrobe, avatarUpdated): swap the sheet
-    if (a.pub.appearance !== v.appearance) {
+    // appearance or hat changed (wardrobe, avatarUpdated): swap the sheet
+    if (a.pub.appearance !== v.appearance || a.pub.hat !== v.hat) {
       v.appearance = a.pub.appearance;
-      const sheetKey = this.sheets.acquire(lookForAppearance(a.pub.appearance));
+      v.hat = a.pub.hat;
+      v.look = lookForAppearance(a.pub.appearance, { hat: a.pub.hat });
+      const sheetKey = this.sheets.acquire(v.look);
       this.sheets.release(v.sheet);
       if (sheetKey !== v.sheet) {
         v.sheet = sheetKey;
@@ -508,10 +526,15 @@ export class WorldScene extends Phaser.Scene {
     v.moving = pos.moving;
 
     const f = feet(pos.x, pos.y);
+    // emotes play the sheet's real frames (oi, dancar, rir, valeu, desculpa); the 2 px bounce is only the fallback for a sheet without them
     let bounce = 0;
+    let emote: string | null = null;
     if (a.emote && !pos.moving && !sitting) {
       const t = now / 1000 - a.emote.t0;
-      if (t >= 0 && t < 1.3) bounce = Math.round(Math.abs(Math.sin(t * 9)) * 2); // placeholder until emote art exists (HOWTO §5.5)
+      const dur = emoteDuration(this.m.sheet, a.emote.kind) / 1000;
+      if (dur > 0) {
+        if (t >= 0 && t < dur) emote = `${a.emote.kind}@${a.emote.t0}`;
+      } else if (t >= 0 && t < 1.3) bounce = Math.round(Math.abs(Math.sin(t * 9)) * 2);
     }
     const wx = Math.round(f.wx);
     const wy = Math.round(f.wy);
@@ -523,21 +546,52 @@ export class WorldScene extends Phaser.Scene {
     const depth = sitting ? (pos.tile.y + 1) * T + 0.5 : standingDepth(f.wy, a.pub.id);
     v.sprite.setDepth(depth);
 
-    const animName = sitting ? `sit:${facing}` : pos.moving ? `walk:${facing}` : `idle:${facing}`;
+    const idleAnim = v.look.idle.anim === 'phone' && facing === 'S' ? 'phone' : 'idle';
+    const animName = sitting ? `sit:${facing}` : pos.moving ? `walk:${facing}` : emote ? `emote:${emote}` : `${idleAnim}:${facing}`;
     const want = `${v.sheet}|${animName}`;
     if (want !== v.anim) {
       v.anim = want;
       if (sitting) {
         v.sprite.anims.stop();
         v.sprite.setTexture(v.sheet, sitFrame(this.m.sheet, facing));
+      } else if (emote) {
+        v.sprite.setTexture(v.sheet, 0);
+        v.sprite.play({ key: animKey(v.sheet, emote.split('@')[0], 'S'), startFrame: 0 });
+        v.sprite.anims.timeScale = 1;
       } else {
         v.sprite.setTexture(v.sheet, 0);
-        v.sprite.play({ key: animKey(v.sheet, pos.moving ? 'walk' : 'idle', facing), startFrame: pos.moving ? 0 : Math.floor(a.seed) % 6 });
+        const walking = pos.moving;
+        v.sprite.play({ key: animKey(v.sheet, walking ? 'walk' : idleAnim, facing), startFrame: walking ? 0 : Math.floor(a.seed) % 6 });
+        // a crowd never breathes in sync: pace depends on the pose and a small per-avatar jitter
+        v.sprite.anims.timeScale = walking ? 1 : v.look.idle.speed * (0.9 + 0.2 * hash01(a.seed * 977 + 3));
       }
     }
+    this.updateParrot(v, a, facing, wx, wy, depth, now);
     const h = sitting ? 24 : 32;
     dyn.push({ x0: wx - 9, y0: wy - h, x1: wx + 9, y1: wy + 2, hit: { kind: 'avatar', id: a.pub.id }, depth: wy + 0.6 });
     void def;
+  }
+
+  /** The companion parrot (profile.parrotEquipped -> PublicAvatar.parrot): the poleiro parrot hovering at the avatar's shoulder. */
+  private updateParrot(v: AvatarView, a: ClientAvatar, facing: Facing, wx: number, wy: number, depth: number, now: number): void {
+    const d = this.m.sprites['chars/parrot'];
+    if (!a.pub.parrot || !d) {
+      if (v.parrot) {
+        v.parrot.destroy();
+        v.parrot = null;
+      }
+      return;
+    }
+    if (!v.parrot) {
+      v.parrot = this.rig.world(this.add.sprite(0, 0, d.atlas, d.frame)).setOrigin(...originOf(d));
+      v.parrot.play({ key: ensureAnim(this, 'chars/parrot', d), startFrame: Math.floor(hash01(a.seed) * 4) });
+    }
+    // it hovers beside the head on the far shoulder: behind the body when walking away, mirrored so it always looks toward its owner
+    const side = facing === 'W' ? 1 : -1;
+    const bob = Math.round(Math.sin(now / 420 + a.seed) * 1.5);
+    v.parrot.setPosition(wx + side * 11, wy - 12 + bob);
+    v.parrot.setFlipX(side === 1);
+    v.parrot.setDepth(facing === 'N' ? depth - 0.05 : depth + 0.05);
   }
 
   // ---- placed furniture (placeholders until Phase 4)

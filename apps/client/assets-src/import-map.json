@@ -1023,6 +1023,15 @@
       }
     },
     {
+      "key": "chars/parrot",
+      "kind": "derive",
+      "fn": "parrotCompanion",
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    {
       "key": "props/poste_fios",
       "kind": "derive",
       "fn": "posteFios",

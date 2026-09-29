@@ -23,6 +23,7 @@ export const DERIVE = {
   fios: wires.fios,
   barracaChapeus: stall.barracaChapeus,
   poleiro: critters.poleiro,
+  parrotCompanion: critters.parrotCompanion,
   viraLata: critters.viraLata,
   onibus: vehicles.onibus,
   kombi: vauth.kombi,

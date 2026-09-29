@@ -5,6 +5,7 @@
  * play=1 (auto-run the slider 17:00 -> 20:00), ui=0 (hide the slider, for clean screenshots).
  */
 import Phaser from 'phaser';
+import { loadCharAssets } from '../charAssets';
 import { loadManifest } from '../manifest';
 import { FrameScene } from './FrameScene';
 import { formatHour } from '../lighting';
@@ -25,10 +26,11 @@ async function boot() {
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
   const base = `${import.meta.env.BASE_URL}pixel/`;
   const manifest = await loadManifest(base);
+  const assets = await loadCharAssets(base, manifest);
   const hour = Math.min(H_MAX, Math.max(H_MIN, num('t') ?? 17.5));
   const parent = document.getElementById('game');
   if (!parent) throw new Error('#game missing');
-  const scene = new FrameScene(manifest, base, { hour, zoom: num('zoom'), cx: num('cx'), cy: num('cy'), dpr });
+  const scene = new FrameScene(manifest, base, assets, { hour, zoom: num('zoom'), cx: num('cx'), cy: num('cy'), dpr });
   const game = new Phaser.Game({
     type: Phaser.WEBGL,
     parent,

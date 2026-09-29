@@ -13,8 +13,11 @@ import {
 import { buildTerrainLayers } from '../terrainLayers';
 import { LightingRig, type Light } from '../lightingRig';
 import { ensureAnim, originOf } from '../spriteUtil';
-import { HAIR_COLORS, CLOTH_COLORS, SKIN_TONES } from '@tudobem/shared';
-import { animKey, composeCharacter, sitFrame, type CharLayer, type Facing } from '../charsheet';
+import { DEFAULT_APPEARANCE, type Appearance } from '@tudobem/shared';
+import { addSheetTexture, animKey, sitFrame, type Facing } from '../charsheet';
+import type { CharAssets } from '../charAssets';
+import { composeLook } from '../composeLook';
+import { lookForAppearance } from '../looks';
 
 const T = 16;
 export const WORLD_W = COLS * T;
@@ -82,7 +85,7 @@ export class FrameScene extends Phaser.Scene {
   /** true once create() finished (the page polls this) */
   ready = false;
 
-  constructor(private readonly m: Manifest, private readonly base: string, private readonly opts: FrameOptions) {
+  constructor(private readonly m: Manifest, private readonly base: string, private readonly assets: CharAssets, private readonly opts: FrameOptions) {
     super('frame');
     this.hour = opts.hour;
   }
@@ -117,7 +120,6 @@ export class FrameScene extends Phaser.Scene {
     const b = this.base;
     for (const [name, a] of Object.entries(m.atlases)) this.load.atlas(name, b + a.image, b + a.data);
     this.load.image('terrainTs', b + m.terrain.tileset);
-    for (const [key, file] of Object.entries(m.chars)) this.load.image(`layer:${key}`, b + file);
     for (const [key, f] of Object.entries(m.fx)) this.load.image(`fx:${key}`, b + f.file);
   }
 
@@ -350,15 +352,13 @@ export class FrameScene extends Phaser.Scene {
   // ------------------------------------------------------------------ characters
   private buildCharacters(): void {
     const meta = this.m.sheet;
-    const skin = (i: number) => SKIN_TONES[i];
-    const hair = (i: number) => HAIR_COLORS[i];
-    const cloth = (i: number) => CLOTH_COLORS[i];
-    const layers = (specs: [string, CharLayer['ramps']][]): CharLayer[] => specs.map(([k, r]) => ({ texture: `layer:${k}`, ramps: r }));
-    composeCharacter(this, 'char_julia', layers([['body_medio', { skin: skin(2) }], ['outfit_o01', { top: cloth(12), bottom: cloth(2) }], ['hair_h02', { hair: hair(1) }]]), meta);
-    composeCharacter(this, 'char_ze', layers([['body_medio', { skin: skin(4) }], ['outfit_o13', { top: cloth(0), bottom: cloth(10) }], ['hair_h05', { hair: hair(5) }]]), meta);
-    composeCharacter(this, 'char_mara', layers([['body_medio', { skin: skin(3) }], ['outfit_o01', { top: cloth(9), bottom: cloth(5) }], ['hair_h12', { hair: hair(6) }]]), meta);
-    composeCharacter(this, 'char_nanda', layers([['body_medio', { skin: skin(5) }], ['outfit_o16', { top: cloth(1), bottom: cloth(2) }], ['hair_h12', { hair: hair(0) }]]), meta);
-    composeCharacter(this, 'char_beto', layers([['body_medio', { skin: skin(1) }], ['outfit_o13', { top: cloth(6), bottom: cloth(11) }], ['hair_h02', { hair: hair(3) }]]), meta);
+    const look = (o: Partial<Appearance>, hat: string | null = null) => lookForAppearance({ ...DEFAULT_APPEARANCE, ...o }, { hat });
+    const compose = (key: string, o: Partial<Appearance>, hat: string | null = null) => addSheetTexture(this, key, composeLook(this.assets, look(o, hat)), meta);
+    compose('char_julia', { skin: 2, hair: 'ondulado', hairColor: 1, top: 'camiseta', topColor: 12, bottom: 'calca', bottomColor: 2 });
+    compose('char_ze', { skin: 4, hair: 'curto', hairColor: 5, top: 'camisa', topColor: 0, bottom: 'bermuda', bottomColor: 10 }, 'bone_verde');
+    compose('char_mara', { skin: 3, hair: 'longo', hairColor: 6, top: 'blusa', topColor: 9, bottom: 'saia', bottomColor: 5 });
+    compose('char_nanda', { skin: 5, hair: 'cacheado', hairColor: 0, top: 'camiseta', topColor: 1, bottom: 'calca', bottomColor: 2 }, 'chapeu_palha');
+    compose('char_beto', { skin: 1, hair: 'undercut', hairColor: 3, top: 'moletom', topColor: 6, bottom: 'calca', bottomColor: 11 });
 
     const shadow16 = this.def('fx/shadow_16');
     const mkShadow = (x: number, y: number) => this.W(this.add.image(x, y - 1, shadow16.atlas, shadow16.frame)).setOrigin(0.5, 0.5).setDepth(-4500);

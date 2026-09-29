@@ -7,7 +7,7 @@ import Phaser from 'phaser';
 import { positionAlong, type PathPos, type Tile } from '@tudobem/shared';
 import type { ClientAvatar } from '../../state';
 import type { Guide, Hit, WorldView } from '../view';
-import { loadManifest, type Manifest } from './manifest';
+import { sharedCharAssets } from './charAssets';
 import { WorldScene } from './WorldScene';
 import { LabelLayer } from './labels';
 import { canvasToWorld, tileAtWorld, tileCenterToCanvas, type Insets } from './coords';
@@ -35,11 +35,12 @@ export class PixelView implements WorldView {
 
   private async boot(): Promise<void> {
     const base = `${import.meta.env.BASE_URL}pixel/`;
-    const manifest: Manifest = await loadManifest(base);
+    const assets = await sharedCharAssets();
+    const manifest = assets.manifest;
     const q = new URLSearchParams(location.search);
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     this.dpr = dpr;
-    const scene = new WorldScene(manifest, base, {
+    const scene = new WorldScene(manifest, base, assets, {
       labels: this.labels,
       guides: () => this.guides,
       insets: () => this.insetsCss,

@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 512,
    "h": 1024,
-   "frames": 204
+   "frames": 208
   }
  },
  "terrain": {
@@ -1180,6 +1180,29 @@
     "ax": 8,
     "ay": 1
    }
+  },
+  "chars/parrot": {
+   "atlas": "outdoor",
+   "frame": "chars/parrot/0",
+   "w": 10,
+   "h": 15,
+   "ax": 5,
+   "ay": 14,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "chars/parrot/0",
+     "chars/parrot/1",
+     "chars/parrot/2",
+     "chars/parrot/3"
+    ],
+    "fps": 3
+   },
+   "overhead": null,
+   "shadow": null
   },
   "props/poste_fios": {
    "atlas": "outdoor",
