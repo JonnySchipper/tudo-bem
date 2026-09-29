@@ -176,7 +176,7 @@ export class WorldScene extends Phaser.Scene {
 
   /** A flat magenta box the size of the footprint. Never a painted stand-in. */
   private placeholder(key: string, r: Rect, depth: number): Phaser.GameObjects.Rectangle {
-    this.noteMissing(key.replace(/#\d+$/, ''));
+    this.noteMissing(key.replace(/#.*$/, ''));
     this.placeholders.push({ key, rect: r });
     return this.reg(this.add.rectangle((r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2, r.x1 - r.x0, r.y1 - r.y0, 0xff00ff, 0.35)).setStrokeStyle(1, 0xff00ff, 1).setDepth(depth);
   }

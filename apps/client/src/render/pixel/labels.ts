@@ -172,7 +172,7 @@ export class LabelLayer {
       if (!el) {
         el = document.createElement('div');
         el.className = 'wl-art-key';
-        el.textContent = it.key.replace(/#\d+$/, '');
+        el.textContent = it.key.replace(/[#@].*$/, '');
         this.artKeys.set(it.key, el);
         this.root.appendChild(el);
       }
