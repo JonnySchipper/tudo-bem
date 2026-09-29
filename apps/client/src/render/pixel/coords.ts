@@ -51,6 +51,27 @@ export function cameraZoom(cssZoom: number, dpr: number): number {
   return Math.max(1, Math.round(cssZoom * dpr));
 }
 
+/** Stay under the WebGL texture limit common on phones and retina displays. */
+export const MAX_BUFFER = 4096;
+
+/**
+ * Backing-store size for the world canvas. `dpr` is capped so width and height
+ * never exceed `MAX_BUFFER`. A CSS transform must not be part of `cssW`/`cssH`
+ * (use clientWidth, not getBoundingClientRect).
+ */
+export function bufferPixels(cssW: number, cssH: number, devicePixelRatio: number): { dpr: number; width: number; height: number } {
+  const cssWidth = Math.max(1, cssW);
+  const cssHeight = Math.max(1, cssH);
+  const wanted = Math.min(Math.max(devicePixelRatio || 1, 1), 3);
+  const cap = Math.min(MAX_BUFFER / cssWidth, MAX_BUFFER / cssHeight);
+  const dpr = Math.min(wanted, cap);
+  return {
+    dpr,
+    width: Math.max(1, Math.floor(cssWidth * dpr)),
+    height: Math.max(1, Math.floor(cssHeight * dpr)),
+  };
+}
+
 /**
  * Camera numbers needed to convert world art-pixels ↔ CSS client pixels.
  * Matches Phaser's camera matrix when rotation is 0: scroll is the world point at the

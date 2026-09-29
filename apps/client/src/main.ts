@@ -79,11 +79,22 @@ const pixelStub: WorldView = {
   hitTest: () => null,
   tileAt: () => null,
 };
+if (VIEW === 'pixel') document.body.classList.add('view-pixel');
 let renderer: WorldView = VIEW === 'pixel' ? pixelStub : new WorldRenderer(canvas);
-if (VIEW === 'pixel') {
-  void import('./render/pixel/PixelView').then(({ PixelView }) => {
-    renderer = new PixelView(canvas);
-  });
+let pixelStarted = false;
+/** Phaser starts after the intro. Booting it under the title-screen blur crashes some GPUs. */
+async function startPixelView(): Promise<void> {
+  if (VIEW !== 'pixel' || pixelStarted) return;
+  pixelStarted = true;
+  try {
+    const { PixelView } = await import('./render/pixel/PixelView');
+    const view = new PixelView(canvas);
+    renderer = view;
+    await view.ready;
+  } catch (e) {
+    console.error('[TB] pixel view failed', e);
+    pixelStarted = false;
+  }
 }
 /** Static deploys (no WebSocket server) run the World in-page. `?solo` forces it anywhere. */
 const SOLO = import.meta.env.VITE_LOCAL_WORLD === '1' || new URLSearchParams(location.search).has('solo');
@@ -839,6 +850,7 @@ async function boot() {
     signedIn = !SOLO && entry.mode === 'auth';
   }
   game.music = ambience.enabled;
+  await startPixelView();
   net.connect();
 }
 void boot();
