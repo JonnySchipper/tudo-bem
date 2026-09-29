@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { RULE_PACKS, classifyChat, compilePii, jevNpcReply, jevPublicChat, normalize, validateName, type PiiPatternJson, type RuleJson } from './safety.js';
 import publicPack from '../../../content/safety/phase0/jev/public-chat-pack.json';
@@ -17,7 +17,7 @@ import v01Substance from '../../../content/safety/source-v0.1/blocklists/prohibi
 
 const SAFETY_DIR = join(__dirname, '../../../content/safety');
 const files = (dir: string): string[] => readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? files(join(dir, f)) : [join(dir, f)]));
-const rel = (dir: string) => files(dir).map((f) => f.slice(dir.length + 1)).sort();
+const rel = (dir: string) => files(dir).map((f) => f.slice(dir.length + 1).split(sep).join('/')).sort();
 
 type PublicFixture = { id?: string; text: string; action: string; content_class: string; label?: string; source: string; canon?: Record<string, unknown> } & Record<string, unknown>;
 const PUBLIC = publicPack.fixtures as PublicFixture[];

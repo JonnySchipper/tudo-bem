@@ -13,6 +13,9 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dir = path.join(root, 'content/curriculum/phase0');
 
+/** Read markdown line-ending agnostic: a CRLF checkout (Windows autocrlf) must parse the same as LF. */
+const readMd = (f) => fs.readFileSync(path.join(dir, f), 'utf8').replace(/\r\n?/g, '\n');
+
 const split = (v, sep) =>
   v
     .split(sep)
@@ -113,8 +116,8 @@ const NOUN = {
 };
 
 export function buildCards() {
-  const padaria = parseLexemes(fs.readFileSync(path.join(dir, 'lexemes-padaria-a1.md'), 'utf8'), 'lexemes-padaria-a1.md');
-  const social = parseLexemes(fs.readFileSync(path.join(dir, 'lexemes-greetings-numbers-a1.md'), 'utf8'), 'lexemes-greetings-numbers-a1.md');
+  const padaria = parseLexemes(readMd('lexemes-padaria-a1.md'), 'lexemes-padaria-a1.md');
+  const social = parseLexemes(readMd('lexemes-greetings-numbers-a1.md'), 'lexemes-greetings-numbers-a1.md');
   const cards = [...padaria, ...social].map((c) => ({ ...c, ...(NOUN[c.id] ?? {}) }));
   return {
     _meta: {
@@ -159,7 +162,7 @@ export function parseTicket(pt, items, mods) {
 }
 
 export function buildOrders(cards = buildCards().cards) {
-  const md = fs.readFileSync(path.join(dir, 'me-ve-um-orders.md'), 'utf8');
+  const md = readMd('me-ve-um-orders.md');
   const padaria = cards.filter((c) => c.id.startsWith('lex.padaria.')).map((c) => ({ ...c, id: c.id.slice('lex.padaria.'.length) }));
   const items = padaria.filter((c) => c.plural);
   const mods = Object.entries(MOD_GROUPS).map(([id, group]) => {
@@ -191,7 +194,7 @@ export function buildOrders(cards = buildCards().cards) {
 
 /** `**A–D:** Ana, André, …` lines under “## Names” in cpu-name-allowlist.md. */
 export function buildCpuNames() {
-  const md = fs.readFileSync(path.join(dir, 'cpu-name-allowlist.md'), 'utf8');
+  const md = readMd('cpu-name-allowlist.md');
   const section = md.split(/^## /m).find((s) => s.startsWith('Names'));
   if (!section) throw new Error('cpu-name-allowlist.md: missing “## Names” section');
   const names = [...section.matchAll(/^\*\*[^*]+:\*\*\s*(.+)$/gm)].flatMap((m) => split(m[1], ','));
