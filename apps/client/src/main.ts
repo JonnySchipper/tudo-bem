@@ -7,9 +7,11 @@ import {
   MISSION_COPY,
   ROOMS,
   TUTORIAL_STEPS,
+  buildGrid,
   furnitureById,
   hatById,
   isCpuId,
+  isWalkable,
   type EmoteKind,
   type NpcDef,
   type NpcId,
@@ -47,6 +49,7 @@ import { speak, stopSpeaking, unlockSpeech } from './audio';
 import { ambience } from './ambience';
 import { installViewport } from './ui/viewport';
 import { mountJoystick } from './ui/joystick';
+import { arrowForKey, stepForHeld, stepTarget, type Arrow } from './ui/keys';
 import { installUiArt } from './art/ui';
 import { artStats, loadArt } from './art/sprites';
 
@@ -64,10 +67,11 @@ const TOKEN_KEY = 'tb_token';
 const LAST_ROOM_KEY = 'tb_last_room';
 
 const canvas = document.getElementById('world') as HTMLCanvasElement;
-/** Which world view draws the scene. Only 'iso' exists for now; the pixel view arrives in a later phase. */
+/** Which world view draws the scene: 'iso' (default) or 'pixel' (top-down, Phaser). */
 const VIEW: string = new URLSearchParams(location.search).get('view') ?? import.meta.env.VITE_VIEW ?? 'iso';
-if (VIEW !== 'iso') console.warn(`[TB] unknown view "${VIEW}", using iso`);
-const renderer: WorldView = new WorldRenderer(canvas);
+if (VIEW !== 'iso' && VIEW !== 'pixel') console.warn(`[TB] unknown view "${VIEW}", using iso`);
+/** Phaser is only loaded for the pixel view, so the default build's first paint doesn't pay for it. */
+const renderer: WorldView = VIEW === 'pixel' ? new (await import('./render/pixel/PixelView')).PixelView(canvas) : new WorldRenderer(canvas);
 /** Static deploys (no WebSocket server) run the World in-page. `?solo` forces it anywhere. */
 const SOLO = import.meta.env.VITE_LOCAL_WORLD === '1' || new URLSearchParams(location.search).has('solo');
 const net: NetLike = SOLO ? new LocalNet() : new Net(wsUrl());
@@ -572,7 +576,7 @@ function startGame() {
     const y = Math.max(0, Math.min(room.rows - 1, cur.tile.y + dy));
     if (x === cur.tile.x && y === cur.tile.y) return;
     walkTo({ x, y }, null);
-  });
+  }, { mode: VIEW === 'pixel' ? 'topdown' : 'iso' });
   decor = buildDecorPanel({
     buy: (id) => net.send({ t: 'buy', kind: 'furniture', itemId: id }),
     rotate: (uid) => {
@@ -759,11 +763,62 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// ---------------------------------------------------------------- keyboard walking (pixel view)
+
+/** WASD / arrows step to the adjacent tile while held, chaining when the avatar arrives (D4: still `move` messages over tiles). */
+const heldArrows: Arrow[] = [];
+const isTyping = (t: EventTarget | null) => {
+  const el = t as HTMLElement | null;
+  const tag = el?.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || !!el?.isContentEditable;
+};
+/** Keys are ignored while typing, while any modal is open, and after the idle kick. */
+const keysBlocked = (t: EventTarget | null) => !started || isTyping(t) || !!modalId() || game.modalOpen || !!document.querySelector('.idle-kicked');
+
+let lastKeyStep = 0;
+function keyWalk() {
+  if (!heldArrows.length || !game.room || game.editMode || game.placing) return;
+  const cur = selfTile();
+  const room = game.roomDef;
+  // wait for the server's answer to the previous step before asking for the next one
+  if (!cur || cur.moving || !room || now() - lastKeyStep < 140) return;
+  const step = stepForHeld(heldArrows);
+  if (!step) return;
+  const grid = buildGrid(room, game.furniture);
+  const to = stepTarget(cur.tile, step, (x, y) => isWalkable(grid, x, y));
+  if (to) {
+    lastKeyStep = now();
+    walkTo(to, null);
+  }
+}
+
+if (VIEW === 'pixel') {
+  document.addEventListener('keydown', (e) => {
+    const a = arrowForKey(e.key);
+    if (!a || e.ctrlKey || e.metaKey || e.altKey || keysBlocked(e.target)) return;
+    e.preventDefault();
+    if (!heldArrows.includes(a)) heldArrows.push(a);
+    keyWalk();
+  });
+  document.addEventListener('keyup', (e) => {
+    const a = arrowForKey(e.key);
+    if (!a) return;
+    const i = heldArrows.indexOf(a);
+    if (i >= 0) heldArrows.splice(i, 1);
+  });
+  // never leave a key stuck when the window loses focus or a modal steals the keyup
+  window.addEventListener('blur', () => (heldArrows.length = 0));
+}
+
 // ---------------------------------------------------------------- loop
 
 function frame(ts: number) {
   try {
     renderer.frame(ts);
+    if (heldArrows.length) {
+      if (keysBlocked(document.activeElement)) heldArrows.length = 0;
+      else keyWalk();
+    }
     if (game.pending) {
       const cur = selfTile();
       if (cur && !cur.moving) {
@@ -830,6 +885,10 @@ window.__tb = {
   net,
   rooms: ROOMS,
   artStats,
+  /** Sprite keys the pixel view drew as placeholders (empty in the iso view). */
+  get artMissing(): string[] {
+    return 'artMissing' in renderer ? (renderer as { artMissing: string[] }).artMissing : [];
+  },
   hatById,
   tileToClient: (x: number, y: number) => renderer.tileToClient(x, y),
   selfTile: () => selfTile(),
