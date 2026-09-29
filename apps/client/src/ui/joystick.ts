@@ -1,10 +1,10 @@
 import { h, ui } from './dom';
 
 /**
- * On-screen stick for phones. Screen directions map onto the isometric tile grid
- * (right = +x/−y, up = −x/−y) and walk a couple of tiles at a time.
+ * On-screen stick for phones. `iso` maps onto the diamond (right = +x/−y).
+ * `topdown` maps screen right to +x and screen down to +y.
  */
-export function mountJoystick(step: (dx: number, dy: number) => void) {
+export function mountJoystick(mode: 'iso' | 'topdown', step: (dx: number, dy: number) => void) {
   const knob = h('div', { class: 'knob' });
   const pad = h('div', { class: 'joystick', id: 'joystick', 'aria-label': 'Andar' }, knob);
   ui().append(pad);
@@ -31,8 +31,8 @@ export function mountJoystick(step: (dx: number, dy: number) => void) {
     }
     const sx = dx / dist;
     const sy = dy / dist;
-    const tileX = sx + sy;
-    const tileY = -sx + sy;
+    const tileX = mode === 'topdown' ? sx : sx + sy;
+    const tileY = mode === 'topdown' ? sy : -sx + sy;
     const mag = Math.hypot(tileX, tileY) || 1;
     vx = Math.round((tileX / mag) * 3);
     vy = Math.round((tileY / mag) * 3);
