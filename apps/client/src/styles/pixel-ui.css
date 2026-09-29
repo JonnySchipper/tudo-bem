@@ -484,6 +484,8 @@ html.px-ui .emotes button:active {
   .topbar {
     align-items: center;
     row-gap: 4px;
+    /* 8 icon buttons (own kitnet: Decorar too) x 44 px + 7 gaps must fit 374 px */
+    column-gap: 3px;
   }
 
   /* row 1: brand + pills; row 2: icon buttons. The wrapper dissolves so its children can be ordered against the brand. */

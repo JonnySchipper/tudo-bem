@@ -622,3 +622,45 @@ Body types and the 15 outfits are subtle at 16x32; the gestures (raised hand, th
 ### Needs BR review
 
 New PT strings: the creator turn button "Girar" and its label "Girar o avatar" (EN: "turn around"). Hat and face names already exist in `LABELS` / `catalog.ts`. No curriculum cards.
+
+---
+
+## Decisions made in Phase 4b (interface half of Phase 4: pixel UI, credits, pixel by default)
+
+Branch `lifesim/p4b-ui-default`. Phase 4a (labels, camera, patterns, decorate ghost) runs in parallel; this branch only touches `render/pixel/manifest.ts` inside `render/pixel/`.
+
+### Manifest images
+
+1. `render/pixel/manifest.ts` has a typed `ImageDef` and `Manifest.images`, plus `imageUrl(key)`, `imageDef(key)`, `nineSlice(key)` (url, slice, border widths, `borderImage(scale)` shorthand), `loadUiManifest()` / `setUiManifest()`. Files are named after their key, so `imageUrl` is right even before the manifest loads. `main.ts` loads the manifest once at boot (both views) and awaits it before building any UI.
+
+### DOM art (both views, integer zoom, `image-rendering: pixelated`)
+
+2. New `ui/pixelArt.ts`: `foodIcon(id, zoom)` (16 px icons, 3x = 48 px in Me vê um), `furnitureIcon(id)` (the rot-0 atlas sprite cropped to a PNG data URL, cached, 2x in a fixed 72 px box), `npcPortrait(npc, expression, cls)`, `parrotPortrait` (the `chars/parrot_strip` as a CSS steps animation, replaces the drawn parrot at the perch), `expressionForScore` (score 3 feliz, 0 surpreso) and `expressionForGrade` (Conversa: pass feliz, tryAgain surpreso, only after the conta), Pedido rápido feliz once it paid out. Portraits are 64 px shown at 2x (1x under 640 px wide, by CSS).
+3. `grep -rn "render/icons\|render/props\|render/avatar\|render/room\|render/world'" apps/client/src/ui` returns nothing (`bjjPoses` in `ui/roll.ts` stays). `art/ui.ts` and `art/registry.ts` still import the old renderer (they draw the generated SVG HUD icons); they go with the Phase 5 deletion.
+
+### Pixel chrome (light touch)
+
+4. `styles/pixel-ui.css` (new). `applyChrome` turns the manifest's ui kit into CSS variables (`--px-panel`, `--px-panel-2`, `--px-button*`) and adds `html.px-ui`; without the manifest the old chrome stays. Nothing was renamed: ids, classes and layout are the old ones.
+5. 9-slice `border-image` on: modal panels, the NPC dialogue and the decor panel (2x, so 14 px frames), HUD pills, brand, checklist, chat bar and toasts (1x), top-bar buttons and Enviar (kit button, hover and pressed variants). Toasts keep their level color as a bar inside the frame. Emote chips stay cream, squared, with a hard shadow (the frame would add about 8 px to each). Me vê um (`.panel.mg`), Roll, Conversa and Pedido keep their own wood/paper themes. The frame's soft `box-shadow` was replaced by a crisp `drop-shadow`. The azulejo strip on top of panels is gone under `px-ui` (the kit frame replaces it).
+6. **Pixel font: Pixelify Sans** (Google Fonts, OFL, weights 500-700). Checked with "Pão de queijo, açaí, você, não, avó, Nº 42" at 16 px and 32 px next to Silkscreen, VT323, Jersey 10, Tiny5 and Press Start 2P: it is the only one that is both legible and complete (Jersey 10 has no `º`, Silkscreen is all-caps and wide). Used only for headings, pills, the brand, speaker/NPC names, RV numbers and the credits roles. All learning text stays Nunito (D9).
+7. **Less UI while walking.** *Primeiros passos* collapses to a one-line pill (`Primeiros passos 1/8 ▸`) as soon as the first step is done, and stays as the player leaves it after a manual toggle (keyboard accessible). Phone HUD (<= 640 px): row 1 is the brand (wordmark over the room name, mark hidden) plus the Verde and RV pills, row 2 the icon buttons (44 px), the emotes are one scrolling row. Measured on the 390x844 shot the HUD covers about 19% of the screen area and the bottom bar ends below the joystick (the shots run the phone with touch so the joystick is visible).
+
+### Credits (license requirement)
+
+8. Top-bar button **Créditos / Credits** (`#btn-credits`, new `info` icon) opens `ui/credits.ts`: "Arte: LimeZu — limezu.itch.io" as a real link (`target=_blank rel=noopener`), voices (edge-tts pt-BR Antonio and Francisca), fonts, Phaser, and the sound line. There is no `apps/client/public/audio/CREDITS.md` yet (all sound is synthesized in Web Audio), so the sound line says so; CC0 files must be added to `creditsData.ts` when Phase 6 brings them. The title/sign-in screen has a small footer "Art: LimeZu — limezu.itch.io".
+
+### Pixel is the default
+
+9. `render/pickView.ts`: `?view=iso` (or `VITE_VIEW=iso`) selects the isometric renderer, anything else is pixel. `scripts/lifesim-shots.mjs` defaults to the app default view, runs the phone with touch, and now also shoots the dialogue, hat shop, credits, Conversa, Pedido rápido, Me vê um and the kitnet decorate panel.
+
+### Tests
+
+10. `manifest.test.ts` (images typed, every bag item has an icon, every NPC has 4 expressions, every furniture item has a rot-0 sprite, `nineSlice`), `pixelArt.test.ts` (expressions, chrome variables), `credits.test.ts`, `pickView.test.ts`. 759 -> 773.
+
+### Known weaknesses
+
+The generated SVG icons in the top bar are smooth vector art next to pixel frames (no pixel icons exist for them); the frame borders use 1 art pixel = 1 CSS px on pills and buttons but 2 on modals, so the two densities differ; the modals for Me vê um, Roll and the Conversa/Pedido scenes keep their older themes; the checklist stays hidden on phones (existing rule); border-image on fractional device pixel ratios (1.25) is uneven.
+
+### Needs BR review
+
+New PT strings: "Créditos", "Arte", "Vozes", "Fontes", "Motor do mundo", "Música e sons" and the credit notes (with English glosses) in `creditsData.ts`. No curriculum cards.
