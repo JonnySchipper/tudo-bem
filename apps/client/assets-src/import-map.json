@@ -948,11 +948,13 @@
     { "key": "facades/padaria", "kind": "derive", "fn": "padaria" },
     { "key": "facades/edificio_ipe", "kind": "derive", "fn": "edificio" },
     { "key": "facades/academia", "kind": "derive", "fn": "academia" },
-    { "key": "feira/frutas", "kind": "derive", "fn": "feira" }
+    { "key": "feira/frutas", "kind": "derive", "fn": "feira" },
+    { "key": "ui/guide_arrow", "kind": "derive", "fn": "guideArrow", "footprint": [1, 1] }
   ],
   "images": [
     { "fn": "portraits" },
-    { "fn": "icons" }
+    { "fn": "icons" },
+    { "fn": "ui" }
   ],
   "terrain": {
     "c": {

@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 512,
    "h": 1024,
-   "frames": 198
+   "frames": 202
   }
  },
  "terrain": {
@@ -2124,6 +2124,29 @@
    "overhead": null,
    "shadow": null
   },
+  "ui/guide_arrow": {
+   "atlas": "outdoor",
+   "frame": "ui/guide_arrow/0",
+   "w": 16,
+   "h": 20,
+   "ax": 8,
+   "ay": 19,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "ui/guide_arrow/0",
+     "ui/guide_arrow/1",
+     "ui/guide_arrow/2",
+     "ui/guide_arrow/3"
+    ],
+    "fps": 6
+   },
+   "overhead": null,
+   "shadow": null
+  },
   "fx/shadow_10": {
    "atlas": "outdoor",
    "frame": "fx/shadow_10",
@@ -2422,6 +2445,126 @@
    "file": "icons/banana.png",
    "w": 16,
    "h": 16
+  },
+  "ui/panel": {
+   "file": "ui/panel.png",
+   "w": 20,
+   "h": 20,
+   "slice": {
+    "top": 7,
+    "right": 7,
+    "bottom": 7,
+    "left": 7
+   },
+   "css": "7 7 7 7",
+   "demo": [
+    [
+     48,
+     32
+    ],
+    [
+     96,
+     56
+    ]
+   ],
+   "note": "cream paper, warm-ink edge, terracotta trim; border-image slice with fill"
+  },
+  "ui/bubble": {
+   "file": "ui/bubble.png",
+   "w": 30,
+   "h": 27,
+   "slice": {
+    "top": 7,
+    "right": 7,
+    "bottom": 13,
+    "left": 16
+   },
+   "css": "7 7 13 16",
+   "demo": [
+    [
+     44,
+     32
+    ],
+    [
+     96,
+     44
+    ]
+   ],
+   "note": "speech bubble, tail bottom-left inside the left slice; put the tail side under the speaker"
+  },
+  "ui/button": {
+   "file": "ui/button.png",
+   "w": 16,
+   "h": 16,
+   "slice": {
+    "top": 6,
+    "right": 6,
+    "bottom": 7,
+    "left": 6
+   },
+   "css": "6 6 7 6",
+   "demo": [
+    [
+     40,
+     20
+    ],
+    [
+     72,
+     24
+    ]
+   ]
+  },
+  "ui/button_hover": {
+   "file": "ui/button_hover.png",
+   "w": 16,
+   "h": 16,
+   "slice": {
+    "top": 6,
+    "right": 6,
+    "bottom": 7,
+    "left": 6
+   },
+   "css": "6 6 7 6",
+   "demo": [
+    [
+     40,
+     20
+    ],
+    [
+     72,
+     24
+    ]
+   ]
+  },
+  "ui/button_pressed": {
+   "file": "ui/button_pressed.png",
+   "w": 16,
+   "h": 16,
+   "slice": {
+    "top": 6,
+    "right": 6,
+    "bottom": 7,
+    "left": 6
+   },
+   "css": "6 6 7 6",
+   "demo": [
+    [
+     40,
+     20
+    ],
+    [
+     72,
+     24
+    ]
+   ]
+  },
+  "ui/guide_arrow_strip": {
+   "file": "ui/guide_arrow_strip.png",
+   "w": 64,
+   "h": 20,
+   "frames": 4,
+   "frameW": 16,
+   "fps": 6
   }
  },
  "chars": {

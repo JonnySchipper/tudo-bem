@@ -12,6 +12,7 @@ import * as academia from './academia.mjs';
 import * as portraits from './portraits.mjs';
 import * as feiraMod from './feira.mjs';
 import * as iconsMod from './icons.mjs';
+import * as uiMod from './ui.mjs';
 
 export const DERIVE = {
   orelhao: props.orelhao,
@@ -31,10 +32,12 @@ export const DERIVE = {
   fusca: vauth.fusca,
   moto: vauth.moto,
   feira: feiraMod.feira,
+  guideArrow: uiMod.guideArrow,
 };
 
 /** Standalone images for the DOM (`images` in import-map.json): generators return [{ key, img, meta? }]. */
 export const IMAGES = {
   portraits: portraits.portraitParts,
   icons: iconsMod.iconParts,
+  ui: uiMod.uiParts,
 };
