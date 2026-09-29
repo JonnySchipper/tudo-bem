@@ -3,17 +3,18 @@
  * Life-sim review screenshots (HOWTO section 7.4): the same five screens at desktop and phone size, for any world view.
  *
  *   pnpm build && pnpm start                                   # multiplayer build on :8787 (or the solo static build)
- *   node scripts/lifesim-shots.mjs                             # iso baseline → docs/lifesim/shots/p0/
- *   VIEW=pixel PHASE=p2 node scripts/lifesim-shots.mjs         # or: node scripts/lifesim-shots.mjs --view=pixel --phase=p2
+ *   node scripts/lifesim-shots.mjs --phase=p4b                 # the app default (pixel since Phase 4b) → docs/lifesim/shots/p4b/
+ *   VIEW=iso PHASE=p0 node scripts/lifesim-shots.mjs           # or: node scripts/lifesim-shots.mjs --view=iso --phase=p0
  *
  * Env / flags (flag wins):
  *   BASE_URL     default http://localhost:8787 (a static solo build: http://localhost:4173/tudo-bem/ and set SOLO=1)
  *   CHROME_PATH  chrome / chromium / msedge executable
- *   VIEW         value for ?view= (omitted → the app default, currently iso)
+ *   VIEW         value for ?view= (omitted → the app default, pixel)
  *   PHASE        output folder name under docs/lifesim/shots/ (default p0); SHOTS_DIR overrides the whole path
  *   SOLO         guest entry (static build); otherwise a throwaway account is registered
  *
- * Captures per viewport (1280×800 and 390×844): avatar creator, praça, padaria, kitnet, academia.
+ * Captures per viewport (1280×800 and 390×844, the phone with touch so the joystick shows): avatar creator, praça, padaria, kitnet,
+ * academia, then the panels: hat shop, credits, Conversa (portrait), Pedido rápido, Me vê um.
  * Rooms are reached by id through window.__tb (interact / net.send), so the script works with any renderer.
  */
 import { chromium } from 'playwright-core';
@@ -44,7 +45,7 @@ const TOP = 'top' in argv;
 const CLEAN = 'clean' in argv || !!process.env.CLEAN;
 const VIEWPORTS = [
   { name: '1280x800', width: 1280, height: 800 },
-  { name: '390x844', width: 390, height: 844 },
+  { name: '390x844', width: 390, height: 844, touch: true },
 ];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -102,8 +103,66 @@ async function toAvatarCreator(page, vp) {
   await sleep(400);
 }
 
+/** Panels over the world: hat shop, credits, Conversa with its portrait, Pedido rápido, Me vê um. */
+async function panelShots(page, vp) {
+  const closeAll = async () => {
+    await page.keyboard.press('Escape');
+    await page.evaluate(() => document.querySelectorAll('[data-modal] .close, .conversa-backdrop .close-btn, .pedido-backdrop .close-btn, #dialogue .row > button.ghost').forEach((b) => b.click()));
+    await sleep(300);
+  };
+  await interact(page, { portal: 'academia_praca' });
+  await waitRoom(page, 'praca');
+  await sleep(800);
+  await interact(page, { npc: 'julia' });
+  await page.waitForSelector('#dialogue', { timeout: 8000 });
+  await sleep(500);
+  await shot(page, vp, 'dialogue');
+  await closeAll();
+  await interact(page, { npc: 'nanda' });
+  await page.waitForSelector('[data-modal] .panel', { timeout: 8000 });
+  await sleep(600);
+  await shot(page, vp, 'hat_shop');
+  await closeAll();
+  await page.click('#btn-credits');
+  await page.waitForSelector('[data-modal="credits"] .credits-panel', { timeout: 5000 });
+  await sleep(300);
+  await shot(page, vp, 'credits');
+  await closeAll();
+  await interact(page, { portal: 'praca_padaria' });
+  await waitRoom(page, 'padaria');
+  await sleep(800);
+  await interact(page, { npc: 'carlos' });
+  await page.waitForSelector('[data-modal="conversa"] .conversa-panel', { timeout: 12_000 });
+  await sleep(800);
+  await shot(page, vp, 'conversa');
+  await page.click('[data-action="pedido-rapido"]');
+  await page.waitForSelector('[data-modal="pedido"] .pedido-panel', { timeout: 12_000 });
+  await sleep(500);
+  await page.evaluate(() => document.querySelectorAll('.pedido-panel, .pedido-backdrop').forEach((el) => el.scrollTo?.(0, 0)));
+  await shot(page, vp, 'pedido');
+  await closeAll();
+  await page.evaluate(() => window.__tb.net.send({ t: 'mg', action: 'start' }));
+  await page.waitForSelector('#mg-order', { timeout: 8000 });
+  await sleep(700);
+  await shot(page, vp, 'meveum');
+  await page.click('#minigame .mg-head button.ghost');
+  await sleep(800);
+  await closeAll();
+  // the kitnet's decorate panel (furniture icons cropped from the atlas)
+  await page.evaluate(() => { const c = window.__tb.game.room?.room; if (c === 'padaria') window.__tb.interact({ portal: 'padaria_praca' }); });
+  await waitRoom(page, 'praca');
+  await sleep(500);
+  await interact(page, { portal: 'praca_kitnet' });
+  await waitRoom(page, 'kitnet');
+  await sleep(800);
+  await page.click('#btn-decor');
+  await page.waitForSelector('.decor', { timeout: 5000 });
+  await sleep(600);
+  await shot(page, vp, 'decor');
+}
+
 async function runViewport(browser, vp) {
-  const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 1 });
+  const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 1, hasTouch: !!vp.touch });
   const page = await ctx.newPage();
   page.on('pageerror', (e) => console.error('pageerror', String(e)));
   await toAvatarCreator(page, vp);
@@ -152,7 +211,9 @@ async function runViewport(browser, vp) {
   await shot(page, vp, 'academia');
   if (TOP) await walkNear(page, 6, 6, 'academia_top', vp);
 
-  if (VIEW === 'pixel') console.log('  artMissing:', JSON.stringify(await page.evaluate(() => window.__tb.artMissing)));
+  await panelShots(page, vp);
+
+  if (VIEW !== 'iso') console.log('  artMissing:', JSON.stringify(await page.evaluate(() => window.__tb.artMissing)));
   await ctx.close();
 }
 
