@@ -37,6 +37,7 @@ export class PixelView implements WorldView {
     const base = `${import.meta.env.BASE_URL}pixel/`;
     const assets = await sharedCharAssets();
     const manifest = assets.manifest;
+    this.labels.setArt({ base, images: manifest.images ?? {} });
     const q = new URLSearchParams(location.search);
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     this.dpr = dpr;

@@ -99,3 +99,50 @@ export function cameraCenter(view: { w: number; h: number; zoom: number }, bound
 
 /** Snap a camera coordinate to the device pixel grid so art pixels never straddle two device pixels. */
 export const snapToDevice = (v: number, zoom: number): number => Math.round(v * zoom) / zoom;
+
+/** True when `bounds` (world px) fits inside the free part of the screen (`view` minus the HUD `insets`, device px) at device `zoom`. */
+export function fitsAt(view: { w: number; h: number }, bounds: Rect, insets: Insets, zoom: number): boolean {
+  const freeW = view.w - insets.left - insets.right;
+  const freeH = view.h - insets.top - insets.bottom;
+  return (bounds.x1 - bounds.x0) * zoom <= freeW && (bounds.y1 - bounds.y0) * zoom <= freeH;
+}
+
+/**
+ * Device zoom for a room. Starts from the HOWTO §5.3 zoom for the window (`cssZoom`, `dpr`); when the whole room (walls included) does not
+ * fit at that zoom but does one integer CSS zoom lower (never below 2), it takes the lower one, so a padaria on a 1280 x 800 desktop is seen
+ * whole (zoom 3) instead of cropped at the north wall (zoom 4). Always an integer in device px, so pixels stay crisp.
+ */
+export function roomZoom(view: { w: number; h: number }, bounds: Rect, insets: Insets, cssZoom: number, dpr: number): number {
+  const base = deviceZoomFor(cssZoom, dpr);
+  if (fitsAt(view, bounds, insets, base) || cssZoom <= 2) return base;
+  const lower = deviceZoomFor(cssZoom - 1, dpr);
+  return lower < base && fitsAt(view, bounds, insets, lower) ? lower : base;
+}
+
+/**
+ * The whole camera for a room: the zoom (`roomZoom`) and its centre. A room that fits is centred in the free region with its whole wall
+ * band in view; a bigger one follows `focus`, clamped to the bounds, so with the avatar in the top rows the view sits at the top of the
+ * bounds and the north wall is never cropped.
+ */
+export function roomFraming(view: { w: number; h: number }, bounds: Rect, focus: { x: number; y: number }, insets: Insets, cssZoom: number, dpr: number): { zoom: number; cx: number; cy: number; fits: boolean } {
+  const zoom = roomZoom(view, bounds, insets, cssZoom, dpr);
+  const c = cameraCenter({ w: view.w, h: view.h, zoom }, bounds, focus, insets);
+  let cy = c.cy;
+  const toLoY = (view.h / 2 - insets.top) / zoom;
+  // the camera centre that puts the top of the north wall band (3 tiles above row 0; a facade may rise higher, that part may be cropped) at the top of the free region
+  const topCy = Math.max(bounds.y0, -NORTH_BAND_PX) + toLoY;
+  if (cy > topCy) {
+    // following: while the avatar is in the top NORTH_ROWS rows the view sits at the top of the bounds, and eases into following over the next four rows
+    const t = Math.min(1, Math.max(0, (focus.y - (NORTH_ROWS * T - 10)) / (4 * T)));
+    cy = topCy + (cy - topCy) * t;
+  }
+  return { zoom, cx: c.cx, cy, fits: fitsAt(view, bounds, insets, zoom) };
+}
+
+/** Rows next to the north wall in which the camera keeps the whole wall in view. */
+export const NORTH_ROWS = 3;
+/** Height of the north wall band in art px (roomLayout.NORTH_BAND_TILES * T). */
+export const NORTH_BAND_PX = 3 * T;
+
+/** World y of the top edge of the free region (just under the HUD) for a camera centre: what the player sees at the top of the map. */
+export const viewTop = (view: { h: number }, cy: number, zoom: number, insets: Insets): number => cy - (view.h / 2 - insets.top) / zoom;

@@ -42,6 +42,10 @@ const FURNISH = 'furnish' in argv;
 // --top: after each interior shot walk toward its back wall and take a second shot (the desktop camera follows the avatar, so the wall band only shows up there)
 const TOP = 'top' in argv;
 const CLEAN = 'clean' in argv || !!process.env.CLEAN;
+// --decorate: extra kitnet shots in decorate mode (a ghost of the chair in hand on a free tile and on a reserved tile, and a selected placed piece with its outline)
+const DECORATE = 'decorate' in argv;
+// --chat: extra shots with speech bubbles (you and an NPC) in the praça and the padaria
+const CHAT = 'chat' in argv;
 const VIEWPORTS = [
   { name: '1280x800', width: 1280, height: 800 },
   { name: '390x844', width: 390, height: 844 },
@@ -102,6 +106,42 @@ async function toAvatarCreator(page, vp) {
   await sleep(400);
 }
 
+/** Kitnet in decorate mode: state is set through window.__tb (the same fields the Decorar panel and the pointer set). */
+async function decorateShots(page, vp) {
+  const hover = (x, y) => page.evaluate(([x, y]) => { window.__tb.game.hoverTile = { x, y }; }, [x, y]);
+  await page.evaluate(() => {
+    const g = window.__tb.game;
+    g.furniture = [
+      { uid: 'd1', itemId: 'poltrona_verde', x: 3, y: 3, rot: 0 },
+      { uid: 'd2', itemId: 'planta', x: 5, y: 4, rot: 0 },
+      { uid: 'd3', itemId: 'mesinha', x: 4, y: 5, rot: 0 },
+    ];
+    g.editMode = true;
+    g.placing = { itemId: 'cadeira_madeira', rot: 0 };
+  });
+  await hover(5, 6);
+  await sleep(600);
+  await shot(page, vp, 'kitnet_decorate_ghost_ok');
+  await page.evaluate(() => { window.__tb.game.placing.rot = 1; });
+  await hover(2, 6);
+  await sleep(300);
+  await shot(page, vp, 'kitnet_decorate_ghost_rot');
+  await hover(1, 0); // the kitchen: reserved
+  await sleep(300);
+  await shot(page, vp, 'kitnet_decorate_ghost_bad');
+  await page.evaluate(() => { const g = window.__tb.game; g.placing = null; g.selectedFurniture = 'd1'; });
+  await hover(5, 2);
+  await sleep(600);
+  await shot(page, vp, 'kitnet_decorate_selected');
+  await page.evaluate(() => { const g = window.__tb.game; g.editMode = false; g.placing = null; g.selectedFurniture = null; g.hoverTile = null; });
+}
+
+async function chatShots(page, vp, name) {
+  await page.evaluate(() => window.__tb.net.send({ t: 'chat', text: 'Bom dia! Tudo bem com voce?' }));
+  await sleep(1400);
+  await shot(page, vp, name);
+}
+
 async function runViewport(browser, vp) {
   const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: 1 });
   const page = await ctx.newPage();
@@ -114,6 +154,7 @@ async function runViewport(browser, vp) {
   await page.waitForFunction(() => [...window.__tb.game.avatars.values()].filter((a) => a.pub.cpu).length >= 4, null, { timeout: 8000 }).catch(() => {});
   await sleep(2500);
   await shot(page, vp, 'praca');
+  if (CHAT) await chatShots(page, vp, 'praca_chat');
 
   // walk up to the north end so the shopfronts / wall band are in frame (the spawn view shows the south half at desktop zoom)
   await page.evaluate(() => window.__tb.walkTo(6, 2));
@@ -125,6 +166,11 @@ async function runViewport(browser, vp) {
   await waitRoom(page, 'padaria');
   await sleep(1500);
   await shot(page, vp, 'padaria');
+  if (CHAT) {
+    await page.evaluate(() => window.__tb.game.npcBubbles.set('carlos', { text: 'Bom dia! Chega mais, pode pedir!', gloss: 'Good morning! Come on over, go ahead and order!', at: performance.now() }));
+    await sleep(500);
+    await shot(page, vp, 'padaria_carlos');
+  }
   if (TOP) await walkNear(page, 4, 4, 'padaria_top', vp);
 
   await interact(page, { portal: 'padaria_praca' });
@@ -142,6 +188,7 @@ async function runViewport(browser, vp) {
   await sleep(1500);
   await shot(page, vp, 'kitnet');
   if (TOP) await walkNear(page, 3, 6, 'kitnet_top', vp);
+  if (DECORATE) await decorateShots(page, vp);
 
   await interact(page, { portal: 'kitnet_praca' });
   await waitRoom(page, 'praca');

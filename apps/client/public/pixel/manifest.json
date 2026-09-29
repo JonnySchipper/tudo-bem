@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 512,
    "h": 2048,
-   "frames": 346
+   "frames": 348
   }
  },
  "terrain": {
@@ -2545,7 +2545,7 @@
   "walls/prateleira_paes": {
    "atlas": "outdoor",
    "frame": "walls/prateleira_paes",
-   "w": 96,
+   "w": 64,
    "h": 36,
    "ax": 0,
    "ay": 34,
@@ -2560,7 +2560,7 @@
   "walls/lousa": {
    "atlas": "outdoor",
    "frame": "walls/lousa",
-   "w": 48,
+   "w": 32,
    "h": 30,
    "ax": 0,
    "ay": 30,
@@ -2710,7 +2710,7 @@
   "walls/toldo": {
    "atlas": "outdoor",
    "frame": "walls/toldo",
-   "w": 80,
+   "w": 64,
    "h": 12,
    "ax": 0,
    "ay": 12,
@@ -2770,10 +2770,10 @@
   "walls/metro": {
    "atlas": "outdoor",
    "frame": "walls/metro",
-   "w": 48,
-   "h": 30,
+   "w": 32,
+   "h": 14,
    "ax": 0,
-   "ay": 30,
+   "ay": 14,
    "footprint": [
     1,
     1
@@ -3899,6 +3899,36 @@
    "overhead": null,
    "shadow": null,
    "decal": true
+  },
+  "fx/light_patch_32": {
+   "atlas": "outdoor",
+   "frame": "fx/light_patch_32",
+   "w": 48,
+   "h": 40,
+   "ax": 0,
+   "ay": 0,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/light_patch_48": {
+   "atlas": "outdoor",
+   "frame": "fx/light_patch_48",
+   "w": 64,
+   "h": 40,
+   "ax": 0,
+   "ay": 0,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
   }
  },
  "images": {

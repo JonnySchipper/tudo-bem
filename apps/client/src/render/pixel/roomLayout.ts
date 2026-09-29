@@ -23,10 +23,14 @@ export const FLOOR_SUBSTITUTE: Record<string, string> = { d: 'g' };
 /** Flat fills for interior floors until their tiles exist (HOWTO §5.10 placeholders; `x` is not drawn). */
 export const FLOOR_PLACEHOLDER: Record<string, string | undefined> = { x: undefined };
 
-/** Wall decor on the west wall: skipped in Phase 2 (not visible edge-on). */
-export const skippedWestDecor = (room: RoomDef): WallDecor[] => room.walls.filter((w) => w.wall === 'left');
+/**
+ * Wall decor on the west wall: not visible edge-on, so the pixel view moves it (`relocatedWestDecor`). A room with its own `pixelWalls`
+ * (rooms.ts) authors the whole north wall for this view, so none of its west decor is skipped.
+ */
+export const skippedWestDecor = (room: RoomDef): WallDecor[] => (room.pixelWalls ? [] : room.walls.filter((w) => w.wall === 'left'));
 
-export const northDecor = (room: RoomDef): WallDecor[] => room.walls.filter((w) => w.wall === 'right');
+/** The decor on the north wall: the room's authored top-down list (`pixelWalls`), else its own right-wall decor. */
+export const northDecor = (room: RoomDef): WallDecor[] => room.pixelWalls ?? room.walls.filter((w) => w.wall === 'right');
 
 /** `padaria: azulejos 0-9, janela 2-4, ...` for the console and the report. */
 export function describeSkipped(rooms: Record<string, RoomDef>): string[] {
@@ -103,8 +107,8 @@ export function decorArt(d: WallDecor): DecorArt | null {
   const span = d.to - d.from;
   switch (d.kind) {
     case 'azulejos': return { key: 'walls/azulejos', mode: 'tile', bottom: -1, tiles: 1 };
-    case 'prateleira_paes': return { key: 'walls/prateleira_paes', mode: 'center', bottom: -2, tiles: 6 };
-    case 'lousa': return { key: 'walls/lousa', mode: 'center', bottom: -8, tiles: 3 };
+    case 'prateleira_paes': return { key: 'walls/prateleira_paes', mode: 'center', bottom: -2, tiles: 4 };
+    case 'lousa': return { key: 'walls/lousa', mode: 'center', bottom: -8, tiles: 2 };
     case 'janela_rua': return { key: 'walls/janela_rua', mode: 'center', bottom: -8, tiles: 3 };
     case 'janela': return { key: 'walls/janela', mode: 'center', bottom: -8, tiles: 2 };
     case 'relogio': return { key: 'walls/relogio', mode: 'center', bottom: -26, tiles: 1 };
@@ -113,10 +117,10 @@ export function decorArt(d: WallDecor): DecorArt | null {
     case 'foto': return { key: 'walls/foto', mode: 'center', bottom: -12, tiles: 2 };
     case 'placa': return { key: 'walls/placa', mode: 'center', bottom: -12, tiles: 4 };
     case 'poster': return { key: d.text?.startsWith('OSS') ? 'walls/poster_oss' : 'walls/poster', mode: 'center', bottom: -8, tiles: 2 };
-    case 'toldo': return { key: 'walls/toldo', mode: 'center', bottom: -30, tiles: 5 };
+    case 'toldo': return { key: 'walls/toldo', mode: 'center', bottom: -30, tiles: 4 };
     case 'mural': return { key: span >= 6 ? 'walls/mural' : 'walls/mural_s', mode: 'center', bottom: -6, tiles: span >= 6 ? 7 : 4 };
     case 'predio': return { key: 'walls/predio', mode: 'center', bottom: -1, tiles: 3 };
-    case 'metro': return { key: 'walls/metro', mode: 'center', bottom: -10, tiles: 3 };
+    case 'metro': return { key: 'walls/metro', mode: 'center', bottom: -9, tiles: 2 };
     default: return null; // fachada_padaria is the facade sprite
   }
 }
@@ -130,6 +134,7 @@ const WEST_PRIORITY: WallDecor['kind'][] = ['poster', 'tv', 'relogio', 'cobogo',
  * a wainscot already covered by the north wall's own. Pure and deterministic; rooms.ts is not changed.
  */
 export function relocatedWestDecor(room: RoomDef): WallDecor[] {
+  if (room.pixelWalls) return []; // authored for the top-down view: nothing to move
   const used = new Set<number>();
   for (const d of northDecor(room)) {
     if (d.kind === 'azulejos' || d.kind === 'toldo') continue; // a wainscot and an awning over the shelves leave the wall free
@@ -153,6 +158,25 @@ export function relocatedWestDecor(room: RoomDef): WallDecor[] {
       out.push({ ...d, wall: 'right', from: x, to: x + need });
       break;
     }
+  }
+  return out;
+}
+
+/** Width in px of the window art (`walls/janela` 32, `walls/janela_rua` 48) and the light patch sprite that belongs to it. */
+const WINDOW_LIGHT: Partial<Record<WallDecor['kind'], { w: number; key: string }>> = {
+  janela: { w: 32, key: 'fx/light_patch_32' },
+  janela_rua: { w: 48, key: 'fx/light_patch_48' },
+};
+
+/**
+ * The window light patches of a room (Phase 4a): one per north-wall window, the top-left corner in world px of the slanted patch that falls on
+ * the floor under it (light comes from the upper left, so the patch leans to the right). Pure.
+ */
+export function windowPatches(room: RoomDef): { key: string; x: number; y: number }[] {
+  const out: { key: string; x: number; y: number }[] = [];
+  for (const d of allNorthDecor(room)) {
+    const win = WINDOW_LIGHT[d.kind];
+    if (win) out.push({ key: win.key, x: Math.round(((d.from + d.to) * T) / 2 - win.w / 2), y: 0 });
   }
   return out;
 }
