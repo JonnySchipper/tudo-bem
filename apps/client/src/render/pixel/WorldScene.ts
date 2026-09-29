@@ -10,7 +10,7 @@
  * Two cameras (DECISIONS Phase 1 #13): `main` draws the world at an integer device zoom, `fx` draws the light grade in screen space.
  */
 import Phaser from 'phaser';
-import { buildGrid, canPlaceFurniture, furnitureById, isCpuId, key as tileKey, positionAlong, propTiles, type Dir, type NpcDef, type PlacedFurniture, type PropDef, type RoomDef, type RoomGrid } from '@tudobem/shared';
+import { buildGrid, canPlaceFurniture, furnitureById, isCpuId, key as tileKey, positionAlong, propTiles, type Dir, type NpcDef, type PlacedFurniture, type PropDef, type RoomDef, type RoomGrid, type WallDecor } from '@tudobem/shared';
 import { game, type ClientAvatar } from '../../state';
 import type { Guide, Hit } from '../view';
 import type { Manifest } from './manifest';
@@ -24,12 +24,17 @@ import { LabelLayer, type GuideItem, type StackItem } from './labels';
 import { T, cameraCenter, cssZoomFor, deviceZoomFor, feet, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
 import { pickHit, type HitBox } from './hit';
 import { roomKey, syncViews } from './reconcile';
-import { DEPTH, PROP_LIGHT, footprintRect, inflate, propAnchor, propArtKey, propPlaceholderKey, propSize, spriteRect, standingDepth, unionRect } from './props';
+import { DEPTH, PROP_LIGHT, footprintRect, inflate, propAnchor, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
 import {
   FLOOR_PLACEHOLDER,
   FLOOR_SUBSTITUTE,
   NORTH_BAND_TILES,
   ROOM_HOUR,
+  WALL_STYLE,
+  allNorthDecor,
+  decorArt,
+  northWallKey,
+  westWallKey,
   describeSkipped,
   decorCoveredByFacade,
   doormatRect,
@@ -250,15 +255,8 @@ export class WorldScene extends Phaser.Scene {
       });
     }
 
-    // ---- walls: north band and west strip, from the room's own colors (flat placeholders until wall art exists)
-    const band = northBandRect(def);
-    this.noteMissing('walls/north');
-    this.flat(band, hex(def.wallColor), DEPTH.wall);
-    this.flat({ x0: band.x0, y0: -3, x1: band.x1, y1: 0 }, hex(def.wallTrim), DEPTH.wall + 1);
-    const strip = westStripRect(def);
-    this.noteMissing('walls/west');
-    this.flat(strip, hex(def.wallColor), DEPTH.wall);
-    this.flat({ x0: -3, y0: strip.y0, x1: 0, y1: strip.y1 }, hex(def.wallTrim), DEPTH.wall + 1);
+    // ---- walls: north band and west strip from 16 px wall tiles per room style (flat placeholders in the room's colors when the art is missing)
+    this.buildWalls(def);
 
     // ---- facades on north doors
     const facades = northFacades(def, has);
@@ -277,19 +275,19 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
-    // ---- north wall decor (placeholders); west wall decor is skipped in Phase 2
-    for (const d of northDecor(def)) {
+    // ---- north wall decor (its own plus the west-wall decor moved to a free stretch, roomLayout.relocatedWestDecor)
+    for (const d of allNorthDecor(def)) {
       if (decorCoveredByFacade(d, facades)) continue;
-      this.placeholder(`walls/${d.kind}`, northDecorRect(d), DEPTH.wallDecor);
+      this.buildDecor(d);
     }
 
     // ---- doors
     for (const p of def.portals) {
       if (isNorthPortal(p)) {
-        if (!facades.some((f) => f.portal.id === p.id)) this.placeholder('doors/north', northDoorRect(p), DEPTH.wallDecor);
+        if (!facades.some((f) => f.portal.id === p.id) && !this.sprite('doors/north', (p.x + 0.5) * T, 0, DEPTH.wallDecor, false)) this.placeholder('doors/north', northDoorRect(p), DEPTH.wallDecor);
       } else {
-        this.placeholder('doors/west', westDoorRect(p), DEPTH.wallDecor);
-        this.placeholder('props/doormat', inflate(doormatRect(p), -2), DEPTH.groundDecal);
+        if (!this.sprite('doors/west', 0, (p.y + 1) * T, DEPTH.wallDecor, false)) this.placeholder('doors/west', westDoorRect(p), DEPTH.wallDecor);
+        if (!this.sprite('props/doormat', (p.x + 0.5) * T, (p.y + 1) * T, DEPTH.groundDecal, false)) this.placeholder('props/doormat', inflate(doormatRect(p), -2), DEPTH.groundDecal);
       }
       const r = portalHitRect(p);
       this.staticHits.push({ ...r, hit: { kind: 'portal', portal: p }, depth: r.y1 });
@@ -317,6 +315,48 @@ export class WorldScene extends Phaser.Scene {
     if (this.artMissing.length !== missingBefore) console.info('[pixel] missing art (placeholders):', this.artMissing.join(', '));
   }
 
+  /** North band (3 tiles) and west strip from wall tiles; a missing tile key falls back to a flat fill in the room's wall color. */
+  private buildWalls(def: RoomDef): void {
+    const style = WALL_STYLE[def.id] ?? 'padaria';
+    const band = northBandRect(def);
+    const strip = westStripRect(def);
+    const has = (k: string) => !!this.m.sprites[k];
+    for (let i = -1; i < def.cols; i++) {
+      const key = northWallKey(style, i < 0 ? 'l' : i === def.cols - 1 ? 'r' : 'm');
+      if (!has(key)) {
+        this.noteMissing(key);
+        this.flat({ x0: i * T, y0: band.y0, x1: (i + 1) * T, y1: 0 }, hex(def.wallColor), DEPTH.wall);
+        continue;
+      }
+      this.sprite(key, i * T, 0, DEPTH.wall, false);
+    }
+    for (let j = 0; j < def.rows; j++) {
+      const key = westWallKey(style, j === def.rows - 1);
+      if (!has(key)) {
+        this.noteMissing(westWallKey(style, false));
+        this.flat({ x0: strip.x0, y0: j * T, x1: 0, y1: (j + 1) * T }, hex(def.wallColor), DEPTH.wall);
+        continue;
+      }
+      this.sprite(key, 0, (j + 1) * T, DEPTH.wall, false);
+    }
+  }
+
+  /** One wall decor item: tiled along its span or centred on it, at the height its art table gives; a placeholder box when the art is missing. */
+  private buildDecor(d: WallDecor): void {
+    const art = decorArt(d);
+    const spr = art ? this.m.sprites[art.key] : undefined;
+    if (!art || !spr) {
+      this.placeholder(`walls/${d.kind}`, northDecorRect(d), DEPTH.wallDecor);
+      return;
+    }
+    if (art.mode === 'tile') {
+      for (let x = d.from * T; x < d.to * T; x += spr.w) this.sprite(art.key, x + spr.ax, art.bottom, DEPTH.wallDecor, false);
+      return;
+    }
+    const left = Math.round(((d.from + d.to) * T - spr.w) / 2);
+    this.sprite(art.key, left + spr.ax, art.bottom, DEPTH.wallDecor, false);
+  }
+
   private buildProp(p: PropDef): void {
     const m = this.m;
     const a = propAnchor(p);
@@ -326,8 +366,24 @@ export class WorldScene extends Phaser.Scene {
     let visual: Rect = foot;
     const artKey = propArtKey(p);
     const d = artKey ? m.sprites[artKey] : undefined;
-    if (artKey && d) {
+    const slices = propSlices(p);
+    if (slices) {
+      // long props (counter, bleachers): one sprite per footprint tile
+      for (const s of slices) {
+        const sd = m.sprites[s.key];
+        const wx = (s.x + 0.5) * T;
+        const wy = (s.y + 1) * T;
+        if (sd) {
+          this.sprite(s.key, wx, wy, depth);
+          visual = unionRect(visual, spriteRect(Math.round(wx), Math.round(wy), sd));
+        } else this.placeholder(`${s.key}#${p.id}`, { x0: s.x * T, y0: s.y * T, x1: (s.x + 1) * T, y1: (s.y + 1) * T }, depth);
+      }
+    } else if (artKey && d) {
       this.sprite(artKey, a.wx, a.wy, depth);
+      if (d.lit && m.sprites[d.lit]) {
+        const ld = m.sprites[d.lit];
+        this.rig.litOverlays.push(this.reg(this.add.image(Math.round(a.wx), Math.round(a.wy), ld.atlas, ld.frame)).setOrigin(...originOf(ld)).setDepth(depth + 0.01).setAlpha(0));
+      }
       visual = unionRect(foot, spriteRect(Math.round(a.wx), Math.round(a.wy), d));
       if (typeof d.overhead === 'string' && m.sprites[d.overhead]) {
         const od = m.sprites[d.overhead];

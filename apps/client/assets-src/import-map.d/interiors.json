@@ -1,7 +1,14 @@
 {
   "$comment": "Art track 3 (interiors): floors, walls, doors, padaria / kitnet / academia / praca props. Merged after import-map.json by scripts/lib/pixel/importmap.mjs.",
   "sheets": {
-    "rbFloors": "int:1_Interiors/16x16/Room_Builder_subfiles/Room_Builder_Floors_16x16.png"
+    "rbFloors": "int:1_Interiors/16x16/Room_Builder_subfiles/Room_Builder_Floors_16x16.png",
+    "ice": "int:1_Interiors/16x16/Theme_Sorter/24_Ice_Cream_Shop.png",
+    "kitchen": "int:1_Interiors/16x16/Theme_Sorter/12_Kitchen_16x16.png",
+    "grocery": "int:1_Interiors/16x16/Theme_Sorter/16_Grocery_store_16x16.png",
+    "gym": "int:1_Interiors/16x16/Theme_Sorter/8_Gym_16x16.png",
+    "generic": "int:1_Interiors/16x16/Theme_Sorter/1_Generic_16x16.png",
+    "living": "int:1_Interiors/16x16/Theme_Sorter/2_LivingRoom_16x16.png",
+    "bedroom": "int:1_Interiors/16x16/Theme_Sorter/4_Bedroom_16x16.png"
   },
   "terrain": {
     "t": {"name":"tijolo","kind":"flush","custom":"tijolo"},
@@ -35,6 +42,14 @@
     {"key":"walls/parede_faixas","kind":"derive","fn":"wallDecor","args":{"kind":"faixas"}},
     {"key":"doors/north","kind":"derive","fn":"doorPart","args":{"kind":"north"}},
     {"key":"doors/west","kind":"derive","fn":"doorPart","args":{"kind":"west"}},
-    {"key":"props/doormat","kind":"derive","fn":"doorPart","args":{"kind":"mat"}}
+    {"key":"props/doormat","kind":"derive","fn":"doorPart","args":{"kind":"mat"}},
+    {"key":"props/balcao_0_of_5","kind":"derive","fn":"padBalcao","args":{"slices":5}},
+    {"key":"props/vitrine","kind":"derive","fn":"padVitrine","shadow":"fx/shadow_16"},
+    {"key":"props/estufa","kind":"derive","fn":"padEstufa","shadow":"fx/shadow_16"},
+    {"key":"props/trilho_pedidos","kind":"derive","fn":"padTrilho","shadow":"fx/shadow_16"},
+    {"key":"props/caixa","kind":"derive","fn":"padCaixa","shadow":"fx/shadow_16"},
+    {"key":"props/banqueta","kind":"derive","fn":"padBanqueta","shadow":"fx/shadow_10"},
+    {"key":"props/mesa","kind":"derive","fn":"padMesa","shadow":"fx/shadow_16"},
+    {"key":"props/cadeira_padaria_e","kind":"derive","fn":"padCadeira","shadow":"fx/shadow_10"}
   ]
 }

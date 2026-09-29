@@ -22,10 +22,45 @@ const ART: Partial<Record<PropKind, string>> = {
   vaso: 'props/pot_teal',
   floreira: 'props/pot_red',
   saco_lixo: 'props/trash',
+  // art track 3: padaria
+  vitrine: 'props/vitrine',
+  estufa: 'props/estufa',
+  trilho_pedidos: 'props/trilho_pedidos',
+  caixa: 'props/caixa',
+  banqueta: 'props/banqueta',
+  mesa: 'props/mesa',
+  // art track 3: kitnet, academia, praça
+  cama: 'props/cama',
+  cozinha: 'props/cozinha',
+  tatame: 'props/tatame',
+  quadro_fila: 'props/quadro_fila',
+  parede_faixas: 'props/parede_faixas',
+  vestiario: 'props/vestiario',
+  quadro_foto: 'props/quadro_foto',
+  bicicletario: 'props/bicicletario',
+  mesa_cafe: 'props/mesa_cafe',
+  jornais: 'props/jornais',
 };
+
+/** Seat direction (wire Dir) -> the chair sprite suffix (SE faces E, SW faces S, NE faces N, NW faces W, HOWTO §5.2). */
+const CHAIR_SUFFIX: Record<string, string> = { SE: 'e', SW: 's', NE: 'n', NW: 'w' };
+
+/** Long props drawn as one 1-tile slice per tile of their footprint (`<base>_<i>_of_<w>`, like the balcão counter and the bleachers). */
+const SLICED: Partial<Record<PropKind, string>> = { balcao: 'props/balcao', banco_espectador: 'props/banco_espectador' };
+
+/** The slice sprites of a sliced prop, left to right (a 1-tile-tall footprint), or null for a normal prop. */
+export function propSlices(p: PropDef): { key: string; x: number; y: number }[] | null {
+  const base = SLICED[p.kind];
+  if (!base) return null;
+  const { w, h } = propSize(p);
+  const out: { key: string; x: number; y: number }[] = [];
+  for (let i = 0; i < w; i++) out.push({ key: `${base}_${i}_of_${w}`, x: p.x + i, y: p.y + h - 1 });
+  return out;
+}
 
 export function propArtKey(p: PropDef): string | null {
   if (p.kind === 'ipe') return p.hero ? 'props/ipe_large' : 'props/ipe_medium';
+  if (p.kind === 'cadeira_padaria') return `props/cadeira_padaria_${CHAIR_SUFFIX[p.seat ?? 'SE']}`;
   return ART[p.kind] ?? null;
 }
 

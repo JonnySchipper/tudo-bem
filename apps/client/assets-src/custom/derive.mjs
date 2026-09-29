@@ -15,8 +15,10 @@ import * as iconsMod from './icons.mjs';
 import * as uiMod from './ui.mjs';
 
 import * as wallsMod from './walls.mjs';
+import * as padariaMod from './padaria.mjs';
 
 export const DERIVE = {
+  ...padariaMod.DERIVE_PADARIA,
   wallSet: wallsMod.wallSet,
   wallDecor: wallsMod.wallDecor,
   doorPart: wallsMod.doorPart,

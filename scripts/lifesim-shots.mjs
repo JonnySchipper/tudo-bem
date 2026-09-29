@@ -36,6 +36,8 @@ const VIEW = argv.view ?? process.env.VIEW ?? '';
 const PHASE = argv.phase ?? process.env.PHASE ?? 'p0';
 const OUT = process.env.SHOTS_DIR ?? path.join('docs', 'lifesim', 'shots', PHASE);
 const SOLO = !!process.env.SOLO;
+// --clean: hide every DOM overlay (HUD, labels, chat) so only the canvas is in the shot (art reviews: nothing covers the sprites)
+const CLEAN = 'clean' in argv || !!process.env.CLEAN;
 const VIEWPORTS = [
   { name: '1280x800', width: 1280, height: 800 },
   { name: '390x844', width: 390, height: 844 },
@@ -58,6 +60,12 @@ async function interact(page, target) {
 }
 async function shot(page, vp, name) {
   fs.mkdirSync(OUT, { recursive: true });
+  if (CLEAN && name !== 'avatar_creator') {
+    await page.evaluate(() => {
+      const c = document.querySelector('canvas');
+      document.querySelectorAll('body *').forEach((el) => { if (el !== c && !el.contains(c)) el.style.visibility = 'hidden'; });
+    });
+  }
   await page.screenshot({ path: path.join(OUT, `${vp.name}_${name}.png`) });
   console.log('  ·', vp.name, name);
 }

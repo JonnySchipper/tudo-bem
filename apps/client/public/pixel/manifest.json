@@ -6,8 +6,8 @@
    "image": "atlas/outdoor.png",
    "data": "atlas/outdoor.json",
    "w": 512,
-   "h": 1024,
-   "frames": 245
+   "h": 2048,
+   "frames": 262
   }
  },
  "terrain": {
@@ -16,7 +16,7 @@
   "margin": 1,
   "spacing": 2,
   "columns": 16,
-  "count": 454,
+  "count": 406,
   "layers": {
    "c": {
     "name": "calcada",
@@ -55,15 +55,15 @@
     "name": "ladrilho",
     "edge": "flush",
     "first": 102,
-    "phases": 2,
-    "phasesY": 2,
+    "phases": 1,
+    "phasesY": 1,
     "variants": 1,
-    "tiles": 64
+    "tiles": 16
    },
    "m": {
     "name": "madeira",
     "edge": "flush",
-    "first": 166,
+    "first": 118,
     "phases": 1,
     "phasesY": 1,
     "variants": 1,
@@ -72,7 +72,7 @@
    "k": {
     "name": "xadrez",
     "edge": "flush",
-    "first": 182,
+    "first": 134,
     "phases": 1,
     "phasesY": 1,
     "variants": 1,
@@ -81,7 +81,7 @@
    "j": {
     "name": "tatame",
     "edge": "flush",
-    "first": 198,
+    "first": 150,
     "phases": 4,
     "phasesY": 4,
     "variants": 1,
@@ -2811,6 +2811,253 @@
    "h": 16,
    "ax": 8,
    "ay": 15,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/balcao_0_of_5": {
+   "atlas": "outdoor",
+   "frame": "props/balcao_0_of_5",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 30,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/balcao_1_of_5": {
+   "atlas": "outdoor",
+   "frame": "props/balcao_1_of_5",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 30,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/balcao_2_of_5": {
+   "atlas": "outdoor",
+   "frame": "props/balcao_2_of_5",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 30,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/balcao_3_of_5": {
+   "atlas": "outdoor",
+   "frame": "props/balcao_3_of_5",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 30,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/balcao_4_of_5": {
+   "atlas": "outdoor",
+   "frame": "props/balcao_4_of_5",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 30,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/vitrine": {
+   "atlas": "outdoor",
+   "frame": "props/vitrine",
+   "w": 16,
+   "h": 30,
+   "ax": 8,
+   "ay": 28,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "props/estufa": {
+   "atlas": "outdoor",
+   "frame": "props/estufa",
+   "w": 16,
+   "h": 30,
+   "ax": 8,
+   "ay": 28,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "lit": "props/estufa_lit"
+  },
+  "props/estufa_lit": {
+   "atlas": "outdoor",
+   "frame": "props/estufa_lit",
+   "w": 16,
+   "h": 30,
+   "ax": 8,
+   "ay": 28,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/trilho_pedidos": {
+   "atlas": "outdoor",
+   "frame": "props/trilho_pedidos/0",
+   "w": 16,
+   "h": 30,
+   "ax": 8,
+   "ay": 28,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "props/trilho_pedidos/0",
+     "props/trilho_pedidos/1"
+    ],
+    "fps": 3
+   },
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "props/caixa": {
+   "atlas": "outdoor",
+   "frame": "props/caixa",
+   "w": 16,
+   "h": 30,
+   "ax": 8,
+   "ay": 28,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "props/banqueta": {
+   "atlas": "outdoor",
+   "frame": "props/banqueta",
+   "w": 14,
+   "h": 22,
+   "ax": 7,
+   "ay": 20,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "props/mesa": {
+   "atlas": "outdoor",
+   "frame": "props/mesa",
+   "w": 20,
+   "h": 24,
+   "ax": 10,
+   "ay": 19,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "props/cadeira_padaria_e": {
+   "atlas": "outdoor",
+   "frame": "props/cadeira_padaria_e",
+   "w": 13,
+   "h": 21,
+   "ax": 6,
+   "ay": 19,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "props/cadeira_padaria_w": {
+   "atlas": "outdoor",
+   "frame": "props/cadeira_padaria_w",
+   "w": 13,
+   "h": 21,
+   "ax": 6,
+   "ay": 19,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/cadeira_padaria_n": {
+   "atlas": "outdoor",
+   "frame": "props/cadeira_padaria_n",
+   "w": 14,
+   "h": 14,
+   "ax": 7,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/cadeira_padaria_s": {
+   "atlas": "outdoor",
+   "frame": "props/cadeira_padaria_s",
+   "w": 14,
+   "h": 14,
+   "ax": 7,
+   "ay": 12,
    "footprint": [
     1,
     1

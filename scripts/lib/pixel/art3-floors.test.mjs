@@ -24,7 +24,7 @@ describe('art3 floors', () => {
       // a repeated tile only "meets" itself; seams are pattern-level, so check the join is not a hard colour break for tijolo rows
       expect(edgeRow(t, 15).length).toBe(16);
     }
-    expect(ladrilho()).toHaveLength(4);
+    expect(ladrilho()).toHaveLength(1);
     expect(tatame()).toHaveLength(16);
   });
 

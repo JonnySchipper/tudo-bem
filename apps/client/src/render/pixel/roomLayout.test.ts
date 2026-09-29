@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { ROOMS } from '@tudobem/shared';
 import { T } from './coords';
-import { describeSkipped, doormatRect, northBandRect, northDecor, northFacades, portalHitRect, roomBounds, skippedWestDecor, westDoorRect, westStripRect } from './roomLayout';
-import { footprintRect, idTiebreak, propAnchor, propArtKey, standingDepth } from './props';
+import { allNorthDecor, decorArt, relocatedWestDecor, describeSkipped, doormatRect, northBandRect, northDecor, northFacades, portalHitRect, roomBounds, skippedWestDecor, westDoorRect, westStripRect } from './roomLayout';
+import { footprintRect, idTiebreak, propAnchor, propArtKey, propSlices, standingDepth } from './props';
 
 describe('interior walls (top-down)', () => {
   it('the north band is 3 tiles tall above row 0, the west strip 1 tile wide left of column 0', () => {
@@ -68,7 +68,7 @@ describe('props', () => {
     expect(key('poste_1')).toBe('props/poste_fios');
     expect(key('ipe_centro')).toBe('props/ipe_large');
     expect(key('ipe_canto')).toBe('props/ipe_medium');
-    expect(key('bici')).toBeNull();
+    expect(key('bici')).toBe('props/bicicletario');
   });
 
   it('depth is the bottom edge plus a stable sub-pixel tiebreak', () => {
@@ -76,5 +76,38 @@ describe('props', () => {
     expect(idTiebreak('banco_1')).toBeLessThan(0.1);
     expect(standingDepth(100, 'x')).toBeGreaterThanOrEqual(100);
     expect(standingDepth(100, 'x')).toBeLessThan(100.1);
+  });
+});
+
+describe('art track 3 wall art and props', () => {
+  it('every north decor kind has art (the facade kind is the facade sprite)', () => {
+    for (const r of Object.values(ROOMS)) for (const d of allNorthDecor(r)) expect(decorArt(d) !== null || d.kind === 'fachada_padaria', r.id + ' ' + d.kind).toBe(true);
+  });
+
+  it('west-wall decor moves to free north-wall columns without overlapping anything', () => {
+    for (const r of Object.values(ROOMS)) {
+      const moved = relocatedWestDecor(r);
+      const own = northDecor(r).filter((d) => d.kind !== 'toldo' && d.kind !== 'azulejos' && d.kind !== 'fachada_padaria');
+      for (const m of moved) {
+        expect(m.from).toBeGreaterThanOrEqual(-1);
+        expect(m.to).toBeLessThanOrEqual(r.cols);
+        for (const o of own) expect(m.to <= o.from || m.from >= o.to, r.id + ' ' + m.kind + ' vs ' + o.kind).toBe(true);
+        for (const o of moved) if (o !== m) expect(m.to <= o.from || m.from >= o.to).toBe(true);
+      }
+    }
+    // the padaria TV lands in the corner above the west strip, the kitnet SP poster right of the cobogo
+    expect(relocatedWestDecor(ROOMS.padaria).find((d) => d.kind === 'tv')).toMatchObject({ from: -1, to: 1 });
+    expect(relocatedWestDecor(ROOMS.kitnet).find((d) => d.kind === 'poster')).toMatchObject({ from: 1, to: 3 });
+  });
+
+  it('the counter and the bleachers are drawn as one slice per footprint tile', () => {
+    const bal = ROOMS.padaria.props.find((p) => p.id === 'balcao');
+    if (!bal) throw new Error('balcao');
+    expect(propSlices(bal)?.map((s) => s.key)).toEqual([0, 1, 2, 3, 4].map((i) => 'props/balcao_' + i + '_of_5'));
+    expect(propSlices(bal)?.map((s) => s.x)).toEqual([1, 2, 3, 4, 5]);
+    const chair = ROOMS.padaria.props.find((p) => p.id === 'cadeira_1');
+    if (!chair) throw new Error('chair');
+    expect(propArtKey(chair)).toBe('props/cadeira_padaria_e');
+    expect(propArtKey({ ...chair, seat: 'NE' })).toBe('props/cadeira_padaria_n');
   });
 });

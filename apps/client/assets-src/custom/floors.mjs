@@ -41,7 +41,7 @@ export function tijolo() {
 }
 
 // ------------------------------------------------------------------ l: ladrilho hidraulico
-const LAD = { cream: '#f0e2c6', creamHi: '#f8eed8', grout: '#d7c4a0', terra: '#c8683a', terraLo: '#a94f2c', terraHi: '#dd8551' };
+const LAD = { cream: '#f2e6ce', creamHi: '#f8eed8', grout: '#dccdae', terra: '#d58f62', terraLo: '#bd7550', terraHi: '#e5a67c' };
 
 /** One 16x16 cell of the cement tile: 1 px grout on the right and bottom, terracotta diamond ring + centre bead + corner triangles. */
 function ladrilhoCell(inverted) {
@@ -55,9 +55,9 @@ function ladrilhoCell(inverted) {
   for (let y = 0; y < 15; y++) for (let x = 0; x < 15; x++) {
     const d = Math.abs(x - cx) + Math.abs(y - cy);
     const corner = Math.min(x + y, 14 - x + y, x + 14 - y, 28 - x - y);
-    if (d <= 6 && d >= 5) put(t, x, y, fg); // diamond ring
-    else if (d <= 2) put(t, x, y, fg); // centre bead
-    else if (corner <= 3) put(t, x, y, fg); // corner triangles (meet the neighbours' triangles to make a second diamond)
+    if (d === 6) put(t, x, y, fg); // thin diamond ring
+    else if (d <= 1) put(t, x, y, fg); // centre bead
+    else if (corner <= 2) put(t, x, y, fg); // corner triangles (meet the neighbours' triangles to make a second diamond)
   }
   put(t, cx, cy, bg); // dot in the bead
   // shade: darker terracotta on the lower-right of the ring, lighter on the upper-left
@@ -73,9 +73,7 @@ function ladrilhoCell(inverted) {
 }
 
 export function ladrilho() {
-  const a = ladrilhoCell(false);
-  const b = ladrilhoCell(true);
-  return [a, b, b, a]; // 2x2 phases: checkerboard of the two colourways
+  return [ladrilhoCell(false)]; // one calm colourway; the pattern reads through the diamond lattice the neighbouring corners make
 }
 
 // ------------------------------------------------------------------ m: madeira / taco (herringbone parquet)
@@ -152,7 +150,7 @@ export function tatame() {
 
 export const FLOORS = {
   tijolo: { fn: tijolo, phasesX: 1, phasesY: 1 },
-  ladrilho: { fn: ladrilho, phasesX: 2, phasesY: 2 },
+  ladrilho: { fn: ladrilho, phasesX: 1, phasesY: 1 },
   taco: { fn: taco, phasesX: 1, phasesY: 1, needsPack: true },
   xadrez: { fn: xadrez, phasesX: 1, phasesY: 1 },
   tatame: { fn: tatame, phasesX: 4, phasesY: 4 },
