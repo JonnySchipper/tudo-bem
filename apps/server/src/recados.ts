@@ -21,6 +21,7 @@ import {
   takeFromBag,
   tileDistance,
   type Bilingual,
+  type HotspotDef,
   type ConversaGrade,
   type ConversaOrder,
   type NpcId,
@@ -41,6 +42,8 @@ export interface RecadoDeps {
   pushProfile: (s: Session) => void;
   /** The session's current tile (mid-walk positions are rounded by the world). */
   tileOf: (s: Session) => Tile;
+  /** A hotspot was read (validated: same room, within range). The Caderno counts its cards as seen. */
+  onRead?: (s: Session, h: HotspotDef) => void;
 }
 
 /** Items a finished Carlos scene ordered ('nada' and unknown ids are dropped). */
@@ -202,6 +205,7 @@ export class RecadoTracker {
     if (!h) return this.err(s, 'hotspot', 'Não achei essa placa.', 'I can’t find that sign.');
     if (s.instance?.def.id !== h.room || hotspotDistance(h, this.d.tileOf(s)) > HOTSPOT_READ_RANGE)
       return this.err(s, 'far', 'Chegue mais perto pra ler.', 'Walk closer to read it.');
+    this.d.onRead?.(s, h);
     this.onEvent(s, { kind: 'read', hotspotId: h.id });
   }
 

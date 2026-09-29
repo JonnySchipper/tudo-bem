@@ -27,6 +27,7 @@ import {
   type Bilingual,
 } from '@tudobem/shared';
 import { conversaTurn, authoredConversaTurn, isXaiReady, getAuthoredOpener } from './services/xai.js';
+import type { ConversaMemory } from './conversaMemory.js';
 import type { ProfileStore } from './store.js';
 
 /** Daily cap stays off unless CONVERSA_DAILY_CAP=on. Read per request so tests can flip it. */
@@ -46,6 +47,10 @@ export interface ConversaApiDeps {
   onProfileChanged?: (playerId: string) => void;
   /** A Conversa ended for this player (recados: counts as a talk, may carry an order, a 'pass' earns bond). */
   onConversaEnd?: (playerId: string, npc: NpcId, grade: ConversaGrade, order?: ConversaOrder) => void;
+  /** A line moved through the Conversa: the NPC's reply is `seen`, a player line that passed the gate is `used` (Caderno). */
+  onConversaLine?: (playerId: string, who: 'npc' | 'player', pt: string) => void;
+  /** NPC memory: keeps a vetted PT summary per NPC and feeds it to the next Conversa's prompt. */
+  memory?: ConversaMemory;
   /**
    * When set, the player is whoever the session cookie says (the body's playerId is ignored), and
    * requests without a signed-in profile get 401. Unset in solo-style/test setups.
@@ -225,7 +230,7 @@ export async function handleConversaApi(req: IncomingMessage, res: ServerRespons
   }
 
   if (body.action === 'turn') {
-    return handleTurn(body, res);
+    return handleTurn(body, res, deps);
   }
 
   if (body.action === 'end') {
@@ -270,6 +275,8 @@ async function handleStart(req: ConversaStartRequest, dailyCapOn: boolean, res: 
   });
   const opener: Bilingual = presented.line;
   const chips: Bilingual[] = presented.chips;
+  deps.memory?.record(req.playerId, req.npcId, subject.id, 'npc', opener.pt);
+  if (req.playerId) deps.onConversaLine?.(req.playerId, 'npc', opener.pt);
 
   const response: ConversaStartResponse = {
     phase: 'open',
@@ -287,7 +294,7 @@ async function handleStart(req: ConversaStartRequest, dailyCapOn: boolean, res: 
   json(res, 200, response);
 }
 
-async function handleTurn(req: ConversaTurnRequestBody, res: ServerResponse): Promise<void> {
+async function handleTurn(req: ConversaTurnRequestBody, res: ServerResponse, deps: ConversaApiDeps): Promise<void> {
   const gate = gateConversaPlayerLine(req.text);
   if (!gate.deliver) {
     const response: ConversaBlockedResponse = {
@@ -319,6 +326,7 @@ async function handleTurn(req: ConversaTurnRequestBody, res: ServerResponse): Pr
     turn: req.turn,
     maxTurns: CONVERSA_MAX_PLAYER_MSGS,
     priorChips,
+    memory: deps.memory?.get(req.playerId, req.npcId),
   };
   let turnResponse;
 
@@ -331,6 +339,13 @@ async function handleTurn(req: ConversaTurnRequestBody, res: ServerResponse): Pr
   }
 
   turnResponse = presentConversaTurn(turnResponse, priorChips);
+  const subjectId = CONVERSA_SUBJECTS[req.subjectId]?.id ?? cast.subjects[0]?.id ?? '';
+  deps.memory?.record(req.playerId, req.npcId, subjectId, 'player', gate.text);
+  deps.memory?.record(req.playerId, req.npcId, subjectId, 'npc', turnResponse.line.pt);
+  if (req.playerId) {
+    deps.onConversaLine?.(req.playerId, 'player', gate.text);
+    deps.onConversaLine?.(req.playerId, 'npc', turnResponse.line.pt);
+  }
 
   const historyWithScores: { scores?: ConversaScores }[] = (req.history ?? []).map(() => ({ scores: undefined }));
   historyWithScores.push({ scores: turnResponse.scores });
@@ -372,8 +387,11 @@ async function handleEnd(req: ConversaEndRequest, res: ServerResponse, deps: Con
     updateDaily.conversaRvGranted = { ...daily.conversaRvGranted, [req.npcId]: todayKey };
   }
 
+  // Store a short vetted summary for the NPC's next Conversa. The template line lands now; an AI one may replace it later.
+  if (req.playerId) void deps.memory?.end(req.playerId, req.npcId);
+
   let coins: number | undefined;
-  const profile = deps.store && req.playerId ? deps.store.get(req.playerId) : undefined;
+  const profile =deps.store && req.playerId ? deps.store.get(req.playerId) : undefined;
   if (profile && deps.store) {
     if (grantRv) profile.coins += rv;
     profile.daily = {

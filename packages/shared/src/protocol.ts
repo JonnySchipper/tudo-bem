@@ -60,6 +60,8 @@ export type ClientMsg =
   /** Read a sign (a hotspot id from HOTSPOTS), within 3 tiles. */
   | { t: 'read'; hotspotId: string }
   | { t: 'recados'; action: 'accept' | 'list'; id?: string }
+  /** The player played 🔊 for these cards (Caderno). At most 10 known card ids; rate-limited per session. */
+  | { t: 'heard'; cardIds: string[] }
   | { t: 'roll'; action: 'queue' }
   | { t: 'roll'; action: 'cancel' }
   | { t: 'roll'; action: 'answer'; choice: number }

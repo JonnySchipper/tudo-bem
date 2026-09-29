@@ -104,6 +104,7 @@ import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueServi
 import { ProfileStore, today, todaySaoPaulo, toPrivate, type StoredProfile } from './store.js';
 import { CpuCrowd } from './ambiance.js';
 import { RecadoTracker, sceneItems } from './recados.js';
+import { CadernoTracker } from './caderno.js';
 
 export interface Services {
   safety: ChatSafetyService;
@@ -280,6 +281,8 @@ export class World {
   private seq = 0;
   /** Recados, bag and bonds (HOWTO Phase 8). The world only reports events to it. */
   private readonly recados: RecadoTracker;
+  /** Caderno de palavras: what the player saw, heard and used (Phase 7). */
+  private readonly caderno: CadernoTracker;
   /** Mid-order Me vê um state kept across a socket drop so reconnect can resync the same ticket. */
   private parkedMg = new Map<string, { mg: MgState; room: RoomId; at: number }>();
 
@@ -305,7 +308,9 @@ export class World {
       reward: (s, amount, reason) => this.reward(s, amount, reason),
       pushProfile: (s) => this.pushProfile(s),
       tileOf: (s) => this.currentTile(s).tile,
+      onRead: (s, h) => this.caderno.seen(s, h.pt, h.cards),
     });
+    this.caderno = new CadernoTracker({ now: () => this.now(), store, reward: (s, a, r) => this.reward(s, a, r), pushProfile: (s) => this.pushProfile(s) });
   }
 
   // ---------- connection lifecycle ----------
@@ -430,6 +435,8 @@ export class World {
         return this.recados.read(s, msg.hotspotId);
       case 'recados':
         return this.recados.request(s, msg.action, msg.id);
+      case 'heard':
+        return this.caderno.heard(s, msg.cardIds);
     }
   }
 
@@ -789,6 +796,7 @@ export class World {
     this.broadcast(inst, { t: 'chat', id: p.id, name: p.name, text: verdict.text, gloss, lang, action: verdict.action });
     if (verdict.action === 'warn' && verdict.note) s.send({ t: 'notice', level: 'warn', pt: verdict.note.pt, en: verdict.note.en });
     this.completeStep(s, 'conversar');
+    this.caderno.used(s, verdict.text);
     if (inst.def.id === 'praca' && GREETING.test(verdict.text) && this.hasCompany(inst)) this.missionStep(s, 'cumprimenta');
     if (greetingKind(verdict.text)) this.recados.onEvent(s, { kind: 'greeted', text: verdict.text, minute: gameMinutes(this.now()), company: this.hasCompany(inst) });
   }
@@ -844,6 +852,7 @@ export class World {
       const view = this.services.npc.start('carlos', ctx);
       s.scene = { npc: 'carlos', node: view.nodeId, ctx, scores: [], shownAt: this.now() };
       this.recados.onEvent(s, { kind: 'talked', npc: 'carlos' });
+      this.caderno.seen(s, view.line.pt);
       return s.send({ t: 'scene', view });
     }
     const sc = s.scene;
@@ -900,6 +909,8 @@ export class World {
       at: this.now(),
       ...(jev ? { jev } : {}),
     });
+    if (typed) this.caderno.used(s, typed); // accepted typed answer (the accept list matched a chip)
+    this.caderno.seen(s, res.view.line.pt);
     sc.scores.push(res.score);
     sc.node = res.view.nodeId;
     sc.ctx = res.ctx;
@@ -947,6 +958,12 @@ export class World {
   conversaEnded(playerId: string, npc: NpcId, grade: ConversaGrade, order?: ConversaOrder) {
     const s = this.sessionByProfile(playerId);
     if (s) this.recados.onConversaEnd(s, npc, grade, order);
+  }
+
+  /** A Conversa line moved between the player and an NPC (HTTP flow): the NPC's line is seen, the player's is used. */
+  conversaLine(playerId: string, who: 'npc' | 'player', pt: string) {
+    const s = this.sessionByProfile(playerId);
+    if (s) who === 'npc' ? this.caderno.seen(s, pt) : this.caderno.used(s, pt);
   }
 
   /** Push the stored profile to a connected player (after Conversa RV lands on the file store). */

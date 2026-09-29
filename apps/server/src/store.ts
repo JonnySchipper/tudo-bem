@@ -1,4 +1,14 @@
-import { freshMission, normalizeBag, normalizeBjj, normalizeBond, normalizeRecados, type PrivateProfile } from '@tudobem/shared';
+import {
+  freshMission,
+  normalizeBag,
+  normalizeBjj,
+  normalizeBond,
+  normalizeCaderno,
+  normalizeCadernoPaid,
+  normalizeNpcMemory,
+  normalizeRecados,
+  type PrivateProfile,
+} from '@tudobem/shared';
 
 export interface StoredProfile extends PrivateProfile {
   token: string;
@@ -118,6 +128,9 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.bag = normalizeBag(p.bag);
   p.bond = normalizeBond(p.bond);
   p.recados = normalizeRecados(p.recados);
+  p.caderno = normalizeCaderno(p.caderno);
+  p.cadernoPaid = normalizeCadernoPaid(p.cadernoPaid);
+  p.npcMemory = normalizeNpcMemory(p.npcMemory);
   return p;
 }
 
