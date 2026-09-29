@@ -2,7 +2,7 @@
   "name": "tudo-bem",
   "private": true,
   "version": "0.1.0",
-  "description": "Tudo Bem \u2014 Brazilian Portuguese social virtual world (Phase 0 vertical slice)",
+  "description": "Tudo Bem — Brazilian Portuguese social virtual world (Phase 0 vertical slice)",
   "type": "module",
   "packageManager": "pnpm@10.33.3",
   "engines": {
@@ -18,6 +18,7 @@
     "e2e:meveum": "node scripts/e2e-meveum.mjs",
     "tts": "node scripts/bake-tts.mjs",
     "art": "node scripts/bake-art.mjs",
+    "pixel": "node scripts/pixel-import.mjs",
     "verify": "pnpm typecheck && pnpm test && pnpm build",
     "content": "node scripts/build-curriculum.mjs"
   },
@@ -25,6 +26,8 @@
     "@types/node": "^22.19.0",
     "concurrently": "^10.0.5",
     "playwright-core": "^1.63.0",
+    "sharp": "^0.35.5",
+    "tile-extruder": "^2.1.1",
     "typescript": "^5.9.3",
     "vitest": "^5.0.2"
   }

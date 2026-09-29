@@ -17,7 +17,7 @@ import { classifyChat } from './safety.js';
 import { glossPt } from './gloss.js';
 
 const dir = path.resolve(__dirname, '../../../content/curriculum/phase0');
-const md = (f: string) => fs.readFileSync(path.join(dir, f), 'utf8');
+const md = (f: string) => fs.readFileSync(path.join(dir, f), 'utf8').replace(/\r\n?/g, '\n');
 
 /** Every chip path through the Carlos scene (DFS). */
 function allPaths(ctx: SceneCtx) {
