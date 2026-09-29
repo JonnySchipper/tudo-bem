@@ -11,6 +11,7 @@ import * as edificio from './edificio.mjs';
 import * as academia from './academia.mjs';
 import * as portraits from './portraits.mjs';
 import * as feiraMod from './feira.mjs';
+import * as iconsMod from './icons.mjs';
 
 export const DERIVE = {
   orelhao: props.orelhao,
@@ -35,4 +36,5 @@ export const DERIVE = {
 /** Standalone images for the DOM (`images` in import-map.json): generators return [{ key, img, meta? }]. */
 export const IMAGES = {
   portraits: portraits.portraitParts,
+  icons: iconsMod.iconParts,
 };

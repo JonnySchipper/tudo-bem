@@ -951,7 +951,8 @@
     { "key": "feira/frutas", "kind": "derive", "fn": "feira" }
   ],
   "images": [
-    { "fn": "portraits" }
+    { "fn": "portraits" },
+    { "fn": "icons" }
   ],
   "terrain": {
     "c": {

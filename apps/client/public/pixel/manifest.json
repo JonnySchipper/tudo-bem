@@ -2347,6 +2347,81 @@
    "file": "portraits/tia_lu_pensativo.png",
    "w": 64,
    "h": 64
+  },
+  "icons/pao": {
+   "file": "icons/pao.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/pao_na_chapa": {
+   "file": "icons/pao_na_chapa.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/pastel": {
+   "file": "icons/pastel.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/coxinha": {
+   "file": "icons/coxinha.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/bolo": {
+   "file": "icons/bolo.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/cafe": {
+   "file": "icons/cafe.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/cafe_com_leite": {
+   "file": "icons/cafe_com_leite.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/suco_de_laranja": {
+   "file": "icons/suco_de_laranja.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/agua": {
+   "file": "icons/agua.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/pao_de_queijo": {
+   "file": "icons/pao_de_queijo.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/misto_quente": {
+   "file": "icons/misto_quente.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/guarana": {
+   "file": "icons/guarana.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/jornal": {
+   "file": "icons/jornal.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/flores": {
+   "file": "icons/flores.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/banana": {
+   "file": "icons/banana.png",
+   "w": 16,
+   "h": 16
   }
  },
  "chars": {
