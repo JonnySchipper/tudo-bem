@@ -124,6 +124,17 @@ describe('World', () => {
     expect(JSON.stringify(s.profile)).not.toMatch(/birth|confirm18/i);
   });
 
+  it('stamps welcome and roomState with serverNow (the game clock reference)', async () => {
+    const { world } = makeWorld();
+    const c = await client(world, 'Relogio');
+    expect(typeof c.last('welcome')?.serverNow).toBe('number');
+    expect(typeof c.last('roomState')?.serverNow).toBe('number');
+    expect(c.last('welcome')?.serverNow).toBe(clock);
+    advance(5_000);
+    await c.send({ t: 'join', room: 'padaria' });
+    expect(c.last('roomState')?.serverNow).toBe(clock);
+  });
+
   it('makes profiles from the old 13+ policy sign up again', async () => {
     const { world } = makeWorld();
     const a = await client(world, 'Legacy');
