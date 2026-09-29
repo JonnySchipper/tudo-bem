@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 512,
    "h": 1024,
-   "frames": 169
+   "frames": 204
   }
  },
  "terrain": {
@@ -1270,10 +1270,10 @@
   "critters/vira_lata_idle_e": {
    "atlas": "outdoor",
    "frame": "critters/vira_lata_idle_e/0",
-   "w": 20,
-   "h": 14,
-   "ax": 10,
-   "ay": 12,
+   "w": 24,
+   "h": 17,
+   "ax": 12,
+   "ay": 16,
    "footprint": [
     1,
     1
@@ -1288,15 +1288,15 @@
     "fps": 3
    },
    "overhead": null,
-   "shadow": "fx/shadow_10"
+   "shadow": "fx/shadow_16"
   },
   "critters/vira_lata_idle_w": {
    "atlas": "outdoor",
    "frame": "critters/vira_lata_idle_w/0",
-   "w": 20,
-   "h": 14,
-   "ax": 9,
-   "ay": 12,
+   "w": 24,
+   "h": 17,
+   "ax": 11,
+   "ay": 16,
    "footprint": [
     1,
     1
@@ -1311,15 +1311,15 @@
     "fps": 3
    },
    "overhead": null,
-   "shadow": "fx/shadow_10"
+   "shadow": "fx/shadow_16"
   },
   "critters/vira_lata_walk_e": {
    "atlas": "outdoor",
    "frame": "critters/vira_lata_walk_e/0",
-   "w": 20,
-   "h": 14,
-   "ax": 10,
-   "ay": 12,
+   "w": 24,
+   "h": 17,
+   "ax": 12,
+   "ay": 16,
    "footprint": [
     1,
     1
@@ -1334,15 +1334,15 @@
     "fps": 8
    },
    "overhead": null,
-   "shadow": "fx/shadow_10"
+   "shadow": "fx/shadow_16"
   },
   "critters/vira_lata_walk_w": {
    "atlas": "outdoor",
    "frame": "critters/vira_lata_walk_w/0",
-   "w": 20,
-   "h": 14,
-   "ax": 9,
-   "ay": 12,
+   "w": 24,
+   "h": 17,
+   "ax": 11,
+   "ay": 16,
    "footprint": [
     1,
     1
@@ -1357,15 +1357,15 @@
     "fps": 8
    },
    "overhead": null,
-   "shadow": "fx/shadow_10"
+   "shadow": "fx/shadow_16"
   },
   "critters/vira_lata_sleep_e": {
    "atlas": "outdoor",
    "frame": "critters/vira_lata_sleep_e/0",
-   "w": 20,
-   "h": 12,
-   "ax": 10,
-   "ay": 10,
+   "w": 24,
+   "h": 15,
+   "ax": 12,
+   "ay": 14,
    "footprint": [
     1,
     1
@@ -1378,15 +1378,15 @@
     "fps": 1.5
    },
    "overhead": null,
-   "shadow": "fx/shadow_10"
+   "shadow": "fx/shadow_16"
   },
   "critters/vira_lata_sleep_w": {
    "atlas": "outdoor",
    "frame": "critters/vira_lata_sleep_w/0",
-   "w": 20,
-   "h": 12,
-   "ax": 9,
-   "ay": 10,
+   "w": 24,
+   "h": 15,
+   "ax": 11,
+   "ay": 14,
    "footprint": [
     1,
     1
@@ -1399,7 +1399,7 @@
     "fps": 1.5
    },
    "overhead": null,
-   "shadow": "fx/shadow_10"
+   "shadow": "fx/shadow_16"
   },
   "vehicles/onibus_e": {
    "atlas": "outdoor",
@@ -1445,41 +1445,53 @@
   },
   "vehicles/kombi_e": {
    "atlas": "outdoor",
-   "frame": "vehicles/kombi_e",
-   "w": 74,
-   "h": 64,
-   "ax": 37,
-   "ay": 60,
+   "frame": "vehicles/kombi_e/0",
+   "w": 68,
+   "h": 46,
+   "ax": 34,
+   "ay": 42,
    "footprint": [
     4,
     2
    ],
-   "anim": null,
+   "anim": {
+    "frames": [
+     "vehicles/kombi_e/0",
+     "vehicles/kombi_e/1"
+    ],
+    "fps": 8
+   },
    "overhead": null,
    "shadow": "fx/shadow_48"
   },
   "vehicles/kombi_w": {
    "atlas": "outdoor",
-   "frame": "vehicles/kombi_w",
-   "w": 74,
-   "h": 64,
-   "ax": 37,
-   "ay": 60,
+   "frame": "vehicles/kombi_w/0",
+   "w": 68,
+   "h": 46,
+   "ax": 33,
+   "ay": 42,
    "footprint": [
     4,
     2
    ],
-   "anim": null,
+   "anim": {
+    "frames": [
+     "vehicles/kombi_w/0",
+     "vehicles/kombi_w/1"
+    ],
+    "fps": 8
+   },
    "overhead": null,
    "shadow": "fx/shadow_48"
   },
   "vehicles/fusca_e": {
    "atlas": "outdoor",
    "frame": "vehicles/fusca_e/0",
-   "w": 56,
-   "h": 34,
-   "ax": 28,
-   "ay": 31,
+   "w": 60,
+   "h": 38,
+   "ax": 30,
+   "ay": 34,
    "footprint": [
     3,
     1
@@ -1497,10 +1509,10 @@
   "vehicles/fusca_w": {
    "atlas": "outdoor",
    "frame": "vehicles/fusca_w/0",
-   "w": 56,
-   "h": 34,
-   "ax": 27,
-   "ay": 31,
+   "w": 60,
+   "h": 38,
+   "ax": 29,
+   "ay": 34,
    "footprint": [
     3,
     1
@@ -1518,10 +1530,10 @@
   "vehicles/moto_e": {
    "atlas": "outdoor",
    "frame": "vehicles/moto_e/0",
-   "w": 34,
-   "h": 26,
-   "ax": 17,
-   "ay": 23,
+   "w": 44,
+   "h": 34,
+   "ax": 22,
+   "ay": 32,
    "footprint": [
     2,
     1
@@ -1539,10 +1551,10 @@
   "vehicles/moto_w": {
    "atlas": "outdoor",
    "frame": "vehicles/moto_w/0",
-   "w": 34,
-   "h": 26,
-   "ax": 16,
-   "ay": 23,
+   "w": 44,
+   "h": 34,
+   "ax": 21,
+   "ay": 32,
    "footprint": [
     2,
     1
@@ -1761,6 +1773,392 @@
    "overhead": null,
    "shadow": null
   },
+  "feira/frutas": {
+   "atlas": "outdoor",
+   "frame": "feira/frutas",
+   "w": 48,
+   "h": 44,
+   "ax": 24,
+   "ay": 43,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": "feira/frutas_tarp",
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "feira/frutas#cast",
+    "w": 68,
+    "h": 13,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "feira/frutas_tarp": {
+   "atlas": "outdoor",
+   "frame": "feira/frutas_tarp",
+   "w": 56,
+   "h": 24,
+   "ax": 28,
+   "ay": 58,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "feira/frutas_fechada": {
+   "atlas": "outdoor",
+   "frame": "feira/frutas_fechada",
+   "w": 48,
+   "h": 44,
+   "ax": 24,
+   "ay": 43,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": "feira/frutas_roll",
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "feira/frutas_fechada#cast",
+    "w": 68,
+    "h": 13,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "feira/frutas_roll": {
+   "atlas": "outdoor",
+   "frame": "feira/frutas_roll",
+   "w": 52,
+   "h": 12,
+   "ax": 26,
+   "ay": 49,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "feira/verduras": {
+   "atlas": "outdoor",
+   "frame": "feira/verduras",
+   "w": 48,
+   "h": 44,
+   "ax": 24,
+   "ay": 43,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": "feira/verduras_tarp",
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "feira/verduras#cast",
+    "w": 68,
+    "h": 13,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "feira/verduras_tarp": {
+   "atlas": "outdoor",
+   "frame": "feira/verduras_tarp",
+   "w": 56,
+   "h": 24,
+   "ax": 28,
+   "ay": 58,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "feira/verduras_fechada": {
+   "atlas": "outdoor",
+   "frame": "feira/verduras_fechada",
+   "w": 48,
+   "h": 44,
+   "ax": 24,
+   "ay": 43,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": "feira/verduras_roll",
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "feira/verduras_fechada#cast",
+    "w": 68,
+    "h": 13,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "feira/verduras_roll": {
+   "atlas": "outdoor",
+   "frame": "feira/verduras_roll",
+   "w": 52,
+   "h": 12,
+   "ax": 26,
+   "ay": 49,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "feira/pastel": {
+   "atlas": "outdoor",
+   "frame": "feira/pastel",
+   "w": 48,
+   "h": 44,
+   "ax": 24,
+   "ay": 43,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": "feira/pastel_tarp",
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "feira/pastel#cast",
+    "w": 68,
+    "h": 13,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "feira/pastel_tarp": {
+   "atlas": "outdoor",
+   "frame": "feira/pastel_tarp",
+   "w": 56,
+   "h": 24,
+   "ax": 28,
+   "ay": 58,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "feira/pastel_fechada": {
+   "atlas": "outdoor",
+   "frame": "feira/pastel_fechada",
+   "w": 48,
+   "h": 44,
+   "ax": 24,
+   "ay": 43,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": "feira/pastel_roll",
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "feira/pastel_fechada#cast",
+    "w": 68,
+    "h": 13,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "feira/pastel_roll": {
+   "atlas": "outdoor",
+   "frame": "feira/pastel_roll",
+   "w": 52,
+   "h": 12,
+   "ax": 26,
+   "ay": 49,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "feira/flores": {
+   "atlas": "outdoor",
+   "frame": "feira/flores",
+   "w": 48,
+   "h": 44,
+   "ax": 24,
+   "ay": 43,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": "feira/flores_tarp",
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "feira/flores#cast",
+    "w": 68,
+    "h": 13,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "feira/flores_tarp": {
+   "atlas": "outdoor",
+   "frame": "feira/flores_tarp",
+   "w": 56,
+   "h": 24,
+   "ax": 28,
+   "ay": 58,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "feira/flores_fechada": {
+   "atlas": "outdoor",
+   "frame": "feira/flores_fechada",
+   "w": 48,
+   "h": 44,
+   "ax": 24,
+   "ay": 43,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": "feira/flores_roll",
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "feira/flores_fechada#cast",
+    "w": 68,
+    "h": 13,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "feira/flores_roll": {
+   "atlas": "outdoor",
+   "frame": "feira/flores_roll",
+   "w": 52,
+   "h": 12,
+   "ax": 26,
+   "ay": 49,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "feira/caixotes": {
+   "atlas": "outdoor",
+   "frame": "feira/caixotes",
+   "w": 16,
+   "h": 26,
+   "ax": 8,
+   "ay": 25,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "feira/caixotes#cast",
+    "w": 28,
+    "h": 9,
+    "ax": 8,
+    "ay": 1
+   }
+  },
+  "feira/preco_papel": {
+   "atlas": "outdoor",
+   "frame": "feira/preco_papel",
+   "w": 12,
+   "h": 10,
+   "ax": 6,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "feira/preco_lousa": {
+   "atlas": "outdoor",
+   "frame": "feira/preco_lousa",
+   "w": 14,
+   "h": 16,
+   "ax": 7,
+   "ay": 15,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "feira/preco_placa": {
+   "atlas": "outdoor",
+   "frame": "feira/preco_placa",
+   "w": 16,
+   "h": 10,
+   "ax": 8,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "ui/guide_arrow": {
+   "atlas": "outdoor",
+   "frame": "ui/guide_arrow/0",
+   "w": 16,
+   "h": 20,
+   "ax": 8,
+   "ay": 19,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "ui/guide_arrow/0",
+     "ui/guide_arrow/1",
+     "ui/guide_arrow/2",
+     "ui/guide_arrow/3"
+    ],
+    "fps": 6
+   },
+   "overhead": null,
+   "shadow": null
+  },
   "fx/shadow_10": {
    "atlas": "outdoor",
    "frame": "fx/shadow_10",
@@ -1882,6 +2280,303 @@
    "overhead": null,
    "shadow": null,
    "decal": true
+  }
+ },
+ "images": {
+  "portraits/carlos_neutro": {
+   "file": "portraits/carlos_neutro.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/carlos_feliz": {
+   "file": "portraits/carlos_feliz.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/carlos_surpreso": {
+   "file": "portraits/carlos_surpreso.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/carlos_pensativo": {
+   "file": "portraits/carlos_pensativo.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/nanda_neutro": {
+   "file": "portraits/nanda_neutro.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/nanda_feliz": {
+   "file": "portraits/nanda_feliz.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/nanda_surpreso": {
+   "file": "portraits/nanda_surpreso.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/nanda_pensativo": {
+   "file": "portraits/nanda_pensativo.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/julia_neutro": {
+   "file": "portraits/julia_neutro.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/julia_feliz": {
+   "file": "portraits/julia_feliz.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/julia_surpreso": {
+   "file": "portraits/julia_surpreso.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/julia_pensativo": {
+   "file": "portraits/julia_pensativo.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/graca_neutro": {
+   "file": "portraits/graca_neutro.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/graca_feliz": {
+   "file": "portraits/graca_feliz.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/graca_surpreso": {
+   "file": "portraits/graca_surpreso.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/graca_pensativo": {
+   "file": "portraits/graca_pensativo.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/tia_lu_neutro": {
+   "file": "portraits/tia_lu_neutro.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/tia_lu_feliz": {
+   "file": "portraits/tia_lu_feliz.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/tia_lu_surpreso": {
+   "file": "portraits/tia_lu_surpreso.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/tia_lu_pensativo": {
+   "file": "portraits/tia_lu_pensativo.png",
+   "w": 64,
+   "h": 64
+  },
+  "icons/pao": {
+   "file": "icons/pao.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/pao_na_chapa": {
+   "file": "icons/pao_na_chapa.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/pastel": {
+   "file": "icons/pastel.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/coxinha": {
+   "file": "icons/coxinha.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/bolo": {
+   "file": "icons/bolo.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/cafe": {
+   "file": "icons/cafe.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/cafe_com_leite": {
+   "file": "icons/cafe_com_leite.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/suco_de_laranja": {
+   "file": "icons/suco_de_laranja.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/agua": {
+   "file": "icons/agua.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/pao_de_queijo": {
+   "file": "icons/pao_de_queijo.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/misto_quente": {
+   "file": "icons/misto_quente.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/guarana": {
+   "file": "icons/guarana.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/jornal": {
+   "file": "icons/jornal.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/flores": {
+   "file": "icons/flores.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/banana": {
+   "file": "icons/banana.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/panel": {
+   "file": "ui/panel.png",
+   "w": 20,
+   "h": 20,
+   "slice": {
+    "top": 7,
+    "right": 7,
+    "bottom": 7,
+    "left": 7
+   },
+   "css": "7 7 7 7",
+   "demo": [
+    [
+     48,
+     32
+    ],
+    [
+     96,
+     56
+    ]
+   ],
+   "note": "cream paper, warm-ink edge, terracotta trim; border-image slice with fill"
+  },
+  "ui/bubble": {
+   "file": "ui/bubble.png",
+   "w": 30,
+   "h": 27,
+   "slice": {
+    "top": 7,
+    "right": 7,
+    "bottom": 13,
+    "left": 16
+   },
+   "css": "7 7 13 16",
+   "demo": [
+    [
+     44,
+     32
+    ],
+    [
+     96,
+     44
+    ]
+   ],
+   "note": "speech bubble, tail bottom-left inside the left slice; put the tail side under the speaker"
+  },
+  "ui/button": {
+   "file": "ui/button.png",
+   "w": 16,
+   "h": 16,
+   "slice": {
+    "top": 6,
+    "right": 6,
+    "bottom": 7,
+    "left": 6
+   },
+   "css": "6 6 7 6",
+   "demo": [
+    [
+     40,
+     20
+    ],
+    [
+     72,
+     24
+    ]
+   ]
+  },
+  "ui/button_hover": {
+   "file": "ui/button_hover.png",
+   "w": 16,
+   "h": 16,
+   "slice": {
+    "top": 6,
+    "right": 6,
+    "bottom": 7,
+    "left": 6
+   },
+   "css": "6 6 7 6",
+   "demo": [
+    [
+     40,
+     20
+    ],
+    [
+     72,
+     24
+    ]
+   ]
+  },
+  "ui/button_pressed": {
+   "file": "ui/button_pressed.png",
+   "w": 16,
+   "h": 16,
+   "slice": {
+    "top": 6,
+    "right": 6,
+    "bottom": 7,
+    "left": 6
+   },
+   "css": "6 6 7 6",
+   "demo": [
+    [
+     40,
+     20
+    ],
+    [
+     72,
+     24
+    ]
+   ]
+  },
+  "ui/guide_arrow_strip": {
+   "file": "ui/guide_arrow_strip.png",
+   "w": 64,
+   "h": 20,
+   "frames": 4,
+   "frameW": 16,
+   "fps": 6
   }
  },
  "chars": {

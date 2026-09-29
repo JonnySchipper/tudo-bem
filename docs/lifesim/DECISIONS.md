@@ -233,3 +233,90 @@ None new. `jornal`, `flores`, `banana` from logic2 still have no cards, so they 
 ### Not done here
 
 The panel, the 🔊 button wiring, hotspot authoring, and the bond-2 gate on memory (see 7).
+
+## Decisions: art track 2 (portraits, feira, icons, UI kit, redraws)
+
+Branch `lifesim/art2-portraits-feira-ui`. Contact sheets in `docs/lifesim/shots/art2/`: `portraits.png`, `feira.png`, `icons.png`, `ui.png`,
+`fixes.png` (before | after), plus frame shots (`frame_*.png`, `frame_1730_feira_z4.png`). `pnpm pixel` is deterministic (two runs give identical
+hashes for `public/pixel/**` and `custom/png/**`), output grew to about 370 KB.
+
+### Pipeline
+
+1. **Standalone images for the DOM.** Portraits, icons and the UI kit are shown by HTML (`<img>`, CSS `border-image`) at 2-4x, so they are
+   separate PNGs under `public/pixel/{portraits,icons,ui}/`, not atlas frames. New `images` list in `import-map.json` (`{ "fn": ... }`),
+   generators registered as `IMAGES` in `custom/derive.mjs`, output in a new top-level `manifest.images[key] = { file, w, h, ...meta }`.
+   `apps/client/src/render/pixel/manifest.ts` (owned by the P2 agent) does not know this field yet; the integration should add
+   `images?: Record<string, { file: string; w: number; h: number; slice?: {...}; css?: string; frames?: number; frameW?: number; fps?: number }>`.
+2. **World pieces stay atlas sprites** (`feira/*`, `vehicles/*`, `critters/*`, `ui/guide_arrow`), through the existing `derive` kind.
+3. `custom/paint.mjs` is a small painter shared by the new generators (`shape` = a mask lit as an ellipsoid from the upper left with a 4-tone
+   ramp and a navy / tinted outline, `grid`, `ring`, `hoop`, polygon and profile predicates). `scripts/pixel-contact.mjs` now takes
+   `--set art1|portraits|feira|icons|ui|fixes` and draws 9-slices stretched to two sizes so slice insets can be checked by eye.
+4. Tests: `scripts/lib/pixel/art2*.test.mjs` (sizes, hard alpha, expressions differ, feira parts and overhead links, icons cover every bag
+   item, 9-slice insets leave a flat stretch centre).
+
+### Portraits (5 NPCs x 4 expressions, 64x64)
+
+5. **Authored, no base art.** `UI_16x16.png` (the only Interiors UI sheet) has speech bubbles and emotes, no faces; the character generator
+   heads are 16 px tall. So each portrait is drawn from shapes: a bust in a 2 px wood frame with a soft diagonal light backdrop (cream, sky, leaf
+   green, night lilac, peach per NPC), skin from the pack's body ramps (tan, light, brown, deep, warm), hair from the pack hair ramps.
+   `neutro / feliz / surpreso / pensativo` differ in eyes (open, closed arcs, wide, half-lidded looking up), brows (flat, raised arcs, high,
+   one raised and one lowered) and mouth (line, open smile with teeth, "o", crooked); `feliz` adds blush.
+6. **Appearances (invented, please review with the NPC art direction):** Seu Carlos: white baker's cap, salt-and-pepper mustache and sideburns,
+   white apron over a terracotta shirt. Nanda: her own straw hat (terracotta band), dark curly hair, mustard top, gold hoops and chain.
+   Júlia: chestnut side-parted hair, sky-blue blouse, red guide lanyard with a badge, a small green scarf. Dona Graça: grey bun, round glasses,
+   wrinkles, pale-blue apron over a plum top. Tia Lu: red polka-dot headscarf with a bow, green top with an orange apron, bead necklace, hoops.
+   Keys: `portraits/carlos_*`, `nanda_*`, `julia_*`, `graca_*`, `tia_lu_*`.
+7. Light is upper-left, outlines are navy against the backdrop and a tinted dark between parts (sel-out), no gradients (one dithered diagonal
+   light band in the backdrop, in the pack's dither style).
+
+### Feira livre (3x2 footprint each)
+
+8. **Four open stalls** `feira/frutas | verduras | pastel | flores` and four folded variants `feira/<name>_fechada`. The standing part is 48x44
+   (bottom 32 px = the 3x2 footprint); the striped tarp is a separate `overhead` sprite `feira/<name>_tarp` (56x24, scallop tips end 9 px below the
+   top of the standing part), same convention as `props/barraca_chapeus`. Closed: goods hidden under a tied sheet of the stall's colour, tarp rolled
+   on the crossbar (`feira/<name>_roll`, overhead). Tarp colours: red (frutas), green (verduras), yellow (pastel), blue (flores), each with cream.
+   The pastel stall has the glass case of pastéis, a fryer, a blank menu slate and the caldo de cana press (green cabinet, hopper, flywheel,
+   cane bundle, jug). `feira/caixotes` (1x1, stacked crates with oranges). Price tags are blank (prices are DOM text): `feira/preco_papel`,
+   `preco_lousa` (little chalkboard on a stick), `preco_placa`; the stalls also have three blank cream tags hung on the table front.
+
+### Icons (16x16, `icons/<itemId>`)
+
+9. All 15 bag items: `pao`, `pao_na_chapa`, `pastel`, `coxinha`, `bolo` (bolo de cenoura with chocolate), `cafe`, `cafe_com_leite`,
+   `suco_de_laranja`, `agua`, `pao_de_queijo`, `misto_quente`, `guarana` (unbranded green can with a yellow band and the red berry), `jornal`,
+   `flores`, `banana`. The packs only have a handful of tiny bread/bottle pieces (kitchen and grocery sheets, 6-12 px), so none is cropped.
+
+### UI kit
+
+10. **Panel** `ui/panel` 20x20, slice 7 (cream `#f5e6d3` paper, 1 px warm ink `#573c2c` edge, terracotta `#c45c26` trim, mustard rivets in the
+    corner slices). **Bubble** `ui/bubble` 30x27, slice `7 7 13 16`: cream paper, pack navy outline, tail bottom-left inside the left slice (put the
+    tail side under the speaker; mirror in CSS with `scaleX(-1)` for the other side if needed). **Button** `ui/button`, `_hover`, `_pressed`
+    16x16, slice `6 6 7 6` (terracotta, lit rim, shaded lip; pressed sinks 1 px). The manifest carries `slice` and a `css` string
+    (`"top right bottom left"`), see the README for the CSS snippet.
+11. **Guide arrow:** chunky terracotta down arrow, 4 bounce offsets (4, 2, 0, 2 px), as `ui/guide_arrow_strip` (64x20, for a CSS steps animation)
+    and as an atlas sprite `ui/guide_arrow` (anchored at the bottom centre). The pack's own bobbing arrow is only 8 px wide, too small over a
+    door at world scale, so this one is authored after it (outline and shading), not derived.
+
+### Fixes from art track 1
+
+12. **Kombi** (authored now, no longer a repainted camper): white over turquoise, split windscreen, white V on the turquoise nose with the emblem,
+    round headlights, chrome bumper and belt line, sliding-door seams; the east end is turned slightly toward the viewer so the V reads. 68x46.
+13. **Fusca**: round dome cabin, separate front and rear fender bulges over the wheels, a bug-eye headlight on the fender, running board between
+    the wheels, chrome bumpers, sand-beige (the yellow read as a taxi). 60x38.
+14. **Moto**: bigger (44x34) and readable: red delivery box (baú) with a mustard band on the rack, motoboy in an orange jacket with a reflective
+    stripe, blue jeans and boots, white helmet with a red stripe and a dark visor, red tank, headlight, mirror.
+15. **Vira-lata**: redrawn 24x17 (was 20x14): big head, two perky pointed ears, cream muzzle and chest, curled tail, four legs with pale socks.
+    idle x4 (tail wag + blink), walk x4, sleep x2 curled up (round back, tail along the belly, head on the paws with an ear up). Keys unchanged
+    (`critters/vira_lata_{idle,walk,sleep}_{e,w}`), the shadow is now `fx/shadow_16` and the anchors moved, so re-check placements.
+16. The west variants are still mirrors, so the 1 px lit rim flips (as in art1).
+17. Style frame (`frame/layout.ts`): the fruit stall, crates and a price slate on the grass at the right edge (a shot at `cx=25.6&cy=10.6&zoom=4`
+    shows them); the fixed vehicles and dog are picked up automatically through their keys.
+
+### Known weaknesses
+
+Portrait faces are stylized and a little flat (shading is cel bands, no dithering); Dona Graça's dark skin reads with low contrast; the dog's neck-to-head
+seam is a hard outline; the moto is still busy at 1x; the fusca is closer to a generic 60s sedan with a dome than a perfect Beetle; icons are
+recognizable at 3-4x but `guarana` and `agua` are generic.
+
+### Needs BR review
+
+No new Portuguese strings are painted into art (the stalls, tags and tarp have no text). Item and expression names are existing ids.
