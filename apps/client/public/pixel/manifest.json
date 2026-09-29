@@ -2594,7 +2594,7 @@
    32
   ],
   "cols": 8,
-  "rows": 17,
+  "rows": 18,
   "anims": {
    "idle": {
     "rows": [
@@ -2629,13 +2629,13 @@
    },
    "oi": {
     "row": 12,
-    "frames": 4,
+    "frames": 6,
     "fps": 8,
     "repeat": 2
    },
    "dancar": {
     "row": 13,
-    "frames": 4,
+    "frames": 6,
     "fps": 8,
     "repeat": 3
    },
@@ -2643,7 +2643,7 @@
     "row": 14,
     "frames": 4,
     "fps": 8,
-    "repeat": 2
+    "repeat": 3
    },
    "valeu": {
     "row": 15,
@@ -2654,10 +2654,16 @@
    },
    "desculpa": {
     "row": 16,
-    "frames": 4,
+    "frames": 8,
     "fps": 8,
     "repeat": 1,
     "hold": 600
+   },
+   "phone": {
+    "row": 17,
+    "frames": 6,
+    "fps": 6,
+    "loop": true
    }
   },
   "facingRow": {

@@ -72,8 +72,8 @@ describe('buildSlabTiles (16 dual-grid mask tiles)', () => {
 
 describe('toCanonicalSheet (LimeZu layer -> canonical 8x17 sheet)', () => {
   // Source frame (row r, col c) is stamped with a marker pixel encoding r and c.
-  const src = blank(896, 224);
-  for (let r = 0; r < 7; r++) for (let c = 0; c < 56; c++) setPx(src, c * 16 + 8, r * 32 + 20, [r * 10, c, 200, 255]);
+  const src = blank(896, 32 * 10);
+  for (let r = 0; r < 10; r++) for (let c = 0; c < 56; c++) setPx(src, c * 16 + 8, r * 32 + 20, [r * 10, c, 200, 255]);
   const out = toCanonicalSheet(src);
   const marker = (row, col) => rgbAt(out, col * FRAME_W + 8, row * FRAME_H + 20);
 
@@ -81,7 +81,7 @@ describe('toCanonicalSheet (LimeZu layer -> canonical 8x17 sheet)', () => {
     expect(out.w).toBe(CANON_COLS * FRAME_W);
     expect(out.h).toBe(CANON_ROWS * FRAME_H);
     expect(CANON_COLS).toBe(8);
-    expect(CANON_ROWS).toBe(17);
+    expect(CANON_ROWS).toBe(18);
   });
 
   it('remaps idle and walk facings: source block order E,N,W,S -> canonical rows S,W,E,N', () => {
@@ -105,11 +105,14 @@ describe('toCanonicalSheet (LimeZu layer -> canonical 8x17 sheet)', () => {
     expect(lowered).toEqual([10, 18, 200]);
   });
 
-  it('emote rows reuse idle S until art exists', () => {
-    for (const name of ['oi', 'dancar', 'rir', 'valeu', 'desculpa']) {
+  it('emote rows come from real frames: idle S, walk S, the pick-up bow, the phone loop', () => {
+    for (const name of ['oi', 'rir', 'valeu']) {
       const a = CANON_ANIMS[name];
       for (let k = 0; k < a.frames; k++) expect(marker(a.row, k)).toEqual([10, 18 + k, 200]);
     }
+    for (let k = 0; k < CANON_ANIMS.dancar.frames; k++) expect(marker(CANON_ANIMS.dancar.row, k)).toEqual([20, 18 + k, 200]);
+    expect(marker(CANON_ANIMS.desculpa.row, 0)).toEqual([90, 36, 200]);
+    expect(marker(CANON_ANIMS.phone.row, 0)).toEqual([60, 3, 200]);
   });
 });
 

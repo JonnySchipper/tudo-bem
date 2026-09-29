@@ -269,7 +269,7 @@ for (const [name, items] of Object.entries(atlasItems)) {
   const missing = [];
   for (const layer of map.chars.layers) {
     const parts = [];
-    for (const s of layer.sources) parts.push(crop(await loadPng(path.join(base, s)), 0, 0, 896, 224));
+    for (const s of layer.sources) parts.push(crop(await loadPng(path.join(base, s)), 0, 0, 896, 320));
     const merged = mergeLayers(parts);
     const keyed = keyLayer(merged, layer.groups);
     const sheetImg = toCanonicalSheet(keyed);
