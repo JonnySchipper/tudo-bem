@@ -4227,6 +4227,86 @@
    "frameW": 16,
    "fps": 6
   },
+  "ui/icon_map": {
+   "file": "ui/icon_map.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_hat": {
+   "file": "ui/icon_hat.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_friends": {
+   "file": "ui/icon_friends.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_soundOn": {
+   "file": "ui/icon_soundOn.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_soundOff": {
+   "file": "ui/icon_soundOff.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_musicOn": {
+   "file": "ui/icon_musicOn.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_musicOff": {
+   "file": "ui/icon_musicOff.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_decor": {
+   "file": "ui/icon_decor.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_parrot": {
+   "file": "ui/icon_parrot.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_send": {
+   "file": "ui/icon_send.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_close": {
+   "file": "ui/icon_close.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_info": {
+   "file": "ui/icon_info.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_logout": {
+   "file": "ui/icon_logout.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_cumprimenta": {
+   "file": "ui/icon_cumprimenta.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_pede": {
+   "file": "ui/icon_pede.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_monta": {
+   "file": "ui/icon_monta.png",
+   "w": 16,
+   "h": 16
+  },
   "chars/parrot_strip": {
    "file": "chars/parrot_strip.png",
    "w": 40,
