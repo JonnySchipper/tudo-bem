@@ -8,10 +8,10 @@
 import Phaser from 'phaser';
 import type { Manifest, SpriteDef } from '../manifest';
 import {
-  COLS, ROWS, FLOOR, SHOPS, PROPS, TREES, DECALS, TUFTS, GRIME, WALKER_LOOP, SITTERS, IDLERS, PIGEONS, PIGEON_BOUNDS, LANES,
+  COLS, ROWS, FLOOR, SHOPS, PROPS, TREES, DECALS, TUFTS, GRIME, WALKER_LOOP, SITTERS, IDLERS, PIGEONS, PIGEON_BOUNDS, LANES, POLES, WIRE_SPANS, type Lane,
 } from './layout';
 import { TERRAIN_PRIORITY, maskAt, phasedIndex, tileIndex } from '../terrain';
-import { darknessAlpha, glowStrength, gradeAt, rgbToInt, sunGlow } from '../lighting';
+import { darknessAlpha, glowStrength, gradeAt, rgbToInt, shadowFill, sunGlow } from '../lighting';
 import { HAIR_COLORS, CLOTH_COLORS, SKIN_TONES } from '@tudobem/shared';
 import { animKey, composeCharacter, sitFrame, type CharLayer, type Facing } from '../charsheet';
 
@@ -66,9 +66,9 @@ interface PigeonState {
 }
 
 interface CarState {
-  sprite: Phaser.GameObjects.Image;
+  sprite: Phaser.GameObjects.Sprite;
   shadow: Phaser.GameObjects.Image;
-  lane: (typeof LANES)[number];
+  lane: Lane;
   x: number;
   speed: number;
   wait: number;
@@ -86,6 +86,8 @@ export class FrameScene extends Phaser.Scene {
   private hour: number;
   private fxCam!: Phaser.Cameras.Scene2D.Camera;
   private grade!: Phaser.GameObjects.RenderTexture;
+  private fill!: Phaser.GameObjects.Rectangle;
+  private litOverlays: Phaser.GameObjects.Image[] = [];
   private dark!: Phaser.GameObjects.RenderTexture;
   private sun!: Phaser.GameObjects.Image;
   private glowSprites: Phaser.GameObjects.Image[] = [];
@@ -223,6 +225,7 @@ export class FrameScene extends Phaser.Scene {
     this.buildShops();
     this.buildProps();
     this.buildTrees();
+    this.buildWires();
     this.buildCharacters();
     this.buildPigeons();
     this.buildCars();
@@ -234,6 +237,7 @@ export class FrameScene extends Phaser.Scene {
       this.fxCam.setSize(size.width, size.height);
       this.grade.resize(size.width, size.height);
       this.dark.resize(size.width, size.height);
+      this.fill.setSize(size.width, size.height);
       cam.centerOn((this.opts.cx ?? COLS / 2) * T, (this.opts.cy ?? ROWS / 2) * T);
     });
   }
@@ -299,8 +303,13 @@ export class FrameScene extends Phaser.Scene {
       // lit windows
       const d = this.def(s.key);
       const ox = Math.round(s.x * T) - d.ax, oy = s.y * T - d.ay;
+      if (d.lit && this.m.sprites[d.lit]) {
+        // authored lit-window overlay: warm panes (and bread / gym silhouettes) fade in with the night
+        const ld = this.def(d.lit);
+        this.litOverlays.push(this.W(this.add.image(Math.round(s.x * T), Math.round(s.y * T), ld.atlas, ld.frame)).setOrigin(...this.originOf(ld)).setDepth(Math.round(s.y * T) + 0.5).setAlpha(0));
+      }
       for (const [wx, wy, ww, wh] of d.windows ?? []) {
-        this.windowRects.push(this.W(this.add.rectangle(ox + wx, oy + wy, ww, wh, 0xffd070, 0).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.ADD).setDepth(49000)));
+        if (!d.lit) this.windowRects.push(this.W(this.add.rectangle(ox + wx, oy + wy, ww, wh, 0xffd070, 0).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.ADD).setDepth(49000)));
         this.lightSrc.push({ x: ox + wx + ww / 2, y: oy + wy + wh + 5, r: 22 + ww * 0.5, color: 0xffc060, squash: 0.6, kind: 'window' });
       }
     }
@@ -310,7 +319,13 @@ export class FrameScene extends Phaser.Scene {
   private buildProps(): void {
     for (const p of PROPS) {
       this.place(p.key, p.x, p.y, { flip: p.flip });
-      const d = this.def(p.key);
+      const d = this.m.sprites[p.key];
+      if (!d) continue;
+      if (typeof d.overhead === 'string' && this.m.sprites[d.overhead]) {
+        const od = this.def(d.overhead);
+        const wx0 = Math.round(p.x * T), wy0 = Math.round(p.y * T);
+        this.W(this.add.image(wx0, wy0, od.atlas, od.frame)).setOrigin(...this.originOf(od)).setDepth(50000 + wy0 / 1000);
+      }
       if (d.light) {
         const color = parseInt(d.light.color.slice(1), 16);
         const bx = Math.round(p.x * T), by = Math.round(p.y * T);
@@ -351,6 +366,25 @@ export class FrameScene extends Phaser.Scene {
           maxAliveParticles: 40,
         }),
       ).setDepth(50100);
+    }
+  }
+
+  // ------------------------------------------------------------------ utility poles + overhead wires
+  private buildWires(): void {
+    for (const p of POLES) this.place('props/poste_fios', p.x, p.y);
+    const pd = this.m.sprites['props/poste_fios'];
+    if (!pd) return;
+    const attachY = pd.attach?.[1] ?? -51;
+    for (const span of WIRE_SPANS) {
+      const pole = POLES[span.from];
+      let wx = Math.round(pole.x * T);
+      const wy = Math.round(pole.y * T) + attachY;
+      for (const key of span.keys) {
+        const d = this.m.sprites[key];
+        if (!d) { this.placeholder(key, wx / T, pole.y); continue; }
+        this.W(this.add.image(wx, wy, d.atlas, d.frame)).setOrigin(...this.originOf(d)).setDepth(50200);
+        wx += d.w - 1;
+      }
     }
   }
 
@@ -411,16 +445,18 @@ export class FrameScene extends Phaser.Scene {
     LANES.forEach((lane, li) => {
       const key = lane.keys[0];
       const d = this.def(key);
-      const sprite = this.W(this.add.image(0, 0, d.atlas, d.frame)).setOrigin(...this.originOf(d));
+      const sprite = this.W(this.add.sprite(0, 0, d.atlas, d.frame)).setOrigin(...this.originOf(d));
+      if (d.anim) sprite.play(this.ensureAnim(key, d));
       const sh = this.def('fx/shadow_48');
       const shadow = this.W(this.add.image(0, 0, sh.atlas, sh.frame)).setOrigin(...this.originOf(sh)).setDepth(-4500);
       const light: Light = { x: 0, y: 0, r: 30, color: 0xfff1c8, squash: 0.55, kind: 'car', live: 0 };
       this.lightSrc.push(light);
       // the first car of each lane starts on screen so the frame always shows traffic
-      const startX = lane.dir < 0 ? 26.5 * T : 7.5 * T;
-      this.cars.push({ sprite, shadow, lane, x: startX, speed: 44, wait: li === 0 ? 0 : 7, light, variant: 0 });
+      const onScreen = lane.startX !== null;
+      const startX = (lane.startX ?? (lane.dir < 0 ? 26.5 : 7.5)) * T;
+      this.cars.push({ sprite, shadow, lane, x: startX, speed: lane.speed, wait: onScreen ? 0 : 7, light, variant: 0 });
       this.positionCar(this.cars[li]);
-      if (li !== 0) {
+      if (!onScreen) {
         sprite.setVisible(false);
         shadow.setVisible(false);
       }
@@ -444,16 +480,19 @@ export class FrameScene extends Phaser.Scene {
         c.light.live = 0;
         if (c.wait <= 0) {
           c.variant = (c.variant + 1) % c.lane.keys.length;
-          const d = this.def(c.lane.keys[c.variant]);
-          c.sprite.setFrame(d.frame);
-          c.x = c.lane.dir < 0 ? WORLD_W + 70 : -70;
+          const key = c.lane.keys[c.variant];
+          const d = this.def(key);
+          c.sprite.setFrame(d.frame).setOrigin(...this.originOf(d));
+          if (d.anim) c.sprite.play(this.ensureAnim(key, d), true);
+          else c.sprite.anims.stop();
+          c.x = c.lane.dir < 0 ? WORLD_W + 90 : -90;
           c.sprite.setVisible(true);
           c.shadow.setVisible(true);
         }
         continue;
       }
       c.x += c.lane.dir * c.speed * dt;
-      if ((c.lane.dir < 0 && c.x < -70) || (c.lane.dir > 0 && c.x > WORLD_W + 70)) c.wait = 5 + Math.random() * 6;
+      if ((c.lane.dir < 0 && c.x < -90) || (c.lane.dir > 0 && c.x > WORLD_W + 90)) c.wait = 5 + Math.random() * 6;
       c.light.live = 1;
       this.positionCar(c);
     }
@@ -470,6 +509,8 @@ export class FrameScene extends Phaser.Scene {
     // grade: a full-screen multiply layer. Light sources erase holes in it, so lit pools are not tinted by the grade.
     this.grade = this.F(this.add.renderTexture(0, 0, w, h)).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.MULTIPLY).setDepth(1);
     // darkness overlay for night (normal blend), also with light holes
+    // cool blue fill in the shadows (SCREEN lifts darks more than lights): keeps golden hour from being a flat orange wash
+    this.fill = this.F(this.add.rectangle(0, 0, w, h, 0x3454a8, 0)).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.SCREEN).setDepth(1.5);
     this.dark = this.F(this.add.renderTexture(0, 0, w, h)).setOrigin(0, 0).setDepth(2);
     for (let i = 0; i < this.lightSrc.length; i++) {
       this.glowSprites.push(this.F(this.add.image(0, 0, 'fx:glow')).setBlendMode(Phaser.BlendModes.ADD).setDepth(3).setAlpha(0));
@@ -489,6 +530,9 @@ export class FrameScene extends Phaser.Scene {
       return gs;
     };
     this.grade.fill(rgbToInt(gradeAt(this.hour)), 1);
+    const sf = shadowFill(this.hour);
+    this.fill.setFillStyle(rgbToInt(sf.color), sf.alpha);
+    for (const o of this.litOverlays) o.setAlpha(Math.min(1, gs * 0.95));
     this.dark.clear();
     if (dark > 0.001) this.dark.fill(0x0b1030, dark);
     this.lightSrc.forEach((l, i) => {

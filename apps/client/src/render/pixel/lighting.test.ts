@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { darknessAlpha, formatHour, glowStrength, gradeAt, lightsOn, rgbToInt, sunGlow } from './lighting';
+import { SHADOW_FILL_COLOR, SHADOW_FILL_MAX, darknessAlpha, formatHour, glowStrength, gradeAt, lightsOn, rgbToInt, shadowFill, shadowFillStrength, sunGlow } from './lighting';
 
 describe('gradeAt', () => {
   it('hits the doc keyframes exactly', () => {
@@ -71,5 +71,32 @@ describe('formatHour', () => {
     expect(formatHour(19.5)).toBe('19:30');
     expect(formatHour(0)).toBe('00:00');
     expect(formatHour(17.999)).toBe('18:00');
+  });
+});
+
+describe('shadowFill (cool blue fill in the shadows at golden hour)', () => {
+  it('is off by day and deep at night', () => {
+    expect(shadowFillStrength(12)).toBe(0);
+    expect(shadowFillStrength(16)).toBe(0);
+    expect(shadowFillStrength(20)).toBe(0);
+    expect(shadowFillStrength(2)).toBe(0);
+  });
+  it('is at full strength at 17:30 and ramps in and out smoothly', () => {
+    expect(shadowFillStrength(17.5)).toBe(1);
+    expect(shadowFillStrength(18.25)).toBe(1);
+    const a = shadowFillStrength(17), b = shadowFillStrength(19);
+    expect(a).toBeGreaterThan(0);
+    expect(a).toBeLessThan(1);
+    expect(b).toBeGreaterThan(0);
+    expect(b).toBeLessThan(1);
+    for (let h = 16.5; h < 17.5; h += 0.1) expect(shadowFillStrength(h + 0.1)).toBeGreaterThanOrEqual(shadowFillStrength(h));
+  });
+  it('is a cool blue (blue > red) with a bounded alpha, and wraps the hour', () => {
+    const f = shadowFill(17.5);
+    expect(f.color).toEqual(SHADOW_FILL_COLOR);
+    expect(f.color[2]).toBeGreaterThan(f.color[0]);
+    expect(f.alpha).toBeCloseTo(SHADOW_FILL_MAX);
+    expect(shadowFill(17.5 + 24)).toEqual(f);
+    expect(shadowFill(12).alpha).toBe(0);
   });
 });

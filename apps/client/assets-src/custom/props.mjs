@@ -113,8 +113,8 @@ export async function placaRua(ctx) {
   paste(img, pole, 9, 12); // pole foot at y = 12 + 49 = 61 > H: crop below
   const out = blank(W, H);
   // keep only the pole's top 30 rows (the rest is trimmed so the foot sits at the sprite bottom)
-  paste(out, crop(pole, 0, 20, 7, 30), 9, 16);
-  const px0 = 1, py0 = 1, pw = 24, ph = 15;
+  paste(out, crop(pole, 0, 20, 7, 30), 9, 17);
+  const px0 = 1, py0 = 1, pw = 24, ph = 18;
   rect(out, px0, py0, pw, ph, C.b3);
   for (let x = px0 + 1; x < px0 + pw - 1; x++) { dot(out, x, py0 + 1, C.lav4); dot(out, x, py0 + ph - 2, C.lav3); }
   for (let y = py0 + 1; y < py0 + ph - 1; y++) { dot(out, px0 + 1, y, C.lav4); dot(out, px0 + pw - 2, y, C.lav3); }
@@ -123,9 +123,8 @@ export async function placaRua(ctx) {
   // text: R.DOS / IPES with a caret over the E
   text3(out, px0 + 4, py0 + 3, 'R', C.lav4); dot(out, px0 + 8, py0 + 7, C.lav4);
   text3(out, px0 + 10, py0 + 3, 'DOS', C.lav4);
-  text3(out, px0 + 5, py0 + 9, 'IPES', C.lav4);
-  for (const x of [px0 + 11, px0 + 12, px0 + 13]) dot(out, x, py0 + 8, C.lav4);
-  dot(out, px0 + 12, py0 + 7, C.lav4);
+  text3(out, px0 + 5, py0 + 10, 'IPES', C.lav4);
+  dot(out, px0 + 14, py0 + 8, C.lav4); dot(out, px0 + 13, py0 + 9, C.lav4); dot(out, px0 + 15, py0 + 9, C.lav4);
   outlineAround(out);
   return [{ img: out, anchor: [12, 45] }];
 }

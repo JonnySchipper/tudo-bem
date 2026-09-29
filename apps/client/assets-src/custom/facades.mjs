@@ -52,7 +52,7 @@ export function litOverlay(w, h, rects, style = {}) {
 
 // ------------------------------------------------------------------ bread (shared by the padaria window and its lit overlay)
 export function loaf(kind, night = false) {
-  const ramp = night ? [K.br2, C.w4, C.w3, C.w2] : [C.w3, C.w2, C.w1, C.w0];
+  const ramp = night ? [C.w4, C.w3, C.w2, C.w1] : [C.w3, C.w2, C.w1, C.w0];
   if (kind === 'roll') {
     const img = blank(8, 6); const m = newMask(6, 4); fillMask(m, ellipse(3, 2, 3, 2));
     drawShaded(img, m, 1, 1, ramp, { rimShade: 1, ol: K.br3 });
@@ -94,8 +94,8 @@ export async function padaria(ctx) {
   fillFromBand(b, 30, 70, 52, 27, 14, 16);
   // red / white toldo: recolor the maroon + pink awning pixels (only the two awnings, not the door frame)
   const awn = { '#7f4d56': C.r3, '#67575c': C.r5, '#916662': C.r4, '#83515a': C.r4, '#ddc7c9': C.cr0, '#eed3d5': C.lav4, '#f8e3e3': C.white, '#d4bec2': C.lav3, '#716467': C.r6 };
-  b = swap(b, awn, [4, 98, 37, 10]);
-  b = swap(b, awn, [72, 98, 36, 10]);
+  b = swap(b, awn, [4, 94, 37, 14]);
+  b = swap(b, awn, [72, 94, 36, 14]);
   // widen: +8 in each window (stripe period is 4 px, so a band of 8 keeps the stripes in phase)
   b = stretchCols(b, 88, 96, b.w + 8);
   b = stretchCols(b, 16, 24, b.w + 8);
@@ -104,7 +104,7 @@ export async function padaria(ctx) {
   // glass panes (before we draw over them)
   const glass = findGlass(b).filter((r) => r[1] > 50);
   // continuous toldo: copy the awning band across the door
-  const ay0 = 99 - 43, ah = 8;
+  const ay0 = 94 - 43, ah = 14;
   const awnBand = crop(b, 8, ay0, 40, ah);
   for (let x = 48; x < 82; x++) {
     for (let y = 0; y < ah; y++) { const p = px(awnBand, 8 + ((x - 50 + 32) % 32), y); if (p && p[3]) setPx(b, x, ay0 + y, p); }

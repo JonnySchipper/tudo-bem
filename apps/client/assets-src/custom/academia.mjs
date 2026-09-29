@@ -54,25 +54,25 @@ export async function academia(ctx) {
   b = stackRows(b, [[0, 20], [63, 139]]);
   const glass = findGlass(b).filter((r) => r[1] > 50);
   // continuous toldo across the door: tile the band from the left awning
-  const ay0 = 99 - 43, ah = 8;
+  const ay0 = 94 - 43, ah = 14;
   const awnBand = crop(b, 8, ay0, 40, ah);
   const rightStart = b.w - 112 + 72 + 8; // first x of the right awning after widening (see padaria)
-  for (let x = 48 + 24; x < 80 + 24 + 2; x++) {
-    for (let y = 0; y < ah; y++) { const p = px(awnBand, 8 + ((x - 74 + 32) % 32), y); if (p && p[3]) setPx(b, x, ay0 + y, p); }
+  for (let x = 64; x < 98; x++) {
+    for (let y = 0; y < ah; y++) { const p = px(awnBand, 8 + ((x - 98 + 32) % 32), y); if (p && p[3]) setPx(b, x, ay0 + y, p); }
   }
   // sign board: navy with mustard trim
-  const bw = 100, bh = 22, bx = Math.floor((b.w - bw) / 2), by = 11;
+  const bw = 100, bh = 26, bx = Math.floor((b.w - bw) / 2), by = 9;
   rect(b, bx, by, bw, bh, C.navy);
   rect(b, bx + 1, by + 1, bw - 2, bh - 2, C.slate);
   hline(b, bx + 1, by + 1, bw - 2, C.slate2); vline(b, bx + 1, by + 1, bh - 2, C.slate2);
   hline(b, bx + 1, by + bh - 2, bw - 2, C.navy2);
   box(b, bx + 3, by + 3, bw - 6, bh - 6, null, C.y3);
   const tw = width5('ACADEMIA');
-  drawText5(b, bx + Math.floor((bw - tw) / 2), by + 5, 'ACADEMIA', C.y1, { shadow: C.navy });
+  drawText5(b, bx + Math.floor((bw - tw) / 2), by + 6, 'ACADEMIA', C.y1, { shadow: C.navy });
   const sub = 'DO BAIRRO';
-  drawText3(b, bx + Math.floor((bw - width3(sub)) / 2), by + 14, sub, C.cr0);
+  drawText3(b, bx + Math.floor((bw - width3(sub)) / 2), by + 16, sub, C.cr0);
   // dumbbells on both ends of the board
-  for (const dx of [bx + 6, bx + bw - 16]) { dumbbell(b, dx, by + 9, false); }
+  for (const dx of [bx + 6, bx + bw - 16]) { dumbbell(b, dx, by + 11, false); }
   // windows
   const panes = glass.filter((r) => r[2] > 20);
   const lit = litOverlay(b.w, b.h, glass);

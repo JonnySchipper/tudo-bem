@@ -29,7 +29,7 @@ function span(tiles, seed, opts = {}) {
   const L = tiles * 16;
   const H = 26 + Math.round(tiles * 1.5);
   const img = blank(L + 1, H);
-  const sag = 2 + tiles * 0.9;
+  const sag = 1 + tiles * 0.55;
   wire(img, L, 1, 1, sag, 0);
   wire(img, L, 4, 4, sag * 0.92, 1);
   wire(img, L, 7, 8, sag * 0.85, 2);
@@ -37,7 +37,6 @@ function span(tiles, seed, opts = {}) {
   const r = rng(seed);
   const cx = Math.round(L * (0.42 + r() * 0.16));
   wire(img, L, 2, 6, sag * 1.15, 3);
-  wire(img, L, 6, 3, sag * 1.05, 1);
   // a knot: a few short loops of cable around cx
   for (let i = 0; i < 5; i++) {
     const kx = cx - 4 + i * 2, ky = Math.round(1 + sag * 4 * (kx / L) * (1 - kx / L)) + 2 + (i % 2);
