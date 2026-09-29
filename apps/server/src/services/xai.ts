@@ -11,6 +11,7 @@ import {
   authoredFallbackTurn,
   pickConversaOpener,
   presentConversaTurn,
+  type ConversaLine,
   type ConversaTurnRequest,
   type ConversaTurnResponse,
   type ConversaScores,
@@ -118,11 +119,15 @@ export async function conversaTurn(req: ConversaTurnRequest): Promise<ConversaTu
   const subject = CONVERSA_SUBJECTS[req.subjectId] ?? cast.subjects[0];
   if (!subject) return null;
 
-  const systemPrompt = buildCarlosSystemPrompt(subject, {
-    playerName: req.playerName,
-    pronoun: req.pronoun,
-    nameplate: req.nameplate,
-  });
+  const systemPrompt = buildCarlosSystemPrompt(
+    subject,
+    {
+      playerName: req.playerName,
+      pronoun: req.pronoun,
+      nameplate: req.nameplate,
+    },
+    req.memory,
+  );
 
   const messages: XaiMessage[] = [{ role: 'system', content: systemPrompt }];
 
@@ -178,6 +183,35 @@ export async function conversaTurn(req: ConversaTurnRequest): Promise<ConversaTu
   }
 
   return presentConversaTurn(parsed, req.priorChips ?? []);
+}
+
+/** System prompt for the one-sentence NPC memory summary (never stored raw; the caller vets the answer). */
+export const MEMORY_SUMMARY_SYSTEM_PROMPT = `You write a short memory note for an NPC in a Portuguese-learning game. The NPC is a padaria owner in São Paulo.
+Read the short conversation and write exactly ONE sentence in Brazilian Portuguese, in the third person about the customer, saying only what they ordered or what the chat was about. Example: "Pediu um café com leite e uma coxinha pra viagem."
+Rules:
+- At most 120 characters. One sentence. Plain text only: no quotes, no markdown, no emoji.
+- Do not copy the customer's words. Do not quote them.
+- No names, contact details, or personal data. Nothing about alcohol, dating, politics, or religion.
+- If nothing was ordered, say what the chat was about, for example "Conversou sobre café da manhã."`;
+
+/**
+ * One-sentence PT summary of a finished Conversa, or null (no key, error, or over `timeoutMs`).
+ * Small, non-streaming, and the caller never waits on it to end the Conversa.
+ */
+export async function summarizeConversa(input: { npcName: string; subjectTitle: string; lines: ConversaLine[] }, timeoutMs = 4000): Promise<string | null> {
+  const transcript = input.lines
+    .slice(-14)
+    .map((l) => `${l.who === 'player' ? 'Cliente' : input.npcName}: ${l.pt.slice(0, 240)}`)
+    .join('\n');
+  const raw = await callXai(
+    [
+      { role: 'system', content: MEMORY_SUMMARY_SYSTEM_PROMPT },
+      { role: 'user', content: `Assunto: ${input.subjectTitle}\n\nConversa:\n${transcript}\n\nUma frase:` },
+    ],
+    timeoutMs,
+  );
+  const first = raw?.trim().split(/\r?\n/)[0]?.trim();
+  return first || null;
 }
 
 export function authoredConversaTurn(req: ConversaTurnRequest): ConversaTurnResponse {
