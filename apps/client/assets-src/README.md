@@ -26,7 +26,7 @@ Add a sprite by adding one line to `import-map.json` (`sheet` alias + `rect`, `a
 `cast`, `light`), then run `pnpm pixel`. Sheets are aliases under `sheets` (paths relative to a `roots` entry).
 Find rects with a contact sheet or by looking at the sheet at 4x; sprites in the LimeZu theme sorters sit on a 16 px grid.
 
-Sprite entry kinds: `sprite` (crop a rect, optional `recolor`, `isolate`, `flip`), `tree` (split into trunk + overhead
+Sprite entry kinds: `derive` (a generator in `custom/derive.mjs` that returns one or more parts: frames, overhead, lit overlay), `sprite` (crop a rect, optional `recolor`, `isolate`, `flip`), `tree` (split into trunk + overhead
 canopy + 3-frame sway, optional yellow `recolor`), `strip` (animation frames laid out in a row), `shop` (crop + rewrite the
 plaque text + find the window glass), `custom` (a generator from `custom/`).
 
@@ -42,6 +42,11 @@ plaque text + find the window glass), `custom` (a generator from `custom/`).
 | Zebra crossing, lane dashes, wildflowers, grass tufts | **hand-authored** (`custom/street.mjs`) | none |
 | Shopfronts (6) | **derived**: LimeZu "STORE" shops with the plaque text rewritten in a 3x5 pixel font (PADARIA, MERCADO, FLORES, LANCHES, SAPATOS, PIZZA) | `9_Shopping_Center_and_Markets` |
 | Benches, lamps, trash bin, hedges, bushes, flower pots, fountain (animated), cars, pigeons, manhole | **LimeZu as is** (cropped) | `3_City_Props`, `17_Garden`, `10_Vehicles`, `Animated_sheets` |
+| Orelhão, lixeira laranja, placa de rua, quiosque Missão, poleiro + papagaio, poste com fios + fios | **authored / derived** (`custom/props.mjs`, `wires.mjs`, `critters.mjs`), see docs/lifesim/decisions-art1.md | pole and sign pole cropped from `3_City_Props` |
+| Barraca de chapéus | **derived**: street-food cart split into standing part + overhead canopy, authored hats (`custom/stall.mjs`) | `10_Vehicles` Street_Food_Cart_1 |
+| Padaria, Edifício Ipê, Academia facades (+ lit overlays) | **derived + authored**: pack building fronts cut/widened, authored signs, toldo, grilles, varal, tank, bread, gym silhouettes (`custom/facades.mjs`, `edificio.mjs`, `academia.mjs`) | `9_Shopping_Center_and_Markets`, `4_Generic_Buildings` |
+| Ônibus, kombi | **derived**: pack bus (wheel spin frame) and camper (shortened, repainted) (`custom/vehicles.mjs`) | `10_Vehicles` singles |
+| Fusca, moto (motoboy), vira-lata | **authored** (`custom/vehicles-auth.mjs`, `critters.mjs`) | none |
 | Contact shadows, cast shadows | **generated** from sprite silhouettes (down-right) | none |
 | Glow, cloud shadow | **generated** light textures (allowed by D6) | none |
 

@@ -382,7 +382,7 @@ export class FrameScene extends Phaser.Scene {
       for (const key of span.keys) {
         const d = this.m.sprites[key];
         if (!d) { this.placeholder(key, wx / T, pole.y); continue; }
-        this.W(this.add.image(wx, wy, d.atlas, d.frame)).setOrigin(...this.originOf(d)).setDepth(50200);
+        this.W(this.add.image(wx, wy, d.atlas, d.frame)).setOrigin(...this.originOf(d)).setDepth(50200).setAlpha(0.7);
         wx += d.w - 1;
       }
     }
