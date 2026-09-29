@@ -74,6 +74,14 @@ async function walkTo(c: Client, x: number, y: number) {
 
 const errors = (c: Client) => c.all('error').map((e) => e.code);
 
+/** The daily offer is random (5 recados unlock at bond 0); pin it so a test can accept a specific one. */
+const offer = (c: Client, ...ids: string[]) => {
+  c.s.profile!.recados!.offered = ids;
+};
+
+/** Recados a brand-new player can be offered today: bond 0 and no feature flag (feira, dialogue). */
+const NEW_PLAYER_POOL = ['carlos_cafe_pra_nanda', 'nanda_coxinha', 'julia_cumprimento_certo', 'graca_pao_pra_julia', 'nanda_um_oi_pro_carlos'];
+
 describe('recados on the server', () => {
   beforeEach(() => {
     clock = 5_000_000;
@@ -91,7 +99,8 @@ describe('recados on the server', () => {
     // the join already sent the board
     const board = a.last('recados')!;
     expect(board.day).toBe(gameDay(clock));
-    expect(board.offered.map((o) => o.id).sort()).toEqual(['carlos_cafe_pra_nanda', 'julia_cumprimento_certo', 'nanda_coxinha']);
+    expect(new Set(board.offered.map((o) => o.id)).size).toBe(3);
+    for (const o of board.offered) expect(NEW_PLAYER_POOL).toContain(o.id);
     expect(board.active).toEqual([]);
 
     await a.send({ t: 'recados', action: 'accept', id: 'carlos_agua_pra_julia' }); // locked (needs 1 heart)
@@ -99,9 +108,12 @@ describe('recados on the server', () => {
     await a.send({ t: 'recados', action: 'accept' });
     expect(errors(a)).toEqual(['recado', 'recado', 'recado']);
 
+    await a.send({ t: 'recados', action: 'accept', id: 'tia_lu_banana_pra_nanda' }); // gated by the feira flag: never offered
+    expect(errors(a)).toHaveLength(4);
+    offer(a, 'nanda_coxinha', 'carlos_cafe_pra_nanda', 'julia_cumprimento_certo');
     await a.send({ t: 'recados', action: 'accept', id: 'nanda_coxinha' });
     await a.send({ t: 'recados', action: 'accept', id: 'nanda_coxinha' }); // already active
-    expect(errors(a)).toHaveLength(4);
+    expect(errors(a)).toHaveLength(5);
     expect(a.last('recados')!.active.map((r) => r.id)).toEqual(['nanda_coxinha']);
     expect(a.last('recados')!.offered.map((o) => o.id)).not.toContain('nanda_coxinha');
     expect(a.last('recados')!.active[0]).toMatchObject({ step: 0, steps: 2, giver: 'nanda' });
@@ -114,6 +126,7 @@ describe('recados on the server', () => {
     const a = await client(world);
     const p = a.s.profile!;
     const coins = p.coins;
+    offer(a, 'carlos_cafe_pra_nanda');
     await a.send({ t: 'recados', action: 'accept', id: 'carlos_cafe_pra_nanda' });
 
     // Order at the padaria (the Carlos scene ends with a café com leite in the order).
@@ -175,6 +188,7 @@ describe('recados on the server', () => {
     const a = await client(world);
     const p = a.s.profile!;
     p.bag = { coxinha: 1 };
+    offer(a, 'nanda_coxinha');
     await a.send({ t: 'recados', action: 'accept', id: 'nanda_coxinha' });
     p.recados!.active[0]!.step = 1; // skip the order step: the next step is to hand the coxinha to Nanda
 
@@ -240,6 +254,7 @@ describe('recados on the server', () => {
     const a = await client(world);
     const b = await client(world);
     const p = a.s.profile!;
+    offer(a, 'julia_cumprimento_certo');
     await a.send({ t: 'recados', action: 'accept', id: 'julia_cumprimento_certo' });
 
     // The greeting that does not fit the time of day does not count (and 'oi' never counts for a timed step).

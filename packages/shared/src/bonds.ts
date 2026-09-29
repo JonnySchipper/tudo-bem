@@ -1,5 +1,5 @@
 import type { Bilingual } from './types.js';
-import { ROOMS, type NpcId } from './rooms.js';
+import { OFFSTAGE_NPCS, ROOMS, type NpcId } from './rooms.js';
 
 /**
  * NPC friendship (HOWTO Phase 8 step 4). Points 0-100 per NPC; 10 points = 1 heart.
@@ -19,8 +19,10 @@ export const BOND_GAIN = {
 
 export type BondMap = Partial<Record<NpcId, number>>;
 
-/** Every NPC that exists in a room (single source of truth: `ROOMS`). */
-export const NPC_IDS: readonly NpcId[] = [...new Set(Object.values(ROOMS).flatMap((r) => r.npcs.map((n) => n.id)))];
+/** Every NPC that exists in a room (`ROOMS`) plus the givers that have no room yet (`OFFSTAGE_NPCS`). */
+export const NPC_IDS: readonly NpcId[] = [
+  ...new Set<NpcId>([...Object.values(ROOMS).flatMap((r) => r.npcs.map((n) => n.id)), ...(Object.keys(OFFSTAGE_NPCS) as NpcId[])]),
+];
 export const isNpcId = (v: unknown): v is NpcId => typeof v === 'string' && (NPC_IDS as readonly string[]).includes(v);
 
 export const clampBond = (n: number): number => (Number.isFinite(n) ? Math.max(0, Math.min(BOND_MAX, Math.floor(n))) : 0);

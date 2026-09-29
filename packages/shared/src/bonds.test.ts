@@ -51,7 +51,9 @@ describe('bond gains', () => {
 
 describe('normalizeBond', () => {
   it('keeps known NPCs with finite numbers only', () => {
-    expect(NPC_IDS).toEqual(expect.arrayContaining(['carlos', 'nanda', 'julia']));
+    expect(NPC_IDS).toEqual(expect.arrayContaining(['carlos', 'nanda', 'julia', 'graca', 'tia_lu']));
+    expect(isNpcId('graca') && isNpcId('tia_lu')).toBe(true); // givers with no room yet still keep friendships
+    expect(normalizeBond({ graca: 12.5, tia_lu: 7 })).toEqual({ graca: 12, tia_lu: 7 });
     expect(isNpcId('carlos')).toBe(true);
     expect(isNpcId('toString')).toBe(false);
     expect(normalizeBond(undefined)).toEqual({});

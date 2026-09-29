@@ -365,3 +365,50 @@ Scope: HOWTO Phase 2 steps 1 to 7. The iso view is still the default and is unto
 ### Not done (by design, later phases)
 
 Layered characters, hats, parrot (P3); prop / furniture / wall art, decorate ghost sprite and rotation, trilho animation, DOM label polish and pixel chrome (P4); the neighbourhood map and edge buildings (P5); clock, darkness, weather, ambient life, audio zones (P6). The intro / title screen still uses its own canvases.
+
+---
+
+## Content: recados
+
+Scope: HOWTO Phase 8 step 7 (the first 15 recados) and the tooling around it. Content plus small engine hooks; no client, no schedules, no new cards.
+
+### Where things live
+
+| What | File |
+|---|---|
+| The 15 recados (canonical, `needs_br: true`) | `content/curriculum/phase0/recados.md` |
+| Generated, validated JSON | `content/curriculum/phase0/recados.json` (`pnpm content`) |
+| Parser and validator (`buildRecados`, `parseRecadoStep`, id lists) | `scripts/build-curriculum.mjs` |
+| `RECADOS` (loaded from the JSON), `RECADO_FLAGS`, `recadoEnabled`, `requires` on `RecadoDef` | `packages/shared/src/recados.ts` |
+| New NPC ids (`OFFSTAGE_NPCS`) | `packages/shared/src/rooms.ts` |
+| In-sync test, validator/engine id mirror test, DNT scan and "Give me" scan over the recados | `packages/shared/src/curriculum.test.ts` |
+| Pack invariants, flag behaviour | `packages/shared/src/recados.test.ts` |
+
+### Decisions
+
+1. **Authoring format** follows the lexeme packs: one `### id` block per recado with `- **field:** value` lines (`title_pt/en`, `ask_pt/en`, `thanks_pt/en`, `steps`, `reward`, `cards`, `needs_br`). Steps are one line, `;`-separated: `pedir carlos cafe_com_leite 1; entregar nanda cafe_com_leite 1`. `cumprimentar [npc] [timeCorrect]`, `ir <room>`, `falar <npc>`. The markdown is canonical; the JSON is generated and an in-sync test fails on drift.
+2. **The build fails loudly** on an unknown giver, NPC, item, room, card, flag or step kind, a bad reward line, a duplicate id, a missing field, or a recado without `needs_br: true`. The validator's id lists (NPCs, rooms, items) are hardcoded in the script (it is plain `.mjs` and cannot import the TS), and a test asserts they equal the engine's (`NPC_IDS`, `ROOMS`, `ITEMS`), so a drift on either side fails CI.
+3. **`pnpm content` did nothing on Windows** (the "run as main" guard compared `import.meta.url` with `file://${argv[1]}`, which never matches a `C:\` path). Fixed with `pathToFileURL`. The tests import the builders directly, so they were never affected.
+4. **`NpcId` gained `graca` and `tia_lu`** through `OFFSTAGE_NPCS` (name and role each) in `rooms.ts`. They are not in any room yet (Graça arrives with the schedules, Tia Lu with the feira), so `NPC_IDS` (used by `isNpcId`, `normalizeBond`, `normalizeNpcMemory`, `normalizeRecados`) is now rooms plus offstage. Without that, bond for a giver with no room would be silently dropped on load and the recados of Graça and Tia Lu could never pay. `npcName` falls back to `OFFSTAGE_NPCS`. The one exhaustive `Record<NpcId, ...>` is `CONVERSA_CAST`: two disabled entries added (`graca`: padaria, `tia_lu`: praça as a placeholder for the feira), no subjects, so no Conversa can start.
+5. **Flags.** `RECADO_FLAGS = { feira: false, dialogue: false }` is a plain mutable object. `RecadoDef.requires?: 'feira' | 'dialogue'`. `offerFor` and `rollRecadoDay` skip a recado while its flag is off (`recadoEnabled`), and both take an optional `flags` argument so a test can pass its own map instead of mutating the global. Phase 7 flips `dialogue`, Phase 9 flips `feira` (a one-line change each, plus the emit of the matching events). Recados already `active` are never removed by a flag; the flags only affect what is offered.
+6. **Four are gated:** `tia_lu_banana_pra_nanda`, `tia_lu_flores_pra_julia` (feira: the items only exist there) and `julia_conhecer_nanda`, `nanda_pergunta_pro_carlos` (dialogue: `falar` with Nanda has no interaction yet). The rule is checked by a test (feira if Tia Lu is the giver or a step target, dialogue if a step is `falar` with anyone but Seu Carlos).
+7. **The other 11 are finishable today**, and tests enforce it: every ungated step involves an NPC that exists in a room (Carlos, Nanda, Júlia); every `pedir` is from Carlos, with quantity 1, and for an item the Carlos scene can order (`pao_na_chapa`, `coxinha`, `pastel`, `cafe`, `cafe_com_leite`, `suco_de_laranja`, `agua`; `pao`, `bolo`, `pao_de_queijo`, `misto_quente`, `guarana` only appear through the Me vê um minigame, whose order is not the player's choice, so they are used as rewards, not as orders); every `entregar` hands over something an earlier `pedir` of the same recado ordered; no two `pedir` sit side by side (one scene orders one food and one drink, in a single event). (`ir` as a first step, as in `julia_volta_pela_vizinhanca`, needs you to step out of the room and back in if you already stand there; that is a walk, not a dead end.)
+8. **Dona Graça and Tia Lu are givers only.** Nobody can talk to or hand something to Graça before the schedules exist, so her three recados (`graca_pao_pra_julia`, `graca_agua_pra_academia`, `graca_cumprimenta_julia`) send you to Carlos, Júlia and the academia, and none of them is a step target. Her bond can only grow through those recados (talking to her is not possible yet), so her bond-30 recado (`graca_cumprimenta_julia`) is reachable after roughly a week of game days; that is intended for a night-shift acquaintance.
+9. **Spread.** Bond 0: 6 (`carlos_cafe_pra_nanda`, `nanda_coxinha`, `julia_cumprimento_certo`, `graca_pao_pra_julia`, `nanda_um_oi_pro_carlos`, `tia_lu_banana_pra_nanda`). Bond 10: 5. Bond 20 to 30: 4 (`carlos_manha_de_entregas` and `nanda_pergunta_pro_carlos` at 20, `graca_cumprimenta_julia` and `julia_volta_pela_vizinhanca` at 30). A new player therefore sees three of five open recados a day. Rewards 8 to 15 RV and 3 to 6 bond, never above `ECONOMY.sceneMax` + 1 (a test checks it); the four-step morning and the feira flowers pay the most (15). Two recados pay a shelf item on top (`pao_de_queijo`, `bolo`).
+10. **The four starters were kept as they were** (same ids, text, steps and rewards), so the existing server fixtures stay meaningful. The random daily offer is now a 3-of-5 draw, so the server tests pin `recados.offered` (`offer(client, ids...)`) before accepting a specific recado, and assert the board draws only from the five open ones.
+11. **Distinct step shapes on purpose:** two-step pedir + entregar (most), a four-step chain of two orders (`carlos_manha_de_entregas`), `cumprimentar` with `timeCorrect` (twice: any greeting-fits-the-hour, and specifically to Júlia), `cumprimentar` a named NPC (`nanda_um_oi_pro_carlos`: the greeting counts when said within 3 tiles of Carlos), `ir` (`graca_agua_pra_academia`, a walking loop `ir academia; ir praca; cumprimentar julia`), and `falar` (two, gated).
+12. The Portuguese of every recado also goes through the existing do-not-teach and `classifyChat` scans and the "never Give me" scan.
+
+### Known small things
+
+- `graca_agua_pra_academia` leaves the water in the bag after the trip (there is no NPC at the academia to hand it to). It is harmless (bag cap 20).
+- `julia_volta_pela_vizinhanca` greets Júlia by the "nearest NPC within 3 tiles" rule, so the player has to type the greeting next to her.
+- A stale `offered` list is not re-filtered on accept, only on the daily roll; flags only ever turn on, so this cannot expose a gated recado early.
+
+### Proposed cards (not added; no card exists yet)
+
+`banana`, `flores`, `jornal` (items already exist in `ITEMS` without a `cardId`); `praça` / `academia` as places; `água` is covered. `Volta sempre` and `Isso aí` exist as cards but are not used here. Phrases the recados use that are not cards: `Leva ... pra ela?`, `Tô com fome`, `dá um oi`, `Que bom!`, `Valeu!`, `Pergunta pro...`. Suggested set for the Curriculum team: `lex.social.valeu`, `lex.social.que_bom`, `lex.padaria.leva` (Leva um ... pra ela?), `lex.feira.banana`, `lex.feira.flores`, `lex.rua.praca`, `lex.rua.academia`.
+
+### Needs BR review
+
+Every string in `recados.md` (15 titles, asks and thanks, PT and EN). Watch: `Olha a banana!` (feira call), `Você é gente boa`, `Água é vida`, `Pão na chapa é o melhor despertador`, `Uma volta pela vizinhança`, and the register of Dona Graça and Tia Lu (a joker and a loud friendly seller; kept mild in A1).

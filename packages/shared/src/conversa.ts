@@ -111,6 +111,21 @@ export const CONVERSA_CAST: Record<NpcId, ConversaCastEntry> = {
     enabled: false,
     subjects: [],
   },
+  // Recado givers with no room yet (see OFFSTAGE_NPCS); no Conversa until they have a place to stand.
+  graca: {
+    npc: 'graca',
+    name: 'Dona Graça',
+    room: 'padaria',
+    enabled: false,
+    subjects: [],
+  },
+  tia_lu: {
+    npc: 'tia_lu',
+    name: 'Tia Lu',
+    room: 'praca', // the feira room arrives in Phase 9
+    enabled: false,
+    subjects: [],
+  },
 };
 
 export interface ConversaLine {

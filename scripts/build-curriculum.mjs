@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /**
  * Parse the curriculum pack markdown (canonical, owned by TB Curriculum) into cards.json
- * (engineering schema, GDD §5.5) and me-ve-um-orders.json (tray tickets).   pnpm content
+ * (engineering schema, GDD §5.5), me-ve-um-orders.json (tray tickets) and recados.json (errands).   pnpm content
  *
  * The markdown stays the source of truth; packages/shared/src/curriculum.test.ts fails if
  * either JSON file drifts from it.
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dir = path.join(root, 'content/curriculum/phase0');
@@ -207,21 +207,147 @@ export function buildCpuNames() {
   };
 }
 
+// ---------------------------------------------------------------- Recados (errands)
+
+/**
+ * Ids the recado validator accepts. Mirrors the shared engine (packages/shared/src/rooms.ts, recados.ts,
+ * meveum.ts); curriculum.test.ts fails if any list drifts from the code.
+ */
+export const RECADO_NPC_IDS = ['carlos', 'nanda', 'julia', 'graca', 'tia_lu'];
+export const RECADO_ROOM_IDS = ['praca', 'padaria', 'kitnet', 'academia'];
+export const RECADO_FLAG_IDS = ['feira', 'dialogue'];
+export const RECADO_ITEM_IDS = [
+  // the padaria shelf (meveum.ts SHELF)
+  'pao', 'pao_na_chapa', 'pastel', 'coxinha', 'bolo', 'cafe', 'cafe_com_leite', 'suco_de_laranja', 'agua', 'pao_de_queijo', 'misto_quente', 'guarana',
+  // recados.ts EXTRA_ITEMS
+  'jornal', 'flores', 'banana',
+];
+
+/** `### id` blocks of `- **field:** value` lines, same shape as the lexeme cards. */
+function recadoBlocks(md) {
+  const out = [];
+  for (const sec of md.split(/^### /m).slice(1)) {
+    const lines = sec.split('\n');
+    const id = lines[0].trim();
+    const f = {};
+    for (const l of lines.slice(1)) {
+      const m = l.match(/^- \*\*([^:*]+):\*\*\s*(.*?)\s*$/);
+      if (m) f[m[1].trim()] = m[2].trim();
+    }
+    out.push([id, f]);
+  }
+  return out;
+}
+
+/** One step, e.g. `pedir carlos cafe_com_leite 1`. Throws on anything the engine could not run. */
+export function parseRecadoStep(text, where) {
+  const fail = (why) => {
+    throw new Error(`recados.md ${where}: step “${text}”: ${why}`);
+  };
+  const t = text.trim().split(/\s+/);
+  const kind = t[0];
+  const npc = (v) => (RECADO_NPC_IDS.includes(v) ? v : fail(`unknown NpcId “${v}”`));
+  const item = (v) => (RECADO_ITEM_IDS.includes(v) ? v : fail(`unknown item id “${v}”`));
+  const qty = (v) => {
+    const n = v === undefined ? 1 : Number(v);
+    return Number.isInteger(n) && n >= 1 && n <= 20 ? n : fail(`bad quantity “${v}”`);
+  };
+  switch (kind) {
+    case 'falar':
+      if (t.length !== 2) fail('expected: falar <npc>');
+      return { kind, npc: npc(t[1]) };
+    case 'pedir':
+    case 'entregar':
+      if (t.length < 3 || t.length > 4) fail(`expected: ${kind} <npc> <item> [qty]`);
+      return { kind, npc: npc(t[1]), itemId: item(t[2]), qty: qty(t[3]) };
+    case 'ir':
+      if (t.length !== 2) fail('expected: ir <room>');
+      return { kind, room: RECADO_ROOM_IDS.includes(t[1]) ? t[1] : fail(`unknown room “${t[1]}”`) };
+    case 'cumprimentar': {
+      const rest = t.slice(1);
+      const timeCorrect = rest.includes('timeCorrect');
+      const who = rest.filter((x) => x !== 'timeCorrect');
+      if (who.length > 1) fail('expected: cumprimentar [<npc>] [timeCorrect]');
+      return { kind, ...(who.length ? { npc: npc(who[0]) } : {}), ...(timeCorrect ? { timeCorrect: true } : {}) };
+    }
+    default:
+      return fail('unknown step kind (falar, pedir, entregar, ir, cumprimentar)');
+  }
+}
+
+export function buildRecados(cards = buildCards().cards) {
+  const cardIds = new Set(cards.map((c) => c.id));
+  const recados = [];
+  for (const [id, f] of recadoBlocks(readMd('recados.md'))) {
+    const at = `### ${id}`;
+    const need = (k) => {
+      if (!f[k]) throw new Error(`recados.md ${at}: missing “${k}”`);
+      return f[k];
+    };
+    if (!/^[a-z][a-z0-9_]*$/.test(id)) throw new Error(`recados.md ${at}: bad id`);
+    if (recados.some((r) => r.id === id)) throw new Error(`recados.md ${at}: duplicate id`);
+    const giver = need('giver');
+    if (!RECADO_NPC_IDS.includes(giver)) throw new Error(`recados.md ${at}: unknown giver “${giver}”`);
+    const minBond = Number(need('min_bond'));
+    if (!Number.isInteger(minBond) || minBond < 0 || minBond > 100) throw new Error(`recados.md ${at}: bad min_bond`);
+    const requires = f.requires;
+    if (requires !== undefined && !RECADO_FLAG_IDS.includes(requires)) throw new Error(`recados.md ${at}: unknown requires “${requires}”`);
+    if (f.needs_br !== 'true') throw new Error(`recados.md ${at}: every recado must say needs_br: true`);
+    const steps = need('steps').split(';').map((s) => parseRecadoStep(s, at));
+    const rw = need('reward').match(/^(\d+) RV; (\d+) bond(?:; item (\w+))?$/);
+    if (!rw) throw new Error(`recados.md ${at}: reward must read “<n> RV; <n> bond[; item <id>]”`);
+    if (rw[3] && !RECADO_ITEM_IDS.includes(rw[3])) throw new Error(`recados.md ${at}: unknown reward item “${rw[3]}”`);
+    const cardList = split(need('cards'), ';');
+    for (const c of cardList) if (!cardIds.has(c)) throw new Error(`recados.md ${at}: unknown card id “${c}” (do not invent cards; list proposals in the PR)`);
+    recados.push({
+      id,
+      giver,
+      minBond,
+      ...(requires ? { requires } : {}),
+      title: { pt: need('title_pt'), en: need('title_en') },
+      ask: { pt: need('ask_pt'), en: need('ask_en') },
+      thanks: { pt: need('thanks_pt'), en: need('thanks_en') },
+      steps,
+      reward: { rv: Number(rw[1]), bond: Number(rw[2]), ...(rw[3] ? { itemId: rw[3] } : {}) },
+      cards: cardList,
+      needs_br: true,
+    });
+  }
+  if (!recados.length) throw new Error('recados.md: no recados found');
+  return {
+    _meta: {
+      generatedBy: 'scripts/build-curriculum.mjs from recados.md (markdown is canonical — edit it, then `pnpm content`)',
+      status: 'DRAFT — every recado needs BR sign-off (needs_br). Gated ones carry requires: feira | dialogue.',
+    },
+    recados,
+  };
+}
+
+/** One recado per line keeps the file reviewable in diffs. */
+function recadosJson(o) {
+  const rows = o.recados.map((x) => `    ${JSON.stringify(x)}`).join(',\n');
+  return `{\n  "_meta": ${JSON.stringify(o._meta, null, 2).replace(/\n/g, '\n  ')},\n  "recados": [\n${rows}\n  ]\n}\n`;
+}
+
 /** One entry per line keeps the ticket file reviewable in diffs. */
 function ordersJson(o) {
   const rows = (arr) => arr.map((x) => `    ${JSON.stringify(x)}`).join(',\n');
   return `{\n  "_meta": ${JSON.stringify(o._meta, null, 2).replace(/\n/g, '\n  ')},\n  "mods": [\n${rows(o.mods)}\n  ],\n  "orders": [\n${rows(o.orders)}\n  ]\n}\n`;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// pathToFileURL, not `file://${argv[1]}`: on Windows argv[1] is `C:\...` and the naive compare never matched (`pnpm content` did nothing).
+if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   const out = buildCards();
   fs.writeFileSync(path.join(dir, 'cards.json'), JSON.stringify(out, null, 1) + '\n');
   const orders = buildOrders(out.cards);
   fs.writeFileSync(path.join(dir, 'me-ve-um-orders.json'), ordersJson(orders));
+  const recadosOut = buildRecados(out.cards);
+  fs.writeFileSync(path.join(dir, 'recados.json'), recadosJson(recadosOut));
   const cpu = buildCpuNames();
   fs.writeFileSync(path.join(dir, 'cpu-names.json'), JSON.stringify(cpu, null, 1) + '\n');
   console.log(`✓ cpu-names.json — ${cpu.names.length} ambiance first names`);
   const pending = out.cards.filter((c) => c.signoff !== 'approved').length;
   console.log(`✓ cards.json — ${out._meta.counts.pack} pack cards (${pending} awaiting BR sign-off)`);
+  console.log(`✓ recados.json — ${recadosOut.recados.length} recados (${recadosOut.recados.filter((r) => r.requires).length} gated by requires)`);
   console.log(`✓ me-ve-um-orders.json — ${orders.orders.length} tickets, ${orders.mods.length} modifiers`);
 }
