@@ -21,3 +21,5 @@ export * from './weather.js';
 export * from './hotspots.js';
 export * from './bonds.js';
 export * from './recados.js';
+export * from './caderno.js';
+export * from './npcMemory.js';
