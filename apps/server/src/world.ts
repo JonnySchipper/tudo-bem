@@ -453,7 +453,7 @@ export class World {
     s.profile = p;
     p.nameplate = this.services.student.nameplateFor(p);
     p.lastSeen = this.now();
-    s.send({ t: 'welcome', profile: toPrivate(p), token: p.token });
+    s.send({ t: 'welcome', profile: toPrivate(p), token: p.token, serverNow: this.now() });
     this.notifyFriendsOfPresence(p.id);
     const incoming = this.incomingFriendReqs.get(p.id);
     if (incoming?.size) this.sendFriends(s);
@@ -589,6 +589,7 @@ export class World {
       selfId: s.profile!.id,
       avatars: [...[...target.members.values()].map((m) => this.publicAvatar(m)), ...(target.crowd?.avatars() ?? [])],
       furniture,
+      serverNow: this.now(),
     });
     this.maybeResumeMg(s);
     this.broadcast(target, { t: 'avatarJoined', avatar: this.publicAvatar(s) }, s);

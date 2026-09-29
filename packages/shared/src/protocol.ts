@@ -74,6 +74,8 @@ export interface RoomStateMsg {
   selfId: string;
   avatars: PublicAvatar[];
   furniture: PlacedFurniture[];
+  /** Server `Date.now()` when sent; the client derives `skew = serverNow - Date.now()` for the game clock. */
+  serverNow?: number;
 }
 
 export type NoticeLevel = 'info' | 'warn' | 'block' | 'reward' | 'error';
@@ -193,7 +195,7 @@ export type RollServerMsg =
 
 /** Server → client messages. */
 export type ServerMsg =
-  | { t: 'welcome'; profile: PrivateProfile; token: string }
+  | { t: 'welcome'; profile: PrivateProfile; token: string; serverNow?: number }
   | { t: 'needProfile' }
   /** Multiplayer needs an email + password account; this socket has no valid session cookie. */
   | { t: 'authRequired' }
