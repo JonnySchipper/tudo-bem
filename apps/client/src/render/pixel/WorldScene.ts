@@ -387,14 +387,25 @@ export class WorldScene extends Phaser.Scene {
   private follow(room: RoomDef): void {
     const actor = game.room?.selfId ? this.actors.get(game.room.selfId) : undefined;
     if (!actor) return;
-    const rect = this.game.canvas.getBoundingClientRect();
-    const tilesX = rect.width / this.cssZoom / T;
-    const tilesY = rect.height / this.cssZoom / T;
     const cam = this.cameras.main;
-    if (tilesX >= room.cols && tilesY >= room.rows) {
+    const viewW = cam.width / (cam.zoom || 1);
+    const viewH = cam.height / (cam.zoom || 1);
+    const roomW = room.cols * T;
+    const top = -NORTH_WALL_TILES * T;
+    const contentH = room.rows * T - top;
+    const cx = roomW / 2;
+    const cy = top + contentH / 2;
+    // A view larger than the room cannot scroll inside tight bounds, so Phaser pins the map to the corner.
+    if (viewW >= roomW && viewH >= contentH) {
+      const bw = Math.max(roomW + 2 * T, viewW);
+      const bh = Math.max(contentH + 2 * T, viewH);
+      cam.setBounds(cx - bw / 2, cy - bh / 2, bw, bh);
       cam.stopFollow();
-      cam.centerOn((room.cols * T) / 2, ((room.rows - NORTH_WALL_TILES) * T) / 2);
-    } else cam.startFollow(actor.sprite, true, 0.12, 0.12);
+      cam.centerOn(cx, cy);
+    } else {
+      cam.setBounds(-T, top, roomW + 2 * T, contentH + 2 * T);
+      cam.startFollow(actor.sprite, true, 0.12, 0.12);
+    }
   }
 
   private rebuildBoxes(room: RoomDef): void {

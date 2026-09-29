@@ -44,8 +44,13 @@ const profile = (page) => page.evaluate(() => window.__tb.game.profile);
 
 async function clickTile(page, x, y, lift = 0) {
   const p = await page.evaluate(([x, y]) => window.__tb.tileToClient(x, y), [x, y]);
-  const scale = await page.evaluate(() => window.__tb.renderer.cam.scale);
-  await page.mouse.click(p.px, p.py - lift * scale);
+  const { scale, pixel } = await page.evaluate(() => ({
+    scale: window.__tb.renderer.cam.scale,
+    pixel: new URLSearchParams(location.search).get('view') === 'pixel',
+  }));
+  // Iso sprites sit above the diamond, so the bench/chair clicks rise. Top-down art is on the tile.
+  const rise = pixel ? 0 : lift * scale;
+  await page.mouse.click(p.px, p.py - rise);
 }
 
 /** Props, NPCs and doors by id, so the play path does not depend on the renderer. */

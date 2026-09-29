@@ -27,4 +27,5 @@ Locked choices from the life-sim how-to, plus calls made while building. Phase 1
 4. **Pixel view is opt-in** (`?view=pixel` or `VITE_VIEW=pixel`). The isometric renderer remains the default until the four rooms look right.
 5. **Missing prop sprites are magenta placeholders.** Floors that have no mask tileset yet (`l`, `m`, `j`, `t`, `k`) use a flat brand fill and are listed in `artMissing`, so interiors stay walkable. West-wall decor is skipped until it can move onto the north wall.
 6. **One outfit in this pass, one sheet per skin tone.** `composeCharacter` builds `char_skin_0..n` (body, terracotta top, jeans, hair). Do not `setTint` those sheets: multiply tint crushed the already-shaded pixels into silhouettes. Layered hair, clothes and hats come next and must keep using `composeCharacter`.
-7. **The grade uses `gameMinutes`.** Night darkness holes and weather particles wait until lamps are in the room data. `weather.ts` is ready and unused on screen.
+7. **The grade uses `gameMinutes`.** Night darkness holes and weather particles wait until lamps are in the room data. `weather.ts` is ready and unused on screen. A shot taken near 23:00 game time looks night-blue on purpose.
+8. **A room smaller than the view is centered.** Camera bounds grow to the view so Phaser does not pin the map into the corner. The backdrop is the room wall color.
