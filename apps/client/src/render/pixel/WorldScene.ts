@@ -810,7 +810,7 @@ export class WorldScene extends Phaser.Scene {
       spr.setTexture(sd.atlas, sd.frame).setOrigin(...originOf(sd));
     }
     // sits like a standing piece on its tile but always in front of it: the player is choosing where it goes
-    spr.setPosition(Math.round(g.x * T + T / 2), (g.y + 1) * T).setDepth((g.y + 1) * T + 20).setTint(g.tint).setAlpha(GHOST_ALPHA + 0.08 * Math.sin(performance.now() / 220)).setVisible(true);
+    spr.setPosition(Math.round(g.x * T + T / 2), (g.y + 1) * T).setDepth(49500).setTint(g.tint).setAlpha(GHOST_ALPHA + 0.08 * Math.sin(performance.now() / 220)).setVisible(true);
   }
 
   /** The order rail on the padaria counter is still until Me vê um is open, then its tickets flutter. */

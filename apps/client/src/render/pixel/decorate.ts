@@ -13,7 +13,7 @@ export const GHOST_BAD = 0xff8272;
 /** Tile highlight colours under the ghost. */
 export const TILE_OK = 0x5fd06b;
 export const TILE_BAD = 0xe5572f;
-export const GHOST_ALPHA = 0.62;
+export const GHOST_ALPHA = 0.72;
 
 export interface GhostSpec {
   itemId: string;
