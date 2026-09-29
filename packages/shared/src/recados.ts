@@ -1,9 +1,10 @@
 import type { Bilingual, RoomId, Tile } from './types.js';
-import { ROOMS, type NpcId } from './rooms.js';
+import { OFFSTAGE_NPCS, ROOMS, type NpcId } from './rooms.js';
 import { greetingFor, type Greeting } from './clock.js';
 import { MG_ITEMS, type Rng } from './meveum.js';
 import { hotspotById } from './hotspots.js';
 import { isNpcId, type BondMap } from './bonds.js';
+import recadosPack from '../../../content/curriculum/phase0/recados.json';
 
 /**
  * Recados (errands), the bag and the daily offer (HOWTO Phase 8). Everything here is pure and
@@ -25,6 +26,8 @@ export interface RecadoDef {
   giver: NpcId;
   /** Friendship points (0-100) needed before the giver offers it. */
   minBond: number;
+  /** Feature flag the recado waits for (`RECADO_FLAGS`); the offer logic skips it while the flag is off. */
+  requires?: RecadoFlag;
   title: Bilingual;
   /** What the giver says. */
   ask: Bilingual;
@@ -123,68 +126,21 @@ export function normalizeBag(raw: unknown): Bag {
   return out;
 }
 
-// ---------- starter recados (test fixtures / starter content; the final 15 are authored by a later agent) ----------
+// ---------- the recados (content/curriculum/phase0/recados.md -> recados.json via `pnpm content`) ----------
 
-// needs_br: true for every string below. A1, informal São Paulo Portuguese.
-export const RECADOS: readonly RecadoDef[] = [
-  {
-    id: 'carlos_cafe_pra_nanda',
-    giver: 'carlos',
-    minBond: 0,
-    title: { pt: 'Café pra Nanda', en: 'Coffee for Nanda' },
-    ask: { pt: 'Oi! A Nanda ainda não tomou café. Leva um café com leite pra ela?', en: 'Hi! Nanda hasn’t had her coffee yet. Can you take her a café com leite?' },
-    thanks: { pt: 'Que bom! Ela vai adorar. Valeu!', en: 'Great! She’s going to love it. Thanks!' },
-    steps: [
-      { kind: 'pedir', npc: 'carlos', itemId: 'cafe_com_leite', qty: 1 },
-      { kind: 'entregar', npc: 'nanda', itemId: 'cafe_com_leite', qty: 1 },
-    ],
-    reward: { rv: 10, bond: 4 },
-    cards: ['lex.padaria.cafe_com_leite', 'lex.padaria.me_ve', 'lex.padaria.por_favor'],
-    needs_br: true,
-  },
-  {
-    id: 'nanda_coxinha',
-    giver: 'nanda',
-    minBond: 0,
-    title: { pt: 'Coxinha da padaria', en: 'Coxinha from the bakery' },
-    ask: { pt: 'Tô com fome! Você pede uma coxinha pra mim na padaria?', en: 'I’m hungry! Can you get me a coxinha at the bakery?' },
-    thanks: { pt: 'Hum, quentinha! Obrigada, viu?', en: 'Mmm, still warm! Thank you!' },
-    steps: [
-      { kind: 'pedir', npc: 'carlos', itemId: 'coxinha', qty: 1 },
-      { kind: 'entregar', npc: 'nanda', itemId: 'coxinha', qty: 1 },
-    ],
-    reward: { rv: 12, bond: 4 },
-    cards: ['lex.padaria.coxinha', 'lex.padaria.me_ve', 'lex.padaria.quentinho'],
-    needs_br: true,
-  },
-  {
-    id: 'julia_cumprimento_certo',
-    giver: 'julia',
-    minBond: 0,
-    title: { pt: 'O cumprimento certo', en: 'The right greeting' },
-    ask: { pt: 'Oi! Cumprimenta alguém do jeito certo pra hora do dia. Depois passa na padaria, tá?', en: 'Hi! Greet someone the right way for the time of day. Then stop by the bakery, okay?' },
-    thanks: { pt: 'Muito bem! Você tá pegando o jeito!', en: 'Well done! You’re getting the hang of it!' },
-    steps: [{ kind: 'cumprimentar', timeCorrect: true }, { kind: 'ir', room: 'padaria' }],
-    reward: { rv: 10, bond: 4 },
-    cards: ['lex.social.bom_dia', 'lex.social.boa_tarde', 'lex.social.boa_noite'],
-    needs_br: true,
-  },
-  {
-    id: 'carlos_agua_pra_julia',
-    giver: 'carlos',
-    minBond: 10,
-    title: { pt: 'Água pra Júlia', en: 'Water for Júlia' },
-    ask: { pt: 'A Júlia passa o dia na praça, coitada. Leva uma água pra ela?', en: 'Júlia spends all day in the square, poor thing. Can you take her a water?' },
-    thanks: { pt: 'Isso aí! Por conta da casa, um pão de queijo.', en: 'That’s it! On the house, a pão de queijo.' },
-    steps: [
-      { kind: 'pedir', npc: 'carlos', itemId: 'agua', qty: 1 },
-      { kind: 'entregar', npc: 'julia', itemId: 'agua', qty: 1 },
-    ],
-    reward: { rv: 12, bond: 5, itemId: 'pao_de_queijo' },
-    cards: ['lex.padaria.agua', 'lex.padaria.me_ve', 'lex.padaria.por_conta_da_casa'],
-    needs_br: true,
-  },
-];
+/**
+ * Features a recado can wait for. `RECADO_FLAGS` is the switch: while a flag is off the offer logic skips every
+ * recado that `requires` it (they would be dead ends: the feira does not exist before Phase 9, and `falar` for
+ * anyone but Seu Carlos needs the Phase 7 dialogue box). Flip the flag when the feature ships; tests override it.
+ */
+export type RecadoFlag = 'feira' | 'dialogue';
+export const RECADO_FLAGS: Record<RecadoFlag, boolean> = { feira: false, dialogue: false };
+
+/** Is this recado playable with the given flags (default: the live `RECADO_FLAGS`)? */
+export const recadoEnabled = (d: Pick<RecadoDef, 'requires'>, flags: Readonly<Record<RecadoFlag, boolean>> = RECADO_FLAGS): boolean => !d.requires || flags[d.requires] === true;
+
+// needs_br: true for every string in the pack. A1, informal São Paulo Portuguese.
+export const RECADOS: readonly RecadoDef[] = recadosPack.recados as unknown as RecadoDef[];
 
 export const recadoById = (id: unknown, defs: readonly RecadoDef[] = RECADOS): RecadoDef | undefined =>
   typeof id === 'string' ? defs.find((d) => d.id === id) : undefined;
@@ -257,7 +213,8 @@ export const freshRecadoState = (): RecadoState => ({ day: -1, offered: [], acti
 
 /**
  * The recados offered on a game day: up to `count` (3) random ones from givers the player has unlocked
- * (`bond >= minBond`), never one finished today and never one already accepted. Deterministic for a given `rng`.
+ * (`bond >= minBond`) and whose feature flag is on (`RECADO_FLAGS`), never one finished today and never one already
+ * accepted. Deterministic for a given `rng`.
  */
 export function offerFor(
   profile: { bond?: BondMap; recados?: RecadoState },
@@ -265,11 +222,12 @@ export function offerFor(
   rng: Rng,
   defs: readonly RecadoDef[] = RECADOS,
   count = RECADOS_PER_DAY,
+  flags: Readonly<Record<RecadoFlag, boolean>> = RECADO_FLAGS,
 ): string[] {
   const st = profile.recados;
   const doneToday = st && st.day === day ? st.done : [];
   const activeIds = st?.active.map((a) => a.id) ?? [];
-  const pool = defs.filter((d) => (profile.bond?.[d.giver] ?? 0) >= d.minBond && !doneToday.includes(d.id) && !activeIds.includes(d.id));
+  const pool = defs.filter((d) => recadoEnabled(d, flags) && (profile.bond?.[d.giver] ?? 0) >= d.minBond && !doneToday.includes(d.id) && !activeIds.includes(d.id));
   const out: string[] = [];
   while (out.length < count && pool.length) out.push(pool.splice(Math.floor(rng() * pool.length), 1)[0]!.id);
   return out;
@@ -281,10 +239,11 @@ export function rollRecadoDay(
   day: number,
   rng: Rng,
   defs: readonly RecadoDef[] = RECADOS,
+  flags: Readonly<Record<RecadoFlag, boolean>> = RECADO_FLAGS,
 ): RecadoState {
   const st = profile.recados ?? freshRecadoState();
   if (st.day === day) return st;
-  return { day, offered: offerFor({ bond: profile.bond, recados: st }, day, rng, defs), active: st.active, done: [], talked: [], graded: [] };
+  return { day, offered: offerFor({ bond: profile.bond, recados: st }, day, rng, defs, RECADOS_PER_DAY, flags), active: st.active, done: [], talked: [], graded: [] };
 }
 
 /** Old or hand-edited saves: coerce anything to a valid state. Never throws. */
@@ -338,7 +297,7 @@ export function activeView(a: ActiveRecado, d: RecadoDef): RecadoActiveView {
 export const npcName = (id: NpcId): string =>
   Object.values(ROOMS)
     .flatMap((r) => r.npcs)
-    .find((n) => n.id === id)?.name ?? id;
+    .find((n) => n.id === id)?.name ?? (OFFSTAGE_NPCS as Partial<Record<NpcId, { name: string }>>)[id]?.name ?? id;
 
 const itemName = (id: string): Bilingual => itemById(id)?.name ?? { pt: id, en: id };
 
