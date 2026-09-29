@@ -129,7 +129,8 @@ export function roomFraming(view: { w: number; h: number }, bounds: Rect, focus:
   const c = cameraCenter({ w: view.w, h: view.h, zoom }, bounds, focus, insets);
   let cy = c.cy;
   const toLoY = (view.h / 2 - insets.top) / zoom;
-  const topCy = bounds.y0 + toLoY; // the camera centre that puts the top of the bounds (the north wall) at the top of the free region
+  // the camera centre that puts the top of the north wall band (3 tiles above row 0; a facade may rise higher, that part may be cropped) at the top of the free region
+  const topCy = Math.max(bounds.y0, -NORTH_BAND_PX) + toLoY;
   if (cy > topCy) {
     // following: while the avatar is in the top NORTH_ROWS rows the view sits at the top of the bounds, and eases into following over the next four rows
     const t = Math.min(1, Math.max(0, (focus.y - (NORTH_ROWS * T - 10)) / (4 * T)));
@@ -140,6 +141,8 @@ export function roomFraming(view: { w: number; h: number }, bounds: Rect, focus:
 
 /** Rows next to the north wall in which the camera keeps the whole wall in view. */
 export const NORTH_ROWS = 3;
+/** Height of the north wall band in art px (roomLayout.NORTH_BAND_TILES * T). */
+export const NORTH_BAND_PX = 3 * T;
 
 /** World y of the top edge of the free region (just under the HUD) for a camera centre: what the player sees at the top of the map. */
 export const viewTop = (view: { h: number }, cy: number, zoom: number, insets: Insets): number => cy - (view.h / 2 - insets.top) / zoom;

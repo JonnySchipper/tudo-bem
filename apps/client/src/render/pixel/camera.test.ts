@@ -63,9 +63,20 @@ describe('roomFraming', () => {
         const focus = { x: (col + 0.5) * T, y: (row + 1) * T - 3 - 10 }; // what WorldScene follows: the avatar's feet minus 10
         const f = roomFraming(desktop, b, focus, desktopIns, 4, 1);
         expect(f.fits).toBe(false);
-        expect(viewTop(desktop, f.cy, f.zoom, desktopIns), `row ${row}`).toBeLessThanOrEqual(b.y0 + 0.01);
+        // the whole 3-tile wall band is in view (the facade rising above it may be cropped)
+        expect(viewTop(desktop, f.cy, f.zoom, desktopIns), `row ${row}`).toBeLessThanOrEqual(-3 * T + 0.01);
+        // and the avatar is still comfortably on screen (not pushed under the chat bar)
+        const feetScreen = (focus.y + 10 - f.cy) * f.zoom + desktop.h / 2;
+        expect(feetScreen, `row ${row}`).toBeLessThan(desktop.h - desktopIns.bottom);
       }
     }
+  });
+
+  it('an avatar on row 3 of the praça (just below the top rows) is still well inside the free region', () => {
+    const b = roomBounds(ROOMS.praca, 96);
+    const f = roomFraming(desktop, b, { x: 8 * T, y: 4 * T - 3 - 10 }, desktopIns, 4, 1);
+    const feetScreen = (4 * T - 3 - f.cy) * f.zoom + desktop.h / 2;
+    expect(feetScreen).toBeLessThan(desktop.h - desktopIns.bottom - 40);
   });
 
   it('eases into following: the camera never jumps as the avatar leaves the top rows, and never moves up as it walks down', () => {
