@@ -633,3 +633,8 @@ html.px-ui .decor {
     display: none;
   }
 }
+
+/* the pixel font is wider: room for "Primeiros passos  First steps  0/8" on one line */
+html.px-ui .checklist:not(.collapsed) {
+  width: 318px;
+}
