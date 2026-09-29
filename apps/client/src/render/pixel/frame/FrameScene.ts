@@ -10,8 +10,9 @@ import type { Manifest, SpriteDef } from '../manifest';
 import {
   COLS, ROWS, FLOOR, SHOPS, PROPS, TREES, DECALS, TUFTS, GRIME, WALKER_LOOP, SITTERS, IDLERS, PIGEONS, PIGEON_BOUNDS, LANES, POLES, WIRE_SPANS, type Lane,
 } from './layout';
-import { TERRAIN_PRIORITY, maskAt, phasedIndex, tileIndex } from '../terrain';
-import { darknessAlpha, glowStrength, gradeAt, rgbToInt, shadowFill, sunGlow } from '../lighting';
+import { buildTerrainLayers } from '../terrainLayers';
+import { LightingRig, type Light } from '../lightingRig';
+import { ensureAnim, originOf } from '../spriteUtil';
 import { HAIR_COLORS, CLOTH_COLORS, SKIN_TONES } from '@tudobem/shared';
 import { animKey, composeCharacter, sitFrame, type CharLayer, type Facing } from '../charsheet';
 
@@ -27,20 +28,6 @@ export interface FrameOptions {
   cx?: number;
   cy?: number;
   dpr: number;
-}
-
-interface Light {
-  x: number; // world px
-  y: number;
-  r: number; // world px radius
-  color: number;
-  /** vertical squash of the glow (1 = round halo, <1 = pool on the ground) */
-  squash: number;
-  kind: 'lamp' | 'window' | 'player' | 'stall' | 'car';
-  /** 0..1 multiplier set per frame for dynamic lights */
-  live?: number;
-  /** additive glow alpha override */
-  glow?: number;
 }
 
 interface WalkerState {
@@ -84,16 +71,7 @@ const hash01 = (n: number) => {
 
 export class FrameScene extends Phaser.Scene {
   private hour: number;
-  private fxCam!: Phaser.Cameras.Scene2D.Camera;
-  private grade!: Phaser.GameObjects.RenderTexture;
-  private fill!: Phaser.GameObjects.Rectangle;
-  private litOverlays: Phaser.GameObjects.Image[] = [];
-  private dark!: Phaser.GameObjects.RenderTexture;
-  private sun!: Phaser.GameObjects.Image;
-  private glowSprites: Phaser.GameObjects.Image[] = [];
-  private windowRects: Phaser.GameObjects.Rectangle[] = [];
-  private lightSrc: Light[] = [];
-  private castShadows: Phaser.GameObjects.Image[] = [];
+  private rig!: LightingRig;
   private cloud!: Phaser.GameObjects.TileSprite;
   private walker!: WalkerState;
   private pigeons: PigeonState[] = [];
@@ -145,12 +123,19 @@ export class FrameScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ helpers
   private W<G extends Phaser.GameObjects.GameObject>(o: G): G {
-    this.fxCam.ignore(o);
-    return o;
+    return this.rig.world(o);
   }
-  private F<G extends Phaser.GameObjects.GameObject>(o: G): G {
-    this.cameras.main.ignore(o);
-    return o;
+  private get lightSrc(): Light[] {
+    return this.rig.lights;
+  }
+  private get castShadows(): Phaser.GameObjects.Image[] {
+    return this.rig.castShadows;
+  }
+  private get litOverlays(): Phaser.GameObjects.Image[] {
+    return this.rig.litOverlays;
+  }
+  private get windowRects(): Phaser.GameObjects.Rectangle[] {
+    return this.rig.windowRects;
   }
   private def(key: string): SpriteDef {
     const d = this.m.sprites[key];
@@ -158,7 +143,7 @@ export class FrameScene extends Phaser.Scene {
     return d;
   }
   private originOf(d: SpriteDef): [number, number] {
-    return [d.ax / d.w, d.ay / d.h];
+    return originOf(d);
   }
   private toScreen(wx: number, wy: number): [number, number] {
     const cam = this.cameras.main;
@@ -166,9 +151,7 @@ export class FrameScene extends Phaser.Scene {
     return [(wx - cam.scrollX - hw) * cam.zoom + hw, (wy - cam.scrollY - hh) * cam.zoom + hh];
   }
   private ensureAnim(key: string, d: SpriteDef): string {
-    const ak = 'anim:' + key;
-    if (d.anim && !this.anims.exists(ak)) this.anims.create({ key: ak, frames: d.anim.frames.map((f) => ({ key: d.atlas, frame: f })), frameRate: d.anim.fps, repeat: -1 });
-    return ak;
+    return ensureAnim(this, key, d);
   }
 
   /** Keys the layout asked for that the manifest doesn't have (HOWTO 5.10). The frame shows a flat magenta box, never a painted stand-in. */
@@ -217,8 +200,7 @@ export class FrameScene extends Phaser.Scene {
     cam.setBounds(0, 0, WORLD_W, WORLD_H);
     cam.centerOn((this.opts.cx ?? COLS / 2) * T, (this.opts.cy ?? ROWS / 2) * T);
 
-    this.fxCam = this.cameras.add(0, 0, this.scale.width, this.scale.height, false, 'fx');
-    this.fxCam.setRoundPixels(false);
+    this.rig = new LightingRig(this, cam, 'fx:glow');
 
     this.buildTerrain();
     this.buildDecals();
@@ -234,37 +216,14 @@ export class FrameScene extends Phaser.Scene {
     this.applyLighting();
     this.ready = true;
     this.scale.on('resize', (size: Phaser.Structs.Size) => {
-      this.fxCam.setSize(size.width, size.height);
-      this.grade.resize(size.width, size.height);
-      this.dark.resize(size.width, size.height);
-      this.fill.setSize(size.width, size.height);
+      this.rig.resize(size.width, size.height);
       cam.centerOn((this.opts.cx ?? COLS / 2) * T, (this.opts.cy ?? ROWS / 2) * T);
     });
   }
 
   // ------------------------------------------------------------------ terrain: one Tilemap layer per terrain, dual grid (half tile offset)
   private buildTerrain(): void {
-    const t = this.m.terrain;
-    const map = this.make.tilemap({ tileWidth: T, tileHeight: T, width: COLS + 1, height: ROWS + 1 });
-    const ts = map.addTilesetImage('terrain', 'terrainTs', T, T, t.margin, t.spacing);
-    if (!ts) throw new Error('terrain tileset failed');
-    // flat underlays first (grass, asphalt), then slab terrains on top (see docs/lifesim/DECISIONS.md)
-    const order = [...TERRAIN_PRIORITY].filter((c) => t.layers[c]);
-    order.sort((a, b) => Number(t.layers[a].edge === 'slab') - Number(t.layers[b].edge === 'slab'));
-    order.forEach((ch, li) => {
-      const def = t.layers[ch];
-      const layer = map.createBlankLayer(`terrain_${ch}`, ts, -T / 2, -T / 2, COLS + 1, ROWS + 1);
-      if (!layer) throw new Error('layer failed ' + ch);
-      layer.setDepth(-10000 + li);
-      this.W(layer);
-      for (let j = 0; j <= ROWS; j++) {
-        for (let i = 0; i <= COLS; i++) {
-          const mask = maskAt(FLOOR, ch, i, j);
-          const idx = def.edge === 'slab' ? phasedIndex(def.first, mask, i, def.phases) : tileIndex(def.first, mask, i, j, def.variants);
-          if (idx >= 0) layer.putTileAt(idx, i, j);
-        }
-      }
-    });
+    buildTerrainLayers(this, FLOOR, this.m.terrain, 'terrainTs', { wrap: (o) => this.W(o) });
   }
 
   // ------------------------------------------------------------------ ground decals
@@ -505,53 +464,12 @@ export class FrameScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ lighting (fx camera, screen space)
   private buildLighting(): void {
-    const w = this.scale.width, h = this.scale.height;
-    // grade: a full-screen multiply layer. Light sources erase holes in it, so lit pools are not tinted by the grade.
-    this.grade = this.F(this.add.renderTexture(0, 0, w, h)).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.MULTIPLY).setDepth(1);
-    // darkness overlay for night (normal blend), also with light holes
-    // cool blue fill in the shadows (SCREEN lifts darks more than lights): keeps golden hour from being a flat orange wash
-    this.fill = this.F(this.add.rectangle(0, 0, w, h, 0x3454a8, 0)).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.SCREEN).setDepth(1.5);
-    this.dark = this.F(this.add.renderTexture(0, 0, w, h)).setOrigin(0, 0).setDepth(2);
-    for (let i = 0; i < this.lightSrc.length; i++) {
-      this.glowSprites.push(this.F(this.add.image(0, 0, 'fx:glow')).setBlendMode(Phaser.BlendModes.ADD).setDepth(3).setAlpha(0));
-    }
-    this.sun = this.F(this.add.image(0, 0, 'fx:glow')).setBlendMode(Phaser.BlendModes.ADD).setDepth(3.5).setTint(0xffb867).setAlpha(0);
+    this.rig.syncLights();
     this.cameras.main.postFX.addVignette(0.5, 0.5, 0.92, 0.2);
   }
 
   private applyLighting(): void {
-    const zoom = this.cameras.main.zoom;
-    const dark = darknessAlpha(this.hour);
-    const gs = glowStrength(this.hour);
-    for (const c of this.castShadows) c.setAlpha(Math.max(0.15, 1 - dark * 1.1));
-    const strengthOf = (l: Light) => {
-      if (l.kind === 'player') return Math.min(1, dark / 0.35);
-      if (l.kind === 'car') return gs * (l.live ?? 0);
-      return gs;
-    };
-    this.grade.fill(rgbToInt(gradeAt(this.hour)), 1);
-    const sf = shadowFill(this.hour);
-    this.fill.setFillStyle(rgbToInt(sf.color), sf.alpha);
-    for (const o of this.litOverlays) o.setAlpha(Math.min(1, gs * 0.95));
-    this.dark.clear();
-    if (dark > 0.001) this.dark.fill(0x0b1030, dark);
-    this.lightSrc.forEach((l, i) => {
-      const s = strengthOf(l);
-      const g = this.glowSprites[i];
-      const [sx, sy] = this.toScreen(l.x, l.y);
-      const px = (l.r * 2 * zoom) / 128;
-      if (s > 0.001) {
-        // erase: the grade is mostly lifted inside the light, the darkness fully
-        this.grade.stamp('fx:glow', undefined, sx, sy, { scaleX: px, scaleY: px * l.squash, alpha: Math.min(1, s * 0.9), erase: true });
-        if (dark > 0.001) this.dark.stamp('fx:glow', undefined, sx, sy, { scaleX: px, scaleY: px * l.squash, alpha: Math.min(1, s * 1.05), erase: true });
-      }
-      const glowAlpha = l.glow ?? (l.kind === 'window' ? 0.3 : l.kind === 'stall' ? 0.3 : l.kind === 'player' ? 0.22 : l.kind === 'car' ? 0.3 : 0.42);
-      g.setPosition(sx, sy).setScale(px, px * l.squash).setTint(l.color).setAlpha(s * glowAlpha);
-    });
-    for (const r of this.windowRects) r.setAlpha(gs * 0.6);
-    // low sun: a big warm glow from the upper left (adds warmth and shows the light direction without darkening the scene)
-    const sw = this.scale.width, sh = this.scale.height;
-    this.sun.setPosition(sw * 0.12, -sh * 0.08).setScale((Math.max(sw, sh) * 2.1) / 128).setAlpha(sunGlow(this.hour) * 0.2);
+    this.rig.apply(this.hour, this.cameras.main.zoom, (wx, wy) => this.toScreen(wx, wy));
   }
 
   // ------------------------------------------------------------------ frame loop

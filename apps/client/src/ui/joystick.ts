@@ -1,10 +1,31 @@
 import { h, ui } from './dom';
 
+export type JoystickMode = 'iso' | 'topdown';
+
 /**
- * On-screen stick for phones. Screen directions map onto the isometric tile grid
- * (right = +x/−y, up = −x/−y) and walk a couple of tiles at a time.
+ * Tile step for a stick pushed toward screen direction (sx, sy) (a unit-ish vector, y down).
+ * iso: right = +x/−y, up = −x/−y. topdown (HOWTO D5): right = +x, down = +y.
+ * Walks a couple of tiles at a time; never returns (0, 0) for a push that is long enough to count.
  */
-export function mountJoystick(step: (dx: number, dy: number) => void) {
+export function joystickStep(sx: number, sy: number, mode: JoystickMode = 'iso'): { vx: number; vy: number } {
+  const tileX = mode === 'topdown' ? sx : sx + sy;
+  const tileY = mode === 'topdown' ? sy : -sx + sy;
+  const mag = Math.hypot(tileX, tileY) || 1;
+  let vx = Math.round((tileX / mag) * 3);
+  let vy = Math.round((tileY / mag) * 3);
+  if (vx === 0 && vy === 0) {
+    if (Math.abs(tileX) >= Math.abs(tileY)) vx = tileX > 0 ? 2 : -2;
+    else vy = tileY > 0 ? 2 : -2;
+  }
+  return { vx, vy };
+}
+
+/**
+ * On-screen stick for phones. In `iso` mode screen directions map onto the isometric tile grid
+ * (right = +x/−y, up = −x/−y); in `topdown` mode (the pixel view) right = +x and down = +y. Walks a couple of tiles at a time.
+ */
+export function mountJoystick(step: (dx: number, dy: number) => void, opts: { mode?: JoystickMode } = {}) {
+  const mode = opts.mode ?? 'iso';
   const knob = h('div', { class: 'knob' });
   const pad = h('div', { class: 'joystick', id: 'joystick', 'aria-label': 'Andar' }, knob);
   ui().append(pad);
@@ -31,15 +52,7 @@ export function mountJoystick(step: (dx: number, dy: number) => void) {
     }
     const sx = dx / dist;
     const sy = dy / dist;
-    const tileX = sx + sy;
-    const tileY = -sx + sy;
-    const mag = Math.hypot(tileX, tileY) || 1;
-    vx = Math.round((tileX / mag) * 3);
-    vy = Math.round((tileY / mag) * 3);
-    if (vx === 0 && vy === 0) {
-      if (Math.abs(tileX) >= Math.abs(tileY)) vx = tileX > 0 ? 2 : -2;
-      else vy = tileY > 0 ? 2 : -2;
-    }
+    ({ vx, vy } = joystickStep(sx, sy, mode));
   };
 
   const tick = () => {

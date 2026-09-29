@@ -97,6 +97,12 @@ async function runViewport(browser, vp) {
   await sleep(2500);
   await shot(page, vp, 'praca');
 
+  // walk up to the north end so the shopfronts / wall band are in frame (the spawn view shows the south half at desktop zoom)
+  await page.evaluate(() => window.__tb.walkTo(6, 2));
+  await page.waitForFunction(() => { const t = window.__tb.selfTile(); return t && !t.moving && t.tile.x === 6 && t.tile.y === 2; }, null, { timeout: 12_000 }).catch(() => {});
+  await sleep(1200);
+  await shot(page, vp, 'praca_north');
+
   await interact(page, { portal: 'praca_padaria' });
   await waitRoom(page, 'padaria');
   await sleep(1500);
