@@ -15,10 +15,9 @@ import {
 } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi, ui, clear } from './dom';
-import { drawParrot, renderAvatarPreview } from '../render/avatar';
 import { mountCharPreview, setHatIcon } from '../render/pixel/charPreview';
 export { MinigameUI } from './meveum-ui.js';
-import { furnitureIcon } from '../render/props';
+import { furnitureIcon, npcPortrait, parrotPortrait, expressionForScore, type Expression } from './pixelArt';
 import { speak } from '../audio';
 import { icon } from '../art/ui';
 
@@ -29,24 +28,8 @@ import { closeModal, modalId, openModal } from './modal.js';
 
 const closeBtn = (close: () => void) => h('button', { class: 'close ghost', onclick: close, 'aria-label': 'Fechar' }, '✕');
 
-function portrait(npc: NpcDef | null) {
-  const c = h('canvas', { width: 96, height: 110, style: 'width:96px;height:110px' });
-  let raf = 0;
-  const loop = (ts: number) => {
-    if (!c.isConnected && ts > 1000) return cancelAnimationFrame(raf);
-    if (npc) renderAvatarPreview(c, npc.appearance, npc.hat, false, ts / 1000, { scale: 2.35, footY: 236, npc: npc.id });
-    else {
-      const ctx = c.getContext('2d')!;
-      const dpr = window.devicePixelRatio || 1;
-      c.width = 96 * dpr;
-      c.height = 110 * dpr;
-      ctx.setTransform(dpr * 3.2, 0, 0, dpr * 3.2, 48 * dpr, 88 * dpr);
-      drawParrot(ctx, -2, 0, ts / 1000, true);
-    }
-    raf = requestAnimationFrame(loop);
-  };
-  raf = requestAnimationFrame(loop);
-  return h('div', { class: 'portrait' }, c);
+function portrait(npc: NpcDef | null, expr: Expression = 'neutro') {
+  return npc ? npcPortrait(npc.id, expr, 'portrait') : parrotPortrait('portrait');
 }
 
 // ---------------------------------------------------------------- NPC dialogue
@@ -92,7 +75,7 @@ export function showDialogue(o: DialogueOpts) {
   dialogueEl = h(
     'div',
     { class: `dialogue ${continued ? 'continued' : ''}`, role: 'dialog', 'aria-label': o.speaker, id: 'dialogue' },
-    portrait(o.npc),
+    portrait(o.npc, expressionForScore(o.feedback?.score)),
     h(
       'div',
       null,
@@ -526,7 +509,7 @@ export function buildDecorPanel(actions: { buy: (id: string) => void; rotate: (u
                   },
                   'data-furniture': id,
                 },
-                h('img', { src: furnitureIcon(id, 40), alt: '' }),
+                furnitureIcon(id),
                 h('span', null, h('b', null, d.pt), en(d.en, true)),
                 h('span', { class: 'pill', style: 'box-shadow:none;padding:2px 8px' }, `×${n}`),
               );
@@ -539,7 +522,7 @@ export function buildDecorPanel(actions: { buy: (id: string) => void; rotate: (u
               h(
                 'button',
                 { onclick: () => actions.buy(d.id), disabled: p.coins < d.price, 'data-buy-furniture': d.id },
-                h('img', { src: furnitureIcon(d.id, 40), alt: '' }),
+                furnitureIcon(d.id),
                 h('span', null, h('b', null, d.pt), en(d.en, true)),
                 h('span', { class: 'price', style: 'display:inline-flex;gap:4px;align-items:center;font-weight:800' }, h('span', { class: 'coin' }), String(d.price)),
               ),

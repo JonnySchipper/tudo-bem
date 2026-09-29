@@ -1,5 +1,6 @@
 import './styles.css';
 import './styles/intro.css';
+import './styles/pixel-ui.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
@@ -24,6 +25,8 @@ import { game, type ClientAvatar, type PendingAction } from './state';
 import { Net, wsUrl, type NetLike } from './net';
 import { LocalNet } from './localNet';
 import { WorldRenderer } from './render/world';
+import { pickView } from './render/pickView';
+import { initPixelArt } from './ui/pixelArt';
 import type { Hit, WorldView } from './render/view';
 import { runOnboarding, closeOnboarding } from './ui/onboarding';
 import { buildHud, hoverLabel, idleKickedCard, missionBanner, overlayMessage, parrotWhisper, reconnectBanner, toast } from './ui/hud';
@@ -43,6 +46,7 @@ import {
   showScene,
 } from './ui/panels';
 import { openPedido, updatePedido, closePedido, isPedidoOpen } from './ui/pedido';
+import { openCredits } from './ui/credits';
 import { closeConversa, isConversaOpen, openConversa } from './ui/conversa';
 import { RollUI, closeRoll } from './ui/roll';
 import { speak, stopSpeaking, unlockSpeech } from './audio';
@@ -54,6 +58,8 @@ import { installUiArt } from './art/ui';
 import { artStats, loadArt } from './art/sprites';
 
 installUiArt();
+/** The pixel manifest feeds the DOM art (icons, portraits, ui kit) in both views. A failed load leaves the old chrome and no icons. */
+const pixelArtReady = initPixelArt();
 installViewport();
 void loadArt();
 const armAudio = () => {
@@ -66,11 +72,11 @@ window.addEventListener('keydown', armAudio, { once: true });
 const TOKEN_KEY = 'tb_token';
 const LAST_ROOM_KEY = 'tb_last_room';
 
+await pixelArtReady;
 const canvas = document.getElementById('world') as HTMLCanvasElement;
-/** Which world view draws the scene: 'iso' (default) or 'pixel' (top-down, Phaser). */
-const VIEW: string = new URLSearchParams(location.search).get('view') ?? import.meta.env.VITE_VIEW ?? 'iso';
-if (VIEW !== 'iso' && VIEW !== 'pixel') console.warn(`[TB] unknown view "${VIEW}", using iso`);
-/** Phaser is only loaded for the pixel view, so the default build's first paint doesn't pay for it. */
+/** Which world view draws the scene: 'pixel' (default; top-down, Phaser) or 'iso' (`?view=iso`, until Phase 5). */
+const VIEW: 'pixel' | 'iso' = pickView(new URLSearchParams(location.search).get('view') ?? import.meta.env.VITE_VIEW);
+/** Phaser is only loaded for the pixel view, so `?view=iso` does not pay for it. */
 const renderer: WorldView = VIEW === 'pixel' ? new (await import('./render/pixel/PixelView')).PixelView(canvas) : new WorldRenderer(canvas);
 /** Static deploys (no WebSocket server) run the World in-page. `?solo` forces it anywhere. */
 const SOLO = import.meta.env.VITE_LOCAL_WORLD === '1' || new URLSearchParams(location.search).has('solo');
@@ -527,6 +533,7 @@ function startGame() {
     emote: (kind: EmoteKind) => net.send({ t: 'emote', kind }),
     stand: () => net.send({ t: 'stand' }),
     openMap: () => openMap((room) => joinRoom(room)),
+    openCredits,
     openFriends: () =>
       openFriends({
         request: (id) => net.send({ t: 'friend', action: 'request', targetId: id }),

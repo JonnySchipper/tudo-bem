@@ -9,6 +9,7 @@ export interface HudActions {
   emote: (k: EmoteKind) => void;
   stand: () => void;
   openMap: () => void;
+  openCredits: () => void;
   openFriends: () => void;
   openWardrobe: () => void;
   toggleDecor: () => void;
@@ -72,6 +73,7 @@ export function buildHud(actions: HudActions) {
       h('button', { onclick: actions.openFriends, id: 'btn-friends' }, icon('friends'), bi('Amigos', 'Friends')),
       musicBtn,
       soundBtn,
+      h('button', { onclick: actions.openCredits, id: 'btn-credits', title: 'Créditos / Credits', 'aria-label': 'Créditos' }, icon('info'), bi('Créditos', 'Credits')),
       actions.logout ? h('button', { onclick: actions.logout, id: 'btn-logout', title: 'Sair da conta / Log out', 'aria-label': 'Sair da conta' }, icon('logout'), bi('Sair', 'Log out')) : null,
       game.solo ? h('span', { class: 'pill', title: 'Prévia estática: o mundo roda no seu navegador. Multiplayer precisa do servidor. / Static preview — the world runs in your browser; multiplayer needs the server build.', id: 'solo-pill' }, 'Modo solo') : null,
       missionPill,
@@ -82,10 +84,32 @@ export function buildHud(actions: HudActions) {
 
   // ---- checklist
   const list = h('ol');
+  /** Compact by default once the first step is done (the world matters more than the list); the player's own toggle wins after that. */
+  let checklistTouched = false;
+  const progress = h('span', { class: 'cl-progress' });
+  const toggleChecklist = () => {
+    checklistTouched = true;
+    checklist.classList.toggle('collapsed');
+    head.setAttribute('aria-expanded', String(!checklist.classList.contains('collapsed')));
+  };
+  const head = h(
+    'h3',
+    { onclick: toggleChecklist, tabindex: 0, role: 'button', 'aria-expanded': 'true', title: 'Mostrar / esconder — show / hide' },
+    'Primeiros passos',
+    h('small', { class: 'cl-en' }, 'First steps'),
+    progress,
+    h('span', { class: 'cl-caret', 'aria-hidden': 'true' }),
+  );
+  head.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      toggleChecklist();
+    }
+  });
   const checklist = h(
     'div',
     { class: 'checklist', id: 'checklist' },
-    h('h3', { onclick: () => checklist.classList.toggle('collapsed') }, 'Primeiros passos', h('small', { style: 'font-family:var(--font-body);font-size:.7em;color:var(--ink-soft)' }, 'First steps ▾')),
+    head,
     list,
     h('div', { class: 'reward-note' }, `Complete tudo: +${ECONOMY.tutorialBonus} RV bônus!`, en('Finish all steps for a bonus.')),
   );
@@ -173,6 +197,12 @@ export function buildHud(actions: HudActions) {
           h('li', { class: p.tutorial[s.id] ? 'done' : '', 'data-step': s.id }, h('span', { class: 'box' }), h('div', null, s.pt, en(s.en, true))),
         ),
       );
+      const stepsDone = TUTORIAL_STEPS.filter((s) => p.tutorial[s.id]).length;
+      progress.textContent = `${stepsDone}/${TUTORIAL_STEPS.length}`;
+      if (!checklistTouched) {
+        checklist.classList.toggle('collapsed', stepsDone >= 1);
+        head.setAttribute('aria-expanded', String(stepsDone < 1));
+      }
       checklist.style.display = p.tutorialRewarded && Object.values(p.tutorial).every(Boolean) ? 'none' : '';
       parrotBtn.style.display = p.parrotOwned && p.parrotEquipped ? '' : 'none';
       parrotToggle.style.display = p.parrotOwned ? '' : 'none';

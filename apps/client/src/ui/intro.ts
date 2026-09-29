@@ -2,6 +2,7 @@ import { signIn, signInOpsSmoke, signUp } from '../auth/client';
 import { fetchPublicConfig } from '../auth/config';
 import { introAlreadyPassed, markIntroPassed, readAuthSession, writeAuthSession } from '../auth/session';
 import { h, ui } from './dom';
+import { artCredit } from './credits';
 import { mountIntroParrots, type SkyBand } from './introParrots';
 import { createIntroHeroScene } from './introHeroScene';
 import { mountIntroAtmosphere } from './introAtmosphere';
@@ -278,7 +279,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       h('div', { id: 'tb-idle-kick-slot', class: 'tb-idle-kick-slot', hidden: true, 'aria-hidden': 'true', 'data-tb-region': 'idle-kick-interstitial' }),
     );
 
-    root.append(heroScene.el, glow, atmosphere, veil, musicBtn, skipBtn, h('div', { class: 'intro-shell' }, hero, panel), enterLayer);
+    root.append(heroScene.el, glow, atmosphere, veil, musicBtn, skipBtn, h('div', { class: 'intro-shell' }, hero, panel), enterLayer, artCredit());
 
     document.body.classList.add('intro-active');
     root.classList.add('intro-phase-enter');
