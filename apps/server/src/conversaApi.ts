@@ -23,6 +23,7 @@ import {
   type Pronoun,
   type Nameplate,
   type ConversaGrade,
+  type ConversaOrder,
   type Bilingual,
 } from '@tudobem/shared';
 import { conversaTurn, authoredConversaTurn, isXaiReady, getAuthoredOpener } from './services/xai.js';
@@ -43,6 +44,8 @@ export interface ConversaApiDeps {
   store?: ProfileStore;
   /** Tell the live session its profile changed (coins / daily). */
   onProfileChanged?: (playerId: string) => void;
+  /** A Conversa ended for this player (recados: counts as a talk, may carry an order, a 'pass' earns bond). */
+  onConversaEnd?: (playerId: string, npc: NpcId, grade: ConversaGrade, order?: ConversaOrder) => void;
   /**
    * When set, the player is whoever the session cookie says (the body's playerId is ignored), and
    * requests without a signed-in profile get 401. Unset in solo-style/test setups.
@@ -382,6 +385,8 @@ async function handleEnd(req: ConversaEndRequest, res: ServerResponse, deps: Con
     coins = profile.coins;
     deps.onProfileChanged?.(req.playerId);
   }
+  // The turn responses carry no order yet (`order` is always {}), so none is passed on.
+  if (req.playerId) deps.onConversaEnd?.(req.playerId, req.npcId, grade);
 
   const response: ConversaEndResponse = {
     phase: 'end',
