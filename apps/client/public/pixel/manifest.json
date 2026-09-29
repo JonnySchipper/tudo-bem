@@ -6,8 +6,8 @@
    "image": "atlas/outdoor.png",
    "data": "atlas/outdoor.json",
    "w": 512,
-   "h": 256,
-   "frames": 50
+   "h": 512,
+   "frames": 104
   }
  },
  "terrain": {
@@ -257,9 +257,9 @@
     "ay": 1
    }
   },
-  "props/bush_round": {
+  "props/planter_grass": {
    "atlas": "outdoor",
-   "frame": "props/bush_round",
+   "frame": "props/planter_grass",
    "w": 31,
    "h": 23,
    "ax": 15,
@@ -272,7 +272,7 @@
    "overhead": null,
    "shadow": "fx/shadow_16",
    "cast": {
-    "frame": "props/bush_round#cast",
+    "frame": "props/planter_grass#cast",
     "w": 44,
     "h": 9,
     "ax": 15,
@@ -304,12 +304,12 @@
   "decals/sp_mosaic": {
    "atlas": "outdoor",
    "frame": "decals/sp_mosaic",
-   "w": 32,
+   "w": 48,
    "h": 32,
-   "ax": 16,
+   "ax": 24,
    "ay": 32,
    "footprint": [
-    2,
+    3,
     2
    ],
    "anim": null,
@@ -372,8 +372,8 @@
    ],
    "cast": {
     "frame": "buildings/shop_padaria#cast",
-    "w": 105,
-    "h": 14,
+    "w": 114,
+    "h": 20,
     "ax": 40,
     "ay": 1
    }
@@ -408,8 +408,8 @@
    ],
    "cast": {
     "frame": "buildings/shop_mercado#cast",
-    "w": 105,
-    "h": 14,
+    "w": 114,
+    "h": 20,
     "ax": 40,
     "ay": 1
    }
@@ -444,8 +444,8 @@
    ],
    "cast": {
     "frame": "buildings/shop_flores#cast",
-    "w": 105,
-    "h": 14,
+    "w": 114,
+    "h": 20,
     "ax": 40,
     "ay": 1
    }
@@ -480,8 +480,8 @@
    ],
    "cast": {
     "frame": "buildings/shop_lanches#cast",
-    "w": 105,
-    "h": 14,
+    "w": 114,
+    "h": 20,
     "ax": 40,
     "ay": 1
    }
@@ -516,8 +516,8 @@
    ],
    "cast": {
     "frame": "buildings/shop_sapatos#cast",
-    "w": 105,
-    "h": 14,
+    "w": 114,
+    "h": 20,
     "ax": 40,
     "ay": 1
    }
@@ -552,11 +552,488 @@
    ],
    "cast": {
     "frame": "buildings/shop_pizzaria#cast",
-    "w": 105,
-    "h": 14,
+    "w": 114,
+    "h": 20,
     "ax": 40,
     "ay": 1
    }
+  },
+  "props/hedge_wide": {
+   "atlas": "outdoor",
+   "frame": "props/hedge_wide",
+   "w": 29,
+   "h": 16,
+   "ax": 14,
+   "ay": 15,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/hedge_wide#cast",
+    "w": 39,
+    "h": 7,
+    "ax": 14,
+    "ay": 1
+   }
+  },
+  "props/bush_flower": {
+   "atlas": "outdoor",
+   "frame": "props/bush_flower",
+   "w": 15,
+   "h": 14,
+   "ax": 7,
+   "ay": 13,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/bush_flower#cast",
+    "w": 24,
+    "h": 7,
+    "ax": 7,
+    "ay": 1
+   }
+  },
+  "props/hedge_planter": {
+   "atlas": "outdoor",
+   "frame": "props/hedge_planter",
+   "w": 30,
+   "h": 23,
+   "ax": 15,
+   "ay": 21,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/hedge_planter#cast",
+    "w": 43,
+    "h": 9,
+    "ax": 15,
+    "ay": 1
+   }
+  },
+  "props/pot_teal": {
+   "atlas": "outdoor",
+   "frame": "props/pot_teal",
+   "w": 14,
+   "h": 19,
+   "ax": 7,
+   "ay": 17,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/pot_teal#cast",
+    "w": 25,
+    "h": 8,
+    "ax": 7,
+    "ay": 1
+   }
+  },
+  "props/pot_red": {
+   "atlas": "outdoor",
+   "frame": "props/pot_red",
+   "w": 14,
+   "h": 19,
+   "ax": 7,
+   "ay": 17,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/pot_red#cast",
+    "w": 25,
+    "h": 8,
+    "ax": 7,
+    "ay": 1
+   }
+  },
+  "props/pot_red_small": {
+   "atlas": "outdoor",
+   "frame": "props/pot_red_small",
+   "w": 11,
+   "h": 14,
+   "ax": 5,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/pot_red_small#cast",
+    "w": 19,
+    "h": 6,
+    "ax": 5,
+    "ay": 1
+   }
+  },
+  "props/fountain": {
+   "atlas": "outdoor",
+   "frame": "props/fountain/0",
+   "w": 64,
+   "h": 80,
+   "ax": 32,
+   "ay": 76,
+   "footprint": [
+    4,
+    3
+   ],
+   "anim": {
+    "frames": [
+     "props/fountain/0",
+     "props/fountain/1",
+     "props/fountain/2",
+     "props/fountain/3",
+     "props/fountain/4",
+     "props/fountain/5"
+    ],
+    "fps": 5
+   },
+   "overhead": null,
+   "shadow": null
+  },
+  "vehicles/car_red_r": {
+   "atlas": "outdoor",
+   "frame": "vehicles/car_red_r",
+   "w": 61,
+   "h": 37,
+   "ax": 30,
+   "ay": 33,
+   "footprint": [
+    4,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "vehicles/car_red_l": {
+   "atlas": "outdoor",
+   "frame": "vehicles/car_red_l",
+   "w": 61,
+   "h": 37,
+   "ax": 30,
+   "ay": 33,
+   "footprint": [
+    4,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "vehicles/car_blue_l": {
+   "atlas": "outdoor",
+   "frame": "vehicles/car_blue_l",
+   "w": 61,
+   "h": 37,
+   "ax": 30,
+   "ay": 33,
+   "footprint": [
+    4,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "vehicles/car_blue_r": {
+   "atlas": "outdoor",
+   "frame": "vehicles/car_blue_r",
+   "w": 61,
+   "h": 37,
+   "ax": 30,
+   "ay": 33,
+   "footprint": [
+    4,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "decals/manhole": {
+   "atlas": "outdoor",
+   "frame": "decals/manhole",
+   "w": 15,
+   "h": 14,
+   "ax": 7,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/crosswalk": {
+   "atlas": "outdoor",
+   "frame": "decals/crosswalk",
+   "w": 32,
+   "h": 64,
+   "ax": 0,
+   "ay": 0,
+   "footprint": [
+    2,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/lane_dash": {
+   "atlas": "outdoor",
+   "frame": "decals/lane_dash",
+   "w": 10,
+   "h": 2,
+   "ax": 0,
+   "ay": 0,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/flowers_0": {
+   "atlas": "outdoor",
+   "frame": "decals/flowers_0",
+   "w": 32,
+   "h": 16,
+   "ax": 0,
+   "ay": 0,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/flowers_1": {
+   "atlas": "outdoor",
+   "frame": "decals/flowers_1",
+   "w": 32,
+   "h": 16,
+   "ax": 0,
+   "ay": 0,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/flowers_2": {
+   "atlas": "outdoor",
+   "frame": "decals/flowers_2",
+   "w": 48,
+   "h": 32,
+   "ax": 0,
+   "ay": 0,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/tuft_0": {
+   "atlas": "outdoor",
+   "frame": "decals/tuft_0",
+   "w": 5,
+   "h": 4,
+   "ax": 2,
+   "ay": 3,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/tuft_1": {
+   "atlas": "outdoor",
+   "frame": "decals/tuft_1",
+   "w": 5,
+   "h": 4,
+   "ax": 2,
+   "ay": 3,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/grime_0": {
+   "atlas": "outdoor",
+   "frame": "decals/grime_0",
+   "w": 24,
+   "h": 14,
+   "ax": 12,
+   "ay": 7,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/grime_1": {
+   "atlas": "outdoor",
+   "frame": "decals/grime_1",
+   "w": 18,
+   "h": 10,
+   "ax": 9,
+   "ay": 5,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/grime_2": {
+   "atlas": "outdoor",
+   "frame": "decals/grime_2",
+   "w": 30,
+   "h": 16,
+   "ax": 15,
+   "ay": 8,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/grime_3": {
+   "atlas": "outdoor",
+   "frame": "decals/grime_3",
+   "w": 14,
+   "h": 8,
+   "ax": 7,
+   "ay": 4,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/grime_4": {
+   "atlas": "outdoor",
+   "frame": "decals/grime_4",
+   "w": 22,
+   "h": 12,
+   "ax": 11,
+   "ay": 6,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "critters/cat": {
+   "atlas": "outdoor",
+   "frame": "critters/cat/0",
+   "w": 32,
+   "h": 16,
+   "ax": 16,
+   "ay": 14,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "critters/cat/0",
+     "critters/cat/1",
+     "critters/cat/2",
+     "critters/cat/3",
+     "critters/cat/4",
+     "critters/cat/5",
+     "critters/cat/6",
+     "critters/cat/7",
+     "critters/cat/8",
+     "critters/cat/9",
+     "critters/cat/10",
+     "critters/cat/11",
+     "critters/cat/12",
+     "critters/cat/13",
+     "critters/cat/14",
+     "critters/cat/15",
+     "critters/cat/16",
+     "critters/cat/17"
+    ],
+    "fps": 6
+   },
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "fx/shadow_10": {
+   "atlas": "outdoor",
+   "frame": "fx/shadow_10",
+   "w": 9,
+   "h": 4,
+   "ax": 4,
+   "ay": 2,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
   },
   "fx/shadow_16": {
    "atlas": "outdoor",
@@ -793,8 +1270,8 @@
   },
   "cloudShadow": {
    "file": "fx/cloud_shadow.png",
-   "w": 256,
-   "h": 128
+   "w": 512,
+   "h": 256
   }
  },
  "lights": {}

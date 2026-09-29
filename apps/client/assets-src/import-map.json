@@ -10,7 +10,10 @@
     "garden": "ext:ME_Theme_Sorter_16x16/17_Garden_16x16.png",
     "city": "ext:ME_Theme_Sorter_16x16/2_City_Terrains_16x16.png",
     "shopping": "ext:ME_Theme_Sorter_16x16/9_Shopping_Center_and_Markets_16x16.png",
-    "pigeon": "ext:Animated_16x16/Animated_sheets_16x16/Pigeon_16x16.png"
+    "pigeon": "ext:Animated_16x16/Animated_sheets_16x16/Pigeon_16x16.png",
+    "vehicles": "ext:ME_Theme_Sorter_16x16/10_Vehicles_16x16.png",
+    "fountain": "ext:Animated_16x16/Animated_sheets_16x16/Garden_Fountain_5_16x16.png",
+    "cat": "int:3_Animated_objects/16x16/spritesheets/animated_cat.png"
   },
   "recolors": {
     "ipe": {
@@ -208,10 +211,10 @@
       }
     },
     {
-      "key": "props/bush_round",
+      "key": "props/planter_grass",
       "sheet": "props",
       "rect": [
-        385,
+        386,
         257,
         31,
         23
@@ -249,10 +252,14 @@
       "kind": "custom",
       "custom": "spMosaic",
       "footprint": [
-        2,
+        3,
         2
       ],
-      "decal": true
+      "decal": true,
+      "args": {
+        "w": 48,
+        "h": 32
+      }
     },
     {
       "key": "critters/pigeon",
@@ -292,8 +299,14 @@
       ],
       "shadow": null,
       "cast": {
-        "kx": 0.22,
-        "ky": 0.1
+        "kx": 0.3,
+        "ky": 0.16,
+        "rgba": [
+          26,
+          16,
+          48,
+          84
+        ]
       }
     },
     {
@@ -317,8 +330,14 @@
       ],
       "shadow": null,
       "cast": {
-        "kx": 0.22,
-        "ky": 0.1
+        "kx": 0.3,
+        "ky": 0.16,
+        "rgba": [
+          26,
+          16,
+          48,
+          84
+        ]
       }
     },
     {
@@ -342,8 +361,14 @@
       ],
       "shadow": null,
       "cast": {
-        "kx": 0.22,
-        "ky": 0.1
+        "kx": 0.3,
+        "ky": 0.16,
+        "rgba": [
+          26,
+          16,
+          48,
+          84
+        ]
       }
     },
     {
@@ -367,8 +392,14 @@
       ],
       "shadow": null,
       "cast": {
-        "kx": 0.22,
-        "ky": 0.1
+        "kx": 0.3,
+        "ky": 0.16,
+        "rgba": [
+          26,
+          16,
+          48,
+          84
+        ]
       }
     },
     {
@@ -392,8 +423,14 @@
       ],
       "shadow": null,
       "cast": {
-        "kx": 0.22,
-        "ky": 0.1
+        "kx": 0.3,
+        "ky": 0.16,
+        "rgba": [
+          26,
+          16,
+          48,
+          84
+        ]
       }
     },
     {
@@ -417,9 +454,483 @@
       ],
       "shadow": null,
       "cast": {
-        "kx": 0.22,
-        "ky": 0.1
+        "kx": 0.3,
+        "ky": 0.16,
+        "rgba": [
+          26,
+          16,
+          48,
+          84
+        ]
       }
+    },
+    {
+      "key": "props/hedge_wide",
+      "sheet": "props",
+      "rect": [
+        386,
+        240,
+        29,
+        16
+      ],
+      "anchor": [
+        14,
+        15
+      ],
+      "footprint": [
+        2,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/bush_flower",
+      "sheet": "props",
+      "rect": [
+        416,
+        240,
+        15,
+        14
+      ],
+      "anchor": [
+        7,
+        13
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/hedge_planter",
+      "sheet": "props",
+      "rect": [
+        417,
+        265,
+        30,
+        23
+      ],
+      "anchor": [
+        15,
+        21
+      ],
+      "footprint": [
+        2,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/pot_teal",
+      "sheet": "garden",
+      "rect": [
+        353,
+        412,
+        14,
+        19
+      ],
+      "anchor": [
+        7,
+        17
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/pot_red",
+      "sheet": "garden",
+      "rect": [
+        353,
+        444,
+        14,
+        19
+      ],
+      "anchor": [
+        7,
+        17
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/pot_red_small",
+      "sheet": "garden",
+      "rect": [
+        386,
+        449,
+        11,
+        14
+      ],
+      "anchor": [
+        5,
+        12
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/fountain",
+      "kind": "strip",
+      "sheet": "fountain",
+      "frameW": 64,
+      "frameH": 80,
+      "frames": 6,
+      "fps": 5,
+      "anchor": [
+        32,
+        76
+      ],
+      "footprint": [
+        4,
+        3
+      ]
+    },
+    {
+      "key": "vehicles/car_red_r",
+      "sheet": "vehicles",
+      "rect": [
+        288,
+        26,
+        61,
+        37
+      ],
+      "anchor": [
+        30,
+        33
+      ],
+      "footprint": [
+        4,
+        2
+      ]
+    },
+    {
+      "key": "vehicles/car_red_l",
+      "sheet": "vehicles",
+      "rect": [
+        195,
+        27,
+        61,
+        37
+      ],
+      "anchor": [
+        30,
+        33
+      ],
+      "footprint": [
+        4,
+        2
+      ]
+    },
+    {
+      "key": "vehicles/car_blue_l",
+      "sheet": "vehicles",
+      "rect": [
+        3,
+        27,
+        61,
+        37
+      ],
+      "anchor": [
+        30,
+        33
+      ],
+      "footprint": [
+        4,
+        2
+      ]
+    },
+    {
+      "key": "vehicles/car_blue_r",
+      "sheet": "vehicles",
+      "rect": [
+        96,
+        26,
+        61,
+        37
+      ],
+      "anchor": [
+        30,
+        33
+      ],
+      "footprint": [
+        4,
+        2
+      ]
+    },
+    {
+      "key": "decals/manhole",
+      "sheet": "props",
+      "rect": [
+        352,
+        258,
+        15,
+        14
+      ],
+      "anchor": [
+        7,
+        7
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/crosswalk",
+      "kind": "custom",
+      "custom": "crosswalk",
+      "args": {
+        "w": 32,
+        "h": 64
+      },
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        2,
+        4
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/lane_dash",
+      "kind": "custom",
+      "custom": "laneDash",
+      "args": {
+        "len": 10
+      },
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/flowers_0",
+      "kind": "custom",
+      "custom": "flowerScatter",
+      "args": {
+        "w": 32,
+        "h": 16,
+        "count": 7,
+        "seed": 11
+      },
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        2,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/flowers_1",
+      "kind": "custom",
+      "custom": "flowerScatter",
+      "args": {
+        "w": 32,
+        "h": 16,
+        "count": 6,
+        "seed": 23
+      },
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        2,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/flowers_2",
+      "kind": "custom",
+      "custom": "flowerScatter",
+      "args": {
+        "w": 48,
+        "h": 32,
+        "count": 14,
+        "seed": 37
+      },
+      "anchor": [
+        0,
+        0
+      ],
+      "footprint": [
+        3,
+        2
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/tuft_0",
+      "kind": "custom",
+      "custom": "tuft",
+      "args": {
+        "kind": 0
+      },
+      "anchor": [
+        2,
+        3
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/tuft_1",
+      "kind": "custom",
+      "custom": "tuft",
+      "args": {
+        "kind": 1
+      },
+      "anchor": [
+        2,
+        3
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/grime_0",
+      "kind": "custom",
+      "custom": "grime",
+      "args": {
+        "w": 24,
+        "h": 14,
+        "seed": 3
+      },
+      "footprint": [
+        2,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/grime_1",
+      "kind": "custom",
+      "custom": "grime",
+      "args": {
+        "w": 18,
+        "h": 10,
+        "seed": 8
+      },
+      "footprint": [
+        2,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/grime_2",
+      "kind": "custom",
+      "custom": "grime",
+      "args": {
+        "w": 30,
+        "h": 16,
+        "seed": 15
+      },
+      "footprint": [
+        2,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/grime_3",
+      "kind": "custom",
+      "custom": "grime",
+      "args": {
+        "w": 14,
+        "h": 8,
+        "seed": 21
+      },
+      "footprint": [
+        2,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/grime_4",
+      "kind": "custom",
+      "custom": "grime",
+      "args": {
+        "w": 22,
+        "h": 12,
+        "seed": 34
+      },
+      "footprint": [
+        2,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "critters/cat",
+      "kind": "strip",
+      "sheet": "cat",
+      "frameW": 32,
+      "frameH": 16,
+      "frames": 18,
+      "fps": 6,
+      "anchor": [
+        16,
+        14
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": "fx/shadow_10"
     }
   ],
   "terrain": {

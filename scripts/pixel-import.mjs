@@ -24,7 +24,8 @@ import { KEY_RAMPS } from '../apps/client/src/render/pixel/palette.ts';
 import { calcadaFill, spMosaic } from '../apps/client/assets-src/custom/calcada.mjs';
 import { banca, BANCA } from '../apps/client/assets-src/custom/banca.mjs';
 import { patchSign, findGlass } from '../apps/client/assets-src/custom/shop.mjs';
-import { shadowEllipse, petal, petalScatter, glow, cloudShadow } from '../apps/client/assets-src/custom/fx.mjs';
+import { crosswalk, laneDash, flowerScatter, tuft } from '../apps/client/assets-src/custom/street.mjs';
+import { shadowEllipse, petal, petalScatter, glow, cloudShadow, grime } from '../apps/client/assets-src/custom/fx.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'apps/client/assets-src');
@@ -36,7 +37,12 @@ const rel = (p) => path.relative(ROOT, p).replaceAll('\\', '/');
 
 const CUSTOM = {
   banca: () => ({ img: banca(), anchor: [BANCA.ax, BANCA.ay] }),
-  spMosaic: () => ({ img: spMosaic(), anchor: [16, 32] }),
+  spMosaic: (a) => ({ img: spMosaic(a.w ?? 48, a.h ?? 32), anchor: [(a.w ?? 48) / 2, a.h ?? 32] }),
+  crosswalk: (a) => ({ img: crosswalk(a.w, a.h), anchor: [0, 0] }),
+  laneDash: (a) => ({ img: laneDash(a.len), anchor: [0, 0] }),
+  flowerScatter: (a) => ({ img: flowerScatter(a.w, a.h, a.count, a.seed), anchor: [0, 0] }),
+  tuft: (a) => ({ img: tuft(a.kind), anchor: [2, 3] }),
+  grime: (a) => ({ img: grime(a.w, a.h, a.seed), anchor: [Math.floor(a.w / 2), Math.floor(a.h / 2)] }),
 };
 
 const resolveSrc = (spec) => {
@@ -113,7 +119,7 @@ for (const def of map.sprites) {
     sprites[def.key] = { ...baseEntry(def, img, def.anchor), windows: glass };
     addCast(def, img, def.anchor);
   } else if (kind === 'custom') {
-    const { img, anchor } = CUSTOM[def.custom]();
+    const { img, anchor } = CUSTOM[def.custom](def.args ?? {});
     await savePng(img, path.join(CUSTOM_PNG, path.basename(def.key) + '.png'));
     addFrame('outdoor', def.key, img);
     sprites[def.key] = baseEntry(def, img, def.anchor ?? anchor);
@@ -155,6 +161,7 @@ const fxSprite = (key, img, anchor, extra = {}) => {
   addFrame('outdoor', key, img);
   sprites[key] = { atlas: 'outdoor', frame: key, w: img.w, h: img.h, ax: anchor[0], ay: anchor[1], footprint: [1, 1], anim: null, overhead: null, shadow: null, ...extra };
 };
+fxSprite('fx/shadow_10', shadowEllipse(9, 4), [4, 2]);
 fxSprite('fx/shadow_16', shadowEllipse(14, 6), [7, 3]);
 fxSprite('fx/shadow_32', shadowEllipse(30, 10), [15, 5]);
 fxSprite('fx/shadow_48', shadowEllipse(46, 12), [23, 6]);
@@ -166,9 +173,9 @@ fxSprite('decals/petals_medium', petalScatter(30, 16, 15, 9), [15, 8], { decal: 
   const g = glow(128);
   await savePng(g, path.join(OUT, 'fx/glow_128.png'));
   manifest.fx.glow = { file: 'fx/glow_128.png', w: 128, h: 128 };
-  const c = cloudShadow(256, 128, 11);
+  const c = cloudShadow(512, 256, 11, 64);
   await savePng(c, path.join(OUT, 'fx/cloud_shadow.png'));
-  manifest.fx.cloudShadow = { file: 'fx/cloud_shadow.png', w: 256, h: 128 };
+  manifest.fx.cloudShadow = { file: "fx/cloud_shadow.png", w: 512, h: 256 };
 }
 
 // ------------------------------------------------------------------ atlas

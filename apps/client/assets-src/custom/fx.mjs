@@ -48,6 +48,31 @@ export function petalScatter(w, h, count, seed = 7) {
   return img;
 }
 
+/**
+ * Ground grime: a stippled, low-alpha warm-dark stain (oil, wet patch, wear) that breaks up big flat paving/asphalt areas.
+ * Two alpha levels only, in the pixel-art way; no gradients.
+ */
+export function grime(w, h, seed = 3) {
+  const img = blank(w, h);
+  const r = rng(seed);
+  const cx = (w - 1) / 2, cy = (h - 1) / 2;
+  const bl = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
+  const wob = [r() * 6, r() * 6, r() * 6];
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const a = Math.atan2((y - cy) / (h / 2), (x - cx) / (w / 2));
+      const edge = 0.72 + 0.16 * Math.sin(a * 3 + wob[0]) + 0.1 * Math.sin(a * 5 + wob[1]);
+      const d = Math.hypot((x - cx) / (w / 2), (y - cy) / (h / 2));
+      if (d > edge) continue;
+      const t = 1 - d / edge; // 1 centre .. 0 edge
+      const th = bl[y & 3][x & 3] / 16;
+      if (t > 0.55 && t * 0.9 > th * 0.9) setPx(img, x, y, [40, 26, 30, 46]);
+      else if (t * 1.15 > th) setPx(img, x, y, [40, 26, 30, 26]);
+    }
+  }
+  return img;
+}
+
 /** Soft radial light (white, alpha falloff). Used for light holes in the night darkness and for additive glow. */
 export function glow(size) {
   const img = blank(size, size);
@@ -64,10 +89,9 @@ export function glow(size) {
 }
 
 /** Tileable cloud-shadow mask: black blobs with dithered (pixel) edges, alpha 0 or 255. */
-export function cloudShadow(w = 256, h = 128, seed = 11) {
+export function cloudShadow(w = 512, h = 256, seed = 11, cell = 64) {
   const img = blank(w, h);
   const r = rng(seed);
-  const cell = 32;
   const gw = w / cell, gh = h / cell;
   const lattice = [];
   for (let j = 0; j < gh; j++) { lattice.push([]); for (let i = 0; i < gw; i++) lattice[j].push(r()); }
@@ -86,8 +110,10 @@ export function cloudShadow(w = 256, h = 128, seed = 11) {
     for (let x = 0; x < w; x++) {
       // two octaves, wrapped
       const n = 0.7 * noise(x, y) + 0.3 * noise(x * 2 + 17, y * 2 + 5);
-      const th = 0.56 + (bayer[y & 3][x & 3] / 16 - 0.5) * 0.06;
-      if (n > th) setPx(img, x, y, [0, 0, 0, 255]);
+      // soft edge: a smooth alpha ramp (light effect, so a gradient is fine); the tiny bayer term only breaks up banding
+      const t = Math.min(1, Math.max(0, (n - 0.56 + (bayer[y & 3][x & 3] / 16 - 0.5) * 0.01) / 0.16));
+      const a = t * t * (3 - 2 * t);
+      if (a > 0.004) setPx(img, x, y, [0, 0, 0, Math.round(a * 255)]);
     }
   }
   return img;

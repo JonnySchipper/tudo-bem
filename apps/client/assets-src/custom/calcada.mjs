@@ -3,11 +3,11 @@
 import { blank, setPx, hexPx, rng } from '../../../../scripts/lib/pixel/img.mjs';
 
 export const STONE = {
-  light: ['#ebe4f2', '#ebe4f2', '#d8d0e0', '#ebe4f2'],
+  light: ['#f0efde', '#ebe4f2', '#ebe4f2', '#f0efde', '#d8d0e0', '#eee1b7'],
   lightShade: '#c6bdd5',
   lightHi: '#f8f8f8',
-  dark: ['#6c6e85', '#6c6e85', '#565972', '#6c6e85'],
-  darkShade: '#565972',
+  dark: ['#7d7f99', '#7d7f99', '#6c6e85', '#7d7f99'],
+  darkShade: '#6c6e85',
   darkHi: '#8b8bab',
 };
 
@@ -88,16 +88,15 @@ export function spMapBitmap(w = 32, h = 32, margin = 3) {
   return { bits, cx, cy };
 }
 
-/** 32x32 ground decal (2x2 tiles): the state of São Paulo in light stones on a dark field, with a light border. */
-export function spMosaic() {
-  const W = 32, H = 32;
+/** Ground decal (default 48x32 = 3x2 tiles, close to the real aspect of the state): the state of São Paulo in light stones on a dark field, with a light border. */
+export function spMosaic(W = 48, H = 32) {
   const img = blank(W, H);
-  const { bits, cx, cy } = spMapBitmap(W, H, 3);
+  const { bits, cx, cy } = spMapBitmap(W, H, 2);
   const rand = rng(0x5a0);
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
       const border = x === 0 || y === 0 || x === W - 1 || y === H - 1;
-      const inner = x === 1 || y === 1 || x === W - 2 || y === H - 2;
+      const inner = false; // single light border so the state can be as large as possible
       const shade = (x & 1) === 1 && (y & 1) === 1; // same 2x2 stone shading as the paving
       let hex;
       if (border) hex = '#d8d0e0';
