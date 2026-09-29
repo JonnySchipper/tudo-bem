@@ -24,8 +24,6 @@ import {
 import { game, type ClientAvatar, type PendingAction } from './state';
 import { Net, wsUrl, type NetLike } from './net';
 import { LocalNet } from './localNet';
-import { WorldRenderer } from './render/world';
-import { pickView } from './render/pickView';
 import { initPixelArt } from './ui/pixelArt';
 import type { Hit, WorldView } from './render/view';
 import { runOnboarding, closeOnboarding } from './ui/onboarding';
@@ -55,13 +53,11 @@ import { installViewport } from './ui/viewport';
 import { mountJoystick } from './ui/joystick';
 import { arrowForKey, stepForHeld, stepTarget, type Arrow } from './ui/keys';
 import { installUiArt } from './art/ui';
-import { artStats, loadArt } from './art/sprites';
 
 installUiArt();
 /** The pixel manifest feeds the DOM art (icons, portraits, ui kit) in both views. A failed load leaves the old chrome and no icons. */
 const pixelArtReady = initPixelArt();
 installViewport();
-void loadArt();
 const armAudio = () => {
   unlockSpeech();
   ambience.unlock();
@@ -74,10 +70,9 @@ const LAST_ROOM_KEY = 'tb_last_room';
 
 await pixelArtReady;
 const canvas = document.getElementById('world') as HTMLCanvasElement;
-/** Which world view draws the scene: 'pixel' (default; top-down, Phaser) or 'iso' (`?view=iso`, until Phase 5). */
-const VIEW: 'pixel' | 'iso' = pickView(new URLSearchParams(location.search).get('view') ?? import.meta.env.VITE_VIEW);
-/** Phaser is only loaded for the pixel view, so `?view=iso` does not pay for it. */
-const renderer: WorldView = VIEW === 'pixel' ? new (await import('./render/pixel/PixelView')).PixelView(canvas) : new WorldRenderer(canvas);
+// The pixel view (top-down, Phaser) is the only world view. The isometric renderer was deleted in Phase 5; `?view=iso` is ignored.
+if (new URLSearchParams(location.search).get('view') === 'iso') console.info('[view] the isometric view was removed; drawing the pixel view');
+const renderer: WorldView = new (await import('./render/pixel/PixelView')).PixelView(canvas);
 /** Static deploys (no WebSocket server) run the World in-page. `?solo` forces it anywhere. */
 const SOLO = import.meta.env.VITE_LOCAL_WORLD === '1' || new URLSearchParams(location.search).has('solo');
 const net: NetLike = SOLO ? new LocalNet() : new Net(wsUrl());
@@ -583,7 +578,7 @@ function startGame() {
     const y = Math.max(0, Math.min(room.rows - 1, cur.tile.y + dy));
     if (x === cur.tile.x && y === cur.tile.y) return;
     walkTo({ x, y }, null);
-  }, { mode: VIEW === 'pixel' ? 'topdown' : 'iso' });
+  }, { mode: 'topdown' });
   decor = buildDecorPanel({
     buy: (id) => net.send({ t: 'buy', kind: 'furniture', itemId: id }),
     rotate: (uid) => {
@@ -799,7 +794,7 @@ function keyWalk() {
   }
 }
 
-if (VIEW === 'pixel') {
+{
   document.addEventListener('keydown', (e) => {
     const a = arrowForKey(e.key);
     if (!a || e.ctrlKey || e.metaKey || e.altKey || keysBlocked(e.target)) return;
@@ -891,8 +886,7 @@ window.__tb = {
   renderer,
   net,
   rooms: ROOMS,
-  artStats,
-  /** Sprite keys the pixel view drew as placeholders (empty in the iso view). */
+  /** Sprite keys the pixel view drew as placeholders. */
   get artMissing(): string[] {
     return 'artMissing' in renderer ? (renderer as { artMissing: string[] }).artMissing : [];
   },

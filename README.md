@@ -38,7 +38,7 @@ pnpm typecheck    # all packages
 pnpm test         # vitest: safety filter, gloss, scene graph, minigame, rooms, world server, accounts + idle kick over real HTTP/WS
 pnpm e2e          # headless-Chrome play-through of the whole Phase 0 path (needs `pnpm start` running)
 pnpm verify       # typecheck + test + build
-pnpm art          # regenerate + bake all art assets (see docs/art)
+pnpm pixel        # rebuild apps/client/public/pixel from assets-src (see docs/lifesim)
 pnpm content      # regenerate cards.json, me-ve-um-orders.json, cpu-names.json from the pack markdown
 ```
 
@@ -106,10 +106,7 @@ Curriculum and Trust & Safety own [`content/`](content); engineering owns the sc
 
 ## Art
 
-All Phase 0 art is **generated in-repo** by the build agent as procedural canvas and SVG code. That covers the isometric room backgrounds and floors (calçada paulista, ladrilho hidráulico, taco), props (ipê, orelhão, blue street sign, padaria counter and estufa…), kitnet furniture, paper-doll avatar parts, hats, food icons, and UI chrome (icons, RV coin, logo, azulejo/calçada patterns, Copan skyline).
-
-- `pnpm art` bakes static assets to `apps/client/public/art` (PNG + SVG + `manifest.json`), which the game loads at runtime. Animated pieces render live.
-- Contact sheets for review: [`docs/art/`](docs/art). Live gallery: **`/art.html`**. Style rules and how to override with hand-painted art: [`docs/art/README.md`](docs/art/README.md).
+The world is top-down pixel art (Phaser 3, 16 px tiles) built from the licensed LimeZu packs plus hand-authored Brazilian set pieces; sources are in [`apps/client/assets-src`](apps/client/assets-src) and `pnpm pixel` turns them into `apps/client/public/pixel`. Credits and the rules for each phase are in [`docs/lifesim`](docs/lifesim). The isometric renderer and its baked art pipeline (`pnpm art`, `/art.html`) were removed in Phase 5.
 
 ## Configuration
 

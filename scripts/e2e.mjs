@@ -181,9 +181,9 @@ async function main() {
   }
   const start = await profile(page);
   log('landed in', await room(page), 'coins', start.coins, 'plate', start.nameplate);
-  const art = await page.evaluate(() => window.__tb.artStats());
-  log('baked art sprites loaded', `${art.loaded}/${art.total}`);
-  assert(art.total > 0 && art.loaded === art.total, 'baked art manifest + sprites load');
+  const missing = await page.evaluate(() => window.__tb.artMissing);
+  log('pixel art placeholders in the praça:', missing.length ? missing.join(', ') : 'none');
+  assert(missing.length === 0, `every sprite of the praça comes from the manifest (missing: ${missing.join(', ')})`);
   assert(start.nameplate === 'verde', 'Verde nameplate');
   assert(start.appearance.top === 'camiseta' && start.appearance.bottom === 'calca' && start.appearance.shoes === 0, 'starter outfit is tee + jeans');
   assert(start.appearance.extra === 'nenhum', 'create does not pick glasses/beard/earrings');
