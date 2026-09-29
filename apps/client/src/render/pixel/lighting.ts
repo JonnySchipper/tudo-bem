@@ -76,6 +76,28 @@ export function sunGlow(hour: number): number {
   return h < 17.5 ? smooth((h - 16) / 1.5) : smooth((19 - h) / 1.5);
 }
 
+/** Cool blue that fills the shadows at golden hour (sky light bounce), applied with a SCREEN blend so it lifts darks more than lights. */
+export const SHADOW_FILL_COLOR: Rgb = [0x34, 0x54, 0xa8];
+/** Peak alpha of the shadow fill layer. */
+export const SHADOW_FILL_MAX = 0.2;
+
+/**
+ * 0..1 strength of the cool shadow fill: it starts with the low sun (16:30), peaks through the golden hour (17:30-18:15) and fades out
+ * as the night grade (already blue) and the darkness overlay take over (gone by 19:45). Without it, 17:30 is a flat orange wash.
+ */
+export function shadowFillStrength(hour: number): number {
+  const h = ((hour % 24) + 24) % 24;
+  if (h < 16.5 || h > 19.75) return 0;
+  if (h < 17.5) return smooth((h - 16.5) / 1);
+  if (h <= 18.25) return 1;
+  return smooth((19.75 - h) / 1.5);
+}
+
+/** The shadow fill as { color, alpha } for the current hour. */
+export function shadowFill(hour: number): { color: Rgb; alpha: number } {
+  return { color: SHADOW_FILL_COLOR, alpha: SHADOW_FILL_MAX * shadowFillStrength(hour) };
+}
+
 export function formatHour(hour: number): string {
   const total = Math.round(((hour % 24) + 24) % 24 * 60) % 1440;
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;

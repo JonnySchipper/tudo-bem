@@ -18,6 +18,10 @@ export interface SpriteDef {
   decal?: boolean;
   light?: { x: number; y: number; r: number; color: string };
   windows?: [number, number, number, number][];
+  /** key of a same-size overlay sprite with the lit window panes (facades); draw it above the facade at night */
+  lit?: string;
+  /** wire attach point relative to the anchor (utility pole) */
+  attach?: [number, number];
 }
 
 export interface TerrainLayerDef {

@@ -26,6 +26,7 @@ import { banca, BANCA } from '../apps/client/assets-src/custom/banca.mjs';
 import { patchSign, findGlass } from '../apps/client/assets-src/custom/shop.mjs';
 import { crosswalk, laneDash, flowerScatter, tuft } from '../apps/client/assets-src/custom/street.mjs';
 import { shadowEllipse, petal, petalScatter, glow, cloudShadow, grime } from '../apps/client/assets-src/custom/fx.mjs';
+import { DERIVE } from '../apps/client/assets-src/custom/derive.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'apps/client/assets-src');
@@ -98,7 +99,31 @@ function addCast(def, img, anchor) {
   sprites[def.key].cast = { frame: name, w: sh.w, h: sh.h, ax, ay };
 }
 
+/**
+ * A `derive` generator returns "parts": { key?, img | frames[], fps?, anchor, meta? }. The first part (key = def.key) inherits the
+ * import-map entry (footprint, shadow, cast, light...); extra parts (lit-window overlays, companions) carry their own `meta`.
+ */
+async function emitParts(def, parts) {
+  for (const part of parts) {
+    const key = part.key ?? def.key;
+    const m = { ...(key === def.key ? def : {}), ...(part.meta ?? {}), key };
+    const frames = part.frames ?? [part.img];
+    const first = frames[0];
+    await savePng(first, path.join(CUSTOM_PNG, key.replaceAll('/', '_') + '.png'));
+    if (part.frames) {
+      const names = frames.map((f, i) => { const n = `${key}/${i}`; addFrame('outdoor', n, f); return n; });
+      sprites[key] = { ...baseEntry(m, first, part.anchor), frame: names[0], anim: { frames: names, fps: part.fps ?? 6 } };
+    } else {
+      addFrame('outdoor', key, first);
+      sprites[key] = baseEntry(m, first, part.anchor);
+    }
+    for (const k of ['overhead', 'windows', 'lit', 'attach']) if (m[k] !== undefined) sprites[key][k] = m[k];
+    addCast(m, first, part.anchor);
+  }
+}
+
 // ------------------------------------------------------------------ sprites
+const deriveCtx = { load: async (spec) => loadPng(resolveSrc(spec)), sheet, map };
 for (const def of map.sprites) {
   const kind = def.kind ?? 'sprite';
   if (kind === 'sprite') {
@@ -124,6 +149,9 @@ for (const def of map.sprites) {
     addFrame('outdoor', def.key, img);
     sprites[def.key] = baseEntry(def, img, def.anchor ?? anchor);
     addCast(def, img, def.anchor ?? anchor);
+  } else if (kind === 'derive') {
+    if (!DERIVE[def.fn]) throw new Error(`import-map: unknown derive fn '${def.fn}'`);
+    await emitParts(def, await DERIVE[def.fn](deriveCtx, def.args ?? {}));
   } else if (kind === 'strip') {
     const src = await sheet(def.sheet);
     const names = [];

@@ -11,6 +11,19 @@ export const STONE = {
   darkHi: '#8b8bab',
 };
 
+/**
+ * The paving itself: the light/dark contrast is about 40% lower than the mosaic (STONE, above) so the wave stays readable but no
+ * longer competes with the characters. Light stones sit around luma 192 and dark ones around 128 (was 233 / 125 = 108, now ~64).
+ */
+export const PAVE = {
+  light: ['#c6bdd5', '#c6bdd5', '#d8d0e0', '#bcb7cd', '#b2aecb', '#c6bdd5'],
+  lightShade: '#a2a6be',
+  lightHi: '#d8d0e0',
+  dark: ['#8b8bab', '#8b8bab', '#7d7f99', '#8b8bab'],
+  darkShade: '#6c6e85',
+  darkHi: '#989ebe',
+};
+
 const TAU = Math.PI * 2;
 
 /** True when a stone at tile-local px (sx, sy) lies on a dark wave band. Period is exactly one tile in x and y, so the paving tiles seamlessly. */
@@ -35,10 +48,10 @@ export function calcadaFill(phase = 0) {
       const lx = xs & 1, ly = y & 1;
       const dark = isDark(phase * 16 + c * 2 + 1 + off, r * 2 + 1);
       const t = tint[r][c];
-      const pool = dark ? STONE.dark : STONE.light;
+      const pool = dark ? PAVE.dark : PAVE.light;
       let hex = pool[Math.floor(t * pool.length) % pool.length];
-      if (lx === 0 && ly === 0 && t > 0.45) hex = dark ? STONE.darkHi : STONE.lightHi;
-      if (lx === 1 && ly === 1) hex = dark ? STONE.darkShade : STONE.lightShade;
+      if (lx === 0 && ly === 0 && t > 0.45) hex = dark ? PAVE.darkHi : PAVE.lightHi;
+      if (lx === 1 && ly === 1) hex = dark ? PAVE.darkShade : PAVE.lightShade;
       setPx(img, x, y, hexPx(hex));
     }
   }
