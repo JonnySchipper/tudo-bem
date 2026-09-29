@@ -1,11 +1,15 @@
 #!/usr/bin/env node
 /**
- * Contact sheet of the Brazilian set pieces (art1): every piece at 4x on a neutral background with its manifest key under it.
+ * Contact sheets of the pixel art (art1 set pieces, art2 portraits / feira / icons / UI kit / fixes).
  *
- *   pnpm pixel && node scripts/pixel-contact.mjs [out.png] [scale]
+ *   pnpm pixel && node scripts/pixel-contact.mjs [--set art1|portraits|feira|icons|ui|fixes] [out.png] [scale]
  *
- * Reads apps/client/public/pixel/manifest.json + the atlas, so it shows exactly what the game gets. Animated sprites show every
- * frame side by side; sprites with an overhead part (hat stall canopy) are shown composited; `lit` overlays are shown over their facade.
+ * Sets: art1 (default: the Brazilian set pieces), portraits (5 NPCs x 4 expressions), feira (market stalls open + closed),
+ * icons (item icons at 8x / 3x / 1x), ui (panel / bubble / button 9-slices stretched to two sizes, arrow frames),
+ * fixes (art track 2: before | after of the kombi, fusca, moto and vira-lata).
+ * Reads apps/client/public/pixel/manifest.json + the atlas + the standalone images, so it shows exactly what the game gets.
+ * Animated sprites show every frame side by side; sprites with an overhead part (stall tarps) are shown composited;
+ * `lit` overlays are shown over their facade.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,9 +18,14 @@ import sharp from 'sharp';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PIX = path.join(ROOT, 'apps/client/public/pixel');
-const OUT = path.resolve(process.argv[2] ?? path.join(ROOT, 'docs/lifesim/shots/art1/pieces.png'));
-const S = Number(process.argv[3] ?? 4);
-const MAX_W = 2300;
+const argv = process.argv.slice(2);
+const setIdx = argv.indexOf('--set');
+const SET = setIdx >= 0 ? argv.splice(setIdx, 2)[1] : 'art1';
+const DEFAULTS = { art1: ['art1/pieces.png', 4], portraits: ['art2/portraits.png', 3], feira: ['art2/feira.png', 4], icons: ['art2/icons.png', 4], ui: ['art2/ui.png', 4], fixes: ['art2/fixes.png', 4] };
+if (!DEFAULTS[SET]) throw new Error('unknown --set ' + SET);
+const OUT = path.resolve(argv[0] ?? path.join(ROOT, 'docs/lifesim/shots', DEFAULTS[SET][0]));
+const S = Number(argv[1] ?? DEFAULTS[SET][1]);
+const MAX_W = { portraits: 1120, icons: 1400, ui: 1500 }[SET] ?? 2300;
 const BG = { r: 138, g: 138, b: 148 };
 
 const manifest = JSON.parse(fs.readFileSync(path.join(PIX, 'manifest.json'), 'utf8'));
@@ -50,31 +59,56 @@ function over(dst, src, dx, dy) {
   }
 }
 const blank = (w, h) => ({ w, h, data: Buffer.alloc(w * h * 4) });
+const solid = (w, h, rgb) => {
+  const o = blank(w, h);
+  for (let i = 0; i < w * h; i++) { o.data[i * 4] = rgb[0]; o.data[i * 4 + 1] = rgb[1]; o.data[i * 4 + 2] = rgb[2]; o.data[i * 4 + 3] = 255; }
+  return o;
+};
 
-/** The list of cells: [key, note?]. Frames of animated sprites are expanded. */
-const KEYS = [
+/** Loads a standalone image (manifest.images) as { w, h, data, meta }. */
+async function fileImage(key) {
+  const d = manifest.images?.[key];
+  if (!d) throw new Error('manifest.images: missing ' + key);
+  const { data, info } = await sharp(path.join(PIX, d.file)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  return { w: info.width, h: info.height, data, meta: d };
+}
+async function loadFile(file) {
+  const { data, info } = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  return { w: info.width, h: info.height, data };
+}
+/** 9-slice stretch of `img` to w x h with insets { top, right, bottom, left } (corners kept, edges and centre stretched by nearest). */
+function nineSlice(img, sl, w, h) {
+  const out = blank(w, h);
+  const map = (v, n, lo, hi, N) => (v < lo ? v : v >= n - hi ? N - (n - v) : lo + Math.floor(((v - lo) * (N - lo - hi)) / (n - lo - hi)));
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const sx = map(x, w, sl.left, sl.right, img.w), sy = map(y, h, sl.top, sl.bottom, img.h);
+    img.data.copy(out.data, (y * w + x) * 4, (sy * img.w + sx) * 4, (sy * img.w + sx) * 4 + 4);
+  }
+  return out;
+}
+
+const ART1 = [
   'props/orelhao', 'props/placa_rua', 'props/lixeira', 'props/quiosque', 'props/barraca_chapeus', 'props/poleiro',
   'props/poste_fios', 'props/fios_seg', 'props/fios_4', 'props/fios_6', 'props/fios_8',
   'facades/padaria', 'facades/padaria_lit', 'facades/edificio_ipe', 'facades/edificio_ipe_lit', 'facades/academia', 'facades/academia_lit',
   'vehicles/onibus_e', 'vehicles/onibus_w', 'vehicles/kombi_e', 'vehicles/kombi_w', 'vehicles/fusca_e', 'vehicles/fusca_w', 'vehicles/moto_e', 'vehicles/moto_w',
   'critters/vira_lata_idle_e', 'critters/vira_lata_walk_e', 'critters/vira_lata_sleep_e', 'critters/vira_lata_walk_w',
 ];
+const NL = { newline: true };
 
 function cellImage(key) {
   const d = manifest.sprites[key];
   if (!d) throw new Error('manifest: missing ' + key);
   const frames = d.anim ? d.anim.frames : [d.frame];
   const imgs = frames.map((f) => frame(d.atlas, f));
-  // overhead part (canopy) composited above the standing part
-  let extraTop = 0;
+  // overhead part (canopy / tarp) composited above the standing part
   const comp = imgs.map((img) => {
     if (typeof d.overhead === 'string' && manifest.sprites[d.overhead]) {
       const od = manifest.sprites[d.overhead];
       const oimg = frame(od.atlas, od.anim ? od.anim.frames[0] : od.frame);
       const oy = d.ay - od.ay; // canopy top relative to the base sprite top
       const top = Math.min(0, oy);
-      extraTop = -top;
-      const out = blank(Math.max(img.w, oimg.w), img.h - top);
+      const out = blank(Math.max(img.w, oimg.w), Math.max(img.h, oy + oimg.h) - top);
       over(out, img, 0, -top);
       over(out, oimg, 0, oy - top);
       return out;
@@ -91,19 +125,101 @@ function cellImage(key) {
   return comp;
 }
 
-const cells = KEYS.map((key) => ({ key, frames: cellImage(key) }));
-const GAP = 14, LABEL = 22;
-const scaled = (img) => sharp(img.data, { raw: { width: img.w, height: img.h, channels: 4 } }).resize(img.w * S, img.h * S, { kernel: 'nearest' }).png().toBuffer();
+async function buildCells() {
+  if (SET === 'art1') return ART1.map((key) => ({ key, frames: cellImage(key) }));
+  if (SET === 'portraits') {
+    const out = [];
+    for (const npc of ['carlos', 'nanda', 'julia', 'graca', 'tia_lu']) {
+      for (const e of ['neutro', 'feliz', 'surpreso', 'pensativo']) out.push({ key: `portraits/${npc}_${e}`, frames: [await fileImage(`portraits/${npc}_${e}`)] });
+      // 1x and 2x references (what the DOM will show at those sizes)
+      const ref = await fileImage(`portraits/${npc}_neutro`);
+      out.push({ key: `${npc} neutro at 1x and 2x`, frames: [{ ...ref, s: 1 }, { ...ref, s: 2 }] });
+      out.push(NL);
+    }
+    return out;
+  }
+  if (SET === 'feira') {
+    const out = [];
+    for (const k of ['frutas', 'verduras', 'pastel', 'flores']) {
+      out.push({ key: `feira/${k}`, frames: cellImage(`feira/${k}`) });
+      out.push({ key: `feira/${k}_fechada`, frames: cellImage(`feira/${k}_fechada`) });
+      out.push(NL);
+    }
+    out.push({ key: 'feira/caixotes', frames: cellImage('feira/caixotes') });
+    for (const k of Object.keys(manifest.sprites).filter((n) => n.startsWith('feira/preco_'))) out.push({ key: k, frames: cellImage(k).map((f) => ({ ...f, s: 8 })) });
+    return out;
+  }
+  if (SET === 'icons') {
+    const out = [];
+    for (const k of Object.keys(manifest.images).filter((n) => n.startsWith('icons/'))) {
+      const im = await fileImage(k);
+      out.push({ key: k, frames: [{ ...im, s: 8 }, { ...im, s: 3 }, { ...im, s: 1 }] });
+    }
+    return out;
+  }
+  if (SET === 'ui') {
+    const out = [];
+    for (const k of Object.keys(manifest.images).filter((n) => n.startsWith('ui/'))) {
+      const im = await fileImage(k);
+      const sl = im.meta.slice;
+      if (sl) {
+        const sizes = im.meta.demo ?? [[64, 40], [112, 56]];
+        const demos = sizes.map(([w, h]) => { const bgim = solid(w + 16, h + 16, [138, 176, 130]); over(bgim, nineSlice(im, sl, w, h), 8, 8); return bgim; });
+        out.push({ key: `${k} (slice ${sl.top} ${sl.right} ${sl.bottom} ${sl.left})`, frames: [im, ...demos] });
+      } else if (im.meta.frames) {
+        const fw = im.meta.frameW;
+        const fr = [];
+        for (let i = 0; i < im.meta.frames; i++) {
+          const f = blank(fw, im.h);
+          for (let y = 0; y < im.h; y++) im.data.copy(f.data, y * fw * 4, (y * im.w + i * fw) * 4, (y * im.w + i * fw + fw) * 4);
+          const bgim = solid(fw + 4, im.h + 4, [245, 230, 211]);
+          over(bgim, f, 2, 2);
+          fr.push(bgim);
+        }
+        out.push({ key: `${k} (${im.meta.frames} frames)`, frames: fr });
+      } else out.push({ key: k, frames: [im] });
+    }
+    return out;
+  }
+  if (SET === 'fixes') {
+    const B = path.join(ROOT, 'docs/lifesim/shots/art2/before');
+    const div = (h) => solid(1, h, [255, 255, 255]);
+    const out = [];
+    for (const [bf, key] of [['vehicles_kombi_e', 'vehicles/kombi_e'], ['vehicles_fusca_e', 'vehicles/fusca_e'], ['vehicles_moto_e', 'vehicles/moto_e']]) {
+      const before = await loadFile(path.join(B, bf + '.png'));
+      const after = cellImage(key);
+      out.push({ key: `${key}: before | after`, frames: [before, div(before.h), ...after] });
+      const w = key.replace('_e', '_w');
+      out.push({ key: w, frames: cellImage(w) });
+      out.push(NL);
+    }
+    for (const kind of ['idle', 'walk', 'sleep']) {
+      const before = await loadFile(path.join(B, `critters_vira_lata_${kind}_e.png`));
+      const after = cellImage(`critters/vira_lata_${kind}_e`);
+      out.push({ key: `critters/vira_lata_${kind}_e: before | after`, frames: [{ ...before, s: 8 }, { ...div(before.h), s: 8 }, ...after.map((f) => ({ ...f, s: 8 }))] });
+      out.push(NL);
+    }
+    return out;
+  }
+  throw new Error('no cells for set ' + SET);
+}
 
-// shelf layout
+const cellsAll = await buildCells();
+const cells = cellsAll.filter((c) => !c.newline);
+const GAP = 14, LABEL = 22;
+const sc = (f) => f.s ?? S;
+const scaled = (img) => sharp(img.data, { raw: { width: img.w, height: img.h, channels: 4 } }).resize(img.w * sc(img), img.h * sc(img), { kernel: 'nearest' }).png().toBuffer();
+
+// shelf layout (a { newline } marker forces a new row)
 const placed = [];
 let x = GAP, y = GAP, rowH = 0;
-for (const c of cells) {
-  const w = c.frames.reduce((n, f) => n + f.w * S + 6, -6);
-  const h = Math.max(...c.frames.map((f) => f.h)) * S;
+for (const c of cellsAll) {
+  if (c.newline) { if (x > GAP) { x = GAP; y += rowH + GAP + LABEL; rowH = 0; } continue; }
+  const w = c.frames.reduce((n, f) => n + f.w * sc(f) + 6, -6);
+  const h = Math.max(...c.frames.map((f) => f.h * sc(f)));
   if (x + w + GAP > MAX_W && x > GAP) { x = GAP; y += rowH + GAP + LABEL; rowH = 0; }
   placed.push({ ...c, x, y, w, h });
-  x += Math.max(w, 140) + GAP;
+  x += Math.max(w, SET === 'art1' ? 140 : 60) + GAP;
   rowH = Math.max(rowH, h);
 }
 const W = MAX_W, H = y + rowH + GAP + LABEL;
@@ -113,10 +229,10 @@ let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">`;
 for (const p of placed) {
   let fx = p.x;
   for (const f of p.frames) {
-    layers.push({ input: await scaled(f), left: fx, top: p.y + (p.h - f.h * S) });
-    fx += f.w * S + 6;
+    layers.push({ input: await scaled(f), left: fx, top: p.y + (p.h - f.h * sc(f)) });
+    fx += f.w * sc(f) + 6;
   }
-  svg += `<text x="${p.x}" y="${p.y + p.h + 16}" font-family="Arial, Verdana, sans-serif" font-size="14" font-weight="700" fill="#ffffff" stroke="#22222c" stroke-width="0.6">${esc(p.key)}${p.frames.length > 1 ? `  (${p.frames.length} frames)` : ''}</text>`;
+  svg += `<text x="${p.x}" y="${p.y + p.h + 16}" font-family="Arial, Verdana, sans-serif" font-size="14" font-weight="700" fill="#ffffff" stroke="#22222c" stroke-width="0.6">${esc(p.key)}${p.frames.length > 1 && SET === 'art1' ? `  (${p.frames.length} frames)` : ''}</text>`;
 }
 svg += '</svg>';
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
@@ -124,4 +240,4 @@ await sharp({ create: { width: W, height: H, channels: 3, background: BG } })
   .composite([...layers, { input: Buffer.from(svg), left: 0, top: 0 }])
   .png()
   .toFile(OUT);
-console.log(`[contact] ${cells.length} pieces -> ${path.relative(ROOT, OUT)} (${W}x${H}, ${S}x)`);
+console.log(`[contact:${SET}] ${cells.length} pieces -> ${path.relative(ROOT, OUT)} (${W}x${H}, ${S}x)`);

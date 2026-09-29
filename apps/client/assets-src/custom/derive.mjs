@@ -9,6 +9,7 @@ import * as vauth from './vehicles-auth.mjs';
 import * as facades from './facades.mjs';
 import * as edificio from './edificio.mjs';
 import * as academia from './academia.mjs';
+import * as portraits from './portraits.mjs';
 
 export const DERIVE = {
   orelhao: props.orelhao,
@@ -27,4 +28,9 @@ export const DERIVE = {
   academia: academia.academia,
   fusca: vauth.fusca,
   moto: vauth.moto,
+};
+
+/** Standalone images for the DOM (`images` in import-map.json): generators return [{ key, img, meta? }]. */
+export const IMAGES = {
+  portraits: portraits.portraitParts,
 };

@@ -949,6 +949,9 @@
     { "key": "facades/edificio_ipe", "kind": "derive", "fn": "edificio" },
     { "key": "facades/academia", "kind": "derive", "fn": "academia" }
   ],
+  "images": [
+    { "fn": "portraits" }
+  ],
   "terrain": {
     "c": {
       "name": "calcada",

@@ -26,7 +26,7 @@ import { banca, BANCA } from '../apps/client/assets-src/custom/banca.mjs';
 import { patchSign, findGlass } from '../apps/client/assets-src/custom/shop.mjs';
 import { crosswalk, laneDash, flowerScatter, tuft } from '../apps/client/assets-src/custom/street.mjs';
 import { shadowEllipse, petal, petalScatter, glow, cloudShadow, grime } from '../apps/client/assets-src/custom/fx.mjs';
-import { DERIVE } from '../apps/client/assets-src/custom/derive.mjs';
+import { DERIVE, IMAGES } from '../apps/client/assets-src/custom/derive.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'apps/client/assets-src');
@@ -62,10 +62,10 @@ async function sheet(name) {
 }
 
 fs.rmSync(OUT, { recursive: true, force: true });
-for (const d of ['atlas', 'tiles', 'chars', 'fx']) fs.mkdirSync(path.join(OUT, d), { recursive: true });
+for (const d of ['atlas', 'tiles', 'chars', 'fx', 'portraits', 'icons', 'ui']) fs.mkdirSync(path.join(OUT, d), { recursive: true });
 fs.mkdirSync(CUSTOM_PNG, { recursive: true });
 
-const manifest = { version: 1, tile: 16, atlases: {}, terrain: {}, sprites: {}, chars: {}, sheet: {}, keyRamps: {}, fx: {}, lights: {} };
+const manifest = { version: 1, tile: 16, atlases: {}, terrain: {}, sprites: {}, images: {}, chars: {}, sheet: {}, keyRamps: {}, fx: {}, lights: {} };
 const atlasItems = { outdoor: [] };
 const sprites = manifest.sprites;
 
@@ -181,6 +181,19 @@ for (const def of map.sprites) {
     };
   } else {
     throw new Error('unknown sprite kind ' + kind);
+  }
+}
+
+// ------------------------------------------------------------------ standalone images (portraits, icons, UI kit)
+// These are meant for the DOM (<img>, CSS border-image, background) and are shown at 2-4x, so each is its own PNG under
+// public/pixel/<group>/ and gets a manifest.images[key] = { file, w, h, ...meta } entry (meta: slice insets, frame counts...).
+for (const def of map.images ?? []) {
+  if (!IMAGES[def.fn]) throw new Error(`import-map: unknown images fn '${def.fn}'`);
+  for (const part of await IMAGES[def.fn](deriveCtx, def.args ?? {})) {
+    const file = `${part.key}.png`;
+    fs.mkdirSync(path.dirname(path.join(OUT, file)), { recursive: true });
+    await savePng(part.img, path.join(OUT, file));
+    manifest.images[part.key] = { file, w: part.img.w, h: part.img.h, ...(part.meta ?? {}) };
   }
 }
 

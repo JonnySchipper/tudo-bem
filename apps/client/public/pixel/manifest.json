@@ -1884,6 +1884,108 @@
    "decal": true
   }
  },
+ "images": {
+  "portraits/carlos_neutro": {
+   "file": "portraits/carlos_neutro.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/carlos_feliz": {
+   "file": "portraits/carlos_feliz.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/carlos_surpreso": {
+   "file": "portraits/carlos_surpreso.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/carlos_pensativo": {
+   "file": "portraits/carlos_pensativo.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/nanda_neutro": {
+   "file": "portraits/nanda_neutro.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/nanda_feliz": {
+   "file": "portraits/nanda_feliz.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/nanda_surpreso": {
+   "file": "portraits/nanda_surpreso.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/nanda_pensativo": {
+   "file": "portraits/nanda_pensativo.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/julia_neutro": {
+   "file": "portraits/julia_neutro.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/julia_feliz": {
+   "file": "portraits/julia_feliz.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/julia_surpreso": {
+   "file": "portraits/julia_surpreso.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/julia_pensativo": {
+   "file": "portraits/julia_pensativo.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/graca_neutro": {
+   "file": "portraits/graca_neutro.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/graca_feliz": {
+   "file": "portraits/graca_feliz.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/graca_surpreso": {
+   "file": "portraits/graca_surpreso.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/graca_pensativo": {
+   "file": "portraits/graca_pensativo.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/tia_lu_neutro": {
+   "file": "portraits/tia_lu_neutro.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/tia_lu_feliz": {
+   "file": "portraits/tia_lu_feliz.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/tia_lu_surpreso": {
+   "file": "portraits/tia_lu_surpreso.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/tia_lu_pensativo": {
+   "file": "portraits/tia_lu_pensativo.png",
+   "w": 64,
+   "h": 64
+  }
+ },
  "chars": {
   "body_medio": "chars/body_medio.png",
   "outfit_o01": "chars/outfit_o01.png",
