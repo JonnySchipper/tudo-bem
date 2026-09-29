@@ -34,6 +34,8 @@ export function lookForAppearance(a: Appearance): Look {
 
 /** The three NPCs use the appearance stored in rooms.ts, with a different outfit / hair layer each so they read apart. */
 export const NPC_LAYERS: Record<NpcId, { outfit: string; hair: string }> = {
+  graca: { outfit: 'outfit_o01', hair: 'hair_h02' },
+  tia_lu: { outfit: 'outfit_o16', hair: 'hair_h12' },
   carlos: { outfit: 'outfit_o13', hair: 'hair_h05' },
   nanda: { outfit: 'outfit_o16', hair: 'hair_h12' },
   julia: { outfit: 'outfit_o01', hair: 'hair_h02' },
