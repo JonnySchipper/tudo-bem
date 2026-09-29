@@ -25,7 +25,7 @@ export const DERIVE = {
   poleiro: critters.poleiro,
   viraLata: critters.viraLata,
   onibus: vehicles.onibus,
-  kombi: vehicles.kombi,
+  kombi: vauth.kombi,
   padaria: facades.padaria,
   edificio: edificio.edificio,
   academia: academia.academia,

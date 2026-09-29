@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 512,
    "h": 1024,
-   "frames": 202
+   "frames": 204
   }
  },
  "terrain": {
@@ -1270,10 +1270,10 @@
   "critters/vira_lata_idle_e": {
    "atlas": "outdoor",
    "frame": "critters/vira_lata_idle_e/0",
-   "w": 20,
-   "h": 14,
-   "ax": 10,
-   "ay": 12,
+   "w": 24,
+   "h": 17,
+   "ax": 12,
+   "ay": 16,
    "footprint": [
     1,
     1
@@ -1288,15 +1288,15 @@
     "fps": 3
    },
    "overhead": null,
-   "shadow": "fx/shadow_10"
+   "shadow": "fx/shadow_16"
   },
   "critters/vira_lata_idle_w": {
    "atlas": "outdoor",
    "frame": "critters/vira_lata_idle_w/0",
-   "w": 20,
-   "h": 14,
-   "ax": 9,
-   "ay": 12,
+   "w": 24,
+   "h": 17,
+   "ax": 11,
+   "ay": 16,
    "footprint": [
     1,
     1
@@ -1311,15 +1311,15 @@
     "fps": 3
    },
    "overhead": null,
-   "shadow": "fx/shadow_10"
+   "shadow": "fx/shadow_16"
   },
   "critters/vira_lata_walk_e": {
    "atlas": "outdoor",
    "frame": "critters/vira_lata_walk_e/0",
-   "w": 20,
-   "h": 14,
-   "ax": 10,
-   "ay": 12,
+   "w": 24,
+   "h": 17,
+   "ax": 12,
+   "ay": 16,
    "footprint": [
     1,
     1
@@ -1334,15 +1334,15 @@
     "fps": 8
    },
    "overhead": null,
-   "shadow": "fx/shadow_10"
+   "shadow": "fx/shadow_16"
   },
   "critters/vira_lata_walk_w": {
    "atlas": "outdoor",
    "frame": "critters/vira_lata_walk_w/0",
-   "w": 20,
-   "h": 14,
-   "ax": 9,
-   "ay": 12,
+   "w": 24,
+   "h": 17,
+   "ax": 11,
+   "ay": 16,
    "footprint": [
     1,
     1
@@ -1357,15 +1357,15 @@
     "fps": 8
    },
    "overhead": null,
-   "shadow": "fx/shadow_10"
+   "shadow": "fx/shadow_16"
   },
   "critters/vira_lata_sleep_e": {
    "atlas": "outdoor",
    "frame": "critters/vira_lata_sleep_e/0",
-   "w": 20,
-   "h": 12,
-   "ax": 10,
-   "ay": 10,
+   "w": 24,
+   "h": 15,
+   "ax": 12,
+   "ay": 14,
    "footprint": [
     1,
     1
@@ -1378,15 +1378,15 @@
     "fps": 1.5
    },
    "overhead": null,
-   "shadow": "fx/shadow_10"
+   "shadow": "fx/shadow_16"
   },
   "critters/vira_lata_sleep_w": {
    "atlas": "outdoor",
    "frame": "critters/vira_lata_sleep_w/0",
-   "w": 20,
-   "h": 12,
-   "ax": 9,
-   "ay": 10,
+   "w": 24,
+   "h": 15,
+   "ax": 11,
+   "ay": 14,
    "footprint": [
     1,
     1
@@ -1399,7 +1399,7 @@
     "fps": 1.5
    },
    "overhead": null,
-   "shadow": "fx/shadow_10"
+   "shadow": "fx/shadow_16"
   },
   "vehicles/onibus_e": {
    "atlas": "outdoor",
@@ -1445,41 +1445,53 @@
   },
   "vehicles/kombi_e": {
    "atlas": "outdoor",
-   "frame": "vehicles/kombi_e",
-   "w": 74,
-   "h": 64,
-   "ax": 37,
-   "ay": 60,
+   "frame": "vehicles/kombi_e/0",
+   "w": 68,
+   "h": 46,
+   "ax": 34,
+   "ay": 42,
    "footprint": [
     4,
     2
    ],
-   "anim": null,
+   "anim": {
+    "frames": [
+     "vehicles/kombi_e/0",
+     "vehicles/kombi_e/1"
+    ],
+    "fps": 8
+   },
    "overhead": null,
    "shadow": "fx/shadow_48"
   },
   "vehicles/kombi_w": {
    "atlas": "outdoor",
-   "frame": "vehicles/kombi_w",
-   "w": 74,
-   "h": 64,
-   "ax": 37,
-   "ay": 60,
+   "frame": "vehicles/kombi_w/0",
+   "w": 68,
+   "h": 46,
+   "ax": 33,
+   "ay": 42,
    "footprint": [
     4,
     2
    ],
-   "anim": null,
+   "anim": {
+    "frames": [
+     "vehicles/kombi_w/0",
+     "vehicles/kombi_w/1"
+    ],
+    "fps": 8
+   },
    "overhead": null,
    "shadow": "fx/shadow_48"
   },
   "vehicles/fusca_e": {
    "atlas": "outdoor",
    "frame": "vehicles/fusca_e/0",
-   "w": 56,
-   "h": 34,
-   "ax": 28,
-   "ay": 31,
+   "w": 60,
+   "h": 38,
+   "ax": 30,
+   "ay": 34,
    "footprint": [
     3,
     1
@@ -1497,10 +1509,10 @@
   "vehicles/fusca_w": {
    "atlas": "outdoor",
    "frame": "vehicles/fusca_w/0",
-   "w": 56,
-   "h": 34,
-   "ax": 27,
-   "ay": 31,
+   "w": 60,
+   "h": 38,
+   "ax": 29,
+   "ay": 34,
    "footprint": [
     3,
     1
@@ -1518,10 +1530,10 @@
   "vehicles/moto_e": {
    "atlas": "outdoor",
    "frame": "vehicles/moto_e/0",
-   "w": 34,
-   "h": 26,
-   "ax": 17,
-   "ay": 23,
+   "w": 44,
+   "h": 34,
+   "ax": 22,
+   "ay": 31,
    "footprint": [
     2,
     1
@@ -1539,10 +1551,10 @@
   "vehicles/moto_w": {
    "atlas": "outdoor",
    "frame": "vehicles/moto_w/0",
-   "w": 34,
-   "h": 26,
-   "ax": 16,
-   "ay": 23,
+   "w": 44,
+   "h": 34,
+   "ax": 21,
+   "ay": 31,
    "footprint": [
     2,
     1
