@@ -6,8 +6,8 @@
    "image": "atlas/outdoor.png",
    "data": "atlas/outdoor.json",
    "w": 512,
-   "h": 512,
-   "frames": 104
+   "h": 1024,
+   "frames": 169
   }
  },
  "terrain": {
@@ -1019,6 +1019,747 @@
    },
    "overhead": null,
    "shadow": "fx/shadow_10"
+  },
+  "props/orelhao": {
+   "atlas": "outdoor",
+   "frame": "props/orelhao",
+   "w": 20,
+   "h": 32,
+   "ax": 10,
+   "ay": 30,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/orelhao#cast",
+    "w": 37,
+    "h": 11,
+    "ax": 10,
+    "ay": 1
+   }
+  },
+  "props/placa_rua": {
+   "atlas": "outdoor",
+   "frame": "props/placa_rua",
+   "w": 26,
+   "h": 46,
+   "ax": 12,
+   "ay": 45,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/placa_rua#cast",
+    "w": 51,
+    "h": 15,
+    "ax": 12,
+    "ay": 1
+   }
+  },
+  "props/lixeira": {
+   "atlas": "outdoor",
+   "frame": "props/lixeira",
+   "w": 14,
+   "h": 22,
+   "ax": 7,
+   "ay": 20,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/lixeira#cast",
+    "w": 26,
+    "h": 8,
+    "ax": 7,
+    "ay": 1
+   }
+  },
+  "props/quiosque": {
+   "atlas": "outdoor",
+   "frame": "props/quiosque",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 29,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "light": {
+    "x": 8,
+    "y": 12,
+    "r": 30,
+    "color": "#ffc46a"
+   },
+   "cast": {
+    "frame": "props/quiosque#cast",
+    "w": 33,
+    "h": 11,
+    "ax": 8,
+    "ay": 1
+   }
+  },
+  "props/barraca_chapeus": {
+   "atlas": "outdoor",
+   "frame": "props/barraca_chapeus",
+   "w": 48,
+   "h": 29,
+   "ax": 24,
+   "ay": 27,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": "props/barraca_chapeus_canopy",
+   "shadow": "fx/shadow_32",
+   "cast": {
+    "frame": "props/barraca_chapeus#cast",
+    "w": 61,
+    "h": 9,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "props/barraca_chapeus_canopy": {
+   "atlas": "outdoor",
+   "frame": "props/barraca_chapeus_canopy",
+   "w": 48,
+   "h": 20,
+   "ax": 24,
+   "ay": 47,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "props/poleiro": {
+   "atlas": "outdoor",
+   "frame": "props/poleiro/0",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 30,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "props/poleiro/0",
+     "props/poleiro/1",
+     "props/poleiro/2",
+     "props/poleiro/3"
+    ],
+    "fps": 3
+   },
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/poleiro#cast",
+    "w": 33,
+    "h": 11,
+    "ax": 8,
+    "ay": 1
+   }
+  },
+  "props/poste_fios": {
+   "atlas": "outdoor",
+   "frame": "props/poste_fios",
+   "w": 16,
+   "h": 64,
+   "ax": 8,
+   "ay": 63,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "attach": [
+    0,
+    -51
+   ],
+   "cast": {
+    "frame": "props/poste_fios#cast",
+    "w": 50,
+    "h": 17,
+    "ax": 8,
+    "ay": 1
+   }
+  },
+  "props/fios_seg": {
+   "atlas": "outdoor",
+   "frame": "props/fios_seg",
+   "w": 16,
+   "h": 12,
+   "ax": 0,
+   "ay": 3,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "props/fios_4": {
+   "atlas": "outdoor",
+   "frame": "props/fios_4",
+   "w": 65,
+   "h": 32,
+   "ax": 0,
+   "ay": 1,
+   "footprint": [
+    4,
+    1
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "props/fios_6": {
+   "atlas": "outdoor",
+   "frame": "props/fios_6",
+   "w": 97,
+   "h": 35,
+   "ax": 0,
+   "ay": 1,
+   "footprint": [
+    6,
+    1
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "props/fios_8": {
+   "atlas": "outdoor",
+   "frame": "props/fios_8",
+   "w": 129,
+   "h": 38,
+   "ax": 0,
+   "ay": 1,
+   "footprint": [
+    8,
+    1
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "critters/vira_lata_idle_e": {
+   "atlas": "outdoor",
+   "frame": "critters/vira_lata_idle_e/0",
+   "w": 20,
+   "h": 14,
+   "ax": 10,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "critters/vira_lata_idle_e/0",
+     "critters/vira_lata_idle_e/1",
+     "critters/vira_lata_idle_e/2",
+     "critters/vira_lata_idle_e/3"
+    ],
+    "fps": 3
+   },
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "critters/vira_lata_idle_w": {
+   "atlas": "outdoor",
+   "frame": "critters/vira_lata_idle_w/0",
+   "w": 20,
+   "h": 14,
+   "ax": 9,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "critters/vira_lata_idle_w/0",
+     "critters/vira_lata_idle_w/1",
+     "critters/vira_lata_idle_w/2",
+     "critters/vira_lata_idle_w/3"
+    ],
+    "fps": 3
+   },
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "critters/vira_lata_walk_e": {
+   "atlas": "outdoor",
+   "frame": "critters/vira_lata_walk_e/0",
+   "w": 20,
+   "h": 14,
+   "ax": 10,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "critters/vira_lata_walk_e/0",
+     "critters/vira_lata_walk_e/1",
+     "critters/vira_lata_walk_e/2",
+     "critters/vira_lata_walk_e/3"
+    ],
+    "fps": 8
+   },
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "critters/vira_lata_walk_w": {
+   "atlas": "outdoor",
+   "frame": "critters/vira_lata_walk_w/0",
+   "w": 20,
+   "h": 14,
+   "ax": 9,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "critters/vira_lata_walk_w/0",
+     "critters/vira_lata_walk_w/1",
+     "critters/vira_lata_walk_w/2",
+     "critters/vira_lata_walk_w/3"
+    ],
+    "fps": 8
+   },
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "critters/vira_lata_sleep_e": {
+   "atlas": "outdoor",
+   "frame": "critters/vira_lata_sleep_e/0",
+   "w": 20,
+   "h": 12,
+   "ax": 10,
+   "ay": 10,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "critters/vira_lata_sleep_e/0",
+     "critters/vira_lata_sleep_e/1"
+    ],
+    "fps": 1.5
+   },
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "critters/vira_lata_sleep_w": {
+   "atlas": "outdoor",
+   "frame": "critters/vira_lata_sleep_w/0",
+   "w": 20,
+   "h": 12,
+   "ax": 9,
+   "ay": 10,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "critters/vira_lata_sleep_w/0",
+     "critters/vira_lata_sleep_w/1"
+    ],
+    "fps": 1.5
+   },
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "vehicles/onibus_e": {
+   "atlas": "outdoor",
+   "frame": "vehicles/onibus_e/0",
+   "w": 112,
+   "h": 64,
+   "ax": 56,
+   "ay": 60,
+   "footprint": [
+    6,
+    2
+   ],
+   "anim": {
+    "frames": [
+     "vehicles/onibus_e/0",
+     "vehicles/onibus_e/1"
+    ],
+    "fps": 8
+   },
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "vehicles/onibus_w": {
+   "atlas": "outdoor",
+   "frame": "vehicles/onibus_w/0",
+   "w": 112,
+   "h": 64,
+   "ax": 56,
+   "ay": 60,
+   "footprint": [
+    6,
+    2
+   ],
+   "anim": {
+    "frames": [
+     "vehicles/onibus_w/0",
+     "vehicles/onibus_w/1"
+    ],
+    "fps": 8
+   },
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "vehicles/kombi_e": {
+   "atlas": "outdoor",
+   "frame": "vehicles/kombi_e",
+   "w": 74,
+   "h": 64,
+   "ax": 37,
+   "ay": 60,
+   "footprint": [
+    4,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "vehicles/kombi_w": {
+   "atlas": "outdoor",
+   "frame": "vehicles/kombi_w",
+   "w": 74,
+   "h": 64,
+   "ax": 37,
+   "ay": 60,
+   "footprint": [
+    4,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "vehicles/fusca_e": {
+   "atlas": "outdoor",
+   "frame": "vehicles/fusca_e/0",
+   "w": 56,
+   "h": 34,
+   "ax": 28,
+   "ay": 31,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "vehicles/fusca_e/0",
+     "vehicles/fusca_e/1"
+    ],
+    "fps": 8
+   },
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "vehicles/fusca_w": {
+   "atlas": "outdoor",
+   "frame": "vehicles/fusca_w/0",
+   "w": 56,
+   "h": 34,
+   "ax": 27,
+   "ay": 31,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "vehicles/fusca_w/0",
+     "vehicles/fusca_w/1"
+    ],
+    "fps": 8
+   },
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "vehicles/moto_e": {
+   "atlas": "outdoor",
+   "frame": "vehicles/moto_e/0",
+   "w": 34,
+   "h": 26,
+   "ax": 17,
+   "ay": 23,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "vehicles/moto_e/0",
+     "vehicles/moto_e/1"
+    ],
+    "fps": 10
+   },
+   "overhead": null,
+   "shadow": "fx/shadow_32"
+  },
+  "vehicles/moto_w": {
+   "atlas": "outdoor",
+   "frame": "vehicles/moto_w/0",
+   "w": 34,
+   "h": 26,
+   "ax": 16,
+   "ay": 23,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "vehicles/moto_w/0",
+     "vehicles/moto_w/1"
+    ],
+    "fps": 10
+   },
+   "overhead": null,
+   "shadow": "fx/shadow_32"
+  },
+  "facades/padaria": {
+   "atlas": "outdoor",
+   "frame": "facades/padaria",
+   "w": 128,
+   "h": 96,
+   "ax": 64,
+   "ay": 95,
+   "footprint": [
+    8,
+    6
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     11,
+     63,
+     32,
+     17
+    ],
+    [
+     85,
+     63,
+     32,
+     17
+    ],
+    [
+     59,
+     70,
+     10,
+     17
+    ]
+   ],
+   "lit": "facades/padaria_lit",
+   "cast": {
+    "frame": "facades/padaria#cast",
+    "w": 159,
+    "h": 19,
+    "ax": 64,
+    "ay": 1
+   }
+  },
+  "facades/padaria_lit": {
+   "atlas": "outdoor",
+   "frame": "facades/padaria_lit",
+   "w": 128,
+   "h": 96,
+   "ax": 64,
+   "ay": 95,
+   "footprint": [
+    8,
+    6
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "facades/edificio_ipe": {
+   "atlas": "outdoor",
+   "frame": "facades/edificio_ipe",
+   "w": 160,
+   "h": 124,
+   "ax": 80,
+   "ay": 123,
+   "footprint": [
+    10,
+    6
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     13,
+     46,
+     10,
+     17
+    ],
+    [
+     31,
+     46,
+     10,
+     17
+    ],
+    [
+     125,
+     46,
+     10,
+     17
+    ],
+    [
+     143,
+     46,
+     10,
+     17
+    ],
+    [
+     51,
+     47,
+     10,
+     17
+    ],
+    [
+     83,
+     47,
+     10,
+     17
+    ],
+    [
+     50,
+     91,
+     12,
+     9
+    ],
+    [
+     82,
+     91,
+     12,
+     9
+    ]
+   ],
+   "lit": "facades/edificio_ipe_lit",
+   "cast": {
+    "frame": "facades/edificio_ipe#cast",
+    "w": 199,
+    "h": 23,
+    "ax": 80,
+    "ay": 1
+   }
+  },
+  "facades/edificio_ipe_lit": {
+   "atlas": "outdoor",
+   "frame": "facades/edificio_ipe_lit",
+   "w": 160,
+   "h": 124,
+   "ax": 80,
+   "ay": 123,
+   "footprint": [
+    10,
+    6
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "facades/academia": {
+   "atlas": "outdoor",
+   "frame": "facades/academia",
+   "w": 160,
+   "h": 96,
+   "ax": 80,
+   "ay": 95,
+   "footprint": [
+    10,
+    6
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     11,
+     63,
+     48,
+     17
+    ],
+    [
+     101,
+     63,
+     48,
+     17
+    ],
+    [
+     75,
+     70,
+     10,
+     17
+    ]
+   ],
+   "lit": "facades/academia_lit",
+   "cast": {
+    "frame": "facades/academia#cast",
+    "w": 191,
+    "h": 19,
+    "ax": 80,
+    "ay": 1
+   }
+  },
+  "facades/academia_lit": {
+   "atlas": "outdoor",
+   "frame": "facades/academia_lit",
+   "w": 160,
+   "h": 96,
+   "ax": 80,
+   "ay": 95,
+   "footprint": [
+    10,
+    6
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
   },
   "fx/shadow_10": {
    "atlas": "outdoor",

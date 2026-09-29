@@ -931,7 +931,23 @@
         1
       ],
       "shadow": "fx/shadow_10"
-    }
+    },
+    { "key": "props/orelhao", "kind": "derive", "fn": "orelhao", "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": { "kx": 0.5, "ky": 0.25 } },
+    { "key": "props/placa_rua", "kind": "derive", "fn": "placaRua", "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": { "kx": 0.5, "ky": 0.25 } },
+    { "key": "props/lixeira", "kind": "derive", "fn": "lixeira", "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": { "kx": 0.5, "ky": 0.25 } },
+    { "key": "props/quiosque", "kind": "derive", "fn": "quiosque", "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": { "kx": 0.5, "ky": 0.25 }, "light": { "x": 8, "y": 12, "r": 30, "color": "#ffc46a" } },
+    { "key": "props/barraca_chapeus", "kind": "derive", "fn": "barracaChapeus", "footprint": [2, 1], "shadow": "fx/shadow_32", "cast": { "kx": 0.4, "ky": 0.22 } },
+    { "key": "props/poleiro", "kind": "derive", "fn": "poleiro", "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": { "kx": 0.5, "ky": 0.25 } },
+    { "key": "props/poste_fios", "kind": "derive", "fn": "posteFios", "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": { "kx": 0.5, "ky": 0.22 } },
+    { "key": "props/fios_seg", "kind": "derive", "fn": "fios" },
+    { "key": "critters/vira_lata_idle_e", "kind": "derive", "fn": "viraLata" },
+    { "key": "vehicles/onibus_e", "kind": "derive", "fn": "onibus" },
+    { "key": "vehicles/kombi_e", "kind": "derive", "fn": "kombi" },
+    { "key": "vehicles/fusca_e", "kind": "derive", "fn": "fusca" },
+    { "key": "vehicles/moto_e", "kind": "derive", "fn": "moto" },
+    { "key": "facades/padaria", "kind": "derive", "fn": "padaria" },
+    { "key": "facades/edificio_ipe", "kind": "derive", "fn": "edificio" },
+    { "key": "facades/academia", "kind": "derive", "fn": "academia" }
   ],
   "terrain": {
     "c": {
