@@ -1,0 +1,13 @@
+{
+  "$comment": "Art track 3 (interiors): floors, walls, doors, padaria / kitnet / academia / praca props. Merged after import-map.json by scripts/lib/pixel/importmap.mjs.",
+  "sheets": {
+    "rbFloors": "int:1_Interiors/16x16/Room_Builder_subfiles/Room_Builder_Floors_16x16.png"
+  },
+  "terrain": {
+    "t": { "name": "tijolo", "kind": "flush", "custom": "tijolo" },
+    "l": { "name": "ladrilho", "kind": "flush", "custom": "ladrilho", "rim": "#7a5a48" },
+    "m": { "name": "madeira", "kind": "flush", "custom": "taco", "sheet": "rbFloors", "rim": "#4a2f22" },
+    "k": { "name": "xadrez", "kind": "flush", "custom": "xadrez", "rim": "#3a3a50" },
+    "j": { "name": "tatame", "kind": "flush", "custom": "tatame", "rim": "#2b3a5c" }
+  }
+}

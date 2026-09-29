@@ -21,7 +21,8 @@ const PIX = path.join(ROOT, 'apps/client/public/pixel');
 const argv = process.argv.slice(2);
 const setIdx = argv.indexOf('--set');
 const SET = setIdx >= 0 ? argv.splice(setIdx, 2)[1] : 'art1';
-const DEFAULTS = { art1: ['art1/pieces.png', 4], portraits: ['art2/portraits.png', 3], feira: ['art2/feira.png', 4], icons: ['art2/icons.png', 4], ui: ['art2/ui.png', 4], fixes: ['art2/fixes.png', 4] };
+const ART3 = { floors: 'art3/floors.png', walls: 'art3/walls.png', padaria: 'art3/padaria.png', kitnet: 'art3/kitnet.png', academia: 'art3/academia.png', praca: 'art3/praca.png' };
+const DEFAULTS = { ...Object.fromEntries(Object.entries(ART3).map(([k, v]) => [k, [v, 4]])), art1: ['art1/pieces.png', 4], portraits: ['art2/portraits.png', 3], feira: ['art2/feira.png', 4], icons: ['art2/icons.png', 4], ui: ['art2/ui.png', 4], fixes: ['art2/fixes.png', 4] };
 if (!DEFAULTS[SET]) throw new Error('unknown --set ' + SET);
 const OUT = path.resolve(argv[0] ?? path.join(ROOT, 'docs/lifesim/shots', DEFAULTS[SET][0]));
 const S = Number(argv[1] ?? DEFAULTS[SET][1]);
@@ -198,6 +199,53 @@ async function buildCells() {
       const after = cellImage(`critters/vira_lata_${kind}_e`);
       out.push({ key: `critters/vira_lata_${kind}_e: before | after`, frames: [{ ...before, s: 8 }, { ...div(before.h), s: 8 }, ...after.map((f) => ({ ...f, s: 8 }))] });
       out.push(NL);
+    }
+    return out;
+  }
+  if (SET === 'floors') {
+    // each flush terrain painted as a blob with a notch (all 16 masks appear), drawn like terrainLayers.ts does (dual grid, half tile offset)
+    const t = manifest.terrain;
+    const { data, info } = await sharp(path.join(PIX, t.tileset)).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const tileImg = (n) => {
+      const col = n % t.columns, row = Math.floor(n / t.columns);
+      const ox = t.margin + col * (16 + t.spacing), oy = t.margin + row * (16 + t.spacing);
+      const out = blank(16, 16);
+      for (let y = 0; y < 16; y++) data.copy(out.data, y * 64, ((oy + y) * info.width + ox) * 4, ((oy + y) * info.width + ox + 16) * 4);
+      return out;
+    };
+    const FL = ['........', '.######.', '.######.', '.##..##.', '.######.', '.######.', '........'];
+    const out = [];
+    for (const [ch, def] of Object.entries(t.layers)) {
+      const is = (x, y) => (FL[y]?.[x] === '#' ? 1 : 0);
+      const img = solid(FL[0].length * 16, FL.length * 16, [40, 38, 52]);
+      for (let j = 0; j <= FL.length; j++) for (let i = 0; i <= FL[0].length; i++) {
+        const mask = is(i - 1, j - 1) * 8 + is(i, j - 1) * 4 + is(i - 1, j) * 2 + is(i, j);
+        if (!mask) continue;
+        let n;
+        if (def.edge === 'flush') n = def.first + (((j % (def.phasesY ?? 1)) * def.phases + (i % def.phases)) * 16) + mask;
+        else if (def.edge === 'slab') n = def.first + (i % def.phases) * 16 + mask;
+        else n = def.first + mask;
+        over(img, tileImg(n), i * 16 - 8, j * 16 - 8);
+      }
+      out.push({ key: `terrain ${ch} ${def.name} (${def.edge}, ${def.phases}x${def.phasesY ?? 1} phases)`, frames: [img] });
+    }
+    return out;
+  }
+  const A3 = {
+    walls: (k) => /^(walls|doors)\//.test(k) || k === 'props/doormat',
+    padaria: (k) => /^props\/(balcao|vitrine|estufa|trilho_pedidos|caixa|banqueta|mesa|cadeira_padaria)/.test(k),
+    kitnet: (k) => /^props\/(cama|cozinha)/.test(k) || k.startsWith('furniture/'),
+    academia: (k) => /^props\/(tatame|quadro_fila|parede_faixas|banco_espectador|vestiario|quadro_foto)/.test(k),
+    praca: (k) => /^props\/(bicicletario|mesa_cafe|jornais)/.test(k),
+  };
+  if (A3[SET]) {
+    const out = [];
+    let last = '';
+    for (const k of Object.keys(manifest.sprites).filter(A3[SET])) {
+      const g = k.replace(/_(\d+_of_\d+|[0-9]|e|w|n|s|se|sw|ne|nw|lit)$/, '');
+      if (last && g !== last) out.push(NL);
+      last = g;
+      out.push({ key: k, frames: cellImage(k) });
     }
     return out;
   }

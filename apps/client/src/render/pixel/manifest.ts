@@ -26,9 +26,11 @@ export interface SpriteDef {
 
 export interface TerrainLayerDef {
   name: string;
-  edge: 'slab' | 'flat';
+  edge: 'slab' | 'flat' | 'flush';
   first: number;
   phases: number;
+  /** vertical phases of a 2D phase grid (flush floors); absent = 1 */
+  phasesY?: number;
   variants: number;
   tiles: number;
 }

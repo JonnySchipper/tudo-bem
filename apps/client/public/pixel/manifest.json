@@ -16,7 +16,7 @@
   "margin": 1,
   "spacing": 2,
   "columns": 16,
-  "count": 86,
+  "count": 454,
   "layers": {
    "c": {
     "name": "calcada",
@@ -41,6 +41,51 @@
     "phases": 1,
     "variants": 6,
     "tiles": 21
+   },
+   "t": {
+    "name": "tijolo",
+    "edge": "flush",
+    "first": 86,
+    "phases": 1,
+    "phasesY": 1,
+    "variants": 1,
+    "tiles": 16
+   },
+   "l": {
+    "name": "ladrilho",
+    "edge": "flush",
+    "first": 102,
+    "phases": 2,
+    "phasesY": 2,
+    "variants": 1,
+    "tiles": 64
+   },
+   "m": {
+    "name": "madeira",
+    "edge": "flush",
+    "first": 166,
+    "phases": 1,
+    "phasesY": 1,
+    "variants": 1,
+    "tiles": 16
+   },
+   "k": {
+    "name": "xadrez",
+    "edge": "flush",
+    "first": 182,
+    "phases": 1,
+    "phasesY": 1,
+    "variants": 1,
+    "tiles": 16
+   },
+   "j": {
+    "name": "tatame",
+    "edge": "flush",
+    "first": 198,
+    "phases": 4,
+    "phasesY": 4,
+    "variants": 1,
+    "tiles": 256
    }
   }
  },

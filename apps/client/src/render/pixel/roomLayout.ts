@@ -17,11 +17,11 @@ export const FACADE_FOR_ROOM: Partial<Record<RoomId, string>> = { padaria: 'faca
 /** Game hour whose lighting grade a room uses until the game clock arrives (Phase 6): `tarde` is golden hour, `manha` warm morning, `dia` neutral. */
 export const ROOM_HOUR: Record<RoomDef['lighting'], number> = { tarde: 17.5, manha: 8, dia: 12 };
 
-/** Floor chars with no terrain art of their own that borrow another terrain (brick pavers look like calçada). Still reported as missing art. */
-export const FLOOR_SUBSTITUTE: Record<string, string> = { t: 'c', k: 'c', d: 'g' };
+/** Floor chars with no terrain art of their own that borrow another terrain (dirt d looks like grass; t, l, m, k, j have their own flush terrain since art track 3). Still reported as missing art. */
+export const FLOOR_SUBSTITUTE: Record<string, string> = { d: 'g' };
 
 /** Flat fills for interior floors until their tiles exist (HOWTO §5.10 placeholders; `x` is not drawn). */
-export const FLOOR_PLACEHOLDER: Record<string, string | undefined> = { l: '#cdbfa6', m: '#a07a52', j: '#5b7391', x: undefined };
+export const FLOOR_PLACEHOLDER: Record<string, string | undefined> = { x: undefined };
 
 /** Wall decor on the west wall: skipped in Phase 2 (not visible edge-on). */
 export const skippedWestDecor = (room: RoomDef): WallDecor[] => room.walls.filter((w) => w.wall === 'left');
