@@ -25,7 +25,7 @@ const DEFAULTS = { art1: ['art1/pieces.png', 4], portraits: ['art2/portraits.png
 if (!DEFAULTS[SET]) throw new Error('unknown --set ' + SET);
 const OUT = path.resolve(argv[0] ?? path.join(ROOT, 'docs/lifesim/shots', DEFAULTS[SET][0]));
 const S = Number(argv[1] ?? DEFAULTS[SET][1]);
-const MAX_W = { portraits: 1120, icons: 1400, ui: 1500 }[SET] ?? 2300;
+const MAX_W = { portraits: 1120, icons: 1400, ui: 1500, feira: 900 }[SET] ?? 2300;
 const BG = { r: 138, g: 138, b: 148 };
 
 const manifest = JSON.parse(fs.readFileSync(path.join(PIX, 'manifest.json'), 'utf8'));

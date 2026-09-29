@@ -947,7 +947,8 @@
     { "key": "vehicles/moto_e", "kind": "derive", "fn": "moto" },
     { "key": "facades/padaria", "kind": "derive", "fn": "padaria" },
     { "key": "facades/edificio_ipe", "kind": "derive", "fn": "edificio" },
-    { "key": "facades/academia", "kind": "derive", "fn": "academia" }
+    { "key": "facades/academia", "kind": "derive", "fn": "academia" },
+    { "key": "feira/frutas", "kind": "derive", "fn": "feira" }
   ],
   "images": [
     { "fn": "portraits" }

@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 512,
    "h": 1024,
-   "frames": 169
+   "frames": 198
   }
  },
  "terrain": {
@@ -1756,6 +1756,369 @@
    "footprint": [
     10,
     6
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "feira/frutas": {
+   "atlas": "outdoor",
+   "frame": "feira/frutas",
+   "w": 48,
+   "h": 44,
+   "ax": 24,
+   "ay": 43,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": "feira/frutas_tarp",
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "feira/frutas#cast",
+    "w": 68,
+    "h": 13,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "feira/frutas_tarp": {
+   "atlas": "outdoor",
+   "frame": "feira/frutas_tarp",
+   "w": 56,
+   "h": 24,
+   "ax": 28,
+   "ay": 58,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "feira/frutas_fechada": {
+   "atlas": "outdoor",
+   "frame": "feira/frutas_fechada",
+   "w": 48,
+   "h": 44,
+   "ax": 24,
+   "ay": 43,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": "feira/frutas_roll",
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "feira/frutas_fechada#cast",
+    "w": 68,
+    "h": 13,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "feira/frutas_roll": {
+   "atlas": "outdoor",
+   "frame": "feira/frutas_roll",
+   "w": 52,
+   "h": 12,
+   "ax": 26,
+   "ay": 49,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "feira/verduras": {
+   "atlas": "outdoor",
+   "frame": "feira/verduras",
+   "w": 48,
+   "h": 44,
+   "ax": 24,
+   "ay": 43,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": "feira/verduras_tarp",
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "feira/verduras#cast",
+    "w": 68,
+    "h": 13,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "feira/verduras_tarp": {
+   "atlas": "outdoor",
+   "frame": "feira/verduras_tarp",
+   "w": 56,
+   "h": 24,
+   "ax": 28,
+   "ay": 58,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "feira/verduras_fechada": {
+   "atlas": "outdoor",
+   "frame": "feira/verduras_fechada",
+   "w": 48,
+   "h": 44,
+   "ax": 24,
+   "ay": 43,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": "feira/verduras_roll",
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "feira/verduras_fechada#cast",
+    "w": 68,
+    "h": 13,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "feira/verduras_roll": {
+   "atlas": "outdoor",
+   "frame": "feira/verduras_roll",
+   "w": 52,
+   "h": 12,
+   "ax": 26,
+   "ay": 49,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "feira/pastel": {
+   "atlas": "outdoor",
+   "frame": "feira/pastel",
+   "w": 48,
+   "h": 44,
+   "ax": 24,
+   "ay": 43,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": "feira/pastel_tarp",
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "feira/pastel#cast",
+    "w": 68,
+    "h": 13,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "feira/pastel_tarp": {
+   "atlas": "outdoor",
+   "frame": "feira/pastel_tarp",
+   "w": 56,
+   "h": 24,
+   "ax": 28,
+   "ay": 58,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "feira/pastel_fechada": {
+   "atlas": "outdoor",
+   "frame": "feira/pastel_fechada",
+   "w": 48,
+   "h": 44,
+   "ax": 24,
+   "ay": 43,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": "feira/pastel_roll",
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "feira/pastel_fechada#cast",
+    "w": 68,
+    "h": 13,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "feira/pastel_roll": {
+   "atlas": "outdoor",
+   "frame": "feira/pastel_roll",
+   "w": 52,
+   "h": 12,
+   "ax": 26,
+   "ay": 49,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "feira/flores": {
+   "atlas": "outdoor",
+   "frame": "feira/flores",
+   "w": 48,
+   "h": 44,
+   "ax": 24,
+   "ay": 43,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": "feira/flores_tarp",
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "feira/flores#cast",
+    "w": 68,
+    "h": 13,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "feira/flores_tarp": {
+   "atlas": "outdoor",
+   "frame": "feira/flores_tarp",
+   "w": 56,
+   "h": 24,
+   "ax": 28,
+   "ay": 58,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "feira/flores_fechada": {
+   "atlas": "outdoor",
+   "frame": "feira/flores_fechada",
+   "w": 48,
+   "h": 44,
+   "ax": 24,
+   "ay": 43,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": "feira/flores_roll",
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "feira/flores_fechada#cast",
+    "w": 68,
+    "h": 13,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "feira/flores_roll": {
+   "atlas": "outdoor",
+   "frame": "feira/flores_roll",
+   "w": 52,
+   "h": 12,
+   "ax": 26,
+   "ay": 49,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "feira/caixotes": {
+   "atlas": "outdoor",
+   "frame": "feira/caixotes",
+   "w": 16,
+   "h": 26,
+   "ax": 8,
+   "ay": 25,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "feira/caixotes#cast",
+    "w": 28,
+    "h": 9,
+    "ax": 8,
+    "ay": 1
+   }
+  },
+  "feira/preco_papel": {
+   "atlas": "outdoor",
+   "frame": "feira/preco_papel",
+   "w": 12,
+   "h": 10,
+   "ax": 6,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "feira/preco_lousa": {
+   "atlas": "outdoor",
+   "frame": "feira/preco_lousa",
+   "w": 14,
+   "h": 16,
+   "ax": 7,
+   "ay": 15,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "feira/preco_placa": {
+   "atlas": "outdoor",
+   "frame": "feira/preco_placa",
+   "w": 16,
+   "h": 10,
+   "ax": 8,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
    ],
    "anim": null,
    "overhead": null,
