@@ -141,6 +141,7 @@ async function runViewport(browser, vp) {
   await sleep(1500);
   await shot(page, vp, 'academia');
 
+  if (VIEW === 'pixel') console.log('  artMissing:', JSON.stringify(await page.evaluate(() => window.__tb.artMissing)));
   await ctx.close();
 }
 

@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 512,
    "h": 2048,
-   "frames": 330
+   "frames": 342
   }
  },
  "terrain": {
@@ -3566,6 +3566,187 @@
    "h": 34,
    "ax": 8,
    "ay": 32,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "props/tatame": {
+   "atlas": "outdoor",
+   "frame": "props/tatame",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 64,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "props/quadro_fila": {
+   "atlas": "outdoor",
+   "frame": "props/quadro_fila",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 30,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "props/parede_faixas": {
+   "atlas": "outdoor",
+   "frame": "props/parede_faixas",
+   "w": 16,
+   "h": 40,
+   "ax": 8,
+   "ay": 38,
+   "footprint": [
+    1,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "props/banco_espectador_0_of_4": {
+   "atlas": "outdoor",
+   "frame": "props/banco_espectador_0_of_4",
+   "w": 16,
+   "h": 26,
+   "ax": 8,
+   "ay": 24,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/banco_espectador_1_of_4": {
+   "atlas": "outdoor",
+   "frame": "props/banco_espectador_1_of_4",
+   "w": 16,
+   "h": 26,
+   "ax": 8,
+   "ay": 24,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/banco_espectador_2_of_4": {
+   "atlas": "outdoor",
+   "frame": "props/banco_espectador_2_of_4",
+   "w": 16,
+   "h": 26,
+   "ax": 8,
+   "ay": 24,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/banco_espectador_3_of_4": {
+   "atlas": "outdoor",
+   "frame": "props/banco_espectador_3_of_4",
+   "w": 16,
+   "h": 26,
+   "ax": 8,
+   "ay": 24,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/vestiario": {
+   "atlas": "outdoor",
+   "frame": "props/vestiario",
+   "w": 16,
+   "h": 36,
+   "ax": 8,
+   "ay": 34,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "props/quadro_foto": {
+   "atlas": "outdoor",
+   "frame": "props/quadro_foto",
+   "w": 20,
+   "h": 30,
+   "ax": 10,
+   "ay": 28,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "props/bicicletario": {
+   "atlas": "outdoor",
+   "frame": "props/bicicletario",
+   "w": 30,
+   "h": 22,
+   "ax": 15,
+   "ay": 20,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "props/mesa_cafe": {
+   "atlas": "outdoor",
+   "frame": "props/mesa_cafe",
+   "w": 30,
+   "h": 26,
+   "ax": 15,
+   "ay": 22,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_32"
+  },
+  "props/jornais": {
+   "atlas": "outdoor",
+   "frame": "props/jornais",
+   "w": 18,
+   "h": 16,
+   "ax": 9,
+   "ay": 14,
    "footprint": [
     1,
     1

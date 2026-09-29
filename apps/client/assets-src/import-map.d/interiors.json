@@ -80,6 +80,15 @@
     {"footprint":[1,1],"key":"furniture/luminaria_0","kind":"derive","fn":"kitPack","args":{"sheet":"living","rect":[192,198,16,40]},"shadow":"fx/shadow_16"},
     {"footprint":[1,1],"key":"furniture/luminaria_1","kind":"derive","fn":"kitPack","args":{"sheet":"living","rect":[192,198,16,40],"mirror":true},"shadow":"fx/shadow_16"},
     {"footprint":[1,1],"key":"furniture/estante_0","kind":"derive","fn":"kitEstante","args":{"rect":[192,390,32,36]},"shadow":"fx/shadow_16"},
-    {"footprint":[1,1],"key":"furniture/estante_1","kind":"derive","fn":"kitEstante","args":{"rect":[192,390,32,36]},"shadow":"fx/shadow_16"}
+    {"footprint":[1,1],"key":"furniture/estante_1","kind":"derive","fn":"kitEstante","args":{"rect":[192,390,32,36]},"shadow":"fx/shadow_16"},
+    {"key":"props/tatame","kind":"derive","fn":"gymTatame","footprint":[6,4],"decal":true},
+    {"key":"props/quadro_fila","kind":"derive","fn":"gymFila","footprint":[1,1],"shadow":"fx/shadow_16"},
+    {"key":"props/parede_faixas","kind":"derive","fn":"gymFaixas","footprint":[1,2],"shadow":"fx/shadow_16"},
+    {"key":"props/banco_espectador_0_of_4","kind":"derive","fn":"gymBancoEsp","args":{"slices":4},"footprint":[1,1]},
+    {"key":"props/vestiario","kind":"derive","fn":"gymVestiario","footprint":[1,1],"shadow":"fx/shadow_16"},
+    {"key":"props/quadro_foto","kind":"derive","fn":"gymQuadroFoto","footprint":[1,1],"shadow":"fx/shadow_16"},
+    {"key":"props/bicicletario","kind":"derive","fn":"pracaBici","footprint":[1,1],"shadow":"fx/shadow_16"},
+    {"key":"props/mesa_cafe","kind":"derive","fn":"pracaMesaCafe","footprint":[1,1],"shadow":"fx/shadow_32"},
+    {"key":"props/jornais","kind":"derive","fn":"pracaJornais","footprint":[1,1],"shadow":"fx/shadow_16"}
   ]
 }
