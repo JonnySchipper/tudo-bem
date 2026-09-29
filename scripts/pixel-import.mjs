@@ -14,9 +14,12 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { extrudeTilesetToImage } from 'tile-extruder';
-import { blank, crop, paste, loadPng, savePng, remapExact, flipH, distinctColors, isolate } from './lib/pixel/img.mjs';
+import { blank, crop, paste, loadPng, savePng, remapExact, flipH, distinctColors, isolate, trim } from './lib/pixel/img.mjs';
+import { loadImportMap } from './lib/pixel/importmap.mjs';
+import { recolorRamp } from '../apps/client/assets-src/custom/kit.mjs';
+import { FLOORS } from '../apps/client/assets-src/custom/floors.mjs';
 import { packAtlas } from './lib/pixel/pack.mjs';
-import { buildSlabTiles, buildFlatTiles } from './lib/pixel/terrain-gen.mjs';
+import { buildSlabTiles, buildFlatTiles, buildFlushTiles } from './lib/pixel/terrain-gen.mjs';
 import { splitTree, swayFrames } from './lib/pixel/tree.mjs';
 import { castShadow } from './lib/pixel/shadow.mjs';
 import { CANON_ANIMS, CANON_COLS, CANON_ROWS, FRAME_W, FRAME_H } from './lib/pixel/chars.mjs';
@@ -34,7 +37,8 @@ const SRC = path.join(ROOT, 'apps/client/assets-src');
 const OUT = path.join(ROOT, 'apps/client/public/pixel');
 const CUSTOM_PNG = path.join(SRC, 'custom/png');
 
-const map = JSON.parse(fs.readFileSync(path.join(SRC, 'import-map.json'), 'utf8'));
+// import-map.json + every import-map.d/*.json fragment (merged after it, file-name order)
+const map = loadImportMap(SRC);
 const rel = (p) => path.relative(ROOT, p).replaceAll('\\', '/');
 
 const CUSTOM = {
@@ -132,10 +136,16 @@ for (const def of map.sprites) {
     let img = crop(src, ...def.rect);
     if (def.recolor) img = remapExact(img, new Map(Object.entries(map.recolors[def.recolor]).filter(([k]) => k[0] === '#')));
     if (def.isolate) img = isolate(img, def.isolate[0] - def.rect[0], def.isolate[1] - def.rect[1]);
+    if (def.swap) img = remapExact(img, new Map(Object.entries(def.swap)));
+    if (def.ramp) img = recolorRamp(img, def.ramp, def.rampKeep ?? ['#3a3a50', '#46465e']);
     if (def.flip) img = flipH(img);
+    // `trim`: drop the transparent margins of the crop (the pack's theme sorters put every piece on 16 px cells). The anchor then defaults to
+    // the bottom centre, lifted by `foot` px (the soft shadow strip the pack bakes under most furniture).
+    if (def.trim) img = trim(img).img;
+    const anchor = def.anchor ?? [Math.floor(img.w / 2), img.h - (def.foot ?? 0)];
     addFrame('outdoor', def.key, img);
-    sprites[def.key] = baseEntry(def, img, def.anchor);
-    addCast(def, img, def.anchor);
+    sprites[def.key] = baseEntry(def, img, anchor);
+    addCast(def, img, anchor);
   } else if (kind === 'shop') {
     const src = await sheet(def.sheet);
     const img = crop(src, ...def.rect);
@@ -242,6 +252,16 @@ for (const [name, items] of Object.entries(atlasItems)) {
       tiles.push(...buildSlabTiles(fills));
       layers[ch] = { name: def.name, edge: 'slab', first, phases, variants: 1, tiles: 16 * phases };
       if (def.custom) { const s = blank(16 * phases, 16); fills.forEach((f, p) => paste(s, f, p * 16, 0)); await savePng(s, path.join(CUSTOM_PNG, def.custom + '_fill.png')); }
+    } else if (def.kind === 'flush') {
+      // interior floors and pavers: exact quadrant cuts of a fill (custom generator in custom/floors.mjs, phases x,y)
+      const gen = FLOORS[def.custom];
+      if (!gen) throw new Error(`import-map: unknown flush floor '${def.custom}'`);
+      const fills = gen.fn(gen.needsPack ? await sheet(def.sheet) : undefined);
+      tiles.push(...buildFlushTiles(fills, { rim: def.rim ?? null }));
+      layers[ch] = { name: def.name, edge: 'flush', first, phases: gen.phasesX, phasesY: gen.phasesY, variants: 1, tiles: 16 * fills.length };
+      const s = blank(16 * gen.phasesX, 16 * gen.phasesY);
+      fills.forEach((f, p) => paste(s, f, (p % gen.phasesX) * 16, Math.floor(p / gen.phasesX) * 16));
+      await savePng(s, path.join(CUSTOM_PNG, `floor_${def.custom}_fill.png`));
     } else {
       const src = await sheet(def.sheet);
       const fills = def.tiles.map(([x, y]) => crop(src, x, y, 16, 16));

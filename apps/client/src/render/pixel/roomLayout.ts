@@ -17,11 +17,11 @@ export const FACADE_FOR_ROOM: Partial<Record<RoomId, string>> = { padaria: 'faca
 /** Game hour whose lighting grade a room uses until the game clock arrives (Phase 6): `tarde` is golden hour, `manha` warm morning, `dia` neutral. */
 export const ROOM_HOUR: Record<RoomDef['lighting'], number> = { tarde: 17.5, manha: 8, dia: 12 };
 
-/** Floor chars with no terrain art of their own that borrow another terrain (brick pavers look like calçada). Still reported as missing art. */
-export const FLOOR_SUBSTITUTE: Record<string, string> = { t: 'c', k: 'c', d: 'g' };
+/** Floor chars with no terrain art of their own that borrow another terrain (dirt d looks like grass; t, l, m, k, j have their own flush terrain since art track 3). Still reported as missing art. */
+export const FLOOR_SUBSTITUTE: Record<string, string> = { d: 'g' };
 
 /** Flat fills for interior floors until their tiles exist (HOWTO §5.10 placeholders; `x` is not drawn). */
-export const FLOOR_PLACEHOLDER: Record<string, string | undefined> = { l: '#cdbfa6', m: '#a07a52', j: '#5b7391', x: undefined };
+export const FLOOR_PLACEHOLDER: Record<string, string | undefined> = { x: undefined };
 
 /** Wall decor on the west wall: skipped in Phase 2 (not visible edge-on). */
 export const skippedWestDecor = (room: RoomDef): WallDecor[] => room.walls.filter((w) => w.wall === 'left');
@@ -79,3 +79,83 @@ export const decorCoveredByFacade = (d: WallDecor, facades: { portal: PortalDef 
 export function roomBounds(room: RoomDef, tallestFacade = 0): Rect {
   return { x0: -WEST_STRIP_TILES * T, y0: -Math.max(NORTH_BAND_TILES * T, tallestFacade), x1: room.cols * T, y1: room.rows * T };
 }
+
+// ------------------------------------------------------------------ wall art (art track 3): mapping tables and pure layout
+/** Wall art style per room (`walls/north_<style>_l|_m|_r`, `walls/west_<style>`, `walls/west_<style>_b`). */
+export const WALL_STYLE: Record<RoomId, string> = { praca: 'praca', padaria: 'padaria', kitnet: 'kitnet', academia: 'academia' };
+
+export const northWallKey = (style: string, part: 'l' | 'm' | 'r') => `walls/north_${style}_${part}`;
+export const westWallKey = (style: string, bottom: boolean) => `walls/west_${style}${bottom ? '_b' : ''}`;
+
+/**
+ * Which sprite draws a wall decor item and where it sits. `bottom` is the world y of the sprite's anchor row (negative = up the north band),
+ * `mode` 'tile' repeats the sprite along from..to, 'center' centres it on the span. `tiles` is the span the art was drawn for (used to place
+ * west-wall decor that moves to a free part of the north wall).
+ */
+export interface DecorArt {
+  key: string;
+  mode: 'tile' | 'center';
+  bottom: number;
+  tiles: number;
+}
+
+export function decorArt(d: WallDecor): DecorArt | null {
+  const span = d.to - d.from;
+  switch (d.kind) {
+    case 'azulejos': return { key: 'walls/azulejos', mode: 'tile', bottom: -1, tiles: 1 };
+    case 'prateleira_paes': return { key: 'walls/prateleira_paes', mode: 'center', bottom: -2, tiles: 6 };
+    case 'lousa': return { key: 'walls/lousa', mode: 'center', bottom: -8, tiles: 3 };
+    case 'janela_rua': return { key: 'walls/janela_rua', mode: 'center', bottom: -8, tiles: 3 };
+    case 'janela': return { key: 'walls/janela', mode: 'center', bottom: -8, tiles: 2 };
+    case 'relogio': return { key: 'walls/relogio', mode: 'center', bottom: -26, tiles: 1 };
+    case 'tv': return { key: 'walls/tv', mode: 'center', bottom: -13, tiles: 2 };
+    case 'cobogo': return { key: 'walls/cobogo', mode: 'center', bottom: -8, tiles: 1 };
+    case 'foto': return { key: 'walls/foto', mode: 'center', bottom: -12, tiles: 2 };
+    case 'placa': return { key: 'walls/placa', mode: 'center', bottom: -12, tiles: 4 };
+    case 'poster': return { key: d.text?.startsWith('OSS') ? 'walls/poster_oss' : 'walls/poster', mode: 'center', bottom: -8, tiles: 2 };
+    case 'toldo': return { key: 'walls/toldo', mode: 'center', bottom: -30, tiles: 5 };
+    case 'mural': return { key: span >= 6 ? 'walls/mural' : 'walls/mural_s', mode: 'center', bottom: -6, tiles: span >= 6 ? 7 : 4 };
+    case 'predio': return { key: 'walls/predio', mode: 'center', bottom: -1, tiles: 3 };
+    case 'metro': return { key: 'walls/metro', mode: 'center', bottom: -10, tiles: 3 };
+    default: return null; // fachada_padaria is the facade sprite
+  }
+}
+
+/** The order west-wall decor asks for a free stretch of the north wall (posters and TVs first). */
+const WEST_PRIORITY: WallDecor['kind'][] = ['poster', 'tv', 'relogio', 'cobogo', 'foto', 'janela', 'janela_rua', 'metro', 'predio', 'mural'];
+
+/**
+ * West-wall decor cannot be seen edge-on, so each item is moved to a free stretch of the north wall (columns -1..cols-1, where column -1 is
+ * the corner above the west strip): the first gap wide enough for the art, otherwise dropped (it stays in `describeSkipped`). Azulejos are
+ * a wainscot already covered by the north wall's own. Pure and deterministic; rooms.ts is not changed.
+ */
+export function relocatedWestDecor(room: RoomDef): WallDecor[] {
+  const used = new Set<number>();
+  for (const d of northDecor(room)) {
+    if (d.kind === 'azulejos' || d.kind === 'toldo') continue; // a wainscot and an awning over the shelves leave the wall free
+    for (let x = d.from; x < d.to; x++) used.add(x);
+  }
+  for (const p of room.portals) {
+    if (!isNorthPortal(p)) continue;
+    const [a, b] = FACADE_FOR_ROOM[p.to] ? [p.x - 3, p.x + 4] : [p.x, p.x + 1];
+    for (let x = a; x < b; x++) used.add(x);
+  }
+  const out: WallDecor[] = [];
+  const west = skippedWestDecor(room).filter((d) => d.kind !== 'azulejos');
+  west.sort((a, b) => WEST_PRIORITY.indexOf(a.kind) - WEST_PRIORITY.indexOf(b.kind));
+  for (const d of west) {
+    const need = decorArt(d)?.tiles ?? 1;
+    for (let x = -1; x + need <= room.cols; x++) {
+      let free = true;
+      for (let k = x; k < x + need; k++) if (used.has(k)) free = false;
+      if (!free) continue;
+      for (let k = x; k < x + need; k++) used.add(k);
+      out.push({ ...d, wall: 'right', from: x, to: x + need });
+      break;
+    }
+  }
+  return out;
+}
+
+/** Everything drawn on the north wall: its own decor plus the relocated west decor. */
+export const allNorthDecor = (room: RoomDef): WallDecor[] => [...northDecor(room), ...relocatedWestDecor(room)];

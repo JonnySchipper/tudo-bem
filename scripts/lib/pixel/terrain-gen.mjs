@@ -92,3 +92,35 @@ export function buildFlatTiles(fills, extraVariants = []) {
   for (const fill of fills) for (let mask = 0; mask < 16; mask++) tiles.push(mask === 0 ? blank(16, 16) : fill);
   return tiles.concat(extraVariants);
 }
+
+/**
+ * `flush` terrains (art track 3: interior floors, brick pavers): the tile is the fill cut along the 8x8 quadrants of the mask, no chamfer,
+ * no curb, no shadow, so two flush terrains that meet (or a flush terrain and the slab under it) join exactly on the world tile edge.
+ * `rim` (a hex) paints a 1 px line on every pixel of the shape that has an empty neighbour, so a floor has a crisp edge at the room border
+ * (where `outside: 'x'` makes the neighbour empty) and mats have an edge against the wood. Mask 15 is the untouched fill.
+ * @param {import('./img.mjs').Img[]} fills one fully opaque 16x16 fill tile per phase
+ * @returns {import('./img.mjs').Img[]} 16 * fills.length tiles, index = phase * 16 + mask
+ */
+export function buildFlushTiles(fills, { rim = null } = {}) {
+  const tiles = [];
+  const inShape = (mask, x, y) => quadrantFilled(mask, Math.min(15, Math.max(0, x)), Math.min(15, Math.max(0, y)));
+  for (const fill of fills) {
+    for (let mask = 0; mask < 16; mask++) {
+      const t = blank(16, 16);
+      if (mask !== 0) {
+        for (let y = 0; y < 16; y++) {
+          for (let x = 0; x < 16; x++) {
+            if (!quadrantFilled(mask, x, y)) continue;
+            const i = (y * 16 + x) * 4;
+            // an out-of-tile neighbour is assumed to continue the shape (it belongs to the same world tile), so only in-tile gaps make a rim
+            const edge = rim && mask !== 15 && (!inShape(mask, x - 1, y) || !inShape(mask, x + 1, y) || !inShape(mask, x, y - 1) || !inShape(mask, x, y + 1));
+            if (edge) setPx(t, x, y, hexPx(rim));
+            else { t.data[i] = fill.data[i]; t.data[i + 1] = fill.data[i + 1]; t.data[i + 2] = fill.data[i + 2]; t.data[i + 3] = 255; }
+          }
+        }
+      }
+      tiles.push(t);
+    }
+  }
+  return tiles;
+}
