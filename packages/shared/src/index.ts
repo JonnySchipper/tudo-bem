@@ -16,3 +16,5 @@ export * from './looks.js';
 export * from './conversa.js';
 export * from './academia.js';
 export * from './auth.js';
+export * from './clock.js';
+export * from './weather.js';
