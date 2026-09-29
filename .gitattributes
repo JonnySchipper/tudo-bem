@@ -1,0 +1,2 @@
+# Keep content packs LF on every platform (the curriculum/safety tests compare against generated output).
+content/** text eol=lf
