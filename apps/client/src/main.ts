@@ -12,6 +12,7 @@ import {
   isCpuId,
   type EmoteKind,
   type NpcDef,
+  type NpcId,
   type PropDef,
   type RoomId,
   type ServerMsg,
@@ -20,7 +21,8 @@ import {
 import { game, type ClientAvatar, type PendingAction } from './state';
 import { Net, wsUrl, type NetLike } from './net';
 import { LocalNet } from './localNet';
-import { WorldRenderer, type Hit } from './render/world';
+import { WorldRenderer } from './render/world';
+import type { Hit, WorldView } from './render/view';
 import { runOnboarding, closeOnboarding } from './ui/onboarding';
 import { buildHud, hoverLabel, idleKickedCard, missionBanner, overlayMessage, parrotWhisper, reconnectBanner, toast } from './ui/hud';
 import {
@@ -62,7 +64,10 @@ const TOKEN_KEY = 'tb_token';
 const LAST_ROOM_KEY = 'tb_last_room';
 
 const canvas = document.getElementById('world') as HTMLCanvasElement;
-const renderer = new WorldRenderer(canvas);
+/** Which world view draws the scene. Only 'iso' exists for now; the pixel view arrives in a later phase. */
+const VIEW: string = new URLSearchParams(location.search).get('view') ?? import.meta.env.VITE_VIEW ?? 'iso';
+if (VIEW !== 'iso') console.warn(`[TB] unknown view "${VIEW}", using iso`);
+const renderer: WorldView = new WorldRenderer(canvas);
 /** Static deploys (no WebSocket server) run the World in-page. `?solo` forces it anywhere. */
 const SOLO = import.meta.env.VITE_LOCAL_WORLD === '1' || new URLSearchParams(location.search).has('solo');
 const net: NetLike = SOLO ? new LocalNet() : new Net(wsUrl());
@@ -689,6 +694,29 @@ function handleClickInner(hit: Hit | null) {
   }
 }
 
+/** Target of the `window.__tb.interact` test hook: something in the current room, by id. */
+type InteractTarget = { npc: NpcId } | { prop: string } | { portal: string };
+
+/** Resolve a target in `ROOMS[game.room.room]` and feed the matching Hit through `handleClick`. Returns false if not found. */
+function interact(target: InteractTarget): boolean {
+  const room = game.room ? ROOMS[game.room.room] : null;
+  if (!room) return false;
+  let hit: Hit | null = null;
+  if ('npc' in target) {
+    const npc = room.npcs.find((n) => n.id === target.npc);
+    if (npc) hit = { kind: 'npc', npc };
+  } else if ('prop' in target) {
+    const prop = room.props.find((p) => p.id === target.prop);
+    if (prop) hit = { kind: 'prop', prop };
+  } else {
+    const portal = room.portals.find((p) => p.id === target.portal);
+    if (portal) hit = { kind: 'portal', portal };
+  }
+  if (!hit) return false;
+  handleClick(hit);
+  return true;
+}
+
 const lastPointer = { x: 0, y: 0 };
 canvas.addEventListener('pointermove', (e) => {
   lastPointer.x = e.clientX;
@@ -806,6 +834,10 @@ window.__tb = {
   tileToClient: (x: number, y: number) => renderer.tileToClient(x, y),
   selfTile: () => selfTile(),
   clickHit: (hit: Hit) => handleClick(hit),
+  /** Renderer-independent walk: the same function the click handler uses. */
+  walkTo: (x: number, y: number, sit = false) => walkTo({ x, y }, null, sit),
+  /** Renderer-independent interaction by id, resolved against the current room's data. */
+  interact: (target: InteractTarget) => interact(target),
   get decor() {
     return decor;
   },
