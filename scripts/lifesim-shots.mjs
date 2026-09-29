@@ -36,6 +36,12 @@ const VIEW = argv.view ?? process.env.VIEW ?? '';
 const PHASE = argv.phase ?? process.env.PHASE ?? 'p0';
 const OUT = process.env.SHOTS_DIR ?? path.join('docs', 'lifesim', 'shots', PHASE);
 const SOLO = !!process.env.SOLO;
+// --clean: hide every DOM overlay (HUD, labels, chat) so only the canvas is in the shot (art reviews: nothing covers the sprites)
+// --furnish: put one of every catalog item in the kitnet (client side only, for art reviews)
+const FURNISH = 'furnish' in argv;
+// --top: after each interior shot walk toward its back wall and take a second shot (the desktop camera follows the avatar, so the wall band only shows up there)
+const TOP = 'top' in argv;
+const CLEAN = 'clean' in argv || !!process.env.CLEAN;
 const VIEWPORTS = [
   { name: '1280x800', width: 1280, height: 800 },
   { name: '390x844', width: 390, height: 844 },
@@ -52,12 +58,24 @@ const room = (page) => page.evaluate(() => window.__tb.game.room?.room);
 async function waitRoom(page, id) {
   await page.waitForFunction((id) => window.__tb.game.room?.room === id, id, { timeout: 15_000 });
 }
+async function walkNear(page, x, y, name, vp) {
+  await page.evaluate(([x, y]) => window.__tb.walkTo(x, y), [x, y]);
+  await page.waitForFunction(([x, y]) => { const t = window.__tb.selfTile(); return t && !t.moving && t.tile.x === x && t.tile.y === y; }, [x, y], { timeout: 12_000 }).catch(() => {});
+  await sleep(1200);
+  await shot(page, vp, name);
+}
 async function interact(page, target) {
   const ok = await page.evaluate((t) => window.__tb.interact(t), target);
   if (!ok) throw new Error(`no such interact target in ${await room(page)}: ${JSON.stringify(target)}`);
 }
 async function shot(page, vp, name) {
   fs.mkdirSync(OUT, { recursive: true });
+  if (CLEAN && name !== 'avatar_creator') {
+    await page.evaluate(() => {
+      const c = document.querySelector('canvas');
+      document.querySelectorAll('body *').forEach((el) => { if (el !== c && !el.contains(c)) el.style.visibility = 'hidden'; });
+    });
+  }
   await page.screenshot({ path: path.join(OUT, `${vp.name}_${name}.png`) });
   console.log('  ·', vp.name, name);
 }
@@ -107,14 +125,23 @@ async function runViewport(browser, vp) {
   await waitRoom(page, 'padaria');
   await sleep(1500);
   await shot(page, vp, 'padaria');
+  if (TOP) await walkNear(page, 4, 4, 'padaria_top', vp);
 
   await interact(page, { portal: 'padaria_praca' });
   await waitRoom(page, 'praca');
   await sleep(500);
   await interact(page, { portal: 'praca_kitnet' });
   await waitRoom(page, 'kitnet');
+  if (FURNISH) {
+    await page.evaluate(() => {
+      const ids = ['cadeira_madeira', 'poltrona_verde', 'pufe_amarelo', 'mesinha', 'planta', 'tapete', 'radio', 'ventilador', 'gato', 'luminaria', 'estante', 'quadro', 'rede', 'filtro'];
+      const at = [[2, 3, 0], [5, 4, 1], [3, 5, 0], [4, 3, 0], [4, 1, 0], [3, 4, 1], [7, 3, 0], [6, 5, 1], [2, 2, 1], [7, 5, 0], [0, 1, 0], [6, 7, 1], [5, 2, 0], [3, 2, 0]];
+      window.__tb.game.furniture = ids.map((itemId, i) => ({ uid: 'shot' + i, itemId, x: at[i][0], y: at[i][1], rot: at[i][2] }));
+    });
+  }
   await sleep(1500);
   await shot(page, vp, 'kitnet');
+  if (TOP) await walkNear(page, 3, 6, 'kitnet_top', vp);
 
   await interact(page, { portal: 'kitnet_praca' });
   await waitRoom(page, 'praca');
@@ -123,7 +150,9 @@ async function runViewport(browser, vp) {
   await waitRoom(page, 'academia');
   await sleep(1500);
   await shot(page, vp, 'academia');
+  if (TOP) await walkNear(page, 6, 6, 'academia_top', vp);
 
+  if (VIEW === 'pixel') console.log('  artMissing:', JSON.stringify(await page.evaluate(() => window.__tb.artMissing)));
   await ctx.close();
 }
 

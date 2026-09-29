@@ -10,6 +10,7 @@ assets-src/
   limezu-modern-exteriors/   licensed, do not redistribute (use only the Modern_Exteriors_16x16 folders)
   limezu-modern-interiors/   licensed, do not redistribute (use only the 16x16 folders)
   custom/                    original pieces authored for Vila Ipê (.mjs generators + rendered PNGs in custom/png/)
+  import-map.d/*.json        fragments merged after import-map.json (art track 3 lives in interiors.json)
   import-map.json            hand-written mapping: source sheet + rect -> our key, anchor, footprint, overhead part
   LICENSES.md  README.md
 ```
@@ -158,3 +159,9 @@ Use a 9-slice like this (integer display scale, `image-rendering: pixelated`):
 
 The guide arrow is also a normal atlas sprite, `ui/guide_arrow` (4 frames, anchored at the bottom centre of the bounce range) for the world.
 Contact sheets: `node scripts/pixel-contact.mjs --set portraits|feira|icons|ui|fixes` (writes `docs/lifesim/shots/art2/`).
+
+## Interiors (art track 3)
+
+Floors are `flush` terrains (`custom/floors.mjs`), walls / decor / doors are in `custom/walls.mjs`, padaria props in `custom/padaria.mjs`, kitnet and catalog furniture in `custom/kitnet.mjs`, academia and praça leftovers in `custom/gym.mjs`.
+Key conventions: `walls/north_<style>_l|_m|_r`, `walls/west_<style>[_b]`, `props/<kind>_<i>_of_<w>` (sliced), `props/cadeira_padaria_e|s|n|w`, `furniture/<id>_0|1`. Sources and tables: docs/lifesim/DECISIONS.md, art track 3.
+Contact sheets: `node scripts/pixel-contact.mjs --set floors|walls|padaria|kitnet|academia|praca` (writes docs/lifesim/shots/art3/).

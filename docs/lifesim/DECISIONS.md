@@ -412,3 +412,65 @@ Scope: HOWTO Phase 8 step 7 (the first 15 recados) and the tooling around it. Co
 ### Needs BR review
 
 Every string in `recados.md` (15 titles, asks and thanks, PT and EN). Watch: `Olha a banana!` (feira call), `Você é gente boa`, `Água é vida`, `Pão na chapa é o melhor despertador`, `Uma volta pela vizinhança`, and the register of Dona Graça and Tia Lu (a joker and a loud friendly seller; kept mild in A1).
+
+## Decisions: art track 3 (interiors: floors, walls, doors, padaria, kitnet, academia, praça leftovers)
+
+Branch `lifesim/art3-interiors`. Contact sheets in `docs/lifesim/shots/art3/`: `floors.png`, `walls.png`, `padaria.png`, `kitnet.png`, `academia.png`, `praca.png`, plus
+`?view=pixel` room shots (`1280x800_*`, `390x844_*`; they are taken with `--clean --furnish` so nothing covers the art and every catalog item is in the kitnet).
+`pnpm pixel` is deterministic (two runs give identical hashes for `public/pixel/**` and `custom/png/**`). `window.__tb.artMissing` is empty in all four rooms.
+
+### Pipeline
+
+1. **`import-map.d/*.json` fragments** (`scripts/lib/pixel/importmap.mjs`, tested in `importmap.test.mjs`): every fragment is merged after `import-map.json` in file-name order.
+   Arrays (`sprites`, `images`) are appended, objects (`roots`, `sheets`, `recolors`, `terrain`, `atlas`) are shallow-merged, a duplicate sprite key throws, any other top-level key throws.
+   All art track 3 entries live in `import-map.d/interiors.json`; the character track edits `import-map.json`.
+2. **`sprite` kind gained `trim`, `foot`, `swap`, `ramp`** (crop on the pack's 16 px cells, drop the transparent margin, anchor at the bottom centre lifted by `foot` px; exact colour swap or luminance-rank
+   recolour before the crop). Most interior art is `derive` generators (`custom/walls.mjs`, `padaria.mjs`, `kitnet.mjs`, `gym.mjs`, `floors.mjs`).
+3. **New terrain kind `flush`** (`buildFlushTiles`, `terrain-gen.mjs`): the 16 mask tiles are the fill cut along the 8x8 quadrants, no chamfer, no curb, no shadow, optional 1 px `rim`. Two flush
+   terrains, or a flush terrain and the slab under it, meet exactly on the world tile edge. Used for `t l m k j`. Phases can be a 2D grid (`phasesY`, `phasedIndex2` in `terrain.ts`, tested):
+   ladrilho 1x1, tatame 4x4 (32 px mats, blue/green checker), the others 1x1. A `flush` layer draws above the slab layer; a slab layer counts the flush terrain inlaid in it as itself
+   (`FLUSH_ON_SLAB = { t: 'c' }` in `terrainLayers.ts`), so the brick path has no curb against the calçada. Between brick and grass there is a hard cut (no curb art).
+   The `FLOOR_SUBSTITUTE` / `FLOOR_PLACEHOLDER` fallbacks are gone except `d -> g` (no room uses dirt).
+4. **Floors**: `t` brick pavers in running bond, authored (pack brick palette); `l` ladrilho hidráulico, authored (cream + terracotta diamond ring, centre bead, corner triangles that make a second diamond
+   with the neighbours, 1 px grout; one calm colourway, a first 2x2 inverted version was too loud in the room); `m` taco / herringbone parquet, the pack's chevron floor recoloured to warm woods; `k` xadrez
+   bone / slate 8 px checker, authored; `j` tatame foam mats, authored.
+
+### Walls, decor, doors (mapping in `roomLayout.ts`)
+
+5. **Wall tiles per room style** (`WALL_STYLE`: praca, padaria, kitnet, academia): `walls/north_<style>_l|_m|_r` (16 x 48 columns, 4 alpha rows of floor shadow below; `_l` is the corner over the west
+   strip, `_r` the east end), `walls/west_<style>` and `_b` (16 px strip + 4 px of shadow). All authored in the pack look (navy outline, white cap, noisy plaster). Styles: padaria cream plaster (the terracotta azulejo
+   wainscot is the `walls/azulejos` decor, tiled over the north span); kitnet plaster with a wood baseboard; academia painted block courses (cream over blue); praça street-wall plaster.
+6. **Decor table** `decorArt(d)` maps a `WallDecor.kind` to key, `tile | center`, and the anchor height. All 17 keys exist (`azulejos, prateleira_paes, lousa, janela_rua, janela, relogio, tv, cobogo, foto, placa,
+   poster (+ poster_oss), toldo, mural (+ mural_s), predio, metro, parede_faixas`). Text is DOM except the short words painted into signs: ACADEMIA DO BAIRRO, SAMPA, METRO, SP, OSS (no accents in pixels, D8).
+   The lousa is blank.
+7. **West-wall decor moves to the north wall** (`relocatedWestDecor`, pure, tested): a west wall cannot be seen edge-on, so each item takes the first free stretch of columns -1..cols-1 (column -1 is the corner above the
+   west strip), posters and TVs first; `rooms.ts` is not touched and `describeSkipped` still lists the west items. Result today: padaria TV in the corner; kitnet SP poster right of the cobogo and a cobogo in the
+   corner; academia OSS poster at the east end. Dropped for lack of room: padaria clock and window, academia window, the praça buildings / mural / metro (all north-wall space is taken). Phase 4/5 should author
+   those positions in `rooms.ts`.
+8. **Doors**: `doors/north` (16 x 32 wood + glass, used by the academia door), `doors/west` (a doorway in the west strip with the leaf open at an angle), `props/doormat` on the portal tile.
+
+### Props (keys, sources, conventions)
+
+9. **Sliced props**: `propSlices` in `props.ts` returns one `<base>_<i>_of_<w>` sprite per footprint tile for `balcao` (5) and `banco_espectador` (4); another width shows a placeholder.
+   `cadeira_padaria` picks `_e | _s | _n | _w` from the seat Dir (SE, SW, NE, NW); the N and S chairs share one head-on sprite.
+10. **Padaria**: balcão = the ice-cream-shop glass counter recoloured (pink stripes to terracotta, lavender whites to cream) with breads painted in the panes; vitrine, estufa (+ `props/estufa_lit` glow overlay,
+    wired through the rig's `litOverlays` like the facades), trilho de pedidos (2 frames), caixa, banqueta, mesa (checkered cloth) authored; chairs are the pack's kitchen chairs.
+11. **Kitnet**: `props/cama` = pack headboard + blanket tile + painted pillows; `props/cozinha` authored (sink, stove with a moka pot, terracotta backsplash); 14 catalog items x 2 rotations
+    (`furniture/<id>_0|1`, rot 0 faces SE / east, rot 1 faces SW / south). Pack: cadeira (kitchen chairs), luminária (living-room floor lamp), estante (living-room shelf cut to 1 tile), gato (the pack cat recoloured
+    orange, 18 frames, mirrored for rot 1). Authored: poltrona verde, pufe amarelo, mesinha, planta (costela-de-adão), tapete, rádio, ventilador (3 frames), rede, filtro de barro, quadro de ipê (easel).
+    Symmetric pieces are mirrored for rot 1.
+12. **Academia**: tatame decal 96 x 64 (blue mat, white line, mustard safety border), quadro da fila, parede de faixas (vertical rack, plus a wide wall version `walls/parede_faixas`), arquibancada slices, vestiário
+    (lockers), quadro de foto: all authored. **Praça**: bicicletário (two bikes on a rail), mesa de café, jornais: authored.
+13. **WorldScene changes beyond mapping tables** (needed for the art to show, no game behaviour): `buildWalls` / `buildDecor`, door sprites, the slice loop and `lit` overlay in `buildProp`, and furniture drawn from
+    `furniture/<id>_<rot>` (sprite + contact shadow + a selection outline, magenta box when the art is missing; a rotation swaps the sprite). `lifesim-shots.mjs` gained `--clean` (hide all DOM overlays), `--furnish`
+    (client side: one of every catalog item in the kitnet) and prints `artMissing`.
+14. **Base note**: `render/pixel/looks.ts` (character track) did not typecheck on `lifesim/main` after the content track added `graca` and `tia_lu` to `NpcId`; it is not touched here (see the final report for the merge state).
+
+### Known weaknesses
+
+The ladrilho and the academia mats are still busy at 4x; the west door art is small and odd (open leaf drawn diagonally); padaria and academia have no clock / window (no free north-wall span); the N and S chairs are
+the same sprite; the bikes read as a blob at 1x; the taco parquet is dark; desktop zoom 4 does not fit a whole interior vertically (Phase 2 camera decision), so desktop shots show only part of each room.
+
+### Needs BR review
+
+Pixel text added: ACADEMIA / DO BAIRRO (placa), SAMPA (mural), METRO, SP and OSS (posters). No accents in pixels; the DOM labels carry the accented forms.
