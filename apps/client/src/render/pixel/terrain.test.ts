@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blockSize, displaySize, floorAt, hash2, maskAt, maskCorners, quadrantFilled, tileIndex } from './terrain';
+import { blockSize, displaySize, floorAt, hash2, maskAt, maskCorners, phasedIndex, quadrantFilled, tileIndex } from './terrain';
 
 describe('maskAt (dual grid)', () => {
   // 3x3 floor with a single calçada tile in the middle.
@@ -76,6 +76,16 @@ describe('tileIndex', () => {
   it('block size is 16 masks plus the extra fill variants', () => {
     expect(blockSize(1)).toBe(16);
     expect(blockSize(4)).toBe(19);
+  });
+});
+
+describe('phasedIndex', () => {
+  it('alternates phases by column and skips mask 0', () => {
+    expect(phasedIndex(0, 0, 3, 2)).toBe(-1);
+    expect(phasedIndex(0, 5, 0, 2)).toBe(5);
+    expect(phasedIndex(0, 5, 1, 2)).toBe(21);
+    expect(phasedIndex(0, 5, 2, 2)).toBe(5);
+    expect(phasedIndex(32, 15, -1, 2)).toBe(32 + 16 + 15); // negative columns wrap
   });
 });
 

@@ -18,6 +18,7 @@
     "e2e:meveum": "node scripts/e2e-meveum.mjs",
     "tts": "node scripts/bake-tts.mjs",
     "art": "node scripts/bake-art.mjs",
+    "pixel": "node scripts/pixel-import.mjs",
     "verify": "pnpm typecheck && pnpm test && pnpm build",
     "content": "node scripts/build-curriculum.mjs"
   },

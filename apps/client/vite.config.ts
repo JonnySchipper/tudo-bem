@@ -25,6 +25,7 @@ export default defineConfig({
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
         art: fileURLToPath(new URL('./art.html', import.meta.url)),
+        lifesimFrame: fileURLToPath(new URL('./lifesim-frame.html', import.meta.url)),
       },
     },
   },

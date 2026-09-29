@@ -1,0 +1,643 @@
+{
+  "version": 1,
+  "$comment": "Hand-written mapping for scripts/pixel-import.mjs. Rects are [x, y, w, h] in the source sheet. anchor = [ax, ay] pixel inside the sprite that sits at the bottom-centre of the footprint (it may lie outside the sprite for overhead parts). footprint = [w, h] in tiles. Only entries listed here are emitted to public/pixel.",
+  "roots": {
+    "ext": "limezu-modern-exteriors/Modern_Exteriors_16x16",
+    "int": "limezu-modern-interiors"
+  },
+  "sheets": {
+    "props": "ext:ME_Theme_Sorter_16x16/3_City_Props_16x16.png",
+    "garden": "ext:ME_Theme_Sorter_16x16/17_Garden_16x16.png",
+    "city": "ext:ME_Theme_Sorter_16x16/2_City_Terrains_16x16.png",
+    "shopping": "ext:ME_Theme_Sorter_16x16/9_Shopping_Center_and_Markets_16x16.png",
+    "pigeon": "ext:Animated_16x16/Animated_sheets_16x16/Pigeon_16x16.png"
+  },
+  "recolors": {
+    "ipe": {
+      "$comment": "canopy greens -> LimeZu yellow/orange ramp (Palette.png), by luminance rank",
+      "#14655a": "#66451e",
+      "#17704b": "#a9764f",
+      "#1c7d4d": "#ed931e",
+      "#268b49": "#f2b22b",
+      "#21983d": "#f8d239",
+      "#49a92f": "#ffe57b",
+      "#6fbb49": "#fff59a"
+    }
+  },
+  "atlas": {
+    "outdoor": {
+      "maxWidth": 512
+    }
+  },
+  "sprites": [
+    {
+      "key": "props/ipe_large",
+      "kind": "tree",
+      "sheet": "props",
+      "rect": [
+        435,
+        409,
+        42,
+        54
+      ],
+      "cutY": 31,
+      "baseY": 51,
+      "recolor": "ipe",
+      "footprint": [
+        2,
+        2
+      ],
+      "shadow": "fx/shadow_32",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.22
+      }
+    },
+    {
+      "key": "props/ipe_medium",
+      "kind": "tree",
+      "sheet": "props",
+      "rect": [
+        384,
+        355,
+        32,
+        45
+      ],
+      "cutY": 27,
+      "baseY": 43,
+      "recolor": "ipe",
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.22
+      }
+    },
+    {
+      "key": "props/bench_wide",
+      "sheet": "props",
+      "rect": [
+        339,
+        41,
+        42,
+        22
+      ],
+      "anchor": [
+        21,
+        20
+      ],
+      "footprint": [
+        3,
+        1
+      ],
+      "shadow": "fx/shadow_32",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/bench_small",
+      "sheet": "props",
+      "rect": [
+        339,
+        9,
+        26,
+        22
+      ],
+      "anchor": [
+        13,
+        20
+      ],
+      "footprint": [
+        2,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/lamp_old",
+      "sheet": "props",
+      "rect": [
+        321,
+        3,
+        14,
+        61
+      ],
+      "anchor": [
+        7,
+        58
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "light": {
+        "x": 7,
+        "y": 14,
+        "r": 46,
+        "color": "#ffb45a"
+      },
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.24
+      }
+    },
+    {
+      "key": "props/lamp_curve",
+      "sheet": "props",
+      "rect": [
+        258,
+        5,
+        28,
+        59
+      ],
+      "isolate": [
+        264,
+        30
+      ],
+      "anchor": [
+        6,
+        57
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "light": {
+        "x": 21,
+        "y": 24,
+        "r": 46,
+        "color": "#ffb45a"
+      },
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.24
+      }
+    },
+    {
+      "key": "props/trash",
+      "sheet": "props",
+      "rect": [
+        354,
+        394,
+        11,
+        21
+      ],
+      "anchor": [
+        5,
+        19
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/bush_round",
+      "sheet": "props",
+      "rect": [
+        385,
+        257,
+        31,
+        23
+      ],
+      "anchor": [
+        15,
+        21
+      ],
+      "footprint": [
+        2,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/banca",
+      "kind": "custom",
+      "custom": "banca",
+      "footprint": [
+        3,
+        2
+      ],
+      "shadow": "fx/shadow_48",
+      "cast": {
+        "kx": 0.4,
+        "ky": 0.2
+      }
+    },
+    {
+      "key": "decals/sp_mosaic",
+      "kind": "custom",
+      "custom": "spMosaic",
+      "footprint": [
+        2,
+        2
+      ],
+      "decal": true
+    },
+    {
+      "key": "critters/pigeon",
+      "kind": "strip",
+      "sheet": "pigeon",
+      "frameW": 16,
+      "frameH": 16,
+      "frames": 6,
+      "fps": 6,
+      "anchor": [
+        8,
+        14
+      ],
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    {
+      "key": "buildings/shop_padaria",
+      "kind": "shop",
+      "sheet": "shopping",
+      "rect": [
+        352,
+        420,
+        80,
+        106
+      ],
+      "sign": "PADARIA",
+      "anchor": [
+        40,
+        104
+      ],
+      "footprint": [
+        5,
+        1
+      ],
+      "shadow": null,
+      "cast": {
+        "kx": 0.22,
+        "ky": 0.1
+      }
+    },
+    {
+      "key": "buildings/shop_mercado",
+      "kind": "shop",
+      "sheet": "shopping",
+      "rect": [
+        0,
+        420,
+        80,
+        106
+      ],
+      "sign": "MERCADO",
+      "anchor": [
+        40,
+        104
+      ],
+      "footprint": [
+        5,
+        1
+      ],
+      "shadow": null,
+      "cast": {
+        "kx": 0.22,
+        "ky": 0.1
+      }
+    },
+    {
+      "key": "buildings/shop_flores",
+      "kind": "shop",
+      "sheet": "shopping",
+      "rect": [
+        176,
+        420,
+        80,
+        106
+      ],
+      "sign": "FLORES",
+      "anchor": [
+        40,
+        104
+      ],
+      "footprint": [
+        5,
+        1
+      ],
+      "shadow": null,
+      "cast": {
+        "kx": 0.22,
+        "ky": 0.1
+      }
+    },
+    {
+      "key": "buildings/shop_lanches",
+      "kind": "shop",
+      "sheet": "shopping",
+      "rect": [
+        80,
+        420,
+        80,
+        106
+      ],
+      "sign": "LANCHES",
+      "anchor": [
+        40,
+        104
+      ],
+      "footprint": [
+        5,
+        1
+      ],
+      "shadow": null,
+      "cast": {
+        "kx": 0.22,
+        "ky": 0.1
+      }
+    },
+    {
+      "key": "buildings/shop_sapatos",
+      "kind": "shop",
+      "sheet": "shopping",
+      "rect": [
+        432,
+        420,
+        80,
+        106
+      ],
+      "sign": "SAPATOS",
+      "anchor": [
+        40,
+        104
+      ],
+      "footprint": [
+        5,
+        1
+      ],
+      "shadow": null,
+      "cast": {
+        "kx": 0.22,
+        "ky": 0.1
+      }
+    },
+    {
+      "key": "buildings/shop_pizzaria",
+      "kind": "shop",
+      "sheet": "shopping",
+      "rect": [
+        256,
+        420,
+        80,
+        106
+      ],
+      "sign": "PIZZA",
+      "anchor": [
+        40,
+        104
+      ],
+      "footprint": [
+        5,
+        1
+      ],
+      "shadow": null,
+      "cast": {
+        "kx": 0.22,
+        "ky": 0.1
+      }
+    }
+  ],
+  "terrain": {
+    "c": {
+      "name": "calcada",
+      "kind": "slab",
+      "custom": "calcada",
+      "phases": 2
+    },
+    "g": {
+      "name": "grama",
+      "kind": "flat",
+      "sheet": "props",
+      "tiles": [
+        [
+          384,
+          96
+        ],
+        [
+          400,
+          96
+        ],
+        [
+          416,
+          96
+        ],
+        [
+          432,
+          96
+        ],
+        [
+          448,
+          96
+        ],
+        [
+          384,
+          112
+        ],
+        [
+          400,
+          112
+        ],
+        [
+          416,
+          112
+        ],
+        [
+          432,
+          112
+        ],
+        [
+          448,
+          112
+        ],
+        [
+          416,
+          128
+        ],
+        [
+          384,
+          144
+        ],
+        [
+          432,
+          144
+        ],
+        [
+          448,
+          160
+        ],
+        [
+          400,
+          160
+        ],
+        [
+          400,
+          128
+        ],
+        [
+          400,
+          128
+        ],
+        [
+          400,
+          128
+        ]
+      ]
+    },
+    "a": {
+      "name": "asfalto",
+      "kind": "flat",
+      "sheet": "city",
+      "tiles": [
+        [
+          16,
+          64
+        ],
+        [
+          32,
+          80
+        ],
+        [
+          48,
+          64
+        ],
+        [
+          16,
+          96
+        ],
+        [
+          48,
+          96
+        ],
+        [
+          64,
+          80
+        ]
+      ]
+    }
+  },
+  "chars": {
+    "$comment": "LimeZu Character Generator layers -> canonical 128x544 keyed sheets. sources are merged back to front. groups list the source shades per ramp (see palette.ts).",
+    "base": "int:2_Characters/Character_Generator",
+    "layers": [
+      {
+        "key": "body_medio",
+        "sources": [
+          "Bodies/16x16/Body_01.png",
+          "Eyes/16x16/Eyes_01.png"
+        ],
+        "groups": {
+          "skin": [
+            "#aa5e56",
+            "#b57972",
+            "#bf8b78",
+            "#c49d85"
+          ]
+        }
+      },
+      {
+        "key": "outfit_o01",
+        "sources": [
+          "Outfits/16x16/Outfit_01_01.png"
+        ],
+        "groups": {
+          "top": [
+            "#805e8e",
+            "#9f74a8"
+          ],
+          "bottom": [
+            "#5d6043",
+            "#687253"
+          ]
+        }
+      },
+      {
+        "key": "outfit_o13",
+        "sources": [
+          "Outfits/16x16/Outfit_13_01.png"
+        ],
+        "groups": {
+          "top": [
+            "#50a7e8",
+            "#5ec8fc"
+          ]
+        }
+      },
+      {
+        "key": "outfit_o16",
+        "sources": [
+          "Outfits/16x16/Outfit_16_01.png"
+        ],
+        "groups": {
+          "top": [
+            "#ed931e",
+            "#f5aa14"
+          ]
+        }
+      },
+      {
+        "key": "hair_h02",
+        "sources": [
+          "Hairstyles/16x16/Hairstyle_02_01.png"
+        ],
+        "groups": {
+          "hair": [
+            "#ab6736",
+            "#b37b3f",
+            "#cc9659"
+          ]
+        }
+      },
+      {
+        "key": "hair_h12",
+        "sources": [
+          "Hairstyles/16x16/Hairstyle_12_01.png"
+        ],
+        "groups": {
+          "hair": [
+            "#ab6736",
+            "#b37b3f",
+            "#cc9659"
+          ]
+        }
+      },
+      {
+        "key": "hair_h05",
+        "sources": [
+          "Hairstyles/16x16/Hairstyle_05_01.png"
+        ],
+        "groups": {
+          "hair": [
+            "#ab6736",
+            "#b37b3f",
+            "#cc9659"
+          ]
+        }
+      }
+    ]
+  }
+}

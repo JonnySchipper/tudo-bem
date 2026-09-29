@@ -1,0 +1,801 @@
+{
+ "version": 1,
+ "tile": 16,
+ "atlases": {
+  "outdoor": {
+   "image": "atlas/outdoor.png",
+   "data": "atlas/outdoor.json",
+   "w": 512,
+   "h": 256,
+   "frames": 50
+  }
+ },
+ "terrain": {
+  "tileset": "tiles/terrain.png",
+  "tile": 16,
+  "margin": 1,
+  "spacing": 2,
+  "columns": 16,
+  "count": 86,
+  "layers": {
+   "c": {
+    "name": "calcada",
+    "edge": "slab",
+    "first": 0,
+    "phases": 2,
+    "variants": 1,
+    "tiles": 32
+   },
+   "g": {
+    "name": "grama",
+    "edge": "flat",
+    "first": 32,
+    "phases": 1,
+    "variants": 18,
+    "tiles": 33
+   },
+   "a": {
+    "name": "asfalto",
+    "edge": "flat",
+    "first": 65,
+    "phases": 1,
+    "variants": 6,
+    "tiles": 21
+   }
+  }
+ },
+ "sprites": {
+  "props/ipe_large": {
+   "atlas": "outdoor",
+   "frame": "props/ipe_large",
+   "w": 42,
+   "h": 23,
+   "ax": 21,
+   "ay": 20,
+   "footprint": [
+    2,
+    2
+   ],
+   "anim": null,
+   "overhead": "props/ipe_large_canopy",
+   "shadow": "fx/shadow_32",
+   "cast": {
+    "frame": "props/ipe_large#cast",
+    "w": 70,
+    "h": 15,
+    "ax": 21,
+    "ay": 1
+   }
+  },
+  "props/ipe_large_canopy": {
+   "atlas": "outdoor",
+   "frame": "props/ipe_large_canopy/0",
+   "w": 44,
+   "h": 31,
+   "ax": 22,
+   "ay": 51,
+   "footprint": [
+    2,
+    2
+   ],
+   "anim": {
+    "frames": [
+     "props/ipe_large_canopy/0",
+     "props/ipe_large_canopy/1",
+     "props/ipe_large_canopy/0",
+     "props/ipe_large_canopy/2"
+    ],
+    "fps": 3
+   },
+   "overhead": true,
+   "shadow": null
+  },
+  "props/ipe_medium": {
+   "atlas": "outdoor",
+   "frame": "props/ipe_medium",
+   "w": 32,
+   "h": 18,
+   "ax": 16,
+   "ay": 16,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": "props/ipe_medium_canopy",
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/ipe_medium#cast",
+    "w": 56,
+    "h": 13,
+    "ax": 16,
+    "ay": 1
+   }
+  },
+  "props/ipe_medium_canopy": {
+   "atlas": "outdoor",
+   "frame": "props/ipe_medium_canopy/0",
+   "w": 34,
+   "h": 27,
+   "ax": 17,
+   "ay": 43,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "props/ipe_medium_canopy/0",
+     "props/ipe_medium_canopy/1",
+     "props/ipe_medium_canopy/0",
+     "props/ipe_medium_canopy/2"
+    ],
+    "fps": 3
+   },
+   "overhead": true,
+   "shadow": null
+  },
+  "props/bench_wide": {
+   "atlas": "outdoor",
+   "frame": "props/bench_wide",
+   "w": 42,
+   "h": 22,
+   "ax": 21,
+   "ay": 20,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_32",
+   "cast": {
+    "frame": "props/bench_wide#cast",
+    "w": 54,
+    "h": 8,
+    "ax": 21,
+    "ay": 1
+   }
+  },
+  "props/bench_small": {
+   "atlas": "outdoor",
+   "frame": "props/bench_small",
+   "w": 26,
+   "h": 22,
+   "ax": 13,
+   "ay": 20,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/bench_small#cast",
+    "w": 38,
+    "h": 8,
+    "ax": 13,
+    "ay": 1
+   }
+  },
+  "props/lamp_old": {
+   "atlas": "outdoor",
+   "frame": "props/lamp_old",
+   "w": 14,
+   "h": 61,
+   "ax": 7,
+   "ay": 58,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "light": {
+    "x": 7,
+    "y": 14,
+    "r": 46,
+    "color": "#ffb45a"
+   },
+   "cast": {
+    "frame": "props/lamp_old#cast",
+    "w": 45,
+    "h": 17,
+    "ax": 7,
+    "ay": 1
+   }
+  },
+  "props/lamp_curve": {
+   "atlas": "outdoor",
+   "frame": "props/lamp_curve",
+   "w": 28,
+   "h": 59,
+   "ax": 6,
+   "ay": 57,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "light": {
+    "x": 21,
+    "y": 24,
+    "r": 46,
+    "color": "#ffb45a"
+   },
+   "cast": {
+    "frame": "props/lamp_curve#cast",
+    "w": 59,
+    "h": 17,
+    "ax": 6,
+    "ay": 1
+   }
+  },
+  "props/trash": {
+   "atlas": "outdoor",
+   "frame": "props/trash",
+   "w": 11,
+   "h": 21,
+   "ax": 5,
+   "ay": 19,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/trash#cast",
+    "w": 23,
+    "h": 8,
+    "ax": 5,
+    "ay": 1
+   }
+  },
+  "props/bush_round": {
+   "atlas": "outdoor",
+   "frame": "props/bush_round",
+   "w": 31,
+   "h": 23,
+   "ax": 15,
+   "ay": 21,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/bush_round#cast",
+    "w": 44,
+    "h": 9,
+    "ax": 15,
+    "ay": 1
+   }
+  },
+  "props/banca": {
+   "atlas": "outdoor",
+   "frame": "props/banca",
+   "w": 56,
+   "h": 58,
+   "ax": 28,
+   "ay": 55,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "props/banca#cast",
+    "w": 80,
+    "h": 14,
+    "ax": 28,
+    "ay": 1
+   }
+  },
+  "decals/sp_mosaic": {
+   "atlas": "outdoor",
+   "frame": "decals/sp_mosaic",
+   "w": 32,
+   "h": 32,
+   "ax": 16,
+   "ay": 32,
+   "footprint": [
+    2,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "critters/pigeon": {
+   "atlas": "outdoor",
+   "frame": "critters/pigeon/0",
+   "w": 16,
+   "h": 16,
+   "ax": 8,
+   "ay": 14,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "critters/pigeon/0",
+     "critters/pigeon/1",
+     "critters/pigeon/2",
+     "critters/pigeon/3",
+     "critters/pigeon/4",
+     "critters/pigeon/5"
+    ],
+    "fps": 6
+   },
+   "overhead": null,
+   "shadow": null
+  },
+  "buildings/shop_padaria": {
+   "atlas": "outdoor",
+   "frame": "buildings/shop_padaria",
+   "w": 80,
+   "h": 106,
+   "ax": 40,
+   "ay": 104,
+   "footprint": [
+    5,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     45,
+     77,
+     24,
+     15
+    ],
+    [
+     19,
+     82,
+     10,
+     17
+    ]
+   ],
+   "cast": {
+    "frame": "buildings/shop_padaria#cast",
+    "w": 105,
+    "h": 14,
+    "ax": 40,
+    "ay": 1
+   }
+  },
+  "buildings/shop_mercado": {
+   "atlas": "outdoor",
+   "frame": "buildings/shop_mercado",
+   "w": 80,
+   "h": 106,
+   "ax": 40,
+   "ay": 104,
+   "footprint": [
+    5,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     45,
+     77,
+     24,
+     15
+    ],
+    [
+     19,
+     82,
+     10,
+     17
+    ]
+   ],
+   "cast": {
+    "frame": "buildings/shop_mercado#cast",
+    "w": 105,
+    "h": 14,
+    "ax": 40,
+    "ay": 1
+   }
+  },
+  "buildings/shop_flores": {
+   "atlas": "outdoor",
+   "frame": "buildings/shop_flores",
+   "w": 80,
+   "h": 106,
+   "ax": 40,
+   "ay": 104,
+   "footprint": [
+    5,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     45,
+     77,
+     24,
+     15
+    ],
+    [
+     19,
+     82,
+     10,
+     17
+    ]
+   ],
+   "cast": {
+    "frame": "buildings/shop_flores#cast",
+    "w": 105,
+    "h": 14,
+    "ax": 40,
+    "ay": 1
+   }
+  },
+  "buildings/shop_lanches": {
+   "atlas": "outdoor",
+   "frame": "buildings/shop_lanches",
+   "w": 80,
+   "h": 106,
+   "ax": 40,
+   "ay": 104,
+   "footprint": [
+    5,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     49,
+     74,
+     16,
+     16
+    ],
+    [
+     19,
+     79,
+     10,
+     17
+    ]
+   ],
+   "cast": {
+    "frame": "buildings/shop_lanches#cast",
+    "w": 105,
+    "h": 14,
+    "ax": 40,
+    "ay": 1
+   }
+  },
+  "buildings/shop_sapatos": {
+   "atlas": "outdoor",
+   "frame": "buildings/shop_sapatos",
+   "w": 80,
+   "h": 106,
+   "ax": 40,
+   "ay": 104,
+   "footprint": [
+    5,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     49,
+     74,
+     16,
+     16
+    ],
+    [
+     19,
+     79,
+     10,
+     17
+    ]
+   ],
+   "cast": {
+    "frame": "buildings/shop_sapatos#cast",
+    "w": 105,
+    "h": 14,
+    "ax": 40,
+    "ay": 1
+   }
+  },
+  "buildings/shop_pizzaria": {
+   "atlas": "outdoor",
+   "frame": "buildings/shop_pizzaria",
+   "w": 80,
+   "h": 106,
+   "ax": 40,
+   "ay": 104,
+   "footprint": [
+    5,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     49,
+     74,
+     16,
+     16
+    ],
+    [
+     19,
+     79,
+     10,
+     17
+    ]
+   ],
+   "cast": {
+    "frame": "buildings/shop_pizzaria#cast",
+    "w": 105,
+    "h": 14,
+    "ax": 40,
+    "ay": 1
+   }
+  },
+  "fx/shadow_16": {
+   "atlas": "outdoor",
+   "frame": "fx/shadow_16",
+   "w": 14,
+   "h": 6,
+   "ax": 7,
+   "ay": 3,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/shadow_32": {
+   "atlas": "outdoor",
+   "frame": "fx/shadow_32",
+   "w": 30,
+   "h": 10,
+   "ax": 15,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/shadow_48": {
+   "atlas": "outdoor",
+   "frame": "fx/shadow_48",
+   "w": 46,
+   "h": 12,
+   "ax": 23,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/petal_a": {
+   "atlas": "outdoor",
+   "frame": "fx/petal_a",
+   "w": 3,
+   "h": 3,
+   "ax": 1,
+   "ay": 1,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/petal_b": {
+   "atlas": "outdoor",
+   "frame": "fx/petal_b",
+   "w": 3,
+   "h": 3,
+   "ax": 1,
+   "ay": 1,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "decals/petals_large": {
+   "atlas": "outdoor",
+   "frame": "decals/petals_large",
+   "w": 44,
+   "h": 22,
+   "ax": 22,
+   "ay": 11,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/petals_medium": {
+   "atlas": "outdoor",
+   "frame": "decals/petals_medium",
+   "w": 30,
+   "h": 16,
+   "ax": 15,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  }
+ },
+ "chars": {
+  "body_medio": "chars/body_medio.png",
+  "outfit_o01": "chars/outfit_o01.png",
+  "outfit_o13": "chars/outfit_o13.png",
+  "outfit_o16": "chars/outfit_o16.png",
+  "hair_h02": "chars/hair_h02.png",
+  "hair_h12": "chars/hair_h12.png",
+  "hair_h05": "chars/hair_h05.png"
+ },
+ "sheet": {
+  "frame": [
+   16,
+   32
+  ],
+  "cols": 8,
+  "rows": 17,
+  "anims": {
+   "idle": {
+    "rows": [
+     0,
+     1,
+     2,
+     3
+    ],
+    "frames": 6,
+    "fps": 5,
+    "loop": true
+   },
+   "walk": {
+    "rows": [
+     4,
+     5,
+     6,
+     7
+    ],
+    "frames": 6,
+    "fps": 10,
+    "loop": true
+   },
+   "sit": {
+    "rows": [
+     8,
+     9,
+     10,
+     11
+    ],
+    "frames": 1
+   },
+   "oi": {
+    "row": 12,
+    "frames": 4,
+    "fps": 8,
+    "repeat": 2
+   },
+   "dancar": {
+    "row": 13,
+    "frames": 4,
+    "fps": 8,
+    "repeat": 3
+   },
+   "rir": {
+    "row": 14,
+    "frames": 4,
+    "fps": 8,
+    "repeat": 2
+   },
+   "valeu": {
+    "row": 15,
+    "frames": 4,
+    "fps": 8,
+    "repeat": 1,
+    "hold": 600
+   },
+   "desculpa": {
+    "row": 16,
+    "frames": 4,
+    "fps": 8,
+    "repeat": 1,
+    "hold": 600
+   }
+  },
+  "facingRow": {
+   "S": 0,
+   "W": 1,
+   "E": 2,
+   "N": 3
+  }
+ },
+ "keyRamps": {
+  "skin": [
+   "#a0003a",
+   "#c00050",
+   "#e00068",
+   "#ff2080"
+  ],
+  "hair": [
+   "#003aa0",
+   "#0050c0",
+   "#0068e0",
+   "#2080ff"
+  ],
+  "top": [
+   "#00a03a",
+   "#00c050",
+   "#00e068",
+   "#20ff80"
+  ],
+  "bottom": [
+   "#a08000",
+   "#c09c00",
+   "#e0b800",
+   "#ffd420"
+  ],
+  "shoes": [
+   "#a000a0",
+   "#d000d0",
+   "#ff20ff"
+  ]
+ },
+ "fx": {
+  "glow": {
+   "file": "fx/glow_128.png",
+   "w": 128,
+   "h": 128
+  },
+  "cloudShadow": {
+   "file": "fx/cloud_shadow.png",
+   "w": 256,
+   "h": 128
+  }
+ },
+ "lights": {}
+}

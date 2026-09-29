@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex" />
+    <title>Vila Ipê · style frame (P1)</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800&display=swap" rel="stylesheet" />
+    <style>
+      html, body { margin: 0; height: 100%; background: #1d1b26; overflow: hidden; }
+      #game { position: fixed; inset: 0; }
+      #game canvas { display: block; image-rendering: pixelated; }
+      #hud { position: fixed; left: 0; right: 0; bottom: max(10px, env(safe-area-inset-bottom)); display: flex; justify-content: center; pointer-events: none; }
+      #hud.hidden, #credit.hidden { display: none; }
+      #bar { pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-radius: 999px; background: rgba(29, 27, 38, 0.72); color: #f5e6d3; font: 800 13px/1 Nunito, system-ui, sans-serif; border: 1px solid rgba(245, 230, 211, 0.18); max-width: calc(100vw - 32px); }
+      #bar button { all: unset; cursor: pointer; width: 26px; height: 26px; text-align: center; line-height: 26px; border-radius: 50%; background: #d4a017; color: #2c2c2c; font-size: 11px; }
+      #time { width: min(280px, 46vw); accent-color: #d4a017; }
+      #time-label { min-width: 3.4em; font-variant-numeric: tabular-nums; text-align: right; }
+      #credit { position: fixed; right: 10px; top: 8px; font: 600 11px/1 Nunito, system-ui, sans-serif; color: rgba(245, 230, 211, 0.78); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); pointer-events: none; }
+      #credit a { color: inherit; pointer-events: auto; }
+      #err { position: fixed; left: 8px; top: 8px; color: #ff9a9a; font: 12px monospace; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <div id="game" aria-label="Vila Ipê style frame"></div>
+    <div id="hud">
+      <div id="bar">
+        <button id="play" aria-label="Play time">▶</button>
+        <input id="time" type="range" aria-label="Hora do dia" />
+        <span id="time-label">17:30</span>
+      </div>
+    </div>
+    <div id="credit">Art: <a href="https://limezu.itch.io/" target="_blank" rel="noreferrer noopener">LimeZu — limezu.itch.io</a></div>
+    <div id="err"></div>
+    <script type="module" src="/src/render/pixel/frame/main.ts"></script>
+  </body>
+</html>

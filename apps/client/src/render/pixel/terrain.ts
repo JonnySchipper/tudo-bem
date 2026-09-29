@@ -77,6 +77,15 @@ export function maskCorners(mask: number): { tl: boolean; tr: boolean; bl: boole
 }
 
 /**
+ * Tile index for a terrain that has `phases` horizontal fill phases (for example the calçada wave has a 32 px wavelength
+ * over 16 px tiles, so it uses two alternating tiles per mask): first + (i mod phases) * 16 + mask. -1 for mask 0.
+ */
+export function phasedIndex(first: number, mask: number, i: number, phases = 1): number {
+  if (mask === 0) return -1;
+  return first + (((i % phases) + phases) % phases) * 16 + mask;
+}
+
+/**
  * The 8x8 quadrant ownership of a mask: which of the four quadrants of the 16x16 display tile are filled.
  * Quadrant TL belongs to world tile (i-1, j-1) and covers pixels x 0..7, y 0..7 of the display tile.
  */
