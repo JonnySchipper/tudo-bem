@@ -96,18 +96,32 @@ describe('NPC memory with AI on (mocked xAI)', () => {
     expect(turnPrompts()).toHaveLength(1);
     expect(turnPrompts()[0]).not.toContain('Você lembra');
 
-    // The next Conversa's turn carries it.
+    // Below 2 hearts the NPC does not use what it remembers (HOWTO Phase 8 step 4 milestone)...
+    expect(a.store.get(a.id)!.npcMemory?.carlos).toBeTruthy();
+    a.store.get(a.id)!.bond = { carlos: 19 };
+    await api!.post(startBody(a.id));
+    await api!.post(turnBody(a.id, 'Bom dia!', 1));
+    expect(turnPrompts()).toHaveLength(2);
+    expect(turnPrompts()[1]).not.toContain('Você lembra');
+
+    // ...at 2 hearts (20 points) the next Conversa's turn carries it.
+    a.store.get(a.id)!.bond = { carlos: 20 };
     await api!.post(startBody(a.id));
     await api!.post(turnBody(a.id, 'Bom dia!', 1));
     const prompts = turnPrompts();
-    expect(prompts).toHaveLength(2);
-    expect(prompts[1]).toContain('Você lembra: Pediu um café com leite.');
-    expect(prompts[1]!.indexOf('Você lembra')).toBeLessThan(prompts[1]!.indexOf('SUBJECT:'));
+    expect(prompts).toHaveLength(3);
+    expect(prompts[2]).toContain('Você lembra: Pediu um café com leite.');
+    expect(prompts[2]!.indexOf('Você lembra')).toBeLessThan(prompts[2]!.indexOf('SUBJECT:'));
+    // the bond of ANOTHER npc does not unlock it
+    a.store.get(a.id)!.bond = { nanda: 60 };
+    await api!.post(turnBody(a.id, 'Bom dia!', 2));
+    expect(turnPrompts()[3]).not.toContain('Você lembra');
 
-    // Another player has none.
+    // Another player has none, whatever their bond.
     const b = await worldWithPlayer(a.store);
     expect(b.id).not.toBe(a.id);
+    b.store.get(b.id)!.bond = { carlos: 100 };
     await api!.post(turnBody(b.id, 'Bom dia!', 1));
-    expect(turnPrompts()[2]).not.toContain('Você lembra');
+    expect(turnPrompts()[4]).not.toContain('Você lembra');
   });
 });

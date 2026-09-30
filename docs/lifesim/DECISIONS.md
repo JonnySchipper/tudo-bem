@@ -799,3 +799,55 @@ Roofs across the south street are plain (one terrace, five colourways, no dishes
 ### Needs BR review
 
 Painted in pixels: TUDO BEM?, EM BREVE, ONIBUS, BUS (pack). DOM/labels: "Ponto de ônibus", "Em breve: a feira livre!" / "Coming soon: the street market!", "Fonte da praça", "Vira-lata caramelo", "Mapa da Vila Ipê", the minimap key ("portas", "vizinhos", "você").
+
+## Decisions made in Phase 8b (NPC schedules)
+
+Branch `lifesim/p8b-npc-schedules`. Shots: `docs/lifesim/shots/p8b/` (`closed_stall_2100`, `closed_stall_shop`, `carlos_bench_2230`, `padaria_2300_graca`, `academia_prof_bia`). Night run: `scripts/e2e-night.mjs` (`PHASE=a|b`, server started with `TB_TEST_CLOCK_OFFSET_MIN`).
+
+### Model
+
+1. **A schedule is a pure function of the game clock** (`schedules.ts` data + `npcMotion.ts`). Slots tile 0..1440 (`from` inclusive, `to` exclusive; 05:59 belongs to the slot ending 06:00). At a boundary the NPC walks from the previous slot's tile to the new one with `findPath` over the room's static grid; cross-room is two legs (walk to the portal tile and vanish, appear at the portal's arrival tile and walk on); `em_casa` is a walk to a home door (padaria door, or the Edifício Ipê door in the praça) and back out of it. Nothing is stored, so reconnects, every instance and the tests agree, and a walk in progress resumes from any moment.
+2. **Slots carry an `interact` tile** (where to stand to talk to or hand something to the NPC in that slot). `NpcDef.x/y` is the fallback, `NpcDef.schedule` optional. `ScheduleSlot.activity`: `trabalhando | passeando | sentado | em_casa`.
+3. **The padaria counter is behind the balcão** (a pocket no path reaches), so NPC paths use `npcNavGrid`, which opens the vase tile (9,2) as a staff gap. Players still cannot enter.
+4. **Walks take up to about 6 real seconds; 1 game minute is 2 real seconds**, so an NPC is still walking a few game minutes after a boundary (tests assert every transition under 30 s).
+
+### Schedule table (game time)
+
+| NPC | Slots |
+|---|---|
+| Seu Carlos | 00:00-06:00 em_casa · 06:00-22:00 padaria counter (3,1), talk from (3,3) · 22:00-23:30 praça bench banco_2 (28,17), talk from (28,18) · 23:30-24:00 em_casa |
+| Dona Graça | 00:00-06:00 padaria counter · 06:00-17:00 em_casa · 17:00-22:00 padaria table chair (6,6), talk from (6,5) · 22:00-24:00 padaria counter |
+| Nanda | 00:00-08:00 em_casa · 08:00-20:00 at her stall (35,13), talk from (34,15) · 20:00-24:00 em_casa |
+| Júlia | 00:00-07:00 by the banca (21,6), talk from (20,6) · 07:00-17:00 kiosk path (22,19), talk from (22,20) · 17:00-23:00 bench banco_3 (20,25), talk from (20,26) · 23:00-24:00 banca |
+| Professora Bia | no schedule: (8,4) by the tatame, talk from (8,5), every hour |
+
+Júlia's evening bench is banco_3, not banco_1, because the e2e clicks banco_1 for real.
+
+### Protocol
+
+5. **NPCs are avatars** (no new message types): `PublicAvatar` gained `npc?: NpcId`, `npcInteract?: Tile`, `activity?: NpcActivity`; the id is `npc-<id>` (`npcAvatarId`). They arrive in `roomState.avatars`, and `avatarJoined / avatarMoved / avatarLeft` are broadcast like the CPUs' (a world tick every second diffs each instance against the last walk sent, `NpcPose.legId`). A player joining mid-walk also gets one `avatarMoved` per walking NPC (tile reached + rest of the path). `serverNow` (welcome, roomState) now carries the game clock, which adds the test offset.
+6. **Test clock**: `WorldOptions.clockOffsetMs`, env `TB_TEST_CLOCK_OFFSET_MIN` (real minutes added to the game clock only; timers are untouched).
+
+### Blocking and interact tiles
+
+7. `buildGrid` blocks an NPC's tile only when it has no schedule (Professora Bia). For scheduled NPCs `World.grid` adds the tile each NPC has reached right now (server side, per call), so players cannot walk or sit onto an NPC and the tile frees when it leaves. CPUs stay off the tiles NPCs stand on or head for (`CrowdHost.reserved`). Recado `give`, nearby-NPC greeting and talk use the NPC's current tile and its slot's interact tile; an NPC who is not in the room is "não está aqui".
+
+### D12
+
+8. **The baker on duty.** The scene (`scene start`) accepts `carlos` or `graca` in the padaria and runs the same authored graph; the talk bond goes to whoever is on duty (`bakerOnDuty`), order events stay `carlos` (the counter role; the daily Pedido RV is once per day for the counter). `sameNpcRole(step, actual)`: Dona Graça counts for Seu Carlos in recado steps (`pedir`, `falar`, `entregar`, `cumprimentar`), not the reverse. `give` to `carlos` works with Graça at the counter. Me vê um needs only the padaria.
+9. **Dona Graça** is a real NPC (removed from `OFFSTAGE_NPCS`), with a `CONVERSA_CAST` entry enabled with Carlos's two subjects and a `persona` line in the system prompt. Known gap: a few authored chips still say "Seu Carlos" (offline Conversa).
+10. **Nanda's closed stall**: the stall sprite and canopy are dimmed and a plate "Fechado · volta às 8h" shows while she is not standing at it; clicking it opens the hat shop with the note "Nanda volta às 8h". Buying never depended on her.
+11. **Professora Bia** (`prof`): `graca_agua_pra_academia` is now `pedir carlos agua 1; ir academia; entregar prof agua 1` (recados.md regenerated). Her look is an off-white gi with the NPC apron layer in near-black as a belt (existing layers only; it reads dark and heavy, art track can replace it). Her portrait is a placeholder: `PORTRAIT_PLACEHOLDER` makes `portraits/julia_*` stand in.
+12. **Memory gated on bond**: the Conversa prompt gets `memory` only at 2 hearts or more with that NPC (`MEMORY_MIN_HEARTS`).
+
+### Client
+
+13. The Phaser scene no longer builds NPCs from `ROOMS[...].npcs`: NPC avatars reuse the avatar sprite, walk, sit and label code (terracotta plate with the role, bubbles keyed by NpcId, hit boxes become `{kind:'npc'}` with the live tile and slot interact). `game.liveNpcs(now)` gives live `NpcDef`s to guides, idle talk, `__tb.interact`, the minimap (schedule at the game clock when outside the praça) and the padaria guide (points at whoever is on duty). NPCs are excluded from the head-count and the friends list. The e2e follows the baker on duty by game clock.
+
+### Risks
+
+A player sitting on a seat when an NPC's slot starts there overlaps it; Nanda's delivery recados cannot finish while she is home (they stay active); the evening/night NPC positions at the exact boundary minute lag by up to the tick (1 s); Bia's look and portrait are placeholders.
+
+### Needs BR review
+
+New PT strings: Dona Graça idle lines "Warm bread at night" = "De noite o pão sai quentinho!", "Boa noite! Bora de cafezinho?", "Ih, a noite é longa. Chega mais!"; Professora Bia: name "Professora Bia", role "Professora de jiu-jitsu" (EN: Jiu-jitsu teacher), lines "Oss! Bora treinar?", "Respeito primeiro, depois o tatame.", "Água é vida. Bebe bastante!"; recado `graca_agua_pra_academia` ask "Ei! Você vai na academia? Leva uma água pra Professora Bia! Quem treina tem que beber água."; "Nanda volta às 8h" (EN: Nanda is back at 8 am); stall plate "Fechado · volta às 8h"; counter greeting "Bom dia / Boa tarde / Boa noite! Chega mais, pode pedir!" (chosen by the hour); scene error "O café da manhã é no balcão da padaria." (EN: Breakfast is at the bakery counter.); Graça persona (EN prompt text).

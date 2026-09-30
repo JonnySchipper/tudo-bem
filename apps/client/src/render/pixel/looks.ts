@@ -128,6 +128,12 @@ export const NPC_STYLES: Record<NpcId, NpcStyle> = {
     hat: { layer: 'hat_pano', color: '#c8202f', accent: '#f4ede2' },
     apron: '#e8892b',
   },
+  // Professora Bia (BJJ): an off-white gi (shirt and trousers), black bun, and a dark belt: the NPC apron layer in near-black (its band
+  // across the waist reads as the belt). All existing layers, no new art.
+  prof: {
+    appearance: base({ body: 'forte', skin: 4, hair: 'coque', hairColor: 0, top: 'camisa', topColor: 4, bottom: 'calca', bottomColor: 4, shoes: 0, face: 'marcante', extra: 'nenhum', idle: 'bracos' }),
+    apron: '#26232e',
+  },
 };
 
 /** NPC look: the room's appearance when given (so map edits still show), otherwise the style's own; hat and apron always from the style. */

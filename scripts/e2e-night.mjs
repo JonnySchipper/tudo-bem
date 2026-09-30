@@ -1,0 +1,163 @@
+#!/usr/bin/env node
+/**
+ * Night-time e2e (Phase 8b, D12): the server clock is shifted with TB_TEST_CLOCK_OFFSET_MIN so the game clock reads the hour we want.
+ *
+ *   PHASE=a  start the server at about 20:55 game time: the hat stall is closed at 21:00, the hat shop still opens from it (note "Nanda volta às 8h").
+ *   PHASE=b  start the server at about 22:05: Seu Carlos sits on a praça bench at 22:30, Dona Graça covers the padaria at 23:00, the breakfast
+ *            scene + Me vê um work with her, Professora Bia is at the academia.
+ *
+ *   node scripts/e2e-night.mjs   (BASE_URL, CHROME_PATH, SHOTS_DIR, PHASE)
+ */
+import { chromium } from 'playwright-core';
+import fs from 'node:fs';
+import path from 'node:path';
+import { assert, learnShelf, playShift, sleep, waitFor } from './lib/meveum-play.mjs';
+
+const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
+const CHROME = process.env.CHROME_PATH;
+const SHOTS = process.env.SHOTS_DIR ?? '';
+const PHASE = process.env.PHASE ?? 'b';
+const PASSWORD = 'pao-de-queijo-2026';
+const log = (...a) => console.log('  ·', ...a);
+const shot = async (page, name) => {
+  if (!SHOTS) return;
+  fs.mkdirSync(SHOTS, { recursive: true });
+  await page.screenshot({ path: path.join(SHOTS, `${name}.png`) });
+  log('screenshot', name);
+};
+const minutes = (page) => page.evaluate(() => window.__tb.clock.minutes());
+const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+const npcsHere = (page) => page.evaluate(() => [...window.__tb.game.avatars.values()].filter((a) => a.pub.npc).map((a) => ({ id: a.pub.npc, activity: a.pub.activity, x: a.pub.x, y: a.pub.y })));
+const walkTo = (page, x, y) => page.evaluate(([x, y]) => window.__tb.walkTo(x, y, false), [x, y]);
+const interact = async (page, t) => assert(await page.evaluate((t) => window.__tb.interact(t), t), `interact ${JSON.stringify(t)}`);
+const join = async (page, portal, room) => {
+  await interact(page, { portal });
+  await waitFor(page, (r) => window.__tb.game.room?.room === r, room, 12_000, `room ${room}`);
+  await sleep(600);
+};
+async function waitIdleAt(page, x, y) {
+  await waitFor(page, ([x, y]) => { const t = window.__tb.selfTile(); return t && !t.moving && t.tile.x === x && t.tile.y === y; }, [x, y], 20_000, `at ${x},${y}`);
+}
+
+async function main() {
+  assert(CHROME, 'set CHROME_PATH');
+  const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });
+  const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 })).newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto(BASE);
+  await page.waitForSelector('#intro-enter', { timeout: 12_000 });
+  await page.click('#intro-enter');
+  await page.waitForSelector('#intro-skip', { timeout: 12_000 });
+  await page.click('#intro-skip');
+  await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
+  await page.click('#intro-tab-register');
+  await page.fill('#intro-email', `noite+${Date.now().toString(36)}@exemplo.com`);
+  await page.fill('#intro-password', PASSWORD);
+  await page.click('#intro-submit');
+  await page.waitForSelector('#avatar-name', { timeout: 12_000 });
+  await page.fill('#avatar-name', 'Coruja');
+  await page.click('button:has-text("ela (she)")');
+  await page.click('#enter-praca');
+  await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
+  await sleep(800);
+  log('start, game time', hhmm(await minutes(page)));
+
+  if (PHASE === 'a') {
+    await waitFor(page, () => window.__tb.clock.minutes() >= 1260, null, 120_000, '21:00');
+    await walkTo(page, 34, 16);
+    await waitIdleAt(page, 34, 16);
+    await sleep(1200);
+    const m = await minutes(page);
+    log('at the stall, game time', hhmm(m));
+    const npcs = await npcsHere(page);
+    assert(!npcs.some((n) => n.id === 'nanda'), 'Nanda is not in the world at night');
+    assert(npcs.some((n) => n.id === 'julia'), 'Júlia is in the praça');
+    await shot(page, 'closed_stall_2100');
+    await interact(page, { prop: 'barraca' });
+    await page.waitForSelector('[data-modal="shop"], .nanda-says', { timeout: 8000 });
+    const note = (await page.textContent('.nanda-says')) ?? '';
+    assert(/Nanda volta às 8h/.test(note), `the closed stall opens the hat shop with the note (${note})`);
+    assert((await page.$$('[data-hat]')).length >= 1, 'hats are listed');
+    await shot(page, 'closed_stall_shop');
+    log('hat shop opens from the closed stall:', note.trim());
+  } else {
+    // Seu Carlos on a bench at 22:30
+    await waitFor(page, () => window.__tb.clock.minutes() >= 1350 && window.__tb.clock.minutes() < 1400, null, 150_000, '22:30');
+    await walkTo(page, 28, 20);
+    await waitIdleAt(page, 28, 20);
+    await sleep(1000);
+    const npcs = await npcsHere(page);
+    const carlos = npcs.find((n) => n.id === 'carlos');
+    log('22:30+ praça NPCs:', JSON.stringify(npcs), 'time', hhmm(await minutes(page)));
+    assert(carlos && carlos.activity === 'sentado' && carlos.x === 28 && carlos.y === 17, 'Seu Carlos sits on the praça bench');
+    await shot(page, 'carlos_bench_2230');
+
+    // the padaria at 23:00 with Dona Graça
+    await walkTo(page, 16, 6);
+    await waitIdleAt(page, 16, 6);
+    await waitFor(page, () => window.__tb.clock.minutes() >= 1380 && window.__tb.clock.minutes() < 1420, null, 150_000, '23:00');
+    await join(page, 'praca_padaria', 'padaria');
+    await waitFor(page, () => [...window.__tb.game.avatars.values()].some((a) => a.pub.npc === 'graca'), null, 8000, 'Graça at the counter');
+    const padaria = await npcsHere(page);
+    assert(padaria.length === 1 && padaria[0].id === 'graca' && padaria[0].activity === 'trabalhando', `only Dona Graça works the padaria (${JSON.stringify(padaria)})`);
+    log('padaria at', hhmm(await minutes(page)), JSON.stringify(padaria));
+    await shot(page, 'padaria_2300_graca');
+
+    // the breakfast scene with her
+    await interact(page, { npc: 'graca' });
+    await page.waitForSelector('[data-modal="conversa"] .conversa-panel', { timeout: 12_000 });
+    const name = ((await page.textContent('[data-modal="conversa"] .npc-name')) ?? '').trim();
+    assert(name === 'Dona Graça', `the Conversa is with Dona Graça (${name})`);
+    await page.waitForSelector('[data-action="pedido-rapido"]', { state: 'visible', timeout: 5000 });
+    await page.click('[data-action="pedido-rapido"]');
+    await page.waitForSelector('[data-modal="pedido"] .pedido-panel', { timeout: 12_000 });
+    const picks = [0, 0, 0, 0, 0];
+    for (const p of picks) {
+      const before = await page.textContent('[data-modal="pedido"] .line-bubble .pt');
+      if (typeof p === 'string') {
+        await page.fill('#pedido-input', p);
+        await page.press('#pedido-input', 'Enter');
+      } else await page.click(`[data-modal="pedido"] [data-chip="${p}"]`);
+      await waitFor(page, (b) => document.querySelector('[data-modal="pedido"] .line-bubble .pt')?.textContent !== b, before, 6000, 'next line');
+    }
+    await page.waitForSelector('#btn-pedido-play-mg');
+    const afterScene = await page.evaluate(() => window.__tb.game.profile);
+    assert(afterScene.tutorial.carlos, 'the Carlos breakfast scene completed with Dona Graça');
+    assert((afterScene.bond?.graca ?? 0) >= 2, `the talk bond went to Dona Graça (${JSON.stringify(afterScene.bond)})`);
+    log('scene done with Graça, bond', JSON.stringify(afterScene.bond), 'bag', JSON.stringify(afterScene.bag));
+
+    // Me vê um with her
+    await page.click('#btn-pedido-play-mg');
+    await page.waitForSelector('[data-modal="minigame"]', { timeout: 12_000 });
+    await learnShelf(page);
+    await playShift(page, { log, dwell: () => Promise.resolve() });
+    const afterMg = await page.evaluate(() => window.__tb.game.profile);
+    assert(afterMg.coins > afterScene.coins, `Me vê um paid out at night (${afterScene.coins} → ${afterMg.coins})`);
+    assert(afterMg.tutorial.meveum, 'the Me vê um tutorial step completed');
+    log('Me vê um at night ok, RV', afterMg.coins - afterScene.coins);
+
+    // the academia: Professora Bia
+    await page.keyboard.press('Escape');
+    await sleep(500);
+    await join(page, 'padaria_praca', 'praca');
+    await walkTo(page, 38, 6);
+    await waitIdleAt(page, 38, 6);
+    await join(page, 'praca_academia', 'academia');
+    await waitFor(page, () => [...window.__tb.game.avatars.values()].some((a) => a.pub.npc === 'prof'), null, 8000, 'Professora Bia');
+    await sleep(800);
+    await walkTo(page, 8, 6);
+    await waitIdleAt(page, 8, 6);
+    await shot(page, 'academia_prof_bia');
+    const miss = await page.evaluate(() => window.__tb.artMissing);
+    log('artMissing:', miss.join(',') || 'none');
+  }
+  assert(errors.length === 0, `no page errors (${errors.join(' | ')})`);
+  await browser.close();
+  console.log(`\n  ✓ night e2e (phase ${PHASE}) passed`);
+}
+
+main().catch((e) => {
+  console.error('\n  ✗', e.message);
+  process.exit(1);
+});

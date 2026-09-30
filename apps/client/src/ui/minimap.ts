@@ -66,10 +66,11 @@ export interface Marker {
 }
 
 /** Doors, NPCs and the player as tile coordinates (fractional door x for the wide facades). */
-export function markers(room: RoomDef, me: Tile | null): Marker[] {
+export function markers(room: RoomDef, me: Tile | null, npcs?: { name: string; x: number; y: number }[]): Marker[] {
   const out: Marker[] = [];
   for (const p of room.portals) out.push({ kind: 'door', x: p.doorAt?.x ?? p.x, y: p.y, label: p.label.pt });
-  for (const n of room.npcs) out.push({ kind: 'npc', x: n.x, y: n.y, label: n.name });
+  // NPCs walk their schedules: callers pass where they are now; without it the room's home tiles are marked
+  for (const n of npcs ?? room.npcs) out.push({ kind: 'npc', x: n.x, y: n.y, label: n.name });
   if (me) out.push({ kind: 'me', x: me.x, y: me.y, label: 'você' });
   return out;
 }
@@ -77,7 +78,7 @@ export function markers(room: RoomDef, me: Tile | null): Marker[] {
 const COLORS = { door: '#f2c230', npc: '#c45c26', me: '#2f5d50' } as const;
 
 /** Paints the terrain once and the markers on top; returns the canvas. */
-export function drawMinimap(room: RoomDef, me: Tile | null): HTMLCanvasElement {
+export function drawMinimap(room: RoomDef, me: Tile | null, npcs?: { name: string; x: number; y: number }[]): HTMLCanvasElement {
   const px = minimapPixels(room);
   const canvas = document.createElement('canvas');
   canvas.width = px.w;
@@ -86,7 +87,7 @@ export function drawMinimap(room: RoomDef, me: Tile | null): HTMLCanvasElement {
   const ctx = canvas.getContext('2d');
   if (!ctx) return canvas;
   ctx.putImageData(new ImageData(px.data, px.w, px.h), 0, 0);
-  for (const m of markers(room, me)) {
+  for (const m of markers(room, me, npcs)) {
     const cx = Math.round((m.x + 0.5) * MINIMAP_PX);
     const cy = Math.round((m.y + 0.5) * MINIMAP_PX);
     const r = m.kind === 'me' ? 3 : 2;

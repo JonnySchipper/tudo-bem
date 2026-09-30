@@ -1,5 +1,5 @@
-import type { EmoteKind, FriendInfo, NpcId, PlacedFurniture, PrivateProfile, PublicAvatar, RoomDef, RoomStateMsg, Tile } from '@tudobem/shared';
-import { ROOMS } from '@tudobem/shared';
+import type { EmoteKind, FriendInfo, NpcDef, NpcId, PlacedFurniture, PrivateProfile, PublicAvatar, RoomDef, RoomStateMsg, Tile } from '@tudobem/shared';
+import { npcDefById, positionAlong, ROOMS } from '@tudobem/shared';
 
 export interface Bubble {
   text: string;
@@ -49,6 +49,21 @@ class Game {
 
   get roomDef(): RoomDef | null {
     return this.room ? ROOMS[this.room.room] : null;
+  }
+
+  /**
+   * The neighbours in this room right now, as NpcDefs at their LIVE tile: the server walks them along their schedules (Phase 8b) and sends
+   * them as avatars flagged with their NpcId. `x, y` is the tile reached at `now` (performance.now()), `interact` where to stand to talk.
+   */
+  liveNpcs(now: number): NpcDef[] {
+    const out: NpcDef[] = [];
+    for (const a of this.avatars.values()) {
+      const base = a.pub.npc ? npcDefById(a.pub.npc) : undefined;
+      if (!base) continue;
+      const tile = positionAlong(a.from, a.path, now - a.start, a.pub.dir).tile;
+      out.push({ ...base, x: tile.x, y: tile.y, interact: a.pub.npcInteract ?? base.interact });
+    }
+    return out;
   }
 
   get self(): ClientAvatar | undefined {

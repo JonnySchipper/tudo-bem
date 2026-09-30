@@ -15,6 +15,8 @@ import {
   npcName,
   offerView,
   RECADO_MAX_ACTIVE,
+  sameNpcRole,
+  type RoomId,
   RECADOS,
   recadoById,
   rollRecadoDay,
@@ -42,6 +44,8 @@ export interface RecadoDeps {
   pushProfile: (s: Session) => void;
   /** The session's current tile (mid-walk positions are rounded by the world). */
   tileOf: (s: Session) => Tile;
+  /** The NPCs standing or walking in a room right now (schedules move them): the tile each has reached and where to stand to talk to it. */
+  npcsIn: (room: RoomId) => { id: NpcId; tile: Tile; interact: Tile; activity: string }[];
   /** A hotspot was read (validated: same room, within range). The Caderno counts its cards as seen. */
   onRead?: (s: Session, h: HotspotDef) => void;
 }
@@ -179,18 +183,20 @@ export class RecadoTracker {
     const inst = s.instance;
     if (!p || !inst) return;
     if (!isNpcId(npc) || !itemById(itemId)) return this.err(s, 'give', 'Não deu pra entregar isso.', 'That can’t be handed over.');
-    const def = inst.def.npcs.find((n) => n.id === npc);
+    // NPCs walk their schedules: "here" means where the NPC is right now. Dona Graça stands in for Seu Carlos at the counter (D12).
+    const here = this.d.npcsIn(inst.def.id);
+    const def = here.find((n) => n.id === npc) ?? here.find((n) => sameNpcRole(npc, n.id));
     if (!def) return this.err(s, 'far', `${npcName(npc)} não está aqui.`, `${npcName(npc)} isn’t here.`);
-    // Next to the NPC, or on the spot where you stand to talk to them (the counter, the stall).
+    // Next to the NPC's current tile, or on the spot where you stand to talk to them (the counter, the stall).
     const tile = this.d.tileOf(s);
-    if (tileDistance(tile, def) > 1 && tileDistance(tile, def.interact) > 1)
+    if (tileDistance(tile, def.tile) > 1 && tileDistance(tile, def.interact) > 1)
       return this.err(s, 'far', `Chegue mais perto de ${npcName(npc)}.`, `Walk closer to ${npcName(npc)}.`);
     const id = itemId as string;
     if ((p.bag?.[id] ?? 0) < 1) return this.err(s, 'bag', 'Você não tem isso na mochila.', 'You don’t have that in your bag.');
     const st = this.board(p);
     const want = st.active.flatMap((a) => {
       const step = recadoById(a.id, this.defs)?.steps[a.step];
-      return step?.kind === 'entregar' && step.npc === npc && step.itemId === id ? [step.qty] : [];
+      return step?.kind === 'entregar' && sameNpcRole(step.npc, npc) && step.itemId === id ? [step.qty] : [];
     })[0];
     if (want === undefined) return s.send({ t: 'notice', level: 'info', pt: 'Não é pra agora. Fica com você!', en: 'Not needed right now. Keep it!' });
     const rest = takeFromBag(p.bag ?? {}, id, want);
@@ -228,8 +234,8 @@ export class RecadoTracker {
   /** The nearest NPC within 3 tiles in the player's room (a greeting said next to someone is said to them). */
   private nearbyNpc(s: Session): NpcId | undefined {
     const tile = this.d.tileOf(s);
-    const near = (s.instance?.def.npcs ?? [])
-      .map((n) => ({ id: n.id, dist: tileDistance(tile, n) }))
+    const near = (s.instance ? this.d.npcsIn(s.instance.def.id) : [])
+      .map((n) => ({ id: n.id, dist: tileDistance(tile, n.tile) }))
       .filter((n) => n.dist <= 3)
       .sort((a, b) => a.dist - b.dist)[0];
     return near?.id;

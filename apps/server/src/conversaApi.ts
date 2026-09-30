@@ -11,6 +11,7 @@ import {
   gradeFromScores,
   gradeRV,
   gradeCopy,
+  hearts,
   metersFromHistory,
   type RvNote,
   pickConversaOpener,
@@ -33,6 +34,15 @@ import type { ProfileStore } from './store.js';
 /** Daily cap stays off unless CONVERSA_DAILY_CAP=on. Read per request so tests can flip it. */
 function dailyCapFromEnv(): boolean {
   return (process.env.CONVERSA_DAILY_CAP ?? 'off').toLowerCase() === 'on';
+}
+
+/** Hearts with an NPC at which it remembers the player (BOND_MILESTONES: 'uses_name'). */
+export const MEMORY_MIN_HEARTS = 2;
+
+/** True once the player's bond with this NPC reaches 2 hearts (the "uses your name and remembers you" milestone). */
+function memoryIfBonded(store: ProfileStore | undefined, playerId: string | undefined, npc: NpcId): boolean {
+  if (!store || !playerId) return false;
+  return hearts(store.get(playerId)?.bond?.[npc] ?? 0) >= MEMORY_MIN_HEARTS;
 }
 
 /** One RV grant per NPC per São Paulo day, unless CONVERSA_RV_ONCE_PER_DAY=off. */
@@ -326,7 +336,8 @@ async function handleTurn(req: ConversaTurnRequestBody, res: ServerResponse, dep
     turn: req.turn,
     maxTurns: CONVERSA_MAX_PLAYER_MSGS,
     priorChips,
-    memory: deps.memory?.get(req.playerId, req.npcId),
+    // The NPC remembers you from 2 hearts up (HOWTO Phase 8 step 4 milestone); before that the memory stays unused
+    memory: memoryIfBonded(deps.store, req.playerId, req.npcId) ? deps.memory?.get(req.playerId, req.npcId) : undefined,
   };
   let turnResponse;
 
