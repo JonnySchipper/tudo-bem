@@ -64,7 +64,7 @@ async function waitIdleAt(page, x, y, label) {
   await waitFor(page, ([x, y]) => {
     const t = window.__tb.selfTile();
     return t && !t.moving && t.tile.x === x && t.tile.y === y;
-  }, [x, y], 12_000, label ?? `avatar at ${x},${y}`);
+  }, [x, y], 20_000, label ?? `avatar at ${x},${y}`);
 }
 
 const PASSWORD = 'pao-de-queijo-2026';
@@ -137,7 +137,7 @@ async function createAvatar(page, name, pronoun, { tick18 = false, guest = SOLO 
 async function main() {
   assert(CHROME, 'Chrome/Chromium not found — set CHROME_PATH');
   console.log(`\nTudo Bem e2e → ${BASE}`);
-  const browser = await chromium.launch({ executablePath: CHROME, headless: HEADLESS, slowMo: VIDEO ? 90 : 0, args: ['--autoplay-policy=no-user-gesture-required'] });
+  const browser = await chromium.launch({ executablePath: CHROME, headless: HEADLESS, slowMo: VIDEO ? 90 : 0, args: ['--autoplay-policy=no-user-gesture-required', '--no-sandbox', '--disable-dev-shm-usage'] });
   const ctxA = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 1,
@@ -202,8 +202,11 @@ async function main() {
   }
 
   // 1c. Daily kiosk: Missão do dia (Set A)
+  // Vila Ipê: walk from spawn to the quiosque interact tile (~4s empty; allow CPUs/lag), then open.
   await interact(page, { prop: 'quiosque' });
-  await page.waitForSelector('[data-modal="kiosk"] #mission-take', { timeout: 12_000 });
+  await waitIdleAt(page, 21, 14, 'arrived at kiosk');
+  await page.waitForSelector('[data-modal="kiosk"]', { timeout: 8_000 });
+  await page.waitForSelector('[data-modal="kiosk"] #mission-take', { timeout: 8_000 });
   const steps = await page.$$eval('[data-mission-step]', (els) => els.map((e) => e.textContent));
   assert(steps[0].startsWith('Cumprimenta') && steps[1].startsWith('Pede') && steps[2].startsWith('Monta'), `kiosk steps Cumprimenta / Pede / Monta (${steps})`);
   // Curriculum-locked kiosk copy
@@ -419,6 +422,7 @@ async function main() {
     assert(crowd.every((c) => c.bubbles === 0), 'CPUs never chat');
     // Kiosk now shows the completion state
     await interact(page, { prop: 'quiosque' });
+    await waitIdleAt(page, 21, 14, 'back at kiosk');
     await page.waitForSelector('[data-modal="kiosk"] #mission-done', { timeout: 12_000 });
     const done = await page.textContent('#mission-done .big');
     assert(done === 'Missão completa! +25 RV', `kiosk complete copy (${done})`);
