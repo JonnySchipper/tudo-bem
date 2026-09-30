@@ -260,7 +260,7 @@ export class AmbientLife {
     }
     // fountain spray
     for (let i = 0; i < N_DROPS; i++) {
-      const img = this.reg(this.scene.add.image(0, 0, 'amb:drop')).setDepth(data.fountain.y + 3).setVisible(false);
+      const img = this.reg(this.scene.add.image(0, 0, 'amb:drop')).setDepth(DEPTH_FLY).setVisible(false);
       this.spray.push({ img, phase: i / N_DROPS, dx: (unit(i, 7, 71) - 0.5) * 2 });
     }
     // cloud shadows: crops of the shadow texture

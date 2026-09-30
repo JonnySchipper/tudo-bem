@@ -58,6 +58,8 @@ async function enter(browser, vp) {
   await page.click('button:has-text("ele (he)")');
   await page.click('#enter-praca');
   await page.waitForFunction(() => window.__tb.game.room?.room === 'praca', null, { timeout: 15_000 });
+  // the shared headless box is busy: keep the full effects for the review shots (the low-fx fallback itself is covered by --perf --throttle)
+  if (!('keeplowfx' in argv)) await page.evaluate(() => setInterval(() => { try { window.__tb.renderer.scene.fxLevel.lowfx = false; } catch {} }, 250));
   await page.waitForFunction(() => [...window.__tb.game.avatars.values()].filter((a) => a.pub.cpu).length >= 3, null, { timeout: 8000 }).catch(() => {});
   return { ctx, page };
 }
@@ -85,23 +87,52 @@ const SCENES = [
 if (!CHROME) throw new Error('Chrome/Chromium not found: set CHROME_PATH');
 fs.mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch({ executablePath: CHROME, headless: true });
+async function introShots(vp, dpr) {
+  const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, deviceScaleFactor: dpr, isMobile: !!vp.touch, hasTouch: !!vp.touch });
+  const page = await ctx.newPage();
+  page.on('pageerror', (e) => console.error('pageerror', String(e)));
+  await page.goto(BASE);
+  await page.waitForSelector('#intro-enter', { timeout: 15_000 });
+  await sleep(2500);
+  await page.screenshot({ path: path.join(OUT, vp.name + "_title_enter.png") });
+  await page.click('#intro-enter');
+  await page.waitForSelector('.intro-phase-auth', { timeout: 20_000 });
+  await sleep(4000);
+  await page.screenshot({ path: path.join(OUT, vp.name + "_title_auth.png") });
+  console.log('  ·', vp.name, 'title');
+  await ctx.close();
+}
+
 try {
+  if ('intro' in argv) {
+    await introShots(DESKTOP, 1);
+    await introShots(PHONE, 2);
+    process.exit(0);
+  }
   const { ctx, page } = await enter(browser, DESKTOP);
   await walk(page, 27, 25);
   await sleep(1200);
   await page.evaluate(() => { const c = document.querySelector('#checklist'); if (c && !c.classList.contains('collapsed')) c.querySelector('h3')?.click(); });
   await sleep(6500);
-  if (!argv.intro) {
+  {
     for (const s of SCENES.filter((s) => !ONLY || ONLY.some((o) => s.name.includes(o)))) {
       await page.evaluate((s) => window.__tb.setClock({ time: s.time, weather: 'sol' }), s);
       if (s.prep) await walk(page, 25, 27);
       await sleep(s.prep ? 4000 : 500);
+      if (s.prep) {
+        // walk at the pigeons and shoot a moment after they take off
+        await page.evaluate(([x, y]) => window.__tb.walkTo(x, y), s.at);
+        await page.waitForFunction(([x, y]) => { const t = window.__tb.selfTile(); return t && Math.hypot(t.tile.x - x, t.tile.y - y) < 2.6; }, s.at, { timeout: 15_000 }).catch(() => {});
+        await sleep(s.wait);
+        await shot(page, s.name);
+        continue;
+      }
       await walk(page, s.at[0], s.at[1]);
       if (s.bus) await page.evaluate(() => window.__tb.ambient.bus(-900));
       await sleep(s.wait);
       await shot(page, s.name);
     }
-    if (argv.perf) {
+    if ('perf' in argv) {
       await walk(page, 26, 13);
       for (const s of [{ time: '19:30', weather: 'chuva' }, { time: '12:00', weather: 'sol' }]) {
         await page.evaluate((s) => window.__tb.setClock(s), s);
