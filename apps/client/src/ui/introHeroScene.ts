@@ -599,10 +599,21 @@ export interface IntroHeroScene {
   frame: (layout?: SceneLayout) => SceneCamera;
   /** Pointer parallax on fine pointers; returns teardown. */
   mountParallax: () => () => void;
+  /** Tear down the Vila Ipê canvas. Safe to call twice. */
+  destroy: () => void;
 }
 
 export function createIntroHeroScene(): IntroHeroScene {
   const wrap = h('div', { class: 'intro-hero-scene', 'aria-hidden': 'true' });
+  let stopMap = () => {};
+  // Loaded on demand so unit tests of the camera math never pull Phaser in.
+  void import('./introMap')
+    .then((m) => m.mountIntroMap(wrap))
+    .then((stop) => {
+      stopMap = stop;
+      wrap.classList.add('has-map');
+    })
+    .catch((e) => console.error('[intro] map failed', e));
   const layers = [backLayer(), streetLayer(), groundLayer()];
   wrap.innerHTML = `<div class="intro-sky"></div><div class="intro-sun"></div><div class="intro-rays"></div>
     <div class="intro-cam">${DEPTHS.map((d, i) => `<div class="intro-depth intro-depth-${d.name}" style="--push:${d.push}">${layers[i]}</div>`).join('')}</div>
@@ -643,5 +654,5 @@ export function createIntroHeroScene(): IntroHeroScene {
       window.removeEventListener('pointermove', onMove);
     };
   };
-  return { el: wrap, frame, mountParallax };
+  return { el: wrap, frame, mountParallax, destroy: () => stopMap() };
 }

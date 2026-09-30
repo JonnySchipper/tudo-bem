@@ -25,6 +25,7 @@ import { h, en, bi, ui } from './dom';
 import { expressionForGrade, npcPortrait, type Expression } from './pixelArt';
 import { speak } from '../audio';
 import { toast } from './hud';
+import { closeDialogueBox, dialogueMode, focusDialogueInput, showDialogueBox, type BoxSpec } from './dialogue';
 import {
   startConversa,
   sendConversaTurn,
@@ -60,6 +61,8 @@ let closeCallback: (() => void) | null = null;
 let onKey: ((e: KeyboardEvent) => void) | null = null;
 /** Carlos only: leave the mesa and open the authored chip order. */
 let quickOrder: (() => void) | null = null;
+/** The dialogue box (not the old modal) is showing this Conversa. */
+let boxOwned = false;
 /** One safety toast per send. The server notice is a backstop when the client has not already shown it. */
 let safetyToastShown = false;
 
@@ -132,7 +135,53 @@ function buildScoreCard(grade: ConversaGrade, payout: number, meter: ConversaMet
   );
 }
 
+/** This beat of the Conversa as the dialogue box shows it: Carlos' latest line, what you said, the replies, the reply field; the conta once it ends. */
+function boxSpec(s: ConversaState): BoxSpec {
+  const hist = s.history;
+  const last = hist[hist.length - 1];
+  const prev = hist[hist.length - 2];
+  const waiting = !s.ended && last?.who === 'player';
+  const said = last?.who === 'player' ? last.pt : last?.who === 'npc' && prev?.who === 'player' ? prev.pt : null;
+  const npcLine = [...hist].reverse().find((l) => l.who === 'npc');
+  return {
+    key: 'conversa',
+    npcId: s.npcId,
+    speaker: s.npcName,
+    role: s.subjectTitle.pt,
+    meta: s.ended ? null : `${s.turn}/${s.maxTurns}`,
+    expression: expressionForGrade(s.ended ? s.grade : null),
+    line: s.ended || waiting || !npcLine ? null : { pt: npcLine.pt, en: npcLine.en },
+    thinking: waiting,
+    said: s.ended ? null : said,
+    notes: [
+      s.offline ? h('small', { class: 'dbx-note offline-note' }, CONVERSA_COPY.offline.pt, en(CONVERSA_COPY.offline.en, true)) : null,
+      s.history.length <= 1 && !s.ended ? h('small', { class: 'dbx-note private-note' }, CONVERSA_COPY.private.pt) : null,
+    ],
+    extras: s.ended && s.grade ? buildScoreCard(s.grade, s.payout, s.meter, s.rvNote) : null,
+    chips: s.ended || waiting ? [] : s.chips.map((c) => ({ pt: c.pt, en: c.en })),
+    input: s.ended ? null : { id: 'conversa-input', placeholder: 'Responda em português…', send: CONVERSA_COPY.enviar.pt, onSend: (_t, el) => void handleSend(el), disabled: waiting },
+    footer: s.ended
+      ? h('button', { class: 'primary', onclick: handleClose }, bi(CONVERSA_COPY.continuar.pt, CONVERSA_COPY.continuar.en))
+      : h(
+          'div',
+          { class: 'dbx-footer-row' },
+          quickOrder ? h('button', { class: 'ghost', onclick: handleQuickOrder, 'data-action': 'pedido-rapido' }, bi('Pedido rápido', 'Quick order')) : null,
+          h('button', { class: 'ghost', onclick: handleClose }, CONVERSA_COPY.sair.pt),
+        ),
+    onChip: handleChip,
+    onClose: handleClose,
+    onDismiss: () => {
+      if (state) closeConversa();
+    },
+  };
+}
+
 function render() {
+  if (state && dialogueMode() === 'box') {
+    boxOwned = true;
+    showDialogueBox(boxSpec(state));
+    return;
+  }
   if (!state || !containerEl) return;
 
   const header = h(
@@ -265,7 +314,8 @@ async function handleSend(input: HTMLInputElement) {
     const next = document.getElementById('conversa-input') as HTMLInputElement | null;
     if (next && state && !state.ended) {
       next.disabled = false;
-      next.focus();
+      if (boxOwned) focusDialogueInput();
+      else next.focus();
     }
   }
 }
@@ -437,6 +487,10 @@ export function closeConversa() {
   containerEl = null;
   state = null;
   quickOrder = null;
+  if (boxOwned) {
+    boxOwned = false;
+    closeDialogueBox();
+  }
   game.modalOpen = false;
   closeCallback?.();
   closeCallback = null;
@@ -549,6 +603,10 @@ function openOfflineConversa(npcId: NpcId) {
 
 function showConversaPanel() {
   if (!state) return;
+  if (dialogueMode() === 'box') {
+    render();
+    return;
+  }
   const backdrop = h('div', { class: 'conversa-backdrop', 'data-modal': 'conversa' });
   containerEl = h('div', { class: 'conversa-panel' });
   backdrop.append(containerEl);

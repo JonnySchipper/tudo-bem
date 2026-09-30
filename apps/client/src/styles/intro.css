@@ -55,6 +55,30 @@ body.intro-active #world {
   pointer-events: none;
 }
 
+/* The real Vila Ipê (Phase 6b) replaces the painted praça once its canvas is up. */
+.intro-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.intro-hero-scene.has-map .intro-sky,
+.intro-hero-scene.has-map .intro-sun,
+.intro-hero-scene.has-map .intro-rays,
+.intro-hero-scene.has-map .intro-cam {
+  display: none;
+}
+
+.intro-hero-scene.has-map .intro-grade-warm {
+  opacity: 0.28;
+}
+
+.intro-hero-scene.has-map .intro-grade-light {
+  opacity: 0.45;
+}
+
 .intro-sky {
   position: absolute;
   inset: 0;

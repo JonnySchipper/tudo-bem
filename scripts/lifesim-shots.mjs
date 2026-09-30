@@ -111,19 +111,19 @@ async function toAvatarCreator(page, vp) {
 async function panelShots(page, vp) {
   const closeAll = async () => {
     await page.keyboard.press('Escape');
-    await page.evaluate(() => document.querySelectorAll('[data-modal] .close, .conversa-backdrop .close-btn, .pedido-backdrop .close-btn, #dialogue .row > button.ghost').forEach((b) => b.click()));
+    await page.evaluate(() => document.querySelectorAll('[data-modal] .close, .conversa-backdrop .close-btn, .pedido-backdrop .close-btn, #dialogue .row > button.ghost, #dialogue-box .dbx-close').forEach((b) => b.click()));
     await sleep(300);
   };
   await interact(page, { portal: 'academia_praca' });
   await waitRoom(page, 'praca');
   await sleep(800);
   await interact(page, { npc: 'julia' });
-  await page.waitForSelector('#dialogue', { timeout: 8000 });
+  await page.waitForSelector('#dialogue-box', { timeout: 8000 });
   await sleep(500);
   await shot(page, vp, 'dialogue');
   await closeAll();
-  await interact(page, { npc: 'nanda' });
-  await page.waitForSelector('[data-modal] .panel', { timeout: 8000 });
+  await interact(page, { prop: 'barraca' });
+  await page.waitForSelector('[data-modal="hats"]', { timeout: 8000 });
   await sleep(600);
   await shot(page, vp, 'hat_shop');
   await closeAll();
@@ -135,12 +135,16 @@ async function panelShots(page, vp) {
   await interact(page, { portal: 'praca_padaria' });
   await waitRoom(page, 'padaria');
   await sleep(800);
-  await interact(page, { npc: 'carlos' });
-  await page.waitForSelector('[data-modal="conversa"] .conversa-panel', { timeout: 12_000 });
+  const baker = await page.evaluate(() => {
+    const ids = [...window.__tb.game.avatars.values()].map((a) => a.pub.npc);
+    return ids.includes('carlos') ? 'carlos' : 'graca';
+  });
+  await interact(page, { npc: baker });
+  await page.waitForSelector('#dialogue-box[data-dialogue="conversa"]', { timeout: 12_000 });
   await sleep(800);
   await shot(page, vp, 'conversa');
   await page.click('[data-action="pedido-rapido"]');
-  await page.waitForSelector('[data-modal="pedido"] .pedido-panel', { timeout: 12_000 });
+  await page.waitForSelector('#dialogue-box[data-dialogue="pedido"]', { timeout: 12_000 });
   await sleep(500);
   await page.evaluate(() => document.querySelectorAll('.pedido-panel, .pedido-backdrop').forEach((el) => el.scrollTo?.(0, 0)));
   await shot(page, vp, 'pedido');

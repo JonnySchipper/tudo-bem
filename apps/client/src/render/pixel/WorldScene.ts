@@ -10,7 +10,7 @@
  * Two cameras (DECISIONS Phase 1 #13): `main` draws the world at an integer device zoom, `fx` draws the light grade in screen space.
  */
 import Phaser from 'phaser';
-import { buildGrid, canPlaceFurniture, furnitureById, isCpuId, key as tileKey, positionAlong, propTiles, type Dir, npcDefById, type PlacedFurniture, type PropDef, type RoomDef, type RoomGrid, type WallDecor } from '@tudobem/shared';
+import { ROOMS, buildGrid, canPlaceFurniture, furnitureById, hotspotBox, hotspotsInRoom, isCpuId, key as tileKey, npcDefById, positionAlong, propTiles, type Dir, type PlacedFurniture, type PropDef, type RoomDef, type RoomGrid, type WallDecor } from '@tudobem/shared';
 import { game, type ClientAvatar } from '../../state';
 import type { Guide, Hit } from '../view';
 import type { Manifest } from './manifest';
@@ -32,6 +32,8 @@ import { buildTerrainLayers } from './terrainLayers';
 import { LabelLayer, type GuideItem, type StackItem } from './labels';
 import { OUTDOOR_NORTH, T, cssZoomFor, feet, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
 import { pickHit, type HitBox } from './hit';
+import { dialogueFraming, easeOut, stepBlend } from './dialogueCam';
+import { introPanAt } from './introPan';
 import { roomKey, syncViews } from './reconcile';
 import { DEPTH, PROP_LIGHT, fencePieces, footprintRect, inflate, propAnchor, propDepth, furnitureArtKey, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
 import { sceneryFor } from './scenery';
@@ -73,6 +75,8 @@ export interface SceneHost {
   debugArt: boolean;
   /** `?shot=map`: zoom out to fit the whole outdoor map (screenshots) */
   shot?: string | null;
+  /** Title screen: draw Vila Ipê at 17:30 and pan, with no player and no game state. */
+  intro?: boolean;
 }
 
 interface AvatarView {
@@ -398,6 +402,12 @@ export class WorldScene extends Phaser.Scene {
 
     // (the neighbours are not part of the room: the server walks them along their schedules and sends them as avatars)
 
+    // ---- readable world (Phase 7): a click box per hotspot (the footprint, plus the wall rows above it for a sign painted on a north wall)
+    for (const hs of hotspotsInRoom(def.id)) {
+      const b = hotspotBox(hs);
+      this.staticHits.push({ x0: b.x0 * T, y0: b.y0 * T, x1: b.x1 * T, y1: b.y1 * T, hit: { kind: 'hotspot', hotspot: hs }, depth: b.y1 * T - 0.25 });
+    }
+
     // a small warm glow around the local player at night (HOWTO §5.8); follows the avatar in applyLook
     this.playerLight = { x: 0, y: 0, r: 0, color: 0xffd9a8, squash: 0.85, kind: 'player', glow: 0.22 };
     this.rig.lights.push(this.playerLight);
@@ -604,6 +614,21 @@ export class WorldScene extends Phaser.Scene {
     if (!this.ready) return;
     this.trackPerf();
     const dt = Math.min(0.1, delta / 1000);
+    if (this.host.intro) {
+      const def = ROOMS.praca;
+      if (this.roomId !== 'intro' || this.roomDef !== def) {
+        this.roomId = 'intro';
+        this.roomDef = def;
+        this.buildRoom(def);
+        this.grid = buildGrid(def, []);
+        this.gridFurniture = [];
+      }
+      this.applyZoom();
+      this.updateCanopies(dt);
+      this.updateIntroCamera(dt);
+      this.applyLook(def, dt);
+      return;
+    }
     const now = performance.now();
     const room = game.room;
     const def = game.roomDef;
@@ -638,7 +663,8 @@ export class WorldScene extends Phaser.Scene {
 
   /** Phase 6a: the live game clock and weather -> the rig (grade, darkness, lamps) and the rain. */
   private applyLook(def: RoomDef, dt: number): void {
-    const weather = clock.weather();
+    const intro = !!this.host.intro;
+    const weather = intro ? 'sol' : clock.weather();
     if (!this.blendReady) {
       this.blend.snap(weather);
       this.blendReady = true;
@@ -652,11 +678,12 @@ export class WorldScene extends Phaser.Scene {
       }
     }
     const params = this.blend.step(weather, dt);
-    const look = computeLook({ outdoor: this.outdoor, roomHour: ROOM_HOUR[def.lighting], minutes: clock.minutesExact(), weather: params });
+    const look = computeLook({ outdoor: this.outdoor, roomHour: intro ? 17.5 : ROOM_HOUR[def.lighting], minutes: intro ? 17 * 60 + 30 : clock.minutesExact(), weather: params });
     this.look = look;
     const people = [...this.avatars.values()].map((v) => ({ x: v.wx, y: v.wy }));
-    this.ambient.update({ dt, t: Date.now() + clock.skewMs, minute: clock.minutesExact(), params, dark: look.dark, people, cam: this.cameras.main });
-    this.zoneFeed.update(def, me ? { x: me.wx, y: me.wy, moving: me.moving } : null, clock.minutes(), params.rain, performance.now());
+    const minute = intro ? 17 * 60 + 30 : clock.minutesExact();
+    this.ambient.update({ dt, t: Date.now() + (intro ? 0 : clock.skewMs), minute, params, dark: look.dark, people, cam: this.cameras.main });
+    if (!intro) this.zoneFeed.update(def, me ? { x: me.wx, y: me.wy, moving: me.moving } : null, clock.minutes(), params.rain, performance.now());
     this.rig.apply(look, this.cameras.main.zoom, (wx, wy) => this.toDevice(wx, wy));
     this.weatherFx.update({ dt, zoom: this.cameras.main.zoom, w: this.scale.width, h: this.scale.height, params, night: look.night, outdoor: this.outdoor, cam: this.cameras.main });
   }
@@ -719,6 +746,64 @@ export class WorldScene extends Phaser.Scene {
     return [(wx - cam.scrollX - hw) * cam.zoom + hw, (wy - cam.scrollY - hh) * cam.zoom + hh];
   }
 
+  // ---- Phase 7: dialogue camera (one zoom step in, centred between the player and the NPC, above the box)
+  private dlg: { npc: { x: number; y: number } | null } | null = null;
+  private dlgNpc: { x: number; y: number } | null = null;
+  private dlgBoxCss = 0;
+  private dlgBlend = 0;
+
+  /** The dialogue box opened (`npc`: its tile, or null for something that is not a person) or closed (`null`). */
+  setDialogue(d: { npc: { x: number; y: number } | null } | null): void {
+    this.dlg = d;
+    if (d?.npc) this.dlgNpc = d.npc;
+  }
+
+  /** Height of the dialogue box in CSS px. */
+  setDialogueBox(px: number): void {
+    this.dlgBoxCss = px;
+  }
+
+  private withDialogue(f: { zoom: number; cx: number; cy: number; fits: boolean }, self: { x: number; y: number }, ins: Insets, k: number, dt: number): typeof f {
+    this.dlgBlend = stepBlend(this.dlgBlend, this.dlg ? 1 : 0, dt, 0.28, this.fxLevel.reduced || !!this.host.shot);
+    if (this.dlgBlend <= 0) return f;
+    const n = this.dlgNpc;
+    const g = dialogueFraming({
+      base: f,
+      view: { w: this.cam.w, h: this.cam.h },
+      bounds: this.bounds,
+      insets: { top: ins.top * k, bottom: ins.bottom * k, left: ins.left * k, right: ins.right * k },
+      boxPx: (this.dlgBoxCss + 12) * k,
+      self,
+      npc: n ? { x: (n.x + 0.5) * T, y: (n.y + 1) * T - 13 } : null,
+      blend: easeOut(this.dlgBlend),
+      step: Math.max(1, Math.round(k)),
+    });
+    return { ...f, ...g };
+  }
+
+  /** Title-screen pan over Vila Ipê. Reduced motion holds the street in front of the padaria. */
+  private introElapsed = 0;
+  private updateIntroCamera(dt: number): void {
+    const def = this.roomDef;
+    if (!def) return;
+    if (!this.fxLevel.reduced) this.introElapsed += dt * 1000;
+    const p = introPanAt(this.introElapsed);
+    this.applyZoom();
+    const zoom = cssZoomFor(window.innerWidth, window.innerHeight);
+    const viewW = this.cam.w / zoom;
+    const viewH = this.cam.h / zoom;
+    const mapW = def.cols * T;
+    const mapH = def.rows * T;
+    const cx = viewW >= mapW ? mapW / 2 : Math.min(mapW - viewW / 2, Math.max(viewW / 2, p.x));
+    const cy = viewH >= mapH ? mapH / 2 : Math.min(mapH - viewH / 2, Math.max(viewH / 2, p.y));
+    this.cam.zoom = zoom;
+    if (this.cameras.main.zoom !== zoom) this.cameras.main.setZoom(zoom);
+    this.cssScale = zoom / this.cam.dpr;
+    this.cam.cx = snapToDevice(cx, zoom);
+    this.cam.cy = snapToDevice(cy, zoom);
+    this.cameras.main.centerOn(this.cam.cx, this.cam.cy);
+  }
+
   private updateCamera(dt: number, def: RoomDef): void {
     const self = game.self ? this.avatars.get(game.self.pub.id) : undefined;
     const focus = self ? { x: self.wx, y: self.wy - 10 } : { x: (def.cols * T) / 2, y: (def.rows * T) / 2 };
@@ -732,6 +817,7 @@ export class WorldScene extends Phaser.Scene {
       const zoom = Math.max(1, Math.floor(Math.min(this.cam.w / (def.cols * T), this.cam.h / (def.rows * T))));
       f = { zoom, cx: (def.cols * T) / 2, cy: (def.rows * T) / 2, fits: true };
     }
+    f = this.withDialogue(f, self ? { x: self.wx, y: self.wy - 10 } : focus, ins, k, dt);
     const target = { cx: f.cx, cy: f.cy };
     this.cam.zoom = f.zoom;
     if (this.cameras.main.zoom !== f.zoom) {

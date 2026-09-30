@@ -59,6 +59,8 @@ export type ClientMsg =
   | { t: 'give'; npc: NpcId; itemId: string }
   /** Read a sign (a hotspot id from HOTSPOTS), within 3 tiles. */
   | { t: 'read'; hotspotId: string }
+  /** The player opened the greeting dialogue with an NPC that has no Conversa (Nanda, Júlia): fires the recado engine's `talked` event. */
+  | { t: 'talk'; npc: NpcId }
   | { t: 'recados'; action: 'accept' | 'list'; id?: string }
   /** The player played 🔊 for these cards (Caderno). At most 10 known card ids; rate-limited per session. */
   | { t: 'heard'; cardIds: string[] }

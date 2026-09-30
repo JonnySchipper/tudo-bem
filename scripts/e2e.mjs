@@ -56,6 +56,25 @@ async function interact(page, target) {
   const ok = await page.evaluate((t) => window.__tb.interact(t), target);
   assert(ok, `interact target exists in the current room: ${JSON.stringify(target)}`);
 }
+
+/** Carlos by day, Dona Graça on the night shift: whoever is actually in the padaria. */
+async function padariaBaker(page) {
+  await waitFor(
+    page,
+    () => [...window.__tb.game.avatars.values()].some((a) => a.pub.npc === 'carlos' || a.pub.npc === 'graca'),
+    null,
+    10_000,
+    'baker in the padaria',
+  );
+  const id = await page.evaluate(() => {
+    const ids = [...window.__tb.game.avatars.values()].map((a) => a.pub.npc);
+    if (ids.includes('carlos')) return 'carlos';
+    if (ids.includes('graca')) return 'graca';
+    return null;
+  });
+  assert(id, 'a baker is in the padaria');
+  return id;
+}
 const walkTo = (page, x, y, sit = false) => page.evaluate(([x, y, sit]) => window.__tb.walkTo(x, y, sit), [x, y, sit]);
 /** A tile click routed through the click handler without pointer coordinates (decor placement needs a tile hit). */
 const clickTileHit = (page, x, y) => page.evaluate(([x, y]) => window.__tb.clickHit({ kind: 'tile', tile: { x, y } }), [x, y]);
@@ -64,7 +83,7 @@ async function waitIdleAt(page, x, y, label) {
   await waitFor(page, ([x, y]) => {
     const t = window.__tb.selfTile();
     return t && !t.moving && t.tile.x === x && t.tile.y === y;
-  }, [x, y], 12_000, label ?? `avatar at ${x},${y}`);
+  }, [x, y], 20_000, label ?? `avatar at ${x},${y}`);
 }
 
 const PASSWORD = 'pao-de-queijo-2026';
@@ -137,7 +156,7 @@ async function createAvatar(page, name, pronoun, { tick18 = false, guest = SOLO 
 async function main() {
   assert(CHROME, 'Chrome/Chromium not found — set CHROME_PATH');
   console.log(`\nTudo Bem e2e → ${BASE}`);
-  const browser = await chromium.launch({ executablePath: CHROME, headless: HEADLESS, slowMo: VIDEO ? 90 : 0, args: ['--autoplay-policy=no-user-gesture-required'] });
+  const browser = await chromium.launch({ executablePath: CHROME, headless: HEADLESS, slowMo: VIDEO ? 90 : 0, args: ['--autoplay-policy=no-user-gesture-required', '--no-sandbox', '--disable-dev-shm-usage'] });
   const ctxA = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 1,
@@ -202,8 +221,11 @@ async function main() {
   }
 
   // 1c. Daily kiosk: Missão do dia (Set A)
+  // Vila Ipê: walk from spawn to the quiosque interact tile (~4s empty; allow CPUs/lag), then open.
   await interact(page, { prop: 'quiosque' });
-  await page.waitForSelector('[data-modal="kiosk"] #mission-take', { timeout: 12_000 });
+  await waitIdleAt(page, 21, 14, 'arrived at kiosk');
+  await page.waitForSelector('[data-modal="kiosk"]', { timeout: 8_000 });
+  await page.waitForSelector('[data-modal="kiosk"] #mission-take', { timeout: 8_000 });
   const steps = await page.$$eval('[data-mission-step]', (els) => els.map((e) => e.textContent));
   assert(steps[0].startsWith('Cumprimenta') && steps[1].startsWith('Pede') && steps[2].startsWith('Monta'), `kiosk steps Cumprimenta / Pede / Monta (${steps})`);
   // Curriculum-locked kiosk copy
@@ -298,33 +320,34 @@ async function main() {
   assert((await cpus(page)).length === 0, 'CPUs stay out of the Padaria');
   await dwell(1200);
 
-  // 4. Clicking Carlos opens AI Conversa. Pedido rápido (footer) is the chip breakfast.
-  await interact(page, { npc: 'carlos' });
-  await page.waitForSelector('[data-modal="conversa"] .conversa-panel', { timeout: 12_000 });
-  const conversaName = ((await page.textContent('[data-modal="conversa"] .npc-name')) ?? '').trim();
-  assert(conversaName === 'Seu Carlos', `Conversa is Seu Carlos at the mesa (${conversaName})`);
-  assert(await page.$('[data-modal="conversa"] .conversa-portrait'), 'Conversa portrait (café mesa)');
-  assert(await page.$('[data-modal="conversa"] [data-chip="0"]'), 'Conversa opens with a reply chip');
-  assert(!(await page.$('#dialogue')), 'chip dialogue is not the default Carlos click');
+  // 4. Clicking the baker (Carlos by day, Dona Graça at night) opens AI Conversa. Pedido rápido (footer) is the chip breakfast.
+  const baker = await padariaBaker(page);
+  await interact(page, { npc: baker });
+  await page.waitForSelector('#dialogue-box[data-dialogue="conversa"]', { timeout: 12_000 });
+  const conversaName = ((await page.textContent('#dialogue-box[data-dialogue="conversa"] .npc-name')) ?? '').trim();
+  assert(conversaName === 'Seu Carlos' || conversaName === 'Dona Graça', `Conversa is the baker on duty (${conversaName})`);
+  assert(await page.$('#dialogue-box[data-dialogue="conversa"] .dbx-portrait'), 'Conversa portrait (café mesa)');
+  assert(await page.$('#dialogue-box[data-dialogue="conversa"] [data-chip="0"]'), 'Conversa opens with a reply chip');
+  assert(!(await page.$('#dialogue')), 'the old modal is not the default Carlos click');
   await page.waitForSelector('[data-action="pedido-rapido"]', { state: 'visible', timeout: 5_000 });
   await shot(page, '04_carlos_conversa');
   await page.click('[data-action="pedido-rapido"]');
-  await page.waitForSelector('[data-modal="pedido"] .pedido-panel', { timeout: 12_000 });
-  assert(!(await page.$('[data-modal="conversa"]')), 'Pedido rápido closes Conversa');
-  assert(await page.$('[data-modal="pedido"] #pedido-ticket'), 'Pedido rápido has ticket visual');
-  assert(await page.$('[data-modal="pedido"] .speak-btn'), 'Pedido rápido has speak button on Carlos line');
+  await page.waitForSelector('#dialogue-box[data-dialogue="pedido"]', { timeout: 12_000 });
+  assert(!(await page.$('#dialogue-box[data-dialogue="conversa"]')), 'Pedido rápido closes Conversa');
+  assert(await page.$('#dialogue-box[data-dialogue="pedido"] #pedido-ticket'), 'Pedido rápido has ticket visual');
+  assert(await page.$('#dialogue-box[data-dialogue="pedido"] .speak-btn'), 'Pedido rápido has speak button on the baker line');
   await sleep(300);
   await shot(page, '04_carlos_scene_start');
   // First reply is typed (accept-list scoring), the rest are chips.
   const picks = ['Bom dia, Seu Carlos!', 1, 0, 0, 1];
   for (let i = 0; i < picks.length; i++) {
-    const before = await page.textContent('[data-modal="pedido"] .line-bubble .pt');
+    const before = await page.textContent('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt');
     await dwell(1600);
     if (typeof picks[i] === 'string') {
       await page.fill('#pedido-input', picks[i]);
       await page.press('#pedido-input', 'Enter');
-    } else await page.click(`[data-modal="pedido"] [data-chip="${picks[i]}"]`);
-    await waitFor(page, (b) => document.querySelector('[data-modal="pedido"] .line-bubble .pt')?.textContent !== b, before, 5000, 'next Carlos line');
+    } else await page.click(`#dialogue-box[data-dialogue="pedido"] [data-chip="${picks[i]}"]`);
+    await waitFor(page, (b) => document.querySelector('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt')?.textContent !== b, before, 5000, 'next Carlos line');
     if (i === 2) {
       // Verify ticket items are filling in
       const filledItems = await page.$$eval('.ticket-item.filled', els => els.length);
@@ -387,16 +410,16 @@ async function main() {
 
   // 5b. Test daily RV gate: second Pedido rápido same day → 0 RV, "já pediu hoje" message
   const coinsBeforeSecond = (await profile(page)).coins;
-  await interact(page, { npc: 'carlos' });
-  await page.waitForSelector('[data-modal="conversa"] .conversa-panel', { timeout: 12_000 });
+  await interact(page, { npc: baker });
+  await page.waitForSelector('#dialogue-box[data-dialogue="conversa"]', { timeout: 12_000 });
   await page.click('[data-action="pedido-rapido"]');
-  await page.waitForSelector('[data-modal="pedido"] .pedido-panel', { timeout: 12_000 });
+  await page.waitForSelector('#dialogue-box[data-dialogue="pedido"]', { timeout: 12_000 });
   // Quick path through Pedido rápido again
   const picks2 = [0, 0, 0, 0, 0];
   for (let i = 0; i < picks2.length; i++) {
-    const before2 = await page.textContent('[data-modal="pedido"] .line-bubble .pt');
-    await page.click(`[data-modal="pedido"] [data-chip="${picks2[i]}"]`);
-    await waitFor(page, (b) => document.querySelector('[data-modal="pedido"] .line-bubble .pt')?.textContent !== b, before2, 5000, 'next Carlos line (2nd)');
+    const before2 = await page.textContent('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt');
+    await page.click(`#dialogue-box[data-dialogue="pedido"] [data-chip="${picks2[i]}"]`);
+    await waitFor(page, (b) => document.querySelector('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt')?.textContent !== b, before2, 5000, 'next Carlos line (2nd)');
   }
   await page.waitForSelector('#btn-pedido-play-mg');
   // Should show daily blocked message instead of payout
@@ -419,6 +442,7 @@ async function main() {
     assert(crowd.every((c) => c.bubbles === 0), 'CPUs never chat');
     // Kiosk now shows the completion state
     await interact(page, { prop: 'quiosque' });
+    await waitIdleAt(page, 21, 14, 'back at kiosk');
     await page.waitForSelector('[data-modal="kiosk"] #mission-done', { timeout: 12_000 });
     const done = await page.textContent('#mission-done .big');
     assert(done === 'Missão completa! +25 RV', `kiosk complete copy (${done})`);
@@ -437,8 +461,8 @@ async function main() {
   await page.keyboard.press('Escape');
   // Adopt the parrot (optional cosmetic) and ask for a hint
   await interact(page, { prop: 'poleiro' });
-  await page.waitForSelector('#dialogue [data-chip="0"]', { timeout: 12_000 });
-  await page.click('#dialogue [data-chip="0"]');
+  await page.waitForSelector('#dialogue-box[data-dialogue="perch"] [data-chip="0"]', { timeout: 12_000 });
+  await page.click('#dialogue-box[data-dialogue="perch"] [data-chip="0"]');
   await waitFor(page, () => window.__tb.game.profile.parrotOwned, null, 5000, 'parrot');
   await page.click('#btn-parrot');
   await page.waitForSelector('.parrot-whisper', { timeout: 5000 });

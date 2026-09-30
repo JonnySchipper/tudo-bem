@@ -26,7 +26,7 @@ export interface HitOptions {
 }
 
 /**
- * Priority (HOWTO §5.4): avatars, NPCs, props with an action, portals, seats, furniture. Scripted CPU neighbours rank below
+ * Priority (HOWTO §5.4): avatars, NPCs, hotspots (Phase 7), props with an action, portals, seats, furniture. Scripted CPU neighbours rank below
  * everything (a click on one just walks there). Ties go to the box that is drawn in front (higher depth).
  */
 export function hitRank(h: Hit, isCpu: (id: string) => boolean): number {
@@ -35,6 +35,9 @@ export function hitRank(h: Hit, isCpu: (id: string) => boolean): number {
       return isCpu(h.id) ? 0 : 6;
     case 'npc':
       return 5;
+    // a sign you can read beats scenery (a prop with no action) but never an NPC or someone standing in front of it
+    case 'hotspot':
+      return 4.5;
     case 'prop':
       return 4;
     case 'portal':

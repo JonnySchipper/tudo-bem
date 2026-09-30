@@ -11,6 +11,7 @@ import { toast } from './hud';
 import { expressionForScore, npcPortrait } from './pixelArt';
 import { speak } from '../audio';
 import { ticketLinesFromSaid, type TicketLine } from './pedido-ticket';
+import { closeDialogueBox, dialogueMode, showDialogueBox, type BoxSpec } from './dialogue';
 
 interface PedidoState {
   view: SceneView;
@@ -30,6 +31,8 @@ let playCallback: (() => void) | null = null;
 let onChoose: ((i: number) => void) | null = null;
 let onType: ((text: string) => void) | null = null;
 let onKey: ((e: KeyboardEvent) => void) | null = null;
+/** The dialogue box (not the old modal) is showing this scene. */
+let boxOwned = false;
 /** One safety toast per send; server notice is a backstop when the client has not already shown it. */
 let safetyToastShown = false;
 
@@ -39,9 +42,16 @@ function showSafetyToast(notice: ConversaSafetyNotice | null | undefined) {
   toast(notice.level, notice.pt, notice.en);
 }
 
+/** Whoever is behind the counter right now (Carlos by day, Dona Graça on the night shift). */
+function onDutyBaker(): { id: 'carlos' | 'graca'; name: string } {
+  const here = game.liveNpcs(performance.now()).filter((q) => q.id === 'carlos' || q.id === 'graca');
+  const pick = here.find((q) => q.id === 'carlos') ?? here[0];
+  return pick?.id === 'graca' ? { id: 'graca', name: pick.name } : { id: 'carlos', name: pick?.name ?? 'Seu Carlos' };
+}
+
 function portrait() {
   const expr = state?.view.end ? (state.payout && state.payout > 0 ? 'feliz' : 'neutro') : expressionForScore(state?.lastScore);
-  return npcPortrait('carlos', expr, 'pedido-portrait');
+  return npcPortrait(onDutyBaker().id, expr, 'pedido-portrait');
 }
 
 function buildTicketVisual(ticket: TicketLine[]): HTMLElement {
@@ -96,13 +106,60 @@ function buildScoreIndicator(score: 0 | 1 | 2 | 3): HTMLElement {
   );
 }
 
+/** This beat of Pedido rápido as the dialogue box shows it: Carlos' line, the ticket, the score, the replies (or the payout and the way out). */
+function boxSpec(s: PedidoState): BoxSpec {
+  const ended = s.view.end;
+  const expr = ended ? (s.payout && s.payout > 0 ? 'feliz' : 'neutro') : expressionForScore(s.lastScore);
+  const dailyCopy = s.dailyBlocked
+    ? h('div', { class: 'daily-blocked', 'data-needs-br': 'true' }, h('span', { class: 'blocked-icon' }, '📅'), h('b', { lang: 'pt-BR' }, 'Já pediu hoje!'), h('small', { lang: 'pt-BR' }, 'Volte amanhã.'))
+    : null;
+  const extras = h(
+    'div',
+    { class: 'pedido-extras' },
+    buildTicketVisual(s.ticket),
+    ended ? (s.payout && s.payout > 0 ? h('div', { class: 'pedido-payout' }, `+${s.payout} RV`, en('Breakfast complete!', true)) : dailyCopy) : null,
+  );
+  const baker = onDutyBaker();
+  return {
+    key: 'pedido',
+    npcId: baker.id,
+    speaker: baker.name,
+    role: 'Padeiro · Pedido rápido',
+    expression: expr,
+    line: { pt: s.view.line.pt, en: s.view.line.en },
+    said: !ended && s.said ? s.said.pt : null,
+    feedback: !ended && s.lastScore !== undefined ? buildScoreIndicator(s.lastScore) : null,
+    extras,
+    chips: ended ? [] : s.view.chips.map((c) => ({ pt: c.pt, en: c.en })),
+    input: ended ? null : { id: 'pedido-input', placeholder: 'Responda em português…', send: 'Enviar', onSend: (_t, el) => handleSend(el) },
+    footer: ended
+      ? h(
+          'div',
+          { class: 'dbx-footer-row' },
+          h('button', { class: 'ghost', onclick: handleClose }, bi('Tchau!', 'Bye!')),
+          h('button', { class: 'primary', onclick: handlePlay, id: 'btn-pedido-play-mg' }, bi('Jogar "Me vê um…"', 'Play tray game')),
+        )
+      : undefined,
+    onChip: handleChip,
+    onClose: handleClose,
+    onDismiss: () => {
+      if (state) closePedido();
+    },
+  };
+}
+
 function render() {
+  if (state && dialogueMode() === 'box') {
+    boxOwned = true;
+    showDialogueBox(boxSpec(state));
+    return;
+  }
   if (!state || !containerEl) return;
 
   const header = h('div', { class: 'pedido-header' },
     portrait(),
     h('div', { class: 'pedido-info' },
-      h('div', { class: 'npc-name' }, 'Seu Carlos'),
+      h('div', { class: 'npc-name' }, onDutyBaker().name),
       h('small', { class: 'npc-role' }, 'Padeiro · Baker'),
       h('div', { class: 'scene-title' }, 'Pedido rápido', en('Quick order', true))
     ),
@@ -251,6 +308,10 @@ export function closePedido() {
   onType = null;
   closeCallback = null;
   playCallback = null;
+  if (boxOwned) {
+    boxOwned = false;
+    closeDialogueBox();
+  }
   game.modalOpen = false;
 }
 
@@ -320,6 +381,11 @@ export function openPedido(
     dailyBlocked: false
   };
 
+  if (dialogueMode() === 'box') {
+    speak(view.line.pt);
+    render();
+    return;
+  }
   backdropEl = h('div', { class: 'pedido-backdrop', 'data-modal': 'pedido' });
   containerEl = h('div', { class: 'pedido-panel' });
   backdropEl.append(containerEl);

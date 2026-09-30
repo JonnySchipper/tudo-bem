@@ -5248,6 +5248,11 @@
    "w": 16,
    "h": 16
   },
+  "ui/icon_caderno": {
+   "file": "ui/icon_caderno.png",
+   "w": 16,
+   "h": 16
+  },
   "ui/icon_logout": {
    "file": "ui/icon_logout.png",
    "w": 16,

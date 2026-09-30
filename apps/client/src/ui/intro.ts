@@ -202,6 +202,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       for (const t of teardowns) t();
       root.classList.add('intro-exit');
       window.setTimeout(() => {
+        heroScene.destroy();
         root.remove();
         document.body.classList.remove('intro-active');
         resolve(result);
