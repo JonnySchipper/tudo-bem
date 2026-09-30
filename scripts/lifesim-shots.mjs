@@ -210,16 +210,31 @@ async function runViewport(browser, vp) {
 
   await page.click('#enter-praca');
   await waitRoom(page, 'praca');
+  // golden hour, sunny: the signature look (the clock is pinned through the shots hook)
+  await page.evaluate(() => window.__tb.setClock({ time: '17:30', weather: 'sol' }));
   await page.waitForFunction(() => [...window.__tb.game.avatars.values()].filter((a) => a.pub.cpu).length >= 4, null, { timeout: 8000 }).catch(() => {});
   await sleep(2500);
   await shot(page, vp, 'praca');
   if (CHAT) await chatShots(page, vp, 'praca_chat');
 
-  // walk up to the north end so the shopfronts / wall band are in frame (the spawn view shows the south half at desktop zoom)
-  await page.evaluate(() => window.__tb.walkTo(6, 2));
-  await page.waitForFunction(() => { const t = window.__tb.selfTile(); return t && !t.moving && t.tile.x === 6 && t.tile.y === 2; }, null, { timeout: 12_000 }).catch(() => {});
+  // Vila Ipê tour: the street in front of the padaria, the fountain, the building row, the whole map at 1x, and the golden-hour / evening look
+  const spot = async (x, y, name) => {
+    await page.evaluate(([x, y]) => window.__tb.walkTo(x, y), [x, y]);
+    await page.waitForFunction(([x, y]) => { const t = window.__tb.selfTile(); return t && !t.moving && t.tile.x === x && t.tile.y === y; }, [x, y], { timeout: 45_000 }).catch(() => {});
+    await sleep(1200);
+    await shot(page, vp, name);
+  };
+  await spot(16, 7, 'praca_street');
+  await spot(36, 7, 'praca_buildings');
+  await spot(25, 16, 'praca_fountain');
+  await page.evaluate(() => window.__tb.renderer.setShot('map'));
+  await sleep(900);
+  await shot(page, vp, 'praca_map');
+  await page.evaluate(() => window.__tb.renderer.setShot(null));
+  await page.evaluate(() => window.__tb.setClock({ time: '19:30', weather: 'sol' }));
   await sleep(1200);
-  await shot(page, vp, 'praca_north');
+  await shot(page, vp, 'praca_1930');
+  await page.evaluate(() => window.__tb.setClock({ time: '17:30', weather: 'sol' }));
 
   await interact(page, { portal: 'praca_padaria' });
   await waitRoom(page, 'padaria');
