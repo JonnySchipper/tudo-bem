@@ -90,8 +90,10 @@ import {
   makeRollPuzzle,
   normalizeBjj,
   rollBow,
+  rollChromeLabel,
   rollDecisaoLine,
   rollFistBump,
+  rollScrambleLine,
   rollPuzzleTimeMs,
   rollTapLine,
   resolveDuel,
@@ -1318,6 +1320,7 @@ export class World {
     roll.puzzleAt = this.now();
     const view = toPuzzleView(roll.rng, roll.puzzle);
     const pos = displayPosition(roll.playerIdx, roll.cpuIdx);
+    const chrome = rollChromeLabel(roll.playerIdx, roll.cpuIdx);
     const debug = this.rollDebugHint(roll.puzzle);
     s.send({
       t: 'roll',
@@ -1328,10 +1331,11 @@ export class World {
       timeMs: roll.timeMs,
       playerIdx: roll.playerIdx,
       cpuIdx: roll.cpuIdx,
-      positionPt: pos.label.pt,
-      positionEn: pos.label.en,
-      submissionPt: pos.submissionHint?.pt ?? null,
-      submissionEn: pos.submissionHint?.en ?? null,
+      pose: pos.position,
+      positionPt: chrome.pt,
+      positionEn: chrome.en,
+      submissionPt: null,
+      submissionEn: null,
       ...(debug !== undefined ? { debugCorrect: debug } : {}),
     });
     const puzzleId = roll.puzzle.id;
@@ -1372,21 +1376,17 @@ export class World {
     roll.playerIdx = res.playerIdx;
     roll.cpuIdx = res.cpuIdx;
     const pos = displayPosition(roll.playerIdx, roll.cpuIdx);
-    const scrambleLine: Bilingual =
-      res.advance === 'player'
-        ? { pt: 'Você passou a guarda!', en: 'You passed the guard!' }
-        : res.advance === 'cpu'
-          ? { pt: 'Eles avançaram — segura!', en: 'They advanced — hang on!' }
-          : { pt: 'Empate no scramble — mesma posição.', en: 'Scramble tie — same position.' };
+    const chrome = rollChromeLabel(roll.playerIdx, roll.cpuIdx);
     s.send({
       t: 'roll',
       phase: 'scramble',
       advance: res.advance,
-      line: scrambleLine,
+      line: rollScrambleLine(res.advance),
       playerIdx: roll.playerIdx,
       cpuIdx: roll.cpuIdx,
-      positionPt: pos.label.pt,
-      positionEn: pos.label.en,
+      pose: pos.position,
+      positionPt: chrome.pt,
+      positionEn: chrome.en,
     });
     if (res.submission) {
       this.schedule(() => this.rollFinish(s, 'submission', res.submission!), 1200);
