@@ -80,6 +80,7 @@ const canvas = document.getElementById('world') as HTMLCanvasElement;
 /** Which world view draws the scene: 'pixel' (default; top-down, Phaser) or 'iso' (`?view=iso`, until Phase 5). */
 const VIEW: 'pixel' | 'iso' = pickView(new URLSearchParams(location.search).get('view') ?? import.meta.env.VITE_VIEW);
 /** Phaser is only loaded for the pixel view, so `?view=iso` does not pay for it. */
+if (VIEW === 'pixel') document.body.classList.add('view-pixel');
 const renderer: WorldView = VIEW === 'pixel' ? new (await import('./render/pixel/PixelView')).PixelView(canvas) : new WorldRenderer(canvas);
 /** Static deploys (no WebSocket server) run the World in-page. `?solo` forces it anywhere. */
 const SOLO = import.meta.env.VITE_LOCAL_WORLD === '1' || new URLSearchParams(location.search).has('solo');
@@ -880,6 +881,8 @@ async function boot() {
     signedIn = !SOLO && entry.mode === 'auth';
   }
   game.music = ambience.enabled;
+  // Phaser starts only now (intro closed, or skipped by a live session); it crashed some GPUs when booted under the title blur.
+  if ('start' in renderer) (renderer as { start: () => void }).start();
   net.connect();
 }
 void boot();
