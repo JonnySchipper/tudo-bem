@@ -78,6 +78,7 @@ import {
   type ServerMsg,
   type Tile,
   type Tray,
+  talkOpener,
   type TutorialStep,
   ROLL_MAX_DUELS,
   ROLL_QUEUE_MS_DEFAULT,
@@ -437,6 +438,9 @@ export class World {
         return this.recados.request(s, msg.action, msg.id);
       case 'heard':
         return this.caderno.heard(s, msg.cardIds);
+      case 'talk':
+        if (this.recados.talk(s, msg.npc)) this.caderno.seen(s, talkOpener(msg.npc, s.profile?.name) ?? '');
+        return;
     }
   }
 

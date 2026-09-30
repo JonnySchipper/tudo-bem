@@ -211,7 +211,7 @@ describe('Caderno de palavras on the server', () => {
       await a.send({ t: 'read', hotspotId: 'nao_existe' });
       expect(Object.keys(p.caderno!)).toHaveLength(total);
     } finally {
-      HOTSPOTS.length = 0;
+      HOTSPOTS.splice(HOTSPOTS.findIndex((h) => h.id === 'teste_caderno'), 1);
     }
   });
 

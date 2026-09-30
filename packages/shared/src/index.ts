@@ -22,4 +22,5 @@ export * from './hotspots.js';
 export * from './bonds.js';
 export * from './recados.js';
 export * from './caderno.js';
+export * from './npcTalk.js';
 export * from './npcMemory.js';

@@ -131,10 +131,10 @@ export function normalizeBag(raw: unknown): Bag {
 /**
  * Features a recado can wait for. `RECADO_FLAGS` is the switch: while a flag is off the offer logic skips every
  * recado that `requires` it (they would be dead ends: the feira does not exist before Phase 9, and `falar` for
- * anyone but Seu Carlos needs the Phase 7 dialogue box). Flip the flag when the feature ships; tests override it.
+ * anyone but Seu Carlos needs the Phase 7 dialogue box, which is now in: `dialogue` is on, `feira` flips in Phase 9). Tests override it.
  */
 export type RecadoFlag = 'feira' | 'dialogue';
-export const RECADO_FLAGS: Record<RecadoFlag, boolean> = { feira: false, dialogue: false };
+export const RECADO_FLAGS: Record<RecadoFlag, boolean> = { feira: false, dialogue: true };
 
 /** Is this recado playable with the given flags (default: the live `RECADO_FLAGS`)? */
 export const recadoEnabled = (d: Pick<RecadoDef, 'requires'>, flags: Readonly<Record<RecadoFlag, boolean>> = RECADO_FLAGS): boolean => !d.requires || flags[d.requires] === true;
