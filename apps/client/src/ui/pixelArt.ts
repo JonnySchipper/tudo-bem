@@ -25,8 +25,11 @@ export function pxImg(key: string, zoom: number, alt = '', cls = ''): HTMLImageE
 /** The 16x16 bag item icon (`icons/<itemId>`) at `zoom` (3 = 48 px). */
 export const foodIcon = (itemId: string, zoom = 3, alt = '', cls = ''): HTMLImageElement => pxImg(`icons/${itemId}`, zoom, alt, `px-food ${cls}`.trim());
 
+/** NPCs with no portrait of their own yet borrow another's (Professora Bia shows Júlia's until the art track draws hers). */
+export const PORTRAIT_PLACEHOLDER: Record<string, string> = { prof: 'julia' };
+
 /** Portrait key for an NPC and expression. */
-export const portraitKey = (npc: NpcId | string, expr: Expression = 'neutro'): string => `portraits/${npc}_${expr}`;
+export const portraitKey = (npc: NpcId | string, expr: Expression = 'neutro'): string => `portraits/${PORTRAIT_PLACEHOLDER[npc] ?? npc}_${expr}`;
 
 /**
  * The expression a dialogue shows for a 0-3 answer score (Me vê um / scene chips): `feliz` on a perfect answer, `surpreso` on a miss,
