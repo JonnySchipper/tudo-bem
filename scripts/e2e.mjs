@@ -41,6 +41,8 @@ async function shot(page, name) {
 const room = (page) => page.evaluate(() => window.__tb.game.room?.room);
 const cpus = (page) => page.evaluate(() => [...window.__tb.game.avatars.values()].filter((a) => a.pub.cpu).map((a) => ({ ...a.pub, bubbles: a.bubbles.length })));
 const profile = (page) => page.evaluate(() => window.__tb.game.profile);
+/** D12: the padaria's baker at the game clock the server runs (Seu Carlos 06:00-22:00, Dona Graça 22:00-06:00). The e2e must pass at any hour. */
+const bakerNow = (page) => page.evaluate(() => (window.__tb.clock.minutes() >= 360 && window.__tb.clock.minutes() < 1320 ? { id: 'carlos', name: 'Seu Carlos' } : { id: 'graca', name: 'Dona Graça' }));
 
 async function clickTile(page, x, y, lift = 0) {
   const p = await page.evaluate(([x, y]) => window.__tb.tileToClient(x, y), [x, y]);
@@ -299,10 +301,13 @@ async function main() {
   await dwell(1200);
 
   // 4. Clicking Carlos opens AI Conversa. Pedido rápido (footer) is the chip breakfast.
-  await interact(page, { npc: 'carlos' });
+  await waitFor(page, () => window.__tb.game.liveNpcs(performance.now()).some((n) => n.id === 'carlos' || n.id === 'graca'), null, 8000, 'the baker on duty is at the counter');
+  const baker = await bakerNow(page);
+  log('baker on duty:', baker.name, 'game time', await page.evaluate(() => window.__tb.clock.minutes()));
+  await interact(page, { npc: baker.id });
   await page.waitForSelector('[data-modal="conversa"] .conversa-panel', { timeout: 12_000 });
   const conversaName = ((await page.textContent('[data-modal="conversa"] .npc-name')) ?? '').trim();
-  assert(conversaName === 'Seu Carlos', `Conversa is Seu Carlos at the mesa (${conversaName})`);
+  assert(conversaName === baker.name, `Conversa is ${baker.name} at the mesa (${conversaName})`);
   assert(await page.$('[data-modal="conversa"] .conversa-portrait'), 'Conversa portrait (café mesa)');
   assert(await page.$('[data-modal="conversa"] [data-chip="0"]'), 'Conversa opens with a reply chip');
   assert(!(await page.$('#dialogue')), 'chip dialogue is not the default Carlos click');
@@ -387,7 +392,7 @@ async function main() {
 
   // 5b. Test daily RV gate: second Pedido rápido same day → 0 RV, "já pediu hoje" message
   const coinsBeforeSecond = (await profile(page)).coins;
-  await interact(page, { npc: 'carlos' });
+  await interact(page, { npc: baker.id });
   await page.waitForSelector('[data-modal="conversa"] .conversa-panel', { timeout: 12_000 });
   await page.click('[data-action="pedido-rapido"]');
   await page.waitForSelector('[data-modal="pedido"] .pedido-panel', { timeout: 12_000 });

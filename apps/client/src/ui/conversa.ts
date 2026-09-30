@@ -457,7 +457,7 @@ export async function openConversa(
   if (!p) return;
 
   closeCallback = onClose ?? null;
-  quickOrder = npcId === 'carlos' ? opts?.onQuickOrder ?? null : null;
+  quickOrder = npcId === 'carlos' || npcId === 'graca' ? opts?.onQuickOrder ?? null : null;
 
   const daily: ConversaDaily = {};
 

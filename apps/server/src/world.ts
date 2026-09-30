@@ -3,6 +3,7 @@ import {
   BOTTOM_STYLES,
   buildGrid,
   canPlaceFurniture,
+  bakerOnDuty,
   CHAT_RATE,
   CLOTH_COLORS,
   checkBuild,
@@ -16,6 +17,7 @@ import {
   HAIR_COLORS,
   HAIR_STYLES,
   hatById,
+  npcAvatarId,
   IDLE_KICK_MS,
   IDLE_WARN_MS,
   idleKickedCopy,
@@ -103,6 +105,7 @@ import {
 import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
 import { ProfileStore, today, todaySaoPaulo, toPrivate, type StoredProfile } from './store.js';
 import { CpuCrowd } from './ambiance.js';
+import { NPC_TICK_MS, NpcDirector } from './npcs.js';
 import { RecadoTracker, sceneItems } from './recados.js';
 import { CadernoTracker } from './caderno.js';
 
@@ -131,6 +134,11 @@ export interface WorldOptions {
   accounts?: AccountLink;
   /** No real input for this long → kicked and the seat is freed. Default 15 min. */
   idleKickMs?: number;
+  /**
+   * Shifts the game clock (the sky, NPC schedules, greetings) by this many real milliseconds without touching timers. Test-only: the Node
+   * server reads `TB_TEST_CLOCK_OFFSET_MIN` (game-clock minutes are 2 real seconds each, so this is real minutes) like `TB_TEST_ROLL`.
+   */
+  clockOffsetMs?: number;
 }
 
 /** What the World needs from the account store (kept tiny so world.ts stays browser-safe for solo mode). */
@@ -223,6 +231,8 @@ export class Instance {
   readonly members = new Map<string, Session>();
   /** Ambiance CPUs (Praça, Academia). Not members, so they never take a player seat. */
   crowd?: CpuCrowd;
+  /** The last walk of each NPC that was broadcast here (`NpcPose.legId`), so the tick only sends what changed. */
+  readonly npcSeen = new Map<NpcId, string>();
   constructor(
     readonly id: string,
     readonly def: RoomDef,
@@ -276,6 +286,10 @@ export class World {
   private readonly rng: () => number;
   private readonly rollQueueMs: number;
   private readonly testRollHints: boolean;
+  private readonly clockOffsetMs: number;
+  /** The neighbours: schedules, positions, walks (pure function of the game clock). */
+  private readonly npcs: NpcDirector;
+  private npcTicking = false;
   private readonly accounts?: AccountLink;
   readonly idleKickMs: number;
   private seq = 0;
@@ -300,6 +314,9 @@ export class World {
     const envQueue = Number(process.env.ROLL_QUEUE_MS);
     this.rollQueueMs = opts.rollQueueMs ?? (Number.isFinite(envQueue) && envQueue >= 0 ? envQueue : ROLL_QUEUE_MS_DEFAULT);
     this.testRollHints = opts.testRollHints ?? process.env.TB_TEST_ROLL === '1';
+    const envOffset = Number(process.env.TB_TEST_CLOCK_OFFSET_MIN);
+    this.clockOffsetMs = opts.clockOffsetMs ?? (Number.isFinite(envOffset) ? envOffset * 60_000 : 0);
+    this.npcs = new NpcDirector(() => this.clockNow());
     this.accounts = opts.accounts;
     this.idleKickMs = Math.max(1000, opts.idleKickMs ?? IDLE_KICK_MS);
     this.recados = new RecadoTracker({
@@ -308,6 +325,7 @@ export class World {
       reward: (s, amount, reason) => this.reward(s, amount, reason),
       pushProfile: (s) => this.pushProfile(s),
       tileOf: (s) => this.currentTile(s).tile,
+      npcsIn: (room) => this.npcs.whoIn(room),
       onRead: (s, h) => this.caderno.seen(s, h.pt, h.cards),
     });
     this.caderno = new CadernoTracker({ now: () => this.now(), store, reward: (s, a, r) => this.reward(s, a, r), pushProfile: (s) => this.pushProfile(s) });
@@ -481,7 +499,7 @@ export class World {
     s.profile = p;
     p.nameplate = this.services.student.nameplateFor(p);
     p.lastSeen = this.now();
-    s.send({ t: 'welcome', profile: toPrivate(p), token: p.token, serverNow: this.now() });
+    s.send({ t: 'welcome', profile: toPrivate(p), token: p.token, serverNow: this.clockNow() });
     this.notifyFriendsOfPresence(p.id);
     const incoming = this.incomingFriendReqs.get(p.id);
     if (incoming?.size) this.sendFriends(s);
@@ -604,6 +622,8 @@ export class World {
     const tile = arrive?.tile ?? def.spawn;
     s.instance = target;
     s.avatar = { from: tile, path: [], start: this.now(), dir: arrive?.dir ?? 'SE', sitting: false, sitOnArrive: false, seq: 0 };
+    // bring the instance's NPC bookkeeping up to date first: whoever is already here hears about any change, the joiner gets the fresh state below
+    this.npcSync(target);
     target.members.set(s.id, s);
     const furniture = this.furnitureOf(target);
     s.send({
@@ -615,15 +635,64 @@ export class World {
       ownerName: target.ownerId ? (this.store.get(target.ownerId)?.name ?? null) : null,
       cap: this.cap,
       selfId: s.profile!.id,
-      avatars: [...[...target.members.values()].map((m) => this.publicAvatar(m)), ...(target.crowd?.avatars() ?? [])],
+      avatars: [...[...target.members.values()].map((m) => this.publicAvatar(m)), ...(target.crowd?.avatars() ?? []), ...(target.def.private ? [] : this.npcs.avatarsIn(def.id))],
       furniture,
-      serverNow: this.now(),
+      serverNow: this.clockNow(),
     });
+    // a joiner mid-walk: the avatars above are at the tile each NPC has reached, this sends the rest of each walk
+    for (const p of this.npcs.posesIn(def.id)) {
+      const moved = this.npcs.moved(p);
+      if (moved) s.send(moved);
+    }
     this.maybeResumeMg(s);
     this.recados.onEvent(s, { kind: 'entered', room: def.id, tile });
     this.broadcast(target, { t: 'avatarJoined', avatar: this.publicAvatar(s) }, s);
     target.crowd?.sync();
+    this.startNpcTick();
     this.notifyFriendsOfPresence(s.profile!.id);
+  }
+
+  /** The game clock: real time plus the test offset. Everything the players see as time of day comes from here. */
+  private clockNow() {
+    return this.now() + this.clockOffsetMs;
+  }
+
+  /** Starts the NPC tick if it is not running. It stops itself when nobody is in the world. */
+  private startNpcTick() {
+    if (this.npcTicking) return;
+    this.npcTicking = true;
+    this.schedule(() => this.npcTick(), NPC_TICK_MS);
+  }
+
+  private npcTick() {
+    let anyone = false;
+    for (const inst of this.instances.values()) {
+      if (!inst.members.size) continue;
+      anyone = true;
+      this.npcSync(inst);
+    }
+    if (anyone) this.schedule(() => this.npcTick(), NPC_TICK_MS);
+    else this.npcTicking = false;
+  }
+
+  /** Tell an instance what changed among the NPCs: one who came in, started a new walk, or left. Same messages as the CPUs use. */
+  private npcSync(inst: Instance) {
+    if (inst.def.private) return;
+    const here = new Set<NpcId>();
+    for (const p of this.npcs.posesIn(inst.def.id)) {
+      here.add(p.npc);
+      const seen = inst.npcSeen.get(p.npc);
+      if (seen === p.legId) continue;
+      if (seen === undefined) this.broadcast(inst, { t: 'avatarJoined', avatar: this.npcs.avatar(p) });
+      const moved = this.npcs.moved(p);
+      if (moved) this.broadcast(inst, moved);
+      inst.npcSeen.set(p.npc, p.legId);
+    }
+    for (const id of [...inst.npcSeen.keys()]) {
+      if (here.has(id)) continue;
+      inst.npcSeen.delete(id);
+      this.broadcast(inst, { t: 'avatarLeft', id: npcAvatarId(id) });
+    }
   }
 
   private leaveInstance(s: Session) {
@@ -648,6 +717,7 @@ export class World {
       schedule: this.schedule,
       rng: this.rng,
       send: (m) => this.broadcast(inst, m),
+      reserved: () => this.npcs.reservedIn(inst.def.id),
       humans: () =>
         [...inst.members.values()]
           .filter((m) => m.avatar)
@@ -668,8 +738,9 @@ export class World {
     return this.store.get(inst.ownerId)?.apartment ?? [];
   }
 
+  /** The room's grid for players: props and furniture, plus the tiles the NPCs are standing on right now (they move, so nothing static blocks them). */
   private grid(inst: Instance) {
-    return buildGrid(inst.def, this.furnitureOf(inst));
+    return this.npcs.block(inst.def, buildGrid(inst.def, this.furnitureOf(inst)));
   }
 
   private currentTile(s: Session): { tile: Tile; dir: Dir; moving: boolean } {
@@ -798,7 +869,7 @@ export class World {
     this.completeStep(s, 'conversar');
     this.caderno.used(s, verdict.text);
     if (inst.def.id === 'praca' && GREETING.test(verdict.text) && this.hasCompany(inst)) this.missionStep(s, 'cumprimenta');
-    if (greetingKind(verdict.text)) this.recados.onEvent(s, { kind: 'greeted', text: verdict.text, minute: gameMinutes(this.now()), company: this.hasCompany(inst) });
+    if (greetingKind(verdict.text)) this.recados.onEvent(s, { kind: 'greeted', text: verdict.text, minute: gameMinutes(this.clockNow()), company: this.hasCompany(inst) });
   }
 
   /** Log a non-allow Jev verdict; escalations are queued for human review. */
@@ -845,13 +916,14 @@ export class World {
       return;
     }
     if (m.action === 'start') {
-      if (m.npc !== 'carlos' || s.instance?.def.id !== 'padaria')
-        return this.err(s, 'scene', 'Seu Carlos está na padaria.', 'Seu Carlos is in the bakery.');
+      // D12: the padaria's breakfast scene is with the baker on duty (Seu Carlos by day, Dona Graça at night), same authored graph
+      if ((m.npc !== 'carlos' && m.npc !== 'graca') || s.instance?.def.id !== 'padaria')
+        return this.err(s, 'scene', 'O café da manhã é no balcão da padaria.', 'Breakfast is at the bakery counter.');
       if (s.mg) return this.err(s, 'busy', 'Termine o jogo primeiro.', 'Finish the game first.');
       const ctx: SceneCtx = { name: p.name, pronoun: p.pronoun };
       const view = this.services.npc.start('carlos', ctx);
       s.scene = { npc: 'carlos', node: view.nodeId, ctx, scores: [], shownAt: this.now() };
-      this.recados.onEvent(s, { kind: 'talked', npc: 'carlos' });
+      this.recados.onEvent(s, { kind: 'talked', npc: bakerOnDuty(gameMinutes(this.clockNow())) });
       this.caderno.seen(s, view.line.pt);
       return s.send({ t: 'scene', view });
     }

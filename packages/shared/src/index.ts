@@ -2,6 +2,8 @@ export * from './types.js';
 export * from './constants.js';
 export * from './catalog.js';
 export * from './rooms.js';
+export * from './schedules.js';
+export * from './npcMotion.js';
 export * from './path.js';
 export * from './safety.js';
 export * from './gloss.js';

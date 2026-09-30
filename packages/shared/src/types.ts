@@ -1,6 +1,7 @@
 import type { DailyMission } from './ambiance.js';
 import type { BjjProgress } from './academia.js';
 import type { NpcId } from './rooms.js';
+import type { NpcActivity } from './schedules.js';
 import type { RecadoState } from './recados.js';
 
 export type Pronoun = 'ele' | 'ela' | 'nome';
@@ -58,7 +59,17 @@ export interface PublicAvatar {
   sitting: boolean;
   /** Praça ambiance CPU (scripted scenery, outside the player cap, never chats). */
   cpu?: boolean;
+  /** A neighbour (Seu Carlos, Nanda...) walking its schedule: id is `npc-<id>`, broadcast like a CPU but flagged with its NpcId. */
+  npc?: NpcId;
+  /** NPC only: where to stand to talk to it (the interact tile of the slot it is on or heading for). */
+  npcInteract?: Tile;
+  /** NPC only: what it is doing. */
+  activity?: NpcActivity;
 }
+
+export const NPC_AVATAR_PREFIX = 'npc-';
+export const npcAvatarId = (id: NpcId): string => `${NPC_AVATAR_PREFIX}${id}`;
+export const isNpcAvatarId = (id: string): boolean => id.startsWith(NPC_AVATAR_PREFIX);
 
 export interface PlacedFurniture {
   uid: string;

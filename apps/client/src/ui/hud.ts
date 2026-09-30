@@ -178,7 +178,7 @@ export function buildHud(actions: HudActions) {
     const p = game.profile;
     const r = game.room;
     if (r) {
-      const all = [...game.avatars.values()];
+      const all = [...game.avatars.values()].filter((a) => !a.pub.npc); // the neighbours are not people in the room (the seat count is players)
       const count = all.filter((a) => !a.pub.cpu).length;
       const neighbors = all.length - count;
       roomName.replaceChildren(r.instanceName, h('small', null, `${game.roomDef?.gloss ?? ''} · ${count}/${r.cap} aqui${neighbors ? ` · ${neighbors} vizinhos` : ''}`));

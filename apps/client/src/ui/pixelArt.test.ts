@@ -20,7 +20,9 @@ describe('portrait expressions', () => {
   });
 
   it('every expression the UI can ask for exists for every NPC', () => {
-    for (const npc of ['carlos', 'nanda', 'julia', 'graca', 'tia_lu']) {
+    // Professora Bia has no portrait of her own yet: she borrows Júlia's (PORTRAIT_PLACEHOLDER)
+    expect(portraitKey('prof', 'feliz')).toBe('portraits/julia_feliz');
+    for (const npc of ['carlos', 'nanda', 'julia', 'graca', 'tia_lu', 'prof']) {
       for (const e of ['neutro', 'feliz', 'surpreso'] as const) expect(manifest.images?.[portraitKey(npc, e)], `${npc} ${e}`).toBeTruthy();
     }
   });

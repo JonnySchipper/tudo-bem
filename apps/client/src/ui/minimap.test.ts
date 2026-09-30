@@ -28,4 +28,9 @@ describe('Vila Ipê minimap', () => {
     expect(ms.filter((m) => m.kind === 'me')).toHaveLength(1);
     expect(markers(room, null).some((m) => m.kind === 'me')).toBe(false);
   });
+
+  it('marks the NPCs where they are now when the caller says so (schedules move them)', () => {
+    const ms = markers(room, null, [{ name: 'Júlia', x: 21, y: 6 }]);
+    expect(ms.filter((m) => m.kind === 'npc')).toEqual([{ kind: 'npc', x: 21, y: 6, label: 'Júlia' }]);
+  });
 });
