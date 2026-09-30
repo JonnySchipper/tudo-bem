@@ -189,12 +189,12 @@ describe('the recados pack (recados.md)', () => {
     expect(recadoById(undefined)).toBeUndefined();
   });
 
-  it('are the first 15: five givers, the bond spread 6 / 5 / 4, rewards in the economy', () => {
-    expect(RECADOS).toHaveLength(15);
+  it('are the first 15 plus three at the feira: five givers, the bond spread 6 / 7 / 5, rewards in the economy', () => {
+    expect(RECADOS).toHaveLength(18);
     expect(new Set(RECADOS.map((d) => d.giver))).toEqual(new Set(['carlos', 'nanda', 'julia', 'graca', 'tia_lu']));
     expect(RECADOS.filter((d) => d.minBond === 0)).toHaveLength(6);
-    expect(RECADOS.filter((d) => d.minBond === 10)).toHaveLength(5);
-    expect(RECADOS.filter((d) => d.minBond >= 20 && d.minBond <= 30)).toHaveLength(4);
+    expect(RECADOS.filter((d) => d.minBond === 10)).toHaveLength(7);
+    expect(RECADOS.filter((d) => d.minBond >= 20 && d.minBond <= 30)).toHaveLength(5);
     for (const d of RECADOS) {
       expect(d.reward.rv, d.id).toBeGreaterThanOrEqual(8);
       expect(d.reward.rv, d.id).toBeLessThanOrEqual(15);
@@ -219,16 +219,20 @@ describe('the recados pack (recados.md)', () => {
         ['nanda_pergunta_pro_carlos', 'dialogue'],
         ['tia_lu_banana_pra_nanda', 'feira'],
         ['tia_lu_flores_pra_julia', 'feira'],
+        ['nanda_maca', 'feira'],
+        ['carlos_salada_do_ze', 'feira'],
+        ['julia_pastel_caldo_pra_bia', 'feira'],
       ].sort(),
     );
     for (const d of RECADOS) {
-      const usesFeira = d.giver === 'tia_lu' || d.steps.some((s) => 'npc' in s && s.npc === 'tia_lu');
+      const vendors = ['tia_lu', 'ze', 'chico', 'rosa'];
+      const usesFeira = vendors.includes(d.giver) || d.steps.some((s) => 'npc' in s && vendors.includes(s.npc as string));
       const talksToOthers = d.steps.some((s) => s.kind === 'falar' && s.npc !== 'carlos');
       if (usesFeira) expect(d.requires, d.id).toBe('feira');
       else if (talksToOthers) expect(d.requires, d.id).toBe('dialogue');
       else expect(d.requires, d.id).toBeUndefined();
     }
-    for (const id of ['banana', 'flores']) expect(RECADOS.some((d) => d.requires === 'feira' && d.steps.some((s) => 'itemId' in s && s.itemId === id))).toBe(true);
+    for (const id of ['banana', 'flores', 'maca', 'alface', 'tomate', 'caldo_de_cana']) expect(RECADOS.some((d) => d.requires === 'feira' && d.steps.some((s) => 'itemId' in s && s.itemId === id))).toBe(true);
   });
 
   it('have no dead ends today: ungated steps only involve NPCs that exist and items the padaria scene can put in the bag', () => {
@@ -270,16 +274,17 @@ describe('the recados pack (recados.md)', () => {
 
 describe('RECADO_FLAGS (feature gating in the offer logic)', () => {
   const day = 777;
-  const everything = { carlos: 100, nanda: 100, julia: 100, graca: 100, tia_lu: 100 };
+  const everything = { carlos: 100, nanda: 100, julia: 100, graca: 100, tia_lu: 100, prof: 100 };
   const seen = (flags?: Record<RecadoFlag, boolean>) => new Set(Array.from({ length: 40 }, (_, i) => offerFor({ bond: everything }, day, mulberry32(i), RECADOS, 15, flags)).flat());
 
-  it('feira is off and dialogue is on by default (Phase 7 shipped the NPC dialogue), so only feira recados are held back', () => {
-    expect(RECADO_FLAGS).toEqual({ feira: false, dialogue: true });
+  it('both flags are on by default (Phase 7 shipped the NPC dialogue, Phase 9 the feira), so every recado is offered', () => {
+    expect(RECADO_FLAGS).toEqual({ feira: true, dialogue: true });
     const ids = seen();
-    expect(ids.size).toBe(13);
-    for (const d of RECADOS) expect(ids.has(d.id), d.id).toBe(d.requires !== 'feira');
+    expect(ids.size).toBe(18);
+    for (const d of RECADOS) expect(ids.has(d.id), d.id).toBe(true);
     expect(recadoEnabled(RECADOS[0]!)).toBe(true);
-    expect(recadoEnabled({ requires: 'feira' })).toBe(false);
+    expect(recadoEnabled({ requires: 'feira' })).toBe(true);
+    expect(recadoEnabled({ requires: 'feira' }, { feira: false, dialogue: true })).toBe(false);
   });
 
   it('each flag unlocks only its own recados', () => {
@@ -289,27 +294,27 @@ describe('RECADO_FLAGS (feature gating in the offer logic)', () => {
     const dialogue = seen({ feira: false, dialogue: true });
     expect(dialogue.has('julia_conhecer_nanda') && dialogue.has('nanda_pergunta_pro_carlos')).toBe(true);
     expect(dialogue.has('tia_lu_banana_pra_nanda')).toBe(false);
-    expect(seen({ feira: true, dialogue: true }).size).toBe(15);
+    expect(seen({ feira: true, dialogue: true }).size).toBe(18);
+    expect(feira.has('nanda_maca') && feira.has('carlos_salada_do_ze') && feira.has('julia_pastel_caldo_pra_bia')).toBe(true);
   });
 
   it('can be overridden globally (tests, and the later phases that ship the features) and restored', () => {
     const before = { ...RECADO_FLAGS };
     try {
-      RECADO_FLAGS.feira = true;
-      RECADO_FLAGS.dialogue = true;
-      expect(seen().size).toBe(15);
+      RECADO_FLAGS.feira = false;
+      expect(seen().size).toBe(13);
       // the rollover reads the live flags too
       const st = rollRecadoDay({ bond: everything }, day, mulberry32(3), RECADOS);
       expect(st.offered).toHaveLength(3);
     } finally {
       Object.assign(RECADO_FLAGS, before);
     }
-    expect(seen().size).toBe(13);
+    expect(seen().size).toBe(18);
   });
 
-  it('a new player at bond 0 is offered three of the five open recados', () => {
+  it('a new player at bond 0 is offered three of the six open recados', () => {
     const pool = new Set(Array.from({ length: 60 }, (_, i) => offerFor({}, day, mulberry32(i), RECADOS, 15)).flat());
-    expect([...pool].sort()).toEqual(['carlos_cafe_pra_nanda', 'graca_pao_pra_julia', 'julia_cumprimento_certo', 'nanda_coxinha', 'nanda_um_oi_pro_carlos']);
+    expect([...pool].sort()).toEqual(['carlos_cafe_pra_nanda', 'graca_pao_pra_julia', 'julia_cumprimento_certo', 'nanda_coxinha', 'nanda_um_oi_pro_carlos', 'tia_lu_banana_pra_nanda']);
     expect(offerFor({}, day, mulberry32(1))).toHaveLength(3);
   });
 });

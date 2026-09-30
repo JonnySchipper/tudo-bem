@@ -18,6 +18,7 @@ import type { NpcId } from './rooms.js';
 import type { ConversaGrade, ConversaMeter, ConversaScores, ConversaSubject } from './conversa.js';
 import type { BjjProgress, RollPuzzleView } from './academia.js';
 import type { RecadoActiveView, RecadoOfferView } from './recados.js';
+import type { PriceOption, VendorId } from './feira.js';
 
 /** Client → server messages. JSON over a single WebSocket at /ws. */
 export type ClientMsg =
@@ -62,6 +63,9 @@ export type ClientMsg =
   /** The player opened the greeting dialogue with an NPC that has no Conversa (Nanda, Júlia): fires the recado engine's `talked` event. */
   | { t: 'talk'; npc: NpcId }
   | { t: 'recados'; action: 'accept' | 'list'; id?: string }
+  /** The feira (Phase 9): ask a vendor the price of one good, then pay for a quantity with tray pieces (centavos: 50, 100, 200, 500, 1000, 2000). */
+  | { t: 'feira'; action: 'price'; vendor: VendorId; itemId: string }
+  | { t: 'feira'; action: 'pay'; vendor: VendorId; itemId: string; qty: number; paid: number[] }
   /** The player played 🔊 for these cards (Caderno). At most 10 known card ids; rate-limited per session. */
   | { t: 'heard'; cardIds: string[] }
   | { t: 'roll'; action: 'queue' }
@@ -245,5 +249,25 @@ export type ServerMsg =
   | { t: 'tutorial'; step: TutorialStep }
   /** The recados board: offered (not yet accepted), in progress, and ids finished today. Sent on `recados` requests, on join and after every change. */
   | { t: 'recados'; day: number; offered: RecadoOfferView[]; active: RecadoActiveView[]; done: string[] }
+  /** The feira's answer to `price`: what the vendor says and what each offered quantity costs (centavos). */
+  | { t: 'feira'; phase: 'price'; vendor: VendorId; itemId: string; options: PriceOption[]; line: Bilingual }
+  /**
+   * The answer to `pay`. `short`: nothing is bought (the tray stays as it was on the client). `exact` and `change`: the goods are in the bag;
+   * `rv` is the little reward (0 once the day's limit is reached).
+   */
+  | {
+      t: 'feira';
+      phase: 'pay';
+      vendor: VendorId;
+      itemId: string;
+      qty: number;
+      price: number;
+      paid: number;
+      result: 'exact' | 'change' | 'short';
+      change?: number;
+      missing?: number;
+      line: Bilingual;
+      rv: number;
+    }
   | { t: 'error'; code: string; pt: string; en: string }
   | { t: 'pong' };

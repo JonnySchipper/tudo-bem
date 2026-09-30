@@ -81,7 +81,8 @@ describe('Vila Ipê (room id praca)', () => {
     expect(floorAt(praca, 30, 7)).toBe('calcada');
     expect(floorAt(praca, 30, 12)).toBe('calcada');
     expect(floorAt(praca, 25, 15)).toBe('tijolo');
-    expect(floorAt(praca, 45, 20)).toBe('grama');
+    expect(floorAt(praca, 52, 15)).toBe('grama');
+    expect(floorAt(praca, 45, 21)).toBe('calcada'); // the feira's aisle from the gate
   });
 
   it('keeps props inside the map and off each other (blocking props never overlap, but the newsstand in front of its wall)', () => {
@@ -90,6 +91,8 @@ describe('Vila Ipê (room id praca)', () => {
       for (const t of propTiles(p)) {
         expect(t.x >= 0 && t.y >= 0 && t.x < praca.cols && t.y < praca.rows, `${p.id} in bounds`).toBe(true);
         if (!p.blocks) continue;
+        // a fence with a gate blocks only along its perimeter: the lot inside is open ground (the stalls stand in it)
+        if (p.gaps && t.x !== p.x && t.y !== p.y && t.x !== p.x + (p.w ?? 1) - 1 && t.y !== p.y + (p.h ?? 1) - 1) continue;
         const k = key(t.x, t.y);
         const other = owner.get(k);
         if (other) expect([p.id, other].sort().join('+'), `overlap at ${k}`).toBe('banca+empena');

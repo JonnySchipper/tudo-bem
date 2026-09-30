@@ -26,3 +26,4 @@ export * from './recados.js';
 export * from './caderno.js';
 export * from './npcTalk.js';
 export * from './npcMemory.js';
+export * from './feira.js';

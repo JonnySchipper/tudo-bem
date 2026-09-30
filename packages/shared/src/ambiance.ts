@@ -38,7 +38,7 @@ export function cpuTarget(humans: number, room: RoomId = 'academia'): number {
 export const CPU_SITTER_SHARE = 0.6;
 
 /** Vila Ipê tiles the CPUs use. Kept off doors, arrival tiles, spawn and every interact tile. */
-export const PRACA_AMBIANCE: { spots: Tile[]; doorSpots: Tile[]; entries: Tile[] } = {
+export const PRACA_AMBIANCE: { spots: Tile[]; doorSpots: Tile[]; entries: Tile[]; feiraSpots?: Tile[] } = {
   /** Places to stand for a bit: sidewalks, the brick bar, the lawns' edges. */
   spots: [
     { x: 8, y: 7 },
@@ -55,8 +55,8 @@ export const PRACA_AMBIANCE: { spots: Tile[]; doorSpots: Tile[]; entries: Tile[]
   /** Near the Padaria entrance (CPUs never go in). */
   doorSpots: [
     { x: 15, y: 7 },
-    { x: 17, y: 7 },
-    { x: 18, y: 7 },
+    { x: 14, y: 7 },
+    { x: 16, y: 7 },
   ],
   /** Where CPUs walk in from / out to when the crowd grows or thins: the street ends. */
   entries: [
@@ -64,6 +64,18 @@ export const PRACA_AMBIANCE: { spots: Tile[]; doorSpots: Tile[]; entries: Tile[]
     { x: 53, y: 10 },
     { x: 2, y: 33 },
     { x: 53, y: 34 },
+  ],
+  /** Where the shoppers browse while the feira is open (06:00-13:00): in front of the stalls and along the aisle, never on a vendor's talking spot. */
+  feiraSpots: [
+    { x: 43, y: 20 },
+    { x: 47, y: 20 },
+    { x: 48, y: 19 },
+    { x: 53, y: 20 },
+    { x: 46, y: 21 },
+    { x: 52, y: 22 },
+    { x: 43, y: 27 },
+    { x: 47, y: 26 },
+    { x: 53, y: 27 },
   ],
 };
 
@@ -103,7 +115,7 @@ export function ambianceNavGrid(room: RoomDef): RoomGrid {
   return grid;
 }
 
-export const ROOM_AMBIANCE: Partial<Record<RoomId, { spots: Tile[]; doorSpots: Tile[]; entries: Tile[] }>> = {
+export const ROOM_AMBIANCE: Partial<Record<RoomId, { spots: Tile[]; doorSpots: Tile[]; entries: Tile[]; feiraSpots?: Tile[] }>> = {
   praca: PRACA_AMBIANCE,
   academia: ACADEMIA_AMBIANCE,
 };

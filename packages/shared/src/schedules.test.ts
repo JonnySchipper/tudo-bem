@@ -33,7 +33,7 @@ describe('schedules: shape', () => {
         expect(s.interact, `${s.npc} ${s.from} interact`).toBeTruthy();
         const solid = buildGrid(ROOMS[s.room]);
         expect(isWalkable(solid, s.interact!.x, s.interact!.y), `${s.npc} ${s.from} interact walkable`).toBe(true);
-        expect(Math.max(Math.abs(s.interact!.x - s.tile.x), Math.abs(s.interact!.y - s.tile.y)), `${s.npc} ${s.from} interact distance`).toBeLessThanOrEqual(2);
+        expect(Math.max(Math.abs(s.interact!.x - s.tile.x), Math.abs(s.interact!.y - s.tile.y)), `${s.npc} ${s.from} interact distance`).toBeLessThanOrEqual(3); // a feira stall is 2 deep: the vendor stands behind it, customers in front
         if (s.activity === 'sentado') expect(seatTiles(ROOMS[s.room]).some((t) => t.x === s.tile.x && t.y === s.tile.y), `${s.npc} sits on a seat`).toBe(true);
       }
     }

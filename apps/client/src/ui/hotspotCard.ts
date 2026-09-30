@@ -2,7 +2,7 @@
  * The card a sign opens (HOWTO Phase 7 step 2): the full Portuguese text large, 🔊, the English gloss, and "Guardar no caderno". Opening it is
  * what tells the server (`read`, see main.ts): the words on the sign count as seen, and a recado's `ler` step advances.
  */
-import { hotspotTitle, type HotspotDef } from '@tudobem/shared';
+import { hotspotTitle, moneyPt, type HotspotDef } from '@tudobem/shared';
 import { h, en, bi } from './dom';
 import { openModal } from './modal';
 import { speak } from '../audio';
@@ -13,8 +13,12 @@ export interface HotspotCardOpts {
   onSave: (cardIds: string[]) => void;
 }
 
-/** The text read aloud: the lines as sentences. */
-export const spokenText = (s: Pick<HotspotDef, 'pt'>): string => s.pt.split('\n').join('. ');
+/** The text read aloud: the lines as sentences, prices as words ("R$ 3,50" -> "três reais e cinquenta centavos"). */
+export const spokenText = (s: Pick<HotspotDef, 'pt'>): string =>
+  s.pt
+    .replace(/R\$\s?(\d+)(?:,(\d{2}))?/g, (_m, r: string, c?: string) => moneyPt(Number(r) * 100 + (c ? Number(c) : 0)))
+    .split('\n')
+    .join('. ');
 
 export function openHotspotCard(hs: HotspotDef, opts: HotspotCardOpts): void {
   const cards = heardIds(hs.pt, hs.cards ?? []);
@@ -23,7 +27,7 @@ export function openHotspotCard(hs: HotspotDef, opts: HotspotCardOpts): void {
     text.split('\n').map((l, i) => {
       const lang = cls === 'hs-pt' ? 'pt-BR' : 'en';
       // a menu line "Coxinha R$ 7" is drawn as a price list: name, dotted leader, price
-      const priced = /^(.*\S)\s+(R\$\s?\d+)$/.exec(l);
+      const priced = /^(.*\S)\s+(R\$\s?\d+(?:[,.]\d{2})?)$/.exec(l);
       if (priced) return h('div', { class: `${cls} priced`, lang }, h('span', { class: 'name' }, priced[1]!), h('span', { class: 'lead' }), h('span', { class: 'price' }, priced[2]!));
       return h('div', { class: `${cls}${i === 0 ? ' first' : ''}`, lang }, l);
     });

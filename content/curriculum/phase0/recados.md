@@ -1,6 +1,6 @@
 > **Status:** DRAFT — needs BR sign-off before default-path. Every recado below is `needs_br: true`.
 
-# Recados — the first 15 errands (HOWTO Phase 8, step 7)
+# Recados — the first 15 errands (HOWTO Phase 8, step 7) and 3 more at the feira (Phase 9)
 
 Small errands the NPCs hand out on the daily board (3 a day, from givers the player has befriended enough). One clear task each, A1 level, informal São Paulo Portuguese (você, tá, pra, a gente). The EN is natural, not a gloss.
 
@@ -10,7 +10,7 @@ Source of truth: this file. `pnpm content` (`scripts/build-curriculum.mjs`) turn
 
 | Field | Meaning |
 |---|---|
-| `giver` | NpcId: `carlos`, `nanda`, `julia`, `graca`, `tia_lu` |
+| `giver` | NpcId: `carlos`, `nanda`, `julia`, `graca`, `prof`, `tia_lu`, `ze`, `chico`, `rosa` |
 | `min_bond` | friendship points (0–100, 10 = 1 heart) with the **giver** before it is offered |
 | `requires` | optional feature flag (`feira` or `dialogue`); the offer logic skips the recado until `RECADO_FLAGS[flag]` is on. Omitted = playable now |
 | `title_*`, `ask_*`, `thanks_*` | what the giver shows / says when giving the errand / says when it is done |
@@ -20,9 +20,9 @@ Source of truth: this file. `pnpm content` (`scripts/build-curriculum.mjs`) turn
 
 Authoring rules that keep every recado finishable today:
 
-- `pedir` items are limited to what the Carlos scene / Conversa can put in the bag: `pao_na_chapa`, `coxinha`, `pastel`, `cafe`, `cafe_com_leite`, `suco_de_laranja`, `agua` (plus `banana` and `flores` at the feira). One scene orders one food and one drink, so two `pedir` steps never sit next to each other.
-- The recados of Dona Graça and Tia Lu never send you to talk to or hand something to someone who is not in the world yet. Graça has no room until the NPC schedules exist and Tia Lu has none until the feira (Phase 9).
-- `falar` for anyone but Seu Carlos needs the Phase 7 dialogue box: those recados say `requires: dialogue`. The two feira recados say `requires: feira`.
+- `pedir` items are limited to what the Carlos scene / Conversa can put in the bag: `pao_na_chapa`, `coxinha`, `pastel`, `cafe`, `cafe_com_leite`, `suco_de_laranja`, `agua` (the feira items `banana`, `laranja`, `maca`, `alface`, `tomate`, `caldo_de_cana` and `flores` are bought one purchase at a time from `tia_lu`, `ze`, `chico` or `rosa`; a purchase at the Hortifrúti corner counts as bought from the stall's owner). One scene orders one food and one drink, so two `pedir` steps to Seu Carlos never sit next to each other (two to a feira vendor may: each purchase is its own event).
+- The recados of Dona Graça never send you to talk to or hand something to someone who is not in the world. Tia Lu and the other vendors are real NPCs since Phase 9 (at their stalls 06:00-13:00; the Hortifrúti corner at the banca sells the produce and flowers at every hour, D12).
+- `falar` for anyone but Seu Carlos needs the Phase 7 dialogue box: those recados say `requires: dialogue`. Every recado that buys at the feira says `requires: feira` (on now).
 
 ---
 
@@ -115,7 +115,7 @@ Authoring rules that keep every recado finishable today:
 
 ---
 
-## Bond 10 (5)
+## Bond 10 (7)
 
 ### carlos_agua_pra_julia
 - **giver:** carlos
@@ -189,9 +189,39 @@ Authoring rules that keep every recado finishable today:
 - **cards:** lex.padaria.por_favor; lex.social.obrigado
 - **needs_br:** true
 
+### nanda_maca
+- **giver:** nanda
+- **min_bond:** 10
+- **requires:** feira
+- **title_pt:** Uma maçã pra Nanda
+- **title_en:** An apple for Nanda
+- **ask_pt:** Tô com vontade de uma maçã! A Tia Lu vende na feira. Compra uma pra mim?
+- **ask_en:** I’m craving an apple! Tia Lu sells them at the market. Can you buy me one?
+- **thanks_pt:** Que maçã boa! Valeu, você é gente boa!
+- **thanks_en:** What a good apple! Thanks, you’re good people!
+- **steps:** pedir tia_lu maca 1; entregar nanda maca 1
+- **reward:** 12 RV; 4 bond
+- **cards:** lex.padaria.por_favor; lex.social.obrigado
+- **needs_br:** true
+
+### carlos_salada_do_ze
+- **giver:** carlos
+- **min_bond:** 10
+- **requires:** feira
+- **title_pt:** Salada do Seu Zé
+- **title_en:** Seu Zé’s salad
+- **ask_pt:** Preciso de alface e tomate pro lanche. O Seu Zé vende na feira. Traz pra mim?
+- **ask_en:** I need lettuce and tomato for the sandwiches. Seu Zé sells them at the market. Will you bring them to me?
+- **thanks_pt:** Isso aí! Agora o lanche vai ficar bom. Valeu!
+- **thanks_en:** That’s it! Now the sandwiches will be great. Thanks!
+- **steps:** pedir ze alface 1; pedir ze tomate 1; entregar carlos alface 1; entregar carlos tomate 1
+- **reward:** 14 RV; 5 bond
+- **cards:** lex.padaria.por_favor; lex.social.obrigado
+- **needs_br:** true
+
 ---
 
-## Bond 20–30 (4)
+## Bond 20–30 (5)
 
 ### carlos_manha_de_entregas
 - **giver:** carlos
@@ -248,4 +278,19 @@ Authoring rules that keep every recado finishable today:
 - **steps:** ir academia; ir praca; cumprimentar julia
 - **reward:** 12 RV; 5 bond
 - **cards:** lex.social.oi; lex.social.tchau
+- **needs_br:** true
+
+### julia_pastel_caldo_pra_bia
+- **giver:** julia
+- **min_bond:** 20
+- **requires:** feira
+- **title_pt:** Pastel e caldo pra Professora Bia
+- **title_en:** Pastel and cane juice for Professora Bia
+- **ask_pt:** A Professora Bia adora pastel com caldo de cana depois do treino. Compra no Seu Chico e leva pra ela?
+- **ask_en:** Professora Bia loves pastel with sugarcane juice after training. Buy them from Seu Chico and take them to her?
+- **thanks_pt:** Oss! Que delícia. Obrigada, viu?
+- **thanks_en:** Oss! How delicious. Thank you, you know?
+- **steps:** pedir chico pastel 1; pedir chico caldo_de_cana 1; ir academia; entregar prof pastel 1; entregar prof caldo_de_cana 1
+- **reward:** 15 RV; 6 bond
+- **cards:** lex.padaria.pastel; lex.social.obrigado
 - **needs_br:** true
