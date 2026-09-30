@@ -10,9 +10,12 @@ import {
   normalizeBjj,
   resolveDuel,
   rollBow,
+  rollChromeLabel,
   rollDecisaoLine,
   rollFistBump,
   rollPuzzleBank,
+  rollScrambleLine,
+  rollTapLine,
   stripesForWins,
   toPuzzleView,
 } from './index.js';
@@ -111,19 +114,30 @@ describe('academia roll', () => {
     const chromePt = [
       rollBow().pt,
       rollFistBump().pt,
+      rollTapLine('player').pt,
+      rollTapLine('cpu').pt,
+      rollScrambleLine('player').pt,
+      rollScrambleLine('cpu').pt,
+      rollScrambleLine('none').pt,
       rollDecisaoLine('cpu').pt,
       rollDecisaoLine('player').pt,
       rollDecisaoLine('draw').pt,
+      ...[0, 1, 2, 3, 4].map((i) => rollChromeLabel(i, 0).pt),
     ].join(' ');
-    expect(chromePt).not.toMatch(/\boss\b/i);
-    expect(chromePt).not.toMatch(/\brola\b/i);
-    expect(chromePt).not.toMatch(/Triângulo|Chave de braço|Mata-leão|Guilhotina|Kimura/i);
+    expect(chromePt).not.toMatch(/\boss\b|\brola\b|rolar|fist bump|finaliza|guarda|kimura|triângulo|mata-leão|guilhotina|montada|joelho na barriga|cem quilos/i);
+    expect(rollChromeLabel(0, 0).pt).toBe('Vantagem');
+    expect(rollChromeLabel(2, 1).pt).toBe('Quase lá');
+    expect(rollChromeLabel(0, ROLL_FINISH_INDEX).pt).toBe('Final');
+    expect(rollTapLine('player').pt).toBe('Boa! Você chegou no final.');
+    expect(rollScrambleLine('player').pt).toBe('Você avançou!');
+    expect(rollDecisaoLine('draw').pt).toBe('Empate na decisão. Valeu!');
   });
 
-  it('shows neutral bout-step chrome at finish seats (no technique nameplates)', () => {
+  it('keeps pose ids for the mat while chrome stays a neutral step', () => {
     const atFinish = displayPosition(0, ROLL_FINISH_INDEX);
     expect(atFinish.position).toBe('costas');
-    expect(atFinish.label.pt).toBe('Costas');
+    expect(atFinish.label).toEqual({ pt: 'Final', en: 'Finish' });
+    expect(rollChromeLabel(0, ROLL_FINISH_INDEX)).toEqual({ pt: 'Final', en: 'Finish' });
     expect(atFinish.submissionHint).toEqual({ pt: 'Final', en: 'Finish' });
   });
 });
