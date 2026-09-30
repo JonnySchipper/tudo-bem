@@ -41,6 +41,8 @@ export interface CrowdHost {
   /** Broadcast to every player in the instance. */
   send(m: ServerMsg): void;
   humans(): HumanSpot[];
+  /** Tiles the CPUs must stay off (the NPCs' spots). */
+  reserved?(): Tile[];
 }
 
 interface Cpu {
@@ -278,6 +280,7 @@ export class CpuCrowd {
       out.add(key(h.tile.x, h.tile.y));
       out.add(key(h.target.x, h.target.y));
     }
+    for (const t of this.host.reserved?.() ?? []) out.add(key(t.x, t.y));
     return out;
   }
 

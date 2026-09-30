@@ -150,7 +150,8 @@ export function npcPoseAt(npc: NpcId, nowMs: number): NpcPose | null {
     sit: cur.activity === 'sentado',
     activity: cur.activity,
     interact: homeInteract(npc, cur),
-    legId: `${npc}:${cur.from}:stand`,
+    // the id of the walk that just ended (no new message on arrival), or "stand" when there was no walk
+    legId: `${npc}:${cur.from}:${legs.length ? legs.length - 1 : "stand"}`,
     dest: cur.tile,
   };
 }
