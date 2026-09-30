@@ -38,7 +38,7 @@ const SCENES = [
   { name: 'praca_1930', time: '19:30', weather: 'sol', cam: [25, 22, 4] },
   { name: 'rain_1500', time: '15:00', weather: 'chuva', cam: [28, 10, 4], wait: 6000 },
   { name: 'fountain', time: '15:00', weather: 'sol', cam: [25, 21, 8], frames: 3 },
-  { name: 'academia_bia', time: '12:00', weather: 'sol', room: 'academia', cam: [8, 6, 8] },
+  { name: 'academia_bia', time: '12:00', weather: 'sol', room: 'academia', cam: [8, 5, 12] },
 ];
 
 async function enter(browser) {
