@@ -3,6 +3,7 @@ import { game } from '../state';
 import { h, en, bi, ui } from './dom';
 import { icon } from '../art/ui';
 import { mountIdleKickBirds } from './introParrots';
+import { mountClockPill } from './clockPill';
 
 export interface HudActions {
   chat: (text: string) => void;
@@ -63,7 +64,7 @@ export function buildHud(actions: HudActions) {
   const topbar = h(
     'div',
     { class: 'topbar' },
-    h('div', { class: 'brand' }, h('span', { class: 'mark', 'aria-hidden': 'true' }), h('div', { class: 'logo' }, 'Tudo ', h('span', null, 'Bem')), roomName),
+    h('div', { class: 'top-left' }, h('div', { class: 'brand' }, h('span', { class: 'mark', 'aria-hidden': 'true' }), h('div', { class: 'logo' }, 'Tudo ', h('span', null, 'Bem')), roomName), mountClockPill()),
     h(
       'div',
       { class: 'top-right' },

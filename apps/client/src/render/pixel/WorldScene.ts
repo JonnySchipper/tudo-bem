@@ -20,7 +20,12 @@ import { CharSheets } from './charCache';
 import type { CharAssets } from './charAssets';
 import { composeLook } from './composeLook';
 import { lookForAppearance, lookForNpc, lookHeadLift, type Look } from './looks';
-import { LightingRig } from './lightingRig';
+import { LightingRig, type Light } from './lightingRig';
+import { computeLook, isOutdoor, lightDelay, windowPanes, type SceneLook } from './dayNight';
+import { WeatherBlend, type FxLevel } from './weatherLook';
+import { WeatherFx } from './weatherFx';
+import { FrameProbe, LowFxGovernor, reducedMotion } from './perf';
+import { clock } from '../../gameClock';
 import { buildTerrainLayers } from './terrainLayers';
 import { LabelLayer, type GuideItem, type StackItem } from './labels';
 import { T, cssZoomFor, feet, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
@@ -136,6 +141,19 @@ export class WorldScene extends Phaser.Scene {
   hitBoxes: HitBox[] = [];
 
   private rig!: LightingRig;
+  // Phase 6a: live clock, weather, performance fallback
+  private weatherFx!: WeatherFx;
+  private readonly blend = new WeatherBlend();
+  private blendReady = false;
+  private outdoor = false;
+  private look: SceneLook | null = null;
+  private playerLight: Light | null = null;
+  private readonly probe = new FrameProbe();
+  private gov!: LowFxGovernor;
+  private readonly fxLevel: FxLevel = { lowfx: false, reduced: false };
+  private vignette: Phaser.FX.Vignette | null = null;
+  private lastUpdateAt = 0;
+  private reducedCheckAt = 0;
   private sheets!: CharSheets;
   private roomId = '';
   private roomDef: RoomDef | null = null;
@@ -192,7 +210,11 @@ export class WorldScene extends Phaser.Scene {
     });
     // the hover marker belongs to the scene, not to a room layer
     this.hoverRect = this.rig.world(this.add.rectangle(0, 0, T, T, 0xffffff, 0.22)).setOrigin(0, 0).setStrokeStyle(1, 0xffffff, 0.8).setDepth(49000).setVisible(false);
-    if (!this.host.lowfx) cam.postFX.addVignette(0.5, 0.5, 0.88, 0.22);
+    this.fxLevel.lowfx = this.host.lowfx;
+    this.fxLevel.reduced = reducedMotion();
+    this.gov = new LowFxGovernor(this.probe, this.host.lowfx);
+    this.weatherFx = new WeatherFx(this, this.rig, () => this.fxLevel);
+    if (!this.host.lowfx) this.vignette = cam.postFX.addVignette(0.5, 0.5, 0.88, 0.22);
     this.scale.on('resize', (size: Phaser.Structs.Size) => this.rig.resize(size.width, size.height));
     this.ready = true;
   }
@@ -256,6 +278,7 @@ export class WorldScene extends Phaser.Scene {
     // furniture rectangles were registered with the room objects
     this.furniture.clear();
     this.rig.clearRoom();
+    this.weatherFx?.clearRoom();
   }
 
   private buildRoom(def: RoomDef): void {
@@ -298,12 +321,22 @@ export class WorldScene extends Phaser.Scene {
       const spr = this.sprite(f.key, f.wx, f.wy, standingDepth(f.wy, f.key));
       if (!spr) continue;
       tallest = Math.max(tallest, d.ay);
-      if (d.lit && m.sprites[d.lit]) {
-        const ld = m.sprites[d.lit];
-        this.rig.litOverlays.push(this.reg(this.add.image(Math.round(f.wx), Math.round(f.wy), ld.atlas, ld.frame)).setOrigin(...originOf(ld)).setDepth(f.wy + 0.5).setAlpha(0));
+      // each window is its own light: the lit overlay is cropped per window and every window has its own 0..40 game-minute switch-on delay
+      const fx0 = Math.round(f.wx) - d.ax;
+      const fy0 = Math.round(f.wy) - d.ay;
+      const ld = d.lit ? m.sprites[d.lit] : undefined;
+      const wins = d.windows ?? [];
+      if (ld && !wins.length) {
+        this.rig.litOverlays.push(this.reg(this.add.image(Math.round(f.wx), Math.round(f.wy), ld.atlas, ld.frame)).setOrigin(...originOf(ld)).setDepth(f.wy + 0.5).setAlpha(0).setData('delay', lightDelay(f.wx, f.wy)));
       }
-      for (const [wx, wy, ww, wh] of d.windows ?? []) {
-        this.rig.lights.push({ x: Math.round(f.wx) - d.ax + wx + ww / 2, y: Math.round(f.wy) - d.ay + wy + wh + 5, r: 22 + ww * 0.5, color: 0xffc060, squash: 0.6, kind: 'window' });
+      for (const [wx, wy, ww, wh] of wins) {
+        const delay = lightDelay(fx0 + wx, fy0 + wy);
+        if (ld) {
+          const o = this.reg(this.add.image(Math.round(f.wx), Math.round(f.wy), ld.atlas, ld.frame)).setOrigin(...originOf(ld)).setDepth(f.wy + 0.5).setAlpha(0).setData('delay', delay);
+          o.setCrop(Math.max(0, wx - 1), Math.max(0, wy - 1), ww + 2, wh + 2);
+          this.rig.litOverlays.push(o);
+        }
+        this.rig.lights.push({ x: fx0 + wx + ww / 2, y: fy0 + wy + wh + 5, r: 22 + ww * 0.5, color: 0xffc060, squash: 0.6, kind: 'window', delay });
       }
     }
 
@@ -318,6 +351,11 @@ export class WorldScene extends Phaser.Scene {
       const pd = m.sprites[w.key];
       if (pd) this.rig.patches.push(this.reg(this.add.image(w.x, w.y, pd.atlas, pd.frame)).setOrigin(0, 0).setDepth(DEPTH.groundDecal + 60).setBlendMode(Phaser.BlendModes.ADD));
     }
+
+    // ---- the night sky in the window glass (alpha follows the live clock in the rig), with a few stars
+    const wp = windowPanes(def);
+    for (const r of wp.panes) this.rig.panes.push(this.reg(this.add.rectangle(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0, 0x15264f, 1)).setOrigin(0, 0).setDepth(DEPTH.wallDecor + 1).setAlpha(0));
+    for (const s of wp.stars) this.rig.panes.push(this.reg(this.add.rectangle(s.x, s.y, 1, 1, 0xf4f0d0, 1)).setOrigin(0, 0).setDepth(DEPTH.wallDecor + 2).setAlpha(0));
 
     // ---- doors
     for (const p of def.portals) {
@@ -345,7 +383,14 @@ export class WorldScene extends Phaser.Scene {
     // ---- NPCs
     for (const n of def.npcs) this.buildNpc(n);
 
+    // a small warm glow around the local player at night (HOWTO §5.8); follows the avatar in applyLook
+    this.playerLight = { x: 0, y: 0, r: 0, color: 0xffd9a8, squash: 0.85, kind: 'player', glow: 0.22 };
+    this.rig.lights.push(this.playerLight);
     this.rig.syncLights();
+    // outdoor rooms follow the live clock and weather; puddles go on the free calçada / asfalto tiles
+    this.outdoor = isOutdoor(def);
+    const blocked = buildGrid(def, []).blocked;
+    this.weatherFx.buildRoom(def, (x, y) => blocked.has(tileKey(x, y)));
     this.bounds = roomBounds(def, tallest);
     this.snapCamera = true;
     const skipped = describeSkipped({ [def.id]: def });
@@ -427,7 +472,7 @@ export class WorldScene extends Phaser.Scene {
       }
       if (d.lit && m.sprites[d.lit]) {
         const ld = m.sprites[d.lit];
-        this.rig.litOverlays.push(this.reg(this.add.image(Math.round(a.wx), Math.round(a.wy), ld.atlas, ld.frame)).setOrigin(...originOf(ld)).setDepth(depth + 0.01).setAlpha(0));
+        this.rig.litOverlays.push(this.reg(this.add.image(Math.round(a.wx), Math.round(a.wy), ld.atlas, ld.frame)).setOrigin(...originOf(ld)).setDepth(depth + 0.01).setAlpha(0).setData('delay', lightDelay(a.wx, a.wy)));
       }
       visual = unionRect(foot, spriteRect(Math.round(a.wx), Math.round(a.wy), d));
       if (typeof d.overhead === 'string' && m.sprites[d.overhead]) {
@@ -461,9 +506,11 @@ export class WorldScene extends Phaser.Scene {
 
   private addLampLights(bx: number, by: number, L: { x: number; y: number; r: number; color: string }): void {
     const color = parseInt(L.color.slice(1), 16);
-    this.rig.lights.push({ x: bx + L.x, y: by + L.y, r: L.r * 0.55, color, squash: 1, kind: 'lamp', glow: 0.4 });
+    // one switch per lamp: the halo and the pool on the ground share the delay of the lamp's position
+    const delay = lightDelay(bx, by);
+    this.rig.lights.push({ x: bx + L.x, y: by + L.y, r: L.r * 0.55, color, squash: 1, kind: 'lamp', glow: 0.6, delay });
     // the pool of light lands on the ground around the base
-    this.rig.lights.push({ x: bx + 5, y: by - 2, r: L.r * 1.3, color, squash: 0.55, kind: 'lamp', glow: 0.26 });
+    this.rig.lights.push({ x: bx + 5, y: by - 2, r: L.r * 1.3, color, squash: 0.55, kind: 'lamp', glow: 0.55, delay });
   }
 
   private buildNpc(n: NpcDef): void {
@@ -484,6 +531,7 @@ export class WorldScene extends Phaser.Scene {
   // ------------------------------------------------------------------ per-frame reconcile
   override update(_time: number, delta: number): void {
     if (!this.ready) return;
+    this.trackPerf();
     const dt = Math.min(0.1, delta / 1000);
     const now = performance.now();
     const room = game.room;
@@ -512,8 +560,67 @@ export class WorldScene extends Phaser.Scene {
     this.updateTrilho();
     this.hitBoxes = this.staticHits.concat(dyn);
     this.updateCamera(dt, def);
-    this.rig.apply(ROOM_HOUR[def.lighting], this.cameras.main.zoom, (wx, wy) => this.toDevice(wx, wy));
+    this.applyLook(def, dt);
     this.pushLabels(def, now);
+  }
+
+  /** Phase 6a: the live game clock and weather -> the rig (grade, darkness, lamps) and the rain. */
+  private applyLook(def: RoomDef, dt: number): void {
+    const weather = clock.weather();
+    if (!this.blendReady) {
+      this.blend.snap(weather);
+      this.blendReady = true;
+    }
+    const me = game.self ? this.avatars.get(game.self.pub.id) : undefined;
+    if (this.playerLight) {
+      this.playerLight.r = me ? 30 : 0;
+      if (me) {
+        this.playerLight.x = me.wx;
+        this.playerLight.y = me.wy - 8;
+      }
+    }
+    const params = this.blend.step(weather, dt);
+    const look = computeLook({ outdoor: this.outdoor, roomHour: ROOM_HOUR[def.lighting], minutes: clock.minutesExact(), weather: params });
+    this.look = look;
+    this.rig.apply(look, this.cameras.main.zoom, (wx, wy) => this.toDevice(wx, wy));
+    this.weatherFx.update({ dt, zoom: this.cameras.main.zoom, w: this.scale.width, h: this.scale.height, params, night: look.night, outdoor: this.outdoor, cam: this.cameras.main });
+  }
+
+  /** Frame-time probe, the automatic low-fx fallback and reduced motion (HOWTO §5.11). */
+  private trackPerf(): void {
+    const t = performance.now();
+    if (this.lastUpdateAt) this.probe.record(t - this.lastUpdateAt, t);
+    this.lastUpdateAt = t;
+    if (this.gov.check(t)) this.degrade('p90');
+    if (t - this.reducedCheckAt > 1000) {
+      this.reducedCheckAt = t;
+      this.fxLevel.reduced = reducedMotion();
+    }
+  }
+
+  /** Low-fx: no vignette, half the rain, no splashes or ripples. */
+  private degrade(reason: string): void {
+    this.fxLevel.lowfx = true;
+    if (this.vignette) {
+      this.cameras.main.postFX.remove(this.vignette);
+      this.vignette = null;
+    }
+    console.info(`[pixel] low-fx on (${reason})`);
+  }
+
+  perfInfo() {
+    return {
+      ...this.probe.stats(),
+      lowfx: this.fxLevel.lowfx,
+      lowfxReason: this.gov.reason,
+      reducedMotion: this.fxLevel.reduced,
+      particles: this.weatherFx.particles(),
+      weather: clock.weather(),
+      minutes: clock.minutes(),
+      outdoor: this.outdoor,
+      dark: this.look ? +this.look.dark.toFixed(3) : 0,
+      fx: this.weatherFx.info(),
+    };
   }
 
   /** Canvas size and DPR for this frame; the zoom itself is chosen per room in `updateCamera` (roomFraming). */
