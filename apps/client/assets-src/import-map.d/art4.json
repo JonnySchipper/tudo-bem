@@ -1,0 +1,6 @@
+{
+  "$comment": "Art track 4: rebuilt rooftops, backdrop, west block, fountain, Professora Bia.",
+  "sprites": [
+    {"key": "telhados/r1", "kind": "derive", "fn": "telhados", "footprint": [6, 4], "shadow": null}
+  ]
+}

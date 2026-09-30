@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 512,
    "h": 2048,
-   "frames": 414
+   "frames": 417
   }
  },
  "terrain": {
@@ -2227,6 +2227,141 @@
    "overhead": null,
    "shadow": null
   },
+  "telhados/r1": {
+   "atlas": "outdoor",
+   "frame": "telhados/r1",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "telhados/r2": {
+   "atlas": "outdoor",
+   "frame": "telhados/r2",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "telhados/r3": {
+   "atlas": "outdoor",
+   "frame": "telhados/r3",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "telhados/r4": {
+   "atlas": "outdoor",
+   "frame": "telhados/r4",
+   "w": 112,
+   "h": 64,
+   "ax": 56,
+   "ay": 63,
+   "footprint": [
+    7,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "telhados/r5": {
+   "atlas": "outdoor",
+   "frame": "telhados/r5",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "telhados/r6": {
+   "atlas": "outdoor",
+   "frame": "telhados/r6",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "telhados/r7": {
+   "atlas": "outdoor",
+   "frame": "telhados/r7",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "telhados/r8": {
+   "atlas": "outdoor",
+   "frame": "telhados/r8",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "telhados/r9": {
+   "atlas": "outdoor",
+   "frame": "telhados/r9",
+   "w": 112,
+   "h": 64,
+   "ax": 56,
+   "ay": 63,
+   "footprint": [
+    7,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
   "walls/north_praca_l": {
    "atlas": "outdoor",
    "frame": "walls/north_praca_l",
@@ -4081,96 +4216,6 @@
    "footprint": [
     7,
     6
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": null
-  },
-  "telhados/terraco_a": {
-   "atlas": "outdoor",
-   "frame": "telhados/terraco_a",
-   "w": 96,
-   "h": 64,
-   "ax": 48,
-   "ay": 63,
-   "footprint": [
-    6,
-    4
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": null
-  },
-  "telhados/terraco_b": {
-   "atlas": "outdoor",
-   "frame": "telhados/terraco_b",
-   "w": 96,
-   "h": 64,
-   "ax": 48,
-   "ay": 63,
-   "footprint": [
-    6,
-    4
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": null
-  },
-  "telhados/terraco_c": {
-   "atlas": "outdoor",
-   "frame": "telhados/terraco_c",
-   "w": 96,
-   "h": 64,
-   "ax": 48,
-   "ay": 63,
-   "footprint": [
-    6,
-    4
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": null
-  },
-  "telhados/terraco_d": {
-   "atlas": "outdoor",
-   "frame": "telhados/terraco_d",
-   "w": 112,
-   "h": 64,
-   "ax": 56,
-   "ay": 63,
-   "footprint": [
-    7,
-    4
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": null
-  },
-  "telhados/terraco_e": {
-   "atlas": "outdoor",
-   "frame": "telhados/terraco_e",
-   "w": 96,
-   "h": 64,
-   "ax": 48,
-   "ay": 63,
-   "footprint": [
-    6,
-    4
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": null
-  },
-  "telhados/terraco_f": {
-   "atlas": "outdoor",
-   "frame": "telhados/terraco_f",
-   "w": 112,
-   "h": 64,
-   "ax": 56,
-   "ay": 63,
-   "footprint": [
-    7,
-    4
    ],
    "anim": null,
    "overhead": null,

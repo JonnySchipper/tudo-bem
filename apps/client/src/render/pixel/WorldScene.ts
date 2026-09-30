@@ -732,6 +732,11 @@ export class WorldScene extends Phaser.Scene {
       const zoom = Math.max(1, Math.floor(Math.min(this.cam.w / (def.cols * T), this.cam.h / (def.rows * T))));
       f = { zoom, cx: (def.cols * T) / 2, cy: (def.rows * T) / 2, fits: true };
     }
+    const camShot = /^cam:(-?[\d.]+),(-?[\d.]+),(\d+)$/.exec(this.host.shot ?? '');
+    if (camShot) {
+      // debug `?shot=cam:<tileX>,<tileY>,<zoom>` (art reviews): a fixed camera on a tile position at an integer zoom
+      f = { zoom: Number(camShot[3]), cx: Number(camShot[1]) * T, cy: Number(camShot[2]) * T, fits: true };
+    }
     const target = { cx: f.cx, cy: f.cy };
     this.cam.zoom = f.zoom;
     if (this.cameras.main.zoom !== f.zoom) {
