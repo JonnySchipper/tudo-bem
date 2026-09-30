@@ -951,6 +951,12 @@ window.__tb = {
   get perf(): unknown {
     return 'perf' in renderer ? (renderer as { perf: () => unknown }).perf() : null;
   },
+  /** The audio ambience (zones, footsteps): for the smoke checks. */
+  ambience,
+  /** Ambient life (Phase 6b): live counts and `bus()` to bring the bus to the stop. */
+  get ambient(): unknown {
+    return 'ambientHook' in renderer ? (renderer as { ambientHook: () => unknown }).ambientHook() : null;
+  },
   /** Test/shots hook: pin the time of day ("19:30"), the weather ("garoa"), and/or the clock speed. `null` clears a pin. */
   setClock: (o: { time?: string | null; weather?: 'sol' | 'nublado' | 'garoa' | 'chuva' | null; speed?: number }) => {
     if (o.time !== undefined) clock.setTime(o.time === null ? null : parseTimeOfDay(o.time));

@@ -24,6 +24,8 @@ import { LightingRig, type Light } from './lightingRig';
 import { computeLook, isOutdoor, lightDelay, windowPanes, type SceneLook } from './dayNight';
 import { WeatherBlend, type FxLevel } from './weatherLook';
 import { WeatherFx } from './weatherFx';
+import { AmbientLife, ambientHandlesProp } from './ambient';
+import { ZoneFeed } from '../../audio/zonesFeed';
 import { FrameProbe, LowFxGovernor, reducedMotion } from './perf';
 import { clock } from '../../gameClock';
 import { buildTerrainLayers } from './terrainLayers';
@@ -146,6 +148,8 @@ export class WorldScene extends Phaser.Scene {
   private rig!: LightingRig;
   // Phase 6a: live clock, weather, performance fallback
   private weatherFx!: WeatherFx;
+  private ambient!: AmbientLife;
+  private readonly zoneFeed = new ZoneFeed();
   private readonly blend = new WeatherBlend();
   private blendReady = false;
   private outdoor = false;
@@ -217,6 +221,7 @@ export class WorldScene extends Phaser.Scene {
     this.fxLevel.reduced = reducedMotion();
     this.gov = new LowFxGovernor(this.probe, this.host.lowfx);
     this.weatherFx = new WeatherFx(this, this.rig, () => this.fxLevel);
+    this.ambient = new AmbientLife(this, this.rig, this.m, () => this.fxLevel);
     if (!this.host.lowfx) this.vignette = cam.postFX.addVignette(0.5, 0.5, 0.88, 0.22);
     this.scale.on('resize', (size: Phaser.Structs.Size) => this.rig.resize(size.width, size.height));
     this.ready = true;
@@ -401,6 +406,7 @@ export class WorldScene extends Phaser.Scene {
     this.outdoor = isOutdoor(def);
     const blocked = buildGrid(def, []).blocked;
     this.weatherFx.buildRoom(def, (x, y) => blocked.has(tileKey(x, y)));
+    this.ambient.buildRoom(def, (x, y) => x >= 0 && y >= 0 && x < def.cols && y < def.rows && !blocked.has(tileKey(x, y)));
     this.bounds = roomBounds(def, tallest);
     this.snapCamera = true;
     this.hoverRect.setVisible(false);
@@ -648,6 +654,9 @@ export class WorldScene extends Phaser.Scene {
     const params = this.blend.step(weather, dt);
     const look = computeLook({ outdoor: this.outdoor, roomHour: ROOM_HOUR[def.lighting], minutes: clock.minutesExact(), weather: params });
     this.look = look;
+    const people = [...this.avatars.values()].map((v) => ({ x: v.wx, y: v.wy }));
+    this.ambient.update({ dt, t: Date.now() + clock.skewMs, minute: clock.minutesExact(), params, dark: look.dark, people, cam: this.cameras.main });
+    this.zoneFeed.update(def, me ? { x: me.wx, y: me.wy, moving: me.moving } : null, clock.minutes(), params.rain, performance.now());
     this.rig.apply(look, this.cameras.main.zoom, (wx, wy) => this.toDevice(wx, wy));
     this.weatherFx.update({ dt, zoom: this.cameras.main.zoom, w: this.scale.width, h: this.scale.height, params, night: look.night, outdoor: this.outdoor, cam: this.cameras.main });
   }
@@ -674,13 +683,19 @@ export class WorldScene extends Phaser.Scene {
     console.info(`[pixel] low-fx on (${reason})`);
   }
 
+  /** Debug / shots hook (window.__tb.ambient): the ambient layer's live numbers and a way to call the bus. */
+  ambientHook() {
+    return { info: () => this.ambient.info(), bus: (inMs?: number) => this.ambient.bus(inMs) };
+  }
+
   perfInfo() {
     return {
       ...this.probe.stats(),
       lowfx: this.fxLevel.lowfx,
       lowfxReason: this.gov.reason,
       reducedMotion: this.fxLevel.reduced,
-      particles: this.weatherFx.particles(),
+      particles: this.weatherFx.particles() + this.ambient.particles(),
+      ambient: this.ambient.info(),
       weather: clock.weather(),
       minutes: clock.minutes(),
       outdoor: this.outdoor,
