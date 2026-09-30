@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { FURNITURE, ROOMS } from '@tudobem/shared';
 import type { Manifest } from './manifest';
 import { FLOOR_SUBSTITUTE, WALL_STYLE, allNorthDecor, decorArt, northWallKey, westWallKey } from './roomLayout';
-import { furnitureArtKey, propArtKey, propSlices } from './props';
+import { fencePieces, furnitureArtKey, propArtKey, propSlices } from './props';
 
 // The generated manifest (`pnpm pixel`) is committed, so the art coverage of every room can be checked without a browser.
 const manifest = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../../public/pixel/manifest.json'), 'utf8')) as Manifest;
@@ -32,7 +32,7 @@ describe('art track 3 coverage (manifest vs rooms and catalog)', () => {
   it('every prop of every room resolves to art (slices for the counter and the bleachers)', () => {
     for (const r of Object.values(ROOMS)) {
       for (const p of r.props) {
-        const keys = propSlices(p)?.map((s) => s.key) ?? [propArtKey(p)];
+        const keys = p.kind === 'cerca' ? fencePieces(p).map((f) => f.key) : (propSlices(p)?.map((s) => s.key) ?? [propArtKey(p)]);
         for (const k of keys) expect(k && has(k), `${r.id}/${p.id} (${p.kind}) -> ${k}`).toBe(true);
       }
     }

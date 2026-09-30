@@ -725,6 +725,8 @@ export function buildGrid(room: RoomDef, furniture: PlacedFurniture[] = []): Roo
     }
   }
   for (const s of seatTiles(room)) seats.set(key(s.x, s.y), s.dir);
+  // where you arrive from the street or a door stays free of furniture
+  reserved.add(key(room.spawn.x, room.spawn.y));
   for (const n of room.npcs) {
     blocked.add(key(n.x, n.y));
     reserved.add(key(n.x, n.y));

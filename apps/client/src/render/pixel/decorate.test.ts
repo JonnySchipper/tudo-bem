@@ -20,7 +20,7 @@ describe('decorate ghost (green when valid, red when invalid)', () => {
   });
 
   it('a reserved tile (the door, its arrival tile, the bed, the kitchen) is red', () => {
-    for (const t of [{ x: 0, y: 5 }, { x: 1, y: 4 }, { x: 6, y: 1 }, { x: 1, y: 0 }]) {
+    for (const t of [{ x: 0, y: 5 }, { x: 1, y: 5 }, { x: 6, y: 1 }, { x: 1, y: 0 }]) {
       const g = ghostFor(kitnet, [], t, hand, null, false);
       expect(g, JSON.stringify(t)).toMatchObject({ ok: false, tint: GHOST_BAD, tile: TILE_BAD });
     }

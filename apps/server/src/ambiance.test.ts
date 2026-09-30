@@ -62,10 +62,10 @@ describe('CpuCrowd (Praça ambiance)', () => {
     expect([9, 12].every((n) => cpuTarget(n, 'praca') <= 1)).toBe(true);
     expect(cpuTarget(16, 'praca')).toBe(0);
     // the smaller rooms keep the original table
-    expect([0, 1].map(cpuTarget).every((n) => n >= 4 && n <= 6)).toBe(true);
-    expect([2, 3, 4].map(cpuTarget).every((n) => n >= 3 && n <= 4)).toBe(true);
-    expect([5, 6, 7, 8].map(cpuTarget).every((n) => n >= 1 && n <= 2)).toBe(true);
-    expect([9, 12, 16].map(cpuTarget).every((n) => n <= 1)).toBe(true);
+    expect([0, 1].map((n) => cpuTarget(n)).every((n) => n >= 4 && n <= 6)).toBe(true);
+    expect([2, 3, 4].map((n) => cpuTarget(n)).every((n) => n >= 3 && n <= 4)).toBe(true);
+    expect([5, 6, 7, 8].map((n) => cpuTarget(n)).every((n) => n >= 1 && n <= 2)).toBe(true);
+    expect([9, 12, 16].map((n) => cpuTarget(n)).every((n) => n <= 1)).toBe(true);
   });
 
   it('the nearest CPU within 3 tiles waves back once; farther CPUs and cooldowns stay quiet', () => {

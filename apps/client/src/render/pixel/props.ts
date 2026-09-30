@@ -78,10 +78,15 @@ const FENCE_SET: Record<string, number> = { cerca_feira: 2, cerca_jardim: 3 };
  * The pieces of a fenced rectangle (a `cerca` prop): the perimeter of its w x h footprint, one 16 px piece per tile. The inside stays
  * empty (it is blocked, decorated by other props). `depth` is the piece's own bottom edge, so walkers south of the fence stand in front of it.
  */
-export function fencePieces(p: PropDef): { key: string; x: number; y: number }[] {
+export function fencePieces(p: PropDef): { key: string; x: number; y: number; w?: number }[] {
   const set = FENCE_SET[p.art ?? ''] ?? 3;
   const { w, h } = propSize(p);
-  const out: { key: string; x: number; y: number }[] = [];
+  const out: { key: string; x: number; y: number; w?: number }[] = [];
+  // the barricade that closes a street at the map edge: one 2-tile barrier per row
+  if (p.art === 'cerca_rua') {
+    for (let dy = 0; dy < h; dy++) out.push({ key: 'props/barreira', x: p.x, y: p.y + dy, w });
+    return out;
+  }
   for (let dy = 0; dy < h; dy++) {
     for (let dx = 0; dx < w; dx++) {
       const top = dy === 0;
