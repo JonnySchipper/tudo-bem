@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 512,
    "h": 2048,
-   "frames": 417
+   "frames": 428
   }
  },
  "terrain": {
@@ -2360,6 +2360,133 @@
    ],
    "anim": null,
    "overhead": null,
+   "shadow": null
+  },
+  "backdrop/sky_0": {
+   "atlas": "outdoor",
+   "frame": "backdrop/sky_0",
+   "w": 224,
+   "h": 32,
+   "ax": 0,
+   "ay": 32,
+   "footprint": [
+    14,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "backdrop/sky_1": {
+   "atlas": "outdoor",
+   "frame": "backdrop/sky_1",
+   "w": 224,
+   "h": 32,
+   "ax": 0,
+   "ay": 32,
+   "footprint": [
+    14,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "backdrop/sky_2": {
+   "atlas": "outdoor",
+   "frame": "backdrop/sky_2",
+   "w": 224,
+   "h": 32,
+   "ax": 0,
+   "ay": 32,
+   "footprint": [
+    14,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "backdrop/sky_3": {
+   "atlas": "outdoor",
+   "frame": "backdrop/sky_3",
+   "w": 224,
+   "h": 32,
+   "ax": 0,
+   "ay": 32,
+   "footprint": [
+    14,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/edicula": {
+   "atlas": "outdoor",
+   "frame": "props/edicula",
+   "w": 48,
+   "h": 44,
+   "ax": 24,
+   "ay": 43,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "props/edicula#cast",
+    "w": 72,
+    "h": 14,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "props/manga": {
+   "atlas": "outdoor",
+   "frame": "props/manga",
+   "w": 32,
+   "h": 18,
+   "ax": 16,
+   "ay": 16,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": "props/manga_canopy",
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/manga#cast",
+    "w": 56,
+    "h": 13,
+    "ax": 16,
+    "ay": 1
+   }
+  },
+  "props/manga_canopy": {
+   "atlas": "outdoor",
+   "frame": "props/manga_canopy/0",
+   "w": 34,
+   "h": 27,
+   "ax": 17,
+   "ay": 43,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "props/manga_canopy/0",
+     "props/manga_canopy/1",
+     "props/manga_canopy/0",
+     "props/manga_canopy/2"
+    ],
+    "fps": 3
+   },
+   "overhead": true,
    "shadow": null
   },
   "walls/north_praca_l": {

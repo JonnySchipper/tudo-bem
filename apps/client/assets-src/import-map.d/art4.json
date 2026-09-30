@@ -1,6 +1,12 @@
 {
   "$comment": "Art track 4: rebuilt rooftops, backdrop, west block, fountain, Professora Bia.",
+  "recolors": {
+    "manga": {"#14655a": "#1d4a3a", "#17704b": "#245a3f", "#1c7d4d": "#2c6e3f", "#268b49": "#3a8040", "#21983d": "#4b9440", "#49a92f": "#5da23d", "#6fbb49": "#7fb84a"}
+  },
   "sprites": [
-    {"key": "telhados/r1", "kind": "derive", "fn": "telhados", "footprint": [6, 4], "shadow": null}
+    {"key": "telhados/r1", "kind": "derive", "fn": "telhados", "footprint": [6, 4], "shadow": null},
+    {"key": "backdrop/sky_0", "kind": "derive", "fn": "skyline", "footprint": [14, 2], "shadow": null},
+    {"key": "props/edicula", "kind": "derive", "fn": "edicula", "footprint": [3, 2], "shadow": "fx/shadow_48", "cast": {"kx": 0.5, "ky": 0.25}},
+    {"key": "props/manga", "kind": "tree", "sheet": "props", "rect": [384, 355, 32, 45], "cutY": 27, "baseY": 43, "recolor": "manga", "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": {"kx": 0.5, "ky": 0.22}}
   ]
 }

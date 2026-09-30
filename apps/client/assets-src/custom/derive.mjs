@@ -16,6 +16,7 @@ import * as uiMod from './ui.mjs';
 import * as uiIconsMod from './uiicons.mjs';
 import * as vilaMod from './vila.mjs';
 import * as telhadosMod from './telhados.mjs';
+import * as backdropMod from './backdrop.mjs';
 
 import * as wallsMod from './walls.mjs';
 import * as padariaMod from './padaria.mjs';
@@ -50,6 +51,8 @@ export const DERIVE = {
   guideArrow: uiMod.guideArrow,
   casas: vilaMod.casas,
   telhados: telhadosMod.telhados,
+  edicula: telhadosMod.edicula_part,
+  skyline: backdropMod.skyline,
   pontoOnibus: vilaMod.pontoOnibusPart,
   emBreve: vilaMod.emBrevePart,
 };

@@ -87,9 +87,12 @@ export function northFacades(room: RoomDef, has: (key: string) => boolean): { ke
 export const decorCoveredByFacade = (d: WallDecor, facades: { portal: PortalDef }[]): boolean => d.kind === 'fachada_padaria' && facades.some((f) => f.portal.x >= d.from && f.portal.x < d.to);
 
 /** Bounds the camera may show: the room plus its walls, and any facade that rises above the band. */
+/** Tiles of sky and far skyline above the north row of an open-air map, so the rooftop of the Edifício (28 px above its 6 rows) is whole. */
+export const OUTDOOR_TOP_MARGIN_TILES = 2;
+
 export function roomBounds(room: RoomDef, tallestFacade = 0): Rect {
   // an open-air map is just its tiles: buildings are props inside it, a taller sprite (the rooftop of the Edifício) is cropped by the map top
-  if (room.outdoor) return { x0: 0, y0: 0, x1: room.cols * T, y1: room.rows * T };
+  if (room.outdoor) return { x0: 0, y0: -OUTDOOR_TOP_MARGIN_TILES * T, x1: room.cols * T, y1: room.rows * T };
   return { x0: -WEST_STRIP_TILES * T, y0: -Math.max(NORTH_BAND_TILES * T, tallestFacade), x1: room.cols * T, y1: room.rows * T };
 }
 

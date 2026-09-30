@@ -390,6 +390,9 @@ export class WorldScene extends Phaser.Scene {
       if (pd) this.reg(this.add.image(Math.round(a.wx) + 3, Math.round(a.wy) - 1, pd.atlas, pd.frame)).setOrigin(0.5, 0.5).setDepth(-4900);
     }
 
+    // ---- sky and far skyline in the top margin of an open-air map
+    if (def.outdoor) this.buildBackdrop(def);
+
     // ---- ground dressing and wires of an open-air map
     this.buildScenery(def);
 
@@ -543,6 +546,14 @@ export class WorldScene extends Phaser.Scene {
   }
 
   /** Ground decals (crosswalks, mosaic, flowers, tufts, grime) and the overhead wires of an open-air map. */
+  /** The strip of sky and distant buildings above the north row (`backdrop/sky_0..3`, 14 tiles each); the facades hide their feet. */
+  private buildBackdrop(def: RoomDef): void {
+    for (let i = 0; i * 14 < def.cols; i++) {
+      const sd = this.m.sprites[`backdrop/sky_${i % 4}`];
+      if (sd) this.reg(this.add.image(i * 14 * T, 0, sd.atlas, sd.frame)).setOrigin(0, 1).setDepth(-9500);
+    }
+  }
+
   private buildScenery(def: RoomDef): void {
     const sc = sceneryFor(def, (k) => !!this.m.sprites[k]);
     if (!sc) return;

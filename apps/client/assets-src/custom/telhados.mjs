@@ -360,3 +360,49 @@ export async function preview() {
   return ROOFS.map(([, tiles, fn]) => fn(tiles * 16));
 }
 void setPx;
+
+// ---------------------------------------------------------------- west block: the edícula (little back house) in the fenced garden
+function edicula() {
+  const w = 48, h = 44;
+  const img = blank(w, h);
+  const wall = PASTEL.azul;
+  // wall face (south front), plaster with a little noise
+  const r = rng(5);
+  for (let y = 16; y < h; y++) for (let x = 2; x < w - 2; x++) rect(img, x, y, 1, 1, r() < 0.07 ? wall[1] : wall[2]);
+  vline(img, 2, 16, h - 16, wall[3]);
+  vline(img, w - 3, 16, h - 16, wall[1]);
+  rect(img, 2, h - 5, w - 4, 5, PASTEL.creme[1]); // plinth
+  hline(img, 2, h - 5, w - 4, PASTEL.creme[3]);
+  // tile roof (colonial), overhanging, lit from the upper left
+  for (let y = 0; y < 17; y++) for (let x = 0; x < w; x++) {
+    const col = x % 4;
+    let c = col === 0 ? K.te0 : col === 3 ? K.te2 : K.te1;
+    if (y % 5 === 4) c = K.te3;
+    rect(img, x, y, 1, 1, c);
+  }
+  hline(img, 0, 0, w, K.or2);
+  hline(img, 0, 16, w, K.te4);
+  // door with a glass pane, window with iron bars, lamp and a fuse box
+  rect(img, 7, 22, 11, 17, C.teal1);
+  hline(img, 7, 22, 11, C.teal3);
+  rect(img, 9, 24, 7, 6, K.gl3);
+  hline(img, 9, 24, 7, K.gl1);
+  dot(img, 15, 33, C.y2);
+  box(img, 6, 21, 13, 19, null, C.navy);
+  rect(img, 26, 23, 14, 11, K.gl3);
+  hline(img, 26, 23, 14, K.gl1);
+  for (let x = 28; x < 40; x += 3) vline(img, x, 23, 11, C.slate);
+  hline(img, 26, 28, 14, C.slate);
+  box(img, 25, 22, 16, 13, null, C.navy);
+  hline(img, 25, 35, 16, PASTEL.creme[3]); // sill
+  rect(img, 22, 20, 3, 3, C.y1);
+  dot(img, 23, 21, C.white);
+  rect(img, 42, 28, 3, 5, C.lav3);
+  box(img, 41, 27, 5, 7, null, C.navy);
+  outlineAround(img);
+  return img;
+}
+
+export async function edicula_part() {
+  return [{ img: edicula(), anchor: [24, 43] }];
+}
