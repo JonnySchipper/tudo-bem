@@ -58,8 +58,15 @@ export const westDoorRect = (p: PortalDef): Rect => ({ x0: -WEST_STRIP_TILES * T
 /** The doormat is the portal tile itself. */
 export const doormatRect = (p: PortalDef): Rect => ({ x0: p.x * T, y0: p.y * T, x1: (p.x + 1) * T, y1: (p.y + 1) * T });
 
+/** Clickable area of an outdoor door (Vila Ipê): the door art (about 24 px wide, 34 px tall, centred on `doorAt`) plus its tile. */
+export function outdoorDoorRect(p: PortalDef): Rect {
+  const cx = ((p.doorAt?.x ?? p.x) + 0.5) * T;
+  return { x0: Math.min(cx - 12, p.x * T), y0: (p.y + 1) * T - 34, x1: Math.max(cx + 12, (p.x + 1) * T), y1: (p.y + 1) * T };
+}
+
 /** Clickable area of a portal: the door plus its floor tile. */
 export function portalHitRect(p: PortalDef): Rect {
+  if (!p.wall) return outdoorDoorRect(p);
   const mat = doormatRect(p);
   const door = isNorthPortal(p) ? northDoorRect(p) : westDoorRect(p);
   return { x0: Math.min(mat.x0, door.x0), y0: Math.min(mat.y0, door.y0), x1: Math.max(mat.x1, door.x1), y1: Math.max(mat.y1, door.y1) };
@@ -81,6 +88,8 @@ export const decorCoveredByFacade = (d: WallDecor, facades: { portal: PortalDef 
 
 /** Bounds the camera may show: the room plus its walls, and any facade that rises above the band. */
 export function roomBounds(room: RoomDef, tallestFacade = 0): Rect {
+  // an open-air map is just its tiles: buildings are props inside it, a taller sprite (the rooftop of the Edifício) is cropped by the map top
+  if (room.outdoor) return { x0: 0, y0: 0, x1: room.cols * T, y1: room.rows * T };
   return { x0: -WEST_STRIP_TILES * T, y0: -Math.max(NORTH_BAND_TILES * T, tallestFacade), x1: room.cols * T, y1: room.rows * T };
 }
 

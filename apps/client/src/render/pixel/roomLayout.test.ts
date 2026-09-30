@@ -33,10 +33,8 @@ describe('interior walls (top-down)', () => {
   });
 
   it('the padaria facade lands on the north door of the praça; academia has no facade art yet', () => {
-    const f = northFacades(ROOMS.praca, (k) => k === 'facades/padaria');
-    expect(f.length).toBe(1);
-    expect(f[0]).toMatchObject({ key: 'facades/padaria', wx: 5.5 * T, wy: 0 });
-    expect(northFacades(ROOMS.praca, () => false)).toEqual([]);
+    // Vila Ipê is open-air: its building fronts are props, so the wall-band facade logic finds nothing there
+    expect(northFacades(ROOMS.praca, () => true)).toEqual([]);
   });
 
   it('bounds include the walls', () => {
@@ -49,8 +47,8 @@ describe('props', () => {
   it('anchors at the bottom-centre of the footprint', () => {
     const banca = ROOMS.praca.props.find((p) => p.id === 'banca');
     if (!banca) throw new Error('no banca');
-    expect(propAnchor(banca)).toEqual({ wx: 12.5 * T, wy: 4 * T });
-    expect(footprintRect(banca)).toEqual({ x0: 12 * T, y0: 2 * T, x1: 13 * T, y1: 4 * T });
+    expect(propAnchor(banca)).toEqual({ wx: 21.5 * T, wy: 6 * T });
+    expect(footprintRect(banca)).toEqual({ x0: 20 * T, y0: 4 * T, x1: 23 * T, y1: 6 * T });
   });
 
   it('uses the real sprites the art track delivered', () => {
@@ -62,13 +60,13 @@ describe('props', () => {
     };
     expect(key('orelhao')).toBe('props/orelhao');
     expect(key('placa')).toBe('props/placa_rua');
-    expect(key('lixeira')).toBe('props/lixeira');
+    expect(key('lixeira_n1')).toBe('props/lixeira');
     expect(key('barraca')).toBe('props/barraca_chapeus');
     expect(key('quiosque')).toBe('props/quiosque');
     expect(key('poleiro')).toBe('props/poleiro');
     expect(key('poste_1')).toBe('props/poste_fios');
     expect(key('ipe_centro')).toBe('props/ipe_large');
-    expect(key('ipe_canto')).toBe('props/ipe_medium');
+    expect(key('ipe_2')).toBe('props/ipe_medium');
     expect(key('bici')).toBe('props/bicicletario');
   });
 
@@ -105,7 +103,7 @@ describe('art track 3 wall art and props', () => {
     const kinds = (id: keyof typeof ROOMS) => northDecor(ROOMS[id]).map((d) => d.kind);
     expect(kinds('padaria')).toEqual(expect.arrayContaining(['relogio', 'janela', 'tv', 'prateleira_paes', 'lousa', 'toldo', 'azulejos']));
     expect(kinds('academia')).toEqual(expect.arrayContaining(['janela', 'placa', 'poster', 'mural']));
-    expect(kinds('praca')).toEqual(expect.arrayContaining(['predio', 'mural', 'metro', 'fachada_padaria']));
+    expect(kinds('praca')).toEqual([]); // open-air: no wall band, building fronts are props
   });
 
   it('pixelWalls stay on the wall (columns -1..cols) and only overlap on purpose (awning over shelves, wainscot, sign on the building)', () => {

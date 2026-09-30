@@ -27,10 +27,8 @@ import { Net, wsUrl, type NetLike } from './net';
 import { clock, parseTimeOfDay } from './gameClock';
 import { IdleTalk } from './idleTalk';
 import { LocalNet } from './localNet';
-import { WorldRenderer } from './render/world';
-import { pickView } from './render/pickView';
 import { initPixelArt } from './ui/pixelArt';
-import type { Hit, WorldView } from './render/view';
+import type { Guide, Hit, WorldView } from './render/view';
 import { runOnboarding, closeOnboarding } from './ui/onboarding';
 import { buildHud, hoverLabel, idleKickedCard, missionBanner, overlayMessage, parrotWhisper, reconnectBanner, toast } from './ui/hud';
 import {
@@ -58,13 +56,11 @@ import { installViewport } from './ui/viewport';
 import { mountJoystick } from './ui/joystick';
 import { arrowForKey, stepForHeld, stepTarget, type Arrow } from './ui/keys';
 import { installUiArt } from './art/ui';
-import { artStats, loadArt } from './art/sprites';
 
 installUiArt();
 /** The pixel manifest feeds the DOM art (icons, portraits, ui kit) in both views. A failed load leaves the old chrome and no icons. */
 const pixelArtReady = initPixelArt();
 installViewport();
-void loadArt();
 const armAudio = () => {
   unlockSpeech();
   ambience.unlock();
@@ -77,11 +73,10 @@ const LAST_ROOM_KEY = 'tb_last_room';
 
 await pixelArtReady;
 const canvas = document.getElementById('world') as HTMLCanvasElement;
-/** Which world view draws the scene: 'pixel' (default; top-down, Phaser) or 'iso' (`?view=iso`, until Phase 5). */
-const VIEW: 'pixel' | 'iso' = pickView(new URLSearchParams(location.search).get('view') ?? import.meta.env.VITE_VIEW);
-/** Phaser is only loaded for the pixel view, so `?view=iso` does not pay for it. */
-if (VIEW === 'pixel') document.body.classList.add('view-pixel');
-const renderer: WorldView = VIEW === 'pixel' ? new (await import('./render/pixel/PixelView')).PixelView(canvas) : new WorldRenderer(canvas);
+// The pixel view (top-down, Phaser) is the only world view. The isometric renderer was deleted in Phase 5; `?view=iso` is ignored.
+if (new URLSearchParams(location.search).get('view') === 'iso') console.info('[view] the isometric view was removed; drawing the pixel view');
+document.body.classList.add('view-pixel');
+const renderer: WorldView = new (await import('./render/pixel/PixelView')).PixelView(canvas);
 /** Static deploys (no WebSocket server) run the World in-page. `?solo` forces it anywhere. */
 const SOLO = import.meta.env.VITE_LOCAL_WORLD === '1' || new URLSearchParams(location.search).has('solo');
 const net: NetLike = SOLO ? new LocalNet() : new Net(wsUrl());
@@ -221,25 +216,42 @@ function joinRoom(room: RoomId, instanceId?: string, ownerId?: string) {
   net.send({ t: 'join', room, instanceId, ownerId });
 }
 
+/** Guide arrows look their target up by portal / prop / NPC id in the current room's data, never by raw coordinates (Vila Ipê moved them all). */
+function guideAt(kind: 'portal' | 'prop' | 'npc', id: string, lift: number, label: string): Guide | null {
+  const room = game.roomDef;
+  if (!room) return null;
+  if (kind === 'portal') {
+    const p = room.portals.find((q) => q.id === id);
+    return p ? { x: p.doorAt?.x ?? p.x, y: p.doorAt?.y ?? p.y, lift, label } : null;
+  }
+  if (kind === 'prop') {
+    const p = room.props.find((q) => q.id === id);
+    return p ? { x: p.x + ((p.w ?? 1) - 1) / 2, y: p.y + (p.h ?? 1) - 1, lift, label } : null;
+  }
+  const n = room.npcs.find((q) => q.id === id);
+  return n ? { x: n.x, y: n.y, lift, label } : null;
+}
+
 function updateGuides() {
   const p = game.profile;
   const r = game.room;
   renderer.guides = [];
   if (!p || !r) return;
   const t = p.tutorial;
+  const add = (g: Guide | null) => g && renderer.guides.push(g);
   if (r.room === 'praca') {
-    if (!t.carlos) renderer.guides.push({ x: 5, y: 0, lift: 110, label: 'Padaria →' });
-    else if (!t.chapeu) renderer.guides.push({ x: 11, y: 6, lift: 138, label: 'Chapéus' });
-    else if (!t.cadeira) renderer.guides.push({ x: 0, y: 4, lift: 110, label: 'Minha kitnet' });
-    if (t.meveum) renderer.guides.push({ x: 10, y: 0, lift: 110, label: 'Academia do Bairro →' });
+    if (!t.carlos) add(guideAt('portal', 'praca_padaria', 110, 'Padaria →'));
+    else if (!t.chapeu) add(guideAt('prop', 'barraca', 138, 'Chapéus'));
+    else if (!t.cadeira) add(guideAt('portal', 'praca_kitnet', 110, 'Minha kitnet'));
+    if (t.meveum) add(guideAt('portal', 'praca_academia', 110, 'Academia do Bairro →'));
   } else if (r.room === 'padaria') {
     // Click opens AI Conversa. Don't label the tile "Conversar" — that word was the chip-scene trap.
-    renderer.guides.push({ x: 3, y: 1, lift: 130, label: t.carlos ? 'Falar com Carlos' : 'Fale com o Seu Carlos' });
-    if (t.carlos && !t.meveum) renderer.guides.push({ x: 8, y: 2, lift: 128, label: 'Me vê um…' });
-    else if (t.carlos && t.meveum && !t.chapeu) renderer.guides.push({ x: 0, y: 6, lift: 110, label: '← Praça' });
+    add(guideAt('npc', 'carlos', 130, t.carlos ? 'Falar com Carlos' : 'Fale com o Seu Carlos'));
+    if (t.carlos && !t.meveum) add(guideAt('prop', 'trilho', 128, 'Me vê um…'));
+    else if (t.carlos && t.meveum && !t.chapeu) add(guideAt('portal', 'padaria_praca', 110, '← Praça'));
   } else if (r.room === 'academia') {
-    renderer.guides.push({ x: 9, y: 1, lift: 190, label: 'Fila do tatame' });
-    renderer.guides.push({ x: 0, y: 6, lift: 110, label: '← Praça' });
+    add(guideAt('prop', 'fila', 190, 'Fila do tatame'));
+    add(guideAt('portal', 'academia_praca', 110, '← Praça'));
   }
 }
 
@@ -589,7 +601,7 @@ function startGame() {
     const y = Math.max(0, Math.min(room.rows - 1, cur.tile.y + dy));
     if (x === cur.tile.x && y === cur.tile.y) return;
     walkTo({ x, y }, null);
-  }, { mode: VIEW === 'pixel' ? 'topdown' : 'iso' });
+  }, { mode: 'topdown' });
   decor = buildDecorPanel({
     buy: (id) => net.send({ t: 'buy', kind: 'furniture', itemId: id }),
     rotate: (uid) => {
@@ -805,7 +817,7 @@ function keyWalk() {
   }
 }
 
-if (VIEW === 'pixel') {
+{
   document.addEventListener('keydown', (e) => {
     const a = arrowForKey(e.key);
     if (!a || e.ctrlKey || e.metaKey || e.altKey || keysBlocked(e.target)) return;
@@ -899,8 +911,7 @@ window.__tb = {
   renderer,
   net,
   rooms: ROOMS,
-  artStats,
-  /** Sprite keys the pixel view drew as placeholders (empty in the iso view). */
+  /** Sprite keys the pixel view drew as placeholders. */
   get artMissing(): string[] {
     return 'artMissing' in renderer ? (renderer as { artMissing: string[] }).artMissing : [];
   },

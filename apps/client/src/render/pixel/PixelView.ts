@@ -21,6 +21,7 @@ export class PixelView implements WorldView {
   artMissing: string[] = [];
   private scene: WorldScene | null = null;
   private phaser: Phaser.Game | null = null;
+  private host: { shot?: string | null } | null = null;
   private labels: LabelLayer;
   private dpr = 1;
   private insetsCss: Insets = { top: 64, bottom: 110, left: 0, right: 0 };
@@ -52,13 +53,16 @@ export class PixelView implements WorldView {
     const q = new URLSearchParams(location.search);
     const buf = bufferPixels(window.innerWidth, window.innerHeight, window.devicePixelRatio || 1);
     this.dpr = buf.dpr;
-    const scene = new WorldScene(manifest, base, assets, {
+    const host = {
       labels: this.labels,
       guides: () => this.guides,
       insets: () => this.insetsCss,
       lowfx: q.get('lowfx') === '1',
       debugArt: q.get('debug') === 'art',
-    });
+      shot: q.get('shot'),
+    };
+    this.host = host;
+    const scene = new WorldScene(manifest, base, assets, host);
     this.artMissing = scene.artMissing;
     this.phaser = new Phaser.Game({
       type: Phaser.WEBGL, // an explicit renderer is required when a canvas is passed in
@@ -146,6 +150,11 @@ export class PixelView implements WorldView {
   /** Frame-time probe and fx level (`window.__tb.perf`). */
   perf() {
     return this.scene?.perfInfo() ?? null;
+  }
+
+  /** Debug: 'map' zooms the outdoor map out to fit (same as ?shot=map), null goes back to following the avatar. */
+  setShot(mode: string | null): void {
+    if (this.host) this.host.shot = mode;
   }
 
   /** For debugging and the shots script. */

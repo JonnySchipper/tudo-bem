@@ -34,7 +34,14 @@ export type PropKind =
   | 'quadro_fila'
   | 'banco_espectador'
   | 'vestiario'
-  | 'quadro_foto';
+  | 'quadro_foto'
+  // Vila Ipê (Phase 5): building fronts and roofs (`art` = manifest key), the fountain, fences, hedges/scenery (`art`), the bus stop
+  | 'fachada'
+  | 'cenario'
+  | 'fonte'
+  | 'cerca'
+  | 'sebe'
+  | 'ponto_onibus';
 
 export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll';
 
@@ -53,6 +60,8 @@ export interface PropDef {
   label?: Bilingual;
   /** Landmark scale (the Praça's hero ipê). */
   hero?: boolean;
+  /** Pixel-view sprite key for kinds that come in many looks (`fachada`, `sebe`, `cerca`); the server ignores it. */
+  art?: string;
 }
 
 export type WallSide = 'left' | 'right';
@@ -70,12 +79,15 @@ export interface PortalDef {
   id: string;
   x: number;
   y: number;
-  wall: WallSide;
+  /** Which interior wall the door is in (isometric-era data). Outdoor doors (Vila Ipê) leave it out: the door is part of a facade sprite. */
+  wall?: WallSide;
   to: RoomId;
   /** Where you appear in the destination room. */
   arrive: Tile;
   arriveDir: Dir;
   label: Bilingual;
+  /** Where the door art is, in tile units (may be fractional), for the guide arrow and the click box of an outdoor door. */
+  doorAt?: { x: number; y: number };
 }
 
 /**
@@ -118,6 +130,8 @@ export interface RoomDef {
   wallColor: string;
   wallTrim: string;
   lighting: 'tarde' | 'manha' | 'dia';
+  /** An open-air map (Vila Ipê): no wall band, the terrain runs to the map edge, buildings are props. */
+  outdoor?: boolean;
   spawn: Tile;
   props: PropDef[];
   walls: WallDecor[];
@@ -145,136 +159,282 @@ export const FLOOR_CHARS: Record<string, FloorKind> = {
   j: 'tatame',
 };
 
-const praca: RoomDef = {
+// ---------------------------------------------------------------- Vila Ipê (room id `praca`), Phase 5
+//
+//  56 x 40 tiles. Rows: 0-5 north building row (facades face south, doors on row 5) | 6-7 north calçada | 8-11 Rua dos Ipês |
+//  12-13 south calçada (bus stop, wires) | 14-29 Praça Central x10-40 (west houses x0-9, fenced feira lot x41-55) |
+//  30-31 calçada | 32-35 Rua Jacarandá | 36-39 decorative roofs (blocked). Streets end in walls at the map edge.
+
+const VI_COLS = 56;
+const VI_ROWS = 40;
+
+/** The floor of Vila Ipê, painted rectangle by rectangle (later paints win). Chars: see FLOOR_CHARS. */
+function vilaIpeFloor(): string[] {
+  const g: string[][] = Array.from({ length: VI_ROWS }, () => Array.from({ length: VI_COLS }, () => 'c'));
+  const paint = (ch: string, x0: number, y0: number, x1: number, y1: number) => {
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) g[y][x] = ch;
+  };
+  paint('a', 0, 8, 55, 11); // Rua dos Ipês
+  paint('a', 0, 32, 55, 35); // Rua Jacarandá
+  // Praça lawns: four quadrants around the brick cross
+  paint('g', 11, 15, 19, 20);
+  paint('g', 31, 15, 39, 20);
+  paint('g', 11, 23, 19, 28);
+  paint('g', 31, 23, 39, 28);
+  // west houses' gardens and the vira-lata corner
+  paint('g', 0, 14, 9, 23);
+  paint('g', 1, 26, 4, 29);
+  paint('c', 8, 14, 9, 29); // the footpath between the gardens and the praça
+  // east lot: the future feira
+  paint('g', 41, 14, 55, 29);
+  // brick cross into the fountain (inlaid in the calçada): the N-S axis runs across both sidewalks, the E-W bar through the fountain
+  paint('t', 24, 6, 25, 7);
+  paint('t', 24, 12, 25, 29);
+  paint('t', 10, 21, 40, 22);
+  paint('t', 21, 18, 28, 24);
+  return g.map((r) => r.join(''));
+}
+
+const P = (id: string, kind: PropKind, x: number, y: number, extra: Partial<PropDef> = {}): PropDef => ({ id, kind, x, y, blocks: true, ...extra });
+/** A bench: 2 tiles wide, everybody sits facing south. */
+const bench = (id: string, x: number, y: number): PropDef => P(id, 'banco', x, y, { w: 2, blocks: false, seat: 'SW' });
+/** Scenery with its own sprite (`art`): w x h footprint, non-blocking unless `blocks` is set (it usually sits inside something that already blocks). */
+const cen = (id: string, art: string, x: number, y: number, w = 1, h = 1, extra: Partial<PropDef> = {}): PropDef => P(id, 'cenario', x, y, { w, h, art, blocks: false, ...extra });
+/** What closes the map at its west and east edges (no open void): a barricade across each street, a hedge across each sidewalk, a fence along the west lawns. */
+function vilaIpeEdges(): PropDef[] {
+  const out: PropDef[] = [];
+  for (const [side, x] of [['o', 0], ['l', 54]] as const) {
+    for (const y of [8, 32]) out.push(P(`barreira_${side}_${y}`, 'cerca', x, y, { w: 2, h: 4, art: 'cerca_rua' }));
+    for (const y of [6, 7, 12, 13, 30, 31]) out.push(P(`sebe_${side}_${y}`, 'sebe', x, y, { w: 2, art: 'props/hedge_wide' }));
+  }
+  out.push(P('cerca_borda_1', 'cerca', 0, 14, { w: 1, h: 6, art: 'cerca_jardim' }));
+  out.push(P('cerca_borda_2', 'cerca', 0, 24, { w: 1, h: 6, art: 'cerca_jardim' }));
+  return out;
+}
+
+/** A building front: `w` x `h` footprint, bottom-centre anchored (x, y is the top-left tile). */
+const front = (id: string, art: string, x: number, y: number, w: number, h: number, label?: Bilingual): PropDef => P(id, 'fachada', x, y, { w, h, art, label });
+
+const vilaIpe: RoomDef = {
   id: 'praca',
-  name: 'Praça Central',
-  gloss: 'Central Square',
-  cols: 14,
-  rows: 12,
-  floor: [
-    'cccctttccccccc',
-    'cccctttccccccc',
-    'ccccttcccccccc',
-    'cccccttccccccc',
-    'cccgggttcccccc',
-    'ccggggggcccccc',
-    'ccggggggcccccc',
-    'cccgggggcccccc',
-    'ccccgggccccccc',
-    'cccccccccccccg',
-    'gggccccccccggg',
-    'gggcccccccgggg',
-  ],
-  wallHeight: 150,
+  name: 'Vila Ipê',
+  gloss: 'Ipê Village',
+  cols: VI_COLS,
+  rows: VI_ROWS,
+  outdoor: true,
+  floor: vilaIpeFloor(),
+  wallHeight: 0,
   wallColor: '#d8cbb6',
   wallTrim: '#9c8b74',
   lighting: 'tarde',
-  spawn: { x: 7, y: 9 },
+  spawn: { x: 25, y: 27 },
   props: [
-    // Hero ipê sits left of centre so its canopy never hides the Missão do dia kiosk or Júlia.
-    { id: 'ipe_centro', kind: 'ipe', x: 4, y: 7, blocks: true, hero: true },
-    { id: 'ipe_canto', kind: 'ipe', x: 1, y: 10, blocks: true },
-    { id: 'ipe_esquina', kind: 'ipe', x: 12, y: 10, blocks: true },
-    { id: 'canteiro', kind: 'canteiro', x: 4, y: 5, blocks: true },
-    { id: 'banco_1', kind: 'banco', x: 7, y: 5, blocks: false, seat: 'SW' },
-    { id: 'banco_2', kind: 'banco', x: 7, y: 7, blocks: false, seat: 'SW' },
-    { id: 'banco_3', kind: 'banco', x: 4, y: 8, blocks: false, seat: 'SE' },
-    { id: 'banco_4', kind: 'banco', x: 9, y: 11, blocks: false, seat: 'NE' },
-    { id: 'banco_5', kind: 'banco', x: 10, y: 4, blocks: false, seat: 'SW' },
-    { id: 'banco_6', kind: 'banco', x: 5, y: 10, blocks: false, seat: 'NE' },
-    { id: 'poste_1', kind: 'poste', x: 8, y: 3, blocks: true },
-    { id: 'poste_2', kind: 'poste', x: 3, y: 9, blocks: true },
-    { id: 'lixeira', kind: 'lixeira', x: 9, y: 3, blocks: true },
-    { id: 'banca', kind: 'banca', x: 12, y: 2, w: 1, h: 2, blocks: true, label: { pt: 'Banca de jornal', en: 'Newsstand' } },
+    // ---- north building row (y 0-5): the door tile of each facade is a portal on row 5, the rest of the front blocks
+    front('casa_1', 'casas/sobrado_salmao', 0, 0, 6, 6),
+    front('casa_2', 'casas/terraco_amarelo', 6, 0, 6, 6),
+    front('padaria', 'facades/padaria', 12, 0, 8, 6, { pt: 'Padaria do Seu Carlos', en: 'Seu Carlos’s bakery' }),
+    front('empena', 'casas/empena', 20, 0, 3, 6),
+    front('edificio', 'facades/edificio_ipe', 23, 0, 10, 6, { pt: 'Edifício Ipê Nº 42', en: 'Ipê Building No. 42' }),
+    front('academia', 'facades/academia', 33, 0, 10, 6, { pt: 'Academia do Bairro', en: 'Neighborhood Academy' }),
+    front('casa_3', 'casas/terraco_azul', 43, 0, 6, 6),
+    front('casa_4', 'casas/sobrado_verde', 49, 0, 7, 6),
+    P('banca', 'banca', 20, 4, { w: 3, h: 2, label: { pt: 'Banca de jornal', en: 'Newsstand' } }),
+    P('jornais', 'jornais', 19, 6, { label: { pt: 'Pilha de jornais', en: 'Newspaper stack' } }),
+    // ---- north calçada (y 6-7): lamps on the curb, pots by the doors, the corner sign, bins, phone
+    P('lampada_n1', 'poste', 3, 7, { art: 'props/lamp_old' }),
+    P('lampada_n2', 'poste', 9, 7, { art: 'props/lamp_old' }),
+    P('lampada_n3', 'poste', 21, 7, { art: 'props/lamp_old' }),
+    P('lampada_n4', 'poste', 29, 7, { art: 'props/lamp_old' }),
+    P('lampada_n5', 'poste', 35, 7, { art: 'props/lamp_old' }),
+    P('lampada_n6', 'poste', 41, 7, { art: 'props/lamp_old' }),
+    P('lampada_n7', 'poste', 47, 7, { art: 'props/lamp_old' }),
+    P('lampada_n8', 'poste', 53, 7, { art: 'props/lamp_old' }),
+    P('orelhao', 'orelhao', 12, 6, { label: { pt: 'Orelhão', en: 'Public phone booth (“big ear”)' } }),
+    P('placa', 'placa_rua', 22, 7, { label: { pt: 'Rua dos Ipês', en: 'Ipê Street (street sign)' } }),
+    P('lixeira_n1', 'lixeira', 13, 6),
+    P('lixeira_n2', 'lixeira', 32, 6),
+    P('lixeira_n3', 'lixeira', 45, 6),
+    P('saco_lixo', 'saco_lixo', 31, 6),
+    P('floreira_n1', 'floreira', 14, 6),
+    P('floreira_n2', 'floreira', 18, 6),
+    P('floreira_n3', 'floreira', 36, 6),
+    P('floreira_n4', 'floreira', 40, 6),
+    P('vaso_n1', 'vaso', 26, 6),
+    P('vaso_n2', 'vaso', 2, 6),
+    P('vaso_n3', 'vaso', 8, 6),
+    P('mesa_cafe', 'mesa_cafe', 10, 6, { label: { pt: 'Mesinha da padaria', en: 'Bakery sidewalk table' } }),
+    P('bici', 'bicicletario', 6, 7),
+    // ---- south calçada (y 12-13): the bus stop, utility poles for the wires, lamps
+    P('ponto', 'ponto_onibus', 30, 12, { w: 3, label: { pt: 'Ponto de ônibus', en: 'Bus stop' } }),
+    P('poste_1', 'poste', 2, 13),
+    P('poste_2', 'poste', 10, 13),
+    P('poste_3', 'poste', 18, 13),
+    P('poste_4', 'poste', 26, 13),
+    P('poste_5', 'poste', 34, 13),
+    P('poste_6', 'poste', 42, 13),
+    P('poste_7', 'poste', 50, 13),
+    P('lixeira_s1', 'lixeira', 21, 12),
+    P('lixeira_s2', 'lixeira', 39, 12),
+    // ---- Praça Central
+    P('fonte', 'fonte', 23, 20, { w: 4, h: 3, label: { pt: 'Fonte da praça', en: 'Square fountain' } }),
+    P('ipe_centro', 'ipe', 12, 16, { w: 2, h: 2, hero: true }),
+    P('ipe_2', 'ipe', 17, 18),
+    P('ipe_3', 'ipe', 35, 17),
+    P('ipe_4', 'ipe', 13, 26),
+    P('ipe_5', 'ipe', 18, 24),
+    P('ipe_6', 'ipe', 37, 26),
+    bench('banco_1', 20, 17),
+    bench('banco_2', 28, 17),
+    bench('banco_3', 20, 25),
+    bench('banco_4', 28, 25),
+    bench('banco_5', 14, 20),
+    bench('banco_6', 36, 20),
+    bench('banco_7', 15, 29),
+    bench('banco_8', 33, 29),
+    P('canteiro_1', 'canteiro', 11, 14, { w: 2 }),
+    P('canteiro_2', 'canteiro', 38, 14, { w: 2 }),
+    P('canteiro_3', 'canteiro', 11, 29, { w: 2 }),
+    P('canteiro_4', 'canteiro', 38, 29, { w: 2 }),
+    P('lampada_p1', 'poste', 22, 16, { art: 'props/lamp_old' }),
+    P('lampada_p2', 'poste', 27, 16, { art: 'props/lamp_old' }),
+    P('lampada_p3', 'poste', 22, 26, { art: 'props/lamp_old' }),
+    P('lampada_p4', 'poste', 27, 26, { art: 'props/lamp_old' }),
+    P('sebe_1', 'sebe', 11, 21, { w: 2, art: 'props/hedge_wide' }),
+    P('sebe_2', 'sebe', 17, 21, { w: 2, art: 'props/hedge_wide' }),
+    P('sebe_3', 'sebe', 31, 21, { w: 2, art: 'props/hedge_wide' }),
+    P('sebe_4', 'sebe', 37, 21, { w: 2, art: 'props/hedge_wide' }),
+    P('arbusto_1', 'sebe', 15, 15, { art: 'props/bush_flower' }),
+    P('arbusto_2', 'sebe', 33, 15, { art: 'props/bush_flower' }),
+    P('arbusto_3', 'sebe', 11, 24, { art: 'props/bush_flower' }),
+    P('arbusto_4', 'sebe', 39, 24, { art: 'props/bush_flower' }),
+    {
+      id: 'quiosque',
+      kind: 'quiosque',
+      x: 20,
+      y: 14,
+      blocks: true,
+      action: 'kiosk',
+      interact: { x: 21, y: 14 },
+      label: { pt: 'Quiosque de missões', en: 'Quest kiosk' },
+    },
     {
       id: 'barraca',
       kind: 'barraca_chapeus',
-      x: 11,
-      y: 6,
+      x: 34,
+      y: 14,
       w: 2,
       h: 1,
       blocks: true,
       action: 'shop_hats',
-      interact: { x: 11, y: 7 },
+      interact: { x: 34, y: 15 },
       label: { pt: 'Chapéus da Nanda', en: 'Nanda’s Hats' },
-    },
-    {
-      id: 'quiosque',
-      kind: 'quiosque',
-      x: 2,
-      y: 2,
-      blocks: true,
-      action: 'kiosk',
-      interact: { x: 3, y: 3 },
-      label: { pt: 'Quiosque de missões', en: 'Quest kiosk' },
     },
     {
       id: 'poleiro',
       kind: 'poleiro',
-      x: 10,
-      y: 9,
+      x: 30,
+      y: 24,
       blocks: true,
       action: 'parrot_perch',
-      interact: { x: 9, y: 9 },
+      interact: { x: 29, y: 24 },
       label: { pt: 'Poleiro do papagaio', en: 'Parrot perch' },
     },
-    { id: 'bici', kind: 'bicicletario', x: 1, y: 7, blocks: true },
-    { id: 'orelhao', kind: 'orelhao', x: 13, y: 4, blocks: true, label: { pt: 'Orelhão', en: 'Public phone booth (“big ear”)' } },
-    { id: 'placa', kind: 'placa_rua', x: 0, y: 8, blocks: true, label: { pt: 'Rua dos Ipês', en: 'Ipê Street (street sign)' } },
-    // Midground life (polish v2). All off the CPU lanes, doors, arrival and interact tiles.
-    { id: 'mesa_cafe', kind: 'mesa_cafe', x: 7, y: 1, blocks: true, label: { pt: 'Mesinha da padaria', en: 'Bakery sidewalk table' } },
-    { id: 'jornais', kind: 'jornais', x: 11, y: 2, blocks: true, label: { pt: 'Pilha de jornais', en: 'Newspaper stack' } },
-    { id: 'saco_lixo', kind: 'saco_lixo', x: 9, y: 2, blocks: true },
-    { id: 'floreira_1', kind: 'floreira', x: 8, y: 0, blocks: true },
-    { id: 'floreira_2', kind: 'floreira', x: 13, y: 0, blocks: true },
-    { id: 'floreira_3', kind: 'floreira', x: 0, y: 6, blocks: true },
+    // ---- west: a house with its fenced garden, and the vira-lata corner
+    front('casa_oeste', 'casas/terraco_verde', 2, 14, 6, 6),
+    P('cerca_oeste', 'cerca', 0, 20, { w: 9, h: 4, art: 'cerca_jardim' }),
+    cen('jardim_1', 'props/flor_rosa', 1, 21, 2, 1),
+    cen('jardim_2', 'props/flor_vermelha', 5, 22, 2, 1),
+    cen('jardim_3', 'props/pot_teal', 4, 21),
+    cen('jardim_bici', 'props/bicicletario', 6, 21),
+    P('flor_o1', 'sebe', 8, 14, { w: 2, art: 'props/flor_mista' }),
+    P('ipe_oeste', 'ipe', 3, 27),
+    P('ipe_oeste_2', 'ipe', 8, 24),
+    cen('vira_lata', 'critters/vira_lata_sleep_e', 5, 26, 1, 1, { blocks: true, label: { pt: 'Vira-lata caramelo', en: 'Caramel stray dog (vira-lata)' } }),
+    P('hidrante', 'sebe', 6, 28, { art: 'props/hidrante' }),
+    P('caixa_correio', 'sebe', 8, 28, { art: 'props/caixa_correio' }),
+    P('lixeira_o', 'lixeira', 7, 26),
+    P('flor_o2', 'sebe', 1, 28, { w: 2, art: 'props/flor_rosa' }),
+    bench('banco_oeste', 1, 25),
+    // ---- east: the fenced lot of the future feira, with its closed stalls, crates and the banner
+    P('cerca_leste', 'cerca', 41, 14, { w: 15, h: 16, art: 'cerca_feira' }),
+    cen('em_breve', 'props/em_breve', 43, 16, 4, 1, { label: { pt: 'Em breve: a feira livre!', en: 'Coming soon: the street market!' } }),
+    cen('feira_1', 'feira/frutas_fechada', 43, 19, 3, 2),
+    cen('feira_2', 'feira/verduras_fechada', 47, 19, 3, 2),
+    cen('feira_3', 'feira/pastel_fechada', 51, 19, 3, 2),
+    cen('feira_4', 'feira/flores_fechada', 43, 24, 3, 2),
+    cen('feira_5', 'feira/frutas_fechada', 47, 24, 3, 2),
+    cen('feira_6', 'feira/verduras_fechada', 51, 24, 3, 2),
+    cen('caixote_1', 'feira/caixotes', 46, 21),
+    cen('caixote_2', 'feira/caixotes', 50, 21),
+    cen('caixote_3', 'feira/caixotes', 54, 21),
+    cen('caixote_4', 'feira/caixotes', 46, 26),
+    cen('caixote_5', 'feira/caixotes', 50, 26),
+    cen('caixote_6', 'feira/caixotes', 54, 26),
+    cen('lousa_1', 'feira/preco_lousa', 45, 22),
+    cen('lousa_2', 'feira/preco_lousa', 53, 22),
+    cen('lousa_3', 'feira/preco_lousa', 49, 27),
+    P('ipe_lote_1', 'ipe', 54, 16, { blocks: false }),
+    P('ipe_lote_2', 'ipe', 42, 28, { blocks: false }),
+    cen('flor_lote', 'props/flor_mista_b', 46, 28, 3, 1),
+    // ---- the map edges: streets end in barricades, sidewalks in hedges, the west lawns and the lot behind fences
+    ...vilaIpeEdges(),
+    // ---- south: the roofs across Rua Jacarandá (blocked)
+    front('telhado_1', 'telhados/terraco_a', 0, 36, 6, 4),
+    front('telhado_2', 'telhados/terraco_b', 6, 36, 6, 4),
+    front('telhado_3', 'telhados/terraco_c', 12, 36, 6, 4),
+    front('telhado_4', 'telhados/terraco_d', 18, 36, 7, 4),
+    front('telhado_5', 'telhados/terraco_e', 25, 36, 6, 4),
+    front('telhado_6', 'telhados/terraco_b', 31, 36, 6, 4),
+    front('telhado_7', 'telhados/terraco_a', 37, 36, 6, 4),
+    front('telhado_8', 'telhados/terraco_c', 43, 36, 6, 4),
+    front('telhado_9', 'telhados/terraco_f', 49, 36, 7, 4),
+    // ---- more life along the sidewalks and the praça
+    P('flor_s1', 'sebe', 13, 12, { w: 2, art: 'props/flor_vermelha' }),
+    P('flor_s2', 'sebe', 44, 12, { w: 3, art: 'props/flor_mista' }),
+    P('hidrante_s', 'sebe', 5, 12, { art: 'props/hidrante_amarelo' }),
+    P('parquimetro', 'sebe', 28, 12, { art: 'props/parquimetro' }),
+    P('flor_p1', 'sebe', 21, 28, { w: 3, art: 'props/flor_mista' }),
+    P('flor_p2', 'sebe', 27, 28, { w: 3, art: 'props/flor_branca_l' }),
+    P('lampada_s1', 'poste', 8, 30, { art: 'props/lamp_old' }),
+    P('lampada_s2', 'poste', 17, 30, { art: 'props/lamp_old' }),
+    P('lampada_s3', 'poste', 33, 30, { art: 'props/lamp_old' }),
+    P('lampada_s4', 'poste', 42, 30, { art: 'props/lamp_old' }),
+    P('lixeira_s3', 'lixeira', 20, 30),
+    P('flor_s3', 'sebe', 3, 30, { w: 2, art: 'props/flor_rosa' }),
+    P('flor_s4', 'sebe', 50, 30, { w: 2, art: 'props/flor_branca' }),
+    P('hidrante_s2', 'sebe', 37, 31, { art: 'props/hidrante' }),
+    P('flor_s5', 'sebe', 27, 31, { w: 2, art: 'props/flor_branca' }),
   ],
-  walls: [
-    { kind: 'predio', wall: 'right', from: 0, to: 3 },
-    { kind: 'fachada_padaria', wall: 'right', from: 3, to: 7, text: 'PADARIA DO SEU CARLOS' },
-    { kind: 'mural', wall: 'right', from: 7, to: 14, text: 'SAMPA' },
-    { kind: 'predio', wall: 'left', from: 0, to: 2 },
-    { kind: 'predio', wall: 'left', from: 2, to: 6, text: 'EDIFÍCIO IPÊ' },
-    { kind: 'mural', wall: 'left', from: 6, to: 9, text: 'TUDO BEM?' },
-    { kind: 'metro', wall: 'left', from: 9, to: 12, text: 'METRÔ' },
-  ],
-  // Top-down layout: the padaria facade (8 tiles, centred on its door) covers columns 2-9, so the left building starts in the west corner and
-  // shows to the facade's edge (the METRO sign hangs on it), and the SAMPA mural fills the wall right of the facade around the academia door.
-  pixelWalls: [
-    { kind: 'predio', wall: 'right', from: -1, to: 2, text: 'EDIFÍCIO IPÊ' },
-    { kind: 'metro', wall: 'right', from: -1, to: 1, text: 'METRÔ' },
-    { kind: 'fachada_padaria', wall: 'right', from: 3, to: 7, text: 'PADARIA DO SEU CARLOS' },
-    { kind: 'mural', wall: 'right', from: 7, to: 14, text: 'SAMPA' },
-  ],
+  walls: [],
   portals: [
     {
       id: 'praca_padaria',
-      x: 5,
-      y: 0,
-      wall: 'right',
+      x: 16,
+      y: 5,
       to: 'padaria',
       arrive: { x: 1, y: 6 },
       arriveDir: 'SE',
+      doorAt: { x: 15.5, y: 5 },
       label: { pt: 'Padaria do Seu Carlos', en: 'Seu Carlos’s bakery' },
     },
     {
       id: 'praca_kitnet',
-      x: 0,
-      y: 4,
-      wall: 'left',
+      x: 24,
+      y: 5,
       to: 'kitnet',
       arrive: { x: 1, y: 5 },
       arriveDir: 'SE',
+      doorAt: { x: 24, y: 5 },
       label: { pt: 'Edifício Ipê — Minha kitnet', en: 'Ipê Building — my studio apartment' },
     },
     {
       id: 'praca_academia',
-      x: 10,
-      y: 0,
-      wall: 'right',
+      x: 38,
+      y: 5,
       to: 'academia',
       arrive: { x: 1, y: 6 },
       arriveDir: 'SE',
+      doorAt: { x: 37.5, y: 5 },
       label: { pt: 'Academia do Bairro', en: 'Neighborhood Academy' },
     },
   ],
@@ -283,10 +443,10 @@ const praca: RoomDef = {
       id: 'nanda',
       name: 'Nanda',
       role: { pt: 'Loja de chapéus', en: 'Hat stall' },
-      x: 12,
-      y: 5,
+      x: 35,
+      y: 13,
       dir: 'SW',
-      interact: { x: 11, y: 7 },
+      interact: { x: 34, y: 15 },
       appearance: { body: 'esguio', skin: 5, hair: 'trancas', hairColor: 0, top: 'camisa', topColor: 1, bottom: 'calca', bottomColor: 2, shoes: 2, face: 'doce', extra: 'brincos', idle: 'cintura' },
       hat: 'chapeu_palha',
       idleLines: [
@@ -298,11 +458,11 @@ const praca: RoomDef = {
       id: 'julia',
       name: 'Júlia',
       role: { pt: 'Guia da praça', en: 'Square guide' },
-      // Mid-praça, far enough forward that her nameplate and idle bubbles never cover the kiosk sign.
-      x: 8,
-      y: 4,
+      // near the kiosk, on the path to the fountain, far enough from it that her plate and bubbles never cover the kiosk sign
+      x: 22,
+      y: 19,
       dir: 'SW',
-      interact: { x: 8, y: 5 },
+      interact: { x: 22, y: 20 },
       appearance: { body: 'medio', skin: 2, hair: 'ondulado', hairColor: 2, top: 'blusa', topColor: 4, bottom: 'calca', bottomColor: 2, shoes: 2, face: 'suave', extra: 'brincos', idle: 'solto' },
       hat: null,
       idleLines: [
@@ -380,7 +540,7 @@ const padaria: RoomDef = {
       y: 6,
       wall: 'left',
       to: 'praca',
-      arrive: { x: 5, y: 1 },
+      arrive: { x: 16, y: 6 },
       arriveDir: 'SW',
       label: { pt: 'Voltar para a praça', en: 'Back to the square' },
     },
@@ -436,8 +596,8 @@ const kitnet: RoomDef = {
       y: 5,
       wall: 'left',
       to: 'praca',
-      arrive: { x: 1, y: 4 },
-      arriveDir: 'SE',
+      arrive: { x: 24, y: 6 },
+      arriveDir: 'SW',
       label: { pt: 'Descer para a praça', en: 'Go down to the square' },
     },
   ],
@@ -505,7 +665,7 @@ const academia: RoomDef = {
       y: 6,
       wall: 'left',
       to: 'praca',
-      arrive: { x: 10, y: 1 },
+      arrive: { x: 38, y: 6 },
       arriveDir: 'SW',
       label: { pt: 'SAÍDA · Praça', en: 'Exit to the square' },
     },
@@ -514,7 +674,7 @@ const academia: RoomDef = {
   private: false,
 };
 
-export const ROOMS: Record<RoomId, RoomDef> = { praca, padaria, kitnet, academia };
+export const ROOMS: Record<RoomId, RoomDef> = { praca: vilaIpe, padaria, kitnet, academia };
 export const ROOM_IDS = Object.keys(ROOMS) as RoomId[];
 
 export const isRoomId = (v: unknown): v is RoomId => typeof v === 'string' && v in ROOMS;
@@ -565,11 +725,15 @@ export function buildGrid(room: RoomDef, furniture: PlacedFurniture[] = []): Roo
     }
   }
   for (const s of seatTiles(room)) seats.set(key(s.x, s.y), s.dir);
+  // where you arrive from the street or a door stays free of furniture
+  reserved.add(key(room.spawn.x, room.spawn.y));
   for (const n of room.npcs) {
     blocked.add(key(n.x, n.y));
     reserved.add(key(n.x, n.y));
   }
   for (const portal of room.portals) {
+    // an outdoor door sits inside its facade's footprint: the door tile stays walkable
+    blocked.delete(key(portal.x, portal.y));
     reserved.add(key(portal.x, portal.y));
     reserved.add(key(portal.arrive.x, portal.arrive.y));
   }

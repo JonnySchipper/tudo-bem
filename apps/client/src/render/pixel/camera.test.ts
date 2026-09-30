@@ -4,6 +4,8 @@ import { T, cssZoomFor, deviceZoomFor, fitsAt, roomFraming, roomZoom, viewTop, t
 import { roomBounds } from './roomLayout';
 
 // Phase 4a: the whole room, wall band included, when it fits; otherwise follow the avatar with the north wall in view.
+/** The bounds of the old 14 x 12 praça (a facade rising above its wall band): a room bigger than the screen at zoom 4, the interior rules still apply to it. */
+const OLD_PRACA = { x0: -T, y0: -96, x1: 14 * T, y1: 12 * T };
 const desktop = { w: 1280, h: 800 };
 const desktopIns: Insets = { top: 64, bottom: 110, left: 0, right: 0 }; // what PixelView reserves for the HUD
 const phone = { w: 390 * 2, h: 844 * 2 }; // dpr 2
@@ -27,7 +29,7 @@ describe('roomZoom', () => {
 
   it('keeps the window zoom when the room already fits, or when even one step lower would not fit (the praça)', () => {
     expect(roomZoom(desktop, roomBounds(ROOMS.kitnet), desktopIns, 3, 1)).toBe(3);
-    expect(roomZoom(desktop, roomBounds(ROOMS.praca, 96), desktopIns, 4, 1)).toBe(4);
+    expect(roomZoom(desktop, OLD_PRACA, desktopIns, 4, 1)).toBe(4);
   });
 
   it('never goes below CSS zoom 2, and stays an integer at fractional DPRs', () => {
@@ -57,7 +59,7 @@ describe('roomFraming', () => {
   });
 
   it('a room that does not fit follows the avatar but never hides the north wall while the avatar is in the top 3 rows', () => {
-    const b = roomBounds(ROOMS.praca, 96); // the praça (facade above the band) is bigger than the screen at zoom 4
+    const b = OLD_PRACA; // the praça (facade above the band) is bigger than the screen at zoom 4
     for (let row = 0; row < 3; row++) {
       for (const col of [0, 5, 13]) {
         const focus = { x: (col + 0.5) * T, y: (row + 1) * T - 3 - 10 }; // what WorldScene follows: the avatar's feet minus 10
@@ -73,14 +75,14 @@ describe('roomFraming', () => {
   });
 
   it('an avatar on row 3 of the praça (just below the top rows) is still well inside the free region', () => {
-    const b = roomBounds(ROOMS.praca, 96);
+    const b = OLD_PRACA;
     const f = roomFraming(desktop, b, { x: 8 * T, y: 4 * T - 3 - 10 }, desktopIns, 4, 1);
     const feetScreen = (4 * T - 3 - f.cy) * f.zoom + desktop.h / 2;
     expect(feetScreen).toBeLessThan(desktop.h - desktopIns.bottom - 40);
   });
 
   it('eases into following: the camera never jumps as the avatar leaves the top rows, and never moves up as it walks down', () => {
-    const b = roomBounds(ROOMS.praca, 96);
+    const b = OLD_PRACA;
     let prev = roomFraming(desktop, b, { x: 7 * T, y: 0 }, desktopIns, 4, 1).cy;
     for (let y = 1; y <= 11 * T; y++) {
       const cy = roomFraming(desktop, b, { x: 7 * T, y }, desktopIns, 4, 1).cy;
@@ -101,7 +103,7 @@ describe('roomFraming', () => {
   });
 
   it('following an avatar at the south end shows the south edge, not the wall (bounds clamp)', () => {
-    const b = roomBounds(ROOMS.praca, 96);
+    const b = OLD_PRACA;
     const f = roomFraming(desktop, b, { x: 7 * T, y: 11 * T }, desktopIns, 4, 1);
     const bottom = f.cy + (desktop.h / 2 - desktopIns.bottom) / f.zoom;
     expect(bottom).toBeCloseTo(b.y1, 5);

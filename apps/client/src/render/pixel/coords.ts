@@ -139,16 +139,16 @@ export function roomZoom(view: { w: number; h: number }, bounds: Rect, insets: I
  * band in view; a bigger one follows `focus`, clamped to the bounds, so with the avatar in the top rows the view sits at the top of the
  * bounds and the north wall is never cropped.
  */
-export function roomFraming(view: { w: number; h: number }, bounds: Rect, focus: { x: number; y: number }, insets: Insets, cssZoom: number, dpr: number): { zoom: number; cx: number; cy: number; fits: boolean } {
+export function roomFraming(view: { w: number; h: number }, bounds: Rect, focus: { x: number; y: number }, insets: Insets, cssZoom: number, dpr: number, north: { rows: number; bandPx: number } | false = { rows: NORTH_ROWS, bandPx: NORTH_BAND_PX }): { zoom: number; cx: number; cy: number; fits: boolean } {
   const zoom = roomZoom(view, bounds, insets, cssZoom, dpr);
   const c = cameraCenter({ w: view.w, h: view.h, zoom }, bounds, focus, insets);
   let cy = c.cy;
   const toLoY = (view.h / 2 - insets.top) / zoom;
   // the camera centre that puts the top of the north wall band (3 tiles above row 0; a facade may rise higher, that part may be cropped) at the top of the free region
-  const topCy = Math.max(bounds.y0, -NORTH_BAND_PX) + toLoY;
-  if (cy > topCy) {
+  const topCy = Math.max(bounds.y0, -(north ? north.bandPx : 0)) + toLoY;
+  if (north && cy > topCy) {
     // following: while the avatar is in the top NORTH_ROWS rows the view sits at the top of the bounds, and eases into following over the next four rows
-    const t = Math.min(1, Math.max(0, (focus.y - (NORTH_ROWS * T - 10)) / (4 * T)));
+    const t = Math.min(1, Math.max(0, (focus.y - (north.rows * T - 10)) / (4 * T)));
     cy = topCy + (cy - topCy) * t;
   }
   return { zoom, cx: c.cx, cy, fits: fitsAt(view, bounds, insets, zoom) };
@@ -156,6 +156,8 @@ export function roomFraming(view: { w: number; h: number }, bounds: Rect, focus:
 
 /** Rows next to the north wall in which the camera keeps the whole wall in view. */
 export const NORTH_ROWS = 3;
+/** The outdoor map keeps the tops of its building fronts in view while you stand on the north sidewalk (rows 0-8), then eases into following. */
+export const OUTDOOR_NORTH = { rows: 8, bandPx: 0 };
 /** Height of the north wall band in art px (roomLayout.NORTH_BAND_TILES * T). */
 export const NORTH_BAND_PX = 3 * T;
 

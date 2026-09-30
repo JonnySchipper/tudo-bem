@@ -98,9 +98,9 @@ try {
   }
 
   // Beto walks across the square; Ana watches. Then Ana walks and Beto watches.
-  await b.evaluate(() => window.__tb.walkTo(12, 8));
+  await b.evaluate(() => window.__tb.walkTo(30, 27));
   await watchWalk(a, bId, 'Ana');
-  await a.evaluate(() => window.__tb.walkTo(3, 3));
+  await a.evaluate(() => window.__tb.walkTo(20, 27));
   await watchWalk(b, aId, 'Beto');
   if (SHOT) {
     fs.mkdirSync(SHOT, { recursive: true });

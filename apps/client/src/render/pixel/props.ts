@@ -40,6 +40,9 @@ const ART: Partial<Record<PropKind, string>> = {
   bicicletario: 'props/bicicletario',
   mesa_cafe: 'props/mesa_cafe',
   jornais: 'props/jornais',
+  // Vila Ipê
+  fonte: 'props/fountain',
+  ponto_onibus: 'props/ponto_onibus',
 };
 
 /** Seat direction (wire Dir) -> the chair sprite suffix (SE faces E, SW faces S, NE faces N, NW faces W, HOWTO §5.2). */
@@ -58,10 +61,50 @@ export function propSlices(p: PropDef): { key: string; x: number; y: number }[] 
   return out;
 }
 
+/** Kinds whose sprite is chosen by `PropDef.art` (building fronts, roofs, hedges and planters, scenery, lamp posts). */
+const ART_FIELD: PropKind[] = ['fachada', 'sebe', 'cenario', 'poste'];
+
 export function propArtKey(p: PropDef): string | null {
   if (p.kind === 'ipe') return p.hero ? 'props/ipe_large' : 'props/ipe_medium';
   if (p.kind === 'cadeira_padaria') return `props/cadeira_padaria_${CHAIR_SUFFIX[p.seat ?? 'SE']}`;
+  if (p.art && ART_FIELD.includes(p.kind)) return p.art;
   return ART[p.kind] ?? null;
+}
+
+/** Fence sets of the pack (`fence/<set>_<tl|tm|tr|ml|mr|bl|bm|br>`) by the `art` of a `cerca` prop. */
+const FENCE_SET: Record<string, number> = { cerca_feira: 2, cerca_jardim: 3 };
+
+/**
+ * The pieces of a fenced rectangle (a `cerca` prop): the perimeter of its w x h footprint, one 16 px piece per tile. The inside stays
+ * empty (it is blocked, decorated by other props). `depth` is the piece's own bottom edge, so walkers south of the fence stand in front of it.
+ */
+export function fencePieces(p: PropDef): { key: string; x: number; y: number; w?: number }[] {
+  const set = FENCE_SET[p.art ?? ''] ?? 3;
+  const { w, h } = propSize(p);
+  const out: { key: string; x: number; y: number; w?: number }[] = [];
+  // the barricade that closes a street at the map edge: one 2-tile barrier per row
+  if (p.art === 'cerca_rua') {
+    for (let dy = 0; dy < h; dy++) out.push({ key: 'props/barreira', x: p.x, y: p.y + dy, w });
+    return out;
+  }
+  for (let dy = 0; dy < h; dy++) {
+    for (let dx = 0; dx < w; dx++) {
+      const top = dy === 0;
+      const bottom = dy === h - 1;
+      const left = dx === 0;
+      const right = dx === w - 1;
+      if (!(top || bottom || left || right)) continue;
+      const row = top ? 't' : bottom ? 'b' : 'm';
+      const col = left ? (row === 'm' ? 'l' : 'l') : right ? 'r' : 'm';
+      out.push({ key: `fence/${set}_${row}${col}`, x: p.x + dx, y: p.y + dy });
+    }
+  }
+  return out;
+}
+
+/** Standing depth of a prop. A building front sorts at the top of its bottom row, so a walker on the door tile stands in front of the door. */
+export function propDepth(p: PropDef, bottomY: number): number {
+  return p.kind === 'fachada' ? bottomY - T + 0.5 : standingDepth(bottomY, p.id);
 }
 
 /** Manifest key of a placed furniture item: `furniture/<itemId>_<rot>` (rot 0 faces SE, rot 1 faces SW). */

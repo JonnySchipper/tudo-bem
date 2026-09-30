@@ -15,7 +15,17 @@ export const CPU_ID_PREFIX = 'cpu-';
 export const isCpuId = (id: string) => id.startsWith(CPU_ID_PREFIX);
 
 /** Visible CPUs for a Praça instance with `humans` players in it (Live Ops §1 targets). */
-export function cpuTarget(humans: number): number {
+export function cpuTarget(humans: number, room: RoomId = 'academia'): number {
+  if (room === 'praca') {
+    // Vila Ipê is 56 x 40 tiles: more neighbours on the street, and the same rule as ever, the more humans the fewer CPUs (max 8 at 0-1 humans)
+    if (humans <= 1) return 8;
+    if (humans === 2) return 6;
+    if (humans <= 4) return 5;
+    if (humans <= 6) return 3;
+    if (humans <= 8) return 2;
+    if (humans <= 12) return 1;
+    return 0;
+  }
   if (humans <= 1) return 5; // 0–1 humans → 4–6
   if (humans === 2) return 4; // 2–4 → 3–4
   if (humans <= 4) return 3;
@@ -27,27 +37,33 @@ export function cpuTarget(humans: number): number {
 /** Share of CPUs that idle on a bench; the rest walk the edge → Padaria door → bench loop. */
 export const CPU_SITTER_SHARE = 0.6;
 
-/** Praça tiles the CPUs use. Kept off doors, arrival tiles, spawn and every interact tile. */
+/** Vila Ipê tiles the CPUs use. Kept off doors, arrival tiles, spawn and every interact tile. */
 export const PRACA_AMBIANCE: { spots: Tile[]; doorSpots: Tile[]; entries: Tile[] } = {
-  /** Edge-of-praça places to stand for a bit. */
+  /** Places to stand for a bit: sidewalks, the brick bar, the lawns' edges. */
   spots: [
-    { x: 13, y: 7 },
-    { x: 13, y: 10 },
-    { x: 6, y: 11 },
-    { x: 10, y: 1 },
-    { x: 9, y: 6 },
+    { x: 8, y: 7 },
+    { x: 27, y: 13 },
+    { x: 37, y: 13 },
+    { x: 44, y: 7 },
+    { x: 11, y: 13 },
+    { x: 17, y: 22 },
+    { x: 33, y: 22 },
+    { x: 16, y: 27 },
+    { x: 34, y: 27 },
+    { x: 50, y: 9 },
   ],
   /** Near the Padaria entrance (CPUs never go in). */
   doorSpots: [
-    { x: 4, y: 1 },
-    { x: 6, y: 1 },
-    { x: 6, y: 2 },
+    { x: 15, y: 7 },
+    { x: 17, y: 7 },
+    { x: 18, y: 7 },
   ],
-  /** Where CPUs walk in from / out to when the crowd grows or thins. */
+  /** Where CPUs walk in from / out to when the crowd grows or thins: the street ends. */
   entries: [
-    { x: 13, y: 8 },
-    { x: 8, y: 11 },
-    { x: 0, y: 11 },
+    { x: 2, y: 9 },
+    { x: 53, y: 10 },
+    { x: 2, y: 33 },
+    { x: 53, y: 34 },
   ],
 };
 

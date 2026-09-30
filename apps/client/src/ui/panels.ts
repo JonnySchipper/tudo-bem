@@ -20,6 +20,7 @@ export { MinigameUI } from './meveum-ui.js';
 import { furnitureIcon, npcPortrait, parrotPortrait, expressionForScore, type Expression } from './pixelArt';
 import { speak } from '../audio';
 import { icon } from '../art/ui';
+import { drawMinimap } from './minimap';
 
 // ---------------------------------------------------------------- modal base
 
@@ -346,6 +347,15 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
 
 // ---------------------------------------------------------------- map
 
+/** The pixel minimap of Vila Ipê with the doors, the neighbours and "você" (only while you are out on the street). */
+function mapView(): HTMLElement {
+  const self = game.self;
+  const here = game.room?.room === 'praca' && self ? (self.path.at(-1) ?? self.from) : null;
+  const canvas = drawMinimap(ROOMS.praca, here);
+  canvas.setAttribute('aria-label', 'Mapa da Vila Ipê');
+  return h('div', { class: 'minimap-wrap' }, canvas, h('div', { class: 'minimap-key' }, h('span', { class: 'k door' }), ' portas ', h('span', { class: 'k npc' }), ' vizinhos ', h('span', { class: 'k me' }), ' você'));
+}
+
 export function openMap(go: (room: RoomId) => void) {
   const card = (room: RoomId | null, pt: string, enText: string, bg: string, locked = false, light = false) =>
     h(
@@ -360,8 +370,9 @@ export function openMap(go: (room: RoomId) => void) {
       'div',
       { class: 'panel' },
       closeBtn(() => close()),
-      h('h2', null, 'São Paulo · Bairro Ipê'),
+      h('h2', null, 'São Paulo · Vila Ipê'),
       en('Fast travel is free between rooms you know.'),
+      mapView(),
       h(
         'div',
         { class: 'map-grid' },
