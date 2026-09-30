@@ -215,6 +215,17 @@ export class RecadoTracker {
     this.onEvent(s, { kind: 'read', hotspotId: h.id });
   }
 
+  /** `talk`: the greeting dialogue with an NPC that has no Conversa (Nanda, Júlia) opened; the NPC must be in the room and near. True when it counted. */
+  talk(s: Session, npc: unknown): boolean {
+    // the NPC as they stand right now (schedules move them)
+    const def = isNpcId(npc) && s.instance ? this.d.npcsIn(s.instance.def.id).find((n) => n.id === npc) : undefined;
+    if (!def || !s.profile || npc === 'carlos') return false;
+    const tile = this.d.tileOf(s);
+    if (tileDistance(tile, def.tile) > HOTSPOT_READ_RANGE && tileDistance(tile, def.interact) > HOTSPOT_READ_RANGE) return false;
+    this.onEvent(s, { kind: 'talked', npc: def.id });
+    return true;
+  }
+
   /** `recados`: 'list' resends the board; 'accept' starts one of today's offers (max 3 at once). */
   request(s: Session, action: 'accept' | 'list', id?: unknown) {
     const p = s.profile;

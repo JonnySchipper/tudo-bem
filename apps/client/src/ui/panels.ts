@@ -22,6 +22,7 @@ import { mountCharPreview, setHatIcon } from '../render/pixel/charPreview';
 export { MinigameUI } from './meveum-ui.js';
 import { furnitureIcon, npcPortrait, parrotPortrait, expressionForScore, type Expression } from './pixelArt';
 import { speak } from '../audio';
+import { closeDialogueBox, dialogueMode, showDialogueBox, type BoxSpec } from './dialogue';
 import { icon } from '../art/ui';
 import { drawMinimap } from './minimap';
 import { clock } from '../gameClock';
@@ -50,6 +51,8 @@ export interface DialogueOpts {
   onChoose: (i: number) => void;
   onClose: () => void;
   footer?: HTMLElement;
+  /** Box key (the typewriter restarts when it changes); default `talk-<npc>`. */
+  key?: string;
   /** Free-typed reply (scored with accept-list rules). */
   onType?: (text: string) => void;
 }
@@ -57,7 +60,9 @@ export interface DialogueOpts {
 let dialogueEl: HTMLElement | null = null;
 let dialogueKey: ((e: KeyboardEvent) => void) | null = null;
 
+/** Closes whatever NPC dialogue is up: the in-world box (Phase 7) or, under `?dialogue=modal`, the old panel. */
 export function closeDialogue() {
+  closeDialogueBox();
   dialogueEl?.remove();
   dialogueEl = null;
   if (dialogueKey) document.removeEventListener('keydown', dialogueKey);
@@ -65,7 +70,28 @@ export function closeDialogue() {
   game.modalOpen = !!modalId();
 }
 
+/** The generic NPC dialogue (Júlia's help, the parrot perch, the Carlos scene) as a beat of the dialogue box. */
+function boxSpecFor(o: DialogueOpts): BoxSpec {
+  const score = o.feedback?.score;
+  return {
+    key: o.key ?? (o.npc ? `talk-${o.npc.id}` : 'perch'),
+    npcId: o.npc?.id ?? null,
+    speaker: o.speaker,
+    role: o.role,
+    expression: expressionForScore(score),
+    line: o.line,
+    said: o.said?.pt ?? null,
+    feedback: o.feedback ? h('span', { class: `feedback dbx-feedback s${score}` }, `${o.feedback.text.pt} · ${o.feedback.text.en}`) : null,
+    chips: o.chips,
+    input: o.chips.length && o.onType ? { id: 'scene-type', placeholder: 'Responda em português…', send: 'Responder', onSend: (text) => o.onType?.(text) } : null,
+    footer: o.footer,
+    onChip: o.onChoose,
+    onClose: o.onClose,
+  };
+}
+
 export function showDialogue(o: DialogueOpts) {
+  if (dialogueMode() === 'box') return showDialogueBox(boxSpecFor(o));
   const continued = !!dialogueEl;
   closeDialogue();
   const listen = h('button', { class: 'speak-btn', onclick: () => speak(o.line.pt, { force: true }), title: 'Ouvir / Listen' }, '🔊 Ouvir');
@@ -168,7 +194,8 @@ const JULIA_TREE: { q: Bilingual; a: Bilingual }[] = [
   },
 ];
 
-export function showJulia() {
+/** Júlia's tutorial Q&A. `fromGreeting`: the box already met her, so the first line goes straight to the questions. */
+export function showJulia(fromGreeting = false) {
   const julia = ROOMS.praca.npcs.find((n) => n.id === 'julia')!;
   const name = game.profile?.name ?? '';
   const root = (line: Bilingual) => {
@@ -178,12 +205,16 @@ export function showJulia() {
       speaker: 'Júlia',
       role: 'Guia da praça',
       line,
-      chips: [...JULIA_TREE.map((j) => j.q), { pt: 'Tchau, Júlia!', en: 'Bye, Júlia!' }],
+      key: 'talk-julia',
+      chips: JULIA_TREE.map((j) => j.q),
+      // four questions on keys 1-4; leaving is the button (or Esc)
+      footer: h('button', { class: 'ghost', onclick: closeDialogue }, bi('Tchau, Júlia!', 'Bye, Júlia!')),
       onChoose: (i) => (i < JULIA_TREE.length ? root(JULIA_TREE[i].a) : closeDialogue()),
       onClose: closeDialogue,
     });
   };
-  root({ pt: `Oi, ${name}! Eu sou a Júlia, guia da praça. Posso te ajudar?`, en: 'Hi! I’m Júlia, the square’s guide. Can I help you?' });
+  if (fromGreeting) root({ pt: 'Claro! O que você quer saber?', en: 'Of course! What do you want to know?' });
+  else root({ pt: `Oi, ${name}! Eu sou a Júlia, guia da praça. Posso te ajudar?`, en: 'Hi! I’m Júlia, the square’s guide. Can I help you?' });
 }
 
 // ---------------------------------------------------------------- daily kiosk

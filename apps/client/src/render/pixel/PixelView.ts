@@ -147,6 +147,14 @@ export class PixelView implements WorldView {
     return tileAtWorld(w.wx, w.wy, room.cols, room.rows);
   }
 
+  setDialogueFocus(f: { npc: Tile | null } | null): void {
+    this.scene?.setDialogue(f);
+  }
+
+  setDialogueBox(px: number): void {
+    this.scene?.setDialogueBox(px);
+  }
+
   /** Ambient life hook (`window.__tb.ambient`). */
   ambientHook() {
     return this.scene?.ambientHook() ?? null;

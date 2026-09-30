@@ -234,7 +234,6 @@ describe('recados on the server', () => {
     await a.send({ t: 'read', hotspotId: 'nao_existe' });
     await a.send({ t: 'read', hotspotId: 42 as never });
     expect(errors(a)).toEqual(['hotspot', 'hotspot']);
-    expect(HOTSPOTS).toEqual([]);
 
     HOTSPOTS.push({ id: 'teste_placa', room: 'praca', x: ROOMS.praca.spawn.x, y: ROOMS.praca.spawn.y - 6, pt: 'PLACA', en: 'SIGN' });
     try {
@@ -245,7 +244,7 @@ describe('recados on the server', () => {
       await a.send({ t: 'read', hotspotId: 'teste_placa' });
       expect(a.all('error')).toHaveLength(before);
     } finally {
-      HOTSPOTS.length = 0;
+      HOTSPOTS.splice(HOTSPOTS.findIndex((h) => h.id === 'teste_placa'), 1);
     }
   });
 
