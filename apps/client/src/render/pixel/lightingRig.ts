@@ -8,7 +8,8 @@
  * The grade is a MULTIPLY render texture that light sources punch holes in, so lamp pools and lit windows are not tinted by it.
  */
 import Phaser from 'phaser';
-import { darknessAlpha, glowStrength, gradeAt, rgbToInt, shadowFill, sunGlow } from './lighting';
+import { rgbToInt } from './lighting';
+import { hourLook, type SceneLook } from './dayNight';
 
 export interface Light {
   x: number; // world px
@@ -22,6 +23,8 @@ export interface Light {
   live?: number;
   /** additive glow alpha override */
   glow?: number;
+  /** game minutes this light lags the 18:00 / 06:00 switch (`dayNight.lightDelay`); unset = follows the general glow */
+  delay?: number;
 }
 
 export class LightingRig {
@@ -34,6 +37,8 @@ export class LightingRig {
   windowRects: Phaser.GameObjects.Rectangle[] = [];
   /** window light patches on interior floors (world sprites, ADD blend): full strength by day, gone at night */
   patches: Phaser.GameObjects.Image[] = [];
+  /** night sky over the window panes and its stars (alpha follows the live clock) */
+  panes: Phaser.GameObjects.Rectangle[] = [];
   /** cast-shadow sprites (fade out as it gets dark) */
   castShadows: Phaser.GameObjects.Image[] = [];
   private grade: Phaser.GameObjects.RenderTexture;
@@ -85,6 +90,7 @@ export class LightingRig {
     this.litOverlays = [];
     this.windowRects = [];
     this.castShadows = [];
+    this.panes = [];
     this.patches = [];
     this.syncLights();
   }
@@ -96,21 +102,27 @@ export class LightingRig {
     this.fill.setSize(w, h);
   }
 
-  /** Redraw the grade, fill, darkness and glows for game hour `hour`. `toScreen` maps world px to fx-camera (device) px. */
-  apply(hour: number, zoom: number, toScreen: (wx: number, wy: number) => [number, number]): void {
-    const dark = darknessAlpha(hour);
-    const gs = glowStrength(hour);
-    for (const c of this.castShadows) c.setAlpha(Math.max(0.15, 1 - dark * 1.1));
+  /**
+   * Redraw the grade, fill, darkness and glows. `look` comes from `dayNight.computeLook` (the live clock and the weather), or is a plain game
+   * hour (the style frame's slider). `toScreen` maps world px to fx-camera (device) px.
+   */
+  apply(lookOrHour: SceneLook | number, zoom: number, toScreen: (wx: number, wy: number) => [number, number]): void {
+    const look = typeof lookOrHour === 'number' ? hourLook(lookOrHour) : lookOrHour;
+    const dark = look.dark;
+    for (const c of this.castShadows) c.setAlpha(look.cast);
     const strengthOf = (l: Light) => {
-      if (l.kind === 'player') return Math.min(1, dark / 0.35);
-      if (l.kind === 'car') return gs * (l.live ?? 0);
-      return gs;
+      if (l.kind === 'player') return look.playerGlow;
+      if (l.kind === 'car') return look.glow * (l.live ?? 0);
+      return l.delay === undefined ? look.glow : look.lampOn(l.delay);
     };
-    this.grade.fill(rgbToInt(gradeAt(hour)), 1);
-    const sf = shadowFill(hour);
-    this.fill.setFillStyle(rgbToInt(sf.color), sf.alpha);
-    for (const o of this.litOverlays) o.setAlpha(Math.min(1, gs * 0.95));
-    for (const o of this.patches) o.setAlpha(Math.max(0, 1 - dark * 2.5));
+    this.grade.fill(rgbToInt(look.grade), 1);
+    this.fill.setFillStyle(rgbToInt(look.fill.color), look.fill.alpha);
+    for (const o of this.litOverlays) {
+      const d = o.getData('delay') as number | undefined;
+      o.setAlpha(Math.min(1, (d === undefined ? look.glow : look.lampOn(d)) * 0.95));
+    }
+    for (const o of this.patches) o.setAlpha(look.patchAlpha).setTint(look.patchTint);
+    for (const o of this.panes) o.setAlpha(look.windowNight);
     this.dark.clear();
     if (dark > 0.001) this.dark.fill(0x0b1030, dark);
     this.lights.forEach((l, i) => {
@@ -127,10 +139,10 @@ export class LightingRig {
       const glowAlpha = l.glow ?? (l.kind === 'window' ? 0.3 : l.kind === 'stall' ? 0.3 : l.kind === 'player' ? 0.22 : l.kind === 'car' ? 0.3 : 0.42);
       g.setPosition(sx, sy).setScale(px, px * l.squash).setTint(l.color).setAlpha(s * glowAlpha);
     });
-    for (const r of this.windowRects) r.setAlpha(gs * 0.6);
+    for (const r of this.windowRects) r.setAlpha(look.glow * 0.6);
     // low sun: a big warm glow from the upper left (adds warmth and shows the light direction without darkening the scene)
     const sw = this.scene.scale.width;
     const sh = this.scene.scale.height;
-    this.sun.setPosition(sw * 0.12, -sh * 0.08).setScale((Math.max(sw, sh) * 2.1) / 128).setAlpha(sunGlow(hour) * 0.2);
+    this.sun.setPosition(sw * 0.12, -sh * 0.08).setScale((Math.max(sw, sh) * 2.1) / 128).setAlpha(look.sun);
   }
 }
