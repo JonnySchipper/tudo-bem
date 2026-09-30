@@ -391,6 +391,9 @@ export class WorldScene extends Phaser.Scene {
       if (pd) this.reg(this.add.image(Math.round(a.wx) + 3, Math.round(a.wy) - 1, pd.atlas, pd.frame)).setOrigin(0.5, 0.5).setDepth(-4900);
     }
 
+    // ---- sky and far skyline in the top margin of an open-air map
+    if (def.outdoor) this.buildBackdrop(def);
+
     // ---- ground dressing and wires of an open-air map
     this.buildScenery(def);
 
@@ -550,6 +553,14 @@ export class WorldScene extends Phaser.Scene {
   }
 
   /** Ground decals (crosswalks, mosaic, flowers, tufts, grime) and the overhead wires of an open-air map. */
+  /** The strip of sky and distant buildings above the north row (`backdrop/sky_0..3`, 14 tiles each); the facades hide their feet. */
+  private buildBackdrop(def: RoomDef): void {
+    for (let i = 0; i * 14 < def.cols; i++) {
+      const sd = this.m.sprites[`backdrop/sky_${i % 4}`];
+      if (sd) this.reg(this.add.image(i * 14 * T, 0, sd.atlas, sd.frame)).setOrigin(0, 1).setDepth(-9500);
+    }
+  }
+
   private buildScenery(def: RoomDef): void {
     const sc = sceneryFor(def, (k) => !!this.m.sprites[k]);
     if (!sc) return;
@@ -583,7 +594,7 @@ export class WorldScene extends Phaser.Scene {
     const delay = lightDelay(bx, by);
     this.rig.lights.push({ x: bx + L.x, y: by + L.y, r: L.r * 0.55, color, squash: 1, kind: 'lamp', glow: 0.6, delay });
     // the pool of light lands on the ground around the base
-    this.rig.lights.push({ x: bx + 5, y: by - 2, r: L.r * 1.3, color, squash: 0.55, kind: 'lamp', glow: 0.55, delay });
+    this.rig.lights.push({ x: bx + 5, y: by - 2, r: L.r * 1.3, color, squash: 0.55, kind: 'lamp', glow: 0.4, delay });
   }
 
   /** The look of an avatar: a neighbour wears its own style (portrait match), everyone else their appearance. */
@@ -773,6 +784,11 @@ export class WorldScene extends Phaser.Scene {
       // debug `?shot=map`: the whole map in one frame, at the biggest integer zoom that fits (1x on a 1280 x 800 window), centred, no follow
       const zoom = Math.max(1, Math.floor(Math.min(this.cam.w / (def.cols * T), this.cam.h / (def.rows * T))));
       f = { zoom, cx: (def.cols * T) / 2, cy: (def.rows * T) / 2, fits: true };
+    }
+    const camShot = /^cam:(-?[\d.]+),(-?[\d.]+),(\d+)$/.exec(this.host.shot ?? '');
+    if (camShot) {
+      // debug `?shot=cam:<tileX>,<tileY>,<zoom>` (art reviews): a fixed camera on a tile position at an integer zoom
+      f = { zoom: Number(camShot[3]), cx: Number(camShot[1]) * T, cy: Number(camShot[2]) * T, fits: true };
     }
     f = this.withDialogue(f, self ? { x: self.wx, y: self.wy - 10 } : focus, ins, k, dt);
     const target = { cx: f.cx, cy: f.cy };

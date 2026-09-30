@@ -5,7 +5,7 @@
 import { blank, put, shape, flat, grid, line, over, ell, box, or, sub, and, profile, hwAt, mx, mix, h2, fillRect, hoop, NAVY, alphaAt } from './paint.mjs';
 
 export const EXPRESSIONS = ['neutro', 'feliz', 'surpreso', 'pensativo'];
-export const NPCS = ['carlos', 'nanda', 'julia', 'graca', 'tia_lu'];
+export const NPCS = ['carlos', 'nanda', 'julia', 'graca', 'tia_lu', 'prof'];
 
 // ------------------------------------------------------------------ palettes ([dark, shade, base, hi])
 const SKIN = {
@@ -33,7 +33,7 @@ const CLOTH = {
   denim: ['#3d56d2', '#4280dd', '#4995e3', '#50a7e8'],
   orange: ['#c46823', '#ed931e', '#f2b22b', '#ffe57b'],
 };
-const IRIS = { carlos: '#573c2c', nanda: '#453a4c', julia: '#4280dd', graca: '#573c2c', tia_lu: '#573c2c' };
+const IRIS = { carlos: '#573c2c', nanda: '#453a4c', julia: '#4280dd', graca: '#573c2c', tia_lu: '#573c2c', prof: '#453a4c' };
 const WHITE = '#f0ecf6';
 const LIP_DARK = '#7f3034';
 const MOUTH_IN = '#4a1a24';
@@ -396,6 +396,40 @@ RENDER.tia_lu = (img, expr) => {
   for (const s of [-1, 1]) hoop(img, CX + s * 17.9, 36.6, 2.9);
 };
 
+RENDER.prof = (img, expr) => {
+  // Professora Bia: a woman in her 30s, warm brown skin, short dark hair, a white BJJ gi whose crossed lapels open on a dark rashguard
+  const skin = SKIN.warm, kp = faceKp({ cheek: 14.2, jaw: 11.5 });
+  const hair = HAIR.black;
+  // the nape and sides of the short hair, behind the head
+  shape(img, profile(CX, [[8, 10], [11, 15.5], [16, 18], [24, 18.8], [30, 18.4], [35, 16.2], [38, 11]]), [CX, 26, 19, 16], hair, { ol: '#231f2e', t: [0.8, 0.3, -0.1] });
+  torso(img, CLOTH.cream, { ol: '#7a7a95' });
+  neck(img, skin);
+  // rashguard in the V, then the two lapels crossing, each a thick diagonal with a shaded edge
+  flat(img, (x, y) => y >= 47 && y < 57 && Math.abs(x - CX) < 9.5 - (y - 47) * 0.95, '#2e2a3c', { outline: false });
+  for (const s of [-1, 1]) {
+    for (let i = 0; i < 11; i++) {
+      const x = CX + s * (10 - i * 0.98), y = 47 + i * 1.0;
+      fillRect(img, Math.round(x - (s < 0 ? 1 : 2)), Math.round(y), 4, 1, i < 4 ? CLOTH.cream[3] : CLOTH.cream[s < 0 ? 3 : 2]);
+      put(img, Math.round(x + (s < 0 ? 3 : -3)), Math.round(y), CLOTH.cream[0]);
+      put(img, Math.round(x - (s < 0 ? 2 : 3)), Math.round(y), '#8b8bab');
+    }
+  }
+  // stitched rib line down each lapel and a small patch on the shoulder
+  for (const s of [-1, 1]) for (let i = 1; i < 10; i += 2) put(img, Math.round(CX + s * (10 - i * 0.98) - s * 0.2), 47 + i, CLOTH.cream[1]);
+  fillRect(img, 14, 58, 6, 3, '#3d56d2'); fillRect(img, 14, 58, 6, 1, '#4995e3'); put(img, 16, 59, '#f8f8f8'); put(img, 17, 59, '#f8f8f8');
+  head(img, skin, kp);
+  faceSet(img, 'prof', expr, skin, { brow: hair[0], browY: 21, lash: true, mouth: { y: 38, lip: '#9a3a44' }, blush: 1 });
+  // short hair: a cap with a side-swept fringe, clean sides over the tops of the ears, a few shine streaks
+  const hairline = (x) => (x < 36 ? 16.2 + (36 - x) * 0.3 : 16 + (x - 36) * 0.5);
+  shape(img, and(ell(CX, 13, 18.2, 13.8), (x, y) => y < hairline(x)), [CX - 3, 11, 18, 13], hair, {
+    ol: '#231f2e', t: [0.78, 0.3, -0.1],
+    pattern: (x, y, i) => ((Math.floor(x + y * 0.5) % 5 === 0) ? Math.min(3, i + 1) : (Math.floor(x + y * 0.5) % 5 === 2 ? Math.max(0, i - 1) : i)),
+  });
+  for (const s of [-1, 1]) for (let y = 17; y < 27; y++) { const x0 = Math.round(CX + s * (hwAt(kp, y) - 1.2) - (s < 0 ? 0 : 1)); put(img, x0, y, hair[y < 22 ? 1 : 0]); put(img, x0 + (s < 0 ? 1 : -1), y, hair[y < 22 ? 2 : 1]); }
+  for (let i = 0; i < 8; i++) put(img, 36 - Math.round(i * 0.2), 6 + i, hair[0]);
+  for (const [x, y] of [[23, 8], [24, 8], [25, 9], [26, 9], [21, 11], [22, 11], [23, 12], [16, 22], [16, 23]]) put(img, x, y, hair[3]);
+};
+
 export function renderPortrait(npc, expr, bgFn) {
   const img = blank(64, 64);
   const fg = blank(64, 64);
@@ -414,6 +448,7 @@ const BG = {
   julia: { base: '#b9d3a0', hi: '#d0e2b8', lo: '#9ab887' },
   graca: { base: '#7c78a8', hi: '#948fbc', lo: '#635f8c' },
   tia_lu: { base: '#f0c0a4', hi: '#f8d6bf', lo: '#dea488' },
+  prof: { base: '#8ea6d6', hi: '#a9bde6', lo: '#6f88bd' },
 };
 
 export async function portraitParts() {

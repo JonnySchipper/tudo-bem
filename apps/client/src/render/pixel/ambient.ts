@@ -122,7 +122,7 @@ export class AmbientLife {
   private dog: { sim: DogSim; spr: Phaser.GameObjects.Sprite; shadow: Phaser.GameObjects.Image; key: string } | null = null;
   private flocks: FlockView[] = [];
   private petals: PetalView[] = [];
-  private spray: { img: Phaser.GameObjects.Image; phase: number; dx: number }[] = [];
+  private spray: { img: Phaser.GameObjects.Image; phase: number; dx: number; idx: number }[] = [];
   private fireflies: { img: Phaser.GameObjects.Image; glow: Phaser.GameObjects.Image; x: number; y: number; ph: number }[] = [];
   private butterflies: { img: Phaser.GameObjects.Image; cx: number; cy: number; ph: number; c: number }[] = [];
   private clouds: Phaser.GameObjects.Image[] = [];
@@ -154,11 +154,15 @@ export class AmbientLife {
       ctx.fillStyle = '#fffff0';
       ctx.fillRect(1, 1, 1, 1);
     });
-    makeTex(s, 'amb:drop', 2, 2, (ctx) => {
-      ctx.fillStyle = '#e4f3ff';
-      ctx.fillRect(0, 0, 2, 2);
-      ctx.fillStyle = '#a8d4f0';
-      ctx.fillRect(1, 1, 1, 1);
+    makeTex(s, 'amb:drop', 3, 4, (ctx) => {
+      // a fat droplet: bright head, white body, blue tail (reads at 1x as a spark and at 4x as a droplet)
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(1, 0, 1, 2);
+      ctx.fillRect(0, 1, 3, 1);
+      ctx.fillStyle = '#bfe4fb';
+      ctx.fillRect(1, 2, 1, 1);
+      ctx.fillStyle = '#6fb6e8';
+      ctx.fillRect(1, 3, 1, 1);
     });
   }
 
@@ -261,7 +265,7 @@ export class AmbientLife {
     // fountain spray
     for (let i = 0; i < N_DROPS; i++) {
       const img = this.reg(this.scene.add.image(0, 0, 'amb:drop')).setDepth(DEPTH_FLY).setVisible(false);
-      this.spray.push({ img, phase: i / N_DROPS, dx: (unit(i, 7, 71) - 0.5) * 2 });
+      this.spray.push({ img, phase: i / N_DROPS, dx: (unit(i, 7, 71) - 0.5) * 2, idx: i });
     }
     // cloud shadows: crops of the shadow texture
     if (this.scene.textures.exists('fx:cloudShadow')) {
@@ -517,8 +521,10 @@ export class AmbientLife {
       if (!on) continue;
       const u = (this.tSec * 1.1 + s.phase) % 1;
       // a jet: up fast, over and down into the basin
-      const h = 4 * u * (1 - u) * 15;
-      const x = data.fountain.x + s.dx * u * 11;
+      // the first four drops are the central jet (straight up, a little taller), the rest arc over into the basin
+      const jet = s.idx < 4;
+      const h = 4 * u * (1 - u) * (jet ? 22 : 17);
+      const x = data.fountain.x + (jet ? s.dx * 1.5 : Math.sign(s.dx || 1) * (0.35 + Math.abs(s.dx) * 0.65) * u * 16);
       s.img.setPosition(Math.round(x), Math.round(data.fountain.y - h)).setAlpha(u > 0.9 ? (1 - u) * 10 : 0.95);
     }
     void f;
