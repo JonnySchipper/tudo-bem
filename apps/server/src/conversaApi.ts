@@ -13,6 +13,7 @@ import {
   gradeCopy,
   hearts,
   metersFromHistory,
+  subjectOpen,
   type RvNote,
   pickConversaOpener,
   presentConversaTurn,
@@ -45,6 +46,14 @@ function memoryIfBonded(store: ProfileStore | undefined, playerId: string | unde
   return hearts(store.get(playerId)?.bond?.[npc] ?? 0) >= MEMORY_MIN_HEARTS;
 }
 
+/** The asked-for subject when it exists and the player's hearts with this NPC open it (a locked one falls back to the default). */
+function openSubject(store: ProfileStore | undefined, playerId: string | undefined, npc: NpcId, subjectId: string | undefined) {
+  const subject = CONVERSA_SUBJECTS[subjectId ?? ''];
+  if (!subject) return undefined;
+  const h = store && playerId ? hearts(store.get(playerId)?.bond?.[npc] ?? 0) : 0;
+  return subjectOpen(subject, h) ? subject : undefined;
+}
+
 /** One RV grant per NPC per São Paulo day, unless CONVERSA_RV_ONCE_PER_DAY=off. */
 function rvOnceFromEnv(): boolean {
   return (process.env.CONVERSA_RV_ONCE_PER_DAY ?? 'on').toLowerCase() !== 'off';
@@ -66,6 +75,8 @@ export interface ConversaApiDeps {
    * requests without a signed-in profile get 401. Unset in solo-style/test setups.
    */
   playerIdFor?: (req: IncomingMessage) => string | undefined;
+  /** The game minute (0..1439): the NPC greets with the hour that fits it (bom dia / boa tarde / boa noite). */
+  clockMinutes?: () => number;
 }
 
 interface ConversaStartRequest {
@@ -267,7 +278,7 @@ async function handleStart(req: ConversaStartRequest, dailyCapOn: boolean, res: 
   }
 
   const cast = CONVERSA_CAST[req.npcId]!;
-  const subject = CONVERSA_SUBJECTS[req.subjectId ?? ''] ?? cast.subjects[0];
+  const subject = openSubject(deps.store, req.playerId, req.npcId, req.subjectId) ?? cast.subjects[0];
   if (!subject) {
     json(res, 200, { phase: 'blocked', reason: 'unavailable', pt: 'Conversa indisponível.', en: 'Conversa unavailable.' });
     return;
@@ -282,7 +293,7 @@ async function handleStart(req: ConversaStartRequest, dailyCapOn: boolean, res: 
     tip: null,
     end: false,
     order: {},
-  });
+  }, [], deps.clockMinutes?.());
   const opener: Bilingual = presented.line;
   const chips: Bilingual[] = presented.chips;
   deps.memory?.record(req.playerId, req.npcId, subject.id, 'npc', opener.pt);
@@ -327,7 +338,7 @@ async function handleTurn(req: ConversaTurnRequestBody, res: ServerResponse, dep
   const priorChips = Array.isArray(req.priorChips) ? req.priorChips.filter((c): c is string => typeof c === 'string') : [];
   const turnReq = {
     npcId: req.npcId,
-    subjectId: req.subjectId,
+    subjectId: openSubject(deps.store, req.playerId, req.npcId, req.subjectId)?.id ?? '',
     playerName: req.playerName,
     pronoun: req.pronoun,
     nameplate: req.nameplate,
@@ -336,6 +347,7 @@ async function handleTurn(req: ConversaTurnRequestBody, res: ServerResponse, dep
     turn: req.turn,
     maxTurns: CONVERSA_MAX_PLAYER_MSGS,
     priorChips,
+    minute: deps.clockMinutes?.(),
     // The NPC remembers you from 2 hearts up (HOWTO Phase 8 step 4 milestone); before that the memory stays unused
     memory: memoryIfBonded(deps.store, req.playerId, req.npcId) ? deps.memory?.get(req.playerId, req.npcId) : undefined,
   };
@@ -349,7 +361,7 @@ async function handleTurn(req: ConversaTurnRequestBody, res: ServerResponse, dep
     turnResponse = authoredConversaTurn(turnReq);
   }
 
-  turnResponse = presentConversaTurn(turnResponse, priorChips);
+  turnResponse = presentConversaTurn(turnResponse, priorChips, turnReq.minute);
   const subjectId = CONVERSA_SUBJECTS[req.subjectId]?.id ?? cast.subjects[0]?.id ?? '';
   deps.memory?.record(req.playerId, req.npcId, subjectId, 'player', gate.text);
   deps.memory?.record(req.playerId, req.npcId, subjectId, 'npc', turnResponse.line.pt);

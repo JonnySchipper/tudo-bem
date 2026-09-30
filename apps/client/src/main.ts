@@ -13,6 +13,7 @@ import {
   buildGrid,
   furnitureById,
   greetingFor,
+  localizeGreeting,
   hatById,
   HOTSPOT_READ_RANGE,
   HOTSPOTS,
@@ -689,7 +690,7 @@ function startGame() {
     const npcs = game.liveNpcs(now());
     if (!npcs.length || document.hidden) return;
     const n = npcs[Math.floor(Math.random() * npcs.length)];
-    npcSay(n.id, idleTalk.next(n.idleLines, clock.weather(), clock.minutes()));
+    npcSay(n.id, localizeGreeting(idleTalk.next(n.idleLines, clock.weather(), clock.minutes()), clock.minutes()));
   }, 11_000);
 }
 

@@ -126,6 +126,8 @@ export interface PrivateProfile {
   recados?: RecadoState;
   /** NPC friendship points 0-100 (10 = 1 heart). */
   bond?: Partial<Record<NpcId, number>>;
+  /** NPCs whose 6-heart furniture gift was already handed over (once each). */
+  bondGifts?: NpcId[];
   /** Caderno de palavras: per card, how often you saw, heard and used it (Phase 7). Defaulted to {} on load. */
   caderno?: Record<string, { seen: number; heard: number; used: number; firstAt: number }>;
   /** Caderno groups whose one-time RV has already been paid. */

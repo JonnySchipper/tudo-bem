@@ -3,6 +3,7 @@ import {
   normalizeBag,
   normalizeBjj,
   normalizeBond,
+  normalizeBondGifts,
   normalizeCaderno,
   normalizeCadernoPaid,
   normalizeNpcMemory,
@@ -127,6 +128,7 @@ export class ProfileStore {
 export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.bag = normalizeBag(p.bag);
   p.bond = normalizeBond(p.bond);
+  p.bondGifts = normalizeBondGifts(p.bondGifts);
   p.recados = normalizeRecados(p.recados);
   p.caderno = normalizeCaderno(p.caderno);
   p.cadernoPaid = normalizeCadernoPaid(p.cadernoPaid);

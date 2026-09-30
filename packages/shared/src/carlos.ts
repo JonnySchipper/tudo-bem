@@ -3,6 +3,7 @@ import { mgItemById } from './meveum.js';
 import { numberEn, numberPt } from './numbers.js';
 import { ECONOMY } from './constants.js';
 import { acceptAnswer } from './accept.js';
+import { GREETING_EN, greetingCap, greetingFor, localizeGreeting } from './clock.js';
 
 /**
  * Seu Carlos breakfast scene — authored, chip-first (Phase 0 has no generative NPCs).
@@ -21,7 +22,12 @@ export interface SceneCtx {
   where?: 'aqui' | 'viagem';
   /** Soft kinship already used this scene (CEO lock: max once). */
   kinUsed?: boolean;
+  /** Game minute (0..1439) the scene started: the greetings follow it (bom dia / boa tarde / boa noite). Unset = morning. */
+  minute?: number;
 }
+
+/** The greeting that fits the scene's time. */
+const greetOf = (c: SceneCtx) => greetingFor(c.minute ?? 600);
 
 interface ChipDef {
   pt: (c: SceneCtx) => string;
@@ -85,19 +91,31 @@ const FOOD_CHIPS = (score: 2 | 3): ChipDef[] => [
 const NODES: Record<string, NodeDef> = {
   inicio: {
     cards: ['lex.social.bom_dia', 'lex.social.tudo_bem'],
-    line: () => ({ pt: 'Bom dia! Tudo bem?', en: 'Good morning! How’s it going?' }),
+    line: (c) => localizeGreeting({ pt: 'Bom dia! Tudo bem?', en: 'Good morning! How’s it going?' }, c.minute ?? 600),
     chips: [
       { ...fixed('Tudo bem!', 'All good!'), score: 3, next: 'pedido', accepts: ['tudo bem e o senhor', 'tudo bem e voce', 'to bem', 'estou bem', 'tudo otimo', 'bem'] },
-      { ...fixed('Bom dia!', 'Good morning!'), score: 3, next: 'pedido', accepts: ['bom dia seu carlos', 'bomdia', 'bom dia tudo bem'] },
+      // the chip greets the way the hour asks; typing any of the three greetings is accepted (the time-exact check is the recado's `timeCorrect`)
+      {
+        pt: (c) => `${greetingCap(greetOf(c))}!`,
+        en: (c) => `${GREETING_EN[greetOf(c)]}!`,
+        score: 3,
+        next: 'pedido',
+        accepts: ['bom dia', 'boa tarde', 'boa noite', 'bom dia seu carlos', 'boa tarde seu carlos', 'boa noite seu carlos', 'bomdia', 'bom dia tudo bem', 'boa tarde tudo bem', 'boa noite tudo bem'],
+      },
       { ...fixed('Olá!', 'Hello!'), score: 2, next: 'pedido', accepts: ['oi', 'oi seu carlos', 'e ai'] },
       { ...fixed('Hello! Good morning!', '(answer in English)'), score: 1, next: 'inicio_devagar', accepts: ['hello', 'hi', 'good morning'] },
     ],
   },
   inicio_devagar: {
     cards: ['lex.social.bom_dia', 'lex.social.tudo_bem'],
-    line: () => ({ pt: 'Aqui a gente fala português, tá? Devagarinho: Bom… dia! Tudo… bem?', en: 'Here we speak Portuguese, okay? Nice and slow: Good… morning! How’s… it going?' }),
+    line: (c) => {
+      const g = greetOf(c);
+      const slowPt = greetingCap(g).replace(' ', '… ');
+      const slowEn = GREETING_EN[g].replace(' ', '… ');
+      return { pt: `Aqui a gente fala português, tá? Devagarinho: ${slowPt}! Tudo… bem?`, en: `Here we speak Portuguese, okay? Nice and slow: ${slowEn}! How’s… it going?` };
+    },
     chips: [
-      { ...fixed('Bom dia! Tudo bem!', 'Good morning! All good!'), score: 2, next: 'pedido', accepts: ['bom dia', 'tudo bem'] },
+      { pt: (c) => `${greetingCap(greetOf(c))}! Tudo bem!`, en: (c) => `${GREETING_EN[greetOf(c)]}! All good!`, score: 2, next: 'pedido', accepts: ['bom dia', 'boa tarde', 'boa noite', 'tudo bem'] },
       { ...fixed('Tudo bem!', 'All good!'), score: 2, next: 'pedido', accepts: ['bem', 'to bem'] },
     ],
   },

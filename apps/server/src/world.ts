@@ -457,7 +457,7 @@ export class World {
       case 'heard':
         return this.caderno.heard(s, msg.cardIds);
       case 'talk':
-        if (this.recados.talk(s, msg.npc)) this.caderno.seen(s, talkOpener(msg.npc, s.profile?.name) ?? '');
+        if (this.recados.talk(s, msg.npc)) this.caderno.seen(s, talkOpener(msg.npc, s.profile?.name, gameMinutes(this.clockNow())) ?? '');
         return;
     }
   }
@@ -659,6 +659,11 @@ export class World {
   /** The game clock: real time plus the test offset. Everything the players see as time of day comes from here. */
   private clockNow() {
     return this.now() + this.clockOffsetMs;
+  }
+
+  /** Game minute (0..1439), for the HTTP Conversa flow (it has no session): the NPCs greet by it. */
+  gameMinuteNow(): number {
+    return gameMinutes(this.clockNow());
   }
 
   /** Starts the NPC tick if it is not running. It stops itself when nobody is in the world. */
@@ -924,7 +929,7 @@ export class World {
       if ((m.npc !== 'carlos' && m.npc !== 'graca') || s.instance?.def.id !== 'padaria')
         return this.err(s, 'scene', 'O café da manhã é no balcão da padaria.', 'Breakfast is at the bakery counter.');
       if (s.mg) return this.err(s, 'busy', 'Termine o jogo primeiro.', 'Finish the game first.');
-      const ctx: SceneCtx = { name: p.name, pronoun: p.pronoun };
+      const ctx: SceneCtx = { name: p.name, pronoun: p.pronoun, minute: gameMinutes(this.clockNow()) };
       const view = this.services.npc.start('carlos', ctx);
       s.scene = { npc: 'carlos', node: view.nodeId, ctx, scores: [], shownAt: this.now() };
       this.recados.onEvent(s, { kind: 'talked', npc: bakerOnDuty(gameMinutes(this.clockNow())) });
@@ -1056,7 +1061,7 @@ export class World {
       if (s.instance?.def.id !== 'padaria') return this.err(s, 'mg', 'O jogo fica no balcão da padaria.', 'The game is at the bakery counter.');
       s.scene = undefined;
       const rng = mulberry32((this.now() ^ (Math.random() * 1e9)) >>> 0);
-      const order = makeOrder(rng, 0);
+      const order = makeOrder(rng, 0, undefined, gameMinutes(this.clockNow()));
       const t0 = this.now();
       s.mg = { rng, round: 0, order, orderAt: t0, roundStartedAt: t0, repeated: false, points: 0, streak: 0, perfect: 0, waiting: false, token: ++this.seq, served: [order.pt] };
       return this.sendOrder(s);
@@ -1186,7 +1191,7 @@ export class World {
     mg.waiting = false;
     if (!Array.isArray(mg.served)) mg.served = mg.order.pt ? [mg.order.pt] : [];
     mg.lastSig = undefined;
-    mg.order = makeOrder(mg.rng, mg.round, mg.served);
+    mg.order = makeOrder(mg.rng, mg.round, mg.served, gameMinutes(this.clockNow()));
     mg.served.push(mg.order.pt);
     mg.repeated = false;
     mg.orderAt = this.now();

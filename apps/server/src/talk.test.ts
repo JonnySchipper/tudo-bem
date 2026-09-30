@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { DEFAULT_APPEARANCE, ROOMS, type ClientMsg, type ServerMsg } from '@tudobem/shared';
+import { DEFAULT_APPEARANCE, ROOMS, gameMinutes, greetingFor, type ClientMsg, type ServerMsg } from '@tudobem/shared';
 import { World, type Session } from './world.js';
 import { ProfileStore } from './store.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, MemoryModerationQueue, PhrasebookGloss } from './services/stubs.js';
@@ -72,8 +72,8 @@ describe('talk: the greeting dialogue with Nanda and Júlia (Phase 7)', () => {
     await a.send({ t: 'talk', npc: 'nanda' });
     expect(p.bond?.nanda).toBe(2);
     expect(p.recados!.done).toEqual(['julia_conhecer_nanda']);
-    // the greeting line counts as seen in the Caderno (Oi / Tudo bem)
-    expect(p.caderno?.['lex.social.oi']?.seen).toBe(1);
+    // the greeting line counts as seen in the Caderno (the hour's greeting / Tudo bem)
+    expect(p.caderno?.[`lex.social.${greetingFor(gameMinutes(clock)).replace(' ', '_')}`]?.seen).toBe(1);
     expect(p.caderno?.['lex.social.tudo_bem']?.seen).toBe(1);
 
     await a.send({ t: 'talk', npc: 'nanda' }); // the daily talk bond is paid once

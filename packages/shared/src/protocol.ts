@@ -220,7 +220,8 @@ export type ServerMsg =
   | { t: 'avatarUpdated'; avatar: PublicAvatar }
   | { t: 'emote'; id: string; kind: EmoteKind }
   | { t: 'chat'; id: string; name: string; text: string; gloss: string | null; lang: 'pt' | 'en' | 'mix'; action: SafetyAction }
-  | { t: 'notice'; level: NoticeLevel; pt: string; en: string }
+  /** `tag` marks notices the client presents in its own way: a recado step, the giver's thanks, a friendship milestone. */
+  | { t: 'notice'; level: NoticeLevel; pt: string; en: string; tag?: 'recado_step' | 'recado_thanks' | 'bond' }
   | { t: 'reward'; amount: number; coins: number; reason: Bilingual }
   | {
       t: 'scene';

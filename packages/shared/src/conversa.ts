@@ -3,6 +3,7 @@ import type { NpcId } from './rooms.js';
 import { PRICES, type SceneCtx } from './carlos.js';
 import { numberPt } from './numbers.js';
 import { classifyChat, type SafetyAction } from './safety.js';
+import { GREETING_EN, formatClock, greetingCap, greetingFor, localizeGreeting } from './clock.js';
 
 /**
  * Conversa (GDD §5.6): a short, private, scored conversation with an NPC.
@@ -40,6 +41,8 @@ export interface ConversaSubject {
   seedOpeners: string[];
   /** Player reply chips paired with seed openers (index wraps). */
   seedChipSets?: string[][];
+  /** Friendship hearts with the NPC needed before this subject can be picked (HOWTO Phase 8 step 4: 4 hearts). Unset = always open. */
+  minHearts?: number;
 }
 
 export interface ConversaCastEntry {
@@ -91,13 +94,46 @@ export const CONVERSA_SUBJECTS: Record<string, ConversaSubject> = {
   },
 };
 
+/** Hearts at which the extra Conversa subject opens. */
+export const SUBJECT_UNLOCK_HEARTS = 4;
+
+// needs_br: true (the whole subject: title, goal, openers and chips; A1 small talk about Vila Ipê)
+CONVERSA_SUBJECTS.o_bairro = {
+  id: 'o_bairro',
+  title: { pt: 'O bairro', en: 'The neighborhood' },
+  goal: { pt: 'Converse sobre o bairro: onde você mora, a praça e os vizinhos.', en: 'Chat about the neighborhood: where you live, the square and the neighbors.' },
+  lexemes: ['o bairro', 'a praça', 'o vizinho', 'a vizinha', 'moro aqui', 'gosto de', 'tudo bem', 'beleza', 'até logo'],
+  seedOpeners: ['E aí, tá gostando do bairro?', 'Você mora aqui perto?', 'Já conheceu a Nanda e a Júlia?', 'A praça tá bonita hoje, né?'],
+  seedChipSets: [
+    ['Gosto muito do bairro!', 'Moro aqui perto.', 'Ainda tô conhecendo.'],
+    ['Moro na kitnet, na praça.', 'Moro aqui perto, sim.', 'Não, moro longe.'],
+    ['Já conheci, sim!', 'Ainda não conheci.', 'A Nanda vende chapéus!'],
+    ['Tá linda mesmo!', 'Gosto da praça.', 'Ainda tô olhando.'],
+  ],
+  minHearts: SUBJECT_UNLOCK_HEARTS,
+};
+
+/**
+ * What the player can pick to talk about with an NPC, given their hearts: the default subject, plus every one whose minimum hearts are reached.
+ * With only the default there is nothing to choose (the Conversa just starts).
+ */
+export function subjectChoices(npc: NpcId, heartCount: number): ConversaSubject[] {
+  const cast = CONVERSA_CAST[npc];
+  if (!cast?.enabled) return [];
+  const [first, ...rest] = cast.subjects;
+  return first ? [first, ...rest.filter((s) => s.minHearts !== undefined && heartCount >= s.minHearts)] : [];
+}
+
+/** Is this subject open to a player with that many hearts? (No minimum = open.) */
+export const subjectOpen = (subject: ConversaSubject, heartCount: number): boolean => subject.minHearts === undefined || heartCount >= subject.minHearts;
+
 export const CONVERSA_CAST: Record<NpcId, ConversaCastEntry> = {
   carlos: {
     npc: 'carlos',
     name: 'Seu Carlos',
     room: 'padaria',
     enabled: true,
-    subjects: [CONVERSA_SUBJECTS.cafe_da_manha, CONVERSA_SUBJECTS.cumprimentos],
+    subjects: [CONVERSA_SUBJECTS.cafe_da_manha, CONVERSA_SUBJECTS.cumprimentos, CONVERSA_SUBJECTS.o_bairro],
   },
   nanda: {
     npc: 'nanda',
@@ -128,7 +164,7 @@ export const CONVERSA_CAST: Record<NpcId, ConversaCastEntry> = {
     name: 'Dona Graça',
     room: 'padaria',
     enabled: true,
-    subjects: [CONVERSA_SUBJECTS.cafe_da_manha, CONVERSA_SUBJECTS.cumprimentos],
+    subjects: [CONVERSA_SUBJECTS.cafe_da_manha, CONVERSA_SUBJECTS.cumprimentos, CONVERSA_SUBJECTS.o_bairro],
     persona:
       "You are Dona Graça, who runs the night shift (10 pm to 6 am) at Padaria do Seu Carlos in a São Paulo neighborhood while Seu Carlos is off. You are warm, a joker who teases gently (never at the customer's expense) and you like the quiet of the night. You are at the counter",
   },
@@ -167,6 +203,8 @@ export interface ConversaTurnRequest {
   priorChips?: string[];
   /** One vetted PT line about this player's last Conversa with this NPC (`PrivateProfile.npcMemory`). */
   memory?: string;
+  /** Game minute (0..1439): the NPC greets with the hour that fits it. */
+  minute?: number;
 }
 
 export interface ConversaTurnResponse {
@@ -587,7 +625,7 @@ Use it at most once, and only when it fits, for example "Hoje é o de sempre?". 
 
 export function buildCarlosSystemPrompt(
   subject: ConversaSubject,
-  ctx: { playerName: string; pronoun: Pronoun; nameplate: Nameplate },
+  ctx: { playerName: string; pronoun: Pronoun; nameplate: Nameplate; /** Game minute: the greeting must fit it. */ minute?: number },
   memory?: string,
   persona?: string,
 ): string {
@@ -596,8 +634,13 @@ export function buildCarlosSystemPrompt(
     ? `You may say "${kinship}" at most once in the whole scene, warmly, and never on the opener. Not every line.`
     : 'Do not use kinship terms (meu filho / minha filha). The player did not pick a gendered pronoun.';
 
-  return `${persona ?? 'You are Seu Carlos, owner of Padaria do Seu Carlos in a São Paulo neighborhood. You are at the counter'}, in a private conversation with ${ctx.playerName}. Talk like a person, not a script. React to the exact words they just said.
+  // the greeting follows the game clock: an NPC who says "Bom dia" at 17:30 breaks the world
+  const timeNote = ctx.minute === undefined ? '' : `
+TIME OF DAY: it is ${formatClock(ctx.minute)} in the neighborhood. The right greeting right now is "${greetingCap(greetingFor(ctx.minute))}" (${GREETING_EN[greetingFor(ctx.minute)]}). Greet with that one and never with another. If the player greets you with the wrong one, answer with the right one, naturally, without correcting them.
+`;
 
+  return `${persona ?? 'You are Seu Carlos, owner of Padaria do Seu Carlos in a São Paulo neighborhood. You are at the counter'}, in a private conversation with ${ctx.playerName}. Talk like a person, not a script. React to the exact words they just said.
+${timeNote}
 VOICE:
 - Educated informal Paulista warmth: você / a gente / legal / tá / pra. Spoken, short lines.
 - "Pois não" is the preferred acknowledgement when you accept a request (an order, a confirmation, a "me vê"). It is NOT required on every line, and it is NOT the opener. Do not start a greeting, small talk, a follow-up, or a goodbye with it. Many turns should not contain "Pois não" at all.
@@ -719,7 +762,7 @@ const FILL_CHIPS = ['Me vê um pão na chapa, por favor.', 'Um café com leite, 
  * Last step before a turn is returned: Gate B on the line, every chip, and the tip.
  * A banned line becomes a safe counter question. Repeated chip sets are rotated.
  */
-export function presentConversaTurn(turn: ConversaTurnResponse, priorChips: string[] = []): ConversaTurnResponse {
+export function presentConversaTurn(turn: ConversaTurnResponse, priorChips: string[] = [], minute?: number): ConversaTurnResponse {
   const gated = applyConversaGateB({
     line: turn.line.pt,
     chips: turn.chips.map((c) => c.pt),
@@ -729,10 +772,12 @@ export function presentConversaTurn(turn: ConversaTurnResponse, priorChips: stri
   let chipPts = diverseChips(gated.chips, priorChips);
   if (chipPts.length < 2 && !turn.end) chipPts = diverseChips(FILL_CHIPS, priorChips);
   const enByPt = new Map(turn.chips.map((c) => [c.pt, c.en]));
+  // a greeting that starts the NPC's line or a chip follows the game hour (bom dia / boa tarde / boa noite)
+  const at = (l: Bilingual): Bilingual => (minute === undefined ? l : localizeGreeting(l, minute));
   return {
     ...turn,
-    line: { pt: linePt, en: gated.line ? turn.line.en : '' },
-    chips: chipPts.map((pt) => ({ pt, en: enByPt.get(pt) ?? '' })),
+    line: at({ pt: linePt, en: gated.line ? turn.line.en : '' }),
+    chips: chipPts.map((pt) => at({ pt, en: enByPt.get(pt) ?? '' })),
     tip: gated.tip ? { pt: gated.tip, en: turn.tip?.en ?? '' } : null,
   };
 }
@@ -749,7 +794,7 @@ export function pickConversaOpener(subject: ConversaSubject, rng: () => number =
 }
 
 /** Authored/offline Conversar when the API is missing (static Pages 405). Null if that NPC is not enabled. */
-export function offlineConversaOpen(npcId: NpcId): {
+export function offlineConversaOpen(npcId: NpcId, minute?: number): {
   npcName: string;
   subject: ConversaSubject;
   line: Bilingual;
@@ -768,7 +813,7 @@ export function offlineConversaOpen(npcId: NpcId): {
     tip: null,
     end: false,
     order: {},
-  });
+  }, [], minute);
   return { npcName: cast.name, subject, line: presented.line, chips: presented.chips, maxTurns: CONVERSA_MAX_PLAYER_MSGS };
 }
 
