@@ -75,6 +75,7 @@ await pixelArtReady;
 const canvas = document.getElementById('world') as HTMLCanvasElement;
 // The pixel view (top-down, Phaser) is the only world view. The isometric renderer was deleted in Phase 5; `?view=iso` is ignored.
 if (new URLSearchParams(location.search).get('view') === 'iso') console.info('[view] the isometric view was removed; drawing the pixel view');
+document.body.classList.add('view-pixel');
 const renderer: WorldView = new (await import('./render/pixel/PixelView')).PixelView(canvas);
 /** Static deploys (no WebSocket server) run the World in-page. `?solo` forces it anywhere. */
 const SOLO = import.meta.env.VITE_LOCAL_WORLD === '1' || new URLSearchParams(location.search).has('solo');
@@ -892,6 +893,8 @@ async function boot() {
     signedIn = !SOLO && entry.mode === 'auth';
   }
   game.music = ambience.enabled;
+  // Phaser starts only now (intro closed, or skipped by a live session); it crashed some GPUs when booted under the title blur.
+  if ('start' in renderer) (renderer as { start: () => void }).start();
   net.connect();
 }
 void boot();
