@@ -219,13 +219,13 @@ describe('NPC tiles block the player, where the NPC is now', () => {
     setGameTime(19);
     const world = makeWorld();
     const a = await client(world, 'praca');
-    await a.send({ t: 'move', x: 21, y: 17, sit: true });
+    await a.send({ t: 'move', x: 20, y: 25, sit: true });
     expect(a.all('avatarMoved').filter((m) => m.id === a.s.profile!.id)).toHaveLength(0);
-    await a.send({ t: 'move', x: 20, y: 17, sit: true }); // the other half of the bench
+    await a.send({ t: 'move', x: 21, y: 25, sit: true }); // the other half of the bench
     expect(a.all('avatarMoved').filter((m) => m.id === a.s.profile!.id)).toHaveLength(1);
     setGameTime(9);
     const b = await client(makeWorld(), 'praca');
-    await b.send({ t: 'move', x: 21, y: 17, sit: true });
+    await b.send({ t: 'move', x: 20, y: 25, sit: true });
     expect(b.all('avatarMoved').filter((m) => m.id === b.s.profile!.id)).toHaveLength(1);
   });
 

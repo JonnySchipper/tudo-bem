@@ -82,7 +82,7 @@ describe('scheduleAt boundaries', () => {
     }
     expect(scheduleAt('julia', at(6, 59))).toMatchObject({ tile: { x: 21, y: 6 } });
     expect(scheduleAt('julia', at(7))).toMatchObject({ activity: 'trabalhando' });
-    expect(scheduleAt('julia', at(17))).toMatchObject({ activity: 'sentado', tile: { x: 21, y: 17 } });
+    expect(scheduleAt('julia', at(17))).toMatchObject({ activity: 'sentado', tile: { x: 20, y: 25 } });
   });
 
   it('slotIndexAt wraps and takes fractional minutes', () => {

@@ -68,8 +68,8 @@ const JULIA: ScheduleSlot[] = [
   slot('julia', at(0), at(7), 'praca', { x: 21, y: 6 }, 'SW', 'passeando', { x: 20, y: 6 }),
   // by day at the kiosk end of the path to the fountain
   slot('julia', at(7), at(17), 'praca', { x: 22, y: 19 }, 'SW', 'trabalhando', { x: 22, y: 20 }),
-  // evening on a bench by the fountain (banco_1)
-  slot('julia', at(17), at(23), 'praca', { x: 21, y: 17 }, 'SW', 'sentado', { x: 21, y: 18 }),
+  // evening on a bench south-west of the fountain (banco_3; banco_1 by the kiosk stays free: the e2e clicks it for real)
+  slot('julia', at(17), at(23), 'praca', { x: 20, y: 25 }, 'SW', 'sentado', { x: 20, y: 26 }),
   slot('julia', at(23), at(24), 'praca', { x: 21, y: 6 }, 'SW', 'passeando', { x: 20, y: 6 }),
 ];
 
