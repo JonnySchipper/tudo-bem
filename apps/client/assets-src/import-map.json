@@ -931,6 +931,195 @@
         1
       ],
       "shadow": "fx/shadow_10"
+    },
+    {
+      "key": "props/orelhao",
+      "kind": "derive",
+      "fn": "orelhao",
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/placa_rua",
+      "kind": "derive",
+      "fn": "placaRua",
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/lixeira",
+      "kind": "derive",
+      "fn": "lixeira",
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "props/quiosque",
+      "kind": "derive",
+      "fn": "quiosque",
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      },
+      "light": {
+        "x": 8,
+        "y": 12,
+        "r": 30,
+        "color": "#ffc46a"
+      }
+    },
+    {
+      "key": "props/barraca_chapeus",
+      "kind": "derive",
+      "fn": "barracaChapeus",
+      "footprint": [
+        2,
+        1
+      ],
+      "shadow": "fx/shadow_32",
+      "cast": {
+        "kx": 0.4,
+        "ky": 0.22
+      }
+    },
+    {
+      "key": "props/poleiro",
+      "kind": "derive",
+      "fn": "poleiro",
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
+    },
+    {
+      "key": "chars/parrot",
+      "kind": "derive",
+      "fn": "parrotCompanion",
+      "footprint": [
+        1,
+        1
+      ]
+    },
+    {
+      "key": "props/poste_fios",
+      "kind": "derive",
+      "fn": "posteFios",
+      "footprint": [
+        1,
+        1
+      ],
+      "shadow": "fx/shadow_16",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.22
+      }
+    },
+    {
+      "key": "props/fios_seg",
+      "kind": "derive",
+      "fn": "fios"
+    },
+    {
+      "key": "critters/vira_lata_idle_e",
+      "kind": "derive",
+      "fn": "viraLata"
+    },
+    {
+      "key": "vehicles/onibus_e",
+      "kind": "derive",
+      "fn": "onibus"
+    },
+    {
+      "key": "vehicles/kombi_e",
+      "kind": "derive",
+      "fn": "kombi"
+    },
+    {
+      "key": "vehicles/fusca_e",
+      "kind": "derive",
+      "fn": "fusca"
+    },
+    {
+      "key": "vehicles/moto_e",
+      "kind": "derive",
+      "fn": "moto"
+    },
+    {
+      "key": "facades/padaria",
+      "kind": "derive",
+      "fn": "padaria"
+    },
+    {
+      "key": "facades/edificio_ipe",
+      "kind": "derive",
+      "fn": "edificio"
+    },
+    {
+      "key": "facades/academia",
+      "kind": "derive",
+      "fn": "academia"
+    },
+    {
+      "key": "feira/frutas",
+      "kind": "derive",
+      "fn": "feira"
+    },
+    {
+      "key": "ui/guide_arrow",
+      "kind": "derive",
+      "fn": "guideArrow",
+      "footprint": [
+        1,
+        1
+      ]
+    }
+  ],
+  "images": [
+    {
+      "fn": "portraits"
+    },
+    {
+      "fn": "icons"
+    },
+    {
+      "fn": "ui"
+    },
+    {
+      "fn": "uiicons"
+    },
+    {
+      "fn": "parrot"
     }
   ],
   "terrain": {
@@ -1052,103 +1241,7 @@
     }
   },
   "chars": {
-    "$comment": "LimeZu Character Generator layers -> canonical 128x544 keyed sheets. sources are merged back to front. groups list the source shades per ramp (see palette.ts).",
-    "base": "int:2_Characters/Character_Generator",
-    "layers": [
-      {
-        "key": "body_medio",
-        "sources": [
-          "Bodies/16x16/Body_01.png",
-          "Eyes/16x16/Eyes_01.png"
-        ],
-        "groups": {
-          "skin": [
-            "#aa5e56",
-            "#b57972",
-            "#bf8b78",
-            "#c49d85"
-          ]
-        }
-      },
-      {
-        "key": "outfit_o01",
-        "sources": [
-          "Outfits/16x16/Outfit_01_01.png"
-        ],
-        "groups": {
-          "top": [
-            "#805e8e",
-            "#9f74a8"
-          ],
-          "bottom": [
-            "#5d6043",
-            "#687253"
-          ]
-        }
-      },
-      {
-        "key": "outfit_o13",
-        "sources": [
-          "Outfits/16x16/Outfit_13_01.png"
-        ],
-        "groups": {
-          "top": [
-            "#50a7e8",
-            "#5ec8fc"
-          ]
-        }
-      },
-      {
-        "key": "outfit_o16",
-        "sources": [
-          "Outfits/16x16/Outfit_16_01.png"
-        ],
-        "groups": {
-          "top": [
-            "#ed931e",
-            "#f5aa14"
-          ]
-        }
-      },
-      {
-        "key": "hair_h02",
-        "sources": [
-          "Hairstyles/16x16/Hairstyle_02_01.png"
-        ],
-        "groups": {
-          "hair": [
-            "#ab6736",
-            "#b37b3f",
-            "#cc9659"
-          ]
-        }
-      },
-      {
-        "key": "hair_h12",
-        "sources": [
-          "Hairstyles/16x16/Hairstyle_12_01.png"
-        ],
-        "groups": {
-          "hair": [
-            "#ab6736",
-            "#b37b3f",
-            "#cc9659"
-          ]
-        }
-      },
-      {
-        "key": "hair_h05",
-        "sources": [
-          "Hairstyles/16x16/Hairstyle_05_01.png"
-        ],
-        "groups": {
-          "hair": [
-            "#ab6736",
-            "#b37b3f",
-            "#cc9659"
-          ]
-        }
-      }
-    ]
+    "$comment": "Character layers are built by custom/chars.mjs (LimeZu Character Generator layers + authored pieces) into canonical key-colored sheets; see assets-src/README.md.",
+    "base": "int:2_Characters/Character_Generator"
   }
 }

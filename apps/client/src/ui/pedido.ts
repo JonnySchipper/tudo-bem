@@ -8,7 +8,7 @@ import { ROOMS, SCORE_FEEDBACK, gateConversaPlayerLine } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi, ui } from './dom';
 import { toast } from './hud';
-import { renderAvatarPreview } from '../render/avatar';
+import { expressionForScore, npcPortrait } from './pixelArt';
 import { speak } from '../audio';
 import { ticketLinesFromSaid, type TicketLine } from './pedido-ticket';
 
@@ -40,16 +40,8 @@ function showSafetyToast(notice: ConversaSafetyNotice | null | undefined) {
 }
 
 function portrait() {
-  const carlos = ROOMS.padaria.npcs.find((n) => n.id === 'carlos')!;
-  const c = h('canvas', { width: 96, height: 110, style: 'width:96px;height:110px' });
-  let raf = 0;
-  const loop = (ts: number) => {
-    if (!c.isConnected && ts > 1000) return cancelAnimationFrame(raf);
-    renderAvatarPreview(c, carlos.appearance, carlos.hat, false, ts / 1000, { scale: 2.35, footY: 236, npc: 'carlos' });
-    raf = requestAnimationFrame(loop);
-  };
-  raf = requestAnimationFrame(loop);
-  return h('div', { class: 'pedido-portrait' }, c);
+  const expr = state?.view.end ? (state.payout && state.payout > 0 ? 'feliz' : 'neutro') : expressionForScore(state?.lastScore);
+  return npcPortrait('carlos', expr, 'pedido-portrait');
 }
 
 function buildTicketVisual(ticket: TicketLine[]): HTMLElement {

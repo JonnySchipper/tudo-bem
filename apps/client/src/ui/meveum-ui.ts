@@ -10,7 +10,7 @@ import {
   type Tray,
 } from '@tudobem/shared';
 import { h, en, bi } from './dom';
-import { foodIcon } from '../render/icons';
+import { foodIcon } from './pixelArt';
 import { speak } from '../audio';
 import { stationBatchSize } from './meveum-batch.js';
 import { nextMgClock } from './meveum-clock.js';
@@ -89,7 +89,7 @@ export class MinigameUI {
           onpointerup: (e: PointerEvent) => this.onPointerDrop(e),
         },
         h('kbd', null, keyLabel),
-        h('img', { src: foodIcon(item.id), alt: '' }),
+        foodIcon(item.id, 3),
         h('span', { class: 'pt' }, item.card.form),
         en(item.card.gloss_en),
       );
@@ -383,7 +383,7 @@ export class MinigameUI {
     }
     const need = this.order ? wipNeeds(this.wip, this.order) : null;
     this.wipEl.replaceChildren(
-      h('img', { src: foodIcon(this.wip.itemId, 56), alt: '' }),
+      foodIcon(this.wip.itemId, 3),
       h('div', { class: 'wip-hint' }, need === 'tray' ? bi('Pronto pra colocar', 'Ready to place') : bi(`Próximo: ${stationLabel(need)}`, `Next: ${stationLabelEn(need)}`)),
     );
     this.wipEl.classList.toggle('ready', !!this.order && wipReady(this.wip, this.order));
@@ -417,7 +417,7 @@ export class MinigameUI {
             },
             title: 'Tirar / remove',
           },
-          h('img', { src: foodIcon(id, 48), alt: id }),
+          foodIcon(id, 3, id),
           h('span', null, `×${n}`),
         ),
       ),
@@ -592,7 +592,7 @@ export class MinigameUI {
             'div',
             { style: 'margin-top:6px;font-size:.85em' },
             'Era: ',
-            ...m.expected.map((l) => h('span', { style: 'margin-right:6px' }, `${l.qty}× `, h('img', { src: foodIcon(l.itemId, 22), style: 'width:22px;height:22px;vertical-align:middle' }))),
+            ...m.expected.map((l) => h('span', { style: 'margin-right:6px' }, `${l.qty}× `, foodIcon(l.itemId, 2, '', 'px-inline'))),
             ...(m.expectedMods ?? []).map((id) => h('span', { class: 'feedback', style: 'margin-left:4px' }, mgModById(id)?.pt ?? id)),
           ),
         );

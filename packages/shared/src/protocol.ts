@@ -17,6 +17,7 @@ import type { SafetyAction } from './safety.js';
 import type { NpcId } from './rooms.js';
 import type { ConversaGrade, ConversaMeter, ConversaScores, ConversaSubject } from './conversa.js';
 import type { BjjPositionId, BjjProgress, RollPuzzleView } from './academia.js';
+import type { RecadoActiveView, RecadoOfferView } from './recados.js';
 
 /** Client → server messages. JSON over a single WebSocket at /ws. */
 export type ClientMsg =
@@ -54,6 +55,13 @@ export type ClientMsg =
   | { t: 'friend'; action: 'request' | 'accept' | 'decline' | 'remove'; targetId: string }
   | { t: 'friends' }
   | { t: 'mission'; action: 'take' }
+  /** Hand one recado's worth of an item from the bag to an NPC standing next to you. */
+  | { t: 'give'; npc: NpcId; itemId: string }
+  /** Read a sign (a hotspot id from HOTSPOTS), within 3 tiles. */
+  | { t: 'read'; hotspotId: string }
+  | { t: 'recados'; action: 'accept' | 'list'; id?: string }
+  /** The player played 🔊 for these cards (Caderno). At most 10 known card ids; rate-limited per session. */
+  | { t: 'heard'; cardIds: string[] }
   | { t: 'roll'; action: 'queue' }
   | { t: 'roll'; action: 'cancel' }
   | { t: 'roll'; action: 'answer'; choice: number }
@@ -74,6 +82,8 @@ export interface RoomStateMsg {
   selfId: string;
   avatars: PublicAvatar[];
   furniture: PlacedFurniture[];
+  /** Server `Date.now()` when sent; the client derives `skew = serverNow - Date.now()` for the game clock. */
+  serverNow?: number;
 }
 
 export type NoticeLevel = 'info' | 'warn' | 'block' | 'reward' | 'error';
@@ -197,7 +207,7 @@ export type RollServerMsg =
 
 /** Server → client messages. */
 export type ServerMsg =
-  | { t: 'welcome'; profile: PrivateProfile; token: string }
+  | { t: 'welcome'; profile: PrivateProfile; token: string; serverNow?: number }
   | { t: 'needProfile' }
   /** Multiplayer needs an email + password account; this socket has no valid session cookie. */
   | { t: 'authRequired' }
@@ -235,5 +245,7 @@ export type ServerMsg =
   | { t: 'friendRequest'; fromId: string; fromName: string }
   | { t: 'parrotHint'; word: Bilingual }
   | { t: 'tutorial'; step: TutorialStep }
+  /** The recados board: offered (not yet accepted), in progress, and ids finished today. Sent on `recados` requests, on join and after every change. */
+  | { t: 'recados'; day: number; offered: RecadoOfferView[]; active: RecadoActiveView[]; done: string[] }
   | { t: 'error'; code: string; pt: string; en: string }
   | { t: 'pong' };

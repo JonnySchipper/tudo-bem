@@ -6,7 +6,7 @@
  */
 import type { BjjPositionId } from '@tudobem/shared';
 import { TB } from '../art/palette';
-import { circle, rrect, type Ctx } from './draw';
+import { circle, rrect, type Ctx } from './canvas2d';
 
 export type BjjPoseId = BjjPositionId | 'tap' | 'fist_bump';
 

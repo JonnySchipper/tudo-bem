@@ -10,6 +10,7 @@ import { fileAdapter } from './fileStore.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 import { FileModerationQueue } from './services/fileModeration.js';
 import { handleConversaApi } from './conversaApi.js';
+import { ConversaMemory } from './conversaMemory.js';
 import { staticCacheControl } from './cacheControl.js';
 import {
   AccountStore,
@@ -70,6 +71,7 @@ export function createApp(opts: AppOptions) {
     },
     { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, idleKickMs: opts.idleKickMs },
   );
+  const conversaMemory = new ConversaMemory({ store, onProfileChanged: (playerId) => world.pushProfileById(playerId) });
   const limiters = defaultLimiters();
   const allowedOrigins = opts.allowedOrigins ?? [];
   const opsSmoke = opts.opsSmoke ?? readOpsSmokeConfig();
@@ -105,6 +107,9 @@ export function createApp(opts: AppOptions) {
       return handleConversaApi(req, res, {
         store,
         onProfileChanged: (playerId) => world.pushProfileById(playerId),
+        onConversaEnd: (playerId, npc, grade, order) => world.conversaEnded(playerId, npc, grade, order),
+        onConversaLine: (playerId, who, pt) => world.conversaLine(playerId, who, pt),
+        memory: conversaMemory,
         playerIdFor: (r) => accounts.accountForSession(sessionCookieOf(r))?.profileId,
       });
     }

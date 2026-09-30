@@ -1,76 +1,105 @@
 import { describe, expect, it } from 'vitest';
-import { CLOCK_OFFSET_MS, GAME_DAY_MS, clockLabel, formatHHMM, gameDay, gameMinutes, greetingFor, period } from './clock.js';
+import { CLOCK_OFFSET_MS, GAME_DAY_MS, formatClock, gameDay, gameMinutes, greetingFor, period, weekday } from './clock.js';
 
-const MINUTE_MS = GAME_DAY_MS / 1440;
-
-/** nowMs whose game clock reads minute `min` on game day `day`. */
-function at(day: number, min: number): number {
-  return day * GAME_DAY_MS - CLOCK_OFFSET_MS + min * MINUTE_MS;
-}
+/** A timestamp (>= 0) at which the game clock reads exactly `min` on game day `day`. */
+const at = (day: number, min: number) => day * GAME_DAY_MS + (min / 1440) * GAME_DAY_MS - CLOCK_OFFSET_MS;
 
 describe('game clock', () => {
-  it('keeps gameMinutes in 0..1439, including before the epoch', () => {
-    for (let i = 0; i < 4000; i++) {
-      const now = i * 137 - 50_000_000;
-      const m = gameMinutes(now);
-      expect(m).toBeGreaterThanOrEqual(0);
-      expect(m).toBeLessThan(1440);
-      expect(Number.isInteger(m)).toBe(true);
+  it('a game day is 48 real minutes', () => {
+    expect(GAME_DAY_MS).toBe(2_880_000);
+  });
+
+  it('reads 17:00 at Unix time 0 and at every 4-hour UTC boundary', () => {
+    for (const utcHour of [0, 4, 8, 12, 16, 20]) {
+      const t = Date.UTC(2026, 5, 15, utcHour, 0, 0);
+      expect(formatClock(gameMinutes(t))).toBe('17:00');
     }
+    expect(gameMinutes(0)).toBe(1020);
   });
 
-  it('lands a fresh boot near 17:00', () => {
-    const min = gameMinutes(0);
-    expect(Math.floor(min / 60)).toBe(17);
-    expect(formatHHMM(min)).toBe('17:00');
-    expect(clockLabel(0)).toEqual({ weekday: 'Dom', hhmm: '17:00', icon: '☀️' });
+  it('gameMinutes stays within 0..1439 and hits the exact boundaries', () => {
+    expect(gameMinutes(at(10, 0))).toBe(0);
+    expect(gameMinutes(at(10, 300))).toBe(300);
+    expect(gameMinutes(at(10, 720))).toBe(720);
+    expect(gameMinutes(at(10, 1080))).toBe(1080);
+    expect(gameMinutes(at(10, 1439))).toBe(1439);
+    expect(gameMinutes(at(10, 0) - 1)).toBe(1439);
+    expect(gameMinutes(at(10, 300) - 1)).toBe(299);
+    expect(gameMinutes(at(10, 720) - 1)).toBe(719);
+    expect(gameMinutes(at(10, 1080) - 1)).toBe(1079);
   });
 
-  it('splits the day at the period boundaries', () => {
+  it('gameDay rolls over at game midnight', () => {
+    expect(gameDay(at(10, 0))).toBe(10);
+    expect(gameDay(at(10, 0) - 1)).toBe(9);
+    expect(gameDay(at(10, 1439))).toBe(10);
+  });
+
+  it('advances one game minute per 2 real seconds and is monotonic within a day', () => {
+    const start = at(50, 0);
+    let prev = -1;
+    for (let ms = 0; ms < GAME_DAY_MS; ms += 500) {
+      const m = gameMinutes(start + ms);
+      expect(m).toBeGreaterThanOrEqual(prev);
+      expect(gameDay(start + ms)).toBe(50);
+      prev = m;
+    }
+    expect(prev).toBe(1439);
+    expect(gameMinutes(start + 2000)).toBe(1);
+    expect(gameMinutes(start + 1999)).toBe(0);
+  });
+
+  it('handles negative and very large timestamps', () => {
+    for (const t of [-1, -GAME_DAY_MS, -123_456_789_012, 4_102_444_800_000, 9e15]) {
+      const m = gameMinutes(t);
+      expect(Number.isInteger(m)).toBe(true);
+      expect(m).toBeGreaterThanOrEqual(0);
+      expect(m).toBeLessThanOrEqual(1439);
+    }
+    expect(gameMinutes(-CLOCK_OFFSET_MS)).toBe(0);
+    expect(gameDay(-CLOCK_OFFSET_MS)).toBe(0);
+    expect(gameDay(-CLOCK_OFFSET_MS - 1)).toBe(-1);
+    expect(gameMinutes(-CLOCK_OFFSET_MS - 1)).toBe(1439);
+  });
+
+  it('period boundaries', () => {
+    expect(period(0)).toBe('madrugada');
     expect(period(299)).toBe('madrugada');
     expect(period(300)).toBe('manha');
     expect(period(719)).toBe('manha');
     expect(period(720)).toBe('tarde');
     expect(period(1079)).toBe('tarde');
     expect(period(1080)).toBe('noite');
+    expect(period(1439)).toBe('noite');
   });
 
-  it('greets across the morning, afternoon, and night cuts', () => {
-    expect(greetingFor(4 * 60 + 59)).toBe('boa noite');
-    expect(greetingFor(5 * 60)).toBe('bom dia');
-    expect(greetingFor(11 * 60 + 59)).toBe('bom dia');
-    expect(greetingFor(12 * 60)).toBe('boa tarde');
-    expect(greetingFor(17 * 60 + 59)).toBe('boa tarde');
-    expect(greetingFor(18 * 60)).toBe('boa noite');
+  it('greeting edges', () => {
+    expect(greetingFor(0)).toBe('boa noite');
+    expect(greetingFor(299)).toBe('boa noite'); // 04:59
+    expect(greetingFor(300)).toBe('bom dia'); // 05:00
+    expect(greetingFor(719)).toBe('bom dia'); // 11:59
+    expect(greetingFor(720)).toBe('boa tarde'); // 12:00
+    expect(greetingFor(1079)).toBe('boa tarde'); // 17:59
+    expect(greetingFor(1080)).toBe('boa noite'); // 18:00
+    expect(greetingFor(1439)).toBe('boa noite');
   });
 
-  it('cycles weekdays from gameDay % 7', () => {
-    const names = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    for (let day = 0; day < 14; day++) {
-      expect(gameDay(at(day, 0))).toBe(day);
-      expect(clockLabel(at(day, 17 * 60 + 40)).weekday).toBe(names[day % 7]);
-    }
-    expect(gameDay(at(-1, 0))).toBe(-1);
-    expect(clockLabel(at(-1, 0)).weekday).toBe('Sáb');
-    expect(formatHHMM(17 * 60 + 40)).toBe('17:40');
+  it('formatClock', () => {
+    expect(formatClock(0)).toBe('00:00');
+    expect(formatClock(5)).toBe('00:05');
+    expect(formatClock(1060)).toBe('17:40');
+    expect(formatClock(1439)).toBe('23:59');
+    expect(formatClock(-3)).toBe('00:00');
+    expect(formatClock(5000)).toBe('23:59');
   });
 
-  it('picks a sun, moon, or star from the period', () => {
-    expect(clockLabel(at(0, 8 * 60)).icon).toBe('☀️');
-    expect(clockLabel(at(0, 15 * 60)).icon).toBe('☀️');
-    expect(clockLabel(at(0, 21 * 60)).icon).toBe('🌙');
-    expect(clockLabel(at(0, 2 * 60)).icon).toBe('🌟');
-  });
-
-  it('does not throw on negative nowMs', () => {
-    expect(() => gameMinutes(-1)).not.toThrow();
-    expect(() => gameDay(-1)).not.toThrow();
-    expect(() => clockLabel(-1)).not.toThrow();
-    const now = -CLOCK_OFFSET_MS - GAME_DAY_MS * 5 - 1;
-    expect(() => gameMinutes(now)).not.toThrow();
-    const m = gameMinutes(now);
-    expect(m).toBeGreaterThanOrEqual(0);
-    expect(m).toBeLessThan(1440);
-    expect(Number.isFinite(gameDay(now))).toBe(true);
+  it('weekday cycles Dom..Sáb through negative days too', () => {
+    const shorts = [0, 1, 2, 3, 4, 5, 6].map((d) => weekday(d).short);
+    expect(shorts).toEqual(['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']);
+    expect(weekday(7).short).toBe('Dom');
+    expect(weekday(-1).short).toBe('Sáb');
+    expect(weekday(-7).short).toBe('Dom');
+    expect(weekday(2)).toEqual({ short: 'Ter', pt: 'terça-feira', en: 'Tuesday' });
+    expect(weekday(1_000_003).short).toBe(weekday(1_000_003 % 7).short);
   });
 });

@@ -57,42 +57,6 @@ body {
   touch-action: none;
 }
 
-#world-labels {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 2;
-  font-family: Nunito, system-ui, sans-serif;
-}
-#world-labels > * {
-  position: absolute;
-  left: 0;
-  top: 0;
-  will-change: transform;
-}
-.tb-plate {
-  padding: 2px 7px 3px;
-  border-radius: 999px;
-  font-weight: 800;
-  font-size: 11px;
-  line-height: 1.1;
-  color: #f5e6d3;
-  white-space: nowrap;
-}
-.tb-plate-npc { background: #c45c26; }
-.tb-plate-player { background: #2f5d50; }
-.tb-plate-me { background: #2f5d50; box-shadow: 0 0 0 2px #d4a017; }
-.tb-bubble, .tb-guide {
-  padding: 4px 8px;
-  background: #f8f3ea;
-  color: #2c2c2c;
-  border-radius: 4px;
-  font-weight: 800;
-  font-size: 12px;
-  box-shadow: 0 0 0 2px #3a3a50;
-}
-
 #ui {
   position: fixed;
   inset: 0;
@@ -1965,6 +1929,20 @@ body:has([data-modal='minigame']) .toasts {
   height: 72px;
 }
 
+.item-card .hat-icon-box {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.item-card .hat-icon-box img {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  image-rendering: pixelated;
+}
+
 .item-card .name {
   font-weight: 800;
   line-height: 1.1;
@@ -3024,10 +3002,27 @@ body:has(.conversa-backdrop) .toasts {
   font-weight: 700;
 }
 
+/* the pixel preview is 28 x 36 art px: 8x on desktop, 6x on phones (integer scales only) */
 .creator-canvas {
-  width: min(200px, 62vw);
-  height: auto;
-  aspect-ratio: 220 / 280;
+  width: 224px;
+  height: 288px;
+  image-rendering: pixelated;
+}
+
+.turn-btn {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 700px) {
+  .creator-canvas {
+    width: 168px;
+    height: 216px;
+  }
 }
 
 .creator-cta {

@@ -32,12 +32,9 @@ export interface Placement {
 
 /** Shopfronts along the north edge; the two outer ones are cut by the map edge. */
 export const SHOPS: Placement[] = [
-  { key: 'buildings/shop_sapatos', x: -0.5, y: 6 },
-  { key: 'buildings/shop_mercado', x: 4.5, y: 6 },
-  { key: 'buildings/shop_padaria', x: 9.5, y: 6 },
-  { key: 'buildings/shop_flores', x: 14.5, y: 6 },
-  { key: 'buildings/shop_lanches', x: 19.5, y: 6 },
-  { key: 'buildings/shop_pizzaria', x: 24.5, y: 6 },
+  { key: 'facades/edificio_ipe', x: 5, y: 6 },
+  { key: 'facades/padaria', x: 14, y: 6 },
+  { key: 'facades/academia', x: 23, y: 6 },
   { key: 'buildings/shop_sapatos', x: 29.5, y: 6 },
 ];
 
@@ -68,7 +65,31 @@ export const PROPS: Placement[] = [
   { key: 'props/pot_red_small', x: 13.9, y: 6.9 },
   { key: 'props/pot_teal', x: 17.9, y: 6.95 },
   { key: 'props/pot_red', x: 24.0, y: 6.9 },
-  { key: 'critters/cat', x: 16.6, y: 8.15 },
+  { key: 'critters/cat', x: 17.4, y: 11.7 },
+  // art1 set pieces
+  { key: 'props/orelhao', x: 9.5, y: 7.95 },
+  { key: 'props/placa_rua', x: 15.9, y: 7.95 },
+  { key: 'props/lixeira', x: 2.6, y: 7.9 },
+  { key: 'props/lixeira', x: 20.2, y: 7.95 },
+  { key: 'props/barraca_chapeus', x: 16.6, y: 9.6 },
+  { key: 'props/quiosque', x: 8.2, y: 10.4 },
+  { key: 'props/poleiro', x: 22.7, y: 11.6 },
+  { key: 'critters/vira_lata_sleep_e', x: 11.8, y: 8.0 },
+  // art2: feira stall (open, the fruit one) with crates and a price slate
+  { key: 'feira/frutas', x: 28.0, y: 10.6 },
+  { key: 'feira/caixotes', x: 26.4, y: 11.0 },
+  { key: 'feira/preco_lousa', x: 27.0, y: 11.9 },
+];
+
+/** Utility poles along the curb; wires span between them (overhead sprites, see WIRE_SPANS). */
+export const POLES: { x: number; y: number }[] = [
+  { x: 1.4, y: 13.9 }, { x: 9.4, y: 13.9 }, { x: 21.4, y: 13.9 }, { x: 27.4, y: 13.9 },
+];
+/** Overhead wire sprites: from pole `from` heading east; `keys` are laid end to end (fios_8 = 8 tiles, fios_4 = 4 tiles, fios_6 = 6). */
+export const WIRE_SPANS: { from: number; keys: string[] }[] = [
+  { from: 0, keys: ['props/fios_8'] },
+  { from: 1, keys: ['props/fios_8', 'props/fios_4'] },
+  { from: 2, keys: ['props/fios_6'] },
 ];
 
 /** Trees: trunk key + foot; the manifest links the overhead canopy and its sway. */
@@ -142,7 +163,16 @@ export const PIGEONS: { x: number; y: number }[] = [
 export const PIGEON_BOUNDS = { x0: 8, x1: 21, y0: 8.2, y1: 13.8 };
 
 /** Traffic: the road is rows 14..17; lanes at y = 15.5 (west) and 17 (east). */
-export const LANES = [
-  { y: 15.55, dir: -1 as const, keys: ['vehicles/car_red_l', 'vehicles/car_blue_l'] },
-  { y: 17.5, dir: 1 as const, keys: ['vehicles/car_blue_r', 'vehicles/car_red_r'] },
+export interface Lane {
+  y: number;
+  dir: -1 | 1;
+  keys: string[];
+  /** first vehicle starts on screen at this tile x (so the frame always shows traffic); null = waits offscreen */
+  startX: number | null;
+  speed: number;
+}
+export const LANES: Lane[] = [
+  { y: 15.55, dir: -1, keys: ['vehicles/onibus_w', 'vehicles/kombi_w', 'vehicles/car_red_l', 'vehicles/fusca_w', 'vehicles/car_blue_l'], startX: 24.5, speed: 40 },
+  { y: 17.5, dir: 1, keys: ['vehicles/kombi_e', 'vehicles/car_blue_r', 'vehicles/fusca_e', 'vehicles/onibus_e', 'vehicles/car_red_r'], startX: 6.5, speed: 44 },
+  { y: 16.55, dir: 1, keys: ['vehicles/moto_e', 'vehicles/moto_e', 'vehicles/fusca_e'], startX: 14.5, speed: 58 },
 ];

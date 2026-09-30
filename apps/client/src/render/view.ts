@@ -1,6 +1,7 @@
-import type { PathPos, PlacedFurniture, PortalDef, PropDef, NpcDef, Tile } from '@tudobem/shared';
+import type { NpcDef, PathPos, PlacedFurniture, PortalDef, PropDef, Tile } from '@tudobem/shared';
 import type { ClientAvatar } from '../state';
 
+/** What a pointer can land on. Renderer-independent: every WorldView returns this same union. */
 export type Hit =
   | { kind: 'avatar'; id: string }
   | { kind: 'npc'; npc: NpcDef }
@@ -10,6 +11,7 @@ export type Hit =
   | { kind: 'furniture'; f: PlacedFurniture }
   | { kind: 'tile'; tile: Tile };
 
+/** A tutorial arrow pointing at a tile. */
 export interface Guide {
   x: number;
   y: number;
@@ -18,8 +20,8 @@ export interface Guide {
 }
 
 /**
- * What main.ts needs from a world renderer. The isometric canvas and the Phaser
- * pixel view both implement this. Phaser never owns input or game truth.
+ * The seam between game logic (main.ts, state.ts, ui/*) and whatever draws the world.
+ * `main.ts` owns input, networking and state; a view only reads `game` and draws it.
  */
 export interface WorldView {
   readonly cam: { scale: number };

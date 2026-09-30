@@ -124,6 +124,17 @@ describe('World', () => {
     expect(JSON.stringify(s.profile)).not.toMatch(/birth|confirm18/i);
   });
 
+  it('stamps welcome and roomState with serverNow (the game clock reference)', async () => {
+    const { world } = makeWorld();
+    const c = await client(world, 'Relogio');
+    expect(typeof c.last('welcome')?.serverNow).toBe('number');
+    expect(typeof c.last('roomState')?.serverNow).toBe('number');
+    expect(c.last('welcome')?.serverNow).toBe(clock);
+    advance(5_000);
+    await c.send({ t: 'join', room: 'padaria' });
+    expect(c.last('roomState')?.serverNow).toBe(clock);
+  });
+
   it('makes profiles from the old 13+ policy sign up again', async () => {
     const { world } = makeWorld();
     const a = await client(world, 'Legacy');
@@ -142,7 +153,7 @@ describe('World', () => {
     const ids = clients.map((c) => c.last('roomState')!.instanceId);
     expect(ids.slice(0, 16).every((id) => id === 'praca#1')).toBe(true);
     expect(ids[16]).toBe('praca#2');
-    expect(clients[16].last('roomState')!.instanceName).toBe('Praça Central · Sul');
+    expect(clients[16].last('roomState')!.instanceName).toBe('Vila Ipê · Sul');
   });
 
   it('broadcasts chat verbatim with gloss, warns without rewriting, blocks PII + alcohol', async () => {
@@ -232,14 +243,14 @@ describe('World', () => {
     const start = a.s.profile!.coins;
 
     // Walk + sit + wave in the praça
-    await a.send({ t: 'move', x: 7, y: 7, sit: true });
-    advance(5_000);
+    await a.send({ t: 'move', x: 20, y: 17, sit: true });
+    advance(30_000);
     expect(a.s.profile!.tutorial.sentar).toBe(true);
     await a.send({ t: 'emote', kind: 'oi' });
     await a.send({ t: 'chat', text: 'Bom dia, pessoal!' });
 
     // Enter padaria through the door
-    await a.send({ t: 'move', x: 5, y: 0 });
+    await a.send({ t: 'move', x: 16, y: 5 });
     advance(60_000);
     await a.send({ t: 'portal', portalId: 'praca_padaria' });
     expect(a.last('roomState')!.room).toBe('padaria');
@@ -876,7 +887,7 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
     const a = await client(world);
     const cpus = cpusSeen(a);
     expect(cpus.length).toBeGreaterThanOrEqual(4);
-    expect(cpus.length).toBeLessThanOrEqual(6);
+    expect(cpus.length).toBeLessThanOrEqual(8);
     expect(CPU_NAMES).toHaveLength(48);
     for (const c of cpus) {
       expect(isCpuId(c.id)).toBe(true);

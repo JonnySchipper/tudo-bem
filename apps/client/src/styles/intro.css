@@ -1582,7 +1582,7 @@ body.intro-active #world {
   }
 }
 
-/* A WebGL canvas under the intro's blur and scale can exhaust the GPU and kill the tab. */
+/* A WebGL canvas under the intro's blur and scale can exhaust the GPU and kill the tab (#48); the pixel view stays crisp. */
 body.view-pixel #world {
   filter: none;
   transform: none;

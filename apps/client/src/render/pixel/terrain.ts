@@ -86,6 +86,17 @@ export function phasedIndex(first: number, mask: number, i: number, phases = 1):
 }
 
 /**
+ * Same with a 2D phase grid (`phasesX` x `phasesY` fills, row-major, for example the ladrilho's alternating colourways or the tatame's
+ * 32 px mats): first + ((j mod phasesY) * phasesX + (i mod phasesX)) * 16 + mask. -1 for mask 0.
+ */
+export function phasedIndex2(first: number, mask: number, i: number, j: number, phasesX = 1, phasesY = 1): number {
+  if (mask === 0) return -1;
+  const px = ((i % phasesX) + phasesX) % phasesX;
+  const py = ((j % phasesY) + phasesY) % phasesY;
+  return first + (py * phasesX + px) * 16 + mask;
+}
+
+/**
  * The 8x8 quadrant ownership of a mask: which of the four quadrants of the 16x16 display tile are filled.
  * Quadrant TL belongs to world tile (i-1, j-1) and covers pixels x 0..7, y 0..7 of the display tile.
  */

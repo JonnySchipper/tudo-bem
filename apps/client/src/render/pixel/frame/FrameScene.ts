@@ -8,12 +8,16 @@
 import Phaser from 'phaser';
 import type { Manifest, SpriteDef } from '../manifest';
 import {
-  COLS, ROWS, FLOOR, SHOPS, PROPS, TREES, DECALS, TUFTS, GRIME, WALKER_LOOP, SITTERS, IDLERS, PIGEONS, PIGEON_BOUNDS, LANES,
+  COLS, ROWS, FLOOR, SHOPS, PROPS, TREES, DECALS, TUFTS, GRIME, WALKER_LOOP, SITTERS, IDLERS, PIGEONS, PIGEON_BOUNDS, LANES, POLES, WIRE_SPANS, type Lane,
 } from './layout';
-import { TERRAIN_PRIORITY, maskAt, phasedIndex, tileIndex } from '../terrain';
-import { darknessAlpha, glowStrength, gradeAt, rgbToInt, sunGlow } from '../lighting';
-import { HAIR_COLORS, CLOTH_COLORS, SKIN_TONES } from '@tudobem/shared';
-import { animKey, composeCharacter, sitFrame, type CharLayer, type Facing } from '../charsheet';
+import { buildTerrainLayers } from '../terrainLayers';
+import { LightingRig, type Light } from '../lightingRig';
+import { ensureAnim, originOf } from '../spriteUtil';
+import { DEFAULT_APPEARANCE, type Appearance } from '@tudobem/shared';
+import { addSheetTexture, animKey, sitFrame, type Facing } from '../charsheet';
+import type { CharAssets } from '../charAssets';
+import { composeLook } from '../composeLook';
+import { lookForAppearance } from '../looks';
 
 const T = 16;
 export const WORLD_W = COLS * T;
@@ -27,20 +31,6 @@ export interface FrameOptions {
   cx?: number;
   cy?: number;
   dpr: number;
-}
-
-interface Light {
-  x: number; // world px
-  y: number;
-  r: number; // world px radius
-  color: number;
-  /** vertical squash of the glow (1 = round halo, <1 = pool on the ground) */
-  squash: number;
-  kind: 'lamp' | 'window' | 'player' | 'stall' | 'car';
-  /** 0..1 multiplier set per frame for dynamic lights */
-  live?: number;
-  /** additive glow alpha override */
-  glow?: number;
 }
 
 interface WalkerState {
@@ -66,9 +56,9 @@ interface PigeonState {
 }
 
 interface CarState {
-  sprite: Phaser.GameObjects.Image;
+  sprite: Phaser.GameObjects.Sprite;
   shadow: Phaser.GameObjects.Image;
-  lane: (typeof LANES)[number];
+  lane: Lane;
   x: number;
   speed: number;
   wait: number;
@@ -84,14 +74,7 @@ const hash01 = (n: number) => {
 
 export class FrameScene extends Phaser.Scene {
   private hour: number;
-  private fxCam!: Phaser.Cameras.Scene2D.Camera;
-  private grade!: Phaser.GameObjects.RenderTexture;
-  private dark!: Phaser.GameObjects.RenderTexture;
-  private sun!: Phaser.GameObjects.Image;
-  private glowSprites: Phaser.GameObjects.Image[] = [];
-  private windowRects: Phaser.GameObjects.Rectangle[] = [];
-  private lightSrc: Light[] = [];
-  private castShadows: Phaser.GameObjects.Image[] = [];
+  private rig!: LightingRig;
   private cloud!: Phaser.GameObjects.TileSprite;
   private walker!: WalkerState;
   private pigeons: PigeonState[] = [];
@@ -102,7 +85,7 @@ export class FrameScene extends Phaser.Scene {
   /** true once create() finished (the page polls this) */
   ready = false;
 
-  constructor(private readonly m: Manifest, private readonly base: string, private readonly opts: FrameOptions) {
+  constructor(private readonly m: Manifest, private readonly base: string, private readonly assets: CharAssets, private readonly opts: FrameOptions) {
     super('frame');
     this.hour = opts.hour;
   }
@@ -137,18 +120,24 @@ export class FrameScene extends Phaser.Scene {
     const b = this.base;
     for (const [name, a] of Object.entries(m.atlases)) this.load.atlas(name, b + a.image, b + a.data);
     this.load.image('terrainTs', b + m.terrain.tileset);
-    for (const [key, file] of Object.entries(m.chars)) this.load.image(`layer:${key}`, b + file);
     for (const [key, f] of Object.entries(m.fx)) this.load.image(`fx:${key}`, b + f.file);
   }
 
   // ------------------------------------------------------------------ helpers
   private W<G extends Phaser.GameObjects.GameObject>(o: G): G {
-    this.fxCam.ignore(o);
-    return o;
+    return this.rig.world(o);
   }
-  private F<G extends Phaser.GameObjects.GameObject>(o: G): G {
-    this.cameras.main.ignore(o);
-    return o;
+  private get lightSrc(): Light[] {
+    return this.rig.lights;
+  }
+  private get castShadows(): Phaser.GameObjects.Image[] {
+    return this.rig.castShadows;
+  }
+  private get litOverlays(): Phaser.GameObjects.Image[] {
+    return this.rig.litOverlays;
+  }
+  private get windowRects(): Phaser.GameObjects.Rectangle[] {
+    return this.rig.windowRects;
   }
   private def(key: string): SpriteDef {
     const d = this.m.sprites[key];
@@ -156,7 +145,7 @@ export class FrameScene extends Phaser.Scene {
     return d;
   }
   private originOf(d: SpriteDef): [number, number] {
-    return [d.ax / d.w, d.ay / d.h];
+    return originOf(d);
   }
   private toScreen(wx: number, wy: number): [number, number] {
     const cam = this.cameras.main;
@@ -164,9 +153,7 @@ export class FrameScene extends Phaser.Scene {
     return [(wx - cam.scrollX - hw) * cam.zoom + hw, (wy - cam.scrollY - hh) * cam.zoom + hh];
   }
   private ensureAnim(key: string, d: SpriteDef): string {
-    const ak = 'anim:' + key;
-    if (d.anim && !this.anims.exists(ak)) this.anims.create({ key: ak, frames: d.anim.frames.map((f) => ({ key: d.atlas, frame: f })), frameRate: d.anim.fps, repeat: -1 });
-    return ak;
+    return ensureAnim(this, key, d);
   }
 
   /** Keys the layout asked for that the manifest doesn't have (HOWTO 5.10). The frame shows a flat magenta box, never a painted stand-in. */
@@ -215,14 +202,14 @@ export class FrameScene extends Phaser.Scene {
     cam.setBounds(0, 0, WORLD_W, WORLD_H);
     cam.centerOn((this.opts.cx ?? COLS / 2) * T, (this.opts.cy ?? ROWS / 2) * T);
 
-    this.fxCam = this.cameras.add(0, 0, this.scale.width, this.scale.height, false, 'fx');
-    this.fxCam.setRoundPixels(false);
+    this.rig = new LightingRig(this, cam, 'fx:glow');
 
     this.buildTerrain();
     this.buildDecals();
     this.buildShops();
     this.buildProps();
     this.buildTrees();
+    this.buildWires();
     this.buildCharacters();
     this.buildPigeons();
     this.buildCars();
@@ -231,36 +218,14 @@ export class FrameScene extends Phaser.Scene {
     this.applyLighting();
     this.ready = true;
     this.scale.on('resize', (size: Phaser.Structs.Size) => {
-      this.fxCam.setSize(size.width, size.height);
-      this.grade.resize(size.width, size.height);
-      this.dark.resize(size.width, size.height);
+      this.rig.resize(size.width, size.height);
       cam.centerOn((this.opts.cx ?? COLS / 2) * T, (this.opts.cy ?? ROWS / 2) * T);
     });
   }
 
   // ------------------------------------------------------------------ terrain: one Tilemap layer per terrain, dual grid (half tile offset)
   private buildTerrain(): void {
-    const t = this.m.terrain;
-    const map = this.make.tilemap({ tileWidth: T, tileHeight: T, width: COLS + 1, height: ROWS + 1 });
-    const ts = map.addTilesetImage('terrain', 'terrainTs', T, T, t.margin, t.spacing);
-    if (!ts) throw new Error('terrain tileset failed');
-    // flat underlays first (grass, asphalt), then slab terrains on top (see decisions-p1.md)
-    const order = [...TERRAIN_PRIORITY].filter((c) => t.layers[c]);
-    order.sort((a, b) => Number(t.layers[a].edge === 'slab') - Number(t.layers[b].edge === 'slab'));
-    order.forEach((ch, li) => {
-      const def = t.layers[ch];
-      const layer = map.createBlankLayer(`terrain_${ch}`, ts, -T / 2, -T / 2, COLS + 1, ROWS + 1);
-      if (!layer) throw new Error('layer failed ' + ch);
-      layer.setDepth(-10000 + li);
-      this.W(layer);
-      for (let j = 0; j <= ROWS; j++) {
-        for (let i = 0; i <= COLS; i++) {
-          const mask = maskAt(FLOOR, ch, i, j);
-          const idx = def.edge === 'slab' ? phasedIndex(def.first, mask, i, def.phases) : tileIndex(def.first, mask, i, j, def.variants);
-          if (idx >= 0) layer.putTileAt(idx, i, j);
-        }
-      }
-    });
+    buildTerrainLayers(this, FLOOR, this.m.terrain, 'terrainTs', { wrap: (o) => this.W(o) });
   }
 
   // ------------------------------------------------------------------ ground decals
@@ -299,8 +264,13 @@ export class FrameScene extends Phaser.Scene {
       // lit windows
       const d = this.def(s.key);
       const ox = Math.round(s.x * T) - d.ax, oy = s.y * T - d.ay;
+      if (d.lit && this.m.sprites[d.lit]) {
+        // authored lit-window overlay: warm panes (and bread / gym silhouettes) fade in with the night
+        const ld = this.def(d.lit);
+        this.litOverlays.push(this.W(this.add.image(Math.round(s.x * T), Math.round(s.y * T), ld.atlas, ld.frame)).setOrigin(...this.originOf(ld)).setDepth(Math.round(s.y * T) + 0.5).setAlpha(0));
+      }
       for (const [wx, wy, ww, wh] of d.windows ?? []) {
-        this.windowRects.push(this.W(this.add.rectangle(ox + wx, oy + wy, ww, wh, 0xffd070, 0).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.ADD).setDepth(49000)));
+        if (!d.lit) this.windowRects.push(this.W(this.add.rectangle(ox + wx, oy + wy, ww, wh, 0xffd070, 0).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.ADD).setDepth(49000)));
         this.lightSrc.push({ x: ox + wx + ww / 2, y: oy + wy + wh + 5, r: 22 + ww * 0.5, color: 0xffc060, squash: 0.6, kind: 'window' });
       }
     }
@@ -310,7 +280,13 @@ export class FrameScene extends Phaser.Scene {
   private buildProps(): void {
     for (const p of PROPS) {
       this.place(p.key, p.x, p.y, { flip: p.flip });
-      const d = this.def(p.key);
+      const d = this.m.sprites[p.key];
+      if (!d) continue;
+      if (typeof d.overhead === 'string' && this.m.sprites[d.overhead]) {
+        const od = this.def(d.overhead);
+        const wx0 = Math.round(p.x * T), wy0 = Math.round(p.y * T);
+        this.W(this.add.image(wx0, wy0, od.atlas, od.frame)).setOrigin(...this.originOf(od)).setDepth(50000 + wy0 / 1000);
+      }
       if (d.light) {
         const color = parseInt(d.light.color.slice(1), 16);
         const bx = Math.round(p.x * T), by = Math.round(p.y * T);
@@ -354,18 +330,35 @@ export class FrameScene extends Phaser.Scene {
     }
   }
 
+  // ------------------------------------------------------------------ utility poles + overhead wires
+  private buildWires(): void {
+    for (const p of POLES) this.place('props/poste_fios', p.x, p.y);
+    const pd = this.m.sprites['props/poste_fios'];
+    if (!pd) return;
+    const attachY = pd.attach?.[1] ?? -51;
+    for (const span of WIRE_SPANS) {
+      const pole = POLES[span.from];
+      let wx = Math.round(pole.x * T);
+      const wy = Math.round(pole.y * T) + attachY;
+      for (const key of span.keys) {
+        const d = this.m.sprites[key];
+        if (!d) { this.placeholder(key, wx / T, pole.y); continue; }
+        this.W(this.add.image(wx, wy, d.atlas, d.frame)).setOrigin(...this.originOf(d)).setDepth(50200).setAlpha(0.7);
+        wx += d.w - 1;
+      }
+    }
+  }
+
   // ------------------------------------------------------------------ characters
   private buildCharacters(): void {
     const meta = this.m.sheet;
-    const skin = (i: number) => SKIN_TONES[i];
-    const hair = (i: number) => HAIR_COLORS[i];
-    const cloth = (i: number) => CLOTH_COLORS[i];
-    const layers = (specs: [string, CharLayer['ramps']][]): CharLayer[] => specs.map(([k, r]) => ({ texture: `layer:${k}`, ramps: r }));
-    composeCharacter(this, 'char_julia', layers([['body_medio', { skin: skin(2) }], ['outfit_o01', { top: cloth(12), bottom: cloth(2) }], ['hair_h02', { hair: hair(1) }]]), meta);
-    composeCharacter(this, 'char_ze', layers([['body_medio', { skin: skin(4) }], ['outfit_o13', { top: cloth(0), bottom: cloth(10) }], ['hair_h05', { hair: hair(5) }]]), meta);
-    composeCharacter(this, 'char_mara', layers([['body_medio', { skin: skin(3) }], ['outfit_o01', { top: cloth(9), bottom: cloth(5) }], ['hair_h12', { hair: hair(6) }]]), meta);
-    composeCharacter(this, 'char_nanda', layers([['body_medio', { skin: skin(5) }], ['outfit_o16', { top: cloth(1), bottom: cloth(2) }], ['hair_h12', { hair: hair(0) }]]), meta);
-    composeCharacter(this, 'char_beto', layers([['body_medio', { skin: skin(1) }], ['outfit_o13', { top: cloth(6), bottom: cloth(11) }], ['hair_h02', { hair: hair(3) }]]), meta);
+    const look = (o: Partial<Appearance>, hat: string | null = null) => lookForAppearance({ ...DEFAULT_APPEARANCE, ...o }, { hat });
+    const compose = (key: string, o: Partial<Appearance>, hat: string | null = null) => addSheetTexture(this, key, composeLook(this.assets, look(o, hat)), meta);
+    compose('char_julia', { skin: 2, hair: 'ondulado', hairColor: 1, top: 'camiseta', topColor: 12, bottom: 'calca', bottomColor: 2 });
+    compose('char_ze', { skin: 4, hair: 'curto', hairColor: 5, top: 'camisa', topColor: 0, bottom: 'bermuda', bottomColor: 10 }, 'bone_verde');
+    compose('char_mara', { skin: 3, hair: 'longo', hairColor: 6, top: 'blusa', topColor: 9, bottom: 'saia', bottomColor: 5 });
+    compose('char_nanda', { skin: 5, hair: 'cacheado', hairColor: 0, top: 'camiseta', topColor: 1, bottom: 'calca', bottomColor: 2 }, 'chapeu_palha');
+    compose('char_beto', { skin: 1, hair: 'undercut', hairColor: 3, top: 'moletom', topColor: 6, bottom: 'calca', bottomColor: 11 });
 
     const shadow16 = this.def('fx/shadow_16');
     const mkShadow = (x: number, y: number) => this.W(this.add.image(x, y - 1, shadow16.atlas, shadow16.frame)).setOrigin(0.5, 0.5).setDepth(-4500);
@@ -411,16 +404,18 @@ export class FrameScene extends Phaser.Scene {
     LANES.forEach((lane, li) => {
       const key = lane.keys[0];
       const d = this.def(key);
-      const sprite = this.W(this.add.image(0, 0, d.atlas, d.frame)).setOrigin(...this.originOf(d));
+      const sprite = this.W(this.add.sprite(0, 0, d.atlas, d.frame)).setOrigin(...this.originOf(d));
+      if (d.anim) sprite.play(this.ensureAnim(key, d));
       const sh = this.def('fx/shadow_48');
       const shadow = this.W(this.add.image(0, 0, sh.atlas, sh.frame)).setOrigin(...this.originOf(sh)).setDepth(-4500);
       const light: Light = { x: 0, y: 0, r: 30, color: 0xfff1c8, squash: 0.55, kind: 'car', live: 0 };
       this.lightSrc.push(light);
       // the first car of each lane starts on screen so the frame always shows traffic
-      const startX = lane.dir < 0 ? 26.5 * T : 7.5 * T;
-      this.cars.push({ sprite, shadow, lane, x: startX, speed: 44, wait: li === 0 ? 0 : 7, light, variant: 0 });
+      const onScreen = lane.startX !== null;
+      const startX = (lane.startX ?? (lane.dir < 0 ? 26.5 : 7.5)) * T;
+      this.cars.push({ sprite, shadow, lane, x: startX, speed: lane.speed, wait: onScreen ? 0 : 7, light, variant: 0 });
       this.positionCar(this.cars[li]);
-      if (li !== 0) {
+      if (!onScreen) {
         sprite.setVisible(false);
         shadow.setVisible(false);
       }
@@ -444,16 +439,19 @@ export class FrameScene extends Phaser.Scene {
         c.light.live = 0;
         if (c.wait <= 0) {
           c.variant = (c.variant + 1) % c.lane.keys.length;
-          const d = this.def(c.lane.keys[c.variant]);
-          c.sprite.setFrame(d.frame);
-          c.x = c.lane.dir < 0 ? WORLD_W + 70 : -70;
+          const key = c.lane.keys[c.variant];
+          const d = this.def(key);
+          c.sprite.setFrame(d.frame).setOrigin(...this.originOf(d));
+          if (d.anim) c.sprite.play(this.ensureAnim(key, d), true);
+          else c.sprite.anims.stop();
+          c.x = c.lane.dir < 0 ? WORLD_W + 90 : -90;
           c.sprite.setVisible(true);
           c.shadow.setVisible(true);
         }
         continue;
       }
       c.x += c.lane.dir * c.speed * dt;
-      if ((c.lane.dir < 0 && c.x < -70) || (c.lane.dir > 0 && c.x > WORLD_W + 70)) c.wait = 5 + Math.random() * 6;
+      if ((c.lane.dir < 0 && c.x < -90) || (c.lane.dir > 0 && c.x > WORLD_W + 90)) c.wait = 5 + Math.random() * 6;
       c.light.live = 1;
       this.positionCar(c);
     }
@@ -466,48 +464,12 @@ export class FrameScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ lighting (fx camera, screen space)
   private buildLighting(): void {
-    const w = this.scale.width, h = this.scale.height;
-    // grade: a full-screen multiply layer. Light sources erase holes in it, so lit pools are not tinted by the grade.
-    this.grade = this.F(this.add.renderTexture(0, 0, w, h)).setOrigin(0, 0).setBlendMode(Phaser.BlendModes.MULTIPLY).setDepth(1);
-    // darkness overlay for night (normal blend), also with light holes
-    this.dark = this.F(this.add.renderTexture(0, 0, w, h)).setOrigin(0, 0).setDepth(2);
-    for (let i = 0; i < this.lightSrc.length; i++) {
-      this.glowSprites.push(this.F(this.add.image(0, 0, 'fx:glow')).setBlendMode(Phaser.BlendModes.ADD).setDepth(3).setAlpha(0));
-    }
-    this.sun = this.F(this.add.image(0, 0, 'fx:glow')).setBlendMode(Phaser.BlendModes.ADD).setDepth(3.5).setTint(0xffb867).setAlpha(0);
+    this.rig.syncLights();
     this.cameras.main.postFX.addVignette(0.5, 0.5, 0.92, 0.2);
   }
 
   private applyLighting(): void {
-    const zoom = this.cameras.main.zoom;
-    const dark = darknessAlpha(this.hour);
-    const gs = glowStrength(this.hour);
-    for (const c of this.castShadows) c.setAlpha(Math.max(0.15, 1 - dark * 1.1));
-    const strengthOf = (l: Light) => {
-      if (l.kind === 'player') return Math.min(1, dark / 0.35);
-      if (l.kind === 'car') return gs * (l.live ?? 0);
-      return gs;
-    };
-    this.grade.fill(rgbToInt(gradeAt(this.hour)), 1);
-    this.dark.clear();
-    if (dark > 0.001) this.dark.fill(0x0b1030, dark);
-    this.lightSrc.forEach((l, i) => {
-      const s = strengthOf(l);
-      const g = this.glowSprites[i];
-      const [sx, sy] = this.toScreen(l.x, l.y);
-      const px = (l.r * 2 * zoom) / 128;
-      if (s > 0.001) {
-        // erase: the grade is mostly lifted inside the light, the darkness fully
-        this.grade.stamp('fx:glow', undefined, sx, sy, { scaleX: px, scaleY: px * l.squash, alpha: Math.min(1, s * 0.9), erase: true });
-        if (dark > 0.001) this.dark.stamp('fx:glow', undefined, sx, sy, { scaleX: px, scaleY: px * l.squash, alpha: Math.min(1, s * 1.05), erase: true });
-      }
-      const glowAlpha = l.glow ?? (l.kind === 'window' ? 0.3 : l.kind === 'stall' ? 0.3 : l.kind === 'player' ? 0.22 : l.kind === 'car' ? 0.3 : 0.42);
-      g.setPosition(sx, sy).setScale(px, px * l.squash).setTint(l.color).setAlpha(s * glowAlpha);
-    });
-    for (const r of this.windowRects) r.setAlpha(gs * 0.6);
-    // low sun: a big warm glow from the upper left (adds warmth and shows the light direction without darkening the scene)
-    const sw = this.scale.width, sh = this.scale.height;
-    this.sun.setPosition(sw * 0.12, -sh * 0.08).setScale((Math.max(sw, sh) * 2.1) / 128).setAlpha(sunGlow(this.hour) * 0.2);
+    this.rig.apply(this.hour, this.cameras.main.zoom, (wx, wy) => this.toScreen(wx, wy));
   }
 
   // ------------------------------------------------------------------ frame loop

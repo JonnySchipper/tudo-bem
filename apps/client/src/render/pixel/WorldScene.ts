@@ -1,520 +1,1083 @@
 /**
- * Top-down room view for `?view=pixel`.
- * Reuses the Phase 1 manifest, terrain masks, character composer and grade math.
- * Phaser does not own input or game truth.
+ * The game's Phaser scene (HOWTO §5.1, §6 Phase 2). A VIEW ONLY (D3): every frame it reconciles `game` (state.ts) into sprites; nothing
+ * here is game truth, and Phaser input is disabled (main.ts owns input, networking and state).
+ *
+ *  - When the room changes (room + instanceId + ownerId) the room layer is destroyed and rebuilt: terrain from the `floor` rows (dual
+ *    grid), north wall band + west wall strip, doors, props, NPCs, lights.
+ *  - Avatars and placed furniture are reconciled every frame (add / update / remove).
+ *  - Art comes from public/pixel through the manifest; whatever the manifest lacks is a flat placeholder (§5.10).
+ *
+ * Two cameras (DECISIONS Phase 1 #13): `main` draws the world at an integer device zoom, `fx` draws the light grade in screen space.
  */
 import Phaser from 'phaser';
-import {
-  SKIN_TONES,
-  furnitureById,
-  gameMinutes,
-  isCpuId,
-  positionAlong,
-  seatTiles,
-  type PropKind,
-  type RoomDef,
-  type Tile,
-} from '@tudobem/shared';
-import { game } from '../../state';
+import { buildGrid, canPlaceFurniture, furnitureById, isCpuId, key as tileKey, positionAlong, propTiles, type Dir, type NpcDef, type PlacedFurniture, type PropDef, type RoomDef, type RoomGrid, type WallDecor } from '@tudobem/shared';
+import { game, type ClientAvatar } from '../../state';
 import type { Guide, Hit } from '../view';
-import { animKey, composeCharacter, sitFrame, type Facing } from './charsheet';
-import {
-  DEPTH_DECAL,
-  DEPTH_OVERHEAD,
-  DEPTH_TERRAIN,
-  T,
-  cameraZoom,
-  cssZoomFor,
-  feet,
-  standingDepth,
-  tileToWorld,
-  worldToTile,
-} from './coords';
-import { FACING } from './facing';
-import { pickHit, type ScreenBox } from './hitbox';
-import { gradeAt } from './lighting';
 import type { Manifest } from './manifest';
-import { maskAt, phasedIndex, tileIndex } from './terrain';
+import { FACING, type Facing } from './facing';
+import { addSheetTexture, animKey, animNames, emoteDuration, sitFrame } from './charsheet';
+import { CharSheets } from './charCache';
+import type { CharAssets } from './charAssets';
+import { composeLook } from './composeLook';
+import { lookForAppearance, lookForNpc, lookHeadLift, type Look } from './looks';
+import { LightingRig, type Light } from './lightingRig';
+import { computeLook, isOutdoor, lightDelay, windowPanes, type SceneLook } from './dayNight';
+import { WeatherBlend, type FxLevel } from './weatherLook';
+import { WeatherFx } from './weatherFx';
+import { FrameProbe, LowFxGovernor, reducedMotion } from './perf';
+import { clock } from '../../gameClock';
+import { buildTerrainLayers } from './terrainLayers';
+import { LabelLayer, type GuideItem, type StackItem } from './labels';
+import { OUTDOOR_NORTH, T, cssZoomFor, feet, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
+import { pickHit, type HitBox } from './hit';
+import { roomKey, syncViews } from './reconcile';
+import { DEPTH, PROP_LIGHT, fencePieces, footprintRect, inflate, propAnchor, propDepth, furnitureArtKey, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
+import { sceneryFor } from './scenery';
+import {
+  FLOOR_PLACEHOLDER,
+  FLOOR_SUBSTITUTE,
+  NORTH_BAND_TILES,
+  ROOM_HOUR,
+  WALL_STYLE,
+  allNorthDecor,
+  decorArt,
+  northWallKey,
+  westWallKey,
+  describeSkipped,
+  decorCoveredByFacade,
+  doormatRect,
+  isNorthPortal,
+  northBandRect,
+  northDecor,
+  northDecorRect,
+  northDoorRect,
+  northFacades,
+  portalHitRect,
+  roomBounds,
+  windowPatches,
+  westDoorRect,
+  westStripRect,
+} from './roomLayout';
+import { ensureAnim, originOf } from './spriteUtil';
+import { GHOST_ALPHA, ghostFor, type GhostSpec } from './decorate';
+import { modalId } from '../../ui/modal';
 
-/** Outdoor sprites that already exist in the Phase 1 atlas. */
-const PROP_SPRITE: Partial<Record<PropKind, string>> = {
-  ipe: 'props/ipe_medium',
-  banco: 'props/bench_wide',
-  poste: 'props/lamp_old',
-  lixeira: 'props/trash',
-  banca: 'props/banca',
-  canteiro: 'props/planter_grass',
-  floreira: 'props/pot_red',
-  vaso: 'props/pot_teal',
-};
-
-/** Floors with no mask tileset yet. Flat brand fills, recorded as missing art. */
-const FLOOR_FILL: Record<string, number> = {
-  t: 0xc4a574,
-  l: 0xd7c4a8,
-  m: 0x8b5e3c,
-  j: 0x2f5d50,
-  k: 0xf5e6d3,
-};
-
-const NORTH_WALL_TILES = 3;
-
-interface Actor {
-  sprite: Phaser.GameObjects.Sprite;
-  shadow: Phaser.GameObjects.Image | null;
+export interface SceneHost {
+  labels: LabelLayer;
+  guides: () => Guide[];
+  /** HUD space to keep clear, CSS px */
+  insets: () => Insets;
+  lowfx: boolean;
+  debugArt: boolean;
+  /** `?shot=map`: zoom out to fit the whole outdoor map (screenshots) */
+  shot?: string | null;
 }
 
-export class WorldScene extends Phaser.Scene {
-  manifest: Manifest | null = null;
-  base = '';
-  dpr = 1;
-  cssZoom = 3;
-  readonly artMissing: string[] = [];
-  private now = 0;
-  private roomKey = '';
-  private roomRoot: Phaser.GameObjects.Container | null = null;
-  private actors = new Map<string, Actor>();
-  private labels: HTMLElement | null = null;
-  private grade: Phaser.GameObjects.Rectangle | null = null;
-  private boxes: ScreenBox[] = [];
-  private loggedSkips = new Set<string>();
+interface AvatarView {
+  sprite: Phaser.GameObjects.Sprite;
+  shadow: Phaser.GameObjects.Image;
+  sheet: string;
+  appearance: unknown;
+  hat: string | null;
+  look: Look;
+  parrot: Phaser.GameObjects.Sprite | null;
+  anim: string;
+  facing: Facing;
+  /** world px of the feet */
+  wx: number;
+  wy: number;
+  lastX: number;
+  lastY: number;
+  sitting: boolean;
+  moving: boolean;
+}
 
-  constructor(private readonly guidesOf: () => Guide[]) {
+interface NpcView {
+  npc: NpcDef;
+  sprite: Phaser.GameObjects.Sprite;
+  shadow: Phaser.GameObjects.Image;
+  sheet: string;
+  /** art px the sprite rises above a bare head (hats) */
+  lift: number;
+}
+
+interface FurnitureView {
+  /** the sprite (art) or the magenta placeholder box (art missing) */
+  obj: Phaser.GameObjects.Sprite | Phaser.GameObjects.Rectangle;
+  /** contact shadow under a sprite */
+  shadow: Phaser.GameObjects.Image | null;
+  /** selection outline (edit mode) */
+  sel: Phaser.GameObjects.Graphics;
+  /** what the outline was last drawn for (rebuilt when the piece moves, turns or is selected) */
+  selSig: string;
+  itemId: string;
+  rot: 0 | 1;
+  x: number;
+  y: number;
+}
+
+interface Canopy {
+  sprite: Phaser.GameObjects.Sprite;
+  r: Rect;
+  fade: number;
+}
+
+/** Art px from the feet to the top of the visible head (the 16x32 frame has empty rows above it); nameplates stand just above. */
+const HEAD_LIFT = 23;
+const HEAD_LIFT_SIT = 16;
+
+const hex = (h: string) => Phaser.Display.Color.HexStringToColor(h).color;
+const hash01 = (n: number) => {
+  let h = Math.imul(n | 0, 0x9e3779b1) ^ 0x85ebca6b;
+  h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d);
+  return ((h ^ (h >>> 12)) >>> 0) / 4294967296;
+};
+
+export class WorldScene extends Phaser.Scene {
+  /** true once create() finished */
+  ready = false;
+  /** keys the scene asked for that the manifest lacks (HOWTO §5.10); mirrored to window.__tb.artMissing */
+  readonly artMissing: string[] = [];
+  cam: CamState = { zoom: 4, dpr: 1, cx: 0, cy: 0, w: 1, h: 1 };
+  /** CSS px per art px (`WorldView.cam.scale`) */
+  cssScale = 4;
+  hitBoxes: HitBox[] = [];
+
+  private rig!: LightingRig;
+  // Phase 6a: live clock, weather, performance fallback
+  private weatherFx!: WeatherFx;
+  private readonly blend = new WeatherBlend();
+  private blendReady = false;
+  private outdoor = false;
+  private look: SceneLook | null = null;
+  private playerLight: Light | null = null;
+  private readonly probe = new FrameProbe();
+  private gov!: LowFxGovernor;
+  private readonly fxLevel: FxLevel = { lowfx: false, reduced: false };
+  private vignette: Phaser.FX.Vignette | null = null;
+  private lastUpdateAt = 0;
+  private reducedCheckAt = 0;
+  private sheets!: CharSheets;
+  private roomId = '';
+  private roomDef: RoomDef | null = null;
+  private roomObjs: Phaser.GameObjects.GameObject[] = [];
+  private roomMap: Phaser.Tilemaps.Tilemap | null = null;
+  private staticHits: HitBox[] = [];
+  private placeholders: { key: string; rect: Rect }[] = [];
+  private npcs: NpcView[] = [];
+  private canopies: Canopy[] = [];
+  private avatars = new Map<string, AvatarView>();
+  private furniture = new Map<string, FurnitureView>();
+  private grid: RoomGrid | null = null;
+  private gridFurniture: PlacedFurniture[] | null = null;
+  private bounds: Rect = { x0: 0, y0: 0, x1: 1, y1: 1 };
+  private snapCamera = true;
+  private hoverRect!: Phaser.GameObjects.Rectangle;
+  private lastT = 0;
+  /** decorate-mode ghost of the piece being placed or moved (scene-level: it outlives room rebuilds) */
+  private ghost: Phaser.GameObjects.Sprite | null = null;
+  private ghostKey = '';
+  /** the padaria order rail: still until Me vê um is open */
+  private trilho: Phaser.GameObjects.Sprite | null = null;
+  private trilhoLive = false;
+
+  constructor(
+    private readonly m: Manifest,
+    private readonly base: string,
+    private readonly assets: CharAssets,
+    private readonly host: SceneHost,
+  ) {
     super('world');
   }
 
-  setNow(now: number): void {
-    this.now = now;
-  }
-
+  // ------------------------------------------------------------------ loading
   preload(): void {
-    const m = this.manifest;
-    if (!m) return;
+    const m = this.m;
     const b = this.base;
     for (const [name, a] of Object.entries(m.atlases)) this.load.atlas(name, b + a.image, b + a.data);
     this.load.image('terrainTs', b + m.terrain.tileset);
-    for (const [key, file] of Object.entries(m.chars)) this.load.image(`layer:${key}`, b + file);
+    for (const [key, f] of Object.entries(m.fx)) this.load.image(`fx:${key}`, b + f.file);
   }
 
   create(): void {
     const cam = this.cameras.main;
-    cam.setRoundPixels(true);
     cam.setBackgroundColor('#1d1b26');
-    this.applyZoom();
-    if (this.manifest) {
-      SKIN_TONES.forEach((skin, i) => {
-        composeCharacter(
-          this,
-          `char_skin_${i}`,
-          [
-            { texture: 'layer:body_medio', ramps: { skin } },
-            { texture: 'layer:outfit_o01', ramps: { top: '#c9582c', bottom: '#3d5d8f' } },
-            { texture: 'layer:hair_h02', ramps: { hair: '#3a241a' } },
-          ],
-          this.manifest!.sheet,
-        );
-      });
-    }
-    this.grade = this.add
-      .rectangle(0, 0, this.scale.width, this.scale.height, 0xffffff)
-      .setScrollFactor(0)
-      .setOrigin(0, 0)
-      .setBlendMode(Phaser.BlendModes.MULTIPLY)
-      .setDepth(90000);
-    this.ensureLabels();
-    this.scale.on('resize', () => this.applyZoom());
-  }
-
-  private updateFailed = false;
-
-  override update(): void {
-    try {
-      this.step();
-    } catch (e) {
-      if (!this.updateFailed) {
-        this.updateFailed = true;
-        console.error('[TB] pixel update failed', e);
-      }
-    }
-  }
-
-  private step(): void {
-    this.paintGrade();
-    const room = game.roomDef;
-    const state = game.room;
-    if (!room || !state || !this.manifest) {
-      this.destroyRoom();
-      this.roomKey = '';
-      this.syncActors(null);
-      return;
-    }
-    const key = `${state.room}:${state.instanceId}:${state.ownerId ?? ''}:${game.furniture.map((f) => `${f.uid}@${f.x},${f.y},${f.rot}`).join('|')}`;
-    if (key !== this.roomKey) {
-      this.destroyRoom();
-      this.buildRoom(room);
-      this.roomKey = key;
-    }
-    this.syncActors(room);
-    this.follow(room);
-    this.updateLabels(room);
-  }
-
-  tileToClient(x: number, y: number): { px: number; py: number } {
-    const c = tileToWorld(x, y);
-    return this.clientOf(c.wx, c.wy);
-  }
-
-  hitTest(px: number, py: number): Hit | null {
-    const room = game.roomDef;
-    if (!room) return null;
-    const picked = pickHit(this.boxes, px, py, {
-      editMode: game.editMode,
-      placing: !!game.placing,
-      selfId: game.room?.selfId ?? null,
-      isCpu: isCpuId,
+    cam.setRoundPixels(true);
+    this.rig = new LightingRig(this, cam, 'fx:glow');
+    this.sheets = new CharSheets({
+      add: (key, look) => addSheetTexture(this, key, composeLook(this.assets, look), this.m.sheet),
+      remove: (key) => {
+        for (const name of animNames(this.m.sheet)) for (const f of ['S', 'W', 'E', 'N'] as Facing[]) this.anims.remove(animKey(key, name, f));
+        if (this.textures.exists(key)) this.textures.remove(key);
+      },
     });
-    if (picked) return picked;
-    const tile = this.tileAt(px, py);
-    if (!tile) return null;
-    const portal = room.portals.find((p) => p.x === tile.x && p.y === tile.y);
-    if (portal && !game.placing) return { kind: 'portal', portal };
-    return { kind: 'tile', tile };
+    // the hover marker belongs to the scene, not to a room layer
+    this.hoverRect = this.rig.world(this.add.rectangle(0, 0, T, T, 0xffffff, 0.22)).setOrigin(0, 0).setStrokeStyle(1, 0xffffff, 0.8).setDepth(49000).setVisible(false);
+    this.fxLevel.lowfx = this.host.lowfx;
+    this.fxLevel.reduced = reducedMotion();
+    this.gov = new LowFxGovernor(this.probe, this.host.lowfx);
+    this.weatherFx = new WeatherFx(this, this.rig, () => this.fxLevel);
+    if (!this.host.lowfx) this.vignette = cam.postFX.addVignette(0.5, 0.5, 0.88, 0.22);
+    this.scale.on('resize', (size: Phaser.Structs.Size) => this.rig.resize(size.width, size.height));
+    this.ready = true;
   }
 
-  tileAt(px: number, py: number): Tile | null {
-    const room = game.roomDef;
-    if (!room) return null;
-    const w = this.worldOf(px, py);
-    const tile = worldToTile(w.wx, w.wy);
-    if (tile.x < 0 || tile.y < 0 || tile.x >= room.cols || tile.y >= room.rows) return null;
-    return tile;
+  private reg<G extends Phaser.GameObjects.GameObject>(o: G): G {
+    this.rig.world(o);
+    this.roomObjs.push(o);
+    return o;
   }
 
-  private applyZoom(): void {
-    const cssW = this.game.canvas.clientWidth || window.innerWidth;
-    const cssH = this.game.canvas.clientHeight || window.innerHeight;
-    this.cssZoom = cssZoomFor(cssW, cssH);
-    this.cameras.main.setZoom(cameraZoom(this.cssZoom, this.dpr));
-    this.grade?.setSize(this.scale.width, this.scale.height);
-  }
-
-  private paintGrade(): void {
-    if (!this.grade) return;
-    const [r, g, b] = gradeAt(gameMinutes(Date.now()) / 60);
-    this.grade.setFillStyle((r << 16) | (g << 8) | b, 1);
-  }
-
-  private destroyRoom(): void {
-    this.roomRoot?.destroy(true);
-    this.roomRoot = null;
-    this.boxes = [];
-  }
-
-  private buildRoom(room: RoomDef): void {
-    const root = this.add.container(0, 0);
-    this.roomRoot = root;
-    this.buildTerrain(room, root);
-    this.buildWalls(room, root);
-    this.buildProps(room, root);
-    if (room.private) {
-      for (const f of game.furniture) this.placeholder(`furniture/${f.itemId}`, f.x + 0.5, f.y + 1, root);
-    }
-    this.cameras.main.setBounds(-T, -NORTH_WALL_TILES * T, (room.cols + 2) * T, (room.rows + NORTH_WALL_TILES + 2) * T);
-    this.cameras.main.setBackgroundColor(room.wallColor);
-  }
-
-  private buildTerrain(room: RoomDef, root: Phaser.GameObjects.Container): void {
-    const t = this.manifest!.terrain;
-    const map = this.make.tilemap({ tileWidth: T, tileHeight: T, width: room.cols + 1, height: room.rows + 1 });
-    const ts = map.addTilesetImage('terrain', 'terrainTs', T, T, t.margin, t.spacing);
-    if (ts) {
-      const order = (['a', 'c', 'g'] as const).filter((c) => t.layers[c]);
-      order.sort((a, b) => Number(t.layers[a].edge === 'slab') - Number(t.layers[b].edge === 'slab'));
-      order.forEach((ch, li) => {
-        const def = t.layers[ch];
-        const layer = map.createBlankLayer(`terrain_${room.id}_${ch}`, ts, -T / 2, -T / 2, room.cols + 1, room.rows + 1);
-        if (!layer) return;
-        layer.setDepth(DEPTH_TERRAIN + li);
-        root.add(layer);
-        for (let j = 0; j <= room.rows; j++) {
-          for (let i = 0; i <= room.cols; i++) {
-            const mask = maskAt(room.floor, ch, i, j, ' ');
-            const idx = def.edge === 'slab' ? phasedIndex(def.first, mask, i, def.phases) : tileIndex(def.first, mask, i, j, def.variants);
-            if (idx >= 0) layer.putTileAt(idx, i, j);
-          }
-        }
-      });
-    }
-    const seen = new Set<string>();
-    for (let y = 0; y < room.rows; y++) {
-      const row = room.floor[y] ?? '';
-      for (let x = 0; x < room.cols; x++) {
-        const ch = row[x] ?? ' ';
-        if (!ch || ch === ' ' || t.layers[ch]) continue;
-        if (!seen.has(ch)) {
-          seen.add(ch);
-          this.noteMissing(`terrain:${ch}`);
-        }
-        const fill = FLOOR_FILL[ch] ?? 0xff00ff;
-        root.add(this.add.rectangle(x * T, y * T, T, T, fill, fill === 0xff00ff ? 0.35 : 1).setOrigin(0, 0).setDepth(DEPTH_TERRAIN + 2));
-      }
-    }
-  }
-
-  private buildWalls(room: RoomDef, root: Phaser.GameObjects.Container): void {
-    const color = parseHex(room.wallColor, 0xf5e6d3);
-    const trim = parseHex(room.wallTrim, 0xc45c26);
-    root.add(this.add.rectangle(0, -NORTH_WALL_TILES * T, room.cols * T, NORTH_WALL_TILES * T, color).setOrigin(0, 0).setDepth(DEPTH_DECAL));
-    root.add(this.add.rectangle(0, -2, room.cols * T, 3, trim).setOrigin(0, 1).setDepth(DEPTH_DECAL + 1));
-    root.add(this.add.rectangle(-T, 0, T, room.rows * T, color).setOrigin(0, 0).setDepth(DEPTH_DECAL));
-    if (!this.loggedSkips.has(room.id)) {
-      this.loggedSkips.add(room.id);
-      const skipped = room.walls.filter((w) => w.wall === 'left').map((w) => w.kind);
-      if (skipped.length) console.info(`[pixel] ${room.id} west-wall decor skipped until it can sit on the north wall:`, skipped.join(', '));
-    }
-    for (const wall of room.walls) {
-      if (wall.wall !== 'right') continue;
-      const mid = (wall.from + wall.to) / 2;
-      if (wall.kind === 'fachada_padaria' && this.manifest?.sprites['buildings/shop_padaria']) this.place('buildings/shop_padaria', mid, -0.2, root);
-      else this.placeholder(`wall:${wall.kind}`, mid, -1, root, Math.max(1, wall.to - wall.from));
-    }
-    for (const portal of room.portals) {
-      root.add(
-        this.add
-          .rectangle(portal.x * T + T / 2, portal.y * T + T - 2, 10, 16, trim)
-          .setOrigin(0.5, 1)
-          .setDepth(standingDepth(portal.y * T + T, portal.id)),
-      );
-    }
-  }
-
-  private buildProps(room: RoomDef, root: Phaser.GameObjects.Container): void {
-    for (const prop of room.props) {
-      const key = prop.hero ? 'props/ipe_large' : PROP_SPRITE[prop.kind];
-      const tx = prop.x + (prop.w ?? 1) / 2;
-      const ty = prop.y + (prop.h ?? 1);
-      if (key && this.manifest?.sprites[key]) this.place(key, tx, ty, root);
-      else this.placeholder(`props/${prop.kind}`, tx, ty, root, prop.w ?? 1, prop.h ?? 1);
-      if (key === 'props/ipe_large' || key === 'props/ipe_medium') {
-        const canopy = key === 'props/ipe_large' ? 'props/ipe_large_canopy' : 'props/ipe_medium_canopy';
-        if (this.manifest?.sprites[canopy]) this.place(canopy, tx, ty, root, DEPTH_OVERHEAD);
-      }
-    }
-  }
-
-  private place(key: string, tx: number, ty: number, root: Phaser.GameObjects.Container, depth = NaN): void {
-    const d = this.manifest!.sprites[key];
-    const wx = Math.round(tx * T);
-    const wy = Math.round(ty * T);
-    root.add(
-      this.add
-        .sprite(wx, wy, d.atlas, d.frame)
-        .setOrigin(d.ax / d.w, d.ay / d.h)
-        .setDepth(Number.isNaN(depth) ? standingDepth(wy, key) : depth),
-    );
-    if (!d.shadow) return;
-    const s = this.manifest!.sprites[d.shadow];
-    if (!s) return;
-    root.add(this.add.image(wx, wy - 1, s.atlas, s.frame).setOrigin(s.ax / s.w, s.ay / s.h).setDepth(DEPTH_DECAL + 4));
-  }
-
-  private placeholder(key: string, tx: number, ty: number, root: Phaser.GameObjects.Container, w = 1, h = 1): void {
-    this.noteMissing(key);
-    const wy = ty * T;
-    root.add(
-      this.add
-        .rectangle(tx * T, wy, w * T, h * T, 0xff00ff, 0.35)
-        .setOrigin(0.5, 1)
-        .setStrokeStyle(1, 0xff00ff, 1)
-        .setDepth(standingDepth(wy, key)),
-    );
-  }
-
+  // ------------------------------------------------------------------ placeholders (HOWTO §5.10)
   private noteMissing(key: string): void {
     if (this.artMissing.includes(key)) return;
     this.artMissing.push(key);
-    const tb = (window as unknown as { __tb?: { artMissing?: string[] } }).__tb;
-    if (tb) tb.artMissing = this.artMissing;
   }
 
-  private syncActors(room: RoomDef | null): void {
-    const meta = this.manifest?.sheet;
-    const alive = new Set<string>();
-    if (room && meta) {
-      for (const npc of room.npcs) alive.add(`npc:${npc.id}`);
-      for (const a of game.avatars.values()) alive.add(a.pub.id);
-    }
-    for (const [id, actor] of this.actors) {
-      if (alive.has(id)) continue;
-      actor.sprite.destroy();
-      actor.shadow?.destroy();
-      this.actors.delete(id);
-    }
-    if (!room || !meta) {
-      this.boxes = [];
-      return;
-    }
-    for (const npc of room.npcs) {
-      const p = feet(npc.x, npc.y);
-      this.pose(this.actor(`npc:${npc.id}`, 'char_skin_2'), p.wx, p.wy, FACING[npc.dir], false, false, `npc:${npc.id}`);
-    }
-    for (const a of game.avatars.values()) {
-      const pos = positionAlong(a.from, a.path, this.now - a.start, a.pub.dir);
-      const p = feet(pos.x, pos.y);
-      const emote = a.emote && this.now - a.emote.t0 < 1200;
-      const bob = emote ? Math.sin((this.now - (a.emote?.t0 ?? 0)) / 80) * 2 : 0;
-      const sheet = `char_skin_${a.pub.appearance.skin}`;
-      this.pose(this.actor(a.pub.id, sheet), p.wx, p.wy - bob, FACING[pos.dir], pos.moving, a.pub.sitting, a.pub.id);
-    }
-    this.rebuildBoxes(room);
+  /** A flat magenta box the size of the footprint. Never a painted stand-in. */
+  private placeholder(key: string, r: Rect, depth: number): Phaser.GameObjects.Rectangle {
+    this.noteMissing(key.replace(/#.*$/, ''));
+    this.placeholders.push({ key, rect: r });
+    return this.reg(this.add.rectangle((r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2, r.x1 - r.x0, r.y1 - r.y0, 0xff00ff, 0.35)).setStrokeStyle(1, 0xff00ff, 1).setDepth(depth);
   }
 
-  private actor(id: string, sheet: string): Actor {
-    const existing = this.actors.get(id);
-    if (existing) {
-      if (existing.sprite.texture.key !== sheet) existing.sprite.setTexture(sheet);
-      return existing;
-    }
-    const shadowDef = this.manifest?.sprites['fx/shadow_16'];
-    const shadow = shadowDef
-      ? this.add.image(0, 0, shadowDef.atlas, shadowDef.frame).setOrigin(shadowDef.ax / shadowDef.w, shadowDef.ay / shadowDef.h).setDepth(DEPTH_DECAL + 5)
-      : null;
-    const actor = { sprite: this.add.sprite(0, 0, sheet, 0).setOrigin(0.5, 1), shadow };
-    this.actors.set(id, actor);
-    return actor;
+  private flat(r: Rect, color: number, depth: number): Phaser.GameObjects.Rectangle {
+    return this.reg(this.add.rectangle(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0, color, 1)).setOrigin(0, 0).setDepth(depth);
   }
 
-  private pose(actor: Actor, wx: number, wy: number, facing: Facing, moving: boolean, sitting: boolean, id: string): void {
-    const meta = this.manifest!.sheet;
-    const sheet = actor.sprite.texture.key;
-    actor.sprite.setPosition(wx, wy).setDepth(standingDepth(wy, id));
-    actor.shadow?.setPosition(wx, wy - 1);
-    if (sitting) {
-      actor.sprite.anims.stop();
-      actor.sprite.setFrame(sitFrame(meta, facing));
-      return;
+  // ------------------------------------------------------------------ sprites
+  /** A standing sprite from the manifest with its contact and cast shadows; null when the manifest has no such key. */
+  private sprite(key: string, wx: number, wy: number, depth: number, shadow = true): Phaser.GameObjects.Sprite | null {
+    const d = this.m.sprites[key];
+    if (!d) return null;
+    const x = Math.round(wx);
+    const y = Math.round(wy);
+    const spr = this.reg(this.add.sprite(x, y, d.atlas, d.frame)).setOrigin(...originOf(d)).setDepth(depth);
+    if (d.anim) spr.play({ key: ensureAnim(this, key, d), startFrame: Math.floor(hash01(x * 31 + y) * d.anim.frames.length) });
+    if (shadow) {
+      if (d.cast) {
+        const c = this.reg(this.add.image(x, y, d.atlas, d.cast.frame)).setOrigin(d.cast.ax / d.cast.w, d.cast.ay / d.cast.h).setDepth(DEPTH.shadowCast);
+        this.rig.castShadows.push(c);
+      }
+      const s = d.shadow ? this.m.sprites[d.shadow] : null;
+      if (s) this.reg(this.add.image(x, y - 1, s.atlas, s.frame)).setOrigin(...originOf(s)).setDepth(DEPTH.shadowContact);
     }
-    const key = animKey(sheet, moving ? 'walk' : 'idle', facing);
-    if (this.anims.exists(key) && actor.sprite.anims.currentAnim?.key !== key) actor.sprite.play(key);
+    return spr;
   }
 
-  private follow(room: RoomDef): void {
-    const actor = game.room?.selfId ? this.actors.get(game.room.selfId) : undefined;
-    if (!actor) return;
-    const cam = this.cameras.main;
-    const viewW = cam.width / (cam.zoom || 1);
-    const viewH = cam.height / (cam.zoom || 1);
-    const roomW = room.cols * T;
-    const top = -NORTH_WALL_TILES * T;
-    const contentH = room.rows * T - top;
-    const cx = roomW / 2;
-    const cy = top + contentH / 2;
-    // A view larger than the room cannot scroll inside tight bounds, so Phaser pins the map to the corner.
-    if (viewW >= roomW && viewH >= contentH) {
-      const bw = Math.max(roomW + 2 * T, viewW);
-      const bh = Math.max(contentH + 2 * T, viewH);
-      cam.setBounds(cx - bw / 2, cy - bh / 2, bw, bh);
-      cam.stopFollow();
-      cam.centerOn(cx, cy);
-    } else {
-      cam.setBounds(-T, top, roomW + 2 * T, contentH + 2 * T);
-      cam.startFollow(actor.sprite, true, 0.12, 0.12);
-    }
+  // ------------------------------------------------------------------ room layer
+  private destroyRoom(): void {
+    for (const n of this.npcs) this.sheets.release(n.sheet);
+    this.npcs = [];
+    for (const o of this.roomObjs) o.destroy();
+    this.roomObjs = [];
+    this.roomMap?.destroy();
+    this.roomMap = null;
+    this.staticHits = [];
+    this.placeholders = [];
+    this.canopies = [];
+    this.trilho = null;
+    this.trilhoLive = false;
+    // furniture rectangles were registered with the room objects
+    this.furniture.clear();
+    this.rig.clearRoom();
+    this.weatherFx?.clearRoom();
   }
 
-  private rebuildBoxes(room: RoomDef): void {
-    const boxes: ScreenBox[] = [];
-    const add = (wx: number, wy: number, hw: number, hh: number, hit: Hit, depth: number) => {
-      const a = this.clientOf(wx - hw, wy - hh);
-      const b = this.clientOf(wx + hw, wy);
-      boxes.push({ x0: Math.min(a.px, b.px), y0: Math.min(a.py, b.py), x1: Math.max(a.px, b.px), y1: Math.max(a.py, b.py), hit, depth });
-    };
-    for (const prop of room.props) {
-      if (prop.seat) {
-        const seat = seatTiles(room).find((s) => s.prop?.id === prop.id);
-        if (seat) add((seat.x + 0.5) * T, (seat.y + 1) * T, 12, 16, { kind: 'seat', tile: { x: seat.x, y: seat.y } }, seat.y);
-      } else if (prop.action) {
-        add((prop.x + (prop.w ?? 1) / 2) * T, (prop.y + (prop.h ?? 1)) * T, ((prop.w ?? 1) * T) / 2, (prop.h ?? 1) * T, { kind: 'prop', prop }, prop.y + 1);
+  private buildRoom(def: RoomDef): void {
+    this.destroyRoom();
+    const m = this.m;
+    const has = (k: string) => !!m.sprites[k];
+    const missingBefore = this.artMissing.length;
+
+    // ---- terrain: dual-grid layers for the floor chars that have art; substitutes and flat placeholders for the rest
+    const res = buildTerrainLayers(this, def.floor, m.terrain, 'terrainTs', { outside: def.outdoor ? undefined : 'x', wrap: (o) => this.rig.world(o), substitute: FLOOR_SUBSTITUTE });
+    this.roomMap = res.map;
+    const chars = new Set(def.floor.join(''));
+    for (const ch of chars) {
+      if (m.terrain.layers[ch]) continue;
+      this.noteMissing(`terrain/${ch}`);
+      const color = FLOOR_PLACEHOLDER[ch];
+      if (color === undefined || FLOOR_SUBSTITUTE[ch]) continue; // 'x' is drawn as nothing; substituted terrain already drew
+      def.floor.forEach((row, y) => {
+        let x = 0;
+        while (x < row.length) {
+          if (row[x] !== ch) {
+            x++;
+            continue;
+          }
+          const x0 = x;
+          while (x < row.length && row[x] === ch) x++;
+          this.flat({ x0: x0 * T, y0: y * T, x1: x * T, y1: (y + 1) * T }, hex(color), DEPTH.terrain + 5);
+        }
+      });
+    }
+
+    // ---- walls: north band and west strip from 16 px wall tiles per room style (flat placeholders in the room's colors when the art is missing)
+    if (!def.outdoor) this.buildWalls(def);
+
+    // ---- facades on north doors (an open-air map has its building fronts as props)
+    const facades = def.outdoor ? [] : northFacades(def, has);
+    let tallest = 0;
+    for (const f of facades) {
+      const d = m.sprites[f.key];
+      const spr = this.sprite(f.key, f.wx, f.wy, standingDepth(f.wy, f.key));
+      if (!spr) continue;
+      tallest = Math.max(tallest, d.ay);
+      // each window is its own light: the lit overlay is cropped per window and every window has its own 0..40 game-minute switch-on delay
+      const fx0 = Math.round(f.wx) - d.ax;
+      const fy0 = Math.round(f.wy) - d.ay;
+      const ld = d.lit ? m.sprites[d.lit] : undefined;
+      const wins = d.windows ?? [];
+      if (ld && !wins.length) {
+        this.rig.litOverlays.push(this.reg(this.add.image(Math.round(f.wx), Math.round(f.wy), ld.atlas, ld.frame)).setOrigin(...originOf(ld)).setDepth(f.wy + 0.5).setAlpha(0).setData('delay', lightDelay(f.wx, f.wy)));
+      }
+      for (const [wx, wy, ww, wh] of wins) {
+        const delay = lightDelay(fx0 + wx, fy0 + wy);
+        if (ld) {
+          const o = this.reg(this.add.image(Math.round(f.wx), Math.round(f.wy), ld.atlas, ld.frame)).setOrigin(...originOf(ld)).setDepth(f.wy + 0.5).setAlpha(0).setData('delay', delay);
+          o.setCrop(Math.max(0, wx - 1), Math.max(0, wy - 1), ww + 2, wh + 2);
+          this.rig.litOverlays.push(o);
+        }
+        this.rig.lights.push({ x: fx0 + wx + ww / 2, y: fy0 + wy + wh + 5, r: 22 + ww * 0.5, color: 0xffc060, squash: 0.6, kind: 'window', delay });
       }
     }
-    for (const portal of room.portals) add((portal.x + 0.5) * T, (portal.y + 1) * T, 14, 22, { kind: 'portal', portal }, portal.y + 2);
-    for (const npc of room.npcs) add((npc.x + 0.5) * T, (npc.y + 1) * T - 3, 8, 28, { kind: 'npc', npc }, npc.y + 3);
-    for (const f of game.furniture) {
-      const def = furnitureById(f.itemId);
-      const hit: Hit = !game.editMode && def?.seat ? { kind: 'seat', tile: { x: f.x, y: f.y } } : { kind: 'furniture', f };
-      add((f.x + 0.5) * T, (f.y + 1) * T, 12, 18, hit, f.y);
+
+    // ---- north wall decor (its own plus the west-wall decor moved to a free stretch, roomLayout.relocatedWestDecor)
+    for (const d of allNorthDecor(def)) {
+      if (decorCoveredByFacade(d, facades)) continue;
+      this.buildDecor(d);
     }
-    for (const a of game.avatars.values()) {
-      const pos = positionAlong(a.from, a.path, this.now - a.start, a.pub.dir);
-      const p = feet(pos.x, pos.y);
-      add(p.wx, p.wy, 8, 28, { kind: 'avatar', id: a.pub.id }, pos.y);
+
+    // ---- window light on the floor under every north-wall window (interiors): a warm slanted patch, ADD blended, in the lighting rig
+    for (const w of windowPatches(def)) {
+      const pd = m.sprites[w.key];
+      if (pd) this.rig.patches.push(this.reg(this.add.image(w.x, w.y, pd.atlas, pd.frame)).setOrigin(0, 0).setDepth(DEPTH.groundDecal + 60).setBlendMode(Phaser.BlendModes.ADD));
     }
-    this.boxes = boxes;
+
+    // ---- the night sky in the window glass (alpha follows the live clock in the rig), with a few stars
+    const wp = windowPanes(def);
+    for (const r of wp.panes) this.rig.panes.push(this.reg(this.add.rectangle(r.x0, r.y0, r.x1 - r.x0, r.y1 - r.y0, 0x15264f, 1)).setOrigin(0, 0).setDepth(DEPTH.wallDecor + 1).setAlpha(0));
+    for (const s of wp.stars) this.rig.panes.push(this.reg(this.add.rectangle(s.x, s.y, 1, 1, 0xf4f0d0, 1)).setOrigin(0, 0).setDepth(DEPTH.wallDecor + 2).setAlpha(0));
+
+    // ---- doors
+    for (const p of def.portals) {
+      if (!p.wall) {
+        // an outdoor door is part of its facade sprite: only the click box is needed
+        const r = portalHitRect(p);
+        this.staticHits.push({ ...r, hit: { kind: 'portal', portal: p }, depth: r.y1 });
+        continue;
+      }
+      if (isNorthPortal(p)) {
+        if (!facades.some((f) => f.portal.id === p.id) && !this.sprite('doors/north', (p.x + 0.5) * T, 0, DEPTH.wallDecor, false)) this.placeholder('doors/north', northDoorRect(p), DEPTH.wallDecor);
+      } else {
+        if (!this.sprite('doors/west', 0, (p.y + 1) * T, DEPTH.wallDecor, false)) this.placeholder('doors/west', westDoorRect(p), DEPTH.wallDecor);
+        if (!this.sprite('props/doormat', (p.x + 0.5) * T, (p.y + 1) * T, DEPTH.groundDecal, false)) this.placeholder('props/doormat', inflate(doormatRect(p), -2), DEPTH.groundDecal);
+      }
+      const r = portalHitRect(p);
+      this.staticHits.push({ ...r, hit: { kind: 'portal', portal: p }, depth: r.y1 });
+    }
+
+    // ---- ground decals: fallen petals under each ipê
+    for (const p of def.props) {
+      if (p.kind !== 'ipe') continue;
+      const a = propAnchor(p);
+      const pd = m.sprites[p.hero ? 'decals/petals_large' : 'decals/petals_medium'];
+      if (pd) this.reg(this.add.image(Math.round(a.wx) + 3, Math.round(a.wy) - 1, pd.atlas, pd.frame)).setOrigin(0.5, 0.5).setDepth(-4900);
+    }
+
+    // ---- ground dressing and wires of an open-air map
+    this.buildScenery(def);
+
+    // ---- props
+    for (const p of def.props) this.buildProp(p);
+
+    // ---- NPCs
+    for (const n of def.npcs) this.buildNpc(n);
+
+    // a small warm glow around the local player at night (HOWTO §5.8); follows the avatar in applyLook
+    this.playerLight = { x: 0, y: 0, r: 0, color: 0xffd9a8, squash: 0.85, kind: 'player', glow: 0.22 };
+    this.rig.lights.push(this.playerLight);
+    this.rig.syncLights();
+    // outdoor rooms follow the live clock and weather; puddles go on the free calçada / asfalto tiles
+    this.outdoor = isOutdoor(def);
+    const blocked = buildGrid(def, []).blocked;
+    this.weatherFx.buildRoom(def, (x, y) => blocked.has(tileKey(x, y)));
+    this.bounds = roomBounds(def, tallest);
+    this.snapCamera = true;
+    this.hoverRect.setVisible(false);
+    const skipped = describeSkipped({ [def.id]: def });
+    if (skipped.length) console.info('[pixel] west-wall decor skipped in Phase 2:', skipped.join('; '));
+    if (this.artMissing.length !== missingBefore) console.info('[pixel] missing art (placeholders):', this.artMissing.join(', '));
   }
 
-  private ensureLabels(): void {
-    let layer = document.getElementById('world-labels');
-    if (!layer) {
-      layer = document.createElement('div');
-      layer.id = 'world-labels';
-      document.body.appendChild(layer);
+  /** North band (3 tiles) and west strip from wall tiles; a missing tile key falls back to a flat fill in the room's wall color. */
+  private buildWalls(def: RoomDef): void {
+    const style = WALL_STYLE[def.id] ?? 'padaria';
+    const band = northBandRect(def);
+    const strip = westStripRect(def);
+    const has = (k: string) => !!this.m.sprites[k];
+    for (let i = -1; i < def.cols; i++) {
+      const key = northWallKey(style, i < 0 ? 'l' : i === def.cols - 1 ? 'r' : 'm');
+      if (!has(key)) {
+        this.noteMissing(key);
+        this.flat({ x0: i * T, y0: band.y0, x1: (i + 1) * T, y1: 0 }, hex(def.wallColor), DEPTH.wall);
+        continue;
+      }
+      this.sprite(key, i * T, 0, DEPTH.wall, false);
     }
-    this.labels = layer;
+    for (let j = 0; j < def.rows; j++) {
+      const key = westWallKey(style, j === def.rows - 1);
+      if (!has(key)) {
+        this.noteMissing(westWallKey(style, false));
+        this.flat({ x0: strip.x0, y0: j * T, x1: 0, y1: (j + 1) * T }, hex(def.wallColor), DEPTH.wall);
+        continue;
+      }
+      this.sprite(key, 0, (j + 1) * T, DEPTH.wall, false);
+    }
   }
 
-  private updateLabels(room: RoomDef): void {
-    const layer = this.labels;
-    if (!layer) return;
-    layer.replaceChildren();
-    const put = (text: string, cls: string, wx: number, wy: number) => {
-      const p = this.clientOf(wx, wy);
-      const el = document.createElement('div');
-      el.className = cls;
-      el.textContent = text;
-      el.style.transform = `translate(${Math.round(p.px)}px, ${Math.round(p.py)}px) translate(-50%, -100%)`;
-      layer.appendChild(el);
+  /** One wall decor item: tiled along its span or centred on it, at the height its art table gives; a placeholder box when the art is missing. */
+  private buildDecor(d: WallDecor): void {
+    const art = decorArt(d);
+    const spr = art ? this.m.sprites[art.key] : undefined;
+    if (!art || !spr) {
+      this.placeholder(`walls/${d.kind}`, northDecorRect(d), DEPTH.wallDecor);
+      return;
+    }
+    if (art.mode === 'tile') {
+      for (let x = d.from * T; x < d.to * T; x += spr.w) this.sprite(art.key, x + spr.ax, art.bottom, DEPTH.wallDecor, false);
+      return;
+    }
+    const left = Math.round(((d.from + d.to) * T - spr.w) / 2);
+    this.sprite(art.key, left + spr.ax, art.bottom, DEPTH.wallDecor, false);
+  }
+
+  private buildProp(p: PropDef): void {
+    const m = this.m;
+    if (p.kind === 'cerca') {
+      this.buildFence(p);
+      return;
+    }
+    const a = propAnchor(p);
+    const flat = p.kind === 'tatame';
+    const depth = flat ? DEPTH.groundDecal + 10 : propDepth(p, a.wy);
+    const foot = footprintRect(p);
+    let visual: Rect = foot;
+    const artKey = propArtKey(p);
+    const d = artKey ? m.sprites[artKey] : undefined;
+    const slices = propSlices(p);
+    if (slices) {
+      // long props (counter, bleachers): one sprite per footprint tile
+      for (const s of slices) {
+        const sd = m.sprites[s.key];
+        const wx = (s.x + 0.5) * T;
+        const wy = (s.y + 1) * T;
+        if (sd) {
+          this.sprite(s.key, wx, wy, depth);
+          visual = unionRect(visual, spriteRect(Math.round(wx), Math.round(wy), sd));
+        } else this.placeholder(`${s.key}#${p.id}`, { x0: s.x * T, y0: s.y * T, x1: (s.x + 1) * T, y1: (s.y + 1) * T }, depth);
+      }
+    } else if (artKey && d) {
+      const main = this.sprite(artKey, a.wx, a.wy, depth);
+      if (p.kind === 'trilho_pedidos' && main && d.anim) {
+        // the ticket rail is still until Me vê um opens (updateTrilho)
+        main.anims.stop();
+        main.setFrame(d.anim.frames[0]);
+        this.trilho = main;
+        this.trilhoLive = false;
+      }
+      if (d.lit && m.sprites[d.lit]) {
+        const ld = m.sprites[d.lit];
+        this.rig.litOverlays.push(this.reg(this.add.image(Math.round(a.wx), Math.round(a.wy), ld.atlas, ld.frame)).setOrigin(...originOf(ld)).setDepth(depth + 0.01).setAlpha(0).setData('delay', lightDelay(a.wx, a.wy)));
+      }
+      visual = unionRect(foot, spriteRect(Math.round(a.wx), Math.round(a.wy), d));
+      // lit windows of a building front: light pools on the sidewalk at night
+      for (const [wx, wy, ww, wh] of d.windows ?? []) {
+        this.rig.lights.push({ x: Math.round(a.wx) - d.ax + wx + ww / 2, y: Math.round(a.wy) - d.ay + wy + wh + 5, r: 22 + ww * 0.5, color: 0xffc060, squash: 0.6, kind: 'window' });
+      }
+      if (typeof d.overhead === 'string' && m.sprites[d.overhead]) {
+        const od = m.sprites[d.overhead];
+        const x = Math.round(a.wx);
+        const y = Math.round(a.wy);
+        const spr = this.reg(this.add.sprite(x, y, od.atlas, od.frame)).setOrigin(...originOf(od)).setDepth(DEPTH.overhead + y / 1000);
+        if (od.anim) spr.play({ key: ensureAnim(this, d.overhead, od), startFrame: Math.floor(hash01(x * 7 + y) * 4) });
+        const left = x - od.ax;
+        const top = y - od.ay;
+        this.canopies.push({ sprite: spr, r: { x0: left, y0: top + 8, x1: left + od.w, y1: top + od.h + 14 }, fade: 1 });
+      }
+      const L = d.light ? { x: d.light.x - d.ax, y: d.light.y - d.ay, r: d.light.r, color: d.light.color } : PROP_LIGHT[p.kind];
+      if (L) this.addLampLights(Math.round(a.wx), Math.round(a.wy), L);
+    } else {
+      this.placeholder(`${propPlaceholderKey(p)}#${p.id}`, foot, depth);
+    }
+
+    if (p.action) {
+      this.staticHits.push({ ...inflate(unionRect(visual, foot), 2), hit: { kind: 'prop', prop: p }, depth: a.wy });
+    } else if (p.seat) {
+      const { w, h } = propSize(p);
+      for (const t of propTiles(p)) {
+        const tile: Rect = { x0: t.x * T, y0: t.y * T, x1: (t.x + 1) * T, y1: (t.y + 1) * T };
+        // a single-tile seat (bench, stool) is clickable over its whole sprite, with a little slack; long seats per tile, taller
+        const r = w === 1 && h === 1 ? inflate(unionRect(visual, tile), 3) : { ...tile, y0: tile.y0 - 6 };
+        this.staticHits.push({ ...r, hit: { kind: 'seat', tile: { x: t.x, y: t.y } }, depth: a.wy });
+      }
+    }
+  }
+
+  /** A fenced rectangle: the perimeter pieces of the pack's fence set (the inside is blocked and dressed by other props). */
+  private buildFence(p: PropDef): void {
+    for (const piece of fencePieces(p)) {
+      if (!this.m.sprites[piece.key]) {
+        this.noteMissing(piece.key);
+        continue;
+      }
+      this.sprite(piece.key, (piece.x + (piece.w ?? 1) / 2) * T, (piece.y + 1) * T, standingDepth((piece.y + 1) * T, `${p.id}:${piece.x},${piece.y}`), false);
+    }
+  }
+
+  /** Ground decals (crosswalks, mosaic, flowers, tufts, grime) and the overhead wires of an open-air map. */
+  private buildScenery(def: RoomDef): void {
+    const sc = sceneryFor(def, (k) => !!this.m.sprites[k]);
+    if (!sc) return;
+    for (const d of sc.decals) {
+      const sd = this.m.sprites[d.key];
+      const img = this.reg(this.add.image(d.x, d.y, sd.atlas, sd.frame)).setDepth(d.depth);
+      if (d.origin === 'tl') img.setOrigin(0, 0);
+      else img.setOrigin(...originOf(sd));
+    }
+    const pole = this.m.sprites['props/poste_fios'];
+    const attachY = pole?.attach?.[1] ?? -51;
+    for (const run of sc.wires) {
+      let wx = run.x;
+      const wy = run.y + attachY;
+      for (const key of run.keys) {
+        const wd = this.m.sprites[key];
+        if (!wd) {
+          this.noteMissing(key);
+          continue;
+        }
+        // wires cross over everything: overhead layer, a little see-through so they never fight the art below
+        this.reg(this.add.image(wx, wy, wd.atlas, wd.frame)).setOrigin(...originOf(wd)).setDepth(DEPTH.overhead + 200).setAlpha(0.7);
+        wx += wd.w - 1;
+      }
+    }
+  }
+
+  private addLampLights(bx: number, by: number, L: { x: number; y: number; r: number; color: string }): void {
+    const color = parseInt(L.color.slice(1), 16);
+    // one switch per lamp: the halo and the pool on the ground share the delay of the lamp's position
+    const delay = lightDelay(bx, by);
+    this.rig.lights.push({ x: bx + L.x, y: by + L.y, r: L.r * 0.55, color, squash: 1, kind: 'lamp', glow: 0.6, delay });
+    // the pool of light lands on the ground around the base
+    this.rig.lights.push({ x: bx + 5, y: by - 2, r: L.r * 1.3, color, squash: 0.55, kind: 'lamp', glow: 0.55, delay });
+  }
+
+  private buildNpc(n: NpcDef): void {
+    const look = lookForNpc(n.id, n.appearance, n.hat);
+    const sheet = this.sheets.acquire(look);
+    const f = feet(n.x, n.y);
+    const spr = this.reg(this.add.sprite(f.wx, Math.round(f.wy), sheet, 0)).setOrigin(0.5, 1).setDepth(standingDepth(f.wy, n.id));
+    const seed = n.x * 100 + n.y;
+    const facing = FACING[n.dir];
+    spr.play({ key: animKey(sheet, look.idle.anim === 'phone' && facing === 'S' ? 'phone' : 'idle', facing), startFrame: Math.floor(hash01(seed) * 6) });
+    spr.anims.timeScale = look.idle.speed * (0.9 + 0.2 * hash01(seed + 7));
+    const s16 = this.m.sprites['fx/shadow_16'];
+    const shadow = this.reg(this.add.image(f.wx, Math.round(f.wy) - 1, s16.atlas, s16.frame)).setOrigin(...originOf(s16)).setDepth(DEPTH.shadowContact);
+    this.npcs.push({ npc: n, sprite: spr, shadow, sheet, lift: lookHeadLift(look) });
+    this.staticHits.push({ x0: f.wx - 9, y0: f.wy - 32, x1: f.wx + 9, y1: f.wy + 2, hit: { kind: 'npc', npc: n }, depth: f.wy + 0.5 });
+  }
+
+  // ------------------------------------------------------------------ per-frame reconcile
+  override update(_time: number, delta: number): void {
+    if (!this.ready) return;
+    this.trackPerf();
+    const dt = Math.min(0.1, delta / 1000);
+    const now = performance.now();
+    const room = game.room;
+    const def = game.roomDef;
+    if (!room || !def) {
+      this.hitBoxes = [];
+      this.host.labels.update([], [], { w: this.cam.w / this.cam.dpr, h: this.cam.h / this.cam.dpr });
+      return;
+    }
+    const key = roomKey(room);
+    if (key !== this.roomId || this.roomDef !== def) {
+      this.roomId = key;
+      this.roomDef = def;
+      this.buildRoom(def);
+    }
+    if (this.gridFurniture !== game.furniture || !this.grid) {
+      this.grid = buildGrid(def, game.furniture);
+      this.gridFurniture = game.furniture;
+    }
+    this.applyZoom();
+    const dyn: HitBox[] = [];
+    this.syncFurniture(dyn);
+    this.syncAvatars(def, now, dyn);
+    this.updateCanopies(dt);
+    this.updateHover(def);
+    this.updateTrilho();
+    this.hitBoxes = this.staticHits.concat(dyn);
+    this.updateCamera(dt, def);
+    this.applyLook(def, dt);
+    this.pushLabels(def, now);
+  }
+
+  /** Phase 6a: the live game clock and weather -> the rig (grade, darkness, lamps) and the rain. */
+  private applyLook(def: RoomDef, dt: number): void {
+    const weather = clock.weather();
+    if (!this.blendReady) {
+      this.blend.snap(weather);
+      this.blendReady = true;
+    }
+    const me = game.self ? this.avatars.get(game.self.pub.id) : undefined;
+    if (this.playerLight) {
+      this.playerLight.r = me ? 30 : 0;
+      if (me) {
+        this.playerLight.x = me.wx;
+        this.playerLight.y = me.wy - 8;
+      }
+    }
+    const params = this.blend.step(weather, dt);
+    const look = computeLook({ outdoor: this.outdoor, roomHour: ROOM_HOUR[def.lighting], minutes: clock.minutesExact(), weather: params });
+    this.look = look;
+    this.rig.apply(look, this.cameras.main.zoom, (wx, wy) => this.toDevice(wx, wy));
+    this.weatherFx.update({ dt, zoom: this.cameras.main.zoom, w: this.scale.width, h: this.scale.height, params, night: look.night, outdoor: this.outdoor, cam: this.cameras.main });
+  }
+
+  /** Frame-time probe, the automatic low-fx fallback and reduced motion (HOWTO §5.11). */
+  private trackPerf(): void {
+    const t = performance.now();
+    if (this.lastUpdateAt) this.probe.record(t - this.lastUpdateAt, t);
+    this.lastUpdateAt = t;
+    if (this.gov.check(t)) this.degrade('p90');
+    if (t - this.reducedCheckAt > 1000) {
+      this.reducedCheckAt = t;
+      this.fxLevel.reduced = reducedMotion();
+    }
+  }
+
+  /** Low-fx: no vignette, half the rain, no splashes or ripples. */
+  private degrade(reason: string): void {
+    this.fxLevel.lowfx = true;
+    if (this.vignette) {
+      this.cameras.main.postFX.remove(this.vignette);
+      this.vignette = null;
+    }
+    console.info(`[pixel] low-fx on (${reason})`);
+  }
+
+  perfInfo() {
+    return {
+      ...this.probe.stats(),
+      lowfx: this.fxLevel.lowfx,
+      lowfxReason: this.gov.reason,
+      reducedMotion: this.fxLevel.reduced,
+      particles: this.weatherFx.particles(),
+      weather: clock.weather(),
+      minutes: clock.minutes(),
+      outdoor: this.outdoor,
+      dark: this.look ? +this.look.dark.toFixed(3) : 0,
+      fx: this.weatherFx.info(),
     };
-    for (const npc of room.npcs) {
-      const f = feet(npc.x, npc.y);
-      put(npc.name, 'tb-plate tb-plate-npc', f.wx, f.wy - 30);
-    }
-    for (const a of game.avatars.values()) {
-      const pos = positionAlong(a.from, a.path, this.now - a.start, a.pub.dir);
-      const f = feet(pos.x, pos.y);
-      const me = a.pub.id === game.room?.selfId;
-      put(a.pub.name, me ? 'tb-plate tb-plate-me' : 'tb-plate tb-plate-player', f.wx, f.wy - 30);
-      const bubble = a.bubbles[0];
-      if (bubble) put(bubble.text, 'tb-bubble', f.wx, f.wy - 46);
-    }
-    for (const g of this.guidesOf()) {
-      const c = tileToWorld(g.x, g.y);
-      put(g.label, 'tb-guide', c.wx, c.wy - 16);
-    }
   }
 
-  private clientOf(wx: number, wy: number): { px: number; py: number } {
+  /** Canvas size and DPR for this frame; the zoom itself is chosen per room in `updateCamera` (roomFraming). */
+  private applyZoom(): void {
+    this.cam.dpr = this.scale.width / Math.max(1, window.innerWidth);
+    this.cam.w = this.scale.width;
+    this.cam.h = this.scale.height;
+  }
+
+  /** World px -> fx-camera (device) px, using the main camera as it is drawn. */
+  private toDevice(wx: number, wy: number): [number, number] {
     const cam = this.cameras.main;
     const hw = cam.width / 2;
     const hh = cam.height / 2;
-    const sx = (wx - cam.scrollX - hw) * cam.zoom + hw;
-    const sy = (wy - cam.scrollY - hh) * cam.zoom + hh;
-    const rect = this.game.canvas.getBoundingClientRect();
-    return { px: rect.left + sx / this.dpr, py: rect.top + sy / this.dpr };
+    return [(wx - cam.scrollX - hw) * cam.zoom + hw, (wy - cam.scrollY - hh) * cam.zoom + hh];
   }
 
-  private worldOf(px: number, py: number): { wx: number; wy: number } {
-    const cam = this.cameras.main;
-    const rect = this.game.canvas.getBoundingClientRect();
-    const sx = (px - rect.left) * this.dpr;
-    const sy = (py - rect.top) * this.dpr;
-    const hw = cam.width / 2;
-    const hh = cam.height / 2;
-    const zoom = cam.zoom || 1;
-    return { wx: cam.scrollX + hw + (sx - hw) / zoom, wy: cam.scrollY + hh + (sy - hh) / zoom };
+  private updateCamera(dt: number, def: RoomDef): void {
+    const self = game.self ? this.avatars.get(game.self.pub.id) : undefined;
+    const focus = self ? { x: self.wx, y: self.wy - 10 } : { x: (def.cols * T) / 2, y: (def.rows * T) / 2 };
+    const ins = this.host.insets();
+    const k = this.cam.dpr;
+    const dpr = k; // the effective (possibly capped, see bufferPixels) ratio of the backing store
+    // the whole room (walls included) when it fits at this or the next lower integer zoom, else follow the avatar with the north wall kept in view
+    let f = roomFraming({ w: this.cam.w, h: this.cam.h }, this.bounds, focus, { top: ins.top * k, bottom: ins.bottom * k, left: ins.left * k, right: ins.right * k }, cssZoomFor(window.innerWidth, window.innerHeight), dpr, def.outdoor ? OUTDOOR_NORTH : undefined);
+    if (this.host.shot === 'map' && def.outdoor) {
+      // debug `?shot=map`: the whole map in one frame, at the biggest integer zoom that fits (1x on a 1280 x 800 window), centred, no follow
+      const zoom = Math.max(1, Math.floor(Math.min(this.cam.w / (def.cols * T), this.cam.h / (def.rows * T))));
+      f = { zoom, cx: (def.cols * T) / 2, cy: (def.rows * T) / 2, fits: true };
+    }
+    const target = { cx: f.cx, cy: f.cy };
+    this.cam.zoom = f.zoom;
+    if (this.cameras.main.zoom !== f.zoom) {
+      this.cameras.main.setZoom(f.zoom);
+      this.snapCamera = true;
+    }
+    this.cssScale = f.zoom / this.cam.dpr;
+    if (this.snapCamera) {
+      this.cam.cx = target.cx;
+      this.cam.cy = target.cy;
+      this.snapCamera = false;
+    } else {
+      // exponential follow, about 0.12 per 60 fps frame (HOWTO §5.3), frame-rate independent
+      const a = 1 - Math.pow(1 - 0.12, dt * 60);
+      this.cam.cx += (target.cx - this.cam.cx) * a;
+      this.cam.cy += (target.cy - this.cam.cy) * a;
+    }
+    this.cam.cx = snapToDevice(this.cam.cx, this.cam.zoom);
+    this.cam.cy = snapToDevice(this.cam.cy, this.cam.zoom);
+    this.cameras.main.centerOn(this.cam.cx, this.cam.cy);
+  }
+
+  // ---- avatars
+  private syncAvatars(def: RoomDef, now: number, dyn: HitBox[]): void {
+    const items = new Map(game.avatars);
+    syncViews(this.avatars, items, {
+      create: (_id, a) => this.createAvatar(a),
+      update: (v, a) => this.updateAvatar(v, a, def, now, dyn),
+      destroy: (v) => this.destroyAvatar(v),
+    });
+  }
+
+  private createAvatar(a: ClientAvatar): AvatarView {
+    const look = lookForAppearance(a.pub.appearance, { hat: a.pub.hat });
+    const sheet = this.sheets.acquire(look);
+    const sprite = this.rig.world(this.add.sprite(0, 0, sheet, 0)).setOrigin(0.5, 1);
+    const s16 = this.m.sprites['fx/shadow_16'];
+    const shadow = this.rig.world(this.add.image(0, 0, s16.atlas, s16.frame)).setOrigin(...originOf(s16)).setDepth(DEPTH.shadowContact);
+    return { sprite, shadow, sheet, appearance: a.pub.appearance, hat: a.pub.hat, look, parrot: null, anim: '', facing: 'S', wx: 0, wy: 0, lastX: Number.NaN, lastY: 0, sitting: false, moving: false };
+  }
+
+  private destroyAvatar(v: AvatarView): void {
+    v.parrot?.destroy();
+    v.sprite.destroy();
+    v.shadow.destroy();
+    this.sheets.release(v.sheet);
+  }
+
+  private updateAvatar(v: AvatarView, a: ClientAvatar, def: RoomDef, now: number, dyn: HitBox[]): void {
+    // appearance or hat changed (wardrobe, avatarUpdated): swap the sheet
+    if (a.pub.appearance !== v.appearance || a.pub.hat !== v.hat) {
+      v.appearance = a.pub.appearance;
+      v.hat = a.pub.hat;
+      v.look = lookForAppearance(a.pub.appearance, { hat: a.pub.hat });
+      const sheetKey = this.sheets.acquire(v.look);
+      this.sheets.release(v.sheet);
+      if (sheetKey !== v.sheet) {
+        v.sheet = sheetKey;
+        v.anim = '';
+      }
+    }
+
+    const pos = positionAlong(a.from, a.path, now - a.start, a.pub.dir);
+    const sitting = !pos.moving && (a.pub.sitting || a.sitOnArrive);
+    let facing: Facing = v.facing;
+    if (sitting) {
+      const seat: Dir | undefined = this.grid?.seats.get(tileKey(pos.tile.x, pos.tile.y));
+      facing = FACING[seat ?? pos.dir];
+    } else if (pos.moving) {
+      // top-down: face the way we are actually moving (diagonals pick the dominant axis); the wire Dir is the fallback (D5)
+      const dx = pos.x - v.lastX;
+      const dy = pos.y - v.lastY;
+      if (Number.isFinite(dx) && Math.hypot(dx, dy) > 0.002) facing = Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 'E' : 'W') : dy > 0 ? 'S' : 'N';
+      else if (!Number.isFinite(dx)) facing = FACING[pos.dir];
+    } else if (!a.path.length) facing = FACING[a.pub.dir];
+    v.lastX = pos.x;
+    v.lastY = pos.y;
+    v.facing = facing;
+    v.sitting = sitting;
+    v.moving = pos.moving;
+
+    const f = feet(pos.x, pos.y);
+    // emotes play the sheet's real frames (oi, dancar, rir, valeu, desculpa); the 2 px bounce is only the fallback for a sheet without them
+    let bounce = 0;
+    let emote: string | null = null;
+    if (a.emote && !pos.moving && !sitting) {
+      const t = now / 1000 - a.emote.t0;
+      const dur = emoteDuration(this.m.sheet, a.emote.kind) / 1000;
+      if (dur > 0) {
+        if (t >= 0 && t < dur) emote = `${a.emote.kind}@${a.emote.t0}`;
+      } else if (t >= 0 && t < 1.3) bounce = Math.round(Math.abs(Math.sin(t * 9)) * 2);
+    }
+    const wx = Math.round(f.wx);
+    const wy = Math.round(f.wy);
+    v.wx = wx;
+    v.wy = wy;
+    v.sprite.setPosition(wx, wy - bounce);
+    v.shadow.setPosition(wx, wy - 1);
+    // sitters draw just above what they sit on (the bench's bottom edge is the tile's bottom edge)
+    const depth = sitting ? (pos.tile.y + 1) * T + 0.5 : standingDepth(f.wy, a.pub.id);
+    v.sprite.setDepth(depth);
+
+    const idleAnim = v.look.idle.anim === 'phone' && facing === 'S' ? 'phone' : 'idle';
+    const animName = sitting ? `sit:${facing}` : pos.moving ? `walk:${facing}` : emote ? `emote:${emote}` : `${idleAnim}:${facing}`;
+    const want = `${v.sheet}|${animName}`;
+    if (want !== v.anim) {
+      v.anim = want;
+      if (sitting) {
+        v.sprite.anims.stop();
+        v.sprite.setTexture(v.sheet, sitFrame(this.m.sheet, facing));
+      } else if (emote) {
+        v.sprite.setTexture(v.sheet, 0);
+        v.sprite.play({ key: animKey(v.sheet, emote.split('@')[0], 'S'), startFrame: 0 });
+        v.sprite.anims.timeScale = 1;
+      } else {
+        v.sprite.setTexture(v.sheet, 0);
+        const walking = pos.moving;
+        v.sprite.play({ key: animKey(v.sheet, walking ? 'walk' : idleAnim, facing), startFrame: walking ? 0 : Math.floor(a.seed) % 6 });
+        // a crowd never breathes in sync: pace depends on the pose and a small per-avatar jitter
+        v.sprite.anims.timeScale = walking ? 1 : v.look.idle.speed * (0.9 + 0.2 * hash01(a.seed * 977 + 3));
+      }
+    }
+    this.updateParrot(v, a, facing, wx, wy, depth, now);
+    const h = sitting ? 24 : 32;
+    dyn.push({ x0: wx - 9, y0: wy - h, x1: wx + 9, y1: wy + 2, hit: { kind: 'avatar', id: a.pub.id }, depth: wy + 0.6 });
+    void def;
+  }
+
+  /** The companion parrot (profile.parrotEquipped -> PublicAvatar.parrot): the poleiro parrot hovering at the avatar's shoulder. */
+  private updateParrot(v: AvatarView, a: ClientAvatar, facing: Facing, wx: number, wy: number, depth: number, now: number): void {
+    const d = this.m.sprites['chars/parrot'];
+    if (!a.pub.parrot || !d) {
+      if (v.parrot) {
+        v.parrot.destroy();
+        v.parrot = null;
+      }
+      return;
+    }
+    if (!v.parrot) {
+      v.parrot = this.rig.world(this.add.sprite(0, 0, d.atlas, d.frame)).setOrigin(...originOf(d));
+      v.parrot.play({ key: ensureAnim(this, 'chars/parrot', d), startFrame: Math.floor(hash01(a.seed) * 4) });
+    }
+    // it hovers beside the head on the far shoulder: behind the body when walking away, mirrored so it always looks toward its owner
+    const side = facing === 'W' ? 1 : -1;
+    const bob = Math.round(Math.sin(now / 420 + a.seed) * 1.5);
+    v.parrot.setPosition(wx + side * 9, wy - 12 + bob);
+    v.parrot.setFlipX(side === 1);
+    v.parrot.setDepth(facing === 'N' ? depth - 0.05 : depth + 0.05);
+  }
+
+  // ---- placed furniture: `furniture/<id>_<rot>` sprites (art track 3); a magenta box when the art is missing
+  private furnitureObj(v: FurnitureView | null, f: PlacedFurniture): Pick<FurnitureView, 'obj' | 'shadow'> {
+    const def = furnitureById(f.itemId);
+    const rug = def?.kind === 'tapete';
+    const key = furnitureArtKey(f.itemId, f.rot);
+    const sd = this.m.sprites[key];
+    const depth = rug ? DEPTH.groundDecal + 20 : standingDepth((f.y + 1) * T, f.uid);
+    const wx = f.x * T + T / 2;
+    const wy = (f.y + 1) * T;
+    if (v) {
+      v.obj.destroy();
+      v.shadow?.destroy();
+    }
+    if (!sd) {
+      this.noteMissing(key.replace(/_[01]$/, ''));
+      const r: Rect = { x0: f.x * T + 1, y0: f.y * T + 1, x1: (f.x + 1) * T - 1, y1: (f.y + 1) * T - 1 };
+      const obj = this.reg(this.add.rectangle((r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2, r.x1 - r.x0, r.y1 - r.y0, 0xff00ff, 0.35)).setStrokeStyle(1, 0xff00ff, 1).setDepth(depth);
+      return { obj, shadow: null };
+    }
+    const obj = this.reg(this.add.sprite(wx, wy, sd.atlas, sd.frame)).setOrigin(...originOf(sd)).setDepth(depth);
+    if (sd.anim) obj.play({ key: ensureAnim(this, key, sd), startFrame: Math.floor(hash01(f.x * 31 + f.y) * sd.anim.frames.length) });
+    const s = sd.shadow ? this.m.sprites[sd.shadow] : null;
+    const shadow = s ? this.reg(this.add.image(wx, wy - 1, s.atlas, s.frame)).setOrigin(...originOf(s)).setDepth(DEPTH.shadowContact) : null;
+    return { obj, shadow };
+  }
+
+  /** World rect of a placed piece: its tile plus its sprite (what the selection outline hugs). */
+  private furnitureBox(f: PlacedFurniture): Rect {
+    const tile: Rect = { x0: f.x * T, y0: f.y * T, x1: (f.x + 1) * T, y1: (f.y + 1) * T };
+    const sd = this.m.sprites[furnitureArtKey(f.itemId, f.rot)];
+    return sd ? unionRect(tile, spriteRect(Math.round(f.x * T + T / 2), (f.y + 1) * T, sd)) : tile;
+  }
+
+  /** Two 1 px rings, mustard inside navy, drawn as filled bars so every edge is a whole art pixel. */
+  private drawSelection(g: Phaser.GameObjects.Graphics, r: Rect): void {
+    g.clear();
+    const ring = (b: Rect, color: number) => {
+      g.fillStyle(color, 1);
+      g.fillRect(b.x0, b.y0, b.x1 - b.x0, 1);
+      g.fillRect(b.x0, b.y1 - 1, b.x1 - b.x0, 1);
+      g.fillRect(b.x0, b.y0 + 1, 1, b.y1 - b.y0 - 2);
+      g.fillRect(b.x1 - 1, b.y0 + 1, 1, b.y1 - b.y0 - 2);
+    };
+    ring(inflate(r, 1), 0x2a2233);
+    ring(r, 0xf2c230);
+    // corner studs make the outline read even over busy floors
+    g.fillStyle(0xfff3b0, 1);
+    for (const [x, y] of [[r.x0, r.y0], [r.x1 - 1, r.y0], [r.x0, r.y1 - 1], [r.x1 - 1, r.y1 - 1]]) g.fillRect(x, y, 1, 1);
+  }
+
+  private syncFurniture(dyn: HitBox[]): void {
+    const items = new Map<string, PlacedFurniture>(game.furniture.map((f) => [f.uid, f]));
+    syncViews(this.furniture, items, {
+      create: (_uid, f) => {
+        const { obj, shadow } = this.furnitureObj(null, f);
+        const sel = this.reg(this.add.graphics()).setDepth(DEPTH.overhead - 1).setVisible(false);
+        return { obj, shadow, sel, selSig: '', itemId: f.itemId, rot: f.rot, x: f.x, y: f.y };
+      },
+      update: (v, f) => {
+        const def = furnitureById(f.itemId);
+        if (v.rot !== f.rot) {
+          v.rot = f.rot;
+          Object.assign(v, this.furnitureObj(v, f));
+        }
+        if (v.x !== f.x || v.y !== f.y) {
+          v.x = f.x;
+          v.y = f.y;
+          Object.assign(v, this.furnitureObj(v, f));
+        }
+        const selected = game.selectedFurniture === f.uid;
+        v.sel.setVisible(selected);
+        if (selected) {
+          const sig = `${f.x},${f.y},${f.rot}`;
+          if (sig !== v.selSig) {
+            v.selSig = sig;
+            this.drawSelection(v.sel, this.furnitureBox(f));
+          }
+          v.sel.setAlpha(0.8 + 0.2 * Math.sin(performance.now() / 180));
+        } else v.selSig = '';
+        if (v.obj instanceof Phaser.GameObjects.Rectangle) v.obj.setStrokeStyle(selected ? 2 : 1, selected ? 0xf2c230 : 0xff00ff, 1);
+        const seat = !!def?.seat && !game.editMode;
+        const hit: Hit = seat ? { kind: 'seat', tile: { x: f.x, y: f.y } } : { kind: 'furniture', f };
+        dyn.push({ x0: f.x * T - 2, y0: f.y * T - 8, x1: (f.x + 1) * T + 2, y1: (f.y + 1) * T, hit, depth: (f.y + 1) * T });
+      },
+      destroy: (v) => {
+        v.obj.destroy();
+        v.shadow?.destroy();
+        v.sel.destroy();
+      },
+    });
+  }
+
+  private updateHover(def: RoomDef): void {
+    const t = game.hoverTile;
+    const show = !!t && !game.modalOpen && t.x >= 0 && t.y >= 0 && t.x < def.cols && t.y < def.rows;
+    this.hoverRect.setVisible(show);
+    // decorate mode: a translucent ghost of the piece in hand (or being moved), green where it can go and red where it cannot
+    const ghost = show ? ghostFor(def, game.furniture, t, game.placing, game.selectedFurniture, game.editMode) : null;
+    this.updateGhost(ghost);
+    if (!show || !t) return;
+    if (ghost) {
+      this.hoverRect.setPosition(t.x * T, t.y * T).setFillStyle(ghost.tile, 0.3).setStrokeStyle(1, ghost.tile, 0.9);
+      return;
+    }
+    const ok = game.placing ? canPlaceFurniture(def, game.furniture, t.x, t.y) : !!this.grid && !this.grid.blocked.has(tileKey(t.x, t.y));
+    this.hoverRect.setPosition(t.x * T, t.y * T).setFillStyle(ok ? 0xffffff : 0xe5572f, 0.25).setStrokeStyle(1, ok ? 0xffffff : 0xe5572f, 0.8);
+  }
+
+  private updateGhost(g: GhostSpec | null): void {
+    const sd = g ? this.m.sprites[furnitureArtKey(g.itemId, g.rot)] : undefined;
+    if (!g || !sd) {
+      this.ghost?.setVisible(false);
+      return;
+    }
+    if (!this.ghost) this.ghost = this.rig.world(this.add.sprite(0, 0, sd.atlas, sd.frame));
+    const spr = this.ghost;
+    if (this.ghostKey !== `${g.itemId}_${g.rot}`) {
+      this.ghostKey = `${g.itemId}_${g.rot}`;
+      spr.setTexture(sd.atlas, sd.frame).setOrigin(...originOf(sd));
+    }
+    // sits like a standing piece on its tile but always in front of it: the player is choosing where it goes
+    spr.setPosition(Math.round(g.x * T + T / 2), (g.y + 1) * T).setDepth(49500).setTint(g.tint).setAlpha(GHOST_ALPHA + 0.08 * Math.sin(performance.now() / 220)).setVisible(true);
+  }
+
+  /** The order rail on the padaria counter is still until Me vê um is open, then its tickets flutter. */
+  private updateTrilho(): void {
+    const t = this.trilho;
+    if (!t) return;
+    const open = modalId() === 'minigame';
+    if (open === this.trilhoLive) return;
+    this.trilhoLive = open;
+    const d = this.m.sprites['props/trilho_pedidos'];
+    if (!d?.anim) return;
+    if (open) {
+      t.play({ key: ensureAnim(this, 'props/trilho_pedidos', d) });
+      t.anims.timeScale = 2.4;
+    } else {
+      t.anims.stop();
+      t.setFrame(d.anim.frames[0]);
+    }
+  }
+
+  /** Overhead layers fade to 0.45 alpha while the local avatar's feet are inside (HOWTO §5.4). */
+  private updateCanopies(dt: number): void {
+    const self = game.self ? this.avatars.get(game.self.pub.id) : undefined;
+    for (const c of this.canopies) {
+      const inside = !!self && self.wx >= c.r.x0 && self.wx <= c.r.x1 && self.wy >= c.r.y0 && self.wy <= c.r.y1;
+      const target = inside ? 0.45 : 1;
+      c.fade += (target - c.fade) * Math.min(1, dt / 0.15);
+      c.sprite.setAlpha(c.fade);
+    }
+  }
+
+  // ------------------------------------------------------------------ DOM labels
+  private pushLabels(def: RoomDef, now: number): void {
+    const k = this.cam;
+    const at = (wx: number, wy: number) => worldToCanvas(k, wx, wy);
+    const stacks: StackItem[] = [];
+    const selfId = game.room?.selfId;
+    for (const n of this.npcs) {
+      const p = at((n.npc.x + 0.5) * T, (n.npc.y + 1) * T - 3 - HEAD_LIFT - n.lift);
+      const b = game.npcBubbles.get(n.npc.id);
+      const age = b ? now - b.at : Infinity;
+      stacks.push({
+        key: `npc:${n.npc.id}`,
+        x: p.px,
+        y: p.py,
+        plate: { text: `${n.npc.name} · ${n.npc.role.pt}`, kind: 'npc' },
+        bubbles: b && age < 7000 ? [{ text: b.text, gloss: b.gloss, alpha: bubbleAlpha(age) }] : [],
+      });
+    }
+    for (const [id, v] of this.avatars) {
+      const a = game.avatars.get(id);
+      if (!a) continue;
+      const p = at(v.wx, v.wy - (v.sitting ? HEAD_LIFT_SIT : HEAD_LIFT) - lookHeadLift(v.look));
+      const bubbles = isCpuId(id)
+        ? [] // Live Ops lock: CPUs never show chat bubbles
+        : a.bubbles
+            .filter((b) => now - b.at < 7000)
+            .slice(-2)
+            .map((b) => ({ text: b.text, gloss: b.gloss, alpha: bubbleAlpha(now - b.at) }));
+      stacks.push({ key: `av:${id}`, x: p.px, y: p.py, plate: { text: a.pub.name, kind: id === selfId ? 'me' : 'player' }, bubbles });
+    }
+    const guides: GuideItem[] = this.host.guides().map((g, i) => {
+      const w = tileToWorld(g.x, g.y);
+      const lift = Math.min(48, Math.max(12, g.lift * 0.3));
+      const p = at(w.wx, w.wy - lift);
+      return { key: `g${i}`, x: p.px, y: p.py, label: g.label };
+    });
+    const view = { w: k.w / k.dpr, h: k.h / k.dpr };
+    this.host.labels.update(stacks, guides, view, this.host.insets());
+    if (this.host.debugArt) {
+      this.host.labels.updateArtKeys(
+        this.placeholders.map((ph, i) => {
+          const p = at(ph.rect.x0, ph.rect.y0);
+          return { key: `${ph.key}@${i}`, x: p.px, y: p.py };
+        }),
+      );
+    }
+    void def;
+  }
+
+  // ------------------------------------------------------------------ queries used by PixelView
+  hitAt(wx: number, wy: number): Hit | null {
+    return pickHit(this.hitBoxes, wx, wy, { selfId: game.room?.selfId, isCpu: isCpuId, editMode: game.editMode, placing: !!game.placing });
+  }
+
+  currentRoom(): RoomDef | null {
+    return game.roomDef;
+  }
+
+  info() {
+    return { zoom: this.cam.zoom, cssScale: this.cssScale, cx: this.cam.cx, cy: this.cam.cy, room: this.roomId, avatars: this.avatars.size, sheets: this.sheets.size, artMissing: this.artMissing };
   }
 }
 
-function parseHex(hex: string, fallback: number): number {
-  const n = Number.parseInt(hex.replace('#', ''), 16);
-  return Number.isFinite(n) ? n : fallback;
+/** Same fade as the iso renderer: quick in, slow out over the last 700 ms of 7 s. */
+function bubbleAlpha(age: number): number {
+  return Math.max(0, Math.min(1, age / 120) * Math.min(1, (7000 - age) / 700));
 }

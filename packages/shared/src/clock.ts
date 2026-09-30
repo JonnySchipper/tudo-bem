@@ -1,59 +1,79 @@
-/** 48 real minutes = 1 game day (1440 game minutes). */
-export const GAME_DAY_MS = 48 * 60 * 1000;
-/** Tune so a fresh server boot (nowMs = 0) lands near golden hour (17:00). */
-export const CLOCK_OFFSET_MS = 17 * 2 * 60 * 1000;
+/**
+ * Shared game clock (HOWTO §5.7, decision D11). Pure and deterministic from a millisecond timestamp:
+ * the server sends its `Date.now()` and clients compute `gameMinutes(Date.now() + skew)`, so everyone sees the same time.
+ * Game days are independent of the real-day resets (daily mission, Conversa RV "already today").
+ */
 
-const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'] as const;
+/** 48 real minutes = 1 game day (so 1 game minute = 2 real seconds). */
+export const GAME_DAY_MS = 48 * 60 * 1000;
 
 /**
- * JavaScript `%` keeps the dividend's sign. Fold any integer span into [0, m)
- * so times before the epoch still land in range.
+ * Reference: the clock reads exactly 17:00 (golden hour) at Unix time 0 and therefore at every
+ * 00:00, 04:00, 08:00, 12:00, 16:00 and 20:00 UTC (4 real hours = 5 game days, the LCM of 48 min and 60 min).
+ * 17:00 = 17/24 of a game day = 34 real minutes.
  */
-function posMod(n: number, m: number): number {
+export const CLOCK_OFFSET_MS = 17 * 2 * 60 * 1000;
+
+const MIN_PER_DAY = 1440;
+
+/** Real modulo: always in [0, m), also for negative n. */
+function mod(n: number, m: number): number {
   return ((n % m) + m) % m;
 }
 
-/** Game minute of the day, 0..1439. */
+/** Minutes since game midnight, 0..1439. */
 export function gameMinutes(nowMs: number): number {
-  const t = posMod(nowMs + CLOCK_OFFSET_MS, GAME_DAY_MS);
-  return Math.floor((t / GAME_DAY_MS) * 1440);
+  const t = mod(nowMs + CLOCK_OFFSET_MS, GAME_DAY_MS);
+  return Math.min(MIN_PER_DAY - 1, Math.floor((t / GAME_DAY_MS) * MIN_PER_DAY));
 }
 
-/** Whole game days since the offset epoch. Separate from real-calendar day resets. */
+/** Whole game days since the epoch (negative before it). Rolls over at game midnight. */
 export function gameDay(nowMs: number): number {
   return Math.floor((nowMs + CLOCK_OFFSET_MS) / GAME_DAY_MS);
 }
 
 export type Period = 'madrugada' | 'manha' | 'tarde' | 'noite';
 
-/** <300 madrugada, <720 manha, <1080 tarde, else noite. */
+/** madrugada 00:00-04:59, manhã 05:00-11:59, tarde 12:00-17:59, noite 18:00-23:59. */
 export function period(min: number): Period {
   return min < 300 ? 'madrugada' : min < 720 ? 'manha' : min < 1080 ? 'tarde' : 'noite';
 }
 
-/** The greeting that fits the time: bom dia (05:00–11:59), boa tarde (12:00–17:59), boa noite (18:00–04:59). */
-export function greetingFor(min: number): 'bom dia' | 'boa tarde' | 'boa noite' {
+export type Greeting = 'bom dia' | 'boa tarde' | 'boa noite';
+
+/** The greeting that fits the time: bom dia (05:00-11:59), boa tarde (12:00-17:59), boa noite (18:00-04:59). */
+export function greetingFor(min: number): Greeting {
   if (min >= 300 && min < 720) return 'bom dia';
   if (min >= 720 && min < 1080) return 'boa tarde';
   return 'boa noite';
 }
 
-/** `17:40` from a game minute. */
-export function formatHHMM(min: number): string {
-  const m = posMod(Math.floor(min), 1440);
-  const hh = Math.floor(m / 60);
-  const mm = m % 60;
-  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+export interface WeekdayInfo {
+  short: 'Dom' | 'Seg' | 'Ter' | 'Qua' | 'Qui' | 'Sex' | 'Sáb';
+  /** Full Portuguese name. */
+  pt: string;
+  en: string;
 }
 
-/** HUD clock pill parts: `Seg · 17:40 · ☀️`. */
-export function clockLabel(nowMs: number): { weekday: string; hhmm: string; icon: string } {
-  const min = gameMinutes(nowMs);
-  const p = period(min);
-  const icon = p === 'madrugada' ? '🌟' : p === 'noite' ? '🌙' : '☀️';
-  return {
-    weekday: WEEKDAYS[posMod(gameDay(nowMs), 7)]!,
-    hhmm: formatHHMM(min),
-    icon,
-  };
+// needs_br: true (weekday names; standard PT/EN, listed for the native pass)
+const WEEKDAYS: readonly WeekdayInfo[] = [
+  { short: 'Dom', pt: 'domingo', en: 'Sunday' },
+  { short: 'Seg', pt: 'segunda-feira', en: 'Monday' },
+  { short: 'Ter', pt: 'terça-feira', en: 'Tuesday' },
+  { short: 'Qua', pt: 'quarta-feira', en: 'Wednesday' },
+  { short: 'Qui', pt: 'quinta-feira', en: 'Thursday' },
+  { short: 'Sex', pt: 'sexta-feira', en: 'Friday' },
+  { short: 'Sáb', pt: 'sábado', en: 'Saturday' },
+];
+
+/** Weekday for a game day number (`gameDay(now)`): 0 = Dom ... 6 = Sáb, cycling. Works for negative days. */
+export function weekday(day: number): WeekdayInfo {
+  return WEEKDAYS[mod(Math.floor(day), 7)]!;
+}
+
+/** "17:40" (zero-padded 24 h). Input is clamped and floored to 0..1439. */
+export function formatClock(min: number): string {
+  const m = Math.max(0, Math.min(MIN_PER_DAY - 1, Math.floor(min)));
+  const h = Math.floor(m / 60);
+  return `${String(h).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 }

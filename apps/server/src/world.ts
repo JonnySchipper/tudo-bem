@@ -49,6 +49,8 @@ import {
   viewNode,
   jevNpcReply,
   freshMission,
+  gameMinutes,
+  greetingKind,
   MISSION_COPY,
   MISSION_REWARD,
   MISSION_STEPS,
@@ -57,6 +59,9 @@ import {
   type Appearance,
   type Bilingual,
   type ClientMsg,
+  type ConversaGrade,
+  type ConversaOrder,
+  type NpcId,
   type JevNpcReplyAnswers,
   type SafetyVerdict,
   type Dir,
@@ -100,6 +105,8 @@ import {
 import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
 import { ProfileStore, today, todaySaoPaulo, toPrivate, type StoredProfile } from './store.js';
 import { CpuCrowd } from './ambiance.js';
+import { RecadoTracker, sceneItems } from './recados.js';
+import { CadernoTracker } from './caderno.js';
 
 export interface Services {
   safety: ChatSafetyService;
@@ -274,6 +281,10 @@ export class World {
   private readonly accounts?: AccountLink;
   readonly idleKickMs: number;
   private seq = 0;
+  /** Recados, bag and bonds (HOWTO Phase 8). The world only reports events to it. */
+  private readonly recados: RecadoTracker;
+  /** Caderno de palavras: what the player saw, heard and used (Phase 7). */
+  private readonly caderno: CadernoTracker;
   /** Mid-order Me vê um state kept across a socket drop so reconnect can resync the same ticket. */
   private parkedMg = new Map<string, { mg: MgState; room: RoomId; at: number }>();
 
@@ -293,6 +304,15 @@ export class World {
     this.testRollHints = opts.testRollHints ?? process.env.TB_TEST_ROLL === '1';
     this.accounts = opts.accounts;
     this.idleKickMs = Math.max(1000, opts.idleKickMs ?? IDLE_KICK_MS);
+    this.recados = new RecadoTracker({
+      now: () => this.now(),
+      store,
+      reward: (s, amount, reason) => this.reward(s, amount, reason),
+      pushProfile: (s) => this.pushProfile(s),
+      tileOf: (s) => this.currentTile(s).tile,
+      onRead: (s, h) => this.caderno.seen(s, h.pt, h.cards),
+    });
+    this.caderno = new CadernoTracker({ now: () => this.now(), store, reward: (s, a, r) => this.reward(s, a, r), pushProfile: (s) => this.pushProfile(s) });
   }
 
   // ---------- connection lifecycle ----------
@@ -411,6 +431,14 @@ export class World {
         return this.takeMission(s);
       case 'roll':
         return this.rollGame(s, msg);
+      case 'give':
+        return this.recados.give(s, msg.npc, msg.itemId);
+      case 'read':
+        return this.recados.read(s, msg.hotspotId);
+      case 'recados':
+        return this.recados.request(s, msg.action, msg.id);
+      case 'heard':
+        return this.caderno.heard(s, msg.cardIds);
     }
   }
 
@@ -455,7 +483,7 @@ export class World {
     s.profile = p;
     p.nameplate = this.services.student.nameplateFor(p);
     p.lastSeen = this.now();
-    s.send({ t: 'welcome', profile: toPrivate(p), token: p.token });
+    s.send({ t: 'welcome', profile: toPrivate(p), token: p.token, serverNow: this.now() });
     this.notifyFriendsOfPresence(p.id);
     const incoming = this.incomingFriendReqs.get(p.id);
     if (incoming?.size) this.sendFriends(s);
@@ -591,8 +619,10 @@ export class World {
       selfId: s.profile!.id,
       avatars: [...[...target.members.values()].map((m) => this.publicAvatar(m)), ...(target.crowd?.avatars() ?? [])],
       furniture,
+      serverNow: this.now(),
     });
     this.maybeResumeMg(s);
+    this.recados.onEvent(s, { kind: 'entered', room: def.id, tile });
     this.broadcast(target, { t: 'avatarJoined', avatar: this.publicAvatar(s) }, s);
     target.crowd?.sync();
     this.notifyFriendsOfPresence(s.profile!.id);
@@ -768,7 +798,9 @@ export class World {
     this.broadcast(inst, { t: 'chat', id: p.id, name: p.name, text: verdict.text, gloss, lang, action: verdict.action });
     if (verdict.action === 'warn' && verdict.note) s.send({ t: 'notice', level: 'warn', pt: verdict.note.pt, en: verdict.note.en });
     this.completeStep(s, 'conversar');
+    this.caderno.used(s, verdict.text);
     if (inst.def.id === 'praca' && GREETING.test(verdict.text) && this.hasCompany(inst)) this.missionStep(s, 'cumprimenta');
+    if (greetingKind(verdict.text)) this.recados.onEvent(s, { kind: 'greeted', text: verdict.text, minute: gameMinutes(this.now()), company: this.hasCompany(inst) });
   }
 
   /** Log a non-allow Jev verdict; escalations are queued for human review. */
@@ -821,6 +853,8 @@ export class World {
       const ctx: SceneCtx = { name: p.name, pronoun: p.pronoun };
       const view = this.services.npc.start('carlos', ctx);
       s.scene = { npc: 'carlos', node: view.nodeId, ctx, scores: [], shownAt: this.now() };
+      this.recados.onEvent(s, { kind: 'talked', npc: 'carlos' });
+      this.caderno.seen(s, view.line.pt);
       return s.send({ t: 'scene', view });
     }
     const sc = s.scene;
@@ -877,6 +911,8 @@ export class World {
       at: this.now(),
       ...(jev ? { jev } : {}),
     });
+    if (typed) this.caderno.used(s, typed); // accepted typed answer (the accept list matched a chip)
+    this.caderno.seen(s, res.view.line.pt);
     sc.scores.push(res.score);
     sc.node = res.view.nodeId;
     sc.ctx = res.ctx;
@@ -888,6 +924,7 @@ export class World {
       s.scene = undefined;
       this.completeStep(s, 'carlos');
       this.missionStep(s, 'pede');
+      this.recados.onEvent(s, { kind: 'ordered', npc: 'carlos', items: sceneItems(sc.ctx) });
 
       // Pedido rápido RV: once per America/São_Paulo calendar day (fixes double-dip after Missão/prior Pedido)
       const spDate = todaySaoPaulo();
@@ -917,6 +954,18 @@ export class World {
         ...(conversaRvGranted ? { conversaRvGranted } : {}),
       };
     }
+  }
+
+  /** A Conversa (HTTP flow) finished for this player: counts as a talk, may carry an order, a 'pass' earns bond. */
+  conversaEnded(playerId: string, npc: NpcId, grade: ConversaGrade, order?: ConversaOrder) {
+    const s = this.sessionByProfile(playerId);
+    if (s) this.recados.onConversaEnd(s, npc, grade, order);
+  }
+
+  /** A Conversa line moved between the player and an NPC (HTTP flow): the NPC's line is seen, the player's is used. */
+  conversaLine(playerId: string, who: 'npc' | 'player', pt: string) {
+    const s = this.sessionByProfile(playerId);
+    if (s) who === 'npc' ? this.caderno.seen(s, pt) : this.caderno.used(s, pt);
   }
 
   /** Push the stored profile to a connected player (after Conversa RV lands on the file store). */
@@ -986,6 +1035,7 @@ export class World {
       return this.sendOrder(s);
     }
     if (ok) this.missionStep(s, 'monta');
+    if (ok) this.recados.onEvent(s, { kind: 'ordered', npc: 'carlos', items: mg.order.lines });
     let outcome: MgOutcome;
     if (ok) {
       outcome = mg.repeated ? 'segunda' : 'perfeito';

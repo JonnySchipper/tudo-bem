@@ -1,116 +1,165 @@
-/** Art pixels per tile. World tile (x, y) occupies [x*T, (x+1)*T) × [y*T, (y+1)*T). */
+/**
+ * World/screen math for the pixel view (HOWTO §5.3, §5.4). Pure functions with no Phaser or DOM imports, so they are unit tested.
+ *
+ * World units are art pixels: tile (x, y) covers [x*16, (x+1)*16) x [y*16, (y+1)*16). `x` goes right and `y` goes down (D5).
+ * The camera is described by `CamState`: the world point at the centre of the canvas and an integer device zoom.
+ */
+import type { Tile } from '@tudobem/shared';
+
+/** Art px per tile. */
 export const T = 16;
 
-export const DEPTH_TERRAIN = -10000;
-export const DEPTH_DECAL = -5000;
-export const DEPTH_OVERHEAD = 50000;
+export const tileToWorld = (x: number, y: number) => ({ wx: (x + 0.5) * T, wy: (y + 0.5) * T });
 
-/** Center of world tile (x, y), in art pixels. x and y may be fractional. */
-export const tileToWorld = (x: number, y: number): { wx: number; wy: number } => ({
-  wx: (x + 0.5) * T,
-  wy: (y + 0.5) * T,
-});
+/** Feet of a character standing on tile (x, y); x and y may be fractional while walking. */
+export const feet = (x: number, y: number) => ({ wx: (x + 0.5) * T, wy: (y + 1) * T - 3 });
 
-/** Feet of a character standing on tile (x, y). Origin (0.5, 1) sits here. */
-export const feet = (x: number, y: number): { wx: number; wy: number } => ({
-  wx: (x + 0.5) * T,
-  wy: (y + 1) * T - 3,
-});
-
-/** World pixel → tile index. Negative coordinates floor toward −∞. */
-export function worldToTile(wx: number, wy: number): { x: number; y: number } {
-  return { x: Math.floor(wx / T), y: Math.floor(wy / T) };
+export interface Rect {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
 }
 
-/** Standing-object depth: bottom-edge world y, plus a tiny stable tiebreak. */
-export function standingDepth(bottomY: number, id: string): number {
-  return bottomY + (hashId(id) % 100) / 1000;
+export interface CamState {
+  /** device px per art px (always an integer, HOWTO §5.3) */
+  zoom: number;
+  /** device px per CSS px */
+  dpr: number;
+  /** world px at the centre of the canvas */
+  cx: number;
+  cy: number;
+  /** canvas size in device px */
+  w: number;
+  h: number;
 }
 
-export function hashId(id: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < id.length; i++) {
-    h ^= id.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
+/** CSS zoom (art px -> CSS px): about 20 tiles across on a desktop, 12 on a phone, clamped to 2..5. */
+export function cssZoomFor(innerW: number, innerH: number): number {
+  const z = Math.floor(Math.min(innerW / (20 * T), innerH / (12 * T)));
+  return Math.min(5, Math.max(2, z));
 }
 
-/**
- * CSS pixels per art pixel. Shows about 20 tiles across on a desktop and about 12 on a phone.
- * Always an integer in [2, 5].
- */
-export function cssZoomFor(innerWidth: number, innerHeight: number): number {
-  const across = innerWidth / (20 * T);
-  const down = innerHeight / (12 * T);
-  return Math.min(5, Math.max(2, Math.floor(Math.min(across, down))));
+/** Integer device zoom for a CSS zoom. Fractional DPRs (1.25, 1.5) round down so pixels stay even. */
+export function deviceZoomFor(cssZoom: number, dpr: number): number {
+  return Number.isInteger(dpr) ? cssZoom * dpr : Math.max(1, Math.floor(cssZoom * dpr));
 }
 
-/** Device-pixel camera zoom. Integer so art pixels stay crisp. */
-export function cameraZoom(cssZoom: number, dpr: number): number {
-  return Math.max(1, Math.round(cssZoom * dpr));
-}
-
-/** Stay under the WebGL texture limit common on phones and retina displays. */
+/** Stay under the WebGL texture limit common on phones and retina displays (#48). */
 export const MAX_BUFFER = 4096;
 
 /**
- * Backing-store size for the world canvas. `dpr` is capped so width and height
- * never exceed `MAX_BUFFER`. A CSS transform must not be part of `cssW`/`cssH`
- * (use clientWidth, not getBoundingClientRect).
+ * Backing-store size for the world canvas. The device pixel ratio is clamped to 1..3, then lowered until neither side exceeds
+ * `MAX_BUFFER`. Pass layout sizes (innerWidth/clientWidth), never a transformed getBoundingClientRect.
  */
 export function bufferPixels(cssW: number, cssH: number, devicePixelRatio: number): { dpr: number; width: number; height: number } {
-  const cssWidth = Math.max(1, cssW);
-  const cssHeight = Math.max(1, cssH);
+  const w = Math.max(1, cssW);
+  const h = Math.max(1, cssH);
   const wanted = Math.min(Math.max(devicePixelRatio || 1, 1), 3);
-  const cap = Math.min(MAX_BUFFER / cssWidth, MAX_BUFFER / cssHeight);
-  const dpr = Math.min(wanted, cap);
-  return {
-    dpr,
-    width: Math.max(1, Math.floor(cssWidth * dpr)),
-    height: Math.max(1, Math.floor(cssHeight * dpr)),
-  };
+  const dpr = Math.min(wanted, MAX_BUFFER / w, MAX_BUFFER / h);
+  return { dpr, width: Math.max(1, Math.floor(w * dpr)), height: Math.max(1, Math.floor(h * dpr)) };
+}
+
+/** World px -> CSS px, relative to the canvas' top-left corner. */
+export function worldToCanvas(c: CamState, wx: number, wy: number): { px: number; py: number } {
+  return { px: ((wx - c.cx) * c.zoom + c.w / 2) / c.dpr, py: ((wy - c.cy) * c.zoom + c.h / 2) / c.dpr };
+}
+
+/** CSS px (relative to the canvas' top-left corner) -> world px. */
+export function canvasToWorld(c: CamState, px: number, py: number): { wx: number; wy: number } {
+  return { wx: (px * c.dpr - c.w / 2) / c.zoom + c.cx, wy: (py * c.dpr - c.h / 2) / c.zoom + c.cy };
+}
+
+/** The tile under a world point, or null outside the room. */
+export function tileAtWorld(wx: number, wy: number, cols: number, rows: number): Tile | null {
+  const x = Math.floor(wx / T);
+  const y = Math.floor(wy / T);
+  if (x < 0 || y < 0 || x >= cols || y >= rows) return null;
+  return { x, y };
+}
+
+/** CSS px (relative to the canvas) of the centre of tile (x, y): the inverse of `tileAt` for in-range tiles. */
+export function tileCenterToCanvas(c: CamState, x: number, y: number): { px: number; py: number } {
+  const w = tileToWorld(x, y);
+  return worldToCanvas(c, w.wx, w.wy);
+}
+
+export interface Insets {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
 }
 
 /**
- * Camera numbers needed to convert world art-pixels ↔ CSS client pixels.
- * Matches Phaser's camera matrix when rotation is 0: scroll is the world point at the
- * camera's top-left in unzoomed game pixels, and the origin (default 0.5) is the look-at.
+ * Camera centre for a focus point. Per axis: if the room (`bounds`) is smaller than the free part of the screen it is centred in
+ * that part (the outside shows the backdrop); otherwise the focus is followed and clamped so the view never leaves the bounds.
+ * `insets` (device px) reserve screen edges for the HUD; the focus is kept inside the free region.
  */
-export interface PixelCam {
-  scrollX: number;
-  scrollY: number;
-  zoom: number;
-  width: number;
-  height: number;
-  originX: number;
-  originY: number;
-  cssWidth: number;
-  cssHeight: number;
-  offsetX: number;
-  offsetY: number;
-}
-
-export function worldToCss(cam: PixelCam, wx: number, wy: number): { px: number; py: number } {
-  const ox = cam.width * cam.originX;
-  const oy = cam.height * cam.originY;
-  const gx = (wx - cam.scrollX - ox) * cam.zoom + Math.floor(ox + 0.5);
-  const gy = (wy - cam.scrollY - oy) * cam.zoom + Math.floor(oy + 0.5);
-  const sx = cam.width > 0 ? cam.cssWidth / cam.width : 1;
-  const sy = cam.height > 0 ? cam.cssHeight / cam.height : 1;
-  return { px: cam.offsetX + gx * sx, py: cam.offsetY + gy * sy };
-}
-
-export function cssToWorld(cam: PixelCam, px: number, py: number): { wx: number; wy: number } {
-  const ox = cam.width * cam.originX;
-  const oy = cam.height * cam.originY;
-  const sx = cam.width > 0 ? cam.cssWidth / cam.width : 1;
-  const sy = cam.height > 0 ? cam.cssHeight / cam.height : 1;
-  const gx = sx !== 0 ? (px - cam.offsetX) / sx : 0;
-  const gy = sy !== 0 ? (py - cam.offsetY) / sy : 0;
-  const zoom = cam.zoom || 1;
+export function cameraCenter(view: { w: number; h: number; zoom: number }, bounds: Rect, focus: { x: number; y: number }, insets: Insets): { cx: number; cy: number } {
+  const axis = (size: number, lo: number, hi: number, b0: number, b1: number, f: number) => {
+    // world distance from the centre to the free region's edges
+    const toLo = (size / 2 - lo) / view.zoom;
+    const toHi = (size / 2 - hi) / view.zoom;
+    const min = b0 + toLo;
+    const max = b1 - toHi;
+    if (min >= max) return (b0 + b1) / 2 - (toHi - toLo) / 2; // fits: centre the room in the free region
+    return Math.min(max, Math.max(min, f));
+  };
   return {
-    wx: cam.scrollX + ox + (gx - Math.floor(ox + 0.5)) / zoom,
-    wy: cam.scrollY + oy + (gy - Math.floor(oy + 0.5)) / zoom,
+    cx: axis(view.w, insets.left, insets.right, bounds.x0, bounds.x1, focus.x),
+    cy: axis(view.h, insets.top, insets.bottom, bounds.y0, bounds.y1, focus.y),
   };
 }
+
+/** Snap a camera coordinate to the device pixel grid so art pixels never straddle two device pixels. */
+export const snapToDevice = (v: number, zoom: number): number => Math.round(v * zoom) / zoom;
+
+/** True when `bounds` (world px) fits inside the free part of the screen (`view` minus the HUD `insets`, device px) at device `zoom`. */
+export function fitsAt(view: { w: number; h: number }, bounds: Rect, insets: Insets, zoom: number): boolean {
+  const freeW = view.w - insets.left - insets.right;
+  const freeH = view.h - insets.top - insets.bottom;
+  return (bounds.x1 - bounds.x0) * zoom <= freeW && (bounds.y1 - bounds.y0) * zoom <= freeH;
+}
+
+/**
+ * Device zoom for a room. Starts from the HOWTO §5.3 zoom for the window (`cssZoom`, `dpr`); when the whole room (walls included) does not
+ * fit at that zoom but does one integer CSS zoom lower (never below 2), it takes the lower one, so a padaria on a 1280 x 800 desktop is seen
+ * whole (zoom 3) instead of cropped at the north wall (zoom 4). Always an integer in device px, so pixels stay crisp.
+ */
+export function roomZoom(view: { w: number; h: number }, bounds: Rect, insets: Insets, cssZoom: number, dpr: number): number {
+  const base = deviceZoomFor(cssZoom, dpr);
+  if (fitsAt(view, bounds, insets, base) || cssZoom <= 2) return base;
+  const lower = deviceZoomFor(cssZoom - 1, dpr);
+  return lower < base && fitsAt(view, bounds, insets, lower) ? lower : base;
+}
+
+/**
+ * The whole camera for a room: the zoom (`roomZoom`) and its centre. A room that fits is centred in the free region with its whole wall
+ * band in view; a bigger one follows `focus`, clamped to the bounds, so with the avatar in the top rows the view sits at the top of the
+ * bounds and the north wall is never cropped.
+ */
+export function roomFraming(view: { w: number; h: number }, bounds: Rect, focus: { x: number; y: number }, insets: Insets, cssZoom: number, dpr: number, north: { rows: number; bandPx: number } | false = { rows: NORTH_ROWS, bandPx: NORTH_BAND_PX }): { zoom: number; cx: number; cy: number; fits: boolean } {
+  const zoom = roomZoom(view, bounds, insets, cssZoom, dpr);
+  const c = cameraCenter({ w: view.w, h: view.h, zoom }, bounds, focus, insets);
+  let cy = c.cy;
+  const toLoY = (view.h / 2 - insets.top) / zoom;
+  // the camera centre that puts the top of the north wall band (3 tiles above row 0; a facade may rise higher, that part may be cropped) at the top of the free region
+  const topCy = Math.max(bounds.y0, -(north ? north.bandPx : 0)) + toLoY;
+  if (north && cy > topCy) {
+    // following: while the avatar is in the top NORTH_ROWS rows the view sits at the top of the bounds, and eases into following over the next four rows
+    const t = Math.min(1, Math.max(0, (focus.y - (north.rows * T - 10)) / (4 * T)));
+    cy = topCy + (cy - topCy) * t;
+  }
+  return { zoom, cx: c.cx, cy, fits: fitsAt(view, bounds, insets, zoom) };
+}
+
+/** Rows next to the north wall in which the camera keeps the whole wall in view. */
+export const NORTH_ROWS = 3;
+/** The outdoor map keeps the tops of its building fronts in view while you stand on the north sidewalk (rows 0-8), then eases into following. */
+export const OUTDOOR_NORTH = { rows: 8, bandPx: 0 };
+/** Height of the north wall band in art px (roomLayout.NORTH_BAND_TILES * T). */
+export const NORTH_BAND_PX = 3 * T;
+
+/** World y of the top edge of the free region (just under the HUD) for a camera centre: what the player sees at the top of the map. */
+export const viewTop = (view: { h: number }, cy: number, zoom: number, insets: Insets): number => cy - (view.h / 2 - insets.top) / zoom;

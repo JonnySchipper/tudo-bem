@@ -22,7 +22,7 @@ import {
 } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi, ui } from './dom';
-import { renderAvatarPreview } from '../render/avatar';
+import { expressionForGrade, npcPortrait, type Expression } from './pixelArt';
 import { speak } from '../audio';
 import { toast } from './hud';
 import {
@@ -77,16 +77,8 @@ function findNpc(npcId: NpcId): NpcDef | null {
   return null;
 }
 
-function portrait(npc: NpcDef | null) {
-  const c = h('canvas', { width: 96, height: 110, style: 'width:96px;height:110px' });
-  let raf = 0;
-  const loop = (ts: number) => {
-    if (!c.isConnected && ts > 1000) return cancelAnimationFrame(raf);
-    if (npc) renderAvatarPreview(c, npc.appearance, npc.hat, false, ts / 1000, { scale: 2.35, footY: 236, npc: npc.id });
-    raf = requestAnimationFrame(loop);
-  };
-  raf = requestAnimationFrame(loop);
-  return h('div', { class: 'conversa-portrait' }, c);
+function portrait(npc: NpcDef | null, expr: Expression) {
+  return npcPortrait(npc?.id ?? null, expr, 'conversa-portrait');
 }
 
 /** Placemat strips laid on the mesa: Carlos's side on the left, yours on the right. */
@@ -146,7 +138,7 @@ function render() {
   const header = h(
     'div',
     { class: 'conversa-header' },
-    portrait(state.npc),
+    portrait(state.npc, expressionForGrade(state.ended ? state.grade : null)),
     h(
       'div',
       { class: 'info' },

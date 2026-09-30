@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { buildCards, buildCpuNames, buildOrders } from '../../../scripts/build-curriculum.mjs';
+import { buildCards, buildCpuNames, buildOrders, buildRecados, parseRecadoStep, RECADO_FLAG_IDS, RECADO_ITEM_IDS, RECADO_NPC_IDS, RECADO_ROOM_IDS } from '../../../scripts/build-curriculum.mjs';
 import cardsJson from '../../../content/curriculum/phase0/cards.json';
 import ordersJson from '../../../content/curriculum/phase0/me-ve-um-orders.json';
 import cpuNamesJson from '../../../content/curriculum/phase0/cpu-names.json';
+import recadosJson from '../../../content/curriculum/phase0/recados.json';
 import dnt from '../../../content/curriculum/phase0/do-not-teach.json';
 import npcPack from '../../../content/safety/phase0/jev/npc-reply-pack.json';
 import { AUTHORED_ORDERS, MG_ITEMS, MG_MODS, makeOrder, mulberry32 } from './meveum.js';
@@ -12,7 +13,9 @@ import { chooseChip, scoreTypedReply, SCENE_NODE_IDS, SCENE_START, viewNode, typ
 import { acceptAnswer, normalizeAnswer } from './accept.js';
 import { CARDS, cardById } from './cards.js';
 import { HATS, FURNITURE } from './catalog.js';
-import { ROOMS } from './rooms.js';
+import { OFFSTAGE_NPCS, ROOMS } from './rooms.js';
+import { NPC_IDS } from './bonds.js';
+import { ITEMS, RECADOS } from './recados.js';
 import { classifyChat } from './safety.js';
 import { glossPt } from './gloss.js';
 
@@ -42,6 +45,25 @@ describe('curriculum pack ingest (content/curriculum/phase0)', () => {
 
   it('me-ve-um-orders.json is in sync with me-ve-um-orders.md (run `pnpm content` after editing .md)', () => {
     expect(JSON.parse(JSON.stringify(buildOrders()))).toEqual(ordersJson);
+  });
+
+  it('recados.json is in sync with recados.md (run `pnpm content` after editing .md)', () => {
+    expect(JSON.parse(JSON.stringify(buildRecados()))).toEqual(recadosJson);
+    expect(RECADOS).toEqual(recadosJson.recados);
+    expect(RECADOS).toHaveLength(15);
+  });
+
+  it('the recado build validates against the shared engine ids (NPCs, rooms, items) and fails loudly on bad input', () => {
+    expect([...RECADO_NPC_IDS].sort()).toEqual([...NPC_IDS].sort());
+    expect(new Set(RECADO_NPC_IDS)).toEqual(new Set(['carlos', 'nanda', 'julia', ...Object.keys(OFFSTAGE_NPCS)]));
+    expect([...RECADO_ROOM_IDS].sort()).toEqual(Object.keys(ROOMS).sort());
+    expect([...RECADO_ITEM_IDS].sort()).toEqual(ITEMS.map((i) => i.id).sort());
+    expect([...RECADO_FLAG_IDS].sort()).toEqual(['dialogue', 'feira']);
+    expect(parseRecadoStep('pedir carlos agua', 'x')).toEqual({ kind: 'pedir', npc: 'carlos', itemId: 'agua', qty: 1 });
+    expect(parseRecadoStep('cumprimentar julia timeCorrect', 'x')).toEqual({ kind: 'cumprimentar', npc: 'julia', timeCorrect: true });
+    expect(parseRecadoStep('cumprimentar', 'x')).toEqual({ kind: 'cumprimentar' });
+    for (const bad of ['pedir ghost agua 1', 'pedir carlos sushi 1', 'entregar nanda agua 0', 'ir lua', 'falar', 'dançar carlos', 'cumprimentar carlos nanda'])
+      expect(() => parseRecadoStep(bad, 'x'), bad).toThrow(/recados.md/);
   });
 
   it('cpu-names.json is in sync with cpu-name-allowlist.md: 48 first names, no surnames', () => {
@@ -88,6 +110,7 @@ describe('curriculum pack ingest (content/curriculum/phase0)', () => {
       }
     for (const room of Object.values(ROOMS)) en.push(...room.props.map((p) => p.label?.en ?? ''));
     en.push(glossPt('Me vê um pão na chapa, por favor.') ?? '');
+    en.push(...RECADOS.flatMap((d) => [d.title.en, d.ask.en, d.thanks.en]));
     expect(en.filter((s) => /give me/i.test(s))).toEqual([]);
     expect(AUTHORED_ORDERS.find((o) => o.pt === 'Me vê um café com leite.')!.en).toBe('I’ll take a coffee with milk.');
   });
@@ -159,6 +182,7 @@ describe('do-not-teach scan (do-not-teach.md)', () => {
     for (const c of CARDS) surfaces.push(c.form, ...c.patterns);
     for (const room of Object.values(ROOMS)) for (const n of room.npcs) surfaces.push(...n.idleLines.map((l) => l.pt));
     surfaces.push(...HATS.map((h) => h.pt), ...FURNITURE.map((f) => f.pt), ...MG_MODS.map((m) => m.pt));
+    surfaces.push(...RECADOS.flatMap((d) => [d.title.pt, d.ask.pt, d.thanks.pt]));
     const bad = surfaces.flatMap((s) => hitsIn(s).map((t) => `${t} ← ${s}`));
     expect(bad).toEqual([]);
     for (const s of surfaces) expect(classifyChat(s).action, s).toBe('allow');

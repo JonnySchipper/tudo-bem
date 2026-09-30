@@ -1,5 +1,7 @@
 import './styles.css';
 import './styles/intro.css';
+import './styles/pixel-ui.css';
+import './styles/clock.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
@@ -7,12 +9,14 @@ import {
   MISSION_COPY,
   ROOMS,
   TUTORIAL_STEPS,
+  buildGrid,
   furnitureById,
   hatById,
   isCpuId,
-  positionAlong,
+  isWalkable,
   type EmoteKind,
   type NpcDef,
+  type NpcId,
   type PropDef,
   type RoomId,
   type ServerMsg,
@@ -20,10 +24,11 @@ import {
 } from '@tudobem/shared';
 import { game, type ClientAvatar, type PendingAction } from './state';
 import { Net, wsUrl, type NetLike } from './net';
+import { clock, parseTimeOfDay } from './gameClock';
+import { IdleTalk } from './idleTalk';
 import { LocalNet } from './localNet';
-import { WorldRenderer, type Hit } from './render/world';
-import type { WorldView } from './render/view';
-import { keyStep } from './render/pixel/moveStep';
+import { initPixelArt } from './ui/pixelArt';
+import type { Guide, Hit, WorldView } from './render/view';
 import { runOnboarding, closeOnboarding } from './ui/onboarding';
 import { buildHud, hoverLabel, idleKickedCard, missionBanner, overlayMessage, parrotWhisper, reconnectBanner, toast } from './ui/hud';
 import {
@@ -42,18 +47,20 @@ import {
   showScene,
 } from './ui/panels';
 import { openPedido, updatePedido, closePedido, isPedidoOpen } from './ui/pedido';
+import { openCredits } from './ui/credits';
 import { closeConversa, isConversaOpen, openConversa } from './ui/conversa';
 import { RollUI, closeRoll } from './ui/roll';
 import { speak, stopSpeaking, unlockSpeech } from './audio';
 import { ambience } from './ambience';
 import { installViewport } from './ui/viewport';
 import { mountJoystick } from './ui/joystick';
+import { arrowForKey, stepForHeld, stepTarget, type Arrow } from './ui/keys';
 import { installUiArt } from './art/ui';
-import { artStats, loadArt } from './art/sprites';
 
 installUiArt();
+/** The pixel manifest feeds the DOM art (icons, portraits, ui kit) in both views. A failed load leaves the old chrome and no icons. */
+const pixelArtReady = initPixelArt();
 installViewport();
-void loadArt();
 const armAudio = () => {
   unlockSpeech();
   ambience.unlock();
@@ -64,38 +71,12 @@ window.addEventListener('keydown', armAudio, { once: true });
 const TOKEN_KEY = 'tb_token';
 const LAST_ROOM_KEY = 'tb_last_room';
 
+await pixelArtReady;
 const canvas = document.getElementById('world') as HTMLCanvasElement;
-/** `?view=pixel` uses the Phaser view. The default stays the isometric renderer, and Phaser loads only then. */
-const VIEW = (new URLSearchParams(location.search).get('view') ?? import.meta.env.VITE_VIEW ?? 'iso') === 'pixel' ? 'pixel' : 'iso';
-const pixelStub: WorldView = {
-  cam: { scale: 1 },
-  guides: [],
-  resize() {},
-  frame() {},
-  avatarPos(a, now) {
-    return positionAlong(a.from, a.path, now - a.start, a.pub.dir);
-  },
-  tileToClient: () => ({ px: 0, py: 0 }),
-  hitTest: () => null,
-  tileAt: () => null,
-};
-if (VIEW === 'pixel') document.body.classList.add('view-pixel');
-let renderer: WorldView = VIEW === 'pixel' ? pixelStub : new WorldRenderer(canvas);
-let pixelStarted = false;
-/** Phaser starts after the intro. Booting it under the title-screen blur crashes some GPUs. */
-async function startPixelView(): Promise<void> {
-  if (VIEW !== 'pixel' || pixelStarted) return;
-  pixelStarted = true;
-  try {
-    const { PixelView } = await import('./render/pixel/PixelView');
-    const view = new PixelView(canvas);
-    renderer = view;
-    await view.ready;
-  } catch (e) {
-    console.error('[TB] pixel view failed', e);
-    pixelStarted = false;
-  }
-}
+// The pixel view (top-down, Phaser) is the only world view. The isometric renderer was deleted in Phase 5; `?view=iso` is ignored.
+if (new URLSearchParams(location.search).get('view') === 'iso') console.info('[view] the isometric view was removed; drawing the pixel view');
+document.body.classList.add('view-pixel');
+const renderer: WorldView = new (await import('./render/pixel/PixelView')).PixelView(canvas);
 /** Static deploys (no WebSocket server) run the World in-page. `?solo` forces it anywhere. */
 const SOLO = import.meta.env.VITE_LOCAL_WORLD === '1' || new URLSearchParams(location.search).has('solo');
 const net: NetLike = SOLO ? new LocalNet() : new Net(wsUrl());
@@ -235,25 +216,42 @@ function joinRoom(room: RoomId, instanceId?: string, ownerId?: string) {
   net.send({ t: 'join', room, instanceId, ownerId });
 }
 
+/** Guide arrows look their target up by portal / prop / NPC id in the current room's data, never by raw coordinates (Vila Ipê moved them all). */
+function guideAt(kind: 'portal' | 'prop' | 'npc', id: string, lift: number, label: string): Guide | null {
+  const room = game.roomDef;
+  if (!room) return null;
+  if (kind === 'portal') {
+    const p = room.portals.find((q) => q.id === id);
+    return p ? { x: p.doorAt?.x ?? p.x, y: p.doorAt?.y ?? p.y, lift, label } : null;
+  }
+  if (kind === 'prop') {
+    const p = room.props.find((q) => q.id === id);
+    return p ? { x: p.x + ((p.w ?? 1) - 1) / 2, y: p.y + (p.h ?? 1) - 1, lift, label } : null;
+  }
+  const n = room.npcs.find((q) => q.id === id);
+  return n ? { x: n.x, y: n.y, lift, label } : null;
+}
+
 function updateGuides() {
   const p = game.profile;
   const r = game.room;
   renderer.guides = [];
   if (!p || !r) return;
   const t = p.tutorial;
+  const add = (g: Guide | null) => g && renderer.guides.push(g);
   if (r.room === 'praca') {
-    if (!t.carlos) renderer.guides.push({ x: 5, y: 0, lift: 110, label: 'Padaria →' });
-    else if (!t.chapeu) renderer.guides.push({ x: 11, y: 6, lift: 138, label: 'Chapéus' });
-    else if (!t.cadeira) renderer.guides.push({ x: 0, y: 4, lift: 110, label: 'Minha kitnet' });
-    if (t.meveum) renderer.guides.push({ x: 10, y: 0, lift: 110, label: 'Academia do Bairro →' });
+    if (!t.carlos) add(guideAt('portal', 'praca_padaria', 110, 'Padaria →'));
+    else if (!t.chapeu) add(guideAt('prop', 'barraca', 138, 'Chapéus'));
+    else if (!t.cadeira) add(guideAt('portal', 'praca_kitnet', 110, 'Minha kitnet'));
+    if (t.meveum) add(guideAt('portal', 'praca_academia', 110, 'Academia do Bairro →'));
   } else if (r.room === 'padaria') {
     // Click opens AI Conversa. Don't label the tile "Conversar" — that word was the chip-scene trap.
-    renderer.guides.push({ x: 3, y: 1, lift: 130, label: t.carlos ? 'Falar com Carlos' : 'Fale com o Seu Carlos' });
-    if (t.carlos && !t.meveum) renderer.guides.push({ x: 8, y: 2, lift: 128, label: 'Me vê um…' });
-    else if (t.carlos && t.meveum && !t.chapeu) renderer.guides.push({ x: 0, y: 6, lift: 110, label: '← Praça' });
+    add(guideAt('npc', 'carlos', 130, t.carlos ? 'Falar com Carlos' : 'Fale com o Seu Carlos'));
+    if (t.carlos && !t.meveum) add(guideAt('prop', 'trilho', 128, 'Me vê um…'));
+    else if (t.carlos && t.meveum && !t.chapeu) add(guideAt('portal', 'padaria_praca', 110, '← Praça'));
   } else if (r.room === 'academia') {
-    renderer.guides.push({ x: 9, y: 1, lift: 190, label: 'Fila do tatame' });
-    renderer.guides.push({ x: 0, y: 6, lift: 110, label: '← Praça' });
+    add(guideAt('prop', 'fila', 190, 'Fila do tatame'));
+    add(guideAt('portal', 'academia_praca', 110, '← Praça'));
   }
 }
 
@@ -331,6 +329,7 @@ net.on((m: ServerMsg) => {
       kickedCopy = { pt: m.pt, en: m.en };
       break;
     case 'welcome': {
+      clock.syncServer(m.serverNow);
       localStorage.setItem(TOKEN_KEY, m.token);
       game.profile = m.profile;
       closeOnboarding();
@@ -351,6 +350,7 @@ net.on((m: ServerMsg) => {
       updateGuides();
       break;
     case 'roomState': {
+      clock.syncServer(m.serverNow);
       const keepMg = !!minigame && modalId() === 'minigame' && game.room?.room === m.room;
       const keepRoll = !!rollUi && modalId() === 'roll' && m.room === 'academia';
       if (!keepMg && !keepRoll) {
@@ -551,6 +551,7 @@ function startGame() {
     emote: (kind: EmoteKind) => net.send({ t: 'emote', kind }),
     stand: () => net.send({ t: 'stand' }),
     openMap: () => openMap((room) => joinRoom(room)),
+    openCredits,
     openFriends: () =>
       openFriends({
         request: (id) => net.send({ t: 'friend', action: 'request', targetId: id }),
@@ -591,7 +592,7 @@ function startGame() {
             reloadToSignIn();
           },
   });
-  mountJoystick(VIEW === 'pixel' ? 'topdown' : 'iso', (dx, dy) => {
+  mountJoystick((dx, dy) => {
     if (game.modalOpen || game.editMode || game.placing) return;
     const room = game.roomDef;
     const cur = selfTile();
@@ -600,7 +601,7 @@ function startGame() {
     const y = Math.max(0, Math.min(room.rows - 1, cur.tile.y + dy));
     if (x === cur.tile.x && y === cur.tile.y) return;
     walkTo({ x, y }, null);
-  });
+  }, { mode: 'topdown' });
   decor = buildDecorPanel({
     buy: (id) => net.send({ t: 'buy', kind: 'furniture', itemId: id }),
     rotate: (uid) => {
@@ -619,12 +620,12 @@ function startGame() {
       game.emit('hud');
     },
   });
+  const idleTalk = new IdleTalk();
   setInterval(() => {
     const room = game.roomDef;
     if (!room?.npcs.length || document.hidden) return;
     const n = room.npcs[Math.floor(Math.random() * room.npcs.length)];
-    const line = n.idleLines[Math.floor(Math.random() * n.idleLines.length)];
-    npcSay(n.id, line);
+    npcSay(n.id, idleTalk.next(n.idleLines, clock.weather(), clock.minutes()));
   }, 11_000);
 }
 
@@ -722,6 +723,29 @@ function handleClickInner(hit: Hit | null) {
   }
 }
 
+/** Target of the `window.__tb.interact` test hook: something in the current room, by id. */
+type InteractTarget = { npc: NpcId } | { prop: string } | { portal: string };
+
+/** Resolve a target in `ROOMS[game.room.room]` and feed the matching Hit through `handleClick`. Returns false if not found. */
+function interact(target: InteractTarget): boolean {
+  const room = game.room ? ROOMS[game.room.room] : null;
+  if (!room) return false;
+  let hit: Hit | null = null;
+  if ('npc' in target) {
+    const npc = room.npcs.find((n) => n.id === target.npc);
+    if (npc) hit = { kind: 'npc', npc };
+  } else if ('prop' in target) {
+    const prop = room.props.find((p) => p.id === target.prop);
+    if (prop) hit = { kind: 'prop', prop };
+  } else {
+    const portal = room.portals.find((p) => p.id === target.portal);
+    if (portal) hit = { kind: 'portal', portal };
+  }
+  if (!hit) return false;
+  handleClick(hit);
+  return true;
+}
+
 const lastPointer = { x: 0, y: 0 };
 canvas.addEventListener('pointermove', (e) => {
   lastPointer.x = e.clientX;
@@ -747,36 +771,9 @@ canvas.addEventListener('click', (e) => {
   hoverLabel(0, 0, null);
   handleClick(renderer.hitTest(e.clientX, e.clientY));
 });
-const heldMove = new Set<string>();
-
-function typingTarget(target: EventTarget | null): boolean {
-  const tag = (target as HTMLElement | null)?.tagName;
-  return tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA';
-}
-
-function stepHeld(): void {
-  if (!started || game.modalOpen || game.editMode || game.placing || modalId() || document.querySelector('.idle-kicked')) return;
-  if (typingTarget(document.activeElement)) return;
-  const room = game.roomDef;
-  const cur = selfTile();
-  if (!room || !cur || cur.moving) return;
-  for (const key of heldMove) {
-    const step = keyStep(key, VIEW === 'pixel' ? 'topdown' : 'iso');
-    if (!step) continue;
-    const x = Math.max(0, Math.min(room.cols - 1, cur.tile.x + step.dx));
-    const y = Math.max(0, Math.min(room.rows - 1, cur.tile.y + step.dy));
-    if (x !== cur.tile.x || y !== cur.tile.y) walkTo({ x, y }, null);
-    return;
-  }
-}
-
 document.addEventListener('keydown', (e) => {
-  if (typingTarget(e.target) || modalId() || document.querySelector('.idle-kicked')) return;
-  if (keyStep(e.code, VIEW === 'pixel' ? 'topdown' : 'iso') || keyStep(e.key, VIEW === 'pixel' ? 'topdown' : 'iso')) {
-    heldMove.add(e.code);
-    heldMove.add(e.key);
-    e.preventDefault();
-  }
+  const tag = (e.target as HTMLElement)?.tagName;
+  if (tag === 'INPUT' || tag === 'SELECT' || modalId() || document.querySelector('.idle-kicked')) return;
   if (e.key === 'Enter' && started && !game.modalOpen) {
     e.preventDefault();
     hud?.focusChat();
@@ -790,17 +787,63 @@ document.addEventListener('keydown', (e) => {
     game.emit('decor');
   }
 });
-document.addEventListener('keyup', (e) => {
-  heldMove.delete(e.code);
-  heldMove.delete(e.key);
-});
+
+// ---------------------------------------------------------------- keyboard walking (pixel view)
+
+/** WASD / arrows step to the adjacent tile while held, chaining when the avatar arrives (D4: still `move` messages over tiles). */
+const heldArrows: Arrow[] = [];
+const isTyping = (t: EventTarget | null) => {
+  const el = t as HTMLElement | null;
+  const tag = el?.tagName;
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || !!el?.isContentEditable;
+};
+/** Keys are ignored while typing, while any modal is open, and after the idle kick. */
+const keysBlocked = (t: EventTarget | null) => !started || isTyping(t) || !!modalId() || game.modalOpen || !!document.querySelector('.idle-kicked');
+
+let lastKeyStep = 0;
+function keyWalk() {
+  if (!heldArrows.length || !game.room || game.editMode || game.placing) return;
+  const cur = selfTile();
+  const room = game.roomDef;
+  // wait for the server's answer to the previous step before asking for the next one
+  if (!cur || cur.moving || !room || now() - lastKeyStep < 140) return;
+  const step = stepForHeld(heldArrows);
+  if (!step) return;
+  const grid = buildGrid(room, game.furniture);
+  const to = stepTarget(cur.tile, step, (x, y) => isWalkable(grid, x, y));
+  if (to) {
+    lastKeyStep = now();
+    walkTo(to, null);
+  }
+}
+
+{
+  document.addEventListener('keydown', (e) => {
+    const a = arrowForKey(e.key);
+    if (!a || e.ctrlKey || e.metaKey || e.altKey || keysBlocked(e.target)) return;
+    e.preventDefault();
+    if (!heldArrows.includes(a)) heldArrows.push(a);
+    keyWalk();
+  });
+  document.addEventListener('keyup', (e) => {
+    const a = arrowForKey(e.key);
+    if (!a) return;
+    const i = heldArrows.indexOf(a);
+    if (i >= 0) heldArrows.splice(i, 1);
+  });
+  // never leave a key stuck when the window loses focus or a modal steals the keyup
+  window.addEventListener('blur', () => (heldArrows.length = 0));
+}
 
 // ---------------------------------------------------------------- loop
 
 function frame(ts: number) {
   try {
     renderer.frame(ts);
-    stepHeld();
+    if (heldArrows.length) {
+      if (keysBlocked(document.activeElement)) heldArrows.length = 0;
+      else keyWalk();
+    }
     if (game.pending) {
       const cur = selfTile();
       if (cur && !cur.moving) {
@@ -850,7 +893,8 @@ async function boot() {
     signedIn = !SOLO && entry.mode === 'auth';
   }
   game.music = ambience.enabled;
-  await startPixelView();
+  // Phaser starts only now (intro closed, or skipped by a live session); it crashed some GPUs when booted under the title blur.
+  if ('start' in renderer) (renderer as { start: () => void }).start();
   net.connect();
 }
 void boot();
@@ -864,31 +908,33 @@ declare global {
 }
 window.__tb = {
   game,
-  get renderer() {
-    return renderer;
-  },
+  renderer,
   net,
   rooms: ROOMS,
-  artStats,
-  hatById,
-  tileToClient: (x: number, y: number) => renderer.tileToClient(x, y),
-  walkTo: (x: number, y: number, sit?: boolean) => walkTo({ x, y }, null, !!sit),
-  interact: (target: { npc?: NpcDef['id']; prop?: string; portal?: string }) => {
-    const room = game.roomDef;
-    if (!room) return;
-    if (target.npc) {
-      const npc = room.npcs.find((n) => n.id === target.npc);
-      if (npc) handleClick({ kind: 'npc', npc });
-    } else if (target.prop) {
-      const prop = room.props.find((p) => p.id === target.prop);
-      if (prop) handleClick({ kind: 'prop', prop });
-    } else if (target.portal) {
-      const portal = room.portals.find((p) => p.id === target.portal);
-      if (portal) handleClick({ kind: 'portal', portal });
-    }
+  /** Sprite keys the pixel view drew as placeholders. */
+  get artMissing(): string[] {
+    return 'artMissing' in renderer ? (renderer as { artMissing: string[] }).artMissing : [];
   },
+  hatById,
+  /** The shared game clock (skew from the server's `serverNow`). */
+  clock,
+  /** Frame-time probe, low-fx state and particle counts of the pixel view (null in the iso view). */
+  get perf(): unknown {
+    return 'perf' in renderer ? (renderer as { perf: () => unknown }).perf() : null;
+  },
+  /** Test/shots hook: pin the time of day ("19:30"), the weather ("garoa"), and/or the clock speed. `null` clears a pin. */
+  setClock: (o: { time?: string | null; weather?: 'sol' | 'nublado' | 'garoa' | 'chuva' | null; speed?: number }) => {
+    if (o.time !== undefined) clock.setTime(o.time === null ? null : parseTimeOfDay(o.time));
+    if (o.weather !== undefined) clock.setWeather(o.weather);
+    if (o.speed !== undefined) clock.setSpeed(o.speed);
+  },
+  tileToClient: (x: number, y: number) => renderer.tileToClient(x, y),
   selfTile: () => selfTile(),
   clickHit: (hit: Hit) => handleClick(hit),
+  /** Renderer-independent walk: the same function the click handler uses. */
+  walkTo: (x: number, y: number, sit = false) => walkTo({ x, y }, null, sit),
+  /** Renderer-independent interaction by id, resolved against the current room's data. */
+  interact: (target: InteractTarget) => interact(target),
   get decor() {
     return decor;
   },

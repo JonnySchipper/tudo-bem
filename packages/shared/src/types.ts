@@ -1,5 +1,7 @@
 import type { DailyMission } from './ambiance.js';
 import type { BjjProgress } from './academia.js';
+import type { NpcId } from './rooms.js';
+import type { RecadoState } from './recados.js';
 
 export type Pronoun = 'ele' | 'ela' | 'nome';
 export type BodyType = 'esguio' | 'medio' | 'forte';
@@ -107,6 +109,18 @@ export interface PrivateProfile {
   mission?: DailyMission;
   /** Academia BJJ — earned belt progress (never purchased). */
   bjj?: BjjProgress;
+  /** Bag: itemId -> count (Phase 8). Defaulted to {} on load. */
+  bag?: Record<string, number>;
+  /** Recados state: today's offer, the ones in progress, the ones finished today (Phase 8). */
+  recados?: RecadoState;
+  /** NPC friendship points 0-100 (10 = 1 heart). */
+  bond?: Partial<Record<NpcId, number>>;
+  /** Caderno de palavras: per card, how often you saw, heard and used it (Phase 7). Defaulted to {} on load. */
+  caderno?: Record<string, { seen: number; heard: number; used: number; firstAt: number }>;
+  /** Caderno groups whose one-time RV has already been paid. */
+  cadernoPaid?: string[];
+  /** One short PT line per NPC about your last Conversa (max 200 chars). Never raw chat. */
+  npcMemory?: Partial<Record<NpcId, string>>;
 }
 
 export interface Bilingual {

@@ -1,20 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { CANON_FACING_ROW } from './charsheet';
-import { FACING, FACING_ROW } from './facing';
+import type { Dir } from '@tudobem/shared';
+import { FACING, FACING_ROW, type Facing } from './facing.js';
 
-describe('facing', () => {
-  it('maps wire Dir onto the top-down compass', () => {
-    expect(FACING.SE).toBe('E');
-    expect(FACING.SW).toBe('S');
-    expect(FACING.NE).toBe('N');
-    expect(FACING.NW).toBe('W');
+describe('pixel facing (D5)', () => {
+  it('maps the isometric-era wire Dir onto top-down facings', () => {
+    expect(FACING.SE).toBe('E'); // +x
+    expect(FACING.SW).toBe('S'); // +y
+    expect(FACING.NE).toBe('N'); // -y
+    expect(FACING.NW).toBe('W'); // -x
   });
 
-  it('lays facings out as sheet rows S W E N', () => {
+  it('covers every Dir with a distinct facing', () => {
+    const dirs: Dir[] = ['SE', 'SW', 'NE', 'NW'];
+    expect(Object.keys(FACING).sort()).toEqual([...dirs].sort());
+    expect(new Set(dirs.map((d) => FACING[d])).size).toBe(4);
+  });
+
+  it('uses the canonical sheet row order S, W, E, N', () => {
     expect(FACING_ROW).toEqual({ S: 0, W: 1, E: 2, N: 3 });
-  });
-
-  it('matches the style-frame sheet rows already baked into charsheet', () => {
-    expect(CANON_FACING_ROW).toEqual(FACING_ROW);
+    const facings: Facing[] = ['S', 'W', 'E', 'N'];
+    expect(facings.map((f) => FACING_ROW[f])).toEqual([0, 1, 2, 3]);
   });
 });

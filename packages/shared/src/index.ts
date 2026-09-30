@@ -18,3 +18,8 @@ export * from './academia.js';
 export * from './auth.js';
 export * from './clock.js';
 export * from './weather.js';
+export * from './hotspots.js';
+export * from './bonds.js';
+export * from './recados.js';
+export * from './caderno.js';
+export * from './npcMemory.js';

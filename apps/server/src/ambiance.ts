@@ -107,7 +107,7 @@ export class CpuCrowd {
     const humans = this.host.humans();
     if (!humans.length) return;
     const active = this.active();
-    const target = cpuTarget(humans.length);
+    const target = cpuTarget(humans.length, this.room.id);
     if (!active.length) for (let i = 0; i < target; i++) this.spawn(true);
     else if (active.length > target) {
       const byWalkersFirst = active.sort((a, b) => (a.role === 'walker' ? 0 : 1) - (b.role === 'walker' ? 0 : 1));
@@ -158,7 +158,7 @@ export class CpuCrowd {
       return;
     }
     const now = this.host.now();
-    if (this.active().length < cpuTarget(humans.length) && now >= this.nextSpawnAt) {
+    if (this.active().length < cpuTarget(humans.length, this.room.id) && now >= this.nextSpawnAt) {
       this.spawn(false);
       this.nextSpawnAt = now + SPAWN_GAP_MS;
     }

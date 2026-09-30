@@ -15,12 +15,12 @@ import {
 } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi, ui, clear } from './dom';
-import { drawParrot, renderAvatarPreview } from '../render/avatar';
-import { hatIcon } from '../render/icons';
+import { mountCharPreview, setHatIcon } from '../render/pixel/charPreview';
 export { MinigameUI } from './meveum-ui.js';
-import { furnitureIcon } from '../render/props';
+import { furnitureIcon, npcPortrait, parrotPortrait, expressionForScore, type Expression } from './pixelArt';
 import { speak } from '../audio';
 import { icon } from '../art/ui';
+import { drawMinimap } from './minimap';
 
 // ---------------------------------------------------------------- modal base
 
@@ -29,24 +29,8 @@ import { closeModal, modalId, openModal } from './modal.js';
 
 const closeBtn = (close: () => void) => h('button', { class: 'close ghost', onclick: close, 'aria-label': 'Fechar' }, '✕');
 
-function portrait(npc: NpcDef | null) {
-  const c = h('canvas', { width: 96, height: 110, style: 'width:96px;height:110px' });
-  let raf = 0;
-  const loop = (ts: number) => {
-    if (!c.isConnected && ts > 1000) return cancelAnimationFrame(raf);
-    if (npc) renderAvatarPreview(c, npc.appearance, npc.hat, false, ts / 1000, { scale: 2.35, footY: 236, npc: npc.id });
-    else {
-      const ctx = c.getContext('2d')!;
-      const dpr = window.devicePixelRatio || 1;
-      c.width = 96 * dpr;
-      c.height = 110 * dpr;
-      ctx.setTransform(dpr * 3.2, 0, 0, dpr * 3.2, 48 * dpr, 88 * dpr);
-      drawParrot(ctx, -2, 0, ts / 1000, true);
-    }
-    raf = requestAnimationFrame(loop);
-  };
-  raf = requestAnimationFrame(loop);
-  return h('div', { class: 'portrait' }, c);
+function portrait(npc: NpcDef | null, expr: Expression = 'neutro') {
+  return npc ? npcPortrait(npc.id, expr, 'portrait') : parrotPortrait('portrait');
 }
 
 // ---------------------------------------------------------------- NPC dialogue
@@ -92,7 +76,7 @@ export function showDialogue(o: DialogueOpts) {
   dialogueEl = h(
     'div',
     { class: `dialogue ${continued ? 'continued' : ''}`, role: 'dialog', 'aria-label': o.speaker, id: 'dialogue' },
-    portrait(o.npc),
+    portrait(o.npc, expressionForScore(o.feedback?.score)),
     h(
       'div',
       null,
@@ -274,18 +258,24 @@ export function showParrotPerch(adopt: () => void) {
 
 // ---------------------------------------------------------------- hat shop / wardrobe
 
+/** The S-facing hat layer at 4x, in a fixed box so the integer scale is never stretched. */
+function hatIconBox(id: string, alt: string): HTMLElement {
+  const img = h('img', { alt, 'data-hat-icon': id }) as HTMLImageElement;
+  setHatIcon(img, id, 4);
+  return h('div', { class: 'hat-icon-box' }, img);
+}
+
 export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: string) => void; equip: (id: string | null) => void }) {
   const p = game.profile!;
   let sel = p.hat ?? (mode === 'shop' ? HATS[0].id : null);
-  const canvas = h('canvas', { width: 180, height: 230, style: 'width:180px;height:230px' });
+  // the composed pixel character wearing the selected hat (6x, integer scale, both views)
+  const canvas = h('canvas', { id: 'hat-preview', style: 'width:168px;height:216px;image-rendering:pixelated' });
   const nandaSays = h('div', { class: 'nanda-says' });
   const grid = h('div', { class: 'grid-items' });
-  let raf = 0;
-  const loop = (ts: number) => {
-    renderAvatarPreview(canvas, p.appearance, sel, p.parrotOwned && p.parrotEquipped, ts / 1000, { scale: 2.05 });
-    raf = requestAnimationFrame(loop);
-  };
-  raf = requestAnimationFrame(loop);
+  const preview = mountCharPreview(canvas, () => {
+    const cur = game.profile ?? p;
+    return { appearance: cur.appearance, hat: sel, parrot: cur.parrotOwned && cur.parrotEquipped };
+  });
 
   const render = () => {
     const prof = game.profile!;
@@ -316,7 +306,7 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
         h(
           'div',
           { class: `item-card ${sel === hatDef.id ? 'sel' : ''}`, onclick: () => ((sel = hatDef.id), render()), 'data-hat': hatDef.id },
-          h('img', { src: hatIcon(hatDef.id), alt: hatDef.pt }),
+          hatIconBox(hatDef.id, hatDef.pt),
           h('div', { class: 'name' }, hatDef.pt),
           en(hatDef.en),
           owned
@@ -344,7 +334,7 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
     ),
     {
       onClose: () => {
-        cancelAnimationFrame(raf);
+        preview.stop();
         off();
       },
     },
@@ -356,6 +346,15 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
 }
 
 // ---------------------------------------------------------------- map
+
+/** The pixel minimap of Vila Ipê with the doors, the neighbours and "você" (only while you are out on the street). */
+function mapView(): HTMLElement {
+  const self = game.self;
+  const here = game.room?.room === 'praca' && self ? (self.path.at(-1) ?? self.from) : null;
+  const canvas = drawMinimap(ROOMS.praca, here);
+  canvas.setAttribute('aria-label', 'Mapa da Vila Ipê');
+  return h('div', { class: 'minimap-wrap' }, canvas, h('div', { class: 'minimap-key' }, h('span', { class: 'k door' }), ' portas ', h('span', { class: 'k npc' }), ' vizinhos ', h('span', { class: 'k me' }), ' você'));
+}
 
 export function openMap(go: (room: RoomId) => void) {
   const card = (room: RoomId | null, pt: string, enText: string, bg: string, locked = false, light = false) =>
@@ -371,8 +370,9 @@ export function openMap(go: (room: RoomId) => void) {
       'div',
       { class: 'panel' },
       closeBtn(() => close()),
-      h('h2', null, 'São Paulo · Bairro Ipê'),
+      h('h2', null, 'São Paulo · Vila Ipê'),
       en('Fast travel is free between rooms you know.'),
+      mapView(),
       h(
         'div',
         { class: 'map-grid' },
@@ -446,13 +446,8 @@ export function openFriends(actions: { request: (id: string) => void; accept: (i
 }
 
 export function openProfileCard(a: PublicAvatar, actions: { request: (id: string) => void; report: (id: string) => void; wave: () => void }) {
-  const canvas = h('canvas', { width: 160, height: 200, style: 'width:160px;height:200px' });
-  let raf = 0;
-  const loop = (ts: number) => {
-    renderAvatarPreview(canvas, a.appearance, a.hat, a.parrot, ts / 1000, { scale: 1.8 });
-    raf = requestAnimationFrame(loop);
-  };
-  raf = requestAnimationFrame(loop);
+  const canvas = h('canvas', { style: 'width:168px;height:216px;image-rendering:pixelated' });
+  const preview = mountCharPreview(canvas, () => ({ appearance: a.appearance, hat: a.hat, parrot: a.parrot }));
   const isFriend = game.profile?.friends.includes(a.id);
   const pronoun = { ele: 'ele', ela: 'ela', nome: 'só o nome' }[a.pronoun];
   const close = openModal(
@@ -473,7 +468,7 @@ export function openProfileCard(a: PublicAvatar, actions: { request: (id: string
         h('button', { class: 'ghost', onclick: () => (actions.report(a.id), close()) }, bi('Denunciar', 'Report')),
       ),
     ),
-    { onClose: () => cancelAnimationFrame(raf) },
+    { onClose: () => preview.stop() },
   );
 }
 
@@ -525,7 +520,7 @@ export function buildDecorPanel(actions: { buy: (id: string) => void; rotate: (u
                   },
                   'data-furniture': id,
                 },
-                h('img', { src: furnitureIcon(id, 40), alt: '' }),
+                furnitureIcon(id),
                 h('span', null, h('b', null, d.pt), en(d.en, true)),
                 h('span', { class: 'pill', style: 'box-shadow:none;padding:2px 8px' }, `×${n}`),
               );
@@ -538,7 +533,7 @@ export function buildDecorPanel(actions: { buy: (id: string) => void; rotate: (u
               h(
                 'button',
                 { onclick: () => actions.buy(d.id), disabled: p.coins < d.price, 'data-buy-furniture': d.id },
-                h('img', { src: furnitureIcon(d.id, 40), alt: '' }),
+                furnitureIcon(d.id),
                 h('span', null, h('b', null, d.pt), en(d.en, true)),
                 h('span', { class: 'price', style: 'display:inline-flex;gap:4px;align-items:center;font-weight:800' }, h('span', { class: 'coin' }), String(d.price)),
               ),

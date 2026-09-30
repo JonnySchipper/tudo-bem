@@ -44,25 +44,27 @@ const profile = (page) => page.evaluate(() => window.__tb.game.profile);
 
 async function clickTile(page, x, y, lift = 0) {
   const p = await page.evaluate(([x, y]) => window.__tb.tileToClient(x, y), [x, y]);
-  const { scale, pixel } = await page.evaluate(() => ({
-    scale: window.__tb.renderer.cam.scale,
-    pixel: new URLSearchParams(location.search).get('view') === 'pixel',
-  }));
-  // Iso sprites sit above the diamond, so the bench/chair clicks rise. Top-down art is on the tile.
-  const rise = pixel ? 0 : lift * scale;
-  await page.mouse.click(p.px, p.py - rise);
+  const scale = await page.evaluate(() => window.__tb.renderer.cam.scale);
+  await page.mouse.click(p.px, p.py - lift * scale);
 }
 
-/** Props, NPCs and doors by id, so the play path does not depend on the renderer. */
+/**
+ * Renderer-independent input (Phase 0): reach a prop / NPC / portal by id through the same handler a click uses.
+ * Real pointer input stays covered by clickTile (one floor tile, one bench).
+ */
 async function interact(page, target) {
-  await page.evaluate((target) => window.__tb.interact(target), target);
+  const ok = await page.evaluate((t) => window.__tb.interact(t), target);
+  assert(ok, `interact target exists in the current room: ${JSON.stringify(target)}`);
 }
+const walkTo = (page, x, y, sit = false) => page.evaluate(([x, y, sit]) => window.__tb.walkTo(x, y, sit), [x, y, sit]);
+/** A tile click routed through the click handler without pointer coordinates (decor placement needs a tile hit). */
+const clickTileHit = (page, x, y) => page.evaluate(([x, y]) => window.__tb.clickHit({ kind: 'tile', tile: { x, y } }), [x, y]);
 
 async function waitIdleAt(page, x, y, label) {
   await waitFor(page, ([x, y]) => {
     const t = window.__tb.selfTile();
     return t && !t.moving && t.tile.x === x && t.tile.y === y;
-  }, [x, y], 12_000, label ?? `avatar at ${x},${y}`);
+  }, [x, y], 20_000, label ?? `avatar at ${x},${y}`);
 }
 
 const PASSWORD = 'pao-de-queijo-2026';
@@ -135,7 +137,7 @@ async function createAvatar(page, name, pronoun, { tick18 = false, guest = SOLO 
 async function main() {
   assert(CHROME, 'Chrome/Chromium not found — set CHROME_PATH');
   console.log(`\nTudo Bem e2e → ${BASE}`);
-  const browser = await chromium.launch({ executablePath: CHROME, headless: HEADLESS, slowMo: VIDEO ? 90 : 0, args: ['--autoplay-policy=no-user-gesture-required'] });
+  const browser = await chromium.launch({ executablePath: CHROME, headless: HEADLESS, slowMo: VIDEO ? 90 : 0, args: ['--autoplay-policy=no-user-gesture-required', '--no-sandbox', '--disable-dev-shm-usage'] });
   const ctxA = await browser.newContext({
     viewport: { width: 1440, height: 900 },
     deviceScaleFactor: 1,
@@ -179,9 +181,9 @@ async function main() {
   }
   const start = await profile(page);
   log('landed in', await room(page), 'coins', start.coins, 'plate', start.nameplate);
-  const art = await page.evaluate(() => window.__tb.artStats());
-  log('baked art sprites loaded', `${art.loaded}/${art.total}`);
-  assert(art.total > 0 && art.loaded === art.total, 'baked art manifest + sprites load');
+  const artGaps = await page.evaluate(() => window.__tb.artMissing);
+  log('pixel art placeholders in the praça:', artGaps.length ? artGaps.join(', ') : 'none');
+  assert(artGaps.length === 0, `every sprite of the praça comes from the manifest (missing: ${artGaps.join(', ')})`);
   assert(start.nameplate === 'verde', 'Verde nameplate');
   assert(start.appearance.top === 'camiseta' && start.appearance.bottom === 'calca' && start.appearance.shoes === 0, 'starter outfit is tee + jeans');
   assert(start.appearance.extra === 'nenhum', 'create does not pick glasses/beard/earrings');
@@ -192,7 +194,7 @@ async function main() {
   if (AMBIANCE) {
     await waitFor(page, () => [...window.__tb.game.avatars.values()].filter((a) => a.pub.cpu).length >= 4, null, 8000, 'ambiance CPUs');
     const crowd = await cpus(page);
-    assert(crowd.length >= 4 && crowd.length <= 6, `4–6 CPUs for one player (got ${crowd.length})`);
+    assert(crowd.length >= 4 && crowd.length <= 8, `4–8 CPUs for one player on the big map (got ${crowd.length})`);
     assert(crowd.every((c) => c.nameplate === 'verde' && CPU_NAMES.includes(c.name) && !/\s/.test(c.name)), 'CPU plates: Verde, allowlisted first names only');
     const head = await page.textContent('.topbar .room small');
     assert(/ 1\/16 aqui/.test(head), `head-count ignores CPUs (${head})`);
@@ -200,8 +202,11 @@ async function main() {
   }
 
   // 1c. Daily kiosk: Missão do dia (Set A)
+  // Vila Ipê: walk from spawn to the quiosque interact tile (~4s empty; allow CPUs/lag), then open.
   await interact(page, { prop: 'quiosque' });
-  await page.waitForSelector('[data-modal="kiosk"] #mission-take', { timeout: 12_000 });
+  await waitIdleAt(page, 21, 14, 'arrived at kiosk');
+  await page.waitForSelector('[data-modal="kiosk"]', { timeout: 8_000 });
+  await page.waitForSelector('[data-modal="kiosk"] #mission-take', { timeout: 8_000 });
   const steps = await page.$$eval('[data-mission-step]', (els) => els.map((e) => e.textContent));
   assert(steps[0].startsWith('Cumprimenta') && steps[1].startsWith('Pede') && steps[2].startsWith('Monta'), `kiosk steps Cumprimenta / Pede / Monta (${steps})`);
   // Curriculum-locked kiosk copy
@@ -215,9 +220,9 @@ async function main() {
   await page.keyboard.press('Escape');
 
   // 2. Walk, sit on a bench, wave, chat
-  await clickTile(page, 8, 6);
-  await waitIdleAt(page, 8, 6);
-  await clickTile(page, 7, 7, 14);
+  await clickTile(page, 23, 15);
+  await waitIdleAt(page, 23, 15);
+  await clickTile(page, 21, 17, 4); // banco_1 (Vila Ipê): a real click on a bench
   await waitFor(page, () => window.__tb.game.profile?.tutorial.sentar, null, 8000, 'sat on bench');
   await page.click('[data-emote="oi"]');
   await page.fill('#chat-input', 'Oi, tudo bem? Bom dia, pessoal!');
@@ -245,7 +250,7 @@ async function main() {
     await waitFor(pageB, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'Bia back in the praça');
     assert((await profile(pageB)).id === biaId, 'login returns the same avatar');
     log('logout → wrong password → login ok');
-    await clickTile(pageB, 8, 8);
+    await walkTo(pageB, 27, 27);
     await sleep(1200);
     await pageB.fill('#chat-input', 'Oi, Jonny! Eu sou de Chicago. Vamos na padaria?');
     await pageB.press('#chat-input', 'Enter');
@@ -417,6 +422,7 @@ async function main() {
     assert(crowd.every((c) => c.bubbles === 0), 'CPUs never chat');
     // Kiosk now shows the completion state
     await interact(page, { prop: 'quiosque' });
+    await waitIdleAt(page, 21, 14, 'back at kiosk');
     await page.waitForSelector('[data-modal="kiosk"] #mission-done', { timeout: 12_000 });
     const done = await page.textContent('#mission-done .big');
     assert(done === 'Missão completa! +25 RV', `kiosk complete copy (${done})`);
@@ -498,7 +504,7 @@ async function main() {
   await sleep(500);
   await page.click('#btn-decor');
   await page.click('[data-furniture="cadeira_madeira"]');
-  await clickTile(page, 3, 4);
+  await clickTileHit(page, 3, 4);
   await waitFor(page, () => window.__tb.game.furniture.length === 1, null, 5000, 'chair placed');
   // Buy + place a plant too
   await page.click('#tab-loja');
@@ -506,11 +512,11 @@ async function main() {
   await sleep(300);
   await page.click('button:has-text("Meus móveis")');
   await page.click('[data-furniture="planta"]');
-  await clickTile(page, 5, 4);
+  await clickTileHit(page, 5, 4);
   await waitFor(page, () => window.__tb.game.furniture.length === 2, null, 5000, 'plant placed');
   await page.click('#decor-panel button.ghost');
   await sleep(400);
-  await clickTile(page, 3, 4, 10);
+  await walkTo(page, 3, 4, true);
   await waitIdleAt(page, 3, 4, 'sit on chair');
   await sleep(600);
   await shot(page, '11_kitnet_chair');
