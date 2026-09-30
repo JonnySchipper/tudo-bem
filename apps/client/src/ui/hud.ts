@@ -11,6 +11,7 @@ export interface HudActions {
   stand: () => void;
   openMap: () => void;
   openCredits: () => void;
+  openCaderno: () => void;
   openFriends: () => void;
   openWardrobe: () => void;
   toggleDecor: () => void;
@@ -70,6 +71,7 @@ export function buildHud(actions: HudActions) {
       { class: 'top-right' },
       decorBtn,
       h('button', { onclick: actions.openMap, id: 'btn-map' }, icon('map'), bi('Mapa', 'Map')),
+      h('button', { onclick: actions.openCaderno, id: 'btn-caderno', title: 'Caderno de palavras / Word notebook' }, icon('caderno'), bi('Caderno', 'Words')),
       h('button', { onclick: actions.openWardrobe, id: 'btn-wardrobe' }, icon('hat'), bi('Chapéus', 'My hats')),
       h('button', { onclick: actions.openFriends, id: 'btn-friends' }, icon('friends'), bi('Amigos', 'Friends')),
       musicBtn,

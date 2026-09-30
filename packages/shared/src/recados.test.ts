@@ -273,11 +273,11 @@ describe('RECADO_FLAGS (feature gating in the offer logic)', () => {
   const everything = { carlos: 100, nanda: 100, julia: 100, graca: 100, tia_lu: 100 };
   const seen = (flags?: Record<RecadoFlag, boolean>) => new Set(Array.from({ length: 40 }, (_, i) => offerFor({ bond: everything }, day, mulberry32(i), RECADOS, 15, flags)).flat());
 
-  it('are off by default, so gated recados are never offered', () => {
-    expect(RECADO_FLAGS).toEqual({ feira: false, dialogue: false });
+  it('feira is off and dialogue is on by default (Phase 7 shipped the NPC dialogue), so only feira recados are held back', () => {
+    expect(RECADO_FLAGS).toEqual({ feira: false, dialogue: true });
     const ids = seen();
-    expect(ids.size).toBe(11);
-    for (const d of RECADOS) expect(ids.has(d.id), d.id).toBe(!d.requires);
+    expect(ids.size).toBe(13);
+    for (const d of RECADOS) expect(ids.has(d.id), d.id).toBe(d.requires !== 'feira');
     expect(recadoEnabled(RECADOS[0]!)).toBe(true);
     expect(recadoEnabled({ requires: 'feira' })).toBe(false);
   });
@@ -304,7 +304,7 @@ describe('RECADO_FLAGS (feature gating in the offer logic)', () => {
     } finally {
       Object.assign(RECADO_FLAGS, before);
     }
-    expect(seen().size).toBe(11);
+    expect(seen().size).toBe(13);
   });
 
   it('a new player at bond 0 is offered three of the five open recados', () => {

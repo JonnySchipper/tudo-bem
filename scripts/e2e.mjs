@@ -300,36 +300,49 @@ async function main() {
   assert((await cpus(page)).length === 0, 'CPUs stay out of the Padaria');
   await dwell(1200);
 
+  // 3b. Readable world: walk up to the padaria menu, the card opens and the read counts its words as seen; the Caderno lists them
+  await interact(page, { hotspot: 'padaria_cardapio' });
+  await page.waitForSelector('.hotspot-card', { timeout: 20_000 });
+  assert(await page.$('.hotspot-card #hs-listen'), 'sign card has a listen button');
+  assert(await page.$('.hotspot-card #hs-save'), 'sign card has Guardar no caderno');
+  await waitFor(page, () => Object.keys(window.__tb.game.profile.caderno ?? {}).length >= 5, null, 5000, 'reading the menu marks its words as seen');
+  await shot(page, '03b_hotspot_cardapio');
+  await page.keyboard.press('Escape');
+  await page.click('#btn-caderno');
+  await page.waitForSelector('[data-modal="caderno"] [data-card="lex.padaria.coxinha"]', { timeout: 5000 });
+  assert(!(await page.textContent('[data-modal="caderno"] [data-card="lex.padaria.coxinha"] .cad-pt')).includes('???'), 'Caderno shows a word the sign taught');
+  await shot(page, '03c_caderno');
+  await page.keyboard.press('Escape');
+
   // 4. Clicking Carlos opens AI Conversa. Pedido rápido (footer) is the chip breakfast.
   await waitFor(page, () => window.__tb.game.liveNpcs(performance.now()).some((n) => n.id === 'carlos' || n.id === 'graca'), null, 8000, 'the baker on duty is at the counter');
   const baker = await bakerNow(page);
   log('baker on duty:', baker.name, 'game time', await page.evaluate(() => window.__tb.clock.minutes()));
   await interact(page, { npc: baker.id });
-  await page.waitForSelector('[data-modal="conversa"] .conversa-panel', { timeout: 12_000 });
-  const conversaName = ((await page.textContent('[data-modal="conversa"] .npc-name')) ?? '').trim();
+  await page.waitForSelector('#dialogue-box[data-dialogue="conversa"]', { timeout: 12_000 });
+  const conversaName = ((await page.textContent('#dialogue-box[data-dialogue="conversa"] .npc-name')) ?? '').trim();
   assert(conversaName === baker.name, `Conversa is ${baker.name} at the mesa (${conversaName})`);
-  assert(await page.$('[data-modal="conversa"] .conversa-portrait'), 'Conversa portrait (café mesa)');
-  assert(await page.$('[data-modal="conversa"] [data-chip="0"]'), 'Conversa opens with a reply chip');
-  assert(!(await page.$('#dialogue')), 'chip dialogue is not the default Carlos click');
+  assert(await page.$('#dialogue-box[data-dialogue="conversa"] .dbx-portrait'), 'Conversa portrait (café mesa)');
+  assert(await page.$('#dialogue-box[data-dialogue="conversa"] [data-chip="0"]'), 'Conversa opens with a reply chip');
   await page.waitForSelector('[data-action="pedido-rapido"]', { state: 'visible', timeout: 5_000 });
   await shot(page, '04_carlos_conversa');
   await page.click('[data-action="pedido-rapido"]');
-  await page.waitForSelector('[data-modal="pedido"] .pedido-panel', { timeout: 12_000 });
-  assert(!(await page.$('[data-modal="conversa"]')), 'Pedido rápido closes Conversa');
-  assert(await page.$('[data-modal="pedido"] #pedido-ticket'), 'Pedido rápido has ticket visual');
-  assert(await page.$('[data-modal="pedido"] .speak-btn'), 'Pedido rápido has speak button on Carlos line');
+  await page.waitForSelector('#dialogue-box[data-dialogue="pedido"]', { timeout: 12_000 });
+  assert(!(await page.$('#dialogue-box[data-dialogue="conversa"]')), 'Pedido rápido closes Conversa');
+  assert(await page.$('#dialogue-box[data-dialogue="pedido"] #pedido-ticket'), 'Pedido rápido has ticket visual');
+  assert(await page.$('#dialogue-box[data-dialogue="pedido"] .speak-btn'), 'Pedido rápido has speak button on Carlos line');
   await sleep(300);
   await shot(page, '04_carlos_scene_start');
   // First reply is typed (accept-list scoring), the rest are chips.
   const picks = ['Bom dia, Seu Carlos!', 1, 0, 0, 1];
   for (let i = 0; i < picks.length; i++) {
-    const before = await page.textContent('[data-modal="pedido"] .line-bubble .pt');
+    const before = await page.textContent('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt');
     await dwell(1600);
     if (typeof picks[i] === 'string') {
       await page.fill('#pedido-input', picks[i]);
       await page.press('#pedido-input', 'Enter');
-    } else await page.click(`[data-modal="pedido"] [data-chip="${picks[i]}"]`);
-    await waitFor(page, (b) => document.querySelector('[data-modal="pedido"] .line-bubble .pt')?.textContent !== b, before, 5000, 'next Carlos line');
+    } else await page.click(`#dialogue-box[data-dialogue="pedido"] [data-chip="${picks[i]}"]`);
+    await waitFor(page, (b) => document.querySelector('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt')?.textContent !== b, before, 5000, 'next Carlos line');
     if (i === 2) {
       // Verify ticket items are filling in
       const filledItems = await page.$$eval('.ticket-item.filled', els => els.length);
@@ -393,15 +406,15 @@ async function main() {
   // 5b. Test daily RV gate: second Pedido rápido same day → 0 RV, "já pediu hoje" message
   const coinsBeforeSecond = (await profile(page)).coins;
   await interact(page, { npc: baker.id });
-  await page.waitForSelector('[data-modal="conversa"] .conversa-panel', { timeout: 12_000 });
+  await page.waitForSelector('#dialogue-box[data-dialogue="conversa"]', { timeout: 12_000 });
   await page.click('[data-action="pedido-rapido"]');
-  await page.waitForSelector('[data-modal="pedido"] .pedido-panel', { timeout: 12_000 });
+  await page.waitForSelector('#dialogue-box[data-dialogue="pedido"]', { timeout: 12_000 });
   // Quick path through Pedido rápido again
   const picks2 = [0, 0, 0, 0, 0];
   for (let i = 0; i < picks2.length; i++) {
-    const before2 = await page.textContent('[data-modal="pedido"] .line-bubble .pt');
-    await page.click(`[data-modal="pedido"] [data-chip="${picks2[i]}"]`);
-    await waitFor(page, (b) => document.querySelector('[data-modal="pedido"] .line-bubble .pt')?.textContent !== b, before2, 5000, 'next Carlos line (2nd)');
+    const before2 = await page.textContent('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt');
+    await page.click(`#dialogue-box[data-dialogue="pedido"] [data-chip="${picks2[i]}"]`);
+    await waitFor(page, (b) => document.querySelector('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt')?.textContent !== b, before2, 5000, 'next Carlos line (2nd)');
   }
   await page.waitForSelector('#btn-pedido-play-mg');
   // Should show daily blocked message instead of payout
@@ -431,6 +444,16 @@ async function main() {
     await page.keyboard.press('Escape');
     log('kiosk shows “Missão completa! +25 RV”');
   }
+  // 6a. Nanda greets in the dialogue box (and the server hears the talk). She keeps shop hours, so pin the clock to midday for this step.
+  await page.evaluate(() => window.__tb.setClock({ time: '12:00' }));
+  await waitFor(page, () => window.__tb.game.liveNpcs(performance.now()).some((n) => n.id === 'nanda'), null, 8000, 'Nanda is at her stall');
+  await interact(page, { npc: 'nanda' });
+  await page.waitForSelector('#dialogue-box[data-dialogue="talk-nanda"]', { timeout: 15_000 });
+  assert(await page.$('#btn-ver-chapeus'), 'Nanda offers Ver chapéus');
+  await waitFor(page, () => (window.__tb.game.profile.bond?.nanda ?? 0) >= 2, null, 5000, 'talk bond with Nanda');
+  await shot(page, '08c_nanda_dialogue');
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => window.__tb.setClock({ time: null }));
   await interact(page, { prop: 'barraca' });
   await page.waitForSelector('[data-modal="hats"]', { timeout: 12_000 });
   await page.click('[data-hat="boina_vermelha"]');
@@ -442,8 +465,8 @@ async function main() {
   await page.keyboard.press('Escape');
   // Adopt the parrot (optional cosmetic) and ask for a hint
   await interact(page, { prop: 'poleiro' });
-  await page.waitForSelector('#dialogue [data-chip="0"]', { timeout: 12_000 });
-  await page.click('#dialogue [data-chip="0"]');
+  await page.waitForSelector('#dialogue-box[data-dialogue="perch"] [data-chip="0"]', { timeout: 12_000 });
+  await page.click('#dialogue-box[data-dialogue="perch"] [data-chip="0"]');
   await waitFor(page, () => window.__tb.game.profile.parrotOwned, null, 5000, 'parrot');
   await page.click('#btn-parrot');
   await page.waitForSelector('.parrot-whisper', { timeout: 5000 });
@@ -562,6 +585,6 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error('\n  ✗ e2e failed:', e.message, '\n');
+  fs.writeSync(2, `\n  ✗ e2e failed: ${e.message}\n\n`);
   process.exit(1);
 });
