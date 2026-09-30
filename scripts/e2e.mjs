@@ -41,6 +41,8 @@ async function shot(page, name) {
 const room = (page) => page.evaluate(() => window.__tb.game.room?.room);
 const cpus = (page) => page.evaluate(() => [...window.__tb.game.avatars.values()].filter((a) => a.pub.cpu).map((a) => ({ ...a.pub, bubbles: a.bubbles.length })));
 const profile = (page) => page.evaluate(() => window.__tb.game.profile);
+/** D12: the padaria's baker at the game clock the server runs (Seu Carlos 06:00-22:00, Dona Graça 22:00-06:00). The e2e must pass at any hour. */
+const bakerNow = (page) => page.evaluate(() => (window.__tb.clock.minutes() >= 360 && window.__tb.clock.minutes() < 1320 ? { id: 'carlos', name: 'Seu Carlos' } : { id: 'graca', name: 'Dona Graça' }));
 
 async function clickTile(page, x, y, lift = 0) {
   const p = await page.evaluate(([x, y]) => window.__tb.tileToClient(x, y), [x, y]);
@@ -313,10 +315,13 @@ async function main() {
   await page.keyboard.press('Escape');
 
   // 4. Clicking Carlos opens AI Conversa. Pedido rápido (footer) is the chip breakfast.
-  await interact(page, { npc: 'carlos' });
+  await waitFor(page, () => window.__tb.game.liveNpcs(performance.now()).some((n) => n.id === 'carlos' || n.id === 'graca'), null, 8000, 'the baker on duty is at the counter');
+  const baker = await bakerNow(page);
+  log('baker on duty:', baker.name, 'game time', await page.evaluate(() => window.__tb.clock.minutes()));
+  await interact(page, { npc: baker.id });
   await page.waitForSelector('#dialogue-box[data-dialogue="conversa"]', { timeout: 12_000 });
   const conversaName = ((await page.textContent('#dialogue-box[data-dialogue="conversa"] .npc-name')) ?? '').trim();
-  assert(conversaName === 'Seu Carlos', `Conversa is Seu Carlos at the mesa (${conversaName})`);
+  assert(conversaName === baker.name, `Conversa is ${baker.name} at the mesa (${conversaName})`);
   assert(await page.$('#dialogue-box[data-dialogue="conversa"] .dbx-portrait'), 'Conversa portrait (café mesa)');
   assert(await page.$('#dialogue-box[data-dialogue="conversa"] [data-chip="0"]'), 'Conversa opens with a reply chip');
   await page.waitForSelector('[data-action="pedido-rapido"]', { state: 'visible', timeout: 5_000 });
@@ -400,7 +405,7 @@ async function main() {
 
   // 5b. Test daily RV gate: second Pedido rápido same day → 0 RV, "já pediu hoje" message
   const coinsBeforeSecond = (await profile(page)).coins;
-  await interact(page, { npc: 'carlos' });
+  await interact(page, { npc: baker.id });
   await page.waitForSelector('#dialogue-box[data-dialogue="conversa"]', { timeout: 12_000 });
   await page.click('[data-action="pedido-rapido"]');
   await page.waitForSelector('#dialogue-box[data-dialogue="pedido"]', { timeout: 12_000 });
@@ -439,13 +444,16 @@ async function main() {
     await page.keyboard.press('Escape');
     log('kiosk shows “Missão completa! +25 RV”');
   }
-  // 6a. Nanda greets in the dialogue box (and the server hears the talk)
+  // 6a. Nanda greets in the dialogue box (and the server hears the talk). She keeps shop hours, so pin the clock to midday for this step.
+  await page.evaluate(() => window.__tb.setClock({ time: '12:00' }));
+  await waitFor(page, () => window.__tb.game.liveNpcs(performance.now()).some((n) => n.id === 'nanda'), null, 8000, 'Nanda is at her stall');
   await interact(page, { npc: 'nanda' });
   await page.waitForSelector('#dialogue-box[data-dialogue="talk-nanda"]', { timeout: 15_000 });
   assert(await page.$('#btn-ver-chapeus'), 'Nanda offers Ver chapéus');
   await waitFor(page, () => (window.__tb.game.profile.bond?.nanda ?? 0) >= 2, null, 5000, 'talk bond with Nanda');
   await shot(page, '08c_nanda_dialogue');
   await page.keyboard.press('Escape');
+  await page.evaluate(() => window.__tb.setClock({ time: null }));
   await interact(page, { prop: 'barraca' });
   await page.waitForSelector('[data-modal="hats"]', { timeout: 12_000 });
   await page.click('[data-hat="boina_vermelha"]');

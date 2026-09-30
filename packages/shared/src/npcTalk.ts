@@ -50,6 +50,59 @@ export const NPC_TALK: Partial<Record<NpcId, NpcTalk>> = {
       },
     },
   },
+  // Dona Graça (the night baker) has her Conversa at the counter; this greeting is the short fallback when a dialogue is opened without it
+  graca: {
+    start: 'oi',
+    nodes: {
+      oi: {
+        line: { pt: 'Boa noite, {nome}! Eu sou a Dona Graça, a padeira da noite.', en: 'Good evening, {nome}! I’m Dona Graça, the night baker.' },
+        chips: [
+          { pt: 'Boa noite, Dona Graça!', en: 'Good evening, Dona Graça!', next: 'cafe' },
+          { pt: 'Tudo bem? E a senhora?', en: 'How are you? And you, ma’am?', next: 'cafe' },
+        ],
+      },
+      cafe: {
+        line: { pt: 'Tudo bem! Quer um cafezinho pra noite?', en: 'All good! Want a little coffee for the night?' },
+        chips: [
+          { pt: 'Quero, por favor.', en: 'Yes, please.', next: 'tchau' },
+          { pt: 'Agora não, {obrigad}.', en: 'Not now, thanks.', next: 'tchau' },
+        ],
+      },
+      tchau: {
+        line: { pt: 'Tá bom! Volte sempre. Tchau!', en: 'Okay! Come back anytime. Bye!' },
+        chips: [
+          { pt: 'Tchau, Dona Graça!', en: 'Bye, Dona Graça!', next: 'end' },
+          { pt: 'Valeu! Tchau!', en: 'Thanks! Bye!', next: 'end' },
+        ],
+      },
+    },
+  },
+  prof: {
+    start: 'oi',
+    nodes: {
+      oi: {
+        line: { pt: 'Oss, {nome}! Tudo bem? Eu sou a professora Bia.', en: 'Oss, {nome}! How’s it going? I’m Professor Bia.' },
+        chips: [
+          { pt: 'Oss, professora! Tudo bem!', en: 'Oss, professor! All good!', next: 'tatame' },
+          { pt: 'Beleza! E você?', en: 'Cool! And you?', next: 'tatame' },
+        ],
+      },
+      tatame: {
+        line: { pt: 'Tudo ótimo! O tatame está livre. Quer treinar?', en: 'Great! The mat is free. Want to train?' },
+        chips: [
+          { pt: 'Quero, sim!', en: 'Yes, I do!', next: 'tchau' },
+          { pt: 'Hoje não, {obrigad}.', en: 'Not today, thanks.', next: 'tchau' },
+        ],
+      },
+      tchau: {
+        line: { pt: 'Beleza! Até a próxima. Oss!', en: 'Sure thing! Until next time. Oss!' },
+        chips: [
+          { pt: 'Oss! Tchau, professora!', en: 'Oss! Bye, professor!', next: 'end' },
+          { pt: 'Valeu! Até logo!', en: 'Thanks! See you later!', next: 'end' },
+        ],
+      },
+    },
+  },
   julia: {
     start: 'oi',
     nodes: {

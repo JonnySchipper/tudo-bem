@@ -122,6 +122,7 @@ export const NPC_TAG_COLORS: Record<string, string> = {
   julia: '#3b78b0',
   graca: '#7a5a8c',
   tia_lu: '#d9772b',
+  prof: '#4a7c59',
 };
 
 export const npcTagColor = (npcId: string | null | undefined): string => (npcId && NPC_TAG_COLORS[npcId]) || '#8b5e3c';

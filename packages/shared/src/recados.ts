@@ -1,6 +1,7 @@
 import type { Bilingual, RoomId, Tile } from './types.js';
 import { OFFSTAGE_NPCS, ROOMS, type NpcId } from './rooms.js';
 import { greetingFor, type Greeting } from './clock.js';
+import { sameNpcRole } from './schedules.js';
 import { MG_ITEMS, type Rng } from './meveum.js';
 import { hotspotById } from './hotspots.js';
 import { isNpcId, type BondMap } from './bonds.js';
@@ -165,15 +166,15 @@ export function greetingKind(text: string): GreetingKind | null {
 export function stepMatches(step: RecadoStep, event: RecadoEvent): boolean {
   switch (step.kind) {
     case 'falar':
-      return event.kind === 'talked' && event.npc === step.npc;
+      return event.kind === 'talked' && sameNpcRole(step.npc, event.npc);
     case 'pedir':
       return (
         event.kind === 'ordered' &&
-        event.npc === step.npc &&
+        sameNpcRole(step.npc, event.npc) &&
         event.items.filter((i) => i.itemId === step.itemId).reduce((n, i) => n + (Number.isFinite(i.qty) ? i.qty : 0), 0) >= step.qty
       );
     case 'entregar':
-      return event.kind === 'gave' && event.npc === step.npc && event.itemId === step.itemId && event.qty >= step.qty;
+      return event.kind === 'gave' && sameNpcRole(step.npc, event.npc) && event.itemId === step.itemId && event.qty >= step.qty;
     case 'ir': {
       if (event.kind !== 'entered' || event.room !== step.room) return false;
       const a = step.area;
@@ -185,7 +186,7 @@ export function stepMatches(step: RecadoStep, event: RecadoEvent): boolean {
       if (event.kind !== 'greeted') return false;
       const kind = greetingKind(event.text);
       if (!kind) return false;
-      if (step.npc ? event.npc !== step.npc : !event.npc && event.company === false) return false;
+      if (step.npc ? !event.npc || !sameNpcRole(step.npc, event.npc) : !event.npc && event.company === false) return false;
       return !step.timeCorrect || kind === greetingFor(event.minute);
     }
   }

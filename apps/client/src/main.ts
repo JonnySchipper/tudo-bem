@@ -12,6 +12,7 @@ import {
   TUTORIAL_STEPS,
   buildGrid,
   furnitureById,
+  greetingFor,
   hatById,
   HOTSPOT_READ_RANGE,
   HOTSPOTS,
@@ -21,6 +22,7 @@ import {
   isCpuId,
   isWalkable,
   readSpot,
+  npcDefById,
   type EmoteKind,
   type HotspotDef,
   type NpcDef,
@@ -196,14 +198,15 @@ function runPending() {
 }
 
 function talkTo(npc: NpcDef['id']) {
-  if (npc === 'carlos') {
+  if (npc === 'carlos' || npc === 'graca') {
     closeDialogue();
-    // Always the private AI mesa. Pedido rápido is a ghost button inside that overlay.
-    void openConversa('carlos', undefined, {
-      onQuickOrder: () => net.send({ t: 'scene', action: 'start', npc: 'carlos' }),
+    // Always the private AI mesa (Seu Carlos by day, Dona Graça on the night shift: same subjects, D12). Pedido rápido is a ghost button
+    // inside that overlay, only at the counter (the server runs the breakfast scene with whoever is on duty there).
+    void openConversa(npc, undefined, {
+      onQuickOrder: game.room?.room === 'padaria' ? () => net.send({ t: 'scene', action: 'start', npc }) : undefined,
     });
   } else {
-    // Nanda and Júlia: a short greeting in the dialogue box (Nanda offers "Ver chapéus", Júlia her help); the server hears about it for the recados
+    // Nanda, Júlia and Professora Bia (the live NPC you clicked): a short greeting in the dialogue box (Nanda offers "Ver chapéus", Júlia her help); the server hears about it for the recados
     closeDialogue();
     openNpcTalk(npc, { talked: (id) => net.send({ t: 'talk', npc: id }), openShop });
   }
@@ -243,13 +246,21 @@ function startRoll() {
 
 function openShop() {
   closeDialogue();
-  openHatShop('shop', { buy: (id) => net.send({ t: 'buy', kind: 'hat', itemId: id }), equip: (id) => net.send({ t: 'equipHat', hatId: id }) });
+  // D12: outside her hours Nanda is away, but the hat shop opens from the closed stall with a note
+  const closed = !game.liveNpcs(now()).some((n) => n.id === 'nanda');
+  openHatShop(
+    'shop',
+    { buy: (id) => net.send({ t: 'buy', kind: 'hat', itemId: id }), equip: (id) => net.send({ t: 'equipHat', hatId: id }) },
+    closed ? { closedNote: { pt: 'Nanda volta às 8h', en: 'Nanda is back at 8 am' } } : {},
+  );
 }
 
 function startMinigame() {
   closeDialogue();
   net.send({ t: 'mg', action: 'start' });
 }
+
+const GREETING_EN = { 'bom dia': 'Good morning', 'boa tarde': 'Good afternoon', 'boa noite': 'Good evening' } as const;
 
 function joinRoom(room: RoomId, instanceId?: string, ownerId?: string) {
   net.send({ t: 'join', room, instanceId, ownerId });
@@ -267,7 +278,7 @@ function guideAt(kind: 'portal' | 'prop' | 'npc', id: string, lift: number, labe
     const p = room.props.find((q) => q.id === id);
     return p ? { x: p.x + ((p.w ?? 1) - 1) / 2, y: p.y + (p.h ?? 1) - 1, lift, label } : null;
   }
-  const n = room.npcs.find((q) => q.id === id);
+  const n = game.liveNpcs(now()).find((q) => q.id === id);
   return n ? { x: n.x, y: n.y, lift, label } : null;
 }
 
@@ -285,7 +296,10 @@ function updateGuides() {
     if (t.meveum) add(guideAt('portal', 'praca_academia', 110, 'Academia do Bairro →'));
   } else if (r.room === 'padaria') {
     // Click opens AI Conversa. Don't label the tile "Conversar" — that word was the chip-scene trap.
-    add(guideAt('npc', 'carlos', 130, t.carlos ? 'Falar com Carlos' : 'Fale com o Seu Carlos'));
+    // the baker at the counter: Seu Carlos by day, Dona Graça at night
+    const baker = game.liveNpcs(now()).find((q) => q.id === 'carlos' || q.id === 'graca');
+    if (baker?.id === 'graca') add(guideAt('npc', 'graca', 130, t.carlos ? 'Falar com Dona Graça' : 'Fale com a Dona Graça'));
+    else add(guideAt('npc', 'carlos', 130, t.carlos ? 'Falar com Carlos' : 'Fale com o Seu Carlos'));
     if (t.carlos && !t.meveum) add(guideAt('prop', 'trilho', 128, 'Me vê um…'));
     else if (t.carlos && t.meveum && !t.chapeu) add(guideAt('portal', 'padaria_praca', 110, '← Praça'));
   } else if (r.room === 'academia') {
@@ -413,7 +427,13 @@ net.on((m: ServerMsg) => {
       game.emit('decor');
       if (m.room === 'kitnet' && m.ownerId === game.profile?.id && !game.profile?.tutorial.cadeira)
         toast('info', 'Sua kitnet! Clique em “Decorar” e coloque sua cadeira.', 'Your apartment! Click “Decorar” (top right) and place your free chair.');
-      if (m.room === 'padaria' && !game.profile?.tutorial.carlos) setTimeout(() => npcSay('carlos', { pt: 'Bom dia! Chega mais, pode pedir!', en: 'Good morning! Come on over, go ahead and order!' }), 600);
+      if (m.room === 'padaria' && !game.profile?.tutorial.carlos)
+        setTimeout(() => {
+          // whoever is at the counter greets you the way the hour asks (bom dia / boa tarde / boa noite)
+          const baker = game.liveNpcs(now()).find((q) => q.id === 'carlos' || q.id === 'graca')?.id ?? 'carlos';
+          const g = greetingFor(clock.minutes());
+          npcSay(baker, { pt: `${g[0]!.toUpperCase()}${g.slice(1)}! Chega mais, pode pedir!`, en: `${GREETING_EN[g]}! Come on over, go ahead and order!` });
+        }, 600);
       if (m.room === 'academia' && !sessionStorage.getItem('tb_academia_hi')) {
         sessionStorage.setItem('tb_academia_hi', '1');
         setTimeout(
@@ -436,11 +456,15 @@ net.on((m: ServerMsg) => {
     case 'avatarJoined':
       game.avatars.set(m.avatar.id, toClientAvatar(m.avatar));
       game.emit('avatars');
+      if (m.avatar.npc) updateGuides();
       break;
-    case 'avatarLeft':
+    case 'avatarLeft': {
+      const leaving = game.avatars.get(m.id);
       game.avatars.delete(m.id);
       game.emit('avatars');
+      if (leaving?.pub.npc) updateGuides();
       break;
+    }
     case 'avatarMoved': {
       const a = game.avatars.get(m.id);
       if (!a) break;
@@ -662,9 +686,9 @@ function startGame() {
   });
   const idleTalk = new IdleTalk();
   setInterval(() => {
-    const room = game.roomDef;
-    if (!room?.npcs.length || document.hidden) return;
-    const n = room.npcs[Math.floor(Math.random() * room.npcs.length)];
+    const npcs = game.liveNpcs(now());
+    if (!npcs.length || document.hidden) return;
+    const n = npcs[Math.floor(Math.random() * npcs.length)];
     npcSay(n.id, idleTalk.next(n.idleLines, clock.weather(), clock.minutes()));
   }, 11_000);
 }
@@ -779,7 +803,7 @@ function interact(target: InteractTarget): boolean {
   if (!room) return false;
   let hit: Hit | null = null;
   if ('npc' in target) {
-    const npc = room.npcs.find((n) => n.id === target.npc);
+    const npc = game.liveNpcs(now()).find((n) => n.id === target.npc);
     if (npc) hit = { kind: 'npc', npc };
   } else if ('prop' in target) {
     const prop = room.props.find((p) => p.id === target.prop);

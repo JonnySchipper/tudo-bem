@@ -7,6 +7,9 @@ import {
   ROOMS,
   furnitureById,
   hatById,
+  npcDefById,
+  npcPosesIn,
+  poseWalk,
   type Bilingual,
   type NpcDef,
   type PublicAvatar,
@@ -22,6 +25,7 @@ import { speak } from '../audio';
 import { closeDialogueBox, dialogueMode, showDialogueBox, type BoxSpec } from './dialogue';
 import { icon } from '../art/ui';
 import { drawMinimap } from './minimap';
+import { clock } from '../gameClock';
 
 // ---------------------------------------------------------------- modal base
 
@@ -141,7 +145,9 @@ function typedReply(onType: (text: string) => void) {
 }
 
 export function showScene(view: SceneView, extra: { said?: Bilingual; feedback?: Bilingual; score?: number; payout?: number }, onChoose: (i: number) => void, onClose: () => void, onPlay: () => void, onType?: (text: string) => void) {
-  const carlos = ROOMS.padaria.npcs.find((n) => n.id === 'carlos')!;
+  // the baker at the counter: Seu Carlos by day, Dona Graça at night (D12), the same authored scene
+  const onDuty = [...game.avatars.values()].find((a) => (a.pub.npc === 'carlos' || a.pub.npc === 'graca') && a.pub.activity === 'trabalhando');
+  const carlos = npcDefById(onDuty?.pub.npc ?? 'carlos') ?? ROOMS.padaria.npcs.find((n) => n.id === 'carlos')!;
   speak(view.line.pt);
   const footer = view.end
     ? h(
@@ -155,8 +161,8 @@ export function showScene(view: SceneView, extra: { said?: Bilingual; feedback?:
     : undefined;
   showDialogue({
     npc: carlos,
-    speaker: 'Seu Carlos',
-    role: 'Padeiro',
+    speaker: carlos.name,
+    role: carlos.role.pt,
     line: view.line,
     chips: view.chips,
     said: extra.said,
@@ -296,7 +302,8 @@ function hatIconBox(id: string, alt: string): HTMLElement {
   return h('div', { class: 'hat-icon-box' }, img);
 }
 
-export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: string) => void; equip: (id: string | null) => void }) {
+/** `closedNote`: Nanda is not at her stall (outside 08:00-20:00): the shop still opens from the closed stall (D12), with this note. */
+export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: string) => void; equip: (id: string | null) => void }, opts: { closedNote?: Bilingual } = {}) {
   const p = game.profile!;
   let sel = p.hat ?? (mode === 'shop' ? HATS[0].id : null);
   // the composed pixel character wearing the selected hat (6x, integer scale, both views)
@@ -311,11 +318,13 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
   const render = () => {
     const prof = game.profile!;
     const hat = hatById(sel);
-    nandaSays.replaceChildren(
-      mode === 'shop' ? 'Nanda: ' : '',
-      hat ? `“${hat.pt}? Fica bem em você!”` : '“Sem chapéu também fica ótimo!”',
-      en(hat ? `${hat.en}? Looks good on you!` : 'No hat looks great too!'),
-    );
+    if (mode === 'shop' && opts.closedNote) nandaSays.replaceChildren(opts.closedNote.pt, en(opts.closedNote.en));
+    else
+      nandaSays.replaceChildren(
+        mode === 'shop' ? 'Nanda: ' : '',
+        hat ? `“${hat.pt}? Fica bem em você!”` : '“Sem chapéu também fica ótimo!”',
+        en(hat ? `${hat.en}? Looks good on you!` : 'No hat looks great too!'),
+      );
     const list = mode === 'shop' ? HATS : HATS.filter((x) => prof.hats.includes(x.id));
     clear(grid);
     if (!list.length) grid.append(h('div', null, 'Você ainda não tem chapéus.', en('No hats yet — visit Nanda’s stall in the Praça.')));
@@ -382,7 +391,12 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
 function mapView(): HTMLElement {
   const self = game.self;
   const here = game.room?.room === 'praca' && self ? (self.path.at(-1) ?? self.from) : null;
-  const canvas = drawMinimap(ROOMS.praca, here);
+  // the neighbours where they are now: live avatars when you are in the praça, otherwise the schedule at the game clock
+  const npcs =
+    game.room?.room === 'praca'
+      ? game.liveNpcs(performance.now())
+      : npcPosesIn('praca', clock.now()).map((p) => ({ name: npcDefById(p.npc)?.name ?? p.npc, ...poseWalk(p, clock.now()).tile }));
+  const canvas = drawMinimap(ROOMS.praca, here, npcs);
   canvas.setAttribute('aria-label', 'Mapa da Vila Ipê');
   return h('div', { class: 'minimap-wrap' }, canvas, h('div', { class: 'minimap-key' }, h('span', { class: 'k door' }), ' portas ', h('span', { class: 'k npc' }), ' vizinhos ', h('span', { class: 'k me' }), ' você'));
 }
@@ -424,7 +438,7 @@ export function openMap(go: (room: RoomId) => void) {
 export function openFriends(actions: { request: (id: string) => void; accept: (id: string) => void; decline: (id: string) => void; remove: (id: string) => void; hop: (roomId: RoomId, instanceId: string | null, ownerId?: string) => void; refresh: () => void }) {
   const body = h('div');
   const render = () => {
-    const others = [...game.avatars.values()].filter((a) => a.pub.id !== game.room?.selfId && !a.pub.cpu);
+    const others = [...game.avatars.values()].filter((a) => a.pub.id !== game.room?.selfId && !a.pub.cpu && !a.pub.npc);
     body.replaceChildren(
       game.incoming.length ? h('div', { class: 'section-title' }, 'Pedidos de amizade', en(' Friend requests', true)) : '',
       h(

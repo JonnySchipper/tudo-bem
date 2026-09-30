@@ -6,9 +6,9 @@ import { isNpcId } from './bonds.js';
 
 const RESERVED = new Set(['end', 'help', 'shop']);
 
-describe('NPC greeting dialogues (Nanda, Júlia)', () => {
+describe('NPC greeting dialogues (Nanda, Júlia, Dona Graça, Professora Bia)', () => {
   it('exist for Nanda and Júlia, three lines with two reply chips each', () => {
-    expect(TALKING_NPCS.sort()).toEqual(['julia', 'nanda']);
+    expect(TALKING_NPCS.sort()).toEqual(['graca', 'julia', 'nanda', 'prof']);
     for (const npc of TALKING_NPCS) {
       const t = NPC_TALK[npc]!;
       expect(isNpcId(npc)).toBe(true);

@@ -20,6 +20,8 @@ export interface TalkHooks {
 const SPEAKER: Record<string, { name: string; role: string }> = {
   nanda: { name: 'Nanda', role: 'Loja de chapéus' },
   julia: { name: 'Júlia', role: 'Guia da praça' },
+  graca: { name: 'Dona Graça', role: 'Padeira da noite' },
+  prof: { name: 'Professora Bia', role: 'Professora de jiu-jitsu' },
 };
 
 /** Which node the greeting is on, and how many replies were picked (the expression turns happy once the player answered). */
@@ -30,10 +32,10 @@ export function openNpcTalk(npcId: NpcId, hooks: TalkHooks): void {
   const p = game.profile;
   const ctx = { name: p?.name ?? '', pronoun: p?.pronoun };
   hooks.talked(npcId);
-  // The legacy modal presentation has no greeting flow: Nanda goes straight to the shop, Júlia to her help menu.
+  // The legacy modal presentation has no greeting flow: Nanda goes straight to the shop, Júlia to her help menu, the rest say nothing.
   if (dialogueMode() === 'modal') {
     if (npcId === 'nanda') hooks.openShop();
-    else showJulia();
+    else if (npcId === 'julia') showJulia();
     return;
   }
   let answered = 0;

@@ -72,6 +72,11 @@ function showSafetyToast(notice: ConversaSafetyNotice | null | undefined) {
   toast(notice.level, notice.pt, notice.en);
 }
 
+/** The authored chips are written for Seu Carlos; on the night shift the same counter is Dona Graça's. */
+function addressed(npcId: NpcId, text: string): string {
+  return npcId === 'graca' ? text.replace(/Seu Carlos/g, 'Dona Graça') : text;
+}
+
 function findNpc(npcId: NpcId): NpcDef | null {
   for (const room of Object.values(ROOMS)) {
     const npc = room.npcs.find((n) => n.id === npcId);
@@ -158,7 +163,7 @@ function boxSpec(s: ConversaState): BoxSpec {
       s.history.length <= 1 && !s.ended ? h('small', { class: 'dbx-note private-note' }, CONVERSA_COPY.private.pt) : null,
     ],
     extras: s.ended && s.grade ? buildScoreCard(s.grade, s.payout, s.meter, s.rvNote) : null,
-    chips: s.ended || waiting ? [] : s.chips.map((c) => ({ pt: c.pt, en: c.en })),
+    chips: s.ended || waiting ? [] : s.chips.map((c) => ({ pt: addressed(s.npcId, c.pt), en: addressed(s.npcId, c.en) })),
     input: s.ended ? null : { id: 'conversa-input', placeholder: 'Responda em português…', send: CONVERSA_COPY.enviar.pt, onSend: (_t, el) => void handleSend(el), disabled: waiting },
     footer: s.ended
       ? h('button', { class: 'primary', onclick: handleClose }, bi(CONVERSA_COPY.continuar.pt, CONVERSA_COPY.continuar.en))
@@ -355,7 +360,7 @@ function handleChip(index: number) {
 
   const input = document.getElementById('conversa-input') as HTMLInputElement | null;
   if (input) {
-    input.value = chip.pt;
+    input.value = addressed(state.npcId, chip.pt);
     handleSend(input);
   }
 }
@@ -511,7 +516,7 @@ export async function openConversa(
   if (!p) return;
 
   closeCallback = onClose ?? null;
-  quickOrder = npcId === 'carlos' ? opts?.onQuickOrder ?? null : null;
+  quickOrder = npcId === 'carlos' || npcId === 'graca' ? opts?.onQuickOrder ?? null : null;
 
   const daily: ConversaDaily = {};
 

@@ -10,7 +10,7 @@
  * Two cameras (DECISIONS Phase 1 #13): `main` draws the world at an integer device zoom, `fx` draws the light grade in screen space.
  */
 import Phaser from 'phaser';
-import { buildGrid, canPlaceFurniture, furnitureById, hotspotBox, hotspotsInRoom, isCpuId, key as tileKey, positionAlong, propTiles, type Dir, type NpcDef, type PlacedFurniture, type PropDef, type RoomDef, type RoomGrid, type WallDecor } from '@tudobem/shared';
+import { buildGrid, canPlaceFurniture, furnitureById, hotspotBox, hotspotsInRoom, isCpuId, key as tileKey, positionAlong, propTiles, type Dir, npcDefById, type PlacedFurniture, type PropDef, type RoomDef, type RoomGrid, type WallDecor } from '@tudobem/shared';
 import { game, type ClientAvatar } from '../../state';
 import type { Guide, Hit } from '../view';
 import type { Manifest } from './manifest';
@@ -93,13 +93,13 @@ interface AvatarView {
   moving: boolean;
 }
 
-interface NpcView {
-  npc: NpcDef;
-  sprite: Phaser.GameObjects.Sprite;
-  shadow: Phaser.GameObjects.Image;
-  sheet: string;
-  /** art px the sprite rises above a bare head (hats) */
-  lift: number;
+/** Nanda's hat stall: it shows as closed (dimmed, with a sign) while she is not standing at it. */
+interface StallView {
+  main: Phaser.GameObjects.Sprite | null;
+  canopy: Phaser.GameObjects.Sprite | null;
+  wx: number;
+  wy: number;
+  closed: boolean;
 }
 
 interface FurnitureView {
@@ -165,7 +165,7 @@ export class WorldScene extends Phaser.Scene {
   private roomMap: Phaser.Tilemaps.Tilemap | null = null;
   private staticHits: HitBox[] = [];
   private placeholders: { key: string; rect: Rect }[] = [];
-  private npcs: NpcView[] = [];
+  private stall: StallView | null = null;
   private canopies: Canopy[] = [];
   private avatars = new Map<string, AvatarView>();
   private furniture = new Map<string, FurnitureView>();
@@ -268,8 +268,7 @@ export class WorldScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ room layer
   private destroyRoom(): void {
-    for (const n of this.npcs) this.sheets.release(n.sheet);
-    this.npcs = [];
+    this.stall = null;
     for (const o of this.roomObjs) o.destroy();
     this.roomObjs = [];
     this.roomMap?.destroy();
@@ -393,8 +392,7 @@ export class WorldScene extends Phaser.Scene {
     // ---- props
     for (const p of def.props) this.buildProp(p);
 
-    // ---- NPCs
-    for (const n of def.npcs) this.buildNpc(n);
+    // (the neighbours are not part of the room: the server walks them along their schedules and sends them as avatars)
 
     // ---- readable world (Phase 7): a click box per hotspot (the footprint, plus the wall rows above it for a sign painted on a north wall)
     for (const hs of hotspotsInRoom(def.id)) {
@@ -487,6 +485,7 @@ export class WorldScene extends Phaser.Scene {
       }
     } else if (artKey && d) {
       const main = this.sprite(artKey, a.wx, a.wy, depth);
+      if (p.kind === 'barraca_chapeus') this.stall = { main, canopy: null, wx: a.wx, wy: a.wy, closed: false };
       if (p.kind === 'trilho_pedidos' && main && d.anim) {
         // the ticket rail is still until Me vê um opens (updateTrilho)
         main.anims.stop();
@@ -509,6 +508,7 @@ export class WorldScene extends Phaser.Scene {
         const y = Math.round(a.wy);
         const spr = this.reg(this.add.sprite(x, y, od.atlas, od.frame)).setOrigin(...originOf(od)).setDepth(DEPTH.overhead + y / 1000);
         if (od.anim) spr.play({ key: ensureAnim(this, d.overhead, od), startFrame: Math.floor(hash01(x * 7 + y) * 4) });
+        if (p.kind === 'barraca_chapeus' && this.stall) this.stall.canopy = spr;
         const left = x - od.ax;
         const top = y - od.ay;
         this.canopies.push({ sprite: spr, r: { x0: left, y0: top + 8, x1: left + od.w, y1: top + od.h + 14 }, fade: 1 });
@@ -580,19 +580,24 @@ export class WorldScene extends Phaser.Scene {
     this.rig.lights.push({ x: bx + 5, y: by - 2, r: L.r * 1.3, color, squash: 0.55, kind: 'lamp', glow: 0.55, delay });
   }
 
-  private buildNpc(n: NpcDef): void {
-    const look = lookForNpc(n.id, n.appearance, n.hat);
-    const sheet = this.sheets.acquire(look);
-    const f = feet(n.x, n.y);
-    const spr = this.reg(this.add.sprite(f.wx, Math.round(f.wy), sheet, 0)).setOrigin(0.5, 1).setDepth(standingDepth(f.wy, n.id));
-    const seed = n.x * 100 + n.y;
-    const facing = FACING[n.dir];
-    spr.play({ key: animKey(sheet, look.idle.anim === 'phone' && facing === 'S' ? 'phone' : 'idle', facing), startFrame: Math.floor(hash01(seed) * 6) });
-    spr.anims.timeScale = look.idle.speed * (0.9 + 0.2 * hash01(seed + 7));
-    const s16 = this.m.sprites['fx/shadow_16'];
-    const shadow = this.reg(this.add.image(f.wx, Math.round(f.wy) - 1, s16.atlas, s16.frame)).setOrigin(...originOf(s16)).setDepth(DEPTH.shadowContact);
-    this.npcs.push({ npc: n, sprite: spr, shadow, sheet, lift: lookHeadLift(look) });
-    this.staticHits.push({ x0: f.wx - 9, y0: f.wy - 32, x1: f.wx + 9, y1: f.wy + 2, hit: { kind: 'npc', npc: n }, depth: f.wy + 0.5 });
+  /** The look of an avatar: a neighbour wears its own style (portrait match), everyone else their appearance. */
+  private lookOf(a: ClientAvatar): Look {
+    return a.pub.npc ? lookForNpc(a.pub.npc, a.pub.appearance, a.pub.hat) : lookForAppearance(a.pub.appearance, { hat: a.pub.hat });
+  }
+
+  /** Nanda's stall is closed (dimmed) unless she is standing at it. */
+  private updateStall(): void {
+    const s = this.stall;
+    if (!s) return;
+    const nanda = this.avatars.get('npc-nanda');
+    const closed = !nanda || nanda.moving;
+    if (closed === s.closed) return;
+    s.closed = closed;
+    for (const spr of [s.main, s.canopy]) {
+      if (!spr) continue;
+      if (closed) spr.setTint(0x8f94b8);
+      else spr.clearTint();
+    }
   }
 
   // ------------------------------------------------------------------ per-frame reconcile
@@ -625,6 +630,7 @@ export class WorldScene extends Phaser.Scene {
     this.updateCanopies(dt);
     this.updateHover(def);
     this.updateTrilho();
+    this.updateStall();
     this.hitBoxes = this.staticHits.concat(dyn);
     this.updateCamera(dt, def);
     this.applyLook(def, dt);
@@ -787,7 +793,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private createAvatar(a: ClientAvatar): AvatarView {
-    const look = lookForAppearance(a.pub.appearance, { hat: a.pub.hat });
+    const look = this.lookOf(a);
     const sheet = this.sheets.acquire(look);
     const sprite = this.rig.world(this.add.sprite(0, 0, sheet, 0)).setOrigin(0.5, 1);
     const s16 = this.m.sprites['fx/shadow_16'];
@@ -807,7 +813,7 @@ export class WorldScene extends Phaser.Scene {
     if (a.pub.appearance !== v.appearance || a.pub.hat !== v.hat) {
       v.appearance = a.pub.appearance;
       v.hat = a.pub.hat;
-      v.look = lookForAppearance(a.pub.appearance, { hat: a.pub.hat });
+      v.look = this.lookOf(a);
       const sheetKey = this.sheets.acquire(v.look);
       this.sheets.release(v.sheet);
       if (sheetKey !== v.sheet) {
@@ -878,7 +884,12 @@ export class WorldScene extends Phaser.Scene {
     }
     this.updateParrot(v, a, facing, wx, wy, depth, now);
     const h = sitting ? 24 : 32;
-    dyn.push({ x0: wx - 9, y0: wy - h, x1: wx + 9, y1: wy + 2, hit: { kind: 'avatar', id: a.pub.id }, depth: wy + 0.6 });
+    const base = a.pub.npc ? npcDefById(a.pub.npc) : undefined;
+    if (base) {
+      // a neighbour: clicking it is the same as clicking an NPC of old, at the tile it has reached, with the interact tile of its slot
+      const npc = { ...base, x: pos.tile.x, y: pos.tile.y, interact: a.pub.npcInteract ?? base.interact };
+      dyn.push({ x0: wx - 9, y0: wy - h - 2, x1: wx + 9, y1: wy + 2, hit: { kind: 'npc', npc }, depth: wy + 0.5 });
+    } else dyn.push({ x0: wx - 9, y0: wy - h, x1: wx + 9, y1: wy + 2, hit: { kind: 'avatar', id: a.pub.id }, depth: wy + 0.6 });
     void def;
   }
 
@@ -1063,22 +1074,28 @@ export class WorldScene extends Phaser.Scene {
     const at = (wx: number, wy: number) => worldToCanvas(k, wx, wy);
     const stacks: StackItem[] = [];
     const selfId = game.room?.selfId;
-    for (const n of this.npcs) {
-      const p = at((n.npc.x + 0.5) * T, (n.npc.y + 1) * T - 3 - HEAD_LIFT - n.lift);
-      const b = game.npcBubbles.get(n.npc.id);
-      const age = b ? now - b.at : Infinity;
-      stacks.push({
-        key: `npc:${n.npc.id}`,
-        x: p.px,
-        y: p.py,
-        plate: { text: `${n.npc.name} · ${n.npc.role.pt}`, kind: 'npc' },
-        bubbles: b && age < 7000 ? [{ text: b.text, gloss: b.gloss, alpha: bubbleAlpha(age) }] : [],
-      });
+    if (this.stall?.closed) {
+      const p = at(this.stall.wx, this.stall.wy - 30);
+      stacks.push({ key: 'stall:closed', x: p.px, y: p.py, plate: { text: 'Fechado · volta às 8h', kind: 'npc' }, bubbles: [] });
     }
     for (const [id, v] of this.avatars) {
       const a = game.avatars.get(id);
       if (!a) continue;
       const p = at(v.wx, v.wy - (v.sitting ? HEAD_LIFT_SIT : HEAD_LIFT) - lookHeadLift(v.look));
+      if (a.pub.npc) {
+        // a neighbour: terracotta plate with the role, and its own bubbles (idle lines are keyed by NPC id)
+        const b = game.npcBubbles.get(a.pub.npc);
+        const age = b ? now - b.at : Infinity;
+        const role = npcDefById(a.pub.npc)?.role.pt;
+        stacks.push({
+          key: `npc:${a.pub.npc}`,
+          x: p.px,
+          y: p.py,
+          plate: { text: role ? `${a.pub.name} · ${role}` : a.pub.name, kind: 'npc' },
+          bubbles: b && age < 7000 ? [{ text: b.text, gloss: b.gloss, alpha: bubbleAlpha(age) }] : [],
+        });
+        continue;
+      }
       const bubbles = isCpuId(id)
         ? [] // Live Ops lock: CPUs never show chat bubbles
         : a.bubbles

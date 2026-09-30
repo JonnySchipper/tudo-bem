@@ -4,6 +4,7 @@ import { AUTHORED_ORDERS, checkBuild, checkTray, makeOrder, mgPayout, MG_MAX_POI
 import { detectLang, glossPt } from './gloss.js';
 import { numberPt } from './numbers.js';
 import { buildGrid, canPlaceFurniture, key, openMatTiles, ROOMS, isWalkable, seatTiles } from './rooms.js';
+import { SCHEDULES } from './schedules.js';
 import { findPath, positionAlong, pathDuration } from './path.js';
 import { ACADEMIA_AMBIANCE, ambianceNavGrid } from './ambiance.js';
 import { classifyChat } from './safety.js';
@@ -171,7 +172,9 @@ describe('rooms + pathing', () => {
       }
       for (const p of room.props) if (p.interact) targets.push(p.interact);
       for (const s of seatTiles(room)) targets.push({ x: s.x, y: s.y });
-      for (const n of room.npcs) targets.push(n.interact);
+      // every spot an NPC can be talked to from: each schedule slot in this room, and the fixed NPCs
+      for (const slots of Object.values(SCHEDULES)) for (const s of slots!) if (s.room === room.id && s.activity !== 'em_casa') targets.push(s.interact!);
+      for (const n of room.npcs) if (!n.schedule) targets.push(n.interact);
       for (const t of targets) expect(findPath(g, room.spawn, t), `${room.id} → ${t.x},${t.y}`).not.toBeNull();
     }
   });

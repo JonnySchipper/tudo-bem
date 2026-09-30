@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildGrid, floorAt, FLOOR_CHARS, isWalkable, key, propTiles, ROOMS, seatTiles, type RoomDef, type RoomGrid, type Tile } from './rooms.js';
+import { SCHEDULES } from './schedules.js';
 import { findPath } from './path.js';
 
 const praca = ROOMS.praca;
@@ -38,6 +39,16 @@ function reachableWide(g: RoomGrid, from: Tile): Set<string> {
 
 const cheb = (a: Tile, b: Tile) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 
+/** Every spot where an NPC of this room can be talked to: each schedule slot's interact tile, or the fixed NPC's own. */
+function npcSpots(room: RoomDef): { npc: string; slot: string; tile: Tile; interact: Tile }[] {
+  const out: { npc: string; slot: string; tile: Tile; interact: Tile }[] = [];
+  for (const slots of Object.values(SCHEDULES)) {
+    for (const s of slots!) if (s.room === room.id && s.activity !== 'em_casa') out.push({ npc: s.npc, slot: `${s.from}`, tile: s.tile, interact: s.interact! });
+  }
+  for (const n of room.npcs) if (!n.schedule) out.push({ npc: n.id, slot: 'fixed', tile: { x: n.x, y: n.y }, interact: n.interact });
+  return out;
+}
+
 /** Every place a player has to be able to walk to in Vila Ipê: doors, arrive tiles, NPC and prop interact tiles, seats. */
 function targets(room: RoomDef): { what: string; tile: Tile }[] {
   const out: { what: string; tile: Tile }[] = [];
@@ -45,7 +56,7 @@ function targets(room: RoomDef): { what: string; tile: Tile }[] {
     out.push({ what: `door ${p.id}`, tile: { x: p.x, y: p.y } });
     out.push({ what: `sidewalk in front of ${p.id}`, tile: { x: p.x, y: p.y + 1 } });
   }
-  for (const n of room.npcs) out.push({ what: `interact ${n.id}`, tile: n.interact });
+  for (const t of npcSpots(room)) out.push({ what: `interact ${t.npc} ${t.slot}`, tile: t.interact });
   for (const p of room.props) if (p.interact) out.push({ what: `interact ${p.id}`, tile: p.interact });
   for (const s of seatTiles(room)) out.push({ what: `seat ${s.prop.id}@${s.x},${s.y}`, tile: { x: s.x, y: s.y } });
   return out;
@@ -86,6 +97,7 @@ describe('Vila Ipê (room id praca)', () => {
       }
     }
     for (const n of praca.npcs) expect(owner.has(key(n.x, n.y)), `${n.id} stands on a prop`).toBe(false);
+    for (const t of npcSpots(praca)) expect(owner.has(key(t.tile.x, t.tile.y)), `${t.npc} (slot ${t.slot}) stands on a prop`).toBe(false);
   });
 
   it('every prop that needs art says which sprite (fachada, cerca, sebe)', () => {

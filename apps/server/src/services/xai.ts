@@ -127,6 +127,7 @@ export async function conversaTurn(req: ConversaTurnRequest): Promise<ConversaTu
       nameplate: req.nameplate,
     },
     req.memory,
+    cast.persona,
   );
 
   const messages: XaiMessage[] = [{ role: 'system', content: systemPrompt }];

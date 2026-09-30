@@ -150,11 +150,11 @@ Authoring rules that keep every recado finishable today:
 - **min_bond:** 10
 - **title_pt:** Água pra academia
 - **title_en:** Water for the gym
-- **ask_pt:** Ei! Você vai na academia? Leva uma água! Quem treina tem que beber água.
-- **ask_en:** Hey! Are you going to the gym? Take a water! People who work out need to drink water.
+- **ask_pt:** Ei! Você vai na academia? Leva uma água pra Professora Bia! Quem treina tem que beber água.
+- **ask_en:** Hey! Are you going to the gym? Take a water to Professora Bia! People who work out need to drink water.
 - **thanks_pt:** Isso aí! Água é vida. Valeu!
 - **thanks_en:** That’s it! Water is life. Thanks!
-- **steps:** pedir carlos agua 1; ir academia
+- **steps:** pedir carlos agua 1; ir academia; entregar prof agua 1
 - **reward:** 11 RV; 4 bond
 - **cards:** lex.padaria.agua; lex.padaria.me_ve; lex.padaria.por_favor
 - **needs_br:** true
