@@ -11,6 +11,15 @@ import Phaser from 'phaser';
 import { rgbToInt } from './lighting';
 import { hourLook, type SceneLook } from './dayNight';
 
+/** A light colour pulled toward white by `1 - k`: the multiply tint of an amber pool on the night grade. */
+export function warmPool(color: number, k: number): number {
+  const ch = (shift: number) => {
+    const c = (color >> shift) & 255;
+    return Math.round(255 + (c - 255) * k);
+  };
+  return (ch(16) << 16) | (ch(8) << 8) | ch(0);
+}
+
 export interface Light {
   x: number; // world px
   y: number;
@@ -134,6 +143,11 @@ export class LightingRig {
       if (s > 0.001) {
         // erase: the grade is mostly lifted inside the light, the darkness fully
         this.grade.stamp(this.glowKey, undefined, sx, sy, { scaleX: px, scaleY: px * l.squash, alpha: Math.min(1, s * 0.9), erase: true });
+        // the lifted ground would read as neutral lavender-white next to the additive glow: re-tint it amber (a multiply by a warm colour)
+        if (l.kind !== 'player' && dark > 0.05) {
+          const warm = warmPool(l.color, 0.9);
+          this.grade.stamp(this.glowKey, undefined, sx, sy, { scaleX: px * 0.92, scaleY: px * 0.92 * l.squash, alpha: Math.min(1, s * 0.85 * Math.min(1, dark / 0.15)), tint: warm });
+        }
         if (dark > 0.001) this.dark.stamp(this.glowKey, undefined, sx, sy, { scaleX: px, scaleY: px * l.squash, alpha: Math.min(1, s * 1.05), erase: true });
       }
       const glowAlpha = l.glow ?? (l.kind === 'window' ? 0.3 : l.kind === 'stall' ? 0.3 : l.kind === 'player' ? 0.22 : l.kind === 'car' ? 0.3 : 0.42);

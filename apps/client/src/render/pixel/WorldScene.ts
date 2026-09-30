@@ -587,7 +587,7 @@ export class WorldScene extends Phaser.Scene {
     const delay = lightDelay(bx, by);
     this.rig.lights.push({ x: bx + L.x, y: by + L.y, r: L.r * 0.55, color, squash: 1, kind: 'lamp', glow: 0.6, delay });
     // the pool of light lands on the ground around the base
-    this.rig.lights.push({ x: bx + 5, y: by - 2, r: L.r * 1.3, color, squash: 0.55, kind: 'lamp', glow: 0.55, delay });
+    this.rig.lights.push({ x: bx + 5, y: by - 2, r: L.r * 1.3, color, squash: 0.55, kind: 'lamp', glow: 0.4, delay });
   }
 
   /** The look of an avatar: a neighbour wears its own style (portrait match), everyone else their appearance. */

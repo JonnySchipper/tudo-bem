@@ -129,6 +129,12 @@ export class WeatherFx {
   private vis = 0;
   private tint = -1;
   private ripplePuddleAt = 0;
+  /** walkable ground tiles of the current room (rain only splashes there) and the building bands the streaks fade behind (world px) */
+  private ground: Uint8Array | null = null;
+  private cols = 0;
+  private rows = 0;
+  private bandTop = 0;
+  private bandBottom = Infinity;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -173,6 +179,7 @@ export class WeatherFx {
       const ch = def.floor[y]?.[x];
       return (ch === 'c' || ch === 'a') && !blocked(x, y);
     };
+    this.buildGround(def, blocked);
     const cand: { h: number; x: number; y: number }[] = [];
     for (let y = 0; y < def.rows; y++)
       for (let x = 0; x < def.cols; x++) {
@@ -199,11 +206,55 @@ export class WeatherFx {
     }
   }
 
+  /** Ground mask (floor is paving, asphalt, grass or bricks and nothing blocks it) and the rows of buildings at the top and bottom of the map. */
+  private buildGround(def: RoomDef, blocked: (x: number, y: number) => boolean): void {
+    this.cols = def.cols;
+    this.rows = def.rows;
+    this.ground = new Uint8Array(def.cols * def.rows);
+    const rowOpen: number[] = [];
+    for (let y = 0; y < def.rows; y++) {
+      let open = 0;
+      for (let x = 0; x < def.cols; x++) {
+        const ch = def.floor[y]?.[x];
+        const g = (ch === 'c' || ch === 'a' || ch === 'g' || ch === 't') && !blocked(x, y);
+        this.ground[y * def.cols + x] = g ? 1 : 0;
+        if (g) open++;
+      }
+      rowOpen.push(open / def.cols);
+    }
+    // a building row is a row with under 40% open ground; the bands are the solid runs at the very top and bottom
+    let top = 0;
+    while (top < def.rows && rowOpen[top] < 0.4) top++;
+    let bottom = def.rows;
+    while (bottom > 0 && rowOpen[bottom - 1] < 0.4) bottom--;
+    this.bandTop = top * T;
+    this.bandBottom = bottom >= def.rows ? Infinity : bottom * T;
+  }
+
+  /** True when world px (wx, wy) is on walkable ground. */
+  private onGround(wx: number, wy: number): boolean {
+    if (!this.ground) return true;
+    const tx = Math.floor(wx / T);
+    const ty = Math.floor(wy / T);
+    if (tx < 0 || ty < 0 || tx >= this.cols || ty >= this.rows) return false;
+    return this.ground[ty * this.cols + tx] === 1;
+  }
+
+  /** 0..1: streaks fade out behind the building fronts (the rows above bandTop and below bandBottom, and the sky margin above the map). */
+  private streakFade(wy: number): number {
+    const a = Math.min(1, Math.max(0, (wy - (this.bandTop - 14)) / 22));
+    const b = Math.min(1, Math.max(0, (this.bandBottom + 6 - wy) / 22));
+    return Math.min(a, b);
+  }
+
   clearRoom(): void {
     for (const p of this.puddles) p.img.destroy();
     for (const r of this.ripples) r.img.destroy();
     this.puddles = [];
     this.ripples = [];
+    this.ground = null;
+    this.bandTop = 0;
+    this.bandBottom = Infinity;
   }
 
   /** for tests and shots */
@@ -247,6 +298,7 @@ export class WeatherFx {
     this.tint = color;
     const speed = plan.speed;
     const heavy = f.params.rain > 0.7;
+    const view = f.cam.worldView;
     for (let i = 0; i < this.drops.length; i++) {
       const d = this.drops[i];
       if (i >= plan.drops) {
@@ -258,7 +310,7 @@ export class WeatherFx {
       d.x += WIND * d.k * speed * z * (d.far ? 0.73 : 1) * f.dt;
       const limit = heavy ? d.landY : f.h + 8 * z;
       if (d.y >= limit) {
-        if (heavy && plan.splashes > 0 && !d.far) this.spawnSplash(d.x, d.y, z);
+        if (heavy && plan.splashes > 0 && !d.far && this.onGround(view.x + d.x / z, view.y + d.y / z)) this.spawnSplash(d.x, d.y, z);
         d.y = -8 * z - Math.random() * 40 * z;
         d.x = Math.random() * (f.w + 120 * z);
         d.landY = f.h * (0.32 + Math.random() * 0.66);
@@ -267,7 +319,7 @@ export class WeatherFx {
       d.img
         .setPosition(Math.round(d.x), Math.round(d.y))
         .setScale(z)
-        .setAlpha((d.far ? 0.34 : 0.6) * Math.min(1, this.vis * 1.2) * (1 - 0.4 * f.night))
+        .setAlpha((d.far ? 0.34 : 0.6) * Math.min(1, this.vis * 1.2) * (1 - 0.4 * f.night) * this.streakFade(view.y + d.y / z))
         .setVisible(true);
       if (recolor) d.img.setTint(color);
     }
