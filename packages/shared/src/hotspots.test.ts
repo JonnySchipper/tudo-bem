@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HOTSPOTS, HOTSPOT_READ_RANGE, hotspotBox, hotspotDistance, hotspotTitle, hotspotsInRoom, hotspotsNear, readSpot, type HotspotDef } from './hotspots.js';
+import { HOTSPOTS, HOTSPOT_READ_RANGE, hotspotBox, hotspotCueSpot, hotspotDistance, hotspotTitle, hotspotsInRoom, hotspotsNear, readSpot, type HotspotDef } from './hotspots.js';
 import { buildGrid, isWalkable, ROOMS, ROOM_IDS, propTiles } from './rooms.js';
 import { findPath } from './path.js';
 import { cardById } from './cards.js';
@@ -111,6 +111,13 @@ describe('hotspot helpers', () => {
     // blocked ground: only the far side is walkable
     expect(readSpot(sign, { x: 11, y: 5 }, (_x, y) => y >= 13)).toEqual({ x: 11, y: 13 });
     expect(readSpot(sign, { x: 0, y: 0 }, () => false)).toBeNull();
+  });
+
+  it('the 👁 cue floats over the middle of the top edge of the click box', () => {
+    expect(hotspotCueSpot({ x: 20, y: 4, w: 3, h: 2 })).toEqual({ x: 21, y: 4 });
+    expect(hotspotCueSpot({ x: 15, y: 1, w: 4, h: 3 })).toEqual({ x: 16.5, y: 1 });
+    expect(hotspotCueSpot({ x: 8, y: 0, w: 2, h: 1, up: 2 })).toEqual({ x: 8.5, y: -2 });
+    expect(hotspotCueSpot({ x: 3, y: 4 })).toEqual({ x: 3, y: 4 });
   });
 
   it('hotspotTitle is the first line', () => {

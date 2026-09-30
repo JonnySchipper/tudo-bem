@@ -140,6 +140,12 @@ export function hotspotBox(h: Pick<HotspotDef, 'x' | 'y' | 'w' | 'h' | 'up'>): {
   return { x0: h.x, y0: h.y - Math.max(0, h.up ?? 0), x1: h.x + w, y1: h.y + hh };
 }
 
+/** Where the 👁 cue floats: the middle of the top edge of the click box, in tile units (a fractional x for an even width). */
+export function hotspotCueSpot(h: Pick<HotspotDef, 'x' | 'y' | 'w' | 'h' | 'up'>): { x: number; y: number } {
+  const b = hotspotBox(h);
+  return { x: (b.x0 + b.x1 - 1) / 2, y: b.y0 };
+}
+
 /**
  * The tile to walk to before reading: among the tiles `walkable` accepts (and within `range` of the footprint), the one nearest to `from`
  * (Chebyshev, then straight-line, then the smaller distance to the sign). Null when none is close enough.

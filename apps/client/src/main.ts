@@ -2,6 +2,7 @@ import './styles.css';
 import './styles/intro.css';
 import './styles/pixel-ui.css';
 import './styles/clock.css';
+import './styles/dialogue.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
@@ -12,9 +13,16 @@ import {
   buildGrid,
   furnitureById,
   hatById,
+  HOTSPOT_READ_RANGE,
+  HOTSPOTS,
+  hotspotById,
+  hotspotDistance,
+  hotspotTitle,
   isCpuId,
   isWalkable,
+  readSpot,
   type EmoteKind,
+  type HotspotDef,
   type NpcDef,
   type NpcId,
   type PropDef,
@@ -48,6 +56,12 @@ import {
 } from './ui/panels';
 import { openPedido, updatePedido, closePedido, isPedidoOpen } from './ui/pedido';
 import { openCredits } from './ui/credits';
+import { isDialogueBoxOpen, setDialogueHost } from './ui/dialogue';
+import { openNpcTalk } from './ui/npcTalk';
+import { openCaderno } from './ui/caderno';
+import { openHotspotCard } from './ui/hotspotCard';
+import { HotspotCues } from './ui/hotspotCue';
+import { setHeardSink } from './ui/heard';
 import { closeConversa, isConversaOpen, openConversa } from './ui/conversa';
 import { RollUI, closeRoll } from './ui/roll';
 import { speak, stopSpeaking, unlockSpeech } from './audio';
@@ -175,7 +189,10 @@ function runPending() {
   if (!p) return;
   if (p.kind === 'portal') net.send({ t: 'portal', portalId: p.portalId });
   else if (p.kind === 'npc') talkTo(p.npc);
-  else propAction(p.action);
+  else if (p.kind === 'hotspot') {
+    const hs = hotspotById(p.hotspotId);
+    if (hs) readHotspot(hs);
+  } else propAction(p.action);
 }
 
 function talkTo(npc: NpcDef['id']) {
@@ -185,8 +202,30 @@ function talkTo(npc: NpcDef['id']) {
     void openConversa('carlos', undefined, {
       onQuickOrder: () => net.send({ t: 'scene', action: 'start', npc: 'carlos' }),
     });
-  } else if (npc === 'nanda') openShop();
-  else showJulia();
+  } else {
+    // Nanda and Júlia: a short greeting in the dialogue box (Nanda offers "Ver chapéus", Júlia her help); the server hears about it for the recados
+    closeDialogue();
+    openNpcTalk(npc, { talked: (id) => net.send({ t: 'talk', npc: id }), openShop });
+  }
+}
+
+/** Open the sign's card and tell the server (`read`: the words count as seen, a recado's `ler` step advances). */
+function readHotspot(hs: HotspotDef) {
+  closeDialogue();
+  openHotspotCard(hs, { onSave: (cards) => openCaderno(cards[0]?.split('.')[1], cards) });
+  net.send({ t: 'read', hotspotId: hs.id });
+}
+
+/** A click on a sign: read it from here when it is within 3 tiles, else walk to the nearest spot that is. */
+function clickHotspot(hs: HotspotDef) {
+  const cur = selfTile();
+  const room = game.roomDef;
+  if (!cur || !room) return;
+  if (!cur.moving && hotspotDistance(hs, cur.tile) <= HOTSPOT_READ_RANGE) return readHotspot(hs);
+  const grid = buildGrid(room, game.furniture);
+  const spot = readSpot(hs, cur.tile, (x, y) => isWalkable(grid, x, y));
+  if (!spot) return toast('info', 'Não consigo chegar perto disso.', 'I can’t get close to that.');
+  walkTo(spot, { kind: 'hotspot', hotspotId: hs.id, tile: spot });
 }
 
 function propAction(action: string) {
@@ -552,6 +591,7 @@ function startGame() {
     stand: () => net.send({ t: 'stand' }),
     openMap: () => openMap((room) => joinRoom(room)),
     openCredits,
+    openCaderno: () => openCaderno(),
     openFriends: () =>
       openFriends({
         request: (id) => net.send({ t: 'friend', action: 'request', targetId: id }),
@@ -636,6 +676,10 @@ function hitLabel(hit: Hit | null): [string, string] | null {
       return [hit.npc.name, `${hit.npc.role.en} — click to talk`];
     case 'prop':
       return hit.prop.label ? [hit.prop.label.pt, hit.prop.label.en] : null;
+    case 'hotspot': {
+      const t = hotspotTitle(hit.hotspot);
+      return [t.pt, `${t.en} — click to read`];
+    }
     case 'portal':
       return [hit.portal.label.pt, hit.portal.label.en];
     case 'avatar': {
@@ -709,6 +753,9 @@ function handleClickInner(hit: Hit | null) {
       if (p.action && p.interact) walkTo(p.interact, { kind: 'prop', action: p.action, tile: p.interact });
       break;
     }
+    case 'hotspot':
+      clickHotspot(hit.hotspot);
+      break;
     case 'portal':
       walkTo({ x: hit.portal.x, y: hit.portal.y }, { kind: 'portal', portalId: hit.portal.id, tile: { x: hit.portal.x, y: hit.portal.y } });
       break;
@@ -724,7 +771,7 @@ function handleClickInner(hit: Hit | null) {
 }
 
 /** Target of the `window.__tb.interact` test hook: something in the current room, by id. */
-type InteractTarget = { npc: NpcId } | { prop: string } | { portal: string };
+type InteractTarget = { npc: NpcId } | { prop: string } | { portal: string } | { hotspot: string };
 
 /** Resolve a target in `ROOMS[game.room.room]` and feed the matching Hit through `handleClick`. Returns false if not found. */
 function interact(target: InteractTarget): boolean {
@@ -737,6 +784,9 @@ function interact(target: InteractTarget): boolean {
   } else if ('prop' in target) {
     const prop = room.props.find((p) => p.id === target.prop);
     if (prop) hit = { kind: 'prop', prop };
+  } else if ('hotspot' in target) {
+    const hotspot = HOTSPOTS.find((x) => x.id === target.hotspot && x.room === room.id);
+    if (hotspot) hit = { kind: 'hotspot', hotspot };
   } else {
     const portal = room.portals.find((p) => p.id === target.portal);
     if (portal) hit = { kind: 'portal', portal };
@@ -767,7 +817,7 @@ canvas.addEventListener('pointerleave', () => {
 canvas.addEventListener('click', (e) => {
   lastPointer.x = e.clientX;
   lastPointer.y = e.clientY;
-  if (game.modalOpen && modalId()) return;
+  if (game.modalOpen && (modalId() || isDialogueBoxOpen())) return;
   hoverLabel(0, 0, null);
   handleClick(renderer.hitTest(e.clientX, e.clientY));
 });
@@ -837,9 +887,34 @@ function keyWalk() {
 
 // ---------------------------------------------------------------- loop
 
+/** The 👁 cues over readable signs within 3 tiles (Phase 7). */
+const cues = new HotspotCues((hs) => clickHotspot(hs));
+
+// the dialogue box tells the world view to ease the camera in on the speakers; the box's height keeps them above it
+setDialogueHost({
+  open: (npcId) => {
+    const npc = npcId ? game.roomDef?.npcs.find((n) => n.id === npcId) : undefined;
+    renderer.setDialogueFocus?.({ npc: npc ? { x: npc.x, y: npc.y } : null });
+  },
+  close: () => renderer.setDialogueFocus?.(null),
+  inset: (px) => renderer.setDialogueBox?.(px),
+});
+// every 🔊 (dialogue, sign, Caderno) reports the words to the Caderno
+setHeardSink((cardIds) => net.send({ t: 'heard', cardIds }));
+
 function frame(ts: number) {
   try {
     renderer.frame(ts);
+    if (started) {
+      cues.update({
+        room: game.room?.room ?? null,
+        tile: selfTile()?.tile ?? null,
+        hidden: game.modalOpen || game.editMode || !!game.placing,
+        toClient: (x, y) => renderer.tileToClient(x, y),
+        scale: renderer.cam.scale,
+        viewport: { w: window.innerWidth, h: window.innerHeight },
+      });
+    }
     if (heldArrows.length) {
       if (keysBlocked(document.activeElement)) heldArrows.length = 0;
       else keyWalk();
