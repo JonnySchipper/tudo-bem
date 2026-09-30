@@ -16,7 +16,7 @@ import type { MgBuiltUnit, MgOrderLine, MgOutcome, Tray } from './meveum.js';
 import type { SafetyAction } from './safety.js';
 import type { NpcId } from './rooms.js';
 import type { ConversaGrade, ConversaMeter, ConversaScores, ConversaSubject } from './conversa.js';
-import type { BjjProgress, RollPuzzleView } from './academia.js';
+import type { BjjPositionId, BjjProgress, RollPuzzleView } from './academia.js';
 import type { RecadoActiveView, RecadoOfferView } from './recados.js';
 
 /** Client → server messages. JSON over a single WebSocket at /ws. */
@@ -175,6 +175,9 @@ export type RollServerMsg =
       timeMs: number;
       playerIdx: number;
       cpuIdx: number;
+      /** Mat pose to paint. Not a learner-facing label. */
+      pose: BjjPositionId;
+      /** Neutral bout step (Vantagem … Final), never a technique name. */
       positionPt: string;
       positionEn: string;
       submissionPt: string | null;
@@ -189,6 +192,7 @@ export type RollServerMsg =
       line: Bilingual;
       playerIdx: number;
       cpuIdx: number;
+      pose: BjjPositionId;
       positionPt: string;
       positionEn: string;
     }
