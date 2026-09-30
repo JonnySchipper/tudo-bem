@@ -134,6 +134,7 @@ function build(s: BoxSpec): HTMLElement[] {
     h('span', { class: 'dbx-name npc-name', style: `--tag:${npcTagColor(s.npcId)}` }, s.speaker),
     s.role ? h('small', { class: 'dbx-role' }, s.role) : null,
     s.meta ? h('small', { class: 'dbx-meta' }, s.meta) : null,
+    ...(s.notes ?? []),
     h('span', { class: 'spacer' }),
     listenText
       ? h(
@@ -211,13 +212,12 @@ function build(s: BoxSpec): HTMLElement[] {
     'div',
     { class: 'dbx-body' },
     head,
-    ...(s.notes ?? []),
     s.said ? h('div', { class: 'dbx-said you-said' }, `Você: “${s.said}”`) : null,
     s.feedback ?? null,
     line,
     s.line?.en && !s.thinking ? h('div', { class: 'dbx-en en plain' }, s.line.en) : null,
   );
-  const below = h('div', { class: 'dbx-below' }, s.extras ? h('div', { class: 'dbx-extras' }, s.extras) : null, chips.length ? h('div', { class: 'dbx-chips reply-chips' }, ...chips) : null, inputRow, s.footer ? h('div', { class: 'dbx-footer' }, s.footer) : null);
+  const below = h('div', { class: 'dbx-below' }, s.extras ? h('div', { class: 'dbx-extras' }, s.extras) : null, chips.length ? h('div', { class: 'dbx-chips reply-chips' }, ...chips) : null, inputRow || s.footer ? h('div', { class: 'dbx-actions' }, inputRow, s.footer ? h('div', { class: 'dbx-footer' }, s.footer) : null) : null);
   return [h('div', { class: 'dbx-side' }, buildPortrait(s)), main, below];
 }
 

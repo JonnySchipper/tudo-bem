@@ -1010,3 +1010,18 @@ body:has(.dbx) .joystick {
     max-height: 40vh;
   }
 }
+
+/* ---- fixes after the first review shots */
+@media (min-width: 641px) {
+  .top-right { gap: 5px; }
+  html.px-ui .top-right button { padding-left: 7px; padding-right: 7px; gap: 4px; }
+}
+.dbx-chip .num { font-family: var(--font-body); font-weight: 800; }
+.dbx-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: stretch; }
+.dbx-actions .dbx-input { flex: 1 1 260px; }
+.dbx-actions .dbx-footer, .dbx-actions .dbx-footer-row { flex: 0 0 auto; }
+.dbx-head .dbx-note { font-size: 0.7em; background: rgba(87,60,44,0.1); padding: 1px 6px; }
+.dbx-head .dbx-note .en { display: none; }
+.hotspot-card .hs-en.priced { display: flex; align-items: baseline; gap: 8px; text-align: left; }
+.hotspot-card .hs-en .lead { flex: 1; border-bottom: 2px dotted rgba(87,60,44,0.3); transform: translateY(-3px); }
+.hotspot-card .hs-en .price { font-style: normal; font-weight: 800; }
