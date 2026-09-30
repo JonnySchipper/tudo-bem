@@ -317,6 +317,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
 
     teardowns.push(ambience.onChange(renderMusic));
     teardowns.push(mountIntroAtmosphere(atmosphere, reduced));
+    teardowns.push(heroScene.mountPan(reduced));
     if (!reduced) teardowns.push(heroScene.mountParallax());
     const parrots = mountIntroParrots(root, panel, reduced, {
       band: () => skyBand,
