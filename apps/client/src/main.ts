@@ -28,7 +28,7 @@ import { clock, parseTimeOfDay } from './gameClock';
 import { IdleTalk } from './idleTalk';
 import { LocalNet } from './localNet';
 import { initPixelArt } from './ui/pixelArt';
-import type { Hit, WorldView } from './render/view';
+import type { Guide, Hit, WorldView } from './render/view';
 import { runOnboarding, closeOnboarding } from './ui/onboarding';
 import { buildHud, hoverLabel, idleKickedCard, missionBanner, overlayMessage, parrotWhisper, reconnectBanner, toast } from './ui/hud';
 import {
@@ -215,25 +215,42 @@ function joinRoom(room: RoomId, instanceId?: string, ownerId?: string) {
   net.send({ t: 'join', room, instanceId, ownerId });
 }
 
+/** Guide arrows look their target up by portal / prop / NPC id in the current room's data, never by raw coordinates (Vila Ipê moved them all). */
+function guideAt(kind: 'portal' | 'prop' | 'npc', id: string, lift: number, label: string): Guide | null {
+  const room = game.roomDef;
+  if (!room) return null;
+  if (kind === 'portal') {
+    const p = room.portals.find((q) => q.id === id);
+    return p ? { x: p.doorAt?.x ?? p.x, y: p.doorAt?.y ?? p.y, lift, label } : null;
+  }
+  if (kind === 'prop') {
+    const p = room.props.find((q) => q.id === id);
+    return p ? { x: p.x + ((p.w ?? 1) - 1) / 2, y: p.y + (p.h ?? 1) - 1, lift, label } : null;
+  }
+  const n = room.npcs.find((q) => q.id === id);
+  return n ? { x: n.x, y: n.y, lift, label } : null;
+}
+
 function updateGuides() {
   const p = game.profile;
   const r = game.room;
   renderer.guides = [];
   if (!p || !r) return;
   const t = p.tutorial;
+  const add = (g: Guide | null) => g && renderer.guides.push(g);
   if (r.room === 'praca') {
-    if (!t.carlos) renderer.guides.push({ x: 5, y: 0, lift: 110, label: 'Padaria →' });
-    else if (!t.chapeu) renderer.guides.push({ x: 11, y: 6, lift: 138, label: 'Chapéus' });
-    else if (!t.cadeira) renderer.guides.push({ x: 0, y: 4, lift: 110, label: 'Minha kitnet' });
-    if (t.meveum) renderer.guides.push({ x: 10, y: 0, lift: 110, label: 'Academia do Bairro →' });
+    if (!t.carlos) add(guideAt('portal', 'praca_padaria', 110, 'Padaria →'));
+    else if (!t.chapeu) add(guideAt('prop', 'barraca', 138, 'Chapéus'));
+    else if (!t.cadeira) add(guideAt('portal', 'praca_kitnet', 110, 'Minha kitnet'));
+    if (t.meveum) add(guideAt('portal', 'praca_academia', 110, 'Academia do Bairro →'));
   } else if (r.room === 'padaria') {
     // Click opens AI Conversa. Don't label the tile "Conversar" — that word was the chip-scene trap.
-    renderer.guides.push({ x: 3, y: 1, lift: 130, label: t.carlos ? 'Falar com Carlos' : 'Fale com o Seu Carlos' });
-    if (t.carlos && !t.meveum) renderer.guides.push({ x: 8, y: 2, lift: 128, label: 'Me vê um…' });
-    else if (t.carlos && t.meveum && !t.chapeu) renderer.guides.push({ x: 0, y: 6, lift: 110, label: '← Praça' });
+    add(guideAt('npc', 'carlos', 130, t.carlos ? 'Falar com Carlos' : 'Fale com o Seu Carlos'));
+    if (t.carlos && !t.meveum) add(guideAt('prop', 'trilho', 128, 'Me vê um…'));
+    else if (t.carlos && t.meveum && !t.chapeu) add(guideAt('portal', 'padaria_praca', 110, '← Praça'));
   } else if (r.room === 'academia') {
-    renderer.guides.push({ x: 9, y: 1, lift: 190, label: 'Fila do tatame' });
-    renderer.guides.push({ x: 0, y: 6, lift: 110, label: '← Praça' });
+    add(guideAt('prop', 'fila', 190, 'Fila do tatame'));
+    add(guideAt('portal', 'academia_praca', 110, '← Praça'));
   }
 }
 

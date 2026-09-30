@@ -181,9 +181,9 @@ async function main() {
   }
   const start = await profile(page);
   log('landed in', await room(page), 'coins', start.coins, 'plate', start.nameplate);
-  const missing = await page.evaluate(() => window.__tb.artMissing);
-  log('pixel art placeholders in the praça:', missing.length ? missing.join(', ') : 'none');
-  assert(missing.length === 0, `every sprite of the praça comes from the manifest (missing: ${missing.join(', ')})`);
+  const artGaps = await page.evaluate(() => window.__tb.artMissing);
+  log('pixel art placeholders in the praça:', artGaps.length ? artGaps.join(', ') : 'none');
+  assert(artGaps.length === 0, `every sprite of the praça comes from the manifest (missing: ${artGaps.join(', ')})`);
   assert(start.nameplate === 'verde', 'Verde nameplate');
   assert(start.appearance.top === 'camiseta' && start.appearance.bottom === 'calca' && start.appearance.shoes === 0, 'starter outfit is tee + jeans');
   assert(start.appearance.extra === 'nenhum', 'create does not pick glasses/beard/earrings');
@@ -194,7 +194,7 @@ async function main() {
   if (AMBIANCE) {
     await waitFor(page, () => [...window.__tb.game.avatars.values()].filter((a) => a.pub.cpu).length >= 4, null, 8000, 'ambiance CPUs');
     const crowd = await cpus(page);
-    assert(crowd.length >= 4 && crowd.length <= 6, `4–6 CPUs for one player (got ${crowd.length})`);
+    assert(crowd.length >= 4 && crowd.length <= 8, `4–8 CPUs for one player on the big map (got ${crowd.length})`);
     assert(crowd.every((c) => c.nameplate === 'verde' && CPU_NAMES.includes(c.name) && !/\s/.test(c.name)), 'CPU plates: Verde, allowlisted first names only');
     const head = await page.textContent('.topbar .room small');
     assert(/ 1\/16 aqui/.test(head), `head-count ignores CPUs (${head})`);
@@ -217,9 +217,9 @@ async function main() {
   await page.keyboard.press('Escape');
 
   // 2. Walk, sit on a bench, wave, chat
-  await clickTile(page, 8, 6);
-  await waitIdleAt(page, 8, 6);
-  await clickTile(page, 7, 7, 14);
+  await clickTile(page, 23, 15);
+  await waitIdleAt(page, 23, 15);
+  await clickTile(page, 21, 17, 4); // banco_1 (Vila Ipê): a real click on a bench
   await waitFor(page, () => window.__tb.game.profile?.tutorial.sentar, null, 8000, 'sat on bench');
   await page.click('[data-emote="oi"]');
   await page.fill('#chat-input', 'Oi, tudo bem? Bom dia, pessoal!');
@@ -247,7 +247,7 @@ async function main() {
     await waitFor(pageB, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'Bia back in the praça');
     assert((await profile(pageB)).id === biaId, 'login returns the same avatar');
     log('logout → wrong password → login ok');
-    await walkTo(pageB, 8, 8);
+    await walkTo(pageB, 27, 27);
     await sleep(1200);
     await pageB.fill('#chat-input', 'Oi, Jonny! Eu sou de Chicago. Vamos na padaria?');
     await pageB.press('#chat-input', 'Enter');
