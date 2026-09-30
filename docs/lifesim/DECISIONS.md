@@ -831,6 +831,10 @@ Branch `lifesim/p6b-ambient-audio-intro`. Shots in `docs/lifesim/shots/p6b/` (`n
 
 `ambientSim.test.ts`, `zones.test.ts`, `introSnapshot.test.ts` (31 new tests in all): determinism, lane directions, no overlap, night gate, bus schedule and stop, queue behind the bus, dog hours and walkable wandering, pigeon scare radius, flight and return, cloud gating, zone gains by position, hour and weather, footsteps per terrain, pitch, step clock, snapshot plan, zoom, pan, no void.
 
+### Performance (`__tb.perf`, headless Chrome / SwiftShader on a shared, busy box, 1280 x 800, full effects pinned on)
+
+Busiest scene, 19:30 chuva with traffic, bus, headlights and the CPU crowd: 49 fps, avg 20.4 ms, p90 30.8 ms, 236 particles (rain 188 drops + 31 splashes + 5 ripples, ambient 12). Sunny noon with the bus, clouds, 8 butterflies and petals: 92 fps, p90 18.6 ms, 26 particles. Without the pin the governor trips to low-fx on this box under load (p90 over 25 ms), as designed.
+
 ### Known weaknesses
 
 The pigeons' flap is a sprite flip; vehicles fade at the map edge instead of driving out of a real opening; the audio has not been heard by a human in this track (no speakers here), so levels are educated guesses from the synthesis code and need an ear; the title screen is a still map with petals and parrots (no moving cars or people in it); the headless box trips the low-fx fallback under load, so the shots script pins it off.
