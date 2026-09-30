@@ -537,22 +537,32 @@ export function cloudShadowAlpha(sun: number, dark: number): number {
 /** Cloud shadow drift, px per second. */
 export const CLOUD_SPEED = 6;
 
+/** Regions of fx/cloud_shadow.png (512x256) that hold one blob each: [x, y, w, h]. */
+export const CLOUD_CROPS: readonly [number, number, number, number][] = [
+  [150, 0, 120, 92],
+  [14, 146, 214, 110],
+  [206, 196, 140, 60],
+  [268, 14, 150, 128],
+  [60, 0, 60, 50],
+];
+
 export interface CloudBlob {
+  /** index into CLOUD_CROPS */
+  crop: number;
+  /** world px of the crop's top-left corner */
   x: number;
   y: number;
-  scale: number;
-  flip: boolean;
 }
 
-/** `count` (3-5) blobs of size 512x256 * scale drifting east at 6 px/s and wrapping around a map of w x h px. */
+/** Up to 5 blobs (3-5 in use) drifting east at 6 px/s, wrapping around a map of w x h px. */
 export function cloudBlobs(count: number, tSec: number, w: number, h: number): CloudBlob[] {
   const out: CloudBlob[] = [];
-  const span = w + 640;
-  for (let i = 0; i < count; i++) {
-    const scale = unit(i, 3, 31) < 0.5 ? 1 : 2;
-    const y = (unit(i, 3, 32) * 0.9 + 0.05) * h - 128 * scale;
-    const x = ((unit(i, 3, 33) * span + tSec * CLOUD_SPEED) % span) - 320 - 256 * scale;
-    out.push({ x, y, scale, flip: unit(i, 3, 34) < 0.5 });
+  const span = w + 480;
+  for (let i = 0; i < Math.min(count, CLOUD_CROPS.length); i++) {
+    const c = CLOUD_CROPS[i];
+    const y = (0.08 + 0.84 * unit(i, 3, 32)) * h - c[3] / 2;
+    const x = ((unit(i, 3, 33) * span + tSec * CLOUD_SPEED) % span) - 240 - c[2] / 2;
+    out.push({ crop: i, x, y });
   }
   return out;
 }
