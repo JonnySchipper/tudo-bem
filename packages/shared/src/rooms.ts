@@ -200,6 +200,18 @@ const P = (id: string, kind: PropKind, x: number, y: number, extra: Partial<Prop
 const bench = (id: string, x: number, y: number): PropDef => P(id, 'banco', x, y, { w: 2, blocks: false, seat: 'SW' });
 /** Scenery with its own sprite (`art`): w x h footprint, non-blocking unless `blocks` is set (it usually sits inside something that already blocks). */
 const cen = (id: string, art: string, x: number, y: number, w = 1, h = 1, extra: Partial<PropDef> = {}): PropDef => P(id, 'cenario', x, y, { w, h, art, blocks: false, ...extra });
+/** What closes the map at its west and east edges (no open void): a barricade across each street, a hedge across each sidewalk, a fence along the west lawns. */
+function vilaIpeEdges(): PropDef[] {
+  const out: PropDef[] = [];
+  for (const [side, x] of [['o', 0], ['l', 54]] as const) {
+    for (const y of [8, 32]) out.push(P(`barreira_${side}_${y}`, 'cerca', x, y, { w: 2, h: 4, art: 'cerca_rua' }));
+    for (const y of [6, 7, 12, 13, 30, 31]) out.push(P(`sebe_${side}_${y}`, 'sebe', x, y, { w: 2, art: 'props/hedge_wide' }));
+  }
+  out.push(P('cerca_borda_1', 'cerca', 0, 14, { w: 1, h: 6, art: 'cerca_jardim' }));
+  out.push(P('cerca_borda_2', 'cerca', 0, 24, { w: 1, h: 6, art: 'cerca_jardim' }));
+  return out;
+}
+
 /** A building front: `w` x `h` footprint, bottom-centre anchored (x, y is the top-left tile). */
 const front = (id: string, art: string, x: number, y: number, w: number, h: number, label?: Bilingual): PropDef => P(id, 'fachada', x, y, { w, h, art, label });
 
@@ -334,8 +346,6 @@ const vilaIpe: RoomDef = {
     cen('jardim_2', 'props/flor_vermelha', 5, 22, 2, 1),
     cen('jardim_3', 'props/pot_teal', 4, 21),
     cen('jardim_bici', 'props/bicicletario', 6, 21),
-    P('sebe_o1', 'sebe', 0, 15, { w: 2, art: 'props/hedge_wide' }),
-    P('sebe_o2', 'sebe', 0, 18, { w: 2, art: 'props/hedge_wide' }),
     P('flor_o1', 'sebe', 8, 14, { w: 2, art: 'props/flor_mista' }),
     P('ipe_oeste', 'ipe', 3, 27),
     P('ipe_oeste_2', 'ipe', 8, 24),
@@ -343,7 +353,7 @@ const vilaIpe: RoomDef = {
     P('hidrante', 'sebe', 6, 28, { art: 'props/hidrante' }),
     P('caixa_correio', 'sebe', 8, 28, { art: 'props/caixa_correio' }),
     P('lixeira_o', 'lixeira', 7, 26),
-    P('flor_o2', 'sebe', 0, 28, { w: 2, art: 'props/flor_rosa' }),
+    P('flor_o2', 'sebe', 1, 28, { w: 2, art: 'props/flor_rosa' }),
     bench('banco_oeste', 1, 25),
     // ---- east: the fenced lot of the future feira, with its closed stalls, crates and the banner
     P('cerca_leste', 'cerca', 41, 14, { w: 15, h: 16, art: 'cerca_feira' }),
@@ -366,6 +376,8 @@ const vilaIpe: RoomDef = {
     P('ipe_lote_1', 'ipe', 54, 16, { blocks: false }),
     P('ipe_lote_2', 'ipe', 42, 28, { blocks: false }),
     cen('flor_lote', 'props/flor_mista_b', 46, 28, 3, 1),
+    // ---- the map edges: streets end in barricades, sidewalks in hedges, the west lawns and the lot behind fences
+    ...vilaIpeEdges(),
     // ---- south: the roofs across Rua Jacarandá (blocked)
     front('telhado_1', 'telhados/terraco_a', 0, 36, 6, 4),
     front('telhado_2', 'telhados/terraco_b', 6, 36, 6, 4),

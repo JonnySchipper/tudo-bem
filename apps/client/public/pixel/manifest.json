@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 512,
    "h": 2048,
-   "frames": 410
+   "frames": 414
   }
  },
  "terrain": {
@@ -4146,6 +4146,36 @@
    "overhead": null,
    "shadow": null
   },
+  "telhados/terraco_e": {
+   "atlas": "outdoor",
+   "frame": "telhados/terraco_e",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "telhados/terraco_f": {
+   "atlas": "outdoor",
+   "frame": "telhados/terraco_f",
+   "w": 112,
+   "h": 64,
+   "ax": 56,
+   "ay": 63,
+   "footprint": [
+    7,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
   "casas/empena": {
    "atlas": "outdoor",
    "frame": "casas/empena",
@@ -4686,6 +4716,28 @@
    "anim": null,
    "overhead": null,
    "shadow": null
+  },
+  "props/barreira": {
+   "atlas": "outdoor",
+   "frame": "props/barreira",
+   "w": 30,
+   "h": 15,
+   "ax": 15,
+   "ay": 15,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_32",
+   "cast": {
+    "frame": "props/barreira#cast",
+    "w": 40,
+    "h": 7,
+    "ax": 15,
+    "ay": 1
+   }
   },
   "fx/shadow_10": {
    "atlas": "outdoor",

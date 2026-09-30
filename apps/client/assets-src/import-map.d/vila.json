@@ -26,7 +26,8 @@
     "s_f3mr": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_3_Middle_Right_16x16.png",
     "s_f3bl": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_3_Bottom_Left_16x16.png",
     "s_f3bm": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_3_Bottom_Middle_16x16.png",
-    "s_f3br": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_3_Bottom_Right_16x16.png"
+    "s_f3br": "ext:ME_Theme_Sorter_16x16/24_Additional_Houses_Singles_16x16/24_Additional_Houses_Fence_3_Bottom_Right_16x16.png",
+    "s_barr": "ext:ME_Theme_Sorter_16x16/3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Traffic_Barrier_2.png"
   },
   "sprites": [
     {
@@ -594,6 +595,27 @@
         2
       ],
       "shadow": null
+    },
+    {
+      "key": "props/barreira",
+      "sheet": "s_barr",
+      "rect": [
+        0,
+        0,
+        32,
+        16
+      ],
+      "trim": true,
+      "foot": 0,
+      "footprint": [
+        2,
+        1
+      ],
+      "shadow": "fx/shadow_32",
+      "cast": {
+        "kx": 0.5,
+        "ky": 0.25
+      }
     }
   ]
 }

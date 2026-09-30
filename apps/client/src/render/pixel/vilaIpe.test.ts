@@ -21,7 +21,7 @@ function propRects(p: PropDef): Rect[] {
     if (d) out.push(spriteRect(Math.round(wx), Math.round(wy), d));
   };
   if (p.kind === 'cerca') {
-    for (const f of fencePieces(p)) add(f.key, (f.x + 0.5) * T, (f.y + 1) * T);
+    for (const f of fencePieces(p)) add(f.key, (f.x + (f.w ?? 1) / 2) * T, (f.y + 1) * T);
     return out;
   }
   const slices = propSlices(p);

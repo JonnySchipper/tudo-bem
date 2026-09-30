@@ -5,8 +5,8 @@
 // cornices and rooftop terraces (AC units, satellite dishes) cut to the 6-tile height of the street facades. The pack draws every house in
 // one dark taupe + beige colourway, so the wall and trim ramps are swapped for paulista pastels (salmon, mustard, sky, sage, lilac).
 // The bus stop, the banner and the mural on the party wall are authored here in the pack palette (navy outline, light from the upper left).
-import { blank, clone, crop, paste, swap, rect, hline, vline, dot, box, C, K, outlineAround, px, setPx, hexPx } from './kit.mjs';
-import { hexToRgb, luma } from '../../../../scripts/lib/pixel/img.mjs';
+import { blank, clone, crop, paste, swap, stretchCols, rect, hline, vline, dot, box, C, K, outlineAround, px, setPx, hexPx } from './kit.mjs';
+import { flipH, hexToRgb, luma } from '../../../../scripts/lib/pixel/img.mjs';
 import { findGlass } from './shop.mjs';
 import { litOverlay, stackRows } from './facades.mjs';
 import { drawText5, width5 } from './font5.mjs';
@@ -77,12 +77,19 @@ function houseFront(src, kind) {
   return crop(src.T, 0, 278 - 96, 112, 96); // ground floor with the door + one floor + cornice
 }
 
-/** Roofs across Rua Jacarandá (4 rows tall): the terrace part of the pack houses, seen from the north. */
-function roof(src, kind) {
-  if (kind === 'B') return crop(src.B, 0, 0, 96, 64);
-  if (kind === 'A') return crop(src.A, 0, 0, 96, 64);
-  if (kind === 'T6') return crop(src.T, 0, 0, 96, 64);
-  return crop(src.T, 0, 0, 112, 64);
+/**
+ * Roofs across Rua Jacarandá (4 rows tall): the flat terrace of the pack's one-floor townhouse (the AC unit stays, the satellite dishes of the
+ * taller ones would be cut by the crop), 96 px wide or stretched to 112 for the 7-tile slots, optionally mirrored. Only the rim takes the
+ * colourway; the deck floor and its cracks keep the pack's taupe.
+ */
+function roof(src, tiles, mirror, cw) {
+  let base = crop(src.B, 0, 0, 96, 64);
+  if (tiles === 7) base = stretchCols(base, 40, 56, 112);
+  if (mirror) base = flipH(base);
+  const out = dress(base, cw);
+  const ix = 7, iy = 9, iw = base.w - 14, ih = base.h - 21;
+  paste(out, crop(base, ix, iy, iw, ih), ix, iy);
+  return out;
 }
 
 const HOUSES = [
@@ -93,10 +100,12 @@ const HOUSES = [
   ['casas/sobrado_verde', 'T', 'verde', 7],
 ];
 const ROOFS = [
-  ['telhados/terraco_a', 'B', 'amarelo', 6],
-  ['telhados/terraco_b', 'A', 'salmao', 6],
-  ['telhados/terraco_c', 'T6', 'azul', 6],
-  ['telhados/terraco_d', 'T', 'verde', 7],
+  ['telhados/terraco_a', false, 'amarelo', 6],
+  ['telhados/terraco_b', true, 'salmao', 6],
+  ['telhados/terraco_c', false, 'azul', 6],
+  ['telhados/terraco_d', false, 'verde', 7],
+  ['telhados/terraco_e', true, 'lilas', 6],
+  ['telhados/terraco_f', true, 'salmao', 7],
 ];
 
 // ------------------------------------------------------------------ party wall with a painted mural (behind the banca)
@@ -231,9 +240,8 @@ export async function casas(ctx) {
     parts.push({ key, img: body, anchor: [Math.floor(w / 2), body.h - 1], meta: { footprint: [tiles, 6], shadow: null, cast: CAST, windows: glass, lit: `${key}_lit` } });
     parts.push({ key: `${key}_lit`, img: lit, anchor: [Math.floor(w / 2), body.h - 1], meta: { footprint: [tiles, 6], shadow: null } });
   }
-  for (const [key, kind, cwName, tiles] of ROOFS) {
-    const body = dress(roof(src, kind), COLORWAYS[cwName]);
-    outlineAround(body);
+  for (const [key, mirror, cwName, tiles] of ROOFS) {
+    const body = roof(src, tiles, mirror, COLORWAYS[cwName]);
     parts.push({ key, img: body, anchor: [Math.floor(body.w / 2), body.h - 1], meta: { footprint: [tiles, 4], shadow: null } });
   }
   parts.push({ key: 'casas/empena', img: empena(), anchor: [24, 95], meta: { footprint: [3, 6], shadow: null, cast: CAST } });

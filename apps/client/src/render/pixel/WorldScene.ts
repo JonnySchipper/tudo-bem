@@ -23,7 +23,7 @@ import { lookForAppearance, lookForNpc, lookHeadLift, type Look } from './looks'
 import { LightingRig } from './lightingRig';
 import { buildTerrainLayers } from './terrainLayers';
 import { LabelLayer, type GuideItem, type StackItem } from './labels';
-import { T, cssZoomFor, feet, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
+import { OUTDOOR_NORTH, T, cssZoomFor, feet, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
 import { pickHit, type HitBox } from './hit';
 import { roomKey, syncViews } from './reconcile';
 import { DEPTH, PROP_LIGHT, fencePieces, footprintRect, inflate, propAnchor, propDepth, furnitureArtKey, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
@@ -487,7 +487,7 @@ export class WorldScene extends Phaser.Scene {
         this.noteMissing(piece.key);
         continue;
       }
-      this.sprite(piece.key, (piece.x + 0.5) * T, (piece.y + 1) * T, standingDepth((piece.y + 1) * T, `${p.id}:${piece.x},${piece.y}`), false);
+      this.sprite(piece.key, (piece.x + (piece.w ?? 1) / 2) * T, (piece.y + 1) * T, standingDepth((piece.y + 1) * T, `${p.id}:${piece.x},${piece.y}`), false);
     }
   }
 
@@ -598,7 +598,7 @@ export class WorldScene extends Phaser.Scene {
     const k = this.cam.dpr;
     const dpr = Math.min(window.devicePixelRatio || 1, 3);
     // the whole room (walls included) when it fits at this or the next lower integer zoom, else follow the avatar with the north wall kept in view
-    let f = roomFraming({ w: this.cam.w, h: this.cam.h }, this.bounds, focus, { top: ins.top * k, bottom: ins.bottom * k, left: ins.left * k, right: ins.right * k }, cssZoomFor(window.innerWidth, window.innerHeight), dpr, !def.outdoor);
+    let f = roomFraming({ w: this.cam.w, h: this.cam.h }, this.bounds, focus, { top: ins.top * k, bottom: ins.bottom * k, left: ins.left * k, right: ins.right * k }, cssZoomFor(window.innerWidth, window.innerHeight), dpr, def.outdoor ? OUTDOOR_NORTH : undefined);
     if (this.host.shot === 'map' && def.outdoor) {
       // debug `?shot=map`: the whole map in one frame, at the biggest integer zoom that fits (1x on a 1280 x 800 window), centred, no follow
       const zoom = Math.max(1, Math.floor(Math.min(this.cam.w / (def.cols * T), this.cam.h / (def.rows * T))));

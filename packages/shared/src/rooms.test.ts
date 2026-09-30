@@ -139,13 +139,10 @@ describe('Vila Ipê (room id praca)', () => {
     for (const a of doors) for (const b of doors) expect(findPath(grid, a, b), `${key(a.x, a.y)} -> ${key(b.x, b.y)}`).not.toBeNull();
   });
 
-  it('never opens onto void: only streets and sidewalks run off the map edge, everything else at the border is blocked', () => {
+  it('never opens onto void: every tile on the map border is blocked (buildings, barricades, hedges, fences)', () => {
     const grid = buildGrid(praca);
-    const streetRows = new Set([6, 7, 8, 9, 10, 11, 12, 13, 30, 31, 32, 33, 34, 35]);
-    for (let x = 0; x < praca.cols; x++)
-      for (const y of [0, praca.rows - 1]) expect(isWalkable(grid, x, y), `top/bottom edge ${x},${y}`).toBe(false);
-    for (let y = 0; y < praca.rows; y++)
-      for (const x of [0, praca.cols - 1]) if (isWalkable(grid, x, y)) expect(streetRows.has(y) || (x === 0 && y >= 14 && y <= 29), `open edge ${x},${y}`).toBe(true);
+    for (let x = 0; x < praca.cols; x++) for (const y of [0, praca.rows - 1]) expect(isWalkable(grid, x, y), `top/bottom edge ${x},${y}`).toBe(false);
+    for (let y = 0; y < praca.rows; y++) for (const x of [0, praca.cols - 1]) expect(isWalkable(grid, x, y), `west/east edge ${x},${y}`).toBe(false);
   });
 });
 

@@ -44,7 +44,7 @@ const STREETS = [
 const CROSSWALKS: { x: number; y: number }[] = [
   { x: 15, y: 8 },
   { x: 24, y: 8 },
-  { x: 37, y: 8 },
+  { x: 40, y: 8 },
   { x: 12, y: 32 },
   { x: 24, y: 32 },
   { x: 38, y: 32 },
@@ -86,7 +86,7 @@ export function sceneryFor(def: RoomDef, has: (key: string) => boolean = () => t
     for (let x = 4; x < def.cols * T - 10; x += 32) if (!walked(x, s.y0)) add({ key: 'decals/lane_dash', x, y, origin: 'tl', depth: DEPTH_MOSAIC });
   }
   // the painted bus lane in front of the stop
-  add({ key: 'decals/faixa_onibus', x: 28 * T, y: 10 * T, origin: 'tl', depth: DEPTH_MOSAIC + 2 });
+  add({ key: 'decals/faixa_onibus', x: 32 * T, y: 10 * T, origin: 'tl', depth: DEPTH_MOSAIC + 2 });
   for (const m of MOSAICS) add({ key: 'decals/sp_mosaic', x: m.x * T, y: m.y * T, origin: 'tl', depth: DEPTH_MOSAIC + 5 });
   for (const m of MANHOLES) add({ key: 'decals/manhole', x: Math.round((m.x + 0.5) * T), y: Math.round((m.y + 0.5) * T) + 6, origin: 'anchor', depth: DEPTH_MOSAIC + 8 });
 
