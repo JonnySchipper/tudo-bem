@@ -1025,3 +1025,29 @@ body:has(.dbx) .joystick {
 .hotspot-card .hs-en.priced { display: flex; align-items: baseline; gap: 8px; text-align: left; }
 .hotspot-card .hs-en .lead { flex: 1; border-bottom: 2px dotted rgba(87,60,44,0.3); transform: translateY(-3px); }
 .hotspot-card .hs-en .price { font-style: normal; font-weight: 800; }
+
+/* ---- second pass: one-line chips, compact tools, phone head */
+.dbx button { min-height: 0; }
+.dbx .dbx-chip .txt { display: flex; flex-wrap: wrap; gap: 0 8px; align-items: baseline; }
+.dbx .dbx-chip .pt, .dbx .dbx-chip .en { display: inline; }
+.dbx .dbx-chip { align-items: center; padding: 3px 8px; }
+@media (max-width: 640px) {
+  .dbx-head { flex-wrap: nowrap; gap: 5px; min-height: 0; }
+  .dbx-head .dbx-name { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dbx .dbx-listen { font-size: 0.72em; padding: 2px 6px; white-space: nowrap; }
+  .dbx .dbx-close { padding: 2px 7px; min-width: 28px; }
+  .dbx .dbx-note, .dbx-meta { display: none; }
+  .dbx .dbx-chip { padding: 3px 6px; }
+  .dbx .dbx-input input { padding: 5px 8px; }
+  .dbx .dbx-footer .btn-label .en, .dbx .dbx-footer-row .btn-label .en { display: none; }
+  .dbx-actions { gap: 4px; }
+}
+
+/* ---- third pass */
+.caderno .cad-listen { min-height: 0; height: 28px; }
+.hotspot-card .hs-pt .price { font-family: var(--font-body); font-weight: 800; }
+@media (max-width: 640px) {
+  .caderno .cad-tab-name { font-size: 0.78em; letter-spacing: -0.02em; }
+  .caderno .cad-tab { padding: 4px 5px 5px; min-width: 0; }
+  .panel.caderno, .panel.hotspot-card { max-height: calc(100dvh - 140px); overflow-y: auto; }
+}
