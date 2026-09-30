@@ -74,6 +74,14 @@ describe('NPC looks match their portraits', () => {
     expect(l.layers.find((x) => x.key.startsWith('outfit_'))?.ramps?.top).toBe(CLOTH_COLORS[1]);
   });
 
+  it('Professora Bia: white gi (camisa + calça) with the gi layer, no apron, short dark hair', () => {
+    const k = keysOf('prof');
+    expect(k).toContain('npc_gi');
+    expect(k.some((x) => x.startsWith('npc_apron'))).toBe(false);
+    expect(k).toContain('hair_curto');
+    expect(k.some((x) => x.startsWith('outfit_camisa_calca'))).toBe(true);
+  });
+
   it('Júlia: blouse', () => expect(keysOf('julia').some((k) => k.startsWith('outfit_blusa'))).toBe(true));
 
   it('Graça: grey bun, glasses, apron', () => {

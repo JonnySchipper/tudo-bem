@@ -6,7 +6,8 @@
 import path from 'node:path';
 import { crop, loadPng, clone, paste } from '../../../../scripts/lib/pixel/img.mjs';
 import { toCanonicalSheet, mergeLayers, keyLayer } from '../../../../scripts/lib/pixel/chars.mjs';
-import { alphaAt, anchors, emptySheet, fx, fy, frames, hexAt, keyAuto, keyOutfit, keyRanks, putHex, puffHair, regata, bermuda, saia, stampSet, warpLayer, warpPlan } from '../../../../scripts/lib/pixel/charedit.mjs';
+import { rowFacing } from '../../../../scripts/lib/pixel/chars.mjs';
+import { alphaAt, anchorOf, anchors, emptySheet, fx, fy, frames, hexAt, keyAuto, keyOutfit, keyRanks, putHex, puffHair, regata, bermuda, saia, stampSet, warpLayer, warpPlan } from '../../../../scripts/lib/pixel/charedit.mjs';
 import { KEY_RAMPS } from '../../../client/src/render/pixel/palette.ts';
 import { HAT_ART } from './hats.mjs';
 import { APRON_ART, EXTRA_ART, FACE_ALPHA, FACE_ART, GESTURE_FRAMES, HAIR_ADDON, POSE_ART } from './charart.mjs';
@@ -95,6 +96,10 @@ export async function buildChars({ base }) {
   layers.acc_phone = await canon('Smartphones', 'Smartphone_1');
   regBody('npc_apron', stampSet(emptySheet(), APRON_ART, an, 'body', { rows: new Set([0, 1, 2, 3, 4, 5, 6, 7]) }));
 
+  // ---- BJJ gi (Professora Bia): drawn over the camisa + calça outfit (white, recolored by the look), so it only adds what makes a kimono
+  // read: crossed lapels under the chin and a black belt with its knot across the waist. Everything follows the outfit's silhouette.
+  regBody('npc_gi', buildGi(layers.outfit_camisa_calca, an));
+
   // ---- hats: derived from pack accessories (recolored to the hat / accent ramps) or authored (hats.mjs)
   const acc = acc0;
   layers.hat_bone_verde = keyLayer(await acc('Accessory_04_Snapback_01'), {
@@ -115,6 +120,51 @@ export async function buildChars({ base }) {
     layers[key + '__forte'] = warpLayer(img, plans.forte);
   }
   return { layers, an };
+}
+
+/**
+ * The gi pieces for every non-sitting frame, from the alpha of `outfit` (the camisa + calça layer). Torso rows are bottom-7 .. bottom-4
+ * (the same rows the body warp uses): two lapel diagonals that cross under the collar on the front frames, and the belt on the last two
+ * torso rows (dark top row, black lower row) inside the silhouette, with a knot and two short tails on the front.
+ */
+function buildGi(outfit, an) {
+  const out = emptySheet();
+  const LAP = '#d8d0e0', BELT_HI = '#3a3a50', BELT = '#1f1f2e';
+  for (const { r, c } of frames()) {
+    if (r >= 8 && r <= 11) continue; // sitting frames have another geometry
+    const a = anchorOf(an, r, c);
+    if (!a) continue;
+    const facing = rowFacing(r);
+    const row = (y) => {
+      let x0 = 99, x1 = -1;
+      for (let x = 0; x < 16; x++) if (alphaAt(outfit, fx(c, x), fy(r, a.bottom + y))) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); }
+      return x1 < 0 ? null : [x0, x1];
+    };
+    const put = (x, y, hex) => {
+      if (x < 0 || x > 15 || !alphaAt(outfit, fx(c, x), fy(r, a.bottom + y))) return;
+      putHex(out, fx(c, x), fy(r, a.bottom + y), hex);
+    };
+    const top = row(-7);
+    if (facing === 'S' && top) {
+      const cx = Math.round((top[0] + top[1]) / 2);
+      put(cx - 2, -7, LAP); put(cx + 1, -7, LAP);
+      put(cx - 1, -6, LAP); put(cx, -6, LAP);
+    }
+    for (const [y, hex] of [[-5, BELT_HI], [-4, BELT]]) {
+      const ext = row(y);
+      if (!ext) continue;
+      const inset = facing === 'E' || facing === 'W' ? 0 : 2;
+      for (let x = ext[0] + inset; x <= ext[1] - inset; x++) put(x, y, hex);
+    }
+    if (facing === 'S') {
+      const ext = row(-4);
+      if (ext) {
+        const cx = Math.round((ext[0] + ext[1]) / 2);
+        put(cx, -5, BELT); put(cx - 1, -3, BELT); put(cx + 1, -3, BELT);
+      }
+    }
+  }
+  return out;
 }
 
 /** Beanie: accent stripes across the dome (rows relative to the top of the hat in each frame). */

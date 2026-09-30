@@ -5165,6 +5165,26 @@
    "w": 64,
    "h": 64
   },
+  "portraits/prof_neutro": {
+   "file": "portraits/prof_neutro.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/prof_feliz": {
+   "file": "portraits/prof_feliz.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/prof_surpreso": {
+   "file": "portraits/prof_surpreso.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/prof_pensativo": {
+   "file": "portraits/prof_pensativo.png",
+   "w": 64,
+   "h": 64
+  },
   "icons/pao": {
    "file": "icons/pao.png",
    "w": 16,
@@ -5493,6 +5513,9 @@
   "npc_apron": "chars/npc_apron.png",
   "npc_apron__esguio": "chars/npc_apron__esguio.png",
   "npc_apron__forte": "chars/npc_apron__forte.png",
+  "npc_gi": "chars/npc_gi.png",
+  "npc_gi__esguio": "chars/npc_gi__esguio.png",
+  "npc_gi__forte": "chars/npc_gi__forte.png",
   "outfit_blusa_bermuda": "chars/outfit_blusa_bermuda.png",
   "outfit_blusa_bermuda__esguio": "chars/outfit_blusa_bermuda__esguio.png",
   "outfit_blusa_bermuda__forte": "chars/outfit_blusa_bermuda__forte.png",
