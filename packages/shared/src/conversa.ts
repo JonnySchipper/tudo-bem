@@ -48,6 +48,8 @@ export interface ConversaCastEntry {
   room: 'padaria' | 'praca';
   enabled: boolean;
   subjects: ConversaSubject[];
+  /** English character line that replaces the default "You are Seu Carlos..." opening of the system prompt (Dona Graça covers the same counter). */
+  persona?: string;
 }
 
 export const CONVERSA_SUBJECTS: Record<string, ConversaSubject> = {
@@ -111,13 +113,24 @@ export const CONVERSA_CAST: Record<NpcId, ConversaCastEntry> = {
     enabled: false,
     subjects: [],
   },
-  // Recado givers with no room yet (see OFFSTAGE_NPCS); no Conversa until they have a place to stand.
+  // Professora Bia (academia): a recado target, no Conversa yet.
+  prof: {
+    npc: 'prof',
+    name: 'Professora Bia',
+    room: 'praca', // no academia room type in the cast yet; disabled anyway
+    enabled: false,
+    subjects: [],
+  },
+  // The padaria's night baker (22h-6h): the same counter and the same subjects as Seu Carlos, so the padaria is never without a baker (D12).
+  // needs_br: true (persona text)
   graca: {
     npc: 'graca',
     name: 'Dona Graça',
     room: 'padaria',
-    enabled: false,
-    subjects: [],
+    enabled: true,
+    subjects: [CONVERSA_SUBJECTS.cafe_da_manha, CONVERSA_SUBJECTS.cumprimentos],
+    persona:
+      "You are Dona Graça, who runs the night shift (10 pm to 6 am) at Padaria do Seu Carlos in a São Paulo neighborhood while Seu Carlos is off. You are warm, a joker who teases gently (never at the customer's expense) and you like the quiet of the night. You are at the counter",
   },
   tia_lu: {
     npc: 'tia_lu',
@@ -576,13 +589,14 @@ export function buildCarlosSystemPrompt(
   subject: ConversaSubject,
   ctx: { playerName: string; pronoun: Pronoun; nameplate: Nameplate },
   memory?: string,
+  persona?: string,
 ): string {
   const kinship = ctx.pronoun === 'ela' ? 'minha filha' : ctx.pronoun === 'ele' ? 'meu filho' : null;
   const kinNote = kinship
     ? `You may say "${kinship}" at most once in the whole scene, warmly, and never on the opener. Not every line.`
     : 'Do not use kinship terms (meu filho / minha filha). The player did not pick a gendered pronoun.';
 
-  return `You are Seu Carlos, owner of Padaria do Seu Carlos in a São Paulo neighborhood. You are at the counter, in a private conversation with ${ctx.playerName}. Talk like a person, not a script. React to the exact words they just said.
+  return `${persona ?? 'You are Seu Carlos, owner of Padaria do Seu Carlos in a São Paulo neighborhood. You are at the counter'}, in a private conversation with ${ctx.playerName}. Talk like a person, not a script. React to the exact words they just said.
 
 VOICE:
 - Educated informal Paulista warmth: você / a gente / legal / tá / pra. Spoken, short lines.

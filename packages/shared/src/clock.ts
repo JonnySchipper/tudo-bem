@@ -27,6 +27,14 @@ export function gameMinutes(nowMs: number): number {
   return Math.min(MIN_PER_DAY - 1, Math.floor((t / GAME_DAY_MS) * MIN_PER_DAY));
 }
 
+/** Game minutes since midnight with the fraction kept (0 <= m < 1440): the smooth `gameMinutes`, for where a boundary time matters (NPC schedules). */
+export function gameMinutesExact(nowMs: number): number {
+  return (mod(nowMs + CLOCK_OFFSET_MS, GAME_DAY_MS) / GAME_DAY_MS) * MIN_PER_DAY;
+}
+
+/** Real milliseconds per game minute (2000). */
+export const MS_PER_GAME_MINUTE = GAME_DAY_MS / MIN_PER_DAY;
+
 /** Whole game days since the epoch (negative before it). Rolls over at game midnight. */
 export function gameDay(nowMs: number): number {
   return Math.floor((nowMs + CLOCK_OFFSET_MS) / GAME_DAY_MS);

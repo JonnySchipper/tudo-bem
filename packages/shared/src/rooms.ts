@@ -1,5 +1,6 @@
 import type { Appearance, Bilingual, Dir, PlacedFurniture, RoomId, Tile } from './types.js';
 import { furnitureById } from './catalog.js';
+import { SCHEDULES, type ScheduleSlot } from './schedules.js';
 
 export type PropKind =
   | 'ipe'
@@ -91,25 +92,28 @@ export interface PortalDef {
 }
 
 /**
- * NPCs that give recados and can be befriended before they have a room to stand in: Dona Graça (the padaria's
- * night shift, arrives with the schedules) and Tia Lu (the feira's fruit stall, Phase 9). When one gets a room
- * it moves into that room's `npcs`; the id stays valid the whole time.
+ * NPCs that give recados and can be befriended before they have a room to stand in: Tia Lu (the feira's fruit stall, Phase 9).
+ * When she gets a room she moves into that room's `npcs`; the id stays valid the whole time. (Dona Graça lived here until the
+ * schedules gave her the padaria counter at night.)
  */
 export const OFFSTAGE_NPCS = {
-  graca: { name: 'Dona Graça', role: { pt: 'Padeira do turno da noite', en: 'Night-shift baker' } },
   tia_lu: { name: 'Tia Lu', role: { pt: 'Barraca de frutas da feira', en: 'Fruit stall at the feira' } },
 } as const satisfies Record<string, { name: string; role: Bilingual }>;
 
-export type NpcId = 'carlos' | 'nanda' | 'julia' | keyof typeof OFFSTAGE_NPCS;
+export type NpcId = 'carlos' | 'nanda' | 'julia' | 'graca' | 'prof' | keyof typeof OFFSTAGE_NPCS;
 
 export interface NpcDef {
   id: NpcId;
   name: string;
   role: Bilingual;
+  /** Home room tile. With a `schedule` it is only the fallback (where the NPC stands if the schedule says nothing); the live position comes from `npcMotion`. */
   x: number;
   y: number;
   dir: Dir;
+  /** Default spot to talk from; a schedule slot may name its own. */
   interact: Tile;
+  /** Where the NPC is over the game day (`schedules.ts`). Without one the NPC stands at `x, y` at every hour and its tile blocks statically. */
+  schedule?: ScheduleSlot[];
   appearance: Appearance;
   hat: string | null;
   /** Ambient lines, shown over the NPC's head now and then. */
@@ -447,6 +451,7 @@ const vilaIpe: RoomDef = {
       y: 13,
       dir: 'SW',
       interact: { x: 34, y: 15 },
+      schedule: SCHEDULES.nanda,
       appearance: { body: 'esguio', skin: 5, hair: 'trancas', hairColor: 0, top: 'camisa', topColor: 1, bottom: 'calca', bottomColor: 2, shoes: 2, face: 'doce', extra: 'brincos', idle: 'cintura' },
       hat: 'chapeu_palha',
       idleLines: [
@@ -463,6 +468,7 @@ const vilaIpe: RoomDef = {
       y: 19,
       dir: 'SW',
       interact: { x: 22, y: 20 },
+      schedule: SCHEDULES.julia,
       appearance: { body: 'medio', skin: 2, hair: 'ondulado', hairColor: 2, top: 'blusa', topColor: 4, bottom: 'calca', bottomColor: 2, shoes: 2, face: 'suave', extra: 'brincos', idle: 'solto' },
       hat: null,
       idleLines: [
@@ -554,12 +560,32 @@ const padaria: RoomDef = {
       y: 1,
       dir: 'SE',
       interact: { x: 3, y: 3 },
+      schedule: SCHEDULES.carlos,
       appearance: { body: 'forte', skin: 3, hair: 'curto', hairColor: 5, top: 'camisa', topColor: 3, bottom: 'calca', bottomColor: 5, shoes: 1, face: 'maduro', extra: 'bigode', idle: 'solto' },
       hat: 'chapeu_chef',
       idleLines: [
         { pt: 'Pão quentinho saindo!', en: 'Warm bread coming out!' },
         { pt: 'Bom dia! Vai um cafezinho?', en: 'Good morning! How about a little coffee?' },
         { pt: 'Chega mais, pode pedir!', en: 'Come on over, go ahead and order!' },
+      ],
+    },
+    {
+      // Night shift: the same counter spot, and the same authored scene, Me vê um and Conversa subjects as Seu Carlos (D12)
+      id: 'graca',
+      name: 'Dona Graça',
+      role: { pt: 'Padeira do turno da noite', en: 'Night-shift baker' },
+      x: 3,
+      y: 1,
+      dir: 'SE',
+      interact: { x: 3, y: 3 },
+      schedule: SCHEDULES.graca,
+      appearance: { body: 'medio', skin: 6, hair: 'coque', hairColor: 5, top: 'blusa', topColor: 7, bottom: 'calca', bottomColor: 5, shoes: 1, face: 'maduro', extra: 'oculos', idle: 'bracos' },
+      hat: null,
+      // needs_br: true (new lines, Dona Graça's voice: warm, a joker, night shift)
+      idleLines: [
+        { pt: 'De noite o pão sai quentinho!', en: 'Warm bread at night!' },
+        { pt: 'Boa noite! Bora de cafezinho?', en: 'Good evening! How about a little coffee?' },
+        { pt: 'Ih, a noite é longa. Chega mais!', en: 'Oh, the night is long. Come on over!' },
       ],
     },
   ],
@@ -670,7 +696,26 @@ const academia: RoomDef = {
       label: { pt: 'SAÍDA · Praça', en: 'Exit to the square' },
     },
   ],
-  npcs: [],
+  npcs: [
+    {
+      // The BJJ teacher: stands by the tatame at every hour (no schedule), so her tile blocks statically and D12 holds for the academia
+      id: 'prof',
+      name: 'Professora Bia',
+      role: { pt: 'Professora de jiu-jitsu', en: 'Jiu-jitsu teacher' },
+      x: 8,
+      y: 4,
+      dir: 'NW',
+      interact: { x: 8, y: 5 },
+      appearance: { body: 'forte', skin: 4, hair: 'coque', hairColor: 0, top: 'camisa', topColor: 4, bottom: 'calca', bottomColor: 4, shoes: 0, face: 'marcante', extra: 'nenhum', idle: 'bracos' },
+      hat: null,
+      // needs_br: true (new lines)
+      idleLines: [
+        { pt: 'Oss! Bora treinar?', en: 'Oss! Ready to train?' },
+        { pt: 'Respeito primeiro, depois o tatame.', en: 'Respect first, then the mat.' },
+        { pt: 'Água é vida. Bebe bastante!', en: 'Water is life. Drink plenty!' },
+      ],
+    },
+  ],
   private: false,
 };
 
@@ -727,8 +772,9 @@ export function buildGrid(room: RoomDef, furniture: PlacedFurniture[] = []): Roo
   for (const s of seatTiles(room)) seats.set(key(s.x, s.y), s.dir);
   // where you arrive from the street or a door stays free of furniture
   reserved.add(key(room.spawn.x, room.spawn.y));
+  // An NPC with a schedule moves, so its tile is not blocked here: the server blocks its CURRENT tile (World.grid). Fixed NPCs still block.
   for (const n of room.npcs) {
-    blocked.add(key(n.x, n.y));
+    if (!n.schedule) blocked.add(key(n.x, n.y));
     reserved.add(key(n.x, n.y));
   }
   for (const portal of room.portals) {
@@ -760,3 +806,9 @@ export function canPlaceFurniture(room: RoomDef, furniture: PlacedFurniture[], x
   if (grid.reserved.has(key(x, y))) return false;
   return !furniture.some((f) => f.uid !== ignoreUid && f.x === x && f.y === y);
 }
+
+/** Every NPC definition in the world, home room first (an NPC's `x, y` and appearance live in its home room's `npcs`). */
+export const ALL_NPCS: NpcDef[] = Object.values(ROOMS).flatMap((r) => r.npcs);
+export const npcDefById = (id: string): NpcDef | undefined => ALL_NPCS.find((n) => n.id === id);
+/** The room an NPC belongs to when no schedule says otherwise. */
+export const npcHomeRoom = (id: string): RoomId | undefined => ROOM_IDS.find((r) => ROOMS[r].npcs.some((n) => n.id === id));
