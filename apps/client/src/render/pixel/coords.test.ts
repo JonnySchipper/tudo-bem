@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { T, cameraCenter, canvasToWorld, cssZoomFor, deviceZoomFor, feet, snapToDevice, tileAtWorld, tileCenterToCanvas, tileToWorld, worldToCanvas, type CamState } from './coords';
+import { T, bufferPixels, cameraCenter, canvasToWorld, cssZoomFor, deviceZoomFor, feet, snapToDevice, tileAtWorld, tileCenterToCanvas, tileToWorld, worldToCanvas, type CamState } from './coords';
 
 const cam = (over: Partial<CamState> = {}): CamState => ({ zoom: 4, dpr: 1, cx: 112, cy: 96, w: 1280, h: 800, ...over });
 
@@ -106,5 +106,27 @@ describe('cameraCenter', () => {
   it('snaps to the device pixel grid', () => {
     expect(snapToDevice(10.13, 4)).toBe(10.25);
     expect(snapToDevice(10.1, 4)).toBe(10);
+  });
+});
+
+describe('bufferPixels (#48: stay inside the WebGL texture limit)', () => {
+  it('leaves ordinary windows alone', () => {
+    expect(bufferPixels(1280, 800, 1)).toEqual({ dpr: 1, width: 1280, height: 800 });
+    expect(bufferPixels(390, 844, 3)).toEqual({ dpr: 3, width: 1170, height: 2532 });
+  });
+  it('lowers the dpr so neither side exceeds 4096', () => {
+    const r = bufferPixels(2500, 1400, 2);
+    expect(r.width).toBeLessThanOrEqual(4096);
+    expect(r.height).toBeLessThanOrEqual(4096);
+    expect(r.dpr).toBeCloseTo(4096 / 2500, 5);
+    const t = bufferPixels(1600, 1000, 3);
+    expect(t.width).toBeLessThanOrEqual(4096);
+    expect(t.height).toBeLessThanOrEqual(4096);
+  });
+  it('clamps the dpr to 1..3 and tolerates junk', () => {
+    expect(bufferPixels(800, 600, 5).dpr).toBe(3);
+    expect(bufferPixels(800, 600, 0.5).dpr).toBe(1);
+    expect(bufferPixels(800, 600, NaN).dpr).toBe(1);
+    expect(bufferPixels(0, 0, 2).width).toBeGreaterThanOrEqual(1);
   });
 });

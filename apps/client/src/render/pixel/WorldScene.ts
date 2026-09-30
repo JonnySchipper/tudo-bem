@@ -643,7 +643,7 @@ export class WorldScene extends Phaser.Scene {
     const focus = self ? { x: self.wx, y: self.wy - 10 } : { x: (def.cols * T) / 2, y: (def.rows * T) / 2 };
     const ins = this.host.insets();
     const k = this.cam.dpr;
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const dpr = k; // the effective (possibly capped, see bufferPixels) ratio of the backing store
     // the whole room (walls included) when it fits at this or the next lower integer zoom, else follow the avatar with the north wall kept in view
     const f = roomFraming({ w: this.cam.w, h: this.cam.h }, this.bounds, focus, { top: ins.top * k, bottom: ins.bottom * k, left: ins.left * k, right: ins.right * k }, cssZoomFor(window.innerWidth, window.innerHeight), dpr);
     const target = { cx: f.cx, cy: f.cy };

@@ -10,7 +10,7 @@ import type { Guide, Hit, WorldView } from '../view';
 import { sharedCharAssets } from './charAssets';
 import { WorldScene } from './WorldScene';
 import { LabelLayer } from './labels';
-import { canvasToWorld, tileAtWorld, tileCenterToCanvas, type Insets } from './coords';
+import { bufferPixels, canvasToWorld, tileAtWorld, tileCenterToCanvas, type Insets } from './coords';
 import { game } from '../../state';
 
 export class PixelView implements WorldView {
@@ -30,7 +30,18 @@ export class PixelView implements WorldView {
     this.measure();
     window.addEventListener('resize', () => this.resize());
     window.visualViewport?.addEventListener('resize', () => this.resize());
-    void this.boot().catch((e) => console.error('[pixel] boot failed', e));
+  }
+
+  private started = false;
+
+  /** Boots Phaser. main.ts calls this once the intro has closed: starting WebGL under the title screen's blur crashed some GPUs (#48). */
+  start(): void {
+    if (this.started) return;
+    this.started = true;
+    void this.boot().catch((e) => {
+      this.started = false;
+      console.error('[pixel] boot failed', e);
+    });
   }
 
   private async boot(): Promise<void> {
@@ -39,8 +50,8 @@ export class PixelView implements WorldView {
     const manifest = assets.manifest;
     this.labels.setArt({ base, images: manifest.images ?? {} });
     const q = new URLSearchParams(location.search);
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    this.dpr = dpr;
+    const buf = bufferPixels(window.innerWidth, window.innerHeight, window.devicePixelRatio || 1);
+    this.dpr = buf.dpr;
     const scene = new WorldScene(manifest, base, assets, {
       labels: this.labels,
       guides: () => this.guides,
@@ -59,7 +70,7 @@ export class PixelView implements WorldView {
       banner: false,
       audio: { noAudio: true }, // the game has its own audio; don't let Phaser touch AudioContext
       input: { keyboard: false, mouse: false, touch: false, gamepad: false },
-      scale: { mode: Phaser.Scale.NONE, width: Math.round(window.innerWidth * dpr), height: Math.round(window.innerHeight * dpr), zoom: 1 / dpr },
+      scale: { mode: Phaser.Scale.NONE, width: buf.width, height: buf.height, zoom: 1 / buf.dpr },
       scene: [scene],
     });
     this.scene = scene;
@@ -78,9 +89,7 @@ export class PixelView implements WorldView {
     this.measure();
     const g = this.phaser;
     if (!g) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    const w = Math.round(window.innerWidth * dpr);
-    const h = Math.round(window.innerHeight * dpr);
+    const { dpr, width: w, height: h } = bufferPixels(window.innerWidth, window.innerHeight, window.devicePixelRatio || 1);
     if (dpr !== this.dpr) {
       this.dpr = dpr;
       g.scale.setZoom(1 / dpr);

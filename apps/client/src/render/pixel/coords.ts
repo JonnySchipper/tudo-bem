@@ -45,6 +45,21 @@ export function deviceZoomFor(cssZoom: number, dpr: number): number {
   return Number.isInteger(dpr) ? cssZoom * dpr : Math.max(1, Math.floor(cssZoom * dpr));
 }
 
+/** Stay under the WebGL texture limit common on phones and retina displays (#48). */
+export const MAX_BUFFER = 4096;
+
+/**
+ * Backing-store size for the world canvas. The device pixel ratio is clamped to 1..3, then lowered until neither side exceeds
+ * `MAX_BUFFER`. Pass layout sizes (innerWidth/clientWidth), never a transformed getBoundingClientRect.
+ */
+export function bufferPixels(cssW: number, cssH: number, devicePixelRatio: number): { dpr: number; width: number; height: number } {
+  const w = Math.max(1, cssW);
+  const h = Math.max(1, cssH);
+  const wanted = Math.min(Math.max(devicePixelRatio || 1, 1), 3);
+  const dpr = Math.min(wanted, MAX_BUFFER / w, MAX_BUFFER / h);
+  return { dpr, width: Math.max(1, Math.floor(w * dpr)), height: Math.max(1, Math.floor(h * dpr)) };
+}
+
 /** World px -> CSS px, relative to the canvas' top-left corner. */
 export function worldToCanvas(c: CamState, wx: number, wy: number): { px: number; py: number } {
   return { px: ((wx - c.cx) * c.zoom + c.w / 2) / c.dpr, py: ((wy - c.cy) * c.zoom + c.h / 2) / c.dpr };
