@@ -800,6 +800,45 @@ Roofs across the south street are plain (one terrace, five colourways, no dishes
 
 Painted in pixels: TUDO BEM?, EM BREVE, ONIBUS, BUS (pack). DOM/labels: "Ponto de ônibus", "Em breve: a feira livre!" / "Coming soon: the street market!", "Fonte da praça", "Vira-lata caramelo", "Mapa da Vila Ipê", the minimap key ("portas", "vizinhos", "você").
 
+## Decisions made in Phase 6b (ambient life, audio zones, the title screen)
+
+Branch `lifesim/p6b-ambient-audio-intro`. Shots in `docs/lifesim/shots/p6b/` (`node scripts/lifesim-shots-p6b.mjs [--only=..] [--intro] [--perf]`). Scope: HOWTO Phase 6 steps 5 to 7. New modules, small hooks in `WorldScene.ts`, `PixelView.ts`, `main.ts` and `ui/intro.ts`.
+
+### Ambient life (`render/pixel/ambient*.ts`)
+
+1. **Three files.** `ambientData.ts` (per room id: street lanes, bus stop, dog home, pigeon flocks, fountain, audio zones; Phase 5 coordinates), `ambientSim.ts` (pure, tested: traffic, bus, dog, pigeons, gates, cloud blobs), `ambient.ts` (Phaser pools, one `AmbientLife` per scene, `buildRoom` / `update` / `clearRoom`). `__tb.ambient` = `{ info(), bus(inMs) }`; `perfInfo()` adds `ambient` and counts its particles.
+2. **Time.** Movement runs on the server-synced wall clock (`Date.now() + clock.skewMs`), not the game clock, so a pinned `setClock({time})` does not freeze the cars. Gates that follow the day use the game minute (no traffic 01:00 to 05:00, the dog's naps, butterflies, fireflies); a vehicle's gate uses the minute it entered at, so nothing vanishes when 01:00 strikes.
+3. **Traffic.** One slot per 4 s per lane, seeded by `hash2(slot, lane)`: chance 0.22 by day (0.16 evening, 0.10 dawn, 0.07 late, 0 at 01:00 to 05:00), Rua Jacarandá at 0.7 of that. Types: two cars, kombi, fusca, moto. Right-hand traffic: westbound in the upper lane, eastbound in the lower lane. Vehicles queue behind the one that entered before them (nobody passes; tested: no overlap in a lane). They enter and leave behind the barricades (alpha ramp at the map edge). Depth is the wheels' y; purely visual.
+4. **Bus.** Every 6 game hours (at normal clock speed 05:30, 11:30, 17:30, 23:30, from the real time `t mod 720 s`), eastbound lane of Rua dos Ipês, braking 1.8 s, standing 8 s on the painted BUS marking (stopX = 36.5 tiles), pulling away. Cars queue behind it. `__tb.ambient.bus(-900)` brings one to the stop for shots.
+5. **Headlights** are the rig's existing `car` lights (a pool of 10: darkness hole + warm glow), lit when the rig's `look.glow` is (night, rain).
+6. **Vira-lata.** `DogSim`: asleep at its corner 12:00 to 15:00 and 22:00 to 06:00 (walks home when a nap starts), otherwise idle 5 to 14 s, then a BFS path to a seeded waypoint at 15 px/s, only on walkable tiles within 6 tiles of (5,26). The Phase 5 static prop `vira_lata` stays in the room data (its tile stays blocked; rooms.ts untouched) but the scene skips its art when an ambient dog exists.
+7. **Pigeons.** Three flocks (4 + 3 + 3). The first bird someone comes within 2 tiles of (all avatars, CPUs included) takes the whole flock off, each bird 0.07 s apart, away from that person and up (the sprite flips at 14 Hz and is lifted, its shadow stays), fades, stays away 18 to 40 s and returns only when nobody is within 4 tiles of its spot. The pack has no flying frames, so the flap is the flip.
+8. **Butterflies** (8, tiny generated 2-frame pixel textures; day, not in rain, never in low-fx or reduced motion), **fireflies** (16, night, drawn on the fx camera above the darkness as one integer-zoom pixel plus an additive halo so the night cannot swallow them), **petals** (pool of 26 using `fx/petal_a|b`, spawned under the canopies on screen, more in gusts, fewer in rain), **cloud shadows** (4 crops of `fx/cloud_shadow`, alpha 0.28 at most, drifting 6 px/s, only when `params.sun` is above 0.55 so never under nublado, garoa or chuva, gone by dusk), **fountain spray** (10 droplets on arcs). **Laundry flutter was skipped**: the pack has no separate laundry art (the wire on the Edifício is part of the facade sprite).
+9. **Budget.** Ambient particles are at most 26 petals + 16 (fireflies or butterflies, never both) + 10 spray = 52 on top of the rain's 238 at most (274 under chuva, since butterflies and fireflies are off in rain). Low-fx: 12 petals, no butterflies, fireflies or clouds, half the pigeons. Reduced motion: 6 petals, no butterflies, fireflies, clouds or spray; traffic, the dog and the pigeons carry on.
+
+### Audio zones (`ambience.ts`, `audio/zones.ts`, `audio/zonesFeed.ts`)
+
+10. **Everything is synthesized** (no sample files, nothing to credit). The Praça bed keeps wind and the pluck and gains six zone layers, each behind its own gain node: traffic (brown noise, a swell, passing swooshes), fountain (band-passed white noise with a burble), birds (the old chirps, more often, gated by the mix), crickets (3-pulse bursts on about 4.1 and 4.4 kHz), rain (hiss and drumming), a distant radio (telephone-band triangle notes with static). `zoneMix` (pure) gives 0..1 per layer from the player's position and the game minute: traffic within 40 px of a street centre line fading to 0 at 180 px (so the middle of the praça is quiet), fountain 44 to 200 px, radio 26 to 150 px around two house windows (08:00 to 22:00), birds and crickets cross-fade with daylight, rain follows the weather. Interior beds are untouched; the mix is silent indoors.
+11. **Footsteps.** One step per 10 px walked by the local avatar (a teleport or room change resets it); a short filtered noise burst (plus a low thump on wood and tatame) per terrain from `floorAt`, at most 0.06 gain, pitch and filter within plus or minus 5 %. It goes through the same duck gain as the beds, so speech ducks it.
+12. **Toggles.** The switch that matters is the existing Música one (`ambience.enabled`), which also gates footsteps and the zones; the Voz toggle (`game.sound`) is speech only and stays so. Nothing plays before the first gesture, or during the intro bed.
+
+### The title screen (`ui/introHeroScene.ts`, `introSnapshot.ts`, `introCamera.ts`)
+
+13. **No second Phaser game.** `planSnapshot` (pure, tested) turns the real `praca` room into a depth-sorted list of draw ops (terrain tiles through the new `terrainPlan.terrainTiles`, which `terrainLayers.ts` now shares; decals, props, facades, fences, shadows, canopies, wires); `paintSnapshot` draws it once on an offscreen 2D canvas (896 x 640 art px) from the atlas and tileset and applies the game's own 17:30 grade (`computeLook`: multiply, cool fill, cast shadows). The canvas is panned with CSS transforms at an integer zoom (`introZoom`: 2 on a phone, 4 at 1280 x 800), `image-rendering: pixelated`, offsets rounded to device pixels, there and back along a 110 s route at under 6 art px/s with eased ends. A warm CSS light and softened CSS grades sit over it; the sky gradient is the fallback while the snapshot loads. On a phone the picture lifts into the strip between wordmark and card when the card arrives. Reduced motion: one still frame.
+14. **Kept:** all intro logic and ids (`#intro-enter`, `#intro-skip`, the card), the atmosphere canvas (petals, motes), the parrots (pure canvas, they fit), the "Art: LimeZu" footer. **Deleted:** the procedural SVG scene (skyline, Padaria, fountain and passer-by drawn in code, about 600 lines), its CSS (about 350 lines) and the two camera tests of the old framing.
+
+### Tests
+
+`ambientSim.test.ts`, `zones.test.ts`, `introSnapshot.test.ts` (31 new tests in all): determinism, lane directions, no overlap, night gate, bus schedule and stop, queue behind the bus, dog hours and walkable wandering, pigeon scare radius, flight and return, cloud gating, zone gains by position, hour and weather, footsteps per terrain, pitch, step clock, snapshot plan, zoom, pan, no void.
+
+### Performance (`__tb.perf`, headless Chrome / SwiftShader on a shared, busy box, 1280 x 800, full effects pinned on)
+
+Busiest scene, 19:30 chuva with traffic, bus, headlights and the CPU crowd: 49 fps, avg 20.4 ms, p90 30.8 ms, 236 particles (rain 188 drops + 31 splashes + 5 ripples, ambient 12). Sunny noon with the bus, clouds, 8 butterflies and petals: 92 fps, p90 18.6 ms, 26 particles. Without the pin the governor trips to low-fx on this box under load (p90 over 25 ms), as designed.
+
+### Known weaknesses
+
+The pigeons' flap is a sprite flip; vehicles fade at the map edge instead of driving out of a real opening; the audio has not been heard by a human in this track (no speakers here), so levels are educated guesses from the synthesis code and need an ear; the title screen is a still map with petals and parrots (no moving cars or people in it); the headless box trips the low-fx fallback under load, so the shots script pins it off.
+
 ## Decisions made in Phase 8b (NPC schedules)
 
 Branch `lifesim/p8b-npc-schedules`. Shots: `docs/lifesim/shots/p8b/` (`closed_stall_2100`, `closed_stall_shop`, `carlos_bench_2230`, `padaria_2300_graca`, `academia_prof_bia`). Night run: `scripts/e2e-night.mjs` (`PHASE=a|b`, server started with `TB_TEST_CLOCK_OFFSET_MIN`).
