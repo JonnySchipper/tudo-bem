@@ -155,6 +155,11 @@ export class PixelView implements WorldView {
     this.scene?.setDialogueBox(px);
   }
 
+  /** Ambient life hook (`window.__tb.ambient`). */
+  ambientHook() {
+    return this.scene?.ambientHook() ?? null;
+  }
+
   /** Frame-time probe and fx level (`window.__tb.perf`). */
   perf() {
     return this.scene?.perfInfo() ?? null;

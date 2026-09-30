@@ -917,7 +917,7 @@ const cues = new HotspotCues((hs) => clickHotspot(hs));
 // the dialogue box tells the world view to ease the camera in on the speakers; the box's height keeps them above it
 setDialogueHost({
   open: (npcId) => {
-    const npc = npcId ? game.roomDef?.npcs.find((n) => n.id === npcId) : undefined;
+    const npc = npcId ? game.liveNpcs(now()).find((n) => n.id === npcId) : undefined;
     renderer.setDialogueFocus?.({ npc: npc ? { x: npc.x, y: npc.y } : null });
   },
   close: () => renderer.setDialogueFocus?.(null),
@@ -1020,6 +1020,12 @@ window.__tb = {
   /** Frame-time probe, low-fx state and particle counts of the pixel view (null in the iso view). */
   get perf(): unknown {
     return 'perf' in renderer ? (renderer as { perf: () => unknown }).perf() : null;
+  },
+  /** The audio ambience (zones, footsteps): for the smoke checks. */
+  ambience,
+  /** Ambient life (Phase 6b): live counts and `bus()` to bring the bus to the stop. */
+  get ambient(): unknown {
+    return 'ambientHook' in renderer ? (renderer as { ambientHook: () => unknown }).ambientHook() : null;
   },
   /** Test/shots hook: pin the time of day ("19:30"), the weather ("garoa"), and/or the clock speed. `null` clears a pin. */
   setClock: (o: { time?: string | null; weather?: 'sol' | 'nublado' | 'garoa' | 'chuva' | null; speed?: number }) => {

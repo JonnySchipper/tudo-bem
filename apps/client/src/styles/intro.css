@@ -104,53 +104,6 @@ body.intro-active #world {
   }
 }
 
-.intro-cam,
-.intro-depth {
-  position: absolute;
-  inset: 0;
-}
-
-/* Portrait: the camera pulls back when the card arrives so fountain + ipês stay above it
-   (--cam-zoom / --cam-shift are 1 / 0 on wide layouts). */
-.intro-cam {
-  transform-origin: 50% 0;
-  transition: transform 1.6s var(--ease-cam);
-}
-
-.intro-phase-auth .intro-cam {
-  transform: translateY(var(--cam-shift, 0px)) scale(var(--cam-zoom, 1));
-}
-
-/* Each depth pushes in at its own rate (dolly parallax); pointer parallax sets `translate`. */
-.intro-depth {
-  transform-origin: 50% 60%;
-  will-change: transform;
-  transition: translate 1.4s var(--ease-out);
-  animation: intro-push 26s ease-in-out infinite alternate;
-}
-
-@keyframes intro-push {
-  from {
-    scale: 1;
-  }
-  to {
-    scale: var(--push, 1.035);
-  }
-}
-
-.intro-hero-svg {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-
-.intro-hero-scene:not(.is-portrait) .portrait-only {
-  display: none;
-}
-
 /* Colour grade over the whole world: warm the whites, key from the sun, cool violet shade to the right. */
 .intro-grade {
   position: absolute;
@@ -160,7 +113,7 @@ body.intro-active #world {
 
 .intro-grade-warm {
   mix-blend-mode: multiply;
-  background: linear-gradient(180deg, rgba(255, 232, 206, 0.5) 0%, rgba(255, 226, 190, 0.7) 55%, rgba(246, 206, 170, 0.8) 100%);
+  background: linear-gradient(180deg, rgba(255, 240, 222, 0.25) 0%, rgba(255, 232, 204, 0.35) 55%, rgba(250, 214, 180, 0.45) 100%);
 }
 
 .intro-grade-light {
@@ -168,334 +121,6 @@ body.intro-active #world {
   background:
     radial-gradient(ellipse 60% 55% at var(--sun-x) var(--sun-y), rgba(255, 206, 130, 0.75), rgba(255, 190, 120, 0.2) 55%, transparent 80%),
     linear-gradient(100deg, rgba(255, 170, 96, 0.35) 0%, rgba(255, 190, 130, 0.1) 45%, rgba(92, 70, 140, 0.32) 100%);
-}
-
-.intro-hero-svg .edge {
-  stroke: rgba(44, 44, 44, 0.78);
-  stroke-width: 2;
-}
-
-.intro-hero-svg .edge-soft {
-  stroke: rgba(44, 44, 44, 0.45);
-  stroke-width: 1.2;
-}
-
-.intro-hero-svg .layer-far {
-  opacity: 0.7;
-}
-
-.intro-hero-svg .layer-landmarks path[stroke-width],
-.intro-hero-svg .lm-banespa path {
-  stroke: #a597a6;
-}
-
-.intro-hero-svg .lm-copan-louvers path {
-  stroke: rgba(255, 232, 206, 0.42);
-  stroke-width: 2.2;
-}
-
-.intro-hero-svg .lm-copan-rim {
-  fill: none;
-  stroke: rgba(255, 216, 160, 0.9);
-  stroke-width: 3.5;
-}
-
-.intro-hero-svg .lm-banespa .lm-sunlit,
-.intro-hero-svg .lm-sunlit {
-  fill: none;
-  stroke: rgba(255, 210, 150, 0.85);
-  stroke-width: 3;
-}
-
-.intro-hero-svg .sk-win {
-  fill: rgba(255, 226, 196, 0.26);
-}
-
-.intro-hero-svg .sk-glint {
-  fill: rgba(255, 214, 140, 0.75);
-}
-
-.intro-hero-svg .sk-rim {
-  fill: rgba(255, 210, 150, 0.6);
-}
-
-.intro-hero-svg .horizon-glow {
-  fill: rgba(255, 190, 120, 0.5);
-}
-
-.intro-hero-svg .treeline-rim {
-  fill: none;
-  stroke: rgba(255, 206, 120, 0.55);
-  stroke-width: 6;
-  stroke-linecap: round;
-}
-
-.intro-hero-svg .cloud {
-  fill: url(#tb-cloud);
-  opacity: 0.9;
-}
-
-.intro-hero-svg .cloud-rim {
-  fill: none;
-  stroke: rgba(255, 176, 120, 0.7);
-  stroke-width: 5;
-  stroke-linecap: round;
-}
-
-/* Long low-sun shadows fall to the right; violet-brown, never black. */
-.intro-hero-svg .cast-shadow {
-  fill: rgba(84, 50, 72, 0.2);
-}
-
-.intro-hero-svg .wall-shade {
-  fill: rgba(84, 52, 86, 0.16);
-}
-
-.intro-hero-svg .wall-sunlit {
-  fill: rgba(255, 214, 150, 0.65);
-}
-
-.intro-hero-svg .pole-sunlit {
-  fill: rgba(255, 206, 140, 0.7);
-}
-
-.intro-hero-svg .tree-rim {
-  fill: none;
-  stroke: rgba(255, 206, 140, 0.7);
-  stroke-linecap: round;
-}
-
-.intro-hero-svg .tree-canopy-rim {
-  fill: none;
-  stroke: rgba(255, 232, 160, 0.65);
-  stroke-linecap: round;
-}
-
-.intro-hero-svg .water-glint {
-  animation: intro-glint 3.6s ease-in-out infinite alternate;
-}
-
-@keyframes intro-glint {
-  from {
-    opacity: 0.45;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-/* ---------- a touch of life: steam + passer-by ---------- */
-
-.intro-hero-svg .steam-wisp {
-  fill: none;
-  stroke: rgba(255, 250, 240, 0.85);
-  stroke-width: 2.6;
-  stroke-linecap: round;
-  transform-box: fill-box;
-  transform-origin: 50% 100%;
-  opacity: 0;
-  animation: intro-steam 3.9s ease-out infinite;
-}
-
-@keyframes intro-steam {
-  0% {
-    opacity: 0;
-    transform: translateY(4px) scale(0.7, 0.6);
-  }
-  30% {
-    opacity: 0.75;
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-10px) scale(1.25, 1.1);
-  }
-}
-
-.intro-hero-svg .passer-walk {
-  animation: intro-walk 58s linear -21s infinite;
-}
-
-@keyframes intro-walk {
-  from {
-    transform: translateX(1660px);
-  }
-  to {
-    transform: translateX(-80px);
-  }
-}
-
-.intro-hero-svg .passer-shadow {
-  fill: rgba(84, 50, 72, 0.22);
-}
-
-.intro-hero-svg .passer-bob {
-  animation: intro-bob 0.55s ease-in-out infinite alternate;
-}
-
-@keyframes intro-bob {
-  to {
-    transform: translateY(-1.2px);
-  }
-}
-
-.intro-hero-svg .passer-leg {
-  stroke: #3a2a20;
-  stroke-width: 2.8;
-  stroke-linecap: round;
-  transform-origin: 0 -22px;
-  animation: intro-stride 0.55s ease-in-out infinite alternate;
-}
-
-.intro-hero-svg .passer-leg-b {
-  animation-direction: alternate-reverse;
-}
-
-@keyframes intro-stride {
-  from {
-    transform: rotate(-16deg);
-  }
-  to {
-    transform: rotate(16deg);
-  }
-}
-
-.intro-hero-svg .layer-clouds {
-  animation: intro-clouds 90s linear infinite alternate;
-}
-
-@keyframes intro-clouds {
-  to {
-    transform: translateX(120px);
-  }
-}
-
-.intro-hero-svg .tree-trunk {
-  fill: #6f4829;
-}
-
-.intro-hero-svg .tree-branch {
-  fill: none;
-  stroke: #6f4829;
-  stroke-linecap: round;
-}
-
-.intro-hero-svg .tree-specks {
-  fill: rgba(255, 244, 214, 0.75);
-}
-
-.intro-hero-svg .tree-sway {
-  animation: intro-sway 7s ease-in-out infinite alternate;
-}
-
-@keyframes intro-sway {
-  from {
-    transform: rotate(-0.6deg);
-  }
-  to {
-    transform: rotate(0.8deg);
-  }
-}
-
-.intro-hero-svg .cornice,
-.intro-hero-svg .sill {
-  fill: #e6cfb3;
-  stroke: rgba(44, 44, 44, 0.6);
-  stroke-width: 1.5;
-}
-
-.intro-hero-svg .win-frame {
-  fill: #fbeedb;
-  stroke: rgba(44, 44, 44, 0.7);
-  stroke-width: 2;
-}
-
-.intro-hero-svg .win-glass {
-  fill: #b7b8c0;
-}
-
-.intro-hero-svg .win-glass.lit {
-  fill: #ffd58a;
-}
-
-.intro-hero-svg .win-bars {
-  stroke: #fbeedb;
-  stroke-width: 3;
-}
-
-.intro-hero-svg .shutter {
-  fill: #2f5d50;
-  stroke: rgba(44, 44, 44, 0.6);
-  stroke-width: 1.4;
-}
-
-.intro-hero-svg .sign-text {
-  font-family: var(--font-title);
-  font-weight: 800;
-  font-size: 30px;
-  letter-spacing: 4px;
-  fill: #fff3e0;
-  paint-order: stroke;
-  stroke: #5a3d28;
-  stroke-width: 3px;
-}
-
-.intro-hero-svg .door-text {
-  font-family: var(--font-body);
-  font-weight: 800;
-  font-size: 10px;
-  letter-spacing: 1px;
-  fill: #2f5d50;
-}
-
-.intro-hero-svg .chalk {
-  font-family: var(--font-title);
-  font-weight: 700;
-  font-size: 11px;
-  fill: #fff3e0;
-}
-
-.intro-hero-svg .vitrine-glow,
-.intro-hero-svg .lamp-glow {
-  animation: intro-glow 4.5s ease-in-out infinite alternate;
-}
-
-@keyframes intro-glow {
-  from {
-    opacity: 0.55;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.intro-hero-svg .jets path {
-  stroke: rgba(236, 248, 250, 0.85);
-  stroke-width: 3.5;
-  stroke-dasharray: 10 8;
-  animation: intro-water 1.1s linear infinite;
-}
-
-@keyframes intro-water {
-  to {
-    stroke-dashoffset: -36;
-  }
-}
-
-.intro-hero-svg .ripples {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: intro-ripple 3.2s ease-in-out infinite alternate;
-}
-
-@keyframes intro-ripple {
-  from {
-    transform: scale(0.9);
-    opacity: 0.6;
-  }
-  to {
-    transform: scale(1.06);
-    opacity: 1;
-  }
 }
 
 .intro-layer {
@@ -1562,14 +1187,6 @@ body.intro-active #world {
     display: none;
   }
 
-  .intro-hero-svg .passer-walk {
-    transform: translateX(790px);
-  }
-
-  .intro-hero-svg .steam-wisp {
-    opacity: 0.45;
-  }
-
   .intro-shell,
   .intro-phase-auth .intro-panel.tb-world-card {
     opacity: 1;
@@ -1586,4 +1203,50 @@ body.intro-active #world {
 body.view-pixel #world {
   filter: none;
   transform: none;
+}
+
+/* ---------- the real Vila Ipê behind the card (Phase 6b): a pre-rendered snapshot of the map, panned with CSS transforms ---------- */
+
+.intro-map-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 1.4s ease;
+}
+
+.intro-map-wrap.is-ready {
+  opacity: 1;
+}
+
+/* the portrait card covers the lower part of the screen: lift the picture into the strip above it once the card arrives */
+.intro-map-shift {
+  position: absolute;
+  inset: 0;
+  transition: transform 1.6s var(--ease-cam);
+}
+
+.intro-phase-auth .intro-map-shift {
+  transform: translateY(var(--cam-shift, 0px));
+}
+
+.intro-map {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  image-rendering: pixelated;
+  will-change: transform;
+  transform-origin: 0 0;
+}
+
+/* golden-hour light pouring over the picture, from the upper left */
+.intro-map-light {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 60% at var(--sun-x) var(--sun-y), rgba(255, 214, 140, 0.32), transparent 70%),
+    linear-gradient(180deg, rgba(255, 190, 120, 0.06), rgba(120, 60, 50, 0.18));
+  mix-blend-mode: soft-light;
 }
