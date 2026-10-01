@@ -135,7 +135,8 @@
     2px 0 0 0 var(--hud-ink, #573c2c);
 }
 
-.creator .preview {
+.creator .preview,
+.shop .preview {
   position: relative;
   display: grid;
   place-items: end center;
@@ -158,7 +159,8 @@
     #bd642f;
 }
 
-.creator .preview::before {
+.creator .preview::before,
+.shop .preview::before {
   /* a window of golden light on the wall */
   content: '';
   position: absolute;
@@ -172,7 +174,8 @@
   box-shadow: inset 0 0 0 4px #8b5e3c, inset 22px 0 0 -20px #8b5e3c;
 }
 
-.creator .preview::after {
+.creator .preview::after,
+.shop .preview::after {
   /* the pedestal: a stepped ellipse (outlined with four hard drop-shadows) */
   content: '';
   position: absolute;

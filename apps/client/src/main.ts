@@ -7,6 +7,7 @@ import './styles/feira.css';
 import './styles/hud.css';
 import './styles/creator.css';
 import './styles/intro-pixel.css';
+import './styles/panels.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';

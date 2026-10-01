@@ -1,0 +1,224 @@
+/*
+ * One panel style (V4). Every modal panel (journal, Caderno, map, hat shop, wardrobe, friends, credits, kiosk, profile cards, hotspot cards)
+ * is the same object: a notched 3 px warm-ink frame on cream paper, a padaria awning along the top edge (the brand, again), a pixel-font title,
+ * a square pixel close button, square pixel buttons and square cards. Panels with their own theme (Me vê um `.mg`, Roll `.roll`, Conversa) keep it.
+ * Loaded after pixel-ui.css / hud.css; learning text stays Nunito.
+ */
+
+html.px-ui .backdrop > .panel:not(.mg):not(.roll),
+.backdrop > .panel:not(.mg):not(.roll) {
+  position: relative;
+  padding: 46px 22px 16px;
+  border: 0;
+  border-image: none;
+  border-radius: 0;
+  filter: none;
+  background:
+    linear-gradient(#8f3e15, #8f3e15) 0 17px / 100% 3px no-repeat,
+    repeating-linear-gradient(90deg, #c45c26 0 16px, #fff3e0 16px 32px) 0 0 / 100% 20px no-repeat,
+    repeating-linear-gradient(90deg, #c45c26 0 8px, transparent 8px 16px, #fff3e0 16px 24px, transparent 24px 32px) 0 20px / 100% 6px no-repeat,
+    var(--hud-paper, #fbf1e3);
+  box-shadow:
+    0 -3px 0 0 var(--hud-ink, #573c2c),
+    0 3px 0 0 var(--hud-ink, #573c2c),
+    -3px 0 0 0 var(--hud-ink, #573c2c),
+    3px 0 0 0 var(--hud-ink, #573c2c),
+    inset 0 -3px 0 0 var(--hud-paper-lo, #ead7b8),
+    0 9px 0 0 rgba(20, 10, 6, 0.4);
+}
+
+.backdrop > .panel:not(.mg):not(.roll) h2 {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 1.55rem;
+  color: var(--terracota-dark);
+  letter-spacing: 0;
+}
+
+.backdrop > .panel:not(.mg):not(.roll) h2 + .en {
+  margin-bottom: 12px;
+}
+
+/* the close button: a square pixel key with the kit's X */
+.backdrop > .panel:not(.mg):not(.roll) .close,
+.panel .close.ghost {
+  position: absolute;
+  top: 34px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  font-size: 0;
+  color: transparent;
+  background: var(--terracota) var(--art-close, none) center / 32px 32px no-repeat;
+  image-rendering: pixelated;
+  transition: none;
+  box-shadow:
+    0 -2px 0 0 #7a3a16,
+    0 2px 0 0 #7a3a16,
+    -2px 0 0 0 #7a3a16,
+    2px 0 0 0 #7a3a16,
+    inset 0 -3px 0 0 var(--hud-paper-lo, #ead7b8);
+}
+
+.backdrop > .panel:not(.mg):not(.roll) .close:hover {
+  transform: none;
+  background-color: #d46a30;
+}
+
+.backdrop > .panel:not(.mg):not(.roll) .close:active {
+  transform: translateY(2px);
+}
+
+/* buttons inside panels */
+.backdrop > .panel:not(.mg):not(.roll) button:not(.close):not(.ghost):not(.item-card):not(.map-card):not(.on):not(.primary):not(.green) {
+  border: 0;
+  border-radius: 0;
+  background: #fffdf8;
+  color: var(--ink);
+  transition: none;
+  box-shadow:
+    0 -2px 0 0 #b9a27c,
+    0 2px 0 0 #b9a27c,
+    -2px 0 0 0 #b9a27c,
+    2px 0 0 0 #b9a27c,
+    inset 0 -3px 0 0 var(--hud-paper-lo, #ead7b8);
+}
+
+.backdrop > .panel:not(.mg):not(.roll) button.primary:not(.close) {
+  background: var(--terracota);
+  color: #fff8ec;
+  box-shadow:
+    0 -2px 0 0 #7a3a16,
+    0 2px 0 0 #7a3a16,
+    -2px 0 0 0 #7a3a16,
+    2px 0 0 0 #7a3a16,
+    inset 0 2px 0 0 rgba(255, 220, 190, 0.5),
+    inset 0 -3px 0 0 #a13f15;
+}
+
+.backdrop > .panel:not(.mg):not(.roll) button.green:not(.close) {
+  background: var(--sp-green);
+  color: #f5e6d3;
+  box-shadow:
+    0 -2px 0 0 #1d3a31,
+    0 2px 0 0 #1d3a31,
+    -2px 0 0 0 #1d3a31,
+    2px 0 0 0 #1d3a31,
+    inset 0 -3px 0 0 #214438;
+}
+
+.backdrop > .panel:not(.mg):not(.roll) button:not(.close):not(.ghost):not(.item-card):not(.map-card):not(.primary):not(.green):hover {
+  transform: none;
+  filter: brightness(1.05);
+}
+
+.backdrop > .panel:not(.mg):not(.roll) button:not(.close):active {
+  transform: translateY(2px);
+}
+
+.backdrop > .panel:not(.mg):not(.roll) button:disabled {
+  opacity: 0.55;
+  filter: grayscale(0.2);
+}
+
+.backdrop > .panel:not(.mg):not(.roll) button.ghost:not(.close) {
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* cards: hats, rooms, people, signs */
+.item-card,
+.list-rows .r,
+.shop .nanda-says,
+.carlos-says {
+  border: 0;
+  border-radius: 0;
+  background: #fffdf8;
+  box-shadow:
+    0 -2px 0 0 #cdb792,
+    0 2px 0 0 #cdb792,
+    -2px 0 0 0 #cdb792,
+    2px 0 0 0 #cdb792,
+    inset 0 -3px 0 0 var(--hud-paper-lo, #ead7b8);
+  margin: 2px;
+}
+
+.item-card.sel {
+  box-shadow:
+    0 -2px 0 0 var(--terracota),
+    0 2px 0 0 var(--terracota),
+    -2px 0 0 0 var(--terracota),
+    2px 0 0 0 var(--terracota),
+    inset 0 -3px 0 0 #f7d9b4;
+}
+
+.map-card {
+  border: 0;
+  border-radius: 0;
+  box-shadow:
+    0 -2px 0 0 var(--hud-ink, #573c2c),
+    0 2px 0 0 var(--hud-ink, #573c2c),
+    -2px 0 0 0 var(--hud-ink, #573c2c),
+    2px 0 0 0 var(--hud-ink, #573c2c),
+    inset 0 -4px 0 0 rgba(0, 0, 0, 0.18),
+    inset 0 3px 0 0 rgba(255, 255, 255, 0.28);
+  margin: 2px;
+  transition: none;
+}
+
+.map-card.light {
+  border: 0;
+}
+
+.map-card b {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+}
+
+.map-card:not(.locked):hover {
+  transform: none;
+  filter: brightness(1.06);
+}
+
+.linecolor {
+  border-radius: 0;
+}
+
+.minimap {
+  box-shadow:
+    0 -2px 0 0 var(--hud-ink, #573c2c),
+    0 2px 0 0 var(--hud-ink, #573c2c),
+    -2px 0 0 0 var(--hud-ink, #573c2c),
+    2px 0 0 0 var(--hud-ink, #573c2c);
+  border: 0;
+}
+
+/* section headings inside panels (journal, Caderno) */
+.backdrop > .panel:not(.mg):not(.roll) h3 {
+  font-family: var(--font-pixel);
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .backdrop > .panel:not(.mg):not(.roll),
+  html.px-ui .backdrop > .panel:not(.mg):not(.roll) {
+    border-radius: 0 !important;
+    padding: 44px 14px calc(14px + var(--safe-bottom));
+  }
+
+  .backdrop > .panel:not(.mg):not(.roll) .close,
+  .panel .close.ghost {
+    top: 32px;
+    right: 8px;
+    width: 44px;
+    height: 44px;
+  }
+}

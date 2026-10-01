@@ -119,5 +119,6 @@ export function installUiArt() {
   root.setProperty('--art-coin', px('rv'));
   root.setProperty('--art-seed', px('verde'));
   root.setProperty('--art-mark', px('mark'));
+  root.setProperty('--art-close', px('close'));
 }
 
