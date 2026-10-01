@@ -39,6 +39,7 @@ import {
 } from '@tudobem/shared';
 import type { ProfileStore, StoredProfile } from './store.js';
 import type { Session } from './world.js';
+import { readEnv } from './env.js';
 
 export interface RecadoDeps {
   now: () => number;
@@ -87,7 +88,7 @@ export class RecadoTracker {
     const day = gameDay(this.d.now());
     const st = rollRecadoDay(p, day, mulberry32(seedFor(p.id, day)), this.defs);
     // test hook (TB_TEST_OFFER=id,id): those recados always sit on today's board, so an e2e can pick its errand
-    for (const id of (process.env.TB_TEST_OFFER ?? '').split(',').map((x) => x.trim()).filter(Boolean).reverse()) {
+    for (const id of (readEnv('TB_TEST_OFFER') ?? '').split(',').map((x) => x.trim()).filter(Boolean).reverse()) {
       if (recadoById(id, this.defs) && !st.offered.includes(id) && !st.done.includes(id) && !st.active.some((a) => a.id === id)) st.offered.unshift(id);
     }
     p.recados = st;

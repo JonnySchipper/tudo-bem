@@ -6,8 +6,8 @@
  *
  * The server runs on a temp DATA_DIR with a PINNED game clock: TB_TEST_CLOCK_CONTROL=1 lets each script set the hour it needs right before it starts
  * (08:30 for e2e, 08:50 / 15:35 for the feira, 20:52 / 22:15 for the night scripts), plus TB_TEST_OFFER=carlos_cafe_pra_nanda (the whole recado is
- * part of `e2e`) and TB_TEST_ROLL=1 (Academia roll hints). Order: e2e, e2e-feira (day, night), e2e-night (a, b), then e2e:meveum. That last one
- * restarts its own server twice by design (a deploy drops the shift), so it brings its own pinned server on another port.
+ * part of `e2e`) and TB_TEST_ROLL=1 (Academia roll hints). Order: e2e, e2e-feira (day, night), e2e-night (a, b), then e2e:meveum (that one
+ * restarts its own server twice by design (a deploy drops the shift), so it brings its own pinned server on another port), then e2e:solo (builds the static VITE_LOCAL_WORLD client into a temp dir and serves it itself).
  */
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
@@ -76,6 +76,37 @@ function run(name, script, env = {}) {
   });
 }
 
+async function runSolo() {
+  const name = 'e2e:solo (static VITE_LOCAL_WORLD build)';
+  const t0 = Date.now();
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'tb-e2e-solo-'));
+  console.log(`
+=== ${name} ===`);
+  const viteBin = path.join(ROOT, 'apps/client/node_modules/vite/bin/vite.js');
+  const build = await new Promise((resolve) => {
+    const c = spawn(process.execPath, [viteBin, 'build', '--outDir', outDir, '--emptyOutDir'], {
+      cwd: path.join(ROOT, 'apps/client'),
+      env: { ...process.env, VITE_LOCAL_WORLD: '1' },
+      stdio: 'inherit',
+    });
+    c.on('exit', (code) => resolve(code === 0));
+  });
+  let res = { name, ok: false, secs: 0 };
+  if (build) {
+    const soloPort = Number(process.env.E2E_SOLO_PORT ?? 4173);
+    const web = spawn(process.execPath, [path.join(ROOT, 'scripts/serve-static.mjs'), outDir, String(soloPort), '/'], { cwd: ROOT, stdio: 'ignore' });
+    await new Promise((r) => setTimeout(r, 1000));
+    res = await run(name, 'e2e-solo.mjs', { BASE_URL: `http://localhost:${soloPort}/` });
+    web.kill();
+  } else console.error('solo build failed');
+  try {
+    fs.rmSync(outDir, { recursive: true, force: true });
+  } catch {
+    /* best effort */
+  }
+  return { ...res, secs: Math.round((Date.now() - t0) / 1000) };
+}
+
 const results = [];
 let code = 0;
 try {
@@ -91,6 +122,8 @@ try {
 }
 // the Me vê um script owns (and restarts) its server
 results.push(await run('e2e:meveum', 'e2e-meveum.mjs', { BASE_URL: undefined }));
+// the solo build (VITE_LOCAL_WORLD=1: the world runs in the page, no server) is built into a temp dir and served statically
+results.push(await runSolo());
 
 console.log('\n--- e2e:all summary ---');
 for (const r of results) {
