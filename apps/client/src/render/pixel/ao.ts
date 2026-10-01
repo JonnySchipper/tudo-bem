@@ -32,7 +32,7 @@ export interface AoStrip {
   a: number;
 }
 
-const BUILDING: readonly string[] = ['facades/', 'buildings/', 'casas/', 'props/edicula', 'props/feira_livre'];
+const BUILDING: readonly string[] = ['facades/', 'buildings/', 'casas/', 'fundos/', 'props/edicula', 'props/feira_livre'];
 const NONE: readonly string[] = ['decals/', 'fx/', 'backdrop/', 'ui/', 'walls/', 'doors/', 'telhados/', 'furniture/', 'props/fios', 'props/doormat', 'props/tatame', 'critters/', 'vehicles/', 'chars/', 'fence/', 'feira/preco'];
 
 /** Footprint of a sprite in px and its sprite box: where AO goes under a standing thing. */
@@ -40,11 +40,9 @@ export function aoForSprite(key: string, d: Pick<SpriteDef, 'w' | 'h' | 'ax' | '
   if (d.decal || NONE.some((p) => key.startsWith(p))) return [];
   const left = wx - d.ax;
   if (BUILDING.some((p) => key.startsWith(p))) {
-    // the wall meets the ground: a band along the whole base, a little in front of it, plus a darker thin line right at the foot
-    return [
-      { kind: 'rect', x: left + 1, y: wy - 3, w: d.w - 2, h: 9, a: 0.62, blur: 4 },
-      { kind: 'rect', x: left + 2, y: wy - 2, w: d.w - 4, h: 3, a: 0.34, blur: 1.4 },
-    ];
+    // the wall meets the ground: a soft band on the ground in front of the base. The facade's own soleira (V3) already darkens its last three
+    // rows, so the band starts at the foot line and goes south only (no double darkening on the wall).
+    return [{ kind: 'rect', x: left + 2, y: wy + 1, w: d.w - 4, h: 5, a: 0.5, blur: 3 }];
   }
   const fw = d.footprint[0] * 16;
   const rx = Math.max(6, fw * 0.5 + 3);
@@ -87,7 +85,8 @@ export function aoForTerrain(floor: readonly string[], width = 5): AoStrip[] {
       const x0 = x * 16;
       const y0 = y * 16;
       const asphalt = ch === 'a';
-      const base = asphalt ? 0.3 : 0.4;
+      // the V1 curbs have their own lit lip and contact shadow baked in, so the strips are a light touch
+      const base = asphalt ? 0.22 : 0.3;
       if (RAISED.has(at(x, y - 1) ?? '')) out.push({ x0, y0, x1: x0 + 16, y1: y0 + width, side: 'n', a: base * 1.15 });
       if (RAISED.has(at(x, y + 1) ?? '')) out.push({ x0, y0: y0 + 16 - width, x1: x0 + 16, y1: y0 + 16, side: 's', a: base * 0.8 });
       if (RAISED.has(at(x - 1, y) ?? '')) out.push({ x0, y0, x1: x0 + width, y1: y0 + 16, side: 'w', a: base * 1.15 });

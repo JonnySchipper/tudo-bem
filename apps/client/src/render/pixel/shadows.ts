@@ -185,7 +185,7 @@ export interface CastPreset {
 const NO_CAST: readonly string[] = ['decals/', 'fx/', 'backdrop/', 'ui/', 'walls/', 'doors/', 'telhados/', 'furniture/', 'props/fios', 'props/doormat', 'props/tatame', 'critters/pigeon', 'chars/parrot'];
 
 /** Sprites that are a building front: tall, they cast a capped, softer shadow. */
-const BUILDING: readonly string[] = ['facades/', 'buildings/', 'casas/', 'props/edicula', 'props/ponto_onibus', 'props/feira_livre'];
+const BUILDING: readonly string[] = ['facades/', 'buildings/', 'casas/', 'fundos/', 'props/edicula', 'props/ponto_onibus', 'props/feira_livre'];
 /** Things that are low or lean (vehicles, dogs): a shorter, tighter shadow. */
 const LOW: readonly string[] = ['vehicles/', 'critters/'];
 

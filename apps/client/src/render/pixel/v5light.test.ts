@@ -15,6 +15,8 @@ describe('ao plan', () => {
     expect(s.length).toBeGreaterThan(0);
     expect(s[0].kind).toBe('rect');
     expect(s[0].w).toBeGreaterThan(70);
+    expect(s[0].y).toBeGreaterThan(50); // starts at the foot line, not up the wall (the soleira covers the wall)
+    expect(aoForSprite('fundos/f1', { w: 96, h: 64, ax: 48, ay: 63, footprint: [6, 1] }, 100, 50)[0].kind).toBe('rect');
   });
   it('a prop gets a foot ellipse, flat art and vehicles get none', () => {
     const e = aoForSprite('props/bench_small', { w: 26, h: 22, ax: 13, ay: 20, footprint: [2, 1] }, 40, 40);
