@@ -1,7 +1,7 @@
 /*
  * Phase 7: the in-world dialogue box, the sign card, the 👁 cue and the Caderno panel, in the pixel chrome.
  * One art pixel = 1 CSS px on the 1x panel frame (the box is a HUD element, not a modal); learning text stays Nunito (D9), the pixel font
- * is for name tags, numbers and headings only. `?dialogue=modal` still uses the old modal styles in styles.css.
+ * is for name tags, numbers and headings only. (The old modal presentation, `?dialogue=modal`, was removed in Phase 10.)
  */
 
 /* ---------------------------------------------------------------- the dialogue box */

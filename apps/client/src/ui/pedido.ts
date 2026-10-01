@@ -6,12 +6,12 @@
 import type { Bilingual, ConversaSafetyNotice, SceneView } from '@tudobem/shared';
 import { ROOMS, SCORE_FEEDBACK, gateConversaPlayerLine } from '@tudobem/shared';
 import { game } from '../state';
-import { h, en, bi, ui } from './dom';
+import { h, en, bi } from './dom';
 import { toast } from './hud';
-import { expressionForScore, npcPortrait } from './pixelArt';
+import { expressionForScore } from './pixelArt';
 import { speak } from '../audio';
 import { ticketLinesFromSaid, type TicketLine } from './pedido-ticket';
-import { closeDialogueBox, dialogueMode, showDialogueBox, type BoxSpec } from './dialogue';
+import { closeDialogueBox, showDialogueBox, type BoxSpec } from './dialogue';
 
 interface PedidoState {
   view: SceneView;
@@ -24,13 +24,10 @@ interface PedidoState {
 }
 
 let state: PedidoState | null = null;
-let containerEl: HTMLElement | null = null;
-let backdropEl: HTMLElement | null = null;
 let closeCallback: (() => void) | null = null;
 let playCallback: (() => void) | null = null;
 let onChoose: ((i: number) => void) | null = null;
 let onType: ((text: string) => void) | null = null;
-let onKey: ((e: KeyboardEvent) => void) | null = null;
 /** The dialogue box (not the old modal) is showing this scene. */
 let boxOwned = false;
 /** One safety toast per send; server notice is a backstop when the client has not already shown it. */
@@ -40,11 +37,6 @@ function showSafetyToast(notice: ConversaSafetyNotice | null | undefined) {
   if (!notice || safetyToastShown) return;
   safetyToastShown = true;
   toast(notice.level, notice.pt, notice.en);
-}
-
-function portrait() {
-  const expr = state?.view.end ? (state.payout && state.payout > 0 ? 'feliz' : 'neutro') : expressionForScore(state?.lastScore);
-  return npcPortrait('carlos', expr, 'pedido-portrait');
 }
 
 function buildTicketVisual(ticket: TicketLine[]): HTMLElement {
@@ -141,105 +133,9 @@ function boxSpec(s: PedidoState): BoxSpec {
 }
 
 function render() {
-  if (state && dialogueMode() === 'box') {
-    boxOwned = true;
-    showDialogueBox(boxSpec(state));
-    return;
-  }
-  if (!state || !containerEl) return;
-
-  const header = h('div', { class: 'pedido-header' },
-    portrait(),
-    h('div', { class: 'pedido-info' },
-      h('div', { class: 'npc-name' }, 'Seu Carlos'),
-      h('small', { class: 'npc-role' }, 'Padeiro · Baker'),
-      h('div', { class: 'scene-title' }, 'Pedido rápido', en('Quick order', true))
-    ),
-    h('button', { class: 'close-btn ghost', onclick: handleClose, 'aria-label': 'Fechar' }, '✕')
-  );
-
-  const ticketVisual = buildTicketVisual(state.ticket);
-
-  const carlosLine = h('div', { class: 'pedido-carlos-line' },
-    h('div', { class: 'line-bubble' },
-      h('div', { class: 'line-head' },
-        h('span', { class: 'line-label' }, 'Seu Carlos'),
-        h('button', {
-          class: 'speak-btn',
-          onclick: () => speak(state!.view.line.pt, { force: true }),
-          title: 'Ouvir / Listen',
-        }, '🔊'),
-      ),
-      h('span', { class: 'pt' }, state.view.line.pt),
-      en(state.view.line.en, true),
-    ),
-  );
-
-  let body: HTMLElement;
-  if (state.view.end) {
-    // Daily RV gate copy: eng-locked, PT-primary (Curriculum needs_br)
-    // "Já pediu hoje! Volte amanhã." — No inline English; gloss shown only in Verde plate tooltip if needed.
-    const dailyCopy = state.dailyBlocked
-      ? h('div', { class: 'daily-blocked', 'data-needs-br': 'true' },
-          h('span', { class: 'blocked-icon' }, '📅'),
-          h('b', { lang: 'pt-BR' }, 'Já pediu hoje!'),
-          h('small', { lang: 'pt-BR' }, 'Volte amanhã.')
-        )
-      : null;
-
-    body = h('div', { class: 'pedido-body ended' },
-      ticketVisual,
-      carlosLine,
-      state.payout && state.payout > 0
-        ? h('div', { class: 'pedido-payout' }, `+${state.payout} RV`, en('Breakfast complete!', true))
-        : dailyCopy,
-      h('div', { class: 'pedido-actions' },
-        h('button', { class: 'ghost', onclick: handleClose }, bi('Tchau!', 'Bye!')),
-        h('button', { class: 'primary', onclick: handlePlay, id: 'btn-pedido-play-mg' }, bi('Jogar "Me vê um…"', 'Play tray game'))
-      )
-    );
-  } else {
-    const chips = state.view.chips.map((chip, i) =>
-      h('button', { class: 'pedido-chip', onclick: () => handleChip(i), 'data-chip': String(i) },
-        h('span', { class: 'chip-num' }, String(i + 1)),
-        h('span', { class: 'chip-text' },
-          h('span', { class: 'pt' }, chip.pt),
-          chip.en ? en(chip.en, true) : null
-        )
-      )
-    );
-
-    const inputEl = h('input', {
-      type: 'text',
-      maxLength: 140,
-      placeholder: 'Ou escreva sua resposta… (or type)',
-      'aria-label': 'Sua resposta',
-      id: 'pedido-input'
-    }) as HTMLInputElement;
-    inputEl.addEventListener('keydown', (e) => {
-      e.stopPropagation();
-      if (e.key === 'Enter') handleSend(inputEl);
-    });
-
-    body = h('div', { class: 'pedido-body' },
-      ticketVisual,
-      carlosLine,
-      state.said ? h('div', { class: 'pedido-you-said' }, `Você: "${state.said.pt}"`) : null,
-      state.lastScore !== undefined ? buildScoreIndicator(state.lastScore) : null,
-      h('div', { class: 'pedido-chips' }, ...chips),
-      h('div', { class: 'pedido-input-row' },
-        inputEl,
-        h('button', { class: 'primary', onclick: () => handleSend(inputEl) }, 'Enviar')
-      )
-    );
-  }
-
-  containerEl.replaceChildren(header, body);
-
-  if (!state.view.end) {
-    const input = document.getElementById('pedido-input') as HTMLInputElement | null;
-    input?.focus();
-  }
+  if (!state) return;
+  boxOwned = true;
+  showDialogueBox(boxSpec(state));
 }
 
 function handleChip(index: number) {
@@ -288,13 +184,6 @@ function handlePlay() {
 }
 
 export function closePedido() {
-  if (onKey) {
-    document.removeEventListener('keydown', onKey);
-    onKey = null;
-  }
-  backdropEl?.remove();
-  backdropEl = null;
-  containerEl = null;
   state = null;
   onChoose = null;
   onType = null;
@@ -373,28 +262,6 @@ export function openPedido(
     dailyBlocked: false
   };
 
-  if (dialogueMode() === 'box') {
-    speak(view.line.pt);
-    render();
-    return;
-  }
-  backdropEl = h('div', { class: 'pedido-backdrop', 'data-modal': 'pedido' });
-  containerEl = h('div', { class: 'pedido-panel' });
-  backdropEl.append(containerEl);
-
-  onKey = (e: KeyboardEvent) => {
-    if (!state) return;
-    if (e.key === 'Escape') {
-      handleClose();
-      return;
-    }
-    const n = Number(e.key);
-    if (n >= 1 && n <= state.view.chips.length) handleChip(n - 1);
-  };
-  document.addEventListener('keydown', onKey);
-
-  ui().append(backdropEl);
-  game.modalOpen = true;
   speak(view.line.pt);
   render();
 }
