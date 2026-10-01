@@ -18,10 +18,10 @@ export interface PanRoute {
 /** Map px (art pixels): from the Padaria's awning and the Banca, east along the facades toward the Edifício and the street. */
 export const PAN_ROUTE: PanRoute = { from: { x: 230, y: 96 }, to: { x: 620, y: 130 }, legSec: 110 };
 
-/** Whole CSS px per art pixel: about 300 art px across on a wide screen, never below 2 (a phone shows ~190). */
+/** Whole CSS px per art pixel: about 420 art px across on a wide screen (1280 wide -> 3), never below 2 (a phone shows ~190). */
 export function introZoom(vw: number, vh: number): number {
-  const byWidth = Math.round(vw / 300);
-  const byHeight = Math.floor(vh / 150);
+  const byWidth = Math.floor(vw / 420);
+  const byHeight = Math.floor(vh / 200);
   return Math.max(2, Math.min(5, byWidth, Math.max(2, byHeight)));
 }
 
