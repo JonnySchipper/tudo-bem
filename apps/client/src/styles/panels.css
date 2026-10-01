@@ -222,3 +222,28 @@ html.px-ui .backdrop > .panel:not(.mg):not(.roll),
     height: 44px;
   }
 }
+
+/* legibility (D9): Pixelify Sans is loaded at one weight (500, its C keeps the opening) and never synthesised; small labels with c / C stay Nunito */
+html {
+  font-synthesis-weight: none;
+}
+
+.intro-tab,
+.intro-submit.intro-cta,
+.intro-guest-pt,
+.rtrack-head,
+.rt-title,
+.hud-chip,
+.chatbar button.primary {
+  font-family: var(--font-body);
+  font-weight: 800;
+}
+
+.caderno .cad-tab-name,
+.dbx-name,
+.dbx-meta,
+.hotspot-card .hs-kicker,
+.dbx .conversa-score-card .conta-head {
+  font-family: var(--font-body);
+  font-weight: 800;
+}
