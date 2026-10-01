@@ -178,7 +178,7 @@ Idle lines of the three original NPCs (Carlos, Nanda, Júlia) pre-date the conve
 ## F. Recados (errands)
 
 <a id="f-recados"></a>
-The 19 recados are authored in `content/curriculum/phase0/recados.md` (all `needs_br: true`); the templated step lines below are built in `describeStep`, so each distinct rendering is listed once.
+The 18 recados are authored in `content/curriculum/phase0/recados.md` (all `needs_br: true`); the templated step lines below are built in `describeStep`, so each distinct rendering is listed once.
 
 | # | PT | EN | Where | Note | OK? |
 |---|---|---|---|---|---|
