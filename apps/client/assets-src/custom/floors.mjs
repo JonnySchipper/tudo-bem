@@ -137,8 +137,9 @@ export function xadrez() {
 
 // ------------------------------------------------------------------ j: tatame
 const MAT = {
-  blue: { base: '#4a82cc', hi: '#6a9ee0', lo: '#3c68ac', seam: '#2f4f8e', dot: '#4f8ad4' },
-  green: { base: '#4fa05a', hi: '#6cbb70', lo: '#3f8449', seam: '#2e6236', dot: '#54a961' },
+  // V1: about 15% less saturated than art track 3, so the mats sit with the calm outdoor materials
+  blue: { base: '#5584c4', hi: '#729fd6', lo: '#456aa6', seam: '#36508c', dot: '#5a8acb' },
+  green: { base: '#58a062', hi: '#74b97a', lo: '#478650', seam: '#34663d', dot: '#5ca967' },
 };
 
 /** A 32x32 foam mat quadrant: `qx`, `qy` in 0..1 is which 16x16 tile of the mat this is. Seams are on the mat border (2 px, dark) and

@@ -4,7 +4,7 @@
 // V1 ground pass: the wave used to be 2x2 px stones with per-stone random tints and highlights, which buzzed at every zoom. It is now two calm tones in
 // smooth flowing bands (the Copacabana wave), with the petit-pavé only suggested by a quiet 4 px stone grid in running bond (1 px joints, a few
 // percent lighter or darker than the stone, no per-pixel noise). Light comes from the upper left: the joints sit on the lower right of each stone.
-import { blank, setPx, hexPx, rng } from '../../../../scripts/lib/pixel/img.mjs';
+import { blank, setPx, hexPx } from '../../../../scripts/lib/pixel/img.mjs';
 
 /** The mosaic keeps the bold black-and-white stone values (it is the one piece of the ground that should stand out). */
 export const STONE = {
@@ -52,14 +52,14 @@ const hash = (a, b, s = 0) => {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 };
 
-/** Position inside the band period at (X, Y): 0 .. py, dark below py/2. Periodic in X with `px` and in Y with `py` (the wave term has period px/ (px/32) = 32 exactly). */
+/** Position inside the band period at (X, Y): 0 .. py, dark below py/2. Periodic in X with `px` (the wavelength) and in Y with `py`. */
 function bandPos(o, X, Y) {
-  const wave = o.amp * Math.sin((TAU * X) / (o.px >= 64 ? o.px : o.px));
+  const wave = o.amp * Math.sin((TAU * X) / o.px);
   return (((Y + wave) % o.py) + o.py) % o.py;
 }
 
 /** Colour of the paving at pattern pixel (X, Y). */
-function pavePx(o, X, Y) {
+export function pavePx(o, X, Y) {
   const s = o.stone;
   let sx = X, sy = Y, lx = 0, ly = 0, cx = 0, cy = 0, joint = false;
   if (s) {
@@ -207,4 +207,3 @@ export function spMosaic(W = 64, H = 48) {
   return img;
 }
 
-void rng;

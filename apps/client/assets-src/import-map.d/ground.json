@@ -13,14 +13,14 @@
       "kind": "custom",
       "custom": "grassPatch",
       "args": {
-        "w": 80,
-        "h": 48,
+        "w": 112,
+        "h": 64,
         "seed": 101,
         "tone": "light"
       },
       "footprint": [
-        5,
-        3
+        7,
+        4
       ],
       "decal": true
     },
@@ -29,14 +29,14 @@
       "kind": "custom",
       "custom": "grassPatch",
       "args": {
-        "w": 64,
-        "h": 40,
+        "w": 96,
+        "h": 56,
         "seed": 102,
         "tone": "light"
       },
       "footprint": [
-        4,
-        3
+        6,
+        4
       ],
       "decal": true
     },
@@ -45,14 +45,14 @@
       "kind": "custom",
       "custom": "grassPatch",
       "args": {
-        "w": 96,
-        "h": 56,
+        "w": 128,
+        "h": 72,
         "seed": 103,
         "tone": "light"
       },
       "footprint": [
-        6,
-        4
+        8,
+        5
       ],
       "decal": true
     },
@@ -61,14 +61,14 @@
       "kind": "custom",
       "custom": "grassPatch",
       "args": {
-        "w": 72,
-        "h": 44,
+        "w": 104,
+        "h": 60,
         "seed": 201,
         "tone": "dark"
       },
       "footprint": [
-        5,
-        3
+        7,
+        4
       ],
       "decal": true
     },
@@ -77,25 +77,9 @@
       "kind": "custom",
       "custom": "grassPatch",
       "args": {
-        "w": 56,
-        "h": 36,
-        "seed": 202,
-        "tone": "dark"
-      },
-      "footprint": [
-        4,
-        3
-      ],
-      "decal": true
-    },
-    {
-      "key": "decals/grass_dark_2",
-      "kind": "custom",
-      "custom": "grassPatch",
-      "args": {
         "w": 88,
         "h": 52,
-        "seed": 203,
+        "seed": 202,
         "tone": "dark"
       },
       "footprint": [
@@ -105,17 +89,33 @@
       "decal": true
     },
     {
+      "key": "decals/grass_dark_2",
+      "kind": "custom",
+      "custom": "grassPatch",
+      "args": {
+        "w": 120,
+        "h": 68,
+        "seed": 203,
+        "tone": "dark"
+      },
+      "footprint": [
+        8,
+        5
+      ],
+      "decal": true
+    },
+    {
       "key": "decals/dirt_0",
       "kind": "custom",
       "custom": "dirtPatch",
       "args": {
-        "w": 32,
-        "h": 20,
+        "w": 34,
+        "h": 14,
         "seed": 301
       },
       "footprint": [
-        2,
-        2
+        3,
+        1
       ],
       "decal": true
     },
@@ -124,8 +124,8 @@
       "kind": "custom",
       "custom": "dirtPatch",
       "args": {
-        "w": 24,
-        "h": 16,
+        "w": 26,
+        "h": 12,
         "seed": 302
       },
       "footprint": [
@@ -139,13 +139,13 @@
       "kind": "custom",
       "custom": "dirtPatch",
       "args": {
-        "w": 40,
-        "h": 22,
+        "w": 42,
+        "h": 16,
         "seed": 303
       },
       "footprint": [
         3,
-        2
+        1
       ],
       "decal": true
     },

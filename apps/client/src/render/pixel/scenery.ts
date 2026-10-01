@@ -78,7 +78,10 @@ export function sceneryFor(def: RoomDef, has: (key: string) => boolean = () => t
     if (has(d.key)) decals.push(d);
   };
   const occupied = new Set<string>();
-  for (const p of def.props) for (const t of propTiles(p)) occupied.add(`${t.x},${t.y}`);
+  for (const p of def.props) {
+    // a fence's footprint is the whole rectangle it encloses, but only its ring is solid: the lawn inside stays dressable
+    for (const t of propTiles(p)) if (p.kind !== 'cerca' || t.x === p.x || t.y === p.y || t.x === p.x + (p.w ?? 1) - 1 || t.y === p.y + (p.h ?? 1) - 1) occupied.add(`${t.x},${t.y}`);
+  }
   const at = (x: number, y: number) => def.floor[y]?.[x];
 
   // crosswalks across both streets, aligned with the doors and the brick axis
@@ -152,7 +155,7 @@ function wireRuns(def: RoomDef): WireRun[] {
 }
 
 /** Size (in tiles, w x h) of each grass patch variant, matching the art in custom/ground.mjs. */
-const PATCH_PX: Record<string, [number, number]> = { light_0: [80, 48], light_1: [64, 40], light_2: [96, 56], dark_0: [72, 44], dark_1: [56, 36], dark_2: [88, 52] };
+const PATCH_PX: Record<string, [number, number]> = { light_0: [112, 64], light_1: [96, 56], light_2: [128, 72], dark_0: [104, 60], dark_1: [88, 52], dark_2: [120, 68] };
 
 /**
  * The life of a lawn: two or three large soft patches of lighter or darker grass (a grid of 5 x 4 tile cells, one jittered patch per cell, only where the
@@ -163,17 +166,20 @@ function grassDressing(def: RoomDef, add: (d: Decal) => void, at: (x: number, y:
     for (let ty = Math.floor(py0 / T); ty <= Math.floor((py1 - 1) / T); ty++) for (let tx = Math.floor(px0 / T); tx <= Math.floor((px1 - 1) / T); tx++) if (at(tx, ty) !== 'g') return false;
     return true;
   };
-  // large soft patches
-  for (let cy = 0; cy * 4 < def.rows; cy++) {
-    for (let cx = 0; cx * 5 < def.cols; cx++) {
-      if (rnd(cx, cy, 41) > 0.8) continue;
+  // large soft patches: a jittered cell grid (3 x 3 tiles), one candidate per cell, kept when the patch body lies on grass and no other patch is near
+  const placed: { x: number; y: number }[] = [];
+  for (let cy = 0; cy * 3 < def.rows; cy++) {
+    for (let cx = 0; cx * 3 < def.cols; cx++) {
+      if (rnd(cx, cy, 41) > 0.55) continue;
       const tone = rnd(cx, cy, 42) < 0.5 ? 'light' : 'dark';
       const k = Math.floor(rnd(cx, cy, 43) * 3);
       const [w, h] = PATCH_PX[`${tone}_${k}`];
-      const px = Math.round((cx * 5 + 2.5 + (rnd(cx, cy, 44) - 0.5) * 3) * T);
-      const py = Math.round((cy * 4 + 2 + (rnd(cx, cy, 45) - 0.5) * 2) * T);
-      // the dithered rim may touch the curb, the body (the inner 88%) must be all grass
-      if (!onGrass(px - w * 0.44, py - h * 0.44, px + w * 0.44, py + h * 0.44)) continue;
+      const px = Math.round((cx * 3 + 1.5 + (rnd(cx, cy, 44) - 0.5) * 2) * T);
+      const py = Math.round((cy * 3 + 1.5 + (rnd(cx, cy, 45) - 0.5) * 2) * T);
+      // the dithered rim may touch the curb, the body (the inner 82%) must be all grass
+      if (!onGrass(px - w * 0.41, py - h * 0.41, px + w * 0.41, py + h * 0.41)) continue;
+      if (placed.some((q) => Math.hypot(q.x - px, q.y - py) < 3.8 * T)) continue;
+      placed.push({ x: px, y: py });
       add({ key: `decals/grass_${tone}_${k}`, x: px, y: py, origin: 'anchor', depth: DEPTH_PATCH });
     }
   }
@@ -182,8 +188,10 @@ function grassDressing(def: RoomDef, add: (d: Decal) => void, at: (x: number, y:
   for (let y = 1; y < def.rows - 1; y++) {
     for (let x = 1; x < def.cols - 2; x++) {
       if (at(x, y) !== 'g' || at(x + 1, y) !== 'g' || occupied.has(`${x},${y}`) || occupied.has(`${x + 1},${y}`)) continue;
-      const edge = ['c', 't'].some((c) => at(x - 1, y) === c || at(x + 2, y) === c || at(x, y - 1) === c || at(x, y + 1) === c);
-      if (!edge || rnd(x, y, 51) > 0.035) continue;
+      const near = (c: string) => at(x - 1, y) === c || at(x + 2, y) === c || at(x, y - 1) === c || at(x, y + 1) === c;
+      // the corners next to the brick paths are where feet cut across, the rest of the rim only now and then
+      const chance = near('t') ? 0.14 : near('c') ? 0.02 : 0;
+      if (rnd(x, y, 51) > chance) continue;
       if (dirt.some((d) => Math.abs(d.x - x) + Math.abs(d.y - y) < 6)) continue;
       dirt.push({ x, y });
       const k = Math.floor(rnd(x, y, 52) * 3);

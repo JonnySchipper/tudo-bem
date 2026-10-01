@@ -82,7 +82,7 @@ export function busBay(w = 112, h = 32) {
 }
 
 // ------------------------------------------------------------------ grass dressing
-export const GRASS = { base: '#63a650', light: '#74b453', yellow: '#9bc246', deep: '#529760', leaf: '#64b63b', dark: '#568d61', white: '#ebe4f2', softLight: '#70b455', softDark: '#559b4c' };
+export const GRASS = { base: '#63a650', light: '#74b453', yellow: '#9bc246', deep: '#529760', leaf: '#64b63b', dark: '#568d61', white: '#ebe4f2', softLight: '#72b656', softDark: '#569c4d' };
 
 /** A big, soft, wobbly patch of lighter or darker grass: dithered edge, solid centre. `tone` is 'light' or 'dark'. */
 export function grassPatch(w, h, seed, tone) {
@@ -107,28 +107,30 @@ export function grassPatch(w, h, seed, tone) {
   return img;
 }
 
-/** A worn dirt patch where feet cut the corner: ochre in a dithered blob with a few pebbles. */
+/**
+ * A worn patch where feet cut the corner: flat, pale dry earth in a low wide dither (no shading, so it never reads as a heap of soil), the grass
+ * thinning out toward the rim, a couple of small stones.
+ */
 export function dirtPatch(w, h, seed) {
   const img = blank(w, h);
   const r = rng(seed);
   const cx = (w - 1) / 2, cy = (h - 1) / 2;
   const wob = [r() * 6.28, r() * 6.28];
-  const tones = ['#b08a5e', '#a07c52', '#8f6a4a'];
+  const tones = ['#b9a06e', '#ad9462'];
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const a = Math.atan2((y - cy) / (h / 2), (x - cx) / (w / 2));
-      const edge = 0.8 + 0.14 * Math.sin(a * 3 + wob[0]) + 0.06 * Math.sin(a * 5 + wob[1]);
+      const edge = 0.82 + 0.12 * Math.sin(a * 3 + wob[0]) + 0.06 * Math.sin(a * 5 + wob[1]);
       const d = Math.hypot((x - cx) / (w / 2), (y - cy) / (h / 2));
       if (d > edge) continue;
       const t = 1 - d / edge;
-      if (t * 2.4 <= bayer(x, y)) continue;
-      const v = r();
-      setPx(img, x, y, hexPx(t > 0.5 ? (v < 0.75 ? tones[0] : tones[1]) : v < 0.5 ? tones[1] : tones[2]));
+      if (t * 1.8 <= bayer(x, y) + 0.1) continue;
+      setPx(img, x, y, hexPx(r() < 0.78 ? tones[0] : tones[1]));
     }
   }
-  for (let k = 0; k < Math.max(2, Math.round((w * h) / 90)); k++) {
-    const x = 2 + Math.floor(r() * (w - 4)), y = 2 + Math.floor(r() * (h - 4));
-    if (img.data[(y * w + x) * 4 + 3]) setPx(img, x, y, hexPx(r() < 0.5 ? '#c6bdd5' : '#d8d0e0'));
+  for (let k = 0; k < Math.max(1, Math.round((w * h) / 200)); k++) {
+    const x = 3 + Math.floor(r() * (w - 6)), y = 2 + Math.floor(r() * (h - 4));
+    if (img.data[(y * w + x) * 4 + 3]) setPx(img, x, y, hexPx('#d8d0e0'));
   }
   return img;
 }
