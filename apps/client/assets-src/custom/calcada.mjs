@@ -162,7 +162,7 @@ export function spMapBitmap(w = 64, h = 48, margin = 6) {
 
 const MOS = {
   frameHi: '#ebe4f2', frame: '#d8d0e0', frameShade: '#a2a6be', frameJoint: '#bcb7cd', gap: '#46465e',
-  field: ['#565972', '#565972', '#4f526b'], fieldJoint: '#46465e',
+  field: ['#666881', '#666881', '#5f627b'], fieldJoint: '#555770',
   state: ['#f0efde', '#ebe4f2', '#ebe4f2'], stateJoint: '#cfc8dc', stateEdge: '#9a9ab5',
 };
 
