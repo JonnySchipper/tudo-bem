@@ -10,13 +10,21 @@ export type Rgb = [number, number, number];
 export const GRADE_KEYS: readonly [number, string][] = [
   [0, '#3b4a7c'],
   [4.5, '#4a4f86'],
-  [5.5, '#c98a8f'],
-  [7, '#fff1e0'],
+  // dawn (V5): cool violet, then pink, then a soft peach that has warmed to white by nine
+  [5.3, '#8a72a8'],
+  [5.9, '#d98fa6'],
+  [6.5, '#f4b9ae'],
+  [7, '#ffd4c0'],
+  [8, '#ffeede'],
   [9, '#ffffff'],
   [15, '#fff6e6'],
-  [16.5, '#ffe3bd'],
-  [17.5, '#ffcd9e'],
-  [18.3, '#f2a48f'],
+  // golden hour (V5): deeper amber at 17:30, a coral dusk, then the violet that hands over to the night grade
+  [16.5, '#ffe4bf'],
+  [17, '#ffd7a8'],
+  [17.5, '#ffc48e'],
+  [18, '#fbaa8a'],
+  [18.3, '#ee9690'],
+  [18.7, '#b87fa8'],
   [19, '#7a78ae'],
   [20, '#3b4a7c'],
   [24, '#3b4a7c'],
@@ -69,9 +77,13 @@ export function glowStrength(hour: number): number {
   return Math.min(1, darknessAlpha(hour) / 0.3);
 }
 
-/** 0..1 warm low-sun glow from the upper left: fades in from 16:00, peaks around 17:30, gone by 19:00. */
+/**
+ * 0..1 warm low-sun glow from the side the sun is on: fades in from 16:00, peaks around 17:30, gone by 19:00; and a gentler one at dawn
+ * (5:30 to 8:00, peak 6:45).
+ */
 export function sunGlow(hour: number): number {
   const h = ((hour % 24) + 24) % 24;
+  if (h >= 5.5 && h <= 8) return 0.75 * (h < 6.75 ? smooth((h - 5.5) / 1.25) : smooth((8 - h) / 1.25));
   if (h < 16 || h > 19) return 0;
   return h < 17.5 ? smooth((h - 16) / 1.5) : smooth((19 - h) / 1.5);
 }

@@ -102,6 +102,9 @@ export interface SceneLook {
   glow: number;
   /** alpha of the low-sun glow */
   sun: number;
+  /** V5: where the low-sun glow sits (0..1 across the screen: the side the sun is on) and its colour */
+  sunX: number;
+  sunTint: number;
   /** alpha of the sun-cast shadows */
   cast: number;
   /** V5: the sun's directional shadows (shear, strength, tint); alpha 0 in interiors, at night and under chuva */
@@ -136,6 +139,14 @@ export const NIGHT_DARK = 0.5;
 /** Moonlight tint for the window patches at night. */
 const MOON_TINT: Rgb = [0x8a, 0xa4, 0xec];
 
+/** Peak alpha of the warm low-sun glow (the ADD haze over the whole screen at golden hour and dawn). */
+export const SUN_GLOW = 0.3;
+
+/** Where the sun's glow sits across the screen for a shadow bearing: the sun is opposite its shadows (afternoon: left, morning: right). */
+export function sunScreenX(bearingDeg: number): number {
+  return Math.min(0.96, Math.max(0.04, 0.5 - 0.62 * Math.sin((bearingDeg * Math.PI) / 180)));
+}
+
 /** Everything the lighting rig draws for one frame. */
 export function computeLook(inp: LookInput): SceneLook {
   const { weather: w } = inp;
@@ -163,6 +174,8 @@ export function computeLook(inp: LookInput): SceneLook {
       playerGlow: 0,
       glow: 0,
       sun: sunGlow(inp.roomHour) * 0.2,
+      sunX: 0.12,
+      sunTint: 0xffb867,
       cast: 1,
       shadow: { ...shadowLook(inp.roomHour, 1), alpha: 0 },
       ao: 0,
@@ -184,7 +197,9 @@ export function computeLook(inp: LookInput): SceneLook {
     night,
     playerGlow: Math.min(1, dark0 / 0.35),
     glow: Math.max(glowStrength(liveHour), w.rain * 0.7),
-    sun: sunGlow(liveHour) * 0.2 * w.sun,
+    sun: sunGlow(liveHour) * SUN_GLOW * w.sun,
+    sunX: sunScreenX(shadowLook(liveHour, 1).bearing),
+    sunTint: liveHour < 12 ? 0xffb2a6 : 0xffb25e,
     cast: Math.max(0.15, 1 - dark0 * 1.1) * w.sun,
     shadow: shadowLook(liveHour, w.sun, grade),
     ao: (0.8 + 0.2 * (1 - w.sun)) * (1 - 0.5 * night),
@@ -209,6 +224,8 @@ export function hourLook(hour: number): SceneLook {
     playerGlow: Math.min(1, dark / 0.35),
     glow: gs,
     sun: sunGlow(hour) * 0.2,
+    sunX: 0.12,
+    sunTint: 0xffb867,
     cast: Math.max(0.15, 1 - dark * 1.1),
     shadow: shadowLook(hour, 1),
     ao: 0.8 * (1 - 0.5 * (dark / 0.55)),

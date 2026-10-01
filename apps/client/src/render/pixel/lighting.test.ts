@@ -4,17 +4,17 @@ import { SHADOW_FILL_COLOR, SHADOW_FILL_MAX, darknessAlpha, formatHour, glowStre
 describe('gradeAt', () => {
   it('hits the doc keyframes exactly', () => {
     expect(gradeAt(9)).toEqual([255, 255, 255]);
-    expect(gradeAt(17.5)).toEqual([0xff, 0xcd, 0x9e]);
+    expect(gradeAt(17.5)).toEqual([0xff, 0xc4, 0x8e]);
     expect(gradeAt(19)).toEqual([0x7a, 0x78, 0xae]);
     expect(rgbToInt(gradeAt(20))).toBe(0x3b4a7c);
   });
   it('interpolates between keyframes (17:00 sits between 16:30 and 17:30)', () => {
     const [r, g, b] = gradeAt(17);
     expect(r).toBeGreaterThan(0xf0);
-    expect(g).toBeGreaterThan(0xcd);
-    expect(g).toBeLessThan(0xe3);
-    expect(b).toBeGreaterThan(0x9e);
-    expect(b).toBeLessThan(0xbd);
+    expect(g).toBeGreaterThan(0xc4);
+    expect(g).toBeLessThan(0xe4);
+    expect(b).toBeGreaterThan(0x8e);
+    expect(b).toBeLessThan(0xbf);
   });
   it('wraps the hour and is dark at midnight', () => {
     expect(gradeAt(24)).toEqual(gradeAt(0));

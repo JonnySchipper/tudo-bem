@@ -161,6 +161,6 @@ export class LightingRig {
     // low sun: a big warm glow from the upper left (adds warmth and shows the light direction without darkening the scene)
     const sw = this.scene.scale.width;
     const sh = this.scene.scale.height;
-    this.sun.setPosition(sw * 0.12, -sh * 0.08).setScale((Math.max(sw, sh) * 2.1) / 128).setAlpha(look.sun);
+    this.sun.setPosition(sw * look.sunX, -sh * 0.1).setScale((Math.max(sw, sh) * 2.1) / 128).setAlpha(look.sun).setTint(look.sunTint);
   }
 }
