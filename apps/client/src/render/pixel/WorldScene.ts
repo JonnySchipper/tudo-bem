@@ -132,6 +132,9 @@ interface Canopy {
   stall?: boolean;
 }
 
+/** `?v5=0` switches the V5 lighting layers (shadows, AO, rim, water, wet ground) off, for perf comparisons and before shots. */
+const V5_ON = typeof location === 'undefined' || !/[?&]v5=0/.test(location.search);
+
 /** Art px from the feet to the top of the visible head (the 16x32 frame has empty rows above it); nameplates stand just above. */
 const HEAD_LIFT = 23;
 const HEAD_LIFT_SIT = 16;
@@ -766,18 +769,18 @@ export class WorldScene extends Phaser.Scene {
     this.ambient.update({ dt, t: Date.now() + clock.skewMs, minute: clock.minutesExact(), params, dark: look.dark, people, cam: this.cameras.main });
     this.zoneFeed.update(def, me ? { x: me.wx, y: me.wy, moving: me.moving } : null, clock.minutes(), params.rain, performance.now());
     // V5: the sun's shadows draw in outdoor rooms unless low-fx dropped them (then the baked cast shadows are used)
-    const dyn = this.outdoor && !this.fxLevel.lowfx;
+    const dyn = this.outdoor && !this.fxLevel.lowfx && V5_ON;
     this.rig.bakedCast = !dyn;
     this.rig.apply(look, this.cameras.main.zoom, (wx, wy) => this.toDevice(wx, wy));
     this.shadows.update(look.shadow, dyn, 1, look.rim);
     this.ao.update(dyn ? look.ao : 0);
     // V5: wet ground: the paving gets darker and bluer, the grass a little richer (tints only change in 5% steps)
-    const wetQ = Math.round(look.wet * 20) / 20;
+    const wetQ = V5_ON ? Math.round(look.wet * 20) / 20 : 0;
     if (wetQ !== this.wetApplied) {
       this.wetApplied = wetQ;
       for (const g of this.groundLayers) if ('catkd'.includes(g.ch)) g.layer.setTint(groundWetTint(wetQ, g.ch === 'g' || g.ch === 'd' ? 'grass' : 'paving'));
     }
-    this.water.update(dt, params.sun * Math.max(0, 1 - look.night * 1.5), look.night, look.lampOn(20), this.fxLevel.reduced, !this.fxLevel.lowfx);
+    if (V5_ON) this.water.update(dt, params.sun * Math.max(0, 1 - look.night * 1.5), look.night, look.lampOn(20), this.fxLevel.reduced, !this.fxLevel.lowfx);
     this.weatherFx.update({ lampOn: look.lampOn, wet: look.wet, dt, zoom: this.cameras.main.zoom, w: this.scale.width, h: this.scale.height, params, night: look.night, outdoor: this.outdoor, cam: this.cameras.main });
   }
 

@@ -49,7 +49,7 @@ async function walk(page, x, y) {
 }
 const PW = 'pao-de-queijo-2026';
 async function boot(page, vp) {
-  await page.goto(`${BASE}?notype=1`);
+  await page.goto(`${BASE}?notype=1${process.env.EXTRA ?? ''}`);
   await page.waitForSelector('#intro-enter', { timeout: 20_000 });
   await page.click('#intro-enter');
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
