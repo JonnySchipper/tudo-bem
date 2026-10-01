@@ -11,6 +11,7 @@
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import path from 'node:path';
+import { requirePinnedClock } from './lib/clock-pin.mjs';
 
 const argv = Object.fromEntries(process.argv.slice(2).filter((a) => a.startsWith('--')).map((a) => a.slice(2).split('=')));
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
@@ -171,6 +172,7 @@ async function run(browser, vp) {
 
 if (!CHROME) throw new Error('Chrome/Chromium not found: set CHROME_PATH');
 console.log(`\nphase 7 shots → ${OUT}  (${BASE})`);
+if (!process.env.SOLO) await requirePinnedClock(BASE, { label: 'daytime, about 08:30' });
 const browser = await chromium.launch({ executablePath: CHROME, headless: true });
 try {
   for (const vp of VIEWPORTS) await run(browser, vp);

@@ -16,6 +16,7 @@
     "test": "vitest run",
     "e2e": "node scripts/e2e.mjs",
     "e2e:meveum": "node scripts/e2e-meveum.mjs",
+    "e2e:all": "node scripts/e2e-all.mjs",
     "tts": "node scripts/bake-tts.mjs",
     "pixel": "node scripts/pixel-import.mjs",
     "verify": "pnpm typecheck && pnpm test && pnpm build",

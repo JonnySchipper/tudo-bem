@@ -10,15 +10,25 @@
  * order to fill the tray) → hat shop → Kitnet chair, plus a second player for chat gloss + friend
  * request. Expects LIVEOPS_CPU_AMBIANCE on (the default); set CPU_AMBIANCE=off when the server
  * runs with it off.
+ *
+ * PINNED CLOCK (Phase 10): the game clock is real time (1 game day = 48 real minutes), so this script needs a server whose clock reads daytime
+ * (about 08:30; the baker, Nanda and the feira all depend on the hour). Start it pinned and with the recado offer fixed:
+ *     TB_TEST_CLOCK_CONTROL=1 TB_TEST_OFFER=carlos_cafe_pra_nanda TB_TEST_ROLL=1 pnpm start      # the script sets 08:30 itself
+ *     (or TB_TEST_CLOCK_OFFSET_MIN=<n> from `node scripts/lib/clock-pin.mjs 08:30` instead of TB_TEST_CLOCK_CONTROL=1)
+ * It fails fast with that message when the clock is not daytime. The whole recado (offer from the baker, café com leite, hand it to Nanda, RV and
+ * bond) is part of every run; set SKIP_RECADO=1 to run without TB_TEST_OFFER. 'pnpm e2e:all' starts such a server and stops it afterwards.
+ * SOLO builds run on the browser's clock and skip both checks.
  */
 import { chromium } from 'playwright-core';
+import { findChrome } from './lib/chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DAY_MIN, assertPageClock, requirePinnedClock } from './lib/clock-pin.mjs';
 import { assert, expectFirstTimeoutRearms, learnShelf, playShift, sleep, waitFor } from './lib/meveum-play.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
-const CHROME = process.env.CHROME_PATH ?? ['/usr/local/bin/google-chrome', '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find((p) => fs.existsSync(p));
+const CHROME = findChrome();
 const SHOTS = process.env.SHOTS_DIR ?? '';
 const VIDEO = process.env.VIDEO_DIR ?? '';
 const HEADLESS = process.env.HEADED ? false : true;
@@ -168,6 +178,7 @@ async function createAvatar(page, name, pronoun, { tick18 = false, guest = SOLO 
 async function main() {
   assert(CHROME, 'Chrome/Chromium not found — set CHROME_PATH');
   console.log(`\nTudo Bem e2e → ${BASE}`);
+  if (!SOLO) await requirePinnedClock(BASE, { label: 'daytime, about 08:30' });
   const browser = await chromium.launch({ executablePath: CHROME, headless: HEADLESS, slowMo: VIDEO ? 90 : 0, args: ['--autoplay-policy=no-user-gesture-required'] });
   const ctxA = await browser.newContext({
     viewport: { width: 1440, height: 900 },
@@ -200,6 +211,10 @@ async function main() {
   await shot(page, '01_avatar_creator');
   await enter();
   await dwell(1500);
+  if (!SOLO) {
+    await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
+    await assertPageClock(page, { min: DAY_MIN - 20, max: 12 * 60, label: 'daytime, about 08:30' });
+  }
   if (!SOLO) {
     // The session cookie survives a reload: straight back into the Praça, same avatar.
     const before = (await profile(page)).id;
@@ -359,7 +374,8 @@ async function main() {
     log('recado accepted from', baker.name, JSON.stringify(accepted));
     await shot(page, '04a_recado_accepted');
     await openNpc(page, baker.id, 'conversa');
-  } else log('no recado offered by the baker (start the server with TB_TEST_OFFER=carlos_cafe_pra_nanda to cover the whole recado)');
+  } else if (SOLO || process.env.SKIP_RECADO === '1') log('no recado offered by the baker (SOLO / SKIP_RECADO): the recado part is skipped');
+  else throw new Error('The baker did not offer the recado. Start the server with TB_TEST_OFFER=carlos_cafe_pra_nanda (or set SKIP_RECADO=1 to skip the recado part).');
   const conversaName = ((await page.textContent('#dialogue-box[data-dialogue="conversa"] .npc-name')) ?? '').trim();
   assert(conversaName === baker.name, `Conversa is ${baker.name} at the mesa (${conversaName})`);
   assert(await page.$('#dialogue-box[data-dialogue="conversa"] .dbx-portrait'), 'Conversa portrait (café mesa)');

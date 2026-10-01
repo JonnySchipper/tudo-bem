@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Feira e2e (Phase 9). The server clock is shifted with TB_TEST_CLOCK_OFFSET_MIN (see `node scripts/e2e-feira.mjs --offset day|night`,
- * which prints the value) so the game clock reads about 09:00 (PHASE=day) or 15:50 (PHASE=night).
+ * Feira e2e (Phase 9). Needs a PINNED game clock (Phase 10): either a server started with TB_TEST_CLOCK_CONTROL=1 (this script sets the hour
+ * itself: about 08:50 for PHASE=day, 15:35 for PHASE=night) or one started with TB_TEST_CLOCK_OFFSET_MIN (`node scripts/e2e-feira.mjs --offset day|night`
+ * prints the value). It fails fast with a message when the clock is outside the window. `pnpm e2e:all` runs both phases on its own pinned server.
  *
  *   PHASE=day    walk to Tia Lu, ask the price (chip), hear 3-for-5, pay exactly with a R$ 5 note, get 3 bananas in the bag; then a typed question,
  *                an over-payment with change, and an under-payment that buys nothing.
@@ -10,9 +11,11 @@
  *   node scripts/e2e-feira.mjs   (BASE_URL, CHROME_PATH, SHOTS_DIR, SHOT_PREFIX, VIEW=390x844, PHASE)
  */
 import { chromium } from 'playwright-core';
+import { findChrome } from './lib/chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
+import { assertPageClock, requirePinnedClock } from './lib/clock-pin.mjs';
 
 const GAME_DAY_MS = 48 * 60 * 1000;
 const CLOCK_OFFSET_MS = 17 * 2 * 60 * 1000;
@@ -25,7 +28,7 @@ if (process.argv[2] === '--offset') {
 }
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
-const CHROME = process.env.CHROME_PATH;
+const CHROME = findChrome();
 const SHOTS = process.env.SHOTS_DIR ?? '';
 const PREFIX = process.env.SHOT_PREFIX ?? 'desktop';
 const [VW, VH] = (process.env.VIEW ?? '1280x800').split('x').map(Number);
@@ -52,6 +55,10 @@ const waitLine = (page, re, what) => waitFor(page, (src) => new RegExp(src).test
 
 async function main() {
   assert(CHROME, 'set CHROME_PATH');
+  const WINDOW = PHASE === 'day'
+    ? { min: 8 * 60, max: 9 * 60 + 30, target: 8 * 60 + 50, label: 'feira open, about 08:50' }
+    : { min: 15 * 60, max: 16 * 60 + 20, target: 15 * 60 + 35, label: 'feira closed, about 15:35' };
+  await requirePinnedClock(BASE, WINDOW);
   const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });
   const page = await (await browser.newContext({ viewport: { width: VW, height: VH }, deviceScaleFactor: 1 })).newPage();
   const errors = [];
@@ -72,6 +79,7 @@ async function main() {
   await page.click('#enter-praca');
   await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
   await sleep(800);
+  await assertPageClock(page, WINDOW);
   log('start, game time', hhmm(await minutes(page)));
 
   if (PHASE === 'day') {
@@ -87,6 +95,14 @@ async function main() {
 
     // Quanto custa a banana? (chip 0), hear 3-for-5, three bananas, pay R$ 5
     await interact(page, { npc: 'tia_lu' });
+    // a vendor may open with a recado offer ("Agora não") or a hand-over ("Só conversar") before the price box (Phase 8a)
+    for (let i = 0; i < 6; i++) {
+      await page.waitForSelector('#dialogue-box', { timeout: 8000 });
+      const key = await page.getAttribute('#dialogue-box', 'data-dialogue');
+      if (key === 'feira') break;
+      if (key?.startsWith('offer-') || key?.startsWith('give-')) await page.click('#dialogue-box [data-chip="1"]');
+      await sleep(350);
+    }
     await page.waitForSelector('#dialogue-box[data-dialogue="feira"]', { timeout: 8000 });
     await page.click('#dialogue-box [data-chip="0"]');
     await waitLine(page, /dois reais/, 'the price in words');

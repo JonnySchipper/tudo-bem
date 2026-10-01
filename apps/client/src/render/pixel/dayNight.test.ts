@@ -67,12 +67,15 @@ describe('light on / off schedule (18:00 on, 06:00 off, per-light delay)', () =>
 
   it('never pops: the strength changes by a small amount per game second all day', () => {
     for (const delay of [0, 13.7, 40]) {
+      // plain arithmetic in the loop (130k `expect` calls made this slow and flaky under load); one assertion per delay
       let prev = lightState(0, delay);
+      let maxStep = 0;
       for (let m = 0; m < 1440; m += 1 / 30) {
         const s = lightState(m, delay);
-        expect(Math.abs(s - prev)).toBeLessThan(0.07);
+        maxStep = Math.max(maxStep, Math.abs(s - prev));
         prev = s;
       }
+      expect(maxStep).toBeLessThan(0.07);
     }
   });
 

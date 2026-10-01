@@ -1,20 +1,23 @@
 #!/usr/bin/env node
 /**
- * Night-time e2e (Phase 8b, D12): the server clock is shifted with TB_TEST_CLOCK_OFFSET_MIN so the game clock reads the hour we want.
+ * Night-time e2e (Phase 8b, D12; moved to the Phase 7 dialogue box in Phase 10). Needs a PINNED game clock: a server with TB_TEST_CLOCK_CONTROL=1 (this
+ * script sets the hour) or one started with TB_TEST_CLOCK_OFFSET_MIN (`node scripts/lib/clock-pin.mjs 20:52`). It fails fast when the clock is off.
  *
- *   PHASE=a  start the server at about 20:55 game time: the hat stall is closed at 21:00, the hat shop still opens from it (note "Nanda volta às 8h").
- *   PHASE=b  start the server at about 22:05: Seu Carlos sits on a praça bench at 22:30, Dona Graça covers the padaria at 23:00, the breakfast
- *            scene + Me vê um work with her, Professora Bia is at the academia.
+ *   PHASE=a  clock pinned at about 20:52: the hat stall is closed at 21:00, the hat shop still opens from it (note "Nanda volta às 8h").
+ *   PHASE=b  clock pinned at about 22:15: Seu Carlos sits on a praça bench at 22:30, Dona Graça covers the padaria at 23:00, the breakfast
+ *            scene + Me vê um work with her (the dialogue box), Professora Bia is at the academia.
  *
  *   node scripts/e2e-night.mjs   (BASE_URL, CHROME_PATH, SHOTS_DIR, PHASE)
  */
 import { chromium } from 'playwright-core';
+import { findChrome } from './lib/chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { assert, learnShelf, playShift, sleep, waitFor } from './lib/meveum-play.mjs';
+import { assertPageClock, requirePinnedClock } from './lib/clock-pin.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
-const CHROME = process.env.CHROME_PATH;
+const CHROME = findChrome();
 const SHOTS = process.env.SHOTS_DIR ?? '';
 const PHASE = process.env.PHASE ?? 'b';
 const PASSWORD = 'pao-de-queijo-2026';
@@ -41,6 +44,10 @@ async function waitIdleAt(page, x, y) {
 
 async function main() {
   assert(CHROME, 'set CHROME_PATH');
+  const WINDOW = PHASE === 'a'
+    ? { min: 20 * 60, max: 20 * 60 + 58, target: 20 * 60 + 52, label: 'just before 21:00' }
+    : { min: 21 * 60 + 40, max: 22 * 60 + 28, target: 22 * 60 + 15, label: 'just before 22:30' };
+  await requirePinnedClock(BASE, WINDOW);
   const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });
   const page = await (await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 })).newPage();
   const errors = [];
@@ -61,6 +68,7 @@ async function main() {
   await page.click('#enter-praca');
   await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
   await sleep(800);
+  await assertPageClock(page, WINDOW);
   log('start, game time', hhmm(await minutes(page)));
 
   if (PHASE === 'a') {
@@ -106,20 +114,28 @@ async function main() {
 
     // the breakfast scene with her
     await interact(page, { npc: 'graca' });
-    await page.waitForSelector('[data-modal="conversa"] .conversa-panel', { timeout: 12_000 });
-    const name = ((await page.textContent('[data-modal="conversa"] .npc-name')) ?? '').trim();
+    // an NPC may open with a recado offer ("Agora não") or a hand-over ("Só conversar") before the Conversa box (Phase 8a)
+    for (let i = 0; i < 8; i++) {
+      await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
+      const key = await page.getAttribute('#dialogue-box', 'data-dialogue');
+      if (key === 'conversa') break;
+      if (key?.startsWith('offer-') || key?.startsWith('give-')) await page.click('#dialogue-box [data-chip="1"]');
+      await sleep(350);
+    }
+    await page.waitForSelector('#dialogue-box[data-dialogue="conversa"]', { timeout: 12_000 });
+    const name = ((await page.textContent('#dialogue-box[data-dialogue="conversa"] .npc-name')) ?? '').trim();
     assert(name === 'Dona Graça', `the Conversa is with Dona Graça (${name})`);
     await page.waitForSelector('[data-action="pedido-rapido"]', { state: 'visible', timeout: 5000 });
     await page.click('[data-action="pedido-rapido"]');
-    await page.waitForSelector('[data-modal="pedido"] .pedido-panel', { timeout: 12_000 });
+    await page.waitForSelector('#dialogue-box[data-dialogue="pedido"]', { timeout: 12_000 });
     const picks = [0, 0, 0, 0, 0];
     for (const p of picks) {
-      const before = await page.textContent('[data-modal="pedido"] .line-bubble .pt');
+      const before = await page.textContent('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt');
       if (typeof p === 'string') {
         await page.fill('#pedido-input', p);
         await page.press('#pedido-input', 'Enter');
-      } else await page.click(`[data-modal="pedido"] [data-chip="${p}"]`);
-      await waitFor(page, (b) => document.querySelector('[data-modal="pedido"] .line-bubble .pt')?.textContent !== b, before, 6000, 'next line');
+      } else await page.click(`#dialogue-box[data-dialogue="pedido"] [data-chip="${p}"]`);
+      await waitFor(page, (b) => document.querySelector('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt')?.textContent !== b, before, 6000, 'next line');
     }
     await page.waitForSelector('#btn-pedido-play-mg');
     const afterScene = await page.evaluate(() => window.__tb.game.profile);

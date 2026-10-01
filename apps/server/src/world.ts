@@ -52,6 +52,8 @@ import {
   jevNpcReply,
   freshMission,
   gameMinutes,
+  gameMinutesExact,
+  MS_PER_GAME_MINUTE,
   greetingKind,
   MISSION_COPY,
   MISSION_REWARD,
@@ -288,7 +290,7 @@ export class World {
   private readonly rng: () => number;
   private readonly rollQueueMs: number;
   private readonly testRollHints: boolean;
-  private readonly clockOffsetMs: number;
+  private clockOffsetMs: number;
   /** The neighbours: schedules, positions, walks (pure function of the game clock). */
   private readonly npcs: NpcDirector;
   private npcTicking = false;
@@ -673,6 +675,17 @@ export class World {
   /** The game clock: real time plus the test offset. Everything the players see as time of day comes from here. */
   private clockNow() {
     return this.now() + this.clockOffsetMs;
+  }
+
+  /**
+   * Test only (the server wires it to `/__test/clock` when `TB_TEST_CLOCK_CONTROL=1`): shift the game clock so it reads `minute` (0..1439) right now.
+   * Timers and the real day are untouched; clients that join afterwards sync to it.
+   */
+  setClockMinute(minute: number): number {
+    const target = Math.max(0, Math.min(1439.99, minute));
+    const cur = gameMinutesExact(this.clockNow());
+    this.clockOffsetMs += (((target - cur) % 1440) + 1440) % 1440 * MS_PER_GAME_MINUTE;
+    return gameMinutes(this.clockNow());
   }
 
   /** Game minute (0..1439), for the HTTP Conversa flow (it has no session): the NPCs greet by it. */

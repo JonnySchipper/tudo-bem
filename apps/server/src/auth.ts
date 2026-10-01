@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { AUTH_COPY, validateEmail, validatePassword, normalizeEmail, type AuthErrorCode, type AuthResponse } from '@tudobem/shared';
+import { atomicWriteFileSync } from './atomicWrite.js';
 import type { OpsSmokeConfig } from './opsSmoke.js';
 import type { AccountLink } from './world.js';
 
@@ -43,9 +44,7 @@ export function accountsFileAdapter(dataDir: string): AccountPersistence {
     load: () => (fs.existsSync(file) ? (JSON.parse(fs.readFileSync(file, 'utf8')) as AccountsData) : null),
     save: (data) => {
       fs.mkdirSync(path.dirname(file), { recursive: true });
-      const tmp = file + '.tmp';
-      fs.writeFileSync(tmp, JSON.stringify(data), { mode: 0o600 });
-      fs.renameSync(tmp, file);
+      atomicWriteFileSync(file, JSON.stringify(data), 0o600);
     },
   };
 }

@@ -83,7 +83,17 @@ export function createApp(opts: AppOptions) {
     const url = new URL(req.url ?? '/', 'http://x');
     if (url.pathname === '/healthz') {
       res.writeHead(200, { 'content-type': 'application/json' });
-      return res.end(JSON.stringify({ ok: true, ...world.stats(), accounts: accounts.count() }));
+      return res.end(JSON.stringify({ ok: true, ...world.stats(), accounts: accounts.count(), gameMinute: world.gameMinuteNow() }));
+    }
+    // Test only: `POST /__test/clock?min=510` sets the game clock to 08:30 (e2e runs pin it). Off unless TB_TEST_CLOCK_CONTROL=1.
+    if (url.pathname === '/__test/clock' && process.env.TB_TEST_CLOCK_CONTROL === '1') {
+      const min = Number(url.searchParams.get('min'));
+      if (!Number.isFinite(min)) {
+        res.writeHead(400, { 'content-type': 'application/json' });
+        return res.end(JSON.stringify({ ok: false }));
+      }
+      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+      return res.end(JSON.stringify({ ok: true, gameMinute: world.setClockMinute(min) }));
     }
     if (url.pathname === '/api/config') {
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });

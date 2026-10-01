@@ -14,12 +14,15 @@
  *   SOLO         guest entry (static build); otherwise a throwaway account is registered
  *
  * Captures per viewport (1280×800 and 390×844, the phone with touch so the joystick shows): avatar creator, praça, padaria, kitnet,
- * academia, then the panels: hat shop, credits, Conversa (portrait), Pedido rápido, Me vê um.
+ * academia, then the panels: Júlia and Nanda dialogue boxes, hat shop, credits, Conversa (portrait), Pedido rápido, Me vê um.
+ * Needs a server with a pinned game clock (daytime): start it with TB_TEST_CLOCK_CONTROL=1 (the script sets 08:30) or TB_TEST_CLOCK_OFFSET_MIN; it fails fast otherwise.
  * Rooms are reached by id through window.__tb (interact / net.send), so the script works with any renderer.
  */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import path from 'node:path';
+import { requirePinnedClock } from './lib/clock-pin.mjs';
+import { openNpc } from './lib/npc.mjs';
 
 const argv = Object.fromEntries(process.argv.slice(2).filter((a) => a.startsWith('--')).map((a) => a.slice(2).split('=')));
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
@@ -117,13 +120,17 @@ async function panelShots(page, vp) {
   await interact(page, { portal: 'academia_praca' });
   await waitRoom(page, 'praca');
   await sleep(800);
-  await interact(page, { npc: 'julia' });
-  await page.waitForSelector('#dialogue-box', { timeout: 8000 });
+  await openNpc(page, 'julia');
   await sleep(500);
   await shot(page, vp, 'dialogue');
   await closeAll();
-  await interact(page, { npc: 'nanda' });
-  await page.waitForSelector('[data-modal] .panel', { timeout: 8000 });
+  // Since Phase 7 clicking Nanda opens her dialogue box (with "Ver chapéus"); the hat shop panel opens from the stall itself
+  await openNpc(page, 'nanda');
+  await sleep(500);
+  await shot(page, vp, 'nanda_dialogue');
+  await closeAll();
+  await interact(page, { prop: 'barraca' });
+  await page.waitForSelector('[data-modal="shop"] .panel, [data-modal] .panel', { timeout: 8000 });
   await sleep(600);
   await shot(page, vp, 'hat_shop');
   await closeAll();
@@ -135,8 +142,7 @@ async function panelShots(page, vp) {
   await interact(page, { portal: 'praca_padaria' });
   await waitRoom(page, 'padaria');
   await sleep(800);
-  await interact(page, { npc: 'carlos' });
-  await page.waitForSelector('#dialogue-box[data-dialogue="conversa"]', { timeout: 12_000 });
+  await openNpc(page, 'carlos', 'conversa');
   await sleep(800);
   await shot(page, vp, 'conversa');
   await page.click('[data-action="pedido-rapido"]');
@@ -281,6 +287,8 @@ async function runViewport(browser, vp) {
 
 if (!CHROME) throw new Error('Chrome/Chromium not found: set CHROME_PATH');
 console.log(`\nlifesim shots → ${OUT}  (${startUrl()})`);
+// the baker (06-22) and Nanda (08-20) must be at work: needs a pinned server clock (TB_TEST_CLOCK_CONTROL=1, or TB_TEST_CLOCK_OFFSET_MIN; see scripts/lib/clock-pin.mjs)
+if (!SOLO) await requirePinnedClock(BASE, { label: 'daytime, about 08:30' });
 const browser = await chromium.launch({ executablePath: CHROME, headless: true });
 try {
   for (const vp of VIEWPORTS) await runViewport(browser, vp);
