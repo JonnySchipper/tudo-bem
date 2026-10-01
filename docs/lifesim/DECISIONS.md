@@ -953,3 +953,49 @@ None added. Words on signs without a card (padaria, banca, orelhão, ônibus, co
 ### Known weaknesses
 
 The mid-tween camera zoom is fractional for ~0.28 s (a brief soft frame); the Conversa box is the tallest state (33% desktop, 38-50% on a phone during the ended conta); Nanda stays partly hidden behind her stall canopy when you talk to her; signs without cards have no "Guardar" button; Carlos-scene `seen` for Nanda/Júlia greetings is server-side only for the opener line; `scripts/lifesim-shots.mjs` (old) still expects the hat shop when clicking Nanda.
+
+## Decisions made in Phase 8a (the player-facing life-sim loop)
+
+Branch `lifesim/p8a-recados-ui`. Shots in `docs/lifesim/shots/p8a/` (`BASE_URL=... node scripts/lifesim-shots-p8a.mjs`, 1280x800 and 390x844; the script also walks one whole recado and asserts it). Run the server with `TB_TEST_CLOCK_OFFSET_MIN` so the game clock reads daytime (Seu Carlos 06-22, Nanda 08-20) and `TB_TEST_OFFER=carlos_cafe_pra_nanda`.
+
+### Offers, hand-overs, the tracker, the journal (`ui/recados.ts`, `ui/recadoView.ts`, `styles/recados.css`)
+
+1. **A beat before the usual talk.** `talkTo` (main.ts) asks `runPrelude` first: a hand-over box (`give-<npc>`: "Entregar {item}" per active `entregar` step whose item is in the bag, plus "Só conversar") and then an offer box (`offer-<npc>`: the giver's `ask`, the reward, chips "Pode deixar!" / "Agora não"). Accepting sends the existing `recados accept`, handing over the existing `give`; both close the box and the tracker and the thanks card take over. "Agora não" is remembered for the page session (no nagging) and goes on with the usual dialogue (Conversa, or the Phase 7 talk tree). Nothing in the protocol changed for this.
+2. **The `talk` message moved**: it is now sent by `talkTo` when you first speak to an NPC without a Conversa, so a recado accepted or a hand-over made in the prelude still counts as talking (bond +2 once a day, `falar` steps).
+3. **Tracker** (`#recado-tracker`, right side under whatever the top bar wrapped to, max 3 entries): the welcome chain first ("Bem-vindo à Vila Ipê", Júlia's portrait, the next tutorial step, `n/8`), then the active recados with the step from `describeStep` (`hint`) and `n/m`. A step done (or a recado finished) plays a ✓ stamp and a flash (stepped animation, off under reduced motion). One tap opens the journal. It hides while a dialogue or a modal is open. On a phone it is a slim card (232 px max) under the top bar: measured clear of the joystick and the chat bar by the shots script (an assertion), and it is not hidden any more (the old checklist was `display:none` below 700 px).
+4. **Tutorial re-skin**: `checklist` is gone from `hud.ts`. The `tutorial` flags, the `tutorial` message, the toasts and the bonus logic are untouched; only the presentation is the welcome chain (tracker line + the 8 steps in the journal). It leaves when every step is done and the bonus is paid, as the checklist did.
+5. **Journal** (top-bar "Recados" / "Errands", new pixel icon `ui/icon_recados`): welcome chain with all steps, "Em andamento" (giver portrait, reward, step list with done / now / later), **Mochila** (`profile.bag` with the `icons/<itemId>` art and quantities), "Hoje na vila" (today's offers, with who to talk to), finished today, and "Amizades" (ten hearts per NPC with a half-filled next heart, and the three milestones).
+6. **Thanks card** (`#recado-done`, from the board diff: an id moved into `done`): the giver's portrait (happy), their `thanks` line, "+RV", "♥ +bond" and the item reward. The server's own notices for the step and the thanks are tagged (`notice.tag`: `recado_step`, `recado_thanks`, `bond`) and the client does not toast them again; the `Recado: …` reward toast is replaced by the card.
+
+### Hearts and milestones
+
+7. **Hearts**: `♥ n` next to the NPC name tag in every dialogue box (`dbx-hearts`, grey `♡ 0` before the first), `Nanda  ♥ 2` in the hover label, a **heart-up toast** whenever the whole-heart count of an NPC rises between two profile pushes (never on the first push), ten hearts per friend in the journal.
+8. **2 hearts, the name**: `fillTalk` drops ", {nome}" until `hearts >= 2` ("Boa tarde! Tudo bem? Eu sou a Nanda." then "Boa tarde, Jonny! …"), and the server sends a notice when the line is crossed. Memory stays bond-gated server-side (`MEMORY_MIN_HEARTS`).
+9. **4 hearts, a Conversa subject**: one new A1 subject `o_bairro` ("O bairro" / "The neighborhood", `minHearts: 4`) on Seu Carlos and Dona Graça (the only NPCs with a Conversa). At 4 hearts the baker first asks "Sobre o que a gente conversa hoje?" with the two subjects as chips (`subjectChoices`); below that the Conversa just starts as before. The server only honours a locked `subjectId` when the hearts allow it (it falls back to the default), on start and on every turn. "Cumprimentos" stays out of the chooser (it was never reachable and "one extra subject" is the spec).
+10. **6 hearts, a gift**: `profile.furniture[item] += 1` once per NPC (`profile.bondGifts`, optional, normalised on load), notice with the item name. Items (existing catalog ids): Seu Carlos `radio`, Dona Graça `luminaria`, Nanda `tapete`, Júlia `planta`, Professora Bia `pufe_amarelo`, Tia Lu `rede`. All three effects run in one place (`RecadoTracker.gain`), wherever bond is paid (talk, recado, good Conversa), and are tested once-only.
+
+### Time-of-day greetings (`clock.ts`: `localizeGreeting`)
+
+11. `localizeGreetingText` swaps a greeting that STARTS a line for the one `greetingFor(minute)` gives (bom dia 05-11:59, boa tarde 12-17:59, boa noite 18-04:59), PT and EN independently, keeping the case. Used by: the Carlos scene (`SceneCtx.minute`, set at scene start from the game clock): opener, the slow opener, and the chips the player greets with; Me vê um customers (`makeOrder(..., minute)`, the served-ticket de-duplication compares them as mornings); the Conversa (`presentConversaTurn(turn, priorChips, minute)` on the NPC line and on every chip, offline and online, plus a "TIME OF DAY" line in the AI system prompt so the model greets right); NPC idle bubbles (main.ts); the padaria entry line (already did); the talk trees (`{saudacao}` / `{greeting}`: Nanda's, Júlia's and Dona Graça's openers and the chips that greet them).
+12. **Scoring**: the typed accept list of the Carlos greeting chip takes all three greetings (and the "… Seu Carlos" and "tudo bem" variants) at any hour. The exact-hour rule lives only in the recado `timeCorrect` check (`greetingKind` vs `greetingFor`), unchanged.
+13. Dona Graça's talk line "Quer um cafezinho pra noite?" became "Quer um cafezinho?" (she is at the table from 17:00).
+
+### Tests and tooling
+
+14. New: `recadoView.test.ts` (tracker, hearts, give / offer logic, diffs, journal), `bondMilestones.test.ts` (2 / 4 / 6 hearts, once-only gift, old saves), `greetings.test.ts` (greeting by hour at the edges, scene, chips, typed accept, Conversa, Me vê um, subject unlock), npcTalk (`fillTalk` hearts and time). `TB_TEST_OFFER=id,id` (server env, test only) puts those recados first on the board. `scripts/e2e.mjs` plays one whole recado (offer from Seu Carlos, order the coffee in Pedido rápido, "Entregar café com leite" to Nanda, RV + bond) when the server has `TB_TEST_OFFER=carlos_cafe_pra_nanda`, and skips it with a log line otherwise; its NPC clicks go through `openNpc`, which declines offers. `scripts/e2e-night.mjs` still targets the pre-Phase 7 modals (stale before this phase, not touched).
+
+### Needs BR review (every new PT string)
+
+- Offer box: "Pode deixar!" (EN You got it!), "Agora não" (Not now), "Recado: {título}". Hand-over box: "{Bom dia / Boa tarde / Boa noite}! Trouxe algo pra mim?", "Entregar {item}", "Só conversar". Chooser: "Sobre o que a gente conversa hoje?".
+- Tracker / journal: "Recados" (Errands), "Bem-vindo à Vila Ipê", "Quase lá! O bônus já vem.", "Em andamento", "Hoje na vila", "Feitos hoje: n", "Mochila", "Amizades", "Nenhum recado agora. Fale com os vizinhos!", "Sem novidades por hoje.", "Vazia. Peça algo na padaria!", "{título} · fale com ele(a) pra aceitar", "2 ♥ sabe seu nome · 4 ♥ assunto novo · 6 ♥ presente".
+- Hearts: toast "♥ {NPC} gosta de você! n coração/corações"; notices "{NPC} já sabe o seu nome e lembra de você!", "{NPC} tem um assunto novo pra conversar: O bairro!", "{NPC} te deu um presente: {móvel}! Tá no seu inventário (Decorar)."
+- Subject `o_bairro`: title "O bairro", goal "Converse sobre o bairro: onde você mora, a praça e os vizinhos.", openers "E aí, tá gostando do bairro?", "Você mora aqui perto?", "Já conheceu a Nanda e a Júlia?", "A praça tá bonita hoje, né?"; chips "Gosto muito do bairro!", "Moro aqui perto.", "Ainda tô conhecendo.", "Moro na kitnet, na praça.", "Moro aqui perto, sim.", "Não, moro longe.", "Já conheci, sim!", "Ainda não conheci.", "A Nanda vende chapéus!", "Tá linda mesmo!", "Gosto da praça.", "Ainda tô olhando."
+- Talk trees: "Quer um cafezinho?" (Graça); the greeting chips now read "{Saudação}, Nanda / Júlia / Dona Graça!".
+
+### Proposed cards
+
+None added. Without cards: moro, gosto, bairro, vizinho(a), recado (as a word), mochila, entregar.
+
+### Known weaknesses
+
+The tracker covers a little of the world on a phone (about 5% of the screen under three button rows); a real heart-up needs 10 bond points, which one recado does not give (the shots fake the second push); the heart rows in the journal are CSS shapes, not a pixel sprite; accepted recados are not removable; the offer beat appears for every offered recado of that giver one after the other (declining all of them costs a click each); Graça's offers only appear when she is the NPC you click (offers are tied to the giver id).

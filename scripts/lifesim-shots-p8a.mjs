@@ -144,6 +144,7 @@ async function run(browser, vp) {
   await page.waitForFunction(() => window.__tb.game.liveNpcs(performance.now()).some((n) => n.id === 'nanda'), null, { timeout: 15_000 });
   const rvBefore = await page.evaluate(() => window.__tb.game.profile.coins);
   const bondBefore = await page.evaluate(() => window.__tb.game.profile.bond?.carlos ?? 0);
+  const bagBefore = await page.evaluate(() => window.__tb.game.profile.bag?.cafe_com_leite ?? 0);
   await interact(page, { npc: 'nanda' });
   await box(page, 'give-nanda');
   await typed(page);
@@ -158,7 +159,7 @@ async function run(browser, vp) {
   assert(after.done.includes('carlos_cafe_pra_nanda'), 'the recado is done');
   assert(after.coins - rvBefore >= 10, `RV reward (+${after.coins - rvBefore})`);
   assert((after.bond.carlos ?? 0) - bondBefore === 4, `bond reward for Seu Carlos (+${(after.bond.carlos ?? 0) - bondBefore})`);
-  assert(!(after.bag.cafe_com_leite > 0), 'the coffee left the bag');
+  assert((after.bag.cafe_com_leite ?? 0) === bagBefore - 1, 'the coffee left the bag');
   await sleep(1500);
 
   // 6. a heart-up toast (a real heart needs 10 points: lift Nanda's bond in the page for the picture)
