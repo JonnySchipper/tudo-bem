@@ -118,7 +118,7 @@ export class ShadowLayer {
 
   // ------------------------------------------------------------------ atlas
   /** Reads one frame's alpha as RGBA (untrimmed: the frame's own offset is applied). */
-  private readFrame(tex: string, frame: string | number): RgbaImage | null {
+  readFrame(tex: string, frame: string | number): RgbaImage | null {
     const t = this.scene.textures.get(tex);
     if (!t || t.key === '__MISSING') return null;
     const f = t.get(frame);

@@ -26,6 +26,8 @@ import { WeatherBlend, type FxLevel } from './weatherLook';
 import { WeatherFx } from './weatherFx';
 import { ShadowLayer, type ShadowHandle } from './shadowLayer';
 import { AoLayer } from './aoLayer';
+import { WaterFx } from './water';
+import { presetFor } from './lightPresets';
 import { aoForOverhead, aoForSprite } from './ao';
 import { AmbientLife, ambientHandlesProp } from './ambient';
 import { ZoneFeed } from '../../audio/zonesFeed';
@@ -155,6 +157,7 @@ export class WorldScene extends Phaser.Scene {
   /** V5: directional cast shadows (outdoor rooms; interiors keep their baked ones) */
   private shadows!: ShadowLayer;
   private ao!: AoLayer;
+  private water!: WaterFx;
   private roomOutdoor = false;
   private lastShadow: ShadowHandle | null = null;
   // Phase 6a: live clock, weather, performance fallback
@@ -224,6 +227,7 @@ export class WorldScene extends Phaser.Scene {
     this.shadows = new ShadowLayer(this, this.rig);
     this.rig.shadows = this.shadows;
     this.ao = new AoLayer(this, this.rig);
+    this.water = new WaterFx(this, this.rig);
     this.sheets = new CharSheets({
       add: (key, look) => addSheetTexture(this, key, composeLook(this.assets, look), this.m.sheet),
       remove: (key) => {
@@ -306,6 +310,7 @@ export class WorldScene extends Phaser.Scene {
     this.rig.clearRoom();
     this.shadows?.clearRoom();
     this.ao?.clearRoom();
+    this.water?.clearRoom();
     this.weatherFx?.clearRoom();
   }
 
@@ -554,6 +559,20 @@ export class WorldScene extends Phaser.Scene {
       if (feiraEntry) this.buildFeiraClosed(artKey, a, depth, feiraEntry);
       const L = d.light ? { x: d.light.x - d.ax, y: d.light.y - d.ay, r: d.light.r, color: d.light.color } : PROP_LIGHT[p.kind];
       if (L) this.addLampLights(Math.round(a.wx), Math.round(a.wy), L);
+      else {
+        // V5: lights from data: the sprite key's preset, or the generic pool for a prop flagged lightAtNight
+        const pr = presetFor(artKey, p.lightAtNight);
+        if (pr) {
+          const bx = Math.round(a.wx);
+          const by = Math.round(a.wy);
+          const delay = lightDelay(bx, by);
+          for (const s of pr.lights) this.rig.lights.push({ x: bx + s.x, y: by + s.y, r: s.r, color: parseInt(s.color.slice(1), 16), squash: s.squash, kind: 'lamp', glow: s.glow ?? 0.4, delay });
+        }
+      }
+      if (this.roomOutdoor && presetFor(artKey, p.lightAtNight)?.water) {
+        const px = this.shadows.readFrame(d.atlas, d.frame);
+        if (px) this.water.add(artKey, px.data as Uint8ClampedArray, px.w, px.h, a.wx, a.wy, d.ax, d.ay, depth);
+      }
     } else {
       this.placeholder(`${propPlaceholderKey(p)}#${p.id}`, foot, depth);
     }
@@ -747,6 +766,7 @@ export class WorldScene extends Phaser.Scene {
     this.rig.apply(look, this.cameras.main.zoom, (wx, wy) => this.toDevice(wx, wy));
     this.shadows.update(look.shadow, dyn, 1, look.rim);
     this.ao.update(dyn ? look.ao : 0);
+    this.water.update(dt, params.sun * Math.max(0, 1 - look.night * 1.5), look.night, look.lampOn(20), this.fxLevel.reduced, !this.fxLevel.lowfx);
     this.weatherFx.update({ dt, zoom: this.cameras.main.zoom, w: this.scale.width, h: this.scale.height, params, night: look.night, outdoor: this.outdoor, cam: this.cameras.main });
   }
 

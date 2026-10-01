@@ -71,6 +71,8 @@ export interface PropDef {
   vendor?: 'tia_lu' | 'ze' | 'chico' | 'rosa' | 'banca';
   /** A `cerca` with gaps is blocked only along its perimeter, except on these tiles (the gate). The inside stays walkable. */
   gaps?: Tile[];
+  /** Pixel view: this prop is a light source at night (a warm pool at its foot, or the preset of its sprite key in `lightPresets.ts`). */
+  lightAtNight?: boolean;
 }
 
 export type WallSide = 'left' | 'right';
