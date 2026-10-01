@@ -31,6 +31,8 @@ export interface LookOptions {
   hat?: string | HatSpec | null;
   /** apron color (NPC piece) */
   apron?: string | null;
+  /** BJJ gi pieces (crossed lapels, black belt) over the outfit */
+  gi?: boolean;
 }
 
 const pickColor = (list: readonly string[], i: number | undefined): string => list[Number.isInteger(i) && (i as number) >= 0 && (i as number) < list.length ? (i as number) : 0];
@@ -73,6 +75,7 @@ export function lookForAppearance(a: Appearance, opts: LookOptions = {}): Look {
   const over = extra && extra.order === 'over-hair' ? extra : null;
   layers.push({ key: outfitKey(a.top, a.bottom, body), ramps: { top, bottom, shoes } });
   if (opts.apron) layers.push({ key: CHAR_LAYERS.apron + suffix, ramps: { accent: opts.apron } });
+  if (opts.gi) layers.push({ key: CHAR_LAYERS.gi + suffix });
   for (const l of idle.layers) layers.push({ key: idle.warped ? l + suffix : l, ramps: { top, skin } });
   if (under) layers.push({ key: under.layer, ramps: under.ramps.length ? { hair } : undefined });
   layers.push({ key: pick(CHAR_LAYERS.hair, a.hair, 'curto', 'hair'), ramps: { hair } });
@@ -96,6 +99,8 @@ export interface NpcStyle {
   appearance: Appearance;
   hat?: string | HatSpec;
   apron?: string;
+  /** BJJ gi pieces over the outfit (Professora Bia) */
+  gi?: boolean;
 }
 
 const base = (o: Partial<Appearance>): Appearance => ({ ...DEFAULT_APPEARANCE, ...o });
@@ -146,11 +151,11 @@ export const NPC_STYLES: Record<NpcId, NpcStyle> = {
     hat: 'coroa_flores',
     apron: '#f4ede2',
   },
-  // Professora Bia (BJJ): an off-white gi (shirt and trousers), black bun, and a dark belt: the NPC apron layer in near-black (its band
-  // across the waist reads as the belt). All existing layers, no new art.
+  // Professora Bia (BJJ): a white gi (camisa + calça outfit in off-white) with the gi layer on top (crossed lapels, black belt and knot),
+  // short dark hair, arms crossed. Her portrait (portraits/prof_*) is a woman in her 30s with short dark hair and a gi collar.
   prof: {
-    appearance: base({ body: 'forte', skin: 4, hair: 'coque', hairColor: 0, top: 'camisa', topColor: 4, bottom: 'calca', bottomColor: 4, shoes: 0, face: 'marcante', extra: 'nenhum', idle: 'bracos' }),
-    apron: '#26232e',
+    appearance: base({ body: 'medio', skin: 4, hair: 'curto', hairColor: 0, top: 'camisa', topColor: 4, bottom: 'calca', bottomColor: 4, shoes: 0, face: 'marcante', extra: 'nenhum', idle: 'bracos' }),
+    gi: true,
   },
 };
 
@@ -158,7 +163,7 @@ export const NPC_STYLES: Record<NpcId, NpcStyle> = {
 export function lookForNpc(id: string, appearance?: Appearance, hatId?: string | null): Look {
   const style = (NPC_STYLES as Record<string, NpcStyle | undefined>)[id];
   const a = style?.appearance ?? appearance ?? DEFAULT_APPEARANCE;
-  return lookForAppearance(a, { hat: style?.hat ?? hatId ?? null, apron: style?.apron ?? null });
+  return lookForAppearance(a, { hat: style?.hat ?? hatId ?? null, apron: style?.apron ?? null, gi: style?.gi ?? false });
 }
 
 /** 53-bit string hash (cyrb53), base 36. */

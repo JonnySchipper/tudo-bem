@@ -99,14 +99,6 @@ const HOUSES = [
   ['casas/terraco_verde', 'B', 'verde', 6],
   ['casas/sobrado_verde', 'T', 'verde', 7],
 ];
-const ROOFS = [
-  ['telhados/terraco_a', false, 'amarelo', 6],
-  ['telhados/terraco_b', true, 'salmao', 6],
-  ['telhados/terraco_c', false, 'azul', 6],
-  ['telhados/terraco_d', false, 'verde', 7],
-  ['telhados/terraco_e', true, 'lilas', 6],
-  ['telhados/terraco_f', true, 'salmao', 7],
-];
 
 // ------------------------------------------------------------------ party wall with a painted mural (behind the banca)
 function empena() {
@@ -240,10 +232,6 @@ export async function casas(ctx) {
     parts.push({ key, img: body, anchor: [Math.floor(w / 2), body.h - 1], meta: { footprint: [tiles, 6], shadow: null, cast: CAST, windows: glass, lit: `${key}_lit` } });
     parts.push({ key: `${key}_lit`, img: lit, anchor: [Math.floor(w / 2), body.h - 1], meta: { footprint: [tiles, 6], shadow: null } });
   }
-  for (const [key, mirror, cwName, tiles] of ROOFS) {
-    const body = roof(src, tiles, mirror, COLORWAYS[cwName]);
-    parts.push({ key, img: body, anchor: [Math.floor(body.w / 2), body.h - 1], meta: { footprint: [tiles, 4], shadow: null } });
-  }
   parts.push({ key: 'casas/empena', img: empena(), anchor: [24, 95], meta: { footprint: [3, 6], shadow: null, cast: CAST } });
   // the first part inherits the import-map line, so it must be the one named there
   return parts;
@@ -262,4 +250,4 @@ export async function emBrevePart() {
 export async function preview() {
   return [pontoOnibus(), emBreve(), empena()];
 }
-void clone; void paste; void px; void setPx; void hexPx;
+void roof; void clone; void paste; void px; void setPx; void hexPx;
