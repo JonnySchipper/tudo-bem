@@ -44,6 +44,8 @@ class Game {
   placing: { itemId: string; rot: 0 | 1 } | null = null;
   selectedFurniture: string | null = null;
   hoverTile: Tile | null = null;
+  /** Label key under the pointer (`av:<id>` or `npc:<id>`), so a CPU nameplate can show on hover. */
+  hoverKey: string | null = null;
   modalOpen = false;
   /** Solo (static) build: the world runs in this tab; no other humans. */
   solo = false;

@@ -908,11 +908,13 @@ canvas.addEventListener('pointermove', (e) => {
   }
   const hit = renderer.hitTest(e.clientX, e.clientY);
   game.hoverTile = hit?.kind === 'tile' ? hit.tile : game.placing ? renderer.tileAt(e.clientX, e.clientY) : null;
+  game.hoverKey = hit?.kind === 'avatar' ? `av:${hit.id}` : hit?.kind === 'npc' ? `npc:${hit.npc.id}` : null;
   const lbl = hitLabel(hit);
   hoverLabel(e.clientX, e.clientY, lbl?.[0] ?? null, lbl?.[1]);
   canvas.style.cursor = hit && hit.kind !== 'tile' ? 'pointer' : 'default';
 });
 canvas.addEventListener('pointerleave', () => {
+  game.hoverKey = null;
   game.hoverTile = null;
   hoverLabel(0, 0, null);
 });
