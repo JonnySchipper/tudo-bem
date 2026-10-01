@@ -60,7 +60,6 @@ html.px-ui .dbx {
 }
 
 /* the bottom bar (emotes, chat) and the joystick would sit under the box: the box has its own reply field */
-body:has(.dbx) .bottombar,
 body:has(.dbx) .joystick {
   display: none;
 }
@@ -1009,12 +1008,6 @@ body:has(.dbx) .joystick {
   .caderno .cad-list {
     max-height: 40vh;
   }
-}
-
-/* ---- fixes after the first review shots */
-@media (min-width: 641px) {
-  .top-right { gap: 5px; }
-  html.px-ui .top-right button { padding-left: 7px; padding-right: 7px; gap: 4px; }
 }
 .dbx-chip .num { font-family: var(--font-body); font-weight: 800; }
 .dbx-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: stretch; }

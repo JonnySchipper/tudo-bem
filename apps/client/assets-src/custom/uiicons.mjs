@@ -373,6 +373,144 @@ const ICON_ROWS = {
   ],
 };
 
+// ---- V4 (UI visual pass): the slim HUD's settings gear, the phone drawer's burger and the emote tray's smiley. The gear and the smiley are
+// built from a disc / tooth predicate, then outlined (sel-out: navy wherever a shape meets empty space), light from the upper left.
+function disc(fillAt, shade, extra = {}) {
+  const f = Array.from({ length: 16 }, (_, y) => Array.from({ length: 16 }, (_, x) => fillAt(x, y)));
+  const rows = [];
+  for (let y = 0; y < 16; y++) {
+    let r = '';
+    for (let x = 0; x < 16; x++) {
+      if (extra[`${x},${y}`]) {
+        r += extra[`${x},${y}`];
+        continue;
+      }
+      if (!f[y][x]) {
+        const edge = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => f[y + dy]?.[x + dx]);
+        r += edge ? 'o' : '.';
+      } else r += shade(x, y);
+    }
+    rows.push(r);
+  }
+  return rows;
+}
+
+const gearFill = (x, y) => {
+  const dx = x - 7.5;
+  const dy = y - 7.5;
+  const r = Math.hypot(dx, dy);
+  if (r < 2.3) return false;
+  const k = (((Math.atan2(dy, dx) / (Math.PI / 4)) % 1) + 1) % 1;
+  const d = Math.min(k, 1 - k);
+  return r <= (d < 0.27 ? 6.8 : 5.3);
+};
+const gearShade = (x, y) => {
+  const dx = x - 7.5;
+  const dy = y - 7.5;
+  if (Math.hypot(dx, dy) < 3.4) return 'r';
+  return dx + dy < -2 ? 'W' : dx + dy < 3 ? 'R' : 'r';
+};
+ICON_ROWS.gear = disc(gearFill, gearShade);
+
+const faceFill = (x, y) => Math.hypot(x - 7.5, y - 7.5) <= 6.5;
+const faceShade = (x, y) => {
+  const dx = x - 7.5;
+  const dy = y - 7.5;
+  return dx + dy < -4 ? 'Y' : dx + dy < 4 ? 'y' : 'S';
+};
+ICON_ROWS.emote = disc(faceFill, faceShade, {
+  '5,5': 'o', '5,6': 'o', '10,5': 'o', '10,6': 'o',
+  '4,9': 'o', '5,10': 'o', '6,11': 'o', '7,11': 'o', '8,11': 'o', '9,11': 'o', '10,10': 'o', '11,9': 'o',
+  '6,9': 'p', '9,9': 'p',
+});
+
+// the RV coin (a gold real virtual with an ipê flower) and the Verde sprout, both pixel art now (they were smooth SVGs next to pixel frames)
+PAL.d = '#a87810';
+const coinFill = (x, y) => Math.hypot(x - 7.5, y - 7.5) <= 6.9;
+const coinExtra = {};
+for (let i = 4; i <= 11; i++) {
+  coinExtra[`7,${i}`] = 'W';
+  coinExtra[`8,${i}`] = 'W';
+  coinExtra[`${i},7`] = 'W';
+  coinExtra[`${i},8`] = 'W';
+}
+for (const k of ['7,7', '8,7', '7,8', '8,8']) coinExtra[k] = 't';
+for (const k of ['6,6', '9,6', '6,9', '9,9']) coinExtra[k] = 'W';
+ICON_ROWS.rv = disc(coinFill, (x, y) => {
+  const dx = x - 7.5;
+  const dy = y - 7.5;
+  const r = Math.hypot(dx, dy);
+  if (r > 5.2) return dx + dy < -2 ? 'Y' : dx + dy > 3 ? 'd' : 'y';
+  return dx + dy > 5 ? 'Y' : 'y';
+}, coinExtra);
+
+// the brand mark: a sun over a striped padaria awning (it was a smooth SVG)
+{
+  const g = Array.from({ length: 16 }, () => Array(16).fill('.'));
+  for (let y = 0; y < 16; y++)
+    for (let x = 0; x < 16; x++) {
+      const dx = x - 7.5;
+      const dy = y - 5.5;
+      const r = Math.hypot(dx, dy);
+      if (r <= 3.7) g[y][x] = dx + dy > 1.5 ? 'y' : 'Y';
+      else if (r > 4.9 && r <= 6.4 && y < 9) {
+        const a = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4);
+        const ex = 7.5 + Math.cos(a) * r;
+        const ey = 5.5 + Math.sin(a) * r;
+        if (Math.hypot(ex - x, ey - y) < 0.62) g[y][x] = 'y';
+      }
+    }
+  const awn = [
+    '.oooooooooooooo.',
+    'oTtttWWttWWtttTo',
+    'oTtttWWttWWtttTo',
+    '.oTtWWttWWttTTo.',
+    '..oooooooooooo..',
+  ];
+  awn.forEach((r, i) => {
+    g[10 + i] = [...r];
+  });
+  ICON_ROWS.mark = g.map((r) => r.join(''));
+}
+
+ICON_ROWS.verde = [
+  '................',
+  '................',
+  '...oo......oo...',
+  '..oLLoo..ooGLo..',
+  '.oLLLGGooGGGLLo.',
+  '.oLLGGGGGGGGGLo.',
+  '..oGGGGoGGGGGo..',
+  '...ooGGoGGGoo...',
+  '.....oGoGoo.....',
+  '......oGGo......',
+  '......oGGo......',
+  '......oGGo......',
+  '.....ooGGoo.....',
+  '....oGGGGGGo....',
+  '....oooooooo....',
+  '................',
+];
+
+ICON_ROWS.burger = [
+  '................',
+  '................',
+  '.oooooooooooooo.',
+  '.oTttttttttttTo.',
+  '.oooooooooooooo.',
+  '................',
+  '.oooooooooooooo.',
+  '.oTttttttttttTo.',
+  '.oooooooooooooo.',
+  '................',
+  '.oooooooooooooo.',
+  '.oTttttttttttTo.',
+  '.oooooooooooooo.',
+  '................',
+  '................',
+  '................',
+];
+
 export const UI_ICON_NAMES = Object.keys(ICON_ROWS);
 
 function draw(rows) {

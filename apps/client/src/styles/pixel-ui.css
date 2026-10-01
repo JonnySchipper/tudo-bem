@@ -16,14 +16,8 @@
 
 /* ---------------------------------------------------------------- pixel font: headings, pills, numbers */
 
-.brand .logo,
-.brand .room,
-.pill,
-.plate,
 #coins,
 .panel h2,
-.checklist h3,
-.toast .amount,
 .dialogue .speaker,
 .conversa-header .npc-name,
 .pedido-info .npc-name,
@@ -34,22 +28,9 @@
   letter-spacing: 0.01em;
 }
 
-.brand .room small,
-.dialogue .speaker small,
-.checklist h3 .cl-en {
+.dialogue .speaker small {
   font-family: var(--font-body);
   letter-spacing: 0;
-}
-
-.brand .logo {
-  font-weight: 700;
-  letter-spacing: 0;
-}
-
-.brand .room,
-.pill,
-.plate {
-  font-weight: 600;
 }
 
 /* ---------------------------------------------------------------- pixel images in the DOM */
@@ -248,20 +229,6 @@
   pointer-events: auto;
 }
 
-/* ---------------------------------------------------------------- checklist: a compact pill once the first step is done */
-
-.checklist h3 {
-  gap: 8px;
-  justify-content: flex-start;
-  user-select: none;
-}
-
-.checklist h3 .cl-en {
-  font-size: 0.7em;
-  color: var(--ink-soft);
-  font-weight: 600;
-}
-
 .cl-progress {
   margin-left: auto;
   font-size: 0.85em;
@@ -274,35 +241,9 @@
   color: var(--ink-soft);
 }
 
-.checklist.collapsed .cl-caret::after {
-  content: '▸';
-}
-
-.checklist.collapsed {
-  width: auto;
-  max-width: none;
-  min-width: 0;
-  padding-bottom: 6px;
-}
-
-.checklist.collapsed .reward-note,
-.checklist.collapsed .cl-en {
-  display: none;
-}
-
-.checklist h3:focus-visible {
-  outline: 3px solid var(--azul);
-  outline-offset: 2px;
-}
-
 /* ================================================================ html.px-ui: 9-slice chrome */
 
-html.px-ui .px-chrome-panel,
-html.px-ui .brand,
-html.px-ui .pill,
-html.px-ui .checklist,
-html.px-ui .chatbar,
-html.px-ui .toast {
+html.px-ui .px-chrome-panel {
   border: var(--px-panel-w) solid transparent;
   border-image: var(--px-panel);
   border-radius: 0;
@@ -312,98 +253,9 @@ html.px-ui .toast {
   filter: drop-shadow(0 3px 0 var(--px-shadow));
 }
 
-/* HUD pills: compact, so the frame (7 px) is most of the height */
-html.px-ui .brand {
-  padding: 0 6px 0 2px;
-  gap: 8px;
-}
-
-html.px-ui .brand .mark {
-  width: 28px;
-  height: 28px;
-}
-
-html.px-ui .brand .logo {
-  font-size: 1.25em;
-}
-
-html.px-ui .pill {
-  padding: 0 4px;
-  min-height: 0;
-}
-
-html.px-ui .plate {
-  border-radius: 3px;
-  border: 1px solid var(--px-ink);
-  padding: 1px 8px 1px 5px;
-}
-
 html.px-ui .coin {
   width: 18px;
   height: 18px;
-}
-
-/* the checklist keeps its layout; the frame replaces the rounded card */
-html.px-ui .checklist {
-  padding: 2px 6px 4px;
-  background: none;
-}
-
-html.px-ui .checklist li .box {
-  border-radius: 0;
-  border: 2px solid var(--px-ink);
-}
-
-html.px-ui .checklist.collapsed {
-  padding: 0 4px;
-}
-
-/* chat bar: same frame, a flat pixel field and the kit button for Enviar */
-html.px-ui .chatbar {
-  padding: 0 4px 0 6px;
-  gap: 8px;
-}
-
-html.px-ui .chatbar input {
-  border: 2px solid var(--px-ink);
-  border-radius: 3px;
-  background: #fffdf9;
-  box-shadow: inset 0 2px 0 rgba(87, 60, 44, 0.12);
-  padding: 0.4em 0.7em;
-}
-
-/* toasts: the frame, and the level as a colored bar inside it (the old left border) */
-html.px-ui .toast {
-  position: relative;
-  padding: 2px 8px 2px 12px;
-  max-width: min(520px, 90vw);
-}
-
-html.px-ui .toast::before {
-  content: '';
-  position: absolute;
-  left: -1px;
-  top: -1px;
-  bottom: -1px;
-  width: 4px;
-  background: var(--azul);
-}
-
-html.px-ui .toast.warn::before {
-  background: var(--amarelo);
-}
-
-html.px-ui .toast.block::before,
-html.px-ui .toast.error::before {
-  background: var(--terracota);
-}
-
-html.px-ui .toast.reward::before {
-  background: var(--verde);
-}
-
-html.px-ui .toast.reward {
-  background: none;
 }
 
 /* modals and the NPC dialogue: the 2x panel */
@@ -430,180 +282,12 @@ html.px-ui .panel h2 {
   color: var(--terracota-dark);
 }
 
-/* top-bar buttons and Enviar: the kit button (terracotta, cream label) */
-html.px-ui .top-right button,
-html.px-ui .chatbar button.primary {
-  border: var(--px-btn-t) solid transparent;
-  border-bottom-width: var(--px-btn-b);
-  border-left-width: var(--px-btn-x);
-  border-right-width: var(--px-btn-x);
-  border-image: var(--px-button);
-  border-radius: 0;
-  background: none;
-  box-shadow: none;
-  color: #fff8ec;
-  padding: 0.1em 0.5em;
-  image-rendering: pixelated;
-  filter: drop-shadow(0 2px 0 var(--px-shadow));
-  transition: none;
-}
-
-html.px-ui .top-right button .btn-label .en,
-html.px-ui .chatbar button.primary .en {
-  color: rgba(255, 244, 228, 0.85);
-}
-
-html.px-ui .top-right button:hover,
-html.px-ui .chatbar button.primary:hover {
-  border-image: var(--px-button-hover);
-  transform: none;
-}
-
-html.px-ui .top-right button:active,
-html.px-ui .chatbar button.primary:active {
-  border-image: var(--px-button-pressed);
-  transform: translateY(1px);
-}
-
-/* emotes stay cream chips, squared off and with a hard pixel shadow */
-html.px-ui .emotes button {
-  border-radius: 4px;
-  border: 2px solid var(--px-ink);
-  box-shadow: 0 3px 0 var(--px-ink);
-  transition: none;
-}
-
-html.px-ui .emotes button:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 var(--px-ink);
-}
-
 /* ---------------------------------------------------------------- phone HUD (<= 640 px): two short rows on top, one row at the bottom */
 
 @media (max-width: 640px) {
-  .topbar {
-    align-items: center;
-    row-gap: 4px;
-    /* 8 icon buttons (own kitnet: Decorar too) x 44 px + 7 gaps must fit 374 px */
-    column-gap: 3px;
-  }
-
-  /* row 1: brand + pills; row 2: icon buttons. The wrapper dissolves so its children can be ordered against the brand. */
-  .top-right {
-    display: contents;
-  }
-
-  .topbar::after {
-    content: '';
-    order: 2;
-    flex: 1 0 100%;
-    height: 0;
-  }
-
-  .brand {
-    order: 1;
-    flex: 1 1 0;
-    min-width: 0;
-  }
-
-  .brand .room {
-    max-width: none;
-  }
-
-  .top-right > .pill {
-    order: 1;
-    flex: none;
-    min-height: 0;
-  }
-
-  .top-right > button {
-    order: 3;
-    flex: none;
-  }
-
-  .top-right > #mission-pill {
-    order: 4;
-    flex: 1 1 100%;
-  }
 
   #mission-pill .mini-steps {
     display: none;
-  }
-
-  html.px-ui .top-right > button {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
-    padding: 0;
-  }
-
-  .top-right > #btn-decor {
-    order: 3;
-  }
-
-  /* emotes: one scrolling row instead of two wrapped ones (keeps the joystick and the world clear) */
-  .emotes {
-    flex-wrap: nowrap;
-    justify-content: safe center;
-    overflow-x: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: none;
-    padding-bottom: 4px;
-  }
-
-  .emotes::-webkit-scrollbar {
-    display: none;
-  }
-
-  .emotes button {
-    flex: none;
-    padding: 0.3em 0.55em;
-  }
-
-  .bottombar {
-    gap: 4px;
-  }
-
-  html.px-ui .chatbar {
-    border-radius: 0;
-  }
-}
-
-/* ---------------------------------------------------------------- pixel font is wider than Baloo: keep short labels on one line */
-
-.brand .logo,
-.checklist h3,
-.pill,
-.plate {
-  white-space: nowrap;
-}
-
-.checklist h3 .cl-en {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-@media (max-width: 640px) {
-  /* phone: the mark goes, the wordmark sits over the room name, so the room still reads */
-  .brand {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0;
-    padding-left: 8px;
-  }
-
-  .brand .mark {
-    display: none;
-  }
-
-  .brand .logo {
-    font-size: 1.05em;
-  }
-
-  .brand .room {
-    font-size: 0.82em;
-    max-width: 100%;
   }
 }
 
@@ -632,11 +316,6 @@ html.px-ui .decor {
   .dialogue .speaker small {
     display: none;
   }
-}
-
-/* the pixel font is wider: room for "Primeiros passos  First steps  0/8" on one line */
-html.px-ui .checklist:not(.collapsed) {
-  width: 318px;
 }
 
 /* Mapa: the pixel minimap of Vila Ipê (2 art px per tile, shown at 3x, 2x on phones) */

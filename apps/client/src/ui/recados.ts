@@ -9,6 +9,7 @@ import { h, en, bi, ui } from './dom';
 import { icon } from '../art/ui';
 import { openModal } from './modal';
 import { toast } from './hud';
+import { COMPACT_QUERY, placeHud } from './hudLayout';
 import { foodIcon, npcPortrait } from './pixelArt';
 import { showDialogueBox } from './dialogue';
 import { closeDialogue } from './panels';
@@ -49,22 +50,61 @@ const heartsEl = (points: number | undefined, cls = 'hearts'): HTMLElement => {
 
 // ---------------------------------------------------------------- tracker
 
-/** The tracker: a small pixel-framed card on the right under the top bar. One tap opens the journal. */
+/**
+ * The tracker: a small pixel-framed card under the top bar (right on a desktop, left on a phone). The head folds it away; a tap on a row opens
+ * the journal. Desktop starts open, a phone starts as a one-line pill that opens by itself for a few seconds when a step moves.
+ */
 export function mountTracker(openJournal: () => void): { refresh: () => void } {
-  const el = h('button', { class: 'rtrack', id: 'recado-tracker', type: 'button', 'aria-label': 'Recados: abrir o diário', title: 'Recados — abrir o diário / open the journal', onclick: openJournal });
+  const head = h('button', { class: 'rtrack-head', type: 'button', 'aria-expanded': 'true', title: 'Recados — mostrar ou esconder / show or hide' });
+  const rows = h('div', { class: 'rtrack-rows' });
+  const el = h('div', { class: 'rtrack', id: 'recado-tracker', role: 'region', 'aria-label': 'Recados' }, head, rows);
   ui().append(el);
   let prevBoard: RecadoBoard | null = null;
   let prevTutorial: NonNullable<typeof game.profile>['tutorial'] | null = null;
   let prevBond: NonNullable<typeof game.profile>['bond'] | null = null;
   let flash = new Set<string>();
   let flashTimer = 0;
-
-  /** The top bar wraps to one, two or three rows depending on the width: sit right under whatever it ended up being. */
-  const place = () => {
-    const bar = document.querySelector('.topbar')?.getBoundingClientRect();
-    if (bar && bar.bottom > 0) el.style.top = `${Math.round(bar.bottom + 8)}px`;
+  let peekTimer = 0;
+  let peeking = false;
+  const compact = () => window.matchMedia(COMPACT_QUERY).matches;
+  const stored = (): boolean | null => {
+    try {
+      const v = localStorage.getItem('tb_tracker');
+      return v === 'open' ? true : v === 'closed' ? false : null;
+    } catch {
+      return null;
+    }
   };
-  window.addEventListener('resize', place);
+  let manual: boolean | null = stored();
+  const isOpen = () => peeking || (manual ?? !compact());
+  const applyOpen = () => {
+    const open = isOpen();
+    el.classList.toggle('collapsed', !open);
+    head.setAttribute('aria-expanded', String(open));
+    placeHud();
+  };
+  head.addEventListener('click', () => {
+    manual = !isOpen();
+    peeking = false;
+    try {
+      localStorage.setItem('tb_tracker', manual ? 'open' : 'closed');
+    } catch {
+      /* private mode */
+    }
+    applyOpen();
+  });
+  window.matchMedia(COMPACT_QUERY).addEventListener('change', applyOpen);
+  const peek = () => {
+    if (isOpen() || !compact()) return;
+    peeking = true;
+    applyOpen();
+    window.clearTimeout(peekTimer);
+    peekTimer = window.setTimeout(() => {
+      peeking = false;
+      applyOpen();
+    }, 5200);
+  };
+
   const refresh = () => {
     const p = game.profile;
     const board = game.board;
@@ -78,6 +118,7 @@ export function mountTracker(openJournal: () => void): { refresh: () => void } {
         flash.clear();
         refresh();
       }, 1500);
+      peek();
     }
     for (const d of finishedRecados(prevBoard, board)) showRecadoDone(d.id);
     for (const up of heartUps(prevBond, p?.bond)) {
@@ -89,11 +130,9 @@ export function mountTracker(openJournal: () => void): { refresh: () => void } {
 
     const entries = trackerEntries(board, p);
     el.style.display = entries.length ? '' : 'none';
-    place();
-    el.replaceChildren(
-      h('span', { class: 'rtrack-head' }, icon('recados', 16), h('b', null, 'Recados'), h('small', null, 'Errands')),
-      ...entries.map((e) => entryRow(e, flash.has(e.key))),
-    );
+    head.replaceChildren(icon('recados', 16), h('b', null, 'Recados'), h('small', null, entries.length > 1 ? `${entries[0]!.progress} +${entries.length - 1}` : (entries[0]?.progress ?? '')), h('span', { class: 'rtrack-caret', 'aria-hidden': 'true' }));
+    rows.replaceChildren(...entries.map((e) => entryRow(e, flash.has(e.key), openJournal)));
+    applyOpen();
   };
   game.on('profile', refresh);
   game.on('recados', refresh);
@@ -101,10 +140,23 @@ export function mountTracker(openJournal: () => void): { refresh: () => void } {
   return { refresh };
 }
 
-function entryRow(e: TrackerEntry, justDone: boolean): HTMLElement {
+function entryRow(e: TrackerEntry, justDone: boolean, open: () => void): HTMLElement {
   return h(
-    'span',
-    { class: `rtrack-row ${e.kind}${justDone ? ' just-done' : ''}`, 'data-recado': e.key },
+    'div',
+    {
+      class: `rtrack-row ${e.kind}${justDone ? ' just-done' : ''}`,
+      'data-recado': e.key,
+      role: 'button',
+      tabindex: '0',
+      title: 'Abrir os recados / open the journal',
+      onclick: open,
+      onkeydown: (ev: KeyboardEvent) => {
+        if (ev.key === 'Enter' || ev.key === ' ') {
+          ev.preventDefault();
+          open();
+        }
+      },
+    },
     h('span', { class: 'rt-giver' }, npcPortrait(e.giver, 'neutro', 'rt-face')),
     h(
       'span',

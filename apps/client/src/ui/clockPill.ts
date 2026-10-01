@@ -60,7 +60,7 @@ export function mountClockPill(): HTMLElement {
   const dayEl = h('span', { class: 'cp-day' });
   const timeEl = h('span', { class: 'cp-time' });
   const wxEl = h('span', { class: 'cp-wx', 'aria-hidden': 'true' });
-  const el = h('span', { class: 'pill clock-pill', id: 'clock-pill', role: 'timer', 'aria-live': 'off' }, dayEl, h('span', { class: 'cp-sep cp-sep-1' }, '·'), timeEl, h('span', { class: 'cp-sep' }, '·'), wxEl);
+  const el = h('span', { class: 'hud-clock clock-pill', id: 'clock-pill', role: 'timer', 'aria-live': 'off' }, dayEl, h('span', { class: 'cp-sep cp-sep-1' }, '·'), timeEl, h('span', { class: 'cp-sep' }, '·'), wxEl);
   let last = '';
   const tick = () => {
     const v = clockPillView(clock.day(), clock.minutes(), clock.weather());

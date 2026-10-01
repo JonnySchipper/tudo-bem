@@ -1,10 +1,10 @@
 import './styles.css';
 import './styles/intro.css';
 import './styles/pixel-ui.css';
-import './styles/clock.css';
 import './styles/dialogue.css';
 import './styles/recados.css';
 import './styles/feira.css';
+import './styles/hud.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';

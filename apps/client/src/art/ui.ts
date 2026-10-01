@@ -19,6 +19,8 @@ export const ICON_NAMES = [
   'map', 'hat', 'friends', 'soundOn', 'soundOff', 'musicOn', 'musicOff', 'decor', 'parrot', 'send', 'close', 'info', 'logout', 'caderno', 'recados', 'coracao',
   // Missão do dia steps (Cumprimenta, Pede, Monta)
   'cumprimenta', 'pede', 'monta',
+  // V4 HUD: settings gear, phone drawer, emote tray
+  'gear', 'burger', 'emote', 'rv', 'verde', 'mark',
 ] as const;
 export type IconName = (typeof ICON_NAMES)[number];
 

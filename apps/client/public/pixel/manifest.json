@@ -5500,6 +5500,36 @@
    "w": 16,
    "h": 16
   },
+  "ui/icon_gear": {
+   "file": "ui/icon_gear.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_emote": {
+   "file": "ui/icon_emote.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_rv": {
+   "file": "ui/icon_rv.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_mark": {
+   "file": "ui/icon_mark.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_verde": {
+   "file": "ui/icon_verde.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_burger": {
+   "file": "ui/icon_burger.png",
+   "w": 16,
+   "h": 16
+  },
   "chars/parrot_strip": {
    "file": "chars/parrot_strip.png",
    "w": 40,

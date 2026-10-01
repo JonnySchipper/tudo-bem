@@ -1,9 +1,10 @@
 import { classifyChat, MAX_CHAT_LEN, MISSION_COPY, MISSION_STEPS, type EmoteKind, type NoticeLevel } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi, ui } from './dom';
-import { icon } from '../art/ui';
+import { icon, type IconName } from '../art/ui';
 import { mountIdleKickBirds } from './introParrots';
 import { mountClockPill } from './clockPill';
+import { COMPACT_QUERY, placeHud } from './hudLayout';
 
 export interface HudActions {
   chat: (text: string) => void;
@@ -30,13 +31,17 @@ export function toast(level: NoticeLevel, pt: string, enText?: string, amount?: 
   const el = h(
     'div',
     { class: `toast ${level}`, role: 'status' },
-    amount ? h('span', { class: 'amount' }, `+${amount} RV `) : null,
+    amount ? h('span', { class: 'amount' }, icon('rv', 16), `+${amount} RV `) : null,
     pt,
     enText ? en(enText) : null,
   );
   toastsEl.append(el);
-  while (toastsEl.children.length > 4) toastsEl.firstElementChild?.remove();
-  setTimeout(() => el.remove(), level === 'reward' ? 5200 : 4500);
+  while (toastsEl.children.length > 3) toastsEl.firstElementChild?.remove();
+  placeHud();
+  setTimeout(() => {
+    el.remove();
+    placeHud();
+  }, level === 'reward' ? 5200 : 4500);
 }
 
 /** Celebration card when the daily kiosk mission pays out. */
@@ -52,40 +57,131 @@ export function missionBanner() {
   setTimeout(() => el.remove(), 5200);
 }
 
+/**
+ * One slim HUD (V4). Top left: the brand, where you are and the clock, in one plate. Top right: the RV coin, the Verde plate and a bar of pixel
+ * icons (Mapa, Recados, Caderno, Chapéus, Amigos) plus a gear for Música / Voz / Créditos / Sair; the labels (Portuguese with the English gloss)
+ * show on hover and focus. On a phone (<= 640 px wide, or a landscape phone under 520 px tall) the same buttons become a drawer behind one ☰,
+ * and the emote row hides behind a smiley next to the chat field. Ids are the old ones (`btn-map`, `btn-music`, ...).
+ */
 export function buildHud(actions: HudActions) {
   const root = ui();
 
-  // ---- top bar
+  // ---- the plate: brand + place + clock
   const roomName = h('div', { class: 'room' });
   const coins = h('span', { id: 'coins' });
-  const missionPill = h('span', { class: 'pill', id: 'mission-pill', title: `${MISSION_COPY.header.en} — quest kiosk in the Praça` });
-  const plate = h('span', { class: 'plate', title: 'Verde: you see English under Portuguese' }, h('span', { class: 'seed' }), 'Verde');
-  const soundBtn = h('button', { onclick: actions.toggleSound, title: 'Voz / Voice', id: 'btn-sound' });
-  const musicBtn = h('button', { onclick: actions.toggleMusic, title: 'Música / Music', id: 'btn-music' });
-  const decorBtn = h('button', { class: 'yellow', onclick: actions.toggleDecor, id: 'btn-decor' }, icon('decor'), bi('Decorar', 'Decorate'));
+  const missionPill = h('span', { class: 'hud-chip', id: 'mission-pill', title: `${MISSION_COPY.header.en} — quest kiosk in the Praça` });
+  const plate = h('span', { class: 'hud-verde', title: 'Verde: you see English under Portuguese' }, icon('verde', 16), 'Verde');
+
+  // ---- the actions: one set of buttons, an icon bar on desktop and a drawer on a phone
+  const btn = (id: string, ico: IconName, pt: string, enText: string, onclick: () => void, cls = '') =>
+    h(
+      'button',
+      {
+        class: `hud-btn ${cls}`.trim(),
+        id,
+        type: 'button',
+        'aria-label': `${pt} (${enText})`,
+        onclick: () => {
+          closeMenus();
+          onclick();
+        },
+      },
+      icon(ico, 32),
+      h('span', { class: 'hud-label' }, h('b', { class: 'pt' }, pt), h('i', { class: 'hud-gloss' }, enText)),
+    );
+  const toggleBtn = (id: string, onclick: () => void) =>
+    h(
+      'button',
+      { class: 'hud-btn hud-toggle', id, type: 'button', onclick },
+    );
+  const decorBtn = btn('btn-decor', 'decor', 'Decorar', 'Decorate', actions.toggleDecor, 'hud-decor');
+  const soundBtn = toggleBtn('btn-sound', actions.toggleSound);
+  const musicBtn = toggleBtn('btn-music', actions.toggleMusic);
+  soundBtn.title = 'Voz / Voice';
+  musicBtn.title = 'Música / Music';
+  const creditsBtn = btn('btn-credits', 'info', 'Créditos', 'Credits', actions.openCredits);
+  const logoutBtn = actions.logout ? btn('btn-logout', 'logout', 'Sair', 'Log out', actions.logout) : null;
+  const gear = h('button', { class: 'hud-btn hud-gear', id: 'btn-menu', type: 'button', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-controls': 'hud-menu', 'aria-label': 'Ajustes (Settings)' }, icon('gear', 32), h('span', { class: 'hud-label' }, h('b', { class: 'pt' }, 'Ajustes'), h('i', { class: 'hud-gloss' }, 'Music, voice, credits')));
+  const menu = h(
+    'div',
+    { class: 'hud-menu', id: 'hud-menu', role: 'group', 'aria-label': 'Ajustes' },
+    musicBtn,
+    soundBtn,
+    creditsBtn,
+    logoutBtn,
+    game.solo ? h('span', { class: 'hud-note', id: 'solo-pill', title: 'Prévia estática: o mundo roda no seu navegador. Multiplayer precisa do servidor. / Static preview — the world runs in your browser; multiplayer needs the server build.' }, 'Modo solo') : null,
+  );
+  const gearWrap = h('div', { class: 'hud-gear-wrap' }, gear, menu);
+  const drawerPlate = h('span', { class: 'hud-drawer-head' }, h('span', { class: 'hud-verde', title: 'Verde: you see English under Portuguese' }, icon('verde', 16), 'Verde'), h('span', { class: 'hud-drawer-hint' }, 'Menu · Menu'));
+  const actionsNav = h(
+    'nav',
+    { class: 'hud-actions hud-slab', id: 'hud-actions', 'aria-label': 'Menu do jogo' },
+    drawerPlate,
+    decorBtn,
+    btn('btn-map', 'map', 'Mapa', 'Map', actions.openMap),
+    btn('btn-recados', 'recados', 'Recados', 'Errands', actions.openRecados),
+    btn('btn-caderno', 'caderno', 'Caderno', 'Words', actions.openCaderno),
+    btn('btn-wardrobe', 'hat', 'Chapéus', 'My hats', actions.openWardrobe),
+    btn('btn-friends', 'friends', 'Amigos', 'Friends', actions.openFriends),
+    gearWrap,
+  );
+  const burger = h('button', { class: 'hud-btn hud-burger hud-slab', id: 'btn-burger', type: 'button', 'aria-expanded': 'false', 'aria-controls': 'hud-actions', 'aria-label': 'Menu (Menu)' }, icon('burger', 32));
+  const scrim = h('div', { class: 'hud-scrim', 'aria-hidden': 'true' });
+
   const topbar = h(
     'div',
-    { class: 'topbar' },
-    h('div', { class: 'top-left' }, h('div', { class: 'brand' }, h('span', { class: 'mark', 'aria-hidden': 'true' }), h('div', { class: 'logo' }, 'Tudo ', h('span', null, 'Bem')), roomName), mountClockPill()),
+    { class: 'topbar', id: 'hud-top' },
     h(
       'div',
-      { class: 'top-right' },
-      decorBtn,
-      h('button', { onclick: actions.openMap, id: 'btn-map' }, icon('map'), bi('Mapa', 'Map')),
-      h('button', { onclick: actions.openRecados, id: 'btn-recados', title: 'Recados — errands, bag and friends' }, icon('recados'), bi('Recados', 'Errands')),
-      h('button', { onclick: actions.openCaderno, id: 'btn-caderno', title: 'Caderno de palavras / Word notebook' }, icon('caderno'), bi('Caderno', 'Words')),
-      h('button', { onclick: actions.openWardrobe, id: 'btn-wardrobe' }, icon('hat'), bi('Chapéus', 'My hats')),
-      h('button', { onclick: actions.openFriends, id: 'btn-friends' }, icon('friends'), bi('Amigos', 'Friends')),
-      musicBtn,
-      soundBtn,
-      h('button', { onclick: actions.openCredits, id: 'btn-credits', title: 'Créditos / Credits', 'aria-label': 'Créditos' }, icon('info'), bi('Créditos', 'Credits')),
-      actions.logout ? h('button', { onclick: actions.logout, id: 'btn-logout', title: 'Sair da conta / Log out', 'aria-label': 'Sair da conta' }, icon('logout'), bi('Sair', 'Log out')) : null,
-      game.solo ? h('span', { class: 'pill', title: 'Prévia estática: o mundo roda no seu navegador. Multiplayer precisa do servidor. / Static preview — the world runs in your browser; multiplayer needs the server build.', id: 'solo-pill' }, 'Modo solo') : null,
-      missionPill,
-      h('span', { class: 'pill' }, plate),
-      h('span', { class: 'pill', title: 'Reais Virtuais (RV) — soft currency' }, h('span', { class: 'coin' }), coins),
+      { class: 'hud-left hud-slab' },
+      h('div', { class: 'brand' }, h('span', { class: 'mark', 'aria-hidden': 'true' }, icon('mark', 32)), h('div', { class: 'logo' }, 'Tudo ', h('span', null, 'Bem')), roomName),
+      mountClockPill(),
     ),
+    h(
+      'div',
+      { class: 'hud-right' },
+      h('div', { class: 'hud-stats hud-slab' }, plate, h('span', { class: 'hud-rv', title: 'Reais Virtuais (RV) — soft currency' }, icon('rv', 16), coins)),
+      burger,
+      actionsNav,
+    ),
+    missionPill,
   );
+
+  // ---- open / close the drawer (phone) and the gear menu (desktop)
+  function closeMenus() {
+    actionsNav.classList.remove('open');
+    scrim.classList.remove('open');
+    burger.setAttribute('aria-expanded', 'false');
+    gearWrap.classList.remove('open');
+    gear.setAttribute('aria-expanded', 'false');
+  }
+  const toggleDrawer = () => {
+    const open = !actionsNav.classList.contains('open');
+    closeMenus();
+    if (!open) return;
+    actionsNav.classList.add('open');
+    scrim.classList.add('open');
+    burger.setAttribute('aria-expanded', 'true');
+    placeHud();
+  };
+  const toggleGear = () => {
+    const open = !gearWrap.classList.contains('open');
+    closeMenus();
+    if (!open) return;
+    gearWrap.classList.add('open');
+    gear.setAttribute('aria-expanded', 'true');
+  };
+  burger.addEventListener('click', toggleDrawer);
+  gear.addEventListener('click', toggleGear);
+  scrim.addEventListener('pointerdown', closeMenus);
+  document.addEventListener('pointerdown', (e) => {
+    const t = e.target as Element | null;
+    if (!t?.closest('.hud-gear-wrap, .hud-burger, .hud-actions')) closeMenus();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && (actionsNav.classList.contains('open') || gearWrap.classList.contains('open'))) closeMenus();
+  });
+  window.matchMedia(COMPACT_QUERY).addEventListener('change', closeMenus);
 
   // ---- bottom bar
   const input = h('input', { type: 'text', maxLength: MAX_CHAT_LEN, placeholder: 'Diga oi! (Say hi — Portuguese or English)', 'aria-label': 'Chat', id: 'chat-input' });
@@ -120,17 +216,34 @@ export function buildHud(actions: HudActions) {
       hint.title = v.note?.en ?? '';
     }
   });
-  const emoteBtn = (k: EmoteKind, pt: string, e: string) => h('button', { onclick: () => actions.emote(k), 'data-emote': k }, bi(pt, e));
+  const bottombar = h('div', { class: 'bottombar' });
+  const setTray = (open: boolean) => {
+    bottombar.classList.toggle('emotes-open', open);
+    emoteToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+  const emoteBtn = (k: EmoteKind, pt: string, e: string) =>
+    h(
+      'button',
+      {
+        type: 'button',
+        'data-emote': k,
+        onclick: () => {
+          actions.emote(k);
+          setTray(false);
+        },
+      },
+      bi(pt, e),
+    );
   const standBtn = h('button', { onclick: actions.stand, id: 'btn-stand', style: 'display:none' }, bi('Levantar', 'Stand up'));
   const parrotBtn = h('button', { class: 'green', onclick: actions.parrotHint, id: 'btn-parrot', style: 'display:none' }, bi('Dica do papagaio', 'Parrot hint'));
-  parrotBtn.prepend(icon('parrot', 18));
+  parrotBtn.prepend(icon('parrot', 16));
   const parrotToggle = h('button', { onclick: actions.toggleParrot, id: 'btn-parrot-toggle', style: 'display:none' });
-  const bottombar = h(
-    'div',
-    { class: 'bottombar' },
+  const emoteToggle = h('button', { class: 'hud-emote-toggle', id: 'btn-emotes', type: 'button', 'aria-expanded': 'false', 'aria-label': 'Emoções (Emotes)', title: 'Emoções / Emotes', onclick: () => setTray(!bottombar.classList.contains('emotes-open')) }, icon('emote', 32));
+  const sendBtn = h('button', { class: 'primary', onclick: send, id: 'chat-send', type: 'button', 'aria-label': 'Enviar (Send)' }, icon('send', 16), h('span', { class: 'send-label' }, 'Enviar'));
+  bottombar.append(
     h(
       'div',
-      { class: 'emotes' },
+      { class: 'emotes', id: 'hud-emotes' },
       emoteBtn('oi', 'Oi!', 'Wave'),
       emoteBtn('valeu', 'Valeu!', 'Thanks'),
       emoteBtn('rir', 'Kkkk', 'Laugh'),
@@ -140,11 +253,21 @@ export function buildHud(actions: HudActions) {
       parrotBtn,
       parrotToggle,
     ),
-    h('div', { class: 'chatbar' }, input, hint, h('button', { class: 'primary', onclick: send, id: 'chat-send', style: 'display:inline-flex;gap:6px;align-items:center' }, icon('send', 16), 'Enviar')),
+    h('div', { class: 'chatbar' }, emoteToggle, input, hint, sendBtn),
   );
 
   toastsEl = h('div', { class: 'toasts', 'aria-live': 'polite' });
-  root.append(topbar, bottombar, toastsEl);
+  root.append(topbar, scrim, bottombar, toastsEl);
+
+  const setToggle = (b: HTMLElement, ico: IconName, on: boolean, pt: string, enOn: string, enOff: string) => {
+    b.dataset.on = on ? '1' : '0';
+    b.replaceChildren(
+      icon(ico, 32),
+      h('span', { class: 'hud-label' }, h('b', { class: 'pt' }, pt), h('i', { class: 'hud-gloss' }, on ? enOn : enOff)),
+      h('span', { class: 'hud-state' }, on ? 'sim' : 'não'),
+    );
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  };
 
   const refresh = () => {
     const p = game.profile;
@@ -153,16 +276,17 @@ export function buildHud(actions: HudActions) {
       const all = [...game.avatars.values()].filter((a) => !a.pub.npc); // the neighbours are not people in the room (the seat count is players)
       const count = all.filter((a) => !a.pub.cpu).length;
       const neighbors = all.length - count;
-      roomName.replaceChildren(r.instanceName, h('small', null, `${game.roomDef?.gloss ?? ''} · ${count}/${r.cap} aqui${neighbors ? ` · ${neighbors} vizinhos` : ''}`));
+      roomName.replaceChildren(h('span', { class: 'room-name' }, r.instanceName), h('small', null, `${game.roomDef?.gloss ?? ''} · ${count}/${r.cap} aqui${neighbors ? ` · ${neighbors} vizinhos` : ''}`));
       document.title = `Tudo Bem · ${r.instanceName}`;
     }
     if (p) {
-      coins.textContent = `${p.coins} RV`;
+      coins.textContent = String(p.coins);
+      coins.title = `${p.coins} RV`;
       const m = p.mission;
       const done = m ? MISSION_STEPS.filter((s) => m.steps[s.id]).length : 0;
       missionPill.style.display = m?.taken && !m.rewarded ? '' : 'none';
       missionPill.replaceChildren(
-        `${MISSION_COPY.header.pt} ${done}/${MISSION_STEPS.length}`,
+        h('span', { class: 'hud-chip-text' }, `${MISSION_COPY.header.pt} ${done}/${MISSION_STEPS.length}`),
         h('span', { class: 'mini-steps', 'aria-hidden': 'true' }, ...MISSION_STEPS.map((s) => h('span', { class: `mini ${m?.steps[s.id] ? 'done' : ''}`, title: s.pt }, icon(s.id, 16)))),
       );
       parrotBtn.style.display = p.parrotOwned && p.parrotEquipped ? '' : 'none';
@@ -170,17 +294,19 @@ export function buildHud(actions: HudActions) {
       parrotToggle.replaceChildren(bi(p.parrotEquipped ? 'Guardar papagaio' : 'Chamar papagaio', p.parrotEquipped ? 'Hide parrot' : 'Show parrot'));
     }
     decorBtn.style.display = game.isOwnKitnet ? '' : 'none';
-    decorBtn.classList.toggle('primary', game.editMode);
-    soundBtn.replaceChildren(icon(game.sound ? 'soundOn' : 'soundOff'), bi(game.sound ? 'Voz: sim' : 'Voz: não', game.sound ? 'Voice on' : 'Voice off'));
-    musicBtn.replaceChildren(icon(game.music ? 'musicOn' : 'musicOff'), bi(game.music ? 'Música: sim' : 'Música: não', game.music ? 'Music on' : 'Music off'));
+    decorBtn.classList.toggle('on', game.editMode);
+    setToggle(soundBtn, game.sound ? 'soundOn' : 'soundOff', game.sound, 'Voz', 'Voice on', 'Voice off');
+    setToggle(musicBtn, game.music ? 'musicOn' : 'musicOff', game.music, 'Música', 'Music on', 'Music off');
     const self = game.self;
     standBtn.style.display = self && (self.pub.sitting || self.sitOnArrive) ? '' : 'none';
+    placeHud();
   };
   game.on('profile', refresh);
   game.on('room', refresh);
   game.on('avatars', refresh);
   game.on('hud', refresh);
   refresh();
+  placeHud();
   return { refresh, focusChat: () => input.focus() };
 }
 
