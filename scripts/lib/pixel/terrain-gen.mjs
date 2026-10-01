@@ -8,7 +8,14 @@
 import { blank, setPx, hexPx } from './img.mjs';
 import { quadrantFilled, MASK_TL, MASK_TR, MASK_BL, MASK_BR } from '../../../apps/client/src/render/pixel/terrain.ts';
 
-/** Style colors: all from the LimeZu palette (character outline navy + the lavender greys). */
+/**
+ * Style colors: all from the LimeZu palette (character outline navy + the lavender greys).
+ *
+ * The edge of a slab is a raised stone curb (meio-fio), the same on every side of every paved area (street kerbs and the borders of the lawns):
+ * an outline, then the stone's top (lit on the north / west, because the light comes from the upper left), then a groove that separates it from the
+ * paving. On the south side the curb's vertical face is visible too (the camera looks down and forward): outline, two shaded rows of face, then the top.
+ * A contact shadow falls down and to the right onto whatever lies below.
+ */
 export const SLAB_STYLE = {
   outlineDark: '#3a3a50',
   outline: '#46465e',
@@ -16,26 +23,54 @@ export const SLAB_STYLE = {
   wallLight: '#6c6e85',
   lipLight: '#d8d0e0',
   lipHi: '#ebe4f2',
+  groove: '#a2a6be',
+  faceMid: '#8b8bab',
+  topShade: '#c6bdd5',
   shadow: [26, 16, 48],
+  /** radius in px of the rounded corners (lawn corners and the slab's outer corners) */
+  round: 5,
 };
 
-/** Shape test for mask at pixel (x, y); coordinates outside 0..15 are clamped (exact, see comment in terrain-gen). */
-function shape(mask, x, y) {
+/** Is the pixel (x, y) of a tile with corner mask `mask` part of the slab? Out-of-tile pixels are clamped (the shape continues in the neighbour tile). */
+function shape(mask, x, y, R = SLAB_STYLE.round) {
   const cx = Math.min(15, Math.max(0, x)), cy = Math.min(15, Math.max(0, y));
-  if (!quadrantFilled(mask, cx, cy)) return false;
-  // chamfer convex corners at the tile center: a quadrant is convex when both edge-adjacent quadrants are empty
-  const inTL = cx < 8 && cy < 8, inTR = cx >= 8 && cy < 8, inBL = cx < 8 && cy >= 8, inBR = cx >= 8 && cy >= 8;
-  if (inTL && !(mask & MASK_TR) && !(mask & MASK_BL) && 7 - cx + (7 - cy) <= 1) return false;
-  if (inTR && !(mask & MASK_TL) && !(mask & MASK_BR) && cx - 8 + (7 - cy) <= 1) return false;
-  if (inBL && !(mask & MASK_TL) && !(mask & MASK_BR) && 7 - cx + (cy - 8) <= 1) return false;
-  if (inBR && !(mask & MASK_TR) && !(mask & MASK_BL) && cx - 8 + (cy - 8) <= 1) return false;
-  return true;
+  const right = cx >= 8, bottom = cy >= 8;
+  const own = bottom ? (right ? MASK_BR : MASK_BL) : right ? MASK_TR : MASK_TL;
+  const horiz = bottom ? (right ? MASK_BL : MASK_BR) : right ? MASK_TL : MASK_TR; // the quadrant across the vertical tile axis
+  const vert = bottom ? (right ? MASK_TR : MASK_TL) : right ? MASK_BR : MASK_BL; // the quadrant across the horizontal tile axis
+  const diag = bottom ? (right ? MASK_TL : MASK_TR) : right ? MASK_BL : MASK_BR;
+  // distance in px from the tile centre corner, measured into the quadrant: u along x, v along y (0 = next to the centre lines)
+  const u = right ? cx - 8 : 7 - cx, v = bottom ? cy - 8 : 7 - cy;
+  const corner = u < R && v < R && (R - u - 0.5) ** 2 + (R - v - 0.5) ** 2 > R * R; // outside the circle that rounds the corner
+  if (mask & own) {
+    // a convex corner of the slab (both neighbouring quadrants empty): cut it round
+    if (!(mask & horiz) && !(mask & vert) && corner) return false;
+    return true;
+  }
+  // an empty quadrant whose two neighbours and opposite are slab: a lawn corner, rounded by filling the corner back in
+  return !!(mask & horiz) && !!(mask & vert) && !!(mask & diag) && corner;
 }
 
 /** Steps from (x, y) in direction (dx, dy) until an empty pixel; returns 1 when the neighbor is empty, up to max+1. */
-function dist(mask, x, y, dx, dy, max = 5) {
+function dist(mask, x, y, dx, dy, max = 7) {
   for (let s = 1; s <= max; s++) if (!shape(mask, x + dx * s, y + dy * s)) return s;
   return max + 1;
+}
+
+/** The stone colour of a slab pixel `r` px from an edge it faces (r = 1 is the outermost pixel), or null for the paving fill. */
+function curbPixel(face, r, x, y, st) {
+  if (face === 'S') {
+    const joint = x === 0; // curb stones are 16 px long: a joint at every tile start
+    const rows = [st.outlineDark, st.wallLight, st.faceMid, st.lipHi, st.lipLight, st.groove];
+    const hex = rows[r - 1];
+    if (!hex) return null;
+    return joint && r >= 4 && r <= 5 ? st.groove : hex;
+  }
+  const joint = x === 0 && (face === 'N');
+  const top = face === 'E' ? [st.outline, st.lipLight, st.topShade, st.groove] : [st.outline, st.lipHi, st.lipLight, st.groove];
+  const hex = top[r - 1];
+  if (!hex) return null;
+  return joint && (r === 2 || r === 3) ? st.groove : hex;
 }
 
 /**
@@ -51,31 +86,25 @@ export function buildSlabTiles(fills, style = SLAB_STYLE) {
         for (let x = 0; x < 16; x++) {
           const i = (y * 16 + x) * 4;
           if (shape(mask, x, y)) {
-            const dS = dist(mask, x, y, 0, 1);
-            const dE = dist(mask, x, y, 1, 0);
-            const dN = dist(mask, x, y, 0, -1);
-            const dW = dist(mask, x, y, -1, 0);
             let hex = null;
             if (mask !== 15) {
-              if (dS === 1) hex = style.outlineDark;
-              else if (dS === 2) hex = style.outline;
-              else if (dS === 3) hex = style.wallShade;
-              else if (dS === 4) hex = style.lipLight;
-              else if (dE === 1) hex = style.outlineDark;
-              else if (dE === 2) hex = style.wallShade;
-              else if (dN === 1) hex = style.outline;
-              else if (dN === 2) hex = style.lipHi;
-              else if (dW === 1) hex = style.outline;
-              else if (dW === 2) hex = style.lipLight;
+              const d = { S: dist(mask, x, y, 0, 1), E: dist(mask, x, y, 1, 0), N: dist(mask, x, y, 0, -1), W: dist(mask, x, y, -1, 0) };
+              // the nearest empty pixel decides which side of the curb this is (ties: south, east, north, west)
+              let face = null, best = 99;
+              for (const f of ['S', 'E', 'N', 'W']) if (d[f] < best) { best = d[f]; face = f; }
+              // a pixel that only touches empty space diagonally (the arc of a rounded corner) still belongs to the outline
+              if (best > 1) {
+                const diagS = !shape(mask, x + 1, y + 1) || !shape(mask, x - 1, y + 1);
+                const diagN = !shape(mask, x + 1, y - 1) || !shape(mask, x - 1, y - 1);
+                if (diagS) { face = 'S'; best = 1; } else if (diagN) { face = 'N'; best = 1; }
+              }
+              if (best <= 6) hex = curbPixel(face, best, x, y, style);
             }
             if (hex) setPx(t, x, y, hexPx(hex));
             else { t.data[i] = fill.data[i]; t.data[i + 1] = fill.data[i + 1]; t.data[i + 2] = fill.data[i + 2]; t.data[i + 3] = 255; }
           } else if (mask !== 0 && mask !== 15) {
             // contact shadow on the empty side, cast down-right
-            const below = dist(mask, x, y, 0, -1, 3); // filled pixel above within 2
-            const left = dist(mask, x, y, -1, 0, 2);
             const sh = shape(mask, x, y - 1) ? 92 : shape(mask, x, y - 2) ? 58 : shape(mask, x - 1, y) ? 48 : 0;
-            void below; void left;
             if (sh) setPx(t, x, y, [style.shadow[0], style.shadow[1], style.shadow[2], sh]);
           }
         }

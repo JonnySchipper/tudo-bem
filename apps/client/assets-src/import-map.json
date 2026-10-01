@@ -252,13 +252,13 @@
       "kind": "custom",
       "custom": "spMosaic",
       "footprint": [
-        3,
-        2
+        4,
+        3
       ],
       "decal": true,
       "args": {
-        "w": 48,
-        "h": 32
+        "w": 64,
+        "h": 48
       }
     },
     {
@@ -733,7 +733,7 @@
       "kind": "custom",
       "custom": "laneDash",
       "args": {
-        "len": 10
+        "len": 12
       },
       "anchor": [
         0,

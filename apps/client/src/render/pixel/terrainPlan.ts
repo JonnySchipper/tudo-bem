@@ -3,7 +3,7 @@
  * tilemap layers, the intro snapshot paints them on a 2D canvas. One implementation of the layer order, substitutes and masks.
  */
 import type { Manifest } from './manifest';
-import { TERRAIN_PRIORITY, maskAt, phasedIndex, phasedIndex2, tileIndex } from './terrain';
+import { TERRAIN_PRIORITY, maskAt, phasedIndex2, tileIndex } from './terrain';
 
 /** A flush terrain laid over a slab terrain counts as that slab in the slab's own mask (bricks inlaid in calçada: no curb between them). */
 export const FLUSH_ON_SLAB: Record<string, string> = { t: 'c' };
@@ -39,12 +39,7 @@ export function terrainTiles(
     for (let j = 0; j <= rows; j++) {
       for (let i = 0; i <= cols; i++) {
         const mask = maskAt(maskView, ch, i, j, opts.outside);
-        const idx =
-          def.edge === 'flat'
-            ? tileIndex(def.first, mask, i, j, def.variants)
-            : def.edge === 'flush'
-              ? phasedIndex2(def.first, mask, i, j, def.phases, def.phasesY ?? 1)
-              : phasedIndex(def.first, mask, i, def.phases);
+        const idx = def.edge === 'flat' ? tileIndex(def.first, mask, i, j, def.variants) : phasedIndex2(def.first, mask, i, j, def.phases, def.phasesY ?? 1);
         if (idx >= 0) tiles.push({ layer, ch, i, j, idx });
       }
     }

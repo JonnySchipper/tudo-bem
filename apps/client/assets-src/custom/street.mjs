@@ -1,16 +1,21 @@
 // Street details authored for Vila Ipê: zebra crossing, lane dashes, flower scatters, grass tufts. LimeZu palette colors only.
 import { blank, setPx, hexPx, rng } from '../../../../scripts/lib/pixel/img.mjs';
 
-/** Zebra crossing over an asphalt road that runs left-right: horizontal bars, worn by a little pixel dropout. w x h px. */
+/**
+ * Zebra crossing over an asphalt road that runs left-right: bold horizontal bars (4 px bar, 4 px gap, like the real ones: bar and gap are the same
+ * width), white with a shaded lower row so each bar sits on the road, rounded ends, and only a handful of chipped pixels. w x h px.
+ */
 export function crosswalk(w = 32, h = 64, seed = 5) {
   const img = blank(w, h);
   const r = rng(seed);
-  const pitch = 6;
-  for (let by = 2; by + 3 <= h - 1; by += pitch) {
-    for (let y = by; y < by + 3; y++) {
+  const pitch = 8, bar = 4;
+  for (let by = 2; by + bar <= h - 1; by += pitch) {
+    for (let y = by; y < by + bar; y++) {
       for (let x = 1; x < w - 1; x++) {
-        if (r() < 0.05) continue; // worn spot
-        const hex = y === by ? '#ebe4f2' : y === by + 1 ? '#d8d0e0' : '#c6bdd5';
+        const end = x === 1 || x === w - 2;
+        if (end && (y === by || y === by + bar - 1)) continue; // rounded ends
+        if (r() < 0.012) continue; // a chip of worn paint
+        const hex = y === by ? '#f0efde' : y === by + bar - 1 ? '#c6bdd5' : '#ebe4f2';
         setPx(img, x, y, hexPx(hex));
       }
     }
@@ -18,10 +23,10 @@ export function crosswalk(w = 32, h = 64, seed = 5) {
   return img;
 }
 
-/** One yellow lane dash, len x 2 px (centre line, Brazilian yellow). */
-export function laneDash(len = 10) {
+/** One yellow lane dash, len x 2 px (centre line, Brazilian yellow), with the end pixels trimmed so it reads as paint, not a bar. */
+export function laneDash(len = 12) {
   const img = blank(len, 2);
-  for (let x = 0; x < len; x++) { setPx(img, x, 0, hexPx('#f8d239')); setPx(img, x, 1, hexPx('#f2b22b')); }
+  for (let x = 0; x < len; x++) { setPx(img, x, 0, hexPx('#f8d239')); setPx(img, x, 1, hexPx(x === 0 || x === len - 1 ? '#ed931e' : '#f2b22b')); }
   return img;
 }
 
