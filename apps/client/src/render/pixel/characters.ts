@@ -113,6 +113,8 @@ export const CHAR_LAYERS = {
   /** hats that are not in the shop (NPC pieces) */
   npcHat: { pano: 'hat_pano' } as Record<string, string>,
   apron: 'npc_apron',
+  /** the BJJ gi pieces (lapels and black belt) over the white camisa + calça outfit */
+  gi: 'npc_gi',
   gestures: 'emote_gestures',
   phone: 'acc_phone',
 } as const;
@@ -165,6 +167,7 @@ export function allLayerKeys(): string[] {
     keys.add(CHAR_LAYERS.body[b]);
     for (const t of TOPS) for (const bo of BOTTOMS) keys.add(OUTFITS[t][bo].layer + CHAR_LAYERS.bodySuffix[b]);
     keys.add(CHAR_LAYERS.apron + CHAR_LAYERS.bodySuffix[b]);
+    keys.add(CHAR_LAYERS.gi + CHAR_LAYERS.bodySuffix[b]);
     keys.add('pose_bracos' + CHAR_LAYERS.bodySuffix[b]);
   }
   for (const k of Object.values(CHAR_LAYERS.hair)) keys.add(k);

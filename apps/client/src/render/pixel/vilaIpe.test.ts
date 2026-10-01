@@ -85,8 +85,8 @@ describe('Vila Ipê art coverage', () => {
     for (const id of ['padaria', 'kitnet', 'academia'] as const) expect(sceneryFor(ROOMS[id], has)).toBeNull();
   });
 
-  it('the camera bounds of the open-air map are the map itself', () => {
-    expect(roomBounds(vila, 999)).toEqual({ x0: 0, y0: 0, x1: 56 * T, y1: 40 * T });
+  it('the camera bounds of the open-air map are the map plus its 2 tile sky margin', () => {
+    expect(roomBounds(vila, 999)).toEqual({ x0: 0, y0: -2 * T, x1: 56 * T, y1: 40 * T });
   });
 
   it('an outdoor door has a click box around its door art, at least a tile', () => {
