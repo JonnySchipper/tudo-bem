@@ -11,7 +11,7 @@
     "bedroom": "int:1_Interiors/16x16/Theme_Sorter/4_Bedroom_16x16.png"
   },
   "terrain": {
-    "t": {"name":"tijolo","kind":"flush","custom":"tijolo"},
+    "t": {"name":"tijolo","kind":"flush","custom":"tijolo","rim":"#8a766e"},
     "l": {"name":"ladrilho","kind":"flush","custom":"ladrilho","rim":"#7a5a48"},
     "m": {"name":"madeira","kind":"flush","custom":"taco","sheet":"rbFloors","rim":"#4a2f22"},
     "k": {"name":"xadrez","kind":"flush","custom":"xadrez","rim":"#3a3a50"},

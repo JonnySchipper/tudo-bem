@@ -25,10 +25,11 @@ import { castShadow } from './lib/pixel/shadow.mjs';
 import { CANON_ANIMS, CANON_COLS, CANON_ROWS, FRAME_W, FRAME_H } from './lib/pixel/chars.mjs';
 import { buildChars } from '../apps/client/assets-src/custom/chars.mjs';
 import { KEY_RAMPS } from '../apps/client/src/render/pixel/palette.ts';
-import { calcadaFill, spMosaic } from '../apps/client/assets-src/custom/calcada.mjs';
+import { calcadaFills, spMosaic } from '../apps/client/assets-src/custom/calcada.mjs';
 import { banca, BANCA } from '../apps/client/assets-src/custom/banca.mjs';
 import { patchSign, findGlass } from '../apps/client/assets-src/custom/shop.mjs';
 import { crosswalk, laneDash, flowerScatter, tuft } from '../apps/client/assets-src/custom/street.mjs';
+import { asfalto, busBay, grassPatch, dirtPatch, clover, gtuft } from '../apps/client/assets-src/custom/ground.mjs';
 import { shadowEllipse, petal, petalScatter, glow, cloudShadow, grime, lightPatch } from '../apps/client/assets-src/custom/fx.mjs';
 import { DERIVE, IMAGES } from '../apps/client/assets-src/custom/derive.mjs';
 
@@ -43,11 +44,16 @@ const rel = (p) => path.relative(ROOT, p).replaceAll('\\', '/');
 
 const CUSTOM = {
   banca: () => ({ img: banca(), anchor: [BANCA.ax, BANCA.ay] }),
-  spMosaic: (a) => ({ img: spMosaic(a.w ?? 48, a.h ?? 32), anchor: [(a.w ?? 48) / 2, a.h ?? 32] }),
+  spMosaic: (a) => ({ img: spMosaic(a.w ?? 64, a.h ?? 48), anchor: [(a.w ?? 64) / 2, a.h ?? 48] }),
   crosswalk: (a) => ({ img: crosswalk(a.w, a.h), anchor: [0, 0] }),
   laneDash: (a) => ({ img: laneDash(a.len), anchor: [0, 0] }),
   flowerScatter: (a) => ({ img: flowerScatter(a.w, a.h, a.count, a.seed), anchor: [0, 0] }),
   tuft: (a) => ({ img: tuft(a.kind), anchor: [2, 3] }),
+  busBay: (a) => ({ img: busBay(a.w, a.h), anchor: [0, 0] }),
+  grassPatch: (a) => ({ img: grassPatch(a.w, a.h, a.seed, a.tone), anchor: [Math.floor(a.w / 2), Math.floor(a.h / 2)] }),
+  dirtPatch: (a) => ({ img: dirtPatch(a.w, a.h, a.seed), anchor: [Math.floor(a.w / 2), Math.floor(a.h / 2)] }),
+  clover: (a) => ({ img: clover(a.kind), anchor: [3, 5] }),
+  gtuft: (a) => ({ img: gtuft(a.kind), anchor: [2, 3] }),
   grime: (a) => ({ img: grime(a.w, a.h, a.seed), anchor: [Math.floor(a.w / 2), Math.floor(a.h / 2)] }),
 };
 
@@ -246,15 +252,17 @@ for (const [name, items] of Object.entries(atlasItems)) {
 {
   const tiles = [];
   const layers = {};
-  const CUSTOM_FILL = { calcada: (phase) => calcadaFill(phase) };
+  const CUSTOM_FILL = { calcada: () => calcadaFills() };
   for (const [ch, def] of Object.entries(map.terrain)) {
     const first = tiles.length;
     if (def.kind === 'slab') {
-      const phases = def.phases ?? 1;
-      const fills = Array.from({ length: phases }, (_, p) => CUSTOM_FILL[def.custom](p));
+      // a custom generator returns the fills row-major over a (phasesX x phasesY) grid: a wave repeats every few tiles, a band every one or two
+      const { fills, phasesX, phasesY } = CUSTOM_FILL[def.custom]();
       tiles.push(...buildSlabTiles(fills));
-      layers[ch] = { name: def.name, edge: 'slab', first, phases, variants: 1, tiles: 16 * phases };
-      if (def.custom) { const s = blank(16 * phases, 16); fills.forEach((f, p) => paste(s, f, p * 16, 0)); await savePng(s, path.join(CUSTOM_PNG, def.custom + '_fill.png')); }
+      layers[ch] = { name: def.name, edge: 'slab', first, phases: phasesX, phasesY, variants: 1, tiles: 16 * fills.length };
+      const s = blank(16 * phasesX, 16 * phasesY);
+      fills.forEach((f, p) => paste(s, f, (p % phasesX) * 16, Math.floor(p / phasesX) * 16));
+      await savePng(s, path.join(CUSTOM_PNG, def.custom + '_fill.png'));
     } else if (def.kind === 'flush') {
       // interior floors and pavers: exact quadrant cuts of a fill (custom generator in custom/floors.mjs, phases x,y)
       const gen = FLOORS[def.custom];
@@ -266,8 +274,10 @@ for (const [name, items] of Object.entries(atlasItems)) {
       fills.forEach((f, p) => paste(s, f, (p % gen.phasesX) * 16, Math.floor(p / gen.phasesX) * 16));
       await savePng(s, path.join(CUSTOM_PNG, `floor_${def.custom}_fill.png`));
     } else {
-      const src = await sheet(def.sheet);
-      const fills = def.tiles.map(([x, y]) => crop(src, x, y, 16, 16));
+      // flat underlay: a custom generator (asphalt) or tiles cropped from a pack sheet (grass)
+      const FLAT_CUSTOM = { asfalto };
+      const src = def.custom ? null : await sheet(def.sheet);
+      const fills = def.custom ? FLAT_CUSTOM[def.custom]() : def.tiles.map(([x, y]) => crop(src, x, y, 16, 16));
       const seen = new Map();
       const uniq = [];
       for (const f of fills) { const k = Buffer.from(f.data).toString('base64'); if (!seen.has(k)) { seen.set(k, uniq.length); } }

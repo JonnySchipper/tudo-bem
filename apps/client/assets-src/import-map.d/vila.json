@@ -579,13 +579,12 @@
     },
     {
       "key": "decals/faixa_onibus",
-      "sheet": "city",
-      "rect": [
-        224,
-        6,
-        112,
-        34
-      ],
+      "kind": "custom",
+      "custom": "busBay",
+      "args": {
+        "w": 112,
+        "h": 32
+      },
       "anchor": [
         0,
         0
