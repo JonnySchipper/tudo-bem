@@ -6,8 +6,8 @@
    "image": "atlas/outdoor.png",
    "data": "atlas/outdoor.json",
    "w": 512,
-   "h": 2048,
-   "frames": 464
+   "h": 2176,
+   "frames": 478
   }
  },
  "terrain": {
@@ -16,20 +16,21 @@
   "margin": 1,
   "spacing": 2,
   "columns": 16,
-  "count": 406,
+  "count": 535,
   "layers": {
    "c": {
     "name": "calcada",
     "edge": "slab",
     "first": 0,
-    "phases": 2,
+    "phases": 4,
+    "phasesY": 2,
     "variants": 1,
-    "tiles": 32
+    "tiles": 128
    },
    "g": {
     "name": "grama",
     "edge": "flat",
-    "first": 32,
+    "first": 128,
     "phases": 1,
     "variants": 18,
     "tiles": 33
@@ -37,15 +38,15 @@
    "a": {
     "name": "asfalto",
     "edge": "flat",
-    "first": 65,
+    "first": 161,
     "phases": 1,
-    "variants": 6,
-    "tiles": 21
+    "variants": 39,
+    "tiles": 54
    },
    "t": {
     "name": "tijolo",
     "edge": "flush",
-    "first": 86,
+    "first": 215,
     "phases": 1,
     "phasesY": 1,
     "variants": 1,
@@ -54,7 +55,7 @@
    "l": {
     "name": "ladrilho",
     "edge": "flush",
-    "first": 102,
+    "first": 231,
     "phases": 1,
     "phasesY": 1,
     "variants": 1,
@@ -63,7 +64,7 @@
    "m": {
     "name": "madeira",
     "edge": "flush",
-    "first": 118,
+    "first": 247,
     "phases": 1,
     "phasesY": 1,
     "variants": 1,
@@ -72,7 +73,7 @@
    "k": {
     "name": "xadrez",
     "edge": "flush",
-    "first": 134,
+    "first": 263,
     "phases": 1,
     "phasesY": 1,
     "variants": 1,
@@ -81,7 +82,7 @@
    "j": {
     "name": "tatame",
     "edge": "flush",
-    "first": 150,
+    "first": 279,
     "phases": 4,
     "phasesY": 4,
     "variants": 1,
@@ -349,13 +350,13 @@
   "decals/sp_mosaic": {
    "atlas": "outdoor",
    "frame": "decals/sp_mosaic",
-   "w": 48,
-   "h": 32,
-   "ax": 24,
-   "ay": 32,
+   "w": 64,
+   "h": 48,
+   "ax": 32,
+   "ay": 48,
    "footprint": [
-    3,
-    2
+    4,
+    3
    ],
    "anim": null,
    "overhead": null,
@@ -855,7 +856,7 @@
   "decals/lane_dash": {
    "atlas": "outdoor",
    "frame": "decals/lane_dash",
-   "w": 10,
+   "w": 12,
    "h": 2,
    "ax": 0,
    "ay": 0,
@@ -2830,6 +2831,230 @@
    },
    "overhead": true,
    "shadow": null
+  },
+  "decals/grass_light_0": {
+   "atlas": "outdoor",
+   "frame": "decals/grass_light_0",
+   "w": 112,
+   "h": 64,
+   "ax": 56,
+   "ay": 32,
+   "footprint": [
+    7,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/grass_light_1": {
+   "atlas": "outdoor",
+   "frame": "decals/grass_light_1",
+   "w": 96,
+   "h": 56,
+   "ax": 48,
+   "ay": 28,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/grass_light_2": {
+   "atlas": "outdoor",
+   "frame": "decals/grass_light_2",
+   "w": 128,
+   "h": 72,
+   "ax": 64,
+   "ay": 36,
+   "footprint": [
+    8,
+    5
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/grass_dark_0": {
+   "atlas": "outdoor",
+   "frame": "decals/grass_dark_0",
+   "w": 104,
+   "h": 60,
+   "ax": 52,
+   "ay": 30,
+   "footprint": [
+    7,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/grass_dark_1": {
+   "atlas": "outdoor",
+   "frame": "decals/grass_dark_1",
+   "w": 88,
+   "h": 52,
+   "ax": 44,
+   "ay": 26,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/grass_dark_2": {
+   "atlas": "outdoor",
+   "frame": "decals/grass_dark_2",
+   "w": 120,
+   "h": 68,
+   "ax": 60,
+   "ay": 34,
+   "footprint": [
+    8,
+    5
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/dirt_0": {
+   "atlas": "outdoor",
+   "frame": "decals/dirt_0",
+   "w": 34,
+   "h": 14,
+   "ax": 17,
+   "ay": 7,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/dirt_1": {
+   "atlas": "outdoor",
+   "frame": "decals/dirt_1",
+   "w": 26,
+   "h": 12,
+   "ax": 13,
+   "ay": 6,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/dirt_2": {
+   "atlas": "outdoor",
+   "frame": "decals/dirt_2",
+   "w": 42,
+   "h": 16,
+   "ax": 21,
+   "ay": 8,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/clover_0": {
+   "atlas": "outdoor",
+   "frame": "decals/clover_0",
+   "w": 7,
+   "h": 6,
+   "ax": 3,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/clover_1": {
+   "atlas": "outdoor",
+   "frame": "decals/clover_1",
+   "w": 7,
+   "h": 6,
+   "ax": 3,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/gtuft_0": {
+   "atlas": "outdoor",
+   "frame": "decals/gtuft_0",
+   "w": 5,
+   "h": 4,
+   "ax": 2,
+   "ay": 3,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/gtuft_1": {
+   "atlas": "outdoor",
+   "frame": "decals/gtuft_1",
+   "w": 5,
+   "h": 4,
+   "ax": 2,
+   "ay": 3,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/gtuft_2": {
+   "atlas": "outdoor",
+   "frame": "decals/gtuft_2",
+   "w": 5,
+   "h": 4,
+   "ax": 2,
+   "ay": 3,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
   },
   "walls/north_praca_l": {
    "atlas": "outdoor",
@@ -5478,7 +5703,7 @@
    "atlas": "outdoor",
    "frame": "decals/faixa_onibus",
    "w": 112,
-   "h": 34,
+   "h": 32,
    "ax": 0,
    "ay": 0,
    "footprint": [

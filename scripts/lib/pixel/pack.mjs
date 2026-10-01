@@ -23,7 +23,8 @@ export function packAtlas(items, opts = {}) {
   }
   const H = y + rowH;
   const nextPow2 = (n) => 2 ** Math.ceil(Math.log2(Math.max(n, 1)));
-  const atlas = blank(nextPow2(usedW), nextPow2(H));
+  // height rounds up to 64 only (a pow2 height doubled the texture from 4 MB to 8 MB for a few rows)
+  const atlas = blank(nextPow2(usedW), Math.ceil(H / 64) * 64);
   const frames = {};
   for (const p of placed) {
     paste(atlas, p.ext, p.px, p.py);
