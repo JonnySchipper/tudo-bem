@@ -12,11 +12,13 @@ const phone = { w: 390 * 2, h: 844 * 2 }; // dpr 2
 const phoneIns: Insets = { top: 124 * 2, bottom: 168 * 2, left: 0, right: 0 };
 
 describe('roomZoom', () => {
-  it('takes one integer zoom lower when that makes the whole room fit (padaria on a 1280 x 800 desktop: 4 -> 3)', () => {
+  it('the padaria fits whole at the default 1280 x 800 zoom (3) with no step down; at 4 it would not, so a bigger window steps down to 3', () => {
     const b = roomBounds(ROOMS.padaria);
-    expect(fitsAt(desktop, b, desktopIns, 4)).toBe(false);
-    expect(roomZoom(desktop, b, desktopIns, cssZoomFor(1280, 800), 1)).toBe(3);
+    expect(cssZoomFor(1280, 800)).toBe(3);
     expect(fitsAt(desktop, b, desktopIns, 3)).toBe(true);
+    expect(roomZoom(desktop, b, desktopIns, cssZoomFor(1280, 800), 1)).toBe(3);
+    expect(fitsAt(desktop, b, desktopIns, 4)).toBe(false);
+    expect(roomZoom(desktop, b, desktopIns, 4, 1)).toBe(3);
   });
 
   it('every interior fits whole at a 1280 x 800 desktop, at an integer zoom', () => {
