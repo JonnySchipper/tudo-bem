@@ -12,6 +12,7 @@ import type { LightingRig, Light } from './lightingRig';
 import { hashPos01, isOutdoor } from './dayNight';
 import { MAX_PUDDLES, PUDDLE_DENSITY, rainColor, rainPlan, type FxLevel, type WeatherParams } from './weatherLook';
 import { rgbToInt } from './lighting';
+import { v5on } from './v5flags';
 
 const T = 16;
 const DEPTH_RAIN = 2.6;
@@ -308,7 +309,7 @@ export class WeatherFx {
       if (p.mirror) {
         const l = p.mirror.light;
         const on = l.delay === undefined ? Math.min(1, f.night * 2) : f.lampOn(l.delay);
-        const a = on * Math.min(1, wet) * Math.min(1, f.night * 1.6) * (0.35 + 0.65 * p.mirror.k) * 0.7;
+        const a = !v5on('mirror') ? 0 : on * Math.min(1, wet) * Math.min(1, f.night * 1.6) * (0.35 + 0.65 * p.mirror.k) * 0.7;
         p.mirror.img.setAlpha(a).setVisible(a > 0.01);
       }
     }

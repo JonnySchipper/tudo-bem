@@ -11,6 +11,7 @@ import Phaser from 'phaser';
 import { rgbToInt } from './lighting';
 import { hourLook, type SceneLook } from './dayNight';
 import type { ShadowLayer } from './shadowLayer';
+import { v5on } from './v5flags';
 
 /** A light colour pulled toward white by `1 - k`: the multiply tint of an amber pool on the night grade. */
 export function warmPool(color: number, k: number): number {
@@ -168,7 +169,7 @@ export class LightingRig {
       // wet pavement mirrors the lamp: a tall, narrow, shimmering streak below the foot of the pole
       const rf = this.reflSprites[i];
       if (rf) {
-        const ra = l.mirror && look.wet > 0.05 ? s * look.wet * Math.min(1, look.night * 1.6) * 0.5 * (0.82 + 0.18 * Math.sin(now / 260 + i * 2.1)) : 0;
+        const ra = l.mirror && look.wet > 0.05 && v5on('refl') ? s * look.wet * Math.min(1, look.night * 1.6) * 0.5 * (0.82 + 0.18 * Math.sin(now / 260 + i * 2.1)) : 0;
         if (ra > 0.01) {
           const wob = Math.sin(now / 420 + i) * 1.2 * zoom;
           rf.setPosition(sx + wob, sy + (l.mirror ?? 0) * zoom).setScale(px * 0.2, px * 0.85).setTint(l.color).setAlpha(ra).setVisible(true);
