@@ -81,7 +81,7 @@ function pieceButton(cents: number, onTap: () => void, label?: string): HTMLElem
   const isNote = cents >= 200;
   return h(
     'button',
-    { type: 'button', class: `feira-piece ${isNote ? 'note' : 'coin'} v${cents}`, 'data-cents': String(cents), 'aria-label': moneyLabel(cents), onclick: onTap },
+    { type: 'button', class: `feira-piece ${isNote ? 'cash-note' : 'cash-coin'} v${cents}`, 'data-cents': String(cents), 'aria-label': moneyLabel(cents), onclick: onTap },
     h('span', { class: 'amt' }, label ?? moneyLabel(cents).replace('R$ ', '')),
   );
 }
@@ -103,7 +103,7 @@ function trayEl(s: State): HTMLElement {
   const onCounter = h(
     'div',
     { class: 'feira-counter', id: 'feira-counter' },
-    s.tray.length ? s.tray.map((c) => h('span', { class: `feira-piece mini ${c >= 200 ? 'note' : 'coin'}`, 'aria-hidden': 'true' }, moneyLabel(c).replace('R$ ', ''))) : h('span', { class: 'feira-empty' }, 'Toque nas moedas e notas'),
+    s.tray.length ? s.tray.map((c) => h('span', { class: `feira-piece mini ${c >= 200 ? 'cash-note' : 'cash-coin'}`, 'aria-hidden': 'true' }, moneyLabel(c).replace('R$ ', ''))) : h('span', { class: 'feira-empty' }, 'Toque nas moedas e notas'),
   );
   return h(
     'div',
@@ -158,7 +158,7 @@ function receiptEl(s: State): HTMLElement | null {
     { class: 'feira-receipt', id: 'feira-receipt' },
     foodIcon(g.itemId, 3, g.pt.one),
     h('span', { class: 'txt' }, h('b', null, moneyLabel(r.price)), r.change ? h('span', null, ` · troco ${moneyLabel(r.change)}`) : null),
-    change.length ? h('span', { class: 'feira-change' }, ...change.map((c) => h('span', { class: `feira-piece mini ${c >= 200 ? 'note' : 'coin'}` }, moneyLabel(c).replace('R$ ', '')))) : null,
+    change.length ? h('span', { class: 'feira-change' }, ...change.map((c) => h('span', { class: `feira-piece mini ${c >= 200 ? 'cash-note' : 'cash-coin'}` }, moneyLabel(c).replace('R$ ', '')))) : null,
   );
 }
 

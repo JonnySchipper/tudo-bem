@@ -16,8 +16,7 @@
   color: var(--ink);
 }
 .feira-sum b {
-  font-family: var(--font-pixel, inherit);
-  font-weight: 700;
+  font-weight: 800;
   color: var(--terracotta, #c45c26);
 }
 .feira-counter {
@@ -59,28 +58,28 @@
   transform: translateY(1px);
   box-shadow: 0 1px 0 rgba(44, 28, 20, 0.5);
 }
-.feira-piece.coin {
+.feira-piece.cash-coin {
   width: 44px;
   height: 44px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 30%, #fff2b0 0 18%, #e0b23a 19% 70%, #b5832a 71%);
 }
-.feira-piece.coin.v50 {
+.feira-piece.cash-coin.v50 {
   background: radial-gradient(circle at 35% 30%, #f1eee8 0 18%, #c9c7c0 19% 70%, #8f8d86 71%);
 }
-.feira-piece.note {
+.feira-piece.cash-note {
   width: 64px;
   height: 40px;
   border-radius: 3px;
   background: linear-gradient(135deg, #bfe08a, #7fae5a);
 }
-.feira-piece.note.v500 {
+.feira-piece.cash-note.v500 {
   background: linear-gradient(135deg, #c9a8e0, #8f6ab0);
 }
-.feira-piece.note.v1000 {
+.feira-piece.cash-note.v1000 {
   background: linear-gradient(135deg, #f4b0a0, #d9705a);
 }
-.feira-piece.note.v2000 {
+.feira-piece.cash-note.v2000 {
   background: linear-gradient(135deg, #f7d27a, #d9a23a);
 }
 .feira-piece.mini {
@@ -92,7 +91,7 @@
   cursor: default;
   box-shadow: none;
 }
-.feira-piece.mini.coin {
+.feira-piece.mini.cash-coin {
   width: 26px;
   border-radius: 50%;
 }
@@ -129,11 +128,11 @@
   gap: 4px;
 }
 @media (max-width: 520px) {
-  .feira-piece.coin {
+  .feira-piece.cash-coin {
     width: 42px;
     height: 42px;
   }
-  .feira-piece.note {
+  .feira-piece.cash-note {
     width: 58px;
     height: 38px;
   }

@@ -195,11 +195,11 @@ function vilaIpeFloor(): string[] {
   paint('g', 0, 14, 9, 23);
   paint('g', 1, 26, 4, 29);
   paint('c', 8, 14, 9, 29); // the footpath between the gardens and the praça
-  // east lot: the feira (grass with a paved aisle from the gate, and a paved front of each row of stalls)
+  // east lot: the feira (grass with a brick aisle from the gate, and a brick front of each row of stalls)
   paint('g', 41, 14, 55, 29);
-  paint('c', 41, 21, 54, 22);
-  paint('c', 43, 19, 53, 20);
-  paint('c', 43, 26, 53, 27);
+  paint('t', 41, 21, 54, 22);
+  paint('t', 43, 19, 53, 20);
+  paint('t', 43, 26, 53, 27);
   // brick cross into the fountain (inlaid in the calçada): the N-S axis runs across both sidewalks, the E-W bar through the fountain
   paint('t', 24, 6, 25, 7);
   paint('t', 24, 12, 25, 29);
