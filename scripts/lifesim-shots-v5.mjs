@@ -8,6 +8,7 @@
  * Output: docs/lifesim/shots/v5/<TAG>_<viewport>_<area>_<time>[_<weather>].png (override the folder with SHOTS_DIR).
  */
 import { chromium } from 'playwright-core';
+import sharp from 'sharp';
 import fs from 'node:fs';
 import path from 'node:path';
 import { findChrome } from './lib/chrome.mjs';
@@ -87,7 +88,17 @@ for (const vp of VPS) {
       await pin(page, t, w);
       await sleep(WAIT);
       const file = `${TAG}_${vp.name}_${a.name}_${t}${w === 'sol' ? '' : '_' + w}.png`;
-      fs.writeFileSync(path.join(OUT, file), await page.screenshot());
+      // a blank world (only the DOM labels on a dark ground) is a failure, never a shot: retry, then stop the run
+      let buf = await page.screenshot();
+      for (let tries = 0; ; tries++) {
+        const st = (await sharp(buf).greyscale().stats()).channels[0];
+        if (st.mean > 30 && st.stdev > 25 && buf.length > 60_000) break;
+        console.error(`    BLANK frame for ${file} (mean ${st.mean.toFixed(1)}, stdev ${st.stdev.toFixed(1)}, ${buf.length} bytes)`);
+        if (tries >= 3) throw new Error(`blank world in ${file}`);
+        await sleep(2000);
+        buf = await page.screenshot();
+      }
+      fs.writeFileSync(path.join(OUT, file), buf);
       console.log('  ·', file);
       if (argv.eval) console.log('    eval', JSON.stringify(await page.evaluate((e) => new Function('return (' + e + ')')(), argv.eval)));
       if (argv.perf) {

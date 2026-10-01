@@ -19,8 +19,21 @@ import { castPreset, casterShear, shearTransform, type CastPreset, type ShadowLo
 
 const ATLAS_KEY = 'shadowAtlas';
 const ATLAS_SIZE = 1024;
+/** Pages of the shadow atlas: a page is added when one is full (never destroyed while a sprite may draw from it); 4 x 1024^2 RGBA = 16 MB at most. */
+const MAX_PAGES = 4;
+const pageKey = (i: number): string => (i === 0 ? ATLAS_KEY : `${ATLAS_KEY}${i}`);
+
+interface Page {
+  key: string;
+  tex: Phaser.Textures.CanvasTexture;
+  ctx: CanvasRenderingContext2D;
+  packer: ShelfPacker;
+  dirty: boolean;
+}
 
 interface Ref {
+  /** texture key of the atlas page the frame is on */
+  tex: string;
   frame: string;
   w: number;
   h: number;
@@ -81,12 +94,9 @@ export class ShadowHandle {
 }
 
 export class ShadowLayer {
-  private ctx!: CanvasRenderingContext2D;
-  private tex: Phaser.Textures.CanvasTexture | null = null;
-  private packer = new ShelfPacker(ATLAS_SIZE, ATLAS_SIZE);
+  private pages: Page[] = [];
   private cache = new Map<string, Ref | null>();
   private epoch = 0;
-  private dirty = false;
   private statics: Caster[] = [];
   private followers: Caster[] = [];
   private lastLook = '';
@@ -98,22 +108,50 @@ export class ShadowLayer {
     private readonly scene: Phaser.Scene,
     private readonly rig: { world<G extends Phaser.GameObjects.GameObject>(o: G): G },
   ) {
-    this.makeAtlas();
+    this.addPage();
   }
 
-  private makeAtlas(): void {
+  /** Create the next atlas page (null at the page budget). */
+  private addPage(): Page | null {
+    if (this.pages.length >= MAX_PAGES) return null;
+    const key = pageKey(this.pages.length);
     const t = this.scene.textures;
-    if (t.exists(ATLAS_KEY)) t.remove(ATLAS_KEY);
-    const ct = t.createCanvas(ATLAS_KEY, ATLAS_SIZE, ATLAS_SIZE);
-    if (!ct) throw new Error('shadow atlas');
+    if (t.exists(key)) t.remove(key);
+    const ct = t.createCanvas(key, ATLAS_SIZE, ATLAS_SIZE);
+    if (!ct) return null;
     // shadows are soft: bilinear, unlike the art
     ct.setFilter(Phaser.Textures.FilterMode.LINEAR);
-    this.tex = ct;
-    this.ctx = ct.getContext();
-    this.packer.reset();
+    const page: Page = { key, tex: ct, ctx: ct.getContext(), packer: new ShelfPacker(ATLAS_SIZE, ATLAS_SIZE), dirty: true };
+    this.pages.push(page);
+    return page;
+  }
+
+  /**
+   * Throw every page away and start with one empty page. Only called between rooms (nothing static draws then), and every follower is hidden
+   * and re-resolved before it draws again: a sprite must never render with a frame of a destroyed texture, because that throws inside Phaser's
+   * render and stops the whole loop (a blank world).
+   */
+  private resetPages(): void {
+    for (const c of this.followers) {
+      c.box.setVisible(false);
+      c.spr.setVisible(false);
+      c.epoch = -1;
+    }
+    for (const p of this.pages) if (this.scene.textures.exists(p.key)) this.scene.textures.remove(p.key);
+    this.pages = [];
     this.cache.clear();
     this.epoch++;
-    this.dirty = true;
+    this.addPage();
+  }
+
+  /** Texture budget for the soak test and the perf notes. */
+  get pageCount(): number {
+    return this.pages.length;
+  }
+
+  /** how full each page is, 0..1 */
+  get pageFill(): number[] {
+    return this.pages.map((p) => +p.packer.fill.toFixed(2));
   }
 
   // ------------------------------------------------------------------ atlas
@@ -140,19 +178,27 @@ export class ShadowLayer {
 
   /** Pack an RGBA image into the atlas and return its frame, resetting the atlas when it is full. */
   private pack(img: RgbaImage, ax: number, ay: number): Ref | null {
-    let at = this.packer.alloc(img.w, img.h);
-    if (!at) {
-      // full: start over (every caster re-resolves on its next update; rare, a room needs a fraction of the atlas)
-      this.makeAtlas();
-      at = this.packer.alloc(img.w, img.h);
-      if (!at) return null;
+    let page: Page | null = null;
+    let at: { x: number; y: number } | null = null;
+    for (const p of this.pages) {
+      at = p.packer.alloc(img.w, img.h);
+      if (at) {
+        page = p;
+        break;
+      }
     }
-    this.ctx.putImageData(new ImageData(new Uint8ClampedArray(img.data), img.w, img.h), at.x, at.y);
+    if (!page || !at) {
+      // every page is full: add one (up to the budget). Existing frames stay valid; at the budget this sprite simply has no shadow.
+      page = this.addPage();
+      at = page ? page.packer.alloc(img.w, img.h) : null;
+      if (!page || !at) return null;
+    }
+    page.ctx.putImageData(new ImageData(new Uint8ClampedArray(img.data), img.w, img.h), at.x, at.y);
     const name = `s${this.generated}_${at.x}_${at.y}`;
-    this.tex!.add(name, 0, at.x, at.y, img.w, img.h);
-    this.dirty = true;
+    page.tex.add(name, 0, at.x, at.y, img.w, img.h);
+    page.dirty = true;
     this.generated++;
-    return { frame: name, w: img.w, h: img.h, ax, ay };
+    return { tex: page.key, frame: name, w: img.w, h: img.h, ax, ay };
   }
 
   /** The shadow silhouette of a source frame (generated and packed on first use); null when the source is not readable or the atlas is full. */
@@ -182,7 +228,7 @@ export class ShadowLayer {
 
   // ------------------------------------------------------------------ casters
   private make(src: Source, height: number, wx: number, wy: number, key: string): Caster {
-    const spr = this.scene.make.sprite({ x: 0, y: 0, key: ATLAS_KEY, add: false }, false).setBlendMode(Phaser.BlendModes.MULTIPLY).setVisible(false);
+    const spr = this.scene.make.sprite({ x: 0, y: 0, key: pageKey(0), add: false }, false).setBlendMode(Phaser.BlendModes.MULTIPLY).setVisible(false);
     const box = this.rig.world(this.scene.add.container(wx, wy, [spr])).setDepth(DEPTH.shadowCast).setVisible(false);
     return { box, spr, src, height, follow: null, fixedFrame: null, hScale: 1, ownerVisible: true, epoch: -1, sig: '', key, rim: null, rimSide: '', rimEpoch: -1 };
   }
@@ -196,7 +242,7 @@ export class ShadowLayer {
     if (!preset.cast) return new ShadowHandle(null);
     const c = this.make({ tex: d.atlas, frame: d.frame, ax: d.ax, ay: d.ay, preset }, Math.max(1, Math.min(d.h, d.ay)), Math.round(wx), Math.round(wy), key);
     if (d.h >= 18 && d.ay >= 14) {
-      c.rim = this.rig.world(this.scene.add.sprite(Math.round(wx), Math.round(wy), ATLAS_KEY)).setBlendMode(Phaser.BlendModes.ADD).setDepth(depth + 0.002).setVisible(false);
+      c.rim = this.rig.world(this.scene.add.sprite(Math.round(wx), Math.round(wy), pageKey(0))).setBlendMode(Phaser.BlendModes.ADD).setDepth(depth + 0.002).setVisible(false);
     }
     this.statics.push(c);
     return new ShadowHandle(c);
@@ -235,6 +281,7 @@ export class ShadowLayer {
       c.rim?.destroy();
     }
     this.statics = [];
+    this.resetPages();
   }
 
   get count(): number {
@@ -308,7 +355,7 @@ export class ShadowLayer {
         c.epoch = -1;
         return;
       }
-      c.spr.setTexture(ATLAS_KEY, ref.frame).setOrigin(ref.ax / ref.w, ref.ay / ref.h);
+      c.spr.setTexture(ref.tex, ref.frame).setOrigin(ref.ax / ref.w, ref.ay / ref.h);
     }
     if (c.epoch !== this.epoch) return;
     const vis = c.ownerVisible;
@@ -342,16 +389,18 @@ export class ShadowLayer {
         r.setVisible(false);
         return;
       }
-      r.setTexture(ATLAS_KEY, ref.frame).setOrigin(ref.ax / ref.w, ref.ay / ref.h);
+      r.setTexture(ref.tex, ref.frame).setOrigin(ref.ax / ref.w, ref.ay / ref.h);
     }
     r.setTint(rim.tint).setAlpha(rim.alpha).setVisible(true);
   }
 
   /** Upload the atlas once per frame, and only if something was added. */
   private flush(): void {
-    if (this.dirty && this.tex) {
-      this.tex.refresh();
-      this.dirty = false;
+    for (const p of this.pages) {
+      if (p.dirty) {
+        p.tex.refresh();
+        p.dirty = false;
+      }
     }
   }
 
@@ -359,6 +408,7 @@ export class ShadowLayer {
     this.clearRoom();
     for (const c of this.followers) c.box.destroy();
     this.followers = [];
-    if (this.scene.textures.exists(ATLAS_KEY)) this.scene.textures.remove(ATLAS_KEY);
+    for (const p of this.pages) if (this.scene.textures.exists(p.key)) this.scene.textures.remove(p.key);
+    this.pages = [];
   }
 }

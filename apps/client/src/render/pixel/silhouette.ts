@@ -95,6 +95,10 @@ export class ShelfPacker {
     this.rowH = Math.max(this.rowH, h);
     return at;
   }
+  /** 0..1 how much of the height the shelves use so far (the packer is full at 1) */
+  get fill(): number {
+    return Math.min(1, (this.y + this.rowH) / this.height);
+  }
   reset(): void {
     this.x = 0;
     this.y = 0;
