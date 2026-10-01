@@ -195,7 +195,7 @@ export class FrameScene extends Phaser.Scene {
   create(): void {
     const cam = this.cameras.main;
     const dpr = this.opts.dpr;
-    const cssZoom = this.opts.zoom ?? Math.min(5, Math.max(2, Math.floor(Math.min(window.innerWidth / (20 * T), window.innerHeight / (12 * T)))));
+    const cssZoom = this.opts.zoom ?? Math.min(5, Math.max(2, Math.floor(Math.min(window.innerWidth / (26 * T), window.innerHeight / (14 * T)))));
     this.zoomDev = Number.isInteger(dpr) ? cssZoom * dpr : Math.max(1, Math.floor(cssZoom * dpr));
     cam.setBackgroundColor('#1d1b26');
     cam.setZoom(this.zoomDev);

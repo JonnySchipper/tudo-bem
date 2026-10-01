@@ -40,6 +40,7 @@ import {
   FLOOR_PLACEHOLDER,
   FLOOR_SUBSTITUTE,
   NORTH_BAND_TILES,
+  WEST_STRIP_TILES,
   ROOM_HOUR,
   WALL_STYLE,
   allNorthDecor,
@@ -453,6 +454,33 @@ export class WorldScene extends Phaser.Scene {
         continue;
       }
       this.sprite(key, 0, (j + 1) * T, DEPTH.wall, false);
+    }
+    this.buildShell(def, style);
+  }
+
+  /**
+   * The outer shell of an interior (visual pass V3): the east wall and the south wall close the room (thick caps, the exterior face of the
+   * south wall with its plinth), and a quiet night sidewalk fills everything around so the room reads as a building on a street, not as a
+   * diorama in a void. Art keys `walls/east_<style>[_b]`, `walls/south_<style>_w|_m|_e`, `walls/exterior`; each is optional.
+   */
+  private buildShell(def: RoomDef, style: string): void {
+    const has = (k: string) => !!this.m.sprites[k];
+    const ext = this.m.sprites['walls/exterior'];
+    if (ext) {
+      const M = 22; // tiles of street around the walls (a phone at zoom 2 and a desktop at zoom 3 never see past it)
+      const x0 = Math.floor((-M * T) / ext.w) * ext.w;
+      const x1 = (def.cols + M) * T;
+      const y0 = Math.floor((-(NORTH_BAND_TILES + M) * T) / ext.h) * ext.h;
+      const y1 = (def.rows + M) * T;
+      for (let y = y0; y < y1; y += ext.h) for (let x = x0; x < x1; x += ext.w) this.sprite('walls/exterior', x + ext.ax, y + ext.ay, DEPTH.terrain - 10, false);
+    }
+    for (let j = -NORTH_BAND_TILES; j < def.rows; j++) {
+      const key = `walls/east_${style}${j === def.rows - 1 ? '_b' : ''}`;
+      if (has(key)) this.sprite(key, def.cols * T, (j + 1) * T, DEPTH.wall, false);
+    }
+    for (let i = -WEST_STRIP_TILES; i <= def.cols; i++) {
+      const key = `walls/south_${style}_${i < 0 ? 'w' : i === def.cols ? 'e' : 'm'}`;
+      if (has(key)) this.sprite(key, i * T, def.rows * T, DEPTH.wall, false);
     }
   }
 

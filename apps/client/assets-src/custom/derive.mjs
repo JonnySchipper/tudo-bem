@@ -18,6 +18,16 @@ import * as flockMod from './flock.mjs';
 import * as vilaMod from './vila.mjs';
 import * as telhadosMod from './telhados.mjs';
 import * as backdropMod from './backdrop.mjs';
+import * as fundosMod from './fundos.mjs';
+import * as frame3Mod from './frame3.mjs';
+import { soleira } from './v3.mjs';
+
+/** V3: every street facade gets the darker soleira band where the wall meets the sidewalk. */
+const withBase = (fn) => async (ctx) => {
+  const parts = await fn(ctx);
+  for (const p of parts) if (p.img && !String(p.key ?? '').endsWith('_lit')) soleira(p.img);
+  return parts;
+};
 
 import * as wallsMod from './walls.mjs';
 import * as padariaMod from './padaria.mjs';
@@ -43,15 +53,18 @@ export const DERIVE = {
   viraLata: critters.viraLata,
   onibus: vehicles.onibus,
   kombi: vauth.kombi,
-  padaria: facades.padaria,
-  edificio: edificio.edificio,
-  academia: academia.academia,
+  padaria: withBase(facades.padaria),
+  edificio: withBase(edificio.edificio),
+  academia: withBase(academia.academia),
   fusca: vauth.fusca,
   moto: vauth.moto,
   feira: feiraMod.feira,
   guideArrow: uiMod.guideArrow,
   casas: vilaMod.casas,
   telhados: telhadosMod.telhados,
+  fundos: fundosMod.fundos,
+  frameSet: frame3Mod.frameSet,
+  frameExterior: frame3Mod.exteriorPart,
   edicula: telhadosMod.edicula_part,
   skyline: backdropMod.skyline,
   pontoOnibus: vilaMod.pontoOnibusPart,

@@ -191,8 +191,10 @@ const one = (fn) => () => {
   const r = fn();
   return [{ img: r.img, anchor: r.anchor }];
 };
+import * as gym3 from './gym3.mjs';
 export const DERIVE_GYM = {
-  gymTatame: one(tatame),
+  ...gym3.DERIVE_GYM3,
+  gymTatame: gym3.DERIVE_GYM3.gymTatame3,
   gymFila: one(quadroFila),
   gymFaixas: one(paredeFaixas),
   gymBancoEsp: (_ctx, { slices = 4 }) => Array.from({ length: slices }, (_, i) => ({ key: `props/banco_espectador_${i}_of_${slices}`, ...bancoEspectador(i, slices), meta: { footprint: [1, 1] } })),
