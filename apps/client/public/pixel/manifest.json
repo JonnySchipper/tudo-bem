@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 512,
    "h": 2048,
-   "frames": 428
+   "frames": 446
   }
  },
  "terrain": {
@@ -2227,6 +2227,348 @@
    "overhead": null,
    "shadow": null
   },
+  "fundos/f1": {
+   "atlas": "outdoor",
+   "frame": "fundos/f1",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     48,
+     33,
+     14,
+     12
+    ]
+   ],
+   "lit": "fundos/f1_lit"
+  },
+  "fundos/f1_lit": {
+   "atlas": "outdoor",
+   "frame": "fundos/f1_lit",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fundos/f2": {
+   "atlas": "outdoor",
+   "frame": "fundos/f2",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     66,
+     33,
+     14,
+     12
+    ]
+   ],
+   "lit": "fundos/f2_lit"
+  },
+  "fundos/f2_lit": {
+   "atlas": "outdoor",
+   "frame": "fundos/f2_lit",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fundos/f3": {
+   "atlas": "outdoor",
+   "frame": "fundos/f3",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [],
+   "lit": "fundos/f3_lit"
+  },
+  "fundos/f3_lit": {
+   "atlas": "outdoor",
+   "frame": "fundos/f3_lit",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fundos/f4": {
+   "atlas": "outdoor",
+   "frame": "fundos/f4",
+   "w": 112,
+   "h": 64,
+   "ax": 56,
+   "ay": 63,
+   "footprint": [
+    7,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     58,
+     31,
+     12,
+     8
+    ]
+   ],
+   "lit": "fundos/f4_lit"
+  },
+  "fundos/f4_lit": {
+   "atlas": "outdoor",
+   "frame": "fundos/f4_lit",
+   "w": 112,
+   "h": 64,
+   "ax": 56,
+   "ay": 63,
+   "footprint": [
+    7,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fundos/f5": {
+   "atlas": "outdoor",
+   "frame": "fundos/f5",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [],
+   "lit": "fundos/f5_lit"
+  },
+  "fundos/f5_lit": {
+   "atlas": "outdoor",
+   "frame": "fundos/f5_lit",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fundos/f6": {
+   "atlas": "outdoor",
+   "frame": "fundos/f6",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     12,
+     33,
+     12,
+     12
+    ],
+    [
+     60,
+     33,
+     14,
+     12
+    ]
+   ],
+   "lit": "fundos/f6_lit"
+  },
+  "fundos/f6_lit": {
+   "atlas": "outdoor",
+   "frame": "fundos/f6_lit",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fundos/f7": {
+   "atlas": "outdoor",
+   "frame": "fundos/f7",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [],
+   "lit": "fundos/f7_lit"
+  },
+  "fundos/f7_lit": {
+   "atlas": "outdoor",
+   "frame": "fundos/f7_lit",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fundos/f8": {
+   "atlas": "outdoor",
+   "frame": "fundos/f8",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     44,
+     33,
+     14,
+     12
+    ],
+    [
+     68,
+     33,
+     12,
+     12
+    ]
+   ],
+   "lit": "fundos/f8_lit"
+  },
+  "fundos/f8_lit": {
+   "atlas": "outdoor",
+   "frame": "fundos/f8_lit",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fundos/f9": {
+   "atlas": "outdoor",
+   "frame": "fundos/f9",
+   "w": 112,
+   "h": 64,
+   "ax": 56,
+   "ay": 63,
+   "footprint": [
+    7,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     66,
+     33,
+     14,
+     12
+    ]
+   ],
+   "lit": "fundos/f9_lit"
+  },
+  "fundos/f9_lit": {
+   "atlas": "outdoor",
+   "frame": "fundos/f9_lit",
+   "w": 112,
+   "h": 64,
+   "ax": 56,
+   "ay": 63,
+   "footprint": [
+    7,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
   "telhados/r1": {
    "atlas": "outdoor",
    "frame": "telhados/r1",
@@ -4055,18 +4397,6 @@
    "overhead": null,
    "shadow": null,
    "windows": [
-    [
-     16,
-     22,
-     10,
-     12
-    ],
-    [
-     29,
-     22,
-     10,
-     12
-    ],
     [
      57,
      22,
