@@ -191,9 +191,9 @@ function pontoOnibus() {
   return img;
 }
 
-// ------------------------------------------------------------------ "EM BREVE" banner over the feira lot (4x1 tiles, 64 x 30)
+// ------------------------------------------------------------------ "FEIRA LIVRE" banner over the feira lot (5x1 tiles, 80 x 30)
 function emBreve() {
-  const w = 64, h = 30;
+  const w = 80, h = 30;
   const img = blank(w, h);
   // posts
   for (const x of [0, w - 3]) {
@@ -214,7 +214,7 @@ function emBreve() {
   }
   rect(img, 5, 6, w - 10, 1, K.brandMustard);
   rect(img, 5, 15, w - 10, 1, K.brandMustard);
-  drawText5(img, Math.floor((w - width5('EM BREVE')) / 2), 8, 'EM BREVE', K.brandCream, { shadow: K.te5 });
+  drawText5(img, Math.floor((w - width5('FEIRA LIVRE')) / 2), 8, 'FEIRA LIVRE', K.brandCream, { shadow: K.te5 });
   outlineAround(img);
   return img;
 }
@@ -244,7 +244,7 @@ export async function pontoOnibusPart() {
 
 export async function emBrevePart() {
   const img = emBreve();
-  return [{ img, anchor: [32, 27] }];
+  return [{ img, anchor: [40, 27] }];
 }
 
 export async function preview() {

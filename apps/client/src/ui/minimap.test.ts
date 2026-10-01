@@ -24,7 +24,7 @@ describe('Vila Ipê minimap', () => {
   it('marks the three doors, both NPCs and you', () => {
     const ms = markers(room, { x: 25, y: 27 });
     expect(ms.filter((m) => m.kind === 'door')).toHaveLength(3);
-    expect(ms.filter((m) => m.kind === 'npc').map((m) => m.label).sort()).toEqual(['Júlia', 'Nanda']);
+    expect(ms.filter((m) => m.kind === 'npc').map((m) => m.label).sort()).toEqual(['Dona Rosa', 'Júlia', 'Nanda', 'Seu Chico', 'Seu Zé', 'Tia Lu']); // plus the feira vendors
     expect(ms.filter((m) => m.kind === 'me')).toHaveLength(1);
     expect(markers(room, null).some((m) => m.kind === 'me')).toBe(false);
   });

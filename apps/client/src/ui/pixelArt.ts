@@ -26,7 +26,7 @@ export function pxImg(key: string, zoom: number, alt = '', cls = ''): HTMLImageE
 export const foodIcon = (itemId: string, zoom = 3, alt = '', cls = ''): HTMLImageElement => pxImg(`icons/${itemId}`, zoom, alt, `px-food ${cls}`.trim());
 
 /** NPCs with no portrait of their own yet borrow another's (Professora Bia shows Júlia's; the feira vendors Seu Zé, Seu Chico and Dona Rosa borrow Carlos' and Graça's until the art track draws theirs). */
-export const PORTRAIT_PLACEHOLDER: Record<string, string> = { prof: 'julia', ze: 'carlos', chico: 'carlos', rosa: 'graca' };
+export const PORTRAIT_PLACEHOLDER: Record<string, string> = { ze: 'carlos', chico: 'carlos', rosa: 'graca' };
 
 /** Portrait key for an NPC and expression. */
 export const portraitKey = (npc: NpcId | string, expr: Expression = 'neutro'): string => `portraits/${PORTRAIT_PLACEHOLDER[npc] ?? npc}_${expr}`;

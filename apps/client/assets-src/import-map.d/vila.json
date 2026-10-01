@@ -50,11 +50,11 @@
       }
     },
     {
-      "key": "props/em_breve",
+      "key": "props/feira_livre",
       "kind": "derive",
       "fn": "emBreve",
       "footprint": [
-        4,
+        5,
         1
       ],
       "shadow": "fx/shadow_48",

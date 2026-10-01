@@ -4392,25 +4392,25 @@
     "ay": 1
    }
   },
-  "props/em_breve": {
+  "props/feira_livre": {
    "atlas": "outdoor",
-   "frame": "props/em_breve",
-   "w": 64,
+   "frame": "props/feira_livre",
+   "w": 80,
    "h": 30,
-   "ax": 32,
+   "ax": 40,
    "ay": 27,
    "footprint": [
-    4,
+    5,
     1
    ],
    "anim": null,
    "overhead": null,
    "shadow": "fx/shadow_48",
    "cast": {
-    "frame": "props/em_breve#cast",
-    "w": 80,
+    "frame": "props/feira_livre#cast",
+    "w": 96,
     "h": 10,
-    "ax": 32,
+    "ax": 40,
     "ay": 1
    }
   },
@@ -5257,6 +5257,31 @@
   },
   "icons/banana": {
    "file": "icons/banana.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/laranja": {
+   "file": "icons/laranja.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/maca": {
+   "file": "icons/maca.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/alface": {
+   "file": "icons/alface.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/tomate": {
+   "file": "icons/tomate.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/caldo_de_cana": {
+   "file": "icons/caldo_de_cana.png",
    "w": 16,
    "h": 16
   },
