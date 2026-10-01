@@ -16,7 +16,7 @@ const SP_MAP: [number, number][] = [
 const svg = (w: number, h: number, body: string) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${body}</svg>`;
 
 export const ICON_NAMES = [
-  'map', 'hat', 'friends', 'soundOn', 'soundOff', 'musicOn', 'musicOff', 'decor', 'parrot', 'send', 'close', 'info', 'logout', 'caderno',
+  'map', 'hat', 'friends', 'soundOn', 'soundOff', 'musicOn', 'musicOff', 'decor', 'parrot', 'send', 'close', 'info', 'logout', 'caderno', 'recados', 'coracao',
   // Missão do dia steps (Cumprimenta, Pede, Monta)
   'cumprimenta', 'pede', 'monta',
 ] as const;

@@ -1,4 +1,4 @@
-import { classifyChat, ECONOMY, MAX_CHAT_LEN, MISSION_COPY, MISSION_STEPS, TUTORIAL_STEPS, type EmoteKind, type NoticeLevel } from '@tudobem/shared';
+import { classifyChat, MAX_CHAT_LEN, MISSION_COPY, MISSION_STEPS, type EmoteKind, type NoticeLevel } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi, ui } from './dom';
 import { icon } from '../art/ui';
@@ -12,6 +12,7 @@ export interface HudActions {
   openMap: () => void;
   openCredits: () => void;
   openCaderno: () => void;
+  openRecados: () => void;
   openFriends: () => void;
   openWardrobe: () => void;
   toggleDecor: () => void;
@@ -71,6 +72,7 @@ export function buildHud(actions: HudActions) {
       { class: 'top-right' },
       decorBtn,
       h('button', { onclick: actions.openMap, id: 'btn-map' }, icon('map'), bi('Mapa', 'Map')),
+      h('button', { onclick: actions.openRecados, id: 'btn-recados', title: 'Recados — errands, bag and friends' }, icon('recados'), bi('Recados', 'Errands')),
       h('button', { onclick: actions.openCaderno, id: 'btn-caderno', title: 'Caderno de palavras / Word notebook' }, icon('caderno'), bi('Caderno', 'Words')),
       h('button', { onclick: actions.openWardrobe, id: 'btn-wardrobe' }, icon('hat'), bi('Chapéus', 'My hats')),
       h('button', { onclick: actions.openFriends, id: 'btn-friends' }, icon('friends'), bi('Amigos', 'Friends')),
@@ -83,38 +85,6 @@ export function buildHud(actions: HudActions) {
       h('span', { class: 'pill' }, plate),
       h('span', { class: 'pill', title: 'Reais Virtuais (RV) — soft currency' }, h('span', { class: 'coin' }), coins),
     ),
-  );
-
-  // ---- checklist
-  const list = h('ol');
-  /** Compact by default once the first step is done (the world matters more than the list); the player's own toggle wins after that. */
-  let checklistTouched = false;
-  const progress = h('span', { class: 'cl-progress' });
-  const toggleChecklist = () => {
-    checklistTouched = true;
-    checklist.classList.toggle('collapsed');
-    head.setAttribute('aria-expanded', String(!checklist.classList.contains('collapsed')));
-  };
-  const head = h(
-    'h3',
-    { onclick: toggleChecklist, tabindex: 0, role: 'button', 'aria-expanded': 'true', title: 'Mostrar / esconder — show / hide' },
-    'Primeiros passos',
-    h('small', { class: 'cl-en' }, 'First steps'),
-    progress,
-    h('span', { class: 'cl-caret', 'aria-hidden': 'true' }),
-  );
-  head.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      toggleChecklist();
-    }
-  });
-  const checklist = h(
-    'div',
-    { class: 'checklist', id: 'checklist' },
-    head,
-    list,
-    h('div', { class: 'reward-note' }, `Complete tudo: +${ECONOMY.tutorialBonus} RV bônus!`, en('Finish all steps for a bonus.')),
   );
 
   // ---- bottom bar
@@ -174,7 +144,7 @@ export function buildHud(actions: HudActions) {
   );
 
   toastsEl = h('div', { class: 'toasts', 'aria-live': 'polite' });
-  root.append(topbar, checklist, bottombar, toastsEl);
+  root.append(topbar, bottombar, toastsEl);
 
   const refresh = () => {
     const p = game.profile;
@@ -195,18 +165,6 @@ export function buildHud(actions: HudActions) {
         `${MISSION_COPY.header.pt} ${done}/${MISSION_STEPS.length}`,
         h('span', { class: 'mini-steps', 'aria-hidden': 'true' }, ...MISSION_STEPS.map((s) => h('span', { class: `mini ${m?.steps[s.id] ? 'done' : ''}`, title: s.pt }, icon(s.id, 16)))),
       );
-      list.replaceChildren(
-        ...TUTORIAL_STEPS.map((s) =>
-          h('li', { class: p.tutorial[s.id] ? 'done' : '', 'data-step': s.id }, h('span', { class: 'box' }), h('div', null, s.pt, en(s.en, true))),
-        ),
-      );
-      const stepsDone = TUTORIAL_STEPS.filter((s) => p.tutorial[s.id]).length;
-      progress.textContent = `${stepsDone}/${TUTORIAL_STEPS.length}`;
-      if (!checklistTouched) {
-        checklist.classList.toggle('collapsed', stepsDone >= 1);
-        head.setAttribute('aria-expanded', String(stepsDone < 1));
-      }
-      checklist.style.display = p.tutorialRewarded && Object.values(p.tutorial).every(Boolean) ? 'none' : '';
       parrotBtn.style.display = p.parrotOwned && p.parrotEquipped ? '' : 'none';
       parrotToggle.style.display = p.parrotOwned ? '' : 'none';
       parrotToggle.replaceChildren(bi(p.parrotEquipped ? 'Guardar papagaio' : 'Chamar papagaio', p.parrotEquipped ? 'Hide parrot' : 'Show parrot'));

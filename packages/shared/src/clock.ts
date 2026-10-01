@@ -56,6 +56,30 @@ export function greetingFor(min: number): Greeting {
   return 'boa noite';
 }
 
+/** English gloss for each greeting. */
+export const GREETING_EN: Record<Greeting, string> = { 'bom dia': 'Good morning', 'boa tarde': 'Good afternoon', 'boa noite': 'Good evening' };
+
+/** "Bom dia" (capitalised, for the start of a line). */
+export const greetingCap = (g: Greeting): string => `${g[0]!.toUpperCase()}${g.slice(1)}`;
+
+const PT_LEAD = /^(\s*["“'‘]?)(bom dia|boa tarde|boa noite)\b/i;
+const EN_LEAD = /^(\s*["“'‘]?)(good morning|good afternoon|good evening)\b/i;
+
+/**
+ * Swap a greeting that STARTS a line for the one that fits the game minute (authored lines say "Bom dia!" at any hour otherwise).
+ * Only a leading greeting is touched; a line without one comes back unchanged. PT and EN are handled independently.
+ */
+export function localizeGreetingText(text: string, min: number, lang: 'pt' | 'en' = 'pt'): string {
+  const g = greetingFor(min);
+  return lang === 'pt'
+    ? text.replace(PT_LEAD, (_m, pre: string, old: string) => `${pre}${old[0] === old[0]!.toLowerCase() ? g : greetingCap(g)}`)
+    : text.replace(EN_LEAD, (_m, pre: string, old: string) => `${pre}${old[0] === old[0]!.toLowerCase() ? GREETING_EN[g].toLowerCase() : GREETING_EN[g]}`);
+}
+
+export function localizeGreeting<T extends { pt: string; en?: string }>(line: T, min: number): T {
+  return { ...line, pt: localizeGreetingText(line.pt, min, 'pt'), ...(line.en !== undefined ? { en: localizeGreetingText(line.en, min, 'en') } : {}) };
+}
+
 export interface WeekdayInfo {
   short: 'Dom' | 'Seg' | 'Ter' | 'Qua' | 'Qui' | 'Sex' | 'Sáb';
   /** Full Portuguese name. */

@@ -62,6 +62,35 @@ const walkTo = (page, x, y, sit = false) => page.evaluate(([x, y, sit]) => windo
 /** A tile click routed through the click handler without pointer coordinates (decor placement needs a tile hit). */
 const clickTileHit = (page, x, y) => page.evaluate(([x, y]) => window.__tb.clickHit({ kind: 'tile', tile: { x, y } }), [x, y]);
 
+/**
+ * Open an NPC's dialogue. Since Phase 8a an NPC may start with an offer (Pode deixar! / Agora não) or a hand-over (Entregar …) before the usual box
+ * (`finalKey`, the `data-dialogue` of the box we want). `offer: 'accept'` takes the errand and returns 'accepted'; `give: true` hands the item over and
+ * returns 'gave'; otherwise offers are declined ("Agora não" / "Só conversar") until the usual box is open ('open').
+ */
+async function openNpc(page, npc, finalKey, { offer = 'decline', give = false } = {}) {
+  await interact(page, { npc });
+  for (let i = 0; i < 8; i++) {
+    await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
+    const key = await page.getAttribute('#dialogue-box', 'data-dialogue');
+    if (key === finalKey) return 'open';
+    if (key?.startsWith('offer-')) {
+      if (offer === 'accept') {
+        await page.click('#dialogue-box [data-chip="0"]');
+        return 'accepted';
+      }
+      await page.click('#dialogue-box [data-chip="1"]');
+    } else if (key?.startsWith('give-')) {
+      if (give) {
+        await page.click('#dialogue-box [data-chip="0"]');
+        return 'gave';
+      }
+      await page.click('#dialogue-box [data-chip="1"]'); // Só conversar
+    }
+    await sleep(350);
+  }
+  throw new Error(`could not reach the ${finalKey} dialogue of ${npc}`);
+}
+
 async function waitIdleAt(page, x, y, label) {
   await waitFor(page, ([x, y]) => {
     const t = window.__tb.selfTile();
@@ -187,6 +216,9 @@ async function main() {
   log('pixel art placeholders in the praça:', artGaps.length ? artGaps.join(', ') : 'none');
   assert(artGaps.length === 0, `every sprite of the praça comes from the manifest (missing: ${artGaps.join(', ')})`);
   assert(start.nameplate === 'verde', 'Verde nameplate');
+  // Phase 8a: the old checklist is Júlia's welcome chain in the recado tracker (also on phones)
+  assert(!(await page.$('#checklist')), 'the old checklist is gone');
+  assert(((await page.textContent('#recado-tracker')) ?? '').includes('Bem-vindo à Vila Ipê'), 'the tracker shows the welcome chain');
   assert(start.appearance.top === 'camiseta' && start.appearance.bottom === 'calca' && start.appearance.shoes === 0, 'starter outfit is tee + jeans');
   assert(start.appearance.extra === 'nenhum', 'create does not pick glasses/beard/earrings');
   assert(/Música/.test((await page.textContent('#btn-music')) ?? ''), 'room music toggle on the praça bar');
@@ -318,8 +350,16 @@ async function main() {
   await waitFor(page, () => window.__tb.game.liveNpcs(performance.now()).some((n) => n.id === 'carlos' || n.id === 'graca'), null, 8000, 'the baker on duty is at the counter');
   const baker = await bakerNow(page);
   log('baker on duty:', baker.name, 'game time', await page.evaluate(() => window.__tb.clock.minutes()));
-  await interact(page, { npc: baker.id });
-  await page.waitForSelector('#dialogue-box[data-dialogue="conversa"]', { timeout: 12_000 });
+  // Phase 8a: the baker offers today's recado first; take it (TB_TEST_OFFER=carlos_cafe_pra_nanda pins it: order a café com leite, hand it to Nanda)
+  const offerState = await openNpc(page, baker.id, 'conversa', { offer: 'accept' });
+  const recadoRun = offerState === 'accepted' && baker.id === 'carlos';
+  if (offerState === 'accepted') {
+    const accepted = await page.evaluate(() => window.__tb.game.board?.active.map((a) => a.id) ?? []);
+    await waitFor(page, () => window.__tb.game.board?.active.length >= 1, null, 5000, 'the recado is active');
+    log('recado accepted from', baker.name, JSON.stringify(accepted));
+    await shot(page, '04a_recado_accepted');
+    await openNpc(page, baker.id, 'conversa');
+  } else log('no recado offered by the baker (start the server with TB_TEST_OFFER=carlos_cafe_pra_nanda to cover the whole recado)');
   const conversaName = ((await page.textContent('#dialogue-box[data-dialogue="conversa"] .npc-name')) ?? '').trim();
   assert(conversaName === baker.name, `Conversa is ${baker.name} at the mesa (${conversaName})`);
   assert(await page.$('#dialogue-box[data-dialogue="conversa"] .dbx-portrait'), 'Conversa portrait (café mesa)');
@@ -405,8 +445,7 @@ async function main() {
 
   // 5b. Test daily RV gate: second Pedido rápido same day → 0 RV, "já pediu hoje" message
   const coinsBeforeSecond = (await profile(page)).coins;
-  await interact(page, { npc: baker.id });
-  await page.waitForSelector('#dialogue-box[data-dialogue="conversa"]', { timeout: 12_000 });
+  await openNpc(page, baker.id, 'conversa');
   await page.click('[data-action="pedido-rapido"]');
   await page.waitForSelector('#dialogue-box[data-dialogue="pedido"]', { timeout: 12_000 });
   // Quick path through Pedido rápido again
@@ -447,14 +486,31 @@ async function main() {
   // 6a. Nanda greets in the dialogue box (and the server hears the talk). She keeps shop hours, so pin the clock to midday for this step.
   await page.evaluate(() => window.__tb.setClock({ time: '12:00' }));
   await waitFor(page, () => window.__tb.game.liveNpcs(performance.now()).some((n) => n.id === 'nanda'), null, 8000, 'Nanda is at her stall');
-  await interact(page, { npc: 'nanda' });
-  await page.waitForSelector('#dialogue-box[data-dialogue="talk-nanda"]', { timeout: 15_000 });
+  if (recadoRun) {
+    // the first scene above ordered a café com leite for the recado: it is in the bag, and Nanda takes it
+    const bag = (await profile(page)).bag ?? {};
+    assert(bag.cafe_com_leite >= 1, `the ordered café com leite is in the bag (${JSON.stringify(bag)})`);
+    const before = await profile(page);
+    const gave = await openNpc(page, 'nanda', 'talk-nanda', { give: true });
+    assert(gave === 'gave', 'Nanda offers Entregar café com leite');
+    await page.waitForSelector('#recado-done', { timeout: 8000 });
+    await shot(page, '08b2_recado_done');
+    const after = await profile(page);
+    const board = await page.evaluate(() => window.__tb.game.board);
+    assert(board.done.includes('carlos_cafe_pra_nanda') && !board.active.length, 'the recado is done');
+    assert(after.coins - before.coins >= 10, `recado RV reward (+${after.coins - before.coins})`);
+    assert((after.bond.carlos ?? 0) - (before.bond?.carlos ?? 0) === 4, 'recado bond (+4) for Seu Carlos');
+    assert((after.bag.cafe_com_leite ?? 0) === (before.bag.cafe_com_leite ?? 0) - 1, 'one coffee left the bag');
+    log('recado complete: +' + (after.coins - before.coins) + ' RV, Seu Carlos bond', after.bond.carlos);
+    await sleep(500);
+  }
+  log('opening Nanda talk'); await openNpc(page, 'nanda', 'talk-nanda'); log('Nanda talk open');
   assert(await page.$('#btn-ver-chapeus'), 'Nanda offers Ver chapéus');
   await waitFor(page, () => (window.__tb.game.profile.bond?.nanda ?? 0) >= 2, null, 5000, 'talk bond with Nanda');
   await shot(page, '08c_nanda_dialogue');
   await page.keyboard.press('Escape');
   await page.evaluate(() => window.__tb.setClock({ time: null }));
-  await interact(page, { prop: 'barraca' });
+  log('clock unpinned'); await interact(page, { prop: 'barraca' }); log('barraca clicked');
   await page.waitForSelector('[data-modal="hats"]', { timeout: 12_000 });
   await page.click('[data-hat="boina_vermelha"]');
   await page.click('[data-hat-action="boina_vermelha"]');

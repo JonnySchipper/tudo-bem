@@ -3,6 +3,7 @@ import './styles/intro.css';
 import './styles/pixel-ui.css';
 import './styles/clock.css';
 import './styles/dialogue.css';
+import './styles/recados.css';
 import './styles/feira.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
@@ -14,6 +15,7 @@ import {
   buildGrid,
   furnitureById,
   greetingFor,
+  localizeGreeting,
   hatById,
   HOTSPOT_READ_RANGE,
   HOTSPOTS,
@@ -23,6 +25,7 @@ import {
   isCpuId,
   isWalkable,
   readSpot,
+  subjectChoices,
   npcDefById,
   VENDORS,
   type EmoteKind,
@@ -60,7 +63,9 @@ import {
 } from './ui/panels';
 import { openPedido, updatePedido, closePedido, isPedidoOpen } from './ui/pedido';
 import { openCredits } from './ui/credits';
-import { isDialogueBoxOpen, setDialogueHost } from './ui/dialogue';
+import { isDialogueBoxOpen, setDialogueHost, showDialogueBox } from './ui/dialogue';
+import { mountTracker, openJournal, runPrelude } from './ui/recados';
+import { heartsWith } from './ui/recadoView';
 import { openNpcTalk } from './ui/npcTalk';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira';
 import { openCaderno } from './ui/caderno';
@@ -212,23 +217,54 @@ function openStall(propId?: string) {
 }
 
 function talkTo(npc: NpcDef['id']) {
+  closeDialogue();
+  const vendor = npc === 'tia_lu' || npc === 'ze' || npc === 'chico' || npc === 'rosa';
+  // the server counts the talk for NPCs without a Conversa (bond +2 once a day, `falar` steps); the bakers count it through the scene / Conversa,
+  // the vendors through their stall panel (it sends `talk` itself)
+  if (!vendor && npc !== 'carlos' && npc !== 'graca') net.send({ t: 'talk', npc });
+  // an NPC first hands you what they came with: a thank-you hand-over ("Entregar …") or today's errand ("Pode deixar!" / "Agora não")
+  runPrelude(npc, {
+    accept: (id) => net.send({ t: 'recados', action: 'accept', id }),
+    give: (to, itemId) => net.send({ t: 'give', npc: to, itemId }),
+    proceed: () => talkFlow(npc),
+  });
+}
+
+function talkFlow(npc: NpcDef['id']) {
+  closeDialogue();
   if (npc === 'tia_lu' || npc === 'ze' || npc === 'chico' || npc === 'rosa') {
-    closeDialogue();
     // a vendor resting on a bench (Tia Lu in the afternoon) is not serving: the closed note
     if (game.avatars.get(`npc-${npc}`)?.pub.activity !== 'trabalhando') return openFeiraClosed(npc);
     return openFeira(npc, { send: (m) => net.send(m) }, { talked: (id) => net.send({ t: 'talk', npc: id }) });
   }
   if (npc === 'carlos' || npc === 'graca') {
-    closeDialogue();
     // Always the private AI mesa (Seu Carlos by day, Dona Graça on the night shift: same subjects, D12). Pedido rápido is a ghost button
     // inside that overlay, only at the counter (the server runs the breakfast scene with whoever is on duty there).
-    void openConversa(npc, undefined, {
-      onQuickOrder: game.room?.room === 'padaria' ? () => net.send({ t: 'scene', action: 'start', npc }) : undefined,
-    });
+    const start = (subjectId?: string) =>
+      void openConversa(npc, undefined, {
+        subjectId,
+        onQuickOrder: game.room?.room === 'padaria' ? () => net.send({ t: 'scene', action: 'start', npc }) : undefined,
+      });
+    // from 4 hearts there is a second subject to pick (O bairro)
+    const choices = subjectChoices(npc, heartsWith(game.profile?.bond, npc));
+    if (choices.length > 1) {
+      showDialogueBox({
+        key: `subject-${npc}`,
+        npcId: npc,
+        speaker: npc === 'graca' ? 'Dona Graça' : 'Seu Carlos',
+        expression: 'feliz',
+        line: { pt: 'Sobre o que a gente conversa hoje?', en: 'What shall we chat about today?' },
+        chips: choices.map((s) => ({ pt: s.title.pt, en: s.minHearts ? `${s.title.en} (new!)` : s.title.en })),
+        onChip: (i) => {
+          closeDialogue();
+          start(choices[i]?.id);
+        },
+        onClose: closeDialogue,
+      });
+    } else start();
   } else {
-    // Nanda, Júlia and Professora Bia (the live NPC you clicked): a short greeting in the dialogue box (Nanda offers "Ver chapéus", Júlia her help); the server hears about it for the recados
-    closeDialogue();
-    openNpcTalk(npc, { talked: (id) => net.send({ t: 'talk', npc: id }), openShop });
+    // Nanda, Júlia and Professora Bia (the live NPC you clicked): a short greeting in the dialogue box (Nanda offers "Ver chapéus", Júlia her help)
+    openNpcTalk(npc, { openShop });
   }
 }
 
@@ -526,7 +562,8 @@ net.on((m: ServerMsg) => {
       break;
     }
     case 'notice':
-      toast(m.level, m.pt, m.en);
+      // a recado step and the giver's thanks have their own presentation (the tracker's ✓, the thanks card)
+      if (m.tag !== 'recado_step' && m.tag !== 'recado_thanks') toast(m.level, m.pt, m.en);
       if (mgQuitPending) {
         mgQuitPending = false;
         failClearMinigame();
@@ -534,6 +571,7 @@ net.on((m: ServerMsg) => {
       break;
     case 'reward':
       if (m.reason.pt === MISSION_COPY.done.pt) missionBanner();
+      else if (m.reason.pt.startsWith('Recado: ')) break; // the thanks card shows the RV
       else toast('reward', m.reason.pt, m.reason.en, m.amount);
       break;
     case 'scene':
@@ -610,6 +648,10 @@ net.on((m: ServerMsg) => {
       parrotWhisper(m.word.pt, m.word.en);
       speak(m.word.pt);
       break;
+    case 'recados':
+      game.board = { day: m.day, offered: m.offered, active: m.active, done: m.done };
+      game.emit('recados');
+      break;
     case 'tutorial': {
       const s = TUTORIAL_STEPS.find((x) => x.id === m.step);
       if (s) toast('reward', `✓ ${s.pt}`, s.en);
@@ -641,6 +683,7 @@ function startGame() {
     openMap: () => openMap((room) => joinRoom(room)),
     openCredits,
     openCaderno: () => openCaderno(),
+    openRecados: () => openJournal(),
     openFriends: () =>
       openFriends({
         request: (id) => net.send({ t: 'friend', action: 'request', targetId: id }),
@@ -681,6 +724,7 @@ function startGame() {
             reloadToSignIn();
           },
   });
+  mountTracker(openJournal);
   mountJoystick((dx, dy) => {
     if (game.modalOpen || game.editMode || game.placing) return;
     const room = game.roomDef;
@@ -714,7 +758,7 @@ function startGame() {
     const npcs = game.liveNpcs(now());
     if (!npcs.length || document.hidden) return;
     const n = npcs[Math.floor(Math.random() * npcs.length)];
-    npcSay(n.id, idleTalk.next(n.idleLines, clock.weather(), clock.minutes()));
+    npcSay(n.id, localizeGreeting(idleTalk.next(n.idleLines, clock.weather(), clock.minutes()), clock.minutes()));
   }, 11_000);
   // the feira: a vendor calls out their goods now and then (PT with the gloss); never two calls at once, and not while a dialogue box is open
   setInterval(() => {
@@ -723,7 +767,7 @@ function startGame() {
     if (!vendors.length) return;
     const n = vendors[Math.floor(Math.random() * vendors.length)]!;
     const calls = VENDORS[n.id as 'tia_lu'].calls;
-    npcSay(n.id, calls[Math.floor(Math.random() * calls.length)]!);
+    npcSay(n.id, localizeGreeting(calls[Math.floor(Math.random() * calls.length)]!, clock.minutes()));
   }, 7_000);
 }
 
@@ -731,7 +775,7 @@ function hitLabel(hit: Hit | null): [string, string] | null {
   if (!hit) return null;
   switch (hit.kind) {
     case 'npc':
-      return [hit.npc.name, `${hit.npc.role.en} — click to talk`];
+      return [`${hit.npc.name}  ♥ ${heartsWith(game.profile?.bond, hit.npc.id)}`, `${hit.npc.role.en} — click to talk`];
     case 'prop':
       return hit.prop.label ? [hit.prop.label.pt, hit.prop.label.en] : null;
     case 'hotspot': {

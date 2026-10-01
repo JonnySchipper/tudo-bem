@@ -14,6 +14,7 @@ import { npcPortrait, parrotPortrait, type Expression } from './pixelArt';
 import { Typewriter, dialogueKeyAction, npcTagColor, readShowEnglish, writeShowEnglish } from './dialogueLogic';
 import { noteHeard } from './heard';
 import { modalId } from './modal';
+import { heartsWith } from './recadoView';
 
 export type DialogueMode = 'box' | 'modal';
 
@@ -121,6 +122,12 @@ function onKey(e: KeyboardEvent) {
   else spec.onChip?.(a.index);
 }
 
+/** Friendship hearts next to the name tag (`♥ 3`); the full row lives in the Recados journal. */
+function hearts(npcId: string): HTMLElement {
+  const n = heartsWith(game.profile?.bond, npcId);
+  return h('span', { class: `dbx-hearts${n ? '' : ' zero'}`, title: `Amizade: ${n} de 10 corações · Friendship`, 'aria-label': `${n} corações` }, n ? '♥' : '♡', ' ', String(n));
+}
+
 function buildPortrait(s: BoxSpec): HTMLElement {
   const cls = 'dbx-portrait';
   return s.npcId ? npcPortrait(s.npcId, s.thinking ? 'pensativo' : s.expression, cls) : parrotPortrait(cls);
@@ -132,6 +139,7 @@ function build(s: BoxSpec): HTMLElement[] {
     'div',
     { class: 'dbx-head' },
     h('span', { class: 'dbx-name npc-name', style: `--tag:${npcTagColor(s.npcId)}` }, s.speaker),
+    s.npcId && s.npcId !== 'parrot' ? hearts(s.npcId) : null,
     s.role ? h('small', { class: 'dbx-role' }, s.role) : null,
     s.meta ? h('small', { class: 'dbx-meta' }, s.meta) : null,
     ...(s.notes ?? []),

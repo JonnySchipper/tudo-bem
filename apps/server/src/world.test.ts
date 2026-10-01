@@ -2,6 +2,9 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import {
   buildGrid,
   CPU_NAMES,
+  gameMinutes,
+  greetingCap,
+  greetingFor,
   openMatTiles,
   DEFAULT_APPEARANCE,
   ECONOMY,
@@ -257,7 +260,8 @@ describe('World', () => {
 
     // Carlos scene with best chips
     await a.send({ t: 'scene', action: 'start', npc: 'carlos' });
-    expect(a.last('scene')!.view.line.pt).toBe('Bom dia! Tudo bem?');
+    // the greeting follows the game clock (the test clock is `clock`)
+    expect(a.last('scene')!.view.line.pt).toBe(`${greetingCap(greetingFor(gameMinutes(clock)))}! Tudo bem?`);
     for (let i = 0; i < 5; i++) await a.send({ t: 'scene', action: 'choose', chip: 0 });
     const endScene = a.last('scene')!;
     expect(endScene.view.end).toBe(true);

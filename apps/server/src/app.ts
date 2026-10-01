@@ -110,6 +110,7 @@ export function createApp(opts: AppOptions) {
         onConversaEnd: (playerId, npc, grade, order) => world.conversaEnded(playerId, npc, grade, order),
         onConversaLine: (playerId, who, pt) => world.conversaLine(playerId, who, pt),
         memory: conversaMemory,
+        clockMinutes: () => world.gameMinuteNow(),
         playerIdFor: (r) => accounts.accountForSession(sessionCookieOf(r))?.profileId,
       });
     }

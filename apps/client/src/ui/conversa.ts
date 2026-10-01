@@ -21,6 +21,7 @@ import {
   type NpcId,
 } from '@tudobem/shared';
 import { game } from '../state';
+import { clock } from '../gameClock';
 import { h, en, bi, ui } from './dom';
 import { expressionForGrade, npcPortrait, type Expression } from './pixelArt';
 import { speak } from '../audio';
@@ -341,6 +342,7 @@ function applyOfflineTurn(text: string, priorChips: string[]) {
       order: {},
     },
     priorChips,
+    clock.minutes(),
   );
   state.chips = presented.chips;
   state.history.push({
@@ -508,7 +510,7 @@ export function isConversaOpen(): boolean {
 export async function openConversa(
   npcId: NpcId,
   onClose?: () => void,
-  opts?: { onQuickOrder?: () => void },
+  opts?: { onQuickOrder?: () => void; /** a subject the player picked (one opened by hearts) */ subjectId?: string },
 ): Promise<void> {
   if (state) return;
 
@@ -528,6 +530,7 @@ export async function openConversa(
       p.nameplate,
       p.id,
       daily,
+      opts?.subjectId,
     );
 
     if (response.phase === 'blocked') {
@@ -575,7 +578,7 @@ export async function openConversa(
 }
 
 function openOfflineConversa(npcId: NpcId) {
-  const opened = offlineConversaOpen(npcId);
+  const opened = offlineConversaOpen(npcId, clock.minutes());
   if (!opened) {
     state = null;
     quickOrder = null;

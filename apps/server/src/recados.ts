@@ -4,6 +4,10 @@ import {
   addToBag,
   advance,
   BOND_GAIN,
+  furnitureById,
+  giftFor,
+  subjectChoices,
+  type BondMilestone,
   describeStep,
   gameDay,
   hotspotById,
@@ -82,6 +86,10 @@ export class RecadoTracker {
   private board(p: StoredProfile): RecadoState {
     const day = gameDay(this.d.now());
     const st = rollRecadoDay(p, day, mulberry32(seedFor(p.id, day)), this.defs);
+    // test hook (TB_TEST_OFFER=id,id): those recados always sit on today's board, so an e2e can pick its errand
+    for (const id of (process.env.TB_TEST_OFFER ?? '').split(',').map((x) => x.trim()).filter(Boolean).reverse()) {
+      if (recadoById(id, this.defs) && !st.offered.includes(id) && !st.done.includes(id) && !st.active.some((a) => a.id === id)) st.offered.unshift(id);
+    }
     p.recados = st;
     return st;
   }
@@ -125,7 +133,7 @@ export class RecadoTracker {
     }
     if (ev.kind === 'talked' && !st.talked?.includes(ev.npc)) {
       (st.talked ??= []).push(ev.npc);
-      p.bond = addBond(p.bond ?? {}, ev.npc, BOND_GAIN.talk).bond;
+      this.gain(s, ev.npc, BOND_GAIN.talk);
       changed = true;
     }
     if (ev.kind === 'greeted' && !ev.npc) {
@@ -144,7 +152,7 @@ export class RecadoTracker {
       changed = true;
       a.step = res.active.step;
       const said = describeStep(def.steps[res.active.step - 1]!);
-      s.send({ t: 'notice', level: 'info', pt: `✓ ${said.pt}`, en: said.en });
+      s.send({ t: 'notice', level: 'info', pt: `✓ ${said.pt}`, en: said.en, tag: 'recado_step' });
       if (res.done) this.complete(s, st, def);
     }
     if (changed) this.commit(s);
@@ -155,11 +163,40 @@ export class RecadoTracker {
     const p = s.profile!;
     st.active = st.active.filter((a) => a.id !== def.id);
     if (!st.done.includes(def.id)) st.done.push(def.id);
-    p.bond = addBond(p.bond ?? {}, def.giver, def.reward.bond).bond;
+    this.gain(s, def.giver, def.reward.bond);
     if (def.reward.itemId) p.bag = addToBag(p.bag ?? {}, def.reward.itemId, 1);
     this.d.reward(s, def.reward.rv, { pt: `Recado: ${def.title.pt}`, en: `Errand: ${def.title.en}` });
     const who = npcName(def.giver);
-    s.send({ t: 'notice', level: 'reward', pt: `${who}: “${def.thanks.pt}”`, en: `${who}: “${def.thanks.en}”` });
+    s.send({ t: 'notice', level: 'reward', pt: `${who}: “${def.thanks.pt}”`, en: `${who}: “${def.thanks.en}”`, tag: 'recado_thanks' });
+  }
+
+  /** Add friendship points and run the milestone effects (name, a new Conversa subject, a furniture gift) for every heart line crossed. */
+  private gain(s: Session, npc: NpcId, delta: number) {
+    const p = s.profile!;
+    const change = addBond(p.bond ?? {}, npc, delta);
+    p.bond = change.bond;
+    for (const m of change.milestones) this.milestone(s, npc, m);
+  }
+
+  // needs_br: true (the milestone notices)
+  private milestone(s: Session, npc: NpcId, m: BondMilestone) {
+    const p = s.profile!;
+    const who = npcName(npc);
+    const say = (pt: string, en: string) => s.send({ t: 'notice', level: 'reward', pt: `♥ ${pt}`, en: `♥ ${en}`, tag: 'bond' });
+    if (m.kind === 'uses_name') say(`${who} já sabe o seu nome e lembra de você!`, `${who} knows your name now and remembers you!`);
+    else if (m.kind === 'conversa_subject') {
+      // only NPCs with a Conversa have a subject to open
+      const extra = subjectChoices(npc, m.hearts).at(-1);
+      if (extra && subjectChoices(npc, m.hearts).length > 1) say(`${who} tem um assunto novo pra conversar: ${extra.title.pt}!`, `${who} has a new thing to chat about: ${extra.title.en}!`);
+    } else if (m.kind === 'furniture_gift') {
+      const given = (p.bondGifts ??= []);
+      if (given.includes(npc)) return;
+      const item = furnitureById(giftFor(npc));
+      if (!item) return;
+      given.push(npc);
+      p.furniture[item.id] = (p.furniture[item.id] ?? 0) + 1;
+      say(`${who} te deu um presente: ${item.pt}! Tá no seu inventário (Decorar).`, `${who} gave you a gift: ${item.en}! It’s in your inventory (Decorate).`);
+    }
   }
 
   /** The Conversa HTTP flow ended: it counts as a talk, may carry an order, and a 'pass' earns bond (once per NPC per game day). */
@@ -172,7 +209,7 @@ export class RecadoTracker {
     const st = this.board(p);
     if (grade === 'pass' && !st.graded?.includes(npc)) {
       (st.graded ??= []).push(npc);
-      p.bond = addBond(p.bond ?? {}, npc, BOND_GAIN.conversaGood).bond;
+      this.gain(s, npc, BOND_GAIN.conversaGood);
       this.commit(s);
     }
   }

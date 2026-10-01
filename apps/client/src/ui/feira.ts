@@ -9,6 +9,7 @@ import {
   VENDORS,
   askChip,
   goodById,
+  localizeGreeting,
   makeChange,
   moneyLabel,
   moneyPt,
@@ -25,6 +26,7 @@ import {
   type VendorId,
 } from '@tudobem/shared';
 import { game } from '../state';
+import { clock } from '../gameClock';
 import { speak } from '../audio';
 import { h } from './dom';
 import { closeDialogueBox, showDialogueBox, type BoxChip } from './dialogue';
@@ -274,7 +276,8 @@ function pickQty(q: number) {
 export function openFeira(vendor: VendorId, h2: FeiraHooks, opts: { talked?: (npc: NpcId) => void } = {}): void {
   hooks = h2;
   if (vendor !== 'banca') opts.talked?.(VENDORS[vendor].npc);
-  const greet = VENDORS[vendor].greet;
+  // the vendor greets by the hour (Bom dia at 17:30 breaks the world)
+  const greet = localizeGreeting(VENDORS[vendor].greet, clock.minutes());
   st = { vendor, phase: 'ask', itemId: null, qty: 1, tray: [], line: greet, expression: 'neutro', feedback: null, receipt: null, waiting: false };
   say(greet);
   render();

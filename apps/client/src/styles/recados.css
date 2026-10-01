@@ -1,0 +1,402 @@
+/* Recados (Phase 8a): the tracker, the journal panel, the thanks card, the hearts, the offer beat. Pixel chrome like the other panels. */
+
+/* ---------------------------------------------------------------- tracker (right side, max 3 entries) */
+
+.rtrack {
+  position: fixed;
+  right: calc(8px + var(--safe-right));
+  top: calc(var(--rtrack-top, 92px) + var(--safe-top));
+  width: 268px;
+  max-width: calc(100vw - 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 8px 6px;
+  text-align: left;
+  font: inherit;
+  color: var(--ink);
+  cursor: pointer;
+  z-index: 8;
+  background: rgba(255, 246, 230, 0.96);
+  border: 2px solid var(--px-ink, #573c2c);
+  border-radius: 0;
+  box-shadow: 0 3px 0 var(--px-shadow, rgba(44, 28, 20, 0.34));
+}
+
+html.px-ui .rtrack {
+  border: var(--px-panel-w, 7px) solid transparent;
+  border-image: var(--px-panel);
+  background: none;
+  box-shadow: none;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 3px 0 var(--px-shadow));
+  padding: 0 4px 2px;
+}
+
+.rtrack:hover .rtrack-head b,
+.rtrack:focus-visible .rtrack-head b {
+  color: var(--terracota-dark);
+}
+
+.rtrack:focus-visible {
+  outline: 3px solid var(--azul);
+  outline-offset: 2px;
+}
+
+.rtrack-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-pixel, var(--font-title));
+  font-size: 0.95em;
+}
+
+.rtrack-head small {
+  margin-left: auto;
+  color: var(--ink-soft);
+  font-size: 0.72em;
+  font-weight: 700;
+}
+
+.rtrack-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  border-top: 2px dotted rgba(87, 60, 44, 0.3);
+}
+
+.rtrack-row .rt-face {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  overflow: hidden;
+  background: #f2dfc3;
+  border: 2px solid var(--px-ink, #573c2c);
+  position: relative;
+}
+
+/* the 64 px portrait cropped to the face, at 1/2 scale (still integer pixels: 64 -> 32 would blur, so show it at 1x and crop the head) */
+.rtrack-row .rt-face .px-portrait-img {
+  position: absolute;
+  left: -16px;
+  top: -6px;
+  width: 64px !important;
+  height: 64px !important;
+  max-width: none;
+}
+
+.rt-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  line-height: 1.15;
+}
+
+.rt-title {
+  font-family: var(--font-pixel, var(--font-title));
+  font-size: 0.86em;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rt-title em {
+  margin-left: auto;
+  font-style: normal;
+  color: var(--terracota-dark);
+  font-size: 0.9em;
+}
+
+.rt-step {
+  font-size: 0.8em;
+  color: var(--ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.rt-tick {
+  position: absolute;
+  right: 2px;
+  top: 4px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  background: var(--verde);
+  color: #fff;
+  font-weight: 900;
+  border: 2px solid var(--px-ink, #573c2c);
+  opacity: 0;
+  transform: scale(0.4);
+  pointer-events: none;
+}
+
+.rtrack-row.just-done .rt-tick {
+  animation: rt-tick 1.5s steps(8, end) both;
+}
+
+.rtrack-row.just-done {
+  animation: rt-flash 1.5s steps(6, end);
+}
+
+@keyframes rt-tick {
+  0% { opacity: 0; transform: scale(0.4); }
+  18% { opacity: 1; transform: scale(1.25); }
+  32% { transform: scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1); }
+}
+
+@keyframes rt-flash {
+  0%, 30% { background: rgba(110, 200, 130, 0.45); }
+  100% { background: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rtrack-row.just-done, .rtrack-row.just-done .rt-tick { animation-duration: 0.01s; }
+}
+
+/* the tracker hides while a dialogue or a modal is open (the world is the point while walking, the box while talking) */
+body:has(#dialogue-box) .rtrack,
+body:has(.backdrop) .rtrack {
+  display: none;
+}
+
+/* ---------------------------------------------------------------- phones: a slim card under the top bar, clear of the joystick and the chat bar */
+
+@media (max-width: 640px) {
+  .rtrack {
+    --rtrack-top: 116px;
+    width: min(232px, 62vw);
+    padding: 2px 4px 3px;
+    gap: 0;
+  }
+  html.px-ui .rtrack {
+    border-width: 5px;
+  }
+  .rtrack-head { font-size: 0.82em; }
+  .rtrack-head small { display: none; }
+  .rtrack-row { padding: 2px 0; gap: 4px; }
+  .rtrack-row .rt-face { width: 24px; height: 24px; border-width: 1px; }
+  .rtrack-row .rt-face .px-portrait-img { left: -20px; top: -8px; }
+  .rt-title { font-size: 0.74em; }
+  .rt-step { font-size: 0.7em; -webkit-line-clamp: 1; line-clamp: 1; }
+}
+
+/* portraits are 64 px art: shown at 1x inside these small frames (the dialogue box shows them at 2x) */
+.rd-face .px-portrait-img,
+.rj-face .px-portrait-img {
+  width: 64px !important;
+  height: 64px !important;
+  max-width: none;
+  display: block;
+}
+
+/* ---------------------------------------------------------------- the thanks card */
+
+.recado-done {
+  position: fixed;
+  left: 50%;
+  top: calc(84px + var(--safe-top));
+  transform: translateX(-50%);
+  z-index: 40;
+  width: min(440px, calc(100vw - 20px));
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  padding: 8px 12px 8px 8px;
+  background: var(--paper);
+  border: 3px solid var(--px-ink, #573c2c);
+  box-shadow: 0 4px 0 var(--px-shadow, rgba(44, 28, 20, 0.34)), 0 14px 24px rgba(20, 10, 6, 0.25);
+  animation: rd-in 0.35s steps(6, end) both;
+  pointer-events: none;
+}
+
+html.px-ui .recado-done {
+  border: var(--px-panel-w-2, 14px) solid transparent;
+  border-image: var(--px-panel-2, var(--px-panel));
+  background: none;
+  box-shadow: none;
+  filter: drop-shadow(0 4px 0 var(--px-shadow));
+  padding: 0 6px 2px 0;
+}
+
+@keyframes rd-in {
+  from { opacity: 0; transform: translate(-50%, -14px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.rd-face {
+  flex: none;
+  width: 64px;
+  height: 64px;
+  background: #f2dfc3;
+  border: 2px solid var(--px-ink, #573c2c);
+}
+
+.rd-body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+
+.rd-title {
+  font-family: var(--font-pixel, var(--font-title));
+  font-size: 0.95em;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.rd-check {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  background: var(--verde);
+  color: #fff;
+  font-weight: 900;
+  border: 2px solid var(--px-ink, #573c2c);
+  font-size: 0.8em;
+}
+
+.rd-say { font-size: 0.92em; line-height: 1.25; }
+.rd-say .en { display: block; font-size: 0.82em; }
+
+.rd-reward, .offer-reward, .prelude-items {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-weight: 800;
+}
+
+.rd-rv {
+  background: var(--amarelo);
+  border: 2px solid var(--px-ink, #573c2c);
+  padding: 0 7px;
+  font-family: var(--font-pixel, var(--font-title));
+}
+
+.rd-heart { display: inline-flex; align-items: center; gap: 2px; color: var(--terracota-dark); font-family: var(--font-pixel, var(--font-title)); }
+.rd-item { display: inline-flex; align-items: center; gap: 4px; font-size: 0.85em; }
+
+.prelude-item { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-pixel, var(--font-title)); }
+
+.offer-title { display: inline !important; font-weight: 800; color: var(--terracota-dark); }
+
+/* ---------------------------------------------------------------- hearts in the dialogue name tag */
+
+.dbx-hearts {
+  font-family: var(--font-pixel, var(--font-title));
+  font-size: 0.9em;
+  color: #b0302a;
+  background: #fff4ea;
+  border: 2px solid var(--px-ink, #573c2c);
+  padding: 0 7px;
+  white-space: nowrap;
+}
+
+.dbx-hearts.zero { color: var(--ink-soft); }
+
+/* ---------------------------------------------------------------- the journal */
+
+.panel.recados {
+  width: min(640px, calc(100vw - 24px));
+  max-height: calc(100vh - 40px);
+  display: flex;
+  flex-direction: column;
+}
+
+.panel.recados .rj-body {
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-top: 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+.rj-sec { margin: 0 0 12px; }
+.rj-foot { flex: none; display: flex; justify-content: center; padding-top: 6px; }
+
+.rj-sec h3 {
+  margin: 0 0 6px;
+  font-family: var(--font-pixel, var(--font-title));
+  font-size: 1.05em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px dotted rgba(87, 60, 44, 0.35);
+  padding-bottom: 3px;
+}
+
+.rj-sec h3 small { color: var(--ink-soft); font-weight: 700; font-size: 0.72em; }
+.rj-sec.welcome h3 small { display: block; }
+.rj-sec.welcome h3 em { margin-left: auto; }
+.rj-sec h3 em { font-style: normal; color: var(--terracota-dark); }
+
+.rj-face { width: 64px; height: 64px; flex: none; position: relative; background: #f2dfc3; border: 2px solid var(--px-ink, #573c2c); overflow: hidden; }
+.rj-face.small { width: 40px; height: 40px; }
+.rj-face.small .px-portrait-img { position: relative; left: -12px; top: -4px; }
+.rj-sec.welcome .rj-face { width: 40px; height: 40px; }
+.rj-sec.welcome .rj-face .px-portrait-img { position: relative; left: -12px; top: -4px; }
+
+.rj-steps { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 3px 12px; }
+.rj-steps li { display: flex; gap: 6px; align-items: flex-start; font-size: 0.9em; line-height: 1.2; }
+.rj-steps li.done { opacity: 0.6; text-decoration: line-through; text-decoration-thickness: 1px; }
+.rj-steps .box, .rj-stepl .mk { width: 16px; height: 16px; flex: none; display: grid; place-items: center; border: 2px solid var(--px-ink, #573c2c); background: #fffaf0; font-size: 0.75em; font-weight: 900; color: var(--verde-dark); }
+.rj-steps .en { display: block; font-size: 0.82em; }
+
+.rj-list { display: grid; gap: 8px; }
+
+.rj-card { display: flex; gap: 10px; padding: 6px; border: 2px solid var(--px-ink, #573c2c); background: #fff8ec; }
+.rj-card.offered { background: #f6efe4; border-style: dashed; }
+.rj-main { min-width: 0; flex: 1; }
+.rj-title { font-weight: 800; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.rj-title small { color: var(--ink-soft); font-weight: 700; }
+.rj-title em { margin-left: auto; font-style: normal; font-family: var(--font-pixel, var(--font-title)); color: var(--terracota-dark); font-size: 0.9em; }
+
+.rj-stepl { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 3px; }
+.rj-stepl li { display: flex; gap: 6px; align-items: flex-start; font-size: 0.9em; line-height: 1.2; }
+.rj-stepl li.done { opacity: 0.55; }
+.rj-stepl li.now { font-weight: 800; }
+.rj-stepl li.now .mk { background: var(--amarelo); }
+.rj-stepl li.done .mk { background: var(--verde); color: #fff; }
+.rj-stepl li.later { opacity: 0.7; }
+.rj-stepl .en { display: block; font-size: 0.82em; font-weight: 600; }
+
+.rj-empty { margin: 2px 0; color: var(--ink-soft); font-size: 0.92em; }
+.rj-empty .en { display: block; font-size: 0.82em; }
+
+.rj-done { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; font-size: 0.88em; }
+.rj-chip { background: #e5f1e3; border: 2px solid var(--verde-dark); padding: 0 6px; }
+
+.rj-bag { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 8px; }
+.rj-item { display: grid; justify-items: center; gap: 1px; padding: 6px 4px; background: #fff8ec; border: 2px solid var(--px-ink, #573c2c); position: relative; }
+.rj-item .px-food { display: block; }
+.rj-item .qty { position: absolute; right: 4px; top: 2px; font-family: var(--font-pixel, var(--font-title)); font-size: 0.85em; color: var(--terracota-dark); }
+.rj-item .nm { font-size: 0.78em; text-align: center; line-height: 1.1; }
+
+.rj-friends { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px 12px; }
+.rj-friend { display: grid; grid-template-columns: 40px 1fr; grid-template-rows: auto auto; column-gap: 8px; align-items: center; }
+.rj-friend .rj-face { grid-row: 1 / 3; }
+.rj-fname { font-weight: 800; line-height: 1.1; }
+.rj-fname small { display: block; color: var(--ink-soft); font-weight: 700; font-size: 0.75em; }
+.rj-hearts { display: flex; gap: 2px; }
+.rj-hearts i { width: 14px; height: 13px; background: #e0d3c2; clip-path: polygon(0 20%, 15% 0, 40% 0, 50% 18%, 60% 0, 85% 0, 100% 20%, 100% 50%, 50% 100%, 0 50%); }
+.rj-hearts i.on { background: #c9382d; }
+.rj-hearts i.part { background: linear-gradient(90deg, #c9382d 45%, #e0d3c2 45%); }
+.rj-legend { margin: 6px 0 0; font-size: 0.8em; color: var(--ink-soft); }
+.rj-legend .en { display: block; }
+
+@media (max-width: 640px) {
+  .offer-title { display: none !important; }
+  .rj-steps { grid-template-columns: 1fr; }
+  .rj-face { width: 48px; height: 48px; }
+  .rj-friends { grid-template-columns: 1fr; }
+}

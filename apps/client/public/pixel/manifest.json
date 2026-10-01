@@ -5470,6 +5470,16 @@
    "w": 16,
    "h": 16
   },
+  "ui/icon_recados": {
+   "file": "ui/icon_recados.png",
+   "w": 16,
+   "h": 16
+  },
+  "ui/icon_coracao": {
+   "file": "ui/icon_coracao.png",
+   "w": 16,
+   "h": 16
+  },
   "ui/icon_logout": {
    "file": "ui/icon_logout.png",
    "w": 16,

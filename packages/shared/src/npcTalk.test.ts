@@ -63,10 +63,41 @@ describe('NPC greeting dialogues (Nanda, Júlia, Dona Graça, Professora Bia)', 
     }
   });
 
-  it('the openers teach known cards (Oi, Tudo bem) and fill the name', () => {
-    expect(talkOpener('nanda', 'Ana')).toBe('Oi, Ana! Tudo bem? Eu sou a Nanda.');
-    expect(cardsInText(talkOpener('nanda', 'Ana')!)).toEqual(expect.arrayContaining(['lex.social.oi', 'lex.social.tudo_bem']));
+  it('the openers teach known cards (the greeting for the hour, Tudo bem) and fill the name', () => {
+    expect(talkOpener('nanda', 'Ana', 600)).toBe('Bom dia, Ana! Tudo bem? Eu sou a Nanda.');
+    expect(talkOpener('nanda', 'Ana', 15 * 60)).toBe('Boa tarde, Ana! Tudo bem? Eu sou a Nanda.');
+    expect(cardsInText(talkOpener('nanda', 'Ana', 15 * 60)!)).toEqual(expect.arrayContaining(['lex.social.boa_tarde', 'lex.social.tudo_bem']));
     expect(talkOpener('carlos', 'Ana')).toBeNull();
+  });
+
+  it('every greeting follows the game hour: bom dia / boa tarde / boa noite at the edges, in lines and in the chips the player greets with', () => {
+    const cases: [number, string, string][] = [
+      [299, 'Boa noite', 'Good evening'],
+      [300, 'Bom dia', 'Good morning'],
+      [719, 'Bom dia', 'Good morning'],
+      [720, 'Boa tarde', 'Good afternoon'],
+      [1079, 'Boa tarde', 'Good afternoon'],
+      [1080, 'Boa noite', 'Good evening'],
+    ];
+    for (const [minute, pt, en] of cases) {
+      for (const npc of ['nanda', 'julia', 'graca'] as const) {
+        const t = NPC_TALK[npc]!;
+        const start = t.nodes[t.start]!;
+        expect(fillTalk(start.line.pt, { name: 'Ana', minute }), `${npc} ${minute}`).toMatch(new RegExp(`^${pt}, Ana!`));
+        expect(fillTalk(start.line.en, { name: 'Ana', minute })).toMatch(new RegExp(`^${en}, Ana!`));
+        expect(fillTalk(start.chips[0]!.pt, { name: 'Ana', minute }), `chip ${npc}`).toMatch(new RegExp(`^${pt}, `));
+      }
+    }
+    // no authored NPC line hard-codes a greeting any more
+    for (const npc of TALKING_NPCS) for (const node of Object.values(NPC_TALK[npc]!.nodes)) for (const l of [node.line, ...node.chips]) expect(l.pt, l.pt).not.toMatch(/^(bom dia|boa tarde|boa noite)/i);
+  });
+
+  it('the NPC only uses your name from 2 hearts', () => {
+    expect(fillTalk('Oi, {nome}! Tudo bem?', { name: 'Ana', hearts: 0 })).toBe('Oi! Tudo bem?');
+    expect(fillTalk('Oi, {nome}! Tudo bem?', { name: 'Ana', hearts: 1 })).toBe('Oi! Tudo bem?');
+    expect(fillTalk('Oi, {nome}! Tudo bem?', { name: 'Ana', hearts: 2 })).toBe('Oi, Ana! Tudo bem?');
+    expect(fillTalk('{saudacao}, {nome}! Tudo bem?', { name: 'Ana', hearts: 0, minute: 13 * 60 })).toBe('Boa tarde! Tudo bem?');
+    expect(fillTalk('{saudacao}, {nome}!', { name: '', hearts: 5 })).toBe('Bom dia!');
   });
 
   it('fillTalk uses obrigado / obrigada from the pronoun', () => {

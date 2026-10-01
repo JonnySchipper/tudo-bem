@@ -1,5 +1,6 @@
 import type { EmoteKind, FriendInfo, NpcDef, NpcId, PlacedFurniture, PrivateProfile, PublicAvatar, RoomDef, RoomStateMsg, Tile } from '@tudobem/shared';
 import { npcDefById, positionAlong, ROOMS } from '@tudobem/shared';
+import type { RecadoBoard } from './ui/recadoView';
 
 export interface Bubble {
   text: string;
@@ -30,6 +31,8 @@ type Listener = () => void;
 
 class Game {
   profile: PrivateProfile | null = null;
+  /** Today's recados board (offered / active / done), from the server's `recados` message. */
+  board: RecadoBoard | null = null;
   room: RoomStateMsg | null = null;
   avatars = new Map<string, ClientAvatar>();
   furniture: PlacedFurniture[] = [];

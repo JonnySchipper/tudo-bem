@@ -125,6 +125,7 @@ export async function conversaTurn(req: ConversaTurnRequest): Promise<ConversaTu
       playerName: req.playerName,
       pronoun: req.pronoun,
       nameplate: req.nameplate,
+      minute: req.minute,
     },
     req.memory,
     cast.persona,
@@ -183,7 +184,7 @@ export async function conversaTurn(req: ConversaTurnRequest): Promise<ConversaTu
     parsed.end = true;
   }
 
-  return presentConversaTurn(parsed, req.priorChips ?? []);
+  return presentConversaTurn(parsed, req.priorChips ?? [], req.minute);
 }
 
 /** System prompt for the one-sentence NPC memory summary (never stored raw; the caller vets the answer). */
@@ -236,6 +237,7 @@ export function authoredConversaTurn(req: ConversaTurnRequest): ConversaTurnResp
       order: {},
     },
     req.priorChips ?? [],
+    req.minute,
   );
 }
 

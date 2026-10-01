@@ -1,6 +1,7 @@
 import { cardById, type Card } from './cards.js';
 import { ECONOMY } from './constants.js';
 import { joinEn, joinPt, numberEn, numberPt } from './numbers.js';
+import { localizeGreeting } from './clock.js';
 import ordersPack from '../../../content/curriculum/phase0/me-ve-um-orders.json';
 
 /**
@@ -150,7 +151,7 @@ function generateCombo(rng: Rng, customer: string): MgOrder {
  * Rounds 1–2: Verde authored tickets · 3–4: level-bump authored · 5–6: generated combos.
  * `avoid` is tickets already served this shift. Null or undefined means none — it must not throw.
  */
-export function makeOrder(rng: Rng, round: number, avoid?: readonly string[] | null): MgOrder {
+function makeOrderRaw(rng: Rng, round: number, avoid?: readonly string[] | null): MgOrder {
   const skip = new Set(Array.isArray(avoid) ? avoid.filter((pt) => typeof pt === 'string') : []);
   const customer = pick(rng, CUSTOMERS);
   if (round < 4) {
@@ -168,6 +169,13 @@ export function makeOrder(rng: Rng, round: number, avoid?: readonly string[] | n
   let made = generateCombo(rng, customer);
   for (let attempt = 1; attempt < 8 && skip.has(made.pt); attempt++) made = generateCombo(rng, customer);
   return made;
+}
+
+/** The order, with a leading greeting ("Bom dia! Me vê…") matched to the game minute when one is given (the tray it asks for never changes). */
+export function makeOrder(rng: Rng, round: number, avoid?: readonly string[] | null, minute?: number): MgOrder {
+  // served tickets may carry another greeting than the raw pool ("Boa tarde!" vs "Bom dia!"): compare them all as mornings
+  const o = makeOrderRaw(rng, round, Array.isArray(avoid) ? avoid.map((pt) => (typeof pt === 'string' ? localizeGreeting({ pt }, 600).pt : pt)) : avoid);
+  return minute === undefined ? o : { ...o, ...localizeGreeting({ pt: o.pt, en: o.en }, minute) };
 }
 
 export type Tray = Record<string, number>;

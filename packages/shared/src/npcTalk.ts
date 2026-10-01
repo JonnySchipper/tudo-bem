@@ -1,12 +1,14 @@
 import type { NpcId } from './rooms.js';
 import type { Bilingual } from './types.js';
+import { GREETING_EN, greetingCap, greetingFor } from './clock.js';
 
 /**
  * Short authored greetings for the NPCs that have no Conversa (Nanda, Júlia): 3 lines, two reply chips each, A1 informal Brazilian
  * Portuguese. They are client-side flows (no rewards, no server authority); the client tells the server with a `talk` message so the
  * recado engine's `talked` event fires. Every PT string here is new content: `needs_br: true`.
  *
- * `{obrigad}` in a chip is filled with obrigado / obrigada from the player's pronoun, `{nome}` with the player's name.
+ * `{obrigad}` in a chip is filled with obrigado / obrigada from the player's pronoun, `{nome}` with the player's name (only from 2 hearts: before
+ * that the NPC does not know it, and ", {nome}" is dropped), `{saudacao}` / `{greeting}` with the PT / EN greeting that fits the game hour.
  */
 export interface TalkChip {
   pt: string;
@@ -28,9 +30,9 @@ export const NPC_TALK: Partial<Record<NpcId, NpcTalk>> = {
     start: 'oi',
     nodes: {
       oi: {
-        line: { pt: 'Oi, {nome}! Tudo bem? Eu sou a Nanda.', en: 'Hi, {nome}! How’s it going? I’m Nanda.' },
+        line: { pt: '{saudacao}, {nome}! Tudo bem? Eu sou a Nanda.', en: '{greeting}, {nome}! How’s it going? I’m Nanda.' },
         chips: [
-          { pt: 'Oi, Nanda! Tudo bem!', en: 'Hi, Nanda! All good!', next: 'chapeus' },
+          { pt: '{saudacao}, Nanda! Tudo bem!', en: '{greeting}, Nanda! All good!', next: 'chapeus' },
           { pt: 'Beleza! E você?', en: 'Cool! And you?', next: 'chapeus' },
         ],
       },
@@ -55,14 +57,14 @@ export const NPC_TALK: Partial<Record<NpcId, NpcTalk>> = {
     start: 'oi',
     nodes: {
       oi: {
-        line: { pt: 'Boa noite, {nome}! Eu sou a Dona Graça, a padeira da noite.', en: 'Good evening, {nome}! I’m Dona Graça, the night baker.' },
+        line: { pt: '{saudacao}, {nome}! Eu sou a Dona Graça, a padeira da noite.', en: '{greeting}, {nome}! I’m Dona Graça, the night baker.' },
         chips: [
-          { pt: 'Boa noite, Dona Graça!', en: 'Good evening, Dona Graça!', next: 'cafe' },
+          { pt: '{saudacao}, Dona Graça!', en: '{greeting}, Dona Graça!', next: 'cafe' },
           { pt: 'Tudo bem? E a senhora?', en: 'How are you? And you, ma’am?', next: 'cafe' },
         ],
       },
       cafe: {
-        line: { pt: 'Tudo bem! Quer um cafezinho pra noite?', en: 'All good! Want a little coffee for the night?' },
+        line: { pt: 'Tudo bem! Quer um cafezinho?', en: 'All good! Want a little coffee?' },
         chips: [
           { pt: 'Quero, por favor.', en: 'Yes, please.', next: 'tchau' },
           { pt: 'Agora não, {obrigad}.', en: 'Not now, thanks.', next: 'tchau' },
@@ -107,9 +109,9 @@ export const NPC_TALK: Partial<Record<NpcId, NpcTalk>> = {
     start: 'oi',
     nodes: {
       oi: {
-        line: { pt: 'Oi, {nome}! Eu sou a Júlia. Tudo bem?', en: 'Hi, {nome}! I’m Júlia. How’s it going?' },
+        line: { pt: '{saudacao}, {nome}! Eu sou a Júlia. Tudo bem?', en: '{greeting}, {nome}! I’m Júlia. How’s it going?' },
         chips: [
-          { pt: 'Oi, Júlia! Tudo bem!', en: 'Hi, Júlia! All good!', next: 'ajuda' },
+          { pt: '{saudacao}, Júlia! Tudo bem!', en: '{greeting}, Júlia! All good!', next: 'ajuda' },
           { pt: 'Tudo bom! E você?', en: 'All good! And you?', next: 'ajuda' },
         ],
       },
@@ -132,14 +134,27 @@ export const NPC_TALK: Partial<Record<NpcId, NpcTalk>> = {
 };
 
 /** The opening line of an NPC's greeting with the name filled in (what the server counts as "seen" for the Caderno). */
-export function talkOpener(npc: NpcId, name = ''): string | null {
+export function talkOpener(npc: NpcId, name = '', minute?: number): string | null {
   const t = NPC_TALK[npc];
-  return t ? fillTalk(t.nodes[t.start]!.line.pt, { name }) : null;
+  return t ? fillTalk(t.nodes[t.start]!.line.pt, { name, minute }) : null;
 }
 
-/** Fill `{nome}` and `{obrigad}` (obrigado, or obrigada for `pronoun: 'ela'`). */
-export function fillTalk(text: string, ctx: { name?: string; pronoun?: string }): string {
-  return text.replace(/\{nome\}/g, ctx.name || '').replace(/\{obrigad\}/g, ctx.pronoun === 'ela' ? 'obrigada' : 'obrigado').replace(/\s+([!?,.])/g, '$1');
+/** Hearts at which an NPC uses your name (BOND_MILESTONES: `uses_name`). */
+export const NAME_HEARTS = 2;
+
+/**
+ * Fill `{nome}`, `{obrigad}` (obrigado, or obrigada for `pronoun: 'ela'`), `{saudacao}` and `{greeting}` (the greeting for `minute`, default morning).
+ * `hearts` (when given) below 2 means the NPC does not know the name yet: ", {nome}" is dropped. Unset = the name is used.
+ */
+export function fillTalk(text: string, ctx: { name?: string; pronoun?: string; minute?: number; hearts?: number }): string {
+  const g = greetingFor(ctx.minute ?? 600);
+  const knowsName = !!ctx.name && (ctx.hearts === undefined || ctx.hearts >= NAME_HEARTS);
+  return (knowsName ? text : text.replace(/,\s*\{nome\}/g, ''))
+    .replace(/\{nome\}/g, knowsName ? ctx.name! : '')
+    .replace(/\{obrigad\}/g, ctx.pronoun === 'ela' ? 'obrigada' : 'obrigado')
+    .replace(/\{saudacao\}/g, greetingCap(g))
+    .replace(/\{greeting\}/g, GREETING_EN[g])
+    .replace(/\s+([!?,.])/g, '$1');
 }
 
 /** Ids of the NPCs with a greeting (the client sends `talk` for these). */
