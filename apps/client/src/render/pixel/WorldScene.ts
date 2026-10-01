@@ -22,7 +22,7 @@ import { composeLook } from './composeLook';
 import { lookForAppearance, lookForNpc, lookHeadLift, type Look } from './looks';
 import { LightingRig, type Light } from './lightingRig';
 import { computeLook, isOutdoor, lightDelay, windowPanes, type SceneLook } from './dayNight';
-import { WeatherBlend, type FxLevel } from './weatherLook';
+import { WeatherBlend, groundWetTint, type FxLevel } from './weatherLook';
 import { WeatherFx } from './weatherFx';
 import { ShadowLayer, type ShadowHandle } from './shadowLayer';
 import { AoLayer } from './aoLayer';
@@ -158,6 +158,9 @@ export class WorldScene extends Phaser.Scene {
   private shadows!: ShadowLayer;
   private ao!: AoLayer;
   private water!: WaterFx;
+  /** terrain layers with their floor char, tinted darker as the ground gets wet */
+  private groundLayers: { ch: string; layer: Phaser.Tilemaps.TilemapLayer }[] = [];
+  private wetApplied = -1;
   private roomOutdoor = false;
   private lastShadow: ShadowHandle | null = null;
   // Phase 6a: live clock, weather, performance fallback
@@ -324,6 +327,8 @@ export class WorldScene extends Phaser.Scene {
     // ---- terrain: dual-grid layers for the floor chars that have art; substitutes and flat placeholders for the rest
     const res = buildTerrainLayers(this, def.floor, m.terrain, 'terrainTs', { outside: def.outdoor ? undefined : 'x', wrap: (o) => this.rig.world(o), substitute: FLOOR_SUBSTITUTE });
     this.roomMap = res.map;
+    this.groundLayers = res.layers.map((layer, i) => ({ ch: res.drawn[i], layer }));
+    this.wetApplied = -1;
     const chars = new Set(def.floor.join(''));
     for (const ch of chars) {
       if (m.terrain.layers[ch]) continue;
@@ -676,7 +681,7 @@ export class WorldScene extends Phaser.Scene {
     const color = parseInt(L.color.slice(1), 16);
     // one switch per lamp: the halo and the pool on the ground share the delay of the lamp's position
     const delay = lightDelay(bx, by);
-    this.rig.lights.push({ x: bx + L.x, y: by + L.y, r: L.r * 0.55, color, squash: 1, kind: 'lamp', glow: 0.6, delay });
+    this.rig.lights.push({ x: bx + L.x, y: by + L.y, r: L.r * 0.55, color, squash: 1, kind: 'lamp', glow: 0.6, delay, mirror: Math.max(0, -2 * L.y) });
     // the pool of light lands on the ground around the base
     this.rig.lights.push({ x: bx + 5, y: by - 2, r: L.r * 1.3, color, squash: 0.55, kind: 'lamp', glow: 0.4, delay });
   }
@@ -766,8 +771,14 @@ export class WorldScene extends Phaser.Scene {
     this.rig.apply(look, this.cameras.main.zoom, (wx, wy) => this.toDevice(wx, wy));
     this.shadows.update(look.shadow, dyn, 1, look.rim);
     this.ao.update(dyn ? look.ao : 0);
+    // V5: wet ground: the paving gets darker and bluer, the grass a little richer (tints only change in 5% steps)
+    const wetQ = Math.round(look.wet * 20) / 20;
+    if (wetQ !== this.wetApplied) {
+      this.wetApplied = wetQ;
+      for (const g of this.groundLayers) if ('catkd'.includes(g.ch)) g.layer.setTint(groundWetTint(wetQ, g.ch === 'g' || g.ch === 'd' ? 'grass' : 'paving'));
+    }
     this.water.update(dt, params.sun * Math.max(0, 1 - look.night * 1.5), look.night, look.lampOn(20), this.fxLevel.reduced, !this.fxLevel.lowfx);
-    this.weatherFx.update({ dt, zoom: this.cameras.main.zoom, w: this.scale.width, h: this.scale.height, params, night: look.night, outdoor: this.outdoor, cam: this.cameras.main });
+    this.weatherFx.update({ lampOn: look.lampOn, wet: look.wet, dt, zoom: this.cameras.main.zoom, w: this.scale.width, h: this.scale.height, params, night: look.night, outdoor: this.outdoor, cam: this.cameras.main });
   }
 
   /** Frame-time probe, the automatic low-fx fallback and reduced motion (HOWTO §5.11). */

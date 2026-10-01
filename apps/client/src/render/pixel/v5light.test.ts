@@ -1,3 +1,4 @@
+import { WEATHER_PARAMS, WeatherBlend, groundWetTint } from './weatherLook';
 import { describe, expect, it } from 'vitest';
 import { aoForOverhead, aoForSprite, aoForTerrain } from './ao';
 import { buildRim } from './silhouette';
@@ -118,5 +119,33 @@ describe('light presets and sun glow', () => {
     expect(sunScreenX(shadowLook(7).bearing)).toBeGreaterThan(0.7);
     expect(sunGlow(6.75)).toBeGreaterThan(0.6);
     expect(sunGlow(12)).toBe(0);
+  });
+});
+
+describe('wet ground', () => {
+  it('chuva is wet, garoa half, sol dry', () => {
+    expect(WEATHER_PARAMS.chuva.wet).toBe(1);
+    expect(WEATHER_PARAMS.garoa.wet).toBeGreaterThan(0.4);
+    expect(WEATHER_PARAMS.garoa.wet).toBeLessThan(0.9);
+    expect(WEATHER_PARAMS.sol.wet).toBe(0);
+    expect(WEATHER_PARAMS.nublado.wet).toBe(0);
+  });
+  it('gets wet fast and dries slowly', () => {
+    const up = new WeatherBlend('sol');
+    for (let i = 0; i < 100; i++) up.step('chuva', 0.05);
+    expect(up.current.wet).toBeGreaterThan(0.8);
+    const down = new WeatherBlend('chuva');
+    for (let i = 0; i < 100; i++) down.step('sol', 0.05);
+    expect(down.current.wet).toBeGreaterThan(0.8);
+    for (let i = 0; i < 2000; i++) down.step('sol', 0.05);
+    expect(down.current.wet).toBeLessThan(0.15);
+  });
+  it('wet paving is darker and bluer than dry, grass changes less', () => {
+    expect(groundWetTint(0)).toBe(0xffffff);
+    const p = groundWetTint(1);
+    expect(p >> 16).toBeLessThan(0xb0);
+    expect(p & 255).toBeGreaterThan(p >> 16);
+    expect(groundWetTint(1, 'grass') >> 16).toBeGreaterThan(p >> 16);
+    expect(groundWetTint(0.5) >> 16).toBeGreaterThan(p >> 16);
   });
 });

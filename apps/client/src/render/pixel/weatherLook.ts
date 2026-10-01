@@ -25,17 +25,23 @@ export interface WeatherParams {
   rain: number;
   /** 0..1 puddles and ripples on the ground */
   puddles: number;
+  /** V5: 0..1 how wet the ground is: darker, glossier paving, lamp reflections, puddles that mirror lights. Rises with the rain, dries slowly. */
+  wet: number;
 }
 
 export const WEATHER_PARAMS: Record<Weather, WeatherParams> = {
-  sol: { tint: [255, 255, 255], tintMix: 0, desat: 0, sun: 1, gloom: 0, rain: 0, puddles: 0 },
-  nublado: { tint: [0xc8, 0xd6, 0xe8], tintMix: 0.8, desat: 0.5, sun: 0.28, gloom: 0.03, rain: 0, puddles: 0 },
-  garoa: { tint: [0xb6, 0xc4, 0xdc], tintMix: 0.82, desat: 0.55, sun: 0.12, gloom: 0.08, rain: 0.55, puddles: 0 },
-  chuva: { tint: [0x9a, 0xa8, 0xc6], tintMix: 0.92, desat: 0.68, sun: 0, gloom: 0.17, rain: 1, puddles: 1 },
+  sol: { tint: [255, 255, 255], tintMix: 0, desat: 0, sun: 1, gloom: 0, rain: 0, puddles: 0, wet: 0 },
+  nublado: { tint: [0xc8, 0xd6, 0xe8], tintMix: 0.8, desat: 0.5, sun: 0.28, gloom: 0.03, rain: 0, puddles: 0, wet: 0 },
+  garoa: { tint: [0xb6, 0xc4, 0xdc], tintMix: 0.82, desat: 0.55, sun: 0.12, gloom: 0.08, rain: 0.55, puddles: 0, wet: 0.6 },
+  chuva: { tint: [0x9a, 0xa8, 0xc6], tintMix: 0.92, desat: 0.68, sun: 0, gloom: 0.17, rain: 1, puddles: 1, wet: 1 },
 };
 
 
-const NUM_KEYS = ['tintMix', 'desat', 'sun', 'gloom', 'rain', 'puddles'] as const;
+const NUM_KEYS = ['tintMix', 'desat', 'sun', 'gloom', 'rain', 'puddles', 'wet'] as const;
+
+/** Seconds for the ground to get wet (time constant) and to dry again: a street stays damp long after the rain stops. */
+export const WET_TAU_UP = 2.5;
+export const WET_TAU_DOWN = 40;
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
@@ -63,7 +69,11 @@ export class WeatherBlend {
   }
   step(target: Weather, dtSec: number): WeatherParams {
     const k = 1 - Math.exp(-Math.max(0, dtSec) / this.tau);
+    const wet0 = this.current.wet;
     this.current = lerpParams(this.current, WEATHER_PARAMS[target], k);
+    // the ground dries far slower than the sky clears
+    const wt = WEATHER_PARAMS[target].wet;
+    this.current.wet = wet0 + (wt - wet0) * (1 - Math.exp(-Math.max(0, dtSec) / (wt >= wet0 ? WET_TAU_UP : WET_TAU_DOWN)));
     return this.current;
   }
 }
@@ -84,6 +94,17 @@ export function weatherGrade(grade: Rgb, p: WeatherParams, night = 0): Rgb {
     const tinted = (desat * p.tint[k]) / 255;
     return Math.max(0, Math.min(255, Math.round(lerp(desat, tinted, m))));
   }) as Rgb;
+}
+
+/**
+ * The multiply tint of wet paving: calçada, asfalto and tijolo get darker and a little bluer as the ground wets (0xRRGGBB, white = dry). Kept
+ * out of the grass: grass gets darker and richer when wet, but far less.
+ */
+export function groundWetTint(wet: number, kind: 'paving' | 'grass' = 'paving'): number {
+  const k = Math.min(1, Math.max(0, wet));
+  const to = kind === 'paving' ? [0xa6, 0xb0, 0xc8] : [0xcc, 0xd6, 0xd0];
+  const c = to.map((v) => Math.round(lerp(255, v, k)));
+  return (c[0] << 16) | (c[1] << 8) | c[2];
 }
 
 export interface FxLevel {

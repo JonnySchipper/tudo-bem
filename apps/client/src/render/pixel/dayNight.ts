@@ -113,6 +113,8 @@ export interface SceneLook {
   ao: number;
   /** V5: the sun's warm edge light on whatever faces it (alpha 0 = none) */
   rim: RimSpec;
+  /** V5: 0..1 wet ground (outdoor rooms only) */
+  wet: number;
   /** alpha and tint of the window light patches on the floor */
   patchAlpha: number;
   patchTint: number;
@@ -179,6 +181,7 @@ export function computeLook(inp: LookInput): SceneLook {
       cast: 1,
       shadow: { ...shadowLook(inp.roomHour, 1), alpha: 0 },
       ao: 0,
+      wet: 0,
       rim: { side: 'l', alpha: 0, tint: 0xffa05a },
       patchAlpha,
       patchTint,
@@ -203,6 +206,7 @@ export function computeLook(inp: LookInput): SceneLook {
     cast: Math.max(0.15, 1 - dark0 * 1.1) * w.sun,
     shadow: shadowLook(liveHour, w.sun, grade),
     ao: (0.8 + 0.2 * (1 - w.sun)) * (1 - 0.5 * night),
+    wet: w.wet,
     rim: rimLook(shadowLook(liveHour, w.sun, grade)),
     patchAlpha,
     patchTint,
@@ -229,6 +233,7 @@ export function hourLook(hour: number): SceneLook {
     cast: Math.max(0.15, 1 - dark * 1.1),
     shadow: shadowLook(hour, 1),
     ao: 0.8 * (1 - 0.5 * (dark / 0.55)),
+    wet: 0,
     rim: rimLook(shadowLook(hour, 1)),
     patchAlpha:Math.max(0, 1 - dark * 2.5),
     patchTint: 0xffffff,
