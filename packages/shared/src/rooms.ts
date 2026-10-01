@@ -730,9 +730,9 @@ const academia: RoomDef = {
     'jjjjjjjjjjj',
     'jjjjjjjjjjj',
     'jjjjjjjjjjj',
-    'mmmmmmmmmmm',
-    'mmmmmmmmmmm',
-    'mmmmmmmmmmm',
+    'jjjjjjjjjjj',
+    'jjjjjjjjjjj',
+    'jjjjjjjjjjj',
   ],
   wallHeight: 148,
   wallColor: '#F5E6D3',
@@ -756,6 +756,9 @@ const academia: RoomDef = {
     // One continuous arquibancada along the back edge of the mat: spectators face the tatame and the camera.
     { id: 'arquibancada', kind: 'banco_espectador', x: 1, y: 0, w: 4, blocks: false, seat: 'SW', label: { pt: 'Arquibancada', en: 'Bleachers' } },
     { id: 'vestiario', kind: 'vestiario', x: 0, y: 7, blocks: true, label: { pt: 'Vestiário · alongamento', en: 'Changing / stretch corner' } },
+    // V3 dressing (decoration only, nothing blocks or seats): a bench along the south wall and a water cooler in the corner
+    { id: 'banco_gym', kind: 'cenario', x: 5, y: 8, w: 2, h: 1, art: 'props/banco_gym', blocks: false },
+    { id: 'bebedouro', kind: 'cenario', x: 10, y: 8, art: 'props/bebedouro', blocks: false },
   ],
   walls: [
     { kind: 'placa', wall: 'right', from: 0, to: 4, text: 'ACADEMIA DO BAIRRO' },

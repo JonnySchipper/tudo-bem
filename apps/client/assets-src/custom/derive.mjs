@@ -18,6 +18,7 @@ import * as vilaMod from './vila.mjs';
 import * as telhadosMod from './telhados.mjs';
 import * as backdropMod from './backdrop.mjs';
 import * as fundosMod from './fundos.mjs';
+import * as frame3Mod from './frame3.mjs';
 import { soleira } from './v3.mjs';
 
 /** V3: every street facade gets the darker soleira band where the wall meets the sidewalk. */
@@ -61,6 +62,8 @@ export const DERIVE = {
   casas: vilaMod.casas,
   telhados: telhadosMod.telhados,
   fundos: fundosMod.fundos,
+  frameSet: frame3Mod.frameSet,
+  frameExterior: frame3Mod.exteriorPart,
   edicula: telhadosMod.edicula_part,
   skyline: backdropMod.skyline,
   pontoOnibus: vilaMod.pontoOnibusPart,
