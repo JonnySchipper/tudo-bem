@@ -88,6 +88,12 @@ const EXTRA_ITEMS: ItemDef[] = [
   { id: 'jornal', name: { pt: 'jornal', en: 'newspaper' } },
   { id: 'flores', name: { pt: 'flores', en: 'flowers' } },
   { id: 'banana', name: { pt: 'banana', en: 'banana' } },
+  // the feira (Phase 9). needs_br: true
+  { id: 'laranja', name: { pt: 'laranja', en: 'orange' } },
+  { id: 'maca', name: { pt: 'maçã', en: 'apple' } },
+  { id: 'alface', name: { pt: 'alface', en: 'lettuce' } },
+  { id: 'tomate', name: { pt: 'tomate', en: 'tomato' } },
+  { id: 'caldo_de_cana', name: { pt: 'caldo de cana', en: 'sugarcane juice' } },
 ];
 
 /** Everything that can sit in the bag: the whole padaria shelf (names come from its cards) plus the extras. */
@@ -131,11 +137,11 @@ export function normalizeBag(raw: unknown): Bag {
 
 /**
  * Features a recado can wait for. `RECADO_FLAGS` is the switch: while a flag is off the offer logic skips every
- * recado that `requires` it (they would be dead ends: the feira does not exist before Phase 9, and `falar` for
- * anyone but Seu Carlos needs the Phase 7 dialogue box, which is now in: `dialogue` is on, `feira` flips in Phase 9). Tests override it.
+ * recado that `requires` it (dead ends before the feature exists: the feira is Phase 9, `falar` for anyone but Seu Carlos needs the Phase 7
+ * dialogue box). Both are in now, so both flags are on. Tests override it.
  */
 export type RecadoFlag = 'feira' | 'dialogue';
-export const RECADO_FLAGS: Record<RecadoFlag, boolean> = { feira: false, dialogue: true };
+export const RECADO_FLAGS: Record<RecadoFlag, boolean> = { feira: true, dialogue: true };
 
 /** Is this recado playable with the given flags (default: the live `RECADO_FLAGS`)? */
 export const recadoEnabled = (d: Pick<RecadoDef, 'requires'>, flags: Readonly<Record<RecadoFlag, boolean>> = RECADO_FLAGS): boolean => !d.requires || flags[d.requires] === true;

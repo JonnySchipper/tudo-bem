@@ -42,9 +42,13 @@ export type PropKind =
   | 'fonte'
   | 'cerca'
   | 'sebe'
-  | 'ponto_onibus';
+  | 'ponto_onibus'
+  // Feira livre (Phase 9): a market stall that is open or folded by the game clock (`art` = `feira/<name>` of the open variant), and
+  // the Hortifrúti crate at the banca (`art`), which sells at every hour
+  | 'feira'
+  | 'hortifruti';
 
-export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll';
+export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall';
 
 export interface PropDef {
   id: string;
@@ -63,6 +67,10 @@ export interface PropDef {
   hero?: boolean;
   /** Pixel-view sprite key for kinds that come in many looks (`fachada`, `sebe`, `cerca`); the server ignores it. */
   art?: string;
+  /** Feira stalls and the Hortifrúti crate: who serves here (`feira.ts` VENDORS). */
+  vendor?: 'tia_lu' | 'ze' | 'chico' | 'rosa' | 'banca';
+  /** A `cerca` with gaps is blocked only along its perimeter, except on these tiles (the gate). The inside stays walkable. */
+  gaps?: Tile[];
 }
 
 export type WallSide = 'left' | 'right';
@@ -92,15 +100,13 @@ export interface PortalDef {
 }
 
 /**
- * NPCs that give recados and can be befriended before they have a room to stand in: Tia Lu (the feira's fruit stall, Phase 9).
- * When she gets a room she moves into that room's `npcs`; the id stays valid the whole time. (Dona Graça lived here until the
- * schedules gave her the padaria counter at night.)
+ * NPCs that give recados and can be befriended before they have a room to stand in. Empty now: Dona Graça moved into the padaria with
+ * the schedules, and Tia Lu into the feira (Phase 9). A future NPC can wait here until its room exists; the id stays valid the whole time.
  */
-export const OFFSTAGE_NPCS = {
-  tia_lu: { name: 'Tia Lu', role: { pt: 'Barraca de frutas da feira', en: 'Fruit stall at the feira' } },
-} as const satisfies Record<string, { name: string; role: Bilingual }>;
+export const OFFSTAGE_NPCS: Partial<Record<NpcId, { name: string; role: Bilingual }>> = {};
 
-export type NpcId = 'carlos' | 'nanda' | 'julia' | 'graca' | 'prof' | keyof typeof OFFSTAGE_NPCS;
+/** The feira vendors (Phase 9): Tia Lu (fruit), Seu Zé (vegetables), Seu Chico (pastel and caldo de cana), Dona Rosa (flowers). */
+export type NpcId = 'carlos' | 'nanda' | 'julia' | 'graca' | 'prof' | 'tia_lu' | 'ze' | 'chico' | 'rosa';
 
 export interface NpcDef {
   id: NpcId;
@@ -189,8 +195,11 @@ function vilaIpeFloor(): string[] {
   paint('g', 0, 14, 9, 23);
   paint('g', 1, 26, 4, 29);
   paint('c', 8, 14, 9, 29); // the footpath between the gardens and the praça
-  // east lot: the future feira
+  // east lot: the feira (grass with a brick aisle from the gate, and a brick front of each row of stalls)
   paint('g', 41, 14, 55, 29);
+  paint('t', 41, 21, 54, 22);
+  paint('t', 43, 19, 53, 20);
+  paint('t', 43, 26, 53, 27);
   // brick cross into the fountain (inlaid in the calçada): the N-S axis runs across both sidewalks, the E-W bar through the fountain
   paint('t', 24, 6, 25, 7);
   paint('t', 24, 12, 25, 29);
@@ -218,6 +227,10 @@ function vilaIpeEdges(): PropDef[] {
 
 /** A building front: `w` x `h` footprint, bottom-centre anchored (x, y is the top-left tile). */
 const front = (id: string, art: string, x: number, y: number, w: number, h: number, label?: Bilingual): PropDef => P(id, 'fachada', x, y, { w, h, art, label });
+
+/** A feira stall: 3x2, blocks, `art` names the open variant (`feira/<name>`); you click it or stand at `interact`, the vendor (an NPC) stands behind it. */
+const feiraStall = (id: string, vendor: 'tia_lu' | 'ze' | 'chico' | 'rosa', name: string, x: number, y: number, label: Bilingual): PropDef =>
+  P(id, 'feira', x, y, { w: 3, h: 2, art: `feira/${name}`, action: 'feira_stall', vendor, interact: { x: x + 1, y: y + 2 }, label });
 
 const vilaIpe: RoomDef = {
   id: 'praca',
@@ -361,27 +374,32 @@ const vilaIpe: RoomDef = {
     P('lixeira_o', 'lixeira', 7, 26),
     P('flor_o2', 'sebe', 1, 28, { w: 2, art: 'props/flor_rosa' }),
     bench('banco_oeste', 1, 25),
-    // ---- east: the fenced lot of the future feira, with its closed stalls, crates and the banner
-    P('cerca_leste', 'cerca', 41, 14, { w: 15, h: 16, art: 'cerca_feira' }),
-    cen('em_breve', 'props/em_breve', 43, 16, 4, 1, { label: { pt: 'Em breve: a feira livre!', en: 'Coming soon: the street market!' } }),
-    cen('feira_1', 'feira/frutas_fechada', 43, 19, 3, 2),
-    cen('feira_2', 'feira/verduras_fechada', 47, 19, 3, 2),
-    cen('feira_3', 'feira/pastel_fechada', 51, 19, 3, 2),
-    cen('feira_4', 'feira/flores_fechada', 43, 24, 3, 2),
-    cen('feira_5', 'feira/frutas_fechada', 47, 24, 3, 2),
-    cen('feira_6', 'feira/verduras_fechada', 51, 24, 3, 2),
-    cen('caixote_1', 'feira/caixotes', 46, 21),
-    cen('caixote_2', 'feira/caixotes', 50, 21),
-    cen('caixote_3', 'feira/caixotes', 54, 21),
-    cen('caixote_4', 'feira/caixotes', 46, 26),
-    cen('caixote_5', 'feira/caixotes', 50, 26),
-    cen('caixote_6', 'feira/caixotes', 54, 26),
-    cen('lousa_1', 'feira/preco_lousa', 45, 22),
-    cen('lousa_2', 'feira/preco_lousa', 53, 22),
-    cen('lousa_3', 'feira/preco_lousa', 49, 27),
-    P('ipe_lote_1', 'ipe', 54, 16, { blocks: false }),
-    P('ipe_lote_2', 'ipe', 42, 28, { blocks: false }),
+    // ---- east: the feira livre lot (x41-55, y14-29), fenced, with a gate on the brick bar (x41, y21-22). Open 06:00-13:00 (`feira.ts`);
+    // outside those hours the stalls show folded. Two rows of stalls facing south: the vendor stands behind (north), customers in front.
+    P('cerca_leste', 'cerca', 41, 14, { w: 15, h: 16, art: 'cerca_feira', gaps: [{ x: 41, y: 21 }, { x: 41, y: 22 }] }),
+    cen('feira_livre', 'props/feira_livre', 44, 15, 5, 1, { label: { pt: 'Feira livre', en: 'Street market' } }),
+    feiraStall('feira_tia_lu', 'tia_lu', 'frutas', 44, 17, { pt: 'Frutas da Tia Lu', en: 'Tia Lu’s fruit stall' }),
+    feiraStall('feira_ze', 'ze', 'verduras', 50, 17, { pt: 'Verduras do Seu Zé', en: 'Seu Zé’s vegetable stall' }),
+    feiraStall('feira_chico', 'chico', 'pastel', 44, 24, { pt: 'Pastel e caldo de cana do Seu Chico', en: 'Seu Chico’s pastel and sugarcane juice' }),
+    feiraStall('feira_rosa', 'rosa', 'flores', 50, 24, { pt: 'Flores da Dona Rosa', en: 'Dona Rosa’s flowers' }),
+    cen('caixote_1', 'feira/caixotes', 48, 18),
+    cen('caixote_2', 'feira/caixotes', 47, 19),
+    cen('caixote_3', 'feira/caixotes', 54, 18),
+    cen('caixote_4', 'feira/caixotes', 54, 19),
+    cen('caixote_5', 'feira/caixotes', 48, 25),
+    cen('caixote_6', 'feira/caixotes', 54, 25),
+    cen('caixote_7', 'feira/caixotes', 54, 26),
+    cen('lousa_tia_lu', 'feira/preco_lousa', 43, 19),
+    cen('lousa_ze', 'feira/preco_lousa', 49, 19),
+    cen('lousa_chico', 'feira/preco_lousa', 43, 26),
+    cen('lousa_rosa', 'feira/preco_lousa', 49, 26),
+    P('ipe_lote_1', 'ipe', 53, 28, { blocks: false }),
+    P('ipe_lote_2', 'ipe', 42, 16, { blocks: false }),
     cen('flor_lote', 'props/flor_mista_b', 46, 28, 3, 1),
+    // ---- the Hortifrúti corner at the banca: Tia Lu's crates, open at every hour (D12)
+    P('hortifruti', 'hortifruti', 18, 7, { art: 'feira/caixotes', action: 'feira_stall', vendor: 'banca', interact: { x: 19, y: 7 }, label: { pt: 'Hortifrúti da banca', en: 'Greengrocer at the newsstand' } }),
+    cen('hortifruti_2', 'feira/caixotes', 17, 7, 1, 1, { blocks: true }),
+    cen('hortifruti_preco', 'feira/preco_lousa', 17, 6),
     // ---- the map edges: streets end in barricades, sidewalks in hedges, the west lawns and the lot behind fences
     ...vilaIpeEdges(),
     // ---- south: the roofs across Rua Jacarandá (blocked)
@@ -476,6 +494,72 @@ const vilaIpe: RoomDef = {
       idleLines: [
         { pt: 'Oi! Precisa de ajuda? Fala comigo!', en: 'Hi! Need help? Talk to me!' },
         { pt: 'A padaria do Seu Carlos é ali!', en: 'Seu Carlos’s bakery is over there!' },
+      ],
+    },
+    // ---- the feira vendors (Phase 9). needs_br: true (names and every call). Each stands behind their stall 06:00-13:00 (`schedules.ts`).
+    {
+      id: 'tia_lu',
+      name: 'Tia Lu',
+      role: { pt: 'Frutas da feira', en: 'Fruit at the feira' },
+      x: 45,
+      y: 16,
+      dir: 'SW',
+      interact: { x: 45, y: 19 },
+      schedule: SCHEDULES.tia_lu,
+      appearance: { body: 'medio', skin: 4, hair: 'curto', hairColor: 0, top: 'camiseta', topColor: 0, bottom: 'saia', bottomColor: 3, shoes: 3, face: 'doce', extra: 'brincos', idle: 'cintura' },
+      hat: null,
+      idleLines: [
+        { pt: 'Olha a banana! Três por cinco!', en: 'Get your bananas! Three for five!' },
+        { pt: 'Laranja doce, freguesa!', en: 'Sweet oranges, ma’am!' },
+        { pt: 'Maçã fresquinha, leva uma!', en: 'Fresh apples, take one!' },
+      ],
+    },
+    {
+      id: 'ze',
+      name: 'Seu Zé',
+      role: { pt: 'Verduras da feira', en: 'Vegetables at the feira' },
+      x: 51,
+      y: 16,
+      dir: 'SW',
+      interact: { x: 51, y: 19 },
+      schedule: SCHEDULES.ze,
+      appearance: { body: 'forte', skin: 3, hair: 'raspado', hairColor: 5, top: 'camisa', topColor: 11, bottom: 'calca', bottomColor: 10, shoes: 2, face: 'maduro', extra: 'bigode', idle: 'bracos' },
+      hat: null,
+      idleLines: [
+        { pt: 'Olha o tomate! Bem vermelhinho!', en: 'Get your tomatoes! Nice and red!' },
+        { pt: 'Alface fresca, freguesa!', en: 'Fresh lettuce, ma’am!' },
+      ],
+    },
+    {
+      id: 'chico',
+      name: 'Seu Chico',
+      role: { pt: 'Pastel e caldo de cana', en: 'Pastel and sugarcane juice' },
+      x: 45,
+      y: 23,
+      dir: 'SW',
+      interact: { x: 45, y: 26 },
+      schedule: SCHEDULES.chico,
+      appearance: { body: 'medio', skin: 5, hair: 'curto', hairColor: 0, top: 'camiseta', topColor: 4, bottom: 'calca', bottomColor: 2, shoes: 1, face: 'marcante', extra: 'barba', idle: 'solto' },
+      hat: null,
+      idleLines: [
+        { pt: 'Pastel quentinho!', en: 'Nice hot pastel!' },
+        { pt: 'Caldo de cana geladinho!', en: 'Ice-cold sugarcane juice!' },
+      ],
+    },
+    {
+      id: 'rosa',
+      name: 'Dona Rosa',
+      role: { pt: 'Flores da feira', en: 'Flowers at the feira' },
+      x: 51,
+      y: 23,
+      dir: 'SW',
+      interact: { x: 51, y: 26 },
+      schedule: SCHEDULES.rosa,
+      appearance: { body: 'esguio', skin: 2, hair: 'ondulado', hairColor: 3, top: 'blusa', topColor: 9, bottom: 'saia', bottomColor: 7, shoes: 0, face: 'suave', extra: 'brincos', idle: 'solto' },
+      hat: null,
+      idleLines: [
+        { pt: 'Flores, freguesa!', en: 'Flowers, ma’am!' },
+        { pt: 'Flor bonita pra casa, leva!', en: 'Pretty flowers for your home, take some!' },
       ],
     },
   ],
@@ -768,7 +852,13 @@ export function buildGrid(room: RoomDef, furniture: PlacedFurniture[] = []): Roo
   for (const p of room.props) {
     for (const t of propTiles(p)) {
       reserved.add(key(t.x, t.y));
-      if (p.blocks) blocked.add(key(t.x, t.y));
+      if (!p.blocks) continue;
+      // a fence with a gate: only its perimeter blocks, minus the gap tiles
+      if (p.gaps) {
+        const onEdge = t.x === p.x || t.y === p.y || t.x === p.x + (p.w ?? 1) - 1 || t.y === p.y + (p.h ?? 1) - 1;
+        if (!onEdge || p.gaps.some((g) => g.x === t.x && g.y === t.y)) continue;
+      }
+      blocked.add(key(t.x, t.y));
     }
   }
   for (const s of seatTiles(room)) seats.set(key(s.x, s.y), s.dir);

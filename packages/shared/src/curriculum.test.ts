@@ -50,12 +50,12 @@ describe('curriculum pack ingest (content/curriculum/phase0)', () => {
   it('recados.json is in sync with recados.md (run `pnpm content` after editing .md)', () => {
     expect(JSON.parse(JSON.stringify(buildRecados()))).toEqual(recadosJson);
     expect(RECADOS).toEqual(recadosJson.recados);
-    expect(RECADOS).toHaveLength(15);
+    expect(RECADOS).toHaveLength(18);
   });
 
   it('the recado build validates against the shared engine ids (NPCs, rooms, items) and fails loudly on bad input', () => {
     expect([...RECADO_NPC_IDS].sort()).toEqual([...NPC_IDS].sort());
-    expect(new Set(RECADO_NPC_IDS)).toEqual(new Set(['carlos', 'nanda', 'julia', 'graca', 'prof', ...Object.keys(OFFSTAGE_NPCS)]));
+    expect(new Set(RECADO_NPC_IDS)).toEqual(new Set(['carlos', 'nanda', 'julia', 'graca', 'prof', 'tia_lu', 'ze', 'chico', 'rosa', ...Object.keys(OFFSTAGE_NPCS)]));
     expect([...RECADO_ROOM_IDS].sort()).toEqual(Object.keys(ROOMS).sort());
     expect([...RECADO_ITEM_IDS].sort()).toEqual(ITEMS.map((i) => i.id).sort());
     expect([...RECADO_FLAG_IDS].sort()).toEqual(['dialogue', 'feira']);

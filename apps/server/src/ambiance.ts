@@ -6,6 +6,7 @@ import {
   cpuArchetype,
   cpuLook,
   cpuTarget,
+  feiraOpen,
   findPath,
   isWalkable,
   key,
@@ -43,6 +44,8 @@ export interface CrowdHost {
   humans(): HumanSpot[];
   /** Tiles the CPUs must stay off (the NPCs' spots). */
   reserved?(): Tile[];
+  /** The game minute (0..1439): during the feira (06:00-13:00) walkers browse the stalls. */
+  minute?(): number;
 }
 
 interface Cpu {
@@ -81,7 +84,7 @@ export class CpuCrowd {
   private readonly grid: RoomGrid;
   private readonly seats: { tile: Tile; dir: Dir }[];
 
-  private readonly map: { spots: Tile[]; doorSpots: Tile[]; entries: Tile[] };
+  private readonly map: { spots: Tile[]; doorSpots: Tile[]; entries: Tile[]; feiraSpots?: Tile[] };
 
   constructor(
     private readonly room: RoomDef,
@@ -190,7 +193,9 @@ export class CpuCrowd {
     } else {
       c.leg = (c.leg + 1) % 3;
       const seat = c.leg === 2 ? this.freeSeat(c.dest) : null;
+      // while the feira is open the walkers shop: most legs end in front of a stall
       if (seat) this.walk(c, seat.tile, true);
+      else if (this.shopping() && c.leg !== 1) this.walk(c, this.freeSpot(this.map.feiraSpots!), false);
       else this.walk(c, this.freeSpot(c.leg === 1 ? this.map.doorSpots : this.map.spots), false);
     }
     c.nextAt = this.host.now() + this.travel(c) + this.dwell(c);
@@ -202,9 +207,10 @@ export class CpuCrowd {
     const rng = this.host.rng;
     const active = this.active();
     const sitters = active.filter((c) => c.role === 'sitter').length;
-    const role: Cpu['role'] = sitters < Math.round((active.length + 1) * CPU_SITTER_SHARE) ? 'sitter' : 'walker';
+    // fewer sitters while the feira is open: the crowd goes shopping
+    const role: Cpu['role'] = sitters < Math.round((active.length + 1) * (this.shopping() ? CPU_SITTER_SHARE * 0.6 : CPU_SITTER_SHARE)) ? 'sitter' : 'walker';
     const seat = role === 'sitter' ? this.freeSeat(null) : null;
-    const dest = seat?.tile ?? this.freeSpot(this.map.spots);
+    const dest = seat?.tile ?? this.freeSpot(this.shopping() ? this.map.feiraSpots! : this.map.spots);
     const pick = <T>(arr: readonly T[]) => arr[Math.floor(rng() * arr.length)];
     const entry = pick(this.map.entries);
     const name = this.nextName();
@@ -251,6 +257,12 @@ export class CpuCrowd {
   }
 
   // ---------------------------------------------------------------- helpers
+
+  /** The feira is open and this room has stalls to browse. */
+  private shopping(): boolean {
+    const m = this.host.minute?.();
+    return !!this.map.feiraSpots?.length && m !== undefined && feiraOpen(m);
+  }
 
   private active() {
     return [...this.cpus.values()].filter((c) => !c.leaving);

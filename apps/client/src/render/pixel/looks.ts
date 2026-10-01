@@ -133,6 +133,24 @@ export const NPC_STYLES: Record<NpcId, NpcStyle> = {
     hat: { layer: 'hat_pano', color: '#c8202f', accent: '#f4ede2' },
     apron: '#e8892b',
   },
+  // The feira vendors (Phase 9), built from existing layers only (hats and aprons of the NPC set): Seu Zé in a panama hat and an olive apron,
+  // Seu Chico in a yellow bucket hat and a white apron (the pastel fryer), Dona Rosa in a flower crown. Portraits are placeholders
+  // (`PORTRAIT_PLACEHOLDER`): Zé and Chico borrow Carlos', Rosa borrows Graça's, until the art track draws theirs.
+  ze: {
+    appearance: base({ body: 'forte', skin: 3, hair: 'raspado', hairColor: 5, top: 'camisa', topColor: 11, bottom: 'calca', bottomColor: 10, shoes: 2, face: 'maduro', extra: 'bigode', idle: 'bracos' }),
+    hat: 'panama',
+    apron: '#8a9a52',
+  },
+  chico: {
+    appearance: base({ body: 'medio', skin: 5, hair: 'curto', hairColor: 0, top: 'camiseta', topColor: 4, bottom: 'calca', bottomColor: 2, shoes: 1, face: 'marcante', extra: 'barba', idle: 'solto' }),
+    hat: 'bucket_amarelo',
+    apron: '#f1eee8',
+  },
+  rosa: {
+    appearance: base({ body: 'esguio', skin: 2, hair: 'ondulado', hairColor: 3, top: 'blusa', topColor: 9, bottom: 'saia', bottomColor: 7, shoes: 0, face: 'suave', extra: 'brincos', idle: 'solto' }),
+    hat: 'coroa_flores',
+    apron: '#f4ede2',
+  },
   // Professora Bia (BJJ): a white gi (camisa + calça outfit in off-white) with the gi layer on top (crossed lapels, black belt and knot),
   // short dark hair, arms crossed. Her portrait (portraits/prof_*) is a woman in her 30s with short dark hair and a gi collar.
   prof: {

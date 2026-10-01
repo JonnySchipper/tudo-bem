@@ -109,6 +109,7 @@ import { CpuCrowd } from './ambiance.js';
 import { NPC_TICK_MS, NpcDirector } from './npcs.js';
 import { RecadoTracker, sceneItems } from './recados.js';
 import { CadernoTracker } from './caderno.js';
+import { FeiraCounter } from './feira.js';
 
 export interface Services {
   safety: ChatSafetyService;
@@ -298,6 +299,8 @@ export class World {
   private readonly recados: RecadoTracker;
   /** Caderno de palavras: what the player saw, heard and used (Phase 7). */
   private readonly caderno: CadernoTracker;
+  /** The feira's prices and payments (Phase 9). */
+  private readonly feira: FeiraCounter;
   /** Mid-order Me vê um state kept across a socket drop so reconnect can resync the same ticket. */
   private parkedMg = new Map<string, { mg: MgState; room: RoomId; at: number }>();
 
@@ -328,6 +331,15 @@ export class World {
       tileOf: (s) => this.currentTile(s).tile,
       npcsIn: (room) => this.npcs.whoIn(room),
       onRead: (s, h) => this.caderno.seen(s, h.pt, h.cards),
+    });
+    this.feira = new FeiraCounter({
+      now: () => this.now(),
+      store,
+      reward: (s, a, r) => this.reward(s, a, r),
+      pushProfile: (s) => this.pushProfile(s),
+      tileOf: (s) => this.currentTile(s).tile,
+      npcsIn: (room) => this.npcs.whoIn(room),
+      ordered: (s, npc, items) => this.recados.onEvent(s, { kind: 'ordered', npc, items }),
     });
     this.caderno = new CadernoTracker({ now: () => this.now(), store, reward: (s, a, r) => this.reward(s, a, r), pushProfile: (s) => this.pushProfile(s) });
   }
@@ -454,6 +466,8 @@ export class World {
         return this.recados.read(s, msg.hotspotId);
       case 'recados':
         return this.recados.request(s, msg.action, msg.id);
+      case 'feira':
+        return msg.action === 'price' ? this.feira.price(s, msg.vendor, msg.itemId) : msg.action === 'pay' ? this.feira.pay(s, msg.vendor, msg.itemId, msg.qty, msg.paid) : undefined;
       case 'heard':
         return this.caderno.heard(s, msg.cardIds);
       case 'talk':
@@ -722,6 +736,7 @@ export class World {
       rng: this.rng,
       send: (m) => this.broadcast(inst, m),
       reserved: () => this.npcs.reservedIn(inst.def.id),
+      minute: () => gameMinutes(this.clockNow()),
       humans: () =>
         [...inst.members.values()]
           .filter((m) => m.avatar)

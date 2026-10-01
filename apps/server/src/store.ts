@@ -123,6 +123,12 @@ export class ProfileStore {
   }
 }
 
+/** The feira's daily RV counter: a date string and a small count, or nothing. */
+function normalizeFeira(raw: unknown): StoredProfile['feira'] {
+  const r = raw as { date?: unknown; n?: unknown } | undefined;
+  return r && typeof r.date === 'string' && typeof r.n === 'number' && Number.isFinite(r.n) && r.n >= 0 ? { date: r.date.slice(0, 10), n: Math.min(99, Math.floor(r.n)) } : undefined;
+}
+
 /** Default the optional Phase 8 fields so saves from before them load unchanged. Idempotent. */
 export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.bag = normalizeBag(p.bag);
@@ -131,6 +137,7 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.caderno = normalizeCaderno(p.caderno);
   p.cadernoPaid = normalizeCadernoPaid(p.cadernoPaid);
   p.npcMemory = normalizeNpcMemory(p.npcMemory);
+  p.feira = normalizeFeira(p.feira);
   return p;
 }
 
