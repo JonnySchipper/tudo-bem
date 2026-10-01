@@ -17,6 +17,7 @@
     "e2e": "node scripts/e2e.mjs",
     "e2e:meveum": "node scripts/e2e-meveum.mjs",
     "e2e:all": "node scripts/e2e-all.mjs",
+    "e2e:solo": "node scripts/e2e-solo.mjs",
     "tts": "node scripts/bake-tts.mjs",
     "pixel": "node scripts/pixel-import.mjs",
     "verify": "pnpm typecheck && pnpm test && pnpm build",

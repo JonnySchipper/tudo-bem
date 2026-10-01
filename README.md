@@ -106,7 +106,7 @@ node scripts/e2e-feira.mjs                  # PHASE=day (default) or PHASE=night
 node scripts/e2e-night.mjs                  # PHASE=a or b
 ```
 
-Common script env: `BASE_URL` (default `http://localhost:8787`), `CHROME_PATH`, `SHOTS_DIR` (save screenshots), `VIDEO_DIR` (`pnpm e2e` only), `HEADED=1`, `CPU_AMBIANCE=off` (when the server runs with `LIVEOPS_CPU_AMBIANCE=off`). The solo build is covered by `SOLO=1 BASE_URL=... pnpm e2e` (it runs on the browser's clock and skips the pin and the recado). Screenshot scripts: `node scripts/readme-shots.mjs` (the four shots above), `scripts/lifesim-shots.mjs` (the review set at 1280×800 and 390×844).
+Common script env: `BASE_URL` (default `http://localhost:8787`), `CHROME_PATH`, `SHOTS_DIR` (save screenshots), `VIDEO_DIR` (`pnpm e2e` only), `HEADED=1`, `CPU_AMBIANCE=off` (when the server runs with `LIVEOPS_CPU_AMBIANCE=off`). The solo build (no server to pin) is covered by `SOLO=1 BASE_URL=<static url> pnpm e2e` (the in-page world gets `?tbclockmin=<n>`, the solo twin of `TB_TEST_CLOCK_OFFSET_MIN`, so it also reads about 08:30; the recado part is skipped) and by `pnpm e2e:solo` (boots as a guest, a tutorial step, one recado accepted, a banana bought at the Hortifrúti, no server traffic). Serve the build with `node scripts/serve-static.mjs apps/client/dist 4173`. Screenshot scripts: `node scripts/readme-shots.mjs` (the four shots above), `scripts/lifesim-shots.mjs` (the review set at 1280×800 and 390×844).
 
 ## What's in the box
 

@@ -17,14 +17,14 @@
  *     (or TB_TEST_CLOCK_OFFSET_MIN=<n> from `node scripts/lib/clock-pin.mjs 08:30` instead of TB_TEST_CLOCK_CONTROL=1)
  * It fails fast with that message when the clock is not daytime. The whole recado (offer from the baker, café com leite, hand it to Nanda, RV and
  * bond) is part of every run; set SKIP_RECADO=1 to run without TB_TEST_OFFER. 'pnpm e2e:all' starts such a server and stops it afterwards.
- * SOLO builds run on the browser's clock and skip both checks.
+ * SOLO builds have no server to pin: the in-page world gets `?tbclockmin=` instead (the same 08:30), and the recado part is skipped.
  */
 import { chromium } from 'playwright-core';
 import { findChrome } from './lib/chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DAY_MIN, assertPageClock, requirePinnedClock } from './lib/clock-pin.mjs';
+import { DAY_MIN, assertPageClock, offsetMinFor, requirePinnedClock } from './lib/clock-pin.mjs';
 import { assert, expectFirstTimeoutRearms, learnShelf, playShift, sleep, waitFor } from './lib/meveum-play.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
@@ -112,7 +112,8 @@ const PASSWORD = 'pao-de-queijo-2026';
 const RUN = Date.now().toString(36);
 const emailFor = (name) => `${name.toLowerCase()}+${RUN}@exemplo.com`;
 /** Solo builds need `?rolltest` for the Academia roll debug hints (the server build uses TB_TEST_ROLL=1). */
-const START_URL = SOLO ? `${BASE}${BASE.includes('?') ? '&' : '?'}rolltest` : BASE;
+// SOLO: `?rolltest` for the Academia roll hints and `?tbclockmin=<n>` (the solo twin of TB_TEST_CLOCK_OFFSET_MIN) so the in-page world reads about 08:30 too
+const START_URL = SOLO ? `${BASE}${BASE.includes('?') ? '&' : '?'}rolltest&tbclockmin=${offsetMinFor(DAY_MIN)}` : BASE;
 
 /** Title screen → sign-in card (the intro's own skip keeps runs short). */
 async function toSignInCard(page) {
@@ -211,10 +212,8 @@ async function main() {
   await shot(page, '01_avatar_creator');
   await enter();
   await dwell(1500);
-  if (!SOLO) {
-    await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
-    await assertPageClock(page, { min: DAY_MIN - 20, max: 12 * 60, label: 'daytime, about 08:30' });
-  }
+  await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
+  await assertPageClock(page, { min: DAY_MIN - 20, max: 12 * 60, label: 'daytime, about 08:30' });
   if (!SOLO) {
     // The session cookie survives a reload: straight back into the Praça, same avatar.
     const before = (await profile(page)).id;
@@ -354,6 +353,8 @@ async function main() {
   assert(await page.$('.hotspot-card #hs-save'), 'sign card has Guardar no caderno');
   await waitFor(page, () => Object.keys(window.__tb.game.profile.caderno ?? {}).length >= 5, null, 5000, 'reading the menu marks its words as seen');
   await shot(page, '03b_hotspot_cardapio');
+  // a programmatic interact does not take focus away from the chat field (a real click would); Escape is ignored inside inputs
+  await page.evaluate(() => document.activeElement?.blur?.());
   await page.keyboard.press('Escape');
   await page.click('#btn-caderno');
   await page.waitForSelector('[data-modal="caderno"] [data-card="lex.padaria.coxinha"]', { timeout: 5000 });
