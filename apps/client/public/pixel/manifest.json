@@ -6,8 +6,8 @@
    "image": "atlas/outdoor.png",
    "data": "atlas/outdoor.json",
    "w": 512,
-   "h": 2048,
-   "frames": 428
+   "h": 4096,
+   "frames": 516
   }
  },
  "terrain": {
@@ -4039,6 +4039,910 @@
    "anim": null,
    "overhead": null,
    "shadow": "fx/shadow_16"
+  },
+  "props/ipe_roxo_large": {
+   "atlas": "outdoor",
+   "frame": "props/ipe_roxo_large",
+   "w": 42,
+   "h": 23,
+   "ax": 21,
+   "ay": 20,
+   "footprint": [
+    2,
+    2
+   ],
+   "anim": null,
+   "overhead": "props/ipe_roxo_large_canopy",
+   "shadow": "fx/shadow_32",
+   "cast": {
+    "frame": "props/ipe_roxo_large#cast",
+    "w": 70,
+    "h": 15,
+    "ax": 21,
+    "ay": 1
+   }
+  },
+  "props/ipe_roxo_large_canopy": {
+   "atlas": "outdoor",
+   "frame": "props/ipe_roxo_large_canopy/0",
+   "w": 44,
+   "h": 31,
+   "ax": 22,
+   "ay": 51,
+   "footprint": [
+    2,
+    2
+   ],
+   "anim": {
+    "frames": [
+     "props/ipe_roxo_large_canopy/0",
+     "props/ipe_roxo_large_canopy/1",
+     "props/ipe_roxo_large_canopy/0",
+     "props/ipe_roxo_large_canopy/2"
+    ],
+    "fps": 3
+   },
+   "overhead": true,
+   "shadow": null
+  },
+  "props/ipe_roxo_medium": {
+   "atlas": "outdoor",
+   "frame": "props/ipe_roxo_medium",
+   "w": 32,
+   "h": 18,
+   "ax": 16,
+   "ay": 16,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": "props/ipe_roxo_medium_canopy",
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/ipe_roxo_medium#cast",
+    "w": 56,
+    "h": 13,
+    "ax": 16,
+    "ay": 1
+   }
+  },
+  "props/ipe_roxo_medium_canopy": {
+   "atlas": "outdoor",
+   "frame": "props/ipe_roxo_medium_canopy/0",
+   "w": 34,
+   "h": 27,
+   "ax": 17,
+   "ay": 43,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "props/ipe_roxo_medium_canopy/0",
+     "props/ipe_roxo_medium_canopy/1",
+     "props/ipe_roxo_medium_canopy/0",
+     "props/ipe_roxo_medium_canopy/2"
+    ],
+    "fps": 3
+   },
+   "overhead": true,
+   "shadow": null
+  },
+  "props/ipe_roxo_medium_b": {
+   "atlas": "outdoor",
+   "frame": "props/ipe_roxo_medium_b",
+   "w": 32,
+   "h": 18,
+   "ax": 16,
+   "ay": 16,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": "props/ipe_roxo_medium_b_canopy",
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/ipe_roxo_medium_b#cast",
+    "w": 56,
+    "h": 13,
+    "ax": 16,
+    "ay": 1
+   }
+  },
+  "props/ipe_roxo_medium_b_canopy": {
+   "atlas": "outdoor",
+   "frame": "props/ipe_roxo_medium_b_canopy/0",
+   "w": 34,
+   "h": 27,
+   "ax": 17,
+   "ay": 43,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "props/ipe_roxo_medium_b_canopy/0",
+     "props/ipe_roxo_medium_b_canopy/1",
+     "props/ipe_roxo_medium_b_canopy/0",
+     "props/ipe_roxo_medium_b_canopy/2"
+    ],
+    "fps": 3
+   },
+   "overhead": true,
+   "shadow": null
+  },
+  "props/ipe_branco_large": {
+   "atlas": "outdoor",
+   "frame": "props/ipe_branco_large",
+   "w": 42,
+   "h": 23,
+   "ax": 21,
+   "ay": 20,
+   "footprint": [
+    2,
+    2
+   ],
+   "anim": null,
+   "overhead": "props/ipe_branco_large_canopy",
+   "shadow": "fx/shadow_32",
+   "cast": {
+    "frame": "props/ipe_branco_large#cast",
+    "w": 70,
+    "h": 15,
+    "ax": 21,
+    "ay": 1
+   }
+  },
+  "props/ipe_branco_large_canopy": {
+   "atlas": "outdoor",
+   "frame": "props/ipe_branco_large_canopy/0",
+   "w": 44,
+   "h": 31,
+   "ax": 22,
+   "ay": 51,
+   "footprint": [
+    2,
+    2
+   ],
+   "anim": {
+    "frames": [
+     "props/ipe_branco_large_canopy/0",
+     "props/ipe_branco_large_canopy/1",
+     "props/ipe_branco_large_canopy/0",
+     "props/ipe_branco_large_canopy/2"
+    ],
+    "fps": 3
+   },
+   "overhead": true,
+   "shadow": null
+  },
+  "props/ipe_branco_medium": {
+   "atlas": "outdoor",
+   "frame": "props/ipe_branco_medium",
+   "w": 32,
+   "h": 18,
+   "ax": 16,
+   "ay": 16,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": "props/ipe_branco_medium_canopy",
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/ipe_branco_medium#cast",
+    "w": 56,
+    "h": 13,
+    "ax": 16,
+    "ay": 1
+   }
+  },
+  "props/ipe_branco_medium_canopy": {
+   "atlas": "outdoor",
+   "frame": "props/ipe_branco_medium_canopy/0",
+   "w": 34,
+   "h": 27,
+   "ax": 17,
+   "ay": 43,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "props/ipe_branco_medium_canopy/0",
+     "props/ipe_branco_medium_canopy/1",
+     "props/ipe_branco_medium_canopy/0",
+     "props/ipe_branco_medium_canopy/2"
+    ],
+    "fps": 3
+   },
+   "overhead": true,
+   "shadow": null
+  },
+  "props/ipe_amarelo_medium_b": {
+   "atlas": "outdoor",
+   "frame": "props/ipe_amarelo_medium_b",
+   "w": 32,
+   "h": 18,
+   "ax": 16,
+   "ay": 16,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": "props/ipe_amarelo_medium_b_canopy",
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/ipe_amarelo_medium_b#cast",
+    "w": 56,
+    "h": 13,
+    "ax": 16,
+    "ay": 1
+   }
+  },
+  "props/ipe_amarelo_medium_b_canopy": {
+   "atlas": "outdoor",
+   "frame": "props/ipe_amarelo_medium_b_canopy/0",
+   "w": 34,
+   "h": 27,
+   "ax": 17,
+   "ay": 43,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "props/ipe_amarelo_medium_b_canopy/0",
+     "props/ipe_amarelo_medium_b_canopy/1",
+     "props/ipe_amarelo_medium_b_canopy/0",
+     "props/ipe_amarelo_medium_b_canopy/2"
+    ],
+    "fps": 3
+   },
+   "overhead": true,
+   "shadow": null
+  },
+  "props/figueira": {
+   "atlas": "outdoor",
+   "frame": "props/figueira",
+   "w": 78,
+   "h": 18,
+   "ax": 39,
+   "ay": 10,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": "props/figueira_canopy",
+   "shadow": "fx/shadow_32",
+   "cast": {
+    "frame": "props/figueira#cast",
+    "w": 118,
+    "h": 20,
+    "ax": 39,
+    "ay": 1
+   }
+  },
+  "props/figueira_canopy": {
+   "atlas": "outdoor",
+   "frame": "props/figueira_canopy/0",
+   "w": 80,
+   "h": 66,
+   "ax": 40,
+   "ay": 76,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "props/figueira_canopy/0",
+     "props/figueira_canopy/1",
+     "props/figueira_canopy/0",
+     "props/figueira_canopy/2"
+    ],
+    "fps": 3
+   },
+   "overhead": true,
+   "shadow": null
+  },
+  "props/sibipiruna": {
+   "atlas": "outdoor",
+   "frame": "props/sibipiruna",
+   "w": 80,
+   "h": 14,
+   "ax": 40,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": "props/sibipiruna_canopy",
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/sibipiruna#cast",
+    "w": 100,
+    "h": 11,
+    "ax": 40,
+    "ay": 1
+   }
+  },
+  "props/sibipiruna_canopy": {
+   "atlas": "outdoor",
+   "frame": "props/sibipiruna_canopy/0",
+   "w": 82,
+   "h": 31,
+   "ax": 41,
+   "ay": 36,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "props/sibipiruna_canopy/0",
+     "props/sibipiruna_canopy/1",
+     "props/sibipiruna_canopy/0",
+     "props/sibipiruna_canopy/2"
+    ],
+    "fps": 3
+   },
+   "overhead": true,
+   "shadow": null
+  },
+  "props/oiti": {
+   "atlas": "outdoor",
+   "frame": "props/oiti",
+   "w": 64,
+   "h": 22,
+   "ax": 32,
+   "ay": 20,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": "props/oiti_canopy",
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/oiti#cast",
+    "w": 98,
+    "h": 18,
+    "ax": 32,
+    "ay": 1
+   }
+  },
+  "props/oiti_canopy": {
+   "atlas": "outdoor",
+   "frame": "props/oiti_canopy/0",
+   "w": 66,
+   "h": 44,
+   "ax": 33,
+   "ay": 64,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "props/oiti_canopy/0",
+     "props/oiti_canopy/1",
+     "props/oiti_canopy/0",
+     "props/oiti_canopy/2"
+    ],
+    "fps": 3
+   },
+   "overhead": true,
+   "shadow": null
+  },
+  "props/jeriva": {
+   "atlas": "outdoor",
+   "frame": "props/jeriva",
+   "w": 64,
+   "h": 28,
+   "ax": 32,
+   "ay": 26,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": "props/jeriva_canopy",
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/jeriva#cast",
+    "w": 100,
+    "h": 18,
+    "ax": 32,
+    "ay": 1
+   }
+  },
+  "props/jeriva_canopy": {
+   "atlas": "outdoor",
+   "frame": "props/jeriva_canopy/0",
+   "w": 66,
+   "h": 42,
+   "ax": 33,
+   "ay": 68,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "props/jeriva_canopy/0",
+     "props/jeriva_canopy/1",
+     "props/jeriva_canopy/0",
+     "props/jeriva_canopy/2"
+    ],
+    "fps": 3
+   },
+   "overhead": true,
+   "shadow": null
+  },
+  "props/jeriva_b": {
+   "atlas": "outdoor",
+   "frame": "props/jeriva_b",
+   "w": 64,
+   "h": 28,
+   "ax": 32,
+   "ay": 26,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": "props/jeriva_b_canopy",
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/jeriva_b#cast",
+    "w": 100,
+    "h": 18,
+    "ax": 32,
+    "ay": 1
+   }
+  },
+  "props/jeriva_b_canopy": {
+   "atlas": "outdoor",
+   "frame": "props/jeriva_b_canopy/0",
+   "w": 66,
+   "h": 42,
+   "ax": 33,
+   "ay": 68,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "props/jeriva_b_canopy/0",
+     "props/jeriva_b_canopy/1",
+     "props/jeriva_b_canopy/0",
+     "props/jeriva_b_canopy/2"
+    ],
+    "fps": 3
+   },
+   "overhead": true,
+   "shadow": null
+  },
+  "props/coreto": {
+   "atlas": "outdoor",
+   "frame": "props/coreto",
+   "w": 80,
+   "h": 88,
+   "ax": 40,
+   "ay": 81,
+   "footprint": [
+    5,
+    3
+   ],
+   "anim": null,
+   "overhead": "props/coreto_roof",
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "props/coreto#cast",
+    "w": 123,
+    "h": 24,
+    "ax": 40,
+    "ay": 1
+   }
+  },
+  "props/coreto_roof": {
+   "atlas": "outdoor",
+   "frame": "props/coreto_roof",
+   "w": 90,
+   "h": 50,
+   "ax": 45,
+   "ay": 85,
+   "footprint": [
+    5,
+    3
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "props/mesa_domino": {
+   "atlas": "outdoor",
+   "frame": "props/mesa_domino",
+   "w": 20,
+   "h": 24,
+   "ax": 10,
+   "ay": 22,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/mesa_domino#cast",
+    "w": 33,
+    "h": 9,
+    "ax": 10,
+    "ay": 1
+   }
+  },
+  "props/mesa_xadrez": {
+   "atlas": "outdoor",
+   "frame": "props/mesa_xadrez",
+   "w": 20,
+   "h": 24,
+   "ax": 10,
+   "ay": 22,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/mesa_xadrez#cast",
+    "w": 33,
+    "h": 9,
+    "ax": 10,
+    "ay": 1
+   }
+  },
+  "props/banquinho": {
+   "atlas": "outdoor",
+   "frame": "props/banquinho",
+   "w": 10,
+   "h": 12,
+   "ax": 5,
+   "ay": 11,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "props/busto": {
+   "atlas": "outdoor",
+   "frame": "props/busto",
+   "w": 24,
+   "h": 46,
+   "ax": 12,
+   "ay": 44,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/busto#cast",
+    "w": 48,
+    "h": 14,
+    "ax": 12,
+    "ay": 1
+   }
+  },
+  "props/canteiro_redondo": {
+   "atlas": "outdoor",
+   "frame": "props/canteiro_redondo",
+   "w": 34,
+   "h": 32,
+   "ax": 17,
+   "ay": 28,
+   "footprint": [
+    2,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_32"
+  },
+  "props/canteiro_losango": {
+   "atlas": "outdoor",
+   "frame": "props/canteiro_losango",
+   "w": 50,
+   "h": 32,
+   "ax": 25,
+   "ay": 28,
+   "footprint": [
+    3,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "props/pipoqueiro": {
+   "atlas": "outdoor",
+   "frame": "props/pipoqueiro",
+   "w": 48,
+   "h": 48,
+   "ax": 24,
+   "ay": 44,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "props/pipoqueiro#cast",
+    "w": 70,
+    "h": 13,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "props/carrinho_coco": {
+   "atlas": "outdoor",
+   "frame": "props/carrinho_coco",
+   "w": 56,
+   "h": 64,
+   "ax": 24,
+   "ay": 62,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "props/carrinho_coco#cast",
+    "w": 86,
+    "h": 17,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "props/bandeirinhas_a": {
+   "atlas": "outdoor",
+   "frame": "props/bandeirinhas_a",
+   "w": 3,
+   "h": 3,
+   "ax": 1,
+   "ay": 2,
+   "footprint": [
+    4,
+    1
+   ],
+   "anim": null,
+   "overhead": "props/bandeirinhas_a_o",
+   "shadow": null
+  },
+  "props/bandeirinhas_a_o": {
+   "atlas": "outdoor",
+   "frame": "props/bandeirinhas_a_o",
+   "w": 64,
+   "h": 14,
+   "ax": 32,
+   "ay": 20,
+   "footprint": [
+    4,
+    1
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "props/bandeirinhas_b": {
+   "atlas": "outdoor",
+   "frame": "props/bandeirinhas_b",
+   "w": 3,
+   "h": 3,
+   "ax": 1,
+   "ay": 2,
+   "footprint": [
+    6,
+    1
+   ],
+   "anim": null,
+   "overhead": "props/bandeirinhas_b_o",
+   "shadow": null
+  },
+  "props/bandeirinhas_b_o": {
+   "atlas": "outdoor",
+   "frame": "props/bandeirinhas_b_o",
+   "w": 96,
+   "h": 14,
+   "ax": 48,
+   "ay": 20,
+   "footprint": [
+    6,
+    1
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
+  },
+  "props/revisteiro": {
+   "atlas": "outdoor",
+   "frame": "props/revisteiro",
+   "w": 18,
+   "h": 24,
+   "ax": 9,
+   "ay": 22,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/revisteiro#cast",
+    "w": 31,
+    "h": 9,
+    "ax": 9,
+    "ay": 1
+   }
+  },
+  "vehicles/park_fusca_e": {
+   "atlas": "outdoor",
+   "frame": "vehicles/park_fusca_e",
+   "w": 60,
+   "h": 38,
+   "ax": 30,
+   "ay": 34,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "vehicles/park_fusca_w": {
+   "atlas": "outdoor",
+   "frame": "vehicles/park_fusca_w",
+   "w": 60,
+   "h": 38,
+   "ax": 29,
+   "ay": 34,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "vehicles/park_kombi_e": {
+   "atlas": "outdoor",
+   "frame": "vehicles/park_kombi_e",
+   "w": 68,
+   "h": 46,
+   "ax": 34,
+   "ay": 42,
+   "footprint": [
+    4,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "vehicles/park_kombi_w": {
+   "atlas": "outdoor",
+   "frame": "vehicles/park_kombi_w",
+   "w": 68,
+   "h": 46,
+   "ax": 33,
+   "ay": 42,
+   "footprint": [
+    4,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "vehicles/park_moto_e": {
+   "atlas": "outdoor",
+   "frame": "vehicles/park_moto_e",
+   "w": 44,
+   "h": 34,
+   "ax": 22,
+   "ay": 32,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_32"
+  },
+  "vehicles/park_moto_w": {
+   "atlas": "outdoor",
+   "frame": "vehicles/park_moto_w",
+   "w": 44,
+   "h": 34,
+   "ax": 21,
+   "ay": 32,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_32"
+  },
+  "props/arvore_rua": {
+   "atlas": "outdoor",
+   "frame": "props/arvore_rua",
+   "w": 42,
+   "h": 26,
+   "ax": 21,
+   "ay": 24,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": "props/arvore_rua_canopy",
+   "shadow": "fx/shadow_32",
+   "cast": {
+    "frame": "props/arvore_rua#cast",
+    "w": 75,
+    "h": 17,
+    "ax": 21,
+    "ay": 1
+   }
+  },
+  "props/arvore_rua_canopy": {
+   "atlas": "outdoor",
+   "frame": "props/arvore_rua_canopy/0",
+   "w": 44,
+   "h": 38,
+   "ax": 22,
+   "ay": 62,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": {
+    "frames": [
+     "props/arvore_rua_canopy/0",
+     "props/arvore_rua_canopy/1",
+     "props/arvore_rua_canopy/0",
+     "props/arvore_rua_canopy/2"
+    ],
+    "fps": 3
+   },
+   "overhead": true,
+   "shadow": null
   },
   "casas/sobrado_salmao": {
    "atlas": "outdoor",

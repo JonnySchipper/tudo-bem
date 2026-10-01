@@ -1,0 +1,36 @@
+{
+  "$comment": "Visual pass V2 (composition): tree variety, praça props, feira dressing, street dressing. Singles of the packs are addressed inline (sheet = 'ext:ME_Theme_Sorter_16x16/<dir>/<file>.png').",
+  "recolors": {
+    "ipe_roxo": {"#14655a": "#4a2a66", "#17704b": "#6a3a86", "#1c7d4d": "#8c4c9e", "#268b49": "#b061b4", "#21983d": "#cb82c6", "#49a92f": "#e3a8d6", "#6fbb49": "#f6cfe8"},
+    "ipe_branco": {"#14655a": "#6e5a70", "#17704b": "#94808f", "#1c7d4d": "#b8a5b0", "#268b49": "#d6c6cc", "#21983d": "#ebdfe2", "#49a92f": "#f7eeee", "#6fbb49": "#fffaf6"}
+  },
+  "sprites": [
+    {"key": "props/ipe_roxo_large", "kind": "tree", "sheet": "props", "rect": [435, 409, 42, 54], "cutY": 31, "baseY": 51, "recolor": "ipe_roxo", "footprint": [2, 2], "shadow": "fx/shadow_32", "cast": {"kx": 0.5, "ky": 0.22}},
+    {"key": "props/ipe_roxo_medium", "kind": "tree", "sheet": "props", "rect": [384, 355, 32, 45], "cutY": 27, "baseY": 43, "recolor": "ipe_roxo", "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": {"kx": 0.5, "ky": 0.22}},
+    {"key": "props/ipe_roxo_medium_b", "kind": "tree", "sheet": "props", "rect": [384, 355, 32, 45], "cutY": 27, "baseY": 43, "recolor": "ipe_roxo", "flip": true, "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": {"kx": 0.5, "ky": 0.22}},
+    {"key": "props/ipe_branco_large", "kind": "tree", "sheet": "props", "rect": [435, 409, 42, 54], "cutY": 31, "baseY": 51, "recolor": "ipe_branco", "footprint": [2, 2], "shadow": "fx/shadow_32", "cast": {"kx": 0.5, "ky": 0.22}},
+    {"key": "props/ipe_branco_medium", "kind": "tree", "sheet": "props", "rect": [384, 355, 32, 45], "cutY": 27, "baseY": 43, "recolor": "ipe_branco", "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": {"kx": 0.5, "ky": 0.22}},
+    {"key": "props/ipe_amarelo_medium_b", "kind": "tree", "sheet": "props", "rect": [384, 355, 32, 45], "cutY": 27, "baseY": 43, "recolor": "ipe", "flip": true, "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": {"kx": 0.5, "ky": 0.22}},
+    {"key": "props/figueira", "kind": "tree", "sheet": "ext:ME_Theme_Sorter_16x16/11_Camping_Singles_16x16/ME_Singles_Camping_16x16_Tree_157.png", "rect": [2, 11, 78, 84], "prep": ["stripGrass", 68], "cutY": 66, "baseY": 76, "footprint": [2, 1], "shadow": "fx/shadow_32", "cast": {"kx": 0.5, "ky": 0.22}},
+    {"key": "props/sibipiruna", "kind": "tree", "sheet": "ext:ME_Theme_Sorter_16x16/11_Camping_Singles_16x16/ME_Singles_Camping_16x16_Tree_133.png", "rect": [0, 3, 80, 45], "prep": ["stripGrass", 33], "cutY": 31, "baseY": 36, "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": {"kx": 0.5, "ky": 0.22}},
+    {"key": "props/oiti", "kind": "tree", "sheet": "ext:ME_Theme_Sorter_16x16/11_Camping_Singles_16x16/ME_Singles_Camping_16x16_Tree_98.png", "rect": [0, 0, 64, 66], "prep": ["stripGrass", 63], "cutY": 44, "baseY": 64, "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": {"kx": 0.5, "ky": 0.22}},
+    {"key": "props/jeriva", "kind": "tree", "sheet": "ext:ME_Theme_Sorter_16x16/21_Beach_Singles_16x16/21_Beach_16x16_Palm_Tree.png", "rect": [0, 8, 64, 70], "prep": ["stripRing", 56], "cutY": 42, "baseY": 68, "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": {"kx": 0.5, "ky": 0.22}},
+    {"key": "props/jeriva_b", "kind": "tree", "sheet": "ext:ME_Theme_Sorter_16x16/21_Beach_Singles_16x16/21_Beach_16x16_Palm_Tree.png", "rect": [0, 8, 64, 70], "prep": ["stripRing", 56], "cutY": 42, "baseY": 68, "flip": true, "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": {"kx": 0.5, "ky": 0.22}},
+    {"key": "props/coreto", "kind": "derive", "fn": "coreto", "footprint": [5, 3], "shadow": "fx/shadow_48", "cast": {"kx": 0.5, "ky": 0.25}},
+    {"key": "props/mesa_domino", "kind": "derive", "fn": "mesaDomino", "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": {"kx": 0.5, "ky": 0.25}},
+    {"key": "props/mesa_xadrez", "kind": "derive", "fn": "mesaXadrez", "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": {"kx": 0.5, "ky": 0.25}},
+    {"key": "props/banquinho", "kind": "derive", "fn": "banquinho", "footprint": [1, 1], "shadow": "fx/shadow_10"},
+    {"key": "props/busto", "kind": "derive", "fn": "busto", "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": {"kx": 0.5, "ky": 0.25}},
+    {"key": "props/canteiro_redondo", "kind": "derive", "fn": "canteiroRedondo", "footprint": [2, 2], "shadow": "fx/shadow_32"},
+    {"key": "props/canteiro_losango", "kind": "derive", "fn": "canteiroLosango", "footprint": [3, 2], "shadow": "fx/shadow_48"},
+    {"key": "props/pipoqueiro", "kind": "derive", "fn": "pipoqueiro", "footprint": [3, 1], "shadow": "fx/shadow_48", "cast": {"kx": 0.45, "ky": 0.22}},
+    {"key": "props/carrinho_coco", "kind": "derive", "fn": "cocoCart", "footprint": [3, 1], "shadow": "fx/shadow_48", "cast": {"kx": 0.45, "ky": 0.22}},
+    {"key": "props/bandeirinhas_a", "kind": "derive", "fn": "bandeirinhas", "args": {"w": 64, "key": "props/bandeirinhas_a_o"}, "footprint": [4, 1], "shadow": null},
+    {"key": "props/bandeirinhas_b", "kind": "derive", "fn": "bandeirinhas", "args": {"w": 96, "key": "props/bandeirinhas_b_o"}, "footprint": [6, 1], "shadow": null},
+    {"key": "props/revisteiro", "kind": "derive", "fn": "revisteiro", "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": {"kx": 0.5, "ky": 0.25}},
+    {"key": "vehicles/park_fusca_e", "kind": "derive", "fn": "parkedFusca", "footprint": [3, 1], "shadow": "fx/shadow_48"},
+    {"key": "vehicles/park_kombi_e", "kind": "derive", "fn": "parkedKombi", "footprint": [4, 1], "shadow": "fx/shadow_48"},
+    {"key": "vehicles/park_moto_e", "kind": "derive", "fn": "parkedMoto", "footprint": [2, 1], "shadow": "fx/shadow_32"},
+    {"key": "props/arvore_rua", "kind": "tree", "sheet": "ext:ME_Theme_Sorter_16x16/3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Tree_13.png", "rect": [3, 0, 42, 64], "cutY": 38, "baseY": 62, "footprint": [2, 1], "shadow": "fx/shadow_32", "cast": {"kx": 0.5, "ky": 0.22}}
+  ]
+}
