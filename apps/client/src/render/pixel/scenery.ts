@@ -166,8 +166,10 @@ const PATCH_PX: Record<string, [number, number]> = { light_0: [112, 64], light_1
  * whole patch lies on grass), a few worn dirt patches where lawns meet the paving, clover and blade tufts. All deterministic, nothing under a prop.
  */
 function grassDressing(def: RoomDef, add: (d: Decal) => void, at: (x: number, y: number) => string | undefined, occupied: Set<string>): void {
-  const onGrass = (px0: number, py0: number, px1: number, py1: number, free = false): boolean => {
-    for (let ty = Math.floor(py0 / T); ty <= Math.floor((py1 - 1) / T); ty++) for (let tx = Math.floor(px0 / T); tx <= Math.floor((px1 - 1) / T); tx++) if (at(tx, ty) !== 'g' || (free && occupied.has(`${tx},${ty}`))) return false;
+  // a soft tonal patch may lie under the lawn's props (they are drawn over it, and V2 filled the lawns with them) but not under another ground decal (sand, towels, trails)
+  const decalTiles = v2DecalTiles(def);
+  const onGrass = (px0: number, py0: number, px1: number, py1: number, busy?: Set<string>): boolean => {
+    for (let ty = Math.floor(py0 / T); ty <= Math.floor((py1 - 1) / T); ty++) for (let tx = Math.floor(px0 / T); tx <= Math.floor((px1 - 1) / T); tx++) if (at(tx, ty) !== 'g' || busy?.has(`${tx},${ty}`)) return false;
     return true;
   };
   // large soft patches: a jittered cell grid (3 x 3 tiles), one candidate per cell, kept when the patch body lies on grass and no other patch is near
@@ -178,13 +180,13 @@ function grassDressing(def: RoomDef, add: (d: Decal) => void, at: (x: number, y:
       const tone = rnd(cx, cy, 42) < 0.5 ? 'light' : 'dark';
       const k = Math.floor(rnd(cx, cy, 43) * 3);
       const [w, h] = PATCH_PX[`${tone}_${k}`];
-      // a few jittered tries: V2 put trees, beds and play gear on most lawns, so the first spot is often taken
+      // a few tries across the neighbourhood: V2 put trees, beds and play gear on most lawns, so the first spot is often taken
       let px = 0, py = 0, ok = false;
-      for (let a = 0; a < 6 && !ok; a++) {
-        px = Math.round((cx * 3 + 1.5 + (rnd(cx, cy, 44 + a * 7) - 0.5) * 2.4) * T);
-        py = Math.round((cy * 3 + 1.5 + (rnd(cx, cy, 45 + a * 7) - 0.5) * 2.4) * T);
+      for (let a = 0; a < 16 && !ok; a++) {
+        px = Math.round((cx * 3 + 1.5 + (rnd(cx, cy, 44 + a * 7) - 0.5) * 6) * T);
+        py = Math.round((cy * 3 + 1.5 + (rnd(cx, cy, 45 + a * 7) - 0.5) * 6) * T);
         // the dithered rim may touch the curb, the body (the inner 82%) must be all grass with nothing standing on it
-        ok = onGrass(px - w * 0.41, py - h * 0.41, px + w * 0.41, py + h * 0.41, true) && !placed.some((q) => Math.hypot(q.x - px, q.y - py) < 3.8 * T);
+        ok = onGrass(px - w * 0.41, py - h * 0.41, px + w * 0.41, py + h * 0.41, decalTiles) && !placed.some((q) => Math.hypot(q.x - px, q.y - py) < 3.8 * T);
       }
       if (!ok) continue;
       placed.push({ x: px, y: py });

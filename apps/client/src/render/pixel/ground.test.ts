@@ -32,7 +32,9 @@ describe('V1 ground scenery', () => {
 
   it('the lawn dressing (patches, dirt, clover, tufts) lies on grass only', () => {
     const dressing = sc.decals.filter((d) => /grass_|dirt_|clover|gtuft/.test(d.key));
-    expect(dressing.length).toBeGreaterThan(40);
+    // the amount follows the lawn area (V2 turned the feira lot to asphalt and filled the lawns with props): at least one piece per 14 grass tiles
+    const grassTiles = vila.floor.reduce((n, row) => n + [...row].filter((c) => c === 'g').length, 0);
+    expect(dressing.length).toBeGreaterThan(grassTiles / 14);
     for (const d of dressing) {
       const sd = manifest.sprites[d.key];
       const x0 = d.origin === 'tl' ? d.x : d.x - sd.ax, y0 = d.origin === 'tl' ? d.y : d.y - sd.ay;
