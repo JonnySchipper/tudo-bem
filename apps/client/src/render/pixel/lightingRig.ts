@@ -10,6 +10,7 @@
 import Phaser from 'phaser';
 import { rgbToInt } from './lighting';
 import { hourLook, type SceneLook } from './dayNight';
+import type { ShadowLayer } from './shadowLayer';
 
 /** A light colour pulled toward white by `1 - k`: the multiply tint of an amber pool on the night grade. */
 export function warmPool(color: number, k: number): number {
@@ -50,6 +51,9 @@ export class LightingRig {
   panes: Phaser.GameObjects.Rectangle[] = [];
   /** cast-shadow sprites (fade out as it gets dark) */
   castShadows: Phaser.GameObjects.Image[] = [];
+  /** V5: the directional shadow layer (set by the scene); while it draws, the baked cast shadows above are hidden (`bakedCast` false) */
+  shadows: ShadowLayer | null = null;
+  bakedCast = true;
   private grade: Phaser.GameObjects.RenderTexture;
   private fill: Phaser.GameObjects.Rectangle;
   private dark: Phaser.GameObjects.RenderTexture;
@@ -118,7 +122,7 @@ export class LightingRig {
   apply(lookOrHour: SceneLook | number, zoom: number, toScreen: (wx: number, wy: number) => [number, number]): void {
     const look = typeof lookOrHour === 'number' ? hourLook(lookOrHour) : lookOrHour;
     const dark = look.dark;
-    for (const c of this.castShadows) c.setAlpha(look.cast);
+    for (const c of this.castShadows) c.setAlpha(this.bakedCast ? look.cast : 0);
     const strengthOf = (l: Light) => {
       if (l.kind === 'player') return look.playerGlow;
       if (l.kind === 'car') return look.glow * (l.live ?? 0);

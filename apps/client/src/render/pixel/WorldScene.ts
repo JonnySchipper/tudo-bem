@@ -24,6 +24,7 @@ import { LightingRig, type Light } from './lightingRig';
 import { computeLook, isOutdoor, lightDelay, windowPanes, type SceneLook } from './dayNight';
 import { WeatherBlend, type FxLevel } from './weatherLook';
 import { WeatherFx } from './weatherFx';
+import { ShadowLayer, type ShadowHandle } from './shadowLayer';
 import { AmbientLife, ambientHandlesProp } from './ambient';
 import { ZoneFeed } from '../../audio/zonesFeed';
 import { FrameProbe, LowFxGovernor, reducedMotion } from './perf';
@@ -149,6 +150,10 @@ export class WorldScene extends Phaser.Scene {
   hitBoxes: HitBox[] = [];
 
   private rig!: LightingRig;
+  /** V5: directional cast shadows (outdoor rooms; interiors keep their baked ones) */
+  private shadows!: ShadowLayer;
+  private roomOutdoor = false;
+  private lastShadow: ShadowHandle | null = null;
   // Phase 6a: live clock, weather, performance fallback
   private weatherFx!: WeatherFx;
   private ambient!: AmbientLife;
@@ -213,6 +218,8 @@ export class WorldScene extends Phaser.Scene {
     cam.setBackgroundColor('#1d1b26');
     cam.setRoundPixels(true);
     this.rig = new LightingRig(this, cam, 'fx:glow');
+    this.shadows = new ShadowLayer(this, this.rig);
+    this.rig.shadows = this.shadows;
     this.sheets = new CharSheets({
       add: (key, look) => addSheetTexture(this, key, composeLook(this.assets, look), this.m.sheet),
       remove: (key) => {
@@ -264,6 +271,7 @@ export class WorldScene extends Phaser.Scene {
     const y = Math.round(wy);
     const spr = this.reg(this.add.sprite(x, y, d.atlas, d.frame)).setOrigin(...originOf(d)).setDepth(depth);
     if (d.anim) spr.play({ key: ensureAnim(this, key, d), startFrame: Math.floor(hash01(x * 31 + y) * d.anim.frames.length) });
+    this.lastShadow = shadow && this.roomOutdoor ? this.shadows.addStatic(key, d, x, y) : null;
     if (shadow) {
       if (d.cast) {
         const c = this.reg(this.add.image(x, y, d.atlas, d.cast.frame)).setOrigin(d.cast.ax / d.cast.w, d.cast.ay / d.cast.h).setDepth(DEPTH.shadowCast);
@@ -291,11 +299,13 @@ export class WorldScene extends Phaser.Scene {
     // furniture rectangles were registered with the room objects
     this.furniture.clear();
     this.rig.clearRoom();
+    this.shadows?.clearRoom();
     this.weatherFx?.clearRoom();
   }
 
   private buildRoom(def: RoomDef): void {
     this.destroyRoom();
+    this.roomOutdoor = isOutdoor(def);
     const m = this.m;
     const has = (k: string) => !!m.sprites[k];
     const missingBefore = this.artMissing.length;
@@ -499,7 +509,9 @@ export class WorldScene extends Phaser.Scene {
       }
     } else if (artKey && d) {
       const main = this.sprite(artKey, a.wx, a.wy, depth);
-      const feiraEntry = p.kind === 'feira' ? { open: main ? [main] : [], closed: [] as Phaser.GameObjects.GameObject[], isOpen: null as boolean | null } : null;
+      const mainShadow = this.lastShadow;
+      const feiraEntry = p.kind === 'feira' ? { open: (main ? [main] : []) as Phaser.GameObjects.GameObject[], closed: [] as Phaser.GameObjects.GameObject[], isOpen: null as boolean | null } : null;
+      if (feiraEntry && mainShadow) feiraEntry.open.push(mainShadow as unknown as Phaser.GameObjects.GameObject);
       if (p.kind === 'barraca_chapeus') this.stall = { main, canopy: null, wx: a.wx, wy: a.wy, closed: false };
       if (p.kind === 'trilho_pedidos' && main && d.anim) {
         // the ticket rail is still until Me vê um opens (updateTrilho)
@@ -525,6 +537,8 @@ export class WorldScene extends Phaser.Scene {
         if (od.anim) spr.play({ key: ensureAnim(this, d.overhead, od), startFrame: Math.floor(hash01(x * 7 + y) * 4) });
         if (p.kind === 'barraca_chapeus' && this.stall) this.stall.canopy = spr;
         feiraEntry?.open.push(spr);
+        const canopyShadow = this.roomOutdoor ? this.shadows.addStatic(d.overhead, od, x, y) : null;
+        if (feiraEntry && canopyShadow) feiraEntry.open.push(canopyShadow as unknown as Phaser.GameObjects.GameObject);
         const left = x - od.ax;
         const top = y - od.ay;
         this.canopies.push({ sprite: spr, r: { x0: left, y0: top + 8, x1: left + od.w, y1: top + od.h + 14 }, fade: 1, stall: p.kind === 'feira' || p.kind === 'barraca_chapeus' });
@@ -559,11 +573,15 @@ export class WorldScene extends Phaser.Scene {
     }
     const main = this.sprite(ck, a.wx, a.wy, depth, false);
     if (main) entry.closed.push(main);
+    const closedShadow = main && this.roomOutdoor ? this.shadows.addStatic(ck, cd, a.wx, a.wy) : null;
+    if (closedShadow) entry.closed.push(closedShadow as unknown as Phaser.GameObjects.GameObject);
     if (typeof cd.overhead === 'string' && this.m.sprites[cd.overhead]) {
       const od = this.m.sprites[cd.overhead];
       const x = Math.round(a.wx);
       const y = Math.round(a.wy);
       entry.closed.push(this.reg(this.add.sprite(x, y, od.atlas, od.frame)).setOrigin(...originOf(od)).setDepth(DEPTH.overhead + y / 1000));
+      const rollShadow = this.roomOutdoor ? this.shadows.addStatic(cd.overhead, od, x, y) : null;
+      if (rollShadow) entry.closed.push(rollShadow as unknown as Phaser.GameObjects.GameObject);
     }
     this.feiraStalls.push(entry);
   }
@@ -715,7 +733,11 @@ export class WorldScene extends Phaser.Scene {
     const people = [...this.avatars.values()].map((v) => ({ x: v.wx, y: v.wy }));
     this.ambient.update({ dt, t: Date.now() + clock.skewMs, minute: clock.minutesExact(), params, dark: look.dark, people, cam: this.cameras.main });
     this.zoneFeed.update(def, me ? { x: me.wx, y: me.wy, moving: me.moving } : null, clock.minutes(), params.rain, performance.now());
+    // V5: the sun's shadows draw in outdoor rooms unless low-fx dropped them (then the baked cast shadows are used)
+    const dyn = this.outdoor && !this.fxLevel.lowfx;
+    this.rig.bakedCast = !dyn;
     this.rig.apply(look, this.cameras.main.zoom, (wx, wy) => this.toDevice(wx, wy));
+    this.shadows.update(look.shadow, dyn, 1);
     this.weatherFx.update({ dt, zoom: this.cameras.main.zoom, w: this.scale.width, h: this.scale.height, params, night: look.night, outdoor: this.outdoor, cam: this.cameras.main });
   }
 
@@ -869,6 +891,7 @@ export class WorldScene extends Phaser.Scene {
     const sprite = this.rig.world(this.add.sprite(0, 0, sheet, 0)).setOrigin(0.5, 1);
     const s16 = this.m.sprites['fx/shadow_16'];
     const shadow = this.rig.world(this.add.image(0, 0, s16.atlas, s16.frame)).setOrigin(...originOf(s16)).setDepth(DEPTH.shadowContact);
+    this.shadows.follow(sprite, 'chars/avatar', { frame: 0 });
     return { sprite, shadow, sheet, appearance: a.pub.appearance, hat: a.pub.hat, look, parrot: null, anim: '', facing: 'S', wx: 0, wy: 0, lastX: Number.NaN, lastY: 0, sitting: false, moving: false };
   }
 
@@ -932,6 +955,7 @@ export class WorldScene extends Phaser.Scene {
     // sitters draw just above what they sit on (the bench's bottom edge is the tile's bottom edge)
     const depth = sitting ? (pos.tile.y + 1) * T + 0.5 : standingDepth(f.wy, a.pub.id);
     v.sprite.setDepth(depth);
+    this.shadows.setFollowScale(v.sprite, sitting ? 0.62 : 1);
 
     const idleAnim = v.look.idle.anim === 'phone' && facing === 'S' ? 'phone' : 'idle';
     const animName = sitting ? `sit:${facing}` : pos.moving ? `walk:${facing}` : emote ? `emote:${emote}` : `${idleAnim}:${facing}`;

@@ -204,6 +204,7 @@ export class AmbientLife {
       const spr = this.reg(this.scene.add.sprite(sim.x, sim.y, sd.atlas, sd.frame)).setOrigin(...originOf(sd));
       const shadow = this.reg(this.scene.add.image(sim.x, sim.y - 1, this.m.sprites['fx/shadow_16'].atlas, this.m.sprites['fx/shadow_16'].frame)).setOrigin(...originOf(this.m.sprites['fx/shadow_16'])).setDepth(DEPTH.shadowContact);
       this.dog = { sim, spr, shadow, key: '' };
+      this.rig.shadows?.follow(spr, 'critters/dog');
     }
     // pigeons
     const pd = this.def_('critters/pigeon');
@@ -370,6 +371,7 @@ export class AmbientLife {
   private spawnVehicle(v: Vehicle, d: SpriteDef): VehView {
     const spr = this.reg(this.scene.add.sprite(v.x, v.laneY, d.atlas, d.frame)).setOrigin(...originOf(d));
     if (d.anim) spr.play({ key: ensureAnim(this.scene, v.key, d), startFrame: Math.floor(unit(v.x | 0, 3, 91) * 2) });
+    this.rig.shadows?.follow(spr, v.key);
     const sd = d.shadow ? this.m.sprites[d.shadow] : null;
     const shadows: Phaser.GameObjects.Image[] = [];
     if (sd) {
