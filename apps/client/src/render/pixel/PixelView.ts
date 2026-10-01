@@ -78,6 +78,36 @@ export class PixelView implements WorldView {
       scene: [scene],
     });
     this.scene = scene;
+    this.watchContext();
+  }
+
+  /**
+   * A lost WebGL context leaves a blank canvas (the GPU reclaimed it, or a driver reset). It should not happen, but never fail silently: say so
+   * and offer a reload instead of a dark world with only the labels on it.
+   */
+  private watchContext(): void {
+    this.canvas.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      console.error('[pixel] WebGL context lost');
+      showWorldLost();
+    });
+    // an exception inside Phaser's render stops its loop for good (a frozen, blank world): a watchdog sees the frame counter stand still
+    let last = -1;
+    let still = 0;
+    window.setInterval(() => {
+      const g = this.phaser;
+      if (!g || document.hidden || !game.room) {
+        still = 0;
+        return;
+      }
+      const f = g.loop.frame;
+      still = f === last ? still + 1 : 0;
+      last = f;
+      if (still >= 3) {
+        console.error('[pixel] render loop stopped');
+        showWorldLost();
+      }
+    }, 2000);
   }
 
   /** HUD space to keep clear of the avatar (same numbers as the iso renderer). */
@@ -160,6 +190,20 @@ export class PixelView implements WorldView {
     return this.scene?.ambientHook() ?? null;
   }
 
+  /** Texture bookkeeping for the soak script (`window.__tb.renderer.textureInfo()`): how many textures Phaser holds, and the shadow atlas. */
+  textureInfo() {
+    const g = this.phaser;
+    if (!g) return null;
+    const list = g.textures.list as Record<string, Phaser.Textures.Texture>;
+    const gl = (g.renderer as Phaser.Renderer.WebGL.WebGLRenderer).gl;
+    return {
+      count: Object.keys(list).length,
+      shadowAtlas: list['shadowAtlas'] ? `${list['shadowAtlas'].source[0].width}x${list['shadowAtlas'].source[0].height}` : null,
+      maxTextureSize: gl ? (gl.getParameter(gl.MAX_TEXTURE_SIZE) as number) : null,
+      lost: gl ? gl.isContextLost() : null,
+    };
+  }
+
   /** Frame-time probe and fx level (`window.__tb.perf`). */
   perf() {
     return this.scene?.perfInfo() ?? null;
@@ -173,5 +217,28 @@ export class PixelView implements WorldView {
   /** For debugging and the shots script. */
   info() {
     return this.scene?.info() ?? null;
+  }
+}
+
+/** The "recarregar" overlay shown when the world can no longer draw (lost WebGL context, stopped render loop): never a silent blank world. */
+export function showWorldLost(): void {
+  {
+      if (document.getElementById('gl-lost')) return;
+      const box = document.createElement('div');
+      box.id = 'gl-lost';
+      box.setAttribute('role', 'alert');
+      box.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#1d1b26;color:#f5e6d3;font:600 18px/1.4 system-ui,sans-serif;text-align:center;padding:24px';
+      const t = document.createElement('div');
+      t.textContent = 'A imagem do mundo parou. Recarregue a página para voltar à praça.';
+      const en = document.createElement('div');
+      en.style.cssText = 'font-size:14px;opacity:.7;font-weight:500';
+      en.textContent = 'The world view stopped. Reload the page to get back to the praça.';
+      const b = document.createElement('button');
+      b.id = 'gl-lost-reload';
+      b.textContent = 'Recarregar';
+      b.style.cssText = 'padding:10px 22px;border:0;border-radius:6px;background:#d4a017;color:#2a2233;font:700 16px system-ui,sans-serif;cursor:pointer';
+      b.onclick = () => location.reload();
+      box.append(t, en, b);
+      document.body.append(box);
   }
 }

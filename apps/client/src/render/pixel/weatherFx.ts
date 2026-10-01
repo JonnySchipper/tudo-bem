@@ -8,10 +8,11 @@
  */
 import Phaser from 'phaser';
 import type { RoomDef } from '@tudobem/shared';
-import type { LightingRig } from './lightingRig';
+import type { LightingRig, Light } from './lightingRig';
 import { hashPos01, isOutdoor } from './dayNight';
 import { MAX_PUDDLES, PUDDLE_DENSITY, rainColor, rainPlan, type FxLevel, type WeatherParams } from './weatherLook';
 import { rgbToInt } from './lighting';
+import { v5on } from './v5flags';
 
 const T = 16;
 const DEPTH_RAIN = 2.6;
@@ -41,6 +42,8 @@ interface Splash {
 }
 
 interface Puddle {
+  /** the lamp or window this puddle mirrors at night, with how close it is (0..1) */
+  mirror?: { light: Light; k: number; img: Phaser.GameObjects.Image };
   img: Phaser.GameObjects.Image;
   cx: number;
   cy: number;
@@ -56,6 +59,10 @@ interface Ripple {
 }
 
 export interface WeatherFrame {
+  /** schedule of a light by its delay (puddles mirror the lamps that are on) */
+  lampOn: (delay: number) => number;
+  /** 0..1 wet ground */
+  wet: number;
   dt: number;
   /** integer device zoom of the main camera */
   zoom: number;
@@ -198,7 +205,23 @@ export class WeatherFx {
       const cx = Math.round((c.x + 0.3 + 0.4 * r1) * T);
       const cy = Math.round((c.y + 0.4 + 0.3 * r2) * T);
       const img = this.rig.world(this.scene.add.image(cx, cy, `wx:puddle${size}_${r3 < 0.5 ? 0 : 1}`)).setDepth(DEPTH_PUDDLE).setAlpha(0);
-      this.puddles.push({ img, cx, cy, w, h });
+      const p: Puddle = { img, cx, cy, w, h };
+      // night: the nearest lamp or window light mirrors in this puddle (an ADD copy of the puddle in the light's colour)
+      let best: Light | null = null;
+      let bd = 78;
+      for (const l of this.rig.lights) {
+        if (l.kind !== 'lamp' && l.kind !== 'window' && l.kind !== 'stall') continue;
+        const d = Math.hypot(l.x - cx, (l.y - cy) * 0.8);
+        if (d < bd) {
+          bd = d;
+          best = l;
+        }
+      }
+      if (best) {
+        const mi = this.rig.world(this.scene.add.image(cx, cy, `wx:puddle${size}_${r3 < 0.5 ? 0 : 1}`)).setBlendMode(Phaser.BlendModes.ADD).setDepth(DEPTH_PUDDLE + 1).setAlpha(0).setTint(best.color);
+        p.mirror = { light: best, k: 1 - bd / 78, img: mi };
+      }
+      this.puddles.push(p);
     }
     for (let i = 0; i < 14; i++) {
       const img = this.rig.world(this.scene.add.image(0, 0, 'wx:ripple0')).setDepth(DEPTH_RIPPLE).setVisible(false);
@@ -248,7 +271,10 @@ export class WeatherFx {
   }
 
   clearRoom(): void {
-    for (const p of this.puddles) p.img.destroy();
+    for (const p of this.puddles) {
+      p.img.destroy();
+      p.mirror?.img.destroy();
+    }
     for (const r of this.ripples) r.img.destroy();
     this.puddles = [];
     this.ripples = [];
@@ -278,7 +304,15 @@ export class WeatherFx {
     // puddles follow the weather; ripples need them wet
     const wet = f.params.puddles * (f.outdoor ? 1 : 0);
     const pa = Math.min(1, wet) * 0.92;
-    for (const p of this.puddles) p.img.setAlpha(pa);
+    for (const p of this.puddles) {
+      p.img.setAlpha(pa);
+      if (p.mirror) {
+        const l = p.mirror.light;
+        const on = l.delay === undefined ? Math.min(1, f.night * 2) : f.lampOn(l.delay);
+        const a = !v5on('mirror') ? 0 : on * Math.min(1, wet) * Math.min(1, f.night * 1.6) * (0.35 + 0.65 * p.mirror.k) * 0.7;
+        p.mirror.img.setAlpha(a).setVisible(a > 0.01);
+      }
+    }
 
     this.updateDrops(f, plan);
     this.updateSplashes(f, plan);

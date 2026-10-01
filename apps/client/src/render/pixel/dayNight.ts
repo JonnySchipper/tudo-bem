@@ -11,6 +11,7 @@ import { darknessAlpha, glowStrength, gradeAt, rgbToInt, shadowFill, sunGlow, ty
 import { weatherGrade, type WeatherParams } from './weatherLook';
 import { T, type Rect } from './coords';
 import { allNorthDecor, decorArt } from './roomLayout';
+import { rimLook, shadowLook, type RimSpec, type ShadowLook } from './shadows';
 
 /** Game minute the lights switch on / off. */
 export const LIGHTS_ON_MIN = 18 * 60;
@@ -101,8 +102,19 @@ export interface SceneLook {
   glow: number;
   /** alpha of the low-sun glow */
   sun: number;
+  /** V5: where the low-sun glow sits (0..1 across the screen: the side the sun is on) and its colour */
+  sunX: number;
+  sunTint: number;
   /** alpha of the sun-cast shadows */
   cast: number;
+  /** V5: the sun's directional shadows (shear, strength, tint); alpha 0 in interiors, at night and under chuva */
+  shadow: ShadowLook;
+  /** V5: strength (0..1) of the ambient occlusion layer: stronger under an overcast sky, weaker at night, 0 in interiors */
+  ao: number;
+  /** V5: the sun's warm edge light on whatever faces it (alpha 0 = none) */
+  rim: RimSpec;
+  /** V5: 0..1 wet ground (outdoor rooms only) */
+  wet: number;
   /** alpha and tint of the window light patches on the floor */
   patchAlpha: number;
   patchTint: number;
@@ -128,6 +140,14 @@ export const NIGHT_DARK = 0.5;
 
 /** Moonlight tint for the window patches at night. */
 const MOON_TINT: Rgb = [0x8a, 0xa4, 0xec];
+
+/** Peak alpha of the warm low-sun glow (the ADD haze over the whole screen at golden hour and dawn). */
+export const SUN_GLOW = 0.3;
+
+/** Where the sun's glow sits across the screen for a shadow bearing: the sun is opposite its shadows (afternoon: left, morning: right). */
+export function sunScreenX(bearingDeg: number): number {
+  return Math.min(0.96, Math.max(0.04, 0.5 - 0.62 * Math.sin((bearingDeg * Math.PI) / 180)));
+}
 
 /** Everything the lighting rig draws for one frame. */
 export function computeLook(inp: LookInput): SceneLook {
@@ -156,7 +176,13 @@ export function computeLook(inp: LookInput): SceneLook {
       playerGlow: 0,
       glow: 0,
       sun: sunGlow(inp.roomHour) * 0.2,
+      sunX: 0.12,
+      sunTint: 0xffb867,
       cast: 1,
+      shadow: { ...shadowLook(inp.roomHour, 1), alpha: 0 },
+      ao: 0,
+      wet: 0,
+      rim: { side: 'l', alpha: 0, tint: 0xffa05a },
       patchAlpha,
       patchTint,
       windowNight,
@@ -166,15 +192,22 @@ export function computeLook(inp: LookInput): SceneLook {
 
   const gloom = w.gloom * (1 - night);
   const sf = shadowFill(liveHour);
+  const grade = weatherGrade(gradeAt(liveHour), w, night);
   return {
-    grade: weatherGrade(gradeAt(liveHour), w, night),
+    grade,
     fill: { color: sf.color, alpha: sf.alpha * (0.5 + 0.5 * w.sun) },
     dark: dark0 + gloom * (1 - dark0),
     night,
     playerGlow: Math.min(1, dark0 / 0.35),
     glow: Math.max(glowStrength(liveHour), w.rain * 0.7),
-    sun: sunGlow(liveHour) * 0.2 * w.sun,
+    sun: sunGlow(liveHour) * SUN_GLOW * w.sun,
+    sunX: sunScreenX(shadowLook(liveHour, 1).bearing),
+    sunTint: liveHour < 12 ? 0xffb2a6 : 0xffb25e,
     cast: Math.max(0.15, 1 - dark0 * 1.1) * w.sun,
+    shadow: shadowLook(liveHour, w.sun, grade),
+    ao: (0.8 + 0.2 * (1 - w.sun)) * (1 - 0.5 * night),
+    wet: w.wet,
+    rim: rimLook(shadowLook(liveHour, w.sun, grade)),
     patchAlpha,
     patchTint,
     windowNight,
@@ -195,8 +228,14 @@ export function hourLook(hour: number): SceneLook {
     playerGlow: Math.min(1, dark / 0.35),
     glow: gs,
     sun: sunGlow(hour) * 0.2,
+    sunX: 0.12,
+    sunTint: 0xffb867,
     cast: Math.max(0.15, 1 - dark * 1.1),
-    patchAlpha: Math.max(0, 1 - dark * 2.5),
+    shadow: shadowLook(hour, 1),
+    ao: 0.8 * (1 - 0.5 * (dark / 0.55)),
+    wet: 0,
+    rim: rimLook(shadowLook(hour, 1)),
+    patchAlpha:Math.max(0, 1 - dark * 2.5),
     patchTint: 0xffffff,
     windowNight: 0,
     lampOn: () => gs,

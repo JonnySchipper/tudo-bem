@@ -10,6 +10,8 @@
 import Phaser from 'phaser';
 import { rgbToInt } from './lighting';
 import { hourLook, type SceneLook } from './dayNight';
+import type { ShadowLayer } from './shadowLayer';
+import { v5on } from './v5flags';
 
 /** A light colour pulled toward white by `1 - k`: the multiply tint of an amber pool on the night grade. */
 export function warmPool(color: number, k: number): number {
@@ -34,6 +36,8 @@ export interface Light {
   glow?: number;
   /** game minutes this light lags the 18:00 / 06:00 switch (`dayNight.lightDelay`); unset = follows the general glow */
   delay?: number;
+  /** V5: world px below the light where its reflection in wet pavement appears (a lamp head mirrored over the ground); unset = no reflection */
+  mirror?: number;
 }
 
 export class LightingRig {
@@ -50,11 +54,16 @@ export class LightingRig {
   panes: Phaser.GameObjects.Rectangle[] = [];
   /** cast-shadow sprites (fade out as it gets dark) */
   castShadows: Phaser.GameObjects.Image[] = [];
+  /** V5: the directional shadow layer (set by the scene); while it draws, the baked cast shadows above are hidden (`bakedCast` false) */
+  shadows: ShadowLayer | null = null;
+  bakedCast = true;
   private grade: Phaser.GameObjects.RenderTexture;
   private fill: Phaser.GameObjects.Rectangle;
   private dark: Phaser.GameObjects.RenderTexture;
   private sun: Phaser.GameObjects.Image;
   private glowSprites: Phaser.GameObjects.Image[] = [];
+  /** wet-pavement reflections of the lights that have a `mirror` */
+  private reflSprites: Phaser.GameObjects.Image[] = [];
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -91,6 +100,10 @@ export class LightingRig {
       this.glowSprites.push(this.screen(this.scene.add.image(0, 0, this.glowKey)).setBlendMode(Phaser.BlendModes.ADD).setDepth(3).setAlpha(0));
     }
     while (this.glowSprites.length > this.lights.length) this.glowSprites.pop()?.destroy();
+    while (this.reflSprites.length < this.lights.length) {
+      this.reflSprites.push(this.screen(this.scene.add.image(0, 0, this.glowKey)).setBlendMode(Phaser.BlendModes.ADD).setDepth(3.1).setAlpha(0).setVisible(false));
+    }
+    while (this.reflSprites.length > this.lights.length) this.reflSprites.pop()?.destroy();
   }
 
   /** Forget every light, overlay and shadow registered by a room (the room is being rebuilt; the objects themselves are destroyed by the caller). */
@@ -118,7 +131,8 @@ export class LightingRig {
   apply(lookOrHour: SceneLook | number, zoom: number, toScreen: (wx: number, wy: number) => [number, number]): void {
     const look = typeof lookOrHour === 'number' ? hourLook(lookOrHour) : lookOrHour;
     const dark = look.dark;
-    for (const c of this.castShadows) c.setAlpha(look.cast);
+    const now = this.scene.time.now;
+    for (const c of this.castShadows) c.setAlpha(this.bakedCast ? look.cast : 0);
     const strengthOf = (l: Light) => {
       if (l.kind === 'player') return look.playerGlow;
       if (l.kind === 'car') return look.glow * (l.live ?? 0);
@@ -152,11 +166,20 @@ export class LightingRig {
       }
       const glowAlpha = l.glow ?? (l.kind === 'window' ? 0.3 : l.kind === 'stall' ? 0.3 : l.kind === 'player' ? 0.22 : l.kind === 'car' ? 0.3 : 0.42);
       g.setPosition(sx, sy).setScale(px, px * l.squash).setTint(l.color).setAlpha(s * glowAlpha);
+      // wet pavement mirrors the lamp: a tall, narrow, shimmering streak below the foot of the pole
+      const rf = this.reflSprites[i];
+      if (rf) {
+        const ra = l.mirror && look.wet > 0.05 && v5on('refl') ? s * look.wet * Math.min(1, look.night * 1.6) * 0.5 * (0.82 + 0.18 * Math.sin(now / 260 + i * 2.1)) : 0;
+        if (ra > 0.01) {
+          const wob = Math.sin(now / 420 + i) * 1.2 * zoom;
+          rf.setPosition(sx + wob, sy + (l.mirror ?? 0) * zoom).setScale(px * 0.2, px * 0.85).setTint(l.color).setAlpha(ra).setVisible(true);
+        } else if (rf.visible) rf.setVisible(false);
+      }
     });
     for (const r of this.windowRects) r.setAlpha(look.glow * 0.6);
     // low sun: a big warm glow from the upper left (adds warmth and shows the light direction without darkening the scene)
     const sw = this.scene.scale.width;
     const sh = this.scene.scale.height;
-    this.sun.setPosition(sw * 0.12, -sh * 0.08).setScale((Math.max(sw, sh) * 2.1) / 128).setAlpha(look.sun);
+    this.sun.setPosition(sw * look.sunX, -sh * 0.1).setScale((Math.max(sw, sh) * 2.1) / 128).setAlpha(look.sun).setTint(look.sunTint);
   }
 }
