@@ -25,7 +25,7 @@ const VIEWS = [
 ];
 const SCENES = [
   { name: '19:30 chuva, street, traffic + bus', time: '19:30', at: [25, 12], bus: true },
-  { name: '12:30 chuva, feira open, shoppers', time: '12:30', at: [45, 19], bus: false },
+  { name: '12:30 chuva, feira open, shoppers', time: '12:30', at: [45, 20], bus: false },
 ];
 const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });
 for (const v of VIEWS) {

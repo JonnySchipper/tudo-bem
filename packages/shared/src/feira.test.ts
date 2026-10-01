@@ -225,13 +225,14 @@ describe('hours and the vendors on the map', () => {
     expect(scheduleAt('tia_lu', 14 * 60)!.activity).toBe('sentado');
     expect(scheduleAt('ze', 14 * 60)!.activity).toBe('em_casa');
   });
-  it('each stall is a prop with its vendor, the vendor stands behind it and the customer spot is in front', () => {
+  it('each stall is a prop with its vendor, the vendor stands in front of it (V2) and the customer spot is one tile further', () => {
     const stalls = ROOMS.praca.props.filter((p) => p.kind === 'feira');
     expect(stalls.map((p) => p.vendor).sort()).toEqual(['chico', 'rosa', 'tia_lu', 'ze']);
     for (const p of stalls) {
       const npc = ALL_NPCS.find((n) => n.id === VENDORS[p.vendor!].npc)!;
-      expect(npc.y, p.id).toBeLessThan(p.y);
-      expect(p.interact!.y, p.id).toBe(p.y + 2);
+      expect(npc.y, p.id).toBe(p.y + 2); // in front of the counter, facing the aisle
+      expect(npc.x, p.id).toBe(p.x + 1);
+      expect(p.interact!.y, p.id).toBe(p.y + 3);
       expect(npc.interact, p.id).toEqual(p.interact);
       expect(`feira/${goodArt(p.vendor!)}`, p.id).toBe(p.art);
     }

@@ -74,8 +74,8 @@ const JULIA: ScheduleSlot[] = [
 ];
 
 // The feira vendors (Phase 9): at their stall while the feira is open (06:00-13:00), home otherwise. Tia Lu rests on a bench in the praça
-// in the afternoon (banco_4; Carlos has banco_2 at night, Júlia banco_3 in the evening). The stall tiles are behind each stall, the
-// interact tiles in front (see `feiraStall` in rooms.ts).
+// in the afternoon (banco_4; Carlos has banco_2 at night, Júlia banco_3 in the evening). The vendor stands in FRONT of the stall (V2: visible,
+// facing the aisle), customers talk from the tile after (see `feiraStall` in rooms.ts).
 const FEIRA_FROM = at(6);
 const FEIRA_TO = at(13);
 function vendor(npc: NpcId, tile: Tile, interact: Tile): ScheduleSlot[] {
@@ -87,13 +87,13 @@ function vendor(npc: NpcId, tile: Tile, interact: Tile): ScheduleSlot[] {
 }
 const TIA_LU: ScheduleSlot[] = [
   slot('tia_lu', at(0), FEIRA_FROM, 'praca', HOME_PRACA, 'SW', 'em_casa'),
-  slot('tia_lu', FEIRA_FROM, FEIRA_TO, 'praca', { x: 45, y: 16 }, 'SW', 'trabalhando', { x: 45, y: 19 }),
+  slot('tia_lu', FEIRA_FROM, FEIRA_TO, 'praca', { x: 45, y: 19 }, 'SW', 'trabalhando', { x: 45, y: 20 }),
   slot('tia_lu', FEIRA_TO, at(17), 'praca', { x: 28, y: 25 }, 'SW', 'sentado', { x: 28, y: 26 }),
   slot('tia_lu', at(17), at(24), 'praca', HOME_PRACA, 'SW', 'em_casa'),
 ];
-const ZE = vendor('ze', { x: 51, y: 16 }, { x: 51, y: 19 });
-const CHICO = vendor('chico', { x: 45, y: 23 }, { x: 45, y: 26 });
-const ROSA = vendor('rosa', { x: 51, y: 23 }, { x: 51, y: 26 });
+const ZE = vendor('ze', { x: 51, y: 19 }, { x: 51, y: 20 });
+const CHICO = vendor('chico', { x: 45, y: 26 }, { x: 45, y: 27 });
+const ROSA = vendor('rosa', { x: 51, y: 26 }, { x: 51, y: 27 });
 
 /** Schedules by NPC. An NPC with no entry (Professora Bia) stands at its room's `x, y` at every hour. */
 export const SCHEDULES: Partial<Record<NpcId, ScheduleSlot[]>> = {

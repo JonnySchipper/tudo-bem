@@ -81,8 +81,10 @@ describe('Vila Ipê (room id praca)', () => {
     expect(floorAt(praca, 30, 7)).toBe('calcada');
     expect(floorAt(praca, 30, 12)).toBe('calcada');
     expect(floorAt(praca, 25, 15)).toBe('tijolo');
-    expect(floorAt(praca, 52, 15)).toBe('grama');
-    expect(floorAt(praca, 45, 21)).toBe('tijolo'); // the feira's brick aisle from the gate
+    expect(floorAt(praca, 15, 16)).toBe('grama'); // the praça lawns
+    expect(floorAt(praca, 52, 15)).toBe('asfalto'); // V2: the lot is paved
+    expect(floorAt(praca, 41, 21)).toBe('tijolo'); // the gate stands on the brick bar
+    expect(floorAt(praca, 45, 21)).toBe('asfalto'); // V2: the feira is a closed street
   });
 
   it('keeps props inside the map and off each other (blocking props never overlap, but the newsstand in front of its wall)', () => {

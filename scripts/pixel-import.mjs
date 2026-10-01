@@ -31,7 +31,7 @@ import { patchSign, findGlass } from '../apps/client/assets-src/custom/shop.mjs'
 import { crosswalk, laneDash, flowerScatter, tuft } from '../apps/client/assets-src/custom/street.mjs';
 import { asfalto, busBay, grassPatch, dirtPatch, clover, gtuft } from '../apps/client/assets-src/custom/ground.mjs';
 import { shadowEllipse, petal, petalScatter, glow, cloudShadow, grime, lightPatch } from '../apps/client/assets-src/custom/fx.mjs';
-import { DERIVE, IMAGES } from '../apps/client/assets-src/custom/derive.mjs';
+import { DERIVE, IMAGES, PREP } from '../apps/client/assets-src/custom/derive.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'apps/client/assets-src');
@@ -65,7 +65,8 @@ const resolveSrc = (spec) => {
 const sheetCache = new Map();
 async function sheet(name) {
   if (!sheetCache.has(name)) {
-    const spec = map.sheets[name];
+    // a sheet is an alias of `sheets`, or an inline `root:path` spec (a single sprite of a pack: V2 composition pass)
+    const spec = map.sheets[name] ?? (/^[a-z]+:/.test(name) ? name : undefined);
     if (!spec) throw new Error(`import-map: unknown sheet '${name}'`);
     sheetCache.set(name, await loadPng(resolveSrc(spec)));
   }
@@ -139,7 +140,8 @@ for (const def of map.sprites) {
   const kind = def.kind ?? 'sprite';
   if (kind === 'sprite') {
     const src = await sheet(def.sheet);
-    let img = crop(src, ...def.rect);
+    let img = crop(src, ...(def.rect ?? [0, 0, src.w, src.h]));
+    if (def.prep) img = PREP[def.prep[0]](img, ...def.prep.slice(1));
     if (def.recolor) img = remapExact(img, new Map(Object.entries(map.recolors[def.recolor]).filter(([k]) => k[0] === '#')));
     if (def.isolate) img = isolate(img, def.isolate[0] - def.rect[0], def.isolate[1] - def.rect[1]);
     if (def.swap) img = remapExact(img, new Map(Object.entries(def.swap)));
@@ -182,7 +184,9 @@ for (const def of map.sprites) {
   } else if (kind === 'tree') {
     const src = await sheet(def.sheet);
     let img = crop(src, ...def.rect);
+    if (def.prep) img = PREP[def.prep[0]](img, ...def.prep.slice(1));
     if (def.recolor) img = remapExact(img, new Map(Object.entries(map.recolors[def.recolor]).filter(([k]) => k[0] === '#')));
+    if (def.flip) img = flipH(img);
     const { trunk, canopy } = splitTree(img, def.cutY);
     const frames = swayFrames(canopy, 1);
     const trunkKey = def.key, canopyKey = `${def.key}_canopy`;

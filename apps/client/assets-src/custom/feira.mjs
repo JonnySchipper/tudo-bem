@@ -10,8 +10,8 @@ const W = 48, H = 44; // base sprite (3 tiles wide; the bottom 32 px are the 3x2
 const TW = 56, TH = 24; // tarp sprite
 const TARP_BOTTOM_AT = 9; // the tarp's scallop tips end at this row of the base
 
-const CREAM = [C.lav, C.lav3, C.cr0, C.white]; // dark, shade, base, hi
-const RAMPS = {
+export const CREAM = [C.lav, C.lav3, C.cr0, C.white]; // dark, shade, base, hi
+export const RAMPS = {
   red: [C.r5, C.r3, C.r2, C.r0],
   green: [C.teal0, C.teal2, C.teal4, C.teal5],
   yellow: [C.y4, C.y3, C.y2, C.y1],
@@ -66,7 +66,7 @@ function tarp(kind) {
 }
 
 // ------------------------------------------------------------------ common structure
-function drawPoles(img) {
+export function drawPoles(img) {
   for (const x0 of [1, 43]) {
     fillRect(img, x0, 0, 4, H, NAVY);
     fillRect(img, x0 + 1, 0, 2, H - 1, C.w3);
@@ -75,7 +75,7 @@ function drawPoles(img) {
   }
 }
 /** wooden table: top boards + front planks + legs. `cloth` optionally covers the top with a cloth ramp. */
-function drawTable(img, o = {}) {
+export function drawTable(img, o = {}) {
   const x0 = 4, x1 = 43; // exclusive right edge
   // legs and back shade
   for (const lx of [5, 39]) { fillRect(img, lx - 1, 37, 5, 7, NAVY); fillRect(img, lx, 37, 3, 6, C.w5); put(img, lx, 37, C.w3); fillRect(img, lx, 37, 1, 6, C.w3); }
@@ -99,7 +99,7 @@ function drawTable(img, o = {}) {
 }
 
 /** a tiny blank price tag hung on the table front (a cream card with a string) */
-function tag(img, x, y, ramp = [C.cr3, C.cr1, C.cr0, C.white]) {
+export function tag(img, x, y, ramp = [C.cr3, C.cr1, C.cr0, C.white]) {
   fillRect(img, x, y, 6, 4, NAVY);
   fillRect(img, x + 1, y + 1, 4, 2, ramp[2]);
   put(img, x + 1, y + 1, ramp[3]); put(img, x + 4, y + 2, ramp[1]);
@@ -107,7 +107,7 @@ function tag(img, x, y, ramp = [C.cr3, C.cr1, C.cr0, C.white]) {
 
 // ------------------------------------------------------------------ goods
 /** heap of round fruit / veg on the table: dome mask filled with lit 3x3 "plus" fruits. base = ramps[]; baseline y0+h. */
-function heap(img, x0, y0, w, h, ramps, seed = 1) {
+export function heap(img, x0, y0, w, h, ramps, seed = 1) {
   const cx = x0 + w / 2;
   const mask = (x, y) => y < y0 + h && ell(cx, y0 + h, w / 2, h)(x, y);
   shape(img, mask, [cx, y0 + h, w / 2, h], [ramps[0][0], ramps[0][0], ramps[0][0], ramps[0][0]], { flat: true, ol: NAVY });
@@ -123,7 +123,7 @@ function heap(img, x0, y0, w, h, ramps, seed = 1) {
     }
   }
 }
-const BANANA = [
+export const BANANA = [
   '....ooooo...',
   '..oooYYYyyo.',
   '.oYYYYyyyyo.',
@@ -133,23 +133,23 @@ const BANANA = [
   '.oyyooo.....',
   '..ooo.......',
 ];
-function bananas(img, x, y) {
+export function bananas(img, x, y) {
   grid(img, BANANA, { o: NAVY, Y: C.y0, y: C.y2, b: C.y4 }, x, y);
   for (const [dx, dy] of [[4, 4], [6, 5], [8, 3], [3, 3]]) put(img, x + dx, y + dy, C.y3);
   put(img, x + 4, y, K.br2); put(img, x + 5, y, K.br2);
 }
-function melon(img, x, y) {
+export function melon(img, x, y) {
   // a cut watermelon half seen from above: green rind, cream band, red flesh with seeds
   const m = (px, py) => ell(x + 6, y + 4, 6, 4.2)(px, py);
   shape(img, m, [x + 6, y + 4, 6, 4.2], [C.teal0, C.teal2, C.teal3, C.teal5], { ol: NAVY });
   shape(img, ell(x + 6, y + 4, 4.7, 3.1), [x + 6, y + 4, 5, 3], [C.r5, C.r3, C.r2, C.r1], { ol: C.cr1, t: [0.9, 0.2, -0.6] });
   for (const [dx, dy] of [[4, 3], [6, 4], [8, 3], [7, 5]]) put(img, x + dx, y + dy, C.navy);
 }
-function lettuce(img, x, y, ramp = [C.g3, C.g2, C.g1, C.g0]) {
+export function lettuce(img, x, y, ramp = [C.g3, C.g2, C.g1, C.g0]) {
   shape(img, ell(x + 3, y + 3, 3.4, 3.2), [x + 3, y + 3, 3.4, 3.2], ramp, { ol: NAVY });
   put(img, x + 2, y + 2, ramp[3]); put(img, x + 3, y + 4, ramp[0]);
 }
-function carrots(img, x, y) {
+export function carrots(img, x, y) {
   // a bunch lying flat: orange bodies with green tops
   for (let i = 0; i < 4; i++) {
     line(img, x + 2 + i, y + 1 + i, x + 9 + i, y + 2 + i, i % 2 ? K.te1 : C.y4);
@@ -158,8 +158,8 @@ function carrots(img, x, y) {
   for (let i = 0; i < 4; i++) put(img, x + 10 + i, y + 2 + i, NAVY);
   put(img, x + 2, y + 1, C.g0);
 }
-function tomatoes(img, x, y) { heap(img, x, y, 11, 6, [RAMPS.red, [C.r4, C.r3, '#e2523f', C.r0]], 2); }
-function bucket(img, x, y, w = 9, h = 8) {
+export function tomatoes(img, x, y) { heap(img, x, y, 11, 6, [RAMPS.red, [C.r4, C.r3, '#e2523f', C.r0]], 2); }
+export function bucket(img, x, y, w = 9, h = 8) {
   // galvanized bucket: tapered, lit left, ring bands
   const m = (px, py) => py >= y && py < y + h && Math.abs(px - (x + w / 2)) <= w / 2 - (py - y) * 0.13;
   shape(img, m, [x + w / 2, y + h / 2, w / 2, h / 2], [C.slate, C.mist, C.lav, C.lav4], { ol: NAVY, t: [0.85, 0.35, -0.2] });
@@ -167,7 +167,7 @@ function bucket(img, x, y, w = 9, h = 8) {
   put(img, x + 2, y + 3, C.lav4);
   fillRect(img, x + 1, y + h - 2, w - 2, 1, C.mist);
 }
-function bloom(img, x, y, kind) {
+export function bloom(img, x, y, kind) {
   // a 3x3 flower head centered on (x, y), lit from the upper left
   const P = {
     girassol: { p: C.y1, q: C.y3, c: K.br2, edge: C.y4 },
@@ -183,7 +183,7 @@ function bloom(img, x, y, kind) {
   if (kind === 'girassol') { put(img, x - 2, y, P.p); put(img, x + 2, y, P.q); put(img, x, y - 2, P.p); put(img, x, y + 2, P.q); }
   if (kind === 'margarida') { put(img, x - 2, y, P.p); put(img, x, y - 2, P.p); }
 }
-function flowerBunch(img, x, y, w, h, kinds, seed = 0) {
+export function flowerBunch(img, x, y, w, h, kinds, seed = 0) {
   // heads at three heights over stems with leaves, standing in a bucket whose rim is at y + h
   const xs = [x + 1, x + 4, x + 7], ys = [y + 2 + (seed % 2), y + 5 - (seed % 2), y + 3];
   for (let i = 0; i < 3; i++) {
@@ -194,7 +194,7 @@ function flowerBunch(img, x, y, w, h, kinds, seed = 0) {
   put(img, x + 3, y + h - 1, C.g2); put(img, x + 6, y + h - 2, C.g1); put(img, x + 8, y + h - 1, C.g2);
   void w;
 }
-function crate(img, x, y, w, h, lid = true) {
+export function crate(img, x, y, w, h, lid = true) {
   fillRect(img, x, y, w, h, NAVY);
   fillRect(img, x + 1, y + 1, w - 2, h - 2, C.w2);
   fillRect(img, x + 1, y + 1, w - 2, 1, C.w0);

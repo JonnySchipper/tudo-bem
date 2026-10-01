@@ -123,7 +123,8 @@ describe('Vila Ipê art coverage', () => {
   it('counts its props (the plan: 8+ benches, 6 ipês, hero, kiosk, stall, perch, fountain)', () => {
     const n = (kind: string) => vila.props.filter((p) => p.kind === kind).length;
     expect(n('banco')).toBeGreaterThanOrEqual(8);
-    expect(n('ipe')).toBeGreaterThanOrEqual(6);
+    expect(n('ipe')).toBeGreaterThanOrEqual(4); // V2: the yellow ipês; the purple / white ones, shade trees and palms are 'arvore'
+    expect(n('ipe') + n('arvore')).toBeGreaterThanOrEqual(20);
     expect(vila.props.filter((p) => p.hero)).toHaveLength(1);
     for (const kind of ['quiosque', 'barraca_chapeus', 'poleiro', 'fonte', 'ponto_onibus', 'banca', 'orelhao', 'placa_rua']) expect(n(kind), kind).toBe(1);
     expect(propTiles(vila.props.find((p) => p.kind === 'fonte')!)).toHaveLength(12);

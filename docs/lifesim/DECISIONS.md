@@ -1136,3 +1136,65 @@ Scope: critique section C. Art keys and interior decoration only; no tile, colli
 - The padaria and kitnet interiors only got the shell; the kitnet parquet and padaria tile are unchanged. No window variety change on the padaria / edifício / academia fronts beyond the soleira.
 - The exterior sidewalk still has a visible wave at zoom 3; a calmer or lamp-lit street is possible.
 10. **Atlas height.** The outdoor atlas was at 2035 of 2048 rows on lifesim/main, so any new art doubled it to 512x4096 (8 MB) and tripped the 8 MB budget test. `packAtlas` now rounds the height up to a multiple of 64 instead of a power of two (width stays pow2): 512x2176, 4.4 MB.
+
+## Visual pass V2 (composition)
+
+Branch `lifesim/v2-composition`. Scope: critique section B (composition and variety of the outdoor map): `rooms.ts` decoration and layout, the vendor schedule tiles, the CPU spots, and new prop art. Shots in `docs/lifesim/shots/v2/` (`before_*` from the pre-V2 map, `after_*` from this branch merged with V3 and zoom 3): `scripts/v2-shots.mjs` takes the full map (`?shot=map`), the praça centre and each quadrant, the feira, the west block and both streets, at 12:00 (feira open) and 17:30 (feira closed), desktop 1280x800 and phone 390x844, against the solo build (no server). The before shots of the feira and the west block were framed at the map edge (void on one side); the after shots use the corrected cameras.
+
+### The praça gets focal points (each quadrant has its own idea)
+
+1. **North-east: the coreto** (`props/coreto`, 5x3, footprint at (33,18)): authored (`custom/v2coreto.mjs`): an octagonal wood platform on a cream skirt with a terracotta band, steps toward the brick bar, eight bottle-green iron columns and railings, a hip roof of terracotta tiles (an `overhead` part, so it fades when you walk behind it) on a cream fascia with festa-junina bunting and a mustard finial. Two round beds flank it, a purple ipê and a palm frame it. Hotspot `coreto_placa`.
+2. **North-west: the founder's bust** (`props/canteiro_busto`, footprint (16,18) 2x2): a verdigris bronze bust on a plinth with a mustard plaque, standing in a round stone-ringed bed. Hotspot `busto_placa` (needs_br). The hero yellow ipê stays, a picnic towel lies under it, a clipped bear (topiary) stands at the lawn's edge.
+3. **South-east: the seniors' corner**: a domino table (green felt, white tiles) and a chess table, one tile each, with four stools around each (`props/banquinho`, seats facing the table). **CPUs:** the stools are seats like any other, but `CpuCrowd` keeps them for seniors: a sitter that spawns takes a table stool with 85% probability when a senior look is free (`aposentado`: panama, moustache; `tia_do_bairro`: sun hat, bun), and stays there (no re-seating); no other look ever takes those stools (tested over 30 runs). At most one senior per senior look, because the crowd's "never two of the same look" rule is kept (so two seniors at a time on a normal crowd). A sibipiruna shades the corner; towels and the pipoqueiro sit by it.
+4. **South-west: the playground**: a sand pit decal (7x5 tiles, timber frame, bucket and spade), a swing, an arch slide, a seesaw and monkey bars (LimeZu `School_Yard_Toy_*`), a bench watching, an oiti and a yellow ipê at the edge.
+5. **Carts**: `props/pipoqueiro` (the red-and-white striped street cart with a glass popcorn machine, paper cones and a PIPOCA board; the cart is LimeZu, the rest authored) and `props/carrinho_coco` (the umbrella cart repainted green and white, a pile of green coconuts, an ice box with cut ones, a COCO board). Hotspots `pipoqueiro_placa`, `coco_placa` (needs_br, invented prices).
+6. **Flower beds of different shapes**: `props/canteiro_redondo` (round, stone ring, clipped shrub), `props/canteiro_losango` (diamond parterre with four colour quarters; art made, not placed in this layout), plus the existing rectangular beds. Topiary: a clipped dog (west corner), a clipped bear, a topiary pot by the Edifício.
+7. **Bike parking** (two more `bicicletario`), a **magazine rack** (`props/revisteiro` by the banca), a hopscotch painted on the south sidewalk (`decals/amarelinha`), picnic towels (LimeZu beach towels as ground decals), a dog's water bowl, worn dirt patches (`decals/trilha_a..e`) in front of benches, around the tables and into the playground.
+
+### Trees
+
+The yellow ipê stays the hero. New: **ipê roxo** (`ipe_roxo_large|medium|medium_b`) and **ipê branco** (`ipe_branco_large|medium`), recolours of the same derived tree (same sway canopy); an **oiti** (tall trunk), a **sibipiruna** (wide flat crown), a **figueira** (art made, not placed: it is huge), two **jerivá palms** (the beach palm, orange ring removed, mirrored for variety), and **sidewalk pit trees** (`props/arvore_rua`, stone pit, 2x1): 3 on the north sidewalk of Rua dos Ipês, 4 on the south one, 4 on the north sidewalk of Rua Jacarandá, 2 in the feira lot, placed clear of every door and crosswalk. New `PropKind` `arvore` (sprite by `art`, no fallen petals; the yellow ipês keep kind `ipe` with an optional `art`). The old ids are kept: `ipe_2` is the purple ipê now, `ipe_3` a second purple one, `ipe_4` the oiti, `ipe_5` a flipped yellow, `ipe_6` the large white ipê.
+
+### The feira
+
+The lot ground is **asphalt** inside the fence (a closed street; the gate stands on the brick bar). **Vendors stand in front of their stalls, facing the aisle** (visible, not hidden by the tarp): schedule tile = (stall x + 1, stall y + 2), customer / interact tile = (x + 1, y + 3). Stall ids, prices and the feira logic are untouched. Dressing: produce crates (`feira/cx_tomate|banana|melancia|repolho`), sacks of potatoes, platform scales beside each vendor, two LimeZu carts (fruit, flowers), festa-junina bunting over the aisle (thin overhead strings, so people stay visible: a solid tarp over the aisle would hide shoppers and vendors), market litter decals (leaves, cardboard). A 2-wide gap at x47-48 in the south row keeps the wide lane to the south stalls.
+
+### The streets
+
+**Parked vehicles on the south curb row** of each street (rows 11 and 35): 9 cars (LimeZu singles, eight colours, two taxis) plus an authored Fusca, a Kombi and two delivery motorbikes (static frame 0 of the traffic art). They block their own curb tiles only; crosswalks, the bus stop curb (x32-40 of Rua dos Ipês) and every sidewalk stay free. To make room the **traffic lanes moved** up (`ambientData.ts`: west lane feet at y0*16+19, east lane at y0*16+40; it was +29 / +60) and the lane dashes with them (`scenery.ts`: y0*16+29). Parking was only possible on the south curb: a car's body rises 17 px above its feet, so on the north curb it would hide pedestrians on the sidewalk.
+
+### Moved coordinates (everything else is where it was)
+
+| What | Before | After |
+|---|---|---|
+| Vendors Tia Lu / Seu Zé (tile, interact) | (45,16) (45,19) / (51,16) (51,19) | (45,19) (45,20) / (51,19) (51,20) |
+| Seu Chico / Dona Rosa | (45,23) (45,26) / (51,23) (51,26) | (45,26) (45,27) / (51,26) (51,27) |
+| Stall prop `interact` | (x+1, y+2) | (x+1, y+3) |
+| Benches `banco_6` | (36,20) | (31,19) (`banco_5` stays at (14,20)) |
+| `ipe_3` / `ipe_4` / `ipe_5` / `ipe_6` | (35,17) (13,26) (18,24) (37,26) | purple (38,16), oiti (19,27), yellow (19,23), white (39,27) |
+| `flor_p2`, `arbusto_3` | (27,28), (11,24) | (26,29), (10,24) |
+| CPU spots | (8,7), (44,7), (16,27) | (11,7), (46,7), (19,25), plus five new ones (coreto steps, playground edge, lawns, coconut cart, pipoqueiro) |
+| Feira ground, aisle | grass with brick strips | asphalt (brick only at the gate x41, y21-22) |
+
+Scripts that walked to (45,19) (`e2e-feira`, `perf-check`, `readme-shots`, `visual-audit`) now walk to (45,20).
+
+### Pipeline and tests
+
+- `import-map.d/v2.json`; `custom/v2*.mjs` (coreto, props, feira dressing, decals, prep hooks). `pixel-import.mjs` gained: an inline `sheet` spec (`ext:...png`, a single sprite of a pack without an alias), an optional `rect` (whole image), a `prep` hook (`stripGrass`, `stripRing`, `hardAlpha`, `cutRows`) and `flip` for the tree kind. The helpers of `feira.mjs` are exported for reuse.
+- **The outdoor atlas** had grown to the texture limit (512x4096); it is 1024x2048 now (same area, safer shape). `art3.test.ts` checks `<= 8 MB` and `max side <= 2048`.
+- `sceneryV2.ts` (ground decals, called from `sceneryFor`), `PropKind` `arvore`, `props.ts` (`art` for kind `ipe`, `arvore` in the art field list), `minimap.ts` (trees).
+- Tests: `packages/shared/src/v2layout.test.ts` (focal points, tree variety, stools face their table, parked vehicles on the curb row only and off crosswalks and the bus stop, pit trees off the doors, vendors in front, paved lot), a seniors test in `apps/server/src/ambiance.test.ts`, updated `rooms.test.ts`, `feira.test.ts`, `roomLayout.test.ts`, `vilaIpe.test.ts`. The path and 2-wide-lane tests of `rooms.test.ts` pass with their rules unchanged.
+
+### Known weaknesses (honest)
+
+- The pack sedans are drawn closer to top-down than the traffic cars, so a parked sedan next to a moving hatchback shows two perspectives; a moving east-lane car and a parked car still overlap a little in body height.
+- The worn-grass patches are small and brown (they read as dirt, not as a faded path); real desire lines would need a grass-edge autotile.
+- The jerivá is the beach coconut palm (feathery fronds, thicker trunk).
+- The seniors are two looks (the retiree, the tia do bairro): at most two sit at the tables at once.
+- The coconut cart's pile is cluttered at 1x; the coreto is blocked (you cannot walk onto the stage).
+- The figueira and the diamond bed are authored but unplaced (too large for the current lawns).
+- The west block is still one house, a garden, a shed, a tree and the dog corner.
+
+### Needs BR review
+
+Hotspot strings (also invented facts): "DONA IPÊ / Fundadora da Vila / 1897", "CORETO DA PRAÇA / Banda toda domingo, às 10h", "DOMINÓ / Quem perde paga o café", "PIPOCA / R$ 5 o saquinho", "ÁGUA DE COCO / Geladinha · R$ 7"; labels "Coreto da praça", "Busto da fundadora", "Pipoqueiro", "Carrinho de água de coco", "Revisteiro da banca". Painted in pixels: PIPOCA, COCO.

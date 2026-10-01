@@ -65,7 +65,7 @@ await shot('praca_1930');
 
 // 3. the feira (server clock pinned in the morning; the sky follows it)
 await page.evaluate(() => window.__tb.setClock({ time: null, weather: 'sol' }));
-await walk(45, 19);
+await walk(45, 20);
 await openNpc(page, 'tia_lu', 'feira');
 await page.click('#dialogue-box [data-chip="0"]');
 await waitFor(page, () => /dois reais/.test(document.querySelector('#dialogue-box .line-bubble .pt')?.textContent ?? ''), null, 8000, 'the price');

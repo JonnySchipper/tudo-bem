@@ -41,16 +41,22 @@ export const CPU_SITTER_SHARE = 0.6;
 export const PRACA_AMBIANCE: { spots: Tile[]; doorSpots: Tile[]; entries: Tile[]; feiraSpots?: Tile[] } = {
   /** Places to stand for a bit: sidewalks, the brick bar, the lawns' edges. */
   spots: [
-    { x: 8, y: 7 },
+    { x: 11, y: 7 },
     { x: 27, y: 13 },
     { x: 37, y: 13 },
-    { x: 44, y: 7 },
+    { x: 46, y: 7 },
     { x: 11, y: 13 },
     { x: 17, y: 22 },
     { x: 33, y: 22 },
-    { x: 16, y: 27 },
+    { x: 19, y: 25 },
     { x: 34, y: 27 },
     { x: 50, y: 9 },
+    // V2: the coreto's steps, the playground's edge, the lawn by the picnic, the coconut cart, the pipoqueiro
+    { x: 35, y: 21 },
+    { x: 18, y: 22 },
+    { x: 14, y: 22 },
+    { x: 27, y: 15 },
+    { x: 32, y: 28 },
   ],
   /** Near the Padaria entrance (CPUs never go in). */
   doorSpots: [

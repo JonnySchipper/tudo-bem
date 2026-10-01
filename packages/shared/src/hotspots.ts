@@ -68,6 +68,12 @@ export const HOTSPOTS: HotspotDef[] = [
   { id: 'lixeira_praca', room: 'praca', x: 21, y: 12, pt: 'LIXO', en: 'Trash' },
   { id: 'fonte_praca', room: 'praca', x: 23, y: 20, w: 4, h: 3, pt: 'Praça Central\nFonte de 1985', en: 'Central Square\nFountain from 1985' },
   { id: 'caixa_correio', room: 'praca', x: 8, y: 28, pt: 'CORREIO', en: 'Mailbox' },
+  // ---- V2 composition pass (needs_br: every line; invented facts: the founder's name and the year)
+  { id: 'busto_placa', room: 'praca', x: 16, y: 18, w: 2, h: 2, pt: 'DONA IPÊ\nFundadora da Vila\n1897', en: 'DONA IPÊ\nFounder of the village\n1897' },
+  { id: 'coreto_placa', room: 'praca', x: 33, y: 18, w: 5, h: 3, pt: 'CORETO DA PRAÇA\nBanda toda domingo, às 10h', en: 'THE BANDSTAND\nBand every Sunday, 10 am' },
+  { id: 'mesa_domino_placa', room: 'praca', x: 33, y: 26, pt: 'DOMINÓ\nQuem perde paga o café', en: 'DOMINOES\nLoser buys the coffee' },
+  { id: 'pipoqueiro_placa', room: 'praca', x: 29, y: 28, w: 3, h: 1, pt: 'PIPOCA\nR$ 5 o saquinho', en: 'POPCORN\nR$ 5 a bag' },
+  { id: 'coco_placa', room: 'praca', x: 28, y: 14, w: 3, h: 1, pt: 'ÁGUA DE COCO\nGeladinha · R$ 7', en: 'COCONUT WATER\nIce cold · R$ 7' },
   // ---- the feira livre (Phase 9). needs_br: every line. Prices equal `GOODS` in feira.ts (tested).
   { id: 'feira_livre', room: 'praca', x: 44, y: 15, w: 5, h: 1, pt: 'FEIRA LIVRE\nTodo dia · 6h às 13h', en: 'STREET MARKET\nEvery day · 6 am to 1 pm' },
   {

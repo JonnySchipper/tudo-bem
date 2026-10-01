@@ -54,6 +54,27 @@ describe('CpuCrowd (Praça ambiance)', () => {
     }
   });
 
+  it('V2: seniors sit at the domino and chess tables, and only seniors take those stools', () => {
+    const stools = new Set(ROOMS.praca.props.filter((p) => p.id.startsWith('banquinho')).map((p) => key(p.x, p.y)));
+    expect(stools.size).toBe(8);
+    let seniorsAtTables = 0;
+    let youngAtTables = 0;
+    let seed = 11;
+    const rng = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
+    for (let run = 0; run < 30; run++) {
+      const { crowd, advance } = harness([at(25, 27)], rng);
+      crowd.sync();
+      advance(60_000);
+      for (const c of crowd.avatars()) {
+        if (!stools.has(key(c.x, c.y))) continue;
+        if (['aposentado', 'tia_do_bairro'].includes(cpuArchetype(c.name))) seniorsAtTables++;
+        else youngAtTables++;
+      }
+    }
+    expect(youngAtTables).toBe(0);
+    expect(seniorsAtTables).toBeGreaterThan(20);
+  });
+
   it('presence targets follow the Live Ops table (Vila Ipê: up to 8, thinning as humans arrive)', () => {
     expect([0, 1].map((n) => cpuTarget(n, 'praca')).every((n) => n >= 4 && n <= 8)).toBe(true);
     expect(cpuTarget(1, 'praca')).toBe(8);
