@@ -510,7 +510,7 @@ export function isConversaOpen(): boolean {
 export async function openConversa(
   npcId: NpcId,
   onClose?: () => void,
-  opts?: { onQuickOrder?: () => void },
+  opts?: { onQuickOrder?: () => void; /** a subject the player picked (one opened by hearts) */ subjectId?: string },
 ): Promise<void> {
   if (state) return;
 
@@ -530,6 +530,7 @@ export async function openConversa(
       p.nameplate,
       p.id,
       daily,
+      opts?.subjectId,
     );
 
     if (response.phase === 'blocked') {

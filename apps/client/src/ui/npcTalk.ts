@@ -3,6 +3,8 @@
  * (no rewards); opening it tells the server (`talk`) so the recado engine's `talked` event fires. Nanda's box also has "Ver chapéus".
  */
 import { NPC_TALK, fillTalk, type NpcId } from '@tudobem/shared';
+import { clock } from '../gameClock';
+import { heartsWith } from './recadoView';
 import { game } from '../state';
 import { h, bi } from './dom';
 import { speak } from '../audio';
@@ -11,8 +13,8 @@ import { showJulia, closeDialogue } from './panels';
 import { expressionForScore } from './pixelArt';
 
 export interface TalkHooks {
-  /** Tell the server (`{ t: 'talk', npc }`). */
-  talked: (npc: NpcId) => void;
+  /** Tell the server (`{ t: 'talk', npc }`); optional now that the caller sends it when the NPC is first spoken to. */
+  talked?: (npc: NpcId) => void;
   /** Open the hat shop (Nanda). */
   openShop: () => void;
 }
@@ -30,8 +32,9 @@ export function openNpcTalk(npcId: NpcId, hooks: TalkHooks): void {
   const who = SPEAKER[npcId];
   if (!talk || !who) return;
   const p = game.profile;
-  const ctx = { name: p?.name ?? '', pronoun: p?.pronoun };
-  hooks.talked(npcId);
+  // the NPC uses your name from 2 hearts, and greets by the hour (`{saudacao}`)
+  const ctx = { name: p?.name ?? '', pronoun: p?.pronoun, minute: clock.minutes(), hearts: heartsWith(p?.bond, npcId) };
+  if (hooks.talked) hooks.talked(npcId);
   // The legacy modal presentation has no greeting flow: Nanda goes straight to the shop, Júlia to her help menu, the rest say nothing.
   if (dialogueMode() === 'modal') {
     if (npcId === 'nanda') hooks.openShop();
