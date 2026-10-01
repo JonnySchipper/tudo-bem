@@ -11,6 +11,7 @@
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
 import path from 'node:path';
+import { requirePinnedClock } from './lib/clock-pin.mjs';
 
 const argv = Object.fromEntries(process.argv.slice(2).filter((a) => a.startsWith('--')).map((a) => a.slice(2).split('=')));
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
@@ -193,6 +194,7 @@ async function run(browser, vp) {
   await ctx.close();
 }
 
+if (!process.env.SOLO) await requirePinnedClock(BASE, { label: 'daytime, about 08:30' });
 const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });
 try {
   for (const vp of VIEWPORTS) {

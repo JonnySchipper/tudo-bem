@@ -8,7 +8,7 @@ import { heartsWith } from './recadoView';
 import { game } from '../state';
 import { h, bi } from './dom';
 import { speak } from '../audio';
-import { dialogueMode, showDialogueBox, type BoxChip } from './dialogue';
+import { showDialogueBox, type BoxChip } from './dialogue';
 import { showJulia, closeDialogue } from './panels';
 import { expressionForScore } from './pixelArt';
 
@@ -35,12 +35,6 @@ export function openNpcTalk(npcId: NpcId, hooks: TalkHooks): void {
   // the NPC uses your name from 2 hearts, and greets by the hour (`{saudacao}`)
   const ctx = { name: p?.name ?? '', pronoun: p?.pronoun, minute: clock.minutes(), hearts: heartsWith(p?.bond, npcId) };
   if (hooks.talked) hooks.talked(npcId);
-  // The legacy modal presentation has no greeting flow: Nanda goes straight to the shop, Júlia to her help menu, the rest say nothing.
-  if (dialogueMode() === 'modal') {
-    if (npcId === 'nanda') hooks.openShop();
-    else if (npcId === 'julia') showJulia();
-    return;
-  }
   let answered = 0;
   const render = (nodeId: string) => {
     const node = talk.nodes[nodeId];

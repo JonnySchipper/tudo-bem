@@ -19,10 +19,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
-      - name: Browser e2e (full Phase 0 play path)
-        run: |
-          DATA_DIR=$(mktemp -d) ROLL_QUEUE_MS=600 TB_TEST_ROLL=1 pnpm start &
-          for i in $(seq 1 30); do curl -sf localhost:8787/healthz && break; sleep 1; done
-          CHROME_PATH=$(which google-chrome || which chromium) pnpm e2e
-      - name: Browser e2e (Me vê um across server restarts)
-        run: CHROME_PATH=$(which google-chrome || which chromium) pnpm e2e:meveum
+      - name: Browser e2e (play path + recado, feira day/night, night NPCs, Me vê um across restarts)
+        # e2e:all starts its own server with a pinned game clock (TB_TEST_CLOCK_CONTROL, TB_TEST_OFFER, TB_TEST_ROLL), so the result
+        # does not depend on the time of day the job runs. e2e:meveum brings its own pinned server.
+        run: CHROME_PATH=$(which google-chrome || which chromium) pnpm e2e:all

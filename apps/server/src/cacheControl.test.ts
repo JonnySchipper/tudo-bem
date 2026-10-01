@@ -4,14 +4,14 @@ import { staticCacheControl } from './cacheControl';
 const cc = (p: string, ext: string) => staticCacheControl(new URL(p, 'http://x'), ext);
 
 describe('static cache policy', () => {
-  it('revalidates html, the art manifest and unversioned art', () => {
+  it('revalidates html and every pixel-art file (fixed names, written together)', () => {
     expect(cc('/', '.html')).toBe('no-cache');
-    expect(cc('/art/manifest.json', '.json')).toBe('no-cache');
-    expect(cc('/art/props/caixa.png', '.png')).toBe('no-cache');
+    expect(cc('/pixel/manifest.json', '.json')).toBe('no-cache');
+    expect(cc('/pixel/atlas/props.png', '.png')).toBe('no-cache');
+    expect(cc('/tudo-bem/pixel/portraits/carlos_neutro.png', '.png')).toBe('no-cache');
   });
 
-  it('keeps hashed bundles and versioned art immutable', () => {
+  it('keeps hashed bundles immutable', () => {
     expect(cc('/assets/main-bssKhoSw.js', '.js')).toContain('immutable');
-    expect(cc('/art/props/caixa.png?v=76fee292df', '.png')).toContain('immutable');
   });
 });

@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Me vê um… across server restarts, in a real browser. Starts (and restarts) its own server.
+ * Me vê um… across server restarts, in a real browser. Starts (and restarts) its own server, always with a pinned game clock
+ * (TB_TEST_CLOCK_OFFSET_MIN so it reads about 08:30 at every start; no outside server is needed, so nothing to pin).
  *
  *   pnpm build && pnpm e2e:meveum        # CHROME_PATH / SHOTS_DIR / E2E_MG_PORT optional
  *
@@ -13,18 +14,20 @@
  * The next shift's first timeout must still re-arm “de novo, devagar”.
  */
 import { chromium } from 'playwright-core';
+import { findChrome } from './lib/chrome.mjs';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DAY_MIN, offsetMinFor } from './lib/clock-pin.mjs';
 import { assert, buildTrayItem, expectFirstTimeoutRearms, learnShelf, mgBar, mgState, playShift, sleep, trayFor, waitFor, waitForTicket } from './lib/meveum-play.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SERVER = path.join(ROOT, 'apps/server/dist/index.js');
 const PORT = Number(process.env.E2E_MG_PORT ?? 8797);
 const BASE = `http://127.0.0.1:${PORT}`;
-const CHROME = process.env.CHROME_PATH ?? ['/usr/local/bin/google-chrome', '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find((p) => fs.existsSync(p));
+const CHROME = findChrome();
 const SHOTS = process.env.SHOTS_DIR ?? '';
 const DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'tb-e2e-meveum-'));
 /** How long after the server is back the lost card may take (reconnect backoff + rejoin + resync). */
@@ -61,7 +64,8 @@ async function healthy(timeout = 15_000) {
 async function startServer() {
   const child = spawn(process.execPath, [SERVER], {
     cwd: ROOT,
-    env: { ...process.env, PORT: String(PORT), HOST: '127.0.0.1', DATA_DIR, LIVEOPS_CPU_AMBIANCE: 'off' },
+    // pinned game clock (Phase 10): every (re)start reads about 08:30, so the padaria's baker never depends on the hour of the real day
+    env: { ...process.env, PORT: String(PORT), HOST: '127.0.0.1', DATA_DIR, LIVEOPS_CPU_AMBIANCE: 'off', TB_TEST_CLOCK_OFFSET_MIN: String(offsetMinFor(DAY_MIN)) },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   child.stdout.on('data', (d) => (serverLog += d));

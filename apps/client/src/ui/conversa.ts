@@ -22,11 +22,11 @@ import {
 } from '@tudobem/shared';
 import { game } from '../state';
 import { clock } from '../gameClock';
-import { h, en, bi, ui } from './dom';
-import { expressionForGrade, npcPortrait, type Expression } from './pixelArt';
+import { h, en, bi } from './dom';
+import { expressionForGrade } from './pixelArt';
 import { speak } from '../audio';
 import { toast } from './hud';
-import { closeDialogueBox, dialogueMode, focusDialogueInput, showDialogueBox, type BoxSpec } from './dialogue';
+import { closeDialogueBox, focusDialogueInput, showDialogueBox, type BoxSpec } from './dialogue';
 import {
   startConversa,
   sendConversaTurn,
@@ -57,9 +57,7 @@ interface ConversaState {
 }
 
 let state: ConversaState | null = null;
-let containerEl: HTMLElement | null = null;
 let closeCallback: (() => void) | null = null;
-let onKey: ((e: KeyboardEvent) => void) | null = null;
 /** Carlos only: leave the mesa and open the authored chip order. */
 let quickOrder: (() => void) | null = null;
 /** The dialogue box (not the old modal) is showing this Conversa. */
@@ -84,27 +82,6 @@ function findNpc(npcId: NpcId): NpcDef | null {
     if (npc) return npc;
   }
   return null;
-}
-
-function portrait(npc: NpcDef | null, expr: Expression) {
-  return npcPortrait(npc?.id ?? null, expr, 'conversa-portrait');
-}
-
-/** Placemat strips laid on the mesa: Carlos's side on the left, yours on the right. */
-function buildTranscript(history: ConversaState['history']): HTMLElement {
-  const strips: HTMLElement[] = [];
-  for (const line of history.slice(-5)) {
-    const isNpc = line.who === 'npc';
-    strips.push(
-      h(
-        'div',
-        { class: `conversa-strip ${isNpc ? 'npc' : 'player'}` },
-        h('span', { class: 'text' }, line.pt),
-        line.en ? en(line.en, true) : null,
-      ),
-    );
-  }
-  return h('div', { class: 'conversa-transcript' }, ...strips);
 }
 
 /** Speak the Portuguese rubber stamp only. `speak()` plays the prebaked clip when the text matches. */
@@ -137,8 +114,18 @@ function buildScoreCard(grade: ConversaGrade, payout: number, meter: ConversaMet
     h('div', { class: 'grade-line' }, copy.line.pt, en(copy.line.en, true)),
     rvLine && payout > 0 ? h('div', { class: 'payout' }, rvLine.pt) : null,
     rvLine && payout <= 0 ? h('div', { class: 'payout withheld', lang: 'pt-BR' }, rvLine.pt, en(rvLine.en, true)) : null,
-    h('div', { class: 'axes' }, ...axes),
+    // the three meters fold away on phones (Phase 10: the ended box was ~50% of a phone screen); open by default on wider screens
+    h('details', { class: 'conta-axes', ...(contaAxesOpen() ? { open: '' } : {}) }, h('summary', {}, 'Detalhes', h('small', {}, 'Details')), h('div', { class: 'axes' }, ...axes)),
   );
+}
+
+/** Whether the conta's meters start open: yes except on phone-width screens. */
+function contaAxesOpen(): boolean {
+  try {
+    return !window.matchMedia('(max-width: 640px)').matches;
+  } catch {
+    return true;
+  }
 }
 
 /** This beat of the Conversa as the dialogue box shows it: Carlos' latest line, what you said, the replies, the reply field; the conta once it ends. */
@@ -183,93 +170,9 @@ function boxSpec(s: ConversaState): BoxSpec {
 }
 
 function render() {
-  if (state && dialogueMode() === 'box') {
-    boxOwned = true;
-    showDialogueBox(boxSpec(state));
-    return;
-  }
-  if (!state || !containerEl) return;
-
-  const header = h(
-    'div',
-    { class: 'conversa-header' },
-    portrait(state.npc, expressionForGrade(state.ended ? state.grade : null)),
-    h(
-      'div',
-      { class: 'info' },
-      h('div', { class: 'npc-name' }, state.npcName),
-      h('div', { class: 'subject' }, state.subjectTitle.pt, en(state.subjectTitle.en, true)),
-      state.offline ? h('small', { class: 'offline-note' }, CONVERSA_COPY.offline.pt, en(CONVERSA_COPY.offline.en, true)) : null,
-      h('small', { class: 'private-note' }, CONVERSA_COPY.private.pt),
-    ),
-    h('div', { class: 'turn-counter' }, `${state.turn}/${state.maxTurns}`),
-    h('button', { class: 'close-btn ghost', onclick: handleClose, 'aria-label': 'Fechar' }, '✕'),
-  );
-
-  const transcript = buildTranscript(state.history);
-
-  let body: HTMLElement;
-  if (state.ended && state.grade) {
-    body = h(
-      'div',
-      { class: 'conversa-body ended' },
-      buildScoreCard(state.grade, state.payout, state.meter, state.rvNote),
-      h(
-        'div',
-        { class: 'actions' },
-        h('button', { class: 'primary', onclick: handleClose }, bi(CONVERSA_COPY.continuar.pt, CONVERSA_COPY.continuar.en)),
-      ),
-    );
-  } else {
-    const chips = state.chips.map((chip, i) =>
-      h(
-        'button',
-        { class: 'conversa-chip', onclick: () => handleChip(i), 'data-chip': String(i) },
-        h('span', { class: 'num' }, String(i + 1)),
-        chip.pt,
-        chip.en ? en(chip.en, true) : null,
-      ),
-    );
-
-    const input = h('input', {
-      type: 'text',
-      maxLength: 140,
-      placeholder: 'Digite em português… (or type your reply)',
-      'aria-label': 'Sua resposta',
-      id: 'conversa-input',
-    }) as HTMLInputElement;
-    input.addEventListener('keydown', (e) => {
-      e.stopPropagation();
-      if (e.key === 'Enter') handleSend(input);
-    });
-
-    body = h(
-      'div',
-      { class: 'conversa-body' },
-      transcript,
-      h('div', { class: 'conversa-chips' }, ...chips),
-      h(
-        'div',
-        { class: 'conversa-input-row' },
-        input,
-        h('button', { class: 'primary', onclick: () => handleSend(input) }, CONVERSA_COPY.enviar.pt),
-      ),
-      h(
-        'div',
-        { class: 'conversa-footer' },
-        quickOrder
-          ? h(
-              'button',
-              { class: 'ghost', onclick: handleQuickOrder, 'data-action': 'pedido-rapido' },
-              bi('Pedido rápido', 'Quick order'),
-            )
-          : null,
-        h('button', { class: 'ghost', onclick: handleClose }, CONVERSA_COPY.sair.pt),
-      ),
-    );
-  }
-
-  containerEl.replaceChildren(header, body);
+  if (!state) return;
+  boxOwned = true;
+  showDialogueBox(boxSpec(state));
 }
 
 async function handleSend(input: HTMLInputElement) {
@@ -320,8 +223,7 @@ async function handleSend(input: HTMLInputElement) {
     const next = document.getElementById('conversa-input') as HTMLInputElement | null;
     if (next && state && !state.ended) {
       next.disabled = false;
-      if (boxOwned) focusDialogueInput();
-      else next.focus();
+      focusDialogueInput();
     }
   }
 }
@@ -486,12 +388,6 @@ function handleQuickOrder() {
 }
 
 export function closeConversa() {
-  if (onKey) {
-    document.removeEventListener('keydown', onKey);
-    onKey = null;
-  }
-  containerEl?.parentElement?.remove();
-  containerEl = null;
   state = null;
   quickOrder = null;
   if (boxOwned) {
@@ -611,29 +507,5 @@ function openOfflineConversa(npcId: NpcId) {
 
 function showConversaPanel() {
   if (!state) return;
-  if (dialogueMode() === 'box') {
-    render();
-    return;
-  }
-  const backdrop = h('div', { class: 'conversa-backdrop', 'data-modal': 'conversa' });
-  containerEl = h('div', { class: 'conversa-panel' });
-  backdrop.append(containerEl);
-
-  onKey = (e: KeyboardEvent) => {
-    if (!state) return;
-    if (e.key === 'Escape') {
-      handleClose();
-      return;
-    }
-    const n = Number(e.key);
-    if (n >= 1 && n <= state.chips.length) handleChip(n - 1);
-  };
-  document.addEventListener('keydown', onKey);
-
-  ui().append(backdrop);
-  game.modalOpen = true;
   render();
-
-  const input = document.getElementById('conversa-input') as HTMLInputElement | null;
-  input?.focus();
 }

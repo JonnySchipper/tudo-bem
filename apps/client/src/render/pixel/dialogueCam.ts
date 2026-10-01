@@ -38,7 +38,8 @@ export function dialogueFraming(a: DialogueFramingArgs): Framing {
   const focus = { x: mid.x, y: mid.y + (a.view.h / 2 - freeMid) / zoom2 };
   const c = cameraCenter({ w: a.view.w, h: a.view.h, zoom: zoom2 }, a.bounds, focus, { ...a.insets, bottom: a.boxPx });
   const e = Math.min(1, a.blend);
-  return { zoom: a.base.zoom + (zoom2 - a.base.zoom) * e, cx: a.base.cx + (c.cx - a.base.cx) * e, cy: a.base.cy + (c.cy - a.base.cy) * e };
+  // the zoom moves in whole device-pixel steps (it snaps half way); a fractional zoom would blur the sprites for a few frames. The centre still eases.
+  return { zoom: a.base.zoom + Math.round((zoom2 - a.base.zoom) * e), cx: a.base.cx + (c.cx - a.base.cx) * e, cy: a.base.cy + (c.cy - a.base.cy) * e };
 }
 
 /** Tween progress after `dt` seconds toward `target` (0 or 1) over `seconds`; instant when `instant` (reduced motion, shots). */

@@ -67,6 +67,85 @@ export function bubbleLeft(anchor: number, w: number, side: 'left' | 'right', vi
   return Math.round(Math.min(Math.max(raw, 4), Math.max(4, viewW - w - 4)));
 }
 
+/** One stack's layout before de-overlap: where its anchor is on screen and the sizes of its plate and bubbles (oldest line first). */
+export interface StackBox {
+  key: string;
+  ax: number;
+  ay: number;
+  plate: { w: number; h: number } | null;
+  /** `left` is relative to `ax` */
+  bubbles: { left: number; w: number; h: number }[];
+}
+
+interface Rect {
+  l: number;
+  r: number;
+  t: number;
+  b: number;
+}
+
+const overlaps = (a: Rect, b: Rect): boolean => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+/** Never lift a label more than this many CSS px (a crowd should not throw a bubble off the top of the screen). */
+const MAX_LIFT = 140;
+
+/** The CSS px from the stack's anchor up to the bottom of the newest bubble, and the total height of the pile above it. */
+function pileExtent(box: StackBox): { gap: number; height: number } {
+  const plateH = box.plate?.h ?? 0;
+  const gap = PLATE_LIFT + plateH + BUBBLE_GAP;
+  let height = 0;
+  for (const b of box.bubbles) height += b.h - 2;
+  return { gap, height: box.bubbles.length ? height + 2 : 0 };
+}
+
+/**
+ * Vertical de-overlap of nameplates and bubble piles (pure). Nearer stacks (lower on screen) keep their place; a farther stack's nameplate is lifted
+ * above whatever it would cover, and its bubble pile is lifted above any plate or pile already placed. Returns, per stack, how far its plate was lifted
+ * and how far its pile was lifted in total (the plate's lift included, since the pile sits on the plate), in CSS px.
+ */
+export function deoverlapStacks(boxes: readonly StackBox[]): Map<string, { plateLift: number; pileLift: number }> {
+  const out = new Map<string, { plateLift: number; pileLift: number }>();
+  const placed: Rect[] = [];
+  const order = [...boxes].sort((a, b) => b.ay - a.ay || (a.key < b.key ? -1 : 1));
+  for (const box of order) {
+    let plateLift = 0;
+    let plateRect: Rect | null = null;
+    if (box.plate) {
+      const mk = (lift: number): Rect => {
+        const b = box.ay - PLATE_LIFT - lift;
+        return { l: box.ax - box.plate!.w / 2, r: box.ax + box.plate!.w / 2, t: b - box.plate!.h, b };
+      };
+      plateRect = mk(0);
+      for (let i = 0; i < 8 && plateLift < MAX_LIFT; i++) {
+        const hit = placed.find((r) => overlaps(plateRect!, r));
+        if (!hit) break;
+        plateLift = Math.min(MAX_LIFT, plateLift + (plateRect.b - (hit.t - 1)));
+        plateRect = mk(plateLift);
+      }
+      placed.push(plateRect);
+    }
+    let pileLift = plateLift;
+    if (box.bubbles.length) {
+      const { gap, height } = pileExtent(box);
+      const left = Math.min(...box.bubbles.map((b) => box.ax + b.left));
+      const right = Math.max(...box.bubbles.map((b) => box.ax + b.left + b.w));
+      const mk = (lift: number): Rect => {
+        const b = box.ay - gap - lift;
+        return { l: left, r: right, t: b - height, b };
+      };
+      let rect = mk(pileLift);
+      for (let i = 0; i < 8 && pileLift < MAX_LIFT; i++) {
+        const hit = placed.find((r) => overlaps(rect, r));
+        if (!hit) break;
+        pileLift = Math.min(MAX_LIFT, pileLift + (rect.b - (hit.t - 1)));
+        rect = mk(pileLift);
+      }
+      placed.push(rect);
+    }
+    out.set(box.key, { plateLift, pileLift });
+  }
+  return out;
+}
+
 interface BubbleEl {
   root: HTMLElement;
   pt: HTMLElement;
@@ -88,6 +167,9 @@ interface StackEl {
   plateH: number;
   transform: string;
   hidden: boolean;
+  /** each bubble's `bottom` before any de-overlap lift (CSS px above the anchor) */
+  baseBottoms: number[];
+  plateBottom: string;
 }
 
 interface GuideEl {
@@ -178,6 +260,7 @@ export class LabelLayer {
       this.stacks.get(k)?.root.remove();
       this.stacks.delete(k);
     }
+    const boxes: StackBox[] = [];
     for (const s of stacks) {
       let el = this.stacks.get(s.key);
       if (!el) {
@@ -185,7 +268,15 @@ export class LabelLayer {
         this.stacks.set(s.key, el);
         this.root.appendChild(el.root);
       }
-      this.updateStack(el, s, view);
+      const box = this.updateStack(el, s, view);
+      if (box) boxes.push(box);
+    }
+    // nameplates and bubbles of neighbours must not cover each other: lift the farther one's label (pure, see `deoverlapStacks`)
+    const lifts = deoverlapStacks(boxes);
+    for (const box of boxes) {
+      const el = this.stacks.get(box.key);
+      const l = lifts.get(box.key);
+      if (el && l) this.applyLift(el, l.plateLift, l.pileLift);
     }
     this.updateGuides(guides, view, insets);
   }
@@ -197,7 +288,7 @@ export class LabelLayer {
     const plate = document.createElement('div');
     plate.className = 'wl-plate';
     root.appendChild(plate);
-    return { root, plate, bubbles: [], side: 'left', plateKey: '', plateW: 0, plateH: 0, transform: '', hidden: false };
+    return { root, plate, bubbles: [], side: 'left', plateKey: '', plateW: 0, plateH: 0, transform: '', hidden: false, baseBottoms: [], plateBottom: '' };
   }
 
   private createBubble(): BubbleEl {
@@ -214,12 +305,25 @@ export class LabelLayer {
     return { root, pt, en, text: '', gloss: '', opacity: '', w: 0, h: 0 };
   }
 
-  private updateStack(el: StackEl, s: StackItem, view: { w: number; h: number }): void {
+  /** Write the lifts `deoverlapStacks` chose (only when they changed). */
+  private applyLift(el: StackEl, plateLift: number, pileLift: number): void {
+    const pb = px(PLATE_LIFT + plateLift);
+    if (pb !== el.plateBottom) {
+      el.plateBottom = pb;
+      el.plate.style.bottom = pb;
+    }
+    el.bubbles.forEach((be, i) => {
+      const b = px((el.baseBottoms[i] ?? 0) + pileLift);
+      if (be.root.style.bottom !== b) be.root.style.bottom = b;
+    });
+  }
+
+  private updateStack(el: StackEl, s: StackItem, view: { w: number; h: number }): StackBox | null {
     const on = s.x > -60 && s.x < view.w + 60 && s.y > -10 && s.y < view.h + 90;
     if (!on) {
       if (!el.hidden) el.root.style.display = 'none';
       el.hidden = true;
-      return;
+      return null;
     }
     if (el.hidden) {
       el.root.style.display = '';
@@ -291,12 +395,17 @@ export class LabelLayer {
     }
     // newest line lowest; each older line's tail tip just touches the top edge of the one below it
     let bottom = PLATE_LIFT + el.plateH + BUBBLE_GAP;
+    const lefts: number[] = [];
     for (let i = el.bubbles.length - 1; i >= 0; i--) {
       const be = el.bubbles[i];
-      be.root.style.left = px(bubbleLeft(ax, be.w, side, view.w) - ax);
-      be.root.style.bottom = px(bottom);
+      const left = bubbleLeft(ax, be.w, side, view.w) - ax;
+      lefts[i] = left;
+      be.root.style.left = px(left);
+      el.baseBottoms[i] = bottom;
       bottom += be.h - 2;
     }
+    el.baseBottoms.length = el.bubbles.length;
+    return { key: s.key, ax, ay, plate: s.plate ? { w: el.plateW, h: el.plateH } : null, bubbles: el.bubbles.map((be, i) => ({ left: lefts[i] ?? 0, w: be.w, h: be.h })) };
   }
 
   // ------------------------------------------------------------------ guides

@@ -42,7 +42,9 @@ describe('dialogue camera framing', () => {
   it('tweens between the two framings', () => {
     const half = dialogueFraming({ ...args, blend: 0.5 });
     const full = dialogueFraming(args);
-    expect(half.zoom).toBeCloseTo(4.5, 5);
+    expect(Number.isInteger(half.zoom)).toBe(true);
+    expect(dialogueFraming({ ...args, blend: 0.3 }).zoom).toBe(4);
+    expect(dialogueFraming({ ...args, blend: 0.7 }).zoom).toBe(5);
     expect(half.cx).toBeCloseTo((base.cx + full.cx) / 2, 5);
   });
 

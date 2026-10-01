@@ -123,6 +123,8 @@ interface Canopy {
   sprite: Phaser.GameObjects.Sprite;
   r: Rect;
   fade: number;
+  /** a vendor's stall (feira, hat stall): the tarp also fades while you stand in front of it or talk to the vendor behind it */
+  stall?: boolean;
 }
 
 /** Art px from the feet to the top of the visible head (the 16x32 frame has empty rows above it); nameplates stand just above. */
@@ -525,7 +527,7 @@ export class WorldScene extends Phaser.Scene {
         feiraEntry?.open.push(spr);
         const left = x - od.ax;
         const top = y - od.ay;
-        this.canopies.push({ sprite: spr, r: { x0: left, y0: top + 8, x1: left + od.w, y1: top + od.h + 14 }, fade: 1 });
+        this.canopies.push({ sprite: spr, r: { x0: left, y0: top + 8, x1: left + od.w, y1: top + od.h + 14 }, fade: 1, stall: p.kind === 'feira' || p.kind === 'barraca_chapeus' });
       }
       if (feiraEntry) this.buildFeiraClosed(artKey, a, depth, feiraEntry);
       const L = d.light ? { x: d.light.x - d.ax, y: d.light.y - d.ay, r: d.light.r, color: d.light.color } : PROP_LIGHT[p.kind];
@@ -1129,9 +1131,14 @@ export class WorldScene extends Phaser.Scene {
   /** Overhead layers fade to 0.45 alpha while the local avatar's feet are inside (HOWTO §5.4). */
   private updateCanopies(dt: number): void {
     const self = game.self ? this.avatars.get(game.self.pub.id) : undefined;
+    // Phase 10: a vendor stands under the tarp; while you talk to them (or stand at the stall) the tarp lets them show through
+    const dn = this.dlg?.npc ?? null;
+    const npcAt = dn ? { x: (dn.x + 0.5) * T, y: (dn.y + 1) * T } : null;
     for (const c of this.canopies) {
       const inside = !!self && self.wx >= c.r.x0 && self.wx <= c.r.x1 && self.wy >= c.r.y0 && self.wy <= c.r.y1;
-      const target = inside ? 0.45 : 1;
+      const talking = !!c.stall && !!npcAt && npcAt.x >= c.r.x0 && npcAt.x <= c.r.x1 && npcAt.y >= c.r.y0 && npcAt.y <= c.r.y1 + T;
+      const infront = !!c.stall && !!self && self.wx >= c.r.x0 && self.wx <= c.r.x1 && self.wy > c.r.y1 && self.wy <= c.r.y1 + 2 * T;
+      const target = talking ? 0.3 : inside || infront ? 0.45 : 1;
       c.fade += (target - c.fade) * Math.min(1, dt / 0.15);
       c.sprite.setAlpha(c.fade);
     }

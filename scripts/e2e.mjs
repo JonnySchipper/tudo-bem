@@ -10,15 +10,25 @@
  * order to fill the tray) → hat shop → Kitnet chair, plus a second player for chat gloss + friend
  * request. Expects LIVEOPS_CPU_AMBIANCE on (the default); set CPU_AMBIANCE=off when the server
  * runs with it off.
+ *
+ * PINNED CLOCK (Phase 10): the game clock is real time (1 game day = 48 real minutes), so this script needs a server whose clock reads daytime
+ * (about 08:30; the baker, Nanda and the feira all depend on the hour). Start it pinned and with the recado offer fixed:
+ *     TB_TEST_CLOCK_CONTROL=1 TB_TEST_OFFER=carlos_cafe_pra_nanda TB_TEST_ROLL=1 pnpm start      # the script sets 08:30 itself
+ *     (or TB_TEST_CLOCK_OFFSET_MIN=<n> from `node scripts/lib/clock-pin.mjs 08:30` instead of TB_TEST_CLOCK_CONTROL=1)
+ * It fails fast with that message when the clock is not daytime. The whole recado (offer from the baker, café com leite, hand it to Nanda, RV and
+ * bond) is part of every run; set SKIP_RECADO=1 to run without TB_TEST_OFFER. 'pnpm e2e:all' starts such a server and stops it afterwards.
+ * SOLO builds have no server to pin: the in-page world gets `?tbclockmin=` instead (the same 08:30), and the recado part is skipped.
  */
 import { chromium } from 'playwright-core';
+import { findChrome } from './lib/chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { DAY_MIN, assertPageClock, offsetMinFor, requirePinnedClock } from './lib/clock-pin.mjs';
 import { assert, expectFirstTimeoutRearms, learnShelf, playShift, sleep, waitFor } from './lib/meveum-play.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
-const CHROME = process.env.CHROME_PATH ?? ['/usr/local/bin/google-chrome', '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'].find((p) => fs.existsSync(p));
+const CHROME = findChrome();
 const SHOTS = process.env.SHOTS_DIR ?? '';
 const VIDEO = process.env.VIDEO_DIR ?? '';
 const HEADLESS = process.env.HEADED ? false : true;
@@ -102,7 +112,8 @@ const PASSWORD = 'pao-de-queijo-2026';
 const RUN = Date.now().toString(36);
 const emailFor = (name) => `${name.toLowerCase()}+${RUN}@exemplo.com`;
 /** Solo builds need `?rolltest` for the Academia roll debug hints (the server build uses TB_TEST_ROLL=1). */
-const START_URL = SOLO ? `${BASE}${BASE.includes('?') ? '&' : '?'}rolltest` : BASE;
+// SOLO: `?rolltest` for the Academia roll hints and `?tbclockmin=<n>` (the solo twin of TB_TEST_CLOCK_OFFSET_MIN) so the in-page world reads about 08:30 too
+const START_URL = SOLO ? `${BASE}${BASE.includes('?') ? '&' : '?'}rolltest&tbclockmin=${offsetMinFor(DAY_MIN)}` : BASE;
 
 /** Title screen → sign-in card (the intro's own skip keeps runs short). */
 async function toSignInCard(page) {
@@ -168,6 +179,7 @@ async function createAvatar(page, name, pronoun, { tick18 = false, guest = SOLO 
 async function main() {
   assert(CHROME, 'Chrome/Chromium not found — set CHROME_PATH');
   console.log(`\nTudo Bem e2e → ${BASE}`);
+  if (!SOLO) await requirePinnedClock(BASE, { label: 'daytime, about 08:30' });
   const browser = await chromium.launch({ executablePath: CHROME, headless: HEADLESS, slowMo: VIDEO ? 90 : 0, args: ['--autoplay-policy=no-user-gesture-required'] });
   const ctxA = await browser.newContext({
     viewport: { width: 1440, height: 900 },
@@ -200,6 +212,8 @@ async function main() {
   await shot(page, '01_avatar_creator');
   await enter();
   await dwell(1500);
+  await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
+  await assertPageClock(page, { min: DAY_MIN - 20, max: 12 * 60, label: 'daytime, about 08:30' });
   if (!SOLO) {
     // The session cookie survives a reload: straight back into the Praça, same avatar.
     const before = (await profile(page)).id;
@@ -339,6 +353,8 @@ async function main() {
   assert(await page.$('.hotspot-card #hs-save'), 'sign card has Guardar no caderno');
   await waitFor(page, () => Object.keys(window.__tb.game.profile.caderno ?? {}).length >= 5, null, 5000, 'reading the menu marks its words as seen');
   await shot(page, '03b_hotspot_cardapio');
+  // a programmatic interact does not take focus away from the chat field (a real click would); Escape is ignored inside inputs
+  await page.evaluate(() => document.activeElement?.blur?.());
   await page.keyboard.press('Escape');
   await page.click('#btn-caderno');
   await page.waitForSelector('[data-modal="caderno"] [data-card="lex.padaria.coxinha"]', { timeout: 5000 });
@@ -359,7 +375,8 @@ async function main() {
     log('recado accepted from', baker.name, JSON.stringify(accepted));
     await shot(page, '04a_recado_accepted');
     await openNpc(page, baker.id, 'conversa');
-  } else log('no recado offered by the baker (start the server with TB_TEST_OFFER=carlos_cafe_pra_nanda to cover the whole recado)');
+  } else if (SOLO || process.env.SKIP_RECADO === '1') log('no recado offered by the baker (SOLO / SKIP_RECADO): the recado part is skipped');
+  else throw new Error('The baker did not offer the recado. Start the server with TB_TEST_OFFER=carlos_cafe_pra_nanda (or set SKIP_RECADO=1 to skip the recado part).');
   const conversaName = ((await page.textContent('#dialogue-box[data-dialogue="conversa"] .npc-name')) ?? '').trim();
   assert(conversaName === baker.name, `Conversa is ${baker.name} at the mesa (${conversaName})`);
   assert(await page.$('#dialogue-box[data-dialogue="conversa"] .dbx-portrait'), 'Conversa portrait (café mesa)');

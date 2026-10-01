@@ -20,9 +20,9 @@ import { game } from '../state';
 import { h, en, bi, ui, clear } from './dom';
 import { mountCharPreview, setHatIcon } from '../render/pixel/charPreview';
 export { MinigameUI } from './meveum-ui.js';
-import { furnitureIcon, npcPortrait, parrotPortrait, expressionForScore, type Expression } from './pixelArt';
+import { furnitureIcon, expressionForScore } from './pixelArt';
 import { speak } from '../audio';
-import { closeDialogueBox, dialogueMode, showDialogueBox, type BoxSpec } from './dialogue';
+import { closeDialogueBox, showDialogueBox, type BoxSpec } from './dialogue';
 import { icon } from '../art/ui';
 import { drawMinimap } from './minimap';
 import { clock } from '../gameClock';
@@ -33,10 +33,6 @@ export { closeModal, modalId, openModal } from './modal.js';
 import { closeModal, modalId, openModal } from './modal.js';
 
 const closeBtn = (close: () => void) => h('button', { class: 'close ghost', onclick: close, 'aria-label': 'Fechar' }, '✕');
-
-function portrait(npc: NpcDef | null, expr: Expression = 'neutro') {
-  return npc ? npcPortrait(npc.id, expr, 'portrait') : parrotPortrait('portrait');
-}
 
 // ---------------------------------------------------------------- NPC dialogue
 
@@ -57,16 +53,9 @@ export interface DialogueOpts {
   onType?: (text: string) => void;
 }
 
-let dialogueEl: HTMLElement | null = null;
-let dialogueKey: ((e: KeyboardEvent) => void) | null = null;
-
-/** Closes whatever NPC dialogue is up: the in-world box (Phase 7) or, under `?dialogue=modal`, the old panel. */
+/** Closes whatever NPC dialogue is up (the in-world box). */
 export function closeDialogue() {
   closeDialogueBox();
-  dialogueEl?.remove();
-  dialogueEl = null;
-  if (dialogueKey) document.removeEventListener('keydown', dialogueKey);
-  dialogueKey = null;
   game.modalOpen = !!modalId();
 }
 
@@ -91,57 +80,7 @@ function boxSpecFor(o: DialogueOpts): BoxSpec {
 }
 
 export function showDialogue(o: DialogueOpts) {
-  if (dialogueMode() === 'box') return showDialogueBox(boxSpecFor(o));
-  const continued = !!dialogueEl;
-  closeDialogue();
-  const listen = h('button', { class: 'speak-btn', onclick: () => speak(o.line.pt, { force: true }), title: 'Ouvir / Listen' }, '🔊 Ouvir');
-  const chips = o.chips.map((c, i) =>
-    h(
-      'button',
-      { onclick: () => o.onChoose(i), 'data-chip': String(i) },
-      h('span', { class: 'num' }, String(i + 1)),
-      h('span', null, h('span', { class: 'pt' }, c.pt), en(c.en, true)),
-    ),
-  );
-  dialogueEl = h(
-    'div',
-    { class: `dialogue ${continued ? 'continued' : ''}`, role: 'dialog', 'aria-label': o.speaker, id: 'dialogue' },
-    portrait(o.npc, expressionForScore(o.feedback?.score)),
-    h(
-      'div',
-      null,
-      h('div', { class: 'row' }, h('div', { class: 'speaker' }, o.speaker, o.role ? h('small', null, o.role) : null), listen, h('span', { class: 'spacer' }), h('button', { class: 'ghost', onclick: o.onClose }, '✕')),
-      o.said ? h('div', { class: 'you-said' }, `Você: “${o.said.pt}”`) : null,
-      o.feedback ? h('span', { class: `feedback s${o.feedback.score}` }, `${o.feedback.text.pt} · ${o.feedback.text.en}`) : null,
-      h('div', { class: 'line' }, o.line.pt),
-      en(o.line.en),
-      chips.length ? h('div', { class: 'reply-chips' }, ...chips) : null,
-      chips.length && o.onType ? typedReply(o.onType) : null,
-      o.footer ?? null,
-    ),
-  );
-  dialogueKey = (e: KeyboardEvent) => {
-    if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
-    const n = Number(e.key);
-    if (n >= 1 && n <= o.chips.length) o.onChoose(n - 1);
-    if (e.key === 'Escape') o.onClose();
-  };
-  document.addEventListener('keydown', dialogueKey);
-  ui().append(dialogueEl);
-  game.modalOpen = true;
-}
-
-function typedReply(onType: (text: string) => void) {
-  const input = h('input', { type: 'text', maxLength: 140, placeholder: 'Ou escreva sua resposta… (or type your reply)', 'aria-label': 'Resposta', id: 'scene-type' });
-  const send = () => {
-    const t = input.value.trim();
-    if (t) onType(t);
-  };
-  input.addEventListener('keydown', (e) => {
-    e.stopPropagation();
-    if (e.key === 'Enter') send();
-  });
-  return h('div', { class: 'typed-reply' }, input, h('button', { class: 'primary', onclick: send, id: 'scene-type-send' }, 'Responder'));
+  return showDialogueBox(boxSpecFor(o));
 }
 
 export function showScene(view: SceneView, extra: { said?: Bilingual; feedback?: Bilingual; score?: number; payout?: number }, onChoose: (i: number) => void, onClose: () => void, onPlay: () => void, onType?: (text: string) => void) {

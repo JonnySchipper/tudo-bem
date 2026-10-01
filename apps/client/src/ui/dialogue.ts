@@ -4,7 +4,7 @@
  * state and just describe the current beat with a `BoxSpec`. The world stays visible and keeps moving behind it; the camera eases one
  * zoom step in (the host does that), and `game.modalOpen` stops the player from walking.
  *
- * The old modal presentation stays behind `?dialogue=modal` for one release (`dialogueMode()`); callers branch on it.
+ * The old centred-modal presentation (`?dialogue=modal`) was removed in Phase 10.
  */
 import { game } from '../state';
 import { h, ui } from './dom';
@@ -15,11 +15,6 @@ import { Typewriter, dialogueKeyAction, npcTagColor, readShowEnglish, writeShowE
 import { noteHeard } from './heard';
 import { modalId } from './modal';
 import { heartsWith } from './recadoView';
-
-export type DialogueMode = 'box' | 'modal';
-
-/** `?dialogue=modal` keeps the old centred modals for one release. */
-export const dialogueMode = (): DialogueMode => (new URLSearchParams(location.search).get('dialogue') === 'modal' ? 'modal' : 'box');
 
 export interface BoxChip {
   pt: string;

@@ -1,5 +1,23 @@
 # Phase 0 status — Tudo Bem vertical slice
 
+## Vila Ipê: the life-sim conversion (Phases 1 to 10, branch `lifesim/main`)
+
+The isometric Phase 0 world below was replaced by **Vila Ipê**, a top-down pixel-art neighborhood, without touching the server-authoritative design. Plan: [`docs/lifesim/HOWTO.md`](docs/lifesim/HOWTO.md). Every decision, weakness and review list: [`docs/lifesim/DECISIONS.md`](docs/lifesim/DECISIONS.md). Native-review pack: [`docs/lifesim/BR-REVIEW.md`](docs/lifesim/BR-REVIEW.md).
+
+**What changed**
+- **Renderer:** Phaser 3 as a view only (16 px tiles, integer zoom, dual-grid autotiling, layered 16×32 characters, a day/night grade with lamp pools, weather, traffic, a bus, the dog, pigeons, petals, audio zones). Text is DOM over the canvas. The Canvas 2D isometric renderer, its baked art (`public/art`, `pnpm art`) and the `?dialogue=modal` fallback are deleted.
+- **World:** a 56×40 map (`praca`) plus the Padaria, Kitnet and Academia interiors; a shared game clock (1 game day = 48 real minutes) and weather; NPCs with schedules (Seu Carlos, Dona Graça at night, Nanda, Júlia, Professora Bia, and the feira vendors Tia Lu, Seu Zé, Seu Chico, Dona Rosa); 33 readable signs; the **feira livre** with "Quanto custa?" and paying with coins and notes.
+- **Loop:** an in-world dialogue box with a camera zoom, **recados** (18 errands, daily offers, hand-overs, tracker and journal), friendship hearts (name at 2, a Conversa subject at 4, a gift at 6), time-of-day greetings, NPC memory of your last Conversa, and the **Caderno de palavras**.
+- **Art and credits:** LimeZu packs plus original Brazilian set pieces through `pnpm pixel`; the credit line is in the game and in `assets-src/LICENSES.md`.
+
+**Verification (Phase 10):** `pnpm verify` is green; `pnpm e2e:all` runs the play path with a full recado, the feira (day and night), the night NPCs and Me vê um across restarts against a server with a **pinned game clock** (see the README), so the result no longer depends on the hour. Test-only server hooks: `TB_TEST_CLOCK_CONTROL`, `TB_TEST_CLOCK_OFFSET_MIN`, `TB_TEST_OFFER`, `TB_TEST_ROLL`.
+
+**Known gaps** (the full list is in DECISIONS.md): no native review of any new Portuguese yet (BR-REVIEW.md); vendor portraits of Seu Zé, Seu Chico and Dona Rosa borrow other faces; the audio zones have not been heard by a person; the feira tray money is infinite (it teaches paying, not budgeting); Academia poses (`bjjPoses.ts`) are still the old canvas art; no bairros beyond Vila Ipê, seasons or festas yet.
+
+The sections below are the original Phase 0 notes (isometric renderer) and are kept as history.
+
+---
+
 Target: `TudoBem-Phase0-MVP.md` (success criteria 1–4) and GDD v1.0 §14.1.
 
 **Verdict: the slice is playable end-to-end.** `pnpm e2e` signs up through the intro with email + password (optional 18+ tick, no birth date), checks the session survives a reload, that logout → wrong password → login works, and that the guest CTA doesn't enter multiplayer. It then drives a fresh adult user through every success-criteria step in headless Chrome, plus a second player for chat, gloss, friends, and a kitnet visit. It passes against the production build, the Vite dev server, and a public tunnel URL.

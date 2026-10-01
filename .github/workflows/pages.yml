@@ -36,7 +36,9 @@ jobs:
         run: |
           node scripts/serve-static.mjs apps/client/dist 4173 /${{ github.event.repository.name }}/ &
           sleep 1
+          # the in-page world gets a pinned clock through ?tbclockmin (the solo twin of TB_TEST_CLOCK_OFFSET_MIN), so the hour of the run does not matter
           SOLO=1 BASE_URL=http://localhost:4173/${{ github.event.repository.name }}/ CHROME_PATH=$(which google-chrome || which chromium) pnpm e2e
+          BASE_URL=http://localhost:4173/${{ github.event.repository.name }}/ CHROME_PATH=$(which google-chrome || which chromium) pnpm e2e:solo
       - uses: actions/configure-pages@v5
         with:
           enablement: true
