@@ -108,6 +108,7 @@ import {
 import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
 import { ProfileStore, today, todaySaoPaulo, toPrivate, type StoredProfile } from './store.js';
 import { CpuCrowd } from './ambiance.js';
+import { readEnv } from './env.js';
 import { NPC_TICK_MS, NpcDirector } from './npcs.js';
 import { RecadoTracker, sceneItems } from './recados.js';
 import { CadernoTracker } from './caderno.js';
@@ -317,10 +318,10 @@ export class World {
     this.schedule = opts.schedule ?? ((fn, ms) => void (setTimeout(fn, ms) as unknown as { unref?: () => void }).unref?.());
     this.ambiance = !!opts.ambiance;
     this.rng = opts.rng ?? Math.random;
-    const envQueue = Number(process.env.ROLL_QUEUE_MS);
+    const envQueue = Number(readEnv('ROLL_QUEUE_MS'));
     this.rollQueueMs = opts.rollQueueMs ?? (Number.isFinite(envQueue) && envQueue >= 0 ? envQueue : ROLL_QUEUE_MS_DEFAULT);
-    this.testRollHints = opts.testRollHints ?? process.env.TB_TEST_ROLL === '1';
-    const envOffset = Number(process.env.TB_TEST_CLOCK_OFFSET_MIN);
+    this.testRollHints = opts.testRollHints ?? readEnv('TB_TEST_ROLL') === '1';
+    const envOffset = Number(readEnv('TB_TEST_CLOCK_OFFSET_MIN'));
     this.clockOffsetMs = opts.clockOffsetMs ?? (Number.isFinite(envOffset) ? envOffset * 60_000 : 0);
     this.npcs = new NpcDirector(() => this.clockNow());
     this.accounts = opts.accounts;
