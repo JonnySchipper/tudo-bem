@@ -14,6 +14,7 @@ import * as feiraMod from './feira.mjs';
 import * as iconsMod from './icons.mjs';
 import * as uiMod from './ui.mjs';
 import * as uiIconsMod from './uiicons.mjs';
+import * as flockMod from './flock.mjs';
 import * as vilaMod from './vila.mjs';
 import * as telhadosMod from './telhados.mjs';
 import * as backdropMod from './backdrop.mjs';
@@ -64,4 +65,5 @@ export const IMAGES = {
   ui: uiMod.uiParts,
   uiicons: uiIconsMod.uiIconParts,
   parrot: critters.parrotStrip,
+  flock: flockMod.flockStrips,
 };

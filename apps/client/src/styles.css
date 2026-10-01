@@ -165,10 +165,11 @@ button:disabled {
 }
 
 .coin {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   display: inline-block;
-  background: var(--art-coin) center / contain no-repeat;
+  background: var(--art-coin) center / 16px 16px no-repeat;
+  image-rendering: pixelated;
   flex: none;
 }
 
@@ -313,90 +314,6 @@ button:disabled {
 
 .spacer {
   flex: 1;
-}
-
-/* ---------- onboarding ---------- */
-
-.onboarding {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: safe center;
-  z-index: 30;
-  background:
-    var(--art-calcada) bottom left / 120px 48px repeat-x,
-    var(--art-skyline) left calc(100% - 44px) / 600px 160px repeat-x,
-    radial-gradient(circle at 12% 12%, rgba(255, 236, 196, 0.9), transparent 38%),
-    radial-gradient(circle at 85% 70%, rgba(224, 122, 95, 0.28), transparent 45%),
-    linear-gradient(#a8c5d4, #dcd6c6 55%, #f0c89a);
-  overflow: auto;
-  overscroll-behavior: contain;
-  touch-action: pan-y;
-  padding: calc(16px + var(--safe-top)) calc(16px + var(--safe-right)) calc(16px + var(--safe-bottom)) calc(16px + var(--safe-left));
-}
-
-.onboarding .hero {
-  text-align: center;
-  color: var(--ink);
-  margin-bottom: 14px;
-}
-
-.onboarding .hero .en {
-  color: var(--ink-soft);
-}
-
-.onboarding .hero h1 {
-  font-family: var(--font-title);
-  font-size: clamp(2.6em, 7vw, 4.2em);
-  margin: 0;
-  line-height: 0.95;
-  color: var(--terracota);
-  text-shadow: 0 3px 0 #fff3e0, 0 5px 0 rgba(44, 44, 44, 0.8);
-}
-
-.onboarding .hero p {
-  margin: 6px 0 0;
-  font-weight: 700;
-}
-
-.creator {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 18px;
-}
-
-@media (max-width: 720px) {
-  .creator {
-    grid-template-columns: 1fr;
-  }
-}
-
-.creator .preview {
-  background: linear-gradient(#ffe3b8, #f7c98c);
-  border-radius: 18px;
-  display: grid;
-  place-items: center;
-  min-height: 300px;
-  position: relative;
-  overflow: hidden;
-}
-
-.creator .preview::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 70px;
-  background: repeating-linear-gradient(135deg, #2b2b2b 0 14px, #efe9dc 14px 28px);
-  opacity: 0.25;
-}
-
-.creator .preview canvas {
-  position: relative;
-  z-index: 1;
 }
 
 .field {
@@ -1995,8 +1912,9 @@ body:has([data-modal='minigame']) #ui {
 }
 
 .rv-badge .coin {
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
+  background-size: 32px 32px;
 }
 
 .mission-row {
@@ -2385,48 +2303,6 @@ body:has([data-modal='minigame']) #ui {
   }
 }
 
-/* ---------------------------------------------------------------- phone (portrait ~390×844 is the bar) */
-
-.creator-panel {
-  width: min(880px, 100%);
-}
-
-.creator-lead {
-  margin: 0 0 4px;
-  font-weight: 700;
-}
-
-/* the pixel preview is 28 x 36 art px: 8x on desktop, 6x on phones (integer scales only) */
-.creator-canvas {
-  width: 224px;
-  height: 288px;
-  image-rendering: pixelated;
-}
-
-.turn-btn {
-  position: absolute;
-  right: 10px;
-  bottom: 10px;
-  z-index: 2;
-  padding: 6px 12px;
-  font-size: 0.9rem;
-}
-
-@media (max-width: 700px) {
-  .creator-canvas {
-    width: 168px;
-    height: 216px;
-  }
-}
-
-.creator-cta {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-  background: linear-gradient(transparent, var(--cream) 16px);
-  padding: 14px 0 calc(8px + var(--safe-bottom));
-}
-
 .joystick {
   display: none;
   position: fixed;
@@ -2455,10 +2331,7 @@ body:has([data-modal='minigame']) #ui {
 
 #ui input,
 #ui select,
-#ui textarea,
-.onboarding input,
-.onboarding select,
-.onboarding textarea {
+#ui textarea {
   font-size: 16px;
 }
 
@@ -2499,32 +2372,9 @@ body:has(.onboarding) .joystick {
 }
 
 @media (max-width: 640px) {
-  .onboarding {
-    justify-content: flex-start;
-    align-items: stretch;
-  }
 
-  .onboarding .hero h1 {
-    font-size: 2.4em;
-  }
-
-  .onboarding .creator-panel {
-    max-height: none;
-    overflow: visible;
-  }
-
-  .creator {
-    grid-template-columns: 1fr;
-  }
-
-  .creator .preview {
-    min-height: 220px;
-    max-height: 280px;
-  }
-
-  .creator-panel,
   .backdrop .panel,
-  .mg {
+.mg {
     width: 100% !important;
     max-width: 100% !important;
     box-sizing: border-box;
@@ -2657,17 +2507,6 @@ body:has(.onboarding) .joystick {
 }
 
 @media (max-height: 480px) and (orientation: landscape) {
-  .onboarding .hero h1 {
-    font-size: 1.8em;
-  }
-
-  .creator {
-    grid-template-columns: 160px 1fr;
-  }
-
-  .creator .preview {
-    min-height: 140px;
-  }
 
   .joystick {
     width: 84px;

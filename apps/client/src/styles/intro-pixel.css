@@ -1,0 +1,355 @@
+/*
+ * Title / sign-in / sign-up in pixel style (V4). The picture behind the card was already the pixel Vila Ipê; this restyles what sits on it:
+ * the wordmark (pixel font, hard stepped outline), the tagline plate, the card (a notched frame and a square-scalloped awning), the tabs,
+ * the fields and the buttons. No blur, no soft gradients, no rounded corners. The pixel parrots are drawn by ui/introParrots.ts.
+ * Loaded after intro.css; learning text stays Nunito.
+ */
+
+:root {
+  --ip-ink: #573c2c;
+  --ip-ink-dark: #3a2a20;
+}
+
+/* ---------------------------------------------------------------- the wordmark */
+
+.intro-mark-wrap {
+  width: 64px;
+  height: 64px;
+}
+
+.intro-mark {
+  background: var(--art-mark) center / 64px 64px no-repeat;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 4px 0 rgba(44, 28, 20, 0.3));
+  animation: intro-mark-step 3.2s steps(2, end) infinite;
+}
+
+.intro-mark-sun {
+  display: none;
+}
+
+@keyframes intro-mark-step {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.intro-hero h1.intro-wordmark {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  letter-spacing: 0;
+  font-size: clamp(3.2rem, 15vw, 5rem);
+  line-height: 1;
+}
+
+.intro-letter {
+  text-shadow:
+    3px 0 0 var(--ip-ink-dark),
+    -3px 0 0 var(--ip-ink-dark),
+    0 3px 0 var(--ip-ink-dark),
+    0 -3px 0 var(--ip-ink-dark),
+    3px 3px 0 var(--ip-ink-dark),
+    -3px 3px 0 var(--ip-ink-dark),
+    3px -3px 0 var(--ip-ink-dark),
+    -3px -3px 0 var(--ip-ink-dark),
+    0 6px 0 var(--ip-ink-dark),
+    3px 6px 0 var(--ip-ink-dark),
+    -3px 6px 0 var(--ip-ink-dark),
+    0 10px 0 rgba(20, 10, 6, 0.4);
+  color: #fff3e0;
+  animation: intro-letter-in-px 0.6s steps(6, end) calc(0.25s + var(--i) * 0.06s) both;
+}
+
+.intro-letter:nth-child(-n + 4) {
+  color: #ef8d4a;
+}
+
+.intro-letter:nth-child(n + 7) {
+  color: #fff3e0;
+}
+
+@keyframes intro-letter-in-px {
+  from {
+    opacity: 0;
+    transform: translateY(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.intro-hero::before {
+  background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(30, 16, 10, 0.34), rgba(30, 16, 10, 0.12) 60%, transparent 76%);
+}
+
+.intro-taglines {
+  border-radius: 0;
+  background: var(--hud-paper, #fbf1e3);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow:
+    0 -2px 0 0 var(--ip-ink),
+    0 2px 0 0 var(--ip-ink),
+    -2px 0 0 0 var(--ip-ink),
+    2px 0 0 0 var(--ip-ink),
+    inset 0 -3px 0 0 var(--hud-paper-lo, #ead7b8),
+    0 5px 0 0 rgba(44, 28, 20, 0.34);
+}
+
+/* ---------------------------------------------------------------- the card */
+
+.tb-world-card,
+.intro-panel.tb-world-card {
+  border: 0;
+  border-radius: 0;
+  background: var(--hud-paper, #fbf1e3);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding-top: 40px;
+  box-shadow:
+    0 -3px 0 0 var(--ip-ink),
+    0 3px 0 0 var(--ip-ink),
+    -3px 0 0 0 var(--ip-ink),
+    3px 0 0 0 var(--ip-ink),
+    inset 0 3px 0 0 var(--hud-paper-hi, #fffaf0),
+    inset 0 -3px 0 0 var(--hud-paper-lo, #ead7b8),
+    0 9px 0 0 rgba(20, 10, 6, 0.4);
+}
+
+.intro-card-awning {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 28px;
+  border: 0;
+  border-radius: 0;
+  background:
+    linear-gradient(#8f3e15, #8f3e15) 0 17px / 100% 3px no-repeat,
+    repeating-linear-gradient(90deg, #c45c26 0 16px, #fff3e0 16px 32px);
+  /* square scallops along the bottom edge */
+  mask-image:
+    linear-gradient(#000, #000) 0 0 / 100% 20px no-repeat,
+    repeating-linear-gradient(90deg, #000 0 8px, transparent 8px 16px) 0 20px / 100% 8px no-repeat;
+  -webkit-mask-image:
+    linear-gradient(#000, #000) 0 0 / 100% 20px no-repeat,
+    repeating-linear-gradient(90deg, #000 0 8px, transparent 8px 16px) 0 20px / 100% 8px no-repeat;
+  filter: drop-shadow(0 3px 0 rgba(44, 28, 20, 0.45));
+}
+
+.intro-card-awning::after {
+  display: none;
+}
+
+.intro-panel h2 {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 1.5rem;
+  color: var(--terracota-dark);
+}
+
+/* ---------------------------------------------------------------- tabs, fields, buttons */
+
+.intro-tabs {
+  border-radius: 0;
+  padding: 4px;
+  background: #e8d3b0;
+  box-shadow:
+    0 -2px 0 0 #b9a27c,
+    0 2px 0 0 #b9a27c,
+    -2px 0 0 0 #b9a27c,
+    2px 0 0 0 #b9a27c,
+    inset 0 3px 0 0 #d4bd96;
+}
+
+.intro-tab-thumb {
+  border: 0;
+  border-radius: 0;
+  background: var(--terracota);
+  box-shadow:
+    0 -2px 0 0 #7a3a16,
+    0 2px 0 0 #7a3a16,
+    -2px 0 0 0 #7a3a16,
+    2px 0 0 0 #7a3a16,
+    inset 0 2px 0 0 rgba(255, 220, 190, 0.5),
+    inset 0 -3px 0 0 #a13f15;
+  transition: transform 0.28s steps(4, end);
+}
+
+.intro-tab {
+  font-family: var(--font-pixel);
+  font-weight: 600;
+  font-size: 1.05rem;
+  border-radius: 0;
+}
+
+.intro-field input {
+  border: 2px solid var(--ip-ink);
+  border-radius: 0;
+  background: #fffdf9;
+  box-shadow: inset 0 3px 0 rgba(87, 60, 44, 0.12);
+}
+
+.intro-field input:focus-visible {
+  border-color: var(--terracota);
+  box-shadow: 0 0 0 3px var(--azul), inset 0 3px 0 rgba(87, 60, 44, 0.12);
+}
+
+.intro-adult,
+.intro-feedback {
+  border-radius: 0;
+  border: 0;
+  background: #fff1d6;
+  box-shadow:
+    0 -2px 0 0 var(--mustard),
+    0 2px 0 0 var(--mustard),
+    -2px 0 0 0 var(--mustard),
+    2px 0 0 0 var(--mustard);
+  margin-left: 2px;
+  margin-right: 2px;
+}
+
+.intro-feedback {
+  border-left: 0;
+  box-shadow:
+    0 -2px 0 0 var(--mustard),
+    0 2px 0 0 var(--mustard),
+    -2px 0 0 0 var(--mustard),
+    2px 0 0 0 var(--mustard),
+    inset 5px 0 0 0 var(--terracota);
+  padding-left: 16px;
+}
+
+.intro-submit.intro-cta,
+.intro-enter {
+  border: 0;
+  border-radius: 0;
+  margin: 2px;
+  background: var(--terracota);
+  color: #fff8ec;
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  text-shadow: none;
+  transition: none;
+  box-shadow:
+    0 -2px 0 0 #7a3a16,
+    0 2px 0 0 #7a3a16,
+    -2px 0 0 0 #7a3a16,
+    2px 0 0 0 #7a3a16,
+    inset 0 2px 0 0 rgba(255, 220, 190, 0.55),
+    inset 0 -4px 0 0 #a13f15,
+    0 6px 0 0 rgba(44, 28, 20, 0.34);
+}
+
+.intro-enter .en {
+  font-family: var(--font-body);
+}
+
+.intro-submit.intro-cta:hover,
+.intro-enter:hover {
+  filter: none;
+  background: #d46a30;
+}
+
+.intro-submit.intro-cta:active,
+.intro-enter:active {
+  transform: translateY(3px);
+  box-shadow:
+    0 -2px 0 0 #7a3a16,
+    0 2px 0 0 #7a3a16,
+    -2px 0 0 0 #7a3a16,
+    2px 0 0 0 #7a3a16,
+    inset 0 3px 0 0 #a13f15;
+}
+
+.intro-guest,
+.intro-smoke {
+  border: 0;
+  border-radius: 0;
+  margin: 2px;
+  width: calc(100% - 4px);
+  background: #fff1d6;
+  box-shadow:
+    0 -2px 0 0 #b88a14,
+    0 2px 0 0 #b88a14,
+    -2px 0 0 0 #b88a14,
+    2px 0 0 0 #b88a14,
+    inset 0 -4px 0 0 #f2dca0,
+    0 5px 0 0 rgba(44, 28, 20, 0.28);
+}
+
+.intro-guest-pt {
+  font-family: var(--font-pixel);
+  font-weight: 600;
+}
+
+.intro-guest:active,
+.intro-smoke:active {
+  transform: translateY(2px);
+}
+
+.intro-smoke {
+  background: #e4f2dc;
+  box-shadow:
+    0 -2px 0 0 #5a8a4a,
+    0 2px 0 0 #5a8a4a,
+    -2px 0 0 0 #5a8a4a,
+    2px 0 0 0 #5a8a4a,
+    inset 0 -4px 0 0 #cfe5c2;
+}
+
+.intro-or::before,
+.intro-or::after {
+  border-radius: 0;
+  background: repeating-linear-gradient(90deg, #c9b08a 0 4px, transparent 4px 8px);
+}
+
+/* ---------------------------------------------------------------- the corner chips */
+
+.intro-music,
+.intro-skip {
+  border: 0;
+  border-radius: 0;
+  background: var(--hud-paper, #fbf1e3);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  font-family: var(--font-pixel);
+  font-weight: 600;
+  min-height: 40px;
+  box-shadow:
+    0 -2px 0 0 var(--ip-ink),
+    0 2px 0 0 var(--ip-ink),
+    -2px 0 0 0 var(--ip-ink),
+    2px 0 0 0 var(--ip-ink),
+    inset 0 -3px 0 0 var(--hud-paper-lo, #ead7b8),
+    0 5px 0 0 rgba(44, 28, 20, 0.34);
+}
+
+.intro-music.is-waiting {
+  box-shadow:
+    0 -2px 0 0 var(--mustard),
+    0 2px 0 0 var(--mustard),
+    -2px 0 0 0 var(--mustard),
+    2px 0 0 0 var(--mustard),
+    inset 0 -3px 0 0 var(--hud-paper-lo, #ead7b8),
+    0 5px 0 0 rgba(44, 28, 20, 0.34);
+}
+
+.intro-music {
+  top: calc(14px + var(--safe-top));
+  left: calc(14px + var(--safe-left));
+}
+
+.intro-skip {
+  top: calc(14px + var(--safe-top));
+  right: calc(14px + var(--safe-right));
+}
+
+.intro-parrots-sprite {
+  position: absolute;
+  left: 0;
+  top: 0;
+  image-rendering: pixelated;
+  will-change: transform;
+  pointer-events: none;
+}
