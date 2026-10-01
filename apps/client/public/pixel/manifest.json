@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 1024,
    "h": 2048,
-   "frames": 573
+   "frames": 609
   }
  },
  "terrain": {
@@ -2224,6 +2224,348 @@
     ],
     "fps": 6
    },
+   "overhead": null,
+   "shadow": null
+  },
+  "fundos/f1": {
+   "atlas": "outdoor",
+   "frame": "fundos/f1",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     48,
+     33,
+     14,
+     12
+    ]
+   ],
+   "lit": "fundos/f1_lit"
+  },
+  "fundos/f1_lit": {
+   "atlas": "outdoor",
+   "frame": "fundos/f1_lit",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fundos/f2": {
+   "atlas": "outdoor",
+   "frame": "fundos/f2",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     66,
+     33,
+     14,
+     12
+    ]
+   ],
+   "lit": "fundos/f2_lit"
+  },
+  "fundos/f2_lit": {
+   "atlas": "outdoor",
+   "frame": "fundos/f2_lit",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fundos/f3": {
+   "atlas": "outdoor",
+   "frame": "fundos/f3",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [],
+   "lit": "fundos/f3_lit"
+  },
+  "fundos/f3_lit": {
+   "atlas": "outdoor",
+   "frame": "fundos/f3_lit",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fundos/f4": {
+   "atlas": "outdoor",
+   "frame": "fundos/f4",
+   "w": 112,
+   "h": 64,
+   "ax": 56,
+   "ay": 63,
+   "footprint": [
+    7,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     58,
+     31,
+     12,
+     8
+    ]
+   ],
+   "lit": "fundos/f4_lit"
+  },
+  "fundos/f4_lit": {
+   "atlas": "outdoor",
+   "frame": "fundos/f4_lit",
+   "w": 112,
+   "h": 64,
+   "ax": 56,
+   "ay": 63,
+   "footprint": [
+    7,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fundos/f5": {
+   "atlas": "outdoor",
+   "frame": "fundos/f5",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [],
+   "lit": "fundos/f5_lit"
+  },
+  "fundos/f5_lit": {
+   "atlas": "outdoor",
+   "frame": "fundos/f5_lit",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fundos/f6": {
+   "atlas": "outdoor",
+   "frame": "fundos/f6",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     12,
+     33,
+     12,
+     12
+    ],
+    [
+     60,
+     33,
+     14,
+     12
+    ]
+   ],
+   "lit": "fundos/f6_lit"
+  },
+  "fundos/f6_lit": {
+   "atlas": "outdoor",
+   "frame": "fundos/f6_lit",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fundos/f7": {
+   "atlas": "outdoor",
+   "frame": "fundos/f7",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [],
+   "lit": "fundos/f7_lit"
+  },
+  "fundos/f7_lit": {
+   "atlas": "outdoor",
+   "frame": "fundos/f7_lit",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fundos/f8": {
+   "atlas": "outdoor",
+   "frame": "fundos/f8",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     44,
+     33,
+     14,
+     12
+    ],
+    [
+     68,
+     33,
+     12,
+     12
+    ]
+   ],
+   "lit": "fundos/f8_lit"
+  },
+  "fundos/f8_lit": {
+   "atlas": "outdoor",
+   "frame": "fundos/f8_lit",
+   "w": 96,
+   "h": 64,
+   "ax": 48,
+   "ay": 63,
+   "footprint": [
+    6,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fundos/f9": {
+   "atlas": "outdoor",
+   "frame": "fundos/f9",
+   "w": 112,
+   "h": 64,
+   "ax": 56,
+   "ay": 63,
+   "footprint": [
+    7,
+    4
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "windows": [
+    [
+     66,
+     33,
+     14,
+     12
+    ]
+   ],
+   "lit": "fundos/f9_lit"
+  },
+  "fundos/f9_lit": {
+   "atlas": "outdoor",
+   "frame": "fundos/f9_lit",
+   "w": 112,
+   "h": 64,
+   "ax": 56,
+   "ay": 63,
+   "footprint": [
+    7,
+    4
+   ],
+   "anim": null,
    "overhead": null,
    "shadow": null
   },
@@ -5685,6 +6027,276 @@
    "overhead": true,
    "shadow": null
   },
+  "walls/east_padaria": {
+   "atlas": "outdoor",
+   "frame": "walls/east_padaria",
+   "w": 20,
+   "h": 16,
+   "ax": 4,
+   "ay": 16,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/east_padaria_b": {
+   "atlas": "outdoor",
+   "frame": "walls/east_padaria_b",
+   "w": 20,
+   "h": 16,
+   "ax": 4,
+   "ay": 16,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/south_padaria_m": {
+   "atlas": "outdoor",
+   "frame": "walls/south_padaria_m",
+   "w": 16,
+   "h": 22,
+   "ax": 0,
+   "ay": 4,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/south_padaria_w": {
+   "atlas": "outdoor",
+   "frame": "walls/south_padaria_w",
+   "w": 16,
+   "h": 22,
+   "ax": 0,
+   "ay": 4,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/south_padaria_e": {
+   "atlas": "outdoor",
+   "frame": "walls/south_padaria_e",
+   "w": 16,
+   "h": 22,
+   "ax": 0,
+   "ay": 4,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/east_kitnet": {
+   "atlas": "outdoor",
+   "frame": "walls/east_kitnet",
+   "w": 20,
+   "h": 16,
+   "ax": 4,
+   "ay": 16,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/east_kitnet_b": {
+   "atlas": "outdoor",
+   "frame": "walls/east_kitnet_b",
+   "w": 20,
+   "h": 16,
+   "ax": 4,
+   "ay": 16,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/south_kitnet_m": {
+   "atlas": "outdoor",
+   "frame": "walls/south_kitnet_m",
+   "w": 16,
+   "h": 22,
+   "ax": 0,
+   "ay": 4,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/south_kitnet_w": {
+   "atlas": "outdoor",
+   "frame": "walls/south_kitnet_w",
+   "w": 16,
+   "h": 22,
+   "ax": 0,
+   "ay": 4,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/south_kitnet_e": {
+   "atlas": "outdoor",
+   "frame": "walls/south_kitnet_e",
+   "w": 16,
+   "h": 22,
+   "ax": 0,
+   "ay": 4,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/east_academia": {
+   "atlas": "outdoor",
+   "frame": "walls/east_academia",
+   "w": 20,
+   "h": 16,
+   "ax": 4,
+   "ay": 16,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/east_academia_b": {
+   "atlas": "outdoor",
+   "frame": "walls/east_academia_b",
+   "w": 20,
+   "h": 16,
+   "ax": 4,
+   "ay": 16,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/south_academia_m": {
+   "atlas": "outdoor",
+   "frame": "walls/south_academia_m",
+   "w": 16,
+   "h": 22,
+   "ax": 0,
+   "ay": 4,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/south_academia_w": {
+   "atlas": "outdoor",
+   "frame": "walls/south_academia_w",
+   "w": 16,
+   "h": 22,
+   "ax": 0,
+   "ay": 4,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "walls/south_academia_e": {
+   "atlas": "outdoor",
+   "frame": "walls/south_academia_e",
+   "w": 16,
+   "h": 22,
+   "ax": 0,
+   "ay": 4,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/banco_gym": {
+   "atlas": "outdoor",
+   "frame": "props/banco_gym",
+   "w": 32,
+   "h": 22,
+   "ax": 16,
+   "ay": 19,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_32"
+  },
+  "props/bebedouro": {
+   "atlas": "outdoor",
+   "frame": "props/bebedouro",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 30,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "walls/exterior": {
+   "atlas": "outdoor",
+   "frame": "walls/exterior",
+   "w": 64,
+   "h": 64,
+   "ax": 0,
+   "ay": 0,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
   "casas/sobrado_salmao": {
    "atlas": "outdoor",
    "frame": "casas/sobrado_salmao",
@@ -5700,18 +6312,6 @@
    "overhead": null,
    "shadow": null,
    "windows": [
-    [
-     16,
-     22,
-     10,
-     12
-    ],
-    [
-     29,
-     22,
-     10,
-     12
-    ],
     [
      57,
      22,
@@ -5933,18 +6533,6 @@
    "shadow": null,
    "windows": [
     [
-     20,
-     14,
-     10,
-     10
-    ],
-    [
-     34,
-     14,
-     10,
-     10
-    ],
-    [
      68,
      14,
      10,
@@ -5955,6 +6543,18 @@
      14,
      10,
      10
+    ],
+    [
+     20,
+     16,
+     10,
+     8
+    ],
+    [
+     34,
+     16,
+     10,
+     8
     ],
     [
      12,

@@ -4,8 +4,11 @@ import { T, bufferPixels, cameraCenter, canvasToWorld, cssZoomFor, deviceZoomFor
 const cam = (over: Partial<CamState> = {}): CamState => ({ zoom: 4, dpr: 1, cx: 112, cy: 96, w: 1280, h: 800, ...over });
 
 describe('zoom rule (HOWTO §5.3)', () => {
-  it('is 4 on a 1280-wide desktop and 2 on a 390 phone', () => {
-    expect(cssZoomFor(1280, 800)).toBe(4);
+  it('is 3 on a 1280 x 800 desktop, 4 on 1920 x 1080 and 2 on a 390 phone', () => {
+    expect(cssZoomFor(1280, 800)).toBe(3);
+    expect(cssZoomFor(1366, 768)).toBe(3);
+    expect(cssZoomFor(1920, 1080)).toBe(4);
+    expect(cssZoomFor(2560, 1440)).toBe(5);
     expect(cssZoomFor(390, 844)).toBe(2);
   });
   it('clamps to 2..5', () => {

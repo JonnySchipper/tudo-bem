@@ -54,7 +54,7 @@ describe('intro snapshot of Vila Ipê', () => {
 describe('intro pan camera', () => {
   it('uses whole zooms: 2 on a phone, 4 at 1280x800', () => {
     expect(introZoom(390, 844)).toBe(2);
-    expect(introZoom(1280, 800)).toBe(4);
+    expect(introZoom(1280, 800)).toBe(3);
     for (const [w, h] of [[360, 640], [768, 1024], [1440, 900], [1920, 1080], [2560, 1440]]) {
       const z = introZoom(w, h);
       expect(Number.isInteger(z)).toBe(true);

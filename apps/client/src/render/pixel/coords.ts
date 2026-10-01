@@ -34,9 +34,9 @@ export interface CamState {
   h: number;
 }
 
-/** CSS zoom (art px -> CSS px): about 20 tiles across on a desktop, 12 on a phone, clamped to 2..5. */
+/** CSS zoom (art px -> CSS px): about 26-28 tiles across and 14+ tall on a desktop (1280 x 800 -> 3), phones stay at 2, clamped to 2..5. */
 export function cssZoomFor(innerW: number, innerH: number): number {
-  const z = Math.floor(Math.min(innerW / (20 * T), innerH / (12 * T)));
+  const z = Math.floor(Math.min(innerW / (26 * T), innerH / (14 * T)));
   return Math.min(5, Math.max(2, z));
 }
 
