@@ -38,6 +38,27 @@ const PATCHES: { x: number; y: number; k: 'a' | 'b' | 'c' | 'd' | 'e' }[] = [
   { x: 2.0, y: 27.0, k: 'e' },
 ];
 
+/** Pixel sizes of the hand-placed dirt trails (the manifest is not available here). */
+const DECAL_PX: Record<string, [number, number]> = { a: [22, 14], b: [30, 16], c: [16, 22], d: [26, 18], e: [14, 12] };
+
+/** Tiles (`"x,y"`) covered by V2's hand-placed ground decals (sand pit, towels, dirt trails, hopscotch, bowl), so V1's lawn dressing keeps off them. */
+export function v2DecalTiles(def: RoomDef): Set<string> {
+  const tiles = new Set<string>();
+  if (!def.outdoor) return tiles;
+  const rect = (px: number, py: number, w: number, h: number) => {
+    for (let ty = Math.floor(py / T); ty <= Math.floor((py + h - 1) / T); ty++) for (let tx = Math.floor(px / T); tx <= Math.floor((px + w - 1) / T); tx++) tiles.add(`${tx},${ty}`);
+  };
+  rect(11 * T, 24 * T, 112, 80);
+  for (const [x, y] of [[13.2, 18.1], [37.2, 23.1], [4.2, 24.3]]) rect(Math.round(x * T), Math.round(y * T), 28, 28);
+  for (const p of PATCHES) {
+    const [w, h] = DECAL_PX[p.k];
+    rect(Math.round((p.x - 0.7) * T), Math.round((p.y - 0.45) * T), w, h);
+  }
+  rect(13 * T, 31 * T, 64, 16);
+  rect(Math.round(3.4 * T) - 4, Math.round(28.8 * T) - 3, 8, 6);
+  return tiles;
+}
+
 export function v2Decals(def: RoomDef, has: (key: string) => boolean): Decal[] {
   if (!def.outdoor) return [];
   const out: Decal[] = [];

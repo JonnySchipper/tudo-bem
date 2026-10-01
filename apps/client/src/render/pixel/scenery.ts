@@ -7,7 +7,7 @@ import type { PropDef, RoomDef } from '@tudobem/shared';
 import { propTiles } from '@tudobem/shared';
 import { T } from './coords';
 import { hash2 } from './terrain';
-import { v2Decals } from './sceneryV2';
+import { v2Decals, v2DecalTiles } from './sceneryV2';
 
 export interface Decal {
   key: string;
@@ -83,6 +83,8 @@ export function sceneryFor(def: RoomDef, has: (key: string) => boolean = () => t
     // a fence's footprint is the whole rectangle it encloses, but only its ring is solid: the lawn inside stays dressable
     for (const t of propTiles(p)) if (p.kind !== 'cerca' || t.x === p.x || t.y === p.y || t.x === p.x + (p.w ?? 1) - 1 || t.y === p.y + (p.h ?? 1) - 1) occupied.add(`${t.x},${t.y}`);
   }
+  // V2's hand-placed ground decals (sand pit, towels, dirt trails) are as busy as a prop: no lawn dressing or mosaic on them
+  for (const k of v2DecalTiles(def)) occupied.add(k);
   const at = (x: number, y: number) => def.floor[y]?.[x];
 
   // crosswalks across both streets, aligned with the doors and the brick axis
@@ -164,8 +166,8 @@ const PATCH_PX: Record<string, [number, number]> = { light_0: [112, 64], light_1
  * whole patch lies on grass), a few worn dirt patches where lawns meet the paving, clover and blade tufts. All deterministic, nothing under a prop.
  */
 function grassDressing(def: RoomDef, add: (d: Decal) => void, at: (x: number, y: number) => string | undefined, occupied: Set<string>): void {
-  const onGrass = (px0: number, py0: number, px1: number, py1: number): boolean => {
-    for (let ty = Math.floor(py0 / T); ty <= Math.floor((py1 - 1) / T); ty++) for (let tx = Math.floor(px0 / T); tx <= Math.floor((px1 - 1) / T); tx++) if (at(tx, ty) !== 'g') return false;
+  const onGrass = (px0: number, py0: number, px1: number, py1: number, free = false): boolean => {
+    for (let ty = Math.floor(py0 / T); ty <= Math.floor((py1 - 1) / T); ty++) for (let tx = Math.floor(px0 / T); tx <= Math.floor((px1 - 1) / T); tx++) if (at(tx, ty) !== 'g' || (free && occupied.has(`${tx},${ty}`))) return false;
     return true;
   };
   // large soft patches: a jittered cell grid (3 x 3 tiles), one candidate per cell, kept when the patch body lies on grass and no other patch is near
@@ -176,11 +178,15 @@ function grassDressing(def: RoomDef, add: (d: Decal) => void, at: (x: number, y:
       const tone = rnd(cx, cy, 42) < 0.5 ? 'light' : 'dark';
       const k = Math.floor(rnd(cx, cy, 43) * 3);
       const [w, h] = PATCH_PX[`${tone}_${k}`];
-      const px = Math.round((cx * 3 + 1.5 + (rnd(cx, cy, 44) - 0.5) * 2) * T);
-      const py = Math.round((cy * 3 + 1.5 + (rnd(cx, cy, 45) - 0.5) * 2) * T);
-      // the dithered rim may touch the curb, the body (the inner 82%) must be all grass
-      if (!onGrass(px - w * 0.41, py - h * 0.41, px + w * 0.41, py + h * 0.41)) continue;
-      if (placed.some((q) => Math.hypot(q.x - px, q.y - py) < 3.8 * T)) continue;
+      // a few jittered tries: V2 put trees, beds and play gear on most lawns, so the first spot is often taken
+      let px = 0, py = 0, ok = false;
+      for (let a = 0; a < 6 && !ok; a++) {
+        px = Math.round((cx * 3 + 1.5 + (rnd(cx, cy, 44 + a * 7) - 0.5) * 2.4) * T);
+        py = Math.round((cy * 3 + 1.5 + (rnd(cx, cy, 45 + a * 7) - 0.5) * 2.4) * T);
+        // the dithered rim may touch the curb, the body (the inner 82%) must be all grass with nothing standing on it
+        ok = onGrass(px - w * 0.41, py - h * 0.41, px + w * 0.41, py + h * 0.41, true) && !placed.some((q) => Math.hypot(q.x - px, q.y - py) < 3.8 * T);
+      }
+      if (!ok) continue;
       placed.push({ x: px, y: py });
       add({ key: `decals/grass_${tone}_${k}`, x: px, y: py, origin: 'anchor', depth: DEPTH_PATCH });
     }
