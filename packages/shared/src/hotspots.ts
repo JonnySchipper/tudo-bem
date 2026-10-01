@@ -69,7 +69,7 @@ export const HOTSPOTS: HotspotDef[] = [
   { id: 'fonte_praca', room: 'praca', x: 23, y: 20, w: 4, h: 3, pt: 'Praça Central\nFonte de 1985', en: 'Central Square\nFountain from 1985' },
   { id: 'caixa_correio', room: 'praca', x: 8, y: 28, pt: 'CORREIO', en: 'Mailbox' },
   // ---- the feira livre (Phase 9). needs_br: every line. Prices equal `GOODS` in feira.ts (tested).
-  { id: 'feira_livre', room: 'praca', x: 45, y: 15, w: 4, h: 1, pt: 'FEIRA LIVRE\nTodo dia · 6h às 13h', en: 'STREET MARKET\nEvery day · 6 am to 1 pm' },
+  { id: 'feira_livre', room: 'praca', x: 44, y: 15, w: 5, h: 1, pt: 'FEIRA LIVRE\nTodo dia · 6h às 13h', en: 'STREET MARKET\nEvery day · 6 am to 1 pm' },
   {
     id: 'feira_preco_frutas',
     room: 'praca',

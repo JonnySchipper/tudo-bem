@@ -10,7 +10,7 @@
  * Two cameras (DECISIONS Phase 1 #13): `main` draws the world at an integer device zoom, `fx` draws the light grade in screen space.
  */
 import Phaser from 'phaser';
-import { buildGrid, canPlaceFurniture, furnitureById, hotspotBox, hotspotsInRoom, isCpuId, key as tileKey, positionAlong, propTiles, type Dir, npcDefById, type PlacedFurniture, type PropDef, type RoomDef, type RoomGrid, type WallDecor } from '@tudobem/shared';
+import { buildGrid, feiraOpen, canPlaceFurniture, furnitureById, hotspotBox, hotspotsInRoom, isCpuId, key as tileKey, positionAlong, propTiles, type Dir, npcDefById, type PlacedFurniture, type PropDef, type RoomDef, type RoomGrid, type WallDecor } from '@tudobem/shared';
 import { game, type ClientAvatar } from '../../state';
 import type { Guide, Hit } from '../view';
 import type { Manifest } from './manifest';
@@ -171,6 +171,8 @@ export class WorldScene extends Phaser.Scene {
   private placeholders: { key: string; rect: Rect }[] = [];
   private stall: StallView | null = null;
   private canopies: Canopy[] = [];
+  /** Feira stalls (Phase 9): the open sprites and tarp, and the folded ones, shown by the game clock (06:00-13:00). */
+  private feiraStalls: { open: Phaser.GameObjects.GameObject[]; closed: Phaser.GameObjects.GameObject[]; isOpen: boolean | null }[] = [];
   private avatars = new Map<string, AvatarView>();
   private furniture = new Map<string, FurnitureView>();
   private grid: RoomGrid | null = null;
@@ -274,6 +276,7 @@ export class WorldScene extends Phaser.Scene {
   // ------------------------------------------------------------------ room layer
   private destroyRoom(): void {
     this.stall = null;
+    this.feiraStalls = [];
     for (const o of this.roomObjs) o.destroy();
     this.roomObjs = [];
     this.roomMap?.destroy();
@@ -494,6 +497,7 @@ export class WorldScene extends Phaser.Scene {
       }
     } else if (artKey && d) {
       const main = this.sprite(artKey, a.wx, a.wy, depth);
+      const feiraEntry = p.kind === 'feira' ? { open: main ? [main] : [], closed: [] as Phaser.GameObjects.GameObject[], isOpen: null as boolean | null } : null;
       if (p.kind === 'barraca_chapeus') this.stall = { main, canopy: null, wx: a.wx, wy: a.wy, closed: false };
       if (p.kind === 'trilho_pedidos' && main && d.anim) {
         // the ticket rail is still until Me vê um opens (updateTrilho)
@@ -518,10 +522,12 @@ export class WorldScene extends Phaser.Scene {
         const spr = this.reg(this.add.sprite(x, y, od.atlas, od.frame)).setOrigin(...originOf(od)).setDepth(DEPTH.overhead + y / 1000);
         if (od.anim) spr.play({ key: ensureAnim(this, d.overhead, od), startFrame: Math.floor(hash01(x * 7 + y) * 4) });
         if (p.kind === 'barraca_chapeus' && this.stall) this.stall.canopy = spr;
+        feiraEntry?.open.push(spr);
         const left = x - od.ax;
         const top = y - od.ay;
         this.canopies.push({ sprite: spr, r: { x0: left, y0: top + 8, x1: left + od.w, y1: top + od.h + 14 }, fade: 1 });
       }
+      if (feiraEntry) this.buildFeiraClosed(artKey, a, depth, feiraEntry);
       const L = d.light ? { x: d.light.x - d.ax, y: d.light.y - d.ay, r: d.light.r, color: d.light.color } : PROP_LIGHT[p.kind];
       if (L) this.addLampLights(Math.round(a.wx), Math.round(a.wy), L);
     } else {
@@ -538,6 +544,37 @@ export class WorldScene extends Phaser.Scene {
         const r = w === 1 && h === 1 ? inflate(unionRect(visual, tile), 3) : { ...tile, y0: tile.y0 - 6 };
         this.staticHits.push({ ...r, hit: { kind: 'seat', tile: { x: t.x, y: t.y } }, depth: a.wy });
       }
+    }
+  }
+
+  /** The folded variant of a feira stall (`<key>_fechada`: goods under a sheet, tarp rolled on the bar), shown while the feira is closed. */
+  private buildFeiraClosed(openKey: string, a: { wx: number; wy: number }, depth: number, entry: { open: Phaser.GameObjects.GameObject[]; closed: Phaser.GameObjects.GameObject[]; isOpen: boolean | null }): void {
+    const ck = `${openKey}_fechada`;
+    const cd = this.m.sprites[ck];
+    if (!cd) {
+      this.noteMissing(ck);
+      return;
+    }
+    const main = this.sprite(ck, a.wx, a.wy, depth, false);
+    if (main) entry.closed.push(main);
+    if (typeof cd.overhead === 'string' && this.m.sprites[cd.overhead]) {
+      const od = this.m.sprites[cd.overhead];
+      const x = Math.round(a.wx);
+      const y = Math.round(a.wy);
+      entry.closed.push(this.reg(this.add.sprite(x, y, od.atlas, od.frame)).setOrigin(...originOf(od)).setDepth(DEPTH.overhead + y / 1000));
+    }
+    this.feiraStalls.push(entry);
+  }
+
+  /** Show the open stalls (tarp up) at 06:00-13:00, the folded ones otherwise. */
+  private updateFeira(): void {
+    if (!this.feiraStalls.length) return;
+    const open = feiraOpen(clock.minutes());
+    for (const e of this.feiraStalls) {
+      if (e.isOpen === open) continue;
+      e.isOpen = open;
+      for (const o of e.open) (o as Phaser.GameObjects.Sprite).setVisible(open);
+      for (const o of e.closed) (o as Phaser.GameObjects.Sprite).setVisible(!open);
     }
   }
 
@@ -648,6 +685,7 @@ export class WorldScene extends Phaser.Scene {
     this.updateHover(def);
     this.updateTrilho();
     this.updateStall();
+    this.updateFeira();
     this.hitBoxes = this.staticHits.concat(dyn);
     this.updateCamera(dt, def);
     this.applyLook(def, dt);
@@ -1108,6 +1146,14 @@ export class WorldScene extends Phaser.Scene {
     if (this.stall?.closed) {
       const p = at(this.stall.wx, this.stall.wy - 30);
       stacks.push({ key: 'stall:closed', x: p.px, y: p.py, plate: { text: 'Fechado · volta às 8h', kind: 'npc' }, bubbles: [] });
+    }
+    // the feira's banner says it is closed outside 06:00-13:00
+    if (this.feiraStalls.length && !feiraOpen(clock.minutes())) {
+      const b = def.props.find((q) => q.id === 'feira_livre');
+      if (b) {
+        const p = at((b.x + (b.w ?? 1) / 2) * T, b.y * T - 22);
+        stacks.push({ key: 'feira:closed', x: p.px, y: p.py, plate: { text: 'Feira fechada · volta às 6h', kind: 'npc' }, bubbles: [] });
+      }
     }
     for (const [id, v] of this.avatars) {
       const a = game.avatars.get(id);

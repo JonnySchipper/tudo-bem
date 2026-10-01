@@ -1,0 +1,140 @@
+/*
+ * Phase 9: the feira counter in the dialogue box: the coin and note tray, the receipt and the change. Pieces are drawn with CSS only (a round
+ * coin, a banknote), in the brand palette; the numbers use the pixel font like the other HUD numbers, the learning text stays Nunito (D9).
+ */
+.feira-tray {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgba(245, 230, 211, 0.75);
+  border: 2px dashed var(--px-ink, #573c2c);
+  border-radius: 4px;
+}
+.feira-sum {
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+.feira-sum b {
+  font-family: var(--font-pixel, inherit);
+  font-weight: 700;
+  color: var(--terracotta, #c45c26);
+}
+.feira-counter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  min-height: 36px;
+  padding: 4px 6px;
+  background: #8b5e3c;
+  border: 2px solid #573c2c;
+  box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.25);
+}
+.feira-empty {
+  color: #f5e6d3;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+.feira-pieces {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.feira-piece {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-pixel, inherit);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #3a2a1a;
+  cursor: pointer;
+  user-select: none;
+  border: 2px solid #573c2c;
+  box-shadow: 0 2px 0 rgba(44, 28, 20, 0.5);
+  padding: 0;
+}
+.feira-piece:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 rgba(44, 28, 20, 0.5);
+}
+.feira-piece.coin {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff2b0 0 18%, #e0b23a 19% 70%, #b5832a 71%);
+}
+.feira-piece.coin.v50 {
+  background: radial-gradient(circle at 35% 30%, #f1eee8 0 18%, #c9c7c0 19% 70%, #8f8d86 71%);
+}
+.feira-piece.note {
+  width: 64px;
+  height: 40px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #bfe08a, #7fae5a);
+}
+.feira-piece.note.v500 {
+  background: linear-gradient(135deg, #c9a8e0, #8f6ab0);
+}
+.feira-piece.note.v1000 {
+  background: linear-gradient(135deg, #f4b0a0, #d9705a);
+}
+.feira-piece.note.v2000 {
+  background: linear-gradient(135deg, #f7d27a, #d9a23a);
+}
+.feira-piece.mini {
+  width: auto;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 4px;
+  font-size: 0.7rem;
+  cursor: default;
+  box-shadow: none;
+}
+.feira-piece.mini.coin {
+  width: 26px;
+  border-radius: 50%;
+}
+.feira-piece:focus-visible {
+  outline: 3px solid var(--mustard, #d4a017);
+  outline-offset: 2px;
+}
+.feira-actions {
+  display: flex;
+  gap: 8px;
+}
+.feira-actions button {
+  min-height: 44px;
+  min-width: 96px;
+}
+.feira-hint {
+  font-size: 0.9rem;
+}
+.feira-receipt {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 6px 10px;
+  background: rgba(245, 230, 211, 0.75);
+  border: 2px solid var(--px-ink, #573c2c);
+}
+.feira-receipt .txt b {
+  font-family: var(--font-pixel, inherit);
+  color: var(--terracotta, #c45c26);
+}
+.feira-change {
+  display: inline-flex;
+  gap: 4px;
+}
+@media (max-width: 520px) {
+  .feira-piece.coin {
+    width: 42px;
+    height: 42px;
+  }
+  .feira-piece.note {
+    width: 58px;
+    height: 38px;
+  }
+}

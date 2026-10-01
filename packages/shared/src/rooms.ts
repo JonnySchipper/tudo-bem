@@ -377,7 +377,7 @@ const vilaIpe: RoomDef = {
     // ---- east: the feira livre lot (x41-55, y14-29), fenced, with a gate on the brick bar (x41, y21-22). Open 06:00-13:00 (`feira.ts`);
     // outside those hours the stalls show folded. Two rows of stalls facing south: the vendor stands behind (north), customers in front.
     P('cerca_leste', 'cerca', 41, 14, { w: 15, h: 16, art: 'cerca_feira', gaps: [{ x: 41, y: 21 }, { x: 41, y: 22 }] }),
-    cen('feira_livre', 'props/feira_livre', 45, 15, 4, 1, { label: { pt: 'Feira livre', en: 'Street market' } }),
+    cen('feira_livre', 'props/feira_livre', 44, 15, 5, 1, { label: { pt: 'Feira livre', en: 'Street market' } }),
     feiraStall('feira_tia_lu', 'tia_lu', 'frutas', 44, 17, { pt: 'Frutas da Tia Lu', en: 'Tia Lu’s fruit stall' }),
     feiraStall('feira_ze', 'ze', 'verduras', 50, 17, { pt: 'Verduras do Seu Zé', en: 'Seu Zé’s vegetable stall' }),
     feiraStall('feira_chico', 'chico', 'pastel', 44, 24, { pt: 'Pastel e caldo de cana do Seu Chico', en: 'Seu Chico’s pastel and sugarcane juice' }),
