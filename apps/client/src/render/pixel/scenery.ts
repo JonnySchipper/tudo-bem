@@ -84,7 +84,8 @@ export function sceneryFor(def: RoomDef, has: (key: string) => boolean = () => t
   // crosswalks across both streets, aligned with the doors and the brick axis
   for (const c of CROSSWALKS) add({ key: 'decals/crosswalk', x: c.x * T, y: c.y * T, origin: 'tl', depth: DEPTH_MOSAIC });
   const walked = (x: number, y: number) =>
-    CROSSWALKS.some((c) => y >= c.y && y < c.y + 4 && x >= c.x * T - 12 && x < (c.x + 2) * T + 12) || (y === BUS_BAY.y && x >= BUS_BAY.x * T - 14 && x < (BUS_BAY.x + BUS_BAY.w) * T);
+    CROSSWALKS.some((c) => y >= c.y && y < c.y + 4 && x >= c.x * T - 12 && x < (c.x + 2) * T + 12) ||
+    (y === BUS_BAY.y - 2 && x >= BUS_BAY.x * T - 14 && x < (BUS_BAY.x + BUS_BAY.w) * T); // no dashes over the bus bay (the street's first row is y - 2)
   // lane dashes down the middle of each street, every 32 px
   for (const s of STREETS) {
     const y = ((s.y0 + s.y1 + 1) / 2) * T - 1;

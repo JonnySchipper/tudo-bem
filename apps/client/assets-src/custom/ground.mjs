@@ -7,7 +7,7 @@ const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
 const bayer = (x, y) => (BAYER[y & 3][x & 3] + 0.5) / 16;
 
 /** The asphalt of the pack, three near-identical warm greys. */
-export const ASPHALT = { base: '#565254', lo: '#534f52', hi: '#595555', warm: '#605755', crack: '#3f3b42', crackHi: '#645d5d', oil: '#47434a', patch: '#4e4a4e', patchHi: '#5e5959' };
+export const ASPHALT = { base: '#565254', lo: '#534f52', hi: '#595555', warm: '#605755', crack: '#3f3b42', crackHi: '#645d5d', oil: '#47434a', patch: '#524e51', patchHi: '#5c5859', patchLo: '#4b474b' };
 
 function noisy(seed, density = 0.1) {
   const img = blank(16, 16);
@@ -49,7 +49,11 @@ export function asfalto() {
   const c2 = noisy(902, 0.07); crack(c2, 3, 14, 9, 12); crack(c2, 8, 9, 7, 13); out.push(c2);
   // a repaired patch: a rectangle of slightly different asphalt with a lit seam on its top and left edges
   const p = noisy(903, 0.05);
-  for (let y = 4; y < 11; y++) for (let x = 3; x < 13; x++) setPx(p, x, y, hexPx(y === 4 || x === 3 ? ASPHALT.patchHi : y === 10 || x === 12 ? ASPHALT.crack : ASPHALT.patch));
+  for (let y = 4; y < 11; y++) for (let x = 3; x < 13; x++) {
+    const corner = (x === 3 || x === 12) && (y === 4 || y === 10); // clipped corners: a patch is never a perfect box
+    if (corner) continue;
+    setPx(p, x, y, hexPx(y === 4 || x === 3 ? ASPHALT.patchHi : y === 10 || x === 12 ? ASPHALT.patchLo : ASPHALT.patch));
+  }
   out.push(p);
   // an oil stain: a dithered dark drop
   const o = noisy(904, 0.06);
