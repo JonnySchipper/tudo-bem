@@ -403,15 +403,15 @@ const vilaIpe: RoomDef = {
     // ---- the map edges: streets end in barricades, sidewalks in hedges, the west lawns and the lot behind fences
     ...vilaIpeEdges(),
     // ---- south: the roofs across Rua Jacarandá (blocked)
-    front('telhado_1', 'telhados/r1', 0, 36, 6, 4),
-    front('telhado_2', 'telhados/r2', 6, 36, 6, 4),
-    front('telhado_3', 'telhados/r3', 12, 36, 6, 4),
-    front('telhado_4', 'telhados/r4', 18, 36, 7, 4),
-    front('telhado_5', 'telhados/r5', 25, 36, 6, 4),
-    front('telhado_6', 'telhados/r6', 31, 36, 6, 4),
-    front('telhado_7', 'telhados/r7', 37, 36, 6, 4),
-    front('telhado_8', 'telhados/r8', 43, 36, 6, 4),
-    front('telhado_9', 'telhados/r9', 49, 36, 7, 4),
+    front('telhado_1', 'fundos/f1', 0, 36, 6, 4),
+    front('telhado_2', 'fundos/f2', 6, 36, 6, 4),
+    front('telhado_3', 'fundos/f3', 12, 36, 6, 4),
+    front('telhado_4', 'fundos/f4', 18, 36, 7, 4),
+    front('telhado_5', 'fundos/f5', 25, 36, 6, 4),
+    front('telhado_6', 'fundos/f6', 31, 36, 6, 4),
+    front('telhado_7', 'fundos/f7', 37, 36, 6, 4),
+    front('telhado_8', 'fundos/f8', 43, 36, 6, 4),
+    front('telhado_9', 'fundos/f9', 49, 36, 7, 4),
     // ---- more life along the sidewalks and the praça
     P('flor_s1', 'sebe', 13, 12, { w: 2, art: 'props/flor_vermelha' }),
     P('flor_s2', 'sebe', 44, 12, { w: 3, art: 'props/flor_mista' }),
@@ -730,9 +730,9 @@ const academia: RoomDef = {
     'jjjjjjjjjjj',
     'jjjjjjjjjjj',
     'jjjjjjjjjjj',
-    'mmmmmmmmmmm',
-    'mmmmmmmmmmm',
-    'mmmmmmmmmmm',
+    'jjjjjjjjjjj',
+    'jjjjjjjjjjj',
+    'jjjjjjjjjjj',
   ],
   wallHeight: 148,
   wallColor: '#F5E6D3',
@@ -756,6 +756,9 @@ const academia: RoomDef = {
     // One continuous arquibancada along the back edge of the mat: spectators face the tatame and the camera.
     { id: 'arquibancada', kind: 'banco_espectador', x: 1, y: 0, w: 4, blocks: false, seat: 'SW', label: { pt: 'Arquibancada', en: 'Bleachers' } },
     { id: 'vestiario', kind: 'vestiario', x: 0, y: 7, blocks: true, label: { pt: 'Vestiário · alongamento', en: 'Changing / stretch corner' } },
+    // V3 dressing (decoration only, nothing blocks or seats): a bench along the south wall and a water cooler in the corner
+    { id: 'banco_gym', kind: 'cenario', x: 5, y: 8, w: 2, h: 1, art: 'props/banco_gym', blocks: false },
+    { id: 'bebedouro', kind: 'cenario', x: 10, y: 8, art: 'props/bebedouro', blocks: false },
   ],
   walls: [
     { kind: 'placa', wall: 'right', from: 0, to: 4, text: 'ACADEMIA DO BAIRRO' },

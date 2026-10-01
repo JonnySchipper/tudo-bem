@@ -10,6 +10,7 @@
 import { blank, clone, crop } from '../../../../scripts/lib/pixel/img.mjs';
 import { C, K, put, fillRect, h2 } from './paint.mjs';
 import { recolorRamp } from './kit.mjs';
+import { mat, MAT_BLUE } from './gym3.mjs';
 
 const tile = () => blank(16, 16);
 
@@ -136,46 +137,13 @@ export function xadrez() {
 }
 
 // ------------------------------------------------------------------ j: tatame
-const MAT = {
-  // V1: about 15% less saturated than art track 3, so the mats sit with the calm outdoor materials
-  blue: { base: '#5584c4', hi: '#729fd6', lo: '#456aa6', seam: '#36508c', dot: '#5a8acb' },
-  green: { base: '#58a062', hi: '#74b97a', lo: '#478650', seam: '#34663d', dot: '#5ca967' },
-};
-
-/** A 32x32 foam mat quadrant: `qx`, `qy` in 0..1 is which 16x16 tile of the mat this is. Seams are on the mat border (2 px, dark) and
- *  a faint inner join at 16 px; foam dots in a sparse 4 px grid. */
-function matTile(m, qx, qy) {
-  const t = tile();
-  fillRect(t, 0, 0, 16, 16, m.base);
-  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
-    const gx = qx * 16 + x, gy = qy * 16 + y;
-    if ((gx % 4 === 1 && gy % 4 === 1) || (gx % 4 === 3 && gy % 4 === 3)) put(t, x, y, m.dot);
-  }
-  // lit top / left rim of the mat, shaded bottom / right rim, dark seam on the outermost pixel
-  for (let i = 0; i < 16; i++) {
-    if (qy === 0) { put(t, i, 0, m.seam); put(t, i, 1, m.hi); }
-    if (qx === 0) { put(t, 0, i, m.seam); put(t, 1, i, m.hi); }
-    if (qy === 1) { put(t, i, 15, m.seam); put(t, i, 14, m.lo); }
-    if (qx === 1) { put(t, 15, i, m.seam); put(t, 14, i, m.lo); }
-  }
-  // faint join between the four 16 px squares inside the mat
-  for (let i = 0; i < 16; i++) {
-    if (qy === 0) put(t, i, 15, m.lo);
-    if (qx === 0) put(t, 15, i, m.lo);
-  }
-  return t;
-}
-
+// V3: interlocking EVA puzzle mats, 32 x 32 px (2 x 2 tiles) in two close blues, with a jigsaw tab on every seam. 4 x 4 tile phases = 2 x 2 mats.
 export function tatame() {
-  // 32x32 mats in a blue / green checkerboard: tile (px, py) belongs to mat colour (px xor py) ... but a mat is 2x2 tiles, so the phase grid
-  // is 2x2 tiles = ONE mat, and neighbouring mats alternate colours through the 4 phases of a 4x2? Keep it simple: 2 mats wide, 2 tall:
-  // phases (0,0) (1,0) = blue mat, (0,1) (1,1) = blue mat... with the colour swapped every other mat we need a 4x4-tile period.
+  const sheet = blank(64, 64);
+  for (let my = 0; my < 2; my++) for (let mx = 0; mx < 2; mx++) mat(sheet, mx * 32, my * 32, 32, 32, MAT_BLUE[(mx + my) % 2]);
   const out = [];
-  for (let py = 0; py < 4; py++) for (let px = 0; px < 4; px++) {
-    const mx = px >> 1, my = py >> 1;
-    out.push(matTile((mx + my) % 2 === 0 ? MAT.blue : MAT.green, px & 1, py & 1));
-  }
-  return calm(out, CALM.tatame); // 4x4 phases
+  for (let py = 0; py < 4; py++) for (let px = 0; px < 4; px++) out.push(crop(sheet, px * 16, py * 16, 16, 16));
+  return calm(out, 0.8);
 }
 
 export const FLOORS = {

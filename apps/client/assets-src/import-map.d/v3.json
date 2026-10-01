@@ -1,0 +1,11 @@
+{
+  "$comment": "Visual pass V3: the outer shell of the interiors (east / south walls, night sidewalk).",
+  "sprites": [
+    {"key":"walls/east_padaria","kind":"derive","fn":"frameSet","args":{"style":"padaria"}},
+    {"key":"walls/east_kitnet","kind":"derive","fn":"frameSet","args":{"style":"kitnet"}},
+    {"key":"walls/east_academia","kind":"derive","fn":"frameSet","args":{"style":"academia"}},
+    {"key":"props/banco_gym","kind":"derive","fn":"gymBanco3","footprint":[2,1],"shadow":"fx/shadow_32"},
+    {"key":"props/bebedouro","kind":"derive","fn":"gymBebedouro3","footprint":[1,1],"shadow":"fx/shadow_16"},
+    {"key":"walls/exterior","kind":"derive","fn":"frameExterior","shadow":null}
+  ]
+}
