@@ -66,7 +66,8 @@ describe('props', () => {
     expect(key('poleiro')).toBe('props/poleiro');
     expect(key('poste_1')).toBe('props/poste_fios');
     expect(key('ipe_centro')).toBe('props/ipe_large');
-    expect(key('ipe_2')).toBe('props/ipe_medium');
+    expect(key('ipe_2')).toBe('props/ipe_roxo_medium'); // V2: a purple ipê (the hero stays yellow)
+    expect(key('ipe_5')).toBe('props/ipe_amarelo_medium_b');
     expect(key('bici')).toBe('props/bicicletario');
   });
 

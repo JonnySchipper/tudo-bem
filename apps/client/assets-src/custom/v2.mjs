@@ -4,6 +4,8 @@
 import { blank, clone, crop, paste, setPx, hexPx, px } from './kit.mjs';
 import { coreto } from './v2coreto.mjs';
 import * as props2 from './v2props.mjs';
+import * as decals2 from './v2decals.mjs';
+import * as feira2 from './v2feira.mjs';
 
 // ------------------------------------------------------------------ prep hooks
 const isGreenish = (r, g, b) => g > r + 8 && g >= b - 4;
@@ -53,6 +55,18 @@ export const DERIVE_V2 = {
   busto: props2.bustoPart,
   canteiroRedondo: props2.canteiroRedondoPart,
   canteiroLosango: props2.canteiroLosangoPart,
+  canteiroBusto: props2.canteiroBustoPart,
+  caixaTomate: feira2.caixaTomate,
+  caixaBanana: feira2.caixaBanana,
+  caixaMelancia: feira2.caixaMelancia,
+  caixaRepolho: feira2.caixaRepolho,
+  sacosBatata: feira2.sacosBatata,
+  balancaPrato: feira2.balancaPrato,
+  trilhas: decals2.patches,
+  areia: decals2.sandPit,
+  amarelinha: decals2.hopscotch,
+  lixoFeira: decals2.lixo,
+  tigela: decals2.bowl,
   pipoqueiro: props2.pipoqueiro,
   cocoCart: props2.cocoCart,
   bandeirinhas: props2.bandeirinhasPart,

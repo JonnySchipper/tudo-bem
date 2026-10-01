@@ -27,7 +27,7 @@ export function minimapPixels(room: RoomDef): { w: number; h: number; data: Uint
   for (let y = 0; y < room.rows; y++) for (let x = 0; x < room.cols; x++) tileColor.set(key(x, y), TERRAIN[room.floor[y]?.[x] ?? 'c'] ?? TERRAIN.c);
   const grid = buildGrid(room);
   for (const p of room.props) {
-    const rgb = p.kind === 'fachada' ? BUILDING : p.kind === 'ipe' ? TREE : p.kind === 'cerca' ? FENCE : p.blocks ? OBJECT : null;
+    const rgb = p.kind === 'fachada' ? BUILDING : p.kind === 'ipe' || p.kind === 'arvore' ? TREE : p.kind === 'cerca' ? FENCE : p.blocks ? OBJECT : null;
     if (!rgb) continue;
     for (const t of propTiles(p)) {
       if (p.kind === 'cerca') {
@@ -36,7 +36,7 @@ export function minimapPixels(room: RoomDef): { w: number; h: number; data: Uint
         const h2 = p.h ?? 1;
         if (t.x !== p.x && t.y !== p.y && t.x !== p.x + w2 - 1 && t.y !== p.y + h2 - 1) continue;
       }
-      if (grid.blocked.has(key(t.x, t.y)) || p.kind === 'ipe') tileColor.set(key(t.x, t.y), rgb);
+      if (grid.blocked.has(key(t.x, t.y)) || p.kind === 'ipe' || p.kind === 'arvore') tileColor.set(key(t.x, t.y), rgb);
     }
   }
   for (let y = 0; y < room.rows; y++) {

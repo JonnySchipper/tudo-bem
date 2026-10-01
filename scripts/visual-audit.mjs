@@ -150,7 +150,7 @@ const AREAS = [
   { name: 'praca_fountain', cam: [25, 20, 3], phoneCam: [25, 20, 2], at: [25, 16], times: T4, wx: [['15:00', 'garoa'], ['15:00', 'chuva']], phone: true },
   { name: 'west_houses', cam: [13, 20, 3], at: [9, 17], times: T4 },
   { name: 'south_street', cam: [25, 31.5, 3], at: [25, 30], times: T4 },
-  { name: 'feira', cam: [43, 22, 3], at: [45, 19], times: ['08:00', '09:00', '12:00', '16:00', '17:30', '21:00'], slow: true },
+  { name: 'feira', cam: [43, 22, 3], at: [45, 20], times: ['08:00', '09:00', '12:00', '16:00', '17:30', '21:00'], slow: true },
   { name: 'bus_stop', cam: [31, 13, 3], at: [31, 13], times: T4 },
 ];
 
@@ -292,7 +292,7 @@ async function sectionUi(browser, vp) {
 
   // the feira: price and payment tray
   await pin(page, '10:00');
-  await walk(page, 45, 19);
+  await walk(page, 45, 20);
   await sleep(6000);
   await openNpc(page, 'tia_lu', 'feira');
   await page.click('#dialogue-box [data-chip="0"]');

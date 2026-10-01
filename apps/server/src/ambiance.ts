@@ -24,6 +24,7 @@ import {
 } from '@tudobem/shared';
 
 export const CPU_TICK_MS = 1000;
+const SENIOR_ARCHETYPES = new Set(['aposentado', 'tia_do_bairro']);
 /** Gap between CPUs walking in when the crowd needs to grow. */
 const SPAWN_GAP_MS = 4000;
 const APPROACH_WAVE_COOLDOWN_MS = 20_000;
@@ -82,7 +83,7 @@ export class CpuCrowd {
   private stopped = false;
   private nextSpawnAt = 0;
   private readonly grid: RoomGrid;
-  private readonly seats: { tile: Tile; dir: Dir }[];
+  private readonly seats: { tile: Tile; dir: Dir; senior: boolean }[];
 
   private readonly map: { spots: Tile[]; doorSpots: Tile[]; entries: Tile[]; feiraSpots?: Tile[] };
 
@@ -94,7 +95,8 @@ export class CpuCrowd {
     if (!map) throw new Error(`No ambiance map for room ${room.id}`);
     this.map = map;
     this.grid = ambianceNavGrid(room);
-    this.seats = seatTiles(room).map((s) => ({ tile: { x: s.x, y: s.y }, dir: s.dir }));
+    // V2: the stools of the domino and chess tables (`banquinho_*`) are the seniors' seats: only a senior CPU takes one (see `spawn`)
+    this.seats = seatTiles(room).map((s) => ({ tile: { x: s.x, y: s.y }, dir: s.dir, senior: s.prop.id.startsWith('banquinho') }));
   }
 
   /** CPUs currently in the room (including any walking out). */
@@ -186,7 +188,9 @@ export class CpuCrowd {
     const rng = this.host.rng;
     const sittingNow = c.sit && this.seats.some((s) => key(s.tile.x, s.tile.y) === c.dest);
     if (c.role === 'sitter') {
-      if (!sittingNow || rng() < 0.25) {
+      // a senior at a game table stays put; everyone else drifts to another bench now and then
+      const atTable = sittingNow && !!this.seats.find((s) => key(s.tile.x, s.tile.y) === c.dest)?.senior;
+      if (!sittingNow || (!atTable && rng() < 0.25)) {
         const seat = this.freeSeat(c.dest);
         if (seat) this.walk(c, seat.tile, true);
       }
@@ -209,11 +213,15 @@ export class CpuCrowd {
     const sitters = active.filter((c) => c.role === 'sitter').length;
     // fewer sitters while the feira is open: the crowd goes shopping
     const role: Cpu['role'] = sitters < Math.round((active.length + 1) * (this.shopping() ? CPU_SITTER_SHARE * 0.6 : CPU_SITTER_SHARE)) ? 'sitter' : 'walker';
-    const seat = role === 'sitter' ? this.freeSeat(null) : null;
+    // the first sitters take the game tables when a stool is free: a senior neighbour sits there (checked before anyone else gets a seat)
+    // (at most one senior per senior look, so the square never shows two of the same look)
+    const seniors = role === 'sitter' && rng() < 0.85 ? this.seniorNames() : [];
+    const seniorSeat = seniors.length ? this.freeSeat(null, true) : null;
+    const seat = role === 'sitter' ? seniorSeat ?? this.freeSeat(null) : null;
     const dest = seat?.tile ?? this.freeSpot(this.shopping() ? this.map.feiraSpots! : this.map.spots);
     const pick = <T>(arr: readonly T[]) => arr[Math.floor(rng() * arr.length)];
     const entry = pick(this.map.entries);
-    const name = this.nextName();
+    const name = seniorSeat ? seniors[Math.floor(rng() * seniors.length)] : this.nextName();
     const look = cpuLook(name);
     const c: Cpu = {
       id: `${CPU_ID_PREFIX}${++nextCpu}`,
@@ -285,6 +293,13 @@ export class CpuCrowd {
     return this.bag.pop()!;
   }
 
+  /** Names whose look is an older neighbour (the retiree, the tia do bairro) and is not on the square yet. */
+  private seniorNames() {
+    const inUse = new Set([...this.cpus.values()].map((c) => c.name));
+    const worn = new Set([...this.cpus.values()].map((c) => cpuArchetype(c.name)));
+    return CPU_NAMES.filter((n) => !inUse.has(n) && SENIOR_ARCHETYPES.has(cpuArchetype(n)) && !worn.has(cpuArchetype(n)));
+  }
+
   private taken(except: string | null) {
     const out = new Set<string>();
     for (const c of this.cpus.values()) if (c.dest !== except) out.add(c.dest);
@@ -296,11 +311,12 @@ export class CpuCrowd {
     return out;
   }
 
-  private freeSeat(except: string | null) {
+  /** A free seat; `senior` asks for a game-table stool, otherwise those stools are left to the seniors. */
+  private freeSeat(except: string | null, senior = false) {
     const taken = this.taken(except);
     const free = this.seats.filter((s) => {
       const k = key(s.tile.x, s.tile.y);
-      return k !== except && !taken.has(k);
+      return s.senior === senior && k !== except && !taken.has(k);
     });
     return free.length ? free[Math.floor(this.host.rng() * free.length)] : null;
   }

@@ -102,7 +102,7 @@ function leaves(img, pred, x0, y0, x1, y1, seed) {
 }
 
 /** Round bed (2x2): a low stone ring, dark soil, mixed blooms and a clipped shrub in the middle. */
-function canteiroRedondo() {
+function canteiroRedondo(shrub = true) {
   const W = 34, H = 32;
   const img = blank(W, H);
   const cx = 17, cy = 17, rx = 15.5, ry = 10;
@@ -119,9 +119,19 @@ function canteiroRedondo() {
     if (inside(x + 1, y + 1)) bloomDot(img, x, y, Math.floor(h2(i, 2, 11) * 7));
   }
   // clipped shrub
-  shape(img, ell(cx, cy - 3, 5, 5.2), [cx, cy - 3, 5, 5.2], [C.sp0, C.sp1, C.g3, C.g2], { ol: NAVY, t: [0.8, 0.3, -0.2] });
-  put(img, cx - 2, cy - 6, C.g1); put(img, cx - 1, cy - 7, C.g1); put(img, cx - 3, cy - 5, C.g1);
+  if (shrub) {
+    shape(img, ell(cx, cy - 3, 5, 5.2), [cx, cy - 3, 5, 5.2], [C.sp0, C.sp1, C.g3, C.g2], { ol: NAVY, t: [0.8, 0.3, -0.2] });
+    put(img, cx - 2, cy - 6, C.g1); put(img, cx - 1, cy - 7, C.g1); put(img, cx - 3, cy - 5, C.g1);
+  }
   outlineAround(img);
+  return img;
+}
+
+/** The round bed with the bust standing in its middle (2x2 footprint, 36x60). */
+function canteiroBusto() {
+  const img = blank(36, 60);
+  paste(img, canteiroRedondo(false), 1, 28);
+  paste(img, busto(), 6, 0);
   return img;
 }
 
@@ -316,6 +326,9 @@ export async function bustoPart() {
 }
 export async function canteiroRedondoPart() {
   return [{ img: canteiroRedondo(), anchor: [17, 28] }];
+}
+export async function canteiroBustoPart() {
+  return [{ img: canteiroBusto(), anchor: [18, 56] }];
 }
 export async function canteiroLosangoPart() {
   return [{ img: canteiroLosango(), anchor: [25, 28] }];

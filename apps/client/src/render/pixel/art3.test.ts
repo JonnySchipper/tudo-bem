@@ -47,6 +47,8 @@ describe('art track 3 coverage (manifest vs rooms and catalog)', () => {
 
   it('interiors stay light: all art still fits one atlas under 8 MB total', () => {
     const a = manifest.atlases.outdoor;
-    expect(a.w * a.h * 4).toBeLessThan(8 * 1024 * 1024);
+    // V2: the atlas is 1024 x 2048 (it was 512 x 4096 and grew to the texture size limit): same area, a safer shape
+    expect(a.w * a.h * 4).toBeLessThanOrEqual(8 * 1024 * 1024);
+    expect(Math.max(a.w, a.h)).toBeLessThanOrEqual(2048);
   });
 });

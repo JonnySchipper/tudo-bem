@@ -62,10 +62,10 @@ export function propSlices(p: PropDef): { key: string; x: number; y: number }[] 
 }
 
 /** Kinds whose sprite is chosen by `PropDef.art` (building fronts, roofs, hedges and planters, scenery, lamp posts). */
-const ART_FIELD: PropKind[] = ['fachada', 'sebe', 'cenario', 'poste', 'feira', 'hortifruti'];
+const ART_FIELD: PropKind[] = ['fachada', 'sebe', 'cenario', 'poste', 'feira', 'hortifruti', 'arvore'];
 
 export function propArtKey(p: PropDef): string | null {
-  if (p.kind === 'ipe') return p.hero ? 'props/ipe_large' : 'props/ipe_medium';
+  if (p.kind === 'ipe') return p.art ?? (p.hero ? 'props/ipe_large' : 'props/ipe_medium');
   if (p.kind === 'cadeira_padaria') return `props/cadeira_padaria_${CHAIR_SUFFIX[p.seat ?? 'SE']}`;
   if (p.art && ART_FIELD.includes(p.kind)) return p.art;
   return ART[p.kind] ?? null;

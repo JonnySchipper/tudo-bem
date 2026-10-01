@@ -43,6 +43,8 @@ export type PropKind =
   | 'cerca'
   | 'sebe'
   | 'ponto_onibus'
+  // V2 composition: any tree with its own sprite (`art`), the purple and white ipês, shade trees, palms, sidewalk pit trees
+  | 'arvore'
   // Feira livre (Phase 9): a market stall that is open or folded by the game clock (`art` = `feira/<name>` of the open variant), and
   // the Hortifrúti crate at the banca (`art`), which sells at every hour
   | 'feira'
@@ -195,11 +197,11 @@ function vilaIpeFloor(): string[] {
   paint('g', 0, 14, 9, 23);
   paint('g', 1, 26, 4, 29);
   paint('c', 8, 14, 9, 29); // the footpath between the gardens and the praça
-  // east lot: the feira (grass with a brick aisle from the gate, and a brick front of each row of stalls)
+  // east lot: the feira livre. V2: it is a closed street now, so the ground is asphalt inside the fence (a ring of grass under the fence line
+  // itself) and the gate stands on the brick bar of the praça
   paint('g', 41, 14, 55, 29);
-  paint('t', 41, 21, 54, 22);
-  paint('t', 43, 19, 53, 20);
-  paint('t', 43, 26, 53, 27);
+  paint('a', 42, 15, 54, 28);
+  paint('t', 41, 21, 41, 22);
   // brick cross into the fountain (inlaid in the calçada): the N-S axis runs across both sidewalks, the E-W bar through the fountain
   paint('t', 24, 6, 25, 7);
   paint('t', 24, 12, 25, 29);
@@ -213,6 +215,16 @@ const P = (id: string, kind: PropKind, x: number, y: number, extra: Partial<Prop
 const bench = (id: string, x: number, y: number): PropDef => P(id, 'banco', x, y, { w: 2, blocks: false, seat: 'SW' });
 /** Scenery with its own sprite (`art`): w x h footprint, non-blocking unless `blocks` is set (it usually sits inside something that already blocks). */
 const cen = (id: string, art: string, x: number, y: number, w = 1, h = 1, extra: Partial<PropDef> = {}): PropDef => P(id, 'cenario', x, y, { w, h, art, blocks: false, ...extra });
+/** Vehicles parked along a street's south curb row: [sprite name under vehicles/, first tile x, tiles wide]. Blocking, one tile deep. */
+const parked = (row: number, cars: [string, number, number][]): PropDef[] =>
+  cars.map(([name, x, w], i) => P(`estac_${row}_${i}`, 'cenario', x, row, { w, h: 1, art: `vehicles/${name}` }));
+/** The four stools around a game table at (x, y): each sitter faces the table (a west stool faces east, and so on). */
+const stools = (id: string, x: number, y: number): PropDef[] => [
+  cen(`${id}_o`, 'props/banquinho', x - 1, y, 1, 1, { seat: 'SE' }),
+  cen(`${id}_l`, 'props/banquinho', x + 1, y, 1, 1, { seat: 'NW' }),
+  cen(`${id}_n`, 'props/banquinho', x, y - 1, 1, 1, { seat: 'SW' }),
+  cen(`${id}_s`, 'props/banquinho', x, y + 1, 1, 1, { seat: 'NE' }),
+];
 /** What closes the map at its west and east edges (no open void): a barricade across each street, a hedge across each sidewalk, a fence along the west lawns. */
 function vilaIpeEdges(): PropDef[] {
   const out: PropDef[] = [];
@@ -230,7 +242,7 @@ const front = (id: string, art: string, x: number, y: number, w: number, h: numb
 
 /** A feira stall: 3x2, blocks, `art` names the open variant (`feira/<name>`); you click it or stand at `interact`, the vendor (an NPC) stands behind it. */
 const feiraStall = (id: string, vendor: 'tia_lu' | 'ze' | 'chico' | 'rosa', name: string, x: number, y: number, label: Bilingual): PropDef =>
-  P(id, 'feira', x, y, { w: 3, h: 2, art: `feira/${name}`, action: 'feira_stall', vendor, interact: { x: x + 1, y: y + 2 }, label });
+  P(id, 'feira', x, y, { w: 3, h: 2, art: `feira/${name}`, action: 'feira_stall', vendor, interact: { x: x + 1, y: y + 3 }, label });
 
 const vilaIpe: RoomDef = {
   id: 'praca',
@@ -294,20 +306,44 @@ const vilaIpe: RoomDef = {
     P('lixeira_s2', 'lixeira', 39, 12),
     // ---- Praça Central
     P('fonte', 'fonte', 23, 20, { w: 4, h: 3, label: { pt: 'Fonte da praça', en: 'Square fountain' } }),
+    // trees (V2): the yellow ipê stays the hero; a purple and a white ipê, a figueira-sized shade tree, a sibipiruna, jerivá palms
     P('ipe_centro', 'ipe', 12, 16, { w: 2, h: 2, hero: true }),
-    P('ipe_2', 'ipe', 17, 18),
-    P('ipe_3', 'ipe', 35, 17),
-    P('ipe_4', 'ipe', 13, 26),
-    P('ipe_5', 'ipe', 18, 24),
-    P('ipe_6', 'ipe', 37, 26),
+    P('ipe_2', 'arvore', 18, 16, { art: 'props/ipe_roxo_medium' }),
+    P('ipe_3', 'arvore', 38, 16, { art: 'props/ipe_roxo_medium_b' }),
+    P('ipe_4', 'arvore', 19, 27, { art: 'props/oiti' }),
+    P('ipe_5', 'ipe', 19, 23, { art: 'props/ipe_amarelo_medium_b' }),
+    P('ipe_6', 'arvore', 39, 27, { w: 2, h: 2, art: 'props/ipe_branco_large' }),
+    P('sibipiruna', 'arvore', 35, 23, { art: 'props/sibipiruna' }),
+    P('jeriva_1', 'arvore', 19, 19, { art: 'props/jeriva' }),
+    P('jeriva_2', 'arvore', 31, 16, { art: 'props/jeriva_b' }),
+    P('jeriva_3', 'arvore', 11, 23, { art: 'props/jeriva_b' }),
     bench('banco_1', 20, 17),
     bench('banco_2', 28, 17),
     bench('banco_3', 20, 25),
     bench('banco_4', 28, 25),
     bench('banco_5', 14, 20),
-    bench('banco_6', 36, 20),
+    bench('banco_6', 31, 19),
     bench('banco_7', 15, 29),
     bench('banco_8', 33, 29),
+    // the coreto (bandstand): the praça's hero landmark in the north-east lawn, its steps toward the brick bar
+    cen('coreto', 'props/coreto', 33, 18, 5, 3, { blocks: true, label: { pt: 'Coreto da praça', en: 'Bandstand (coreto)' } }),
+    cen('canteiro_coreto_1', 'props/canteiro_redondo', 31, 17, 2, 2, { blocks: true }),
+    cen('canteiro_coreto_2', 'props/canteiro_redondo', 38, 18, 2, 2, { blocks: true }),
+    // the bust of the founder, in a round flower bed (north-west lawn)
+    cen('busto', 'props/canteiro_busto', 16, 18, 2, 2, { blocks: true, label: { pt: 'Busto da fundadora', en: 'Bust of the founder' } }),
+    // domino and chess tables with their stools (seniors sit here): south-east lawn
+    cen('mesa_domino_1', 'props/mesa_domino', 33, 26, 1, 1, { blocks: true }),
+    cen('mesa_xadrez_1', 'props/mesa_xadrez', 37, 26, 1, 1, { blocks: true }),
+    ...stools('banquinho_a', 33, 26),
+    ...stools('banquinho_b', 37, 26),
+    // pipoqueiro and the coconut-water cart
+    cen('pipoqueiro', 'props/pipoqueiro', 29, 28, 3, 1, { blocks: true, label: { pt: 'Pipoqueiro', en: 'Popcorn cart' } }),
+    cen('carrinho_coco', 'props/carrinho_coco', 28, 14, 3, 1, { blocks: true, label: { pt: 'Carrinho de água de coco', en: 'Coconut-water cart' } }),
+    // the playground: sand pit with a swing, a slide, a seesaw and monkey bars; a bench watches from the south
+    cen('pg_balanco', 'props/pg_balanco', 12, 25, 2, 1, { blocks: true }),
+    cen('pg_escorregador', 'props/pg_escorregador', 14, 25, 3, 1, { blocks: true }),
+    cen('pg_gangorra', 'props/pg_gangorra', 12, 27, 2, 1, { blocks: true }),
+    cen('pg_trepa', 'props/pg_trepa', 14, 27, 3, 1, { blocks: true }),
     P('canteiro_1', 'canteiro', 11, 14, { w: 2 }),
     P('canteiro_2', 'canteiro', 38, 14, { w: 2 }),
     P('canteiro_3', 'canteiro', 11, 29, { w: 2 }),
@@ -322,7 +358,7 @@ const vilaIpe: RoomDef = {
     P('sebe_4', 'sebe', 37, 21, { w: 2, art: 'props/hedge_wide' }),
     P('arbusto_1', 'sebe', 15, 15, { art: 'props/bush_flower' }),
     P('arbusto_2', 'sebe', 33, 15, { art: 'props/bush_flower' }),
-    P('arbusto_3', 'sebe', 11, 24, { art: 'props/bush_flower' }),
+    P('arbusto_3', 'sebe', 10, 24, { art: 'props/bush_flower' }),
     P('arbusto_4', 'sebe', 39, 24, { art: 'props/bush_flower' }),
     {
       id: 'quiosque',
@@ -375,24 +411,39 @@ const vilaIpe: RoomDef = {
     P('flor_o2', 'sebe', 1, 28, { w: 2, art: 'props/flor_rosa' }),
     bench('banco_oeste', 1, 25),
     // ---- east: the feira livre lot (x41-55, y14-29), fenced, with a gate on the brick bar (x41, y21-22). Open 06:00-13:00 (`feira.ts`);
-    // outside those hours the stalls show folded. Two rows of stalls facing south: the vendor stands behind (north), customers in front.
+    // outside those hours the stalls show folded. V2: a closed street (asphalt) with two rows of stalls facing south. The vendor stands in
+    // FRONT of the stall (x + 1, y + 2), facing the aisle, and customers talk to them from the next tile (x + 1, y + 3).
     P('cerca_leste', 'cerca', 41, 14, { w: 15, h: 16, art: 'cerca_feira', gaps: [{ x: 41, y: 21 }, { x: 41, y: 22 }] }),
     cen('feira_livre', 'props/feira_livre', 44, 15, 5, 1, { label: { pt: 'Feira livre', en: 'Street market' } }),
     feiraStall('feira_tia_lu', 'tia_lu', 'frutas', 44, 17, { pt: 'Frutas da Tia Lu', en: 'Tia Lu’s fruit stall' }),
     feiraStall('feira_ze', 'ze', 'verduras', 50, 17, { pt: 'Verduras do Seu Zé', en: 'Seu Zé’s vegetable stall' }),
     feiraStall('feira_chico', 'chico', 'pastel', 44, 24, { pt: 'Pastel e caldo de cana do Seu Chico', en: 'Seu Chico’s pastel and sugarcane juice' }),
     feiraStall('feira_rosa', 'rosa', 'flores', 50, 24, { pt: 'Flores da Dona Rosa', en: 'Dona Rosa’s flowers' }),
-    cen('caixote_1', 'feira/caixotes', 48, 18),
-    cen('caixote_2', 'feira/caixotes', 47, 19),
-    cen('caixote_3', 'feira/caixotes', 54, 18),
-    cen('caixote_4', 'feira/caixotes', 54, 19),
-    cen('caixote_5', 'feira/caixotes', 48, 25),
-    cen('caixote_6', 'feira/caixotes', 54, 25),
-    cen('caixote_7', 'feira/caixotes', 54, 26),
+    // crates, sacks, scales and two carts around the stalls (blocking, never on a vendor's or a customer's tile)
+    cen('caixote_1', 'feira/cx_banana', 42, 18, 1, 1, { blocks: true }),
+    cen('caixote_2', 'feira/cx_tomate', 43, 18, 1, 1, { blocks: true }),
+    cen('caixote_3', 'feira/cx_melancia', 53, 18, 1, 1, { blocks: true }),
+    cen('caixote_4', 'feira/cx_repolho', 54, 18, 1, 1, { blocks: true }),
+    cen('caixote_5', 'feira/cx_repolho', 42, 25, 1, 1, { blocks: true }),
+    cen('caixote_6', 'feira/cx_tomate', 53, 25, 1, 1, { blocks: true }),
+    cen('caixote_7', 'feira/cx_banana', 54, 25, 1, 1, { blocks: true }),
+    cen('carrinho_feira_1', 'feira/carrinho_a', 47, 18, 3, 1, { blocks: true }),
+    cen('carrinho_feira_2', 'feira/carrinho_b', 52, 23, 3, 1, { blocks: true }),
+    cen('caixote_8', 'feira/cx_melancia', 49, 25, 1, 1, { blocks: true }),
+    cen('sacos_1', 'feira/sacos', 53, 19, 1, 1, { blocks: true }),
+    cen('sacos_2', 'feira/sacos', 54, 26, 1, 1, { blocks: true }),
+    cen('balanca_1', 'feira/balanca', 46, 19, 1, 1, { blocks: true }),
+    cen('balanca_2', 'feira/balanca', 52, 19, 1, 1, { blocks: true }),
+    cen('balanca_3', 'feira/balanca', 46, 26, 1, 1, { blocks: true }),
+    cen('balanca_4', 'feira/balanca', 52, 26, 1, 1, { blocks: true }),
     cen('lousa_tia_lu', 'feira/preco_lousa', 43, 19),
     cen('lousa_ze', 'feira/preco_lousa', 49, 19),
     cen('lousa_chico', 'feira/preco_lousa', 43, 26),
     cen('lousa_rosa', 'feira/preco_lousa', 49, 26),
+    // festa-junina bunting over the aisle (overhead, thin: people stay visible)
+    cen('bandeirinhas_1', 'props/bandeirinhas_b', 42, 21, 6, 1),
+    cen('bandeirinhas_2', 'props/bandeirinhas_b', 48, 21, 6, 1),
+    cen('bandeirinhas_3', 'props/bandeirinhas_a', 46, 23, 4, 1),
     P('ipe_lote_1', 'ipe', 53, 28, { blocks: false }),
     P('ipe_lote_2', 'ipe', 42, 16, { blocks: false }),
     cen('flor_lote', 'props/flor_mista_b', 46, 28, 3, 1),
@@ -400,6 +451,22 @@ const vilaIpe: RoomDef = {
     P('hortifruti', 'hortifruti', 18, 7, { art: 'feira/caixotes', action: 'feira_stall', vendor: 'banca', interact: { x: 19, y: 7 }, label: { pt: 'Hortifrúti da banca', en: 'Greengrocer at the newsstand' } }),
     cen('hortifruti_2', 'feira/caixotes', 17, 7, 1, 1, { blocks: true }),
     cen('hortifruti_preco', 'feira/preco_lousa', 17, 6),
+    // ---- V2: pit trees along both streets (a stone pit, canopy over the curb), set clear of the doors and crosswalks
+    P('arv_n1', 'arvore', 7, 7, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_n2', 'arvore', 27, 7, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_n3', 'arvore', 43, 7, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_s1', 'arvore', 7, 12, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_s2', 'arvore', 18, 12, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_s3', 'arvore', 36, 12, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_s4', 'arvore', 48, 12, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_j1', 'arvore', 5, 31, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_j2', 'arvore', 22, 31, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_j3', 'arvore', 30, 31, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_j4', 'arvore', 45, 31, { w: 2, art: 'props/arvore_rua' }),
+    // ---- V2: parked vehicles at the south curb of each street (they block their curb tiles only: never a crosswalk, a sidewalk or a lane).
+    // The traffic lanes sit above them (see ambientData.ts); the bus stops east of the bus stop sign, so that curb stays free there.
+    ...parked(11, [['park_verde_r', 2, 5], ['park_vinho_r', 8, 4], ['park_azul_r', 18, 4], ['park_bege_l', 27, 5], ['park_fusca_e', 43, 3], ['park_taxi_r', 47, 5]]),
+    ...parked(35, [['park_taxi_r', 3, 5], ['park_moto_e', 9, 2], ['park_turquesa_l', 16, 4], ['park_branco_r', 28, 5], ['park_kombi_e', 33, 4], ['park_vermelho_l', 43, 5], ['park_moto_e', 50, 2]]),
     // ---- the map edges: streets end in barricades, sidewalks in hedges, the west lawns and the lot behind fences
     ...vilaIpeEdges(),
     // ---- south: the roofs across Rua Jacarandá (blocked)
@@ -418,7 +485,7 @@ const vilaIpe: RoomDef = {
     P('hidrante_s', 'sebe', 5, 12, { art: 'props/hidrante_amarelo' }),
     P('parquimetro', 'sebe', 28, 12, { art: 'props/parquimetro' }),
     P('flor_p1', 'sebe', 21, 28, { w: 3, art: 'props/flor_mista' }),
-    P('flor_p2', 'sebe', 27, 28, { w: 3, art: 'props/flor_branca_l' }),
+    P('flor_p2', 'sebe', 26, 29, { w: 3, art: 'props/flor_branca_l' }),
     P('lampada_s1', 'poste', 8, 30, { art: 'props/lamp_old' }),
     P('lampada_s2', 'poste', 17, 30, { art: 'props/lamp_old' }),
     P('lampada_s3', 'poste', 33, 30, { art: 'props/lamp_old' }),
@@ -502,9 +569,9 @@ const vilaIpe: RoomDef = {
       name: 'Tia Lu',
       role: { pt: 'Frutas da feira', en: 'Fruit at the feira' },
       x: 45,
-      y: 16,
+      y: 19,
       dir: 'SW',
-      interact: { x: 45, y: 19 },
+      interact: { x: 45, y: 20 },
       schedule: SCHEDULES.tia_lu,
       appearance: { body: 'medio', skin: 4, hair: 'curto', hairColor: 0, top: 'camiseta', topColor: 0, bottom: 'saia', bottomColor: 3, shoes: 3, face: 'doce', extra: 'brincos', idle: 'cintura' },
       hat: null,
@@ -519,9 +586,9 @@ const vilaIpe: RoomDef = {
       name: 'Seu Zé',
       role: { pt: 'Verduras da feira', en: 'Vegetables at the feira' },
       x: 51,
-      y: 16,
+      y: 19,
       dir: 'SW',
-      interact: { x: 51, y: 19 },
+      interact: { x: 51, y: 20 },
       schedule: SCHEDULES.ze,
       appearance: { body: 'forte', skin: 3, hair: 'raspado', hairColor: 5, top: 'camisa', topColor: 11, bottom: 'calca', bottomColor: 10, shoes: 2, face: 'maduro', extra: 'bigode', idle: 'bracos' },
       hat: null,
@@ -535,9 +602,9 @@ const vilaIpe: RoomDef = {
       name: 'Seu Chico',
       role: { pt: 'Pastel e caldo de cana', en: 'Pastel and sugarcane juice' },
       x: 45,
-      y: 23,
+      y: 26,
       dir: 'SW',
-      interact: { x: 45, y: 26 },
+      interact: { x: 45, y: 27 },
       schedule: SCHEDULES.chico,
       appearance: { body: 'medio', skin: 5, hair: 'curto', hairColor: 0, top: 'camiseta', topColor: 4, bottom: 'calca', bottomColor: 2, shoes: 1, face: 'marcante', extra: 'barba', idle: 'solto' },
       hat: null,
@@ -551,9 +618,9 @@ const vilaIpe: RoomDef = {
       name: 'Dona Rosa',
       role: { pt: 'Flores da feira', en: 'Flowers at the feira' },
       x: 51,
-      y: 23,
+      y: 26,
       dir: 'SW',
-      interact: { x: 51, y: 26 },
+      interact: { x: 51, y: 27 },
       schedule: SCHEDULES.rosa,
       appearance: { body: 'esguio', skin: 2, hair: 'ondulado', hairColor: 3, top: 'blusa', topColor: 9, bottom: 'saia', bottomColor: 7, shoes: 0, face: 'suave', extra: 'brincos', idle: 'solto' },
       hat: null,

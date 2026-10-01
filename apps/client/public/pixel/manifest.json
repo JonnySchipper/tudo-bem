@@ -5,9 +5,9 @@
   "outdoor": {
    "image": "atlas/outdoor.png",
    "data": "atlas/outdoor.json",
-   "w": 512,
-   "h": 4096,
-   "frames": 516
+   "w": 1024,
+   "h": 2048,
+   "frames": 565
   }
  },
  "terrain": {
@@ -4898,6 +4898,659 @@
    "anim": null,
    "overhead": null,
    "shadow": "fx/shadow_32"
+  },
+  "props/canteiro_busto": {
+   "atlas": "outdoor",
+   "frame": "props/canteiro_busto",
+   "w": 36,
+   "h": 60,
+   "ax": 18,
+   "ay": 56,
+   "footprint": [
+    2,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_32"
+  },
+  "props/pg_balanco": {
+   "atlas": "outdoor",
+   "frame": "props/pg_balanco",
+   "w": 31,
+   "h": 43,
+   "ax": 15,
+   "ay": 43,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_32",
+   "cast": {
+    "frame": "props/pg_balanco#cast",
+    "w": 55,
+    "h": 14,
+    "ax": 15,
+    "ay": 1
+   }
+  },
+  "props/pg_escorregador": {
+   "atlas": "outdoor",
+   "frame": "props/pg_escorregador",
+   "w": 47,
+   "h": 60,
+   "ax": 23,
+   "ay": 60,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "props/pg_escorregador#cast",
+    "w": 79,
+    "h": 18,
+    "ax": 23,
+    "ay": 1
+   }
+  },
+  "props/pg_gangorra": {
+   "atlas": "outdoor",
+   "frame": "props/pg_gangorra",
+   "w": 32,
+   "h": 11,
+   "ax": 16,
+   "ay": 11,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_32"
+  },
+  "props/pg_trepa": {
+   "atlas": "outdoor",
+   "frame": "props/pg_trepa",
+   "w": 48,
+   "h": 32,
+   "ax": 24,
+   "ay": 32,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "props/pg_trepa#cast",
+    "w": 66,
+    "h": 11,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "props/pg_torre": {
+   "atlas": "outdoor",
+   "frame": "props/pg_torre",
+   "w": 70,
+   "h": 73,
+   "ax": 35,
+   "ay": 73,
+   "footprint": [
+    4,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "props/pg_torre#cast",
+    "w": 109,
+    "h": 22,
+    "ax": 35,
+    "ay": 1
+   }
+  },
+  "vehicles/park_azul_r": {
+   "atlas": "outdoor",
+   "frame": "vehicles/park_azul_r",
+   "w": 61,
+   "h": 37,
+   "ax": 30,
+   "ay": 37,
+   "footprint": [
+    4,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "vehicles/park_vinho_r": {
+   "atlas": "outdoor",
+   "frame": "vehicles/park_vinho_r",
+   "w": 61,
+   "h": 37,
+   "ax": 30,
+   "ay": 37,
+   "footprint": [
+    4,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "vehicles/park_verde_r": {
+   "atlas": "outdoor",
+   "frame": "vehicles/park_verde_r",
+   "w": 77,
+   "h": 40,
+   "ax": 38,
+   "ay": 40,
+   "footprint": [
+    5,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "vehicles/park_taxi_r": {
+   "atlas": "outdoor",
+   "frame": "vehicles/park_taxi_r",
+   "w": 77,
+   "h": 40,
+   "ax": 38,
+   "ay": 40,
+   "footprint": [
+    5,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "vehicles/park_branco_r": {
+   "atlas": "outdoor",
+   "frame": "vehicles/park_branco_r",
+   "w": 77,
+   "h": 40,
+   "ax": 38,
+   "ay": 40,
+   "footprint": [
+    5,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "vehicles/park_bege_l": {
+   "atlas": "outdoor",
+   "frame": "vehicles/park_bege_l",
+   "w": 77,
+   "h": 40,
+   "ax": 38,
+   "ay": 40,
+   "footprint": [
+    5,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "vehicles/park_cinza_l": {
+   "atlas": "outdoor",
+   "frame": "vehicles/park_cinza_l",
+   "w": 61,
+   "h": 37,
+   "ax": 30,
+   "ay": 37,
+   "footprint": [
+    4,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "vehicles/park_turquesa_l": {
+   "atlas": "outdoor",
+   "frame": "vehicles/park_turquesa_l",
+   "w": 61,
+   "h": 37,
+   "ax": 30,
+   "ay": 37,
+   "footprint": [
+    4,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "vehicles/park_vermelho_l": {
+   "atlas": "outdoor",
+   "frame": "vehicles/park_vermelho_l",
+   "w": 71,
+   "h": 39,
+   "ax": 35,
+   "ay": 39,
+   "footprint": [
+    5,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48"
+  },
+  "decals/trilha_a": {
+   "atlas": "outdoor",
+   "frame": "decals/trilha_a",
+   "w": 22,
+   "h": 14,
+   "ax": 11,
+   "ay": 7,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/trilha_b": {
+   "atlas": "outdoor",
+   "frame": "decals/trilha_b",
+   "w": 30,
+   "h": 16,
+   "ax": 15,
+   "ay": 8,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/trilha_c": {
+   "atlas": "outdoor",
+   "frame": "decals/trilha_c",
+   "w": 16,
+   "h": 22,
+   "ax": 8,
+   "ay": 11,
+   "footprint": [
+    1,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/trilha_d": {
+   "atlas": "outdoor",
+   "frame": "decals/trilha_d",
+   "w": 26,
+   "h": 18,
+   "ax": 13,
+   "ay": 9,
+   "footprint": [
+    2,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/trilha_e": {
+   "atlas": "outdoor",
+   "frame": "decals/trilha_e",
+   "w": 14,
+   "h": 12,
+   "ax": 7,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/areia_pg": {
+   "atlas": "outdoor",
+   "frame": "decals/areia_pg",
+   "w": 112,
+   "h": 80,
+   "ax": 0,
+   "ay": 0,
+   "footprint": [
+    7,
+    5
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/amarelinha": {
+   "atlas": "outdoor",
+   "frame": "decals/amarelinha",
+   "w": 64,
+   "h": 16,
+   "ax": 0,
+   "ay": 0,
+   "footprint": [
+    4,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/feira_lixo_0": {
+   "atlas": "outdoor",
+   "frame": "decals/feira_lixo_0",
+   "w": 16,
+   "h": 16,
+   "ax": 8,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/feira_lixo_1": {
+   "atlas": "outdoor",
+   "frame": "decals/feira_lixo_1",
+   "w": 16,
+   "h": 16,
+   "ax": 8,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/feira_lixo_2": {
+   "atlas": "outdoor",
+   "frame": "decals/feira_lixo_2",
+   "w": 16,
+   "h": 16,
+   "ax": 8,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/tigela": {
+   "atlas": "outdoor",
+   "frame": "decals/tigela",
+   "w": 8,
+   "h": 6,
+   "ax": 4,
+   "ay": 3,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/toalha_azul": {
+   "atlas": "outdoor",
+   "frame": "decals/toalha_azul",
+   "w": 28,
+   "h": 28,
+   "ax": 14,
+   "ay": 28,
+   "footprint": [
+    2,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/toalha_amarela": {
+   "atlas": "outdoor",
+   "frame": "decals/toalha_amarela",
+   "w": 28,
+   "h": 28,
+   "ax": 14,
+   "ay": 28,
+   "footprint": [
+    2,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "decals/toalha_verde": {
+   "atlas": "outdoor",
+   "frame": "decals/toalha_verde",
+   "w": 28,
+   "h": 28,
+   "ax": 14,
+   "ay": 28,
+   "footprint": [
+    2,
+    2
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null,
+   "decal": true
+  },
+  "feira/cx_tomate": {
+   "atlas": "outdoor",
+   "frame": "feira/cx_tomate",
+   "w": 18,
+   "h": 26,
+   "ax": 9,
+   "ay": 24,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "feira/cx_tomate#cast",
+    "w": 30,
+    "h": 9,
+    "ax": 9,
+    "ay": 1
+   }
+  },
+  "feira/cx_banana": {
+   "atlas": "outdoor",
+   "frame": "feira/cx_banana",
+   "w": 18,
+   "h": 26,
+   "ax": 9,
+   "ay": 24,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "feira/cx_banana#cast",
+    "w": 30,
+    "h": 9,
+    "ax": 9,
+    "ay": 1
+   }
+  },
+  "feira/cx_melancia": {
+   "atlas": "outdoor",
+   "frame": "feira/cx_melancia",
+   "w": 18,
+   "h": 26,
+   "ax": 9,
+   "ay": 24,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "feira/cx_melancia#cast",
+    "w": 30,
+    "h": 9,
+    "ax": 9,
+    "ay": 1
+   }
+  },
+  "feira/cx_repolho": {
+   "atlas": "outdoor",
+   "frame": "feira/cx_repolho",
+   "w": 18,
+   "h": 26,
+   "ax": 9,
+   "ay": 24,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "feira/cx_repolho#cast",
+    "w": 30,
+    "h": 9,
+    "ax": 9,
+    "ay": 1
+   }
+  },
+  "feira/sacos": {
+   "atlas": "outdoor",
+   "frame": "feira/sacos",
+   "w": 24,
+   "h": 22,
+   "ax": 12,
+   "ay": 20,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "feira/sacos#cast",
+    "w": 34,
+    "h": 8,
+    "ax": 12,
+    "ay": 1
+   }
+  },
+  "feira/balanca": {
+   "atlas": "outdoor",
+   "frame": "feira/balanca",
+   "w": 18,
+   "h": 26,
+   "ax": 9,
+   "ay": 24,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "feira/balanca#cast",
+    "w": 30,
+    "h": 9,
+    "ax": 9,
+    "ay": 1
+   }
+  },
+  "feira/carrinho_a": {
+   "atlas": "outdoor",
+   "frame": "feira/carrinho_a",
+   "w": 48,
+   "h": 55,
+   "ax": 24,
+   "ay": 55,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "feira/carrinho_a#cast",
+    "w": 75,
+    "h": 16,
+    "ax": 24,
+    "ay": 1
+   }
+  },
+  "feira/carrinho_b": {
+   "atlas": "outdoor",
+   "frame": "feira/carrinho_b",
+   "w": 48,
+   "h": 61,
+   "ax": 24,
+   "ay": 61,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "feira/carrinho_b#cast",
+    "w": 78,
+    "h": 17,
+    "ax": 24,
+    "ay": 1
+   }
   },
   "props/arvore_rua": {
    "atlas": "outdoor",

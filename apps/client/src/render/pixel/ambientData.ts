@@ -73,8 +73,9 @@ export interface AmbientRoom {
 const street = (id: string, y0: number, y1: number, cols: number, density: number): Street => ({
   id,
   lanes: [
-    { y: (y0 + 2) * T - 3, dir: 'w' },
-    { y: (y1 + 1) * T - 4, dir: 'e' },
+    // V2: the lanes sit in the upper three rows so the south curb row can hold parked vehicles (rooms.ts `parked`)
+    { y: y0 * T + 24, dir: 'w' },
+    { y: y0 * T + 46, dir: 'e' },
   ],
   x0: -84,
   x1: cols * T + 84,

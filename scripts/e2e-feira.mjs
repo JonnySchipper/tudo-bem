@@ -84,9 +84,9 @@ async function main() {
 
   if (PHASE === 'day') {
     await waitFor(page, () => window.__tb.clock.minutes() >= 540 && window.__tb.clock.minutes() < 600, null, 120_000, '09:00');
-    // the gate (41,21) and Tia Lu's spot (45,19)
-    await walkTo(page, 45, 19);
-    await waitIdleAt(page, 45, 19);
+    // the gate (41,21) and Tia Lu's customer spot (45,20), she stands in front of her stall at (45,19)
+    await walkTo(page, 45, 20);
+    await waitIdleAt(page, 45, 20);
     await sleep(1500);
     log('at the stall, game time', hhmm(await minutes(page)));
     const npcs = await page.evaluate(() => [...window.__tb.game.avatars.values()].filter((a) => a.pub.npc).map((a) => a.pub.npc));
@@ -149,8 +149,8 @@ async function main() {
     await page.keyboard.press('Escape');
   } else {
     await waitFor(page, () => window.__tb.clock.minutes() >= 940 && window.__tb.clock.minutes() < 1000, null, 120_000, '15:40');
-    await walkTo(page, 45, 19);
-    await waitIdleAt(page, 45, 19);
+    await walkTo(page, 45, 20);
+    await waitIdleAt(page, 45, 20);
     await sleep(1500);
     const npcs = await page.evaluate(() => [...window.__tb.game.avatars.values()].filter((a) => a.pub.npc).map((a) => a.pub.npc));
     for (const id of ['ze', 'chico', 'rosa']) assert(!npcs.includes(id), `${id} is gone after 13:00`);
