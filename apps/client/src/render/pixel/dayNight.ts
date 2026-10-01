@@ -11,7 +11,7 @@ import { darknessAlpha, glowStrength, gradeAt, rgbToInt, shadowFill, sunGlow, ty
 import { weatherGrade, type WeatherParams } from './weatherLook';
 import { T, type Rect } from './coords';
 import { allNorthDecor, decorArt } from './roomLayout';
-import { shadowLook, type ShadowLook } from './shadows';
+import { rimLook, shadowLook, type RimSpec, type ShadowLook } from './shadows';
 
 /** Game minute the lights switch on / off. */
 export const LIGHTS_ON_MIN = 18 * 60;
@@ -106,6 +106,10 @@ export interface SceneLook {
   cast: number;
   /** V5: the sun's directional shadows (shear, strength, tint); alpha 0 in interiors, at night and under chuva */
   shadow: ShadowLook;
+  /** V5: strength (0..1) of the ambient occlusion layer: stronger under an overcast sky, weaker at night, 0 in interiors */
+  ao: number;
+  /** V5: the sun's warm edge light on whatever faces it (alpha 0 = none) */
+  rim: RimSpec;
   /** alpha and tint of the window light patches on the floor */
   patchAlpha: number;
   patchTint: number;
@@ -161,6 +165,8 @@ export function computeLook(inp: LookInput): SceneLook {
       sun: sunGlow(inp.roomHour) * 0.2,
       cast: 1,
       shadow: { ...shadowLook(inp.roomHour, 1), alpha: 0 },
+      ao: 0,
+      rim: { side: 'l', alpha: 0, tint: 0xffa05a },
       patchAlpha,
       patchTint,
       windowNight,
@@ -170,8 +176,9 @@ export function computeLook(inp: LookInput): SceneLook {
 
   const gloom = w.gloom * (1 - night);
   const sf = shadowFill(liveHour);
+  const grade = weatherGrade(gradeAt(liveHour), w, night);
   return {
-    grade: weatherGrade(gradeAt(liveHour), w, night),
+    grade,
     fill: { color: sf.color, alpha: sf.alpha * (0.5 + 0.5 * w.sun) },
     dark: dark0 + gloom * (1 - dark0),
     night,
@@ -179,7 +186,9 @@ export function computeLook(inp: LookInput): SceneLook {
     glow: Math.max(glowStrength(liveHour), w.rain * 0.7),
     sun: sunGlow(liveHour) * 0.2 * w.sun,
     cast: Math.max(0.15, 1 - dark0 * 1.1) * w.sun,
-    shadow: shadowLook(liveHour, w.sun),
+    shadow: shadowLook(liveHour, w.sun, grade),
+    ao: (0.8 + 0.2 * (1 - w.sun)) * (1 - 0.5 * night),
+    rim: rimLook(shadowLook(liveHour, w.sun, grade)),
     patchAlpha,
     patchTint,
     windowNight,
@@ -202,6 +211,8 @@ export function hourLook(hour: number): SceneLook {
     sun: sunGlow(hour) * 0.2,
     cast: Math.max(0.15, 1 - dark * 1.1),
     shadow: shadowLook(hour, 1),
+    ao: 0.8 * (1 - 0.5 * (dark / 0.55)),
+    rim: rimLook(shadowLook(hour, 1)),
     patchAlpha:Math.max(0, 1 - dark * 2.5),
     patchTint: 0xffffff,
     windowNight: 0,

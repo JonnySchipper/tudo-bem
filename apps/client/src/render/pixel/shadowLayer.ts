@@ -1,5 +1,5 @@
 /**
- * Directional cast shadows (V5): the Phaser side of `shadows.ts`.
+ * Directional cast shadows and rim light (V5): the Phaser side of `shadows.ts`.
  *
  * Every standing sprite (props, buildings, canopies, characters, vehicles, the dog) gets a shadow that is its own silhouette, flipped over the
  * ground line and sheared by the sun (`shadowLook`). The silhouette is generated once per sprite frame from the sprite's alpha (`silhouette.ts`),
@@ -7,11 +7,14 @@
  * sprite's own rotation compose to the shear (`shearTransform`): the GPU does the shear, so the shadow slides smoothly with the clock and
  * nothing is regenerated when the sun moves. Drawn with MULTIPLY (the ground keeps its colour and texture and only loses light) under everything
  * that stands, in the main (world) camera at the same integer zoom as the art.
+ *
+ * The same atlas holds the rim masks (`buildRim`): a static prop gets a second sprite over itself, ADD blended in the sun's warm colour, that
+ * lights only the edge facing the sun at low sun.
  */
 import Phaser from 'phaser';
 import type { SpriteDef } from './manifest';
 import { DEPTH } from './props';
-import { ShelfPacker, buildSilhouette, type Silhouette } from './silhouette';
+import { ShelfPacker, buildRim, buildSilhouette, type RgbaImage } from './silhouette';
 import { castPreset, casterShear, shearTransform, type CastPreset, type ShadowLook } from './shadows';
 
 const ATLAS_KEY = 'shadowAtlas';
@@ -35,6 +38,13 @@ interface Source {
   preset: CastPreset;
 }
 
+/** The sun's edge light for the frame: where it comes from, how strong, what colour. */
+export interface RimLook {
+  side: 'l' | 'r';
+  alpha: number;
+  tint: number;
+}
+
 interface Caster {
   box: Phaser.GameObjects.Container;
   spr: Phaser.GameObjects.Sprite;
@@ -52,19 +62,25 @@ interface Caster {
   epoch: number;
   sig: string;
   key: string;
+  /** rim light sprite over a static prop (null for followers and things too small to catch light) */
+  rim: Phaser.GameObjects.Sprite | null;
+  rimSide: '' | 'l' | 'r';
+  rimEpoch: number;
 }
 
 /** The handle a scene keeps for a static shadow: lets a stall that is folded away hide its shadow too. */
 export class ShadowHandle {
   constructor(private readonly c: Caster | null) {}
   setVisible(v: boolean): this {
-    if (this.c) this.c.ownerVisible = v;
+    if (this.c) {
+      this.c.ownerVisible = v;
+      this.c.rim?.setVisible(false);
+    }
     return this;
   }
 }
 
 export class ShadowLayer {
-  private canvas!: HTMLCanvasElement;
   private ctx!: CanvasRenderingContext2D;
   private tex: Phaser.Textures.CanvasTexture | null = null;
   private packer = new ShelfPacker(ATLAS_SIZE, ATLAS_SIZE);
@@ -93,7 +109,6 @@ export class ShadowLayer {
     // shadows are soft: bilinear, unlike the art
     ct.setFilter(Phaser.Textures.FilterMode.LINEAR);
     this.tex = ct;
-    this.canvas = ct.getCanvas();
     this.ctx = ct.getContext();
     this.packer.reset();
     this.cache.clear();
@@ -101,13 +116,13 @@ export class ShadowLayer {
     this.dirty = true;
   }
 
-  // ------------------------------------------------------------------ silhouettes
+  // ------------------------------------------------------------------ atlas
   /** Reads one frame's alpha as RGBA (untrimmed: the frame's own offset is applied). */
-  private readFrame(tex: string, frame: string | number): { w: number; h: number; data: Uint8ClampedArray } | null {
+  private readFrame(tex: string, frame: string | number): RgbaImage | null {
     const t = this.scene.textures.get(tex);
     if (!t || t.key === '__MISSING') return null;
     const f = t.get(frame);
-    if (!f || f.name === '__BASE' && frame !== '__BASE') return null;
+    if (!f || (f.name === '__BASE' && frame !== '__BASE')) return null;
     const src = f.source.image as CanvasImageSource | undefined;
     if (!src) return null;
     const w = f.realWidth;
@@ -123,29 +138,45 @@ export class ShadowLayer {
     return { w, h, data: g.getImageData(0, 0, w, h).data };
   }
 
-  /** The silhouette of a source frame in the atlas (generated and packed on first use); null when the source is not readable or the atlas is full. */
+  /** Pack an RGBA image into the atlas and return its frame, resetting the atlas when it is full. */
+  private pack(img: RgbaImage, ax: number, ay: number): Ref | null {
+    let at = this.packer.alloc(img.w, img.h);
+    if (!at) {
+      // full: start over (every caster re-resolves on its next update; rare, a room needs a fraction of the atlas)
+      this.makeAtlas();
+      at = this.packer.alloc(img.w, img.h);
+      if (!at) return null;
+    }
+    this.ctx.putImageData(new ImageData(new Uint8ClampedArray(img.data), img.w, img.h), at.x, at.y);
+    const name = `s${this.generated}_${at.x}_${at.y}`;
+    this.tex!.add(name, 0, at.x, at.y, img.w, img.h);
+    this.dirty = true;
+    this.generated++;
+    return { frame: name, w: img.w, h: img.h, ax, ay };
+  }
+
+  /** The shadow silhouette of a source frame (generated and packed on first use); null when the source is not readable or the atlas is full. */
   private silhouette(s: Source): Ref | null {
-    const k = `${s.tex}|${s.frame}|${s.ax},${s.ay}|${s.preset.blur}`;
+    const k = `sil|${s.tex}|${s.frame}|${s.ax},${s.ay}|${s.preset.blur}`;
     const hit = this.cache.get(k);
     if (hit !== undefined) return hit;
     const px = this.readFrame(s.tex, s.frame);
     if (!px) return null;
-    const sil: Silhouette = buildSilhouette(px, s.ax, s.ay, { blur: s.preset.blur });
-    let at = this.packer.alloc(sil.w, sil.h);
-    if (!at) {
-      // full: start over (every caster re-resolves on its next update; rare, a room needs a fraction of the atlas)
-      this.makeAtlas();
-      at = this.packer.alloc(sil.w, sil.h);
-      if (!at) return null;
-    }
-    const id = new ImageData(new Uint8ClampedArray(sil.data), sil.w, sil.h);
-    this.ctx.putImageData(id, at.x, at.y);
-    const name = `s${this.cache.size}_${at.x}_${at.y}`;
-    this.tex!.add(name, 0, at.x, at.y, sil.w, sil.h);
-    const ref: Ref = { frame: name, w: sil.w, h: sil.h, ax: sil.ax, ay: sil.ay };
+    const sil = buildSilhouette(px, s.ax, s.ay, { blur: s.preset.blur });
+    const ref = this.pack(sil, sil.ax, sil.ay);
     this.cache.set(k, ref);
-    this.dirty = true;
-    this.generated++;
+    return ref;
+  }
+
+  /** The rim mask of a source frame for light from `side`. */
+  private rimMask(s: Source, side: 'l' | 'r'): Ref | null {
+    const k = `rim${side}|${s.tex}|${s.frame}`;
+    const hit = this.cache.get(k);
+    if (hit !== undefined) return hit;
+    const px = this.readFrame(s.tex, s.frame);
+    if (!px) return null;
+    const ref = this.pack(buildRim(px, side), s.ax, s.ay);
+    this.cache.set(k, ref);
     return ref;
   }
 
@@ -153,14 +184,20 @@ export class ShadowLayer {
   private make(src: Source, height: number, wx: number, wy: number, key: string): Caster {
     const spr = this.scene.make.sprite({ x: 0, y: 0, key: ATLAS_KEY, add: false }, false).setBlendMode(Phaser.BlendModes.MULTIPLY).setVisible(false);
     const box = this.rig.world(this.scene.add.container(wx, wy, [spr])).setDepth(DEPTH.shadowCast).setVisible(false);
-    return { box, spr, src, height, follow: null, fixedFrame: null, hScale: 1, ownerVisible: true, epoch: -1, sig: '', key };
+    return { box, spr, src, height, follow: null, fixedFrame: null, hScale: 1, ownerVisible: true, epoch: -1, sig: '', key, rim: null, rimSide: '', rimEpoch: -1 };
   }
 
-  /** A shadow for a static sprite standing at world px (wx, wy) (its anchor). `null` handle semantics: a sprite that does not cast returns a no-op handle. */
-  addStatic(key: string, d: SpriteDef, wx: number, wy: number): ShadowHandle {
+  /**
+   * A shadow (and, for a prop tall enough to catch light, a rim light) for a static sprite standing at world px (wx, wy), its anchor. `depth` is
+   * the sprite's own depth: the rim sprite sits just above it. A sprite that does not cast returns a no-op handle.
+   */
+  addStatic(key: string, d: SpriteDef, wx: number, wy: number, depth = 0): ShadowHandle {
     const preset = castPreset(key, d);
     if (!preset.cast) return new ShadowHandle(null);
     const c = this.make({ tex: d.atlas, frame: d.frame, ax: d.ax, ay: d.ay, preset }, Math.max(1, Math.min(d.h, d.ay)), Math.round(wx), Math.round(wy), key);
+    if (d.h >= 18 && d.ay >= 14) {
+      c.rim = this.rig.world(this.scene.add.sprite(Math.round(wx), Math.round(wy), ATLAS_KEY)).setBlendMode(Phaser.BlendModes.ADD).setDepth(depth + 0.002).setVisible(false);
+    }
     this.statics.push(c);
     return new ShadowHandle(c);
   }
@@ -193,7 +230,10 @@ export class ShadowLayer {
 
   /** Drop the shadows of a room (statics). Followers belong to avatars and vehicles and end with their sprite. */
   clearRoom(): void {
-    for (const c of this.statics) c.box.destroy();
+    for (const c of this.statics) {
+      c.box.destroy();
+      c.rim?.destroy();
+    }
     this.statics = [];
   }
 
@@ -201,12 +241,16 @@ export class ShadowLayer {
     return this.statics.length + this.followers.length;
   }
 
+  get rimCount(): number {
+    return this.statics.filter((c) => c.rim?.visible).length;
+  }
+
   // ------------------------------------------------------------------ frame
   /**
    * Re-aim every shadow at the sun. `enabled` is false in interiors (their own baked shadows are used), under low-fx and at night; `alphaMul`
-   * is the strength (0..1), `look` the sun.
+   * is the strength (0..1), `look` the sun. `rim` is the edge light (alpha 0 hides it).
    */
-  update(look: ShadowLook, enabled: boolean, alphaMul: number): void {
+  update(look: ShadowLook, enabled: boolean, alphaMul: number, rim?: RimLook): void {
     const on = enabled && look.alpha * alphaMul > 0.01;
     // followers whose sprite died
     for (let i = this.followers.length - 1; i >= 0; i--) {
@@ -217,7 +261,10 @@ export class ShadowLayer {
       }
     }
     if (!on) {
-      for (const c of this.statics) if (c.box.visible) c.box.setVisible(false);
+      for (const c of this.statics) {
+        if (c.box.visible) c.box.setVisible(false);
+        if (c.rim?.visible) c.rim.setVisible(false);
+      }
       for (const c of this.followers) if (c.box.visible) c.box.setVisible(false);
       this.flush();
       return;
@@ -225,7 +272,10 @@ export class ShadowLayer {
     const lookSig = `${look.lx.toFixed(3)},${look.ly.toFixed(3)},${look.tint},${(look.alpha * alphaMul).toFixed(3)}`;
     const lookChanged = lookSig !== this.lastLook;
     this.lastLook = lookSig;
-    for (const c of this.statics) this.aim(c, look, alphaMul, lookChanged);
+    for (const c of this.statics) {
+      this.aim(c, look, alphaMul, lookChanged);
+      this.aimRim(c, enabled ? rim : undefined);
+    }
     for (const c of this.followers) {
       const s = c.follow!;
       c.box.setPosition(s.x, s.y).setDepth(DEPTH.shadowCast);
@@ -258,7 +308,7 @@ export class ShadowLayer {
         c.epoch = -1;
         return;
       }
-      c.spr.setFrame(ref.frame).setOrigin(ref.ax / ref.w, ref.ay / ref.h);
+      c.spr.setTexture(ATLAS_KEY, ref.frame).setOrigin(ref.ax / ref.w, ref.ay / ref.h);
     }
     if (c.epoch !== this.epoch) return;
     const vis = c.ownerVisible;
@@ -276,7 +326,28 @@ export class ShadowLayer {
     }
   }
 
-  /** Upload the atlas once per frame, and only if a silhouette was added. */
+  /** The warm edge of a static prop on the side the sun is on. */
+  private aimRim(c: Caster, rim: RimLook | undefined): void {
+    const r = c.rim;
+    if (!r) return;
+    if (!rim || rim.alpha < 0.02 || !c.ownerVisible) {
+      if (r.visible) r.setVisible(false);
+      return;
+    }
+    if (c.rimSide !== rim.side || c.rimEpoch !== this.epoch) {
+      const ref = this.rimMask(c.src, rim.side);
+      c.rimEpoch = this.epoch;
+      c.rimSide = rim.side;
+      if (!ref) {
+        r.setVisible(false);
+        return;
+      }
+      r.setTexture(ATLAS_KEY, ref.frame).setOrigin(ref.ax / ref.w, ref.ay / ref.h);
+    }
+    r.setTint(rim.tint).setAlpha(rim.alpha).setVisible(true);
+  }
+
+  /** Upload the atlas once per frame, and only if something was added. */
   private flush(): void {
     if (this.dirty && this.tex) {
       this.tex.refresh();

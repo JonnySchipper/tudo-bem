@@ -25,6 +25,8 @@ import { computeLook, isOutdoor, lightDelay, windowPanes, type SceneLook } from 
 import { WeatherBlend, type FxLevel } from './weatherLook';
 import { WeatherFx } from './weatherFx';
 import { ShadowLayer, type ShadowHandle } from './shadowLayer';
+import { AoLayer } from './aoLayer';
+import { aoForOverhead, aoForSprite } from './ao';
 import { AmbientLife, ambientHandlesProp } from './ambient';
 import { ZoneFeed } from '../../audio/zonesFeed';
 import { FrameProbe, LowFxGovernor, reducedMotion } from './perf';
@@ -152,6 +154,7 @@ export class WorldScene extends Phaser.Scene {
   private rig!: LightingRig;
   /** V5: directional cast shadows (outdoor rooms; interiors keep their baked ones) */
   private shadows!: ShadowLayer;
+  private ao!: AoLayer;
   private roomOutdoor = false;
   private lastShadow: ShadowHandle | null = null;
   // Phase 6a: live clock, weather, performance fallback
@@ -220,6 +223,7 @@ export class WorldScene extends Phaser.Scene {
     this.rig = new LightingRig(this, cam, 'fx:glow');
     this.shadows = new ShadowLayer(this, this.rig);
     this.rig.shadows = this.shadows;
+    this.ao = new AoLayer(this, this.rig);
     this.sheets = new CharSheets({
       add: (key, look) => addSheetTexture(this, key, composeLook(this.assets, look), this.m.sheet),
       remove: (key) => {
@@ -271,7 +275,8 @@ export class WorldScene extends Phaser.Scene {
     const y = Math.round(wy);
     const spr = this.reg(this.add.sprite(x, y, d.atlas, d.frame)).setOrigin(...originOf(d)).setDepth(depth);
     if (d.anim) spr.play({ key: ensureAnim(this, key, d), startFrame: Math.floor(hash01(x * 31 + y) * d.anim.frames.length) });
-    this.lastShadow = shadow && this.roomOutdoor ? this.shadows.addStatic(key, d, x, y) : null;
+    this.lastShadow = shadow && this.roomOutdoor ? this.shadows.addStatic(key, d, x, y, depth) : null;
+    if (shadow && this.roomOutdoor) this.ao.add(aoForSprite(key, d, x, y));
     if (shadow) {
       if (d.cast) {
         const c = this.reg(this.add.image(x, y, d.atlas, d.cast.frame)).setOrigin(d.cast.ax / d.cast.w, d.cast.ay / d.cast.h).setDepth(DEPTH.shadowCast);
@@ -300,6 +305,7 @@ export class WorldScene extends Phaser.Scene {
     this.furniture.clear();
     this.rig.clearRoom();
     this.shadows?.clearRoom();
+    this.ao?.clearRoom();
     this.weatherFx?.clearRoom();
   }
 
@@ -432,6 +438,7 @@ export class WorldScene extends Phaser.Scene {
     const blocked = buildGrid(def, []).blocked;
     this.weatherFx.buildRoom(def, (x, y) => blocked.has(tileKey(x, y)));
     this.ambient.buildRoom(def, (x, y) => x >= 0 && y >= 0 && x < def.cols && y < def.rows && !blocked.has(tileKey(x, y)));
+    this.ao.build(def.floor, def.outdoor === true);
     this.bounds = roomBounds(def, tallest);
     this.snapCamera = true;
     this.hoverRect.setVisible(false);
@@ -537,7 +544,8 @@ export class WorldScene extends Phaser.Scene {
         if (od.anim) spr.play({ key: ensureAnim(this, d.overhead, od), startFrame: Math.floor(hash01(x * 7 + y) * 4) });
         if (p.kind === 'barraca_chapeus' && this.stall) this.stall.canopy = spr;
         feiraEntry?.open.push(spr);
-        const canopyShadow = this.roomOutdoor ? this.shadows.addStatic(d.overhead, od, x, y) : null;
+        const canopyShadow = this.roomOutdoor ? this.shadows.addStatic(d.overhead, od, x, y, DEPTH.overhead + y / 1000) : null;
+        if (this.roomOutdoor && p.kind !== 'feira') this.ao.add(aoForOverhead(d.overhead, od, x, y, d.footprint));
         if (feiraEntry && canopyShadow) feiraEntry.open.push(canopyShadow as unknown as Phaser.GameObjects.GameObject);
         const left = x - od.ax;
         const top = y - od.ay;
@@ -573,14 +581,14 @@ export class WorldScene extends Phaser.Scene {
     }
     const main = this.sprite(ck, a.wx, a.wy, depth, false);
     if (main) entry.closed.push(main);
-    const closedShadow = main && this.roomOutdoor ? this.shadows.addStatic(ck, cd, a.wx, a.wy) : null;
+    const closedShadow = main && this.roomOutdoor ? this.shadows.addStatic(ck, cd, a.wx, a.wy, depth) : null;
     if (closedShadow) entry.closed.push(closedShadow as unknown as Phaser.GameObjects.GameObject);
     if (typeof cd.overhead === 'string' && this.m.sprites[cd.overhead]) {
       const od = this.m.sprites[cd.overhead];
       const x = Math.round(a.wx);
       const y = Math.round(a.wy);
       entry.closed.push(this.reg(this.add.sprite(x, y, od.atlas, od.frame)).setOrigin(...originOf(od)).setDepth(DEPTH.overhead + y / 1000));
-      const rollShadow = this.roomOutdoor ? this.shadows.addStatic(cd.overhead, od, x, y) : null;
+      const rollShadow = this.roomOutdoor ? this.shadows.addStatic(cd.overhead, od, x, y, DEPTH.overhead + y / 1000) : null;
       if (rollShadow) entry.closed.push(rollShadow as unknown as Phaser.GameObjects.GameObject);
     }
     this.feiraStalls.push(entry);
@@ -737,7 +745,8 @@ export class WorldScene extends Phaser.Scene {
     const dyn = this.outdoor && !this.fxLevel.lowfx;
     this.rig.bakedCast = !dyn;
     this.rig.apply(look, this.cameras.main.zoom, (wx, wy) => this.toDevice(wx, wy));
-    this.shadows.update(look.shadow, dyn, 1);
+    this.shadows.update(look.shadow, dyn, 1, look.rim);
+    this.ao.update(dyn ? look.ao : 0);
     this.weatherFx.update({ dt, zoom: this.cameras.main.zoom, w: this.scale.width, h: this.scale.height, params, night: look.night, outdoor: this.outdoor, cam: this.cameras.main });
   }
 
@@ -781,6 +790,7 @@ export class WorldScene extends Phaser.Scene {
       outdoor: this.outdoor,
       dark: this.look ? +this.look.dark.toFixed(3) : 0,
       fx: this.weatherFx.info(),
+      shade: { casters: this.shadows.count, rims: this.shadows.rimCount, silhouettes: this.shadows.generated, aoShapes: this.ao.shapeCount },
     };
   }
 

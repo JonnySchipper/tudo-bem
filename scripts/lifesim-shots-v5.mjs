@@ -89,6 +89,7 @@ for (const vp of VPS) {
       const file = `${TAG}_${vp.name}_${a.name}_${t}${w === 'sol' ? '' : '_' + w}.png`;
       fs.writeFileSync(path.join(OUT, file), await page.screenshot());
       console.log('  ·', file);
+      if (argv.eval) console.log('    eval', JSON.stringify(await page.evaluate((e) => new Function('return (' + e + ')')(), argv.eval)));
       if (argv.perf) {
         await sleep(5200);
         const p = await page.evaluate(() => window.__tb.perf);

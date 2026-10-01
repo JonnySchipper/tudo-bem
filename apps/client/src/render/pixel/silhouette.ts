@@ -101,3 +101,30 @@ export class ShelfPacker {
     this.rowH = 0;
   }
 }
+
+/**
+ * The rim light of a sprite: a white mask (alpha only) of the pixels on its edge that face the sun, 1 px wide plus a fainter second px just inside,
+ * so the lit side of a trunk, a roof line or a lamp gets a warm edge at golden hour. `side` is where the light comes from (`l` = from the left,
+ * the afternoon sun; `r` = from the right, the morning sun). The top edge catches some light from either side.
+ */
+export function buildRim(img: RgbaImage, side: 'l' | 'r'): RgbaImage {
+  const { w, h } = img;
+  const dx = side === 'l' ? -1 : 1;
+  const a = (x: number, y: number) => (x < 0 || y < 0 || x >= w || y >= h ? 0 : img.data[(y * w + x) * 4 + 3] / 255);
+  const out = new Uint8ClampedArray(w * h * 4);
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const here = a(x, y);
+      if (here < 0.5) continue;
+      let v = 0;
+      if (a(x + dx, y) < 0.5) v = 1;
+      else if (a(x + 2 * dx, y) < 0.5) v = 0.38;
+      if (a(x, y - 1) < 0.5) v = Math.max(v, 0.7);
+      else if (a(x, y - 2) < 0.5) v = Math.max(v, 0.22);
+      if (v <= 0) continue;
+      const i = (y * w + x) * 4;
+      out[i] = out[i + 1] = out[i + 2] = 255;
+      out[i + 3] = Math.round(v * 255);
+    }
+  return { w, h, data: out };
+}

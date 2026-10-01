@@ -83,16 +83,23 @@ export interface ShadowLook {
   bearing: number;
 }
 
-/** Shadow tint at noon and in the golden hour (multiply colours: the shadowed ground keeps its hue and loses light, shifting cool). */
-const TINT_NOON: Rgb3 = { r: 0x86, g: 0x92, b: 0xc4 };
-const TINT_GOLD: Rgb3 = { r: 0x6c, g: 0x6e, b: 0xb4 };
-const TINT_DAWN: Rgb3 = { r: 0x7c, g: 0x78, b: 0xb8 };
+/**
+ * What a shadowed patch of ground should look like AFTER the grade, as a multiplier on the ground's own colour: cool and a little violet, never
+ * grey. (The stamp is a multiply, so `tint = final / grade`: under the orange golden-hour grade the stamp has to be bluer than the final shadow.)
+ */
+const FINAL_NOON: Rgb3 = { r: 0x84, g: 0x90, b: 0xd2 };
+const FINAL_GOLD: Rgb3 = { r: 0x5c, g: 0x64, b: 0xb0 };
+const FINAL_DAWN: Rgb3 = { r: 0x78, g: 0x6c, b: 0xb6 };
 
 const toInt = (c: Rgb3) => (Math.round(c.r) << 16) | (Math.round(c.g) << 8) | Math.round(c.b);
+const ch = (c: Rgb3, k: 'r' | 'g' | 'b') => c[k];
 const mix3 = (a: Rgb3, b: Rgb3, t: number): Rgb3 => ({ r: lerp(a.r, b.r, t), g: lerp(a.g, b.g, t), b: lerp(a.b, b.b, t) });
 
-/** The shadow of the sun at game hour `hour` under a weather with `sun` direct light left. */
-export function shadowLook(hour: number, sun = 1): ShadowLook {
+/**
+ * The shadow of the sun at game hour `hour` under a weather with `sun` direct light left. `grade` is the multiply grade of the moment
+ * (0..255 per channel): the stamp's tint divides it out so the shadow stays blue under a gold grade.
+ */
+export function shadowLook(hour: number, sun = 1, grade: [number, number, number] = [255, 255, 255]): ShadowLook {
   const s = sunAt(hour);
   const length = shadowLength(s.elevation);
   const b = rad(s.bearing);
@@ -100,7 +107,8 @@ export function shadowLook(hour: number, sun = 1): ShadowLook {
   // a lower sun = redder light = the shadows turn more violet; the dawn leans pink-violet, the evening gold-violet
   const low = 1 - smooth(clamp01((s.elevation - 8) / 30));
   const morning = s.u !== null && s.u < 0.5;
-  const tint = mix3(TINT_NOON, morning ? TINT_DAWN : TINT_GOLD, low);
+  const fin = mix3(FINAL_NOON, morning ? FINAL_DAWN : FINAL_GOLD, low);
+  const tint: Rgb3 = { r: Math.min(255, (ch(fin, 'r') * 255) / Math.max(40, grade[0])), g: Math.min(255, (ch(fin, 'g') * 255) / Math.max(40, grade[1])), b: Math.min(255, (ch(fin, 'b') * 255) / Math.max(40, grade[2])) };
   return {
     lx: length * Math.sin(b),
     ly: length * Math.cos(b),
@@ -225,4 +233,28 @@ export const shadowRows = (h: number, ay: number): number => Math.max(0, Math.mi
 export function rampAlpha(z: number, zMax: number, tip = 0.55): number {
   if (zMax <= 0) return 1;
   return lerp(1, tip, smooth(clamp01(z / zMax)));
+}
+
+// ------------------------------------------------------------------ rim light
+
+export interface RimSpec {
+  /** where the sun is: `l` = the left of the screen (afternoon), `r` = the right (morning) */
+  side: 'l' | 'r';
+  /** 0..1 alpha of the warm edge */
+  alpha: number;
+  /** ADD tint 0xRRGGBB: peach-pink at dawn, orange at dusk */
+  tint: number;
+}
+
+const RIM_DAWN = 0xffb7a4;
+const RIM_DUSK = 0xffa05a;
+
+/**
+ * The warm edge light on whatever faces the sun, strongest when the sun is low (the first and last hours of light), gone by the time it is high
+ * and under a grey sky: it follows the shadow's strength, so garoa and chuva have none.
+ */
+export function rimLook(s: Pick<ShadowLook, 'lx' | 'alpha' | 'elevation' | 'bearing'>): RimSpec {
+  const low = 1 - smooth(clamp01((s.elevation - 6) / 34));
+  const morning = s.bearing < 0;
+  return { side: s.lx > 0 ? 'l' : 'r', alpha: 0.9 * low * s.alpha, tint: morning ? RIM_DAWN : RIM_DUSK };
 }
