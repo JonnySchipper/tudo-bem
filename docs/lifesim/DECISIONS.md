@@ -1123,3 +1123,31 @@ Branch `lifesim/v5-lighting`. Before/after shots in `docs/lifesim/shots/v5/` (`b
 ### Known weaknesses
 
 Characters have no rim light and one silhouette per sheet (the shadow does not follow the walk cycle); shadows do not fall on other props or darken characters standing in them; a building's shadow is capped at 66 px so it never reaches the far side of the street; the shadow is bilinear-soft while the art is crisp (a deliberate choice, but it is the one non-pixel edge in the world); nublado is cooler, not greyer (the grade is near white at 15:00, so desaturation has little to bite on); the wet tint is a multiply on top of the weather grade, so it is kept mild; the south-row roofs cast nothing (they are top-down art).
+
+## Visual pass V3 (buildings and interiors)
+
+Scope: critique section C. Art keys and interior decoration only; no tile, collision, id, door, seat or interact changed.
+
+### Roofs of the north row (`custom/v3.mjs`, `custom/vila.mjs`)
+- The gray "picture frame" was the pack's one-floor townhouse terrace (a top-down deck panel with one AC blob) kept as the top 40 rows of the amarelo, azul and west (verde) fronts. `reroof` erases rows 0-44 of those fronts and paints a real top: a hipped clay-tile roof with ridge cap and chimney (azul), a laje behind a pastel parapet with caixa d'água, antenna, dish, laundry and pots peeking over the coping (amarelo), and a casinha da laje with slab roof, door, grilled window and a brown tank (west house). The cornice and ground floor are still the pack's.
+- Every north front also gets `dressUp` details: window grilles, striped toldos over windows, an outdoor AC condenser, wall lanterns, mailboxes, potted plants on the step, open louvered shutters (sobrado verde). Doors and portals were not touched.
+- Contact with the ground: `soleira` darkens the last three rows of each facade (padaria, edifício, academia and the houses) in steps, so the walls look planted; V5 adds cast shadows on top of these clean bases.
+
+### South row (`custom/fundos.mjs`, keys `fundos/f1..f9`, `_lit` overlays)
+- Replaces the nine top-down `telhados/r*` (still generated; art4.test.mjs checks them) with rear facades in the same three-quarter view as the north row: roof strip on top (clay, slate, fibro with bricks, or a laje deck with parapets), a rear wall below with back doors (metal, wood, garage roll-up), windows with grilles, cobogó, shutters, AC condensers, drainpipes, meter boxes, washing lines on the wall; two slots (f3, f7) are a high garden wall with a gate under a tree crown (ipê roxo, mangueira with bougainvillea spilling over). Windows are reported for the night overlay like the north row.
+- `rooms.ts`: only the nine `front('telhado_N', ...)` art strings changed (same x, y, w, h, blocks).
+- Known: the dual-grid terrain draws a half tile of calçada below the last map row (V1's edge).
+
+### Interiors (`custom/frame3.mjs`, `WorldScene.buildShell`)
+- Interiors were a room in a void. `buildShell` (called at the end of `buildWalls`) adds the east wall strip (the west strip mirrored), the south wall (cap + exterior face with plinth, corners closed) and a quiet 64 px night sidewalk (`walls/exterior`) tiled 22 tiles around, below the terrain. All three keys are optional (missing = nothing drawn). Camera bounds are unchanged; the shell extends past them.
+
+### Academia (`custom/gym3.mjs`, `floors.mjs`)
+- Floor `j` is now interlocking EVA puzzle mats (32 px mats in two close blues, jigsaw tab on every seam, foam dots, lit/shaded rims); the whole room is `j` (the checker + parquet mix is gone).
+- `props/tatame` (decal) is a green mat block with a red border and white boundary line. The wall `mural_s` (only the academia uses it) became a gallery: bunting, a Brazil flag, two group photos and a trophy shelf. New non-blocking, non-seat decor: `banco_gym` (5,8) and `bebedouro` (10,8). Prop ids, seats and interacts of the roll and schedules are unchanged.
+
+### Tools
+- `scripts/sprite-peek.mjs` (upscaled atlas sprites), `scripts/v3-shots.mjs` (shots for this pass: `docs/lifesim/shots/v3/after`, before = `v3/before`, copied from the audit).
+
+### Known weaknesses
+- The padaria and kitnet interiors only got the shell; the kitnet parquet and padaria tile are unchanged. No window variety change on the padaria / edifício / academia fronts beyond the soleira.
+- The exterior sidewalk still has a visible wave at zoom 3; a calmer or lamp-lit street is possible.

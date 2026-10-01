@@ -5,6 +5,7 @@
 // West strip (1 tile wide left of column 0): `walls/west_<style>` and `_b` (bottom end), 16 x 16 plus 4 columns of floor shadow on the right.
 import { blank, put, fillRect, line, mix, h2, C, K, NAVY } from './paint.mjs';
 import { drawText5, width5, drawText3, width3 } from './font5.mjs';
+import { galeria } from './gym3.mjs';
 
 export const STYLES = {
   praca: { face: '#e2d3b8', faceLo: '#d3c3a6', faceHi: '#eee2cc', cap: '#f2ece0', capLo: '#cfc4b2', trim: '#8f7a62', base: '#9c8b74', block: false },
@@ -36,7 +37,7 @@ function blocks(img, y0, y1, s, base, lo, hi) {
   }
 }
 
-function northTile(style, part) {
+export function northTile(style, part) {
   const s = STYLES[style];
   const img = blank(16, 52);
   fillRect(img, 0, 0, 16, 48, s.face);
@@ -82,7 +83,7 @@ function northTile(style, part) {
 }
 
 /** West strip cell: seen from above, the wall shows its cap (light) and a darker inner side face; floor shadow on the right (x 16..19). */
-function westTile(style, bottom) {
+export function westTile(style, bottom) {
   const s = STYLES[style];
   const img = blank(20, 16);
   const sideFace = mix(s.face, s.trim, 0.16);
@@ -463,7 +464,7 @@ const DECOR = {
   relogio, tv, cobogo, foto: () => foto(32), placa,
   poster_sp: () => poster('sp'), poster_oss: () => poster('oss'),
   toldo: () => toldo(64),
-  mural: () => mural(112, 'SAMPA'), mural_s: () => mural(64, null),
+  mural: () => mural(112, 'SAMPA'), mural_s: () => galeria(),
   predio: () => predio(48), metro: metroSlim, faixas: faixasWall,
 };
 
