@@ -35,28 +35,36 @@ export function calm(fills, gain, lift = 0) {
 export const CALM = { ladrilho: 0.62, taco: 0.62, tatame: 0.62 };
 
 // ------------------------------------------------------------------ t: tijolo
-const BRICK = [K.te2, K.te3, K.te4, K.or6, K.te1];
-const MORTAR = '#7d5a4c';
-const MORTAR_HI = '#8f6a58';
+/**
+ * V1 pass: the brick paths were saturated terracotta and shouted over the paving. Now a dusty clay: six close shades (about 25% saturation, one step
+ * apart), a lit top row per brick, a few worn pixels, and a mortar of three greys that varies from joint to joint instead of one flat line.
+ */
+const BRICK = ['#b9826c', '#b07a66', '#bd8770', '#a9735f', '#b58069', '#b27c68'];
+const BRICK_HI = ['#cb9a82', '#c4917a', '#d0a088'];
+const BRICK_WORN = '#c9a08c';
+const MORTAR = ['#8f807c', '#9a8b86', '#867773'];
 
 export function tijolo() {
   const t = tile();
-  fillRect(t, 0, 0, 16, 16, MORTAR);
-  // 4 rows of 8x4 bricks (3 px + 1 px mortar), every other row offset by 4 px: period 16 x 16
+  const pick = (a, x, y, s) => a[Math.floor(h2(x, y, s) * a.length) % a.length];
+  // mortar first: every pixel that no brick will cover gets one of three greys
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) put(t, x, y, pick(MORTAR, x, y, 21));
+  // 4 rows of 8x4 bricks (7 px + 1 px mortar, 3 px + 1 px mortar), every other row offset by 4 px: period 16 x 16
   for (let row = 0; row < 4; row++) {
     const off = (row % 2) * 4;
     for (let k = -1; k < 3; k++) {
       const x0 = k * 8 + off;
       const y0 = row * 4;
-      const col = BRICK[Math.floor(h2(k + 5, row + 3, 7) * BRICK.length)];
+      const bi = Math.floor(h2(k + 5, row + 3, 7) * BRICK.length);
+      const col = BRICK[bi];
+      const hi = BRICK_HI[bi % BRICK_HI.length];
       for (let y = 0; y < 3; y++) for (let x = 0; x < 7; x++) {
         const px = (x0 + x + 16) % 16;
-        put(t, px, y0 + y, y === 0 ? K.or5 : col);
+        let c = y === 0 ? (x < 6 ? hi : col) : col;
+        if (y > 0 && h2(px + 3, y0 + y + 11, 13) < 0.06) c = BRICK_WORN; // a worn spot
+        put(t, px, y0 + y, c);
       }
-      // lit top edge, shaded bottom edge
-      for (let x = 0; x < 7; x++) put(t, (x0 + x + 16) % 16, y0, x < 6 ? K.or5 : col);
     }
-    for (let x = 0; x < 16; x++) put(t, x, row * 4 + 3, x % 2 ? MORTAR : MORTAR_HI);
   }
   return [t];
 }

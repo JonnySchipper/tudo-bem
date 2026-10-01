@@ -44,7 +44,7 @@ function detailTiles(room: RoomDef): Set<string> {
   for (const p of room.props) for (const r of propRects(p)) mark(r);
   const sc = sceneryFor(room, has);
   for (const d of sc?.decals ?? []) {
-    if (d.key.includes('grime')) continue;
+    if (/grime|grass_|dirt_|gtuft|clover/.test(d.key)) continue; // stains and lawn dressing do not count as detail
     const sd = manifest.sprites[d.key];
     mark(d.origin === 'tl' ? { x0: d.x, y0: d.y, x1: d.x + sd.w, y1: d.y + sd.h } : spriteRect(d.x, d.y, sd));
   }

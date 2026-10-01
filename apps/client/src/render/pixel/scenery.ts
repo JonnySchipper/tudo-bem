@@ -30,8 +30,11 @@ export interface Scenery {
 }
 
 const DEPTH_MOSAIC = -5000;
+const DEPTH_PATCH = -4990;
+const DEPTH_DIRT = -4980;
 const DEPTH_GRIME = -4950;
 const DEPTH_FLOWERS = -4800;
+const DEPTH_CLOVER = -4600;
 const DEPTH_TUFT = -4400;
 
 const rnd = (x: number, y: number, seed: number) => hash2(x, y, seed) / 4294967296;
@@ -49,20 +52,21 @@ const CROSSWALKS: { x: number; y: number }[] = [
   { x: 24, y: 32 },
   { x: 38, y: 32 },
 ];
+/** The São Paulo state mosaic is 4 x 3 tiles. There are only two: they take the first free paved 4 x 3 spot of this list (north and south of the praça). */
+export const MOSAIC_TILES = { w: 4, h: 3 };
 const MOSAICS: { x: number; y: number }[] = [
-  { x: 26, y: 14 },
-  { x: 21, y: 26 },
-  { x: 27, y: 27 },
-  { x: 14, y: 12 },
-  { x: 33, y: 30 },
+  { x: 27, y: 13 },
+  { x: 29, y: 29 },
 ];
+/** The painted bus bay in front of the stop (7 x 2 tiles, in the lower half of Rua dos Ipês). */
+const BUS_BAY = { x: 33, y: 10, w: 7 };
 const MANHOLES: { x: number; y: number }[] = [
   { x: 30, y: 9 },
   { x: 9, y: 10 },
   { x: 47, y: 11 },
   { x: 19, y: 33 },
   { x: 44, y: 34 },
-  { x: 22, y: 23 },
+  { x: 26, y: 25 },
   { x: 30, y: 21 },
 ];
 
@@ -79,15 +83,21 @@ export function sceneryFor(def: RoomDef, has: (key: string) => boolean = () => t
 
   // crosswalks across both streets, aligned with the doors and the brick axis
   for (const c of CROSSWALKS) add({ key: 'decals/crosswalk', x: c.x * T, y: c.y * T, origin: 'tl', depth: DEPTH_MOSAIC });
-  const walked = (x: number, y: number) => CROSSWALKS.some((c) => y >= c.y && y < c.y + 4 && x >= c.x * T - 12 && x < (c.x + 2) * T + 12);
+  const walked = (x: number, y: number) =>
+    CROSSWALKS.some((c) => y >= c.y && y < c.y + 4 && x >= c.x * T - 12 && x < (c.x + 2) * T + 12) || (y === BUS_BAY.y && x >= BUS_BAY.x * T - 14 && x < (BUS_BAY.x + BUS_BAY.w) * T);
   // lane dashes down the middle of each street, every 32 px
   for (const s of STREETS) {
     const y = ((s.y0 + s.y1 + 1) / 2) * T - 1;
     for (let x = 4; x < def.cols * T - 10; x += 32) if (!walked(x, s.y0)) add({ key: 'decals/lane_dash', x, y, origin: 'tl', depth: DEPTH_MOSAIC });
   }
   // the painted bus lane in front of the stop
-  add({ key: 'decals/faixa_onibus', x: 33 * T, y: 10 * T, origin: 'tl', depth: DEPTH_MOSAIC + 2 });
-  for (const m of MOSAICS) add({ key: 'decals/sp_mosaic', x: m.x * T, y: m.y * T, origin: 'tl', depth: DEPTH_MOSAIC + 5 });
+  add({ key: 'decals/faixa_onibus', x: BUS_BAY.x * T, y: BUS_BAY.y * T, origin: 'tl', depth: DEPTH_MOSAIC + 2 });
+  // a mosaic only goes where its whole footprint is paving with nothing standing on it (the room data may move props around)
+  for (const m of MOSAICS) {
+    let free = true;
+    for (let dy = 0; dy < MOSAIC_TILES.h; dy++) for (let dx = 0; dx < MOSAIC_TILES.w; dx++) if (at(m.x + dx, m.y + dy) !== 'c' || occupied.has(`${m.x + dx},${m.y + dy}`)) free = false;
+    if (free) add({ key: 'decals/sp_mosaic', x: m.x * T, y: m.y * T, origin: 'tl', depth: DEPTH_MOSAIC + 5 });
+  }
   for (const m of MANHOLES) add({ key: 'decals/manhole', x: Math.round((m.x + 0.5) * T), y: Math.round((m.y + 0.5) * T) + 6, origin: 'anchor', depth: DEPTH_MOSAIC + 8 });
 
   // wildflowers on the lawns: a patch in roughly one grass tile in eight, never under a prop, never spilling off the grass
@@ -99,6 +109,7 @@ export function sceneryFor(def: RoomDef, has: (key: string) => boolean = () => t
       add({ key: `decals/flowers_${k}`, x: x * T, y: y * T, origin: 'tl', depth: DEPTH_FLOWERS });
     }
   }
+  grassDressing(def, add, at, occupied);
   // grass tufts on the paving next to the lawns, along curbs and in the joints
   for (let y = 1; y < def.rows - 1; y++) {
     for (let x = 1; x < def.cols - 1; x++) {
@@ -106,7 +117,7 @@ export function sceneryFor(def: RoomDef, has: (key: string) => boolean = () => t
       const nextToGrass = at(x - 1, y) === 'g' || at(x + 1, y) === 'g' || at(x, y - 1) === 'g' || at(x, y + 1) === 'g';
       const nextToStreet = at(x, y + 1) === 'a' || at(x, y - 1) === 'a';
       if (occupied.has(`${x},${y}`)) continue;
-      const chance = nextToGrass ? 0.32 : nextToStreet ? 0.1 : 0.02;
+      const chance = nextToGrass ? 0.2 : nextToStreet ? 0.04 : 0.01;
       if (rnd(x, y, 21) > chance) continue;
       const k = Math.floor(rnd(x, y, 22) * 2);
       add({ key: `decals/tuft_${k}`, x: Math.round(x * T + 3 + rnd(x, y, 23) * 10), y: Math.round((y + 1) * T - 1 - rnd(x, y, 24) * 3), origin: 'anchor', depth: DEPTH_TUFT });
@@ -116,7 +127,7 @@ export function sceneryFor(def: RoomDef, has: (key: string) => boolean = () => t
   for (let y = 0; y < def.rows; y++) {
     for (let x = 0; x < def.cols; x++) {
       const ch = at(x, y);
-      if ((ch !== 'c' && ch !== 'a') || rnd(x, y, 31) > 0.045) continue;
+      if (ch !== 'c' || rnd(x, y, 31) > 0.022) continue; // the asphalt has its own cracks, patches and stains in its fill tiles
       const k = Math.floor(rnd(x, y, 32) * 5);
       add({ key: `decals/grime_${k}`, x: Math.round(x * T + 8), y: Math.round(y * T + 8), origin: 'anchor', depth: DEPTH_GRIME });
     }
@@ -137,4 +148,53 @@ function wireRuns(def: RoomDef): WireRun[] {
     out.push({ x: Math.round((a.x + 0.5) * T), y: (a.y + 1) * T, keys });
   }
   return out;
+}
+
+/** Size (in tiles, w x h) of each grass patch variant, matching the art in custom/ground.mjs. */
+const PATCH_PX: Record<string, [number, number]> = { light_0: [80, 48], light_1: [64, 40], light_2: [96, 56], dark_0: [72, 44], dark_1: [56, 36], dark_2: [88, 52] };
+
+/**
+ * The life of a lawn: two or three large soft patches of lighter or darker grass (a grid of 5 x 4 tile cells, one jittered patch per cell, only where the
+ * whole patch lies on grass), a few worn dirt patches where lawns meet the paving, clover and blade tufts. All deterministic, nothing under a prop.
+ */
+function grassDressing(def: RoomDef, add: (d: Decal) => void, at: (x: number, y: number) => string | undefined, occupied: Set<string>): void {
+  const onGrass = (px0: number, py0: number, px1: number, py1: number): boolean => {
+    for (let ty = Math.floor(py0 / T); ty <= Math.floor((py1 - 1) / T); ty++) for (let tx = Math.floor(px0 / T); tx <= Math.floor((px1 - 1) / T); tx++) if (at(tx, ty) !== 'g') return false;
+    return true;
+  };
+  // large soft patches
+  for (let cy = 0; cy * 4 < def.rows; cy++) {
+    for (let cx = 0; cx * 5 < def.cols; cx++) {
+      if (rnd(cx, cy, 41) > 0.8) continue;
+      const tone = rnd(cx, cy, 42) < 0.5 ? 'light' : 'dark';
+      const k = Math.floor(rnd(cx, cy, 43) * 3);
+      const [w, h] = PATCH_PX[`${tone}_${k}`];
+      const px = Math.round((cx * 5 + 2.5 + (rnd(cx, cy, 44) - 0.5) * 3) * T);
+      const py = Math.round((cy * 4 + 2 + (rnd(cx, cy, 45) - 0.5) * 2) * T);
+      // the dithered rim may touch the curb, the body (the inner 88%) must be all grass
+      if (!onGrass(px - w * 0.44, py - h * 0.44, px + w * 0.44, py + h * 0.44)) continue;
+      add({ key: `decals/grass_${tone}_${k}`, x: px, y: py, origin: 'anchor', depth: DEPTH_PATCH });
+    }
+  }
+  // worn dirt: on the lawn side of the paving, where people cut the corner; spaced out
+  const dirt: { x: number; y: number }[] = [];
+  for (let y = 1; y < def.rows - 1; y++) {
+    for (let x = 1; x < def.cols - 2; x++) {
+      if (at(x, y) !== 'g' || at(x + 1, y) !== 'g' || occupied.has(`${x},${y}`) || occupied.has(`${x + 1},${y}`)) continue;
+      const edge = ['c', 't'].some((c) => at(x - 1, y) === c || at(x + 2, y) === c || at(x, y - 1) === c || at(x, y + 1) === c);
+      if (!edge || rnd(x, y, 51) > 0.035) continue;
+      if (dirt.some((d) => Math.abs(d.x - x) + Math.abs(d.y - y) < 6)) continue;
+      dirt.push({ x, y });
+      const k = Math.floor(rnd(x, y, 52) * 3);
+      add({ key: `decals/dirt_${k}`, x: Math.round((x + 1) * T), y: Math.round((y + 0.6) * T), origin: 'anchor', depth: DEPTH_DIRT });
+    }
+  }
+  // clover and blade tufts
+  for (let y = 0; y < def.rows; y++) {
+    for (let x = 0; x < def.cols; x++) {
+      if (at(x, y) !== 'g' || occupied.has(`${x},${y}`)) continue;
+      if (rnd(x, y, 61) < 0.07) add({ key: `decals/clover_${Math.floor(rnd(x, y, 62) * 2)}`, x: Math.round(x * T + 3 + rnd(x, y, 63) * 10), y: Math.round(y * T + 6 + rnd(x, y, 64) * 9), origin: 'anchor', depth: DEPTH_CLOVER });
+      if (rnd(x, y, 71) < 0.14) add({ key: `decals/gtuft_${Math.floor(rnd(x, y, 72) * 3)}`, x: Math.round(x * T + 3 + rnd(x, y, 73) * 10), y: Math.round(y * T + 5 + rnd(x, y, 74) * 10), origin: 'anchor', depth: DEPTH_CLOVER + 1 });
+    }
+  }
 }

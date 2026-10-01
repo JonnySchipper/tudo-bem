@@ -1,0 +1,238 @@
+{
+  "$comment": "Visual pass V1 (ground): asphalt with a few cracks/patches/stains, and the grass dressing decals (soft value patches, worn dirt, clover, tufts). Generators in custom/ground.mjs.",
+  "terrain": {
+    "a": {
+      "name": "asfalto",
+      "kind": "flat",
+      "custom": "asfalto"
+    }
+  },
+  "sprites": [
+    {
+      "key": "decals/grass_light_0",
+      "kind": "custom",
+      "custom": "grassPatch",
+      "args": {
+        "w": 80,
+        "h": 48,
+        "seed": 101,
+        "tone": "light"
+      },
+      "footprint": [
+        5,
+        3
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/grass_light_1",
+      "kind": "custom",
+      "custom": "grassPatch",
+      "args": {
+        "w": 64,
+        "h": 40,
+        "seed": 102,
+        "tone": "light"
+      },
+      "footprint": [
+        4,
+        3
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/grass_light_2",
+      "kind": "custom",
+      "custom": "grassPatch",
+      "args": {
+        "w": 96,
+        "h": 56,
+        "seed": 103,
+        "tone": "light"
+      },
+      "footprint": [
+        6,
+        4
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/grass_dark_0",
+      "kind": "custom",
+      "custom": "grassPatch",
+      "args": {
+        "w": 72,
+        "h": 44,
+        "seed": 201,
+        "tone": "dark"
+      },
+      "footprint": [
+        5,
+        3
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/grass_dark_1",
+      "kind": "custom",
+      "custom": "grassPatch",
+      "args": {
+        "w": 56,
+        "h": 36,
+        "seed": 202,
+        "tone": "dark"
+      },
+      "footprint": [
+        4,
+        3
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/grass_dark_2",
+      "kind": "custom",
+      "custom": "grassPatch",
+      "args": {
+        "w": 88,
+        "h": 52,
+        "seed": 203,
+        "tone": "dark"
+      },
+      "footprint": [
+        6,
+        4
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/dirt_0",
+      "kind": "custom",
+      "custom": "dirtPatch",
+      "args": {
+        "w": 32,
+        "h": 20,
+        "seed": 301
+      },
+      "footprint": [
+        2,
+        2
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/dirt_1",
+      "kind": "custom",
+      "custom": "dirtPatch",
+      "args": {
+        "w": 24,
+        "h": 16,
+        "seed": 302
+      },
+      "footprint": [
+        2,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/dirt_2",
+      "kind": "custom",
+      "custom": "dirtPatch",
+      "args": {
+        "w": 40,
+        "h": 22,
+        "seed": 303
+      },
+      "footprint": [
+        3,
+        2
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/clover_0",
+      "kind": "custom",
+      "custom": "clover",
+      "args": {
+        "kind": 0
+      },
+      "anchor": [
+        3,
+        5
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/clover_1",
+      "kind": "custom",
+      "custom": "clover",
+      "args": {
+        "kind": 1
+      },
+      "anchor": [
+        3,
+        5
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/gtuft_0",
+      "kind": "custom",
+      "custom": "gtuft",
+      "args": {
+        "kind": 0
+      },
+      "anchor": [
+        2,
+        3
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/gtuft_1",
+      "kind": "custom",
+      "custom": "gtuft",
+      "args": {
+        "kind": 1
+      },
+      "anchor": [
+        2,
+        3
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/gtuft_2",
+      "kind": "custom",
+      "custom": "gtuft",
+      "args": {
+        "kind": 2
+      },
+      "anchor": [
+        2,
+        3
+      ],
+      "footprint": [
+        1,
+        1
+      ],
+      "decal": true
+    }
+  ]
+}
