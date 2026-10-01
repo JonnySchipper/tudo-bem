@@ -227,4 +227,15 @@ export function reroof(img, kind, cw) {
   return img;
 }
 
+/** Open louvered shutters on both sides of a window (x, y, w, h = the pane block), in a darker green. */
+export function shutters(img, x, y, w, h, base = '#2f5f4a') {
+  for (const lx of [x - 6, x + w + 1]) {
+    rect(img, lx, y - 1, 5, h + 2, base);
+    for (let yy = y; yy < y + h; yy += 2) hline(img, lx + 1, yy, 3, mix(base, '#ffffff', 0.22));
+    vline(img, lx, y - 1, h + 2, mix(base, '#ffffff', 0.3));
+    vline(img, lx + 4, y - 1, h + 2, mix(base, '#2a2a48', 0.4));
+    box(img, lx - 1, y - 2, 7, h + 4, null, C.navy);
+  }
+}
+
 void blank; void K; void line; void outlineAround;

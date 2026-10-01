@@ -11,7 +11,7 @@ import { findGlass } from './shop.mjs';
 import { litOverlay, stackRows } from './facades.mjs';
 import { drawText5, width5 } from './font5.mjs';
 import { text3, text3Width } from './draw.mjs';
-import { reroof, grille, toldo, pot, lantern, mailbox, acWall, soleira } from './v3.mjs';
+import { reroof, grille, toldo, pot, lantern, mailbox, acWall, soleira, shutters } from './v3.mjs';
 
 const GENERIC = 'ext:ME_Theme_Sorter_16x16/4_Generic_Buildings_16x16.png';
 
@@ -128,6 +128,10 @@ function dressUp(img, key, cw) {
     pot(img, 25, 88, '#fc5c46'); pot(img, 53, 88, '#f2b22b');
   } else if (key === 'casas/sobrado_verde') {
     pot(img, 4, 88, '#fc5c46');
+    toldo(img, 17, 9, 32, '#2f8f4a', '#f5e6d3');
+    shutters(img, 66, 14, 30, 15);
+    grille(img, 83, 64, 11, 12, 3);
+    mailbox(img, 62, 56);
   }
   return img;
 }
