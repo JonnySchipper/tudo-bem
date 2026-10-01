@@ -15,6 +15,12 @@
   font-size: 0.95rem;
   color: var(--ink);
 }
+.feira-sum,
+.feira-sum b,
+.feira-receipt .txt b,
+.feira-piece .amt {
+  font-family: var(--font-body, inherit);
+}
 .feira-sum b {
   font-weight: 800;
   color: var(--terracotta, #c45c26);
@@ -44,7 +50,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-pixel, inherit);
+  font-family: var(--font-body, inherit); /* money is Nunito: the pixel font's 5 reads like $ */
   font-weight: 700;
   font-size: 0.8rem;
   color: #3a2a1a;
@@ -120,7 +126,7 @@
   border: 2px solid var(--px-ink, #573c2c);
 }
 .feira-receipt .txt b {
-  font-family: var(--font-pixel, inherit);
+  font-family: var(--font-body, inherit);
   color: var(--terracotta, #c45c26);
 }
 .feira-change {

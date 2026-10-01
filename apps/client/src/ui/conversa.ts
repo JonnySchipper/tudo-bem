@@ -137,8 +137,18 @@ function buildScoreCard(grade: ConversaGrade, payout: number, meter: ConversaMet
     h('div', { class: 'grade-line' }, copy.line.pt, en(copy.line.en, true)),
     rvLine && payout > 0 ? h('div', { class: 'payout' }, rvLine.pt) : null,
     rvLine && payout <= 0 ? h('div', { class: 'payout withheld', lang: 'pt-BR' }, rvLine.pt, en(rvLine.en, true)) : null,
-    h('div', { class: 'axes' }, ...axes),
+    // the three meters fold away on phones (Phase 10: the ended box was ~50% of a phone screen); open by default on wider screens
+    h('details', { class: 'conta-axes', ...(contaAxesOpen() ? { open: '' } : {}) }, h('summary', {}, 'Detalhes', h('small', {}, 'Details')), h('div', { class: 'axes' }, ...axes)),
   );
+}
+
+/** Whether the conta's meters start open: yes except on phone-width screens. */
+function contaAxesOpen(): boolean {
+  try {
+    return !window.matchMedia('(max-width: 640px)').matches;
+  } catch {
+    return true;
+  }
 }
 
 /** This beat of the Conversa as the dialogue box shows it: Carlos' latest line, what you said, the replies, the reply field; the conta once it ends. */
