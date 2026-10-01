@@ -751,7 +751,8 @@ body:has(.dbx) .bottombar {
   }
 
   .brand .logo,
-  .brand .room small {
+  .brand .room small,
+  .brand .room .room-inst {
     display: none;
   }
 

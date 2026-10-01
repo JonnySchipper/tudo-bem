@@ -181,7 +181,9 @@ async function sectionHud(browser, vp) {
   await pin(page, '12:00');
   await sleep(2500);
   await walk(page, 25, 16);
-  await sleep(1500);
+  await sleep(900);
+  await hudStats(page, `${vp.name} just arrived (tutorial toast, tracker peeking)`);
+  await sleep(7500);
   await snap(page, vp, 'hud_idle');
   await hudStats(page, `${vp.name} idle`);
 
