@@ -11,6 +11,7 @@ import { findGlass } from './shop.mjs';
 import { litOverlay, stackRows } from './facades.mjs';
 import { drawText5, width5 } from './font5.mjs';
 import { text3, text3Width } from './draw.mjs';
+import { reroof, grille, toldo, pot, lantern, mailbox, acWall, soleira, shutters } from './v3.mjs';
 
 const GENERIC = 'ext:ME_Theme_Sorter_16x16/4_Generic_Buildings_16x16.png';
 
@@ -99,6 +100,41 @@ const HOUSES = [
   ['casas/terraco_verde', 'B', 'verde', 6],
   ['casas/sobrado_verde', 'T', 'verde', 7],
 ];
+
+/** V3: what each house gets on top of the pack front (a real roof for the terraços, grilles, awnings, pots, lamps). */
+function dressUp(img, key, cw) {
+  if (key === 'casas/terraco_amarelo') {
+    reroof(img, { seed: 0 }, cw);
+    grille(img, 9, 63, 14, 14);
+    acWall(img, 33, 52);
+    lantern(img, 53, 66);
+    pot(img, 25, 88, '#fc5c46'); pot(img, 52, 88, '#ffe57b');
+  } else if (key === 'casas/terraco_azul') {
+    reroof(img, 'telha', cw);
+    toldo(img, 57, 56, 32, '#e63f38', '#f8f8f8');
+    lantern(img, 53, 66);
+    pot(img, 25, 88, '#ff8575'); pot(img, 53, 88, '#ffe57b');
+    mailbox(img, 26, 70);
+  } else if (key === 'casas/terraco_verde') {
+    reroof(img, 'casinha', cw);
+    grille(img, 9, 63, 14, 14);
+    lantern(img, 53, 66);
+    pot(img, 25, 88, '#ffe57b'); pot(img, 53, 88, '#fc5c46');
+  } else if (key === 'casas/sobrado_salmao') {
+    grille(img, 13, 20, 26, 18, 4);
+    toldo(img, 53, 11, 30, '#4280dd', '#f8f8f8');
+    grille(img, 9, 63, 14, 14);
+    lantern(img, 53, 66);
+    pot(img, 25, 88, '#fc5c46'); pot(img, 53, 88, '#f2b22b');
+  } else if (key === 'casas/sobrado_verde') {
+    pot(img, 4, 88, '#fc5c46');
+    toldo(img, 17, 9, 32, '#2f8f4a', '#f5e6d3');
+    shutters(img, 66, 14, 30, 15);
+    grille(img, 83, 64, 11, 12, 3);
+    mailbox(img, 62, 56);
+  }
+  return img;
+}
 
 // ------------------------------------------------------------------ party wall with a painted mural (behind the banca)
 function empena() {
@@ -225,6 +261,8 @@ export async function casas(ctx) {
   const parts = [];
   for (const [key, kind, cwName, tiles] of HOUSES) {
     const body = dress(houseFront(src, kind), COLORWAYS[cwName]);
+    dressUp(body, key, COLORWAYS[cwName]);
+    soleira(body);
     outlineAround(body);
     const w = body.w;
     const glass = findGlass(body);

@@ -23,7 +23,7 @@ const PLANT = ['#32675a', '#568d61', '#64b63b', '#9bc246'];
 const shade = (hex) => mix(hex, '#3a3a50', 0.38);
 
 /** Darkens the existing opaque pixels of a rectangle (cast shadow on the deck, down-right of objects). */
-function shadowOn(img, x, y, w, h, t = 0.3) {
+export function shadowOn(img, x, y, w, h, t = 0.3) {
   for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) {
     if (xx < 0 || yy < 0 || xx >= img.w || yy >= img.h) continue;
     const i = (yy * img.w + xx) * 4;
@@ -35,7 +35,7 @@ function shadowOn(img, x, y, w, h, t = 0.3) {
   }
 }
 
-function deckNoise(img, x0, y0, w, h, base, alt, seed, density = 0.07) {
+export function deckNoise(img, x0, y0, w, h, base, alt, seed, density = 0.07) {
   const r = rng(seed);
   for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) {
     rect(img, x, y, 1, 1, base);
@@ -44,7 +44,7 @@ function deckNoise(img, x0, y0, w, h, base, alt, seed, density = 0.07) {
 }
 
 /** Parapet rim around the roof: lit cap on the north and west, shaded inner lip. `col` = 4-step pastel ramp. */
-function parapet(img, col, w, h = H) {
+export function parapet(img, col, w, h = H) {
   rect(img, 0, 0, w, 5, col[2]);
   hline(img, 0, 0, w, col[3]);
   hline(img, 0, 3, w, col[1]);
@@ -56,7 +56,7 @@ function parapet(img, col, w, h = H) {
   }
 }
 
-function tank(img, x, y, pal = TANK) {
+export function tank(img, x, y, pal = TANK) {
   // platform, body, lid, hoops, a cast shadow on the deck
   shadowOn(img, x + 4, y + 18, 18, 6, 0.32);
   rect(img, x + 1, y + 16, 15, 3, C.slate2);
@@ -71,7 +71,7 @@ function tank(img, x, y, pal = TANK) {
   dot(img, x + 9, y + 4, '#f0efde');
 }
 
-function dish(img, x, y) {
+export function dish(img, x, y) {
   shadowOn(img, x + 3, y + 8, 9, 4, 0.3);
   line(img, x + 5, y + 10, x + 6, y + 6, C.slate);
   shape(img, ell(x + 5.5, y + 4.5, 5.6, 4.4), [x + 5.5, y + 4.5, 5.6, 4.4], [C.lav2, C.lav3, C.lav3, C.white], { flat: true });
@@ -81,7 +81,7 @@ function dish(img, x, y) {
   dot(img, x + 10, y - 1, C.r2);
 }
 
-function antenna(img, x, y, hgt = 18) {
+export function antenna(img, x, y, hgt = 18) {
   shadowOn(img, x + 1, y + hgt, 7, 2, 0.3);
   vline(img, x, y, hgt, C.navy2);
   vline(img, x + 1, y + 2, hgt - 2, C.mist);
@@ -93,7 +93,7 @@ function antenna(img, x, y, hgt = 18) {
   }
 }
 
-function laundry(img, x0, x1, y, seed) {
+export function laundry(img, x0, x1, y, seed) {
   const r = rng(seed);
   const cols = ['#f8f8f8', '#fc5c46', '#4280dd', '#f2b22b', '#ffa0a0', '#64b63b', '#f5e6d3'];
   for (const x of [x0, x1]) { vline(img, x, y - 4, 7, C.navy2); dot(img, x + 1, y + 3, C.navy); }
@@ -111,7 +111,7 @@ function laundry(img, x0, x1, y, seed) {
   }
 }
 
-function plant(img, x, y, big = false) {
+export function plant(img, x, y, big = false) {
   const r = big ? 4 : 3;
   shadowOn(img, x + 3, y + 3, 7, 3, 0.3);
   rect(img, x + 1, y + r + 1, 5, 4, K.te2);
@@ -122,7 +122,7 @@ function plant(img, x, y, big = false) {
   if (big) { dot(img, x + 2, y + 1, C.r2); dot(img, x + 5, y + 2, C.y2); }
 }
 
-function acUnit(img, x, y) {
+export function acUnit(img, x, y) {
   shadowOn(img, x + 2, y + 6, 11, 3, 0.3);
   rect(img, x, y, 11, 7, C.lav3);
   hline(img, x, y, 11, C.white);
@@ -139,7 +139,7 @@ function box(img, x, y, w, h, fill, outline) {
   vline(img, x, y, h, outline); vline(img, x + w - 1, y, h, outline);
 }
 
-function bricks(img, x, y, w, h) {
+export function bricks(img, x, y, w, h) {
   // a stack of weight-bricks / a cement block on a roof
   shadowOn(img, x + 2, y + h, w, 2, 0.3);
   rect(img, x, y, w, h, '#b18a74');
