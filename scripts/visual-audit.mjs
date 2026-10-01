@@ -6,7 +6,7 @@
  *   PORT=8810 TB_TEST_CLOCK_CONTROL=1 TB_TEST_OFFER=carlos_cafe_pra_nanda TB_TEST_ROLL=1 pnpm start     # a pinned server
  *   BASE_URL=http://localhost:8810 node scripts/visual-audit.mjs [--only=map,areas,interiors,ui,crowd,sheets]
  *
- * Output: docs/lifesim/shots/audit/ (override with SHOTS_DIR), names `<viewport>_<area>_<time>[_<weather>].png`, viewports 1280x800 and 390x844 (marked ★ in the brief).
+ * Output: docs/lifesim/shots/audit2/ (override with SHOTS_DIR), names `<viewport>_<area>_<time>[_<weather>].png`, viewports 1280x800 and 390x844 (marked ★ in the brief).
  * Every scene pins both clocks: the server's (`POST /__test/clock`, so the NPC schedules and the feira vendors match) and the page's (`__tb.setClock`,
  * sky + weather). Fixed cameras come from `renderer.setShot('map' | 'cam:<tileX>,<tileY>,<zoom>')` (the `?shot=` modes). Blank frames are retried.
  * Reuses the helpers of lifesim-shots.mjs / readme-shots.mjs / e2e-feira.mjs (login flow, `openNpc`, `requirePinnedClock`).
@@ -23,7 +23,7 @@ import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
 
 const argv = Object.fromEntries(process.argv.slice(2).filter((a) => a.startsWith('--')).map((a) => a.slice(2).split('=')));
 const BASE = process.env.BASE_URL ?? 'http://localhost:8810';
-const OUT = process.env.SHOTS_DIR ?? path.join('docs', 'lifesim', 'shots', 'audit');
+const OUT = process.env.SHOTS_DIR ?? path.join('docs', 'lifesim', 'shots', 'audit2');
 const ONLY = argv.only ? argv.only.split(',') : ['map', 'areas', 'interiors', 'ui', 'crowd', 'sheets'];
 const CHROME = findChrome();
 assert(CHROME, 'Chrome/Chromium not found: set CHROME_PATH');
@@ -31,6 +31,8 @@ fs.mkdirSync(OUT, { recursive: true });
 
 const DESKTOP = { name: '1280x800', width: 1280, height: 800 };
 const PHONE = { name: '390x844', width: 390, height: 844, touch: true };
+const LAND = { name: '844x390', width: 844, height: 390, touch: true, land: true };
+const LAND_SET = new Set(['ui_hud_idle_praca', 'ui_dialogue_carlos_conversa', 'ui_dialogue_carlos_pedido']);
 const made = [];
 const missed = [];
 
@@ -66,20 +68,41 @@ async function setClean(page, on) {
 /** Screenshot to OUT/<vp>_<name>.png; `clean` hides the HUD/DOM chrome so only the world shows. Retries a blank or near-uniform frame. */
 async function snap(page, vp, name, { clean = false, only = null } = {}) {
   if (only && !only.includes(vp.name)) return;
+  if (vp.land && !LAND_SET.has(name)) return;
   if (clean) await setClean(page, true);
+  const file = `${vp.name}_${name}.png`;
+  // a blank frame is a failure, never a shot: when the world is up the WebGL canvas itself is sampled too; retry, then stop the run
   let buf;
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; ; i++) {
     buf = await page.screenshot();
     const st = (await sharp(buf).greyscale().stats()).channels[0];
-    if (st.mean > 6 && st.stdev > 5) break;
-    console.log(`    (blank frame for ${name}, retrying)`);
-    await sleep(1500);
+    let ok = st.mean > 6 && st.stdev > 5 && buf.length > 15_000;
+    let note = `mean ${st.mean.toFixed(1)}, stdev ${st.stdev.toFixed(1)}, ${buf.length} bytes`;
+    const canvas = await page.evaluate(() => { const c = document.querySelector('#world canvas, canvas'); return !!(window.__tb?.game?.room && c && c.offsetWidth > 50); }).catch(() => false);
+    if (ok && canvas) {
+      const cb = await (await page.$('#world canvas, canvas')).screenshot();
+      const cs = (await sharp(cb).greyscale().stats()).channels[0];
+      ok = cs.mean > 10 && cs.stdev > 10;
+      note += `; canvas mean ${cs.mean.toFixed(1)}, stdev ${cs.stdev.toFixed(1)}`;
+    }
+    if (ok) break;
+    console.error(`    BLANK frame for ${file} (${note})`);
+    if (i >= 3) { if (clean) await setClean(page, false); throw new Error(`blank frame in ${file}`); }
+    await sleep(2000);
   }
   if (clean) await setClean(page, false);
-  const file = `${vp.name}_${name}.png`;
   fs.writeFileSync(path.join(OUT, file), buf);
   made.push(file);
   console.log('  ·', file);
+}
+
+/** Press a HUD button: on the phone the actions live in the burger drawer (and Ajustes items behind the gear), on desktop only the gear holds the menu items. */
+async function press(page, vp, id, { gear = false } = {}) {
+  if (vp.touch) {
+    if (!(await page.evaluate(() => document.getElementById('hud-actions')?.classList.contains('open')))) { await page.click('#btn-burger'); await sleep(500); }
+  }
+  if (gear && !vp.touch && !(await page.evaluate(() => document.getElementById('hud-menu')?.parentElement?.classList.contains('open')))) { await page.click('#btn-menu'); await sleep(400); }
+  await page.click(id);
 }
 
 // ---------------------------------------------------------------- login
@@ -227,6 +250,7 @@ const PHONE_UI = new Set(['title_enter', 'title_hero', 'signin_card', 'signup_ca
 async function sectionUi(browser, vp) {
   const { ctx, page } = await newPage(browser, vp);
   const ui = async (name, opts) => {
+    if (vp.land) return snap(page, vp, `ui_${name}`, opts);
     if (vp.touch && !PHONE_UI.has(name)) return;
     await snap(page, vp, `ui_${name}`, opts);
   };
@@ -234,7 +258,7 @@ async function sectionUi(browser, vp) {
   await boot(page, vp, { shots: true });
   const close = async () => {
     await page.keyboard.press('Escape');
-    await page.evaluate(() => document.querySelectorAll('[data-modal] .close, #dialogue-box .dbx-close').forEach((b) => b.click()));
+    await page.evaluate(() => { document.querySelectorAll('[data-modal] .close, #dialogue-box .dbx-close').forEach((b) => b.click()); document.querySelector('.hud-scrim.open')?.click(); });
     await sleep(500);
   };
   await pin(page, '12:00');
@@ -254,23 +278,22 @@ async function sectionUi(browser, vp) {
   await close();
 
   // map panel, credits
-  await page.click('#btn-map');
+  await press(page, vp, '#btn-map');
   await sleep(1200);
   await ui('map_panel');
   await close();
-  await page.click('#btn-menu').catch(() => page.click('#btn-burger'));
-  await page.click('#btn-credits');
+  await press(page, vp, '#btn-credits', { gear: true });
   await page.waitForSelector('[data-modal="credits"] .credits-panel', { timeout: 5000 });
   await sleep(500);
   await ui('credits');
   await close();
 
   // journal (welcome chain) and Caderno
-  await page.click('#btn-recados');
+  await press(page, vp, '#btn-recados');
   await sleep(900);
   await ui('journal_welcome');
   await close();
-  await page.click('#btn-caderno');
+  await press(page, vp, '#btn-caderno');
   await sleep(900);
   await ui('caderno');
   await close();
@@ -320,7 +343,7 @@ async function sectionUi(browser, vp) {
     await sleep(1200);
     await ui('recado_offer');
     await page.click('#dialogue-box [data-chip="0"]');
-    await page.waitForSelector('#recado-tracker [data-recado="carlos_cafe_pra_nanda"]', { timeout: 8000 }).catch(() => missed.push('tracker mid-recado: recado did not start'));
+    await page.waitForSelector('#recado-tracker [data-recado="carlos_cafe_pra_nanda"]', { state: 'attached', timeout: 8000 }).catch(() => missed.push('tracker mid-recado: recado did not start'));
     await sleep(2200);
     await ui('tracker_mid_recado');
   } else {
@@ -352,7 +375,7 @@ async function sectionUi(browser, vp) {
     await interact(page, { portal: 'praca_kitnet' });
     await waitRoom(page, 'kitnet');
     await sleep(2500);
-    await page.click('#btn-decor');
+    await press(page, vp, '#btn-decor');
     await page.waitForSelector('.decor', { timeout: 5000 });
     await sleep(900);
     await ui('kitnet_decorate_panel');
@@ -428,10 +451,11 @@ function sheets() {
 await requirePinnedClock(BASE, { min: 0, max: 1439, target: 12 * 60, label: 'any hour (the audit pins each scene itself)' });
 const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });
 try {
-  const vps = argv.vp ? [argv.vp === 'phone' ? PHONE : DESKTOP] : [DESKTOP, PHONE];
+  const vps = argv.vp ? [argv.vp === 'land' ? LAND : argv.vp === 'phone' ? PHONE : DESKTOP] : [DESKTOP, PHONE, LAND];
   for (const vp of vps) {
     console.log(`\n== ${vp.name}`);
     if (ONLY.includes('ui')) await sectionUi(browser, vp);
+    if (vp.land) continue;
     if (ONLY.includes('map')) await sectionMap(browser, vp);
     if (ONLY.includes('areas')) await sectionAreas(browser, vp);
     if (ONLY.includes('interiors')) await sectionInteriors(browser, vp);
