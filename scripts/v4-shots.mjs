@@ -142,7 +142,7 @@ async function boot(page, vp, { name = 'Jonny', shots = false, enter = true } = 
   await page.fill('#intro-email', `v4+${vp.name}${Date.now().toString(36)}@exemplo.com`);
   await page.fill('#intro-password', PW);
   await page.click('#intro-submit');
-  await page.waitForSelector('#avatar-name', { timeout: 15_000 });
+  await page.waitForSelector('#avatar-name', { timeout: 15_000 }).catch(async (e) => { await snap(page, vp, 'debug_no_creator'); throw e; });
   await page.fill('#avatar-name', name);
   await page.click('button:has-text("ele (he)")');
   await page.evaluate(() => document.querySelectorAll('.onboarding, .onboarding *').forEach((el) => (el.scrollTop = 0)));

@@ -112,7 +112,7 @@ export function buildHud(actions: HudActions) {
     game.solo ? h('span', { class: 'hud-note', id: 'solo-pill', title: 'Prévia estática: o mundo roda no seu navegador. Multiplayer precisa do servidor. / Static preview — the world runs in your browser; multiplayer needs the server build.' }, 'Modo solo') : null,
   );
   const gearWrap = h('div', { class: 'hud-gear-wrap' }, gear, menu);
-  const drawerPlate = h('span', { class: 'hud-drawer-head' }, h('span', { class: 'hud-verde', title: 'Verde: you see English under Portuguese' }, icon('verde', 16), 'Verde'), h('span', { class: 'hud-drawer-hint' }, 'Menu · Menu'));
+  const drawerPlate = h('span', { class: 'hud-drawer-head' }, h('span', { class: 'hud-verde', title: 'Verde: you see English under Portuguese' }, icon('verde', 16), 'Verde'), h('span', { class: 'hud-drawer-hint' }, 'Menu'));
   const actionsNav = h(
     'nav',
     { class: 'hud-actions hud-slab', id: 'hud-actions', 'aria-label': 'Menu do jogo' },
@@ -185,6 +185,7 @@ export function buildHud(actions: HudActions) {
 
   // ---- bottom bar
   const input = h('input', { type: 'text', maxLength: MAX_CHAT_LEN, placeholder: 'Diga oi! (Say hi — Portuguese or English)', 'aria-label': 'Chat', id: 'chat-input' });
+const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.placeholder = phMq.matches ? 'Diga oi! (Say hi)' : 'Diga oi! (Say hi — Portuguese or English)');  setPh();  phMq.addEventListener('change', setPh);
   const hint = h('span', { class: 'hint' }, 'Enter ↵');
   const send = () => {
     const text = input.value.trim();
