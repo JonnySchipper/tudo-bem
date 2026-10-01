@@ -63,6 +63,10 @@
     {"key": "feira/balanca", "kind": "derive", "fn": "balancaPrato", "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": {"kx": 0.4, "ky": 0.22}},
     {"key": "feira/carrinho_a", "sheet": "ext:ME_Theme_Sorter_16x16/10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Fruit_Flowers_Cart_2.png", "prep": ["hardAlpha"], "trim": true, "footprint": [3, 1], "shadow": "fx/shadow_48", "cast": {"kx": 0.45, "ky": 0.22}},
     {"key": "feira/carrinho_b", "sheet": "ext:ME_Theme_Sorter_16x16/10_Vehicles_Singles_16x16/ME_Singles_Vehicles_16x16_Fruit_Flowers_Cart_4.png", "prep": ["hardAlpha"], "trim": true, "footprint": [3, 1], "shadow": "fx/shadow_48", "cast": {"kx": 0.45, "ky": 0.22}},
+    {"key": "props/topiaria_cao", "sheet": "ext:ME_Theme_Sorter_16x16/17_Garden_Singles_16x16/ME_Singles_Garden_16x16_Grass_Statue_5.png", "prep": ["hardAlpha"], "trim": true, "footprint": [2, 1], "shadow": "fx/shadow_32", "cast": {"kx": 0.5, "ky": 0.25}},
+    {"key": "props/topiaria_urso", "sheet": "ext:ME_Theme_Sorter_16x16/17_Garden_Singles_16x16/ME_Singles_Garden_16x16_Grass_Statue_7.png", "prep": ["hardAlpha"], "trim": true, "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": {"kx": 0.5, "ky": 0.25}},
+    {"key": "props/vaso_topiaria_a", "sheet": "ext:ME_Theme_Sorter_16x16/17_Garden_Singles_16x16/ME_Singles_Garden_16x16_Bush_Potted_6.png", "prep": ["hardAlpha"], "trim": true, "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": {"kx": 0.5, "ky": 0.25}},
+    {"key": "props/vaso_topiaria_b", "sheet": "ext:ME_Theme_Sorter_16x16/17_Garden_Singles_16x16/ME_Singles_Garden_16x16_Bush_Potted_8.png", "prep": ["hardAlpha"], "trim": true, "footprint": [1, 1], "shadow": "fx/shadow_16", "cast": {"kx": 0.5, "ky": 0.25}},
     {"key": "props/arvore_rua", "kind": "tree", "sheet": "ext:ME_Theme_Sorter_16x16/3_City_Props_Singles_16x16/ME_Singles_City_Props_16x16_Tree_13.png", "rect": [3, 0, 42, 64], "cutY": 38, "baseY": 62, "footprint": [2, 1], "shadow": "fx/shadow_32", "cast": {"kx": 0.5, "ky": 0.22}}
   ]
 }

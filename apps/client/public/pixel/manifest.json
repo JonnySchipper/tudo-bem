@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 1024,
    "h": 2048,
-   "frames": 565
+   "frames": 573
   }
  },
  "terrain": {
@@ -5549,6 +5549,94 @@
     "w": 78,
     "h": 17,
     "ax": 24,
+    "ay": 1
+   }
+  },
+  "props/topiaria_cao": {
+   "atlas": "outdoor",
+   "frame": "props/topiaria_cao",
+   "w": 38,
+   "h": 35,
+   "ax": 19,
+   "ay": 35,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_32",
+   "cast": {
+    "frame": "props/topiaria_cao#cast",
+    "w": 58,
+    "h": 12,
+    "ax": 19,
+    "ay": 1
+   }
+  },
+  "props/topiaria_urso": {
+   "atlas": "outdoor",
+   "frame": "props/topiaria_urso",
+   "w": 22,
+   "h": 26,
+   "ax": 11,
+   "ay": 26,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/topiaria_urso#cast",
+    "w": 37,
+    "h": 10,
+    "ax": 11,
+    "ay": 1
+   }
+  },
+  "props/vaso_topiaria_a": {
+   "atlas": "outdoor",
+   "frame": "props/vaso_topiaria_a",
+   "w": 16,
+   "h": 37,
+   "ax": 8,
+   "ay": 37,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/vaso_topiaria_a#cast",
+    "w": 37,
+    "h": 13,
+    "ax": 8,
+    "ay": 1
+   }
+  },
+  "props/vaso_topiaria_b": {
+   "atlas": "outdoor",
+   "frame": "props/vaso_topiaria_b",
+   "w": 16,
+   "h": 48,
+   "ax": 8,
+   "ay": 48,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16",
+   "cast": {
+    "frame": "props/vaso_topiaria_b#cast",
+    "w": 42,
+    "h": 15,
+    "ax": 8,
     "ay": 1
    }
   },

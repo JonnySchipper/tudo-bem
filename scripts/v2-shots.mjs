@@ -31,7 +31,7 @@ fs.mkdirSync(OUT, { recursive: true });
 
 const DESKTOP = { name: '1280x800', width: 1280, height: 800 };
 const PHONE = { name: '390x844', width: 390, height: 844, touch: true };
-// [name, tileX, tileY, desktop zoom, phone zoom (null: skip on the phone)]; the map is one scene
+// [name, tileX, tileY, desktop zoom, phone zoom (null: skip on the phone), phone [tileX, tileY] override]; the map is one scene
 const SCENES = [
   ['map', 'map'],
   ['praca_centre', 25, 20.5, 3, 2],
@@ -39,8 +39,8 @@ const SCENES = [
   ['praca_ne', 35.5, 18, 3, 2],
   ['praca_sw', 15.5, 25.5, 3, 2],
   ['praca_se', 35.5, 25.5, 3, 2],
-  ['feira', 48, 22, 3, 2],
-  ['west_block', 6, 21, 3, 2],
+  ['feira', 43.5, 22, 3, 2, [48, 22]],
+  ['west_block', 13.5, 21, 3, 2, [6, 21]],
   ['north_street_w', 14, 8.5, 3, 2],
   ['north_street_e', 38, 8.5, 3, 2],
   ['south_street_w', 14, 31.5, 3, null],
@@ -78,7 +78,8 @@ async function run(browser, vp, hour) {
     else {
       const z = vp.touch ? s[4] : s[3];
       if (!z) continue;
-      spec = `cam:${s[1]},${s[2]},${z}`;
+      const [cx, cy] = vp.touch && s[5] ? s[5] : [s[1], s[2]];
+      spec = `cam:${cx},${cy},${z}`;
     }
     await page.evaluate((c) => window.__tb.renderer.setShot(c), spec);
     await sleep(1800);

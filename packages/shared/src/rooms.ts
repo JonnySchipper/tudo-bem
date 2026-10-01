@@ -200,7 +200,7 @@ function vilaIpeFloor(): string[] {
   // east lot: the feira livre. V2: it is a closed street now, so the ground is asphalt inside the fence (a ring of grass under the fence line
   // itself) and the gate stands on the brick bar of the praça
   paint('g', 41, 14, 55, 29);
-  paint('a', 42, 15, 54, 28);
+  paint('a', 41, 14, 55, 29);
   paint('t', 41, 21, 41, 22);
   // brick cross into the fountain (inlaid in the calçada): the N-S axis runs across both sidewalks, the E-W bar through the fountain
   paint('t', 24, 6, 25, 7);
@@ -410,6 +410,13 @@ const vilaIpe: RoomDef = {
     P('lixeira_o', 'lixeira', 7, 26),
     P('flor_o2', 'sebe', 1, 28, { w: 2, art: 'props/flor_rosa' }),
     bench('banco_oeste', 1, 25),
+    // V2: a clipped dog (topiary) in the dog corner, a clipped bear on the north-west lawn, a topiary pot by the Edifício's door
+    cen('topiaria_cao', 'props/topiaria_cao', 1, 26, 2, 1, { blocks: true }),
+    cen('topiaria_urso', 'props/topiaria_urso', 11, 19, 1, 1, { blocks: true }),
+    cen('revisteiro', 'props/revisteiro', 23, 7, 1, 1, { blocks: true, label: { pt: 'Revisteiro da banca', en: 'Newsstand magazine rack' } }),
+    cen('bici_2', 'props/bicicletario', 36, 29, 1, 1, { blocks: true }),
+    cen('bici_3', 'props/bicicletario', 45, 7, 1, 1, { blocks: true }),
+    cen('vaso_topiaria_1', 'props/vaso_topiaria_a', 23, 6, 1, 1, { blocks: true }),
     // ---- east: the feira livre lot (x41-55, y14-29), fenced, with a gate on the brick bar (x41, y21-22). Open 06:00-13:00 (`feira.ts`);
     // outside those hours the stalls show folded. V2: a closed street (asphalt) with two rows of stalls facing south. The vendor stands in
     // FRONT of the stall (x + 1, y + 2), facing the aisle, and customers talk to them from the next tile (x + 1, y + 3).
@@ -444,8 +451,8 @@ const vilaIpe: RoomDef = {
     cen('bandeirinhas_1', 'props/bandeirinhas_b', 42, 21, 6, 1),
     cen('bandeirinhas_2', 'props/bandeirinhas_b', 48, 21, 6, 1),
     cen('bandeirinhas_3', 'props/bandeirinhas_a', 46, 23, 4, 1),
-    P('ipe_lote_1', 'ipe', 53, 28, { blocks: false }),
-    P('ipe_lote_2', 'ipe', 42, 16, { blocks: false }),
+    P('ipe_lote_1', 'arvore', 53, 28, { w: 2, art: 'props/arvore_rua' }),
+    P('ipe_lote_2', 'arvore', 42, 15, { w: 2, art: 'props/arvore_rua' }),
     cen('flor_lote', 'props/flor_mista_b', 46, 28, 3, 1),
     // ---- the Hortifrúti corner at the banca: Tia Lu's crates, open at every hour (D12)
     P('hortifruti', 'hortifruti', 18, 7, { art: 'feira/caixotes', action: 'feira_stall', vendor: 'banca', interact: { x: 19, y: 7 }, label: { pt: 'Hortifrúti da banca', en: 'Greengrocer at the newsstand' } }),
@@ -461,7 +468,7 @@ const vilaIpe: RoomDef = {
     P('arv_s4', 'arvore', 48, 12, { w: 2, art: 'props/arvore_rua' }),
     P('arv_j1', 'arvore', 5, 31, { w: 2, art: 'props/arvore_rua' }),
     P('arv_j2', 'arvore', 22, 31, { w: 2, art: 'props/arvore_rua' }),
-    P('arv_j3', 'arvore', 30, 31, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_j3', 'arvore', 35, 31, { w: 2, art: 'props/arvore_rua' }),
     P('arv_j4', 'arvore', 45, 31, { w: 2, art: 'props/arvore_rua' }),
     // ---- V2: parked vehicles at the south curb of each street (they block their curb tiles only: never a crosswalk, a sidewalk or a lane).
     // The traffic lanes sit above them (see ambientData.ts); the bus stops east of the bus stop sign, so that curb stays free there.

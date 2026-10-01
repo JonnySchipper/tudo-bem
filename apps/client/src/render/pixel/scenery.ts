@@ -83,7 +83,7 @@ export function sceneryFor(def: RoomDef, has: (key: string) => boolean = () => t
   const walked = (x: number, y: number) => CROSSWALKS.some((c) => y >= c.y && y < c.y + 4 && x >= c.x * T - 12 && x < (c.x + 2) * T + 12);
   // lane dashes down the middle of each street, every 32 px
   for (const s of STREETS) {
-    const y = s.y0 * T + 35; // V2: between the two lanes (ambientData.ts), with the parked row below
+    const y = s.y0 * T + 29; // V2: between the two lanes (ambientData.ts), with the parked row below
     for (let x = 4; x < def.cols * T - 10; x += 32) if (!walked(x, s.y0)) add({ key: 'decals/lane_dash', x, y, origin: 'tl', depth: DEPTH_MOSAIC });
   }
   // the painted bus lane in front of the stop
