@@ -124,6 +124,8 @@ describe('journal view-model', () => {
     expect(j.done.map((d) => d.id)).toEqual(['carlos_cafe_pra_nanda']);
     expect(j.bag).toEqual([{ itemId: 'cafe_com_leite', name: { pt: 'café com leite', en: 'coffee with milk' }, qty: 2 }]);
     expect(bagView({})).toEqual([]);
-    expect(j.friends.map((f) => [f.npc, f.hearts.hearts])).toEqual([['carlos', 2], ['graca', 0], ['nanda', 6], ['julia', 0], ['prof', 0]]);
+    expect(j.friends.map((f) => [f.npc, f.hearts.hearts]).slice(0, 5)).toEqual([['carlos', 2], ['graca', 0], ['nanda', 6], ['julia', 0], ['prof', 0]]);
+    // the feira vendors are friends too (Tia Lu gives recados)
+    expect(j.friends.map((f) => f.npc)).toEqual(expect.arrayContaining(['tia_lu', 'ze', 'chico', 'rosa']));
   });
 });

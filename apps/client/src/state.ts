@@ -23,7 +23,7 @@ export interface ClientAvatar {
 export type PendingAction =
   | { kind: 'portal'; portalId: string; tile: Tile }
   | { kind: 'npc'; npc: NpcId; tile: Tile }
-  | { kind: 'prop'; action: string; tile: Tile }
+  | { kind: 'prop'; action: string; tile: Tile; propId?: string }
   /** Walk to a spot within 3 tiles of a sign, then read it. */
   | { kind: 'hotspot'; hotspotId: string; tile: Tile };
 

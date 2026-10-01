@@ -37,6 +37,9 @@ const SPEAKER_ROLE: Record<string, string> = {
   julia: 'Guia da praça',
   prof: 'Professora de jiu-jitsu',
   tia_lu: 'Feirante',
+  ze: 'Feirante',
+  chico: 'Feirante',
+  rosa: 'Feirante',
 };
 
 const heartsEl = (points: number | undefined, cls = 'hearts'): HTMLElement => {

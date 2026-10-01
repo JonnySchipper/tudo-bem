@@ -249,7 +249,62 @@ function banana() {
   return img;
 }
 
-export const ICONS = { pao, pao_na_chapa: paoNaChapa, pastel, coxinha, bolo, cafe, cafe_com_leite: cafeComLeite, suco_de_laranja: suco, agua, pao_de_queijo: paoQueijo, misto_quente: misto, guarana, jornal, flores, banana };
+// ---------------------------------------------------------------- the feira (Phase 9)
+function laranja() {
+  // laranja: a round orange with a dimpled highlight, a green leaf and a stem nub
+  const img = icon();
+  shape(img, ell(8, 9, 6, 5.6), [8, 9, 6, 6], ['#b8501c', '#d9742a', '#f0902f', '#ffb14d'], { ol: NAVY, t: [0.85, 0.3, -0.2] });
+  for (const [x, y] of [[6, 8], [9, 10], [11, 8], [7, 12], [10, 12]]) put(img, x, y, '#c4601f');
+  put(img, 5, 7, '#ffd08a'); put(img, 6, 6, '#ffd08a');
+  fillRect(img, 8, 3, 1, 2, K.br2);
+  shape(img, el(11, 3.4, 2.8, 1.4, -0.4), [11, 3, 3, 1.5], [C.g3, C.g2, C.g2, C.g1 ?? C.g2], { ol: NAVY });
+  return img;
+}
+function maca() {
+  // maçã: a red apple, two lobes at the top, a stem and a green leaf
+  const img = icon();
+  const body = (x, y) => ell(5.8, 9.4, 4.2, 5)(x, y) || ell(10.2, 9.4, 4.2, 5)(x, y);
+  shape(img, body, [8, 9, 6, 6], [C.r5, C.r3, C.r2, C.r0], { ol: NAVY, t: [0.85, 0.3, -0.2] });
+  put(img, 8, 5, NAVY); put(img, 8, 6, C.r5);
+  put(img, 5, 7, C.r0); put(img, 5, 8, C.r0); put(img, 6, 7, C.r0);
+  fillRect(img, 8, 2, 1, 3, K.br2);
+  shape(img, el(11, 3.6, 2.8, 1.4, -0.4), [11, 3, 3, 1.5], [C.g3, C.g2, C.g2, C.g2], { ol: NAVY });
+  return img;
+}
+function alface() {
+  // alface: a round head of ruffled green leaves, paler towards the heart
+  const img = icon();
+  shape(img, ell(8, 8.6, 6.6, 6), [8, 8, 7, 6], [C.g3, C.g2, C.g1 ?? C.g2, C.g0 ?? C.g2], { ol: NAVY, t: [0.85, 0.3, -0.2] });
+  shape(img, ell(8, 8.4, 3.6, 3.4), [8, 8, 4, 4], [C.g2, C.g1 ?? C.g2, C.g0 ?? C.g2, '#d6f0a0'], { ol: C.g3 });
+  for (const [x, y] of [[3, 7], [4, 11], [12, 11], [13, 7], [8, 3], [6, 13], [10, 13]]) put(img, x, y, C.g3);
+  for (const [x, y] of [[7, 7], [8, 8], [9, 9], [7, 9]]) put(img, x, y, '#e8f8b8');
+  fillRect(img, 6, 14, 4, 1, K.br3);
+  return img;
+}
+function tomate() {
+  // tomate: a glossy red tomato with a green star calyx
+  const img = icon();
+  shape(img, ell(8, 9.4, 6.4, 5.4), [8, 9, 7, 6], [C.r5, C.r3, C.r2, C.r0], { ol: NAVY, t: [0.85, 0.3, -0.2] });
+  put(img, 4, 8, C.r0); put(img, 5, 7, C.r0); put(img, 5, 8, C.r0);
+  for (const [x, y] of [[8, 5], [6, 5], [10, 5], [7, 6], [9, 6], [8, 4], [8, 6]]) put(img, x, y, C.g2);
+  put(img, 5, 6, C.g3); put(img, 11, 6, C.g3); put(img, 8, 3, C.g3);
+  return img;
+}
+function caldoDeCana() {
+  // caldo de cana: a tall glass of pale green-yellow juice with foam and a cane stalk leaning in it
+  const img = icon();
+  shape(img, (x, y) => y >= 3 && y < 15 && x >= 4 + (y - 3) * 0.1 && x < 12 - (y - 3) * 0.1, [8, 9, 4, 6], [GLASS[0], GLASS[1], GLASS[2], GLASS[3]], { ol: NAVY });
+  fillRect(img, 5, 6, 6, 8, '#bfe08a'); fillRect(img, 5, 6, 6, 1, '#f1f7c4'); fillRect(img, 5, 7, 2, 6, '#d9efa0');
+  fillRect(img, 9, 8, 2, 5, '#9cc468');
+  fillRect(img, 5, 4, 6, 2, '#f4f8e0'); put(img, 6, 4, C.white); put(img, 9, 3, '#f4f8e0');
+  // the cane: a dark green stalk with joints
+  for (let i = 0; i < 9; i++) { put(img, 10 + (i >> 2), 1 + i, '#4b7a3a'); put(img, 11 + (i >> 2), 1 + i, '#6d9a4a'); }
+  put(img, 11, 4, '#2f5230'); put(img, 12, 8, '#2f5230');
+  fillRect(img, 4, 14, 8, 1, NAVY);
+  return img;
+}
+
+export const ICONS = { pao, pao_na_chapa: paoNaChapa, pastel, coxinha, bolo, cafe, cafe_com_leite: cafeComLeite, suco_de_laranja: suco, agua, pao_de_queijo: paoQueijo, misto_quente: misto, guarana, jornal, flores, banana, laranja, maca, alface, tomate, caldo_de_cana: caldoDeCana };
 
 export async function iconParts() {
   return Object.entries(ICONS).map(([id, fn]) => ({ key: `icons/${id}`, img: fn() }));

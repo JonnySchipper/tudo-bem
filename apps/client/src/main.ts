@@ -4,6 +4,7 @@ import './styles/pixel-ui.css';
 import './styles/clock.css';
 import './styles/dialogue.css';
 import './styles/recados.css';
+import './styles/feira.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
@@ -26,6 +27,7 @@ import {
   readSpot,
   subjectChoices,
   npcDefById,
+  VENDORS,
   type EmoteKind,
   type HotspotDef,
   type NpcDef,
@@ -65,6 +67,7 @@ import { isDialogueBoxOpen, setDialogueHost, showDialogueBox } from './ui/dialog
 import { mountTracker, openJournal, runPrelude } from './ui/recados';
 import { heartsWith } from './ui/recadoView';
 import { openNpcTalk } from './ui/npcTalk';
+import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira';
 import { openCaderno } from './ui/caderno';
 import { openHotspotCard } from './ui/hotspotCard';
 import { HotspotCues } from './ui/hotspotCue';
@@ -199,13 +202,26 @@ function runPending() {
   else if (p.kind === 'hotspot') {
     const hs = hotspotById(p.hotspotId);
     if (hs) readHotspot(hs);
-  } else propAction(p.action);
+  } else propAction(p.action, p.kind === 'prop' ? p.propId : undefined);
+}
+
+/** The feira (Phase 9): a stall, or the Hortifrúti corner. A stall whose vendor is away shows the closed note (D12: the corner at the banca sells at every hour). */
+function openStall(propId?: string) {
+  const prop = game.roomDef?.props.find((x) => x.id === propId);
+  const vendor = prop?.vendor;
+  if (!vendor) return;
+  closeDialogue();
+  const there = vendor === 'banca' || game.liveNpcs(now()).some((n) => n.id === VENDORS[vendor].npc && game.avatars.get(`npc-${n.id}`)?.pub.activity === 'trabalhando');
+  if (!there) return openFeiraClosed(vendor);
+  openFeira(vendor, { send: (m) => net.send(m) }, { talked: (id) => net.send({ t: 'talk', npc: id }) });
 }
 
 function talkTo(npc: NpcDef['id']) {
   closeDialogue();
-  // the server counts the talk for NPCs without a Conversa (bond +2 once a day, `falar` steps); the bakers count it through the scene / Conversa
-  if (npc !== 'carlos' && npc !== 'graca') net.send({ t: 'talk', npc });
+  const vendor = npc === 'tia_lu' || npc === 'ze' || npc === 'chico' || npc === 'rosa';
+  // the server counts the talk for NPCs without a Conversa (bond +2 once a day, `falar` steps); the bakers count it through the scene / Conversa,
+  // the vendors through their stall panel (it sends `talk` itself)
+  if (!vendor && npc !== 'carlos' && npc !== 'graca') net.send({ t: 'talk', npc });
   // an NPC first hands you what they came with: a thank-you hand-over ("Entregar …") or today's errand ("Pode deixar!" / "Agora não")
   runPrelude(npc, {
     accept: (id) => net.send({ t: 'recados', action: 'accept', id }),
@@ -216,6 +232,11 @@ function talkTo(npc: NpcDef['id']) {
 
 function talkFlow(npc: NpcDef['id']) {
   closeDialogue();
+  if (npc === 'tia_lu' || npc === 'ze' || npc === 'chico' || npc === 'rosa') {
+    // a vendor resting on a bench (Tia Lu in the afternoon) is not serving: the closed note
+    if (game.avatars.get(`npc-${npc}`)?.pub.activity !== 'trabalhando') return openFeiraClosed(npc);
+    return openFeira(npc, { send: (m) => net.send(m) }, { talked: (id) => net.send({ t: 'talk', npc: id }) });
+  }
   if (npc === 'carlos' || npc === 'graca') {
     // Always the private AI mesa (Seu Carlos by day, Dona Graça on the night shift: same subjects, D12). Pedido rápido is a ghost button
     // inside that overlay, only at the counter (the server runs the breakfast scene with whoever is on duty there).
@@ -266,8 +287,9 @@ function clickHotspot(hs: HotspotDef) {
   walkTo(spot, { kind: 'hotspot', hotspotId: hs.id, tile: spot });
 }
 
-function propAction(action: string) {
-  if (action === 'shop_hats') openShop();
+function propAction(action: string, propId?: string) {
+  if (action === 'feira_stall') openStall(propId);
+  else if (action === 'shop_hats') openShop();
   else if (action === 'minigame') startMinigame();
   else if (action === 'kiosk') openKiosk(() => net.send({ t: 'mission', action: 'take' }));
   else if (action === 'parrot_perch') showParrotPerch(() => net.send({ t: 'parrot', action: 'adopt' }));
@@ -431,6 +453,10 @@ net.on((m: ServerMsg) => {
     case 'error':
       if (onboarding && m.code === 'name') onboarding.setError(m.pt, m.en);
       else toast('error', m.pt, m.en);
+      onFeiraError();
+      break;
+    case 'feira':
+      onFeiraMsg(m);
       break;
     case 'profile':
       game.profile = m.profile;
@@ -734,6 +760,15 @@ function startGame() {
     const n = npcs[Math.floor(Math.random() * npcs.length)];
     npcSay(n.id, localizeGreeting(idleTalk.next(n.idleLines, clock.weather(), clock.minutes()), clock.minutes()));
   }, 11_000);
+  // the feira: a vendor calls out their goods now and then (PT with the gloss); never two calls at once, and not while a dialogue box is open
+  setInterval(() => {
+    if (document.hidden || game.modalOpen) return;
+    const vendors = game.liveNpcs(now()).filter((n) => n.id === 'tia_lu' || n.id === 'ze' || n.id === 'chico' || n.id === 'rosa');
+    if (!vendors.length) return;
+    const n = vendors[Math.floor(Math.random() * vendors.length)]!;
+    const calls = VENDORS[n.id as 'tia_lu'].calls;
+    npcSay(n.id, localizeGreeting(calls[Math.floor(Math.random() * calls.length)]!, clock.minutes()));
+  }, 7_000);
 }
 
 function hitLabel(hit: Hit | null): [string, string] | null {
@@ -817,7 +852,7 @@ function handleClickInner(hit: Hit | null) {
       break;
     case 'prop': {
       const p: PropDef = hit.prop;
-      if (p.action && p.interact) walkTo(p.interact, { kind: 'prop', action: p.action, tile: p.interact });
+      if (p.action && p.interact) walkTo(p.interact, { kind: 'prop', action: p.action, tile: p.interact, propId: p.id });
       break;
     }
     case 'hotspot':

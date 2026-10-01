@@ -67,7 +67,7 @@ describe('bond milestones', () => {
   });
 
   it('every NPC has a gift in the furniture catalog', () => {
-    for (const npc of ['carlos', 'graca', 'nanda', 'julia', 'prof', 'tia_lu'] as const) expect(furnitureById(giftFor(npc)), npc).toBeDefined();
+    for (const npc of ['carlos', 'graca', 'nanda', 'julia', 'prof', 'tia_lu', 'ze', 'chico', 'rosa'] as const) expect(furnitureById(giftFor(npc)), npc).toBeDefined();
     expect(FURNITURE.length).toBeGreaterThan(6);
   });
 

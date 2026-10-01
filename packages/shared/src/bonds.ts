@@ -78,6 +78,9 @@ export const BOND_GIFTS: Partial<Record<NpcId, string>> = {
   julia: 'planta',
   prof: 'pufe_amarelo',
   tia_lu: 'rede',
+  ze: 'filtro',
+  chico: 'estante',
+  rosa: 'quadro',
 };
 
 /** The gift for an NPC (falls back to a plant so an NPC added later never gives nothing). */

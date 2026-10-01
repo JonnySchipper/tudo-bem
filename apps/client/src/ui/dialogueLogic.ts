@@ -122,6 +122,9 @@ export const NPC_TAG_COLORS: Record<string, string> = {
   julia: '#3b78b0',
   graca: '#7a5a8c',
   tia_lu: '#d9772b',
+  ze: '#66753f',
+  chico: '#b89a2c',
+  rosa: '#c4708a',
   prof: '#4a7c59',
 };
 

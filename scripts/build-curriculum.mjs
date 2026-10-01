@@ -213,7 +213,7 @@ export function buildCpuNames() {
  * Ids the recado validator accepts. Mirrors the shared engine (packages/shared/src/rooms.ts, recados.ts,
  * meveum.ts); curriculum.test.ts fails if any list drifts from the code.
  */
-export const RECADO_NPC_IDS = ['carlos', 'nanda', 'julia', 'graca', 'prof', 'tia_lu'];
+export const RECADO_NPC_IDS = ['carlos', 'nanda', 'julia', 'graca', 'prof', 'tia_lu', 'ze', 'chico', 'rosa'];
 export const RECADO_ROOM_IDS = ['praca', 'padaria', 'kitnet', 'academia'];
 export const RECADO_FLAG_IDS = ['feira', 'dialogue'];
 export const RECADO_ITEM_IDS = [
@@ -221,6 +221,8 @@ export const RECADO_ITEM_IDS = [
   'pao', 'pao_na_chapa', 'pastel', 'coxinha', 'bolo', 'cafe', 'cafe_com_leite', 'suco_de_laranja', 'agua', 'pao_de_queijo', 'misto_quente', 'guarana',
   // recados.ts EXTRA_ITEMS
   'jornal', 'flores', 'banana',
+  // the feira (Phase 9)
+  'laranja', 'maca', 'alface', 'tomate', 'caldo_de_cana',
 ];
 
 /** `### id` blocks of `- **field:** value` lines, same shape as the lexeme cards. */

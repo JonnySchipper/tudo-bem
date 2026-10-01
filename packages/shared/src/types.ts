@@ -132,6 +132,8 @@ export interface PrivateProfile {
   caderno?: Record<string, { seen: number; heard: number; used: number; firstAt: number }>;
   /** Caderno groups whose one-time RV has already been paid. */
   cadernoPaid?: string[];
+  /** Feira purchases that paid RV on `date` (real day, YYYY-MM-DD); the reward has a daily limit (Phase 9). */
+  feira?: { date: string; n: number };
   /** One short PT line per NPC about your last Conversa (max 200 chars). Never raw chat. */
   npcMemory?: Partial<Record<NpcId, string>>;
 }

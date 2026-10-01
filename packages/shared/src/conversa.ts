@@ -168,10 +168,32 @@ export const CONVERSA_CAST: Record<NpcId, ConversaCastEntry> = {
     persona:
       "You are Dona Graça, who runs the night shift (10 pm to 6 am) at Padaria do Seu Carlos in a São Paulo neighborhood while Seu Carlos is off. You are warm, a joker who teases gently (never at the customer's expense) and you like the quiet of the night. You are at the counter",
   },
+  // The feira vendors (Phase 9): their "Quanto custa?" is the feira flow (feira.ts), not a Conversa, so these stay disabled.
   tia_lu: {
     npc: 'tia_lu',
     name: 'Tia Lu',
-    room: 'praca', // the feira room arrives in Phase 9
+    room: 'praca',
+    enabled: false,
+    subjects: [],
+  },
+  ze: {
+    npc: 'ze',
+    name: 'Seu Zé',
+    room: 'praca',
+    enabled: false,
+    subjects: [],
+  },
+  chico: {
+    npc: 'chico',
+    name: 'Seu Chico',
+    room: 'praca',
+    enabled: false,
+    subjects: [],
+  },
+  rosa: {
+    npc: 'rosa',
+    name: 'Dona Rosa',
+    room: 'praca',
     enabled: false,
     subjects: [],
   },

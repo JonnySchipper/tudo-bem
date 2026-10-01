@@ -79,8 +79,8 @@ const offer = (c: Client, ...ids: string[]) => {
   c.s.profile!.recados!.offered = ids;
 };
 
-/** Recados a brand-new player can be offered today: bond 0 and no feature flag (feira, dialogue). */
-const NEW_PLAYER_POOL = ['carlos_cafe_pra_nanda', 'nanda_coxinha', 'julia_cumprimento_certo', 'graca_pao_pra_julia', 'nanda_um_oi_pro_carlos'];
+/** Recados a brand-new player can be offered today: bond 0 and no feature flag open. */
+const NEW_PLAYER_POOL = ['carlos_cafe_pra_nanda', 'nanda_coxinha', 'julia_cumprimento_certo', 'graca_pao_pra_julia', 'nanda_um_oi_pro_carlos', 'tia_lu_banana_pra_nanda'];
 
 describe('recados on the server', () => {
   beforeEach(() => {
@@ -108,7 +108,7 @@ describe('recados on the server', () => {
     await a.send({ t: 'recados', action: 'accept' });
     expect(errors(a)).toEqual(['recado', 'recado', 'recado']);
 
-    await a.send({ t: 'recados', action: 'accept', id: 'tia_lu_banana_pra_nanda' }); // gated by the feira flag: never offered
+    await a.send({ t: 'recados', action: 'accept', id: 'tia_lu_flores_pra_julia' }); // needs 1 heart with Tia Lu: not on the board
     expect(errors(a)).toHaveLength(4);
     offer(a, 'nanda_coxinha', 'carlos_cafe_pra_nanda', 'julia_cumprimento_certo');
     await a.send({ t: 'recados', action: 'accept', id: 'nanda_coxinha' });

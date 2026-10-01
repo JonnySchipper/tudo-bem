@@ -184,7 +184,7 @@ export interface FriendView {
 }
 
 /** The neighbours the journal lists hearts for. */
-export const JOURNAL_FRIENDS: readonly NpcId[] = ['carlos', 'graca', 'nanda', 'julia', 'prof'];
+export const JOURNAL_FRIENDS: readonly NpcId[] = ['carlos', 'graca', 'nanda', 'julia', 'prof', 'tia_lu', 'ze', 'chico', 'rosa'];
 
 export interface JournalView {
   tutorial: { entry: TrackerEntry; steps: { id: string; pt: string; en: string; done: boolean }[] } | null;

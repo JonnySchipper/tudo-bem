@@ -3,6 +3,7 @@ import { localizeGreeting, localizeGreetingText, greetingFor } from './clock.js'
 import { chooseChip, scoreTypedReply, viewNode, type SceneCtx } from './carlos.js';
 import { CONVERSA_CAST, CONVERSA_SUBJECTS, buildCarlosSystemPrompt, presentConversaTurn, subjectChoices, subjectOpen } from './conversa.js';
 import { makeOrder, mulberry32 } from './meveum.js';
+import { VENDORS } from './feira.js';
 
 const at = (h: number, m = 0) => h * 60 + m;
 const ctx = (minute: number): SceneCtx => ({ name: 'Ana', pronoun: 'ela', minute });
@@ -70,6 +71,16 @@ describe('greetings follow the game hour', () => {
       expect(evening.lines).toEqual(morning.lines);
       expect(evening.pt.replace(/^Boa noite/, 'Bom dia')).toBe(morning.pt);
       expect(evening.pt).not.toMatch(/^Bom dia/);
+    }
+  });
+
+  it('the feira vendors greet by the hour too (Bom dia at 17:30 is wrong)', () => {
+    for (const id of ['tia_lu', 'ze', 'chico', 'rosa'] as const) {
+      const g = VENDORS[id].greet;
+      if (!/^Bom dia/.test(g.pt)) continue;
+      expect(localizeGreeting(g, at(17, 30)).pt).toMatch(/^Boa tarde/);
+      expect(localizeGreeting(g, at(17, 30)).en).toMatch(/^Good afternoon/);
+      expect(localizeGreeting(g, at(7)).pt).toBe(g.pt);
     }
   });
 

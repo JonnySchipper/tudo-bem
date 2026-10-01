@@ -87,7 +87,7 @@ describe('NPCs on the server: positions from the schedule', () => {
   it('roomState carries each NPC of the room as a flagged avatar at its schedule tile (noon)', async () => {
     const world = makeWorld();
     const a = await client(world, 'praca');
-    expect(npcIdsIn(a)).toEqual(['julia', 'nanda']);
+    expect(npcIdsIn(a)).toEqual(['chico', 'julia', 'nanda', 'rosa', 'tia_lu', 'ze']); // noon: the feira vendors are at their stalls
     const nanda = npcsOf(a).find((v) => v.npc === 'nanda')!;
     expect(nanda).toMatchObject({ id: npcAvatarId('nanda'), name: 'Nanda', x: 35, y: 13, sitting: false, activity: 'trabalhando', npcInteract: { x: 34, y: 15 }, nameplate: 'verde' });
     expect(nanda.cpu).toBeUndefined();
