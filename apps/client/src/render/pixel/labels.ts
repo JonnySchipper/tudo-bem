@@ -25,7 +25,7 @@ export interface StackItem {
   /** CSS px of the point the stack stands on (just above the head) */
   x: number;
   y: number;
-  plate: { text: string; kind: 'npc' | 'player' | 'me' } | null;
+  plate: { text: string; kind: 'npc' | 'player' | 'me'; /** false: keep the element but fade it out (a CPU far from you) */ show?: boolean } | null;
   bubbles: BubbleItem[];
 }
 
@@ -350,6 +350,9 @@ export class LabelLayer {
       }
     }
 
+    const plateOn = !!s.plate && s.plate.show !== false;
+    if (plateOn === el.plate.classList.contains('wl-plate-off')) el.plate.classList.toggle('wl-plate-off', !plateOn);
+
     // bubbles: one element per line, rewritten only when its text changes
     while (el.bubbles.length > s.bubbles.length) el.bubbles.pop()?.root.remove();
     let remeasure = false;
@@ -405,7 +408,7 @@ export class LabelLayer {
       bottom += be.h - 2;
     }
     el.baseBottoms.length = el.bubbles.length;
-    return { key: s.key, ax, ay, plate: s.plate ? { w: el.plateW, h: el.plateH } : null, bubbles: el.bubbles.map((be, i) => ({ left: lefts[i] ?? 0, w: be.w, h: be.h })) };
+    return { key: s.key, ax, ay, plate: plateOn ? { w: el.plateW, h: el.plateH } : null, bubbles: el.bubbles.map((be, i) => ({ left: lefts[i] ?? 0, w: be.w, h: be.h })) };
   }
 
   // ------------------------------------------------------------------ guides

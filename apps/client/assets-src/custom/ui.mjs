@@ -47,19 +47,19 @@ function bubble() {
   const { w, h, body } = BUBBLE;
   const img = blank(w, h);
   for (let y = 0; y < body; y++) for (let x = 0; x < w; x++) {
-    const d = depth(x, y, w, body, 4.2);
+    const d = depth(x, y, w, body, 3.4);
     if (d <= 0) continue;
     let c = CREAM_HI;
-    if (d < 1) c = NAVY;
-    else if (d < 2) c = y <= 2 || x <= 2 ? '#ffffff' : y >= body - 3 || x >= w - 3 ? CREAM_LO : CREAM_HI;
-    else if (y >= body - 4 || x >= w - 4) c = CREAM;
+    if (d < 1) c = INK;
+    else if (d < 2) c = y <= 2 || x <= 2 ? '#ffffff' : y >= body - 3 || x >= w - 3 ? CREAM_LO2 : CREAM_HI;
+    else if (y >= body - 4 || x >= w - 4) c = CREAM_LO;
     put(img, x, y, c);
   }
   // tail hanging under the left part of the body (inside the left slice, so it never stretches), pointing down-left
   const rows = [[8, 15], [8, 14], [8, 12], [8, 10], [8, 9]];
   rows.forEach(([l, r], i) => {
     const y = body + i;
-    for (let x = l; x <= r; x++) put(img, x, y, NAVY);
+    for (let x = l; x <= r; x++) put(img, x, y, INK);
     if (i < rows.length - 1) for (let x = l + 1; x <= r - 1; x++) put(img, x, y, x <= l + 2 ? CREAM_HI : CREAM);
   });
   // open the body outline where the tail joins

@@ -30,6 +30,9 @@ export interface CharPreview {
   facing(): Facing;
   /** play the wave (emote `oi`) once */
   wave(): void;
+  /** walk in place (the walk cycle of the current facing) or stand idle */
+  setWalking(on: boolean): void;
+  walking(): boolean;
   stop(): void;
 }
 
@@ -84,6 +87,7 @@ export function mountCharPreview(canvas: HTMLCanvasElement, get: () => PreviewSp
   canvas.style.imageRendering = 'pixelated';
   let facing: Facing = opts.facing ?? 'S';
   let waveT0 = opts.waveOnStart ? performance.now() : -1e9;
+  let walking = false;
   let raf = 0;
   let stopped = false;
   let assets: CharAssets | null = null;
@@ -107,6 +111,9 @@ export function mountCharPreview(canvas: HTMLCanvasElement, get: () => PreviewSp
     if (waving) {
       row = oi.row ?? 12;
       col = Math.floor(((now - waveT0) / 1000) * (oi.fps ?? 8)) % oi.frames;
+    } else if (walking) {
+      row = meta.anims.walk.rows![FACING_ROW[facing]];
+      col = Math.floor((now / 1000) * (meta.anims.walk.fps ?? 10)) % meta.anims.walk.frames;
     } else if (look.idle.anim === 'phone' && facing === 'S') {
       row = meta.anims.phone.row ?? 17;
       col = Math.floor((now / 1000) * (meta.anims.phone.fps ?? 6) * look.idle.speed) % meta.anims.phone.frames;
@@ -145,6 +152,10 @@ export function mountCharPreview(canvas: HTMLCanvasElement, get: () => PreviewSp
     wave() {
       waveT0 = performance.now();
     },
+    setWalking(on) {
+      walking = on;
+    },
+    walking: () => walking,
     stop() {
       stopped = true;
       cancelAnimationFrame(raf);

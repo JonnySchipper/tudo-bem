@@ -1178,6 +1178,7 @@ export class WorldScene extends Phaser.Scene {
     const at = (wx: number, wy: number) => worldToCanvas(k, wx, wy);
     const stacks: StackItem[] = [];
     const selfId = game.room?.selfId;
+    const selfView = selfId ? this.avatars.get(selfId) : undefined;
     if (this.stall?.closed) {
       const p = at(this.stall.wx, this.stall.wy - 30);
       stacks.push({ key: 'stall:closed', x: p.px, y: p.py, plate: { text: 'Fechado · volta às 8h', kind: 'npc' }, bubbles: [] });
@@ -1203,7 +1204,7 @@ export class WorldScene extends Phaser.Scene {
           key: `npc:${a.pub.npc}`,
           x: p.px,
           y: p.py,
-          plate: { text: role ? `${a.pub.name} · ${role}` : a.pub.name, kind: 'npc' },
+          plate: { text: role && game.hoverKey === `npc:${a.pub.npc}` ? `${a.pub.name} · ${role}` : a.pub.name, kind: 'npc' },
           bubbles: b && age < 7000 ? [{ text: b.text, gloss: b.gloss, alpha: bubbleAlpha(age) }] : [],
         });
         continue;
@@ -1214,7 +1215,10 @@ export class WorldScene extends Phaser.Scene {
             .filter((b) => now - b.at < 7000)
             .slice(-2)
             .map((b) => ({ text: b.text, gloss: b.gloss, alpha: bubbleAlpha(now - b.at) }));
-      stacks.push({ key: `av:${id}`, x: p.px, y: p.py, plate: { text: a.pub.name, kind: id === selfId ? 'me' : 'player' }, bubbles });
+      // CPUs are scenery: their name shows on hover, within ~3.5 tiles of you, or while they emote
+      const near = !!selfView && Math.hypot(v.wx - selfView.wx, v.wy - selfView.wy) <= 3.5 * T;
+      const cpuShow = !isCpuId(id) || game.hoverKey === `av:${id}` || near || (!!a.emote && performance.now() - a.emote.t0 < 3500);
+      stacks.push({ key: `av:${id}`, x: p.px, y: p.py, plate: { text: a.pub.name, kind: id === selfId ? 'me' : 'player', show: cpuShow }, bubbles });
     }
     const guides: GuideItem[] = this.host.guides().map((g, i) => {
       const w = tileToWorld(g.x, g.y);

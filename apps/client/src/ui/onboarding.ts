@@ -13,6 +13,9 @@ import {
 } from '@tudobem/shared';
 import { h, en, ui } from './dom';
 import { mountCharPreview } from '../render/pixel/charPreview';
+import { createIntroHeroScene } from './introHeroScene';
+
+let stopBackdrop: (() => void) | null = null;
 
 export interface NewProfile {
   name: string;
@@ -25,8 +28,6 @@ function hero() {
     'div',
     { class: 'hero' },
     h('h1', null, 'Tudo Bem'),
-    h('p', null, 'Um bairro brasileiro pra fazer amigos e aprender português.'),
-    h('p', { style: 'opacity:.8;font-weight:600;font-style:italic' }, 'A Brazilian neighborhood to make friends and learn Portuguese.'),
   );
 }
 
@@ -34,14 +35,33 @@ function hero() {
 export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt: string, en: string) => void } {
   const api = { setError: (_pt: string, _en: string) => {} };
   const root = h('div', { class: 'onboarding' });
+  // the same pixel Vila Ipê the title screen shows (the intro snapshot), dimmed, behind the card
+  const scene = createIntroHeroScene();
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  root.append(scene.el, h('div', { class: 'onb-dim', 'aria-hidden': 'true' }));
   ui().append(root);
+  scene.frame();
+  const stopPan = scene.mountPan(reduced);
+  const onResize = () => scene.frame();
+  window.addEventListener('resize', onResize);
+  stopBackdrop = () => {
+    stopPan();
+    window.removeEventListener('resize', onResize);
+  };
 
   const a: Appearance = { ...DEFAULT_APPEARANCE, ...STARTER_OUTFITS[0].set, skin: Math.floor(Math.random() * SKIN_TONES.length) };
   let pronoun: Pronoun = 'nome';
   // the composed pixel character (same layers as the world), shown at an integer scale with image-rendering: pixelated
   const canvas = h('canvas', { class: 'creator-canvas', id: 'avatar-preview' });
   const preview = mountCharPreview(canvas, () => ({ appearance: a, hat: null, parrot: false }), { waveOnStart: true });
-  const turn = h('button', { class: 'turn-btn', type: 'button', id: 'turn-avatar', 'aria-label': 'Girar o avatar (turn around)', onclick: () => preview.turn() }, '↻ Girar');
+  const turn = h('button', { class: 'stage-btn turn-btn', type: 'button', id: 'turn-avatar', 'aria-label': 'Girar o avatar (turn around)', onclick: () => preview.turn() }, '↻ Girar');
+  const walkBtn = h('button', { class: 'stage-btn', type: 'button', id: 'walk-avatar', 'aria-pressed': 'false', 'aria-label': 'Andar (walk in place)' }, '▶ Andar');
+  walkBtn.addEventListener('click', () => {
+    const on = !preview.walking();
+    preview.setWalking(on);
+    walkBtn.setAttribute('aria-pressed', String(on));
+    walkBtn.textContent = on ? '■ Parar' : '▶ Andar';
+  });
 
   const go = h('button', { class: 'primary', style: 'font-size:1.1em', id: 'enter-praca' }, 'Entrar na Praça →');
   const name = h('input', { type: 'text', maxLength: 16, placeholder: 'Ex.: Jonny, Bia, Leo…', 'aria-label': 'Nome', id: 'avatar-name' });
@@ -117,7 +137,10 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
   });
   name.addEventListener('keydown', (e) => e.key === 'Enter' && go.click());
 
-  root.replaceChildren(
+  const sec = (pt: string, enText: string, cls: string, ...kids: HTMLElement[]) =>
+    h('section', { class: `cr-sec ${cls}` }, h('h3', null, pt, en(enText)), ...kids);
+
+  root.append(
     hero(),
     h(
       'div',
@@ -131,7 +154,7 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
         h(
           'div',
           { class: 'creator-side' },
-          h('div', { class: 'preview' }, canvas, turn),
+          h('div', { class: 'stage' }, h('div', { class: 'preview' }, canvas), h('div', { class: 'stage-btns' }, turn, walkBtn)),
           h(
             'div',
             { class: 'rules' },
@@ -142,29 +165,38 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
         h(
           'div',
           { class: 'creator-fields' },
-          field('Como você se chama?', 'Display name (not your full real name)', h('div', null, name, nameErr)),
-          field('Como devemos te chamar?', 'How should NPCs address you? (grammar agreement)', pronounChips),
-          field('Visual inicial', 'Starter outfit (tee and jeans only). Hats and more clothes are at Nanda’s stall.', presets),
-          field('Corpo', 'Body', chips(BODY_TYPES, (v) => LABELS.body[v], () => a.body, (v) => (a.body = v))),
-          field('Tom de pele', 'Skin tone', swatches(SKIN_TONES, () => a.skin, (i) => (a.skin = i))),
-          field('Rosto', 'Face', chips(FACE_STYLES, (v) => LABELS.face[v], () => a.face ?? 'suave', (v) => (a.face = v))),
-          field('Cabelo', 'Hair', chips(HAIR_STYLES, (v) => LABELS.hair[v], () => a.hair, (v) => (a.hair = v))),
-          field('Cor do cabelo', 'Hair color', swatches(HAIR_COLORS, () => a.hairColor, (i) => (a.hairColor = i))),
-          h(
-            'div',
-            { class: 'creator-cta' },
-            h('div', { class: 'row', style: 'margin-top:8px' }, h('span', { class: 'spacer' }), go),
+          sec(
+            'Quem é você?',
+            'Who are you?',
+            'cr-who',
+            field('Como você se chama?', 'Display name (not your full real name)', h('div', null, name, nameErr)),
+            field('Como devemos te chamar?', 'How should NPCs address you? (grammar agreement)', pronounChips),
           ),
+          sec(
+            'Seu visual',
+            'Your look',
+            'cr-look',
+            field('Corpo', 'Body', chips(BODY_TYPES, (v) => LABELS.body[v], () => a.body, (v) => (a.body = v))),
+            field('Rosto', 'Face', chips(FACE_STYLES, (v) => LABELS.face[v], () => a.face ?? 'suave', (v) => (a.face = v))),
+            field('Tom de pele', 'Skin tone', swatches(SKIN_TONES, () => a.skin, (i) => (a.skin = i))),
+            field('Cor do cabelo', 'Hair color', swatches(HAIR_COLORS, () => a.hairColor, (i) => (a.hairColor = i))),
+            h('div', { class: 'field cr-wide' }, h('label', null, 'Cabelo', en('Hair')), chips(HAIR_STYLES, (v) => LABELS.hair[v], () => a.hair, (v) => (a.hair = v))),
+          ),
+          sec('Roupa', 'Outfit', 'cr-outfit', field('Visual inicial', 'Starter outfit (tee and jeans only). Hats and more clothes are at Nanda’s stall.', presets)),
+          h('div', { class: 'rules rules-m' }, 'Regras da praça', en('Square rules — kind chat only; no personal info (phone, address, school, social handles); no dating, alcohol, slurs or politics. Chat is filtered.')),
+          h('div', { class: 'creator-cta' }, h('div', { class: 'row' }, h('span', { class: 'spacer' }), go)),
         ),
       ),
     ),
   );
   name.focus();
-  window.addEventListener('tb:game-start', () => preview.stop(), { once: true });
+  window.addEventListener('tb:game-start', () => (preview.stop(), stopBackdrop?.()), { once: true });
 
   return api;
 }
 
 export function closeOnboarding() {
+  stopBackdrop?.();
+  stopBackdrop = null;
   document.querySelector('.onboarding')?.remove();
 }

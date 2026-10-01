@@ -285,6 +285,7 @@ async function main() {
     await enterB();
     // Log out, fail once with a wrong password, then sign back in to the same avatar.
     const biaId = (await profile(pageB)).id;
+    await pageB.click('#btn-menu'); // the gear menu holds Sair
     await pageB.click('#btn-logout');
     await signIn(pageB, 'Bia', 'senha-errada-123');
     await pageB.waitForSelector('.intro-feedback:has-text("E-mail ou senha incorretos")');

@@ -258,6 +258,7 @@ async function sectionUi(browser, vp) {
   await sleep(1200);
   await ui('map_panel');
   await close();
+  await page.click('#btn-menu').catch(() => page.click('#btn-burger'));
   await page.click('#btn-credits');
   await page.waitForSelector('[data-modal="credits"] .credits-panel', { timeout: 5000 });
   await sleep(500);

@@ -134,6 +134,7 @@ async function panelShots(page, vp) {
   await sleep(600);
   await shot(page, vp, 'hat_shop');
   await closeAll();
+  await page.click('#btn-menu').catch(() => page.click('#btn-burger'));
   await page.click('#btn-credits');
   await page.waitForSelector('[data-modal="credits"] .credits-panel', { timeout: 5000 });
   await sleep(300);

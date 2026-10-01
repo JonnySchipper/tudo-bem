@@ -19,6 +19,8 @@ export const ICON_NAMES = [
   'map', 'hat', 'friends', 'soundOn', 'soundOff', 'musicOn', 'musicOff', 'decor', 'parrot', 'send', 'close', 'info', 'logout', 'caderno', 'recados', 'coracao',
   // Missão do dia steps (Cumprimenta, Pede, Monta)
   'cumprimenta', 'pede', 'monta',
+  // V4 HUD: settings gear, phone drawer, emote tray
+  'gear', 'burger', 'emote', 'rv', 'verde', 'mark',
 ] as const;
 export type IconName = (typeof ICON_NAMES)[number];
 
@@ -112,10 +114,11 @@ export function icon(name: IconName, size = 20): HTMLElement {
 export function installUiArt() {
   const root = document.documentElement.style;
   root.setProperty('--art-azulejo', svgUrl(AZULEJO));
-  root.setProperty('--art-calcada', svgUrl(CALCADA));
-  root.setProperty('--art-skyline', svgUrl(SKYLINE));
-  root.setProperty('--art-coin', svgUrl(COIN));
-  root.setProperty('--art-seed', svgUrl(SEEDLING));
-  root.setProperty('--art-logo', svgUrl(LOGO_MARK));
+  // pixel icons (the coin, the Verde sprout and the brand mark used to be smooth SVGs)
+  const px = (name: string) => `url("${imageUrl(`ui/icon_${name}`)}")`;
+  root.setProperty('--art-coin', px('rv'));
+  root.setProperty('--art-seed', px('verde'));
+  root.setProperty('--art-mark', px('mark'));
+  root.setProperty('--art-close', px('close'));
 }
 

@@ -197,6 +197,15 @@
   white-space: nowrap;
 }
 
+/* a CPU's nameplate fades in when you walk up to it or point at it */
+.wl-plate {
+  transition: opacity 0.18s steps(3, end);
+}
+
+.wl-plate.wl-plate-off {
+  opacity: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .wl-guide-arrow {
     animation: none;

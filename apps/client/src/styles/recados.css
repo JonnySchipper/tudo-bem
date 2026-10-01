@@ -1,61 +1,88 @@
 /* Recados (Phase 8a): the tracker, the journal panel, the thanks card, the hearts, the offer beat. Pixel chrome like the other panels. */
 
-/* ---------------------------------------------------------------- tracker (right side, max 3 entries) */
+/* ---------------------------------------------------------------- tracker (right side, max 3 entries, collapsible)
+ * The frame (notched pixel plate) comes from hud.css; hudLayout.ts keeps --hud-bottom current so it hangs right under the top bar.
+ * Desktop: open (head + rows). Phone: a small pill; tap it to open the rows, tap a row to open the journal. */
 
 .rtrack {
   position: fixed;
-  right: calc(8px + var(--safe-right));
-  top: calc(var(--rtrack-top, 92px) + var(--safe-top));
-  width: 268px;
-  max-width: calc(100vw - 16px);
+  z-index: 8;
+  right: calc(12px + var(--safe-right));
+  top: calc(var(--hud-bottom, 62px) + 10px);
+  width: 270px;
+  max-width: calc(100vw - 24px);
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 4px 8px 6px;
   text-align: left;
-  font: inherit;
   color: var(--ink);
-  cursor: pointer;
-  z-index: 8;
-  background: rgba(255, 246, 230, 0.96);
-  border: 2px solid var(--px-ink, #573c2c);
-  border-radius: 0;
-  box-shadow: 0 3px 0 var(--px-shadow, rgba(44, 28, 20, 0.34));
-}
-
-html.px-ui .rtrack {
-  border: var(--px-panel-w, 7px) solid transparent;
-  border-image: var(--px-panel);
-  background: none;
-  box-shadow: none;
-  image-rendering: pixelated;
-  filter: drop-shadow(0 3px 0 var(--px-shadow));
-  padding: 0 4px 2px;
-}
-
-.rtrack:hover .rtrack-head b,
-.rtrack:focus-visible .rtrack-head b {
-  color: var(--terracota-dark);
-}
-
-.rtrack:focus-visible {
-  outline: 3px solid var(--azul);
-  outline-offset: 2px;
 }
 
 .rtrack-head {
   display: flex;
   align-items: center;
   gap: 6px;
+  width: 100%;
+  min-height: 32px;
+  padding: 0 8px 0 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink);
   font-family: var(--font-pixel, var(--font-title));
-  font-size: 0.95em;
+  font-weight: 600;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  transition: none;
+}
+
+.rtrack-head:hover,
+.rtrack-head:focus-visible {
+  transform: none;
+  background: var(--hud-paper-lo, #ead7b8);
+}
+
+.rtrack-head:focus-visible {
+  outline: 3px solid var(--azul);
+  outline-offset: -3px;
+}
+
+.rtrack-head b {
+  font-weight: 700;
 }
 
 .rtrack-head small {
   margin-left: auto;
+  color: var(--terracota-dark);
+  font-family: var(--font-pixel, var(--font-title));
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.rtrack-caret::after {
+  content: '▾';
+  font-size: 12px;
   color: var(--ink-soft);
-  font-size: 0.72em;
-  font-weight: 700;
+}
+
+.rtrack.collapsed .rtrack-caret::after {
+  content: '▸';
+}
+
+.rtrack.collapsed {
+  width: auto;
+  min-width: 0;
+}
+
+.rtrack.collapsed .rtrack-rows {
+  display: none;
+}
+
+.rtrack-rows {
+  display: flex;
+  flex-direction: column;
+  padding: 0 8px 4px;
 }
 
 .rtrack-row {
@@ -171,25 +198,40 @@ body:has(.backdrop) .rtrack {
   display: none;
 }
 
-/* ---------------------------------------------------------------- phones: a slim card under the top bar, clear of the joystick and the chat bar */
+/* ---------------------------------------------------------------- phones: a pill under the strip, clear of the joystick and the chat bar */
 
-@media (max-width: 640px) {
+@media (max-width: 640px), (max-height: 520px) {
   .rtrack {
-    --rtrack-top: 116px;
-    width: min(232px, 62vw);
-    padding: 2px 4px 3px;
-    gap: 0;
+    left: calc(10px + var(--safe-left));
+    right: auto;
+    top: calc(var(--hud-bottom, 60px) + 10px);
+    width: min(264px, calc(100vw - 20px - 150px));
+    min-width: 200px;
   }
-  html.px-ui .rtrack {
-    border-width: 5px;
+
+  .rtrack.collapsed {
+    width: auto;
+    min-width: 0;
   }
-  .rtrack-head { font-size: 0.82em; }
-  .rtrack-head small { display: none; }
-  .rtrack-row { padding: 2px 0; gap: 4px; }
-  .rtrack-row .rt-face { width: 24px; height: 24px; border-width: 1px; }
-  .rtrack-row .rt-face .px-portrait-img { left: -20px; top: -8px; }
-  .rt-title { font-size: 0.74em; }
-  .rt-step { font-size: 0.7em; -webkit-line-clamp: 1; line-clamp: 1; }
+
+  .rtrack-head {
+    min-height: 44px;
+    padding: 0 10px;
+  }
+
+  .rtrack-row {
+    padding: 4px 0;
+  }
+
+  .rtrack-row .rt-face {
+    width: 32px;
+    height: 32px;
+  }
+
+  .rt-step {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
 }
 
 /* portraits are 64 px art: shown at 1x inside these small frames (the dialogue box shows them at 2x) */
