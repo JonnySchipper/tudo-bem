@@ -162,6 +162,21 @@ async function run(browser, vp) {
   assert((after.bag.cafe_com_leite ?? 0) === bagBefore - 1, 'the coffee left the bag');
   await sleep(1500);
 
+  if (process.env.PIN_CLOCK) await page.evaluate(() => window.__tb.setClock({ time: '12:00' }));
+  // 5b. talk to Nanda again: her own offers (declined) and then her greeting
+  await interact(page, { npc: 'nanda' });
+  for (let i = 0; i < 6; i++) {
+    await page.waitForSelector('#dialogue-box', { timeout: 20_000 });
+    const key = await page.getAttribute('#dialogue-box', 'data-dialogue');
+    console.log('    nanda box:', key);
+    if (key === 'talk-nanda') break;
+    await page.click('#dialogue-box [data-chip="1"]');
+    await sleep(400);
+  }
+  assert((await page.getAttribute('#dialogue-box', 'data-dialogue')) === 'talk-nanda', 'Nanda greets after the offers are declined');
+  await page.keyboard.press('Escape');
+  await sleep(300);
+
   // 6. a heart-up toast (a real heart needs 10 points: lift Nanda's bond in the page for the picture)
   await page.evaluate(() => {
     const g = window.__tb.game;

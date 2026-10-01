@@ -504,13 +504,13 @@ async function main() {
     log('recado complete: +' + (after.coins - before.coins) + ' RV, Seu Carlos bond', after.bond.carlos);
     await sleep(500);
   }
-  await openNpc(page, 'nanda', 'talk-nanda');
+  log('opening Nanda talk'); await openNpc(page, 'nanda', 'talk-nanda'); log('Nanda talk open');
   assert(await page.$('#btn-ver-chapeus'), 'Nanda offers Ver chapéus');
   await waitFor(page, () => (window.__tb.game.profile.bond?.nanda ?? 0) >= 2, null, 5000, 'talk bond with Nanda');
   await shot(page, '08c_nanda_dialogue');
   await page.keyboard.press('Escape');
   await page.evaluate(() => window.__tb.setClock({ time: null }));
-  await interact(page, { prop: 'barraca' });
+  log('clock unpinned'); await interact(page, { prop: 'barraca' }); log('barraca clicked');
   await page.waitForSelector('[data-modal="hats"]', { timeout: 12_000 });
   await page.click('[data-hat="boina_vermelha"]');
   await page.click('[data-hat-action="boina_vermelha"]');
