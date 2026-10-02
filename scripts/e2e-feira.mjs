@@ -16,6 +16,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
 import { assertPageClock, requirePinnedClock } from './lib/clock-pin.mjs';
+import { goArea } from './lib/areas.mjs';
 
 const GAME_DAY_MS = 48 * 60 * 1000;
 const CLOCK_OFFSET_MS = 17 * 2 * 60 * 1000;
@@ -84,9 +85,11 @@ async function main() {
 
   if (PHASE === 'day') {
     await waitFor(page, () => window.__tb.clock.minutes() >= 540 && window.__tb.clock.minutes() < 600, null, 120_000, '09:00');
-    // the gate (41,21) and Tia Lu's customer spot (45,20), she stands in front of her stall at (45,19)
-    await walkTo(page, 45, 20);
-    await waitIdleAt(page, 45, 20);
+    // the feira is its own area now: walk off the praça's east edge, then to Tia Lu's customer spot (7,6), she stands in front of her stall at (7,5)
+    await goArea(page, 'feira');
+    log('walked off the praça edge into the feira');
+    await walkTo(page, 7, 6);
+    await waitIdleAt(page, 7, 6);
     await sleep(1500);
     log('at the stall, game time', hhmm(await minutes(page)));
     const npcs = await page.evaluate(() => [...window.__tb.game.avatars.values()].filter((a) => a.pub.npc).map((a) => a.pub.npc));
@@ -149,8 +152,9 @@ async function main() {
     await page.keyboard.press('Escape');
   } else {
     await waitFor(page, () => window.__tb.clock.minutes() >= 940 && window.__tb.clock.minutes() < 1000, null, 120_000, '15:40');
-    await walkTo(page, 45, 20);
-    await waitIdleAt(page, 45, 20);
+    await goArea(page, 'feira');
+    await walkTo(page, 7, 6);
+    await waitIdleAt(page, 7, 6);
     await sleep(1500);
     const npcs = await page.evaluate(() => [...window.__tb.game.avatars.values()].filter((a) => a.pub.npc).map((a) => a.pub.npc));
     for (const id of ['ze', 'chico', 'rosa']) assert(!npcs.includes(id), `${id} is gone after 13:00`);
@@ -162,9 +166,10 @@ async function main() {
     await shot(page, 'closed_note');
     await page.keyboard.press('Escape');
     await sleep(300);
-    // D12: the Hortifrúti corner at the banca still sells
+    // D12: the Hortifrúti corner at the banca (on the rua, back through the praça) still sells
+    await goArea(page, 'rua');
     await interact(page, { prop: 'hortifruti' });
-    await waitIdleAt(page, 19, 7);
+    await waitIdleAt(page, 8, 7);
     await page.waitForSelector('#dialogue-box[data-dialogue="feira"]', { timeout: 8000 });
     await shot(page, 'hortifruti');
     await page.click('#dialogue-box [data-chip="0"]');

@@ -26,6 +26,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DAY_MIN, assertPageClock, offsetMinFor, requirePinnedClock } from './lib/clock-pin.mjs';
 import { assert, playShift, sleep, startShiftFromPedido, waitFor } from './lib/correria-play.mjs';
+import { goArea } from './lib/areas.mjs';
 import { openBout, playBout, startBout, waitBoutPhase } from './lib/bout-play.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
@@ -271,9 +272,9 @@ async function main() {
   await page.keyboard.press('Escape');
 
   // 2. Walk, sit on a bench, wave, chat
-  await clickTile(page, 23, 15);
-  await waitIdleAt(page, 23, 15);
-  await clickTile(page, 21, 17, 4); // banco_1 (Vila Ipê): a real click on a bench
+  await clickTile(page, 14, 6);
+  await waitIdleAt(page, 14, 6);
+  await clickTile(page, 12, 6, 4); // banco_1 (Praça Central, by the kiosk): a real click on a bench
   await waitFor(page, () => window.__tb.game.profile?.tutorial.sentar, null, 8000, 'sat on bench');
   await page.click('[data-emote="oi"]');
   await page.fill('#chat-input', 'Oi, tudo bem? Bom dia, pessoal!');
@@ -302,7 +303,7 @@ async function main() {
     await waitFor(pageB, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'Bia back in the praça');
     assert((await profile(pageB)).id === biaId, 'login returns the same avatar');
     log('logout → wrong password → login ok');
-    await walkTo(pageB, 27, 27);
+    await walkTo(pageB, 17, 19);
     await sleep(1200);
     await pageB.fill('#chat-input', 'Oi, Jonny! Eu sou de Chicago. Vamos na padaria?');
     await pageB.press('#chat-input', 'Enter');
@@ -345,7 +346,9 @@ async function main() {
     log('friends ok');
   }
 
-  // 3. Enter the Padaria through its door
+  // 3. Walk off the north edge of the praça into the Rua dos Ipês and enter the Padaria through its door
+  await goArea(page, 'rua');
+  log('walked off the praça edge into the rua');
   await interact(page, { portal: 'praca_padaria' });
   await waitFor(page, () => window.__tb.game.room?.room === 'padaria', null, 15_000, 'padaria');
   await sleep(700);
@@ -502,9 +505,11 @@ async function main() {
   log('daily RV gate ok: second Pedido same day → 0 RV');
   await page.keyboard.press('Escape');
 
-  // 6. Back to the praça via the door, buy + equip a hat at Nanda's stall
+  // 6. Back out of the door onto the rua, down the brick path to the praça, buy + equip a hat at Nanda's stall
   await interact(page, { portal: 'padaria_praca' });
-  await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 15_000, 'back in praça');
+  await waitFor(page, () => window.__tb.game.room?.room === 'rua', null, 15_000, 'back on the rua');
+  await goArea(page, 'praca');
+  log('walked off the rua edge into the praça');
   await sleep(500);
   if (AMBIANCE) {
     const crowd = await cpus(page);
@@ -566,7 +571,8 @@ async function main() {
   await shot(page, '10_praca_hat_parrot');
   await dwell(1500);
 
-  // 6b. Academia do Bairro — enter + one full Treino no tatame match (TB_TEST_ROLL on the server)
+  // 6b. Academia do Bairro (its door is on the rua) — enter + one full Treino no tatame match (TB_TEST_ROLL on the server)
+  await goArea(page, 'rua');
   await interact(page, { portal: 'praca_academia' });
   await waitFor(page, () => window.__tb.game.room?.room === 'academia', null, 15_000, 'academia');
   await waitFor(
@@ -618,7 +624,7 @@ async function main() {
   await page.click('#bout-leave');
   await waitFor(page, () => !document.body.classList.contains('bout-on') && !window.__tb.bout.feed.camera, null, 5000, 'the bout HUD steps aside');
   await interact(page, { portal: 'academia_praca' });
-  await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 15_000, 'back from academia');
+  await waitFor(page, () => window.__tb.game.room?.room === 'rua', null, 15_000, 'back from academia');
   log(`academia bout ok: ${result.winner} by ${result.reason}, ${result.answers} answers`);
 
   // 7. Kitnet: place the free chair

@@ -6,25 +6,37 @@ import type { Manifest } from '../render/pixel/manifest';
 import { T } from '../render/pixel/coords';
 import { terrainTiles } from '../render/pixel/terrainPlan';
 import { FLOOR_SUBSTITUTE } from '../render/pixel/roomLayout';
-import { SNAPSHOT_MINUTE, planSnapshot } from './introSnapshot';
+import { SNAPSHOT_MINUTE, VILA_SNAPSHOT, planSnapshot, planVilaSnapshot } from './introSnapshot';
 import { PAN_ROUTE, introZoom, mapOffset, panCenter } from './introCamera';
 
 const root = path.resolve(__dirname, '../../public/pixel');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8')) as Manifest;
 const atlas = JSON.parse(fs.readFileSync(path.join(root, manifest.atlases.outdoor.data), 'utf8')) as { frames: Record<string, unknown> };
-const vila = ROOMS.praca;
+const rua = ROOMS.rua;
+const praca = ROOMS.praca;
 
-describe('intro snapshot of Vila Ipê', () => {
-  const plan = planSnapshot(vila, manifest);
+describe('intro snapshot of Vila Ipê (the rua above the praça, split into areas)', () => {
+  const plan = planVilaSnapshot(manifest);
 
-  it('covers the whole map at 1 canvas px per art px', () => {
-    expect(plan.width).toBe(vila.cols * T);
-    expect(plan.height).toBe(vila.rows * T);
+  it('is one 640 x 640 picture at 1 canvas px per art px: the rua across the top, the praça under it on the shared brick path', () => {
+    expect(plan.width).toBe(VILA_SNAPSHOT.width);
+    expect(plan.height).toBe(VILA_SNAPSHOT.height);
+    expect(plan.width).toBe(rua.cols * T);
+    expect(VILA_SNAPSHOT.praca.y).toBe(rua.rows * T);
+    // the rua's brick path (portals x18-21) lines up with the praça's entrance (x14-17)
+    const ruaPath = rua.portals.filter((p) => p.edge && p.to === 'praca').map((p) => p.x);
+    const pracaIn = praca.portals.filter((p) => p.edge && p.to === 'rua').map((p) => p.x + VILA_SNAPSHOT.praca.x / T);
+    expect(ruaPath).toEqual(pracaIn);
+    expect(VILA_SNAPSHOT.praca.y / T + praca.rows).toBe(rua.cols);
+    expect(VILA_SNAPSHOT.praca.x / T + praca.cols).toBeLessThanOrEqual(rua.cols);
   });
 
-  it('uses the same terrain tiles as the game and only frames that exist in the atlas', () => {
-    const { tiles } = terrainTiles(vila.floor, manifest.terrain, { substitute: FLOOR_SUBSTITUTE });
-    expect(plan.ops.filter((o) => o.kind === 'tile')).toHaveLength(tiles.length);
+  it('uses the same terrain tiles as the game for each area and only frames that exist in the atlas', () => {
+    const tilesOf = (def: typeof rua) => terrainTiles(def.floor, manifest.terrain, { substitute: FLOOR_SUBSTITUTE }).tiles.length;
+    // rua + praça + two 4 x 24 lawn corners
+    const own = planSnapshot(rua, manifest).ops.filter((o) => o.kind === 'tile').length + planSnapshot(praca, manifest).ops.filter((o) => o.kind === 'tile').length;
+    expect(own).toBe(tilesOf(rua) + tilesOf(praca));
+    expect(plan.ops.filter((o) => o.kind === 'tile').length).toBeGreaterThan(own);
     for (const o of plan.ops) {
       if (o.kind === 'tile') expect(o.idx).toBeLessThan(manifest.terrain.count);
       else expect(atlas.frames[o.frame], o.frame).toBeDefined();
@@ -35,7 +47,7 @@ describe('intro snapshot of Vila Ipê', () => {
     const frames = new Set(plan.ops.flatMap((o) => (o.kind === 'sprite' ? [o.frame] : [])));
     for (const key of ['props/fountain', 'props/ponto_onibus', 'critters/vira_lata_sleep_e/0'])
       expect(frames.has(manifest.sprites[key]?.frame ?? key), key).toBe(true);
-    const padaria = vila.props.find((p) => p.kind === 'fachada' && p.art?.includes('padaria'));
+    const padaria = rua.props.find((p) => p.kind === 'fachada' && p.art?.includes('padaria'));
     expect(padaria).toBeDefined();
     expect(frames.has(manifest.sprites[padaria!.art!].frame)).toBe(true);
     for (let i = 1; i < plan.ops.length; i++) expect(plan.ops[i].depth).toBeGreaterThanOrEqual(plan.ops[i - 1].depth);
@@ -79,8 +91,8 @@ describe('intro pan camera', () => {
   });
 
   it('never shows the void beyond the map and lands on whole device pixels', () => {
-    const mapW = vila.cols * T;
-    const mapH = vila.rows * T;
+    const mapW = VILA_SNAPSHOT.width;
+    const mapH = VILA_SNAPSHOT.height;
     for (const [vw, vh, dpr] of [[1280, 800, 1], [390, 844, 3], [1440, 900, 2]]) {
       const zoom = introZoom(vw, vh);
       for (let t = 0; t < PAN_ROUTE.legSec * 2; t += 7) {

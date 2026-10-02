@@ -326,18 +326,26 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
 
 // ---------------------------------------------------------------- map
 
-/** The pixel minimap of Vila Ipê with the doors, the neighbours and "você" (only while you are out on the street). */
-function mapView(): HTMLElement {
+/** The three open-air areas of Vila Ipê, in walking order (split into areas), each with its minimap in the Mapa panel. */
+const AREAS: { id: RoomId; pt: string; en: string }[] = [
+  { id: 'rua', pt: 'Rua dos Ipês', en: 'Ipê Street' },
+  { id: 'praca', pt: 'Praça Central', en: 'Central Square' },
+  { id: 'feira', pt: 'Feira Livre', en: 'Street Market' },
+];
+const isArea = (r: RoomId | undefined | null): r is RoomId => AREAS.some((a) => a.id === r);
+
+/** The pixel minimap of one area with its doors, the neighbours and "você" (you only show in the area you are in). */
+function mapView(areaId: RoomId): HTMLElement {
   const self = game.self;
-  const here = game.room?.room === 'praca' && self ? (self.path.at(-1) ?? self.from) : null;
-  // the neighbours where they are now: live avatars when you are in the praça, otherwise the schedule at the game clock
-  const npcs =
-    game.room?.room === 'praca'
-      ? game.liveNpcs(performance.now())
-      : npcPosesIn('praca', clock.now()).map((p) => ({ name: npcDefById(p.npc)?.name ?? p.npc, ...poseWalk(p, clock.now()).tile }));
-  const canvas = drawMinimap(ROOMS.praca, here, npcs);
-  canvas.setAttribute('aria-label', 'Mapa da Vila Ipê');
-  return h('div', { class: 'minimap-wrap' }, canvas, h('div', { class: 'minimap-key' }, h('span', { class: 'k door' }), ' portas ', h('span', { class: 'k npc' }), ' vizinhos ', h('span', { class: 'k me' }), ' você'));
+  const inArea = game.room?.room === areaId;
+  const here = inArea && self ? (self.path.at(-1) ?? self.from) : null;
+  // the neighbours where they are now: live avatars when you are in the area, otherwise the schedule at the game clock
+  const npcs = inArea
+    ? game.liveNpcs(performance.now())
+    : npcPosesIn(areaId, clock.now()).map((p) => ({ name: npcDefById(p.npc)?.name ?? p.npc, ...poseWalk(p, clock.now()).tile }));
+  const canvas = drawMinimap(ROOMS[areaId], here, npcs);
+  canvas.setAttribute('aria-label', `Mapa: ${ROOMS[areaId].name}`);
+  return h('div', { class: 'minimap-wrap' }, canvas, h('div', { class: 'minimap-key' }, h('span', { class: 'k door' }), ' portas e saídas ', h('span', { class: 'k npc' }), ' vizinhos ', h('span', { class: 'k me' }), ' você'));
 }
 
 export function openMap(go: (room: RoomId) => void) {
@@ -348,6 +356,19 @@ export function openMap(go: (room: RoomId) => void) {
       h('div', null, h('b', null, pt), en(enText)),
       h('div', null, h('span', { class: 'linecolor' }), locked ? h('span', { style: 'margin-left:8px;font-weight:800' }, 'Em breve') : null),
     );
+  // the minimap shows one area at a time: tabs for the three areas, the one you are in first
+  let shown: RoomId = isArea(game.room?.room) ? game.room!.room! : 'praca';
+  const mapBox = h('div', { class: 'map-areas' });
+  const tabs = h('div', { class: 'map-tabs', role: 'tablist' });
+  const renderMap = () => {
+    tabs.replaceChildren(
+      ...AREAS.map((a) =>
+        h('button', { class: `map-tab ${a.id === shown ? 'on' : ''}`, role: 'tab', 'aria-selected': String(a.id === shown), 'data-area': a.id, onclick: () => ((shown = a.id), renderMap()) }, a.pt),
+      ),
+    );
+    mapBox.replaceChildren(mapView(shown));
+  };
+  renderMap();
   const close = openModal(
     'map',
     h(
@@ -355,16 +376,18 @@ export function openMap(go: (room: RoomId) => void) {
       { class: 'panel' },
       closeBtn(() => close()),
       h('h2', null, 'São Paulo · Vila Ipê'),
-      en('Fast travel is free between rooms you know.'),
-      mapView(),
+      en('Three areas side by side: walk off an edge to go next door. Fast travel is free between places you know.'),
+      tabs,
+      mapBox,
       h(
         'div',
         { class: 'map-grid' },
-        card('praca', 'Praça Central', 'Central Square — hang out, hats, parrot', ['#d9532b', '#f2c230']),
+        card('rua', 'Rua dos Ipês', 'Ipê Street — padaria, newsstand, apartments, academy, bus stop', ['#7a6a5a', '#d8cbb6']),
+        card('praca', 'Praça Central', 'Central Square — fountain, hats, parrot, missions', ['#d9532b', '#f2c230']),
+        card('feira', 'Feira Livre', 'Street market — fruit, vegetables, pastel, flowers (6 am–1 pm)', ['#4f8a3c', '#e8a94f']),
         card('padaria', 'Padaria do Seu Carlos', 'Bakery — breakfast + “Correria no Balcão”', ['#a8452c', '#e8a94f']),
         card('academia', 'Academia do Bairro', 'Word-game roll — academy Portuguese (not real MA training)', ['#2f5f7a', '#8ab4c8']),
         card('kitnet', 'Minha kitnet', 'My studio apartment — decorate', ['#f5e6d3', '#a8c5d4'], false, true),
-        card(null, 'Feira', 'Street market (Phase 1)', null, true),
         card(null, 'Estação de Metrô', 'Subway (Phase 1)', null, true),
         card(null, 'Praia', 'Beach day trip (Phase 2)', null, true),
       ),

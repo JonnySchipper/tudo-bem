@@ -176,7 +176,7 @@ export function vehiclesAt(room: AmbientRoom, t: number, minute: number, opts: T
         }
       }
       // the bus: Rua dos Ipês, eastbound lane, stops at the shelter
-      if (street.id === room.bus.street && lane.dir === 'e') {
+      if (room.bus && street.id === room.bus.street && lane.dir === 'e') {
         for (const at of busArrivals(t, opts.forcedBusAt)) {
           const x = busX(room.bus, t - at);
           raws.push({ id: `bus:${at}`, t0: at - busEntryMs(room.bus, street.x0), type: 'onibus', len: BUS.len, speed: BUS.speed, bus: true, free: x, key: BUS.e, headlights: true, moving: busMoving(t - at) });

@@ -87,12 +87,17 @@ describe('NPCs on the server: positions from the schedule', () => {
   it('roomState carries each NPC of the room as a flagged avatar at its schedule tile (noon)', async () => {
     const world = makeWorld();
     const a = await client(world, 'praca');
-    expect(npcIdsIn(a)).toEqual(['chico', 'julia', 'nanda', 'rosa', 'tia_lu', 'ze']); // noon: the feira vendors are at their stalls
+    expect(npcIdsIn(a)).toEqual(['julia', 'nanda']); // split areas: the praça holds Nanda and Júlia at noon
     const nanda = npcsOf(a).find((v) => v.npc === 'nanda')!;
-    expect(nanda).toMatchObject({ id: npcAvatarId('nanda'), name: 'Nanda', x: 35, y: 13, sitting: false, activity: 'trabalhando', npcInteract: { x: 34, y: 15 }, nameplate: 'verde' });
+    expect(nanda).toMatchObject({ id: npcAvatarId('nanda'), name: 'Nanda', x: 20, y: 1, sitting: false, activity: 'trabalhando', npcInteract: { x: 19, y: 3 }, nameplate: 'verde' });
     expect(nanda.cpu).toBeUndefined();
     expect(isCpuId(nanda.id)).toBe(false);
-    expect(npcsOf(a).find((v) => v.npc === 'julia')).toMatchObject({ x: 22, y: 19, activity: 'trabalhando', npcInteract: { x: 22, y: 20 } });
+    expect(npcsOf(a).find((v) => v.npc === 'julia')).toMatchObject({ x: 13, y: 9, activity: 'trabalhando', npcInteract: { x: 13, y: 10 } });
+    await a.send({ t: 'join', room: 'feira' });
+    expect(npcIdsIn(a)).toEqual(['chico', 'rosa', 'tia_lu', 'ze']); // noon: the feira vendors are at their stalls, in the Feira Livre
+    expect(npcsOf(a).find((v) => v.npc === 'tia_lu')).toMatchObject({ x: 7, y: 5, npcInteract: { x: 7, y: 6 } });
+    await a.send({ t: 'join', room: 'rua' });
+    expect(npcIdsIn(a)).toEqual([]);
     await a.send({ t: 'join', room: 'padaria' });
     expect(npcIdsIn(a)).toEqual(['carlos']);
     expect(npcsOf(a)[0]).toMatchObject({ x: 3, y: 1, npcInteract: { x: 3, y: 3 } });
@@ -117,10 +122,13 @@ describe('NPCs on the server: positions from the schedule', () => {
     expect(npcIdsIn(a)).toEqual(['graca']);
     expect(npcsOf(a)[0]).toMatchObject({ name: 'Dona Graça', x: 3, y: 1, activity: 'trabalhando', npcInteract: { x: 3, y: 3 } });
     await a.send({ t: 'join', room: 'praca' });
-    // Júlia by the banca, Carlos on his bench, Nanda gone
-    expect(npcIdsIn(a)).toEqual(['carlos', 'julia']);
-    expect(npcsOf(a).find((v) => v.npc === 'carlos')).toMatchObject({ x: 28, y: 17, sitting: true, activity: 'sentado' });
-    expect(npcsOf(a).find((v) => v.npc === 'julia')).toMatchObject({ x: 21, y: 6, activity: 'passeando' });
+    // Carlos on his bench in the praça, Nanda gone
+    expect(npcIdsIn(a)).toEqual(['carlos']);
+    expect(npcsOf(a).find((v) => v.npc === 'carlos')).toMatchObject({ x: 24, y: 20, sitting: true, activity: 'sentado' });
+    // Júlia by the banca on the rua
+    await a.send({ t: 'join', room: 'rua' });
+    expect(npcIdsIn(a)).toEqual(['julia']);
+    expect(npcsOf(a).find((v) => v.npc === 'julia')).toMatchObject({ x: 9, y: 6, activity: 'passeando' });
   });
 
   it('the world clock offset (test only) moves the schedules and the serverNow the client clock follows', async () => {
@@ -134,11 +142,12 @@ describe('NPCs on the server: positions from the schedule', () => {
 });
 
 describe('NPCs walk between slots and every instance sees it', () => {
-  it('at 22:00 Seu Carlos leaves the padaria and appears in the praça at the door; Graça takes the counter', async () => {
+  it('at 22:00 Seu Carlos leaves the padaria, comes out on the rua and crosses into the praça; Graça takes the counter', async () => {
     setGameTime(21, 59);
     const world = makeWorld();
     const inPadaria = await client(world, 'padaria');
     const inPraca = await client(world, 'praca');
+    const inRua = await client(world, 'rua');
     expect(npcIdsIn(inPadaria)).toEqual(['carlos', 'graca']); // Graça is having her evening coffee at a table
     const carlosStart = legsBetween(SCHEDULES.carlos![1]!, SCHEDULES.carlos![2]!);
     run(30_000);
@@ -150,13 +159,18 @@ describe('NPCs walk between slots and every instance sees it', () => {
     const gracaJoin = inPadaria.all('avatarJoined').find((m) => m.avatar.npc === 'graca');
     expect(gracaJoin).toBeUndefined(); // she was in the padaria already (at her table)
     expect(inPadaria.all('avatarMoved').some((m) => m.id === npcAvatarId('graca') && m.path.at(-1)!.x === 3 && m.path.at(-1)!.y === 1)).toBe(true);
-    // the praça saw him arrive at the padaria door tile (16,6) and walk to the bench, and sit
+    // the rua saw him come out at the padaria door's sidewalk and walk to the brick path, then leave through the edge
+    const onRua = inRua.all('avatarJoined').find((m) => m.avatar.npc === 'carlos');
+    expect(onRua).toBeTruthy();
+    expect(inRua.all('avatarLeft').some((m) => m.id === npcAvatarId('carlos'))).toBe(true);
+    // the praça saw him come in at the north edge, walk to his bench and sit
     const joined = inPraca.all('avatarJoined').find((m) => m.avatar.npc === 'carlos');
     expect(joined).toBeTruthy();
-    expect(joined!.avatar).toMatchObject({ x: 16, y: 6, activity: 'sentado' });
+    expect(joined!.avatar).toMatchObject({ activity: 'sentado' });
     const walk = inPraca.all('avatarMoved').find((m) => m.id === npcAvatarId('carlos'))!;
     expect(walk.sit).toBe(true);
-    expect(walk.path.at(-1)).toEqual({ x: 28, y: 17 });
+    expect(walk.path.at(-1)).toEqual({ x: 24, y: 20 });
+    expect(carlosStart.map((l) => l.room)).toEqual(['padaria', 'rua', 'praca']);
     expect(carlosStart[0]!.ms).toBeGreaterThan(0);
   });
 
@@ -180,7 +194,7 @@ describe('NPCs walk between slots and every instance sees it', () => {
     setGameTime(5, 59);
     const world = makeWorld();
     const a = await client(world, 'padaria');
-    run(2000);
+    run(6000); // Seu Carlos leaves the Edifício at 06:00, crosses the rua and reaches the padaria door about 3 s later
     const again = await client(world, 'padaria');
     const carlosA = npcsOf(a).find((v) => v.npc === 'carlos');
     expect(carlosA).toBeUndefined(); // he was not yet in the world when `a` joined
@@ -200,18 +214,18 @@ describe('NPC tiles block the player, where the NPC is now', () => {
     setGameTime(12);
     const world = makeWorld();
     const a = await client(world, 'praca');
-    await a.send({ t: 'move', x: 35, y: 13 }); // Nanda's tile
+    await a.send({ t: 'move', x: 20, y: 1 }); // Nanda's tile
     expect(a.all('avatarMoved').filter((m) => m.id === a.s.profile!.id)).toHaveLength(0);
     // Júlia's tile too
-    await a.send({ t: 'move', x: 22, y: 19 });
+    await a.send({ t: 'move', x: 13, y: 9 });
     expect(a.all('avatarMoved').filter((m) => m.id === a.s.profile!.id)).toHaveLength(0);
     // ...but the tile next to her (her interact tile) is fine
-    await a.send({ t: 'move', x: 22, y: 20 });
+    await a.send({ t: 'move', x: 13, y: 10 });
     expect(a.all('avatarMoved').filter((m) => m.id === a.s.profile!.id)).toHaveLength(1);
-    // at night Nanda is gone and (35,13) is walkable
+    // at night Nanda is gone and (20,1) is walkable
     setGameTime(21);
     const b = await client(makeWorld(), 'praca');
-    await b.send({ t: 'move', x: 35, y: 13 });
+    await b.send({ t: 'move', x: 20, y: 1 });
     expect(b.all('avatarMoved').filter((m) => m.id === b.s.profile!.id)).toHaveLength(1);
   });
 
@@ -219,13 +233,13 @@ describe('NPC tiles block the player, where the NPC is now', () => {
     setGameTime(19);
     const world = makeWorld();
     const a = await client(world, 'praca');
-    await a.send({ t: 'move', x: 20, y: 25, sit: true });
+    await a.send({ t: 'move', x: 12, y: 17, sit: true });
     expect(a.all('avatarMoved').filter((m) => m.id === a.s.profile!.id)).toHaveLength(0);
-    await a.send({ t: 'move', x: 21, y: 25, sit: true }); // the other half of the bench
+    await a.send({ t: 'move', x: 13, y: 17, sit: true }); // the other half of the bench
     expect(a.all('avatarMoved').filter((m) => m.id === a.s.profile!.id)).toHaveLength(1);
     setGameTime(9);
     const b = await client(makeWorld(), 'praca');
-    await b.send({ t: 'move', x: 20, y: 25, sit: true });
+    await b.send({ t: 'move', x: 12, y: 17, sit: true });
     expect(b.all('avatarMoved').filter((m) => m.id === b.s.profile!.id)).toHaveLength(1);
   });
 
@@ -275,9 +289,9 @@ describe('D12 at night: the breakfast scene and Me vê um work with Dona Graça'
 });
 
 describe('recados follow the NPC: give uses where the NPC is now', () => {
-  async function withRecado(h: number) {
+  async function withRecado(h: number, room: RoomId = 'praca') {
     setGameTime(h);
-    const a = await client(makeWorld(), 'praca');
+    const a = await client(makeWorld(), room);
     const p = a.s.profile!;
     p.bag = { pao_na_chapa: 1 };
     p.recados!.offered = ['graca_pao_pra_julia'];
@@ -286,24 +300,24 @@ describe('recados follow the NPC: give uses where the NPC is now', () => {
     return a;
   }
 
-  it('by day Júlia stands at the kiosk end of the path: giving from the banca is too far, from her interact tile it works', async () => {
+  it('by day Júlia stands on the path to the fountain: giving from the far lawn is too far, from her interact tile it works', async () => {
     const a = await withRecado(12);
-    await walkTo(a, 20, 6); // where Júlia stands at dawn and at night
+    await walkTo(a, 22, 6); // the north-east lawn, far from her
     await a.send({ t: 'give', npc: 'julia', itemId: 'pao_na_chapa' });
     expect(errors(a)).toEqual(['far']);
-    await walkTo(a, 22, 20);
+    await walkTo(a, 13, 10);
     await a.send({ t: 'give', npc: 'julia', itemId: 'pao_na_chapa' });
     expect(errors(a)).toEqual(['far']);
     expect(a.s.profile!.recados!.done).toContain('graca_pao_pra_julia');
   });
 
-  it('at 23:30 Júlia is at the banca: the old spot no longer works and the banca does', async () => {
-    const a = await withRecado(23);
-    await walkTo(a, 22, 20);
+  it('at 23:30 Júlia is at the banca on the rua: the praça spot no longer works and the banca does', async () => {
+    const a = await withRecado(23, 'rua');
+    await walkTo(a, 13, 10); // the street in front of the Edifício: she is not here
     await a.send({ t: 'give', npc: 'julia', itemId: 'pao_na_chapa' });
     expect(errors(a)).toEqual(['far']);
     expect(a.s.profile!.bag).toEqual({ pao_na_chapa: 1 });
-    await walkTo(a, 20, 6);
+    await walkTo(a, 8, 6);
     await a.send({ t: 'give', npc: 'julia', itemId: 'pao_na_chapa' });
     expect(errors(a)).toEqual(['far']);
     expect(a.s.profile!.recados!.done).toContain('graca_pao_pra_julia');

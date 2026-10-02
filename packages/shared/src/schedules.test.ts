@@ -74,15 +74,15 @@ describe('scheduleAt boundaries', () => {
     expect(scheduleAt('nanda', at(20))!.activity).toBe('em_casa');
   });
 
-  it('Júlia is in the praça at every minute of the day', () => {
+  it('Júlia is out in the rua or the praça at every minute of the day (never at home)', () => {
     for (let m = 0; m < 1440; m++) {
       const s = scheduleAt('julia', m)!;
-      expect(s.room).toBe('praca');
+      expect(['rua', 'praca']).toContain(s.room);
       expect(s.activity).not.toBe('em_casa');
     }
-    expect(scheduleAt('julia', at(6, 59))).toMatchObject({ tile: { x: 21, y: 6 } });
-    expect(scheduleAt('julia', at(7))).toMatchObject({ activity: 'trabalhando' });
-    expect(scheduleAt('julia', at(17))).toMatchObject({ activity: 'sentado', tile: { x: 20, y: 25 } });
+    expect(scheduleAt('julia', at(6, 59))).toMatchObject({ room: 'rua', tile: { x: 9, y: 6 } });
+    expect(scheduleAt('julia', at(7))).toMatchObject({ room: 'praca', activity: 'trabalhando' });
+    expect(scheduleAt('julia', at(17))).toMatchObject({ room: 'praca', activity: 'sentado', tile: { x: 12, y: 17 } });
   });
 
   it('slotIndexAt wraps and takes fractional minutes', () => {
@@ -158,9 +158,14 @@ describe('npcMotion: the timeline', () => {
     expect(npcPoseAt('graca', msAt(at(5, 59)))).toMatchObject({ room: 'padaria', from: { x: 3, y: 1 }, path: [], activity: 'trabalhando' });
     // 06:00 sharp: Carlos comes in at the door and starts to walk to the counter, Graça starts walking out
     const carlos6 = npcPoseAt('carlos', msAt(at(6)))!;
-    expect(carlos6).toMatchObject({ room: 'padaria', from: { x: 1, y: 6 } });
-    expect(carlos6.path.length).toBeGreaterThan(5);
-    expect(carlos6.path.at(-1)).toEqual({ x: 3, y: 1 });
+    // (split into areas: he comes out of the Edifício door on the rua, walks to the padaria door, then in and to the counter)
+    expect(carlos6).toMatchObject({ room: 'rua', from: { x: 12, y: 6 } });
+    expect(carlos6.path.at(-1)).toEqual({ x: 4, y: 5 });
+    const legsIn = legsBetween(SCHEDULES.carlos![0]!, SCHEDULES.carlos![1]!);
+    expect(legsIn.map((l) => l.room)).toEqual(['rua', 'padaria']);
+    expect(legsIn[1]!.from).toEqual({ x: 1, y: 6 });
+    expect(legsIn[1]!.path.length).toBeGreaterThan(5);
+    expect(legsIn[1]!.path.at(-1)).toEqual({ x: 3, y: 1 });
     expect(npcPoseAt('graca', msAt(at(6)))).toMatchObject({ room: 'padaria', from: { x: 3, y: 1 } });
     // a few game minutes later (each is 2 real seconds) both have finished: Carlos stands at the counter, Graça is gone
     expect(npcPoseAt('carlos', msAt(at(6, 15)))).toMatchObject({ from: { x: 3, y: 1 }, path: [], activity: 'trabalhando' });
@@ -168,47 +173,57 @@ describe('npcMotion: the timeline', () => {
     // 21:59 Carlos works, at 22:00 he walks to the door of the padaria...
     expect(npcPoseAt('carlos', msAt(at(21, 59)))).toMatchObject({ room: 'padaria', activity: 'trabalhando', path: [] });
     expect(npcPoseAt('carlos', msAt(at(22)))).toMatchObject({ room: 'padaria', from: { x: 3, y: 1 } });
-    // ...and shows up in the praça at the padaria door tile, walking to the bench
-    const leg1 = legsBetween(SCHEDULES.carlos![1]!, SCHEDULES.carlos![2]!)[0]!;
-    const s = npcPoseAt('carlos', msAt(at(22)) + leg1.ms + 300)!;
-    expect(s.room).toBe('praca');
-    expect(s.from).toEqual({ x: 16, y: 6 });
-    expect(s.sit).toBe(true);
-    expect(npcPoseAt('carlos', msAt(at(22, 15)))).toMatchObject({ room: 'praca', from: { x: 28, y: 17 }, path: [], sit: true, activity: 'sentado' });
+    // ...shows up on the rua at the padaria door tile, walks to the brick path, crosses into the praça and sits on the bench (three legs)
+    const legs = legsBetween(SCHEDULES.carlos![1]!, SCHEDULES.carlos![2]!);
+    expect(legs.map((l) => l.room)).toEqual(['padaria', 'rua', 'praca']);
+    expect(legs.map((l) => l.vanish)).toEqual([true, true, false]);
+    const s = npcPoseAt('carlos', msAt(at(22)) + legs[0]!.ms + 300)!;
+    expect(s.room).toBe('rua');
+    expect(s.from).toEqual({ x: 4, y: 6 });
+    const s2 = npcPoseAt('carlos', msAt(at(22)) + legs[0]!.ms + legs[1]!.ms + 300)!;
+    expect(s2.room).toBe('praca');
+    expect(s2.sit).toBe(true);
+    expect(npcPoseAt('carlos', msAt(at(22, 15)))).toMatchObject({ room: 'praca', from: { x: 24, y: 20 }, path: [], sit: true, activity: 'sentado' });
     expect(npcPoseAt('graca', msAt(at(22, 15)))).toMatchObject({ room: 'padaria', from: { x: 3, y: 1 }, activity: 'trabalhando' });
   });
 
   it('cross-room: the NPC is in exactly one room at every instant of a transition, and only vanishes at the door tile', () => {
     const t0 = msAt(at(22));
-    let sawPadaria = false;
-    let sawPraca = false;
+    const seen = new Set<string>();
     let last: string | null = null;
     for (let ms = 0; ms < 40_000; ms += 100) {
       const p = npcPoseAt('carlos', t0 + ms);
-      const inPadaria = npcPosesIn('padaria', t0 + ms).some((q) => q.npc === 'carlos');
-      const inPraca = npcPosesIn('praca', t0 + ms).some((q) => q.npc === 'carlos');
-      expect(Number(inPadaria) + Number(inPraca)).toBeLessThanOrEqual(1);
-      if (p) expect(p.room).toBe(inPadaria ? 'padaria' : 'praca');
-      if (inPadaria) sawPadaria = true;
-      if (inPraca) sawPraca = true;
-      if (last === 'padaria' && inPraca) expect(p!.from).toEqual({ x: 16, y: 6 });
-      last = inPadaria ? 'padaria' : inPraca ? 'praca' : null;
+      const here = (['padaria', 'rua', 'praca'] as const).filter((r) => npcPosesIn(r, t0 + ms).some((q) => q.npc === 'carlos'));
+      expect(here.length).toBeLessThanOrEqual(1);
+      if (p) expect(p.room).toBe(here[0]);
+      const room = here[0] ?? null;
+      if (room) seen.add(room);
+      // a hop appears at the arrival tile of the portal it took: padaria -> rua at the padaria door's sidewalk, rua -> praca on the north edge of the praça
+      if (last === 'padaria' && room === 'rua') expect(p!.from).toEqual({ x: 4, y: 6 });
+      if (last === 'rua' && room === 'praca') expect(p!.from.y).toBe(1);
+      last = room;
     }
-    expect(sawPadaria && sawPraca).toBe(true);
+    expect([...seen].sort()).toEqual(['padaria', 'praca', 'rua']);
   });
 
   it('em_casa transitions vanish at the home door and appear at the home entry', () => {
-    // Nanda 20:00: walks from her stall to the Edifício door (24,5), then is gone
+    // Nanda 20:00: walks from her stall in the praça up to the rua and to the Edifício door (12,5), then is gone
     const n = npcPoseAt('nanda', msAt(at(20)))!;
-    expect(n).toMatchObject({ room: 'praca', from: { x: 35, y: 13 } });
-    expect(n.path.at(-1)).toEqual(NPC_HOME_DOORS.praca!.exit);
+    expect(n).toMatchObject({ room: 'praca', from: { x: 20, y: 1 } });
+    const down = legsBetween(SCHEDULES.nanda![1]!, SCHEDULES.nanda![2]!);
+    expect(down.map((l) => l.room)).toEqual(['praca', 'rua']);
+    expect(down.at(-1)!.path.at(-1)).toEqual(NPC_HOME_DOORS.rua!.exit);
+    expect(down.at(-1)!.vanish).toBe(true);
     expect(npcPoseAt('nanda', msAt(at(20, 15)))).toBeNull();
-    // Nanda 08:00: appears at the Edifício entry and walks to the stall
+    // Nanda 08:00: appears at the Edifício entry on the rua and walks to the stall in the praça
     const m = npcPoseAt('nanda', msAt(at(8)))!;
-    expect(m.from).toEqual(NPC_HOME_DOORS.praca!.entry);
-    expect(m.path.at(-1)).toEqual({ x: 35, y: 13 });
+    expect(m).toMatchObject({ room: 'rua' });
+    expect(m.from).toEqual(NPC_HOME_DOORS.rua!.entry);
+    const up = legsBetween(SCHEDULES.nanda![0]!, SCHEDULES.nanda![1]!);
+    expect(up.map((l) => l.room)).toEqual(['rua', 'praca']);
+    expect(up.at(-1)!.path.at(-1)).toEqual({ x: 20, y: 1 });
     expect(npcPoseAt('nanda', msAt(at(7, 59)))).toBeNull();
-    expect(npcPoseAt('nanda', msAt(at(8, 15)))).toMatchObject({ from: { x: 35, y: 13 }, path: [], activity: 'trabalhando', interact: { x: 34, y: 15 } });
+    expect(npcPoseAt('nanda', msAt(at(8, 15)))).toMatchObject({ room: 'praca', from: { x: 20, y: 1 }, path: [], activity: 'trabalhando', interact: { x: 19, y: 3 } });
   });
 
   it('a walk in progress resumes from any moment: the position advances with the clock and ends on the slot tile', () => {
@@ -241,15 +256,39 @@ describe('npcMotion: the timeline', () => {
     // her tile blocks statically (she never moves), the scheduled NPCs' tiles do not
     expect(buildGrid(ROOMS.academia).blocked.has('8,4')).toBe(true);
     expect(buildGrid(ROOMS.padaria).blocked.has('3,1')).toBe(false);
-    expect(buildGrid(ROOMS.praca).blocked.has('35,13')).toBe(false);
+    expect(buildGrid(ROOMS.praca).blocked.has('20,1')).toBe(false);
   });
 
-  it('at any time of day the praça holds Júlia, and exactly the NPCs the schedules say', () => {
+  it('at any time of day Júlia is out in the rua or the praça, and the padaria has a baker', () => {
     for (let m = 0; m < 1440; m += 7) {
-      const there = new Set(npcPosesIn('praca', msAt(m + 30)).map((q) => q.npc));
+      const there = new Set([...npcPosesIn('praca', msAt(m + 30)), ...npcPosesIn('rua', msAt(m + 30))].map((q) => q.npc));
       expect(there.has('julia'), `minute ${m}`).toBe(true);
       const padaria = npcPosesIn('padaria', msAt(m + 30)).map((q) => q.npc);
       expect(padaria.some((n) => n === 'carlos' || n === 'graca'), `padaria minute ${m}`).toBe(true);
     }
+  });
+});
+
+describe('multi-area routes (split into areas)', () => {
+  it('the feira vendors walk home -> rua -> praça -> feira before the stalls open, and back (every leg walkable, under 30 s in all)', () => {
+    for (const id of ['ze', 'chico', 'rosa'] as const) {
+      const slots = SCHEDULES[id]!;
+      const toWork = legsBetween(slots[0]!, slots[1]!);
+      expect(toWork.map((l) => l.room), id).toEqual(['rua', 'praca', 'feira']);
+      expect(toWork.every((l) => !l.broken)).toBe(true);
+      expect(toWork.reduce((n, l) => n + l.ms, 0)).toBeLessThan(30_000);
+      const toHome = legsBetween(slots[1]!, slots[2]!);
+      expect(toHome.map((l) => l.room), id).toEqual(['feira', 'praca', 'rua']);
+      expect(toHome.at(-1)!.vanish).toBe(true);
+    }
+    // Tia Lu closes the stall at 13:00 and walks to the praça bench (feira -> praça, two legs)
+    const tia = SCHEDULES.tia_lu!;
+    expect(legsBetween(tia[1]!, tia[2]!).map((l) => l.room)).toEqual(['feira', 'praca']);
+  });
+
+  it('an edge hop takes the portal tile nearest to where the NPC is (the opening is several tiles wide)', () => {
+    const legs = legsBetween(SCHEDULES.carlos![1]!, SCHEDULES.carlos![2]!);
+    const edgeTile = legs[1]!.path.at(-1)!;
+    expect(ROOMS.rua.portals.some((p) => p.edge && p.to === 'praca' && p.x === edgeTile.x && p.y === edgeTile.y)).toBe(true);
   });
 });

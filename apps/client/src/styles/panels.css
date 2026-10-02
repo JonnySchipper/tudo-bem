@@ -280,3 +280,29 @@ html {
 }
 
 /* phones: Me vê um is a full-bleed sheet with its own padding; leave room for the awning and the close key */
+/* Mapa: tabs for the three open-air areas (split into areas) */
+.map-tabs {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 8px 0 4px;
+}
+.map-tab {
+  padding: 4px 12px;
+  font-weight: 800;
+  border: 0;
+  cursor: pointer;
+  background: var(--hud-paper, #f5e6d3);
+  color: var(--hud-ink, #573c2c);
+  box-shadow: 0 -2px 0 0 var(--hud-ink, #573c2c), 0 2px 0 0 var(--hud-ink, #573c2c), -2px 0 0 0 var(--hud-ink, #573c2c), 2px 0 0 0 var(--hud-ink, #573c2c);
+}
+.map-tab.on {
+  background: var(--hud-ink, #573c2c);
+  color: var(--hud-paper, #f5e6d3);
+}
+.map-areas .minimap {
+  image-rendering: pixelated;
+  width: min(100%, calc(var(--mm-cols, 40) * 8px));
+  height: auto;
+}

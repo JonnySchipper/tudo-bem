@@ -153,7 +153,7 @@ describe('World', () => {
     const ids = clients.map((c) => c.last('roomState')!.instanceId);
     expect(ids.slice(0, 16).every((id) => id === 'praca#1')).toBe(true);
     expect(ids[16]).toBe('praca#2');
-    expect(clients[16].last('roomState')!.instanceName).toBe('Vila Ipê · Sul');
+    expect(clients[16].last('roomState')!.instanceName).toBe('Praça Central · Sul');
   });
 
   it('broadcasts chat verbatim with gloss, warns without rewriting, blocks PII + alcohol', async () => {
@@ -243,14 +243,17 @@ describe('World', () => {
     const start = a.s.profile!.coins;
 
     // Walk + sit + wave in the praça
-    await a.send({ t: 'move', x: 20, y: 17, sit: true });
+    await a.send({ t: 'move', x: 11, y: 6, sit: true });
     advance(30_000);
     expect(a.s.profile!.tutorial.sentar).toBe(true);
     await a.send({ t: 'emote', kind: 'oi' });
     await a.send({ t: 'chat', text: 'Bom dia, pessoal!' });
 
-    // Enter padaria through the door
-    await a.send({ t: 'move', x: 16, y: 5 });
+    // Walk off the north edge of the praça: the Rua dos Ipês, then in through the padaria door
+    await a.send({ t: 'move', x: 15, y: 0 });
+    advance(60_000);
+    expect(a.last('roomState')!.room).toBe('rua');
+    await a.send({ t: 'move', x: 4, y: 5 });
     advance(60_000);
     await a.send({ t: 'portal', portalId: 'praca_padaria' });
     expect(a.last('roomState')!.room).toBe('padaria');
@@ -384,8 +387,8 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
     const { world } = ambient();
     const a = await client(world);
     const cpus = cpusSeen(a);
-    expect(cpus.length).toBeGreaterThanOrEqual(4);
-    expect(cpus.length).toBeLessThanOrEqual(8);
+    expect(cpus.length).toBeGreaterThanOrEqual(3);
+    expect(cpus.length).toBeLessThanOrEqual(4);
     expect(CPU_NAMES).toHaveLength(48);
     for (const c of cpus) {
       expect(isCpuId(c.id)).toBe(true);
@@ -394,7 +397,7 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
       expect(c.name).not.toMatch(/\s/);
     }
     expect(new Set(cpus.map((c) => c.name)).size).toBe(cpus.length);
-    expect(cpus.filter((c) => c.sitting).length).toBeGreaterThan(cpus.length / 2);
+    expect(cpus.filter((c) => c.sitting).length).toBeGreaterThanOrEqual(cpus.length / 2);
     expect(world.stats().instances['praca#1']).toBe(1);
   });
 
@@ -437,7 +440,7 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
     expect(a.all('chat').filter((m) => isCpuId(m.id))).toEqual([]);
   });
 
-  const ambianceTilesOk = (roomId: 'praca' | 'academia', map: { spots: Tile[]; doorSpots: Tile[]; entries: Tile[] }) => {
+  const ambianceTilesOk = (roomId: 'praca' | 'rua' | 'feira' | 'academia', map: { spots: Tile[]; doorSpots: Tile[]; entries: Tile[] }) => {
     const room = ROOMS[roomId];
     const grid = buildGrid(room);
     const reserved = new Set([
@@ -456,8 +459,12 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
   };
 
   it('keeps every ambiance tile walkable and off doors, spawn and interact tiles', async () => {
-    const { PRACA_AMBIANCE, ACADEMIA_AMBIANCE } = await import('@tudobem/shared');
+    const { PRACA_AMBIANCE, RUA_AMBIANCE, FEIRA_AMBIANCE, ACADEMIA_AMBIANCE } = await import('@tudobem/shared');
     ambianceTilesOk('praca', PRACA_AMBIANCE);
+    ambianceTilesOk('rua', RUA_AMBIANCE);
+    ambianceTilesOk('feira', FEIRA_AMBIANCE);
+    // the feira's shoppers browse on the free paving in front of the stalls
+    for (const t of FEIRA_AMBIANCE.feiraSpots!) expect(isWalkable(buildGrid(ROOMS.feira), t.x, t.y), `feira shopper spot ${t.x},${t.y}`).toBe(true);
     ambianceTilesOk('academia', ACADEMIA_AMBIANCE);
   });
 

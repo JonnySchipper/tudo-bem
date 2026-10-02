@@ -14,16 +14,17 @@ export const CPU_NAMES: readonly string[] = namePack.names;
 export const CPU_ID_PREFIX = 'cpu-';
 export const isCpuId = (id: string) => id.startsWith(CPU_ID_PREFIX);
 
-/** Visible CPUs for a Praça instance with `humans` players in it (Live Ops §1 targets). */
+/**
+ * Visible CPUs for an instance with  players in it (Live Ops §1 targets). Split into areas: each outdoor area is small and calm, so
+ * each gets fewer CPUs than the old 56 x 40 map's 8 (Rua 3, Praça 4, Feira 3 at 0-1 humans); the more humans the fewer CPUs.
+ */
 export function cpuTarget(humans: number, room: RoomId = 'academia'): number {
-  if (room === 'praca') {
-    // Vila Ipê is 56 x 40 tiles: more neighbours on the street, and the same rule as ever, the more humans the fewer CPUs (max 8 at 0-1 humans)
-    if (humans <= 1) return 8;
-    if (humans === 2) return 6;
-    if (humans <= 4) return 5;
-    if (humans <= 6) return 3;
-    if (humans <= 8) return 2;
-    if (humans <= 12) return 1;
+  if (room === 'praca' || room === 'rua' || room === 'feira') {
+    const max = room === 'praca' ? 4 : 3;
+    if (humans <= 1) return max;
+    if (humans === 2) return max - 1;
+    if (humans <= 6) return Math.max(1, max - 2);
+    if (humans <= 12) return room === 'praca' ? 1 : 0;
     return 0;
   }
   if (humans <= 1) return 5; // 0–1 humans → 4–6
@@ -34,55 +35,33 @@ export function cpuTarget(humans: number, room: RoomId = 'academia'): number {
   return 0;
 }
 
-/** Share of CPUs that idle on a bench; the rest walk the edge → Padaria door → bench loop. */
+/** Share of CPUs that idle on a bench; the rest walk the edge → door → bench loop. */
 export const CPU_SITTER_SHARE = 0.6;
 
-/** Vila Ipê tiles the CPUs use. Kept off doors, arrival tiles, spawn and every interact tile. */
-export const PRACA_AMBIANCE: { spots: Tile[]; doorSpots: Tile[]; entries: Tile[]; feiraSpots?: Tile[] } = {
-  /** Places to stand for a bit: sidewalks, the brick bar, the lawns' edges. */
-  spots: [
-    { x: 11, y: 7 },
-    { x: 27, y: 13 },
-    { x: 37, y: 13 },
-    { x: 46, y: 7 },
-    { x: 11, y: 13 },
-    { x: 17, y: 22 },
-    { x: 33, y: 22 },
-    { x: 19, y: 25 },
-    { x: 34, y: 27 },
-    { x: 50, y: 9 },
-    // V2: the coreto's steps, the playground's edge, the lawn by the picnic, the coconut cart, the pipoqueiro
-    { x: 35, y: 21 },
-    { x: 18, y: 22 },
-    { x: 14, y: 22 },
-    { x: 27, y: 15 },
-    { x: 32, y: 28 },
-  ],
+type AmbMap = { spots: Tile[]; doorSpots: Tile[]; entries: Tile[]; feiraSpots?: Tile[] };
+
+/** Rua dos Ipês: the sidewalks and the lawn strip. Kept off doors, arrival tiles, spawn and every interact tile. */
+export const RUA_AMBIANCE: AmbMap = {
+  spots: [{ x: 13, y: 7 }, { x: 20, y: 6 }, { x: 24, y: 7 }, { x: 33, y: 6 }, { x: 30, y: 13 }, { x: 8, y: 13 }, { x: 16, y: 13 }, { x: 5, y: 13 }, { x: 37, y: 6 }],
   /** Near the Padaria entrance (CPUs never go in). */
-  doorSpots: [
-    { x: 15, y: 7 },
-    { x: 14, y: 7 },
-    { x: 16, y: 7 },
-  ],
-  /** Where CPUs walk in from / out to when the crowd grows or thins: the street ends. */
-  entries: [
-    { x: 2, y: 9 },
-    { x: 53, y: 10 },
-    { x: 2, y: 33 },
-    { x: 53, y: 34 },
-  ],
-  /** Where the shoppers browse while the feira is open (06:00-13:00): in front of the stalls and along the aisle, never on a vendor's talking spot. */
-  feiraSpots: [
-    { x: 43, y: 20 },
-    { x: 47, y: 20 },
-    { x: 48, y: 19 },
-    { x: 53, y: 20 },
-    { x: 46, y: 21 },
-    { x: 52, y: 22 },
-    { x: 43, y: 27 },
-    { x: 47, y: 26 },
-    { x: 53, y: 27 },
-  ],
+  doorSpots: [{ x: 3, y: 7 }, { x: 4, y: 7 }, { x: 6, y: 6 }],
+  /** Where CPUs walk in from / out to: the street ends, and the brick path to the praça. */
+  entries: [{ x: 2, y: 9 }, { x: 37, y: 10 }, { x: 3, y: 10 }, { x: 36, y: 9 }],
+};
+
+/** Praça Central. */
+export const PRACA_AMBIANCE: AmbMap = {
+  spots: [{ x: 13, y: 13 }, { x: 19, y: 13 }, { x: 13, y: 6 }, { x: 17, y: 19 }, { x: 14, y: 19 }, { x: 9, y: 13 }, { x: 25, y: 13 }, { x: 8, y: 10 }, { x: 24, y: 12 }, { x: 10, y: 21 }],
+  doorSpots: [{ x: 15, y: 3 }, { x: 16, y: 3 }, { x: 14, y: 4 }],
+  entries: [{ x: 15, y: 1 }, { x: 16, y: 1 }, { x: 30, y: 11 }, { x: 30, y: 12 }],
+};
+
+/** Feira Livre: the aisle and the free paving; while the feira is open (06:00-13:00) the shoppers browse in front of the stalls, never on a vendor's talking spot. */
+export const FEIRA_AMBIANCE: AmbMap = {
+  spots: [{ x: 4, y: 9 }, { x: 15, y: 9 }, { x: 18, y: 8 }, { x: 20, y: 6 }, { x: 22, y: 14 }, { x: 19, y: 15 }, { x: 26, y: 8 }, { x: 10, y: 16 }, { x: 24, y: 15 }, { x: 3, y: 13 }],
+  doorSpots: [{ x: 4, y: 8 }, { x: 3, y: 9 }, { x: 4, y: 10 }],
+  entries: [{ x: 1, y: 8 }, { x: 1, y: 9 }],
+  feiraSpots: [{ x: 6, y: 6 }, { x: 8, y: 6 }, { x: 12, y: 6 }, { x: 14, y: 6 }, { x: 6, y: 14 }, { x: 8, y: 14 }, { x: 12, y: 14 }, { x: 14, y: 14 }, { x: 9, y: 9 }, { x: 11, y: 9 }],
 };
 
 /**
@@ -123,6 +102,8 @@ export function ambianceNavGrid(room: RoomDef): RoomGrid {
 
 export const ROOM_AMBIANCE: Partial<Record<RoomId, { spots: Tile[]; doorSpots: Tile[]; entries: Tile[]; feiraSpots?: Tile[] }>> = {
   praca: PRACA_AMBIANCE,
+  rua: RUA_AMBIANCE,
+  feira: FEIRA_AMBIANCE,
   academia: ACADEMIA_AMBIANCE,
 };
 

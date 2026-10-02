@@ -3,8 +3,11 @@ import { FLOOR_CHARS, ROOMS } from '@tudobem/shared';
 import { AMBIENT } from '../render/pixel/ambientData';
 import { FOOTSTEPS, FootstepClock, SILENT_MIX, STEP_PX, daylight, falloff, radioOn, stepPitch, trafficPresence, zoneMix } from './zones';
 
-const z = AMBIENT.praca.audio;
+// split areas: the traffic hum belongs to the rua, the fountain and the dog corner's radio to the praça, the feira has only the ambient birds
+const z = AMBIENT.rua.audio;
+const zp = AMBIENT.praca.audio;
 const at = (x: number, y: number, minute = 720, rain = 0) => zoneMix(z, { x, y, minute, rain });
+const atPraca = (x: number, y: number, minute = 720, rain = 0) => zoneMix(zp, { x, y, minute, rain });
 const T = 16;
 
 describe('falloff', () => {
@@ -22,23 +25,25 @@ describe('falloff', () => {
 });
 
 describe('zone mix', () => {
-  it('has traffic hum at the street and next to nothing at the far end of the praça', () => {
+  it('has traffic hum on the rua (loudest at the street, softer at the lawn strip) and none in the praça or the feira', () => {
     const street = at(25 * T, 10 * T);
-    const pracaMid = at(25 * T, 22 * T);
-    const south = at(25 * T, 34 * T);
     expect(street.traffic).toBeGreaterThan(0.95);
-    expect(south.traffic).toBeGreaterThan(0.95);
-    expect(pracaMid.traffic).toBeLessThan(0.05);
     // the hum grows as you walk to the street
-    expect(at(25 * T, 12 * T).traffic).toBeGreaterThan(at(25 * T, 15 * T).traffic);
-    expect(at(25 * T, 15 * T).traffic).toBeGreaterThan(at(25 * T, 17 * T).traffic);
+    expect(at(25 * T, 15 * T).traffic).toBeLessThan(street.traffic);
+    expect(at(25 * T, 15 * T).traffic).toBeGreaterThan(0);
+    // the praça and the feira have no street at all: calm
+    for (const [x, y] of [[16 * T, 5 * T], [16 * T, 16 * T], [5 * T, 20 * T]]) expect(atPraca(x, y).traffic).toBe(0);
+    expect(zoneMix(AMBIENT.feira.audio, { x: 10 * T, y: 8 * T, minute: 720, rain: 0 }).traffic).toBe(0);
   });
 
-  it('puts the fountain at its basin', () => {
-    expect(at(z.fountain.x, z.fountain.y + 3 * T).fountain).toBeCloseTo(falloff(3 * T, 44, 200), 5);
-    expect(at(z.fountain.x, z.fountain.y).fountain).toBe(1);
-    expect(at(z.fountain.x + 250, z.fountain.y).fountain).toBe(0);
-    expect(at(5 * T, 26 * T).fountain).toBe(0);
+  it('puts the fountain at its basin (the praça), and nowhere else', () => {
+    expect(atPraca(zp.fountain.x, zp.fountain.y + 3 * T).fountain).toBeCloseTo(falloff(3 * T, 44, 200), 5);
+    expect(atPraca(zp.fountain.x, zp.fountain.y).fountain).toBe(1);
+    expect(atPraca(zp.fountain.x + 250, zp.fountain.y).fountain).toBe(0);
+    expect(atPraca(2 * T, 2 * T).fountain).toBe(0);
+    // the rua and the feira are out of earshot of it
+    expect(at(20 * T, 8 * T).fountain).toBe(0);
+    expect(zoneMix(AMBIENT.feira.audio, { x: 10 * T, y: 8 * T, minute: 720, rain: 0 }).fountain).toBe(0);
   });
 
   it('plays a radio only near the houses, and only in waking hours', () => {
@@ -77,15 +82,15 @@ describe('zone mix', () => {
   });
 
   it('thins the traffic hum at night and nearly silences it from 01:00 to 05:00', () => {
-    const street = (m: number) => at(25 * T, 10 * T, m).traffic;
+    const street = (m: number) => at(20 * T, 10 * T, m).traffic;
     expect(street(12 * 60)).toBeGreaterThan(street(23 * 60));
     expect(street(3 * 60)).toBeLessThan(0.2);
     expect(trafficPresence(3 * 60)).toBeLessThan(trafficPresence(23 * 60));
   });
 
   it('keeps every gain in 0..1', () => {
-    for (let x = 0; x < 56 * T; x += 37)
-      for (let y = 0; y < 40 * T; y += 41)
+    for (let x = 0; x < 40 * T; x += 37)
+      for (let y = 0; y < 24 * T; y += 41)
         for (const [m, r] of [[0, 0], [400, 0.3], [720, 0], [1200, 1], [1439, 0.55]] as const) {
           const g = at(x, y, m, r);
           for (const k of Object.keys(SILENT_MIX) as (keyof typeof SILENT_MIX)[]) {
@@ -95,14 +100,23 @@ describe('zone mix', () => {
         }
   });
 
-  it('uses zones that sit inside the map', () => {
-    const def = ROOMS.praca;
-    for (const p of [z.fountain, ...z.radios, ...z.streets.map((s) => ({ x: (s.x0 + s.x1) / 2, y: s.y }))]) {
-      expect(p.x).toBeGreaterThan(0);
-      expect(p.x).toBeLessThan(def.cols * T);
-      expect(p.y).toBeGreaterThan(0);
-      expect(p.y).toBeLessThan(def.rows * T);
+  it('uses zones that sit inside their own map (a room without a fountain parks it far outside)', () => {
+    for (const id of ['rua', 'praca', 'feira'] as const) {
+      const def = ROOMS[id];
+      const zones = AMBIENT[id].audio;
+      const pts = [...zones.radios, ...zones.streets.map((s) => ({ x: (s.x0 + s.x1) / 2, y: s.y }))];
+      if (zones.fountain.x > -1000) pts.push(zones.fountain);
+      for (const p of pts) {
+        expect(p.x, id).toBeGreaterThan(0);
+        expect(p.x, id).toBeLessThan(def.cols * T);
+        expect(p.y, id).toBeGreaterThan(0);
+        expect(p.y, id).toBeLessThan(def.rows * T);
+      }
     }
+    // only the rua has a street, only the praça a fountain
+    expect(AMBIENT.praca.audio.streets).toEqual([]);
+    expect(AMBIENT.feira.audio.streets).toEqual([]);
+    expect(AMBIENT.rua.audio.streets).toHaveLength(1);
   });
 });
 

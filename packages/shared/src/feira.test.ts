@@ -226,7 +226,7 @@ describe('hours and the vendors on the map', () => {
     expect(scheduleAt('ze', 14 * 60)!.activity).toBe('em_casa');
   });
   it('each stall is a prop with its vendor, the vendor stands in front of it (V2) and the customer spot is one tile further', () => {
-    const stalls = ROOMS.praca.props.filter((p) => p.kind === 'feira');
+    const stalls = ROOMS.feira.props.filter((p) => p.kind === 'feira');
     expect(stalls.map((p) => p.vendor).sort()).toEqual(['chico', 'rosa', 'tia_lu', 'ze']);
     for (const p of stalls) {
       const npc = ALL_NPCS.find((n) => n.id === VENDORS[p.vendor!].npc)!;

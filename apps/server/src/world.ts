@@ -783,6 +783,10 @@ export class World {
     const done = () => {
       if (s.avatar !== a || a.seq !== seq || s.instance !== inst) return;
       if (path.length) this.completeStep(s, 'andar');
+      // split areas: a walk that ends on a map-edge tile carries you into the next area
+      const end = path.at(-1) ?? from;
+      const edge = inst.def.portals.find((p) => p.edge && p.x === end.x && p.y === end.y);
+      if (edge) return this.join(s, edge.to, {}, { tile: edge.arrive, dir: edge.arriveDir });
       if (wantsSit) {
         a.sitting = true;
         this.completeStep(s, 'sentar');
@@ -823,7 +827,7 @@ export class World {
     if (kind !== 'oi') return;
     this.completeStep(s, 'acenar');
     s.instance.crowd?.onWave(this.currentTile(s).tile);
-    if (s.instance.def.id === 'praca' && this.hasCompany(s.instance)) this.missionStep(s, 'cumprimenta');
+    if (s.instance.def.outdoor && this.hasCompany(s.instance)) this.missionStep(s, 'cumprimenta');
   }
 
   // ---------- chat ----------
@@ -851,7 +855,7 @@ export class World {
     if (verdict.action === 'warn' && verdict.note) s.send({ t: 'notice', level: 'warn', pt: verdict.note.pt, en: verdict.note.en });
     this.completeStep(s, 'conversar');
     this.caderno.used(s, verdict.text);
-    if (inst.def.id === 'praca' && GREETING.test(verdict.text) && this.hasCompany(inst)) this.missionStep(s, 'cumprimenta');
+    if (inst.def.outdoor && GREETING.test(verdict.text) && this.hasCompany(inst)) this.missionStep(s, 'cumprimenta');
     if (greetingKind(verdict.text)) this.recados.onEvent(s, { kind: 'greeted', text: verdict.text, minute: gameMinutes(this.clockNow()), company: this.hasCompany(inst) });
   }
 

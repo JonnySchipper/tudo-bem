@@ -64,14 +64,15 @@ export class FeiraCounter {
       return null;
     }
     const room = s.instance.def.id;
-    if (room !== 'praca') {
-      this.err(s, 'far', 'A feira fica na rua.', 'The market is out on the street.');
+    // the stalls are in the Feira Livre; the Hortifrúti corner is at the banca on the Rua dos Ipês
+    if (room !== (vendor === 'banca' ? 'rua' : 'feira')) {
+      this.err(s, 'far', vendor === 'banca' ? 'O hortifrúti fica na banca.' : 'A feira fica na Feira Livre.', vendor === 'banca' ? 'The greengrocer is at the newsstand.' : 'The market is in the Feira Livre.');
       return null;
     }
     const tile = this.d.tileOf(s);
     if (vendor === 'banca') {
       // the Hortifrúti corner sells at every hour (D12)
-      const crate = ROOMS.praca.props.find((p) => p.vendor === 'banca');
+      const crate = ROOMS.rua.props.find((p) => p.vendor === 'banca');
       const spots = crate ? [{ x: crate.x, y: crate.y }, ...(crate.interact ? [crate.interact] : [])] : [];
       if (!spots.some((t) => tileDistance(tile, t) <= FEIRA_RANGE)) {
         this.err(s, 'far', 'Chegue mais perto do hortifrúti.', 'Walk closer to the greengrocer.');
@@ -80,7 +81,7 @@ export class FeiraCounter {
       return vendor;
     }
     const npc = VENDORS[vendor].npc;
-    const v = this.d.npcsIn('praca').find((n) => n.id === npc && n.activity === 'trabalhando');
+    const v = this.d.npcsIn('feira').find((n) => n.id === npc && n.activity === 'trabalhando');
     if (!v) {
       this.err(s, 'feira_closed', FEIRA_CLOSED_NOTE.pt, FEIRA_CLOSED_NOTE.en);
       return null;
