@@ -10,7 +10,6 @@ import {
   INTENTS,
   PEGADA_MAX,
   BELT_LABELS,
-  STRIPES_PER_BELT,
   cpuLook,
   type BjjProgress,
   type BoutIntentOut,
@@ -27,6 +26,7 @@ import { h, en } from './dom';
 import { speak, stopSpeaking } from '../audio';
 import { ambience } from '../ambience';
 import { readShowEnglish, writeShowEnglish } from './dialogueLogic';
+import { beltChip } from './beltChip';
 import { boutFeed } from '../render/pixel/boutFeed';
 import { mountCharPreview } from '../render/pixel/charPreview';
 import { RISK_LABEL, callOf, clockAt, cuesForEnd, cuesForFinishEnd, cuesForResolve, ladderDots, momentumFrac, resultBanner } from './boutLogic';
@@ -61,9 +61,7 @@ export class BoutUI {
   private partnerId: PartnerId | null = null;
   private bjj: BjjProgress | null = null;
   private order: number[] = [];
-  private sentAt = 0;
   private quitArmed = 0;
-  private lastBanner = '';
   private previews: { stop: () => void }[] = [];
   private closedFlag = false;
 
@@ -83,12 +81,33 @@ export class BoutUI {
       this.ro.observe(this.top);
     }
     window.addEventListener('resize', this.onResize);
+    document.addEventListener('keydown', this.onKey);
     boutFeed.setCamera(true);
     this.tick();
   }
 
   // ------------------------------------------------------------------ plumbing
   private onResize = () => this.measure();
+
+  /** Desktop keys: 1-4 pick the intent or the answer, F goes for the finalização (typing in the answer box is left alone). */
+  private onKey = (e: KeyboardEvent): void => {
+    if (this.closedFlag || e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target as HTMLElement | null;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
+    const n = Number(e.key);
+    if (n >= 1 && n <= 4) {
+      const els = this.body.querySelectorAll<HTMLButtonElement>(this.phase === 'intent' ? '.bout-intent:not(.finalizar)' : this.phase === 'challenge' ? '.bout-opt' : '.bout-card-partner:not(.locked)');
+      const el = els[n - 1];
+      if (el && !el.disabled) {
+        e.preventDefault();
+        el.click();
+      }
+    } else if ((e.key === 'f' || e.key === 'F') && this.phase === 'intent') {
+      this.body.querySelector<HTMLButtonElement>('.bout-intent.finalizar')?.click();
+    } else if (e.key === 'Enter' && this.phase === 'lobby') {
+      this.body.querySelector<HTMLButtonElement>('#bout-start')?.click();
+    }
+  };
 
   private measure(): void {
     const ph = this.panel.getBoundingClientRect().height;
@@ -107,6 +126,7 @@ export class BoutUI {
     cancelAnimationFrame(this.raf);
     this.ro?.disconnect();
     window.removeEventListener('resize', this.onResize);
+    document.removeEventListener('keydown', this.onKey);
     for (const p of this.previews) p.stop();
     this.previews = [];
     stopSpeaking();
@@ -228,14 +248,7 @@ export class BoutUI {
   }
 
   private beltRow(b: BjjProgress): HTMLElement {
-    const label = BELT_LABELS[b.belt];
-    return h(
-      'span',
-      { class: `bout-belt belt-${b.belt}`, id: 'bout-belt', title: `${label.pt} · ${label.en}` },
-      h('i', { class: 'band' }),
-      h('span', { class: 'bout-belt-name' }, ...this.bi(label.pt, label.en)),
-      h('span', { class: 'bout-stripes' }, ...Array.from({ length: STRIPES_PER_BELT }, (_, i) => h('i', { class: i < b.stripes ? 'on' : '' }))),
-    );
+    return beltChip(b.belt, b.stripes);
   }
 
   // ------------------------------------------------------------------ intro
@@ -278,7 +291,7 @@ export class BoutUI {
     this.locked = false;
     this.setSnap(m.st);
     this.startTimer(m.pickMs);
-    const chips = m.intents.map((i) => this.intentChip(i, () => this.pickIntent(m.seq, i.id)));
+    const chips = m.intents.map((i, k) => this.intentChip(i, () => this.pickIntent(m.seq, i.id), k + 1));
     const fin = m.finish
       ? h(
           'button',
@@ -303,11 +316,11 @@ export class BoutUI {
     this.measure();
   }
 
-  private intentChip(i: BoutIntentOut, pick: () => void): HTMLElement {
+  private intentChip(i: BoutIntentOut, pick: () => void, n: number): HTMLElement {
     const risk = RISK_LABEL[i.risk];
     return h(
       'button',
-      { class: `bout-intent risk-${i.risk}`, type: 'button', 'data-intent': i.id, 'aria-label': `${i.pt}, ${risk.pt}`, onclick: pick },
+      { class: `bout-intent risk-${i.risk}`, type: 'button', 'data-intent': i.id, 'data-k': String(n), 'aria-label': `${i.pt}, ${risk.pt}`, onclick: pick },
       h('span', { class: 'pips', title: `${risk.pt} · ${risk.en}` }, ...[1, 2, 3].map((n) => h('i', { class: n <= i.risk ? 'on' : '' }))),
       h('b', { class: 'pt' }, i.pt),
       en(i.en),
@@ -329,7 +342,6 @@ export class BoutUI {
     this.seq = m.seq;
     this.locked = false;
     this.order = [];
-    this.sentAt = performance.now();
     this.setSnap(m.st);
     this.startTimer(m.limitMs);
     const c = m.challenge;
@@ -369,7 +381,7 @@ export class BoutUI {
         ? h('button', { class: 'bout-listen', type: 'button', 'aria-label': 'Ouvir de novo (Listen again)', onclick: () => speak(c.listenPt!, { force: true }) }, h('span', { class: 'ico', 'aria-hidden': 'true' }, '🔊'), ...this.bi('Ouvir', 'Listen'))
         : null;
     const opts = (c.options ?? []).map((o, i) =>
-      h('button', { class: 'bout-opt', type: 'button', 'data-i': String(i), onclick: (e: Event) => this.pickOption(seq, i, e.currentTarget as HTMLElement) }, h('b', { class: 'pt' }, o.pt), o.en !== o.pt ? en(o.en) : null),
+      h('button', { class: 'bout-opt', type: 'button', 'data-i': String(i), 'data-k': String(i + 1), onclick: (e: Event) => this.pickOption(seq, i, e.currentTarget as HTMLElement) }, h('b', { class: 'pt' }, o.pt), o.en !== o.pt ? en(o.en) : null),
     );
     return h('div', { class: 'bout-answer' }, listen, h('div', { class: `bout-opts n${opts.length}` }, ...opts));
   }
@@ -452,7 +464,6 @@ export class BoutUI {
     const picked = this.body.querySelector('.picked');
     picked?.classList.add(m.yours.correct ? 'right' : 'wrong');
     const call = callOf(m);
-    this.lastBanner = banner.pt;
     this.body.replaceChildren(
       h(
         'div',

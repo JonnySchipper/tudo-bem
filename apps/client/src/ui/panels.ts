@@ -25,6 +25,7 @@ import { speak } from '../audio';
 import { closeDialogueBox, showDialogueBox, type BoxSpec } from './dialogue';
 import { icon } from '../art/ui';
 import { drawMinimap } from './minimap';
+import { beltChip } from './beltChip';
 import { clock } from '../gameClock';
 
 // ---------------------------------------------------------------- modal base
@@ -443,6 +444,7 @@ export function openProfileCard(a: PublicAvatar, actions: { request: (id: string
       canvas,
       h('h2', null, a.name),
       h('div', { class: 'row', style: 'justify-content:center' }, h('span', { class: 'plate' }, h('span', { class: 'seed' }), 'Verde'), h('span', { style: 'font-weight:700;color:var(--ink-soft)' }, `trate por: ${pronoun}`)),
+      a.belt ? h('div', { class: 'row', style: 'justify-content:center;margin-top:8px' }, beltChip(a.belt)) : null,
       en('Verde plate: tourist level — sees English glosses. Plates come from learning, never from money.'),
       h(
         'div',

@@ -91,6 +91,7 @@ interface AvatarView {
   sheet: string;
   appearance: unknown;
   hat: string | null;
+  belt?: string;
   look: Look;
   parrot: Phaser.GameObjects.Sprite | null;
   /** the pop-up icon over the head while an emote plays (fx/emote_<kind>), and the emote it shows */
@@ -747,7 +748,10 @@ export class WorldScene extends Phaser.Scene {
 
   /** The look of an avatar: a neighbour wears its own style (portrait match), everyone else their appearance. */
   private lookOf(a: ClientAvatar): Look {
-    return a.pub.npc ? lookForNpc(a.pub.npc, a.pub.appearance, a.pub.hat) : lookForAppearance(a.pub.appearance, { hat: a.pub.hat });
+    if (a.pub.npc) return lookForNpc(a.pub.npc, a.pub.appearance, a.pub.hat);
+    // in the academia a player wears the belt they earned (white until the blue belt); CPUs stay in street clothes
+    const belt = game.roomDef?.id === 'academia' && !isCpuId(a.pub.id) ? (a.pub.belt ?? 'branca') : null;
+    return lookForAppearance(a.pub.appearance, { hat: a.pub.hat, ...(belt ? { gi: true, belt } : {}) });
   }
 
   /** Nanda's stall is closed (dimmed) unless she is standing at it. */
@@ -1055,7 +1059,7 @@ export class WorldScene extends Phaser.Scene {
     const s16 = this.m.sprites['fx/shadow_16'];
     const shadow = this.rig.world(this.add.image(0, 0, s16.atlas, s16.frame)).setOrigin(...originOf(s16)).setDepth(DEPTH.shadowContact);
     this.shadows.follow(sprite, 'chars/avatar', { frame: 0, rim: true });
-    return { sprite, shadow, sheet, appearance: a.pub.appearance, hat: a.pub.hat, look, parrot: null, icon: null, iconKey: '', anim: '', facing: 'S', wx: 0, wy: 0, lastX: Number.NaN, lastY: 0, sitting: false, moving: false };
+    return { sprite, shadow, sheet, appearance: a.pub.appearance, hat: a.pub.hat, belt: a.pub.belt, look, parrot: null, icon: null, iconKey: '', anim: '', facing: 'S', wx: 0, wy: 0, lastX: Number.NaN, lastY: 0, sitting: false, moving: false };
   }
 
   private destroyAvatar(v: AvatarView): void {
@@ -1068,9 +1072,10 @@ export class WorldScene extends Phaser.Scene {
 
   private updateAvatar(v: AvatarView, a: ClientAvatar, def: RoomDef, now: number, dyn: HitBox[]): void {
     // appearance or hat changed (wardrobe, avatarUpdated): swap the sheet
-    if (a.pub.appearance !== v.appearance || a.pub.hat !== v.hat) {
+    if (a.pub.appearance !== v.appearance || a.pub.hat !== v.hat || a.pub.belt !== v.belt) {
       v.appearance = a.pub.appearance;
       v.hat = a.pub.hat;
+      v.belt = a.pub.belt;
       v.look = this.lookOf(a);
       const sheetKey = this.sheets.acquire(v.look);
       this.sheets.release(v.sheet);

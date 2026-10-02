@@ -1,5 +1,5 @@
 import type { DailyMission } from './ambiance.js';
-import type { BjjProgress } from './academia.js';
+import type { BjjProgress, Belt } from './academia.js';
 import type { NpcId } from './rooms.js';
 import type { NpcActivity } from './schedules.js';
 import type { RecadoState } from './recados.js';
@@ -59,6 +59,8 @@ export interface PublicAvatar {
   y: number;
   dir: Dir;
   sitting: boolean;
+  /** The belt earned in the academia (never bought): worn in the academia and shown on the profile card. Players only. */
+  belt?: Belt;
   /** Praça ambiance CPU (scripted scenery, outside the player cap, never chats). */
   cpu?: boolean;
   /** A neighbour (Seu Carlos, Nanda...) walking its schedule: id is `npc-<id>`, broadcast like a CPU but flagged with its NpcId. */

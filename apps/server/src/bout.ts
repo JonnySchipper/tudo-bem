@@ -117,6 +117,8 @@ export interface BoutDeps {
   bond: (s: Session, delta: number) => void;
   caderno: { seen: (s: Session, text: string, ids?: readonly string[]) => void; used: (s: Session, text: string) => void; heard: (s: Session, ids: unknown) => void };
   err: (s: Session, code: string, pt: string, en: string) => void;
+  /** the public look changed (a new belt): tell the room */
+  avatarChanged: (s: Session) => void;
 }
 
 /** `v: 1` bout messages. Pure session logic lives in `@tudobem/shared`; this class owns the clock, the sockets and the profile. */
@@ -498,6 +500,7 @@ export class BoutEngine {
     p.bjj = prog;
     this.d.store.save();
     if (bond > 0) this.d.bond(s, bond);
+    if (beltUp) this.d.avatarChanged(s);
     const rv = played ? boutRv(res.winner, res.reason) : 0;
     const st = b.st;
     this.clear(s);

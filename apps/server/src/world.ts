@@ -84,6 +84,7 @@ import {
   type Tray,
   talkOpener,
   type TutorialStep,
+  normalizeBjj,
 } from '@tudobem/shared';
 import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
 import { ProfileStore, today, todaySaoPaulo, toPrivate, type StoredProfile } from './store.js';
@@ -116,6 +117,8 @@ export interface WorldOptions {
   testRollHints?: boolean;
   /** Bout intro length in ms (default: 4.2 s, 0.5 s in hint mode). Env `TB_TEST_BOUT_INTRO_MS`. */
   boutIntroMs?: number;
+  /** Bout pause scale (default 1, 0.35 in hint mode). Env `TB_TEST_BOUT_PACE`: shots want the real pauses with the hints on. */
+  boutPace?: number;
   /** Email/password accounts (the Node server). When set, only sockets with a signed-in session can play. Solo mode leaves it unset. */
   accounts?: AccountLink;
   /** No real input for this long → kicked and the seat is freed. Default 15 min. */
@@ -312,7 +315,7 @@ export class World {
       rng: () => this.rng(),
       store,
       testHints: this.testRollHints,
-      pace: this.testRollHints ? 0.35 : 1,
+      pace: opts.boutPace ?? (Number(readEnv('TB_TEST_BOUT_PACE')) > 0 ? Number(readEnv('TB_TEST_BOUT_PACE')) : this.testRollHints ? 0.35 : 1),
       introMs: opts.boutIntroMs ?? (Number.isFinite(Number(readEnv('TB_TEST_BOUT_INTRO_MS'))) && readEnv('TB_TEST_BOUT_INTRO_MS') ? Number(readEnv('TB_TEST_BOUT_INTRO_MS')) : undefined),
       reward: (s, a, r) => this.reward(s, a, r),
       pushProfile: (s) => this.pushProfile(s),
@@ -323,6 +326,7 @@ export class World {
         heard: (s, ids) => this.caderno.heard(s, ids),
       },
       err: (s, code, pt, en) => this.err(s, code, pt, en),
+      avatarChanged: (s) => this.broadcastAvatar(s),
     });
   }
 
@@ -779,6 +783,7 @@ export class World {
       appearance: p.appearance,
       hat: p.hat,
       parrot: p.parrotOwned && p.parrotEquipped,
+      belt: normalizeBjj(p.bjj).belt,
       nameplate: p.nameplate,
       x: cur.tile.x,
       y: cur.tile.y,

@@ -2,7 +2,7 @@
  * Character looks (HOWTO §6 Phase 3): an `Appearance` (+ hat, + NPC extras) becomes an ordered list of layers with the ramp colors to
  * swap in. Pure: no Phaser, no DOM. The layers are drawn back to front by `composeRgba` (charcompose.ts).
  */
-import { CLOTH_COLORS, DEFAULT_APPEARANCE, HAIR_COLORS, garbParts, SHOE_COLORS, SKIN_TONES, hatById, type Appearance, type BodyType, type NpcId } from '@tudobem/shared';
+import { CLOTH_COLORS, DEFAULT_APPEARANCE, HAIR_COLORS, garbParts, SHOE_COLORS, SKIN_TONES, hatById, type Appearance, type Belt, type BodyType, type NpcId } from '@tudobem/shared';
 import { CHAR_LAYERS, GARBS, HAT_LIFT, hatLayer, outfitKey, pick, type GarbColors, type GarbPiece, type IdleEntry } from './characters';
 import type { Ramps } from './charcompose';
 
@@ -10,6 +10,8 @@ export interface LookLayer {
   /** key of a layer sheet in manifest.chars */
   key: string;
   ramps?: Ramps;
+  /** exact colour swaps (the belt colour on the gi layer) */
+  map?: Record<string, string>;
   /** top-left light on the edges of this layer (hair, outfit: crown and shoulders) */
   hl?: boolean;
 }
@@ -35,7 +37,15 @@ export interface LookOptions {
   apron?: string | null;
   /** BJJ gi pieces (crossed lapels, black belt) over the outfit */
   gi?: boolean;
+  /** with `gi`: the belt colour worn (the gi layer's black belt is recoloured); Professora Bia keeps hers black */
+  belt?: Belt;
 }
+
+/** The gi layer's belt colours (`npc_gi.png`: band `#3a3a50`, shade and knot `#1f1f2e`) -> the colours of an earned belt. */
+export const GI_BELT_MAP: Record<Belt, Record<string, string>> = {
+  branca: { '#3a3a50': '#f3efe6', '#1f1f2e': '#bfb8a8' },
+  azul: { '#3a3a50': '#4177c9', '#1f1f2e': '#2a4f8d' },
+};
 
 const pickColor = (list: readonly string[], i: number | undefined): string => list[Number.isInteger(i) && (i as number) >= 0 && (i as number) < list.length ? (i as number) : 0];
 
@@ -82,7 +92,7 @@ export function lookForAppearance(a: Appearance, opts: LookOptions = {}): Look {
   const over = extra && extra.order === 'over-hair' ? extra : null;
   layers.push({ key: outfitKey(a.top, a.bottom, body), ramps: { top, bottom, shoes }, hl: true });
   if (opts.apron) layers.push({ key: CHAR_LAYERS.apron + suffix, ramps: { accent: opts.apron } });
-  if (opts.gi) layers.push({ key: CHAR_LAYERS.gi + suffix });
+  if (opts.gi) layers.push({ key: CHAR_LAYERS.gi + suffix, ...(opts.belt ? { map: GI_BELT_MAP[opts.belt] } : {}) });
   for (const p of garb) if (p.slot === 'outfit') layers.push(garbLayer(p));
   for (const l of idle.layers) layers.push({ key: idle.warped ? l + suffix : l, ramps: { top, skin } });
   if (under) layers.push({ key: under.layer, ramps: under.ramps.length ? { hair } : undefined });
@@ -192,4 +202,4 @@ export function hashString(s: string): string {
 
 /** Cache key of a composed sheet: two looks with the same layers and colors share one texture. */
 export const lookKey = (l: Look): string =>
-  'char:' + hashString(l.layers.map((x) => x.key + (x.ramps ? Object.entries(x.ramps).sort().map(([k, v]) => `${k}=${v}`).join(',') : '')).join('|'));
+  'char:' + hashString(l.layers.map((x) => x.key + (x.ramps ? Object.entries(x.ramps).sort().map(([k, v]) => `${k}=${v}`).join(',') : '') + (x.map ? '~' + Object.entries(x.map).sort().map(([k, v]) => `${k}=${v}`).join(',') : '')).join('|'));

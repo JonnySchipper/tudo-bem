@@ -33,7 +33,7 @@ const VIEW = {
 const log = (...a) => console.log('  ·', ...a);
 
 async function enterAcademia(page) {
-  await page.goto(`${BASE}${BASE.includes('?') ? '&' : '?'}solo&rolltest&notype=1&boutintro=4200&tbclockmin=${offsetMinFor(DAY_MIN)}`);
+  await page.goto(`${BASE}${BASE.includes('?') ? '&' : '?'}solo&rolltest&notype=1&boutintro=4200&boutpace=1&tbclockmin=${offsetMinFor(DAY_MIN)}`);
   await page.waitForSelector('#intro-enter', { timeout: 20_000 });
   await page.click('#intro-enter');
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
@@ -90,6 +90,7 @@ async function run(name) {
     const seen = new Set();
     let kinds = 0;
     let transShot = false;
+    let transWatch = false;
     let finishShot = false;
     const result = await playBout(page, {
       right: (i) => i % 7 !== 3,
@@ -118,7 +119,8 @@ async function run(name) {
           }
         }
         // a transition clip is short: watch for it right after this answer
-        if (name === 'desktop' && !transShot) {
+        if (name === 'desktop' && !transShot && !transWatch) {
+          transWatch = true;
           void (async () => {
             for (let i = 0; i < 60 && !transShot; i++) {
               const mode = await page.evaluate(() => window.__tb.renderer.info()?.bout?.mode).catch(() => null);
@@ -129,6 +131,7 @@ async function run(name) {
               }
               await sleep(60);
             }
+            transWatch = false;
           })();
         }
       },
@@ -149,10 +152,154 @@ async function run(name) {
   }
 }
 
+/**
+ * The partner's side of it (desktop): Rafael (a blue belt unlocks him) pins the player on the back with a full pegada, so an escape challenge
+ * comes up; the first escape works (back to cem quilos), the second fails and the partner taps the player: the pair is drawn with the colours
+ * exchanged (the player stays in white, underneath) and the end card is a loss.
+ */
+async function runPartner() {
+  const v = VIEW.desktop;
+  const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--autoplay-policy=no-user-gesture-required', '--use-gl=swiftshader', '--ignore-gpu-blocklist'] });
+  const page = await (await browser.newContext(v)).newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  let n = 0;
+  const shot = async (label) => {
+    const file = `partner_${String(++n).padStart(2, '0')}_${label}.png`;
+    await page.screenshot({ path: path.join(SHOTS, file) });
+    log(file);
+  };
+  const poke = () =>
+    page.evaluate(() => {
+      const b = window.__tb.net.debugBout();
+      if (b) Object.assign(b.st, { rung: -4, pegadaB: 3, momentum: -8, top: 'costas' });
+    });
+  try {
+    await enterAcademia(page);
+    await page.evaluate(() => {
+      window.__tb.net.debugSession().profile.bjj = { belt: 'azul', stripes: 1, wins: 15 };
+    });
+    await openBout(page);
+    await sleep(600);
+    await shot('lobby_blue_belt');
+    await startBout(page, 'rafael');
+    let seenEscape = 0;
+    const t0 = Date.now();
+    while (Date.now() - t0 < 150_000 && !(await page.$('#bout-end'))) {
+      await poke();
+      const st = await page.evaluate(() => ({ phase: document.querySelector('#bout')?.getAttribute('data-phase'), role: document.querySelector('.bout-role')?.className ?? '', seq: document.querySelector('#bout-challenge')?.getAttribute('data-seq') ?? document.querySelector('#bout-intents')?.getAttribute('data-seq') ?? '' }));
+      const key = `${st.phase}:${st.seq}`;
+      if (st.phase === 'intent' && !seen.has(key)) {
+        seen.add(key);
+        await page.waitForTimeout(250);
+        await page.click('#bout-intents .bout-intent:first-child');
+      } else if (st.phase === 'challenge' && !seen.has(key)) {
+        seen.add(key);
+        if (st.role.includes('role-escape')) {
+          seenEscape++;
+          await sleep(500);
+          await shot(`escape_prompt_${seenEscape}`);
+          await page.waitForTimeout(300);
+          await answerChallenge(page, seenEscape === 1);
+          await sleep(900);
+          await shot(seenEscape === 1 ? 'escaped' : 'tapped_out');
+        } else {
+          await page.waitForTimeout(300);
+          await answerChallenge(page, true);
+        }
+      } else await sleep(150);
+    }
+    await page.waitForSelector('#bout-end', { timeout: 20_000 });
+    await sleep(1800);
+    await shot('end_loss');
+    const info = await page.evaluate(() => window.__tb.renderer.info()?.bout);
+    log('stage', JSON.stringify(info));
+    assert(errors.length === 0, `page errors: ${errors.join(' | ')}`);
+  } finally {
+    await browser.close();
+  }
+}
+const seen = new Set();
+
+/**
+ * The player's finish (desktop): the player is put on top with a full pegada, so the Finalização! chance appears; the prompt, the tap
+ * (the partner's hand in the air) and the raised hand follow.
+ */
+async function runFinish() {
+  const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--autoplay-policy=no-user-gesture-required', '--use-gl=swiftshader', '--ignore-gpu-blocklist'] });
+  const page = await (await browser.newContext(VIEW.desktop)).newPage();
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  let n = 0;
+  const shot = async (label) => {
+    const file = `finish_${String(++n).padStart(2, '0')}_${label}.png`;
+    await page.screenshot({ path: path.join(SHOTS, file) });
+    log(file);
+  };
+  const poke = () =>
+    page.evaluate(() => {
+      const b = window.__tb.net.debugBout();
+      if (b) Object.assign(b.st, { rung: 4, pegada: 3, momentum: 0, top: 'montada' });
+    });
+  const done = new Set();
+  try {
+    await enterAcademia(page);
+    await openBout(page);
+    await startBout(page);
+    let stage = 0;
+    const t0 = Date.now();
+    while (Date.now() - t0 < 150_000 && !(await page.$('#bout-end'))) {
+      if (stage < 1) await poke();
+      const st = await page.evaluate(() => ({ phase: document.querySelector('#bout')?.getAttribute('data-phase'), finish: document.querySelector('#bout-intents')?.getAttribute('data-finish'), role: document.querySelector('.bout-role')?.className ?? '', seq: document.querySelector('#bout-challenge')?.getAttribute('data-seq') ?? document.querySelector('#bout-intents')?.getAttribute('data-seq') ?? '' }));
+      const key = `${st.phase}:${st.seq}`;
+      if (st.phase === 'intent' && !done.has(key)) {
+        done.add(key);
+        await page.waitForTimeout(300);
+        if (st.finish === 'true') {
+          stage = 1;
+          await sleep(300);
+          await shot('chance');
+          // the tap is a short beat: watch the stage for it while the prompts are answered
+          void (async () => {
+            for (let i = 0; i < 1500; i++) {
+              const mode = await page.evaluate(() => window.__tb.renderer.info()?.bout?.mode).catch(() => null);
+              if (mode === 'finish') {
+                await sleep(450);
+                await shot('tap');
+                return;
+              }
+              await sleep(40);
+            }
+          })();
+          await page.click('#bout-intents .bout-intent[data-intent="finalizar"]');
+        } else await page.click('#bout-intents .bout-intent:first-child');
+      } else if (st.phase === 'challenge' && !done.has(key)) {
+        done.add(key);
+        await page.waitForTimeout(350);
+        if (st.role.includes('role-finish')) {
+          await shot('prompt');
+          await answerChallenge(page, true);
+        } else await answerChallenge(page, true);
+      } else await sleep(150);
+    }
+    await page.waitForSelector('#bout-end', { timeout: 20_000 });
+    await sleep(2200);
+    await shot('win');
+    assert(errors.length === 0, `page errors: ${errors.join(' | ')}`);
+  } finally {
+    await browser.close();
+  }
+}
+
 for (const v of VIEWS) {
   console.log(`== ${v}`);
   await run(v);
 }
+if (VIEWS.includes('desktop') && !process.env.NO_EXTRA) {
+  console.log('== finish (the player on top)');
+  await runFinish();
+  console.log('== partner (the other side)');
+  await runPartner();
+}
 console.log('done');
 void boutPhase;
-void answerChallenge;

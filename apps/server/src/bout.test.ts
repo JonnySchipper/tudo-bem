@@ -423,7 +423,7 @@ describe('Treino no tatame (server)', () => {
   });
 
   it('a win moves stripes, four stripes become the blue belt, and Bia is happier (with a daily cap)', async () => {
-    const { a } = await setup();
+    const { world, a } = await setup();
     a.s.profile!.bjj = { belt: 'branca', stripes: 3, wins: 11 };
     await start(a);
     advance(1000);
@@ -432,6 +432,9 @@ describe('Treino no tatame (server)', () => {
     expect(end.beltUp).toBe(true);
     expect(end.belt).toBe('azul');
     expect(a.s.profile!.bjj).toMatchObject({ belt: 'azul', stripes: 0, wins: 12 });
+    // the room is told: the public avatar carries the new belt (worn in the academia, shown on the profile card)
+    expect(a.inbox.some((m) => m.t === 'avatarUpdated' && m.avatar.belt === 'azul')).toBe(true);
+    expect(world.publicAvatar(a.s).belt).toBe('azul');
     expect(end.bond).toBeGreaterThan(0);
     expect((a.s.profile!.bond?.prof ?? 0)).toBeGreaterThan(0);
     // the daily bond cap: play more and the total stays under it
@@ -455,7 +458,8 @@ describe('Treino no tatame (server)', () => {
   });
 
   it('a profile saved with only the old fields still loads as a white belt', async () => {
-    const { a } = await setup();
+    const { world, a } = await setup();
+    expect(world.publicAvatar(a.s).belt).toBe('branca');
     a.s.profile!.bjj = { belt: 'branca', stripes: 2, wins: 6 };
     await a.send({ t: 'bout', v: 1, action: 'open' });
     expect(a.last('lobby')!.level).toBe(2);

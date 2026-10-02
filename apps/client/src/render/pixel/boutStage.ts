@@ -194,7 +194,10 @@ export class BoutStage {
       this.popsEl = document.createElement('div');
       this.popsEl.id = 'bout-pops';
       this.popsEl.setAttribute('aria-hidden', 'true');
-      document.body.append(this.popsEl);
+      // `position: fixed` layers paint in DOM order: the cheers go over the world and its labels, under the overlay (#ui)
+      const ui = document.getElementById('ui');
+      if (ui?.parentElement) ui.parentElement.insertBefore(this.popsEl, ui);
+      else document.body.append(this.popsEl);
     }
     if (!this.placarEl) {
       const el = document.createElement('div');
@@ -310,6 +313,14 @@ export class BoutStage {
       this.puff(a.x, a.y - 14, 4);
     } else if (this.mode === 'bump' && now >= this.modeEnd) this.goFight();
     else if (this.mode === 'trans' && this.isDone()) this.goFight();
+
+    // the snapshot is the truth: if the pair is not where the server says (a missed cue, a reconnect), cut to it
+    const snap = boutFeed.snap;
+    if (this.mode === 'fight' && snap && (snap.position !== this.pos || snap.ahead !== this.top)) {
+      this.pos = snap.position;
+      this.top = snap.ahead;
+      this.setFrames(pairFrames(this.pos), 4, true);
+    }
 
     // draw the current frame
     if (this.mode === 'walkin') {

@@ -450,7 +450,9 @@ body.bout-on .toasts {
   margin-left: auto;
 }
 
+/* a belt chip never wraps its words */
 .bout-belt {
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -1130,6 +1132,27 @@ body.bout-on .toasts {
   opacity: 0.6;
 }
 
+/* number keys on desktop: a small key cap on each choice (hidden on touch screens) */
+@media (hover: hover) and (pointer: fine) {
+  .bout-opt[data-k]::before,
+  .bout-intent[data-k]::before {
+    content: attr(data-k);
+    position: absolute;
+    left: 5px;
+    top: 4px;
+    min-width: 13px;
+    padding: 0 3px;
+    border: 1px solid var(--bout-ink);
+    background: var(--bout-paper-lo);
+    font: 700 10px/12px var(--font-body);
+    text-align: center;
+    color: #5e5550;
+  }
+  .bout-opt {
+    position: relative;
+  }
+}
+
 /* ---------------------------------------------------------------- end card */
 
 .bout-end-line b {
@@ -1214,7 +1237,6 @@ body.bout-on .toasts {
 #bout-pops {
   position: fixed;
   inset: 0;
-  z-index: 6;
   pointer-events: none;
   overflow: hidden;
 }
@@ -1268,7 +1290,6 @@ body.bout-on .toasts {
 #bout-placar {
   position: fixed;
   inset: 0;
-  z-index: 5;
   pointer-events: none;
 }
 
@@ -1608,15 +1629,30 @@ body.bout-on .toasts {
     font-size: 22px;
   }
   .bout-end {
-    grid-auto-flow: column;
-    gap: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
     justify-content: center;
     align-items: center;
   }
   .bout-end-line b {
     font-size: 22px;
   }
-  .bout-thanks {
+  .bout-end .en,
+  .bout-end .bout-belt-name .en {
     display: none;
+  }
+  .bout-thanks,
+  .bout-bond {
+    display: none;
+  }
+  .bout-end-actions {
+    margin: 0;
+  }
+  .bout-end-actions .ghost,
+  .bout-end-actions .bout-go {
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 15px;
   }
 }
