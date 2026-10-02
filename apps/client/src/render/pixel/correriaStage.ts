@@ -792,6 +792,8 @@ export class CounterStage {
   // ------------------------------------------------------------------ DOM: taps and pops
   private placeHot(snap: CorreriaSnap): void {
     const k = this.h.cssScale();
+    // below about 2 css px per world px the shelf labels would collide: the names come as a line when an item is tapped instead
+    this.hotEl!.classList.toggle('small', k < 2.2);
     const sig = `${Math.round(this.h.toCanvas(0, 0).px)}|${Math.round(this.h.toCanvas(0, 0).py)}|${k.toFixed(3)}|${correriaFeed.showEn}`;
     // the grill spots only exist as many as the chapa has slots
     const slotCount = snap.chapa.length;

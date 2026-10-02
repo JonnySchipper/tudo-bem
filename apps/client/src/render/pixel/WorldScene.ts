@@ -989,13 +989,13 @@ export class WorldScene extends Phaser.Scene {
   // ---- Correria no Balcão: the camera eases one zoom step onto the work board, above the overlay (like the dialogue)
   private withCounter(f: { zoom: number; cx: number; cy: number; fits: boolean }, ins: Insets, k: number, dt: number): typeof f {
     this.counterBlend = stepBlend(this.counterBlend, correriaFeed.camera ? 1 : 0, dt, 0.4, this.fxLevel.reduced || !!this.host.shot);
-    if (this.counterBlend <= 0 || this.roomId !== 'padaria') return f;
+    if (this.counterBlend <= 0 || !this.roomId.startsWith('padaria')) return f;
     // one step in, but never so far that the board and the queue (160 x 134 world px) leave the free band between the HUD and the strip
     const unit = Math.max(1, Math.round(k));
     const availH = this.cam.h - (correriaFeed.topPx + 6) * k - (correriaFeed.boxPx + 6) * k;
     const availW = this.cam.w - (ins.left + ins.right) * k;
     let zoom = f.zoom + unit;
-    while (zoom > unit && (134 * zoom > availH || 160 * zoom > availW)) zoom -= unit;
+    while (zoom > unit && (148 * zoom > availH || 166 * zoom > availW)) zoom -= unit;
     const base = zoom >= f.zoom ? f : { ...f, zoom };
     const g = dialogueFraming({
       base,

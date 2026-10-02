@@ -757,6 +757,10 @@ body.cr-on .toasts {
   white-space: normal;
 }
 
+.cr-hot.small .cr-lab {
+  display: none;
+}
+
 .cr-hit .cr-lab-en {
   display: none;
   font-weight: 700;
@@ -947,12 +951,55 @@ body.cr-on .toasts {
 @media (max-height: 520px) and (orientation: landscape) {
   .cr-panel {
     width: min(760px, calc(100vw - 16px));
-    padding: 4px 8px 6px;
-    gap: 3px;
+    padding: 3px 8px 4px;
+    gap: 2px;
+  }
+  .cr-panel.asking .cr-mirror {
+    display: none;
+  }
+  .cr-who {
+    font-size: 12px;
+  }
+  .cr-mod {
+    padding: 1px 6px;
+    font-size: 11px;
+  }
+  .cr-serve,
+  .cr-clear {
+    font-size: 13px;
+  }
+  .cr-patience {
+    height: 4px;
   }
   .cr-line .en,
-  .cr-empty .en {
+  .cr-empty .en,
+  .cr-say .en,
+  .cr-serve .en,
+  .cr-clear .en,
+  .cr-mod .en,
+  .cr-ask-head .en,
+  .cr-ask-type .en,
+  .cr-opt .en {
     display: none;
+  }
+  .cr-say.on {
+    padding: 1px 8px;
+    font-size: 13px;
+  }
+  .cr-ask-head {
+    font-size: 16px;
+  }
+  .cr-ask-input {
+    padding: 3px 8px;
+    font-size: 15px;
+  }
+  .cr-serve,
+  .cr-clear {
+    padding: 3px 12px;
+  }
+  .cr-tray {
+    min-height: 24px;
+    padding: 1px 6px;
   }
   .cr-say-pt {
     font-size: 15px;

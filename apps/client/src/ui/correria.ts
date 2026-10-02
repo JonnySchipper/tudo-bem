@@ -5,7 +5,7 @@
  *
  * The server owns the shift (apps/server/src/correria.ts) and judges every step; this file sends the player's taps and draws what comes back.
  */
-import { MG_MODS, type Bilingual, type CAct, type CEvent, type ClientMsg, type CorreriaSnap, type MgServerMsg } from '@tudobem/shared';
+import { MG_ITEMS, MG_MODS, type Bilingual, type CAct, type CEvent, type ClientMsg, type CorreriaSnap, type MgServerMsg } from '@tudobem/shared';
 import { game } from '../state';
 import { h } from './dom';
 import { speak, stopSpeaking } from '../audio';
@@ -247,6 +247,14 @@ export class CorreriaUI {
         const c = snap.customers.find((x) => x.id === e.id);
         // a written order is already in the mirror; a listening one is spoken
         if (c?.mode === 'listening') this.sayIt(c.pt);
+        break;
+      }
+      case 'grab':
+      case 'chapa_ok':
+      case 'pour_ok': {
+        // the name of what was just taken, with its gloss (the shelf labels are hidden on small screens)
+        const it = MG_ITEMS.find((i) => i.id === (e.k === 'grab' ? e.item : e.item));
+        if (it) this.flash({ pt: it.card.form, en: it.card.gloss_en }, false, 1400);
         break;
       }
       case 'follow': {
