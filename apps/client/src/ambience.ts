@@ -553,7 +553,8 @@ class Ambience {
   private target(): BedId | null {
     if (!this.enabled) return null;
     if (this.scene) return this.scene;
-    return this.unlocked ? this.room : null;
+    // the three open-air areas (rua, praça, feira) share one outdoor bed, so walking between them never restarts the music
+    return this.unlocked ? (this.room === 'rua' || this.room === 'feira' ? 'praca' : this.room) : null;
   }
 
   private sync(fade = FADE) {

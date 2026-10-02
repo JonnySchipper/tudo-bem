@@ -677,6 +677,14 @@ function npcSay(id: string, line: { pt: string; en: string }) {
   game.npcBubbles.set(id, { text: line.pt, gloss: line.en, at: now() });
 }
 
+/** Over-stimulation cap (split into areas): never more than two ambient NPC speech bubbles on screen at once (a bubble lives 7 s). */
+const MAX_AMBIENT_BUBBLES = 2;
+function ambientBubblesFull(): boolean {
+  let live = 0;
+  for (const b of game.npcBubbles.values()) if (now() - b.at < 7000) live++;
+  return live >= MAX_AMBIENT_BUBBLES;
+}
+
 // ---------------------------------------------------------------- game start + input
 
 function startGame() {
@@ -768,13 +776,13 @@ function startGame() {
   const idleTalk = new IdleTalk();
   setInterval(() => {
     const npcs = game.liveNpcs(now());
-    if (!npcs.length || document.hidden) return;
+    if (!npcs.length || document.hidden || ambientBubblesFull()) return;
     const n = npcs[Math.floor(Math.random() * npcs.length)];
     npcSay(n.id, localizeGreeting(idleTalk.next(n.idleLines, clock.weather(), clock.minutes()), clock.minutes()));
   }, 11_000);
   // the feira: a vendor calls out their goods now and then (PT with the gloss); never two calls at once, and not while a dialogue box is open
   setInterval(() => {
-    if (document.hidden || game.modalOpen) return;
+    if (document.hidden || game.modalOpen || ambientBubblesFull()) return;
     const vendors = game.liveNpcs(now()).filter((n) => n.id === 'tia_lu' || n.id === 'ze' || n.id === 'chico' || n.id === 'rosa');
     if (!vendors.length) return;
     const n = vendors[Math.floor(Math.random() * vendors.length)]!;

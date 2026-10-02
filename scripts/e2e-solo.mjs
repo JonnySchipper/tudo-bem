@@ -12,6 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { findChrome } from './lib/chrome.mjs';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
+import { goArea } from './lib/areas.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:4173/';
 const SHOTS = process.env.SHOTS_DIR ?? '';
@@ -65,7 +66,8 @@ try {
   await shot('journal');
   await page.keyboard.press('Escape');
 
-  // the feira at the Hortifrúti corner (any hour)
+  // the feira at the Hortifrúti corner (any hour): it is at the banca on the rua, so walk off the praça's north edge first
+  await goArea(page, 'rua');
   await page.evaluate(() => window.__tb.interact({ prop: 'hortifruti' }));
   await page.waitForSelector('#dialogue-box[data-dialogue="feira"]', { timeout: 20_000 });
   await page.click('#dialogue-box [data-chip="0"]');

@@ -20,12 +20,13 @@ assert(CHROME, 'Chrome/Chromium not found: set CHROME_PATH');
 const vp = argv.vp === 'phone' ? { name: '390x844', width: 390, height: 844, touch: true } : { name: '1280x800', width: 1280, height: 800 };
 const LOOPS = Number(argv.loops ?? 1);
 const HOURS = (argv.hours ? argv.hours.split(',').map(Number) : Array.from({ length: 24 }, (_, i) => i));
-const ROOMS = (argv.rooms ?? 'praca,padaria').split(',');
+const ROOMS = (argv.rooms ?? 'praca,rua,feira,padaria').split(',');
 const WEATHERS = ['sol', 'nublado', 'garoa', 'chuva'];
 const SETTLE = Number(argv.settle ?? (argv.fast ? 350 : 900));
 /** Texture budget: the world loads a handful of textures; anything that grows with the number of steps is a leak. */
 const MAX_TEXTURES = Number(argv.maxTextures ?? 140);
-const PORTALS = { praca: null, padaria: ['praca_padaria', 'padaria_praca'] };
+// every room is entered with a join (the walk between the open-air areas is covered by the e2e); the soak is about the render, not the route
+const PORTALS = { praca: null, rua: true, feira: true, padaria: true };
 const hm = (h) => h * 60 + 5;
 const failures = [];
 let steps = 0;
@@ -87,7 +88,7 @@ for (let loop = 0; loop < LOOPS; loop++) {
   for (const room of ROOMS) {
     const portals = PORTALS[room];
     if (portals) {
-      await page.evaluate((p) => window.__tb.interact({ portal: p }), portals[0]);
+      await page.evaluate((r) => window.__tb.net.send({ t: 'join', room: r }), room);
       await waitFor(page, (id) => window.__tb.game.room?.room === id, room, 20_000, room);
       await sleep(1200);
     }
@@ -109,7 +110,7 @@ for (let loop = 0; loop < LOOPS; loop++) {
       }
     }
     if (portals) {
-      await page.evaluate((p) => window.__tb.interact({ portal: p }), portals[1]);
+      await page.evaluate(() => window.__tb.net.send({ t: 'join', room: 'praca' }));
       await waitFor(page, (id) => window.__tb.game.room?.room === id, 'praca', 20_000, 'praca');
       await sleep(1200);
     }

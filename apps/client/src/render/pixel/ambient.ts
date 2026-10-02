@@ -293,6 +293,7 @@ export class AmbientLife {
     this.canopies = [];
     this.data = null;
     this.def = null;
+    this.last = { vehicles: 0, bus: false, dogAnim: '', flocksAway: 0, clouds: 0 };
   }
 
   /** Test and screenshot hook: a bus reaches the stop `inMs` from now (negative: it is already there). */
