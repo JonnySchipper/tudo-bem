@@ -121,9 +121,14 @@ async function toSignInCard(page) {
   // One tap starts the intro (music + flock together), then the title beat can be skipped.
   await page.waitForSelector('#intro-enter', { timeout: 12_000 });
   await page.click('#intro-enter');
-  await page.waitForSelector('#intro-skip', { timeout: 12_000 });
+  // The beat also reveals the card on its own after 4.4s and hides Pular, so a slow second
+  // window must not insist on clicking a button that has already gone.
   assert(!(await page.$('#birth-month')) && !(await page.$('#birth-year')), 'no birth-date step before play');
-  await page.click('#intro-skip');
+  try {
+    await page.locator('#intro-skip').click({ timeout: 3_000 });
+  } catch {
+    // The beat already opened the sign-in card.
+  }
   await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
 }
 
