@@ -119,6 +119,43 @@ export const CHAR_LAYERS = {
   phone: 'acc_phone',
 } as const;
 
+/** Colors a garb piece may take from the wearer (hex). */
+export interface GarbColors {
+  top: string;
+  bottom: string;
+  skin: string;
+}
+
+export interface GarbPiece {
+  /** layer key (at body type medio; the body variants add the suffix) */
+  key: string;
+  /** under: drawn before the body (back pieces: only what sticks out shows); outfit: right over the outfit; over: over the hair too; hat: with the hat */
+  slot: 'under' | 'outfit' | 'over' | 'hat';
+  ramps: (c: GarbColors) => Record<string, string>;
+  /** whether the layer is body-attached (has __esguio / __forte variants) */
+  warped: boolean;
+}
+
+const piece = (key: string, slot: GarbPiece['slot'], ramps: GarbPiece['ramps'], warped = true): GarbPiece => ({ key, slot, ramps, warped });
+
+/**
+ * Wave 2: neighbourhood pieces worn by CPU neighbours (`Appearance.garb`, ids from GARB_IDS joined by '+'). Fixed colors on purpose (a
+ * torcida jersey, a delivery box and a feira cart read by their colors); the jacket takes the wearer's top color.
+ */
+export const GARBS: Record<string, GarbPiece[]> = {
+  // striped football shirts with no crest: grafite and off-white, or green and off-white
+  jersey_alvinegro: [piece('garb_jersey', 'outfit', () => ({ top: '#2c2c36', accent: '#f1ede4' }))],
+  jersey_verde: [piece('garb_jersey', 'outfit', () => ({ top: '#2d7d49', accent: '#f1ede4' }))],
+  jaqueta: [piece('garb_jaqueta', 'outfit', (c) => ({ top: c.top, accent: '#e9c43a' }))],
+  macacao: [piece('garb_macacao', 'outfit', () => ({ accent: '#3f62a0' }))],
+  chinelo: [piece('garb_chinelo', 'outfit', (c) => ({ skin: c.skin, accent: '#3d9a50' }))],
+  mochila: [piece('garb_mochila_u', 'under', () => ({ accent: '#d9602b' })), piece('garb_mochila_o', 'over', () => ({ accent: '#d9602b' }))],
+  caixa: [piece('garb_caixa_u', 'under', () => ({ accent: '#d6382b' })), piece('garb_caixa_o', 'over', () => ({ accent: '#d6382b' }))],
+  sacola: [piece('garb_sacola_o', 'over', () => ({ accent: '#e3d4ae' }))],
+  carrinho: [piece('garb_carrinho_u', 'under', () => ({ accent: '#b83a46' })), piece('garb_carrinho_o', 'over', () => ({ accent: '#b83a46' }))],
+  balde: [piece('hat_balde', 'hat', () => ({ hat: '#3f6aa8', accent: '#f1e9dc' }), false)],
+};
+
 const logged = new Set<string>();
 
 /** Looks a key up in a layer table; an unknown value falls back to `fallback` and logs once. */
@@ -149,6 +186,7 @@ export const HAT_LIFT: Record<string, number> = {
   hat_chapeu_chef: 5,
   hat_cartola: 7,
   hat_pano: 2,
+  hat_balde: 3,
 };
 
 /** Layer key of an outfit at a body type (an unknown top or bottom falls back to camiseta / calca and logs once). */
@@ -180,5 +218,11 @@ export function allLayerKeys(): string[] {
   for (const h of Object.values(CHAR_LAYERS.npcHat)) keys.add(h);
   for (const i of Object.values(CHAR_LAYERS.idle)) for (const l of i.layers) if (l !== 'pose_bracos') keys.add(l);
   keys.add(CHAR_LAYERS.gestures);
+  for (const pieces of Object.values(GARBS)) {
+    for (const p of pieces) {
+      if (p.warped) for (const b of Object.keys(CHAR_LAYERS.bodySuffix) as BodyType[]) keys.add(p.key + CHAR_LAYERS.bodySuffix[b]);
+      else keys.add(p.key);
+    }
+  }
   return [...keys];
 }

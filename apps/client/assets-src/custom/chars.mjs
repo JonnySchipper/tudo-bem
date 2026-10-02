@@ -7,12 +7,15 @@ import path from 'node:path';
 import { crop, loadPng, clone, paste } from '../../../../scripts/lib/pixel/img.mjs';
 import { toCanonicalSheet, mergeLayers, keyLayer } from '../../../../scripts/lib/pixel/chars.mjs';
 import { rowFacing } from '../../../../scripts/lib/pixel/chars.mjs';
-import { alphaAt, anchorOf, anchors, emptySheet, fx, fy, frames, hexAt, keyAuto, keyOutfit, keyRanks, putHex, puffHair, regata, bermuda, saia, stampSet, warpLayer, warpPlan } from '../../../../scripts/lib/pixel/charedit.mjs';
+import { alphaAt, anchorOf, anchors, emptySheet, eyeWhites, fx, fy, frames, hexAt, keyAuto, keyOutfit, keyRanks, openFringe, putHex, puffHair, regata, bermuda, saia, stampSet, warpLayer, warpPlan } from '../../../../scripts/lib/pixel/charedit.mjs';
 import { KEY_RAMPS } from '../../../client/src/render/pixel/palette.ts';
 import { HAT_ART } from './hats.mjs';
+import { buildGarbs } from './garb.mjs';
 import { APRON_ART, EXTRA_ART, FACE_ALPHA, FACE_ART, GESTURE_FRAMES, HAIR_ADDON, POSE_ART } from './charart.mjs';
 
 const SRC_H = 32 * 10;
+/** hair styles whose pack fringe reaches the eyes on the front frames: pulled up and aside (wave 2) */
+const FRINGE_OPEN = new Set(['cacheado', 'black', 'ondulado', 'longo']);
 
 /** creator top style -> the LimeZu outfit whose torso it borrows; the bottom style edits the legs of that same outfit */
 export const TOP_BASE = { camiseta: '01', regata: '01', moletom: '10', camisa: '08', blusa: '11' };
@@ -53,7 +56,7 @@ export async function buildChars({ base }) {
   regBody('body_medio', bodyKeyed);
 
   // ---- eyes
-  for (const [face, n] of Object.entries(EYES_BASE)) layers[`eyes_${face}`] = await canon('Eyes', `Eyes_${n}`);
+  for (const [face, n] of Object.entries(EYES_BASE)) layers[`eyes_${face}`] = eyeWhites(await canon('Eyes', `Eyes_${n}`));
 
   // ---- outfits: 5 top styles x 3 bottom styles
   for (const top of TOPS) {
@@ -72,6 +75,7 @@ export async function buildChars({ base }) {
   for (const [style, n] of Object.entries(HAIR_BASE)) {
     let img = await hairOf(n);
     if (style === 'black') img = puffHair(img, bodyRaw, an, { grow: 2 });
+    if (FRINGE_OPEN.has(style)) img = openFringe(img, an);
     const add = HAIR_ADDON[style];
     if (add) img = stampSet(clone(img), { S: add.S, N: add.N ?? add.S, E: add.E ?? add.S, W: add.W }, an, 'head');
     layers[`hair_${style}`] = img;
@@ -113,6 +117,9 @@ export async function buildChars({ base }) {
   layers.hat_chapeu_chef = keyAuto(await acc('Accessory_18_Chef_01'), 'hat', ['#565972', '#6c6e85', '#9d9dc3']).img;
   layers.hat_gorro_listrado = stripeBeanie(keyAuto(await acc('Accessory_11_Beanie_01'), 'hat').img, an);
   for (const [id, set] of Object.entries(HAT_ART)) layers['hat_' + id] = stampSet(emptySheet(), { S: set.S, N: set.N ?? set.S, E: set.E ?? set.S, W: set.W }, an, 'head');
+
+  // ---- wave 2 garbs (jersey, jacket, dungarees, flip-flops, backpack, delivery box, tote, feira cart)
+  buildGarbs({ layers, an, regBody });
 
   // ---- body variants
   for (const [key, img] of Object.entries(bodyAttached)) {

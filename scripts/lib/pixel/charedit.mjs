@@ -140,6 +140,8 @@ export const LEGEND = {
   p: KEY_RAMPS.skin[0], q: KEY_RAMPS.skin[1], r: KEY_RAMPS.skin[2], s: KEY_RAMPS.skin[3],
   h: KEY_RAMPS.hair[0], i: KEY_RAMPS.hair[1], j: KEY_RAMPS.hair[2], k: KEY_RAMPS.hair[3],
   t: KEY_RAMPS.top[0], u: KEY_RAMPS.top[1], v: KEY_RAMPS.top[2], x: KEY_RAMPS.top[3],
+  d: KEY_RAMPS.bottom[0], e: KEY_RAMPS.bottom[1], f: KEY_RAMPS.bottom[2], z: KEY_RAMPS.bottom[3],
+  m: KEY_RAMPS.shoes[0], n: KEY_RAMPS.shoes[1], l: KEY_RAMPS.shoes[2],
   y: '#f2b22b', Y: '#fff59a', g: '#3d8a4e', G: '#5cb85c', R: '#d93232', B: '#8a5a3c', P: '#e0707a', L: '#9d9dc3', K: '#1f1f2e',
 };
 
@@ -364,6 +366,43 @@ export function keyRanks(img, ramp, map) {
     if (!alphaAt(out, x, y)) continue;
     const rank = map[hexAt(out, x, y)];
     if (rank !== undefined) putHex(out, x, y, keys[rank], alphaAt(out, x, y));
+  }
+  return out;
+}
+
+// ------------------------------------------------------------------ faces (wave 2)
+const EYE_WHITE = '#f6f1ea';
+/**
+ * Eye whites for a pack eyes layer: every eye is a 1x2 px mark (a dark lash over the iris colour). The white goes next to the iris on the
+ * lower row, on the inner side from the front (S) and behind the iris in profile, so the eye reads on every skin tone (dark on dark skin used
+ * to vanish). Fixed colour (not on a ramp), added to the same layer.
+ */
+export function eyeWhites(img) {
+  const out = clone(img);
+  for (const { r, c } of frames()) {
+    const f = rowFacing(r);
+    if (f === 'N') continue;
+    for (let y = 0; y < FRAME_H - 1; y++) for (let x = 0; x < FRAME_W; x++) {
+      if (!alphaAt(img, fx(c, x), fy(r, y)) || hexAt(img, fx(c, x), fy(r, y)) !== '#3a3a50' || !alphaAt(img, fx(c, x), fy(r, y + 1))) continue;
+      const dx = f === 'S' ? (x < 8 ? 1 : -1) : f === 'E' ? -1 : 1;
+      if (x + dx < 0 || x + dx >= FRAME_W) continue;
+      putHex(out, fx(c, x + dx), fy(r, y + 1), EYE_WHITE);
+    }
+  }
+  return out;
+}
+
+/**
+ * Pulls the fringe up and aside on the front (S) frames: hair pixels in the face columns `x0..x1` at or below `rel` rows under the head top
+ * are removed, so the forehead and eyes show (the pack's bowl cuts and the puff covered the eyes, worst on dark hair and at the creator's 6x).
+ */
+export function openFringe(hair, an, { x0 = 4, x1 = 11, rel = 8 } = {}) {
+  const out = clone(hair);
+  for (const { r, c } of frames()) {
+    if (rowFacing(r) !== 'S') continue;
+    const a = anchorOf(an, r, c);
+    if (!a) continue;
+    for (let y = a.top + rel; y < FRAME_H; y++) for (let x = x0; x <= x1; x++) if (alphaAt(out, fx(c, x), fy(r, y))) clearPixel(out, fx(c, x), fy(r, y));
   }
   return out;
 }
