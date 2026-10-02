@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 1024,
    "h": 1344,
-   "frames": 623
+   "frames": 628
   }
  },
  "terrain": {
@@ -1230,10 +1230,10 @@
   "chars/parrot": {
    "atlas": "outdoor",
    "frame": "chars/parrot/0",
-   "w": 10,
-   "h": 15,
-   "ax": 5,
-   "ay": 14,
+   "w": 8,
+   "h": 10,
+   "ax": 4,
+   "ay": 9,
    "footprint": [
     1,
     1
@@ -2197,6 +2197,81 @@
    "h": 10,
    "ax": 8,
    "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/emote_oi": {
+   "atlas": "outdoor",
+   "frame": "fx/emote_oi",
+   "w": 12,
+   "h": 12,
+   "ax": 6,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/emote_valeu": {
+   "atlas": "outdoor",
+   "frame": "fx/emote_valeu",
+   "w": 12,
+   "h": 12,
+   "ax": 6,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/emote_rir": {
+   "atlas": "outdoor",
+   "frame": "fx/emote_rir",
+   "w": 12,
+   "h": 12,
+   "ax": 6,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/emote_dancar": {
+   "atlas": "outdoor",
+   "frame": "fx/emote_dancar",
+   "w": 12,
+   "h": 12,
+   "ax": 6,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/emote_desculpa": {
+   "atlas": "outdoor",
+   "frame": "fx/emote_desculpa",
+   "w": 12,
+   "h": 12,
+   "ax": 6,
+   "ay": 12,
    "footprint": [
     1,
     1
@@ -8002,10 +8077,10 @@
   },
   "chars/parrot_strip": {
    "file": "chars/parrot_strip.png",
-   "w": 40,
-   "h": 15,
+   "w": 32,
+   "h": 10,
    "frames": 4,
-   "frameW": 10,
+   "frameW": 8,
    "fps": 3
   },
   "flock/papagaio_strip": {

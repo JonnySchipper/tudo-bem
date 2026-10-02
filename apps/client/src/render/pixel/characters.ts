@@ -151,7 +151,7 @@ export const GARBS: Record<string, GarbPiece[]> = {
   chinelo: [piece('garb_chinelo', 'outfit', (c) => ({ skin: c.skin, accent: '#3d9a50' }))],
   mochila: [piece('garb_mochila_u', 'under', () => ({ accent: '#d9602b' })), piece('garb_mochila_o', 'over', () => ({ accent: '#d9602b' }))],
   caixa: [piece('garb_caixa_u', 'under', () => ({ accent: '#d6382b' })), piece('garb_caixa_o', 'over', () => ({ accent: '#d6382b' }))],
-  sacola: [piece('garb_sacola_o', 'over', () => ({ accent: '#e3d4ae' }))],
+  sacola: [piece('garb_sacola_o', 'over', () => ({ accent: '#a8542f' }))],
   carrinho: [piece('garb_carrinho_u', 'under', () => ({ accent: '#b83a46' })), piece('garb_carrinho_o', 'over', () => ({ accent: '#b83a46' }))],
   balde: [piece('hat_balde', 'hat', () => ({ hat: '#3f6aa8', accent: '#f1e9dc' }), false)],
 };

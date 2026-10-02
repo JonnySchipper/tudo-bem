@@ -91,6 +91,9 @@ interface AvatarView {
   hat: string | null;
   look: Look;
   parrot: Phaser.GameObjects.Sprite | null;
+  /** the pop-up icon over the head while an emote plays (fx/emote_<kind>), and the emote it shows */
+  icon: Phaser.GameObjects.Sprite | null;
+  iconKey: string;
   anim: string;
   facing: Facing;
   /** world px of the feet */
@@ -137,6 +140,8 @@ interface Canopy {
 /** Art px from the feet to the top of the visible head (the 16x32 frame has empty rows above it); nameplates stand just above. */
 const HEAD_LIFT = 23;
 const HEAD_LIFT_SIT = 16;
+/** seconds the emote pop-up icon stays over the head */
+const EMOTE_ICON_S = 1.1;
 
 const hex = (h: string) => Phaser.Display.Color.HexStringToColor(h).color;
 const hash01 = (n: number) => {
@@ -961,12 +966,13 @@ export class WorldScene extends Phaser.Scene {
     const sprite = this.rig.world(this.add.sprite(0, 0, sheet, 0)).setOrigin(0.5, 1);
     const s16 = this.m.sprites['fx/shadow_16'];
     const shadow = this.rig.world(this.add.image(0, 0, s16.atlas, s16.frame)).setOrigin(...originOf(s16)).setDepth(DEPTH.shadowContact);
-    this.shadows.follow(sprite, 'chars/avatar', { frame: 0 });
-    return { sprite, shadow, sheet, appearance: a.pub.appearance, hat: a.pub.hat, look, parrot: null, anim: '', facing: 'S', wx: 0, wy: 0, lastX: Number.NaN, lastY: 0, sitting: false, moving: false };
+    this.shadows.follow(sprite, 'chars/avatar', { frame: 0, rim: true });
+    return { sprite, shadow, sheet, appearance: a.pub.appearance, hat: a.pub.hat, look, parrot: null, icon: null, iconKey: '', anim: '', facing: 'S', wx: 0, wy: 0, lastX: Number.NaN, lastY: 0, sitting: false, moving: false };
   }
 
   private destroyAvatar(v: AvatarView): void {
     v.parrot?.destroy();
+    v.icon?.destroy();
     v.sprite.destroy();
     v.shadow.destroy();
     this.sheets.release(v.sheet);
@@ -1048,6 +1054,7 @@ export class WorldScene extends Phaser.Scene {
       }
     }
     this.updateParrot(v, a, facing, wx, wy, depth, now);
+    this.updateEmoteIcon(v, a, wx, wy - bounce, sitting, now);
     const h = sitting ? 24 : 32;
     const base = a.pub.npc ? npcDefById(a.pub.npc) : undefined;
     if (base) {
@@ -1056,6 +1063,27 @@ export class WorldScene extends Phaser.Scene {
       dyn.push({ x0: wx - 9, y0: wy - h - 2, x1: wx + 9, y1: wy + 2, hit: { kind: 'npc', npc }, depth: wy + 0.5 });
     } else dyn.push({ x0: wx - 9, y0: wy - h, x1: wx + 9, y1: wy + 2, hit: { kind: 'avatar', id: a.pub.id }, depth: wy + 0.6 });
     void def;
+  }
+
+  /**
+   * The pop-up icon of an emote (wave, thumbs up, laugh, music note, sweat drop in a small bubble) over the head's right side for ~1.1 s: it rises
+   * 4 px in the first 0.16 s, holds, and fades out in the last 0.25 s. Shown even while the avatar walks (the gesture itself needs it to stand still).
+   */
+  private updateEmoteIcon(v: AvatarView, a: ClientAvatar, wx: number, wy: number, sitting: boolean, now: number): void {
+    const t = a.emote ? now / 1000 - a.emote.t0 : -1;
+    const d = a.emote && t >= 0 && t < EMOTE_ICON_S ? this.m.sprites[`fx/emote_${a.emote.kind}`] : undefined;
+    if (!d || !a.emote) {
+      if (v.icon?.visible) v.icon.setVisible(false);
+      return;
+    }
+    if (!v.icon) v.icon = this.rig.world(this.add.sprite(0, 0, d.atlas, d.frame)).setDepth(DEPTH.overhead + 1);
+    if (v.iconKey !== a.emote.kind) {
+      v.iconKey = a.emote.kind;
+      v.icon.setTexture(d.atlas, d.frame).setOrigin(...originOf(d));
+    }
+    const rise = 1 - Math.min(1, t / 0.16);
+    const top = (sitting ? HEAD_LIFT_SIT : HEAD_LIFT) - 1 + lookHeadLift(v.look);
+    v.icon.setPosition(wx + 8, Math.round(wy - top - 1 + rise * 4)).setAlpha(Math.min(1, (EMOTE_ICON_S - t) / 0.25)).setVisible(true);
   }
 
   /** The companion parrot (profile.parrotEquipped -> PublicAvatar.parrot): the poleiro parrot hovering at the avatar's shoulder. */
@@ -1075,7 +1103,7 @@ export class WorldScene extends Phaser.Scene {
     // it hovers beside the head on the far shoulder: behind the body when walking away, mirrored so it always looks toward its owner
     const side = facing === 'W' ? 1 : -1;
     const bob = Math.round(Math.sin(now / 420 + a.seed) * 1.5);
-    v.parrot.setPosition(wx + side * 9, wy - 12 + bob);
+    v.parrot.setPosition(wx + side * 9, wy - 14 + bob);
     v.parrot.setFlipX(side === 1);
     v.parrot.setDepth(facing === 'N' ? depth - 0.05 : depth + 0.05);
   }

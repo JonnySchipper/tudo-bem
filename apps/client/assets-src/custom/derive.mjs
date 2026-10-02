@@ -4,6 +4,7 @@ import * as props from './props.mjs';
 import * as wires from './wires.mjs';
 import * as stall from './stall.mjs';
 import * as critters from './critters.mjs';
+import * as emotefx from './emotefx.mjs';
 import * as vehicles from './vehicles.mjs';
 import * as vauth from './vehicles-auth.mjs';
 import * as facades from './facades.mjs';
@@ -53,7 +54,8 @@ export const DERIVE = {
   fios: wires.fios,
   barracaChapeus: stall.barracaChapeus,
   poleiro: critters.poleiro,
-  parrotCompanion: critters.parrotCompanion,
+  parrotCompanion: emotefx.parrotCompanion,
+  emoteIcons: emotefx.emoteIcons,
   viraLata: critters.viraLata,
   onibus: vehicles.onibus,
   kombi: vauth.kombi,
@@ -81,6 +83,6 @@ export const IMAGES = {
   icons: iconsMod.iconParts,
   ui: uiMod.uiParts,
   uiicons: uiIconsMod.uiIconParts,
-  parrot: critters.parrotStrip,
+  parrot: emotefx.parrotStrip,
   flock: flockMod.flockStrips,
 };

@@ -75,7 +75,7 @@ export async function buildChars({ base }) {
   for (const [style, n] of Object.entries(HAIR_BASE)) {
     let img = await hairOf(n);
     if (style === 'black') img = puffHair(img, bodyRaw, an, { grow: 2 });
-    if (FRINGE_OPEN.has(style)) img = openFringe(img, an);
+    if (FRINGE_OPEN.has(style)) img = openFringe(img, an, style === 'cacheado' || style === 'black' ? { notch: 2 } : {});
     const add = HAIR_ADDON[style];
     if (add) img = stampSet(clone(img), { S: add.S, N: add.N ?? add.S, E: add.E ?? add.S, W: add.W }, an, 'head');
     layers[`hair_${style}`] = img;

@@ -396,13 +396,17 @@ export function eyeWhites(img) {
  * Pulls the fringe up and aside on the front (S) frames: hair pixels in the face columns `x0..x1` at or below `rel` rows under the head top
  * are removed, so the forehead and eyes show (the pack's bowl cuts and the puff covered the eyes, worst on dark hair and at the creator's 6x).
  */
-export function openFringe(hair, an, { x0 = 4, x1 = 11, rel = 8 } = {}) {
+export function openFringe(hair, an, { x0 = 4, x1 = 11, rel = 8, notch = 0 } = {}) {
   const out = clone(hair);
   for (const { r, c } of frames()) {
     if (rowFacing(r) !== 'S') continue;
     const a = anchorOf(an, r, c);
     if (!a) continue;
-    for (let y = a.top + rel; y < FRAME_H; y++) for (let x = x0; x <= x1; x++) if (alphaAt(out, fx(c, x), fy(r, y))) clearPixel(out, fx(c, x), fy(r, y));
+    for (let y = a.top + rel - notch; y < FRAME_H; y++) {
+      // a widow's peak: the opening is `notch` columns narrower per side for each row above the full-width rows
+      const narrow = Math.max(0, a.top + rel - y);
+      for (let x = x0 + narrow; x <= x1 - narrow; x++) if (alphaAt(out, fx(c, x), fy(r, y))) clearPixel(out, fx(c, x), fy(r, y));
+    }
   }
   return out;
 }

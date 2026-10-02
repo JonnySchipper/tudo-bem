@@ -79,6 +79,8 @@ interface Caster {
   rim: Phaser.GameObjects.Sprite | null;
   rimSide: '' | 'l' | 'r';
   rimEpoch: number;
+  /** a follower's rim: the key of the (sheet, frame, side, atlas epoch) its mask was built for */
+  rimKey: string;
 }
 
 /** The handle a scene keeps for a static shadow: lets a stall that is folded away hide its shadow too. */
@@ -136,6 +138,8 @@ export class ShadowLayer {
       c.box.setVisible(false);
       c.spr.setVisible(false);
       c.epoch = -1;
+      c.rim?.setVisible(false);
+      c.rimKey = '';
     }
     for (const p of this.pages) if (this.scene.textures.exists(p.key)) this.scene.textures.remove(p.key);
     this.pages = [];
@@ -230,7 +234,7 @@ export class ShadowLayer {
   private make(src: Source, height: number, wx: number, wy: number, key: string): Caster {
     const spr = this.scene.make.sprite({ x: 0, y: 0, key: pageKey(0), add: false }, false).setBlendMode(Phaser.BlendModes.MULTIPLY).setVisible(false);
     const box = this.rig.world(this.scene.add.container(wx, wy, [spr])).setDepth(DEPTH.shadowCast).setVisible(false);
-    return { box, spr, src, height, follow: null, fixedFrame: null, hScale: 1, ownerVisible: true, epoch: -1, sig: '', key, rim: null, rimSide: '', rimEpoch: -1 };
+    return { box, spr, src, height, follow: null, fixedFrame: null, hScale: 1, ownerVisible: true, epoch: -1, sig: '', key, rim: null, rimSide: '', rimEpoch: -1, rimKey: '' };
   }
 
   /**
@@ -252,7 +256,7 @@ export class ShadowLayer {
    * A shadow that follows a live sprite (a character, a vehicle, the dog): it copies the sprite's position, depth and flip every frame. A
    * character keeps one silhouette (`frame`) whatever it animates; a vehicle follows its own frame.
    */
-  follow(src: Phaser.GameObjects.Sprite, key: string, opts: { frame?: string | number; hScale?: number } = {}): void {
+  follow(src: Phaser.GameObjects.Sprite, key: string, opts: { frame?: string | number; hScale?: number; rim?: boolean } = {}): void {
     const preset = castPreset(key);
     if (!preset.cast) return;
     const f = src.frame;
@@ -262,6 +266,8 @@ export class ShadowLayer {
     c.follow = src;
     c.fixedFrame = opts.frame ?? null;
     c.hScale = opts.hScale ?? 1;
+    // wave 2: a character catches the low sun's edge light like a prop does, from its live frame (the shadow keeps one silhouette)
+    if (opts.rim) c.rim = this.rig.world(this.scene.add.sprite(src.x, src.y, pageKey(0))).setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
     this.followers.push(c);
   }
 
@@ -304,6 +310,7 @@ export class ShadowLayer {
       const c = this.followers[i];
       if (c.follow && !c.follow.active) {
         c.box.destroy();
+        c.rim?.destroy();
         this.followers.splice(i, 1);
       }
     }
@@ -312,7 +319,10 @@ export class ShadowLayer {
         if (c.box.visible) c.box.setVisible(false);
         if (c.rim?.visible) c.rim.setVisible(false);
       }
-      for (const c of this.followers) if (c.box.visible) c.box.setVisible(false);
+      for (const c of this.followers) {
+        if (c.box.visible) c.box.setVisible(false);
+        if (c.rim?.visible) c.rim.setVisible(false);
+      }
       this.flush();
       return;
     }
@@ -328,10 +338,12 @@ export class ShadowLayer {
       c.box.setPosition(s.x, s.y).setDepth(DEPTH.shadowCast);
       if (!s.visible || s.alpha < 0.05) {
         c.box.setVisible(false);
+        if (c.rim?.visible) c.rim.setVisible(false);
         continue;
       }
       c.spr.setFlipX(s.flipX);
       this.aim(c, look, alphaMul, lookChanged);
+      this.aimRimFollower(c, enabled ? rim : undefined);
     }
     this.flush();
   }
@@ -394,6 +406,34 @@ export class ShadowLayer {
     r.setTint(rim.tint).setAlpha(rim.alpha).setVisible(true);
   }
 
+  /**
+   * The warm edge of a character on the side the sun is on. Unlike a prop's, the mask follows the live animation frame (and flips with the
+   * sprite): one small mask per (sheet, frame, side), built the first time the frame is shown. A touch weaker than a prop's (it is 1 px on a
+   * 16 px figure).
+   */
+  private aimRimFollower(c: Caster, rim: RimLook | undefined): void {
+    const r = c.rim;
+    const s = c.follow;
+    if (!r || !s) return;
+    if (!rim || rim.alpha < 0.02) {
+      if (r.visible) r.setVisible(false);
+      return;
+    }
+    const side: 'l' | 'r' = s.flipX ? (rim.side === 'l' ? 'r' : 'l') : rim.side;
+    const frame = s.frame.name;
+    const key = `${s.texture.key}|${frame}|${side}|${this.epoch}`;
+    if (c.rimKey !== key) {
+      const ref = this.rimMask({ ...c.src, tex: s.texture.key, frame }, side);
+      if (!ref) {
+        r.setVisible(false);
+        return;
+      }
+      c.rimKey = key;
+      r.setTexture(ref.tex, ref.frame).setOrigin(ref.ax / ref.w, ref.ay / ref.h);
+    }
+    r.setPosition(s.x, s.y).setDepth(s.depth + 0.002).setFlipX(s.flipX).setTint(rim.tint).setAlpha(rim.alpha * 0.8).setVisible(true);
+  }
+
   /** Upload the atlas once per frame, and only if something was added. */
   private flush(): void {
     for (const p of this.pages) {
@@ -406,7 +446,10 @@ export class ShadowLayer {
 
   destroy(): void {
     this.clearRoom();
-    for (const c of this.followers) c.box.destroy();
+    for (const c of this.followers) {
+      c.box.destroy();
+      c.rim?.destroy();
+    }
     this.followers = [];
     for (const p of this.pages) if (this.scene.textures.exists(p.key)) this.scene.textures.remove(p.key);
     this.pages = [];

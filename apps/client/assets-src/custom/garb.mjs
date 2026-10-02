@@ -155,23 +155,25 @@ const ART = {
     N: PA({ 23: [3, 'oooooooooo'], 24: [3, 'obccbbbbbo'], 25: [3, 'obcbbbbbbo'], 26: [3, 'obbbbbbbbo'], 27: [3, 'oaaaaaaaao'], 28: [4, 'oooooooo'] }),
   },
   caixa_u: {
-    S: PA(boxSpec(1, 21, 14, 9, { band: 5 })),
+    S: PA(boxSpec(0, 21, 16, 9, { band: 5 })),
     E: PA(boxSpec(0, 21, 7, 9, { band: 5 })),
   },
   caixa_o: {
     N: PA(boxSpec(1, 22, 14, 8, { band: 5 })),
   },
+  // tote: a strap across the chest from the shoulder to a 5 x 5 bag at the hip
   sacola_o: {
-    S: PA({ 24: [10, 'bb'], 25: [8, 'bb'], 26: [6, 'bb'], 27: [4, 'bb'], 28: [1, 'obbo'], 29: [1, 'ocbo'], 30: [1, 'obbo'] }),
-    E: PA({ 24: [5, 'b'], 25: [6, 'b'], 26: [7, 'b'], 27: [9, 'obbo'], 28: [9, 'ocbo'], 29: [9, 'obbo'], 30: [10, 'oo'] }),
-    N: PA({ 24: [4, 'bb'], 25: [6, 'bb'], 26: [8, 'bb'], 27: [10, 'bb'], 28: [12, 'obbo'], 29: [12, 'ocbo'], 30: [12, 'obbo'] }),
+    S: PA({ 24: [10, 'bb'], 25: [8, 'bb'], 26: [6, 'bb'], 27: [1, 'ooooo'], 28: [1, 'obbco'], 29: [1, 'ocbbo'], 30: [1, 'obbbo'], 31: [1, 'ooooo'] }),
+    E: PA({ 24: [5, 'b'], 25: [6, 'b'], 26: [7, 'b'], 27: [9, 'ooooo'], 28: [9, 'obbco'], 29: [9, 'ocbbo'], 30: [9, 'obbbo'], 31: [9, 'ooooo'] }),
+    N: PA({ 24: [4, 'bb'], 25: [6, 'bb'], 26: [8, 'bb'], 27: [10, 'ooooo'], 28: [10, 'obbco'], 29: [10, 'ocbbo'], 30: [10, 'obbbo'], 31: [10, 'ooooo'] }),
   },
+  // feira cart: a tall checked bag on two wheels (the front and back views stand it beside the walker, the side view trails it behind)
   carrinho_o: {
-    S: PA({ 20: [14, 'L'], 21: [14, 'L'], 22: [14, 'L'], 23: [14, 'L'], 24: [12, 'oooo'], 25: [12, 'ocbo'], 26: [12, 'obbo'], 27: [12, 'oabo'], 28: [12, 'obbo'], 29: [12, 'oooo'], 30: [12, 'K..K'] }),
-    N: PA({ 20: [13, 'L'], 21: [13, 'L'], 22: [13, 'L'], 23: [13, 'L'], 24: [12, 'oooo'], 25: [12, 'ocbo'], 26: [12, 'obbo'], 27: [12, 'oabo'], 28: [12, 'obbo'], 29: [12, 'oooo'], 30: [12, 'K..K'] }),
+    S: PA({ 18: [13, 'LL'], 19: [13, 'L'], 20: [13, 'L'], 21: [11, 'ooooo'], 22: [11, 'ocWco'], 23: [11, 'obbbo'], 24: [11, 'oWbWo'], 25: [11, 'obbbo'], 26: [11, 'oWbWo'], 27: [11, 'oabao'], 28: [11, 'ooooo'], 29: [11, 'K...K'], 30: [11, 'K...K'] }),
+    N: PA({ 18: [13, 'LL'], 19: [14, 'L'], 20: [14, 'L'], 21: [11, 'ooooo'], 22: [11, 'ocWco'], 23: [11, 'obbbo'], 24: [11, 'oWbWo'], 25: [11, 'obbbo'], 26: [11, 'oWbWo'], 27: [11, 'oabao'], 28: [11, 'ooooo'], 29: [11, 'K...K'], 30: [11, 'K...K'] }),
   },
   carrinho_u: {
-    E: PA({ 21: [5, 'L'], 22: [4, 'L'], 23: [3, 'L'], 24: [0, 'ooooo'], 25: [0, 'ocbbo'], 26: [0, 'obbbo'], 27: [0, 'obbbo'], 28: [0, 'oabbo'], 29: [0, 'ooooo'], 30: [1, 'K..K'] }),
+    E: PA({ 21: [0, 'oooooo'], 22: [0, 'ocWbco'], 23: [0, 'obbbbo'], 24: [0, 'oWbbWo'], 25: [0, 'obbbbo'], 26: [0, 'oWbbWo'], 27: [0, 'oabbao'], 28: [0, 'oooooo'], 29: [1, 'K..K'], 30: [1, 'K..K'] }),
   },
 };
 
