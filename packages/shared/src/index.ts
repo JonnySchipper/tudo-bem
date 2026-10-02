@@ -11,6 +11,7 @@ export * from './numbers.js';
 export * from './cards.js';
 export * from './accept.js';
 export * from './meveum.js';
+export * from './correria.js';
 export * from './carlos.js';
 export * from './protocol.js';
 export * from './ambiance.js';

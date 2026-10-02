@@ -79,15 +79,15 @@ export function mulberry32(seed: number): Rng {
 
 const CUSTOMERS = ['Dona Ana', 'Seu João', 'Pedro', 'Luana', 'Tio Beto', 'Dona Cida', 'Gabi', 'Rafa', 'Dona Lurdes', 'Téo'];
 
-const OPENERS: { pt: (l: string) => string; en: (l: string) => string }[] = [
+export const OPENERS: { pt: (l: string) => string; en: (l: string) => string }[] = [
   { pt: (l) => `Me vê ${l}, por favor.`, en: (l) => `I’ll take ${l}, please.` },
   { pt: (l) => `Bom dia! Me vê ${l}.`, en: (l) => `Good morning! I’ll take ${l}.` },
   { pt: (l) => `${cap(l)}, por favor.`, en: (l) => `${cap(l)}, please.` },
   { pt: (l) => `Me vê ${l}.`, en: (l) => `I’ll take ${l}.` },
 ];
 
-const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
-const pick = <T>(rng: Rng, arr: readonly T[]): T => arr[Math.floor(rng() * arr.length)];
+export const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+export const pick = <T>(rng: Rng, arr: readonly T[]): T => arr[Math.floor(rng() * arr.length)];
 
 export function linePt(line: MgOrderLine): string {
   const item = mgItemById(line.itemId)!;
@@ -124,22 +124,44 @@ export function orderTimeMs(lines: MgOrderLine[], mods: string[]): number {
   return Math.min(120_000, Math.max(18_000, ms));
 }
 
-function generateCombo(rng: Rng, customer: string): MgOrder {
-  const nLines = 2 + Math.floor(rng() * 2);
-  const pool = [...MG_ITEMS];
+export interface ComboOpts {
+  /** Items the combo may use (default: every shelf item). */
+  pool?: readonly MgItem[];
+  minLines?: number;
+  maxLines?: number;
+  maxQty?: number;
+  /** Chance of a "pra viagem" / "pra comer aqui" mod (default 0.5). */
+  whereChance?: number;
+  /** Chance of a coffee mod ("sem açúcar" / "bem quente") when the combo has exactly one café (default 0). */
+  coffeeModChance?: number;
+}
+
+export function generateCombo(rng: Rng, customer: string, opts: ComboOpts = {}): MgOrder {
+  const pool = opts.pool?.length ? [...opts.pool] : [...MG_ITEMS];
+  const minLines = opts.minLines ?? 2;
+  const maxLines = Math.max(minLines, opts.maxLines ?? 3);
+  const maxQty = Math.max(1, opts.maxQty ?? 3);
+  const nLines = minLines + Math.floor(rng() * (maxLines - minLines + 1));
   const lines: MgOrderLine[] = [];
   for (let i = 0; i < nLines && pool.length; i++) {
     const item = pool.splice(Math.floor(rng() * pool.length), 1)[0];
     if (!item) break;
-    lines.push({ itemId: item.id, qty: 1 + Math.floor(rng() * 3) });
+    lines.push({ itemId: item.id, qty: 1 + Math.floor(rng() * maxQty) });
   }
   if (!lines.length && MG_ITEMS[0]) lines.push({ itemId: MG_ITEMS[0].id, qty: 1 });
   const whereMods = MG_MODS.filter((m) => m.group === 'where');
-  const where = whereMods.length && rng() < 0.5 ? pick(rng, whereMods) : null;
+  const where = whereMods.length && rng() < (opts.whereChance ?? 0.5) ? pick(rng, whereMods) : null;
   const mods = where ? [where.id] : [];
   const opener = pick(rng, OPENERS);
   let listPt = joinPt(lines.map(linePt));
   let listEn = joinEn(lines.map(lineEn));
+  const coffees = lines.filter((l) => l.itemId === 'cafe' || l.itemId === 'cafe_com_leite');
+  if (opts.coffeeModChance && coffees.length === 1 && coffees[0]!.qty === 1 && rng() < opts.coffeeModChance) {
+    const cm = pick(rng, MG_MODS.filter((m) => m.group === 'coffee'));
+    mods.push(cm.id);
+    listPt += `, ${cm.pt}`;
+    listEn += `, ${cm.en}`;
+  }
   if (where) {
     listPt += ` ${where.pt}`;
     listEn += ` ${where.en}`;
