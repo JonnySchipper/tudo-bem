@@ -186,3 +186,11 @@ Contact sheets: `node scripts/pixel-contact.mjs --set portraits|feira|icons|ui|f
 Floors are `flush` terrains (`custom/floors.mjs`), walls / decor / doors are in `custom/walls.mjs`, padaria props in `custom/padaria.mjs`, kitnet and catalog furniture in `custom/kitnet.mjs`, academia and praça leftovers in `custom/gym.mjs`.
 Key conventions: `walls/north_<style>_l|_m|_r`, `walls/west_<style>[_b]`, `props/<kind>_<i>_of_<w>` (sliced), `props/cadeira_padaria_e|s|n|w`, `furniture/<id>_0|1`. Sources and tables: docs/lifesim/DECISIONS.md, art track 3.
 Contact sheets: `node scripts/pixel-contact.mjs --set floors|walls|padaria|kitnet|academia|praca` (writes docs/lifesim/shots/art3/).
+
+## Characters, wave 2
+
+- **Garbs** (`custom/garb.mjs`): CPU-only pieces (`Appearance.garb`, ids joined by `+`): `garb_jersey` (stripes from the outfit's torso mask), `garb_jaqueta`, `garb_macacao`, `garb_chinelo` (all derived from the outfit alpha of every frame), `garb_mochila_u|o`, `garb_caixa_u|o`, `garb_sacola_o`, `garb_carrinho_u|o` (ASCII patterns anchored to the feet row; `_u` is drawn under the body, `_o` over everything), `hat_balde` (`hats.mjs`). All are key-coloured and have `__esguio` / `__forte` variants except the hat. The table that places them is `GARBS` in `characters.ts`; the crowd that wears them is `packages/shared/src/looks.ts`.
+- **Faces**: `eyeWhites` adds a white pixel to every eye, `openFringe` pulls the fringe of `cacheado`, `black`, `ondulado` and `longo` up and aside on the front frames (`scripts/lib/pixel/charedit.mjs`).
+- **Emote art**: the gestures in `emote_gestures` (`charart.mjs`: `wave`, `thumb`, `handsUp`, `laugh`), the pop-up bubbles `fx/emote_<kind>` and the 8 x 10 parrot (`custom/emotefx.mjs`).
+- **Runtime, not art**: the outer outline and the top-left light are applied when a look is composed (`render/pixel/charfx.ts`), so they follow any recolor and body type and never need a re-import.
+- Review tools: `node scripts/character-lineup.mjs`, `scripts/character-peek.mjs <out> <scale> <spec.json>`, `scripts/character-dump.mjs <layer> <row> <col>`, `scripts/cpu-looks-dump.mjs`.

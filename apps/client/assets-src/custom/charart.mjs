@@ -69,37 +69,51 @@ export const HAIR_ADDON = {
 // ---- emote gestures (body anchored, canonical rows 12-16; frames are the emote's frames)
 const NONE = { S: P(0, []) };
 const DOTS = (n) => '.'.repeat(n);
-// waving hand: an outlined 2x2 hand beside the cheek on the right, forearm below; frame B is 1 px higher with the fingers spread
-const wave = (b) => ({
-  S: P(b ? -16 : -15, [
-    T(13, b ? 'o.o' : 'ooo'),
-    T(12, 'orso'),
-    T(12, 'orro'),
-    T(13, 'ooo'),
-    T(14, 'or'), T(14, 'or'), T(14, 'or'), T(14, 'or'),
-  ]),
-});
-// thumbs-up: an outlined fist with the thumb straight up, at cheek height
-const thumb = {
-  S: P(-13, [T(14, 'o'), T(13, 'oro'), T(13, 'oro'), T(12, 'orro'), T(12, 'orro'), T(12, 'orso'), T(13, 'ooo')]),
+// Wave 2: the gestures are big enough to read at 1x: a hand of 5-6 px with a navy outline, an outlined forearm, drawn over the head's side (the
+// face stays clear: the hand sits above the eye row). The pop-up icons (fx/emote_*) say the same thing in a bubble above the head.
+/** body-anchored pattern from absolute frame rows (the reference frame has its feet on row 31): { 12: [x, 'chars'], ... } */
+const PA = (spec) => {
+  const ys = Object.keys(spec).map(Number);
+  const y0 = Math.min(...ys);
+  const rows = [];
+  for (let y = y0; y <= Math.max(...ys); y++) rows.push(spec[y] ? T(spec[y][0], spec[y][1]) : '.'.repeat(16));
+  return P(y0 - 31, rows);
 };
-// dancing: both hands up beside the head (2 wide, outlined on top), 1 px arms down to the sleeves
+const arm = (from, to, x = 13) => Object.fromEntries(Array.from({ length: to - from + 1 }, (_, i) => [from + i, [x, 'oso']]));
+// waving hand: a flat open hand with a shaded palm and four fingers; frame B is 1 px higher with the fingers spread
+const wave = (b) => ({
+  S: PA(
+    b
+      ? { 10: [11, 'o.o.o'], 11: [10, 'osssso'], 12: [10, 'osssro'], 13: [10, 'orrrro'], 14: [11, 'orrro'], 15: [12, 'orro'], ...arm(16, 23) }
+      : { 11: [11, 'oooo'], 12: [10, 'osssso'], 13: [10, 'osssro'], 14: [10, 'orrrro'], 15: [11, 'orrro'], 16: [12, 'orro'], ...arm(17, 23) },
+  ),
+});
+// thumbs-up: a fist (4 rows, shaded) with the thumb pointing straight up, forearm below
+const thumb = {
+  S: PA({ 9: [12, 'oo'], 10: [11, 'osso'], 11: [11, 'osro'], 12: [10, 'oossso'], 13: [10, 'osssro'], 14: [10, 'osrrro'], 15: [10, 'orrrro'], 16: [11, 'oooo'], ...arm(17, 23) }),
+};
+// dancing: both hands up beside the head (4 wide, outlined), arms down to the sleeves
 const handsUp = (len, side = 'LR') => {
   const L = side.includes('L');
   const R = side.includes('R');
-  const row = (l, r) => (L ? l : '..') + DOTS(12) + (R ? r : '..');
-  const arm = (ch) => (L ? ch : '.') + DOTS(14) + (R ? ch : '.');
+  const row = (l, r) => (L ? l : '....') + DOTS(8) + (R ? r : '....');
+  const armRow = () => (L ? '.rr.' : '....') + DOTS(8) + (R ? '.rr.' : '....');
   return {
     S: P(-18, [
-      row('oo', 'oo'), row('rr', 'rr'), row('sr', 'rs'), row('or', 'ro'),
-      ...Array.from({ length: len }, () => arm('q')),
+      row('oooo', 'oooo'), row('orro', 'orro'), row('orso', 'osro'), row('oooo', 'oooo'),
+      ...Array.from({ length: len }, () => armRow()),
     ]),
   };
 };
 const armsUp = (n) => handsUp(n === 2 ? 3 : 7);
 const oneArmUp = (side) => handsUp(6, side === 'L' ? 'L' : 'R');
+// laugh: eyes squeezed shut (a dash instead of the dot), mouth wide open / a broad smile; skin is painted over the eye whites
 const laugh = (open) => ({
-  S: P(-10, open ? [T(6, 'wwww'), T(6, 'KRRK')] : [T(6, 'K..K'), T(7, 'KK')]),
+  S: PA(
+    open
+      ? { 20: [5, 'KK..KK'], 21: [5, 'rK..Kr'], 22: [5, 'KRRRRK'] }
+      : { 20: [5, 'KK..KK'], 21: [5, 'rr..rr'], 22: [6, 'KKKK'] },
+  ),
 });
 
 /** rows of the emote layer: row 12 oi (6 frames), 13 dancar (6), 14 rir (4), 15 valeu (4), 16 desculpa (none) */

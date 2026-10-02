@@ -9,6 +9,8 @@ export type Ramps = Partial<Record<RampName, string>>;
 export interface RgbaLayer {
   data: Uint8ClampedArray | Uint8Array;
   ramps?: Ramps;
+  /** runs on the recolored copy of the layer before it is composited (the top-left light on hair and shoulders) */
+  post?: (data: Uint8ClampedArray) => void;
 }
 
 /** Key-color -> target-color table for a set of base colors (skin, hair, ...). */
@@ -47,9 +49,10 @@ export function composeRgba(length: number, layers: readonly RgbaLayer[]): Uint8
   const tmp = new Uint8ClampedArray(length);
   for (const layer of layers) {
     if (layer.data.length !== length) throw new Error(`layer size mismatch: ${layer.data.length} vs ${length}`);
-    if (layer.ramps && Object.keys(layer.ramps).length) {
+    if ((layer.ramps && Object.keys(layer.ramps).length) || layer.post) {
       tmp.set(layer.data);
-      swapKeys(tmp, tableFor(layer.ramps));
+      if (layer.ramps && Object.keys(layer.ramps).length) swapKeys(tmp, tableFor(layer.ramps));
+      layer.post?.(tmp);
       compositeOver(out, tmp);
     } else compositeOver(out, layer.data);
   }

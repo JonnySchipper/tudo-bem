@@ -28,6 +28,8 @@ export interface Appearance {
   face?: FaceStyle;
   extra?: ExtraStyle;
   idle?: IdlePose;
+  /** Neighbourhood pieces for CPU neighbours only (jersey, backpack, flip-flops...; ids joined by '+', see GARB_IDS). Players never carry one: sanitizeAppearance drops it. */
+  garb?: string;
 }
 
 /** Fluency band. Driven by the student model, never purchasable. Phase 0: everyone is Verde. */

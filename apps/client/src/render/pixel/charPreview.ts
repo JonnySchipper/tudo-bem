@@ -128,8 +128,8 @@ export function mountCharPreview(canvas: HTMLCanvasElement, get: () => PreviewSp
         const pf = Math.floor((now / 1000) * 3) % p.frames;
         const side = facing === 'W' ? 1 : -1;
         const bob = Math.round(Math.sin(now / 420) * 1.5);
-        const px = FX + 8 + side * 9 - 5;
-        const py = FY + 31 - 12 + bob - 14;
+        const px = FX + 8 + side * 9 - Math.round(p.frameW / 2);
+        const py = FY + 31 - 14 + bob - (p.h - 1);
         if (side === 1) {
           ctx.save();
           ctx.translate(px + p.frameW, py);

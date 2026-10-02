@@ -67,6 +67,27 @@ export const HAT_ART = {
       T(2, 'oooooooooooo'),
     ]),
   },
+  // balde (fisherman bucket, wave 2): soft slouchy crown, two-tone band and a brim that droops all around, wider than the yellow bucket
+  balde: {
+    S: P(-3, [
+      T(5, 'oooooo'),
+      R(4, 11, '3', '2', '1'),
+      R(3, 12, '3', '2', '1'),
+      T(3, 'obcbcbcbco'),
+      T(1, 'o33222222222211o'.slice(0, 14)),
+      T(0, 'o1112222222222111o'.slice(0, 16)),
+      T(1, 'oo111111111111oo'.slice(0, 14)),
+    ]),
+    E: P(-3, [
+      T(4, 'oooooo'),
+      R(3, 10, '3', '2', '1'),
+      R(2, 11, '3', '2', '1'),
+      T(2, 'obcbcbcbco'),
+      T(1, 'o3322222222211o'.slice(0, 14)),
+      T(0, 'o111222222222211o'.slice(0, 16)),
+      T(2, 'oo11111111oo'),
+    ]),
+  },
   // beret: a flat round cap with a stalk, pulled to one side
   boina_vermelha: {
     S: P(-3, [
