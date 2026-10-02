@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 1024,
    "h": 1664,
-   "frames": 752
+   "frames": 754
   }
  },
  "terrain": {
@@ -4595,6 +4595,36 @@
    "overhead": null,
    "shadow": null
   },
+  "props/bandeira_br": {
+   "atlas": "outdoor",
+   "frame": "props/bandeira_br",
+   "w": 16,
+   "h": 32,
+   "ax": 4,
+   "ay": 31,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "props/bandeira_sp": {
+   "atlas": "outdoor",
+   "frame": "props/bandeira_sp",
+   "w": 16,
+   "h": 32,
+   "ax": 4,
+   "ay": 31,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
   "props/placar": {
    "atlas": "outdoor",
    "frame": "props/placar",
@@ -5475,13 +5505,13 @@
    "overhead": null,
    "shadow": null
   },
-  "walls/poster_oss": {
+  "walls/poster_respeito": {
    "atlas": "outdoor",
-   "frame": "walls/poster_oss",
-   "w": 24,
-   "h": 30,
+   "frame": "walls/poster_respeito",
+   "w": 34,
+   "h": 38,
    "ax": 0,
-   "ay": 30,
+   "ay": 38,
    "footprint": [
     1,
     1

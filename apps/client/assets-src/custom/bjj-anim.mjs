@@ -98,7 +98,7 @@ const spark = (x, y, n) => (cv, put) => {
 
 export function faceOff(f) {
   const bob = [0, -1][f];
-  const A = stand(21, 1, { hands: [[28.5, 28.5 + bob * 0.5], [26, 33]], bendA: [1, 1] });
+  const A = stand(19.5, 1, { hands: [[27, 28.5 + bob * 0.5], [26, 33]], bendA: [1, 1] });
   const B = F({ ...mirror(A) });
   return pair(shiftFighter(A, 0, bob * 0.8, ['head', 'chest']), shiftFighter(B, 0, -bob * 0.8, ['head', 'chest']), 'A');
 }
@@ -115,9 +115,10 @@ export function fistbump(f) {
 
 export function winRaise(f) {
   const AX = 19, BX = 47;
-  const up = [[26, 25], [27, 16], [27, 12.5]][f];
+  const up = [[AX + 8.5, 27], [AX + 7.5, 18], [AX + 6.2, 11.5]][f];
+  const el = [[AX + 7, 29], [AX + 8, 23], [AX + 7.4, 20]][f];
   const hop = [0, -1, 0][f];
-  const A = front(AX, { hands: [[up[0], up[1]], [AX - 6, 34]], head: [AX, 20.5 + hop], chest: [AX, 28.5 + hop], hip: [AX, 35.5 + hop * 0.4], bendA: [-1, 1], z: { arm0: 'over' } });
+  const A = front(AX, { hands: [[AX - 6, 34], [up[0], up[1]]], elbows: [[AX - 6.5, 31], el], head: [AX, 20.5 + hop], chest: [AX, 28.5 + hop], hip: [AX, 35.5 + hop * 0.4], z: { arm1: 'over' } });
   const bow = [0.6, 1, 1.4][f];
   const B = front(BX, { head: [BX, 21 + bow], chest: [BX, 28.8 + bow * 0.4], hands: [[BX - 5.5, 34.5], [BX + 5.5, 34.5]], feet: [[BX + 3, 44], [BX - 3, 44]] });
   const fx = f === 2 ? [spark(AX + 9, 8, 6)] : [];
@@ -135,13 +136,18 @@ export function finishTap(f) {
   A.z = { ...A.z };
   // B: head tipped back onto A's shoulder, eyes shut; one hand pulls at the choking arm, the other taps the mat
   B.head = [33.8, 26.7]; B.up = [0.5, -0.85]; B.eyes = 'shut';
-  B.hands = [[34.5, 31], [36.5, 43]];
-  B.elbows = [[37, 33], [38, 40]];
-  B.z = { arm0: 'over', arm1: 'under' };
-  const tap = [[36.5, 43.5], [37.5, 38.5], [36.5, 43.5], [37.5, 38.5]][f];
+  B.hands = [[34.5, 31], [24.5, 35]];
+  B.elbows = [[37, 33], [31, 41.5]];
+  B.z = { arm0: 'over', arm1: 'over' };
+  const tap = [[24, 35.5], [24.5, 30], [24, 35.5], [24.5, 30]][f];
   B.hands[1] = tap;
-  B.elbows[1] = [38.5, 41.5];
-  const fx = f % 2 === 0 ? [(cv, put) => { for (const [dx, dy] of [[-3, -1], [-4, -3], [3, -2], [4, -4]]) put(cv, Math.round(tap[0] + dx), Math.round(tap[1] + dy), FX_COL.y); }] : [];
+  B.elbows[1] = [29, f % 2 === 0 ? 37.5 : 34];
+  const fx = [(cv, put) => {
+    const down = f % 2 === 0;
+    const rays = down ? [[-3, 0], [-4, 2], [-3, -3], [0, 3], [-2, 4]] : [[-3, 0], [-2, 3]];
+    for (const [dx, dy] of rays) put(cv, Math.round(tap[0] + dx), Math.round(tap[1] + dy), down ? FX_COL.Y : FX_COL.y);
+    if (down) put(cv, Math.round(tap[0]), Math.round(tap[1] - 2), FX_COL.w);
+  }];
   return pair(A, B, 'B', fx);
 }
 

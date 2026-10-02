@@ -194,3 +194,21 @@ Contact sheets: `node scripts/pixel-contact.mjs --set floors|walls|padaria|kitne
 - **Emote art**: the gestures in `emote_gestures` (`charart.mjs`: `wave`, `thumb`, `handsUp`, `laugh`), the pop-up bubbles `fx/emote_<kind>` and the 8 x 10 parrot (`custom/emotefx.mjs`).
 - **Runtime, not art**: the outer outline and the top-left light are applied when a look is composed (`render/pixel/charfx.ts`), so they follow any recolor and body type and never need a re-import.
 - Review tools: `node scripts/character-lineup.mjs`, `scripts/character-peek.mjs <out> <scale> <spec.json>`, `scripts/character-dump.mjs <layer> <row> <col>`, `scripts/cpu-looks-dump.mjs`.
+
+## Academia roll art (`bjj/*`, `props/placar`)
+
+Authored with a small puppet renderer (`custom/bjj-rig.mjs`: head disc, torso capsule, two-bone arms and legs, navy sticker outlines, light from the upper left, chibi proportions like the 16x32 characters), poses in `bjj-poses.mjs`, loops / transitions / extras in `bjj-anim.mjs`, Bia in `bjj-ref.mjs`, glue in `bjj.mjs` (`import-map.d/bjj.json`, derive fn `bjjSet`). Preview tools: `node scripts/bjj-preview.mjs <out> <scale> pos:<id>,struggle:<id>,trans:<a>><b>,finish,win,bump,face,ref` and `node scripts/bjj-sheet.mjs` (the contact sheet, `docs/lifesim/shots/academia-art/sheet.png`).
+
+| Key | Frames | Notes |
+|---|---|---|
+| `bjj/pair_<pos>_<0..3>`, pos = `de_pe`, `guarda_fechada`, `meia_guarda`, `cem_quilos`, `joelho`, `montada`, `costas` | 4 each, loop | 56x42, anchor bottom centre (28, 42). Fighter A (white gi, the player) is on top / dominant, B (blue gi, partner) is under |
+| `bjj/trans_<from>__<to>_<0..3>` | 4 each, play once | all 16 directed ladder steps: de_pe<>guarda_fechada, de_pe<>meia_guarda, guarda_fechada<>cem_quilos, meia_guarda<>cem_quilos, cem_quilos<>joelho, joelho<>montada, joelho<>costas, montada<>costas. Frame 3 is close to (not equal to) the target `pair_*_0` |
+| `bjj/finish_tap_<0..3>` | 4, loop | rear choke, B's free hand taps in the air (frames 0 and 2 are the contact, with yellow rays) |
+| `bjj/win_raise_<0..2>` | 3 | two fighters standing front-on (A at left raises the arm toward the middle, B at right bows); the referee is separate, hold A's raised hand at about (27, 12) of the frame |
+| `bjj/fistbump_<0..3>`, `bjj/face_off_<0..1>` | 4 / 2 | standing facing each other |
+| `bjj/ref_<combate, pontos2, pontos3, pontos4, vantagem, parar, vitoria>` | 1 each | Professora Bia, 16x32, anchor (8, 32), skin / hair on the key ramps, white gi, black belt |
+| `props/placar` | 1 | 48x44 scoreboard on a stand, anchor (24, 42). Blank DOM digit cells (x, y, w, h): clock `[14,3,20,7]`, player pontos `[27,13,8,8]` / vantagens `[37,13,8,8]`, partner pontos `[27,23,8,8]` / vantagens `[37,23,8,8]` (`PLACAR_CELLS` in `bjj.mjs`) |
+| `props/bandeira_br`, `props/bandeira_sp` | 1 | corner flags 16x32, anchor (4, 31) |
+| `walls/poster_respeito` | 1 | the RESPEITO / TREINO / AMIZADE wall poster (replaces `poster_oss`) |
+
+**Colors.** Every pair frame uses only: key ramps (A `skin` / `hair`, B `skin2` / `hair2`, A's belt `belt`), the gi ramps (white for A, blue for B), B's fixed black belt, the navy outline and a few FX yellows (`GI_PALETTE` in `bjj-rig.mjs`). New key ramps in `palette.ts` (so `manifest.keyRamps` has them): `skin2` `#a03a00 #c05000 #e06800 #ff8020`, `hair2` `#5a00a0 #7000c0 #8800e0 #a020ff`, `belt` (3 ranks) `#406040 #608060 #80a080`. Swap them with `swapKeys` / `tableFor({ skin, hair, skin2, hair2, belt })`; use a white or blue base color for `belt`. Test: `scripts/lib/pixel/bjj.test.mjs`.

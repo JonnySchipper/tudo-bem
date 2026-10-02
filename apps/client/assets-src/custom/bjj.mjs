@@ -87,7 +87,33 @@ export function placar() {
   return { img, anchor: [24, 42] };
 }
 
+// ------------------------------------------------------------------ corner flags (props/bandeira_br, props/bandeira_sp): 16 x 32, pole at the left
+
+export function bandeira(kind) {
+  const img = blank(16, 32);
+  const pole = (x, y0, y1) => { rect(img, x, y0, 2, y1 - y0, '#c9c1ae'); rect(img, x, y0, 1, y1 - y0, '#fbf7ee'); rect(img, x + 1, y0, 1, y1 - y0, '#a9a18e'); };
+  // base
+  box(img, 1, 28, 6, 3, '#6b4b30', C.navy);
+  pole(3, 5, 29);
+  rect(img, 2, 3, 3, 3, C.navy); rect(img, 3, 4, 1, 1, '#f2c230'); // ball on top
+  const fx = 5, fy = 5, fw = 10, fh = 8;
+  rect(img, fx - 1, fy - 1, fw + 2, fh + 2, C.navy);
+  if (kind === 'br') {
+    rect(img, fx, fy, fw, fh, '#3f8f4a');
+    rect(img, fx, fy, fw, 1, '#5dbb54');
+    for (let i = 0; i < 4; i++) { rect(img, fx + 5 - 1 - i, fy + 3 - i < fy ? fy : fy + 3 - i, 2 + i * 2, 1, '#f6c93a'); rect(img, fx + 5 - 1 - i, fy + 4 + i, 2 + i * 2, 1, '#f6c93a'); }
+    rect(img, fx + 3, fy + 2, 4, 4, '#3f6aa8'); rect(img, fx + 4, fy + 3, 2, 2, '#6f9ad8');
+  } else {
+    for (let r = 0; r < fh; r++) rect(img, fx, fy + r, fw, 1, r % 2 === 0 ? '#d0463a' : '#f8f2e4');
+    rect(img, fx, fy, 4, 4, '#2a2a3a'); rect(img, fx + 1, fy + 1, 2, 2, '#f8f2e4');
+  }
+  // fold shade on the free end
+  rect(img, fx + fw - 2, fy + 1, 1, fh - 2, '#00000022'.length ? '#3a3a50' : '#3a3a50');
+  return { img, anchor: [4, 31] };
+}
+
 export const DERIVE_BJJ = {
+  bjjBandeira: async (_ctx, { kind }) => { const { img, anchor } = bandeira(kind); return [{ img, anchor }]; },
   bjjSet,
   bjjPlacar: async () => { const { img, anchor } = placar(); return [{ img, anchor }]; },
 };
