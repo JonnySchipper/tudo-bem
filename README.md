@@ -11,9 +11,9 @@ You move into **Vila Ipê**, a São Paulo neighborhood with a living clock (one 
 (**recados**). Everything is spoken in Portuguese with an English gloss next to it, and the Portuguese is what you learn by doing the errands:
 ordering a coffee, asking "Quanto custa?", greeting someone with the right *bom dia / boa tarde / boa noite*.
 
-| The street at golden hour | The praça at 19:30 |
+| The street at 19:30 | Treino no tatame at the Academia |
 | --- | --- |
-| ![The street in front of the padaria](docs/screenshots/street.png) | ![The praça at night](docs/screenshots/praca_1930.png) |
+| ![The street in front of the padaria at 19:30](docs/screenshots/street.png) | ![A match on the tatame](docs/screenshots/academia.png) |
 | **Seu Carlos at the padaria** | **The feira livre: Tia Lu, "Quanto custa?"** |
 | ![The padaria dialogue](docs/screenshots/padaria_dialogue.png) | ![The feira](docs/screenshots/feira.png) |
 
@@ -53,6 +53,7 @@ VITE_LOCAL_WORLD=1 pnpm --filter @tudobem/client build      # then serve apps/cl
 7. **Feira livre** (east lot, every day 06:00 to 13:00, plus the Hortifrúti corner at the banca at any hour). Ask "Quanto custa a banana?", hear the price in words, say how many, then pay with coins and notes. Overpay and you get *troco*; underpay and nothing is bought.
 8. **Caderno de palavras.** Every word you see, hear and use fills a notebook by group; finishing a group pays RV.
 9. **Hats, kitnet and friends.** Nanda's stall (hats), your kitnet at Nº 42 (decorate, sit), the Academia do Bairro (Professora Bia, tatame, a CPU roll), the parrot perch, friends in the top bar.
+10. **Academia: Treino no tatame.** Talk to Professora Bia and pick a partner from the Fila do tatame. The match plays out in the room itself: you both step onto the mat, the scoreboard counts the clock, pontos and vantagens, and every exchange is a Portuguese challenge (cloze, typed, listening, reorder, choice). Pick an intent first, answer fast to build momentum and win the grip; right answers move you up the positions (de pé, guarda, montada), wrong ones give ground. Sometimes a finalização chance opens: answer it and your partner taps. Wins earn RV and belt progress (it starts at the faixa branca), and your belt shows on your profile card. It is a word game, not martial-arts training.
 
 ## How it is built
 

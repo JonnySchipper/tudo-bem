@@ -145,7 +145,7 @@ async function sectionMap(browser, vp) {
 // cx, cy: camera tile; z: integer zoom (desktop / phone); at: where the avatar stands; times: the pins
 const T4 = ['08:00', '12:00', '17:30', '21:00'];
 const AREAS = [
-  { name: 'north_street', cam: [22, 8.4, 3], phoneCam: [18, 13, 2], at: [16, 7], times: T4, wx: [['15:00', 'garoa'], ['15:00', 'chuva']], phone: true },
+  { name: 'north_street', cam: [22, 8.4, 3], phoneCam: [18, 13, 2], at: [16, 7], times: [...T4, '19:30'], wx: [['15:00', 'garoa'], ['15:00', 'chuva'], ['21:00', 'chuva']], phone: true },
   { name: 'north_street_east', cam: [40, 8.4, 3], at: [40, 7], times: T4 },
   { name: 'praca_fountain', cam: [25, 20, 3], phoneCam: [25, 20, 2], at: [25, 16], times: T4, wx: [['15:00', 'garoa'], ['15:00', 'chuva']], phone: true },
   { name: 'west_houses', cam: [13, 20, 3], at: [9, 17], times: T4 },

@@ -90,25 +90,37 @@ export function placar() {
 // ------------------------------------------------------------------ corner flags (props/bandeira_br, props/bandeira_sp): 16 x 32, pole at the left
 
 export function bandeira(kind) {
-  const img = blank(16, 32);
+  const img = blank(22, 32);
   const pole = (x, y0, y1) => { rect(img, x, y0, 2, y1 - y0, '#c9c1ae'); rect(img, x, y0, 1, y1 - y0, '#fbf7ee'); rect(img, x + 1, y0, 1, y1 - y0, '#a9a18e'); };
   // base
   box(img, 1, 28, 6, 3, '#6b4b30', C.navy);
-  pole(3, 5, 29);
-  rect(img, 2, 3, 3, 3, C.navy); rect(img, 3, 4, 1, 1, '#f2c230'); // ball on top
-  const fx = 5, fy = 5, fw = 10, fh = 8;
+  pole(3, 4, 29);
+  rect(img, 2, 2, 3, 3, C.navy); rect(img, 3, 3, 1, 1, '#f2c230'); // ball on top
+  const fx = 5, fy = 4, fw = 16, fh = 12;
   rect(img, fx - 1, fy - 1, fw + 2, fh + 2, C.navy);
   if (kind === 'br') {
-    rect(img, fx, fy, fw, fh, '#3f8f4a');
-    rect(img, fx, fy, fw, 1, '#5dbb54');
-    for (let i = 0; i < 4; i++) { rect(img, fx + 5 - 1 - i, fy + 3 - i < fy ? fy : fy + 3 - i, 2 + i * 2, 1, '#f6c93a'); rect(img, fx + 5 - 1 - i, fy + 4 + i, 2 + i * 2, 1, '#f6c93a'); }
-    rect(img, fx + 3, fy + 2, 4, 4, '#3f6aa8'); rect(img, fx + 4, fy + 3, 2, 2, '#6f9ad8');
+    // green field, yellow rhombus, blue disc with a white band
+    rect(img, fx, fy, fw, fh, '#2f9a4a');
+    const cx = fx + fw / 2, cy = fy + fh / 2;
+    for (let r = 0; r < fh; r++) {
+      const half = Math.round((fw / 2 - 1) * (1 - Math.abs(r + 0.5 - fh / 2) / (fh / 2)));
+      if (half > 0) rect(img, cx - half, fy + r, half * 2, 1, '#f6d32a');
+    }
+    for (let r = -3; r <= 2; r++) {
+      const hw = Math.round(Math.sqrt(Math.max(0, 9.5 - (r + 0.5) * (r + 0.5))));
+      if (hw > 0) rect(img, cx - hw, cy + r, hw * 2, 1, '#2a4fa8');
+    }
+    rect(img, cx - 3, cy, 6, 1, '#f8f2e4');
   } else {
-    for (let r = 0; r < fh; r++) rect(img, fx, fy + r, fw, 1, r % 2 === 0 ? '#d0463a' : '#f8f2e4');
-    rect(img, fx, fy, 4, 4, '#2a2a3a'); rect(img, fx + 1, fy + 1, 2, 2, '#f8f2e4');
+    // Sao Paulo: alternating black / white stripes, red canton with a white disc, a dark map blob and 4 gold stars
+    for (let r = 0; r < fh; r++) rect(img, fx, fy + r, fw, 1, r % 2 === 0 ? '#1a1a22' : '#f8f2e4');
+    rect(img, fx, fy, 8, 6, '#d0231f');
+    rect(img, fx + 2, fy + 1, 4, 4, '#f8f2e4'); rect(img, fx + 1, fy + 2, 6, 2, '#f8f2e4');
+    rect(img, fx + 3, fy + 2, 2, 2, '#1c2f8a'); rect(img, fx + 2, fy + 2, 1, 1, '#1c2f8a');
+    for (const [sx, sy] of [[fx + 1, fy + 1], [fx + 6, fy + 1], [fx + 1, fy + 4], [fx + 6, fy + 4]]) rect(img, sx, sy, 1, 1, '#f6c93a');
   }
   // fold shade on the free end
-  rect(img, fx + fw - 2, fy + 1, 1, fh - 2, '#00000022'.length ? '#3a3a50' : '#3a3a50');
+  rect(img, fx + fw - 1, fy + 1, 1, fh - 2, '#3a3a50');
   return { img, anchor: [4, 31] };
 }
 

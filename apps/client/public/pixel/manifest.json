@@ -4598,7 +4598,7 @@
   "props/bandeira_br": {
    "atlas": "outdoor",
    "frame": "props/bandeira_br",
-   "w": 16,
+   "w": 22,
    "h": 32,
    "ax": 4,
    "ay": 31,
@@ -4613,7 +4613,7 @@
   "props/bandeira_sp": {
    "atlas": "outdoor",
    "frame": "props/bandeira_sp",
-   "w": 16,
+   "w": 22,
    "h": 32,
    "ax": 4,
    "ay": 31,
