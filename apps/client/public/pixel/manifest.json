@@ -6,8 +6,8 @@
    "image": "atlas/outdoor.png",
    "data": "atlas/outdoor.json",
    "w": 1024,
-   "h": 1344,
-   "frames": 639
+   "h": 1664,
+   "frames": 754
   }
  },
  "terrain": {
@@ -2915,6 +2915,1731 @@
    "overhead": true,
    "shadow": null
   },
+  "bjj/pair_de_pe_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_de_pe_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_de_pe_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_de_pe_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_de_pe_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_de_pe_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_de_pe_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_de_pe_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_guarda_fechada_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_guarda_fechada_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_guarda_fechada_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_guarda_fechada_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_guarda_fechada_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_guarda_fechada_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_guarda_fechada_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_guarda_fechada_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_meia_guarda_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_meia_guarda_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_meia_guarda_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_meia_guarda_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_meia_guarda_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_meia_guarda_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_meia_guarda_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_meia_guarda_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_cem_quilos_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_cem_quilos_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_cem_quilos_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_cem_quilos_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_cem_quilos_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_cem_quilos_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_cem_quilos_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_cem_quilos_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_joelho_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_joelho_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_joelho_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_joelho_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_joelho_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_joelho_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_joelho_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_joelho_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_montada_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_montada_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_montada_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_montada_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_montada_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_montada_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_montada_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_montada_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_costas_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_costas_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_costas_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_costas_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_costas_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_costas_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/pair_costas_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/pair_costas_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_de_pe__guarda_fechada_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_de_pe__guarda_fechada_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_de_pe__guarda_fechada_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_de_pe__guarda_fechada_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_de_pe__guarda_fechada_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_de_pe__guarda_fechada_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_de_pe__guarda_fechada_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_de_pe__guarda_fechada_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_guarda_fechada__de_pe_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_guarda_fechada__de_pe_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_guarda_fechada__de_pe_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_guarda_fechada__de_pe_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_guarda_fechada__de_pe_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_guarda_fechada__de_pe_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_guarda_fechada__de_pe_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_guarda_fechada__de_pe_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_de_pe__meia_guarda_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_de_pe__meia_guarda_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_de_pe__meia_guarda_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_de_pe__meia_guarda_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_de_pe__meia_guarda_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_de_pe__meia_guarda_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_de_pe__meia_guarda_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_de_pe__meia_guarda_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_meia_guarda__de_pe_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_meia_guarda__de_pe_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_meia_guarda__de_pe_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_meia_guarda__de_pe_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_meia_guarda__de_pe_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_meia_guarda__de_pe_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_meia_guarda__de_pe_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_meia_guarda__de_pe_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_guarda_fechada__cem_quilos_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_guarda_fechada__cem_quilos_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_guarda_fechada__cem_quilos_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_guarda_fechada__cem_quilos_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_guarda_fechada__cem_quilos_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_guarda_fechada__cem_quilos_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_guarda_fechada__cem_quilos_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_guarda_fechada__cem_quilos_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_cem_quilos__guarda_fechada_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_cem_quilos__guarda_fechada_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_cem_quilos__guarda_fechada_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_cem_quilos__guarda_fechada_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_cem_quilos__guarda_fechada_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_cem_quilos__guarda_fechada_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_cem_quilos__guarda_fechada_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_cem_quilos__guarda_fechada_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_meia_guarda__cem_quilos_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_meia_guarda__cem_quilos_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_meia_guarda__cem_quilos_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_meia_guarda__cem_quilos_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_meia_guarda__cem_quilos_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_meia_guarda__cem_quilos_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_meia_guarda__cem_quilos_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_meia_guarda__cem_quilos_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_cem_quilos__meia_guarda_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_cem_quilos__meia_guarda_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_cem_quilos__meia_guarda_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_cem_quilos__meia_guarda_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_cem_quilos__meia_guarda_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_cem_quilos__meia_guarda_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_cem_quilos__meia_guarda_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_cem_quilos__meia_guarda_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_cem_quilos__joelho_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_cem_quilos__joelho_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_cem_quilos__joelho_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_cem_quilos__joelho_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_cem_quilos__joelho_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_cem_quilos__joelho_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_cem_quilos__joelho_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_cem_quilos__joelho_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_joelho__cem_quilos_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_joelho__cem_quilos_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_joelho__cem_quilos_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_joelho__cem_quilos_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_joelho__cem_quilos_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_joelho__cem_quilos_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_joelho__cem_quilos_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_joelho__cem_quilos_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_joelho__montada_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_joelho__montada_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_joelho__montada_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_joelho__montada_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_joelho__montada_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_joelho__montada_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_joelho__montada_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_joelho__montada_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_montada__joelho_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_montada__joelho_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_montada__joelho_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_montada__joelho_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_montada__joelho_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_montada__joelho_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_montada__joelho_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_montada__joelho_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_joelho__costas_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_joelho__costas_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_joelho__costas_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_joelho__costas_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_joelho__costas_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_joelho__costas_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_joelho__costas_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_joelho__costas_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_costas__joelho_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_costas__joelho_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_costas__joelho_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_costas__joelho_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_costas__joelho_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_costas__joelho_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_costas__joelho_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_costas__joelho_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_montada__costas_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_montada__costas_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_montada__costas_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_montada__costas_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_montada__costas_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_montada__costas_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_montada__costas_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_montada__costas_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_costas__montada_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_costas__montada_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_costas__montada_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_costas__montada_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_costas__montada_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_costas__montada_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/trans_costas__montada_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/trans_costas__montada_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/finish_tap_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/finish_tap_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/finish_tap_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/finish_tap_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/finish_tap_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/finish_tap_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/finish_tap_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/finish_tap_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/win_raise_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/win_raise_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/win_raise_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/win_raise_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/win_raise_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/win_raise_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/fistbump_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/fistbump_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/fistbump_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/fistbump_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/fistbump_2": {
+   "atlas": "outdoor",
+   "frame": "bjj/fistbump_2",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/fistbump_3": {
+   "atlas": "outdoor",
+   "frame": "bjj/fistbump_3",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/face_off_0": {
+   "atlas": "outdoor",
+   "frame": "bjj/face_off_0",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/face_off_1": {
+   "atlas": "outdoor",
+   "frame": "bjj/face_off_1",
+   "w": 56,
+   "h": 42,
+   "ax": 28,
+   "ay": 42,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/ref_combate": {
+   "atlas": "outdoor",
+   "frame": "bjj/ref_combate",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 32,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/ref_pontos2": {
+   "atlas": "outdoor",
+   "frame": "bjj/ref_pontos2",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 32,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/ref_pontos3": {
+   "atlas": "outdoor",
+   "frame": "bjj/ref_pontos3",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 32,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/ref_pontos4": {
+   "atlas": "outdoor",
+   "frame": "bjj/ref_pontos4",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 32,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/ref_vantagem": {
+   "atlas": "outdoor",
+   "frame": "bjj/ref_vantagem",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 32,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/ref_parar": {
+   "atlas": "outdoor",
+   "frame": "bjj/ref_parar",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 32,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "bjj/ref_vitoria": {
+   "atlas": "outdoor",
+   "frame": "bjj/ref_vitoria",
+   "w": 16,
+   "h": 32,
+   "ax": 8,
+   "ay": 32,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "props/bandeira_br": {
+   "atlas": "outdoor",
+   "frame": "props/bandeira_br",
+   "w": 16,
+   "h": 32,
+   "ax": 4,
+   "ay": 31,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "props/bandeira_sp": {
+   "atlas": "outdoor",
+   "frame": "props/bandeira_sp",
+   "w": 16,
+   "h": 32,
+   "ax": 4,
+   "ay": 31,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "props/placar": {
+   "atlas": "outdoor",
+   "frame": "props/placar",
+   "w": 48,
+   "h": 44,
+   "ax": 24,
+   "ay": 42,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_32"
+  },
   "decals/grass_light_0": {
    "atlas": "outdoor",
    "frame": "decals/grass_light_0",
@@ -3780,13 +5505,13 @@
    "overhead": null,
    "shadow": null
   },
-  "walls/poster_oss": {
+  "walls/poster_respeito": {
    "atlas": "outdoor",
-   "frame": "walls/poster_oss",
-   "w": 24,
-   "h": 30,
+   "frame": "walls/poster_respeito",
+   "w": 34,
+   "h": 38,
    "ax": 0,
-   "ay": 30,
+   "ay": 38,
    "footprint": [
     1,
     1
@@ -8543,6 +10268,23 @@
    "#00a0a0",
    "#00d0d0",
    "#20ffff"
+  ],
+  "skin2": [
+   "#a03a00",
+   "#c05000",
+   "#e06800",
+   "#ff8020"
+  ],
+  "hair2": [
+   "#5a00a0",
+   "#7000c0",
+   "#8800e0",
+   "#a020ff"
+  ],
+  "belt": [
+   "#406040",
+   "#608060",
+   "#80a080"
   ]
  },
  "fx": {

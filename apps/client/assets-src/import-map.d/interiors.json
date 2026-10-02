@@ -33,7 +33,7 @@
     {"key":"walls/foto","kind":"derive","fn":"wallDecor","args":{"kind":"foto"}},
     {"key":"walls/placa","kind":"derive","fn":"wallDecor","args":{"kind":"placa"}},
     {"key":"walls/poster","kind":"derive","fn":"wallDecor","args":{"kind":"poster_sp"}},
-    {"key":"walls/poster_oss","kind":"derive","fn":"wallDecor","args":{"kind":"poster_oss"}},
+    {"key":"walls/poster_respeito","kind":"derive","fn":"wallDecor","args":{"kind":"poster_respeito"}},
     {"key":"walls/toldo","kind":"derive","fn":"wallDecor","args":{"kind":"toldo"}},
     {"key":"walls/mural","kind":"derive","fn":"wallDecor","args":{"kind":"mural"}},
     {"key":"walls/mural_s","kind":"derive","fn":"wallDecor","args":{"kind":"mural_s"}},

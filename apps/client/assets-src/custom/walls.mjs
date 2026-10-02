@@ -5,6 +5,7 @@
 // West strip (1 tile wide left of column 0): `walls/west_<style>` and `_b` (bottom end), 16 x 16 plus 4 columns of floor shadow on the right.
 import { blank, put, fillRect, line, mix, h2, C, K, NAVY } from './paint.mjs';
 import { drawText5, width5, drawText3, width3 } from './font5.mjs';
+import { text3, text3Width } from './draw.mjs';
 import { galeria } from './gym3.mjs';
 
 export const STYLES = {
@@ -338,7 +339,7 @@ function placa() {
 }
 
 function poster(kind) {
-  const w = 24, h = 30;
+  const w = kind === 'sp' ? 24 : 34, h = kind === 'sp' ? 30 : 38;
   const img = blankImg(w, h);
   fillRect(img, 0, 0, w, h, NAVY);
   if (kind === 'sp') {
@@ -350,14 +351,16 @@ function poster(kind) {
     drawText5(img, Math.floor((w - width5('SP')) / 2), 21, 'SP', '#c45c26');
     fillRect(img, 4, 28, 16, 1, '#c45c26');
   } else {
+    // RESPEITO · TREINO · AMIZADE: a small gi silhouette with a belt over three lines of 3x5 type
     fillRect(img, 1, 1, w - 2, h - 2, '#2d4468');
     fillRect(img, 1, 1, w - 2, 2, '#c45c26');
-    // gi silhouette (kimono) with a belt, and a small heart (no letters: the 5 px font cannot fit RESPEITO in 22 px)
-    fillRect(img, 8, 5, 8, 4, '#f5e6d3'); fillRect(img, 9, 3, 6, 3, '#d9a16a');
-    fillRect(img, 6, 9, 12, 10, '#f8f8f8'); fillRect(img, 6, 9, 12, 1, '#c6bdd5');
-    fillRect(img, 6, 14, 12, 2, '#8b5e3c'); fillRect(img, 4, 10, 3, 8, '#f8f8f8'); fillRect(img, 17, 10, 3, 8, '#f8f8f8');
-    for (const [hx, hy] of [[1, 0], [3, 0], [0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [1, 3], [2, 3], [3, 3], [2, 4]]) put(img, 9 + hx, 21 + hy, '#f2c230');
-    fillRect(img, 4, 28, 16, 1, '#f2c230');
+    const gx = Math.floor((w - 12) / 2);
+    fillRect(img, gx + 2, 4, 8, 3, '#f5e6d3'); fillRect(img, gx + 3, 3, 6, 2, '#d9a16a');
+    fillRect(img, gx, 7, 12, 6, '#f8f8f8'); fillRect(img, gx, 7, 12, 1, '#c6bdd5');
+    fillRect(img, gx, 10, 12, 2, '#3a3a50');
+    const line = (str, y, col) => text3(img, Math.floor((w - text3Width(str)) / 2), y, str, col);
+    line('RESPEITO', 16, '#f2c230'); line('TREINO', 23, '#f8f8f8'); line('AMIZADE', 30, '#f2c230');
+    fillRect(img, 4, h - 3, w - 8, 1, '#c45c26');
   }
   return { img, anchor: [0, h] };
 }
@@ -462,7 +465,7 @@ const DECOR = {
   azulejos, prateleira: () => prateleira(64), lousa: () => lousa(32),
   janela_rua: () => janela(48, 34, 'city', '#f8f2e4'), janela: () => janela(32, 30, 'plain', '#f3ecdf'),
   relogio, tv, cobogo, foto: () => foto(32), placa,
-  poster_sp: () => poster('sp'), poster_treino: () => poster('treino'),
+  poster_sp: () => poster('sp'), poster_respeito: () => poster('respeito'),
   toldo: () => toldo(64),
   mural: () => mural(112, 'SAMPA'), mural_s: () => galeria(),
   predio: () => predio(48), metro: metroSlim, faixas: faixasWall,
