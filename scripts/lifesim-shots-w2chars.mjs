@@ -6,7 +6,7 @@
  *   pnpm build && PORT=9021 TB_TEST_CLOCK_CONTROL=1 node apps/server/dist/index.js
  *   BASE_URL=http://localhost:9021 TAG=after node scripts/lifesim-shots-w2chars.mjs [--what=parade,emotes,creator] [--times=1200,1730] [--zoom=5]
  *
- * parade:  24 neighbours (the CPU wardrobe by name) in three rows in the praça at zoom 5, at the given hours  -> <TAG>_parade_praca_<time>_z5.png
+ * parade:  24 neighbours (the CPU wardrobe by name) in two rows on the south street of the praça at zoom 5, at the given hours  -> <TAG>_parade_praca_<time>_z5.png
  * emotes:  five avatars, one emote each, at +0.3 s / +0.7 s / +1.0 s                                       -> <TAG>_emotes_<n>.png
  * creator: the avatar creator preview (6x) for four dark-hair styles on dark and light skin                -> <TAG>_creator_hair.png
  * Output folder: docs/lifesim/shots/w2chars (SHOTS_DIR to override). The names come from the bundled shared package of the working tree.
@@ -29,9 +29,9 @@ const OUT = process.env.SHOTS_DIR ?? path.join(ROOT, 'docs', 'lifesim', 'shots',
 const WHAT = (argv.what ?? 'parade,emotes,creator').split(',');
 const TIMES = (argv.times ?? '1200,1730').split(',');
 const ZOOM = Number(argv.zoom ?? 5);
-const CAM = (argv.cam ?? '25,25').split(',').map(Number); // camera centre tile
-const ROWS = (argv.rows ?? '22,25,28').split(',').map(Number); // tile rows of the back, middle and front rows
-const X0 = Number(argv.x0 ?? 21); // first tile column of each row (8 per row)
+const CAM = (argv.cam ?? '24.5,34.3').split(',').map(Number); // camera centre tile
+const ROWS = (argv.rows ?? '33,35').split(',').map(Number); // tile rows of the back and front rows
+const X0 = Number(argv.x0 ?? 19); // first tile column of each row (12 per row)
 const CHROME = findChrome();
 assert(CHROME, 'Chrome/Chromium not found: set CHROME_PATH');
 fs.mkdirSync(OUT, { recursive: true });
@@ -43,14 +43,13 @@ const outfile = path.join(tmp, 'shared.mjs');
 await build({ entryPoints: [path.join(ROOT, 'packages/shared/src/index.ts')], bundle: true, format: 'esm', platform: 'node', outfile, logLevel: 'error' });
 const shared = await import(pathToFileURL(outfile).href);
 
-const FRONT = ['Patricia', 'Gabriela', 'Igor', 'Gustavo', 'Roberto', 'Carolina', 'Thiago', 'Beatriz'];
-const MID = ['Larissa', 'Mateus', 'Renata', 'André', 'Helena', 'Daniel', 'Felipe', 'Rafael'];
-const BACK = ['Camila', 'Paulo', 'Diego', 'Natasha', 'Fernanda', 'Ana', 'Bruno', 'Clara'];
-const NAMES = [...BACK, ...MID, ...FRONT];
+const FRONT = ['Patricia', 'Gabriela', 'Igor', 'Gustavo', 'Roberto', 'Carolina', 'Thiago', 'Beatriz', 'Renata', 'Ricardo', 'Gabriel', 'Mariana'];
+const BACK = ['Helena', 'Daniel', 'Felipe', 'Rafael', 'Camila', 'Paulo', 'Diego', 'Natasha', 'Fernanda', 'André', 'Bruno', 'Clara'];
+const NAMES = [...BACK, ...FRONT];
 const crowd = NAMES.map((name, i) => {
   const l = shared.cpuLook(name);
-  const row = Math.floor(i / 8); // 0 = back, 1 = middle, 2 = front
-  return { id: `cpu-w2-${i}`, name, appearance: l.appearance, hat: l.hat, x: X0 + (i % 8), y: ROWS[row], seed: 11 + i * 7, dir: row === 2 ? ['SW', 'SW', 'SE', 'NE', 'NW', 'SW', 'SE', 'SW'][i % 8] : 'SW' };
+  const row = Math.floor(i / 12); // 0 = back row, 1 = front row (the garbs, a few turned to the side and the back)
+  return { id: `cpu-w2-${i}`, name, appearance: l.appearance, hat: l.hat, x: X0 + (i % 12), y: ROWS[row], seed: 11 + i * 7, dir: row === 1 ? ['SW', 'SW', 'SE', 'SW', 'NE', 'SW', 'NW', 'SW', 'SW', 'SE', 'SW', 'NE'][i % 12] : 'SW' };
 });
 const PW = 'pao-de-queijo-2026';
 const hm = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(2, 4));
@@ -142,10 +141,10 @@ if (WHAT.includes('parade')) {
 
 if (WHAT.includes('emotes')) {
   const kinds = ['oi', 'valeu', 'rir', 'dancar', 'desculpa'];
-  const five = crowd.slice(0, 5).map((c, i) => ({ ...c, x: 22 + i * 2, y: 26, parrot: i === 2 }));
+  const five = crowd.slice(0, 5).map((c, i) => ({ ...c, x: 22 + i * 2, y: 34, parrot: i === 2 }));
   await inject(five);
   await pin(page, '1200');
-  await page.evaluate(() => window.__tb.renderer.setShot('cam:26,25.6,8'));
+  await page.evaluate(() => window.__tb.renderer.setShot('cam:26,33.6,8'));
   await sleep(1500);
   await page.evaluate(([kinds]) => {
     const t0 = performance.now() / 1000;

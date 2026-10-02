@@ -141,7 +141,7 @@ function chinelo(outfit, an) {
   return out;
 }
 
-const stamp = (set, rows = new Set([0, 1, 2, 3, 4, 5, 6, 7])) => (an) => stampSet(emptySheet(), set, an, 'body', { rows });
+const stamp = (set, rows = new Set(Array.from({ length: 18 }, (_, i) => i))) => (an) => stampSet(emptySheet(), set, an, 'body', { rows });
 
 /** Layers authored from ASCII (the `_u` under-body and `_o` over-body halves). */
 const ART = {

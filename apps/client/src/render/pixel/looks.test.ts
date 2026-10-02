@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { CLOTH_COLORS, HAIR_COLORS, HATS, ROOMS, SHOE_COLORS, SKIN_TONES, type Appearance, type NpcId } from '@tudobem/shared';
+import { CLOTH_COLORS, CPU_LOOKS_A, CPU_LOOKS_B, GARB_IDS, HAIR_COLORS, HATS, ROOMS, SHOE_COLORS, SKIN_TONES, garbParts, type Appearance, type NpcId } from '@tudobem/shared';
+import { GARBS } from './characters';
 import { NPC_STYLES, lookForAppearance, lookForNpc, lookKey } from './looks';
 
 const base: Appearance = { body: 'medio', skin: 2, hair: 'curto', hairColor: 1, top: 'camiseta', topColor: 3, bottom: 'calca', bottomColor: 4, shoes: 0 };
@@ -34,10 +35,11 @@ describe('looks (layers + ramp colors)', () => {
     expect(l.layers.find((x) => x.key.startsWith('outfit_'))?.ramps?.top).toBe(CLOTH_COLORS[0]);
   });
 
-  it('a hat adds its layer last, recolored with the catalog colors', () => {
+  it('a hat adds its layer after the hair, recolored with the catalog colors (the gesture layer stays on top of it)', () => {
     for (const h of HATS) {
       const l = lookForAppearance(base, { hat: h.id });
-      const last = l.layers[l.layers.length - 1];
+      expect(l.layers[l.layers.length - 1].key).toBe('emote_gestures');
+      const last = l.layers[l.layers.length - 2];
       expect(last.key).toBe(`hat_${h.id}`);
       expect(last.ramps).toEqual({ hat: h.color, accent: h.accent });
     }
@@ -48,6 +50,33 @@ describe('looks (layers + ramp colors)', () => {
     expect(lookForAppearance({ ...base, idle: 'celular' }).layers.some((l) => l.key === 'acc_phone')).toBe(true);
     expect(lookForAppearance({ ...base, idle: 'solto' }).layers.some((l) => l.key === 'acc_phone')).toBe(false);
     expect(lookForAppearance({ ...base, idle: 'bracos', body: 'forte' }).layers.some((l) => l.key === 'pose_bracos__forte')).toBe(true);
+  });
+});
+
+describe('wave 2 garbs (CPU neighbourhood pieces)', () => {
+  const keys = (a: Appearance) => lookForAppearance(a).layers.map((l) => l.key);
+  it('back pieces go under the body, the rest over the outfit or the hair, a bucket hat with the hats', () => {
+    const k = keys({ ...base, garb: 'caixa+jersey_alvinegro+balde' });
+    expect(k[0]).toBe('garb_caixa_u');
+    expect(k.indexOf('garb_jersey')).toBeGreaterThan(k.indexOf('outfit_camiseta_calca'));
+    expect(k.indexOf('garb_caixa_o')).toBeLessThan(k.indexOf('hair_curto'));
+    expect(k.indexOf('hat_balde')).toBeGreaterThan(k.indexOf('hair_curto'));
+    expect(k[k.length - 1]).toBe('emote_gestures');
+  });
+  it('body types use the warped variants of body-attached pieces, never of hats', () => {
+    const k = keys({ ...base, body: 'forte', garb: 'mochila+balde' });
+    expect(k).toContain('garb_mochila_u__forte');
+    expect(k).toContain('garb_mochila_o__forte');
+    expect(k).toContain('hat_balde');
+  });
+  it('unknown ids are ignored; an explicit hat wins over the bucket hat; garbs change the cache key', () => {
+    expect(keys({ ...base, garb: 'nada' })).toEqual(keys(base));
+    expect(lookForAppearance({ ...base, garb: 'balde' }, { hat: 'panama' }).layers.some((l) => l.key === 'hat_balde')).toBe(false);
+    expect(lookKey(lookForAppearance({ ...base, garb: 'sacola' }))).not.toBe(lookKey(lookForAppearance(base)));
+  });
+  it('every GARB_IDS entry has art pieces, and every CPU garb is made of known ids', () => {
+    for (const id of GARB_IDS) expect(GARBS[id]?.length, id).toBeGreaterThan(0);
+    for (const a of [...Object.values(CPU_LOOKS_A), ...Object.values(CPU_LOOKS_B)]) for (const g of a.garb ?? []) expect(garbParts(g).join('+'), g).toBe(g);
   });
 });
 

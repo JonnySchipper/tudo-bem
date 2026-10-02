@@ -79,18 +79,18 @@ const PA = (spec) => {
   for (let y = y0; y <= Math.max(...ys); y++) rows.push(spec[y] ? T(spec[y][0], spec[y][1]) : '.'.repeat(16));
   return P(y0 - 31, rows);
 };
-const arm = (from, to, x = 13) => Object.fromEntries(Array.from({ length: to - from + 1 }, (_, i) => [from + i, [x, 'oro']]));
+const arm = (from, to, x = 13) => Object.fromEntries(Array.from({ length: to - from + 1 }, (_, i) => [from + i, [x, 'oso']]));
 // waving hand: a flat open hand with a shaded palm and four fingers; frame B is 1 px higher with the fingers spread
 const wave = (b) => ({
   S: PA(
     b
-      ? { 10: [11, 'o.o.o'], 11: [10, 'orsrro'], 12: [10, 'orrrro'], 13: [10, 'orrrro'], 14: [11, 'orrro'], 15: [12, 'orro'], ...arm(16, 23) }
-      : { 11: [11, 'oooo'], 12: [10, 'orsrro'], 13: [10, 'orrrro'], 14: [10, 'orrrro'], 15: [11, 'orrro'], 16: [12, 'orro'], ...arm(17, 23) },
+      ? { 10: [11, 'o.o.o'], 11: [10, 'osssso'], 12: [10, 'osssro'], 13: [10, 'orrrro'], 14: [11, 'orrro'], 15: [12, 'orro'], ...arm(16, 23) }
+      : { 11: [11, 'oooo'], 12: [10, 'osssso'], 13: [10, 'osssro'], 14: [10, 'orrrro'], 15: [11, 'orrro'], 16: [12, 'orro'], ...arm(17, 23) },
   ),
 });
 // thumbs-up: a fist (4 rows, shaded) with the thumb pointing straight up, forearm below
 const thumb = {
-  S: PA({ 9: [12, 'oo'], 10: [11, 'orso'], 11: [11, 'orro'], 12: [10, 'oorrro'], 13: [10, 'orrrro'], 14: [10, 'orrrro'], 15: [10, 'orrrro'], 16: [11, 'oooo'], ...arm(17, 23) }),
+  S: PA({ 9: [12, 'oo'], 10: [11, 'osso'], 11: [11, 'osro'], 12: [10, 'oossso'], 13: [10, 'osssro'], 14: [10, 'osrrro'], 15: [10, 'orrrro'], 16: [11, 'oooo'], ...arm(17, 23) }),
 };
 // dancing: both hands up beside the head (4 wide, outlined), arms down to the sleeves
 const handsUp = (len, side = 'LR') => {

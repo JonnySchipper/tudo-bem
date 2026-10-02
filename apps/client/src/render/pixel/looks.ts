@@ -89,12 +89,12 @@ export function lookForAppearance(a: Appearance, opts: LookOptions = {}): Look {
   for (const p of garb) if (p.slot === 'over') layers.push(garbLayer(p));
   layers.push({ key: pick(CHAR_LAYERS.hair, a.hair, 'curto', 'hair'), ramps: { hair }, hl: true });
   if (over) layers.push({ key: over.layer });
-  // gestures (raised hands) are drawn over the hair: they reach up beside the head
-  layers.push({ key: CHAR_LAYERS.gestures, ramps: { skin, top } });
   const hat = hatSpec(opts.hat);
   const garbHat = garb.find((p) => p.slot === 'hat');
   if (hat) layers.push({ key: hat.layer, ramps: { hat: hat.color, accent: hat.accent } });
   else if (garbHat) layers.push(garbLayer(garbHat));
+  // gestures (raised hands) are drawn over the hair and the hat: the hand reaches up in front of the head (wave 2: a brim used to hide it)
+  layers.push({ key: CHAR_LAYERS.gestures, ramps: { skin, top } });
   return { body, layers, idle };
 }
 
