@@ -57,6 +57,8 @@ export class LightingRig {
   /** V5: the directional shadow layer (set by the scene); while it draws, the baked cast shadows above are hidden (`bakedCast` false) */
   shadows: ShadowLayer | null = null;
   bakedCast = true;
+  /** night body lift: a faint cool ADD copy of every vehicle sprite so a parked car or van stays a solid shape on dark asphalt (see `liftBody`) */
+  private bodyLift: { spr: Phaser.GameObjects.Sprite; img: Phaser.GameObjects.Image }[] = [];
   private grade: Phaser.GameObjects.RenderTexture;
   private fill: Phaser.GameObjects.Rectangle;
   private dark: Phaser.GameObjects.RenderTexture;
@@ -106,9 +108,20 @@ export class LightingRig {
     while (this.reflSprites.length > this.lights.length) this.reflSprites.pop()?.destroy();
   }
 
+  /**
+   * A cool ADD twin of a vehicle sprite (same frame, flip, depth + a hair): at night it lifts the body a little over the dark road, so cars read solid
+   * instead of dissolving into the asphalt. Returns the image so the caller can register it with the room (it removes itself when the sprite is gone).
+   */
+  liftBody(spr: Phaser.GameObjects.Sprite): Phaser.GameObjects.Image {
+    const img = this.scene.add.image(spr.x, spr.y, spr.texture.key, spr.frame.name).setOrigin(spr.originX, spr.originY).setBlendMode(Phaser.BlendModes.ADD).setTint(0xaebcf0).setAlpha(0);
+    this.bodyLift.push({ spr, img });
+    return img;
+  }
+
   /** Forget every light, overlay and shadow registered by a room (the room is being rebuilt; the objects themselves are destroyed by the caller). */
   clearRoom(): void {
     this.lights = [];
+    this.bodyLift = [];
     this.litOverlays = [];
     this.windowRects = [];
     this.castShadows = [];
@@ -146,6 +159,15 @@ export class LightingRig {
     }
     for (const o of this.patches) o.setAlpha(look.patchAlpha).setTint(look.patchTint);
     for (const o of this.panes) o.setAlpha(look.windowNight);
+    this.bodyLift = this.bodyLift.filter(({ spr, img }) => {
+      if (!spr.active || !img.active) {
+        if (img.active) img.destroy();
+        return false;
+      }
+      img.setPosition(spr.x, spr.y).setDepth(spr.depth + 0.0005).setFlip(spr.flipX, spr.flipY).setAlpha(Math.min(0.4, dark * 0.45) * spr.alpha).setVisible(spr.visible);
+      if (img.frame.name !== spr.frame.name || img.texture.key !== spr.texture.key) img.setTexture(spr.texture.key, spr.frame.name);
+      return true;
+    });
     this.dark.clear();
     if (dark > 0.001) this.dark.fill(0x0b1030, dark);
     this.lights.forEach((l, i) => {

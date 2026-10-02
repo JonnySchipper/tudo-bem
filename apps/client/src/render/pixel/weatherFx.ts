@@ -184,7 +184,7 @@ export class WeatherFx {
     if (!outdoor) return;
     const ok = (x: number, y: number) => {
       const ch = def.floor[y]?.[x];
-      return (ch === 'c' || ch === 'a') && !blocked(x, y);
+      return (ch === 'c' || ch === 'a' || ch === 'p') && !blocked(x, y);
     };
     this.buildGround(def, blocked);
     const cand: { h: number; x: number; y: number }[] = [];
@@ -239,7 +239,7 @@ export class WeatherFx {
       let open = 0;
       for (let x = 0; x < def.cols; x++) {
         const ch = def.floor[y]?.[x];
-        const g = (ch === 'c' || ch === 'a' || ch === 'g' || ch === 't') && !blocked(x, y);
+        const g = (ch === 'c' || ch === 'a' || ch === 'p' || ch === 'g' || ch === 't') && !blocked(x, y);
         this.ground[y * def.cols + x] = g ? 1 : 0;
         if (g) open++;
       }

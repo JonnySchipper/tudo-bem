@@ -135,6 +135,8 @@ interface Canopy {
 }
 
 /** Art px from the feet to the top of the visible head (the 16x32 frame has empty rows above it); nameplates stand just above. */
+/** Art px an NPC behind a counter is drawn above its tile so the head and shoulders clear the counter top. */
+const COUNTER_LIFT = 11;
 const HEAD_LIFT = 23;
 const HEAD_LIFT_SIT = 16;
 
@@ -284,6 +286,7 @@ export class WorldScene extends Phaser.Scene {
     const y = Math.round(wy);
     const spr = this.reg(this.add.sprite(x, y, d.atlas, d.frame)).setOrigin(...originOf(d)).setDepth(depth);
     if (d.anim) spr.play({ key: ensureAnim(this, key, d), startFrame: Math.floor(hash01(x * 31 + y) * d.anim.frames.length) });
+    if (key.startsWith('vehicles/')) this.reg(this.rig.liftBody(spr)); // a parked car keeps its shape at night
     this.lastShadow = shadow && this.roomOutdoor ? this.shadows.addStatic(key, d, x, y, depth) : null;
     if (shadow && this.roomOutdoor) this.ao.add(aoForSprite(key, d, x, y));
     if (shadow) {
@@ -804,7 +807,7 @@ export class WorldScene extends Phaser.Scene {
     const wetQ = v5on('wet') ? Math.round(look.wet * 20) / 20 : 0;
     if (wetQ !== this.wetApplied) {
       this.wetApplied = wetQ;
-      for (const g of this.groundLayers) if ('catkd'.includes(g.ch)) g.layer.setTint(groundWetTint(wetQ, g.ch === 'g' || g.ch === 'd' ? 'grass' : 'paving'));
+      for (const g of this.groundLayers) if ('catkdp'.includes(g.ch)) g.layer.setTint(groundWetTint(wetQ, g.ch === 'g' || g.ch === 'd' ? 'grass' : 'paving'));
     }
     if (v5on('water')) this.water.update(dt, params.sun * Math.max(0, 1 - look.night * 1.5), look.night, look.lampOn(20), this.fxLevel.reduced, !this.fxLevel.lowfx);
     this.weatherFx.update({ lampOn: look.lampOn, wet: look.wet, dt, zoom: this.cameras.main.zoom, w: this.scale.width, h: this.scale.height, params, night: look.night, outdoor: this.outdoor, cam: this.cameras.main });
@@ -1017,7 +1020,10 @@ export class WorldScene extends Phaser.Scene {
       } else if (t >= 0 && t < 1.3) bounce = Math.round(Math.abs(Math.sin(t * 9)) * 2);
     }
     const wx = Math.round(f.wx);
-    const wy = Math.round(f.wy);
+    // a neighbour standing right behind a counter (Seu Carlos at the padaria) is drawn a little further up, over his own shelves, so the counter
+    // top no longer cuts off his face; depth, tile and click logic keep the real tile
+    const lift = !sitting && !pos.moving && a.pub.npc && !this.roomOutdoor && this.grid?.blocked.has(tileKey(pos.tile.x, pos.tile.y + 1)) ? COUNTER_LIFT : 0;
+    const wy = Math.round(f.wy) - lift;
     v.wx = wx;
     v.wy = wy;
     v.sprite.setPosition(wx, wy - bounce);
@@ -1235,6 +1241,11 @@ export class WorldScene extends Phaser.Scene {
       const target = talking ? 0.3 : inside || infront ? 0.45 : 1;
       c.fade += (target - c.fade) * Math.min(1, dt / 0.15);
       c.sprite.setAlpha(c.fade);
+      // at night a lamp's hole in the darkness (and its warm glow) would light a canopy up neon green: the foliage itself is dimmed by up to a third
+      if (!c.stall) {
+        const g = Math.round(255 * (1 - 0.34 * Math.min(1, (this.look?.dark ?? 0) / 0.5)));
+        c.sprite.setTint((g << 16) | (g << 8) | g);
+      }
     }
   }
 
@@ -1319,7 +1330,7 @@ export class WorldScene extends Phaser.Scene {
   }
 }
 
-/** Same fade as the iso renderer: quick in, slow out over the last 700 ms of 7 s. */
+/** Quick fade in, then fully opaque until the bubble is removed at 7 s: a bubble is never see-through (the old 700 ms fade-out read as a ghost). */
 function bubbleAlpha(age: number): number {
-  return Math.max(0, Math.min(1, age / 120) * Math.min(1, (7000 - age) / 700));
+  return Math.max(0, Math.min(1, age / 120));
 }

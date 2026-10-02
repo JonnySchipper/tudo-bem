@@ -10,6 +10,7 @@ export const MINIMAP_PX = 2;
 const TERRAIN: Record<string, [number, number, number]> = {
   c: [203, 190, 186], // calçada
   a: [92, 88, 92], // asfalto
+  p: [140, 135, 134], // paralelepipedo
   g: [112, 164, 88], // grama
   t: [184, 102, 60], // tijolo
 };
