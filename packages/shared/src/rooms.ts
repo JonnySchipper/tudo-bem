@@ -279,9 +279,9 @@ const vilaIpe: RoomDef = {
     P('jornais', 'jornais', 19, 6, { label: { pt: 'Pilha de jornais', en: 'Newspaper stack' } }),
     // ---- north calçada (y 6-7): lamps on the curb, pots by the doors, the corner sign, bins, phone
     P('lampada_n1', 'poste', 3, 7, { art: 'props/lamp_old' }),
-    P('lampada_n2', 'poste', 9, 7, { art: 'props/lamp_old' }),
+    P('lampada_n2', 'poste', 10, 7, { art: 'props/lamp_old' }),
     P('lampada_n3', 'poste', 21, 7, { art: 'props/lamp_old' }),
-    P('lampada_n4', 'poste', 29, 7, { art: 'props/lamp_old' }),
+    P('lampada_n4', 'poste', 30, 7, { art: 'props/lamp_old' }),
     P('lampada_n5', 'poste', 35, 7, { art: 'props/lamp_old' }),
     P('lampada_n6', 'poste', 41, 7, { art: 'props/lamp_old' }),
     P('lampada_n7', 'poste', 47, 7, { art: 'props/lamp_old' }),
@@ -460,7 +460,7 @@ const vilaIpe: RoomDef = {
     cen('bandeirinhas_2', 'props/bandeirinhas_b', 48, 21, 6, 1),
     cen('bandeirinhas_3', 'props/bandeirinhas_a', 46, 23, 4, 1),
     P('ipe_lote_1', 'arvore', 53, 28, { w: 2, art: 'props/arvore_rua' }),
-    P('ipe_lote_2', 'arvore', 42, 15, { w: 2, art: 'props/arvore_rua' }),
+    P('ipe_lote_2', 'arvore', 42, 17, { w: 2, art: 'props/arvore_rua' }),
     cen('flor_lote', 'props/flor_mista_b', 46, 28, 3, 1),
     // ---- the Hortifrúti corner at the banca: Tia Lu's crates, open at every hour (D12)
     P('hortifruti', 'hortifruti', 18, 7, { art: 'feira/caixotes', action: 'feira_stall', vendor: 'banca', interact: { x: 19, y: 7 }, label: { pt: 'Hortifrúti da banca', en: 'Greengrocer at the newsstand' } }),
@@ -472,12 +472,12 @@ const vilaIpe: RoomDef = {
     P('arv_n3', 'arvore', 43, 7, { w: 2, art: 'props/arvore_rua' }),
     P('arv_s1', 'arvore', 12, 12, { w: 2, art: 'props/arvore_rua' }),
     P('arv_s2', 'arvore', 20, 12, { w: 2, art: 'props/arvore_rua' }),
-    P('arv_s3', 'arvore', 32, 12, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_s3', 'arvore', 26, 30, { w: 2, art: 'props/arvore_rua' }),
     P('arv_s4', 'arvore', 52, 12, { w: 2, art: 'props/arvore_rua' }),
-    P('arv_j1', 'arvore', 5, 31, { w: 2, art: 'props/arvore_rua' }),
-    P('arv_j2', 'arvore', 22, 31, { w: 2, art: 'props/arvore_rua' }),
-    P('arv_j3', 'arvore', 35, 31, { w: 2, art: 'props/arvore_rua' }),
-    P('arv_j4', 'arvore', 45, 31, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_j1', 'arvore', 10, 30, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_j2', 'arvore', 22, 30, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_j3', 'arvore', 35, 30, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_j4', 'arvore', 45, 30, { w: 2, art: 'props/arvore_rua' }),
     // ---- V2: parked vehicles at the south curb of each street (they block their curb tiles only: never a crosswalk, a sidewalk or a lane).
     // The traffic lanes sit above them (see ambientData.ts); the bus stops east of the bus stop sign, so that curb stays free there.
     ...parked(12, [['park_verde_r', 4, 5], ['park_taxi_r', 44, 5]]),
