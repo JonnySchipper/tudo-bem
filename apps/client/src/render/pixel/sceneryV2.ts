@@ -13,6 +13,7 @@ const DEPTH_PAD = -4990; // sand, towels: flat on the ground, above the terrain,
 const DEPTH_PATH = -4980;
 const DEPTH_CHALK = -4970;
 const DEPTH_LITTER = -4940;
+const DEPTH_STAIN = -4960; // damp stains lie under the litter
 
 const rnd = (x: number, y: number, seed: number) => hash2(x, y, seed) / 4294967296;
 
@@ -81,11 +82,20 @@ export function v2Decals(def: RoomDef, has: (key: string) => boolean): Decal[] {
   for (const p of def.props) for (const t of propTiles(p)) occupied.add(`${t.x},${t.y}`);
   for (let y = 15; y < 29; y++) {
     for (let x = 42; x < 55; x++) {
-      if (def.floor[y]?.[x] !== 'a' || occupied.has(`${x},${y}`)) continue;
-      if (rnd(x, y, 71) > 0.055) continue;
-      const k = Math.floor(rnd(x, y, 72) * 3);
-      add({ key: `decals/feira_lixo_${k}`, x: Math.round((x + 0.5) * T), y: Math.round((y + 0.5) * T), origin: 'anchor', depth: DEPTH_LITTER });
+      if (def.floor[y]?.[x] !== 'p' || occupied.has(`${x},${y}`)) continue;
+      const r = rnd(x, y, 71);
+      const at = (dx: number, dy: number) => ({ x: Math.round((x + 0.5) * T + dx), y: Math.round((y + 0.5) * T + dy) });
+      if (r < 0.04) add({ key: `decals/feira_lixo_${Math.floor(rnd(x, y, 72) * 3)}`, ...at(0, 0), origin: 'anchor', depth: DEPTH_LITTER });
+      else if (r < 0.065) add({ key: `decals/feira_repolho_${Math.floor(rnd(x, y, 73) * 2)}`, ...at((rnd(x, y, 74) - 0.5) * 6, (rnd(x, y, 75) - 0.5) * 6), origin: 'anchor', depth: DEPTH_LITTER + 1 });
+      else if (r < 0.08) add({ key: `decals/feira_mancha_${Math.floor(rnd(x, y, 76) * 3)}`, ...at(0, 2), origin: 'anchor', depth: DEPTH_STAIN });
+      else if (r < 0.088) add({ key: 'decals/feira_caixa', ...at(0, 0), origin: 'anchor', depth: DEPTH_LITTER + 2 });
     }
+  }
+  // chalk price scribbles on the setts in front of each vendor's board (one tile south of the blackboard), and a damp stain by the fish and flower stalls
+  for (const [i, p] of def.props.filter((q) => q.id.startsWith('lousa_')).entries()) {
+    const tx = p.x, ty = p.y + 1;
+    if (def.floor[ty]?.[tx] !== 'p' || occupied.has(`${tx},${ty}`)) continue;
+    add({ key: `decals/feira_giz_${i % 5}`, x: Math.round((tx + 0.5) * T + 2), y: Math.round((ty + 0.5) * T + 3), origin: 'anchor', depth: DEPTH_CHALK });
   }
   return out;
 }

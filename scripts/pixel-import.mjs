@@ -29,6 +29,7 @@ import { calcadaFills, spMosaic } from '../apps/client/assets-src/custom/calcada
 import { banca, BANCA } from '../apps/client/assets-src/custom/banca.mjs';
 import { patchSign, findGlass } from '../apps/client/assets-src/custom/shop.mjs';
 import { crosswalk, laneDash, flowerScatter, tuft } from '../apps/client/assets-src/custom/street.mjs';
+import { paralelepipedo, feiraDecal } from '../apps/client/assets-src/custom/feiralot.mjs';
 import { asfalto, busBay, grassPatch, dirtPatch, clover, gtuft } from '../apps/client/assets-src/custom/ground.mjs';
 import { shadowEllipse, petal, petalScatter, glow, cloudShadow, grime, lightPatch } from '../apps/client/assets-src/custom/fx.mjs';
 import { DERIVE, IMAGES, PREP } from '../apps/client/assets-src/custom/derive.mjs';
@@ -54,6 +55,7 @@ const CUSTOM = {
   dirtPatch: (a) => ({ img: dirtPatch(a.w, a.h, a.seed), anchor: [Math.floor(a.w / 2), Math.floor(a.h / 2)] }),
   clover: (a) => ({ img: clover(a.kind), anchor: [3, 5] }),
   gtuft: (a) => ({ img: gtuft(a.kind), anchor: [2, 3] }),
+  feiraDecal: (a) => { const img = feiraDecal(a.kind, a.n ?? 0); return { img, anchor: [Math.floor(img.w / 2), Math.floor(img.h / 2)] }; },
   grime: (a) => ({ img: grime(a.w, a.h, a.seed), anchor: [Math.floor(a.w / 2), Math.floor(a.h / 2)] }),
 };
 
@@ -279,7 +281,7 @@ for (const [name, items] of Object.entries(atlasItems)) {
       await savePng(s, path.join(CUSTOM_PNG, `floor_${def.custom}_fill.png`));
     } else {
       // flat underlay: a custom generator (asphalt) or tiles cropped from a pack sheet (grass)
-      const FLAT_CUSTOM = { asfalto };
+      const FLAT_CUSTOM = { asfalto, paralelepipedo };
       const src = def.custom ? null : await sheet(def.sheet);
       const fills = def.custom ? FLAT_CUSTOM[def.custom]() : def.tiles.map(([x, y]) => crop(src, x, y, 16, 16));
       const seen = new Map();

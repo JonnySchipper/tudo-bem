@@ -130,7 +130,7 @@ export interface NpcDef {
   idleLines: Bilingual[];
 }
 
-export type FloorKind = 'calcada' | 'grama' | 'tijolo' | 'xadrez' | 'ladrilho' | 'madeira' | 'asfalto' | 'tatame';
+export type FloorKind = 'calcada' | 'grama' | 'tijolo' | 'xadrez' | 'ladrilho' | 'madeira' | 'asfalto' | 'tatame' | 'paralelepipedo';
 
 export interface RoomDef {
   id: RoomId;
@@ -171,6 +171,7 @@ export const FLOOR_CHARS: Record<string, FloorKind> = {
   m: 'madeira',
   a: 'asfalto',
   j: 'tatame',
+  p: 'paralelepipedo',
 };
 
 // ---------------------------------------------------------------- Vila Ipê (room id `praca`), Phase 5
@@ -202,7 +203,7 @@ function vilaIpeFloor(): string[] {
   // east lot: the feira livre. V2: it is a closed street now, so the ground is asphalt inside the fence (a ring of grass under the fence line
   // itself) and the gate stands on the brick bar of the praça
   paint('g', 41, 14, 55, 29);
-  paint('a', 41, 14, 55, 29);
+  paint('p', 41, 14, 55, 29); // the feira lot: granite setts (paralelepípedo), not asphalt
   paint('t', 41, 21, 41, 22);
   // brick cross into the fountain (inlaid in the calçada): the N-S axis runs across both sidewalks, the E-W bar through the fountain
   paint('t', 24, 6, 25, 7);
@@ -474,7 +475,7 @@ const vilaIpe: RoomDef = {
     P('arv_j4', 'arvore', 45, 31, { w: 2, art: 'props/arvore_rua' }),
     // ---- V2: parked vehicles at the south curb of each street (they block their curb tiles only: never a crosswalk, a sidewalk or a lane).
     // The traffic lanes sit above them (see ambientData.ts); the bus stops east of the bus stop sign, so that curb stays free there.
-    ...parked(11, [['park_verde_r', 2, 5], ['park_vinho_r', 8, 4], ['park_azul_r', 18, 4], ['park_bege_l', 27, 5], ['park_fusca_e', 43, 3], ['park_taxi_r', 47, 5]]),
+    ...parked(11, [['park_verde_r', 2, 5], ['park_vinho_r', 8, 4], ['park_azul_r', 18, 4], ['park_bege_l', 26, 5], ['park_fusca_e', 43, 3], ['park_taxi_r', 47, 5]]),
     ...parked(35, [['park_taxi_r', 3, 5], ['park_moto_e', 9, 2], ['park_turquesa_l', 16, 4], ['park_branco_r', 28, 5], ['park_kombi_e', 33, 4], ['park_vermelho_l', 43, 5], ['park_moto_e', 50, 2]]),
     // ---- the map edges: streets end in barricades, sidewalks in hedges, the west lawns and the lot behind fences
     ...vilaIpeEdges(),
