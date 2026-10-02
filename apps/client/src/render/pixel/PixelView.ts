@@ -190,6 +190,11 @@ export class PixelView implements WorldView {
     return this.scene?.ambientHook() ?? null;
   }
 
+  /** Facing hook (`window.__tb.facings`). */
+  facingsHook() {
+    return this.scene?.facingsHook() ?? null;
+  }
+
   /** Texture bookkeeping for the soak script (`window.__tb.renderer.textureInfo()`): how many textures Phaser holds, and the shadow atlas. */
   textureInfo() {
     const g = this.phaser;
