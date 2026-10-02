@@ -8,7 +8,6 @@ import {
   openMatTiles,
   DEFAULT_APPEARANCE,
   ECONOMY,
-  ROLL_RV_WIN,
   isCpuId,
   isWalkable,
   MISSION_REWARD,
@@ -967,7 +966,7 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
     ambianceTilesOk('academia', ACADEMIA_AMBIANCE);
   });
 
-  it('fills Academia do Bairro with Verde CPUs outside the player cap (roll queue untouched)', async () => {
+  it('fills Academia do Bairro with Verde CPUs outside the player cap (the bout lobby untouched)', async () => {
     const { world } = ambient();
     const a = connectBare(world);
     await a.send({ t: 'hello' });
@@ -986,8 +985,8 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
     const amb = world.stats().ambiance;
     expect(typeof amb).toBe('object');
     expect((amb as Record<string, number>)['academia#1']).toBeGreaterThanOrEqual(1);
-    await a.send({ t: 'roll', action: 'queue' });
-    expect(a.all('roll').some((m) => m.phase === 'queue' && m.opponent === 'cpu')).toBe(true);
+    await a.send({ t: 'bout', v: 1, action: 'open' });
+    expect(a.all('bout').some((m) => m.phase === 'lobby')).toBe(true);
     expect(world.stats().instances['academia#1']).toBe(1);
   });
 
@@ -1082,46 +1081,6 @@ describe('pushProfileById', () => {
     world.pushProfileById(a.s.profile!.id);
     expect(a.last('profile')!.profile.coins).toBe(77);
     expect(a.last('profile')!.profile.id).toBe(a.s.profile!.id);
-  });
-
-  it('plays a CPU roll in the Academia through queue → duel → end', async () => {
-    const { world } = makeWorld(16, {
-      rollQueueMs: 0,
-      testRollHints: true,
-      schedule: (fn) => {
-        pending.push({ fn, at: clock });
-      },
-    });
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'academia' });
-    expect(a.last('roomState')!.room).toBe('academia');
-    expect(a.last('roomState')!.instanceName).toMatch(/^Academia do Bairro/);
-    const coins0 = a.s.profile!.coins;
-    await a.send({ t: 'roll', action: 'queue' });
-    expect(a.all('roll').some((m) => m.phase === 'queue')).toBe(true);
-    advance(1);
-    advance(5000);
-    const answerDuel = async (duel: Extract<ServerMsg, { t: 'roll'; phase: 'duel' }>) => {
-      const hint = duel.debugCorrect;
-      if (duel.puzzle.kind === 'reorder' && Array.isArray(hint)) await a.send({ t: 'roll', action: 'answer', order: hint });
-      else await a.send({ t: 'roll', action: 'answer', choice: hint as number });
-    };
-    let duel = a.all('roll').find((m) => m.phase === 'duel') as Extract<ServerMsg, { t: 'roll'; phase: 'duel' }> | undefined;
-    expect(duel).toBeTruthy();
-    await answerDuel(duel!);
-    for (let i = 0; i < 40 && !a.all('roll').some((m) => m.phase === 'end'); i++) {
-      advance(2500);
-      const next = a.all('roll').filter((m) => m.phase === 'duel').at(-1) as Extract<ServerMsg, { t: 'roll'; phase: 'duel' }> | undefined;
-      if (next && next.round !== duel?.round) {
-        duel = next;
-        await answerDuel(duel);
-      }
-    }
-    const end = a.last('roll') as Extract<ServerMsg, { t: 'roll'; phase: 'end' }>;
-    expect(end?.phase).toBe('end');
-    expect(end.rv).toBeGreaterThanOrEqual(5);
-    expect(a.s.profile!.bjj?.belt).toBe('branca');
-    if (end.winner === 'player') expect(a.s.profile!.coins).toBeGreaterThanOrEqual(coins0 + ROLL_RV_WIN - 1);
   });
 });
 
@@ -1292,7 +1251,7 @@ describe('Idle kick', () => {
     expect(closed).toBeNull();
 
     await a.send({ t: 'mg', action: 'timeout' });
-    await a.send({ t: 'roll', action: 'timeout' });
+    await a.send({ t: 'bout', v: 1, action: 'quit' });
     clock += 5 * MIN;
     world.sweepIdle();
     expect(closed).toBe('idle');

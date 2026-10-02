@@ -845,12 +845,12 @@ const academia: RoomDef = {
   walls: [
     { kind: 'placa', wall: 'right', from: 0, to: 4, text: 'ACADEMIA DO BAIRRO' },
     { kind: 'janela', wall: 'left', from: 3, to: 5 },
-    { kind: 'poster', wall: 'left', from: 6, to: 8, text: 'OSS · RESPEITO' },
+    { kind: 'poster', wall: 'left', from: 6, to: 8, text: 'RESPEITO · TREINO · AMIZADE' },
     { kind: 'mural', wall: 'right', from: 5, to: 9, text: 'TREINO · COMUNIDADE' },
   ],
-  // Top-down layout (11 columns + the corner): OSS poster | sign | window | mural.
+  // Top-down layout (11 columns + the corner): respect poster | sign | window | mural.
   pixelWalls: [
-    { kind: 'poster', wall: 'right', from: -1, to: 1, text: 'OSS · RESPEITO' },
+    { kind: 'poster', wall: 'right', from: -1, to: 1, text: 'RESPEITO · TREINO · AMIZADE' },
     { kind: 'placa', wall: 'right', from: 1, to: 5, text: 'ACADEMIA DO BAIRRO' },
     { kind: 'janela', wall: 'right', from: 5, to: 7 },
     { kind: 'mural', wall: 'right', from: 7, to: 11, text: 'TREINO · COMUNIDADE' },
@@ -881,7 +881,7 @@ const academia: RoomDef = {
       hat: null,
       // needs_br: true (new lines)
       idleLines: [
-        { pt: 'Oss! Bora treinar?', en: 'Oss! Ready to train?' },
+        { pt: 'Bora treinar?', en: 'Ready to train?' },
         { pt: 'Respeito primeiro, depois o tatame.', en: 'Respect first, then the mat.' },
         { pt: 'Água é vida. Bebe bastante!', en: 'Water is life. Drink plenty!' },
       ],

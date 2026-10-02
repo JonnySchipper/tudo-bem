@@ -352,11 +352,11 @@ function poster(kind) {
   } else {
     fillRect(img, 1, 1, w - 2, h - 2, '#2d4468');
     fillRect(img, 1, 1, w - 2, 2, '#c45c26');
-    // gi silhouette (kimono) with a belt, and OSS
+    // gi silhouette (kimono) with a belt, and a small heart (no letters: the 5 px font cannot fit RESPEITO in 22 px)
     fillRect(img, 8, 5, 8, 4, '#f5e6d3'); fillRect(img, 9, 3, 6, 3, '#d9a16a');
     fillRect(img, 6, 9, 12, 10, '#f8f8f8'); fillRect(img, 6, 9, 12, 1, '#c6bdd5');
     fillRect(img, 6, 14, 12, 2, '#8b5e3c'); fillRect(img, 4, 10, 3, 8, '#f8f8f8'); fillRect(img, 17, 10, 3, 8, '#f8f8f8');
-    drawText5(img, Math.floor((w - width5('OSS')) / 2), 21, 'OSS', '#f2c230');
+    for (const [hx, hy] of [[1, 0], [3, 0], [0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [1, 3], [2, 3], [3, 3], [2, 4]]) put(img, 9 + hx, 21 + hy, '#f2c230');
     fillRect(img, 4, 28, 16, 1, '#f2c230');
   }
   return { img, anchor: [0, h] };
@@ -462,7 +462,7 @@ const DECOR = {
   azulejos, prateleira: () => prateleira(64), lousa: () => lousa(32),
   janela_rua: () => janela(48, 34, 'city', '#f8f2e4'), janela: () => janela(32, 30, 'plain', '#f3ecdf'),
   relogio, tv, cobogo, foto: () => foto(32), placa,
-  poster_sp: () => poster('sp'), poster_oss: () => poster('oss'),
+  poster_sp: () => poster('sp'), poster_treino: () => poster('treino'),
   toldo: () => toldo(64),
   mural: () => mural(112, 'SAMPA'), mural_s: () => galeria(),
   predio: () => predio(48), metro: metroSlim, faixas: faixasWall,

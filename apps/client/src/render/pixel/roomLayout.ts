@@ -128,7 +128,7 @@ export function decorArt(d: WallDecor): DecorArt | null {
     case 'cobogo': return { key: 'walls/cobogo', mode: 'center', bottom: -8, tiles: 1 };
     case 'foto': return { key: 'walls/foto', mode: 'center', bottom: -12, tiles: 2 };
     case 'placa': return { key: 'walls/placa', mode: 'center', bottom: -12, tiles: 4 };
-    case 'poster': return { key: d.text?.startsWith('OSS') ? 'walls/poster_oss' : 'walls/poster', mode: 'center', bottom: -8, tiles: 2 };
+    case 'poster': return { key: d.text?.startsWith('RESPEITO') ? 'walls/poster_treino' : 'walls/poster', mode: 'center', bottom: -8, tiles: 2 };
     case 'toldo': return { key: 'walls/toldo', mode: 'center', bottom: -30, tiles: 4 };
     case 'mural': return { key: span >= 6 ? 'walls/mural' : 'walls/mural_s', mode: 'center', bottom: -6, tiles: span >= 6 ? 7 : 4 };
     case 'predio': return { key: 'walls/predio', mode: 'center', bottom: -1, tiles: 3 };

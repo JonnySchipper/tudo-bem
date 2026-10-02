@@ -16,7 +16,9 @@ import type { MgBuiltUnit, MgOrderLine, MgOutcome, Tray } from './meveum.js';
 import type { SafetyAction } from './safety.js';
 import type { NpcId } from './rooms.js';
 import type { ConversaGrade, ConversaMeter, ConversaScores, ConversaSubject } from './conversa.js';
-import type { BjjProgress, RollPuzzleView } from './academia.js';
+import type { BjjPositionId, BjjProgress, BoutReason, BoutWinner, Belt, PartnerId } from './academia.js';
+import type { BoutAnswer, ChallengeView } from './challenges.js';
+import type { ExchangeEvent, IntentId, RefSignal, Score } from './bout.js';
 import type { RecadoActiveView, RecadoOfferView } from './recados.js';
 import type { PriceOption, VendorId } from './feira.js';
 
@@ -68,13 +70,15 @@ export type ClientMsg =
   | { t: 'feira'; action: 'pay'; vendor: VendorId; itemId: string; qty: number; paid: number[] }
   /** The player played 🔊 for these cards (Caderno). At most 10 known card ids; rate-limited per session. */
   | { t: 'heard'; cardIds: string[] }
-  | { t: 'roll'; action: 'queue' }
-  | { t: 'roll'; action: 'cancel' }
-  | { t: 'roll'; action: 'answer'; choice: number }
-  | { t: 'roll'; action: 'answer'; order: number[] }
-  | { t: 'roll'; action: 'timeout' }
-  | { t: 'roll'; action: 'rematch' }
-  | { t: 'roll'; action: 'quit' }
+  /**
+   * Treino no tatame (the Academia bout), protocol version 1. The server owns the bout: the client only picks an intent and answers
+   * the challenge the server issued (`seq` must match the prompt on screen); timers and results are the server's.
+   */
+  | { t: 'bout'; v: 1; action: 'open' }
+  | { t: 'bout'; v: 1; action: 'start'; partner: PartnerId; listen?: boolean }
+  | { t: 'bout'; v: 1; action: 'intent'; seq: number; intent: IntentId | 'finalizar' }
+  | { t: 'bout'; v: 1; action: 'answer'; seq: number; answer: BoutAnswer }
+  | { t: 'bout'; v: 1; action: 'quit' }
   | { t: 'ping' };
 
 export interface RoomStateMsg {
@@ -167,44 +171,103 @@ export type ConversaServerMsg =
     }
   | { t: 'conversa'; phase: 'blocked'; reason: 'daily' | 'unavailable'; pt: string; en: string };
 
-export type RollServerMsg =
-  | { t: 'roll'; phase: 'queue'; waitMs: number; opponent: 'cpu' | null }
-  | { t: 'roll'; phase: 'bow'; line: Bilingual }
+/** The bout as the client draws it (everything derived from `BoutState`, plus the position it names). */
+export interface BoutSnapshot {
+  rung: number;
+  momentum: number;
+  points: Score;
+  adv: Score;
+  pegada: number;
+  pegadaB: number;
+  /** game ms left on the 5:00 clock */
+  clockMs: number;
+  exchange: number;
+  position: BjjPositionId;
+  ahead: 'you' | 'partner' | null;
+  streak: number;
+}
+
+export interface BoutPartnerCard {
+  id: PartnerId;
+  name: string;
+  style: Bilingual;
+  bio: Bilingual;
+  unlocked: boolean;
+  unlockLevel: number;
+  /** 1..5 */
+  stars: number;
+}
+
+export interface BoutIntentOut {
+  id: IntentId;
+  pt: string;
+  en: string;
+  risk: 1 | 2 | 3;
+}
+
+export type BoutRole = 'exchange' | 'finish' | 'escape';
+
+/** Server → client for the bout (`t: 'bout'`, `v: 1`). Every prompt carries the `seq` the answer must echo. */
+export type BoutServerMsg =
+  | { t: 'bout'; v: 1; phase: 'lobby'; partners: BoutPartnerCard[]; bjj: BjjProgress; level: number; suggested: PartnerId }
   | {
-      t: 'roll';
-      phase: 'duel';
-      round: number;
-      maxRounds: number;
-      puzzle: RollPuzzleView;
-      timeMs: number;
-      playerIdx: number;
-      cpuIdx: number;
-      positionPt: string;
-      positionEn: string;
-      submissionPt: string | null;
-      submissionEn: string | null;
-      /** Test / CI only when TB_TEST_ROLL=1 on server. */
-      debugCorrect?: number | number[];
-    }
-  | {
-      t: 'roll';
-      phase: 'scramble';
-      advance: 'player' | 'cpu' | 'none';
+      t: 'bout';
+      v: 1;
+      phase: 'intro';
+      partner: { id: PartnerId; name: string; style: Bilingual };
+      st: BoutSnapshot;
+      introMs: number;
+      level: number;
       line: Bilingual;
-      playerIdx: number;
-      cpuIdx: number;
-      positionPt: string;
-      positionEn: string;
+      signal: RefSignal;
+    }
+  | { t: 'bout'; v: 1; phase: 'intent'; seq: number; st: BoutSnapshot; intents: BoutIntentOut[]; finish: boolean; pickMs: number }
+  | {
+      t: 'bout';
+      v: 1;
+      phase: 'challenge';
+      seq: number;
+      st: BoutSnapshot;
+      role: BoutRole;
+      intent: IntentId | null;
+      /** finalização in several steps: 1-based step and the step count */
+      step: number;
+      steps: number;
+      challenge: ChallengeView;
+      limitMs: number;
     }
   | {
-      t: 'roll';
+      t: 'bout';
+      v: 1;
+      phase: 'resolve';
+      seq: number;
+      st: BoutSnapshot;
+      intent: IntentId;
+      yours: { correct: boolean; speed: number; fast: boolean };
+      partner: { intent: IntentId; correct: boolean };
+      /** net momentum push (positive: toward you) */
+      delta: number;
+      events: ExchangeEvent[];
+      /** how long the beat lasts on screen (ms) */
+      holdMs: number;
+    }
+  | { t: 'bout'; v: 1; phase: 'finish_end'; kind: 'finalizacao' | 'escape'; success: boolean; st: BoutSnapshot; line: Bilingual; signal: RefSignal | null; holdMs: number }
+  | {
+      t: 'bout';
+      v: 1;
       phase: 'end';
-      winner: 'player' | 'cpu' | 'draw';
-      reason: 'submission' | 'decisao';
+      winner: BoutWinner | 'none';
+      reason: BoutReason;
+      st: BoutSnapshot;
       rv: number;
       bjj: BjjProgress;
+      belt: Belt;
+      stripeUp: boolean;
+      beltUp: boolean;
+      bond: number;
       line: Bilingual;
-      fistBump: Bilingual;
+      thanks: Bilingual;
+      signal: RefSignal | null;
     };
 
 /** Server → client messages. */
@@ -242,7 +305,7 @@ export type ServerMsg =
     }
   | MgServerMsg
   | ConversaServerMsg
-  | RollServerMsg
+  | BoutServerMsg
   | { t: 'furnitureState'; furniture: PlacedFurniture[] }
   | { t: 'friends'; friends: FriendInfo[]; incoming: { id: string; name: string }[] }
   | { t: 'friendRequest'; fromId: string; fromName: string }
