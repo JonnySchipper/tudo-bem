@@ -60,12 +60,14 @@ export interface AudioZones {
 }
 
 export interface AmbientRoom {
+  /** Traffic lanes: only the rua has any (split into areas) */
   streets: Street[];
-  bus: BusRoute;
-  dog: DogHome;
+  bus?: BusRoute;
+  /** The vira-lata: only the praça */
+  dog?: DogHome;
   flocks: FlockDef[];
-  /** where the fountain spray rises (world px) and how wide the basin is */
-  fountain: { x: number; y: number; w: number };
+  /** where the fountain spray rises (world px) and how wide the basin is: only the praça */
+  fountain?: { x: number; y: number; w: number };
   audio: AudioZones;
 }
 
@@ -88,30 +90,35 @@ const street = (id: string, y0: number, y1: number, cols: number, density: numbe
   density,
 });
 
-const COLS = 56;
+const RUA_COLS = 40;
 
 export const AMBIENT: Record<string, AmbientRoom> = {
-  praca: {
-    streets: [street('ipes', 8, 11, COLS, 1), street('jacaranda', 32, 35, COLS, 1, true)],
-    bus: { street: 'ipes', stopX: 36.5 * T, stopTile: { x: 37, y: 13 } },
-    dog: { propId: 'vira_lata', home: { x: 5, y: 26 }, radius: 6 },
+  // Rua dos Ipês (40 x 16): the street is rows 8-11, the bus stop sign at (27,12) with the stop on the sidewalk at (28,13)
+  rua: {
+    streets: [street('ipes', 8, 11, RUA_COLS, 1)],
+    bus: { street: 'ipes', stopX: 27.5 * T, stopTile: { x: 28, y: 13 } },
     flocks: [
-      { id: 'fonte_sul', x: 22, y: 23, n: 4 },
-      { id: 'fonte_leste', x: 28, y: 19, n: 3 },
-      { id: 'calcada_sul', x: 15, y: 13, n: 3 },
+      { id: 'calcada_sul', x: 14, y: 13, n: 3 },
+      { id: 'padaria', x: 22, y: 6, n: 3 },
     ],
-    fountain: { x: 25 * T, y: 21.6 * T, w: 4 * T },
-    audio: {
-      streets: [
-        { y: 10 * T, x0: 0, x1: COLS * T },
-        { y: 34 * T, x0: 0, x1: COLS * T },
-      ],
-      fountain: { x: 25 * T, y: 21.2 * T },
-      radios: [
-        { x: 5 * T, y: 17 * T },
-        { x: 6 * T, y: 24 * T },
-      ],
-    },
+    audio: { streets: [{ y: 10 * T, x0: 0, x1: RUA_COLS * T }], fountain: { x: -9999, y: -9999 }, radios: [{ x: 14 * T, y: 3 * T }] },
+  },
+  // Praça Central (32 x 24): the fountain at (14,10), the vira-lata corner at (3,21)
+  praca: {
+    streets: [],
+    dog: { propId: 'vira_lata', home: { x: 3, y: 21 }, radius: 5 },
+    flocks: [
+      { id: 'fonte_sul', x: 16, y: 14, n: 4 },
+      { id: 'fonte_leste', x: 21, y: 12, n: 3 },
+    ],
+    fountain: { x: 16 * T, y: 11.6 * T, w: 4 * T },
+    audio: { streets: [], fountain: { x: 16 * T, y: 11.2 * T }, radios: [{ x: 4 * T, y: 21 * T }] },
+  },
+  // Feira Livre (32 x 20): a market, no traffic; a flock picks at the crumbs in the aisle
+  feira: {
+    streets: [],
+    flocks: [{ id: 'feira_corredor', x: 16, y: 9, n: 3 }],
+    audio: { streets: [], fountain: { x: -9999, y: -9999 }, radios: [] },
   },
 };
 

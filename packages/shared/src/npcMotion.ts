@@ -10,7 +10,7 @@
  */
 import { gameMinutesExact, MS_PER_GAME_MINUTE } from './clock.js';
 import { findPath, pathDuration, positionAlong, stepMs, type PathPos } from './path.js';
-import { buildGrid, key, npcDefById, ROOMS, type NpcId, type RoomGrid } from './rooms.js';
+import { buildGrid, key, npcDefById, ROOMS, type NpcId, type PortalDef, type RoomGrid } from './rooms.js';
 import { NPC_HOME_DOORS, SCHEDULES, slotIndexAt, type NpcActivity, type ScheduleSlot } from './schedules.js';
 import type { Dir, RoomId, Tile } from './types.js';
 
@@ -49,6 +49,61 @@ function leg(room: RoomId, from: Tile, to: Tile, vanish: boolean): NpcLeg {
 
 const legCache = new Map<string, NpcLeg[]>();
 
+/** The public rooms an NPC may walk through on the way to another one (a kitnet is private: it is only ever a start or an end). */
+const routeCache = new Map<string, RoomId[] | null>();
+function roomRoute(from: RoomId, to: RoomId): RoomId[] | null {
+  const ck = `${from}>${to}`;
+  if (routeCache.has(ck)) return routeCache.get(ck)!;
+  const prev = new Map<RoomId, RoomId | null>([[from, null]]);
+  const queue: RoomId[] = [from];
+  while (queue.length) {
+    const r = queue.shift()!;
+    if (r === to) break;
+    for (const p of ROOMS[r].portals) {
+      if (prev.has(p.to) || (ROOMS[p.to].private && p.to !== to)) continue;
+      prev.set(p.to, r);
+      queue.push(p.to);
+    }
+  }
+  let out: RoomId[] | null = null;
+  if (prev.has(to)) {
+    out = [to];
+    while (out[0] !== from) out.unshift(prev.get(out[0]!)!);
+  }
+  routeCache.set(ck, out);
+  return out;
+}
+
+/** The portal of `room` to `to` nearest to `from` (an edge has one portal per tile: the NPC takes the closest one). */
+function nearestPortal(room: RoomId, from: Tile, to: RoomId) {
+  let best: PortalDef | undefined;
+  let bd = Infinity;
+  for (const p of ROOMS[room].portals) {
+    if (p.to !== to) continue;
+    const d = Math.abs(p.x - from.x) + Math.abs(p.y - from.y);
+    if (d < bd) {
+      bd = d;
+      best = p;
+    }
+  }
+  return best;
+}
+
+/** The legs of a walk from `fromTile` in `fromRoom` to `toTile` in `toRoom`, hopping through the portals (doors and edges) in between. */
+function route(fromRoom: RoomId, fromTile: Tile, toRoom: RoomId, toTile: Tile, vanishAtEnd: boolean): NpcLeg[] {
+  const rooms = fromRoom === toRoom ? [fromRoom] : roomRoute(fromRoom, toRoom);
+  if (!rooms) return [{ room: toRoom, from: toTile, path: [], ms: 0, vanish: vanishAtEnd, broken: true }];
+  const legs: NpcLeg[] = [];
+  let cur = fromTile;
+  for (let i = 0; i + 1 < rooms.length; i++) {
+    const portal = nearestPortal(rooms[i]!, cur, rooms[i + 1]!)!;
+    legs.push(leg(rooms[i]!, cur, { x: portal.x, y: portal.y }, true));
+    cur = portal.arrive;
+  }
+  legs.push(leg(toRoom, cur, toTile, vanishAtEnd));
+  return legs;
+}
+
 /** The walk that takes an NPC from where `prev` left it to where `cur` wants it. Empty when it just keeps standing. */
 export function legsBetween(prev: ScheduleSlot, cur: ScheduleSlot): NpcLeg[] {
   const ck = `${prev.npc}|${prev.from}>${cur.from}`;
@@ -58,17 +113,13 @@ export function legsBetween(prev: ScheduleSlot, cur: ScheduleSlot): NpcLeg[] {
   const goesOut = cur.activity !== 'em_casa';
   if (!wasOut && !goesOut) out = [];
   else if (!wasOut) {
-    const door = NPC_HOME_DOORS[cur.room];
-    out = [leg(cur.room, door ? door.entry : cur.tile, cur.tile, false)];
-  } else if (!goesOut) {
+    // coming out of the home door of the room the home slot names, then on to where the slot wants them (possibly through other areas)
     const door = NPC_HOME_DOORS[prev.room];
-    out = [leg(prev.room, prev.tile, door ? door.exit : prev.tile, true)];
-  } else if (prev.room === cur.room) out = [leg(cur.room, prev.tile, cur.tile, false)];
-  else {
-    const portal = ROOMS[prev.room].portals.find((p) => p.to === cur.room);
-    if (!portal) out = [{ room: cur.room, from: cur.tile, path: [], ms: 0, vanish: false, broken: true }];
-    else out = [leg(prev.room, prev.tile, { x: portal.x, y: portal.y }, true), leg(cur.room, portal.arrive, cur.tile, false)];
-  }
+    out = route(prev.room, door ? door.entry : prev.tile, cur.room, cur.tile, false);
+  } else if (!goesOut) {
+    const door = NPC_HOME_DOORS[cur.room];
+    out = route(prev.room, prev.tile, cur.room, door ? door.exit : cur.tile, true);
+  } else out = route(prev.room, prev.tile, cur.room, cur.tile, false);
   legCache.set(ck, out);
   return out;
 }

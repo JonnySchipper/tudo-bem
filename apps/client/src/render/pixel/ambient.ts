@@ -52,7 +52,7 @@ export interface AmbientFrame {
 const unit = (a: number, b: number, c: number) => hash2(a, b, c) / 4294967296;
 
 /** The room-data prop whose art the ambient dog replaces (the scene skips it). */
-export const ambientHandlesProp = (roomId: string, propId: string): boolean => AMBIENT[roomId]?.dog.propId === propId;
+export const ambientHandlesProp = (roomId: string, propId: string): boolean => AMBIENT[roomId]?.dog?.propId === propId;
 
 const DEPTH_FLY = 49000;
 const DEPTH_PETAL = 49800;
@@ -61,8 +61,8 @@ const HEADLIGHTS = 10;
 const BUTTERFLY_COLORS = ['#f2c230', '#f4efe6', '#e8823a', '#6aa7e0'];
 const PETAL_LIFE = 5;
 const N_DROPS = 10;
-const N_FIREFLIES = 16;
-const N_BUTTERFLIES = 8;
+const N_FIREFLIES = 10;
+const N_BUTTERFLIES = 5;
 
 function makeTex(scene: Phaser.Scene, key: string, w: number, h: number, draw: (ctx: CanvasRenderingContext2D) => void): void {
   if (scene.textures.exists(key)) return;
@@ -189,18 +189,17 @@ export class AmbientLife {
     if (!data || !def.outdoor) return;
     this.data = data;
     this.def = def;
-    // headlight pool (rig lights: a hole in the night and a warm glow), parked with live 0
-    for (let i = 0; i < HEADLIGHTS; i++) {
+    // headlight pool (rig lights: a hole in the night and a warm glow), parked with live 0: only where there is traffic
+    for (let i = 0; i < (data.streets.length ? HEADLIGHTS : 0); i++) {
       const l: Light = { x: 0, y: 0, r: 30, color: 0xfff0c8, squash: 0.45, kind: 'car', live: 0, glow: 0.6 };
       this.headlights.push(l);
       this.rig.lights.push(l);
     }
     // the dog
-    const home = data.dog.home;
-    const tiles = roamTiles(home, data.dog.radius, walkable);
-    const sim = new DogSim(home, tiles);
-    const sd = this.def_(dogKey(sim.state));
-    if (sd) {
+    const dogData = data.dog;
+    const sim = dogData ? new DogSim(dogData.home, roamTiles(dogData.home, dogData.radius, walkable)) : null;
+    const sd = sim ? this.def_(dogKey(sim.state)) : undefined;
+    if (sim && sd) {
       const spr = this.reg(this.scene.add.sprite(sim.x, sim.y, sd.atlas, sd.frame)).setOrigin(...originOf(sd));
       const shadow = this.reg(this.scene.add.image(sim.x, sim.y - 1, this.m.sprites['fx/shadow_16'].atlas, this.m.sprites['fx/shadow_16'].frame)).setOrigin(...originOf(this.m.sprites['fx/shadow_16'])).setDepth(DEPTH.shadowContact);
       this.dog = { sim, spr, shadow, key: '' };
@@ -263,8 +262,8 @@ export class AmbientLife {
       const halo = glow ? this.regScreen(this.scene.add.image(x, y, glow)).setBlendMode(Phaser.BlendModes.ADD).setTint(0xc8f060).setDepth(4.1).setVisible(false) : img;
       this.fireflies.push({ img, glow: halo, x, y, ph: unit(i, 6, 64) * 40 });
     }
-    // fountain spray
-    for (let i = 0; i < N_DROPS; i++) {
+    // fountain spray (the praça only)
+    for (let i = 0; i < (data.fountain ? N_DROPS : 0); i++) {
       const img = this.reg(this.scene.add.image(0, 0, 'amb:drop')).setDepth(DEPTH_FLY).setVisible(false);
       this.spray.push({ img, phase: i / N_DROPS, dx: (unit(i, 7, 71) - 0.5) * 2, idx: i });
     }
@@ -517,7 +516,7 @@ export class AmbientLife {
 
   private updateSpray(f: AmbientFrame, fx: FxLevel): void {
     const data = this.data;
-    if (!data) return;
+    if (!data?.fountain) return;
     const on = !fx.reduced;
     for (const s of this.spray) {
       s.img.setVisible(on);

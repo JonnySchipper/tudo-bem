@@ -40,41 +40,37 @@ const DEPTH_TUFT = -4400;
 
 const rnd = (x: number, y: number, seed: number) => hash2(x, y, seed) / 4294967296;
 
-/** The lane rows of a street: its rows are y0..y1, dashes run down the middle. */
-const STREETS = [
-  { y0: 8, y1: 11, dashDy: 26 }, // W3: the dashes run between the two lanes (ambientData.ts: feet at +17 and +36)
-  { y0: 32, y1: 35, dashDy: 45 }, // one-way street: the dashes mark the edge of the parking row (row 35), the lane is above them
-];
-const CROSSWALKS: { x: number; y: number }[] = [
-  { x: 15, y: 8 },
-  { x: 24, y: 8 },
-  { x: 40, y: 8 },
-  { x: 12, y: 32 },
-  { x: 24, y: 32 },
-  { x: 38, y: 32 },
-];
-/** The São Paulo state mosaic is 4 x 3 tiles. There are only two: they take the first free paved 4 x 3 spot of this list (north and south of the praça). */
+/** Ground dressing placed by hand, per outdoor room (split into areas): the lane rows of the streets, crosswalks, the bus lane, mosaics, manholes. */
+interface RoomDressing {
+  /** The lane rows of a street: its rows are y0..y1, dashes run down the middle. */
+  streets: { y0: number; y1: number; dashDy: number }[];
+  crosswalks: { x: number; y: number }[];
+  mosaics: { x: number; y: number }[];
+  /** The painted bus bay in front of the stop (7 tiles wide = the bus's 112 px; centred on the eastbound lane, where the bus stands, feet at y0 * 16 + 36). */
+  busBay: { x: number; y: number; w: number; py: number } | null;
+  manholes: { x: number; y: number }[];
+}
+
+/** The São Paulo state mosaic is 4 x 3 tiles; it takes the first free paved 4 x 3 spot of a room's list (none of the split areas has a big enough bare patch of paving now). */
 export const MOSAIC_TILES = { w: 4, h: 3 };
-const MOSAICS: { x: number; y: number }[] = [
-  { x: 27, y: 13 },
-  { x: 29, y: 29 },
-];
-/** The painted bus bay in front of the stop (7 tiles wide = the bus's 112 px; W3: it is centred on the eastbound lane, where the bus stands, feet at y0 * 16 + 36). */
-const BUS_BAY = { x: 33, y: 10, w: 7, py: 8 * T + 36 - 20 };
-const MANHOLES: { x: number; y: number }[] = [
-  { x: 30, y: 9 },
-  { x: 9, y: 10 },
-  { x: 47, y: 11 },
-  { x: 19, y: 33 },
-  { x: 44, y: 33 },
-  { x: 26, y: 25 },
-  { x: 30, y: 21 },
-  { x: 50, y: 23 }, // the feira lot
-];
+
+const DRESSING: Record<string, RoomDressing> = {
+  // W3: the dashes run between the two lanes (ambientData.ts: feet at +17 and +36); the crosswalks line up with the doors and the brick path
+  rua: {
+    streets: [{ y0: 8, y1: 11, dashDy: 26 }],
+    crosswalks: [{ x: 8, y: 8 }, { x: 12, y: 8 }, { x: 19, y: 8 }, { x: 31, y: 8 }],
+    mosaics: [],
+    busBay: { x: 24, y: 10, w: 7, py: 8 * T + 36 - 20 },
+    manholes: [{ x: 14, y: 9 }, { x: 5, y: 10 }, { x: 35, y: 11 }, { x: 22, y: 9 }],
+  },
+  praca: { streets: [], crosswalks: [], mosaics: [], busBay: null, manholes: [{ x: 18, y: 19 }, { x: 25, y: 13 }, { x: 13, y: 5 }] },
+  feira: { streets: [], crosswalks: [], mosaics: [], busBay: null, manholes: [{ x: 20, y: 9 }, { x: 16, y: 16 }] },
+};
 
 /** Vila Ipê's dressing, or null for a room that has none (the interiors). */
 export function sceneryFor(def: RoomDef, has: (key: string) => boolean = () => true): Scenery | null {
   if (!def.outdoor) return null;
+  const dress = DRESSING[def.id] ?? { streets: [], crosswalks: [], mosaics: [], busBay: null, manholes: [] };
   const decals: Decal[] = [];
   const add = (d: Decal) => {
     if (has(d.key)) decals.push(d);
@@ -89,24 +85,24 @@ export function sceneryFor(def: RoomDef, has: (key: string) => boolean = () => t
   const at = (x: number, y: number) => def.floor[y]?.[x];
 
   // crosswalks across both streets, aligned with the doors and the brick axis
-  for (const c of CROSSWALKS) add({ key: 'decals/crosswalk', x: c.x * T, y: c.y * T, origin: 'tl', depth: DEPTH_MOSAIC });
+  for (const c of dress.crosswalks) add({ key: 'decals/crosswalk', x: c.x * T, y: c.y * T, origin: 'tl', depth: DEPTH_MOSAIC });
   const walked = (x: number, y: number) =>
-    CROSSWALKS.some((c) => y >= c.y && y < c.y + 4 && x >= c.x * T - 12 && x < (c.x + 2) * T + 12) ||
-    (y === 8 && x >= BUS_BAY.x * T - 14 && x < (BUS_BAY.x + BUS_BAY.w) * T); // no dashes over the bus bay (Rua dos Ipês's first row is 8)
+    dress.crosswalks.some((c) => y >= c.y && y < c.y + 4 && x >= c.x * T - 12 && x < (c.x + 2) * T + 12) ||
+    (!!dress.busBay && y === 8 && x >= dress.busBay.x * T - 14 && x < (dress.busBay.x + dress.busBay.w) * T); // no dashes over the bus bay (Rua dos Ipês's first row is 8)
   // lane dashes down the middle of each street, every 32 px
-  for (const s of STREETS) {
+  for (const s of dress.streets) {
     const y = s.y0 * T + s.dashDy;
     for (let x = 4; x < def.cols * T - 10; x += 32) if (!walked(x, s.y0)) add({ key: 'decals/lane_dash', x, y, origin: 'tl', depth: DEPTH_MOSAIC });
   }
   // the painted bus lane in front of the stop
-  add({ key: 'decals/faixa_onibus', x: BUS_BAY.x * T, y: BUS_BAY.py, origin: 'tl', depth: DEPTH_MOSAIC + 2 });
+  if (dress.busBay) add({ key: 'decals/faixa_onibus', x: dress.busBay.x * T, y: dress.busBay.py, origin: 'tl', depth: DEPTH_MOSAIC + 2 });
   // a mosaic only goes where its whole footprint is paving with nothing standing on it (the room data may move props around)
-  for (const m of MOSAICS) {
+  for (const m of dress.mosaics) {
     let free = true;
     for (let dy = 0; dy < MOSAIC_TILES.h; dy++) for (let dx = 0; dx < MOSAIC_TILES.w; dx++) if (at(m.x + dx, m.y + dy) !== 'c' || occupied.has(`${m.x + dx},${m.y + dy}`)) free = false;
     if (free) add({ key: 'decals/sp_mosaic', x: m.x * T, y: m.y * T, origin: 'tl', depth: DEPTH_MOSAIC + 5 });
   }
-  for (const m of MANHOLES) add({ key: 'decals/manhole', x: Math.round((m.x + 0.5) * T), y: Math.round((m.y + 0.5) * T) + 6, origin: 'anchor', depth: DEPTH_MOSAIC + 8 });
+  for (const m of dress.manholes) add({ key: 'decals/manhole', x: Math.round((m.x + 0.5) * T), y: Math.round((m.y + 0.5) * T) + 6, origin: 'anchor', depth: DEPTH_MOSAIC + 8 });
 
   // wildflowers on the lawns: a patch in roughly one grass tile in eight, never under a prop, never spilling off the grass
   for (let y = 0; y < def.rows; y++) {

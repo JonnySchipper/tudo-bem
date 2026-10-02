@@ -69,7 +69,14 @@ export interface Marker {
 /** Doors, NPCs and the player as tile coordinates (fractional door x for the wide facades). */
 export function markers(room: RoomDef, me: Tile | null, npcs?: { name: string; x: number; y: number }[]): Marker[] {
   const out: Marker[] = [];
-  for (const p of room.portals) out.push({ kind: 'door', x: p.doorAt?.x ?? p.x, y: p.y, label: p.label.pt });
+  for (const p of room.portals) if (!p.edge) out.push({ kind: 'door', x: p.doorAt?.x ?? p.x, y: p.y, label: p.label.pt });
+  // an area edge is one marker for the whole opening (the middle tile), labelled with the area it leads to
+  const edges = new Map<string, typeof room.portals>();
+  for (const p of room.portals) if (p.edge) edges.set(p.to, [...(edges.get(p.to) ?? []), p]);
+  for (const list of edges.values()) {
+    const mid = list[Math.floor((list.length - 1) / 2)]!;
+    out.push({ kind: 'door', x: mid.x, y: mid.y, label: mid.label.pt });
+  }
   // NPCs walk their schedules: callers pass where they are now; without it the room's home tiles are marked
   for (const n of npcs ?? room.npcs) out.push({ kind: 'npc', x: n.x, y: n.y, label: n.name });
   if (me) out.push({ kind: 'me', x: me.x, y: me.y, label: 'você' });
