@@ -63,7 +63,7 @@ export class RollUI {
         h('h2', null, 'Partida no tatame'),
         en('Portuguese word duels on BJJ positions — first “submission” wins the puzzle.', true),
         h('span', { class: 'spacer' }),
-        h('button', { class: 'ghost', onclick: () => this.quit() }, '✕'),
+        h('button', { class: 'close ghost', 'aria-label': 'Sair', onclick: () => this.quit() }, '✕'),
       ),
       h('p', { class: 'roll-disclaimer' }, h('b', null, ROLL_WORD_GAME_DISCLAIMER.pt), en(ROLL_WORD_GAME_DISCLAIMER.en)),
       h('div', { class: 'roll-belt', id: 'roll-belt' }),

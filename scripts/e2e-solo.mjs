@@ -45,7 +45,7 @@ try {
   await page.click('#enter-praca');
   await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 15_000, 'praça');
   await sleep(1200);
-  assert(await page.isVisible('text=Modo solo'), 'the solo pill shows');
+  assert(await page.isVisible('#solo-pill'), 'the solo pill shows (HUD, top left)');
 
   // tutorial: the welcome chain's first step is "Ande pela praça"
   await page.evaluate(() => window.__tb.walkTo(24, 12));

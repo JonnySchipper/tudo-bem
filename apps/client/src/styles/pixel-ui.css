@@ -259,7 +259,7 @@ html.px-ui .coin {
 }
 
 /* modals and the NPC dialogue: the 2x panel */
-html.px-ui .backdrop > .panel:not(.mg):not(.roll),
+html.px-ui .backdrop > .panel,
 html.px-ui .dialogue {
   border: calc(var(--px-panel-w) * 2) solid transparent;
   border-image: var(--px-panel-2);
@@ -270,7 +270,7 @@ html.px-ui .dialogue {
   filter: drop-shadow(0 4px 0 var(--px-shadow)) drop-shadow(0 14px 18px rgba(20, 10, 6, 0.28));
 }
 
-html.px-ui .backdrop > .panel:not(.mg):not(.roll) {
+html.px-ui .backdrop > .panel {
   padding: 22px 14px 12px;
 }
 

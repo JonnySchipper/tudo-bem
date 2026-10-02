@@ -187,7 +187,7 @@ export class MinigameUI {
         h('h2', null, 'Me vê um…'),
         en('Build each order at the stations — chapa, drinks, bag, then serve!', true),
         h('span', { class: 'spacer' }),
-        h('button', { class: 'ghost', type: 'button', onclick: () => this.quit() }, '✕'),
+        h('button', { class: 'close ghost', type: 'button', 'aria-label': 'Sair', onclick: () => this.quit() }, '✕'),
       ),
       h('div', { class: 'rail' }, this.ticket, this.timer),
       this.body,
