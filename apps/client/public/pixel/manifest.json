@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 1024,
    "h": 1344,
-   "frames": 634
+   "frames": 639
   }
  },
  "terrain": {
@@ -1238,10 +1238,10 @@
   "chars/parrot": {
    "atlas": "outdoor",
    "frame": "chars/parrot/0",
-   "w": 10,
-   "h": 15,
-   "ax": 5,
-   "ay": 14,
+   "w": 8,
+   "h": 10,
+   "ax": 4,
+   "ay": 9,
    "footprint": [
     1,
     1
@@ -2205,6 +2205,81 @@
    "h": 10,
    "ax": 8,
    "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/emote_oi": {
+   "atlas": "outdoor",
+   "frame": "fx/emote_oi",
+   "w": 12,
+   "h": 12,
+   "ax": 6,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/emote_valeu": {
+   "atlas": "outdoor",
+   "frame": "fx/emote_valeu",
+   "w": 12,
+   "h": 12,
+   "ax": 6,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/emote_rir": {
+   "atlas": "outdoor",
+   "frame": "fx/emote_rir",
+   "w": 12,
+   "h": 12,
+   "ax": 6,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/emote_dancar": {
+   "atlas": "outdoor",
+   "frame": "fx/emote_dancar",
+   "w": 12,
+   "h": 12,
+   "ax": 6,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "fx/emote_desculpa": {
+   "atlas": "outdoor",
+   "frame": "fx/emote_desculpa",
+   "w": 12,
+   "h": 12,
+   "ax": 6,
+   "ay": 12,
    "footprint": [
     1,
     1
@@ -8186,10 +8261,10 @@
   },
   "chars/parrot_strip": {
    "file": "chars/parrot_strip.png",
-   "w": 40,
-   "h": 15,
+   "w": 32,
+   "h": 10,
    "frames": 4,
-   "frameW": 10,
+   "frameW": 8,
    "fps": 3
   },
   "flock/papagaio_strip": {
@@ -8228,6 +8303,39 @@
   "face_maduro": "chars/face_maduro.png",
   "face_marcante": "chars/face_marcante.png",
   "face_suave": "chars/face_suave.png",
+  "garb_caixa_o": "chars/garb_caixa_o.png",
+  "garb_caixa_o__esguio": "chars/garb_caixa_o__esguio.png",
+  "garb_caixa_o__forte": "chars/garb_caixa_o__forte.png",
+  "garb_caixa_u": "chars/garb_caixa_u.png",
+  "garb_caixa_u__esguio": "chars/garb_caixa_u__esguio.png",
+  "garb_caixa_u__forte": "chars/garb_caixa_u__forte.png",
+  "garb_carrinho_o": "chars/garb_carrinho_o.png",
+  "garb_carrinho_o__esguio": "chars/garb_carrinho_o__esguio.png",
+  "garb_carrinho_o__forte": "chars/garb_carrinho_o__forte.png",
+  "garb_carrinho_u": "chars/garb_carrinho_u.png",
+  "garb_carrinho_u__esguio": "chars/garb_carrinho_u__esguio.png",
+  "garb_carrinho_u__forte": "chars/garb_carrinho_u__forte.png",
+  "garb_chinelo": "chars/garb_chinelo.png",
+  "garb_chinelo__esguio": "chars/garb_chinelo__esguio.png",
+  "garb_chinelo__forte": "chars/garb_chinelo__forte.png",
+  "garb_jaqueta": "chars/garb_jaqueta.png",
+  "garb_jaqueta__esguio": "chars/garb_jaqueta__esguio.png",
+  "garb_jaqueta__forte": "chars/garb_jaqueta__forte.png",
+  "garb_jersey": "chars/garb_jersey.png",
+  "garb_jersey__esguio": "chars/garb_jersey__esguio.png",
+  "garb_jersey__forte": "chars/garb_jersey__forte.png",
+  "garb_macacao": "chars/garb_macacao.png",
+  "garb_macacao__esguio": "chars/garb_macacao__esguio.png",
+  "garb_macacao__forte": "chars/garb_macacao__forte.png",
+  "garb_mochila_o": "chars/garb_mochila_o.png",
+  "garb_mochila_o__esguio": "chars/garb_mochila_o__esguio.png",
+  "garb_mochila_o__forte": "chars/garb_mochila_o__forte.png",
+  "garb_mochila_u": "chars/garb_mochila_u.png",
+  "garb_mochila_u__esguio": "chars/garb_mochila_u__esguio.png",
+  "garb_mochila_u__forte": "chars/garb_mochila_u__forte.png",
+  "garb_sacola_o": "chars/garb_sacola_o.png",
+  "garb_sacola_o__esguio": "chars/garb_sacola_o__esguio.png",
+  "garb_sacola_o__forte": "chars/garb_sacola_o__forte.png",
   "hair_black": "chars/hair_black.png",
   "hair_cacheado": "chars/hair_cacheado.png",
   "hair_coque": "chars/hair_coque.png",
@@ -8237,6 +8345,7 @@
   "hair_raspado": "chars/hair_raspado.png",
   "hair_trancas": "chars/hair_trancas.png",
   "hair_undercut": "chars/hair_undercut.png",
+  "hat_balde": "chars/hat_balde.png",
   "hat_boina_vermelha": "chars/hat_boina_vermelha.png",
   "hat_bone_verde": "chars/hat_bone_verde.png",
   "hat_bucket_amarelo": "chars/hat_bucket_amarelo.png",

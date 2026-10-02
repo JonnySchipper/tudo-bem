@@ -39,7 +39,7 @@ await build({
   logLevel: 'error',
 });
 const K = await import(pathToFileURL(outfile).href);
-const { lookForAppearance, lookForNpc, composeLook, DEFAULT_APPEARANCE, HATS, HAIR_STYLES, BODY_TYPES, TOP_STYLES, BOTTOM_STYLES, FACE_STYLES, EXTRA_STYLES, IDLE_POSES } = K;
+const { lookForAppearance, lookForNpc, composeLook, cpuLook, cpuArchetype, CPU_NAMES, DEFAULT_APPEARANCE, HATS, HAIR_STYLES, BODY_TYPES, TOP_STYLES, BOTTOM_STYLES, FACE_STYLES, EXTRA_STYLES, IDLE_POSES } = K;
 
 const manifest = JSON.parse(fs.readFileSync(path.join(PIX, 'manifest.json'), 'utf8'));
 const [FW, FH] = manifest.sheet.frame;
@@ -126,6 +126,20 @@ section('NPCs (S, E, N)', ['carlos', 'nanda', 'julia', 'graca', 'tia_lu'].map((i
   const phone = sheetOf(lookForAppearance(A({ idle: 'celular', skin: 2, hair: 'ondulado', hairColor: 2, top: 'camiseta', topColor: 0 })));
   groups.push({ label: 'idle: celular (pack phone loop)', frames: Array.from({ length: anims.phone.frames }, (_, c) => frameRgba(phone, anims.phone.row, c)) });
   section('Emotes as frame strips (real frames; gesture layer on top)', groups, { gap: 24 });
+}
+// 5b. wave 2: the pulled-up fringes on every skin tone, and the whole CPU wardrobe
+{
+  const groups = [];
+  for (const hair of ['cacheado', 'black', 'ondulado', 'longo']) for (let skin = 0; skin < 8; skin += 1) groups.push({ label: String(skin), frames: fr(lookForAppearance(A({ skin, hair, hairColor: 0, topColor: (skin * 2) % 13 })), [[0, 0]]) });
+  section('Wave 2: dark hair with the fringe pulled up (S) on 8 skin tones: the eyes read on every one', groups, { gap: 8 });
+  const first = new Map();
+  for (const n of CPU_NAMES) if (!first.has(cpuArchetype(n))) first.set(cpuArchetype(n), n);
+  section('Wave 2: the CPU neighbours, one per archetype (S, E, N): jerseys, jackets, backpacks, totes, a feira cart, dungarees, flip-flops', [...first].map(([id, name]) => {
+    const l = cpuLook(name);
+    return { label: id + (l.appearance.garb ? ' [' + l.appearance.garb + ']' : ''), frames: faces(lookForAppearance(l.appearance, { hat: l.hat })) };
+  }), { gap: 10 });
+  const garbs = ['jersey_alvinegro', 'jersey_verde+chinelo', 'jaqueta+caixa', 'macacao+balde', 'mochila', 'sacola', 'carrinho', 'chinelo'];
+  section('Wave 2: garb pieces on a plain look (S, E, N)', garbs.map((garb, i) => ({ label: garb, frames: faces(lookForAppearance(A({ garb, top: garb.startsWith('jaqueta') ? 'moletom' : 'camiseta', topColor: garb.startsWith('jaqueta') ? 5 : 1, bottom: garb.startsWith('jersey_verde') ? 'bermuda' : 'calca', skin: 1 + (i % 5) }))) })), { gap: 10 });
 }
 // 6. body types
 section('Body types (S, E, N; esguio / medio / forte)', BODY_TYPES.flatMap((body) => [

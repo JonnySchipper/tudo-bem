@@ -29,6 +29,10 @@ export const CLOTH_COLORS = [
 ];
 export const SHOE_COLORS = ['#f1eee8', '#26252a', '#b5452e', '#34599a', '#e0b23a'];
 
+/** Wave 2 CPU garb pieces (client art: characters.ts GARBS). A CPU's `Appearance.garb` is one or more of these joined by '+'. */
+export const GARB_IDS = ['jersey_alvinegro', 'jersey_verde', 'jaqueta', 'macacao', 'chinelo', 'mochila', 'caixa', 'sacola', 'carrinho', 'balde'] as const;
+export const garbParts = (g: string | undefined): string[] => (g ? g.split('+').filter((p) => (GARB_IDS as readonly string[]).includes(p)) : []);
+
 export const BODY_TYPES: BodyType[] = ['esguio', 'medio', 'forte'];
 export const HAIR_STYLES: HairStyle[] = ['curto', 'raspado', 'undercut', 'cacheado', 'black', 'ondulado', 'longo', 'coque', 'trancas'];
 export const TOP_STYLES: TopStyle[] = ['camiseta', 'blusa', 'camisa', 'moletom', 'regata'];

@@ -40,7 +40,7 @@ describe('CPU wardrobe (character redesign v1)', () => {
   const reads = (n: string) => {
     const l = cpuLook(n);
     const a = l.appearance;
-    return [a.hair, `${a.top}/${a.topColor}`, `${a.bottom}/${a.bottomColor}`, a.idle, `${a.extra}/${l.hat}`];
+    return [a.hair, `${a.top}/${a.topColor}`, `${a.bottom}/${a.bottomColor}`, a.idle, `${a.extra}/${l.hat}`, a.garb ?? '-'];
   };
   const differ = (x: string, y: string) => reads(x).filter((v, i) => v !== reads(y)[i]).length;
 

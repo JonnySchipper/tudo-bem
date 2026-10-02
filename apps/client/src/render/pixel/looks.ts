@@ -2,14 +2,16 @@
  * Character looks (HOWTO §6 Phase 3): an `Appearance` (+ hat, + NPC extras) becomes an ordered list of layers with the ramp colors to
  * swap in. Pure: no Phaser, no DOM. The layers are drawn back to front by `composeRgba` (charcompose.ts).
  */
-import { CLOTH_COLORS, DEFAULT_APPEARANCE, HAIR_COLORS, SHOE_COLORS, SKIN_TONES, hatById, type Appearance, type BodyType, type NpcId } from '@tudobem/shared';
-import { CHAR_LAYERS, HAT_LIFT, hatLayer, outfitKey, pick, type IdleEntry } from './characters';
+import { CLOTH_COLORS, DEFAULT_APPEARANCE, HAIR_COLORS, garbParts, SHOE_COLORS, SKIN_TONES, hatById, type Appearance, type BodyType, type NpcId } from '@tudobem/shared';
+import { CHAR_LAYERS, GARBS, HAT_LIFT, hatLayer, outfitKey, pick, type GarbColors, type GarbPiece, type IdleEntry } from './characters';
 import type { Ramps } from './charcompose';
 
 export interface LookLayer {
   /** key of a layer sheet in manifest.chars */
   key: string;
   ramps?: Ramps;
+  /** top-left light on the edges of this layer (hair, outfit: crown and shoulders) */
+  hl?: boolean;
 }
 
 export interface Look {
@@ -66,24 +68,33 @@ export function lookForAppearance(a: Appearance, opts: LookOptions = {}): Look {
   const extra = pick(CHAR_LAYERS.extra as Record<string, (typeof CHAR_LAYERS.extra)[keyof typeof CHAR_LAYERS.extra]>, a.extra, 'nenhum', 'extra');
   const idle = pick(CHAR_LAYERS.idle, a.idle, 'solto', 'idle');
   const suffix = CHAR_LAYERS.bodySuffix[body];
+  // wave 2: the CPU's neighbourhood pieces (back pieces under the body, jersey / flip-flops over the outfit, bags over the hair, a bucket hat)
+  const garb: GarbPiece[] = garbParts(a.garb).flatMap((id) => GARBS[id] ?? []);
+  const gc: GarbColors = { top, bottom, skin };
+  const garbLayer = (p: GarbPiece): LookLayer => ({ key: p.warped ? p.key + suffix : p.key, ramps: p.ramps(gc) });
   const layers: LookLayer[] = [
+    ...garb.filter((p) => p.slot === 'under').map(garbLayer),
     { key: CHAR_LAYERS.body[body], ramps: { skin } },
     { key: face.eyes },
     { key: face.overlay, ramps: { hair } },
   ];
   const under = extra && extra.order === 'under-hair' ? extra : null;
   const over = extra && extra.order === 'over-hair' ? extra : null;
-  layers.push({ key: outfitKey(a.top, a.bottom, body), ramps: { top, bottom, shoes } });
+  layers.push({ key: outfitKey(a.top, a.bottom, body), ramps: { top, bottom, shoes }, hl: true });
   if (opts.apron) layers.push({ key: CHAR_LAYERS.apron + suffix, ramps: { accent: opts.apron } });
   if (opts.gi) layers.push({ key: CHAR_LAYERS.gi + suffix });
+  for (const p of garb) if (p.slot === 'outfit') layers.push(garbLayer(p));
   for (const l of idle.layers) layers.push({ key: idle.warped ? l + suffix : l, ramps: { top, skin } });
   if (under) layers.push({ key: under.layer, ramps: under.ramps.length ? { hair } : undefined });
-  layers.push({ key: pick(CHAR_LAYERS.hair, a.hair, 'curto', 'hair'), ramps: { hair } });
+  for (const p of garb) if (p.slot === 'over') layers.push(garbLayer(p));
+  layers.push({ key: pick(CHAR_LAYERS.hair, a.hair, 'curto', 'hair'), ramps: { hair }, hl: true });
   if (over) layers.push({ key: over.layer });
-  // gestures (raised hands) are drawn over the hair: they reach up beside the head
-  layers.push({ key: CHAR_LAYERS.gestures, ramps: { skin, top } });
   const hat = hatSpec(opts.hat);
+  const garbHat = garb.find((p) => p.slot === 'hat');
   if (hat) layers.push({ key: hat.layer, ramps: { hat: hat.color, accent: hat.accent } });
+  else if (garbHat) layers.push(garbLayer(garbHat));
+  // gestures (raised hands) are drawn over the hair and the hat: the hand reaches up in front of the head (wave 2: a brim used to hide it)
+  layers.push({ key: CHAR_LAYERS.gestures, ramps: { skin, top } });
   return { body, layers, idle };
 }
 
