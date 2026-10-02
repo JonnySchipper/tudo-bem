@@ -36,6 +36,7 @@ import * as kitnetMod from './kitnet.mjs';
 import * as gymMod from './gym.mjs';
 import * as v2Mod from './v2.mjs';
 import * as bjjMod from './bjj.mjs';
+import * as balcaoMod from './balcao.mjs';
 
 export const PREP = v2Mod.PREP;
 
@@ -45,6 +46,7 @@ export const DERIVE = {
   ...kitnetMod.DERIVE_KITNET,
   ...gymMod.DERIVE_GYM,
   ...bjjMod.DERIVE_BJJ,
+  ...balcaoMod.DERIVE_BALCAO,
   wallSet: wallsMod.wallSet,
   wallDecor: wallsMod.wallDecor,
   doorPart: wallsMod.doorPart,

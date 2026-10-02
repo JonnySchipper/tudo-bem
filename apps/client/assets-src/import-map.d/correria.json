@@ -1,0 +1,6 @@
+{
+  "$comment": "Correria no Balcao (art): everything on the counter work area (balcao/*) plus fx/steam_*. One generator (custom/balcao.mjs) returns every frame as its own sprite key; the first key carries the entry.",
+  "sprites": [
+    {"key":"balcao/item_pao","kind":"derive","fn":"balcaoSet","shadow":null}
+  ]
+}

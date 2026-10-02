@@ -1400,3 +1400,29 @@ The new lock, applied to the bout:
 3. **Partner bios.** Daniel "Difícil de finalizar..." → "Difícil de vencer no final..."; Rafael "procura a finalização cedo" → "procura o final cedo".
 4. **Bundle.** `POSITION_LABELS` and `positionLabel` are deleted, so no readable position name is in the client code at all. `apps/client/src/academia-lock.test.ts` runs a real `vite build` in memory and fails if any chunk contains Guarda fechada, Meia-guarda, Cem quilos, Joelho na barriga, Closed guard, Half guard, Side control, Knee on belly, Back control, a Mount / Montada / Costas label, or Finalização / Submission. It also checks the end lines and partner bios.
 5. **Shots.** `docs/lifesim/shots/lock49/` (desktop intent, desktop Final chance, phone challenge).
+
+## Correria no Balcão (art)
+
+Branch `lifesim/correria-art`. Art for the counter work area of "Correria no Balcão" (brief: `CORRERIA-REDESIGN.md`, "Visual targets"); gameplay consumes the keys in parallel. Contact sheet: `docs/lifesim/shots/correria-art/sheet.png` (every key at 4x, animations as strips, plus a mock composite of the work area at game zoom 3; regenerate with `node scripts/balcao-sheet.mjs`).
+
+- **How it is drawn.** All authored in `custom/balcao.mjs` with the padaria's own look: navy outline added once at the end (`outlineAround`), light from the upper left, LimeZu ramps (crust, gold, fry, steel, lavender enamel) plus the padaria accents (terracotta, cream, mustard, red gingham). The pack has no usable food or griddle art; the 16 px icons (`icons/*`) were the style reference, redrawn big, and `tray_full` reuses three of them.
+- **Contract.** Every frame is its own sprite key (no `anim` block), so the game picks frames itself. Anchors are bottom centre of the contact point.
+
+  | Key | Frames | Size | Anchor |
+  |---|---|---|---|
+  | `balcao/item_<id>` x 12 (all of `meveum.ts` SHELF) | 1 each | 28x28 | (14, 26) |
+  | `balcao/tray`, `balcao/tray_full` | 1 each | 64x16, 64x34 | (32, 14), (32, 32) |
+  | `balcao/bag`, `balcao/plate` | 1 each | 24x30, 28x12 | (12, 28), (14, 10) |
+  | `balcao/chapa_idle`, `chapa_sizzle_0..2`, `chapa_burnt` | 1 + 3 + 1 | 40x36 | (20, 35) |
+  | `balcao/coffee_idle`, `coffee_pour_0..3` | 1 + 4 | 34x42 | (17, 41) |
+  | `balcao/register` | 1 | 26x24 | (13, 23) |
+  | `balcao/bell_0..1` (still, rung) | 2 | 22x16 | (11, 14) |
+  | `balcao/tipjar_0..3` (empty, coins, coins + notes, full) | 4 | 20x24 | (10, 23) |
+  | `balcao/patience_0..4` (full to out of patience) | 5 | 14x14 | (7, 14) |
+  | `fx/steam_0..3` | 4 | 14x24 | (7, 23) |
+
+- **Food.** Pão francês is a pointed oval with a pale split "ear"; pão na chapa is a split roll with grill marks and a glossy melting butter pat on a plate; pastel is a flat blistered half-moon with a fork-crimped seam; coxinha is the breaded drop; bolo is a carrot-cake slice with chocolate glaze drips (the padaria classic); café and café com leite are in a copo americano on a saucer (black with hazel crema vs milky with foam); suco is an orange juice with a paper straw and an orange wheel; água is a 500 ml bottle with a blue cap and wave label; pão de queijo is four cheese balls on a red gingham liner; misto-quente is a toasted sandwich cut in two showing cheese and ham; guaraná is a plain green can with a yellow wave and a red berry (no brand, no letters).
+- **Chapa and coffee.** The chapa is a stainless flat griddle with a hinged press propped open at the back (so the bread stays visible), dials and a pilot light, grease shine. Sizzle frames toast the loaf pale / golden / brown with bubbling butter and sparks; `chapa_burnt` is black with smoke and embers. The coffee machine is a classic red-enamel padaria espresso with a cup-warmer rail, gauge and chrome group head; `coffee_idle` has no glass, the four pour frames put a copo americano under the spout and fill it (the stream stops on frame 3).
+- **Overlay pieces.** `patience_*` is a clock-pie that drains clockwise and goes green / lime / yellow / orange / red, with a red "!" at 4; it is drawn to sit over a customer's head and stays readable at zoom 2-3. The steam is the only part with partial alpha (soft wisps); everything else is hard pixels (the unit test checks it).
+- **Tests.** `scripts/lib/pixel/balcao.test.mjs`: every contract key is in the manifest, single-frame, with the generator's size and an anchor inside; no extra `balcao/*` keys; item sizes 24-32; hard pixels; the strips differ frame to frame.
+- **Known weaknesses.** The press on the chapa reads a little like a panini grill; the pastel crimp is a comb-like band at 1x; no baked contact shadows (the counter top is the shadow); the tray holds 16 px icons in `tray_full`, not the 28 px items.
