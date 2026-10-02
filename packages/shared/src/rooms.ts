@@ -845,7 +845,8 @@ const academia: RoomDef = {
     { id: 'placar', kind: 'cenario', x: 8, y: 3, w: 2, h: 1, art: 'props/placar', blocks: false },
     { id: 'bandeira_no', kind: 'cenario', x: 1, y: 1, art: 'props/bandeira_br', blocks: false },
     { id: 'bandeira_ne', kind: 'cenario', x: 8, y: 1, art: 'props/bandeira_sp', blocks: false },
-    { id: 'bandeira_so', kind: 'cenario', x: 1, y: 5, art: 'props/bandeira_sp', blocks: false },
+    // (the south-west flag stands inside the mat's span, clear of the exit so the "← Praça" guide label never sits on it)
+    { id: 'bandeira_so', kind: 'cenario', x: 3, y: 5, art: 'props/bandeira_sp', blocks: false },
     { id: 'bandeira_se', kind: 'cenario', x: 8, y: 5, art: 'props/bandeira_br', blocks: false },
   ],
   walls: [

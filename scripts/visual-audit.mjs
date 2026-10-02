@@ -224,6 +224,21 @@ async function sectionInteriors(browser, vp) {
 // ---------------------------------------------------------------- 4. UI screens
 const PHONE_UI = new Set(['title_enter', 'title_hero', 'signin_card', 'signup_card', 'avatar_creator', 'avatar_creator_bottom', 'hud_idle_praca', 'dialogue_carlos_pedido', 'dialogue_carlos_conversa', 'tracker_mid_recado', 'meveum', 'feira_price', 'feira_payment_tray']);
 
+/** Click a HUD action, opening the phone drawer / settings popover first when its button is hidden (the desktop bar shows them all). */
+async function press(page, sel) {
+  const vis = (s) => page.evaluate((s) => { const e = document.querySelector(s); if (!e) return false; const b = e.getBoundingClientRect(); const cs = getComputedStyle(e); return b.width > 0 && b.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none'; }, s);
+  if (!(await vis(sel))) {
+    for (const opener of ['#btn-burger', '#btn-menu']) {
+      if (!(await vis(opener))) continue;
+      await page.click(opener);
+      await sleep(350);
+      if (await vis(sel)) break;
+    }
+  }
+  assert(await vis(sel), `HUD action ${sel} is not reachable`);
+  await page.click(sel);
+}
+
 async function sectionUi(browser, vp) {
   const { ctx, page } = await newPage(browser, vp);
   const ui = async (name, opts) => {
@@ -254,23 +269,22 @@ async function sectionUi(browser, vp) {
   await close();
 
   // map panel, credits
-  await page.click('#btn-map');
+  await press(page, '#btn-map');
   await sleep(1200);
   await ui('map_panel');
   await close();
-  await page.click('#btn-menu').catch(() => page.click('#btn-burger'));
-  await page.click('#btn-credits');
+  await press(page, '#btn-credits');
   await page.waitForSelector('[data-modal="credits"] .credits-panel', { timeout: 5000 });
   await sleep(500);
   await ui('credits');
   await close();
 
   // journal (welcome chain) and Caderno
-  await page.click('#btn-recados');
+  await press(page, '#btn-recados');
   await sleep(900);
   await ui('journal_welcome');
   await close();
-  await page.click('#btn-caderno');
+  await press(page, '#btn-caderno');
   await sleep(900);
   await ui('caderno');
   await close();
@@ -320,7 +334,7 @@ async function sectionUi(browser, vp) {
     await sleep(1200);
     await ui('recado_offer');
     await page.click('#dialogue-box [data-chip="0"]');
-    await page.waitForSelector('#recado-tracker [data-recado="carlos_cafe_pra_nanda"]', { timeout: 8000 }).catch(() => missed.push('tracker mid-recado: recado did not start'));
+    await page.waitForSelector('#recado-tracker [data-recado="carlos_cafe_pra_nanda"]', { state: 'attached', timeout: 8000 }).catch(() => missed.push('tracker mid-recado: recado did not start'));
     await sleep(2200);
     await ui('tracker_mid_recado');
   } else {

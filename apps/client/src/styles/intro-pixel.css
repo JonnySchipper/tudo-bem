@@ -84,6 +84,8 @@
 }
 
 .intro-taglines {
+  /* the wordmark's hard drop shadow reaches ~10px below the glyphs (more at the title-beat scale): keep the plate clear of it */
+  margin-top: 26px;
   border-radius: 0;
   background: var(--hud-paper, #fbf1e3);
   backdrop-filter: none;

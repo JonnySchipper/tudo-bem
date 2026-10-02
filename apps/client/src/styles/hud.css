@@ -547,6 +547,14 @@ button.hud-burger,
   }
 }
 
+/* Desktop: the room is centred with dark margins either side, so keep the toast stack inside the left margin (it used to run over the
+   Academia's wall sign and the first tile of every room). */
+@media (min-width: 900px) and (min-height: 521px) {
+  .toasts {
+    width: clamp(260px, calc(50vw - 330px), 400px);
+  }
+}
+
 body:has([data-modal='minigame']) .toasts {
   z-index: 120;
 }
