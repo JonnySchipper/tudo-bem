@@ -99,13 +99,19 @@ export async function buildOrder(page, want, { quick = false } = {}) {
         slot++;
         if (slot >= (await snap(page)).chapa.length) await takeGrilled(page);
       } else if (CAFE.has(line.itemId)) {
-        trace('pour', line.itemId);
-        const box = await page.locator(hit(`item-${line.itemId}`)).boundingBox();
-        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-        await page.mouse.down();
-        await sleep(pourMs * 0.85 + (quick ? 0 : 40));
-        await page.mouse.up();
-        trace("poured");
+        // a slow frame can stretch the hold past the window (the server judges it on its own clock): pour again, like a player would
+        for (let attempt = 0; attempt < 4; attempt++) {
+          const before = (await snap(page)).tray.length;
+          trace('pour', line.itemId, attempt);
+          const box = await page.locator(hit(`item-${line.itemId}`)).boundingBox();
+          await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+          await page.mouse.down();
+          await sleep(pourMs * 0.88);
+          await page.mouse.up();
+          await sleep(250);
+          if ((await snap(page)).tray.length > before) break;
+        }
+        trace('poured');
       } else await page.click(hit(`item-${line.itemId}`));
     }
   }
