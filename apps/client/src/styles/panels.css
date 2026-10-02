@@ -223,9 +223,11 @@ html.px-ui .backdrop > .panel:not(.mg):not(.roll),
   }
 }
 
-/* legibility (D9): Pixelify Sans is loaded at one weight (500, its C keeps the opening) and never synthesised; small labels with c / C stay Nunito */
+/* legibility (D9): the pixel font is Jersey 10 (Wave 2: Pixelify Sans' capital C read as an O), one weight, never synthesised; small labels with c / C stay Nunito */
 html {
   font-synthesis-weight: none;
+  /* Jersey 10 (the pixel font) has a short x-height; matching Nunito's (0.484) sizes it like the body text, and leaves Nunito itself alone */
+  font-size-adjust: 0.484;
 }
 
 .intro-tab,

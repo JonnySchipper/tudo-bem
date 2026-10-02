@@ -9,7 +9,7 @@
  */
 
 :root {
-  --font-pixel: 'Pixelify Sans', 'Baloo 2', 'Trebuchet MS', system-ui, sans-serif;
+  --font-pixel: 'Jersey 10', 'Pixelify Sans', 'Baloo 2', 'Trebuchet MS', system-ui, sans-serif;
   --px-ink: #573c2c;
   --px-shadow: rgba(44, 28, 20, 0.34);
 }
