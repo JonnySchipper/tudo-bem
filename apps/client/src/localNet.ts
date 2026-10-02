@@ -44,8 +44,9 @@ export class LocalNet implements NetLike {
       moderation: new MemoryModerationQueue(),
     }, {
       ambiance: new URLSearchParams(location.search).get('cpu') !== 'off',
-      rollQueueMs: 600,
       testRollHints: new URLSearchParams(location.search).has('rolltest'),
+      boutIntroMs: Number(new URLSearchParams(location.search).get('boutintro')) || undefined,
+      boutPace: Number(new URLSearchParams(location.search).get('boutpace')) || undefined,
       // test hook, the solo twin of TB_TEST_CLOCK_OFFSET_MIN: `?tbclockmin=<real minutes>` shifts the game clock (schedules, greetings, the sky)
       clockOffsetMs: Number(new URLSearchParams(location.search).get('tbclockmin') ?? 0) * 60_000 || 0,
     });
@@ -65,6 +66,16 @@ export class LocalNet implements NetLike {
   send(m: ClientMsg) {
     if (!this.world || !this.session) return;
     void this.world.handle(this.session, JSON.parse(JSON.stringify(m)));
+  }
+
+  /** Test/shots hook (`?rolltest` only): the live bout state of the in-page world, to stage a moment (a full pegada at the top of the ladder). */
+  debugBout(): { st: Record<string, unknown> } | null {
+    return new URLSearchParams(location.search).has('rolltest') ? ((this.session?.bout as unknown as { st: Record<string, unknown> } | undefined) ?? null) : null;
+  }
+
+  /** Test/shots hook (`?rolltest` only): the in-page session, to stage a moment (a blue belt unlocks every partner). */
+  debugSession(): Session | null {
+    return new URLSearchParams(location.search).has('rolltest') ? this.session : null;
   }
 
   on(h: Handler) {

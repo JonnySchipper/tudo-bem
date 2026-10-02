@@ -2,13 +2,15 @@
  * Pure (no DOM, no Phaser) layer composition for characters: key-color swap per layer, then alpha-over into one RGBA buffer.
  * The game scene, the avatar creator preview and the hat icons all compose through this, so what you design is what you see in the world.
  */
-import { KEY_RAMPS, buildRamp, mergeTables, rampMap, swapKeys, type RampName } from './palette';
+import { KEY_RAMPS, buildRamp, hexToRgb, mergeTables, pack, rampMap, swapKeys, type RampName } from './palette';
 
 export type Ramps = Partial<Record<RampName, string>>;
 
 export interface RgbaLayer {
   data: Uint8ClampedArray | Uint8Array;
   ramps?: Ramps;
+  /** exact colour swaps applied after the ramps (a belt on the gi layer): source colour -> target colour, both `#rrggbb` */
+  map?: Record<string, string>;
   /** runs on the recolored copy of the layer before it is composited (the top-left light on hair and shoulders) */
   post?: (data: Uint8ClampedArray) => void;
 }
@@ -21,6 +23,17 @@ export function tableFor(ramps: Ramps): Map<number, number> {
     tables.push(rampMap(key, buildRamp(base, key.length as 3 | 4)));
   }
   return mergeTables(...tables);
+}
+
+/** Table for exact colour swaps (`#rrggbb` -> `#rrggbb`). */
+export function exactTable(map: Record<string, string>): Map<number, number> {
+  const m = new Map<number, number>();
+  for (const [from, to] of Object.entries(map)) {
+    const [fr, fg, fb] = hexToRgb(from);
+    const [tr, tg, tb] = hexToRgb(to);
+    m.set(pack(fr, fg, fb), pack(tr, tg, tb));
+  }
+  return m;
 }
 
 /** Source-over of one RGBA buffer onto another of the same size (fully opaque or fully transparent pixels are copied, the rest is blended). */
@@ -49,9 +62,10 @@ export function composeRgba(length: number, layers: readonly RgbaLayer[]): Uint8
   const tmp = new Uint8ClampedArray(length);
   for (const layer of layers) {
     if (layer.data.length !== length) throw new Error(`layer size mismatch: ${layer.data.length} vs ${length}`);
-    if ((layer.ramps && Object.keys(layer.ramps).length) || layer.post) {
+    if ((layer.ramps && Object.keys(layer.ramps).length) || layer.post || layer.map) {
       tmp.set(layer.data);
       if (layer.ramps && Object.keys(layer.ramps).length) swapKeys(tmp, tableFor(layer.ramps));
+      if (layer.map) swapKeys(tmp, exactTable(layer.map));
       layer.post?.(tmp);
       compositeOver(out, tmp);
     } else compositeOver(out, layer.data);

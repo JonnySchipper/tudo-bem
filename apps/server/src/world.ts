@@ -84,26 +84,7 @@ import {
   type Tray,
   talkOpener,
   type TutorialStep,
-  ROLL_MAX_DUELS,
-  ROLL_QUEUE_MS_DEFAULT,
-  ROLL_RV_LOSS,
-  ROLL_RV_WIN,
-  checkRollAnswer,
-  cpuGetsIt,
-  decisaoWinner,
-  displayPosition,
-  makeRollPuzzle,
   normalizeBjj,
-  rollBow,
-  rollDecisaoLine,
-  rollFistBump,
-  rollPuzzleTimeMs,
-  rollTapLine,
-  resolveDuel,
-  stripesForWins,
-  toPuzzleView,
-  type RollAnswer,
-  type RollPuzzle,
 } from '@tudobem/shared';
 import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
 import { ProfileStore, today, todaySaoPaulo, toPrivate, type StoredProfile } from './store.js';
@@ -113,6 +94,7 @@ import { NPC_TICK_MS, NpcDirector } from './npcs.js';
 import { RecadoTracker, sceneItems } from './recados.js';
 import { CadernoTracker } from './caderno.js';
 import { FeiraCounter } from './feira.js';
+import { BoutEngine, type BoutSession } from './bout.js';
 
 export interface Services {
   safety: ChatSafetyService;
@@ -131,10 +113,12 @@ export interface WorldOptions {
   /** Praça / Academia ambiance CPUs (LIVEOPS_CPU_AMBIANCE). Off unless the host turns it on. */
   ambiance?: boolean;
   rng?: () => number;
-  /** Open-mat CPU match wait (ms). Env `ROLL_QUEUE_MS` overrides default 12s. */
-  rollQueueMs?: number;
-  /** When true, duel messages include `debugCorrect` for CI e2e (TB_TEST_ROLL=1). */
+  /** When true, bout challenges include `debugCorrect` and the pauses shrink, for CI e2e (TB_TEST_ROLL=1). */
   testRollHints?: boolean;
+  /** Bout intro length in ms (default: 4.2 s, 0.5 s in hint mode). Env `TB_TEST_BOUT_INTRO_MS`. */
+  boutIntroMs?: number;
+  /** Bout pause scale (default 1, 0.35 in hint mode). Env `TB_TEST_BOUT_PACE`: shots want the real pauses with the hints on. */
+  boutPace?: number;
   /** Email/password accounts (the Node server). When set, only sockets with a signed-in session can play. Solo mode leaves it unset. */
   accounts?: AccountLink;
   /** No real input for this long → kicked and the seat is freed. Default 15 min. */
@@ -193,25 +177,6 @@ interface MgState {
   lastSig?: string;
 }
 
-interface RollState {
-  rng: Rng;
-  token: number;
-  phase: 'queue' | 'match';
-  queueAt: number;
-  playerIdx: number;
-  cpuIdx: number;
-  round: number;
-  used: string[];
-  puzzle?: RollPuzzle;
-  puzzleAt: number;
-  timeMs: number;
-  playerAnswered: boolean;
-  cpuAnswered: boolean;
-  playerCorrect: boolean;
-  cpuCorrect: boolean;
-  resolving: boolean;
-}
-
 export interface Session {
   id: string;
   send: (m: ServerMsg) => void;
@@ -225,7 +190,8 @@ export interface Session {
   avatar?: AvatarState;
   scene?: SceneState;
   mg?: MgState;
-  roll?: RollState;
+  /** Treino no tatame: the bout in progress (apps/server/src/bout.ts). */
+  bout?: BoutSession;
   chatTimes: number[];
   lastHintAt: number;
 }
@@ -289,8 +255,8 @@ export class World {
   private readonly schedule: (fn: () => void, ms: number) => void;
   private readonly ambiance: boolean;
   private readonly rng: () => number;
-  private readonly rollQueueMs: number;
   private readonly testRollHints: boolean;
+  private readonly bouts: BoutEngine;
   private clockOffsetMs: number;
   /** The neighbours: schedules, positions, walks (pure function of the game clock). */
   private readonly npcs: NpcDirector;
@@ -318,8 +284,6 @@ export class World {
     this.schedule = opts.schedule ?? ((fn, ms) => void (setTimeout(fn, ms) as unknown as { unref?: () => void }).unref?.());
     this.ambiance = !!opts.ambiance;
     this.rng = opts.rng ?? Math.random;
-    const envQueue = Number(readEnv('ROLL_QUEUE_MS'));
-    this.rollQueueMs = opts.rollQueueMs ?? (Number.isFinite(envQueue) && envQueue >= 0 ? envQueue : ROLL_QUEUE_MS_DEFAULT);
     this.testRollHints = opts.testRollHints ?? readEnv('TB_TEST_ROLL') === '1';
     const envOffset = Number(readEnv('TB_TEST_CLOCK_OFFSET_MIN'));
     this.clockOffsetMs = opts.clockOffsetMs ?? (Number.isFinite(envOffset) ? envOffset * 60_000 : 0);
@@ -345,6 +309,25 @@ export class World {
       ordered: (s, npc, items) => this.recados.onEvent(s, { kind: 'ordered', npc, items }),
     });
     this.caderno = new CadernoTracker({ now: () => this.now(), store, reward: (s, a, r) => this.reward(s, a, r), pushProfile: (s) => this.pushProfile(s) });
+    this.bouts = new BoutEngine({
+      now: () => this.now(),
+      schedule: (fn, ms) => this.schedule(fn, ms),
+      rng: () => this.rng(),
+      store,
+      testHints: this.testRollHints,
+      pace: opts.boutPace ?? (Number(readEnv('TB_TEST_BOUT_PACE')) > 0 ? Number(readEnv('TB_TEST_BOUT_PACE')) : this.testRollHints ? 0.35 : 1),
+      introMs: opts.boutIntroMs ?? (Number.isFinite(Number(readEnv('TB_TEST_BOUT_INTRO_MS'))) && readEnv('TB_TEST_BOUT_INTRO_MS') ? Number(readEnv('TB_TEST_BOUT_INTRO_MS')) : undefined),
+      reward: (s, a, r) => this.reward(s, a, r),
+      pushProfile: (s) => this.pushProfile(s),
+      bond: (s, n) => this.recados.grantBond(s, 'prof', n),
+      caderno: {
+        seen: (s, text, ids) => this.caderno.seen(s, text, ids),
+        used: (s, text) => this.caderno.used(s, text),
+        heard: (s, ids) => this.caderno.heard(s, ids),
+      },
+      err: (s, code, pt, en) => this.err(s, code, pt, en),
+      avatarChanged: (s) => this.broadcastAvatar(s),
+    });
   }
 
   // ---------- connection lifecycle ----------
@@ -461,8 +444,8 @@ export class World {
         return this.sendFriends(s);
       case 'mission':
         return this.takeMission(s);
-      case 'roll':
-        return this.rollGame(s, msg);
+      case 'bout':
+        return this.bouts.handle(s, msg);
       case 'give':
         return this.recados.give(s, msg.npc, msg.itemId);
       case 'read':
@@ -735,7 +718,7 @@ export class World {
   private leaveInstance(s: Session) {
     const inst = s.instance;
     if (s.mg) s.mg = undefined;
-    if (s.roll) s.roll = undefined;
+    if (s.bout) this.bouts.clear(s);
     s.scene = undefined;
     if (!inst) return;
     inst.members.delete(s.id);
@@ -800,6 +783,7 @@ export class World {
       appearance: p.appearance,
       hat: p.hat,
       parrot: p.parrotOwned && p.parrotEquipped,
+      belt: normalizeBjj(p.bjj).belt,
       nameplate: p.nameplate,
       x: cur.tile.x,
       y: cur.tile.y,
@@ -1326,235 +1310,6 @@ export class World {
     return s.mg?.order;
   }
 
-  // ---------- Academia BJJ roll ----------
-
-  private clearRoll(s: Session) {
-    if (s.roll) s.roll = undefined;
-  }
-
-  private rollGame(s: Session, m: Extract<ClientMsg, { t: 'roll' }>): void {
-    const p = s.profile!;
-    if (m.action === 'queue') {
-      if (s.instance?.def.id !== 'academia')
-        return this.err(s, 'roll', 'A fila do tatame fica na academia.', 'The open-mat queue is in the academy.');
-      if (s.roll) return;
-      s.scene = undefined;
-      s.mg = undefined;
-      const rng = mulberry32((this.now() ^ (this.rng() * 1e9)) >>> 0);
-      const token = ++this.seq;
-      s.roll = {
-        rng,
-        token,
-        phase: 'queue',
-        queueAt: this.now(),
-        playerIdx: 0,
-        cpuIdx: 0,
-        round: 0,
-        used: [],
-        puzzleAt: 0,
-        timeMs: 0,
-        playerAnswered: false,
-        cpuAnswered: false,
-        playerCorrect: false,
-        cpuCorrect: false,
-        resolving: false,
-      };
-      s.send({ t: 'roll', phase: 'queue', waitMs: this.rollQueueMs, opponent: 'cpu' });
-      this.schedule(() => this.rollStartMatch(s, token), this.rollQueueMs);
-      return;
-    }
-    const roll = s.roll;
-    if (!roll) return;
-    if (m.action === 'cancel' || m.action === 'quit') {
-      this.clearRoll(s);
-      return s.send({ t: 'notice', level: 'info', pt: 'Saiu da fila. Até a próxima partida!', en: 'Left the queue. See you at the next match!' });
-    }
-    if (m.action === 'rematch') {
-      this.clearRoll(s);
-      return this.rollGame(s, { t: 'roll', action: 'queue' });
-    }
-    if (roll.phase === 'queue') return;
-    if (roll.resolving) return;
-    const puzzle = roll.puzzle;
-    if (!puzzle) return;
-
-    if (m.action === 'timeout') {
-      const elapsed = this.now() - roll.puzzleAt;
-      if (elapsed < roll.timeMs - 750) return;
-      if (!roll.playerAnswered) roll.playerCorrect = false;
-      roll.playerAnswered = true;
-      if (!roll.cpuAnswered) {
-        roll.cpuCorrect = cpuGetsIt(roll.rng);
-        roll.cpuAnswered = true;
-      }
-      return this.rollResolveDuel(s);
-    }
-
-    if (m.action === 'answer') {
-      let answer: RollAnswer;
-      if ('order' in m && Array.isArray(m.order)) answer = { kind: 'reorder', order: m.order.map((n) => Math.floor(Number(n))) };
-      else answer = { kind: 'choice', index: Math.floor(Number((m as { choice: number }).choice)) };
-      if (!roll.playerAnswered) {
-        roll.playerAnswered = true;
-        roll.playerCorrect = checkRollAnswer(puzzle, answer);
-      }
-      if (roll.cpuAnswered) return this.rollResolveDuel(s);
-      return;
-    }
-  }
-
-  private rollStartMatch(s: Session, token: number) {
-    const roll = s.roll;
-    if (!roll || roll.token !== token || roll.phase !== 'queue') return;
-    roll.phase = 'match';
-    s.send({ t: 'roll', phase: 'bow', line: rollBow() });
-    this.schedule(() => this.rollBeginDuel(s, token), 1400);
-  }
-
-  private rollBeginDuel(s: Session, token: number) {
-    const roll = s.roll;
-    if (!roll || roll.token !== token) return;
-    if (roll.round >= ROLL_MAX_DUELS) return this.rollFinish(s, 'decisao');
-    roll.round++;
-    roll.resolving = false;
-    roll.playerAnswered = false;
-    roll.cpuAnswered = false;
-    roll.playerCorrect = false;
-    roll.cpuCorrect = false;
-    const used = new Set(roll.used);
-    roll.puzzle = makeRollPuzzle(roll.rng, used);
-    roll.used.push(roll.puzzle.id);
-    roll.timeMs = rollPuzzleTimeMs(roll.rng);
-    roll.puzzleAt = this.now();
-    const view = toPuzzleView(roll.rng, roll.puzzle);
-    const pos = displayPosition(roll.playerIdx, roll.cpuIdx);
-    const debug = this.rollDebugHint(roll.puzzle);
-    s.send({
-      t: 'roll',
-      phase: 'duel',
-      round: roll.round,
-      maxRounds: ROLL_MAX_DUELS,
-      puzzle: view,
-      timeMs: roll.timeMs,
-      playerIdx: roll.playerIdx,
-      cpuIdx: roll.cpuIdx,
-      positionPt: pos.label.pt,
-      positionEn: pos.label.en,
-      submissionPt: pos.submissionHint?.pt ?? null,
-      submissionEn: pos.submissionHint?.en ?? null,
-      ...(debug !== undefined ? { debugCorrect: debug } : {}),
-    });
-    const puzzleId = roll.puzzle.id;
-    const cpuDelay = Math.min(roll.timeMs - 400, 1200 + Math.floor(roll.rng() * (roll.timeMs - 1600)));
-    this.schedule(() => {
-      const r = s.roll;
-      if (!r || r.token !== token || r.puzzle?.id !== puzzleId || r.resolving) return;
-      r.cpuAnswered = true;
-      r.cpuCorrect = cpuGetsIt(r.rng);
-      if (r.playerAnswered) this.rollResolveDuel(s);
-    }, Math.max(800, cpuDelay));
-    this.schedule(() => {
-      const r = s.roll;
-      if (!r || r.token !== token || r.puzzle?.id !== puzzleId || r.resolving) return;
-      if (!r.playerAnswered) {
-        r.playerAnswered = true;
-        r.playerCorrect = false;
-      }
-      if (!r.cpuAnswered) {
-        r.cpuAnswered = true;
-        r.cpuCorrect = cpuGetsIt(r.rng);
-      }
-      this.rollResolveDuel(s);
-    }, roll.timeMs + 200);
-  }
-
-  private rollDebugHint(puzzle: RollPuzzle): number | number[] | undefined {
-    if (!this.testRollHints) return undefined;
-    if (puzzle.kind === 'reorder' && puzzle.correctOrder) return puzzle.correctOrder;
-    return puzzle.correct;
-  }
-
-  private rollResolveDuel(s: Session) {
-    const roll = s.roll;
-    if (!roll || roll.resolving || !roll.playerAnswered || !roll.cpuAnswered) return;
-    roll.resolving = true;
-    const res = resolveDuel(roll.playerCorrect, roll.cpuCorrect, roll.playerIdx, roll.cpuIdx);
-    roll.playerIdx = res.playerIdx;
-    roll.cpuIdx = res.cpuIdx;
-    const pos = displayPosition(roll.playerIdx, roll.cpuIdx);
-    const scrambleLine: Bilingual =
-      res.advance === 'player'
-        ? { pt: 'Você passou a guarda!', en: 'You passed the guard!' }
-        : res.advance === 'cpu'
-          ? { pt: 'Eles avançaram — segura!', en: 'They advanced — hang on!' }
-          : { pt: 'Empate no scramble — mesma posição.', en: 'Scramble tie — same position.' };
-    s.send({
-      t: 'roll',
-      phase: 'scramble',
-      advance: res.advance,
-      line: scrambleLine,
-      playerIdx: roll.playerIdx,
-      cpuIdx: roll.cpuIdx,
-      positionPt: pos.label.pt,
-      positionEn: pos.label.en,
-    });
-    if (res.submission) {
-      this.schedule(() => this.rollFinish(s, 'submission', res.submission!), 1200);
-      return;
-    }
-    if (roll.round >= ROLL_MAX_DUELS) {
-      this.schedule(() => this.rollFinish(s, 'decisao'), 1200);
-      return;
-    }
-    this.schedule(() => this.rollBeginDuel(s, roll.token), 1500);
-  }
-
-  private rollFinish(s: Session, reason: 'submission' | 'decisao', submissionWinner?: 'player' | 'cpu') {
-    const roll = s.roll;
-    const p = s.profile!;
-    if (!roll) return;
-    let winner: 'player' | 'cpu' | 'draw';
-    if (reason === 'submission' && submissionWinner) winner = submissionWinner;
-    else {
-      const d = decisaoWinner(roll.playerIdx, roll.cpuIdx);
-      winner = d === 'draw' ? 'draw' : d;
-    }
-    const playerWon = winner === 'player';
-    const rv = playerWon ? ROLL_RV_WIN : winner === 'draw' ? ROLL_RV_LOSS : ROLL_RV_LOSS;
-    const bjj = normalizeBjj(p.bjj);
-    if (playerWon) {
-      bjj.wins++;
-      bjj.stripes = Math.max(bjj.stripes, stripesForWins(bjj.wins));
-    }
-    p.bjj = bjj;
-    this.store.save();
-    const line =
-      reason === 'submission' && winner !== 'draw'
-        ? rollTapLine(winner as 'player' | 'cpu')
-        : rollDecisaoLine(winner);
-    s.send({
-      t: 'roll',
-      phase: 'end',
-      winner,
-      reason,
-      rv,
-      bjj,
-      line,
-      fistBump: rollFistBump(),
-    });
-    this.reward(s, rv, {
-      pt: playerWon ? 'Duelo de português — vitória!' : 'Duelo de português na academia',
-      en: playerWon ? 'Portuguese duel — win!' : 'Academy Portuguese duel',
-    });
-    this.pushProfile(s);
-    this.clearRoll(s);
-  }
-
-  /** Test hook: current roll puzzle (answers stay server-side unless TB_TEST_ROLL). */
-  debugRollPuzzle(s: Session) {
-    return s.roll?.puzzle;
-  }
-
   // ---------- daily kiosk (Missão do dia) ----------
 
   private missionOf(p: StoredProfile): DailyMission {
@@ -1793,7 +1548,7 @@ export class World {
 /** Client timers fire these on their own (reconnect hello, order/duel timeouts), so they don't prove anyone is there. */
 function isRealInput(msg: ClientMsg): boolean {
   if (msg.t === 'hello') return false;
-  if ((msg.t === 'mg' || msg.t === 'roll') && msg.action === 'timeout') return false;
+  if (msg.t === 'mg' && msg.action === 'timeout') return false;
   return true;
 }
 

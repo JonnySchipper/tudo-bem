@@ -26,7 +26,7 @@ export function composeLook(src: LayerSource, look: Look): Uint8ClampedArray {
       }
       continue;
     }
-    layers.push({ data: d.data, ramps: l.ramps, post: l.hl ? (px) => highlightEdges(px, src.geometry) : undefined });
+    layers.push({ data: d.data, ramps: l.ramps, map: l.map, post: l.hl ? (px) => highlightEdges(px, src.geometry) : undefined });
   }
   let rgba = composeRgba(src.sheetW * src.sheetH * 4, layers);
   const body = look.body === 'medio' ? undefined : src.layer('body_medio');

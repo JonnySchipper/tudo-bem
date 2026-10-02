@@ -40,7 +40,6 @@ const server = spawn(process.execPath, [SERVER], {
     PORT: String(PORT),
     HOST: '127.0.0.1',
     DATA_DIR,
-    ROLL_QUEUE_MS: '600',
     TB_TEST_ROLL: '1',
     TB_TEST_CLOCK_CONTROL: '1',
     TB_TEST_OFFER: 'carlos_cafe_pra_nanda',

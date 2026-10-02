@@ -93,7 +93,7 @@ Idle lines of the three original NPCs (Carlos, Nanda, Júlia) pre-date the conve
 | 47 | Boa noite! Bora de cafezinho? | Good evening! How about a little coffee? | `packages/shared/src/rooms.ts` | idle line of Dona Graça (new NPC) | |
 | 48 | Ih, a noite é longa. Chega mais! | Oh, the night is long. Come on over! | `packages/shared/src/rooms.ts` | idle line of Dona Graça (new NPC) | |
 | 49 | Professora Bia · Professora de jiu-jitsu | Jiu-jitsu teacher | `packages/shared/src/rooms.ts` | NEW NPC (prof): name and role | |
-| 50 | Oss! Bora treinar? | Oss! Ready to train? | `packages/shared/src/rooms.ts` | idle line of Professora Bia (new NPC) | |
+| 50 | Bora treinar? | Ready to train? | `packages/shared/src/rooms.ts` | idle line of Professora Bia (new NPC) | |
 | 51 | Respeito primeiro, depois o tatame. | Respect first, then the mat. | `packages/shared/src/rooms.ts` | idle line of Professora Bia (new NPC) | |
 | 52 | Água é vida. Bebe bastante! | Water is life. Drink plenty! | `packages/shared/src/rooms.ts` | idle line of Professora Bia (new NPC) | |
 
@@ -122,14 +122,14 @@ Idle lines of the three original NPCs (Carlos, Nanda, Júlia) pre-date the conve
 | 68 | Tá bom! Volte sempre. Tchau! | Okay! Come back anytime. Bye! | `packages/shared/src/npcTalk.ts` | graca · tchau · NPC line | |
 | 69 | Tchau, Dona Graça! | Bye, Dona Graça! | `packages/shared/src/npcTalk.ts` | graca · tchau · reply chip → end | |
 | 70 | Valeu! Tchau! | Thanks! Bye! | `packages/shared/src/npcTalk.ts` | graca · tchau · reply chip → end | |
-| 71 | Oss, {nome}! Tudo bem? Eu sou a professora Bia. | Oss, {nome}! How’s it going? I’m Professor Bia. | `packages/shared/src/npcTalk.ts` | prof · oi · NPC line | |
-| 72 | Oss, professora! Tudo bem! | Oss, professor! All good! | `packages/shared/src/npcTalk.ts` | prof · oi · reply chip → tatame | |
+| 71 | Oi, {nome}! Tudo bem? Eu sou a professora Bia. | Hi, {nome}! How’s it going? I’m Professor Bia. | `packages/shared/src/npcTalk.ts` | prof · oi · NPC line | |
+| 72 | Oi, professora! Tudo bem! | Hi, professor! All good! | `packages/shared/src/npcTalk.ts` | prof · oi · reply chip → tatame | |
 | 73 | Beleza! E você? | Cool! And you? | `packages/shared/src/npcTalk.ts` | prof · oi · reply chip → tatame | |
 | 74 | Tudo ótimo! O tatame está livre. Quer treinar? | Great! The mat is free. Want to train? | `packages/shared/src/npcTalk.ts` | prof · tatame · NPC line | |
 | 75 | Quero, sim! | Yes, I do! | `packages/shared/src/npcTalk.ts` | prof · tatame · reply chip → tchau | |
 | 76 | Hoje não, {obrigad}. | Not today, thanks. | `packages/shared/src/npcTalk.ts` | prof · tatame · reply chip → tchau | |
-| 77 | Beleza! Até a próxima. Oss! | Sure thing! Until next time. Oss! | `packages/shared/src/npcTalk.ts` | prof · tchau · NPC line | |
-| 78 | Oss! Tchau, professora! | Oss! Bye, professor! | `packages/shared/src/npcTalk.ts` | prof · tchau · reply chip → end | |
+| 77 | Beleza! Até a próxima. | Sure thing! Until next time. | `packages/shared/src/npcTalk.ts` | prof · tchau · NPC line | |
+| 78 | Tchau, professora! | Bye, professor! | `packages/shared/src/npcTalk.ts` | prof · tchau · reply chip → end | |
 | 79 | Valeu! Até logo! | Thanks! See you later! | `packages/shared/src/npcTalk.ts` | prof · tchau · reply chip → end | |
 | 80 | {saudacao}, {nome}! Eu sou a Júlia. Tudo bem? | {greeting}, {nome}! I’m Júlia. How’s it going? | `packages/shared/src/npcTalk.ts` | julia · oi · NPC line | |
 | 81 | {saudacao}, Júlia! Tudo bem! | {greeting}, Júlia! All good! | `packages/shared/src/npcTalk.ts` | julia · oi · reply chip → ajuda | |
@@ -265,7 +265,7 @@ The 18 recados are authored in `content/curriculum/phase0/recados.md` (all `need
 | 191 | Cumprimente Júlia. | Greet Júlia. | `packages/shared/src/recados.ts (describeStep)` | julia_volta_pela_vizinhanca · step line (tracker and "✓" notice) | |
 | 192 | Pastel e caldo pra Professora Bia | Pastel and cane juice for Professora Bia | `content/curriculum/phase0/recados.md` | julia_pastel_caldo_pra_bia · title (giver julia, bond 20) | |
 | 193 | A Professora Bia adora pastel com caldo de cana depois do treino. Compra no Seu Chico e leva pra ela? | Professora Bia loves pastel with sugarcane juice after training. Buy them from Seu Chico and take them to her? | `content/curriculum/phase0/recados.md` | julia_pastel_caldo_pra_bia · ask | |
-| 194 | Oss! Que delícia. Obrigada, viu? | Oss! How delicious. Thank you, you know? | `content/curriculum/phase0/recados.md` | julia_pastel_caldo_pra_bia · thanks | |
+| 194 | Que delícia! Obrigada, viu? | How delicious! Thank you, you know? | `content/curriculum/phase0/recados.md` | julia_pastel_caldo_pra_bia · thanks | |
 | 195 | Peça 1× pastel (Seu Chico). | Order 1× fried pastry (savory) (Seu Chico). | `packages/shared/src/recados.ts (describeStep)` | julia_pastel_caldo_pra_bia · step line (tracker and "✓" notice) | |
 | 196 | Peça 1× caldo de cana (Seu Chico). | Order 1× sugarcane juice (Seu Chico). | `packages/shared/src/recados.ts (describeStep)` | julia_pastel_caldo_pra_bia · step line (tracker and "✓" notice) | |
 | 197 | Entregue 1× pastel pra Professora Bia. | Hand 1× fried pastry (savory) to Professora Bia. | `packages/shared/src/recados.ts (describeStep)` | julia_pastel_caldo_pra_bia · step line (tracker and "✓" notice) | |
@@ -364,7 +364,7 @@ INVENTED FACTS to confirm or change (Phase 7 and 9): bus "Linha 875 · Centro", 
 | 264 | Salgado bem quente! ⏎ Coxinha R$ 7 · Pastel R$ 8 | Nice and hot snacks! ⏎ Chicken croquette R$ 7 · Fried pastry R$ 8 | `packages/shared/src/hotspots.ts` | padaria_estufa (padaria) | |
 | 265 | SÃO PAULO ⏎ A cidade que não para | SÃO PAULO ⏎ The city that never stops | `packages/shared/src/hotspots.ts` | kitnet_poster_sp (kitnet) | |
 | 266 | Minha família ⏎ e meus amigos | My family ⏎ and my friends | `packages/shared/src/hotspots.ts` | kitnet_fotos (kitnet) | |
-| 267 | REGRAS ⏎ 1. Tire os sapatos. ⏎ 2. Respeite o parceiro. ⏎ 3. Diga “oss”! | RULES ⏎ 1. Take off your shoes. ⏎ 2. Respect your partner. ⏎ 3. Say “oss”! | `packages/shared/src/hotspots.ts` | academia_regras (academia) | |
+| 267 | REGRAS ⏎ 1. Tire os sapatos. ⏎ 2. Respeite o parceiro. ⏎ 3. Cumprimente com um sorriso. | RULES ⏎ 1. Take off your shoes. ⏎ 2. Respect your partner. ⏎ 3. Greet with a smile. | `packages/shared/src/hotspots.ts` | academia_regras (academia) | |
 | 268 | TREINO ⏎ COMUNIDADE | TRAINING ⏎ COMMUNITY | `packages/shared/src/hotspots.ts` | academia_mural (academia) | |
 | 269 | AULAS ⏎ Segunda a sexta: 18h ⏎ Sábado: 10h | CLASSES ⏎ Monday to Friday: 6 pm ⏎ Saturday: 10 am | `packages/shared/src/hotspots.ts` | academia_horarios (academia) | |
 | 270 | FAIXAS ⏎ branca · azul · roxa ⏎ marrom · preta | BELTS ⏎ white · blue · purple ⏎ brown · black | `packages/shared/src/hotspots.ts` | academia_faixas (academia) | |
@@ -604,7 +604,7 @@ Phase 7 UI. Learning text stays in Nunito; these are the labels around it.
 | 458 | ↻ Girar | Turn around (aria: Girar o avatar) | `apps/client/src/ui/onboarding.ts` | avatar creator turn button | |
 | 459 | Créditos · Arte · Vozes · Fontes · Motor do mundo · Música e sons | Credits · Art · Voices · Fonts · World engine · Music and sounds | `apps/client/src/ui/creditsData.ts` | credits panel; the notes are Portuguese too (see the file) | |
 | 460 | você · portas · vizinhos · Mapa da Vila Ipê · Em breve | you · doors · neighbors · Map of Vila Ipê · Coming soon | `apps/client/src/ui/minimap.ts / panels.ts` | minimap key and labels | |
-| 461 | PADARIA · MERCADO · FLORES · LANCHES · SAPATOS · PIZZA · BANCA · DO SEU CARLOS · ACADEMIA DO BAIRRO · EDIFICIO IPE · Nº 42 · R. DOS IPES · FEIRA LIVRE · TUDO BEM? · EM BREVE · ONIBUS · BUS · SAMPA · METRO · SP · OSS |  | `apps/client/assets-src/custom (painted in pixels, capitals, no accents)` | shop plaques and sign art; the accented forms live in the DOM labels and hotspots. "Seu Carlos", "Seu Zé", "Dona" forms of address: check register | |
+| 461 | PADARIA · MERCADO · FLORES · LANCHES · SAPATOS · PIZZA · BANCA · DO SEU CARLOS · ACADEMIA DO BAIRRO · EDIFICIO IPE · Nº 42 · R. DOS IPES · FEIRA LIVRE · TUDO BEM? · EM BREVE · ONIBUS · BUS · SAMPA · METRO · SP · RESPEITO · TREINO · AMIZADE |  | `apps/client/assets-src/custom (painted in pixels, capitals, no accents)` | shop plaques and sign art; the accented forms live in the DOM labels and hotspots. "Seu Carlos", "Seu Zé", "Dona" forms of address: check register | |
 | 462 | Dom · 09:04 ☀️ (tooltip in EN: Sunday · 9:04 am · Sunny) |  | `apps/client/src/ui/clockPill.ts` | clock pill shows the PT short weekday; check Seg/Ter/Qua/Qui/Sex/Sáb/Dom | |
 
 ## R. Proposed cards for the Curriculum team

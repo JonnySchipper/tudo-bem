@@ -887,7 +887,7 @@ const academia: RoomDef = {
       hat: null,
       // needs_br: true (new lines)
       idleLines: [
-        { pt: 'Oss! Bora treinar?', en: 'Oss! Ready to train?' },
+        { pt: 'Bora treinar?', en: 'Ready to train?' },
         { pt: 'Respeito primeiro, depois o tatame.', en: 'Respect first, then the mat.' },
         { pt: 'Água é vida. Bebe bastante!', en: 'Water is life. Drink plenty!' },
       ],

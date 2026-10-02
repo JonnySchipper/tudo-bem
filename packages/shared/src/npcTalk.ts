@@ -83,9 +83,9 @@ export const NPC_TALK: Partial<Record<NpcId, NpcTalk>> = {
     start: 'oi',
     nodes: {
       oi: {
-        line: { pt: 'Oss, {nome}! Tudo bem? Eu sou a professora Bia.', en: 'Oss, {nome}! How’s it going? I’m Professor Bia.' },
+        line: { pt: 'Oi, {nome}! Tudo bem? Eu sou a professora Bia.', en: 'Hi, {nome}! How’s it going? I’m Professor Bia.' },
         chips: [
-          { pt: 'Oss, professora! Tudo bem!', en: 'Oss, professor! All good!', next: 'tatame' },
+          { pt: 'Oi, professora! Tudo bem!', en: 'Hi, professor! All good!', next: 'tatame' },
           { pt: 'Beleza! E você?', en: 'Cool! And you?', next: 'tatame' },
         ],
       },
@@ -97,9 +97,9 @@ export const NPC_TALK: Partial<Record<NpcId, NpcTalk>> = {
         ],
       },
       tchau: {
-        line: { pt: 'Beleza! Até a próxima. Oss!', en: 'Sure thing! Until next time. Oss!' },
+        line: { pt: 'Beleza! Até a próxima.', en: 'Sure thing! Until next time.' },
         chips: [
-          { pt: 'Oss! Tchau, professora!', en: 'Oss! Bye, professor!', next: 'end' },
+          { pt: 'Tchau, professora!', en: 'Bye, professor!', next: 'end' },
           { pt: 'Valeu! Até logo!', en: 'Thanks! See you later!', next: 'end' },
         ],
       },

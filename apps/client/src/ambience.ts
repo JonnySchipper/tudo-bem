@@ -1,6 +1,7 @@
 import type { FloorKind, RoomId } from '@tudobem/shared';
 import { INTRO_BED_LEVEL, IntroMusic } from './audio/introBed';
 import { FOOTSTEPS, SILENT_MIX, stepPitch, type ZoneMix } from './audio/zones';
+import { playBoutSfx, type BoutSfx } from './audio/boutSfx';
 
 /**
  * Room beds made in Web Audio — no samples, no paid service.
@@ -523,6 +524,18 @@ class Ambience {
       og.connect(this.bedIn);
       o.start(now);
       o.stop(now + p.dur + 0.05);
+    }
+  }
+
+  /** One bout sound effect (mat slap, crowd, whistle...). Silent until the browser lets the context run; goes through the same duck gain as the beds. */
+  sfx(kind: BoutSfx) {
+    const ctx = this.ctx;
+    if (!ctx || !this.bedIn || !this.unlocked || ctx.state !== 'running') return;
+    this.whiteBuf ??= whiteBuffer(ctx, 1);
+    try {
+      playBoutSfx(ctx, this.bedIn, this.whiteBuf, kind);
+    } catch {
+      /* an effect must never break the game */
     }
   }
 

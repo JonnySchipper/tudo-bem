@@ -171,6 +171,13 @@ export class RecadoTracker {
     s.send({ t: 'notice', level: 'reward', pt: `${who}: “${def.thanks.pt}”`, en: `${who}: “${def.thanks.en}”`, tag: 'recado_thanks' });
   }
 
+  /** Public door for other features (the academia bout) to pay friendship points; runs the same milestone effects and saves. */
+  grantBond(s: Session, npc: NpcId, delta: number) {
+    if (!s.profile || !(delta > 0)) return;
+    this.gain(s, npc, delta);
+    this.commit(s);
+  }
+
   /** Add friendship points and run the milestone effects (name, a new Conversa subject, a furniture gift) for every heart line crossed. */
   private gain(s: Session, npc: NpcId, delta: number) {
     const p = s.profile!;

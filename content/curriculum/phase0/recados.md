@@ -288,8 +288,8 @@ Authoring rules that keep every recado finishable today:
 - **title_en:** Pastel and cane juice for Professora Bia
 - **ask_pt:** A Professora Bia adora pastel com caldo de cana depois do treino. Compra no Seu Chico e leva pra ela?
 - **ask_en:** Professora Bia loves pastel with sugarcane juice after training. Buy them from Seu Chico and take them to her?
-- **thanks_pt:** Oss! Que delícia. Obrigada, viu?
-- **thanks_en:** Oss! How delicious. Thank you, you know?
+- **thanks_pt:** Que delícia! Obrigada, viu?
+- **thanks_en:** How delicious! Thank you, you know?
 - **steps:** pedir chico pastel 1; pedir chico caldo_de_cana 1; ir academia; entregar prof pastel 1; entregar prof caldo_de_cana 1
 - **reward:** 15 RV; 6 bond
 - **cards:** lex.padaria.pastel; lex.social.obrigado

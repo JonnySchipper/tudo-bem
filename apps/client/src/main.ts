@@ -8,6 +8,7 @@ import './styles/hud.css';
 import './styles/creator.css';
 import './styles/intro-pixel.css';
 import './styles/panels.css';
+import './styles/bout.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
@@ -76,7 +77,8 @@ import { openHotspotCard } from './ui/hotspotCard';
 import { HotspotCues } from './ui/hotspotCue';
 import { setHeardSink } from './ui/heard';
 import { closeConversa, isConversaOpen, openConversa } from './ui/conversa';
-import { RollUI, closeRoll } from './ui/roll';
+import { BoutUI } from './ui/bout';
+import { boutFeed } from './render/pixel/boutFeed';
 import { speak, stopSpeaking, unlockSpeech } from './audio';
 import { ambience } from './ambience';
 import { installViewport } from './ui/viewport';
@@ -113,7 +115,7 @@ let hud: ReturnType<typeof buildHud> | null = null;
 let decor: ReturnType<typeof buildDecorPanel> | null = null;
 let onboarding: ReturnType<typeof runOnboarding> | null = null;
 let minigame: MinigameUI | null = null;
-let rollUi: RollUI | null = null;
+let boutUi: BoutUI | null = null;
 /** True between mg start and end/quit — used to recover if the panel disappears mid-shift. */
 let mgShiftActive = false;
 /** X was pressed; a goodbye notice (nothing served yet) should close the panel. An end card clears this itself. */
@@ -296,12 +298,14 @@ function propAction(action: string, propId?: string) {
   else if (action === 'minigame') startMinigame();
   else if (action === 'kiosk') openKiosk(() => net.send({ t: 'mission', action: 'take' }));
   else if (action === 'parrot_perch') showParrotPerch(() => net.send({ t: 'parrot', action: 'adopt' }));
-  else if (action === 'bjj_roll') startRoll();
+  else if (action === 'bjj_roll') openBout();
 }
 
-function startRoll() {
+/** The mat queue: ask the server for the partner list; the lobby (and the mat camera) opens when it answers. */
+function openBout() {
   closeDialogue();
-  net.send({ t: 'roll', action: 'queue' });
+  if (boutUi?.open) return;
+  net.send({ t: 'bout', v: 1, action: 'open' });
 }
 
 function openShop() {
@@ -469,11 +473,12 @@ net.on((m: ServerMsg) => {
     case 'roomState': {
       clock.syncServer(m.serverNow);
       const keepMg = !!minigame && modalId() === 'minigame' && game.room?.room === m.room;
-      const keepRoll = !!rollUi && modalId() === 'roll' && m.room === 'academia';
-      if (!keepMg && !keepRoll) {
+      // a new room state (a join, a reconnect) ends any bout: the server dropped it too
+      boutUi?.destroy();
+      boutUi = null;
+      if (!keepMg) {
         closeModal();
         minigame = null;
-        rollUi = null;
       }
       closeDialogue();
       game.room = m;
@@ -621,18 +626,16 @@ net.on((m: ServerMsg) => {
         minigame = null;
       }
       break;
-    case 'roll':
-      if (m.phase === 'queue' && (!rollUi || modalId() !== 'roll')) {
-        rollUi = new RollUI({
-          answerChoice: (i) => net.send({ t: 'roll', action: 'answer', choice: i }),
-          answerOrder: (order) => net.send({ t: 'roll', action: 'answer', order }),
-          timeout: () => net.send({ t: 'roll', action: 'timeout' }),
-          quit: () => net.send({ t: 'roll', action: 'quit' }),
-          rematch: startRoll,
+    case 'bout':
+      if (m.phase === 'lobby' && (!boutUi || !boutUi.open)) {
+        boutUi = new BoutUI({
+          send: (msg) => net.send(msg),
+          closed: () => {
+            boutUi = null;
+          },
         });
       }
-      rollUi?.handle(m);
-      if (m.phase === 'end') rollUi = null;
+      boutUi?.handle(m);
       break;
     case 'furnitureState':
       game.furniture = m.furniture;
@@ -924,6 +927,7 @@ canvas.addEventListener('pointerleave', () => {
 canvas.addEventListener('click', (e) => {
   lastPointer.x = e.clientX;
   lastPointer.y = e.clientY;
+  if (boutUi?.open) return; // the mat is busy: the overlay is the only input
   if (game.modalOpen && (modalId() || isDialogueBoxOpen())) return;
   hoverLabel(0, 0, null);
   handleClick(renderer.hitTest(e.clientX, e.clientY));
@@ -1125,5 +1129,12 @@ window.__tb = {
   interact: (target: InteractTarget) => interact(target),
   get decor() {
     return decor;
+  },
+  /** Treino no tatame: the live overlay and the feed the world scene reads (e2e and shots). */
+  bout: {
+    get ui() {
+      return boutUi;
+    },
+    feed: boutFeed,
   },
 };
