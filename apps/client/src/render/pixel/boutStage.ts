@@ -112,6 +112,8 @@ export class BoutStage {
   private sweatAt = 0;
 
   private popsEl: HTMLElement | null = null;
+  /** live cheers: they stay glued to the spectator's head while the camera settles */
+  private pops: { el: HTMLElement; wx: number; wy: number; until: number }[] = [];
   private placarEl: HTMLElement | null = null;
   private placarSig = '';
   private placarCells: Record<string, HTMLElement> = {};
@@ -186,7 +188,7 @@ export class BoutStage {
     if (!this.pair) {
       this.pair = this.h.world(s.add.sprite(0, 0, '__DEFAULT')).setVisible(false).setOrigin(0.5, 1);
       const sh = this.h.manifest.sprites['fx/shadow_32'];
-      if (sh) this.shadow = this.h.world(s.add.image(0, 0, sh.atlas, sh.frame)).setOrigin(...originOf(sh)).setDepth(DEPTH.shadowContact + 1).setVisible(false).setScale(1.7, 1.25).setAlpha(0.85);
+      if (sh) this.shadow = this.h.world(s.add.image(0, 0, sh.atlas, sh.frame)).setOrigin(...originOf(sh)).setDepth(DEPTH.shadowContact + 1).setVisible(false).setScale(1.45, 1).setAlpha(0.55);
     }
     if (!this.popsEl) {
       this.popsEl = document.createElement('div');
@@ -204,7 +206,10 @@ export class BoutStage {
         el.append(c);
         this.placarCells[k] = c;
       }
-      document.body.append(el);
+      // under the nameplates and bubbles of the world labels, over the canvas
+      const labels = document.getElementById('world-labels');
+      if (labels?.parentElement) labels.parentElement.insertBefore(el, labels);
+      else document.body.append(el);
       this.placarEl = el;
     }
   }
@@ -232,6 +237,7 @@ export class BoutStage {
     this.textures = [];
     this.nudge = { x: 0, y: 0 };
     if (this.popsEl) this.popsEl.replaceChildren();
+    this.pops = [];
     if (this.placarEl) this.placarEl.style.display = 'none';
     this.placarSig = '';
   }
@@ -262,6 +268,7 @@ export class BoutStage {
     this.updateRef();
     this.updateParticles(dt);
     this.updateSweat(dt, mat);
+    this.updatePops(nowMs);
     this.updatePlacar(true);
   }
 
@@ -593,7 +600,6 @@ export class BoutStage {
     const order = [...spots].sort((a, b) => hash01(this.nowMs + a.x * 7) - hash01(this.nowMs + b.x * 7));
     for (let i = 0; i < n; i++) {
       const sp = order[i]!;
-      const { px, py } = this.h.toCanvas(sp.x, sp.y);
       const el = document.createElement('div');
       el.className = 'bout-pop';
       const ic = document.createElement('span');
@@ -606,12 +612,27 @@ export class BoutStage {
         sh.textContent = pick(table.shouts, this.nowMs + i * 3);
         el.append(sh);
       }
+      el.style.animationDelay = `${i * 110}ms`;
+      const { px, py } = this.h.toCanvas(sp.x, sp.y);
       el.style.left = `${Math.round(px)}px`;
       el.style.top = `${Math.round(py)}px`;
-      el.style.animationDelay = `${i * 110}ms`;
       this.popsEl.append(el);
-      window.setTimeout(() => el.remove(), CROWD_MS + 400 + i * 110);
+      this.pops.push({ el, wx: sp.x, wy: sp.y, until: this.nowMs + CROWD_MS + 400 + i * 110 });
     }
+  }
+
+  private updatePops(now: number): void {
+    if (!this.pops.length) return;
+    this.pops = this.pops.filter((p) => {
+      if (now >= p.until) {
+        p.el.remove();
+        return false;
+      }
+      const { px, py } = this.h.toCanvas(p.wx, p.wy);
+      p.el.style.left = `${Math.round(px)}px`;
+      p.el.style.top = `${Math.round(py)}px`;
+      return true;
+    });
   }
 
   // ------------------------------------------------------------------ the mat scoreboard
@@ -650,6 +671,11 @@ export class BoutStage {
       cell.style.lineHeight = `${rect[3] * k}px`;
       cell.textContent = text[name] ?? '';
     }
+  }
+
+  /** For the shots and the e2e (`__tb.renderer.info().bout`): what the stage is showing. */
+  info() {
+    return { mode: this.mode, pos: this.pos, top: this.top, frame: this.pair?.texture.key ?? null, visible: !!this.pair?.visible, placeholder: !!this.ph?.visible, ref: !!this.refSprite?.visible, walkers: !!this.walkers, particles: this.particles.filter((p) => p.life > 0).length };
   }
 
   destroy(): void {

@@ -18,6 +18,7 @@ import { findChrome } from './lib/chrome.mjs';
 import { requirePinnedClock } from './lib/clock-pin.mjs';
 import { openNpc } from './lib/npc.mjs';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
+import { openBout, playBout, startBout, waitBoutPhase } from './lib/bout-play.mjs';
 
 const argv = Object.fromEntries(process.argv.slice(2).filter((a) => a.startsWith('--')).map((a) => a.slice(2).split('=')));
 const BASE = process.env.BASE_URL ?? 'http://localhost:8847';
@@ -269,21 +270,15 @@ async function sectionPanels(browser, vp) {
   await interact(page, { portal: 'praca_academia' });
   await waitRoom(page, 'academia');
   await sleep(2500);
-  await page.evaluate(() => window.__tb.net.send({ t: 'roll', action: 'queue' }));
-  await page.waitForSelector('[data-modal="roll"]', { timeout: 15_000 });
-  await page.waitForSelector('#roll-fight-stage', { timeout: 10_000 });
-  await waitFor(page, () => document.querySelector('#roll-duel'), null, 20_000, 'roll duel');
-  await sleep(1500);
+  // the bout is in the world now (no modal): the lobby, then a match played from the CI hints
+  await openBout(page);
+  await sleep(1000);
+  await snap(page, vp, 'panel_roll_lobby');
+  await startBout(page);
+  await waitBoutPhase(page, 'challenge', 30_000).catch(() => missed.push('bout challenge'));
+  await sleep(600);
   await snap(page, vp, 'panel_roll_duel');
-  for (let i = 0; i < 60 && !(await page.$('#roll-end')); i++) {
-    const duel = await page.$('#roll-duel');
-    if (duel) {
-      const hint = JSON.parse((await duel.getAttribute('data-debug')) ?? 'null');
-      if (hint !== null) await page.evaluate((h) => window.__tb.net.send(Array.isArray(h) ? { t: 'roll', action: 'answer', order: h } : { t: 'roll', action: 'answer', choice: h }), hint);
-    }
-    await sleep(1000);
-  }
-  await page.waitForSelector('#roll-end', { timeout: 45_000 }).catch(() => missed.push('roll end'));
+  await playBout(page, { right: () => true, pick: 'bold' }).catch(() => missed.push('bout end'));
   await sleep(800);
   await snap(page, vp, 'panel_roll_end');
   await ctx.close();

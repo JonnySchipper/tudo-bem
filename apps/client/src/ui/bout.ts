@@ -293,7 +293,7 @@ export class BoutUI {
     this.body.replaceChildren(
       h(
         'div',
-        { class: 'bout-intents', id: 'bout-intents', 'data-finish': String(m.finish) },
+        { class: 'bout-intents', id: 'bout-intents', 'data-finish': String(m.finish), 'data-seq': String(m.seq) },
         h('div', { class: 'bout-ask' }, ...this.bi('O que você faz?', 'What do you do?'), this.quitBtn()),
         fin,
         h('div', { class: 'bout-chips' }, ...chips),
@@ -369,7 +369,7 @@ export class BoutUI {
         ? h('button', { class: 'bout-listen', type: 'button', 'aria-label': 'Ouvir de novo (Listen again)', onclick: () => speak(c.listenPt!, { force: true }) }, h('span', { class: 'ico', 'aria-hidden': 'true' }, '🔊'), ...this.bi('Ouvir', 'Listen'))
         : null;
     const opts = (c.options ?? []).map((o, i) =>
-      h('button', { class: 'bout-opt', type: 'button', 'data-i': String(i), onclick: (e: Event) => this.pickOption(seq, i, e.currentTarget as HTMLElement) }, h('b', { class: 'pt' }, o.pt), en(o.en)),
+      h('button', { class: 'bout-opt', type: 'button', 'data-i': String(i), onclick: (e: Event) => this.pickOption(seq, i, e.currentTarget as HTMLElement) }, h('b', { class: 'pt' }, o.pt), o.en !== o.pt ? en(o.en) : null),
     );
     return h('div', { class: 'bout-answer' }, listen, h('div', { class: `bout-opts n${opts.length}` }, ...opts));
   }
@@ -635,7 +635,7 @@ export class BoutUI {
     );
     const ladder = h('div', { class: 'bout-ladder', id: 'bout-ladder', 'data-rung': String(s.rung) }, ...ladderDots(s.rung).map((d) => h('i', { class: `${d.here ? 'here' : ''} ${d.filled ? 'fill' : ''}${d.rung === 0 ? ' mid' : ''}`.trim() })));
     this.meters.replaceChildren(
-      h('div', { class: 'bout-pos', id: 'bout-pos', 'data-pos': s.position }, h('b', null, pos.pt), h('span', { class: 'who' }, ` · ${who}`), en(` ${pos.en} · ${whoEn}`)),
+      h('div', { class: 'bout-pos', id: 'bout-pos', 'data-pos': s.position }, h('b', null, pos.pt), ' ', h('span', { class: 'who' }, `· ${who}`), en(` ${pos.en} · ${whoEn}`)),
       bar,
       h('div', { class: 'bout-row2' }, pegada, ladder),
     );

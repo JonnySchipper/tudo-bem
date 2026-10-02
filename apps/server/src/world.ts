@@ -114,6 +114,8 @@ export interface WorldOptions {
   rng?: () => number;
   /** When true, bout challenges include `debugCorrect` and the pauses shrink, for CI e2e (TB_TEST_ROLL=1). */
   testRollHints?: boolean;
+  /** Bout intro length in ms (default: 4.2 s, 0.5 s in hint mode). Env `TB_TEST_BOUT_INTRO_MS`. */
+  boutIntroMs?: number;
   /** Email/password accounts (the Node server). When set, only sockets with a signed-in session can play. Solo mode leaves it unset. */
   accounts?: AccountLink;
   /** No real input for this long → kicked and the seat is freed. Default 15 min. */
@@ -311,6 +313,7 @@ export class World {
       store,
       testHints: this.testRollHints,
       pace: this.testRollHints ? 0.35 : 1,
+      introMs: opts.boutIntroMs ?? (Number.isFinite(Number(readEnv('TB_TEST_BOUT_INTRO_MS'))) && readEnv('TB_TEST_BOUT_INTRO_MS') ? Number(readEnv('TB_TEST_BOUT_INTRO_MS')) : undefined),
       reward: (s, a, r) => this.reward(s, a, r),
       pushProfile: (s) => this.pushProfile(s),
       bond: (s, n) => this.recados.grantBond(s, 'prof', n),

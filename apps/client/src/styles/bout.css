@@ -179,11 +179,7 @@ body.bout-on .toasts {
 }
 
 .bout-top .en {
-  display: inline;
-  color: inherit;
-  font-style: normal;
-  margin-left: 3px;
-  opacity: 0.7;
+  display: none;
 }
 
 .bout-top[data-shown='0'] .bout-num,
@@ -250,6 +246,7 @@ body.bout-on .toasts {
 .bout-pos .en {
   display: inline;
   font-size: 0.85em;
+  margin-left: 4px;
 }
 
 .bout-pos b {
@@ -1448,6 +1445,12 @@ body.bout-on .toasts {
   .bout-end-line b {
     font-size: 26px;
   }
+  .bout-thanks {
+    display: none;
+  }
+  .bout-rv {
+    font-size: 24px;
+  }
 }
 
 /* ---------------------------------------------------------------- landscape phone: meters on the left, the card on the right, a short strip */
@@ -1481,9 +1484,28 @@ body.bout-on .toasts {
     grid-template-columns: minmax(180px, 34%) minmax(0, 1fr);
     align-items: start;
     gap: 8px;
-    max-height: 36vh;
-    padding: 5px 8px 6px;
+    max-height: 34vh;
+    padding: 4px 8px 5px;
     overflow-y: auto;
+  }
+  .bout-intents[data-finish='true'] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2.3fr);
+    column-gap: 6px;
+  }
+  .bout-intents[data-finish='true'] .bout-ask,
+  .bout-intents[data-finish='true'] .bout-timerbar {
+    grid-column: 1 / -1;
+  }
+  .bout-intent.finalizar {
+    min-height: 44px;
+    grid-row: 2;
+  }
+  .bout-intent.finalizar .pt {
+    font-size: 22px;
+  }
+  .bout-challenge.kind-listening .bout-answer {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: stretch;
   }
   .bout-meters {
     gap: 3px;

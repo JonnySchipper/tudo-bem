@@ -26,6 +26,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DAY_MIN, assertPageClock, offsetMinFor, requirePinnedClock } from './lib/clock-pin.mjs';
 import { assert, expectFirstTimeoutRearms, learnShelf, playShift, sleep, waitFor } from './lib/meveum-play.mjs';
+import { openBout, playBout, startBout, waitBoutPhase } from './lib/bout-play.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
 const CHROME = findChrome();
@@ -111,8 +112,8 @@ async function waitIdleAt(page, x, y, label) {
 const PASSWORD = 'pao-de-queijo-2026';
 const RUN = Date.now().toString(36);
 const emailFor = (name) => `${name.toLowerCase()}+${RUN}@exemplo.com`;
-/** Solo builds need `?rolltest` for the Academia roll debug hints (the server build uses TB_TEST_ROLL=1). */
-// SOLO: `?rolltest` for the Academia roll hints and `?tbclockmin=<n>` (the solo twin of TB_TEST_CLOCK_OFFSET_MIN) so the in-page world reads about 08:30 too
+/** Solo builds need `?rolltest` for the Academia bout debug hints (the server build uses TB_TEST_ROLL=1). */
+// SOLO: `?rolltest` for the Academia bout hints and `?tbclockmin=<n>` (the solo twin of TB_TEST_CLOCK_OFFSET_MIN) so the in-page world reads about 08:30 too
 const START_URL = SOLO ? `${BASE}${BASE.includes('?') ? '&' : '?'}rolltest&tbclockmin=${offsetMinFor(DAY_MIN)}` : BASE;
 
 /** Title screen → sign-in card (the intro's own skip keeps runs short). */
@@ -548,7 +549,7 @@ async function main() {
   await shot(page, '10_praca_hat_parrot');
   await dwell(1500);
 
-  // 6b. Academia do Bairro — enter + one CPU roll duel (TB_TEST_ROLL + ROLL_QUEUE_MS on server)
+  // 6b. Academia do Bairro — enter + one full Treino no tatame match (TB_TEST_ROLL on the server)
   await interact(page, { portal: 'praca_academia' });
   await waitFor(page, () => window.__tb.game.room?.room === 'academia', null, 15_000, 'academia');
   await waitFor(
@@ -560,41 +561,48 @@ async function main() {
   );
   await sleep(500);
   await shot(page, '09b_academia');
-  await page.evaluate(() => window.__tb.net.send({ t: 'roll', action: 'queue' }));
-  await page.waitForSelector('[data-modal="roll"]', { timeout: 15_000 });
-  await page.waitForSelector('#roll-fight-stage', { timeout: 10_000 });
-  await waitFor(page, () => document.querySelector('#roll-duel'), null, 20_000, 'roll duel');
-  await shot(page, '09b2_roll_duel');
-  const solveOnce = async () => {
-    const ok = await page.evaluate(() => {
-      const raw = document.querySelector('#roll-duel')?.getAttribute('data-debug');
-      if (!raw) return false;
-      const hint = JSON.parse(raw);
-      if (Array.isArray(hint)) window.__tb.net.send({ t: 'roll', action: 'answer', order: hint });
-      else window.__tb.net.send({ t: 'roll', action: 'answer', choice: hint });
-      return true;
-    });
-    if (!ok) throw new Error('roll debug hint missing — start server with TB_TEST_ROLL=1');
-    await sleep(400);
-  };
-  let lastPid = '';
-  for (let i = 0; i < 55 && !(await page.$('#roll-end')); i++) {
-    const duel = await page.$('#roll-duel');
-    if (duel) {
-      const pid = await duel.getAttribute('data-puzzle-id');
-      if (pid && pid !== lastPid) {
-        lastPid = pid;
-        await solveOnce();
+  // the bout is in the world (no modal): the lobby, one full match played from the CI hints (TB_TEST_ROLL=1 / ?rolltest), the end card
+  const coins0 = (await profile(page)).coins;
+  await openBout(page);
+  assert((await page.$$('.bout-card-partner')).length === 5, 'the lobby lists five partners');
+  assert((await page.$$('.bout-card-partner.locked')).length === 4, 'a new player has four partners still locked');
+  assert(await page.evaluate(() => document.body.classList.contains('bout-on') && window.__tb.bout.feed.camera), 'the mat camera and the bout HUD are on');
+  await sleep(900);
+  await shot(page, '09b2_bout_lobby');
+  await startBout(page);
+  await waitBoutPhase(page, 'intent', 30_000);
+  const stage = await page.evaluate(() => window.__tb.renderer.info()?.bout);
+  assert(stage && stage.mode !== 'off', `the bout stage is on the mat (${JSON.stringify(stage)})`);
+  assert(await page.evaluate(() => window.__tb.bout.feed.active), 'the bout feed is active');
+  await shot(page, '09b3_bout_intent');
+  let shotChallenge = false;
+  const result = await playBout(page, {
+    right: (i) => i % 6 !== 2, // mostly right, with a few misses
+    pick: 'bold',
+    onPhase: async (phase) => {
+      if (phase === 'challenge' && !shotChallenge) {
+        shotChallenge = true;
+        await sleep(300);
+        await shot(page, '09b4_bout_challenge');
       }
-    }
-    await sleep(2500);
-  }
-  await page.waitForSelector('#roll-end', { timeout: 45_000 });
-  await shot(page, '09c_roll_end');
-  await page.click('#roll-end button:has-text("Sair")');
+    },
+  });
+  assert(['you', 'partner', 'draw'].includes(result.winner), `the match ended with a result (${result.winner} / ${result.reason})`);
+  assert(result.answers >= 3, 'at least three answers were played');
+  const score = await page.evaluate(() => ({ you: document.querySelector('.bout-side.you .pts')?.textContent, them: document.querySelector('.bout-side.partner .pts')?.textContent }));
+  assert(score.you !== undefined && score.them !== undefined, 'the scoreboard shows Pontos for both');
+  const art = await page.evaluate(() => window.__tb.artMissing.filter((k) => k.startsWith('bjj/') || k === 'props/placar'));
+  assert(art.length === 0, `no bout art is missing (${art.join(', ')})`);
+  await sleep(1500);
+  await shot(page, '09c_bout_end');
+  const prof = await profile(page);
+  assert(prof.coins > coins0, `the match paid RV (${coins0} -> ${prof.coins})`);
+  assert(result.winner !== 'you' || prof.bjj?.wins >= 1, 'a win is on the belt record');
+  await page.click('#bout-leave');
+  await waitFor(page, () => !document.body.classList.contains('bout-on') && !window.__tb.bout.feed.camera, null, 5000, 'the bout HUD steps aside');
   await interact(page, { portal: 'academia_praca' });
   await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 15_000, 'back from academia');
-  log('academia CPU roll path ok');
+  log(`academia bout ok: ${result.winner} by ${result.reason}, ${result.answers} answers`);
 
   // 7. Kitnet: place the free chair
   await interact(page, { portal: 'praca_kitnet' });

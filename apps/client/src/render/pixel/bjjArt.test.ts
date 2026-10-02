@@ -4,8 +4,15 @@ import { describe, expect, it } from 'vitest';
 import { ADJACENT_POSITIONS, BELT_COLORS, HAIR_COLORS, SKIN_TONES } from '@tudobem/shared';
 import { BELT_BLACK, FRAMES, GI_BLUE, GI_WHITE, PAIR_POSITIONS, PAIR_SIZE, PLACAR_CELLS, REF_SIGNALS, REF_SIZE, allArtKeys, directedSteps, pairFrames, pairTable, presentFrames, refTable, topSide, transFrames, colorsSig, type PairColors } from './bjjArt';
 import { KEY_RAMPS, buildRamp, hexToRgb, pack, swapKeys } from './palette';
-// the art side of the contract (the puppet renderer's exact colours)
-import { BELT_BLACK as RIG_BELT, GI_BLUE as RIG_BLUE, GI_WHITE as RIG_WHITE } from '../../../assets-src/custom/bjj-rig.mjs';
+// the art side of the contract: the puppet renderer's exact colours, read from its source
+const rig = fs.readFileSync(path.resolve(import.meta.dirname, '../../../assets-src/custom/bjj-rig.mjs'), 'utf8');
+const rigRamp = (name: string): string[] => {
+  const m = new RegExp(`export const ${name} = \\[([^\\]]+)\\]`).exec(rig);
+  return m ? [...m[1]!.matchAll(/'(#[0-9a-fA-F]{6})'/g)].map((x) => x[1]!) : [];
+};
+const RIG_WHITE = rigRamp('GI_WHITE');
+const RIG_BLUE = rigRamp('GI_BLUE');
+const RIG_BELT = rigRamp('BELT_BLACK');
 
 const manifest = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, '../../../public/pixel/manifest.json'), 'utf8'));
 

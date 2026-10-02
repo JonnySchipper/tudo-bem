@@ -1396,7 +1396,8 @@ export class WorldScene extends Phaser.Scene {
           x: p.px,
           y: p.py,
           plate: { text: role && game.hoverKey === `npc:${a.pub.npc}` ? `${a.pub.name} · ${role}` : a.pub.name, kind: 'npc' },
-          bubbles: b && age < 7000 ? [{ text: b.text, gloss: b.gloss, alpha: bubbleAlpha(age) }] : [],
+          // Bia is the referee while a bout is on: her idle chatter stays quiet
+          bubbles: b && age < 7000 && !(boutFeed.camera && a.pub.npc === 'prof') ? [{ text: b.text, gloss: b.gloss, alpha: bubbleAlpha(age) }] : [],
         });
         continue;
       }
@@ -1440,7 +1441,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   info() {
-    return { zoom: this.cam.zoom, cssScale: this.cssScale, cx: this.cam.cx, cy: this.cam.cy, room: this.roomId, avatars: this.avatars.size, sheets: this.sheets.size, artMissing: this.artMissing };
+    return { zoom: this.cam.zoom, cssScale: this.cssScale, cx: this.cam.cx, cy: this.cam.cy, room: this.roomId, avatars: this.avatars.size, sheets: this.sheets.size, artMissing: this.artMissing, bout: this.stage.info() };
   }
 }
 

@@ -110,6 +110,8 @@ export interface BoutDeps {
   testHints: boolean;
   /** pause scale (1 normal) */
   pace: number;
+  /** intro length override (ms); the CI hint mode uses a short one, shots ask for the full walk-in */
+  introMs?: number;
   reward: (s: Session, amount: number, reason: Bilingual) => void;
   pushProfile: (s: Session) => void;
   bond: (s: Session, delta: number) => void;
@@ -196,7 +198,7 @@ export class BoutEngine {
       answered: 0,
     };
     s.bout = b;
-    const introMs = this.d.testHints ? 500 : INTRO_MS;
+    const introMs = this.d.introMs ?? (this.d.testHints ? 500 : INTRO_MS);
     s.send({ t: 'bout', v: 1, phase: 'intro', partner: { id: partner.id, name: partner.name, style: partner.style }, st: snap(b.st), introMs, level: b.level, line: REF_LINES.combate, signal: 'combate' });
     this.d.schedule(() => this.step(s, b.token), introMs);
   }
