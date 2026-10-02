@@ -88,7 +88,8 @@ describe('weather and night', () => {
     for (const h of [0, 2, 4, 19.2, 22, 23.5]) expect(shadowLook(h, 1).alpha).toBe(0);
   });
   it('full under a clear sky, none under chuva, nearly none under nublado', () => {
-    expect(shadowLook(12, 1).alpha).toBeGreaterThan(0.95);
+    expect(shadowLook(12, 1).alpha).toBeGreaterThan(0.7); // modest at noon
+    expect(shadowLook(12, 1).alpha).toBeLessThan(0.8);
     expect(shadowLook(12, 0).alpha).toBe(0);
     expect(shadowLook(12, 0.28).alpha).toBeLessThan(0.3);
     expect(shadowLook(12, 0.12).alpha).toBe(0);
@@ -105,6 +106,29 @@ describe('weather and night', () => {
       expect(t).toBeGreaterThanOrEqual(0);
       expect(t).toBeLessThanOrEqual(0xffffff);
       expect(t & 255).toBeGreaterThan((t >> 16) & 255); // blue above red
+    }
+  });
+});
+
+describe('noon vs golden hour', () => {
+  const sat = (t: number) => {
+    const r = (t >> 16) & 255, g = (t >> 8) & 255, b = t & 255;
+    return (Math.max(r, g, b) - Math.min(r, g, b)) / Math.max(r, g, b);
+  };
+  it('11:00-13:00: short, neutral cool grey, modest opacity', () => {
+    for (const h of [11, 11.5, 12, 12.5, 13]) {
+      const l = shadowLook(h);
+      expect(l.length).toBeLessThan(0.34);
+      expect(sat(l.tint)).toBeLessThan(0.15);
+      expect(l.alpha).toBeLessThan(0.8);
+    }
+  });
+  it('golden hour and dawn stay long and violet', () => {
+    for (const h of [6.6, 17.7]) {
+      const l = shadowLook(h);
+      expect(l.length).toBeGreaterThan(0.9);
+      expect(sat(l.tint)).toBeGreaterThan(0.25);
+      expect(l.alpha).toBeGreaterThan(0.8);
     }
   });
 });

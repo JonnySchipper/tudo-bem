@@ -79,8 +79,8 @@ describe('V2 composition of Vila Ipê', () => {
     }
   });
 
-  it('paves the feira lot', () => {
-    for (const [x, y] of [[44, 20], [48, 22], [51, 27], [42, 15]]) expect(floorAt(praca, x, y)).toBe('asfalto');
+  it('paves the feira lot with granite setts (paralelepipedo)', () => {
+    for (const [x, y] of [[44, 20], [48, 22], [51, 27], [42, 15]]) expect(floorAt(praca, x, y)).toBe('paralelepipedo');
     expect(floorAt(praca, 41, 21)).toBe('tijolo');
   });
 });

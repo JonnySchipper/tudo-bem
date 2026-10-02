@@ -68,7 +68,7 @@ export function aoForOverhead(key: string, od: Pick<SpriteDef, 'w' | 'h' | 'ax' 
 
 /** Floor chars that are raised paving (they shade what is beside them) and the lower surfaces that take the shade. */
 const RAISED = new Set(['c', 't', 'k']);
-const LOWER = new Set(['g', 'a', 'd']);
+const LOWER = new Set(['g', 'a', 'd', 'p']);
 
 /**
  * Edge strips: for every grass or asphalt tile with calçada or brick next to it, a strip `width` px wide along that side of the lower tile. The
@@ -84,7 +84,7 @@ export function aoForTerrain(floor: readonly string[], width = 5): AoStrip[] {
       if (!LOWER.has(ch)) continue;
       const x0 = x * 16;
       const y0 = y * 16;
-      const asphalt = ch === 'a';
+      const asphalt = ch === 'a' || ch === 'p';
       // the V1 curbs have their own lit lip and contact shadow baked in, so the strips are a light touch
       const base = asphalt ? 0.22 : 0.3;
       if (RAISED.has(at(x, y - 1) ?? '')) out.push({ x0, y0, x1: x0 + 16, y1: y0 + width, side: 'n', a: base * 1.15 });

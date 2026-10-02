@@ -69,6 +69,7 @@ const MANHOLES: { x: number; y: number }[] = [
   { x: 44, y: 34 },
   { x: 26, y: 25 },
   { x: 30, y: 21 },
+  { x: 50, y: 23 }, // the feira lot
 ];
 
 /** Vila Ipê's dressing, or null for a room that has none (the interiors). */
