@@ -96,6 +96,8 @@ export interface PathPos {
   moving: boolean;
   /** Last whole tile reached. */
   tile: Tile;
+  /** The tile this step heads to (only while moving): `next - tile` is the step vector, constant for the whole step. */
+  next?: Tile;
 }
 
 /** Interpolated position along a path `elapsed` ms after it began. */
@@ -108,7 +110,7 @@ export function positionAlong(from: Tile, path: Tile[], elapsed: number, startDi
     dir = dirBetween(prev, p, dir);
     if (t < d) {
       const f = Math.max(0, t / d);
-      return { x: prev.x + (p.x - prev.x) * f, y: prev.y + (p.y - prev.y) * f, dir, moving: true, tile: prev };
+      return { x: prev.x + (p.x - prev.x) * f, y: prev.y + (p.y - prev.y) * f, dir, moving: true, tile: prev, next: p };
     }
     t -= d;
     prev = p;

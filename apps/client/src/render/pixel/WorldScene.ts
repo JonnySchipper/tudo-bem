@@ -14,7 +14,7 @@ import { buildGrid, feiraOpen, canPlaceFurniture, furnitureById, hotspotBox, hot
 import { game, type ClientAvatar } from '../../state';
 import type { Guide, Hit } from '../view';
 import type { Manifest } from './manifest';
-import { FACING, type Facing } from './facing';
+import { FACING, facingAlongPath, type Facing } from './facing';
 import { addSheetTexture, animKey, animNames, emoteDuration, sitFrame } from './charsheet';
 import { CharSheets } from './charCache';
 import type { CharAssets } from './charAssets';
@@ -102,8 +102,8 @@ interface AvatarView {
   /** world px of the feet */
   wx: number;
   wy: number;
-  lastX: number;
-  lastY: number;
+  /** The wire Dir last seen: tells a real turn from the wire Dir of a walk the sprite already faced. */
+  dirSeen: Dir | undefined;
   sitting: boolean;
   moving: boolean;
 }
@@ -872,6 +872,13 @@ export class WorldScene extends Phaser.Scene {
     return { info: () => this.ambient.info(), bus: (inMs?: number) => this.ambient.bus(inMs) };
   }
 
+  /** Debug hook (window.__tb.facings): the facing and animation each avatar sprite is drawn with this frame (e2e and bug repros). */
+  facingsHook(): Record<string, { facing: Facing; anim: string; moving: boolean }> {
+    const out: Record<string, { facing: Facing; anim: string; moving: boolean }> = {};
+    for (const [id, v] of this.avatars) out[id] = { facing: v.facing, anim: v.sprite.anims.currentAnim?.key ?? v.anim, moving: v.moving };
+    return out;
+  }
+
   perfInfo() {
     return {
       ...this.probe.stats(),
@@ -1068,7 +1075,7 @@ export class WorldScene extends Phaser.Scene {
     const s16 = this.m.sprites['fx/shadow_16'];
     const shadow = this.rig.world(this.add.image(0, 0, s16.atlas, s16.frame)).setOrigin(...originOf(s16)).setDepth(DEPTH.shadowContact);
     this.shadows.follow(sprite, 'chars/avatar', { frame: 0, rim: true });
-    return { sprite, shadow, sheet, appearance: a.pub.appearance, hat: a.pub.hat, belt: a.pub.belt, look, parrot: null, icon: null, iconKey: '', anim: '', facing: 'S', wx: 0, wy: 0, lastX: Number.NaN, lastY: 0, sitting: false, moving: false };
+    return { sprite, shadow, sheet, appearance: a.pub.appearance, hat: a.pub.hat, belt: a.pub.belt, look, parrot: null, icon: null, iconKey: '', anim: '', facing: 'S', wx: 0, wy: 0, dirSeen: undefined, sitting: false, moving: false };
   }
 
   private destroyAvatar(v: AvatarView): void {
@@ -1100,15 +1107,19 @@ export class WorldScene extends Phaser.Scene {
     if (sitting) {
       const seat: Dir | undefined = this.grid?.seats.get(tileKey(pos.tile.x, pos.tile.y));
       facing = FACING[seat ?? pos.dir];
+      v.dirSeen = undefined; // standing up reads the wire Dir again
     } else if (pos.moving) {
-      // top-down: face the way we are actually moving (diagonals pick the dominant axis); the wire Dir is the fallback (D5)
-      const dx = pos.x - v.lastX;
-      const dy = pos.y - v.lastY;
-      if (Number.isFinite(dx) && Math.hypot(dx, dy) > 0.002) facing = Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 'E' : 'W') : dy > 0 ? 'S' : 'N';
-      else if (!Number.isFinite(dx)) facing = FACING[pos.dir];
-    } else if (!a.path.length) facing = FACING[a.pub.dir];
-    v.lastX = pos.x;
-    v.lastY = pos.y;
+      // top-down: the facing comes from the path step being walked, once per step, never from per-frame position deltas (those flipped
+      // E/W <-> S/N every frame on an exact diagonal). Diagonals face E/W; the wire Dir is the fallback when there is no step (D5).
+      const i = pos.next ? a.path.indexOf(pos.next) : -1;
+      facing = i >= 0 ? facingAlongPath(pos.tile, a.path.slice(i), v.facing) : v.moving ? v.facing : FACING[pos.dir];
+      v.dirSeen = a.pub.dir;
+    } else if (!a.path.length) {
+      // standing: the wire Dir turns the sprite when it CHANGES (a fresh spawn, a turn in place). Right after a walk the walking facing
+      // stays: the wire Dir of a diagonal step is an isometric SE/SW/NE/NW that does not match the E/W the sprite walked with
+      if (v.dirSeen === undefined || a.pub.dir !== v.dirSeen) facing = FACING[a.pub.dir];
+      v.dirSeen = a.pub.dir;
+    }
     v.facing = facing;
     v.sitting = sitting;
     v.moving = pos.moving;
