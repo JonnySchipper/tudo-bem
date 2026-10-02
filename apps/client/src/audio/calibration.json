@@ -1,0 +1,28 @@
+{
+  "bed": {
+    "intro": -20.85,
+    "radio": -21.54,
+    "padaria": -22.08,
+    "padariaNight": -24.95,
+    "kitnet": -24.25,
+    "academia": -24.86,
+    "bout": -23.02
+  },
+  "phrase": {
+    "morning": -24.28,
+    "day": -25.31,
+    "golden": -24.3,
+    "night": -26.62,
+    "rain": -25.48
+  },
+  "sting": {
+    "recado": -23.44,
+    "heart": -27.08,
+    "coin": -28.06,
+    "mission": -22.37,
+    "caderno": -24.17,
+    "win": -22.02,
+    "lose": -26.2,
+    "door": -30.74
+  }
+}

@@ -1427,3 +1427,49 @@ Branch `lifesim/correria-art`. Art for the counter work area of "Correria no Bal
 - **Overlay pieces.** `patience_*` is a clock-pie that drains clockwise and goes green / lime / yellow / orange / red, with a red "!" at 4; it is drawn to sit over a customer's head and stays readable at zoom 2-3. The steam is the only part with partial alpha (soft wisps); everything else is hard pixels (the unit test checks it).
 - **Tests.** `scripts/lib/pixel/balcao.test.mjs`: every contract key is in the manifest, single-frame, with the generator's size and an anchor inside; no extra `balcao/*` keys; item sizes 24-32; hard pixels; the strips differ frame to frame.
 - **Known weaknesses.** The press on the chapa reads a little like a panini grill; the pastel crimp is a comb-like band at 1x; no baked contact shadows (the counter top is the shadow); the tray holds 16 px icons in `tray_full`, not the 28 px items.
+## Music: one theme, everywhere
+
+The intro song is now **the** theme ("Tudo Bem"), and the whole game is built from it. Listening copies: `docs/audio/`.
+
+1. **The theme (`audio/theme.ts`, pure data).** The old 8-bar loop (Dmaj9 · Bm9 · Em9 · A13 · F♯m7 · Bm9 · Gmaj9 · A13 and the whistled line) is kept note for note as section A of a 32-bar form: **A · A' · B · A''**. A' answers with a more active melody and a vibraphone third underneath; B is a bridge (Gmaj9, F♯m7, Bm9, Em9, Gmaj7, **Gm6**, F♯m7, A13) with the electric piano on the tune; A'' brings the bell and the band back. The hook is bars 0-1: **E F♯ · C♯ D E** (degrees 2 3 7 1 2). Tests (`theme.test.ts`) check that the hook is in every arrangement and stinger, that everything is in key (only the Gm6 B♭ is borrowed), that bars fit and loops repeat.
+2. **A real band (`audio/synth.ts`).** Plucked strings are Karplus-Strong buffers rendered once per pitch (nylon guitar, cavaquinho, upright bass), keys are FM (electric piano), vibes, music box and bell are additive, the whistle and flute have breath and a scoop, the clarinet is a wavetable, the accordion and brass are filtered saws. Percussion: shaker, brush, cross-stick clave, surdo, pandeiro. Every voice is panned and goes through a room reverb (a generated stereo impulse) and a gentle compressor (`Rig`).
+3. **Intro.** Plays the whole form and builds: the title beat is pad, bass, guitar, whistle and shaker through the muffled tone filter; when the sign-in card arrives the filter opens **and** the band steps up one level (clave, picking, surdo, bells).
+4. **Praça (`audio/conductor.ts`).** The random pentatonic plucks are gone. Every 15-45 s a phrase of the real tune plays (hook, A, the answer, the bridge, a tag), always ending on the tonic, by **mood**: morning whistle with picking; midday vibes with a whistle double; golden hour electric piano over the accordion; night a music box in a low register, slower; rain a soft electric piano over a felt pad. The radio in the houses plays the theme through a telephone-band filter instead of the old made-up tune, and goes quiet when you walk away (the clock keeps running).
+5. **Rooms.** Padaria: choro in G by day (cavaquinho, accordion, clarinet, pandeiro); after 22:00 a slow vibes version, and the bed swaps when the clock crosses the hour. Kitnet: a music box plays the first eight bars, then eight bars of room. Academia: a soft samba pulse with the hook on vibes (it used to share the kitnet's bed). Treino no tatame is a **scene** like the intro: batucada and brass stabs on the hook, one level higher on a finishing chance or an escape, gone at the end card.
+6. **Stingers (`ambience.sting`).** Fragments of the tune on the moments that matter: recado done (hook start and a Dmaj9 arpeggio), a heart (E up to B), RV and Caderno group (bells), the daily mission (the whole hook, strummed), a bout win (the hook as a fanfare) and loss (the hook that settles on D), the padaria door bell. They honor the music switch and the speech ducking.
+7. **Cost.** All of it is Web Audio generated at run time. Strings are rendered once per pitch and shared between beds; the reverb impulse is cached per context.
+
+Not done: nobody has listened on real speakers yet (the numbers are checked, not the taste: levels and the mix are one constant each in `ambience.ts` `MUSIC_LEVEL` and the `PEAK`-style gains in `synth.ts`), and no native review is needed (no new Portuguese).
+
+## Music pass 2: a mix, not a stack
+
+Goal: the same music, but seamless and "official": nothing jumps out, places flow into each other, the tune leads. Everything was
+measured with a new offline lab (`scripts/audio-lab.mjs`, integrated loudness with K-weighting and gating, per voice and per place).
+
+1. **Clicks.** Every enveloped gain started at Web Audio's default 1.0, and automation starting between two samples only takes hold
+   on the next one, so the first sample of every hit passed at full gain: a one-sample click on each shaker, pandeiro, clave and
+   noise hit (measured at up to -6 dBFS on a stem whose loudness was -50 LUFS), on every footstep, chirp and bout effect too.
+   `vca()` (a gain that starts at 0) is now used for every envelope in synth, ambience and boutSfx. This was most of the harshness.
+2. **No hidden compressors.** Each rig had a DynamicsCompressor, and Chrome's adds automatic make-up gain, so quiet parts were
+   pushed up and transients spiked. Rigs are now clean (a bus EQ: 38 Hz high-pass, -2.5 dB at 260 Hz, -2 dB shelf above 8.5 kHz);
+   one soft limiter sits on the master (`mix.createMaster`), well above the music's peaks.
+3. **The tune on top.** Stems showed the strummed guitar and the bass 4 dB *over* the whistle. `VOICE_DB` (synth) now sets the band:
+   tune at the top, bass and guitar about 4 dB under, pads and arpeggio further back, the shaker, brush and pandeiro brought up from
+   inaudible to a texture. Each arrangement trims it (`sequencer.MIX`).
+4. **Levels between places.** Before, the padaria (-22 LUFS) was louder than the intro (-23) and the big stingers (-18) jumped 5 LU
+   over everything. Now every bed, Praça mood and stinger has a target in `mix.ts` and a measured `calibration.json`; gain = target
+   minus measurement (table in `docs/audio/README.md`). A stinger dips the bed under it (-4.4 dB) while it plays, and plays in the
+   bed's key (the padaria is in G). The bout's effects were tuned before the bout had music; they now sit at the music's level
+   (`SFX_TRIM_DB`).
+5. **Flow.** Room changes are an overlapping exponential crossfade (about 1.5 s) instead of a 0.7 s linear one. A bed you come back
+   to within 90 s picks its tune up at the next four-bar phrase instead of restarting. The speech duck goes to -10 dB with a soft
+   attack and a slower release (it was -15 dB with a 0.12 s ramp both ways). The Praça's phrases hold back while the houses' radio
+   (which plays the tune too) is audible, so two versions never overlap.
+6. **Feel.** The sequencer no longer plays the grid dead straight: off 16ths swing a little (bossa and samba both lean on it), a few
+   ms of seeded timing and velocity variation, and the tune sits a hair behind the beat. Deterministic, so renders and tests are stable.
+7. **Sound.** A new room impulse (early reflections, a darkening tail, normalized), a tempo-synced ping-pong echo on the lead voices,
+   a darker strummed guitar, less sub on the bass, a softer brass section (a swell, not a snap), a gentler bell and pandeiro. In the
+   padaria the cavaquinho plays a choro figure instead of straight eighths and the clarinet rests in the bridge (vibes take it).
+
+Still not done: nobody has listened on real speakers; the numbers are right, the taste needs ears. Every level is one number in
+`mix.ts`, and `node scripts/audio-lab.mjs calibrate` keeps them true after any change.

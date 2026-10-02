@@ -578,9 +578,14 @@ net.on((m: ServerMsg) => {
       }
       break;
     case 'reward':
-      if (m.reason.pt === MISSION_COPY.done.pt) missionBanner();
-      else if (m.reason.pt.startsWith('Recado: ')) break; // the thanks card shows the RV
-      else toast('reward', m.reason.pt, m.reason.en, m.amount);
+      if (m.reason.pt === MISSION_COPY.done.pt) {
+        missionBanner();
+        ambience.sting('mission');
+      } else if (m.reason.pt.startsWith('Recado: ')) break; // the thanks card shows the RV
+      else {
+        toast('reward', m.reason.pt, m.reason.en, m.amount);
+        ambience.sting(m.reason.pt.startsWith('Caderno completo') ? 'caderno' : 'coin');
+      }
       break;
     case 'scene':
       if (isConversaOpen()) closeConversa();
