@@ -123,6 +123,7 @@ export class BoutUI {
   destroy(): void {
     if (this.closedFlag) return;
     this.closedFlag = true;
+    ambience.setScene(null);
     cancelAnimationFrame(this.raf);
     this.ro?.disconnect();
     window.removeEventListener('resize', this.onResize);
@@ -191,6 +192,7 @@ export class BoutUI {
   // ------------------------------------------------------------------ lobby
   private lobby(m: Msg<'lobby'>): void {
     this.setPhase('lobby');
+    ambience.setScene(null);
     this.snap = null;
     boutFeed.snap = null;
     this.bjj = m.bjj;
@@ -254,6 +256,8 @@ export class BoutUI {
   // ------------------------------------------------------------------ intro
   private intro(m: Msg<'intro'>): void {
     this.setPhase('intro');
+    ambience.setBoost(0);
+    ambience.setScene('bout');
     this.partnerName = m.partner.name;
     this.partnerId = m.partner.id;
     this.locked = true;
@@ -339,6 +343,7 @@ export class BoutUI {
   // ------------------------------------------------------------------ challenge
   private challenge(m: Msg<'challenge'>): void {
     this.setPhase('challenge');
+    ambience.setBoost(m.role === 'finish' || m.role === 'escape' ? 1 : 0);
     this.seq = m.seq;
     this.locked = false;
     this.order = [];
@@ -514,10 +519,15 @@ export class BoutUI {
     this.renderTop();
     this.renderMeters();
     for (const c of cuesForEnd(m)) boutFeed.push(c);
+    ambience.setScene(null);
     if (m.winner === 'you') {
       this.sfx('cheer');
       this.sfx('whistle');
-    } else if (m.winner !== 'none') this.sfx('claps');
+      ambience.sting('win');
+    } else if (m.winner !== 'none') {
+      this.sfx('claps');
+      ambience.sting('lose');
+    }
     this.say(m.line.pt);
     window.setTimeout(() => this.say(m.thanks.pt), 1900);
     const again = h('button', { class: 'bout-go primary', id: 'bout-again', type: 'button', onclick: () => this.again() }, ...this.bi('De novo', 'Rematch'));

@@ -1,20 +1,32 @@
 import type { FloorKind, RoomId } from '@tudobem/shared';
-import { INTRO_BED_LEVEL, IntroMusic } from './audio/introBed';
+import { Conductor } from './audio/conductor';
+import { playSting, ThemeSequencer } from './audio/sequencer';
+import { createRig, type Rig } from './audio/synth';
+import { padariaIsNight, type StingKind } from './audio/theme';
 import { FOOTSTEPS, SILENT_MIX, stepPitch, type ZoneMix } from './audio/zones';
 import { playBoutSfx, type BoutSfx } from './audio/boutSfx';
 
 /**
  * Room beds made in Web Audio — no samples, no paid service.
- * Intro: a soft late-afternoon bossa for the title beat + sign-in card (see audio/introBed).
- * Praça: wind, a quiet pentatonic pluck, and the audio zones (traffic near the streets, the fountain, birds by day, crickets at night,
+ * One tune runs through all of it: "Tudo Bem" (audio/theme), played by the band in audio/synth.
+ * Intro: the whole theme, a 32-bar bossa that builds when the sign-in card arrives.
+ * Praça: wind, phrases of the theme by time of day and weather (audio/conductor), and the audio zones (traffic near the streets, the fountain, birds by day, crickets at night,
  * rain by weather, a distant radio near the houses), mixed by the local player's position (see audio/zones). Footsteps per terrain.
- * Padaria: warm drone, murmur, a soft counter rhythm.
- * Kitnet: room tone and a slow fan.
+ * Padaria: a choro-ish take on the theme in G, a slow vibes version at night, with the murmur and the coffee machine.
+ * Kitnet: a music box plays the first eight bars, room tone and a slow fan under it.
+ * Academia: a soft samba pulse with the hook; the bout swaps it for a batucada and brass stabs on the hook.
+ * Stingers (recado, heart, RV, mission, Caderno, win, lose, the padaria door) are fragments of the same tune.
  * Unlocks on the first gesture, crossfades on room change, ducks under speech.
  */
 
 type Source = AudioBufferSourceNode | OscillatorNode;
-type BedId = RoomId | 'intro';
+type Scene = 'intro' | 'bout';
+type BedId = RoomId | Scene | 'padariaNight';
+
+/** Bed level under the ambience master for the intro: modest, so speech and bird SFX sit on top. */
+const INTRO_BED_LEVEL = 0.4;
+/** Music level of each place (the zone and weather layers are separate). */
+const MUSIC_LEVEL = { intro: 1, praca: 0.42, padaria: 0.5, padariaNight: 0.7, kitnet: 0.8, academia: 0.42, bout: 0.55, radio: 0.5 } as const;
 
 interface Bed {
   gain: GainNode;
@@ -25,6 +37,13 @@ interface Bed {
   tone?: BiquadFilterNode;
   /** Praça only: one gain per zone layer, driven by the listener's position. */
   zones?: ZoneLayers;
+  /** The looping arrangement (intro, padaria, kitnet, academia, bout) and the Praça radio's. */
+  seq?: ThemeSequencer;
+}
+
+export interface World {
+  minute: number;
+  rain: number;
 }
 
 interface ZoneLayers {
@@ -92,20 +111,6 @@ function tone(ctx: AudioContext, dest: GainNode, freq: number, type: OscillatorT
   g.connect(dest);
   o.start();
   return [o, g];
-}
-
-function pluck(ctx: AudioContext, dest: AudioNode, freq: number, when: number, dur: number, gain: number) {
-  const o = ctx.createOscillator();
-  o.type = 'triangle';
-  o.frequency.setValueAtTime(freq, when);
-  const g = ctx.createGain();
-  g.gain.setValueAtTime(0.0001, when);
-  g.gain.exponentialRampToValueAtTime(gain, when + 0.03);
-  g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
-  o.connect(g);
-  g.connect(dest);
-  o.start(when);
-  o.stop(when + dur + 0.05);
 }
 
 function chirp(ctx: AudioContext, dest: AudioNode, freq: number, when: number) {
@@ -218,7 +223,7 @@ function buildZones(ctx: AudioContext, dest: GainNode, bed: Bed, brown: AudioBuf
     }
   }, 380);
 
-  // a radio behind a window: telephone-band bossa, faint, with static
+  // a radio behind a window: the theme again, telephone-band, with static
   const radioBand = ctx.createBiquadFilter();
   radioBand.type = 'bandpass';
   radioBand.frequency.value = 1300;
@@ -226,15 +231,9 @@ function buildZones(ctx: AudioContext, dest: GainNode, bed: Bed, brown: AudioBuf
   radioBand.connect(gains.radio);
   keep(radioBand);
   keep(...loopNoise(ctx, gains.radio, white, 2200, 'bandpass', 0.012, 0.6));
-  const tune = [293.7, 349.2, 440, 392, 349.2, 329.6, 293.7, 261.6, 293.7, 329.6, 349.2, 293.7];
-  let n = 0;
-  schedule(bed, () => {
-    if (mix.radio < 0.03) return;
-    const i = n++ % tune.length;
-    if (i % 4 === 3 && Math.random() > 0.5) return;
-    pluck(ctx, radioBand, tune[i]!, ctx.currentTime + 0.03, 0.5, 0.05);
-    if (i % 2 === 0) pluck(ctx, radioBand, tune[i]! / 2, ctx.currentTime + 0.03, 0.6, 0.035);
-  }, 430);
+  const radio = new ThemeSequencer(ctx, radioBand, 'radio', { reverb: 0, level: MUSIC_LEVEL.radio, startBar: 8 * Math.floor(Math.random() * 4) });
+  keep(...radio.nodes);
+  bed.timers.push(window.setInterval(() => radio.tick(1.4, mix.radio >= 0.03), 250));
 }
 
 function schedule(bed: Bed, fn: () => void, ms: number) {
@@ -246,7 +245,7 @@ function schedule(bed: Bed, fn: () => void, ms: number) {
   bed.timers.push(id);
 }
 
-function buildBed(ctx: AudioContext, dest: AudioNode, room: BedId): Bed {
+function buildBed(ctx: AudioContext, dest: AudioNode, room: BedId, world: () => World): Bed {
   const gain = ctx.createGain();
   const now = ctx.currentTime;
   const intro = room === 'intro';
@@ -263,6 +262,14 @@ function buildBed(ctx: AudioContext, dest: AudioNode, room: BedId): Bed {
       if ('start' in n) bed.sources.push(n as Source);
     }
   };
+  const band = (kind: 'intro' | 'padaria' | 'padariaNight' | 'kitnet' | 'academia' | 'bout', dst: AudioNode, level: number, boost = 0) => {
+    const seq = new ThemeSequencer(ctx, dst, kind, { level, boost, startAt: now + 0.15 });
+    keep(...seq.nodes);
+    seq.tick();
+    bed.timers.push(window.setInterval(() => seq.tick(), 250));
+    bed.seq = seq;
+    return seq;
+  };
 
   if (intro) {
     const tone = ctx.createBiquadFilter();
@@ -274,9 +281,7 @@ function buildBed(ctx: AudioContext, dest: AudioNode, room: BedId): Bed {
     keep(tone);
     // A breath of Praça air under the band.
     keep(...loopNoise(ctx, gain, buf, 520, 'lowpass', 0.014, 0.5));
-    const music = new IntroMusic(ctx, tone, now + 0.15);
-    music.tick();
-    bed.timers.push(window.setInterval(() => music.tick(), 250));
+    band('intro', tone, MUSIC_LEVEL.intro);
   } else if (room === 'praca') {
     keep(...loopNoise(ctx, gain, buf, 700, 'lowpass', 0.05, 0.6));
     const wind = bed.nodes.at(-1) as GainNode;
@@ -288,35 +293,41 @@ function buildBed(ctx: AudioContext, dest: AudioNode, room: BedId): Bed {
     depth.connect(wind.gain);
     lfo.start();
     keep(lfo, depth);
-    const notes = [392, 440, 494, 587, 659, 494, 440];
-    let i = 0;
-    schedule(bed, () => pluck(ctx, gain, notes[i++ % notes.length]!, ctx.currentTime + 0.05, 1.4, 0.028), 1600);
+    // phrases of the theme drift over the square, by the hour and the weather
+    const rig: Rig = createRig(ctx, gain, { level: MUSIC_LEVEL.praca });
+    keep(...rig.nodes);
+    const conductor = new Conductor(rig, world);
+    bed.timers.push(window.setInterval(() => conductor.tick(), 1000));
     buildZones(ctx, gain, bed, buf, keep);
-  } else if (room === 'padaria') {
-    keep(...tone(ctx, gain, 146.8, 'sine', 0.03));
-    keep(...tone(ctx, gain, 220, 'sine', 0.018));
-    keep(...loopNoise(ctx, gain, buf, 480, 'bandpass', 0.035, 0.8));
-    const notes = [294, 370, 440, 370, 330, 294, 440, 494];
-    let i = 0;
-    schedule(bed, () => pluck(ctx, gain, notes[i++ % notes.length]!, ctx.currentTime + 0.05, 0.9, 0.03), 900);
-    schedule(bed, () => {
-      const src = ctx.createBufferSource();
-      src.buffer = buf;
-      const filter = ctx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.value = 2200;
-      filter.Q.value = 4;
-      const g = ctx.createGain();
-      const t = ctx.currentTime;
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.05, t + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
-      src.connect(filter);
-      filter.connect(g);
-      g.connect(gain);
-      src.start(t);
-      src.stop(t + 0.09);
-    }, 5400);
+  } else if (room === 'padaria' || room === 'padariaNight') {
+    // the room: a murmur and, now and then, the coffee machine
+    keep(...loopNoise(ctx, gain, buf, 480, 'bandpass', room === 'padaria' ? 0.035 : 0.018, 0.8));
+    band(room, gain, MUSIC_LEVEL[room]);
+    if (room === 'padaria')
+      schedule(bed, () => {
+        const src = ctx.createBufferSource();
+        src.buffer = buf;
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.value = 2200;
+        filter.Q.value = 4;
+        const g = ctx.createGain();
+        const t = ctx.currentTime;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.05, t + 0.01);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+        src.connect(filter);
+        filter.connect(g);
+        g.connect(gain);
+        src.start(t);
+        src.stop(t + 0.09);
+      }, 5400);
+  } else if (room === 'academia') {
+    keep(...loopNoise(ctx, gain, buf, 300, 'lowpass', 0.03, 0.5));
+    band('academia', gain, MUSIC_LEVEL.academia);
+  } else if (room === 'bout') {
+    keep(...loopNoise(ctx, gain, buf, 300, 'lowpass', 0.02, 0.5));
+    band('bout', gain, MUSIC_LEVEL.bout);
   } else {
     keep(...loopNoise(ctx, gain, buf, 280, 'lowpass', 0.04, 0.5));
     const [fan, fanGain] = tone(ctx, gain, 62, 'sine', 0.02);
@@ -329,9 +340,7 @@ function buildBed(ctx: AudioContext, dest: AudioNode, room: BedId): Bed {
     depth.connect(fanGain.gain);
     lfo.start();
     keep(lfo, depth);
-    const notes = [196, 247, 294, 247];
-    let i = 0;
-    schedule(bed, () => pluck(ctx, gain, notes[i++ % notes.length]!, ctx.currentTime + 0.05, 2.2, 0.016), 2400);
+    band('kitnet', gain, MUSIC_LEVEL.kitnet);
   }
   return bed;
 }
@@ -372,7 +381,10 @@ class Ambience {
   private whiteBuf: AudioBuffer | null = null;
   private bedIn: GainNode | null = null;
   private room: RoomId | null = null;
-  private scene: 'intro' | null = null;
+  private scene: Scene | null = null;
+  private world: World = { minute: 720, rain: 0 };
+  private stingRig: Rig | null = null;
+  private lastSting = new Map<StingKind, number>();
   private playing: BedId | null = null;
   private bed: Bed | null = null;
   private unlocked = false;
@@ -434,9 +446,9 @@ class Ambience {
    * Scene beds outrank the room bed. The intro may start before any gesture: if the
    * browser blocks autoplay the context waits suspended and the swell begins on unlock.
    */
-  setScene(scene: 'intro' | null) {
+  setScene(scene: Scene | null) {
     if (this.scene === scene) return;
-    const leaving = this.playing === 'intro' && scene !== 'intro';
+    const leaving = (this.playing === 'intro' || this.playing === 'bout') && scene !== this.playing;
     this.scene = scene;
     if (scene && this.enabled) this.ensureContext()?.resume().catch(() => {});
     this.sync(leaving ? INTRO_FADE_OUT : FADE);
@@ -446,6 +458,7 @@ class Ambience {
   introReveal() {
     const tone = this.playing === 'intro' ? this.bed?.tone : undefined;
     if (!tone || !this.ctx) return;
+    this.bed?.seq?.setBoost(1);
     const t = this.ctx.currentTime;
     tone.frequency.cancelScheduledValues(t);
     tone.frequency.setValueAtTime(tone.frequency.value, t);
@@ -454,8 +467,37 @@ class Ambience {
 
   setRoom(room: RoomId) {
     const changed = this.room !== room;
+    const first = this.room === null;
     this.room = room;
     if (changed || this.playing !== this.target()) this.sync();
+    // the bell over the padaria door is the first two notes of the theme's family
+    if (changed && !first && room === 'padaria') this.sting('door');
+  }
+
+  /** The game clock and the rain, a few times a second: the Praça's phrases follow the hour, and the padaria changes shift at 22:00. */
+  setWorld(w: World) {
+    this.world = w;
+    if (this.room === 'padaria' && !this.scene && this.playing !== this.target()) this.sync();
+  }
+
+  /** The band plays harder: a finishing chance in the bout. */
+  setBoost(n: number) {
+    this.bed?.seq?.setBoost(n);
+  }
+
+  /** A short fragment of the theme for a moment that deserves one (a recado done, a heart, a win). Honors the music switch and the speech ducking. */
+  sting(kind: StingKind) {
+    const ctx = this.ctx;
+    if (!ctx || !this.bedIn || !this.enabled || !this.unlocked || ctx.state !== 'running' || this.scene === 'intro') return;
+    const now = ctx.currentTime;
+    if (now - (this.lastSting.get(kind) ?? -9) < 0.3) return;
+    this.lastSting.set(kind, now);
+    try {
+      this.stingRig ??= createRig(ctx, this.bedIn, { level: 0.9 });
+      playSting(this.stingRig, kind, now + 0.03);
+    } catch {
+      /* a sting must never break the game */
+    }
   }
 
   setEnabled(on: boolean) {
@@ -466,7 +508,7 @@ class Ambience {
       /* private mode */
     }
     if (on && this.scene) this.ensureContext()?.resume().catch(() => {});
-    this.sync(this.playing === 'intro' ? INTRO_FADE_OUT : FADE);
+    this.sync(this.playing === 'intro' || this.playing === 'bout' ? INTRO_FADE_OUT : FADE);
     this.emit();
   }
 
@@ -553,7 +595,8 @@ class Ambience {
   private target(): BedId | null {
     if (!this.enabled) return null;
     if (this.scene) return this.scene;
-    return this.unlocked ? this.room : null;
+    if (!this.unlocked) return null;
+    return this.room === 'padaria' && padariaIsNight(this.world.minute) ? 'padariaNight' : this.room;
   }
 
   private sync(fade = FADE) {
@@ -571,7 +614,7 @@ class Ambience {
   private play(id: BedId, fadeOutPrev = FADE) {
     if (!this.ctx || !this.bedIn) return;
     const prev = this.bed;
-    this.bed = buildBed(this.ctx, this.bedIn, id);
+    this.bed = buildBed(this.ctx, this.bedIn, id, () => this.world);
     this.playing = id;
     // a new Praça bed starts at the listener's current mix instead of fading up from silence
     const z = this.bed.zones;

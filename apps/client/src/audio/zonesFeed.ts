@@ -28,6 +28,7 @@ export class ZoneFeed {
       this.steps.reset();
       this.lastListen = 0;
     }
+    ambience.setWorld({ minute, rain });
     const zones = def.outdoor ? AMBIENT[def.id]?.audio : undefined;
     if (now - this.lastListen > 120) {
       this.lastListen = now;

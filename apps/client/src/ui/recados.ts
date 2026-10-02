@@ -9,6 +9,7 @@ import { h, en, bi, ui } from './dom';
 import { icon } from '../art/ui';
 import { openModal } from './modal';
 import { toast } from './hud';
+import { ambience } from '../ambience';
 import { COMPACT_QUERY, placeHud } from './hudLayout';
 import { foodIcon, npcPortrait } from './pixelArt';
 import { showDialogueBox } from './dialogue';
@@ -120,8 +121,12 @@ export function mountTracker(openJournal: () => void): { refresh: () => void } {
       }, 1500);
       peek();
     }
-    for (const d of finishedRecados(prevBoard, board)) showRecadoDone(d.id);
+    for (const d of finishedRecados(prevBoard, board)) {
+      showRecadoDone(d.id);
+      ambience.sting('recado');
+    }
     for (const up of heartUps(prevBond, p?.bond)) {
+      ambience.sting('heart');
       toast('reward', `♥ ${npcName(up.npc)} gosta de você! ${up.hearts} ${up.hearts === 1 ? 'coração' : 'corações'}`, `Your friendship with ${npcName(up.npc)} grew: ${up.hearts} ♥`);
     }
     prevBoard = board;
