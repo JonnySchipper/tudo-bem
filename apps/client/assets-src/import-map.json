@@ -623,8 +623,8 @@
       "key": "vehicles/car_red_r",
       "sheet": "vehicles",
       "rect": [
-        288,
-        26,
+        195,
+        27,
         61,
         37
       ],
@@ -641,8 +641,8 @@
       "key": "vehicles/car_red_l",
       "sheet": "vehicles",
       "rect": [
-        195,
-        27,
+        288,
+        26,
         61,
         37
       ],
@@ -659,8 +659,8 @@
       "key": "vehicles/car_blue_l",
       "sheet": "vehicles",
       "rect": [
-        3,
-        27,
+        96,
+        26,
         61,
         37
       ],
@@ -677,8 +677,8 @@
       "key": "vehicles/car_blue_r",
       "sheet": "vehicles",
       "rect": [
-        96,
-        26,
+        3,
+        27,
         61,
         37
       ],

@@ -15,6 +15,7 @@ import { LightingRig, type Light } from '../lightingRig';
 import { ensureAnim, originOf } from '../spriteUtil';
 import { DEFAULT_APPEARANCE, type Appearance } from '@tudobem/shared';
 import { addSheetTexture, animKey, sitFrame, type Facing } from '../charsheet';
+import { facingForStep } from '../facing';
 import type { CharAssets } from '../charAssets';
 import { composeLook } from '../composeLook';
 import { lookForAppearance } from '../looks';
@@ -510,7 +511,7 @@ export class FrameScene extends Phaser.Scene {
     } else {
       w.x += (dx / dist) * step;
       w.y += (dy / dist) * step;
-      const f: Facing = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'E' : 'W') : dy > 0 ? 'S' : 'N';
+      const f: Facing = facingForStep(dx, dy, w.facing); // hysteresis: an exact diagonal no longer flips the sprite every frame
       if (f !== w.facing) {
         w.facing = f;
         w.sprite.play(animKey(w.sheet, 'walk', f), true);

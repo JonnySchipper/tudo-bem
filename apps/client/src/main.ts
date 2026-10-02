@@ -537,9 +537,14 @@ net.on((m: ServerMsg) => {
       if (m.tag !== 'recado_step' && m.tag !== 'recado_thanks') toast(m.level, m.pt, m.en);
       break;
     case 'reward':
-      if (m.reason.pt === MISSION_COPY.done.pt) missionBanner();
-      else if (m.reason.pt.startsWith('Recado: ')) break; // the thanks card shows the RV
-      else toast('reward', m.reason.pt, m.reason.en, m.amount);
+      if (m.reason.pt === MISSION_COPY.done.pt) {
+        missionBanner();
+        ambience.sting('mission');
+      } else if (m.reason.pt.startsWith('Recado: ')) break; // the thanks card shows the RV
+      else {
+        toast('reward', m.reason.pt, m.reason.en, m.amount);
+        ambience.sting(m.reason.pt.startsWith('Caderno completo') ? 'caderno' : 'coin');
+      }
       break;
     case 'scene':
       if (isConversaOpen()) closeConversa();
@@ -910,12 +915,17 @@ const isTyping = (t: EventTarget | null) => {
 const keysBlocked = (t: EventTarget | null) => !started || isTyping(t) || !!modalId() || game.modalOpen || !!document.querySelector('.idle-kicked');
 
 let lastKeyStep = 0;
+/** When the first key of the current press landed, and how long a lone first key waits for a partner (W+D never lands in the same millisecond). */
+let firstKeyAt = 0;
+const KEY_CHORD_MS = 60;
 function keyWalk() {
   if (!heldArrows.length || !game.room || game.editMode || game.placing) return;
   const cur = selfTile();
   const room = game.roomDef;
   // wait for the server's answer to the previous step before asking for the next one
   if (!cur || cur.moving || !room || now() - lastKeyStep < 140) return;
+  // two keys for a diagonal land a few ms apart: a lone first key waits a beat for its partner instead of stepping straight and then turning
+  if (heldArrows.length === 1 && now() - firstKeyAt < KEY_CHORD_MS) return;
   const step = stepForHeld(heldArrows);
   if (!step) return;
   const grid = buildGrid(room, game.furniture);
@@ -931,6 +941,7 @@ function keyWalk() {
     const a = arrowForKey(e.key);
     if (!a || e.ctrlKey || e.metaKey || e.altKey || keysBlocked(e.target)) return;
     e.preventDefault();
+    if (!heldArrows.length) firstKeyAt = now();
     if (!heldArrows.includes(a)) heldArrows.push(a);
     keyWalk();
   });
@@ -1062,6 +1073,8 @@ window.__tb = {
   get ambient(): unknown {
     return 'ambientHook' in renderer ? (renderer as { ambientHook: () => unknown }).ambientHook() : null;
   },
+  /** Per-avatar facing/animation as drawn this frame (pixel view), for the facing e2e and repros. */
+  facings: () => ('facingsHook' in renderer ? (renderer as { facingsHook: () => unknown }).facingsHook() : null),
   /** Test/shots hook: pin the time of day ("19:30"), the weather ("garoa"), and/or the clock speed. `null` clears a pin. */
   setClock: (o: { time?: string | null; weather?: 'sol' | 'nublado' | 'garoa' | 'chuva' | null; speed?: number }) => {
     if (o.time !== undefined) clock.setTime(o.time === null ? null : parseTimeOfDay(o.time));

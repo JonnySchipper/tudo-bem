@@ -4,6 +4,8 @@
  * to start. Pure recipes over an AudioContext (`ambience.sfx` owns the context, the unlock and the ducking).
  */
 
+import { vca } from './synth';
+
 export type BoutSfx = 'slap' | 'cheer' | 'gasp' | 'claps' | 'whistle' | 'tapout' | 'gong' | 'tick';
 
 function noise(ctx: AudioContext, white: AudioBuffer, dest: AudioNode, when: number, dur: number, type: BiquadFilterType, f0: number, f1: number, peak: number, q = 0.8, attack = 0.01) {
@@ -14,7 +16,7 @@ function noise(ctx: AudioContext, white: AudioBuffer, dest: AudioNode, when: num
   f.Q.value = q;
   f.frequency.setValueAtTime(f0, when);
   if (f1 !== f0) f.frequency.exponentialRampToValueAtTime(f1, when + dur);
-  const g = ctx.createGain();
+  const g = vca(ctx);
   g.gain.setValueAtTime(0.0001, when);
   g.gain.exponentialRampToValueAtTime(peak, when + attack);
   g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
@@ -30,7 +32,7 @@ function thump(ctx: AudioContext, dest: AudioNode, when: number, f0: number, f1:
   o.type = type;
   o.frequency.setValueAtTime(f0, when);
   o.frequency.exponentialRampToValueAtTime(f1, when + dur);
-  const g = ctx.createGain();
+  const g = vca(ctx);
   g.gain.setValueAtTime(0.0001, when);
   g.gain.exponentialRampToValueAtTime(peak, when + 0.008);
   g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
@@ -49,8 +51,18 @@ function claps(ctx: AudioContext, white: AudioBuffer, dest: AudioNode, when: num
   }
 }
 
-export function playBoutSfx(ctx: AudioContext, dest: AudioNode, white: AudioBuffer, kind: BoutSfx): void {
+/**
+ * Each effect's trim (dB), measured against the bout music (`node scripts/audio-lab.mjs sfx`): the cheer, the whistle and the
+ * tap-out land at about the music's level, the slap and the claps a little under, the timer tick is barely there.
+ */
+export const SFX_TRIM_DB: Record<BoutSfx, number> = { slap: 12.5, cheer: 8, gasp: 16, claps: 19, whistle: 7, tapout: 8, gong: 8.5, tick: 26 };
+
+export function playBoutSfx(ctx: AudioContext, out: AudioNode, white: AudioBuffer, kind: BoutSfx): void {
   const now = ctx.currentTime;
+  const dest = ctx.createGain();
+  dest.gain.value = Math.pow(10, SFX_TRIM_DB[kind] / 20);
+  dest.connect(out);
+  window.setTimeout(() => dest.disconnect(), 2500);
   switch (kind) {
     case 'slap':
       // the flat crack of two bodies on the mat plus a soft thump
@@ -81,7 +93,7 @@ export function playBoutSfx(ctx: AudioContext, dest: AudioNode, white: AudioBuff
         lfo.connect(lg);
         lg.connect(o.frequency);
         o.frequency.setValueAtTime(2350, now + dt);
-        const g = ctx.createGain();
+        const g = vca(ctx);
         g.gain.setValueAtTime(0.0001, now + dt);
         g.gain.exponentialRampToValueAtTime(0.07, now + dt + 0.02);
         g.gain.exponentialRampToValueAtTime(0.0001, now + dt + len);
