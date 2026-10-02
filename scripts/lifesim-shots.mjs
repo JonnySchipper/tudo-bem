@@ -153,10 +153,10 @@ async function panelShots(page, vp) {
   await shot(page, vp, 'pedido');
   await closeAll();
   await page.evaluate(() => window.__tb.net.send({ t: 'mg', action: 'start' }));
-  await page.waitForSelector('#mg-order', { timeout: 8000 });
+  await page.waitForSelector('#cr-order', { timeout: 8000 });
   await sleep(700);
   await shot(page, vp, 'meveum');
-  await page.click('#minigame .mg-head button.ghost');
+  await page.click('#cr-quit');
   await sleep(800);
   await closeAll();
   // the kitnet's decorate panel (furniture icons cropped from the atlas)

@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 /**
- * Me vê um… across server restarts, in a real browser. Starts (and restarts) its own server, always with a pinned game clock
- * (TB_TEST_CLOCK_OFFSET_MIN so it reads about 08:30 at every start; no outside server is needed, so nothing to pin).
+ * Correria no Balcão across server restarts, in a real browser (the file keeps its old name: `pnpm e2e:meveum`). Starts (and restarts) its own
+ * server, always with a pinned game clock (TB_TEST_CLOCK_OFFSET_MIN so it reads about 08:30 at every start; no outside server is needed) and with
+ * TB_TEST_MG=1 so a bot can read each customer's order lines from the snapshot instead of parsing the Portuguese.
  *
  *   pnpm build && pnpm e2e:meveum        # CHROME_PATH / SHOTS_DIR / E2E_MG_PORT optional
  *
- * A deploy restarts the server and drops every in-memory shift. The client reconnects in about a
- * second, before “Reconectando…” reads, and rejoins the Padaria with the panel still open. That
- * must end on a visible “perdi a comanda” card, not a locked tray on an empty bar.
+ * A deploy restarts the server and drops every in-memory shift. The client reconnects in about a second, before “Reconectando…” reads, and
+ * rejoins the Padaria with the counter overlay still open. That must end on a visible “perdi a comanda” card, not a frozen counter.
  *
- * Plays shift 1, taps Jogar de novo, then restarts the server twice during Pedido 1: once as the
- * bar empties and once mid-build. Both times the lost-shift card must appear (no RV, no footer).
- * The next shift's first timeout must still re-arm “de novo, devagar”.
+ * Plays a few customers of shift 1 through the real taps (grab, grill, pour, serve), checks the state the server sends, restarts the server
+ * once in the lull between customers and once mid-build (an item on the tray). Both times the lost-shift card must appear (no RV, no stats).
+ * The next shift must start clean afterwards. (A full shift is played in `e2e`; the server keeps shifts in memory on purpose.)
  */
 import { chromium } from 'playwright-core';
 import { findChrome } from './lib/chrome.mjs';
@@ -21,7 +21,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DAY_MIN, offsetMinFor } from './lib/clock-pin.mjs';
-import { assert, buildTrayItem, expectFirstTimeoutRearms, learnShelf, mgBar, mgState, playShift, sleep, trayFor, waitFor, waitForTicket } from './lib/meveum-play.mjs';
+import { assert, answerAsk, buildOrder, serve, sleep, snap, startShift, waitFor, waitFront, wantOf } from './lib/correria-play.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SERVER = path.join(ROOT, 'apps/server/dist/index.js');
@@ -65,7 +65,7 @@ async function startServer() {
   const child = spawn(process.execPath, [SERVER], {
     cwd: ROOT,
     // pinned game clock (Phase 10): every (re)start reads about 08:30, so the padaria's baker never depends on the hour of the real day
-    env: { ...process.env, PORT: String(PORT), HOST: '127.0.0.1', DATA_DIR, LIVEOPS_CPU_AMBIANCE: 'off', TB_TEST_CLOCK_OFFSET_MIN: String(offsetMinFor(DAY_MIN)) },
+    env: { ...process.env, PORT: String(PORT), HOST: '127.0.0.1', DATA_DIR, LIVEOPS_CPU_AMBIANCE: 'off', TB_TEST_MG: '1', TB_TEST_CLOCK_OFFSET_MIN: String(offsetMinFor(DAY_MIN)) },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   child.stdout.on('data', (d) => (serverLog += d));
@@ -111,14 +111,28 @@ async function signUp(page, name) {
   await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
 }
 
-async function openShift(page) {
-  await page.evaluate(() => window.__tb.net.send({ t: 'mg', action: 'start' }));
-  await page.waitForSelector('#mg-order', { timeout: 8000 });
-}
-
 const coins = (page) => page.evaluate(() => window.__tb.game.profile.coins);
 
-/** Restart during Pedido 1 and expect the lost-shift card instead of a frozen tray. */
+/** Serve one customer through the taps (and answer "Quanto é?" if they ask). */
+async function serveOne(page) {
+  const c = await waitFront(page);
+  const want = await wantOf(page, c);
+  await buildOrder(page, want);
+  const cur = (await snap(page)).customers.find((x) => x.id === c.id);
+  if (cur?.follow && !c.follow) await buildOrder(page, await wantOf(page, cur));
+  await serve(page);
+  await sleep(250);
+  const still = (await snap(page)).customers.find((x) => x.id === c.id && x.state === 'front');
+  if (still && still.mistakes > 0) {
+    await buildOrder(page, await wantOf(page, still));
+    await serve(page);
+    await sleep(250);
+  }
+  await answerAsk(page);
+  return c;
+}
+
+/** Restart and expect the lost-shift card instead of a frozen counter. */
 async function expectLostAfterRestart(page, label) {
   const before = await coins(page);
   const back = await restartServer();
@@ -128,25 +142,20 @@ async function expectLostAfterRestart(page, label) {
     .then(() => Date.now())
     .catch(() => 0);
   if (!seen) {
-    // Hold the frame Product saw, then report what the tray was doing.
+    // Hold the frame Product saw, then report what the counter was doing.
     await sleep(Math.max(0, 30_000 - (Date.now() - back)));
     await shot(page, `meveum_${label}_stall_30s`);
-    const stuck = await page.evaluate(() => ({
-      panel: !!document.querySelector('[data-modal="minigame"]'),
-      footer: !!document.querySelector('#mg-tray-place')?.offsetParent,
-    }));
-    throw new Error(
-      `${label}: no lost-shift card ${LOST_CARD_MS / 1000}s after the server came back (30s later: ${await mgState(page)} · bar ${await mgBar(page)} · panel ${stuck.panel} · footer ${stuck.footer})`,
-    );
+    const stuck = await page.evaluate(() => ({ overlay: !!document.querySelector('#correria'), serve: !!document.querySelector('#cr-serve')?.offsetParent, customers: window.__tb.correria.feed.snap?.customers.length ?? -1 }));
+    throw new Error(`${label}: no lost-shift card ${LOST_CARD_MS / 1000}s after the server came back (30s later: overlay ${stuck.overlay} · serve ${stuck.serve} · customers ${stuck.customers})`);
   }
   log(`${label}: lost-shift card ${((seen - back) / 1000).toFixed(1)}s after the server came back`);
   await sleep(250);
   await shot(page, `meveum_${label}_lost`);
   const card = (await page.textContent('#mg-end')) ?? '';
-  assert(/perdi a comanda/i.test(card), `${label}: Carlos says he lost the ticket (${card})`);
-  assert(!/RV|\/6|pontos/i.test(card), `${label}: lost card has no RV / score line (${card})`);
+  assert(/perdi a comanda/i.test(card), `${label}: Seu Carlos says he lost the order slip (${card})`);
+  assert(!/RV|\/15|pontos/i.test(card), `${label}: lost card has no RV / score line (${card})`);
   assert(!(await page.$('#mg-end .big')), `${label}: no “+N RV” headline`);
-  assert(!(await page.isVisible('#mg-tray-place')) && !(await page.isVisible('#mg-submit')) && !(await page.isVisible('#mg-clear')), `${label}: footer hidden on Fim do turno`);
+  assert(!(await page.isVisible('#cr-serve')), `${label}: the counter strip is hidden on Fim do turno`);
   assert(await page.isVisible('#mg-end button:has-text("Sair")'), `${label}: Sair`);
   assert(await page.isVisible('#mg-end button:has-text("Jogar de novo")'), `${label}: Jogar de novo`);
   assert((await coins(page)) === before, `${label}: a lost shift pays nothing`);
@@ -169,46 +178,44 @@ async function main() {
     await page.evaluate(() => window.__tb.net.send({ t: 'join', room: 'padaria' }));
     await waitFor(page, () => window.__tb.game.room?.room === 'padaria', null, 8000, 'padaria');
 
-    // Shift 1, played straight through.
-    await openShift(page);
-    await learnShelf(page);
-    await playShift(page, { log });
-    const paid = await page.textContent('#mg-end .big');
-    assert(/\+\d+ RV/.test(paid ?? ''), `shift 1 pays (${paid})`);
-    assert(!(await page.isVisible('#mg-tray-place')), 'Fim do turno hides the tray footer');
-    log('shift 1 done:', paid);
+    // Shift 1: the counter opens, customers come, two are served through the taps.
+    await startShift(page);
+    assert(await page.isVisible('#cr-panel'), 'the counter strip is up');
+    assert(!(await page.$('[data-modal="minigame"]')), 'no modal over the padaria');
+    const first = await waitFront(page);
+    log(`customer 1 (${first.who.name}): “${first.pt}”`);
+    for (let i = 0; i < 2; i++) {
+      const c = await serveOne(page);
+      log(`served “${c.pt}”`);
+    }
+    await waitFor(page, () => window.__tb.correria.feed.snap?.stats.served >= 2, null, 8000, 'two served');
+    await shot(page, 'meveum_shift1_served');
+    const points = await page.textContent('#cr-points');
+    assert(Number(points) > 0, `points on the HUD (${points})`);
 
-    // Jogar de novo, then a deploy lands as Pedido 1's bar runs out.
-    await page.click('#mg-end button:has-text("Jogar de novo")');
-    await waitForTicket(page, 0);
-    await waitFor(
-      page,
-      () => {
-        const m = /scaleX\(([\d.e-]+)\)/.exec(document.querySelector('#minigame .timer > div')?.style.transform ?? '');
-        return !!m && Number(m[1]) < 0.1;
-      },
-      null,
-      135_000,
-      'Pedido 1 bar nearly empty',
-    );
-    await expectLostAfterRestart(page, 'restart_bar_empty');
+    // A deploy lands in the lull after a serve.
+    await expectLostAfterRestart(page, 'restart_between');
 
     // Jogar de novo from the lost card, then a deploy lands mid-build.
     await page.click('#mg-end button:has-text("Jogar de novo")');
-    await waitForTicket(page, 0);
-    const text = await page.textContent('#mg-order');
-    const { tray, mods } = await trayFor(page, text);
-    const [first] = Object.keys(tray);
-    await buildTrayItem(page, first, mods.some((m) => m.startsWith('pra ')), []);
-    await page.click(`#mg-shelves [data-item="${first}"]`);
-    await waitFor(page, () => !!document.querySelector('#mg-wip img') && !!document.querySelector('#mg-tray button'), null, 3000, 'mid-build tray');
-    log(`mid-build on “${text}”`);
+    await waitFor(page, () => !!window.__tb.correria.feed.snap, null, 8000, 'a fresh shift');
+    const c2 = await waitFront(page);
+    const want = await wantOf(page, c2);
+    const first2 = want.lines.find((l) => !['pao_na_chapa', 'misto_quente', 'cafe', 'cafe_com_leite'].includes(l.itemId)) ?? null;
+    if (first2) await page.click(`#cr-item-${first2.itemId}`);
+    else await page.click('#cr-item-pao');
+    await waitFor(page, () => (window.__tb.correria.feed.snap?.tray.length ?? 0) > 0, null, 4000, 'an item on the tray');
+    log(`mid-build on “${c2.pt}”`);
     await expectLostAfterRestart(page, 'restart_mid_build');
 
-    // The next shift still re-arms its first timeout.
+    // The next shift still starts clean: customers arrive, the first one orders.
     await page.click('#mg-end button:has-text("Jogar de novo")');
-    await expectFirstTimeoutRearms(page, log);
-    await shot(page, 'meveum_next_shift_denovo');
+    await waitFor(page, () => !!window.__tb.correria.feed.snap, null, 8000, 'the next shift');
+    const fresh = await waitFront(page);
+    const s = await snap(page);
+    assert(s.stats.served === 0 && s.stats.points === 0 && s.tray.length === 0, 'a clean next shift');
+    log(`next shift: “${fresh.pt}”`);
+    await shot(page, 'meveum_next_shift');
 
     assert(!errors.length, `no page errors: ${errors.join(' | ')}`);
   } finally {
@@ -216,7 +223,7 @@ async function main() {
     await stopServer();
     fs.rmSync(DATA_DIR, { recursive: true, force: true });
   }
-  console.log('\n  ✓ Me vê um… survives server restarts\n');
+  console.log('\n  ✓ Correria no Balcão survives server restarts\n');
 }
 
 main().catch(async (e) => {

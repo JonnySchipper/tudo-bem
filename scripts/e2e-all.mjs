@@ -41,6 +41,7 @@ const server = spawn(process.execPath, [SERVER], {
     HOST: '127.0.0.1',
     DATA_DIR,
     TB_TEST_ROLL: '1',
+    TB_TEST_MG: '1',
     TB_TEST_CLOCK_CONTROL: '1',
     TB_TEST_OFFER: 'carlos_cafe_pra_nanda',
   },

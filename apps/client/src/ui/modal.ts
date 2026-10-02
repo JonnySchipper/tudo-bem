@@ -13,9 +13,8 @@ export function modalId() {
 
 export function openModal(id: string, content: HTMLElement, opts: { onClose?: () => void; clear?: boolean; dismissable?: boolean } = {}) {
   closeModal();
-  const mg = id === 'minigame';
   const backdrop = h('div', {
-    class: `backdrop ${mg ? 'mg-backdrop' : ''} ${opts.clear ? 'clear' : ''}`,
+    class: `backdrop ${opts.clear ? 'clear' : ''}`,
     'data-modal': id,
   });
   backdrop.append(content);
@@ -31,7 +30,7 @@ export function openModal(id: string, content: HTMLElement, opts: { onClose?: ()
   };
   document.addEventListener('keydown', onKey);
   if (opts.dismissable !== false && !opts.clear) backdrop.addEventListener('mousedown', (e) => e.target === backdrop && close());
-  (mg ? document.body : ui()).append(backdrop);
+  ui().append(backdrop);
   current = { el: backdrop, close, id };
   game.modalOpen = true;
   return close;

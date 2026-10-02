@@ -136,7 +136,7 @@ export type MissionStep = 'cumprimenta' | 'pede' | 'monta';
 export const MISSION_STEPS: ({ id: MissionStep } & Bilingual)[] = [
   { id: 'cumprimenta', pt: 'Cumprimenta alguém na praça', en: 'Greet someone in the plaza' },
   { id: 'pede', pt: 'Pede o café da manhã com o Seu Carlos', en: 'Order breakfast with Seu Carlos' },
-  { id: 'monta', pt: 'Monta um pedido em Me vê um…', en: 'Build an order in Me vê um…' },
+  { id: 'monta', pt: 'Monte um pedido na Correria no Balcão', en: 'Fill an order in Correria no Balcão' },
 ];
 
 export const MISSION_COPY = {

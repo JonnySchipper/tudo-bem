@@ -2,6 +2,8 @@ import type { FloorKind, RoomId } from '@tudobem/shared';
 import { INTRO_BED_LEVEL, IntroMusic } from './audio/introBed';
 import { FOOTSTEPS, SILENT_MIX, stepPitch, type ZoneMix } from './audio/zones';
 import { playBoutSfx, type BoutSfx } from './audio/boutSfx';
+import { playCorreriaSfx, type CorreriaSfx } from './audio/correriaSfx';
+const CORRERIA_SFX = ['grab', 'sizzle', 'ready', 'burnt', 'pour', 'ding', 'clink', 'cash', 'paper', 'chime', 'nope', 'combo'] as const;
 
 /**
  * Room beds made in Web Audio — no samples, no paid service.
@@ -528,12 +530,13 @@ class Ambience {
   }
 
   /** One bout sound effect (mat slap, crowd, whistle...). Silent until the browser lets the context run; goes through the same duck gain as the beds. */
-  sfx(kind: BoutSfx) {
+  sfx(kind: BoutSfx | CorreriaSfx) {
     const ctx = this.ctx;
     if (!ctx || !this.bedIn || !this.unlocked || ctx.state !== 'running') return;
     this.whiteBuf ??= whiteBuffer(ctx, 1);
     try {
-      playBoutSfx(ctx, this.bedIn, this.whiteBuf, kind);
+      if ((CORRERIA_SFX as readonly string[]).includes(kind) && kind !== 'tick') playCorreriaSfx(ctx, this.bedIn, this.whiteBuf, kind as CorreriaSfx);
+      else playBoutSfx(ctx, this.bedIn, this.whiteBuf, kind as BoutSfx);
     } catch {
       /* an effect must never break the game */
     }

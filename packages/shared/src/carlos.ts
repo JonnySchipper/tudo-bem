@@ -225,8 +225,8 @@ const NODES: Record<string, NodeDef> = {
     cards: ['lex.padaria.ta_na_mao', 'lex.padaria.volte_sempre'],
     end: true,
     line: (_c, kin) => ({
-      pt: `Tá na mão${kin()}. Volte sempre! Quer ajudar no balcão? É o “Me vê um…”.`,
-      en: 'Here you go. Come back anytime! Want to help at the counter? It’s the “Me vê um…” game.',
+      pt: `Tá na mão${kin()}. Volte sempre! Quer ajudar no balcão? É a “Correria no Balcão”.`,
+      en: 'Here you go. Come back anytime! Want to help at the counter? It’s the “Correria no Balcão” (Counter Rush) game.',
     }),
     chips: [],
   },

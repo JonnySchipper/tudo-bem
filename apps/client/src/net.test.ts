@@ -123,7 +123,7 @@ describe('Net reconnect', () => {
     net.connect();
     sockets[0]!.open();
     sockets[0]!.serverClose(1006);
-    net.send({ t: 'mg', action: 'timeout' });
+    net.send({ t: 'mg', action: 'sync' });
     net.send({ t: 'move', x: 1, y: 2 });
     vi.advanceTimersByTime(500);
     sockets[1]!.open();

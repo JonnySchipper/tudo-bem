@@ -619,7 +619,7 @@ export function sanitizeAct(raw: unknown): CAct | null {
 
 // ---------------------------------------------------------------- the shift
 
-const WAVE_GAP_MS = [11_000, 9_000, 7_500];
+const WAVE_GAP_MS = [10_000, 8_000, 6_500];
 const WAVE_PATIENCE = [1, 0.85, 0.7];
 
 /** Patience a customer starts with, from how long their order takes to build. Always at least 16 s. */
