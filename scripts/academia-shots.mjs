@@ -5,7 +5,7 @@
  *   pnpm build && node scripts/serve-static.mjs apps/client/dist 9211 / &
  *   BASE_URL=http://localhost:9211/ node scripts/academia-shots.mjs            # SHOTS_DIR (default docs/lifesim/shots/academia), VIEWS=desktop,phone,land
  *
- * desktop: lobby, the walk-in, the intent choice, challenges of every kind, a transition mid-clip, the finalização chance and its prompt,
+ * desktop: lobby, the walk-in, the intent choice, challenges of every kind, a transition mid-clip, the Final chance and its prompt,
  * the tap, the win. phone portrait and landscape: lobby, intent, a challenge, the end card (with the measured share of the screen the panel covers).
  */
 import { chromium } from 'playwright-core';
@@ -101,7 +101,7 @@ async function run(name) {
           if (fin === 'true' && !finishShot) {
             finishShot = true;
             await sleep(500);
-            await shot('finalizacao_chance');
+            await shot('final_chance');
           } else if (!seen.has('intent')) {
             seen.add('intent');
             await sleep(300);
@@ -222,7 +222,7 @@ async function runPartner() {
 const seen = new Set();
 
 /**
- * The player's finish (desktop): the player is put on top with a full pegada, so the Finalização! chance appears; the prompt, the tap
+ * The player's finish (desktop): the player is put on top with a full pegada, so the Final! chance appears; the prompt, the tap
  * (the partner's hand in the air) and the raised hand follow.
  */
 async function runFinish() {

@@ -19,7 +19,7 @@ import {
   type ChallengeView,
   type ClientMsg,
   type PartnerId,
-  POSITION_LABELS,
+  boutStepLabel,
 } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en } from './dom';
@@ -296,8 +296,8 @@ export class BoutUI {
       ? h(
           'button',
           { class: 'bout-intent finalizar', type: 'button', 'data-intent': 'finalizar', onclick: () => this.pickIntent(m.seq, 'finalizar') },
-          h('b', { class: 'pt' }, 'Finalização!'),
-          en('Go for the submission'),
+          h('b', { class: 'pt' }, 'Final!'),
+          en('Go for the finish'),
         )
       : null;
     if (m.finish) {
@@ -345,8 +345,8 @@ export class BoutUI {
     this.setSnap(m.st);
     this.startTimer(m.limitMs);
     const c = m.challenge;
-    const role = m.role === 'finish' ? 'Finalização' : m.role === 'escape' ? 'Defesa' : null;
-    const roleEn = m.role === 'finish' ? (m.steps > 1 ? `Submission: step ${m.step} of ${m.steps}` : 'Submission') : m.role === 'escape' ? 'Escape!' : '';
+    const role = m.role === 'finish' ? 'Final' : m.role === 'escape' ? 'Defesa' : null;
+    const roleEn = m.role === 'finish' ? (m.steps > 1 ? `Finish: step ${m.step} of ${m.steps}` : 'Finish') : m.role === 'escape' ? 'Escape!' : '';
     const head = h(
       'div',
       { class: 'bout-chead' },
@@ -627,9 +627,9 @@ export class BoutUI {
       this.meters.replaceChildren();
       return;
     }
-    const pos = POSITION_LABELS[s.position];
-    const who = s.ahead === 'you' ? 'você por cima' : s.ahead === 'partner' ? `${this.partnerName} por cima` : 'em pé';
-    const whoEn = s.ahead === 'you' ? 'you on top' : s.ahead === 'partner' ? 'partner on top' : 'standing';
+    const step = boutStepLabel(s.rung);
+    const who = s.ahead === 'you' ? 'Você por cima' : s.ahead === 'partner' ? `${this.partnerName} por cima` : null;
+    const whoEn = s.ahead === 'you' ? 'you on top' : s.ahead === 'partner' ? 'partner on top' : null;
     const frac = momentumFrac(s.momentum);
     const bar = h(
       'div',
@@ -646,7 +646,7 @@ export class BoutUI {
     );
     const ladder = h('div', { class: 'bout-ladder', id: 'bout-ladder', 'data-rung': String(s.rung) }, ...ladderDots(s.rung).map((d) => h('i', { class: `${d.here ? 'here' : ''} ${d.filled ? 'fill' : ''}${d.rung === 0 ? ' mid' : ''}`.trim() })));
     this.meters.replaceChildren(
-      h('div', { class: 'bout-pos', id: 'bout-pos', 'data-pos': s.position }, h('b', null, pos.pt), ' ', h('span', { class: 'who' }, `· ${who}`), en(` ${pos.en} · ${whoEn}`)),
+      h('div', { class: 'bout-pos', id: 'bout-pos', 'data-pos': s.position }, h('b', null, step.pt), who ? ' ' : '', who ? h('span', { class: 'who' }, `· ${who}`) : '', en(who ? ` ${step.en} · ${whoEn}` : ` ${step.en}`)),
       bar,
       h('div', { class: 'bout-row2' }, pegada, ladder),
     );

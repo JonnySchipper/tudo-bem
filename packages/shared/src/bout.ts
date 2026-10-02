@@ -15,7 +15,7 @@
 import type { Bilingual } from './types.js';
 import type { Rng } from './meveum.js';
 import { mulberry32 } from './meveum.js';
-import { POSITION_LABELS, type BjjPositionId, type BoutReason, type BoutWinner, type PartnerProfile } from './academia.js';
+import { type BjjPositionId, type BoutReason, type BoutWinner, type PartnerProfile } from './academia.js';
 import type { ChallengeKind } from './challenges.js';
 
 export const BOUT_PROTOCOL_VERSION = 1;
@@ -181,8 +181,6 @@ export function positionOf(st: Pick<BoutState, 'rung' | 'top'>): PositionView {
 }
 
 export const rungOfPosition = (id: BjjPositionId): number => ({ de_pe: 0, guarda_fechada: 1, meia_guarda: 1, cem_quilos: 2, joelho: 3, montada: 4, costas: 4 })[id];
-
-export const positionLabel = (id: BjjPositionId): Bilingual => POSITION_LABELS[id];
 
 /** Every ordered pair of positions one rung apart (the transition art: `bjj/trans_<from>__<to>_<n>`), both directions. */
 export const ADJACENT_POSITIONS: readonly (readonly [BjjPositionId, BjjPositionId])[] = [
@@ -425,8 +423,8 @@ export function decide(st: BoutState): { winner: BoutWinner; reason: Exclude<Bou
 export function endLine(winner: BoutWinner, reason: BoutReason): Bilingual {
   if (reason === 'finalizacao') {
     return winner === 'you'
-      ? { pt: 'Finalização! Vitória sua!', en: 'Submission! You win!' }
-      : { pt: 'Finalização! Boa defesa da próxima vez.', en: 'Submission! Better defence next time.' };
+      ? { pt: 'Final! Vitória sua!', en: 'Finish! You win!' }
+      : { pt: 'Final! Boa defesa da próxima vez.', en: 'Finish! Better defence next time.' };
   }
   if (reason === 'quit') return { pt: 'Partida encerrada.', en: 'Match ended.' };
   if (winner === 'draw') return { pt: 'Empate!', en: 'A draw!' };
