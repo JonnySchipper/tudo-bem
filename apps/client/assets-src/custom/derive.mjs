@@ -35,6 +35,7 @@ import * as padariaMod from './padaria.mjs';
 import * as kitnetMod from './kitnet.mjs';
 import * as gymMod from './gym.mjs';
 import * as v2Mod from './v2.mjs';
+import * as bjjMod from './bjj.mjs';
 
 export const PREP = v2Mod.PREP;
 
@@ -43,6 +44,7 @@ export const DERIVE = {
   ...padariaMod.DERIVE_PADARIA,
   ...kitnetMod.DERIVE_KITNET,
   ...gymMod.DERIVE_GYM,
+  ...bjjMod.DERIVE_BJJ,
   wallSet: wallsMod.wallSet,
   wallDecor: wallsMod.wallDecor,
   doorPart: wallsMod.doorPart,

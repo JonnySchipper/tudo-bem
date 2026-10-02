@@ -1,0 +1,7 @@
+{
+  "$comment": "Academia roll redesign (art): two-person BJJ sprites (bjj/*), referee signals and the scoreboard prop. Generators: custom/bjj*.mjs.",
+  "sprites": [
+    {"key":"bjj/pair_de_pe_0","kind":"derive","fn":"bjjSet","shadow":null},
+    {"key":"props/placar","kind":"derive","fn":"bjjPlacar","footprint":[2,1],"shadow":"fx/shadow_32"}
+  ]
+}

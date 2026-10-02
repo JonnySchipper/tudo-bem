@@ -10,7 +10,7 @@
  * same rank from a ramp generated from the appearance color.
  */
 
-export type RampName = 'skin' | 'hair' | 'top' | 'bottom' | 'shoes' | 'hat' | 'accent';
+export type RampName = 'skin' | 'hair' | 'top' | 'bottom' | 'shoes' | 'hat' | 'accent' | 'skin2' | 'hair2' | 'belt';
 
 /** Exact key colors per ramp, darkest to lightest. Layers in the canonical sheets use these. */
 export const KEY_RAMPS: Record<RampName, readonly string[]> = {
@@ -22,6 +22,10 @@ export const KEY_RAMPS: Record<RampName, readonly string[]> = {
   /** hat body color (catalog HatDef.color) and trim color (HatDef.accent) */
   hat: ['#80a000', '#a0c000', '#c0e000', '#e0ff20'],
   accent: ['#00a0a0', '#00d0d0', '#20ffff'],
+  /** BJJ pair sprites (bjj/*): the second fighter's skin and hair, and fighter A's belt (white or blue at runtime). */
+  skin2: ['#a03a00', '#c05000', '#e06800', '#ff8020'],
+  hair2: ['#5a00a0', '#7000c0', '#8800e0', '#a020ff'],
+  belt: ['#406040', '#608060', '#80a080'],
 };
 
 /**
