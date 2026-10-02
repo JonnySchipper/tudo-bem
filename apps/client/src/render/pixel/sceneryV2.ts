@@ -64,6 +64,7 @@ const V2: Record<string, V2Room> = {
     hopscotch: { x: 24, y: 22 },
     bowl: { x: 4.4, y: 21.8 },
   },
+  rua: { towels: [], patches: [], hopscotch: { x: 18, y: 13 } }, // chalk on the brick path down to the praça
   feira: { towels: [], patches: [], market: { x0: 3, y0: 2, x1: 30, y1: 18 } },
 };
 
@@ -108,7 +109,8 @@ export function v2Decals(def: RoomDef, has: (key: string) => boolean): Decal[] {
   const m = v.market;
   if (m) {
     const occupied = new Set<string>();
-    for (const p of def.props) for (const t of propTiles(p)) occupied.add(`${t.x},${t.y}`);
+    // a fence's footprint is the whole lot it encloses, but only its ring is solid: the setts inside stay dressable
+    for (const p of def.props) for (const t of propTiles(p)) if (p.kind !== 'cerca' || t.x === p.x || t.y === p.y || t.x === p.x + (p.w ?? 1) - 1 || t.y === p.y + (p.h ?? 1) - 1) occupied.add(`${t.x},${t.y}`);
     for (let y = m.y0; y <= m.y1; y++) {
       for (let x = m.x0; x <= m.x1; x++) {
         if (def.floor[y]?.[x] !== 'p' || occupied.has(`${x},${y}`)) continue;

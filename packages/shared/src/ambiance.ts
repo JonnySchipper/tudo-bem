@@ -42,7 +42,7 @@ type AmbMap = { spots: Tile[]; doorSpots: Tile[]; entries: Tile[]; feiraSpots?: 
 
 /** Rua dos Ipês: the sidewalks and the lawn strip. Kept off doors, arrival tiles, spawn and every interact tile. */
 export const RUA_AMBIANCE: AmbMap = {
-  spots: [{ x: 13, y: 7 }, { x: 20, y: 6 }, { x: 24, y: 7 }, { x: 33, y: 6 }, { x: 31, y: 13 }, { x: 8, y: 13 }, { x: 20, y: 13 }, { x: 5, y: 13 }, { x: 37, y: 6 }],
+  spots: [{ x: 13, y: 7 }, { x: 20, y: 6 }, { x: 24, y: 7 }, { x: 33, y: 6 }, { x: 30, y: 13 }, { x: 8, y: 13 }, { x: 16, y: 13 }, { x: 5, y: 13 }, { x: 37, y: 6 }],
   /** Near the Padaria entrance (CPUs never go in). */
   doorSpots: [{ x: 3, y: 7 }, { x: 4, y: 7 }, { x: 6, y: 6 }],
   /** Where CPUs walk in from / out to: the street ends, and the brick path to the praça. */
@@ -59,7 +59,7 @@ export const PRACA_AMBIANCE: AmbMap = {
 /** Feira Livre: the aisle and the free paving; while the feira is open (06:00-13:00) the shoppers browse in front of the stalls, never on a vendor's talking spot. */
 export const FEIRA_AMBIANCE: AmbMap = {
   spots: [{ x: 4, y: 9 }, { x: 15, y: 9 }, { x: 18, y: 8 }, { x: 20, y: 6 }, { x: 22, y: 14 }, { x: 19, y: 15 }, { x: 26, y: 8 }, { x: 10, y: 16 }, { x: 24, y: 15 }, { x: 3, y: 13 }],
-  doorSpots: [{ x: 3, y: 8 }, { x: 3, y: 9 }, { x: 4, y: 10 }],
+  doorSpots: [{ x: 4, y: 8 }, { x: 3, y: 9 }, { x: 4, y: 10 }],
   entries: [{ x: 1, y: 8 }, { x: 1, y: 9 }],
   feiraSpots: [{ x: 6, y: 6 }, { x: 8, y: 6 }, { x: 12, y: 6 }, { x: 14, y: 6 }, { x: 6, y: 14 }, { x: 8, y: 14 }, { x: 12, y: 14 }, { x: 14, y: 14 }, { x: 9, y: 9 }, { x: 11, y: 9 }],
 };

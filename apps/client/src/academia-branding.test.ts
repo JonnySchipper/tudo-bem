@@ -25,7 +25,7 @@ describe('Academia do Bairro branding (no Gracie)', () => {
   it('room def and Praça portal use Academia do Bairro', () => {
     expect(ROOMS.academia.name).toBe('Academia do Bairro');
     expect(ROOMS.academia.gloss).toBe('Neighborhood Academy');
-    const portal = ROOMS.praca.portals.find((p) => p.to === 'academia');
+    const portal = ROOMS.rua.portals.find((p) => p.to === 'academia');
     expect(portal?.label.pt).toBe('Academia do Bairro');
     expect(portal?.label.en).toBe('Neighborhood Academy');
     const placa = ROOMS.academia.walls.find((w) => w.kind === 'placa');

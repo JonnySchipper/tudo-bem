@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { CLOCK_OFFSET_MS, DEFAULT_APPEARANCE, GAME_DAY_MS, ROOMS, type ClientMsg, type ServerMsg } from '@tudobem/shared';
+import { CLOCK_OFFSET_MS, DEFAULT_APPEARANCE, GAME_DAY_MS, ROOMS, type ClientMsg, type RoomId, type ServerMsg } from '@tudobem/shared';
 import { World, type Session } from './world.js';
 import { ProfileStore } from './store.js';
 import { FEIRA_RV_CHANGE, FEIRA_RV_EXACT, FEIRA_RV_PER_DAY } from './feira.js';
@@ -38,13 +38,13 @@ interface Client {
 }
 
 let n = 0;
-async function client(world: World): Promise<Client> {
+async function client(world: World, room: RoomId = 'feira'): Promise<Client> {
   const inbox: ServerMsg[] = [];
   const s = world.connect(`f${n++}`, (m) => inbox.push(m), () => {});
   const c: Client = { s, inbox, send: (m) => world.handle(s, m), last: (t) => [...inbox].reverse().find((m) => m.t === t) as never };
   await c.send({ t: 'hello' });
   await c.send({ t: 'createProfile', name: `Feira${n++}`, pronoun: 'ela', appearance: DEFAULT_APPEARANCE });
-  await c.send({ t: 'join', room: 'praca' });
+  await c.send({ t: 'join', room });
   return c;
 }
 
@@ -56,7 +56,8 @@ async function walkTo(c: Client, x: number, y: number) {
   advance(14_000);
 }
 
-const tiaLu = ROOMS.praca.npcs.find((x) => x.id === 'tia_lu')!;
+// split areas: the stalls and their vendors are in the Feira Livre (a player joining `feira` starts at its gate), Nanda is in the praça, the Hortifrúti crate at the banca on the rua
+const tiaLu = ROOMS.feira.npcs.find((x) => x.id === 'tia_lu')!;
 const nanda = ROOMS.praca.npcs.find((x) => x.id === 'nanda')!;
 
 describe('feira: "Quanto custa?" and the payment (Phase 9)', () => {
@@ -68,7 +69,7 @@ describe('feira: "Quanto custa?" and the payment (Phase 9)', () => {
   it('answers a price only next to the vendor, only for what the stall sells', async () => {
     const world = makeWorld(9 * 60);
     const a = await client(world);
-    // far away (the spawn is on the praça)
+    // far away (the spawn is at the gate of the feira)
     await a.send({ t: 'feira', action: 'price', vendor: 'tia_lu', itemId: 'banana' });
     expect(errors(a).at(-1)?.code).toBe('far');
     expect(feiraMsgs(a)).toHaveLength(0);
@@ -185,6 +186,9 @@ describe('feira: "Quanto custa?" and the payment (Phase 9)', () => {
     expect(p.recados!.active).toEqual([{ id: 'tia_lu_banana_pra_nanda', step: 1 }]);
     expect(p.bag?.banana).toBe(1);
 
+    // out through the gate (a walk that ends on the west edge carries you into the praça), then to Nanda's stall
+    await walkTo(a, 0, 8);
+    expect(a.last('roomState')?.room).toBe('praca');
     await walkTo(a, nanda.interact.x, nanda.interact.y);
     const coins = p.coins;
     await a.send({ t: 'give', npc: 'nanda', itemId: 'banana' });
@@ -200,7 +204,7 @@ describe('feira: "Quanto custa?" and the payment (Phase 9)', () => {
     p.bond = { tia_lu: 10 };
     p.recados!.offered = ['tia_lu_flores_pra_julia'];
     await a.send({ t: 'recados', action: 'accept', id: 'tia_lu_flores_pra_julia' });
-    const rosa = ROOMS.praca.npcs.find((x) => x.id === 'rosa')!;
+    const rosa = ROOMS.feira.npcs.find((x) => x.id === 'rosa')!;
     await walkTo(a, rosa.interact.x, rosa.interact.y);
     await a.send({ t: 'feira', action: 'pay', vendor: 'rosa', itemId: 'flores', qty: 1, paid: [1000, 200] });
     expect(p.recados!.active).toEqual([{ id: 'tia_lu_flores_pra_julia', step: 1 }]);
@@ -228,11 +232,11 @@ describe('feira: hours and the Hortifrúti corner (D12: every learning activity 
 
   it('the Hortifrúti corner at the banca sells fruit, vegetables and flowers at 15:00 (and finishes the recado)', async () => {
     const world = makeWorld(15 * 60);
-    const a = await client(world);
+    const a = await client(world, 'rua');
     const p = a.s.profile!;
     p.recados!.offered = ['tia_lu_banana_pra_nanda'];
     await a.send({ t: 'recados', action: 'accept', id: 'tia_lu_banana_pra_nanda' });
-    const crate = ROOMS.praca.props.find((x) => x.vendor === 'banca')!;
+    const crate = ROOMS.rua.props.find((x) => x.vendor === 'banca')!;
     // far from the crates: refused
     await a.send({ t: 'feira', action: 'price', vendor: 'banca', itemId: 'banana' });
     expect(errors(a).at(-1)?.code).toBe('far');

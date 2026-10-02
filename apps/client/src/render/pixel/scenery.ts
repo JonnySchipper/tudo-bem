@@ -58,7 +58,7 @@ const DRESSING: Record<string, RoomDressing> = {
   // W3: the dashes run between the two lanes (ambientData.ts: feet at +17 and +36); the crosswalks line up with the doors and the brick path
   rua: {
     streets: [{ y0: 8, y1: 11, dashDy: 26 }],
-    crosswalks: [{ x: 8, y: 8 }, { x: 12, y: 8 }, { x: 19, y: 8 }, { x: 31, y: 8 }],
+    crosswalks: [{ x: 8, y: 8 }, { x: 12, y: 8 }, { x: 19, y: 8 }],
     mosaics: [],
     busBay: { x: 24, y: 10, w: 7, py: 8 * T + 36 - 20 },
     manholes: [{ x: 14, y: 9 }, { x: 5, y: 10 }, { x: 35, y: 11 }, { x: 22, y: 9 }],

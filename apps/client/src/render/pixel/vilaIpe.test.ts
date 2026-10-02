@@ -10,7 +10,10 @@ import { sceneryFor } from './scenery';
 
 const manifest = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../../public/pixel/manifest.json'), 'utf8')) as Manifest;
 const has = (k: string) => k in manifest.sprites;
-const vila = ROOMS.praca;
+const AREAS = ['rua', 'praca', 'feira'] as const;
+const rua = ROOMS.rua;
+const praca = ROOMS.praca;
+const allProps = AREAS.flatMap((id) => ROOMS[id].props);
 
 /** World rects of everything a prop draws: its sprite, the overhead part (canopy, awning) and, for a fence, every piece. */
 function propRects(p: PropDef): Rect[] {
@@ -51,9 +54,9 @@ function detailTiles(room: RoomDef): Set<string> {
   return set;
 }
 
-describe('Vila Ipê art coverage', () => {
+describe('Vila Ipê art coverage (rua, praça, feira)', () => {
   it('every prop resolves to a sprite of the manifest (fences by their pieces)', () => {
-    for (const p of vila.props) {
+    for (const p of allProps) {
       const keys = p.kind === 'cerca' ? fencePieces(p).map((f) => f.key) : (propSlices(p)?.map((s) => s.key) ?? [propArtKey(p)]);
       expect(keys.length, p.id).toBeGreaterThan(0);
       for (const k of keys) expect(k && has(k), `${p.id} (${p.kind}) -> ${k}`).toBe(true);
@@ -61,7 +64,7 @@ describe('Vila Ipê art coverage', () => {
   });
 
   it('the building fronts and roofs are as wide and as tall as their footprints', () => {
-    for (const p of vila.props.filter((q) => q.kind === 'fachada')) {
+    for (const p of allProps.filter((q) => q.kind === 'fachada')) {
       const d = manifest.sprites[p.art!];
       expect(d.w, `${p.id} width`).toBe((p.w ?? 1) * T);
       // the body is `h` rows tall; a rooftop that pokes above it (the Edifício) is cropped by the map top
@@ -70,15 +73,21 @@ describe('Vila Ipê art coverage', () => {
   });
 
   it('every decal and wire key of the scenery exists', () => {
-    const sc = sceneryFor(vila, () => true)!;
-    expect(sc.decals.length).toBeGreaterThan(100);
-    for (const d of sc.decals) expect(has(d.key), d.key).toBe(true);
-    for (const w of sc.wires) for (const k of w.keys) expect(has(k), k).toBe(true);
-    expect(sc.wires.length).toBeGreaterThanOrEqual(5);
+    let decals = 0;
+    for (const id of AREAS) {
+      const sc = sceneryFor(ROOMS[id], () => true)!;
+      decals += sc.decals.length;
+      for (const d of sc.decals) expect(has(d.key), d.key).toBe(true);
+      for (const w of sc.wires) for (const k of w.keys) expect(has(k), k).toBe(true);
+    }
+    expect(decals).toBeGreaterThan(100);
+    // the utility poles and their wires are along the rua
+    expect(sceneryFor(rua, () => true)!.wires.length).toBeGreaterThanOrEqual(2);
+    expect(sceneryFor(praca, () => true)!.wires).toEqual([]);
   });
 
   it('is deterministic', () => {
-    expect(JSON.stringify(sceneryFor(vila, has))).toBe(JSON.stringify(sceneryFor(vila, has)));
+    for (const id of AREAS) expect(JSON.stringify(sceneryFor(ROOMS[id], has))).toBe(JSON.stringify(sceneryFor(ROOMS[id], has)));
   });
 
   it('the interiors have no outdoor scenery', () => {
@@ -86,11 +95,13 @@ describe('Vila Ipê art coverage', () => {
   });
 
   it('the camera bounds of the open-air map are the map plus its 2 tile sky margin', () => {
-    expect(roomBounds(vila, 999)).toEqual({ x0: 0, y0: -2 * T, x1: 56 * T, y1: 40 * T });
+    expect(roomBounds(rua, 999)).toEqual({ x0: 0, y0: -2 * T, x1: 40 * T, y1: 16 * T });
+    expect(roomBounds(praca, 999)).toEqual({ x0: 0, y0: -2 * T, x1: 32 * T, y1: 24 * T });
+    expect(roomBounds(ROOMS.feira, 999)).toEqual({ x0: 0, y0: -2 * T, x1: 32 * T, y1: 20 * T });
   });
 
   it('an outdoor door has a click box around its door art, at least a tile', () => {
-    for (const p of vila.portals) {
+    for (const p of rua.portals.filter((q) => !q.edge)) {
       const r = portalHitRect(p);
       expect(r).toEqual(outdoorDoorRect(p));
       expect(r.x1 - r.x0).toBeGreaterThanOrEqual(T);
@@ -101,32 +112,44 @@ describe('Vila Ipê art coverage', () => {
   });
 
   it('a building front sorts behind a walker on its door tile but in front of the sidewalk behind it', () => {
-    const padaria = vila.props.find((p) => p.id === 'padaria')!;
+    const padaria = rua.props.find((p) => p.id === 'padaria')!;
     const a = propAnchor(padaria);
     const feetOnDoor = (5 + 1) * T - 3;
     expect(propDepth(padaria, a.wy)).toBeLessThan(feetOnDoor);
   });
 
-  it('has no empty 4x4 patch of tiles anywhere outdoors: something to look at in every window', () => {
-    const tiles = detailTiles(vila);
-    const empty: string[] = [];
-    for (let y = 0; y + 4 <= vila.rows; y++) {
-      for (let x = 0; x + 4 <= vila.cols; x++) {
-        let any = false;
-        for (let dy = 0; dy < 4 && !any; dy++) for (let dx = 0; dx < 4 && !any; dx++) if (tiles.has(`${x + dx},${y + dy}`)) any = true;
-        if (!any) empty.push(`${x},${y}`);
+  it('has no empty 4x4 patch of tiles in the rua, 5x5 in the calmer praça, 6x6 in the feira (whose free paving is room to grow)', () => {
+    for (const [id, win] of [['rua', 4], ['praca', 5], ['feira', 6]] as const) {
+      const room = ROOMS[id];
+      const tiles = detailTiles(room);
+      const empty: string[] = [];
+      for (let y = 0; y + win <= room.rows; y++) {
+        for (let x = 0; x + win <= room.cols; x++) {
+          let any = false;
+          for (let dy = 0; dy < win && !any; dy++) for (let dx = 0; dx < win && !any; dx++) if (tiles.has(`${x + dx},${y + dy}`)) any = true;
+          if (!any) empty.push(`${x},${y}`);
+        }
       }
+      expect(empty, `${id}: empty ${win}x${win} windows at (x,y): ${empty.join(' ')}`).toEqual([]);
     }
-    expect(empty, `empty 4x4 windows at (x,y): ${empty.join(' ')}`).toEqual([]);
   });
 
-  it('counts its props (the plan: 8+ benches, 6 ipês, hero, kiosk, stall, perch, fountain)', () => {
-    const n = (kind: string) => vila.props.filter((p) => p.kind === kind).length;
-    expect(n('banco')).toBeGreaterThanOrEqual(8);
-    expect(n('ipe')).toBeGreaterThanOrEqual(4); // V2: the yellow ipês; the purple / white ones, shade trees and palms are 'arvore'
-    expect(n('ipe') + n('arvore')).toBeGreaterThanOrEqual(20);
-    expect(vila.props.filter((p) => p.hero)).toHaveLength(1);
-    for (const kind of ['quiosque', 'barraca_chapeus', 'poleiro', 'fonte', 'ponto_onibus', 'banca', 'orelhao', 'placa_rua']) expect(n(kind), kind).toBe(1);
-    expect(propTiles(vila.props.find((p) => p.kind === 'fonte')!)).toHaveLength(12);
+  it('counts its props: the praça keeps its focal points, the rua its street furniture, the feira its stalls (about a third fewer props than the old single map)', () => {
+    const n = (kind: string) => allProps.filter((p) => p.kind === kind).length;
+    const inPraca = (kind: string) => praca.props.filter((p) => p.kind === kind).length;
+    expect(inPraca('banco')).toBeGreaterThanOrEqual(5);
+    expect(inPraca('ipe')).toBeGreaterThanOrEqual(2); // the yellow ipês; the purple / white ones, shade trees and palms are 'arvore'
+    expect(inPraca('ipe') + inPraca('arvore')).toBeGreaterThanOrEqual(8);
+    expect(allProps.filter((p) => p.hero)).toHaveLength(1);
+    expect(praca.props.some((p) => p.hero)).toBe(true);
+    for (const kind of ['quiosque', 'barraca_chapeus', 'poleiro', 'fonte', 'ponto_onibus', 'banca', 'orelhao']) expect(n(kind), kind).toBe(1);
+    expect(propTiles(praca.props.find((p) => p.kind === 'fonte')!)).toHaveLength(12);
+    expect(praca.props.some((p) => p.kind === 'quiosque')).toBe(true);
+    expect(rua.props.some((p) => p.kind === 'ponto_onibus')).toBe(true);
+    expect(ROOMS.feira.props.filter((p) => p.kind === 'feira')).toHaveLength(4);
+    // the old map had 222 props in one room (58 inside the praça block, 0.117 per tile): the praça now has about 0.07 per tile, calmer, and the three areas together have fewer
+    expect(allProps.length).toBeLessThanOrEqual(222);
+    const decor = praca.props.filter((p) => !p.id.startsWith('sebe_') && !p.id.startsWith('cerca_')).length;
+    expect(decor / (praca.cols * praca.rows)).toBeLessThanOrEqual(0.117 * 0.7);
   });
 });

@@ -45,11 +45,11 @@ export const HOTSPOTS: HotspotDef[] = [
   { id: 'placa_rua_ipes', room: 'rua', x: 22, y: 6, w: 1, h: 2, pt: 'R. DOS IPÊS', en: 'Ipê Street' },
   { id: 'orelhao', room: 'rua', x: 14, y: 6, pt: 'ORELHÃO\nTelefone público', en: 'PAYPHONE (“big ear”)\nPublic phone' },
   { id: 'lixeira_padaria', room: 'rua', x: 10, y: 6, pt: 'LIXO', en: 'Trash' },
-  { id: 'mesa_cafe_precos', room: 'rua', x: 1, y: 6, pt: 'Café R$ 4\nPão na chapa R$ 6',
+  { id: 'mesa_cafe_precos', room: 'rua', x: 2, y: 6, pt: 'Café R$ 4\nPão na chapa R$ 6',
     en: 'Coffee R$ 4\nGrilled buttered bread R$ 6',
     cards: ['lex.padaria.cafe', 'lex.padaria.pao_na_chapa'],
   },
-  { id: 'bicicletario', room: 'rua', x: 12, y: 7, pt: 'BICICLETÁRIO', en: 'Bike rack' },
+  { id: 'bicicletario', room: 'rua', x: 17, y: 7, pt: 'BICICLETÁRIO', en: 'Bike rack' },
   // ---- Vila Ipê, south sidewalk and the praça
   { id: 'ponto_onibus', room: 'rua', x: 27, y: 12, w: 3, h: 1, pt: 'ÔNIBUS\nLinha 875 · Centro', en: 'BUS\nLine 875 · Downtown' },
   { id: 'parquimetro', room: 'rua', x: 16, y: 12, pt: 'ESTACIONAMENTO\nR$ 5 por hora', en: 'PARKING\nR$ 5 per hour' },
@@ -74,7 +74,7 @@ export const HOTSPOTS: HotspotDef[] = [
     cards: ['lex.padaria.pastel'],
   },
   { id: 'feira_preco_flores', room: 'feira', x: 11, y: 13, pt: 'FLORES DA DONA ROSA\nBuquê R$ 12', en: 'DONA ROSA’S FLOWERS\nBunch R$ 12' },
-  { id: 'hortifruti_placa', room: 'rua', x: 5, y: 6, pt: 'HORTIFRÚTI\nBanana R$ 2\nLaranja R$ 1\nMaçã R$ 1,50\nAlface R$ 3,50\nTomate R$ 2,50\nFlores R$ 12\nAberto o dia todo',
+  { id: 'hortifruti_placa', room: 'rua', x: 6, y: 6, pt: 'HORTIFRÚTI\nBanana R$ 2\nLaranja R$ 1\nMaçã R$ 1,50\nAlface R$ 3,50\nTomate R$ 2,50\nFlores R$ 12\nAberto o dia todo',
     en: 'GREENGROCER\nBanana R$ 2\nOrange R$ 1\nApple R$ 1.50\nLettuce R$ 3.50\nTomato R$ 2.50\nFlowers R$ 12\nOpen all day',
   },
   // ---- Padaria do Seu Carlos

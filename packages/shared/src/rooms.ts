@@ -194,7 +194,7 @@ const FEIRA_COLS = 32;
 const FEIRA_ROWS = 20;
 
 /** Parking bays on the south curb of Rua dos Ipês: first and last tile x of each, all on row 12 (asphalt notches in the sidewalk). */
-export const PARKING_BAYS_IPES: readonly [number, number][] = [[3, 7], [33, 37]];
+export const PARKING_BAYS_IPES: readonly [number, number][] = [[2, 6], [33, 37]];
 
 type Painter = (ch: string, x0: number, y0: number, x1: number, y1: number) => void;
 function floorGrid(cols: number, rows: number, base: string, paintAll: (paint: Painter) => void): string[] {
@@ -317,7 +317,7 @@ const rua: RoomDef = {
     P('lampada_n2', 'poste', 10, 7, { art: 'props/lamp_old' }),
     P('lampada_n3', 'poste', 18, 7, { art: 'props/lamp_old' }),
     P('lampada_n4', 'poste', 29, 7, { art: 'props/lamp_old' }),
-    P('lampada_n5', 'poste', 35, 7, { art: 'props/lamp_old' }),
+    P('lampada_n5', 'poste', 34, 7, { art: 'props/lamp_old' }),
     P('orelhao', 'orelhao', 14, 6, { label: { pt: 'Orelhão', en: 'Public phone booth (“big ear”)' } }),
     P('placa', 'placa_rua', 22, 7, { label: { pt: 'Rua dos Ipês', en: 'Ipê Street (street sign)' } }),
     P('lixeira_n1', 'lixeira', 10, 6),
@@ -328,45 +328,40 @@ const rua: RoomDef = {
     P('floreira_n3', 'floreira', 24, 6),
     P('floreira_n4', 'floreira', 28, 6),
     P('vaso_n1', 'vaso', 18, 6),
-    P('mesa_cafe', 'mesa_cafe', 1, 6, { label: { pt: 'Mesinha da padaria', en: 'Bakery sidewalk table' } }),
-    P('bici', 'bicicletario', 12, 7),
+    P('mesa_cafe', 'mesa_cafe', 2, 6, { label: { pt: 'Mesinha da padaria', en: 'Bakery sidewalk table' } }),
+    P('bici', 'bicicletario', 17, 7),
     cen('revisteiro', 'props/revisteiro', 11, 7, 1, 1, { blocks: true, label: { pt: 'Revisteiro da banca', en: 'Newsstand magazine rack' } }),
     cen('vaso_topiaria_1', 'props/vaso_topiaria_a', 11, 6, 1, 1, { blocks: true }),
     cen('bici_3', 'props/bicicletario', 33, 7, 1, 1, { blocks: true }),
     // ---- the Hortifrúti corner at the banca: Tia Lu's crates, open at every hour (D12)
-    P('hortifruti', 'hortifruti', 6, 7, { art: 'feira/caixotes', action: 'feira_stall', vendor: 'banca', interact: { x: 7, y: 7 }, label: { pt: 'Hortifrúti da banca', en: 'Greengrocer at the newsstand' } }),
-    cen('hortifruti_2', 'feira/caixotes', 5, 7, 1, 1, { blocks: true }),
-    cen('hortifruti_preco', 'feira/preco_lousa', 5, 6),
+    P('hortifruti', 'hortifruti', 7, 7, { art: 'feira/caixotes', action: 'feira_stall', vendor: 'banca', interact: { x: 8, y: 7 }, label: { pt: 'Hortifrúti da banca', en: 'Greengrocer at the newsstand' } }),
+    cen('hortifruti_2', 'feira/caixotes', 6, 7, 1, 1, { blocks: true }),
+    cen('hortifruti_preco', 'feira/preco_lousa', 6, 6),
     // ---- south calçada (y 12-13): the bus stop, utility poles for the wires, lamps
     P('ponto', 'ponto_onibus', 27, 12, { w: 3, label: { pt: 'Ponto de ônibus', en: 'Bus stop' } }),
-    P('poste_1', 'poste', 2, 13),
-    P('poste_2', 'poste', 10, 13),
-    P('poste_3', 'poste', 18, 13),
-    P('poste_4', 'poste', 26, 13),
-    P('poste_5', 'poste', 34, 13),
+    P('poste_2', 'poste', 9, 13),
+    P('poste_3', 'poste', 17, 13),
+    P('poste_4', 'poste', 25, 13),
     P('lixeira_s1', 'lixeira', 23, 13),
     P('lixeira_s2', 'lixeira', 26, 12),
     // pit trees along both sidewalks, clear of the doors and crosswalks
     P('arv_n1', 'arvore', 15, 7, { w: 2, art: 'props/arvore_rua' }),
     P('arv_n2', 'arvore', 31, 7, { w: 2, art: 'props/arvore_rua' }),
-    P('arv_n3', 'arvore', 37, 7, { w: 2, art: 'props/arvore_rua' }),
-    P('arv_s1', 'arvore', 10, 12, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_n3', 'arvore', 36, 7, { w: 2, art: 'props/arvore_rua' }),
     P('arv_s2', 'arvore', 14, 12, { w: 2, art: 'props/arvore_rua' }),
-    P('arv_s4', 'arvore', 30, 12, { w: 2, art: 'props/arvore_rua' }),
     // parked vehicles in the bays (they block their curb tiles only; the traffic lanes sit above them, see ambientData.ts)
-    ...parked(12, [['park_verde_r', 3, 5], ['park_taxi_r', 33, 5]]),
-    P('hidrante_s', 'sebe', 12, 12, { art: 'props/hidrante_amarelo' }),
+    ...parked(12, [['park_verde_r', 2, 5], ['park_taxi_r', 33, 5]]),
+    P('hidrante_s', 'sebe', 15, 13, { art: 'props/hidrante_amarelo' }),
     P('parquimetro', 'sebe', 16, 12, { art: 'props/parquimetro' }),
-    P('flor_s1', 'sebe', 24, 13, { w: 2, art: 'props/flor_vermelha' }),
+    P('flor_s1', 'sebe', 31, 13, { w: 2, art: 'props/flor_vermelha' }),
     P('flor_s2', 'sebe', 36, 13, { w: 2, art: 'props/flor_mista' }),
     // ---- the lawns and the way down to the praça: hedges on both sides of the brick path (the path itself is the edge portal band)
     ...hedgeRow('sebe_s', 15, 0, 18),
     ...hedgeRow('sebe_s', 15, 22, 40),
-    P('lampada_s1', 'poste', 17, 13, { art: 'props/lamp_old' }),
     P('lampada_s2', 'poste', 22, 13, { art: 'props/lamp_old' }),
-    P('arv_s5', 'arvore', 6, 14, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_s5', 'arvore', 11, 14, { w: 2, art: 'props/arvore_rua' }),
     P('arv_s6', 'arvore', 26, 14, { w: 2, art: 'props/arvore_rua' }),
-    P('arbusto_s1', 'sebe', 12, 14, { art: 'props/bush_flower' }),
+    P('arbusto_s1', 'sebe', 9, 14, { art: 'props/bush_flower' }),
     P('arbusto_s2', 'sebe', 32, 14, { art: 'props/bush_flower' }),
     // ---- the map edges: barricades across the street, hedges across the sidewalks and the lawns
     ...([['o', 0], ['l', 38]] as const).flatMap(([side, x]) => [
