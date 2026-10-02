@@ -87,9 +87,12 @@ export interface ShadowLook {
  * What a shadowed patch of ground should look like AFTER the grade, as a multiplier on the ground's own colour: cool and a little violet, never
  * grey. (The stamp is a multiply, so `tint = final / grade`: under the orange golden-hour grade the stamp has to be bluer than the final shadow.)
  */
-const FINAL_NOON: Rgb3 = { r: 0x84, g: 0x90, b: 0xd2 };
+const FINAL_NOON: Rgb3 = { r: 0x9c, g: 0xa2, b: 0xb0 }; // a neutral cool grey: at midday the shadow is just the sky's light, not a colour
 const FINAL_GOLD: Rgb3 = { r: 0x5c, g: 0x64, b: 0xb0 };
 const FINAL_DAWN: Rgb3 = { r: 0x78, g: 0x6c, b: 0xb6 };
+
+/** Strength of the shadows at full midday sun, against 1 at a low sun. */
+export const NOON_ALPHA = 0.74;
 
 const toInt = (c: Rgb3) => (Math.round(c.r) << 16) | (Math.round(c.g) << 8) | Math.round(c.b);
 const ch = (c: Rgb3, k: 'r' | 'g' | 'b') => c[k];
@@ -103,7 +106,9 @@ export function shadowLook(hour: number, sun = 1, grade: [number, number, number
   const s = sunAt(hour);
   const length = shadowLength(s.elevation);
   const b = rad(s.bearing);
-  const strength = shadowStrength(s.elevation, sun);
+  // a high sun gives a modest shadow (the sky fills it in); it only reaches full strength as the sun gets lower
+  const high = smooth(clamp01((s.elevation - 30) / 30));
+  const strength = shadowStrength(s.elevation, sun) * lerp(1, NOON_ALPHA, high);
   // a lower sun = redder light = the shadows turn more violet; the dawn leans pink-violet, the evening gold-violet
   const low = 1 - smooth(clamp01((s.elevation - 8) / 30));
   const morning = s.u !== null && s.u < 0.5;

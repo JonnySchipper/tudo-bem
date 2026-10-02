@@ -372,6 +372,7 @@ export class AmbientLife {
     const spr = this.reg(this.scene.add.sprite(v.x, v.laneY, d.atlas, d.frame)).setOrigin(...originOf(d));
     if (d.anim) spr.play({ key: ensureAnim(this.scene, v.key, d), startFrame: Math.floor(unit(v.x | 0, 3, 91) * 2) });
     this.rig.shadows?.follow(spr, v.key);
+    this.reg(this.rig.liftBody(spr));
     const sd = d.shadow ? this.m.sprites[d.shadow] : null;
     const shadows: Phaser.GameObjects.Image[] = [];
     if (sd) {

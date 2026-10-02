@@ -5,6 +5,11 @@
       "name": "asfalto",
       "kind": "flat",
       "custom": "asfalto"
+    },
+    "p": {
+      "name": "paralelepipedo",
+      "kind": "flat",
+      "custom": "paralelepipedo"
     }
   },
   "sprites": [
@@ -228,6 +233,160 @@
         2,
         3
       ],
+      "footprint": [
+        1,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/feira_giz_0",
+      "kind": "custom",
+      "custom": "feiraDecal",
+      "args": {
+        "kind": "giz",
+        "n": 0
+      },
+      "footprint": [
+        2,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/feira_giz_1",
+      "kind": "custom",
+      "custom": "feiraDecal",
+      "args": {
+        "kind": "giz",
+        "n": 1
+      },
+      "footprint": [
+        2,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/feira_giz_2",
+      "kind": "custom",
+      "custom": "feiraDecal",
+      "args": {
+        "kind": "giz",
+        "n": 2
+      },
+      "footprint": [
+        2,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/feira_giz_3",
+      "kind": "custom",
+      "custom": "feiraDecal",
+      "args": {
+        "kind": "giz",
+        "n": 3
+      },
+      "footprint": [
+        2,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/feira_giz_4",
+      "kind": "custom",
+      "custom": "feiraDecal",
+      "args": {
+        "kind": "giz",
+        "n": 4
+      },
+      "footprint": [
+        2,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/feira_mancha_0",
+      "kind": "custom",
+      "custom": "feiraDecal",
+      "args": {
+        "kind": "mancha",
+        "n": 0
+      },
+      "footprint": [
+        2,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/feira_mancha_1",
+      "kind": "custom",
+      "custom": "feiraDecal",
+      "args": {
+        "kind": "mancha",
+        "n": 1
+      },
+      "footprint": [
+        2,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/feira_mancha_2",
+      "kind": "custom",
+      "custom": "feiraDecal",
+      "args": {
+        "kind": "mancha",
+        "n": 2
+      },
+      "footprint": [
+        2,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/feira_repolho_0",
+      "kind": "custom",
+      "custom": "feiraDecal",
+      "args": {
+        "kind": "repolho",
+        "n": 0
+      },
+      "footprint": [
+        1,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/feira_repolho_1",
+      "kind": "custom",
+      "custom": "feiraDecal",
+      "args": {
+        "kind": "repolho",
+        "n": 1
+      },
+      "footprint": [
+        1,
+        1
+      ],
+      "decal": true
+    },
+    {
+      "key": "decals/feira_caixa",
+      "kind": "custom",
+      "custom": "feiraDecal",
+      "args": {
+        "kind": "caixa",
+        "n": 0
+      },
       "footprint": [
         1,
         1
