@@ -1156,7 +1156,7 @@ export function normalizeCorreria(raw: unknown): CorreriaProgress {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const n = (v: unknown, max: number) => (Number.isFinite(Number(v)) ? Math.max(0, Math.min(max, Math.floor(Number(v)))) : 0);
   const out: CorreriaProgress = { stars: n(r.stars, 9999), shifts: n(r.shifts, 99999), best: n(r.best, 99999) };
-  if (typeof r.date === 'string' && /^d{4}-d{2}-d{2}$/.test(r.date)) {
+  if (typeof r.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.date)) {
     out.date = r.date;
     out.paid = n(r.paid, 99);
   }
