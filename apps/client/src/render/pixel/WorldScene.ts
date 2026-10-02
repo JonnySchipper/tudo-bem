@@ -883,6 +883,8 @@ export class WorldScene extends Phaser.Scene {
       weather: clock.weather(),
       minutes: clock.minutes(),
       outdoor: this.outdoor,
+      objects: this.children.length,
+      textures: Object.keys(this.textures.list).length,
       dark: this.look ? +this.look.dark.toFixed(3) : 0,
       fx: this.weatherFx.info(),
       shade: { casters: this.shadows.count, rims: this.shadows.rimCount, silhouettes: this.shadows.generated, pages: this.shadows.pageCount, fill: this.shadows.pageFill, aoShapes: this.ao.shapeCount },
