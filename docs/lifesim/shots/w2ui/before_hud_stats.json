@@ -1,0 +1,158 @@
+[
+  {
+    "label": "1280x800 just arrived (tutorial toast, tracker peeking)",
+    "pct": 10.8689453125,
+    "small": [
+      "BUTTON 48x36",
+      "BUTTON 60x36",
+      "BUTTON 53x36",
+      "BUTTON 66x36",
+      "BUTTON 79x36"
+    ],
+    "parts": {
+      "hud-left": 2,
+      "brand": 0.9,
+      "hud-stats": 0.6,
+      "hud-actions": 1.1,
+      "BUTTON": 1.1,
+      "chatbar": 2.8,
+      "toast": 1.2,
+      "rtrack": 2
+    }
+  },
+  {
+    "label": "1280x800 idle",
+    "pct": 9.623828125,
+    "small": [
+      "BUTTON 48x36",
+      "BUTTON 60x36",
+      "BUTTON 53x36",
+      "BUTTON 66x36",
+      "BUTTON 79x36"
+    ],
+    "parts": {
+      "hud-left": 2,
+      "brand": 0.9,
+      "hud-stats": 0.6,
+      "hud-actions": 1.1,
+      "BUTTON": 1.1,
+      "chatbar": 2.8,
+      "rtrack": 2
+    }
+  },
+  {
+    "label": "1280x800 tracker+toast",
+    "pct": 11.9751953125,
+    "small": [
+      "BUTTON 48x36",
+      "BUTTON 60x36",
+      "BUTTON 53x36",
+      "BUTTON 66x36",
+      "BUTTON 79x36"
+    ],
+    "parts": {
+      "hud-left": 2.2,
+      "brand": 1.1,
+      "hud-stats": 0.6,
+      "hud-actions": 1.1,
+      "BUTTON": 1.1,
+      "chatbar": 2.8,
+      "toast": 1.1,
+      "rtrack": 3.1
+    }
+  },
+  {
+    "label": "390x844 just arrived (tutorial toast, tracker peeking)",
+    "pct": 24.520597885526797,
+    "small": [],
+    "parts": {
+      "hud-left": 3.4,
+      "brand": 1.5,
+      "hud-stats": 0.8,
+      "hud-btn": 0.6,
+      "chatbar": 6,
+      "hud-emote-toggle": 0.6,
+      "toast": 3.8,
+      "rtrack": 6,
+      "joystick": 3.8
+    }
+  },
+  {
+    "label": "390x844 idle",
+    "pct": 16.503220318386195,
+    "small": [],
+    "parts": {
+      "hud-left": 3.4,
+      "brand": 1.5,
+      "hud-stats": 0.8,
+      "hud-btn": 0.6,
+      "chatbar": 6,
+      "hud-emote-toggle": 0.6,
+      "rtrack": 1.9,
+      "joystick": 3.8
+    }
+  },
+  {
+    "label": "390x844 tracker+toast",
+    "pct": 20.256410256410255,
+    "small": [],
+    "parts": {
+      "hud-left": 3.4,
+      "brand": 1.5,
+      "hud-stats": 0.8,
+      "hud-btn": 0.6,
+      "chatbar": 6,
+      "hud-emote-toggle": 0.6,
+      "toast": 3.5,
+      "rtrack": 2.1,
+      "joystick": 3.8
+    }
+  },
+  {
+    "label": "844x390 just arrived (tutorial toast, tracker peeking)",
+    "pct": 28.317535545023695,
+    "small": [],
+    "parts": {
+      "hud-left": 5.6,
+      "brand": 3.1,
+      "hud-stats": 0.8,
+      "hud-btn": 0.6,
+      "chatbar": 8.1,
+      "hud-emote-toggle": 0.6,
+      "toast": 3.8,
+      "rtrack": 7.2,
+      "joystick": 2.1
+    }
+  },
+  {
+    "label": "844x390 idle",
+    "pct": 19.097095637379997,
+    "small": [],
+    "parts": {
+      "hud-left": 5.6,
+      "brand": 3.1,
+      "hud-stats": 0.8,
+      "hud-btn": 0.6,
+      "chatbar": 8.1,
+      "hud-emote-toggle": 0.6,
+      "rtrack": 1.9,
+      "joystick": 2.1
+    }
+  },
+  {
+    "label": "844x390 tracker+toast",
+    "pct": 22.850285575404058,
+    "small": [],
+    "parts": {
+      "hud-left": 5.6,
+      "brand": 3.1,
+      "hud-stats": 0.8,
+      "hud-btn": 0.6,
+      "chatbar": 8.1,
+      "hud-emote-toggle": 0.6,
+      "toast": 3.5,
+      "rtrack": 2.1,
+      "joystick": 2.1
+    }
+  }
+]

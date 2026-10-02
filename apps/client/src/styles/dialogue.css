@@ -1190,3 +1190,29 @@ body:has(.dbx) .joystick {
     display: none;
   }
 }
+
+/* Wave 2: a landscape phone (844x390) is wider than 640 px but only ~390 px tall: the dialogue box took the compact spacing only below 640 px wide and
+   overflowed by a few px (its last row cut). Same tightening by height. */
+@media (max-height: 520px) and (min-width: 641px) {
+  .dbx {
+    font-size: 0.9em;
+    row-gap: 3px;
+    padding: 6px 12px 6px;
+    bottom: calc(6px + var(--safe-bottom) + var(--kb));
+    max-height: calc(100dvh - 90px - var(--safe-top) - var(--safe-bottom));
+    overflow-y: auto;
+  }
+  .dbx-body,
+  .dbx-below,
+  .dbx .pedido-extras,
+  .dbx .dbx-chips {
+    gap: 3px;
+  }
+  .dbx .dbx-chip {
+    padding: 2px 8px;
+  }
+  .dbx .dbx-en,
+  .dbx .en.plain {
+    line-height: 1.15;
+  }
+}

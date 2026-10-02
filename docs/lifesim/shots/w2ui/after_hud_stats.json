@@ -1,0 +1,64 @@
+[
+  {
+    "label": "1280x800 just arrived (tutorial toast, tracker peeking)",
+    "pct": 10.6841796875,
+    "small": [
+      "BUTTON 48x36",
+      "BUTTON 60x36",
+      "BUTTON 53x36",
+      "BUTTON 66x36",
+      "BUTTON 79x36"
+    ],
+    "parts": {
+      "hud-left": 1.9,
+      "brand": 0.9,
+      "hud-stats": 0.6,
+      "hud-actions": 1.1,
+      "BUTTON": 1.1,
+      "chatbar": 2.8,
+      "toast": 1.2,
+      "rtrack": 2
+    }
+  },
+  {
+    "label": "1280x800 idle",
+    "pct": 9.4390625,
+    "small": [
+      "BUTTON 48x36",
+      "BUTTON 60x36",
+      "BUTTON 53x36",
+      "BUTTON 66x36",
+      "BUTTON 79x36"
+    ],
+    "parts": {
+      "hud-left": 1.9,
+      "brand": 0.9,
+      "hud-stats": 0.6,
+      "hud-actions": 1.1,
+      "BUTTON": 1.1,
+      "chatbar": 2.8,
+      "rtrack": 2
+    }
+  },
+  {
+    "label": "1280x800 tracker+toast",
+    "pct": 11.6271484375,
+    "small": [
+      "BUTTON 48x36",
+      "BUTTON 60x36",
+      "BUTTON 53x36",
+      "BUTTON 66x36",
+      "BUTTON 79x36"
+    ],
+    "parts": {
+      "hud-left": 1.9,
+      "brand": 0.9,
+      "hud-stats": 0.6,
+      "hud-actions": 1.1,
+      "BUTTON": 1.1,
+      "chatbar": 2.8,
+      "toast": 1.1,
+      "rtrack": 3.1
+    }
+  }
+]

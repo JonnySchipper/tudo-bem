@@ -85,6 +85,11 @@ interface Rect {
 }
 
 const overlaps = (a: Rect, b: Rect): boolean => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+
+/** The HUD pieces a world label must never sit under (a bubble half hidden by the tracker looks clipped): the plates, the tracker, toasts, the chat bar. */
+const HUD_SELECTOR = '.hud-slab, .rtrack, #mission-pill, .toast, .chatbar, .hud-chip';
+/** True when `r` touches any of `hud` (pure; viewport px). */
+export const underHud = (r: Rect, hud: readonly Rect[]): boolean => hud.some((h) => overlaps(r, h));
 /** Never lift a label more than this many CSS px (a crowd should not throw a bubble off the top of the screen). */
 const MAX_LIFT = 140;
 
@@ -167,6 +172,8 @@ interface StackEl {
   plateH: number;
   transform: string;
   hidden: boolean;
+  /** true while a part of the stack would sit under the HUD (then the whole stack is not drawn) */
+  occluded: boolean;
   /** each bubble's `bottom` before any de-overlap lift (CSS px above the anchor) */
   baseBottoms: number[];
   plateBottom: string;
@@ -279,6 +286,41 @@ export class LabelLayer {
       if (el && l) this.applyLift(el, l.plateLift, l.pileLift);
     }
     this.updateGuides(guides, view, insets);
+    this.hideUnderHud();
+  }
+
+  private hudRects: Rect[] = [];
+  private hudAt = -1e9;
+
+  /** A stack whose plate or bubbles overlap a HUD box is hidden whole (never half under the HUD); it returns once it clears. */
+  private hideUnderHud(): void {
+    if (typeof document === 'undefined') return;
+    const now = performance.now();
+    if (now - this.hudAt > 250) {
+      this.hudAt = now;
+      this.hudRects = [...document.querySelectorAll(HUD_SELECTOR)]
+        .map((e) => e.getBoundingClientRect())
+        .filter((r) => r.width > 0 && r.height > 0)
+        .map((r) => ({ l: r.left, r: r.right, t: r.top, b: r.bottom }));
+    }
+    for (const el of this.stacks.values()) {
+      if (el.hidden) continue;
+      let under = false;
+      if (this.hudRects.length) {
+        for (const part of [el.plate, ...el.bubbles.map((b) => b.root)]) {
+          if (part.style.display === 'none') continue;
+          const r = part.getBoundingClientRect();
+          if (r.width && underHud({ l: r.left, r: r.right, t: r.top, b: r.bottom }, this.hudRects)) {
+            under = true;
+            break;
+          }
+        }
+      }
+      if (under !== el.occluded) {
+        el.occluded = under;
+        el.root.style.visibility = under ? 'hidden' : '';
+      }
+    }
   }
 
   // ------------------------------------------------------------------ stacks (nameplate + bubbles)
@@ -288,7 +330,7 @@ export class LabelLayer {
     const plate = document.createElement('div');
     plate.className = 'wl-plate';
     root.appendChild(plate);
-    return { root, plate, bubbles: [], side: 'left', plateKey: '', plateW: 0, plateH: 0, transform: '', hidden: false, baseBottoms: [], plateBottom: '' };
+    return { root, plate, bubbles: [], side: 'left', plateKey: '', plateW: 0, plateH: 0, transform: '', hidden: false, occluded: false, baseBottoms: [], plateBottom: '' };
   }
 
   private createBubble(): BubbleEl {

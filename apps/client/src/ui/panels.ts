@@ -341,10 +341,10 @@ function mapView(): HTMLElement {
 }
 
 export function openMap(go: (room: RoomId) => void) {
-  const card = (room: RoomId | null, pt: string, enText: string, bg: string, locked = false, light = false) =>
+  const card = (room: RoomId | null, pt: string, enText: string, colors: [string, string] | null, locked = false, light = false) =>
     h(
       'button',
-      { class: `map-card ${locked ? 'locked' : ''} ${light ? 'light' : ''}`, style: `background:${bg}`, disabled: locked, onclick: () => room && (go(room), close()), 'data-room': room ?? '' },
+      { class: `map-card ${locked ? 'locked' : ''} ${light ? 'light' : ''}`, style: colors ? `--card:${colors[0]};--card2:${colors[1]}` : '', disabled: locked, onclick: () => room && (go(room), close()), 'data-room': room ?? '' },
       h('div', null, h('b', null, pt), en(enText)),
       h('div', null, h('span', { class: 'linecolor' }), locked ? h('span', { style: 'margin-left:8px;font-weight:800' }, 'Em breve') : null),
     );
@@ -360,13 +360,13 @@ export function openMap(go: (room: RoomId) => void) {
       h(
         'div',
         { class: 'map-grid' },
-        card('praca', 'Praça Central', 'Central Square — hang out, hats, parrot', 'linear-gradient(135deg,#e5572f,#f2c230)'),
-        card('padaria', 'Padaria do Seu Carlos', 'Bakery — breakfast + “Me vê um…”', 'linear-gradient(135deg,#b5452e,#e8a94f)'),
-        card('academia', 'Academia do Bairro', 'Word-game roll — academy Portuguese (not real MA training)', 'linear-gradient(135deg,#2f5f7a,#8ab4c8)'),
-        card('kitnet', 'Minha kitnet', 'My studio apartment — decorate', 'linear-gradient(135deg,#F5E6D3 45%,#A8C5D4)', false, true),
-        card(null, 'Feira', 'Street market (Phase 1)', '', true),
-        card(null, 'Estação de Metrô', 'Subway (Phase 1)', '', true),
-        card(null, 'Praia', 'Beach day trip (Phase 2)', '', true),
+        card('praca', 'Praça Central', 'Central Square — hang out, hats, parrot', ['#d9532b', '#f2c230']),
+        card('padaria', 'Padaria do Seu Carlos', 'Bakery — breakfast + “Me vê um…”', ['#a8452c', '#e8a94f']),
+        card('academia', 'Academia do Bairro', 'Word-game roll — academy Portuguese (not real MA training)', ['#2f5f7a', '#8ab4c8']),
+        card('kitnet', 'Minha kitnet', 'My studio apartment — decorate', ['#f5e6d3', '#a8c5d4'], false, true),
+        card(null, 'Feira', 'Street market (Phase 1)', null, true),
+        card(null, 'Estação de Metrô', 'Subway (Phase 1)', null, true),
+        card(null, 'Praia', 'Beach day trip (Phase 2)', null, true),
       ),
     ),
   );

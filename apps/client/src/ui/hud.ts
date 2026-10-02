@@ -109,7 +109,6 @@ export function buildHud(actions: HudActions) {
     soundBtn,
     creditsBtn,
     logoutBtn,
-    game.solo ? h('span', { class: 'hud-note', id: 'solo-pill', title: 'Prévia estática: o mundo roda no seu navegador. Multiplayer precisa do servidor. / Static preview — the world runs in your browser; multiplayer needs the server build.' }, 'Modo solo') : null,
   );
   const gearWrap = h('div', { class: 'hud-gear-wrap' }, gear, menu);
   const drawerPlate = h('span', { class: 'hud-drawer-head' }, h('span', { class: 'hud-verde', title: 'Verde: you see English under Portuguese' }, icon('verde', 16), 'Verde'), h('span', { class: 'hud-drawer-hint' }, 'Menu'));
@@ -136,6 +135,7 @@ export function buildHud(actions: HudActions) {
       { class: 'hud-left hud-slab' },
       h('div', { class: 'brand' }, h('span', { class: 'mark', 'aria-hidden': 'true' }, icon('mark', 32)), h('div', { class: 'logo' }, 'Tudo ', h('span', null, 'Bem')), roomName),
       mountClockPill(),
+      game.solo ? h('span', { class: 'hud-solo', id: 'solo-pill', title: 'Prévia estática: o mundo roda no seu navegador. Multiplayer precisa do servidor. / Static preview — the world runs in your browser; multiplayer needs the server build.' }, 'Modo solo', h('i', null, 'Solo mode')) : null,
     ),
     h(
       'div',
