@@ -841,16 +841,22 @@ const academia: RoomDef = {
     // V3 dressing (decoration only, nothing blocks or seats): a bench along the south wall and a water cooler in the corner
     { id: 'banco_gym', kind: 'cenario', x: 5, y: 8, w: 2, h: 1, art: 'props/banco_gym', blocks: false },
     { id: 'bebedouro', kind: 'cenario', x: 10, y: 8, art: 'props/bebedouro', blocks: false },
+    // Mat dressing for the roll (decoration only): the scoreboard at the mat's east edge and a flag at each mat corner
+    { id: 'placar', kind: 'cenario', x: 8, y: 3, w: 2, h: 1, art: 'props/placar', blocks: false },
+    { id: 'bandeira_no', kind: 'cenario', x: 1, y: 1, art: 'props/bandeira_br', blocks: false },
+    { id: 'bandeira_ne', kind: 'cenario', x: 8, y: 1, art: 'props/bandeira_sp', blocks: false },
+    { id: 'bandeira_so', kind: 'cenario', x: 1, y: 5, art: 'props/bandeira_sp', blocks: false },
+    { id: 'bandeira_se', kind: 'cenario', x: 8, y: 5, art: 'props/bandeira_br', blocks: false },
   ],
   walls: [
     { kind: 'placa', wall: 'right', from: 0, to: 4, text: 'ACADEMIA DO BAIRRO' },
     { kind: 'janela', wall: 'left', from: 3, to: 5 },
-    { kind: 'poster', wall: 'left', from: 6, to: 8, text: 'OSS · RESPEITO' },
+    { kind: 'poster', wall: 'left', from: 6, to: 8, text: 'RESPEITO · TREINO · AMIZADE' },
     { kind: 'mural', wall: 'right', from: 5, to: 9, text: 'TREINO · COMUNIDADE' },
   ],
-  // Top-down layout (11 columns + the corner): OSS poster | sign | window | mural.
+  // Top-down layout (11 columns + the corner): RESPEITO poster | sign | window | mural.
   pixelWalls: [
-    { kind: 'poster', wall: 'right', from: -1, to: 1, text: 'OSS · RESPEITO' },
+    { kind: 'poster', wall: 'right', from: -1, to: 1, text: 'RESPEITO · TREINO · AMIZADE' },
     { kind: 'placa', wall: 'right', from: 1, to: 5, text: 'ACADEMIA DO BAIRRO' },
     { kind: 'janela', wall: 'right', from: 5, to: 7 },
     { kind: 'mural', wall: 'right', from: 7, to: 11, text: 'TREINO · COMUNIDADE' },
