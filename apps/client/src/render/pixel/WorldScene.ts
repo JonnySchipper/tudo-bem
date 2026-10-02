@@ -949,7 +949,8 @@ export class WorldScene extends Phaser.Scene {
       base: f,
       view: { w: this.cam.w, h: this.cam.h },
       bounds: this.bounds,
-      insets: { top: boutFeed.topPx * k, bottom: 0, left: ins.left * k, right: ins.right * k },
+      // The mat sits a little lower in the free band (when the screen has spare height) so the north wall's sign is not cut by the top of the screen.
+      insets: { top: (boutFeed.topPx + this.boutWallReveal(boutFeed.topPx, boutFeed.boxPx + 6, k)) * k, bottom: 0, left: ins.left * k, right: ins.right * k },
       boxPx: (boutFeed.boxPx + 6) * k,
       self: { x: mat.x, y: mat.y },
       npc: null,
@@ -957,6 +958,12 @@ export class WorldScene extends Phaser.Scene {
       step: Math.max(1, Math.round(k)),
     });
     return { ...f, ...g };
+  }
+
+  /** Extra top inset (CSS px) that nudges the mat down; 0 unless the band between the scoreboard and the panel is over 330 CSS px tall. */
+  private boutWallReveal(topPx: number, boxPx: number, k: number): number {
+    const free = this.cam.h / k - topPx - boxPx;
+    return Math.min(60, Math.max(0, free - 330));
   }
 
   /** The middle of the open mat (the tatame prop), world px, plus its east and west edges; null in a room without one. */
