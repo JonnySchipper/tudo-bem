@@ -36,20 +36,18 @@ describe('V2 composition of Vila Ipê', () => {
     }
   });
 
-  it('parks vehicles on the south curb row of each street only, never on a crosswalk, and keeps the bus stop curb free', () => {
+  it('parks vehicles in the bays of each street (row 12 and 35), never on a crosswalk', () => {
     const parked = props.filter((p) => p.id.startsWith('estac_'));
     expect(parked.length).toBeGreaterThanOrEqual(10);
-    const crosswalks = { 11: [15, 16, 24, 25, 40, 41], 35: [12, 13, 24, 25, 38, 39] } as Record<number, number[]>;
+    const crosswalks = { 12: [15, 16, 24, 25, 40, 41], 35: [12, 13, 24, 25, 38, 39] } as Record<number, number[]>;
     for (const p of parked) {
-      expect([11, 35], p.id).toContain(p.y);
+      expect([12, 35], p.id).toContain(p.y);
       expect(p.h ?? 1).toBe(1);
       expect(p.blocks, p.id).toBe(true);
       for (const t of propTiles(p)) {
         expect(crosswalks[p.y].includes(t.x), `${p.id} on a crosswalk at ${t.x}`).toBe(false);
         expect(floorAt(praca, t.x, t.y), `${p.id} stands on the asphalt`).toBe('asfalto');
       }
-      // the bus stops east of the stop sign along rows 10-11 (x 33-40): that curb stays free on Rua dos Ipês
-      if (p.y === 11) for (const t of propTiles(p)) expect(t.x >= 32 && t.x <= 40, `${p.id} blocks the bus stop`).toBe(false);
     }
     // the sidewalks and the crosswalks stay walkable
     const g = buildGrid(praca);

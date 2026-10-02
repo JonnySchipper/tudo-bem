@@ -54,8 +54,13 @@ describe('traffic', () => {
       }
     }
     expect(seen).toBeGreaterThan(100);
-    // lane order: westbound above eastbound
+    // lane order: westbound above eastbound on the two-way street; the one-way street (W3: Rua Jacarandá) has its single lane eastbound
     for (const s of room.streets) {
+      if (s.lanes.length === 1) {
+        expect(s.id).toBe('jacaranda');
+        expect(s.lanes[0].dir).toBe('e');
+        continue;
+      }
       expect(s.lanes[0].dir).toBe('w');
       expect(s.lanes[1].dir).toBe('e');
       expect(s.lanes[0].y).toBeLessThan(s.lanes[1].y);

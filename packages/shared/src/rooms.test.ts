@@ -79,7 +79,7 @@ describe('Vila Ipê (room id praca)', () => {
     expect(floorAt(praca, 30, 9)).toBe('asfalto');
     expect(floorAt(praca, 30, 33)).toBe('asfalto');
     expect(floorAt(praca, 30, 7)).toBe('calcada');
-    expect(floorAt(praca, 30, 12)).toBe('calcada');
+    expect(floorAt(praca, 34, 12)).toBe('calcada');
     expect(floorAt(praca, 25, 15)).toBe('tijolo');
     expect(floorAt(praca, 15, 16)).toBe('grama'); // the praça lawns
     expect(floorAt(praca, 52, 15)).toBe('paralelepipedo'); // V2: the lot is paved

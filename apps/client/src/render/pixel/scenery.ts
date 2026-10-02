@@ -42,8 +42,8 @@ const rnd = (x: number, y: number, seed: number) => hash2(x, y, seed) / 42949672
 
 /** The lane rows of a street: its rows are y0..y1, dashes run down the middle. */
 const STREETS = [
-  { y0: 8, y1: 11 },
-  { y0: 32, y1: 35 },
+  { y0: 8, y1: 11, dashDy: 26 }, // W3: the dashes run between the two lanes (ambientData.ts: feet at +17 and +36)
+  { y0: 32, y1: 35, dashDy: 45 }, // one-way street: the dashes mark the edge of the parking row (row 35), the lane is above them
 ];
 const CROSSWALKS: { x: number; y: number }[] = [
   { x: 15, y: 8 },
@@ -59,14 +59,14 @@ const MOSAICS: { x: number; y: number }[] = [
   { x: 27, y: 13 },
   { x: 29, y: 29 },
 ];
-/** The painted bus bay in front of the stop (7 x 2 tiles, in the lower half of Rua dos Ipês). */
-const BUS_BAY = { x: 33, y: 10, w: 7 };
+/** The painted bus bay in front of the stop (7 tiles wide = the bus's 112 px; W3: it is centred on the eastbound lane, where the bus stands, feet at y0 * 16 + 36). */
+const BUS_BAY = { x: 33, y: 10, w: 7, py: 8 * T + 36 - 20 };
 const MANHOLES: { x: number; y: number }[] = [
   { x: 30, y: 9 },
   { x: 9, y: 10 },
   { x: 47, y: 11 },
   { x: 19, y: 33 },
-  { x: 44, y: 34 },
+  { x: 44, y: 33 },
   { x: 26, y: 25 },
   { x: 30, y: 21 },
   { x: 50, y: 23 }, // the feira lot
@@ -92,14 +92,14 @@ export function sceneryFor(def: RoomDef, has: (key: string) => boolean = () => t
   for (const c of CROSSWALKS) add({ key: 'decals/crosswalk', x: c.x * T, y: c.y * T, origin: 'tl', depth: DEPTH_MOSAIC });
   const walked = (x: number, y: number) =>
     CROSSWALKS.some((c) => y >= c.y && y < c.y + 4 && x >= c.x * T - 12 && x < (c.x + 2) * T + 12) ||
-    (y === BUS_BAY.y - 2 && x >= BUS_BAY.x * T - 14 && x < (BUS_BAY.x + BUS_BAY.w) * T); // no dashes over the bus bay (the street's first row is y - 2)
+    (y === 8 && x >= BUS_BAY.x * T - 14 && x < (BUS_BAY.x + BUS_BAY.w) * T); // no dashes over the bus bay (Rua dos Ipês's first row is 8)
   // lane dashes down the middle of each street, every 32 px
   for (const s of STREETS) {
-    const y = s.y0 * T + 29; // V2: between the two lanes (ambientData.ts), with the parked row below
+    const y = s.y0 * T + s.dashDy;
     for (let x = 4; x < def.cols * T - 10; x += 32) if (!walked(x, s.y0)) add({ key: 'decals/lane_dash', x, y, origin: 'tl', depth: DEPTH_MOSAIC });
   }
   // the painted bus lane in front of the stop
-  add({ key: 'decals/faixa_onibus', x: BUS_BAY.x * T, y: BUS_BAY.y * T, origin: 'tl', depth: DEPTH_MOSAIC + 2 });
+  add({ key: 'decals/faixa_onibus', x: BUS_BAY.x * T, y: BUS_BAY.py, origin: 'tl', depth: DEPTH_MOSAIC + 2 });
   // a mosaic only goes where its whole footprint is paving with nothing standing on it (the room data may move props around)
   for (const m of MOSAICS) {
     let free = true;

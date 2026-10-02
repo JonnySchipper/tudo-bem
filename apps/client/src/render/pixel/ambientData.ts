@@ -17,8 +17,8 @@ export interface Lane {
 
 export interface Street {
   id: string;
-  /** upper lane first (westbound), then the lower lane (eastbound) */
-  lanes: [Lane, Lane];
+  /** two-way street: upper lane first (westbound), then the lower lane (eastbound); a one-way street has the single eastbound lane */
+  lanes: Lane[];
   /** vehicles enter and leave beyond these x, world px (behind the barricades at the map edge) */
   x0: number;
   x1: number;
@@ -69,14 +69,20 @@ export interface AmbientRoom {
   audio: AudioZones;
 }
 
-/** One street, rows y0..y1 (tiles). */
-const street = (id: string, y0: number, y1: number, cols: number, density: number): Street => ({
+/**
+ * One street, rows y0..y1 (tiles). W3: the lanes sit as high as the 64 px of asphalt allow. A parked car's sprite is 37-46 px tall and stands on the
+ * bottom of its bay, so the eastbound lane's sprites (feet + 4 px) must end above the tallest parked sprite (see streets.test.ts).
+ * - Rua dos Ipês is two-way with its parking in bays recessed into the south sidewalk (rooms.ts `PARKING_BAYS_IPES`): lanes at +17 / +36.
+ * - Rua Jacarandá has no sidewalk on its south side, so it is one-way (eastbound) with the parking along its south edge: one lane at +16.
+ */
+const street = (id: string, y0: number, y1: number, cols: number, density: number, oneWay = false): Street => ({
   id,
-  lanes: [
-    // V2: the lanes sit in the upper three rows so the south curb row can hold parked vehicles (rooms.ts `parked`)
-    { y: y0 * T + 19, dir: 'w' },
-    { y: y0 * T + 40, dir: 'e' },
-  ],
+  lanes: oneWay
+    ? [{ y: y0 * T + 16, dir: 'e' }]
+    : [
+        { y: y0 * T + 17, dir: 'w' },
+        { y: y0 * T + 36, dir: 'e' },
+      ],
   x0: -84,
   x1: cols * T + 84,
   density,
@@ -86,8 +92,8 @@ const COLS = 56;
 
 export const AMBIENT: Record<string, AmbientRoom> = {
   praca: {
-    streets: [street('ipes', 8, 11, COLS, 1), street('jacaranda', 32, 35, COLS, 0.7)],
-    bus: { street: 'ipes', stopX: 36.5 * T, stopTile: { x: 34, y: 12 } },
+    streets: [street('ipes', 8, 11, COLS, 1), street('jacaranda', 32, 35, COLS, 1, true)],
+    bus: { street: 'ipes', stopX: 36.5 * T, stopTile: { x: 37, y: 13 } },
     dog: { propId: 'vira_lata', home: { x: 5, y: 26 }, radius: 6 },
     flocks: [
       { id: 'fonte_sul', x: 22, y: 23, n: 4 },

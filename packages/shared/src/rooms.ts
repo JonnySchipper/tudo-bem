@@ -183,6 +183,9 @@ export const FLOOR_CHARS: Record<string, FloorKind> = {
 const VI_COLS = 56;
 const VI_ROWS = 40;
 
+/** Parking bays on the south curb of Rua dos Ipês (W3): first and last tile x of each, all on row 12 (asphalt notches in the sidewalk). */
+export const PARKING_BAYS_IPES: readonly [number, number][] = [[4, 8], [44, 48]];
+
 /** The floor of Vila Ipê, painted rectangle by rectangle (later paints win). Chars: see FLOOR_CHARS. */
 function vilaIpeFloor(): string[] {
   const g: string[][] = Array.from({ length: VI_ROWS }, () => Array.from({ length: VI_COLS }, () => 'c'));
@@ -191,6 +194,8 @@ function vilaIpeFloor(): string[] {
   };
   paint('a', 0, 8, 55, 11); // Rua dos Ipês
   paint('a', 0, 32, 55, 35); // Rua Jacarandá
+  // W3: the parking bays of Rua dos Ipês are recessed into the south sidewalk (row 12), so a parked car never overlaps the traffic lanes
+  for (const [x0, x1] of PARKING_BAYS_IPES) paint('a', x0, 12, x1, 12);
   // Praça lawns: four quadrants around the brick cross
   paint('g', 11, 15, 19, 20);
   paint('g', 31, 15, 39, 20);
@@ -297,7 +302,7 @@ const vilaIpe: RoomDef = {
     P('mesa_cafe', 'mesa_cafe', 10, 6, { label: { pt: 'Mesinha da padaria', en: 'Bakery sidewalk table' } }),
     P('bici', 'bicicletario', 6, 7),
     // ---- south calçada (y 12-13): the bus stop, utility poles for the wires, lamps
-    P('ponto', 'ponto_onibus', 30, 12, { w: 3, label: { pt: 'Ponto de ônibus', en: 'Bus stop' } }),
+    P('ponto', 'ponto_onibus', 36, 12, { w: 3, label: { pt: 'Ponto de ônibus', en: 'Bus stop' } }),
     P('poste_1', 'poste', 2, 13),
     P('poste_2', 'poste', 10, 13),
     P('poste_3', 'poste', 18, 13),
@@ -305,8 +310,8 @@ const vilaIpe: RoomDef = {
     P('poste_5', 'poste', 34, 13),
     P('poste_6', 'poste', 42, 13),
     P('poste_7', 'poste', 50, 13),
-    P('lixeira_s1', 'lixeira', 21, 12),
-    P('lixeira_s2', 'lixeira', 39, 12),
+    P('lixeira_s1', 'lixeira', 23, 13),
+    P('lixeira_s2', 'lixeira', 35, 12),
     // ---- Praça Central
     P('fonte', 'fonte', 23, 20, { w: 4, h: 3, label: { pt: 'Fonte da praça', en: 'Square fountain' } }),
     // trees (V2): the yellow ipê stays the hero; a purple and a white ipê, a figueira-sized shade tree, a sibipiruna, jerivá palms
@@ -465,18 +470,18 @@ const vilaIpe: RoomDef = {
     P('arv_n1', 'arvore', 7, 7, { w: 2, art: 'props/arvore_rua' }),
     P('arv_n2', 'arvore', 27, 7, { w: 2, art: 'props/arvore_rua' }),
     P('arv_n3', 'arvore', 43, 7, { w: 2, art: 'props/arvore_rua' }),
-    P('arv_s1', 'arvore', 7, 12, { w: 2, art: 'props/arvore_rua' }),
-    P('arv_s2', 'arvore', 18, 12, { w: 2, art: 'props/arvore_rua' }),
-    P('arv_s3', 'arvore', 36, 12, { w: 2, art: 'props/arvore_rua' }),
-    P('arv_s4', 'arvore', 48, 12, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_s1', 'arvore', 12, 12, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_s2', 'arvore', 20, 12, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_s3', 'arvore', 32, 12, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_s4', 'arvore', 52, 12, { w: 2, art: 'props/arvore_rua' }),
     P('arv_j1', 'arvore', 5, 31, { w: 2, art: 'props/arvore_rua' }),
     P('arv_j2', 'arvore', 22, 31, { w: 2, art: 'props/arvore_rua' }),
     P('arv_j3', 'arvore', 35, 31, { w: 2, art: 'props/arvore_rua' }),
     P('arv_j4', 'arvore', 45, 31, { w: 2, art: 'props/arvore_rua' }),
     // ---- V2: parked vehicles at the south curb of each street (they block their curb tiles only: never a crosswalk, a sidewalk or a lane).
     // The traffic lanes sit above them (see ambientData.ts); the bus stops east of the bus stop sign, so that curb stays free there.
-    ...parked(11, [['park_verde_r', 2, 5], ['park_vinho_r', 8, 4], ['park_azul_r', 18, 4], ['park_bege_l', 26, 5], ['park_fusca_e', 43, 3], ['park_taxi_r', 47, 5]]),
-    ...parked(35, [['park_taxi_r', 3, 5], ['park_moto_e', 9, 2], ['park_turquesa_l', 16, 4], ['park_branco_r', 28, 5], ['park_kombi_e', 33, 4], ['park_vermelho_l', 43, 5], ['park_moto_e', 50, 2]]),
+    ...parked(12, [['park_verde_r', 4, 5], ['park_taxi_r', 44, 5]]),
+    ...parked(35, [['park_taxi_r', 3, 5], ['park_moto_e', 9, 2], ['park_turquesa_l', 15, 4], ['park_moto_e', 20, 2], ['park_branco_r', 27, 5], ['park_kombi_e', 33, 4], ['park_vermelho_l', 42, 5], ['park_moto_e', 49, 2]]),
     // ---- the map edges: streets end in barricades, sidewalks in hedges, the west lawns and the lot behind fences
     ...vilaIpeEdges(),
     // ---- south: the roofs across Rua Jacarandá (blocked)
@@ -490,10 +495,10 @@ const vilaIpe: RoomDef = {
     front('telhado_8', 'fundos/f8', 43, 36, 6, 4),
     front('telhado_9', 'fundos/f9', 49, 36, 7, 4),
     // ---- more life along the sidewalks and the praça
-    P('flor_s1', 'sebe', 13, 12, { w: 2, art: 'props/flor_vermelha' }),
-    P('flor_s2', 'sebe', 44, 12, { w: 3, art: 'props/flor_mista' }),
-    P('hidrante_s', 'sebe', 5, 12, { art: 'props/hidrante_amarelo' }),
-    P('parquimetro', 'sebe', 28, 12, { art: 'props/parquimetro' }),
+    P('flor_s1', 'sebe', 19, 13, { w: 2, art: 'props/flor_vermelha' }),
+    P('flor_s2', 'sebe', 51, 13, { w: 3, art: 'props/flor_mista' }),
+    P('hidrante_s', 'sebe', 11, 12, { art: 'props/hidrante_amarelo' }),
+    P('parquimetro', 'sebe', 22, 12, { art: 'props/parquimetro' }),
     P('flor_p1', 'sebe', 21, 28, { w: 3, art: 'props/flor_mista' }),
     P('flor_p2', 'sebe', 26, 29, { w: 3, art: 'props/flor_branca_l' }),
     P('lampada_s1', 'poste', 8, 30, { art: 'props/lamp_old' }),
