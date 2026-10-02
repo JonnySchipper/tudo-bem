@@ -16,8 +16,8 @@ import { BUS, VEHICLE_TYPES } from './ambientSim';
 
 const manifest = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../../public/pixel/manifest.json'), 'utf8')) as Manifest;
 const has = (k: string) => k in manifest.sprites;
-const vila = ROOMS.praca;
-const amb = AMBIENT.praca;
+const vila = ROOMS.rua;
+const amb = { ...AMBIENT.rua, bus: AMBIENT.rua.bus! }; // the rua has the bus stop
 
 const overlap = (a: Rect, b: Rect) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 const union = (rs: Rect[]): Rect => ({ x0: Math.min(...rs.map((r) => r.x0)), y0: Math.min(...rs.map((r) => r.y0)), x1: Math.max(...rs.map((r) => r.x1)), y1: Math.max(...rs.map((r) => r.y1)) });
@@ -54,9 +54,9 @@ function busRect(): Rect {
 }
 
 describe('Wave 3: streets', () => {
-  it('has parked cars on both streets', () => {
+  it('has parked cars in the bays of the rua', () => {
     expect(parked.filter((p) => p.y === 12).length).toBeGreaterThanOrEqual(2);
-    expect(parked.filter((p) => p.y === 35).length).toBeGreaterThanOrEqual(6);
+    expect(parked.every((p) => p.y === 12)).toBe(true); // split areas: only the rua has a street (the south row, Rua Jacarandá, is gone)
   });
 
   it('parks every car fully inside a parking bay (asphalt), with a gap to the next car', () => {
@@ -90,7 +90,7 @@ describe('Wave 3: streets', () => {
     for (const [i, r] of decalRect('decals/faixa_onibus').entries()) things.push([`bus bay ${i}`, r]);
     things.push(['the bus at the stop', busRect()]);
     for (const p of vila.portals) things.push([`door ${p.id}`, tileRect(Math.floor(p.doorAt?.x ?? p.x), p.y)]);
-    expect(things.length).toBeGreaterThan(30);
+    expect(things.length).toBeGreaterThan(20);
     for (const car of parked) {
       const c = inflate(drawn(car, false), 4);
       for (const [name, r] of things) expect(overlap(c, r), `${car.id} overlaps ${name}`).toBe(false);

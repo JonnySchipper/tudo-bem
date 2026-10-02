@@ -29,9 +29,10 @@ export interface ScheduleSlot {
 
 const at = (h: number, m = 0) => h * 60 + m;
 
-// Home doors: the padaria's own door, and the Edifício Ipê entrance (the neighbourhood's residents live upstairs).
+/// Home doors: the padaria's own door, and the Edifício Ipê entrance on the Rua dos Ipês (the neighbourhood's residents live upstairs).
+// Split into areas: the NPCs walk between the rua, the praça and the feira through the edge portals (`npcMotion.ts` routes them).
 const HOME_PADARIA: Tile = { x: 1, y: 6 };
-const HOME_PRACA: Tile = { x: 24, y: 6 };
+const HOME_RUA: Tile = { x: 12, y: 6 };
 
 function slot(npc: NpcId, from: number, to: number, room: RoomId, tile: Tile, dir: Dir, activity: NpcActivity, interact?: Tile): ScheduleSlot {
   return { npc, from, to, room, tile, dir, activity, ...(interact ? { interact } : {}) };
@@ -42,11 +43,11 @@ const COUNTER: Tile = { x: 3, y: 1 };
 const COUNTER_INTERACT: Tile = { x: 3, y: 3 };
 
 const CARLOS: ScheduleSlot[] = [
-  slot('carlos', at(0), at(6), 'praca', HOME_PRACA, 'SW', 'em_casa'),
+  slot('carlos', at(0), at(6), 'rua', HOME_RUA, 'SW', 'em_casa'),
   slot('carlos', at(6), at(22), 'padaria', COUNTER, 'SE', 'trabalhando', COUNTER_INTERACT),
   // off shift: a bench in the praça (banco_2), then home
-  slot('carlos', at(22), at(23, 30), 'praca', { x: 28, y: 17 }, 'SW', 'sentado', { x: 28, y: 18 }),
-  slot('carlos', at(23, 30), at(24), 'praca', HOME_PRACA, 'SW', 'em_casa'),
+  slot('carlos', at(22), at(23, 30), 'praca', { x: 24, y: 20 }, 'SW', 'sentado', { x: 24, y: 21 }),
+  slot('carlos', at(23, 30), at(24), 'rua', HOME_RUA, 'SW', 'em_casa'),
 ];
 
 const GRACA: ScheduleSlot[] = [
@@ -58,42 +59,42 @@ const GRACA: ScheduleSlot[] = [
 ];
 
 const NANDA: ScheduleSlot[] = [
-  slot('nanda', at(0), at(8), 'praca', HOME_PRACA, 'SW', 'em_casa'),
-  slot('nanda', at(8), at(20), 'praca', { x: 35, y: 13 }, 'SW', 'trabalhando', { x: 34, y: 15 }),
-  slot('nanda', at(20), at(24), 'praca', HOME_PRACA, 'SW', 'em_casa'),
+  slot('nanda', at(0), at(8), 'rua', HOME_RUA, 'SW', 'em_casa'),
+  slot('nanda', at(8), at(20), 'praca', { x: 20, y: 1 }, 'SW', 'trabalhando', { x: 19, y: 3 }),
+  slot('nanda', at(20), at(24), 'rua', HOME_RUA, 'SW', 'em_casa'),
 ];
 
 const JULIA: ScheduleSlot[] = [
-  // early morning by the banca (also the small hours: she is always somewhere in the praça)
-  slot('julia', at(0), at(7), 'praca', { x: 21, y: 6 }, 'SW', 'passeando', { x: 20, y: 6 }),
-  // by day at the kiosk end of the path to the fountain
-  slot('julia', at(7), at(17), 'praca', { x: 22, y: 19 }, 'SW', 'trabalhando', { x: 22, y: 20 }),
+  // early morning by the banca on the rua (also the small hours: she is always somewhere outside)
+  slot('julia', at(0), at(7), 'rua', { x: 9, y: 6 }, 'SW', 'passeando', { x: 8, y: 6 }),
+  // by day on the path to the fountain
+  slot('julia', at(7), at(17), 'praca', { x: 13, y: 9 }, 'SW', 'trabalhando', { x: 13, y: 10 }),
   // evening on a bench south-west of the fountain (banco_3; banco_1 by the kiosk stays free: the e2e clicks it for real)
-  slot('julia', at(17), at(23), 'praca', { x: 20, y: 25 }, 'SW', 'sentado', { x: 20, y: 26 }),
-  slot('julia', at(23), at(24), 'praca', { x: 21, y: 6 }, 'SW', 'passeando', { x: 20, y: 6 }),
+  slot('julia', at(17), at(23), 'praca', { x: 12, y: 17 }, 'SW', 'sentado', { x: 12, y: 18 }),
+  slot('julia', at(23), at(24), 'rua', { x: 9, y: 6 }, 'SW', 'passeando', { x: 8, y: 6 }),
 ];
 
-// The feira vendors (Phase 9): at their stall while the feira is open (06:00-13:00), home otherwise. Tia Lu rests on a bench in the praça
+// The feira vendors (Phase 9): at their stall in the Feira Livre while it is open (06:00-13:00), home otherwise. Tia Lu rests on a bench in the praça
 // in the afternoon (banco_4; Carlos has banco_2 at night, Júlia banco_3 in the evening). The vendor stands in FRONT of the stall (V2: visible,
 // facing the aisle), customers talk from the tile after (see `feiraStall` in rooms.ts).
 const FEIRA_FROM = at(6);
 const FEIRA_TO = at(13);
 function vendor(npc: NpcId, tile: Tile, interact: Tile): ScheduleSlot[] {
   return [
-    slot(npc, at(0), FEIRA_FROM, 'praca', HOME_PRACA, 'SW', 'em_casa'),
-    slot(npc, FEIRA_FROM, FEIRA_TO, 'praca', tile, 'SW', 'trabalhando', interact),
-    slot(npc, FEIRA_TO, at(24), 'praca', HOME_PRACA, 'SW', 'em_casa'),
+    slot(npc, at(0), FEIRA_FROM, 'rua', HOME_RUA, 'SW', 'em_casa'),
+    slot(npc, FEIRA_FROM, FEIRA_TO, 'feira', tile, 'SW', 'trabalhando', interact),
+    slot(npc, FEIRA_TO, at(24), 'rua', HOME_RUA, 'SW', 'em_casa'),
   ];
 }
 const TIA_LU: ScheduleSlot[] = [
-  slot('tia_lu', at(0), FEIRA_FROM, 'praca', HOME_PRACA, 'SW', 'em_casa'),
-  slot('tia_lu', FEIRA_FROM, FEIRA_TO, 'praca', { x: 45, y: 19 }, 'SW', 'trabalhando', { x: 45, y: 20 }),
-  slot('tia_lu', FEIRA_TO, at(17), 'praca', { x: 28, y: 25 }, 'SW', 'sentado', { x: 28, y: 26 }),
-  slot('tia_lu', at(17), at(24), 'praca', HOME_PRACA, 'SW', 'em_casa'),
+  slot('tia_lu', at(0), FEIRA_FROM, 'rua', HOME_RUA, 'SW', 'em_casa'),
+  slot('tia_lu', FEIRA_FROM, FEIRA_TO, 'feira', { x: 7, y: 5 }, 'SW', 'trabalhando', { x: 7, y: 6 }),
+  slot('tia_lu', FEIRA_TO, at(17), 'praca', { x: 18, y: 17 }, 'SW', 'sentado', { x: 18, y: 18 }),
+  slot('tia_lu', at(17), at(24), 'rua', HOME_RUA, 'SW', 'em_casa'),
 ];
-const ZE = vendor('ze', { x: 51, y: 19 }, { x: 51, y: 20 });
-const CHICO = vendor('chico', { x: 45, y: 26 }, { x: 45, y: 27 });
-const ROSA = vendor('rosa', { x: 51, y: 26 }, { x: 51, y: 27 });
+const ZE = vendor('ze', { x: 13, y: 5 }, { x: 13, y: 6 });
+const CHICO = vendor('chico', { x: 7, y: 13 }, { x: 7, y: 14 });
+const ROSA = vendor('rosa', { x: 13, y: 13 }, { x: 13, y: 14 });
 
 /** Schedules by NPC. An NPC with no entry (Professora Bia) stands at its room's `x, y` at every hour. */
 export const SCHEDULES: Partial<Record<NpcId, ScheduleSlot[]>> = {
@@ -110,7 +111,7 @@ export const SCHEDULES: Partial<Record<NpcId, ScheduleSlot[]>> = {
 /** Doors the NPCs walk through to and from `em_casa`, per room: `exit` is the tile they walk to and vanish at, `entry` where they appear. */
 export const NPC_HOME_DOORS: Partial<Record<RoomId, { exit: Tile; entry: Tile }>> = {
   padaria: { exit: { x: 0, y: 6 }, entry: HOME_PADARIA },
-  praca: { exit: { x: 24, y: 5 }, entry: HOME_PRACA },
+  rua: { exit: { x: 12, y: 5 }, entry: HOME_RUA },
 };
 
 export const scheduleFor = (npc: NpcId): ScheduleSlot[] | undefined => SCHEDULES[npc];

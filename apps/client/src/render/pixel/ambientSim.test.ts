@@ -31,7 +31,9 @@ import {
   vehiclesAt,
 } from './ambientSim';
 
-const room = AMBIENT.praca;
+const room = AMBIENT.rua;
+const bus = room.bus!; // split areas: the rua has the street and the bus stop
+const praca = AMBIENT.praca; // the vira-lata lives in the praça
 const T0 = 1_800_000_000_000;
 
 describe('traffic', () => {
@@ -54,13 +56,10 @@ describe('traffic', () => {
       }
     }
     expect(seen).toBeGreaterThan(100);
-    // lane order: westbound above eastbound on the two-way street; the one-way street (W3: Rua Jacarandá) has its single lane eastbound
+    // lane order: westbound above eastbound on the two-way street (the only street left is Rua dos Ipês)
+    expect(room.streets).toHaveLength(1);
     for (const s of room.streets) {
-      if (s.lanes.length === 1) {
-        expect(s.id).toBe('jacaranda');
-        expect(s.lanes[0].dir).toBe('e');
-        continue;
-      }
+      expect(s.lanes).toHaveLength(2);
       expect(s.lanes[0].dir).toBe('w');
       expect(s.lanes[1].dir).toBe('e');
       expect(s.lanes[0].y).toBeLessThan(s.lanes[1].y);
@@ -126,10 +125,10 @@ describe('traffic', () => {
     // standing: exactly at the stop for 8 s
     expect(busRemaining(0)).toBe(0);
     expect(busRemaining(BUS_DWELL_MS)).toBe(0);
-    expect(busX(room.bus, BUS_DWELL_MS / 2)).toBe(room.bus.stopX);
+    expect(busX(bus, BUS_DWELL_MS / 2)).toBe(bus.stopX);
     // approaching from the west, leaving to the east
-    expect(busX(room.bus, -5000)).toBeLessThan(room.bus.stopX);
-    expect(busX(room.bus, BUS_DWELL_MS + 5000)).toBeGreaterThan(room.bus.stopX);
+    expect(busX(bus, -5000)).toBeLessThan(bus.stopX);
+    expect(busX(bus, BUS_DWELL_MS + 5000)).toBeGreaterThan(bus.stopX);
     // continuous through the braking and the pull-away
     for (const dt of [-BUS_EASE_MS, 0, BUS_DWELL_MS, BUS_DWELL_MS + BUS_EASE_MS]) {
       expect(Math.abs(busRemaining(dt - 1) - busRemaining(dt + 1))).toBeLessThan(0.2);
@@ -140,7 +139,7 @@ describe('traffic', () => {
     const at = 1_000_000 * BUS_PERIOD_MS + 60_000;
     const forced = at;
     const v = vehiclesAt(room, at + 4000, 600, { forcedBusAt: forced }).find((x) => x.bus)!;
-    expect(v.x).toBe(room.bus.stopX);
+    expect(v.x).toBe(bus.stopX);
     expect(v.dir).toBe('e');
     expect(v.moving).toBe(false);
     expect(v.laneY).toBe(room.streets[0].lanes[1].y);
@@ -153,10 +152,12 @@ describe('traffic', () => {
     }
   });
 
-  it('spawns on both streets and uses the sprites the manifest has', () => {
+  it('spawns on the rua street and uses the sprites the manifest has', () => {
     const seen = new Set<string>();
     for (let i = 0; i < 500; i++) for (const v of vehiclesAt(room, T0 + i * 1900, 700)) seen.add(v.street);
-    expect([...seen].sort()).toEqual(['ipes', 'jacaranda']);
+    expect([...seen].sort()).toEqual(['ipes']);
+    expect(AMBIENT.praca.streets).toEqual([]); // traffic only on the rua
+    expect(AMBIENT.feira.streets).toEqual([]);
     expect(SLOT_MS).toBeGreaterThan(0);
   });
 });
@@ -179,7 +180,7 @@ describe('the vira-lata', () => {
 
   it('wanders only on walkable tiles within 6 tiles of its corner, and goes home to nap', () => {
     const { def, walkable } = walkableOf('praca');
-    const dogData = room.dog;
+    const dogData = praca.dog!;
     const tiles = roamTiles(dogData.home, dogData.radius, walkable);
     expect(tiles.length).toBeGreaterThan(15);
     for (const p of tiles) {
@@ -217,16 +218,16 @@ describe('the vira-lata', () => {
 
   it('picks waypoints from the tiles it is given, and finds paths inside them', () => {
     const { walkable } = walkableOf('praca');
-    const tiles = roamTiles(room.dog.home, 6, walkable);
+    const tiles = roamTiles(praca.dog!.home, 6, walkable);
     for (let n = 0; n < 50; n++) {
-      const w = pickWaypoint(tiles, n, room.dog.home);
+      const w = pickWaypoint(tiles, n, praca.dog!.home);
       expect(tiles.some((p) => p.x === w.x && p.y === w.y)).toBe(true);
-      const path = pathWithin(tiles, room.dog.home, w);
-      expect(path[0]).toEqual(room.dog.home);
+      const path = pathWithin(tiles, praca.dog!.home, w);
+      expect(path[0]).toEqual(praca.dog!.home);
       expect(path.at(-1)).toEqual(w);
       for (let i = 1; i < path.length; i++) expect(Math.abs(path[i].x - path[i - 1].x) + Math.abs(path[i].y - path[i - 1].y)).toBe(1);
     }
-    expect(pathWithin(tiles, room.dog.home, { x: 100, y: 100 })).toEqual([]);
+    expect(pathWithin(tiles, praca.dog!.home, { x: 100, y: 100 })).toEqual([]);
   });
 });
 

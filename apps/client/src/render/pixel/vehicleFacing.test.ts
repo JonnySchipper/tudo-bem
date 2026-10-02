@@ -57,7 +57,7 @@ describe('traffic uses the sprite that matches its velocity', () => {
   it('every vehicle on every lane moves toward the way its sprite faces', async () => {
     const east = new Set(PAIRS.map((p) => p[0]));
     const west = new Set(PAIRS.map((p) => p[1]));
-    const room = AMBIENT.praca;
+    const room = AMBIENT.rua;
     const seen = { e: 0, w: 0 };
     const DT = 500;
     for (let t = 1_000_000; t < 1_000_000 + 600_000; t += 7919) {

@@ -353,11 +353,17 @@ function updateGuides() {
   if (!p || !r) return;
   const t = p.tutorial;
   const add = (g: Guide | null) => g && renderer.guides.push(g);
-  if (r.room === 'praca') {
+  if (r.room === 'rua') {
     if (!t.carlos) add(guideAt('portal', 'praca_padaria', 110, 'Padaria →'));
-    else if (!t.chapeu) add(guideAt('prop', 'barraca', 138, 'Chapéus'));
+    else if (!t.chapeu) add(guideAt('portal', 'rua_praca_1', 60, 'Chapéus: Praça ↓'));
     else if (!t.cadeira) add(guideAt('portal', 'praca_kitnet', 110, 'Minha kitnet'));
     if (t.meveum) add(guideAt('portal', 'praca_academia', 110, 'Academia do Bairro →'));
+  } else if (r.room === 'praca') {
+    if (!t.carlos) add(guideAt('portal', 'praca_rua_1', 60, 'Padaria: pela Rua ↑'));
+    else if (!t.chapeu) add(guideAt('prop', 'barraca', 138, 'Chapéus'));
+    else if (!t.cadeira || t.meveum) add(guideAt('portal', 'praca_rua_1', 60, t.cadeira ? 'Academia: pela Rua ↑' : 'Minha kitnet: pela Rua ↑'));
+  } else if (r.room === 'feira') {
+    add(guideAt('portal', 'feira_praca_1', 60, '← Praça'));
   } else if (r.room === 'padaria') {
     // Click opens AI Conversa. Don't label the tile "Conversar" — that word was the chip-scene trap.
     // the baker at the counter: Seu Carlos by day, Dona Graça at night
@@ -365,10 +371,10 @@ function updateGuides() {
     if (baker?.id === 'graca') add(guideAt('npc', 'graca', 130, t.carlos ? 'Falar com Dona Graça' : 'Fale com a Dona Graça'));
     else add(guideAt('npc', 'carlos', 130, t.carlos ? 'Falar com Carlos' : 'Fale com o Seu Carlos'));
     if (t.carlos && !t.meveum) add(guideAt('prop', 'trilho', 128, 'Me vê um…'));
-    else if (t.carlos && t.meveum && !t.chapeu) add(guideAt('portal', 'padaria_praca', 110, '← Praça'));
+    else if (t.carlos && t.meveum && !t.chapeu) add(guideAt('portal', 'padaria_praca', 110, '← Rua'));
   } else if (r.room === 'academia') {
     add(guideAt('prop', 'fila', 190, 'Fila do tatame'));
-    add(guideAt('portal', 'academia_praca', 110, '← Praça'));
+    add(guideAt('portal', 'academia_praca', 110, '← Rua'));
   }
 }
 
@@ -453,7 +459,7 @@ net.on((m: ServerMsg) => {
       onboarding = null;
       if (!started) startGame();
       const last = sessionStorage.getItem(LAST_ROOM_KEY);
-      joinRoom(last === 'padaria' || last === 'kitnet' || last === 'academia' ? last : 'praca');
+      joinRoom(last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'feira' ? last : 'praca');
       game.emit('profile');
       break;
     }
@@ -676,6 +682,14 @@ function npcSay(id: string, line: { pt: string; en: string }) {
   game.npcBubbles.set(id, { text: line.pt, gloss: line.en, at: now() });
 }
 
+/** Over-stimulation cap (split into areas): never more than two ambient NPC speech bubbles on screen at once (a bubble lives 7 s). */
+const MAX_AMBIENT_BUBBLES = 2;
+function ambientBubblesFull(): boolean {
+  let live = 0;
+  for (const b of game.npcBubbles.values()) if (now() - b.at < 7000) live++;
+  return live >= MAX_AMBIENT_BUBBLES;
+}
+
 // ---------------------------------------------------------------- game start + input
 
 function startGame() {
@@ -767,13 +781,13 @@ function startGame() {
   const idleTalk = new IdleTalk();
   setInterval(() => {
     const npcs = game.liveNpcs(now());
-    if (!npcs.length || document.hidden) return;
+    if (!npcs.length || document.hidden || ambientBubblesFull()) return;
     const n = npcs[Math.floor(Math.random() * npcs.length)];
     npcSay(n.id, localizeGreeting(idleTalk.next(n.idleLines, clock.weather(), clock.minutes()), clock.minutes()));
   }, 11_000);
   // the feira: a vendor calls out their goods now and then (PT with the gloss); never two calls at once, and not while a dialogue box is open
   setInterval(() => {
-    if (document.hidden || game.modalOpen) return;
+    if (document.hidden || game.modalOpen || ambientBubblesFull()) return;
     const vendors = game.liveNpcs(now()).filter((n) => n.id === 'tia_lu' || n.id === 'ze' || n.id === 'chico' || n.id === 'rosa');
     if (!vendors.length) return;
     const n = vendors[Math.floor(Math.random() * vendors.length)]!;

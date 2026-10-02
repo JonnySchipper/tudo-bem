@@ -15,6 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { assert, learnShelf, playShift, sleep, waitFor } from './lib/meveum-play.mjs';
 import { assertPageClock, requirePinnedClock } from './lib/clock-pin.mjs';
+import { goArea } from './lib/areas.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
 const CHROME = findChrome();
@@ -73,8 +74,8 @@ async function main() {
 
   if (PHASE === 'a') {
     await waitFor(page, () => window.__tb.clock.minutes() >= 1260, null, 120_000, '21:00');
-    await walkTo(page, 34, 16);
-    await waitIdleAt(page, 34, 16);
+    await walkTo(page, 19, 3); // in front of Nanda's stall (the praça)
+    await waitIdleAt(page, 19, 3);
     await sleep(1200);
     const m = await minutes(page);
     log('at the stall, game time', hhmm(m));
@@ -92,18 +93,20 @@ async function main() {
   } else {
     // Seu Carlos on a bench at 22:30
     await waitFor(page, () => window.__tb.clock.minutes() >= 1350 && window.__tb.clock.minutes() < 1400, null, 150_000, '22:30');
-    await walkTo(page, 28, 20);
-    await waitIdleAt(page, 28, 20);
+    await walkTo(page, 24, 21); // in front of banco_2
+    await waitIdleAt(page, 24, 21);
     await sleep(1000);
     const npcs = await npcsHere(page);
     const carlos = npcs.find((n) => n.id === 'carlos');
     log('22:30+ praça NPCs:', JSON.stringify(npcs), 'time', hhmm(await minutes(page)));
-    assert(carlos && carlos.activity === 'sentado' && carlos.x === 28 && carlos.y === 17, 'Seu Carlos sits on the praça bench');
+    assert(carlos && carlos.activity === 'sentado' && carlos.x === 24 && carlos.y === 20, 'Seu Carlos sits on the praça bench');
     await shot(page, 'carlos_bench_2230');
 
     // the padaria at 23:00 with Dona Graça
-    await walkTo(page, 16, 6);
-    await waitIdleAt(page, 16, 6);
+    // the padaria is on the rua: walk off the praça's north edge, then to the door's sidewalk
+    await goArea(page, 'rua');
+    await walkTo(page, 4, 6);
+    await waitIdleAt(page, 4, 6);
     await waitFor(page, () => window.__tb.clock.minutes() >= 1380 && window.__tb.clock.minutes() < 1420, null, 150_000, '23:00');
     await join(page, 'praca_padaria', 'padaria');
     await waitFor(page, () => [...window.__tb.game.avatars.values()].some((a) => a.pub.npc === 'graca'), null, 8000, 'Graça at the counter');
@@ -156,9 +159,9 @@ async function main() {
     // the academia: Professora Bia
     await page.keyboard.press('Escape');
     await sleep(500);
-    await join(page, 'padaria_praca', 'praca');
-    await walkTo(page, 38, 6);
-    await waitIdleAt(page, 38, 6);
+    await join(page, 'padaria_praca', 'rua');
+    await walkTo(page, 26, 6);
+    await waitIdleAt(page, 26, 6);
     await join(page, 'praca_academia', 'academia');
     await waitFor(page, () => [...window.__tb.game.avatars.values()].some((a) => a.pub.npc === 'prof'), null, 8000, 'Professora Bia');
     await sleep(800);

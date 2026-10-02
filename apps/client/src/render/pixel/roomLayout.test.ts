@@ -45,14 +45,14 @@ describe('interior walls (top-down)', () => {
 
 describe('props', () => {
   it('anchors at the bottom-centre of the footprint', () => {
-    const banca = ROOMS.praca.props.find((p) => p.id === 'banca');
+    const banca = ROOMS.rua.props.find((p) => p.id === 'banca');
     if (!banca) throw new Error('no banca');
-    expect(propAnchor(banca)).toEqual({ wx: 21.5 * T, wy: 6 * T });
-    expect(footprintRect(banca)).toEqual({ x0: 20 * T, y0: 4 * T, x1: 23 * T, y1: 6 * T });
+    expect(propAnchor(banca)).toEqual({ wx: 9.5 * T, wy: 6 * T });
+    expect(footprintRect(banca)).toEqual({ x0: 8 * T, y0: 4 * T, x1: 11 * T, y1: 6 * T });
   });
 
   it('uses the real sprites the art track delivered', () => {
-    const byId = (id: string) => ROOMS.praca.props.find((p) => p.id === id);
+    const byId = (id: string) => [...ROOMS.rua.props, ...ROOMS.praca.props].find((p) => p.id === id);
     const key = (id: string) => {
       const p = byId(id);
       if (!p) throw new Error(id);
@@ -64,7 +64,7 @@ describe('props', () => {
     expect(key('barraca')).toBe('props/barraca_chapeus');
     expect(key('quiosque')).toBe('props/quiosque');
     expect(key('poleiro')).toBe('props/poleiro');
-    expect(key('poste_1')).toBe('props/poste_fios');
+    expect(key('poste_2')).toBe('props/poste_fios');
     expect(key('ipe_centro')).toBe('props/ipe_large');
     expect(key('ipe_2')).toBe('props/ipe_roxo_medium'); // V2: a purple ipê (the hero stays yellow)
     expect(key('ipe_5')).toBe('props/ipe_amarelo_medium_b');

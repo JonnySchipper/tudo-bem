@@ -31,14 +31,14 @@ const at = (x: number, y: number): HumanSpot => ({ tile: { x, y }, target: { x, 
 
 describe('CpuCrowd (Praça ambiance)', () => {
   it('spawns the Live Ops target instantly for the first player, mostly seated', () => {
-    const { crowd } = harness([at(25, 27)]);
+    const { crowd } = harness([at(16, 16)]);
     crowd.sync();
     const cpus = crowd.avatars();
     expect(cpus).toHaveLength(cpuTarget(1, 'praca'));
-    expect(cpus.length).toBe(8);
+    expect(cpus.length).toBe(4);
     const seated = cpus.filter((c) => c.sitting).length;
-    expect(seated).toBeGreaterThanOrEqual(4);
-    expect(seated).toBeLessThanOrEqual(6);
+    expect(seated).toBeGreaterThanOrEqual(1);
+    expect(seated).toBeLessThanOrEqual(4);
     expect(cpus.every((c) => c.cpu && c.nameplate === 'verde' && c.pronoun === 'nome' && !c.parrot)).toBe(true);
   });
 
@@ -46,7 +46,7 @@ describe('CpuCrowd (Praça ambiance)', () => {
     let seed = 3;
     const rng = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
     for (let run = 0; run < 20; run++) {
-      const { crowd } = harness([at(25, 27)], rng);
+      const { crowd } = harness([at(16, 16)], rng);
       crowd.sync();
       const cpus = crowd.avatars();
       expect(cpus.every((c) => JSON.stringify(c.appearance) === JSON.stringify(cpuLook(c.name).appearance) && c.hat === cpuLook(c.name).hat)).toBe(true);
@@ -62,7 +62,7 @@ describe('CpuCrowd (Praça ambiance)', () => {
     let seed = 11;
     const rng = () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646;
     for (let run = 0; run < 30; run++) {
-      const { crowd, advance } = harness([at(25, 27)], rng);
+      const { crowd, advance } = harness([at(16, 16)], rng);
       crowd.sync();
       advance(60_000);
       for (const c of crowd.avatars()) {
@@ -75,13 +75,18 @@ describe('CpuCrowd (Praça ambiance)', () => {
     expect(seniorsAtTables).toBeGreaterThan(20);
   });
 
-  it('presence targets follow the Live Ops table (Vila Ipê: up to 8, thinning as humans arrive)', () => {
-    expect([0, 1].map((n) => cpuTarget(n, 'praca')).every((n) => n >= 4 && n <= 8)).toBe(true);
-    expect(cpuTarget(1, 'praca')).toBe(8);
-    const seq = [1, 2, 3, 5, 7, 9, 13].map((n) => cpuTarget(n, 'praca'));
-    for (let i = 1; i < seq.length; i++) expect(seq[i]).toBeLessThanOrEqual(seq[i - 1]);
-    expect([9, 12].every((n) => cpuTarget(n, 'praca') <= 1)).toBe(true);
-    expect(cpuTarget(16, 'praca')).toBe(0);
+  it('presence targets follow the Live Ops table (split areas: Praça 4, Rua 3, Feira 3 at most, thinning as humans arrive)', () => {
+    expect(cpuTarget(1, 'praca')).toBe(4);
+    expect(cpuTarget(1, 'rua')).toBe(3);
+    expect(cpuTarget(1, 'feira')).toBe(3);
+    // calmer than the old 56 x 40 map: no area shows more than half of its old 8
+    for (const room of ['praca', 'rua', 'feira'] as const) {
+      expect(cpuTarget(0, room)).toBeLessThanOrEqual(4);
+      const seq = [1, 2, 3, 5, 7, 9, 13].map((n) => cpuTarget(n, room));
+      for (let i = 1; i < seq.length; i++) expect(seq[i]).toBeLessThanOrEqual(seq[i - 1]);
+      expect([9, 12].every((n) => cpuTarget(n, room) <= 1)).toBe(true);
+      expect(cpuTarget(16, room)).toBe(0);
+    }
     // the smaller rooms keep the original table
     expect([0, 1].map((n) => cpuTarget(n)).every((n) => n >= 4 && n <= 6)).toBe(true);
     expect([2, 3, 4].map((n) => cpuTarget(n)).every((n) => n >= 3 && n <= 4)).toBe(true);
@@ -90,7 +95,7 @@ describe('CpuCrowd (Praça ambiance)', () => {
   });
 
   it('the nearest CPU within 3 tiles waves back once; farther CPUs and cooldowns stay quiet', () => {
-    const { crowd, advance, waves } = harness([at(25, 27)]);
+    const { crowd, advance, waves } = harness([at(16, 16)]);
     crowd.sync();
     const sitter = crowd.avatars().find((c) => c.sitting)!;
     const near: Tile = { x: sitter.x, y: sitter.y + 2 };
@@ -109,7 +114,7 @@ describe('CpuCrowd (Praça ambiance)', () => {
   });
 
   it('waves when a player walks up to it, and yields its bench to a player', () => {
-    const humans = [at(25, 27)];
+    const humans = [at(16, 16)];
     const { crowd, advance, waves, sent } = harness(humans);
     crowd.sync();
     const sitter = crowd.avatars().find((c) => c.sitting)!;
@@ -126,7 +131,7 @@ describe('CpuCrowd (Praça ambiance)', () => {
   });
 
   it('walks out (not pops out) when the room fills up, and freezes with nobody watching', () => {
-    const humans = [at(25, 27)];
+    const humans = [at(16, 16)];
     const { crowd, advance, sent } = harness(humans);
     crowd.sync();
     for (let i = 0; i < 8; i++) humans.push(at(26, 27));
@@ -167,6 +172,20 @@ describe('CpuCrowd (Academia ambiance)', () => {
     for (const m of moves) {
       if (m.t !== 'avatarMoved') continue;
       for (const step of m.path) expect(mat.has(key(step.x, step.y)), `${m.id} via ${step.x},${step.y}`).toBe(false);
+    }
+  });
+});
+
+describe('CpuCrowd (rua and feira ambiance, split areas)', () => {
+  it('fills each area with its own small crowd, only ever on tiles of that area', () => {
+    for (const room of ['rua', 'feira', 'praca'] as const) {
+      const { crowd, advance } = harness([at(ROOMS[room].spawn.x, ROOMS[room].spawn.y)], () => 0.37, room);
+      crowd.sync();
+      expect(crowd.avatars()).toHaveLength(cpuTarget(1, room));
+      expect(crowd.avatars().length).toBeLessThanOrEqual(4);
+      advance(120_000);
+      const g = ROOMS[room];
+      for (const c of crowd.avatars()) expect(c.x >= 0 && c.y >= 0 && c.x < g.cols && c.y < g.rows, `${room} cpu in bounds`).toBe(true);
     }
   });
 });

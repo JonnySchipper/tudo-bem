@@ -26,11 +26,9 @@ describe('fundos (south row, rear facades)', () => {
     expect(new Set(bodies.map((p) => hashOf(p.img))).size).toBe(9);
   });
 
-  it('are in the manifest and the south slots of rooms.ts use them (and only art keys changed)', () => {
-    for (let i = 1; i <= 9; i++) {
-      expect(manifest.sprites[`fundos/f${i}`], `f${i}`).toBeTruthy();
-      expect(rooms).toContain(`front('telhado_${i}', 'fundos/f${i}'`);
-    }
+  it('are in the manifest (the art is kept; the south row left the map when Vila Ipê was split into areas, so rooms.ts no longer places them)', () => {
+    for (let i = 1; i <= 9; i++) expect(manifest.sprites[`fundos/f${i}`], `f${i}`).toBeTruthy();
+    expect(rooms).not.toContain("front('telhado_1'");
   });
 });
 
