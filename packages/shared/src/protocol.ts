@@ -243,7 +243,7 @@ export type BoutServerMsg =
       seq: number;
       st: BoutSnapshot;
       intent: IntentId;
-      yours: { correct: boolean; speed: number; fast: boolean };
+      yours: { correct: boolean; speed: number; fast: boolean; timeout: boolean };
       partner: { intent: IntentId; correct: boolean };
       /** net momentum push (positive: toward you) */
       delta: number;

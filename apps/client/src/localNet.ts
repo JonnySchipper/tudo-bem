@@ -44,7 +44,6 @@ export class LocalNet implements NetLike {
       moderation: new MemoryModerationQueue(),
     }, {
       ambiance: new URLSearchParams(location.search).get('cpu') !== 'off',
-      rollQueueMs: 600,
       testRollHints: new URLSearchParams(location.search).has('rolltest'),
       // test hook, the solo twin of TB_TEST_CLOCK_OFFSET_MIN: `?tbclockmin=<real minutes>` shifts the game clock (schedules, greetings, the sky)
       clockOffsetMs: Number(new URLSearchParams(location.search).get('tbclockmin') ?? 0) * 60_000 || 0,

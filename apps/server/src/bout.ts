@@ -327,7 +327,7 @@ export class BoutEngine {
       seq: b.seq,
       st: snap(b.st),
       intent,
-      yours: { correct: res.yours.correct, speed: round2(res.yours.speed), fast: res.yours.fast },
+      yours: { correct: res.yours.correct, speed: round2(res.yours.speed), fast: res.yours.fast, timeout: !raw },
       partner: { intent: res.partner.intent, correct: res.partner.correct },
       delta: round1(res.delta),
       events: res.events,

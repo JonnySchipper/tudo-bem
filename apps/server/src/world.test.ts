@@ -1251,7 +1251,6 @@ describe('Idle kick', () => {
     expect(closed).toBeNull();
 
     await a.send({ t: 'mg', action: 'timeout' });
-    await a.send({ t: 'bout', v: 1, action: 'quit' });
     clock += 5 * MIN;
     world.sweepIdle();
     expect(closed).toBe('idle');

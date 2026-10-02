@@ -13,7 +13,10 @@ const NO_GRACIE_FILES = [
   'packages/shared/src/rooms.ts',
   'packages/shared/src/academia.ts',
   'apps/client/src/ui/panels.ts',
-  'apps/client/src/ui/roll.ts',
+  'apps/client/src/ui/bout.ts',
+  'apps/server/src/bout.ts',
+  'packages/shared/src/bout.ts',
+  'packages/shared/src/challenges.ts',
   'apps/client/src/main.ts',
   'scripts/e2e.mjs',
 ];

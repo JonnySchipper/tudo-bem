@@ -4,7 +4,7 @@
  * the lobby and the end card share. Pure logic for server + client + tests.
  *
  * Locks (CEO / Product B, docs/lifesim/ACADEMIA-REDESIGN.md): the learning content is everyday A1 Portuguese, never technique
- * trivia; no "Oss", "rola" or technique nameplates in learner-facing copy; no Gracie. Position names are labels only.
+ * trivia; no "Oss", "rola" or technique nameplates in learner-facing copy; no brand names (academia-branding.test.ts). Position names are labels only.
  */
 import type { Bilingual } from './types.js';
 

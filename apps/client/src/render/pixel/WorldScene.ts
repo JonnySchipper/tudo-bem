@@ -39,6 +39,8 @@ import { LabelLayer, type GuideItem, type StackItem } from './labels';
 import { OUTDOOR_NORTH, T, cssZoomFor, feet, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
 import { pickHit, type HitBox } from './hit';
 import { dialogueFraming, easeOut, stepBlend } from './dialogueCam';
+import { BoutStage } from './boutStage';
+import { boutFeed } from './boutFeed';
 import { roomKey, syncViews } from './reconcile';
 import { DEPTH, PROP_LIGHT, fencePieces, footprintRect, inflate, propAnchor, propDepth, furnitureArtKey, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
 import { sceneryFor } from './scenery';
@@ -188,6 +190,9 @@ export class WorldScene extends Phaser.Scene {
   private lastUpdateAt = 0;
   private reducedCheckAt = 0;
   private sheets!: CharSheets;
+  /** the Treino no tatame bout on the academia mat (pair sprite, referee, crowd, fx) */
+  private stage!: BoutStage;
+  private boutBlend = 0;
   private roomId = '';
   private roomDef: RoomDef | null = null;
   private roomObjs: Phaser.GameObjects.GameObject[] = [];
@@ -254,6 +259,23 @@ export class WorldScene extends Phaser.Scene {
     this.gov = new LowFxGovernor(this.probe, this.host.lowfx);
     this.weatherFx = new WeatherFx(this, this.rig, () => this.fxLevel);
     this.ambient = new AmbientLife(this, this.rig, this.m, () => this.fxLevel);
+    this.stage = new BoutStage({
+      scene: this,
+      world: (o) => this.rig.world(o),
+      manifest: this.m,
+      noteMissing: (k) => this.noteMissing(k),
+      acquireSheet: (look) => this.sheets.acquire(look),
+      releaseSheet: (k) => this.sheets.release(k),
+      playerAppearance: () => game.self?.pub.appearance ?? null,
+      bia: () => this.biaView(),
+      crowd: () => this.crowdSpots(),
+      mat: () => this.matCenter(),
+      placar: () => this.placarAnchor(),
+      toCanvas: (wx, wy) => worldToCanvas(this.cam, wx, wy),
+      cssScale: () => this.cssScale,
+      reduced: () => this.fxLevel.reduced,
+      instant: () => !!this.host.shot,
+    });
     if (!this.host.lowfx) this.vignette = cam.postFX.addVignette(0.5, 0.5, 0.88, 0.22);
     this.scale.on('resize', (size: Phaser.Structs.Size) => this.rig.resize(size.width, size.height));
     this.ready = true;
@@ -770,6 +792,7 @@ export class WorldScene extends Phaser.Scene {
     const dyn: HitBox[] = [];
     this.syncFurniture(dyn);
     this.syncAvatars(def, now, dyn);
+    this.syncBout(dt, now);
     this.updateCanopies(dt);
     this.updateHover(def);
     this.updateTrilho();
@@ -912,6 +935,66 @@ export class WorldScene extends Phaser.Scene {
     return { ...f, ...g };
   }
 
+  // ---- Treino no tatame: the camera eases one zoom step onto the mat, above the overlay and under the scoreboard (like the dialogue)
+  private withBout(f: { zoom: number; cx: number; cy: number; fits: boolean }, ins: Insets, k: number, dt: number): typeof f {
+    this.boutBlend = stepBlend(this.boutBlend, boutFeed.camera ? 1 : 0, dt, 0.4, this.fxLevel.reduced || !!this.host.shot);
+    if (this.boutBlend <= 0) return f;
+    const mat = this.matCenter();
+    if (!mat) return f;
+    const g = dialogueFraming({
+      base: f,
+      view: { w: this.cam.w, h: this.cam.h },
+      bounds: this.bounds,
+      insets: { top: boutFeed.topPx * k, bottom: 0, left: ins.left * k, right: ins.right * k },
+      boxPx: (boutFeed.boxPx + 6) * k,
+      self: { x: mat.x, y: mat.y },
+      npc: null,
+      blend: easeOut(this.boutBlend),
+      step: Math.max(1, Math.round(k)),
+    });
+    return { ...f, ...g };
+  }
+
+  /** The middle of the open mat (the tatame prop), world px, plus its east and west edges; null in a room without one. */
+  private matCenter(): { x: number; y: number; x0: number; x1: number } | null {
+    const p = this.roomDef?.props.find((q) => q.kind === 'tatame');
+    if (!p) return null;
+    const w = p.w ?? 1;
+    const hgt = p.h ?? 1;
+    return { x: (p.x + w / 2) * T, y: (p.y + hgt / 2) * T, x0: p.x * T, x1: (p.x + w) * T };
+  }
+
+  /** Anchor (bottom centre) of the mat scoreboard prop, world px. */
+  private placarAnchor(): { wx: number; wy: number } | null {
+    const p = this.roomDef?.props.find((q) => q.id === 'placar');
+    return p ? propAnchor(p) : null;
+  }
+
+  /** Professora Bia's avatar view (the referee), if she is in the room. */
+  private biaView(): { sprite: Phaser.GameObjects.Sprite; wx: number; wy: number; depth: number } | null {
+    const v = this.avatars.get('npc-prof');
+    return v ? { sprite: v.sprite, wx: v.wx, wy: v.wy, depth: v.sprite.depth } : null;
+  }
+
+  /** The spectators: every CPU in the room, with the world px of the top of its head (where the cheer pops up). */
+  private crowdSpots(): { id: string; x: number; y: number }[] {
+    const out: { id: string; x: number; y: number }[] = [];
+    for (const [id, v] of this.avatars) if (isCpuId(id)) out.push({ id, x: v.wx, y: v.wy - (v.sitting ? HEAD_LIFT_SIT : HEAD_LIFT) - lookHeadLift(v.look) - 4 });
+    return out;
+  }
+
+  /** The bout's own avatar rules: the player is not on the mat as a character (the pair sprite is them), and the stage updates. */
+  private syncBout(dt: number, now: number): void {
+    const hide = boutFeed.active;
+    const me = game.room ? this.avatars.get(game.room.selfId) : undefined;
+    if (me) {
+      me.sprite.setVisible(!hide);
+      me.shadow.setVisible(!hide);
+      if (hide) me.parrot?.setVisible(false);
+    }
+    this.stage.update(dt, now);
+  }
+
   private updateCamera(dt: number, def: RoomDef): void {
     const self = game.self ? this.avatars.get(game.self.pub.id) : undefined;
     const focus = self ? { x: self.wx, y: self.wy - 10 } : { x: (def.cols * T) / 2, y: (def.rows * T) / 2 };
@@ -931,6 +1014,7 @@ export class WorldScene extends Phaser.Scene {
       f = { zoom: Number(camShot[3]), cx: Number(camShot[1]) * T, cy: Number(camShot[2]) * T, fits: true };
     }
     f = this.withDialogue(f, self ? { x: self.wx, y: self.wy - 10 } : focus, ins, k, dt);
+    f = this.withBout(f, ins, k, dt);
     const target = { cx: f.cx, cy: f.cy };
     this.cam.zoom = f.zoom;
     if (this.cameras.main.zoom !== f.zoom) {
@@ -950,7 +1034,8 @@ export class WorldScene extends Phaser.Scene {
     }
     this.cam.cx = snapToDevice(this.cam.cx, this.cam.zoom);
     this.cam.cy = snapToDevice(this.cam.cy, this.cam.zoom);
-    this.cameras.main.centerOn(this.cam.cx, this.cam.cy);
+    const nudge = this.stage.cameraNudge();
+    this.cameras.main.centerOn(this.cam.cx + nudge.x, this.cam.cy + nudge.y);
   }
 
   // ---- avatars
@@ -1299,6 +1384,7 @@ export class WorldScene extends Phaser.Scene {
     for (const [id, v] of this.avatars) {
       const a = game.avatars.get(id);
       if (!a) continue;
+      if (id === selfId && boutFeed.active) continue; // the pair sprite is the player now
       const p = at(v.wx, v.wy - (v.sitting ? HEAD_LIFT_SIT : HEAD_LIFT) - lookHeadLift(v.look));
       if (a.pub.npc) {
         // a neighbour: terracotta plate with the role, and its own bubbles (idle lines are keyed by NPC id)
