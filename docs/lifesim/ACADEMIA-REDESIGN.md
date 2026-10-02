@@ -6,7 +6,7 @@ Owner: Jonny ("visually and gameplay it sucks"). Boss brief, 2026-10-02.
 - **Learning content stays A1 Portuguese.** Prompts are about everyday Portuguese, never BJJ technique trivia (CEO lock, `academia.ts` header, PR #44/#46).
 - **No "Oss", "rola" or technique nameplates in learner-facing copy** (Product B scrub, PR #46). That includes the V3 "OSS" wall poster and Bia's "Oss! Bora treinar?" idle line: replace them with neutral copy ("Bora treinar?", a poster reading "RESPEITO · TREINO · AMIZADE").
 - **No "Gracie" anywhere** (`academia-branding.test.ts`).
-- Position names may appear as **labels**, as they do today (`POSITION_LABELS`). They're places on the mat, not quiz content.
+- **No position or submission names in learner-facing copy (#49 lock, supersedes the earlier "position names may be labels" rule).** The overlay, scoreboard, Bia's calls, the end card, the lobby and the partner bios say "Em pé", "Você por cima", "Pressão", "Quase lá", "Final", never Guarda fechada, Meia-guarda, Cem quilos, Joelho na barriga, Montada, Costas or any submission. Pose ids (`de_pe`, `montada`...) are internal and only pick the mat art; `POSITION_LABELS` is gone, so the readable names do not ship in the client bundle (`apps/client/src/academia-lock.test.ts` builds the bundle and greps it). The generic "Finalização" is gone from copy too, as in #49 ("Final!" is the chance, the end line and the role tag).
 - Server-authoritative: the server owns the bout state; the client presents it.
 
 ## What's wrong today
@@ -29,13 +29,13 @@ The roll happens **in the world, on the academia mat**, with a compact overlay. 
      - kinds: cloze, choice, reorder, **listening** (🔊 hear a short phrase and pick it) and **type one word** (scored with the accept-list rules, accents optional);
      - content: from an expanded A1 bank (60+ items, `needs_br`), weighted by the player's Caderno: words not yet learned show up more.
    - c. **Resolution:** your **correctness + speed** against the partner's **skill profile** (accuracy, speed, aggression) moves a **momentum bar** (tug-of-war).
-     - Crossing a threshold changes the **position** on the existing ladder (de pé → guarda / meia-guarda → cem quilos → joelho na barriga → montada / costas), with a pixel transition animation.
+     - Crossing a threshold changes the **position** on the existing ladder (internal pose ids, never shown: standing → guard → side → knee → mount / back; the learner sees Em pé → Vantagem → Pressão → Quase lá → Final), with a pixel transition animation.
      - Points are announced by Bia in PT: "Dois pontos!", "Três pontos!", "Quatro pontos!", "Vantagem!". This doubles as number practice.
    - d. **Grip meter ("pegada"):** each fast correct answer adds to it, and a miss drains it.
-3. **Finalização:**
-   - When you're in a dominant position (montada/costas) with a full pegada, a **"Finalização!"** chance appears: a harder, multi-step prompt (reorder a full sentence, or 3 quick clozes in a row) under a tight timer.
+3. **Final (the finish):**
+   - When you're in a dominant position (montada/costas) with a full pegada, a **"Final!"** chance appears: a harder, multi-step prompt (reorder a full sentence, or 3 quick clozes in a row) under a tight timer.
    - **Success:** the partner taps, the mat flashes, the crowd cheers, Bia raises your hand.
-   - **Failure:** the partner escapes back to guard.
+   - **Failure:** the partner escapes ("Escapou! O jogo recomeça.").
    - The partner can do the same to you. Your defense is a quick "escape" challenge.
 4. **Time up:** the decision goes on points (then advantages), and Bia announces it in PT.
 5. **Outro:** a fist bump, then "Obrigado pela partida". Rewards come from the existing economy: RV, stripes, and the friendship bond with Bia.
@@ -61,7 +61,7 @@ The roll happens **in the world, on the academia mat**, with a compact overlay. 
 
 ### Visual targets
 - **Two-person grappling sprites,** in the LimeZu-compatible 16 px style:
-  - one composite per position: de pé (grips), guarda fechada, meia-guarda, cem quilos, joelho na barriga, montada, costas;
+  - one composite per position: seven composites keyed by pose id (standing, two guard variants, side, knee, mount, back; the ids are internal, not labels);
   - 2–4 idle "struggle" frames each, plus **transition animations** between adjacent positions (3–4 frames);
   - a finish/tap pose, a raised-hand win pose, and the fist bump;
   - **gi colors** are white vs blue. Skin and hair colors of both fighters come from palette-swap ramps (the Phase 3 key-ramp system), so the player looks like their avatar.

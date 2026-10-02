@@ -4,7 +4,8 @@
  * the lobby and the end card share. Pure logic for server + client + tests.
  *
  * Locks (CEO / Product B, docs/lifesim/ACADEMIA-REDESIGN.md): the learning content is everyday A1 Portuguese, never technique
- * trivia; no "Oss", "rola" or technique nameplates in learner-facing copy; no brand names (academia-branding.test.ts). Position names are labels only.
+ * trivia; no "Oss", "rola" or technique nameplates in learner-facing copy (no position or submission names either: #49, enforced by
+ * academia-lock.test.ts, which also greps the client bundle); no brand names (academia-branding.test.ts).
  */
 import type { Bilingual } from './types.js';
 
@@ -17,15 +18,26 @@ export type BjjPositionId =
   | 'montada'
   | 'costas';
 
-export const POSITION_LABELS: Record<BjjPositionId, Bilingual> = {
-  de_pe: { pt: 'De pé', en: 'Standing' },
-  guarda_fechada: { pt: 'Guarda fechada', en: 'Closed guard' },
-  meia_guarda: { pt: 'Meia-guarda', en: 'Half guard' },
-  cem_quilos: { pt: 'Cem quilos', en: 'Side control' },
-  joelho: { pt: 'Joelho na barriga', en: 'Knee on belly' },
-  montada: { pt: 'Montada', en: 'Mount' },
-  costas: { pt: 'Costas', en: 'Back control' },
-};
+/**
+ * Learner-facing bout steps (the #49 lock): the overlay never names a position. Pose ids above are internal (they pick the mat art) and have
+ * no readable label anywhere in the client bundle. The step is the size of the lead: Vantagem, Pressão, Quase lá, then Final at the top of the ladder.
+ * Virada is reserved for a reversal toast; level ground is just "Em pé".
+ */
+export const BOUT_STEP_CHROME: Bilingual[] = [
+  { pt: 'Vantagem', en: 'Advantage' },
+  { pt: 'Pressão', en: 'Pressure' },
+  { pt: 'Quase lá', en: 'Almost there' },
+  { pt: 'Virada', en: 'Reversal' },
+  { pt: 'Final', en: 'Finish' },
+];
+export const BOUT_STEP_STANDING: Bilingual = { pt: 'Em pé', en: 'Standing' };
+
+/** The neutral step for a ladder rung (-4..4): its size, not its sign; the first three steps, then Final at the top. */
+export function boutStepLabel(rung: number): Bilingual {
+  const a = Math.min(4, Math.abs(Math.round(Number.isFinite(rung) ? rung : 0)));
+  if (a === 0) return BOUT_STEP_STANDING;
+  return a === 4 ? BOUT_STEP_CHROME[4] : BOUT_STEP_CHROME[a - 1];
+}
 
 // ---------------------------------------------------------------- belts and stripes (never purchasable)
 
@@ -169,7 +181,7 @@ export const PARTNERS: readonly PartnerProfile[] = [
     aggression: 0.2,
     defense: 0.92,
     style: { pt: 'Defensivo', en: 'Defensive' },
-    bio: { pt: 'Difícil de finalizar. Segura firme e espera o erro.', en: 'Hard to finish. Holds tight and waits for a mistake.' },
+    bio: { pt: 'Difícil de vencer no final. Segura firme e espera o erro.', en: 'Hard to put away. Holds tight and waits for a mistake.' },
   },
   {
     id: 'rafael',
@@ -180,7 +192,7 @@ export const PARTNERS: readonly PartnerProfile[] = [
     aggression: 0.92,
     defense: 0.35,
     style: { pt: 'Agressivo', en: 'Aggressive' },
-    bio: { pt: 'Vai pra cima desde o começo e procura a finalização cedo.', en: 'Comes forward from the start and hunts for the finish early.' },
+    bio: { pt: 'Vai pra cima desde o começo e procura o final cedo.', en: 'Comes forward from the start and hunts for the finish early.' },
   },
 ];
 

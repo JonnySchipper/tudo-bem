@@ -426,7 +426,7 @@ export class BoutEngine {
     }
     b.st = finishFailed(b.st);
     const holdMs = this.pause(1_900);
-    s.send({ t: 'bout', v: 1, phase: 'finish_end', kind: 'finalizacao', success: false, st: snap(b.st), line: { pt: 'Escapou! De volta pra guarda.', en: 'He got out! Back to guard.' }, signal: null, holdMs });
+    s.send({ t: 'bout', v: 1, phase: 'finish_end', kind: 'finalizacao', success: false, st: snap(b.st), line: { pt: 'Escapou! O jogo recomeça.', en: 'He got out! Play resumes.' }, signal: null, holdMs });
     this.d.schedule(() => this.step(s, b.token), holdMs);
   }
 
