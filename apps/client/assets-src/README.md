@@ -212,3 +212,19 @@ Authored with a small puppet renderer (`custom/bjj-rig.mjs`: head disc, torso ca
 | `walls/poster_respeito` | 1 | the RESPEITO / TREINO / AMIZADE wall poster (replaces `poster_oss`) |
 
 **Colors.** Every pair frame uses only: key ramps (A `skin` / `hair`, B `skin2` / `hair2`, A's belt `belt`), the gi ramps (white for A, blue for B), B's fixed black belt, the navy outline and a few FX yellows (`GI_PALETTE` in `bjj-rig.mjs`). New key ramps in `palette.ts` (so `manifest.keyRamps` has them): `skin2` `#a03a00 #c05000 #e06800 #ff8020`, `hair2` `#5a00a0 #7000c0 #8800e0 #a020ff`, `belt` (3 ranks) `#406040 #608060 #80a080`. Swap them with `swapKeys` / `tableFor({ skin, hair, skin2, hair2, belt })`; use a white or blue base color for `belt`. Test: `scripts/lib/pixel/bjj.test.mjs`.
+
+## Correria no Balcão art (`balcao/*`, `fx/steam_*`)
+
+`custom/balcao.mjs` (registered as `balcaoSet` in `derive.mjs`, entry in `import-map.d/correria.json`) authors every piece of the counter work area. Each frame is its own sprite key in the `outdoor` atlas (no `anim` blocks); the gameplay side picks frames. All art is authored: the packs have no usable food, griddle or espresso art, so it is drawn with the padaria palette (navy outline added last with `outlineAround`, light from the upper left).
+
+| Keys | Frames | Size | Notes |
+|---|---|---|---|
+| `balcao/item_<itemId>` (12 shelf items) | 1 each | 28x28, anchor (14, 26) | pao, pao_na_chapa, pastel, coxinha, bolo, cafe, cafe_com_leite, suco_de_laranja, agua, pao_de_queijo, misto_quente, guarana |
+| `balcao/tray`, `tray_full`, `bag`, `plate` | 1 each | 64x16, 64x34, 24x30, 28x12 | `tray_full` carries three 16 px icons |
+| `balcao/chapa_idle`, `chapa_sizzle_0..2`, `chapa_burnt` | 1 + 3 + 1 | 40x36, anchor (20, 35) | sizzle 0 pale, 1 golden, 2 brown; burnt is black with smoke |
+| `balcao/coffee_idle`, `coffee_pour_0..3` | 1 + 4 | 34x42, anchor (17, 41) | idle has no glass; pour 0..3 fills a copo americano |
+| `balcao/register` | 1 | 26x24 | matches the padaria's cream register |
+| `balcao/bell_0..1`, `tipjar_0..3`, `patience_0..4` | 2, 4, 5 | 22x16, 20x24, 14x14 | bell still / rung; jar empty to full; patience full to out (clock-pie, red "!" at 4) |
+| `fx/steam_0..3` | 4 | 14x24, anchor (7, 23) | the only partly transparent art |
+
+Contact sheet (every key at 4x, strips, and a mock work area at zoom 3): `node scripts/balcao-sheet.mjs` -> `docs/lifesim/shots/correria-art/sheet.png`. Contract test: `scripts/lib/pixel/balcao.test.mjs`.
