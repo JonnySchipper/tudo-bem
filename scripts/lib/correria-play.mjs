@@ -83,7 +83,9 @@ export async function wantOf(page, c) {
 }
 
 /** Click the order together: grab, grill (wait, take), pour (hold), then the bag / plate and coffee mods. */
+const trace = (...a) => process.env.CR_TRACE && console.log(`    [${new Date().toISOString().slice(14, 23)}]`, ...a);
 export async function buildOrder(page, want, { quick = false } = {}) {
+  trace("build", JSON.stringify(want));
   const fast = (await snap(page))?.pourMs <= POUR_FAST;
   const pourMs = fast ? POUR_FAST : POUR_FULL;
   await page.click('#cr-clear:not([disabled])', { timeout: 300 }).catch(() => {});
@@ -97,11 +99,13 @@ export async function buildOrder(page, want, { quick = false } = {}) {
         slot++;
         if (slot >= (await snap(page)).chapa.length) await takeGrilled(page);
       } else if (CAFE.has(line.itemId)) {
+        trace('pour', line.itemId);
         const box = await page.locator(hit(`item-${line.itemId}`)).boundingBox();
         await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
         await page.mouse.down();
         await sleep(pourMs * 0.85 + (quick ? 0 : 40));
         await page.mouse.up();
+        trace("poured");
       } else await page.click(hit(`item-${line.itemId}`));
     }
   }
@@ -133,6 +137,7 @@ export async function startShiftFromPedido(page) {
 }
 
 export async function serve(page) {
+  trace("serve");
   await page.click('#cr-serve');
 }
 
