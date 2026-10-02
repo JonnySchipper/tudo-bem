@@ -63,7 +63,7 @@ export const HOTSPOTS: HotspotDef[] = [
   },
   { id: 'bicicletario', room: 'praca', x: 6, y: 7, pt: 'BICICLETÁRIO', en: 'Bike rack' },
   // ---- Vila Ipê, south sidewalk and the praça
-  { id: 'ponto_onibus', room: 'praca', x: 30, y: 12, w: 3, h: 1, pt: 'ÔNIBUS\nLinha 875 · Centro', en: 'BUS\nLine 875 · Downtown' },
+  { id: 'ponto_onibus', room: 'praca', x: 36, y: 12, w: 3, h: 1, pt: 'ÔNIBUS\nLinha 875 · Centro', en: 'BUS\nLine 875 · Downtown' },
   { id: 'parquimetro', room: 'praca', x: 28, y: 12, pt: 'ESTACIONAMENTO\nR$ 5 por hora', en: 'PARKING\nR$ 5 per hour' },
   { id: 'lixeira_praca', room: 'praca', x: 21, y: 12, pt: 'LIXO', en: 'Trash' },
   { id: 'fonte_praca', room: 'praca', x: 23, y: 20, w: 4, h: 3, pt: 'Praça Central\nFonte de 1985', en: 'Central Square\nFountain from 1985' },
