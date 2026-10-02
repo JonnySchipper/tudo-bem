@@ -371,6 +371,8 @@ export function scoreBar(kind: ArrangementKind, index: number, boost = 0): Score
     }
     if (lvl >= 4) pulse(out, 'brush', [2, 6, 10, 14], 0.5);
     if (b8 === 7 && section !== 3) out.push({ voice: 'bell', step: 10, midi: 85, dur: 6, vel: 0.5 });
+    // the last bar of each section leans into the next: the guitar lets go on the "and" of four
+    if (b8 === 7 && lvl >= 2) out.push({ voice: 'surdo', step: 14, midi: 0, dur: 1, vel: 0.45 });
     return out;
   }
 
@@ -385,9 +387,12 @@ export function scoreBar(kind: ArrangementKind, index: number, boost = 0): Score
       [12, chord.fifth, 3],
     ];
     for (const [step, midi, dur] of bassNotes) out.push({ voice: 'bass', step, midi, dur, vel: step === 0 ? 1 : 0.75 });
-    strum(chord, bar, out, 'cavaco', 0.8, [0, 2, 4, 6, 8, 10, 12, 14]);
+    // choro cavaquinho: the "tcha-ca-tchá" figure, not a wall of eighths
+    strum(chord, bar, out, 'cavaco', 0.8, bar % 2 ? [0, 3, 6, 10, 12] : [0, 3, 4, 8, 11, 14]);
     pulse(out, 'pandeiro', [0, 2, 4, 6, 8, 10, 12, 14], 0.45, 1.5);
-    melody(bar, out, 'clar', 0.95);
+    // the clarinet sings A and A'; in the bridge it rests and the vibes take the tune, then it comes home for A''
+    if (section === 2) melody(bar, out, 'harm', 0.85);
+    else melody(bar, out, 'clar', 0.95);
     if (section === 1) harmony(bar, out, 0.4);
     return out.map((n) => (PERCUSSION.has(n.voice) ? n : { ...n, midi: n.voice === 'clar' || n.voice === 'harm' ? n.midi + arr.melShift : n.midi + t }));
   }
@@ -433,7 +438,7 @@ export function scoreBar(kind: ArrangementKind, index: number, boost = 0): Score
     const m = hookBar === 2 ? [[2, 78], [6, 74], [10, 71]] : [[2, 76], [6, 73], [8, 69]];
     for (const [step, midi] of m as [number, number][]) out.push({ voice: 'stab', step, midi: midi - 12, dur: 3, vel: 0.8 });
   }
-  if (boost > 0) for (const m of loopChord.voicing) out.push({ voice: 'stab', step: 0, midi: m, dur: 4, vel: 0.5 });
+  if (boost > 0 && bar % 2 === 0) for (const m of loopChord.voicing) out.push({ voice: 'stab', step: 0, midi: m, dur: 4, vel: 0.32 });
   return out;
 }
 
@@ -462,17 +467,16 @@ export interface MoodDef {
   double?: Voice;
   acc: 'arp' | 'pad' | 'both';
   pad: Voice;
-  level: number;
   /** seconds between phrases, [min, max] */
   gap: [number, number];
 }
 
 export const MOODS: Record<Mood, MoodDef> = {
-  morning: { bpm: 112, lead: 'mel', acc: 'arp', pad: 'pad', level: 1, gap: [16, 30] },
-  day: { bpm: 104, lead: 'harm', double: 'mel', acc: 'both', pad: 'pad', level: 0.95, gap: [18, 34] },
-  golden: { bpm: 100, lead: 'lead', double: 'mel', acc: 'both', pad: 'accordion', level: 1, gap: [14, 26] },
-  night: { bpm: 76, lead: 'box', acc: 'pad', pad: 'pad', level: 0.85, gap: [24, 44] },
-  rain: { bpm: 84, lead: 'lead', acc: 'pad', pad: 'pad', level: 0.8, gap: [20, 36] },
+  morning: { bpm: 112, lead: 'mel', acc: 'arp', pad: 'pad', gap: [16, 30] },
+  day: { bpm: 104, lead: 'harm', double: 'mel', acc: 'both', pad: 'pad', gap: [18, 34] },
+  golden: { bpm: 100, lead: 'lead', double: 'mel', acc: 'both', pad: 'accordion', gap: [14, 26] },
+  night: { bpm: 76, lead: 'box', acc: 'pad', pad: 'pad', gap: [24, 44] },
+  rain: { bpm: 84, lead: 'lead', acc: 'pad', pad: 'pad', gap: [20, 36] },
 };
 
 /** 05:30-10:30 morning, until 17:00 day, until 20:00 golden hour, the rest night; rain wins over the day. */

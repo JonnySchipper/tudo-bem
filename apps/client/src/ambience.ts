@@ -1,8 +1,9 @@
 import type { FloorKind, RoomId } from '@tudobem/shared';
 import { Conductor } from './audio/conductor';
+import { DUCK, STING_DIP, XFADE_TAU, createMaster, levels } from './audio/mix';
 import { playSting, ThemeSequencer } from './audio/sequencer';
-import { createRig, type Rig } from './audio/synth';
-import { padariaIsNight, type StingKind } from './audio/theme';
+import { createRig, vca, type Rig } from './audio/synth';
+import { ARRANGEMENTS, padariaIsNight, type ArrangementKind, type StingKind } from './audio/theme';
 import { FOOTSTEPS, SILENT_MIX, stepPitch, type ZoneMix } from './audio/zones';
 import { playBoutSfx, type BoutSfx } from './audio/boutSfx';
 
@@ -16,17 +17,21 @@ import { playBoutSfx, type BoutSfx } from './audio/boutSfx';
  * Kitnet: a music box plays the first eight bars, room tone and a slow fan under it.
  * Academia: a soft samba pulse with the hook; the bout swaps it for a batucada and brass stabs on the hook.
  * Stingers (recado, heart, RV, mission, Caderno, win, lose, the padaria door) are fragments of the same tune.
- * Unlocks on the first gesture, crossfades on room change, ducks under speech.
+ * Every level comes from audio/mix (measured loudness targets), and everything goes through one master limiter.
+ * Unlocks on the first gesture, crossfades on room change (each bed picks its tune up where it left it), ducks under speech.
  */
 
 type Source = AudioBufferSourceNode | OscillatorNode;
 type Scene = 'intro' | 'bout';
 type BedId = RoomId | Scene | 'padariaNight';
 
-/** Bed level under the ambience master for the intro: modest, so speech and bird SFX sit on top. */
-const INTRO_BED_LEVEL = 0.4;
-/** Music level of each place (the zone and weather layers are separate). */
-const MUSIC_LEVEL = { intro: 1, praca: 0.42, padaria: 0.5, padariaNight: 0.7, kitnet: 0.8, academia: 0.42, bout: 0.55, radio: 0.5 } as const;
+/** A bed that comes back within this long picks its tune up where it left it; after that it starts from the top. */
+const RESUME_MS = 90_000;
+
+interface Resume {
+  bar: number;
+  at: number;
+}
 
 interface Bed {
   gain: GainNode;
@@ -56,7 +61,8 @@ interface ZoneLayers {
 const ZONE_LEVEL: Record<keyof ZoneMix, number> = { traffic: 0.16, fountain: 0.11, birds: 1, crickets: 1, rain: 0.15, radio: 1 };
 const ZONE_TAU = 0.35;
 
-const FADE = 0.7;
+/** Seconds a bed takes to fade out (about four crossfade time constants). */
+const FADE = XFADE_TAU * 4;
 const INTRO_FADE_IN = 3.2;
 const INTRO_FADE_OUT = 1.6;
 /** Title beat sounds a little distant; the card arrival opens it up. */
@@ -118,7 +124,7 @@ function chirp(ctx: AudioContext, dest: AudioNode, freq: number, when: number) {
   o.type = 'sine';
   o.frequency.setValueAtTime(freq, when);
   o.frequency.exponentialRampToValueAtTime(freq * 1.4, when + 0.09);
-  const g = ctx.createGain();
+  const g = vca(ctx);
   g.gain.setValueAtTime(0.0001, when);
   g.gain.exponentialRampToValueAtTime(0.018, when + 0.02);
   g.gain.exponentialRampToValueAtTime(0.0001, when + 0.14);
@@ -137,7 +143,7 @@ function swoosh(ctx: AudioContext, dest: AudioNode, white: AudioBuffer, when: nu
   f.Q.value = 1.4;
   f.frequency.setValueAtTime(from, when);
   f.frequency.exponentialRampToValueAtTime(to, when + dur);
-  const g = ctx.createGain();
+  const g = vca(ctx);
   g.gain.setValueAtTime(0.0001, when);
   g.gain.exponentialRampToValueAtTime(gain, when + dur * 0.45);
   g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
@@ -212,7 +218,7 @@ function buildZones(ctx: AudioContext, dest: GainNode, bed: Bed, brown: AudioBuf
       const o = ctx.createOscillator();
       o.type = 'sine';
       o.frequency.value = f;
-      const g = ctx.createGain();
+      const g = vca(ctx);
       g.gain.setValueAtTime(0.0001, when);
       g.gain.linearRampToValueAtTime(0.011, when + 0.02);
       g.gain.linearRampToValueAtTime(0.0001, when + 0.055);
@@ -231,7 +237,7 @@ function buildZones(ctx: AudioContext, dest: GainNode, bed: Bed, brown: AudioBuf
   radioBand.connect(gains.radio);
   keep(radioBand);
   keep(...loopNoise(ctx, gains.radio, white, 2200, 'bandpass', 0.012, 0.6));
-  const radio = new ThemeSequencer(ctx, radioBand, 'radio', { reverb: 0, level: MUSIC_LEVEL.radio, startBar: 8 * Math.floor(Math.random() * 4) });
+  const radio = new ThemeSequencer(ctx, radioBand, 'radio', { reverb: 0, level: levels.bed('radio'), startBar: 8 * Math.floor(Math.random() * 4) });
   keep(...radio.nodes);
   bed.timers.push(window.setInterval(() => radio.tick(1.4, mix.radio >= 0.03), 250));
 }
@@ -245,14 +251,13 @@ function schedule(bed: Bed, fn: () => void, ms: number) {
   bed.timers.push(id);
 }
 
-function buildBed(ctx: AudioContext, dest: AudioNode, room: BedId, world: () => World): Bed {
-  const gain = ctx.createGain();
+function buildBed(ctx: AudioContext, dest: AudioNode, room: BedId, world: () => World, resume: (kind: ArrangementKind) => number): Bed {
+  const gain = vca(ctx);
   const now = ctx.currentTime;
   const intro = room === 'intro';
   gain.gain.setValueAtTime(0, now);
-  // Exponential-feeling swell for the intro so it never arrives at full level.
-  if (intro) gain.gain.setTargetAtTime(INTRO_BED_LEVEL, now + 0.2, INTRO_FADE_IN / 3);
-  else gain.gain.linearRampToValueAtTime(1, now + FADE);
+  // A slow swell for the intro so it never arrives at full level; the rooms overlap the one they replace.
+  gain.gain.setTargetAtTime(1, now + (intro ? 0.2 : 0.05), intro ? INTRO_FADE_IN / 3 : XFADE_TAU);
   gain.connect(dest);
   const bed: Bed = { gain, sources: [], nodes: [gain], timers: [] };
   const buf = noiseBuffer(ctx);
@@ -262,8 +267,8 @@ function buildBed(ctx: AudioContext, dest: AudioNode, room: BedId, world: () => 
       if ('start' in n) bed.sources.push(n as Source);
     }
   };
-  const band = (kind: 'intro' | 'padaria' | 'padariaNight' | 'kitnet' | 'academia' | 'bout', dst: AudioNode, level: number, boost = 0) => {
-    const seq = new ThemeSequencer(ctx, dst, kind, { level, boost, startAt: now + 0.15 });
+  const band = (kind: 'intro' | 'padaria' | 'padariaNight' | 'kitnet' | 'academia' | 'bout', dst: AudioNode, boost = 0) => {
+    const seq = new ThemeSequencer(ctx, dst, kind, { level: levels.bed(kind), boost, startAt: now + 0.15, startBar: resume(kind) });
     keep(...seq.nodes);
     seq.tick();
     bed.timers.push(window.setInterval(() => seq.tick(), 250));
@@ -280,8 +285,8 @@ function buildBed(ctx: AudioContext, dest: AudioNode, room: BedId, world: () => 
     bed.tone = tone;
     keep(tone);
     // A breath of Praça air under the band.
-    keep(...loopNoise(ctx, gain, buf, 520, 'lowpass', 0.014, 0.5));
-    band('intro', tone, MUSIC_LEVEL.intro);
+    keep(...loopNoise(ctx, gain, buf, 520, 'lowpass', 0.006, 0.5));
+    band('intro', tone);
   } else if (room === 'praca') {
     keep(...loopNoise(ctx, gain, buf, 700, 'lowpass', 0.05, 0.6));
     const wind = bed.nodes.at(-1) as GainNode;
@@ -294,15 +299,15 @@ function buildBed(ctx: AudioContext, dest: AudioNode, room: BedId, world: () => 
     lfo.start();
     keep(lfo, depth);
     // phrases of the theme drift over the square, by the hour and the weather
-    const rig: Rig = createRig(ctx, gain, { level: MUSIC_LEVEL.praca });
+    const rig: Rig = createRig(ctx, gain, { bpm: 104 });
     keep(...rig.nodes);
-    const conductor = new Conductor(rig, world);
+    const conductor = new Conductor(rig, world, () => bed.zones?.mix.radio ?? 0);
     bed.timers.push(window.setInterval(() => conductor.tick(), 1000));
     buildZones(ctx, gain, bed, buf, keep);
   } else if (room === 'padaria' || room === 'padariaNight') {
     // the room: a murmur and, now and then, the coffee machine
     keep(...loopNoise(ctx, gain, buf, 480, 'bandpass', room === 'padaria' ? 0.035 : 0.018, 0.8));
-    band(room, gain, MUSIC_LEVEL[room]);
+    band(room, gain);
     if (room === 'padaria')
       schedule(bed, () => {
         const src = ctx.createBufferSource();
@@ -311,7 +316,7 @@ function buildBed(ctx: AudioContext, dest: AudioNode, room: BedId, world: () => 
         filter.type = 'bandpass';
         filter.frequency.value = 2200;
         filter.Q.value = 4;
-        const g = ctx.createGain();
+        const g = vca(ctx);
         const t = ctx.currentTime;
         g.gain.setValueAtTime(0.0001, t);
         g.gain.exponentialRampToValueAtTime(0.05, t + 0.01);
@@ -324,10 +329,10 @@ function buildBed(ctx: AudioContext, dest: AudioNode, room: BedId, world: () => 
       }, 5400);
   } else if (room === 'academia') {
     keep(...loopNoise(ctx, gain, buf, 300, 'lowpass', 0.03, 0.5));
-    band('academia', gain, MUSIC_LEVEL.academia);
+    band('academia', gain);
   } else if (room === 'bout') {
     keep(...loopNoise(ctx, gain, buf, 300, 'lowpass', 0.02, 0.5));
-    band('bout', gain, MUSIC_LEVEL.bout);
+    band('bout', gain);
   } else {
     keep(...loopNoise(ctx, gain, buf, 280, 'lowpass', 0.04, 0.5));
     const [fan, fanGain] = tone(ctx, gain, 62, 'sine', 0.02);
@@ -340,7 +345,7 @@ function buildBed(ctx: AudioContext, dest: AudioNode, room: BedId, world: () => 
     depth.connect(fanGain.gain);
     lfo.start();
     keep(lfo, depth);
-    band('kitnet', gain, MUSIC_LEVEL.kitnet);
+    band('kitnet', gain);
   }
   return bed;
 }
@@ -349,7 +354,8 @@ function stopBed(ctx: AudioContext, bed: Bed, fade = FADE) {
   const t = ctx.currentTime;
   bed.gain.gain.cancelScheduledValues(t);
   bed.gain.gain.setValueAtTime(bed.gain.gain.value, t);
-  bed.gain.gain.linearRampToValueAtTime(0, t + fade);
+  // an exponential tail: most of the level goes in the first second, the last of it drifts out under the next bed
+  bed.gain.gain.setTargetAtTime(0, t, fade / 4);
   window.setTimeout(() => {
     for (const id of bed.timers) {
       window.clearTimeout(id);
@@ -369,7 +375,7 @@ function stopBed(ctx: AudioContext, bed: Bed, fade = FADE) {
         /* already disconnected */
       }
     }
-  }, fade * 1000 + 80);
+  }, fade * 1500 + 80);
 }
 
 class Ambience {
@@ -380,6 +386,9 @@ class Ambience {
   private lastStepAt = 0;
   private whiteBuf: AudioBuffer | null = null;
   private bedIn: GainNode | null = null;
+  /** dips the beds while a stinger plays */
+  private dip: GainNode | null = null;
+  private resume = new Map<ArrangementKind, Resume>();
   private room: RoomId | null = null;
   private scene: Scene | null = null;
   private world: World = { minute: 720, rain: 0 };
@@ -413,14 +422,15 @@ class Ambience {
     if (!AC) return null;
     const ctx = new AC();
     this.ctx = ctx;
-    this.master = ctx.createGain();
-    this.master.gain.value = 0.85;
+    // beds → sting dip → speech duck → master (limiter); stingers, footsteps and bout effects join after the dip
+    this.master = createMaster(ctx, ctx.destination).input;
     this.duckGain = ctx.createGain();
-    this.duckGain.gain.value = this.ducked ? 0.18 : 1;
+    this.duckGain.gain.value = this.ducked ? DUCK.level : 1;
+    this.dip = ctx.createGain();
     this.bedIn = ctx.createGain();
-    this.bedIn.connect(this.duckGain);
+    this.bedIn.connect(this.dip);
+    this.dip.connect(this.duckGain);
     this.duckGain.connect(this.master);
-    this.master.connect(ctx.destination);
     ctx.addEventListener('statechange', () => this.emit());
     return ctx;
   }
@@ -490,11 +500,20 @@ class Ambience {
     const ctx = this.ctx;
     if (!ctx || !this.bedIn || !this.enabled || !this.unlocked || ctx.state !== 'running' || this.scene === 'intro') return;
     const now = ctx.currentTime;
-    if (now - (this.lastSting.get(kind) ?? -9) < 0.3) return;
+    if (now - (this.lastSting.get(kind) ?? -9) < (kind === 'coin' ? 1.2 : 0.4)) return;
     this.lastSting.set(kind, now);
     try {
-      this.stingRig ??= createRig(ctx, this.bedIn, { level: 0.9 });
-      playSting(this.stingRig, kind, now + 0.03);
+      this.stingRig ??= createRig(ctx, this.duckGain ?? this.bedIn, { bpm: 112 });
+      // in the key of whatever is playing (the padaria plays the tune in G), and the bed steps back while it sounds
+      const key = this.playing && this.playing in ARRANGEMENTS ? ARRANGEMENTS[this.playing as ArrangementKind].transpose : 0;
+      const secs = playSting(this.stingRig, kind, now + 0.03, key === 0 ? 0 : key - 12, levels.sting(kind));
+      const d = this.dip?.gain;
+      if (d && kind !== 'coin' && kind !== 'door') {
+        d.cancelScheduledValues(now);
+        d.setValueAtTime(d.value, now);
+        d.setTargetAtTime(STING_DIP, now, 0.06);
+        d.setTargetAtTime(1, now + secs, 0.5);
+      }
     } catch {
       /* a sting must never break the game */
     }
@@ -544,13 +563,13 @@ class Ambience {
     filter.type = p.filter;
     filter.frequency.value = p.freq * rate;
     filter.Q.value = p.q;
-    const g = ctx.createGain();
+    const g = vca(ctx);
     g.gain.setValueAtTime(0.0001, now);
     g.gain.exponentialRampToValueAtTime(p.gain, now + 0.008);
     g.gain.exponentialRampToValueAtTime(0.0001, now + p.dur);
     src.connect(filter);
     filter.connect(g);
-    g.connect(this.bedIn);
+    g.connect(this.duckGain ?? this.bedIn);
     src.start(now, Math.random() * 0.5);
     src.stop(now + p.dur + 0.03);
     if (p.thump) {
@@ -558,12 +577,12 @@ class Ambience {
       o.type = 'sine';
       o.frequency.setValueAtTime(p.thump * rate, now);
       o.frequency.exponentialRampToValueAtTime(p.thump * rate * 0.6, now + p.dur);
-      const og = ctx.createGain();
+      const og = vca(ctx);
       og.gain.setValueAtTime(0.0001, now);
       og.gain.exponentialRampToValueAtTime(p.gain * 0.9, now + 0.01);
       og.gain.exponentialRampToValueAtTime(0.0001, now + p.dur + 0.02);
       o.connect(og);
-      og.connect(this.bedIn);
+      og.connect(this.duckGain ?? this.bedIn);
       o.start(now);
       o.stop(now + p.dur + 0.05);
     }
@@ -575,7 +594,7 @@ class Ambience {
     if (!ctx || !this.bedIn || !this.unlocked || ctx.state !== 'running') return;
     this.whiteBuf ??= whiteBuffer(ctx, 1);
     try {
-      playBoutSfx(ctx, this.bedIn, this.whiteBuf, kind);
+      playBoutSfx(ctx, this.duckGain ?? this.bedIn, this.whiteBuf, kind);
     } catch {
       /* an effect must never break the game */
     }
@@ -589,7 +608,7 @@ class Ambience {
     const t = ctx.currentTime;
     g.cancelScheduledValues(t);
     g.setValueAtTime(g.value, t);
-    g.linearRampToValueAtTime(on ? 0.18 : 1, t + 0.12);
+    g.setTargetAtTime(on ? DUCK.level : 1, t, on ? DUCK.attack : DUCK.release);
   }
 
   private target(): BedId | null {
@@ -605,7 +624,20 @@ class Ambience {
     if (this.playing !== next) this.play(next, fade);
   }
 
+  /** Remember where a bed's tune was, so coming back continues it (from the next four-bar phrase). */
+  private remember(bed: Bed | null, id: BedId | null) {
+    if (!bed?.seq || !id || id === 'praca') return;
+    this.resume.set(id as ArrangementKind, { bar: bed.seq.position, at: performance.now() });
+  }
+
+  private resumeBar(kind: ArrangementKind): number {
+    const r = this.resume.get(kind);
+    if (!r || performance.now() - r.at > RESUME_MS) return 0;
+    return (Math.ceil(r.bar / 4) * 4) % ARRANGEMENTS[kind].loopBars;
+  }
+
   private halt(fade = FADE) {
+    this.remember(this.bed, this.playing);
     if (this.ctx && this.bed) stopBed(this.ctx, this.bed, fade);
     this.bed = null;
     this.playing = null;
@@ -614,7 +646,8 @@ class Ambience {
   private play(id: BedId, fadeOutPrev = FADE) {
     if (!this.ctx || !this.bedIn) return;
     const prev = this.bed;
-    this.bed = buildBed(this.ctx, this.bedIn, id, () => this.world);
+    this.remember(prev, this.playing);
+    this.bed = buildBed(this.ctx, this.bedIn, id, () => this.world, (k) => this.resumeBar(k));
     this.playing = id;
     // a new Praça bed starts at the listener's current mix instead of fading up from silence
     const z = this.bed.zones;

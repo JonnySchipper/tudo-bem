@@ -8,6 +8,16 @@ import type { Voice } from './theme';
 
 export const hz = (midi: number) => 440 * Math.pow(2, (midi - 69) / 12);
 
+/**
+ * A gain node for an envelope: silent until its automation starts. (A fresh GainNode sits at 1.0, and automation that starts
+ * between two samples only takes hold on the next one, so the first sample of a hit used to pass at full gain: a click.)
+ */
+export function vca(ctx: BaseAudioContext): GainNode {
+  const g = ctx.createGain();
+  g.gain.value = 0;
+  return g;
+}
+
 function rng(seed: number) {
   let a = seed >>> 0;
   return () => {
@@ -27,6 +37,8 @@ export interface Rig {
   readonly nodes: AudioNode[];
   readonly dry: AudioNode;
   readonly send: AudioNode | null;
+  /** the tempo-synced echo send (leads only), or null */
+  readonly echo: AudioNode | null;
   readonly noise: AudioBuffer;
   readonly ks: Map<string, { buf: AudioBuffer; rate: number }>;
 }
@@ -35,24 +47,44 @@ const irCache = new WeakMap<BaseAudioContext, AudioBuffer>();
 /** Plucked-string buffers are shared by every rig of a context, so a room change does not re-render them. */
 const ksCache = new WeakMap<BaseAudioContext, Map<string, { buf: AudioBuffer; rate: number }>>();
 
-/** A small warm room: stereo noise with an exponential tail that darkens as it decays. */
+/**
+ * A warm wooden room: a handful of early reflections (different left and right, so the band has width), then a smooth tail
+ * that darkens as it decays. Generated once per context.
+ */
 function roomImpulse(ctx: BaseAudioContext): AudioBuffer {
   const hit = irCache.get(ctx);
   if (hit) return hit;
-  const seconds = 2.1;
-  const len = Math.floor(ctx.sampleRate * seconds);
-  const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+  const sr = ctx.sampleRate;
+  const seconds = 2.4;
+  const len = Math.floor(sr * seconds);
+  const buf = ctx.createBuffer(2, len, sr);
+  const pre = Math.floor(sr * 0.018);
   for (let c = 0; c < 2; c++) {
     const d = buf.getChannelData(c);
     const r = rng(1234 + c * 77);
-    let lp = 0;
-    for (let i = 0; i < len; i++) {
-      const t = i / len;
-      const k = 0.55 - 0.45 * t;
-      lp += (r() * 2 - 1 - lp) * k;
-      const pre = i < ctx.sampleRate * 0.012 ? 0 : 1;
-      d[i] = lp * Math.pow(1 - t, 3.2) * pre * (i < 400 ? i / 400 : 1);
+    // early reflections: 7 taps between 9 and 70 ms, each a short smoothed click
+    for (let k = 0; k < 7; k++) {
+      const at = Math.floor(sr * (0.009 + 0.061 * r()));
+      const amp = (0.55 - k * 0.06) * (r() > 0.5 ? 1 : -1);
+      for (let i = 0; i < 24 && at + i < len; i++) d[at + i]! += amp * Math.exp(-i / 5);
     }
+    // tail: noise through a low-pass that closes over time, an exponential (-60 dB at ~2 s) with a soft onset
+    let lp = 0;
+    for (let i = pre; i < len; i++) {
+      const t = (i - pre) / sr;
+      const k = 0.5 * Math.exp(-t * 1.4) + 0.04;
+      lp += (r() * 2 - 1 - lp) * k;
+      const env = Math.exp(-t * 3.3) * Math.min(1, t / 0.035);
+      d[i]! += lp * env * 0.9;
+    }
+  }
+  // normalise the energy so the send level means the same thing whatever the impulse
+  let e = 0;
+  for (let c = 0; c < 2; c++) for (const v of buf.getChannelData(c)) e += v * v;
+  const norm = 1 / Math.sqrt(e / 2);
+  for (let c = 0; c < 2; c++) {
+    const d = buf.getChannelData(c);
+    for (let i = 0; i < len; i++) d[i]! *= norm * 0.5;
   }
   irCache.set(ctx, buf);
   return buf;
@@ -62,6 +94,8 @@ export interface RigOptions {
   /** 0 = dry (a radio speaker), 1 = the room */
   reverb?: number;
   level?: number;
+  /** tempo of the music, for the echo (a dotted-eighth / quarter ping-pong); 0 = no echo */
+  bpm?: number;
 }
 
 export function createRig(ctx: BaseAudioContext, dest: AudioNode, opts: RigOptions = {}): Rig {
@@ -73,26 +107,71 @@ export function createRig(ctx: BaseAudioContext, dest: AudioNode, opts: RigOptio
   const out = keep(ctx.createGain());
   out.gain.value = opts.level ?? 1;
   out.connect(dest);
-  const comp = keep(ctx.createDynamicsCompressor());
-  comp.threshold.value = -20;
-  comp.knee.value = 14;
-  comp.ratio.value = 3;
-  comp.attack.value = 0.012;
-  comp.release.value = 0.3;
-  comp.connect(out);
+  // The bus EQ: clear the rumble, take a little mud out of the low mids, round off the very top. No compressor here: the
+  // levels are set by hand (scripts/audio-lab.mjs measures them) and the one limiter is on the master (ambience.ts).
+  const hp = keep(ctx.createBiquadFilter());
+  hp.type = 'highpass';
+  hp.frequency.value = 38;
+  hp.Q.value = 0.6;
+  const mud = keep(ctx.createBiquadFilter());
+  mud.type = 'peaking';
+  mud.frequency.value = 260;
+  mud.Q.value = 0.9;
+  mud.gain.value = -2.5;
+  const air = keep(ctx.createBiquadFilter());
+  air.type = 'highshelf';
+  air.frequency.value = 8500;
+  air.gain.value = -2;
+  hp.connect(mud);
+  mud.connect(air);
+  air.connect(out);
   const dry = keep(ctx.createGain());
-  dry.connect(comp);
+  dry.connect(hp);
   let send: AudioNode | null = null;
   const wetAmount = opts.reverb ?? 1;
   if (wetAmount > 0) {
     const conv = keep(ctx.createConvolver());
+    conv.normalize = false;
     conv.buffer = roomImpulse(ctx);
     const wet = keep(ctx.createGain());
-    wet.gain.value = 0.55 * wetAmount;
+    wet.gain.value = 0.42 * wetAmount;
     conv.connect(wet);
-    wet.connect(comp);
+    wet.connect(hp);
     send = keep(ctx.createGain());
     send.connect(conv);
+  }
+  let echo: AudioNode | null = null;
+  if (opts.bpm && wetAmount > 0) {
+    // ping-pong: a dotted eighth on the left, a quarter on the right, darker every repeat, into the reverb as well
+    const beat = 60 / opts.bpm;
+    const inG = keep(ctx.createGain());
+    const dl = keep(ctx.createDelay(2));
+    const dr = keep(ctx.createDelay(2));
+    dl.delayTime.value = beat * 0.75;
+    dr.delayTime.value = beat;
+    const tone = keep(ctx.createBiquadFilter());
+    tone.type = 'lowpass';
+    tone.frequency.value = 2600;
+    const lowcut = keep(ctx.createBiquadFilter());
+    lowcut.type = 'highpass';
+    lowcut.frequency.value = 300;
+    const fb = keep(ctx.createGain());
+    fb.gain.value = 0.3;
+    const merger = keep(ctx.createChannelMerger(2));
+    const ret = keep(ctx.createGain());
+    ret.gain.value = 0.5;
+    inG.connect(lowcut);
+    lowcut.connect(tone);
+    tone.connect(dl);
+    tone.connect(dr);
+    dl.connect(merger, 0, 0);
+    dr.connect(merger, 0, 1);
+    dr.connect(fb);
+    fb.connect(tone);
+    merger.connect(ret);
+    ret.connect(hp);
+    if (send) ret.connect(send);
+    echo = inG;
   }
   const noise = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.6), ctx.sampleRate);
   const nd = noise.getChannelData(0);
@@ -100,11 +179,11 @@ export function createRig(ctx: BaseAudioContext, dest: AudioNode, opts: RigOptio
   for (let i = 0; i < nd.length; i++) nd[i] = r() * 2 - 1;
   let ks = ksCache.get(ctx);
   if (!ks) ksCache.set(ctx, (ks = new Map()));
-  return { ctx, nodes, dry, send, noise, ks };
+  return { ctx, nodes, dry, send, echo, noise, ks };
 }
 
-/** A voice's way into the rig: gain → pan → dry + a reverb send. */
-function strip(rig: Rig, pan: number, sendAmt: number, gain = 1): GainNode {
+/** A voice's way into the rig: gain → pan → dry, plus a reverb send and (for the leads) an echo send. */
+function strip(rig: Rig, pan: number, sendAmt: number, gain = 1, echoAmt = 0): GainNode {
   const { ctx } = rig;
   const g = ctx.createGain();
   g.gain.value = gain;
@@ -121,6 +200,12 @@ function strip(rig: Rig, pan: number, sendAmt: number, gain = 1): GainNode {
     s.gain.value = sendAmt;
     tail.connect(s);
     s.connect(rig.send);
+  }
+  if (rig.echo && echoAmt > 0) {
+    const e = ctx.createGain();
+    e.gain.value = echoAmt;
+    tail.connect(e);
+    e.connect(rig.echo);
   }
   return g;
 }
@@ -192,7 +277,7 @@ function stringNote(rig: Rig, kind: KsKind, midi: number, when: number, dur: num
   f.type = 'lowpass';
   f.frequency.value = tone;
   f.Q.value = 0.5;
-  const g = ctx.createGain();
+  const g = vca(ctx);
   const ring = Math.max(0.25, dur * 1.5);
   g.gain.setValueAtTime(peak, when);
   g.gain.setTargetAtTime(0.0001, when + ring * 0.6, ring * 0.35);
@@ -214,16 +299,16 @@ function felt(rig: Rig, f: number, when: number, dur: number, peak: number, pan:
   const o2 = ctx.createOscillator();
   o2.type = 'triangle';
   o2.frequency.value = f * 2.003;
-  const o2g = ctx.createGain();
+  const o2g = vca(ctx);
   o2g.gain.setValueAtTime(0.18, when);
   o2g.gain.exponentialRampToValueAtTime(0.01, when + 0.9);
   const bell = ctx.createOscillator();
   bell.type = 'sine';
   bell.frequency.value = f * 3.01;
-  const bg = ctx.createGain();
+  const bg = vca(ctx);
   bg.gain.setValueAtTime(0.14, when);
   bg.gain.exponentialRampToValueAtTime(0.001, when + 0.6);
-  const g = ctx.createGain();
+  const g = vca(ctx);
   g.gain.setValueAtTime(0.0001, when);
   g.gain.exponentialRampToValueAtTime(peak, when + 0.16);
   g.gain.exponentialRampToValueAtTime(peak * 0.55, when + dur * 0.6);
@@ -249,7 +334,7 @@ function epiano(rig: Rig, f: number, when: number, dur: number, peak: number, pa
   const mod = ctx.createOscillator();
   mod.type = 'sine';
   mod.frequency.value = f;
-  const mg = ctx.createGain();
+  const mg = vca(ctx);
   mg.gain.setValueAtTime(f * 1.5, when);
   mg.gain.exponentialRampToValueAtTime(f * 0.12, when + 0.7);
   mod.connect(mg);
@@ -257,11 +342,11 @@ function epiano(rig: Rig, f: number, when: number, dur: number, peak: number, pa
   const tine = ctx.createOscillator();
   tine.type = 'sine';
   tine.frequency.value = f * 14;
-  const tg = ctx.createGain();
+  const tg = vca(ctx);
   tg.gain.setValueAtTime(0.0001, when);
   tg.gain.exponentialRampToValueAtTime(0.06, when + 0.003);
   tg.gain.exponentialRampToValueAtTime(0.0001, when + 0.07);
-  const g = ctx.createGain();
+  const g = vca(ctx);
   g.gain.setValueAtTime(0.0001, when);
   g.gain.exponentialRampToValueAtTime(peak, when + 0.006);
   g.gain.exponentialRampToValueAtTime(peak * 0.4, when + 0.45);
@@ -269,7 +354,7 @@ function epiano(rig: Rig, f: number, when: number, dur: number, peak: number, pa
   car.connect(g);
   tine.connect(tg);
   tg.connect(g);
-  g.connect(strip(rig, pan, 0.55));
+  g.connect(strip(rig, pan, 0.5, 1, 0.16));
   for (const x of [car, mod, tine]) {
     x.start(when);
     x.stop(when + dur + 1.4);
@@ -294,7 +379,7 @@ function vibes(rig: Rig, f: number, when: number, dur: number, peak: number, pan
   lfo.connect(depth);
   depth.connect(am.gain);
   sum.connect(am);
-  am.connect(strip(rig, pan, 0.6));
+  am.connect(strip(rig, pan, 0.5, 1, 0.1));
   lfo.start(when);
   lfo.stop(when + 3);
   const life = Math.max(1.1, dur * 0.9);
@@ -302,7 +387,7 @@ function vibes(rig: Rig, f: number, when: number, dur: number, peak: number, pan
     const o = ctx.createOscillator();
     o.type = 'sine';
     o.frequency.value = f * ratio;
-    const g = ctx.createGain();
+    const g = vca(ctx);
     g.gain.setValueAtTime(0.0001, when);
     g.gain.exponentialRampToValueAtTime(peak * amp, when + 0.004);
     g.gain.setTargetAtTime(0.0001, when + 0.02, (d * life) / 4);
@@ -316,7 +401,7 @@ function vibes(rig: Rig, f: number, when: number, dur: number, peak: number, pan
 /** Music box / celesta: bright sine partials, no sustain, a long glassy ring. */
 function box(rig: Rig, f: number, when: number, dur: number, peak: number, pan: number, glass = 1) {
   const { ctx } = rig;
-  const out = strip(rig, pan, 0.75);
+  const out = strip(rig, pan, 0.6, 1, glass > 1 ? 0.12 : 0.2);
   const parts: [number, number, number][] = [
     [1, 1, 1.5],
     [2, 0.3, 1],
@@ -328,7 +413,7 @@ function box(rig: Rig, f: number, when: number, dur: number, peak: number, pan: 
     const o = ctx.createOscillator();
     o.type = 'sine';
     o.frequency.value = f * ratio;
-    const g = ctx.createGain();
+    const g = vca(ctx);
     g.gain.setValueAtTime(0.0001, when);
     g.gain.exponentialRampToValueAtTime(peak * amp, when + 0.003);
     g.gain.setTargetAtTime(0.0001, when + 0.01, (d * life) / 4);
@@ -348,12 +433,12 @@ function breath(rig: Rig, f: number, when: number, dur: number, peak: number, pa
   o.frequency.exponentialRampToValueAtTime(f, when + 0.07);
   const lfo = ctx.createOscillator();
   lfo.frequency.value = flute ? 5.6 : 5.2;
-  const depth = ctx.createGain();
+  const depth = vca(ctx);
   depth.gain.setValueAtTime(0, when);
   depth.gain.linearRampToValueAtTime(flute ? 12 : 9, when + Math.min(0.5, dur * 0.6));
   lfo.connect(depth);
   depth.connect(o.detune);
-  const g = ctx.createGain();
+  const g = vca(ctx);
   const att = flute ? 0.09 : 0.06;
   g.gain.setValueAtTime(0.0001, when);
   g.gain.exponentialRampToValueAtTime(peak, when + att);
@@ -379,13 +464,13 @@ function breath(rig: Rig, f: number, when: number, dur: number, peak: number, pa
   nf.type = 'bandpass';
   nf.frequency.value = Math.min(9000, f * 3);
   nf.Q.value = 2.2;
-  const ng = ctx.createGain();
+  const ng = vca(ctx);
   ng.gain.setValueAtTime(0.0001, when);
   ng.gain.exponentialRampToValueAtTime(peak * (flute ? 0.32 : 0.18), when + att);
   ng.gain.exponentialRampToValueAtTime(0.0001, when + dur + 0.2);
   n.connect(nf);
   nf.connect(ng);
-  const dest = strip(rig, pan, 0.6);
+  const dest = strip(rig, pan, 0.5, 1, flute ? 0.16 : 0.22);
   g.connect(dest);
   ng.connect(dest);
   o.start(when);
@@ -412,7 +497,7 @@ function clar(rig: Rig, f: number, when: number, dur: number, peak: number, pan:
   o.frequency.value = f;
   const lfo = ctx.createOscillator();
   lfo.frequency.value = 5;
-  const depth = ctx.createGain();
+  const depth = vca(ctx);
   depth.gain.setValueAtTime(0, when);
   depth.gain.linearRampToValueAtTime(7, when + 0.4);
   lfo.connect(depth);
@@ -420,14 +505,14 @@ function clar(rig: Rig, f: number, when: number, dur: number, peak: number, pan:
   const lp = ctx.createBiquadFilter();
   lp.type = 'lowpass';
   lp.frequency.value = 2400;
-  const g = ctx.createGain();
+  const g = vca(ctx);
   g.gain.setValueAtTime(0.0001, when);
   g.gain.exponentialRampToValueAtTime(peak, when + 0.035);
   g.gain.setValueAtTime(peak * 0.8, when + Math.max(0.05, dur - 0.1));
   g.gain.exponentialRampToValueAtTime(0.0001, when + dur + 0.12);
   o.connect(lp);
   lp.connect(g);
-  g.connect(strip(rig, pan, 0.35));
+  g.connect(strip(rig, pan, 0.35, 1, 0.08));
   o.start(when);
   lfo.start(when);
   o.stop(when + dur + 0.2);
@@ -442,7 +527,7 @@ function sawPad(rig: Rig, f: number, when: number, dur: number, peak: number, pa
   lp.Q.value = 0.6;
   lp.frequency.setValueAtTime(reedy ? 700 : 450, when);
   lp.frequency.linearRampToValueAtTime(reedy ? 1500 : 1100, when + Math.min(dur, 1.2));
-  const g = ctx.createGain();
+  const g = vca(ctx);
   const att = reedy ? 0.12 : 0.5;
   g.gain.setValueAtTime(0.0001, when);
   g.gain.exponentialRampToValueAtTime(peak, when + att);
@@ -486,39 +571,46 @@ function uprightBass(rig: Rig, midi: number, when: number, dur: number, peak: nu
   const o = ctx.createOscillator();
   o.type = 'sine';
   o.frequency.value = hz(midi);
-  const g = ctx.createGain();
-  ramp(g.gain, when, 0.012, peak * 0.55, 0.012, Math.max(0.3, dur) + 0.1);
+  const g = vca(ctx);
+  ramp(g.gain, when, 0.012, peak * 0.4, 0.012, Math.max(0.3, dur) + 0.1);
   o.connect(g);
   g.connect(strip(rig, -0.05, 0));
   o.start(when);
   o.stop(when + Math.max(0.3, dur) + 0.15);
 }
 
-/** A brass stab: two saws, the filter snaps open and closes. */
+/** A brass section hit: saws and a square an octave down, a short swell rather than a snap, the filter opening with it. */
 function stab(rig: Rig, f: number, when: number, dur: number, peak: number, pan: number) {
   const { ctx } = rig;
   const lp = ctx.createBiquadFilter();
   lp.type = 'lowpass';
-  lp.Q.value = 1.2;
-  lp.frequency.setValueAtTime(500, when);
-  lp.frequency.exponentialRampToValueAtTime(2600, when + 0.05);
-  lp.frequency.exponentialRampToValueAtTime(900, when + Math.max(0.12, dur));
-  const g = ctx.createGain();
+  lp.Q.value = 0.6;
+  lp.frequency.setValueAtTime(420, when);
+  lp.frequency.exponentialRampToValueAtTime(1900, when + 0.07);
+  lp.frequency.exponentialRampToValueAtTime(1100, when + Math.max(0.15, dur));
+  const g = vca(ctx);
   g.gain.setValueAtTime(0.0001, when);
-  g.gain.exponentialRampToValueAtTime(peak, when + 0.012);
-  g.gain.setValueAtTime(peak * 0.8, when + Math.max(0.05, dur * 0.7));
-  g.gain.exponentialRampToValueAtTime(0.0001, when + dur + 0.1);
-  for (const cents of [-9, 9]) {
+  g.gain.exponentialRampToValueAtTime(peak, when + 0.028);
+  g.gain.setValueAtTime(peak * 0.75, when + Math.max(0.06, dur * 0.7));
+  g.gain.exponentialRampToValueAtTime(0.0001, when + dur + 0.14);
+  for (const [type, ratio, cents, amp] of [
+    ['sawtooth', 1, -8, 1],
+    ['sawtooth', 1, 8, 1],
+    ['square', 0.5, 0, 0.35],
+  ] as [OscillatorType, number, number, number][]) {
     const o = ctx.createOscillator();
-    o.type = 'sawtooth';
-    o.frequency.value = f;
+    o.type = type;
+    o.frequency.value = f * ratio;
     o.detune.value = cents;
-    o.connect(lp);
+    const a = ctx.createGain();
+    a.gain.value = amp;
+    o.connect(a);
+    a.connect(lp);
     o.start(when);
-    o.stop(when + dur + 0.15);
+    o.stop(when + dur + 0.2);
   }
   lp.connect(g);
-  g.connect(strip(rig, pan, 0.25));
+  g.connect(strip(rig, pan, 0.35, 1, 0.06));
 }
 
 /** One pitched note. `peak` already includes velocity and the voice's level. */
@@ -527,7 +619,7 @@ export function playInst(rig: Rig, inst: Inst, midi: number, when: number, dur: 
   const pan = Math.max(-0.7, Math.min(0.7, (midi - 62) / 40));
   switch (inst) {
     case 'guitar':
-      return stringNote(rig, 'nylon', midi, when + (midi % 12) * 0.0011, Math.max(0.5, dur * 1.6), 0.2 * vel, -0.25 + pan * 0.3, 3200, 0.45);
+      return stringNote(rig, 'nylon', midi, when + (midi % 12) * 0.0011, Math.max(0.5, dur * 1.6), 0.2 * vel, -0.25 + pan * 0.3, 2700, 0.32);
     case 'cavaco':
       return stringNote(rig, 'cavaco', midi, when + (midi % 12) * 0.0009, Math.max(0.3, dur), 0.17 * vel, 0.3 + pan * 0.2, 5200, 0.25);
     case 'epiano':
@@ -537,7 +629,7 @@ export function playInst(rig: Rig, inst: Inst, midi: number, when: number, dur: 
     case 'box':
       return box(rig, f, when, dur, 0.1 * vel, pan * 0.4);
     case 'bell':
-      return box(rig, f, when, dur, 0.075 * vel, 0.3 + pan * 0.4, 1.8);
+      return box(rig, f, when, dur, 0.075 * vel, 0.3 + pan * 0.4, 1.25);
     case 'whistle':
       return breath(rig, f, when, dur, 0.1 * vel, 0.1, false);
     case 'flute':
@@ -569,7 +661,7 @@ function noiseHit(rig: Rig, when: number, type: BiquadFilterType, freq: number, 
   f.type = type;
   f.frequency.value = freq;
   f.Q.value = q;
-  const g = ctx.createGain();
+  const g = vca(ctx);
   ramp(g.gain, when, attack, peak, attack, end);
   src.connect(f);
   f.connect(g);
@@ -584,7 +676,7 @@ function sineHit(rig: Rig, when: number, f0: number, f1: number, dur: number, pe
   o.type = 'sine';
   o.frequency.setValueAtTime(f0, when);
   o.frequency.exponentialRampToValueAtTime(f1, when + dur);
-  const g = ctx.createGain();
+  const g = vca(ctx);
   ramp(g.gain, when, 0.006, peak, 0.006, dur);
   o.connect(g);
   g.connect(strip(rig, pan, send));
@@ -592,23 +684,23 @@ function sineHit(rig: Rig, when: number, f0: number, f1: number, dur: number, pe
   o.stop(when + dur + 0.03);
 }
 
-export function playDrum(rig: Rig, drum: Drum, when: number, vel: number) {
+export function playDrum(rig: Rig, drum: Drum, when: number, vel: number, gain = 1) {
   switch (drum) {
     case 'shaker':
-      return noiseHit(rig, when, 'bandpass', 7200, 1.2, 0.008, 0.075, 0.03 * vel, 0.4, 0.15);
+      return noiseHit(rig, when, 'bandpass', 7200, 1.2, 0.008, 0.075, 0.03 * vel * gain, 0.4, 0.15);
     case 'brush':
-      return noiseHit(rig, when, 'bandpass', 5200, 0.5, 0.02, 0.12, 0.028 * vel, -0.4, 0.2);
+      return noiseHit(rig, when, 'bandpass', 5200, 0.5, 0.02, 0.12, 0.028 * vel * gain, -0.4, 0.2);
     case 'clave':
       // a cross-stick: a woody tick and a short click of noise
-      sineHit(rig, when, 1850, 1500, 0.045, 0.07 * vel, -0.35, 0.3);
-      return noiseHit(rig, when, 'bandpass', 2600, 2, 0.002, 0.03, 0.05 * vel, -0.35, 0.3);
+      sineHit(rig, when, 1850, 1500, 0.045, 0.07 * vel * gain, -0.35, 0.3);
+      return noiseHit(rig, when, 'bandpass', 2600, 2, 0.002, 0.03, 0.05 * vel * gain, -0.35, 0.3);
     case 'surdo':
-      sineHit(rig, when, 96, 52, 0.34, 0.3 * vel, 0, 0.1);
-      return noiseHit(rig, when, 'lowpass', 260, 0.8, 0.004, 0.05, 0.1 * vel, 0, 0);
+      sineHit(rig, when, 96, 52, 0.34, 0.3 * vel * gain, 0, 0.1);
+      return noiseHit(rig, when, 'lowpass', 260, 0.8, 0.004, 0.05, 0.1 * vel * gain, 0, 0);
     case 'pandeiro':
       // jingles, and on the accents a slap of the skin
-      noiseHit(rig, when, 'highpass', 6200, 0.7, 0.003, 0.11, 0.032 * vel, 0.5, 0.2);
-      if (vel >= 0.7) sineHit(rig, when, 210, 130, 0.07, 0.07 * vel, 0.5, 0.15);
+      noiseHit(rig, when, 'bandpass', 6800, 0.8, 0.003, 0.1, 0.032 * vel * gain, 0.45, 0.2);
+      if (vel >= 0.7) sineHit(rig, when, 210, 130, 0.07, 0.07 * vel * gain, 0.45, 0.15);
       return;
   }
 }
@@ -632,20 +724,37 @@ export const VOICE_INST: Record<Exclude<Voice, 'shaker' | 'clave' | 'surdo' | 'b
   stab: 'stab',
 };
 
-/** Voice-level trims so the mix sits right (the instruments' own peaks are rough). */
-const VOICE_GAIN: Partial<Record<Voice, number>> = {
-  comp: 0.9,
-  arp: 0.55,
-  pad: 1,
-  mel: 1,
-  harm: 0.8,
-  bell: 1,
-  accordion: 1,
-  cavaco: 1,
+/**
+ * The band's balance, in dB, with the tune on top: bass and the strummed guitar under it, pads further back, the percussion a
+ * texture. Measured per voice with `node scripts/audio-lab.mjs stems intro`; each arrangement can trim it (sequencer `MIX`).
+ */
+export const VOICE_DB: Record<Voice, number> = {
+  mel: 2,
+  lead: 5,
+  harm: -1,
+  box: 6,
+  clar: 0,
+  stab: 0,
+  bass: -6.5,
+  comp: -8,
+  cavaco: -4,
+  arp: -1.5,
+  pad: 0.5,
+  accordion: -4,
+  bell: 3,
+  surdo: -2.5,
+  clave: 3.5,
+  shaker: 14,
+  brush: 12,
+  pandeiro: 12,
 };
 
-export function playVoice(rig: Rig, voice: Voice, midi: number, when: number, dur: number, vel: number, swap?: Partial<Record<Voice, Inst>>) {
-  if (voice === 'shaker' || voice === 'clave' || voice === 'surdo' || voice === 'brush' || voice === 'pandeiro') return playDrum(rig, voice, when, vel);
-  const inst = swap?.[voice] ?? VOICE_INST[voice];
-  playInst(rig, inst, midi, when, dur, vel * (VOICE_GAIN[voice] ?? 1));
+const PERC: ReadonlySet<Voice> = new Set<Voice>(['shaker', 'clave', 'surdo', 'brush', 'pandeiro']);
+
+/** One note of the score. `trimDb` is the arrangement's own adjustment for this voice. */
+export function playVoice(rig: Rig, voice: Voice, midi: number, when: number, dur: number, vel: number, swap?: Partial<Record<Voice, Inst>>, trimDb = 0) {
+  const gain = Math.pow(10, (VOICE_DB[voice] + trimDb) / 20);
+  if (PERC.has(voice)) return playDrum(rig, voice as Drum, when, vel, gain);
+  const inst = swap?.[voice] ?? VOICE_INST[voice as keyof typeof VOICE_INST];
+  playInst(rig, inst, midi, when, dur, vel * gain);
 }

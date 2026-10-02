@@ -1414,3 +1414,36 @@ The intro song is now **the** theme ("Tudo Bem"), and the whole game is built fr
 7. **Cost.** All of it is Web Audio generated at run time. Strings are rendered once per pitch and shared between beds; the reverb impulse is cached per context.
 
 Not done: nobody has listened on real speakers yet (the numbers are checked, not the taste: levels and the mix are one constant each in `ambience.ts` `MUSIC_LEVEL` and the `PEAK`-style gains in `synth.ts`), and no native review is needed (no new Portuguese).
+
+## Music pass 2: a mix, not a stack
+
+Goal: the same music, but seamless and "official": nothing jumps out, places flow into each other, the tune leads. Everything was
+measured with a new offline lab (`scripts/audio-lab.mjs`, integrated loudness with K-weighting and gating, per voice and per place).
+
+1. **Clicks.** Every enveloped gain started at Web Audio's default 1.0, and automation starting between two samples only takes hold
+   on the next one, so the first sample of every hit passed at full gain: a one-sample click on each shaker, pandeiro, clave and
+   noise hit (measured at up to -6 dBFS on a stem whose loudness was -50 LUFS), on every footstep, chirp and bout effect too.
+   `vca()` (a gain that starts at 0) is now used for every envelope in synth, ambience and boutSfx. This was most of the harshness.
+2. **No hidden compressors.** Each rig had a DynamicsCompressor, and Chrome's adds automatic make-up gain, so quiet parts were
+   pushed up and transients spiked. Rigs are now clean (a bus EQ: 38 Hz high-pass, -2.5 dB at 260 Hz, -2 dB shelf above 8.5 kHz);
+   one soft limiter sits on the master (`mix.createMaster`), well above the music's peaks.
+3. **The tune on top.** Stems showed the strummed guitar and the bass 4 dB *over* the whistle. `VOICE_DB` (synth) now sets the band:
+   tune at the top, bass and guitar about 4 dB under, pads and arpeggio further back, the shaker, brush and pandeiro brought up from
+   inaudible to a texture. Each arrangement trims it (`sequencer.MIX`).
+4. **Levels between places.** Before, the padaria (-22 LUFS) was louder than the intro (-23) and the big stingers (-18) jumped 5 LU
+   over everything. Now every bed, Praça mood and stinger has a target in `mix.ts` and a measured `calibration.json`; gain = target
+   minus measurement (table in `docs/audio/README.md`). A stinger dips the bed under it (-4.4 dB) while it plays, and plays in the
+   bed's key (the padaria is in G). The bout's effects were tuned before the bout had music; they now sit at the music's level
+   (`SFX_TRIM_DB`).
+5. **Flow.** Room changes are an overlapping exponential crossfade (about 1.5 s) instead of a 0.7 s linear one. A bed you come back
+   to within 90 s picks its tune up at the next four-bar phrase instead of restarting. The speech duck goes to -10 dB with a soft
+   attack and a slower release (it was -15 dB with a 0.12 s ramp both ways). The Praça's phrases hold back while the houses' radio
+   (which plays the tune too) is audible, so two versions never overlap.
+6. **Feel.** The sequencer no longer plays the grid dead straight: off 16ths swing a little (bossa and samba both lean on it), a few
+   ms of seeded timing and velocity variation, and the tune sits a hair behind the beat. Deterministic, so renders and tests are stable.
+7. **Sound.** A new room impulse (early reflections, a darkening tail, normalized), a tempo-synced ping-pong echo on the lead voices,
+   a darker strummed guitar, less sub on the bass, a softer brass section (a swell, not a snap), a gentler bell and pandeiro. In the
+   padaria the cavaquinho plays a choro figure instead of straight eighths and the clarinet rests in the bridge (vibes take it).
+
+Still not done: nobody has listened on real speakers; the numbers are right, the taste needs ears. Every level is one number in
+`mix.ts`, and `node scripts/audio-lab.mjs calibrate` keeps them true after any change.
