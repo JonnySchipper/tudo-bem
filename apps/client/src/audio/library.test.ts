@@ -30,7 +30,7 @@ describe('prebaked Portuguese speech', () => {
         // the closing line names the game ("Correria no Balcão"): its clips wait for a re-bake (`node scripts/bake-tts.mjs`, needs edge-tts)
         // and meanwhile it is spoken by the pt-BR system voice, like any line without a clip
         if (id === 'fim' && /Correria no Balcão/.test(view!.line.pt)) {
-          expect(findClip(view!.line.pt), `${id}/${pronoun} (to re-bake)`).toBeUndefined();
+          expect(findClip(view!.line.pt) ?? undefined, `${id}/${pronoun} (to re-bake)`).toBeUndefined();
           continue;
         }
         expect(findClip(view!.line.pt)?.voice, `${id}/${pronoun}`).toBe('carlos');

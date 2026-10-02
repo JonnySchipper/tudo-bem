@@ -82,10 +82,10 @@ export function sizeOfKey(key: string): [number, number, number, number] | null 
 // ---------------------------------------------------------------- where things stand (room px, anchor bottom-centre)
 
 /** The wooden work board the pieces stand on: [x0, y0, x1, y1]. */
-export const BOARD = { x0: 4, y0: 2, x1: 156, y1: 124 } as const;
+export const BOARD = { x0: 4, y0: 0, x1: 156, y1: 105 } as const;
 
 const COLS = [18, 41, 64, 87, 110];
-const ROWS = [28, 56, 84];
+const ROWS = [26, 52, 78];
 export const ITEM_SPOTS: Record<string, Spot> = {
   // vitrine and estufa
   pao: { x: COLS[0]!, y: ROWS[0]! },
@@ -103,30 +103,30 @@ export const ITEM_SPOTS: Record<string, Spot> = {
   pao_na_chapa: { x: COLS[3]!, y: ROWS[2]! },
   misto_quente: { x: COLS[4]!, y: ROWS[2]! },
 };
-export const COFFEE_SPOT: Spot = { x: 140, y: 56 };
-export const CHAPA_SPOT: Spot = { x: 140, y: 92 };
+export const COFFEE_SPOT: Spot = { x: 140, y: 52 };
+export const CHAPA_SPOT: Spot = { x: 140, y: 88 };
 /** Where a piece on the grill sits (item sprites at CHAPA_ITEM_SCALE), by slot. */
 export const CHAPA_SLOTS: Spot[] = [
-  { x: 131, y: 84 },
-  { x: 149, y: 84 },
+  { x: 131, y: 80 },
+  { x: 149, y: 80 },
 ];
 export const CHAPA_ITEM_SCALE = 0.62;
-export const REGISTER_SPOT: Spot = { x: 17, y: 88 };
-export const TIPJAR_SPOT: Spot = { x: 43, y: 88 };
-export const BELL_SPOT: Spot = { x: 66, y: 86 };
-export const TRAY_SPOT: Spot = { x: 38, y: 118 };
-export const BAG_SPOT: Spot = { x: 92, y: 118 };
-export const PLATE_SPOT: Spot = { x: 122, y: 116 };
+export const REGISTER_SPOT: Spot = { x: 17, y: 82 };
+export const TIPJAR_SPOT: Spot = { x: 43, y: 82 };
+export const BELL_SPOT: Spot = { x: 66, y: 80 };
+export const TRAY_SPOT: Spot = { x: 38, y: 101 };
+export const BAG_SPOT: Spot = { x: 92, y: 102 };
+export const PLATE_SPOT: Spot = { x: 122, y: 100 };
 /** The cup under the spout while one is chosen / pouring. */
-export const SPOUT: Spot = { x: 140, y: 50 };
+export const SPOUT: Spot = { x: 140, y: 46 };
 
 /** Customer feet: the front one first, then the queue (room px). They come in through the door on the left. */
 export const QUEUE_SPOTS: Spot[] = [
-  { x: 104, y: 140 },
-  { x: 132, y: 138 },
-  { x: 76, y: 138 },
+  { x: 104, y: 124 },
+  { x: 134, y: 122 },
+  { x: 72, y: 122 },
 ];
-export const DOOR_SPOT: Spot = { x: -14, y: 138 };
+export const DOOR_SPOT: Spot = { x: -14, y: 122 };
 
 /** The counter's focus for the camera (room px): the middle of the work board and the queue. */
 export const FOCUS: Spot = { x: 80, y: 74 };

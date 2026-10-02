@@ -245,8 +245,8 @@ export class CorreriaUI {
     switch (e.k) {
       case 'front': {
         const c = snap.customers.find((x) => x.id === e.id);
+        // a written order is already in the mirror; a listening one is spoken
         if (c?.mode === 'listening') this.sayIt(c.pt);
-        else if (c) this.flash({ pt: `${c.who.name}: ${c.pt}`, en: c.en }, false);
         break;
       }
       case 'follow': {

@@ -68,7 +68,8 @@ export interface OrderMirror {
 export function orderMirror(c: CustomerView | undefined, level: number): OrderMirror | null {
   if (!c || c.state === 'queue' || c.state === 'walk') return null;
   const lv = LEVELS[Math.min(LEVELS.length - 1, Math.max(0, level))]!;
-  const hidden = c.mode === 'listening';
+  // a listening order stays words-free until it is served (then the customer is asking for the total, and the words come back)
+  const hidden = c.mode === 'listening' && c.state === 'front';
   return { who: c.who.name, pt: hidden ? 'Escute o pedido…' : c.pt, en: hidden ? 'Listen to the order…' : c.en, hidden, follow: c.follow, canReplay: hidden && c.state === 'front', replayCost: Math.round(lv.replayCost * 100) };
 }
 

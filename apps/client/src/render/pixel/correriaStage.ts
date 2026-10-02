@@ -239,13 +239,13 @@ export class CounterStage {
     g.fillStyle(0xe2b97e, 1).fillRect(x0, y0, x1 - x0, 2);
     g.fillStyle(0x8a5a32, 1).fillRect(x0, y1 - 3, x1 - x0, 3);
     // shelf rails under each row of items
-    for (const ry of [30, 58]) g.fillStyle(0x9c6a3a, 1).fillRect(x0 + 4, ry, 116 - 4, 1);
+    for (const ry of [28, 54]) g.fillStyle(0x9c6a3a, 1).fillRect(x0 + 4, ry, 116 - 4, 1);
     // the station column
     g.fillStyle(0xb98048, 1).fillRect(121, y0 + 4, x1 - 121 - 3, y1 - y0 - 30);
     g.fillStyle(0x8a5a32, 1).fillRect(121, y0 + 4, 1, y1 - y0 - 30);
     // the grill plate under the chapa and the machine tray
-    g.fillStyle(0x4a4a52, 1).fillRect(123, 82, 34, 11);
-    g.fillStyle(0x61616b, 1).fillRect(123, 82, 34, 2);
+    g.fillStyle(0x4a4a52, 1).fillRect(123, 76, 34, 11);
+    g.fillStyle(0x61616b, 1).fillRect(123, 76, 34, 2);
   }
 
   private ensureDom(): void {
@@ -629,7 +629,7 @@ export class CounterStage {
       const d = npcDefById(id);
       if (!d) return;
       const sheet = this.h.acquireSheet(lookForNpc(id, d.appearance, d.hat));
-      const spr = this.h.world(this.h.scene.add.sprite(150, 122, sheet, 0)).setOrigin(0.5, 1).setDepth(D.piece + 1);
+      const spr = this.h.world(this.h.scene.add.sprite(150, 112, sheet, 0)).setOrigin(0.5, 1).setDepth(D.piece + 1);
       const want = animKey(sheet, 'idle', 'W');
       if (this.h.scene.anims.exists(want)) spr.play({ key: want });
       const bubble = document.createElement('div');
@@ -682,7 +682,7 @@ export class CounterStage {
     if (snap.pour) {
       const fill = Math.min(1.15, (snap.pour.age + age) / snap.pourMs);
       const x = 122;
-      const top = 16;
+      const top = 14;
       const hgt = 34;
       g.fillStyle(0x1b1210, 0.9).fillRect(x - 1, top - 1, 5, hgt + 2);
       g.fillStyle(0x2e8a55, 0.9).fillRect(x, top + Math.round(hgt * (1 - 1.0)), 3, Math.round(hgt * 0.3));
@@ -845,7 +845,7 @@ export class CounterStage {
     if (b && b.style.display !== 'none') {
       if (this.nowMs > Number(b.dataset.until ?? 0)) b.style.display = 'none';
       else {
-        const { px, py } = this.h.toCanvas(150, 84);
+        const { px, py } = this.h.toCanvas(150, 74);
         b.style.left = `${Math.round(px)}px`;
         b.style.top = `${Math.round(py)}px`;
       }

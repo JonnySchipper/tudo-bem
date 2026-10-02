@@ -91,6 +91,9 @@ async function run(name) {
     await page.mouse.up();
     await sleep(1400);
     await shot('chapa_ready');
+    await page.click('#cr-grill-0');
+    await page.click('#cr-item-guarana'); // an item nobody asked for: the correction below is certain
+    await sleep(200);
     // a wrong tray: serve what is on it (a pão na chapa and a café) unless that is the order, then the correction
     await page.click('#cr-serve');
     await sleep(450);
