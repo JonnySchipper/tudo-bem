@@ -56,6 +56,10 @@ export const WINS_PER_STRIPE = 3;
 export const STRIPES_PER_BELT = 4;
 export const BLUE_BELT_WINS = WINS_PER_STRIPE * STRIPES_PER_BELT;
 
+/** One-time kimono purchase at the vestiário; required before rolling on the mat. */
+export const GI_PRICE = 18;
+export const GI_ITEM_ID = 'kimono';
+
 export interface BjjProgress {
   belt: Belt;
   stripes: number;
