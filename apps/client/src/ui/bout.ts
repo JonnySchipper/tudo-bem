@@ -66,6 +66,8 @@ export class BoutUI {
   private quitArmed = 0;
   private previews: { stop: () => void }[] = [];
   private closedFlag = false;
+  private lastEndWinner: Msg<'end'>['winner'] = 'none';
+  private canRematchPosition = false;
 
   constructor(private readonly a: BoutActions) {
     this.top = h('div', { class: 'bout-top', id: 'bout-top', 'aria-live': 'off' });
@@ -518,6 +520,8 @@ export class BoutUI {
     this.snap = m.st;
     this.snapAt = performance.now();
     this.bjj = m.bjj;
+    this.lastEndWinner = m.winner;
+    this.canRematchPosition = m.rematchSamePosition === true;
     if (game.profile) game.profile.bjj = m.bjj;
     this.renderTop();
     this.renderMeters();
@@ -556,6 +560,13 @@ export class BoutUI {
 
   private again(): void {
     boutFeed.end();
+    if (this.canRematchPosition && this.partnerId && this.lastEndWinner !== 'you') {
+      this.setPhase('idle');
+      this.locked = false;
+      this.body.replaceChildren(h('p', { class: 'bout-wait' }, ...this.bi('Mesma posição…', 'Same position…')));
+      this.send({ action: 'start', partner: this.partnerId, rematch: true });
+      return;
+    }
     this.send({ action: 'open' });
   }
 

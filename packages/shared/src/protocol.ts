@@ -76,7 +76,7 @@ export type ClientMsg =
    * the challenge the server issued (`seq` must match the prompt on screen); timers and results are the server's.
    */
   | { t: 'bout'; v: 1; action: 'open' }
-  | { t: 'bout'; v: 1; action: 'start'; partner: PartnerId; listen?: boolean }
+  | { t: 'bout'; v: 1; action: 'start'; partner: PartnerId; listen?: boolean; rematch?: boolean }
   | { t: 'bout'; v: 1; action: 'intent'; seq: number; intent: IntentId | 'finalizar' }
   | { t: 'bout'; v: 1; action: 'answer'; seq: number; answer: BoutAnswer }
   | { t: 'bout'; v: 1; action: 'quit' }
@@ -277,6 +277,8 @@ export type BoutServerMsg =
       line: Bilingual;
       thanks: Bilingual;
       signal: RefSignal | null;
+      /** After a loss, one-tap rematch the same guard position (and bot memory). */
+      rematchSamePosition?: boolean;
     };
 
 /** Server → client messages. */

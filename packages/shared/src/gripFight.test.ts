@@ -41,7 +41,7 @@ describe('grip fight rules', () => {
 
   it('two steps end the round', () => {
     let st = { ...newGripState(), stepsYou: 1, holdYou: ['calca' as const], turn: 'you' as const };
-    st = applyGripMove(st, 'you', 'puxar_calca').state;
+    st = applyGripMove(st, 'you', 'empurrar_calca').state;
     expect(roundWinner(st)).toBe('you');
   });
 
@@ -72,6 +72,6 @@ describe('grip fight rules', () => {
   it('documents which force scores on each grip', () => {
     expect(VALID_STEP_FORCE.gola).toBe('puxar');
     expect(VALID_STEP_FORCE.manga).toBe('empurrar');
-    expect(VALID_STEP_FORCE.calca).toBe('puxar');
+    expect(VALID_STEP_FORCE.calca).toBe('empurrar');
   });
 });
