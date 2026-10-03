@@ -1,5 +1,6 @@
 import {
   freshMission,
+  normalizeCartela,
   normalizeBag,
   normalizeBjj,
   normalizeBond,
@@ -140,6 +141,7 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.cadernoPaid = normalizeCadernoPaid(p.cadernoPaid);
   p.npcMemory = normalizeNpcMemory(p.npcMemory);
   p.feira = normalizeFeira(p.feira);
+  p.cartela = normalizeCartela(p.cartela);
   if (p.parrotOwned) {
     if (!p.parrotColors?.length) p.parrotColors = ['verde'];
     if (!p.parrotColor) p.parrotColor = 'verde';

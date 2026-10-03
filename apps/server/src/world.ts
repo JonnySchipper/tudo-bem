@@ -93,6 +93,7 @@ import { CadernoTracker } from './caderno.js';
 import { FeiraCounter } from './feira.js';
 import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria.js';
 import { BoutEngine, type BoutSession } from './bout.js';
+import { CartelaTracker } from './cartela.js';
 
 export interface Services {
   safety: ChatSafetyService;
@@ -222,6 +223,7 @@ export class World {
   private seq = 0;
   /** Recados, bag and bonds (HOWTO Phase 8). The world only reports events to it. */
   private readonly recados: RecadoTracker;
+  private readonly cartela: CartelaTracker;
   /** Caderno de palavras: what the player saw, heard and used (Phase 7). */
   private readonly caderno: CadernoTracker;
   /** The feira's prices and payments (Phase 9). */
@@ -245,6 +247,12 @@ export class World {
     this.npcs = new NpcDirector(() => this.clockNow());
     this.accounts = opts.accounts;
     this.idleKickMs = Math.max(1000, opts.idleKickMs ?? IDLE_KICK_MS);
+    this.cartela = new CartelaTracker({
+      now: () => this.now(),
+      store,
+      reward: (s, amount, reason) => this.reward(s, amount, reason),
+      pushProfile: (s) => this.pushProfile(s),
+    });
     this.recados = new RecadoTracker({
       now: () => this.now(),
       store,
@@ -282,6 +290,7 @@ export class World {
       },
       err: (s, code, pt, en) => this.err(s, code, pt, en),
       avatarChanged: (s) => this.broadcastAvatar(s),
+      onBoutComplete: (s, played) => this.cartela.onBoutEnd(s, played),
     });
     this.correria = new CorreriaEngine({
       now: () => this.now(),
@@ -295,6 +304,7 @@ export class World {
       pushProfile: (s) => this.pushProfile(s),
       completeStep: (s) => this.completeStep(s, 'meveum'),
       missionStep: (s) => this.missionStep(s, 'monta'),
+      cartelaShift: (s, served) => this.cartela.onCorreriaEnd(s, served),
       ordered: (s, items) => this.recados.onEvent(s, { kind: 'ordered', npc: 'carlos', items }),
       bond: (s, npc, n) => this.recados.grantBond(s, npc, n),
       caderno: { seen: (s, text, ids) => this.caderno.seen(s, text, ids), heard: (s, ids) => this.caderno.heard(s, ids) },
@@ -629,6 +639,7 @@ export class World {
     }
     this.correria.resume(s);
     this.recados.onEvent(s, { kind: 'entered', room: def.id, tile });
+    this.cartela.onEntered(s, def.id);
     this.broadcast(target, { t: 'avatarJoined', avatar: this.publicAvatar(s) }, s);
     target.crowd?.sync();
     this.startNpcTick();
@@ -1037,7 +1048,10 @@ export class World {
   /** A Conversa (HTTP flow) finished for this player: counts as a talk, may carry an order, a 'pass' earns bond. */
   conversaEnded(playerId: string, npc: NpcId, grade: ConversaGrade, order?: ConversaOrder) {
     const s = this.sessionByProfile(playerId);
-    if (s) this.recados.onConversaEnd(s, npc, grade, order);
+    if (s) {
+      this.recados.onConversaEnd(s, npc, grade, order);
+      this.cartela.onConversaEnd(s, grade);
+    }
   }
 
   /** A Conversa line moved between the player and an NPC (HTTP flow): the NPC's line is seen, the player's is used. */

@@ -45,11 +45,12 @@ function apply(): void {
   const compact = window.matchMedia(COMPACT_QUERY).matches;
   const tracker = rectOf(document.querySelector('.rtrack'));
   const mission = rectOf(document.getElementById('mission-pill'));
+  const cartela = rectOf(document.getElementById('cartela-pill'));
   // desktop: the tracker is on the other side of the screen from the toasts; on a phone they share the column
-  root.style.setProperty('--toast-top', `${toastTop(barBox ? { ...barBox, bottom: barBox.bottom + 5 } : null, compact ? [tracker, mission] : [mission])}px`);
+  root.style.setProperty('--toast-top', `${toastTop(barBox ? { ...barBox, bottom: barBox.bottom + 5 } : null, compact ? [tracker, mission, cartela] : [mission, cartela])}px`);
   if (typeof ResizeObserver !== 'undefined') {
     ro ??= new ResizeObserver(() => placeHud());
-    for (const el of [bar, document.querySelector('.rtrack'), document.getElementById('mission-pill')]) {
+    for (const el of [bar, document.querySelector('.rtrack'), document.getElementById('mission-pill'), document.getElementById('cartela-pill')]) {
       if (el && !watched.has(el)) {
         watched.add(el);
         ro.observe(el);

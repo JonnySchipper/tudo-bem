@@ -1,4 +1,5 @@
 import type { DailyMission } from './ambiance.js';
+import type { CartelaState } from './cartela.js';
 import type { StreetSnackId } from './streetSnacks.js';
 import type { BjjProgress, Belt } from './academia.js';
 import type { NpcId } from './rooms.js';
@@ -165,6 +166,8 @@ export interface PrivateProfile {
   feira?: { date: string; n: number };
   /** One short PT line per NPC about your last Conversa (max 200 chars). Never raw chat. */
   npcMemory?: Partial<Record<NpcId, string>>;
+  /** Cartela de carimbos do bairro (seven stamps pay RV; persists across sessions). */
+  cartela?: CartelaState;
 }
 
 export interface Bilingual {

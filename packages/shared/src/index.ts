@@ -34,3 +34,4 @@ export * from './feira.js';
 export * from './streetSnacks.js';
 export * from './parrotShop.js';
 export * from './checkers.js';
+export * from './cartela.js';
