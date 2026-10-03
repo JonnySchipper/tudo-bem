@@ -174,6 +174,10 @@ export interface PrivateProfile {
   hasCamera?: boolean;
   /** Language-diary word ids earned once. */
   diary?: string[];
+  /** Film rolls left in the camera. Júlia sells more. */
+  film?: number;
+  /** Photos taken with the camera, newest first. */
+  photos?: { id: string; at: number; image: string; wordId?: string }[];
 }
 
 export interface Bilingual {

@@ -279,6 +279,7 @@ export class World {
       roomOf: (s) => s.instance?.def.id ?? null,
       npcsIn: (room) => this.npcs.whoIn(room),
       rng: () => this.rng(),
+      now: () => this.now(),
     });
     this.bouts = new BoutEngine({
       now: () => this.now(),
@@ -546,6 +547,8 @@ export class World {
       arrivalIntroDone: false,
       hasCamera: false,
       diary: [],
+      film: 0,
+      photos: [],
     };
     this.store.add(p);
     if (this.accounts && s.accountId) this.linkAccount(s.accountId, p);

@@ -8,6 +8,8 @@ import {
   normalizeCadernoPaid,
   normalizeArrival,
   normalizeDiary,
+  normalizeFilm,
+  normalizePhotos,
   normalizeNpcMemory,
   normalizeRecados,
   type PrivateProfile,
@@ -146,6 +148,8 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.arrivalIntroDone = arrival.arrivalIntroDone;
   p.hasCamera = arrival.hasCamera;
   p.diary = normalizeDiary(p.diary);
+  p.film = normalizeFilm(p.film);
+  p.photos = normalizePhotos(p.photos);
   if (p.parrotOwned) {
     if (!p.parrotColors?.length) p.parrotColors = ['verde'];
     if (!p.parrotColor) p.parrotColor = 'verde';

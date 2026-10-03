@@ -3,6 +3,7 @@
  * that plays the word (and tells the server it was `heard`), what the player did with it (seen / heard / used), and the progress of the group.
  * Words not met yet show as "???". The group reward (+15 RV, once) arrives as the server's normal reward toast.
  */
+import { diaryBoard, progressLine } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi } from './dom';
 import { openModal } from './modal';
@@ -68,7 +69,43 @@ export function openCaderno(groupId?: string, highlight: readonly string[] = [])
     const g = v.groups.find((x) => x.id === tab);
     lastTab = tab ?? null;
     const scroll = body.querySelector('.cad-list')?.scrollTop ?? 0;
+    const found = diaryBoard(game.profile?.diary);
+    const photos = game.profile?.photos ?? [];
     body.replaceChildren(
+      h(
+        'section',
+        { class: 'cad-found' },
+        h('h3', null, 'Palavras encontradas'),
+        en('How many words you found in each place, by camera, reading, conversation, and game.'),
+        ...found.map((area) =>
+          h(
+            'div',
+            { class: 'cad-area', 'data-area': area.id },
+            h('p', { class: 'cad-area-name' }, area.pt, en(area.en)),
+            h('p', { class: 'cad-area-progress', 'data-progress': area.id }, progressLine(area)),
+            area.words.length
+              ? h(
+                  'ul',
+                  null,
+                  ...area.words.map((w) => h('li', { 'data-word': w.id }, h('b', null, w.pt), en(w.en), w.seed ? h('span', { class: 'diary-seed' }, 'amostra') : null)),
+                )
+              : null,
+          ),
+        ),
+      ),
+      h(
+        'section',
+        { class: 'cad-gallery' },
+        h('h3', null, 'Fotos', en('Gallery')),
+        h('p', { class: 'cad-film' }, `Filme: ${game.profile?.film ?? 0}`, en('Shots left')),
+        photos.length
+          ? h(
+              'div',
+              { class: 'cad-photos' },
+              ...photos.map((photo) => h('img', { class: 'cad-photo', src: photo.image, alt: photo.wordId ?? 'foto' })),
+            )
+          : h('p', { class: 'cad-empty' }, 'Nenhuma foto ainda.', en('No photos yet.')),
+      ),
       h('div', { class: 'cad-summary' }, `${v.learned}/${v.total} aprendidas`, en(`${v.learned} of ${v.total} words learned · ${v.met} met`, true)),
       h(
         'div',
@@ -106,8 +143,8 @@ export function openCaderno(groupId?: string, highlight: readonly string[] = [])
       'div',
       { class: 'panel caderno' },
       h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
-      h('h2', null, 'Caderno de palavras'),
-      en('Word notebook · the words you meet in Vila Ipê'),
+      h('h2', null, 'Diário'),
+      en('Your diary · words you meet, and how you found them'),
       body,
       h('div', { class: 'cad-foot' }, h('button', { class: 'ghost', onclick: () => close() }, bi('Fechar', 'Close'))),
     ),

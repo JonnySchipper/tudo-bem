@@ -73,8 +73,13 @@ export type ClientMsg =
   | { t: 'heard'; cardIds: string[] }
   /** Finish the plane arrival. Júlia gives the camera (and the cartela, when that exists). Once. */
   | { t: 'arrival'; action: 'finish' }
-  /** Photograph a tagged object. `anchor` is the prop id. */
-  | { t: 'diary'; action: 'photo'; anchor: string }
+  /**
+   * Take a photo. `anchors` are camera-word prop ids inside the viewfinder.
+   * `image` is a small jpeg of the frame. Every shot spends one film.
+   */
+  | { t: 'diary'; action: 'photo'; anchor?: string; anchors?: string[]; image?: string }
+  /** Buy a pack of film from Júlia. Virtual RV only. */
+  | { t: 'diary'; action: 'buyFilm' }
   /** Heard an NPC line (`npc.node`) that can teach a conversation word. */
   | { t: 'diary'; action: 'line'; anchor: string }
   /** Start the practice game in the room you're in (the escola). */
@@ -355,8 +360,8 @@ export type ServerMsg =
       rv: number;
     }
   /** Language diary: a photo, a practice round, or its result. The profile push carries the earned ids. */
-  | { t: 'diary'; phase: 'photo'; ok: true; pt: string; en: string; source: string; areaPt: string; progress: string }
-  | { t: 'diary'; phase: 'photo'; ok: false; pt: string; en: string }
+  | { t: 'diary'; phase: 'photo'; ok: true; pt: string; en: string; source: string; areaPt: string; progress: string; film: number }
+  | { t: 'diary'; phase: 'photo'; ok: false; pt: string; en: string; film: number; empty?: boolean }
   | { t: 'diary'; phase: 'practice'; ok: true; host: string; en: string; options: string[] }
   | { t: 'diary'; phase: 'practice'; ok: false; host: string; pt: string; en: string }
   | { t: 'diary'; phase: 'result'; correct: boolean; host: string; line: Bilingual; granted: { pt: string; en: string } | null }

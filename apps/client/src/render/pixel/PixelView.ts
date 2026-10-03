@@ -10,7 +10,7 @@ import type { Guide, Hit, WorldView } from '../view';
 import { sharedCharAssets } from './charAssets';
 import { WorldScene } from './WorldScene';
 import { LabelLayer } from './labels';
-import { bufferPixels, canvasToWorld, tileAtWorld, tileCenterToCanvas, type Insets } from './coords';
+import { T, bufferPixels, canvasToWorld, tileAtWorld, tileCenterToCanvas, worldToCanvas, type Insets } from './coords';
 import { game } from '../../state';
 
 export class PixelView implements WorldView {
@@ -74,6 +74,8 @@ export class PixelView implements WorldView {
       banner: false,
       audio: { noAudio: true }, // the game has its own audio; don't let Phaser touch AudioContext
       input: { keyboard: false, mouse: false, touch: false, gamepad: false },
+      // The shutter copies this canvas. WebGL clears the buffer after each frame unless we keep it.
+      render: { preserveDrawingBuffer: true },
       scale: { mode: Phaser.Scale.NONE, width: buf.width, height: buf.height, zoom: 1 / buf.dpr },
       scene: [scene],
     });
@@ -142,6 +144,15 @@ export class PixelView implements WorldView {
 
   private rect(): DOMRect {
     return this.canvas.getBoundingClientRect();
+  }
+
+  /** Screen rect of a prop's tile footprint, in client px. */
+  propClientRect(prop: { x: number; y: number; w?: number; h?: number }): { x: number; y: number; w: number; h: number } | null {
+    if (!this.scene) return null;
+    const r = this.rect();
+    const a = worldToCanvas(this.scene.cam, prop.x * T, prop.y * T);
+    const b = worldToCanvas(this.scene.cam, (prop.x + (prop.w ?? 1)) * T, (prop.y + (prop.h ?? 1)) * T);
+    return { x: r.left + a.px, y: r.top + a.py, w: b.px - a.px, h: b.py - a.py };
   }
 
   tileToClient(x: number, y: number): { px: number; py: number } {

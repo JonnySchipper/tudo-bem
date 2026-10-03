@@ -4,8 +4,11 @@
  */
 import {
   HOTSPOT_READ_RANGE,
+  PHOTO_RANGE,
   NPC_TALK,
   ROOMS,
+  FILM,
+  PHOTO_KEEP,
   areaBoard,
   diaryGame,
   diaryGamesIn,
@@ -13,6 +16,9 @@ import {
   handCartela,
   hotspotDistance,
   isNpcId,
+  normalizeFilm,
+  normalizePhotos,
+  photoImage,
   practiceCorrect,
   practiceRound,
   progressLine,
@@ -39,6 +45,18 @@ export interface DiaryDeps {
   roomOf: (s: Session) => RoomId | null;
   npcsIn: (room: RoomId) => { id: NpcId; tile: Tile; interact: Tile }[];
   rng: () => number;
+  now: () => number;
+}
+
+function photoAnchors(msg: { anchor?: string; anchors?: string[] }): string[] {
+  const raw = [...(msg.anchors ?? []), ...(msg.anchor ? [msg.anchor] : [])];
+  const out: string[] = [];
+  for (const id of raw) {
+    if (typeof id !== 'string' || id.length > 64 || out.includes(id)) continue;
+    out.push(id);
+    if (out.length >= 8) break;
+  }
+  return out;
 }
 
 interface Round {
@@ -65,6 +83,7 @@ export class DiaryTracker {
     p.arrivalIntroDone = true;
     p.hasCamera = true;
     p.diary = p.diary ?? [];
+    if (first) p.film = normalizeFilm(p.film) + FILM.starter;
     this.d.store.save();
     this.d.pushProfile(s);
     if (!first) return;
@@ -73,15 +92,18 @@ export class DiaryTracker {
     s.send({
       t: 'notice',
       level: 'info',
-      pt: `Júlia te entrega a câmera.${waiting}`,
-      en: cartela.given ? 'Júlia hands you the camera.' : 'Júlia hands you the camera. The stamp card isn’t on this build yet.',
+      pt: `Júlia te entrega a câmera e ${FILM.starter} filmes.${waiting}`,
+      en: cartela.given
+        ? `Júlia hands you the camera and ${FILM.starter} shots of film.`
+        : `Júlia hands you the camera and ${FILM.starter} shots of film. The stamp card isn’t on this build yet.`,
     });
   }
 
   handle(s: Session, msg: Extract<ClientMsg, { t: 'diary' }>) {
-    if (msg.action === 'photo') return this.photo(s, msg.anchor);
+    if (msg.action === 'photo') return this.photo(s, msg);
     if (msg.action === 'line') return this.line(s, msg.anchor);
     if (msg.action === 'practice') return this.practice(s);
+    if (msg.action === 'buyFilm') return this.buyFilm(s);
     return this.answer(s, msg.choice);
   }
 
@@ -92,19 +114,77 @@ export class DiaryTracker {
     this.earn(s, word, 'reading');
   }
 
-  private photo(s: Session, anchor: unknown) {
+  private photo(s: Session, msg: Extract<ClientMsg, { t: 'diary'; action: 'photo' }>) {
     const p = s.profile;
     if (!p) return;
     if (!p.hasCamera) return this.d.err(s, 'camera', 'Você ainda não tem a câmera.', 'You don’t have the camera yet.');
-    if (typeof anchor !== 'string' || anchor.length > 64) return this.d.err(s, 'photo', 'Não deu pra fotografar isso.', 'That can’t be photographed.');
-    const word = wordForPhoto(anchor);
-    if (!word) return this.d.err(s, 'photo', 'Isso não entra no diário.', 'That doesn’t go in the diary.');
+    const claimed = photoAnchors(msg);
     const room = this.d.roomOf(s);
-    const prop = room ? ROOMS[room].props.find((q) => q.id === anchor) : undefined;
-    if (!room || !prop) return this.d.err(s, 'far', 'Chegue mais perto pra fotografar.', 'Walk closer to take the photo.');
-    if (hotspotDistance(prop, this.d.tileOf(s)) > HOTSPOT_READ_RANGE)
-      return this.d.err(s, 'far', 'Chegue mais perto pra fotografar.', 'Walk closer to take the photo.');
-    this.earn(s, word, 'camera');
+    const tile = this.d.tileOf(s);
+    const inFrame: string[] = [];
+    for (const id of claimed) {
+      const prop = room ? ROOMS[room].props.find((q) => q.id === id) : undefined;
+      if (prop && hotspotDistance(prop, tile) <= PHOTO_RANGE) inFrame.push(id);
+    }
+    const image = photoImage(msg.image);
+    if (!inFrame.length && !image) {
+      if (claimed.length) return this.d.err(s, 'far', 'Chegue mais perto pra fotografar.', 'Walk closer to take the photo.');
+      return this.d.err(s, 'photo', 'Não deu pra fotografar isso.', 'That can’t be photographed.');
+    }
+    const film = normalizeFilm(p.film);
+    if (film < 1) return this.d.err(s, 'film', 'Sem filme. A Júlia vende rolo na praça.', 'Out of film. Júlia sells rolls in the square.');
+    p.film = film - 1;
+    let granted: DiaryWord | null = null;
+    let seen: DiaryWord | null = null;
+    for (const id of inFrame) {
+      const word = wordForPhoto(id);
+      if (!word) continue;
+      const got = grantDiaryWord(p.diary, word.id, 'camera');
+      if (got.ok) {
+        p.diary = got.earned;
+        granted ??= got.word;
+      } else if (got.reason === 'already') seen ??= word;
+    }
+    if (image) {
+      p.photos = [{ id: crypto.randomUUID(), at: this.d.now(), image, ...(granted ? { wordId: granted.id } : {}) }, ...normalizePhotos(p.photos)].slice(0, PHOTO_KEEP);
+    }
+    this.d.store.save();
+    this.d.pushProfile(s);
+    const left = normalizeFilm(p.film);
+    if (granted) {
+      const board = areaBoard(granted.area, p.diary);
+      s.send({ t: 'diary', phase: 'photo', ok: true, pt: granted.pt, en: granted.en, source: 'camera', areaPt: board.pt, progress: progressLine(board), film: left });
+      return;
+    }
+    if (seen) {
+      s.send({ t: 'diary', phase: 'photo', ok: false, pt: seen.pt, en: seen.en, film: left });
+      return;
+    }
+    s.send({ t: 'diary', phase: 'photo', ok: false, pt: 'Foto guardada.', en: 'Photo saved.', film: left, empty: true });
+  }
+
+  /** A pack of film from Júlia, paid in virtual RV. */
+  private buyFilm(s: Session) {
+    const p = s.profile;
+    if (!p) return;
+    if (!p.hasCamera) return this.d.err(s, 'camera', 'Você ainda não tem a câmera.', 'You don’t have the camera yet.');
+    const room = this.d.roomOf(s);
+    const julia = room ? this.d.npcsIn(room).find((n) => n.id === FILM.seller) : undefined;
+    const tile = this.d.tileOf(s);
+    if (!julia || (tileDistance(tile, julia.tile) > HOTSPOT_READ_RANGE && tileDistance(tile, julia.interact) > HOTSPOT_READ_RANGE))
+      return this.d.err(s, 'far', 'Chegue mais perto da Júlia.', 'Walk closer to Júlia.');
+    if (p.coins < FILM.price) return this.d.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
+    p.coins -= FILM.price;
+    p.film = Math.min(99, normalizeFilm(p.film) + FILM.pack);
+    this.d.store.save();
+    this.d.pushProfile(s);
+    // needs_br: true
+    s.send({
+      t: 'notice',
+      level: 'reward',
+      pt: `Júlia: “Toma, mais ${FILM.pack} filmes.”`,
+      en: `Júlia: “Here, ${FILM.pack} more shots.”`,
+    });
   }
 
   private line(s: Session, anchor: unknown) {
@@ -127,19 +207,12 @@ export class DiaryTracker {
     const p = s.profile;
     if (!p) return;
     const granted = grantDiaryWord(p.diary, word.id, via);
-    if (!granted.ok) {
-      if (via === 'camera') s.send({ t: 'diary', phase: 'photo', ok: false, pt: word.pt, en: word.en });
-      return;
-    }
+    if (!granted.ok) return;
     p.diary = granted.earned;
     this.d.store.save();
     this.d.pushProfile(s);
     const board = areaBoard(word.area, p.diary);
     const progress = progressLine(board);
-    if (via === 'camera') {
-      s.send({ t: 'diary', phase: 'photo', ok: true, pt: word.pt, en: word.en, source: via, areaPt: board.pt, progress });
-      return;
-    }
     // needs_br: true
     const how = via === 'reading' ? 'leu' : 'ouviu';
     const howEn = via === 'reading' ? 'read' : 'heard';

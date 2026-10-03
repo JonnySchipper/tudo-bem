@@ -2,7 +2,7 @@
  * The short authored greeting with Nanda and Júlia (Phase 7 step 4): three lines, two reply chips each, in the dialogue box. Client-side only
  * (no rewards); opening it tells the server (`talk`) so the recado engine's `talked` event fires. Nanda's box also has "Ver chapéus".
  */
-import { NPC_TALK, fillTalk, type NpcId } from '@tudobem/shared';
+import { FILM, NPC_TALK, fillTalk, type NpcId } from '@tudobem/shared';
 import { clock } from '../gameClock';
 import { heartsWith } from './recadoView';
 import { game } from '../state';
@@ -19,6 +19,8 @@ export interface TalkHooks {
   openShop: () => void;
   /** A node is on screen (`npc.node`). The diary may keep a conversation word from it. */
   onLine?: (anchor: string) => void;
+  /** Buy a pack of film from Júlia. */
+  buyFilm?: () => void;
 }
 
 const SPEAKER: Record<string, { name: string; role: string }> = {
@@ -71,7 +73,9 @@ export function openNpcTalk(npcId: NpcId, hooks: TalkHooks): void {
       footer:
         npcId === 'nanda'
           ? h('button', { class: 'primary', id: 'btn-ver-chapeus', onclick: () => (closeDialogue(), hooks.openShop()) }, bi('Ver chapéus', 'See the hats'))
-          : undefined,
+          : npcId === 'julia' && hooks.buyFilm
+            ? h('button', { class: 'primary', id: 'btn-comprar-filme', onclick: () => hooks.buyFilm?.() }, bi(`Filme · ${FILM.price} RV`, `Film · ${FILM.price} RV`))
+            : undefined,
       onChip: choose,
       onClose: closeDialogue,
     });

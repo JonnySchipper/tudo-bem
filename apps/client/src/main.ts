@@ -77,7 +77,7 @@ import { openNpcTalk } from './ui/npcTalk';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira';
 import { openCaderno } from './ui/caderno';
 import { syncArrival } from './ui/arrival';
-import { openDiary, showPhoto, syncCameraBanner } from './ui/diaryPanel';
+import { cameraFrameAt, captureFrame, showPhoto, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
 import { openEscolaPractice, showEscolaResult } from './ui/escola';
 import { openHotspotCard } from './ui/hotspotCard';
 import { openStreetSnack } from './ui/streetSnack';
@@ -243,7 +243,11 @@ function talkFlow(npc: NpcDef['id']) {
     net.send({ t: 'diary', action: 'practice' });
   } else {
     // Nanda, Júlia and Professora Bia (the live NPC you clicked): a short greeting in the dialogue box (Nanda offers "Ver chapéus", Júlia her help)
-    openNpcTalk(npc, { openShop, onLine: (anchor) => net.send({ t: 'diary', action: 'line', anchor }) });
+    openNpcTalk(npc, {
+      openShop,
+      onLine: (anchor) => net.send({ t: 'diary', action: 'line', anchor }),
+      buyFilm: () => net.send({ t: 'diary', action: 'buyFilm' }),
+    });
   }
 }
 
@@ -266,19 +270,29 @@ function clickHotspot(hs: HotspotDef) {
   walkTo(spot, { kind: 'hotspot', hotspotId: hs.id, tile: spot });
 }
 
-/** A click with the camera up: photograph a tagged prop from within 3 tiles. */
-function clickPhoto(p: PropDef) {
-  const cur = selfTile();
-  const room = game.roomDef;
-  if (!cur || !room) return;
-  if (!cur.moving && hotspotDistance(p, cur.tile) <= HOTSPOT_READ_RANGE) {
-    net.send({ t: 'diary', action: 'photo', anchor: p.id });
+function rectsOverlap(a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+/** A shutter click: spend film, keep the photo, and teach any camera word inside the frame. The player does not walk. */
+function takePhoto(clientX: number, clientY: number) {
+  if (!game.profile?.hasCamera) return;
+  if ((game.profile.film ?? 0) < 1) {
+    toast('info', 'Sem filme. Fala com a Júlia.', 'Out of film. Ask Júlia.');
     return;
   }
-  const grid = buildGrid(room, game.furniture);
-  const spot = readSpot(p, cur.tile, (x, y) => isWalkable(grid, x, y));
-  if (!spot) return toast('info', 'Não consigo chegar perto disso.', 'I can’t get close to that.');
-  walkTo(spot, { kind: 'photo', anchor: p.id, tile: spot });
+  const frame = cameraFrameAt(clientX, clientY);
+  const anchors: string[] = [];
+  const room = game.roomDef;
+  const view = renderer as { propClientRect?: (p: { x: number; y: number; w?: number; h?: number }) => { x: number; y: number; w: number; h: number } | null };
+  if (room && view.propClientRect) {
+    for (const prop of room.props) {
+      if (!cameraObjectIds().has(prop.id)) continue;
+      const rect = view.propClientRect(prop);
+      if (rect && rectsOverlap(frame, rect)) anchors.push(prop.id);
+    }
+  }
+  net.send({ t: 'diary', action: 'photo', anchors, image: captureFrame(frame) });
 }
 
 function propAction(action: string, propId?: string) {
@@ -706,11 +720,11 @@ function startGame() {
     openMap: () => openMap((room) => joinRoom(room)),
     openCredits,
     openCaderno: () => openCaderno(),
-    openDiary: () => openDiary(),
     toggleCamera: () => {
       if (!game.profile?.hasCamera) return;
       game.cameraOn = !game.cameraOn;
       syncCameraBanner();
+      syncCameraFrame(lastPointer.x, lastPointer.y);
       game.emit('hud');
     },
     openRecados: () => openJournal(),
@@ -882,10 +896,7 @@ function handleClickInner(hit: Hit | null) {
       break;
     case 'prop': {
       const p: PropDef = hit.prop;
-      if (game.cameraOn && cameraObjectIds().has(p.id)) {
-        clickPhoto(p);
-        break;
-      }
+      if (game.cameraOn) break;
       if (p.action && p.interact) walkTo(p.interact, { kind: 'prop', action: p.action, tile: p.interact, propId: p.id });
       else if (cameraObjectIds().has(p.id)) toast('info', 'Abra a câmera pra fotografar.', 'Open the camera to take a photo.');
       break;
@@ -934,6 +945,12 @@ function interact(target: InteractTarget): boolean {
 }
 
 const lastPointer = { x: 0, y: 0 };
+window.addEventListener('pointermove', (e) => {
+  if (!game.cameraOn || !game.profile?.hasCamera) return;
+  lastPointer.x = e.clientX;
+  lastPointer.y = e.clientY;
+  syncCameraFrame(e.clientX, e.clientY);
+});
 canvas.addEventListener('pointermove', (e) => {
   lastPointer.x = e.clientX;
   lastPointer.y = e.clientY;
@@ -941,12 +958,13 @@ canvas.addEventListener('pointermove', (e) => {
     hoverLabel(0, 0, null);
     return;
   }
+  if (game.cameraOn) syncCameraFrame(e.clientX, e.clientY);
   const hit = renderer.hitTest(e.clientX, e.clientY);
   game.hoverTile = hit?.kind === 'tile' ? hit.tile : game.placing ? renderer.tileAt(e.clientX, e.clientY) : null;
   game.hoverKey = hit?.kind === 'avatar' ? `av:${hit.id}` : hit?.kind === 'npc' ? `npc:${hit.npc.id}` : null;
   const lbl = hitLabel(hit);
   hoverLabel(e.clientX, e.clientY, lbl?.[0] ?? null, lbl?.[1]);
-  canvas.style.cursor = hit && hit.kind !== 'tile' ? 'pointer' : 'default';
+  canvas.style.cursor = game.cameraOn ? 'crosshair' : hit && hit.kind !== 'tile' ? 'pointer' : 'default';
 });
 canvas.addEventListener('pointerleave', () => {
   game.hoverKey = null;
@@ -959,6 +977,10 @@ canvas.addEventListener('click', (e) => {
   if (boutUi?.open) return; // the mat is busy: the overlay is the only input
   if (game.modalOpen && (modalId() || isDialogueBoxOpen())) return;
   hoverLabel(0, 0, null);
+  if (game.cameraOn && game.profile?.hasCamera) {
+    takePhoto(e.clientX, e.clientY);
+    return;
+  }
   handleClick(renderer.hitTest(e.clientX, e.clientY));
 });
 document.addEventListener('keydown', (e) => {
