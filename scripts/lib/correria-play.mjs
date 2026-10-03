@@ -44,6 +44,11 @@ export async function waitFront(page, timeout = 30_000) {
 }
 
 const hit = (id) => `#cr-${id}`;
+/** Same window as `chapaPhase` in the shared rules: ready just before cookMs, burnt after burnMs. */
+const BURN_MS = 5400;
+const READY_AT = COOK_MS - 150;
+/** Wall-clock wait after a put before we tap the grill even if the painted state is still raw. */
+const GRILL_FORCE_MS = 2600;
 
 /** Parse a Portuguese order back into lines when the snapshot has no debug lines (proves the text alone is solvable). */
 const NUM = { um: 1, uma: 1, dois: 2, duas: 2, 'três': 3, tres: 3 };
@@ -84,54 +89,155 @@ export async function wantOf(page, c) {
 
 /** Click the order together: grab, grill (wait, take), pour (hold), then the bag / plate and coffee mods. */
 const trace = (...a) => process.env.CR_TRACE && console.log(`    [${new Date().toISOString().slice(14, 23)}]`, ...a);
+
+const trayCounts = (tray) => {
+  const have = {};
+  for (const id of tray ?? []) have[id] = (have[id] ?? 0) + 1;
+  return have;
+};
+
+/** The tray, bag/plate and coffee mods match the order the customer is waiting on. */
+export async function orderReady(page, want) {
+  const now = await snap(page);
+  if (!now) return false;
+  const have = trayCounts(now.tray);
+  if (!want.lines.every((l) => (have[l.itemId] ?? 0) >= l.qty)) return false;
+  for (const m of want.mods) {
+    if (m === 'pra_viagem') { if (now.pack !== 'bag') return false; }
+    else if (m === 'pra_comer_aqui') { if (now.pack !== 'plate') return false; }
+    else if (!now.mods?.includes(m)) return false;
+  }
+  return true;
+}
+
+/** Shelf / grill / bag taps. A covered spot still runs its handler: Playwright's hit-test click would wait until the strip moves. */
+async function tap(page, selector) {
+  const clicked = await page.locator(selector).click({ timeout: 2500 }).then(() => true).catch(() => false);
+  if (clicked) return;
+  await page.evaluate((sel) => document.querySelector(sel)?.click(), selector);
+}
+
+/**
+ * Grill slots from the snapshot clock (age at the last message, plus time since it arrived) and from the painted `data-state`.
+ * A stalled frame can leave the spot painted `raw` straight through the green window; the snapshot clock does not wait on that frame.
+ */
+async function grillView(page) {
+  return page.evaluate(({ readyAt, burnAt }) => {
+    const feed = window.__tb?.correria?.feed;
+    const snap = feed?.snap ?? null;
+    let extra = snap ? performance.now() - (feed.snapAt || performance.now()) : 0;
+    if (!Number.isFinite(extra) || extra < 0 || extra > 12_000) extra = 0;
+    const buttons = [...document.querySelectorAll('.cr-grill')];
+    const n = Math.max(snap?.chapa?.length ?? 0, buttons.length);
+    const slots = [];
+    for (let i = 0; i < n; i++) {
+      const el = document.querySelector(`#cr-grill-${i}`);
+      const hidden = !el || el.style.display === 'none';
+      const dom = el?.dataset.state || 'empty';
+      const c = snap?.chapa?.[i] ?? null;
+      const age = c ? c.age + extra : 0;
+      let phase = 'empty';
+      if (c) phase = age < readyAt ? 'raw' : age <= burnAt ? 'ready' : 'burnt';
+      else if (!hidden && (dom === 'raw' || dom === 'ready' || dom === 'burnt')) phase = dom;
+      slots.push({ i, phase, age: Math.round(age), dom, hidden });
+    }
+    return { slots, tray: snap?.tray ?? [] };
+  }, { readyAt: READY_AT, burnAt: BURN_MS });
+}
+
+async function clickGrill(page, i) {
+  const sel = `#cr-grill-${i}`;
+  // The handler is a click listener. Calling it in the page still works when the spot sits under the counter strip.
+  const clicked = await page.evaluate((s) => {
+    const el = document.querySelector(s);
+    if (!el) return false;
+    el.click();
+    return true;
+  }, sel);
+  if (!clicked) await page.locator(sel).click({ timeout: 1500, force: true }).catch(() => {});
+}
+
+/** One bread on the chapa, then onto the tray. A burnt one is trashed and tried again. */
+async function grillOne(page, itemId) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const before = trayCounts((await snap(page))?.tray)[itemId] ?? 0;
+    const busy = (await grillView(page)).slots.some((s) => !s.hidden && s.phase !== 'empty');
+    if (busy) await takeGrilled(page);
+    await tap(page, hit(`item-${itemId}`));
+    // the put is a network round-trip; taking before the snapshot shows the bread would see an empty grill and give up
+    const landed = Date.now() + 2500;
+    while (Date.now() < landed) {
+      const view = await grillView(page);
+      const onGrill = view.slots.some((s) => !s.hidden && s.phase !== 'empty');
+      if (onGrill || (trayCounts(view.tray)[itemId] ?? 0) > before) break;
+      await sleep(80);
+    }
+    await takeGrilled(page);
+    const after = trayCounts((await snap(page))?.tray)[itemId] ?? 0;
+    if (after > before) return;
+    const view = await grillView(page);
+    console.log(`  · grill ${itemId} missed the tray (attempt ${attempt + 1}) ${JSON.stringify(view.slots)}`);
+  }
+}
+
 export async function buildOrder(page, want, { quick = false } = {}) {
-  trace("build", JSON.stringify(want));
+  trace('build', JSON.stringify(want));
   const fast = (await snap(page))?.pourMs <= POUR_FAST;
   const pourMs = fast ? POUR_FAST : POUR_FULL;
   await page.click('#cr-clear:not([disabled])', { timeout: 300 }).catch(() => {});
-  let slot = 0;
-  const grilled = [];
   for (const line of want.lines) {
     for (let i = 0; i < line.qty; i++) {
-      if (CHAPA.has(line.itemId)) {
-        await page.click(hit(`item-${line.itemId}`));
-        grilled.push(Date.now());
-        slot++;
-        if (slot >= (await snap(page)).chapa.length) await takeGrilled(page);
-      } else if (CAFE.has(line.itemId)) {
+      if (CHAPA.has(line.itemId)) await grillOne(page, line.itemId);
+      else if (CAFE.has(line.itemId)) {
         // a slow frame can stretch the hold past the window (the server judges it on its own clock): pour again, like a player would
         for (let attempt = 0; attempt < 4; attempt++) {
           const before = (await snap(page)).tray.length;
           trace('pour', line.itemId, attempt);
           const box = await page.locator(hit(`item-${line.itemId}`)).boundingBox();
-          await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-          await page.mouse.down();
-          await sleep(pourMs * 0.88);
-          await page.mouse.up();
-          await sleep(250);
+          if (!box) {
+            await tap(page, hit(`item-${line.itemId}`));
+            await sleep(200);
+          } else {
+            await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+            await page.mouse.down();
+            await sleep(pourMs * 0.88);
+            await page.mouse.up();
+            await sleep(250);
+          }
           if ((await snap(page)).tray.length > before) break;
         }
         trace('poured');
-      } else await page.click(hit(`item-${line.itemId}`));
+      } else await tap(page, hit(`item-${line.itemId}`));
     }
   }
   await takeGrilled(page);
   for (const m of want.mods) {
-    if (m === 'pra_viagem') await page.click(hit('bag'));
-    else if (m === 'pra_comer_aqui') await page.click(hit('plate'));
-    else if ((await page.getAttribute(`.cr-mod[data-mod="${m}"]`, 'aria-pressed')) !== 'true') await page.click(`.cr-mod[data-mod="${m}"]`);
+    if (m === 'pra_viagem') await tap(page, hit('bag'));
+    else if (m === 'pra_comer_aqui') await tap(page, hit('plate'));
+    else if ((await page.getAttribute(`.cr-mod[data-mod="${m}"]`, 'aria-pressed')) !== 'true') await tap(page, `.cr-mod[data-mod="${m}"]`);
   }
 }
 
-/** Take everything on the grill once it is ready (the green spot), before it burns. */
+/**
+ * Take everything on the grill once it is ready (the green spot), before it burns.
+ * A painted state that never leaves `raw` still gets a tap once the cook time has passed on the wall clock:
+ * the server accepts the take when its own clock is in the window, and a burnt spot is cleared so the next put can start.
+ */
 export async function takeGrilled(page) {
-  await sleep(160); // the taps catch up with the server's state a frame later
-  for (let guard = 0; guard < 60; guard++) {
-    const states = await page.evaluate(() => [...document.querySelectorAll('.cr-grill')].map((b) => b.dataset.state));
-    const busy = states.some((s) => s && s !== 'empty');
-    if (!busy) return;
-    for (let i = 0; i < states.length; i++) if (states[i] === 'ready') await page.click(`#cr-grill-${i}`);
-    await sleep(100);
+  const started = Date.now();
+  while (Date.now() - started < BURN_MS + 2200) {
+    const view = await grillView(page);
+    const live = view.slots.filter((s) => !s.hidden && s.phase !== 'empty');
+    if (!live.length) return;
+    const elapsed = Date.now() - started;
+    let tapped = false;
+    for (const s of live) {
+      const due = s.phase === 'ready' || s.phase === 'burnt' || (s.phase === 'raw' && elapsed >= GRILL_FORCE_MS);
+      if (!due) continue;
+      await clickGrill(page, s.i);
+      tapped = true;
+    }
+    await sleep(tapped ? 180 : 90);
   }
 }
 
@@ -143,8 +249,33 @@ export async function startShiftFromPedido(page) {
 }
 
 export async function serve(page) {
-  trace("serve");
+  trace('serve');
+  // Entregar stays disabled while the tray is empty or the customer in front is not waiting. Don't sit on that for the default click timeout.
+  const enabled = await page
+    .waitForFunction(() => {
+      const b = document.querySelector('#cr-serve');
+      return !!b && !b.disabled;
+    }, null, { timeout: 8000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!enabled) {
+    const diag = await page.evaluate(() => {
+      const s = window.__tb?.correria?.feed?.snap;
+      const b = document.querySelector('#cr-serve');
+      const front = s?.customers?.find((c) => c.state === 'front' || c.state === 'asking');
+      return { disabled: !!b?.disabled, tray: s?.tray ?? null, chapa: s?.chapa ?? null, pack: s?.pack ?? null, front: front ? { state: front.state, pt: front.pt } : null };
+    }).catch(() => null);
+    throw new Error(`#cr-serve stayed disabled (${JSON.stringify(diag)})`);
+  }
   await page.click('#cr-serve');
+}
+
+/** Build the order, and once more if the tray (or the bag / mods) does not match yet. */
+async function deliver(page, want, log) {
+  await buildOrder(page, want);
+  if (await orderReady(page, want)) return;
+  log('  tray incomplete → rebuild');
+  await buildOrder(page, want);
 }
 
 /** If the front customer asks "Quanto é?", answer right (choose the chip, or type the digits). */
@@ -182,14 +313,14 @@ export async function playShift(page, { log = () => {}, dwell = () => Promise.re
     }
     log(`customer ${n + 1}: “${c.pt}” →`, JSON.stringify(want.lines), want.mods.join(','));
     await dwell(n < 2 ? 1200 : 500);
-    await buildOrder(page, want);
+    await deliver(page, want, log);
     let now = await snap(page);
     let cur = now.customers.find((x) => x.id === c.id);
     // a follow-up changed the order while we built it
     if (cur && cur.follow && !c.follow) {
       const w2 = await wantOf(page, cur);
       log('  follow-up:', cur.follow.pt);
-      await buildOrder(page, w2);
+      await deliver(page, w2, log);
       cur = (await snap(page)).customers.find((x) => x.id === c.id);
     }
     if (onCustomer) await onCustomer(c, n);
@@ -201,7 +332,7 @@ export async function playShift(page, { log = () => {}, dwell = () => Promise.re
     if (still && still.mistakes > 0) {
       const w2 = await wantOf(page, still);
       log('  correction → rebuild');
-      await buildOrder(page, w2);
+      await deliver(page, w2, log);
       await serve(page);
       await sleep(150);
     }
