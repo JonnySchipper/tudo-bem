@@ -6,6 +6,7 @@ import {
   bakerOnDuty,
   CHAT_RATE,
   CLOTH_COLORS,
+  checkBuild,
   DEFAULT_ROOM_CAP,
   ECONOMY,
   EXTRA_STYLES,
@@ -23,14 +24,17 @@ import {
   idleWarningCopy,
   isRoomId,
   key,
+  makeOrder,
   MAX_CHAT_LEN,
-  frontOf,
-  weekday,
-  gameDay,
+  MG_ROUNDS,
+  mgPayout,
+  mulberry32,
   pathDuration,
+  pointsFor,
   positionAlong,
   ROOM_AMBIANCE,
   ROOMS,
+  sanitizeTray,
   SCORE_FEEDBACK,
   TYPED_MISS_HINT,
   scenePayout,
@@ -41,7 +45,9 @@ import {
   TOP_STYLES,
   TUTORIAL_STEPS,
   validateName,
+  mgItemById,
   cardById,
+  sanitizeMods,
   viewNode,
   jevNpcReply,
   freshMission,
@@ -65,16 +71,22 @@ import {
   type Dir,
   type EmoteKind,
   type FriendInfo,
+  type MgOrder,
+  type MgOutcome,
   type PlacedFurniture,
   type PublicAvatar,
   type RoomDef,
   type RoomId,
+  type Rng,
   type SceneCtx,
   type ServerMsg,
   type Tile,
+  type Tray,
   talkOpener,
   type TutorialStep,
   normalizeBjj,
+  GI_ITEM_ID,
+  GI_PRICE,
   PARROT_COLORS,
   parrotColorById,
   snackById,
@@ -89,7 +101,6 @@ import { NPC_TICK_MS, NpcDirector } from './npcs.js';
 import { RecadoTracker, sceneItems } from './recados.js';
 import { CadernoTracker } from './caderno.js';
 import { FeiraCounter } from './feira.js';
-import { CorreriaEngine, type CorreriaRun } from './correria.js';
 import { BoutEngine, type BoutSession } from './bout.js';
 
 export interface Services {
@@ -102,10 +113,8 @@ export interface Services {
 
 export interface WorldOptions {
   roomCap?: number;
-  /** Kept so older callers compile; the counter game has no gap between orders. */
+  /** Delay between minigame orders (ms). Tests set 0. */
   mgGapMs?: number;
-  /** TB_TEST_MG: counter-game snapshots carry each customer's order lines (e2e bots read them instead of parsing the text). */
-  testMg?: boolean;
   now?: () => number;
   schedule?: (fn: () => void, ms: number) => void;
   /** Praça / Academia ambiance CPUs (LIVEOPS_CPU_AMBIANCE). Off unless the host turns it on. */
@@ -154,6 +163,27 @@ interface SceneState {
   shownAt: number;
 }
 
+interface MgState {
+  rng: Rng;
+  round: number;
+  order: MgOrder;
+  orderAt: number;
+  /** When this round's first attempt started. A retry resets `orderAt` but not this. */
+  roundStartedAt?: number;
+  /** Bumped each time the attempt clock starts, so a stale deadline cannot close the next ticket. */
+  attempt?: number;
+  repeated: boolean;
+  points: number;
+  streak: number;
+  perfect: number;
+  waiting: boolean;
+  token: number;
+  /** Authored tickets already served this shift (no repeats). Missing history must not throw. */
+  served?: string[];
+  /** Tray signature last judged, so an accidental echo of that tray can be ignored. */
+  lastSig?: string;
+}
+
 export interface Session {
   id: string;
   send: (m: ServerMsg) => void;
@@ -166,7 +196,7 @@ export interface Session {
   instance?: Instance;
   avatar?: AvatarState;
   scene?: SceneState;
-  mg?: CorreriaRun;
+  mg?: MgState;
   /** Treino no tatame: the bout in progress (apps/server/src/bout.ts). */
   bout?: BoutSession;
   chatTimes: number[];
@@ -195,11 +225,41 @@ const EMOTES: EmoteKind[] = ['oi', 'dancar', 'rir', 'valeu', 'desculpa'];
 /** “oi” / “olá” in chat counts as greeting someone for the kiosk mission. */
 const GREETING = /(^|[^\p{L}])(oi|ol[aá])($|[^\p{L}])/iu;
 
+/** After Carlos repeats, an identical or empty tray in this window is an echo (double-click / Enter repeat), not the retry. */
+const MG_REPEAT_GRACE_MS = 700;
+/** If the client never reports the empty bar, close the attempt this long after `timeMs`. */
+const MG_DEADLINE_SLACK_MS = 2_000;
+/** First attempt plus one full retry. After this, another miss cannot restart the clock. */
+const MG_ROUND_BUDGET_SLACK_MS = 3_000;
+/** How long a dropped connection can reclaim the open Me vê um ticket. */
+export const MG_RESUME_MS = 20_000;
+
+function traySig(tray: Tray, mods: string[]): string {
+  const items = Object.entries(tray)
+    .filter(([, n]) => n > 0)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([id, n]) => `${id}:${n}`)
+    .join(',');
+  return `${items}|${[...mods].sort().join(',')}`;
+}
+
+const MG_LINES: Record<MgOutcome | 'repita' | 'combo', Bilingual> = {
+  perfeito: { pt: 'Isso mesmo! Cliente feliz!', en: 'That’s it! Happy customer!' },
+  combo: { pt: 'Que rapidez! Tá pegando o jeito!', en: 'So fast! You’re getting the hang of it!' },
+  segunda: { pt: 'Agora sim! Muito bem.', en: 'Now you got it! Well done.' },
+  repita: { pt: 'Opa, não é bem isso. Vou repetir devagar…', en: 'Oops, not quite. I’ll repeat it slowly…' },
+  errou: { pt: 'Tudo bem, acontece! Próximo cliente.', en: 'It’s fine, it happens! Next customer.' },
+  tempo: { pt: 'Ih, o cliente cansou de esperar! Próximo.', en: 'Oh no, the customer got tired of waiting! Next.' },
+};
+const MG_LOST: Bilingual = { pt: 'Ih, perdi a comanda! Bora começar um turno novo?', en: 'Oops, I lost the order slip! Shall we start a fresh shift?' };
+const MG_BYE: Bilingual = { pt: 'Até a próxima, ajudante!', en: 'See you next time, helper!' };
+
 export class World {
   readonly sessions = new Map<string, Session>();
   private instances = new Map<string, Instance>();
   private incomingFriendReqs = new Map<string, Set<string>>();
   private readonly cap: number;
+  private readonly mgGapMs: number;
   private readonly now: () => number;
   private readonly schedule: (fn: () => void, ms: number) => void;
   private readonly ambiance: boolean;
@@ -219,8 +279,8 @@ export class World {
   private readonly caderno: CadernoTracker;
   /** The feira's prices and payments (Phase 9). */
   private readonly feira: FeiraCounter;
-  /** Correria no Balcão: the shifts, their clocks and the parked ones (apps/server/src/correria.ts). */
-  private readonly correria: CorreriaEngine;
+  /** Mid-order Me vê um state kept across a socket drop so reconnect can resync the same ticket. */
+  private parkedMg = new Map<string, { mg: MgState; room: RoomId; at: number }>();
 
   constructor(
     readonly store: ProfileStore,
@@ -228,6 +288,7 @@ export class World {
     opts: WorldOptions = {},
   ) {
     this.cap = Math.max(1, Math.min(DEFAULT_ROOM_CAP, opts.roomCap ?? DEFAULT_ROOM_CAP));
+    this.mgGapMs = opts.mgGapMs ?? 1600;
     this.now = opts.now ?? Date.now;
     this.schedule = opts.schedule ?? ((fn, ms) => void (setTimeout(fn, ms) as unknown as { unref?: () => void }).unref?.());
     this.ambiance = !!opts.ambiance;
@@ -276,26 +337,6 @@ export class World {
       err: (s, code, pt, en) => this.err(s, code, pt, en),
       avatarChanged: (s) => this.broadcastAvatar(s),
     });
-    this.correria = new CorreriaEngine({
-      now: () => this.now(),
-      schedule: (fn, ms) => this.schedule(fn, ms),
-      store,
-      clock: () => {
-        const minute = gameMinutes(this.clockNow());
-        return { minute, saturday: weekday(gameDay(this.clockNow())).short === 'Sáb', baker: bakerOnDuty(minute) === 'graca' ? 'graca' : 'carlos' };
-      },
-      reward: (s, a, r) => this.reward(s, a, r),
-      pushProfile: (s) => this.pushProfile(s),
-      completeStep: (s) => this.completeStep(s, 'meveum'),
-      missionStep: (s) => this.missionStep(s, 'monta'),
-      ordered: (s, items) => this.recados.onEvent(s, { kind: 'ordered', npc: 'carlos', items }),
-      bond: (s, npc, n) => this.recados.grantBond(s, npc, n),
-      caderno: { seen: (s, text, ids) => this.caderno.seen(s, text, ids), heard: (s, ids) => this.caderno.heard(s, ids) },
-      record: (s, itemIds, listening, score, latencyMs) =>
-        this.services.student.record({ playerId: s.profile!.id, itemIds, channel: listening ? 'listen' : 'read', score, latencyMs, place: 'padaria', nameplate: s.profile!.nameplate, at: this.now() }),
-      err: (s, code, pt, en) => this.err(s, code, pt, en),
-      testHints: opts.testMg ?? readEnv('TB_TEST_MG') === '1',
-    });
   }
 
   // ---------- connection lifecycle ----------
@@ -308,7 +349,7 @@ export class World {
 
   disconnect(s: Session) {
     if (this.sessions.get(s.id) !== s) return;
-    this.correria.park(s);
+    this.rememberMg(s);
     this.leaveInstance(s);
     this.sessions.delete(s.id);
     if (s.profile) {
@@ -464,7 +505,7 @@ export class World {
     for (const other of this.sessions.values()) {
       if (other !== s && other.profile?.id === p.id) {
         other.send({ t: 'notice', level: 'warn', pt: 'Você entrou em outra aba.', en: 'You signed in from another tab.' });
-        this.correria.park(other);
+        this.rememberMg(other);
         this.leaveInstance(other);
         other.profile = undefined;
         other.close('replaced');
@@ -508,11 +549,11 @@ export class World {
       parrotEquipped: false,
       parrotColors: [],
       parrotColor: null,
+      giOwned: false,
       friends: [],
       tutorial,
       tutorialRewarded: false,
       createdAt: this.now(),
-      bjj: { belt: 'branca', stripes: 0, wins: 0 },
       daily: { date: today(), sceneClears: {} },
       lastSeen: this.now(),
     };
@@ -620,7 +661,7 @@ export class World {
       const moved = this.npcs.moved(p);
       if (moved) s.send(moved);
     }
-    this.correria.resume(s);
+    this.maybeResumeMg(s);
     this.recados.onEvent(s, { kind: 'entered', room: def.id, tile });
     this.broadcast(target, { t: 'avatarJoined', avatar: this.publicAvatar(s) }, s);
     target.crowd?.sync();
@@ -689,7 +730,7 @@ export class World {
 
   private leaveInstance(s: Session) {
     const inst = s.instance;
-    this.correria.clear(s);
+    if (s.mg) s.mg = undefined;
     if (s.bout) this.bouts.clear(s);
     s.scene = undefined;
     if (!inst) return;
@@ -757,7 +798,8 @@ export class World {
       parrot: p.parrotOwned && p.parrotEquipped,
       parrotColor: p.parrotOwned && p.parrotEquipped ? p.parrotColor ?? 'verde' : null,
       carry: s.carry,
-      belt: normalizeBjj(p.bjj).belt,
+      gi: !!p.giOwned,
+      belt: p.giOwned ? normalizeBjj(p.bjj).belt : undefined,
       nameplate: p.nameplate,
       x: cur.tile.x,
       y: cur.tile.y,
@@ -1044,22 +1086,248 @@ export class World {
     if (s) this.pushProfile(s);
   }
 
-  // ---------- Correria no Balcão (the padaria counter game; apps/server/src/correria.ts) ----------
+  // ---------- Me vê um… ----------
 
   private minigame(s: Session, m: Extract<ClientMsg, { t: 'mg' }>) {
-    this.correria.handle(s, m);
+    const p = s.profile!;
+    if (m.action === 'start') {
+      if (s.instance?.def.id !== 'padaria') return this.err(s, 'mg', 'O jogo fica no balcão da padaria.', 'The game is at the bakery counter.');
+      s.scene = undefined;
+      const rng = mulberry32((this.now() ^ (Math.random() * 1e9)) >>> 0);
+      const order = makeOrder(rng, 0, undefined, gameMinutes(this.clockNow()));
+      const t0 = this.now();
+      s.mg = { rng, round: 0, order, orderAt: t0, roundStartedAt: t0, repeated: false, points: 0, streak: 0, perfect: 0, waiting: false, token: ++this.seq, served: [order.pt] };
+      return this.sendOrder(s);
+    }
+    const mg = s.mg;
+    if (!mg) return this.noOpenShift(s, m.action);
+    if (m.action === 'quit') return this.abandonMinigame(s);
+    if (m.action === 'sync') {
+      if (mg.waiting) return this.releaseMgGap(s);
+      return this.sendOrder(s, true);
+    }
+    if (mg.waiting) return;
+    const elapsed = this.now() - mg.orderAt;
+    const overBudget = this.now() - (mg.roundStartedAt ?? mg.orderAt) > mg.order.timeMs * 2 + MG_ROUND_BUDGET_SLACK_MS;
+    let ok = false;
+    let timedOut = false;
+    if (m.action === 'timeout') {
+      // Client clock ahead of the server: don't drop the message (the UI locks until we answer).
+      // Once the round has already had a full attempt and a full retry, stop resyncing a dead bar.
+      if (!overBudget && elapsed < mg.order.timeMs - 750) return this.sendOrder(s, true);
+      timedOut = true;
+    } else if (m.action === 'submit') {
+      const tray = sanitizeTray(m.tray);
+      const mods = sanitizeMods(m.mods);
+      const signature = traySig(tray, mods);
+      if (mg.repeated && elapsed < MG_REPEAT_GRACE_MS && (signature === mg.lastSig || signature === '|')) {
+        return this.sendOrder(s, true);
+      }
+      mg.lastSig = signature;
+      timedOut = elapsed > mg.order.timeMs + 1500;
+      const build = checkBuild(mg.order, tray, mods, m.built, { requireBuilt: true });
+      ok = !timedOut && build.ok;
+    } else return;
+    const cards = mg.order.lines.map((l) => mgItemById(l.itemId)!.card.id);
+    this.services.student.record({
+      playerId: p.id,
+      itemIds: [...cards, 'lex.padaria.me_ve'],
+      channel: 'read',
+      score: ok ? (mg.repeated ? 2 : 3) : 0,
+      latencyMs: elapsed,
+      place: 'padaria',
+      nameplate: p.nameplate,
+      at: this.now(),
+    });
+    if (!ok && !mg.repeated && !overBudget) {
+      mg.repeated = true;
+      mg.streak = 0;
+      s.send({ t: 'mg', phase: 'result', round: mg.round, outcome: 'repita', carlos: MG_LINES.repita, points: mg.points, streak: 0 });
+      mg.orderAt = this.now();
+      return this.sendOrder(s);
+    }
+    if (ok) this.missionStep(s, 'monta');
+    if (ok) this.recados.onEvent(s, { kind: 'ordered', npc: 'carlos', items: mg.order.lines });
+    let outcome: MgOutcome;
+    if (ok) {
+      outcome = mg.repeated ? 'segunda' : 'perfeito';
+      mg.streak = outcome === 'perfeito' ? mg.streak + 1 : 0;
+      if (outcome === 'perfeito') mg.perfect++;
+    } else {
+      outcome = timedOut ? 'tempo' : 'errou';
+      mg.streak = 0;
+    }
+    mg.points += pointsFor(outcome, mg.streak);
+    const line = outcome === 'perfeito' && mg.streak >= 2 ? MG_LINES.combo : MG_LINES[outcome];
+    s.send({ t: 'mg', phase: 'result', round: mg.round, outcome, carlos: line, expected: ok ? undefined : mg.order.lines, expectedMods: ok ? undefined : mg.order.mods, points: mg.points, streak: mg.streak });
+    mg.round++;
+    if (mg.round >= MG_ROUNDS) {
+      const coins = mgPayout(mg.points);
+      s.mg = undefined;
+      s.send({
+        t: 'mg',
+        phase: 'end',
+        points: mg.points,
+        coins,
+        perfect: mg.perfect,
+        rounds: MG_ROUNDS,
+        carlos: { pt: `Valeu pela ajuda! Aqui estão ${coins} reais virtuais.`, en: `Thanks for the help! Here are ${coins} RV coins.` },
+      });
+      this.reward(s, coins, { pt: '“Me vê um…” no balcão', en: '“Me vê um…” at the counter' });
+      this.completeStep(s, 'meveum');
+      return;
+    }
+    mg.waiting = true;
+    const token = mg.token;
+    const next = () => {
+      // Same session only. A reconnect parks this object on a new session; this timer must not also advance it.
+      if (s.mg?.token !== token) return;
+      this.releaseMgGap(s);
+    };
+    if (this.mgGapMs <= 0) next();
+    else this.schedule(next, this.mgGapMs);
   }
 
-  /** Test hook: the order the customer at the counter wants now (lines and mods; the client never gets them outside TB_TEST_MG). */
+  /** Closing the panel mid-shift settles what was already served. A fresh Pedido 1/6 with 0 RV is only for a shift that never scored. */
+  private abandonMinigame(s: Session) {
+    const mg = s.mg;
+    if (!mg) return;
+    const progressed = mg.points > 0 || mg.round > 0;
+    s.mg = undefined;
+    if (!progressed) return s.send({ t: 'notice', level: 'info', ...MG_BYE });
+    const coins = mg.points > 0 ? mgPayout(mg.points) : 0;
+    s.send({
+      t: 'mg',
+      phase: 'end',
+      points: mg.points,
+      coins,
+      perfect: mg.perfect,
+      rounds: MG_ROUNDS,
+      carlos:
+        coins > 0
+          ? {
+              pt: `Turno encerrado. Aqui estão ${coins} reais virtuais pelo que você já serviu.`,
+              en: `Shift closed. Here are ${coins} RV for what you already served.`,
+            }
+          : {
+              pt: 'Turno encerrado. Dessa vez não deu RV — pode começar de novo quando quiser.',
+              en: 'Shift closed. No RV this time — you can start again whenever you want.',
+            },
+    });
+    if (coins > 0) this.reward(s, coins, { pt: 'Turno encerrado no balcão', en: 'Shift closed at the counter' });
+  }
+
+  /** The between-orders gap ended (timer, or a reconnect that orphaned the timer). */
+  private releaseMgGap(s: Session) {
+    const mg = s.mg;
+    if (!mg?.waiting) return;
+    mg.waiting = false;
+    if (!Array.isArray(mg.served)) mg.served = mg.order.pt ? [mg.order.pt] : [];
+    mg.lastSig = undefined;
+    mg.order = makeOrder(mg.rng, mg.round, mg.served, gameMinutes(this.clockNow()));
+    mg.served.push(mg.order.pt);
+    mg.repeated = false;
+    mg.orderAt = this.now();
+    mg.roundStartedAt = mg.orderAt;
+    this.sendOrder(s);
+  }
+
+  /** Park before leaveInstance clears s.mg. A later disconnect of the old socket must not drop this. */
+  private rememberMg(s: Session) {
+    if (!s.profile || !s.mg || !s.instance) return;
+    this.parkedMg.set(s.profile.id, { mg: s.mg, room: s.instance.def.id, at: this.now() });
+  }
+
+  /** The parked shift this player can still reclaim. An expired one is dropped. */
+  private freshParkedMg(s: Session) {
+    const id = s.profile?.id;
+    if (!id) return undefined;
+    const park = this.parkedMg.get(id);
+    if (!park) return undefined;
+    if (this.now() - park.at > MG_RESUME_MS) {
+      this.parkedMg.delete(id);
+      return undefined;
+    }
+    return park;
+  }
+
+  /**
+   * The client still holds a ticket this session has no shift for. Its tray is locked waiting on
+   * this reply, so never drop it: resume a parked shift, or end in the open with nothing paid.
+   * State is memory-only, so a restart lands here with no park.
+   */
+  private noOpenShift(s: Session, action: Extract<ClientMsg, { t: 'mg' }>['action']) {
+    const park = this.freshParkedMg(s);
+    if (park) {
+      if (action === 'quit') {
+        this.parkedMg.delete(s.profile!.id);
+        s.mg = park.mg;
+        return this.abandonMinigame(s);
+      }
+      // Before the rejoin lands (e.g. the 2 s resync right after hello), the join itself resumes it.
+      if (s.instance?.def.id === park.room) this.maybeResumeMg(s);
+      return;
+    }
+    if (action === 'quit') return s.send({ t: 'notice', level: 'info', ...MG_BYE });
+    s.send({ t: 'mg', phase: 'end', points: 0, coins: 0, perfect: 0, rounds: MG_ROUNDS, carlos: MG_LOST, lost: true });
+  }
+
+  private maybeResumeMg(s: Session) {
+    if (!s.instance) return;
+    const park = this.freshParkedMg(s);
+    if (!park || park.room !== s.instance.def.id) return;
+    this.parkedMg.delete(s.profile!.id);
+    s.mg = park.mg;
+    if (s.mg.waiting) this.releaseMgGap(s);
+    else {
+      this.sendOrder(s, true);
+      const left = s.mg.order.timeMs - (this.now() - s.mg.orderAt);
+      this.armMgDeadline(s, Math.max(0, left) + MG_DEADLINE_SLACK_MS);
+    }
+  }
+
+  /** Close this attempt if the client never reports the empty bar. A new attempt id cancels the previous timer. */
+  private armMgDeadline(s: Session, waitMs?: number) {
+    const mg = s.mg;
+    if (!mg) return;
+    const token = mg.token;
+    const attempt = mg.attempt ?? 0;
+    const wait = waitMs ?? mg.order.timeMs + MG_DEADLINE_SLACK_MS;
+    this.schedule(() => {
+      const cur = s.mg;
+      if (!cur || cur.token !== token || (cur.attempt ?? 0) !== attempt || cur.waiting) return;
+      this.minigame(s, { t: 'mg', action: 'timeout' });
+    }, wait);
+  }
+
+  private sendOrder(s: Session, resync = false) {
+    const mg = s.mg;
+    if (!mg) return;
+    if (!resync) {
+      mg.attempt = (mg.attempt ?? 0) + 1;
+      this.armMgDeadline(s);
+    }
+    s.send({
+      t: 'mg',
+      phase: 'order',
+      round: mg.round,
+      rounds: MG_ROUNDS,
+      customer: mg.order.customer,
+      pt: mg.order.pt,
+      en: mg.order.en,
+      timeMs: mg.order.timeMs,
+      repeat: mg.repeated,
+      points: mg.points,
+      streak: mg.streak,
+      mods: mg.order.mods,
+      lines: mg.order.lines,
+      ...(resync ? { resync: true } : {}),
+    });
+  }
+
+  /** Test hook: peek the current order (the client never receives item ids). */
   debugOrder(s: Session) {
-    const sh = this.correria.shiftOf(s);
-    const f = sh && frontOf(sh);
-    return f ? f.order : undefined;
-  }
-
-  /** Test hook: the shift in progress. */
-  debugShift(s: Session) {
-    return this.correria.shiftOf(s);
+    return s.mg?.order;
   }
 
   // ---------- daily kiosk (Missão do dia) ----------
@@ -1098,8 +1366,33 @@ export class World {
 
   // ---------- shop ----------
 
-  private buy(s: Session, kind: 'hat' | 'furniture' | 'parrot', itemId: string) {
+  private buy(s: Session, kind: 'hat' | 'furniture' | 'parrot' | 'gi', itemId: string) {
     const p = s.profile!;
+    if (kind === 'gi') {
+      if (itemId !== GI_ITEM_ID) return;
+      if (s.instance?.def.id !== 'academia') return this.err(s, 'shop', 'O kimono se compra no vestiário da academia.', 'Buy the gi at the academy changing area.');
+      const prop = s.instance.def.props.find((q) => q.id === 'vestiario');
+      if (!prop?.interact) return;
+      const cur = this.currentTile(s);
+      const spot = prop.interact;
+      const d = Math.max(Math.abs(cur.tile.x - spot.x), Math.abs(cur.tile.y - spot.y));
+      if (d > 2) return this.err(s, 'shop', 'Chega mais perto do vestiário.', 'Get closer to the changing area.');
+      if (p.giOwned) return this.err(s, 'owned', 'Você já tem kimono.', 'You already own a gi.');
+      if (p.coins < GI_PRICE) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
+      p.coins -= GI_PRICE;
+      p.giOwned = true;
+      p.bjj = normalizeBjj({ ...(p.bjj ?? {}), belt: 'branca', stripes: 0, wins: p.bjj?.wins ?? 0 });
+      this.store.save();
+      s.send({
+        t: 'notice',
+        level: 'reward',
+        pt: 'Kimono comprado! Professora Bia te deu a faixa branca.',
+        en: 'Gi purchased! Professora Bia gave you the white belt.',
+      });
+      this.pushProfile(s);
+      this.broadcastAvatar(s);
+      return;
+    }
     if (kind === 'parrot') {
       const color = parrotColorById(itemId);
       if (!color || color.id !== itemId) return;
@@ -1123,7 +1416,7 @@ export class World {
       if (!hat) return;
       if (s.instance?.def.id !== 'praca') return this.err(s, 'shop', 'A barraca da Nanda fica na praça.', 'Nanda’s stall is in the square.');
       if (p.hats.includes(hat.id)) return this.err(s, 'owned', 'Você já tem esse chapéu.', 'You already own this hat.');
-      if (p.coins < hat.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet — play “Correria no Balcão” or talk to Seu Carlos.');
+      if (p.coins < hat.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet — play “Me vê um…” or talk to Seu Carlos.');
       p.coins -= hat.price;
       p.hats.push(hat.id);
       this.store.save();
@@ -1355,7 +1648,7 @@ export class World {
 /** Client timers fire these on their own (reconnect hello, order/duel timeouts), so they don't prove anyone is there. */
 function isRealInput(msg: ClientMsg): boolean {
   if (msg.t === 'hello') return false;
-  if (msg.t === 'mg' && msg.action === 'sync') return false;
+  if (msg.t === 'mg' && msg.action === 'timeout') return false;
   return true;
 }
 

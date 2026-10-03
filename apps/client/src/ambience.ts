@@ -6,8 +6,6 @@ import { createRig, vca, type Rig } from './audio/synth';
 import { ARRANGEMENTS, padariaIsNight, type ArrangementKind, type StingKind } from './audio/theme';
 import { FOOTSTEPS, SILENT_MIX, stepPitch, type ZoneMix } from './audio/zones';
 import { playBoutSfx, type BoutSfx } from './audio/boutSfx';
-import { playCorreriaSfx, type CorreriaSfx } from './audio/correriaSfx';
-const CORRERIA_SFX = ['grab', 'sizzle', 'ready', 'burnt', 'pour', 'ding', 'clink', 'cash', 'paper', 'chime', 'nope', 'combo'] as const;
 
 /**
  * Room beds made in Web Audio — no samples, no paid service.
@@ -60,7 +58,7 @@ interface ZoneLayers {
 }
 
 /** How loud each layer is at full presence (the bed's own wind sits at 0.05). */
-const ZONE_LEVEL: Record<keyof ZoneMix, number> = { traffic: 0.16, fountain: 0.11, birds: 1, crickets: 1, rain: 0.15, radio: 1 };
+const ZONE_LEVEL: Record<keyof ZoneMix, number> = { traffic: 0.16, fountain: 0.035, birds: 1, crickets: 1, rain: 0.15, radio: 1 };
 const ZONE_TAU = 0.35;
 
 /** Seconds a bed takes to fade out (about four crossfade time constants). */
@@ -184,10 +182,10 @@ function buildZones(ctx: AudioContext, dest: GainNode, bed: Bed, brown: AudioBuf
   }, 3600);
 
   // fountain: a hiss of falling water with a burble
-  const water = loopNoise(ctx, gains.fountain, white, 2600, 'bandpass', 0.55, 0.5);
+  const water = loopNoise(ctx, gains.fountain, white, 2600, 'bandpass', 0.32, 0.5);
   keep(...water);
   const fountainGain = water[2];
-  keep(...loopNoise(ctx, gains.fountain, white, 900, 'highpass', 0.18, 0.4));
+  keep(...loopNoise(ctx, gains.fountain, white, 900, 'highpass', 0.1, 0.4));
   const burble = ctx.createOscillator();
   const burbleDepth = ctx.createGain();
   burble.frequency.value = 0.9;
@@ -591,14 +589,12 @@ class Ambience {
   }
 
   /** One bout sound effect (mat slap, crowd, whistle...). Silent until the browser lets the context run; goes through the same duck gain as the beds. */
-  sfx(kind: BoutSfx | CorreriaSfx) {
+  sfx(kind: BoutSfx) {
     const ctx = this.ctx;
     if (!ctx || !this.bedIn || !this.unlocked || ctx.state !== 'running') return;
     this.whiteBuf ??= whiteBuffer(ctx, 1);
     try {
-      const out = this.duckGain ?? this.bedIn;
-      if ((CORRERIA_SFX as readonly string[]).includes(kind)) playCorreriaSfx(ctx, out, this.whiteBuf, kind as CorreriaSfx);
-      else playBoutSfx(ctx, out, this.whiteBuf, kind as BoutSfx);
+      playBoutSfx(ctx, this.duckGain ?? this.bedIn, this.whiteBuf, kind);
     } catch {
       /* an effect must never break the game */
     }

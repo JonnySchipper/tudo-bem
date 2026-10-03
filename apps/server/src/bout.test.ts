@@ -61,6 +61,8 @@ async function setup(extra: Partial<WorldOptions> = {}): Promise<{ world: World;
   };
   await a.send({ t: 'hello' });
   await a.send({ t: 'createProfile', name: `Ana${n}`, pronoun: 'ela', appearance: DEFAULT_APPEARANCE });
+  a.s.profile!.giOwned = true;
+  a.s.profile!.bjj = { belt: 'branca', stripes: 0, wins: 0 };
   await a.send({ t: 'join', room: 'academia' });
   return { world, a };
 }
@@ -460,6 +462,7 @@ describe('Treino no tatame (server)', () => {
   it('a profile saved with only the old fields still loads as a white belt', async () => {
     const { world, a } = await setup();
     expect(world.publicAvatar(a.s).belt).toBe('branca');
+    expect(world.publicAvatar(a.s).gi).toBe(true);
     a.s.profile!.bjj = { belt: 'branca', stripes: 2, wins: 6 };
     await a.send({ t: 'bout', v: 1, action: 'open' });
     expect(a.last('lobby')!.level).toBe(2);

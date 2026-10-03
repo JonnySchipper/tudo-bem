@@ -66,7 +66,7 @@ export interface PublicAvatar {
   y: number;
   dir: Dir;
   sitting: boolean;
-  /** The belt earned in the academia (never bought): shown on the profile card and on the gi when worn. */
+  /** The belt earned in the academia (never bought): shown on the profile card and on the gi when worn. Players only. */
   belt?: Belt;
   /** Praça ambiance CPU (scripted scenery, outside the player cap, never chats). */
   cpu?: boolean;

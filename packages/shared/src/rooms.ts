@@ -50,7 +50,7 @@ export type PropKind =
   | 'feira'
   | 'hortifruti';
 
-export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers';
+export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi';
 
 export interface PropDef {
   id: string;
@@ -725,7 +725,7 @@ const padaria: RoomDef = {
       blocks: true,
       action: 'minigame',
       interact: { x: 8, y: 3 },
-      label: { pt: 'Correria no Balcão', en: 'Counter Rush: work the counter' },
+      label: { pt: 'Me vê um…', en: 'Tray game: “I’ll take a…”' },
     },
     { id: 'vaso_canto', kind: 'vaso', x: 9, y: 2, blocks: true },
     { id: 'banqueta_1', kind: 'banqueta', x: 1, y: 3, blocks: false, seat: 'NE' },
@@ -883,13 +883,13 @@ const academia: RoomDef = {
       blocks: true,
       action: 'bjj_roll',
       interact: { x: 9, y: 2 },
-      label: { pt: 'Fila do tatame', en: 'Open-mat queue' },
+      label: { pt: 'Treino no tatame →', en: 'Word game on the mat →' },
     },
     { id: 'faixas', kind: 'parede_faixas', x: 0, y: 1, h: 2, blocks: true, label: { pt: 'Parede de faixas', en: 'Belt wall' } },
     { id: 'quadro', kind: 'quadro_foto', x: 10, y: 4, blocks: true, label: { pt: 'Academia do Bairro', en: 'Academy photo' } },
     // One continuous arquibancada along the back edge of the mat: spectators face the tatame and the camera.
     { id: 'arquibancada', kind: 'banco_espectador', x: 1, y: 0, w: 4, blocks: false, seat: 'SW', label: { pt: 'Arquibancada', en: 'Bleachers' } },
-    { id: 'vestiario', kind: 'vestiario', x: 0, y: 7, blocks: true, label: { pt: 'Vestiário · alongamento', en: 'Changing / stretch corner' } },
+    { id: 'vestiario', kind: 'vestiario', x: 0, y: 7, blocks: true, action: 'buy_gi', interact: { x: 1, y: 7 }, label: { pt: 'Kimono · comece aqui', en: 'Gi · start here' } },
     // V3 dressing (decoration only, nothing blocks or seats): a bench along the south wall and a water cooler in the corner
     { id: 'banco_gym', kind: 'cenario', x: 5, y: 8, w: 2, h: 1, art: 'props/banco_gym', blocks: false },
     { id: 'bebedouro', kind: 'cenario', x: 10, y: 8, art: 'props/bebedouro', blocks: false },

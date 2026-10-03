@@ -157,6 +157,14 @@ export class BoutEngine {
 
   private open(s: Session) {
     if (s.instance?.def.id !== 'academia') return this.d.err(s, 'bout', 'O tatame fica na academia.', 'The mat is in the academy.');
+    if (!s.profile!.giOwned) {
+      return this.d.err(
+        s,
+        'bout',
+        'Compre o kimono no vestiário antes de entrar na fila.',
+        'Buy your gi at the changing area before joining the mat queue.',
+      );
+    }
     if (this.of(s)) return;
     const prog = normalizeBjj(s.profile!.bjj);
     const level = bjjLevel(prog);
