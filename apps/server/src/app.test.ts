@@ -203,6 +203,7 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
   it('hides Ops smoke when the flag is off (403 on endpoint, no public config)', async () => {
     await start({ opsSmoke: smokeOff });
     expect((await post('/api/auth/ops-smoke', {})).status).toBe(403);
+    expect((await post('/api/auth/ops-smoke-new', {})).status).toBe(403);
     expect(await (await fetch(base + '/api/config')).json()).toEqual({ opsSmoke: false, googleClientId: '' });
   });
 
@@ -232,6 +233,27 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     const again = await post('/api/auth/ops-smoke', {});
     expect(again.status).toBe(200);
     expect(app!.accounts.count()).toBe(1);
+
+    const fresh = await post('/api/auth/ops-smoke-new', {});
+    expect(fresh.status).toBe(200);
+    const freshBody = (await fresh.json()) as { ok: boolean; account: { email: string; hasProfile: boolean } };
+    expect(freshBody.ok).toBe(true);
+    expect(freshBody.account.hasProfile).toBe(false);
+    expect(freshBody.account.email).toMatch(/^ops-new-[0-9a-f-]+@tudobem\.dev$/);
+    expect(freshBody.account.email).not.toBe(OPS_SMOKE_EMAIL);
+    const fresh2 = await post('/api/auth/ops-smoke-new', {});
+    const fresh2Body = (await fresh2.json()) as { account: { email: string } };
+    expect(fresh2Body.account.email).not.toBe(freshBody.account.email);
+    expect(app!.accounts.count()).toBe(3);
+
+    const newbie = wsClient(base, { cookie: cookieOf(fresh) });
+    await newbie.open();
+    newbie.send({ t: 'hello' });
+    expect(await newbie.waitFor('needProfile')).toEqual({ t: 'needProfile' });
+    newbie.send({ t: 'createProfile', name: 'Nova', pronoun: 'ela', appearance: DEFAULT_APPEARANCE });
+    const welcome = await newbie.waitFor('welcome');
+    expect(welcome.t === 'welcome' && welcome.profile.arrivalIntroDone).toBe(false);
+    newbie.ws.close();
   });
 
   it('Google sign-in verifies the credential and sets a session cookie', async () => {

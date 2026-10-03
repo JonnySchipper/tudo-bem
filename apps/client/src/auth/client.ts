@@ -141,8 +141,17 @@ export async function signOut(): Promise<void> {
 }
 
 /** One-click Ops smoke sign-in when the server advertises `opsSmoke` on `/api/config`. */
-export async function signInOpsSmoke(): Promise<AuthResponse> {
-  const res = await postJson('/ops-smoke', {});
+export function signInOpsSmoke(): Promise<AuthResponse> {
+  return signInSmokePath('/ops-smoke');
+}
+
+/** A fresh Ops smoke account (no profile), so the arrival intro plays. Same gate as Ops smoke. */
+export function signInOpsSmokeNew(): Promise<AuthResponse> {
+  return signInSmokePath('/ops-smoke-new');
+}
+
+async function signInSmokePath(path: '/ops-smoke' | '/ops-smoke-new'): Promise<AuthResponse> {
+  const res = await postJson(path, {});
   if (!res) return OFFLINE;
   const ct = res.headers.get('content-type') ?? '';
   if (!ct.includes('json')) {

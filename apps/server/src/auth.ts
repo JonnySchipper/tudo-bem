@@ -290,6 +290,15 @@ export class AccountStore implements AccountLink {
 
   private smokeEnsure = new Map<string, Promise<Account>>();
 
+  /**
+   * A brand-new Ops smoke account with no profile, so the plane intro runs.
+   * The stable `ops-smoke@tudobem.dev` account is unchanged.
+   */
+  async createFreshSmokeAccount(password: string): Promise<Account> {
+    const email = `ops-new-${crypto.randomUUID()}@tudobem.dev`;
+    return this.ensureSmokeAccount(email, password);
+  }
+
   /** Idempotent seed for Ops smoke (`ops-smoke@tudobem.dev`). Updates the hash when the env password rotates. */
   async ensureSmokeAccount(emailRaw: string, password: string): Promise<Account> {
     const email = normalizeEmail(emailRaw);
@@ -480,6 +489,20 @@ export async function handleAuthApi(req: IncomingMessage, res: ServerResponse, d
       return send(res, 403, fail('bad_request', AUTH_COPY.badRequest));
     }
     const account = await accounts.ensureSmokeAccount(deps.opsSmoke.email, deps.opsSmoke.password);
+    return send(res, 200, okBody(account), cookie(accounts.createSession(account.id), maxAge, secure));
+  }
+
+  if (action === 'ops-smoke-new' && req.method === 'POST') {
+    if (!deps.opsSmoke?.ready || !deps.opsSmoke.password) {
+      return send(res, 403, fail('bad_request', AUTH_COPY.badRequest));
+    }
+    if (!originAllowed(req, deps.allowedOrigins) || !String(req.headers['content-type'] ?? '').includes('application/json')) {
+      return send(res, 403, fail('bad_request', AUTH_COPY.badRequest));
+    }
+    const ip = clientIp(req);
+    if (limiters.signup.blocked(ip)) return send(res, 429, fail('rate', AUTH_COPY.rate));
+    const account = await accounts.createFreshSmokeAccount(deps.opsSmoke.password);
+    limiters.signup.hit(ip);
     return send(res, 200, okBody(account), cookie(accounts.createSession(account.id), maxAge, secure));
   }
 
