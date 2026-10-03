@@ -61,6 +61,9 @@ import { pickHit, type HitBox } from './hit';
 import { dialogueFraming, easeOut, stepBlend } from './dialogueCam';
 import { BoutStage } from './boutStage';
 import { boutFeed } from './boutFeed';
+import { CounterStage } from './correriaStage';
+import { correriaFeed } from './correriaFeed';
+import { FOCUS, NEED } from './correriaArt';
 import { roomKey, syncViews } from './reconcile';
 import { DEPTH, PROP_LIGHT, fencePieces, footprintRect, inflate, propAnchor, propDepth, furnitureArtKey, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
 import { sceneryFor } from './scenery';
@@ -92,7 +95,6 @@ import {
 } from './roomLayout';
 import { ensureAnim, originOf } from './spriteUtil';
 import { GHOST_ALPHA, ghostFor, type GhostSpec } from './decorate';
-import { modalId } from '../../ui/modal';
 
 export interface SceneHost {
   labels: LabelLayer;
@@ -217,6 +219,10 @@ export class WorldScene extends Phaser.Scene {
   /** the Treino no tatame bout on the academia mat (pair sprite, referee, crowd, fx) */
   private stage!: BoutStage;
   private boutBlend = 0;
+  /** the Correria no Balcão counter (board, queue, shelf taps) behind the padaria counter */
+  private counter!: CounterStage;
+  private counterBlend = 0;
+  private counterWasOn = false;
   private roomId = '';
   private roomDef: RoomDef | null = null;
   private roomObjs: Phaser.GameObjects.GameObject[] = [];
@@ -238,7 +244,7 @@ export class WorldScene extends Phaser.Scene {
   /** decorate-mode ghost of the piece being placed or moved (scene-level: it outlives room rebuilds) */
   private ghost: Phaser.GameObjects.Sprite | null = null;
   private ghostKey = '';
-  /** the padaria order rail: still until Me vê um is open */
+  /** the padaria order rail: still until Correria no Balcão is open */
   private trilho: Phaser.GameObjects.Sprite | null = null;
   private trilhoLive = false;
 
@@ -299,6 +305,18 @@ export class WorldScene extends Phaser.Scene {
       crowd: () => this.crowdSpots(),
       mat: () => this.matCenter(),
       placar: () => this.placarAnchor(),
+      toCanvas: (wx, wy) => worldToCanvas(this.cam, wx, wy),
+      cssScale: () => this.cssScale,
+      reduced: () => this.fxLevel.reduced,
+      instant: () => !!this.host.shot,
+    });
+    this.counter = new CounterStage({
+      scene: this,
+      world: (o) => this.rig.world(o),
+      manifest: this.m,
+      noteMissing: (k) => this.noteMissing(k),
+      acquireSheet: (look) => this.sheets.acquire(look),
+      releaseSheet: (k) => this.sheets.release(k),
       toCanvas: (wx, wy) => worldToCanvas(this.cam, wx, wy),
       cssScale: () => this.cssScale,
       reduced: () => this.fxLevel.reduced,
@@ -618,7 +636,7 @@ export class WorldScene extends Phaser.Scene {
       if (feiraEntry && mainShadow) feiraEntry.open.push(mainShadow as unknown as Phaser.GameObjects.GameObject);
       if (p.kind === 'barraca_chapeus') this.stall = { main, canopy: null, wx: a.wx, wy: a.wy, closed: false };
       if (p.kind === 'trilho_pedidos' && main && d.anim) {
-        // the ticket rail is still until Me vê um opens (updateTrilho)
+        // the ticket rail is still until Correria no Balcão opens (updateTrilho)
         main.anims.stop();
         main.setFrame(d.anim.frames[0]);
         this.trilho = main;
@@ -825,6 +843,7 @@ export class WorldScene extends Phaser.Scene {
     this.syncFurniture(dyn);
     this.syncAvatars(def, now, dyn);
     this.syncBout(dt, now);
+    this.syncCounter(dt, now);
     this.updateCanopies(dt);
     this.updateHover(def);
     this.updateTrilho();
@@ -997,6 +1016,49 @@ export class WorldScene extends Phaser.Scene {
     return { ...f, ...g };
   }
 
+  // ---- Correria no Balcão: the camera eases one zoom step onto the work board, above the overlay (like the dialogue)
+  private withCounter(f: { zoom: number; cx: number; cy: number; fits: boolean }, ins: Insets, k: number, dt: number): typeof f {
+    this.counterBlend = stepBlend(this.counterBlend, correriaFeed.camera ? 1 : 0, dt, 0.4, this.fxLevel.reduced || !!this.host.shot);
+    if (this.counterBlend <= 0 || !this.roomId.startsWith('padaria')) return f;
+    // one step in, but never so far that the board and the queue leave the free band between the HUD and the strip
+    const unit = Math.max(1, Math.round(k));
+    const availH = this.cam.h - (correriaFeed.topPx + 6) * k - (correriaFeed.boxPx + 6) * k;
+    const availW = this.cam.w - (ins.left + ins.right) * k;
+    let zoom = f.zoom + unit;
+    while (zoom > unit && (NEED.h * zoom > availH || NEED.w * zoom > availW)) zoom -= unit;
+    const base = zoom >= f.zoom ? f : { ...f, zoom };
+    const g = dialogueFraming({
+      base,
+      view: { w: this.cam.w, h: this.cam.h },
+      bounds: this.bounds,
+      insets: { top: (correriaFeed.topPx + 6) * k, bottom: 0, left: ins.left * k, right: ins.right * k },
+      boxPx: (correriaFeed.boxPx + 6) * k,
+      self: { x: FOCUS.x, y: FOCUS.y },
+      npc: null,
+      blend: easeOut(this.counterBlend),
+      step: Math.max(0, zoom - base.zoom),
+    });
+    return { ...f, ...g };
+  }
+
+  /** The counter game's own avatar rules: the player is not in the room as a character (the board is them), and the stage updates. */
+  private syncCounter(dt: number, now: number): void {
+    const hide = correriaFeed.active;
+    const me = game.room ? this.avatars.get(game.room.selfId) : undefined;
+    if (me) {
+      if (hide) {
+        me.sprite.setVisible(false);
+        me.shadow.setVisible(false);
+        me.parrot?.setVisible(false);
+      } else if (this.counterWasOn && !boutFeed.active) {
+        me.sprite.setVisible(true);
+        me.shadow.setVisible(true);
+      }
+    }
+    this.counterWasOn = hide;
+    this.counter.update(dt, now);
+  }
+
   /** Extra top inset (CSS px) that nudges the mat down; 0 unless the band between the scoreboard and the panel is over 330 CSS px tall. */
   private boutWallReveal(topPx: number, boxPx: number, k: number): number {
     const free = this.cam.h / k - topPx - boxPx;
@@ -1063,6 +1125,7 @@ export class WorldScene extends Phaser.Scene {
     }
     f = this.withDialogue(f, self ? { x: self.wx, y: self.wy - 10 } : focus, ins, k, dt);
     f = this.withBout(f, ins, k, dt);
+    f = this.withCounter(f, ins, k, dt);
     const target = { cx: f.cx, cy: f.cy };
     this.cam.zoom = f.zoom;
     if (this.cameras.main.zoom !== f.zoom) {
@@ -1083,7 +1146,9 @@ export class WorldScene extends Phaser.Scene {
     this.cam.cx = snapToDevice(this.cam.cx, this.cam.zoom);
     this.cam.cy = snapToDevice(this.cam.cy, this.cam.zoom);
     const nudge = this.stage.cameraNudge();
-    this.cameras.main.centerOn(this.cam.cx + nudge.x, this.cam.cy + nudge.y);
+    const cn = this.counter.cameraNudge();
+    this.cameras.main.centerOn(this.cam.cx + nudge.x + cn.x, this.cam.cy + nudge.y + cn.y);
+    if (this.counterBlend > 0) this.counter.invalidate();
   }
 
   // ---- avatars
@@ -1423,11 +1488,11 @@ export class WorldScene extends Phaser.Scene {
     spr.setPosition(Math.round(g.x * T + T / 2), (g.y + 1) * T).setDepth(49500).setTint(g.tint).setAlpha(GHOST_ALPHA + 0.08 * Math.sin(performance.now() / 220)).setVisible(true);
   }
 
-  /** The order rail on the padaria counter is still until Me vê um is open, then its tickets flutter. */
+  /** The order rail on the padaria counter is still until Correria no Balcão is open, then its tickets flutter. */
   private updateTrilho(): void {
     const t = this.trilho;
     if (!t) return;
-    const open = modalId() === 'minigame';
+    const open = correriaFeed.active;
     if (open === this.trilhoLive) return;
     this.trilhoLive = open;
     const d = this.m.sprites['props/trilho_pedidos'];
@@ -1484,7 +1549,7 @@ export class WorldScene extends Phaser.Scene {
     for (const [id, v] of this.avatars) {
       const a = game.avatars.get(id);
       if (!a) continue;
-      if (id === selfId && boutFeed.active) continue; // the pair sprite is the player now
+      if (id === selfId && (boutFeed.active || correriaFeed.active)) continue; // the pair sprite / the counter is the player now
       const p = at(v.wx, v.wy - (v.sitting ? HEAD_LIFT_SIT : HEAD_LIFT) - lookHeadLift(v.look));
       if (a.pub.npc) {
         // a neighbour: terracotta plate with the role, and its own bubbles (idle lines are keyed by NPC id)
@@ -1541,7 +1606,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   info() {
-    return { zoom: this.cam.zoom, cssScale: this.cssScale, cx: this.cam.cx, cy: this.cam.cy, room: this.roomId, avatars: this.avatars.size, sheets: this.sheets.size, artMissing: this.artMissing, bout: this.stage.info() };
+    return { zoom: this.cam.zoom, cssScale: this.cssScale, cx: this.cam.cx, cy: this.cam.cy, room: this.roomId, avatars: this.avatars.size, sheets: this.sheets.size, artMissing: this.artMissing, bout: this.stage.info(), counter: this.counter.info() };
   }
 }
 
