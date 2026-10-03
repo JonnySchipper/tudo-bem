@@ -74,7 +74,6 @@ import { openNpcTalk } from './ui/npcTalk';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira';
 import { openCaderno } from './ui/caderno';
 import { openHotspotCard } from './ui/hotspotCard';
-import { HotspotCues } from './ui/hotspotCue';
 import { setHeardSink } from './ui/heard';
 import { closeConversa, isConversaOpen, openConversa } from './ui/conversa';
 import { BoutUI } from './ui/bout';
@@ -1023,9 +1022,6 @@ function keyWalk() {
 
 // ---------------------------------------------------------------- loop
 
-/** The 👁 cues over readable signs within 3 tiles (Phase 7). */
-const cues = new HotspotCues((hs) => clickHotspot(hs));
-
 // the dialogue box tells the world view to ease the camera in on the speakers; the box's height keeps them above it
 setDialogueHost({
   open: (npcId) => {
@@ -1041,16 +1037,6 @@ setHeardSink((cardIds) => net.send({ t: 'heard', cardIds }));
 function frame(ts: number) {
   try {
     renderer.frame(ts);
-    if (started) {
-      cues.update({
-        room: game.room?.room ?? null,
-        tile: selfTile()?.tile ?? null,
-        hidden: game.modalOpen || game.editMode || !!game.placing,
-        toClient: (x, y) => renderer.tileToClient(x, y),
-        scale: renderer.cam.scale,
-        viewport: { w: window.innerWidth, h: window.innerHeight },
-      });
-    }
     if (heldArrows.length) {
       if (keysBlocked(document.activeElement)) heldArrows.length = 0;
       else keyWalk();
