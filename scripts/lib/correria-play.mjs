@@ -43,8 +43,7 @@ export async function waitFront(page, timeout = 30_000) {
   throw new Error('no customer came to the counter');
 }
 
-const hit = (id) => `#cr-${id}`;
-/** Same window as `chapaPhase` in the shared rules: ready just before cookMs, burnt after burnMs. */
+/** Same window as `chapaPhase`: ready just before cookMs, burnt after burnMs. */
 const BURN_MS = 5400;
 const READY_AT = COOK_MS - 150;
 /** Wall-clock wait after a put before we tap the grill even if the painted state is still raw. */
@@ -145,12 +144,24 @@ async function shiftLive(page) {
   });
 }
 
+/** The customer we were serving has walked. Keep building and the late items land on the next person. */
+async function frontGone(page) {
+  if (!(await shiftLive(page))) return true;
+  const s = await snap(page);
+  return !s?.customers?.some((c) => c.state === 'front');
+}
+
 /**
- * A real tap first (short, and it may be covered or still moving after a viewport change). If the snapshot does not
- * change, call the same handler the button uses. Playwright's default click will otherwise wait out a disabled Entregar.
+ * The shelf, grill, and bag buttons sit on a camera that moves every frame, so a Playwright click often never lands
+ * and the wait eats the customer's patience. Call the handler the button uses. One action, then a sync if the
+ * snapshot has not caught up — a second grab on top of a slow ack is an extra the game rejects.
  */
-async function nudge(page, selector) {
-  await page.locator(selector).click({ timeout: 500, force: true }).catch(() => {});
+async function callHandler(page, fn, arg) {
+  await page.evaluate(fn, arg);
+}
+
+async function nudgeSnap(page) {
+  await page.evaluate(() => window.__tb?.net?.send?.({ t: 'mg', action: 'sync' })).catch(() => {});
 }
 
 /**
@@ -186,10 +197,7 @@ async function grillView(page) {
 }
 
 async function clickGrill(page, i) {
-  // The handler has to go out in the same beat as the tap. Waiting for the spot to clear first
-  // spends the green window (the server still calls a too-early take raw, and a late one burnt).
-  await nudge(page, `#cr-grill-${i}`);
-  await page.evaluate((slot) => window.__tb.correria.feed.on.chapaTake(slot), i);
+  await callHandler(page, (slot) => window.__tb.correria.feed.on.chapaTake(slot), i);
 }
 
 async function grillOccupied(page) {
@@ -198,19 +206,18 @@ async function grillOccupied(page) {
 
 /** Put one item on the chapa and wait until the snapshot shows it there. */
 async function putOnChapa(page, itemId) {
+  if (await frontGone(page)) return false;
   const on = () => grillOccupied(page);
-  await nudge(page, hit(`item-${itemId}`));
-  // The shelf tap and the handler both put a bread down. Wait out the tap before the fallback so a slow ack is not a second loaf.
-  if (await waitUntil(on, 1500)) return true;
-  if (await on()) return true;
-  await page.evaluate((id) => window.__tb.correria.feed.on.chapaPut(id), itemId);
-  return waitUntil(on, 2000);
+  await callHandler(page, (id) => window.__tb.correria.feed.on.chapaPut(id), itemId);
+  if (await waitUntil(on, 1200)) return true;
+  await nudgeSnap(page);
+  return waitUntil(on, 1200);
 }
 
 /** One bread on the chapa, then onto the tray. A burnt one is trashed and tried again. */
 async function grillOne(page, itemId) {
   for (let attempt = 0; attempt < 3; attempt++) {
-    if (!(await shiftLive(page))) return;
+    if (!(await shiftLive(page)) || (await frontGone(page))) return;
     const before = await itemCount(page, itemId);
     if (await grillOccupied(page)) await takeGrilled(page);
     if (!(await putOnChapa(page, itemId))) {
@@ -230,64 +237,56 @@ async function grillOne(page, itemId) {
  */
 async function grabUntil(page, itemId, qty) {
   let misses = 0;
-  while ((await itemCount(page, itemId)) < qty && misses < 3) {
+  while ((await itemCount(page, itemId)) < qty && misses < 2) {
+    if (await frontGone(page)) return;
     const before = await itemCount(page, itemId);
     if (before >= qty) return;
     const grew = async () => (await itemCount(page, itemId)) > before;
-    await nudge(page, hit(`item-${itemId}`));
-    if (await waitUntil(grew, 2000)) continue;
-    if (await grew()) continue;
-    await page.evaluate((id) => window.__tb.correria.feed.on.grab(id), itemId);
-    if (await waitUntil(grew, 2500)) continue;
+    await callHandler(page, (id) => window.__tb.correria.feed.on.grab(id), itemId);
+    if (await waitUntil(grew, 1200)) continue;
+    await nudgeSnap(page);
+    if (await waitUntil(grew, 1200)) continue;
     misses++;
     console.log(`  · grab ${itemId} missed the tray (${before}→${await itemCount(page, itemId)}, want ${qty})`);
   }
 }
 
 async function pourOne(page, itemId, pourMs) {
+  if (await frontGone(page)) return;
   const before = (await snap(page))?.tray.length ?? 0;
   const grew = async () => ((await snap(page))?.tray.length ?? 0) > before;
-  const box = await page.locator(hit(`item-${itemId}`)).boundingBox().catch(() => null);
-  if (box) {
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await page.mouse.down();
-    await sleep(pourMs * 0.88);
-    await page.mouse.up();
-    if (await waitUntil(grew, 1500)) return;
-  }
-  if (await grew()) return;
-  // The hold is judged on the server clock. A direct start/end pair still has to wait out the real pour window.
-  await page.evaluate((id) => window.__tb.correria.feed.on.pourStart(id), itemId);
+  // The hold is judged on the server clock. Start and end through the handler so a missed mouse-up cannot spill a second cup.
+  await callHandler(page, (id) => window.__tb.correria.feed.on.pourStart(id), itemId);
   await sleep(pourMs * 0.88);
-  await page.evaluate(() => window.__tb.correria.feed.on.pourEnd());
+  await callHandler(page, () => window.__tb.correria.feed.on.pourEnd());
+  if (await waitUntil(grew, 1000)) return;
+  await nudgeSnap(page);
   await waitUntil(grew, 800);
 }
 
 async function choosePack(page, kind) {
-  const sel = kind === 'bag' ? hit('bag') : hit('plate');
   const ready = async () => (await snap(page))?.pack === kind;
   if (await ready()) return;
-  await nudge(page, sel);
-  if (await waitUntil(ready, 1500)) return;
-  // pack() toggles when the snapshot already shows this bag. Don't send that once the tap has landed.
-  await page.evaluate((k) => {
+  // pack() toggles when the snapshot already shows this bag.
+  await callHandler(page, (k) => {
     if (window.__tb.correria.feed.snap?.pack === k) return;
     window.__tb.correria.feed.on.pack(k);
   }, kind);
-  await waitUntil(ready, 1500);
+  if (await waitUntil(ready, 1000)) return;
+  await nudgeSnap(page);
+  await waitUntil(ready, 800);
 }
 
 async function chooseMod(page, mod) {
   const ready = async () => !!(await snap(page))?.mods?.includes(mod);
   if (await ready()) return;
-  const sel = `.cr-mod[data-mod="${mod}"]`;
-  await nudge(page, sel);
-  if (await waitUntil(ready, 1500)) return;
-  await page.evaluate((m) => {
+  await callHandler(page, (m) => {
     if (window.__tb.correria.feed.snap?.mods?.includes(m)) return;
     document.querySelector(`.cr-mod[data-mod="${m}"]`)?.click();
   }, mod);
-  await waitUntil(ready, 1500);
+  if (await waitUntil(ready, 1000)) return;
+  await nudgeSnap(page);
+  await waitUntil(ready, 800);
 }
 
 /** Empty the tray and wait until the snapshot says so. A clear that has not landed yet makes the next grabs stack on the old order. */
@@ -304,6 +303,7 @@ async function clearTray(page) {
 }
 
 export async function buildOrder(page, want, { quick = false } = {}) {
+  if (await frontGone(page)) return;
   trace('build', JSON.stringify(want));
   const fast = (await snap(page))?.pourMs <= POUR_FAST;
   const pourMs = fast ? POUR_FAST : POUR_FULL;
@@ -313,6 +313,7 @@ export async function buildOrder(page, want, { quick = false } = {}) {
     await clearTray(page);
   }
   for (const line of want.lines) {
+    if (await frontGone(page)) return;
     if (CHAPA.has(line.itemId)) {
       let guard = 0;
       while ((await itemCount(page, line.itemId)) < line.qty && guard++ < line.qty + 2) {
@@ -332,7 +333,8 @@ export async function buildOrder(page, want, { quick = false } = {}) {
       trace('poured');
     } else await grabUntil(page, line.itemId, line.qty);
   }
-  if (await grillOccupied(page)) await takeGrilled(page);
+  if (await grillOccupied(page) && !(await frontGone(page))) await takeGrilled(page);
+  if (await frontGone(page)) return;
   for (const m of want.mods) {
     if (m === 'pra_viagem') await choosePack(page, 'bag');
     else if (m === 'pra_comer_aqui') await choosePack(page, 'plate');
@@ -348,7 +350,7 @@ export async function buildOrder(page, want, { quick = false } = {}) {
 export async function takeGrilled(page) {
   const started = Date.now();
   while (Date.now() - started < BURN_MS + 2200) {
-    if (!(await shiftLive(page))) return;
+    if (!(await shiftLive(page)) || (await frontGone(page))) return;
     const view = await grillView(page);
     const live = view.slots.filter((s) => !s.hidden && s.phase !== 'empty');
     if (!live.length) return;
@@ -414,11 +416,14 @@ export async function serve(page) {
 
 /** Build the order, and once more from an empty tray if the counts (or the bag / mods) are not exact yet. */
 async function deliver(page, want, log) {
+  if (await frontGone(page)) return;
   await buildOrder(page, want);
+  if (await frontGone(page)) return;
   if (await orderReady(page, want)) return;
   const now = await snap(page);
   log(`  tray incomplete → rebuild have=${JSON.stringify(now?.tray ?? [])} want=${JSON.stringify(want.lines)} pack=${now?.pack ?? null} mods=${JSON.stringify(now?.mods ?? [])}`);
   await clearTray(page);
+  if (await frontGone(page)) return;
   await buildOrder(page, want);
 }
 
