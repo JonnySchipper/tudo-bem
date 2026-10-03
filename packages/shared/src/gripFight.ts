@@ -62,7 +62,7 @@ const SPOT_LABEL: Record<GripSpot, Bilingual> = {
 export const VALID_STEP_FORCE: Record<GripSpot, GripForce> = {
   gola: 'puxar',
   manga: 'empurrar',
-  calca: 'puxar',
+  calca: 'empurrar',
 };
 
 export function newGripState(position: BjjPositionId = 'guarda_fechada'): GripFightState {

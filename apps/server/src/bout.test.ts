@@ -74,8 +74,8 @@ async function play(a: Client, opts: { maxSteps?: number } = {}) {
     if (m.phase === 'intent' && !answeredSeqs.has(m.seq)) {
       answeredSeqs.add(m.seq);
       advance(300);
-      const intent = m.finish ? 'finalizar' : (m.intents.find((i) => i.id.startsWith('puxar_') || i.id.startsWith('empurrar_')) ?? m.intents[0]!).id;
-      await a.send({ t: 'bout', v: 1, action: 'intent', seq: m.seq, intent });
+      const pick = m.finish ? 'finalizar' : (m.intents.find((i) => i.id.startsWith('puxar_') || i.id.startsWith('empurrar_')) ?? m.intents[0]!).id;
+      await a.send({ t: 'bout', v: 1, action: 'intent', seq: m.seq, intent: pick });
     } else advance(250);
   }
   throw new Error('bout did not finish: ' + JSON.stringify(a.lastBout()).slice(0, 300));
@@ -271,6 +271,23 @@ describe('Treino no tatame (server)', () => {
       await play(a);
     }
     expect(a.s.profile!.bjj!.bondToday).toBeLessThanOrEqual(8);
+  });
+
+  it('after a loss, rematch restarts the same guard with bot memory', async () => {
+    const { a } = await setup();
+    await start(a);
+    advance(1000);
+    a.s.bout!.grip = { ...a.s.bout!.grip, stepsThem: 2, weakSpot: 'gola', turn: 'partner' };
+    const intent = a.last('intent')!;
+    advance(intent.pickMs + 3000);
+    const end = a.last('end');
+    expect(end).toBeTruthy();
+    expect(end!.rematchSamePosition).toBe(true);
+    expect(a.s.boutRematch?.weakSpot).toBe('gola');
+    await a.send({ t: 'bout', v: 1, action: 'start', partner: 'mateus', rematch: true });
+    advance(500);
+    expect(a.s.bout!.grip.weakSpot).toBe('gola');
+    expect(a.s.bout!.grip.position).toBe('guarda_fechada');
   });
 
   it('a profile saved with only the old fields still loads coherently', async () => {

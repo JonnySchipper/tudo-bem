@@ -109,7 +109,7 @@ export class BoutEngine {
       case 'open':
         return this.open(s);
       case 'start':
-        return this.start(s, m.partner, m.listen !== false);
+        return this.start(s, m.partner, m.listen !== false, m.rematch === true);
       case 'intent':
         return this.intent(s, m.seq, m.intent as GripMoveId);
       case 'answer':
@@ -148,7 +148,7 @@ export class BoutEngine {
     s.send({ t: 'bout', v: 1, phase: 'lobby', partners, bjj: prog, level, suggested });
   }
 
-  private start(s: Session, partnerId: unknown, listen: boolean) {
+  private start(s: Session, partnerId: unknown, listen: boolean, rematch = false) {
     if (s.instance?.def.id !== 'academia') return this.d.err(s, 'bout', 'O tatame fica na academia.', 'The mat is in the academy.');
     if (this.of(s)) return;
     const partner = partnerById(partnerId);
@@ -158,18 +158,21 @@ export class BoutEngine {
     s.scene = undefined;
     s.mg = undefined;
     const seed = (this.d.now() ^ Math.floor(this.d.rng() * 1e9)) >>> 0;
+    const hint = rematch && s.boutRematch?.partner === partner.id ? s.boutRematch : undefined;
+    let grip = newGripState(hint?.position ?? 'guarda_fechada');
+    if (hint?.weakSpot) grip = { ...grip, weakSpot: hint.weakSpot };
     const b: BoutSession = {
       token: ++this.seq,
       partner,
       level: bjjLevel(prog),
       rng: mulberry32(seed),
-      grip: newGripState('guarda_fechada'),
+      grip,
       phase: 'intro',
       seq: 0,
       offerAt: 0,
       pickMs: 0,
       beats: 0,
-      rematchPosition: 'guarda_fechada',
+      rematchPosition: hint?.position ?? 'guarda_fechada',
     };
     s.bout = b;
     const introMs = this.d.introMs ?? (this.d.testHints ? 500 : INTRO_MS);
@@ -229,9 +232,24 @@ export class BoutEngine {
     b.phase = 'resolve';
     let events: ExchangeEvent[] = [];
     let player = applyGripMove(b.grip, 'you', id);
+    const rungBefore = gripToSnapshot(b.grip).rung;
     b.grip = player.state;
     b.grip.weakSpot = noteWeakSpot(b.grip, player.events) ?? b.grip.weakSpot;
     events = player.events.map(gripEventToExchange);
+    const stepGain = player.events.find((e) => e.type === 'step');
+    if (stepGain) {
+      const rungAfter = gripToSnapshot(b.grip).rung;
+      if (rungAfter !== rungBefore) {
+        events.push({
+          type: 'transition',
+          from: b.grip.position,
+          to: b.grip.position,
+          rungFrom: rungBefore,
+          rungTo: rungAfter,
+          gain: stepGain.who,
+        });
+      }
+    }
     let partnerIntent: GripMoveId = id;
     const win = roundWinner(b.grip);
     if (!win && b.grip.turn === 'partner') {
@@ -312,6 +330,12 @@ export class BoutEngine {
     if (beltUp) this.d.avatarChanged(s);
     const rv = played ? boutRv(res.winner, res.reason) : 0;
     const grip = b.grip;
+    const rematchSamePosition = res.winner === 'partner' || res.winner === 'draw';
+    if (rematchSamePosition) {
+      s.boutRematch = { partner: b.partner.id, position: b.rematchPosition, weakSpot: b.grip.weakSpot };
+    } else {
+      s.boutRematch = undefined;
+    }
     this.clear(s);
     const signal: RefSignal | null = res.winner === 'you' ? 'vitoria' : res.reason === 'pontos' || res.reason === 'vantagens' ? 'parar' : null;
     s.send({
@@ -330,6 +354,7 @@ export class BoutEngine {
       line: endLine(res.winner, res.reason),
       thanks: THANKS_LINE,
       signal,
+      rematchSamePosition: rematchSamePosition || undefined,
     });
     if (rv > 0) {
       this.d.reward(s, rv, {

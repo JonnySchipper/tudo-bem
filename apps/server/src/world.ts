@@ -171,6 +171,8 @@ export interface Session {
   mg?: CorreriaRun;
   /** Treino no tatame: the bout in progress (apps/server/src/bout.ts). */
   bout?: BoutSession;
+  /** Last tatame loss: rematch same partner and guard position. */
+  boutRematch?: { partner: import('@tudobem/shared').PartnerId; position: import('@tudobem/shared').BjjPositionId; weakSpot?: import('@tudobem/shared').GripSpot };
   chatTimes: number[];
   lastHintAt: number;
   /** Street snack in hand (session only; cleared on disconnect). */
