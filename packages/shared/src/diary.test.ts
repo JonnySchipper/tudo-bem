@@ -83,8 +83,8 @@ describe('language diary catalog', () => {
     expect(practiceRound([], game, () => 0)).toBeNull();
   });
 
-  it('leaves the cartela as a hook, and treats a missing arrival flag as already home', () => {
-    expect(handCartela()).toEqual({ given: false, reason: 'cartela-not-on-main' });
+  it('hands the cartela over with the camera, and treats a missing arrival flag as already home', () => {
+    expect(handCartela()).toEqual({ given: true });
     expect(normalizeArrival(undefined)).toEqual({ arrivalIntroDone: true, hasCamera: false });
     expect(normalizeArrival({ arrivalIntroDone: false, hasCamera: false })).toEqual({ arrivalIntroDone: false, hasCamera: false });
     expect(normalizeArrival({ arrivalIntroDone: true, hasCamera: true })).toEqual({ arrivalIntroDone: true, hasCamera: true });

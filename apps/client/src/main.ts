@@ -52,7 +52,9 @@ import { LocalNet } from './localNet';
 import { initPixelArt } from './ui/pixelArt';
 import type { Guide, Hit, WorldView } from './render/view';
 import { runOnboarding, closeOnboarding } from './ui/onboarding';
-import { buildHud, hoverLabel, idleKickedCard, missionBanner, overlayMessage, parrotWhisper, reconnectBanner, toast } from './ui/hud';
+import { buildHud, holdCartelaChip, hoverLabel, idleKickedCard, missionBanner, overlayMessage, parrotWhisper, reconnectBanner, toast } from './ui/hud';
+import { CARTELA_BANNER_MS, cartelaBanner, openCartela } from './ui/cartela';
+import { CARTELA_COPY, stampNotice } from '@tudobem/shared';
 import {
   buildDecorPanel,
   closeDialogue,
@@ -77,7 +79,7 @@ import { openNpcTalk } from './ui/npcTalk';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira';
 import { openCaderno } from './ui/caderno';
 import { syncArrival } from './ui/arrival';
-import { cameraFrameAt, captureFrame, showPhoto, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
+import { cameraFrameAt, captureFrame, dropPendingPrint, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
 import { openEscolaPractice, showEscolaResult } from './ui/escola';
 import { openHotspotCard } from './ui/hotspotCard';
 import { openStreetSnack } from './ui/streetSnack';
@@ -274,13 +276,22 @@ function rectsOverlap(a: { x: number; y: number; w: number; h: number }, b: { x:
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
+let lastShutterAt = -1e9;
+
 /** A shutter click: spend film, keep the photo, and teach any camera word inside the frame. The player does not walk. */
 function takePhoto(clientX: number, clientY: number) {
   if (!game.profile?.hasCamera) return;
   if ((game.profile.film ?? 0) < 1) {
+    shutterJam();
     toast('info', 'Sem filme. Fala com a Júlia.', 'Out of film. Ask Júlia.');
     return;
   }
+  // the blades are still moving: one shot per beat
+  const t = performance.now();
+  if (t - lastShutterAt < 380) return;
+  lastShutterAt = t;
+  // a tap on a phone has no hover before it: the viewfinder jumps to the tap so the blades close where the photo is taken
+  syncCameraFrame(clientX, clientY);
   const frame = cameraFrameAt(clientX, clientY);
   const anchors: string[] = [];
   const room = game.roomDef;
@@ -292,7 +303,9 @@ function takePhoto(clientX: number, clientY: number) {
       if (rect && rectsOverlap(frame, rect)) anchors.push(prop.id);
     }
   }
-  net.send({ t: 'diary', action: 'photo', anchors, image: captureFrame(frame) });
+  const image = captureFrame(frame);
+  shutter(frame, image);
+  net.send({ t: 'diary', action: 'photo', anchors, image });
 }
 
 function propAction(action: string, propId?: string) {
@@ -366,7 +379,7 @@ function updateGuides() {
   const p = game.profile;
   const r = game.room;
   renderer.guides = [];
-  if (!p || !r) return;
+  if (!p || !r || isDialogueBoxOpen()) return;
   const t = p.tutorial;
   const add = (g: Guide | null) => g && renderer.guides.push(g);
   if (r.room === 'rua') {
@@ -483,6 +496,7 @@ net.on((m: ServerMsg) => {
       break;
     }
     case 'error':
+      if (m.code === 'far' || m.code === 'photo' || m.code === 'film' || m.code === 'camera') dropPendingPrint();
       if (onboarding && m.code === 'name') onboarding.setError(m.pt, m.en);
       else toast('error', m.pt, m.en);
       onFeiraError();
@@ -551,7 +565,12 @@ net.on((m: ServerMsg) => {
     case 'diary':
       if (m.phase === 'photo') showPhoto(m);
       else if (m.phase === 'practice') {
-        if (m.ok) openEscolaPractice(m, (choice) => net.send({ t: 'diary', action: 'answer', choice }));
+        if (m.ok)
+          openEscolaPractice(
+            m,
+            (choice) => net.send({ t: 'diary', action: 'answer', choice }),
+            () => net.send({ t: 'diary', action: 'practice' }),
+          );
         else toast('info', m.pt, m.en);
       } else showEscolaResult(m);
       break;
@@ -606,10 +625,28 @@ net.on((m: ServerMsg) => {
       // a recado step and the giver's thanks have their own presentation (the tracker's ✓, the thanks card)
       if (m.tag !== 'recado_step' && m.tag !== 'recado_thanks') toast(m.level, m.pt, m.en);
       break;
+    case 'cartela': {
+      const line = stampNotice(m.activity, m.stamps, m.paid);
+      if (m.paid) {
+        // the profile that follows already holds the fresh card: keep the chip full while the banner plays (the reward toast follows)
+        holdCartelaChip(m.stamps, CARTELA_BANNER_MS);
+        cartelaBanner(m.stamps);
+        ambience.sting('mission');
+      } else {
+        toast('info', line.pt, line.en);
+        ambience.sfx('stamp');
+      }
+      game.emit('hud');
+      break;
+    }
     case 'reward':
       if (m.reason.pt === MISSION_COPY.done.pt) {
         missionBanner();
         ambience.sting('mission');
+      } else if (m.reason.pt === CARTELA_COPY.paid.pt) {
+        // the payout banner already shows the card and the RV; the coin counter ticks when it leaves
+        window.setTimeout(() => document.getElementById('coins')?.classList.add('tick'), CARTELA_BANNER_MS - 300);
+        window.setTimeout(() => document.getElementById('coins')?.classList.remove('tick'), CARTELA_BANNER_MS + 400);
       } else if (m.reason.pt.startsWith('Recado: ')) break; // the thanks card shows the RV
       else {
         toast('reward', m.reason.pt, m.reason.en, m.amount);
@@ -728,6 +765,7 @@ function startGame() {
       game.emit('hud');
     },
     openRecados: () => openJournal(),
+    openCartela: () => openCartela(),
     openFriends: () =>
       openFriends({
         request: (id) => net.send({ t: 'friend', action: 'request', targetId: id }),
@@ -958,7 +996,15 @@ canvas.addEventListener('pointermove', (e) => {
     hoverLabel(0, 0, null);
     return;
   }
-  if (game.cameraOn) syncCameraFrame(e.clientX, e.clientY);
+  if (game.cameraOn) {
+    // through the viewfinder nothing is clickable but the shutter: no hover labels or outlines
+    syncCameraFrame(e.clientX, e.clientY);
+    hoverLabel(0, 0, null);
+    game.hoverKey = null;
+    game.hoverTile = null;
+    canvas.style.cursor = 'crosshair';
+    return;
+  }
   const hit = renderer.hitTest(e.clientX, e.clientY);
   game.hoverTile = hit?.kind === 'tile' ? hit.tile : game.placing ? renderer.tileAt(e.clientX, e.clientY) : null;
   game.hoverKey = hit?.kind === 'avatar' ? `av:${hit.id}` : hit?.kind === 'npc' ? `npc:${hit.npc.id}` : null;
@@ -1060,8 +1106,13 @@ setDialogueHost({
   open: (npcId) => {
     const npc = npcId ? game.liveNpcs(now()).find((n) => n.id === npcId) : undefined;
     renderer.setDialogueFocus?.({ npc: npc ? { x: npc.x, y: npc.y } : null });
+    // the "Fale com…" arrow would sit on the hat of the person you are already talking to
+    renderer.guides = [];
   },
-  close: () => renderer.setDialogueFocus?.(null),
+  close: () => {
+    renderer.setDialogueFocus?.(null);
+    updateGuides();
+  },
   inset: (px) => renderer.setDialogueBox?.(px),
 });
 // every 🔊 (dialogue, sign, Caderno) reports the words to the Caderno
@@ -1190,4 +1241,6 @@ window.__tb = {
     },
     feed: correriaFeed,
   },
+  openCartela: () => openCartela(),
+  cartelaBanner: (stamps: number) => cartelaBanner(stamps),
 };

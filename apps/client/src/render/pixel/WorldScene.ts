@@ -39,6 +39,7 @@ import { addSheetTexture, animKey, animNames, emoteDuration, sitFrame } from './
 import { CharSheets } from './charCache';
 import type { CharAssets } from './charAssets';
 import { composeLook } from './composeLook';
+import { AVATAR_DRAW_SCALE, avatarCrown, avatarPx } from './characters';
 import { lookForAppearance, lookForNpc, lookHeadLift, type Look } from './looks';
 import { LightingRig, type Light } from './lightingRig';
 import { computeLook, isOutdoor, lightDelay, windowPanes, type SceneLook } from './dayNight';
@@ -165,11 +166,6 @@ interface Canopy {
   stall?: boolean;
 }
 
-/** Art px from the feet to the top of the visible head (the 16x32 frame has empty rows above it); nameplates stand just above. */
-/** Art px an NPC behind a counter is drawn above its tile so the head and shoulders clear the counter top. */
-const COUNTER_LIFT = 11;
-const HEAD_LIFT = 23;
-const HEAD_LIFT_SIT = 16;
 /** seconds the emote pop-up icon stays over the head */
 const EMOTE_ICON_S = 1.1;
 
@@ -867,7 +863,7 @@ export class WorldScene extends Phaser.Scene {
       this.playerLight.r = me ? 30 : 0;
       if (me) {
         this.playerLight.x = me.wx;
-        this.playerLight.y = me.wy - 8;
+        this.playerLight.y = me.wy - avatarPx(8);
       }
     }
     const params = this.blend.step(weather, dt);
@@ -988,7 +984,7 @@ export class WorldScene extends Phaser.Scene {
       insets: { top: ins.top * k, bottom: ins.bottom * k, left: ins.left * k, right: ins.right * k },
       boxPx: (this.dlgBoxCss + 12) * k,
       self,
-      npc: n ? { x: (n.x + 0.5) * T, y: (n.y + 1) * T - 13 } : null,
+      npc: n ? { x: (n.x + 0.5) * T, y: (n.y + 1) * T - 3 - avatarPx(10) } : null,
       blend: easeOut(this.dlgBlend),
       step: Math.max(1, Math.round(k)),
     });
@@ -1089,7 +1085,7 @@ export class WorldScene extends Phaser.Scene {
   /** The spectators: every CPU in the room, with the world px of the top of its head (where the cheer pops up). */
   private crowdSpots(): { id: string; x: number; y: number }[] {
     const out: { id: string; x: number; y: number }[] = [];
-    for (const [id, v] of this.avatars) if (isCpuId(id)) out.push({ id, x: v.wx, y: v.wy - (v.sitting ? HEAD_LIFT_SIT : HEAD_LIFT) - lookHeadLift(v.look) - 4 });
+    for (const [id, v] of this.avatars) if (isCpuId(id)) out.push({ id, x: v.wx, y: v.wy - avatarCrown(v.sitting, lookHeadLift(v.look)) - avatarPx(4) });
     return out;
   }
 
@@ -1107,7 +1103,7 @@ export class WorldScene extends Phaser.Scene {
 
   private updateCamera(dt: number, def: RoomDef): void {
     const self = game.self ? this.avatars.get(game.self.pub.id) : undefined;
-    const focus = self ? { x: self.wx, y: self.wy - 10 } : { x: (def.cols * T) / 2, y: (def.rows * T) / 2 };
+    const focus = self ? { x: self.wx, y: self.wy - avatarPx(10) } : { x: (def.cols * T) / 2, y: (def.rows * T) / 2 };
     const ins = this.host.insets();
     const k = this.cam.dpr;
     const dpr = k; // the effective (possibly capped, see bufferPixels) ratio of the backing store
@@ -1123,7 +1119,7 @@ export class WorldScene extends Phaser.Scene {
       // debug `?shot=cam:<tileX>,<tileY>,<zoom>` (art reviews): a fixed camera on a tile position at an integer zoom
       f = { zoom: Number(camShot[3]), cx: Number(camShot[1]) * T, cy: Number(camShot[2]) * T, fits: true };
     }
-    f = this.withDialogue(f, self ? { x: self.wx, y: self.wy - 10 } : focus, ins, k, dt);
+    f = this.withDialogue(f, self ? { x: self.wx, y: self.wy - avatarPx(10) } : focus, ins, k, dt);
     f = this.withBout(f, ins, k, dt);
     f = this.withCounter(f, ins, k, dt);
     const target = { cx: f.cx, cy: f.cy };
@@ -1164,9 +1160,10 @@ export class WorldScene extends Phaser.Scene {
   private createAvatar(a: ClientAvatar): AvatarView {
     const look = this.lookOf(a);
     const sheet = this.sheets.acquire(look);
-    const sprite = this.rig.world(this.add.sprite(0, 0, sheet, 0)).setOrigin(0.5, 1);
+    const sprite = this.rig.world(this.add.sprite(0, 0, sheet, 0)).setOrigin(0.5, 1).setScale(AVATAR_DRAW_SCALE);
     const s16 = this.m.sprites['fx/shadow_16'];
-    const shadow = this.rig.world(this.add.image(0, 0, s16.atlas, s16.frame)).setOrigin(...originOf(s16)).setDepth(DEPTH.shadowContact);
+    // wider with the body, still flat on the tile so the feet read as planted
+    const shadow = this.rig.world(this.add.image(0, 0, s16.atlas, s16.frame)).setOrigin(...originOf(s16)).setDepth(DEPTH.shadowContact).setScale(AVATAR_DRAW_SCALE, 1);
     this.shadows.follow(sprite, 'chars/avatar', { frame: 0, rim: true });
     return {
       sprite,
@@ -1249,11 +1246,19 @@ export class WorldScene extends Phaser.Scene {
         if (t >= 0 && t < dur) emote = `${a.emote.kind}@${a.emote.t0}`;
       } else if (t >= 0 && t < 1.3) bounce = Math.round(Math.abs(Math.sin(t * 9)) * 2);
     }
-    const wx = Math.round(f.wx);
-    // a neighbour standing right behind a counter (Seu Carlos at the padaria) is drawn a little further up, over his own shelves, so the counter
-    // top no longer cuts off his face; depth, tile and click logic keep the real tile
-    const lift = !sitting && !pos.moving && a.pub.npc && !this.roomOutdoor && this.grid?.blocked.has(tileKey(pos.tile.x, pos.tile.y + 1)) ? COUNTER_LIFT : 0;
-    const wy = Math.round(f.wy) - lift;
+    // at the doubled draw scale a player one tile in front of the person they talk to covers them: while the dialogue is open the player
+    // takes a step to the side (same row, eased with the dialogue camera), so both faces read in the close-up
+    let aside = 0;
+    const talkTo = this.dlg?.npc ?? (this.dlgBlend > 0 ? this.dlgNpc : null);
+    if (talkTo && a.pub.id === game.room?.selfId && !pos.moving && !sitting) {
+      const dxT = pos.tile.x - talkTo.x;
+      const dyT = pos.tile.y - talkTo.y;
+      if (Math.abs(dxT) <= 1 && Math.abs(dyT) <= 2) aside = Math.round((dxT < 0 ? -1 : 1) * T * 1.25 * easeOut(this.dlgBlend));
+    }
+    const wx = Math.round(f.wx) + aside;
+    // feet stay on the tile. The doubled figure already puts the head and shoulders above the padaria counter,
+    // so the old 11 px counter lift (which planted the feet on the counter top) is gone.
+    const wy = Math.round(f.wy);
     v.wx = wx;
     v.wy = wy;
     v.sprite.setPosition(wx, wy - bounce);
@@ -1286,13 +1291,14 @@ export class WorldScene extends Phaser.Scene {
     this.updateParrot(v, a, facing, wx, wy, depth, now);
     this.updateCarry(v, a, facing, wx, wy, depth);
     this.updateEmoteIcon(v, a, wx, wy - bounce, sitting, now);
-    const h = sitting ? 24 : 32;
+    const h = avatarPx(sitting ? 24 : 32);
+    const half = avatarPx(9);
     const base = a.pub.npc ? npcDefById(a.pub.npc) : undefined;
     if (base) {
       // a neighbour: clicking it is the same as clicking an NPC of old, at the tile it has reached, with the interact tile of its slot
       const npc = { ...base, x: pos.tile.x, y: pos.tile.y, interact: a.pub.npcInteract ?? base.interact };
-      dyn.push({ x0: wx - 9, y0: wy - h - 2, x1: wx + 9, y1: wy + 2, hit: { kind: 'npc', npc }, depth: wy + 0.5 });
-    } else dyn.push({ x0: wx - 9, y0: wy - h, x1: wx + 9, y1: wy + 2, hit: { kind: 'avatar', id: a.pub.id }, depth: wy + 0.6 });
+      dyn.push({ x0: wx - half, y0: wy - h - avatarPx(2), x1: wx + half, y1: wy + avatarPx(2), hit: { kind: 'npc', npc }, depth: wy + 0.5 });
+    } else dyn.push({ x0: wx - half, y0: wy - h, x1: wx + half, y1: wy + avatarPx(2), hit: { kind: 'avatar', id: a.pub.id }, depth: wy + 0.6 });
     void def;
   }
 
@@ -1313,8 +1319,8 @@ export class WorldScene extends Phaser.Scene {
       v.icon.setTexture(d.atlas, d.frame).setOrigin(...originOf(d));
     }
     const rise = 1 - Math.min(1, t / 0.16);
-    const top = (sitting ? HEAD_LIFT_SIT : HEAD_LIFT) - 1 + lookHeadLift(v.look);
-    v.icon.setPosition(wx + 8, Math.round(wy - top - 1 + rise * 4)).setAlpha(Math.min(1, (EMOTE_ICON_S - t) / 0.25)).setVisible(true);
+    const top = avatarCrown(sitting, lookHeadLift(v.look)) - avatarPx(1);
+    v.icon.setPosition(wx + avatarPx(8), Math.round(wy - top - avatarPx(1) + rise * avatarPx(4))).setAlpha(Math.min(1, (EMOTE_ICON_S - t) / 0.25)).setVisible(true);
   }
 
   /** The companion parrot (profile.parrotEquipped -> PublicAvatar.parrot): the poleiro parrot hovering at the avatar's shoulder. */
@@ -1334,7 +1340,7 @@ export class WorldScene extends Phaser.Scene {
     // it hovers beside the head on the far shoulder: behind the body when walking away, mirrored so it always looks toward its owner
     const side = facing === 'W' ? 1 : -1;
     const bob = Math.round(Math.sin(now / 420 + a.seed) * 1.5);
-    v.parrot.setPosition(wx + side * 9, wy - 14 + bob);
+    v.parrot.setPosition(wx + side * avatarPx(9), wy - avatarPx(14) + bob);
     v.parrot.setFlipX(side === 1);
     v.parrot.setDepth(facing === 'N' ? depth - 0.05 : depth + 0.05);
     const tint = parrotColorById(a.pub.parrotColor)?.tint ?? 0xffffff;
@@ -1361,7 +1367,7 @@ export class WorldScene extends Phaser.Scene {
       v.carryKey = id;
     }
     const side = facing === 'W' ? -1 : 1;
-    v.carry.setPosition(wx + side * 5, wy - 10).setScale(1.25).setDepth(depth + 0.08);
+    v.carry.setPosition(wx + side * avatarPx(5), wy - avatarPx(10)).setScale(1.25 * AVATAR_DRAW_SCALE).setDepth(depth + 0.08);
   }
 
   // ---- placed furniture: `furniture/<id>_<rot>` sprites (art track 3); a magenta box when the art is missing
@@ -1550,7 +1556,7 @@ export class WorldScene extends Phaser.Scene {
       const a = game.avatars.get(id);
       if (!a) continue;
       if (id === selfId && (boutFeed.active || correriaFeed.active)) continue; // the pair sprite / the counter is the player now
-      const p = at(v.wx, v.wy - (v.sitting ? HEAD_LIFT_SIT : HEAD_LIFT) - lookHeadLift(v.look));
+      const p = at(v.wx, v.wy - avatarCrown(v.sitting, lookHeadLift(v.look)));
       if (a.pub.npc) {
         // a neighbour: terracotta plate with the role, and its own bubbles (idle lines are keyed by NPC id)
         const b = game.npcBubbles.get(a.pub.npc);

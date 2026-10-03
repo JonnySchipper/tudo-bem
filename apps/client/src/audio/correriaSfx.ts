@@ -6,7 +6,7 @@
 
 export type CorreriaSfx = 'grab' | 'sizzle' | 'ready' | 'burnt' | 'pour' | 'ding' | 'clink' | 'cash' | 'paper' | 'chime' | 'nope' | 'combo' | 'tick';
 
-function noise(ctx: AudioContext, white: AudioBuffer, dest: AudioNode, when: number, dur: number, type: BiquadFilterType, f0: number, f1: number, peak: number, q = 0.8, attack = 0.01) {
+export function noise(ctx: AudioContext, white: AudioBuffer, dest: AudioNode, when: number, dur: number, type: BiquadFilterType, f0: number, f1: number, peak: number, q = 0.8, attack = 0.01) {
   const src = ctx.createBufferSource();
   src.buffer = white;
   const f = ctx.createBiquadFilter();
@@ -25,7 +25,7 @@ function noise(ctx: AudioContext, white: AudioBuffer, dest: AudioNode, when: num
   src.stop(when + dur + 0.05);
 }
 
-function tone(ctx: AudioContext, dest: AudioNode, when: number, f0: number, f1: number, dur: number, peak: number, type: OscillatorType = 'sine') {
+export function tone(ctx: AudioContext, dest: AudioNode, when: number, f0: number, f1: number, dur: number, peak: number, type: OscillatorType = 'sine') {
   const o = ctx.createOscillator();
   o.type = type;
   o.frequency.setValueAtTime(f0, when);

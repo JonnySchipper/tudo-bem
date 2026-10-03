@@ -20,6 +20,7 @@ import type { BjjPositionId, BjjProgress, BoutReason, BoutWinner, Belt, PartnerI
 import type { BoutAnswer, ChallengeView } from './challenges.js';
 import type { ExchangeEvent, IntentId, RefSignal, Score } from './bout.js';
 import type { RecadoActiveView, RecadoOfferView } from './recados.js';
+import type { CartelaActivity } from './cartela.js';
 import type { PriceOption, VendorId } from './feira.js';
 
 /** Client → server messages. JSON over a single WebSocket at /ws. */
@@ -316,6 +317,8 @@ export type ServerMsg =
   /** `tag` marks notices the client presents in its own way: a recado step, the giver's thanks, a friendship milestone. */
   | { t: 'notice'; level: NoticeLevel; pt: string; en: string; tag?: 'recado_step' | 'recado_thanks' | 'bond' }
   | { t: 'reward'; amount: number; coins: number; reason: Bilingual }
+  /** Cartela stamp earned or card paid out (HUD toast / banner). */
+  | { t: 'cartela'; stamps: number; todayCount: number; activity: CartelaActivity; paid: boolean }
   | {
       t: 'scene';
       view: SceneView;

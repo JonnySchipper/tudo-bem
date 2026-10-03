@@ -87,7 +87,7 @@ interface Rect {
 const overlaps = (a: Rect, b: Rect): boolean => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
 
 /** The HUD pieces a world label must never sit under (a bubble half hidden by the tracker looks clipped): the plates, the tracker, toasts, the chat bar. */
-const HUD_SELECTOR = '.hud-slab, .rtrack, #mission-pill, .toast, .chatbar, .hud-chip';
+const HUD_SELECTOR = '.hud-slab, .rtrack, #mission-pill, #cartela-pill, .toast, .chatbar, .hud-chip';
 /** True when `r` touches any of `hud` (pure; viewport px). */
 export const underHud = (r: Rect, hud: readonly Rect[]): boolean => hud.some((h) => overlaps(r, h));
 /** Never lift a label more than this many CSS px (a crowd should not throw a bubble off the top of the screen). */

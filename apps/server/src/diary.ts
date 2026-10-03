@@ -70,7 +70,7 @@ export class DiaryTracker {
 
   constructor(private readonly d: DiaryDeps) {}
 
-  /** The plane intro, once. Júlia gives the camera. The cartela is a hook until that feature is on main. */
+  /** The plane intro, once. Júlia gives the camera and the cartela do bairro. */
   finishArrival(s: Session) {
     const p = s.profile;
     if (!p) return;

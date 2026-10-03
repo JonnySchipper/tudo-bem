@@ -48,6 +48,7 @@ export interface CorreriaDeps {
   pushProfile: (s: Session) => void;
   completeStep: (s: Session) => void;
   missionStep: (s: Session) => void;
+  cartelaShift?: (s: Session, served: number) => void;
   ordered: (s: Session, lines: { itemId: string; qty: number }[]) => void;
   bond: (s: Session, npc: NpcId, delta: number) => void;
   caderno: { seen: (s: Session, text: string, ids?: readonly string[]) => void; heard: (s: Session, ids: unknown) => void };
@@ -226,7 +227,10 @@ export class CorreriaEngine {
       for (const k of [...new Set(sum.regulars)].slice(0, 3)) this.d.bond(s, k.replace('npc:', '') as NpcId, 1);
       this.d.reward(s, coins, { pt: 'Correria no Balcão', en: 'Counter Rush at the bakery' });
     }
-    if (sum.served >= 1) this.d.completeStep(s);
+    if (sum.served >= 1) {
+      this.d.completeStep(s);
+      this.d.cartelaShift?.(s, sum.served);
+    }
     this.d.pushProfile(s);
     const end = this.summaryToEnd(s, sum, coins, dailyBlocked, before, wordsNew);
     const carlos: Bilingual =

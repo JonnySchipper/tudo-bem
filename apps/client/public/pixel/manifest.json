@@ -10329,6 +10329,26 @@
    "w": 64,
    "h": 64
   },
+  "portraits/lucia_neutro": {
+   "file": "portraits/lucia_neutro.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/lucia_feliz": {
+   "file": "portraits/lucia_feliz.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/lucia_surpreso": {
+   "file": "portraits/lucia_surpreso.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/lucia_pensativo": {
+   "file": "portraits/lucia_pensativo.png",
+   "w": 64,
+   "h": 64
+  },
   "icons/pao": {
    "file": "icons/pao.png",
    "w": 16,
@@ -10727,6 +10747,11 @@
   "face_doce": "chars/face_doce.png",
   "face_maduro": "chars/face_maduro.png",
   "face_marcante": "chars/face_marcante.png",
+  "face_npc_carlos": "chars/face_npc_carlos.png",
+  "face_npc_chico": "chars/face_npc_chico.png",
+  "face_npc_julia": "chars/face_npc_julia.png",
+  "face_npc_rosa": "chars/face_npc_rosa.png",
+  "face_npc_ze": "chars/face_npc_ze.png",
   "face_suave": "chars/face_suave.png",
   "garb_caixa_o": "chars/garb_caixa_o.png",
   "garb_caixa_o__esguio": "chars/garb_caixa_o__esguio.png",
@@ -10766,6 +10791,7 @@
   "hair_coque": "chars/hair_coque.png",
   "hair_curto": "chars/hair_curto.png",
   "hair_longo": "chars/hair_longo.png",
+  "hair_npc_julia": "chars/hair_npc_julia.png",
   "hair_ondulado": "chars/hair_ondulado.png",
   "hair_raspado": "chars/hair_raspado.png",
   "hair_trancas": "chars/hair_trancas.png",
@@ -10781,6 +10807,10 @@
   "hat_chapeu_sol": "chars/hat_chapeu_sol.png",
   "hat_coroa_flores": "chars/hat_coroa_flores.png",
   "hat_gorro_listrado": "chars/hat_gorro_listrado.png",
+  "hat_npc_bucket": "chars/hat_npc_bucket.png",
+  "hat_npc_coroa": "chars/hat_npc_coroa.png",
+  "hat_npc_panama": "chars/hat_npc_panama.png",
+  "hat_npc_toque": "chars/hat_npc_toque.png",
   "hat_panama": "chars/hat_panama.png",
   "hat_pano": "chars/hat_pano.png",
   "hat_viseira_azul": "chars/hat_viseira_azul.png",
@@ -10841,7 +10871,22 @@
   "pose_bracos__esguio": "chars/pose_bracos__esguio.png",
   "pose_bracos__forte": "chars/pose_bracos__forte.png",
   "pose_cafe": "chars/pose_cafe.png",
-  "pose_cintura": "chars/pose_cintura.png"
+  "pose_cintura": "chars/pose_cintura.png",
+  "prop_npc_avental": "chars/prop_npc_avental.png",
+  "prop_npc_avental__esguio": "chars/prop_npc_avental__esguio.png",
+  "prop_npc_avental__forte": "chars/prop_npc_avental__forte.png",
+  "prop_npc_buque": "chars/prop_npc_buque.png",
+  "prop_npc_buque__esguio": "chars/prop_npc_buque__esguio.png",
+  "prop_npc_buque__forte": "chars/prop_npc_buque__forte.png",
+  "prop_npc_pastel": "chars/prop_npc_pastel.png",
+  "prop_npc_pastel__esguio": "chars/prop_npc_pastel__esguio.png",
+  "prop_npc_pastel__forte": "chars/prop_npc_pastel__forte.png",
+  "prop_npc_sacola": "chars/prop_npc_sacola.png",
+  "prop_npc_sacola__esguio": "chars/prop_npc_sacola__esguio.png",
+  "prop_npc_sacola__forte": "chars/prop_npc_sacola__forte.png",
+  "prop_npc_verdura": "chars/prop_npc_verdura.png",
+  "prop_npc_verdura__esguio": "chars/prop_npc_verdura__esguio.png",
+  "prop_npc_verdura__forte": "chars/prop_npc_verdura__forte.png"
  },
  "sheet": {
   "frame": [

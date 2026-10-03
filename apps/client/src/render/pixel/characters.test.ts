@@ -1,9 +1,27 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { BODY_TYPES, BOTTOM_STYLES, EXTRA_STYLES, FACE_STYLES, HAIR_STYLES, HATS, IDLE_POSES, TOP_STYLES } from '@tudobem/shared';
-import { CHAR_LAYERS, OUTFITS, allLayerKeys, hatLayer, outfitKey, pick } from './characters';
+import { T } from './coords';
+import { AVATAR_DRAW_SCALE, AVATAR_HEAD_LIFT, AVATAR_HEAD_SIT_LIFT, CHAR_LAYERS, OUTFITS, allLayerKeys, avatarCrown, avatarPx, hatLayer, outfitKey, pick } from './characters';
 
 const manifest = JSON.parse(readFileSync(new URL('../../../public/pixel/manifest.json', import.meta.url), 'utf8')) as { chars: Record<string, string> };
+
+describe('avatar draw scale', () => {
+  it('draws people at twice the sheet so outfits read, feet still at the origin', () => {
+    // the unscaled crown sits only a few pixels over a floor tile, in the same band as a chair
+    expect(AVATAR_HEAD_LIFT).toBeGreaterThan(T);
+    expect(AVATAR_HEAD_LIFT - T).toBeLessThan(T / 2);
+    expect(AVATAR_DRAW_SCALE).toBe(2);
+    const standing = avatarCrown(false);
+    expect(standing).toBe(AVATAR_HEAD_LIFT * 2);
+    // tall enough that a shirt, hat, and pants are more than a tile of the figure
+    expect(standing).toBeGreaterThan(T * 2);
+    expect(standing).toBeGreaterThan(AVATAR_HEAD_LIFT);
+    // a hat and the sit pose use the same scale, so labels stay above the scaled head
+    expect(avatarCrown(false, 5) - standing).toBeCloseTo(avatarPx(5));
+    expect(avatarCrown(true)).toBe(AVATAR_HEAD_SIT_LIFT * 2);
+  });
+});
 
 describe('CHAR_LAYERS covers every creator option', () => {
   it('has an entry for every enum value', () => {

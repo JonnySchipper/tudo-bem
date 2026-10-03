@@ -85,6 +85,7 @@ export interface BoutDeps {
   err: (s: Session, code: string, pt: string, en: string) => void;
   /** the public look changed (a new belt): tell the room */
   avatarChanged: (s: Session) => void;
+  onBoutComplete?: (s: Session, played: boolean) => void;
 }
 
 /** `v: 1` bout messages. Pure session logic lives in `@tudobem/shared`; this class owns the clock, the sockets and the profile. */
@@ -377,6 +378,7 @@ export class BoutEngine {
         en: res.winner === 'you' ? 'Mat practice: a win!' : 'Mat practice at the academy',
       });
     }
+    this.d.onBoutComplete?.(s, played);
     this.d.pushProfile(s);
   }
 }

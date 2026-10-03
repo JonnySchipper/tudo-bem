@@ -29,6 +29,7 @@ For a native Brazilian Portuguese reviewer (informal São Paulo register, A1 for
 - [O. Dialogue box, hotspot card and dialogue chrome (client)](#o-dialogue-ui) (30)
 - [P. NPC memory (server)](#p-memory) (3)
 - [Q. Other new Portuguese in the interface and in painted signs](#q-misc) (5)
+- [S. Arrival, camera, escola and cartela polish (client)](#s-polish) (3)
 - [R. Proposed cards for the Curriculum team](#r-proposed-cards)
 
 ## A. Time of day, weekdays and weather
@@ -607,6 +608,17 @@ Phase 7 UI. Learning text stays in Nunito; these are the labels around it.
 | 461 | PADARIA · MERCADO · FLORES · LANCHES · SAPATOS · PIZZA · BANCA · DO SEU CARLOS · ACADEMIA DO BAIRRO · EDIFICIO IPE · Nº 42 · R. DOS IPES · FEIRA LIVRE · TUDO BEM? · EM BREVE · ONIBUS · BUS · SAMPA · METRO · SP · RESPEITO · TREINO · AMIZADE |  | `apps/client/assets-src/custom (painted in pixels, capitals, no accents)` | shop plaques and sign art; the accented forms live in the DOM labels and hotspots. "Seu Carlos", "Seu Zé", "Dona" forms of address: check register | |
 | 462 | Dom · 09:04 ☀️ (tooltip in EN: Sunday · 9:04 am · Sunny) |  | `apps/client/src/ui/clockPill.ts` | clock pill shows the PT short weekday; check Seg/Ter/Qua/Qui/Sex/Sáb/Dom | |
 
+## S. Arrival, camera, escola and cartela polish (client)
+
+<a id="s-polish"></a>
+Visual pass on the arrival, camera, diary, escola and cartela. Everything else on those screens is existing copy reused as is.
+
+| # | PT | EN | Where | Note | OK? |
+|---|---|---|---|---|---|
+| 463 | Toma a câmera e a cartela do bairro. | Here, take the camera and the neighborhood stamp card. | `apps/client/src/ui/arrival.ts` | **New, needs a Brazilian read.** Júlia's line in the plane intro. It replaces "A cartela de carimbos ainda não chegou. Quando ela existir, eu te entrego aqui." and drops "Enquanto isso," from the next line, because the cartela is on this build now. | |
+| 464 | De novo | Again | `apps/client/src/ui/escola.ts` | Existing label from the tatame rematch, reused for "practice another word" after a right answer at the escola. Check it still fits there. | |
+| 465 | Hoje: 1/4 | Today: 1/4 | `apps/client/src/ui/cartela.ts` | Trimmed from "Hoje: 1/4 hoje", which repeated the word. | |
+
 ## R. Proposed cards for the Curriculum team
 
 <a id="r-proposed-cards"></a>
@@ -626,4 +638,4 @@ No card was added during the conversion (the rule in HOWTO section 8: reference 
 
 ## Totals
 
-462 numbered strings in sections A to Q, plus 9 proposed-card entries.
+465 numbered strings in sections A to Q and S, plus 9 proposed-card entries.

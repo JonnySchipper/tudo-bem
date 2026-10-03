@@ -1276,6 +1276,51 @@ button:disabled {
   gap: 8px;
 }
 
+#cartela-pill {
+  gap: 6px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+#cartela-pill .cartela-mini {
+  font-size: 0.78em;
+  opacity: 0.85;
+}
+
+.cartela-acts {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.cartela-acts li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--cream-wall);
+}
+
+.cartela-acts li.done {
+  background: #e8f3e9;
+}
+
+.cartela-acts .tick {
+  margin-left: auto;
+  color: var(--sp-green);
+  font-weight: 700;
+}
+
+.cartela-today,
+.cartela-pay,
+.cartela-lede {
+  margin: 0.4em 0;
+}
+
 .mini-steps {
   display: inline-flex;
   gap: 3px;

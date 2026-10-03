@@ -1,5 +1,6 @@
 import {
   freshMission,
+  normalizeCartela,
   normalizeBag,
   normalizeBjj,
   normalizeBond,
@@ -150,6 +151,7 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.diary = normalizeDiary(p.diary);
   p.film = normalizeFilm(p.film);
   p.photos = normalizePhotos(p.photos);
+  p.cartela = normalizeCartela(p.cartela);
   if (p.parrotOwned) {
     if (!p.parrotColors?.length) p.parrotColors = ['verde'];
     if (!p.parrotColor) p.parrotColor = 'verde';

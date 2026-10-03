@@ -112,6 +112,14 @@ export const CHAR_LAYERS = {
   } as Record<IdlePose, IdleEntry>,
   /** hats that are not in the shop (NPC pieces) */
   npcHat: { pano: 'hat_pano' } as Record<string, string>,
+  /**
+   * Praça regulars. Each person has their own face, a hat (Júlia's high ponytail is the hair sheet) and one prop.
+   * Props are body-warped (`__esguio` / `__forte`). Faces, hats and the ponytail are not.
+   */
+  regularFace: ['face_npc_carlos', 'face_npc_julia', 'face_npc_ze', 'face_npc_chico', 'face_npc_rosa'] as const,
+  regularHair: ['hair_npc_julia'] as const,
+  regularHat: ['hat_npc_toque', 'hat_npc_panama', 'hat_npc_bucket', 'hat_npc_coroa'] as const,
+  regularProp: ['prop_npc_avental', 'prop_npc_sacola', 'prop_npc_verdura', 'prop_npc_pastel', 'prop_npc_buque'] as const,
   apron: 'npc_apron',
   /** the BJJ gi pieces (lapels and black belt) over the white camisa + calça outfit */
   gi: 'npc_gi',
@@ -171,6 +179,28 @@ export function pick<V>(table: Record<string, V>, key: string | null | undefined
   return table[fallback];
 }
 
+/**
+ * Draw scale for player and NPC sprites in the world.
+ *
+ * A standing LimeZu figure fills about 22 px of the 16×32 frame (`AVATAR_HEAD_LIFT`), on a 16 px floor tile.
+ * That is the same height as a wooden chair (21 px) and a lixeira (22 px), so people read as furniture.
+ * 4/3 lifted the crown to about 31 px, still too small for a shirt, apron, hat, or pants to read at a glance.
+ * 2 doubles the sheet from the feet. At every integer camera zoom (2..5) each art pixel lands on a whole
+ * device pixel, so those outfit regions stay crisp (about 46 px to the crown). The feet stay at the sprite origin.
+ */
+export const AVATAR_DRAW_SCALE = 2;
+
+/** Unscaled art px from the feet anchor to the top of a bare standing head (the frame is empty above the hair). */
+export const AVATAR_HEAD_LIFT = 23;
+/** Unscaled art px from the feet anchor to the top of a bare sitting head. */
+export const AVATAR_HEAD_SIT_LIFT = 16;
+
+/** World px above the feet for a distance measured on the unscaled sheet. */
+export const avatarPx = (artPx: number): number => artPx * AVATAR_DRAW_SCALE;
+
+/** World px from the feet anchor to the top of the head, including a hat (`lookHeadLift`, unscaled art px). */
+export const avatarCrown = (sitting: boolean, hatLift = 0): number => avatarPx((sitting ? AVATAR_HEAD_SIT_LIFT : AVATAR_HEAD_LIFT) + hatLift);
+
 /** Art px a hat rises above the top of the head (nameplates and bubbles stand above it). */
 export const HAT_LIFT: Record<string, number> = {
   hat_bone_verde: 1,
@@ -187,6 +217,11 @@ export const HAT_LIFT: Record<string, number> = {
   hat_cartola: 7,
   hat_pano: 2,
   hat_balde: 3,
+  hat_npc_toque: 8,
+  hat_npc_panama: 5,
+  hat_npc_bucket: 4,
+  hat_npc_coroa: 3,
+  hair_npc_julia: 6,
 };
 
 /** Layer key of an outfit at a body type (an unknown top or bottom falls back to camiseta / calca and logs once). */
@@ -218,6 +253,10 @@ export function allLayerKeys(): string[] {
   for (const h of Object.values(CHAR_LAYERS.npcHat)) keys.add(h);
   for (const i of Object.values(CHAR_LAYERS.idle)) for (const l of i.layers) if (l !== 'pose_bracos') keys.add(l);
   keys.add(CHAR_LAYERS.gestures);
+  for (const k of CHAR_LAYERS.regularFace) keys.add(k);
+  for (const k of CHAR_LAYERS.regularHair) keys.add(k);
+  for (const k of CHAR_LAYERS.regularHat) keys.add(k);
+  for (const k of CHAR_LAYERS.regularProp) for (const b of Object.keys(CHAR_LAYERS.bodySuffix) as BodyType[]) keys.add(k + CHAR_LAYERS.bodySuffix[b]);
   for (const pieces of Object.values(GARBS)) {
     for (const p of pieces) {
       if (p.warped) for (const b of Object.keys(CHAR_LAYERS.bodySuffix) as BodyType[]) keys.add(p.key + CHAR_LAYERS.bodySuffix[b]);

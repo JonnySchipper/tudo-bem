@@ -388,8 +388,9 @@ export function normalizePhotos(raw: unknown): DiaryPhoto[] {
   return out;
 }
 
-export function handCartela(): { given: false; reason: 'cartela-not-on-main' } {
-  return { given: false, reason: 'cartela-not-on-main' };
+/** Júlia hands the cartela do bairro over with the camera (every profile already has a card; this is the story beat). */
+export function handCartela(): { given: boolean; reason?: string } {
+  return { given: true };
 }
 
 /**
