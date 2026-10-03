@@ -139,12 +139,13 @@ async function enterAsGuest(page) {
   await page.click('#intro-guest');
 }
 
-/** Create account: email + password; 18+ is an optional tick on register only. */
+/** Create account: email + password. A new session opens on Criar conta; 18+ stays an optional tick. */
 async function signUp(page, name, tick18) {
   await toSignInCard(page);
-  assert(!(await page.isVisible('#intro-18')), '18+ tick is not on the login form');
-  await page.click('#intro-tab-register');
-  assert(await page.isVisible('#intro-18'), '18+ tick is on the register form');
+  const title = ((await page.textContent('#intro-panel-title')) ?? '').trim();
+  assert(title === 'Crie sua conta', `new session headline is create account (${title})`);
+  assert(await page.isVisible('#intro-18'), '18+ tick is on Criar conta');
+  assert(!(await page.isChecked('#intro-18')), '18+ starts unchecked');
   await page.fill('#intro-email', emailFor(name));
   await page.fill('#intro-password', PASSWORD);
   if (tick18) await page.check('#intro-18');

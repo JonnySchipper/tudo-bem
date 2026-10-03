@@ -114,7 +114,8 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
     });
     renderMusic();
 
-    let mode: IntroMode = 'login';
+    // A brand-new browser (no saved account) opens on Criar conta. "Bem-vindo de volta" is only for a saved session.
+    let mode: IntroMode = readAuthSession() ? 'login' : 'register';
     const err = h('div', { class: 'intro-feedback', role: 'alert', style: 'display:none' });
     const email = h('input', {
       type: 'email',
@@ -155,7 +156,13 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
     const guest = h(
       'button',
       { type: 'button', class: 'intro-guest', id: 'intro-guest' },
-      h('span', { class: 'intro-guest-pt' }, 'Explorar como visitante', h('span', { class: 'intro-guest-arrow', 'aria-hidden': 'true' }, '→')),
+      h(
+        'span',
+        { class: 'intro-guest-pt' },
+        // Multiplayer does not let this button into the world; the label must not promise entry.
+        guestEntersWorld ? 'Explorar como visitante' : 'Criar uma conta',
+        h('span', { class: 'intro-guest-arrow', 'aria-hidden': 'true' }, '→'),
+      ),
       guestEntersWorld
         ? h('span', { class: 'intro-guest-sub' }, 'Conheça a praça sem conta', h('span', { class: 'en' }, 'Try the square without an account'))
         : h('span', { class: 'intro-guest-sub' }, 'Pra jogar com a galera, crie uma conta', h('span', { class: 'en' }, 'To play with others, create an account')),
@@ -242,6 +249,12 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
     });
 
     const tabsEl = h('div', { class: 'intro-tabs', role: 'tablist', 'aria-label': 'Entrar ou criar conta' }, h('span', { class: 'intro-tab-thumb', 'aria-hidden': 'true' }), tabLogin, tabRegister);
+    const privacy = h(
+      'p',
+      { class: 'intro-legal intro-privacy', id: 'intro-privacy' },
+      'Neste build ainda não há link de política de privacidade nem recuperação de senha.',
+    );
+    syncTabs();
 
     const form = h(
       'form',
@@ -257,6 +270,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       smoke,
       guest,
       h('p', { class: 'intro-legal' }, 'Fase 0 · sua conta guarda seu avatar, suas RV e sua kitnet.'),
+      privacy,
     );
 
     form.addEventListener('submit', async (e) => {

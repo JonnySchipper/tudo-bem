@@ -725,7 +725,7 @@ const padaria: RoomDef = {
       blocks: true,
       action: 'minigame',
       interact: { x: 8, y: 3 },
-      label: { pt: 'Me vê um…', en: 'Tray game: “I’ll take a…”' },
+      label: { pt: 'Correria no Balcão', en: 'Correria no Balcão' },
     },
     { id: 'vaso_canto', kind: 'vaso', x: 9, y: 2, blocks: true },
     { id: 'banqueta_1', kind: 'banqueta', x: 1, y: 3, blocks: false, seat: 'NE' },

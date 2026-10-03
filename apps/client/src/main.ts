@@ -348,7 +348,7 @@ function updateGuides() {
     const baker = game.liveNpcs(now()).find((q) => q.id === 'carlos' || q.id === 'graca');
     if (baker?.id === 'graca') add(guideAt('npc', 'graca', 130, t.carlos ? 'Falar com Dona Graça' : 'Fale com a Dona Graça'));
     else add(guideAt('npc', 'carlos', 130, t.carlos ? 'Falar com Carlos' : 'Fale com o Seu Carlos'));
-    if (t.carlos && !t.meveum) add(guideAt('prop', 'trilho', 128, 'Me vê um…'));
+    if (t.carlos && !t.meveum) add(guideAt('prop', 'trilho', 128, 'Correria'));
     else if (t.carlos && t.meveum && !t.chapeu) add(guideAt('portal', 'padaria_praca', 110, '← Rua'));
   } else if (r.room === 'academia') {
     if (!p.giOwned) add(guideAt('prop', 'vestiario', 160, '1 · Kimono aqui'));
@@ -495,8 +495,8 @@ net.on((m: ServerMsg) => {
           () =>
             toast(
               'info',
-              'Bem-vindo à Academia do Bairro! Jogo de palavras no tatame — não é treino de luta.',
-              'Welcome to Academia do Bairro! Word-game rolls on the mat — not martial-arts training.',
+              'Bem-vindo à Academia do Bairro! Treino no tatame: pegada e força.',
+              'Welcome to Academia do Bairro! Mat practice: grips and force.',
             ),
           700,
         );
