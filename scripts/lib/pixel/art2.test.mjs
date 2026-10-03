@@ -11,7 +11,7 @@ describe('art2 portraits', async () => {
   const parts = await portraitParts();
   const by = Object.fromEntries(parts.map((p) => [p.key, p.img]));
 
-  it('has 4 expressions for each of the 5 NPCs, all 64x64', () => {
+  it('has 4 expressions for each NPC, all 64x64', () => {
     expect(parts).toHaveLength(NPCS.length * EXPRESSIONS.length);
     for (const npc of NPCS) for (const e of EXPRESSIONS) {
       const img = by[`portraits/${npc}_${e}`];
@@ -33,5 +33,13 @@ describe('art2 portraits', async () => {
   it('is deterministic', async () => {
     const again = await portraitParts();
     expect(again.every((p, i) => diff(p.img, parts[i].img) === 0)).toBe(true);
+  });
+
+  it('feira vendor portraits are not Carlos or Graça stand-ins', () => {
+    for (const e of EXPRESSIONS) {
+      expect(diff(by[`portraits/ze_${e}`], by[`portraits/carlos_${e}`]), `ze vs carlos ${e}`).toBeGreaterThan(120);
+      expect(diff(by[`portraits/chico_${e}`], by[`portraits/carlos_${e}`]), `chico vs carlos ${e}`).toBeGreaterThan(120);
+      expect(diff(by[`portraits/rosa_${e}`], by[`portraits/graca_${e}`]), `rosa vs graca ${e}`).toBeGreaterThan(120);
+    }
   });
 });

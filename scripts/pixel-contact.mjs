@@ -130,7 +130,7 @@ async function buildCells() {
   if (SET === 'art1') return ART1.map((key) => ({ key, frames: cellImage(key) }));
   if (SET === 'portraits') {
     const out = [];
-    for (const npc of ['carlos', 'nanda', 'julia', 'graca', 'tia_lu']) {
+    for (const npc of ['carlos', 'nanda', 'julia', 'graca', 'tia_lu', 'prof', 'ze', 'chico', 'rosa']) {
       for (const e of ['neutro', 'feliz', 'surpreso', 'pensativo']) out.push({ key: `portraits/${npc}_${e}`, frames: [await fileImage(`portraits/${npc}_${e}`)] });
       // 1x and 2x references (what the DOM will show at those sizes)
       const ref = await fileImage(`portraits/${npc}_neutro`);

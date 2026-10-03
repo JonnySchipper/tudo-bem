@@ -10269,6 +10269,66 @@
    "w": 64,
    "h": 64
   },
+  "portraits/ze_neutro": {
+   "file": "portraits/ze_neutro.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/ze_feliz": {
+   "file": "portraits/ze_feliz.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/ze_surpreso": {
+   "file": "portraits/ze_surpreso.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/ze_pensativo": {
+   "file": "portraits/ze_pensativo.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/chico_neutro": {
+   "file": "portraits/chico_neutro.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/chico_feliz": {
+   "file": "portraits/chico_feliz.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/chico_surpreso": {
+   "file": "portraits/chico_surpreso.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/chico_pensativo": {
+   "file": "portraits/chico_pensativo.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/rosa_neutro": {
+   "file": "portraits/rosa_neutro.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/rosa_feliz": {
+   "file": "portraits/rosa_feliz.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/rosa_surpreso": {
+   "file": "portraits/rosa_surpreso.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/rosa_pensativo": {
+   "file": "portraits/rosa_pensativo.png",
+   "w": 64,
+   "h": 64
+  },
   "icons/pao": {
    "file": "icons/pao.png",
    "w": 16,
@@ -10311,16 +10371,6 @@
   },
   "icons/agua": {
    "file": "icons/agua.png",
-   "w": 16,
-   "h": 16
-  },
-  "icons/pipoca": {
-   "file": "icons/pipoca.png",
-   "w": 16,
-   "h": 16
-  },
-  "icons/agua_de_coco": {
-   "file": "icons/agua_de_coco.png",
    "w": 16,
    "h": 16
   },
@@ -10376,6 +10426,16 @@
   },
   "icons/caldo_de_cana": {
    "file": "icons/caldo_de_cana.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/pipoca": {
+   "file": "icons/pipoca.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/agua_de_coco": {
+   "file": "icons/agua_de_coco.png",
    "w": 16,
    "h": 16
   },

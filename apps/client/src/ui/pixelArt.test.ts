@@ -21,9 +21,8 @@ describe('portrait expressions', () => {
 
   it('every expression the UI can ask for exists for every NPC', () => {
     expect(portraitKey('prof', 'feliz')).toBe('portraits/prof_feliz');
-    // the feira vendors borrow Carlos' and Graça's portraits until their own are drawn
-    expect(portraitKey('ze')).toBe('portraits/carlos_neutro');
-    for (const npc of ['carlos', 'nanda', 'julia', 'graca', 'tia_lu', 'prof']) {
+    expect(portraitKey('ze', 'feliz')).toBe('portraits/ze_feliz');
+    for (const npc of ['carlos', 'nanda', 'julia', 'graca', 'tia_lu', 'prof', 'ze', 'chico', 'rosa']) {
       for (const e of ['neutro', 'feliz', 'surpreso'] as const) expect(manifest.images?.[portraitKey(npc, e)], `${npc} ${e}`).toBeTruthy();
     }
   });
