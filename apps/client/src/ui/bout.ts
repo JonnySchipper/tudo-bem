@@ -1,13 +1,10 @@
 /**
- * "Treino no tatame": the overlay of the bout. The match itself is in the world (render/pixel/boutStage.ts); this is only what you
- * touch: a compact bottom panel (partner picker, intent chips, the challenge card with its timer ring, the momentum bar, the pegada
- * meter, the result) and a pinned top scoreboard (Pontos / Vantagens / Tempo). No modal, no cover over the gym.
- *
- * The server owns the bout (apps/server/src/bout.ts); this file sends intents and answers and draws what comes back.
+ * "Treino no tatame": grip contest overlay (pegada / força). The match runs on the mat (boutStage.ts):
+ * partner picker, grip move chips, resolve line in Portuguese, step scoreboard, rematch on loss.
+ * Server: apps/server/src/bout.ts (no quiz).
  */
 import {
   CLOCK_RATE,
-  INTENTS,
   PEGADA_MAX,
   BELT_LABELS,
   cpuLook,
@@ -18,9 +15,10 @@ import {
   type BoutSnapshot,
   type ChallengeView,
   type ClientMsg,
+  INTENTS,
   type PartnerId,
-  boutStepLabel,
   gripMoveLabel,
+  gripRoundChrome,
   type GripMoveId,
 } from '@tudobem/shared';
 import { game } from '../state';
@@ -74,7 +72,7 @@ export class BoutUI {
     this.meters = h('div', { class: 'bout-meters', id: 'bout-meters' });
     this.body = h('div', { class: 'bout-body', id: 'bout-body' });
     this.panel = h('div', { class: 'bout-panel', id: 'bout', role: 'region', 'aria-label': 'Treino no tatame' }, this.meters, this.body);
-    this.root = h('div', { class: `bout-root${this.showEn ? '' : ' bout-noen'}`, id: 'bout-root' }, this.top, this.panel);
+    this.root = h('div', { class: 'bout-root bout-grip bout-noen', id: 'bout-root' }, this.top, this.panel);
     document.body.classList.add('bout-on');
     (document.getElementById('ui') ?? document.body).append(this.root);
     game.modalOpen = true;
@@ -315,7 +313,7 @@ export class BoutUI {
       h(
         'div',
         { class: 'bout-intents', id: 'bout-intents', 'data-finish': String(m.finish), 'data-seq': String(m.seq) },
-        h('div', { class: 'bout-ask' }, ...this.bi('Pegada ou força?', 'Grip or force?'), this.quitBtn()),
+        h('div', { class: 'bout-ask' }, h('span', { class: 'pt' }, 'O que você faz?'), this.quitBtn()),
         fin,
         h('div', { class: 'bout-chips' }, ...chips),
         this.timerBar(),
@@ -325,13 +323,10 @@ export class BoutUI {
   }
 
   private intentChip(i: BoutIntentOut, pick: () => void, n: number): HTMLElement {
-    const risk = RISK_LABEL[i.risk];
     return h(
       'button',
-      { class: `bout-intent risk-${i.risk}`, type: 'button', 'data-intent': i.id, 'data-k': String(n), 'aria-label': `${i.pt}, ${risk.pt}`, onclick: pick },
-      h('span', { class: 'pips', title: `${risk.pt} · ${risk.en}` }, ...[1, 2, 3].map((n) => h('i', { class: n <= i.risk ? 'on' : '' }))),
+      { class: 'bout-intent risk-1', type: 'button', 'data-intent': i.id, 'data-k': String(n), 'aria-label': i.pt, onclick: pick },
       h('b', { class: 'pt' }, i.pt),
-      en(i.en),
     );
   }
 
@@ -479,8 +474,7 @@ export class BoutUI {
         'div',
         { class: `bout-resolve ${m.yours.correct ? 'right' : 'wrong'}`, id: 'bout-resolve', 'data-correct': String(m.yours.correct) },
         h('b', { class: 'bout-banner' }, movePt),
-        this.showEn ? en(gripMoveLabel(m.intent as GripMoveId).en) : null,
-        call ? h('div', { class: 'bout-called', id: 'bout-called' }, h('b', null, call.pt), en(call.en)) : null,
+        call ? h('div', { class: 'bout-called', id: 'bout-called' }, h('b', null, call.pt)) : null,
         h('span', { class: 'bout-who' }, `${this.partnerName}: ${partnerPt}`),
       ),
     );
@@ -626,21 +620,15 @@ export class BoutUI {
   private renderTop(): void {
     const s = this.snap;
     const me = game.profile?.name ?? 'Você';
-    const side = (cls: string, name: string, pts: number, adv: number, extra?: HTMLElement | null) =>
-      h(
-        'div',
-        { class: `bout-side ${cls}` },
-        h('span', { class: 'bout-name' }, name, extra),
-        h('span', { class: 'bout-num pts', 'data-k': 'pontos' }, String(pts)),
-        h('span', { class: 'bout-num adv', 'data-k': 'vantagens' }, String(adv)),
-      );
-    const labels = h('div', { class: 'bout-labels' }, h('span', null, 'Pontos', en('Points', true)), h('span', null, 'Vantagens', en('Advantages', true)));
-    const clock = h('div', { class: 'bout-clock', id: 'bout-clock', 'data-k': 'tempo' }, h('b', { id: 'bout-clock-t' }, this.clockShown), h('span', null, 'Tempo', en('Time', true)));
+    const side = (cls: string, name: string, steps: number, extra?: HTMLElement | null) =>
+      h('div', { class: `bout-side ${cls}` }, h('span', { class: 'bout-name' }, name, extra), h('span', { class: 'bout-num pts', 'data-k': 'passos' }, String(steps)));
+    const labels = h('div', { class: 'bout-labels' }, h('span', null, 'Passos'));
+    const clock = h('div', { class: 'bout-clock', id: 'bout-clock', 'data-k': 'tempo' }, h('b', { id: 'bout-clock-t' }, this.clockShown), h('span', null, 'Tempo'));
     const belt = this.bjj ? h('i', { class: `belt-dot belt-${this.bjj.belt}`, title: BELT_LABELS[this.bjj.belt].pt }) : null;
     this.top.replaceChildren(
-      side('you', me, s?.points.you ?? 0, s?.adv.you ?? 0, belt),
+      side('you', me, s?.points.you ?? 0, belt),
       h('div', { class: 'bout-mid' }, clock, labels),
-      side('partner', this.partnerId ? this.partnerName : 'Parceiro', s?.points.partner ?? 0, s?.adv.partner ?? 0),
+      side('partner', this.partnerId ? this.partnerName : 'Parceiro', s?.points.partner ?? 0),
     );
     this.top.dataset.shown = this.snap ? '1' : '0';
   }
@@ -651,28 +639,33 @@ export class BoutUI {
       this.meters.replaceChildren();
       return;
     }
-    const step = boutStepLabel(s.rung);
-    const who = s.ahead === 'you' ? 'Você por cima' : s.ahead === 'partner' ? `${this.partnerName} por cima` : null;
-    const whoEn = s.ahead === 'you' ? 'you on top' : s.ahead === 'partner' ? 'partner on top' : null;
+    const chrome = gripRoundChrome({ stepsYou: s.points.you, stepsThem: s.points.partner });
+    const who = s.ahead === 'you' ? 'Você avança' : s.ahead === 'partner' ? `${this.partnerName} avança` : 'Equilibrado';
     const frac = momentumFrac(s.momentum);
     const bar = h(
       'div',
-      { class: 'bout-momentum', id: 'bout-momentum', role: 'meter', 'aria-label': 'Impulso (Momentum)', 'aria-valuenow': String(Math.round(frac * 100)), 'data-m': String(Math.round(s.momentum)) },
+      { class: 'bout-momentum', id: 'bout-momentum', role: 'meter', 'aria-label': 'Terreno', 'aria-valuenow': String(Math.round(frac * 100)), 'data-m': String(Math.round(s.momentum)) },
       h('span', { class: 'lbl l' }, this.partnerId ? this.partnerName : 'Parceiro'),
       h('div', { class: 'track' }, h('i', { class: 'fill', style: `${frac >= 0 ? 'left:50%' : `left:${50 + frac * 50}%`};width:${Math.abs(frac) * 50}%` }), h('i', { class: 'mid' })),
       h('span', { class: 'lbl r' }, 'Você'),
     );
     const pegada = h(
       'div',
-      { class: 'bout-pegada', id: 'bout-pegada', 'data-n': String(s.pegada), title: 'Pegada: respostas rápidas enchem / Grip: quick answers fill it' },
-      h('span', { class: 'lbl' }, 'Pegada', en('Grip', true)),
+      { class: 'bout-pegada', id: 'bout-pegada', 'data-n': String(s.pegada), title: 'Suas mãos no kimono dele' },
+      h('span', { class: 'lbl' }, 'Pegadas'),
       ...Array.from({ length: PEGADA_MAX }, (_, i) => h('i', { class: i < s.pegada ? 'on' : '' })),
+    );
+    const pegadaB = h(
+      'div',
+      { class: 'bout-pegada them', id: 'bout-pegada-them', 'data-n': String(s.pegadaB), title: 'Mãos dele no seu kimono' },
+      h('span', { class: 'lbl' }, 'Dele'),
+      ...Array.from({ length: PEGADA_MAX }, (_, i) => h('i', { class: i < s.pegadaB ? 'on' : '' })),
     );
     const ladder = h('div', { class: 'bout-ladder', id: 'bout-ladder', 'data-rung': String(s.rung) }, ...ladderDots(s.rung).map((d) => h('i', { class: `${d.here ? 'here' : ''} ${d.filled ? 'fill' : ''}${d.rung === 0 ? ' mid' : ''}`.trim() })));
     this.meters.replaceChildren(
-      h('div', { class: 'bout-pos', id: 'bout-pos', 'data-pos': s.position }, h('b', null, step.pt), who ? ' ' : '', who ? h('span', { class: 'who' }, `· ${who}`) : '', en(who ? ` ${step.en} · ${whoEn}` : ` ${step.en}`)),
+      h('div', { class: 'bout-pos', id: 'bout-pos', 'data-pos': s.position }, h('b', null, chrome.pt), h('span', { class: 'who' }, ` · ${who}`)),
       bar,
-      h('div', { class: 'bout-row2' }, pegada, ladder),
+      h('div', { class: 'bout-row2' }, pegada, pegadaB, ladder),
     );
   }
 
