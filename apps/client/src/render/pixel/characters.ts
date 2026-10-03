@@ -112,6 +112,14 @@ export const CHAR_LAYERS = {
   } as Record<IdlePose, IdleEntry>,
   /** hats that are not in the shop (NPC pieces) */
   npcHat: { pano: 'hat_pano' } as Record<string, string>,
+  /**
+   * Praça regulars. Each person has their own face, a hat (Júlia's high ponytail is the hair sheet) and one prop.
+   * Props are body-warped (`__esguio` / `__forte`). Faces, hats and the ponytail are not.
+   */
+  regularFace: ['face_npc_carlos', 'face_npc_julia', 'face_npc_ze', 'face_npc_chico', 'face_npc_rosa'] as const,
+  regularHair: ['hair_npc_julia'] as const,
+  regularHat: ['hat_npc_toque', 'hat_npc_panama', 'hat_npc_bucket', 'hat_npc_coroa'] as const,
+  regularProp: ['prop_npc_avental', 'prop_npc_sacola', 'prop_npc_verdura', 'prop_npc_pastel', 'prop_npc_buque'] as const,
   apron: 'npc_apron',
   /** the BJJ gi pieces (lapels and black belt) over the white camisa + calça outfit */
   gi: 'npc_gi',
@@ -187,6 +195,11 @@ export const HAT_LIFT: Record<string, number> = {
   hat_cartola: 7,
   hat_pano: 2,
   hat_balde: 3,
+  hat_npc_toque: 8,
+  hat_npc_panama: 5,
+  hat_npc_bucket: 4,
+  hat_npc_coroa: 3,
+  hair_npc_julia: 6,
 };
 
 /** Layer key of an outfit at a body type (an unknown top or bottom falls back to camiseta / calca and logs once). */
@@ -218,6 +231,10 @@ export function allLayerKeys(): string[] {
   for (const h of Object.values(CHAR_LAYERS.npcHat)) keys.add(h);
   for (const i of Object.values(CHAR_LAYERS.idle)) for (const l of i.layers) if (l !== 'pose_bracos') keys.add(l);
   keys.add(CHAR_LAYERS.gestures);
+  for (const k of CHAR_LAYERS.regularFace) keys.add(k);
+  for (const k of CHAR_LAYERS.regularHair) keys.add(k);
+  for (const k of CHAR_LAYERS.regularHat) keys.add(k);
+  for (const k of CHAR_LAYERS.regularProp) for (const b of Object.keys(CHAR_LAYERS.bodySuffix) as BodyType[]) keys.add(k + CHAR_LAYERS.bodySuffix[b]);
   for (const pieces of Object.values(GARBS)) {
     for (const p of pieces) {
       if (p.warped) for (const b of Object.keys(CHAR_LAYERS.bodySuffix) as BodyType[]) keys.add(p.key + CHAR_LAYERS.bodySuffix[b]);

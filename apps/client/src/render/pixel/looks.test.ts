@@ -89,12 +89,14 @@ describe('NPC looks match their portraits', () => {
 
   const keysOf = (id: string) => lookForNpc(id).layers.map((l) => l.key);
 
-  it('Carlos: white apron, baker hat, mustache', () => {
+  it('Carlos: white apron, baker toque, his own face (the mustache is on that sheet)', () => {
     const k = keysOf('carlos');
-    expect(k).toContain('npc_apron__forte');
-    expect(k).toContain('hat_chapeu_chef');
-    expect(k).toContain('extra_bigode');
-    expect(lookForNpc('carlos').layers.find((l) => l.key.startsWith('npc_apron'))?.ramps?.accent).toBe('#f1eee8');
+    expect(k).toContain('prop_npc_avental__forte');
+    expect(k).toContain('hat_npc_toque');
+    expect(k).toContain('face_npc_carlos');
+    expect(k.some((x) => x.startsWith('eyes_') || x.startsWith('extra_'))).toBe(false);
+    expect(lookForNpc('carlos').layers.find((l) => l.key.startsWith('prop_npc_avental'))?.ramps?.accent).toBe('#f1eee8');
+    expect(lookForNpc('carlos').layers.find((l) => l.key === 'face_npc_carlos')?.ramps?.hair).toBe(HAIR_COLORS[5]);
   });
 
   it('Nanda: mustard top and straw hat', () => {
@@ -111,7 +113,14 @@ describe('NPC looks match their portraits', () => {
     expect(k.some((x) => x.startsWith('outfit_camisa_calca'))).toBe(true);
   });
 
-  it('Júlia: blouse', () => expect(keysOf('julia').some((k) => k.startsWith('outfit_blusa'))).toBe(true));
+  it('Júlia: blouse, high ponytail and a market tote, not an apron', () => {
+    const k = keysOf('julia');
+    expect(k.some((x) => x.startsWith('outfit_blusa'))).toBe(true);
+    expect(k).toContain('hair_npc_julia');
+    expect(k).toContain('prop_npc_sacola');
+    expect(k).toContain('face_npc_julia');
+    expect(k.some((x) => x.startsWith('npc_apron') || x.startsWith('hat_'))).toBe(false);
+  });
 
   it('Graça: grey bun, glasses, apron', () => {
     const l = lookForNpc('graca');
@@ -129,5 +138,35 @@ describe('NPC looks match their portraits', () => {
   it('the five NPCs all look different', () => {
     const set = new Set(['carlos', 'nanda', 'julia', 'graca', 'tia_lu'].map((id) => lookKey(lookForNpc(id))));
     expect(set.size).toBe(5);
+  });
+
+  it('a stranger can name the five regulars by hat or prop, not by shirt color', () => {
+    const keys = (id: string) => lookForNpc(id).layers.map((l) => l.key);
+    const hat = (id: string) => keys(id).find((k) => k.startsWith('hat_npc_') || k.startsWith('hair_npc_'));
+    const prop = (id: string) => keys(id).find((k) => k.startsWith('prop_npc_'));
+    expect(hat('carlos')).toBe('hat_npc_toque');
+    expect(prop('carlos')).toBe('prop_npc_avental__forte');
+    expect(hat('julia')).toBe('hair_npc_julia');
+    expect(prop('julia')).toBe('prop_npc_sacola');
+    expect(hat('ze')).toBe('hat_npc_panama');
+    expect(prop('ze')).toBe('prop_npc_verdura__forte');
+    expect(hat('chico')).toBe('hat_npc_bucket');
+    expect(prop('chico')).toBe('prop_npc_pastel');
+    expect(hat('rosa')).toBe('hat_npc_coroa');
+    expect(prop('rosa')).toBe('prop_npc_buque__esguio');
+    const hats = ['carlos', 'julia', 'ze', 'chico', 'rosa'].map(hat);
+    const props = ['carlos', 'julia', 'ze', 'chico', 'rosa'].map(prop);
+    expect(new Set(hats).size).toBe(5);
+    expect(new Set(props).size).toBe(5);
+    // Zé is not Carlos, Chico is not a second baker, Rosa is not Graça, Júlia is not a baker.
+    for (const id of ['julia', 'ze', 'chico', 'rosa']) {
+      expect(keys(id).some((k) => k.startsWith('npc_apron') || k.includes('toque') || k.includes('avental'))).toBe(false);
+    }
+    expect(lookForNpc('ze').layers.find((l) => l.key === 'face_npc_ze')?.ramps?.hair).toBe(HAIR_COLORS[0]);
+    expect(keys('chico')).toContain('face_npc_chico');
+    expect(keys('rosa')).toContain('face_npc_rosa');
+    expect(keys('rosa').some((k) => k === 'extra_oculos' || k === 'hair_coque' || k.startsWith('npc_apron'))).toBe(false);
+    expect(keys('graca')).toEqual(expect.arrayContaining(['hair_coque', 'extra_oculos']));
+    expect(keys('graca').some((k) => k.startsWith('npc_apron'))).toBe(true);
   });
 });

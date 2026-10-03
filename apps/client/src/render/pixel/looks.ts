@@ -110,8 +110,20 @@ export function lookForAppearance(a: Appearance, opts: LookOptions = {}): Look {
 
 /** Art px from the top of a bare head to the top of this look's sprite (hat, plus the body height change): labels stand above it. */
 export function lookHeadLift(look: Look): number {
-  const hat = look.layers.find((l) => l.key.startsWith('hat_'));
+  const hat = look.layers.find((l) => l.key.startsWith('hat_') || l.key.startsWith('hair_npc_'));
   return (hat ? (HAT_LIFT[hat.key] ?? 3) : 0) + (look.body === 'esguio' ? 1 : look.body === 'forte' ? -1 : 0);
+}
+
+/** A sheet drawn over the LimeZu body: the regular's own face, hat, or the one prop they are named by. */
+export interface NpcSignature {
+  /** replaces the pack eyes, brows and extras */
+  face?: string;
+  /** replaces the hair sheet (Júlia's high ponytail) */
+  hair?: string;
+  /** hat sheet, recolored with these two ramps. Not a catalog hat. */
+  hat?: { key: string; color: string; accent: string };
+  /** one prop, body-warped. `ramps` recolors it; fixed hues in the sheet stay put. */
+  prop?: { key: string; ramps?: Ramps };
 }
 
 /** Everything that makes an NPC read like their portrait (public/pixel/portraits): the appearance, plus a hat and an apron. */
@@ -122,28 +134,40 @@ export interface NpcStyle {
   apron?: string;
   /** BJJ gi pieces over the outfit (Professora Bia) */
   gi?: boolean;
+  /** custom face, hat and prop for a praça regular. The walking body stays the LimeZu paper-doll. */
+  signature?: NpcSignature;
 }
 
 const base = (o: Partial<Appearance>): Appearance => ({ ...DEFAULT_APPEARANCE, ...o });
 
 /**
  * Keyed by NPC id (a string, so ids that are not on a map yet work too).
- * Carlos: white baker's cap + apron over a terracotta shirt + grey mustache. Nanda: mustard top, straw hat, hoops, dark curls.
- * Júlia: light blouse, long chestnut hair. Graça: grey bun, round glasses, pale-blue apron over a plum top. Tia Lu: red polka-dot
- * headscarf, gold hoops, green top, orange apron.
+ * The five regulars are named by a hat (or Júlia's ponytail) and one prop, not by shirt color.
+ * Carlos: chef's toque + flour apron. Júlia: high ponytail + market tote (the praça guide, no apron).
+ * Zé: panama, stubble, thin mustache, a bunch of verduras with an olive. Chico: yellow bucket, full beard, a pastel.
+ * Rosa: flower crown, gold hoops, a bouquet. Graça keeps the grey bun, glasses and pale apron — she is not Rosa.
+ * Nanda: mustard top, straw hat. Tia Lu: red headscarf, orange apron.
  */
 export const NPC_STYLES: Record<NpcId, NpcStyle> = {
   carlos: {
-    appearance: base({ body: 'forte', skin: 3, hair: 'curto', hairColor: 5, top: 'camisa', topColor: 3, bottom: 'calca', bottomColor: 5, shoes: 1, face: 'maduro', extra: 'bigode', idle: 'bracos' }),
-    hat: 'chapeu_chef',
-    apron: '#f1eee8',
+    appearance: base({ body: 'forte', skin: 3, hair: 'curto', hairColor: 5, top: 'camisa', topColor: 3, bottom: 'calca', bottomColor: 5, shoes: 1, face: 'maduro', extra: 'nenhum', idle: 'solto' }),
+    signature: {
+      face: 'face_npc_carlos',
+      hat: { key: 'hat_npc_toque', color: '#ffffff', accent: '#e0dcd2' },
+      prop: { key: 'prop_npc_avental', ramps: { accent: '#f1eee8' } },
+    },
   },
   nanda: {
     appearance: base({ body: 'esguio', skin: 5, hair: 'cacheado', hairColor: 0, top: 'camiseta', topColor: 1, bottom: 'calca', bottomColor: 2, shoes: 2, face: 'doce', extra: 'brincos', idle: 'cintura' }),
     hat: 'chapeu_palha',
   },
   julia: {
-    appearance: base({ body: 'medio', skin: 1, hair: 'longo', hairColor: 3, top: 'blusa', topColor: 4, bottom: 'calca', bottomColor: 2, shoes: 0, face: 'suave', extra: 'nenhum', idle: 'bolsa' }),
+    appearance: base({ body: 'medio', skin: 1, hair: 'longo', hairColor: 3, top: 'blusa', topColor: 4, bottom: 'calca', bottomColor: 2, shoes: 0, face: 'suave', extra: 'nenhum', idle: 'solto' }),
+    signature: {
+      face: 'face_npc_julia',
+      hair: 'hair_npc_julia',
+      prop: { key: 'prop_npc_sacola', ramps: { accent: '#f4ede2' } },
+    },
   },
   graca: {
     appearance: base({ body: 'medio', skin: 6, hair: 'coque', hairColor: 5, top: 'blusa', topColor: 7, bottom: 'calca', bottomColor: 5, shoes: 1, face: 'maduro', extra: 'oculos', idle: 'bracos' }),
@@ -154,22 +178,30 @@ export const NPC_STYLES: Record<NpcId, NpcStyle> = {
     hat: { layer: 'hat_pano', color: '#c8202f', accent: '#f4ede2' },
     apron: '#e8892b',
   },
-  // The feira vendors (Phase 9), built from existing layers only (hats and aprons of the NPC set): Seu Zé in a panama hat and an olive apron,
-  // Seu Chico in a yellow bucket hat and a white apron (the pastel fryer), Dona Rosa in a flower crown. Dialogue portraits: `portraits/ze_*`, `portraits/chico_*`, `portraits/rosa_*`.
+  // Feira vendors. The prop is the stall (verduras, pastel, flores), not an apron — an apron would make them a second baker or a second Graça.
   ze: {
-    appearance: base({ body: 'forte', skin: 3, hair: 'raspado', hairColor: 5, top: 'camisa', topColor: 11, bottom: 'calca', bottomColor: 10, shoes: 2, face: 'maduro', extra: 'bigode', idle: 'bracos' }),
-    hat: 'panama',
-    apron: '#8a9a52',
+    appearance: base({ body: 'forte', skin: 3, hair: 'raspado', hairColor: 0, top: 'camisa', topColor: 11, bottom: 'calca', bottomColor: 10, shoes: 2, face: 'maduro', extra: 'nenhum', idle: 'solto' }),
+    signature: {
+      face: 'face_npc_ze',
+      hat: { key: 'hat_npc_panama', color: '#efe3c4', accent: '#2a2a33' },
+      prop: { key: 'prop_npc_verdura' },
+    },
   },
   chico: {
-    appearance: base({ body: 'medio', skin: 5, hair: 'curto', hairColor: 0, top: 'camiseta', topColor: 4, bottom: 'calca', bottomColor: 2, shoes: 1, face: 'marcante', extra: 'barba', idle: 'solto' }),
-    hat: 'bucket_amarelo',
-    apron: '#f1eee8',
+    appearance: base({ body: 'medio', skin: 5, hair: 'curto', hairColor: 0, top: 'camiseta', topColor: 4, bottom: 'calca', bottomColor: 2, shoes: 1, face: 'marcante', extra: 'nenhum', idle: 'solto' }),
+    signature: {
+      face: 'face_npc_chico',
+      hat: { key: 'hat_npc_bucket', color: '#e8b634', accent: '#c9921c' },
+      prop: { key: 'prop_npc_pastel' },
+    },
   },
   rosa: {
-    appearance: base({ body: 'esguio', skin: 2, hair: 'ondulado', hairColor: 3, top: 'blusa', topColor: 9, bottom: 'saia', bottomColor: 7, shoes: 0, face: 'suave', extra: 'brincos', idle: 'solto' }),
-    hat: 'coroa_flores',
-    apron: '#f4ede2',
+    appearance: base({ body: 'esguio', skin: 2, hair: 'ondulado', hairColor: 3, top: 'blusa', topColor: 9, bottom: 'saia', bottomColor: 7, shoes: 0, face: 'suave', extra: 'nenhum', idle: 'solto' }),
+    signature: {
+      face: 'face_npc_rosa',
+      hat: { key: 'hat_npc_coroa', color: '#f2c230', accent: '#e07a5f' },
+      prop: { key: 'prop_npc_buque' },
+    },
   },
   // Professora Bia (BJJ): a white gi (camisa + calça outfit in off-white) with the gi layer on top (crossed lapels, black belt and knot),
   // short dark hair, arms crossed. Her portrait (portraits/prof_*) is a woman in her 30s with short dark hair and a gi collar.
@@ -179,11 +211,40 @@ export const NPC_STYLES: Record<NpcId, NpcStyle> = {
   },
 };
 
-/** NPC look: the room's appearance when given (so map edits still show), otherwise the style's own; hat and apron always from the style. */
+/**
+ * Drops the pack face (and, when the regular brings their own, the hair and the catalog hat) and stacks the signature
+ * sheets: prop over the outfit, then hair, face, hat, and the gesture layer last.
+ */
+function withSignature(look: Look, sig: NpcSignature): Look {
+  const gest = look.layers.find((l) => l.key === 'emote_gestures');
+  const skin = look.layers.find((l) => l.key.startsWith('body_'))?.ramps?.skin ?? '#c68a5f';
+  const hairHex = look.layers.find((l) => l.key.startsWith('hair_'))?.ramps?.hair ?? '#1d1716';
+  const layers = look.layers.filter((l) => {
+    if (l.key === 'emote_gestures') return false;
+    if (sig.face && (l.key.startsWith('eyes_') || l.key.startsWith('face_') || l.key.startsWith('extra_'))) return false;
+    if (sig.hair && l.key.startsWith('hair_')) return false;
+    if (sig.hat && l.key.startsWith('hat_')) return false;
+    return true;
+  });
+  const suffix = CHAR_LAYERS.bodySuffix[look.body];
+  if (sig.prop) {
+    const at = layers.findIndex((l) => l.key.startsWith('outfit_'));
+    const prop: LookLayer = { key: sig.prop.key + suffix, ...(sig.prop.ramps ? { ramps: sig.prop.ramps } : {}) };
+    layers.splice(at < 0 ? layers.length : at + 1, 0, prop);
+  }
+  if (sig.hair) layers.push({ key: sig.hair, ramps: { hair: hairHex }, hl: true });
+  if (sig.face) layers.push({ key: sig.face, ramps: { skin, hair: hairHex } });
+  if (sig.hat) layers.push({ key: sig.hat.key, ramps: { hat: sig.hat.color, accent: sig.hat.accent } });
+  if (gest) layers.push(gest);
+  return { ...look, layers };
+}
+
+/** NPC look: the style's authored appearance when there is one; hat, apron and signature always from the style. */
 export function lookForNpc(id: string, appearance?: Appearance, hatId?: string | null): Look {
   const style = (NPC_STYLES as Record<string, NpcStyle | undefined>)[id];
   const a = style?.appearance ?? appearance ?? DEFAULT_APPEARANCE;
-  return lookForAppearance(a, { hat: style?.hat ?? hatId ?? null, apron: style?.apron ?? null, gi: style?.gi ?? false });
+  const look = lookForAppearance(a, { hat: style?.signature?.hat ? null : (style?.hat ?? hatId ?? null), apron: style?.apron ?? null, gi: style?.gi ?? false });
+  return style?.signature ? withSignature(look, style.signature) : look;
 }
 
 /** 53-bit string hash (cyrb53), base 36. */

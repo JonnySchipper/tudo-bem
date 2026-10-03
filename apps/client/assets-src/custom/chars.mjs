@@ -12,6 +12,7 @@ import { KEY_RAMPS } from '../../../client/src/render/pixel/palette.ts';
 import { HAT_ART } from './hats.mjs';
 import { buildGarbs } from './garb.mjs';
 import { APRON_ART, EXTRA_ART, FACE_ALPHA, FACE_ART, GESTURE_FRAMES, HAIR_ADDON, POSE_ART } from './charart.mjs';
+import { buildRegulars } from './regulars.mjs';
 
 const SRC_H = 32 * 10;
 /** hair styles whose pack fringe reaches the eyes on the front frames: pulled up and aside (wave 2) */
@@ -120,6 +121,9 @@ export async function buildChars({ base }) {
 
   // ---- wave 2 garbs (jersey, jacket, dungarees, flip-flops, backpack, delivery box, tote, feira cart)
   buildGarbs({ layers, an, regBody });
+
+  // ---- the five regulars: custom face, hat (or ponytail) and one prop over the LimeZu body
+  buildRegulars({ layers, an, regBody });
 
   // ---- body variants
   for (const [key, img] of Object.entries(bodyAttached)) {
