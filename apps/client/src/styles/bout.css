@@ -1448,8 +1448,8 @@ body.bout-on .toasts {
   .bout-panel {
     width: calc(100vw - 10px);
     bottom: calc(5px + var(--safe-bottom));
-    padding: 6px 8px 8px;
-    gap: 5px;
+    padding: 4px 6px 4px;
+    gap: 3px;
     max-height: 35vh;
     overflow-y: auto;
   }
@@ -1459,19 +1459,8 @@ body.bout-on .toasts {
   .bout-pos {
     font-size: 12px;
   }
-  .bout-momentum .track {
-    height: 12px;
-  }
-  .bout-row2 {
-    gap: 8px;
-    flex-wrap: nowrap;
-  }
-  .bout-pegada {
-    font-size: 11px;
-  }
-  .bout-ladder i {
-    width: 7px;
-    height: 7px;
+  .bout-momentum {
+    display: none;
   }
   .bout-prompt {
     font-size: 16px;
@@ -1516,8 +1505,31 @@ body.bout-on .toasts {
   .bout-chips {
     gap: 5px;
   }
+  .bout-posture {
+    min-height: 22px;
+    gap: 6px;
+  }
   .bout-posture .verb {
     font-size: 22px;
+  }
+  .bout-spot {
+    padding: 2px 3px 3px;
+    gap: 1px;
+  }
+  /* The colored cards already say who holds each grip, so the pip row can go. */
+  .bout-row2 {
+    display: none;
+  }
+  .bout-spot .spot-name .en,
+  .bout-spot .spot-who .en {
+    display: none;
+  }
+  /* A grip you hold offers both forces. Drop the gloss under those two so both words stay on screen. */
+  .bout-spot .acts:has(> .bout-intent:nth-child(2)) .bout-intent .en {
+    display: none;
+  }
+  .bout-spot .acts:has(> .bout-intent:nth-child(2)) .bout-intent {
+    min-height: 28px;
   }
   .bout-spot .bout-intent {
     min-height: 32px;
