@@ -43,7 +43,7 @@ import { BoutStage } from './boutStage';
 import { boutFeed } from './boutFeed';
 import { CounterStage } from './correriaStage';
 import { correriaFeed } from './correriaFeed';
-import { FOCUS } from './correriaArt';
+import { FOCUS, NEED } from './correriaArt';
 import { roomKey, syncViews } from './reconcile';
 import { DEPTH, PROP_LIGHT, fencePieces, footprintRect, inflate, propAnchor, propDepth, furnitureArtKey, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
 import { sceneryFor } from './scenery';
@@ -997,7 +997,7 @@ export class WorldScene extends Phaser.Scene {
     const availH = this.cam.h - (correriaFeed.topPx + 6) * k - (correriaFeed.boxPx + 6) * k;
     const availW = this.cam.w - (ins.left + ins.right) * k;
     let zoom = f.zoom + unit;
-    while (zoom > unit && (148 * zoom > availH || 166 * zoom > availW)) zoom -= unit;
+    while (zoom > unit && (NEED.h * zoom > availH || NEED.w * zoom > availW)) zoom -= unit;
     const base = zoom >= f.zoom ? f : { ...f, zoom };
     const g = dialogueFraming({
       base,

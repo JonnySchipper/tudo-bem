@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { MG_ITEMS } from '@tudobem/shared';
-import { ART_SIZES, BOARD, CHAPA_SLOTS, ITEM_SPOTS, QUEUE_SPOTS, allArtKeys, sizeOfKey, traySlot, TRAY_SPOT } from './correriaArt';
+import { ART_SIZES, BAG_SPOT, BELL_SPOT, BOARD, CHAPA_SLOTS, CHAPA_SPOT, COFFEE_SPOT, ITEM_SCALE, ITEM_SPOTS, PLATE_SPOT, QUEUE_SPOTS, REGISTER_SPOT, TIPJAR_SPOT, allArtKeys, sizeOfKey, traySlot, TRAY_SPOT, type Spot } from './correriaArt';
 
 const manifest = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, '../../../public/pixel/manifest.json'), 'utf8'));
 
@@ -26,25 +26,48 @@ describe('the Correria no Balcão art contract', () => {
     }
   });
 
-  it('every shelf item stands on the board inside the padaria (160 x 144) and no two overlap', () => {
+  /** The art rectangle of a piece at a spot (anchor bottom-centre), at a scale. */
+  const rect = (id: string, spot: Spot, [w, h, ax, ay]: [number, number, number, number], scale = 1) => ({ id, x0: spot.x - ax * scale, y0: spot.y - ay * scale, x1: spot.x - ax * scale + w * scale, y1: spot.y - ay * scale + h * scale });
+  const pieces = () => [
+    ...Object.entries(ITEM_SPOTS).map(([id, s]) => rect(id, s, ART_SIZES.item!, ITEM_SCALE)),
+    rect('coffee', COFFEE_SPOT, ART_SIZES.coffee!),
+    rect('chapa', CHAPA_SPOT, ART_SIZES.chapa!),
+    rect('tray', TRAY_SPOT, ART_SIZES.tray!),
+    rect('bag', BAG_SPOT, ART_SIZES.bag!),
+    rect('plate', PLATE_SPOT, ART_SIZES.plate!),
+    rect('register', REGISTER_SPOT, ART_SIZES.register!),
+    rect('tipjar', TIPJAR_SPOT, ART_SIZES.tipjar!),
+    rect('bell', BELL_SPOT, ART_SIZES.bell!),
+  ];
+
+  it('every piece stands on the board and NOTHING overlaps (labels included: 12 px under each item and the bag)', () => {
     expect(Object.keys(ITEM_SPOTS).sort()).toEqual(MG_ITEMS.map((i) => i.id).sort());
-    const [w, h] = ART_SIZES.item!;
-    const rects = Object.entries(ITEM_SPOTS).map(([id, s]) => ({ id, x0: s.x - 14, y0: s.y - 26, x1: s.x - 14 + w, y1: s.y - 26 + h }));
-    for (const r of rects) {
-      expect(r.x0).toBeGreaterThanOrEqual(BOARD.x0);
-      expect(r.x1).toBeLessThanOrEqual(BOARD.x1);
-      expect(r.y0).toBeGreaterThanOrEqual(BOARD.y0);
-      expect(r.y1).toBeLessThanOrEqual(BOARD.y1);
+    const all = pieces();
+    for (const r of all) {
+      expect(r.x0, r.id).toBeGreaterThanOrEqual(BOARD.x0);
+      expect(r.x1, r.id).toBeLessThanOrEqual(BOARD.x1);
+      expect(r.y0, r.id).toBeGreaterThanOrEqual(BOARD.y0);
+      expect(r.y1, r.id).toBeLessThanOrEqual(BOARD.y1 + 1);
     }
-    for (let i = 0; i < rects.length; i++)
-      for (let j = i + 1; j < rects.length; j++) {
-        const a = rects[i]!;
-        const b = rects[j]!;
-        const overlapX = Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0);
-        const overlapY = Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0);
-        // sprites have a transparent margin: a few px of box overlap is fine, a real collision is not
-        expect(overlapX > 6 && overlapY > 6, `${a.id} vs ${b.id}`).toBe(false);
+    // the label band under a labelled piece counts as part of it
+    const labelled = new Set([...Object.keys(ITEM_SPOTS), 'bag', 'plate', 'coffee', 'bell']);
+    const withLabel = all.map((r) => ({ ...r, y1: r.y1 + (labelled.has(r.id) ? 10 : 0) }));
+    for (let i = 0; i < withLabel.length; i++)
+      for (let j = i + 1; j < withLabel.length; j++) {
+        const a = withLabel[i]!;
+        const b = withLabel[j]!;
+        const overlap = Math.min(a.x1, b.x1) > Math.max(a.x0, b.x0) && Math.min(a.y1, b.y1) > Math.max(a.y0, b.y0);
+        expect(overlap, `${a.id} vs ${b.id}`).toBe(false);
       }
+  });
+
+  it('the shelf is a grid: four columns, three rows, even steps', () => {
+    const xs = [...new Set(Object.values(ITEM_SPOTS).map((s) => s.x))].sort((p, q) => p - q);
+    const ys = [...new Set(Object.values(ITEM_SPOTS).map((s) => s.y))].sort((p, q) => p - q);
+    expect(xs).toHaveLength(4);
+    expect(ys).toHaveLength(3);
+    expect(new Set(xs.slice(1).map((x, i) => x - xs[i]!)).size).toBe(1);
+    expect(new Set(ys.slice(1).map((y, i) => y - ys[i]!)).size).toBe(1);
   });
 
   it('the queue spots are on the floor below the board and the grill slots sit on the chapa', () => {

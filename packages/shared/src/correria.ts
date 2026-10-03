@@ -262,6 +262,17 @@ const REGULAR_LINES: ((fem: boolean) => Bilingual)[] = [
   () => ({ pt: 'Você é o melhor do balcão!', en: 'You’re the best at the counter!' }),
   (f) => ({ pt: `Sempre perfeito! ${Thanks(f)}, viu?`, en: 'Always perfect! Thanks, you know?' }),
 ];
+/** Each regular has a voice of their own: a greeting when they step up and a thank-you after a perfect tray (needs_br). */
+export const REGULAR_VOICE: Partial<Record<NpcId, { greet: Bilingual; thanks: Bilingual[] }>> = {
+  nanda: { greet: { pt: 'Oi! Bom te ver no balcão.', en: 'Hi! Good to see you at the counter.' }, thanks: [{ pt: 'Ficou lindo! Valeu, viu?', en: 'It looks lovely! Thanks, you know?' }, { pt: 'Você já podia vender chapéu comigo!', en: 'You could sell hats with me by now!' }] },
+  julia: { greet: { pt: 'E aí! Já tô com fome!', en: 'Hey! I’m already hungry!' }, thanks: [{ pt: 'Tá ótimo! Obrigada, viu?', en: 'It’s great! Thanks, you know?' }, { pt: 'Ai, que cheirinho bom!', en: 'Oh, that smells so good!' }] },
+  prof: { greet: { pt: 'Bom dia! Hoje tem treino.', en: 'Good morning! Training today.' }, thanks: [{ pt: 'Muito bem! Isso é disciplina.', en: 'Well done! That is discipline.' }, { pt: 'Rápido e certinho. Gostei!', en: 'Quick and exact. I like it!' }] },
+  ze: { greet: { pt: 'Fala! Vim buscar meu café.', en: 'Hey! I came for my coffee.' }, thanks: [{ pt: 'Tá certo, tá certo! Obrigado.', en: 'That’s right, that’s right! Thanks.' }, { pt: 'Nota dez, hein?', en: 'A ten out of ten, huh?' }] },
+  chico: { greet: { pt: 'Opa! Cheguei com fome.', en: 'Hey! I showed up hungry.' }, thanks: [{ pt: 'Show! Tá na mão.', en: 'Great! Got it right here.' }, { pt: 'Quase tão bom quanto o meu pastel!', en: 'Almost as good as my pastel!' }] },
+  rosa: { greet: { pt: 'Bom dia, flor! Tudo bem?', en: 'Good morning, dear! How are you?' }, thanks: [{ pt: 'Que capricho! Obrigada.', en: 'What care! Thank you.' }, { pt: 'Até as flores sorriram!', en: 'Even the flowers smiled!' }] },
+  tia_lu: { greet: { pt: 'Oi, meu bem! Rapidinho, tá?', en: 'Hi, dear! Make it quick, okay?' }, thanks: [{ pt: 'Ai, que delícia! Obrigada.', en: 'Oh, how nice! Thank you.' }, { pt: 'Você é um amor!', en: 'You’re a sweetheart!' }] },
+};
+
 const LATE_LINES: ((fem: boolean) => Bilingual)[] = [
   (f) => ({ pt: `Ai, não dá, tô atrasad${f ? 'a' : 'o'}! Tchau.`, en: 'Oh, I can’t wait, I’m running late! Bye.' }),
   () => ({ pt: 'Demorou demais, vou embora!', en: 'Too slow, I’m leaving!' }),
@@ -454,6 +465,8 @@ export interface Customer {
   who: Who;
   regular: boolean;
   special: boolean;
+  /** A regular says hello when they step up. */
+  greet: Bilingual | null;
   wave: number;
   mode: OrderMode;
   /** What they said first; the live order may differ after a follow-up. */
@@ -723,6 +736,7 @@ function spawn(sh: Shift, ev: CEvent[]): void {
     who,
     regular,
     special: !!order.special,
+    greet: who.npc ? (REGULAR_VOICE[who.npc]?.greet ?? null) : null,
     wave,
     mode,
     said: { pt: order.pt, en: order.en },
@@ -906,7 +920,7 @@ function doServe(sh: Shift, ev: CEvent[]): void {
     points = 10 + speed + comboPts + tip;
     if (c.special) points = Math.round(points * 1.5);
     emote = c.regular || sh.stats.combo >= 3 ? '❤️' : '😋';
-    line = c.regular ? pick(sh.rng, REGULAR_LINES)(c.who.fem) : frac >= 0.6 ? pick(sh.rng, FAST_LINES)(c.who.fem) : pick(sh.rng, PERFECT_LINES)(c.who.fem);
+    line = c.regular ? (c.who.npc && REGULAR_VOICE[c.who.npc] ? pick(sh.rng, REGULAR_VOICE[c.who.npc]!.thanks) : pick(sh.rng, REGULAR_LINES)(c.who.fem)) : frac >= 0.6 ? pick(sh.rng, FAST_LINES)(c.who.fem) : pick(sh.rng, PERFECT_LINES)(c.who.fem);
   } else {
     sh.stats.second++;
     sh.stats.combo = 0;
@@ -1056,6 +1070,7 @@ export interface CustomerView {
   mode: OrderMode;
   regular: boolean;
   special: boolean;
+  greet: Bilingual | null;
   /** What they said (a listening order carries it for the voice; the screen hides it). */
   pt: string;
   en: string;
@@ -1103,6 +1118,7 @@ export function shiftSnapshot(sh: Shift): CorreriaSnap {
       mode: c.mode,
       regular: c.regular,
       special: c.special,
+      greet: c.greet,
       pt: c.said.pt,
       en: c.said.en,
       follow: c.followFired && c.follow ? { pt: c.follow.pt, en: c.follow.en } : null,

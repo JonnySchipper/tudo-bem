@@ -50,7 +50,7 @@ const states = (c: Client) => c.all('mg').filter((m): m is Extract<typeof m, { p
 const snap = (c: Client): CorreriaSnap => states(c).at(-1)!.snap;
 const evs = (c: Client) => states(c).flatMap((m) => m.ev);
 const endOf = (c: Client) => c.all('mg').find((m): m is Extract<typeof m, { phase: 'end' }> => m.phase === 'end');
-async function playShiftOut(world: World, a: Client, max = 40) {
+async function playShiftOut(world: World, a: Client, max = 90) {
   for (let i = 0; i < max && !endOf(a); i++) await serveFront(world, a, advance);
 }
 

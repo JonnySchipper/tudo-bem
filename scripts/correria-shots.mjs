@@ -15,6 +15,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findChrome } from './lib/chrome.mjs';
 import { DAY_MIN, offsetMinFor } from './lib/clock-pin.mjs';
+import { goArea } from './lib/areas.mjs';
 import { assert, answerAsk, buildOrder, serve, sleep, snap, startShift, waitFor, waitFront, wantOf } from './lib/correria-play.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -46,12 +47,19 @@ async function enterPadaria(page) {
   await page.click('#enter-praca');
   await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 20_000, 'praça');
   await sleep(800);
+  await goArea(page, 'rua');
   await page.evaluate(() => window.__tb.interact({ portal: 'praca_padaria' }));
   await waitFor(page, () => window.__tb.game.room?.room === 'padaria', null, 20_000, 'padaria');
   await sleep(1200);
 }
 
-const setStars = (page, stars) => page.evaluate((n) => (window.__tb.net.debugSession().profile.correria = { stars: n, shifts: 0, best: 0 }), stars);
+const setStars = (page, stars) =>
+  page.evaluate((n) => {
+    const p = window.__tb.net.debugSession().profile;
+    p.correria = { stars: n, shifts: 0, best: 0 };
+    // friends at the counter: the regulars come in with their own greeting
+    p.bond = n > 0 ? { nanda: 40, julia: 40, prof: 30, ze: 30, chico: 30, rosa: 30, tia_lu: 30 } : {};
+  }, stars);
 const quit = async (page) => {
   await page.evaluate(() => window.__tb.net.send({ t: 'mg', action: 'quit' }));
   await sleep(300);

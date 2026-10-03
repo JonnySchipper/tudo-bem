@@ -30,7 +30,13 @@ body.cr-on .hover-label {
 
 /* the end card is over the counter: the taps and bubbles of the world wait behind it */
 body.cr-ended .cr-hot,
-body.cr-ended .cr-pops .cr-bubble {
+body.cr-ended .cr-pops .cr-bubble,
+body.cr-ended .cr-pops .cr-tag {
+  display: none !important;
+}
+
+body.cr-on #world-labels,
+body.cr-on #hotspot-cues {
   display: none !important;
 }
 
@@ -747,10 +753,11 @@ body.cr-on .toasts {
   position: relative;
   transform: translateY(100%);
   pointer-events: none;
-  max-width: 130%;
+  width: 128%;
+  max-width: none;
   text-align: center;
-  font-size: 10px;
-  line-height: 1;
+  font-size: var(--cr-fs, 10px);
+  line-height: 0.95;
   font-weight: 900;
   color: #fff8e6;
   text-shadow: 0 1px 0 #3b2314, 1px 0 0 #3b2314, -1px 0 0 #3b2314, 0 -1px 0 #3b2314;
@@ -858,6 +865,31 @@ body.cr-on .toasts {
   margin-top: 3px;
   padding-top: 3px;
   border-top: 1px dashed #b58f5a;
+  font-weight: 900;
+  color: #a2561a;
+}
+
+.cr-tag {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  padding: 0 6px;
+  background: rgba(42, 34, 51, 0.9);
+  color: #fff6dc;
+  border: 1px solid #14101a;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.cr-tag.regular {
+  background: #a2561a;
+  color: #fff2c2;
+}
+
+.cr-bubble .who {
+  font-size: 0.8em;
   font-weight: 900;
   color: #a2561a;
 }

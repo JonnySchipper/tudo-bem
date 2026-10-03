@@ -126,6 +126,7 @@ function newCorreriaUI() {
     send: (m) => net.send(m),
     closed: () => {
       correriaUi = null;
+      updateGuides();
     },
     again: startMinigame,
   });
@@ -313,7 +314,7 @@ function updateGuides() {
   const p = game.profile;
   const r = game.room;
   renderer.guides = [];
-  if (!p || !r) return;
+  if (!p || !r || correriaUi?.open) return; // no guide arrows over the counter board
   const t = p.tutorial;
   const add = (g: Guide | null) => g && renderer.guides.push(g);
   if (r.room === 'rua') {

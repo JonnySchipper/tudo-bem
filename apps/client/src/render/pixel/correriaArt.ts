@@ -80,62 +80,77 @@ export function sizeOfKey(key: string): [number, number, number, number] | null 
 }
 
 // ---------------------------------------------------------------- where things stand (room px, anchor bottom-centre)
+//
+// A clean grid on the wooden board (it reaches up over the north wall, so the room's 160 x 144 becomes 160 x ~182 of counter):
+//   left block   four columns x three rows of shelf items (drawn at ITEM_SCALE, label under each, 32 px between rows)
+//   right column the coffee machine over the chapa (the cups and the raw bread are the shelf cells next to them)
+//   pack row     tray, bag, plate (y 92)
+//   service row  register, tip jar, bell (y 120)
+//   floor        the queue on the right (their name tags and meters sit above the pack row, which stays left of x 98)
+// Nothing overlaps (the test checks every rectangle) and every label has a 12 px band under its sprite.
 
 /** The wooden work board the pieces stand on: [x0, y0, x1, y1]. */
-export const BOARD = { x0: 4, y0: 0, x1: 156, y1: 105 } as const;
+export const BOARD = { x0: 3, y0: -38, x1: 157, y1: 129 } as const;
 
-const COLS = [18, 41, 64, 87, 110];
-const ROWS = [26, 52, 78];
+/** Shelf items are drawn smaller than the 28 px art so twelve fit in a clean grid with their names. */
+export const ITEM_SCALE = 0.72;
+
+const COLS = [17, 44, 71, 98];
+const ROWS = [-10, 22, 54];
 export const ITEM_SPOTS: Record<string, Spot> = {
   // vitrine and estufa
   pao: { x: COLS[0]!, y: ROWS[0]! },
   bolo: { x: COLS[1]!, y: ROWS[0]! },
   pao_de_queijo: { x: COLS[2]!, y: ROWS[0]! },
   pastel: { x: COLS[3]!, y: ROWS[0]! },
-  coxinha: { x: COLS[4]!, y: ROWS[0]! },
-  // geladeira, then the two cups next to the coffee machine
-  suco_de_laranja: { x: COLS[0]!, y: ROWS[1]! },
-  agua: { x: COLS[1]!, y: ROWS[1]! },
-  guarana: { x: COLS[2]!, y: ROWS[1]! },
-  cafe: { x: COLS[3]!, y: ROWS[1]! },
-  cafe_com_leite: { x: COLS[4]!, y: ROWS[1]! },
-  // raw bread next to the chapa
-  pao_na_chapa: { x: COLS[3]!, y: ROWS[2]! },
-  misto_quente: { x: COLS[4]!, y: ROWS[2]! },
+  // estufa and geladeira
+  coxinha: { x: COLS[0]!, y: ROWS[1]! },
+  suco_de_laranja: { x: COLS[1]!, y: ROWS[1]! },
+  agua: { x: COLS[2]!, y: ROWS[1]! },
+  guarana: { x: COLS[3]!, y: ROWS[1]! },
+  // the raw bread for the chapa and the two cups for the machine
+  pao_na_chapa: { x: COLS[0]!, y: ROWS[2]! },
+  misto_quente: { x: COLS[1]!, y: ROWS[2]! },
+  cafe: { x: COLS[2]!, y: ROWS[2]! },
+  cafe_com_leite: { x: COLS[3]!, y: ROWS[2]! },
 };
-export const COFFEE_SPOT: Spot = { x: 140, y: 52 };
-export const CHAPA_SPOT: Spot = { x: 140, y: 88 };
+export const COFFEE_SPOT: Spot = { x: 136, y: 22 };
+export const CHAPA_SPOT: Spot = { x: 136, y: 70 };
 /** Where a piece on the grill sits (item sprites at CHAPA_ITEM_SCALE), by slot. */
 export const CHAPA_SLOTS: Spot[] = [
-  { x: 131, y: 80 },
-  { x: 149, y: 80 },
+  { x: 128, y: 60 },
+  { x: 144, y: 60 },
 ];
-export const CHAPA_ITEM_SCALE = 0.62;
-export const REGISTER_SPOT: Spot = { x: 17, y: 82 };
-export const TIPJAR_SPOT: Spot = { x: 43, y: 82 };
-export const BELL_SPOT: Spot = { x: 66, y: 80 };
-export const TRAY_SPOT: Spot = { x: 38, y: 101 };
-export const BAG_SPOT: Spot = { x: 92, y: 102 };
-export const PLATE_SPOT: Spot = { x: 122, y: 100 };
+export const CHAPA_ITEM_SCALE = 0.6;
+export const TRAY_SPOT: Spot = { x: 36, y: 94 };
+export const BAG_SPOT: Spot = { x: 84, y: 96 };
+export const PLATE_SPOT: Spot = { x: 132, y: 84 };
+export const REGISTER_SPOT: Spot = { x: 16, y: 122 };
+export const TIPJAR_SPOT: Spot = { x: 44, y: 122 };
+export const BELL_SPOT: Spot = { x: 74, y: 122 };
 /** The cup under the spout while one is chosen / pouring. */
-export const SPOUT: Spot = { x: 140, y: 46 };
+export const SPOUT: Spot = { x: 136, y: 14 };
+/** Where the baker's cheer bubble floats: over the coffee machine, the corner nearest the real baker's side of the counter. */
+export const BAKER_SPOT: Spot = { x: 100, y: -32 };
 
 /** Customer feet: the front one first, then the queue (room px). They come in through the door on the left. */
 export const QUEUE_SPOTS: Spot[] = [
-  { x: 104, y: 124 },
-  { x: 134, y: 122 },
-  { x: 72, y: 122 },
+  { x: 104, y: 142 },
+  { x: 126, y: 142 },
+  { x: 148, y: 142 },
 ];
-export const DOOR_SPOT: Spot = { x: -14, y: 122 };
+export const DOOR_SPOT: Spot = { x: -14, y: 142 };
 
-/** The counter's focus for the camera (room px): the middle of the work board and the queue. */
-export const FOCUS: Spot = { x: 80, y: 74 };
+/** The counter's focus for the camera (room px): the middle of the board and the queue. */
+export const FOCUS: Spot = { x: 80, y: 58 };
+/** World px the camera must show: the board and the queue. */
+export const NEED = { w: 162, h: 170 } as const;
 
 /** Miniature item size on the tray (item sprites are drawn at this scale there). */
-export const TRAY_ITEM_SCALE = 0.55;
+export const TRAY_ITEM_SCALE = 0.5;
 /** Slots on the tray for the miniatures, relative to TRAY_SPOT (x offsets, one row; a second row above when more than 5). */
 export function traySlot(i: number): Spot {
   const col = i % 5;
   const row = Math.floor(i / 5);
-  return { x: TRAY_SPOT.x - 24 + col * 12, y: TRAY_SPOT.y - 5 - row * 9 };
+  return { x: TRAY_SPOT.x - 24 + col * 12, y: TRAY_SPOT.y - 5 - row * 8 };
 }

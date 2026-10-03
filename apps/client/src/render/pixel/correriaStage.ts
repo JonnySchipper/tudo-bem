@@ -35,6 +35,7 @@ import { DEPTH } from './props';
 import {
   ART,
   BAG_SPOT,
+  BAKER_SPOT,
   BELL_SPOT,
   BOARD,
   CHAPA_ITEM_SCALE,
@@ -42,6 +43,7 @@ import {
   CHAPA_SPOT,
   COFFEE_SPOT,
   DOOR_SPOT,
+  ITEM_SCALE,
   ITEM_SPOTS,
   PLATE_SPOT,
   QUEUE_SPOTS,
@@ -141,7 +143,9 @@ interface CustomerView2 {
   leaving: boolean;
   who: CustomerView['who'];
   bubble: HTMLElement;
+  tag: HTMLElement;
   bubbleSig: string;
+  speakUntil: number;
   slot: number;
   state: CustomerView['state'];
 }
@@ -173,7 +177,7 @@ export class CounterStage {
   private bell: Piece | null = null;
   private jar: Piece | null = null;
   private customers = new Map<number, CustomerView2>();
-  private baker: { sheet: string; spr: Phaser.GameObjects.Sprite; id: string; bubble: HTMLElement } | null = null;
+  private baker: { id: string; bubble: HTMLElement } | null = null;
   private particles: Particle[] = [];
   private hop: { piece: Piece; t: number; dur: number }[] = [];
   private textures: string[] = [];
@@ -238,14 +242,14 @@ export class CounterStage {
     for (let y = y0 + 8; y < y1; y += 14) g.fillStyle(0xbd8850, 1).fillRect(x0, y, x1 - x0, 1);
     g.fillStyle(0xe2b97e, 1).fillRect(x0, y0, x1 - x0, 2);
     g.fillStyle(0x8a5a32, 1).fillRect(x0, y1 - 3, x1 - x0, 3);
-    // shelf rails under each row of items
-    for (const ry of [28, 54]) g.fillStyle(0x9c6a3a, 1).fillRect(x0 + 4, ry, 116 - 4, 1);
-    // the station column
-    g.fillStyle(0xb98048, 1).fillRect(121, y0 + 4, x1 - 121 - 3, y1 - y0 - 30);
-    g.fillStyle(0x8a5a32, 1).fillRect(121, y0 + 4, 1, y1 - y0 - 30);
-    // the grill plate under the chapa and the machine tray
-    g.fillStyle(0x4a4a52, 1).fillRect(123, 76, 34, 11);
-    g.fillStyle(0x61616b, 1).fillRect(123, 76, 34, 2);
+    // a rail under each shelf row
+    for (const ry of [-5, 27, 59]) g.fillStyle(0x9c6a3a, 1).fillRect(x0 + 6, ry + 9, 104, 1);
+    // the station column (coffee machine over the chapa)
+    g.fillStyle(0xb98048, 1).fillRect(117, y0 + 5, x1 - 117 - 3, 112);
+    g.fillStyle(0x8a5a32, 1).fillRect(117, y0 + 5, 1, 112);
+    // the service strip along the front (pack row and register row)
+    g.fillStyle(0xc28c54, 1).fillRect(x0 + 3, 76, 110, 52);
+    g.fillStyle(0x8a5a32, 1).fillRect(x0 + 3, 76, 110, 1);
   }
 
   private ensureDom(): void {
@@ -316,7 +320,7 @@ export class CounterStage {
       const spot = ITEM_SPOTS[id]!;
       const isCup = CAFE_ITEMS.includes(id);
       const labels = { pt: it.card.form, en: it.card.gloss_en };
-      btn(`item-${id}`, `cr-item shelf-${SHELF_OF[id]}`, spot, 24, 28, labels.pt, labels.en, {
+      btn(`item-${id}`, `cr-item shelf-${SHELF_OF[id]}`, spot, 25, 22, labels.pt, labels.en, {
         click: isCup ? undefined : () => (CHAPA_ITEMS.includes(id) ? on.on.chapaPut(id) : on.on.grab(id)),
         down: isCup
           ? () => {
@@ -377,8 +381,6 @@ export class CounterStage {
     this.clearCustomers();
     this.clearParticles();
     if (this.baker) {
-      this.h.releaseSheet(this.baker.sheet);
-      this.baker.spr.destroy();
       this.baker.bubble.remove();
       this.baker = null;
     }
@@ -398,6 +400,7 @@ export class CounterStage {
     c.shadow.destroy();
     c.meter.destroy();
     c.bubble.remove();
+    c.tag.remove();
   }
 
   private clearParticles(): void {
@@ -440,7 +443,7 @@ export class CounterStage {
     for (const it of MG_ITEMS) {
       const lock = (it.id === 'pastel' || it.id === 'coxinha') && !unlocked.has('salgados');
       const p = this.items.get(it.id)!;
-      p.set(itemKey(it.id), { alpha: lock ? 0.28 : 1 });
+      p.set(itemKey(it.id), { alpha: lock ? 0.28 : 1, scale: ITEM_SCALE });
       const hot = this.hot.get(`item-${it.id}`);
       if (hot) hot.el.disabled = lock;
     }
@@ -529,7 +532,11 @@ export class CounterStage {
         bubble.className = 'cr-bubble';
         bubble.style.display = 'none';
         this.popsEl!.append(bubble);
-        c = { id: cv.id, sheet, spr, shadow, meter: new Piece(this.h, D.hud + 1, DOOR_SPOT), x: this.h.instant() ? QUEUE_SPOTS[Math.min(slot, 2)]!.x : DOOR_SPOT.x, y: QUEUE_SPOTS[Math.min(slot, 2)]!.y, face: 'E', moving: true, leaving: false, who: cv.who, bubble, bubbleSig: '', slot, state: cv.state };
+        const tag = document.createElement('div');
+        tag.className = `cr-tag${cv.regular ? ' regular' : ''}`;
+        tag.textContent = `${cv.regular ? '♥ ' : ''}${cv.who.name}`;
+        this.popsEl!.append(tag);
+        c = { id: cv.id, sheet, spr, shadow, meter: new Piece(this.h, D.hud + 1, DOOR_SPOT), x: this.h.instant() ? QUEUE_SPOTS[Math.min(slot, 2)]!.x : DOOR_SPOT.x, y: QUEUE_SPOTS[Math.min(slot, 2)]!.y, face: 'E', moving: true, leaving: false, who: cv.who, bubble, tag, bubbleSig: '', speakUntil: 0, slot, state: cv.state };
         this.customers.set(cv.id, c);
       }
       c.slot = slot;
@@ -552,6 +559,7 @@ export class CounterStage {
       c.leaving = true;
       c.state = 'walk';
       c.bubble.style.display = 'none';
+      c.tag.style.display = 'none';
       c.meter.hide();
       this.walk(c, { x: DOOR_SPOT.x, y: c.y }, dt);
       if (c.x <= DOOR_SPOT.x + 1 || this.h.instant()) {
@@ -587,30 +595,38 @@ export class CounterStage {
     c.shadow.setPosition(px, py - 1);
   }
 
+  /** A name tag over every customer (a heart for a regular, a speaker while a listening order is open) and a short bubble only when
+   *  they say something extra: a regular's greeting or a follow-up. The order itself is in the overlay, so the board stays clear. */
   private bubbleFor(c: CustomerView2, cv: CustomerView): void {
-    const frontNow = cv.state === 'front';
+    const tag = c.tag;
+    const here = !c.leaving && !c.moving;
+    const want = `${cv.regular ? '♥ ' : ''}${cv.who.name}${cv.state === 'front' && cv.mode === 'listening' ? ' 🔊' : ''}`;
+    if (tag.textContent !== want) tag.textContent = want;
+    const tp = this.h.toCanvas(c.x, c.y - 47);
+    tag.style.display = here ? '' : 'none';
+    tag.style.left = `${Math.round(tp.px)}px`;
+    tag.style.top = `${Math.round(tp.py)}px`;
     const el = c.bubble;
-    if (!frontNow || c.moving) {
-      el.style.display = 'none';
-      return;
-    }
-    const sig = `${cv.mode}|${cv.pt}|${cv.follow?.pt ?? ''}|${correriaFeed.showEn}`;
+    const say = cv.state === 'front' ? [cv.greet ? cv.greet.pt : '', cv.follow?.pt ?? ''] : ['', ''];
+    const sig = say.join('|');
     if (sig !== c.bubbleSig) {
       c.bubbleSig = sig;
       el.replaceChildren();
-      el.className = `cr-bubble ${cv.mode}`;
-      const pt = document.createElement('div');
-      pt.className = 'pt';
-      pt.textContent = cv.mode === 'listening' ? '🔊 …' : cv.pt;
-      el.append(pt);
-      if (cv.follow) {
-        const f = document.createElement('div');
-        f.className = 'follow';
-        f.textContent = cv.follow.pt;
-        el.append(f);
+      el.className = 'cr-bubble';
+      for (const [i, t] of say.entries()) {
+        if (!t) continue;
+        const d = document.createElement('div');
+        d.className = i === 0 ? 'pt' : 'follow';
+        d.textContent = t;
+        el.append(d);
       }
+      c.speakUntil = sig.replace('|', '') ? this.nowMs + 4200 : 0;
     }
-    const { px, py } = this.h.toCanvas(c.x, c.y - 40);
+    if (!here || this.nowMs > c.speakUntil) {
+      el.style.display = 'none';
+      return;
+    }
+    const { px, py } = this.h.toCanvas(c.x, c.y - 56);
     el.style.display = '';
     el.style.left = `${Math.round(px)}px`;
     el.style.top = `${Math.round(py)}px`;
@@ -620,23 +636,18 @@ export class CounterStage {
   private syncBaker(snap: CorreriaSnap): void {
     const id = snap.baker;
     if (this.baker && this.baker.id !== id) {
-      this.h.releaseSheet(this.baker.sheet);
-      this.baker.spr.destroy();
       this.baker.bubble.remove();
       this.baker = null;
     }
     if (!this.baker) {
       const d = npcDefById(id);
       if (!d) return;
-      const sheet = this.h.acquireSheet(lookForNpc(id, d.appearance, d.hat));
-      const spr = this.h.world(this.h.scene.add.sprite(150, 112, sheet, 0)).setOrigin(0.5, 1).setDepth(D.piece + 1);
-      const want = animKey(sheet, 'idle', 'W');
-      if (this.h.scene.anims.exists(want)) spr.play({ key: want });
       const bubble = document.createElement('div');
       bubble.className = 'cr-bubble baker';
       bubble.style.display = 'none';
+      bubble.dataset.who = d.name;
       this.popsEl!.append(bubble);
-      this.baker = { sheet, spr, id, bubble };
+      this.baker = { id, bubble };
     }
   }
 
@@ -644,6 +655,10 @@ export class CounterStage {
     const b = this.baker;
     if (!b) return;
     b.bubble.replaceChildren();
+    const who = document.createElement('div');
+    who.className = 'who';
+    who.textContent = b.bubble.dataset.who ?? '';
+    b.bubble.append(who);
     const p = document.createElement('div');
     p.className = 'pt';
     p.textContent = pt;
@@ -681,8 +696,8 @@ export class CounterStage {
     // coffee: a vertical fill bar beside the machine, the good zone marked
     if (snap.pour) {
       const fill = Math.min(1.15, (snap.pour.age + age) / snap.pourMs);
-      const x = 122;
-      const top = 14;
+      const x = 117;
+      const top = -16;
       const hgt = 34;
       g.fillStyle(0x1b1210, 0.9).fillRect(x - 1, top - 1, 5, hgt + 2);
       g.fillStyle(0x2e8a55, 0.9).fillRect(x, top + Math.round(hgt * (1 - 1.0)), 3, Math.round(hgt * 0.3));
@@ -794,6 +809,7 @@ export class CounterStage {
     const k = this.h.cssScale();
     // below about 2 css px per world px the shelf labels would collide: the names come as a line when an item is tapped instead
     this.hotEl!.classList.toggle('small', k < 2.2);
+    this.hotEl!.style.setProperty('--cr-fs', `${Math.max(7, Math.min(11, k * 2.9)).toFixed(1)}px`);
     const sig = `${Math.round(this.h.toCanvas(0, 0).px)}|${Math.round(this.h.toCanvas(0, 0).py)}|${k.toFixed(3)}|${correriaFeed.showEn}`;
     // the grill spots only exist as many as the chapa has slots
     const slotCount = snap.chapa.length;
@@ -847,7 +863,7 @@ export class CounterStage {
     if (b && b.style.display !== 'none') {
       if (this.nowMs > Number(b.dataset.until ?? 0)) b.style.display = 'none';
       else {
-        const { px, py } = this.h.toCanvas(150, 74);
+        const { px, py } = this.h.toCanvas(BAKER_SPOT.x, BAKER_SPOT.y);
         b.style.left = `${Math.round(px)}px`;
         b.style.top = `${Math.round(py)}px`;
       }
