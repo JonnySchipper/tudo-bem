@@ -203,12 +203,12 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
   it('hides Ops smoke when the flag is off (403 on endpoint, no public config)', async () => {
     await start({ opsSmoke: smokeOff });
     expect((await post('/api/auth/ops-smoke', {})).status).toBe(403);
-    expect(await (await fetch(base + '/api/config')).json()).toEqual({ opsSmoke: false });
+    expect(await (await fetch(base + '/api/config')).json()).toEqual({ opsSmoke: false, googleClientId: '' });
   });
 
   it('Ops smoke establishes a session and can enter multiplayer (not a guest bypass)', async () => {
     await start({ opsSmoke: smokeOn() });
-    expect(await (await fetch(base + '/api/config')).json()).toEqual({ opsSmoke: true });
+    expect(await (await fetch(base + '/api/config')).json()).toEqual({ opsSmoke: true, googleClientId: '' });
     const login = await post('/api/auth/ops-smoke', {});
     expect(login.status).toBe(200);
     expect(await login.json()).toEqual({ ok: true, account: { email: OPS_SMOKE_EMAIL, hasProfile: false } });
@@ -232,6 +232,23 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     const again = await post('/api/auth/ops-smoke', {});
     expect(again.status).toBe(200);
     expect(app!.accounts.count()).toBe(1);
+  });
+
+  it('Google sign-in verifies the credential and sets a session cookie', async () => {
+    await start({
+      googleOAuth: { clientId: 'test.apps.googleusercontent.com', ready: true },
+      verifyGoogleIdToken: async (token) =>
+        token === 'valid-token' ? { sub: 'g-sub', email: 'google@exemplo.com', emailVerified: true } : null,
+    });
+    expect(await (await fetch(base + '/api/config')).json()).toEqual({ opsSmoke: false, googleClientId: 'test.apps.googleusercontent.com' });
+    const bad = await post('/api/auth/google', { credential: 'nope' });
+    expect(bad.status).toBe(401);
+    const ok = await post('/api/auth/google', { credential: 'valid-token' });
+    expect(ok.status).toBe(200);
+    expect(await ok.json()).toEqual({ ok: true, account: { email: 'google@exemplo.com', hasProfile: false } });
+    const cookie = cookieOf(ok);
+    const me = await fetch(base + '/api/auth/me', { headers: { cookie } });
+    expect(await me.json()).toMatchObject({ ok: true, account: { email: 'google@exemplo.com' } });
   });
 
   it('kicks an AFK player (pings only) with close code 4001 and frees the seat; activity keeps you in', async () => {

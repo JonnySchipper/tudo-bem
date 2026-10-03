@@ -79,6 +79,26 @@ describe('AccountStore', () => {
     expect(await store.login(OPS_SMOKE_EMAIL, pw1)).toMatchObject({ ok: false, code: 'credentials' });
   });
 
+  it('signs in with Google, links an existing email account, and rejects conflicting subs', async () => {
+    const store = new AccountStore(null, { scrypt: FAST });
+    const g1 = await store.loginWithGoogle({ sub: 'google-sub-1', email: 'ana@exemplo.com', emailVerified: true });
+    expect(g1).toMatchObject({ ok: true, account: { email: 'ana@exemplo.com', googleSub: 'google-sub-1' } });
+    const again = await store.loginWithGoogle({ sub: 'google-sub-1', email: 'ana@exemplo.com', emailVerified: true });
+    expect(again.ok && again.account.id).toBe(g1.ok && g1.account.id);
+
+    const pw = await store.register('leo@exemplo.com', 'senha-boa-123', false);
+    expect(pw.ok).toBe(true);
+    const link = await store.loginWithGoogle({ sub: 'google-sub-2', email: 'leo@exemplo.com', emailVerified: true });
+    expect(link).toMatchObject({ ok: true });
+    if (link.ok) expect(link.account.googleSub).toBe('google-sub-2');
+
+    if (pw.ok) {
+      pw.account.googleSub = 'other-sub';
+      const clash = await store.loginWithGoogle({ sub: 'google-sub-3', email: 'leo@exemplo.com', emailVerified: true });
+      expect(clash).toMatchObject({ ok: false, code: 'google' });
+    }
+  });
+
   it('expires sessions, slides active ones, and revokes on logout', async () => {
     let t = 1_000_000;
     const day = 24 * 60 * 60_000;

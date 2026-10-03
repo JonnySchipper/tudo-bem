@@ -46,11 +46,16 @@ function stubAuth(mode: 'login' | 'register', creds: AuthCredentials): AuthRespo
   return { ok: true, session };
 }
 
-async function handleApiResponse(res: Response, creds: AuthCredentials, mode: 'login' | 'register', offline: () => AuthResponse): Promise<AuthResponse> {
+async function handleApiResponse(
+  res: Response,
+  creds: AuthCredentials,
+  mode: 'login' | 'register',
+  offline: () => AuthResponse,
+): Promise<AuthResponse> {
   if (res.status === 404 || res.status === 501) return offline();
   const ct = res.headers.get('content-type') ?? '';
   if (!ct.includes('json')) return offline();
-  let data: { accessToken?: string; token?: string; error?: string; pt?: string; en?: string };
+  let data: { accessToken?: string; token?: string; error?: string; pt?: string; en?: string; account?: { email?: string } };
   try {
     data = await res.json();
   } catch {
@@ -65,10 +70,35 @@ async function handleApiResponse(res: Response, creds: AuthCredentials, mode: 'l
     };
   }
   const session: AuthSession = {
-    email: creds.email.trim().toLowerCase(),
+    email: (data.account?.email ?? creds.email).trim().toLowerCase(),
     accessToken: data.accessToken ?? data.token,
     stub: false,
   };
+  writeAuthSession(session);
+  return { ok: true, session };
+}
+
+/** Sign in with a Google Identity Services credential (ID token). Requires `TB_GOOGLE_CLIENT_ID` on the server. */
+export async function signInWithGoogle(credential: string): Promise<AuthResponse> {
+  const res = await postJson('/google', { credential });
+  if (!res) return OFFLINE;
+  const ct = res.headers.get('content-type') ?? '';
+  if (!ct.includes('json')) return OFFLINE;
+  let data: { ok?: boolean; account?: { email?: string }; pt?: string; en?: string; code?: string };
+  try {
+    data = await res.json();
+  } catch {
+    return OFFLINE;
+  }
+  if (!res.ok || data.ok !== true || !data.account?.email) {
+    return {
+      ok: false,
+      pt: data.pt ?? 'Não foi possível entrar com Google.',
+      en: data.en ?? 'Could not sign in with Google.',
+      code: data.code ?? 'server',
+    };
+  }
+  const session: AuthSession = { email: data.account.email.trim().toLowerCase(), stub: false };
   writeAuthSession(session);
   return { ok: true, session };
 }

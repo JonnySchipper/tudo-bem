@@ -51,6 +51,9 @@ importers:
 
   apps/server:
     dependencies:
+      jose:
+        specifier: ^6.2.12
+        version: 6.2.12
       ws:
         specifier: ^8.21.3
         version: 8.21.3
@@ -787,6 +790,9 @@ packages:
   jimp@1.6.1:
     resolution: {integrity: sha512-hNQh6rZtWfSVWSNVmvq87N5BPJsNH7k7I7qyrXf9DOma9xATQk3fsyHazCQe51nCjdkoWdTmh0vD7bjVSLoxxw==}
     engines: {node: '>=18'}
+
+  jose@6.2.12:
+    resolution: {integrity: sha512-9NiFmJEex0sy2Dk58j2UGBSHgUs2ypF9eZSu4L6vjOX3Dp96Sw1F3uL+H+D1sx02jZZdzUT0HgvCy59CuvXcWw==}
 
   jpeg-js@0.4.4:
     resolution: {integrity: sha512-WZzeDOEtTOBK4Mdsar0IqEU5sMr3vSV2RqkAIzUEV2BHnUfKGyswWFPFwK5EeDo93K3FohSHbLAjj0s1Wzd+dg==}
@@ -1828,6 +1834,8 @@ snapshots:
       '@jimp/utils': 1.6.1
     transitivePeerDependencies:
       - supports-color
+
+  jose@6.2.12: {}
 
   jpeg-js@0.4.4: {}
 

@@ -843,6 +843,19 @@ body.intro-active #world {
   background: repeating-linear-gradient(90deg, #d9c09a 0 6px, transparent 6px 10px);
 }
 
+.intro-google {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 10px;
+  min-height: 44px;
+}
+
+.intro-google-btn {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
 .intro-smoke {
   display: block;
   width: 100%;

@@ -167,6 +167,8 @@ The credit is also in the game (**Créditos** in the top bar) with the fonts (Nu
 | `SESSION_TTL_DAYS` | `30` | Sliding login session lifetime |
 | `COOKIE_SECURE` | auto | `auto` sets `Secure` when the request arrived over HTTPS (Fly's `X-Forwarded-Proto`). `1` forces it on, `0` off |
 | `ALLOWED_ORIGINS` | *(none)* | Comma-separated extra browser origins allowed to call `/api/auth` and open `/ws`. Same-origin is always allowed |
+| `TB_GOOGLE_CLIENT_ID` | *(none)* | Google Cloud OAuth **Web client** ID. When set, the login screen shows **Sign in with Google** and `POST /api/auth/google` verifies GIS ID tokens |
+| `TB_GOOGLE_CLIENT_SECRET` | *(none)* | Optional. Not used for the GIS button flow today; set on Fly if you add server-side OAuth later |
 | `ROOM_CAP` | `16` | Players per instance (lower it to demo overflow instances, e.g. `ROOM_CAP=2`) |
 | `LIVEOPS_CPU_AMBIANCE` | `on` | Praça ambiance CPUs. `off` for empty-room playtests. Solo builds: add `?cpu=off` to the URL |
 | `CLIENT_DIST` | auto | Built client directory served by the server |

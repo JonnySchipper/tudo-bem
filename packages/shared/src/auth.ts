@@ -37,7 +37,12 @@ export function validatePassword(raw: string): Check<string> {
   return { ok: true, value: pw };
 }
 
-export type AuthErrorCode = 'email' | 'password' | 'taken' | 'credentials' | 'rate' | 'bad_request' | 'unauthenticated';
+export type AuthErrorCode = 'email' | 'password' | 'taken' | 'credentials' | 'rate' | 'bad_request' | 'unauthenticated' | 'google';
+
+export const GOOGLE_AUTH_ENV = {
+  clientId: 'TB_GOOGLE_CLIENT_ID',
+  clientSecret: 'TB_GOOGLE_CLIENT_SECRET',
+} as const;
 
 /** JSON shape of every /api/auth response. `account: null` after logout. */
 export type AuthResponse = { ok: true; account: { email: string; hasProfile: boolean } | null } | { ok: false; code: AuthErrorCode; pt: string; en: string };
@@ -48,6 +53,15 @@ export const AUTH_COPY = {
   rate: { pt: 'Muitas tentativas. Respira, toma um café e tenta de novo em alguns minutos.', en: 'Too many attempts. Grab a coffee and try again in a few minutes.' },
   unauthenticated: { pt: 'Entre na sua conta pra continuar.', en: 'Sign in to continue.' },
   badRequest: { pt: 'Algo deu errado. Tenta de novo?', en: 'Something went wrong. Try again?' },
+  googleDisabled: {
+    pt: 'Entrar com Google ainda não está disponível neste servidor.',
+    en: 'Sign in with Google is not enabled on this server yet.',
+  },
+  googleInvalid: { pt: 'Não foi possível confirmar sua conta Google. Tente de novo.', en: 'Could not verify your Google account. Try again.' },
+  googleEmail: {
+    pt: 'Use o mesmo e-mail da sua conta ou entre com senha.',
+    en: 'Use the same email as your account, or sign in with your password.',
+  },
 } satisfies Record<string, Bilingual>;
 
 function ptSpan(ms: number): { pt: string; en: string } {
