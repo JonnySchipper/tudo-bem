@@ -277,10 +277,10 @@ async function sectionPanels(browser, vp) {
   await snap(page, vp, 'dialogue_pedido');
   await close(page);
   await page.evaluate(() => window.__tb.net.send({ t: 'mg', action: 'start' }));
-  await page.waitForSelector('#mg-order', { timeout: 8000 });
+  await page.waitForSelector('#cr-order', { timeout: 8000 });
   await sleep(1400);
   await snap(page, vp, 'panel_meveum');
-  await page.click('#minigame .mg-head button.ghost').catch(() => {});
+  await page.click('#cr-quit').catch(() => {});
   await sleep(800);
   await close(page);
   await ctx.close();

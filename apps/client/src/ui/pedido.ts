@@ -1,7 +1,7 @@
 /**
  * Pedido rápido — dedicated breakfast order UI for Seu Carlos.
  * A+ overhaul: ticket/receipt chrome, visual order journey, soft score feedback.
- * Distinct from Conversa mesa and Me vê um… tray game.
+ * Distinct from Conversa mesa and the Correria no Balcão counter game.
  */
 import type { Bilingual, ConversaSafetyNotice, SceneView } from '@tudobem/shared';
 import { ROOMS, SCORE_FEEDBACK, gateConversaPlayerLine } from '@tudobem/shared';
@@ -121,7 +121,7 @@ function boxSpec(s: PedidoState): BoxSpec {
           'div',
           { class: 'dbx-footer-row' },
           h('button', { class: 'ghost', onclick: handleClose }, bi('Tchau!', 'Bye!')),
-          h('button', { class: 'primary', onclick: handlePlay, id: 'btn-pedido-play-mg' }, bi('Jogar "Me vê um…"', 'Play tray game')),
+          h('button', { class: 'primary', onclick: handlePlay, id: 'btn-pedido-play-mg' }, bi('Jogar "Correria no Balcão"', 'Play Counter Rush')),
         )
       : undefined,
     onChip: handleChip,

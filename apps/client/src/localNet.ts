@@ -45,6 +45,7 @@ export class LocalNet implements NetLike {
     }, {
       ambiance: new URLSearchParams(location.search).get('cpu') !== 'off',
       testRollHints: new URLSearchParams(location.search).has('rolltest'),
+      testMg: new URLSearchParams(location.search).has('crtest'),
       boutIntroMs: Number(new URLSearchParams(location.search).get('boutintro')) || undefined,
       boutPace: Number(new URLSearchParams(location.search).get('boutpace')) || undefined,
       // test hook, the solo twin of TB_TEST_CLOCK_OFFSET_MIN: `?tbclockmin=<real minutes>` shifts the game clock (schedules, greetings, the sky)

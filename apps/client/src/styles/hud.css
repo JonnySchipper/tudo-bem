@@ -555,10 +555,6 @@ button.hud-burger,
   }
 }
 
-body:has([data-modal='minigame']) .toasts {
-  z-index: 120;
-}
-
 .mission-banner {
   top: calc(var(--toast-top, 70px) + 4px);
   border-left: 0;

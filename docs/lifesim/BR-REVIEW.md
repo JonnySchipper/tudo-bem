@@ -399,7 +399,7 @@ Only labels that exist on a prop are listed; the older ones from the first three
 | 291 | Hortifrúti da banca | Greengrocer at the newsstand | `packages/shared/src/rooms.ts (praca)` | prop hortifruti | |
 | 292 | Caixa | Cash register | `packages/shared/src/rooms.ts (padaria)` | prop caixa | |
 | 293 | Estufa de salgados | Warm snack display | `packages/shared/src/rooms.ts (padaria)` | prop estufa | |
-| 294 | Me vê um… | Tray game: “I’ll take a…” | `packages/shared/src/rooms.ts (padaria)` | prop trilho | |
+| 294 | Correria no Balcão | Counter Rush: work the counter | `packages/shared/src/rooms.ts (padaria)` | prop trilho | |
 | 295 | Tatame aberto | Open mat | `packages/shared/src/rooms.ts (academia)` | prop tatame | |
 | 296 | Fila do tatame | Open-mat queue | `packages/shared/src/rooms.ts (academia)` | prop fila | |
 | 297 | Parede de faixas | Belt wall | `packages/shared/src/rooms.ts (academia)` | prop faixas | |
@@ -566,7 +566,7 @@ Phase 7 UI. Learning text stays in Nunito; these are the labels around it.
 | 432 | Pedido rápido | Quick order | `apps/client/src/ui/conversa.ts` | button on the Conversa box | |
 | 433 | Detalhes | Details | `apps/client/src/ui/conversa.ts` | NEW in Phase 10: folds the three meters of the conta on phones | |
 | 434 | Padeiro · Pedido rápido | Baker · Quick order | `apps/client/src/ui/pedido.ts` | role tag | |
-| 435 | Jogar "Me vê um…" | Play tray game | `apps/client/src/ui/pedido.ts` | button after the scene | |
+| 435 | Jogar "Correria no Balcão" | Play Counter Rush | `apps/client/src/ui/pedido.ts` | button after the scene | |
 | 436 | Já pediu hoje! Volte amanhã. | You already ordered today! Come back tomorrow. | `apps/client/src/ui/pedido.ts` | daily RV gate | |
 | 437 | Loja de chapéus | Hat shop | `apps/client/src/ui/npcTalk.ts, ui/recados.ts` | Nanda's role tag | |
 | 438 | Guia da praça | Square guide | `apps/client/src/ui/npcTalk.ts, ui/recados.ts` | Júlia's role tag | |

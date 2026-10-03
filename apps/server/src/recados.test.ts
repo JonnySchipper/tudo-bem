@@ -6,13 +6,13 @@ import {
   gameMinutes,
   greetingFor,
   HOTSPOTS,
-  mgPerfectBuilt,
   RECADOS,
   ROOMS,
   type ClientMsg,
   type ServerMsg,
 } from '@tudobem/shared';
 import { World, type Session } from './world.js';
+import { serveFront, waitFront } from './correriaTestKit.js';
 import { ProfileStore, type PersistenceAdapter, type StoredProfile } from './store.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, MemoryModerationQueue, PhrasebookGloss } from './services/stubs.js';
 
@@ -176,10 +176,9 @@ describe('recados on the server', () => {
     const p = a.s.profile!;
     await a.send({ t: 'join', room: 'padaria' });
     await a.send({ t: 'mg', action: 'start' });
-    const order = world.debugOrder(a.s)!;
-    const tray = Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty]));
-    clock += 1000;
-    await a.send({ t: 'mg', action: 'submit', tray, mods: order.mods, built: mgPerfectBuilt(order) });
+    await waitFront(world, a, advance);
+    const order = { ...world.debugOrder(a.s)! };
+    await serveFront(world, a, advance);
     for (const l of order.lines) expect(p.bag?.[l.itemId]).toBe(l.qty);
   });
 

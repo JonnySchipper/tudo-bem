@@ -11,9 +11,6 @@ import {
   isCpuId,
   isWalkable,
   MISSION_REWARD,
-  mgBuiltForTray,
-  mgPayout,
-  mgPerfectBuilt,
   mulberry32,
   ROOMS,
   SCORE_FEEDBACK,
@@ -24,7 +21,8 @@ import {
   type PublicAvatar,
   type Tile,
 } from '@tudobem/shared';
-import { sanitizeAppearance, World, MG_RESUME_MS, type AccountLink, type Session, type WorldOptions } from './world.js';
+import { sanitizeAppearance, World, type AccountLink, type Session, type WorldOptions } from './world.js';
+import { serveFront } from './correriaTestKit.js';
 import { ProfileStore, type StoredProfile } from './store.js';
 import { AuthoredNpcDialogue, MemoryModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 
@@ -271,15 +269,12 @@ describe('World', () => {
 
     // Me vê um… — answer every order correctly using the server's order (test hook)
     await a.send({ t: 'mg', action: 'start' });
-    for (let r = 0; r < 6; r++) {
-      const order = world.debugOrder(a.s)!;
-      const tray = Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty]));
-      clock += 1000;
-      await a.send({ t: 'mg', action: 'submit', tray, mods: order.mods, built: mgPerfectBuilt(order) });
-    }
+    for (let r = 0; r < 40 && a.last('mg')!.phase !== 'end'; r++) await serveFront(world, a, advance);
     const end = a.last('mg') as Extract<ServerMsg, { t: 'mg'; phase: 'end' }>;
     expect(end.phase).toBe('end');
-    expect(end.coins).toBe(ECONOMY.minigameMax);
+    expect(end.end.served).toBeGreaterThan(10);
+    expect(end.end.coins).toBeGreaterThanOrEqual(ECONOMY.minigameMin);
+    expect(end.end.coins).toBeLessThanOrEqual(ECONOMY.minigameMax);
 
     // Back to praça, buy + equip a hat
     await a.send({ t: 'join', room: 'praca' });
@@ -295,7 +290,7 @@ describe('World', () => {
     const p = a.s.profile!;
     expect(Object.values(p.tutorial).every(Boolean)).toBe(true);
     expect(p.tutorialRewarded).toBe(true);
-    expect(p.coins).toBe(start + ECONOMY.sceneMax + ECONOMY.minigameMax - 12 + ECONOMY.tutorialBonus);
+    expect(p.coins).toBe(start + ECONOMY.sceneMax + end.end.coins - 12 + ECONOMY.tutorialBonus);
   });
 
   it('Pedido rápido daily RV gate: once per America/São_Paulo calendar day', async () => {
@@ -320,506 +315,6 @@ describe('World', () => {
     expect(second.payout).toBe(0);
     expect(second.dailyBlocked).toBe(true);
     expect(a.s.profile!.coins).toBe(coinsAfterFirst);
-  });
-
-  it('rejects a correct tray without station-built units (no shelf→tray bypass)', async () => {
-    const { world } = makeWorld();
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    const order = world.debugOrder(a.s)!;
-    clock += 1000;
-    await a.send({
-      t: 'mg',
-      action: 'submit',
-      tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])),
-      mods: order.mods,
-    });
-    expect(a.all('mg').at(-2)).toMatchObject({ phase: 'result', outcome: 'repita' });
-    expect(a.s.mg!.repeated).toBe(true);
-  });
-
-  it('Carlos repeats once on a wrong tray, then moves on', async () => {
-    const { world } = makeWorld();
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    await a.send({ t: 'mg', action: 'submit', tray: {} });
-    const mgs = a.all('mg');
-    expect(mgs.at(-2)).toMatchObject({ phase: 'result', outcome: 'repita' });
-    expect(mgs.at(-1)).toMatchObject({ phase: 'order', repeat: true, round: 0 });
-    // Outside the repeat-grace window, an empty tray is the real second miss.
-    clock += 1000;
-    await a.send({ t: 'mg', action: 'submit', tray: {} });
-    expect(a.all('mg').at(-2)).toMatchObject({ phase: 'result', outcome: 'errou' });
-    expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 1 });
-  });
-
-  it('mid-order echo does not skip the retry or advance without a ticket', async () => {
-    const { world } = makeWorld();
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    for (let r = 0; r < 2; r++) {
-      const order = world.debugOrder(a.s)!;
-      clock += 1000;
-      await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods, built: mgPerfectBuilt(order) });
-    }
-    expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 2 });
-    const mid = world.debugOrder(a.s)!;
-    const partial = { [mid.lines[0]!.itemId]: 1 };
-    clock += 1000;
-    await a.send({ t: 'mg', action: 'submit', tray: partial, built: mgBuiltForTray(mid, partial) });
-    expect(a.all('mg').at(-2)).toMatchObject({ phase: 'result', outcome: 'repita', round: 2 });
-    expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 2, repeat: true });
-
-    // Double-click / empty tray in the same beat as the repeat must not burn it.
-    await a.send({ t: 'mg', action: 'submit', tray: {} });
-    await a.send({ t: 'mg', action: 'submit', tray: partial, built: mgBuiltForTray(mid, partial) });
-    expect(world.debugOrder(a.s)!.pt).toBe(mid.pt);
-    expect(a.s.mg!.round).toBe(2);
-    expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 2, repeat: true, resync: true });
-    expect(a.all('mg').flatMap((m) => (m.phase === 'result' && m.round === 2 ? [m.outcome] : []))).toEqual(['repita']);
-
-    // A real correction still inside the grace window scores and advances with a new ticket.
-    clock += 50;
-    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(mid.lines.map((l) => [l.itemId, l.qty])), mods: mid.mods, built: mgPerfectBuilt(mid) });
-    expect(a.all('mg').filter((m) => m.phase === 'result').at(-1)).toMatchObject({ outcome: 'segunda', round: 2 });
-    expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 3 });
-    expect(a.all('mg').at(-1)).not.toMatchObject({ pt: mid.pt });
-  });
-
-  it('a timeout in the first instant of a retry does not skip it', async () => {
-    const { world } = makeWorld();
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    const pt = world.debugOrder(a.s)!.pt;
-    clock += 1000;
-    await a.send({ t: 'mg', action: 'submit', tray: {} });
-    expect(a.all('mg').at(-2)).toMatchObject({ phase: 'result', outcome: 'repita' });
-    clock += 10;
-    await a.send({ t: 'mg', action: 'timeout' });
-    expect(a.all('mg').some((m) => m.phase === 'result' && m.outcome === 'tempo')).toBe(false);
-    expect(a.last('mg')).toMatchObject({ phase: 'order', round: 0, repeat: true, resync: true, pt });
-    expect(a.s.mg!.repeated).toBe(true);
-  });
-
-  it('a late miss still gets a full retry, then an empty bar advances', async () => {
-    const { world } = makeWorld();
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    const order = world.debugOrder(a.s)!;
-    clock += order.timeMs + 1_400;
-    await a.send({ t: 'mg', action: 'submit', tray: {} });
-    expect(a.all('mg').at(-2)).toMatchObject({ phase: 'result', outcome: 'repita' });
-    expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', repeat: true, round: 0 });
-    expect(a.all('mg').at(-1)).not.toMatchObject({ resync: true });
-    clock += 10;
-    await a.send({ t: 'mg', action: 'timeout' });
-    expect(a.last('mg')).toMatchObject({ phase: 'order', repeat: true, resync: true });
-    expect(a.s.mg!.round).toBe(0);
-    clock += order.timeMs;
-    await a.send({ t: 'mg', action: 'timeout' });
-    expect(a.all('mg').filter((m) => m.phase === 'result').at(-1)).toMatchObject({ outcome: 'tempo' });
-    expect(a.last('mg')).toMatchObject({ phase: 'order', round: 1 });
-  });
-
-  it('a retry ends on its own if the client never sends the second timeout', async () => {
-    const { world } = makeWorld();
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    const order = world.debugOrder(a.s)!;
-    clock += 1_000;
-    await a.send({ t: 'mg', action: 'submit', tray: {} });
-    expect(a.all('mg').at(-2)).toMatchObject({ phase: 'result', outcome: 'repita' });
-    expect(a.s.mg!.repeated).toBe(true);
-    advance(order.timeMs + 2_000);
-    expect(a.all('mg').filter((m) => m.phase === 'result').at(-1)).toMatchObject({ outcome: 'tempo' });
-    expect(a.last('mg')).toMatchObject({ phase: 'order', round: 1 });
-    expect(a.s.mg!.round).toBe(1);
-  });
-
-  it('does not grant another full retry after the round budget', async () => {
-    const { world } = makeWorld();
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    const order = world.debugOrder(a.s)!;
-    a.s.mg!.repeated = false;
-    a.s.mg!.orderAt = clock;
-    a.s.mg!.roundStartedAt = clock - (order.timeMs * 2 + 3_001);
-    await a.send({ t: 'mg', action: 'timeout' });
-    expect(a.all('mg').filter((m) => m.phase === 'result').at(-1)).toMatchObject({ outcome: 'tempo' });
-    expect(a.s.mg!.round).toBe(1);
-  });
-
-  it('sync during the order gap deals the next ticket', async () => {
-    const { world } = makeWorld(16, { mgGapMs: 5_000 });
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    const first = world.debugOrder(a.s)!;
-    clock += 1_000;
-    await a.send({
-      t: 'mg',
-      action: 'submit',
-      tray: Object.fromEntries(first.lines.map((l) => [l.itemId, l.qty])),
-      mods: first.mods,
-      built: mgPerfectBuilt(first),
-    });
-    expect(a.s.mg).toMatchObject({ waiting: true, round: 1 });
-    await a.send({ t: 'mg', action: 'sync' });
-    expect(a.s.mg?.waiting).toBe(false);
-    expect(a.last('mg')).toMatchObject({ phase: 'order', round: 1 });
-    expect(world.debugOrder(a.s)!.pt).not.toBe(first.pt);
-  });
-
-  it('an early timeout resyncs the same ticket instead of stalling', async () => {
-    const { world } = makeWorld();
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    const pt = world.debugOrder(a.s)!.pt;
-    await a.send({ t: 'mg', action: 'timeout' });
-    expect(a.all('mg').some((m) => m.phase === 'result')).toBe(false);
-    expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 0, resync: true, pt });
-    expect(a.s.mg!.round).toBe(0);
-    clock += 1000;
-    const order = world.debugOrder(a.s)!;
-    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods, built: mgPerfectBuilt(order) });
-    expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 1 });
-  });
-
-  it('reconnect keeps the repeat grace, then a real tray still advances', async () => {
-    const { world } = makeWorld();
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    await a.send({ t: 'mg', action: 'submit', tray: {} });
-    const mid = world.debugOrder(a.s)!;
-    expect(a.s.mg).toMatchObject({ round: 0, repeated: true });
-    const token = a.s.profile!.token;
-    world.disconnect(a.s);
-
-    const b = connectBare(world);
-    await b.send({ t: 'hello', token });
-    await b.send({ t: 'join', room: 'padaria' });
-    expect(world.debugOrder(b.s)!.pt).toBe(mid.pt);
-    expect(b.last('mg')).toMatchObject({ phase: 'order', round: 0, repeat: true, resync: true, pt: mid.pt });
-
-    // Echo of the empty tray still must not burn the retry.
-    await b.send({ t: 'mg', action: 'submit', tray: {} });
-    expect(b.s.mg!.round).toBe(0);
-    expect(b.s.mg!.repeated).toBe(true);
-    expect(b.all('mg').some((m) => m.phase === 'result')).toBe(false);
-    expect(b.last('mg')).toMatchObject({ phase: 'order', round: 0, repeat: true, resync: true });
-
-    clock += 50;
-    await b.send({
-      t: 'mg',
-      action: 'submit',
-      tray: Object.fromEntries(mid.lines.map((l) => [l.itemId, l.qty])),
-      mods: mid.mods,
-      built: mgPerfectBuilt(mid),
-    });
-    expect(b.all('mg').filter((m) => m.phase === 'result').at(-1)).toMatchObject({ outcome: 'segunda', round: 0 });
-    expect(b.last('mg')).toMatchObject({ phase: 'order', round: 1 });
-    expect(b.last('mg')).not.toMatchObject({ pt: mid.pt });
-  });
-
-  it('a dropped connection during the order gap still deals the next ticket once', async () => {
-    const { world } = makeWorld(16, { mgGapMs: 5_000 });
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    const first = world.debugOrder(a.s)!;
-    clock += 1000;
-    await a.send({
-      t: 'mg',
-      action: 'submit',
-      tray: Object.fromEntries(first.lines.map((l) => [l.itemId, l.qty])),
-      mods: first.mods,
-      built: mgPerfectBuilt(first),
-    });
-    expect(a.s.mg).toMatchObject({ waiting: true, round: 1 });
-    const token = a.s.profile!.token;
-    world.disconnect(a.s);
-    advance(5_000);
-
-    const b = connectBare(world);
-    await b.send({ t: 'hello', token });
-    await b.send({ t: 'join', room: 'padaria' });
-    expect(b.last('mg')).toMatchObject({ phase: 'order', round: 1 });
-    expect(world.debugOrder(b.s)!.pt).not.toBe(first.pt);
-    expect(b.s.mg?.waiting).toBe(false);
-    const pt = world.debugOrder(b.s)!.pt;
-    advance(5_000);
-    expect(world.debugOrder(b.s)!.pt).toBe(pt);
-    expect(b.all('mg').filter((m) => m.phase === 'order')).toHaveLength(1);
-  });
-
-  it('does not resume a ticket after the reconnect window', async () => {
-    const { world } = makeWorld();
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    const token = a.s.profile!.token;
-    world.disconnect(a.s);
-    clock += MG_RESUME_MS + 1;
-    const b = connectBare(world);
-    await b.send({ t: 'hello', token });
-    await b.send({ t: 'join', room: 'padaria' });
-    expect(b.all('mg')).toHaveLength(0);
-    expect(b.s.mg).toBeUndefined();
-
-    // The panel is still up on that client. Its resync must close the shift in the open, not go unanswered.
-    const coins = b.s.profile!.coins;
-    await b.send({ t: 'mg', action: 'sync' });
-    expect(b.last('mg')).toMatchObject({ phase: 'end', lost: true, coins: 0, carlos: { pt: 'Ih, perdi a comanda! Bora começar um turno novo?' } });
-    expect(b.s.profile!.coins).toBe(coins);
-    expect(b.all('reward')).toHaveLength(0);
-  });
-
-  it('a server restart that lost the shift answers resync, timeout and submit with a lost card and no RV', async () => {
-    const store = new ProfileStore(null);
-    const services = () => ({ safety: new JevStubSafety(), gloss: new PhrasebookGloss(), npc: new AuthoredNpcDialogue(), student: new InMemoryStudentModel(), moderation: new MemoryModerationQueue() });
-    const opts = { mgGapMs: 0, now, schedule: (fn: () => void, ms: number) => pending.push({ fn, at: clock + ms }) };
-    const before = new World(store, services(), opts);
-    const a = await client(before);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    const token = a.s.profile!.token;
-    const coins = a.s.profile!.coins;
-
-    // Same profile store, fresh in-memory World: what a Fly deploy leaves behind.
-    pending.length = 0;
-    const after = new World(store, services(), opts);
-    for (const action of [{ t: 'mg', action: 'sync' }, { t: 'mg', action: 'timeout' }, { t: 'mg', action: 'submit', tray: {} }] as const) {
-      const b = connectBare(after);
-      await b.send({ t: 'hello', token });
-      await b.send({ t: 'join', room: 'padaria' });
-      expect(b.all('mg')).toHaveLength(0);
-      await b.send(action);
-      expect(b.all('mg')).toEqual([expect.objectContaining({ phase: 'end', lost: true, points: 0, coins: 0 })]);
-      expect(b.all('reward')).toHaveLength(0);
-      expect(b.s.profile!.coins).toBe(coins);
-      expect(b.s.mg).toBeUndefined();
-      after.disconnect(b.s);
-    }
-
-    // ✕ on that dead ticket is the usual goodbye; Jogar de novo is a fresh Pedido 1.
-    const c = connectBare(after);
-    await c.send({ t: 'hello', token });
-    await c.send({ t: 'join', room: 'padaria' });
-    await c.send({ t: 'mg', action: 'quit' });
-    expect(c.last('notice')).toMatchObject({ level: 'info', pt: 'Até a próxima, ajudante!' });
-    expect(c.all('mg')).toHaveLength(0);
-    await c.send({ t: 'mg', action: 'start' });
-    expect(c.last('mg')).toMatchObject({ phase: 'order', round: 0, points: 0 });
-  });
-
-  it('a resync that beats the rejoin does not call a resumable shift lost', async () => {
-    const { world } = makeWorld();
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    const pt = world.debugOrder(a.s)!.pt;
-    const token = a.s.profile!.token;
-    world.disconnect(a.s);
-
-    const b = connectBare(world);
-    await b.send({ t: 'hello', token });
-    await b.send({ t: 'mg', action: 'sync' });
-    await b.send({ t: 'mg', action: 'timeout' });
-    expect(b.all('mg')).toHaveLength(0);
-    await b.send({ t: 'join', room: 'padaria' });
-    expect(b.last('mg')).toMatchObject({ phase: 'order', round: 0, resync: true, pt });
-    await b.send({ t: 'mg', action: 'sync' });
-    expect(b.last('mg')).toMatchObject({ phase: 'order', round: 0, resync: true, pt });
-    expect(b.all('mg').some((m) => m.phase === 'end')).toBe(false);
-  });
-
-  it('quitting a parked shift before the rejoin still settles what was served', async () => {
-    const { world } = makeWorld();
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    const order = world.debugOrder(a.s)!;
-    clock += 1000;
-    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods, built: mgPerfectBuilt(order) });
-    const points = a.s.mg!.points;
-    const before = a.s.profile!.coins;
-    const token = a.s.profile!.token;
-    world.disconnect(a.s);
-
-    const b = connectBare(world);
-    await b.send({ t: 'hello', token });
-    await b.send({ t: 'mg', action: 'quit' });
-    expect(b.last('mg')).toMatchObject({ phase: 'end', points, coins: mgPayout(points) });
-    expect(b.last('mg')).not.toHaveProperty('lost');
-    expect(b.s.profile!.coins).toBe(before + mgPayout(points));
-    await b.send({ t: 'join', room: 'padaria' });
-    expect(b.all('mg').filter((m) => m.phase === 'order')).toHaveLength(0);
-  });
-
-  describe('Jogar de novo', () => {
-    async function secondShift() {
-      const { world } = makeWorld();
-      const a = await client(world);
-      await a.send({ t: 'join', room: 'padaria' });
-      await a.send({ t: 'mg', action: 'start' });
-      for (let r = 0; r < 6; r++) {
-        const order = world.debugOrder(a.s)!;
-        clock += 1000;
-        await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods, built: mgPerfectBuilt(order) });
-      }
-      expect(a.last('mg')).toMatchObject({ phase: 'end' });
-      expect(a.s.mg).toBeUndefined();
-      await a.send({ t: 'mg', action: 'start' });
-      expect(a.last('mg')).toMatchObject({ phase: 'order', round: 0, repeat: false, points: 0 });
-      a.inbox.length = 0;
-      return { world, a, order: world.debugOrder(a.s)! };
-    }
-
-    it('the first Pedido 1 timeout re-arms “de novo, devagar”, then the next one advances (client timeout)', async () => {
-      const { a, order } = await secondShift();
-      clock += order.timeMs;
-      await a.send({ t: 'mg', action: 'timeout' });
-      expect(a.all('mg').map((m) => m.phase)).toEqual(['result', 'order']);
-      expect(a.all('mg')[0]).toMatchObject({ outcome: 'repita', round: 0 });
-      expect(a.last('mg')).toMatchObject({ phase: 'order', round: 0, repeat: true, pt: order.pt });
-      expect(a.last('mg')).not.toHaveProperty('resync');
-
-      clock += order.timeMs;
-      await a.send({ t: 'mg', action: 'timeout' });
-      expect(a.all('mg').filter((m) => m.phase === 'result').at(-1)).toMatchObject({ outcome: 'tempo', round: 0 });
-      expect(a.last('mg')).toMatchObject({ phase: 'order', round: 1, repeat: false });
-      expect(a.s.mg!.round).toBe(1);
-    });
-
-    it('the first Pedido 1 timeout re-arms “de novo, devagar”, then the next one advances (server deadline)', async () => {
-      const { a, order } = await secondShift();
-      advance(order.timeMs + 2_000);
-      expect(a.all('mg').filter((m) => m.phase === 'result')).toEqual([expect.objectContaining({ outcome: 'repita', round: 0 })]);
-      expect(a.last('mg')).toMatchObject({ phase: 'order', round: 0, repeat: true, pt: order.pt });
-
-      advance(order.timeMs + 2_000);
-      expect(a.all('mg').filter((m) => m.phase === 'result').at(-1)).toMatchObject({ outcome: 'tempo', round: 0 });
-      expect(a.last('mg')).toMatchObject({ phase: 'order', round: 1 });
-      expect(a.s.mg!.round).toBe(1);
-    });
-  });
-
-  it('mg sync re-sends the open ticket with resync', async () => {
-    const { world } = makeWorld();
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    const pt = world.debugOrder(a.s)!.pt;
-    a.inbox.length = 0;
-    await a.send({ t: 'mg', action: 'sync' });
-    expect(a.last('mg')).toMatchObject({ phase: 'order', round: 0, resync: true, pt });
-  });
-
-  it('a second hello resumes the open ticket instead of deleting it', async () => {
-    const { world } = makeWorld();
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    const pt = world.debugOrder(a.s)!.pt;
-    const token = a.s.profile!.token;
-    let kicked = false;
-    const orig = a.s.close;
-    a.s.close = (reason) => {
-      kicked = true;
-      orig(reason);
-    };
-    const b = connectBare(world);
-    await b.send({ t: 'hello', token });
-    expect(kicked).toBe(true);
-    expect(a.s.profile).toBeUndefined();
-    await b.send({ t: 'join', room: 'padaria' });
-    expect(b.last('mg')).toMatchObject({ phase: 'order', round: 0, resync: true, pt });
-    expect(world.debugOrder(b.s)!.pt).toBe(pt);
-  });
-
-  it('quitting mid-shift pays for points already scored instead of wiping them', async () => {
-    const { world } = makeWorld();
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    const before = a.s.profile!.coins;
-    const order = world.debugOrder(a.s)!;
-    clock += 1000;
-    await a.send({
-      t: 'mg',
-      action: 'submit',
-      tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])),
-      mods: order.mods,
-      built: mgPerfectBuilt(order),
-    });
-    expect(a.s.mg).toMatchObject({ round: 1 });
-    const points = a.s.mg!.points;
-    expect(points).toBeGreaterThan(0);
-    await a.send({ t: 'mg', action: 'quit' });
-    const end = a.last('mg') as Extract<ServerMsg, { t: 'mg'; phase: 'end' }>;
-    expect(end).toMatchObject({ phase: 'end', points, coins: mgPayout(points) });
-    expect(a.s.mg).toBeUndefined();
-    expect(a.s.profile!.coins).toBe(before + mgPayout(points));
-    advance(120_000);
-    expect(a.all('mg').filter((m) => m.phase === 'order' && m.round > 1)).toHaveLength(0);
-    await a.send({ t: 'mg', action: 'start' });
-    expect(a.last('mg')).toMatchObject({ phase: 'order', round: 0 });
-    expect(a.s.mg!.points).toBe(0);
-  });
-
-  it('quitting before any point does not pay the shift minimum', async () => {
-    const { world } = makeWorld();
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    const before = a.s.profile!.coins;
-    await a.send({ t: 'mg', action: 'quit' });
-    expect(a.all('mg').some((m) => m.phase === 'end')).toBe(false);
-    expect(a.last('notice')).toMatchObject({ level: 'info' });
-    expect(a.s.mg).toBeUndefined();
-    expect(a.s.profile!.coins).toBe(before);
-  });
-
-  it('quitting after only misses ends the shift in the open instead of restarting silently', async () => {
-    const { world } = makeWorld();
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    const before = a.s.profile!.coins;
-    clock += 1000;
-    await a.send({ t: 'mg', action: 'submit', tray: {} });
-    clock += 1000;
-    await a.send({ t: 'mg', action: 'submit', tray: {} });
-    expect(a.s.mg).toMatchObject({ round: 1, points: 0 });
-    await a.send({ t: 'mg', action: 'quit' });
-    expect(a.last('mg')).toMatchObject({ phase: 'end', points: 0, coins: 0 });
-    expect(a.s.mg).toBeUndefined();
-    expect(a.s.profile!.coins).toBe(before);
-    expect(a.s.profile!.tutorial.meveum).toBeFalsy();
-  });
-
-  it('missing ticket history still advances to the next order', async () => {
-    const { world } = makeWorld();
-    const a = await client(world);
-    await a.send({ t: 'join', room: 'padaria' });
-    await a.send({ t: 'mg', action: 'start' });
-    a.s.mg!.served = undefined;
-    const order = world.debugOrder(a.s)!;
-    clock += 1000;
-    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods, built: mgPerfectBuilt(order) });
-    expect(a.all('mg').at(-2)).toMatchObject({ phase: 'result', outcome: 'perfeito', round: 0 });
-    expect(a.all('mg').at(-1)).toMatchObject({ phase: 'order', round: 1 });
-    expect(world.debugOrder(a.s)!.pt.length).toBeGreaterThan(0);
-    expect(Array.isArray(a.s.mg!.served)).toBe(true);
   });
 
   it('refuses to buy without coins and only decorates your own kitnet', async () => {
@@ -1041,9 +536,7 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
 
     const coins = a.s.profile!.coins;
     await a.send({ t: 'mg', action: 'start' });
-    const order = world.debugOrder(a.s)!;
-    clock += 1000;
-    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(order.lines.map((l) => [l.itemId, l.qty])), mods: order.mods, built: mgPerfectBuilt(order) });
+    await serveFront(world, a, advance);
     const m = a.s.profile!.mission!;
     expect(m.steps).toEqual({ cumprimenta: true, pede: true, monta: true });
     expect(m.rewarded).toBe(true);
@@ -1051,9 +544,7 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
     expect(a.s.profile!.coins).toBe(coins + MISSION_REWARD);
 
     // A second correct order doesn't pay again.
-    const o2 = world.debugOrder(a.s)!;
-    clock += 1000;
-    await a.send({ t: 'mg', action: 'submit', tray: Object.fromEntries(o2.lines.map((l) => [l.itemId, l.qty])), mods: o2.mods, built: mgPerfectBuilt(o2) });
+    await serveFront(world, a, advance);
     expect(a.all('reward').filter((r) => r.amount === MISSION_REWARD).length).toBe(1);
   });
 
@@ -1257,7 +748,7 @@ describe('Idle kick', () => {
     world.sweepIdle();
     expect(closed).toBeNull();
 
-    await a.send({ t: 'mg', action: 'timeout' });
+    await a.send({ t: 'mg', action: 'sync' });
     clock += 5 * MIN;
     world.sweepIdle();
     expect(closed).toBe('idle');

@@ -13,7 +13,7 @@ import { chromium } from 'playwright-core';
 import { findChrome } from './lib/chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
-import { assert, learnShelf, playShift, sleep, waitFor } from './lib/meveum-play.mjs';
+import { assert, playShift, sleep, startShiftFromPedido, waitFor } from './lib/correria-play.mjs';
 import { assertPageClock, requirePinnedClock } from './lib/clock-pin.mjs';
 import { goArea } from './lib/areas.mjs';
 
@@ -146,15 +146,13 @@ async function main() {
     assert((afterScene.bond?.graca ?? 0) >= 2, `the talk bond went to Dona Graça (${JSON.stringify(afterScene.bond)})`);
     log('scene done with Graça, bond', JSON.stringify(afterScene.bond), 'bag', JSON.stringify(afterScene.bag));
 
-    // Me vê um with her
-    await page.click('#btn-pedido-play-mg');
-    await page.waitForSelector('[data-modal="minigame"]', { timeout: 12_000 });
-    await learnShelf(page);
+    // Correria no Balcão with her at the counter (the baker on duty)
+    await startShiftFromPedido(page);
     await playShift(page, { log, dwell: () => Promise.resolve() });
     const afterMg = await page.evaluate(() => window.__tb.game.profile);
-    assert(afterMg.coins > afterScene.coins, `Me vê um paid out at night (${afterScene.coins} → ${afterMg.coins})`);
-    assert(afterMg.tutorial.meveum, 'the Me vê um tutorial step completed');
-    log('Me vê um at night ok, RV', afterMg.coins - afterScene.coins);
+    assert(afterMg.coins > afterScene.coins, `Correria no Balcão paid out at night (${afterScene.coins} → ${afterMg.coins})`);
+    assert(afterMg.tutorial.meveum, 'the Correria no Balcão tutorial step completed');
+    log('Correria no Balcão at night ok, RV', afterMg.coins - afterScene.coins);
 
     // the academia: Professora Bia
     await page.keyboard.press('Escape');

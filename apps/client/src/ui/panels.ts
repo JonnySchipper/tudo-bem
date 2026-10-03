@@ -19,7 +19,6 @@ import {
 import { game } from '../state';
 import { h, en, bi, ui, clear } from './dom';
 import { mountCharPreview, setHatIcon } from '../render/pixel/charPreview';
-export { MinigameUI } from './meveum-ui.js';
 import { furnitureIcon, expressionForScore } from './pixelArt';
 import { speak } from '../audio';
 import { closeDialogueBox, showDialogueBox, type BoxSpec } from './dialogue';
@@ -96,7 +95,7 @@ export function showScene(view: SceneView, extra: { said?: Bilingual; feedback?:
         extra.payout ? h('span', { class: 'feedback' }, `+${extra.payout} RV · Café da manhã completo!`) : null,
         h('span', { class: 'spacer' }),
         h('button', { onclick: onClose }, bi('Tchau!', 'Bye')),
-        h('button', { class: 'primary', onclick: onPlay, id: 'btn-play-mg' }, bi('Jogar “Me vê um…”', 'Play the tray game')),
+        h('button', { class: 'primary', onclick: onPlay, id: 'btn-play-mg' }, bi('Jogar “Correria no Balcão”', 'Play Counter Rush')),
       )
     : undefined;
   showDialogue({
@@ -128,8 +127,8 @@ const JULIA_TREE: { q: Bilingual; a: Bilingual }[] = [
   {
     q: { pt: 'Como ganho reais virtuais?', en: 'How do I earn RV coins?' },
     a: {
-      pt: 'Tome café com o Seu Carlos e jogue “Me vê um…” no balcão. Depois compre um chapéu com a Nanda!',
-      en: 'Have breakfast with Seu Carlos and play “Me vê um…” at the counter. Then buy a hat from Nanda!',
+      pt: 'Tome café com o Seu Carlos e jogue a “Correria no Balcão” no balcão. Depois compre um chapéu com a Nanda!',
+      en: 'Have breakfast with Seu Carlos and play “Correria no Balcão” (Counter Rush) at the counter. Then buy a hat from Nanda!',
     },
   },
 ];
@@ -386,7 +385,7 @@ export function openMap(go: (room: RoomId) => void) {
         card('rua', 'Rua dos Ipês', 'Ipê Street — padaria, newsstand, apartments, academy, bus stop', ['#7a6a5a', '#d8cbb6']),
         card('praca', 'Praça Central', 'Central Square — fountain, hats, parrot, missions', ['#d9532b', '#f2c230']),
         card('feira', 'Feira Livre', 'Street market — fruit, vegetables, pastel, flowers (6 am–1 pm)', ['#4f8a3c', '#e8a94f']),
-        card('padaria', 'Padaria do Seu Carlos', 'Bakery — breakfast + “Me vê um…”', ['#a8452c', '#e8a94f']),
+        card('padaria', 'Padaria do Seu Carlos', 'Bakery — breakfast + “Correria no Balcão”', ['#a8452c', '#e8a94f']),
         card('academia', 'Academia do Bairro', 'Word-game roll — academy Portuguese (not real MA training)', ['#2f5f7a', '#8ab4c8']),
         card('kitnet', 'Minha kitnet', 'My studio apartment — decorate', ['#f5e6d3', '#a8c5d4'], false, true),
         card(null, 'Estação de Metrô', 'Subway (Phase 1)', null, true),

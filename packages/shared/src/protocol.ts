@@ -12,7 +12,7 @@ import type {
   TutorialStep,
 } from './types.js';
 import type { SceneView } from './carlos.js';
-import type { MgBuiltUnit, MgOrderLine, MgOutcome, Tray } from './meveum.js';
+import type { CAct, CEvent, CorreriaSnap, UnlockId } from './correria.js';
 import type { SafetyAction } from './safety.js';
 import type { NpcId } from './rooms.js';
 import type { ConversaGrade, ConversaMeter, ConversaScores, ConversaSubject } from './conversa.js';
@@ -45,8 +45,8 @@ export type ClientMsg =
   | { t: 'conversa'; action: 'chip'; chip: number }
   | { t: 'conversa'; action: 'close' }
   | { t: 'mg'; action: 'start' }
-  | { t: 'mg'; action: 'submit'; tray: Tray; mods?: string[]; built?: MgBuiltUnit[] }
-  | { t: 'mg'; action: 'timeout' }
+  /** One step at the counter (Correria no Balcão): grab, grill, pour, pack, serve, answer… the server judges it. */
+  | { t: 'mg'; action: 'act'; act: CAct }
   | { t: 'mg'; action: 'quit' }
   | { t: 'mg'; action: 'sync' }
   | { t: 'buy'; kind: 'hat' | 'furniture'; itemId: string }
@@ -98,27 +98,35 @@ export interface RoomStateMsg {
 
 export type NoticeLevel = 'info' | 'warn' | 'block' | 'reward' | 'error';
 
+/** Correria no Balcão. `state` carries the whole shift picture plus the one-shot events that just happened; the client keeps no rules. */
+export interface CorreriaEnd {
+  served: number;
+  perfect: number;
+  second: number;
+  left: number;
+  points: number;
+  tips: number;
+  bestCombo: number;
+  stars: number;
+  /** RV paid (0 when the daily limit was used or nobody was served). */
+  coins: number;
+  /** The shift would have paid but today's paid shifts are used up. */
+  dailyBlocked: boolean;
+  askRight: number;
+  askTotal: number;
+  /** Words met in this shift that were new to the Caderno. */
+  words: Bilingual[];
+  newUnlocks: { id: UnlockId; pt: string; en: string }[];
+  /** Total stars after this shift and the level (0-3) it opens next time. */
+  totalStars: number;
+  level: number;
+  regulars: string[];
+}
+
 export type MgServerMsg =
-  | {
-      t: 'mg';
-      phase: 'order';
-      round: number;
-      rounds: number;
-      customer: string;
-      pt: string;
-      en: string;
-      timeMs: number;
-      repeat: boolean;
-      points: number;
-      streak: number;
-      mods: string[];
-      /** Item ids + qty for station batch buttons (server still validates submit). */
-      lines: MgOrderLine[];
-      resync?: boolean;
-    }
-  | { t: 'mg'; phase: 'result'; round: number; outcome: MgOutcome | 'repita'; carlos: Bilingual; expected?: MgOrderLine[]; expectedMods?: string[]; points: number; streak: number }
+  | { t: 'mg'; phase: 'state'; snap: CorreriaSnap; ev: CEvent[]; resync?: boolean; /** test hint (TB_TEST_MG) */ debug?: boolean }
   /** `lost`: the server has no shift for this player (restart, or the resume window ran out). Nothing is paid. */
-  | { t: 'mg'; phase: 'end'; points: number; coins: number; perfect: number; rounds: number; carlos: Bilingual; lost?: boolean };
+  | { t: 'mg'; phase: 'end'; end: CorreriaEnd; carlos: Bilingual; lost?: boolean };
 
 /**
  * Conversa (GDD §5.6). Only ever sent to the player having the conversation — never broadcast.
