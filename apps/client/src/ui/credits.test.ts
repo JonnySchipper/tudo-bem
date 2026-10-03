@@ -8,6 +8,20 @@ describe('credits data', () => {
     expect(art?.link?.href).toBe(LIMEZU_URL);
     expect(LIMEZU_URL).toBe('https://limezu.itch.io/');
     expect(art?.link?.label).toContain('limezu.itch.io');
+    expect(art?.note).toBe('Modern Exteriors e Modern Interiors');
+    expect(art?.note).not.toMatch(/personagens|cenários/);
+  });
+
+  it('credits original Vila Ipê pieces without dropping LimeZu', () => {
+    const vila = CREDITS.find((c) => c.id === 'vila');
+    expect(vila?.role.pt).toBe('Peças originais');
+    expect(vila?.note).toMatch(/Retratos/);
+    expect(vila?.note).toMatch(/vira-lata/);
+    expect(vila?.note).toMatch(/feira/);
+    expect(vila?.note).toMatch(/kombi/);
+    expect(vila?.note).toMatch(/fusca/);
+    expect(vila?.note).toMatch(/fachadas/);
+    expect(CREDITS.some((c) => c.who === 'LimeZu')).toBe(true);
   });
 
   it('every line has PT and EN roles and unique ids; every link is https', () => {

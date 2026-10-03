@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { TUTORIAL_STEPS } from './constants.js';
 import { HOTSPOTS, HOTSPOT_READ_RANGE, hotspotBox, hotspotCueSpot, hotspotDistance, hotspotTitle, hotspotsInRoom, hotspotsNear, readSpot, type HotspotDef } from './hotspots.js';
 import { buildGrid, isWalkable, ROOMS, ROOM_IDS, propTiles } from './rooms.js';
 import { findPath } from './path.js';
@@ -6,6 +7,25 @@ import { cardById } from './cards.js';
 import { cardsInText } from './caderno.js';
 import { PRICES } from './carlos.js';
 import { normalizeAnswer } from './accept.js';
+
+describe('go-live copy', () => {
+  it('does not claim today’s weather on the newsstand', () => {
+    const banca = HOTSPOTS.find((h) => h.id === 'banca_manchetes')!;
+    expect(banca.pt).not.toMatch(/HOJE/i);
+    expect(banca.en).not.toMatch(/Today/i);
+    expect(banca.pt).toContain('Feira livre: todo dia');
+    expect(banca.pt.split('\n').length).toBe(banca.en.split('\n').length);
+  });
+
+  it('names the padaria counter game Correria in the tutorial and on the rail', () => {
+    const step = TUTORIAL_STEPS.find((s) => s.id === 'meveum')!;
+    expect(step.pt).toBe('Jogue a “Correria no Balcão”');
+    expect(step.en).toBe('Play “Correria no Balcão”');
+    expect(step.pt + step.en).not.toMatch(/Me vê|Tray game/i);
+    const trilho = ROOMS.padaria.props.find((p) => p.id === 'trilho')!;
+    expect(trilho.label).toEqual({ pt: 'Correria no Balcão', en: 'Correria no Balcão' });
+  });
+});
 
 describe('hotspot data', () => {
   it('has at least 24 entries with unique ids, in a real room, with PT and EN text', () => {

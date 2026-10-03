@@ -38,8 +38,8 @@ export const HOTSPOTS: HotspotDef[] = [
   { id: 'edificio_letreiro', room: 'rua', x: 11, y: 1, w: 3, h: 3, pt: 'EDIFÍCIO IPÊ', en: 'Ipê Building' },
   { id: 'edificio_numero', room: 'rua', x: 12, y: 4, pt: 'Nº 42', en: 'No. 42' },
   { id: 'academia_letreiro', room: 'rua', x: 23, y: 1, w: 6, h: 3, pt: 'ACADEMIA\nDO BAIRRO', en: 'Neighborhood\nacademy' },
-  { id: 'banca_manchetes', room: 'rua', x: 8, y: 4, w: 3, h: 2, pt: 'BANCA\nHOJE: Chuva à noite\nFeira livre: todo dia, 6h às 13h\nPadaria faz festa',
-    en: 'NEWSSTAND\nToday: Rain tonight\nStreet market: every day, 6 am to 1 pm\nBakery throws a party',
+  { id: 'banca_manchetes', room: 'rua', x: 8, y: 4, w: 3, h: 2, pt: 'BANCA\nFeira livre: todo dia, 6h às 13h\nPadaria faz festa',
+    en: 'NEWSSTAND\nStreet market: every day, 6 am to 1 pm\nBakery throws a party',
   },
   // ---- Vila Ipê, north sidewalk
   { id: 'placa_rua_ipes', room: 'rua', x: 22, y: 6, w: 1, h: 2, pt: 'R. DOS IPÊS', en: 'Ipê Street' },

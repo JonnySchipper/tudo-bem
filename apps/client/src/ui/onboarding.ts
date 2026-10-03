@@ -23,6 +23,17 @@ export interface NewProfile {
   appearance: Appearance;
 }
 
+/** Praça rules: Portuguese first, English only as the gloss under the heading. */
+function squareRules(mobile = false) {
+  return h(
+    'div',
+    { class: mobile ? 'rules rules-m' : 'rules' },
+    'Regras da praça',
+    h('div', null, 'Só conversa gentil. Sem dados pessoais (telefone, endereço, escola, redes), sem namoro, álcool, ofensas ou política. O chat é filtrado.'),
+    en('Square rules — kind chat only; no personal info (phone, address, school, social handles); no dating, alcohol, slurs or politics. Chat is filtered.'),
+  );
+}
+
 function hero() {
   return h(
     'div',
@@ -155,12 +166,7 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
           'div',
           { class: 'creator-side' },
           h('div', { class: 'stage' }, h('div', { class: 'preview' }, canvas), h('div', { class: 'stage-btns' }, turn, walkBtn)),
-          h(
-            'div',
-            { class: 'rules' },
-            'Regras da praça',
-            en('Square rules — kind chat only; no personal info (phone, address, school, social handles); no dating, alcohol, slurs or politics. Chat is filtered.'),
-          ),
+          squareRules(),
         ),
         h(
           'div',
@@ -183,7 +189,7 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
             h('div', { class: 'field cr-wide' }, h('label', null, 'Cabelo', en('Hair')), chips(HAIR_STYLES, (v) => LABELS.hair[v], () => a.hair, (v) => (a.hair = v))),
           ),
           sec('Roupa', 'Outfit', 'cr-outfit', field('Visual inicial', 'Starter outfit (tee and jeans only). Hats and more clothes are at Nanda’s stall.', presets)),
-          h('div', { class: 'rules rules-m' }, 'Regras da praça', en('Square rules — kind chat only; no personal info (phone, address, school, social handles); no dating, alcohol, slurs or politics. Chat is filtered.')),
+          squareRules(true),
           h('div', { class: 'creator-cta' }, h('div', { class: 'row' }, h('span', { class: 'spacer' }), go)),
         ),
       ),

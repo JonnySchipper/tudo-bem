@@ -440,7 +440,7 @@ export function openMap(go: (room: RoomId) => void) {
         card('praca', 'Praça Central', 'Central Square — fountain, hats, parrot, missions', ['#d9532b', '#f2c230']),
         card('feira', 'Feira Livre', 'Street market — fruit, vegetables, pastel, flowers (6 am–1 pm)', ['#4f8a3c', '#e8a94f']),
         card('padaria', 'Padaria do Seu Carlos', 'Bakery — breakfast + “Correria no Balcão”', ['#a8452c', '#e8a94f']),
-        card('academia', 'Academia do Bairro', 'Word-game roll — academy Portuguese (not real MA training)', ['#2f5f7a', '#8ab4c8']),
+        card('academia', 'Academia do Bairro', 'Mat practice — grips and force (Treino no tatame)', ['#2f5f7a', '#8ab4c8']),
         card('kitnet', 'Minha kitnet', 'My studio apartment — decorate', ['#f5e6d3', '#a8c5d4'], false, true),
         card(null, 'Estação de Metrô', 'Subway (Phase 1)', null, true),
         card(null, 'Praia', 'Beach day trip (Phase 2)', null, true),

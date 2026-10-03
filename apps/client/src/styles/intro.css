@@ -741,7 +741,8 @@ body.intro-active #world {
 }
 
 /* Register tab only — login and Google sign-in never show this row. */
-.intro-form .intro-tabs:not(.is-register) ~ .intro-adult {
+.intro-form .intro-tabs:not(.is-register) ~ .intro-adult,
+.intro-form .intro-tabs:not(.is-register) ~ .intro-privacy {
   display: none;
 }
 

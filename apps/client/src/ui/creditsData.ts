@@ -18,8 +18,14 @@ export const CREDITS: CreditLine[] = [
     id: 'art',
     role: { pt: 'Arte', en: 'Art' },
     who: 'LimeZu',
-    note: 'Modern Exteriors e Modern Interiors (pixel art, personagens, cenários)',
+    note: 'Modern Exteriors e Modern Interiors',
     link: { href: LIMEZU_URL, label: 'limezu.itch.io' },
+  },
+  {
+    id: 'vila',
+    role: { pt: 'Peças originais', en: 'Original pieces' },
+    who: 'Vila Ipê',
+    note: 'Retratos, vira-lata, barracas da feira, kombi, fusca e fachadas',
   },
   {
     id: 'voices',

@@ -91,7 +91,7 @@ export const TUTORIAL_STEPS: { id: TutorialStep; pt: string; en: string }[] = [
   { id: 'acenar', pt: 'Dê um oi', en: 'Wave hello (Oi button)' },
   { id: 'conversar', pt: 'Mande uma mensagem', en: 'Send a chat message' },
   { id: 'carlos', pt: 'Tome café com o Seu Carlos', en: 'Have breakfast with Seu Carlos (Padaria)' },
-  { id: 'meveum', pt: 'Jogue “Me vê um…”', en: 'Play the “Me vê um…” tray game' },
+  { id: 'meveum', pt: 'Jogue a “Correria no Balcão”', en: 'Play “Correria no Balcão”' },
   { id: 'chapeu', pt: 'Use um chapéu', en: 'Get and wear a hat (Nanda’s stall)' },
   { id: 'cadeira', pt: 'Coloque uma cadeira na kitnet', en: 'Place a chair in your kitnet' },
 ];
