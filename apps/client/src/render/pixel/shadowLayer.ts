@@ -374,12 +374,15 @@ export class ShadowLayer {
     if (c.box.visible !== vis) c.box.setVisible(vis);
     c.spr.setVisible(vis);
     if (!vis) return;
-    const sig = `${c.hScale}`;
+    // a scaled follower (the taller avatar) casts a shadow of the same draw scale; the shear stays in sheet pixels
+    const drawX = c.follow ? c.follow.scaleX : 1;
+    const drawY = c.follow ? c.follow.scaleY : 1;
+    const sig = `${c.hScale}|${drawX}|${drawY}`;
     if (lookChanged || c.sig !== sig) {
       c.sig = sig;
       const sh = casterShear(look, { hScale: c.src.preset.hScale * c.hScale, capPx: c.src.preset.capPx }, c.height);
       const t = shearTransform(sh.lx, sh.ly);
-      c.box.setRotation(t.rotation).setScale(t.scaleX, t.scaleY);
+      c.box.setRotation(t.rotation).setScale(t.scaleX * drawX, t.scaleY * drawY);
       c.spr.setRotation(t.childRotation);
       c.spr.setTint(look.tint).setAlpha(Math.min(1, look.alpha * alphaMul * c.src.preset.alpha));
     }
@@ -431,7 +434,7 @@ export class ShadowLayer {
       c.rimKey = key;
       r.setTexture(ref.tex, ref.frame).setOrigin(ref.ax / ref.w, ref.ay / ref.h);
     }
-    r.setPosition(s.x, s.y).setDepth(s.depth + 0.002).setFlipX(s.flipX).setTint(rim.tint).setAlpha(rim.alpha * 0.8).setVisible(true);
+    r.setPosition(s.x, s.y).setDepth(s.depth + 0.002).setFlipX(s.flipX).setScale(s.scaleX, s.scaleY).setTint(rim.tint).setAlpha(rim.alpha * 0.8).setVisible(true);
   }
 
   /** Upload the atlas once per frame, and only if something was added. */
