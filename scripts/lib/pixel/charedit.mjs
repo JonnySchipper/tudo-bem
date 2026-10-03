@@ -143,6 +143,8 @@ export const LEGEND = {
   d: KEY_RAMPS.bottom[0], e: KEY_RAMPS.bottom[1], f: KEY_RAMPS.bottom[2], z: KEY_RAMPS.bottom[3],
   m: KEY_RAMPS.shoes[0], n: KEY_RAMPS.shoes[1], l: KEY_RAMPS.shoes[2],
   y: '#f2b22b', Y: '#fff59a', g: '#3d8a4e', G: '#5cb85c', R: '#d93232', B: '#8a5a3c', P: '#e0707a', L: '#9d9dc3', K: '#1f1f2e',
+  /** mural coral — flower crowns and market totes, a fixed hue so it survives a hat recolor */
+  C: '#e07a5f',
 };
 
 /**

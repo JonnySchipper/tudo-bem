@@ -37,20 +37,16 @@ const IRIS = { carlos: '#573c2c', nanda: '#453a4c', julia: '#4280dd', graca: '#5
 /** Four-shade ramp from a brand hex (dark → hi). */
 const ramp4 = (hex, dk = '#2a2218') => [mix(hex, dk, 0.42), mix(hex, dk, 0.2), hex, mix(hex, '#ffffff', 0.26)];
 const ZE_SKIN = ramp4('#c68a5f');
-const STUBBLE = ramp4('#9c9792', '#4a4845');
 const OLIVE_SHIRT = ramp4('#66753f');
-const OLIVE_APRON = ramp4('#8a9a52');
 const KHAKI = ramp4('#b89a6c');
 const CHICO_SKIN = ramp4('#8a5433');
 const CHICO_HAIR = ramp4('#1d1716', '#0a0808');
 const CHICO_TEE = ramp4('#eee6d9', '#8a8070');
 const JEANS = ramp4('#3d5d8f');
-const APRON_WHITE = ramp4('#f1eee8', '#7a7570');
 const ROSA_SKIN = ramp4('#d9a07a');
 const ROSA_HAIR = ramp4('#9a5f30', '#4a3018');
 const ROSA_BLOUSE = ramp4('#d98a9b');
 const PLUM_SKIRT = ramp4('#6e4e8f');
-const APRON_CREAM = ramp4('#f4ede2', '#7a7570');
 const PANAMA = ramp4('#efe3c4', '#6a5e48');
 const BUCKET = ramp4('#e8b634', '#6a5010');
 const WHITE = '#f0ecf6';
@@ -222,7 +218,7 @@ function faceSet(img, npc, expr, skin, o = {}) {
 const RENDER = {};
 
 RENDER.carlos = (img, expr) => {
-  const skin = SKIN.tan, kp = faceKp({ cheek: 15.5, jaw: 13.5 });
+  const skin = ramp4('#c68a5f'), kp = faceKp({ cheek: 15.5, jaw: 13.5 });
   // shirt and apron
   torso(img, CLOTH.terracotta, { ol: '#7f3034' });
   neck(img, skin);
@@ -324,32 +320,39 @@ RENDER.nanda = (img, expr) => {
 };
 
 RENDER.julia = (img, expr) => {
-  const skin = SKIN.light, kp = faceKp({ cheek: 14, jaw: 11 });
-  const hair = HAIR.chestnut;
-  // shoulder-length hair behind
-  shape(img, profile(CX, [[8, 10], [11, 15.5], [16, 18.5], [24, 19.8], [36, 20.5], [46, 20.8], [52, 19], [55, 15]]), [CX, 32, 21, 24], hair, { ol: '#43261b', t: [0.8, 0.3, -0.1], pattern: (x, y, i) => (Math.floor(x + y * 0.3) % 6 === 0 ? Math.max(0, i - 1) : i) });
-  torso(img, CLOTH.sky, { ol: '#4e6f86' });
-  // white collar points and a small sp-green scarf knot
-  for (const s of [-1, 1]) flat(img, (x, y) => y >= 47 && y < 55 && s * (x - CX) > 1.5 && s * (x - CX) < 9.5 - (y - 47) * 0.4 && y - 47 > (s * (x - CX) - 1.5) * 0.55, CLOTH.cream[3], { ol: '#7a8ea0' });
+  // Praça guide: high ponytail and a market tote. Cream blouse, no apron, no baker's cap.
+  const skin = ramp4('#eec1a0'), kp = faceKp({ cheek: 14, jaw: 11 });
+  const hair = ramp4('#9a5f30', '#4a3018');
+  const tote = ramp4('#f4ede2', '#7a7570');
+  torso(img, CLOTH.cream, { ol: '#7a7a95' });
   neck(img, skin);
-  fillRect(img, 30, 48, 4, 2, CLOTH.green[2]); fillRect(img, 30, 48, 4, 1, CLOTH.green[3]); fillRect(img, 31, 50, 2, 3, CLOTH.green[1]); put(img, 31, 52, CLOTH.green[0]);
-  // guide lanyard and badge
-  for (let i = 0; i < 12; i++) { put(img, 26 + Math.round(i * 0.45), 50 + i, '#d93232'); put(img, 38 - Math.round(i * 0.45), 50 + i, '#d93232'); }
-  fillRect(img, 27, 60, 10, 4, '#f8f8f8'); fillRect(img, 27, 60, 10, 1, '#d8d0e0'); fillRect(img, 28, 61, 3, 2, CLOTH.sky[1]); fillRect(img, 32, 61, 4, 1, '#3a3a50'); fillRect(img, 32, 63, 3, 1, '#b2aecb');
   head(img, skin, kp);
-  // freckles
-  for (const [x, y] of [[22, 33], [25, 34], [23, 35], [42, 33], [39, 34], [41, 35]]) put(img, x, y, mix(skin[2], '#c46823', 0.5));
   faceSet(img, 'julia', expr, skin, { brow: hair[0], browY: 21, lash: true, mouth: { y: 38, lip: '#d56868' }, blush: 1 });
-  // side-swept fringe and the strands in front of the shoulders
-  // side part at x=38: the hair sweeps to the viewer's left and down over the temple, a short curve on the right
-  const hairline = (x) => (x < 38 ? 16 + (38 - x) * 0.36 : 16 + (x - 38) * 0.55);
-  shape(img, and(ell(CX, 13.5, 18, 13.5), (x, y) => y < hairline(x)), [CX - 3, 12, 18, 13], hair, {
-    ol: '#43261b', t: [0.78, 0.3, -0.1],
-    pattern: (x, y, i) => ((Math.floor(x + y * 0.55) % 5 === 0) ? Math.min(3, i + 1) : (Math.floor(x + y * 0.55) % 5 === 2 ? Math.max(0, i - 1) : i)),
-  });
-  for (let i = 0; i < 8; i++) put(img, 38 - Math.round(i * 0.15), 7 + i, hair[0]);
-  // hair shine streaks
-  for (const [x, y] of [[22, 8], [23, 8], [24, 9], [25, 9], [21, 11], [22, 11], [23, 12], [15, 34], [15, 35], [16, 36], [15, 26], [15, 27]]) put(img, x, y, hair[3]);
+  // hairline only. A wide cap here turns the tail into a hat, so the brown on the scalp stays below the forehead.
+  shape(img, and(ell(CX, 20, 16.4, 7), (x, y) => y >= 16 && y <= 19), [CX, 17, 16, 3], hair, { ol: '#43261b', t: [0.8, 0.28, -0.1] });
+  for (const s of [-1, 1]) for (let y = 17; y < 24; y++) {
+    const x0 = Math.round(CX + s * (hwAt(kp, y) - 1.2));
+    put(img, x0, y, hair[0]); put(img, x0 - s, y, hair[y < 20 ? 2 : 1]);
+  }
+  // high ponytail: a puff, a neck thinner than the head, a coral scrunchie on that neck alone
+  shape(img, ell(32, 5, 6.2, 3.8), [32, 5, 6, 3.6], hair, { ol: '#43261b', t: [0.82, 0.3, -0.12] });
+  for (let y = 8; y <= 16; y++) {
+    for (let x = 30; x <= 33; x++) put(img, x, y, x < 32 ? hair[2] : hair[1]);
+    put(img, 29, y, '#43261b'); put(img, 34, y, '#43261b');
+  }
+  for (let x = 28; x <= 35; x++) { put(img, x, 14, '#f0a090'); put(img, x, 15, '#c45c26'); }
+  put(img, 28, 14, '#43261b'); put(img, 35, 15, '#43261b');
+  for (const [x, y] of [[30, 3], [31, 4], [33, 4], [34, 5], [32, 7], [31, 9]]) put(img, x, y, hair[3]);
+  // market tote in front of the shoulder: two handles, a cloth bag, a leaf, a terracotta stripe
+  for (let i = 0; i < 12; i++) { put(img, 44, 42 + i, tote[0]); put(img, 45, 42 + i, tote[2]); put(img, 58, 42 + i, tote[1]); put(img, 59, 42 + i, tote[0]); }
+  shape(img, box(42, 50, 62, 63), [52, 56, 10, 7], tote, { ol: '#7a7570', t: [0.9, 0.35, -0.2] });
+  shape(img, (x, y) => {
+    const t = (y - 46) / 8;
+    if (t < 0 || t > 1) return false;
+    return Math.abs(x - 50 - (y - 50) * 0.15) <= Math.sin(t * Math.PI) * 2.4;
+  }, [50, 50, 3, 4], ramp4('#3d8a4e', '#1a3120'), { ol: '#1a3120' });
+  fillRect(img, 43, 56, 18, 2, '#c45c26');
+  fillRect(img, 43, 56, 18, 1, '#e07a5f');
 };
 
 RENDER.graca = (img, expr) => {
@@ -455,24 +458,32 @@ RENDER.ze = (img, expr) => {
   flat(img, (x, y) => y >= 60 && torsoPred(x, y), KHAKI[2], { ol: KHAKI[0] });
   neck(img, skin);
   flat(img, (x, y) => y >= 47 && y < 52 && Math.abs(x - CX) <= 8 - (y - 47) * 1.0 && Math.abs(x - CX) > 4.2 - (y - 47) * 0.9, OLIVE_SHIRT[3], { ol: OLIVE_SHIRT[0] });
-  const bib = (x, y) => y >= 52 && Math.abs(x - CX) <= 14 - Math.max(0, 56 - y) * 0.55 && Math.abs(x - CX) <= TORSO_HW(y) - 2.5;
-  shape(img, bib, [CX, 58, 14, 8], OLIVE_APRON, { ol: '#5a6840', t: [0.9, 0.35, -0.2] });
-  for (const s of [-1, 1]) for (let i = 0; i < 6; i++) fillRect(img, Math.round(CX + s * (9.5 - i * 0.2) - (s < 0 ? 1.5 : 0.5)), Math.round(47 + i), 2, 1, OLIVE_APRON[2 + (s < 0 ? 1 : 0)]);
-  fillRect(img, 26, 57, 12, 1, OLIVE_APRON[1]); fillRect(img, 26, 58, 1, 4, OLIVE_APRON[1]); fillRect(img, 37, 58, 1, 4, OLIVE_APRON[0]); fillRect(img, 26, 62, 12, 1, OLIVE_APRON[0]);
-  put(img, 30, 59, '#6d8a3a'); put(img, 31, 59, '#8faa52'); put(img, 34, 60, '#c45c26');
+  // verduras: pointed leaves and one dark olive with a catchlight. No apron — that would make him a second baker.
+  const leaf = (cx, cy, h, w, lean) => (x, y) => {
+    const t = (y - (cy - h / 2)) / h;
+    if (t < 0 || t > 1) return false;
+    const half = Math.sin(t * Math.PI) * w;
+    return Math.abs(x - cx - (y - cy) * lean) <= half;
+  };
+  shape(img, leaf(47, 52, 14, 3.2, -0.15), [47, 52, 4, 7], ramp4('#3d8a4e', '#1a3120'), { ol: '#1a3120' });
+  shape(img, leaf(56, 51, 13, 2.8, 0.2), [56, 51, 4, 7], ramp4('#5cb85c', '#243018'), { ol: '#243018' });
+  shape(img, leaf(51, 48, 12, 2.4, 0.02), [51, 48, 3, 6], ramp4('#7aaa38', '#2a4018'), { ol: '#2a4018' });
+  shape(img, ell(52, 58, 4.2, 3.1), [52, 58, 4, 3], ['#1a2010', '#2a3318', '#3d4a22', '#5a6a30'], { ol: '#0e1408' });
+  put(img, 50, 57, '#d5e2a0'); put(img, 51, 57, '#eef6c8');
   head(img, skin, kp);
   const scalp = and(profile(CX, kp), (x, y) => y < 24);
-  for (let y = 15; y < 23; y++) for (let x = 18; x < 46; x++) if (scalp(x + 0.5, y + 0.5) && h2(x, y, 3) > 0.35) put(img, x, y, STUBBLE[y < 19 ? 2 : 1]);
-  faceSet(img, 'ze', expr, skin, { brow: STUBBLE[0], browY: 21, noseWide: 1, mouth: { y: 39, lip: LIP_DARK } });
+  const zeHair = CHICO_HAIR;
+  for (let y = 15; y < 23; y++) for (let x = 18; x < 46; x++) if (scalp(x + 0.5, y + 0.5) && h2(x, y, 3) > 0.35) put(img, x, y, zeHair[y < 19 ? 2 : 1]);
+  faceSet(img, 'ze', expr, skin, { brow: zeHair[0], browY: 21, noseWide: 1, mouth: { y: 39, lip: LIP_DARK } });
+  // thin dark mustache plus cheek stubble — not Carlos's solid grey bar
   const mustache = (x, y) => {
     const dx = Math.abs(x - CX);
-    if (y >= 36 && y < 37) return dx <= 6;
-    if (y >= 37 && y < 38) return dx <= 9.2;
-    if (y >= 38 && y < 39) return dx >= 1 && dx <= 9.8;
-    if (y >= 39 && y < 40) return dx >= 5.5 && dx <= 9.5;
+    if (y === 36) return dx >= 2 && dx <= 5;
+    if (y === 37) return dx >= 1.5 && dx <= 7;
     return false;
   };
-  shape(img, mustache, [CX, 38, 10, 2], STUBBLE, { outline: false, t: [0.96, 0.15, -0.8] });
+  shape(img, mustache, [CX, 37, 8, 1.5], CHICO_HAIR, { outline: false, t: [0.96, 0.15, -0.8] });
+  for (const [x, y] of [[22, 33], [23, 35], [24, 37], [21, 36], [41, 33], [40, 35], [39, 37], [42, 36], [26, 40], [37, 40]]) put(img, x, y, CHICO_HAIR[1]);
   const brim = ell(CX, 13.2, 27, 5.2);
   shape(img, brim, [CX, 13, 27, 5.5], PANAMA, { ol: '#6a5e48', t: [0.88, 0.35, -0.12] });
   const crown = or(ell(CX, 8.2, 14.5, 7.2), box(17, 9, 47, 14));
@@ -487,10 +498,11 @@ RENDER.chico = (img, expr) => {
   torso(img, CHICO_TEE, { ol: CHICO_TEE[0] });
   flat(img, (x, y) => y >= 58 && torsoPred(x, y), JEANS[2], { ol: JEANS[0] });
   neck(img, skin);
-  const bib = (x, y) => y >= 51 && Math.abs(x - CX) <= 13.5 - Math.max(0, 55 - y) * 0.75 && Math.abs(x - CX) <= TORSO_HW(y) - 3;
-  shape(img, bib, [CX, 58, 13, 8], APRON_WHITE, { ol: '#9a9590', t: [0.9, 0.35, -0.2] });
-  for (const s of [-1, 1]) for (let i = 0; i < 6; i++) fillRect(img, Math.round(CX + s * (9 - i * 0.25) - (s < 0 ? 1.5 : 0.5)), Math.round(47 + i), 2, 1, APRON_WHITE[2 + (s < 0 ? 1 : 0)]);
-  fillRect(img, 27, 57, 10, 1, APRON_WHITE[1]); put(img, 31, 59, CHICO_TEE[1]); put(img, 32, 59, '#c9921c');
+  // a pastel: the dome of a fried half-moon (flat crimped edge on the bottom) over a paper corner. No white apron.
+  shape(img, and(ell(50, 56, 10, 8), (x, y) => y <= 56), [50, 52, 10, 6], ramp4('#e8b634', '#6a5010'), { ol: '#6a5010', t: [0.9, 0.4, -0.15] });
+  for (let i = 0; i < 9; i++) put(img, 42 + i * 2, 56 + (i % 2), '#a07818');
+  fillRect(img, 44, 57, 12, 3, '#f4ede2');
+  fillRect(img, 44, 59, 12, 1, '#d8d0c4');
   head(img, skin, kp);
   faceSet(img, 'chico', expr, skin, { brow: hair[0], browY: 21, mouth: { y: 38, lip: '#7a3034' }, blush: 1 });
   const beard = (x, y) => {
@@ -516,10 +528,13 @@ RENDER.rosa = (img, expr) => {
   torso(img, ROSA_BLOUSE, { ol: '#9a5a68' });
   flat(img, (x, y) => y >= 57 && torsoPred(x, y), PLUM_SKIRT[2], { ol: PLUM_SKIRT[0] });
   neck(img, skin);
-  const bib = (x, y) => y >= 51 && Math.abs(x - CX) <= 12 - Math.max(0, 55 - y) * 0.85 && Math.abs(x - CX) <= TORSO_HW(y) - 3;
-  shape(img, bib, [CX, 58, 12, 8], APRON_CREAM, { ol: '#9a9590', t: [0.9, 0.35, -0.2] });
-  for (const s of [-1, 1]) for (let i = 0; i < 6; i++) fillRect(img, Math.round(CX + s * (8.5 - i * 0.3) - (s < 0 ? 1.5 : 0.5)), Math.round(47 + i), 2, 1, APRON_CREAM[2 + (s < 0 ? 1 : 0)]);
-  fillRect(img, 28, 58, 8, 1, APRON_CREAM[1]); put(img, 30, 60, '#e63f38'); put(img, 33, 61, '#9bc246');
+  // bouquet: three blooms, a few leaves, a short paper wrap. The crown and the hoops are already on the head.
+  shape(img, ell(46, 50, 4.2, 3.4), [46, 50, 4, 3.2], ramp4('#e63f38'), { ol: '#7a1c20' });
+  shape(img, ell(55, 49, 4.2, 3.4), [55, 49, 4, 3.2], ramp4('#f2c230', '#8a6a10'), { ol: '#6a5010' });
+  shape(img, ell(50, 46, 3.6, 3.2), [50, 46, 3.4, 3], ramp4('#e07a5f', '#8a4030'), { ol: '#7a3030' });
+  put(img, 46, 50, '#f8d239'); put(img, 55, 49, '#fff59a'); put(img, 50, 46, '#f8d239');
+  for (const [x, y] of [[44, 53], [48, 52], [52, 53], [56, 52], [50, 54]]) put(img, x, y, '#3d8a4e');
+  shape(img, box(45, 55, 57, 63), [51, 59, 6, 4], ramp4('#f4ede2', '#7a7570'), { ol: '#7a7570' });
   head(img, skin, kp);
   faceSet(img, 'rosa', expr, skin, { brow: hair[0], browY: 21, lash: true, mouth: { y: 38, lip: '#b95d72' }, blush: 1 });
   shape(img, and(ell(CX, 14.5, 18.5, 13), (x, y) => y < 20 + Math.sin(x * 0.45) * 1.2), [CX, 13, 18, 13], hair, { ol: '#4a3018', t: [0.76, 0.28, -0.1], pattern: wavePat });
