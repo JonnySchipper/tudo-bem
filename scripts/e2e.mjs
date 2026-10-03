@@ -670,7 +670,8 @@ async function main() {
     // Refresh keeps the session, the avatar, its RV, hat and kitnet.
     const before = await profile(page);
     await page.reload();
-    await waitFor(page, () => !!window.__tb.game.room, null, 10_000, 'back in the world after reload');
+    // A long session reboots Phaser (and the kitnet) more slowly than the reload at the start of the run.
+    await waitFor(page, () => !!window.__tb.game.room, null, 25_000, 'back in the world after reload');
     assert(!(await page.$('#intro-skip')), 'still signed in after reload (no title screen)');
     const after = await profile(page);
     assert(after.id === before.id && after.coins === before.coins && after.hat === before.hat, `avatar + RV survive reload (${before.coins} → ${after.coins} RV)`);
