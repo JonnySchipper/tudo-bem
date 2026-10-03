@@ -7,19 +7,19 @@ import { AVATAR_DRAW_SCALE, AVATAR_HEAD_LIFT, AVATAR_HEAD_SIT_LIFT, CHAR_LAYERS,
 const manifest = JSON.parse(readFileSync(new URL('../../../public/pixel/manifest.json', import.meta.url), 'utf8')) as { chars: Record<string, string> };
 
 describe('avatar draw scale', () => {
-  it('draws people a third larger than the sheet, feet still at the origin', () => {
+  it('draws people at twice the sheet so outfits read, feet still at the origin', () => {
     // the unscaled crown sits only a few pixels over a floor tile, in the same band as a chair
     expect(AVATAR_HEAD_LIFT).toBeGreaterThan(T);
     expect(AVATAR_HEAD_LIFT - T).toBeLessThan(T / 2);
-    expect(AVATAR_DRAW_SCALE).toBeCloseTo(4 / 3);
+    expect(AVATAR_DRAW_SCALE).toBe(2);
     const standing = avatarCrown(false);
-    expect(standing).toBeCloseTo(AVATAR_HEAD_LIFT * (4 / 3));
-    // clearly taller than the tile and than the unscaled figure
-    expect(standing).toBeGreaterThan(T * 1.5);
+    expect(standing).toBe(AVATAR_HEAD_LIFT * 2);
+    // tall enough that a shirt, hat, and pants are more than a tile of the figure
+    expect(standing).toBeGreaterThan(T * 2);
     expect(standing).toBeGreaterThan(AVATAR_HEAD_LIFT);
     // a hat and the sit pose use the same scale, so labels stay above the scaled head
     expect(avatarCrown(false, 5) - standing).toBeCloseTo(avatarPx(5));
-    expect(avatarCrown(true)).toBeCloseTo(AVATAR_HEAD_SIT_LIFT * (4 / 3));
+    expect(avatarCrown(true)).toBe(AVATAR_HEAD_SIT_LIFT * 2);
   });
 });
 

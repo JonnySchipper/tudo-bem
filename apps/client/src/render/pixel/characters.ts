@@ -176,10 +176,11 @@ export function pick<V>(table: Record<string, V>, key: string | null | undefined
  *
  * A standing LimeZu figure fills about 22 px of the 16×32 frame (`AVATAR_HEAD_LIFT`), on a 16 px floor tile.
  * That is the same height as a wooden chair (21 px) and a lixeira (22 px), so people read as furniture.
- * 4/3 is the smallest constant that lifts the crown clear of those props (about 31 px, feet still at the
- * sprite origin) without redrawing the sheets. The camera zoom stays an integer; this scale is only on the figure.
+ * 4/3 lifted the crown to about 31 px, still too small for a shirt, apron, hat, or pants to read at a glance.
+ * 2 doubles the sheet from the feet. At every integer camera zoom (2..5) each art pixel lands on a whole
+ * device pixel, so those outfit regions stay crisp (about 46 px to the crown). The feet stay at the sprite origin.
  */
-export const AVATAR_DRAW_SCALE = 4 / 3;
+export const AVATAR_DRAW_SCALE = 2;
 
 /** Unscaled art px from the feet anchor to the top of a bare standing head (the frame is empty above the hair). */
 export const AVATAR_HEAD_LIFT = 23;

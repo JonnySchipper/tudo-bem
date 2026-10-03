@@ -1181,7 +1181,7 @@ export class WorldScene extends Phaser.Scene {
       } else if (t >= 0 && t < 1.3) bounce = Math.round(Math.abs(Math.sin(t * 9)) * 2);
     }
     const wx = Math.round(f.wx);
-    // feet stay on the tile. The 4/3 figure already puts the head and shoulders above the padaria counter,
+    // feet stay on the tile. The doubled figure already puts the head and shoulders above the padaria counter,
     // so the old 11 px counter lift (which planted the feet on the counter top) is gone.
     const wy = Math.round(f.wy);
     v.wx = wx;
