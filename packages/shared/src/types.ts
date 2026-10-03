@@ -109,6 +109,16 @@ export interface FriendInfo {
   instanceId: string | null;
 }
 
+/** The padaria counter game's progress. Stars unlock tools and set the level; they are earned by playing, never bought. */
+export interface CorreriaProgress {
+  stars: number;
+  shifts: number;
+  best: number;
+  /** The real day (YYYY-MM-DD) `paid` counts shifts of: only the first few shifts a day pay RV. */
+  date?: string;
+  paid?: number;
+}
+
 export interface PrivateProfile {
   id: string;
   name: string;
@@ -137,6 +147,8 @@ export interface PrivateProfile {
   mission?: DailyMission;
   /** Academia BJJ — earned belt progress (never purchased). */
   bjj?: BjjProgress;
+  /** Correria no Balcão progress (stars, shifts, best score, today's paid shifts). Optional and defaulted on load. */
+  correria?: CorreriaProgress;
   /** Bag: itemId -> count (Phase 8). Defaulted to {} on load. */
   bag?: Record<string, number>;
   /** Recados state: today's offer, the ones in progress, the ones finished today (Phase 8). */
