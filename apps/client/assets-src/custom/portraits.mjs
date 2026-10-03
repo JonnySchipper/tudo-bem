@@ -5,7 +5,7 @@
 import { blank, put, shape, flat, grid, line, over, ell, box, or, sub, and, profile, hwAt, mx, mix, h2, fillRect, hoop, NAVY, alphaAt } from './paint.mjs';
 
 export const EXPRESSIONS = ['neutro', 'feliz', 'surpreso', 'pensativo'];
-export const NPCS = ['carlos', 'nanda', 'julia', 'graca', 'tia_lu', 'prof', 'ze', 'chico', 'rosa'];
+export const NPCS = ['carlos', 'nanda', 'julia', 'graca', 'tia_lu', 'prof', 'ze', 'chico', 'rosa', 'lucia'];
 
 // ------------------------------------------------------------------ palettes ([dark, shade, base, hi])
 const SKIN = {
@@ -33,7 +33,7 @@ const CLOTH = {
   denim: ['#3d56d2', '#4280dd', '#4995e3', '#50a7e8'],
   orange: ['#c46823', '#ed931e', '#f2b22b', '#ffe57b'],
 };
-const IRIS = { carlos: '#573c2c', nanda: '#453a4c', julia: '#4280dd', graca: '#573c2c', tia_lu: '#573c2c', prof: '#453a4c', ze: '#573c2c', chico: '#3a2820', rosa: '#573c2c' };
+const IRIS = { carlos: '#573c2c', nanda: '#453a4c', julia: '#4280dd', graca: '#573c2c', tia_lu: '#573c2c', prof: '#453a4c', ze: '#573c2c', chico: '#3a2820', rosa: '#573c2c', lucia: '#3f6a3a' };
 /** Four-shade ramp from a brand hex (dark → hi). */
 const ramp4 = (hex, dk = '#2a2218') => [mix(hex, dk, 0.42), mix(hex, dk, 0.2), hex, mix(hex, '#ffffff', 0.26)];
 const ZE_SKIN = ramp4('#c68a5f');
@@ -48,6 +48,9 @@ const ROSA_HAIR = ramp4('#9a5f30', '#4a3018');
 const ROSA_BLOUSE = ramp4('#d98a9b');
 const PLUM_SKIRT = ramp4('#6e4e8f');
 const PANAMA = ramp4('#efe3c4', '#6a5e48');
+const LUCIA_SKIN = ramp4('#c68a5f');
+const LUCIA_HAIR = ramp4('#cfa65a', '#5a4018');
+const LUCIA_BLOUSE = ramp4('#3a8a5c', '#12301f');
 const BUCKET = ramp4('#e8b634', '#6a5010');
 const WHITE = '#f0ecf6';
 const LIP_DARK = '#7f3034';
@@ -550,6 +553,46 @@ RENDER.rosa = (img, expr) => {
   for (const [x, y] of [[22, 9], [30, 8], [38, 8], [42, 11]]) put(img, x, y, '#5a8a32');
 };
 
+// Dona Lúcia, the escola teacher (world sprite: golden bun, glasses, green blouse). Not Graça: square frames, a pencil in the bun,
+// a white collar, and the chalkboard behind her.
+RENDER.lucia = (img, expr) => {
+  const skin = LUCIA_SKIN, hair = LUCIA_HAIR, kp = faceKp({ cheek: 14.8, jaw: 12.2, chin: 46 });
+  torso(img, LUCIA_BLOUSE, { ol: '#1d4a30' });
+  // white blouse collar, two points
+  for (const sx of [-1, 1]) flat(img, (x, y) => y >= 46 && y < 54 && sx * (x - CX) >= 1 + (y - 46) * 0.5 && sx * (x - CX) <= 10 - (y - 46) * 0.4, '#f4efe6', { ol: '#a8a090' });
+  // a button line and a piece of chalk in the pocket
+  for (let y = 54; y < 64; y += 3) put(img, CX, y, LUCIA_BLOUSE[0]);
+  fillRect(img, 22, 56, 7, 1, LUCIA_BLOUSE[0]); fillRect(img, 23, 54, 2, 2, '#f8f8f8'); fillRect(img, 25, 53, 2, 3, '#f2e6c8');
+  neck(img, skin);
+  head(img, skin, kp);
+  // a few laugh lines
+  for (const [x, y] of [[22, 33], [41, 33], [27, 18], [36, 18]]) put(img, x, y, skin[1]);
+  faceSet(img, 'lucia', expr, skin, { brow: hair[0], browY: 21, lash: true, mouth: { y: 39, lip: '#9a4a40' }, blush: 1 });
+  // hair pulled back: a cap over the crown with a side part, two grey streaks
+  shape(img, and(ell(CX, 14, 17, 11.5), (x, y) => y < 18 + (Math.abs(x - CX) > 12 ? (Math.abs(x - CX) - 12) * 3.2 : 0) - (x > CX - 4 && x < CX + 1 ? 1 : 0)), [CX, 12, 17, 12], hair, { ol: '#7a5a20', t: [0.75, 0.25, -0.1] });
+  for (let i = 0; i < 5; i++) put(img, 22 + i, 10 + Math.round(i * 0.6), '#e8e0d0');
+  for (let i = 0; i < 4; i++) put(img, 37 + i, 9 + Math.round(i * 0.7), '#e8e0d0');
+  for (const s2 of [-1, 1]) for (let y = 19; y < 25; y++) { const x = Math.round(CX + s2 * (hwAt(kp, y) - 1)); put(img, x, y, hair[1]); }
+  // the bun high on the right of the crown, and a yellow pencil through it
+  shape(img, ell(CX + 12, 7, 6.5, 5.5), [CX + 12, 7, 7, 6], hair, { ol: '#7a5a20', t: [0.8, 0.3, -0.1], pattern: (x, y, i) => ((x * 2 + y) % 5 === 0 ? Math.max(0, i - 1) : i) });
+  for (let i = 0; i < 4; i++) put(img, CX + 9 + i, 6 + (i % 2), hair[1]);
+  for (let i = 0; i < 16; i++) {
+    const x = CX + 4 + i, y = 11 - Math.round(i * 0.55);
+    const c = i < 2 ? '#e06a5a' : i === 2 ? '#b8b8c8' : i > 13 ? '#f0d6b0' : '#f2c230';
+    put(img, x, y, c);
+    put(img, x, y + 1, i < 2 ? '#a84a40' : i === 2 ? '#8888a0' : i > 13 ? '#c8a880' : '#c48f16');
+  }
+  put(img, CX + 20, 2, '#3a2a22');
+  // square glasses (dark tortoiseshell), a glint on each lens
+  for (const cx of [26, 38]) {
+    const x0 = cx - 5, x1 = cx + 4, y0 = 24, y1 = 31;
+    for (let x = x0; x <= x1; x++) { put(img, x, y0, '#5a3a2a'); put(img, x, y1, '#5a3a2a'); }
+    for (let y = y0; y <= y1; y++) { put(img, x0, y, '#5a3a2a'); put(img, x1, y, '#5a3a2a'); }
+    put(img, x0 + 2, y0 + 2, '#f4efe6'); put(img, x0 + 3, y0 + 2, '#f4efe6');
+  }
+  fillRect(img, 31, 26, 3, 1, '#5a3a2a');
+};
+
 export function renderPortrait(npc, expr, bgFn) {
   const img = blank(64, 64);
   const fg = blank(64, 64);
@@ -572,6 +615,16 @@ const BG = {
   ze: { base: '#b8c878', hi: '#d0dea0', lo: '#9aab62' },
   chico: { base: '#f0d890', hi: '#f8e8b0', lo: '#d8c070' },
   rosa: { base: '#e8b8c8', hi: '#f5d0dc', lo: '#d098a8' },
+  lucia: {
+    base: '#3f6a52',
+    hi: '#4f7d63',
+    lo: '#2f5442',
+    // a chalk "a" and a line written on the board behind her
+    deco: (img) => {
+      for (let x = 6; x < 18; x++) if (x % 3 !== 0) put(img, x, 12 + (x % 2), '#cfe0d4');
+      for (const [x, y] of [[48, 9], [49, 8], [50, 8], [51, 9], [51, 10], [51, 11], [50, 11], [49, 11], [48, 10], [52, 11]]) put(img, x, y, '#e6efe8');
+    },
+  },
 };
 
 export async function portraitParts() {

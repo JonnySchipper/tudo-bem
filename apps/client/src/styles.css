@@ -1288,63 +1288,6 @@ button:disabled {
   opacity: 0.85;
 }
 
-.cartela-banner {
-  position: fixed;
-  top: 84px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  background: var(--paper);
-  border: 1px solid var(--edge);
-  border-left: 8px solid var(--amarelo);
-  border-radius: 18px;
-  padding: 12px 18px;
-  box-shadow: var(--shadow);
-  z-index: 55;
-  animation: mission-pop 0.35s cubic-bezier(0.2, 1.6, 0.4, 1);
-}
-
-.cartela-banner .stamp-ring {
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: #fff6d6;
-  border: 2px solid var(--amarelo);
-  font-family: var(--font-title);
-  font-size: 1.1em;
-  font-weight: 700;
-}
-
-.cartela-panel .cartela-stamps {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 12px 0;
-}
-
-.cartela-hole {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  border: 2px dashed rgba(44, 44, 44, 0.35);
-  display: grid;
-  place-items: center;
-  font-size: 0.85em;
-  color: rgba(44, 44, 44, 0.5);
-}
-
-.cartela-hole.on {
-  border-style: solid;
-  border-color: var(--sp-green);
-  background: #d8ead9;
-  color: var(--sp-green);
-  font-weight: 700;
-}
-
 .cartela-acts {
   list-style: none;
   padding: 0;

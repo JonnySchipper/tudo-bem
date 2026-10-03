@@ -7,6 +7,7 @@ import { ARRANGEMENTS, padariaIsNight, type ArrangementKind, type StingKind } fr
 import { FOOTSTEPS, SILENT_MIX, stepPitch, type ZoneMix } from './audio/zones';
 import { playBoutSfx, type BoutSfx } from './audio/boutSfx';
 import { playCorreriaSfx, type CorreriaSfx } from './audio/correriaSfx';
+import { DIARY_SFX, playDiarySfx, type DiarySfx } from './audio/diarySfx';
 
 const CORRERIA_SFX = ['grab', 'sizzle', 'ready', 'burnt', 'pour', 'ding', 'clink', 'cash', 'paper', 'chime', 'nope', 'combo'] as const;
 
@@ -592,13 +593,14 @@ class Ambience {
   }
 
   /** One bout sound effect (mat slap, crowd, whistle...). Silent until the browser lets the context run; goes through the same duck gain as the beds. */
-  sfx(kind: BoutSfx | CorreriaSfx) {
+  sfx(kind: BoutSfx | CorreriaSfx | DiarySfx) {
     const ctx = this.ctx;
     if (!ctx || !this.bedIn || !this.unlocked || ctx.state !== 'running') return;
     this.whiteBuf ??= whiteBuffer(ctx, 1);
     try {
       const out = this.duckGain ?? this.bedIn;
-      if ((CORRERIA_SFX as readonly string[]).includes(kind)) playCorreriaSfx(ctx, out, this.whiteBuf, kind as CorreriaSfx);
+      if ((DIARY_SFX as readonly string[]).includes(kind)) playDiarySfx(ctx, out, this.whiteBuf, kind as DiarySfx);
+      else if ((CORRERIA_SFX as readonly string[]).includes(kind)) playCorreriaSfx(ctx, out, this.whiteBuf, kind as CorreriaSfx);
       else playBoutSfx(ctx, out, this.whiteBuf, kind as BoutSfx);
     } catch {
       /* an effect must never break the game */

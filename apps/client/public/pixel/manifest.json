@@ -10329,6 +10329,26 @@
    "w": 64,
    "h": 64
   },
+  "portraits/lucia_neutro": {
+   "file": "portraits/lucia_neutro.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/lucia_feliz": {
+   "file": "portraits/lucia_feliz.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/lucia_surpreso": {
+   "file": "portraits/lucia_surpreso.png",
+   "w": 64,
+   "h": 64
+  },
+  "portraits/lucia_pensativo": {
+   "file": "portraits/lucia_pensativo.png",
+   "w": 64,
+   "h": 64
+  },
   "icons/pao": {
    "file": "icons/pao.png",
    "w": 16,

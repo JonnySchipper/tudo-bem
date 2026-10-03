@@ -40,6 +40,22 @@ export interface HudActions {
 
 let toastsEl: HTMLElement;
 
+/** The stamp count the cartela chip shows instead of the profile's while a payout plays (null: follow the profile). */
+let cartelaHeld: number | null = null;
+let lastStamps: number | null = null;
+let releaseTimer = 0;
+
+/** Keep the chip on `stamps` for `ms` (the full card while its payout banner plays), then let it follow the profile again. */
+export function holdCartelaChip(stamps: number, ms: number) {
+  cartelaHeld = stamps;
+  window.clearTimeout(releaseTimer);
+  game.emit('hud');
+  releaseTimer = window.setTimeout(() => {
+    cartelaHeld = null;
+    game.emit('hud');
+  }, ms);
+}
+
 export function toast(level: NoticeLevel, pt: string, enText?: string, amount?: number) {
   const el = h(
     'div',
@@ -348,10 +364,19 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       );
       const day = todayEastern();
       const cst = p.cartela;
-      const cStamps = cst?.stamps ?? 0;
+      // a full card stays full on the chip while the payout banner plays; then the chip turns over to the fresh card
+      const cStamps = cartelaHeld ?? cst?.stamps ?? 0;
       const cToday = cst ? stampsOnDay(cst, day) : 0;
+      if (lastStamps !== null && cStamps !== lastStamps && cartelaHeld === null) {
+        cartelaPill.classList.remove('stamped', 'fresh');
+        void cartelaPill.offsetWidth;
+        cartelaPill.classList.add(cStamps > lastStamps ? 'stamped' : 'fresh');
+      }
+      lastStamps = cStamps;
+      cartelaPill.classList.toggle('full', cartelaHeld !== null);
       cartelaPill.replaceChildren(
-        h('span', { class: 'hud-chip-text' }, `${CARTELA_COPY.hud.pt} ${cStamps}/${CARTELA_GOAL}`),
+        h('span', { class: 'hud-chip-text' }, `${CARTELA_COPY.hud.pt} `, h('b', { class: 'cartela-n' }, `${cStamps}/${CARTELA_GOAL}`)),
+        h('span', { class: 'cartela-dots', 'aria-hidden': 'true' }, ...Array.from({ length: CARTELA_GOAL }, (_, i) => h('i', { class: i < cStamps ? 'on' : '' }))),
         h('span', { class: 'cartela-mini', 'aria-hidden': 'true' }, bi(`Hoje ${cToday}/4`, `Today ${cToday}/4`)),
       );
       parrotBtn.style.display = p.parrotOwned && p.parrotEquipped ? '' : 'none';

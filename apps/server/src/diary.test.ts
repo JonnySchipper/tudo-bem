@@ -91,7 +91,7 @@ const diaryOf = (m: ServerMsg) => (m.t === 'diary' ? m : undefined);
 describe('arrival, camera, diary and the escola', () => {
   beforeEach(() => setGameTime(10));
 
-  it('gives a new account the intro and the camera once, then skips it', async () => {
+  it('gives a new account the intro, the camera and the cartela once, then skips it', async () => {
     const world = makeWorld();
     const a = await client(world);
     expect(a.last('welcome')?.profile.arrivalIntroDone).toBe(false);
@@ -101,7 +101,9 @@ describe('arrival, camera, diary and the escola', () => {
     expect(a.s.profile).toMatchObject({ arrivalIntroDone: true, hasCamera: true, film: FILM.starter });
     const notice = a.all('notice').map((n) => n.pt).join(' ');
     expect(notice).toMatch(/câmera/);
-    expect(notice).toMatch(/cartela/i);
+    // the cartela is on this build: Júlia hands it over in the intro, and the notice no longer says it is missing
+    expect(notice).not.toMatch(/ainda não chegou/);
+    expect(a.s.profile?.cartela).toMatchObject({ stamps: 0 });
     await a.send({ t: 'arrival', action: 'finish' });
     expect(a.all('notice').filter((n) => n.pt.includes('câmera'))).toHaveLength(1);
   });

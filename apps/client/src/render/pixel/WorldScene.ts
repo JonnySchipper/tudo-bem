@@ -1181,7 +1181,16 @@ export class WorldScene extends Phaser.Scene {
         if (t >= 0 && t < dur) emote = `${a.emote.kind}@${a.emote.t0}`;
       } else if (t >= 0 && t < 1.3) bounce = Math.round(Math.abs(Math.sin(t * 9)) * 2);
     }
-    const wx = Math.round(f.wx);
+    // at the doubled draw scale a player one tile in front of the person they talk to covers them: while the dialogue is open the player
+    // takes a step to the side (same row, eased with the dialogue camera), so both faces read in the close-up
+    let aside = 0;
+    const talkTo = this.dlg?.npc ?? (this.dlgBlend > 0 ? this.dlgNpc : null);
+    if (talkTo && a.pub.id === game.room?.selfId && !pos.moving && !sitting) {
+      const dxT = pos.tile.x - talkTo.x;
+      const dyT = pos.tile.y - talkTo.y;
+      if (Math.abs(dxT) <= 1 && Math.abs(dyT) <= 2) aside = Math.round((dxT < 0 ? -1 : 1) * T * 1.25 * easeOut(this.dlgBlend));
+    }
+    const wx = Math.round(f.wx) + aside;
     // feet stay on the tile. The doubled figure already puts the head and shoulders above the padaria counter,
     // so the old 11 px counter lift (which planted the feet on the counter top) is gone.
     const wy = Math.round(f.wy);

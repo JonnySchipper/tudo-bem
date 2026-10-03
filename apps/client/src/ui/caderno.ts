@@ -3,11 +3,12 @@
  * that plays the word (and tells the server it was `heard`), what the player did with it (seen / heard / used), and the progress of the group.
  * Words not met yet show as "???". The group reward (+15 RV, once) arrives as the server's normal reward toast.
  */
-import { diaryBoard, progressLine } from '@tudobem/shared';
+import { diaryBoard, diaryWord, progressLine } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi } from './dom';
 import { openModal } from './modal';
 import { speak } from '../audio';
+import { ambience } from '../ambience';
 import { noteHeard } from './heard';
 import { cadernoView, spokenForm, type GroupView, type WordView } from './cadernoView';
 
@@ -60,18 +61,24 @@ function rewardLine(g: GroupView): HTMLElement {
 }
 
 /** Open the panel; `groupId` picks the tab, `highlight` marks words (the ones a sign just taught). */
+/** Open the panel; `groupId` picks the tab, `highlight` marks words (the ones a sign just taught). */
 export function openCaderno(groupId?: string, highlight: readonly string[] = []): void {
   const marks = new Set(highlight);
-  const body = h('div', { class: 'cad-body' });
+  const body = h('div', { class: 'cad-body diary-spread' });
+  let shownTab: string | null = null;
   const render = () => {
     const v = cadernoView(game.profile?.caderno, game.profile?.cadernoPaid);
     const tab = v.groups.find((g) => g.id === (groupId ?? lastTab))?.id ?? v.groups[0]?.id;
     const g = v.groups.find((x) => x.id === tab);
     lastTab = tab ?? null;
-    const scroll = body.querySelector('.cad-list')?.scrollTop ?? 0;
+    const turned = shownTab !== null && shownTab !== tab;
+    shownTab = tab ?? null;
+    const scroll = turned ? 0 : (body.querySelector('.cad-list')?.scrollTop ?? 0);
     const found = diaryBoard(game.profile?.diary);
     const photos = game.profile?.photos ?? [];
-    body.replaceChildren(
+    const left = h(
+      'div',
+      { class: 'diary-page page-left' },
       h(
         'section',
         { class: 'cad-found' },
@@ -102,10 +109,22 @@ export function openCaderno(groupId?: string, highlight: readonly string[] = [])
           ? h(
               'div',
               { class: 'cad-photos' },
-              ...photos.map((photo) => h('img', { class: 'cad-photo', src: photo.image, alt: photo.wordId ?? 'foto' })),
+              ...photos.map((photo, i) =>
+                h(
+                  'figure',
+                  { class: 'cad-print', style: `--r:${((i * 53) % 9) - 4}deg` },
+                  h('i', { class: 'tape', 'aria-hidden': 'true' }),
+                  h('img', { class: 'cad-photo', src: photo.image, alt: photo.wordId ?? 'foto' }),
+                  photo.wordId ? h('figcaption', { lang: 'pt-BR' }, diaryWord(photo.wordId)?.pt ?? '') : null,
+                ),
+              ),
             )
           : h('p', { class: 'cad-empty' }, 'Nenhuma foto ainda.', en('No photos yet.')),
       ),
+    );
+    const right = h(
+      'div',
+      { class: 'diary-page page-right' },
       h('div', { class: 'cad-summary' }, `${v.learned}/${v.total} aprendidas`, en(`${v.learned} of ${v.total} words learned · ${v.met} met`, true)),
       h(
         'div',
@@ -119,7 +138,9 @@ export function openCaderno(groupId?: string, highlight: readonly string[] = [])
               'aria-selected': String(x.id === tab),
               'data-cad-tab': x.id,
               onclick: () => {
+                if (x.id === tab) return;
                 groupId = x.id;
+                ambience.sfx('page');
                 render();
               },
             },
@@ -129,25 +150,26 @@ export function openCaderno(groupId?: string, highlight: readonly string[] = [])
           ),
         ),
       ),
-      ...(g ? [h('div', { class: 'cad-group' }, rewardLine(g), h('div', { class: 'cad-list' }, ...g.words.map((w) => wordRow(w, marks))))] : []),
+      ...(g ? [h('div', { class: `cad-group${turned ? ' turn' : ''}` }, rewardLine(g), h('div', { class: 'cad-list' }, ...g.words.map((w) => wordRow(w, marks))))] : []),
       h('div', { class: 'cad-legend' }, 'Aprendida = vista e ouvida, ou usada', en('Learned = seen and heard, or used', true)),
     );
+    body.replaceChildren(left, h('i', { class: 'diary-gutter', 'aria-hidden': 'true' }), right);
     const list = body.querySelector('.cad-list');
     if (list) list.scrollTop = scroll;
   };
   render();
   const off = game.on('profile', render);
-  const close = openModal(
-    'caderno',
-    h(
-      'div',
-      { class: 'panel caderno' },
-      h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
-      h('h2', null, 'Diário'),
-      en('Your diary · words you meet, and how you found them'),
-      body,
-      h('div', { class: 'cad-foot' }, h('button', { class: 'ghost', onclick: () => close() }, bi('Fechar', 'Close'))),
-    ),
-    { onClose: off },
+  const panel = h(
+    'div',
+    { class: 'panel caderno diary-book' },
+    h('i', { class: 'diary-cover', 'aria-hidden': 'true' }, h('span', null, 'Diário')),
+    h('i', { class: 'diary-ribbon', 'aria-hidden': 'true' }),
+    h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
+    h('h2', null, 'Diário'),
+    en('Your diary · words you meet, and how you found them'),
+    body,
+    h('div', { class: 'cad-foot' }, h('button', { class: 'ghost', onclick: () => close() }, bi('Fechar', 'Close'))),
   );
+  const close = openModal('caderno', panel, { onClose: off });
+  ambience.sfx('page');
 }
