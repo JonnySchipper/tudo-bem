@@ -4,6 +4,7 @@ import {
   DEFAULT_APPEARANCE,
   ROLL_RV_LOSS,
   ROLL_RV_WIN,
+  STEPS_TO_WIN,
   type BoutServerMsg,
   type ClientMsg,
   type ServerMsg,
@@ -74,7 +75,10 @@ async function play(a: Client, opts: { maxSteps?: number } = {}) {
     if (m.phase === 'intent' && !answeredSeqs.has(m.seq)) {
       answeredSeqs.add(m.seq);
       advance(300);
-      const pick = m.finish ? 'finalizar' : (m.intents.find((i) => i.id.startsWith('puxar_') || i.id.startsWith('empurrar_')) ?? m.intents[0]!).id;
+      const verb = m.tell?.id === 'perto' ? 'empurrar' : 'puxar';
+      const attack = m.intents.find((i) => i.verb === verb);
+      const grab = m.intents.find((i) => i.verb === 'pegar');
+      const pick = m.finish ? 'finalizar' : (attack ?? grab ?? m.intents[0]!).id;
       await a.send({ t: 'bout', v: 1, action: 'intent', seq: m.seq, intent: pick });
     } else advance(250);
   }
@@ -254,7 +258,7 @@ describe('Treino no tatame (server)', () => {
     a.s.profile!.bjj = { belt: 'branca', stripes: 3, wins: 3 };
     await start(a);
     advance(1000);
-    a.s.bout!.grip = { ...a.s.bout!.grip, stepsYou: 2, turn: 'you' };
+    a.s.bout!.grip = { ...a.s.bout!.grip, stepsYou: STEPS_TO_WIN, turn: 'you' };
     advance(500);
     const end = a.last('end') ?? (await play(a));
     expect(end.winner).toBe('you');
@@ -277,7 +281,7 @@ describe('Treino no tatame (server)', () => {
     const { a } = await setup();
     await start(a);
     advance(1000);
-    a.s.bout!.grip = { ...a.s.bout!.grip, stepsThem: 2, weakSpot: 'gola', turn: 'partner' };
+    a.s.bout!.grip = { ...a.s.bout!.grip, stepsThem: STEPS_TO_WIN, weakSpot: 'gola', turn: 'partner' };
     const intent = a.last('intent')!;
     advance(intent.pickMs + 3000);
     const end = a.last('end');

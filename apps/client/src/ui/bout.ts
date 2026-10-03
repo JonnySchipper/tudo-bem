@@ -19,7 +19,12 @@ import {
   type PartnerId,
   gripMoveLabel,
   gripRoundChrome,
+  partnerById,
+  partnerHabit,
+  POSTURE_RULE,
+  SPOT_NAME,
   type GripMoveId,
+  type GripSpot,
 } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en } from './dom';
@@ -29,7 +34,8 @@ import { readShowEnglish, writeShowEnglish } from './dialogueLogic';
 import { beltChip } from './beltChip';
 import { boutFeed } from '../render/pixel/boutFeed';
 import { mountCharPreview } from '../render/pixel/charPreview';
-import { RISK_LABEL, callOf, clockAt, cuesForEnd, cuesForFinishEnd, cuesForResolve, ladderDots, momentumFrac, resultBanner } from './boutLogic';
+import { callOf, clockAt, cuesForEnd, cuesForFinishEnd, cuesForResolve, ladderDots, momentumFrac } from './boutLogic';
+import { reducedMotion } from '../render/pixel/perf';
 
 type Msg<P extends BoutServerMsg['phase']> = Extract<BoutServerMsg, { phase: P }>;
 /** a client bout message without its `t` and `v` (distributed over the actions) */
@@ -66,13 +72,14 @@ export class BoutUI {
   private closedFlag = false;
   private lastEndWinner: Msg<'end'>['winner'] = 'none';
   private canRematchPosition = false;
+  private tellTimer = 0;
 
   constructor(private readonly a: BoutActions) {
     this.top = h('div', { class: 'bout-top', id: 'bout-top', 'aria-live': 'off' });
     this.meters = h('div', { class: 'bout-meters', id: 'bout-meters' });
     this.body = h('div', { class: 'bout-body', id: 'bout-body' });
     this.panel = h('div', { class: 'bout-panel', id: 'bout', role: 'region', 'aria-label': 'Treino no tatame' }, this.meters, this.body);
-    this.root = h('div', { class: 'bout-root bout-grip bout-noen', id: 'bout-root' }, this.top, this.panel);
+    this.root = h('div', { class: `bout-root bout-grip${this.showEn ? '' : ' bout-noen'}`, id: 'bout-root' }, this.top, this.panel);
     document.body.classList.add('bout-on');
     (document.getElementById('ui') ?? document.body).append(this.root);
     game.modalOpen = true;
@@ -97,7 +104,7 @@ export class BoutUI {
     const t = e.target as HTMLElement | null;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
     const n = Number(e.key);
-    if (n >= 1 && n <= 4) {
+    if (n >= 1 && n <= 9) {
       const els = this.body.querySelectorAll<HTMLButtonElement>(this.phase === 'intent' ? '.bout-intent:not(.finalizar)' : this.phase === 'challenge' ? '.bout-opt' : '.bout-card-partner:not(.locked)');
       const el = els[n - 1];
       if (el && !el.disabled) {
@@ -126,6 +133,7 @@ export class BoutUI {
     if (this.closedFlag) return;
     this.closedFlag = true;
     ambience.setScene(null);
+    window.clearTimeout(this.tellTimer);
     cancelAnimationFrame(this.raf);
     this.ro?.disconnect();
     window.removeEventListener('resize', this.onResize);
@@ -246,7 +254,7 @@ export class BoutUI {
       'button',
       { class: `bout-card-partner${on ? ' on' : ''}${p.unlocked ? '' : ' locked'}`, type: 'button', 'data-partner': p.id, 'aria-disabled': String(!p.unlocked), onclick: pick },
       h('span', { class: 'bout-portrait-wrap' }, canvas),
-      h('span', { class: 'bout-card-body' }, h('b', { class: 'bout-pname' }, p.name), h('span', { class: 'bout-pstyle' }, ...this.bi(p.style.pt, p.style.en)), stars, h('span', { class: 'bout-pbio' }, ...this.bi(p.bio.pt, p.bio.en)), lock),
+      h('span', { class: 'bout-card-body' }, h('b', { class: 'bout-pname' }, p.name), h('span', { class: 'bout-pstyle' }, ...this.bi(p.style.pt, p.style.en)), this.habitLine(p.id), stars, h('span', { class: 'bout-pbio' }, ...this.bi(p.bio.pt, p.bio.en)), lock),
     );
     return card;
   }
@@ -290,6 +298,13 @@ export class BoutUI {
     }, Math.max(0, m.introMs * 0.8));
   }
 
+  private habitLine(id: PartnerId): HTMLElement | null {
+    const p = partnerById(id);
+    if (!p) return null;
+    const habit = partnerHabit(p);
+    return h('span', { class: 'bout-phabit' }, ...this.bi(habit.pt, habit.en));
+  }
+
   // ------------------------------------------------------------------ intent
   private intent(m: Msg<'intent'>): void {
     this.setPhase('intent');
@@ -297,7 +312,7 @@ export class BoutUI {
     this.locked = false;
     this.setSnap(m.st);
     this.startTimer(m.pickMs);
-    const chips = m.intents.map((i, k) => this.intentChip(i, () => this.pickIntent(m.seq, i.id), k + 1));
+    window.clearTimeout(this.tellTimer);
     const fin = m.finish
       ? h(
           'button',
@@ -306,27 +321,76 @@ export class BoutUI {
           en('Go for the finish'),
         )
       : null;
-    if (m.finish) {
-      this.sfx('gasp');
-    }
+    if (m.finish) this.sfx('gasp');
+    const keyN = { n: 0 };
+    const spots = (['gola', 'manga', 'calca'] as GripSpot[]).map((spot) => this.spotCard(m, spot, keyN));
+    const loose = m.intents.filter((i) => !i.spot);
+    const tell = m.tell
+      ? h(
+          'div',
+          { class: 'bout-posture', id: 'bout-tell', 'data-posture': m.tell.id },
+          h('span', { class: 'k' }, ...this.bi('Está', 'They are')),
+          h('b', { class: 'verb', id: 'bout-tell-verb' }, m.tell.pt),
+          en(m.tell.en),
+        )
+      : null;
     this.body.replaceChildren(
       h(
         'div',
         { class: 'bout-intents', id: 'bout-intents', 'data-finish': String(m.finish), 'data-seq': String(m.seq) },
         h('div', { class: 'bout-ask' }, h('span', { class: 'pt' }, 'O que você faz?'), this.quitBtn()),
+        tell,
         fin,
-        h('div', { class: 'bout-chips' }, ...chips),
+        h('div', { class: 'bout-spots' }, ...spots),
+        loose.length ? h('div', { class: 'bout-chips' }, ...loose.map((i, k) => this.intentChip(i, () => this.pickIntent(m.seq, i.id), k + 1))) : null,
+        h('p', { class: 'bout-legend' }, ...this.bi(POSTURE_RULE.pt, POSTURE_RULE.en)),
         this.timerBar(),
       ),
     );
+    this.armTell(m.tellMs ?? 0, !!m.tell);
     this.measure();
+  }
+
+  /** Three handholds. Who already has it decides whether you take, clear, or choose a force. */
+  private spotCard(m: Msg<'intent'>, spot: GripSpot, keyN: { n: number }): HTMLElement {
+    const acts = m.intents.filter((i) => i.spot === spot);
+    const yours = acts.some((a) => a.verb === 'puxar' || a.verb === 'empurrar');
+    const theirs = acts.some((a) => a.verb === 'soltar');
+    const name = SPOT_NAME[spot];
+    const who = yours && theirs ? 'Os dois' : yours ? 'Você' : theirs ? this.partnerName : 'Livre';
+    const whoEn = yours && theirs ? 'Both' : yours ? 'You' : theirs ? 'Partner' : 'Open';
+    const cls = yours && theirs ? 'both' : yours ? 'yours' : theirs ? 'theirs' : 'open';
+    const buttons = acts.map((i) => {
+      keyN.n += 1;
+      return this.intentChip(i, () => this.pickIntent(m.seq, i.id), keyN.n);
+    });
+    return h(
+      'div',
+      { class: `bout-spot ${cls}`, 'data-spot': spot },
+      h('b', { class: 'spot-name' }, name.pt),
+      en(name.en),
+      h('span', { class: 'spot-who' }, who, en(whoEn)),
+      h('div', { class: 'acts' }, ...buttons),
+    );
+  }
+
+  /** The posture is a read: it stays up, then goes, unless motion is reduced. */
+  private armTell(ms: number, on: boolean): void {
+    window.clearTimeout(this.tellTimer);
+    if (!on || ms <= 0 || reducedMotion()) return;
+    this.tellTimer = window.setTimeout(() => {
+      const verb = this.body.querySelector('#bout-tell-verb');
+      if (verb) verb.textContent = '···';
+      this.body.querySelector('#bout-tell')?.classList.add('gone');
+    }, ms);
   }
 
   private intentChip(i: BoutIntentOut, pick: () => void, n: number): HTMLElement {
     return h(
       'button',
-      { class: 'bout-intent risk-1', type: 'button', 'data-intent': i.id, 'data-k': String(n), 'aria-label': i.pt, onclick: pick },
+      { class: `bout-intent risk-${i.risk}`, type: 'button', 'data-intent': i.id, 'data-k': String(n), 'aria-label': `${i.pt}, ${i.en}`, onclick: pick },
       h('b', { class: 'pt' }, i.pt),
+      en(i.en),
     );
   }
 
@@ -467,23 +531,26 @@ export class BoutUI {
     const picked = this.body.querySelector('.picked');
     picked?.classList.add(m.yours.correct ? 'right' : 'wrong');
     const call = callOf(m);
-    const movePt = gripMoveLabel(m.intent as GripMoveId).pt;
     const partnerPt = gripMoveLabel(m.partner.intent as GripMoveId).pt;
+    const banner = m.line?.pt ?? gripMoveLabel(m.intent as GripMoveId).pt;
+    const bannerEn = m.line?.en ?? '';
     this.body.replaceChildren(
       h(
         'div',
-        { class: `bout-resolve ${m.yours.correct ? 'right' : 'wrong'}`, id: 'bout-resolve', 'data-correct': String(m.yours.correct) },
-        h('b', { class: 'bout-banner' }, movePt),
-        call ? h('div', { class: 'bout-called', id: 'bout-called' }, h('b', null, call.pt)) : null,
+        { class: `bout-resolve ${m.yours.correct ? 'right' : 'wrong'}${m.feint ? ' feint' : ''}`, id: 'bout-resolve', 'data-correct': String(m.yours.correct), 'data-feint': String(!!m.feint) },
+        h('b', { class: 'bout-banner' }, banner),
+        bannerEn ? en(bannerEn) : null,
+        call && call.pt !== banner ? h('div', { class: 'bout-called', id: 'bout-called' }, h('b', null, call.pt)) : null,
         h('span', { class: 'bout-who' }, `${this.partnerName}: ${partnerPt}`),
       ),
     );
     for (const c of cuesForResolve(m)) boutFeed.push(c);
     if (m.events.some((e) => e.type === 'transition')) this.sfx('slap');
-    if (call) {
-      this.sfx(m.events.some((e) => e.type === 'points' && e.side === 'you') ? 'cheer' : 'claps');
-      this.say(call.pt);
-    } else if (!m.yours.correct) this.sfx('gasp');
+    if (m.line) this.say(m.line.pt);
+    else if (call) this.say(call.pt);
+    if (m.events.some((e) => e.type === 'points' && e.side === 'you')) this.sfx('cheer');
+    else if (m.events.some((e) => e.type === 'transition')) this.sfx('claps');
+    else if (!m.yours.correct) this.sfx('gasp');
     this.measure();
   }
 
@@ -651,13 +718,13 @@ export class BoutUI {
     );
     const pegada = h(
       'div',
-      { class: 'bout-pegada', id: 'bout-pegada', 'data-n': String(s.pegada), title: 'Suas mãos no kimono dele' },
+      { class: 'bout-pegada', id: 'bout-pegada', 'data-n': String(s.pegada), title: 'Suas pegadas' },
       h('span', { class: 'lbl' }, 'Pegadas'),
       ...Array.from({ length: PEGADA_MAX }, (_, i) => h('i', { class: i < s.pegada ? 'on' : '' })),
     );
     const pegadaB = h(
       'div',
-      { class: 'bout-pegada them', id: 'bout-pegada-them', 'data-n': String(s.pegadaB), title: 'Mãos dele no seu kimono' },
+      { class: 'bout-pegada them', id: 'bout-pegada-them', 'data-n': String(s.pegadaB), title: 'Pegadas do parceiro' },
       h('span', { class: 'lbl' }, 'Dele'),
       ...Array.from({ length: PEGADA_MAX }, (_, i) => h('i', { class: i < s.pegadaB ? 'on' : '' })),
     );

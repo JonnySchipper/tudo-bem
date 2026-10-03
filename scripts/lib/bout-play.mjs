@@ -65,8 +65,19 @@ export async function playBout(page, { right = () => true, pick = 'bold', maxMs 
     if ((st.phase === 'intent') && !handled.has(key)) {
       handled.add(key);
       if (onPhase) await onPhase(st.phase, page);
-      const intents = await page.$$eval('#bout-intents .bout-intent', (els) => els.map((e) => e.getAttribute('data-intent')));
-      const choice = intents.includes('finalizar') ? 'finalizar' : pick === 'safe' ? intents[0] : intents.at(-1);
+      const choice = await page.evaluate((policy) => {
+        const root = document.querySelector('#bout-intents');
+        if (!root) return null;
+        if (policy !== 'safe' && root.querySelector('.bout-intent.finalizar')) return 'finalizar';
+        const posture = document.querySelector('#bout-tell')?.getAttribute('data-posture');
+        const verb = posture === 'perto' ? 'empurrar' : 'puxar';
+        const buttons = [...root.querySelectorAll('.bout-intent')];
+        const id = (el) => el.getAttribute('data-intent');
+        const attack = buttons.find((b) => id(b)?.startsWith(`${verb}_`));
+        const grab = buttons.find((b) => id(b)?.startsWith('pegar_'));
+        if (policy === 'safe') return id(grab ?? buttons[0]);
+        return id(attack ?? grab ?? buttons.at(-1));
+      }, pick);
       if (choice === 'finalizar') finalizacoes++;
       moves++;
       await page.waitForTimeout(200);

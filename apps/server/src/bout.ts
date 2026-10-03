@@ -10,19 +10,22 @@ import {
   boutRv,
   botMove,
   gripCanFinish,
+  idleMove,
   endLine,
-  gripMoveLabel,
   gripToSnapshot,
   mulberry32,
   newGripState,
   normalizeBjj,
   noteWeakSpot,
   offerMoves,
+  outcomeLine,
   partnerById,
   partnerUnlocked,
+  POSTURE_LABEL,
   recordWin,
+  resolveBeat,
+  rollPosture,
   roundWinner,
-  applyGripMove,
   type Bilingual,
   type BoutPartnerCard,
   type BoutReason,
@@ -32,6 +35,7 @@ import {
   type ExchangeEvent,
   type GripMoveId,
   type PartnerProfile,
+  type PostureRoll,
   type RefSignal,
   type Rng,
   type GripFightState,
@@ -65,6 +69,8 @@ export interface BoutSession {
   beats: number;
   /** after a loss, rematch the same position */
   rematchPosition: GripFightState['position'];
+  /** posture and the partner's move, committed before the player picks */
+  read?: PostureRoll & { them: GripMoveId };
 }
 
 export interface BoutDeps {
@@ -200,21 +206,26 @@ export class BoutEngine {
     b.seq = ++this.seq;
     b.offerAt = this.d.now();
     b.pickMs = BEAT_PICK_MS;
-    const moves = offerMoves(b.grip, 'you');
+    const roll = rollPosture(b.partner, b.rng, b.level);
+    const them = botMove(b.grip, b.partner, b.rng, roll.posture);
+    b.read = { ...roll, them };
+    const moves = offerMoves(b.grip, 'you').filter((m) => m.id !== 'finalizar');
     s.send({
       t: 'bout',
       v: 1,
       phase: 'intent',
       seq: b.seq,
       st: snap(b.grip),
-      intents: moves.map((m) => ({ id: m.id as never, pt: m.pt, en: m.en, risk: 1 as const })),
+      intents: moves.map((m) => ({ id: m.id, pt: m.pt, en: m.en, risk: m.verb === 'puxar' || m.verb === 'empurrar' ? (2 as const) : (1 as const), verb: m.verb, spot: m.spot })),
       finish: gripCanFinish(b.grip),
       pickMs: b.pickMs,
+      tell: { id: roll.shown, ...POSTURE_LABEL[roll.shown] },
+      tellMs: roll.tellMs,
     });
     const seq = b.seq;
     this.d.schedule(() => {
       const c = this.live(s, token);
-      if (c && c.phase === 'intent' && c.seq === seq) this.intent(s, seq, offerMoves(c.grip, 'you')[0]!.id, true);
+      if (c && c.phase === 'intent' && c.seq === seq) this.intent(s, seq, idleMove(c.grip, c.read?.posture ?? 'longe'), true);
     }, b.pickMs + PICK_GRACE_MS);
   }
 
@@ -230,62 +241,48 @@ export class BoutEngine {
     }
     if (!auto) b.beats++;
     b.phase = 'resolve';
-    let events: ExchangeEvent[] = [];
-    let player = applyGripMove(b.grip, 'you', id);
-    const rungBefore = gripToSnapshot(b.grip).rung;
-    b.grip = player.state;
-    b.grip.weakSpot = noteWeakSpot(b.grip, player.events) ?? b.grip.weakSpot;
-    events = player.events.map(gripEventToExchange);
-    const stepGain = player.events.find((e) => e.type === 'step');
-    if (stepGain) {
-      const rungAfter = gripToSnapshot(b.grip).rung;
-      if (rungAfter !== rungBefore) {
-        events.push({
-          type: 'transition',
-          from: b.grip.position,
-          to: b.grip.position,
-          rungFrom: rungBefore,
-          rungTo: rungAfter,
-          gain: stepGain.who,
-        });
-      }
+    const read = b.read ?? { ...rollPosture(b.partner, b.rng, b.level), them: botMove(b.grip, b.partner, b.rng) };
+    const spent = auto ? b.pickMs : Math.max(0, this.d.now() - b.offerAt);
+    const beforePos = b.grip.position;
+    const beforeRung = gripToSnapshot(b.grip).rung;
+    const beat = resolveBeat(b.grip, { you: id, them: read.them, posture: read.posture, shown: read.shown, feint: read.feint, spentMs: spent });
+    b.grip = beat.state;
+    b.grip.weakSpot = noteWeakSpot(b.grip, beat.events) ?? b.grip.weakSpot;
+    b.read = undefined;
+    const line = outcomeLine(beat);
+    const events: ExchangeEvent[] = [];
+    if (beat.events.some((e) => e.type === 'finish')) events.push({ type: 'points', side: 'you', pts: 4, signal: 'parar', line });
+    else if (beat.events.some((e) => e.type === 'step' && e.who === 'you')) events.push({ type: 'points', side: 'you', pts: 1, signal: 'vantagem', line });
+    const theirStep = beat.events.find((e) => e.type === 'step' && e.who === 'partner');
+    if (theirStep?.line) events.push({ type: 'points', side: 'partner', pts: 1, signal: 'vantagem', line: theirStep.line });
+    if (beforePos !== b.grip.position) {
+      const afterRung = gripToSnapshot(b.grip).rung;
+      events.push({
+        type: 'transition',
+        from: beforePos,
+        to: b.grip.position,
+        rungFrom: beforeRung,
+        rungTo: afterRung,
+        gain: afterRung > beforeRung ? 'you' : afterRung < beforeRung ? 'partner' : null,
+      });
     }
-    let partnerIntent: GripMoveId = id;
-    const win = roundWinner(b.grip);
-    if (!win && b.grip.turn === 'partner') {
-      partnerIntent = botMove(b.grip, b.partner, b.rng);
-      const bot = applyGripMove(b.grip, 'partner', partnerIntent);
-      const rungBeforeBot = gripToSnapshot(b.grip).rung;
-      b.grip = bot.state;
-      events = events.concat(bot.events.map(gripEventToExchange));
-      const botStep = bot.events.find((e) => e.type === 'step');
-      if (botStep) {
-        const rungAfterBot = gripToSnapshot(b.grip).rung;
-        if (rungAfterBot !== rungBeforeBot) {
-          events.push({
-            type: 'transition',
-            from: b.grip.position,
-            to: b.grip.position,
-            rungFrom: rungBeforeBot,
-            rungTo: rungAfterBot,
-            gain: botStep.who,
-          });
-        }
-      }
-    }
-    const holdMs = this.pause(events.some((e) => e.type === 'transition') ? 1_600 : 1_200);
+    const youBad = beat.events.some((e) => e.who === 'you' && e.type === 'bounce' && e.line?.pt !== 'Os dois!');
+    const holdMs = this.pause(events.some((e) => e.type === 'transition') ? 1_700 : 1_250);
     s.send({
       t: 'bout',
       v: 1,
       phase: 'resolve',
       seq: b.seq,
       st: snap(b.grip),
-      intent: id as never,
-      yours: { correct: !player.events.some((e) => e.type === 'bounce'), speed: 1, fast: false, timeout: auto },
-      partner: { intent: partnerIntent as never, correct: true },
-      delta: player.events.some((e) => e.type === 'step' && e.who === 'you') ? 12 : player.events.some((e) => e.type === 'bounce') ? -8 : 0,
+      intent: id,
+      yours: { correct: !youBad, speed: 1, fast: !youBad && spent < b.pickMs * 0.45, timeout: auto },
+      partner: { intent: read.them, correct: !beat.events.some((e) => e.who === 'partner' && e.type === 'bounce') },
+      delta: beat.events.some((e) => e.type === 'step' && e.who === 'you') ? 12 : youBad ? -8 : 0,
       events,
       holdMs,
+      line,
+      feint: beat.feint,
+      posture: beat.posture,
     });
     this.d.schedule(() => this.step(s, b.token), holdMs);
   }
@@ -382,20 +379,6 @@ export class BoutEngine {
 }
 
 // ---------------------------------------------------------------- helpers
-
-function gripEventToExchange(e: import('@tudobem/shared').GripBeatEvent): ExchangeEvent {
-  if (e.type === 'step') {
-    const move = e.force && e.spot ? (`${e.force}_${e.spot}` as GripMoveId) : 'puxar_gola';
-    return { type: 'points', side: e.who, pts: 1, signal: 'pontos2', line: e.line ?? gripMoveLabel(move) };
-  }
-  if (e.type === 'finish') {
-    return { type: 'points', side: 'you', pts: 4, signal: 'parar', line: e.line ?? { pt: 'Final!', en: 'Finish!' } };
-  }
-  if (e.type === 'bounce') {
-    return { type: 'advantage', side: e.who === 'you' ? 'partner' : 'you', signal: 'vantagem', line: e.line ?? { pt: 'Força errada!', en: 'Wrong force!' } };
-  }
-  return { type: 'transition', from: 'guarda_fechada', to: 'guarda_fechada', rungFrom: 0, rungTo: 0, gain: null };
-}
 
 export function snap(st: GripFightState): BoutSnapshot {
   const g = gripToSnapshot(st);

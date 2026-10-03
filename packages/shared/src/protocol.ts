@@ -19,6 +19,7 @@ import type { ConversaGrade, ConversaMeter, ConversaScores, ConversaSubject } fr
 import type { BjjPositionId, BjjProgress, BoutReason, BoutWinner, Belt, PartnerId } from './academia.js';
 import type { BoutAnswer, ChallengeView } from './challenges.js';
 import type { ExchangeEvent, IntentId, RefSignal, Score } from './bout.js';
+import type { GripMoveId, GripSpot, GripVerb, Posture } from './gripFight.js';
 import type { RecadoActiveView, RecadoOfferView } from './recados.js';
 import type { PriceOption, VendorId } from './feira.js';
 
@@ -87,7 +88,7 @@ export type ClientMsg =
    */
   | { t: 'bout'; v: 1; action: 'open' }
   | { t: 'bout'; v: 1; action: 'start'; partner: PartnerId; listen?: boolean; rematch?: boolean }
-  | { t: 'bout'; v: 1; action: 'intent'; seq: number; intent: IntentId | 'finalizar' }
+  | { t: 'bout'; v: 1; action: 'intent'; seq: number; intent: IntentId | GripMoveId }
   | { t: 'bout'; v: 1; action: 'answer'; seq: number; answer: BoutAnswer }
   | { t: 'bout'; v: 1; action: 'quit' }
   | { t: 'ping' };
@@ -218,10 +219,14 @@ export interface BoutPartnerCard {
 }
 
 export interface BoutIntentOut {
-  id: IntentId;
+  id: IntentId | GripMoveId;
   pt: string;
   en: string;
   risk: 1 | 2 | 3;
+  /** grip beat: pegar / soltar / puxar / empurrar */
+  verb?: GripVerb;
+  /** grip beat: which handhold this chip acts on */
+  spot?: GripSpot;
 }
 
 export type BoutRole = 'exchange' | 'finish' | 'escape';
@@ -240,7 +245,20 @@ export type BoutServerMsg =
       line: Bilingual;
       signal: RefSignal;
     }
-  | { t: 'bout'; v: 1; phase: 'intent'; seq: number; st: BoutSnapshot; intents: BoutIntentOut[]; finish: boolean; pickMs: number }
+  | {
+      t: 'bout';
+      v: 1;
+      phase: 'intent';
+      seq: number;
+      st: BoutSnapshot;
+      intents: BoutIntentOut[];
+      finish: boolean;
+      pickMs: number;
+      /** posture on screen for this beat (it can be a trick) */
+      tell?: { id: Posture; pt: string; en: string };
+      /** how long the posture stays readable, ms */
+      tellMs?: number;
+    }
   | {
       t: 'bout';
       v: 1;
@@ -261,14 +279,19 @@ export type BoutServerMsg =
       phase: 'resolve';
       seq: number;
       st: BoutSnapshot;
-      intent: IntentId;
+      intent: IntentId | GripMoveId;
       yours: { correct: boolean; speed: number; fast: boolean; timeout: boolean };
-      partner: { intent: IntentId; correct: boolean };
+      partner: { intent: IntentId | GripMoveId; correct: boolean };
       /** net momentum push (positive: toward you) */
       delta: number;
       events: ExchangeEvent[];
       /** how long the beat lasts on screen (ms) */
       holdMs: number;
+      /** the line to read and hear for your half of the beat */
+      line?: Bilingual;
+      /** the posture shown was a trick; `posture` is what was true */
+      feint?: boolean;
+      posture?: Posture;
     }
   | { t: 'bout'; v: 1; phase: 'finish_end'; kind: 'finalizacao' | 'escape'; success: boolean; st: BoutSnapshot; line: Bilingual; signal: RefSignal | null; holdMs: number }
   | {
