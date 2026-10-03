@@ -171,6 +171,27 @@ export function pick<V>(table: Record<string, V>, key: string | null | undefined
   return table[fallback];
 }
 
+/**
+ * Draw scale for player and NPC sprites in the world.
+ *
+ * A standing LimeZu figure fills about 22 px of the 16×32 frame (`AVATAR_HEAD_LIFT`), on a 16 px floor tile.
+ * That is the same height as a wooden chair (21 px) and a lixeira (22 px), so people read as furniture.
+ * 4/3 is the smallest constant that lifts the crown clear of those props (about 31 px, feet still at the
+ * sprite origin) without redrawing the sheets. The camera zoom stays an integer; this scale is only on the figure.
+ */
+export const AVATAR_DRAW_SCALE = 4 / 3;
+
+/** Unscaled art px from the feet anchor to the top of a bare standing head (the frame is empty above the hair). */
+export const AVATAR_HEAD_LIFT = 23;
+/** Unscaled art px from the feet anchor to the top of a bare sitting head. */
+export const AVATAR_HEAD_SIT_LIFT = 16;
+
+/** World px above the feet for a distance measured on the unscaled sheet. */
+export const avatarPx = (artPx: number): number => artPx * AVATAR_DRAW_SCALE;
+
+/** World px from the feet anchor to the top of the head, including a hat (`lookHeadLift`, unscaled art px). */
+export const avatarCrown = (sitting: boolean, hatLift = 0): number => avatarPx((sitting ? AVATAR_HEAD_SIT_LIFT : AVATAR_HEAD_LIFT) + hatLift);
+
 /** Art px a hat rises above the top of the head (nameplates and bubbles stand above it). */
 export const HAT_LIFT: Record<string, number> = {
   hat_bone_verde: 1,

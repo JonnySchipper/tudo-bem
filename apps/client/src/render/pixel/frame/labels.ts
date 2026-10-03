@@ -3,6 +3,7 @@
  * crisp at every zoom and accents render (test string: "Pão de queijo, açaí, você, não, avó, Nº 42").
  * Elements are created once and only moved (transform: translate, rounded to whole CSS px) each frame.
  */
+import { avatarPx } from '../characters';
 import { IDLERS, SITTERS } from './layout';
 import type { FrameScene } from './FrameScene';
 
@@ -46,14 +47,14 @@ export function createLabels(root: HTMLElement): Labels {
   };
 
   let walker = { x: 0, y: 0 };
-  plate('Júlia', 'npc', () => walker, 27);
+  plate('Júlia', 'npc', () => walker, avatarPx(27));
   const nanda = IDLERS[0];
-  plate('Nanda', 'npc', () => ({ x: nanda.x * 16, y: nanda.y * 16 }), 27);
-  bubble('Boa tarde! Pão de queijo, açaí, você, não, avó, Nº 42', 'Good afternoon! Cheese bread, açaí, you, no, grandma, No. 42', () => ({ x: nanda.x * 16, y: nanda.y * 16 }), 42);
+  plate('Nanda', 'npc', () => ({ x: nanda.x * 16, y: nanda.y * 16 }), avatarPx(27));
+  bubble('Boa tarde! Pão de queijo, açaí, você, não, avó, Nº 42', 'Good afternoon! Cheese bread, açaí, you, no, grandma, No. 42', () => ({ x: nanda.x * 16, y: nanda.y * 16 }), avatarPx(42));
   const mara = SITTERS[1];
-  plate('Mara', 'player', () => ({ x: mara.x * 16, y: mara.y * 16 - 3 }), 24);
+  plate('Mara', 'player', () => ({ x: mara.x * 16, y: mara.y * 16 - 3 }), avatarPx(24));
   const ze = SITTERS[0];
-  plate('você', 'me', () => ({ x: ze.x * 16, y: ze.y * 16 - 3 }), 24);
+  plate('você', 'me', () => ({ x: ze.x * 16, y: ze.y * 16 - 3 }), avatarPx(24));
 
   return {
     update(scene) {
