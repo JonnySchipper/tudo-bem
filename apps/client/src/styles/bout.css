@@ -756,6 +756,104 @@ body.bout-on .toasts {
   gap: 8px;
 }
 
+.bout-posture {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 34px;
+}
+
+.bout-posture .k {
+  font-size: 13px;
+  font-weight: 800;
+  color: #6a5c50;
+}
+
+.bout-posture .verb {
+  font-family: var(--font-pixel);
+  font-size: 28px;
+  line-height: 1;
+  color: var(--bout-ink);
+}
+
+.bout-posture.gone .verb {
+  color: #b3a898;
+}
+
+.bout-spots {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.bout-spot {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 4px 4px 6px;
+  border: 3px solid var(--bout-ink);
+  background: #fff;
+}
+
+.bout-spot.yours {
+  background: #e5f6ea;
+}
+
+.bout-spot.theirs {
+  background: #fde8e4;
+}
+
+.bout-spot.both {
+  background: #fff3cc;
+}
+
+.bout-spot .spot-name {
+  font-family: var(--font-pixel);
+  font-size: 16px;
+  line-height: 1.1;
+}
+
+.bout-spot .spot-who {
+  font-size: 11px;
+  font-weight: 800;
+  color: #5e5550;
+}
+
+.bout-spot .acts {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+}
+
+.bout-spot .bout-intent {
+  min-height: 36px;
+  width: 100%;
+  box-shadow: none;
+  padding: 3px 4px;
+}
+
+.bout-spot .bout-intent .pt {
+  font-size: 16px;
+}
+
+.bout-legend {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #5e5550;
+}
+
+.bout-phabit {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  color: #2f5d45;
+}
+
+.bout-resolve.feint .bout-banner {
+  color: #9a3d12;
+}
+
 .bout-intent {
   position: relative;
   display: grid;
@@ -1417,6 +1515,21 @@ body.bout-on .toasts {
   }
   .bout-chips {
     gap: 5px;
+  }
+  .bout-posture .verb {
+    font-size: 22px;
+  }
+  .bout-spot .bout-intent {
+    min-height: 32px;
+  }
+  .bout-spot .bout-intent .pt {
+    font-size: 14px;
+  }
+  .bout-spot .spot-name {
+    font-size: 14px;
+  }
+  .bout-legend {
+    font-size: 11px;
   }
   .bout-listen {
     min-height: 32px;
