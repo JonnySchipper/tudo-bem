@@ -9,6 +9,7 @@ import './styles/creator.css';
 import './styles/intro-pixel.css';
 import './styles/panels.css';
 import './styles/bout.css';
+import './styles/correria.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
@@ -54,7 +55,6 @@ import {
   buildDecorPanel,
   closeDialogue,
   closeModal,
-  MinigameUI,
   openKiosk,
   modalId,
   openFriends,
@@ -81,6 +81,8 @@ import { openGiShop } from './ui/giShop';
 import { setHeardSink } from './ui/heard';
 import { closeConversa, isConversaOpen, openConversa } from './ui/conversa';
 import { BoutUI } from './ui/bout';
+import { CorreriaUI } from './ui/correria';
+import { correriaFeed } from './render/pixel/correriaFeed';
 import { boutFeed } from './render/pixel/boutFeed';
 import { speak, stopSpeaking, unlockSpeech } from './audio';
 import { ambience } from './ambience';
@@ -117,63 +119,24 @@ game.solo = SOLO;
 let hud: ReturnType<typeof buildHud> | null = null;
 let decor: ReturnType<typeof buildDecorPanel> | null = null;
 let onboarding: ReturnType<typeof runOnboarding> | null = null;
-let minigame: MinigameUI | null = null;
+let correriaUi: CorreriaUI | null = null;
 let boutUi: BoutUI | null = null;
-/** True between mg start and end/quit — used to recover if the panel disappears mid-shift. */
-let mgShiftActive = false;
-/** X was pressed; a goodbye notice (nothing served yet) should close the panel. An end card clears this itself. */
-let mgQuitPending = false;
 let started = false;
-/** If a reconnect doesn't bring the open ticket back, don't leave Me vê um locked. */
-let mgResumeWatch = 0;
 
-function newMinigameUI() {
-  return new MinigameUI({
-    submit: (tray, mods, built) => net.send({ t: 'mg', action: 'submit', tray, mods, built }),
-    timeout: () => net.send({ t: 'mg', action: 'timeout' }),
-    quit: () => {
-      mgQuitPending = true;
-      mgShiftActive = false;
-      net.send({ t: 'mg', action: 'quit' });
+/** Correria no Balcão: the overlay and the world's counter open when the first shift state arrives. */
+function newCorreriaUI() {
+  return new CorreriaUI({
+    send: (m) => net.send(m),
+    closed: () => {
+      correriaUi = null;
     },
     again: startMinigame,
-    sync: () => net.send({ t: 'mg', action: 'sync' }),
   });
 }
 
-/** Server still has a shift but the modal is gone — ask for the open ticket again. */
-function resurrectMinigamePanel() {
-  if (!mgShiftActive || modalId() === 'minigame') return;
-  net.send({ t: 'mg', action: 'sync' });
-  toast('info', 'Reabrindo o balcão…', 'Re-opening the counter…');
-}
-
-function clearMgResumeWatch() {
-  window.clearTimeout(mgResumeWatch);
-  mgResumeWatch = 0;
-}
-
-function armMgResumeWatch() {
-  clearMgResumeWatch();
-  mgResumeWatch = window.setTimeout(() => {
-    mgResumeWatch = 0;
-    if (modalId() === 'minigame') return;
-    if (mgShiftActive) {
-      resurrectMinigamePanel();
-      armMgResumeWatch();
-      return;
-    }
-    closeModal();
-    minigame = null;
-    toast('info', 'A conexão caiu no meio do pedido. Pode jogar de novo.', 'The connection dropped mid-order. You can play again.');
-  }, 2500);
-}
-
 function failClearMinigame() {
-  clearMgResumeWatch();
-  mgShiftActive = false;
-  if (modalId() === 'minigame') closeModal();
-  minigame = null;
+  correriaUi?.destroy();
+  correriaUi = null;
 }
 
 // ---------------------------------------------------------------- helpers
@@ -441,7 +404,7 @@ net.onStatus = (s) => {
     return;
   }
   if (s === 'failed' || s === 'replaced') {
-    const midOrder = modalId() === 'minigame';
+    const midOrder = !!correriaUi?.live;
     failClearMinigame();
     overlayMessage(null);
     reconnectBanner({ kind: s, midOrder, onRetry: () => net.retry() });
@@ -494,13 +457,14 @@ net.on((m: ServerMsg) => {
       break;
     case 'roomState': {
       clock.syncServer(m.serverNow);
-      const keepMg = !!minigame && modalId() === 'minigame' && game.room?.room === m.room;
+      const keepMg = !!correriaUi?.open && game.room?.room === m.room;
       // a new room state (a join, a reconnect) ends any bout: the server dropped it too
       boutUi?.destroy();
       boutUi = null;
       if (!keepMg) {
+        correriaUi?.destroy();
+        correriaUi = null;
         closeModal();
-        minigame = null;
       }
       closeDialogue();
       game.room = m;
@@ -537,11 +501,7 @@ net.on((m: ServerMsg) => {
           700,
         );
       }
-      if (keepMg) {
-        // A restart can drop the shift with the socket back before the bar runs out. Ask now.
-        minigame?.requestSync();
-        armMgResumeWatch();
-      }
+      if (keepMg) correriaUi?.requestSync();
       break;
     }
     case 'avatarJoined':
@@ -594,10 +554,6 @@ net.on((m: ServerMsg) => {
     case 'notice':
       // a recado step and the giver's thanks have their own presentation (the tracker's ✓, the thanks card)
       if (m.tag !== 'recado_step' && m.tag !== 'recado_thanks') toast(m.level, m.pt, m.en);
-      if (mgQuitPending) {
-        mgQuitPending = false;
-        failClearMinigame();
-      }
       break;
     case 'reward':
       if (m.reason.pt === MISSION_COPY.done.pt) {
@@ -634,23 +590,15 @@ net.on((m: ServerMsg) => {
       }
       break;
     case 'mg':
-      // A lost-shift reply to a resync sent just before this shift ended or was quit.
-      if (m.phase === 'end' && m.lost && !mgShiftActive) break;
-      clearMgResumeWatch();
-      if (m.phase === 'order') mgShiftActive = true;
-      if ((m.phase === 'order' || (m.phase === 'end' && m.lost)) && (!minigame || modalId() !== 'minigame')) {
-        minigame = newMinigameUI();
+      // A lost-shift reply to a resync that arrives with no counter open has nothing to show.
+      if (!correriaUi?.open) {
+        if (m.phase !== 'state') break;
+        correriaUi = newCorreriaUI();
       }
       try {
-        minigame?.handle(m);
+        correriaUi.handle(m);
       } catch (err) {
-        console.error('Me vê um… handler', err);
-        resurrectMinigamePanel();
-      }
-      if (m.phase === 'end') {
-        mgQuitPending = false;
-        mgShiftActive = false;
-        minigame = null;
+        console.error('Correria no Balcão handler', err);
       }
       break;
     case 'bout':
@@ -711,11 +659,8 @@ function ambientBubblesFull(): boolean {
 function startGame() {
   started = true;
   window.dispatchEvent(new Event('tb:game-start'));
-  window.addEventListener('error', () => {
-    if (mgShiftActive && modalId() !== 'minigame') resurrectMinigamePanel();
-  });
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') resurrectMinigamePanel();
+    if (document.visibilityState === 'visible' && correriaUi?.live) correriaUi.requestSync();
   });
   hud = buildHud({
     chat: (text) => net.send({ t: 'chat', text }),
@@ -1166,5 +1111,12 @@ window.__tb = {
       return boutUi;
     },
     feed: boutFeed,
+  },
+  /** Correria no Balcão: the live overlay and the feed the world scene reads (e2e and shots). */
+  correria: {
+    get ui() {
+      return correriaUi;
+    },
+    feed: correriaFeed,
   },
 };
