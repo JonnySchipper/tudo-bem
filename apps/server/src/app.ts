@@ -23,6 +23,7 @@ import {
   type ScryptParams,
 } from './auth.js';
 import { publicAppConfig, readOpsSmokeConfig, type OpsSmokeConfig } from './opsSmoke.js';
+import { readGoogleOAuthConfig, type GoogleOAuthConfig, type GoogleTokenPayload } from './googleAuth.js';
 
 export interface AppOptions {
   dataDir: string;
@@ -39,6 +40,10 @@ export interface AppOptions {
   allowedOrigins?: string[];
   sessionTtlMs?: number;
   scrypt?: ScryptParams;
+  /** Override Google OAuth config (tests). */
+  googleOAuth?: GoogleOAuthConfig;
+  /** Skip JWKS network verification in tests. */
+  verifyGoogleIdToken?: (token: string, clientId: string) => Promise<GoogleTokenPayload | null>;
 }
 
 /** WebSocket close codes the client understands (see apps/client/src/net.ts). */
@@ -75,6 +80,8 @@ export function createApp(opts: AppOptions) {
   const limiters = defaultLimiters();
   const allowedOrigins = opts.allowedOrigins ?? [];
   const opsSmoke = opts.opsSmoke ?? readOpsSmokeConfig();
+  const googleOAuth = opts.googleOAuth ?? readGoogleOAuthConfig();
+  const verifyGoogleIdToken = opts.verifyGoogleIdToken;
   if (opsSmoke.ready && opsSmoke.password) {
     void accounts.ensureSmokeAccount(opsSmoke.email, opsSmoke.password).catch((e) => console.error('[ops-smoke] seed failed', e));
   }
@@ -97,7 +104,7 @@ export function createApp(opts: AppOptions) {
     }
     if (url.pathname === '/api/config') {
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
-      return res.end(JSON.stringify(publicAppConfig(opsSmoke)));
+      return res.end(JSON.stringify(publicAppConfig(opsSmoke, googleOAuth.ready ? googleOAuth.clientId : '')));
     }
     if (url.pathname.startsWith('/api/auth/')) {
       return handleAuthApi(req, res, {
@@ -106,6 +113,8 @@ export function createApp(opts: AppOptions) {
         allowedOrigins,
         limiters,
         opsSmoke,
+        googleOAuth,
+        verifyGoogleIdToken,
         onLogout: (accountId) => world.dropAccount(accountId),
       }).catch((e) => {
         console.error('[auth] handler error', e);

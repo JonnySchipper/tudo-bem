@@ -17,6 +17,8 @@ export const OPS_SMOKE_DEV_PASSWORD = 'tb-ops-smoke-dev-only-9';
 
 export type PublicAppConfig = {
   opsSmoke: boolean;
+  /** Google Identity Services client id (public); empty when TB_GOOGLE_CLIENT_ID is unset. */
+  googleClientId: string;
 };
 
 export function readOpsSmokeConfig(env: NodeJS.ProcessEnv = process.env): OpsSmokeConfig {
@@ -42,6 +44,6 @@ export function readOpsSmokeConfig(env: NodeJS.ProcessEnv = process.env): OpsSmo
   return { enabled: true, ready: true, email, password: OPS_SMOKE_DEV_PASSWORD };
 }
 
-export function publicAppConfig(cfg: OpsSmokeConfig): PublicAppConfig {
-  return { opsSmoke: cfg.ready };
+export function publicAppConfig(cfg: OpsSmokeConfig, googleClientId = ''): PublicAppConfig {
+  return { opsSmoke: cfg.ready, googleClientId };
 }
