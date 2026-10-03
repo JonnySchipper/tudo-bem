@@ -269,3 +269,8 @@ export function gripToSnapshot(st: GripFightState): {
     streak: 0,
   };
 }
+
+/** Learner-facing chrome for the grip round (no position names; steps and grip count only). */
+export function gripRoundChrome(st: Pick<GripFightState, 'stepsYou' | 'stepsThem'>): Bilingual {
+  return { pt: `Passos ${st.stepsYou}–${st.stepsThem}`, en: `Steps ${st.stepsYou}–${st.stepsThem}` };
+}

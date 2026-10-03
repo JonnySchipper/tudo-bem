@@ -593,22 +593,16 @@ async function main() {
   assert(stage && stage.mode !== 'off', `the bout stage is on the mat (${JSON.stringify(stage)})`);
   assert(await page.evaluate(() => window.__tb.bout.feed.active), 'the bout feed is active');
   await shot(page, '09b3_bout_intent');
-  let shotChallenge = false;
   const result = await playBout(page, {
-    right: (i) => i % 6 !== 2, // mostly right, with a few misses
     pick: 'bold',
     onPhase: async (phase) => {
-      if (phase === 'challenge' && !shotChallenge) {
-        shotChallenge = true;
-        await sleep(300);
-        await shot(page, '09b4_bout_challenge');
-      }
+      if (phase === 'resolve') await sleep(200);
     },
   });
   assert(['you', 'partner', 'draw'].includes(result.winner), `the match ended with a result (${result.winner} / ${result.reason})`);
-  assert(result.answers >= 3, 'at least three answers were played');
+  assert(result.moves >= 2, 'at least two grip beats were played');
   const score = await page.evaluate(() => ({ you: document.querySelector('.bout-side.you .pts')?.textContent, them: document.querySelector('.bout-side.partner .pts')?.textContent }));
-  assert(score.you !== undefined && score.them !== undefined, 'the scoreboard shows Pontos for both');
+  assert(score.you !== undefined && score.them !== undefined, 'the scoreboard shows passos for both');
   const art = await page.evaluate(() => window.__tb.artMissing.filter((k) => k.startsWith('bjj/') || k === 'props/placar'));
   assert(art.length === 0, `no bout art is missing (${art.join(', ')})`);
   await sleep(1500);
@@ -620,7 +614,7 @@ async function main() {
   await waitFor(page, () => !document.body.classList.contains('bout-on') && !window.__tb.bout.feed.camera, null, 5000, 'the bout HUD steps aside');
   await interact(page, { portal: 'academia_praca' });
   await waitFor(page, () => window.__tb.game.room?.room === 'rua', null, 15_000, 'back from academia');
-  log(`academia bout ok: ${result.winner} by ${result.reason}, ${result.answers} answers`);
+  log(`academia bout ok: ${result.winner} by ${result.reason}, ${result.moves} beats`);
 
   // 7. Kitnet: place the free chair
   await interact(page, { portal: 'praca_kitnet' });

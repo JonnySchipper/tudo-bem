@@ -1,8 +1,5 @@
 /**
- * Browser helpers for "Treino no tatame" (the Academia bout), shared by e2e.mjs and the shots script.
- *
- * The server must run with TB_TEST_ROLL=1 (solo builds: `?rolltest`): the challenge card then carries `data-debug` with the answer in the
- * shape the client sends, so a script can play a match to its result without reading Portuguese.
+ * Browser helpers for "Treino no tatame" (grip contest on the Academia mat).
  */
 import { sleep, waitFor } from './meveum-play.mjs';
 
@@ -49,7 +46,7 @@ export async function answerChallenge(page, right = true) {
 export async function playBout(page, { right = () => true, pick = 'bold', maxMs = 240_000, onPhase } = {}) {
   const t0 = Date.now();
   const handled = new Set();
-  let answers = 0;
+  let moves = 0;
   let finalizacoes = 0;
   while (Date.now() - t0 < maxMs) {
     const st = await page.evaluate(() => {
@@ -65,26 +62,22 @@ export async function playBout(page, { right = () => true, pick = 'bold', maxMs 
     }
     if (st.phase === 'end') break;
     const key = `${st.phase}:${st.seq}`;
-    if ((st.phase === 'intent' || st.phase === 'challenge') && !handled.has(key)) {
+    if ((st.phase === 'intent') && !handled.has(key)) {
       handled.add(key);
       if (onPhase) await onPhase(st.phase, page);
-      if (st.phase === 'intent') {
-        const intents = await page.$$eval('#bout-intents .bout-intent', (els) => els.map((e) => e.getAttribute('data-intent')));
-        const choice = intents.includes('finalizar') ? 'finalizar' : pick === 'safe' ? intents[0] : intents.at(-1);
-        if (choice === 'finalizar') finalizacoes++;
-        await page.waitForTimeout(200);
-        await page.click(`#bout-intents .bout-intent[data-intent="${choice}"]`);
-      } else {
-        await page.waitForTimeout(350);
-        await answerChallenge(page, right(answers++));
-      }
+      const intents = await page.$$eval('#bout-intents .bout-intent', (els) => els.map((e) => e.getAttribute('data-intent')));
+      const choice = intents.includes('finalizar') ? 'finalizar' : pick === 'safe' ? intents[0] : intents.at(-1);
+      if (choice === 'finalizar') finalizacoes++;
+      moves++;
+      await page.waitForTimeout(200);
+      await page.click(`#bout-intents .bout-intent[data-intent="${choice}"]`);
     } else await sleep(120);
   }
   await page.waitForSelector('#bout-end', { timeout: 20_000 });
   return page.evaluate(() => {
     const e = document.querySelector('#bout-end');
     return { winner: e.getAttribute('data-winner'), reason: e.getAttribute('data-reason'), text: e.textContent };
-  }).then((r) => ({ ...r, answers, finalizacoes }));
+  }).then((r) => ({ ...r, answers: moves, moves, finalizacoes }));
 }
 
 export async function waitBoutPhase(page, phase, timeout = 20_000) {

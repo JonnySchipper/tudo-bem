@@ -255,8 +255,23 @@ export class BoutEngine {
     if (!win && b.grip.turn === 'partner') {
       partnerIntent = botMove(b.grip, b.partner, b.rng);
       const bot = applyGripMove(b.grip, 'partner', partnerIntent);
+      const rungBeforeBot = gripToSnapshot(b.grip).rung;
       b.grip = bot.state;
       events = events.concat(bot.events.map(gripEventToExchange));
+      const botStep = bot.events.find((e) => e.type === 'step');
+      if (botStep) {
+        const rungAfterBot = gripToSnapshot(b.grip).rung;
+        if (rungAfterBot !== rungBeforeBot) {
+          events.push({
+            type: 'transition',
+            from: b.grip.position,
+            to: b.grip.position,
+            rungFrom: rungBeforeBot,
+            rungTo: rungAfterBot,
+            gain: botStep.who,
+          });
+        }
+      }
     }
     const holdMs = this.pause(events.some((e) => e.type === 'transition') ? 1_600 : 1_200);
     s.send({
