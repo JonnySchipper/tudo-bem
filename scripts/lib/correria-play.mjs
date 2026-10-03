@@ -136,6 +136,15 @@ async function waitUntil(pred, ms) {
 
 const itemCount = async (page, itemId) => trayCounts((await snap(page))?.tray)[itemId] ?? 0;
 
+/** False once the end card is up or the shift snapshot says it is over. Retrying the grill after that never moves the tray. */
+async function shiftLive(page) {
+  return page.evaluate(() => {
+    if (document.querySelector('#mg-end')) return false;
+    const feed = window.__tb?.correria?.feed;
+    return !!(feed?.active && feed.snap && !feed.snap.over);
+  });
+}
+
 /**
  * A real tap first (short, and it may be covered or still moving after a viewport change). If the snapshot does not
  * change, call the same handler the button uses. Playwright's default click will otherwise wait out a disabled Entregar.
@@ -153,7 +162,10 @@ async function grillView(page) {
     const feed = window.__tb?.correria?.feed;
     const snap = feed?.snap ?? null;
     let extra = snap ? performance.now() - (feed.snapAt || performance.now()) : 0;
-    if (!Number.isFinite(extra) || extra < 0 || extra > 12_000) extra = 0;
+    if (!Number.isFinite(extra) || extra < 0) extra = 0;
+    // A gap longer than a heartbeat used to be thrown away, which froze the loaf on the last snapshot age
+    // (still "ready") while the spot was already painted burnt. Keep extrapolating through the burn line.
+    if (extra > 20_000) extra = 20_000;
     const buttons = [...document.querySelectorAll('.cr-grill')];
     const n = Math.max(snap?.chapa?.length ?? 0, buttons.length);
     const slots = [];
@@ -165,7 +177,8 @@ async function grillView(page) {
       const age = c ? c.age + extra : 0;
       let phase = 'empty';
       // A painted spot with nothing in the snapshot is empty. Chasing that paint waits out the whole burn window.
-      if (snap) phase = c ? (age < readyAt ? 'raw' : age <= burnAt ? 'ready' : 'burnt') : 'empty';
+      // A spot already painted burnt wins over a stale "ready" age.
+      if (snap) phase = !c ? 'empty' : dom === 'burnt' || age > burnAt ? 'burnt' : age < readyAt ? 'raw' : 'ready';
       else if (!hidden && (dom === 'raw' || dom === 'ready' || dom === 'burnt')) phase = dom;
       slots.push({ i, phase, age: Math.round(age), dom, hidden });
     }
@@ -202,8 +215,15 @@ async function putOnChapa(page, itemId) {
 /** One bread on the chapa, then onto the tray. A burnt one is trashed and tried again. */
 async function grillOne(page, itemId) {
   for (let attempt = 0; attempt < 3; attempt++) {
+    if (!(await shiftLive(page))) return;
     const before = await itemCount(page, itemId);
-    if (await grillOccupied(page)) await takeGrilled(page);
+    if (await grillOccupied(page)) {
+      await takeGrilled(page);
+      if (await grillOccupied(page)) {
+        console.log(`  · grill stuck, leaving ${itemId}`);
+        return;
+      }
+    }
     if (!(await putOnChapa(page, itemId))) {
       console.log(`  · chapa did not start ${itemId} (attempt ${attempt + 1})`);
       continue;
@@ -306,7 +326,11 @@ export async function buildOrder(page, want, { quick = false } = {}) {
   for (const line of want.lines) {
     if (CHAPA.has(line.itemId)) {
       let guard = 0;
-      while ((await itemCount(page, line.itemId)) < line.qty && guard++ < line.qty + 2) await grillOne(page, line.itemId);
+      while ((await itemCount(page, line.itemId)) < line.qty && guard++ < line.qty + 2) {
+        const before = await itemCount(page, line.itemId);
+        await grillOne(page, line.itemId);
+        if ((await itemCount(page, line.itemId)) <= before) break;
+      }
     } else if (CAFE.has(line.itemId)) {
       // a slow frame can stretch a mouse-hold past the window (the server judges it on its own clock): pour again
       let guard = 0;
@@ -334,7 +358,9 @@ export async function buildOrder(page, want, { quick = false } = {}) {
  */
 export async function takeGrilled(page) {
   const started = Date.now();
+  let taps = 0;
   while (Date.now() - started < BURN_MS + 2200) {
+    if (!(await shiftLive(page))) return;
     const view = await grillView(page);
     const live = view.slots.filter((s) => !s.hidden && s.phase !== 'empty');
     if (!live.length) return;
@@ -345,7 +371,10 @@ export async function takeGrilled(page) {
       if (!due) continue;
       await clickGrill(page, s.i);
       tapped = true;
+      taps++;
     }
+    // A spot that survives a few takes is not going to land on the tray. Stop instead of waiting out the burn window.
+    if (taps >= 2 && (await grillOccupied(page))) return;
     await sleep(tapped ? 180 : 90);
   }
 }
