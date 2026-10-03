@@ -25,7 +25,9 @@ export type PendingAction =
   | { kind: 'npc'; npc: NpcId; tile: Tile }
   | { kind: 'prop'; action: string; tile: Tile; propId?: string }
   /** Walk to a spot within 3 tiles of a sign, then read it. */
-  | { kind: 'hotspot'; hotspotId: string; tile: Tile };
+  | { kind: 'hotspot'; hotspotId: string; tile: Tile }
+  /** Walk close to a tagged prop, then photograph it into the diary. */
+  | { kind: 'photo'; anchor: string; tile: Tile };
 
 type Listener = () => void;
 
@@ -47,6 +49,8 @@ class Game {
   /** Label key under the pointer (`av:<id>` or `npc:<id>`), so a CPU nameplate can show on hover. */
   hoverKey: string | null = null;
   modalOpen = false;
+  /** Júlia's camera is up: the next tagged thing you click is a photo, not a walk. */
+  cameraOn = false;
   /** Solo (static) build: the world runs in this tab; no other humans. */
   solo = false;
   sound = localStorage.getItem('tb_sound') !== 'off';

@@ -32,8 +32,8 @@ describe('Vila Ipê minimaps (one per open-air area)', () => {
   it('marks the rua doors (padaria, Edifício, academia) and the edge to the praça, both NPCs of a room and you', () => {
     const ms = markers(rua, { x: 20, y: 13 });
     const doors = ms.filter((m) => m.kind === 'door');
-    expect(doors).toHaveLength(4); // three doors and ONE marker for the whole south opening
-    expect(doors.map((d) => d.label).sort()).toEqual(['Edifício Ipê — Minha kitnet', 'Academia do Bairro', 'Padaria do Seu Carlos', 'Praça Central'].sort());
+    expect(doors).toHaveLength(5); // four doors and ONE marker for the whole south opening
+    expect(doors.map((d) => d.label).sort()).toEqual(['Edifício Ipê — Minha kitnet', 'Academia do Bairro', 'Escola da Praça', 'Padaria do Seu Carlos', 'Praça Central'].sort());
     expect(ms.filter((m) => m.kind === 'me')).toHaveLength(1);
     expect(markers(rua, null).some((m) => m.kind === 'me')).toBe(false);
     // the praça: one marker per exit (north to the rua, east to the feira), and Nanda and Júlia at their home tiles

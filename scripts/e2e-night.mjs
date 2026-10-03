@@ -16,6 +16,7 @@ import path from 'node:path';
 import { assert, playShift, sleep, startShiftFromPedido, waitFor } from './lib/correria-play.mjs';
 import { assertPageClock, requirePinnedClock } from './lib/clock-pin.mjs';
 import { goArea } from './lib/areas.mjs';
+import { finishArrival } from './lib/arrival.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
 const CHROME = findChrome();
@@ -68,6 +69,7 @@ async function main() {
   await page.click('button:has-text("ela (she)")');
   await page.click('#enter-praca');
   await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
+  await finishArrival(page);
   await sleep(800);
   await assertPageClock(page, WINDOW);
   log('start, game time', hhmm(await minutes(page)));

@@ -197,6 +197,14 @@ export const CONVERSA_CAST: Record<NpcId, ConversaCastEntry> = {
     enabled: false,
     subjects: [],
   },
+  // Dona Lúcia hosts the escola practice game. No Conversa; the cast entry only keeps the NpcId record complete.
+  lucia: {
+    npc: 'lucia',
+    name: 'Dona Lúcia',
+    room: 'praca',
+    enabled: false,
+    subjects: [],
+  },
 };
 
 export interface ConversaLine {

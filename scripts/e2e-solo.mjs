@@ -13,6 +13,7 @@ import path from 'node:path';
 import { findChrome } from './lib/chrome.mjs';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
 import { goArea } from './lib/areas.mjs';
+import { finishArrival } from './lib/arrival.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:4173/';
 const SHOTS = process.env.SHOTS_DIR ?? '';
@@ -45,6 +46,7 @@ try {
   await page.click('button:has-text("ela (she)")');
   await page.click('#enter-praca');
   await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 15_000, 'praça');
+  await finishArrival(page);
   await sleep(1200);
   assert(await page.isVisible('#solo-pill'), 'the solo pill shows (HUD, top left)');
 

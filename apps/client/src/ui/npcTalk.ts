@@ -17,6 +17,8 @@ export interface TalkHooks {
   talked?: (npc: NpcId) => void;
   /** Open the hat shop (Nanda). */
   openShop: () => void;
+  /** A node is on screen (`npc.node`). The diary may keep a conversation word from it. */
+  onLine?: (anchor: string) => void;
 }
 
 const SPEAKER: Record<string, { name: string; role: string }> = {
@@ -39,6 +41,7 @@ export function openNpcTalk(npcId: NpcId, hooks: TalkHooks): void {
   const render = (nodeId: string) => {
     const node = talk.nodes[nodeId];
     if (!node) return closeDialogue();
+    hooks.onLine?.(`${npcId}.${nodeId}`);
     const line = { pt: fillTalk(node.line.pt, ctx), en: fillTalk(node.line.en, ctx) };
     speak(line.pt);
     const chips: BoxChip[] = node.chips.map((c) => ({ pt: fillTalk(c.pt, ctx), en: fillTalk(c.en, ctx) }));

@@ -1,0 +1,172 @@
+/* Arrival, camera, language diary, escola practice. */
+
+#arrival-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 24px 16px 32px;
+  background: rgba(20, 16, 12, 0.28);
+}
+
+#arrival-intro .arrival-card {
+  width: min(520px, 100%);
+  padding: 18px 20px 16px;
+  background: var(--hud-paper, #fbf1e3);
+  color: var(--hud-ink, #3a2a22);
+  box-shadow:
+    0 0 0 3px var(--hud-ink, #573c2c),
+    0 10px 0 rgba(20, 10, 6, 0.35);
+}
+
+#arrival-intro .arrival-kicker {
+  margin: 0 0 4px;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8f3e15;
+}
+
+#arrival-intro h2 {
+  margin: 0 0 8px;
+  font-family: var(--font-pixel, inherit);
+  font-size: 1.45rem;
+  color: #8f3e15;
+}
+
+#arrival-intro p {
+  margin: 0 0 8px;
+}
+
+#arrival-intro #arrival-done {
+  margin-top: 8px;
+}
+
+#camera-banner {
+  position: fixed;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 12;
+  padding: 6px 12px;
+  background: #1c2430;
+  color: #f4efe6;
+  border: 2px solid #f2c230;
+  pointer-events: none;
+}
+
+#photo-capture {
+  position: fixed;
+  left: 50%;
+  bottom: 92px;
+  transform: translateX(-50%);
+  z-index: 15;
+  pointer-events: none;
+}
+
+#photo-capture .photo-flash {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  animation: photo-flash 0.45s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes photo-flash {
+  from { opacity: 0.85; }
+  to { opacity: 0; }
+}
+
+#photo-capture .photo-frame {
+  pointer-events: auto;
+  min-width: 220px;
+  padding: 14px 16px 12px;
+  background: #f7f1e4;
+  color: #2a241c;
+  box-shadow: 0 0 0 3px #2a241c, 8px 8px 0 rgba(20, 10, 6, 0.25);
+  text-align: center;
+}
+
+#photo-capture .photo-kicker {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+#photo-capture .photo-pt {
+  display: block;
+  margin: 4px 0;
+  font-size: 1.6rem;
+}
+
+#photo-capture .photo-progress {
+  margin: 8px 0;
+  font-size: 0.85rem;
+}
+
+.diary-panel .diary-area {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 2px solid rgba(87, 60, 44, 0.2);
+}
+
+.diary-panel h3 {
+  margin: 0;
+}
+
+.diary-panel .diary-progress {
+  margin: 4px 0 8px;
+  font-weight: 700;
+}
+
+.diary-panel .diary-source {
+  margin-bottom: 8px;
+}
+
+.diary-panel h4 {
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+}
+
+.diary-panel ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.diary-panel .diary-seed {
+  margin-left: 8px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #8f3e15;
+}
+
+.escola-panel .escola-gloss {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 4px 0 12px;
+}
+
+.escola-panel .escola-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.escola-panel .escola-choice {
+  min-width: 96px;
+  padding: 8px 12px;
+  font-size: 1.05rem;
+}
+
+.escola-panel .escola-win,
+.escola-panel .escola-miss {
+  margin-top: 12px;
+}
+
+#btn-camera.on {
+  box-shadow: inset 0 0 0 2px #f2c230;
+}

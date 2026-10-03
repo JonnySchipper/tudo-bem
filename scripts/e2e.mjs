@@ -27,6 +27,7 @@ import { fileURLToPath } from 'node:url';
 import { DAY_MIN, assertPageClock, offsetMinFor, requirePinnedClock } from './lib/clock-pin.mjs';
 import { assert, expectFirstTimeoutRearms, learnShelf, playShift, sleep, waitFor } from './lib/meveum-play.mjs';
 import { goArea } from './lib/areas.mjs';
+import { finishArrival } from './lib/arrival.mjs';
 import { openBout, playBout, startBout, waitBoutPhase } from './lib/bout-play.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
@@ -179,6 +180,7 @@ async function createAvatar(page, name, pronoun, { tick18 = false, guest = SOLO 
   return async () => {
     await page.click('#enter-praca');
     await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
+    await finishArrival(page);
     await sleep(400);
   };
 }

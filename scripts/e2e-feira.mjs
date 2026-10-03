@@ -17,6 +17,7 @@ import path from 'node:path';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
 import { assertPageClock, requirePinnedClock } from './lib/clock-pin.mjs';
 import { goArea } from './lib/areas.mjs';
+import { finishArrival } from './lib/arrival.mjs';
 
 const GAME_DAY_MS = 48 * 60 * 1000;
 const CLOCK_OFFSET_MS = 17 * 2 * 60 * 1000;
@@ -79,6 +80,7 @@ async function main() {
   await page.click('button:has-text("ela (she)")');
   await page.click('#enter-praca');
   await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
+  await finishArrival(page);
   await sleep(800);
   await assertPageClock(page, WINDOW);
   log('start, game time', hhmm(await minutes(page)));

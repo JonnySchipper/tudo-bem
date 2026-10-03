@@ -1,0 +1,58 @@
+{
+  "_meta": {
+    "status": "SEED",
+    "note": "The curriculum pass extends areas, words, and games. Do not treat these four rows as the lesson list. One Portuguese word has one source. Progress denominators are counts of this file."
+  },
+  "areas": [
+    { "id": "praca", "pt": "Praça", "en": "Square" }
+  ],
+  "words": [
+    {
+      "id": "seed.praca.fonte",
+      "pt": "fonte",
+      "en": "fountain",
+      "area": "praca",
+      "source": "camera",
+      "anchor": { "kind": "object", "id": "fonte" },
+      "seed": true
+    },
+    {
+      "id": "seed.praca.coreto",
+      "pt": "coreto",
+      "en": "bandstand",
+      "area": "praca",
+      "source": "reading",
+      "anchor": { "kind": "sign", "id": "coreto_placa" },
+      "seed": true
+    },
+    {
+      "id": "seed.praca.guia",
+      "pt": "guia",
+      "en": "guide",
+      "area": "praca",
+      "source": "conversation",
+      "anchor": { "kind": "line", "id": "julia.ajuda" },
+      "seed": true
+    },
+    {
+      "id": "seed.praca.aula",
+      "pt": "aula",
+      "en": "class",
+      "area": "praca",
+      "source": "game",
+      "anchor": { "kind": "game", "id": "escola.pratica" },
+      "seed": true
+    }
+  ],
+  "games": [
+    {
+      "id": "escola.pratica",
+      "room": "escola",
+      "host": { "npc": "lucia", "name": "Dona Lúcia" },
+      "rv": 8,
+      "grantWordId": "seed.praca.aula",
+      "decoys": ["porta", "mesa"],
+      "seed": true
+    }
+  ]
+}
