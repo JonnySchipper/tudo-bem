@@ -9,6 +9,7 @@
  *
  * `requirePinnedClock(base, { min, max })` reads `/healthz`, tries to set the hour when the server allows it and otherwise fails fast with the
  * exact environment to start the server with. `assertPageClock(page, ...)` repeats the check against `__tb.clock` once the page is in the world.
+ * A window only a few game minutes wide will not still be true after signup: call `repinPageClock(page, base, ...)` once the player is in the world.
  */
 const GAME_DAY_MS = 48 * 60 * 1000;
 const CLOCK_OFFSET_MS = 17 * 2 * 60 * 1000;
@@ -73,6 +74,41 @@ export async function assertPageClock(page, { min, max, label = 'daytime' }) {
     throw new Error(`Game clock (__tb.clock) reads ${hhmm(m)}, expected ${hhmm(min)}-${hhmm(max)} (${label}). Pin the server clock: see scripts/lib/clock-pin.mjs.`);
   }
   return m;
+}
+
+/**
+ * Pin again once the player is already in the world, and make this page adopt the new server time.
+ *
+ * `requirePinnedClock` runs before the browser launches. A window only a few game minutes wide (night phase a is
+ * 20:52 with a ceiling of 20:58, twelve real seconds) does not survive signup plus the arrival intro: the clock
+ * keeps advancing at one game minute per two real seconds, and `__tb.clock` then reads past `max`. Calling this
+ * after arrival re-pins only when the page has already left the window, then rejoins the current room so `roomState`
+ * carries the new `serverNow` (the client ignores a later stamp unless it moved by more than a second).
+ */
+export async function repinPageClock(page, base, opts = {}) {
+  const cur = await page.evaluate(() => (typeof window.__tb?.clock?.minutes === 'function' ? window.__tb.clock.minutes() : null));
+  const min = opts.min ?? DAY_MIN - 15;
+  const max = opts.max ?? DAY_MIN + 90;
+  if (typeof cur === 'number' && inWindow(cur, min, max)) return cur;
+  const set = await requirePinnedClock(base, opts);
+  const room = await page.evaluate(() => window.__tb.game.room?.room ?? 'praca');
+  await page.evaluate((r) => window.__tb.net.send({ t: 'join', room: r }), room);
+  const target = Math.round(set);
+  try {
+    await page.waitForFunction(
+      (want) => {
+        const m = window.__tb.clock.minutes();
+        const d = Math.abs(m - want);
+        return d <= 2 || d >= 1437;
+      },
+      target,
+      { timeout: 8_000 },
+    );
+  } catch {
+    const m = await page.evaluate(() => window.__tb.clock.minutes());
+    throw new Error(`Game clock (__tb.clock) reads ${hhmm(m)} after re-pinning to ${hhmm(target)} (${opts.label ?? 'daytime'}). The page did not adopt the server clock.`);
+  }
+  return target;
 }
 
 if (import.meta.url === `file:///${process.argv[1]?.replace(/\\/g, '/')}` || process.argv[1]?.endsWith('clock-pin.mjs')) {

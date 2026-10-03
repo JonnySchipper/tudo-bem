@@ -14,7 +14,7 @@ import { findChrome } from './lib/chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { assert, playShift, sleep, startShiftFromPedido, waitFor } from './lib/correria-play.mjs';
-import { assertPageClock, requirePinnedClock } from './lib/clock-pin.mjs';
+import { assertPageClock, repinPageClock, requirePinnedClock } from './lib/clock-pin.mjs';
 import { goArea } from './lib/areas.mjs';
 import { finishArrival } from './lib/arrival.mjs';
 
@@ -71,6 +71,8 @@ async function main() {
   await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
   await finishArrival(page);
   await sleep(800);
+  // Signup and the arrival intro burn the few game minutes between 20:52 and 20:58. Re-pin now that the page is up.
+  await repinPageClock(page, BASE, WINDOW);
   await assertPageClock(page, WINDOW);
   log('start, game time', hhmm(await minutes(page)));
 

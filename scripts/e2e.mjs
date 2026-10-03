@@ -6,8 +6,8 @@
  *   pnpm e2e                            # in another (BASE_URL / CHROME_PATH / SHOTS_DIR optional)
  *
  * Plays: age gate → avatar → Praça (ambiance CPUs, daily kiosk, walk, sit, wave, chat) → Padaria →
- * Seu Carlos (AI Conversa on click, then Pedido rápido chips) → Me vê um… (parses each Portuguese
- * order to fill the tray) → hat shop → Kitnet chair, plus a second player for chat gloss + friend
+ * Seu Carlos (AI Conversa on click, then Pedido rápido chips) → Correria no Balcão (the shelf taps
+ * fill the tray from each order) → hat shop → Kitnet chair, plus a second player for chat gloss + friend
  * request. Expects LIVEOPS_CPU_AMBIANCE on (the default); set CPU_AMBIANCE=off when the server
  * runs with it off.
  *
@@ -25,7 +25,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DAY_MIN, assertPageClock, offsetMinFor, requirePinnedClock } from './lib/clock-pin.mjs';
-import { assert, expectFirstTimeoutRearms, learnShelf, playShift, sleep, waitFor } from './lib/meveum-play.mjs';
+import { assert, playShift, sleep, startShiftFromPedido, waitFor } from './lib/correria-play.mjs';
 import { goArea } from './lib/areas.mjs';
 import { finishArrival } from './lib/arrival.mjs';
 import { openBout, playBout, startBout, waitBoutPhase } from './lib/bout-play.mjs';
@@ -429,48 +429,76 @@ async function main() {
   log('scene payout →', afterScene.coins - start.coins, 'RV');
   assert(afterScene.tutorial.carlos, 'carlos step');
 
-  // 5. Me vê um… minigame
-  await page.click('#btn-pedido-play-mg');
-  await page.waitForSelector('#mg-order');
-  await page.click('#mg-shelves button');
+  // 5. Correria no Balcão: one full shift through the real taps (3 waves, 15 customers) behind the padaria counter
+  await startShiftFromPedido(page);
+  assert(await page.isVisible('#cr-panel'), 'the counter strip is up');
+  assert(!(await page.$('[data-modal="minigame"]')), 'no modal over the padaria');
   for (const size of [
     { width: 1280, height: 800 },
     { width: 390, height: 844 },
   ]) {
     await page.setViewportSize(size);
-    const placeInView = await page.evaluate(() => {
-      const el = document.querySelector('#mg-tray-place');
-      const panel = document.querySelector('.panel.mg');
-      if (!el || !panel) return false;
+    await sleep(400);
+    const m = await page.evaluate(() => {
+      const el = document.querySelector('#cr-serve');
+      const panel = document.querySelector('#cr-panel');
+      if (!el || !panel) return null;
       const r = el.getBoundingClientRect();
       const pr = panel.getBoundingClientRect();
-      return r.width > 0 && r.height > 0 && r.top >= pr.top - 1 && r.bottom <= pr.bottom + 1;
+      return { inView: r.width > 0 && r.height > 0 && r.top >= pr.top - 1 && r.bottom <= pr.bottom + 1, share: pr.height / window.innerHeight };
     });
-    assert(placeInView, `Colocar na bandeja stays tappable at ${size.width}×${size.height}`);
+    assert(m?.inView, `Entregar stays tappable at ${size.width}×${size.height}`);
+    if (size.width < 500) assert(m.share <= 0.35, `the counter strip stays under 35% of a phone (${(m.share * 100).toFixed(0)}%)`);
   }
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.click('#mg-clear');
-  await learnShelf(page);
-  await playShift(page, { log, dwell, onRound: (round) => (round === 2 ? shot(page, '07_meveum_tray') : undefined) });
+  // The phone check above moves the counter camera while the first customer is already waiting. Let the shelf taps
+  // land back on the desktop layout before the shift, so a grill spot is not left under the strip.
+  await waitFor(
+    page,
+    () => {
+      const g = document.querySelector('#cr-grill-0');
+      const item = document.querySelector('#cr-item-pao_na_chapa');
+      if (!g || !item) return false;
+      const gr = g.getBoundingClientRect();
+      const ir = item.getBoundingClientRect();
+      return gr.width > 8 && ir.width > 8 && gr.bottom > 0 && gr.top < window.innerHeight;
+    },
+    null,
+    5000,
+    'counter taps laid out after the viewport restore',
+  );
+  let mgShot = false;
+  const served = await playShift(page, {
+    log,
+    dwell,
+    onCustomer: async (_c, i) => {
+      if (i === 3 && !mgShot) {
+        mgShot = true;
+        await shot(page, '07_correria_tray');
+      }
+    },
+  });
   await sleep(300);
-  await shot(page, '08_meveum_end');
+  await shot(page, '08_correria_end');
   await dwell(2200);
   const afterMg = await profile(page);
-  log('minigame payout →', afterMg.coins - afterScene.coins, 'RV');
-  assert(afterMg.coins - afterScene.coins >= 18, 'perfect-ish minigame payout');
+  log('shift served', served, 'customers; payout →', afterMg.coins - afterScene.coins, 'RV');
+  assert(served >= 10, `the bot served most of the 15 customers (${served})`);
+  assert(afterMg.coins - afterScene.coins >= 8, 'the shift pays RV');
+  assert(afterMg.correria?.shifts === 1 && afterMg.correria.stars >= 1, `stars and the shift counter are on the profile (${JSON.stringify(afterMg.correria)})`);
   if (AMBIANCE) {
     assert(afterMg.mission?.rewarded && Object.values(afterMg.mission.steps).every(Boolean), 'daily mission complete (+25 RV)');
     log('mission complete: Cumprimenta ✓ Pede ✓ Monta ✓');
   } else assert(afterMg.mission?.steps.pede && afterMg.mission?.steps.monta, 'mission: Pede + Monta');
-  const endFooter = await page.isVisible('#mg-tray-place');
-  assert(!endFooter, 'Fim do turno hides Colocar / Limpar / Entregar');
+  assert(!(await page.isVisible('#cr-serve')), 'Fim do turno hides the counter strip');
+  assert(/\+\d+ RV/.test((await page.textContent('#mg-end .big')) ?? ''), 'the end card headlines the RV');
 
-  // 5a. Jogar de novo: the first Pedido 1 timeout must re-arm, not soft-lock the tray.
+  // 5a. Jogar de novo opens a fresh shift; closing it with nothing served leaves the counter at once.
   await page.click('#mg-end button:has-text("Jogar de novo")');
-  await expectFirstTimeoutRearms(page, log);
-  await shot(page, '08a_meveum_again_denovo');
-  await page.click('#minigame .mg-head button.ghost');
-  await waitFor(page, () => !document.querySelector('[data-modal="minigame"]'), null, 5000, 'Me vê um closes after ✕ with nothing served');
+  await waitFor(page, () => !!window.__tb.correria.feed.snap && window.__tb.correria.feed.snap.stats.served === 0, null, 8000, 'a fresh shift');
+  await shot(page, '08a_correria_again');
+  await page.click('#cr-quit');
+  await waitFor(page, () => !document.querySelector('#correria'), null, 5000, 'the counter closes after ✕ with nothing served');
 
   // 5b. Test daily RV gate: second Pedido rápido same day → 0 RV, "já pediu hoje" message
   const coinsBeforeSecond = (await profile(page)).coins;
@@ -657,8 +685,27 @@ async function main() {
   if (!SOLO) {
     // Refresh keeps the session, the avatar, its RV, hat and kitnet.
     const before = await profile(page);
-    await page.reload();
-    await waitFor(page, () => !!window.__tb.game.room, null, 10_000, 'back in the world after reload');
+    // A long session reboots Phaser (and the kitnet) more slowly than the reload at the start of the run.
+    // One attempt can miss the welcome entirely; load again before giving up.
+    let back = false;
+    for (let attempt = 0; attempt < 2 && !back; attempt++) {
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      back = await page
+        .waitForFunction(() => !!window.__tb?.game?.room, null, { timeout: attempt === 0 ? 25_000 : 30_000 })
+        .then(() => true)
+        .catch(() => false);
+    }
+    if (!back) {
+      const diag = await page
+        .evaluate(() => ({
+          intro: !!document.querySelector('#intro-enter, #intro-skip'),
+          tb: !!window.__tb,
+          room: window.__tb?.game?.room?.room ?? null,
+          text: (document.body?.innerText ?? '').slice(0, 180),
+        }))
+        .catch((e) => String(e));
+      throw new Error(`timeout waiting for back in the world after reload (${JSON.stringify(diag)})`);
+    }
     assert(!(await page.$('#intro-skip')), 'still signed in after reload (no title screen)');
     const after = await profile(page);
     assert(after.id === before.id && after.coins === before.coins && after.hat === before.hat, `avatar + RV survive reload (${before.coins} → ${after.coins} RV)`);

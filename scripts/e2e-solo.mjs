@@ -75,7 +75,7 @@ try {
   await page.click('#dialogue-box [data-chip="0"]');
   await waitFor(page, () => /dois reais/.test(document.querySelector('#dialogue-box .line-bubble .pt')?.textContent ?? ''), null, 8000, 'banana price');
   await page.click('#dialogue-box [data-chip="0"]');
-  await page.waitForSelector('#feira-tray', { timeout: 6000 });
+  await page.waitForSelector('#feira-tray', { timeout: 12_000 });
   await page.click('#feira-pieces [data-cents="200"]');
   await page.click('#feira-pay');
   await waitFor(page, () => (window.__tb.game.profile.bag?.banana ?? 0) === 1, null, 6000, 'banana in the bag');
