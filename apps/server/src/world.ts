@@ -90,6 +90,7 @@ import { readEnv } from './env.js';
 import { NPC_TICK_MS, NpcDirector } from './npcs.js';
 import { RecadoTracker, sceneItems } from './recados.js';
 import { CadernoTracker } from './caderno.js';
+import { DiaryTracker } from './diary.js';
 import { FeiraCounter } from './feira.js';
 import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria.js';
 import { BoutEngine, type BoutSession } from './bout.js';
@@ -224,6 +225,8 @@ export class World {
   private readonly recados: RecadoTracker;
   /** Caderno de palavras: what the player saw, heard and used (Phase 7). */
   private readonly caderno: CadernoTracker;
+  /** Language diary: camera, signs, conversation lines, and the escola game. */
+  private readonly diary: DiaryTracker;
   /** The feira's prices and payments (Phase 9). */
   private readonly feira: FeiraCounter;
   /** Correria no Balcão: shifts, clocks and parked resume (apps/server/src/correria.ts). */
@@ -252,7 +255,10 @@ export class World {
       pushProfile: (s) => this.pushProfile(s),
       tileOf: (s) => this.currentTile(s).tile,
       npcsIn: (room) => this.npcs.whoIn(room),
-      onRead: (s, h) => this.caderno.seen(s, h.pt, h.cards),
+      onRead: (s, h) => {
+        this.caderno.seen(s, h.pt, h.cards);
+        this.diary.onSign(s, h.id);
+      },
     });
     this.feira = new FeiraCounter({
       now: () => this.now(),
@@ -264,6 +270,16 @@ export class World {
       ordered: (s, npc, items) => this.recados.onEvent(s, { kind: 'ordered', npc, items }),
     });
     this.caderno = new CadernoTracker({ now: () => this.now(), store, reward: (s, a, r) => this.reward(s, a, r), pushProfile: (s) => this.pushProfile(s) });
+    this.diary = new DiaryTracker({
+      store,
+      reward: (s, a, r) => this.reward(s, a, r),
+      pushProfile: (s) => this.pushProfile(s),
+      err: (s, code, pt, en) => this.err(s, code, pt, en),
+      tileOf: (s) => this.currentTile(s).tile,
+      roomOf: (s) => s.instance?.def.id ?? null,
+      npcsIn: (room) => this.npcs.whoIn(room),
+      rng: () => this.rng(),
+    });
     this.bouts = new BoutEngine({
       now: () => this.now(),
       schedule: (fn, ms) => this.schedule(fn, ms),
@@ -433,6 +449,10 @@ export class World {
         return msg.action === 'price' ? this.feira.price(s, msg.vendor, msg.itemId) : msg.action === 'pay' ? this.feira.pay(s, msg.vendor, msg.itemId, msg.qty, msg.paid) : undefined;
       case 'heard':
         return this.caderno.heard(s, msg.cardIds);
+      case 'arrival':
+        return this.diary.finishArrival(s);
+      case 'diary':
+        return this.diary.handle(s, msg);
       case 'talk':
         if (this.recados.talk(s, msg.npc)) this.caderno.seen(s, talkOpener(msg.npc, s.profile?.name, gameMinutes(this.clockNow())) ?? '');
         return;
@@ -522,6 +542,10 @@ export class World {
       createdAt: this.now(),
       daily: { date: today(), sceneClears: {} },
       lastSeen: this.now(),
+      // Set before save: a missing flag is treated as already home, so a new account must say false itself.
+      arrivalIntroDone: false,
+      hasCamera: false,
+      diary: [],
     };
     this.store.add(p);
     if (this.accounts && s.accountId) this.linkAccount(s.accountId, p);

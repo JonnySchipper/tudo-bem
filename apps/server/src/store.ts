@@ -6,6 +6,8 @@ import {
   normalizeBondGifts,
   normalizeCaderno,
   normalizeCadernoPaid,
+  normalizeArrival,
+  normalizeDiary,
   normalizeNpcMemory,
   normalizeRecados,
   type PrivateProfile,
@@ -140,6 +142,10 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.cadernoPaid = normalizeCadernoPaid(p.cadernoPaid);
   p.npcMemory = normalizeNpcMemory(p.npcMemory);
   p.feira = normalizeFeira(p.feira);
+  const arrival = normalizeArrival(p);
+  p.arrivalIntroDone = arrival.arrivalIntroDone;
+  p.hasCamera = arrival.hasCamera;
+  p.diary = normalizeDiary(p.diary);
   if (p.parrotOwned) {
     if (!p.parrotColors?.length) p.parrotColors = ['verde'];
     if (!p.parrotColor) p.parrotColor = 'verde';

@@ -10,6 +10,7 @@ import './styles/intro-pixel.css';
 import './styles/panels.css';
 import './styles/bout.css';
 import './styles/correria.css';
+import './styles/diary.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
@@ -18,6 +19,7 @@ import {
   ROOMS,
   TUTORIAL_STEPS,
   buildGrid,
+  cameraObjectIds,
   furnitureById,
   greetingFor,
   localizeGreeting,
@@ -74,6 +76,9 @@ import { heartsWith } from './ui/recadoView';
 import { openNpcTalk } from './ui/npcTalk';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira';
 import { openCaderno } from './ui/caderno';
+import { syncArrival } from './ui/arrival';
+import { openDiary, showPhoto, syncCameraBanner } from './ui/diaryPanel';
+import { openEscolaPractice, showEscolaResult } from './ui/escola';
 import { openHotspotCard } from './ui/hotspotCard';
 import { openStreetSnack } from './ui/streetSnack';
 import { openCheckers } from './ui/checkers';
@@ -173,7 +178,8 @@ function runPending() {
   else if (p.kind === 'hotspot') {
     const hs = hotspotById(p.hotspotId);
     if (hs) readHotspot(hs);
-  } else propAction(p.action, p.kind === 'prop' ? p.propId : undefined);
+  } else if (p.kind === 'photo') net.send({ t: 'diary', action: 'photo', anchor: p.anchor });
+  else propAction(p.action, p.kind === 'prop' ? p.propId : undefined);
 }
 
 /** The feira (Phase 9): a stall, or the Hortifrúti corner. A stall whose vendor is away shows the closed note (D12: the corner at the banca sells at every hour). */
@@ -233,9 +239,11 @@ function talkFlow(npc: NpcDef['id']) {
         onClose: closeDialogue,
       });
     } else start();
+  } else if (npc === 'lucia') {
+    net.send({ t: 'diary', action: 'practice' });
   } else {
     // Nanda, Júlia and Professora Bia (the live NPC you clicked): a short greeting in the dialogue box (Nanda offers "Ver chapéus", Júlia her help)
-    openNpcTalk(npc, { openShop });
+    openNpcTalk(npc, { openShop, onLine: (anchor) => net.send({ t: 'diary', action: 'line', anchor }) });
   }
 }
 
@@ -258,6 +266,21 @@ function clickHotspot(hs: HotspotDef) {
   walkTo(spot, { kind: 'hotspot', hotspotId: hs.id, tile: spot });
 }
 
+/** A click with the camera up: photograph a tagged prop from within 3 tiles. */
+function clickPhoto(p: PropDef) {
+  const cur = selfTile();
+  const room = game.roomDef;
+  if (!cur || !room) return;
+  if (!cur.moving && hotspotDistance(p, cur.tile) <= HOTSPOT_READ_RANGE) {
+    net.send({ t: 'diary', action: 'photo', anchor: p.id });
+    return;
+  }
+  const grid = buildGrid(room, game.furniture);
+  const spot = readSpot(p, cur.tile, (x, y) => isWalkable(grid, x, y));
+  if (!spot) return toast('info', 'Não consigo chegar perto disso.', 'I can’t get close to that.');
+  walkTo(spot, { kind: 'photo', anchor: p.id, tile: spot });
+}
+
 function propAction(action: string, propId?: string) {
   if (action === 'feira_stall') openStall(propId);
   else if (action === 'shop_hats') openShop();
@@ -268,6 +291,7 @@ function propAction(action: string, propId?: string) {
   else if (action === 'checkers') openCheckers();
   else if (action === 'buy_gi') openGiShop(!!game.profile?.giOwned, () => net.send({ t: 'buy', kind: 'gi', itemId: 'kimono' }));
   else if (action === 'bjj_roll') openBout();
+  else if (action === 'escola') net.send({ t: 'diary', action: 'practice' });
 }
 
 wireParrotShop({
@@ -438,7 +462,9 @@ net.on((m: ServerMsg) => {
       onboarding = null;
       if (!started) startGame();
       const last = sessionStorage.getItem(LAST_ROOM_KEY);
-      joinRoom(last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'feira' ? last : 'praca');
+      const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'feira' || last === 'escola';
+      joinRoom(remembered ? last : 'praca');
+      syncArrival(() => net.send({ t: 'arrival', action: 'finish' }));
       game.emit('profile');
       break;
     }
@@ -452,6 +478,9 @@ net.on((m: ServerMsg) => {
       break;
     case 'profile':
       game.profile = m.profile;
+      if (!m.profile.hasCamera) game.cameraOn = false;
+      syncCameraBanner();
+      syncArrival(() => net.send({ t: 'arrival', action: 'finish' }));
       game.emit('profile');
       updateGuides();
       break;
@@ -502,8 +531,16 @@ net.on((m: ServerMsg) => {
         );
       }
       if (keepMg) correriaUi?.requestSync();
+      syncArrival(() => net.send({ t: 'arrival', action: 'finish' }));
       break;
     }
+    case 'diary':
+      if (m.phase === 'photo') showPhoto(m);
+      else if (m.phase === 'practice') {
+        if (m.ok) openEscolaPractice(m, (choice) => net.send({ t: 'diary', action: 'answer', choice }));
+        else toast('info', m.pt, m.en);
+      } else showEscolaResult(m);
+      break;
     case 'avatarJoined':
       game.avatars.set(m.avatar.id, toClientAvatar(m.avatar));
       game.emit('avatars');
@@ -669,6 +706,13 @@ function startGame() {
     openMap: () => openMap((room) => joinRoom(room)),
     openCredits,
     openCaderno: () => openCaderno(),
+    openDiary: () => openDiary(),
+    toggleCamera: () => {
+      if (!game.profile?.hasCamera) return;
+      game.cameraOn = !game.cameraOn;
+      syncCameraBanner();
+      game.emit('hud');
+    },
     openRecados: () => openJournal(),
     openFriends: () =>
       openFriends({
@@ -838,7 +882,12 @@ function handleClickInner(hit: Hit | null) {
       break;
     case 'prop': {
       const p: PropDef = hit.prop;
+      if (game.cameraOn && cameraObjectIds().has(p.id)) {
+        clickPhoto(p);
+        break;
+      }
       if (p.action && p.interact) walkTo(p.interact, { kind: 'prop', action: p.action, tile: p.interact, propId: p.id });
+      else if (cameraObjectIds().has(p.id)) toast('info', 'Abra a câmera pra fotografar.', 'Open the camera to take a photo.');
       break;
     }
     case 'hotspot':

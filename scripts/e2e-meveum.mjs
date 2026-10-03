@@ -22,6 +22,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DAY_MIN, offsetMinFor } from './lib/clock-pin.mjs';
 import { assert, answerAsk, buildOrder, serve, sleep, snap, startShift, waitFor, waitFront, wantOf } from './lib/correria-play.mjs';
+import { finishArrival } from './lib/arrival.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SERVER = path.join(ROOT, 'apps/server/dist/index.js');
@@ -109,6 +110,7 @@ async function signUp(page, name) {
   await page.click('button:has-text("ele (he)")');
   await page.click('#enter-praca');
   await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
+  await finishArrival(page);
 }
 
 const coins = (page) => page.evaluate(() => window.__tb.game.profile.coins);

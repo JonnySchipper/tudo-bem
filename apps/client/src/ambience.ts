@@ -622,6 +622,7 @@ class Ambience {
     if (!this.unlocked) return null;
     // the three open-air areas (rua, praça, feira) share one outdoor bed, so walking between them never restarts the music
     if (this.room === 'rua' || this.room === 'feira') return 'praca';
+    if (this.room === 'escola') return 'kitnet';
     return this.room === 'padaria' && padariaIsNight(this.world.minute) ? 'padariaNight' : this.room;
   }
 

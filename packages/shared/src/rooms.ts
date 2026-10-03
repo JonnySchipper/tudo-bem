@@ -50,7 +50,7 @@ export type PropKind =
   | 'feira'
   | 'hortifruti';
 
-export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi';
+export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi' | 'escola';
 
 export interface PropDef {
   id: string;
@@ -112,7 +112,7 @@ export interface PortalDef {
 export const OFFSTAGE_NPCS: Partial<Record<NpcId, { name: string; role: Bilingual }>> = {};
 
 /** The feira vendors (Phase 9): Tia Lu (fruit), Seu Zé (vegetables), Seu Chico (pastel and caldo de cana), Dona Rosa (flowers). */
-export type NpcId = 'carlos' | 'nanda' | 'julia' | 'graca' | 'prof' | 'tia_lu' | 'ze' | 'chico' | 'rosa';
+export type NpcId = 'carlos' | 'nanda' | 'julia' | 'graca' | 'prof' | 'tia_lu' | 'ze' | 'chico' | 'rosa' | 'lucia';
 
 export interface NpcDef {
   id: NpcId;
@@ -308,7 +308,8 @@ const rua: RoomDef = {
     front('empena', 'casas/empena', 8, 0, 3, 6),
     front('edificio', 'facades/edificio_ipe', 11, 0, 10, 6, { pt: 'Edifício Ipê Nº 42', en: 'Ipê Building No. 42' }),
     front('academia', 'facades/academia', 21, 0, 10, 6, { pt: 'Academia do Bairro', en: 'Neighborhood Academy' }),
-    front('casa_3', 'casas/terraco_azul', 31, 0, 6, 6),
+    // The blue terrace house is the escola door until that facade has its own art. The stamp of the building stays as it is.
+    front('casa_3', 'casas/terraco_azul', 31, 0, 6, 6, { pt: 'Escola da Praça', en: 'Square school' }),
     front('empena_2', 'casas/empena', 37, 0, 3, 6),
     P('banca', 'banca', 8, 4, { w: 3, h: 2, label: { pt: 'Banca de jornal', en: 'Newsstand' } }),
     P('jornais', 'jornais', 7, 6, { label: { pt: 'Pilha de jornais', en: 'Newspaper stack' } }),
@@ -316,17 +317,17 @@ const rua: RoomDef = {
     P('lampada_n1', 'poste', 2, 7, { art: 'props/lamp_old' }),
     P('lampada_n2', 'poste', 10, 7, { art: 'props/lamp_old' }),
     P('lampada_n3', 'poste', 18, 7, { art: 'props/lamp_old' }),
-    P('lampada_n4', 'poste', 29, 7, { art: 'props/lamp_old' }),
     P('lampada_n5', 'poste', 34, 7, { art: 'props/lamp_old' }),
+    P('lampada_n4', 'poste', 11, 13, { art: 'props/lamp_old' }),
     P('orelhao', 'orelhao', 14, 6, { label: { pt: 'Orelhão', en: 'Public phone booth (“big ear”)' } }),
     P('placa', 'placa_rua', 22, 7, { label: { pt: 'Rua dos Ipês', en: 'Ipê Street (street sign)' } }),
     P('lixeira_n1', 'lixeira', 10, 6),
-    P('lixeira_n2', 'lixeira', 30, 6),
-    P('saco_lixo', 'saco_lixo', 31, 6),
+    P('lixeira_n2', 'lixeira', 35, 6),
+    P('saco_lixo', 'saco_lixo', 35, 13),
     P('floreira_n1', 'floreira', 3, 6),
     P('floreira_n2', 'floreira', 16, 6),
     P('floreira_n3', 'floreira', 24, 6),
-    P('floreira_n4', 'floreira', 28, 6),
+    P('floreira_n4', 'floreira', 34, 6),
     P('vaso_n1', 'vaso', 18, 6),
     P('mesa_cafe', 'mesa_cafe', 2, 6, { label: { pt: 'Mesinha da padaria', en: 'Bakery sidewalk table' } }),
     P('bici', 'bicicletario', 17, 7),
@@ -346,7 +347,7 @@ const rua: RoomDef = {
     P('lixeira_s2', 'lixeira', 26, 12),
     // pit trees along both sidewalks, clear of the doors and crosswalks
     P('arv_n1', 'arvore', 15, 7, { w: 2, art: 'props/arvore_rua' }),
-    P('arv_n2', 'arvore', 31, 7, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_n2', 'arvore', 23, 14, { w: 2, art: 'props/arvore_rua' }),
     P('arv_n3', 'arvore', 36, 7, { w: 2, art: 'props/arvore_rua' }),
     P('arv_s2', 'arvore', 14, 12, { w: 2, art: 'props/arvore_rua' }),
     // parked vehicles in the bays (they block their curb tiles only; the traffic lanes sit above them, see ambientData.ts)
@@ -400,6 +401,16 @@ const rua: RoomDef = {
       arriveDir: 'SE',
       doorAt: { x: 25.5, y: 5 },
       label: { pt: 'Academia do Bairro', en: 'Neighborhood Academy' },
+    },
+    {
+      id: 'rua_escola',
+      x: 32,
+      y: 5,
+      to: 'escola',
+      arrive: { x: 1, y: 6 },
+      arriveDir: 'SE',
+      doorAt: { x: 32, y: 5 },
+      label: { pt: 'Escola da Praça', en: 'Square school' },
     },
     ...edgePortals('rua_praca', 'praca', span(4, 18).map((x) => ({ x, y: 15 })), (t) => ({ x: t.x - 4, y: 1 }), 'SE', { pt: 'Praça Central', en: 'Central Square' }),
   ],
@@ -949,7 +960,76 @@ const academia: RoomDef = {
   private: false,
 };
 
-export const ROOMS: Record<RoomId, RoomDef> = { praca, rua, feira, padaria, kitnet, academia };
+const escola: RoomDef = {
+  id: 'escola',
+  name: 'Escola da Praça',
+  gloss: 'Square school',
+  cols: 10,
+  rows: 8,
+  floor: ['mmmmmmmmmm', 'mmmmmmmmmm', 'mmmmmmmmmm', 'mmmmmmmmmm', 'mmmmmmmmmm', 'mmmmmmmmmm', 'mmmmmmmmmm', 'mmmmmmmmmm'],
+  wallHeight: 140,
+  wallColor: '#F5E6D3',
+  wallTrim: '#8B5E3C',
+  lighting: 'manha',
+  spawn: { x: 1, y: 6 },
+  props: [
+    {
+      id: 'carteira',
+      kind: 'mesa',
+      x: 4,
+      y: 3,
+      blocks: true,
+      action: 'escola',
+      interact: { x: 4, y: 4 },
+      label: { pt: 'Praticar palavras', en: 'Practice words' },
+    },
+    { id: 'quadro_escola', kind: 'quadro_foto', x: 8, y: 2, blocks: true, label: { pt: 'Escola da Praça', en: 'Square school' } },
+    { id: 'cadeira_escola', kind: 'cadeira_padaria', x: 5, y: 4, blocks: false, seat: 'NE' },
+  ],
+  walls: [
+    { kind: 'lousa', wall: 'right', from: 1, to: 3, text: 'AULA' },
+    { kind: 'janela', wall: 'right', from: 4, to: 6 },
+    { kind: 'poster', wall: 'right', from: 7, to: 9, text: 'ESCOLA' },
+  ],
+  pixelWalls: [
+    { kind: 'lousa', wall: 'right', from: 1, to: 3, text: 'AULA' },
+    { kind: 'janela', wall: 'right', from: 4, to: 6 },
+    { kind: 'poster', wall: 'right', from: 7, to: 9, text: 'ESCOLA' },
+  ],
+  portals: [
+    {
+      id: 'escola_rua',
+      x: 0,
+      y: 6,
+      wall: 'left',
+      to: 'rua',
+      arrive: { x: 32, y: 6 },
+      arriveDir: 'SW',
+      label: { pt: 'SAÍDA · Rua', en: 'Exit to the street' },
+    },
+  ],
+  npcs: [
+    {
+      id: 'lucia',
+      name: 'Dona Lúcia',
+      role: { pt: 'Professora da escola', en: 'School teacher' },
+      x: 6,
+      y: 2,
+      dir: 'SW',
+      interact: { x: 6, y: 3 },
+      appearance: { body: 'medio', skin: 3, hair: 'coque', hairColor: 4, top: 'blusa', topColor: 0, bottom: 'saia', bottomColor: 2, shoes: 2, face: 'maduro', extra: 'oculos', idle: 'bracos' },
+      hat: null,
+      // needs_br: true
+      idleLines: [
+        { pt: 'Vamos praticar uma palavra?', en: 'Shall we practice a word?' },
+        { pt: 'A aula é curtinha.', en: 'The class is a short one.' },
+      ],
+    },
+  ],
+  private: false,
+};
+
+export const ROOMS: Record<RoomId, RoomDef> = { praca, rua, feira, padaria, kitnet, academia, escola };
 export const ROOM_IDS = Object.keys(ROOMS) as RoomId[];
 
 export const isRoomId = (v: unknown): v is RoomId => typeof v === 'string' && v in ROOMS;

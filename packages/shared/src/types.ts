@@ -39,7 +39,7 @@ export type Nameplate = 'verde' | 'amarelo' | 'azul' | 'roxo' | 'dourado';
 /** Screen-facing: S = toward camera. SE = moving +x, SW = +y, NE = -y, NW = -x. */
 export type Dir = 'SE' | 'SW' | 'NE' | 'NW';
 
-export type RoomId = 'praca' | 'rua' | 'feira' | 'padaria' | 'kitnet' | 'academia';
+export type RoomId = 'praca' | 'rua' | 'feira' | 'padaria' | 'kitnet' | 'academia' | 'escola';
 
 export type EmoteKind = 'oi' | 'dancar' | 'rir' | 'valeu' | 'desculpa';
 
@@ -165,6 +165,15 @@ export interface PrivateProfile {
   feira?: { date: string; n: number };
   /** One short PT line per NPC about your last Conversa (max 200 chars). Never raw chat. */
   npcMemory?: Partial<Record<NpcId, string>>;
+  /**
+   * Plane arrival with Júlia. Missing on saves from before the intro means they already live here.
+   * New profiles set this false and see the intro once.
+   */
+  arrivalIntroDone?: boolean;
+  /** Júlia's camera. Photographs tagged things into the language diary. */
+  hasCamera?: boolean;
+  /** Language-diary word ids earned once. */
+  diary?: string[];
 }
 
 export interface Bilingual {

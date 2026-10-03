@@ -11,6 +11,7 @@
  */
 import Phaser from 'phaser';
 import {
+  cameraObjectIds,
   buildGrid,
   feiraOpen,
   canPlaceFurniture,
@@ -668,7 +669,7 @@ export class WorldScene extends Phaser.Scene {
       this.placeholder(`${propPlaceholderKey(p)}#${p.id}`, foot, depth);
     }
 
-    if (p.action) {
+    if (p.action || cameraObjectIds().has(p.id)) {
       this.staticHits.push({ ...inflate(unionRect(visual, foot), 2), hit: { kind: 'prop', prop: p }, depth: a.wy });
     } else if (p.seat) {
       const { w, h } = propSize(p);

@@ -13,6 +13,8 @@ export interface HudActions {
   openMap: () => void;
   openCredits: () => void;
   openCaderno: () => void;
+  openDiary: () => void;
+  toggleCamera: () => void;
   openRecados: () => void;
   openFriends: () => void;
   openWardrobe: () => void;
@@ -112,6 +114,34 @@ export function buildHud(actions: HudActions) {
   );
   const gearWrap = h('div', { class: 'hud-gear-wrap' }, gear, menu);
   const drawerPlate = h('span', { class: 'hud-drawer-head' }, h('span', { class: 'hud-verde', title: 'Verde: you see English under Portuguese' }, icon('verde', 16), 'Verde'), h('span', { class: 'hud-drawer-hint' }, 'Menu'));
+  const glyph = (draw: string) => {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 32 32');
+    svg.setAttribute('width', '32');
+    svg.setAttribute('height', '32');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.innerHTML = draw;
+    return svg;
+  };
+  const labeled = (id: string, art: string, pt: string, enText: string, onclick: () => void) =>
+    h(
+      'button',
+      {
+        class: 'hud-btn',
+        id,
+        type: 'button',
+        'aria-label': `${pt} (${enText})`,
+        onclick: () => {
+          closeMenus();
+          onclick();
+        },
+      },
+      glyph(art),
+      h('span', { class: 'hud-label' }, h('b', { class: 'pt' }, pt), h('i', { class: 'hud-gloss' }, enText)),
+    );
+  const diaryBtn = labeled('btn-diary', '<path d="M8 5 H24 V27 H8 Z M16 5 V27 M11 11 H21 M11 16 H21" fill="none" stroke="currentColor" stroke-width="2"/>', 'Diário', 'Diary', actions.openDiary);
+  const cameraBtn = labeled('btn-camera', '<rect x="5" y="11" width="22" height="14" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="18" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11 L14 7 H18 L20 11" fill="none" stroke="currentColor" stroke-width="2"/>', 'Câmera', 'Camera', actions.toggleCamera);
+  cameraBtn.style.display = 'none';
   const actionsNav = h(
     'nav',
     { class: 'hud-actions hud-slab', id: 'hud-actions', 'aria-label': 'Menu do jogo' },
@@ -120,6 +150,8 @@ export function buildHud(actions: HudActions) {
     btn('btn-map', 'map', 'Mapa', 'Map', actions.openMap),
     btn('btn-recados', 'recados', 'Recados', 'Errands', actions.openRecados),
     btn('btn-caderno', 'caderno', 'Caderno', 'Words', actions.openCaderno),
+    diaryBtn,
+    cameraBtn,
     btn('btn-wardrobe', 'hat', 'Chapéus', 'My hats', actions.openWardrobe),
     btn('btn-friends', 'friends', 'Amigos', 'Friends', actions.openFriends),
     gearWrap,
@@ -293,6 +325,8 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       parrotBtn.style.display = p.parrotOwned && p.parrotEquipped ? '' : 'none';
       parrotToggle.style.display = p.parrotOwned ? '' : 'none';
       parrotToggle.replaceChildren(bi(p.parrotEquipped ? 'Guardar papagaio' : 'Chamar papagaio', p.parrotEquipped ? 'Hide parrot' : 'Show parrot'));
+      cameraBtn.style.display = p.hasCamera ? '' : 'none';
+      cameraBtn.classList.toggle('on', game.cameraOn && !!p.hasCamera);
     }
     decorBtn.style.display = game.isOwnKitnet ? '' : 'none';
     decorBtn.classList.toggle('on', game.editMode);

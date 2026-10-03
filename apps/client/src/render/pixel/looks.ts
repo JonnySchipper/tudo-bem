@@ -177,6 +177,10 @@ export const NPC_STYLES: Record<NpcId, NpcStyle> = {
     appearance: base({ body: 'medio', skin: 4, hair: 'curto', hairColor: 0, top: 'camisa', topColor: 4, bottom: 'calca', bottomColor: 4, shoes: 0, face: 'marcante', extra: 'nenhum', idle: 'bracos' }),
     gi: true,
   },
+  // Dona Lúcia (escola): bun, glasses, blouse and skirt, from layers that already exist. Portrait is Júlia's until she has her own.
+  lucia: {
+    appearance: base({ body: 'medio', skin: 3, hair: 'coque', hairColor: 4, top: 'blusa', topColor: 0, bottom: 'saia', bottomColor: 2, shoes: 2, face: 'maduro', extra: 'oculos', idle: 'bracos' }),
+  },
 };
 
 /** NPC look: the room's appearance when given (so map edits still show), otherwise the style's own; hat and apron always from the style. */

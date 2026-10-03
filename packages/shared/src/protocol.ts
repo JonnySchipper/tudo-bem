@@ -71,6 +71,16 @@ export type ClientMsg =
   | { t: 'feira'; action: 'pay'; vendor: VendorId; itemId: string; qty: number; paid: number[] }
   /** The player played 🔊 for these cards (Caderno). At most 10 known card ids; rate-limited per session. */
   | { t: 'heard'; cardIds: string[] }
+  /** Finish the plane arrival. Júlia gives the camera (and the cartela, when that exists). Once. */
+  | { t: 'arrival'; action: 'finish' }
+  /** Photograph a tagged object. `anchor` is the prop id. */
+  | { t: 'diary'; action: 'photo'; anchor: string }
+  /** Heard an NPC line (`npc.node`) that can teach a conversation word. */
+  | { t: 'diary'; action: 'line'; anchor: string }
+  /** Start the practice game in the room you're in (the escola). */
+  | { t: 'diary'; action: 'practice' }
+  /** Answer the practice round the server just dealt. */
+  | { t: 'diary'; action: 'answer'; choice: string }
   /**
    * Treino no tatame (the Academia bout), protocol version 1. The server owns the bout: the client only picks an intent and answers
    * the challenge the server issued (`seq` must match the prompt on screen); timers and results are the server's.
@@ -344,5 +354,11 @@ export type ServerMsg =
       line: Bilingual;
       rv: number;
     }
+  /** Language diary: a photo, a practice round, or its result. The profile push carries the earned ids. */
+  | { t: 'diary'; phase: 'photo'; ok: true; pt: string; en: string; source: string; areaPt: string; progress: string }
+  | { t: 'diary'; phase: 'photo'; ok: false; pt: string; en: string }
+  | { t: 'diary'; phase: 'practice'; ok: true; host: string; en: string; options: string[] }
+  | { t: 'diary'; phase: 'practice'; ok: false; host: string; pt: string; en: string }
+  | { t: 'diary'; phase: 'result'; correct: boolean; host: string; line: Bilingual; granted: { pt: string; en: string } | null }
   | { t: 'error'; code: string; pt: string; en: string }
   | { t: 'pong' };

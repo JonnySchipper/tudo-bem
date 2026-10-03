@@ -125,7 +125,7 @@ describe('Vila Ipê split into three open-air areas (rua, praca, feira)', () => 
     const rua = ROOMS.rua;
     const grid = buildGrid(rua);
     const doors = rua.portals.filter((p) => !p.edge);
-    expect(doors.map((p) => p.to).sort()).toEqual(['academia', 'kitnet', 'padaria']);
+    expect(doors.map((p) => p.to).sort()).toEqual(['academia', 'escola', 'kitnet', 'padaria']);
     for (const p of doors) {
       expect(p.wall, p.id).toBeUndefined();
       expect(p.y).toBe(5);
@@ -211,7 +211,7 @@ describe('Vila Ipê split into three open-air areas (rua, praca, feira)', () => 
     const seen = new Set<string>(['praca']);
     const queue = ['praca'] as (keyof typeof ROOMS)[];
     while (queue.length) for (const p of ROOMS[queue.shift()!].portals) if (!seen.has(p.to)) (seen.add(p.to), queue.push(p.to));
-    expect([...seen].sort()).toEqual(['academia', 'feira', 'kitnet', 'padaria', 'praca', 'rua']);
+    expect([...seen].sort()).toEqual(['academia', 'escola', 'feira', 'kitnet', 'padaria', 'praca', 'rua']);
   });
 });
 
@@ -243,5 +243,18 @@ describe('interiors keep their old rooms', () => {
       expect(ROOMS[id].portals.some((p) => p.to === 'rua')).toBe(true);
       expect(ROOMS[id].outdoor).toBeUndefined();
     }
+  });
+
+  it('the escola door on the rua reaches the desk and Dona Lúcia', () => {
+    const escola = ROOMS.escola;
+    const grid = buildGrid(escola);
+    expect(escola.outdoor).toBeUndefined();
+    expect(isWalkable(grid, escola.spawn.x, escola.spawn.y)).toBe(true);
+    const desk = escola.props.find((p) => p.action === 'escola');
+    expect(desk?.interact).toBeTruthy();
+    expect(findPath(grid, escola.spawn, desk!.interact!)).not.toBeNull();
+    const lucia = escola.npcs.find((n) => n.id === 'lucia');
+    expect(findPath(grid, escola.spawn, lucia!.interact)).not.toBeNull();
+    expect(escola.portals.find((p) => p.to === 'rua')?.arrive).toEqual({ x: 32, y: 6 });
   });
 });
