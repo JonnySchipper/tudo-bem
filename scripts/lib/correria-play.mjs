@@ -110,11 +110,23 @@ export async function orderReady(page, want) {
   return true;
 }
 
-/** Shelf / grill / bag taps. A covered spot still runs its handler: Playwright's hit-test click would wait until the strip moves. */
-async function tap(page, selector) {
-  const clicked = await page.locator(selector).click({ timeout: 2500 }).then(() => true).catch(() => false);
-  if (clicked) return;
-  await page.evaluate((sel) => document.querySelector(sel)?.click(), selector);
+async function waitUntil(pred, ms) {
+  const end = Date.now() + ms;
+  while (Date.now() < end) {
+    if (await pred()) return true;
+    await sleep(60);
+  }
+  return false;
+}
+
+const itemCount = async (page, itemId) => trayCounts((await snap(page))?.tray)[itemId] ?? 0;
+
+/**
+ * A real tap first (short, and it may be covered or still moving after a viewport change). If the snapshot does not
+ * change, call the same handler the button uses. Playwright's default click will otherwise wait out a disabled Entregar.
+ */
+async function nudge(page, selector) {
+  await page.locator(selector).click({ timeout: 500, force: true }).catch(() => {});
 }
 
 /**
@@ -146,75 +158,114 @@ async function grillView(page) {
 }
 
 async function clickGrill(page, i) {
-  const sel = `#cr-grill-${i}`;
-  // The handler is a click listener. Calling it in the page still works when the spot sits under the counter strip.
-  const clicked = await page.evaluate((s) => {
-    const el = document.querySelector(s);
-    if (!el) return false;
-    el.click();
-    return true;
-  }, sel);
-  if (!clicked) await page.locator(sel).click({ timeout: 1500, force: true }).catch(() => {});
+  await nudge(page, `#cr-grill-${i}`);
+  await page.evaluate((slot) => window.__tb.correria.feed.on.chapaTake(slot), i);
+}
+
+async function grillOccupied(page) {
+  return (await grillView(page)).slots.some((s) => !s.hidden && s.phase !== 'empty');
+}
+
+/** Put one item on the chapa and wait until the snapshot shows it there. */
+async function putOnChapa(page, itemId) {
+  const on = () => grillOccupied(page);
+  await nudge(page, hit(`item-${itemId}`));
+  if (await waitUntil(on, 500)) return true;
+  await page.evaluate((id) => window.__tb.correria.feed.on.chapaPut(id), itemId);
+  return waitUntil(on, 2000);
 }
 
 /** One bread on the chapa, then onto the tray. A burnt one is trashed and tried again. */
 async function grillOne(page, itemId) {
   for (let attempt = 0; attempt < 3; attempt++) {
-    const before = trayCounts((await snap(page))?.tray)[itemId] ?? 0;
-    const busy = (await grillView(page)).slots.some((s) => !s.hidden && s.phase !== 'empty');
-    if (busy) await takeGrilled(page);
-    await tap(page, hit(`item-${itemId}`));
-    // the put is a network round-trip; taking before the snapshot shows the bread would see an empty grill and give up
-    const landed = Date.now() + 2500;
-    while (Date.now() < landed) {
-      const view = await grillView(page);
-      const onGrill = view.slots.some((s) => !s.hidden && s.phase !== 'empty');
-      if (onGrill || (trayCounts(view.tray)[itemId] ?? 0) > before) break;
-      await sleep(80);
+    const before = await itemCount(page, itemId);
+    if (await grillOccupied(page)) await takeGrilled(page);
+    if (!(await putOnChapa(page, itemId))) {
+      console.log(`  · chapa did not start ${itemId} (attempt ${attempt + 1})`);
+      continue;
     }
     await takeGrilled(page);
-    const after = trayCounts((await snap(page))?.tray)[itemId] ?? 0;
-    if (after > before) return;
+    if ((await itemCount(page, itemId)) > before) return;
     const view = await grillView(page);
     console.log(`  · grill ${itemId} missed the tray (attempt ${attempt + 1}) ${JSON.stringify(view.slots)}`);
   }
+}
+
+async function grabItem(page, itemId) {
+  const before = await itemCount(page, itemId);
+  const grew = async () => (await itemCount(page, itemId)) > before;
+  await nudge(page, hit(`item-${itemId}`));
+  if (await waitUntil(grew, 500)) return;
+  await page.evaluate((id) => window.__tb.correria.feed.on.grab(id), itemId);
+  if (!(await waitUntil(grew, 2000))) console.log(`  · grab ${itemId} missed the tray`);
+}
+
+async function pourOne(page, itemId, pourMs) {
+  const before = (await snap(page))?.tray.length ?? 0;
+  const grew = async () => ((await snap(page))?.tray.length ?? 0) > before;
+  const box = await page.locator(hit(`item-${itemId}`)).boundingBox().catch(() => null);
+    if (box) {
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await sleep(pourMs * 0.88);
+    await page.mouse.up();
+    if (await waitUntil(grew, 900)) return;
+  }
+  // The hold is judged on the server clock. A direct start/end pair still has to wait out the real pour window.
+  await page.evaluate((id) => window.__tb.correria.feed.on.pourStart(id), itemId);
+  await sleep(pourMs * 0.88);
+  await page.evaluate(() => window.__tb.correria.feed.on.pourEnd());
+  await waitUntil(grew, 800);
+}
+
+async function choosePack(page, kind) {
+  const sel = kind === 'bag' ? hit('bag') : hit('plate');
+  const ready = async () => (await snap(page))?.pack === kind;
+  if (await ready()) return;
+  await nudge(page, sel);
+  if (await waitUntil(ready, 400)) return;
+  await page.evaluate((k) => window.__tb.correria.feed.on.pack(k), kind);
+  await waitUntil(ready, 1500);
+}
+
+async function chooseMod(page, mod) {
+  const ready = async () => !!(await snap(page))?.mods?.includes(mod);
+  if (await ready()) return;
+  const sel = `.cr-mod[data-mod="${mod}"]`;
+  await nudge(page, sel);
+  if (await waitUntil(ready, 400)) return;
+  await page.evaluate((m) => document.querySelector(`.cr-mod[data-mod="${m}"]`)?.click(), mod);
+  await waitUntil(ready, 1500);
 }
 
 export async function buildOrder(page, want, { quick = false } = {}) {
   trace('build', JSON.stringify(want));
   const fast = (await snap(page))?.pourMs <= POUR_FAST;
   const pourMs = fast ? POUR_FAST : POUR_FULL;
-  await page.click('#cr-clear:not([disabled])', { timeout: 300 }).catch(() => {});
+  await page.evaluate(() => {
+    const b = document.querySelector('#cr-clear');
+    if (b && !b.disabled) window.__tb.correria.feed.on.clear();
+  });
   for (const line of want.lines) {
     for (let i = 0; i < line.qty; i++) {
       if (CHAPA.has(line.itemId)) await grillOne(page, line.itemId);
       else if (CAFE.has(line.itemId)) {
-        // a slow frame can stretch the hold past the window (the server judges it on its own clock): pour again, like a player would
-        for (let attempt = 0; attempt < 4; attempt++) {
-          const before = (await snap(page)).tray.length;
+        // a slow frame can stretch a mouse-hold past the window (the server judges it on its own clock): pour again
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const before = (await snap(page))?.tray.length ?? 0;
           trace('pour', line.itemId, attempt);
-          const box = await page.locator(hit(`item-${line.itemId}`)).boundingBox();
-          if (!box) {
-            await tap(page, hit(`item-${line.itemId}`));
-            await sleep(200);
-          } else {
-            await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-            await page.mouse.down();
-            await sleep(pourMs * 0.88);
-            await page.mouse.up();
-            await sleep(250);
-          }
-          if ((await snap(page)).tray.length > before) break;
+          await pourOne(page, line.itemId, pourMs);
+          if (((await snap(page))?.tray.length ?? 0) > before) break;
         }
         trace('poured');
-      } else await tap(page, hit(`item-${line.itemId}`));
+      } else await grabItem(page, line.itemId);
     }
   }
   await takeGrilled(page);
   for (const m of want.mods) {
-    if (m === 'pra_viagem') await tap(page, hit('bag'));
-    else if (m === 'pra_comer_aqui') await tap(page, hit('plate'));
-    else if ((await page.getAttribute(`.cr-mod[data-mod="${m}"]`, 'aria-pressed')) !== 'true') await tap(page, `.cr-mod[data-mod="${m}"]`);
+    if (m === 'pra_viagem') await choosePack(page, 'bag');
+    else if (m === 'pra_comer_aqui') await choosePack(page, 'plate');
+    else await chooseMod(page, m);
   }
 }
 
@@ -267,7 +318,12 @@ export async function serve(page) {
     }).catch(() => null);
     throw new Error(`#cr-serve stayed disabled (${JSON.stringify(diag)})`);
   }
-  await page.click('#cr-serve');
+  // A moving counter camera keeps Playwright from treating Entregar as stable, so the click waits until the customer has already left.
+  await page.evaluate(() => {
+    const b = document.querySelector('#cr-serve');
+    if (b && !b.disabled) b.click();
+    else window.__tb.correria.feed.on.serve();
+  });
 }
 
 /** Build the order, and once more if the tray (or the bag / mods) does not match yet. */
