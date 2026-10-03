@@ -740,6 +740,11 @@ body.intro-active #world {
   box-shadow: 0 0 0 4px rgba(212, 160, 23, 0.35), inset 0 2px 0 rgba(58, 34, 22, 0.06);
 }
 
+/* Register tab only — login and Google sign-in never show this row. */
+.intro-form .intro-tabs:not(.is-register) ~ .intro-adult {
+  display: none;
+}
+
 .intro-adult {
   display: flex;
   gap: 10px;

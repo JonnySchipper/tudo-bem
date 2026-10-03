@@ -136,7 +136,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
     const adult = h('input', { type: 'checkbox', id: 'intro-18', name: 'confirm18' });
     const adultRow = h(
       'label',
-      { class: 'intro-adult', for: 'intro-18', style: 'display:none' },
+      { class: 'intro-adult', for: 'intro-18' },
       adult,
       h('span', null, 'Tenho 18 anos ou mais.', h('span', { class: 'en' }, 'I am 18 or older.')),
     );
@@ -181,7 +181,6 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       panelTitle.textContent = login ? 'Bem-vindo de volta' : 'Crie sua conta';
       password.setAttribute('autocomplete', login ? 'current-password' : 'new-password');
       password.placeholder = login ? 'Sua senha' : 'Crie uma senha';
-      adultRow.style.display = login ? 'none' : 'flex';
       if (login) adult.checked = false;
     };
 
