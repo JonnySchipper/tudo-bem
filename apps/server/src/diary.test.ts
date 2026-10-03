@@ -3,6 +3,7 @@ import {
   CLOCK_OFFSET_MS,
   DEFAULT_APPEARANCE,
   ECONOMY,
+  FILM,
   GAME_DAY_MS,
   HOTSPOTS,
   MS_PER_GAME_MINUTE,
@@ -97,7 +98,7 @@ describe('arrival, camera, diary and the escola', () => {
     expect(a.last('welcome')?.profile.hasCamera).toBe(false);
     expect(a.s.profile?.diary ?? []).toEqual([]);
     await a.send({ t: 'arrival', action: 'finish' });
-    expect(a.s.profile).toMatchObject({ arrivalIntroDone: true, hasCamera: true });
+    expect(a.s.profile).toMatchObject({ arrivalIntroDone: true, hasCamera: true, film: FILM.starter });
     const notice = a.all('notice').map((n) => n.pt).join(' ');
     expect(notice).toMatch(/câmera/);
     expect(notice).toMatch(/cartela/i);
@@ -110,8 +111,10 @@ describe('arrival, camera, diary and the escola', () => {
     const a = await client(world);
     await a.send({ t: 'arrival', action: 'finish' });
     const fonte = ROOMS.praca.props.find((p) => p.id === 'fonte')!;
+    await walkTo(a, 1, 22);
     await a.send({ t: 'diary', action: 'photo', anchor: 'fonte' });
     expect(a.all('error').some((e) => e.code === 'far')).toBe(true);
+    expect(a.s.profile?.film).toBe(FILM.starter);
 
     const nearFonte = spotNear('praca', fonte);
     await walkTo(a, nearFonte.x, nearFonte.y);
@@ -153,6 +156,12 @@ describe('arrival, camera, diary and the escola', () => {
     expect(a.s.profile?.diary).toEqual(['seed.praca.fonte', 'seed.praca.coreto', 'seed.praca.guia']);
     await a.send({ t: 'diary', action: 'line', anchor: 'julia.oi' });
     expect(a.s.profile?.diary).toEqual(['seed.praca.fonte', 'seed.praca.coreto', 'seed.praca.guia']);
+    expect(a.s.profile?.film).toBe(FILM.starter - 2);
+
+    await a.send({ t: 'diary', action: 'buyFilm' });
+    expect(a.s.profile?.coins).toBe(ECONOMY.startingCoins - FILM.price);
+    expect(a.s.profile?.film).toBe(FILM.starter - 2 + FILM.pack);
+    expect(a.all('notice').some((n) => n.pt.includes('Júlia') && n.pt.includes('filme'))).toBe(true);
   });
 
   it('practices an earned word in the escola: a miss pays nothing, a win pays RV and one game word from the host', async () => {

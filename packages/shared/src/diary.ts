@@ -333,6 +333,61 @@ export function practiceCorrect(wordId: string, choice: string): boolean {
  * Cartela (stamp card). That feature is not on main: there is no cartela module to grant.
  * Arrival calls this and still gives the camera. When the cartela PR lands, grant the card here.
  */
+/** Júlia sells film. Counts live in the word file so a curriculum pass can change the price. */
+const filmPack = (pack as { film?: { price?: number; pack?: number; starter?: number } }).film ?? {};
+export const FILM = {
+  price: positive(filmPack.price, 4),
+  pack: positive(filmPack.pack, 6),
+  starter: positive(filmPack.starter, 3),
+  seller: 'julia' as const,
+};
+
+function positive(n: number | undefined, fallback: number): number {
+  return typeof n === 'number' && Number.isInteger(n) && n > 0 && n <= 99 ? n : fallback;
+}
+
+/** A prop this close (Chebyshev tiles) can sit inside the viewfinder. Farther than the talk range, because the frame can reach across the screen. */
+export const PHOTO_RANGE = 8;
+
+export const PHOTO_KEEP = 12;
+export const PHOTO_MAX_CHARS = 80_000;
+
+export interface DiaryPhoto {
+  id: string;
+  at: number;
+  image: string;
+  wordId?: string;
+}
+
+export function normalizeFilm(raw: unknown): number {
+  const n = typeof raw === 'number' && Number.isFinite(raw) ? Math.floor(raw) : 0;
+  return Math.min(99, Math.max(0, n));
+}
+
+/** A jpeg data URL from the viewfinder, or null when it is missing or too big. */
+export function photoImage(raw: unknown): string | null {
+  if (typeof raw !== 'string' || !raw.startsWith('data:image/jpeg') || raw.length > PHOTO_MAX_CHARS) return null;
+  return raw;
+}
+
+export function normalizePhotos(raw: unknown): DiaryPhoto[] {
+  if (!Array.isArray(raw)) return [];
+  const out: DiaryPhoto[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== 'object') continue;
+    const image = photoImage((item as { image?: unknown }).image);
+    const id = (item as { id?: unknown }).id;
+    const at = (item as { at?: unknown }).at;
+    if (!image || typeof id !== 'string' || id.length > 40 || typeof at !== 'number') continue;
+    const wordId = (item as { wordId?: unknown }).wordId;
+    const photo: DiaryPhoto = { id, at, image };
+    if (typeof wordId === 'string' && diaryWord(wordId)) photo.wordId = wordId;
+    out.push(photo);
+    if (out.length >= PHOTO_KEEP) break;
+  }
+  return out;
+}
+
 export function handCartela(): { given: false; reason: 'cartela-not-on-main' } {
   return { given: false, reason: 'cartela-not-on-main' };
 }

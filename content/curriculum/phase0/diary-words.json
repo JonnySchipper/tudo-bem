@@ -44,6 +44,12 @@
       "seed": true
     }
   ],
+  "film": {
+    "price": 4,
+    "pack": 6,
+    "starter": 3,
+    "seller": "julia"
+  },
   "games": [
     {
       "id": "escola.pratica",

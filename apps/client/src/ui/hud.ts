@@ -13,7 +13,6 @@ export interface HudActions {
   openMap: () => void;
   openCredits: () => void;
   openCaderno: () => void;
-  openDiary: () => void;
   toggleCamera: () => void;
   openRecados: () => void;
   openFriends: () => void;
@@ -61,7 +60,7 @@ export function missionBanner() {
 
 /**
  * One slim HUD (V4). Top left: the brand, where you are and the clock, in one plate. Top right: the RV coin, the Verde plate and a bar of pixel
- * icons (Mapa, Recados, Caderno, Chapéus, Amigos) plus a gear for Música / Voz / Créditos / Sair; the labels (Portuguese with the English gloss)
+ * icons (Mapa, Recados, Diário, Chapéus, Amigos) plus a gear for Música / Voz / Créditos / Sair; the labels (Portuguese with the English gloss)
  * show on hover and focus. On a phone (<= 640 px wide, or a landscape phone under 520 px tall) the same buttons become a drawer behind one ☰,
  * and the emote row hides behind a smiley next to the chat field. Ids are the old ones (`btn-map`, `btn-music`, ...).
  */
@@ -139,7 +138,6 @@ export function buildHud(actions: HudActions) {
       glyph(art),
       h('span', { class: 'hud-label' }, h('b', { class: 'pt' }, pt), h('i', { class: 'hud-gloss' }, enText)),
     );
-  const diaryBtn = labeled('btn-diary', '<path d="M8 5 H24 V27 H8 Z M16 5 V27 M11 11 H21 M11 16 H21" fill="none" stroke="currentColor" stroke-width="2"/>', 'Diário', 'Diary', actions.openDiary);
   const cameraBtn = labeled('btn-camera', '<rect x="5" y="11" width="22" height="14" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="18" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11 L14 7 H18 L20 11" fill="none" stroke="currentColor" stroke-width="2"/>', 'Câmera', 'Camera', actions.toggleCamera);
   cameraBtn.style.display = 'none';
   const actionsNav = h(
@@ -149,8 +147,7 @@ export function buildHud(actions: HudActions) {
     decorBtn,
     btn('btn-map', 'map', 'Mapa', 'Map', actions.openMap),
     btn('btn-recados', 'recados', 'Recados', 'Errands', actions.openRecados),
-    btn('btn-caderno', 'caderno', 'Caderno', 'Words', actions.openCaderno),
-    diaryBtn,
+    btn('btn-caderno', 'caderno', 'Diário', 'Diary', actions.openCaderno),
     cameraBtn,
     btn('btn-wardrobe', 'hat', 'Chapéus', 'My hats', actions.openWardrobe),
     btn('btn-friends', 'friends', 'Amigos', 'Friends', actions.openFriends),
