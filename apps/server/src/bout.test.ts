@@ -1,19 +1,17 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  BOUT_CLOCK_MS,
+  ROUND_CLOCK_MS,
   DEFAULT_APPEARANCE,
-  PEGADA_MAX,
-  ROLL_RV_FINISH,
   ROLL_RV_LOSS,
   ROLL_RV_WIN,
   type BoutServerMsg,
   type ClientMsg,
   type ServerMsg,
 } from '@tudobem/shared';
+
 import { World, type Session, type WorldOptions } from './world.js';
 import { ProfileStore } from './store.js';
 import { AuthoredNpcDialogue, MemoryModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
-import { ANSWER_GRACE_MS, MIN_REACTION_MS } from './bout.js';
 
 let clock = 5_000_000;
 const pending: { fn: () => void; at: number }[] = [];
@@ -67,32 +65,17 @@ async function setup(extra: Partial<WorldOptions> = {}): Promise<{ world: World;
   return { world, a };
 }
 
-/** Answer whatever challenge is open with the debug hint; true when something was answered. */
-async function answerRight(a: Client, challenge: Phase<'challenge'>) {
-  const hint = challenge.challenge.debugCorrect;
-  if (challenge.challenge.kind === 'reorder') return a.send({ t: 'bout', v: 1, action: 'answer', seq: challenge.seq, answer: { kind: 'order', order: hint as number[] } });
-  if (challenge.challenge.kind === 'typed') return a.send({ t: 'bout', v: 1, action: 'answer', seq: challenge.seq, answer: { kind: 'text', text: hint as string } });
-  return a.send({ t: 'bout', v: 1, action: 'answer', seq: challenge.seq, answer: { kind: 'choice', index: hint as number } });
-}
-
-/** Play a bout to its end: a policy decides the intent and whether the answer is right. */
-async function play(a: Client, opts: { right?: boolean | ((i: number) => boolean); pick?: 'safe' | 'bold'; maxSteps?: number } = {}) {
+/** Play a bout to its end: pick a grip move each beat. */
+async function play(a: Client, opts: { maxSteps?: number } = {}) {
   const answeredSeqs = new Set<number>();
-  let i = 0;
   for (let guard = 0; guard < (opts.maxSteps ?? 400); guard++) {
     if (a.last('end')) return a.last('end')!;
     const m = a.lastBout()!;
     if (m.phase === 'intent' && !answeredSeqs.has(m.seq)) {
       answeredSeqs.add(m.seq);
       advance(300);
-      const intent = m.finish ? 'finalizar' : opts.pick === 'safe' ? m.intents[0]!.id : m.intents.at(-1)!.id;
+      const intent = m.finish ? 'finalizar' : (m.intents.find((i) => i.id.startsWith('puxar_') || i.id.startsWith('empurrar_')) ?? m.intents[0]!).id;
       await a.send({ t: 'bout', v: 1, action: 'intent', seq: m.seq, intent });
-    } else if (m.phase === 'challenge' && !answeredSeqs.has(m.seq)) {
-      answeredSeqs.add(m.seq);
-      advance(400);
-      const want = typeof opts.right === 'function' ? opts.right(i++) : (opts.right ?? true);
-      if (want) await answerRight(a, m);
-      else await a.send({ t: 'bout', v: 1, action: 'answer', seq: m.seq, answer: { kind: 'choice', index: 99 } });
     } else advance(250);
   }
   throw new Error('bout did not finish: ' + JSON.stringify(a.lastBout()).slice(0, 300));
@@ -147,12 +130,12 @@ describe('Treino no tatame (server)', () => {
     const intro = a.last('intro')!;
     expect(intro.partner.id).toBe('mateus');
     expect(intro.line.pt).toBe('Combate!');
-    expect(intro.st.clockMs).toBe(BOUT_CLOCK_MS);
+    expect(intro.st.clockMs).toBe(ROUND_CLOCK_MS);
     advance(1000);
-    const end = await play(a, { right: true, pick: 'bold' });
+    const end = await play(a);
     expect(end.winner).toBe('you');
-    expect(['finalizacao', 'pontos', 'vantagens']).toContain(end.reason);
-    expect(end.rv).toBe(end.reason === 'finalizacao' ? ROLL_RV_FINISH : ROLL_RV_WIN);
+    expect(['pontos', 'finalizacao']).toContain(end.reason);
+    expect(end.rv).toBe(ROLL_RV_WIN);
     expect(a.s.profile!.coins).toBe(coins0 + end.rv);
     expect(a.inbox.some((m) => m.t === 'reward' && m.amount === end.rv)).toBe(true);
     expect(a.s.profile!.bjj?.wins).toBe(1);
@@ -162,40 +145,27 @@ describe('Treino no tatame (server)', () => {
     // the points were announced in Portuguese by Bia
     const lines = a.bout().flatMap((m) => (m.phase === 'resolve' ? m.events : []).flatMap((e) => ('line' in e ? [e.line.pt] : [])));
     expect(lines.length).toBeGreaterThan(0);
-    for (const l of lines) expect(['Dois pontos!', 'Três pontos!', 'Quatro pontos!', 'Vantagem!']).toContain(l);
   });
 
-  it('a player who always misses loses, earns the small reward, and is never promoted', async () => {
-    const { a } = await setup();
+  it('a long round can end with the partner ahead on steps', async () => {
+    const { a } = await setup({ rng: () => 0.99 });
     await start(a);
     advance(1000);
-    // wrong answers still count as answers (they were sent), so the practice reward applies
-    const end = await play(a, { right: false, pick: 'safe' });
-    expect(end.winner).not.toBe('you');
-    expect(end.bjj.wins).toBe(0);
-    expect(a.s.profile!.bjj?.stripes ?? 0).toBe(0);
+    const end = await play(a, { maxSteps: 200 });
+    expect(end.winner).toBeTruthy();
     if (end.winner === 'partner') expect(end.rv).toBe(ROLL_RV_LOSS);
   });
 
-  it('every challenge view is safe (no answer) unless the CI hint is on, and the first answer wins the prompt', async () => {
+  it('a grip move resolves in one beat (no quiz challenge)', async () => {
     const { a } = await setup({ testRollHints: false });
     await start(a);
     advance(5000);
     const intent = a.last('intent')!;
     expect(intent.intents.length).toBeGreaterThanOrEqual(2);
-    expect(intent.intents.length).toBeLessThanOrEqual(3);
     advance(400);
     await a.send({ t: 'bout', v: 1, action: 'intent', seq: intent.seq, intent: intent.intents[0]!.id });
-    const ch = a.last('challenge')!;
-    expect(ch.challenge.debugCorrect).toBeUndefined();
-    expect(JSON.stringify(ch)).not.toContain('"perm"');
-    expect(ch.limitMs).toBeGreaterThanOrEqual(8000);
-    advance(400);
-    await a.send({ t: 'bout', v: 1, action: 'answer', seq: ch.seq, answer: { kind: 'choice', index: 0 } });
+    expect(a.last('challenge')).toBeUndefined();
     expect(a.last('resolve')).toBeTruthy();
-    const before = a.bout().length;
-    await a.send({ t: 'bout', v: 1, action: 'answer', seq: ch.seq, answer: { kind: 'choice', index: 1 } });
-    expect(a.bout().length).toBe(before);
   });
 
   it('ignores stale, foreign and impossible messages', async () => {
@@ -204,87 +174,26 @@ describe('Treino no tatame (server)', () => {
     advance(2000);
     const intent = a.last('intent')!;
     const n0 = a.bout().length;
-    // an answer before any challenge, a wrong seq, an intent that was not offered
     await a.send({ t: 'bout', v: 1, action: 'answer', seq: intent.seq, answer: { kind: 'choice', index: 0 } });
     await a.send({ t: 'bout', v: 1, action: 'intent', seq: intent.seq + 999, intent: intent.intents[0]!.id });
-    await a.send({ t: 'bout', v: 1, action: 'intent', seq: intent.seq, intent: 'girar' === intent.intents[0]!.id ? 'puxar' : ('nope' as never) });
+    await a.send({ t: 'bout', v: 1, action: 'intent', seq: intent.seq, intent: 'nope' as never });
     await a.send({ t: 'bout', v: 1, action: 'intent', seq: intent.seq, intent: 'finalizar' });
     expect(a.bout().length).toBe(n0);
     advance(300);
     await a.send({ t: 'bout', v: 1, action: 'intent', seq: intent.seq, intent: intent.intents[0]!.id });
-    const ch = a.last('challenge')!;
-    expect(ch.seq).not.toBe(intent.seq);
-    // a stale seq (the intent's) cannot answer the challenge
-    advance(300);
-    const n1 = a.bout().length;
-    await a.send({ t: 'bout', v: 1, action: 'answer', seq: intent.seq, answer: { kind: 'choice', index: 0 } });
-    expect(a.bout().length).toBe(n1);
-    // garbage answers are just wrong, never a crash
-    await a.send({ t: 'bout', v: 1, action: 'answer', seq: ch.seq, answer: { kind: 'text', text: 'x'.repeat(5000) } });
-    expect(a.last('resolve')?.yours.correct).toBe(false);
-  });
-
-  it('the server owns the timer: an unanswered challenge times out by itself and a late answer is a miss', async () => {
-    const { a } = await setup();
-    await start(a);
-    advance(1000);
-    const intent = a.last('intent')!;
-    advance(300);
-    await a.send({ t: 'bout', v: 1, action: 'intent', seq: intent.seq, intent: intent.intents[0]!.id });
-    const ch = a.last('challenge')!;
-    // no message from the client: the server resolves it as a miss
-    advance(ch.limitMs + ANSWER_GRACE_MS + 50);
-    const r = a.last('resolve')!;
-    expect(r.seq).toBe(ch.seq);
-    expect(r.yours.correct).toBe(false);
-    expect(r.yours.speed).toBe(0);
-    // then a late answer for it does nothing
-    const n0 = a.bout().length;
-    await answerRight(a, ch);
-    expect(a.bout().length).toBe(n0);
-  });
-
-  it('an answer inside the grace window still counts, with no speed bonus', async () => {
-    const { a } = await setup();
-    await start(a);
-    advance(1000);
-    const intent = a.last('intent')!;
-    advance(300);
-    await a.send({ t: 'bout', v: 1, action: 'intent', seq: intent.seq, intent: intent.intents[0]!.id });
-    const ch = a.last('challenge')!;
-    advance(ch.limitMs + 200);
-    await answerRight(a, ch);
-    const r = a.last('resolve')!;
-    expect(r.yours.correct).toBe(true);
-    expect(r.yours.speed).toBe(0);
-    expect(r.yours.fast).toBe(false);
-  });
-
-  it('answers faster than a person can read are ignored (the prompt stays open)', async () => {
-    const { a } = await setup({ testRollHints: false });
-    await start(a);
-    advance(5000);
-    const intent = a.last('intent')!;
-    advance(400);
-    await a.send({ t: 'bout', v: 1, action: 'intent', seq: intent.seq, intent: intent.intents[0]!.id });
-    const ch = a.last('challenge')!;
-    await a.send({ t: 'bout', v: 1, action: 'answer', seq: ch.seq, answer: { kind: 'choice', index: 0 } });
-    expect(a.last('resolve')).toBeUndefined();
-    advance(MIN_REACTION_MS + 10);
-    await a.send({ t: 'bout', v: 1, action: 'answer', seq: ch.seq, answer: { kind: 'choice', index: 0 } });
     expect(a.last('resolve')).toBeTruthy();
   });
 
-  it('nobody picking an intent is not stuck: the safe one is chosen and the bout carries on', async () => {
+  it('nobody picking a move is not stuck: the first grip chip is chosen', async () => {
     const { a } = await setup();
     await start(a);
     advance(1000);
     const intent = a.last('intent')!;
     advance(intent.pickMs + 1000);
-    expect(a.last('challenge')?.intent).toBe(intent.intents[0]!.id);
+    expect(a.last('resolve')).toBeTruthy();
   });
 
-  it('an idle bout (nothing ever answered) pays nothing', async () => {
+  it('an idle bout (no moves played) pays nothing', async () => {
     const { a } = await setup();
     const coins0 = a.s.profile!.coins;
     await start(a);
@@ -325,145 +234,50 @@ describe('Treino no tatame (server)', () => {
     expect(a.s.bout!.token).toBe(token);
   });
 
-  it('plays the finalização end to end (win) and the failed one (escape back to guard)', async () => {
-    for (const succeed of [true, false]) {
-      pending.length = 0;
-      const { a } = await setup();
-      await start(a);
-      advance(1000);
-      const b = a.s.bout!;
-      b.st.rung = 4;
-      b.st.pegada = PEGADA_MAX;
-      // the intent step already ran: answer its challenge, then the next offer carries the chance
-      let guard = 0;
-      while (!a.last('intent')?.finish && guard++ < 40) {
-        const m = a.lastBout()!;
-        if (m.phase === 'intent') {
-          advance(300);
-          await a.send({ t: 'bout', v: 1, action: 'intent', seq: m.seq, intent: m.intents[0]!.id });
-        } else if (m.phase === 'challenge') {
-          advance(300);
-          await answerRight(a, m);
-        } else advance(500);
-        b.st.rung = 4;
-        b.st.pegada = PEGADA_MAX;
-        b.st.momentum = 0;
-      }
-      const chance = a.last('intent')!;
-      expect(chance.finish).toBe(true);
-      advance(300);
-      await a.send({ t: 'bout', v: 1, action: 'intent', seq: chance.seq, intent: 'finalizar' });
-      let step = a.lastBout() as Phase<'challenge'>;
-      expect(step.phase).toBe('challenge');
-      expect(step.role).toBe('finish');
-      expect(step.steps === 1 || step.steps === 3).toBe(true);
-      // the finish is on a tighter timer than a normal prompt
-      expect(step.limitMs).toBeLessThanOrEqual(17_000);
-      for (let i = 0; i < step.steps; i++) {
-        const cur = a.lastBout() as Phase<'challenge'>;
-        advance(300);
-        if (succeed) await answerRight(a, cur);
-        else await a.send({ t: 'bout', v: 1, action: 'answer', seq: cur.seq, answer: { kind: 'choice', index: 99 } });
-        if (!succeed) break;
-        advance(900);
-      }
-      advance(5000);
-      if (succeed) {
-        expect(a.last('finish_end')).toMatchObject({ kind: 'finalizacao', success: true });
-        const end = a.last('end')!;
-        expect(end).toMatchObject({ winner: 'you', reason: 'finalizacao' });
-        expect(end.rv).toBe(ROLL_RV_FINISH);
-      } else {
-        expect(a.last('finish_end')).toMatchObject({ kind: 'finalizacao', success: false });
-        expect(a.last('finish_end')!.st.rung).toBe(1);
-        expect(a.last('finish_end')!.st.pegada).toBe(0);
-        expect(a.last('end')).toBeUndefined();
-        expect(a.lastBout()!.phase).toBe('intent');
-      }
-    }
-  });
-
-  it('the partner can finish you: a pinned player faces an escape, and failing it loses by finalização', async () => {
-    for (const escape of [true, false]) {
-      pending.length = 0;
-      const { a } = await setup({ rng: () => 0.01 });
-      // Rafael (aggressive) is unlocked by the blue belt
-      a.s.profile!.bjj = { belt: 'azul', stripes: 0, wins: 12 };
-      await start(a, 'rafael');
-      advance(1500);
-      const b = a.s.bout!;
-      expect(b.partner.id).toBe('rafael');
-      let guard = 0;
-      while (a.lastBout()!.phase !== 'challenge' || (a.lastBout() as Phase<'challenge'>).role !== 'escape') {
-        if (guard++ > 60) throw new Error('no escape offered');
-        const m = a.lastBout()!;
-        b.st.rung = -4;
-        b.st.pegadaB = PEGADA_MAX;
-        if (m.phase === 'intent') {
-          advance(300);
-          await a.send({ t: 'bout', v: 1, action: 'intent', seq: m.seq, intent: m.intents[0]!.id });
-        } else if (m.phase === 'challenge') {
-          advance(300);
-          await answerRight(a, m);
-        } else advance(500);
-      }
-      const ch = a.lastBout() as Phase<'challenge'>;
-      expect(ch.limitMs).toBeLessThanOrEqual(9000);
-      expect(['choice', 'cloze', 'listening']).toContain(ch.challenge.kind);
-      advance(300);
-      if (escape) await answerRight(a, ch);
-      else await a.send({ t: 'bout', v: 1, action: 'answer', seq: ch.seq, answer: { kind: 'choice', index: 99 } });
-      advance(5000);
-      if (escape) {
-        expect(a.last('finish_end')).toMatchObject({ kind: 'escape', success: true });
-        expect(a.last('finish_end')!.st.rung).toBe(-2);
-      } else {
-        expect(a.last('finish_end')).toMatchObject({ kind: 'escape', success: false });
-        expect(a.last('end')).toMatchObject({ winner: 'partner', reason: 'finalizacao' });
-      }
-    }
-  });
-
-  it('a win moves stripes, four stripes become the blue belt, and Bia is happier (with a daily cap)', async () => {
-    const { world, a } = await setup();
-    a.s.profile!.bjj = { belt: 'branca', stripes: 3, wins: 11 };
+  it('can finish the round from the grip contest when Final! is offered', async () => {
+    const { a } = await setup();
     await start(a);
     advance(1000);
-    const end = await play(a, { right: true, pick: 'bold' });
+    const b = a.s.bout!;
+    const intent = a.last('intent')!;
+    b.grip = { ...b.grip, stepsYou: 1, holdYou: ['gola', 'manga'], turn: 'you' };
+    advance(300);
+    await a.send({ t: 'bout', v: 1, action: 'intent', seq: intent.seq, intent: 'finalizar' });
+    advance(5000);
+    const end = a.last('end')!;
+    expect(end).toMatchObject({ winner: 'you' });
+    expect(end.rv).toBeGreaterThan(0);
+  });
+
+  it('a win moves stripes; four round wins earn the blue belt', async () => {
+    const { world, a } = await setup();
+    a.s.profile!.bjj = { belt: 'branca', stripes: 3, wins: 3 };
+    await start(a);
+    advance(1000);
+    a.s.bout!.grip = { ...a.s.bout!.grip, stepsYou: 2, turn: 'you' };
+    advance(500);
+    const end = a.last('end') ?? (await play(a));
     expect(end.winner).toBe('you');
     expect(end.beltUp).toBe(true);
     expect(end.belt).toBe('azul');
-    expect(a.s.profile!.bjj).toMatchObject({ belt: 'azul', stripes: 0, wins: 12 });
-    // the room is told: the public avatar carries the new belt (worn in the academia, shown on the profile card)
+    expect(a.s.profile!.bjj).toMatchObject({ belt: 'azul', stripes: 0, wins: 4 });
     expect(a.inbox.some((m) => m.t === 'avatarUpdated' && m.avatar.belt === 'azul')).toBe(true);
     expect(world.publicAvatar(a.s).belt).toBe('azul');
     expect(end.bond).toBeGreaterThan(0);
-    expect((a.s.profile!.bond?.prof ?? 0)).toBeGreaterThan(0);
-    // the daily bond cap: play more and the total stays under it
     for (let i = 0; i < 4; i++) {
       pending.length = 0;
       await a.send({ t: 'bout', v: 1, action: 'start', partner: 'mateus' });
       advance(1000);
-      await play(a, { right: true, pick: 'bold' });
+      await play(a);
     }
     expect(a.s.profile!.bjj!.bondToday).toBeLessThanOrEqual(8);
   });
 
-  it('feeds the Caderno: prompts are seen, a typed word is used, listening is heard', async () => {
-    const { a } = await setup();
-    await start(a);
-    advance(1000);
-    await play(a, { right: true, pick: 'bold' });
-    const cad = a.s.profile!.caderno ?? {};
-    expect(Object.keys(cad).length).toBeGreaterThan(0);
-    expect(Object.values(cad).some((e) => e.seen > 0)).toBe(true);
-  });
-
-  it('a profile saved with only the old fields still loads as a white belt', async () => {
+  it('a profile saved with only the old fields still loads coherently', async () => {
     const { world, a } = await setup();
     expect(world.publicAvatar(a.s).belt).toBe('branca');
     expect(world.publicAvatar(a.s).gi).toBe(true);
-    a.s.profile!.bjj = { belt: 'branca', stripes: 2, wins: 6 };
+    a.s.profile!.bjj = { belt: 'branca', stripes: 2, wins: 2 };
     await a.send({ t: 'bout', v: 1, action: 'open' });
     expect(a.last('lobby')!.level).toBe(2);
     expect(a.last('lobby')!.partners.filter((p) => p.unlocked).map((p) => p.id)).toEqual(['mateus', 'felipe', 'helena']);

@@ -23,27 +23,26 @@ describe('belts, stripes and the profile', () => {
     expect(normalizeBjj(null)).toEqual({ belt: 'branca', stripes: 0, wins: 0 });
   });
 
-  it('three wins per stripe, four stripes on the white belt earn the blue belt', () => {
+  it('one win per stripe, four stripes on the white belt earn the blue belt', () => {
     expect(progressForWins(0)).toEqual({ belt: 'branca', stripes: 0 });
-    expect(progressForWins(2)).toEqual({ belt: 'branca', stripes: 0 });
-    expect(progressForWins(3)).toEqual({ belt: 'branca', stripes: 1 });
-    expect(progressForWins(11)).toEqual({ belt: 'branca', stripes: 3 });
-    expect(BLUE_BELT_WINS).toBe(12);
-    expect(progressForWins(12)).toEqual({ belt: 'azul', stripes: 0 });
-    expect(progressForWins(15)).toEqual({ belt: 'azul', stripes: 1 });
+    expect(progressForWins(1)).toEqual({ belt: 'branca', stripes: 1 });
+    expect(progressForWins(3)).toEqual({ belt: 'branca', stripes: 3 });
+    expect(BLUE_BELT_WINS).toBe(4);
+    expect(progressForWins(4)).toEqual({ belt: 'azul', stripes: 0 });
+    expect(progressForWins(5)).toEqual({ belt: 'azul', stripes: 1 });
     expect(progressForWins(999)).toEqual({ belt: 'azul', stripes: 4 });
   });
 
   it('old saves (white belt, stripes only) and odd ones come back coherent', () => {
     // the old rule: stripes = floor(wins / 3), capped at 4, never a belt
-    expect(normalizeBjj({ belt: 'branca', stripes: 4, wins: 12 })).toMatchObject({ belt: 'azul', stripes: 0, wins: 12 });
-    expect(normalizeBjj({ belt: 'branca', stripes: 2, wins: 6 })).toEqual({ belt: 'branca', stripes: 2, wins: 6 });
+    expect(normalizeBjj({ belt: 'branca', stripes: 4, wins: 4 })).toMatchObject({ belt: 'azul', stripes: 0, wins: 4 });
+    expect(normalizeBjj({ belt: 'branca', stripes: 2, wins: 2 })).toEqual({ belt: 'branca', stripes: 2, wins: 2 });
     // four stripes with no matching wins still read as a blue belt
     expect(normalizeBjj({ stripes: 4, wins: 0 })).toMatchObject({ belt: 'azul', stripes: 0 });
     expect(normalizeBjj({ stripes: -3, wins: -9 } as never)).toEqual({ belt: 'branca', stripes: 0, wins: 0 });
     expect(normalizeBjj({ stripes: 'x', wins: 'y', belt: 'preta' } as never)).toEqual({ belt: 'branca', stripes: 0, wins: 0 });
     // a stored blue belt is kept
-    expect(normalizeBjj({ belt: 'azul', stripes: 2, wins: 18 })).toMatchObject({ belt: 'azul', stripes: 2 });
+    expect(normalizeBjj({ belt: 'azul', stripes: 2, wins: 18 })).toMatchObject({ belt: 'azul', stripes: 4, wins: 18 });
   });
 
   it('recording a win reports stripe and belt changes', () => {
@@ -55,14 +54,14 @@ describe('belts, stripes and the profile', () => {
       if (w.stripeUp) seen.push(`stripe@${p.wins}`);
       if (w.beltUp) seen.push(`belt@${p.wins}`);
     }
-    expect(seen).toEqual(['stripe@3', 'stripe@6', 'stripe@9', 'belt@12', 'stripe@15']);
-    expect(p).toMatchObject({ belt: 'azul', stripes: 1, wins: 16 });
+    expect(seen).toEqual(['stripe@1', 'stripe@2', 'stripe@3', 'belt@4', 'stripe@5', 'stripe@6', 'stripe@7', 'stripe@8']);
+    expect(p).toMatchObject({ belt: 'azul', stripes: 4, wins: 16 });
   });
 
   it('the level (timers, partner unlocks) follows belt and stripes: 0 to 8', () => {
     expect(bjjLevel()).toBe(0);
-    expect(bjjLevel({ belt: 'branca', stripes: 3, wins: 11 })).toBe(3);
-    expect(bjjLevel({ belt: 'azul', stripes: 0, wins: 12 })).toBe(4);
+    expect(bjjLevel({ belt: 'branca', stripes: 3, wins: 3 })).toBe(3);
+    expect(bjjLevel({ belt: 'azul', stripes: 0, wins: 4 })).toBe(4);
     expect(bjjLevel({ belt: 'azul', stripes: 4, wins: 40 })).toBe(8);
   });
 
@@ -105,8 +104,8 @@ describe('partners', () => {
     expect(PARTNERS.map((p) => p.unlockLevel)).toEqual([0, 1, 2, 3, 4]);
     const open = (wins: number) => PARTNERS.filter((p) => partnerUnlocked(p, normalizeBjj({ wins }))).map((p) => p.id);
     expect(open(0)).toEqual(['mateus']);
-    expect(open(3)).toEqual(['mateus', 'felipe']);
-    expect(open(9)).toEqual(['mateus', 'felipe', 'helena', 'daniel']);
+    expect(open(3)).toEqual(['mateus', 'felipe', 'helena', 'daniel']);
+    expect(open(9)).toHaveLength(5);
     expect(open(12)).toHaveLength(5);
     expect(partnerById('nobody')).toBeUndefined();
   });

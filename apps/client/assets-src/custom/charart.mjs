@@ -79,34 +79,48 @@ const PA = (spec) => {
   for (let y = y0; y <= Math.max(...ys); y++) rows.push(spec[y] ? T(spec[y][0], spec[y][1]) : '.'.repeat(16));
   return P(y0 - 31, rows);
 };
-const arm = (from, to, x = 13) => Object.fromEntries(Array.from({ length: to - from + 1 }, (_, i) => [from + i, [x, 'oso']]));
-// waving hand: a flat open hand with a shaded palm and four fingers; frame B is 1 px higher with the fingers spread
-const wave = (b) => ({
+const armL = (from, to, x = 4) => Object.fromEntries(Array.from({ length: to - from + 1 }, (_, i) => [from + i, [x, 'oso']]));
+// oi: friendly wave on the character's right (viewer's left), open palm + forearm tied to the shoulder line
+const wave = (raised) => ({
   S: PA(
-    b
-      ? { 10: [11, 'o.o.o'], 11: [10, 'osssso'], 12: [10, 'osssro'], 13: [10, 'orrrro'], 14: [11, 'orrro'], 15: [12, 'orro'], ...arm(16, 23) }
-      : { 11: [11, 'oooo'], 12: [10, 'osssso'], 13: [10, 'osssro'], 14: [10, 'orrrro'], 15: [11, 'orrro'], 16: [12, 'orro'], ...arm(17, 23) },
+    raised
+      ? { 9: [2, 'o.o.o'], 10: [1, 'ossso'], 11: [1, 'orsso'], 12: [2, 'osso'], 13: [3, 'osso'], ...armL(14, 22, 4) }
+      : { 10: [2, 'oooo'], 11: [1, 'ossso'], 12: [1, 'orsso'], 13: [2, 'osso'], 14: [3, 'osso'], ...armL(15, 22, 4) },
   ),
 });
-// thumbs-up: a fist (4 rows, shaded) with the thumb pointing straight up, forearm below
+// valeu: side thumb-up (thumb points right), fist at chest — not a raised middle finger
 const thumb = {
-  S: PA({ 9: [12, 'oo'], 10: [11, 'osso'], 11: [11, 'osro'], 12: [10, 'oossso'], 13: [10, 'osssro'], 14: [10, 'osrrro'], 15: [10, 'orrrro'], 16: [11, 'oooo'], ...arm(17, 23) }),
+  S: PA({
+    12: [0, '..so'],
+    13: [0, '.sso'],
+    14: [1, 'osso'],
+    15: [1, 'osso'],
+    16: [2, 'osso'],
+    17: [3, 'osso'],
+    18: [4, 'osso'],
+    19: [5, '.oso'],
+    20: [5, '.oso'],
+    21: [6, '.oso'],
+  }),
 };
-// dancing: both hands up beside the head (4 wide, outlined), arms down to the sleeves
-const handsUp = (len, side = 'LR') => {
-  const L = side.includes('L');
-  const R = side.includes('R');
-  const row = (l, r) => (L ? l : '....') + DOTS(8) + (R ? r : '....');
-  const armRow = () => (L ? '.rr.' : '....') + DOTS(8) + (R ? '.rr.' : '....');
+// dancar: hands beside the head with short arms from the shoulders (no floating limbs)
+const dance = (lUp, rUp) => {
+  const hand = (x, up) =>
+    up
+      ? { [11]: [x, 'orro'], [12]: [x, 'orso'], [13]: [x, 'oooo'] }
+      : { [15]: [x, 'orro'], [16]: [x, 'osro'] };
   return {
-    S: P(-18, [
-      row('oooo', 'oooo'), row('orro', 'orro'), row('orso', 'osro'), row('oooo', 'oooo'),
-      ...Array.from({ length: len }, () => armRow()),
-    ]),
+    S: PA({
+      ...hand(2, lUp),
+      ...hand(11, rUp),
+      17: [3, '.o.o'],
+      18: [3, '.o.o'],
+      19: [3, '.o.o'],
+      20: [4, '.oso'],
+      21: [4, '.oso'],
+    }),
   };
 };
-const armsUp = (n) => handsUp(n === 2 ? 3 : 7);
-const oneArmUp = (side) => handsUp(6, side === 'L' ? 'L' : 'R');
 // laugh: eyes squeezed shut (a dash instead of the dot), mouth wide open / a broad smile; skin is painted over the eye whites
 const laugh = (open) => ({
   S: PA(
@@ -119,7 +133,7 @@ const laugh = (open) => ({
 /** rows of the emote layer: row 12 oi (6 frames), 13 dancar (6), 14 rir (4), 15 valeu (4), 16 desculpa (none) */
 export const GESTURE_FRAMES = {
   12: [wave(false), wave(true), wave(false), wave(true), wave(false), wave(true)],
-  13: [armsUp(7), armsUp(2), oneArmUp('R'), armsUp(7), armsUp(2), oneArmUp('L')],
+  13: [dance(true, true), dance(false, true), dance(true, false), dance(false, false), dance(true, true), dance(false, true)],
   14: [laugh(true), laugh(false), laugh(true), laugh(false)],
   15: [thumb, thumb, thumb, thumb],
 };

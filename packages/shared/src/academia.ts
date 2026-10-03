@@ -51,8 +51,8 @@ export const BELT_LABELS: Record<Belt, Bilingual> = {
 
 export const BELT_COLORS: Record<Belt, string> = { branca: '#f4f1ea', azul: '#2f5fb0' };
 
-/** Wins per stripe, stripes per belt. Four stripes on the white belt earn the blue belt. */
-export const WINS_PER_STRIPE = 3;
+/** One round win per stripe; four stripes on the white belt earn the blue belt. */
+export const WINS_PER_STRIPE = 1;
 export const STRIPES_PER_BELT = 4;
 export const BLUE_BELT_WINS = WINS_PER_STRIPE * STRIPES_PER_BELT;
 
