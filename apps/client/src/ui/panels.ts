@@ -1,6 +1,7 @@
 import {
   FURNITURE,
   HATS,
+  PARROT_COLORS,
   MISSION_COPY,
   MISSION_REWARD,
   MISSION_STEPS,
@@ -213,24 +214,77 @@ export function openKiosk(take: () => void) {
 }
 
 export function showParrotPerch(adopt: () => void) {
-  const owned = game.profile?.parrotOwned;
-  const line: Bilingual = owned
-    ? { pt: 'Seu papagaio já está com você. Ele adora sussurrar palavras!', en: 'Your parrot is already with you. It loves whispering words!' }
-    : {
-        pt: 'Um papagaio verde pousou aqui. Ele quer te acompanhar! Ele não traduz, mas sussurra palavras que você está estudando.',
-        en: 'A green parrot landed here. It wants to come along! It doesn’t translate, but it whispers words you’re studying.',
-      };
-  showDialogue({
-    npc: null,
-    speaker: 'Poleiro do papagaio',
-    line,
-    chips: owned ? [{ pt: 'Valeu, papagaio!', en: 'Thanks, parrot!' }] : [{ pt: 'Quero adotar! (grátis)', en: 'I want to adopt it! (free)' }, { pt: 'Agora não.', en: 'Not now.' }],
-    onChoose: (i) => {
-      if (!owned && i === 0) adopt();
-      closeDialogue();
+  openParrotShop({
+    adoptFree: () => {
+      if (!game.profile?.parrotOwned) adopt();
     },
-    onClose: closeDialogue,
+    buy: (id) => netSendParrotBuy(id),
+    equip: (id) => netSendParrotColor(id),
   });
+}
+
+/** Wired from main.ts so this module does not import the net layer. */
+let netSendParrotBuy = (_id: string) => {};
+let netSendParrotColor = (_id: string) => {};
+export function wireParrotShop(send: { buy: (id: string) => void; equip: (id: string) => void }) {
+  netSendParrotBuy = send.buy;
+  netSendParrotColor = send.equip;
+}
+
+export function openParrotShop(actions: { buy: (id: string) => void; equip: (id: string) => void; adoptFree: () => void }) {
+  const p = game.profile!;
+  const grid = h('div', { class: 'grid-items parrot-grid' });
+  const canvas = h('canvas', { id: 'parrot-preview', style: 'width:96px;height:60px;image-rendering:pixelated' });
+  let sel = p.parrotColor ?? 'verde';
+  const preview = mountCharPreview(canvas, () => {
+    const cur = game.profile ?? p;
+    return { appearance: cur.appearance, hat: cur.hat, parrot: cur.parrotOwned && cur.parrotEquipped, parrotColor: sel };
+  });
+
+  const render = () => {
+    const prof = game.profile!;
+    clear(grid);
+    for (const c of PARROT_COLORS) {
+      const owned = prof.parrotColors?.includes(c.id) ?? (c.id === 'verde' && prof.parrotOwned);
+      const wearing = (prof.parrotColor ?? 'verde') === c.id && prof.parrotEquipped;
+      const btn = owned
+        ? h(
+            'button',
+            { class: wearing ? '' : 'green', onclick: (e: Event) => (e.stopPropagation(), actions.equip(c.id), (sel = c.id), render()) },
+            wearing ? bi('No ombro', 'On shoulder') : bi('Chamar', 'Call'),
+          )
+        : h(
+            'button',
+            { class: 'primary', disabled: prof.coins < c.price, onclick: (e: Event) => (e.stopPropagation(), c.price === 0 && !prof.parrotOwned ? actions.adoptFree() : actions.buy(c.id)) },
+            c.price === 0 ? bi('Adotar grátis', 'Adopt free') : bi('Comprar', 'Buy'),
+          );
+      grid.append(
+        h(
+          'div',
+          { class: `item-card ${sel === c.id ? 'sel' : ''}`, onclick: () => ((sel = c.id), render()), 'data-parrot': c.id },
+          h('div', { class: 'name' }, c.pt),
+          en(c.en),
+          h('span', { class: `price ${c.price === 0 ? 'free' : ''}` }, c.price === 0 ? 'Grátis' : `${c.price} RV`),
+          btn,
+        ),
+      );
+    }
+  };
+  render();
+  const off = game.on('profile', render);
+  const close = openModal(
+    'parrot-shop',
+    h(
+      'div',
+      { class: 'panel parrot-shop' },
+      closeBtn(() => close()),
+      h('h2', null, bi('Poleiro do papagaio', 'Parrot perch')),
+      en('Pick a colour. Your parrot whispers study words — it does not translate.'),
+      canvas,
+      grid,
+    ),
+    { onClose: off },
+  );
 }
 
 // ---------------------------------------------------------------- hat shop / wardrobe

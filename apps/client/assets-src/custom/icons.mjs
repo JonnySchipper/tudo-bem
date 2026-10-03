@@ -3,7 +3,7 @@
 // and grocery sheets), so every icon is authored here with masks, the pack palette and the pack lighting (light from the upper left,
 // navy outline, 1 px lit rim / 2 px shaded rim). Keys are `icons/<itemId>`.
 import { blank, put, shape, flat, grid, line, ell, box, or, and, sub, fillRect, ring, NAVY } from './paint.mjs';
-import { C, K } from './kit.mjs';
+import { C, K, hline } from './kit.mjs';
 
 const N = 16;
 const el = (cx, cy, rx, ry, a = 0) => (x, y) => {
@@ -290,6 +290,23 @@ function tomate() {
   put(img, 5, 6, C.g3); put(img, 11, 6, C.g3); put(img, 8, 3, C.g3);
   return img;
 }
+function pipoca() {
+  const img = icon();
+  shape(img, el(8, 10, 5, 6), [8, 9, 7, 5], ['#e8c96a', '#f5e08a', '#fff5c8', '#fffaf0'], { ol: NAVY, t: [0.8, 0.3, -0.2] });
+  for (const [x, y] of [[6, 7], [9, 6], [7, 9], [10, 8], [8, 5]]) put(img, x, y, '#fff8e8');
+  fillRect(img, 5, 13, 6, 2, C.r4);
+  hline(img, 5, 13, 6, C.r2);
+  return img;
+}
+function aguaDeCoco() {
+  const img = icon();
+  shape(img, (x, y) => y >= 4 && y < 14 && x >= 5 && x < 11, [8, 9, 5, 4], ['#6d9a4a', '#4b7a3a', '#3a5f2e', '#2f5230'], { ol: NAVY });
+  fillRect(img, 6, 5, 4, 1, '#f8fff0');
+  shape(img, (x, y) => y >= 10 && y < 14 && x >= 6 && x < 10, [8, 9, 3, 2], GLASS, { ol: NAVY });
+  fillRect(img, 6, 10, 4, 3, '#e8fff8');
+  put(img, 10, 6, '#8bc34a');
+  return img;
+}
 function caldoDeCana() {
   // caldo de cana: a tall glass of pale green-yellow juice with foam and a cane stalk leaning in it
   const img = icon();
@@ -304,7 +321,30 @@ function caldoDeCana() {
   return img;
 }
 
-export const ICONS = { pao, pao_na_chapa: paoNaChapa, pastel, coxinha, bolo, cafe, cafe_com_leite: cafeComLeite, suco_de_laranja: suco, agua, pao_de_queijo: paoQueijo, misto_quente: misto, guarana, jornal, flores, banana, laranja, maca, alface, tomate, caldo_de_cana: caldoDeCana };
+export const ICONS = {
+  pao,
+  pao_na_chapa: paoNaChapa,
+  pastel,
+  coxinha,
+  bolo,
+  cafe,
+  cafe_com_leite: cafeComLeite,
+  suco_de_laranja: suco,
+  agua,
+  pao_de_queijo: paoQueijo,
+  misto_quente: misto,
+  guarana,
+  jornal,
+  flores,
+  banana,
+  laranja,
+  maca,
+  alface,
+  tomate,
+  caldo_de_cana: caldoDeCana,
+  pipoca,
+  agua_de_coco: aguaDeCoco,
+};
 
 export async function iconParts() {
   return Object.entries(ICONS).map(([id, fn]) => ({ key: `icons/${id}`, img: fn() }));
