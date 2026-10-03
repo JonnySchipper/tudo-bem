@@ -1,5 +1,6 @@
-import { signIn, signInOpsSmoke, signUp } from '../auth/client';
+import { signIn, signInOpsSmoke, signInWithGoogle, signUp } from '../auth/client';
 import { fetchPublicConfig } from '../auth/config';
+import { mountGoogleSignIn } from '../auth/googleSignIn';
 import { introAlreadyPassed, markIntroPassed, readAuthSession, writeAuthSession } from '../auth/session';
 import { h, ui } from './dom';
 import { artCredit } from './credits';
@@ -144,6 +145,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
     const tabRegister = h('button', { type: 'button', class: 'intro-tab', id: 'intro-tab-register', role: 'tab', 'aria-selected': 'false' }, 'Criar conta');
     const submit = h('button', { type: 'submit', class: 'primary intro-submit intro-cta', id: 'intro-submit' }, 'Entrar');
     const panelTitle = h('h2', { id: 'intro-panel-title', tabindex: '-1' }, 'Bem-vindo de volta');
+    const googleHost = h('div', { class: 'intro-google', id: 'intro-google', style: 'display:none' });
     const smoke = h(
       'button',
       { type: 'button', class: 'intro-smoke', id: 'intro-smoke', style: 'display:none' },
@@ -219,6 +221,16 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
 
     void fetchPublicConfig().then((cfg) => {
       if (cfg.opsSmoke) smoke.style.display = '';
+      if (cfg.googleClientId) {
+        googleHost.style.display = '';
+        const off = mountGoogleSignIn(googleHost, cfg.googleClientId, async (credential) => {
+          clearError();
+          const result = await signInWithGoogle(credential);
+          if (!result.ok) return setError(result.pt, result.en);
+          finish({ mode: 'auth', email: result.session.email });
+        });
+        teardowns.push(off);
+      }
     });
 
     guest.addEventListener('click', () => {
@@ -242,6 +254,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       err,
       h('div', { class: 'intro-actions' }, submit),
       h('div', { class: 'intro-or', 'aria-hidden': 'true' }, h('span', null, 'ou')),
+      googleHost,
       smoke,
       guest,
       h('p', { class: 'intro-legal' }, 'Fase 0 · sua conta guarda seu avatar, suas RV e sua kitnet.'),

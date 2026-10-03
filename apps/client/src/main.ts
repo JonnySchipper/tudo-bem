@@ -63,6 +63,7 @@ import {
   openProfileCard,
   showJulia,
   showParrotPerch,
+  wireParrotShop,
   showScene,
 } from './ui/panels';
 import { openPedido, updatePedido, closePedido, isPedidoOpen } from './ui/pedido';
@@ -74,7 +75,8 @@ import { openNpcTalk } from './ui/npcTalk';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira';
 import { openCaderno } from './ui/caderno';
 import { openHotspotCard } from './ui/hotspotCard';
-import { HotspotCues } from './ui/hotspotCue';
+import { openStreetSnack } from './ui/streetSnack';
+import { openCheckers } from './ui/checkers';
 import { setHeardSink } from './ui/heard';
 import { closeConversa, isConversaOpen, openConversa } from './ui/conversa';
 import { BoutUI } from './ui/bout';
@@ -262,8 +264,15 @@ function propAction(action: string, propId?: string) {
   else if (action === 'minigame') startMinigame();
   else if (action === 'kiosk') openKiosk(() => net.send({ t: 'mission', action: 'take' }));
   else if (action === 'parrot_perch') showParrotPerch(() => net.send({ t: 'parrot', action: 'adopt' }));
+  else if (action === 'street_snack' && propId) openStreetSnack(propId, (id) => net.send({ t: 'snack', action: 'buy', itemId: id }));
+  else if (action === 'checkers') openCheckers();
   else if (action === 'bjj_roll') openBout();
 }
+
+wireParrotShop({
+  buy: (id) => net.send({ t: 'buy', kind: 'parrot', itemId: id }),
+  equip: (id) => net.send({ t: 'parrot', action: 'color', colorId: id }),
+});
 
 /** The mat queue: ask the server for the partner list; the lobby (and the mat camera) opens when it answers. */
 function openBout() {
@@ -972,9 +981,6 @@ function keyWalk() {
 
 // ---------------------------------------------------------------- loop
 
-/** The 👁 cues over readable signs within 3 tiles (Phase 7). */
-const cues = new HotspotCues((hs) => clickHotspot(hs));
-
 // the dialogue box tells the world view to ease the camera in on the speakers; the box's height keeps them above it
 setDialogueHost({
   open: (npcId) => {
@@ -990,16 +996,6 @@ setHeardSink((cardIds) => net.send({ t: 'heard', cardIds }));
 function frame(ts: number) {
   try {
     renderer.frame(ts);
-    if (started) {
-      cues.update({
-        room: game.room?.room ?? null,
-        tile: selfTile()?.tile ?? null,
-        hidden: game.modalOpen || game.editMode || !!game.placing,
-        toClient: (x, y) => renderer.tileToClient(x, y),
-        scale: renderer.cam.scale,
-        viewport: { w: window.innerWidth, h: window.innerHeight },
-      });
-    }
     if (heldArrows.length) {
       if (keysBlocked(document.activeElement)) heldArrows.length = 0;
       else keyWalk();

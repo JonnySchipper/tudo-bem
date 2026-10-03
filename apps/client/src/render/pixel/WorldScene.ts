@@ -10,7 +10,26 @@
  * Two cameras (DECISIONS Phase 1 #13): `main` draws the world at an integer device zoom, `fx` draws the light grade in screen space.
  */
 import Phaser from 'phaser';
-import { buildGrid, feiraOpen, canPlaceFurniture, furnitureById, hotspotBox, hotspotsInRoom, isCpuId, key as tileKey, positionAlong, propTiles, type Dir, npcDefById, type PlacedFurniture, type PropDef, type RoomDef, type RoomGrid, type WallDecor } from '@tudobem/shared';
+import {
+  buildGrid,
+  feiraOpen,
+  canPlaceFurniture,
+  furnitureById,
+  hotspotBox,
+  hotspotsInRoom,
+  isCpuId,
+  key as tileKey,
+  parrotColorById,
+  positionAlong,
+  propTiles,
+  type Dir,
+  npcDefById,
+  type PlacedFurniture,
+  type PropDef,
+  type RoomDef,
+  type RoomGrid,
+  type WallDecor,
+} from '@tudobem/shared';
 import { game, type ClientAvatar } from '../../state';
 import type { Guide, Hit } from '../view';
 import type { Manifest } from './manifest';
@@ -97,6 +116,9 @@ interface AvatarView {
   belt?: string;
   look: Look;
   parrot: Phaser.GameObjects.Sprite | null;
+  /** Street snack in hand (session carry). */
+  carry: Phaser.GameObjects.Image | null;
+  carryKey: string;
   /** the pop-up icon over the head while an emote plays (fx/emote_<kind>), and the emote it shows */
   icon: Phaser.GameObjects.Sprite | null;
   iconKey: string;
@@ -241,6 +263,10 @@ export class WorldScene extends Phaser.Scene {
     for (const [name, a] of Object.entries(m.atlases)) this.load.atlas(name, b + a.image, b + a.data);
     this.load.image('terrainTs', b + m.terrain.tileset);
     for (const [key, f] of Object.entries(m.fx)) this.load.image(`fx:${key}`, b + f.file);
+    for (const id of ['pipoca', 'agua_de_coco']) {
+      const img = m.images?.[`icons/${id}`];
+      if (img?.file) this.load.image(`carry:${id}`, b + img.file);
+    }
   }
 
   create(): void {
@@ -1141,11 +1167,32 @@ export class WorldScene extends Phaser.Scene {
     const s16 = this.m.sprites['fx/shadow_16'];
     const shadow = this.rig.world(this.add.image(0, 0, s16.atlas, s16.frame)).setOrigin(...originOf(s16)).setDepth(DEPTH.shadowContact);
     this.shadows.follow(sprite, 'chars/avatar', { frame: 0, rim: true });
-    return { sprite, shadow, sheet, appearance: a.pub.appearance, hat: a.pub.hat, belt: a.pub.belt, look, parrot: null, icon: null, iconKey: '', anim: '', facing: 'S', wx: 0, wy: 0, dirSeen: undefined, sitting: false, moving: false };
+    return {
+      sprite,
+      shadow,
+      sheet,
+      appearance: a.pub.appearance,
+      hat: a.pub.hat,
+      belt: a.pub.belt,
+      look,
+      parrot: null,
+      carry: null,
+      carryKey: '',
+      icon: null,
+      iconKey: '',
+      anim: '',
+      facing: 'S',
+      wx: 0,
+      wy: 0,
+      dirSeen: undefined,
+      sitting: false,
+      moving: false,
+    };
   }
 
   private destroyAvatar(v: AvatarView): void {
     v.parrot?.destroy();
+    v.carry?.destroy();
     v.icon?.destroy();
     v.sprite.destroy();
     v.shadow.destroy();
@@ -1236,6 +1283,7 @@ export class WorldScene extends Phaser.Scene {
       }
     }
     this.updateParrot(v, a, facing, wx, wy, depth, now);
+    this.updateCarry(v, a, facing, wx, wy, depth);
     this.updateEmoteIcon(v, a, wx, wy - bounce, sitting, now);
     const h = sitting ? 24 : 32;
     const base = a.pub.npc ? npcDefById(a.pub.npc) : undefined;
@@ -1288,6 +1336,31 @@ export class WorldScene extends Phaser.Scene {
     v.parrot.setPosition(wx + side * 9, wy - 14 + bob);
     v.parrot.setFlipX(side === 1);
     v.parrot.setDepth(facing === 'N' ? depth - 0.05 : depth + 0.05);
+    const tint = parrotColorById(a.pub.parrotColor)?.tint ?? 0xffffff;
+    if (tint === 0xffffff) v.parrot.clearTint();
+    else v.parrot.setTint(tint);
+  }
+
+  /** Popcorn or coconut water bought at the praça carts (session `carry` on the avatar). */
+  private updateCarry(v: AvatarView, a: ClientAvatar, facing: Facing, wx: number, wy: number, depth: number): void {
+    const id = a.pub.carry;
+    if (!id) {
+      if (v.carry) {
+        v.carry.destroy();
+        v.carry = null;
+        v.carryKey = '';
+      }
+      return;
+    }
+    const tex = `carry:${id}`;
+    if (!this.textures.exists(tex)) return;
+    if (!v.carry || v.carryKey !== id) {
+      v.carry?.destroy();
+      v.carry = this.rig.world(this.add.image(0, 0, tex)).setOrigin(0.5, 1);
+      v.carryKey = id;
+    }
+    const side = facing === 'W' ? -1 : 1;
+    v.carry.setPosition(wx + side * 5, wy - 10).setScale(1.25).setDepth(depth + 0.08);
   }
 
   // ---- placed furniture: `furniture/<id>_<rot>` sprites (art track 3); a magenta box when the art is missing

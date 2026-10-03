@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { AUTH_COPY, validateEmail, validatePassword, normalizeEmail, type AuthErrorCode, type AuthResponse } from '@tudobem/shared';
+import type { GoogleOAuthConfig, GoogleTokenPayload } from './googleAuth.js';
+import { verifyGoogleIdToken } from './googleAuth.js';
 import { atomicWriteFileSync } from './atomicWrite.js';
 import type { OpsSmokeConfig } from './opsSmoke.js';
 import type { AccountLink } from './world.js';
@@ -10,8 +12,10 @@ import type { AccountLink } from './world.js';
 export interface Account {
   id: string;
   email: string;
-  /** `scrypt$N$r$p$salt$hash` (base64url). Never the password. */
+  /** `scrypt$N$r$p$salt$hash` (base64url). Never the password. Google-only accounts still get an unguessable hash. */
   passwordHash: string;
+  /** Google `sub` when the player signed in with GIS at least once. */
+  googleSub?: string;
   profileId?: string;
   /** When the player ticked the optional “Tenho 18 anos ou mais” box at signup. Absent if left unticked. */
   confirmed18At?: number;
@@ -190,6 +194,37 @@ export class AccountStore implements AccountLink {
     return { ok: true, account };
   }
 
+  /**
+   * Sign in (or register) from a verified Google ID token. Links `googleSub` on an existing email account when safe.
+   */
+  async loginWithGoogle(payload: GoogleTokenPayload): Promise<AuthResult> {
+    const email = validateEmail(payload.email);
+    if (!email.ok) return { ok: false, code: 'email', ...email.reason };
+    const bySub = [...this.byId.values()].find((a) => a.googleSub === payload.sub);
+    if (bySub) {
+      bySub.lastLoginAt = this.now();
+      this.save();
+      return { ok: true, account: bySub };
+    }
+    const existing = this.byId.get(this.byEmail.get(email.value) ?? '');
+    if (existing) {
+      if (existing.googleSub && existing.googleSub !== payload.sub) {
+        return { ok: false, code: 'google', ...AUTH_COPY.googleEmail };
+      }
+      if (!existing.googleSub) existing.googleSub = payload.sub;
+      existing.lastLoginAt = this.now();
+      this.save();
+      return { ok: true, account: existing };
+    }
+    const passwordHash = await hashPassword(crypto.randomBytes(32).toString('base64url'), this.params);
+    const t = this.now();
+    const account: Account = { id: crypto.randomUUID(), email: email.value, passwordHash, googleSub: payload.sub, createdAt: t, lastLoginAt: t };
+    this.byId.set(account.id, account);
+    this.byEmail.set(account.email, account.id);
+    this.save();
+    return { ok: true, account };
+  }
+
   async login(emailRaw: string, password: string): Promise<AuthResult> {
     const fail: AuthResult = { ok: false, code: 'credentials', ...AUTH_COPY.credentials };
     if (typeof password !== 'string' || !password || password.length > 1024) return fail;
@@ -362,6 +397,9 @@ export interface AuthApiDeps {
   onLogout?: (accountId: string) => void;
   limiters: AuthLimiters;
   opsSmoke?: OpsSmokeConfig;
+  googleOAuth?: GoogleOAuthConfig;
+  /** Test hook: skip network JWKS verification. */
+  verifyGoogleIdToken?: (token: string, clientId: string) => Promise<GoogleTokenPayload | null>;
 }
 
 export interface AuthLimiters {
@@ -424,7 +462,7 @@ export async function handleAuthApi(req: IncomingMessage, res: ServerResponse, d
   const action = url.pathname.replace(/^\/api\/auth\/?/, '');
   const secure = isHttps(req, deps.cookieSecure ?? 'auto');
   const maxAge = Math.floor(deps.accounts.sessionTtlMs / 1000);
-  const { accounts } = deps;
+  const { accounts, limiters } = deps;
 
   if (action === 'me' && req.method === 'GET') {
     const raw = sessionCookieOf(req);
@@ -443,6 +481,28 @@ export async function handleAuthApi(req: IncomingMessage, res: ServerResponse, d
     }
     const account = await accounts.ensureSmokeAccount(deps.opsSmoke.email, deps.opsSmoke.password);
     return send(res, 200, okBody(account), cookie(accounts.createSession(account.id), maxAge, secure));
+  }
+
+  if (action === 'google' && req.method === 'POST') {
+    if (!originAllowed(req, deps.allowedOrigins) || !String(req.headers['content-type'] ?? '').includes('application/json')) {
+      return send(res, 403, fail('bad_request', AUTH_COPY.badRequest));
+    }
+    const cfg = deps.googleOAuth;
+    if (!cfg?.ready) return send(res, 503, fail('google', AUTH_COPY.googleDisabled));
+    const body = await readJson(req);
+    const credential = typeof body?.credential === 'string' ? body.credential : '';
+    const ip = clientIp(req);
+    if (limiters.ip.blocked(ip)) return send(res, 429, fail('rate', AUTH_COPY.rate));
+    const verify = deps.verifyGoogleIdToken ?? verifyGoogleIdToken;
+    const payload = await verify(credential, cfg.clientId);
+    if (!payload) {
+      limiters.ip.hit(ip);
+      return send(res, 401, fail('google', AUTH_COPY.googleInvalid));
+    }
+    const r = await accounts.loginWithGoogle(payload);
+    if (!r.ok) return send(res, r.code === 'google' ? 409 : 400, fail(r.code, r));
+    limiters.ip.reset(ip);
+    return send(res, 200, okBody(r.account), cookie(accounts.createSession(r.account.id), maxAge, secure));
   }
 
   if (req.method !== 'POST' || !['register', 'login', 'logout'].includes(action)) {
@@ -464,7 +524,6 @@ export async function handleAuthApi(req: IncomingMessage, res: ServerResponse, d
   const email = typeof body.email === 'string' ? body.email : '';
   const password = typeof body.password === 'string' ? body.password : '';
   const ip = clientIp(req);
-  const { limiters } = deps;
 
   if (action === 'register') {
     if (limiters.signup.blocked(ip)) return send(res, 429, fail('rate', AUTH_COPY.rate));

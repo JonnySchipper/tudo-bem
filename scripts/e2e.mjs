@@ -562,8 +562,8 @@ async function main() {
   await page.keyboard.press('Escape');
   // Adopt the parrot (optional cosmetic) and ask for a hint
   await interact(page, { prop: 'poleiro' });
-  await page.waitForSelector('#dialogue-box[data-dialogue="perch"] [data-chip="0"]', { timeout: 12_000 });
-  await page.click('#dialogue-box[data-dialogue="perch"] [data-chip="0"]');
+  await page.waitForSelector('[data-modal="parrot-shop"]', { timeout: 12_000 });
+  await page.click('[data-modal="parrot-shop"] [data-parrot="verde"] button.primary');
   await waitFor(page, () => window.__tb.game.profile.parrotOwned, null, 5000, 'parrot');
   await page.click('#btn-parrot');
   await page.waitForSelector('.parrot-whisper', { timeout: 5000 });

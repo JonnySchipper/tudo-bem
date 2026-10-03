@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "jose": "^6.2.12",
     "ws": "^8.21.3"
   },
   "devDependencies": {

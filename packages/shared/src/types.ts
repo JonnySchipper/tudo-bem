@@ -1,4 +1,5 @@
 import type { DailyMission } from './ambiance.js';
+import type { StreetSnackId } from './streetSnacks.js';
 import type { BjjProgress, Belt } from './academia.js';
 import type { NpcId } from './rooms.js';
 import type { NpcActivity } from './schedules.js';
@@ -54,6 +55,10 @@ export interface PublicAvatar {
   appearance: Appearance;
   hat: string | null;
   parrot: boolean;
+  /** Companion tint id when `parrot` is true (defaults to verde). */
+  parrotColor?: string | null;
+  /** Street snack in hand until logout (session); not on the saved profile. */
+  carry?: StreetSnackId | null;
   nameplate: Nameplate;
   x: number;
   y: number;
@@ -126,6 +131,10 @@ export interface PrivateProfile {
   apartment: PlacedFurniture[];
   parrotOwned: boolean;
   parrotEquipped: boolean;
+  /** Owned parrot colour ids (poleiro shop). */
+  parrotColors?: string[];
+  /** Which colour is out on your shoulder. */
+  parrotColor?: string | null;
   friends: string[];
   tutorial: Record<TutorialStep, boolean>;
   tutorialRewarded: boolean;

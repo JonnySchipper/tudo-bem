@@ -1,5 +1,5 @@
 /*
- * Phase 7: the in-world dialogue box, the sign card, the 👁 cue and the Caderno panel, in the pixel chrome.
+ * Phase 7: the in-world dialogue box, the sign card, and the Caderno panel, in the pixel chrome.
  * One art pixel = 1 CSS px on the 1x panel frame (the box is a HUD element, not a modal); learning text stays Nunito (D9), the pixel font
  * is for name tags, numbers and headings only. (The old modal presentation, `?dialogue=modal`, was removed in Phase 10.)
  */
@@ -686,54 +686,7 @@ body:has(.dbx) .joystick {
   }
 }
 
-/* ---------------------------------------------------------------- readable signs: the 👁 cue and the card */
-
-#hotspot-cues {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 12;
-}
-
-.hotspot-cue {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  display: grid;
-  place-items: center;
-  pointer-events: auto;
-  background: #fffaf2;
-  border: 2px solid var(--px-ink, #573c2c);
-  box-shadow: 0 2px 0 var(--px-ink, #573c2c);
-  border-radius: 0;
-  cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
-}
-
-.hotspot-cue .eye {
-  display: block;
-  animation: cue-bob 1.4s steps(2) infinite;
-}
-
-@keyframes cue-bob {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-2px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hotspot-cue .eye {
-    animation: none;
-  }
-}
+/* ---------------------------------------------------------------- readable signs: the card */
 
 .panel.hotspot-card {
   width: min(560px, calc(100vw - 24px));

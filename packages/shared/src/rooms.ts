@@ -50,7 +50,7 @@ export type PropKind =
   | 'feira'
   | 'hortifruti';
 
-export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall';
+export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers';
 
 export interface PropDef {
   id: string;
@@ -446,12 +446,27 @@ const praca: RoomDef = {
     cen('busto', 'props/canteiro_busto', 7, 5, 2, 2, { blocks: true, label: { pt: 'Busto da fundadora', en: 'Bust of the founder' } }),
     // domino and chess tables with their stools (seniors sit here): south-east lawn
     cen('mesa_domino_1', 'props/mesa_domino', 22, 17, 1, 1, { blocks: true }),
-    cen('mesa_xadrez_1', 'props/mesa_xadrez', 26, 17, 1, 1, { blocks: true }),
+    cen('mesa_xadrez_1', 'props/mesa_xadrez', 26, 17, 1, 1, {
+      blocks: true,
+      action: 'checkers',
+      interact: { x: 25, y: 17 },
+      label: { pt: 'Damas', en: 'Checkers' },
+    }),
     ...stools('banquinho_a', 22, 17),
     ...stools('banquinho_b', 26, 17),
     // pipoqueiro and the coconut-water cart
-    cen('pipoqueiro', 'props/pipoqueiro', 18, 21, 3, 1, { blocks: true, label: { pt: 'Pipoqueiro', en: 'Popcorn cart' } }),
-    cen('carrinho_coco', 'props/carrinho_coco', 24, 9, 3, 1, { blocks: true, label: { pt: 'Carrinho de água de coco', en: 'Coconut-water cart' } }),
+    cen('pipoqueiro', 'props/pipoqueiro', 18, 21, 3, 1, {
+      blocks: true,
+      action: 'street_snack',
+      interact: { x: 19, y: 20 },
+      label: { pt: 'Pipoqueiro', en: 'Popcorn cart' },
+    }),
+    cen('carrinho_coco', 'props/carrinho_coco', 24, 9, 3, 1, {
+      blocks: true,
+      action: 'street_snack',
+      interact: { x: 24, y: 10 },
+      label: { pt: 'Carrinho de água de coco', en: 'Coconut-water cart' },
+    }),
     // the playground: sand pit with a swing, a slide, a seesaw and monkey bars; a bench watches from the south
     cen('pg_balanco', 'props/pg_balanco', 4, 16, 2, 1, { blocks: true }),
     cen('pg_escorregador', 'props/pg_escorregador', 6, 16, 3, 1, { blocks: true }),

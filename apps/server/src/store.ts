@@ -142,6 +142,13 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.npcMemory = normalizeNpcMemory(p.npcMemory);
   p.feira = normalizeFeira(p.feira);
   p.correria = normalizeCorreria(p.correria);
+  if (p.parrotOwned) {
+    if (!p.parrotColors?.length) p.parrotColors = ['verde'];
+    if (!p.parrotColor) p.parrotColor = 'verde';
+  } else {
+    p.parrotColors = p.parrotColors ?? [];
+    p.parrotColor = p.parrotColor ?? null;
+  }
   return p;
 }
 
