@@ -18,7 +18,7 @@ import { addSheetTexture, animKey, sitFrame, type Facing } from '../charsheet';
 import { facingForStep } from '../facing';
 import type { CharAssets } from '../charAssets';
 import { composeLook } from '../composeLook';
-import { AVATAR_DRAW_SCALE } from '../characters';
+import { avatarDrawScale } from '../characters';
 import { lookForAppearance } from '../looks';
 
 const T = 16;
@@ -363,22 +363,22 @@ export class FrameScene extends Phaser.Scene {
     compose('char_beto', { skin: 1, hair: 'undercut', hairColor: 3, top: 'moletom', topColor: 6, bottom: 'calca', bottomColor: 11 });
 
     const shadow16 = this.def('fx/shadow_16');
-    const mkShadow = (x: number, y: number) => this.W(this.add.image(x, y - 1, shadow16.atlas, shadow16.frame)).setOrigin(0.5, 0.5).setDepth(-4500).setScale(AVATAR_DRAW_SCALE, 1);
+    const mkShadow = (x: number, y: number) => this.W(this.add.image(x, y - 1, shadow16.atlas, shadow16.frame)).setOrigin(0.5, 0.5).setDepth(-4500).setScale(avatarDrawScale(), 1);
 
     const [wx, wy] = WALKER_LOOP[0];
-    const sprite = this.W(this.add.sprite(wx * T, wy * T, 'char_julia', 0)).setOrigin(0.5, 1).setScale(AVATAR_DRAW_SCALE);
+    const sprite = this.W(this.add.sprite(wx * T, wy * T, 'char_julia', 0)).setOrigin(0.5, 1).setScale(avatarDrawScale());
     this.walker = { sprite, shadow: mkShadow(wx * T, wy * T), sheet: 'char_julia', x: wx * T, y: wy * T, idx: 1, pause: 0, facing: 'E' };
     sprite.play(animKey('char_julia', 'walk', 'E'));
 
     // sitters: S-facing sit pose in front of the bench (depth just above the bench)
     for (const s of SITTERS) {
       const benchY = Math.round(s.y * T);
-      const spr = this.W(this.add.sprite(Math.round(s.x * T), benchY - 3, s.sheet, sitFrame(meta, s.facing))).setOrigin(0.5, 1).setScale(AVATAR_DRAW_SCALE);
+      const spr = this.W(this.add.sprite(Math.round(s.x * T), benchY - 3, s.sheet, sitFrame(meta, s.facing))).setOrigin(0.5, 1).setScale(avatarDrawScale());
       spr.setDepth(benchY + 1);
       mkShadow(Math.round(s.x * T), benchY);
     }
     for (const s of IDLERS) {
-      const spr = this.W(this.add.sprite(Math.round(s.x * T), Math.round(s.y * T), s.sheet, 0)).setOrigin(0.5, 1).setScale(AVATAR_DRAW_SCALE);
+      const spr = this.W(this.add.sprite(Math.round(s.x * T), Math.round(s.y * T), s.sheet, 0)).setOrigin(0.5, 1).setScale(avatarDrawScale());
       spr.setDepth(Math.round(s.y * T));
       spr.play({ key: animKey(s.sheet, 'idle', s.facing), startFrame: Math.floor(hash01(s.x * 100) * 6) });
       mkShadow(Math.round(s.x * T), Math.round(s.y * T));

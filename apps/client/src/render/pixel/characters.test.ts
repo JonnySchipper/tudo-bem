@@ -2,24 +2,37 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import { BODY_TYPES, BOTTOM_STYLES, EXTRA_STYLES, FACE_STYLES, HAIR_STYLES, HATS, IDLE_POSES, TOP_STYLES } from '@tudobem/shared';
 import { T } from './coords';
-import { AVATAR_DRAW_SCALE, AVATAR_HEAD_LIFT, AVATAR_HEAD_SIT_LIFT, CHAR_LAYERS, OUTFITS, allLayerKeys, avatarCrown, avatarPx, hatLayer, outfitKey, pick } from './characters';
+import { AVATAR_HEAD_LIFT, AVATAR_HEAD_SIT_LIFT, CHAR_LAYERS, OUTFITS, allLayerKeys, avatarCrown, avatarDrawScale, avatarPx, avatarScaleFor, hatLayer, outfitKey, pick, setAvatarZoom } from './characters';
 
 const manifest = JSON.parse(readFileSync(new URL('../../../public/pixel/manifest.json', import.meta.url), 'utf8')) as { chars: Record<string, string> };
 
 describe('avatar draw scale', () => {
-  it('draws people at twice the sheet so outfits read, feet still at the origin', () => {
+  it('draws people about 1.4x, on whole device pixels at every camera zoom', () => {
+    expect([2, 3, 4, 5, 6].map(avatarScaleFor)).toEqual([3 / 2, 4 / 3, 6 / 4, 7 / 5, 8 / 6]);
+    for (const z of [1, 2, 3, 4, 5, 6, 8]) {
+      const s = avatarScaleFor(z);
+      expect(Number.isInteger(Math.round(s * z * 1e9) / 1e9), `zoom ${z}`).toBe(true);
+      expect(s).toBeGreaterThanOrEqual(1);
+      expect(s).toBeLessThanOrEqual(1.5);
+    }
+  });
+
+  it('follows the camera zoom; crowns, hats and the sit pose scale with it, feet stay at the origin', () => {
     // the unscaled crown sits only a few pixels over a floor tile, in the same band as a chair
     expect(AVATAR_HEAD_LIFT).toBeGreaterThan(T);
     expect(AVATAR_HEAD_LIFT - T).toBeLessThan(T / 2);
-    expect(AVATAR_DRAW_SCALE).toBe(2);
+    setAvatarZoom(3);
+    expect(avatarDrawScale()).toBeCloseTo(4 / 3);
     const standing = avatarCrown(false);
-    expect(standing).toBe(AVATAR_HEAD_LIFT * 2);
-    // tall enough that a shirt, hat, and pants are more than a tile of the figure
-    expect(standing).toBeGreaterThan(T * 2);
-    expect(standing).toBeGreaterThan(AVATAR_HEAD_LIFT);
-    // a hat and the sit pose use the same scale, so labels stay above the scaled head
+    expect(standing).toBeCloseTo((AVATAR_HEAD_LIFT * 4) / 3);
+    // taller than a chair, under two tiles: outfits read without the chibi heads turning chunky
+    expect(standing).toBeGreaterThan(T * 1.75);
+    expect(standing).toBeLessThan(T * 2);
     expect(avatarCrown(false, 5) - standing).toBeCloseTo(avatarPx(5));
-    expect(avatarCrown(true)).toBe(AVATAR_HEAD_SIT_LIFT * 2);
+    expect(avatarCrown(true)).toBeCloseTo((AVATAR_HEAD_SIT_LIFT * 4) / 3);
+    setAvatarZoom(2);
+    expect(avatarCrown(false)).toBeCloseTo(AVATAR_HEAD_LIFT * 1.5);
+    setAvatarZoom(3);
   });
 });
 
