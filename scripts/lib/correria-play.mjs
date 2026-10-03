@@ -177,8 +177,7 @@ async function grillView(page) {
       const age = c ? c.age + extra : 0;
       let phase = 'empty';
       // A painted spot with nothing in the snapshot is empty. Chasing that paint waits out the whole burn window.
-      // A spot already painted burnt wins over a stale "ready" age.
-      if (snap) phase = !c ? 'empty' : dom === 'burnt' || age > burnAt ? 'burnt' : age < readyAt ? 'raw' : 'ready';
+      if (snap) phase = c ? (age < readyAt ? 'raw' : age <= burnAt ? 'ready' : 'burnt') : 'empty';
       else if (!hidden && (dom === 'raw' || dom === 'ready' || dom === 'burnt')) phase = dom;
       slots.push({ i, phase, age: Math.round(age), dom, hidden });
     }
@@ -187,14 +186,10 @@ async function grillView(page) {
 }
 
 async function clickGrill(page, i) {
-  const gone = async () => {
-    const s = (await grillView(page)).slots.find((x) => x.i === i);
-    return !s || s.phase === 'empty';
-  };
+  // The handler has to go out in the same beat as the tap. Waiting for the spot to clear first
+  // spends the green window (the server still calls a too-early take raw, and a late one burnt).
   await nudge(page, `#cr-grill-${i}`);
-  if (await waitUntil(gone, 1500)) return;
   await page.evaluate((slot) => window.__tb.correria.feed.on.chapaTake(slot), i);
-  await waitUntil(gone, 1500);
 }
 
 async function grillOccupied(page) {
@@ -217,13 +212,7 @@ async function grillOne(page, itemId) {
   for (let attempt = 0; attempt < 3; attempt++) {
     if (!(await shiftLive(page))) return;
     const before = await itemCount(page, itemId);
-    if (await grillOccupied(page)) {
-      await takeGrilled(page);
-      if (await grillOccupied(page)) {
-        console.log(`  · grill stuck, leaving ${itemId}`);
-        return;
-      }
-    }
+    if (await grillOccupied(page)) await takeGrilled(page);
     if (!(await putOnChapa(page, itemId))) {
       console.log(`  · chapa did not start ${itemId} (attempt ${attempt + 1})`);
       continue;
@@ -358,7 +347,6 @@ export async function buildOrder(page, want, { quick = false } = {}) {
  */
 export async function takeGrilled(page) {
   const started = Date.now();
-  let taps = 0;
   while (Date.now() - started < BURN_MS + 2200) {
     if (!(await shiftLive(page))) return;
     const view = await grillView(page);
@@ -371,10 +359,7 @@ export async function takeGrilled(page) {
       if (!due) continue;
       await clickGrill(page, s.i);
       tapped = true;
-      taps++;
     }
-    // A spot that survives a few takes is not going to land on the tray. Stop instead of waiting out the burn window.
-    if (taps >= 2 && (await grillOccupied(page))) return;
     await sleep(tapped ? 180 : 90);
   }
 }
