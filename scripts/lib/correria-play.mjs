@@ -96,18 +96,33 @@ const trayCounts = (tray) => {
   return have;
 };
 
+const wantedPack = (mods) => (mods.includes('pra_viagem') ? 'bag' : mods.includes('pra_comer_aqui') ? 'plate' : null);
+
+/** Exact tray: the game rejects extras, and a short count is not ready either. */
+function trayExact(tray, want) {
+  const have = trayCounts(tray);
+  const ids = new Set(want.lines.map((l) => l.itemId));
+  if (want.lines.some((l) => (have[l.itemId] ?? 0) !== l.qty)) return false;
+  return Object.keys(have).every((id) => ids.has(id));
+}
+
 /** The tray, bag/plate and coffee mods match the order the customer is waiting on. */
 export async function orderReady(page, want) {
   const now = await snap(page);
+  if (!now || !trayExact(now.tray, want)) return false;
+  if ((now.pack ?? null) !== wantedPack(want.mods)) return false;
+  const mods = now.mods ?? [];
+  return want.mods.every((m) => m === 'pra_viagem' || m === 'pra_comer_aqui' || mods.includes(m)) && mods.every((m) => want.mods.includes(m));
+}
+
+/** Extras, the wrong bag, or a coffee mod that was not ordered — clear before adding more. */
+function needsReset(now, want) {
   if (!now) return false;
   const have = trayCounts(now.tray);
-  if (!want.lines.every((l) => (have[l.itemId] ?? 0) >= l.qty)) return false;
-  for (const m of want.mods) {
-    if (m === 'pra_viagem') { if (now.pack !== 'bag') return false; }
-    else if (m === 'pra_comer_aqui') { if (now.pack !== 'plate') return false; }
-    else if (!now.mods?.includes(m)) return false;
-  }
-  return true;
+  if (Object.keys(have).some((id) => have[id] > (want.lines.find((l) => l.itemId === id)?.qty ?? 0))) return true;
+  const pack = wantedPack(want.mods);
+  if (now.pack && now.pack !== pack) return true;
+  return (now.mods ?? []).some((m) => !want.mods.includes(m));
 }
 
 async function waitUntil(pred, ms) {
@@ -149,7 +164,8 @@ async function grillView(page) {
       const c = snap?.chapa?.[i] ?? null;
       const age = c ? c.age + extra : 0;
       let phase = 'empty';
-      if (c) phase = age < readyAt ? 'raw' : age <= burnAt ? 'ready' : 'burnt';
+      // A painted spot with nothing in the snapshot is empty. Chasing that paint waits out the whole burn window.
+      if (snap) phase = c ? (age < readyAt ? 'raw' : age <= burnAt ? 'ready' : 'burnt') : 'empty';
       else if (!hidden && (dom === 'raw' || dom === 'ready' || dom === 'burnt')) phase = dom;
       slots.push({ i, phase, age: Math.round(age), dom, hidden });
     }
@@ -158,8 +174,14 @@ async function grillView(page) {
 }
 
 async function clickGrill(page, i) {
+  const gone = async () => {
+    const s = (await grillView(page)).slots.find((x) => x.i === i);
+    return !s || s.phase === 'empty';
+  };
   await nudge(page, `#cr-grill-${i}`);
+  if (await waitUntil(gone, 1500)) return;
   await page.evaluate((slot) => window.__tb.correria.feed.on.chapaTake(slot), i);
+  await waitUntil(gone, 1500);
 }
 
 async function grillOccupied(page) {
@@ -170,7 +192,9 @@ async function grillOccupied(page) {
 async function putOnChapa(page, itemId) {
   const on = () => grillOccupied(page);
   await nudge(page, hit(`item-${itemId}`));
-  if (await waitUntil(on, 500)) return true;
+  // The shelf tap and the handler both put a bread down. Wait out the tap before the fallback so a slow ack is not a second loaf.
+  if (await waitUntil(on, 1500)) return true;
+  if (await on()) return true;
   await page.evaluate((id) => window.__tb.correria.feed.on.chapaPut(id), itemId);
   return waitUntil(on, 2000);
 }
@@ -191,26 +215,38 @@ async function grillOne(page, itemId) {
   }
 }
 
-async function grabItem(page, itemId) {
-  const before = await itemCount(page, itemId);
-  const grew = async () => (await itemCount(page, itemId)) > before;
-  await nudge(page, hit(`item-${itemId}`));
-  if (await waitUntil(grew, 500)) return;
-  await page.evaluate((id) => window.__tb.correria.feed.on.grab(id), itemId);
-  if (!(await waitUntil(grew, 2000))) console.log(`  · grab ${itemId} missed the tray`);
+/**
+ * Add `itemId` until the tray holds `qty`. A second grab is sent only after the first one has had time to show up
+ * in the snapshot — on a busy runner the ack is slower than a short nudge, and the extra loaf makes the serve a miss.
+ */
+async function grabUntil(page, itemId, qty) {
+  let misses = 0;
+  while ((await itemCount(page, itemId)) < qty && misses < 3) {
+    const before = await itemCount(page, itemId);
+    if (before >= qty) return;
+    const grew = async () => (await itemCount(page, itemId)) > before;
+    await nudge(page, hit(`item-${itemId}`));
+    if (await waitUntil(grew, 2000)) continue;
+    if (await grew()) continue;
+    await page.evaluate((id) => window.__tb.correria.feed.on.grab(id), itemId);
+    if (await waitUntil(grew, 2500)) continue;
+    misses++;
+    console.log(`  · grab ${itemId} missed the tray (${before}→${await itemCount(page, itemId)}, want ${qty})`);
+  }
 }
 
 async function pourOne(page, itemId, pourMs) {
   const before = (await snap(page))?.tray.length ?? 0;
   const grew = async () => ((await snap(page))?.tray.length ?? 0) > before;
   const box = await page.locator(hit(`item-${itemId}`)).boundingBox().catch(() => null);
-    if (box) {
+  if (box) {
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
     await sleep(pourMs * 0.88);
     await page.mouse.up();
-    if (await waitUntil(grew, 900)) return;
+    if (await waitUntil(grew, 1500)) return;
   }
+  if (await grew()) return;
   // The hold is judged on the server clock. A direct start/end pair still has to wait out the real pour window.
   await page.evaluate((id) => window.__tb.correria.feed.on.pourStart(id), itemId);
   await sleep(pourMs * 0.88);
@@ -223,8 +259,12 @@ async function choosePack(page, kind) {
   const ready = async () => (await snap(page))?.pack === kind;
   if (await ready()) return;
   await nudge(page, sel);
-  if (await waitUntil(ready, 400)) return;
-  await page.evaluate((k) => window.__tb.correria.feed.on.pack(k), kind);
+  if (await waitUntil(ready, 1500)) return;
+  // pack() toggles when the snapshot already shows this bag. Don't send that once the tap has landed.
+  await page.evaluate((k) => {
+    if (window.__tb.correria.feed.snap?.pack === k) return;
+    window.__tb.correria.feed.on.pack(k);
+  }, kind);
   await waitUntil(ready, 1500);
 }
 
@@ -233,35 +273,53 @@ async function chooseMod(page, mod) {
   if (await ready()) return;
   const sel = `.cr-mod[data-mod="${mod}"]`;
   await nudge(page, sel);
-  if (await waitUntil(ready, 400)) return;
-  await page.evaluate((m) => document.querySelector(`.cr-mod[data-mod="${m}"]`)?.click(), mod);
+  if (await waitUntil(ready, 1500)) return;
+  await page.evaluate((m) => {
+    if (window.__tb.correria.feed.snap?.mods?.includes(m)) return;
+    document.querySelector(`.cr-mod[data-mod="${m}"]`)?.click();
+  }, mod);
   await waitUntil(ready, 1500);
+}
+
+/** Empty the tray and wait until the snapshot says so. A clear that has not landed yet makes the next grabs stack on the old order. */
+async function clearTray(page) {
+  const clean = async () => {
+    const s = await snap(page);
+    return !!s && s.tray.length === 0 && !s.pack && !(s.mods?.length);
+  };
+  if (await clean()) return true;
+  await page.evaluate(() => window.__tb.correria.feed.on.clear());
+  if (await waitUntil(clean, 3000)) return true;
+  await page.evaluate(() => window.__tb.correria.feed.on.clear());
+  return waitUntil(clean, 2000);
 }
 
 export async function buildOrder(page, want, { quick = false } = {}) {
   trace('build', JSON.stringify(want));
   const fast = (await snap(page))?.pourMs <= POUR_FAST;
   const pourMs = fast ? POUR_FAST : POUR_FULL;
-  await page.evaluate(() => {
-    const b = document.querySelector('#cr-clear');
-    if (b && !b.disabled) window.__tb.correria.feed.on.clear();
-  });
-  for (const line of want.lines) {
-    for (let i = 0; i < line.qty; i++) {
-      if (CHAPA.has(line.itemId)) await grillOne(page, line.itemId);
-      else if (CAFE.has(line.itemId)) {
-        // a slow frame can stretch a mouse-hold past the window (the server judges it on its own clock): pour again
-        for (let attempt = 0; attempt < 3; attempt++) {
-          const before = (await snap(page))?.tray.length ?? 0;
-          trace('pour', line.itemId, attempt);
-          await pourOne(page, line.itemId, pourMs);
-          if (((await snap(page))?.tray.length ?? 0) > before) break;
-        }
-        trace('poured');
-      } else await grabItem(page, line.itemId);
-    }
+  if (needsReset(await snap(page), want)) {
+    const now = await snap(page);
+    console.log(`  · reset tray ${JSON.stringify(now?.tray ?? [])} pack=${now?.pack ?? null}`);
+    await clearTray(page);
   }
-  await takeGrilled(page);
+  for (const line of want.lines) {
+    if (CHAPA.has(line.itemId)) {
+      let guard = 0;
+      while ((await itemCount(page, line.itemId)) < line.qty && guard++ < line.qty + 2) await grillOne(page, line.itemId);
+    } else if (CAFE.has(line.itemId)) {
+      // a slow frame can stretch a mouse-hold past the window (the server judges it on its own clock): pour again
+      let guard = 0;
+      while ((await itemCount(page, line.itemId)) < line.qty && guard++ < line.qty + 2) {
+        const before = await itemCount(page, line.itemId);
+        trace('pour', line.itemId, guard);
+        await pourOne(page, line.itemId, pourMs);
+        if ((await itemCount(page, line.itemId)) <= before) break;
+      }
+      trace('poured');
+    } else await grabUntil(page, line.itemId, line.qty);
+  }
+  if (await grillOccupied(page)) await takeGrilled(page);
   for (const m of want.mods) {
     if (m === 'pra_viagem') await choosePack(page, 'bag');
     else if (m === 'pra_comer_aqui') await choosePack(page, 'plate');
@@ -299,38 +357,54 @@ export async function startShiftFromPedido(page) {
   await waitFor(page, () => !!window.__tb.correria.feed.snap, null, 8000, 'the first shift state');
 }
 
+const serveDiag = (page) =>
+  page.evaluate(() => {
+    const s = window.__tb?.correria?.feed?.snap;
+    const b = document.querySelector('#cr-serve');
+    const front = s?.customers?.find((c) => c.state === 'front' || c.state === 'asking');
+    return {
+      disabled: !!b?.disabled,
+      ended: !!document.querySelector('#mg-end'),
+      tray: s?.tray ?? null,
+      chapa: s?.chapa ?? null,
+      pack: s?.pack ?? null,
+      front: front ? { state: front.state, pt: front.pt } : null,
+    };
+  });
+
 export async function serve(page) {
   trace('serve');
-  // Entregar stays disabled while the tray is empty or the customer in front is not waiting. Don't sit on that for the default click timeout.
-  const enabled = await page
-    .waitForFunction(() => {
-      const b = document.querySelector('#cr-serve');
-      return !!b && !b.disabled;
-    }, null, { timeout: 8000 })
-    .then(() => true)
-    .catch(() => false);
-  if (!enabled) {
-    const diag = await page.evaluate(() => {
-      const s = window.__tb?.correria?.feed?.snap;
-      const b = document.querySelector('#cr-serve');
-      const front = s?.customers?.find((c) => c.state === 'front' || c.state === 'asking');
-      return { disabled: !!b?.disabled, tray: s?.tray ?? null, chapa: s?.chapa ?? null, pack: s?.pack ?? null, front: front ? { state: front.state, pt: front.pt } : null };
-    }).catch(() => null);
-    throw new Error(`#cr-serve stayed disabled (${JSON.stringify(diag)})`);
+  // Entregar stays disabled while the tray is empty or nobody is waiting. A customer who already walked
+  // off (patience, or a second miss) must not abort the rest of the shift.
+  const until = Date.now() + 8000;
+  while (Date.now() < until) {
+    const st = await serveDiag(page).catch(() => null);
+    if (!st || st.ended || !st.front) {
+      console.log(`  · Entregar skipped (${JSON.stringify(st)})`);
+      return false;
+    }
+    if (!st.disabled) {
+      // A moving counter camera keeps Playwright from treating Entregar as stable, so the click waits until the customer has already left.
+      await page.evaluate(() => {
+        const b = document.querySelector('#cr-serve');
+        if (b && !b.disabled) b.click();
+        else window.__tb.correria.feed.on.serve();
+      });
+      return true;
+    }
+    await sleep(80);
   }
-  // A moving counter camera keeps Playwright from treating Entregar as stable, so the click waits until the customer has already left.
-  await page.evaluate(() => {
-    const b = document.querySelector('#cr-serve');
-    if (b && !b.disabled) b.click();
-    else window.__tb.correria.feed.on.serve();
-  });
+  const diag = await serveDiag(page).catch(() => null);
+  throw new Error(`#cr-serve stayed disabled (${JSON.stringify(diag)})`);
 }
 
-/** Build the order, and once more if the tray (or the bag / mods) does not match yet. */
+/** Build the order, and once more from an empty tray if the counts (or the bag / mods) are not exact yet. */
 async function deliver(page, want, log) {
   await buildOrder(page, want);
   if (await orderReady(page, want)) return;
-  log('  tray incomplete → rebuild');
+  const now = await snap(page);
+  log(`  tray incomplete → rebuild have=${JSON.stringify(now?.tray ?? [])} want=${JSON.stringify(want.lines)} pack=${now?.pack ?? null} mods=${JSON.stringify(now?.mods ?? [])}`);
+  await clearTray(page);
   await buildOrder(page, want);
 }
 
@@ -356,10 +430,20 @@ export async function answerAsk(page, { wrong = false } = {}) {
 export async function playShift(page, { log = () => {}, dwell = () => Promise.resolve(), onCustomer, onAsk, maxMs = 420_000 } = {}) {
   const until = Date.now() + maxMs;
   let n = 0;
+  const tries = new Map();
   while (Date.now() < until) {
     if (await page.$('#mg-end')) return n;
     const c = await waitFront(page, 60_000);
     if (!c) return n;
+    const attempt = (tries.get(c.id) ?? 0) + 1;
+    tries.set(c.id, attempt);
+    if (attempt > 2) {
+      log(`  giving up on “${c.pt}” after ${attempt - 1} tries`);
+      const st = await serveDiag(page).catch(() => null);
+      if (st?.front && st.tray?.length) await serve(page);
+      else await waitUntil(async () => !(await snap(page))?.customers?.some((x) => x.id === c.id && x.state === 'front'), 20_000);
+      continue;
+    }
     const want = await wantOf(page, c);
     if (!want.lines.length) throw new Error(`could not read the order: ${c.pt}`);
     // a follow-up may change the order: wait for it to be said, then rebuild
@@ -381,19 +465,37 @@ export async function playShift(page, { log = () => {}, dwell = () => Promise.re
     }
     if (onCustomer) await onCustomer(c, n);
     if (await page.$('#mg-end')) return n;
-    await serve(page);
+    const stillHere = async () => {
+      if (await page.$('#mg-end')) return false;
+      const s = await snap(page);
+      return !!s?.customers?.some((x) => x.id === c.id && (x.state === 'front' || x.state === 'asking'));
+    };
+    if (!(await stillHere())) {
+      log('  customer left before Entregar');
+      continue;
+    }
+    if (!(await serve(page))) continue;
     await sleep(150);
     // a wrong tray gets one correction: rebuild from the (possibly updated) order and serve again
     const still = (await snap(page))?.customers.find((x) => x.id === c.id && x.state === 'front');
     if (still && still.mistakes > 0) {
       const w2 = await wantOf(page, still);
-      log('  correction → rebuild');
+      log('  correction → rebuild', JSON.stringify((await snap(page))?.tray ?? []));
       await deliver(page, w2, log);
-      await serve(page);
+      if (await stillHere()) await serve(page);
       await sleep(150);
     }
     if (onAsk) await onAsk();
     await answerAsk(page);
+    const movedOn = await waitUntil(async () => {
+      const s = await snap(page);
+      const x = s?.customers?.find((c0) => c0.id === c.id);
+      return !x || x.state !== 'front';
+    }, 2000);
+    if (!movedOn) {
+      log(`  still at the counter after Entregar (${JSON.stringify((await snap(page))?.tray ?? [])})`);
+      continue;
+    }
     n++;
   }
   throw new Error('the shift did not end in time');
