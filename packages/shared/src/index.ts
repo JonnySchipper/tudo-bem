@@ -20,6 +20,7 @@ export * from './conversa.js';
 export * from './academia.js';
 export * from './challenges.js';
 export * from './bout.js';
+export * from './gripFight.js';
 export * from './auth.js';
 export * from './clock.js';
 export * from './weather.js';

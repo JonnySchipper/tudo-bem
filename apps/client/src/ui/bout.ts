@@ -20,6 +20,8 @@ import {
   type ClientMsg,
   type PartnerId,
   boutStepLabel,
+  gripMoveLabel,
+  type GripMoveId,
 } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en } from './dom';
@@ -311,7 +313,7 @@ export class BoutUI {
       h(
         'div',
         { class: 'bout-intents', id: 'bout-intents', 'data-finish': String(m.finish), 'data-seq': String(m.seq) },
-        h('div', { class: 'bout-ask' }, ...this.bi('O que você faz?', 'What do you do?'), this.quitBtn()),
+        h('div', { class: 'bout-ask' }, ...this.bi('Pegada ou força?', 'Grip or force?'), this.quitBtn()),
         fin,
         h('div', { class: 'bout-chips' }, ...chips),
         this.timerBar(),
@@ -331,11 +333,11 @@ export class BoutUI {
     );
   }
 
-  private pickIntent(seq: number, intent: BoutIntentOut['id'] | 'finalizar'): void {
+  private pickIntent(seq: number, intent: BoutIntentOut['id'] | 'finalizar' | GripMoveId): void {
     if (this.locked || seq !== this.seq) return;
     this.locked = true;
     this.sfx('tick');
-    this.send({ action: 'intent', seq, intent });
+    this.send({ action: 'intent', seq, intent: intent as never });
     this.body.querySelectorAll('button').forEach((b) => b.setAttribute('disabled', ''));
     this.body.querySelector(`[data-intent="${intent}"]`)?.classList.add('picked');
   }
@@ -465,18 +467,19 @@ export class BoutUI {
     this.locked = true;
     this.stopTimer();
     this.setSnap(m.st);
-    const banner = resultBanner({ yours: m.yours });
     const picked = this.body.querySelector('.picked');
     picked?.classList.add(m.yours.correct ? 'right' : 'wrong');
     const call = callOf(m);
+    const movePt = gripMoveLabel(m.intent as GripMoveId).pt;
+    const partnerPt = gripMoveLabel(m.partner.intent as GripMoveId).pt;
     this.body.replaceChildren(
       h(
         'div',
         { class: `bout-resolve ${m.yours.correct ? 'right' : 'wrong'}`, id: 'bout-resolve', 'data-correct': String(m.yours.correct) },
-        h('b', { class: 'bout-banner' }, banner.pt),
-        en(banner.en),
+        h('b', { class: 'bout-banner' }, movePt),
+        this.showEn ? en(gripMoveLabel(m.intent as GripMoveId).en) : null,
         call ? h('div', { class: 'bout-called', id: 'bout-called' }, h('b', null, call.pt), en(call.en)) : null,
-        h('span', { class: 'bout-who' }, `${this.partnerName}: ${INTENTS[m.partner.intent]?.pt ?? ''} ${m.partner.correct ? '✓' : '✗'}`),
+        h('span', { class: 'bout-who' }, `${this.partnerName}: ${partnerPt}`),
       ),
     );
     for (const c of cuesForResolve(m)) boutFeed.push(c);
