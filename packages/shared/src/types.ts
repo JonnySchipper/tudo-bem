@@ -59,12 +59,14 @@ export interface PublicAvatar {
   parrotColor?: string | null;
   /** Street snack in hand until logout (session); not on the saved profile. */
   carry?: StreetSnackId | null;
+  /** Wears the academia gi (and belt) in every room after buying at the vestiário. */
+  gi?: boolean;
   nameplate: Nameplate;
   x: number;
   y: number;
   dir: Dir;
   sitting: boolean;
-  /** The belt earned in the academia (never bought): worn in the academia and shown on the profile card. Players only. */
+  /** The belt earned in the academia (never bought): shown on the profile card and on the gi when worn. Players only. */
   belt?: Belt;
   /** Praça ambiance CPU (scripted scenery, outside the player cap, never chats). */
   cpu?: boolean;
@@ -107,16 +109,6 @@ export interface FriendInfo {
   instanceId: string | null;
 }
 
-/** The padaria counter game's progress. Stars unlock tools and set the level; they are earned by playing, never bought. */
-export interface CorreriaProgress {
-  stars: number;
-  shifts: number;
-  best: number;
-  /** The real day (YYYY-MM-DD) `paid` counts shifts of: only the first few shifts a day pay RV. */
-  date?: string;
-  paid?: number;
-}
-
 export interface PrivateProfile {
   id: string;
   name: string;
@@ -135,6 +127,8 @@ export interface PrivateProfile {
   parrotColors?: string[];
   /** Which colour is out on your shoulder. */
   parrotColor?: string | null;
+  /** Bought the kimono at the Academia vestiário; enables the gi look everywhere. */
+  giOwned?: boolean;
   friends: string[];
   tutorial: Record<TutorialStep, boolean>;
   tutorialRewarded: boolean;
@@ -143,8 +137,6 @@ export interface PrivateProfile {
   mission?: DailyMission;
   /** Academia BJJ — earned belt progress (never purchased). */
   bjj?: BjjProgress;
-  /** Correria no Balcão progress (stars, shifts, best score, today's paid shifts). Optional and defaulted on load. */
-  correria?: CorreriaProgress;
   /** Bag: itemId -> count (Phase 8). Defaulted to {} on load. */
   bag?: Record<string, number>;
   /** Recados state: today's offer, the ones in progress, the ones finished today (Phase 8). */

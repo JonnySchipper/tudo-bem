@@ -1,15 +1,15 @@
 /**
- * Damas na mesa da praça: two sides, legal moves only, play until someone wins.
+ * Damas na mesa da praça: two human sides, legal moves only, play until someone wins.
  */
 import {
   applyMove,
-  cpuPickMove,
   initialBoard,
   legalMoves,
   winner,
   xy,
   type Board,
   type Move,
+  type Side,
   BOARD_SIZE,
 } from '@tudobem/shared';
 import { h, bi, en } from './dom';
@@ -41,73 +41,61 @@ function cellEl(i: number, board: Board, sel: number | null, onPick: (i: number)
 
 export function openCheckers(): () => void {
   let board = initialBoard();
-  let turn: 'you' | 'cpu' = 'you';
+  /** Bottom pieces (●) vs top (○); same engine sides as before. */
+  let turn: Side = 'you';
   let selected: number | null = null;
-  let statusPt = 'Sua vez — clique numa peça sua.';
-  let statusEn = 'Your turn — click one of your pieces.';
-  let done: 'you' | 'cpu' | 'draw' | null = null;
+  let statusPt = 'Vez do preto — clique numa peça.';
+  let statusEn = 'Black’s turn — click one of your pieces.';
+  let done: Side | 'draw' | null = null;
 
   const status = h('p', { class: 'ck-status', id: 'ck-status' });
   const grid = h('div', { class: 'ck-grid', role: 'grid', 'aria-label': 'Tabuleiro de damas' });
+
+  const sideLabel = (s: Side) => (s === 'you' ? { pt: 'Preto', en: 'Black' } : { pt: 'Branco', en: 'White' });
 
   const render = () => {
     status.replaceChildren(statusPt, en(statusEn, true));
     grid.replaceChildren(...Array.from({ length: 64 }, (_, i) => cellEl(i, board, selected, pick)));
   };
 
-  const end = (w: 'you' | 'cpu' | 'draw') => {
+  const end = (w: Side | 'draw') => {
     done = w;
-    if (w === 'you') {
-      statusPt = 'Você ganhou!';
-      statusEn = 'You won!';
-    } else if (w === 'cpu') {
-      statusPt = 'O vovô ganhou desta vez.';
-      statusEn = 'Grandpa won this round.';
-    } else {
+    if (w === 'draw') {
       statusPt = 'Empate.';
       statusEn = 'Draw.';
+    } else {
+      const lab = sideLabel(w);
+      statusPt = `${lab.pt} ganhou!`;
+      statusEn = `${lab.en} won!`;
     }
-    render();
-  };
-
-  const cpuTurn = () => {
-    const w = winner(board, 'cpu');
-    if (w) return end(w);
-    const m = cpuPickMove(board);
-    if (!m) return end('you');
-    board = applyMove(board, m);
-    turn = 'you';
-    const w2 = winner(board, 'you');
-    if (w2) return end(w2);
-    statusPt = 'Sua vez.';
-    statusEn = 'Your turn.';
-    selected = null;
     render();
   };
 
   const tryMove = (m: Move) => {
     board = applyMove(board, m);
     selected = null;
-    const w = winner(board, 'cpu');
+    const next: Side = turn === 'you' ? 'cpu' : 'you';
+    const w = winner(board, next);
     if (w) return end(w);
-    turn = 'cpu';
-    statusPt = 'O vovô está pensando…';
-    statusEn = 'Grandpa is thinking…';
+    turn = next;
+    const lab = sideLabel(turn);
+    statusPt = `Vez do ${lab.pt.toLowerCase()}.`;
+    statusEn = `${lab.en}’s turn.`;
     render();
-    setTimeout(cpuTurn, 450);
   };
 
   const pick = (i: number) => {
-    if (done || turn !== 'you') return;
-    const p = board[i];
-    const moves = legalMoves(board, 'you');
-    if (!moves.length) return end(winner(board, 'you') ?? 'draw');
+    if (done) return;
+    const moves = legalMoves(board, turn);
+    if (!moves.length) return end(winner(board, turn) ?? 'draw');
 
     if (selected !== null) {
       const m = moves.find((mv) => mv.from === selected && mv.to === i);
       if (m) return tryMove(m);
     }
-    if (p === 1 || p === 2) {
+    const p = board[i];
+    const mine = turn === 'you' ? p === 1 || p === 2 : p === -1 || p === -2;
+    if (mine && moves.some((mv) => mv.from === i)) {
       selected = i;
       render();
       return;
@@ -126,7 +114,7 @@ export function openCheckers(): () => void {
       { class: 'panel checkers-panel' },
       h('button', { class: 'close ghost', onclick: () => closeModal(), 'aria-label': 'Fechar' }, '✕'),
       h('h2', null, bi('Damas', 'Checkers')),
-      en('Click your piece, then a highlighted square. Jumps are mandatory when you can take a piece.'),
+      en('Two players, one device. Jumps are mandatory when you can take a piece.'),
       status,
       grid,
       h(
@@ -139,8 +127,8 @@ export function openCheckers(): () => void {
             turn = 'you';
             selected = null;
             done = null;
-            statusPt = 'Sua vez — clique numa peça sua.';
-            statusEn = 'Your turn — click one of your pieces.';
+            statusPt = 'Vez do preto — clique numa peça.';
+            statusEn = 'Black’s turn — click one of your pieces.';
             render();
           },
         },

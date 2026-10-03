@@ -8,6 +8,8 @@ export const MAX_CHAT_LEN = 140;
 export const BUBBLE_MS = 7000;
 /** Milliseconds per orthogonal tile step. Diagonals use STEP_MS * SQRT2. */
 export const STEP_MS = 260;
+/** NPC schedule walks: slower than the player so neighbours read as a stroll, not a rush. */
+export const NPC_STEP_MS = 420;
 
 export const SKIN_TONES = ['#f6d7c3', '#eec1a0', '#d9a07a', '#c68a5f', '#a86c45', '#8a5433', '#6b3f24', '#4a2a17'];
 export const HAIR_COLORS = ['#1d1716', '#3a241a', '#5f3b22', '#9a5f30', '#cfa65a', '#9c9792', '#a8395f', '#34599a'];
@@ -66,7 +68,7 @@ export const LABELS = {
  */
 export const STARTER_OUTFITS: { id: string; pt: string; en: string; set: Pick<Appearance, 'top' | 'topColor' | 'bottom' | 'bottomColor' | 'shoes'> }[] = [
   { id: 'visual_inicial', pt: 'Visual inicial', en: 'Starter outfit', set: { top: 'camiseta', topColor: 4, bottom: 'calca', bottomColor: 2, shoes: 0 } },
-];
+};
 
 export const DEFAULT_APPEARANCE: Appearance = {
   body: 'medio',
@@ -89,7 +91,7 @@ export const TUTORIAL_STEPS: { id: TutorialStep; pt: string; en: string }[] = [
   { id: 'acenar', pt: 'Dê um oi', en: 'Wave hello (Oi button)' },
   { id: 'conversar', pt: 'Mande uma mensagem', en: 'Send a chat message' },
   { id: 'carlos', pt: 'Tome café com o Seu Carlos', en: 'Have breakfast with Seu Carlos (Padaria)' },
-  { id: 'meveum', pt: 'Jogue a “Correria no Balcão”', en: 'Play “Correria no Balcão” (Counter Rush)' },
+  { id: 'meveum', pt: 'Jogue “Me vê um…”', en: 'Play the “Me vê um…” tray game' },
   { id: 'chapeu', pt: 'Use um chapéu', en: 'Get and wear a hat (Nanda’s stall)' },
   { id: 'cadeira', pt: 'Coloque uma cadeira na kitnet', en: 'Place a chair in your kitnet' },
 ];
