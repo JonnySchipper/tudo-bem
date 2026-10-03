@@ -194,7 +194,7 @@ describe('NPCs walk between slots and every instance sees it', () => {
     setGameTime(5, 59);
     const world = makeWorld();
     const a = await client(world, 'padaria');
-    run(6000); // Seu Carlos leaves the Edifício at 06:00, crosses the rua and reaches the padaria door about 3 s later
+    run(10_000); // Seu Carlos leaves the Edifício at 06:00, crosses the rua and reaches the padaria door (slower NPC stroll)
     const again = await client(world, 'padaria');
     const carlosA = npcsOf(a).find((v) => v.npc === 'carlos');
     expect(carlosA).toBeUndefined(); // he was not yet in the world when `a` joined

@@ -2,7 +2,6 @@ import {
   freshMission,
   normalizeBag,
   normalizeBjj,
-  normalizeCorreria,
   normalizeBond,
   normalizeBondGifts,
   normalizeCaderno,
@@ -141,7 +140,6 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.cadernoPaid = normalizeCadernoPaid(p.cadernoPaid);
   p.npcMemory = normalizeNpcMemory(p.npcMemory);
   p.feira = normalizeFeira(p.feira);
-  p.correria = normalizeCorreria(p.correria);
   if (p.parrotOwned) {
     if (!p.parrotColors?.length) p.parrotColors = ['verde'];
     if (!p.parrotColor) p.parrotColor = 'verde';
@@ -149,11 +147,12 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
     p.parrotColors = p.parrotColors ?? [];
     p.parrotColor = p.parrotColor ?? null;
   }
+  if (p.giOwned == null) p.giOwned = !!p.bjj;
   return p;
 }
 
 export function toPrivate(p: StoredProfile): PrivateProfile {
   const { token: _t, ageGate18: _a, accountId: _acc, daily: _d, lastSeen: _l, ...rest } = p;
   const mission = p.mission?.date === today() ? p.mission : freshMission(today());
-  return structuredClone({ ...rest, mission, bjj: normalizeBjj(p.bjj), correria: normalizeCorreria(p.correria) });
+  return structuredClone({ ...rest, mission, bjj: normalizeBjj(p.bjj) });
 }

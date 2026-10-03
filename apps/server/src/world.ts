@@ -24,9 +24,6 @@ import {
   isRoomId,
   key,
   MAX_CHAT_LEN,
-  frontOf,
-  weekday,
-  gameDay,
   pathDuration,
   positionAlong,
   ROOM_AMBIANCE,
@@ -52,6 +49,9 @@ import {
   MISSION_COPY,
   MISSION_REWARD,
   MISSION_STEPS,
+  frontOf,
+  weekday,
+  gameDay,
   type DailyMission,
   type MissionStep,
   type Appearance,
@@ -75,6 +75,8 @@ import {
   talkOpener,
   type TutorialStep,
   normalizeBjj,
+  GI_ITEM_ID,
+  GI_PRICE,
   PARROT_COLORS,
   parrotColorById,
   snackById,
@@ -89,7 +91,7 @@ import { NPC_TICK_MS, NpcDirector } from './npcs.js';
 import { RecadoTracker, sceneItems } from './recados.js';
 import { CadernoTracker } from './caderno.js';
 import { FeiraCounter } from './feira.js';
-import { CorreriaEngine, type CorreriaRun } from './correria.js';
+import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria.js';
 import { BoutEngine, type BoutSession } from './bout.js';
 
 export interface Services {
@@ -195,6 +197,9 @@ const EMOTES: EmoteKind[] = ['oi', 'dancar', 'rir', 'valeu', 'desculpa'];
 /** “oi” / “olá” in chat counts as greeting someone for the kiosk mission. */
 const GREETING = /(^|[^\p{L}])(oi|ol[aá])($|[^\p{L}])/iu;
 
+/** How long a dropped connection can reclaim the open Correria shift (alias for older tests). */
+export const MG_RESUME_MS = CORRERIA_RESUME_MS;
+
 export class World {
   readonly sessions = new Map<string, Session>();
   private instances = new Map<string, Instance>();
@@ -219,7 +224,7 @@ export class World {
   private readonly caderno: CadernoTracker;
   /** The feira's prices and payments (Phase 9). */
   private readonly feira: FeiraCounter;
-  /** Correria no Balcão: the shifts, their clocks and the parked ones (apps/server/src/correria.ts). */
+  /** Correria no Balcão: shifts, clocks and parked resume (apps/server/src/correria.ts). */
   private readonly correria: CorreriaEngine;
 
   constructor(
@@ -508,11 +513,11 @@ export class World {
       parrotEquipped: false,
       parrotColors: [],
       parrotColor: null,
+      giOwned: false,
       friends: [],
       tutorial,
       tutorialRewarded: false,
       createdAt: this.now(),
-      bjj: { belt: 'branca', stripes: 0, wins: 0 },
       daily: { date: today(), sceneClears: {} },
       lastSeen: this.now(),
     };
@@ -757,7 +762,8 @@ export class World {
       parrot: p.parrotOwned && p.parrotEquipped,
       parrotColor: p.parrotOwned && p.parrotEquipped ? p.parrotColor ?? 'verde' : null,
       carry: s.carry,
-      belt: normalizeBjj(p.bjj).belt,
+      gi: !!p.giOwned,
+      belt: p.giOwned ? normalizeBjj(p.bjj).belt : undefined,
       nameplate: p.nameplate,
       x: cur.tile.x,
       y: cur.tile.y,
@@ -1098,8 +1104,33 @@ export class World {
 
   // ---------- shop ----------
 
-  private buy(s: Session, kind: 'hat' | 'furniture' | 'parrot', itemId: string) {
+  private buy(s: Session, kind: 'hat' | 'furniture' | 'parrot' | 'gi', itemId: string) {
     const p = s.profile!;
+    if (kind === 'gi') {
+      if (itemId !== GI_ITEM_ID) return;
+      if (s.instance?.def.id !== 'academia') return this.err(s, 'shop', 'O kimono se compra no vestiário da academia.', 'Buy the gi at the academy changing area.');
+      const prop = s.instance.def.props.find((q) => q.id === 'vestiario');
+      if (!prop?.interact) return;
+      const cur = this.currentTile(s);
+      const spot = prop.interact;
+      const d = Math.max(Math.abs(cur.tile.x - spot.x), Math.abs(cur.tile.y - spot.y));
+      if (d > 2) return this.err(s, 'shop', 'Chega mais perto do vestiário.', 'Get closer to the changing area.');
+      if (p.giOwned) return this.err(s, 'owned', 'Você já tem kimono.', 'You already own a gi.');
+      if (p.coins < GI_PRICE) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
+      p.coins -= GI_PRICE;
+      p.giOwned = true;
+      p.bjj = normalizeBjj({ ...(p.bjj ?? {}), belt: 'branca', stripes: 0, wins: p.bjj?.wins ?? 0 });
+      this.store.save();
+      s.send({
+        t: 'notice',
+        level: 'reward',
+        pt: 'Kimono comprado! Professora Bia te deu a faixa branca.',
+        en: 'Gi purchased! Professora Bia gave you the white belt.',
+      });
+      this.pushProfile(s);
+      this.broadcastAvatar(s);
+      return;
+    }
     if (kind === 'parrot') {
       const color = parrotColorById(itemId);
       if (!color || color.id !== itemId) return;
@@ -1123,7 +1154,7 @@ export class World {
       if (!hat) return;
       if (s.instance?.def.id !== 'praca') return this.err(s, 'shop', 'A barraca da Nanda fica na praça.', 'Nanda’s stall is in the square.');
       if (p.hats.includes(hat.id)) return this.err(s, 'owned', 'Você já tem esse chapéu.', 'You already own this hat.');
-      if (p.coins < hat.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet — play “Correria no Balcão” or talk to Seu Carlos.');
+      if (p.coins < hat.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet — play “Me vê um…” or talk to Seu Carlos.');
       p.coins -= hat.price;
       p.hats.push(hat.id);
       this.store.save();
@@ -1355,7 +1386,6 @@ export class World {
 /** Client timers fire these on their own (reconnect hello, order/duel timeouts), so they don't prove anyone is there. */
 function isRealInput(msg: ClientMsg): boolean {
   if (msg.t === 'hello') return false;
-  if (msg.t === 'mg' && msg.action === 'sync') return false;
   return true;
 }
 

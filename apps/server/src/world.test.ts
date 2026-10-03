@@ -21,7 +21,7 @@ import {
   type PublicAvatar,
   type Tile,
 } from '@tudobem/shared';
-import { sanitizeAppearance, World, type AccountLink, type Session, type WorldOptions } from './world.js';
+import { sanitizeAppearance, World, MG_RESUME_MS, type AccountLink, type Session, type WorldOptions } from './world.js';
 import { serveFront } from './correriaTestKit.js';
 import { ProfileStore, type StoredProfile } from './store.js';
 import { AuthoredNpcDialogue, MemoryModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
@@ -47,7 +47,7 @@ function makeWorld(cap = 16, extra: Partial<WorldOptions> = {}) {
   const world = new World(
     new ProfileStore(null),
     { safety: new JevStubSafety(), gloss: new PhrasebookGloss(), npc: new AuthoredNpcDialogue(), student, moderation },
-    { roomCap: cap, mgGapMs: 0, now, schedule: (fn, ms) => pending.push({ fn, at: clock + ms }), ...extra },
+    { roomCap: cap, mgGapMs: 0, testMg: true, now, schedule: (fn, ms) => pending.push({ fn, at: clock + ms }), ...extra },
   );
   return { world, moderation, student };
 }
@@ -267,7 +267,7 @@ describe('World', () => {
     expect(endScene.view.end).toBe(true);
     expect(endScene.payout).toBe(ECONOMY.sceneMax);
 
-    // Me vê um… — answer every order correctly using the server's order (test hook)
+    // Me vê um… — play through the shift using the server's order (test hook)
     await a.send({ t: 'mg', action: 'start' });
     for (let r = 0; r < 40 && a.last('mg')!.phase !== 'end'; r++) await serveFront(world, a, advance);
     const end = a.last('mg') as Extract<ServerMsg, { t: 'mg'; phase: 'end' }>;
@@ -474,6 +474,7 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
     await a.send({ t: 'hello' });
     await a.send({ t: 'createProfile', name: 'Rafa', pronoun: 'ele', appearance: DEFAULT_APPEARANCE });
     await a.send({ t: 'join', room: 'academia' });
+    a.s.profile!.giOwned = true;
     const cpus = cpusSeen(a);
     expect(cpus.length).toBeGreaterThanOrEqual(1);
     expect(cpus.length).toBeLessThanOrEqual(6);
@@ -543,7 +544,7 @@ describe('Praça ambiance CPUs + daily kiosk (Live Ops Phase 0)', () => {
     expect(a.all('reward').filter((r) => r.amount === MISSION_REWARD && r.reason.pt === 'Missão completa! +25 RV')).toHaveLength(1);
     expect(a.s.profile!.coins).toBe(coins + MISSION_REWARD);
 
-    // A second correct order doesn't pay again.
+    // A second served order in the same shift doesn't pay the mission again.
     await serveFront(world, a, advance);
     expect(a.all('reward').filter((r) => r.amount === MISSION_REWARD).length).toBe(1);
   });
@@ -748,7 +749,7 @@ describe('Idle kick', () => {
     world.sweepIdle();
     expect(closed).toBeNull();
 
-    await a.send({ t: 'mg', action: 'sync' });
+    await a.send({ t: 'ping' });
     clock += 5 * MIN;
     world.sweepIdle();
     expect(closed).toBe('idle');

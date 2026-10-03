@@ -59,12 +59,14 @@ export interface PublicAvatar {
   parrotColor?: string | null;
   /** Street snack in hand until logout (session); not on the saved profile. */
   carry?: StreetSnackId | null;
+  /** Wears the academia gi (and belt) in every room after buying at the vestiário. */
+  gi?: boolean;
   nameplate: Nameplate;
   x: number;
   y: number;
   dir: Dir;
   sitting: boolean;
-  /** The belt earned in the academia (never bought): worn in the academia and shown on the profile card. Players only. */
+  /** The belt earned in the academia (never bought): shown on the profile card and on the gi when worn. Players only. */
   belt?: Belt;
   /** Praça ambiance CPU (scripted scenery, outside the player cap, never chats). */
   cpu?: boolean;
@@ -135,6 +137,8 @@ export interface PrivateProfile {
   parrotColors?: string[];
   /** Which colour is out on your shoulder. */
   parrotColor?: string | null;
+  /** Bought the kimono at the Academia vestiário; enables the gi look everywhere. */
+  giOwned?: boolean;
   friends: string[];
   tutorial: Record<TutorialStep, boolean>;
   tutorialRewarded: boolean;

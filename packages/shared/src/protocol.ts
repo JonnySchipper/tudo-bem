@@ -49,7 +49,7 @@ export type ClientMsg =
   | { t: 'mg'; action: 'act'; act: CAct }
   | { t: 'mg'; action: 'quit' }
   | { t: 'mg'; action: 'sync' }
-  | { t: 'buy'; kind: 'hat' | 'furniture' | 'parrot'; itemId: string }
+  | { t: 'buy'; kind: 'hat' | 'furniture' | 'parrot' | 'gi'; itemId: string }
   | { t: 'snack'; action: 'buy'; itemId: string }
   | { t: 'equipHat'; hatId: string | null }
   | { t: 'parrot'; action: 'adopt' | 'toggle' | 'hint' | 'color'; colorId?: string }
@@ -99,7 +99,7 @@ export interface RoomStateMsg {
 
 export type NoticeLevel = 'info' | 'warn' | 'block' | 'reward' | 'error';
 
-/** Correria no Balcão. `state` carries the whole shift picture plus the one-shot events that just happened; the client keeps no rules. */
+/** Correria no Balcão end card: stars, RV, Caderno words and unlocks for this shift. */
 export interface CorreriaEnd {
   served: number;
   perfect: number;

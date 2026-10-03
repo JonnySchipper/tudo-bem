@@ -9,7 +9,7 @@
  * the new room and walk to the slot tile. Going `em_casa` is a walk to the room's home door; coming back starts at its home entry.
  */
 import { gameMinutesExact, MS_PER_GAME_MINUTE } from './clock.js';
-import { findPath, pathDuration, positionAlong, stepMs, type PathPos } from './path.js';
+import { findPath, npcStepMs, pathDuration, positionAlong, type PathPos } from './path.js';
 import { buildGrid, key, npcDefById, ROOMS, type NpcId, type PortalDef, type RoomGrid } from './rooms.js';
 import { NPC_HOME_DOORS, SCHEDULES, slotIndexAt, type NpcActivity, type ScheduleSlot } from './schedules.js';
 import type { Dir, RoomId, Tile } from './types.js';
@@ -44,7 +44,7 @@ export interface NpcLeg {
 function leg(room: RoomId, from: Tile, to: Tile, vanish: boolean): NpcLeg {
   const path = findPath(npcNavGrid(room), from, to);
   if (!path) return { room, from: to, path: [], ms: 0, vanish, broken: true };
-  return { room, from, path, ms: pathDuration(from, path), vanish, broken: false };
+  return { room, from, path, ms: pathDuration(from, path, npcStepMs), vanish, broken: false };
 }
 
 const legCache = new Map<string, NpcLeg[]>();
@@ -215,13 +215,13 @@ export interface PoseWalk {
 }
 
 export function poseWalk(pose: NpcPose, nowMs: number): PoseWalk {
-  const pos = positionAlong(pose.from, pose.path, nowMs - pose.startMs, pose.dir);
+  const pos = positionAlong(pose.from, pose.path, nowMs - pose.startMs, pose.dir, npcStepMs);
   let prev = pose.from;
   let t = nowMs - pose.startMs;
   let i = 0;
   for (; i < pose.path.length; i++) {
     const p = pose.path[i]!;
-    const d = stepMs(prev, p);
+    const d = npcStepMs(prev, p);
     if (t < d) break;
     t -= d;
     prev = p;

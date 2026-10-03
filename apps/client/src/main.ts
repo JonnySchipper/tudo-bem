@@ -77,6 +77,7 @@ import { openCaderno } from './ui/caderno';
 import { openHotspotCard } from './ui/hotspotCard';
 import { openStreetSnack } from './ui/streetSnack';
 import { openCheckers } from './ui/checkers';
+import { openGiShop } from './ui/giShop';
 import { setHeardSink } from './ui/heard';
 import { closeConversa, isConversaOpen, openConversa } from './ui/conversa';
 import { BoutUI } from './ui/bout';
@@ -128,7 +129,6 @@ function newCorreriaUI() {
     send: (m) => net.send(m),
     closed: () => {
       correriaUi = null;
-      updateGuides();
     },
     again: startMinigame,
   });
@@ -266,6 +266,7 @@ function propAction(action: string, propId?: string) {
   else if (action === 'parrot_perch') showParrotPerch(() => net.send({ t: 'parrot', action: 'adopt' }));
   else if (action === 'street_snack' && propId) openStreetSnack(propId, (id) => net.send({ t: 'snack', action: 'buy', itemId: id }));
   else if (action === 'checkers') openCheckers();
+  else if (action === 'buy_gi') openGiShop(!!game.profile?.giOwned, () => net.send({ t: 'buy', kind: 'gi', itemId: 'kimono' }));
   else if (action === 'bjj_roll') openBout();
 }
 
@@ -278,6 +279,10 @@ wireParrotShop({
 function openBout() {
   closeDialogue();
   if (boutUi?.open) return;
+  if (!game.profile?.giOwned) {
+    openGiShop(false, () => net.send({ t: 'buy', kind: 'gi', itemId: 'kimono' }));
+    return;
+  }
   net.send({ t: 'bout', v: 1, action: 'open' });
 }
 
@@ -323,7 +328,7 @@ function updateGuides() {
   const p = game.profile;
   const r = game.room;
   renderer.guides = [];
-  if (!p || !r || correriaUi?.open) return; // no guide arrows over the counter board
+  if (!p || !r) return;
   const t = p.tutorial;
   const add = (g: Guide | null) => g && renderer.guides.push(g);
   if (r.room === 'rua') {
@@ -343,10 +348,11 @@ function updateGuides() {
     const baker = game.liveNpcs(now()).find((q) => q.id === 'carlos' || q.id === 'graca');
     if (baker?.id === 'graca') add(guideAt('npc', 'graca', 130, t.carlos ? 'Falar com Dona Graça' : 'Fale com a Dona Graça'));
     else add(guideAt('npc', 'carlos', 130, t.carlos ? 'Falar com Carlos' : 'Fale com o Seu Carlos'));
-    if (t.carlos && !t.meveum) add(guideAt('prop', 'trilho', 128, 'Correria no Balcão'));
+    if (t.carlos && !t.meveum) add(guideAt('prop', 'trilho', 128, 'Me vê um…'));
     else if (t.carlos && t.meveum && !t.chapeu) add(guideAt('portal', 'padaria_praca', 110, '← Rua'));
   } else if (r.room === 'academia') {
-    add(guideAt('prop', 'fila', 190, 'Fila do tatame'));
+    if (!p.giOwned) add(guideAt('prop', 'vestiario', 160, '1 · Kimono aqui'));
+    else add(guideAt('prop', 'fila', 190, '2 · Treino no tatame'));
     add(guideAt('portal', 'academia_praca', 110, '← Rua'));
   }
 }
@@ -495,10 +501,7 @@ net.on((m: ServerMsg) => {
           700,
         );
       }
-      if (keepMg) {
-        // A restart can drop the shift: ask now, the server answers with the shift or the lost-order card.
-        correriaUi?.requestSync();
-      }
+      if (keepMg) correriaUi?.requestSync();
       break;
     }
     case 'avatarJoined':
@@ -904,7 +907,7 @@ canvas.addEventListener('pointerleave', () => {
 canvas.addEventListener('click', (e) => {
   lastPointer.x = e.clientX;
   lastPointer.y = e.clientY;
-  if (boutUi?.open || correriaUi?.open) return; // the mat / the counter is busy: the overlay is the only input
+  if (boutUi?.open) return; // the mat is busy: the overlay is the only input
   if (game.modalOpen && (modalId() || isDialogueBoxOpen())) return;
   hoverLabel(0, 0, null);
   handleClick(renderer.hitTest(e.clientX, e.clientY));

@@ -109,7 +109,7 @@ export const HOTSPOTS: HotspotDef[] = [
   { id: 'academia_mural', room: 'academia', x: 7, y: 0, w: 4, h: 1, up: 2, pt: 'TREINO\nCOMUNIDADE', en: 'TRAINING\nCOMMUNITY' },
   { id: 'academia_horarios', room: 'academia', x: 10, y: 4, pt: 'AULAS\nSegunda a sexta: 18h\nSábado: 10h', en: 'CLASSES\nMonday to Friday: 6 pm\nSaturday: 10 am' },
   { id: 'academia_faixas', room: 'academia', x: 0, y: 1, w: 1, h: 2, pt: 'FAIXAS\nbranca · azul · roxa\nmarrom · preta', en: 'BELTS\nwhite · blue · purple\nbrown · black' },
-  { id: 'academia_vestiario', room: 'academia', x: 0, y: 7, pt: 'VESTIÁRIO\nGuarde suas coisas aqui', en: 'CHANGING ROOM\nKeep your things here' },
+  { id: 'academia_vestiario', room: 'academia', x: 2, y: 7, pt: 'KIMONO\nCompre aqui\nantes do tatame', en: 'GI\nBuy here\nbefore the mat' },
 ];
 
 export const hotspotById = (id: string): HotspotDef | undefined => HOTSPOTS.find((h) => h.id === id);

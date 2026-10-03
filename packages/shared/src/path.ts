@@ -1,5 +1,5 @@
 import type { Dir, Tile } from './types.js';
-import { STEP_MS } from './constants.js';
+import { NPC_STEP_MS, STEP_MS } from './constants.js';
 import { inBounds, isWalkable, key, type RoomGrid } from './rooms.js';
 
 const DIRS: [number, number][] = [
@@ -75,15 +75,21 @@ export function dirBetween(a: Tile, b: Tile, fallback: Dir = 'SE'): Dir {
   return right ? 'NE' : 'NW';
 }
 
+export type StepMsFn = (a: Tile, b: Tile) => number;
+
 export function stepMs(a: Tile, b: Tile): number {
   return a.x !== b.x && a.y !== b.y ? STEP_MS * Math.SQRT2 : STEP_MS;
 }
 
-export function pathDuration(from: Tile, path: Tile[]): number {
+export function npcStepMs(a: Tile, b: Tile): number {
+  return a.x !== b.x && a.y !== b.y ? NPC_STEP_MS * Math.SQRT2 : NPC_STEP_MS;
+}
+
+export function pathDuration(from: Tile, path: Tile[], step: StepMsFn = stepMs): number {
   let t = 0;
   let prev = from;
   for (const p of path) {
-    t += stepMs(prev, p);
+    t += step(prev, p);
     prev = p;
   }
   return t;
@@ -101,12 +107,12 @@ export interface PathPos {
 }
 
 /** Interpolated position along a path `elapsed` ms after it began. */
-export function positionAlong(from: Tile, path: Tile[], elapsed: number, startDir: Dir): PathPos {
+export function positionAlong(from: Tile, path: Tile[], elapsed: number, startDir: Dir, step: StepMsFn = stepMs): PathPos {
   let prev = from;
   let t = elapsed;
   let dir = startDir;
   for (const p of path) {
-    const d = stepMs(prev, p);
+    const d = step(prev, p);
     dir = dirBetween(prev, p, dir);
     if (t < d) {
       const f = Math.max(0, t / d);

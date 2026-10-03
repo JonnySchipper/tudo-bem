@@ -30,13 +30,23 @@ describe('checkers', () => {
     expect(b[idx(0, 0)]).toBe(2);
   });
 
-  it('detects a win when the opponent has no pieces', () => {
+  it('blocks slides when any jump is available', () => {
+    const trap: Board = Array(64).fill(0) as Board;
+    trap[idx(2, 5)] = 1;
+    trap[idx(3, 4)] = -1;
+    trap[idx(5, 5)] = 1;
+    const moves = legalMoves(trap, 'you');
+    expect(moves.every((m) => m.caps.length > 0)).toBe(true);
+    expect(moves.some((m) => m.from === idx(2, 5))).toBe(true);
+  });
+
+  it('alternating sides: no legal moves means a win for the side to move', () => {
     const b = initialBoard().map(() => 0) as Board;
     b[idx(3, 3)] = 1;
     expect(winner(b, 'cpu')).toBe('you');
   });
 
-  it('the CPU always returns a legal move while the game is on', () => {
+  it('the CPU helper still picks legal moves for solo tests', () => {
     const m = cpuPickMove(initialBoard());
     expect(m).toBeTruthy();
     expect(legalMoves(initialBoard(), 'cpu').some((x) => x.from === m!.from && x.to === m!.to)).toBe(true);

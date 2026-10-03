@@ -25,7 +25,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DAY_MIN, assertPageClock, offsetMinFor, requirePinnedClock } from './lib/clock-pin.mjs';
-import { assert, playShift, sleep, startShiftFromPedido, waitFor } from './lib/correria-play.mjs';
+import { assert, expectFirstTimeoutRearms, learnShelf, playShift, sleep, waitFor } from './lib/meveum-play.mjs';
 import { goArea } from './lib/areas.mjs';
 import { openBout, playBout, startBout, waitBoutPhase } from './lib/bout-play.mjs';
 
@@ -427,60 +427,48 @@ async function main() {
   log('scene payout →', afterScene.coins - start.coins, 'RV');
   assert(afterScene.tutorial.carlos, 'carlos step');
 
-  // 5. Correria no Balcão: one full shift through the real taps (3 waves, 15 customers) behind the padaria counter
-  await startShiftFromPedido(page);
-  assert(await page.isVisible('#cr-panel'), 'the counter strip is up');
-  assert(!(await page.$('[data-modal="minigame"]')), 'no modal over the padaria');
+  // 5. Me vê um… minigame
+  await page.click('#btn-pedido-play-mg');
+  await page.waitForSelector('#mg-order');
+  await page.click('#mg-shelves button');
   for (const size of [
     { width: 1280, height: 800 },
     { width: 390, height: 844 },
   ]) {
     await page.setViewportSize(size);
-    await sleep(400);
-    const m = await page.evaluate(() => {
-      const el = document.querySelector('#cr-serve');
-      const panel = document.querySelector('#cr-panel');
-      if (!el || !panel) return null;
+    const placeInView = await page.evaluate(() => {
+      const el = document.querySelector('#mg-tray-place');
+      const panel = document.querySelector('.panel.mg');
+      if (!el || !panel) return false;
       const r = el.getBoundingClientRect();
       const pr = panel.getBoundingClientRect();
-      return { inView: r.width > 0 && r.height > 0 && r.top >= pr.top - 1 && r.bottom <= pr.bottom + 1, share: pr.height / window.innerHeight };
+      return r.width > 0 && r.height > 0 && r.top >= pr.top - 1 && r.bottom <= pr.bottom + 1;
     });
-    assert(m?.inView, `Entregar stays tappable at ${size.width}×${size.height}`);
-    if (size.width < 500) assert(m.share <= 0.35, `the counter strip stays under 35% of a phone (${(m.share * 100).toFixed(0)}%)`);
+    assert(placeInView, `Colocar na bandeja stays tappable at ${size.width}×${size.height}`);
   }
   await page.setViewportSize({ width: 1440, height: 900 });
-  let mgShot = false;
-  const served = await playShift(page, {
-    log,
-    dwell,
-    onCustomer: async (_c, i) => {
-      if (i === 3 && !mgShot) {
-        mgShot = true;
-        await shot(page, '07_correria_tray');
-      }
-    },
-  });
+  await page.click('#mg-clear');
+  await learnShelf(page);
+  await playShift(page, { log, dwell, onRound: (round) => (round === 2 ? shot(page, '07_meveum_tray') : undefined) });
   await sleep(300);
-  await shot(page, '08_correria_end');
+  await shot(page, '08_meveum_end');
   await dwell(2200);
   const afterMg = await profile(page);
-  log('shift served', served, 'customers; payout →', afterMg.coins - afterScene.coins, 'RV');
-  assert(served >= 10, `the bot served most of the 15 customers (${served})`);
-  assert(afterMg.coins - afterScene.coins >= 8, 'the shift pays RV');
-  assert(afterMg.correria?.shifts === 1 && afterMg.correria.stars >= 1, `stars and the shift counter are on the profile (${JSON.stringify(afterMg.correria)})`);
+  log('minigame payout →', afterMg.coins - afterScene.coins, 'RV');
+  assert(afterMg.coins - afterScene.coins >= 18, 'perfect-ish minigame payout');
   if (AMBIANCE) {
     assert(afterMg.mission?.rewarded && Object.values(afterMg.mission.steps).every(Boolean), 'daily mission complete (+25 RV)');
     log('mission complete: Cumprimenta ✓ Pede ✓ Monta ✓');
   } else assert(afterMg.mission?.steps.pede && afterMg.mission?.steps.monta, 'mission: Pede + Monta');
-  assert(!(await page.isVisible('#cr-serve')), 'Fim do turno hides the counter strip');
-  assert(/\+\d+ RV/.test((await page.textContent('#mg-end .big')) ?? ''), 'the end card headlines the RV');
+  const endFooter = await page.isVisible('#mg-tray-place');
+  assert(!endFooter, 'Fim do turno hides Colocar / Limpar / Entregar');
 
-  // 5a. Jogar de novo opens a fresh shift; closing it with nothing served leaves the counter at once.
+  // 5a. Jogar de novo: the first Pedido 1 timeout must re-arm, not soft-lock the tray.
   await page.click('#mg-end button:has-text("Jogar de novo")');
-  await waitFor(page, () => !!window.__tb.correria.feed.snap && window.__tb.correria.feed.snap.stats.served === 0, null, 8000, 'a fresh shift');
-  await shot(page, '08a_correria_again');
-  await page.click('#cr-quit');
-  await waitFor(page, () => !document.querySelector('#correria'), null, 5000, 'the counter closes after ✕ with nothing served');
+  await expectFirstTimeoutRearms(page, log);
+  await shot(page, '08a_meveum_again_denovo');
+  await page.click('#minigame .mg-head button.ghost');
+  await waitFor(page, () => !document.querySelector('[data-modal="minigame"]'), null, 5000, 'Me vê um closes after ✕ with nothing served');
 
   // 5b. Test daily RV gate: second Pedido rápido same day → 0 RV, "já pediu hoje" message
   const coinsBeforeSecond = (await profile(page)).coins;
@@ -565,6 +553,8 @@ async function main() {
   await page.waitForSelector('[data-modal="parrot-shop"]', { timeout: 12_000 });
   await page.click('[data-modal="parrot-shop"] [data-parrot="verde"] button.primary');
   await waitFor(page, () => window.__tb.game.profile.parrotOwned, null, 5000, 'parrot');
+  await page.keyboard.press('Escape');
+  await sleep(400);
   await page.click('#btn-parrot');
   await page.waitForSelector('.parrot-whisper', { timeout: 5000 });
   await sleep(400);
@@ -584,6 +574,11 @@ async function main() {
   );
   await sleep(500);
   await shot(page, '09b_academia');
+  await interact(page, { prop: 'vestiario' });
+  await page.waitForSelector('#dialogue-box[data-dialogue="gi-buy"]', { timeout: 8000 });
+  await page.click('#dialogue-box [data-chip="0"]');
+  await waitFor(page, () => window.__tb.game.profile.giOwned, null, 8000, 'gi purchased');
+  await sleep(400);
   // the bout is in the world (no modal): the lobby, one full match played from the CI hints (TB_TEST_ROLL=1 / ?rolltest), the end card
   const coins0 = (await profile(page)).coins;
   await openBout(page);
