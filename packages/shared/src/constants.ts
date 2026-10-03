@@ -68,7 +68,7 @@ export const LABELS = {
  */
 export const STARTER_OUTFITS: { id: string; pt: string; en: string; set: Pick<Appearance, 'top' | 'topColor' | 'bottom' | 'bottomColor' | 'shoes'> }[] = [
   { id: 'visual_inicial', pt: 'Visual inicial', en: 'Starter outfit', set: { top: 'camiseta', topColor: 4, bottom: 'calca', bottomColor: 2, shoes: 0 } },
-};
+];
 
 export const DEFAULT_APPEARANCE: Appearance = {
   body: 'medio',
