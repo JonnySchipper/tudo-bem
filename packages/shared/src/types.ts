@@ -1,4 +1,5 @@
 import type { DailyMission } from './ambiance.js';
+import type { CartelaState } from './cartela.js';
 import type { StreetSnackId } from './streetSnacks.js';
 import type { BjjProgress, Belt } from './academia.js';
 import type { NpcId } from './rooms.js';
@@ -178,6 +179,8 @@ export interface PrivateProfile {
   film?: number;
   /** Photos taken with the camera, newest first. */
   photos?: { id: string; at: number; image: string; wordId?: string }[];
+  /** Cartela de carimbos do bairro (seven stamps pay RV; persists across sessions). */
+  cartela?: CartelaState;
 }
 
 export interface Bilingual {

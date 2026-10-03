@@ -53,6 +53,8 @@ import { initPixelArt } from './ui/pixelArt';
 import type { Guide, Hit, WorldView } from './render/view';
 import { runOnboarding, closeOnboarding } from './ui/onboarding';
 import { buildHud, hoverLabel, idleKickedCard, missionBanner, overlayMessage, parrotWhisper, reconnectBanner, toast } from './ui/hud';
+import { cartelaBanner, openCartela } from './ui/cartela';
+import { CARTELA_COPY, stampNotice } from '@tudobem/shared';
 import {
   buildDecorPanel,
   closeDialogue,
@@ -606,9 +608,25 @@ net.on((m: ServerMsg) => {
       // a recado step and the giver's thanks have their own presentation (the tracker's ✓, the thanks card)
       if (m.tag !== 'recado_step' && m.tag !== 'recado_thanks') toast(m.level, m.pt, m.en);
       break;
+    case 'cartela': {
+      const line = stampNotice(m.activity, m.stamps, m.paid);
+      if (m.paid) {
+        cartelaBanner(m.stamps);
+        toast('reward', line.pt, line.en, undefined);
+        ambience.sting('mission');
+      } else {
+        toast('info', line.pt, line.en);
+        ambience.sting('coin');
+      }
+      game.emit('hud');
+      break;
+    }
     case 'reward':
       if (m.reason.pt === MISSION_COPY.done.pt) {
         missionBanner();
+        ambience.sting('mission');
+      } else if (m.reason.pt === CARTELA_COPY.paid.pt) {
+        toast('reward', m.reason.pt, m.reason.en, m.amount);
         ambience.sting('mission');
       } else if (m.reason.pt.startsWith('Recado: ')) break; // the thanks card shows the RV
       else {
@@ -728,6 +746,7 @@ function startGame() {
       game.emit('hud');
     },
     openRecados: () => openJournal(),
+    openCartela: () => openCartela(),
     openFriends: () =>
       openFriends({
         request: (id) => net.send({ t: 'friend', action: 'request', targetId: id }),
@@ -1190,4 +1209,6 @@ window.__tb = {
     },
     feed: correriaFeed,
   },
+  openCartela: () => openCartela(),
+  cartelaBanner: (stamps: number) => cartelaBanner(stamps),
 };

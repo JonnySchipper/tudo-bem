@@ -1,4 +1,15 @@
-import { classifyChat, MAX_CHAT_LEN, MISSION_COPY, MISSION_STEPS, type EmoteKind, type NoticeLevel } from '@tudobem/shared';
+import {
+  CARTELA_COPY,
+  CARTELA_GOAL,
+  classifyChat,
+  MAX_CHAT_LEN,
+  MISSION_COPY,
+  MISSION_STEPS,
+  stampsOnDay,
+  todayEastern,
+  type EmoteKind,
+  type NoticeLevel,
+} from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi, ui } from './dom';
 import { icon, type IconName } from '../art/ui';
@@ -15,6 +26,7 @@ export interface HudActions {
   openCaderno: () => void;
   toggleCamera: () => void;
   openRecados: () => void;
+  openCartela: () => void;
   openFriends: () => void;
   openWardrobe: () => void;
   toggleDecor: () => void;
@@ -71,6 +83,20 @@ export function buildHud(actions: HudActions) {
   const roomName = h('div', { class: 'room' });
   const coins = h('span', { id: 'coins' });
   const missionPill = h('span', { class: 'hud-chip', id: 'mission-pill', title: `${MISSION_COPY.header.en} — quest kiosk in the Praça` });
+  const cartelaPill = h(
+    'button',
+    {
+      type: 'button',
+      class: 'hud-chip cartela-chip',
+      id: 'cartela-pill',
+      title: `${CARTELA_COPY.title.en} — ${CARTELA_COPY.hud.pt}`,
+      onclick: () => {
+        closeMenus();
+        actions.openCartela();
+      },
+    },
+    h('span', { class: 'hud-chip-text' }, `${CARTELA_COPY.hud.pt} 0/${CARTELA_GOAL}`),
+  );
   const plate = h('span', { class: 'hud-verde', title: 'Verde: you see English under Portuguese' }, icon('verde', 16), 'Verde');
 
   // ---- the actions: one set of buttons, an icon bar on desktop and a drawer on a phone
@@ -174,6 +200,7 @@ export function buildHud(actions: HudActions) {
       actionsNav,
     ),
     missionPill,
+    cartelaPill,
   );
 
   // ---- open / close the drawer (phone) and the gear menu (desktop)
@@ -318,6 +345,14 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       missionPill.replaceChildren(
         h('span', { class: 'hud-chip-text' }, `${MISSION_COPY.header.pt} ${done}/${MISSION_STEPS.length}`),
         h('span', { class: 'mini-steps', 'aria-hidden': 'true' }, ...MISSION_STEPS.map((s) => h('span', { class: `mini ${m?.steps[s.id] ? 'done' : ''}`, title: s.pt }, icon(s.id, 16)))),
+      );
+      const day = todayEastern();
+      const cst = p.cartela;
+      const cStamps = cst?.stamps ?? 0;
+      const cToday = cst ? stampsOnDay(cst, day) : 0;
+      cartelaPill.replaceChildren(
+        h('span', { class: 'hud-chip-text' }, `${CARTELA_COPY.hud.pt} ${cStamps}/${CARTELA_GOAL}`),
+        h('span', { class: 'cartela-mini', 'aria-hidden': 'true' }, bi(`Hoje ${cToday}/4`, `Today ${cToday}/4`)),
       );
       parrotBtn.style.display = p.parrotOwned && p.parrotEquipped ? '' : 'none';
       parrotToggle.style.display = p.parrotOwned ? '' : 'none';
