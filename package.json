@@ -19,7 +19,7 @@
     "e2e:all": "node scripts/e2e-all.mjs",
     "e2e:solo": "node scripts/e2e-solo.mjs",
     "tts": "node scripts/bake-tts.mjs",
-    "pixel": "node scripts/pixel-import.mjs",
+    "pixel": "node --experimental-strip-types scripts/pixel-import.mjs",
     "verify": "pnpm typecheck && pnpm test && pnpm build",
     "content": "node scripts/build-curriculum.mjs"
   },

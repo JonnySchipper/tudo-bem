@@ -88,38 +88,30 @@ const wave = (raised) => ({
       : { 10: [2, 'oooo'], 11: [1, 'ossso'], 12: [1, 'orsso'], 13: [2, 'osso'], 14: [3, 'osso'], ...armL(15, 22, 4) },
   ),
 });
-// valeu: side thumb-up (thumb points right), fist at chest — not a raised middle finger
+// valeu: fist at chest with thumb bent up-left (reads as thumbs-up, not a middle finger)
 const thumb = {
   S: PA({
-    12: [0, '..so'],
-    13: [0, '.sso'],
-    14: [1, 'osso'],
-    15: [1, 'osso'],
-    16: [2, 'osso'],
-    17: [3, 'osso'],
-    18: [4, 'osso'],
-    19: [5, '.oso'],
-    20: [5, '.oso'],
-    21: [6, '.oso'],
+    10: [2, '.o.'],
+    11: [1, '.so'],
+    12: [2, 'osso'],
+    13: [2, 'osso'],
+    14: [3, 'osso'],
+    15: [3, 'osro'],
+    16: [4, '.oso'],
+    17: [4, '.oso'],
+    18: [5, '.oso'],
+    19: [6, '.oso'],
   }),
 };
-// dancar: hands beside the head with short arms from the shoulders (no floating limbs)
+// dancar: hands beside the head; forearms connect at the shoulder line (rows 17–21)
 const dance = (lUp, rUp) => {
-  const hand = (x, up) =>
-    up
-      ? { [11]: [x, 'orro'], [12]: [x, 'orso'], [13]: [x, 'oooo'] }
-      : { [15]: [x, 'orro'], [16]: [x, 'osro'] };
-  return {
-    S: PA({
-      ...hand(2, lUp),
-      ...hand(11, rUp),
-      17: [3, '.o.o'],
-      18: [3, '.o.o'],
-      19: [3, '.o.o'],
-      20: [4, '.oso'],
-      21: [4, '.oso'],
-    }),
+  const side = (x, up) => {
+    const hi = { [10]: [x, 'orro'], [11]: [x, 'orso'], [12]: [x, 'oooo'] };
+    const lo = { [15]: [x, 'orro'], [16]: [x, 'osro'] };
+    const arm = { [13]: [x + 1, '.o.'], [14]: [x + 1, '.o.'], [17]: [x, '.o.'], [18]: [x, '.o.'], [19]: [x + 1, '.o.'], [20]: [x + 1, '.o.'] };
+    return up ? { ...hi, ...arm } : { ...lo, ...arm };
   };
+  return { S: PA({ ...side(1, lUp), ...side(10, rUp), 21: [5, '.o.o'], 22: [6, '.oso'] }) };
 };
 // laugh: eyes squeezed shut (a dash instead of the dot), mouth wide open / a broad smile; skin is painted over the eye whites
 const laugh = (open) => ({
