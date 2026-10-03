@@ -29,7 +29,7 @@ describe('typed manifest images', () => {
 
   it('every bag item has an icon and every NPC portrait has its four expressions', () => {
     for (const it of MG_ITEMS) expect(imageDef(`icons/${it.id}`, images), it.id).toBeTruthy();
-    for (const npc of ['carlos', 'nanda', 'julia', 'graca', 'tia_lu']) {
+    for (const npc of ['carlos', 'nanda', 'julia', 'graca', 'tia_lu', 'prof', 'ze', 'chico', 'rosa']) {
       for (const e of ['neutro', 'feliz', 'surpreso', 'pensativo']) expect(imageDef(`portraits/${npc}_${e}`, images), `${npc}_${e}`).toBeTruthy();
     }
   });

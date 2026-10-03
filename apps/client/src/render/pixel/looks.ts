@@ -155,8 +155,7 @@ export const NPC_STYLES: Record<NpcId, NpcStyle> = {
     apron: '#e8892b',
   },
   // The feira vendors (Phase 9), built from existing layers only (hats and aprons of the NPC set): Seu Zé in a panama hat and an olive apron,
-  // Seu Chico in a yellow bucket hat and a white apron (the pastel fryer), Dona Rosa in a flower crown. Portraits are placeholders
-  // (`PORTRAIT_PLACEHOLDER`): Zé and Chico borrow Carlos', Rosa borrows Graça's, until the art track draws theirs.
+  // Seu Chico in a yellow bucket hat and a white apron (the pastel fryer), Dona Rosa in a flower crown. Dialogue portraits: `portraits/ze_*`, `portraits/chico_*`, `portraits/rosa_*`.
   ze: {
     appearance: base({ body: 'forte', skin: 3, hair: 'raspado', hairColor: 5, top: 'camisa', topColor: 11, bottom: 'calca', bottomColor: 10, shoes: 2, face: 'maduro', extra: 'bigode', idle: 'bracos' }),
     hat: 'panama',
