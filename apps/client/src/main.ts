@@ -63,6 +63,7 @@ import {
   openProfileCard,
   showJulia,
   showParrotPerch,
+  wireParrotShop,
   showScene,
 } from './ui/panels';
 import { openPedido, updatePedido, closePedido, isPedidoOpen } from './ui/pedido';
@@ -74,6 +75,8 @@ import { openNpcTalk } from './ui/npcTalk';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira';
 import { openCaderno } from './ui/caderno';
 import { openHotspotCard } from './ui/hotspotCard';
+import { openStreetSnack } from './ui/streetSnack';
+import { openCheckers } from './ui/checkers';
 import { setHeardSink } from './ui/heard';
 import { closeConversa, isConversaOpen, openConversa } from './ui/conversa';
 import { BoutUI } from './ui/bout';
@@ -297,8 +300,15 @@ function propAction(action: string, propId?: string) {
   else if (action === 'minigame') startMinigame();
   else if (action === 'kiosk') openKiosk(() => net.send({ t: 'mission', action: 'take' }));
   else if (action === 'parrot_perch') showParrotPerch(() => net.send({ t: 'parrot', action: 'adopt' }));
+  else if (action === 'street_snack' && propId) openStreetSnack(propId, (id) => net.send({ t: 'snack', action: 'buy', itemId: id }));
+  else if (action === 'checkers') openCheckers();
   else if (action === 'bjj_roll') openBout();
 }
+
+wireParrotShop({
+  buy: (id) => net.send({ t: 'buy', kind: 'parrot', itemId: id }),
+  equip: (id) => net.send({ t: 'parrot', action: 'color', colorId: id }),
+});
 
 /** The mat queue: ask the server for the partner list; the lobby (and the mat camera) opens when it answers. */
 function openBout() {

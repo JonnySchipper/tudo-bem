@@ -85,6 +85,11 @@ import {
   talkOpener,
   type TutorialStep,
   normalizeBjj,
+  PARROT_COLORS,
+  parrotColorById,
+  snackById,
+  snackForProp,
+  type StreetSnackId,
 } from '@tudobem/shared';
 import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
 import { ProfileStore, today, todaySaoPaulo, toPrivate, type StoredProfile } from './store.js';
@@ -194,6 +199,8 @@ export interface Session {
   bout?: BoutSession;
   chatTimes: number[];
   lastHintAt: number;
+  /** Street snack in hand (session only; cleared on disconnect). */
+  carry: StreetSnackId | null;
 }
 
 const INSTANCE_SUFFIX = ['Norte', 'Sul', 'Leste', 'Oeste'];
@@ -333,7 +340,7 @@ export class World {
   // ---------- connection lifecycle ----------
 
   connect(id: string, send: (m: ServerMsg) => void, close: (reason: CloseReason) => void, auth: { accountId?: string } = {}): Session {
-    const s: Session = { id, send, close, accountId: auth.accountId, lastActiveAt: this.now(), idleWarned: false, chatTimes: [], lastHintAt: 0 };
+    const s: Session = { id, send, close, accountId: auth.accountId, lastActiveAt: this.now(), idleWarned: false, chatTimes: [], lastHintAt: 0, carry: null };
     this.sessions.set(id, s);
     return s;
   }
@@ -432,10 +439,12 @@ export class World {
         return this.minigame(s, msg);
       case 'buy':
         return this.buy(s, msg.kind, msg.itemId);
+      case 'snack':
+        return this.buySnack(s, msg.itemId);
       case 'equipHat':
         return this.equipHat(s, msg.hatId);
       case 'parrot':
-        return this.parrot(s, msg.action);
+        return this.parrot(s, msg.action, msg.colorId);
       case 'furniture':
         return this.furniture(s, msg);
       case 'friend':
@@ -536,6 +545,8 @@ export class World {
       apartment: [],
       parrotOwned: false,
       parrotEquipped: false,
+      parrotColors: [],
+      parrotColor: null,
       friends: [],
       tutorial,
       tutorialRewarded: false,
@@ -783,6 +794,8 @@ export class World {
       appearance: p.appearance,
       hat: p.hat,
       parrot: p.parrotOwned && p.parrotEquipped,
+      parrotColor: p.parrotOwned && p.parrotEquipped ? p.parrotColor ?? 'verde' : null,
+      carry: s.carry,
       belt: normalizeBjj(p.bjj).belt,
       nameplate: p.nameplate,
       x: cur.tile.x,
@@ -1350,8 +1363,26 @@ export class World {
 
   // ---------- shop ----------
 
-  private buy(s: Session, kind: 'hat' | 'furniture', itemId: string) {
+  private buy(s: Session, kind: 'hat' | 'furniture' | 'parrot', itemId: string) {
     const p = s.profile!;
+    if (kind === 'parrot') {
+      const color = parrotColorById(itemId);
+      if (!color || color.id !== itemId) return;
+      if (s.instance?.def.id !== 'praca') return this.err(s, 'shop', 'O poleiro fica na praça.', 'The parrot perch is in the square.');
+      if (!p.parrotColors) p.parrotColors = [];
+      if (p.parrotColors.includes(color.id)) return this.equipParrotColor(s, color.id);
+      if (p.coins < color.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
+      p.coins -= color.price;
+      p.parrotColors.push(color.id);
+      p.parrotOwned = true;
+      p.parrotEquipped = true;
+      p.parrotColor = color.id;
+      this.store.save();
+      s.send({ t: 'notice', level: 'reward', pt: `Papagaio ${color.pt}!`, en: `${color.en} parrot!` });
+      this.pushProfile(s);
+      this.broadcastAvatar(s);
+      return;
+    }
     if (kind === 'hat') {
       const hat = hatById(itemId);
       if (!hat) return;
@@ -1386,13 +1417,50 @@ export class World {
     if (hatId) this.completeStep(s, 'chapeu');
   }
 
-  private parrot(s: Session, action: 'adopt' | 'toggle' | 'hint') {
+  private buySnack(s: Session, itemId: string) {
+    const snack = snackById(itemId);
     const p = s.profile!;
+    if (!snack) return;
+    if (s.instance?.def.id !== 'praca') return this.err(s, 'shop', 'Compre na praça.', 'Buy this in the square.');
+    const prop = s.instance.def.props.find((q) => q.id === snack.propId);
+    if (!prop) return;
+    const cur = this.currentTile(s);
+    const spot = prop.interact ?? { x: prop.x, y: prop.y };
+    const d = Math.max(Math.abs(cur.tile.x - spot.x), Math.abs(cur.tile.y - spot.y));
+    if (d > 2) return this.err(s, 'shop', 'Chega mais perto do carrinho.', 'Get closer to the cart.');
+    if (p.coins < snack.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
+    p.coins -= snack.price;
+    s.carry = snack.id;
+    this.store.save();
+    s.send({ t: 'notice', level: 'reward', pt: `Comprou: ${snack.pt}`, en: `Bought: ${snack.en}` });
+    this.pushProfile(s);
+    this.broadcastAvatar(s);
+  }
+
+  private equipParrotColor(s: Session, colorId: string) {
+    const p = s.profile!;
+    if (!p.parrotColors?.includes(colorId)) return;
+    p.parrotColor = colorId;
+    p.parrotEquipped = true;
+    this.store.save();
+    this.pushProfile(s);
+    this.broadcastAvatar(s);
+  }
+
+  private parrot(s: Session, action: 'adopt' | 'toggle' | 'hint' | 'color', colorId?: string) {
+    const p = s.profile!;
+    if (action === 'color') {
+      if (!colorId) return;
+      return this.equipParrotColor(s, colorId);
+    }
     if (action === 'adopt') {
       if (p.parrotOwned) return;
       if (s.instance?.def.id !== 'praca') return;
       p.parrotOwned = true;
       p.parrotEquipped = true;
+      if (!p.parrotColors) p.parrotColors = [];
+      if (!p.parrotColors.includes('verde')) p.parrotColors.push('verde');
+      p.parrotColor = 'verde';
       s.send({ t: 'notice', level: 'reward', pt: 'Um papagaio agora é seu amigo! Ele sussurra palavras.', en: 'A parrot is now your buddy! It whispers study words (hint).' });
     } else if (action === 'toggle') {
       if (!p.parrotOwned) return;

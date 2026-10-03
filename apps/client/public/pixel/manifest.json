@@ -10314,6 +10314,16 @@
    "w": 16,
    "h": 16
   },
+  "icons/pipoca": {
+   "file": "icons/pipoca.png",
+   "w": 16,
+   "h": 16
+  },
+  "icons/agua_de_coco": {
+   "file": "icons/agua_de_coco.png",
+   "w": 16,
+   "h": 16
+  },
   "icons/pao_de_queijo": {
    "file": "icons/pao_de_queijo.png",
    "w": 16,

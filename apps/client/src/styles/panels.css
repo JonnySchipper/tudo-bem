@@ -379,3 +379,48 @@ html {
   width: min(100%, calc(var(--mm-cols, 40) * 8px));
   height: auto;
 }
+
+/* Damas (checkers) at the praça table */
+.panel.checkers-panel {
+  width: min(420px, calc(100vw - 24px));
+}
+.ck-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  width: min(320px, 72vw);
+  aspect-ratio: 1;
+  margin: 12px auto;
+  border: 3px solid var(--hud-ink, #573c2c);
+}
+.ck-cell {
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 18px;
+  line-height: 1;
+  cursor: default;
+}
+.ck-cell.light {
+  background: var(--ck-light, #e8d4b0);
+}
+.ck-cell.dark {
+  background: var(--ck-dark, #6b4a38);
+  cursor: pointer;
+}
+.ck-cell.dark.sel {
+  outline: 2px solid #f2c230;
+  outline-offset: -2px;
+}
+.ck-cell.dark.has {
+  color: #c62828;
+  font-weight: 800;
+}
+.ck-status {
+  text-align: center;
+  margin: 8px 0;
+}
+.parrot-shop canvas {
+  display: block;
+  margin: 8px auto;
+}

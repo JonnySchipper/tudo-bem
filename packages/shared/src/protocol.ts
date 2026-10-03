@@ -49,9 +49,10 @@ export type ClientMsg =
   | { t: 'mg'; action: 'timeout' }
   | { t: 'mg'; action: 'quit' }
   | { t: 'mg'; action: 'sync' }
-  | { t: 'buy'; kind: 'hat' | 'furniture'; itemId: string }
+  | { t: 'buy'; kind: 'hat' | 'furniture' | 'parrot'; itemId: string }
+  | { t: 'snack'; action: 'buy'; itemId: string }
   | { t: 'equipHat'; hatId: string | null }
-  | { t: 'parrot'; action: 'adopt' | 'toggle' | 'hint' }
+  | { t: 'parrot'; action: 'adopt' | 'toggle' | 'hint' | 'color'; colorId?: string }
   | { t: 'furniture'; action: 'place'; itemId: string; x: number; y: number; rot: 0 | 1 }
   | { t: 'furniture'; action: 'move'; uid: string; x: number; y: number; rot: 0 | 1 }
   | { t: 'furniture'; action: 'pickup'; uid: string }
