@@ -214,17 +214,13 @@ export class DiaryTracker {
     p.diary = granted.earned;
     this.d.store.save();
     this.d.pushProfile(s);
-    const board = areaBoard(word.area, p.diary);
-    const progress = progressLine(board);
-    // needs_br: true
-    const how = via === 'reading' ? 'leu' : 'ouviu';
-    const howEn = via === 'reading' ? 'read' : 'heard';
-    s.send({
-      t: 'notice',
-      level: 'info',
-      pt: `Você ${how} “${word.pt}” e guardou no diário. ${board.pt}: ${progress}`,
-      en: `You ${howEn} “${word.pt}” (${word.en}) and kept it in the diary. ${board.en}: ${progress}`,
-    });
+    this.announce(s, word, via);
+  }
+
+  /** The new-word moment on the client (the same card a photo gets). */
+  private announce(s: Session, word: { pt: string; en: string; area: string }, via: DiaryWord['source']) {
+    const board = areaBoard(word.area, s.profile?.diary);
+    s.send({ t: 'diary', phase: 'word', pt: word.pt, en: word.en, source: via, areaPt: board.pt, progress: progressLine(board) });
   }
 
   private practice(s: Session) {
@@ -287,6 +283,8 @@ export class DiaryTracker {
         granted = { pt: got.word.pt, en: got.word.en };
         this.d.store.save();
         this.d.pushProfile(s);
+        // the client holds this one until the practice panel closes (a game word waits for the game to end)
+        this.announce(s, got.word, 'game');
       }
     }
     if (game.rv > 0) this.d.reward(s, game.rv, { pt: `${game.host.name} paga a aula.`, en: `${game.host.name} pays for the class.` });

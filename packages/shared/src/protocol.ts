@@ -372,6 +372,8 @@ export type ServerMsg =
   /** Language diary: a photo, a practice round, or its result. The profile push carries the earned ids. */
   | { t: 'diary'; phase: 'photo'; ok: true; pt: string; en: string; source: string; areaPt: string; progress: string; film: number }
   | { t: 'diary'; phase: 'photo'; ok: false; pt: string; en: string; film: number; empty?: boolean }
+  /** A word went into the diary another way (a sign read, a line heard, a game won): the client makes the same moment of it as a photo. */
+  | { t: 'diary'; phase: 'word'; pt: string; en: string; source: string; areaPt: string; progress: string }
   | { t: 'diary'; phase: 'practice'; ok: true; host: string; en: string; options: string[] }
   | { t: 'diary'; phase: 'practice'; ok: false; host: string; pt: string; en: string }
   | { t: 'diary'; phase: 'result'; correct: boolean; host: string; line: Bilingual; granted: { pt: string; en: string } | null }
