@@ -757,7 +757,11 @@ export class WorldScene extends Phaser.Scene {
   private buildBackdrop(def: RoomDef): void {
     for (let i = 0; i * 14 < def.cols; i++) {
       const sd = this.m.sprites[`backdrop/sky_${i % 4}`];
-      if (sd) this.reg(this.add.image(i * 14 * T, 0, sd.atlas, sd.frame)).setOrigin(0, 1).setDepth(-9500);
+      if (!sd) continue;
+      const img = this.reg(this.add.image(i * 14 * T, 0, sd.atlas, sd.frame)).setOrigin(0, 1).setDepth(-9500);
+      // the last strip stops at the room's east edge (a 21- or 19-column area would otherwise show sky past its end)
+      const left = def.cols - i * 14;
+      if (left < 14) img.setCrop(0, 0, left * T, img.height);
     }
   }
 

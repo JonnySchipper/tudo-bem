@@ -14,6 +14,8 @@ const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'u
 const atlas = JSON.parse(fs.readFileSync(path.join(root, manifest.atlases.outdoor.data), 'utf8')) as { frames: Record<string, unknown> };
 const rua = ROOMS.rua;
 const praca = ROOMS.praca;
+const leste = ROOMS.rua_leste;
+const vilaCols = rua.cols + leste.cols;
 
 describe('intro snapshot of Vila Ipê (the rua above the praça, split into areas)', () => {
   const plan = planVilaSnapshot(manifest);
@@ -21,21 +23,22 @@ describe('intro snapshot of Vila Ipê (the rua above the praça, split into area
   it('is one 640 x 640 picture at 1 canvas px per art px: the rua across the top, the praça under it on the shared brick path', () => {
     expect(plan.width).toBe(VILA_SNAPSHOT.width);
     expect(plan.height).toBe(VILA_SNAPSHOT.height);
-    expect(plan.width).toBe(rua.cols * T);
+    expect(plan.width).toBe(vilaCols * T);
+    expect(vilaCols).toBe(40);
     expect(VILA_SNAPSHOT.praca.y).toBe(rua.rows * T);
-    // the rua's brick path (portals x18-21) lines up with the praça's entrance (x14-17)
+    // the rua's brick path (portals x15-18) lines up with the praça's entrance (x14-17)
     const ruaPath = rua.portals.filter((p) => p.edge && p.to === 'praca').map((p) => p.x);
     const pracaIn = praca.portals.filter((p) => p.edge && p.to === 'rua').map((p) => p.x + VILA_SNAPSHOT.praca.x / T);
     expect(ruaPath).toEqual(pracaIn);
-    expect(VILA_SNAPSHOT.praca.y / T + praca.rows).toBe(rua.cols);
-    expect(VILA_SNAPSHOT.praca.x / T + praca.cols).toBeLessThanOrEqual(rua.cols);
+    expect(VILA_SNAPSHOT.praca.y / T + praca.rows).toBe(vilaCols);
+    expect(VILA_SNAPSHOT.praca.x / T + praca.cols).toBeLessThanOrEqual(vilaCols);
   });
 
   it('uses the same terrain tiles as the game for each area and only frames that exist in the atlas', () => {
     const tilesOf = (def: typeof rua) => terrainTiles(def.floor, manifest.terrain, { substitute: FLOOR_SUBSTITUTE }).tiles.length;
-    // rua + praça + two 4 x 24 lawn corners
-    const own = planSnapshot(rua, manifest).ops.filter((o) => o.kind === 'tile').length + planSnapshot(praca, manifest).ops.filter((o) => o.kind === 'tile').length;
-    expect(own).toBe(tilesOf(rua) + tilesOf(praca));
+    // rua + rua_leste + praça + the two lawn corners
+    const own = [rua, leste, praca].reduce((n, d) => n + planSnapshot(d, manifest).ops.filter((o) => o.kind === 'tile').length, 0);
+    expect(own).toBe(tilesOf(rua) + tilesOf(leste) + tilesOf(praca));
     expect(plan.ops.filter((o) => o.kind === 'tile').length).toBeGreaterThan(own);
     for (const o of plan.ops) {
       if (o.kind === 'tile') expect(o.idx).toBeLessThan(manifest.terrain.count);

@@ -75,12 +75,13 @@ describe('CpuCrowd (Praça ambiance)', () => {
     expect(seniorsAtTables).toBeGreaterThan(20);
   });
 
-  it('presence targets follow the Live Ops table (split areas: Praça 4, Rua 3, Feira 3 at most, thinning as humans arrive)', () => {
+  it('presence targets follow the Live Ops table (split areas: Praça 4, each half of the Rua 2, Feira 3 at most, thinning as humans arrive)', () => {
     expect(cpuTarget(1, 'praca')).toBe(4);
-    expect(cpuTarget(1, 'rua')).toBe(3);
+    expect(cpuTarget(1, 'rua')).toBe(2);
+    expect(cpuTarget(1, 'rua_leste')).toBe(2);
     expect(cpuTarget(1, 'feira')).toBe(3);
     // calmer than the old 56 x 40 map: no area shows more than half of its old 8
-    for (const room of ['praca', 'rua', 'feira'] as const) {
+    for (const room of ['praca', 'rua', 'rua_leste', 'feira'] as const) {
       expect(cpuTarget(0, room)).toBeLessThanOrEqual(4);
       const seq = [1, 2, 3, 5, 7, 9, 13].map((n) => cpuTarget(n, room));
       for (let i = 1; i < seq.length; i++) expect(seq[i]).toBeLessThanOrEqual(seq[i - 1]);

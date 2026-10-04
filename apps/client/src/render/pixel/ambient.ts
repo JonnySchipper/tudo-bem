@@ -59,6 +59,7 @@ export const ambientHandlesProp = (roomId: string, propId: string): boolean => A
 const DEPTH_FLY = 49000;
 const DEPTH_PETAL = 49800;
 const DEPTH_CLOUD = DEPTH.overhead + 900;
+/** Headlight pool of a 40-tile street; a shorter street (the two halves of the rua) gets a share of it, a light per car on screen. */
 const HEADLIGHTS = 10;
 const BUTTERFLY_COLORS = ['#f2c230', '#f4efe6', '#e8823a', '#6aa7e0'];
 const PETAL_LIFE = 5;
@@ -200,7 +201,7 @@ export class AmbientLife {
     this.data = data;
     this.def = def;
     // headlight pool (rig lights: a hole in the night and a warm glow), parked with live 0: only where there is traffic
-    for (let i = 0; i < (data.streets.length ? HEADLIGHTS : 0); i++) {
+    for (let i = 0; i < (data.streets.length ? Math.max(4, Math.ceil((HEADLIGHTS * def.cols) / 40)) : 0); i++) {
       const l: Light = { x: 0, y: 0, r: 30, color: 0xfff0c8, squash: 0.45, kind: 'car', live: 0, glow: 0.6 };
       this.headlights.push(l);
       this.rig.lights.push(l);

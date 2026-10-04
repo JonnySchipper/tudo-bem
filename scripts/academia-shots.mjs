@@ -13,6 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findChrome } from './lib/chrome.mjs';
+import { goArea } from './lib/areas.mjs';
 import { DAY_MIN, offsetMinFor } from './lib/clock-pin.mjs';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
 import { answerChallenge, boutPhase, openBout, playBout, startBout } from './lib/bout-play.mjs';
@@ -46,6 +47,7 @@ async function enterAcademia(page) {
   await page.click('#enter-praca');
   await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 20_000, 'praça');
   await sleep(800);
+  await goArea(page, 'rua_leste');
   await page.evaluate(() => window.__tb.interact({ portal: 'praca_academia' }));
   await waitFor(page, () => window.__tb.game.room?.room === 'academia', null, 20_000, 'academia');
   await sleep(1500);

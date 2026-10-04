@@ -5,6 +5,7 @@ import { FOOTSTEPS, FootstepClock, SILENT_MIX, STEP_PX, daylight, falloff, radio
 
 // split areas: the traffic hum belongs to the rua, the fountain and the dog corner's radio to the praça, the feira has only the ambient birds
 const z = AMBIENT.rua.audio;
+const zl = AMBIENT.rua_leste.audio;
 const zp = AMBIENT.praca.audio;
 const at = (x: number, y: number, minute = 720, rain = 0) => zoneMix(z, { x, y, minute, rain });
 const atPraca = (x: number, y: number, minute = 720, rain = 0) => zoneMix(zp, { x, y, minute, rain });
@@ -26,11 +27,15 @@ describe('falloff', () => {
 
 describe('zone mix', () => {
   it('has traffic hum on the rua (loudest at the street, softer at the lawn strip) and none in the praça or the feira', () => {
-    const street = at(25 * T, 10 * T);
+    const street = at(10 * T, 10 * T);
     expect(street.traffic).toBeGreaterThan(0.95);
     // the hum grows as you walk to the street
-    expect(at(25 * T, 15 * T).traffic).toBeLessThan(street.traffic);
-    expect(at(25 * T, 15 * T).traffic).toBeGreaterThan(0);
+    expect(at(10 * T, 15 * T).traffic).toBeLessThan(street.traffic);
+    expect(at(10 * T, 15 * T).traffic).toBeGreaterThan(0);
+    // the east half hums the same way
+    const streetE = zoneMix(zl, { x: 9 * T, y: 10 * T, minute: 720, rain: 0 });
+    expect(streetE.traffic).toBeGreaterThan(0.95);
+    expect(zoneMix(zl, { x: 9 * T, y: 15 * T, minute: 720, rain: 0 }).traffic).toBeLessThan(streetE.traffic);
     // the praça and the feira have no street at all: calm
     for (const [x, y] of [[16 * T, 5 * T], [16 * T, 16 * T], [5 * T, 20 * T]]) expect(atPraca(x, y).traffic).toBe(0);
     expect(zoneMix(AMBIENT.feira.audio, { x: 10 * T, y: 8 * T, minute: 720, rain: 0 }).traffic).toBe(0);
@@ -101,7 +106,7 @@ describe('zone mix', () => {
   });
 
   it('uses zones that sit inside their own map (a room without a fountain parks it far outside)', () => {
-    for (const id of ['rua', 'praca', 'feira'] as const) {
+    for (const id of ['rua', 'rua_leste', 'praca', 'feira'] as const) {
       const def = ROOMS[id];
       const zones = AMBIENT[id].audio;
       const pts = [...zones.radios, ...zones.streets.map((s) => ({ x: (s.x0 + s.x1) / 2, y: s.y }))];

@@ -149,8 +149,9 @@ async function main() {
     await page.keyboard.press('Escape');
     await sleep(500);
     await join(page, 'padaria_praca', 'rua');
-    await walkTo(page, 26, 6);
-    await waitIdleAt(page, 26, 6);
+    await goArea(page, 'rua_leste'); // the academia door is on the east half of the street
+    await walkTo(page, 5, 6);
+    await waitIdleAt(page, 5, 6);
     await join(page, 'praca_academia', 'academia');
     await waitFor(page, () => [...window.__tb.game.avatars.values()].some((a) => a.pub.npc === 'prof'), null, 8000, 'Professora Bia');
     await sleep(800);

@@ -16,14 +16,14 @@ const argv = Object.fromEntries(process.argv.slice(2).filter((a) => a.startsWith
 const BASE = process.env.BASE_URL ?? 'http://localhost:9851';
 const OUT = process.env.SHOTS_DIR ?? path.join('docs', 'lifesim', 'shots', 'split');
 const TIME = argv.time ?? '17:30';
-const ONLY = argv.only ? argv.only.split(',') : ['rua', 'praca', 'feira'];
+const ONLY = argv.only ? argv.only.split(',') : ['rua', 'rua_leste', 'praca', 'feira'];
 const CHROME = findChrome();
 assert(CHROME, 'Chrome/Chromium not found: set CHROME_PATH');
 fs.mkdirSync(OUT, { recursive: true });
 const hm = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
 const tag = TIME.replace(':', '');
 // where the player stands for the follow view, per area
-const STAND = { rua: [19, 13], praca: [16, 16], feira: [4, 8] };
+const STAND = { rua: [16, 13], rua_leste: [8, 7], praca: [16, 16], feira: [4, 8] };
 
 const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });
 for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone', width: 390, height: 844, touch: true }]) {

@@ -64,7 +64,8 @@ const V2: Record<string, V2Room> = {
     hopscotch: { x: 24, y: 22 },
     bowl: { x: 4.4, y: 21.8 },
   },
-  rua: { towels: [], patches: [], hopscotch: { x: 18, y: 13 } }, // chalk on the brick path down to the praça
+  rua: { towels: [], patches: [], hopscotch: { x: 15, y: 13 } }, // chalk on the brick path down to the praça
+  rua_leste: { towels: [], patches: [] },
   feira: { towels: [], patches: [], market: { x0: 3, y0: 2, x1: 30, y1: 18 } },
 };
 

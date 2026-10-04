@@ -60,8 +60,16 @@ const DRESSING: Record<string, RoomDressing> = {
     streets: [{ y0: 8, y1: 11, dashDy: 26 }],
     crosswalks: [{ x: 8, y: 8 }, { x: 12, y: 8 }, { x: 19, y: 8 }],
     mosaics: [],
-    busBay: { x: 24, y: 10, w: 7, py: 8 * T + 36 - 20 },
-    manholes: [{ x: 14, y: 9 }, { x: 5, y: 10 }, { x: 35, y: 11 }, { x: 22, y: 9 }],
+    busBay: null,
+    manholes: [{ x: 14, y: 9 }, { x: 5, y: 10 }],
+  },
+  // the east half of the street (the old rua's x21-39, so every x here is the old one minus 21)
+  rua_leste: {
+    streets: [{ y0: 8, y1: 11, dashDy: 26 }],
+    crosswalks: [],
+    mosaics: [],
+    busBay: { x: 3, y: 10, w: 7, py: 8 * T + 36 - 20 },
+    manholes: [{ x: 14, y: 11 }, { x: 1, y: 9 }],
   },
   praca: { streets: [], crosswalks: [], mosaics: [], busBay: null, manholes: [{ x: 18, y: 19 }, { x: 25, y: 13 }, { x: 13, y: 5 }] },
   feira: { streets: [], crosswalks: [], mosaics: [], busBay: null, manholes: [{ x: 20, y: 9 }, { x: 16, y: 16 }] },

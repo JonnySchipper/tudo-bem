@@ -16,7 +16,7 @@ export interface PanRoute {
 }
 
 /** Map px (art pixels) on the title picture (rua above, praça below): from the Padaria and the Banca along the facades, then down the brick path toward the fountain. */
-export const PAN_ROUTE: PanRoute = { from: { x: 214, y: 110 }, to: { x: 426, y: 340 }, legSec: 110 };
+export const PAN_ROUTE: PanRoute = { from: { x: 214, y: 110 }, to: { x: 378, y: 340 }, legSec: 110 };
 
 /** Whole CSS px per art pixel: about 420 art px across on a wide screen (1280 wide -> 3), never below 2 (a phone shows ~190). */
 export function introZoom(vw: number, vh: number): number {
