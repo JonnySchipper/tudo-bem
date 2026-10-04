@@ -291,20 +291,47 @@ function tomate() {
   return img;
 }
 function pipoca() {
+  // pipoca doce: a green-and-white striped paper cup heaped with red sweet popcorn
   const img = icon();
-  shape(img, el(8, 10, 5, 6), [8, 9, 7, 5], ['#e8c96a', '#f5e08a', '#fff5c8', '#fffaf0'], { ol: NAVY, t: [0.8, 0.3, -0.2] });
-  for (const [x, y] of [[6, 7], [9, 6], [7, 9], [10, 8], [8, 5]]) put(img, x, y, '#fff8e8');
-  fillRect(img, 5, 13, 6, 2, C.r4);
-  hline(img, 5, 13, 6, C.r2);
+  // the heap first, one bumpy silhouette with a single outline; light kernels dotted on top
+  const puffs = [[4.8, 6.6, 1.7], [7, 5.4, 1.9], [9.4, 5.6, 1.8], [11.2, 6.6, 1.6], [5.8, 3.9, 1.5], [8.3, 3, 1.6], [10.4, 3.8, 1.3], [7.2, 1.6, 1]];
+  shape(img, or(...puffs.map(([cx, cy, r]) => ell(cx, cy, r, r))), [7, 4, 5, 4], ['#8a1f22', '#c02a2a', '#e63f38', '#ff8a7a'], {
+    ol: NAVY,
+    t: [0.8, 0.35, -0.2],
+    // kernels: a darker crease every few pixels so the heap reads as many pieces, not one cap
+    pattern: (x, y, i) => ((x * 2 + y * 3) % 5 === 0 ? Math.max(0, i - 2) : i),
+  });
+  for (const [x, y] of [[6, 3], [9, 2], [10, 5], [5, 6], [8, 4], [11, 6]]) put(img, x, y, '#ffc2b4');
+  for (const [x, y] of [[7, 6], [9, 6], [4, 7]]) put(img, x, y, '#8a1f22');
+  // the cup over the bottom of the heap
+  const cup = (x, y) => y >= 7.5 && y < 15 && x >= 3.4 + (y - 7.5) * 0.22 && x < 12.6 - (y - 7.5) * 0.22;
+  const cells = flat(img, cup, '#fffdf6', { ol: NAVY });
+  for (const [x, y] of cells) {
+    const green = Math.floor((x - 3) / 2) % 2 === 0;
+    const shade = x >= 10 || y >= 13;
+    put(img, x, y, green ? (shade ? '#24603c' : '#2f8a4e') : shade ? '#e2dccd' : '#fffdf6');
+  }
+  // a rolled rim
+  for (let x = 4; x <= 11; x++) put(img, x, 8, x % 2 ? '#e2dccd' : '#fffdf6');
   return img;
 }
 function aguaDeCoco() {
+  // água de coco: a green coconut with the top cut open and a red straw
   const img = icon();
-  shape(img, (x, y) => y >= 4 && y < 14 && x >= 5 && x < 11, [8, 9, 5, 4], ['#6d9a4a', '#4b7a3a', '#3a5f2e', '#2f5230'], { ol: NAVY });
-  fillRect(img, 6, 5, 4, 1, '#f8fff0');
-  shape(img, (x, y) => y >= 10 && y < 14 && x >= 6 && x < 10, [8, 9, 3, 2], GLASS, { ol: NAVY });
-  fillRect(img, 6, 10, 4, 3, '#e8fff8');
-  put(img, 10, 6, '#8bc34a');
+  shape(img, ell(7.5, 10.2, 5.8, 4.9), [6.5, 8.8, 6, 5], ['#2a4f2a', '#3f7a35', '#5f9e42', '#9cc85a'], { ol: NAVY, t: [0.82, 0.32, -0.15] });
+  // the cut: a husk rim around the pale flesh
+  shape(img, ell(7.5, 6.6, 3.4, 1.5), [7.5, 6.6, 3.4, 1.5], ['#a99858', '#d8cc98', '#efe6c2', '#fffaf0'], { ol: '#2a4f2a' });
+  // the straw: two pixels wide, from the opening up to the right, with a light edge
+  const pts = [[8, 6], [9, 5], [9, 4], [10, 3], [10, 2], [11, 1], [11, 0]];
+  for (const [x, y] of pts) {
+    put(img, x - 1, y, NAVY);
+    put(img, x, y, '#ff7a6a');
+    put(img, x + 1, y, '#d8322a');
+    put(img, x + 2, y, NAVY);
+  }
+  put(img, 11, 0, '#ff7a6a'); put(img, 12, 0, '#d8322a');
+  // a glint on the shell
+  put(img, 4, 9, '#c8e890'); put(img, 4, 10, '#b0d878'); put(img, 5, 8, '#c8e890');
   return img;
 }
 function caldoDeCana() {

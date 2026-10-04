@@ -1368,7 +1368,7 @@ export class WorldScene extends Phaser.Scene {
       v.carryKey = id;
     }
     const side = facing === 'W' ? -1 : 1;
-    v.carry.setPosition(wx + side * avatarPx(5), wy - avatarPx(10)).setScale(1.25 * avatarDrawScale()).setDepth(depth + 0.08);
+    v.carry.setPosition(wx + side * avatarPx(6), wy - avatarPx(7)).setScale(0.6 * avatarDrawScale()).setDepth(depth + 0.08);
   }
 
   // ---- placed furniture: `furniture/<id>_<rot>` sprites (art track 3); a magenta box when the art is missing
