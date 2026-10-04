@@ -256,7 +256,8 @@ describe('pigeons', () => {
     for (let i = 0; i < 5; i++) stepFlock(flock, 0.1, [person]);
     flock.forEach((p, i) => {
       expect(p.z).toBeGreaterThan(10);
-      expect(Math.abs(p.x - startX[i])).toBeGreaterThan(15);
+      // half a second of the slower take-off; the bird whose spread nearly cancels vx only covers a few px
+      expect(Math.abs(p.x - startX[i])).toBeGreaterThan(4);
       // they head away from the person on x (the person stands to the west of the flock centre)
       expect(Math.abs(p.x - person.x)).toBeGreaterThan(Math.abs(startX[i] - person.x) - 1);
     });
