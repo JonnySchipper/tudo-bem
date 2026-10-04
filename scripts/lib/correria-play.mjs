@@ -224,19 +224,31 @@ async function putOnChapa(page, itemId) {
  */
 async function takeCooked(page, itemId, before, putAt) {
   const giveUp = putAt + BURN_MS - 400;
+  let checkedEmpty = false;
   while (Date.now() < giveUp) {
     if (!(await shiftLive(page)) || (await frontGone(page))) return false;
     if ((await itemCount(page, itemId)) > before) return true;
     const untilClick = putAt + COOK_MS + 160 - Date.now();
     if (untilClick > 60) {
-      // A put that never reached the server leaves the slots empty. Waiting out the cook just burns the customer's patience.
       if (Date.now() > putAt + 450) {
-        const early = await grillView(page);
-        const live = early.slots.filter((s) => !s.hidden && s.phase !== 'empty');
+        let live = (await grillView(page)).slots.filter((s) => !s.hidden && s.phase !== 'empty');
+        // A stale snapshot looks empty while the loaf is already down. Sync once before giving the cook up.
+        if (!live.length && !checkedEmpty) {
+          checkedEmpty = true;
+          await nudgeSnap(page);
+          live = (await grillView(page)).slots.filter((s) => !s.hidden && s.phase !== 'empty');
+        }
+        // The put never reached the server. Waiting out the cook just burns the customer's patience.
         if (!live.length) return (await itemCount(page, itemId)) > before;
+        // Still raw, and this put's own clock has not reached the green window yet.
+        if (!live.some((s) => s.phase === 'ready' || s.phase === 'burnt')) {
+          await sleep(Math.min(untilClick, 180));
+          continue;
+        }
+      } else {
+        await sleep(Math.min(untilClick, 180));
+        continue;
       }
-      await sleep(Math.min(untilClick, 180));
-      continue;
     }
     await nudgeSnap(page);
     if ((await itemCount(page, itemId)) > before) return true;
@@ -319,33 +331,54 @@ async function endPour(page) {
   await waitUntil(async () => !(await snap(page))?.pour, 500);
 }
 
+const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
+const round2 = (n) => Math.round(n * 100) / 100;
+
 /**
- * How much longer the server keeps the cup than the page's own timer (ms). A busy runner delivers pour_end
- * late. The first cup aims early (this starts unset); each fill then moves it part of the way, and it is kept
- * for the whole shift — resetting after one good cup is how every coffee spilled again on CI.
+ * Hold as a fraction of pourMs. The server accepts 70%–108%. The page timer starts with pour_start, so a
+ * healthy runner lands near this fraction. A 0.36 head start made that first cup short (CI run 37223141382),
+ * and applying 75% of the fill error then walked the next hold to 0.57, under the window (run 37225531207).
+ * One miss steps by `step`. The first spill stays at or above `safe` (still a legal cup when the runner is on
+ * time). Only a second spill in a row may go down to `lo`, for a runner that really is late. A cup that
+ * landed does not move the hold.
  */
-let pourLagMs = null;
-/** Middle of the good window (70%–108%). */
-const POUR_AIM = 0.86;
-/** First-cup head start, as a fraction of pourMs. CI's cold timer ran ~0.4 past the aim; 0.36 lands that cup inside the window. */
-const POUR_LAG0 = 0.36;
+export const POUR_HOLD = { start: 0.86, hi: 0.96, lo: 0.64, safe: 0.78, step: 0.05 };
+
+/** @param {{ hold: number, spills: number }} state @param {'ok'|'short'|'spill'|'miss'|'gone'} result */
+export function nextPourHold(state, result) {
+  const hold = clamp(round2(state.hold), POUR_HOLD.lo, POUR_HOLD.hi);
+  if (result === 'ok' || result === 'gone') return { hold, spills: result === 'ok' ? 0 : state.spills };
+  if (result === 'spill') {
+    const spills = state.spills + 1;
+    const floor = spills >= 2 ? POUR_HOLD.lo : POUR_HOLD.safe;
+    return { hold: clamp(round2(hold - POUR_HOLD.step), floor, POUR_HOLD.hi), spills };
+  }
+  return { hold: clamp(round2(hold + POUR_HOLD.step), POUR_HOLD.lo, POUR_HOLD.hi), spills: 0 };
+}
+
+export function pourTargetMs(pourMs, hold) {
+  return Math.round(pourMs * clamp(hold, POUR_HOLD.lo, POUR_HOLD.hi));
+}
+
+/** Kept for the whole process: the same runner's lag does not reset between customers. */
+let pourState = { hold: POUR_HOLD.start, spills: 0 };
 
 /**
  * One cup. The good window is 70%–108% of pourMs on the server clock. The hold is a page timer started with
  * pour_start: waiting until a snapshot says the cup is full counts the trip there and then the trip back, so
- * the release lands past the spill line whenever the runner is slow. Returns ok / short / spill / miss / gone,
- * and moves `pourLagMs` from the fill the server reports.
+ * the release lands past the spill line whenever the runner is slow. Returns ok / short / spill / miss / gone.
+ * A missing feed is a miss, not "the customer left" — bailing there used to skip the coffee and serve the water alone.
  */
 async function pourOne(page, itemId, pourMs) {
-  if (await frontGone(page)) return 'gone';
+  const fail = (result, fill = null) => ({ result, fill });
+  if (await frontGone(page)) return fail('gone');
   const before = await itemCount(page, itemId);
   if ((await snap(page))?.pour) {
     await endPour(page);
-    if ((await itemCount(page, itemId)) > before) return 'ok';
-    if (await frontGone(page)) return 'gone';
+    if ((await itemCount(page, itemId)) > before) return fail('ok');
+    if (await frontGone(page)) return fail('gone');
   }
-  if (pourLagMs == null) pourLagMs = Math.round(pourMs * POUR_LAG0);
-  const target = Math.round(Math.max(pourMs * 0.4, Math.min(pourMs * 0.98, pourMs * POUR_AIM - pourLagMs)));
+  const target = pourTargetMs(pourMs, pourState.hold);
   const released = await page.evaluate(({ itemId, target }) => {
     const feed = window.__tb?.correria?.feed;
     if (!feed?.on?.pourStart || !feed.snap) return { status: 'gone' };
@@ -360,64 +393,65 @@ async function pourOne(page, itemId, pourMs) {
       };
       feed.__tbPourTap = true;
     }
-    const mark = performance.now();
     feed.__tbLastPour = null;
     feed.on.pourStart(itemId);
+    const mark = performance.now();
     return new Promise((resolve) => {
       const releaseAt = mark + target;
       const tick = () => {
         if (performance.now() >= releaseAt) {
+          // Anything stored during the hold belongs to the previous cup.
+          feed.__tbLastPour = null;
+          const releasedAt = performance.now();
           feed.on.pourEnd();
-          resolve({ status: 'ended', mark });
+          resolve({ status: 'ended', releasedAt });
         } else setTimeout(tick, Math.min(30, Math.max(0, releaseAt - performance.now())));
       };
       tick();
     });
   }, { itemId, target });
-  if (!released || released.status === 'gone' || !(await shiftLive(page))) return 'gone';
+  if (!(await shiftLive(page)) || (await frontGone(page))) return fail('gone');
+  if (!released || released.status === 'gone') return fail('miss');
   const until = Date.now() + 1200;
   while (Date.now() < until) {
-    const last = await page.evaluate((mark) => {
+    const last = await page.evaluate((releasedAt) => {
       const p = window.__tb?.correria?.feed?.__tbLastPour;
-      return p && p.at >= mark ? p : null;
-    }, released.mark);
+      return p && p.at >= releasedAt - 5 ? p : null;
+    }, released.releasedAt);
     if (last) {
       const fill = typeof last.fill === 'number' ? last.fill : null;
-      if (fill != null && pourMs > 0) {
-        // Part of the error, not all of it: one cold cup must not swing the next hold out of the window.
-        const next = pourLagMs + Math.round((fill - POUR_AIM) * pourMs * 0.75);
-        pourLagMs = Math.max(Math.round(-pourMs * 0.1), Math.min(Math.round(pourMs * 0.48), next));
-      }
-      if (last.k === 'pour_ok' || (await itemCount(page, itemId)) > before) return 'ok';
-      if (last.why === 'spill') return 'spill';
-      if (last.why === 'short') return 'short';
-      return 'miss';
+      if (last.k === 'pour_ok' || (await itemCount(page, itemId)) > before) return fail('ok', fill);
+      if (last.why === 'spill') return fail('spill', fill);
+      if (last.why === 'short') return fail('short', fill);
+      return fail('miss', fill);
     }
-    if ((await itemCount(page, itemId)) > before) return 'ok';
+    if ((await itemCount(page, itemId)) > before) return fail('ok');
     await sleep(40);
   }
   await nudgeSnap(page);
-  if ((await itemCount(page, itemId)) > before) return 'ok';
-  return 'miss';
+  if ((await itemCount(page, itemId)) > before) return fail('ok');
+  return fail('miss');
 }
 
-/** Pour until the tray holds `qty`. A miss moves the next hold from the fill the server reported; four tries, then the caller can top up. */
+/** Pour until the tray holds `qty`. A miss steps the next hold; five tries, then the caller can top up. */
 async function pourUntil(page, itemId, qty, pourMs) {
   let misses = 0;
-  while ((await itemCount(page, itemId)) < qty && misses < 4) {
+  while ((await itemCount(page, itemId)) < qty && misses < 5) {
     if (await frontGone(page)) return;
     const before = await itemCount(page, itemId);
-    const result = await pourOne(page, itemId, pourMs);
+    const { result, fill } = await pourOne(page, itemId, pourMs);
     if (result === 'gone') return;
-    if ((await itemCount(page, itemId)) > before) {
+    let landed = (await itemCount(page, itemId)) > before;
+    if (!landed && result === 'ok') landed = await waitUntil(async () => (await itemCount(page, itemId)) > before, 600);
+    // A cup that landed keeps the hold. Chasing its fill is how the next one came out short once the runner caught up.
+    pourState = nextPourHold(pourState, landed ? 'ok' : result);
+    if (landed) {
       misses = 0;
       continue;
     }
     misses++;
-    // No fill came back (the cup vanished). Step blind so the next hold is not the same length.
-    if (result === 'miss') pourLagMs = Math.min(Math.round(pourMs * 0.48), (pourLagMs ?? 0) + Math.round(pourMs * 0.08));
-    const hold = pourMs > 0 ? Math.round((100 * (pourMs * POUR_AIM - (pourLagMs ?? 0))) / pourMs) / 100 : 0;
-    console.log(`  · pour ${itemId} ${result} → hold ${hold}`);
+    const fillNote = fill == null ? '' : ` fill=${fill.toFixed(2)}`;
+    console.log(`  · pour ${itemId} ${result}${fillNote} → hold ${pourState.hold.toFixed(2)}`);
   }
 }
 
