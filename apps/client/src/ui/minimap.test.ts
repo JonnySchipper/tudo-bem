@@ -4,11 +4,12 @@ import { MINIMAP_PX, markers, minimapPixels } from './minimap';
 
 describe('Vila Ipê minimaps (one per open-air area)', () => {
   const rua = ROOMS.rua;
+  const leste = ROOMS.rua_leste;
   const praca = ROOMS.praca;
   const feira = ROOMS.feira;
 
   it('is 2 px per tile, opaque, at each area size', () => {
-    for (const [room, cols, rows] of [[rua, 40, 16], [praca, 32, 24], [feira, 32, 20]] as const) {
+    for (const [room, cols, rows] of [[rua, 21, 16], [leste, 19, 16], [praca, 32, 24], [feira, 32, 20]] as const) {
       const m = minimapPixels(room);
       expect(m.w).toBe(cols * MINIMAP_PX);
       expect(m.h).toBe(rows * MINIMAP_PX);
@@ -29,11 +30,12 @@ describe('Vila Ipê minimaps (one per open-air area)', () => {
     expect(pg(5, 6)).toBeGreaterThan(150); // the praça lawn
   });
 
-  it('marks the rua doors (padaria, Edifício, academia) and the edge to the praça, both NPCs of a room and you', () => {
-    const ms = markers(rua, { x: 20, y: 13 });
+  it('marks the doors of each half of the rua and its edges (praça, the other half), both NPCs of a room and you', () => {
+    const ms = markers(rua, { x: 16, y: 13 });
     const doors = ms.filter((m) => m.kind === 'door');
-    expect(doors).toHaveLength(5); // four doors and ONE marker for the whole south opening
-    expect(doors.map((d) => d.label).sort()).toEqual(['Edifício Ipê — Minha kitnet', 'Academia do Bairro', 'Escola da Praça', 'Padaria do Seu Carlos', 'Praça Central'].sort());
+    expect(doors).toHaveLength(4); // two doors and ONE marker for each opening (the south path, the east seam)
+    expect(doors.map((d) => d.label).sort()).toEqual(['Edifício Ipê — Minha kitnet', 'Padaria do Seu Carlos', 'Praça Central', 'Rua dos Ipês (leste)'].sort());
+    expect(markers(leste, null).filter((m) => m.kind === 'door').map((d) => d.label).sort()).toEqual(['Academia do Bairro', 'Escola da Praça', 'Rua dos Ipês'].sort());
     expect(ms.filter((m) => m.kind === 'me')).toHaveLength(1);
     expect(markers(rua, null).some((m) => m.kind === 'me')).toBe(false);
     // the praça: one marker per exit (north to the rua, east to the feira), and Nanda and Júlia at their home tiles

@@ -8,7 +8,7 @@ import { sceneryFor, MOSAIC_TILES } from './scenery';
 
 const manifest = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../../public/pixel/manifest.json'), 'utf8')) as Manifest;
 const has = (k: string) => k in manifest.sprites;
-const AREAS = ['rua', 'praca', 'feira'] as const;
+const AREAS = ['rua', 'rua_leste', 'praca', 'feira'] as const;
 const scOf = (id: (typeof AREAS)[number]) => sceneryFor(ROOMS[id], has)!;
 const floorAtOf = (id: (typeof AREAS)[number]) => (x: number, y: number) => ROOMS[id].floor[y]?.[x];
 
@@ -36,7 +36,7 @@ describe('V1 ground scenery (split into areas)', () => {
   it('the lawn dressing (patches, dirt, clover, tufts) lies on grass only', () => {
     let light = 0;
     let dark = 0;
-    for (const id of ['rua', 'praca'] as const) {
+    for (const id of ['rua', 'rua_leste', 'praca'] as const) {
       const room = ROOMS[id];
       const at = floorAtOf(id);
       const sc = scOf(id);
@@ -61,8 +61,9 @@ describe('V1 ground scenery (split into areas)', () => {
   });
 
   it('keeps the bus bay free of lane dashes, and the bay itself is on the asphalt (rua only)', () => {
-    const at = floorAtOf('rua');
-    const sc = scOf('rua');
+    const at = floorAtOf('rua_leste'); // the bus stop is on the east half
+    const sc = scOf('rua_leste');
+    expect(scOf('rua').decals.filter((d) => d.key === 'decals/faixa_onibus')).toEqual([]);
     const bay = sc.decals.find((d) => d.key === 'decals/faixa_onibus')!;
     expect(bay).toBeTruthy();
     for (let x = bay.x / T; x < bay.x / T + 7; x++) for (let y = bay.y / T; y < bay.y / T + 2; y++) expect(at(x, y)).toBe('a');
@@ -71,7 +72,8 @@ describe('V1 ground scenery (split into areas)', () => {
     }
     // lane dashes, crosswalks and the bus bay belong to the street: the praça and the feira have none
     for (const id of ['praca', 'feira'] as const) expect(scOf(id).decals.filter((d) => /lane_dash|crosswalk|faixa_onibus/.test(d.key))).toEqual([]);
-    expect(sc.decals.filter((d) => d.key === 'decals/crosswalk').length).toBeGreaterThanOrEqual(3);
+    expect(scOf('rua').decals.filter((d) => d.key === 'decals/crosswalk').length).toBeGreaterThanOrEqual(3);
+    expect(sc.decals.filter((d) => d.key === 'decals/lane_dash').length).toBeGreaterThan(5);
   });
 
   it('has no grime on the asphalt (its fills carry the cracks and patches)', () => {

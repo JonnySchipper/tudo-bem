@@ -41,7 +41,7 @@ export type Nameplate = 'verde' | 'amarelo' | 'azul' | 'roxo' | 'dourado';
 /** Screen-facing: S = toward camera. SE = moving +x, SW = +y, NE = -y, NW = -x. */
 export type Dir = 'SE' | 'SW' | 'NE' | 'NW';
 
-export type RoomId = 'praca' | 'rua' | 'feira' | 'padaria' | 'kitnet' | 'academia' | 'escola';
+export type RoomId = 'praca' | 'rua' | 'rua_leste' | 'feira' | 'padaria' | 'kitnet' | 'academia' | 'escola';
 
 export type EmoteKind = 'oi' | 'dancar' | 'rir' | 'valeu' | 'desculpa';
 
