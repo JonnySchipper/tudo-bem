@@ -66,6 +66,8 @@ export class LightingRig {
   private glowSprites: Phaser.GameObjects.Image[] = [];
   /** wet-pavement reflections of the lights that have a `mirror` */
   private reflSprites: Phaser.GameObjects.Image[] = [];
+  /** scratch for `apply`: (light, strength, sx, sy, px) per lit light, flat */
+  private litScratch: (Light | number)[] = [];
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -170,22 +172,17 @@ export class LightingRig {
     });
     this.dark.clear();
     if (dark > 0.001) this.dark.fill(0x0b1030, dark);
+    // Every stamp on a render texture is a capture pass plus a full-screen blit, so the lit lights are collected first and stamped in three batches
+    // (grade erase, warm re-tint, darkness erase) instead of three captures per light.
+    const lit = this.litScratch;
+    lit.length = 0;
     this.lights.forEach((l, i) => {
       const s = strengthOf(l);
       const g = this.glowSprites[i];
       if (!g) return;
       const [sx, sy] = toScreen(l.x, l.y);
       const px = (l.r * 2 * zoom) / 128;
-      if (s > 0.001) {
-        // erase: the grade is mostly lifted inside the light, the darkness fully
-        this.grade.stamp(this.glowKey, undefined, sx, sy, { scaleX: px, scaleY: px * l.squash, alpha: Math.min(1, s * 0.9), erase: true });
-        // the lifted ground would read as neutral lavender-white next to the additive glow: re-tint it amber (a multiply by a warm colour)
-        if (l.kind !== 'player' && dark > 0.05) {
-          const warm = warmPool(l.color, 0.9);
-          this.grade.stamp(this.glowKey, undefined, sx, sy, { scaleX: px * 0.92, scaleY: px * 0.92 * l.squash, alpha: Math.min(1, s * 0.85 * Math.min(1, dark / 0.15)), tint: warm });
-        }
-        if (dark > 0.001) this.dark.stamp(this.glowKey, undefined, sx, sy, { scaleX: px, scaleY: px * l.squash, alpha: Math.min(1, s * 1.05), erase: true });
-      }
+      if (s > 0.001) lit.push(l, s, sx, sy, px);
       const glowAlpha = l.glow ?? (l.kind === 'window' ? 0.3 : l.kind === 'stall' ? 0.3 : l.kind === 'player' ? 0.22 : l.kind === 'car' ? 0.3 : 0.42);
       g.setPosition(sx, sy).setScale(px, px * l.squash).setTint(l.color).setAlpha(s * glowAlpha);
       // wet pavement mirrors the lamp: a tall, narrow, shimmering streak below the foot of the pole
@@ -198,6 +195,36 @@ export class LightingRig {
         } else if (rf.visible) rf.setVisible(false);
       }
     });
+    if (lit.length) {
+      const n = lit.length;
+      const warmOn = dark > 0.05;
+      // erase: the grade is mostly lifted inside the light, the darkness fully
+      this.grade.beginDraw();
+      for (let k = 0; k < n; k += 5) {
+        const l = lit[k] as Light, s = lit[k + 1] as number, px = lit[k + 4] as number;
+        this.grade.stamp(this.glowKey, undefined, lit[k + 2] as number, lit[k + 3] as number, { scaleX: px, scaleY: px * l.squash, alpha: Math.min(1, s * 0.9), skipBatch: true });
+      }
+      this.grade.endDraw(true);
+      // the lifted ground would read as neutral lavender-white next to the additive glow: re-tint it amber (a multiply by a warm colour)
+      if (warmOn) {
+        this.grade.beginDraw();
+        for (let k = 0; k < n; k += 5) {
+          const l = lit[k] as Light;
+          if (l.kind === 'player') continue;
+          const s = lit[k + 1] as number, px = lit[k + 4] as number;
+          this.grade.stamp(this.glowKey, undefined, lit[k + 2] as number, lit[k + 3] as number, { scaleX: px * 0.92, scaleY: px * 0.92 * l.squash, alpha: Math.min(1, s * 0.85 * Math.min(1, dark / 0.15)), tint: warmPool(l.color, 0.9), skipBatch: true });
+        }
+        this.grade.endDraw(false);
+      }
+      if (dark > 0.001) {
+        this.dark.beginDraw();
+        for (let k = 0; k < n; k += 5) {
+          const l = lit[k] as Light, s = lit[k + 1] as number, px = lit[k + 4] as number;
+          this.dark.stamp(this.glowKey, undefined, lit[k + 2] as number, lit[k + 3] as number, { scaleX: px, scaleY: px * l.squash, alpha: Math.min(1, s * 1.05), skipBatch: true });
+        }
+        this.dark.endDraw(true);
+      }
+    }
     for (const r of this.windowRects) r.setAlpha(look.glow * 0.6);
     // low sun: a big warm glow from the upper left (adds warmth and shows the light direction without darkening the scene)
     const sw = this.scene.scale.width;
