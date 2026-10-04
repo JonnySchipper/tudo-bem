@@ -51,4 +51,30 @@ describe('checkers', () => {
     expect(m).toBeTruthy();
     expect(legalMoves(initialBoard(), 'cpu').some((x) => x.from === m!.from && x.to === m!.to)).toBe(true);
   });
+
+  it('a side that cannot move loses, even with pieces left', () => {
+    const b = initialBoard().map(() => 0) as Board;
+    // your man on the far left, boxed in by two CPU men it cannot jump (the landing square is off the board)
+    b[idx(0, 7)] = 1;
+    b[idx(1, 6)] = -1;
+    b[idx(2, 5)] = -1;
+    expect(legalMoves(b, 'you')).toHaveLength(0);
+    expect(winner(b, 'you')).toBe('cpu');
+  });
+
+  it('the CPU takes a free piece and avoids giving one away', () => {
+    // a free capture (dark squares have x + y odd): CPU man at (1,2), your man at (2,3), (3,4) empty
+    const b = initialBoard().map(() => 0) as Board;
+    b[idx(1, 2)] = -1;
+    b[idx(2, 3)] = 1;
+    b[idx(6, 7)] = 1;
+    const m = cpuPickMove(b, { rng: () => 0 });
+    expect(m?.caps).toEqual([idx(2, 3)]);
+    // no capture on offer: from (3,2), stepping to (4,3) walks into your jump from (5,4); stepping to (2,3) is safe
+    const c = initialBoard().map(() => 0) as Board;
+    c[idx(3, 2)] = -1;
+    c[idx(5, 4)] = 1;
+    c[idx(6, 7)] = 1;
+    for (let i = 0; i < 5; i++) expect(cpuPickMove(c, { rng: () => i / 5 })?.to).toBe(idx(2, 3));
+  });
 });

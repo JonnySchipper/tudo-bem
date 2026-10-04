@@ -29,7 +29,7 @@ For a native Brazilian Portuguese reviewer (informal São Paulo register, A1 for
 - [O. Dialogue box, hotspot card and dialogue chrome (client)](#o-dialogue-ui) (30)
 - [P. NPC memory (server)](#p-memory) (3)
 - [Q. Other new Portuguese in the interface and in painted signs](#q-misc) (5)
-- [S. Arrival, camera, escola and cartela polish (client)](#s-polish) (3)
+- [S. Arrival, camera, escola and cartela polish (client)](#s-polish) (4)
 - [R. Proposed cards for the Curriculum team](#r-proposed-cards)
 
 ## A. Time of day, weekdays and weather
@@ -618,6 +618,7 @@ Visual pass on the arrival, camera, diary, escola and cartela. Everything else o
 | 463 | Toma a câmera e a cartela do bairro. | Here, take the camera and the neighborhood stamp card. | `apps/client/src/ui/arrival.ts` | **New, needs a Brazilian read.** Júlia's line in the plane intro. It replaces "A cartela de carimbos ainda não chegou. Quando ela existir, eu te entrego aqui." and drops "Enquanto isso," from the next line, because the cartela is on this build now. | |
 | 464 | De novo | Again | `apps/client/src/ui/escola.ts` | Existing label from the tatame rematch, reused for "practice another word" after a right answer at the escola. Check it still fits there. | |
 | 465 | Hoje: 1/4 | Today: 1/4 | `apps/client/src/ui/cartela.ts` | Trimmed from "Hoje: 1/4 hoje", which repeated the word. | |
+| 466 | peça preta · peça branca | black piece · white piece | `apps/client/src/ui/checkers.ts` | **New, needs a Brazilian read.** Screen-reader labels of the damas pieces (not shown on screen). | |
 
 ## R. Proposed cards for the Curriculum team
 
@@ -638,4 +639,4 @@ No card was added during the conversion (the rule in HOWTO section 8: reference 
 
 ## Totals
 
-465 numbered strings in sections A to Q and S, plus 9 proposed-card entries.
+466 numbered strings in sections A to Q and S, plus 9 proposed-card entries.
