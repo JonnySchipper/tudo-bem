@@ -7,14 +7,20 @@
  */
 import pack from '../../../content/curriculum/phase0/diary-words.json';
 import { normalizeAnswer } from './accept.js';
-import { isNpcId } from './bonds.js';
-import { hotspotById } from './hotspots.js';
-import { NPC_TALK } from './npcTalk.js';
-import { ROOMS, isRoomId } from './rooms.js';
+import {
+  DIARY_SOURCES,
+  assertDiaryPack,
+  asAnchor,
+  diaryKey,
+  type DiaryArea,
+  type DiaryGame,
+  type DiaryPack,
+  type DiarySource,
+  type DiaryWord,
+} from './diaryPack.js';
 import type { Bilingual } from './types.js';
 
-export const DIARY_SOURCES = ['camera', 'reading', 'conversation', 'game'] as const;
-export type DiarySource = (typeof DIARY_SOURCES)[number];
+export * from './diaryPack.js';
 
 export const DIARY_SOURCE_LABEL: Record<DiarySource, Bilingual> = {
   camera: { pt: 'câmera', en: 'camera' },
@@ -22,136 +28,6 @@ export const DIARY_SOURCE_LABEL: Record<DiarySource, Bilingual> = {
   conversation: { pt: 'conversa', en: 'conversation' },
   game: { pt: 'jogo', en: 'game' },
 };
-
-export type DiaryAnchor =
-  | { kind: 'object'; id: string }
-  | { kind: 'sign'; id: string }
-  | { kind: 'line'; id: string }
-  | { kind: 'game'; id: string };
-
-export interface DiaryArea {
-  id: string;
-  pt: string;
-  en: string;
-}
-
-export interface DiaryWord {
-  id: string;
-  pt: string;
-  en: string;
-  area: string;
-  source: DiarySource;
-  anchor: DiaryAnchor;
-  /** Curriculum seed. The real list replaces these; the game does not special-case the flag. */
-  seed?: boolean;
-}
-
-export interface DiaryGame {
-  id: string;
-  room: string;
-  host: { npc: string; name: string };
-  /** Virtual RV only. Beta does not charge real money. */
-  rv: number;
-  /** Granted once on a win, when still unearned. Omitted = the win pays RV and no new word. */
-  grantWordId?: string;
-  /** Extra wrong answers when the catalog is too small to fill the choices. */
-  decoys: string[];
-  seed?: boolean;
-}
-
-export interface DiaryPack {
-  areas: DiaryArea[];
-  words: DiaryWord[];
-  games: DiaryGame[];
-}
-
-/** Accent- and case-insensitive key. One key, one word, one source. */
-export function diaryKey(pt: string): string {
-  return pt
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-const anchorKey = (a: DiaryAnchor) => `${a.kind}:${a.id}`;
-
-function isSource(v: unknown): v is DiarySource {
-  return typeof v === 'string' && (DIARY_SOURCES as readonly string[]).includes(v);
-}
-
-function asAnchor(raw: unknown): DiaryAnchor | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const k = (raw as { kind?: unknown }).kind;
-  const id = (raw as { id?: unknown }).id;
-  if (typeof id !== 'string' || !id) return null;
-  if (k === 'object' || k === 'sign' || k === 'line' || k === 'game') return { kind: k, id };
-  return null;
-}
-
-/**
- * Throws when the pack cannot be dropped in safely: duplicate Portuguese, a word whose anchor is not
- * in the world, a game whose reward word has the wrong source, an unknown area.
- */
-export function assertDiaryPack(raw: DiaryPack): void {
-  const areas = new Set<string>();
-  for (const a of raw.areas) {
-    if (!a.id || areas.has(a.id)) throw new Error(`diary: bad or duplicate area “${a.id}”`);
-    areas.add(a.id);
-  }
-  const ids = new Set<string>();
-  const pts = new Map<string, string>();
-  const anchors = new Map<string, string>();
-  for (const w of raw.words) {
-    if (!w.id || ids.has(w.id)) throw new Error(`diary: bad or duplicate word id “${w.id}”`);
-    ids.add(w.id);
-    if (!w.pt || !w.en) throw new Error(`diary: “${w.id}” needs Portuguese and an English gloss`);
-    if (!areas.has(w.area)) throw new Error(`diary: “${w.id}” uses unknown area “${w.area}”`);
-    if (!isSource(w.source)) throw new Error(`diary: “${w.id}” has a bad source`);
-    const anchor = asAnchor(w.anchor);
-    if (!anchor || anchor.kind !== w.anchor.kind) throw new Error(`diary: “${w.id}” has a bad anchor`);
-    const key = diaryKey(w.pt);
-    const other = pts.get(key);
-    if (other) throw new Error(`diary: “${w.pt}” is both ${other} and ${w.id} — one word, one source`);
-    pts.set(key, w.id);
-    const ak = anchorKey(anchor);
-    if (anchors.has(ak)) throw new Error(`diary: anchor ${ak} is used by ${anchors.get(ak)} and ${w.id}`);
-    anchors.set(ak, w.id);
-    if (w.source === 'camera' && anchor.kind !== 'object') throw new Error(`diary: camera word “${w.id}” must anchor an object`);
-    if (w.source === 'reading' && anchor.kind !== 'sign') throw new Error(`diary: reading word “${w.id}” must anchor a sign`);
-    if (w.source === 'conversation' && anchor.kind !== 'line') throw new Error(`diary: conversation word “${w.id}” must anchor a line`);
-    if (w.source === 'game' && anchor.kind !== 'game') throw new Error(`diary: game word “${w.id}” must anchor a game`);
-    if (anchor.kind === 'object' && !Object.values(ROOMS).some((r) => r.props.some((p) => p.id === anchor.id)))
-      throw new Error(`diary: no prop “${anchor.id}” for “${w.id}”`);
-    if (anchor.kind === 'sign' && !hotspotById(anchor.id)) throw new Error(`diary: no sign “${anchor.id}” for “${w.id}”`);
-    if (anchor.kind === 'line') {
-      const dot = anchor.id.indexOf('.');
-      const npc = dot < 0 ? '' : anchor.id.slice(0, dot);
-      const node = dot < 0 ? '' : anchor.id.slice(dot + 1);
-      const talk = isNpcId(npc) ? NPC_TALK[npc] : undefined;
-      if (!talk?.nodes[node]) throw new Error(`diary: no NPC line “${anchor.id}” for “${w.id}”`);
-    }
-  }
-  const games = new Set<string>();
-  for (const g of raw.games) {
-    if (!g.id || games.has(g.id)) throw new Error(`diary: bad or duplicate game “${g.id}”`);
-    games.add(g.id);
-    if (!isRoomId(g.room)) throw new Error(`diary: game “${g.id}” is not in a room`);
-    if (!isNpcId(g.host?.npc) || !g.host.name) throw new Error(`diary: game “${g.id}” needs a host`);
-    if (!Number.isInteger(g.rv) || g.rv < 0 || g.rv > 100) throw new Error(`diary: game “${g.id}” has a bad RV amount`);
-    if (!Array.isArray(g.decoys) || g.decoys.some((d) => typeof d !== 'string' || !d)) throw new Error(`diary: game “${g.id}” has a bad decoy`);
-    if (g.grantWordId) {
-      const w = raw.words.find((x) => x.id === g.grantWordId);
-      if (!w || w.source !== 'game' || w.anchor.kind !== 'game' || w.anchor.id !== g.id)
-        throw new Error(`diary: “${g.id}” must grant a game-source word anchored to itself`);
-    }
-  }
-  for (const w of raw.words) {
-    if (w.source === 'game' && w.anchor.kind === 'game' && !games.has(w.anchor.id))
-      throw new Error(`diary: “${w.id}” anchors missing game “${w.anchor.id}”`);
-  }
-}
 
 function loadPack(): DiaryPack {
   const areas = (pack.areas ?? []) as DiaryArea[];
@@ -173,20 +49,50 @@ export const diaryWord = (id: string): DiaryWord | undefined => DIARY_WORDS.find
 export const diaryGame = (id: string): DiaryGame | undefined => DIARY_GAMES.find((g) => g.id === id);
 export const diaryGamesIn = (room: string): DiaryGame[] => DIARY_GAMES.filter((g) => g.room === room);
 
-export function cameraObjectIds(): ReadonlySet<string> {
-  return new Set(DIARY_WORDS.filter((w) => w.source === 'camera' && w.anchor.kind === 'object').map((w) => w.anchor.id));
+const anchorsOf = (w: DiaryWord): string[] => [w.anchor.id, ...(w.also ?? [])];
+
+const PHOTO_INDEX = new Map<string, DiaryWord[]>();
+const SIGN_INDEX = new Map<string, DiaryWord>();
+const LINE_INDEX = new Map<string, DiaryWord>();
+for (const w of DIARY_WORDS) {
+  for (const id of anchorsOf(w)) {
+    if (w.source === 'camera' && w.anchor.kind === 'object') PHOTO_INDEX.set(id, [...(PHOTO_INDEX.get(id) ?? []), w]);
+    else if (w.source === 'reading' && w.anchor.kind === 'sign') SIGN_INDEX.set(id, w);
+    else if (w.source === 'conversation' && w.anchor.kind === 'line') LINE_INDEX.set(id, w);
+  }
 }
 
-export function wordForPhoto(objectId: string): DiaryWord | undefined {
-  return DIARY_WORDS.find((w) => w.source === 'camera' && w.anchor.kind === 'object' && w.anchor.id === objectId);
+export function cameraObjectIds(): ReadonlySet<string> {
+  return new Set(PHOTO_INDEX.keys());
+}
+
+/** Every camera word an object teaches, in catalog order (a crate of melancias is a caixote and a melancia). */
+export function wordsForPhoto(objectId: string): readonly DiaryWord[] {
+  return PHOTO_INDEX.get(objectId) ?? [];
 }
 
 export function wordForSign(signId: string): DiaryWord | undefined {
-  return DIARY_WORDS.find((w) => w.source === 'reading' && w.anchor.kind === 'sign' && w.anchor.id === signId);
+  return SIGN_INDEX.get(signId);
 }
 
 export function wordForLine(lineId: string): DiaryWord | undefined {
-  return DIARY_WORDS.find((w) => w.source === 'conversation' && w.anchor.kind === 'line' && w.anchor.id === lineId);
+  return LINE_INDEX.get(lineId);
+}
+
+/** The first ambient line (by index) of an NPC whose conversation word the player does not have yet, or null. Drives who speaks up next. */
+export function unheardIdleLine(npc: string, lineCount: number, earned: readonly string[] | undefined): number | null {
+  const have = new Set(normalizeDiary(earned));
+  for (let i = 0; i < lineCount; i++) {
+    const word = wordForLine(`${npc}.idle${i}`);
+    if (word && !have.has(word.id)) return i;
+  }
+  return null;
+}
+
+/** The game word a win can teach: by served item for a correria shift, the one word of a practice game. */
+export function gameWordFor(game: DiaryGame, item?: string): DiaryWord | undefined {
+  const id = game.grants?.find((g) => g.item === item)?.wordId ?? (item === undefined ? game.grantWordId : undefined);
+  return id ? diaryWord(id) : undefined;
 }
 
 /** Known earned ids, one per Portuguese word. Unknown ids drop out. Never throws. */

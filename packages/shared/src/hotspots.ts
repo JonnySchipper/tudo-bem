@@ -1,3 +1,4 @@
+import { DIARY_PLACEMENTS } from './diaryWorld.js';
 import type { RoomId, Tile } from './types.js';
 
 /**
@@ -31,7 +32,7 @@ export interface HotspotDef {
 // to within 3 tiles of the sidewalk (rows 6-7), so it can be read from the street. Hotspots never overlap a door (portal) or a prop with an action.
 // Prices agree with `PRICES` in carlos.ts (the Carlos scene) and are tested against it.
 
-export const HOTSPOTS: HotspotDef[] = [
+const BASE_HOTSPOTS: HotspotDef[] = [
   // ---- Vila Ipê, north row: the building fronts
   { id: 'padaria_letreiro', room: 'rua', x: 3, y: 1, w: 4, h: 3, pt: 'PADARIA\nDO SEU CARLOS', en: 'Bakery\nof Seu Carlos' },
   { id: 'empena_tudo_bem', room: 'rua', x: 8, y: 1, w: 3, h: 3, pt: 'TUDO BEM?', en: 'How’s it going?', cards: ['lex.social.tudo_bem'] },
@@ -111,6 +112,26 @@ export const HOTSPOTS: HotspotDef[] = [
   { id: 'academia_faixas', room: 'academia', x: 0, y: 1, w: 1, h: 2, pt: 'FAIXAS\nbranca · azul · roxa\nmarrom · preta', en: 'BELTS\nwhite · blue · purple\nbrown · black' },
   { id: 'academia_vestiario', room: 'academia', x: 2, y: 7, pt: 'KIMONO\nCompre aqui\nantes do tatame', en: 'GI\nBuy here\nbefore the mat' },
 ];
+
+/**
+ * The signs added for the language diary: the free-lot plates of the feira, the escola's wall poster and exit, and one board for each
+ * added reading word (its placement in `diaryWorld.ts`). Needs_br: every word comes from the catalog and the signs print nothing more.
+ */
+const DIARY_SIGNS: HotspotDef[] = [
+  ...(['a3', 'a4', 'b3', 'b4'] as const).map((slot): HotspotDef => ({
+    id: `vaga_${slot}`,
+    room: 'feira',
+    x: slot[1] === '3' ? 19 : 25,
+    y: slot[0] === 'a' ? 5 : 13,
+    pt: 'Vaga livre para uma nova barraca',
+    en: 'Free spot for a new stall',
+  })),
+  { id: 'escola_poster', room: 'escola', x: 7, y: 0, w: 2, h: 1, up: 2, pt: 'ESCOLA', en: 'SCHOOL' },
+  { id: 'escola_saida', room: 'escola', x: 0, y: 5, pt: 'SAÍDA · Rua', en: 'EXIT · Street' },
+  ...DIARY_PLACEMENTS.filter((p) => p.sign).map((p): HotspotDef => ({ id: p.id, room: p.room, x: p.x, y: p.y, ...(p.w ? { w: p.w } : {}), pt: p.sign!.pt, en: p.sign!.en })),
+];
+
+export const HOTSPOTS: HotspotDef[] = [...BASE_HOTSPOTS, ...DIARY_SIGNS];
 
 export const hotspotById = (id: string): HotspotDef | undefined => HOTSPOTS.find((h) => h.id === id);
 

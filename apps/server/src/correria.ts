@@ -49,6 +49,8 @@ export interface CorreriaDeps {
   completeStep: (s: Session) => void;
   missionStep: (s: Session) => void;
   cartelaShift?: (s: Session, served: number) => void;
+  /** A shift that ended with at least one order served, not given up: the items it served. */
+  shiftWon?: (s: Session, items: readonly string[]) => void;
   ordered: (s: Session, lines: { itemId: string; qty: number }[]) => void;
   bond: (s: Session, npc: NpcId, delta: number) => void;
   caderno: { seen: (s: Session, text: string, ids?: readonly string[]) => void; heard: (s: Session, ids: unknown) => void };
@@ -230,6 +232,7 @@ export class CorreriaEngine {
     if (sum.served >= 1) {
       this.d.completeStep(s);
       this.d.cartelaShift?.(s, sum.served);
+      if (!abandoned) this.d.shiftWon?.(s, sum.items);
     }
     this.d.pushProfile(s);
     const end = this.summaryToEnd(s, sum, coins, dailyBlocked, before, wordsNew);
