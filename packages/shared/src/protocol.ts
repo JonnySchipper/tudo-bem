@@ -112,6 +112,8 @@ export interface DiaryMoment {
   en: string;
   areaPt: string;
   progress: string;
+  /** Which source taught it (a photo's words are all camera and leave this out). */
+  source?: string;
 }
 
 export interface RoomStateMsg {
@@ -388,6 +390,8 @@ export type ServerMsg =
   | { t: 'diary'; phase: 'photo'; ok: false; pt: string; en: string; film: number; empty?: boolean }
   /** A word went into the diary another way (a sign read, a line heard, a game won): the client makes the same moment of it as a photo. */
   | { t: 'diary'; phase: 'word'; pt: string; en: string; source: string; areaPt: string; progress: string }
+  /** Several words went in at once (the arrival card's): shown one after another, each counting up in its area. */
+  | { t: 'diary'; phase: 'words'; words: DiaryMoment[] }
   | { t: 'diary'; phase: 'practice'; ok: true; host: string; en: string; options: string[] }
   | { t: 'diary'; phase: 'practice'; ok: false; host: string; pt: string; en: string }
   | { t: 'diary'; phase: 'result'; correct: boolean; host: string; line: Bilingual; granted: { pt: string; en: string } | null }

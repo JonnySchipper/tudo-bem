@@ -9,6 +9,7 @@
 import { game } from '../state';
 import { h, en } from './dom';
 import { ambience } from '../ambience';
+import { WordQueue, cardMs, momentsOfShot, type QueuedWord, type WordMoment } from './diaryWordQueue';
 
 export const FRAME_W = 220;
 export const FRAME_H = 148;
@@ -145,14 +146,17 @@ export function flyInto(el: HTMLElement, targetId = 'btn-caderno', after?: () =>
   };
 }
 
-/** The new-word card over the print. It never blocks the world: only its button takes the pointer. */
-function celebrate(m: { pt: string; en: string; areaPt?: string; progress?: string }, print: HTMLElement | null) {
+/** The new-word card over the world. It never blocks the world: only its button takes the pointer. A shot's cards hand over one after another. */
+function celebrate(m: QueuedWord<HTMLElement>) {
   document.getElementById('photo-celebrate')?.remove();
   const close = () => {
     window.clearTimeout(timer);
     card.classList.add('leaving');
     window.setTimeout(() => card.remove(), 260);
-    if (print?.isConnected) flyInto(print);
+    if (m.print?.isConnected) flyInto(m.print);
+    // the next card of the queue comes once this one is gone
+    window.clearTimeout(pumping);
+    pumping = window.setTimeout(pump, 300);
   };
   const card = h(
     'div',
@@ -161,7 +165,7 @@ function celebrate(m: { pt: string; en: string; areaPt?: string; progress?: stri
     h(
       'div',
       { class: 'celebrate-card' },
-      h('p', { class: 'celebrate-kicker' }, 'Nova palavra!'),
+      h('p', { class: 'celebrate-kicker' }, 'Nova palavra!', m.total > 1 ? h('span', { class: 'celebrate-count' }, `${m.index}/${m.total}`) : null),
       h('b', { class: 'celebrate-pt', id: 'photo-word', lang: 'pt-BR' }, m.pt),
       en(m.en),
       m.progress ? h('p', { class: 'celebrate-progress', id: 'photo-progress' }, `${m.areaPt ?? ''}: ${m.progress}`) : null,
@@ -169,13 +173,12 @@ function celebrate(m: { pt: string; en: string; areaPt?: string; progress?: stri
     ),
   );
   document.getElementById('ui')?.append(card);
-  const timer = window.setTimeout(close, 3400);
+  const timer = window.setTimeout(close, cardMs(m));
 }
 
 // ---------------------------------------------------------------- every new diary word gets the moment, one at a time
 
-type WordMoment = { pt: string; en: string; areaPt?: string; progress?: string };
-const waiting: WordMoment[] = [];
+const queue = new WordQueue<HTMLElement>();
 let gameOn: () => boolean = () => false;
 let pumping = 0;
 
@@ -186,42 +189,52 @@ export function setWordGate(isGameOn: () => boolean) {
 
 /** A word reached the diary without the camera (a sign, a line, a game): the same card a photo gets, after any game on screen. */
 export function celebrateWord(m: WordMoment) {
-  waiting.push(m);
+  queue.push(momentsOfShot([m]));
+  pump();
+}
+
+/** Several words at once (the arrival card's): one card each, counting up, in order. */
+export function celebrateWords(words: readonly WordMoment[]) {
+  queue.push(momentsOfShot(words));
   pump();
 }
 
 function pump() {
   window.clearTimeout(pumping);
-  if (!waiting.length) return;
-  if (gameOn() || document.getElementById('photo-celebrate')) {
+  if (!queue.length) return;
+  const next = queue.take(!!document.getElementById('photo-celebrate'), gameOn());
+  if (!next) {
     pumping = window.setTimeout(pump, 400);
     return;
   }
-  const next = waiting.shift()!;
   ambience.sting('caderno');
-  celebrate(next, null);
-  if (waiting.length) pumping = window.setTimeout(pump, 400);
+  celebrate(next);
 }
 
-export function showPhoto(m: { ok: boolean; pt: string; en: string; areaPt?: string; progress?: string; empty?: boolean }) {
+type ShotMsg = { ok: boolean; pt: string; en: string; areaPt?: string; progress?: string; empty?: boolean; words?: WordMoment[] };
+
+export function showPhoto(m: ShotMsg) {
   const print = pending?.el ?? null;
   if (pending) {
     window.clearTimeout(pending.timer);
     pending = null;
   }
+  const words = m.ok ? (m.words?.length ? m.words : [m]) : [];
   if (print) {
     print.classList.remove('developing');
     print.classList.add(m.ok ? 'new-word' : m.empty ? 'saved' : 'known');
     const cap = print.querySelector('.print-cap');
     cap?.replaceChildren(
       ...(m.ok || m.empty ? [] : [h('span', { class: 'print-kicker' }, 'Já no diário')]),
+      ...(words.length > 1 ? [h('span', { class: 'print-more' }, `+${words.length - 1}`)] : []),
       h('b', { class: 'print-pt', lang: 'pt-BR' }, m.pt),
       h('span', { class: 'print-en en plain' }, m.en),
     );
   }
   if (m.ok) {
-    ambience.sting('caderno');
-    celebrate(m, print);
+    // every word the shot taught, in order; the print flies into the Diário when the last of them has been shown
+    queue.push(momentsOfShot(words, print ?? undefined));
+    pump();
     return;
   }
   if (print) window.setTimeout(() => print.isConnected && flyInto(print), m.empty ? 1300 : 1700);

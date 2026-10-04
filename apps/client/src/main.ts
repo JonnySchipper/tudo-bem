@@ -20,6 +20,11 @@ import {
   TUTORIAL_STEPS,
   buildGrid,
   cameraObjectIds,
+  IDLE_HEAR_RANGE,
+  PHOTO_SPOTS,
+  normalizeDiary,
+  unheardIdleLine,
+  wordForLine,
   furnitureById,
   greetingFor,
   localizeGreeting,
@@ -77,16 +82,18 @@ import { mountTracker, openJournal, runPrelude } from './ui/recados';
 import { heartsWith } from './ui/recadoView';
 import { openNpcTalk } from './ui/npcTalk';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira';
-import { openCaderno } from './ui/caderno';
+import { openCaderno, setArrivalReplay } from './ui/caderno';
 import { syncArrival } from './ui/arrival';
-import { cameraFrameAt, captureFrame, celebrateWord, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
+import { isArrivalHallOpen, openArrivalHall } from './ui/arrivalHall';
+import type { WordMoment } from './ui/diaryWordQueue';
+import { cameraFrameAt, captureFrame, celebrateWord, celebrateWords, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
 import { escolaPracticeOpen, openEscolaPractice, showEscolaResult } from './ui/escola';
 import { openHotspotCard } from './ui/hotspotCard';
 import { openStreetSnack } from './ui/streetSnack';
 import { openCheckers } from './ui/checkers';
 import { openGiShop } from './ui/giShop';
 import { setHeardSink } from './ui/heard';
-import { closeConversa, isConversaOpen, openConversa } from './ui/conversa';
+import { closeConversa, isConversaOpen, openConversa, setConversaLineSink } from './ui/conversa';
 import { openCounter } from './ui/padariaCounter';
 import { BoutUI } from './ui/bout';
 import { CorreriaUI } from './ui/correria';
@@ -187,6 +194,32 @@ function runPending() {
   else propAction(p.action, p.kind === 'prop' ? p.propId : undefined);
 }
 
+/**
+ * The arrival card's words are held while the airport hall is open (its cards would cover the postcard) and shown, one after another,
+ * when the player leaves it.
+ */
+let heldCardWords: WordMoment[][] | null = null;
+function flushCardWords() {
+  const held = heldCardWords;
+  heldCardWords = null;
+  for (const words of held ?? []) celebrateWords(words);
+}
+function arrivalFinish() {
+  heldCardWords = [];
+  net.send({ t: 'arrival', action: 'finish' });
+  // if the hall never opens, the words come anyway
+  window.setTimeout(() => {
+    if (!isArrivalHallOpen()) flushCardWords();
+  }, 4000);
+}
+const arrivalHall = () => openArrivalHall((m) => net.send(m), flushCardWords);
+
+/** Tell the server a line was heard when it can still teach a conversation word the diary does not have. */
+function sendLine(anchor: string) {
+  const word = wordForLine(anchor);
+  if (word && !normalizeDiary(game.profile?.diary).includes(word.id)) net.send({ t: 'diary', action: 'line', anchor });
+}
+
 /** The feira (Phase 9): a stall, or the Hortifrúti corner. A stall whose vendor is away shows the closed note (D12: the corner at the banca sells at every hour). */
 function openStall(propId?: string) {
   const prop = game.roomDef?.props.find((x) => x.id === propId);
@@ -194,6 +227,8 @@ function openStall(propId?: string) {
   if (!vendor) return;
   closeDialogue();
   const there = vendor === 'banca' || game.liveNpcs(now()).some((n) => n.id === VENDORS[vendor].npc && game.avatars.get(`npc-${n.id}`)?.pub.activity === 'trabalhando');
+  // the vendor's own lines carry diary words: the greeting at an open stall, the closing note at a shut one
+  if (vendor !== 'banca') sendLine(`${VENDORS[vendor].npc}.${there ? 'greet' : 'closed'}`);
   if (!there) return openFeiraClosed(vendor);
   openFeira(vendor, { send: (m) => net.send(m) }, { talked: (id) => net.send({ t: 'talk', npc: id }) });
 }
@@ -249,7 +284,7 @@ function talkFlow(npc: NpcDef['id']) {
     // Nanda, Júlia and Professora Bia (the live NPC you clicked): a short greeting in the dialogue box (Nanda offers "Ver chapéus", Júlia her help)
     openNpcTalk(npc, {
       openShop,
-      onLine: (anchor) => net.send({ t: 'diary', action: 'line', anchor }),
+      onLine: (anchor) => sendLine(anchor),
       buyFilm: () => net.send({ t: 'diary', action: 'buyFilm' }),
       openMat: () => openBout(),
     });
@@ -300,11 +335,20 @@ function takePhoto(clientX: number, clientY: number) {
   const room = game.roomDef;
   const view = renderer as { propClientRect?: (p: { x: number; y: number; w?: number; h?: number }) => { x: number; y: number; w: number; h: number } | null };
   if (room && view.propClientRect) {
-    for (const prop of room.props) {
-      if (!cameraObjectIds().has(prop.id)) continue;
-      const rect = view.propClientRect(prop);
-      if (rect && rectsOverlap(frame, rect)) anchors.push(prop.id);
-    }
+    // everything the frame touches that the diary teaches a word for: props, wall decor on the north wall, and furniture placed in the kitnet.
+    // The ones nearest the reticle go first, so the cards come in the order the player aimed.
+    const touched: { id: string; d: number }[] = [];
+    const aim = { x: frame.x + frame.w / 2, y: frame.y + frame.h / 2 };
+    const taught = cameraObjectIds();
+    const tag = (id: string, box: { x: number; y: number; w?: number; h?: number }) => {
+      const rect = view.propClientRect!(box);
+      if (!rect || !rectsOverlap(frame, rect) || touched.some((t) => t.id === id)) return;
+      touched.push({ id, d: Math.hypot(rect.x + rect.w / 2 - aim.x, rect.y + rect.h / 2 - aim.y) });
+    };
+    for (const prop of room.props) if (taught.has(prop.id)) tag(prop.id, prop);
+    for (const spot of PHOTO_SPOTS) if (spot.room === room.id && taught.has(spot.id)) tag(spot.id, spot);
+    for (const f of game.furniture) if (taught.has(f.itemId)) tag(f.itemId, { x: f.x, y: f.y });
+    anchors.push(...touched.sort((a, b) => a.d - b.d).map((t) => t.id).slice(0, 24));
   }
   const image = captureFrame(frame);
   shutter(frame, image);
@@ -505,7 +549,7 @@ net.on((m: ServerMsg) => {
       const last = sessionStorage.getItem(LAST_ROOM_KEY);
       const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'feira' || last === 'escola';
       joinRoom(remembered ? last : 'praca');
-      syncArrival(() => net.send({ t: 'arrival', action: 'finish' }));
+      syncArrival(arrivalFinish, arrivalHall);
       game.emit('profile');
       break;
     }
@@ -526,7 +570,7 @@ net.on((m: ServerMsg) => {
       game.profile = m.profile;
       if (!m.profile.hasCamera) game.cameraOn = false;
       syncCameraBanner();
-      syncArrival(() => net.send({ t: 'arrival', action: 'finish' }));
+      syncArrival(arrivalFinish, arrivalHall);
       game.emit('profile');
       updateGuides();
       break;
@@ -577,12 +621,13 @@ net.on((m: ServerMsg) => {
         );
       }
       if (keepMg) correriaUi?.requestSync();
-      syncArrival(() => net.send({ t: 'arrival', action: 'finish' }));
+      syncArrival(arrivalFinish, arrivalHall);
       break;
     }
     case 'diary':
       if (m.phase === 'photo') showPhoto(m);
       else if (m.phase === 'word') celebrateWord(m);
+      else if (m.phase === 'words') (heldCardWords ? heldCardWords.push(m.words) : celebrateWords(m.words));
       else if (m.phase === 'practice') {
         if (m.ok)
           openEscolaPractice(
@@ -855,11 +900,29 @@ function startGame() {
     },
   });
   const idleTalk = new IdleTalk();
+  // an ambient line carries a diary word when it is heard: the player is within earshot (the server checks again), and the NPC said it
+  const hearIdle = (n: { id: string; x: number; y: number; idleLines: readonly { pt: string }[] }, line: { pt: string }) => {
+    const cur = selfTile();
+    if (!cur) return;
+    const i = n.idleLines.findIndex((l) => l.pt === line.pt);
+    if (i < 0 || Math.max(Math.abs(cur.tile.x - n.x), Math.abs(cur.tile.y - n.y)) > IDLE_HEAR_RANGE) return;
+    sendLine(`${n.id}.idle${i}`);
+  };
   setInterval(() => {
     const npcs = game.liveNpcs(now());
     if (!npcs.length || document.hidden || ambientBubblesFull()) return;
-    const n = npcs[Math.floor(Math.random() * npcs.length)];
-    npcSay(n.id, localizeGreeting(idleTalk.next(n.idleLines, clock.weather(), clock.minutes()), clock.minutes()));
+    // somebody within earshot who has a word to teach speaks up first, with that line; otherwise anybody, at random
+    const cur = selfTile();
+    const earned = game.profile?.diary;
+    const teacher = cur
+      ? npcs
+          .map((n) => ({ n, i: unheardIdleLine(n.id, n.idleLines.length, earned) }))
+          .find((e) => e.i !== null && Math.max(Math.abs(cur.tile.x - e.n.x), Math.abs(cur.tile.y - e.n.y)) <= IDLE_HEAR_RANGE)
+      : undefined;
+    const n = teacher?.n ?? npcs[Math.floor(Math.random() * npcs.length)];
+    const own = teacher ? n.idleLines[teacher.i!]! : idleTalk.next(n.idleLines, clock.weather(), clock.minutes());
+    npcSay(n.id, localizeGreeting(own, clock.minutes()));
+    hearIdle(n, own);
   }, 11_000);
   // the feira: a vendor calls out their goods now and then (PT with the gloss); never two calls at once, and not while a dialogue box is open
   setInterval(() => {
@@ -868,7 +931,9 @@ function startGame() {
     if (!vendors.length) return;
     const n = vendors[Math.floor(Math.random() * vendors.length)]!;
     const calls = VENDORS[n.id as 'tia_lu'].calls;
-    npcSay(n.id, localizeGreeting(calls[Math.floor(Math.random() * calls.length)]!, clock.minutes()));
+    const call = calls[Math.floor(Math.random() * calls.length)]!;
+    npcSay(n.id, localizeGreeting(call, clock.minutes()));
+    hearIdle(n, call);
   }, 7_000);
 }
 
@@ -1136,6 +1201,12 @@ setDialogueHost({
 });
 // every 🔊 (dialogue, sign, Caderno) reports the words to the Caderno
 setHeardSink((cardIds) => net.send({ t: 'heard', cardIds }));
+setConversaLineSink((anchor) => sendLine(anchor));
+setArrivalReplay(() => {
+  heldCardWords = [];
+  net.send({ t: 'arrival', action: 'replay' });
+  openArrivalHall((m) => net.send(m), flushCardWords);
+});
 
 function frame(ts: number) {
   try {

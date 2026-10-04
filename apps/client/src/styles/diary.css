@@ -785,6 +785,27 @@
   color: #2e8a55;
 }
 
+.celebrate-count {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--dy-ink);
+  color: #fff;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+}
+
+.print-more {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--dy-gold);
+  color: var(--dy-ink);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
 .celebrate-progress {
   margin: 6px 0 0;
   font-weight: 800;
@@ -1876,4 +1897,162 @@ html.px-ui .backdrop > .panel.escola-panel,
   .diary-cover {
     display: none;
   }
+}
+
+/* ================================================================ the airport hall: a postcard to photograph and read (Chegada) */
+
+#arrival-hall {
+  position: fixed;
+  inset: 0;
+  z-index: 11;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: rgba(20, 16, 12, 0.6);
+  cursor: crosshair;
+  overflow-y: auto;
+  animation: dy-fade 0.3s ease-out both;
+}
+
+#arrival-hall .hall-card {
+  width: min(640px, 100%);
+  padding: 8px 8px 10px;
+  color: var(--dy-ink);
+  background: var(--hud-paper, #fbf1e3);
+  box-shadow:
+    0 0 0 3px var(--dy-ink),
+    0 10px 0 rgba(20, 10, 6, 0.35);
+  text-align: center;
+}
+
+#arrival-hall .hall-kicker {
+  margin: 2px 0 6px;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2b5ba8;
+}
+
+#arrival-hall .hall-scene {
+  container-type: inline-size;
+  position: relative;
+  width: 100%;
+  aspect-ratio: 160 / 112;
+  overflow: hidden;
+  background: #8fd0ee;
+  box-shadow: 0 0 0 3px var(--dy-ink);
+}
+
+#arrival-hall .hall-scene > i {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  pointer-events: none;
+}
+
+#arrival-hall .hall-sky {
+  top: 0;
+  height: 42%;
+  background: linear-gradient(#6fb9e6, #cfe9f0 62%, #fbe3a6);
+}
+
+#arrival-hall .hall-ground {
+  top: 30%;
+  height: 13%;
+  background: repeating-linear-gradient(90deg, #5c6a5a 0 6%, #667563 6% 12%);
+}
+
+#arrival-hall .hall-wall {
+  top: 41%;
+  height: 27%;
+  background: #e8dfcc;
+  border-top: 4px solid var(--dy-ink);
+}
+
+#arrival-hall .hall-floor {
+  top: 68%;
+  height: 32%;
+  background: repeating-linear-gradient(90deg, #b8ab91 0 12%, #a99d83 12% 24%);
+}
+
+#arrival-hall .hall-booth {
+  left: 36% !important;
+  top: 74%;
+  width: 28% !important;
+  height: 26%;
+  background: linear-gradient(#daa463 0 12%, #a9764f 12%);
+  box-shadow: 0 0 0 3px var(--dy-ink);
+}
+
+#arrival-hall .hall-obj {
+  position: absolute;
+  pointer-events: none;
+}
+
+#arrival-hall .hall-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#arrival-hall .hall-sign {
+  position: absolute;
+  padding: 0.2cqw 1.4cqw;
+  border: 2px solid var(--dy-ink);
+  font-family: var(--font-pixel, inherit);
+  font-size: max(7px, 2.5cqw);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+  box-shadow: 0 2px 0 rgba(20, 10, 6, 0.35);
+  cursor: pointer;
+}
+
+#arrival-hall .tone-blue {
+  background: #3d56d2;
+  color: #fff;
+}
+
+#arrival-hall .tone-red {
+  background: #d93232;
+  color: #fff;
+}
+
+#arrival-hall .tone-yellow {
+  background: #f8d239;
+  color: var(--dy-ink);
+}
+
+#arrival-hall .tone-white {
+  background: #f8f8f8;
+  color: var(--dy-ink);
+}
+
+#arrival-hall .hall-sign:hover,
+#arrival-hall .hall-sign:focus-visible {
+  outline: 3px solid var(--dy-gold);
+  outline-offset: 1px;
+}
+
+#arrival-hall .hall-hint {
+  margin: 8px 0 4px;
+  font-weight: 700;
+}
+
+#arrival-hall .hall-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 6px;
+  cursor: default;
+}
+
+/* the hall's shots are free and keep no picture: no film count, no empty print */
+#ui:has(#arrival-hall) #camera-banner,
+#ui:has(#arrival-hall) #camera-film {
+  display: none;
+}
+
+#photo-print .print-img:empty {
+  display: none;
 }

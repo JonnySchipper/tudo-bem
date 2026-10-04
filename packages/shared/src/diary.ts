@@ -79,6 +79,16 @@ export function wordForLine(lineId: string): DiaryWord | undefined {
   return LINE_INDEX.get(lineId);
 }
 
+/** The first ambient line (by index) of an NPC whose conversation word the player does not have yet, or null. Drives who speaks up next. */
+export function unheardIdleLine(npc: string, lineCount: number, earned: readonly string[] | undefined): number | null {
+  const have = new Set(normalizeDiary(earned));
+  for (let i = 0; i < lineCount; i++) {
+    const word = wordForLine(`${npc}.idle${i}`);
+    if (word && !have.has(word.id)) return i;
+  }
+  return null;
+}
+
 /** The game word a win can teach: by served item for a correria shift, the one word of a practice game. */
 export function gameWordFor(game: DiaryGame, item?: string): DiaryWord | undefined {
   const id = game.grants?.find((g) => g.item === item)?.wordId ?? (item === undefined ? game.grantWordId : undefined);

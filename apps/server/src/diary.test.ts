@@ -92,6 +92,7 @@ const diaryOf = (m: ServerMsg) => (m.t === 'diary' ? m : undefined);
 /** The ids of the praça words a player holds (the arrival card's words are the Chegada area's). */
 const inPraca = (c: Client) => (c.s.profile?.diary ?? []).filter((id) => diaryWord(id)?.area === 'praca');
 const photoMsgs = (c: Client) => c.all('diary').filter((m): m is Extract<typeof m, { phase: 'photo' }> => m.phase === 'photo');
+const wordsMsgs = (c: Client) => c.all('diary').filter((m): m is Extract<typeof m, { phase: 'words' }> => m.phase === 'words');
 const wordMsgs = (c: Client) => c.all('diary').filter((m): m is Extract<typeof m, { phase: 'word' }> => m.phase === 'word');
 const CARD_WORDS = ['aeroporto', 'brasil', 'avião', 'câmera', 'diário'];
 const ptOf = (ids: readonly string[] | undefined) => (ids ?? []).map((id) => diaryWord(id)!.pt);
@@ -114,16 +115,27 @@ describe('arrival, camera, diary and the escola', () => {
     expect(a.s.profile?.cartela).toMatchObject({ stamps: 0 });
     // the card is read once, and its five words go into the diary: the kicker (reading) and Júlia's four lines (conversation)
     expect(ptOf(a.s.profile?.diary).sort()).toEqual([...CARD_WORDS].sort());
-    expect(wordMsgs(a).map((m) => [m.pt, m.source])).toEqual([
+    // ...as one message, shown one after another and counting up in the Chegada area
+    expect(wordMsgs(a)).toHaveLength(0);
+    const card = wordsMsgs(a);
+    expect(card).toHaveLength(1);
+    expect(card[0]!.words.map((w) => [w.pt, w.source])).toEqual([
       ['aeroporto', 'reading'],
       ['brasil', 'conversation'],
       ['avião', 'conversation'],
       ['câmera', 'conversation'],
       ['diário', 'conversation'],
     ]);
+    expect(card[0]!.words.map((w) => w.progress)).toEqual([
+      '0/14 câmera · 1/6 leitura · 0/4 conversa',
+      '0/14 câmera · 1/6 leitura · 1/4 conversa',
+      '0/14 câmera · 1/6 leitura · 2/4 conversa',
+      '0/14 câmera · 1/6 leitura · 3/4 conversa',
+      '0/14 câmera · 1/6 leitura · 4/4 conversa',
+    ]);
     await a.send({ t: 'arrival', action: 'finish' });
     expect(a.all('notice').filter((n) => n.pt.includes('câmera'))).toHaveLength(1);
-    expect(wordMsgs(a)).toHaveLength(5);
+    expect(wordsMsgs(a)).toHaveLength(1);
   });
 
   it('lets anybody watch the arrival again for the card’s words, never twice, and never before the intro is done', async () => {
@@ -137,7 +149,7 @@ describe('arrival, camera, diary and the escola', () => {
     await a.send({ t: 'arrival', action: 'replay' });
     expect(ptOf(a.s.profile?.diary).sort()).toEqual([...CARD_WORDS].sort());
     await a.send({ t: 'arrival', action: 'replay' });
-    expect(wordMsgs(a)).toHaveLength(5);
+    expect(wordsMsgs(a)).toHaveLength(1);
     expect(a.s.profile?.film ?? 0).toBe(0);
   });
 

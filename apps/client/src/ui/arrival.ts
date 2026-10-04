@@ -4,11 +4,12 @@
  * Taking them flies the camera to its HUD button and the card to the cartela chip.
  * Accounts that already finished it never see this again.
  */
-import { CARTELA_COPY, CARTELA_GOAL, CARTELA_REWARD, FILM } from '@tudobem/shared';
+import { ARRIVAL_CARD, CARTELA_COPY, CARTELA_GOAL, CARTELA_REWARD, FILM } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, ui } from './dom';
 import { npcPortrait } from './pixelArt';
 import { flyInto } from './diaryPanel';
+import { pixelSvg } from './pixelSvg';
 
 let open = false;
 
@@ -28,30 +29,6 @@ const PLANE = [
   '.............KKKK...............',
 ];
 const PLANE_INK: Record<string, string> = { K: '#2a2140', W: '#f6f1e7', B: '#4e6f86', G: '#2e8a55', Y: '#f2c230' };
-
-function pixelSvg(rows: string[], ink: Record<string, string>, cls: string): SVGSVGElement {
-  const ns = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(ns, 'svg');
-  svg.setAttribute('viewBox', `0 0 ${rows[0].length} ${rows.length}`);
-  svg.setAttribute('shape-rendering', 'crispEdges');
-  svg.setAttribute('preserveAspectRatio', 'none');
-  svg.setAttribute('class', cls);
-  svg.setAttribute('aria-hidden', 'true');
-  rows.forEach((row, y) => {
-    for (let x = 0; x < row.length; x++) {
-      const c = ink[row[x]];
-      if (!c) continue;
-      const r = document.createElementNS(ns, 'rect');
-      r.setAttribute('x', String(x));
-      r.setAttribute('y', String(y));
-      r.setAttribute('width', '1');
-      r.setAttribute('height', '1');
-      r.setAttribute('fill', c);
-      svg.append(r);
-    }
-  });
-  return svg;
-}
 
 /** São Paulo at a distance: a row of towers with a few lit windows (deterministic, one character per art pixel). */
 function skylineRows(): string[] {
@@ -142,7 +119,7 @@ function handOver() {
   });
 }
 
-export function syncArrival(finish: () => void) {
+export function syncArrival(finish: () => void, hall?: () => void) {
   const need = game.profile?.arrivalIntroDone === false && !!game.room;
   if (!need) {
     if (!open) return;
@@ -166,7 +143,11 @@ export function syncArrival(finish: () => void) {
         const root = document.getElementById('arrival-intro');
         handOver();
         root?.classList.add('leaving');
-        window.setTimeout(() => root?.remove(), 520);
+        window.setTimeout(() => {
+          root?.remove();
+          // the postcard turns into the airport hall: the first pictures, free
+          hall?.();
+        }, 520);
         finish();
       },
     },
@@ -184,10 +165,10 @@ export function syncArrival(finish: () => void) {
         h(
           'div',
           { class: 'arrival-head' },
-          h('p', { class: 'arrival-kicker' }, 'Aeroporto'),
-          h('h2', { id: 'arrival-title' }, 'Você chegou ao Brasil'),
-          h('p', null, 'O avião acabou de pousar. Júlia te espera na praça.'),
-          en('The plane just landed. Júlia is waiting for you in the square.'),
+          h('p', { class: 'arrival-kicker' }, ARRIVAL_CARD.kicker.pt),
+          h('h2', { id: 'arrival-title' }, ARRIVAL_CARD.title.pt),
+          h('p', null, ARRIVAL_CARD.landed.pt),
+          en(ARRIVAL_CARD.landed.en),
         ),
         h(
           'div',
@@ -198,10 +179,10 @@ export function syncArrival(finish: () => void) {
             { class: 'arrival-says' },
             h('b', { class: 'arrival-name' }, 'Júlia'),
             // needs_br: true (new line: the card is on this build now; was "A cartela de carimbos ainda não chegou…")
-            h('p', null, 'Toma a câmera e a cartela do bairro.'),
-            en('Here, take the camera and the neighborhood stamp card.'),
-            h('p', null, 'Fotografe o que você vê e as palavras ficam no diário.'),
-            en('Photograph what you see and the words stay in the diary.'),
+            h('p', null, ARRIVAL_CARD.camera.pt),
+            en(ARRIVAL_CARD.camera.en),
+            h('p', null, ARRIVAL_CARD.diary.pt),
+            en(ARRIVAL_CARD.diary.en),
           ),
         ),
         h('div', { class: 'arrival-gifts' }, cameraGift(), cartelaGift()),

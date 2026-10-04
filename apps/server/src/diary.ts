@@ -124,12 +124,14 @@ export class DiaryTracker {
 
   /** The words of the arrival card: the kicker (reading) and Júlia's four lines (conversation). Earned by taking the card. */
   private cardWords(s: Session) {
+    const words: { word: DiaryWord; via: DiaryWord['source'] }[] = [];
     const kicker = wordForSign('arrival.kicker');
-    if (kicker) this.earn(s, kicker, 'reading');
+    if (kicker) words.push({ word: kicker, via: 'reading' });
     for (const id of ['julia.chegada_titulo', 'julia.chegada_aviao', 'julia.chegada_camera', 'julia.chegada_diario']) {
       const word = wordForLine(id);
-      if (word) this.earn(s, word, 'conversation');
+      if (word) words.push({ word, via: 'conversation' });
     }
+    this.earnMany(s, words);
   }
 
   handle(s: Session, msg: Extract<ClientMsg, { t: 'diary' }>) {
@@ -257,6 +259,12 @@ export class DiaryTracker {
     const info = diaryLine(anchor);
     if (!word || !info || info.kind === 'arrival') return;
     const room = this.d.roomOf(s);
+    if (info.kind === 'closed') {
+      // the vendor is away: the note is read at their shut stall
+      const stall = room ? ROOMS[room].props.find((q) => q.vendor === info.npc) : undefined;
+      if (stall && hotspotDistance(stall, this.d.tileOf(s)) <= HOTSPOT_READ_RANGE) this.earn(s, word, 'conversation');
+      return;
+    }
     const hosts = [info.npc, ...(COUNTER_STAND_INS[info.npc] ?? [])];
     const here = room ? this.d.npcsIn(room).find((n) => hosts.includes(n.id)) : undefined;
     if (!here) return;
@@ -275,6 +283,30 @@ export class DiaryTracker {
     this.d.store.save();
     this.d.pushProfile(s);
     this.announce(s, word, via);
+  }
+
+  /** Several words at once: one profile push, and one message that shows them one after another, each counting up in its area. */
+  private earnMany(s: Session, list: readonly { word: DiaryWord; via: DiaryWord['source'] }[]) {
+    const p = s.profile;
+    if (!p) return;
+    const got: { word: DiaryWord; via: DiaryWord['source'] }[] = [];
+    for (const e of list) {
+      const granted = grantDiaryWord(p.diary, e.word.id, e.via);
+      if (!granted.ok) continue;
+      p.diary = granted.earned;
+      got.push(e);
+    }
+    if (!got.length) return;
+    this.d.store.save();
+    this.d.pushProfile(s);
+    if (got.length === 1) return this.announce(s, got[0]!.word, got[0]!.via);
+    let running = normalizeDiary(p.diary).filter((id) => !got.some((e) => e.word.id === id));
+    const words = got.map((e) => {
+      running = [...running, e.word.id];
+      const board = areaBoard(e.word.area, running);
+      return { pt: e.word.pt, en: e.word.en, areaPt: board.pt, progress: progressLine(board), source: e.via };
+    });
+    s.send({ t: 'diary', phase: 'words', words });
   }
 
   /** The new-word moment on the client (the same card a photo gets). */

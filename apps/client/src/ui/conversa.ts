@@ -1,4 +1,5 @@
 import {
+  COUNTER_LINES,
   CONVERSA_AXES,
   CONVERSA_COPY,
   authoredFallbackTurn,
@@ -82,6 +83,19 @@ function findNpc(npcId: NpcId): NpcDef | null {
     if (npc) return npc;
   }
   return null;
+}
+
+/** Where a heard counter line is reported (the diary may teach a word from it). The page registers it. */
+let lineSink: ((anchor: string) => void) | null = null;
+export function setConversaLineSink(fn: ((anchor: string) => void) | null): void {
+  lineSink = fn;
+}
+
+/** The baker's line is spoken, and when it is the to-go answer at the counter ("Pra viagem, então. Tá na mão.") the diary hears it too. */
+function say(pt: string): void {
+  speak(pt);
+  const counter = COUNTER_LINES['carlos.viagem']!;
+  if (pt.includes(counter.slice(0, counter.indexOf('Volte')).trim())) lineSink?.('carlos.viagem');
 }
 
 /** Speak the Portuguese rubber stamp only. `speak()` plays the prebaked clip when the text matches. */
@@ -253,7 +267,7 @@ function applyOfflineTurn(text: string, priorChips: string[]) {
     en: presented.line.en || undefined,
     scores: presented.scores,
   });
-  speak(presented.line.pt);
+  say(presented.line.pt);
   if (presented.end || state.turn >= state.maxTurns) finishConversa('natural');
   else render();
 }
@@ -300,7 +314,7 @@ function handleApiResponse(response: ConversaApiResponse) {
     };
     state.history.push(npcLine);
 
-    speak(response.line.pt);
+    say(response.line.pt);
 
     if (response.end || state.turn >= state.maxTurns) {
       finishConversa('natural');
@@ -465,7 +479,7 @@ export async function openConversa(
       daily,
     };
 
-    speak(response.line.pt);
+    say(response.line.pt);
     showConversaPanel();
   } catch (e) {
     console.warn('[conversa] Start failed, opening authored Carlos:', e);
@@ -501,7 +515,7 @@ function openOfflineConversa(npcId: NpcId) {
     meter: { portuguese: 0, grammar: 0, conversation: 0 },
     daily: {},
   };
-  speak(opened.line.pt);
+  say(opened.line.pt);
   showConversaPanel();
 }
 

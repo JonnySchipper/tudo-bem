@@ -1,7 +1,16 @@
-// The airport hall behind the arrival card: the fourteen camera words of the Chegada area (see ../diaryItems.mjs for the palette).
-// The hall is a postcard in the client (ui/arrivalHall.ts), not a room: these grids are drawn there, not in the world atlas.
+/**
+ * The airport hall behind the arrival card: the fourteen camera objects of the Chegada area, one art pixel per character (`.` is empty).
+ * A postcard drawn in the page (ui/arrivalHall.ts), not a room of the world atlas, so these live with the client.
+ */
+export const HALL_PAL: Record<string, string> = {
+  k: '#3a3a50', d: '#565972', g: '#8b8bab', l: '#c6bdd5', i: '#ebe4f2', w: '#f8f8f8',
+  r: '#d93232', R: '#9e2b2d', o: '#ed931e', y: '#f8d239', Y: '#fff59a',
+  n: '#a9764f', N: '#6b4c2c', t: '#daa463',
+  e: '#64b63b', E: '#32675a',
+  b: '#4995e3', B: '#3d56d2', c: '#95e3e3', u: '#50a7e8',
+};
 
-export const CHEGADA = {
+export const HALL_ART: Record<string, string[]> = {
   mala: [
     '...dd...',
     '..d..d..',

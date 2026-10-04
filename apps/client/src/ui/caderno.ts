@@ -60,7 +60,12 @@ function rewardLine(g: GroupView): HTMLElement {
   return h('div', { class: 'cad-reward' }, `Aprenda todas: +${g.reward} RV`, en(`Learn them all for +${g.reward} RV, once`, true));
 }
 
-/** Open the panel; `groupId` picks the tab, `highlight` marks words (the ones a sign just taught). */
+/** Where "watch the arrival again" goes (the airport hall). The page registers it. */
+let replayArrival: (() => void) | null = null;
+export function setArrivalReplay(fn: (() => void) | null): void {
+  replayArrival = fn;
+}
+
 /** Open the panel; `groupId` picks the tab, `highlight` marks words (the ones a sign just taught). */
 export function openCaderno(groupId?: string, highlight: readonly string[] = []): void {
   const marks = new Set(highlight);
@@ -90,6 +95,22 @@ export function openCaderno(groupId?: string, highlight: readonly string[] = [])
             { class: 'cad-area', 'data-area': area.id },
             h('p', { class: 'cad-area-name' }, area.pt, en(area.en)),
             h('p', { class: 'cad-area-progress', 'data-progress': area.id }, progressLine(area)),
+            area.id === 'chegada' && replayArrival
+              ? h(
+                  'button',
+                  {
+                    type: 'button',
+                    class: 'ghost cad-replay',
+                    'data-replay': 'arrival',
+                    onclick: () => {
+                      close();
+                      replayArrival?.();
+                    },
+                  },
+                  // needs_br: true (button label)
+                  bi('Rever a chegada', 'Watch the arrival again'),
+                )
+              : null,
             area.words.length
               ? h(
                   'ul',
