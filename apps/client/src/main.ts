@@ -306,6 +306,13 @@ function takePhoto(clientX: number, clientY: number) {
   const image = captureFrame(frame);
   shutter(frame, image);
   net.send({ t: 'diary', action: 'photo', anchors, image });
+  // one photo per opening: the camera closes once the blades have opened again (the print carries on to the Diário)
+  window.setTimeout(() => {
+    if (!game.cameraOn) return;
+    game.cameraOn = false;
+    syncCameraBanner();
+    game.emit('hud');
+  }, 320);
 }
 
 function propAction(action: string, propId?: string) {

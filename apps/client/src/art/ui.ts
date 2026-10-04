@@ -21,6 +21,8 @@ export const ICON_NAMES = [
   'cumprimenta', 'pede', 'monta',
   // V4 HUD: settings gear, phone drawer, emote tray
   'gear', 'burger', 'emote', 'rv', 'verde', 'mark',
+  // the language diary camera
+  'camera',
 ] as const;
 export type IconName = (typeof ICON_NAMES)[number];
 
