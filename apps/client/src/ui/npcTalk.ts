@@ -21,6 +21,8 @@ export interface TalkHooks {
   onLine?: (anchor: string) => void;
   /** Buy a pack of film from Júlia. */
   buyFilm?: () => void;
+  /** Professora Bia's "Quero, sim!": open the mat queue. */
+  openMat?: () => void;
 }
 
 const SPEAKER: Record<string, { name: string; role: string }> = {
@@ -59,6 +61,10 @@ export function openNpcTalk(npcId: NpcId, hooks: TalkHooks): void {
       if (c.next === 'help') {
         closeDialogue();
         return showJulia(true);
+      }
+      if (c.next === 'treino') {
+        closeDialogue();
+        return hooks.openMat?.();
       }
       render(c.next);
     };

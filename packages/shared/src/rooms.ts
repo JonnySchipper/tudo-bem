@@ -904,13 +904,9 @@ const academia: RoomDef = {
     // V3 dressing (decoration only, nothing blocks or seats): a bench along the south wall and a water cooler in the corner
     { id: 'banco_gym', kind: 'cenario', x: 5, y: 8, w: 2, h: 1, art: 'props/banco_gym', blocks: false },
     { id: 'bebedouro', kind: 'cenario', x: 10, y: 8, art: 'props/bebedouro', blocks: false },
-    // Mat dressing for the roll (decoration only): the scoreboard at the mat's east edge and a flag at each mat corner
+    // Mat dressing for the roll (decoration only): the scoreboard at the mat's east edge. The four corner flags are gone: two stood in the
+    // walkway (one on Professora Bia's spot) and the room read as clutter; the back wall already carries the flag and the trophies.
     { id: 'placar', kind: 'cenario', x: 8, y: 3, w: 2, h: 1, art: 'props/placar', blocks: false },
-    { id: 'bandeira_no', kind: 'cenario', x: 1, y: 1, art: 'props/bandeira_br', blocks: false },
-    { id: 'bandeira_ne', kind: 'cenario', x: 8, y: 1, art: 'props/bandeira_sp', blocks: false },
-    // (the south-west flag stands inside the mat's span, clear of the exit so the "← Rua" guide label never sits on it)
-    { id: 'bandeira_so', kind: 'cenario', x: 3, y: 5, art: 'props/bandeira_sp', blocks: false },
-    { id: 'bandeira_se', kind: 'cenario', x: 8, y: 5, art: 'props/bandeira_br', blocks: false },
   ],
   walls: [
     { kind: 'placa', wall: 'right', from: 0, to: 4, text: 'ACADEMIA DO BAIRRO' },

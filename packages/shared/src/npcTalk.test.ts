@@ -4,7 +4,7 @@ import { classifyChat } from './safety.js';
 import { cardsInText } from './caderno.js';
 import { isNpcId } from './bonds.js';
 
-const RESERVED = new Set(['end', 'help', 'shop']);
+const RESERVED = new Set(['end', 'help', 'shop', 'treino']);
 
 describe('NPC greeting dialogues (Nanda, Júlia, Dona Graça, Professora Bia)', () => {
   it('exist for Nanda and Júlia, three lines with two reply chips each', () => {
@@ -31,7 +31,7 @@ describe('NPC greeting dialogues (Nanda, Júlia, Dona Graça, Professora Bia)', 
       let ends = false;
       while (queue.length) {
         for (const c of t.nodes[queue.shift()!]!.chips) {
-          if (c.next === 'end' || c.next === 'help' || c.next === 'shop') ends = true;
+          if (c.next === 'end' || c.next === 'help' || c.next === 'shop' || c.next === 'treino') ends = true;
           else if (!seen.has(c.next)) {
             seen.add(c.next);
             queue.push(c.next);
@@ -47,6 +47,7 @@ describe('NPC greeting dialogues (Nanda, Júlia, Dona Graça, Professora Bia)', 
     const next = (npc: 'nanda' | 'julia') => Object.values(NPC_TALK[npc]!.nodes).flatMap((n) => n.chips.map((c) => c.next));
     expect(next('nanda')).toContain('shop');
     expect(next('julia')).toContain('help');
+    expect(next('prof')).toContain('treino');
   });
 
   it('lines are short (A1), informal, safe for the chat filter and never say “Give me”', () => {
