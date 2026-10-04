@@ -36,6 +36,7 @@ export * from './streetSnacks.js';
 export * from './parrotShop.js';
 export * from './checkers.js';
 export * from './diary.js';
+export * from './grants.js';
 export * from './cartela.js';
 export * from './arrival.js';
 export * from './photoSpots.js';

@@ -42,6 +42,7 @@ import {
   TUTORIAL_STEPS,
   validateName,
   cardById,
+  claimGrant,
   viewNode,
   jevNpcReply,
   freshMission,
@@ -497,6 +498,8 @@ export class World {
         return this.caderno.heard(s, msg.cardIds);
       case 'arrival':
         return msg.action === 'replay' ? this.diary.replayArrival(s) : this.diary.finishArrival(s);
+      case 'grant':
+        return this.giveGrant(s, msg.id);
       case 'diary':
         return this.diary.handle(s, msg);
       case 'talk':
@@ -612,6 +615,17 @@ export class World {
 
   private pushProfile(s: Session) {
     if (s.profile) s.send({ t: 'profile', profile: toPrivate(s.profile) });
+  }
+
+  /** A feature that shipped after this player already lived here. Only an owed grant changes the profile. */
+  private giveGrant(s: Session, id: unknown) {
+    const p = s.profile;
+    if (!p || typeof id !== 'string' || id.length > 64) return;
+    const result = claimGrant(p, id);
+    if (!result.ok) return this.pushProfile(s);
+    this.store.save();
+    this.pushProfile(s);
+    s.send({ t: 'notice', level: 'info', pt: result.notice.pt, en: result.notice.en });
   }
 
   /** The diary photos, apart from the profile (they are the heavy part): after welcome and when one is added. */

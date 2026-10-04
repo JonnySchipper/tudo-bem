@@ -85,6 +85,7 @@ import { openNpcTalk } from './ui/npcTalk';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira';
 import { openCaderno, setArrivalReplay } from './ui/caderno';
 import { syncArrival } from './ui/arrival';
+import { syncGrants } from './ui/grants';
 import { isArrivalHallOpen, openArrivalHall } from './ui/arrivalHall';
 import type { WordMoment } from './ui/diaryWordQueue';
 import { cameraFrameAt, captureFrame, celebrateWord, celebrateWords, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
@@ -570,6 +571,7 @@ net.on((m: ServerMsg) => {
       const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'rua_leste' || last === 'feira' || last === 'escola';
       joinRoom(remembered ? last : 'praca');
       syncArrival(arrivalFinish, arrivalHall);
+      syncGrants((id) => net.send({ t: 'grant', id }));
       game.emit('profile');
       break;
     }
@@ -591,6 +593,7 @@ net.on((m: ServerMsg) => {
       if (!m.profile.hasCamera) game.cameraOn = false;
       syncCameraBanner();
       syncArrival(arrivalFinish, arrivalHall);
+      syncGrants((id) => net.send({ t: 'grant', id }));
       game.emit('profile');
       updateGuides();
       break;

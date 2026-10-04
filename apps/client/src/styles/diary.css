@@ -382,6 +382,80 @@
   animation: dy-up 0.35s var(--dy-out) 2.6s both;
 }
 
+/* Catch-up grant: the same paper card, without the plane. For someone who already lives here. */
+#grant-offer {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(20, 16, 12, 0.5);
+  animation: dy-fade 0.3s ease-out both;
+  overflow-y: auto;
+}
+
+#grant-offer.leaving {
+  animation: dy-fade-out 0.4s ease-in forwards;
+  pointer-events: none;
+}
+
+#grant-offer .grant-card {
+  width: min(440px, 100%);
+  padding: 8px 8px 4px;
+  color: var(--dy-ink);
+  background:
+    linear-gradient(var(--hud-paper, #fbf1e3), var(--hud-paper, #fbf1e3)) content-box,
+    repeating-linear-gradient(135deg, #c2402f 0 10px, #fbf1e3 10px 16px, #2b5ba8 16px 26px, #fbf1e3 26px 32px) border-box;
+  box-shadow:
+    0 0 0 3px var(--dy-ink),
+    0 12px 0 rgba(20, 10, 6, 0.35);
+  animation: arrival-rise 0.45s var(--dy-out) both;
+}
+
+#grant-offer .grant-card > * {
+  background: var(--hud-paper, #fbf1e3);
+}
+
+#grant-offer .grant-head {
+  padding: 10px 16px 0;
+}
+
+#grant-offer .arrival-kicker {
+  margin: 0 0 2px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #2b5ba8;
+}
+
+#grant-offer h2 {
+  margin: 0 0 4px;
+  font-family: var(--font-pixel, inherit);
+  font-size: 1.5rem;
+  line-height: 1.05;
+  color: #8f3e15;
+}
+
+#grant-offer .arrival-julia,
+#grant-offer .arrival-gift,
+#grant-offer .arrival-actions {
+  animation-delay: 0.05s;
+}
+
+#grant-offer .arrival-gifts.one {
+  grid-template-columns: 1fr;
+}
+
+#grant-offer .arrival-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+
 .arrival-flyer {
   position: fixed;
   z-index: 80;
@@ -1876,6 +1950,8 @@ html.px-ui .backdrop > .panel.escola-panel,
 @media (prefers-reduced-motion: reduce) {
   #arrival-intro *,
   #arrival-intro,
+  #grant-offer,
+  #grant-offer *,
   #camera-frame,
   #camera-frame *,
   #photo-print,

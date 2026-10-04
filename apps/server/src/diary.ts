@@ -18,6 +18,7 @@ import {
   diaryVisible,
   furnitureById,
   grantDiaryWord,
+  handCamera,
   handCartela,
   hotspotDistance,
   isHallObject,
@@ -98,9 +99,9 @@ export class DiaryTracker {
     const first = p.arrivalIntroDone !== true;
     const cartela = handCartela();
     p.arrivalIntroDone = true;
-    p.hasCamera = true;
     p.diary = p.diary ?? [];
-    if (first) p.film = normalizeFilm(p.film) + FILM.starter;
+    // the same hand-over the catch-up popup uses, so a new arrival and a resident get the same camera and starter roll
+    handCamera(p);
     this.d.store.save();
     this.d.pushProfile(s);
     if (!first) return;

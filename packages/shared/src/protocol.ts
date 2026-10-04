@@ -81,6 +81,11 @@ export type ClientMsg =
    */
   | { t: 'arrival'; action: 'finish' | 'replay' }
   /**
+   * Claim a catch-up grant: a feature that shipped after this player already lived here.
+   * The server hands it over only when the profile is still owed it (`owedGrants`).
+   */
+  | { t: 'grant'; id: string }
+  /**
    * Take a photo. `anchors` are the camera objects inside the viewfinder (props, wall spots, placed furniture); every camera word they
    * teach is given, in the order named. `image` is a small jpeg of the frame. Every shot spends one film, except one in the airport
    * hall (`hall`: a postcard of the arrival, free, only its own objects).
