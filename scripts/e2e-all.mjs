@@ -5,7 +5,7 @@
  *   pnpm build && pnpm e2e:all        # CHROME_PATH (auto-detected on Windows / macOS / Linux), SHOTS_DIR, E2E_ALL_PORT optional
  *
  * The server runs on a temp DATA_DIR with a PINNED game clock: TB_TEST_CLOCK_CONTROL=1 lets each script set the hour it needs right before it starts
- * (08:30 for e2e, 08:50 / 15:35 for the feira, 20:52 / 22:15 for the night scripts), plus TB_TEST_OFFER=carlos_cafe_pra_nanda (the whole recado is
+ * (08:30 for e2e, 08:50 / 15:35 for the feira, 20:40 / 22:15 for the night scripts), plus TB_TEST_OFFER=carlos_cafe_pra_nanda (the whole recado is
  * part of `e2e`) and TB_TEST_ROLL=1 (Academia roll hints). Order: e2e, e2e-feira (day, night), e2e-night (a, b), then e2e:meveum (that one
  * restarts its own server twice by design (a deploy drops the shift), so it brings its own pinned server on another port), then e2e:solo (builds the static VITE_LOCAL_WORLD client into a temp dir and serves it itself).
  */
