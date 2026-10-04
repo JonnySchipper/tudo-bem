@@ -418,40 +418,8 @@ async function main() {
   await startShiftFromPedido(page);
   assert(await page.isVisible('#cr-panel'), 'the counter strip is up');
   assert(!(await page.$('[data-modal="minigame"]')), 'no modal over the padaria');
-  for (const size of [
-    { width: 1280, height: 800 },
-    { width: 390, height: 844 },
-  ]) {
-    await page.setViewportSize(size);
-    await sleep(400);
-    const m = await page.evaluate(() => {
-      const el = document.querySelector('#cr-serve');
-      const panel = document.querySelector('#cr-panel');
-      if (!el || !panel) return null;
-      const r = el.getBoundingClientRect();
-      const pr = panel.getBoundingClientRect();
-      return { inView: r.width > 0 && r.height > 0 && r.top >= pr.top - 1 && r.bottom <= pr.bottom + 1, share: pr.height / window.innerHeight };
-    });
-    assert(m?.inView, `Entregar stays tappable at ${size.width}×${size.height}`);
-    if (size.width < 500) assert(m.share <= 0.35, `the counter strip stays under 35% of a phone (${(m.share * 100).toFixed(0)}%)`);
-  }
-  await page.setViewportSize({ width: 1440, height: 900 });
-  // The phone check above moves the counter camera while the first customer is already waiting. Let the shelf taps
-  // land back on the desktop layout before the shift, so a grill spot is not left under the strip.
-  await waitFor(
-    page,
-    () => {
-      const g = document.querySelector('#cr-grill-0');
-      const item = document.querySelector('#cr-item-pao_na_chapa');
-      if (!g || !item) return false;
-      const gr = g.getBoundingClientRect();
-      const ir = item.getBoundingClientRect();
-      return gr.width > 8 && ir.width > 8 && gr.bottom > 0 && gr.top < window.innerHeight;
-    },
-    null,
-    5000,
-    'counter taps laid out after the viewport restore',
-  );
+  // Viewport checks used to run here, while the first customer was already losing patience and the counter camera
+  // jumped under the phone strip. They run on the throwaway "Jogar de novo" shift below, after this one is served.
   let mgShot = false;
   const served = await playShift(page, {
     log,
@@ -483,6 +451,39 @@ async function main() {
   await page.click('#mg-end button:has-text("Jogar de novo")');
   await waitFor(page, () => !!window.__tb.correria.feed.snap && window.__tb.correria.feed.snap.stats.served === 0, null, 8000, 'a fresh shift');
   await shot(page, '08a_correria_again');
+  // Entregar has to stay on screen at phone size. This shift is closed with nothing served, so the resize does not eat the shift we just played.
+  for (const size of [
+    { width: 1280, height: 800 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(size);
+    await sleep(400);
+    const m = await page.evaluate(() => {
+      const el = document.querySelector('#cr-serve');
+      const panel = document.querySelector('#cr-panel');
+      if (!el || !panel) return null;
+      const r = el.getBoundingClientRect();
+      const pr = panel.getBoundingClientRect();
+      return { inView: r.width > 0 && r.height > 0 && r.top >= pr.top - 1 && r.bottom <= pr.bottom + 1, share: pr.height / window.innerHeight };
+    });
+    assert(m?.inView, `Entregar stays tappable at ${size.width}×${size.height}`);
+    if (size.width < 500) assert(m.share <= 0.35, `the counter strip stays under 35% of a phone (${(m.share * 100).toFixed(0)}%)`);
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await waitFor(
+    page,
+    () => {
+      const g = document.querySelector('#cr-grill-0');
+      const item = document.querySelector('#cr-item-pao_na_chapa');
+      if (!g || !item) return false;
+      const gr = g.getBoundingClientRect();
+      const ir = item.getBoundingClientRect();
+      return gr.width > 8 && ir.width > 8 && gr.bottom > 0 && gr.top < window.innerHeight;
+    },
+    null,
+    5000,
+    'counter taps laid out after the viewport restore',
+  );
   await page.click('#cr-quit');
   await waitFor(page, () => !document.querySelector('#correria'), null, 5000, 'the counter closes after ✕ with nothing served');
   const coinsAfterAgain = (await profile(page)).coins;
