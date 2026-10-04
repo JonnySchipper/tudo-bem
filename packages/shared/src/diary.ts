@@ -302,6 +302,7 @@ export function handCartela(): { given: boolean; reason?: string } {
 /**
  * Profiles saved before the arrival intro already live in Vila Ipê, so a missing flag counts as done.
  * Brand-new profiles set `arrivalIntroDone: false` before this runs.
+ * A missing camera stays missing until the catch-up grant offers it (`owedGrants`).
  */
 export function normalizeArrival(raw: { arrivalIntroDone?: unknown; hasCamera?: unknown } | null | undefined): {
   arrivalIntroDone: boolean;

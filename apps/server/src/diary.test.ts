@@ -155,6 +155,29 @@ describe('arrival, camera, diary and the escola', () => {
     expect(a.s.profile?.film ?? 0).toBe(0);
   });
 
+  it('gives the camera to someone who already lived here, once, and not to a brand-new arrival', async () => {
+    const world = makeWorld();
+    const fresh = await client(world);
+    await fresh.send({ t: 'grant', id: 'camera' });
+    expect(fresh.s.profile).toMatchObject({ arrivalIntroDone: false, hasCamera: false, film: 0 });
+    expect(fresh.all('notice').some((n) => n.pt.includes('câmera'))).toBe(false);
+
+    const world2 = makeWorld();
+    const home = await client(world2);
+    home.s.profile!.arrivalIntroDone = true;
+    home.s.profile!.hasCamera = false;
+    home.s.profile!.film = 0;
+    await home.send({ t: 'grant', id: 'camera' });
+    expect(home.s.profile).toMatchObject({ hasCamera: true, film: FILM.starter });
+    expect(home.all('notice').map((n) => n.pt).join(' ')).toMatch(/câmera/);
+    expect(home.last('profile')?.profile.hasCamera).toBe(true);
+    await home.send({ t: 'grant', id: 'camera' });
+    expect(home.s.profile?.film).toBe(FILM.starter);
+    await home.send({ t: 'grant', id: 'not-a-feature' });
+    expect(home.s.profile?.film).toBe(FILM.starter);
+    expect(home.all('error')).toHaveLength(0);
+  });
+
   it('sends photo images in their own message, never inside the profile', async () => {
     const world = makeWorld();
     const a = await client(world);
