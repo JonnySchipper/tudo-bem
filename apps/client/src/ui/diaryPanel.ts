@@ -172,6 +172,37 @@ function celebrate(m: { pt: string; en: string; areaPt?: string; progress?: stri
   const timer = window.setTimeout(close, 3400);
 }
 
+// ---------------------------------------------------------------- every new diary word gets the moment, one at a time
+
+type WordMoment = { pt: string; en: string; areaPt?: string; progress?: string };
+const waiting: WordMoment[] = [];
+let gameOn: () => boolean = () => false;
+let pumping = 0;
+
+/** How the page says a game is on (escola practice, the tatame, Correria, damas): words found meanwhile wait for it to end. */
+export function setWordGate(isGameOn: () => boolean) {
+  gameOn = isGameOn;
+}
+
+/** A word reached the diary without the camera (a sign, a line, a game): the same card a photo gets, after any game on screen. */
+export function celebrateWord(m: WordMoment) {
+  waiting.push(m);
+  pump();
+}
+
+function pump() {
+  window.clearTimeout(pumping);
+  if (!waiting.length) return;
+  if (gameOn() || document.getElementById('photo-celebrate')) {
+    pumping = window.setTimeout(pump, 400);
+    return;
+  }
+  const next = waiting.shift()!;
+  ambience.sting('caderno');
+  celebrate(next, null);
+  if (waiting.length) pumping = window.setTimeout(pump, 400);
+}
+
 export function showPhoto(m: { ok: boolean; pt: string; en: string; areaPt?: string; progress?: string; empty?: boolean }) {
   const print = pending?.el ?? null;
   if (pending) {

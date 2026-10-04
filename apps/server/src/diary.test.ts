@@ -154,9 +154,15 @@ describe('arrival, camera, diary and the escola', () => {
     await walkTo(a, nearSign.x, nearSign.y);
     await a.send({ t: 'read', hotspotId: 'fonte_praca' });
     expect(a.s.profile?.diary).toEqual(['seed.praca.fonte']);
+    const wordsBefore = a.all('diary').filter((m) => m.phase === 'word').length;
     await a.send({ t: 'read', hotspotId: 'coreto_placa' });
     expect(a.s.profile?.diary).toEqual(['seed.praca.fonte', 'seed.praca.coreto']);
+    // a word read off a sign gets the same new-word moment as a photo (once)
+    const words = a.all('diary').filter((m) => m.phase === 'word');
+    expect(words.length).toBe(wordsBefore + 1);
+    expect(words.at(-1)).toMatchObject({ pt: 'coreto', source: 'reading' });
     await a.send({ t: 'read', hotspotId: 'coreto_placa' });
+    expect(a.all('diary').filter((m) => m.phase === 'word').length).toBe(wordsBefore + 1);
     expect(a.s.profile?.diary).toEqual(['seed.praca.fonte', 'seed.praca.coreto']);
 
     await a.send({ t: 'diary', action: 'line', anchor: 'julia.ajuda' });

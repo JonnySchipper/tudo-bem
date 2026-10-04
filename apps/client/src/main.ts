@@ -79,8 +79,8 @@ import { openNpcTalk } from './ui/npcTalk';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira';
 import { openCaderno } from './ui/caderno';
 import { syncArrival } from './ui/arrival';
-import { cameraFrameAt, captureFrame, dropPendingPrint, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
-import { openEscolaPractice, showEscolaResult } from './ui/escola';
+import { cameraFrameAt, captureFrame, celebrateWord, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
+import { escolaPracticeOpen, openEscolaPractice, showEscolaResult } from './ui/escola';
 import { openHotspotCard } from './ui/hotspotCard';
 import { openStreetSnack } from './ui/streetSnack';
 import { openCheckers } from './ui/checkers';
@@ -129,6 +129,8 @@ let decor: ReturnType<typeof buildDecorPanel> | null = null;
 let onboarding: ReturnType<typeof runOnboarding> | null = null;
 let correriaUi: CorreriaUI | null = null;
 let boutUi: BoutUI | null = null;
+// a word found during a game is celebrated when that game's screen closes
+setWordGate(() => !!boutUi?.open || !!correriaUi?.open || escolaPracticeOpen() || modalId() === 'checkers');
 let started = false;
 
 /** Correria no Balcão: the overlay and the world's counter open when the first shift state arrives. */
@@ -575,6 +577,7 @@ net.on((m: ServerMsg) => {
     }
     case 'diary':
       if (m.phase === 'photo') showPhoto(m);
+      else if (m.phase === 'word') celebrateWord(m);
       else if (m.phase === 'practice') {
         if (m.ok)
           openEscolaPractice(
