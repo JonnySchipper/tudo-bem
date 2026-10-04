@@ -3,7 +3,8 @@
  * Night-time e2e (Phase 8b, D12; moved to the Phase 7 dialogue box in Phase 10). Needs a PINNED game clock: a server with TB_TEST_CLOCK_CONTROL=1 (this
  * script sets the hour) or one started with TB_TEST_CLOCK_OFFSET_MIN (`node scripts/lib/clock-pin.mjs 20:52`). It fails fast when the clock is off.
  *
- *   PHASE=a  clock pinned at about 20:52: the hat stall is closed at 21:00, the hat shop still opens from it (note "Nanda volta às 8h").
+ *   PHASE=a  clock pinned at about 20:40: the hat stall is closed at 21:00, the hat shop still opens from it (note "Nanda volta às 8h").
+ *            20:40 leaves room for signup and the arrival word cards and still reaches the world before 21:00.
  *   PHASE=b  clock pinned at about 22:15: Seu Carlos sits on a praça bench at 22:30, Dona Graça covers the padaria at 23:00, the breakfast
  *            scene + Me vê um work with her (the dialogue box), Professora Bia is at the academia.
  *
@@ -47,7 +48,7 @@ async function waitIdleAt(page, x, y) {
 async function main() {
   assert(CHROME, 'set CHROME_PATH');
   const WINDOW = PHASE === 'a'
-    ? { min: 20 * 60, max: 20 * 60 + 58, target: 20 * 60 + 52, label: 'just before 21:00' }
+    ? { min: 20 * 60, max: 20 * 60 + 58, target: 20 * 60 + 40, label: 'just before 21:00' }
     : { min: 21 * 60 + 40, max: 22 * 60 + 28, target: 22 * 60 + 15, label: 'just before 22:30' };
   await requirePinnedClock(BASE, WINDOW);
   const browser = await chromium.launch({ executablePath: CHROME, headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });

@@ -16,15 +16,21 @@ export async function finishArrival(page) {
   await dismissWordCards(page);
 }
 
-/** Click through the new-word cards until none is left. A short gap between cards is normal. */
+/** Click through the new-word cards in the page. Night phase A only has a few seconds before 21:00, so this does not wait on Playwright. */
 async function dismissWordCards(page) {
-  for (let i = 0; i < 8; i++) {
-    const up = await page.locator('#photo-close').isVisible().catch(() => false);
-    if (!up) {
-      const next = await page.waitForSelector('#photo-close', { state: 'visible', timeout: i === 0 ? 2_000 : 800 }).catch(() => null);
-      if (!next) return;
+  await page.evaluate(async () => {
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    for (let i = 0; i < 8; i++) {
+      let btn = document.getElementById('photo-close');
+      if (!btn) {
+        await sleep(i === 0 ? 400 : 100);
+        btn = document.getElementById('photo-close');
+        if (!btn) return;
+      }
+      btn.click();
+      const gone = btn;
+      const started = performance.now();
+      while (document.getElementById('photo-close') === gone && performance.now() - started < 700) await sleep(30);
     }
-    await page.locator('#photo-close').click();
-    await page.waitForSelector('#photo-close', { state: 'detached', timeout: 2_000 }).catch(() => {});
-  }
+  });
 }
