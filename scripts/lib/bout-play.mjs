@@ -12,8 +12,28 @@ export async function openBout(page) {
 /** Pick a partner (default: the suggested one) and start the match. */
 export async function startBout(page, partner) {
   if (partner) await page.click(`.bout-card-partner[data-partner="${partner}"]`);
-  await page.click('#bout-start');
-  await page.waitForSelector('#bout[data-phase="intro"]', { timeout: 10_000 });
+  // With the test roll on, the intro lasts about half a second. A slow click can return after that
+  // beat has already moved on, so waiting only for data-phase="intro" misses a bout that did start.
+  const leftLobby = () =>
+    page.evaluate(() => {
+      const phase = document.querySelector('#bout')?.getAttribute('data-phase');
+      return !!phase && phase !== 'lobby';
+    });
+  try {
+    await page.click('#bout-start', { timeout: 8_000 });
+  } catch (err) {
+    if (!(await leftLobby())) throw err;
+  }
+  await waitFor(
+    page,
+    () => {
+      const phase = document.querySelector('#bout')?.getAttribute('data-phase');
+      return !!phase && phase !== 'lobby';
+    },
+    null,
+    15_000,
+    'the bout leaves the lobby',
+  );
 }
 
 export const boutPhase = (page) => page.evaluate(() => document.querySelector('#bout')?.getAttribute('data-phase') ?? null);
