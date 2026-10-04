@@ -124,24 +124,66 @@ export function legalMoves(b: Board, side: Side): Move[] {
   return jumps.length ? jumps : slides;
 }
 
+/** No legal move loses (no pieces left, or every piece blocked); null while the side to move can play. */
 export function winner(b: Board, sideToMove: Side): Side | 'draw' | null {
   const moves = legalMoves(b, sideToMove);
   if (moves.length) return null;
   const you = b.some((p) => isYou(p));
   const cpu = b.some((p) => isCpu(p));
-  if (you && !cpu) return 'you';
-  if (cpu && !you) return 'cpu';
-  return 'draw';
+  if (!you && !cpu) return 'draw';
+  return sideToMove === 'you' ? 'cpu' : 'you';
 }
 
-/** Simple CPU: prefer the longest capture, else a random legal move. */
-export function cpuPickMove(b: Board): Move | null {
+/** Material from the CPU's side: a man is 1 (a little more as it advances), a king 1.7; the back row is worth keeping early. */
+function evaluate(b: Board): number {
+  let s = 0;
+  for (let i = 0; i < 64; i++) {
+    const p = b[i];
+    if (!p) continue;
+    const { x, y } = xy(i);
+    const centre = x >= 2 && x <= 5 ? 0.05 : 0;
+    if (p === -1) s += 1 + y * 0.05 + centre + (y === 0 ? 0.1 : 0);
+    else if (p === -2) s += 1.7 + centre;
+    else if (p === 1) s -= 1 + (7 - y) * 0.05 + centre + (y === 7 ? 0.1 : 0);
+    else s -= 1.7 + centre;
+  }
+  return s;
+}
+
+function search(b: Board, side: Side, depth: number, alpha: number, beta: number): number {
+  const moves = legalMoves(b, side);
+  if (!moves.length) return side === 'cpu' ? -100 - depth : 100 + depth;
+  if (depth === 0) return evaluate(b);
+  if (side === 'cpu') {
+    let best = -Infinity;
+    for (const m of moves) {
+      best = Math.max(best, search(applyMoveOn(b, m), 'you', depth - 1, alpha, beta));
+      alpha = Math.max(alpha, best);
+      if (alpha >= beta) break;
+    }
+    return best;
+  }
+  let best = Infinity;
+  for (const m of moves) {
+    best = Math.min(best, search(applyMoveOn(b, m), 'cpu', depth - 1, alpha, beta));
+    beta = Math.min(beta, best);
+    if (alpha >= beta) break;
+  }
+  return best;
+}
+
+/**
+ * The CPU at the praça table: looks `depth` plies ahead (material, kings, advancement) and picks among the moves within `slack`
+ * of the best, so it plays sensibly without always playing the same game. Captures are mandatory (legalMoves).
+ */
+export function cpuPickMove(b: Board, opts: { depth?: number; slack?: number; rng?: () => number } = {}): Move | null {
   const moves = legalMoves(b, 'cpu');
   if (!moves.length) return null;
-  const caps = moves.filter((m) => m.caps.length);
-  const pool = caps.length ? caps : moves;
-  pool.sort((a, b) => b.caps.length - a.caps.length);
-  const best = pool[0]!.caps.length;
-  const top = pool.filter((m) => m.caps.length === best);
-  return top[Math.floor(Math.random() * top.length)]!;
+  const depth = opts.depth ?? 4;
+  const slack = opts.slack ?? 0.12;
+  const rng = opts.rng ?? Math.random;
+  const scored = moves.map((m) => ({ m, v: search(applyMoveOn(b, m), 'you', depth - 1, -Infinity, Infinity) }));
+  const best = Math.max(...scored.map((x) => x.v));
+  const top = scored.filter((x) => x.v >= best - slack);
+  return top[Math.floor(rng() * top.length)]!.m;
 }

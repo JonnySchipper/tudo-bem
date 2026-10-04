@@ -1,8 +1,11 @@
 /**
- * Damas na mesa da praça: two human sides, legal moves only, play until someone wins.
+ * Damas na mesa da praça: you play black (bottom) against the computer (white, top). Legal moves only; captures are mandatory.
+ * A wooden board with real pieces: your movable pieces glow, the selected piece's landing squares are marked, the last move is tinted,
+ * pieces slide to their square, taken pieces fade out, and a man that reaches the far row gets a gold crown.
  */
 import {
   applyMove,
+  cpuPickMove,
   initialBoard,
   legalMoves,
   winner,
@@ -10,131 +13,172 @@ import {
   type Board,
   type Move,
   type Side,
-  BOARD_SIZE,
 } from '@tudobem/shared';
 import { h, bi, en } from './dom';
 import { openModal } from './modal';
+import { ambience } from '../ambience';
 
-const DARK_SQ = '#6b4a38';
-const LIGHT_SQ = '#e8d4b0';
-
-function cellEl(i: number, board: Board, sel: number | null, onPick: (i: number) => void): HTMLElement {
-  const { x, y } = xy(i);
-  const dark = (x + y) % 2 === 1;
-  const p = board[i];
-  let piece = '';
-  if (p === 1 || p === 2) piece = p === 2 ? '♔' : '●';
-  if (p === -1 || p === -2) piece = p === -2 ? '♚' : '○';
-  return h(
-    'button',
-    {
-      type: 'button',
-      class: `ck-cell ${dark ? 'dark' : 'light'}${sel === i ? ' sel' : ''}${p ? ' has' : ''}`,
-      style: `grid-column:${x + 1};grid-row:${y + 1}`,
-      disabled: !dark,
-      onclick: () => onPick(i),
-      'aria-label': dark ? (piece || 'vazio') : undefined,
-    },
-    piece,
-  );
-}
+const CPU_THINK_MS = 650;
 
 export function openCheckers(): () => void {
-  let board = initialBoard();
-  /** Bottom pieces (●) vs top (○); same engine sides as before. */
+  let board: Board = initialBoard();
+  /** a stable id per piece so it can slide from square to square */
+  let ids: (number | null)[] = board.map((p, i) => (p ? i : null));
   let turn: Side = 'you';
   let selected: number | null = null;
-  let statusPt = 'Vez do preto — clique numa peça.';
-  let statusEn = 'Black’s turn — click one of your pieces.';
+  let last: Move | null = null;
   let done: Side | 'draw' | null = null;
+  let timer = 0;
 
-  const status = h('p', { class: 'ck-status', id: 'ck-status' });
-  const grid = h('div', { class: 'ck-grid', role: 'grid', 'aria-label': 'Tabuleiro de damas' });
+  const status = h('p', { class: 'ck-status', id: 'ck-status', 'aria-live': 'polite' });
+  const squares = h('div', { class: 'ck-squares', role: 'grid', 'aria-label': 'Tabuleiro de damas' });
+  const pieces = h('div', { class: 'ck-pieces', 'aria-hidden': 'true' });
+  const pieceEls = new Map<number, HTMLElement>();
+  const board_ = h('div', { class: 'ck-board' }, squares, pieces);
 
-  const sideLabel = (s: Side) => (s === 'you' ? { pt: 'Preto', en: 'Black' } : { pt: 'Branco', en: 'White' });
+  const setStatus = (pt: string, enText: string) => status.replaceChildren(pt, en(enText, true));
+
+  const statusForTurn = () => {
+    if (done === 'draw') return setStatus('Empate.', 'Draw.');
+    if (done) return setStatus(done === 'you' ? 'Preto ganhou!' : 'Branco ganhou!', done === 'you' ? 'Black won — you beat the computer!' : 'White won — the computer wins this one.');
+    if (turn === 'you') setStatus('Vez do preto.', 'Your turn (black): click one of your glowing pieces.');
+    else setStatus('Vez do branco.', 'The computer (white) is thinking…');
+  };
+
+  const place = (el: HTMLElement, i: number) => {
+    const { x, y } = xy(i);
+    el.style.setProperty('--x', String(x));
+    el.style.setProperty('--y', String(y));
+  };
 
   const render = () => {
-    status.replaceChildren(statusPt, en(statusEn, true));
-    grid.replaceChildren(...Array.from({ length: 64 }, (_, i) => cellEl(i, board, selected, pick)));
-  };
-
-  const end = (w: Side | 'draw') => {
-    done = w;
-    if (w === 'draw') {
-      statusPt = 'Empate.';
-      statusEn = 'Draw.';
-    } else {
-      const lab = sideLabel(w);
-      statusPt = `${lab.pt} ganhou!`;
-      statusEn = `${lab.en} won!`;
+    const moves = !done && turn === 'you' ? legalMoves(board, 'you') : [];
+    const movable = new Set(moves.map((m) => m.from));
+    const targets = new Set(selected === null ? [] : moves.filter((m) => m.from === selected).map((m) => m.to));
+    squares.replaceChildren(
+      ...board.map((_, i) => {
+        const { x, y } = xy(i);
+        const dark = (x + y) % 2 === 1;
+        const cls = [
+          'ck-cell',
+          dark ? 'dark' : 'light',
+          selected === i ? 'sel' : '',
+          targets.has(i) ? 'target' : '',
+          last && (last.from === i || last.to === i) ? 'last' : '',
+        ]
+          .filter(Boolean)
+          .join(' ');
+        return h('button', {
+          type: 'button',
+          class: cls,
+          style: `grid-column:${x + 1};grid-row:${y + 1}`,
+          disabled: !dark,
+          'data-cell': String(i),
+          onclick: () => pick(i),
+          'aria-label': dark ? (board[i] ? (board[i]! > 0 ? 'peça preta' : 'peça branca') : 'vazio') : undefined,
+        });
+      }),
+    );
+    // pieces: keep the element of a piece that moved so it slides; fade out the ones taken
+    const alive = new Set<number>();
+    board.forEach((p, i) => {
+      const id = ids[i];
+      if (!p || id == null) return;
+      alive.add(id);
+      let el = pieceEls.get(id);
+      if (!el) {
+        el = h('i', { class: 'ck-piece' }, h('b', { class: 'ck-crown' }, '♛'));
+        pieceEls.set(id, el);
+        pieces.append(el);
+      }
+      el.className = `ck-piece ${p > 0 ? 'black' : 'white'}${Math.abs(p) === 2 ? ' king' : ''}${movable.has(i) ? ' movable' : ''}${selected === i ? ' lifted' : ''}`;
+      place(el, i);
+    });
+    for (const [id, el] of pieceEls) {
+      if (alive.has(id)) continue;
+      pieceEls.delete(id);
+      el.classList.add('taken');
+      window.setTimeout(() => el.remove(), 420);
     }
-    render();
+    statusForTurn();
   };
 
-  const tryMove = (m: Move) => {
+  const play = (m: Move) => {
+    const wasKing = Math.abs(board[m.from] ?? 0) === 2;
     board = applyMove(board, m);
+    const nextIds = [...ids];
+    nextIds[m.to] = ids[m.from];
+    nextIds[m.from] = null;
+    for (const c of m.caps) nextIds[c] = null;
+    ids = nextIds;
+    last = m;
     selected = null;
+    ambience.sfx(m.caps.length ? 'clink' : 'grab');
+    if (!wasKing && Math.abs(board[m.to] ?? 0) === 2) window.setTimeout(() => ambience.sfx('ding'), 180);
     const next: Side = turn === 'you' ? 'cpu' : 'you';
     const w = winner(board, next);
-    if (w) return end(w);
+    if (w) {
+      done = w;
+      turn = next;
+      render();
+      ambience.sting(w === 'you' ? 'win' : 'lose');
+      return;
+    }
     turn = next;
-    const lab = sideLabel(turn);
-    statusPt = `Vez do ${lab.pt.toLowerCase()}.`;
-    statusEn = `${lab.en}’s turn.`;
     render();
+    if (turn === 'cpu') {
+      timer = window.setTimeout(() => {
+        const cm = cpuPickMove(board);
+        if (cm) play(cm);
+      }, CPU_THINK_MS);
+    }
   };
 
   const pick = (i: number) => {
-    if (done) return;
-    const moves = legalMoves(board, turn);
-    if (!moves.length) return end(winner(board, turn) ?? 'draw');
-
+    if (done || turn !== 'you') return;
+    const moves = legalMoves(board, 'you');
     if (selected !== null) {
       const m = moves.find((mv) => mv.from === selected && mv.to === i);
-      if (m) return tryMove(m);
+      if (m) return play(m);
     }
-    const p = board[i];
-    const mine = turn === 'you' ? p === 1 || p === 2 : p === -1 || p === -2;
-    if (mine && moves.some((mv) => mv.from === i)) {
-      selected = i;
-      render();
-      return;
-    }
+    selected = moves.some((mv) => mv.from === i) ? i : null;
+    render();
+  };
+
+  const reset = () => {
+    window.clearTimeout(timer);
+    pieceEls.forEach((el) => el.remove());
+    pieceEls.clear();
+    board = initialBoard();
+    ids = board.map((p, i) => (p ? i : null));
+    turn = 'you';
     selected = null;
+    last = null;
+    done = null;
     render();
   };
 
   render();
 
-  let closeModal: () => void;
-  closeModal = openModal(
+  const close = openModal(
     'checkers',
     h(
       'div',
       { class: 'panel checkers-panel' },
-      h('button', { class: 'close ghost', onclick: () => closeModal(), 'aria-label': 'Fechar' }, '✕'),
+      h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
       h('h2', null, bi('Damas', 'Checkers')),
-      en('Two players, one device. Jumps are mandatory when you can take a piece.'),
-      status,
-      grid,
+      en('You play black against the computer. Jumps are mandatory when you can take a piece.'),
       h(
-        'button',
-        {
-          class: 'ghost',
-          id: 'ck-reset',
-          onclick: () => {
-            board = initialBoard();
-            turn = 'you';
-            selected = null;
-            done = null;
-            statusPt = 'Vez do preto — clique numa peça.';
-            statusEn = 'Black’s turn — click one of your pieces.';
-            render();
-          },
-        },
-        bi('Jogar de novo', 'Play again'),
+        'div',
+        { class: 'ck-sides', 'aria-hidden': 'true' },
+        h('span', { class: 'ck-side' }, h('i', { class: 'ck-dot black' }), bi('Preto', 'Black (you)')),
+        h('span', { class: 'ck-side' }, h('i', { class: 'ck-dot white' }), bi('Branco', 'White (computer)')),
       ),
+      status,
+      board_,
+      h('button', { class: 'ghost', id: 'ck-reset', onclick: reset }, bi('Jogar de novo', 'Play again')),
     ),
+    { onClose: () => window.clearTimeout(timer) },
   );
-  return closeModal;
+  return close;
 }

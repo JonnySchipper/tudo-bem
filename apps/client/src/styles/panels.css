@@ -307,45 +307,178 @@ html {
   height: auto;
 }
 
-/* Damas (checkers) at the praça table */
+/* Damas (checkers) at the praça table: a wooden board, real pieces that slide */
 .panel.checkers-panel {
-  width: min(420px, calc(100vw - 24px));
+  width: min(460px, calc(100vw - 24px));
 }
-.ck-grid {
-  display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  grid-template-rows: repeat(8, 1fr);
-  width: min(320px, 72vw);
-  aspect-ratio: 1;
-  margin: 12px auto;
-  border: 3px solid var(--hud-ink, #573c2c);
-}
-.ck-cell {
-  border: none;
-  padding: 0;
-  margin: 0;
-  font-size: 18px;
-  line-height: 1;
-  cursor: default;
-}
-.ck-cell.light {
-  background: var(--ck-light, #e8d4b0);
-}
-.ck-cell.dark {
-  background: var(--ck-dark, #6b4a38);
-  cursor: pointer;
-}
-.ck-cell.dark.sel {
-  outline: 2px solid #f2c230;
-  outline-offset: -2px;
-}
-.ck-cell.dark.has {
-  color: #c62828;
+.ck-sides {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin: 6px 0 0;
   font-weight: 800;
+  font-size: 0.9em;
+}
+.ck-side {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ck-side .en {
+  display: inline;
+  margin-left: 4px;
+}
+.ck-dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+.ck-dot.black,
+.ck-piece.black {
+  background: radial-gradient(circle at 38% 32%, #6a5a5e 0 18%, #2c2328 45%, #17121a 100%);
+  box-shadow:
+    0 0 0 2px #0d0a10,
+    inset 0 -3px 0 rgba(0, 0, 0, 0.45);
+}
+.ck-dot.white,
+.ck-piece.white {
+  background: radial-gradient(circle at 38% 32%, #ffffff 0 18%, #f1e6cf 50%, #cdbb98 100%);
+  box-shadow:
+    0 0 0 2px #7a6248,
+    inset 0 -3px 0 rgba(120, 90, 50, 0.35);
 }
 .ck-status {
   text-align: center;
-  margin: 8px 0;
+  margin: 8px 0 4px;
+  font-weight: 800;
+}
+.ck-board {
+  position: relative;
+  width: min(352px, 78vw);
+  aspect-ratio: 1;
+  margin: 8px auto 14px;
+  padding: 10px;
+  box-sizing: content-box;
+  /* the table's wooden frame */
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 3px, transparent 3px 9px),
+    linear-gradient(#8b5e3c, #6f4829);
+  box-shadow:
+    0 0 0 3px var(--hud-ink, #573c2c),
+    inset 0 0 0 2px #a3714a,
+    0 8px 0 rgba(20, 10, 6, 0.35);
+}
+.ck-squares,
+.ck-pieces {
+  position: absolute;
+  inset: 10px;
+}
+.ck-squares {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  box-shadow: 0 0 0 2px #3a2418;
+}
+.ck-pieces {
+  pointer-events: none;
+}
+.ck-cell {
+  position: relative;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  box-shadow: none !important;
+  cursor: default;
+}
+.ck-cell:disabled {
+  opacity: 1 !important;
+  filter: none !important;
+}
+.ck-cell.light {
+  background: #ecd9b4 !important;
+}
+.ck-cell.dark {
+  background: #7a4a2e !important;
+  cursor: pointer;
+}
+.ck-cell.dark.last {
+  background: #8e6a2a !important;
+}
+.ck-cell.dark.sel {
+  background: #9a7a2a !important;
+}
+.ck-cell.target::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 28%;
+  height: 28%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(242, 194, 48, 0.85);
+  box-shadow: 0 0 0 2px rgba(58, 36, 24, 0.6);
+  animation: ck-pulse 1s ease-in-out infinite;
+}
+.ck-piece {
+  position: absolute;
+  left: calc(var(--x) * 12.5% + 1.6%);
+  top: calc(var(--y) * 12.5% + 1.6%);
+  width: 9.3%;
+  height: 9.3%;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  transition:
+    left 0.28s cubic-bezier(0.3, 0.7, 0.35, 1),
+    top 0.28s cubic-bezier(0.3, 0.7, 0.35, 1),
+    transform 0.15s ease-out,
+    opacity 0.35s ease-in;
+}
+.ck-piece.movable {
+  filter: drop-shadow(0 0 4px rgba(242, 194, 48, 0.9));
+}
+.ck-piece.lifted {
+  transform: translateY(-8%) scale(1.12);
+  filter: drop-shadow(0 6px 3px rgba(0, 0, 0, 0.45));
+}
+.ck-piece.taken {
+  opacity: 0;
+  transform: scale(0.4) rotate(40deg);
+}
+.ck-crown {
+  display: none;
+  font-size: clamp(12px, 3.4vw, 20px);
+  line-height: 1;
+  color: #f2c230;
+  text-shadow: 0 1px 0 #6a4a10;
+}
+.ck-piece.king .ck-crown {
+  display: block;
+  animation: ck-crown 0.4s cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+@keyframes ck-pulse {
+  50% {
+    transform: translate(-50%, -50%) scale(1.25);
+  }
+}
+@keyframes ck-crown {
+  from {
+    transform: scale(0.2);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ck-piece {
+    transition: none;
+  }
+  .ck-cell.target::after,
+  .ck-piece.king .ck-crown {
+    animation: none;
+  }
 }
 .parrot-shop canvas {
   display: block;
