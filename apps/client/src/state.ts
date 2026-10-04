@@ -51,6 +51,8 @@ class Game {
   modalOpen = false;
   /** Júlia's camera is up: the next tagged thing you click is a photo, not a walk. */
   cameraOn = false;
+  /** Diary photos (the server's `photos` message; they are not part of the profile). */
+  photos: import('@tudobem/shared').DiaryPhoto[] = [];
   /** Solo (static) build: the world runs in this tab; no other humans. */
   solo = false;
   sound = localStorage.getItem('tb_sound') !== 'off';

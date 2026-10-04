@@ -282,6 +282,7 @@ export class World {
       store,
       reward: (s, a, r) => this.reward(s, a, r),
       pushProfile: (s) => this.pushProfile(s),
+      pushPhotos: (s) => this.pushPhotos(s),
       err: (s, code, pt, en) => this.err(s, code, pt, en),
       tileOf: (s) => this.currentTile(s).tile,
       roomOf: (s) => s.instance?.def.id ?? null,
@@ -512,6 +513,7 @@ export class World {
     p.nameplate = this.services.student.nameplateFor(p);
     p.lastSeen = this.now();
     s.send({ t: 'welcome', profile: toPrivate(p), token: p.token, serverNow: this.clockNow() });
+    if (p.photos?.length) this.pushPhotos(s);
     this.notifyFriendsOfPresence(p.id);
     const incoming = this.incomingFriendReqs.get(p.id);
     if (incoming?.size) this.sendFriends(s);
@@ -574,6 +576,11 @@ export class World {
 
   private pushProfile(s: Session) {
     if (s.profile) s.send({ t: 'profile', profile: toPrivate(s.profile) });
+  }
+
+  /** The diary photos, apart from the profile (they are the heavy part): after welcome and when one is added. */
+  private pushPhotos(s: Session) {
+    if (s.profile) s.send({ t: 'photos', photos: s.profile.photos ?? [] });
   }
 
   private reward(s: Session, amount: number, reason: Bilingual) {
