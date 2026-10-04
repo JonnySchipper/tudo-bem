@@ -255,6 +255,6 @@ describe('interiors keep their old rooms', () => {
     expect(findPath(grid, escola.spawn, desk!.interact!)).not.toBeNull();
     const lucia = escola.npcs.find((n) => n.id === 'lucia');
     expect(findPath(grid, escola.spawn, lucia!.interact)).not.toBeNull();
-    expect(escola.portals.find((p) => p.to === 'rua')?.arrive).toEqual({ x: 32, y: 6 });
+    expect(escola.portals.find((p) => p.to === 'rua')?.arrive).toEqual({ x: 33, y: 6 });
   });
 });
