@@ -10,8 +10,9 @@ import { sceneryFor } from './scenery';
 
 const manifest = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../../public/pixel/manifest.json'), 'utf8')) as Manifest;
 const has = (k: string) => k in manifest.sprites;
-const AREAS = ['rua', 'praca', 'feira'] as const;
+const AREAS = ['rua', 'rua_leste', 'praca', 'feira'] as const;
 const rua = ROOMS.rua;
+const leste = ROOMS.rua_leste;
 const praca = ROOMS.praca;
 const allProps = AREAS.flatMap((id) => ROOMS[id].props);
 
@@ -81,8 +82,9 @@ describe('Vila Ipê art coverage (rua, praça, feira)', () => {
       for (const w of sc.wires) for (const k of w.keys) expect(has(k), k).toBe(true);
     }
     expect(decals).toBeGreaterThan(100);
-    // the utility poles and their wires are along the rua
-    expect(sceneryFor(rua, () => true)!.wires.length).toBeGreaterThanOrEqual(2);
+    // the utility poles and their wires are along the west half of the rua
+    expect(sceneryFor(rua, () => true)!.wires.length).toBeGreaterThanOrEqual(1);
+    expect(sceneryFor(leste, () => true)!.wires).toEqual([]); // one pole there: no span
     expect(sceneryFor(praca, () => true)!.wires).toEqual([]);
   });
 
@@ -95,7 +97,8 @@ describe('Vila Ipê art coverage (rua, praça, feira)', () => {
   });
 
   it('the camera bounds of the open-air map are the map plus its 2 tile sky margin', () => {
-    expect(roomBounds(rua, 999)).toEqual({ x0: 0, y0: -2 * T, x1: 40 * T, y1: 16 * T });
+    expect(roomBounds(rua, 999)).toEqual({ x0: 0, y0: -2 * T, x1: 21 * T, y1: 16 * T });
+    expect(roomBounds(leste, 999)).toEqual({ x0: 0, y0: -2 * T, x1: 19 * T, y1: 16 * T });
     expect(roomBounds(praca, 999)).toEqual({ x0: 0, y0: -2 * T, x1: 32 * T, y1: 24 * T });
     expect(roomBounds(ROOMS.feira, 999)).toEqual({ x0: 0, y0: -2 * T, x1: 32 * T, y1: 20 * T });
   });
@@ -119,7 +122,7 @@ describe('Vila Ipê art coverage (rua, praça, feira)', () => {
   });
 
   it('has no empty 4x4 patch of tiles in the rua, 5x5 in the calmer praça, 6x6 in the feira (whose free paving is room to grow)', () => {
-    for (const [id, win] of [['rua', 4], ['praca', 5], ['feira', 6]] as const) {
+    for (const [id, win] of [['rua', 4], ['rua_leste', 4], ['praca', 5], ['feira', 6]] as const) {
       const room = ROOMS[id];
       const tiles = detailTiles(room);
       const empty: string[] = [];
@@ -145,7 +148,7 @@ describe('Vila Ipê art coverage (rua, praça, feira)', () => {
     for (const kind of ['quiosque', 'barraca_chapeus', 'poleiro', 'fonte', 'ponto_onibus', 'banca', 'orelhao']) expect(n(kind), kind).toBe(1);
     expect(propTiles(praca.props.find((p) => p.kind === 'fonte')!)).toHaveLength(12);
     expect(praca.props.some((p) => p.kind === 'quiosque')).toBe(true);
-    expect(rua.props.some((p) => p.kind === 'ponto_onibus')).toBe(true);
+    expect(leste.props.some((p) => p.kind === 'ponto_onibus')).toBe(true);
     expect(ROOMS.feira.props.filter((p) => p.kind === 'feira')).toHaveLength(4);
     // the old map had 222 props in one room (58 inside the praça block, 0.117 per tile): the praça now has about 0.07 per tile, calmer, and the three areas together have fewer
     expect(allProps.length).toBeLessThanOrEqual(222);

@@ -187,24 +187,29 @@ export function vilaSnapshot(): Promise<HTMLCanvasElement> {
 
 
 /**
- * The title screen shows the whole Vila Ipê as one picture (split into areas): the Rua dos Ipês across the top and the Praça Central under it,
- * lined up on the brick path that joins them (rua x18-21 = praça x14-17, so the praça sits 4 tiles in), with lawn filling the two corners
- * either side of the praça. 640 x 640 art px: tall enough for the pan on a phone (zoom 2) without ever showing the void.
+ * The title screen shows the whole Vila Ipê as one picture (split into areas): the Rua dos Ipês across the top (its west and east halves side
+ * by side, 21 + 19 tiles) and the Praça Central under it, lined up on the brick path that joins them (rua x15-18 = praça x14-17, so the praça sits
+ * 1 tile in), with lawn filling the corners either side of the praça. 640 x 640 art px: tall enough for the pan on a phone (zoom 2) without ever
+ * showing the void.
  */
-export const VILA_SNAPSHOT = { width: 40 * T, height: 40 * T, praca: { x: 4 * T, y: 16 * T } } as const;
+export const VILA_SNAPSHOT = { width: 40 * T, height: 40 * T, praca: { x: 1 * T, y: 16 * T } } as const;
 
 export function planVilaSnapshot(m: Manifest): SnapshotPlan {
   const rua = planSnapshot(ROOMS.rua, m);
+  const leste = planSnapshot(ROOMS.rua_leste, m);
   const praca = planSnapshot(ROOMS.praca, m);
   const shift = (ops: SnapOp[], dx: number, dy: number): SnapOp[] => ops.map((o) => ({ ...o, x: o.x + dx, y: o.y + dy }));
   // lawn in the corners beside the praça (a room of grass that the game never uses, just for the picture)
-  const grass: RoomDef = { ...ROOMS.praca, id: 'filler' as RoomDef['id'], cols: 4, rows: 24, floor: Array.from({ length: 24 }, () => 'gggg'), props: [], portals: [], npcs: [] };
-  const left = planSnapshot(grass, m);
-  const right = left;
+  const grassOf = (cols: number): RoomDef => ({ ...ROOMS.praca, id: 'filler' as RoomDef['id'], cols, rows: 24, floor: Array.from({ length: 24 }, () => 'g'.repeat(cols)), props: [], portals: [], npcs: [] });
+  const leftCols = VILA_SNAPSHOT.praca.x / T;
+  const rightCols = 40 - leftCols - 32;
+  const left = planSnapshot(grassOf(leftCols), m);
+  const right = planSnapshot(grassOf(rightCols), m);
   const ops = [
-    ...left.ops.map((o) => ({ ...o, y: o.y + VILA_SNAPSHOT.praca.y })),
+    ...shift(left.ops, 0, VILA_SNAPSHOT.praca.y),
     ...shift(right.ops, VILA_SNAPSHOT.praca.x + 32 * T, VILA_SNAPSHOT.praca.y),
     ...rua.ops,
+    ...shift(leste.ops, ROOMS.rua.cols * T, 0),
     ...shift(praca.ops, VILA_SNAPSHOT.praca.x, VILA_SNAPSHOT.praca.y),
   ].sort((p, q) => p.depth - q.depth);
   return { width: VILA_SNAPSHOT.width, height: VILA_SNAPSHOT.height, ops, cast: rua.cast, grade: rua.grade, fill: rua.fill };

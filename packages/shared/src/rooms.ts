@@ -178,23 +178,29 @@ export const FLOOR_CHARS: Record<string, FloorKind> = {
 
 // ---------------------------------------------------------------- Vila Ipê, split into three open-air areas ("Split into areas")
 //
-//  rua   Rua dos Ipês     40 x 16  rows 0-5 building row (doors on row 5) | 6-7 north calçada | 8-11 the street | 12-13 south calçada (bus stop)
-//                                  | 14-15 the lawns and the brick path down to the praça (edge portals on row 15, x18-21)
+//  rua   Rua dos Ipês     21 x 16  the west half of the street (it was 40 x 16 before the street was split again): rows 0-5 building row (padaria, banca,
+//                                  Edifício Ipê; doors on row 5) | 6-7 north calçada | 8-11 the street | 12-13 south calçada | 14-15 the lawns and the brick path down
+//                                  to the praça (edge portals on row 15, x15-18); east edge (col 20, y6-14) on to rua_leste
+//  rua_leste Rua dos Ipês (leste) 19 x 16  the east half (old x21-39): academia and escola doors, the bus stop, the parked taxi; west edge (col 0, y6-14) back to the rua
 //  praca Praça Central    32 x 24  the fountain plaza, coreto, playground, games tables, kiosk, Nanda's stall; north edge (row 0, x14-17) back to the rua,
 //                                  east edge (col 31, y10-13) on to the feira
 //  feira Feira Livre      32 x 20  a fenced lot of setts with a grid of stall slots (FEIRA_SLOTS: four taken, four free, room beyond); west edge (col 0, y7-10)
 //
 // Walk off an edge and you arrive at the matching edge of the next area (`PortalDef.edge`; the server moves you when a walk ends on the tile).
 
-const RUA_COLS = 40;
+/** The street was one 40-tile map; it is cut at x21, the seam between Edifício Ipê (x11-20) and the academia (x21-30): no facade, door, crosswalk or bay is split. */
+const RUA_CUT = 21;
+const RUA_COLS = RUA_CUT;
+const RUA_LESTE_COLS = 40 - RUA_CUT;
 const RUA_ROWS = 16;
 const PRACA_COLS = 32;
 const PRACA_ROWS = 24;
 const FEIRA_COLS = 32;
 const FEIRA_ROWS = 20;
 
-/** Parking bays on the south curb of Rua dos Ipês: first and last tile x of each, all on row 12 (asphalt notches in the sidewalk). */
-export const PARKING_BAYS_IPES: readonly [number, number][] = [[2, 6], [33, 37]];
+/** Parking bays on the south curb of Rua dos Ipês: first and last tile x of each, all on row 12 (asphalt notches in the sidewalk). Per area (the east one is in rua_leste's own tiles). */
+export const PARKING_BAYS_IPES: readonly [number, number][] = [[2, 6]];
+export const PARKING_BAYS_IPES_LESTE: readonly [number, number][] = [[12, 16]];
 
 type Painter = (ch: string, x0: number, y0: number, x1: number, y1: number) => void;
 function floorGrid(cols: number, rows: number, base: string, paintAll: (paint: Painter) => void): string[] {
@@ -210,7 +216,15 @@ function ruaFloor(): string[] {
     paint('a', 0, 8, RUA_COLS - 1, 11); // Rua dos Ipês
     for (const [x0, x1] of PARKING_BAYS_IPES) paint('a', x0, 12, x1, 12); // parking bays recessed into the south sidewalk
     paint('g', 0, 14, RUA_COLS - 1, 15); // the lawns below the street
-    paint('t', 18, 12, 21, 15); // the brick path down to the praça
+    paint('t', 15, 12, 18, 15); // the brick path down to the praça
+  });
+}
+
+function ruaLesteFloor(): string[] {
+  return floorGrid(RUA_LESTE_COLS, RUA_ROWS, 'c', (paint) => {
+    paint('a', 0, 8, RUA_LESTE_COLS - 1, 11);
+    for (const [x0, x1] of PARKING_BAYS_IPES_LESTE) paint('a', x0, 12, x1, 12);
+    paint('g', 0, 14, RUA_LESTE_COLS - 1, 15);
   });
 }
 
@@ -288,7 +302,11 @@ function edgePortals(id: string, to: RoomId, tiles: Tile[], map: (t: Tile) => Ti
 }
 const span = (n: number, from: number): number[] => Array.from({ length: n }, (_, i) => from + i);
 
-// ---------------------------------------------------------------- rua
+// ---------------------------------------------------------------- rua (west half)
+/** The seam between the two halves of the street: edge portals on every row of the sidewalks and the street (rows 6-13); a bush closes the one-tile lawn strip (row 14). */
+const RUA_SEAM_ROWS = span(8, 6);
+const RUA_LESTE_LABEL: Bilingual = { pt: 'Rua dos Ipês (leste)', en: 'Ipê Street (east)' }; // needs_br: true
+
 const rua: RoomDef = {
   id: 'rua',
   name: 'Rua dos Ipês',
@@ -301,74 +319,50 @@ const rua: RoomDef = {
   wallColor: '#d8cbb6',
   wallTrim: '#9c8b74',
   lighting: 'tarde',
-  spawn: { x: 20, y: 13 },
+  spawn: { x: 16, y: 13 },
   props: [
     // ---- the building row (y 0-5): the door tile of each facade is a portal on row 5, the rest of the front blocks
     front('padaria', 'facades/padaria', 0, 0, 8, 6, { pt: 'Padaria do Seu Carlos', en: 'Seu Carlos’s bakery' }),
     front('empena', 'casas/empena', 8, 0, 3, 6),
     front('edificio', 'facades/edificio_ipe', 11, 0, 10, 6, { pt: 'Edifício Ipê Nº 42', en: 'Ipê Building No. 42' }),
-    front('academia', 'facades/academia', 21, 0, 10, 6, { pt: 'Academia do Bairro', en: 'Neighborhood Academy' }),
-    // The blue terrace house is the escola door until that facade has its own art. The stamp of the building stays as it is.
-    front('casa_3', 'casas/terraco_azul', 31, 0, 6, 6, { pt: 'Escola da Praça', en: 'Square school' }),
-    front('empena_2', 'casas/empena', 37, 0, 3, 6),
     P('banca', 'banca', 8, 4, { w: 3, h: 2, label: { pt: 'Banca de jornal', en: 'Newsstand' } }),
     P('jornais', 'jornais', 7, 6, { label: { pt: 'Pilha de jornais', en: 'Newspaper stack' } }),
     // ---- north calçada (y 6-7): lamps on the curb, pots by the doors, bins, phone
     P('lampada_n1', 'poste', 2, 7, { art: 'props/lamp_old' }),
     P('lampada_n2', 'poste', 10, 7, { art: 'props/lamp_old' }),
     P('lampada_n3', 'poste', 18, 7, { art: 'props/lamp_old' }),
-    P('lampada_n5', 'poste', 34, 7, { art: 'props/lamp_old' }),
     P('lampada_n4', 'poste', 11, 13, { art: 'props/lamp_old' }),
     P('orelhao', 'orelhao', 14, 6, { label: { pt: 'Orelhão', en: 'Public phone booth (“big ear”)' } }),
-    P('placa', 'placa_rua', 22, 7, { label: { pt: 'Rua dos Ipês', en: 'Ipê Street (street sign)' } }),
     P('lixeira_n1', 'lixeira', 10, 6),
-    P('lixeira_n2', 'lixeira', 35, 6),
-    P('saco_lixo', 'saco_lixo', 35, 13),
     P('floreira_n1', 'floreira', 3, 6),
     P('floreira_n2', 'floreira', 16, 6),
-    P('floreira_n3', 'floreira', 24, 6),
-    P('floreira_n4', 'floreira', 34, 6),
     P('vaso_n1', 'vaso', 18, 6),
     P('mesa_cafe', 'mesa_cafe', 2, 6, { label: { pt: 'Mesinha da padaria', en: 'Bakery sidewalk table' } }),
     P('bici', 'bicicletario', 17, 7),
     cen('revisteiro', 'props/revisteiro', 11, 7, 1, 1, { blocks: true, label: { pt: 'Revisteiro da banca', en: 'Newsstand magazine rack' } }),
     cen('vaso_topiaria_1', 'props/vaso_topiaria_a', 11, 6, 1, 1, { blocks: true }),
-    cen('bici_3', 'props/bicicletario', 33, 7, 1, 1, { blocks: true }),
     // ---- the Hortifrúti corner at the banca: Tia Lu's crates, open at every hour (D12)
     P('hortifruti', 'hortifruti', 7, 7, { art: 'feira/caixotes', action: 'feira_stall', vendor: 'banca', interact: { x: 8, y: 7 }, label: { pt: 'Hortifrúti da banca', en: 'Greengrocer at the newsstand' } }),
     cen('hortifruti_2', 'feira/caixotes', 6, 7, 1, 1, { blocks: true }),
     cen('hortifruti_preco', 'feira/preco_lousa', 6, 6),
-    // ---- south calçada (y 12-13): the bus stop, utility poles for the wires, lamps
-    P('ponto', 'ponto_onibus', 27, 12, { w: 3, label: { pt: 'Ponto de ônibus', en: 'Bus stop' } }),
+    // ---- south calçada (y 12-13): utility poles for the wires, lamps
     P('poste_2', 'poste', 9, 13),
-    P('poste_3', 'poste', 17, 13),
-    P('poste_4', 'poste', 25, 13),
-    P('lixeira_s1', 'lixeira', 23, 13),
-    P('lixeira_s2', 'lixeira', 26, 12),
+    P('poste_3', 'poste', 13, 13),
     // pit trees along both sidewalks, clear of the doors and crosswalks
     P('arv_n1', 'arvore', 15, 7, { w: 2, art: 'props/arvore_rua' }),
-    P('arv_n2', 'arvore', 23, 14, { w: 2, art: 'props/arvore_rua' }),
-    P('arv_n3', 'arvore', 36, 7, { w: 2, art: 'props/arvore_rua' }),
-    P('arv_s2', 'arvore', 14, 12, { w: 2, art: 'props/arvore_rua' }),
-    // parked vehicles in the bays (they block their curb tiles only; the traffic lanes sit above them, see ambientData.ts)
-    ...parked(12, [['park_verde_r', 2, 5], ['park_taxi_r', 33, 5]]),
-    P('hidrante_s', 'sebe', 15, 13, { art: 'props/hidrante_amarelo' }),
-    P('parquimetro', 'sebe', 16, 12, { art: 'props/parquimetro' }),
-    P('flor_s1', 'sebe', 31, 13, { w: 2, art: 'props/flor_vermelha' }),
-    P('flor_s2', 'sebe', 36, 13, { w: 2, art: 'props/flor_mista' }),
+    // parked vehicles in the bay (they block their curb tiles only; the traffic lanes sit above them, see ambientData.ts)
+    ...parked(12, [['park_verde_r', 2, 5]]),
+    P('hidrante_s', 'sebe', 14, 13, { art: 'props/hidrante_amarelo' }),
+    P('parquimetro', 'sebe', 14, 12, { art: 'props/parquimetro' }),
     // ---- the lawns and the way down to the praça: hedges on both sides of the brick path (the path itself is the edge portal band)
-    ...hedgeRow('sebe_s', 15, 0, 18),
-    ...hedgeRow('sebe_s', 15, 22, 40),
-    P('lampada_s2', 'poste', 22, 13, { art: 'props/lamp_old' }),
+    ...hedgeRow('sebe_s', 15, 0, 15),
+    P('sebe_s_19', 'sebe', 19, 15, { w: 2, art: 'props/hedge_wide' }),
     P('arv_s5', 'arvore', 11, 14, { w: 2, art: 'props/arvore_rua' }),
-    P('arv_s6', 'arvore', 26, 14, { w: 2, art: 'props/arvore_rua' }),
     P('arbusto_s1', 'sebe', 9, 14, { art: 'props/bush_flower' }),
-    P('arbusto_s2', 'sebe', 32, 14, { art: 'props/bush_flower' }),
-    // ---- the map edges: barricades across the street, hedges across the sidewalks and the lawns
-    ...([['o', 0], ['l', 38]] as const).flatMap(([side, x]) => [
-      P(`barreira_${side}_8`, 'cerca', x, 8, { w: 2, h: 4, art: 'cerca_rua' }),
-      ...[6, 7, 12, 13, 14].map((y) => P(`sebe_${side}_${y}`, 'sebe', x, y, { w: 2, art: 'props/hedge_wide' })),
-    ]),
+    P('arbusto_seam', 'sebe', RUA_COLS - 1, 14, { art: 'props/bush_flower' }),
+    // ---- the map edge: a barricade across the street and hedges across the sidewalks and the lawn (the east side is open to rua_leste)
+    P('barreira_o_8', 'cerca', 0, 8, { w: 2, h: 4, art: 'cerca_rua' }),
+    ...[6, 7, 12, 13, 14].map((y) => P(`sebe_o_${y}`, 'sebe', 0, y, { w: 2, art: 'props/hedge_wide' })),
   ],
   walls: [],
   portals: [
@@ -392,27 +386,87 @@ const rua: RoomDef = {
       doorAt: { x: 12, y: 5 },
       label: { pt: 'Edifício Ipê — Minha kitnet', en: 'Ipê Building — my studio apartment' },
     },
+    ...edgePortals('rua_praca', 'praca', span(4, 15).map((x) => ({ x, y: 15 })), (t) => ({ x: t.x - 1, y: 1 }), 'SE', { pt: 'Praça Central', en: 'Central Square' }),
+    ...edgePortals('rua_leste', 'rua_leste', RUA_SEAM_ROWS.map((y) => ({ x: RUA_COLS - 1, y })), (t) => ({ x: 1, y: t.y }), 'SE', RUA_LESTE_LABEL),
+  ],
+  npcs: [],
+  private: false,
+};
+
+// ---------------------------------------------------------------- rua_leste (east half)
+const ruaLeste: RoomDef = {
+  id: 'rua_leste',
+  name: 'Rua dos Ipês (leste)', // needs_br: true
+  gloss: 'Ipê Street (east)',
+  cols: RUA_LESTE_COLS,
+  rows: RUA_ROWS,
+  outdoor: true,
+  floor: ruaLesteFloor(),
+  wallHeight: 0,
+  wallColor: '#d8cbb6',
+  wallTrim: '#9c8b74',
+  lighting: 'tarde',
+  spawn: { x: 8, y: 7 },
+  props: [
+    // x is the old rua's x minus RUA_CUT
+    front('academia', 'facades/academia', 0, 0, 10, 6, { pt: 'Academia do Bairro', en: 'Neighborhood Academy' }),
+    // The blue terrace house is the escola door until that facade has its own art. The stamp of the building stays as it is.
+    front('casa_3', 'casas/terraco_azul', 10, 0, 6, 6, { pt: 'Escola da Praça', en: 'Square school' }),
+    front('empena_2', 'casas/empena', 16, 0, 3, 6),
+    // ---- north calçada
+    P('lampada_n5', 'poste', 13, 7, { art: 'props/lamp_old' }),
+    P('placa', 'placa_rua', 2, 7, { label: { pt: 'Rua dos Ipês', en: 'Ipê Street (street sign)' } }),
+    P('lixeira_n2', 'lixeira', 14, 6),
+    P('saco_lixo', 'saco_lixo', 14, 13),
+    P('floreira_n3', 'floreira', 3, 6),
+    P('floreira_n4', 'floreira', 13, 6),
+    cen('bici_3', 'props/bicicletario', 12, 7, 1, 1, { blocks: true }),
+    // ---- south calçada: the bus stop, a utility pole, lamp, bins
+    P('ponto', 'ponto_onibus', 6, 12, { w: 3, label: { pt: 'Ponto de ônibus', en: 'Bus stop' } }),
+    P('poste_4', 'poste', 4, 13),
+    P('lampada_s2', 'poste', 2, 13, { art: 'props/lamp_old' }),
+    P('lixeira_s1', 'lixeira', 3, 13),
+    P('lixeira_s2', 'lixeira', 5, 12),
+    P('arv_n2', 'arvore', 2, 14, { w: 2, art: 'props/arvore_rua' }),
+    P('arv_n3', 'arvore', 15, 7, { w: 2, art: 'props/arvore_rua' }),
+    // the parked taxi in the bay (it blocks its curb tiles only; the traffic lanes sit above it)
+    ...parked(12, [['park_taxi_r', 12, 5]]),
+    P('flor_s1', 'sebe', 10, 13, { w: 2, art: 'props/flor_vermelha' }),
+    P('flor_s2', 'sebe', 15, 13, { w: 2, art: 'props/flor_mista' }),
+    P('arv_s6', 'arvore', 5, 14, { w: 2, art: 'props/arvore_rua' }),
+    P('arbusto_s2', 'sebe', 11, 14, { art: 'props/bush_flower' }),
+    // ---- lawn strip hedges
+    ...hedgeRow('sebe_s', 15, 1, 17),
+    P('arbusto_se', 'sebe', 0, 15, { art: 'props/bush_flower' }),
+    P('arbusto_seam', 'sebe', 0, 14, { art: 'props/bush_flower' }),
+    P('sebe_s_17', 'sebe', 17, 15, { w: 2, art: 'props/hedge_wide' }),
+    // ---- the east map edge: a barricade across the street and hedges across the sidewalks and the lawn (the west side is open to the rua)
+    P('barreira_l_8', 'cerca', 17, 8, { w: 2, h: 4, art: 'cerca_rua' }),
+    ...[6, 7, 12, 13, 14].map((y) => P(`sebe_l_${y}`, 'sebe', 17, y, { w: 2, art: 'props/hedge_wide' })),
+  ],
+  walls: [],
+  portals: [
     {
       id: 'praca_academia',
-      x: 26,
+      x: 5,
       y: 5,
       to: 'academia',
       arrive: { x: 1, y: 6 },
       arriveDir: 'SE',
-      doorAt: { x: 25.5, y: 5 },
+      doorAt: { x: 4.5, y: 5 },
       label: { pt: 'Academia do Bairro', en: 'Neighborhood Academy' },
     },
     {
       id: 'rua_escola',
-      x: 33,
+      x: 12,
       y: 5,
       to: 'escola',
       arrive: { x: 1, y: 6 },
       arriveDir: 'SE',
-      doorAt: { x: 33, y: 5 },
+      doorAt: { x: 12, y: 5 },
       label: { pt: 'Escola da Praça', en: 'Square school' },
     },
-    ...edgePortals('rua_praca', 'praca', span(4, 18).map((x) => ({ x, y: 15 })), (t) => ({ x: t.x - 4, y: 1 }), 'SE', { pt: 'Praça Central', en: 'Central Square' }),
+    ...edgePortals('leste_rua', 'rua', RUA_SEAM_ROWS.map((y) => ({ x: 0, y })), (t) => ({ x: RUA_COLS - 2, y: t.y }), 'SW', { pt: 'Rua dos Ipês', en: 'Ipê Street' }),
   ],
   npcs: [],
   private: false,
@@ -543,7 +597,7 @@ const praca: RoomDef = {
   ],
   walls: [],
   portals: [
-    ...edgePortals('praca_rua', 'rua', span(4, 14).map((x) => ({ x, y: 0 })), (t) => ({ x: t.x + 4, y: 14 }), 'NW', { pt: 'Rua dos Ipês', en: 'Ipê Street' }),
+    ...edgePortals('praca_rua', 'rua', span(4, 14).map((x) => ({ x, y: 0 })), (t) => ({ x: t.x + 1, y: 14 }), 'NW', { pt: 'Rua dos Ipês', en: 'Ipê Street' }),
     ...edgePortals('praca_feira', 'feira', span(4, 10).map((y) => ({ x: 31, y })), (t) => ({ x: 1, y: t.y - 3 }), 'SE', { pt: 'Feira Livre', en: 'Street Market' }),
   ],
   npcs: [
@@ -927,8 +981,8 @@ const academia: RoomDef = {
       x: 0,
       y: 6,
       wall: 'left',
-      to: 'rua',
-      arrive: { x: 26, y: 6 },
+      to: 'rua_leste',
+      arrive: { x: 5, y: 6 },
       arriveDir: 'SW',
       label: { pt: 'SAÍDA · Rua', en: 'Exit to the street' },
     },
@@ -998,8 +1052,8 @@ const escola: RoomDef = {
       x: 0,
       y: 6,
       wall: 'left',
-      to: 'rua',
-      arrive: { x: 33, y: 6 },
+      to: 'rua_leste',
+      arrive: { x: 12, y: 6 },
       arriveDir: 'SW',
       label: { pt: 'SAÍDA · Rua', en: 'Exit to the street' },
     },
@@ -1025,7 +1079,7 @@ const escola: RoomDef = {
   private: false,
 };
 
-export const ROOMS: Record<RoomId, RoomDef> = { praca, rua, feira, padaria, kitnet, academia, escola };
+export const ROOMS: Record<RoomId, RoomDef> = { praca, rua, rua_leste: ruaLeste, feira, padaria, kitnet, academia, escola };
 export const ROOM_IDS = Object.keys(ROOMS) as RoomId[];
 
 export const isRoomId = (v: unknown): v is RoomId => typeof v === 'string' && v in ROOMS;

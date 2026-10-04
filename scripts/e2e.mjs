@@ -563,8 +563,8 @@ async function main() {
   await shot(page, '10_praca_hat_parrot');
   await dwell(1500);
 
-  // 6b. Academia do Bairro (its door is on the rua) — enter + one full Treino no tatame match (TB_TEST_ROLL on the server)
-  await goArea(page, 'rua');
+  // 6b. Academia do Bairro (its door is on the east half of the street, rua_leste) — enter + one full Treino no tatame match (TB_TEST_ROLL on the server)
+  await goArea(page, 'rua_leste');
   await interact(page, { portal: 'praca_academia' });
   await waitFor(page, () => window.__tb.game.room?.room === 'academia', null, 15_000, 'academia');
   await waitFor(
@@ -615,7 +615,8 @@ async function main() {
   await page.click('#bout-leave');
   await waitFor(page, () => !document.body.classList.contains('bout-on') && !window.__tb.bout.feed.camera, null, 5000, 'the bout HUD steps aside');
   await interact(page, { portal: 'academia_praca' });
-  await waitFor(page, () => window.__tb.game.room?.room === 'rua', null, 15_000, 'back from academia');
+  await waitFor(page, () => window.__tb.game.room?.room === 'rua_leste', null, 15_000, 'back from academia');
+  await goArea(page, 'rua'); // the kitnet door is on the west half
   log(`academia bout ok: ${result.winner} by ${result.reason}, ${result.moves} beats`);
 
   // 7. Kitnet: place the free chair

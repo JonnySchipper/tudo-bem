@@ -90,18 +90,22 @@ const street = (id: string, y0: number, y1: number, cols: number, density: numbe
   density,
 });
 
-const RUA_COLS = 40;
+const RUA_COLS = 21;
+const RUA_LESTE_COLS = 19;
 
 export const AMBIENT: Record<string, AmbientRoom> = {
-  // Rua dos Ipês (40 x 16): the street is rows 8-11, the bus stop sign at (27,12) with the stop on the sidewalk at (28,13)
+  // Rua dos Ipês, west half (21 x 16): the street is rows 8-11; the traffic comes in at the seam and leaves at the west end, and the other way round
   rua: {
     streets: [street('ipes', 8, 11, RUA_COLS, 1)],
-    bus: { street: 'ipes', stopX: 27.5 * T, stopTile: { x: 28, y: 13 } },
-    flocks: [
-      { id: 'calcada_sul', x: 14, y: 13, n: 3 },
-      { id: 'padaria', x: 22, y: 6, n: 3 },
-    ],
+    flocks: [{ id: 'calcada_sul', x: 14, y: 13, n: 3 }],
     audio: { streets: [{ y: 10 * T, x0: 0, x1: RUA_COLS * T }], fountain: { x: -9999, y: -9999 }, radios: [{ x: 14 * T, y: 3 * T }] },
+  },
+  // Rua dos Ipês (leste) (19 x 16): the bus stop sign at (6,12) with the stop on the sidewalk at (7,13)
+  rua_leste: {
+    streets: [street('ipes', 8, 11, RUA_LESTE_COLS, 1)],
+    bus: { street: 'ipes', stopX: 6.5 * T, stopTile: { x: 7, y: 13 } },
+    flocks: [{ id: 'padaria', x: 1, y: 6, n: 3 }],
+    audio: { streets: [{ y: 10 * T, x0: 0, x1: RUA_LESTE_COLS * T }], fountain: { x: -9999, y: -9999 }, radios: [] },
   },
   // Praça Central (32 x 24): the fountain at (14,10), the vira-lata corner at (3,21)
   praca: {

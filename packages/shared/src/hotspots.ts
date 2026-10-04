@@ -37,12 +37,12 @@ export const HOTSPOTS: HotspotDef[] = [
   { id: 'empena_tudo_bem', room: 'rua', x: 8, y: 1, w: 3, h: 3, pt: 'TUDO BEM?', en: 'How’s it going?', cards: ['lex.social.tudo_bem'] },
   { id: 'edificio_letreiro', room: 'rua', x: 11, y: 1, w: 3, h: 3, pt: 'EDIFÍCIO IPÊ', en: 'Ipê Building' },
   { id: 'edificio_numero', room: 'rua', x: 12, y: 4, pt: 'Nº 42', en: 'No. 42' },
-  { id: 'academia_letreiro', room: 'rua', x: 23, y: 1, w: 6, h: 3, pt: 'ACADEMIA\nDO BAIRRO', en: 'Neighborhood\nacademy' },
+  { id: 'academia_letreiro', room: 'rua_leste', x: 2, y: 1, w: 6, h: 3, pt: 'ACADEMIA\nDO BAIRRO', en: 'Neighborhood\nacademy' },
   { id: 'banca_manchetes', room: 'rua', x: 8, y: 4, w: 3, h: 2, pt: 'BANCA\nHOJE: Chuva à noite\nFeira livre: todo dia, 6h às 13h\nPadaria faz festa',
     en: 'NEWSSTAND\nToday: Rain tonight\nStreet market: every day, 6 am to 1 pm\nBakery throws a party',
   },
   // ---- Vila Ipê, north sidewalk
-  { id: 'placa_rua_ipes', room: 'rua', x: 22, y: 6, w: 1, h: 2, pt: 'R. DOS IPÊS', en: 'Ipê Street' },
+  { id: 'placa_rua_ipes', room: 'rua_leste', x: 2, y: 6, w: 1, h: 2, pt: 'R. DOS IPÊS', en: 'Ipê Street' },
   { id: 'orelhao', room: 'rua', x: 14, y: 6, pt: 'ORELHÃO\nTelefone público', en: 'PAYPHONE (“big ear”)\nPublic phone' },
   { id: 'lixeira_padaria', room: 'rua', x: 10, y: 6, pt: 'LIXO', en: 'Trash' },
   { id: 'mesa_cafe_precos', room: 'rua', x: 2, y: 6, pt: 'Café R$ 4\nPão na chapa R$ 6',
@@ -51,9 +51,9 @@ export const HOTSPOTS: HotspotDef[] = [
   },
   { id: 'bicicletario', room: 'rua', x: 17, y: 7, pt: 'BICICLETÁRIO', en: 'Bike rack' },
   // ---- Vila Ipê, south sidewalk and the praça
-  { id: 'ponto_onibus', room: 'rua', x: 27, y: 12, w: 3, h: 1, pt: 'ÔNIBUS\nLinha 875 · Centro', en: 'BUS\nLine 875 · Downtown' },
-  { id: 'parquimetro', room: 'rua', x: 16, y: 12, pt: 'ESTACIONAMENTO\nR$ 5 por hora', en: 'PARKING\nR$ 5 per hour' },
-  { id: 'lixeira_praca', room: 'rua', x: 23, y: 13, pt: 'LIXO', en: 'Trash' },
+  { id: 'ponto_onibus', room: 'rua_leste', x: 6, y: 12, w: 3, h: 1, pt: 'ÔNIBUS\nLinha 875 · Centro', en: 'BUS\nLine 875 · Downtown' },
+  { id: 'parquimetro', room: 'rua', x: 14, y: 12, pt: 'ESTACIONAMENTO\nR$ 5 por hora', en: 'PARKING\nR$ 5 per hour' },
+  { id: 'lixeira_praca', room: 'rua_leste', x: 3, y: 13, pt: 'LIXO', en: 'Trash' },
   { id: 'fonte_praca', room: 'praca', x: 14, y: 10, w: 4, h: 3, pt: 'Praça Central\nFonte de 1985', en: 'Central Square\nFountain from 1985' },
   // ---- V2 composition pass (needs_br: every line; invented facts: the founder's name and the year)
   { id: 'busto_placa', room: 'praca', x: 7, y: 5, w: 2, h: 2, pt: 'DONA IPÊ\nFundadora da Vila\n1897', en: 'DONA IPÊ\nFounder of the village\n1897' },
