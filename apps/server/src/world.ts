@@ -298,6 +298,7 @@ export class World {
       },
       rng: () => this.rng(),
       now: () => this.now(),
+      day: () => gameDay(this.clockNow()),
     });
     this.bouts = new BoutEngine({
       now: () => this.now(),

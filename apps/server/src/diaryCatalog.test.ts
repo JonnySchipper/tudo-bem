@@ -15,6 +15,7 @@ import {
   PHOTO_RANGE,
   ROOMS,
   buildGrid,
+  diaryDayFor,
   diaryLine,
   furnitureById,
   hotspotById,
@@ -33,8 +34,8 @@ import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, MemoryModerat
 
 let clock = 0;
 const pending: { fn: () => void; at: number }[] = [];
-function setGameTime(h: number) {
-  clock = 3 * GAME_DAY_MS + h * 60 * MS_PER_GAME_MINUTE - CLOCK_OFFSET_MS;
+function setGameTime(h: number, day = 3) {
+  clock = day * GAME_DAY_MS + h * 60 * MS_PER_GAME_MINUTE - CLOCK_OFFSET_MS;
   pending.length = 0;
 }
 function advance(ms: number) {
@@ -123,6 +124,8 @@ describe('every catalog word can be earned from its own source', () => {
         for (const w of words) {
           const id = w.anchor.id;
           const box = ROOMS[where].props.find((p) => p.id === id) ?? photoSpotById(id) ?? { x: ROOMS[where].spawn.x, y: ROOMS[where].spawn.y };
+          // the small objects are out a couple at a time: wait for the day this one is
+          setGameTime(10, diaryDayFor(id, 3));
           const t = nearTile(where, box, PHOTO_RANGE);
           await walk(t.x, t.y);
           // film is not what is being tried: a roll a shot
@@ -144,6 +147,7 @@ describe('every catalog word can be earned from its own source', () => {
         await a.send({ t: 'diary', action: 'sign', anchor: id });
       } else {
         const h = hotspotById(id)!;
+        setGameTime(10, diaryDayFor(id, 3));
         await goRoom(h.room);
         const t = nearTile(h.room, h, HOTSPOT_READ_RANGE);
         await walk(t.x, t.y);

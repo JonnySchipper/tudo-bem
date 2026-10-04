@@ -41,3 +41,4 @@ export * from './arrival.js';
 export * from './photoSpots.js';
 export * from './diaryLines.js';
 export * from './diaryWorld.js';
+export * from './diaryDaily.js';

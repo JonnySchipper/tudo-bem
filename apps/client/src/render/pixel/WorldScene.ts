@@ -17,6 +17,7 @@ import {
   canPlaceFurniture,
   furnitureById,
   hotspotBox,
+  diaryVisible,
   hotspotsInRoom,
   isCpuId,
   key as tileKey,
@@ -246,6 +247,8 @@ export class WorldScene extends Phaser.Scene {
   private snapCamera = true;
   private hoverRect!: Phaser.GameObjects.Rectangle;
   private lastT = 0;
+  /** the game day the room was built for (a new day brings a new couple of small diary objects) */
+  private diaryDay = -1;
   /** decorate-mode ghost of the piece being placed or moved (scene-level: it outlives room rebuilds) */
   private ghost: Phaser.GameObjects.Sprite | null = null;
   private ghostKey = '';
@@ -513,10 +516,13 @@ export class WorldScene extends Phaser.Scene {
     this.buildScenery(def);
 
     // ---- props
-    for (const p of def.props) this.buildProp(p);
+    // the small diary objects and signs stand out a couple at a time, a different couple each game day
+    this.diaryDay = clock.day();
+    for (const p of def.props) if (diaryVisible(def.id, p.id, this.diaryDay)) this.buildProp(p);
 
     // ---- readable world (Phase 7): a click box per hotspot (the footprint, plus the wall rows above it for a sign painted on a north wall)
     for (const hs of hotspotsInRoom(def.id)) {
+      if (!diaryVisible(def.id, hs.id, this.diaryDay)) continue;
       const b = hotspotBox(hs);
       this.staticHits.push({ x0: b.x0 * T, y0: b.y0 * T, x1: b.x1 * T, y1: b.y1 * T, hit: { kind: 'hotspot', hotspot: hs }, depth: b.y1 * T - 0.25 });
     }
@@ -835,7 +841,7 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
     const key = roomKey(room);
-    if (key !== this.roomId || this.roomDef !== def) {
+    if (key !== this.roomId || this.roomDef !== def || clock.day() !== this.diaryDay) {
       this.roomId = key;
       this.roomDef = def;
       this.buildRoom(def);

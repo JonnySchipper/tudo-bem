@@ -10,6 +10,8 @@ import {
   MS_PER_GAME_MINUTE,
   ROOMS,
   buildGrid,
+  dailyDiaryIds,
+  diaryDayFor,
   diaryWord,
   hotspotById,
   isWalkable,
@@ -23,8 +25,8 @@ import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, MemoryModerat
 
 let clock = 0;
 const pending: { fn: () => void; at: number }[] = [];
-function setGameTime(h: number, m = 0) {
-  clock = 3 * GAME_DAY_MS + (h * 60 + m) * MS_PER_GAME_MINUTE - CLOCK_OFFSET_MS;
+function setGameTime(h: number, day = 3, m = 0) {
+  clock = day * GAME_DAY_MS + (h * 60 + m) * MS_PER_GAME_MINUTE - CLOCK_OFFSET_MS;
   pending.length = 0;
 }
 function advance(ms: number) {
@@ -230,42 +232,55 @@ describe('arrival, camera, diary and the escola', () => {
     const world = makeWorld();
     const a = await client(world);
     await a.send({ t: 'arrival', action: 'finish' });
-    const fonte = ROOMS.praca.props.find((p) => p.id === 'fonte')!;
-    const near = spotNear('praca', fonte);
-    await walkTo(a, near.x, near.y);
+    await walkTo(a, 17, 8);
     const film = a.s.profile!.film!;
-    const anchors = ['fonte', 'd_moeda', 'd_musgo', 'd_concreto', 'd_pombo'];
+    // the fountain, a bench, the bandstand (its roof and its stage) and a bin: five words from one shot
+    const anchors = ['fonte', 'banco_1', 'coreto', 'lixeira_p1'];
     await a.send({ t: 'diary', action: 'photo', anchors });
     const shot = photoMsgs(a).at(-1)!;
     expect(shot.ok).toBe(true);
     if (!shot.ok) return;
-    // five words from one shot, in the order the objects were named, the counter climbing 1, 2, 3, 4, 5 of the praça's 98
-    expect(shot.words?.map((w) => w.pt)).toEqual(['fonte', 'moeda', 'musgo', 'concreto', 'pombo']);
+    // in the order the objects were named, the counter climbing 1, 2, 3, 4, 5 of the praça's 98
+    expect(shot.words?.map((w) => w.pt)).toEqual(['fonte', 'banco', 'telhado', 'palco', 'lixeira']);
     expect(shot.words?.map((w) => w.progress.split(' ')[0])).toEqual(['1/98', '2/98', '3/98', '4/98', '5/98']);
     expect(shot.words?.every((w) => w.areaPt === 'Praça')).toBe(true);
     expect(shot).toMatchObject({ pt: 'fonte', progress: shot.words![0]!.progress });
-    expect(inPraca(a)).toEqual(['seed.praca.fonte', 'diary.praca.moeda', 'diary.praca.musgo', 'diary.praca.concreto', 'diary.praca.pombo']);
+    expect(inPraca(a)).toHaveLength(5);
     expect(a.s.profile?.film).toBe(film - 1);
 
     // the same shot again teaches nothing new and says so
     await a.send({ t: 'diary', action: 'photo', anchors });
-    const again = photoMsgs(a).at(-1)!;
-    expect(again).toMatchObject({ ok: false });
+    expect(photoMsgs(a).at(-1)).toMatchObject({ ok: false });
     expect(inPraca(a)).toHaveLength(5);
     expect(a.s.profile?.film).toBe(film - 2);
 
     // a shot that mixes words the diary has with one it does not gives only the new one
-    await a.send({ t: 'diary', action: 'photo', anchors: ['d_pombo', 'd_relogio', 'd_moeda'] });
+    await a.send({ t: 'diary', action: 'photo', anchors: ['banco_1', 'canteiro_1', 'fonte'] });
     const mixed = photoMsgs(a).at(-1)!;
-    expect(mixed.ok && mixed.words?.map((w) => w.pt)).toEqual(['relógio']);
+    expect(mixed.ok && mixed.words?.map((w) => w.pt)).toEqual(['canteiro']);
     expect(mixed.ok && mixed.words?.[0]?.progress.split(' ')[0]).toBe('6/98');
-    expect(inPraca(a)).toHaveLength(6);
 
     // an object out of reach is not in the shot, and does not cost a word
     await walkTo(a, 1, 22);
-    await a.send({ t: 'diary', action: 'photo', anchors: ['d_ninho'] });
+    await a.send({ t: 'diary', action: 'photo', anchors: ['ipe_centro'] });
     expect(a.all('error').some((e) => e.code === 'far')).toBe(true);
     expect(inPraca(a)).toHaveLength(6);
+  });
+
+  it('lets a small diary object or sign be photographed or read only on the days it is out', async () => {
+    const world = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'arrival', action: 'finish' });
+    await walkTo(a, 17, 8);
+    const day = diaryDayFor('d_pombo', 3);
+    const off = [3, 4, 5, 6, 7, 8].find((d) => !dailyDiaryIds('praca', d).has('d_pombo'))!;
+    setGameTime(10, off);
+    await a.send({ t: 'diary', action: 'photo', anchors: ['d_pombo'] });
+    expect(a.all('error').some((e) => e.code === 'far')).toBe(true);
+    expect(inPraca(a)).toEqual([]);
+    setGameTime(10, day);
+    await a.send({ t: 'diary', action: 'photo', anchors: ['d_pombo'] });
+    expect(inPraca(a)).toEqual(['diary.praca.pombo']);
   });
 
   it('takes the airport hall as a postcard: free shots of its own objects, its signs to read, nothing else', async () => {

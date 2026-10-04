@@ -20,6 +20,7 @@ import {
   TUTORIAL_STEPS,
   buildGrid,
   cameraObjectIds,
+  diaryVisible,
   IDLE_HEAR_RANGE,
   PHOTO_SPOTS,
   normalizeDiary,
@@ -345,7 +346,8 @@ function takePhoto(clientX: number, clientY: number) {
       if (!rect || !rectsOverlap(frame, rect) || touched.some((t) => t.id === id)) return;
       touched.push({ id, d: Math.hypot(rect.x + rect.w / 2 - aim.x, rect.y + rect.h / 2 - aim.y) });
     };
-    for (const prop of room.props) if (taught.has(prop.id)) tag(prop.id, prop);
+    const day = clock.day();
+    for (const prop of room.props) if (taught.has(prop.id) && diaryVisible(room.id, prop.id, day)) tag(prop.id, prop);
     for (const spot of PHOTO_SPOTS) if (spot.room === room.id && taught.has(spot.id)) tag(spot.id, spot);
     for (const f of game.furniture) if (taught.has(f.itemId)) tag(f.itemId, { x: f.x, y: f.y });
     anchors.push(...touched.sort((a, b) => a.d - b.d).map((t) => t.id).slice(0, 24));

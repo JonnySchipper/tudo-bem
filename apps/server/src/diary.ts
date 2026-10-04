@@ -16,6 +16,7 @@ import {
   diaryGamesIn,
   diaryLine,
   diaryWord,
+  diaryVisible,
   furnitureById,
   grantDiaryWord,
   handCartela,
@@ -58,6 +59,8 @@ export interface DiaryDeps {
   apartmentOf: (s: Session) => readonly PlacedFurniture[];
   rng: () => number;
   now: () => number;
+  /** The game day (the small diary objects and signs rotate by it). */
+  day: () => number;
 }
 
 /** Most objects one shot can name (a crowded praça, a dense padaria counter). */
@@ -146,7 +149,9 @@ export class DiaryTracker {
   /** A sign the player just read (distance already checked). Grants its reading word once. */
   onSign(s: Session, signId: string) {
     const word = wordForSign(signId);
-    if (!word) return;
+    const room = this.d.roomOf(s);
+    // a sign that is not out today is not there to read
+    if (!word || (room && !diaryVisible(room, signId, this.d.day()))) return;
     this.earn(s, word, 'reading');
   }
 
@@ -163,7 +168,7 @@ export class DiaryTracker {
     if (isHallObject(id)) return hall;
     if (hall) return false;
     const prop = room ? ROOMS[room].props.find((q) => q.id === id) : undefined;
-    if (prop) return hotspotDistance(prop, tile) <= PHOTO_RANGE;
+    if (prop) return diaryVisible(room!, id, this.d.day()) && hotspotDistance(prop, tile) <= PHOTO_RANGE;
     const spot = photoSpotById(id);
     if (spot) return spot.room === room && hotspotDistance(spot, tile) <= PHOTO_RANGE;
     if (furnitureById(id)) return room === 'kitnet' && this.d.apartmentOf(s).some((f) => f.itemId === id);

@@ -388,7 +388,9 @@
     "banco_2",
     "banco_3",
     "banco_4",
-    "banco_5"
+    "banco_5",
+    "banco_feira",
+    "banco_gym"
    ],
    "origin": "existing",
    "needsBr": true
@@ -422,7 +424,15 @@
     "ipe_4",
     "ipe_5",
     "ipe_6",
-    "sibipiruna"
+    "sibipiruna",
+    "arv_n1",
+    "arv_n2",
+    "arv_n3",
+    "arv_s2",
+    "arv_s5",
+    "arv_s6",
+    "ipe_lote_1",
+    "ipe_lote_2"
    ],
    "origin": "existing",
    "needsBr": true
@@ -549,7 +559,8 @@
     "id": "topiaria_urso"
    },
    "also": [
-    "topiaria_cao"
+    "topiaria_cao",
+    "vaso_topiaria_1"
    ],
    "origin": "existing",
    "needsBr": true
@@ -582,7 +593,11 @@
     "id": "lixeira_p1"
    },
    "also": [
-    "lixeira_p2"
+    "lixeira_p2",
+    "lixeira_n1",
+    "lixeira_n2",
+    "lixeira_s1",
+    "lixeira_s2"
    ],
    "origin": "existing",
    "needsBr": true
@@ -2054,7 +2069,14 @@
     "poste_2",
     "poste_3",
     "poste_4",
-    "lampada_s2"
+    "lampada_s2",
+    "lampada_p1",
+    "lampada_p2",
+    "lampada_p3",
+    "lampada_p4",
+    "lampada_f1",
+    "lampada_f2",
+    "lampada_f3"
    ],
    "origin": "existing",
    "needsBr": true
@@ -2139,6 +2161,10 @@
     "kind": "object",
     "id": "vaso_n1"
    },
+   "also": [
+    "vaso_canto",
+    "vaso"
+   ],
    "origin": "existing",
    "needsBr": true
   },
@@ -3137,7 +3163,15 @@
    },
    "also": [
     "banqueta_2",
-    "banqueta_3"
+    "banqueta_3",
+    "banquinho_a_o",
+    "banquinho_a_l",
+    "banquinho_a_n",
+    "banquinho_a_s",
+    "banquinho_b_o",
+    "banquinho_b_l",
+    "banquinho_b_n",
+    "banquinho_b_s"
    ],
    "origin": "existing",
    "needsBr": true
@@ -4853,6 +4887,13 @@
     "kind": "object",
     "id": "cadeira_madeira"
    },
+   "also": [
+    "cadeira_1",
+    "cadeira_2",
+    "cadeira_3",
+    "cadeira_4",
+    "cadeira_escola"
+   ],
    "origin": "existing",
    "needsBr": true
   },
