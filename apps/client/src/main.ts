@@ -77,6 +77,7 @@ import {
 } from './ui/panels';
 import { openPedido, updatePedido, closePedido, isPedidoOpen } from './ui/pedido';
 import { openCredits } from './ui/credits';
+import { bindAdmin, onAdminMsg } from './ui/admin';
 import { isDialogueBoxOpen, setDialogueHost, showDialogueBox } from './ui/dialogue';
 import { mountTracker, openJournal, runPrelude } from './ui/recados';
 import { heartsWith } from './ui/recadoView';
@@ -482,6 +483,7 @@ function updateGuides() {
 // ---------------------------------------------------------------- server messages
 
 net.onOpen = () => net.send({ t: 'hello', token: localStorage.getItem(TOKEN_KEY) ?? undefined });
+bindAdmin((m) => net.send(m));
 /** Kick copy from the server's last message before it closed the socket. */
 let kickedCopy: { pt: string; en: string } | null = null;
 let leaving = false;
@@ -552,8 +554,13 @@ net.on((m: ServerMsg) => {
     case 'kicked':
       kickedCopy = { pt: m.pt, en: m.en };
       break;
+    case 'sky':
+    case 'admin':
+      onAdminMsg(m);
+      break;
     case 'welcome': {
       clock.syncServer(m.serverNow);
+      if (m.weather !== undefined) clock.setWeather(m.weather);
       localStorage.setItem(TOKEN_KEY, m.token);
       game.profile = m.profile;
       closeOnboarding();

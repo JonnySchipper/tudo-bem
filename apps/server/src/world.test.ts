@@ -798,3 +798,63 @@ describe('Idle kick', () => {
     expect(closed).toBe('idle');
   });
 });
+
+describe('Admin panel', () => {
+  beforeEach(() => {
+    clock = 1_000_000;
+    pending.length = 0;
+  });
+
+  it('rejects a wrong password and stays locked', async () => {
+    const { world } = makeWorld(16, { adminPassword: 'tb-admin-praca' });
+    const a = await client(world, 'Ops');
+    await a.send({ t: 'admin', action: 'login', password: 'nope-nope' });
+    expect(a.last('admin')).toMatchObject({ phase: 'auth', ok: false });
+    await a.send({ t: 'admin', action: 'money', amount: 50 });
+    expect(a.last('admin')).toMatchObject({ phase: 'auth', ok: false });
+    expect(a.s.profile!.coins).toBe(ECONOMY.startingCoins);
+  });
+
+  it('reports disabled when the world has no admin password', async () => {
+    const { world } = makeWorld(16, { adminPassword: null });
+    const a = await client(world, 'Ops');
+    await a.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
+    expect(a.last('admin')).toMatchObject({ phase: 'disabled' });
+  });
+
+  it('unlocks, grants money, pins weather and clock, and kicks another player', async () => {
+    const { world } = makeWorld(16, { adminPassword: 'tb-admin-praca' });
+    const a = await client(world, 'Admin');
+    const b = await client(world, 'Alvo', 'ele');
+    let closed: string | null = null;
+    b.s.close = (r) => (closed = r);
+
+    expect(a.last('welcome')).toMatchObject({ weather: null, serverNow: expect.any(Number) });
+
+    await a.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
+    expect(a.last('admin')).toMatchObject({ phase: 'players' });
+    expect(a.all('admin').some((m) => m.phase === 'auth' && m.ok)).toBe(true);
+
+    const before = a.s.profile!.coins;
+    await a.send({ t: 'admin', action: 'money', amount: 100 });
+    expect(a.last('reward')).toMatchObject({ amount: 100, coins: before + 100 });
+    expect(a.s.profile!.coins).toBe(before + 100);
+
+    await a.send({ t: 'admin', action: 'weather', weather: 'chuva' });
+    expect(a.last('sky')).toMatchObject({ weather: 'chuva' });
+    expect(b.last('sky')).toMatchObject({ weather: 'chuva' });
+
+    await a.send({ t: 'admin', action: 'clock', minute: 510 });
+    expect(world.gameMinuteNow()).toBe(510);
+    expect(a.last('sky')?.serverNow).toBeTypeOf('number');
+    expect(b.last('sky')?.serverNow).toBe(a.last('sky')?.serverNow);
+
+    await a.send({ t: 'admin', action: 'kick', targetId: b.s.profile!.id });
+    expect(b.last('kicked')).toMatchObject({ reason: 'admin' });
+    expect(closed).toBe('admin');
+    expect(world.stats().players).toBe(1);
+    const roster = a.last('admin');
+    expect(roster).toMatchObject({ phase: 'players' });
+    if (roster?.phase === 'players') expect(roster.players.map((p) => p.name)).toEqual(['Admin']);
+  });
+});

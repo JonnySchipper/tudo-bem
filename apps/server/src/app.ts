@@ -47,7 +47,7 @@ export interface AppOptions {
 }
 
 /** WebSocket close codes the client understands (see apps/client/src/net.ts). */
-export const CLOSE_CODES: Record<CloseReason, number> = { replaced: 4000, idle: 4001, logout: 4002 };
+export const CLOSE_CODES: Record<CloseReason, number> = { replaced: 4000, idle: 4001, logout: 4002, admin: 4003 };
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',

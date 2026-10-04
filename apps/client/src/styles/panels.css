@@ -75,7 +75,7 @@ html.px-ui .backdrop > .panel,
 }
 
 /* buttons inside panels */
-.backdrop > .panel button:not(.close):not(.ghost):not(.item-card):not(.map-card):not(.on):not(.primary):not(.green) {
+.backdrop > .panel button:not(.close):not(.ghost):not(.item-card):not(.map-card):not(.on):not(.primary):not(.green):not(.credits-door) {
   border: 0;
   border-radius: 0;
   background: #fffdf8;
@@ -112,7 +112,7 @@ html.px-ui .backdrop > .panel,
     inset 0 -3px 0 0 #214438;
 }
 
-.backdrop > .panel button:not(.close):not(.ghost):not(.item-card):not(.map-card):not(.primary):not(.green):hover {
+.backdrop > .panel button:not(.close):not(.ghost):not(.item-card):not(.map-card):not(.primary):not(.green):not(.credits-door):hover {
   transform: none;
   filter: brightness(1.05);
 }
@@ -483,4 +483,134 @@ html {
 .parrot-shop canvas {
   display: block;
   margin: 8px auto;
+}
+
+/* ---------- hidden admin (credits easter egg) ---------- */
+.backdrop > .panel button.credits-door {
+  display: block;
+  width: 100%;
+  margin: 4px 0 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.8em;
+  font-weight: 600;
+  font-style: italic;
+  text-align: center;
+  text-decoration: none;
+  cursor: default;
+  opacity: 0.72;
+  transform: none;
+  filter: none;
+}
+
+.backdrop > .panel button.credits-door:hover,
+.backdrop > .panel button.credits-door:active {
+  transform: none;
+  filter: none;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ink-soft);
+  opacity: 0.85;
+}
+
+.admin-panel {
+  width: min(480px, calc(100vw - 24px));
+}
+
+.admin-panel h3 {
+  margin: 14px 0 2px;
+  font-family: var(--font-pixel);
+  font-size: 1.05rem;
+  color: var(--terracota-dark);
+}
+
+.admin-label {
+  display: grid;
+  gap: 2px;
+  margin: 10px 0 4px;
+  font-weight: 800;
+}
+
+.admin-password,
+.admin-time {
+  width: 100%;
+  max-width: 220px;
+  padding: 8px 10px;
+  border: 2px solid rgba(139, 94, 60, 0.45);
+  border-radius: 0;
+  background: #fffdf8;
+  font: inherit;
+  font-weight: 700;
+}
+
+.admin-err {
+  margin: 8px 0;
+  color: #a13f15;
+  font-weight: 800;
+}
+
+.admin-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0 4px;
+}
+
+.admin-players {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.admin-player {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  background: #fffdf8;
+  box-shadow:
+    0 -2px 0 0 #cdb792,
+    0 2px 0 0 #cdb792,
+    -2px 0 0 0 #cdb792,
+    2px 0 0 0 #cdb792;
+}
+
+.admin-player-who {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.admin-player-room {
+  font-size: 0.85em;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.admin-you {
+  font-size: 0.85em;
+  font-weight: 800;
+  color: var(--ink-soft);
+}
+
+.admin-empty {
+  margin: 0;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.admin-weather {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
 }

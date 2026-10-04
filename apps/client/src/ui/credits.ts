@@ -1,9 +1,11 @@
 /**
  * Créditos / Credits: the small panel behind the top-bar "Créditos" button. Data first (`CREDITS`, tested), DOM second.
  * The LimeZu line is a license requirement (`apps/client/assets-src/LICENSES.md`): it must stay reachable in the game.
+ * A plain-looking footer line opens the hidden admin login (does not look like a button).
  */
 import { h, en } from './dom';
 import { closeModal, openModal } from './modal.js';
+import { openAdmin } from './admin.js';
 import { CREDITS, LIMEZU_URL, type CreditLine } from './creditsData';
 
 function line(c: CreditLine): HTMLElement {
@@ -50,6 +52,21 @@ export function openCredits(): void {
         en('Art: LimeZu (Modern Exteriors, Modern Interiors)', true),
       ),
       h('ul', { class: 'credits-list' }, ...CREDITS.filter((c) => c.id !== 'art').map(line)),
+      // Plain text on purpose: no button chrome. Opens the admin login.
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'credits-door',
+          id: 'credits-admin-door',
+          onclick: () => {
+            close();
+            openAdmin();
+          },
+          'aria-label': 'versão do bairro',
+        },
+        'versão do bairro',
+      ),
       h('button', { class: 'primary', onclick: () => close(), id: 'credits-close' }, 'Fechar'),
     ),
   );
