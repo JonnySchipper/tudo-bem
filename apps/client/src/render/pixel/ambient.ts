@@ -111,6 +111,10 @@ interface FlockView {
   sprites: Phaser.GameObjects.Sprite[];
   shadows: Phaser.GameObjects.Image[];
   seed: number;
+  /** the ground origin of the pigeon sprite (feet) */
+  origin: [number, number];
+  /** last drawn screen position and heading (radians) of each bird, for turning it along its flight */
+  last: { sx: number; sy: number; rot: number }[];
 }
 
 export class AmbientLife {
@@ -218,7 +222,7 @@ export class AmbientLife {
         return spr;
       });
       const shadows = birds.map((b) => this.reg(this.scene.add.image(b.x, b.y - 1, s10.atlas, s10.frame)).setOrigin(...originOf(s10)).setDepth(DEPTH.shadowContact));
-      this.flocks.push({ birds, sprites, shadows, seed: fi + 1 });
+      this.flocks.push({ birds, sprites, shadows, seed: fi + 1, origin: originOf(pd), last: birds.map((b) => ({ sx: b.x, sy: b.y, rot: 0 })) });
     });
     // petals: the canopies of the ipês
     for (const p of def.props) {
@@ -412,11 +416,31 @@ export class AmbientLife {
         fl.shadows[i].setVisible(a > 0.01 && b.mode !== 'away').setAlpha(Math.max(0.25, a * (1 - Math.min(0.7, b.z / 60))));
         if (b.mode === 'away') away++;
         const air = b.z > 0.5;
-        // wings: the sprite flips every 70 ms while it is airborne, and it is drawn lifted
-        spr.setPosition(Math.round(b.x), Math.round(b.y - b.z));
-        spr.setFlipX(air ? Math.floor(this.tSec * 14 + i) % 2 === 0 : false);
+        const sx = b.x;
+        const sy = b.y - b.z;
+        // the art is a pigeon seen from above with its head toward the camera (+y): in the air it turns its head along the way it is
+        // going on screen (sideways and up while it climbs, down while it lands), eased so it banks instead of snapping
+        const prev = fl.last[i];
+        const dx = sx - prev.sx;
+        const dy = sy - prev.sy;
+        const want = air && Math.hypot(dx, dy) > 0.05 ? Math.atan2(-dx, dy) : 0;
+        let d = want - prev.rot;
+        d = Math.atan2(Math.sin(d), Math.cos(d));
+        prev.rot += d * Math.min(1, f.dt * 10);
+        prev.sx = sx;
+        prev.sy = sy;
+        // climbing toward the camera it grows (up to about 1.6x), with a quick wingbeat squash; it shrinks back as it lands
+        const lift = Math.min(1, b.z / 40);
+        const beat = air ? 1 - 0.18 * Math.abs(Math.sin(this.tSec * 22 + i)) : 1;
+        // in the air it turns about its body, not its feet (the ground origin), so it banks in place instead of swinging
+        if (air) spr.setOrigin(0.5, 0.5).setPosition(Math.round(sx), Math.round(sy - 6));
+        else spr.setOrigin(...fl.origin).setPosition(Math.round(sx), Math.round(sy));
+        spr.setRotation(air ? prev.rot : 0);
+        spr.setScale((1 + lift * 0.6) * beat, 1 + lift * 0.6);
+        spr.setFlipX(false);
         spr.setDepth(air ? DEPTH_FLY : b.y);
-        fl.shadows[i].setPosition(Math.round(b.x), Math.round(b.y) - 1);
+        // the shadow stays on the ground and fades as the bird gets higher
+        fl.shadows[i].setPosition(Math.round(b.x), Math.round(b.y) - 1).setScale(1 - lift * 0.4);
         if (air) spr.anims.timeScale = 3;
         else if (spr.anims.timeScale === 3) spr.anims.timeScale = 0.5 + unit(fl.seed, i, 42) * 0.7;
       });
