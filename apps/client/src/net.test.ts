@@ -129,4 +129,74 @@ describe('Net reconnect', () => {
     sockets[1]!.open();
     expect(sockets[1]!.sent.map((raw) => JSON.parse(raw).t)).toEqual(['hello', 'move']);
   });
+
+  it('does not treat a phone camera pause as a dead socket', () => {
+    const { net, sockets, statuses } = harness();
+    net.connect();
+    sockets[0]!.open();
+    expect(statuses.at(-1)).toBe('open');
+
+    // The camera app suspends the browser. The live socket stays the session.
+    net.setPageHidden(true);
+    vi.advanceTimersByTime(120_000);
+    expect(sockets).toHaveLength(1);
+    expect(sockets[0]!.readyState).toBe(1);
+    expect(statuses.at(-1)).toBe('open');
+
+    net.setPageHidden(false);
+    expect(sockets).toHaveLength(1);
+    expect(JSON.parse(sockets[0]!.sent.at(-1)!).t).toBe('ping');
+    expect(statuses.at(-1)).toBe('open');
+    vi.advanceTimersByTime(60_000);
+    expect(sockets).toHaveLength(1);
+  });
+
+  it('rejoins once when the socket died while the camera had the browser, without burning the retry budget', () => {
+    const { net, sockets, statuses } = harness();
+    net.connect();
+    sockets[0]!.open();
+    net.setPageHidden(true);
+    sockets[0]!.serverClose(1006);
+    vi.advanceTimersByTime(120_000);
+    expect(sockets).toHaveLength(1);
+    expect(statuses).not.toContain('failed');
+    expect(statuses).not.toContain('closed');
+
+    net.setPageHidden(false);
+    expect(statuses.at(-1)).toBe('connecting');
+    expect(sockets).toHaveLength(2);
+    sockets[1]!.open();
+    expect(statuses.at(-1)).toBe('open');
+    expect(sockets[1]!.sent.map((raw) => JSON.parse(raw).t)).toEqual(['hello']);
+    vi.advanceTimersByTime(60_000);
+    expect(sockets).toHaveLength(2);
+  });
+
+  it('does not close a socket that is still opening while the page is hidden', () => {
+    const { net, sockets } = harness();
+    net.connect();
+    net.setPageHidden(true);
+    vi.advanceTimersByTime(NET_CONNECT_TIMEOUT_MS * 4);
+    expect(sockets).toHaveLength(1);
+    expect(sockets[0]!.readyState).toBe(0);
+
+    net.setPageHidden(false);
+    vi.advanceTimersByTime(NET_CONNECT_TIMEOUT_MS - 50);
+    expect(sockets[0]!.readyState).toBe(0);
+    vi.advanceTimersByTime(50);
+    expect(sockets[0]!.readyState).toBe(3);
+  });
+
+  it('still stops on an idle kick that arrives while the camera is open', () => {
+    const { net, sockets, statuses } = harness();
+    net.connect();
+    sockets[0]!.open();
+    net.setPageHidden(true);
+    sockets[0]!.serverClose(4001);
+    expect(statuses.at(-1)).toBe('idle');
+    net.setPageHidden(false);
+    vi.advanceTimersByTime(60_000);
+    expect(sockets).toHaveLength(1);
+    expect(statuses.at(-1)).toBe('idle');
+  });
 });

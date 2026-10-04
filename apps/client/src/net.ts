@@ -42,6 +42,13 @@ export class Net implements NetLike {
   private queue: ClientMsg[] = [];
   private attempts = 0;
   private generation = 0;
+  private started = false;
+  /** The browser is suspended (a phone camera app is in front). A quiet socket is not a dead one. */
+  private pageHidden = false;
+  /** The socket closed while the page was hidden: rejoin when it is visible, with a fresh budget. */
+  private rejoin = false;
+  /** A close the player has to answer (replaced, idle, logout). Coming back from the camera must not undo it. */
+  private terminal: NetStatus | null = null;
   private connectTimer: ReturnType<typeof setTimeout> | undefined;
   private retryTimer: ReturnType<typeof setTimeout> | undefined;
   private pingTimer: ReturnType<typeof setInterval> | undefined;
@@ -51,15 +58,39 @@ export class Net implements NetLike {
   constructor(
     private url: string,
     private createSocket: (url: string) => NetSocket = (u) => new WebSocket(u) as unknown as NetSocket,
-  ) {}
+  ) {
+    this.watchPage();
+  }
+
+  /**
+   * The page was hidden or shown. Opening the phone camera suspends the browser; the connect timeout
+   * and the retry loop would otherwise treat that pause as a dead socket and burn every attempt.
+   */
+  setPageHidden(hidden: boolean) {
+    if (hidden === this.pageHidden) return;
+    this.pageHidden = hidden;
+    if (hidden) {
+      this.pauseDeadSocketTimers();
+      // A retry was already in flight. Cancelling its timer must not strand the player, and a
+      // socket that already gave up (the manual retry) must not start again just because the tab was shown.
+      if (this.started && !this.terminal && !this.socketLive() && this.attempts < NET_MAX_RETRIES) this.rejoin = true;
+      return;
+    }
+    this.onForeground();
+  }
 
   connect() {
     if (this.ws && (this.ws.readyState === WS_CONNECTING || this.ws.readyState === WS_OPEN)) return;
+    this.started = true;
+    this.terminal = null;
     this.attempts = 0;
     this.begin();
   }
 
   retry() {
+    this.started = true;
+    this.terminal = null;
+    this.rejoin = false;
     this.attempts = 0;
     this.abandon();
     this.begin();
@@ -87,16 +118,72 @@ export class Net implements NetLike {
     this.pingTimer = undefined;
   }
 
+  /** Stop the clocks that close a socket for being quiet. The ping interval stays: it does not drop the connection. */
+  private pauseDeadSocketTimers() {
+    clearTimeout(this.connectTimer);
+    clearTimeout(this.retryTimer);
+    this.connectTimer = undefined;
+    this.retryTimer = undefined;
+  }
+
+  private socketLive(): boolean {
+    const rs = this.ws?.readyState;
+    return rs === WS_CONNECTING || rs === WS_OPEN;
+  }
+
+  private watchPage() {
+    const doc = globalThis.document;
+    if (!doc) return;
+    this.pageHidden = doc.visibilityState === 'hidden';
+    doc.addEventListener('visibilitychange', () => this.setPageHidden(doc.visibilityState === 'hidden'));
+    // Page Lifecycle: a phone can freeze the tab when its own camera opens, sometimes without a visibility event.
+    doc.addEventListener('freeze', () => this.setPageHidden(true));
+    doc.addEventListener('resume', () => this.setPageHidden(false));
+  }
+
+  /** The camera app gave the browser back. An open socket is still this session; a dead one gets one fresh rejoin. */
+  private onForeground() {
+    if (!this.started || this.terminal) return;
+    const ws = this.ws;
+    if (ws?.readyState === WS_OPEN) {
+      this.attempts = 0;
+      this.rejoin = false;
+      this.onStatus('open');
+      this.send({ t: 'ping' });
+      if (!this.pingTimer) this.pingTimer = setInterval(() => this.send({ t: 'ping' }), 25_000);
+      return;
+    }
+    if (ws?.readyState === WS_CONNECTING) {
+      this.armConnectTimeout(ws, this.generation);
+      return;
+    }
+    if (!this.rejoin) return;
+    this.attempts = 0;
+    this.rejoin = false;
+    this.begin();
+  }
+
+  /** While the page is hidden this timer must not run: a frozen tab is not a socket that failed to open. */
+  private armConnectTimeout(ws: NetSocket, gen: number) {
+    clearTimeout(this.connectTimer);
+    if (this.pageHidden) {
+      this.connectTimer = undefined;
+      return;
+    }
+    this.connectTimer = setTimeout(() => {
+      if (gen !== this.generation || this.pageHidden) return;
+      if (ws.readyState !== WS_OPEN) ws.close();
+    }, NET_CONNECT_TIMEOUT_MS);
+  }
+
   private begin() {
     const gen = ++this.generation;
     this.clearTimers();
+    this.started = true;
     this.onStatus('connecting');
     const ws = this.createSocket(this.url);
     this.ws = ws;
-    this.connectTimer = setTimeout(() => {
-      if (gen !== this.generation) return;
-      if (ws.readyState !== WS_OPEN) ws.close();
-    }, NET_CONNECT_TIMEOUT_MS);
+    this.armConnectTimeout(ws, gen);
     ws.onopen = () => {
       if (gen !== this.generation) {
         try {
@@ -134,7 +221,15 @@ export class Net implements NetLike {
       this.ws = null;
       const terminal = TERMINAL_CLOSE[e.code];
       if (terminal) {
+        this.terminal = terminal;
+        this.rejoin = false;
         this.onStatus(terminal);
+        return;
+      }
+      // The phone camera suspended the page and the OS dropped the socket. Don't burn the
+      // retry budget, and don't paint a failure over a player who is still in the world.
+      if (this.pageHidden) {
+        this.rejoin = true;
         return;
       }
       this.attempts += 1;
@@ -146,6 +241,10 @@ export class Net implements NetLike {
       const delay = Math.min(8_000, 500 * 2 ** (this.attempts - 1));
       this.retryTimer = setTimeout(() => {
         if (gen !== this.generation) return;
+        if (this.pageHidden) {
+          this.rejoin = true;
+          return;
+        }
         this.begin();
       }, delay);
     };

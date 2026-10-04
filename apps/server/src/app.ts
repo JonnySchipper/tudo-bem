@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { WebSocketServer, type WebSocket } from 'ws';
-import type { ClientMsg } from '@tudobem/shared';
+import { WS_MAX_PAYLOAD, type ClientMsg } from '@tudobem/shared';
 import { World, type CloseReason } from './world.js';
 import { ProfileStore } from './store.js';
 import { fileAdapter } from './fileStore.js';
@@ -151,15 +151,26 @@ export function createApp(opts: AppOptions) {
   const wss = new WebSocketServer({
     server,
     path: '/ws',
-    maxPayload: 16 * 1024,
+    // A diary photo is a jpeg data URL. 16KB closed the socket on the shot, before diary.handle ran.
+    maxPayload: WS_MAX_PAYLOAD,
     verifyClient: (info: { req: http.IncomingMessage }, done: (ok: boolean, code?: number, message?: string) => void) =>
       originAllowed(info.req, allowedOrigins) ? done(true) : done(false, 403, 'Forbidden'),
   });
-  const alive = new WeakMap<WebSocket, boolean>();
+  /**
+   * Unanswered protocol pings before the socket is dropped. One quiet interval is a phone whose
+   * browser was suspended (the camera app is in front, so the page cannot pong). Two more and the
+   * socket is actually gone.
+   */
+  const HEARTBEAT_MISSES = 3;
+  const missed = new WeakMap<WebSocket, number>();
 
   wss.on('connection', (ws, req) => {
-    alive.set(ws, true);
-    ws.on('pong', () => alive.set(ws, true));
+    missed.set(ws, 0);
+    ws.on('pong', () => missed.set(ws, 0));
+    // An oversized frame closes this socket. Without a listener the 'error' event takes the process down.
+    ws.on('error', (err) => {
+      if ((err as { code?: string }).code !== 'WS_ERR_UNSUPPORTED_MESSAGE_LENGTH') console.error('[ws]', err);
+    });
     const account = accounts.accountForSession(sessionCookieOf(req));
     const session = world.connect(
       crypto.randomUUID(),
@@ -183,11 +194,12 @@ export function createApp(opts: AppOptions) {
 
   const heartbeat = setInterval(() => {
     for (const ws of wss.clients) {
-      if (!alive.get(ws)) {
+      const n = missed.get(ws) ?? 0;
+      if (n >= HEARTBEAT_MISSES) {
         ws.terminate();
         continue;
       }
-      alive.set(ws, false);
+      missed.set(ws, n + 1);
       ws.ping();
     }
   }, 30_000);

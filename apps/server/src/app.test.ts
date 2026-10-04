@@ -4,7 +4,7 @@ import path from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
 import WebSocket from 'ws';
-import { DEFAULT_APPEARANCE, OPS_SMOKE_EMAIL, type ServerMsg } from '@tudobem/shared';
+import { DEFAULT_APPEARANCE, OPS_SMOKE_EMAIL, WS_MAX_PAYLOAD, type ServerMsg } from '@tudobem/shared';
 import { createApp } from './app.js';
 import type { OpsSmokeConfig } from './opsSmoke.js';
 
@@ -271,6 +271,21 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     const cookie = cookieOf(ok);
     const me = await fetch(base + '/api/auth/me', { headers: { cookie } });
     expect(await me.json()).toMatchObject({ ok: true, account: { email: 'google@exemplo.com' } });
+  });
+
+  it('keeps the socket open for a diary photo larger than the old 16KB frame', async () => {
+    await start();
+    const a = wsClient(base);
+    await a.open();
+    // A 240px viewfinder jpeg is often past 16KB. That used to close the socket before the handler ran.
+    a.send({ t: 'ping', image: `data:image/jpeg;base64,${'A'.repeat(40_000)}` });
+    expect(await a.waitFor('pong')).toEqual({ t: 'pong' });
+    expect(a.closeCode()).toBeNull();
+
+    const over = wsClient(base);
+    await over.open();
+    over.send({ t: 'ping', image: 'x'.repeat(WS_MAX_PAYLOAD) });
+    expect(await over.waitClose()).toBe(1009);
   });
 
   it('kicks an AFK player (pings only) with close code 4001 and frees the seat; activity keeps you in', async () => {

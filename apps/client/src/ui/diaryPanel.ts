@@ -6,6 +6,7 @@
  * with the picture on it. The server answers with what the print says (a new word, a word already in the diary, or just "Foto guardada.").
  * Then the print flies into the Diário button. None of these layers takes the pointer, so the next click is the next shot.
  */
+import { PHOTO_MAX_CHARS, pickPhotoUrl } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en } from './dom';
 import { ambience } from '../ambience';
@@ -276,8 +277,14 @@ export function captureFrame(frame: { x: number; y: number; w: number; h: number
   if (!ctx) return;
   try {
     ctx.drawImage(canvas, sx, sy, sw, sh, 0, 0, out.width, out.height);
-    const url = out.toDataURL('image/jpeg', 0.72);
-    return url.startsWith('data:image/jpeg') ? url : undefined;
+    // A jpeg over PHOTO_MAX_CHARS used to exceed the socket frame and drop the player on the shot.
+    const candidates: string[] = [];
+    for (const quality of [0.72, 0.58, 0.44]) {
+      const url = out.toDataURL('image/jpeg', quality);
+      candidates.push(url);
+      if (url.startsWith('data:image/jpeg') && url.length <= PHOTO_MAX_CHARS) break;
+    }
+    return pickPhotoUrl(candidates);
   } catch {
     return;
   }
