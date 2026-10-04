@@ -437,7 +437,8 @@ export interface Pigeon {
   back: number;
 }
 
-const FLY_S = 2.4;
+const FLY_S = 0.8;
+const FLY_FADE_S = 0.3;
 const RETURN_S = 1.4;
 
 export function makeFlock(cx: number, cy: number, n: number, seed: number): Pigeon[] {
@@ -466,19 +467,19 @@ export function stepFlock(flock: Pigeon[], dt: number, people: readonly Pt[], se
       if (trigger) {
         p.mode = 'flying';
         p.t = 0;
-        p.delay = i * 0.07 + unit(seed, i, 21) * 0.18;
+        p.delay = i * 0.02 + unit(seed, i, 21) * 0.06;
         const dx = p.x - trigger.x;
         const dy = p.y - trigger.y;
         const d = Math.hypot(dx, dy) || 1;
         // away from the person, with a little spread; always leaving sideways so the birds cross the screen
-        p.vx = (dx / d) * (70 + unit(seed, i, 22) * 40) + (unit(seed, i, 23) - 0.5) * 30;
+        p.vx = (dx / d) * (230 + unit(seed, i, 22) * 120) + (unit(seed, i, 23) - 0.5) * 60;
         p.back = 18 + unit(seed, i, 24) * 22;
       }
     } else if (p.mode === 'flying') {
       if (p.t > p.delay) {
         const u = p.t - p.delay;
         p.x += p.vx * dt;
-        p.z += (28 + u * 26) * dt;
+        p.z += (90 + u * 260) * dt; // accelerating climb
         if (u > FLY_S) {
           p.mode = 'away';
           p.t = 0;
@@ -509,7 +510,7 @@ export function stepFlock(flock: Pigeon[], dt: number, people: readonly Pt[], se
 /** Alpha of a bird in its current mode (fades as it leaves, and as it arrives). */
 export function pigeonAlpha(p: Pigeon): number {
   if (p.mode === 'away') return 0;
-  if (p.mode === 'flying') return Math.max(0, 1 - Math.max(0, p.t - p.delay - (FLY_S - 0.8)) / 0.8);
+  if (p.mode === 'flying') return Math.max(0, 1 - Math.max(0, p.t - p.delay - (FLY_S - FLY_FADE_S)) / FLY_FADE_S);
   if (p.mode === 'returning') return Math.min(1, p.t / 0.35);
   return 1;
 }
