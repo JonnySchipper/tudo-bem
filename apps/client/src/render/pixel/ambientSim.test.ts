@@ -11,7 +11,9 @@ import {
   DOG_SPEED,
   DogSim,
   SCARE_PX,
+  PERSON_GAP,
   SLOT_MS,
+  TrafficSim,
   busArrivals,
   busRemaining,
   busX,
@@ -28,6 +30,7 @@ import {
   scares,
   stepFlock,
   trafficChance,
+  vehicleAt,
   vehiclesAt,
 } from './ambientSim';
 
@@ -297,5 +300,74 @@ describe('small things', () => {
     const later = cloudBlobs(4, 10, 896, 640);
     expect(blobs).toHaveLength(4);
     blobs.forEach((b, i) => expect(later[i].x - b.x).toBeCloseTo(CLOUD_SPEED * 10, 5));
+  });
+});
+
+describe('traffic that yields', () => {
+  // dense traffic so a queue forms quickly
+  const busy = { ...room, bus: undefined, streets: room.streets.map((st) => ({ ...st, density: 4.5 })) };
+  const lane = busy.streets[0].lanes[1]; // eastbound
+  const run = (sim: TrafficSim, from: number, ms: number, people: { x: number; y: number }[]) => {
+    let last = sim.step(busy, from, 720, people);
+    for (let t = from + 50; t <= from + ms; t += 50) last = sim.step(busy, t, 720, people);
+    return last.filter((v) => v.laneY === lane.y);
+  };
+  const standing = (list: readonly { v?: number; moving: boolean }[]) => list.every((c) => !c.moving);
+
+  it('stops short of a person in its lane and goes on when they leave', () => {
+    const sim = new TrafficSim();
+    const person = { x: 400, y: lane.y - 1 };
+    const cars = run(sim, T0, 60000, [person]);
+    const ahead = cars.filter((c) => c.x < person.x);
+    expect(ahead.length).toBeGreaterThan(1);
+    const front = { ...ahead.reduce((a, b) => (b.x > a.x ? b : a)) }; // the sim reuses its vehicle objects: snapshot
+    expect(front.moving).toBe(false);
+    expect(person.x - (front.x + front.len / 2)).toBeGreaterThanOrEqual(PERSON_GAP - 1);
+    expect(front.x + front.len / 2).toBeLessThan(person.x);
+    // nothing ever overlaps the person
+    expect(vehicleAt(cars, person.x, person.y)).toBeNull();
+    // clear: it moves again, and passes where the person stood
+    const after = run(sim, T0 + 60000, 3000, []);
+    const same = after.find((c) => c.id === front.id)!;
+    expect(same.x).toBeGreaterThan(front.x + 20);
+    expect(same.moving).toBe(true);
+  });
+
+  it('queues behind a stopped car with a gap, nobody overlapping', () => {
+    const sim = new TrafficSim();
+    const cars = run(sim, T0, 90000, [{ x: 400, y: lane.y }]).sort((a, b) => b.x - a.x);
+    const queued = cars.filter((c) => c.x < 400);
+    expect(queued.length).toBeGreaterThanOrEqual(3);
+    expect(standing(queued.slice(0, 3))).toBe(true);
+    for (let i = 1; i < queued.length; i++) {
+      const gap = queued[i - 1].x - queued[i].x - (queued[i - 1].len + queued[i].len) / 2;
+      expect(gap).toBeGreaterThan(0);
+    }
+    // the way clears: the whole queue is rolling again
+    const rolling = run(sim, T0 + 90000, 2500, []);
+    expect(rolling.filter((c) => c.x < 400 && c.moving).length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('does not stop for a person on the other lane or behind it', () => {
+    const sim = new TrafficSim();
+    const other = busy.streets[0].lanes[0];
+    const cars = run(sim, T0, 30000, [{ x: 400, y: other.y }]);
+    expect(cars.some((c) => c.x > 500)).toBe(true);
+    const behind = run(new TrafficSim(), T0, 30000, [{ x: -200, y: lane.y }]);
+    expect(behind.some((c) => c.x > 500)).toBe(true);
+  });
+
+  it('reseeds from the clock after a long gap instead of crawling', () => {
+    const sim = new TrafficSim();
+    run(sim, T0, 5000, []);
+    const later = sim.step(busy, T0 + 600000, 720, []);
+    expect(later.length).toBeGreaterThan(3);
+  });
+
+  it('vehicleAt finds a car body and nothing beside it', () => {
+    const v = { laneY: 164, x: 300, len: 60 } as never;
+    expect(vehicleAt([v], 300, 164)).not.toBeNull();
+    expect(vehicleAt([v], 300, 140)).toBeNull();
+    expect(vehicleAt([v], 340, 164)).toBeNull();
   });
 });

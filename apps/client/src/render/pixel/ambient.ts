@@ -28,7 +28,9 @@ import {
   pigeonAlpha,
   roamTiles,
   stepFlock,
-  vehiclesAt,
+  TrafficSim,
+  vehicleAt,
+  type Vehicle as SimVehicle,
   type Pigeon,
   type Pt,
   type Vehicle,
@@ -133,6 +135,8 @@ export class AmbientLife {
   private canopies: { x0: number; x1: number; y0: number; y1: number; ground: number }[] = [];
   private petalCarry = 0;
   private forcedBusAt: number | undefined;
+  private traffic = new TrafficSim();
+  private current: readonly SimVehicle[] = [];
   private tSec = 0;
   private lastT = Date.now();
   private butterflyVis = 0;
@@ -188,6 +192,8 @@ export class AmbientLife {
 
   // ------------------------------------------------------------------ room
   buildRoom(def: RoomDef, walkable: (x: number, y: number) => boolean): void {
+    this.traffic.reset();
+    this.current = [];
     this.clearRoom();
     const data = AMBIENT[def.id];
     if (!data || !def.outdoor) return;
@@ -300,6 +306,11 @@ export class AmbientLife {
     this.last = { vehicles: 0, bus: false, dogAnim: '', flocksAway: 0, clouds: 0 };
   }
 
+  /** Is a vehicle on these feet coordinates (world px)? People wait at the kerb instead of walking through traffic. */
+  vehicleAt(wx: number, wy: number): boolean {
+    return vehicleAt(this.current, wx, wy) !== null;
+  }
+
   /** Test and screenshot hook: a bus reaches the stop `inMs` from now (negative: it is already there). */
   bus(inMs = -500): void {
     this.forcedBusAt = this.lastT + inMs;
@@ -325,7 +336,8 @@ export class AmbientLife {
 
   private updateVehicles(data: AmbientRoom, f: AmbientFrame): void {
     const wall = f.t;
-    const list = vehiclesAt(data, wall, f.minute, { forcedBusAt: this.forcedBusAt });
+    const list = this.traffic.step(data, wall, f.minute, f.people, { forcedBusAt: this.forcedBusAt });
+    this.current = list;
     const seen = new Set<string>();
     const wallW = (this.def?.cols ?? 56) * T;
     let lit = 0;

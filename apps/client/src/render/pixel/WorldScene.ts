@@ -133,7 +133,15 @@ interface AvatarView {
   dirSeen: Dir | undefined;
   sitting: boolean;
   moving: boolean;
+  /** waiting for traffic: which walk (its start time) the hold belongs to, ms held so far, ms of this wait, last frame time */
+  walkStart: number;
+  holdMs: number;
+  waitMs: number;
+  lastNow: number;
 }
+
+/** Longest an avatar waits for a car in its way before it carries on regardless (a car that is itself waiting for them). */
+const CAR_WAIT_MAX_MS = 2500;
 
 /** Nanda's hat stall: it shows as closed (dimmed, with a sign) while she is not standing at it. */
 interface StallView {
@@ -1188,6 +1196,10 @@ export class WorldScene extends Phaser.Scene {
       dirSeen: undefined,
       sitting: false,
       moving: false,
+      walkStart: NaN,
+      holdMs: 0,
+      waitMs: 0,
+      lastNow: 0,
     };
   }
 
@@ -1215,7 +1227,26 @@ export class WorldScene extends Phaser.Scene {
       }
     }
 
-    const pos = positionAlong(a.from, a.path, now - a.start, a.pub.dir);
+    // nobody walks through a car: where the walk would put the feet inside a vehicle the avatar stands still at the kerb (the walk clock is
+    // held back frame by frame) and goes on once the car has passed or stopped short
+    if (v.walkStart !== a.start) {
+      v.walkStart = a.start;
+      v.holdMs = 0;
+      v.waitMs = 0;
+    }
+    const frameMs = Math.min(100, Math.max(0, now - v.lastNow));
+    v.lastNow = now;
+    let pos = positionAlong(a.from, a.path, now - a.start - v.holdMs, a.pub.dir);
+    if (a.path.length) {
+      const fp = feet(pos.x, pos.y);
+      if (this.ambient.vehicleAt(fp.wx, fp.wy)) {
+        if (v.waitMs < CAR_WAIT_MAX_MS) {
+          v.holdMs += frameMs;
+          v.waitMs += frameMs;
+          pos = positionAlong(a.from, a.path, now - a.start - v.holdMs, a.pub.dir);
+        }
+      } else v.waitMs = 0;
+    }
     const sitting = !pos.moving && (a.pub.sitting || a.sitOnArrive);
     let facing: Facing = v.facing;
     if (sitting) {
