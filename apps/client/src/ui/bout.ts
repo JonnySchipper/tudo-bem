@@ -279,7 +279,7 @@ export class BoutUI {
     );
     // Bia calls it when the fist bump is done
     window.setTimeout(() => {
-      if (this.closedFlag || this.phase === 'end') return;
+      if (this.closedFlag || this.phase !== 'intro') return;
       boutFeed.push({ t: 'ref', signal: 'combate' });
       this.sfx('gong');
       this.say(m.line.pt);
@@ -475,7 +475,7 @@ export class BoutUI {
     this.body.replaceChildren(
       h(
         'div',
-        { class: 'bout-intents', id: 'bout-drill-panel' },
+        { class: 'bout-intents', id: 'bout-drill-panel', 'data-seq': String(m.seq) },
         h('div', { class: 'bout-ask' }, h('span', { class: 'pt' }, m.line.pt), en(m.line.en)),
         go,
       ),

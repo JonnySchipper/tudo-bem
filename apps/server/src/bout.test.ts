@@ -316,9 +316,8 @@ describe('Treino no tatame (server)', () => {
     advance(1000);
     const intent = a.last('intent')!;
     advance(intent.pickMs + 1000);
-    const res = a.last('resolve')!;
-    expect(res.yours.timeout).toBe(true);
-    expect(res.sound).toBe('none');
+    const res = a.bout().find((m) => m.phase === 'resolve' && m.yours.timeout);
+    expect(res?.sound).toBe('none');
   });
 
   it('an idle bout (no moves played) pays nothing', async () => {

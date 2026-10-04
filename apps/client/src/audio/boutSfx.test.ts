@@ -6,10 +6,14 @@ const MARKS: BoutSfx[] = ['hit', 'whoosh', 'mount', 'sub', 'win', 'loss'];
 /** A context that records which nodes a tone asks for. Enough to tell the placeholders apart. */
 function fakeCtx() {
   const made: string[] = [];
-  const param = () => ({
+  const param = (label: string) => ({
     value: 1,
-    setValueAtTime() {},
-    exponentialRampToValueAtTime() {},
+    setValueAtTime(v: number) {
+      made.push(`${label}@${v}`);
+    },
+    exponentialRampToValueAtTime(v: number) {
+      made.push(`${label}>${v}`);
+    },
     linearRampToValueAtTime() {},
   });
   const node = () => {
@@ -20,9 +24,9 @@ function fakeCtx() {
       start() {},
       stop() {},
       disconnect() {},
-      frequency: param(),
-      gain: param(),
-      Q: param(),
+      frequency: param('f'),
+      gain: param('g'),
+      Q: param('q'),
       type: 'sine' as OscillatorType,
       buffer: null as AudioBuffer | null,
     };
