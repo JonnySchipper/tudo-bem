@@ -531,11 +531,12 @@ const serveDiag = (page) =>
 export async function serve(page) {
   trace('serve');
   // Entregar stays disabled while the tray is empty or nobody is waiting. A customer who already walked
-  // off (patience, or a second miss) must not abort the rest of the shift.
+  // off (patience, or a second miss) must not abort the rest of the shift. "Quanto é?" also disables it;
+  // that question is answered by the caller, and waiting here used to fail the whole play path.
   const until = Date.now() + 8000;
   while (Date.now() < until) {
     const st = await serveDiag(page).catch(() => null);
-    if (!st || st.ended || !st.front) {
+    if (!st || st.ended || !st.front || st.front.state === 'asking') {
       console.log(`  · Entregar skipped (${JSON.stringify(st)})`);
       return false;
     }
@@ -551,6 +552,10 @@ export async function serve(page) {
     await sleep(80);
   }
   const diag = await serveDiag(page).catch(() => null);
+  if (!diag?.front || diag.front.state === 'asking' || diag.ended) {
+    console.log(`  · Entregar skipped (${JSON.stringify(diag)})`);
+    return false;
+  }
   throw new Error(`#cr-serve stayed disabled (${JSON.stringify(diag)})`);
 }
 
@@ -651,7 +656,11 @@ export async function playShift(page, { log = () => {}, dwell = () => Promise.re
       if (await shiftLive(page)) await clearTray(page);
       continue;
     }
-    if (!(await serve(page))) continue;
+    if (!(await serve(page))) {
+      // Entregar stays disabled through "Quanto é?". Answer it here; a customer who already left is a no-op.
+      await answerAsk(page);
+      continue;
+    }
     await sleep(150);
     // a wrong tray gets one correction: rebuild from the (possibly updated) order and serve again
     const still = (await snap(page))?.customers.find((x) => x.id === c.id && x.state === 'front');
