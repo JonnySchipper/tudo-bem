@@ -1,6 +1,7 @@
 import type { DailyMission } from './ambiance.js';
 import type { CartelaState } from './cartela.js';
 import type { StreetSnackId } from './streetSnacks.js';
+import type { CounterItemId } from './padaria.js';
 import type { BjjProgress, Belt } from './academia.js';
 import type { NpcId } from './rooms.js';
 import type { NpcActivity } from './schedules.js';
@@ -59,7 +60,8 @@ export interface PublicAvatar {
   /** Companion tint id when `parrot` is true (defaults to verde). */
   parrotColor?: string | null;
   /** Street snack in hand until logout (session); not on the saved profile. */
-  carry?: StreetSnackId | null;
+  /** In hand: a praça snack, or what you ordered at the padaria counter (session only). */
+  carry?: StreetSnackId | CounterItemId | null;
   /** Wears the academia gi (and belt) in every room after buying at the vestiário. */
   gi?: boolean;
   nameplate: Nameplate;

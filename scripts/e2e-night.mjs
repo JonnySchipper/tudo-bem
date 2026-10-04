@@ -117,36 +117,25 @@ async function main() {
     log('padaria at', hhmm(await minutes(page)), JSON.stringify(padaria));
     await shot(page, 'padaria_2300_graca');
 
-    // the breakfast scene with her
+    // the counter with her: order a coxinha (pay, carry it, it goes in the bag)
     await interact(page, { npc: 'graca' });
-    // an NPC may open with a recado offer ("Agora não") or a hand-over ("Só conversar") before the Conversa box (Phase 8a)
+    // an NPC may open with a recado offer ("Agora não") or a hand-over ("Só conversar") before the counter box (Phase 8a)
     for (let i = 0; i < 8; i++) {
       await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
       const key = await page.getAttribute('#dialogue-box', 'data-dialogue');
-      if (key === 'conversa') break;
+      if (key === 'counter-graca') break;
       if (key?.startsWith('offer-') || key?.startsWith('give-')) await page.click('#dialogue-box [data-chip="1"]');
       await sleep(350);
     }
-    await page.waitForSelector('#dialogue-box[data-dialogue="conversa"]', { timeout: 12_000 });
-    const name = ((await page.textContent('#dialogue-box[data-dialogue="conversa"] .npc-name')) ?? '').trim();
-    assert(name === 'Dona Graça', `the Conversa is with Dona Graça (${name})`);
-    await page.waitForSelector('[data-action="pedido-rapido"]', { state: 'visible', timeout: 5000 });
-    await page.click('[data-action="pedido-rapido"]');
-    await page.waitForSelector('#dialogue-box[data-dialogue="pedido"]', { timeout: 12_000 });
-    const picks = [0, 0, 0, 0, 0];
-    for (const p of picks) {
-      const before = await page.textContent('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt');
-      if (typeof p === 'string') {
-        await page.fill('#pedido-input', p);
-        await page.press('#pedido-input', 'Enter');
-      } else await page.click(`#dialogue-box[data-dialogue="pedido"] [data-chip="${p}"]`);
-      await waitFor(page, (b) => document.querySelector('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt')?.textContent !== b, before, 6000, 'next line');
-    }
-    await page.waitForSelector('#btn-pedido-play-mg');
+    await page.waitForSelector('#dialogue-box[data-dialogue="counter-graca"]', { timeout: 12_000 });
+    const name = ((await page.textContent('#dialogue-box[data-dialogue="counter-graca"] .npc-name')) ?? '').trim();
+    assert(name === 'Dona Graça', `the counter is Dona Graça's at night (${name})`);
+    await page.click('#dialogue-box[data-dialogue="counter-graca"] [data-chip="0"]');
+    await waitFor(page, () => window.__tb.game.self?.pub.carry === 'coxinha', null, 8000, 'carrying the coxinha');
     const afterScene = await page.evaluate(() => window.__tb.game.profile);
-    assert(afterScene.tutorial.carlos, 'the Carlos breakfast scene completed with Dona Graça');
+    assert(afterScene.tutorial.carlos, 'ordering at the counter completed the padaria step with Dona Graça');
     assert((afterScene.bond?.graca ?? 0) >= 2, `the talk bond went to Dona Graça (${JSON.stringify(afterScene.bond)})`);
-    log('scene done with Graça, bond', JSON.stringify(afterScene.bond), 'bag', JSON.stringify(afterScene.bag));
+    log('ordered from Graça, bond', JSON.stringify(afterScene.bond), 'bag', JSON.stringify(afterScene.bag));
 
     // Correria no Balcão with her at the counter (the baker on duty)
     await startShiftFromPedido(page);

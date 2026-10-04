@@ -82,6 +82,11 @@ import {
   snackById,
   snackForProp,
   type StreetSnackId,
+  type CounterItemId,
+  itemById,
+  counterOrderLine,
+  counterPrice,
+  isCounterItem,
 } from '@tudobem/shared';
 import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
 import { ProfileStore, today, todaySaoPaulo, toPrivate, type StoredProfile } from './store.js';
@@ -178,7 +183,7 @@ export interface Session {
   chatTimes: number[];
   lastHintAt: number;
   /** Street snack in hand (session only; cleared on disconnect). */
-  carry: StreetSnackId | null;
+  carry: StreetSnackId | CounterItemId | null;
 }
 
 const INSTANCE_SUFFIX = ['Norte', 'Sul', 'Leste', 'Oeste'];
@@ -437,6 +442,8 @@ export class World {
         return this.buy(s, msg.kind, msg.itemId);
       case 'snack':
         return this.buySnack(s, msg.itemId);
+      case 'padaria':
+        return this.buyCounter(s, msg.itemId);
       case 'equipHat':
         return this.equipHat(s, msg.hatId);
       case 'parrot':
@@ -1249,6 +1256,35 @@ export class World {
     s.carry = snack.id;
     this.store.save();
     s.send({ t: 'notice', level: 'reward', pt: `Comprou: ${snack.pt}`, en: `Bought: ${snack.en}` });
+    this.pushProfile(s);
+    this.broadcastAvatar(s);
+  }
+
+  /** The padaria counter: pay the baker on duty, carry it out, and it counts as ordered for the recados (it goes in the bag). */
+  private buyCounter(s: Session, itemId: string) {
+    const p = s.profile!;
+    if (!isCounterItem(itemId) || s.instance?.def.id !== 'padaria') return;
+    const baker = this.npcs.whoIn('padaria').find((n) => n.id === 'carlos' || n.id === 'graca');
+    if (!baker) return;
+    const cur = this.currentTile(s).tile;
+    const d = Math.min(...[baker.interact, baker.tile].map((t) => Math.max(Math.abs(cur.x - t.x), Math.abs(cur.y - t.y))));
+    const name = baker.id === 'graca' ? 'Dona Graça' : 'Seu Carlos';
+    if (d > 2) return this.err(s, 'far', `Chegue mais perto de ${name}.`, `Walk closer to ${name}.`);
+    const price = counterPrice(itemId);
+    if (p.coins < price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
+    p.coins -= price;
+    s.carry = itemId;
+    this.rollDaily(p);
+    // saying the order counts as using the words, like a typed answer in a scene
+    this.caderno.used(s, counterOrderLine(itemId).pt);
+    this.completeStep(s, 'carlos');
+    this.missionStep(s, 'pede');
+    // ordering at the counter is talking to the baker (friendship, `falar` steps), as the breakfast scene used to be
+    this.recados.onEvent(s, { kind: 'talked', npc: baker.id });
+    this.recados.onEvent(s, { kind: 'ordered', npc: 'carlos', items: [{ itemId, qty: 1 }] });
+    this.store.save();
+    const item = itemById(itemId);
+    s.send({ t: 'notice', level: 'reward', pt: `Comprou: ${item?.name.pt ?? itemId}`, en: `Bought: ${item?.name.en ?? itemId}` });
     this.pushProfile(s);
     this.broadcastAvatar(s);
   }

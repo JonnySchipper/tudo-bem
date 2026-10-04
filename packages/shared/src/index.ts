@@ -13,6 +13,7 @@ export * from './accept.js';
 export * from './meveum.js';
 export * from './correria.js';
 export * from './carlos.js';
+export * from './padaria.js';
 export * from './protocol.js';
 export * from './ambiance.js';
 export * from './looks.js';

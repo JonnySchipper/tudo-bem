@@ -30,6 +30,7 @@ import {
   type RoomDef,
   type RoomGrid,
   type WallDecor,
+  COUNTER_MENU,
 } from '@tudobem/shared';
 import { game, type ClientAvatar } from '../../state';
 import type { Guide, Hit } from '../view';
@@ -260,7 +261,8 @@ export class WorldScene extends Phaser.Scene {
     for (const [name, a] of Object.entries(m.atlases)) this.load.atlas(name, b + a.image, b + a.data);
     this.load.image('terrainTs', b + m.terrain.tileset);
     for (const [key, f] of Object.entries(m.fx)) this.load.image(`fx:${key}`, b + f.file);
-    for (const id of ['pipoca', 'agua_de_coco']) {
+    // what you can carry: the praça snacks and the padaria counter menu
+    for (const id of ['pipoca', 'agua_de_coco', ...COUNTER_MENU]) {
       const img = m.images?.[`icons/${id}`];
       if (img?.file) this.load.image(`carry:${id}`, b + img.file);
     }

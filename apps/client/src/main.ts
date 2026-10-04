@@ -87,6 +87,7 @@ import { openCheckers } from './ui/checkers';
 import { openGiShop } from './ui/giShop';
 import { setHeardSink } from './ui/heard';
 import { closeConversa, isConversaOpen, openConversa } from './ui/conversa';
+import { openCounter } from './ui/padariaCounter';
 import { BoutUI } from './ui/bout';
 import { CorreriaUI } from './ui/correria';
 import { correriaFeed } from './render/pixel/correriaFeed';
@@ -217,16 +218,13 @@ function talkFlow(npc: NpcDef['id']) {
     return openFeira(npc, { send: (m) => net.send(m) }, { talked: (id) => net.send({ t: 'talk', npc: id }) });
   }
   if (npc === 'carlos' || npc === 'graca') {
-    // Always the private AI mesa (Seu Carlos by day, Dona Graça on the night shift: same subjects, D12). Pedido rápido is a ghost button
-    // inside that overlay, only at the counter (the server runs the breakfast scene with whoever is on duty there).
-    const start = (subjectId?: string) =>
-      void openConversa(npc, undefined, {
-        subjectId,
-        onQuickOrder: game.room?.room === 'padaria' ? () => net.send({ t: 'scene', action: 'start', npc }) : undefined,
-      });
-    // from 4 hearts there is a second subject to pick (O bairro)
-    const choices = subjectChoices(npc, heartsWith(game.profile?.bond, npc));
-    if (choices.length > 1) {
+    // The counter: order (pay, carry it out, it goes in the bag) or open a Conversa with the baker. The old "Pedido rápido" chip scene
+    // is gone: it was a second, unexplained way to order from the same person.
+    const conversa = () => {
+      const start = (subjectId?: string) => void openConversa(npc, undefined, { subjectId });
+      // from 4 hearts there is a second subject to pick (O bairro)
+      const choices = subjectChoices(npc, heartsWith(game.profile?.bond, npc));
+      if (choices.length <= 1) return start();
       showDialogueBox({
         key: `subject-${npc}`,
         npcId: npc,
@@ -240,7 +238,9 @@ function talkFlow(npc: NpcDef['id']) {
         },
         onClose: closeDialogue,
       });
-    } else start();
+    };
+    if (game.room?.room !== 'padaria') return conversa();
+    openCounter(npc, { buy: (itemId) => net.send({ t: 'padaria', action: 'buy', itemId }), conversa });
   } else if (npc === 'lucia') {
     net.send({ t: 'diary', action: 'practice' });
   } else {

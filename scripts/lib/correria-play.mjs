@@ -135,9 +135,10 @@ export async function takeGrilled(page) {
   }
 }
 
-/** The "Jogar Correria no Balcão" button after the Pedido rápido scene opens the first shift. */
+/** Open a shift from the counter rail in the padaria (the "Me vê um…" spot behind the counter). */
 export async function startShiftFromPedido(page) {
-  await page.click('#btn-pedido-play-mg');
+  await page.keyboard.press('Escape');
+  await page.evaluate(() => window.__tb.interact({ prop: 'trilho' }));
   await page.waitForSelector('#cr-order', { timeout: 12_000 });
   await waitFor(page, () => !!window.__tb.correria.feed.snap, null, 8000, 'the first shift state');
 }
