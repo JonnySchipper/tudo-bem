@@ -4,8 +4,18 @@
  * Phase 2 only maps the kinds that have real art in the manifest; everything else resolves to a placeholder key
  * (`props/<kind>`, HOWTO §5.10) that the scene draws as a flat magenta box. Phase 4 completes this table.
  */
-import type { PropDef, PropKind } from '@tudobem/shared';
+import { cameraObjectIds, type PropDef, type PropKind } from '@tudobem/shared';
 import { T, type Rect } from './coords';
+
+/**
+ * What a click on this prop does while the camera is off. A seat stays a seat even when the diary can photograph it
+ * (the viewfinder still frames the sprite; the sit click must not become "open the camera").
+ */
+export function propClickKind(p: Pick<PropDef, 'id' | 'seat' | 'action'>): 'seat' | 'prop' | null {
+  if (p.seat) return 'seat';
+  if (p.action || cameraObjectIds().has(p.id)) return 'prop';
+  return null;
+}
 
 /** Manifest key for a prop, or null when the manifest has nothing sensible (the caller then draws a placeholder). */
 const ART: Partial<Record<PropKind, string>> = {
