@@ -208,6 +208,173 @@ export function vehiclesAt(room: AmbientRoom, t: number, minute: number, opts: T
   return out;
 }
 
+// ---------------------------------------------------------------- traffic that yields
+
+/** Gap a car keeps from a person standing or walking in its lane, px (nose to feet). */
+export const PERSON_GAP = 10;
+/** A person blocks a lane when their feet are within this band of the lane's feet line (lanes are 19 px apart). */
+const LANE_BAND_UP = 9;
+const LANE_BAND_DOWN = 5;
+/** Braking: the speed allowed is the obstacle's speed plus this per px of free distance (1/s), so a car eases to a halt. */
+const BRAKE_GAIN = 1.6;
+/** Comfortable pull-away and braking, px/s^2. */
+const ACCEL = 45;
+const DECEL = 110;
+/** Below this speed (px/s) a car counts as standing (wheels stop). */
+const STANDING = 1.5;
+/** Largest simulated step; a longer gap (a hidden tab) re-seeds the traffic from the clock instead. */
+const MAX_STEP_S = 0.1;
+const RESEED_MS = 1500;
+
+interface Car extends Vehicle {
+  t0: number;
+  /** progress of the centre along the heading (x for eastbound, -x for westbound) */
+  prog: number;
+  /** current speed, px/s */
+  v: number;
+  /** top speed, px/s */
+  vmax: number;
+  /** just entered: not yet placed behind whatever is ahead */
+  fresh: boolean;
+}
+
+/**
+ * Traffic as a small stateful sim. The clock still decides WHEN each vehicle enters (the same slots, types and speeds as `vehiclesAt`, so
+ * every viewer sees the same stream), but from then on a car drives itself: it keeps its lane, follows the car ahead, and brakes for any
+ * person in front of it or any stopped car, then pulls away when the way clears. The bus keeps its timetable but is held (never reversed)
+ * when a person is in front of it. A person-sized obstacle is a `Pt` of feet coordinates (`f.people`).
+ */
+export class TrafficSim {
+  private lanes = new Map<string, Car[]>();
+  private lastT = -Infinity;
+  private out: Vehicle[] = [];
+
+  /** Forget everything (room change). */
+  reset(): void {
+    this.lanes.clear();
+    this.lastT = -Infinity;
+  }
+
+  step(room: AmbientRoom, t: number, minute: number, people: readonly Pt[], opts: TrafficOptions = {}): readonly Vehicle[] {
+    if (t < this.lastT || t - this.lastT > RESEED_MS) this.lanes.clear();
+    const dt = Math.min(MAX_STEP_S, Math.max(0, (t - this.lastT) / 1000));
+    this.lastT = t;
+    const out = this.out;
+    out.length = 0;
+    room.streets.forEach((street, si) => {
+      street.lanes.forEach((lane, li) => {
+        const key = `${street.id}:${li}`;
+        let cars = this.lanes.get(key);
+        if (!cars) this.lanes.set(key, (cars = []));
+        const sgn = lane.dir === 'e' ? 1 : -1;
+        const start = lane.dir === 'e' ? street.x0 : -street.x1;
+        // 1. entries, by the clock
+        if (!opts.noCars) {
+          const first = Math.floor((t - WINDOW_MS) / SLOT_MS);
+          const last = Math.floor(t / SLOT_MS);
+          for (let slot = first; slot <= last; slot++) {
+            if (unit(slot, si * 2 + li, 1) >= trafficChance(minute - (t - slot * SLOT_MS) / MS_PER_GAME_MIN) * street.density) continue;
+            const t0 = slot * SLOT_MS + Math.floor(unit(slot, si * 2 + li, 2) * SLOT_MS);
+            if (t0 > t) continue;
+            const id = `${street.id}:${li}:${slot}`;
+            if (hasCar(cars, id)) continue;
+            const vt = pickType(unit(slot, si * 2 + li, 3));
+            const vmax = vt.speed * (0.94 + 0.12 * unit(slot, si * 2 + li, 4));
+            const free = start + ((t - t0) / 1000) * vmax;
+            if (free > (lane.dir === 'e' ? street.x1 : -street.x0) + 10) continue; // already gone (or it left while we were away)
+            cars.push({ id, type: vt.id, street: street.id, laneY: lane.y, dir: lane.dir, x: sgn * free, key: vt[lane.dir], bus: false, moving: true, headlights: vt.headlights, len: vt.len, t0, prog: free, v: vmax, vmax, fresh: true });
+          }
+        }
+        if (room.bus && street.id === room.bus.street && lane.dir === 'e') {
+          for (const at of busArrivals(t, opts.forcedBusAt)) {
+            const id = `bus:${at}`;
+            const free = busX(room.bus, t - at);
+            const known = findCar(cars, id);
+            if (known) known.vmax = free; // the timetable position rides in `vmax` for the bus
+            else if (free >= start && free <= street.x1 + 10) {
+              cars.push({ id, type: 'onibus', street: street.id, laneY: lane.y, dir: lane.dir, x: free, key: BUS.e, bus: true, moving: busMoving(t - at), headlights: true, len: BUS.len, t0: at, prog: free, v: 0, vmax: free, fresh: false });
+            }
+          }
+        }
+        // 2. front to back, so every car sees where the one ahead really is
+        cars.sort((a, b) => b.prog - a.prog);
+        for (let i = 0; i < cars.length; i++) {
+          const c = cars[i];
+          // the nearest thing ahead: the car in front, or a person in the lane
+          let limit = Infinity;
+          let vObst = c.vmax;
+          if (i > 0) {
+            const lead = cars[i - 1];
+            limit = lead.prog - (lead.len / 2 + c.len / 2 + GAP);
+            vObst = lead.v;
+          }
+          for (let k = 0; k < people.length; k++) {
+            const p = people[k];
+            const dy = p.y - lane.y;
+            if (dy < -LANE_BAND_UP || dy > LANE_BAND_DOWN) continue;
+            const pp = sgn * p.x;
+            if (pp < c.prog + c.len / 2 - 2) continue; // behind the nose or alongside the body: not in front
+            const lim = pp - c.len / 2 - PERSON_GAP;
+            if (lim < limit) {
+              limit = lim;
+              vObst = 0;
+            }
+          }
+          if (c.bus) {
+            // timetable position, held (never reversed) when something is in front
+            const goal = Math.max(c.prog, Math.min(c.vmax, limit));
+            c.v = dt > 0 ? (goal - c.prog) / dt : 0;
+            c.prog = goal;
+            c.moving = c.v > STANDING || busMoving(t - c.t0);
+            if (c.v < STANDING && limit < c.vmax) c.moving = false;
+          } else {
+            if (c.fresh) {
+              c.fresh = false;
+              if (c.prog > limit) c.prog = limit; // an entry never starts inside the car ahead (or on a person)
+            }
+            const d = Math.max(0, limit - c.prog);
+            const target = Math.min(c.vmax, vObst + d * BRAKE_GAIN);
+            c.v = c.v < target ? Math.min(target, c.v + ACCEL * dt) : Math.max(target, c.v - DECEL * dt);
+            const next = Math.min(c.prog + c.v * dt, Math.max(limit, c.prog));
+            if (dt > 0) c.v = Math.min(c.v, (next - c.prog) / dt);
+            c.prog = next;
+            c.moving = c.v > STANDING;
+          }
+          c.x = sgn * c.prog;
+        }
+        // 3. leave (iterate backwards so the splice is safe)
+        for (let i = cars.length - 1; i >= 0; i--) {
+          const c = cars[i];
+          if (c.x < street.x0 - 10 || c.x > street.x1 + 10) {
+            if (c.prog > start + 20) cars.splice(i, 1);
+          }
+        }
+        for (let i = 0; i < cars.length; i++) {
+          const c = cars[i];
+          if (c.x >= street.x0 - 10 && c.x <= street.x1 + 10) out.push(c);
+        }
+      });
+    });
+    return out;
+  }
+}
+
+function findCar(cars: readonly Car[], id: string): Car | undefined {
+  for (let i = 0; i < cars.length; i++) if (cars[i].id === id) return cars[i];
+  return undefined;
+}
+const hasCar = (cars: readonly Car[], id: string): boolean => findCar(cars, id) !== undefined;
+
+/** Is a person standing at these feet coordinates inside a vehicle? `slack` widens the body (px). */
+export function vehicleAt(list: readonly Vehicle[], x: number, y: number, slack = 2): Vehicle | null {
+  for (let i = 0; i < list.length; i++) {
+    const v = list[i];
+    if (y < v.laneY - LANE_BAND_UP + 2 - slack || y > v.laneY + 3 + slack) continue;
+    if (Math.abs(x - v.x) < v.len / 2 + slack) return v;
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------- the vira-lata
 
 export type DogMode = 'sleep' | 'wander';
