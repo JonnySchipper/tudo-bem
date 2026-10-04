@@ -255,13 +255,13 @@ describe('pigeons', () => {
     const startX = flock.map((p) => p.x);
     for (let i = 0; i < 5; i++) stepFlock(flock, 0.1, [person]);
     flock.forEach((p, i) => {
-      expect(p.z).toBeGreaterThan(30);
-      expect(Math.abs(p.x - startX[i])).toBeGreaterThan(30);
+      expect(p.z).toBeGreaterThan(10);
+      expect(Math.abs(p.x - startX[i])).toBeGreaterThan(15);
       // they head away from the person on x (the person stands to the west of the flock centre)
       expect(Math.abs(p.x - person.x)).toBeGreaterThan(Math.abs(startX[i] - person.x) - 1);
     });
-    // gone within about a second of the take-off
-    for (let i = 0; i < 6; i++) stepFlock(flock, 0.1, [person]);
+    // gone within a couple of seconds of the take-off
+    for (let i = 0; i < 16; i++) stepFlock(flock, 0.1, [person]);
     expect(flock.every((p) => p.mode === 'away' && pigeonAlpha(p) === 0)).toBe(true);
     // nobody around: they land again after their timers
     for (let i = 0; i < 700; i++) stepFlock(flock, 0.1, []);

@@ -443,17 +443,16 @@ export class AmbientLife {
         prev.sx = sx;
         prev.sy = sy;
         // climbing toward the camera it grows (up to about 1.6x), with a quick wingbeat squash; it shrinks back as it lands
-        const lift = Math.min(1, b.z / 90);
         const beat = air ? 1 - 0.18 * Math.abs(Math.sin(this.tSec * (b.mode === 'flying' ? 40 : 22) + i)) : 1;
         // in the air it turns about its body, not its feet (the ground origin), so it banks in place instead of swinging
         if (air) spr.setOrigin(0.5, 0.5).setPosition(Math.round(sx), Math.round(sy - 6));
         else spr.setOrigin(...fl.origin).setPosition(Math.round(sx), Math.round(sy));
         spr.setRotation(air ? prev.rot : 0);
-        spr.setScale((1 + lift * 0.6) * beat, 1 + lift * 0.6);
+        spr.setScale(beat, 1);
         spr.setFlipX(false);
         spr.setDepth(air ? DEPTH_FLY : b.y);
         // the shadow stays on the ground and fades as the bird gets higher
-        fl.shadows[i].setPosition(Math.round(b.x), Math.round(b.y) - 1).setScale(1 - lift * 0.4);
+        fl.shadows[i].setPosition(Math.round(b.x), Math.round(b.y) - 1).setScale(1);
         if (air) spr.anims.timeScale = 3;
         else if (spr.anims.timeScale === 3) spr.anims.timeScale = 0.5 + unit(fl.seed, i, 42) * 0.7;
       });
