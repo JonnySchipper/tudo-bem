@@ -302,18 +302,6 @@ async function grabUntil(page, itemId, qty) {
   }
 }
 
-/** Server pour age, plus the time since that snapshot was applied. */
-async function pourAge(page) {
-  return page.evaluate(() => {
-    const feed = window.__tb?.correria?.feed;
-    const p = feed?.snap?.pour;
-    if (!feed?.snap || !p) return null;
-    let extra = performance.now() - (feed.snapAt || performance.now());
-    if (!Number.isFinite(extra) || extra < 0) extra = 0;
-    return p.age + extra;
-  });
-}
-
 const sayOf = (page) => page.evaluate(() => document.querySelector('#cr-say')?.textContent ?? '');
 
 /** Release a cup that is still under the machine so the next pour_start is not ignored. A finished cup stays on the tray. */
@@ -326,8 +314,8 @@ async function endPour(page) {
 }
 
 /**
- * One cup. The good window is 70%–108% of pourMs on the *server* clock, and a busy runner delivers pour_end late,
- * so the hold aims at 80% measured from the snapshot age (not a blind sleep from the click). Returns ok / short / spill / miss / gone.
+ * One cup. The good window is 70%–108% of pourMs on the server clock. Start and release inside the page so a
+ * Playwright round trip cannot hold the cup past the spill line. Returns ok / short / spill / miss / gone.
  */
 async function pourOne(page, itemId, pourMs, factor) {
   if (await frontGone(page)) return 'gone';
@@ -337,54 +325,69 @@ async function pourOne(page, itemId, pourMs, factor) {
     if ((await itemCount(page, itemId)) > before) return 'ok';
     if (await frontGone(page)) return 'gone';
   }
-  await callHandler(page, (id) => window.__tb.correria.feed.on.pourStart(id), itemId);
-  const started = await waitUntil(async () => (await pourAge(page)) !== null, 700);
-  if (!started) {
-    await nudgeSnap(page);
-    if (!(await waitUntil(async () => (await pourAge(page)) !== null, 500))) return 'miss';
-  }
-  const age = (await pourAge(page)) ?? 0;
-  const remain = pourMs * factor - age;
-  if (remain > 40) await sleep(remain);
-  if (!(await shiftLive(page))) return 'gone';
-  const said = await sayOf(page);
-  await callHandler(page, () => window.__tb.correria.feed.on.pourEnd());
+  const target = Math.round(pourMs * factor);
+  const released = await page.evaluate(({ itemId, target }) => {
+    const feed = window.__tb?.correria?.feed;
+    if (!feed?.on?.pourStart || !feed.snap) return 'gone';
+    feed.on.pourStart(itemId);
+    const t0 = performance.now();
+    return new Promise((resolve) => {
+      const tick = () => {
+        const p = feed.snap?.pour;
+        if (!p || p.item !== itemId) {
+          if (performance.now() - t0 > 900) return resolve('miss');
+          setTimeout(tick, 30);
+          return;
+        }
+        let extra = performance.now() - (feed.snapAt || performance.now());
+        if (!Number.isFinite(extra) || extra < 0) extra = 0;
+        const remain = target - (p.age + extra);
+        if (remain <= 20) {
+          feed.on.pourEnd();
+          resolve('ended');
+        } else setTimeout(tick, Math.min(remain, 40));
+      };
+      setTimeout(tick, 20);
+    });
+  }, { itemId, target });
+  if (released === 'gone' || !(await shiftLive(page))) return 'gone';
   const until = Date.now() + 900;
   while (Date.now() < until) {
     if ((await itemCount(page, itemId)) > before) return 'ok';
     const s = await snap(page);
     if (s && !s.pour) {
       const say = await sayOf(page);
-      // A toast left over from the previous cup still says "Derramou" / "Faltou"; only a new line counts.
-      if (say !== said && say.includes('Derramou')) return 'spill';
-      if (say !== said && say.includes('Faltou')) return 'short';
+      // "Derramou!" stays on screen for a second spill, so the line does not have to change to count.
+      if (say.includes('Derramou')) return 'spill';
+      if (say.includes('Faltou')) return 'short';
       return 'miss';
     }
-    await sleep(50);
+    await sleep(40);
   }
   await nudgeSnap(page);
   if ((await itemCount(page, itemId)) > before) return 'ok';
   return 'miss';
 }
 
-/** Pour until the tray holds `qty`. A miss shortens or lengthens the next hold; two misses stop so the caller can top up. */
+/** Pour until the tray holds `qty`. A miss shortens or lengthens the next hold; three misses stop so the caller can top up. */
 async function pourUntil(page, itemId, qty, pourMs) {
-  let factor = 0.8;
+  // 76% sits inside 70%–108%. A busy frame delivers pour_end late, so the next hold steps down before it spills again.
+  let factor = 0.76;
   let misses = 0;
-  while ((await itemCount(page, itemId)) < qty && misses < 2) {
+  while ((await itemCount(page, itemId)) < qty && misses < 3) {
     if (await frontGone(page)) return;
     const before = await itemCount(page, itemId);
     const result = await pourOne(page, itemId, pourMs, factor);
     if (result === 'gone') return;
     if ((await itemCount(page, itemId)) > before) {
       misses = 0;
-      factor = 0.8;
+      factor = 0.76;
       continue;
     }
     misses++;
-    if (result === 'spill') factor = Math.max(0.72, Math.round((factor - 0.08) * 100) / 100);
-    else if (result === 'short') factor = Math.min(0.9, Math.round((factor + 0.08) * 100) / 100);
-    else factor = factor < 0.84 ? 0.88 : 0.74;
+    if (result === 'spill') factor = Math.max(0.68, Math.round((factor - 0.05) * 100) / 100);
+    else if (result === 'short') factor = Math.min(0.88, Math.round((factor + 0.06) * 100) / 100);
+    else factor = Math.min(0.84, Math.round((factor + 0.04) * 100) / 100);
     console.log(`  · pour ${itemId} ${result} → hold ${factor}`);
   }
 }
