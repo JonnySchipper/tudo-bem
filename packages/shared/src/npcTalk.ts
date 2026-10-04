@@ -92,7 +92,8 @@ export const NPC_TALK: Partial<Record<NpcId, NpcTalk>> = {
       tatame: {
         line: { pt: 'Tudo ótimo! O tatame está livre. Quer treinar?', en: 'Great! The mat is free. Want to train?' },
         chips: [
-          { pt: 'Quero, sim!', en: 'Yes, I do!', next: 'tchau' },
+          // straight onto the mat (the queue lobby), the same as the board by the tatame
+          { pt: 'Quero, sim!', en: 'Yes, I do!', next: 'treino' },
           { pt: 'Hoje não, {obrigad}.', en: 'Not today, thanks.', next: 'tchau' },
         ],
       },

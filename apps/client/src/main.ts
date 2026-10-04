@@ -251,6 +251,7 @@ function talkFlow(npc: NpcDef['id']) {
       openShop,
       onLine: (anchor) => net.send({ t: 'diary', action: 'line', anchor }),
       buyFilm: () => net.send({ t: 'diary', action: 'buyFilm' }),
+      openMat: () => openBout(),
     });
   }
 }
@@ -411,9 +412,13 @@ function updateGuides() {
     if (t.carlos && !t.meveum) add(guideAt('prop', 'trilho', 128, 'Me vê um…'));
     else if (t.carlos && t.meveum && !t.chapeu) add(guideAt('portal', 'padaria_praca', 110, '← Rua'));
   } else if (r.room === 'academia') {
+    // one step at a time; the exit arrow only once the gi is bought (the kimono arrow and "← Rua" sat on top of each other by the lockers)
     if (!p.giOwned) add(guideAt('prop', 'vestiario', 160, '1 · Kimono aqui'));
-    else add(guideAt('prop', 'fila', 190, '2 · Treino no tatame'));
-    add(guideAt('portal', 'academia_praca', 110, '← Rua'));
+    else {
+      // step 2 points at Professora Bia ("Quer treinar?" → the mat), not the board up on the back wall
+      add(guideAt('npc', 'prof', 120, '2 · Treino no tatame'));
+      add(guideAt('portal', 'academia_praca', 110, '← Rua'));
+    }
   }
 }
 
