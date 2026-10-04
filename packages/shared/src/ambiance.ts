@@ -16,11 +16,11 @@ export const isCpuId = (id: string) => id.startsWith(CPU_ID_PREFIX);
 
 /**
  * Visible CPUs for an instance with  players in it (Live Ops §1 targets). Split into areas: each outdoor area is small and calm, so
- * each gets fewer CPUs than the old 56 x 40 map's 8 (Rua 3, Praça 4, Feira 3 at 0-1 humans); the more humans the fewer CPUs.
+ * each gets fewer CPUs than the old 56 x 40 map's 8 (Rua and Rua leste 2 each, Praça 4, Feira 3 at 0-1 humans); the more humans the fewer CPUs.
  */
 export function cpuTarget(humans: number, room: RoomId = 'academia'): number {
-  if (room === 'praca' || room === 'rua' || room === 'feira') {
-    const max = room === 'praca' ? 4 : 3;
+  if (room === 'praca' || room === 'rua' || room === 'rua_leste' || room === 'feira') {
+    const max = room === 'praca' ? 4 : room === 'feira' ? 3 : 2; // each half of the street is half the old rua
     if (humans <= 1) return max;
     if (humans === 2) return max - 1;
     if (humans <= 6) return Math.max(1, max - 2);
@@ -40,13 +40,21 @@ export const CPU_SITTER_SHARE = 0.6;
 
 type AmbMap = { spots: Tile[]; doorSpots: Tile[]; entries: Tile[]; feiraSpots?: Tile[] };
 
-/** Rua dos Ipês: the sidewalks and the lawn strip. Kept off doors, arrival tiles, spawn and every interact tile. */
+/** Rua dos Ipês (west half): the sidewalks and the lawn strip. Kept off doors, arrival tiles, spawn and every interact tile. */
 export const RUA_AMBIANCE: AmbMap = {
-  spots: [{ x: 13, y: 7 }, { x: 20, y: 6 }, { x: 24, y: 7 }, { x: 33, y: 6 }, { x: 30, y: 13 }, { x: 8, y: 13 }, { x: 16, y: 13 }, { x: 5, y: 13 }, { x: 37, y: 6 }],
+  spots: [{ x: 13, y: 7 }, { x: 19, y: 7 }, { x: 8, y: 13 }, { x: 17, y: 12 }, { x: 5, y: 13 }, { x: 15, y: 6 }],
   /** Near the Padaria entrance (CPUs never go in). */
   doorSpots: [{ x: 3, y: 7 }, { x: 4, y: 7 }, { x: 6, y: 6 }],
-  /** Where CPUs walk in from / out to: the street ends, and the brick path to the praça. */
-  entries: [{ x: 2, y: 9 }, { x: 37, y: 10 }, { x: 3, y: 10 }, { x: 36, y: 9 }],
+  /** Where CPUs walk in from / out to: the street's west end, the seam with the east half, and the brick path to the praça. */
+  entries: [{ x: 2, y: 9 }, { x: 3, y: 10 }, { x: 18, y: 9 }, { x: 18, y: 10 }],
+};
+
+/** Rua dos Ipês (leste): the sidewalks by the academia and the escola and the bus stop. */
+export const RUA_LESTE_AMBIANCE: AmbMap = {
+  spots: [{ x: 3, y: 7 }, { x: 12, y: 6 }, { x: 9, y: 13 }, { x: 16, y: 6 }, { x: 8, y: 6 }, { x: 14, y: 7 }],
+  /** Near the academia door (CPUs never go in). */
+  doorSpots: [{ x: 5, y: 7 }, { x: 4, y: 7 }, { x: 6, y: 6 }],
+  entries: [{ x: 16, y: 10 }, { x: 15, y: 9 }, { x: 2, y: 10 }, { x: 3, y: 9 }],
 };
 
 /** Praça Central. */
@@ -103,6 +111,7 @@ export function ambianceNavGrid(room: RoomDef): RoomGrid {
 export const ROOM_AMBIANCE: Partial<Record<RoomId, { spots: Tile[]; doorSpots: Tile[]; entries: Tile[]; feiraSpots?: Tile[] }>> = {
   praca: PRACA_AMBIANCE,
   rua: RUA_AMBIANCE,
+  rua_leste: RUA_LESTE_AMBIANCE,
   feira: FEIRA_AMBIANCE,
   academia: ACADEMIA_AMBIANCE,
 };

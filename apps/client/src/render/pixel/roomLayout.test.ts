@@ -52,7 +52,7 @@ describe('props', () => {
   });
 
   it('uses the real sprites the art track delivered', () => {
-    const byId = (id: string) => [...ROOMS.rua.props, ...ROOMS.praca.props].find((p) => p.id === id);
+    const byId = (id: string) => [...ROOMS.rua.props, ...ROOMS.rua_leste.props, ...ROOMS.praca.props].find((p) => p.id === id);
     const key = (id: string) => {
       const p = byId(id);
       if (!p) throw new Error(id);

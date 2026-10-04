@@ -12,8 +12,28 @@ export async function openBout(page) {
 /** Pick a partner (default: the suggested one) and start the match. */
 export async function startBout(page, partner) {
   if (partner) await page.click(`.bout-card-partner[data-partner="${partner}"]`);
-  await page.click('#bout-start');
-  await page.waitForSelector('#bout[data-phase="intro"]', { timeout: 10_000 });
+  // With the test roll on, the intro lasts about half a second. A slow click can return after that
+  // beat has already moved on, so waiting only for data-phase="intro" misses a bout that did start.
+  const leftLobby = () =>
+    page.evaluate(() => {
+      const phase = document.querySelector('#bout')?.getAttribute('data-phase');
+      return !!phase && phase !== 'lobby';
+    });
+  try {
+    await page.click('#bout-start', { timeout: 8_000 });
+  } catch (err) {
+    if (!(await leftLobby())) throw err;
+  }
+  await waitFor(
+    page,
+    () => {
+      const phase = document.querySelector('#bout')?.getAttribute('data-phase');
+      return !!phase && phase !== 'lobby';
+    },
+    null,
+    15_000,
+    'the bout leaves the lobby',
+  );
 }
 
 export const boutPhase = (page) => page.evaluate(() => document.querySelector('#bout')?.getAttribute('data-phase') ?? null);
@@ -62,15 +82,30 @@ export async function playBout(page, { right = () => true, pick = 'bold', maxMs 
     }
     if (st.phase === 'end') break;
     const key = `${st.phase}:${st.seq}`;
-    if ((st.phase === 'intent') && !handled.has(key)) {
+    if (st.phase === 'intent' && !handled.has(key)) {
+      // Phase flips to "intent" a beat before the chips are in the DOM, and a beat can end between the two reads.
+      // An empty list used to click [data-intent="undefined"] and sit there until the timeout.
+      const intents = await page
+        .$$eval('#bout-intents .bout-intent', (els) => els.map((e) => e.getAttribute('data-intent')))
+        .catch(() => []);
+      const ready = intents.filter((id) => typeof id === 'string' && id.length > 0);
+      if (!ready.length) {
+        await sleep(60);
+        continue;
+      }
+      const choice = ready.includes('finalizar') ? 'finalizar' : pick === 'safe' ? ready[0] : ready.at(-1);
       handled.add(key);
       if (onPhase) await onPhase(st.phase, page);
-      const intents = await page.$$eval('#bout-intents .bout-intent', (els) => els.map((e) => e.getAttribute('data-intent')));
-      const choice = intents.includes('finalizar') ? 'finalizar' : pick === 'safe' ? intents[0] : intents.at(-1);
+      await page.waitForTimeout(200);
+      try {
+        await page.click(`#bout-intents .bout-intent[data-intent="${choice}"]`, { timeout: 5000 });
+      } catch {
+        handled.delete(key);
+        await sleep(60);
+        continue;
+      }
       if (choice === 'finalizar') finalizacoes++;
       moves++;
-      await page.waitForTimeout(200);
-      await page.click(`#bout-intents .bout-intent[data-intent="${choice}"]`);
     } else await sleep(120);
   }
   await page.waitForSelector('#bout-end', { timeout: 20_000 });

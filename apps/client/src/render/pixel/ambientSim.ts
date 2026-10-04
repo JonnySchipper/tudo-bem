@@ -604,8 +604,8 @@ export interface Pigeon {
   back: number;
 }
 
-const FLY_S = 0.8;
-const FLY_FADE_S = 0.3;
+const FLY_S = 1.8;
+const FLY_FADE_S = 0.6;
 const RETURN_S = 1.4;
 
 export function makeFlock(cx: number, cy: number, n: number, seed: number): Pigeon[] {
@@ -639,14 +639,14 @@ export function stepFlock(flock: Pigeon[], dt: number, people: readonly Pt[], se
         const dy = p.y - trigger.y;
         const d = Math.hypot(dx, dy) || 1;
         // away from the person, with a little spread; always leaving sideways so the birds cross the screen
-        p.vx = (dx / d) * (230 + unit(seed, i, 22) * 120) + (unit(seed, i, 23) - 0.5) * 60;
+        p.vx = (dx / d) * (70 + unit(seed, i, 22) * 40) + (unit(seed, i, 23) - 0.5) * 60;
         p.back = 18 + unit(seed, i, 24) * 22;
       }
     } else if (p.mode === 'flying') {
       if (p.t > p.delay) {
         const u = p.t - p.delay;
         p.x += p.vx * dt;
-        p.z += (90 + u * 260) * dt; // accelerating climb
+        p.z += (30 + u * 50) * dt; // gentle climb
         if (u > FLY_S) {
           p.mode = 'away';
           p.t = 0;

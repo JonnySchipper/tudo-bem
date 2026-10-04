@@ -442,7 +442,12 @@ function updateGuides() {
     if (!t.carlos) add(guideAt('portal', 'praca_padaria', 110, 'Padaria →'));
     else if (!t.chapeu) add(guideAt('portal', 'rua_praca_1', 60, 'Chapéus: Praça ↓'));
     else if (!t.cadeira) add(guideAt('portal', 'praca_kitnet', 110, 'Minha kitnet'));
+    if (t.meveum) add(guideAt('portal', 'rua_leste_1', 60, 'Academia: leste →'));
+  } else if (r.room === 'rua_leste') {
     if (t.meveum) add(guideAt('portal', 'praca_academia', 110, 'Academia do Bairro →'));
+    else if (!t.carlos) add(guideAt('portal', 'leste_rua_1', 60, '← Padaria: pela Rua'));
+    else if (!t.chapeu) add(guideAt('portal', 'leste_rua_1', 60, '← Chapéus: pela Rua'));
+    else if (!t.cadeira) add(guideAt('portal', 'leste_rua_1', 60, '← Minha kitnet: pela Rua'));
   } else if (r.room === 'praca') {
     if (!t.carlos) add(guideAt('portal', 'praca_rua_1', 60, 'Padaria: pela Rua ↑'));
     else if (!t.chapeu) add(guideAt('prop', 'barraca', 138, 'Chapéus'));
@@ -549,7 +554,7 @@ net.on((m: ServerMsg) => {
       onboarding = null;
       if (!started) startGame();
       const last = sessionStorage.getItem(LAST_ROOM_KEY);
-      const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'feira' || last === 'escola';
+      const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'rua_leste' || last === 'feira' || last === 'escola';
       joinRoom(remembered ? last : 'praca');
       syncArrival(arrivalFinish, arrivalHall);
       game.emit('profile');

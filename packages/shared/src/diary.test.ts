@@ -140,14 +140,14 @@ describe('language diary catalog v2', () => {
   });
 
   it('puts every added object in the room its area is about, on a tile the room has', () => {
-    const roomOf: Record<string, keyof typeof ROOMS> = { praca: 'praca', rua: 'rua', padaria: 'padaria', feira: 'feira', kitnet: 'kitnet', academia: 'academia', escola: 'escola' };
+    const roomsOf: Record<string, (keyof typeof ROOMS)[]> = { praca: ['praca'], rua: ['rua', 'rua_leste'], padaria: ['padaria'], feira: ['feira'], kitnet: ['kitnet'], academia: ['academia'], escola: ['escola'] };
     for (const w of DIARY_WORDS.filter((x) => x.origin === 'added' && x.source === 'camera' && x.area !== 'chegada')) {
-      const room = ROOMS[roomOf[w.area]!];
-      const there = (id: string) => room.props.some((p) => p.id === id) || !!(id.startsWith('kitnet_') || id.startsWith('padaria_') || id === 'cobogo');
+      const rooms = roomsOf[w.area]!.map((r) => ROOMS[r]);
+      const there = (id: string) => rooms.some((room) => room.props.some((p) => p.id === id)) || !!(id.startsWith('kitnet_') || id.startsWith('padaria_') || id === 'cobogo');
       expect(there(w.anchor.id), `${w.pt} (${w.anchor.id}) in ${w.area}`).toBe(true);
     }
     for (const w of DIARY_WORDS.filter((x) => x.origin === 'added' && x.source === 'reading' && x.area !== 'chegada')) {
-      expect(hotspotById(w.anchor.id)?.room, `${w.pt} sign`).toBe(w.area);
+      expect(roomsOf[w.area], `${w.pt} sign`).toContain(hotspotById(w.anchor.id)?.room);
     }
   });
 

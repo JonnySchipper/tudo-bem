@@ -5270,6 +5270,396 @@
    "overhead": null,
    "shadow": null
   },
+  "diary/caminhao": {
+   "atlas": "outdoor",
+   "frame": "diary/caminhao",
+   "w": 40,
+   "h": 17,
+   "ax": 20,
+   "ay": 16,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/ambulancia": {
+   "atlas": "outdoor",
+   "frame": "diary/ambulancia",
+   "w": 36,
+   "h": 17,
+   "ax": 18,
+   "ay": 16,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/esquina": {
+   "atlas": "outdoor",
+   "frame": "diary/esquina",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/macaneta": {
+   "atlas": "outdoor",
+   "frame": "diary/macaneta",
+   "w": 8,
+   "h": 9,
+   "ax": 4,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/retrovisor": {
+   "atlas": "outdoor",
+   "frame": "diary/retrovisor",
+   "w": 8,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/porta_malas": {
+   "atlas": "outdoor",
+   "frame": "diary/porta_malas",
+   "w": 14,
+   "h": 8,
+   "ax": 7,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/farol": {
+   "atlas": "outdoor",
+   "frame": "diary/farol",
+   "w": 8,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/volante": {
+   "atlas": "outdoor",
+   "frame": "diary/volante",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/buzina": {
+   "atlas": "outdoor",
+   "frame": "diary/buzina",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/cone": {
+   "atlas": "outdoor",
+   "frame": "diary/cone",
+   "w": 8,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/tapume": {
+   "atlas": "outdoor",
+   "frame": "diary/tapume",
+   "w": 15,
+   "h": 9,
+   "ax": 7,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/andaime": {
+   "atlas": "outdoor",
+   "frame": "diary/andaime",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/escada": {
+   "atlas": "outdoor",
+   "frame": "diary/escada",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/cruzamento": {
+   "atlas": "outdoor",
+   "frame": "diary/cruzamento",
+   "w": 10,
+   "h": 12,
+   "ax": 5,
+   "ay": 11,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/skate": {
+   "atlas": "outdoor",
+   "frame": "diary/skate",
+   "w": 11,
+   "h": 6,
+   "ax": 5,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/patinete": {
+   "atlas": "outdoor",
+   "frame": "diary/patinete",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/sign_pare": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_pare",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_obra": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_obra",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_sentido": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_sentido",
+   "w": 64,
+   "h": 12,
+   "ax": 32,
+   "ay": 12,
+   "footprint": [
+    4,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_farmacia": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_farmacia",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_loterica": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_loterica",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_acougue": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_acougue",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_mercado": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_mercado",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_chaveiro": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_chaveiro",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_ladeira": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_ladeira",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_travessa": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_travessa",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
   "diary/paralelepipedo": {
    "atlas": "outdoor",
    "frame": "diary/paralelepipedo",
@@ -6560,36 +6950,6 @@
    "overhead": null,
    "shadow": null
   },
-  "diary/caminhao": {
-   "atlas": "outdoor",
-   "frame": "diary/caminhao",
-   "w": 40,
-   "h": 17,
-   "ax": 20,
-   "ay": 16,
-   "footprint": [
-    3,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": "fx/shadow_16"
-  },
-  "diary/ambulancia": {
-   "atlas": "outdoor",
-   "frame": "diary/ambulancia",
-   "w": 36,
-   "h": 17,
-   "ax": 18,
-   "ay": 16,
-   "footprint": [
-    3,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": "fx/shadow_16"
-  },
   "diary/semaforo": {
    "atlas": "outdoor",
    "frame": "diary/semaforo",
@@ -6597,21 +6957,6 @@
    "h": 14,
    "ax": 4,
    "ay": 13,
-   "footprint": [
-    1,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": "fx/shadow_10"
-  },
-  "diary/esquina": {
-   "atlas": "outdoor",
-   "frame": "diary/esquina",
-   "w": 10,
-   "h": 10,
-   "ax": 5,
-   "ay": 9,
    "footprint": [
     1,
     1
@@ -6725,96 +7070,6 @@
    "overhead": null,
    "shadow": "fx/shadow_16"
   },
-  "diary/macaneta": {
-   "atlas": "outdoor",
-   "frame": "diary/macaneta",
-   "w": 8,
-   "h": 9,
-   "ax": 4,
-   "ay": 8,
-   "footprint": [
-    1,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": "fx/shadow_10"
-  },
-  "diary/retrovisor": {
-   "atlas": "outdoor",
-   "frame": "diary/retrovisor",
-   "w": 8,
-   "h": 8,
-   "ax": 4,
-   "ay": 7,
-   "footprint": [
-    1,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": "fx/shadow_10"
-  },
-  "diary/porta_malas": {
-   "atlas": "outdoor",
-   "frame": "diary/porta_malas",
-   "w": 14,
-   "h": 8,
-   "ax": 7,
-   "ay": 7,
-   "footprint": [
-    1,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": "fx/shadow_16"
-  },
-  "diary/farol": {
-   "atlas": "outdoor",
-   "frame": "diary/farol",
-   "w": 8,
-   "h": 7,
-   "ax": 4,
-   "ay": 6,
-   "footprint": [
-    1,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": null
-  },
-  "diary/volante": {
-   "atlas": "outdoor",
-   "frame": "diary/volante",
-   "w": 10,
-   "h": 9,
-   "ax": 5,
-   "ay": 8,
-   "footprint": [
-    1,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": "fx/shadow_10"
-  },
-  "diary/buzina": {
-   "atlas": "outdoor",
-   "frame": "diary/buzina",
-   "w": 10,
-   "h": 9,
-   "ax": 5,
-   "ay": 8,
-   "footprint": [
-    1,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": "fx/shadow_10"
-  },
   "diary/lombada": {
    "atlas": "outdoor",
    "frame": "diary/lombada",
@@ -6829,66 +7084,6 @@
    "anim": null,
    "overhead": null,
    "shadow": null
-  },
-  "diary/cone": {
-   "atlas": "outdoor",
-   "frame": "diary/cone",
-   "w": 8,
-   "h": 8,
-   "ax": 4,
-   "ay": 7,
-   "footprint": [
-    1,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": "fx/shadow_10"
-  },
-  "diary/tapume": {
-   "atlas": "outdoor",
-   "frame": "diary/tapume",
-   "w": 15,
-   "h": 9,
-   "ax": 7,
-   "ay": 8,
-   "footprint": [
-    1,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": "fx/shadow_16"
-  },
-  "diary/andaime": {
-   "atlas": "outdoor",
-   "frame": "diary/andaime",
-   "w": 10,
-   "h": 10,
-   "ax": 5,
-   "ay": 9,
-   "footprint": [
-    1,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": "fx/shadow_10"
-  },
-  "diary/escada": {
-   "atlas": "outdoor",
-   "frame": "diary/escada",
-   "w": 10,
-   "h": 9,
-   "ax": 5,
-   "ay": 8,
-   "footprint": [
-    1,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": "fx/shadow_10"
   },
   "diary/encomenda": {
    "atlas": "outdoor",
@@ -6965,21 +7160,6 @@
    "overhead": null,
    "shadow": "fx/shadow_10"
   },
-  "diary/cruzamento": {
-   "atlas": "outdoor",
-   "frame": "diary/cruzamento",
-   "w": 10,
-   "h": 12,
-   "ax": 5,
-   "ay": 11,
-   "footprint": [
-    1,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": "fx/shadow_10"
-  },
   "diary/capacete": {
    "atlas": "outdoor",
    "frame": "diary/capacete",
@@ -7040,51 +7220,6 @@
    "overhead": null,
    "shadow": "fx/shadow_10"
   },
-  "diary/skate": {
-   "atlas": "outdoor",
-   "frame": "diary/skate",
-   "w": 11,
-   "h": 6,
-   "ax": 5,
-   "ay": 5,
-   "footprint": [
-    1,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": null
-  },
-  "diary/patinete": {
-   "atlas": "outdoor",
-   "frame": "diary/patinete",
-   "w": 10,
-   "h": 9,
-   "ax": 5,
-   "ay": 8,
-   "footprint": [
-    1,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": "fx/shadow_10"
-  },
-  "diary/sign_pare": {
-   "atlas": "outdoor",
-   "frame": "diary/sign_pare",
-   "w": 32,
-   "h": 12,
-   "ax": 16,
-   "ay": 12,
-   "footprint": [
-    2,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": null
-  },
   "diary/sign_ciclovia": {
    "atlas": "outdoor",
    "frame": "diary/sign_ciclovia",
@@ -7115,36 +7250,6 @@
    "overhead": null,
    "shadow": null
   },
-  "diary/sign_obra": {
-   "atlas": "outdoor",
-   "frame": "diary/sign_obra",
-   "w": 32,
-   "h": 12,
-   "ax": 16,
-   "ay": 12,
-   "footprint": [
-    2,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": null
-  },
-  "diary/sign_sentido": {
-   "atlas": "outdoor",
-   "frame": "diary/sign_sentido",
-   "w": 64,
-   "h": 12,
-   "ax": 32,
-   "ay": 12,
-   "footprint": [
-    4,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": null
-  },
   "diary/sign_devagar": {
    "atlas": "outdoor",
    "frame": "diary/sign_devagar",
@@ -7154,81 +7259,6 @@
    "ay": 12,
    "footprint": [
     2,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": null
-  },
-  "diary/sign_farmacia": {
-   "atlas": "outdoor",
-   "frame": "diary/sign_farmacia",
-   "w": 48,
-   "h": 12,
-   "ax": 24,
-   "ay": 12,
-   "footprint": [
-    3,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": null
-  },
-  "diary/sign_loterica": {
-   "atlas": "outdoor",
-   "frame": "diary/sign_loterica",
-   "w": 48,
-   "h": 12,
-   "ax": 24,
-   "ay": 12,
-   "footprint": [
-    3,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": null
-  },
-  "diary/sign_acougue": {
-   "atlas": "outdoor",
-   "frame": "diary/sign_acougue",
-   "w": 32,
-   "h": 12,
-   "ax": 16,
-   "ay": 12,
-   "footprint": [
-    2,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": null
-  },
-  "diary/sign_mercado": {
-   "atlas": "outdoor",
-   "frame": "diary/sign_mercado",
-   "w": 32,
-   "h": 12,
-   "ax": 16,
-   "ay": 12,
-   "footprint": [
-    2,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": null
-  },
-  "diary/sign_chaveiro": {
-   "atlas": "outdoor",
-   "frame": "diary/sign_chaveiro",
-   "w": 48,
-   "h": 12,
-   "ax": 24,
-   "ay": 12,
-   "footprint": [
-    3,
     1
    ],
    "anim": null,
@@ -7289,36 +7319,6 @@
    "ay": 12,
    "footprint": [
     2,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": null
-  },
-  "diary/sign_ladeira": {
-   "atlas": "outdoor",
-   "frame": "diary/sign_ladeira",
-   "w": 32,
-   "h": 12,
-   "ax": 16,
-   "ay": 12,
-   "footprint": [
-    2,
-    1
-   ],
-   "anim": null,
-   "overhead": null,
-   "shadow": null
-  },
-  "diary/sign_travessa": {
-   "atlas": "outdoor",
-   "frame": "diary/sign_travessa",
-   "w": 48,
-   "h": 12,
-   "ax": 24,
-   "ay": 12,
-   "footprint": [
-    3,
     1
    ],
    "anim": null,

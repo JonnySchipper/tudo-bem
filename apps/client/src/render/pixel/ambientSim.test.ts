@@ -34,7 +34,7 @@ import {
   vehiclesAt,
 } from './ambientSim';
 
-const room = AMBIENT.rua;
+const room = AMBIENT.rua_leste; // the east half of the rua has the bus stop (the west half has the same street without the bus)
 const bus = room.bus!; // split areas: the rua has the street and the bus stop
 const praca = AMBIENT.praca; // the vira-lata lives in the praça
 const T0 = 1_800_000_000_000;
@@ -255,13 +255,13 @@ describe('pigeons', () => {
     const startX = flock.map((p) => p.x);
     for (let i = 0; i < 5; i++) stepFlock(flock, 0.1, [person]);
     flock.forEach((p, i) => {
-      expect(p.z).toBeGreaterThan(30);
-      expect(Math.abs(p.x - startX[i])).toBeGreaterThan(30);
+      expect(p.z).toBeGreaterThan(10);
+      expect(Math.abs(p.x - startX[i])).toBeGreaterThan(15);
       // they head away from the person on x (the person stands to the west of the flock centre)
       expect(Math.abs(p.x - person.x)).toBeGreaterThan(Math.abs(startX[i] - person.x) - 1);
     });
-    // gone within about a second of the take-off
-    for (let i = 0; i < 6; i++) stepFlock(flock, 0.1, [person]);
+    // gone within a couple of seconds of the take-off
+    for (let i = 0; i < 16; i++) stepFlock(flock, 0.1, [person]);
     expect(flock.every((p) => p.mode === 'away' && pigeonAlpha(p) === 0)).toBe(true);
     // nobody around: they land again after their timers
     for (let i = 0; i < 700; i++) stepFlock(flock, 0.1, []);
@@ -316,7 +316,7 @@ describe('traffic that yields', () => {
 
   it('stops short of a person in its lane and goes on when they leave', () => {
     const sim = new TrafficSim();
-    const person = { x: 400, y: lane.y - 1 };
+    const person = { x: 200, y: lane.y - 1 };
     const cars = run(sim, T0, 60000, [person]);
     const ahead = cars.filter((c) => c.x < person.x);
     expect(ahead.length).toBeGreaterThan(1);
@@ -335,8 +335,8 @@ describe('traffic that yields', () => {
 
   it('queues behind a stopped car with a gap, nobody overlapping', () => {
     const sim = new TrafficSim();
-    const cars = run(sim, T0, 90000, [{ x: 400, y: lane.y }]).sort((a, b) => b.x - a.x);
-    const queued = cars.filter((c) => c.x < 400);
+    const cars = run(sim, T0, 90000, [{ x: 200, y: lane.y }]).sort((a, b) => b.x - a.x);
+    const queued = cars.filter((c) => c.x < 200);
     expect(queued.length).toBeGreaterThanOrEqual(3);
     expect(standing(queued.slice(0, 3))).toBe(true);
     for (let i = 1; i < queued.length; i++) {
@@ -345,16 +345,16 @@ describe('traffic that yields', () => {
     }
     // the way clears: the whole queue is rolling again
     const rolling = run(sim, T0 + 90000, 2500, []);
-    expect(rolling.filter((c) => c.x < 400 && c.moving).length).toBeGreaterThanOrEqual(3);
+    expect(rolling.filter((c) => c.x < 200 && c.moving).length).toBeGreaterThanOrEqual(3);
   });
 
   it('does not stop for a person on the other lane or behind it', () => {
     const sim = new TrafficSim();
     const other = busy.streets[0].lanes[0];
-    const cars = run(sim, T0, 30000, [{ x: 400, y: other.y }]);
-    expect(cars.some((c) => c.x > 500)).toBe(true);
+    const cars = run(sim, T0, 30000, [{ x: 200, y: other.y }]);
+    expect(cars.some((c) => c.x > 300)).toBe(true);
     const behind = run(new TrafficSim(), T0, 30000, [{ x: -200, y: lane.y }]);
-    expect(behind.some((c) => c.x > 500)).toBe(true);
+    expect(behind.some((c) => c.x > 300)).toBe(true);
   });
 
   it('reseeds from the clock after a long gap instead of crawling', () => {

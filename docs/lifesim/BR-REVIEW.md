@@ -619,6 +619,8 @@ Visual pass on the arrival, camera, diary, escola and cartela. Everything else o
 | 464 | De novo | Again | `apps/client/src/ui/escola.ts` | Existing label from the tatame rematch, reused for "practice another word" after a right answer at the escola. Check it still fits there. | |
 | 465 | Hoje: 1/4 | Today: 1/4 | `apps/client/src/ui/cartela.ts` | Trimmed from "Hoje: 1/4 hoje", which repeated the word. | |
 | 466 | peça preta · peça branca | black piece · white piece | `apps/client/src/ui/checkers.ts` | **New, needs a Brazilian read.** Screen-reader labels of the damas pieces (not shown on screen). | |
+| 467 | Rua dos Ipês (leste) | Ipê Street (east) | `packages/shared/src/rooms.ts, apps/client/src/ui/panels.ts` | **New, needs a Brazilian read.** Name of the east half of the street (the rua was split in two to run lighter): HUD room name, the edge-portal label, the Mapa tab and card. The west half keeps "Rua dos Ipês". Check "(leste)" reads right as a suffix. | |
+| 468 | Academia: leste → · ← Padaria: pela Rua · ← Chapéus: pela Rua · ← Minha kitnet: pela Rua | Academy: east → · ← Bakery: via the Street · ← Hats: via the Street · ← My studio: via the Street | `apps/client/src/main.ts (updateGuides)` | **New, needs a Brazilian read.** Tutorial guide arrows on the two halves of the street. | |
 
 ## R. Proposed cards for the Curriculum team
 
@@ -639,4 +641,4 @@ No card was added during the conversion (the rule in HOWTO section 8: reference 
 
 ## Totals
 
-466 numbered strings in sections A to Q and S, plus 9 proposed-card entries.
+468 numbered strings in sections A to Q and S, plus 9 proposed-card entries.

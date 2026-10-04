@@ -6,10 +6,10 @@
  *   pnpm e2e                            # in another (BASE_URL / CHROME_PATH / SHOTS_DIR optional)
  *
  * Plays: age gate → avatar → Praça (ambiance CPUs, daily kiosk, walk, sit, wave, chat) → Padaria →
- * Seu Carlos (AI Conversa on click, then Pedido rápido chips) → Me vê um… (parses each Portuguese
- * order to fill the tray) → hat shop → Kitnet chair, plus a second player for chat gloss + friend
- * request. Expects LIVEOPS_CPU_AMBIANCE on (the default); set CPU_AMBIANCE=off when the server
- * runs with it off.
+ * Seu Carlos (today's recado, then the counter: pay and carry the order) → Correria no Balcão (the
+ * shelf taps fill the tray from each order) → hat shop → Kitnet chair, plus a second player for chat
+ * gloss + friend request. Expects LIVEOPS_CPU_AMBIANCE on (the default); set CPU_AMBIANCE=off when the
+ * server runs with it off.
  *
  * PINNED CLOCK (Phase 10): the game clock is real time (1 game day = 48 real minutes), so this script needs a server whose clock reads daytime
  * (about 08:30; the baker, Nanda and the feira all depend on the hour). Start it pinned and with the recado offer fixed:
@@ -25,7 +25,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DAY_MIN, assertPageClock, offsetMinFor, requirePinnedClock } from './lib/clock-pin.mjs';
-import { assert, expectFirstTimeoutRearms, learnShelf, playShift, sleep, waitFor } from './lib/meveum-play.mjs';
+import { assert, playShift, sleep, startShiftFromPedido, waitFor } from './lib/correria-play.mjs';
 import { goArea } from './lib/areas.mjs';
 import { finishArrival } from './lib/arrival.mjs';
 import { openBout, playBout, startBout, waitBoutPhase } from './lib/bout-play.mjs';
@@ -374,126 +374,120 @@ async function main() {
   await shot(page, '03c_caderno');
   await page.keyboard.press('Escape');
 
-  // 4. Clicking Carlos opens AI Conversa. Pedido rápido (footer) is the chip breakfast.
+  // 4. The baker on duty: today's recado, then the counter (pay, carry it, it goes in the bag). Pedido rápido is gone.
   await waitFor(page, () => window.__tb.game.liveNpcs(performance.now()).some((n) => n.id === 'carlos' || n.id === 'graca'), null, 8000, 'the baker on duty is at the counter');
   const baker = await bakerNow(page);
   log('baker on duty:', baker.name, 'game time', await page.evaluate(() => window.__tb.clock.minutes()));
-  // Phase 8a: the baker offers today's recado first; take it (TB_TEST_OFFER=carlos_cafe_pra_nanda pins it: order a café com leite, hand it to Nanda)
-  const offerState = await openNpc(page, baker.id, 'conversa', { offer: 'accept' });
-  const recadoRun = offerState === 'accepted' && baker.id === 'carlos';
+  // Phase 8a: the baker offers today's recado first. The server run takes it (TB_TEST_OFFER=carlos_cafe_pra_nanda: a café com leite for Nanda).
+  // Solo and SKIP_RECADO decline, the way a player who is not on that errand would.
+  const counterKey = `counter-${baker.id}`;
+  const skipRecado = SOLO || process.env.SKIP_RECADO === '1';
+  const offerState = await openNpc(page, baker.id, counterKey, { offer: skipRecado ? 'decline' : 'accept' });
+  let recadoRun = false;
   if (offerState === 'accepted') {
-    const accepted = await page.evaluate(() => window.__tb.game.board?.active.map((a) => a.id) ?? []);
     await waitFor(page, () => window.__tb.game.board?.active.length >= 1, null, 5000, 'the recado is active');
+    const accepted = await page.evaluate(() => window.__tb.game.board?.active.map((a) => a.id) ?? []);
+    recadoRun = baker.id === 'carlos' && accepted.includes('carlos_cafe_pra_nanda');
     log('recado accepted from', baker.name, JSON.stringify(accepted));
     await shot(page, '04a_recado_accepted');
-    await openNpc(page, baker.id, 'conversa');
-  } else if (SOLO || process.env.SKIP_RECADO === '1') log('no recado offered by the baker (SOLO / SKIP_RECADO): the recado part is skipped');
+    await openNpc(page, baker.id, counterKey);
+  } else if (skipRecado) log('no recado taken (SOLO / SKIP_RECADO): the recado part is skipped');
   else throw new Error('The baker did not offer the recado. Start the server with TB_TEST_OFFER=carlos_cafe_pra_nanda (or set SKIP_RECADO=1 to skip the recado part).');
-  const conversaName = ((await page.textContent('#dialogue-box[data-dialogue="conversa"] .npc-name')) ?? '').trim();
-  assert(conversaName === baker.name, `Conversa is ${baker.name} at the mesa (${conversaName})`);
-  assert(await page.$('#dialogue-box[data-dialogue="conversa"] .dbx-portrait'), 'Conversa portrait (café mesa)');
-  assert(await page.$('#dialogue-box[data-dialogue="conversa"] [data-chip="0"]'), 'Conversa opens with a reply chip');
-  await page.waitForSelector('[data-action="pedido-rapido"]', { state: 'visible', timeout: 5_000 });
-  await shot(page, '04_carlos_conversa');
-  await page.click('[data-action="pedido-rapido"]');
-  await page.waitForSelector('#dialogue-box[data-dialogue="pedido"]', { timeout: 12_000 });
-  assert(!(await page.$('#dialogue-box[data-dialogue="conversa"]')), 'Pedido rápido closes Conversa');
-  assert(await page.$('#dialogue-box[data-dialogue="pedido"] #pedido-ticket'), 'Pedido rápido has ticket visual');
-  assert(await page.$('#dialogue-box[data-dialogue="pedido"] .speak-btn'), 'Pedido rápido has speak button on Carlos line');
-  await sleep(300);
-  await shot(page, '04_carlos_scene_start');
-  // First reply is typed (accept-list scoring), the rest are chips.
-  const picks = ['Bom dia, Seu Carlos!', 1, 0, 0, 1];
-  for (let i = 0; i < picks.length; i++) {
-    const before = await page.textContent('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt');
-    await dwell(1600);
-    if (typeof picks[i] === 'string') {
-      await page.fill('#pedido-input', picks[i]);
-      await page.press('#pedido-input', 'Enter');
-    } else await page.click(`#dialogue-box[data-dialogue="pedido"] [data-chip="${picks[i]}"]`);
-    await waitFor(page, (b) => document.querySelector('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt')?.textContent !== b, before, 5000, 'next Carlos line');
-    if (i === 2) {
-      // Verify ticket items are filling in
-      const filledItems = await page.$$eval('.ticket-item.filled', els => els.length);
-      assert(filledItems >= 1, `ticket items filling in (${filledItems} filled)`);
-      await shot(page, '05_carlos_scene_mid');
-    }
-  }
-  await page.waitForSelector('#btn-pedido-play-mg');
-  // Verify payout is shown
-  const payoutEl = await page.$('.pedido-payout');
-  assert(payoutEl, 'scene end shows RV payout');
-  await shot(page, '06_carlos_scene_end');
-  await dwell(2200);
+  const counter = page.locator(`#dialogue-box[data-dialogue="${counterKey}"]`);
+  await counter.waitFor({ timeout: 8_000 });
+  const counterName = ((await counter.locator('.npc-name').textContent()) ?? '').trim();
+  assert(counterName === baker.name, `the counter is ${baker.name}'s (${counterName})`);
+  assert(await counter.locator('.dbx-portrait').count(), 'the counter shows the baker portrait');
+  const itemId = recadoRun ? 'cafe_com_leite' : 'cafe';
+  const chip = recadoRun
+    ? counter.locator('[data-chip]', { hasText: /café com leite/i })
+    : counter.locator('[data-chip]', { hasText: /café/i }).filter({ hasNotText: /com leite/i });
+  await shot(page, '04_padaria_counter');
+  await chip.first().click();
+  await waitFor(page, (id) => window.__tb.game.self?.pub.carry === id, itemId, 8000, `carrying the ${itemId}`);
+  await waitFor(page, () => window.__tb.game.profile?.tutorial?.carlos && window.__tb.game.profile?.mission?.steps?.pede, null, 8000, 'padaria step and Pede');
+  await dwell(800);
+  await shot(page, '06_padaria_ordered');
   const afterScene = await profile(page);
-  log('scene payout →', afterScene.coins - start.coins, 'RV');
-  assert(afterScene.tutorial.carlos, 'carlos step');
+  log('ordered', itemId, 'coins', start.coins, '→', afterScene.coins);
+  assert(afterScene.tutorial.carlos, 'ordering at the counter completed the padaria step');
+  assert(afterScene.mission?.steps.pede, 'ordering counts as Pede');
+  if (recadoRun) assert((afterScene.bag?.cafe_com_leite ?? 0) >= 1, `the café com leite is in the bag (${JSON.stringify(afterScene.bag)})`);
 
-  // 5. Me vê um… minigame
-  await page.click('#btn-pedido-play-mg');
-  await page.waitForSelector('#mg-order');
-  await page.click('#mg-shelves button');
+  // 5. Correria no Balcão: one full shift through the real taps (3 waves, 15 customers) behind the padaria counter
+  await startShiftFromPedido(page);
+  assert(await page.isVisible('#cr-panel'), 'the counter strip is up');
+  assert(!(await page.$('[data-modal="minigame"]')), 'no modal over the padaria');
+  // Viewport checks used to run here, while the first customer was already losing patience and the counter camera
+  // jumped under the phone strip. They run on the throwaway "Jogar de novo" shift below, after this one is served.
+  let mgShot = false;
+  const served = await playShift(page, {
+    log,
+    dwell,
+    onCustomer: async (_c, i) => {
+      if (i === 3 && !mgShot) {
+        mgShot = true;
+        await shot(page, '07_correria_tray');
+      }
+    },
+  });
+  await sleep(300);
+  await shot(page, '08_correria_end');
+  await dwell(2200);
+  const afterMg = await profile(page);
+  log('shift served', served, 'customers; payout →', afterMg.coins - afterScene.coins, 'RV');
+  assert(served >= 10, `the bot served most of the 15 customers (${served})`);
+  assert(afterMg.coins - afterScene.coins >= 8, 'the shift pays RV');
+  assert(afterMg.correria?.shifts === 1 && afterMg.correria.stars >= 1, `stars and the shift counter are on the profile (${JSON.stringify(afterMg.correria)})`);
+  if (AMBIANCE) {
+    assert(afterMg.mission?.rewarded && Object.values(afterMg.mission.steps).every(Boolean), 'daily mission complete (+25 RV)');
+    log('mission complete: Cumprimenta ✓ Pede ✓ Monta ✓');
+  } else assert(afterMg.mission?.steps.pede && afterMg.mission?.steps.monta, 'mission: Pede + Monta');
+  assert(!(await page.isVisible('#cr-serve')), 'Fim do turno hides the counter strip');
+  assert(/\+\d+ RV/.test((await page.textContent('#mg-end .big')) ?? ''), 'the end card headlines the RV');
+
+  // 5a. Jogar de novo opens a fresh shift; closing it with nothing served leaves the counter and pays nothing.
+  const coinsBeforeAgain = (await profile(page)).coins;
+  await page.click('#mg-end button:has-text("Jogar de novo")');
+  await waitFor(page, () => !!window.__tb.correria.feed.snap && window.__tb.correria.feed.snap.stats.served === 0, null, 8000, 'a fresh shift');
+  await shot(page, '08a_correria_again');
+  // Entregar has to stay on screen at phone size. This shift is closed with nothing served, so the resize does not eat the shift we just played.
   for (const size of [
     { width: 1280, height: 800 },
     { width: 390, height: 844 },
   ]) {
     await page.setViewportSize(size);
-    const placeInView = await page.evaluate(() => {
-      const el = document.querySelector('#mg-tray-place');
-      const panel = document.querySelector('.panel.mg');
-      if (!el || !panel) return false;
+    await sleep(400);
+    const m = await page.evaluate(() => {
+      const el = document.querySelector('#cr-serve');
+      const panel = document.querySelector('#cr-panel');
+      if (!el || !panel) return null;
       const r = el.getBoundingClientRect();
       const pr = panel.getBoundingClientRect();
-      return r.width > 0 && r.height > 0 && r.top >= pr.top - 1 && r.bottom <= pr.bottom + 1;
+      return { inView: r.width > 0 && r.height > 0 && r.top >= pr.top - 1 && r.bottom <= pr.bottom + 1, share: pr.height / window.innerHeight };
     });
-    assert(placeInView, `Colocar na bandeja stays tappable at ${size.width}×${size.height}`);
+    assert(m?.inView, `Entregar stays tappable at ${size.width}×${size.height}`);
+    if (size.width < 500) assert(m.share <= 0.35, `the counter strip stays under 35% of a phone (${(m.share * 100).toFixed(0)}%)`);
   }
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.click('#mg-clear');
-  await learnShelf(page);
-  await playShift(page, { log, dwell, onRound: (round) => (round === 2 ? shot(page, '07_meveum_tray') : undefined) });
-  await sleep(300);
-  await shot(page, '08_meveum_end');
-  await dwell(2200);
-  const afterMg = await profile(page);
-  log('minigame payout →', afterMg.coins - afterScene.coins, 'RV');
-  assert(afterMg.coins - afterScene.coins >= 18, 'perfect-ish minigame payout');
-  if (AMBIANCE) {
-    assert(afterMg.mission?.rewarded && Object.values(afterMg.mission.steps).every(Boolean), 'daily mission complete (+25 RV)');
-    log('mission complete: Cumprimenta ✓ Pede ✓ Monta ✓');
-  } else assert(afterMg.mission?.steps.pede && afterMg.mission?.steps.monta, 'mission: Pede + Monta');
-  const endFooter = await page.isVisible('#mg-tray-place');
-  assert(!endFooter, 'Fim do turno hides Colocar / Limpar / Entregar');
-
-  // 5a. Jogar de novo: the first Pedido 1 timeout must re-arm, not soft-lock the tray.
-  await page.click('#mg-end button:has-text("Jogar de novo")');
-  await expectFirstTimeoutRearms(page, log);
-  await shot(page, '08a_meveum_again_denovo');
-  await page.click('#minigame .mg-head button.ghost');
-  await waitFor(page, () => !document.querySelector('[data-modal="minigame"]'), null, 5000, 'Me vê um closes after ✕ with nothing served');
-
-  // 5b. Test daily RV gate: second Pedido rápido same day → 0 RV, "já pediu hoje" message
-  const coinsBeforeSecond = (await profile(page)).coins;
-  await openNpc(page, baker.id, 'conversa');
-  await page.click('[data-action="pedido-rapido"]');
-  await page.waitForSelector('#dialogue-box[data-dialogue="pedido"]', { timeout: 12_000 });
-  // Quick path through Pedido rápido again
-  const picks2 = [0, 0, 0, 0, 0];
-  for (let i = 0; i < picks2.length; i++) {
-    const before2 = await page.textContent('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt');
-    await page.click(`#dialogue-box[data-dialogue="pedido"] [data-chip="${picks2[i]}"]`);
-    await waitFor(page, (b) => document.querySelector('#dialogue-box[data-dialogue="pedido"] .line-bubble .pt')?.textContent !== b, before2, 5000, 'next Carlos line (2nd)');
-  }
-  await page.waitForSelector('#btn-pedido-play-mg');
-  // Should show daily blocked message instead of payout
-  const dailyBlocked = await page.$('.daily-blocked');
-  const payoutEl2 = await page.$('.pedido-payout');
-  assert(dailyBlocked || !payoutEl2, 'second Pedido same day: daily blocked or no payout');
-  await shot(page, '05c_daily_rv_gate');
-  const coinsAfterSecond = (await profile(page)).coins;
-  assert(coinsAfterSecond === coinsBeforeSecond, `second Pedido same day: 0 RV (before ${coinsBeforeSecond}, after ${coinsAfterSecond})`);
-  log('daily RV gate ok: second Pedido same day → 0 RV');
-  await page.keyboard.press('Escape');
+  await waitFor(
+    page,
+    () => {
+      const g = document.querySelector('#cr-grill-0');
+      const item = document.querySelector('#cr-item-pao_na_chapa');
+      if (!g || !item) return false;
+      const gr = g.getBoundingClientRect();
+      const ir = item.getBoundingClientRect();
+      return gr.width > 8 && ir.width > 8 && gr.bottom > 0 && gr.top < window.innerHeight;
+    },
+    null,
+    5000,
+    'counter taps laid out after the viewport restore',
+  );
+  await page.click('#cr-quit');
+  await waitFor(page, () => !document.querySelector('#correria'), null, 5000, 'the counter closes after ✕ with nothing served');
+  const coinsAfterAgain = (await profile(page)).coins;
+  assert(coinsAfterAgain === coinsBeforeAgain, `a fresh shift closed with nothing served pays 0 RV (${coinsBeforeAgain} → ${coinsAfterAgain})`);
 
   // 6. Back out of the door onto the rua, down the brick path to the praça, buy + equip a hat at Nanda's stall
   await interact(page, { portal: 'padaria_praca' });
@@ -563,8 +557,8 @@ async function main() {
   await shot(page, '10_praca_hat_parrot');
   await dwell(1500);
 
-  // 6b. Academia do Bairro (its door is on the rua) — enter + one full Treino no tatame match (TB_TEST_ROLL on the server)
-  await goArea(page, 'rua');
+  // 6b. Academia do Bairro (its door is on the east half of the street, rua_leste) — enter + one full Treino no tatame match (TB_TEST_ROLL on the server)
+  await goArea(page, 'rua_leste');
   await interact(page, { portal: 'praca_academia' });
   await waitFor(page, () => window.__tb.game.room?.room === 'academia', null, 15_000, 'academia');
   await waitFor(
@@ -615,7 +609,8 @@ async function main() {
   await page.click('#bout-leave');
   await waitFor(page, () => !document.body.classList.contains('bout-on') && !window.__tb.bout.feed.camera, null, 5000, 'the bout HUD steps aside');
   await interact(page, { portal: 'academia_praca' });
-  await waitFor(page, () => window.__tb.game.room?.room === 'rua', null, 15_000, 'back from academia');
+  await waitFor(page, () => window.__tb.game.room?.room === 'rua_leste', null, 15_000, 'back from academia');
+  await goArea(page, 'rua'); // the kitnet door is on the west half
   log(`academia bout ok: ${result.winner} by ${result.reason}, ${result.moves} beats`);
 
   // 7. Kitnet: place the free chair
@@ -657,8 +652,27 @@ async function main() {
   if (!SOLO) {
     // Refresh keeps the session, the avatar, its RV, hat and kitnet.
     const before = await profile(page);
-    await page.reload();
-    await waitFor(page, () => !!window.__tb.game.room, null, 10_000, 'back in the world after reload');
+    // A long session reboots Phaser (and the kitnet) more slowly than the reload at the start of the run.
+    // One attempt can miss the welcome entirely; load again before giving up.
+    let back = false;
+    for (let attempt = 0; attempt < 2 && !back; attempt++) {
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      back = await page
+        .waitForFunction(() => !!window.__tb?.game?.room, null, { timeout: attempt === 0 ? 25_000 : 30_000 })
+        .then(() => true)
+        .catch(() => false);
+    }
+    if (!back) {
+      const diag = await page
+        .evaluate(() => ({
+          intro: !!document.querySelector('#intro-enter, #intro-skip'),
+          tb: !!window.__tb,
+          room: window.__tb?.game?.room?.room ?? null,
+          text: (document.body?.innerText ?? '').slice(0, 180),
+        }))
+        .catch((e) => String(e));
+      throw new Error(`timeout waiting for back in the world after reload (${JSON.stringify(diag)})`);
+    }
     assert(!(await page.$('#intro-skip')), 'still signed in after reload (no title screen)');
     const after = await profile(page);
     assert(after.id === before.id && after.coins === before.coins && after.hat === before.hat, `avatar + RV survive reload (${before.coins} → ${after.coins} RV)`);

@@ -380,9 +380,10 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
 
 // ---------------------------------------------------------------- map
 
-/** The three open-air areas of Vila Ipê, in walking order (split into areas), each with its minimap in the Mapa panel. */
+/** The four open-air areas of Vila Ipê (the street is two), in walking order (split into areas), each with its minimap in the Mapa panel. */
 const AREAS: { id: RoomId; pt: string; en: string }[] = [
   { id: 'rua', pt: 'Rua dos Ipês', en: 'Ipê Street' },
+  { id: 'rua_leste', pt: 'Rua dos Ipês (leste)', en: 'Ipê Street (east)' }, // needs_br: true
   { id: 'praca', pt: 'Praça Central', en: 'Central Square' },
   { id: 'feira', pt: 'Feira Livre', en: 'Street Market' },
 ];
@@ -410,7 +411,7 @@ export function openMap(go: (room: RoomId) => void) {
       h('div', null, h('b', null, pt), en(enText)),
       h('div', null, h('span', { class: 'linecolor' }), locked ? h('span', { style: 'margin-left:8px;font-weight:800' }, 'Em breve') : null),
     );
-  // the minimap shows one area at a time: tabs for the three areas, the one you are in first
+  // the minimap shows one area at a time: tabs for the four areas, the one you are in first
   let shown: RoomId = isArea(game.room?.room) ? game.room!.room! : 'praca';
   const mapBox = h('div', { class: 'map-areas' });
   const tabs = h('div', { class: 'map-tabs', role: 'tablist' });
@@ -430,13 +431,14 @@ export function openMap(go: (room: RoomId) => void) {
       { class: 'panel' },
       closeBtn(() => close()),
       h('h2', null, 'São Paulo · Vila Ipê'),
-      en('Three areas side by side: walk off an edge to go next door. Fast travel is free between places you know.'),
+      en('Four areas side by side: walk off an edge to go next door. Fast travel is free between places you know.'),
       tabs,
       mapBox,
       h(
         'div',
         { class: 'map-grid' },
-        card('rua', 'Rua dos Ipês', 'Ipê Street — padaria, newsstand, apartments, academy, bus stop', ['#7a6a5a', '#d8cbb6']),
+        card('rua', 'Rua dos Ipês', 'Ipê Street (west) — padaria, newsstand, apartments', ['#7a6a5a', '#d8cbb6']),
+        card('rua_leste', 'Rua dos Ipês (leste)', 'Ipê Street (east) — academy, school, bus stop', ['#7a6a5a', '#c9b99a']), // needs_br: true
         card('praca', 'Praça Central', 'Central Square — fountain, hats, parrot, missions', ['#d9532b', '#f2c230']),
         card('feira', 'Feira Livre', 'Street market — fruit, vegetables, pastel, flowers (6 am–1 pm)', ['#4f8a3c', '#e8a94f']),
         card('padaria', 'Padaria do Seu Carlos', 'Bakery — breakfast + “Correria no Balcão”', ['#a8452c', '#e8a94f']),
