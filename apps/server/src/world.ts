@@ -17,10 +17,13 @@ import {
   HAIR_STYLES,
   hatById,
   npcAvatarId,
+  ADMIN_KICKED_COPY,
   IDLE_KICK_MS,
   IDLE_WARN_MS,
+  WEATHER_KINDS,
   idleKickedCopy,
   idleWarningCopy,
+  type Weather,
   isRoomId,
   key,
   MAX_CHAT_LEN,
@@ -100,6 +103,7 @@ import { FeiraCounter } from './feira.js';
 import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria.js';
 import { BoutEngine, type BoutSession } from './bout.js';
 import { CartelaTracker } from './cartela.js';
+import { ADMIN_MONEY_MAX, readAdminAuthConfig } from './adminAuth.js';
 
 export interface Services {
   safety: ChatSafetyService;
@@ -135,6 +139,11 @@ export interface WorldOptions {
    * server reads `TB_TEST_CLOCK_OFFSET_MIN` (game-clock minutes are 2 real seconds each, so this is real minutes) like `TB_TEST_ROLL`.
    */
   clockOffsetMs?: number;
+  /**
+   * Password for the hidden admin panel (credits easter egg). Omit to resolve via `TB_ADMIN_PASSWORD` / the local default;
+   * pass `null` to disable admin on this world.
+   */
+  adminPassword?: string | null;
 }
 
 /** What the World needs from the account store (kept tiny so world.ts stays browser-safe for solo mode). */
@@ -143,7 +152,7 @@ export interface AccountLink {
   linkProfile(accountId: string, profileId: string): void;
 }
 
-export type CloseReason = 'replaced' | 'idle' | 'logout';
+export type CloseReason = 'replaced' | 'idle' | 'logout' | 'admin';
 
 interface AvatarState {
   from: Tile;
@@ -184,6 +193,8 @@ export interface Session {
   lastHintAt: number;
   /** Street snack in hand (session only; cleared on disconnect). */
   carry: StreetSnackId | CounterItemId | null;
+  /** Hidden admin panel unlocked for this socket (password checked server-side). */
+  admin?: boolean;
 }
 
 const INSTANCE_SUFFIX = ['Norte', 'Sul', 'Leste', 'Oeste'];
@@ -221,6 +232,10 @@ export class World {
   private readonly testRollHints: boolean;
   private readonly bouts: BoutEngine;
   private clockOffsetMs: number;
+  /** Shared weather pin for every client (`null` = natural roll from the game day). */
+  private weatherPin: Weather | null = null;
+  /** Server-side admin password, or null when the panel is off. */
+  private readonly adminPassword: string | null;
   /** The neighbours: schedules, positions, walks (pure function of the game clock). */
   private readonly npcs: NpcDirector;
   private npcTicking = false;
@@ -252,6 +267,12 @@ export class World {
     this.testRollHints = opts.testRollHints ?? readEnv('TB_TEST_ROLL') === '1';
     const envOffset = Number(readEnv('TB_TEST_CLOCK_OFFSET_MIN'));
     this.clockOffsetMs = opts.clockOffsetMs ?? (Number.isFinite(envOffset) ? envOffset * 60_000 : 0);
+    if (opts.adminPassword === null) this.adminPassword = null;
+    else if (typeof opts.adminPassword === 'string') this.adminPassword = opts.adminPassword;
+    else {
+      const cfg = readAdminAuthConfig();
+      this.adminPassword = cfg.ready && cfg.password ? cfg.password : null;
+    }
     this.npcs = new NpcDirector(() => this.clockNow());
     this.accounts = opts.accounts;
     this.idleKickMs = Math.max(1000, opts.idleKickMs ?? IDLE_KICK_MS);
@@ -481,6 +502,8 @@ export class World {
       case 'talk':
         if (this.recados.talk(s, msg.npc)) this.caderno.seen(s, talkOpener(msg.npc, s.profile?.name, gameMinutes(this.clockNow())) ?? '');
         return;
+      case 'admin':
+        return this.admin(s, msg);
     }
   }
 
@@ -525,7 +548,7 @@ export class World {
     s.profile = p;
     p.nameplate = this.services.student.nameplateFor(p);
     p.lastSeen = this.now();
-    s.send({ t: 'welcome', profile: toPrivate(p), token: p.token, serverNow: this.clockNow() });
+    s.send({ t: 'welcome', profile: toPrivate(p), token: p.token, serverNow: this.clockNow(), weather: this.weatherPin });
     if (p.photos?.length) this.pushPhotos(s);
     this.notifyFriendsOfPresence(p.id);
     const incoming = this.incomingFriendReqs.get(p.id);
@@ -707,6 +730,111 @@ export class World {
     const cur = gameMinutesExact(this.clockNow());
     this.clockOffsetMs += (((target - cur) % 1440) + 1440) % 1440 * MS_PER_GAME_MINUTE;
     return gameMinutes(this.clockNow());
+  }
+
+  /** Push the live sky (clock stamp + weather pin) to one session or every connected player. */
+  private pushSky(to?: Session) {
+    const msg = { t: 'sky' as const, serverNow: this.clockNow(), weather: this.weatherPin };
+    if (to) return to.send(msg);
+    for (const s of this.sessions.values()) if (s.profile) s.send(msg);
+  }
+
+  private admin(s: Session, msg: Extract<ClientMsg, { t: 'admin' }>) {
+    if (msg.action === 'login') {
+      if (!this.adminPassword) {
+        return s.send({
+          t: 'admin',
+          phase: 'disabled',
+          pt: 'Admin desligado neste servidor.',
+          en: 'Admin is off on this server.',
+        });
+      }
+      if (msg.password !== this.adminPassword) {
+        s.admin = false;
+        return s.send({
+          t: 'admin',
+          phase: 'auth',
+          ok: false,
+          pt: 'Senha incorreta.',
+          en: 'Wrong password.',
+        });
+      }
+      s.admin = true;
+      s.send({ t: 'admin', phase: 'auth', ok: true });
+      return this.adminList(s);
+    }
+    if (!s.admin) {
+      return s.send({
+        t: 'admin',
+        phase: 'auth',
+        ok: false,
+        pt: 'Entre com a senha de admin primeiro.',
+        en: 'Sign in with the admin password first.',
+      });
+    }
+    if (msg.action === 'logout') {
+      s.admin = false;
+      return s.send({ t: 'admin', phase: 'auth', ok: false, pt: 'Modo admin desligado.', en: 'Admin mode off.' });
+    }
+    if (msg.action === 'list') return this.adminList(s);
+    if (msg.action === 'kick') return this.adminKick(s, msg.targetId);
+    if (msg.action === 'money') return this.adminMoney(s, msg.amount);
+    if (msg.action === 'clock') {
+      const minute = this.setClockMinute(msg.minute);
+      this.pushSky();
+      return s.send({
+        t: 'notice',
+        level: 'info',
+        pt: `Horário do bairro: ${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}.`,
+        en: `Neighborhood clock set.`,
+      });
+    }
+    if (msg.action === 'weather') {
+      if (msg.weather !== null && !(WEATHER_KINDS as readonly string[]).includes(msg.weather)) {
+        return this.err(s, 'admin', 'Clima inválido.', 'Invalid weather.');
+      }
+      this.weatherPin = msg.weather;
+      this.pushSky();
+      return s.send({
+        t: 'notice',
+        level: 'info',
+        pt: msg.weather ? `Clima: ${msg.weather}.` : 'Clima automático de novo.',
+        en: msg.weather ? `Weather: ${msg.weather}.` : 'Weather follows the day again.',
+      });
+    }
+  }
+
+  private adminList(s: Session) {
+    const players = [...this.sessions.values()]
+      .filter((x) => x.profile)
+      .map((x) => ({
+        id: x.profile!.id,
+        name: x.profile!.name,
+        room: x.instance?.def.id ?? null,
+        roomName: x.instance?.name ?? null,
+      }));
+    s.send({ t: 'admin', phase: 'players', players });
+  }
+
+  private adminKick(s: Session, targetId: string) {
+    const id = String(targetId ?? '');
+    if (!id || id === s.profile?.id) {
+      return this.err(s, 'admin', 'Escolha outra pessoa pra liberar a vaga.', 'Pick someone else to remove.');
+    }
+    const target = this.sessionByProfile(id);
+    if (!target?.profile) return this.err(s, 'admin', 'Essa pessoa não está na Praça.', 'That player is not in the Praça.');
+    const name = target.profile.name;
+    this.kick(target, 'admin', { t: 'kicked', reason: 'admin', ...ADMIN_KICKED_COPY });
+    this.adminList(s);
+    s.send({ t: 'notice', level: 'info', pt: `${name} saiu da Praça.`, en: `${name} left the Praça.` });
+  }
+
+  private adminMoney(s: Session, amount: number) {
+    const n = Math.floor(Number(amount));
+    if (!Number.isFinite(n) || n < 1 || n > ADMIN_MONEY_MAX) {
+      return this.err(s, 'admin', `Pode adicionar de 1 a ${ADMIN_MONEY_MAX} RV por vez.`, `You can add 1 to ${ADMIN_MONEY_MAX} RV at a time.`);
+    }
+    this.reward(s, n, { pt: 'Admin: reais virtuais', en: 'Admin: virtual reais' });
   }
 
   /** Game minute (0..1439), for the HTTP Conversa flow (it has no session): the NPCs greet by it. */

@@ -85,3 +85,9 @@ export function idleKickedCopy(idleMs: number): Bilingual {
     en: `You were idle for ${t.en}, so we freed up your spot in the Praça. You’re still signed in.`,
   };
 }
+
+/** Copy shown when an admin removes a player from the world. */
+export const ADMIN_KICKED_COPY: Bilingual = {
+  pt: 'Um administrador liberou sua vaga na Praça. Sua conta continua conectada.',
+  en: 'An admin freed up your spot in the Praça. You’re still signed in.',
+};

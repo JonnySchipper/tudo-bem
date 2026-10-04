@@ -22,6 +22,7 @@ import type { ExchangeEvent, IntentId, RefSignal, Score } from './bout.js';
 import type { RecadoActiveView, RecadoOfferView } from './recados.js';
 import type { CartelaActivity } from './cartela.js';
 import type { PriceOption, VendorId } from './feira.js';
+import type { Weather } from './weather.js';
 
 /** Client → server messages. JSON over a single WebSocket at /ws. */
 export type ClientMsg =
@@ -104,7 +105,26 @@ export type ClientMsg =
   | { t: 'bout'; v: 1; action: 'intent'; seq: number; intent: IntentId | 'finalizar' }
   | { t: 'bout'; v: 1; action: 'answer'; seq: number; answer: BoutAnswer }
   | { t: 'bout'; v: 1; action: 'quit' }
+  /**
+   * Hidden ops panel (credits easter egg). The server checks the password once per socket; later actions need that flag.
+   * `list` refreshes the online player roster; `kick` removes another player; `money` pays the caller; `clock` / `weather` pin the shared sky.
+   */
+  | { t: 'admin'; action: 'login'; password: string }
+  | { t: 'admin'; action: 'logout' }
+  | { t: 'admin'; action: 'list' }
+  | { t: 'admin'; action: 'kick'; targetId: string }
+  | { t: 'admin'; action: 'money'; amount: number }
+  | { t: 'admin'; action: 'clock'; minute: number }
+  | { t: 'admin'; action: 'weather'; weather: Weather | null }
   | { t: 'ping' };
+
+/** One online player row for the admin panel. */
+export interface AdminPlayerRow {
+  id: string;
+  name: string;
+  room: RoomId | null;
+  roomName: string | null;
+}
 
 /** One new word of a shot, as the card shows it. A shot that teaches several words sends one of these for each, in the order to show them. */
 export interface DiaryMoment {
@@ -317,7 +337,7 @@ export type BoutServerMsg =
 
 /** Server → client messages. */
 export type ServerMsg =
-  | { t: 'welcome'; profile: PrivateProfile; token: string; serverNow?: number }
+  | { t: 'welcome'; profile: PrivateProfile; token: string; serverNow?: number; weather?: import('./weather.js').Weather | null }
   /**
    * The diary photos (small jpegs). Sent after `welcome` and whenever a photo is added, never inside `profile`: a dozen images in every
    * profile push made each reward, step and stamp carry ~100 KB.
@@ -327,10 +347,16 @@ export type ServerMsg =
   /** Multiplayer needs an email + password account; this socket has no valid session cookie. */
   | { t: 'authRequired' }
   | { t: 'idleWarning'; msLeft: number; pt: string; en: string }
-  /** Sent right before the server closes the socket (code 4001) to free the seat. */
-  | { t: 'kicked'; reason: 'idle'; pt: string; en: string }
+  /** Sent right before the server closes the socket (idle = 4001, admin = 4003) to free the seat. */
+  | { t: 'kicked'; reason: 'idle' | 'admin'; pt: string; en: string }
   | { t: 'profile'; profile: PrivateProfile }
   | RoomStateMsg
+  /** Live sky sync: game-clock stamp and optional weather pin (`null` clears the pin). Sent on admin changes and with welcome. */
+  | { t: 'sky'; serverNow: number; weather: Weather | null }
+  | { t: 'admin'; phase: 'auth'; ok: true }
+  | { t: 'admin'; phase: 'auth'; ok: false; pt: string; en: string }
+  | { t: 'admin'; phase: 'players'; players: AdminPlayerRow[] }
+  | { t: 'admin'; phase: 'disabled'; pt: string; en: string }
   | { t: 'avatarJoined'; avatar: PublicAvatar }
   | { t: 'avatarLeft'; id: string }
   | { t: 'avatarMoved'; id: string; from: Tile; path: Tile[]; sit: boolean }
