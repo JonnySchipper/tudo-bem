@@ -155,32 +155,7 @@ export function buildHud(actions: HudActions) {
   );
   const gearWrap = h('div', { class: 'hud-gear-wrap' }, gear, menu);
   const drawerPlate = h('span', { class: 'hud-drawer-head' }, h('span', { class: 'hud-verde', title: 'Verde: you see English under Portuguese' }, icon('verde', 16), 'Verde'), h('span', { class: 'hud-drawer-hint' }, 'Menu'));
-  const glyph = (draw: string) => {
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('viewBox', '0 0 32 32');
-    svg.setAttribute('width', '32');
-    svg.setAttribute('height', '32');
-    svg.setAttribute('aria-hidden', 'true');
-    svg.innerHTML = draw;
-    return svg;
-  };
-  const labeled = (id: string, art: string, pt: string, enText: string, onclick: () => void) =>
-    h(
-      'button',
-      {
-        class: 'hud-btn',
-        id,
-        type: 'button',
-        'aria-label': `${pt} (${enText})`,
-        onclick: () => {
-          closeMenus();
-          onclick();
-        },
-      },
-      glyph(art),
-      h('span', { class: 'hud-label' }, h('b', { class: 'pt' }, pt), h('i', { class: 'hud-gloss' }, enText)),
-    );
-  const cameraBtn = labeled('btn-camera', '<rect x="5" y="11" width="22" height="14" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="18" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 11 L14 7 H18 L20 11" fill="none" stroke="currentColor" stroke-width="2"/>', 'Câmera', 'Camera', actions.toggleCamera);
+  const cameraBtn = btn('btn-camera', 'camera', 'Câmera', 'Camera', actions.toggleCamera);
   cameraBtn.style.display = 'none';
   const actionsNav = h(
     'nav',

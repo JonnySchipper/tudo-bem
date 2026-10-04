@@ -511,6 +511,25 @@ ICON_ROWS.burger = [
   '................',
 ];
 
+ICON_ROWS.camera = [
+  '................',
+  '................',
+  '....oooooo..oo..',
+  '...oRRWRRRo.oo..',
+  '.oooooooooooooo.',
+  '.oRWRRRRRRRRYYo.',
+  '.oNNNNooooNNNNo.',
+  '.oNNNoRRRRoNNNo.',
+  '.oNNoRobboRoNNo.',
+  '.oNNoRbBboRoNNo.',
+  '.oNNoRbbboRoNNo.',
+  '.oNNNoRRRRoNNNo.',
+  '.oNNNNooooNNNNo.',
+  '.oooooooooooooo.',
+  '................',
+  '................',
+];
+
 export const UI_ICON_NAMES = Object.keys(ICON_ROWS);
 
 function draw(rows) {

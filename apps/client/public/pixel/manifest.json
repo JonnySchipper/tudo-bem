@@ -10704,6 +10704,11 @@
    "w": 16,
    "h": 16
   },
+  "ui/icon_camera": {
+   "file": "ui/icon_camera.png",
+   "w": 16,
+   "h": 16
+  },
   "chars/parrot_strip": {
    "file": "chars/parrot_strip.png",
    "w": 32,

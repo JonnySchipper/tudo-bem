@@ -87,8 +87,11 @@ try {
   await shot('06-camera-new-word');
   const after = await page.evaluate(() => ({ film: window.__tb.game.profile.film, photos: window.__tb.game.profile.photos?.length ?? 0 }));
   assert(after.film === before.film - 1 && after.photos === before.photos + 1, `a click takes a photo (film ${before.film}→${after.film}, photos ${before.photos}→${after.photos})`);
-  // the new-word card does not block the next shot
+  // one photo per opening: the camera closed itself after the shot
+  assert(!(await page.evaluate(() => window.__tb.game.cameraOn)), 'the camera closes after a photo');
+  // the new-word card does not block reopening the camera and taking the next shot
   await sleep(300);
+  await page.click('#btn-camera');
   const sky = { x: 200, y: 520 };
   await page.mouse.move(sky.x, sky.y, { steps: 4 });
   await page.mouse.click(sky.x, sky.y);
@@ -97,8 +100,6 @@ try {
   const after2 = await page.evaluate(() => window.__tb.game.profile.photos?.length ?? 0);
   assert(after2 === after.photos + 1, 'a second shot while the new-word card is up still fires');
   await sleep(3200);
-  await page.click('#btn-camera');
-  await sleep(400);
 
   // ---------------------------------------------------------------- diary
   await page.click('#btn-caderno');
