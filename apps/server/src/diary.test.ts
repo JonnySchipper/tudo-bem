@@ -324,20 +324,22 @@ describe('arrival, camera, diary and the escola', () => {
     expect(shot.ok && shot.areaPt).toBe('Kitnet');
   });
 
-  it('hears ambient lines from a little farther than a talk, a vendor’s greeting at the stall, the counter line at the counter', async () => {
+  it('teaches a line only to somebody next to the speaker: a vendor’s greeting at the stall, the counter line at the counter, an NPC’s own line when talked to', async () => {
     const world = makeWorld();
     const a = await client(world);
     await a.send({ t: 'arrival', action: 'finish' });
     const julia = a.last('roomState')?.avatars.find((v) => v.npc === 'julia')!;
     expect(julia.npcInteract).toBeTruthy();
-    // across the square she cannot be heard, whatever the line
+    // across the square, or even a few tiles off (passing by), nothing is learned from her lines
     await walkTo(a, 1, 22);
     await a.send({ t: 'diary', action: 'line', anchor: 'julia.idle0' });
-    expect(ptOf(a.s.profile?.diary)).not.toContain('ajuda');
-    // 6 tiles off: close enough to hear the ambient line, too far for a talk node
     await walkTo(a, julia.npcInteract!.x, julia.npcInteract!.y + 6);
+    await a.send({ t: 'diary', action: 'line', anchor: 'julia.idle0' });
     await a.send({ t: 'diary', action: 'line', anchor: 'julia.ajuda' });
+    expect(ptOf(a.s.profile?.diary)).not.toContain('ajuda');
     expect(ptOf(a.s.profile?.diary)).not.toContain('guia');
+    // next to her, as when the player walked up and talked
+    await walkTo(a, julia.npcInteract!.x, julia.npcInteract!.y);
     await a.send({ t: 'diary', action: 'line', anchor: 'julia.idle0' });
     expect(wordMsgs(a).at(-1)).toMatchObject({ pt: 'ajuda', source: 'conversation' });
     await a.send({ t: 'diary', action: 'line', anchor: 'julia.idle2' });

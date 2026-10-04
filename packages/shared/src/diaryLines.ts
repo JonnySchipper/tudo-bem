@@ -1,12 +1,12 @@
 /**
  * Every line a conversation word can be heard in. An anchor id is one of:
  *   `<npc>.<node>`    a node of the NPC's greeting talk (npcTalk.ts)
- *   `<npc>.idle<N>`   the Nth ambient line over the NPC's head (rooms.ts idleLines)
+ *   `<npc>.idle<N>`   the Nth line from the NPC's own list (rooms.ts idleLines), said to the player who chose to talk to them
  *   `<npc>.greet`     a feira vendor's opening line at the stall (feira.ts)
  *   `<npc>.closed`    the same vendor's line when the stall is shut
  *   `carlos.viagem`   the counter line when an order goes to-go (conversa.ts)
  *   `julia.chegada_*` the arrival card, Júlia speaking
- * The server checks the player is near the speaker; the diary keeps one word per line.
+ * The server checks the player is next to the speaker. Lines said to nobody in particular (the ambient bubbles) teach nothing.
  */
 import { ARRIVAL_LINES } from './arrival.js';
 import { VENDORS } from './feira.js';
@@ -26,9 +26,6 @@ export interface DiaryLine {
 export const COUNTER_LINES: Record<string, string> = {
   'carlos.viagem': 'Pra viagem, então. Tá na mão. Volte sempre!',
 };
-
-/** An ambient line is heard from this far (Chebyshev tiles), a little farther than a talk. */
-export const IDLE_HEAR_RANGE = 6;
 
 /** Speakers that stand in for each other at the same counter (Dona Graça takes the night shift of Seu Carlos). */
 export const COUNTER_STAND_INS: Record<string, string[]> = { carlos: ['graca'] };
