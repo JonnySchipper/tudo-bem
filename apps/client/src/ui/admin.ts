@@ -34,29 +34,27 @@ export function onAdminMsg(m: Extract<ServerMsg, { t: 'admin' } | { t: 'sky' }>)
   }
   if (m.phase === 'disabled') {
     unlocked = false;
-    if (authError) {
-      authError.hidden = false;
-      authError.textContent = m.pt;
-    }
+    showAuthError(m.pt);
     return;
   }
   if (m.phase === 'auth') {
     unlocked = m.ok;
     if (m.ok) openAdminPanel();
-    else if (authError) {
-      authError.hidden = false;
-      authError.textContent = m.pt;
-    } else if (modalId() === 'admin') {
+    else if (authError) showAuthError(m.pt);
+    else if (modalId() === 'admin') {
       // Socket lost its admin flag (reconnect): bounce back to the password form.
       openAdminLogin();
-      if (authError) {
-        authError.hidden = false;
-        authError.textContent = m.pt;
-      }
+      showAuthError(m.pt);
     }
     return;
   }
   if (m.phase === 'players') renderPlayers(m.players);
+}
+
+function showAuthError(pt: string): void {
+  if (!authError) return;
+  authError.hidden = false;
+  authError.textContent = pt;
 }
 
 /** Open the admin login, or the panel again when this socket is already unlocked. */
