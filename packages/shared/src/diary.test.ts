@@ -14,6 +14,8 @@ import {
   handCartela,
   normalizeArrival,
   normalizeDiary,
+  PHOTO_MAX_CHARS,
+  pickPhotoUrl,
   objectAnchorExists,
   practiceCorrect,
   practiceRound,
@@ -90,6 +92,15 @@ describe('language diary catalog', () => {
     expect(practiceCorrect(round!.wordId, 'Fonte')).toBe(true);
     expect(practiceCorrect(round!.wordId, 'porta')).toBe(false);
     expect(practiceRound([], game, () => 0)).toBeNull();
+  });
+
+  it('sends a viewfinder jpeg only when it fits on the socket', () => {
+    const small = 'data:image/jpeg;base64,AAAA';
+    const big = `data:image/jpeg;base64,${'A'.repeat(PHOTO_MAX_CHARS)}`;
+    expect(pickPhotoUrl([big, small])).toBe(small);
+    expect(pickPhotoUrl([big])).toBeUndefined();
+    expect(pickPhotoUrl(['data:image/png;base64,AAAA', small])).toBe(small);
+    expect(pickPhotoUrl([small, big])).toBe(small);
   });
 
   it('hands the cartela over with the camera, and treats a missing arrival flag as already home', () => {

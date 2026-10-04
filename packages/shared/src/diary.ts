@@ -257,6 +257,11 @@ export const PHOTO_RANGE = 8;
 
 export const PHOTO_KEEP = 12;
 export const PHOTO_MAX_CHARS = 80_000;
+/**
+ * One diary photo plus the message around it. The socket used to stop at 16KB, so a phone shot
+ * (a real jpeg) closed the connection before the handler ever saw it.
+ */
+export const WS_MAX_PAYLOAD = PHOTO_MAX_CHARS + 8 * 1024;
 
 export interface DiaryPhoto {
   id: string;
@@ -274,6 +279,18 @@ export function normalizeFilm(raw: unknown): number {
 export function photoImage(raw: unknown): string | null {
   if (typeof raw !== 'string' || !raw.startsWith('data:image/jpeg') || raw.length > PHOTO_MAX_CHARS) return null;
   return raw;
+}
+
+/**
+ * The first viewfinder jpeg that fits on the socket. A larger one is not sent: the frame used to be
+ * bigger than the server accepted, and the connection closed on the shot.
+ */
+export function pickPhotoUrl(candidates: readonly string[]): string | undefined {
+  for (const url of candidates) {
+    const ok = photoImage(url);
+    if (ok) return ok;
+  }
+  return undefined;
 }
 
 export function normalizePhotos(raw: unknown): DiaryPhoto[] {
