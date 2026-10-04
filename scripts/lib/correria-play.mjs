@@ -229,6 +229,12 @@ async function takeCooked(page, itemId, before, putAt) {
     if ((await itemCount(page, itemId)) > before) return true;
     const untilClick = putAt + COOK_MS + 160 - Date.now();
     if (untilClick > 60) {
+      // A put that never reached the server leaves the slots empty. Waiting out the cook just burns the customer's patience.
+      if (Date.now() > putAt + 450) {
+        const early = await grillView(page);
+        const live = early.slots.filter((s) => !s.hidden && s.phase !== 'empty');
+        if (!live.length) return (await itemCount(page, itemId)) > before;
+      }
       await sleep(Math.min(untilClick, 180));
       continue;
     }
@@ -314,10 +320,23 @@ async function endPour(page) {
 }
 
 /**
- * One cup. The good window is 70%–108% of pourMs on the server clock. Start and release inside the page so a
- * Playwright round trip cannot hold the cup past the spill line. Returns ok / short / spill / miss / gone.
+ * How much longer the server keeps the cup than the page's own timer (ms). A busy runner delivers pour_end
+ * late. The first cup aims early (this starts unset); each fill then moves it part of the way, and it is kept
+ * for the whole shift — resetting after one good cup is how every coffee spilled again on CI.
  */
-async function pourOne(page, itemId, pourMs, factor) {
+let pourLagMs = null;
+/** Middle of the good window (70%–108%). */
+const POUR_AIM = 0.86;
+/** First-cup head start, as a fraction of pourMs. CI's cold timer ran ~0.4 past the aim; 0.36 lands that cup inside the window. */
+const POUR_LAG0 = 0.36;
+
+/**
+ * One cup. The good window is 70%–108% of pourMs on the server clock. The hold is a page timer started with
+ * pour_start: waiting until a snapshot says the cup is full counts the trip there and then the trip back, so
+ * the release lands past the spill line whenever the runner is slow. Returns ok / short / spill / miss / gone,
+ * and moves `pourLagMs` from the fill the server reports.
+ */
+async function pourOne(page, itemId, pourMs) {
   if (await frontGone(page)) return 'gone';
   const before = await itemCount(page, itemId);
   if ((await snap(page))?.pour) {
@@ -325,43 +344,56 @@ async function pourOne(page, itemId, pourMs, factor) {
     if ((await itemCount(page, itemId)) > before) return 'ok';
     if (await frontGone(page)) return 'gone';
   }
-  const target = Math.round(pourMs * factor);
+  if (pourLagMs == null) pourLagMs = Math.round(pourMs * POUR_LAG0);
+  const target = Math.round(Math.max(pourMs * 0.4, Math.min(pourMs * 0.98, pourMs * POUR_AIM - pourLagMs)));
   const released = await page.evaluate(({ itemId, target }) => {
     const feed = window.__tb?.correria?.feed;
-    if (!feed?.on?.pourStart || !feed.snap) return 'gone';
-    feed.on.pourStart(itemId);
-    const t0 = performance.now();
-    return new Promise((resolve) => {
-      const tick = () => {
-        const p = feed.snap?.pour;
-        if (!p || p.item !== itemId) {
-          if (performance.now() - t0 > 900) return resolve('miss');
-          setTimeout(tick, 30);
-          return;
+    if (!feed?.on?.pourStart || !feed.snap) return { status: 'gone' };
+    if (!feed.__tbPourTap) {
+      const orig = feed.push.bind(feed);
+      feed.push = (c) => {
+        const e = c?.e;
+        if (c?.t === 'ev' && e && (e.k === 'pour_ok' || e.k === 'pour_bad')) {
+          feed.__tbLastPour = { k: e.k, fill: e.fill, why: e.why ?? null, at: performance.now() };
         }
-        let extra = performance.now() - (feed.snapAt || performance.now());
-        if (!Number.isFinite(extra) || extra < 0) extra = 0;
-        const remain = target - (p.age + extra);
-        if (remain <= 20) {
-          feed.on.pourEnd();
-          resolve('ended');
-        } else setTimeout(tick, Math.min(remain, 40));
+        return orig(c);
       };
-      setTimeout(tick, 20);
+      feed.__tbPourTap = true;
+    }
+    const mark = performance.now();
+    feed.__tbLastPour = null;
+    feed.on.pourStart(itemId);
+    return new Promise((resolve) => {
+      const releaseAt = mark + target;
+      const tick = () => {
+        if (performance.now() >= releaseAt) {
+          feed.on.pourEnd();
+          resolve({ status: 'ended', mark });
+        } else setTimeout(tick, Math.min(30, Math.max(0, releaseAt - performance.now())));
+      };
+      tick();
     });
   }, { itemId, target });
-  if (released === 'gone' || !(await shiftLive(page))) return 'gone';
-  const until = Date.now() + 900;
+  if (!released || released.status === 'gone' || !(await shiftLive(page))) return 'gone';
+  const until = Date.now() + 1200;
   while (Date.now() < until) {
-    if ((await itemCount(page, itemId)) > before) return 'ok';
-    const s = await snap(page);
-    if (s && !s.pour) {
-      const say = await sayOf(page);
-      // "Derramou!" stays on screen for a second spill, so the line does not have to change to count.
-      if (say.includes('Derramou')) return 'spill';
-      if (say.includes('Faltou')) return 'short';
+    const last = await page.evaluate((mark) => {
+      const p = window.__tb?.correria?.feed?.__tbLastPour;
+      return p && p.at >= mark ? p : null;
+    }, released.mark);
+    if (last) {
+      const fill = typeof last.fill === 'number' ? last.fill : null;
+      if (fill != null && pourMs > 0) {
+        // Part of the error, not all of it: one cold cup must not swing the next hold out of the window.
+        const next = pourLagMs + Math.round((fill - POUR_AIM) * pourMs * 0.75);
+        pourLagMs = Math.max(Math.round(-pourMs * 0.1), Math.min(Math.round(pourMs * 0.48), next));
+      }
+      if (last.k === 'pour_ok' || (await itemCount(page, itemId)) > before) return 'ok';
+      if (last.why === 'spill') return 'spill';
+      if (last.why === 'short') return 'short';
       return 'miss';
     }
+    if ((await itemCount(page, itemId)) > before) return 'ok';
     await sleep(40);
   }
   await nudgeSnap(page);
@@ -369,26 +401,23 @@ async function pourOne(page, itemId, pourMs, factor) {
   return 'miss';
 }
 
-/** Pour until the tray holds `qty`. A miss shortens or lengthens the next hold; three misses stop so the caller can top up. */
+/** Pour until the tray holds `qty`. A miss moves the next hold from the fill the server reported; four tries, then the caller can top up. */
 async function pourUntil(page, itemId, qty, pourMs) {
-  // 76% sits inside 70%–108%. A busy frame delivers pour_end late, so the next hold steps down before it spills again.
-  let factor = 0.76;
   let misses = 0;
-  while ((await itemCount(page, itemId)) < qty && misses < 3) {
+  while ((await itemCount(page, itemId)) < qty && misses < 4) {
     if (await frontGone(page)) return;
     const before = await itemCount(page, itemId);
-    const result = await pourOne(page, itemId, pourMs, factor);
+    const result = await pourOne(page, itemId, pourMs);
     if (result === 'gone') return;
     if ((await itemCount(page, itemId)) > before) {
       misses = 0;
-      factor = 0.76;
       continue;
     }
     misses++;
-    if (result === 'spill') factor = Math.max(0.68, Math.round((factor - 0.05) * 100) / 100);
-    else if (result === 'short') factor = Math.min(0.88, Math.round((factor + 0.06) * 100) / 100);
-    else factor = Math.min(0.84, Math.round((factor + 0.04) * 100) / 100);
-    console.log(`  · pour ${itemId} ${result} → hold ${factor}`);
+    // No fill came back (the cup vanished). Step blind so the next hold is not the same length.
+    if (result === 'miss') pourLagMs = Math.min(Math.round(pourMs * 0.48), (pourLagMs ?? 0) + Math.round(pourMs * 0.08));
+    const hold = pourMs > 0 ? Math.round((100 * (pourMs * POUR_AIM - (pourLagMs ?? 0))) / pourMs) / 100 : 0;
+    console.log(`  · pour ${itemId} ${result} → hold ${hold}`);
   }
 }
 
@@ -531,11 +560,12 @@ const serveDiag = (page) =>
 export async function serve(page) {
   trace('serve');
   // Entregar stays disabled while the tray is empty or nobody is waiting. A customer who already walked
-  // off (patience, or a second miss) must not abort the rest of the shift.
+  // off (patience, or a second miss) must not abort the rest of the shift. "Quanto é?" also disables it;
+  // that question is answered by the caller, and waiting here used to fail the whole play path.
   const until = Date.now() + 8000;
   while (Date.now() < until) {
     const st = await serveDiag(page).catch(() => null);
-    if (!st || st.ended || !st.front) {
+    if (!st || st.ended || !st.front || st.front.state === 'asking') {
       console.log(`  · Entregar skipped (${JSON.stringify(st)})`);
       return false;
     }
@@ -551,6 +581,10 @@ export async function serve(page) {
     await sleep(80);
   }
   const diag = await serveDiag(page).catch(() => null);
+  if (!diag?.front || diag.front.state === 'asking' || diag.ended) {
+    console.log(`  · Entregar skipped (${JSON.stringify(diag)})`);
+    return false;
+  }
   throw new Error(`#cr-serve stayed disabled (${JSON.stringify(diag)})`);
 }
 
@@ -651,7 +685,11 @@ export async function playShift(page, { log = () => {}, dwell = () => Promise.re
       if (await shiftLive(page)) await clearTray(page);
       continue;
     }
-    if (!(await serve(page))) continue;
+    if (!(await serve(page))) {
+      // Entregar stays disabled through "Quanto é?". Answer it here; a customer who already left is a no-op.
+      await answerAsk(page);
+      continue;
+    }
     await sleep(150);
     // a wrong tray gets one correction: rebuild from the (possibly updated) order and serve again
     const still = (await snap(page))?.customers.find((x) => x.id === c.id && x.state === 'front');

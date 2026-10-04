@@ -11,7 +11,6 @@
  */
 import Phaser from 'phaser';
 import {
-  cameraObjectIds,
   buildGrid,
   feiraOpen,
   canPlaceFurniture,
@@ -68,7 +67,7 @@ import { CounterStage } from './correriaStage';
 import { correriaFeed } from './correriaFeed';
 import { FOCUS, NEED } from './correriaArt';
 import { roomKey, syncViews } from './reconcile';
-import { DEPTH, PROP_LIGHT, fencePieces, footprintRect, inflate, propAnchor, propDepth, furnitureArtKey, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
+import { DEPTH, PROP_LIGHT, fencePieces, footprintRect, inflate, propAnchor, propClickKind, propDepth, furnitureArtKey, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
 import { sceneryFor } from './scenery';
 import {
   FLOOR_PLACEHOLDER,
@@ -699,9 +698,10 @@ export class WorldScene extends Phaser.Scene {
       this.placeholder(`${propPlaceholderKey(p)}#${p.id}`, foot, depth);
     }
 
-    if (p.action || cameraObjectIds().has(p.id)) {
+    const click = propClickKind(p);
+    if (click === 'prop') {
       this.staticHits.push({ ...inflate(unionRect(visual, foot), 2), hit: { kind: 'prop', prop: p }, depth: a.wy });
-    } else if (p.seat) {
+    } else if (click === 'seat') {
       const { w, h } = propSize(p);
       for (const t of propTiles(p)) {
         const tile: Rect = { x0: t.x * T, y0: t.y * T, x1: (t.x + 1) * T, y1: (t.y + 1) * T };

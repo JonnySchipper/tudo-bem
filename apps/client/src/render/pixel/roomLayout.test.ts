@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { ROOMS } from '@tudobem/shared';
+import { ROOMS, cameraObjectIds } from '@tudobem/shared';
 import { T } from './coords';
 import { allNorthDecor, decorArt, relocatedWestDecor, describeSkipped, doormatRect, northBandRect, northDecor, northFacades, portalHitRect, roomBounds, skippedWestDecor, westDoorRect, westStripRect, windowPatches } from './roomLayout';
-import { footprintRect, idTiebreak, propAnchor, propArtKey, propSlices, standingDepth } from './props';
+import { footprintRect, idTiebreak, propAnchor, propArtKey, propClickKind, propSlices, standingDepth } from './props';
 
 describe('interior walls (top-down)', () => {
   it('the north band is 3 tiles tall above row 0, the west strip 1 tile wide left of column 0', () => {
@@ -149,5 +149,18 @@ describe('art track 3 wall art and props', () => {
     if (!chair) throw new Error('chair');
     expect(propArtKey(chair)).toBe('props/cadeira_padaria_e');
     expect(propArtKey({ ...chair, seat: 'NE' })).toBe('props/cadeira_padaria_n');
+  });
+
+  it('a bench the diary can photograph is still a seat', () => {
+    const bench = ROOMS.praca.props.find((p) => p.id === 'banco_1');
+    if (!bench) throw new Error('banco_1');
+    expect(cameraObjectIds().has('banco_1')).toBe(true);
+    expect(propClickKind(bench)).toBe('seat');
+    for (const id of ['banco_2', 'banco_3', 'banco_4', 'banco_5', 'banco_feira']) {
+      const p = Object.values(ROOMS).flatMap((r) => r.props).find((x) => x.id === id);
+      expect(propClickKind(p!), id).toBe('seat');
+    }
+    const fonte = ROOMS.praca.props.find((p) => p.id === 'fonte');
+    expect(propClickKind(fonte!)).toBe('prop');
   });
 });
