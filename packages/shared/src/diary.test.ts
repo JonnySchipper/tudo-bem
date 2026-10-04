@@ -1,32 +1,41 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DIARY_AREAS,
+  DIARY_GAMES,
   DIARY_SOURCES,
   DIARY_WORDS,
   areaBoard,
   assertDiaryPack,
+  cameraObjectIds,
   diaryGame,
   diaryKey,
+  diaryPackProblems,
   grantDiaryWord,
   handCartela,
   normalizeArrival,
   normalizeDiary,
+  objectAnchorExists,
   practiceCorrect,
   practiceRound,
   progressLine,
+  wordsForPhoto,
   type DiaryPack,
 } from './diary.js';
+import { hotspotById } from './hotspots.js';
+import { ROOMS } from './rooms.js';
 
 const pack = (): DiaryPack => ({
-  areas: [{ id: 'praca', pt: 'Praça', en: 'Square' }],
+  areas: DIARY_AREAS.map((a) => ({ ...a })),
   words: DIARY_WORDS.map((w) => ({ ...w, anchor: { ...w.anchor } })),
-  games: [],
+  games: DIARY_GAMES.map((g) => ({ ...g })),
 });
 
 describe('language diary catalog', () => {
   it('keeps one Portuguese word to one source, and the seeded praça path is marked', () => {
     const keys = DIARY_WORDS.map((w) => diaryKey(w.pt));
     expect(new Set(keys).size).toBe(keys.length);
-    const anchors = DIARY_WORDS.map((w) => `${w.anchor.kind}:${w.anchor.id}`);
+    // a crate of melancias is a caixote and a melancia: only camera objects may teach more than one word
+    const anchors = DIARY_WORDS.filter((w) => w.source !== 'camera').map((w) => `${w.anchor.kind}:${w.anchor.id}`);
     expect(new Set(anchors).size).toBe(anchors.length);
     for (const w of DIARY_WORDS) expect(DIARY_SOURCES).toContain(w.source);
     expect(DIARY_WORDS.filter((w) => w.seed).map((w) => w.id).sort()).toEqual([
@@ -88,5 +97,78 @@ describe('language diary catalog', () => {
     expect(normalizeArrival(undefined)).toEqual({ arrivalIntroDone: true, hasCamera: false });
     expect(normalizeArrival({ arrivalIntroDone: false, hasCamera: false })).toEqual({ arrivalIntroDone: false, hasCamera: false });
     expect(normalizeArrival({ arrivalIntroDone: true, hasCamera: true })).toEqual({ arrivalIntroDone: true, hasCamera: true });
+  });
+});
+
+/** The catalog v2 (2026-10-03): every area and source count, and where each word is earned. */
+describe('language diary catalog v2', () => {
+  const TOTALS: Record<string, [number, number, number, number]> = {
+    chegada: [14, 6, 4, 0],
+    praca: [98, 16, 9, 0],
+    rua: [51, 31, 0, 0],
+    padaria: [38, 5, 6, 5],
+    feira: [53, 10, 9, 0],
+    kitnet: [64, 5, 0, 0],
+    academia: [20, 7, 7, 0],
+    escola: [22, 5, 3, 1],
+  };
+
+  it('has 489 words: the counts of every area and source, 135 that were already anchored and 354 that were added', () => {
+    expect(DIARY_WORDS).toHaveLength(489);
+    for (const [area, want] of Object.entries(TOTALS)) {
+      const got = DIARY_SOURCES.map((src) => DIARY_WORDS.filter((w) => w.area === area && w.source === src).length);
+      expect(got, area).toEqual(want);
+    }
+    expect(DIARY_AREAS.map((a) => a.id)).toEqual(Object.keys(TOTALS));
+    expect(DIARY_WORDS.filter((w) => w.origin === 'existing')).toHaveLength(135);
+    expect(DIARY_WORDS.filter((w) => w.origin === 'added')).toHaveLength(354);
+    for (const w of DIARY_WORDS) expect(w.needsBr, w.id).toBe(true);
+  });
+
+  it('is a valid pack: nothing wrong with any anchor, and every reading and conversation word is in its text', () => {
+    expect(diaryPackProblems(pack())).toEqual([]);
+  });
+
+  it('gives every camera word an object that exists in a room, a wall spot, the furniture catalog or the airport hall', () => {
+    for (const w of DIARY_WORDS.filter((x) => x.source === 'camera')) {
+      for (const id of [w.anchor.id, ...(w.also ?? [])]) expect(objectAnchorExists(id), `${w.pt}: ${id}`).toBe(true);
+    }
+    // an object taught nothing by the catalog is not a camera object
+    expect(cameraObjectIds().has('lixeira_p1')).toBe(true);
+    expect(cameraObjectIds().has('carteira')).toBe(true);
+    expect(cameraObjectIds().has('canteiro_coreto_1')).toBe(false);
+  });
+
+  it('puts every added object in the room its area is about, on a tile the room has', () => {
+    const roomOf: Record<string, keyof typeof ROOMS> = { praca: 'praca', rua: 'rua', padaria: 'padaria', feira: 'feira', kitnet: 'kitnet', academia: 'academia', escola: 'escola' };
+    for (const w of DIARY_WORDS.filter((x) => x.origin === 'added' && x.source === 'camera' && x.area !== 'chegada')) {
+      const room = ROOMS[roomOf[w.area]!];
+      const there = (id: string) => room.props.some((p) => p.id === id) || !!(id.startsWith('kitnet_') || id.startsWith('padaria_') || id === 'cobogo');
+      expect(there(w.anchor.id), `${w.pt} (${w.anchor.id}) in ${w.area}`).toBe(true);
+    }
+    for (const w of DIARY_WORDS.filter((x) => x.origin === 'added' && x.source === 'reading' && x.area !== 'chegada')) {
+      expect(hotspotById(w.anchor.id)?.room, `${w.pt} sign`).toBe(w.area);
+    }
+  });
+
+  it('keeps practice and the jiu-jitsu fight out of the sources, and the game words to aula and the five Correria wins', () => {
+    const game = DIARY_WORDS.filter((w) => w.source === 'game').map((w) => w.pt).sort();
+    expect(game).toEqual(['aula', 'bolo', 'coxinha', 'guaraná', 'misto', 'queijo']);
+    expect(DIARY_WORDS.filter((w) => w.area === 'academia' && w.source === 'game')).toEqual([]);
+    expect(DIARY_GAMES.map((g) => g.id).sort()).toEqual(['correria', 'escola.pratica']);
+    expect(DIARY_GAMES.find((g) => g.id === 'correria')).toMatchObject({ room: 'padaria', host: { npc: 'carlos' } });
+    expect(DIARY_GAMES.find((g) => g.id === 'escola.pratica')).toMatchObject({ room: 'escola', host: { npc: 'lucia' }, rv: 8 });
+    for (const pt of ['fonte', 'coreto', 'guia', 'aula']) expect(DIARY_WORDS.find((w) => w.pt === pt)?.seed, pt).toBe(true);
+    expect(DIARY_WORDS.find((w) => w.pt === 'fonte')).toMatchObject({ source: 'camera', anchor: { id: 'fonte' } });
+    expect(DIARY_WORDS.find((w) => w.pt === 'coreto')).toMatchObject({ source: 'reading', anchor: { id: 'coreto_placa' } });
+    expect(DIARY_WORDS.find((w) => w.pt === 'guia')).toMatchObject({ source: 'conversation', anchor: { id: 'julia.ajuda' } });
+    expect(DIARY_WORDS.find((w) => w.pt === 'aula')).toMatchObject({ source: 'game', anchor: { id: 'escola.pratica' } });
+  });
+
+  it('teaches every camera word an object names, in catalog order (a crate of melancias is a caixote and a melancia)', () => {
+    expect(wordsForPhoto('caixote_3').map((w) => w.pt)).toEqual(['caixote', 'melancia']);
+    expect(wordsForPhoto('caixote_1').map((w) => w.pt)).toEqual(['caixote']);
+    expect(wordsForPhoto('coreto').map((w) => w.pt)).toEqual(['telhado', 'palco']);
+    expect(wordsForPhoto('nada')).toEqual([]);
   });
 });

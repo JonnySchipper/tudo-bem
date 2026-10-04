@@ -1,64 +1,6617 @@
 {
-  "_meta": {
-    "status": "SEED",
-    "note": "The curriculum pass extends areas, words, and games. Do not treat these four rows as the lesson list. One Portuguese word has one source. Progress denominators are counts of this file."
+ "_meta": {
+  "note": "Language diary catalog v2 (2026-10-03). Every row is needs_br: a Brazilian has not signed off. One Portuguese word has one source (camera, reading, conversation or game) in one area. Practice is not a source. origin = existing: the anchor was already in the rooms before the catalog pass; added: the prop, sign, line or game win was added for the catalog."
+ },
+ "areas": [
+  {
+   "id": "chegada",
+   "pt": "Chegada",
+   "en": "Arrival"
   },
-  "areas": [
-    { "id": "praca", "pt": "Praça", "en": "Square" }
-  ],
-  "words": [
-    {
-      "id": "seed.praca.fonte",
-      "pt": "fonte",
-      "en": "fountain",
-      "area": "praca",
-      "source": "camera",
-      "anchor": { "kind": "object", "id": "fonte" },
-      "seed": true
-    },
-    {
-      "id": "seed.praca.coreto",
-      "pt": "coreto",
-      "en": "bandstand",
-      "area": "praca",
-      "source": "reading",
-      "anchor": { "kind": "sign", "id": "coreto_placa" },
-      "seed": true
-    },
-    {
-      "id": "seed.praca.guia",
-      "pt": "guia",
-      "en": "guide",
-      "area": "praca",
-      "source": "conversation",
-      "anchor": { "kind": "line", "id": "julia.ajuda" },
-      "seed": true
-    },
-    {
-      "id": "seed.praca.aula",
-      "pt": "aula",
-      "en": "class",
-      "area": "praca",
-      "source": "game",
-      "anchor": { "kind": "game", "id": "escola.pratica" },
-      "seed": true
-    }
-  ],
-  "film": {
-    "price": 4,
-    "pack": 6,
-    "starter": 3,
-    "seller": "julia"
+  {
+   "id": "praca",
+   "pt": "Praça",
+   "en": "Square"
   },
-  "games": [
+  {
+   "id": "rua",
+   "pt": "Rua",
+   "en": "Street"
+  },
+  {
+   "id": "padaria",
+   "pt": "Padaria",
+   "en": "Bakery"
+  },
+  {
+   "id": "feira",
+   "pt": "Feira",
+   "en": "Street market"
+  },
+  {
+   "id": "kitnet",
+   "pt": "Kitnet",
+   "en": "Studio apartment"
+  },
+  {
+   "id": "academia",
+   "pt": "Academia",
+   "en": "Gym"
+  },
+  {
+   "id": "escola",
+   "pt": "Escola",
+   "en": "School"
+  }
+ ],
+ "words": [
+  {
+   "id": "diary.chegada.mala",
+   "pt": "mala",
+   "en": "suitcase",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_mala"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.passaporte",
+   "pt": "passaporte",
+   "en": "passport",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_passaporte"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.esteira",
+   "pt": "esteira",
+   "en": "baggage belt",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_esteira"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.mochila",
+   "pt": "mochila",
+   "en": "backpack",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_mochila"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.pista",
+   "pt": "pista",
+   "en": "runway",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_pista"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.torre",
+   "pt": "torre",
+   "en": "control tower",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_torre"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.ponte",
+   "pt": "ponte",
+   "en": "jet bridge",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_ponte"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "ponte here is the jet bridge, not a park bridge"
+  },
+  {
+   "id": "diary.chegada.cinto",
+   "pt": "cinto",
+   "en": "seatbelt",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_cinto"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.asa",
+   "pt": "asa",
+   "en": "wing",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_asa"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.fone",
+   "pt": "fone",
+   "en": "headphones",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_fone"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "short for fone de ouvido"
+  },
+  {
+   "id": "diary.chegada.bilhete",
+   "pt": "bilhete",
+   "en": "ticket",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_bilhete"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.visto",
+   "pt": "visto",
+   "en": "visa stamp",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_visto"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "the passport stamp, not the game’s stamp card"
+  },
+  {
+   "id": "diary.chegada.etiqueta",
+   "pt": "etiqueta",
+   "en": "luggage tag",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_etiqueta"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.turbina",
+   "pt": "turbina",
+   "en": "jet engine",
+   "area": "chegada",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hall_turbina"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.aeroporto",
+   "pt": "aeroporto",
+   "en": "airport",
+   "area": "chegada",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "arrival.kicker"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.desembarque",
+   "pt": "desembarque",
+   "en": "arrivals",
+   "area": "chegada",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "hall_s_desembarque"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.bagagem",
+   "pt": "bagagem",
+   "en": "baggage",
+   "area": "chegada",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "hall_s_bagagem"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.alfandega",
+   "pt": "alfândega",
+   "en": "customs",
+   "area": "chegada",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "hall_s_alfandega"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.embarque",
+   "pt": "embarque",
+   "en": "departures",
+   "area": "chegada",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "hall_s_embarque"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.terminal",
+   "pt": "terminal",
+   "en": "terminal",
+   "area": "chegada",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "hall_s_terminal"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.brasil",
+   "pt": "brasil",
+   "en": "Brazil",
+   "area": "chegada",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "julia.chegada_titulo"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.aviao",
+   "pt": "avião",
+   "en": "airplane",
+   "area": "chegada",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "julia.chegada_aviao"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.camera",
+   "pt": "câmera",
+   "en": "camera",
+   "area": "chegada",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "julia.chegada_camera"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.chegada.diario",
+   "pt": "diário",
+   "en": "diary",
+   "area": "chegada",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "julia.chegada_diario"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "seed.praca.fonte",
+   "pt": "fonte",
+   "en": "fountain",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "fonte"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "seed": true
+  },
+  {
+   "id": "diary.praca.banco",
+   "pt": "banco",
+   "en": "bench",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "banco_1"
+   },
+   "also": [
+    "banco_2",
+    "banco_3",
+    "banco_4",
+    "banco_5"
+   ],
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.papagaio",
+   "pt": "papagaio",
+   "en": "parrot",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "poleiro"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.arvore",
+   "pt": "árvore",
+   "en": "tree",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "ipe_centro"
+   },
+   "also": [
+    "ipe_2",
+    "ipe_3",
+    "ipe_4",
+    "ipe_5",
+    "ipe_6",
+    "sibipiruna"
+   ],
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.busto",
+   "pt": "busto",
+   "en": "bust",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "busto"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.pipoqueiro",
+   "pt": "pipoqueiro",
+   "en": "popcorn cart",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "pipoqueiro"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.quiosque",
+   "pt": "quiosque",
+   "en": "kiosk",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "quiosque"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.chapeu",
+   "pt": "chapéu",
+   "en": "hat",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "barraca"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.damas",
+   "pt": "damas",
+   "en": "checkers",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "mesa_xadrez_1"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.vira_lata",
+   "pt": "vira-lata",
+   "en": "caramel stray dog",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "vira_lata"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.canteiro",
+   "pt": "canteiro",
+   "en": "flowerbed",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "canteiro_1"
+   },
+   "also": [
+    "canteiro_2"
+   ],
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.cerca",
+   "pt": "cerca",
+   "en": "fence",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "cerca_oeste"
+   },
+   "also": [
+    "cerca_leste_n",
+    "cerca_leste_s"
+   ],
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.topiaria",
+   "pt": "topiaria",
+   "en": "topiary",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "topiaria_urso"
+   },
+   "also": [
+    "topiaria_cao"
+   ],
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.jeriva",
+   "pt": "jerivá",
+   "en": "jerivá palm",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "jeriva_1"
+   },
+   "also": [
+    "jeriva_2"
+   ],
+   "origin": "existing",
+   "needsBr": true,
+   "note": "the prop is a jerivá; a beginner may not know this tree"
+  },
+  {
+   "id": "diary.praca.lixeira",
+   "pt": "lixeira",
+   "en": "trash bin",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "lixeira_p1"
+   },
+   "also": [
+    "lixeira_p2"
+   ],
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.pombo",
+   "pt": "pombo",
+   "en": "pigeon",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pombo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.paralelepipedo",
+   "pt": "paralelepípedo",
+   "en": "cobblestone",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_paralelepipedo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.grama",
+   "pt": "grama",
+   "en": "grass",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_grama"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.folha",
+   "pt": "folha",
+   "en": "leaf",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_folha"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.relogio",
+   "pt": "relógio",
+   "en": "public clock",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_relogio"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.estatua",
+   "pt": "estátua",
+   "en": "statue",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_estatua"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.guarda_sol",
+   "pt": "guarda-sol",
+   "en": "sun umbrella",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_guarda_sol"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.cesta",
+   "pt": "cesta",
+   "en": "basket",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cesta"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.garrafa",
+   "pt": "garrafa",
+   "en": "bottle",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_garrafa"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.copo",
+   "pt": "copo",
+   "en": "cup",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_copo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.lata",
+   "pt": "lata",
+   "en": "can",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_lata"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.bolsa",
+   "pt": "bolsa",
+   "en": "bag",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_bolsa"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.moeda",
+   "pt": "moeda",
+   "en": "coin",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_moeda"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.cedula",
+   "pt": "cédula",
+   "en": "banknote",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cedula"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.celular",
+   "pt": "celular",
+   "en": "cellphone",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_celular"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.folheto",
+   "pt": "folheto",
+   "en": "flyer",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_folheto"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.cartaz",
+   "pt": "cartaz",
+   "en": "poster",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cartaz"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.bueiro",
+   "pt": "bueiro",
+   "en": "manhole",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_bueiro"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.poca",
+   "pt": "poça",
+   "en": "puddle",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_poca"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.mastro",
+   "pt": "mastro",
+   "en": "flagpole",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_mastro"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.degrau",
+   "pt": "degrau",
+   "en": "step",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_degrau"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.corrimao",
+   "pt": "corrimão",
+   "en": "handrail",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_corrimao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.pilar",
+   "pt": "pilar",
+   "en": "column",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pilar"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.telhado",
+   "pt": "telhado",
+   "en": "roof",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "coreto"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.lampada",
+   "pt": "lâmpada",
+   "en": "light bulb",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_lampada"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.fio",
+   "pt": "fio",
+   "en": "wire",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_fio"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.mureta",
+   "pt": "mureta",
+   "en": "low wall",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_mureta"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.palco",
+   "pt": "palco",
+   "en": "stage",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "coreto"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.violao",
+   "pt": "violão",
+   "en": "guitar",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_violao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.pandeiro",
+   "pt": "pandeiro",
+   "en": "tambourine",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pandeiro"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.microfone",
+   "pt": "microfone",
+   "en": "microphone",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_microfone"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.alto_falante",
+   "pt": "alto-falante",
+   "en": "speaker",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_alto_falante"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.panela",
+   "pt": "panela",
+   "en": "kettle",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_panela"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.saquinho",
+   "pt": "saquinho",
+   "en": "paper bag",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_saquinho"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.sorvete",
+   "pt": "sorvete",
+   "en": "ice cream",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_sorvete"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.picole",
+   "pt": "picolé",
+   "en": "popsicle",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_picole"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.guardanapo",
+   "pt": "guardanapo",
+   "en": "napkin",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_guardanapo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.cavalete",
+   "pt": "cavalete",
+   "en": "easel",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cavalete"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.tinta",
+   "pt": "tinta",
+   "en": "paint",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_tinta"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.balde",
+   "pt": "balde",
+   "en": "bucket",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_balde"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.pano",
+   "pt": "pano",
+   "en": "cloth",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pano"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.vassoura",
+   "pt": "vassoura",
+   "en": "broom",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_vassoura"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.pa",
+   "pt": "pá",
+   "en": "shovel",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pa"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.luva",
+   "pt": "luva",
+   "en": "glove",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_luva"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.grafite",
+   "pt": "grafite",
+   "en": "street art",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_grafite"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.adesivo",
+   "pt": "adesivo",
+   "en": "sticker",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_adesivo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.madeira",
+   "pt": "madeira",
+   "en": "wood",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_madeira"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.ferro",
+   "pt": "ferro",
+   "en": "iron",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_ferro"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.concreto",
+   "pt": "concreto",
+   "en": "concrete",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_concreto"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.tijolo",
+   "pt": "tijolo",
+   "en": "brick",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_tijolo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.papel",
+   "pt": "papel",
+   "en": "paper",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_papel"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.vidro",
+   "pt": "vidro",
+   "en": "glass",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_vidro"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.tampinha",
+   "pt": "tampinha",
+   "en": "bottle cap",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_tampinha"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.papelao",
+   "pt": "papelão",
+   "en": "cardboard",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_papelao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.coleira",
+   "pt": "coleira",
+   "en": "collar",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_coleira"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.tigela",
+   "pt": "tigela",
+   "en": "bowl",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_tigela"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.formigueiro",
+   "pt": "formigueiro",
+   "en": "anthill",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_formigueiro"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.sabia",
+   "pt": "sabiá",
+   "en": "thrush",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_sabia"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.bem_te_vi",
+   "pt": "bem-te-vi",
+   "en": "kiskadee",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_bem_te_vi"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.andorinha",
+   "pt": "andorinha",
+   "en": "swallow",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_andorinha"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.ninho",
+   "pt": "ninho",
+   "en": "nest",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_ninho"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.pena",
+   "pt": "pena",
+   "en": "feather",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pena"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.galho",
+   "pt": "galho",
+   "en": "branch",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_galho"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.tronco",
+   "pt": "tronco",
+   "en": "trunk",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_tronco"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.cogumelo",
+   "pt": "cogumelo",
+   "en": "mushroom",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cogumelo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.cipo",
+   "pt": "cipó",
+   "en": "vine",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cipo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.portao",
+   "pt": "portão",
+   "en": "gate",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_portao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.cadeado",
+   "pt": "cadeado",
+   "en": "padlock",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cadeado"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.meio_fio",
+   "pt": "meio-fio",
+   "en": "curb",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_meio_fio"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.sarjeta",
+   "pt": "sarjeta",
+   "en": "gutter",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_sarjeta"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.calcada",
+   "pt": "calçada",
+   "en": "sidewalk",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_calcada"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.rampa",
+   "pt": "rampa",
+   "en": "ramp",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_rampa"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.caminho",
+   "pt": "caminho",
+   "en": "path",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_caminho"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.pedra",
+   "pt": "pedra",
+   "en": "stone",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pedra"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.musgo",
+   "pt": "musgo",
+   "en": "moss",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_musgo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.samambaia",
+   "pt": "samambaia",
+   "en": "fern",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_samambaia"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.margarida",
+   "pt": "margarida",
+   "en": "daisy",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_margarida"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.rosa",
+   "pt": "rosa",
+   "en": "rose",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_rosa"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "the flower, not Dona Rosa’s name"
+  },
+  {
+   "id": "diary.praca.petala",
+   "pt": "pétala",
+   "en": "petal",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_petala"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.abelha",
+   "pt": "abelha",
+   "en": "bee",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_abelha"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.borboleta",
+   "pt": "borboleta",
+   "en": "butterfly",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_borboleta"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.cigarra",
+   "pt": "cigarra",
+   "en": "cicada",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cigarra"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.formiga",
+   "pt": "formiga",
+   "en": "ant",
+   "area": "praca",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_formiga"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.praca",
+   "pt": "praça",
+   "en": "square",
+   "area": "praca",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "fonte_praca"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.ipe",
+   "pt": "ipê",
+   "en": "ipê",
+   "area": "praca",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "busto_placa"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "seed.praca.coreto",
+   "pt": "coreto",
+   "en": "bandstand",
+   "area": "praca",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "coreto_placa"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "seed": true
+  },
+  {
+   "id": "diary.praca.domino",
+   "pt": "dominó",
+   "en": "dominoes",
+   "area": "praca",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "mesa_domino_placa"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "note": "the game does not award a word"
+  },
+  {
+   "id": "diary.praca.pipoca",
+   "pt": "pipoca",
+   "en": "popcorn",
+   "area": "praca",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "pipoqueiro_placa"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.agua_de_coco",
+   "pt": "água de coco",
+   "en": "coconut water",
+   "area": "praca",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "coco_placa"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.banheiro",
+   "pt": "banheiro",
+   "en": "restroom",
+   "area": "praca",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_banheiro"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.reciclagem",
+   "pt": "reciclagem",
+   "en": "recycling",
+   "area": "praca",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_reciclagem"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.mapa",
+   "pt": "mapa",
+   "en": "map",
+   "area": "praca",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_mapa"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.horario",
+   "pt": "horário",
+   "en": "hours",
+   "area": "praca",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_horario"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.entrada",
+   "pt": "entrada",
+   "en": "entrance",
+   "area": "praca",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_entrada"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.fechado",
+   "pt": "fechado",
+   "en": "closed",
+   "area": "praca",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_fechado"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.cuidado",
+   "pt": "cuidado",
+   "en": "caution",
+   "area": "praca",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_cuidado"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.wifi",
+   "pt": "wifi",
+   "en": "wifi",
+   "area": "praca",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_wifi"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "Brazilians say wifi; still an anglicism"
+  },
+  {
+   "id": "diary.praca.emergencia",
+   "pt": "emergência",
+   "en": "emergency",
+   "area": "praca",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_emergencia"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.informacao",
+   "pt": "informação",
+   "en": "information",
+   "area": "praca",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_informacao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "seed.praca.guia",
+   "pt": "guia",
+   "en": "guide",
+   "area": "praca",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "julia.ajuda"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "seed": true
+  },
+  {
+   "id": "diary.praca.ajuda",
+   "pt": "ajuda",
+   "en": "help",
+   "area": "praca",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "julia.idle0"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.bone",
+   "pt": "boné",
+   "en": "cap",
+   "area": "praca",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "nanda.idle0"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.boina",
+   "pt": "boina",
+   "en": "beret",
+   "area": "praca",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "nanda.chapeus"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.beleza",
+   "pt": "beleza",
+   "en": "cool / all good",
+   "area": "praca",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "julia.tchau"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "note": "everyday ack, not a noun"
+  },
+  {
+   "id": "diary.praca.tchau",
+   "pt": "tchau",
+   "en": "bye",
+   "area": "praca",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "nanda.tchau"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.vizinho",
+   "pt": "vizinho",
+   "en": "neighbor",
+   "area": "praca",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "julia.idle2"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.sol",
+   "pt": "sol",
+   "en": "sun",
+   "area": "praca",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "nanda.idle2"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.praca.passeio",
+   "pt": "passeio",
+   "en": "stroll",
+   "area": "praca",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "julia.idle3"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.orelhao",
+   "pt": "orelhão",
+   "en": "public phone booth",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "orelhao"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.banca",
+   "pt": "banca",
+   "en": "newsstand",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "banca"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.jornal",
+   "pt": "jornal",
+   "en": "newspaper",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "jornais"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.poste",
+   "pt": "poste",
+   "en": "lamp post",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "lampada_n1"
+   },
+   "also": [
+    "lampada_n2",
+    "lampada_n3",
+    "lampada_n4",
+    "lampada_n5",
+    "poste_2",
+    "poste_3",
+    "poste_4",
+    "lampada_s2"
+   ],
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.revista",
+   "pt": "revista",
+   "en": "magazine",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "revisteiro"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.ponto",
+   "pt": "ponto",
+   "en": "bus stop",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "ponto"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.parquimetro",
+   "pt": "parquímetro",
+   "en": "parking meter",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "parquimetro"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.hidrante",
+   "pt": "hidrante",
+   "en": "hydrant",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "hidrante_s"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.floreira",
+   "pt": "floreira",
+   "en": "sidewalk planter",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "floreira_n1"
+   },
+   "also": [
+    "floreira_n2",
+    "floreira_n3",
+    "floreira_n4"
+   ],
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.vaso",
+   "pt": "vaso",
+   "en": "pot",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "vaso_n1"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.taxi",
+   "pt": "táxi",
+   "en": "taxi",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "estac_12_1"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "note": "the art id is a taxi; confirm the sprite reads as one"
+  },
+  {
+   "id": "diary.rua.barreira",
+   "pt": "barreira",
+   "en": "street barrier",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "barreira_o_8"
+   },
+   "also": [
+    "barreira_l_8"
+   ],
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.bicicleta",
+   "pt": "bicicleta",
+   "en": "bicycle",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "bici"
+   },
+   "also": [
+    "bici_3"
+   ],
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.carro",
+   "pt": "carro",
+   "en": "car",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "estac_12_0"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.moto",
+   "pt": "moto",
+   "en": "motorcycle",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_moto"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.van",
+   "pt": "van",
+   "en": "van",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_van"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "Brazilians say van"
+  },
+  {
+   "id": "diary.rua.caminhao",
+   "pt": "caminhão",
+   "en": "truck",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_caminhao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.semaforo",
+   "pt": "semáforo",
+   "en": "traffic light",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_semaforo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.esquina",
+   "pt": "esquina",
+   "en": "street corner",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_esquina"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.muro",
+   "pt": "muro",
+   "en": "wall",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_muro"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.interfone",
+   "pt": "interfone",
+   "en": "intercom",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_interfone"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.capacho",
+   "pt": "capacho",
+   "en": "doormat",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_capacho"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.varanda",
+   "pt": "varanda",
+   "en": "balcony",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_varanda"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.grade",
+   "pt": "grade",
+   "en": "window bars",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_grade"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.ar_condicionado",
+   "pt": "ar-condicionado",
+   "en": "air conditioner",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_ar_condicionado"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.antena",
+   "pt": "antena",
+   "en": "antenna",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_antena"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.retrovisor",
+   "pt": "retrovisor",
+   "en": "side mirror",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_retrovisor"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.porta_malas",
+   "pt": "porta-malas",
+   "en": "trunk",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_porta_malas"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.farol",
+   "pt": "farol",
+   "en": "headlight",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_farol"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.volante",
+   "pt": "volante",
+   "en": "steering wheel",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_volante"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.buzina",
+   "pt": "buzina",
+   "en": "horn",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_buzina"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "you hear it more than you see it; still the usual word"
+  },
+  {
+   "id": "diary.rua.macaneta",
+   "pt": "maçaneta",
+   "en": "door handle",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_macaneta"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.lombada",
+   "pt": "lombada",
+   "en": "speed bump",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_lombada"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.cone",
+   "pt": "cone",
+   "en": "traffic cone",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cone"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.tapume",
+   "pt": "tapume",
+   "en": "construction fence",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_tapume"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.andaime",
+   "pt": "andaime",
+   "en": "scaffold",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_andaime"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.escada",
+   "pt": "escada",
+   "en": "ladder",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_escada"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.encomenda",
+   "pt": "encomenda",
+   "en": "parcel",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_encomenda"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.envelope",
+   "pt": "envelope",
+   "en": "envelope",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_envelope"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.selo",
+   "pt": "selo",
+   "en": "postage stamp",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_selo"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "postage, not the game’s stamp card"
+  },
+  {
+   "id": "diary.rua.tenis",
+   "pt": "tênis",
+   "en": "sneaker",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_tenis"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.guarda_chuva",
+   "pt": "guarda-chuva",
+   "en": "umbrella",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_guarda_chuva"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.ambulancia",
+   "pt": "ambulância",
+   "en": "ambulance",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_ambulancia"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.cruzamento",
+   "pt": "cruzamento",
+   "en": "crossing",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cruzamento"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.capacete",
+   "pt": "capacete",
+   "en": "helmet",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_capacete"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.pneu",
+   "pt": "pneu",
+   "en": "tire",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pneu"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.guidao",
+   "pt": "guidão",
+   "en": "handlebar",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_guidao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.pedal",
+   "pt": "pedal",
+   "en": "pedal",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pedal"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.skate",
+   "pt": "skate",
+   "en": "skateboard",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_skate"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "anglicism; Brazilians do say skate"
+  },
+  {
+   "id": "diary.rua.patinete",
+   "pt": "patinete",
+   "en": "scooter",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_patinete"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.campainha",
+   "pt": "campainha",
+   "en": "doorbell",
+   "area": "rua",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_campainha"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.padaria",
+   "pt": "padaria",
+   "en": "bakery",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "padaria_letreiro"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.bem",
+   "pt": "bem",
+   "en": "fine",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "empena_tudo_bem"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "note": "the sign is the greeting; bem is only the second word"
+  },
+  {
+   "id": "diary.rua.edificio",
+   "pt": "edifício",
+   "en": "building",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "edificio_letreiro"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.numero",
+   "pt": "número",
+   "en": "number",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "edificio_numero"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "note": "the sign prints Nº 42, not the word número",
+   "match": "nº"
+  },
+  {
+   "id": "diary.rua.academia",
+   "pt": "academia",
+   "en": "gym",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "academia_letreiro"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.chuva",
+   "pt": "chuva",
+   "en": "rain",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "banca_manchetes"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.rua",
+   "pt": "rua",
+   "en": "street",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "placa_rua_ipes"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "match": "r. dos"
+  },
+  {
+   "id": "diary.rua.telefone",
+   "pt": "telefone",
+   "en": "telephone",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "orelhao"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "note": "the booth itself is the camera word"
+  },
+  {
+   "id": "diary.rua.lixo",
+   "pt": "lixo",
+   "en": "trash",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "lixeira_padaria"
+   },
+   "also": [
+    "lixeira_praca"
+   ],
+   "origin": "existing",
+   "needsBr": true,
+   "note": "one word for both bins"
+  },
+  {
+   "id": "diary.rua.cafe",
+   "pt": "café",
+   "en": "coffee",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "mesa_cafe_precos"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.bicicletario",
+   "pt": "bicicletário",
+   "en": "bike rack",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "bicicletario"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.onibus",
+   "pt": "ônibus",
+   "en": "bus",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "ponto_onibus"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.estacionamento",
+   "pt": "estacionamento",
+   "en": "parking",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "parquimetro"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.hortifruti",
+   "pt": "hortifrúti",
+   "en": "greengrocer",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "hortifruti_placa"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.pare",
+   "pt": "pare",
+   "en": "stop",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_pare"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.ciclovia",
+   "pt": "ciclovia",
+   "en": "bike lane",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_ciclovia"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.correio",
+   "pt": "correio",
+   "en": "post office",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_correio"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.obra",
+   "pt": "obra",
+   "en": "road work",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_obra"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.sentido",
+   "pt": "sentido",
+   "en": "direction",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_sentido"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "the sign is two words; sentido is the content word"
+  },
+  {
+   "id": "diary.rua.devagar",
+   "pt": "devagar",
+   "en": "slow",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_devagar"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.farmacia",
+   "pt": "farmácia",
+   "en": "pharmacy",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_farmacia"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.loterica",
+   "pt": "lotérica",
+   "en": "lottery shop",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_loterica"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.acougue",
+   "pt": "açougue",
+   "en": "butcher",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_acougue"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.mercado",
+   "pt": "mercado",
+   "en": "market",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_mercado"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.chaveiro",
+   "pt": "chaveiro",
+   "en": "locksmith",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_chaveiro"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.salao",
+   "pt": "salão",
+   "en": "salon",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_salao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.barbearia",
+   "pt": "barbearia",
+   "en": "barbershop",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_barbearia"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.lavanderia",
+   "pt": "lavanderia",
+   "en": "laundromat",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_lavanderia"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.igreja",
+   "pt": "igreja",
+   "en": "church",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_igreja"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.ladeira",
+   "pt": "ladeira",
+   "en": "hill street",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_ladeira"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.rua.travessa",
+   "pt": "travessa",
+   "en": "side lane",
+   "area": "rua",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_travessa"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.balcao",
+   "pt": "balcão",
+   "en": "counter",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "balcao"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.estufa",
+   "pt": "estufa",
+   "en": "snack warmer",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "estufa"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.banqueta",
+   "pt": "banqueta",
+   "en": "stool",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "banqueta_1"
+   },
+   "also": [
+    "banqueta_2",
+    "banqueta_3"
+   ],
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.vitrine",
+   "pt": "vitrine",
+   "en": "display case",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "vitrine"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.bandeja",
+   "pt": "bandeja",
+   "en": "tray",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_bandeja"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "the order rail is live; the tray word is not a diary seed"
+  },
+  {
+   "id": "diary.padaria.forno",
+   "pt": "forno",
+   "en": "oven",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_forno"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.chapa",
+   "pt": "chapa",
+   "en": "griddle",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_chapa"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.cafeteira",
+   "pt": "cafeteira",
+   "en": "coffee maker",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cafeteira"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.pires",
+   "pt": "pires",
+   "en": "saucer",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pires"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.leite",
+   "pt": "leite",
+   "en": "milk",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_leite"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.faca",
+   "pt": "faca",
+   "en": "knife",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_faca"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.tabua",
+   "pt": "tábua",
+   "en": "cutting board",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_tabua"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.avental",
+   "pt": "avental",
+   "en": "apron",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_avental"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.touca",
+   "pt": "touca",
+   "en": "hairnet",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_touca"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.prateleira",
+   "pt": "prateleira",
+   "en": "shelf",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_prateleira"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.pao",
+   "pt": "pão",
+   "en": "bread",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.torrada",
+   "pt": "torrada",
+   "en": "toast",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_torrada"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.manteiga",
+   "pt": "manteiga",
+   "en": "butter",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_manteiga"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.requeijao",
+   "pt": "requeijão",
+   "en": "cream cheese",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_requeijao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.presunto",
+   "pt": "presunto",
+   "en": "ham",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_presunto"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.ovo",
+   "pt": "ovo",
+   "en": "egg",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_ovo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.geladeira",
+   "pt": "geladeira",
+   "en": "fridge",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_geladeira"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.freezer",
+   "pt": "freezer",
+   "en": "freezer",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_freezer"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.xicara",
+   "pt": "xícara",
+   "en": "coffee cup",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_xicara"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.jarra",
+   "pt": "jarra",
+   "en": "pitcher",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_jarra"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.liquidificador",
+   "pt": "liquidificador",
+   "en": "blender",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_liquidificador"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.comanda",
+   "pt": "comanda",
+   "en": "order slip",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_comanda"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.ficha",
+   "pt": "ficha",
+   "en": "ticket number",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_ficha"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.sineta",
+   "pt": "sineta",
+   "en": "service bell",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_sineta"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.gaveta",
+   "pt": "gaveta",
+   "en": "cash drawer",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_gaveta"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.maquininha",
+   "pt": "maquininha",
+   "en": "card machine",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_maquininha"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "usual spoken word for the little card reader"
+  },
+  {
+   "id": "diary.padaria.sabonete",
+   "pt": "sabonete",
+   "en": "soap",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_sabonete"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.detergente",
+   "pt": "detergente",
+   "en": "dish soap",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_detergente"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.esponja",
+   "pt": "esponja",
+   "en": "sponge",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_esponja"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.azulejo",
+   "pt": "azulejo",
+   "en": "tile",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "padaria_azulejos"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.embalagem",
+   "pt": "embalagem",
+   "en": "wrapper",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_embalagem"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.acucar",
+   "pt": "açúcar",
+   "en": "sugar",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_acucar"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.colher",
+   "pt": "colher",
+   "en": "spoon",
+   "area": "padaria",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_colher"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.cardapio",
+   "pt": "cardápio",
+   "en": "menu",
+   "area": "padaria",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "padaria_cardapio"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.pix",
+   "pt": "pix",
+   "en": "Pix payment",
+   "area": "padaria",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "padaria_caixa"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "note": "Pix is the payment name printed on the sign"
+  },
+  {
+   "id": "diary.padaria.salgado",
+   "pt": "salgado",
+   "en": "savory snack",
+   "area": "padaria",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "padaria_estufa"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.desconto",
+   "pt": "desconto",
+   "en": "discount",
+   "area": "padaria",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_desconto"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.promocao",
+   "pt": "promoção",
+   "en": "special offer",
+   "area": "padaria",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_promocao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.cafezinho",
+   "pt": "cafezinho",
+   "en": "a little coffee",
+   "area": "padaria",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "carlos.idle1"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "note": "diminutive, as he says it"
+  },
+  {
+   "id": "diary.padaria.noite",
+   "pt": "noite",
+   "en": "night",
+   "area": "padaria",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "graca.idle1"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.padeira",
+   "pt": "padeira",
+   "en": "baker (woman)",
+   "area": "padaria",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "graca.oi"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.pedir",
+   "pt": "pedir",
+   "en": "to order",
+   "area": "padaria",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "carlos.idle2"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.quentinho",
+   "pt": "quentinho",
+   "en": "hot and fresh",
+   "area": "padaria",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "carlos.idle0"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "note": "diminutive, as he says it"
+  },
+  {
+   "id": "diary.padaria.viagem",
+   "pt": "viagem",
+   "en": "to-go",
+   "area": "padaria",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "carlos.viagem"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.bolo",
+   "pt": "bolo",
+   "en": "cake",
+   "area": "padaria",
+   "source": "game",
+   "anchor": {
+    "kind": "game",
+    "id": "correria.bolo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.guarana",
+   "pt": "guaraná",
+   "en": "guaraná soda",
+   "area": "padaria",
+   "source": "game",
+   "anchor": {
+    "kind": "game",
+    "id": "correria.guarana"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "soft drink, not alcohol"
+  },
+  {
+   "id": "diary.padaria.coxinha",
+   "pt": "coxinha",
+   "en": "coxinha",
+   "area": "padaria",
+   "source": "game",
+   "anchor": {
+    "kind": "game",
+    "id": "correria.coxinha"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.padaria.queijo",
+   "pt": "queijo",
+   "en": "cheese",
+   "area": "padaria",
+   "source": "game",
+   "anchor": {
+    "kind": "game",
+    "id": "correria.pao_de_queijo"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "the served item is pão de queijo; headword is queijo"
+  },
+  {
+   "id": "diary.padaria.misto",
+   "pt": "misto",
+   "en": "ham-and-cheese toast",
+   "area": "padaria",
+   "source": "game",
+   "anchor": {
+    "kind": "game",
+    "id": "correria.misto_quente"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "the served item is misto quente; headword is misto"
+  },
+  {
+   "id": "diary.feira.barraca",
+   "pt": "barraca",
+   "en": "stall",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "feira_tia_lu"
+   },
+   "also": [
+    "feira_ze",
+    "feira_chico",
+    "feira_rosa"
+   ],
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.caixote",
+   "pt": "caixote",
+   "en": "crate",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "caixote_1"
+   },
+   "also": [
+    "caixote_2",
+    "caixote_3",
+    "caixote_4",
+    "caixote_5",
+    "caixote_6"
+   ],
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.balanca",
+   "pt": "balança",
+   "en": "scale",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "balanca_1"
+   },
+   "also": [
+    "balanca_2",
+    "balanca_3",
+    "balanca_4"
+   ],
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.melancia",
+   "pt": "melancia",
+   "en": "watermelon",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "caixote_3"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "note": "crate art cx_melancia (not on a price board)"
+  },
+  {
+   "id": "diary.feira.repolho",
+   "pt": "repolho",
+   "en": "cabbage",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "caixote_4"
+   },
+   "also": [
+    "caixote_5"
+   ],
+   "origin": "existing",
+   "needsBr": true,
+   "note": "crate art cx_repolho (not on a price board)"
+  },
+  {
+   "id": "diary.feira.saco",
+   "pt": "saco",
+   "en": "sack",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "sacos_1"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.carrinho",
+   "pt": "carrinho",
+   "en": "handcart",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "carrinho_feira_1"
+   },
+   "also": [
+    "carrinho_feira_2"
+   ],
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.bandeirinha",
+   "pt": "bandeirinha",
+   "en": "bunting flag",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "bandeirinhas_1"
+   },
+   "also": [
+    "bandeirinhas_2"
+   ],
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.abacaxi",
+   "pt": "abacaxi",
+   "en": "pineapple",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_abacaxi"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.mamao",
+   "pt": "mamão",
+   "en": "papaya",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_mamao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.maracuja",
+   "pt": "maracujá",
+   "en": "passion fruit",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_maracuja"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.limao",
+   "pt": "limão",
+   "en": "lime",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_limao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.abacate",
+   "pt": "abacate",
+   "en": "avocado",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_abacate"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.uva",
+   "pt": "uva",
+   "en": "grape",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_uva"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.morango",
+   "pt": "morango",
+   "en": "strawberry",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_morango"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.goiaba",
+   "pt": "goiaba",
+   "en": "guava",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_goiaba"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.tangerina",
+   "pt": "tangerina",
+   "en": "tangerine",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_tangerina"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "São Paulo also says mexerica"
+  },
+  {
+   "id": "diary.feira.milho",
+   "pt": "milho",
+   "en": "corn",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_milho"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.batata",
+   "pt": "batata",
+   "en": "potato",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_batata"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.cenoura",
+   "pt": "cenoura",
+   "en": "carrot",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cenoura"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.beterraba",
+   "pt": "beterraba",
+   "en": "beet",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_beterraba"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.cebola",
+   "pt": "cebola",
+   "en": "onion",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cebola"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.alho",
+   "pt": "alho",
+   "en": "garlic",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_alho"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.pimentao",
+   "pt": "pimentão",
+   "en": "bell pepper",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pimentao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.pepino",
+   "pt": "pepino",
+   "en": "cucumber",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pepino"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.abobrinha",
+   "pt": "abobrinha",
+   "en": "zucchini",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_abobrinha"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.chuchu",
+   "pt": "chuchu",
+   "en": "chayote",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_chuchu"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.mandioca",
+   "pt": "mandioca",
+   "en": "cassava",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_mandioca"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "usual in São Paulo; other regions say aipim or macaxeira"
+  },
+  {
+   "id": "diary.feira.couve",
+   "pt": "couve",
+   "en": "kale",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_couve"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.brocolis",
+   "pt": "brócolis",
+   "en": "broccoli",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_brocolis"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.coentro",
+   "pt": "coentro",
+   "en": "cilantro",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_coentro"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.gengibre",
+   "pt": "gengibre",
+   "en": "ginger",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_gengibre"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.acerola",
+   "pt": "acerola",
+   "en": "acerola",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_acerola"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.caju",
+   "pt": "caju",
+   "en": "cashew fruit",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_caju"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.pitaya",
+   "pt": "pitaya",
+   "en": "dragon fruit",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pitaya"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "also called pitaia"
+  },
+  {
+   "id": "diary.feira.quiabo",
+   "pt": "quiabo",
+   "en": "okra",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_quiabo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.jilo",
+   "pt": "jiló",
+   "en": "jiló",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_jilo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.berinjela",
+   "pt": "berinjela",
+   "en": "eggplant",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_berinjela"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.vagem",
+   "pt": "vagem",
+   "en": "green bean",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_vagem"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.cana",
+   "pt": "cana",
+   "en": "sugarcane",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cana"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "the stalk; the drink word is caldo"
+  },
+  {
+   "id": "diary.feira.lona",
+   "pt": "lona",
+   "en": "tarp",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_lona"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.sacola",
+   "pt": "sacola",
+   "en": "shopping bag",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_sacola"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.giz",
+   "pt": "giz",
+   "en": "chalk",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_giz"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.oleo",
+   "pt": "óleo",
+   "en": "oil",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_oleo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.molho",
+   "pt": "molho",
+   "en": "sauce",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_molho"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.pimenta",
+   "pt": "pimenta",
+   "en": "pepper",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pimenta"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.girassol",
+   "pt": "girassol",
+   "en": "sunflower",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_girassol"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.laco",
+   "pt": "laço",
+   "en": "ribbon bow",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_laco"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.engradado",
+   "pt": "engradado",
+   "en": "plastic crate",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_engradado"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.bacia",
+   "pt": "bacia",
+   "en": "basin",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_bacia"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.feirante",
+   "pt": "feirante",
+   "en": "market vendor",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_feirante"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.gelo",
+   "pt": "gelo",
+   "en": "ice",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_gelo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.canudo",
+   "pt": "canudo",
+   "en": "straw",
+   "area": "feira",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_canudo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.feira",
+   "pt": "feira",
+   "en": "street market",
+   "area": "feira",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "feira_livre"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.fruta",
+   "pt": "fruta",
+   "en": "fruit",
+   "area": "feira",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "feira_preco_frutas"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "note": "the sign says FRUTAS; headword is the singular"
+  },
+  {
+   "id": "diary.feira.verdura",
+   "pt": "verdura",
+   "en": "greens",
+   "area": "feira",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "feira_preco_verduras"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "note": "the sign says VERDURAS; headword is the singular"
+  },
+  {
+   "id": "diary.feira.pastel",
+   "pt": "pastel",
+   "en": "pastel",
+   "area": "feira",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "feira_preco_pastel"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.buque",
+   "pt": "buquê",
+   "en": "bouquet",
+   "area": "feira",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "feira_preco_flores"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.vaga",
+   "pt": "vaga",
+   "en": "empty spot",
+   "area": "feira",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "vaga_a3"
+   },
+   "also": [
+    "vaga_a4",
+    "vaga_b3",
+    "vaga_b4"
+   ],
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.organico",
+   "pt": "orgânico",
+   "en": "organic",
+   "area": "feira",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_organico"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.quilo",
+   "pt": "quilo",
+   "en": "kilo",
+   "area": "feira",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_quilo"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "match": "kg"
+  },
+  {
+   "id": "diary.feira.duzia",
+   "pt": "dúzia",
+   "en": "dozen",
+   "area": "feira",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_duzia"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.unidade",
+   "pt": "unidade",
+   "en": "each",
+   "area": "feira",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_unidade"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.banana",
+   "pt": "banana",
+   "en": "banana",
+   "area": "feira",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "tia_lu.idle0"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.laranja",
+   "pt": "laranja",
+   "en": "orange",
+   "area": "feira",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "tia_lu.idle1"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.maca",
+   "pt": "maçã",
+   "en": "apple",
+   "area": "feira",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "tia_lu.idle2"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.tomate",
+   "pt": "tomate",
+   "en": "tomato",
+   "area": "feira",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "ze.idle0"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.alface",
+   "pt": "alface",
+   "en": "lettuce",
+   "area": "feira",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "ze.idle1"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.caldo",
+   "pt": "caldo",
+   "en": "broth / juice",
+   "area": "feira",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "chico.idle1"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "note": "here it is sugarcane juice, not soup"
+  },
+  {
+   "id": "diary.feira.flor",
+   "pt": "flor",
+   "en": "flower",
+   "area": "feira",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "rosa.idle1"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.fregues",
+   "pt": "freguês",
+   "en": "customer",
+   "area": "feira",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "tia_lu.greet"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.feira.amanha",
+   "pt": "amanhã",
+   "en": "tomorrow",
+   "area": "feira",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "tia_lu.closed"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.cama",
+   "pt": "cama",
+   "en": "bed",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "cama"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.cozinha",
+   "pt": "cozinha",
+   "en": "kitchen",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "cozinha"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.janela",
+   "pt": "janela",
+   "en": "window",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "janela_rua"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.cobogo",
+   "pt": "cobogó",
+   "en": "breeze block",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "cobogo"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "note": "a beginner may not know this word"
+  },
+  {
+   "id": "diary.kitnet.cadeira",
+   "pt": "cadeira",
+   "en": "chair",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "cadeira_madeira"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.poltrona",
+   "pt": "poltrona",
+   "en": "armchair",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "poltrona_verde"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.pufe",
+   "pt": "pufe",
+   "en": "pouf",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "pufe_amarelo"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.mesinha",
+   "pt": "mesinha",
+   "en": "coffee table",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "mesinha"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.planta",
+   "pt": "planta",
+   "en": "houseplant",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "planta"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "note": "the shop name is longer; headword is planta"
+  },
+  {
+   "id": "diary.kitnet.tapete",
+   "pt": "tapete",
+   "en": "rug",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "tapete"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.radio",
+   "pt": "rádio",
+   "en": "radio",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "radio"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.ventilador",
+   "pt": "ventilador",
+   "en": "fan",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "ventilador"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.gato",
+   "pt": "gato",
+   "en": "cat",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "gato"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "note": "the decor cat does not talk"
+  },
+  {
+   "id": "diary.kitnet.luminaria",
+   "pt": "luminária",
+   "en": "floor lamp",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "luminaria"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.estante",
+   "pt": "estante",
+   "en": "bookshelf",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "estante"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.quadro",
+   "pt": "quadro",
+   "en": "painting",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "quadro"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.rede",
+   "pt": "rede",
+   "en": "hammock",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "rede"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.filtro",
+   "pt": "filtro",
+   "en": "clay water filter",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "filtro"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.travesseiro",
+   "pt": "travesseiro",
+   "en": "pillow",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_travesseiro"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.lencol",
+   "pt": "lençol",
+   "en": "sheet",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_lencol"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.cobertor",
+   "pt": "cobertor",
+   "en": "blanket",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cobertor"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.edredom",
+   "pt": "edredom",
+   "en": "comforter",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_edredom"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.colchao",
+   "pt": "colchão",
+   "en": "mattress",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_colchao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.fronha",
+   "pt": "fronha",
+   "en": "pillowcase",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_fronha"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.abajur",
+   "pt": "abajur",
+   "en": "bedside lamp",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_abajur"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.guarda_roupa",
+   "pt": "guarda-roupa",
+   "en": "wardrobe",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_guarda_roupa"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.cabide",
+   "pt": "cabide",
+   "en": "hanger",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cabide"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.comoda",
+   "pt": "cômoda",
+   "en": "dresser",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_comoda"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.cortina",
+   "pt": "cortina",
+   "en": "curtain",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cortina"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.chinelo",
+   "pt": "chinelo",
+   "en": "flip-flop",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_chinelo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.oculos",
+   "pt": "óculos",
+   "en": "glasses",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_oculos"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.espelho",
+   "pt": "espelho",
+   "en": "mirror",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_espelho"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.fogao",
+   "pt": "fogão",
+   "en": "stove",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_fogao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.pia",
+   "pt": "pia",
+   "en": "sink",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pia"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.torneira",
+   "pt": "torneira",
+   "en": "faucet",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_torneira"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.sabao",
+   "pt": "sabão",
+   "en": "soap bar",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_sabao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.prato",
+   "pt": "prato",
+   "en": "plate",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_prato"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.garfo",
+   "pt": "garfo",
+   "en": "fork",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_garfo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.frigideira",
+   "pt": "frigideira",
+   "en": "frying pan",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_frigideira"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.tampa",
+   "pt": "tampa",
+   "en": "lid",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_tampa"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.micro_ondas",
+   "pt": "micro-ondas",
+   "en": "microwave",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_micro_ondas"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.chaleira",
+   "pt": "chaleira",
+   "en": "kettle",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_chaleira"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.chuveiro",
+   "pt": "chuveiro",
+   "en": "shower",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_chuveiro"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.toalha",
+   "pt": "toalha",
+   "en": "towel",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_toalha"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.xampu",
+   "pt": "xampu",
+   "en": "shampoo",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_xampu"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "also written shampoo"
+  },
+  {
+   "id": "diary.kitnet.box",
+   "pt": "box",
+   "en": "shower stall",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_box"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "box is the usual word for the shower stall"
+  },
+  {
+   "id": "diary.kitnet.escova",
+   "pt": "escova",
+   "en": "brush",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_escova"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.creme",
+   "pt": "creme",
+   "en": "toothpaste",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_creme"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "creme dental; creme alone is vague"
+  },
+  {
+   "id": "diary.kitnet.pente",
+   "pt": "pente",
+   "en": "comb",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pente"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.varal",
+   "pt": "varal",
+   "en": "clothesline",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_varal"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.pregador",
+   "pt": "pregador",
+   "en": "clothespin",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pregador"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.tomada",
+   "pt": "tomada",
+   "en": "outlet",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_tomada"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.interruptor",
+   "pt": "interruptor",
+   "en": "light switch",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_interruptor"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.carregador",
+   "pt": "carregador",
+   "en": "charger",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_carregador"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.retrato",
+   "pt": "retrato",
+   "en": "photo",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_retrato"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.perfume",
+   "pt": "perfume",
+   "en": "perfume",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_perfume"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.despertador",
+   "pt": "despertador",
+   "en": "alarm clock",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_despertador"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.extensao",
+   "pt": "extensão",
+   "en": "extension cord",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_extensao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.racao",
+   "pt": "ração",
+   "en": "pet food",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_racao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.pote",
+   "pt": "pote",
+   "en": "jar",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pote"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.chave",
+   "pt": "chave",
+   "en": "key",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_chave"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.parede",
+   "pt": "parede",
+   "en": "wall",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "kitnet_parede"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.teto",
+   "pt": "teto",
+   "en": "ceiling",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "kitnet_teto"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.rodape",
+   "pt": "rodapé",
+   "en": "baseboard",
+   "area": "kitnet",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "kitnet_rodape"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.cidade",
+   "pt": "cidade",
+   "en": "city",
+   "area": "kitnet",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "kitnet_poster_sp"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.familia",
+   "pt": "família",
+   "en": "family",
+   "area": "kitnet",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "kitnet_fotos"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.recado",
+   "pt": "recado",
+   "en": "note",
+   "area": "kitnet",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_recado"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.lista",
+   "pt": "lista",
+   "en": "list",
+   "area": "kitnet",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_lista"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.kitnet.conta",
+   "pt": "conta",
+   "en": "bill",
+   "area": "kitnet",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_conta"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "a household bill, not a bank account"
+  },
+  {
+   "id": "diary.academia.tatame",
+   "pt": "tatame",
+   "en": "mat",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "tatame"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.arquibancada",
+   "pt": "arquibancada",
+   "en": "bleachers",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "arquibancada"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.bebedouro",
+   "pt": "bebedouro",
+   "en": "water fountain",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "bebedouro"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.vestiario",
+   "pt": "vestiário",
+   "en": "locker room",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "vestiario"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.placar",
+   "pt": "placar",
+   "en": "scoreboard",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "placar"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.bandeira",
+   "pt": "bandeira",
+   "en": "flag",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "bandeira_br"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.cronometro",
+   "pt": "cronômetro",
+   "en": "stopwatch",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cronometro"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.apito",
+   "pt": "apito",
+   "en": "whistle",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_apito"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.prancheta",
+   "pt": "prancheta",
+   "en": "clipboard",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_prancheta"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.medalha",
+   "pt": "medalha",
+   "en": "medal",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_medalha"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.trofeu",
+   "pt": "troféu",
+   "en": "trophy",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_trofeu"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.foto",
+   "pt": "foto",
+   "en": "photo",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "quadro"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.corda",
+   "pt": "corda",
+   "en": "jump rope",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_corda"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "a jump rope, not a fight move"
+  },
+  {
+   "id": "diary.academia.armario",
+   "pt": "armário",
+   "en": "locker",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_armario"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.recepcao",
+   "pt": "recepção",
+   "en": "front desk",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_recepcao"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.computador",
+   "pt": "computador",
+   "en": "computer",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_computador"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.podio",
+   "pt": "pódio",
+   "en": "podium",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_podio"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.meia",
+   "pt": "meia",
+   "en": "sock",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_meia"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.squeeze",
+   "pt": "squeeze",
+   "en": "sports bottle",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_squeeze"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "squeeze is the usual word; confirm"
+  },
+  {
+   "id": "diary.academia.isotonico",
+   "pt": "isotônico",
+   "en": "sports drink",
+   "area": "academia",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_isotonico"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "common word; confirm it belongs in this jiu-jitsu room"
+  },
+  {
+   "id": "diary.academia.sapato",
+   "pt": "sapato",
+   "en": "shoe",
+   "area": "academia",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "academia_regras"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.treino",
+   "pt": "treino",
+   "en": "training",
+   "area": "academia",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "academia_mural"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.sabado",
+   "pt": "sábado",
+   "en": "Saturday",
+   "area": "academia",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "academia_horarios"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "note": "taken from the schedule instead of aula or aulas"
+  },
+  {
+   "id": "diary.academia.faixa",
+   "pt": "faixa",
+   "en": "belt",
+   "area": "academia",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "academia_faixas"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.kimono",
+   "pt": "kimono",
+   "en": "gi",
+   "area": "academia",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "academia_vestiario"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.extintor",
+   "pt": "extintor",
+   "en": "fire extinguisher",
+   "area": "academia",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_extintor"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.presenca",
+   "pt": "presença",
+   "en": "attendance",
+   "area": "academia",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_presenca"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.treinar",
+   "pt": "treinar",
+   "en": "to train",
+   "area": "academia",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "prof.idle0"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.respeito",
+   "pt": "respeito",
+   "en": "respect",
+   "area": "academia",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "prof.idle1"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.agua",
+   "pt": "água",
+   "en": "water",
+   "area": "academia",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "prof.idle2"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.professora",
+   "pt": "professora",
+   "en": "teacher",
+   "area": "academia",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "prof.oi"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.sorriso",
+   "pt": "sorriso",
+   "en": "smile",
+   "area": "academia",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "prof.idle3"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "the rules sign already spent its one word on sapato"
+  },
+  {
+   "id": "diary.academia.parceiro",
+   "pt": "parceiro",
+   "en": "partner",
+   "area": "academia",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "prof.idle4"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.academia.disciplina",
+   "pt": "disciplina",
+   "en": "discipline",
+   "area": "academia",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "prof.idle5"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.carteira",
+   "pt": "carteira",
+   "en": "school desk",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "carteira"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "note": "school desk, not a wallet"
+  },
+  {
+   "id": "diary.escola.lousa",
+   "pt": "lousa",
+   "en": "chalkboard",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "lousa_parede"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "note": "the board; the printed word AULA is the win-word, not this photo"
+  },
+  {
+   "id": "diary.escola.lapis",
+   "pt": "lápis",
+   "en": "pencil",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_lapis"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.caneta",
+   "pt": "caneta",
+   "en": "pen",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_caneta"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.borracha",
+   "pt": "borracha",
+   "en": "eraser",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_borracha"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.caderno",
+   "pt": "caderno",
+   "en": "notebook",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_caderno"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.livro",
+   "pt": "livro",
+   "en": "book",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_livro"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.estojo",
+   "pt": "estojo",
+   "en": "pencil case",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_estojo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.apontador",
+   "pt": "apontador",
+   "en": "sharpener",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_apontador"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.regua",
+   "pt": "régua",
+   "en": "ruler",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_regua"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.tesoura",
+   "pt": "tesoura",
+   "en": "scissors",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_tesoura"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.cola",
+   "pt": "cola",
+   "en": "glue",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cola"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "white glue, not a soda"
+  },
+  {
+   "id": "diary.escola.apagador",
+   "pt": "apagador",
+   "en": "board eraser",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_apagador"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.globo",
+   "pt": "globo",
+   "en": "globe",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_globo"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.dicionario",
+   "pt": "dicionário",
+   "en": "dictionary",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_dicionario"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.grampeador",
+   "pt": "grampeador",
+   "en": "stapler",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_grampeador"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.clipe",
+   "pt": "clipe",
+   "en": "paperclip",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_clipe"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.pasta",
+   "pt": "pasta",
+   "en": "folder",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_pasta"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "a paper folder, not toothpaste"
+  },
+  {
+   "id": "diary.escola.cracha",
+   "pt": "crachá",
+   "en": "name badge",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_cracha"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.sino",
+   "pt": "sino",
+   "en": "bell",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_sino"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "this one-room school may not have a bell"
+  },
+  {
+   "id": "diary.escola.corredor",
+   "pt": "corredor",
+   "en": "hallway",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_corredor"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "not drawn; the live room is one classroom"
+  },
+  {
+   "id": "diary.escola.patio",
+   "pt": "pátio",
+   "en": "courtyard",
+   "area": "escola",
+   "source": "camera",
+   "anchor": {
+    "kind": "object",
+    "id": "d_patio"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "not drawn; the live room is one classroom"
+  },
+  {
+   "id": "diary.escola.escola",
+   "pt": "escola",
+   "en": "school",
+   "area": "escola",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "escola_poster"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.saida",
+   "pt": "saída",
+   "en": "exit",
+   "area": "escola",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "escola_saida"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.silencio",
+   "pt": "silêncio",
+   "en": "silence",
+   "area": "escola",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_silencio"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.biblioteca",
+   "pt": "biblioteca",
+   "en": "library",
+   "area": "escola",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_biblioteca"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "not drawn in this one-room school"
+  },
+  {
+   "id": "diary.escola.chamada",
+   "pt": "chamada",
+   "en": "roll call",
+   "area": "escola",
+   "source": "reading",
+   "anchor": {
+    "kind": "sign",
+    "id": "s_chamada"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.palavra",
+   "pt": "palavra",
+   "en": "word",
+   "area": "escola",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "lucia.idle0"
+   },
+   "origin": "existing",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.nome",
+   "pt": "nome",
+   "en": "name",
+   "area": "escola",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "lucia.idle2"
+   },
+   "origin": "added",
+   "needsBr": true
+  },
+  {
+   "id": "diary.escola.licao",
+   "pt": "lição",
+   "en": "lesson",
+   "area": "escola",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "lucia.idle3"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "avoids the word aula"
+  },
+  {
+   "id": "seed.praca.aula",
+   "pt": "aula",
+   "en": "class",
+   "area": "escola",
+   "source": "game",
+   "anchor": {
+    "kind": "game",
+    "id": "escola.pratica"
+   },
+   "origin": "existing",
+   "needsBr": true,
+   "seed": true
+  }
+ ],
+ "film": {
+  "price": 4,
+  "pack": 6,
+  "starter": 3,
+  "seller": "julia"
+ },
+ "games": [
+  {
+   "id": "escola.pratica",
+   "kind": "practice",
+   "room": "escola",
+   "host": {
+    "npc": "lucia",
+    "name": "Dona Lúcia"
+   },
+   "rv": 8,
+   "grantWordId": "seed.praca.aula",
+   "chance": 1,
+   "decoys": [
+    "porta",
+    "mesa"
+   ],
+   "seed": true
+  },
+  {
+   "id": "correria",
+   "kind": "correria",
+   "room": "padaria",
+   "host": {
+    "npc": "carlos",
+    "name": "Seu Carlos"
+   },
+   "rv": 0,
+   "chance": 0.5,
+   "decoys": [],
+   "grants": [
     {
-      "id": "escola.pratica",
-      "room": "escola",
-      "host": { "npc": "lucia", "name": "Dona Lúcia" },
-      "rv": 8,
-      "grantWordId": "seed.praca.aula",
-      "decoys": ["porta", "mesa"],
-      "seed": true
+     "item": "bolo",
+     "wordId": "diary.padaria.bolo"
+    },
+    {
+     "item": "guarana",
+     "wordId": "diary.padaria.guarana"
+    },
+    {
+     "item": "coxinha",
+     "wordId": "diary.padaria.coxinha"
+    },
+    {
+     "item": "pao_de_queijo",
+     "wordId": "diary.padaria.queijo"
+    },
+    {
+     "item": "misto_quente",
+     "wordId": "diary.padaria.misto"
     }
-  ]
+   ]
+  }
+ ]
 }

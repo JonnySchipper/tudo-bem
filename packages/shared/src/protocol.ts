@@ -74,13 +74,19 @@ export type ClientMsg =
   | { t: 'feira'; action: 'pay'; vendor: VendorId; itemId: string; qty: number; paid: number[] }
   /** The player played 🔊 for these cards (Caderno). At most 10 known card ids; rate-limited per session. */
   | { t: 'heard'; cardIds: string[] }
-  /** Finish the plane arrival. Júlia gives the camera (and the cartela, when that exists). Once. */
-  | { t: 'arrival'; action: 'finish' }
   /**
-   * Take a photo. `anchors` are camera-word prop ids inside the viewfinder.
-   * `image` is a small jpeg of the frame. Every shot spends one film.
+   * Finish the plane arrival: Júlia gives the camera and the cartela, and the card's own words go into the diary. Once.
+   * `replay` watches it again (accounts from before the intro never saw it): only the card's missing words.
    */
-  | { t: 'diary'; action: 'photo'; anchor?: string; anchors?: string[]; image?: string }
+  | { t: 'arrival'; action: 'finish' | 'replay' }
+  /**
+   * Take a photo. `anchors` are the camera objects inside the viewfinder (props, wall spots, placed furniture); every camera word they
+   * teach is given, in the order named. `image` is a small jpeg of the frame. Every shot spends one film, except one in the airport
+   * hall (`hall`: a postcard of the arrival, free, only its own objects).
+   */
+  | { t: 'diary'; action: 'photo'; anchor?: string; anchors?: string[]; image?: string; hall?: boolean }
+  /** Read a sign in the airport hall of the arrival. */
+  | { t: 'diary'; action: 'sign'; anchor: string }
   /** Buy a pack of film from Júlia. Virtual RV only. */
   | { t: 'diary'; action: 'buyFilm' }
   /** Heard an NPC line (`npc.node`) that can teach a conversation word. */
@@ -99,6 +105,14 @@ export type ClientMsg =
   | { t: 'bout'; v: 1; action: 'answer'; seq: number; answer: BoutAnswer }
   | { t: 'bout'; v: 1; action: 'quit' }
   | { t: 'ping' };
+
+/** One new word of a shot, as the card shows it. A shot that teaches several words sends one of these for each, in the order to show them. */
+export interface DiaryMoment {
+  pt: string;
+  en: string;
+  areaPt: string;
+  progress: string;
+}
 
 export interface RoomStateMsg {
   t: 'roomState';
@@ -370,7 +384,7 @@ export type ServerMsg =
       rv: number;
     }
   /** Language diary: a photo, a practice round, or its result. The profile push carries the earned ids. */
-  | { t: 'diary'; phase: 'photo'; ok: true; pt: string; en: string; source: string; areaPt: string; progress: string; film: number }
+  | { t: 'diary'; phase: 'photo'; ok: true; pt: string; en: string; source: string; areaPt: string; progress: string; film: number; words?: DiaryMoment[] }
   | { t: 'diary'; phase: 'photo'; ok: false; pt: string; en: string; film: number; empty?: boolean }
   /** A word went into the diary another way (a sign read, a line heard, a game won): the client makes the same moment of it as a photo. */
   | { t: 'diary'; phase: 'word'; pt: string; en: string; source: string; areaPt: string; progress: string }

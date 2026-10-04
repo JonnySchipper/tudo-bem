@@ -292,6 +292,10 @@ export class World {
       tileOf: (s) => this.currentTile(s).tile,
       roomOf: (s) => s.instance?.def.id ?? null,
       npcsIn: (room) => this.npcs.whoIn(room),
+      apartmentOf: (s) => {
+        const owner = s.instance?.ownerId;
+        return (owner ? this.store.get(owner)?.apartment : undefined) ?? [];
+      },
       rng: () => this.rng(),
       now: () => this.now(),
     });
@@ -328,6 +332,7 @@ export class World {
       completeStep: (s) => this.completeStep(s, 'meveum'),
       missionStep: (s) => this.missionStep(s, 'monta'),
       cartelaShift: (s, served) => this.cartela.onCorreriaEnd(s, served),
+      shiftWon: (s, items) => this.diary.onCorreriaWin(s, items),
       ordered: (s, items) => this.recados.onEvent(s, { kind: 'ordered', npc: 'carlos', items }),
       bond: (s, npc, n) => this.recados.grantBond(s, npc, n),
       caderno: { seen: (s, text, ids) => this.caderno.seen(s, text, ids), heard: (s, ids) => this.caderno.heard(s, ids) },
@@ -469,7 +474,7 @@ export class World {
       case 'heard':
         return this.caderno.heard(s, msg.cardIds);
       case 'arrival':
-        return this.diary.finishArrival(s);
+        return msg.action === 'replay' ? this.diary.replayArrival(s) : this.diary.finishArrival(s);
       case 'diary':
         return this.diary.handle(s, msg);
       case 'talk':

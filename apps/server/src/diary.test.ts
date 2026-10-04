@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   CLOCK_OFFSET_MS,
   DEFAULT_APPEARANCE,
+  DIARY_WORDS,
   ECONOMY,
   FILM,
   GAME_DAY_MS,
@@ -41,11 +42,11 @@ function run(ms: number) {
   for (let t = 0; t < ms; t += 1000) advance(1000);
 }
 
-function makeWorld() {
+function makeWorld(rng?: () => number) {
   return new World(
     new ProfileStore(null),
     { safety: new JevStubSafety(), gloss: new PhrasebookGloss(), npc: new AuthoredNpcDialogue(), student: new InMemoryStudentModel(), moderation: new MemoryModerationQueue() },
-    { mgGapMs: 0, now: () => clock, schedule: (fn, ms) => pending.push({ fn, at: clock + ms }) },
+    { mgGapMs: 0, now: () => clock, schedule: (fn, ms) => pending.push({ fn, at: clock + ms }), ...(rng ? { rng } : {}) },
   );
 }
 
@@ -88,10 +89,17 @@ function spotNear(roomId: 'praca', anchor: { x: number; y: number; w?: number; h
 
 const diaryOf = (m: ServerMsg) => (m.t === 'diary' ? m : undefined);
 
+/** The ids of the praça words a player holds (the arrival card's words are the Chegada area's). */
+const inPraca = (c: Client) => (c.s.profile?.diary ?? []).filter((id) => diaryWord(id)?.area === 'praca');
+const photoMsgs = (c: Client) => c.all('diary').filter((m): m is Extract<typeof m, { phase: 'photo' }> => m.phase === 'photo');
+const wordMsgs = (c: Client) => c.all('diary').filter((m): m is Extract<typeof m, { phase: 'word' }> => m.phase === 'word');
+const CARD_WORDS = ['aeroporto', 'brasil', 'avião', 'câmera', 'diário'];
+const ptOf = (ids: readonly string[] | undefined) => (ids ?? []).map((id) => diaryWord(id)!.pt);
+
 describe('arrival, camera, diary and the escola', () => {
   beforeEach(() => setGameTime(10));
 
-  it('gives a new account the intro, the camera and the cartela once, then skips it', async () => {
+  it('gives a new account the intro, the camera, the cartela and the card’s words once, then skips it', async () => {
     const world = makeWorld();
     const a = await client(world);
     expect(a.last('welcome')?.profile.arrivalIntroDone).toBe(false);
@@ -104,8 +112,33 @@ describe('arrival, camera, diary and the escola', () => {
     // the cartela is on this build: Júlia hands it over in the intro, and the notice no longer says it is missing
     expect(notice).not.toMatch(/ainda não chegou/);
     expect(a.s.profile?.cartela).toMatchObject({ stamps: 0 });
+    // the card is read once, and its five words go into the diary: the kicker (reading) and Júlia's four lines (conversation)
+    expect(ptOf(a.s.profile?.diary).sort()).toEqual([...CARD_WORDS].sort());
+    expect(wordMsgs(a).map((m) => [m.pt, m.source])).toEqual([
+      ['aeroporto', 'reading'],
+      ['brasil', 'conversation'],
+      ['avião', 'conversation'],
+      ['câmera', 'conversation'],
+      ['diário', 'conversation'],
+    ]);
     await a.send({ t: 'arrival', action: 'finish' });
     expect(a.all('notice').filter((n) => n.pt.includes('câmera'))).toHaveLength(1);
+    expect(wordMsgs(a)).toHaveLength(5);
+  });
+
+  it('lets anybody watch the arrival again for the card’s words, never twice, and never before the intro is done', async () => {
+    const world = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'arrival', action: 'replay' });
+    expect(a.s.profile?.diary ?? []).toEqual([]);
+    // an account from before the intro: home already, no card words
+    a.s.profile!.arrivalIntroDone = true;
+    a.s.profile!.hasCamera = true;
+    await a.send({ t: 'arrival', action: 'replay' });
+    expect(ptOf(a.s.profile?.diary).sort()).toEqual([...CARD_WORDS].sort());
+    await a.send({ t: 'arrival', action: 'replay' });
+    expect(wordMsgs(a)).toHaveLength(5);
+    expect(a.s.profile?.film ?? 0).toBe(0);
   });
 
   it('sends photo images in their own message, never inside the profile', async () => {
@@ -134,52 +167,201 @@ describe('arrival, camera, diary and the escola', () => {
     const shot = [...a.inbox].reverse().find((m) => m.t === 'diary' && m.phase === 'photo');
     expect(shot && diaryOf(shot)).toMatchObject({ ok: true, pt: 'fonte', en: 'fountain', source: 'camera' });
     if (shot && shot.t === 'diary' && shot.phase === 'photo' && shot.ok) {
-      expect(shot.progress).toMatch(/^1\/1 /);
+      // the denominators come from the catalog: the praça has 98 camera words, 16 to read, 9 to hear
+      expect(shot.progress).toBe('1/98 câmera · 0/16 leitura · 0/9 conversa');
       expect(shot.progress).not.toMatch(/\/100\b/);
       expect(shot.areaPt).toBe('Praça');
     }
-    expect(a.s.profile?.diary).toEqual(['seed.praca.fonte']);
+    expect(inPraca(a)).toEqual(['seed.praca.fonte']);
 
     await a.send({ t: 'diary', action: 'photo', anchor: 'fonte' });
     const again = [...a.inbox].reverse().find((m) => m.t === 'diary' && m.phase === 'photo');
     expect(again).toMatchObject({ ok: false, pt: 'fonte' });
-    expect(a.s.profile?.diary).toEqual(['seed.praca.fonte']);
+    expect(inPraca(a)).toEqual(['seed.praca.fonte']);
 
     await a.send({ t: 'diary', action: 'photo', anchor: 'coreto_placa' });
-    expect(a.s.profile?.diary).toEqual(['seed.praca.fonte']);
+    expect(inPraca(a)).toEqual(['seed.praca.fonte']);
 
     const sign = hotspotById('coreto_placa')!;
     expect(HOTSPOTS.some((h) => h.id === 'coreto_placa')).toBe(true);
     const nearSign = spotNear('praca', sign);
     await walkTo(a, nearSign.x, nearSign.y);
     await a.send({ t: 'read', hotspotId: 'fonte_praca' });
-    expect(a.s.profile?.diary).toEqual(['seed.praca.fonte']);
-    const wordsBefore = a.all('diary').filter((m) => m.phase === 'word').length;
+    expect(inPraca(a)).toEqual(['seed.praca.fonte', 'diary.praca.praca']);
+    const wordsBefore = wordMsgs(a).length;
     await a.send({ t: 'read', hotspotId: 'coreto_placa' });
-    expect(a.s.profile?.diary).toEqual(['seed.praca.fonte', 'seed.praca.coreto']);
+    expect(inPraca(a)).toEqual(['seed.praca.fonte', 'diary.praca.praca', 'seed.praca.coreto']);
     // a word read off a sign gets the same new-word moment as a photo (once)
-    const words = a.all('diary').filter((m) => m.phase === 'word');
-    expect(words.length).toBe(wordsBefore + 1);
-    expect(words.at(-1)).toMatchObject({ pt: 'coreto', source: 'reading' });
+    expect(wordMsgs(a).length).toBe(wordsBefore + 1);
+    expect(wordMsgs(a).at(-1)).toMatchObject({ pt: 'coreto', source: 'reading' });
     await a.send({ t: 'read', hotspotId: 'coreto_placa' });
-    expect(a.all('diary').filter((m) => m.phase === 'word').length).toBe(wordsBefore + 1);
-    expect(a.s.profile?.diary).toEqual(['seed.praca.fonte', 'seed.praca.coreto']);
+    expect(wordMsgs(a).length).toBe(wordsBefore + 1);
 
     await a.send({ t: 'diary', action: 'line', anchor: 'julia.ajuda' });
-    expect(a.s.profile?.diary).not.toContain('seed.praca.guia');
+    expect(inPraca(a)).not.toContain('seed.praca.guia');
     const julia = a.last('roomState')?.avatars.find((v) => v.npc === 'julia');
     expect(julia?.npcInteract).toBeTruthy();
     await walkTo(a, julia!.npcInteract!.x, julia!.npcInteract!.y);
     await a.send({ t: 'diary', action: 'line', anchor: 'julia.ajuda' });
-    expect(a.s.profile?.diary).toEqual(['seed.praca.fonte', 'seed.praca.coreto', 'seed.praca.guia']);
+    expect(inPraca(a)).toEqual(['seed.praca.fonte', 'diary.praca.praca', 'seed.praca.coreto', 'seed.praca.guia']);
     await a.send({ t: 'diary', action: 'line', anchor: 'julia.oi' });
-    expect(a.s.profile?.diary).toEqual(['seed.praca.fonte', 'seed.praca.coreto', 'seed.praca.guia']);
+    expect(inPraca(a)).toHaveLength(4);
     expect(a.s.profile?.film).toBe(FILM.starter - 2);
 
     await a.send({ t: 'diary', action: 'buyFilm' });
     expect(a.s.profile?.coins).toBe(ECONOMY.startingCoins - FILM.price);
     expect(a.s.profile?.film).toBe(FILM.starter - 2 + FILM.pack);
     expect(a.all('notice').some((n) => n.pt.includes('Júlia') && n.pt.includes('filme'))).toBe(true);
+  });
+
+  it('gives every new word of one shot, one after another, from a single film, and only what the diary does not have', async () => {
+    const world = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'arrival', action: 'finish' });
+    const fonte = ROOMS.praca.props.find((p) => p.id === 'fonte')!;
+    const near = spotNear('praca', fonte);
+    await walkTo(a, near.x, near.y);
+    const film = a.s.profile!.film!;
+    const anchors = ['fonte', 'd_moeda', 'd_musgo', 'd_concreto', 'd_pombo'];
+    await a.send({ t: 'diary', action: 'photo', anchors });
+    const shot = photoMsgs(a).at(-1)!;
+    expect(shot.ok).toBe(true);
+    if (!shot.ok) return;
+    // five words from one shot, in the order the objects were named, the counter climbing 1, 2, 3, 4, 5 of the praça's 98
+    expect(shot.words?.map((w) => w.pt)).toEqual(['fonte', 'moeda', 'musgo', 'concreto', 'pombo']);
+    expect(shot.words?.map((w) => w.progress.split(' ')[0])).toEqual(['1/98', '2/98', '3/98', '4/98', '5/98']);
+    expect(shot.words?.every((w) => w.areaPt === 'Praça')).toBe(true);
+    expect(shot).toMatchObject({ pt: 'fonte', progress: shot.words![0]!.progress });
+    expect(inPraca(a)).toEqual(['seed.praca.fonte', 'diary.praca.moeda', 'diary.praca.musgo', 'diary.praca.concreto', 'diary.praca.pombo']);
+    expect(a.s.profile?.film).toBe(film - 1);
+
+    // the same shot again teaches nothing new and says so
+    await a.send({ t: 'diary', action: 'photo', anchors });
+    const again = photoMsgs(a).at(-1)!;
+    expect(again).toMatchObject({ ok: false });
+    expect(inPraca(a)).toHaveLength(5);
+    expect(a.s.profile?.film).toBe(film - 2);
+
+    // a shot that mixes words the diary has with one it does not gives only the new one
+    await a.send({ t: 'diary', action: 'photo', anchors: ['d_pombo', 'd_relogio', 'd_moeda'] });
+    const mixed = photoMsgs(a).at(-1)!;
+    expect(mixed.ok && mixed.words?.map((w) => w.pt)).toEqual(['relógio']);
+    expect(mixed.ok && mixed.words?.[0]?.progress.split(' ')[0]).toBe('6/98');
+    expect(inPraca(a)).toHaveLength(6);
+
+    // an object out of reach is not in the shot, and does not cost a word
+    await walkTo(a, 1, 22);
+    await a.send({ t: 'diary', action: 'photo', anchors: ['d_ninho'] });
+    expect(a.all('error').some((e) => e.code === 'far')).toBe(true);
+    expect(inPraca(a)).toHaveLength(6);
+  });
+
+  it('takes the airport hall as a postcard: free shots of its own objects, its signs to read, nothing else', async () => {
+    const world = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'arrival', action: 'finish' });
+    const film = a.s.profile!.film!;
+    // hall objects are only in the hall, and nothing else is
+    await a.send({ t: 'diary', action: 'photo', anchors: ['hall_mala', 'hall_esteira'] });
+    expect(a.all('error').some((e) => e.code === 'far')).toBe(true);
+    await a.send({ t: 'diary', action: 'photo', anchors: ['fonte'], hall: true });
+    expect(a.all('error').filter((e) => e.code === 'far')).toHaveLength(2);
+    expect(a.s.profile?.film).toBe(film);
+
+    await a.send({ t: 'diary', action: 'photo', anchors: ['hall_mala', 'hall_esteira', 'hall_etiqueta'], hall: true, image: 'data:image/jpeg;base64,AAAA' });
+    const shot = photoMsgs(a).at(-1)!;
+    expect(shot.ok && shot.words?.map((w) => w.pt)).toEqual(['mala', 'esteira', 'etiqueta']);
+    expect(shot.ok && shot.areaPt).toBe('Chegada');
+    expect(a.s.profile?.film).toBe(film);
+    expect(a.s.profile?.photos ?? []).toHaveLength(0);
+
+    await a.send({ t: 'diary', action: 'sign', anchor: 'hall_s_bagagem' });
+    expect(wordMsgs(a).at(-1)).toMatchObject({ pt: 'bagagem', source: 'reading' });
+    await a.send({ t: 'diary', action: 'sign', anchor: 'hall_s_bagagem' });
+    await a.send({ t: 'diary', action: 'sign', anchor: 'coreto_placa' });
+    expect(ptOf(a.s.profile?.diary)).toEqual([...CARD_WORDS, 'mala', 'esteira', 'etiqueta', 'bagagem']);
+  });
+
+  it('photographs wall decor and placed furniture in the kitnet, not furniture that is still in the box', async () => {
+    const world = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'arrival', action: 'finish' });
+    await a.send({ t: 'join', room: 'kitnet' });
+    expect(a.last('roomState')?.room).toBe('kitnet');
+    await a.send({ t: 'diary', action: 'photo', anchors: ['cadeira_madeira'] });
+    expect(a.all('error').some((e) => e.code === 'far')).toBe(true);
+    await a.send({ t: 'furniture', action: 'place', itemId: 'cadeira_madeira', x: 3, y: 4, rot: 0 });
+    await a.send({ t: 'diary', action: 'photo', anchors: ['cadeira_madeira', 'janela_rua', 'kitnet_parede', 'cama', 'poltrona_verde'] });
+    const shot = photoMsgs(a).at(-1)!;
+    expect(shot.ok && shot.words?.map((w) => w.pt)).toEqual(['cadeira', 'janela', 'parede', 'cama']);
+    expect(shot.ok && shot.areaPt).toBe('Kitnet');
+  });
+
+  it('hears ambient lines from a little farther than a talk, a vendor’s greeting at the stall, the counter line at the counter', async () => {
+    const world = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'arrival', action: 'finish' });
+    const julia = a.last('roomState')?.avatars.find((v) => v.npc === 'julia')!;
+    expect(julia.npcInteract).toBeTruthy();
+    // across the square she cannot be heard, whatever the line
+    await walkTo(a, 1, 22);
+    await a.send({ t: 'diary', action: 'line', anchor: 'julia.idle0' });
+    expect(ptOf(a.s.profile?.diary)).not.toContain('ajuda');
+    // 6 tiles off: close enough to hear the ambient line, too far for a talk node
+    await walkTo(a, julia.npcInteract!.x, julia.npcInteract!.y + 6);
+    await a.send({ t: 'diary', action: 'line', anchor: 'julia.ajuda' });
+    expect(ptOf(a.s.profile?.diary)).not.toContain('guia');
+    await a.send({ t: 'diary', action: 'line', anchor: 'julia.idle0' });
+    expect(wordMsgs(a).at(-1)).toMatchObject({ pt: 'ajuda', source: 'conversation' });
+    await a.send({ t: 'diary', action: 'line', anchor: 'julia.idle2' });
+    await a.send({ t: 'diary', action: 'line', anchor: 'julia.idle3' });
+    expect(ptOf(a.s.profile?.diary).slice(-3)).toEqual(['ajuda', 'vizinho', 'passeio']);
+    // a line that is not a line of anyone, and the arrival card's own (taken with the card), teach nothing
+    await a.send({ t: 'diary', action: 'line', anchor: 'julia.idle99' });
+    await a.send({ t: 'diary', action: 'line', anchor: 'julia.chegada_titulo' });
+    expect(ptOf(a.s.profile?.diary)).toHaveLength(8);
+
+    await a.send({ t: 'join', room: 'feira' });
+    await a.send({ t: 'diary', action: 'line', anchor: 'tia_lu.greet' });
+    expect(ptOf(a.s.profile?.diary)).not.toContain('freguês');
+    const tia = a.last('roomState')?.avatars.find((v) => v.npc === 'tia_lu')!;
+    expect(tia?.npcInteract).toBeTruthy();
+    await walkTo(a, tia.npcInteract!.x, tia.npcInteract!.y);
+    await a.send({ t: 'diary', action: 'line', anchor: 'tia_lu.greet' });
+    await a.send({ t: 'diary', action: 'line', anchor: 'tia_lu.closed' });
+    await a.send({ t: 'diary', action: 'line', anchor: 'tia_lu.idle0' });
+    expect(ptOf(a.s.profile?.diary).slice(-3)).toEqual(['freguês', 'amanhã', 'banana']);
+
+    await a.send({ t: 'join', room: 'padaria' });
+    await a.send({ t: 'diary', action: 'line', anchor: 'carlos.viagem' });
+    const carlos = a.last('roomState')?.avatars.find((v) => v.npc === 'carlos')!;
+    expect(carlos?.npcInteract).toBeTruthy();
+    await walkTo(a, carlos.npcInteract!.x, carlos.npcInteract!.y);
+    await a.send({ t: 'diary', action: 'line', anchor: 'carlos.viagem' });
+    expect(wordMsgs(a).at(-1)).toMatchObject({ pt: 'viagem', source: 'conversation' });
+  });
+
+  it('teaches a Correria word only after a won shift that served its item, sometimes, and never twice', async () => {
+    const lucky = makeWorld(() => 0);
+    const a = await client(lucky);
+    const diary = (lucky as unknown as { diary: { onCorreriaWin: (s: Session, items: string[]) => void } }).diary;
+    diary.onCorreriaWin(a.s, ['cafe', 'agua']);
+    expect(wordMsgs(a)).toHaveLength(0);
+    diary.onCorreriaWin(a.s, ['bolo', 'coxinha', 'cafe']);
+    expect(wordMsgs(a).map((m) => [m.pt, m.source])).toEqual([['bolo', 'game'], ['coxinha', 'game']]);
+    diary.onCorreriaWin(a.s, ['bolo', 'guarana', 'pao_de_queijo', 'misto_quente']);
+    expect(wordMsgs(a).map((m) => m.pt)).toEqual(['bolo', 'coxinha', 'guaraná', 'queijo', 'misto']);
+    expect(ptOf(a.s.profile?.diary)).toEqual(['bolo', 'coxinha', 'guaraná', 'queijo', 'misto']);
+    diary.onCorreriaWin(a.s, ['bolo', 'guarana']);
+    expect(wordMsgs(a)).toHaveLength(5);
+
+    // an unlucky win teaches nothing, and the word is still there for the next one
+    const unlucky = makeWorld(() => 0.99);
+    const b = await client(unlucky);
+    const diaryB = (unlucky as unknown as { diary: { onCorreriaWin: (s: Session, items: string[]) => void } }).diary;
+    diaryB.onCorreriaWin(b.s, ['bolo']);
+    expect(wordMsgs(b)).toHaveLength(0);
+    expect(DIARY_WORDS.filter((w) => w.source === 'game')).toHaveLength(6);
   });
 
   it('practices an earned word in the escola: a miss pays nothing, a win pays RV and one game word from the host', async () => {
@@ -191,49 +373,46 @@ describe('arrival, camera, diary and the escola', () => {
     await walkTo(a, near.x, near.y);
     await a.send({ t: 'diary', action: 'photo', anchor: 'fonte' });
     expect(a.s.profile?.coins).toBe(ECONOMY.startingCoins);
+    const held = () => ptOf(a.s.profile?.diary);
 
     await a.send({ t: 'join', room: 'escola' });
     expect(a.last('roomState')?.room).toBe('escola');
     expect(a.last('roomState')?.avatars.some((v) => v.npc === 'lucia')).toBe(true);
     await a.send({ t: 'diary', action: 'practice' });
     const dealt = [...a.inbox].reverse().find((m) => m.t === 'diary' && m.phase === 'practice');
-    expect(dealt).toMatchObject({ ok: true, host: 'Dona Lúcia', en: 'fountain' });
+    expect(dealt).toMatchObject({ ok: true, host: 'Dona Lúcia' });
     if (!dealt || dealt.t !== 'diary' || dealt.phase !== 'practice' || !dealt.ok) throw new Error('practice did not start');
-    const wrong = dealt.options.find((o) => o.toLowerCase() !== 'fonte')!;
+    // the prompt is the English of a word the player holds; the right option is its Portuguese
+    const asked = held().find((pt) => DIARY_WORDS.some((w) => w.pt === pt && w.en === dealt.en))!;
+    expect(asked).toBeTruthy();
+    const wrong = dealt.options.find((o) => o.toLowerCase() !== asked.toLowerCase())!;
     expect(wrong).toBeTruthy();
     await a.send({ t: 'diary', action: 'answer', choice: wrong });
     const miss = [...a.inbox].reverse().find((m) => m.t === 'diary' && m.phase === 'result');
     expect(miss).toMatchObject({ correct: false, host: 'Dona Lúcia', granted: null });
     expect(a.s.profile?.coins).toBe(ECONOMY.startingCoins);
-    expect(a.s.profile?.diary).toEqual(['seed.praca.fonte']);
+    expect(held()).not.toContain('aula');
     expect(a.all('reward')).toHaveLength(0);
 
-    await a.send({ t: 'diary', action: 'answer', choice: 'fonte' });
+    await a.send({ t: 'diary', action: 'answer', choice: asked });
     const win = [...a.inbox].reverse().find((m) => m.t === 'diary' && m.phase === 'result');
     expect(win).toMatchObject({ correct: true, host: 'Dona Lúcia', granted: { pt: 'aula', en: 'class' } });
     if (win && win.t === 'diary' && win.phase === 'result') expect(win.line.pt).toMatch(/Dona Lúcia/);
     expect(a.all('reward').at(-1)).toMatchObject({ amount: 8 });
     expect(a.all('reward').at(-1)?.reason.pt).toMatch(/Dona Lúcia/);
     expect(a.s.profile?.coins).toBe(ECONOMY.startingCoins + 8);
-    expect(a.s.profile?.diary).toEqual(['seed.praca.fonte', 'seed.praca.aula']);
+    expect(held()).toContain('aula');
     expect(diaryWord('seed.praca.aula')?.source).toBe('game');
+    expect(diaryWord('seed.praca.aula')?.area).toBe('escola');
 
     await a.send({ t: 'diary', action: 'practice' });
     const dealt2 = [...a.inbox].reverse().find((m) => m.t === 'diary' && m.phase === 'practice' && m.ok);
     if (!dealt2 || dealt2.t !== 'diary' || dealt2.phase !== 'practice' || !dealt2.ok) throw new Error('no second round');
-    const answer = diaryWord(DIARY_WORDS_EN(dealt2.en))!.pt;
-    await a.send({ t: 'diary', action: 'answer', choice: answer });
+    const asked2 = held().find((pt) => DIARY_WORDS.some((w) => w.pt === pt && w.en === dealt2.en))!;
+    await a.send({ t: 'diary', action: 'answer', choice: asked2 });
     const win2 = [...a.inbox].reverse().find((m) => m.t === 'diary' && m.phase === 'result');
     expect(win2).toMatchObject({ correct: true, granted: null });
     expect(a.s.profile?.coins).toBe(ECONOMY.startingCoins + 16);
-    expect(a.s.profile?.diary).toEqual(['seed.praca.fonte', 'seed.praca.aula']);
+    expect(held().filter((pt) => pt === 'aula')).toHaveLength(1);
   });
 });
-
-function DIARY_WORDS_EN(en: string): string {
-  const w = diaryWord('seed.praca.fonte');
-  if (w?.en === en) return w.id;
-  const aula = diaryWord('seed.praca.aula');
-  if (aula?.en === en) return aula.id;
-  throw new Error(`unexpected prompt ${en}`);
-}

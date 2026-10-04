@@ -221,6 +221,37 @@ describe('Correria no Balcão, server side', () => {
     expect(a.s.mg).toBeUndefined();
   });
 
+  it('teaches the word of a served item after a won shift only, sometimes: a quit shift and an empty one teach nothing', async () => {
+    const world = makeWorld();
+    const a = await player(world);
+    const wins: string[][] = [];
+    const deps = (world as unknown as { correria: { d: { shiftWon?: (s: Session, items: readonly string[]) => void } } }).correria.d;
+    const original = deps.shiftWon;
+    deps.shiftWon = (s, items) => {
+      wins.push([...items]);
+      original?.(s, items);
+    };
+    (world as unknown as { diary: { d: { rng: () => number } } }).diary.d.rng = () => 0;
+    const gameWords = () => a.all('diary').filter((m) => m.phase === 'word' && m.source === 'game');
+
+    await a.send({ t: 'mg', action: 'start' });
+    await serveFront(world, a, advance);
+    await a.send({ t: 'mg', action: 'quit' });
+    expect(wins).toEqual([]);
+    expect(gameWords()).toHaveLength(0);
+
+    const b = await player(world);
+    await b.send({ t: 'mg', action: 'start' });
+    await playShiftOut(world, b);
+    expect(endOf(b)).toBeDefined();
+    expect(wins).toHaveLength(1);
+    expect(wins[0]!.length).toBeGreaterThan(0);
+    const teachable: Record<string, string> = { bolo: 'bolo', guarana: 'guaraná', coxinha: 'coxinha', pao_de_queijo: 'queijo', misto_quente: 'misto' };
+    const expected = wins[0]!.filter((i) => i in teachable).map((i) => teachable[i]!);
+    const taught = b.all('diary').filter((m) => m.phase === 'word' && m.source === 'game').map((m) => (m as { pt: string }).pt);
+    expect(taught.sort()).toEqual([...expected].sort());
+  });
+
   it('a server restart that lost the shift answers sync and actions with a lost card and no RV', async () => {
     const world = makeWorld();
     const a = await player(world);

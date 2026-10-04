@@ -119,7 +119,7 @@ export const propSize = (p: PropDef): { w: number; h: number } => ({ w: p.w ?? 1
 /** Where a prop's anchor lands: the bottom-centre of its footprint (manifest `ax`/`ay` is placed here). */
 export function propAnchor(p: PropDef): { wx: number; wy: number } {
   const { w, h } = propSize(p);
-  return { wx: (p.x + w / 2) * T, wy: (p.y + h) * T };
+  return { wx: (p.x + w / 2) * T + (p.ox ?? 0), wy: (p.y + h) * T };
 }
 
 /** Small deterministic tiebreak so two objects on the same bottom edge always sort the same way (HOWTO §5.4). */

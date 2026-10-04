@@ -6,8 +6,8 @@
    "image": "atlas/outdoor.png",
    "data": "atlas/outdoor.json",
    "w": 1024,
-   "h": 1664,
-   "frames": 796
+   "h": 1728,
+   "frames": 1101
   }
  },
  "terrain": {
@@ -5264,6 +5264,4581 @@
    "ay": 23,
    "footprint": [
     1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/paralelepipedo": {
+   "atlas": "outdoor",
+   "frame": "diary/paralelepipedo",
+   "w": 10,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/folha": {
+   "atlas": "outdoor",
+   "frame": "diary/folha",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/relogio": {
+   "atlas": "outdoor",
+   "frame": "diary/relogio",
+   "w": 10,
+   "h": 14,
+   "ax": 5,
+   "ay": 13,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/estatua": {
+   "atlas": "outdoor",
+   "frame": "diary/estatua",
+   "w": 10,
+   "h": 12,
+   "ax": 5,
+   "ay": 11,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/guarda_sol": {
+   "atlas": "outdoor",
+   "frame": "diary/guarda_sol",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/cesta": {
+   "atlas": "outdoor",
+   "frame": "diary/cesta",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/garrafa": {
+   "atlas": "outdoor",
+   "frame": "diary/garrafa",
+   "w": 8,
+   "h": 10,
+   "ax": 4,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/copo": {
+   "atlas": "outdoor",
+   "frame": "diary/copo",
+   "w": 8,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/lata": {
+   "atlas": "outdoor",
+   "frame": "diary/lata",
+   "w": 8,
+   "h": 9,
+   "ax": 4,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/bolsa": {
+   "atlas": "outdoor",
+   "frame": "diary/bolsa",
+   "w": 8,
+   "h": 9,
+   "ax": 4,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/moeda": {
+   "atlas": "outdoor",
+   "frame": "diary/moeda",
+   "w": 8,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/cedula": {
+   "atlas": "outdoor",
+   "frame": "diary/cedula",
+   "w": 11,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/celular": {
+   "atlas": "outdoor",
+   "frame": "diary/celular",
+   "w": 8,
+   "h": 10,
+   "ax": 4,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/folheto": {
+   "atlas": "outdoor",
+   "frame": "diary/folheto",
+   "w": 9,
+   "h": 9,
+   "ax": 4,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/cartaz": {
+   "atlas": "outdoor",
+   "frame": "diary/cartaz",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/poca": {
+   "atlas": "outdoor",
+   "frame": "diary/poca",
+   "w": 12,
+   "h": 7,
+   "ax": 6,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/mastro": {
+   "atlas": "outdoor",
+   "frame": "diary/mastro",
+   "w": 10,
+   "h": 12,
+   "ax": 5,
+   "ay": 11,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/degrau": {
+   "atlas": "outdoor",
+   "frame": "diary/degrau",
+   "w": 10,
+   "h": 6,
+   "ax": 5,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/corrimao": {
+   "atlas": "outdoor",
+   "frame": "diary/corrimao",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/pilar": {
+   "atlas": "outdoor",
+   "frame": "diary/pilar",
+   "w": 10,
+   "h": 11,
+   "ax": 5,
+   "ay": 10,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/lampada": {
+   "atlas": "outdoor",
+   "frame": "diary/lampada",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/mureta": {
+   "atlas": "outdoor",
+   "frame": "diary/mureta",
+   "w": 14,
+   "h": 6,
+   "ax": 7,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/violao": {
+   "atlas": "outdoor",
+   "frame": "diary/violao",
+   "w": 10,
+   "h": 12,
+   "ax": 5,
+   "ay": 11,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/pandeiro": {
+   "atlas": "outdoor",
+   "frame": "diary/pandeiro",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/microfone": {
+   "atlas": "outdoor",
+   "frame": "diary/microfone",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/alto_falante": {
+   "atlas": "outdoor",
+   "frame": "diary/alto_falante",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/panela": {
+   "atlas": "outdoor",
+   "frame": "diary/panela",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/saquinho": {
+   "atlas": "outdoor",
+   "frame": "diary/saquinho",
+   "w": 9,
+   "h": 10,
+   "ax": 4,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/sorvete": {
+   "atlas": "outdoor",
+   "frame": "diary/sorvete",
+   "w": 8,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/picole": {
+   "atlas": "outdoor",
+   "frame": "diary/picole",
+   "w": 8,
+   "h": 10,
+   "ax": 4,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/guardanapo": {
+   "atlas": "outdoor",
+   "frame": "diary/guardanapo",
+   "w": 8,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/cavalete": {
+   "atlas": "outdoor",
+   "frame": "diary/cavalete",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/tinta": {
+   "atlas": "outdoor",
+   "frame": "diary/tinta",
+   "w": 8,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/balde": {
+   "atlas": "outdoor",
+   "frame": "diary/balde",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/pano": {
+   "atlas": "outdoor",
+   "frame": "diary/pano",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/vassoura": {
+   "atlas": "outdoor",
+   "frame": "diary/vassoura",
+   "w": 10,
+   "h": 11,
+   "ax": 5,
+   "ay": 10,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/pa": {
+   "atlas": "outdoor",
+   "frame": "diary/pa",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/luva": {
+   "atlas": "outdoor",
+   "frame": "diary/luva",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/grafite": {
+   "atlas": "outdoor",
+   "frame": "diary/grafite",
+   "w": 14,
+   "h": 8,
+   "ax": 7,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/adesivo": {
+   "atlas": "outdoor",
+   "frame": "diary/adesivo",
+   "w": 8,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/madeira": {
+   "atlas": "outdoor",
+   "frame": "diary/madeira",
+   "w": 10,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/ferro": {
+   "atlas": "outdoor",
+   "frame": "diary/ferro",
+   "w": 10,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/concreto": {
+   "atlas": "outdoor",
+   "frame": "diary/concreto",
+   "w": 10,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/tijolo": {
+   "atlas": "outdoor",
+   "frame": "diary/tijolo",
+   "w": 10,
+   "h": 6,
+   "ax": 5,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/papel": {
+   "atlas": "outdoor",
+   "frame": "diary/papel",
+   "w": 8,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/vidro": {
+   "atlas": "outdoor",
+   "frame": "diary/vidro",
+   "w": 8,
+   "h": 9,
+   "ax": 4,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/tampinha": {
+   "atlas": "outdoor",
+   "frame": "diary/tampinha",
+   "w": 8,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/papelao": {
+   "atlas": "outdoor",
+   "frame": "diary/papelao",
+   "w": 11,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/coleira": {
+   "atlas": "outdoor",
+   "frame": "diary/coleira",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/formigueiro": {
+   "atlas": "outdoor",
+   "frame": "diary/formigueiro",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/sabia": {
+   "atlas": "outdoor",
+   "frame": "diary/sabia",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/bem_te_vi": {
+   "atlas": "outdoor",
+   "frame": "diary/bem_te_vi",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/andorinha": {
+   "atlas": "outdoor",
+   "frame": "diary/andorinha",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/ninho": {
+   "atlas": "outdoor",
+   "frame": "diary/ninho",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/pena": {
+   "atlas": "outdoor",
+   "frame": "diary/pena",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/galho": {
+   "atlas": "outdoor",
+   "frame": "diary/galho",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/tronco": {
+   "atlas": "outdoor",
+   "frame": "diary/tronco",
+   "w": 12,
+   "h": 7,
+   "ax": 6,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/cogumelo": {
+   "atlas": "outdoor",
+   "frame": "diary/cogumelo",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/cipo": {
+   "atlas": "outdoor",
+   "frame": "diary/cipo",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/portao": {
+   "atlas": "outdoor",
+   "frame": "diary/portao",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/cadeado": {
+   "atlas": "outdoor",
+   "frame": "diary/cadeado",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/meio_fio": {
+   "atlas": "outdoor",
+   "frame": "diary/meio_fio",
+   "w": 14,
+   "h": 6,
+   "ax": 7,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sarjeta": {
+   "atlas": "outdoor",
+   "frame": "diary/sarjeta",
+   "w": 14,
+   "h": 6,
+   "ax": 7,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/calcada": {
+   "atlas": "outdoor",
+   "frame": "diary/calcada",
+   "w": 14,
+   "h": 6,
+   "ax": 7,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/rampa": {
+   "atlas": "outdoor",
+   "frame": "diary/rampa",
+   "w": 11,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/caminho": {
+   "atlas": "outdoor",
+   "frame": "diary/caminho",
+   "w": 12,
+   "h": 8,
+   "ax": 6,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/pedra": {
+   "atlas": "outdoor",
+   "frame": "diary/pedra",
+   "w": 10,
+   "h": 6,
+   "ax": 5,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/musgo": {
+   "atlas": "outdoor",
+   "frame": "diary/musgo",
+   "w": 10,
+   "h": 6,
+   "ax": 5,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/samambaia": {
+   "atlas": "outdoor",
+   "frame": "diary/samambaia",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/margarida": {
+   "atlas": "outdoor",
+   "frame": "diary/margarida",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/rosa": {
+   "atlas": "outdoor",
+   "frame": "diary/rosa",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/petala": {
+   "atlas": "outdoor",
+   "frame": "diary/petala",
+   "w": 8,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/abelha": {
+   "atlas": "outdoor",
+   "frame": "diary/abelha",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/borboleta": {
+   "atlas": "outdoor",
+   "frame": "diary/borboleta",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/cigarra": {
+   "atlas": "outdoor",
+   "frame": "diary/cigarra",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/formiga": {
+   "atlas": "outdoor",
+   "frame": "diary/formiga",
+   "w": 10,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_banheiro": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_banheiro",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_reciclagem": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_reciclagem",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_mapa": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_mapa",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_horario": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_horario",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_entrada": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_entrada",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_fechado": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_fechado",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_cuidado": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_cuidado",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_wifi": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_wifi",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_emergencia": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_emergencia",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_informacao": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_informacao",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/caminhao": {
+   "atlas": "outdoor",
+   "frame": "diary/caminhao",
+   "w": 40,
+   "h": 17,
+   "ax": 20,
+   "ay": 16,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/ambulancia": {
+   "atlas": "outdoor",
+   "frame": "diary/ambulancia",
+   "w": 36,
+   "h": 17,
+   "ax": 18,
+   "ay": 16,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/semaforo": {
+   "atlas": "outdoor",
+   "frame": "diary/semaforo",
+   "w": 8,
+   "h": 14,
+   "ax": 4,
+   "ay": 13,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/esquina": {
+   "atlas": "outdoor",
+   "frame": "diary/esquina",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/muro": {
+   "atlas": "outdoor",
+   "frame": "diary/muro",
+   "w": 14,
+   "h": 10,
+   "ax": 7,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/interfone": {
+   "atlas": "outdoor",
+   "frame": "diary/interfone",
+   "w": 8,
+   "h": 9,
+   "ax": 4,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/campainha": {
+   "atlas": "outdoor",
+   "frame": "diary/campainha",
+   "w": 8,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/varanda": {
+   "atlas": "outdoor",
+   "frame": "diary/varanda",
+   "w": 14,
+   "h": 8,
+   "ax": 7,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/grade": {
+   "atlas": "outdoor",
+   "frame": "diary/grade",
+   "w": 12,
+   "h": 10,
+   "ax": 6,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/ar_condicionado": {
+   "atlas": "outdoor",
+   "frame": "diary/ar_condicionado",
+   "w": 12,
+   "h": 10,
+   "ax": 6,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/antena": {
+   "atlas": "outdoor",
+   "frame": "diary/antena",
+   "w": 11,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/macaneta": {
+   "atlas": "outdoor",
+   "frame": "diary/macaneta",
+   "w": 8,
+   "h": 9,
+   "ax": 4,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/retrovisor": {
+   "atlas": "outdoor",
+   "frame": "diary/retrovisor",
+   "w": 8,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/porta_malas": {
+   "atlas": "outdoor",
+   "frame": "diary/porta_malas",
+   "w": 14,
+   "h": 8,
+   "ax": 7,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/farol": {
+   "atlas": "outdoor",
+   "frame": "diary/farol",
+   "w": 8,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/volante": {
+   "atlas": "outdoor",
+   "frame": "diary/volante",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/buzina": {
+   "atlas": "outdoor",
+   "frame": "diary/buzina",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/lombada": {
+   "atlas": "outdoor",
+   "frame": "diary/lombada",
+   "w": 14,
+   "h": 6,
+   "ax": 7,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/cone": {
+   "atlas": "outdoor",
+   "frame": "diary/cone",
+   "w": 8,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/tapume": {
+   "atlas": "outdoor",
+   "frame": "diary/tapume",
+   "w": 15,
+   "h": 9,
+   "ax": 7,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/andaime": {
+   "atlas": "outdoor",
+   "frame": "diary/andaime",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/escada": {
+   "atlas": "outdoor",
+   "frame": "diary/escada",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/encomenda": {
+   "atlas": "outdoor",
+   "frame": "diary/encomenda",
+   "w": 10,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/envelope": {
+   "atlas": "outdoor",
+   "frame": "diary/envelope",
+   "w": 10,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/selo": {
+   "atlas": "outdoor",
+   "frame": "diary/selo",
+   "w": 8,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/tenis": {
+   "atlas": "outdoor",
+   "frame": "diary/tenis",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/guarda_chuva": {
+   "atlas": "outdoor",
+   "frame": "diary/guarda_chuva",
+   "w": 10,
+   "h": 11,
+   "ax": 5,
+   "ay": 10,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/cruzamento": {
+   "atlas": "outdoor",
+   "frame": "diary/cruzamento",
+   "w": 10,
+   "h": 12,
+   "ax": 5,
+   "ay": 11,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/capacete": {
+   "atlas": "outdoor",
+   "frame": "diary/capacete",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/pneu": {
+   "atlas": "outdoor",
+   "frame": "diary/pneu",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/guidao": {
+   "atlas": "outdoor",
+   "frame": "diary/guidao",
+   "w": 10,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/pedal": {
+   "atlas": "outdoor",
+   "frame": "diary/pedal",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/skate": {
+   "atlas": "outdoor",
+   "frame": "diary/skate",
+   "w": 11,
+   "h": 6,
+   "ax": 5,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/patinete": {
+   "atlas": "outdoor",
+   "frame": "diary/patinete",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/sign_pare": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_pare",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_ciclovia": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_ciclovia",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_correio": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_correio",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_obra": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_obra",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_sentido": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_sentido",
+   "w": 64,
+   "h": 12,
+   "ax": 32,
+   "ay": 12,
+   "footprint": [
+    4,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_devagar": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_devagar",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_farmacia": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_farmacia",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_loterica": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_loterica",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_acougue": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_acougue",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_mercado": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_mercado",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_chaveiro": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_chaveiro",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_salao": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_salao",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_barbearia": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_barbearia",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_lavanderia": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_lavanderia",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_igreja": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_igreja",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_ladeira": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_ladeira",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_travessa": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_travessa",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/abacaxi": {
+   "atlas": "outdoor",
+   "frame": "diary/abacaxi",
+   "w": 11,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/mamao": {
+   "atlas": "outdoor",
+   "frame": "diary/mamao",
+   "w": 12,
+   "h": 8,
+   "ax": 6,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/maracuja": {
+   "atlas": "outdoor",
+   "frame": "diary/maracuja",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/limao": {
+   "atlas": "outdoor",
+   "frame": "diary/limao",
+   "w": 8,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/abacate": {
+   "atlas": "outdoor",
+   "frame": "diary/abacate",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/uva": {
+   "atlas": "outdoor",
+   "frame": "diary/uva",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/morango": {
+   "atlas": "outdoor",
+   "frame": "diary/morango",
+   "w": 9,
+   "h": 9,
+   "ax": 4,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/goiaba": {
+   "atlas": "outdoor",
+   "frame": "diary/goiaba",
+   "w": 8,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/tangerina": {
+   "atlas": "outdoor",
+   "frame": "diary/tangerina",
+   "w": 8,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/acerola": {
+   "atlas": "outdoor",
+   "frame": "diary/acerola",
+   "w": 8,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/caju": {
+   "atlas": "outdoor",
+   "frame": "diary/caju",
+   "w": 8,
+   "h": 9,
+   "ax": 4,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/pitaya": {
+   "atlas": "outdoor",
+   "frame": "diary/pitaya",
+   "w": 9,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/milho": {
+   "atlas": "outdoor",
+   "frame": "diary/milho",
+   "w": 10,
+   "h": 11,
+   "ax": 5,
+   "ay": 10,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/batata": {
+   "atlas": "outdoor",
+   "frame": "diary/batata",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/cenoura": {
+   "atlas": "outdoor",
+   "frame": "diary/cenoura",
+   "w": 8,
+   "h": 9,
+   "ax": 4,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/beterraba": {
+   "atlas": "outdoor",
+   "frame": "diary/beterraba",
+   "w": 8,
+   "h": 10,
+   "ax": 4,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/cebola": {
+   "atlas": "outdoor",
+   "frame": "diary/cebola",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/alho": {
+   "atlas": "outdoor",
+   "frame": "diary/alho",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/pimentao": {
+   "atlas": "outdoor",
+   "frame": "diary/pimentao",
+   "w": 8,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/pepino": {
+   "atlas": "outdoor",
+   "frame": "diary/pepino",
+   "w": 12,
+   "h": 5,
+   "ax": 6,
+   "ay": 4,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/abobrinha": {
+   "atlas": "outdoor",
+   "frame": "diary/abobrinha",
+   "w": 12,
+   "h": 6,
+   "ax": 6,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/chuchu": {
+   "atlas": "outdoor",
+   "frame": "diary/chuchu",
+   "w": 8,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/mandioca": {
+   "atlas": "outdoor",
+   "frame": "diary/mandioca",
+   "w": 12,
+   "h": 5,
+   "ax": 6,
+   "ay": 4,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/couve": {
+   "atlas": "outdoor",
+   "frame": "diary/couve",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/brocolis": {
+   "atlas": "outdoor",
+   "frame": "diary/brocolis",
+   "w": 9,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/coentro": {
+   "atlas": "outdoor",
+   "frame": "diary/coentro",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/gengibre": {
+   "atlas": "outdoor",
+   "frame": "diary/gengibre",
+   "w": 10,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/quiabo": {
+   "atlas": "outdoor",
+   "frame": "diary/quiabo",
+   "w": 7,
+   "h": 7,
+   "ax": 3,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/jilo": {
+   "atlas": "outdoor",
+   "frame": "diary/jilo",
+   "w": 7,
+   "h": 7,
+   "ax": 3,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/berinjela": {
+   "atlas": "outdoor",
+   "frame": "diary/berinjela",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/vagem": {
+   "atlas": "outdoor",
+   "frame": "diary/vagem",
+   "w": 10,
+   "h": 6,
+   "ax": 5,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/cana": {
+   "atlas": "outdoor",
+   "frame": "diary/cana",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/lona": {
+   "atlas": "outdoor",
+   "frame": "diary/lona",
+   "w": 12,
+   "h": 7,
+   "ax": 6,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/oleo": {
+   "atlas": "outdoor",
+   "frame": "diary/oleo",
+   "w": 8,
+   "h": 9,
+   "ax": 4,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/molho": {
+   "atlas": "outdoor",
+   "frame": "diary/molho",
+   "w": 8,
+   "h": 9,
+   "ax": 4,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/pimenta": {
+   "atlas": "outdoor",
+   "frame": "diary/pimenta",
+   "w": 8,
+   "h": 10,
+   "ax": 4,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/gelo": {
+   "atlas": "outdoor",
+   "frame": "diary/gelo",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/canudo": {
+   "atlas": "outdoor",
+   "frame": "diary/canudo",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/girassol": {
+   "atlas": "outdoor",
+   "frame": "diary/girassol",
+   "w": 10,
+   "h": 11,
+   "ax": 5,
+   "ay": 10,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/laco": {
+   "atlas": "outdoor",
+   "frame": "diary/laco",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/bacia": {
+   "atlas": "outdoor",
+   "frame": "diary/bacia",
+   "w": 12,
+   "h": 8,
+   "ax": 6,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/sacola": {
+   "atlas": "outdoor",
+   "frame": "diary/sacola",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/giz": {
+   "atlas": "outdoor",
+   "frame": "diary/giz",
+   "w": 9,
+   "h": 5,
+   "ax": 4,
+   "ay": 4,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/engradado": {
+   "atlas": "outdoor",
+   "frame": "diary/engradado",
+   "w": 12,
+   "h": 7,
+   "ax": 6,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/feirante": {
+   "atlas": "outdoor",
+   "frame": "diary/feirante",
+   "w": 10,
+   "h": 13,
+   "ax": 5,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/sign_organico": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_organico",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_quilo": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_quilo",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_duzia": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_duzia",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_unidade": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_unidade",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/forno": {
+   "atlas": "outdoor",
+   "frame": "diary/forno",
+   "w": 12,
+   "h": 13,
+   "ax": 6,
+   "ay": 12,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/chapa": {
+   "atlas": "outdoor",
+   "frame": "diary/chapa",
+   "w": 12,
+   "h": 7,
+   "ax": 6,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/geladeira": {
+   "atlas": "outdoor",
+   "frame": "diary/geladeira",
+   "w": 12,
+   "h": 14,
+   "ax": 6,
+   "ay": 13,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/freezer": {
+   "atlas": "outdoor",
+   "frame": "diary/freezer",
+   "w": 12,
+   "h": 10,
+   "ax": 6,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/prateleira": {
+   "atlas": "outdoor",
+   "frame": "diary/prateleira",
+   "w": 12,
+   "h": 6,
+   "ax": 6,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/cafeteira": {
+   "atlas": "outdoor",
+   "frame": "diary/cafeteira",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/liquidificador": {
+   "atlas": "outdoor",
+   "frame": "diary/liquidificador",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/pao": {
+   "atlas": "outdoor",
+   "frame": "diary/pao",
+   "w": 11,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/torrada": {
+   "atlas": "outdoor",
+   "frame": "diary/torrada",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/manteiga": {
+   "atlas": "outdoor",
+   "frame": "diary/manteiga",
+   "w": 11,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/requeijao": {
+   "atlas": "outdoor",
+   "frame": "diary/requeijao",
+   "w": 11,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/presunto": {
+   "atlas": "outdoor",
+   "frame": "diary/presunto",
+   "w": 10,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/ovo": {
+   "atlas": "outdoor",
+   "frame": "diary/ovo",
+   "w": 8,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/leite": {
+   "atlas": "outdoor",
+   "frame": "diary/leite",
+   "w": 8,
+   "h": 9,
+   "ax": 4,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/faca": {
+   "atlas": "outdoor",
+   "frame": "diary/faca",
+   "w": 12,
+   "h": 5,
+   "ax": 6,
+   "ay": 4,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/tabua": {
+   "atlas": "outdoor",
+   "frame": "diary/tabua",
+   "w": 13,
+   "h": 8,
+   "ax": 6,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/avental": {
+   "atlas": "outdoor",
+   "frame": "diary/avental",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/touca": {
+   "atlas": "outdoor",
+   "frame": "diary/touca",
+   "w": 10,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/jarra": {
+   "atlas": "outdoor",
+   "frame": "diary/jarra",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/xicara": {
+   "atlas": "outdoor",
+   "frame": "diary/xicara",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/pires": {
+   "atlas": "outdoor",
+   "frame": "diary/pires",
+   "w": 10,
+   "h": 5,
+   "ax": 5,
+   "ay": 4,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/acucar": {
+   "atlas": "outdoor",
+   "frame": "diary/acucar",
+   "w": 10,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/colher": {
+   "atlas": "outdoor",
+   "frame": "diary/colher",
+   "w": 10,
+   "h": 5,
+   "ax": 5,
+   "ay": 4,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/bandeja": {
+   "atlas": "outdoor",
+   "frame": "diary/bandeja",
+   "w": 12,
+   "h": 6,
+   "ax": 6,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/comanda": {
+   "atlas": "outdoor",
+   "frame": "diary/comanda",
+   "w": 9,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/ficha": {
+   "atlas": "outdoor",
+   "frame": "diary/ficha",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/sineta": {
+   "atlas": "outdoor",
+   "frame": "diary/sineta",
+   "w": 8,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/gaveta": {
+   "atlas": "outdoor",
+   "frame": "diary/gaveta",
+   "w": 12,
+   "h": 8,
+   "ax": 6,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/maquininha": {
+   "atlas": "outdoor",
+   "frame": "diary/maquininha",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/embalagem": {
+   "atlas": "outdoor",
+   "frame": "diary/embalagem",
+   "w": 9,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sabonete": {
+   "atlas": "outdoor",
+   "frame": "diary/sabonete",
+   "w": 10,
+   "h": 6,
+   "ax": 5,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/detergente": {
+   "atlas": "outdoor",
+   "frame": "diary/detergente",
+   "w": 8,
+   "h": 9,
+   "ax": 4,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/esponja": {
+   "atlas": "outdoor",
+   "frame": "diary/esponja",
+   "w": 9,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_desconto": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_desconto",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_promocao": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_promocao",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/fogao": {
+   "atlas": "outdoor",
+   "frame": "diary/fogao",
+   "w": 12,
+   "h": 11,
+   "ax": 6,
+   "ay": 10,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/pia": {
+   "atlas": "outdoor",
+   "frame": "diary/pia",
+   "w": 12,
+   "h": 7,
+   "ax": 6,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/torneira": {
+   "atlas": "outdoor",
+   "frame": "diary/torneira",
+   "w": 9,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/frigideira": {
+   "atlas": "outdoor",
+   "frame": "diary/frigideira",
+   "w": 12,
+   "h": 8,
+   "ax": 6,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/tampa": {
+   "atlas": "outdoor",
+   "frame": "diary/tampa",
+   "w": 8,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/micro_ondas": {
+   "atlas": "outdoor",
+   "frame": "diary/micro_ondas",
+   "w": 12,
+   "h": 9,
+   "ax": 6,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/chaleira": {
+   "atlas": "outdoor",
+   "frame": "diary/chaleira",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/prato": {
+   "atlas": "outdoor",
+   "frame": "diary/prato",
+   "w": 10,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/garfo": {
+   "atlas": "outdoor",
+   "frame": "diary/garfo",
+   "w": 7,
+   "h": 9,
+   "ax": 3,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/sabao": {
+   "atlas": "outdoor",
+   "frame": "diary/sabao",
+   "w": 11,
+   "h": 6,
+   "ax": 5,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/racao": {
+   "atlas": "outdoor",
+   "frame": "diary/racao",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/pote": {
+   "atlas": "outdoor",
+   "frame": "diary/pote",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/travesseiro": {
+   "atlas": "outdoor",
+   "frame": "diary/travesseiro",
+   "w": 10,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/fronha": {
+   "atlas": "outdoor",
+   "frame": "diary/fronha",
+   "w": 10,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/lencol": {
+   "atlas": "outdoor",
+   "frame": "diary/lencol",
+   "w": 12,
+   "h": 7,
+   "ax": 6,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/cobertor": {
+   "atlas": "outdoor",
+   "frame": "diary/cobertor",
+   "w": 12,
+   "h": 7,
+   "ax": 6,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/edredom": {
+   "atlas": "outdoor",
+   "frame": "diary/edredom",
+   "w": 12,
+   "h": 8,
+   "ax": 6,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/colchao": {
+   "atlas": "outdoor",
+   "frame": "diary/colchao",
+   "w": 14,
+   "h": 7,
+   "ax": 7,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/abajur": {
+   "atlas": "outdoor",
+   "frame": "diary/abajur",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/despertador": {
+   "atlas": "outdoor",
+   "frame": "diary/despertador",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/oculos": {
+   "atlas": "outdoor",
+   "frame": "diary/oculos",
+   "w": 11,
+   "h": 6,
+   "ax": 5,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/cabide": {
+   "atlas": "outdoor",
+   "frame": "diary/cabide",
+   "w": 8,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/guarda_roupa": {
+   "atlas": "outdoor",
+   "frame": "diary/guarda_roupa",
+   "w": 12,
+   "h": 12,
+   "ax": 6,
+   "ay": 11,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/comoda": {
+   "atlas": "outdoor",
+   "frame": "diary/comoda",
+   "w": 12,
+   "h": 10,
+   "ax": 6,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/cortina": {
+   "atlas": "outdoor",
+   "frame": "diary/cortina",
+   "w": 12,
+   "h": 8,
+   "ax": 6,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/espelho": {
+   "atlas": "outdoor",
+   "frame": "diary/espelho",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/chinelo": {
+   "atlas": "outdoor",
+   "frame": "diary/chinelo",
+   "w": 8,
+   "h": 10,
+   "ax": 4,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/chuveiro": {
+   "atlas": "outdoor",
+   "frame": "diary/chuveiro",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/box": {
+   "atlas": "outdoor",
+   "frame": "diary/box",
+   "w": 12,
+   "h": 10,
+   "ax": 6,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/toalha": {
+   "atlas": "outdoor",
+   "frame": "diary/toalha",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/xampu": {
+   "atlas": "outdoor",
+   "frame": "diary/xampu",
+   "w": 8,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/escova": {
+   "atlas": "outdoor",
+   "frame": "diary/escova",
+   "w": 12,
+   "h": 6,
+   "ax": 6,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/creme": {
+   "atlas": "outdoor",
+   "frame": "diary/creme",
+   "w": 10,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/pente": {
+   "atlas": "outdoor",
+   "frame": "diary/pente",
+   "w": 12,
+   "h": 6,
+   "ax": 6,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/perfume": {
+   "atlas": "outdoor",
+   "frame": "diary/perfume",
+   "w": 8,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/varal": {
+   "atlas": "outdoor",
+   "frame": "diary/varal",
+   "w": 12,
+   "h": 7,
+   "ax": 6,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/pregador": {
+   "atlas": "outdoor",
+   "frame": "diary/pregador",
+   "w": 6,
+   "h": 7,
+   "ax": 3,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/tomada": {
+   "atlas": "outdoor",
+   "frame": "diary/tomada",
+   "w": 9,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/interruptor": {
+   "atlas": "outdoor",
+   "frame": "diary/interruptor",
+   "w": 8,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/carregador": {
+   "atlas": "outdoor",
+   "frame": "diary/carregador",
+   "w": 9,
+   "h": 10,
+   "ax": 4,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/extensao": {
+   "atlas": "outdoor",
+   "frame": "diary/extensao",
+   "w": 12,
+   "h": 8,
+   "ax": 6,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/retrato": {
+   "atlas": "outdoor",
+   "frame": "diary/retrato",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/chave": {
+   "atlas": "outdoor",
+   "frame": "diary/chave",
+   "w": 10,
+   "h": 6,
+   "ax": 5,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_recado": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_recado",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_lista": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_lista",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_conta": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_conta",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/cronometro": {
+   "atlas": "outdoor",
+   "frame": "diary/cronometro",
+   "w": 8,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/apito": {
+   "atlas": "outdoor",
+   "frame": "diary/apito",
+   "w": 10,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/prancheta": {
+   "atlas": "outdoor",
+   "frame": "diary/prancheta",
+   "w": 8,
+   "h": 10,
+   "ax": 4,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/medalha": {
+   "atlas": "outdoor",
+   "frame": "diary/medalha",
+   "w": 8,
+   "h": 10,
+   "ax": 4,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/trofeu": {
+   "atlas": "outdoor",
+   "frame": "diary/trofeu",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/corda": {
+   "atlas": "outdoor",
+   "frame": "diary/corda",
+   "w": 10,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/armario": {
+   "atlas": "outdoor",
+   "frame": "diary/armario",
+   "w": 10,
+   "h": 11,
+   "ax": 5,
+   "ay": 10,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/recepcao": {
+   "atlas": "outdoor",
+   "frame": "diary/recepcao",
+   "w": 14,
+   "h": 8,
+   "ax": 7,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/computador": {
+   "atlas": "outdoor",
+   "frame": "diary/computador",
+   "w": 10,
+   "h": 9,
+   "ax": 5,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/podio": {
+   "atlas": "outdoor",
+   "frame": "diary/podio",
+   "w": 14,
+   "h": 8,
+   "ax": 7,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/meia": {
+   "atlas": "outdoor",
+   "frame": "diary/meia",
+   "w": 9,
+   "h": 9,
+   "ax": 4,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/squeeze": {
+   "atlas": "outdoor",
+   "frame": "diary/squeeze",
+   "w": 8,
+   "h": 10,
+   "ax": 4,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/isotonico": {
+   "atlas": "outdoor",
+   "frame": "diary/isotonico",
+   "w": 8,
+   "h": 9,
+   "ax": 4,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/sign_extintor": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_extintor",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_presenca": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_presenca",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/lapis": {
+   "atlas": "outdoor",
+   "frame": "diary/lapis",
+   "w": 13,
+   "h": 4,
+   "ax": 6,
+   "ay": 3,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/caneta": {
+   "atlas": "outdoor",
+   "frame": "diary/caneta",
+   "w": 12,
+   "h": 4,
+   "ax": 6,
+   "ay": 3,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/borracha": {
+   "atlas": "outdoor",
+   "frame": "diary/borracha",
+   "w": 10,
+   "h": 6,
+   "ax": 5,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/caderno": {
+   "atlas": "outdoor",
+   "frame": "diary/caderno",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/livro": {
+   "atlas": "outdoor",
+   "frame": "diary/livro",
+   "w": 11,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/estojo": {
+   "atlas": "outdoor",
+   "frame": "diary/estojo",
+   "w": 12,
+   "h": 6,
+   "ax": 6,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/apontador": {
+   "atlas": "outdoor",
+   "frame": "diary/apontador",
+   "w": 8,
+   "h": 7,
+   "ax": 4,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/regua": {
+   "atlas": "outdoor",
+   "frame": "diary/regua",
+   "w": 12,
+   "h": 5,
+   "ax": 6,
+   "ay": 4,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/tesoura": {
+   "atlas": "outdoor",
+   "frame": "diary/tesoura",
+   "w": 10,
+   "h": 7,
+   "ax": 5,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/cola": {
+   "atlas": "outdoor",
+   "frame": "diary/cola",
+   "w": 8,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/apagador": {
+   "atlas": "outdoor",
+   "frame": "diary/apagador",
+   "w": 10,
+   "h": 6,
+   "ax": 5,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/globo": {
+   "atlas": "outdoor",
+   "frame": "diary/globo",
+   "w": 10,
+   "h": 10,
+   "ax": 5,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/dicionario": {
+   "atlas": "outdoor",
+   "frame": "diary/dicionario",
+   "w": 12,
+   "h": 9,
+   "ax": 6,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/grampeador": {
+   "atlas": "outdoor",
+   "frame": "diary/grampeador",
+   "w": 10,
+   "h": 6,
+   "ax": 5,
+   "ay": 5,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/clipe": {
+   "atlas": "outdoor",
+   "frame": "diary/clipe",
+   "w": 9,
+   "h": 8,
+   "ax": 4,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/pasta": {
+   "atlas": "outdoor",
+   "frame": "diary/pasta",
+   "w": 10,
+   "h": 8,
+   "ax": 5,
+   "ay": 7,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/cracha": {
+   "atlas": "outdoor",
+   "frame": "diary/cracha",
+   "w": 8,
+   "h": 9,
+   "ax": 4,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/sino": {
+   "atlas": "outdoor",
+   "frame": "diary/sino",
+   "w": 8,
+   "h": 10,
+   "ax": 4,
+   "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_10"
+  },
+  "diary/corredor": {
+   "atlas": "outdoor",
+   "frame": "diary/corredor",
+   "w": 12,
+   "h": 18,
+   "ax": 6,
+   "ay": 17,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/patio": {
+   "atlas": "outdoor",
+   "frame": "diary/patio",
+   "w": 16,
+   "h": 14,
+   "ax": 8,
+   "ay": 13,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_16"
+  },
+  "diary/sign_silencio": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_silencio",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_biblioteca": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_biblioteca",
+   "w": 48,
+   "h": 12,
+   "ax": 24,
+   "ay": 12,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "diary/sign_chamada": {
+   "atlas": "outdoor",
+   "frame": "diary/sign_chamada",
+   "w": 32,
+   "h": 12,
+   "ax": 16,
+   "ay": 12,
+   "footprint": [
+    2,
     1
    ],
    "anim": null,
