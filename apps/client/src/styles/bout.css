@@ -203,6 +203,18 @@ body.bout-on .toasts {
   background: #2f5fb0;
 }
 
+.belt-dot.belt-roxa {
+  background: #6b3fa0;
+}
+
+.belt-dot.belt-marrom {
+  background: #6b3a1f;
+}
+
+.belt-dot.belt-preta {
+  background: #1c1c28;
+}
+
 /* ---------------------------------------------------------------- the panel (bottom) */
 
 .bout-panel {
@@ -471,6 +483,18 @@ body.bout-on .toasts {
 
 .bout-belt.belt-azul .band {
   background: #2f5fb0;
+}
+
+.bout-belt.belt-roxa .band {
+  background: #6b3fa0;
+}
+
+.bout-belt.belt-marrom .band {
+  background: #6b3a1f;
+}
+
+.bout-belt.belt-preta .band {
+  background: #1c1c28;
 }
 
 .bout-belt-name .en {

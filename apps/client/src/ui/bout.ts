@@ -4,9 +4,8 @@
  * Server: apps/server/src/bout.ts (no quiz).
  */
 import {
-  CLOCK_RATE,
-  PEGADA_MAX,
   BELT_LABELS,
+  MAT_TURNS,
   cpuLook,
   type BjjProgress,
   type BoutIntentOut,
@@ -17,9 +16,6 @@ import {
   type ClientMsg,
   INTENTS,
   type PartnerId,
-  gripMoveLabel,
-  gripRoundChrome,
-  type GripMoveId,
 } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en } from './dom';
@@ -29,7 +25,7 @@ import { readShowEnglish, writeShowEnglish } from './dialogueLogic';
 import { beltChip } from './beltChip';
 import { boutFeed } from '../render/pixel/boutFeed';
 import { mountCharPreview } from '../render/pixel/charPreview';
-import { RISK_LABEL, callOf, clockAt, cuesForEnd, cuesForFinishEnd, cuesForResolve, ladderDots, momentumFrac, resultBanner } from './boutLogic';
+import { RISK_LABEL, callOf, cuesForEnd, cuesForFinishEnd, cuesForResolve } from './boutLogic';
 
 type Msg<P extends BoutServerMsg['phase']> = Extract<BoutServerMsg, { phase: P }>;
 /** a client bout message without its `t` and `v` (distributed over the actions) */
@@ -55,7 +51,6 @@ export class BoutUI {
   private locked = false;
   private snap: BoutSnapshot | null = null;
   private snapAt = 0;
-  private clockShown = '5:00';
   private timer: { end: number; ms: number } | null = null;
   private partnerName = 'Parceiro';
   private partnerId: PartnerId | null = null;
@@ -172,6 +167,8 @@ export class BoutUI {
         return this.intro(m);
       case 'intent':
         return this.intent(m);
+      case 'drill':
+        return this.drill(m);
       case 'challenge':
         return this.challenge(m);
       case 'resolve':
@@ -323,14 +320,17 @@ export class BoutUI {
   }
 
   private intentChip(i: BoutIntentOut, pick: () => void, n: number): HTMLElement {
+    const pct = i.percent != null ? h('span', { class: 'bout-pct' }, `${i.percent}%`) : null;
     return h(
       'button',
-      { class: 'bout-intent risk-1', type: 'button', 'data-intent': i.id, 'data-k': String(n), 'aria-label': i.pt, onclick: pick },
+      { class: 'bout-intent risk-1', type: 'button', 'data-intent': i.id, 'data-k': String(n), 'data-percent': i.percent == null ? '' : String(i.percent), 'aria-label': i.percent == null ? i.pt : `${i.pt} ${i.percent}%`, onclick: pick },
       h('b', { class: 'pt' }, i.pt),
+      pct,
+      en(i.en),
     );
   }
 
-  private pickIntent(seq: number, intent: BoutIntentOut['id'] | 'finalizar' | GripMoveId): void {
+  private pickIntent(seq: number, intent: string): void {
     if (this.locked || seq !== this.seq) return;
     this.locked = true;
     this.sfx('tick');
@@ -459,32 +459,65 @@ export class BoutUI {
   }
 
   // ------------------------------------------------------------------ resolve
+  private drill(m: Msg<'drill'>): void {
+    this.setPhase('drill');
+    this.seq = m.seq;
+    this.locked = false;
+    this.stopTimer();
+    this.setSnap(m.st);
+    boutFeed.push({ t: 'transition', from: m.from, to: m.st.position, rungFrom: m.aheadFrom === 'partner' ? -1 : m.aheadFrom === 'you' ? 1 : 0, rungTo: m.st.rung, gain: m.st.ahead });
+    const go = h(
+      'button',
+      { class: 'bout-intent', type: 'button', id: 'bout-drill', 'data-intent': m.move.id, onclick: () => this.pickIntent(m.seq, m.move.id) },
+      h('b', { class: 'pt' }, m.move.pt),
+      en(m.move.en),
+    );
+    this.body.replaceChildren(
+      h(
+        'div',
+        { class: 'bout-intents', id: 'bout-drill-panel' },
+        h('div', { class: 'bout-ask' }, h('span', { class: 'pt' }, m.line.pt), en(m.line.en)),
+        go,
+      ),
+    );
+    this.say(m.move.pt);
+    this.measure();
+  }
+
   private resolve(m: Msg<'resolve'>): void {
     this.setPhase('resolve');
     this.locked = true;
     this.stopTimer();
     this.setSnap(m.st);
     const picked = this.body.querySelector('.picked');
-    picked?.classList.add(m.yours.correct ? 'right' : 'wrong');
-    const call = callOf(m);
-    const movePt = gripMoveLabel(m.intent as GripMoveId).pt;
-    const partnerPt = gripMoveLabel(m.partner.intent as GripMoveId).pt;
+    const landed = m.actor === 'partner' ? m.partner.correct : m.yours.correct;
+    picked?.classList.add(landed ? 'right' : 'wrong');
+    const call = m.say ?? callOf(m);
+    const who = m.actor === 'partner' ? this.partnerName : (game.profile?.name ?? 'Você');
     this.body.replaceChildren(
       h(
         'div',
-        { class: `bout-resolve ${m.yours.correct ? 'right' : 'wrong'}`, id: 'bout-resolve', 'data-correct': String(m.yours.correct) },
-        h('b', { class: 'bout-banner' }, movePt),
-        call ? h('div', { class: 'bout-called', id: 'bout-called' }, h('b', null, call.pt)) : null,
-        h('span', { class: 'bout-who' }, `${this.partnerName}: ${partnerPt}`),
+        { class: `bout-resolve ${landed ? 'right' : 'wrong'}`, id: 'bout-resolve', 'data-correct': String(landed), 'data-sound': m.sound ?? 'none' },
+        h('b', { class: 'bout-banner' }, call?.pt ?? ''),
+        call ? en(call.en) : null,
+        h('span', { class: 'bout-who' }, who),
       ),
     );
     for (const c of cuesForResolve(m)) boutFeed.push(c);
+    this.playMatSound(m.sound);
     if (m.events.some((e) => e.type === 'transition')) this.sfx('slap');
-    if (call) {
-      this.sfx(m.events.some((e) => e.type === 'points' && e.side === 'you') ? 'cheer' : 'claps');
-      this.say(call.pt);
-    } else if (!m.yours.correct) this.sfx('gasp');
+    if (call) this.say(call.pt);
     this.measure();
+  }
+
+  /** Placeholder tones. A failure here is swallowed so the match keeps going. */
+  private playMatSound(kind: Msg<'resolve'>['sound']): void {
+    if (!kind || kind === 'none') return;
+    try {
+      this.sfx(kind);
+    } catch {
+      /* audio is optional */
+    }
   }
 
   private finishEnd(m: Msg<'finish_end'>): void {
@@ -522,27 +555,35 @@ export class BoutUI {
     for (const c of cuesForEnd(m)) boutFeed.push(c);
     ambience.setScene(null);
     if (m.winner === 'you') {
+      this.sfx('win');
       this.sfx('cheer');
-      this.sfx('whistle');
       ambience.sting('win');
-    } else if (m.winner !== 'none') {
+    } else if (m.winner === 'partner') {
+      this.sfx('loss');
       this.sfx('claps');
       ambience.sting('lose');
+    } else if (m.winner !== 'none') {
+      this.sfx('claps');
     }
     this.say(m.line.pt);
     window.setTimeout(() => this.say(m.thanks.pt), 1900);
     const again = h('button', { class: 'bout-go primary', id: 'bout-again', type: 'button', onclick: () => this.again() }, ...this.bi('De novo', 'Rematch'));
     const leave = h('button', { class: 'ghost', id: 'bout-leave', type: 'button', onclick: () => this.leave() }, ...this.bi('Sair', 'Leave'));
     const lines: HTMLElement[] = [];
-    if (m.beltUp) lines.push(h('p', { class: 'bout-promo belt-up' }, ...this.bi('Faixa azul conquistada!', 'Blue belt earned!')));
+    if (m.beltUp) lines.push(h('p', { class: 'bout-promo belt-up' }, ...this.bi(BELT_LABELS[m.belt].pt, BELT_LABELS[m.belt].en)));
     else if (m.stripeUp) lines.push(h('p', { class: 'bout-promo' }, ...this.bi('Nova listra!', 'New stripe!')));
     if (m.bond > 0) lines.push(h('p', { class: 'bout-bond' }, '♥ ', ...this.bi('Professora Bia gostou do treino.', 'Professora Bia enjoyed the match.')));
+    const word =
+      m.word && m.winner === 'you'
+        ? h('div', { class: 'cr-end-words', id: 'bout-word' }, h('b', null, 'Palavras novas no Caderno'), h('span', { class: 'cr-chip' }, m.word.pt, h('span', { class: 'en' }, m.word.en)))
+        : null;
     this.body.replaceChildren(
       h(
         'div',
         { class: `bout-end result-${m.winner}`, id: 'bout-end', 'data-winner': m.winner, 'data-reason': m.reason },
         h('div', { class: 'bout-end-line' }, h('b', null, m.line.pt), en(m.line.en)),
         m.rv > 0 ? h('div', { class: 'bout-rv' }, `+${m.rv} RV`) : null,
+        word,
         this.beltRow(m.bjj),
         ...lines,
         h('p', { class: 'bout-thanks' }, ...this.bi(m.thanks.pt, m.thanks.en)),
@@ -554,10 +595,10 @@ export class BoutUI {
 
   private again(): void {
     boutFeed.end();
-    if (this.canRematchPosition && this.partnerId && this.lastEndWinner !== 'you') {
+    if (this.partnerId && this.lastEndWinner !== 'none') {
       this.setPhase('idle');
       this.locked = false;
-      this.body.replaceChildren(h('p', { class: 'bout-wait' }, ...this.bi('Mesma posição…', 'Same position…')));
+      this.body.replaceChildren(h('p', { class: 'bout-wait' }, ...this.bi('De novo…', 'Rematch…')));
       this.send({ action: 'start', partner: this.partnerId, rematch: true });
       return;
     }
@@ -622,8 +663,9 @@ export class BoutUI {
     const me = game.profile?.name ?? 'Você';
     const side = (cls: string, name: string, steps: number, extra?: HTMLElement | null) =>
       h('div', { class: `bout-side ${cls}` }, h('span', { class: 'bout-name' }, name, extra), h('span', { class: 'bout-num pts', 'data-k': 'passos' }, String(steps)));
-    const labels = h('div', { class: 'bout-labels' }, h('span', null, 'Passos'));
-    const clock = h('div', { class: 'bout-clock', id: 'bout-clock', 'data-k': 'tempo' }, h('b', { id: 'bout-clock-t' }, this.clockShown), h('span', null, 'Tempo'));
+    const turn = s ? `${Math.min(MAT_TURNS, s.exchange)}/${MAT_TURNS}` : `0/${MAT_TURNS}`;
+    const labels = h('div', { class: 'bout-labels' }, h('span', null, 'Pontos'));
+    const clock = h('div', { class: 'bout-clock', id: 'bout-clock', 'data-k': 'turnos' }, h('b', { id: 'bout-clock-t' }, turn), h('span', null, 'Turnos'));
     const belt = this.bjj ? h('i', { class: `belt-dot belt-${this.bjj.belt}`, title: BELT_LABELS[this.bjj.belt].pt }) : null;
     this.top.replaceChildren(
       side('you', me, s?.points.you ?? 0, belt),
@@ -639,34 +681,10 @@ export class BoutUI {
       this.meters.replaceChildren();
       return;
     }
-    const chrome = gripRoundChrome({ stepsYou: s.points.you, stepsThem: s.points.partner });
-    const who = s.ahead === 'you' ? 'Você avança' : s.ahead === 'partner' ? `${this.partnerName} avança` : 'Equilibrado';
-    const frac = momentumFrac(s.momentum);
-    const bar = h(
-      'div',
-      { class: 'bout-momentum', id: 'bout-momentum', role: 'meter', 'aria-label': 'Terreno', 'aria-valuenow': String(Math.round(frac * 100)), 'data-m': String(Math.round(s.momentum)) },
-      h('span', { class: 'lbl l' }, this.partnerId ? this.partnerName : 'Parceiro'),
-      h('div', { class: 'track' }, h('i', { class: 'fill', style: `${frac >= 0 ? 'left:50%' : `left:${50 + frac * 50}%`};width:${Math.abs(frac) * 50}%` }), h('i', { class: 'mid' })),
-      h('span', { class: 'lbl r' }, 'Você'),
-    );
-    const pegada = h(
-      'div',
-      { class: 'bout-pegada', id: 'bout-pegada', 'data-n': String(s.pegada), title: 'Suas mãos no kimono dele' },
-      h('span', { class: 'lbl' }, 'Pegadas'),
-      ...Array.from({ length: PEGADA_MAX }, (_, i) => h('i', { class: i < s.pegada ? 'on' : '' })),
-    );
-    const pegadaB = h(
-      'div',
-      { class: 'bout-pegada them', id: 'bout-pegada-them', 'data-n': String(s.pegadaB), title: 'Mãos dele no seu kimono' },
-      h('span', { class: 'lbl' }, 'Dele'),
-      ...Array.from({ length: PEGADA_MAX }, (_, i) => h('i', { class: i < s.pegadaB ? 'on' : '' })),
-    );
-    const ladder = h('div', { class: 'bout-ladder', id: 'bout-ladder', 'data-rung': String(s.rung) }, ...ladderDots(s.rung).map((d) => h('i', { class: `${d.here ? 'here' : ''} ${d.filled ? 'fill' : ''}${d.rung === 0 ? ' mid' : ''}`.trim() })));
-    this.meters.replaceChildren(
-      h('div', { class: 'bout-pos', id: 'bout-pos', 'data-pos': s.position }, h('b', null, chrome.pt), h('span', { class: 'who' }, ` · ${who}`)),
-      bar,
-      h('div', { class: 'bout-row2' }, pegada, pegadaB, ladder),
-    );
+    // needs_br: true — ground is read from the picture; these lines only say who is on top
+    const ground = s.position === 'de_pe' ? 'Em pé' : s.ahead === 'you' ? 'Você por cima' : 'Você por baixo';
+    const groundEn = s.position === 'de_pe' ? 'Standing' : s.ahead === 'you' ? 'You are on top' : 'You are on the bottom';
+    this.meters.replaceChildren(h('div', { class: 'bout-pos', id: 'bout-pos', 'data-pos': s.position }, h('b', null, ground), en(groundEn)));
   }
 
   private timerBar(): HTMLElement {
@@ -711,16 +729,6 @@ export class BoutUI {
       if (bar) {
         bar.style.width = `${f * 100}%`;
         bar.parentElement?.classList.toggle('low', f < 0.3);
-      }
-    }
-    // the clock runs faster than real time while an exchange is on
-    if (this.snap) {
-      const running = this.phase === 'intent' || this.phase === 'challenge';
-      const t = clockAt(this.snap.clockMs, now - this.snapAt, CLOCK_RATE, running);
-      if (t !== this.clockShown) {
-        this.clockShown = t;
-        const el = this.top.querySelector('#bout-clock-t');
-        if (el) el.textContent = t;
       }
     }
   };

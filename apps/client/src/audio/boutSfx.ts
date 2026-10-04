@@ -6,7 +6,7 @@
 
 import { vca } from './synth';
 
-export type BoutSfx = 'slap' | 'cheer' | 'gasp' | 'claps' | 'whistle' | 'tapout' | 'gong' | 'tick';
+export type BoutSfx = 'slap' | 'cheer' | 'gasp' | 'claps' | 'whistle' | 'tapout' | 'gong' | 'tick' | 'hit' | 'whoosh' | 'mount' | 'sub' | 'win' | 'loss';
 
 function noise(ctx: AudioContext, white: AudioBuffer, dest: AudioNode, when: number, dur: number, type: BiquadFilterType, f0: number, f1: number, peak: number, q = 0.8, attack = 0.01) {
   const src = ctx.createBufferSource();
@@ -31,7 +31,7 @@ function thump(ctx: AudioContext, dest: AudioNode, when: number, f0: number, f1:
   const o = ctx.createOscillator();
   o.type = type;
   o.frequency.setValueAtTime(f0, when);
-  o.frequency.exponentialRampToValueAtTime(f1, when + dur);
+  if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, when + dur);
   const g = vca(ctx);
   g.gain.setValueAtTime(0.0001, when);
   g.gain.exponentialRampToValueAtTime(peak, when + 0.008);
@@ -55,14 +55,43 @@ function claps(ctx: AudioContext, white: AudioBuffer, dest: AudioNode, when: num
  * Each effect's trim (dB), measured against the bout music (`node scripts/audio-lab.mjs sfx`): the cheer, the whistle and the
  * tap-out land at about the music's level, the slap and the claps a little under, the timer tick is barely there.
  */
-export const SFX_TRIM_DB: Record<BoutSfx, number> = { slap: 12.5, cheer: 8, gasp: 16, claps: 19, whistle: 7, tapout: 8, gong: 8.5, tick: 26 };
+export const SFX_TRIM_DB: Record<BoutSfx, number> = {
+  slap: 12.5,
+  cheer: 8,
+  gasp: 16,
+  claps: 19,
+  whistle: 7,
+  tapout: 8,
+  gong: 8.5,
+  tick: 26,
+  hit: 14,
+  whoosh: 12,
+  mount: 11,
+  sub: 10,
+  win: 9,
+  loss: 13,
+};
 
 export function playBoutSfx(ctx: AudioContext, out: AudioNode, white: AudioBuffer, kind: BoutSfx): void {
+  try {
+    playBoutSfxNow(ctx, out, white, kind);
+  } catch {
+    /* a missing file or a closed context must not stop the match */
+  }
+}
+
+function playBoutSfxNow(ctx: AudioContext, out: AudioNode, white: AudioBuffer, kind: BoutSfx): void {
   const now = ctx.currentTime;
   const dest = ctx.createGain();
-  dest.gain.value = Math.pow(10, SFX_TRIM_DB[kind] / 20);
+  dest.gain.value = Math.pow(10, (SFX_TRIM_DB[kind] ?? 12) / 20);
   dest.connect(out);
-  window.setTimeout(() => dest.disconnect(), 2500);
+  setTimeout(() => {
+    try {
+      dest.disconnect();
+    } catch {
+      /* already torn down */
+    }
+  }, 2500);
   switch (kind) {
     case 'slap':
       // the flat crack of two bodies on the mat plus a soft thump
@@ -117,6 +146,34 @@ export function playBoutSfx(ctx: AudioContext, out: AudioNode, white: AudioBuffe
       break;
     case 'tick':
       thump(ctx, dest, now, 880, 700, 0.05, 0.03, 'triangle');
+      break;
+    case 'hit':
+      // a move connects: a short crack, higher than the mat slap
+      noise(ctx, white, dest, now, 0.07, 'highpass', 900, 500, 0.16, 0.7, 0.004);
+      thump(ctx, dest, now, 220, 90, 0.09, 0.14, 'triangle');
+      break;
+    case 'whoosh':
+      // takedown: noise sweeping downward
+      noise(ctx, white, dest, now, 0.22, 'bandpass', 1800, 240, 0.18, 0.6, 0.01);
+      break;
+    case 'mount':
+      // someone gets mounted: a low thump
+      thump(ctx, dest, now, 90, 42, 0.2, 0.28, 'sine');
+      thump(ctx, dest, now + 0.02, 60, 36, 0.16, 0.12, 'triangle');
+      break;
+    case 'sub':
+      // a submission attempt, hit or miss: two tight tones
+      thump(ctx, dest, now, 520, 480, 0.08, 0.08, 'square');
+      thump(ctx, dest, now + 0.09, 390, 340, 0.1, 0.07, 'square');
+      break;
+    case 'win':
+      thump(ctx, dest, now, 523, 523, 0.18, 0.07, 'sine');
+      thump(ctx, dest, now + 0.12, 659, 659, 0.22, 0.06, 'sine');
+      thump(ctx, dest, now + 0.24, 784, 784, 0.28, 0.05, 'sine');
+      break;
+    case 'loss':
+      thump(ctx, dest, now, 392, 370, 0.2, 0.06, 'triangle');
+      thump(ctx, dest, now + 0.16, 311, 280, 0.26, 0.05, 'triangle');
       break;
   }
 }

@@ -35,13 +35,18 @@ export function resultBanner(m: Pick<Msg<'resolve'>, 'yours'>): Bilingual {
 
 const signalOf = (e: Msg<'resolve'>['events'][number]): RefSignal | null => (e.type === 'points' || e.type === 'advantage' ? e.signal : null);
 
+/** The move that just resolved, from the fighter who played it. */
+function moveLanded(m: Pick<Msg<'resolve'>, 'actor' | 'yours' | 'partner'>): boolean {
+  return m.actor === 'partner' ? m.partner.correct : m.yours.correct;
+}
+
 /** Everything the stage should do for a resolved exchange, in the order it should happen. */
 export function cuesForResolve(m: Msg<'resolve'>): StageCue[] {
   const out: StageCue[] = [];
   const t = m.events.find((e) => e.type === 'transition');
   if (t && t.type === 'transition') {
     out.push({ t: 'transition', from: t.from, to: t.to, rungFrom: t.rungFrom, rungTo: t.rungTo, gain: t.gain });
-  } else if (!m.yours.correct) out.push({ t: 'miss' });
+  } else if (!moveLanded(m)) out.push({ t: 'miss' });
   else if (m.yours.fast) out.push({ t: 'hit', strength: 1 });
   for (const e of m.events) {
     const s = signalOf(e);
@@ -58,7 +63,7 @@ export function crowdForResolve(m: Msg<'resolve'>): CrowdCue | null {
   if (pts && pts.type === 'points') return pts.side === 'you' ? 'points_you' : 'points_partner';
   if (m.events.some((e) => e.type === 'advantage')) return 'advantage';
   if (Math.abs(m.st.momentum) >= MOMENTUM_THRESHOLD * 0.65) return 'near';
-  if (!m.yours.correct) return 'miss';
+  if (!moveLanded(m)) return 'miss';
   return null;
 }
 

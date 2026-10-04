@@ -107,7 +107,7 @@ export type ClientMsg =
    */
   | { t: 'bout'; v: 1; action: 'open' }
   | { t: 'bout'; v: 1; action: 'start'; partner: PartnerId; listen?: boolean; rematch?: boolean }
-  | { t: 'bout'; v: 1; action: 'intent'; seq: number; intent: IntentId | 'finalizar' }
+  | { t: 'bout'; v: 1; action: 'intent'; seq: number; intent: string }
   | { t: 'bout'; v: 1; action: 'answer'; seq: number; answer: BoutAnswer }
   | { t: 'bout'; v: 1; action: 'quit' }
   /**
@@ -267,10 +267,12 @@ export interface BoutPartnerCard {
 }
 
 export interface BoutIntentOut {
-  id: IntentId;
+  id: string;
   pt: string;
   en: string;
   risk: 1 | 2 | 3;
+  /** Shown before the player confirms. Omitted for Hold, which always works. */
+  percent?: number;
 }
 
 export type BoutRole = 'exchange' | 'finish' | 'escape';
@@ -293,6 +295,18 @@ export type BoutServerMsg =
   | {
       t: 'bout';
       v: 1;
+      phase: 'drill';
+      seq: number;
+      st: BoutSnapshot;
+      move: { id: string; pt: string; en: string };
+      line: Bilingual;
+      /** Pose the demonstration starts from, before `st` (the landing). */
+      from: BjjPositionId;
+      aheadFrom: 'you' | 'partner' | null;
+    }
+  | {
+      t: 'bout';
+      v: 1;
       phase: 'challenge';
       seq: number;
       st: BoutSnapshot;
@@ -310,9 +324,14 @@ export type BoutServerMsg =
       phase: 'resolve';
       seq: number;
       st: BoutSnapshot;
-      intent: IntentId;
+      intent: string;
+      /** Whose move just resolved. */
+      actor?: 'you' | 'partner';
+      /** Placeholder tone. Missing audio must not stop the match. */
+      sound?: 'hit' | 'whoosh' | 'mount' | 'sub' | 'none';
+      say?: Bilingual;
       yours: { correct: boolean; speed: number; fast: boolean; timeout: boolean };
-      partner: { intent: IntentId; correct: boolean };
+      partner: { intent: string; correct: boolean };
       /** net momentum push (positive: toward you) */
       delta: number;
       events: ExchangeEvent[];
@@ -338,6 +357,8 @@ export type BoutServerMsg =
       signal: RefSignal | null;
       /** After a loss, one-tap rematch the same guard position (and bot memory). */
       rematchSamePosition?: boolean;
+      /** The one new diary word this win taught, or omitted when a loss or an exhausted list taught nothing. */
+      word?: Bilingual | null;
     };
 
 /** Server → client messages. */

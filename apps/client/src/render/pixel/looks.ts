@@ -45,6 +45,9 @@ export interface LookOptions {
 export const GI_BELT_MAP: Record<Belt, Record<string, string>> = {
   branca: { '#3a3a50': '#f3efe6', '#1f1f2e': '#bfb8a8' },
   azul: { '#3a3a50': '#4177c9', '#1f1f2e': '#2a4f8d' },
+  roxa: { '#3a3a50': '#7a45b0', '#1f1f2e': '#4d2878' },
+  marrom: { '#3a3a50': '#7a4a28', '#1f1f2e': '#4a2c16' },
+  preta: { '#3a3a50': '#2a2a36', '#1f1f2e': '#14141c' },
 };
 
 const pickColor = (list: readonly string[], i: number | undefined): string => list[Number.isInteger(i) && (i as number) >= 0 && (i as number) < list.length ? (i as number) : 0];
