@@ -218,80 +218,95 @@ async function putOnChapa(page, itemId) {
 
 /**
  * Take one cooking slot onto the tray.
- * The server applies any stall *before* the action, so a take sent late in the green window can land as burnt and the loaf is trashed.
- * Wait on our own clock from the put, sync so that stall is already in the snapshot, then take once while the fresh age is still green.
- * Returns true when `itemId` landed on the tray.
+ * The server applies any stall *before* the action, so a take that waits on a Playwright round trip can land as burnt.
+ * The page itself waits until the loaf is ready and sends the take. Returns true when `itemId` landed on the tray.
  */
-async function takeCooked(page, itemId, before, putAt) {
-  const giveUp = putAt + BURN_MS - 400;
-  let checkedEmpty = false;
-  while (Date.now() < giveUp) {
-    if (!(await shiftLive(page)) || (await frontGone(page))) return false;
-    if ((await itemCount(page, itemId)) > before) return true;
-    const untilClick = putAt + COOK_MS + 160 - Date.now();
-    if (untilClick > 60) {
-      if (Date.now() > putAt + 450) {
-        let live = (await grillView(page)).slots.filter((s) => !s.hidden && s.phase !== 'empty');
-        // A stale snapshot looks empty while the loaf is already down. Sync once before giving the cook up.
-        if (!live.length && !checkedEmpty) {
-          checkedEmpty = true;
-          await nudgeSnap(page);
-          live = (await grillView(page)).slots.filter((s) => !s.hidden && s.phase !== 'empty');
-        }
-        // The put never reached the server. Waiting out the cook just burns the customer's patience.
-        if (!live.length) return (await itemCount(page, itemId)) > before;
-        // Still raw, and this put's own clock has not reached the green window yet.
-        if (!live.some((s) => s.phase === 'ready' || s.phase === 'burnt')) {
-          await sleep(Math.min(untilClick, 180));
-          continue;
-        }
-      } else {
-        await sleep(Math.min(untilClick, 180));
-        continue;
+async function takeCooked(page, itemId, before) {
+  if (!(await shiftLive(page)) || (await frontGone(page))) return false;
+  if ((await itemCount(page, itemId)) > before) return true;
+  // The take has to go out from the page the moment the loaf is ready. A Playwright round trip
+  // after that — the old sync-then-click — is long enough on a busy runner for the server clock
+  // to cross the burn line before chapa_take is applied, and the loaf is trashed.
+  const outcome = await page.evaluate(({ itemId, beforeCount, readyAt, burnAt }) => {
+    const feed = window.__tb?.correria?.feed;
+    if (!feed?.on?.chapaTake || !feed.snap) return Promise.resolve('gone');
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const count = () => (feed.snap?.tray ?? []).filter((id) => id === itemId).length;
+    const slotOf = () => {
+      const snap = feed.snap;
+      if (!snap?.chapa) return null;
+      const i = snap.chapa.findIndex((s) => s && s.item === itemId);
+      if (i < 0) return null;
+      let extra = performance.now() - (feed.snapAt || performance.now());
+      if (!Number.isFinite(extra) || extra < 0) extra = 0;
+      if (extra > 8_000) extra = 8_000;
+      return { i, age: snap.chapa[i].age + extra, extra };
+    };
+    const deadline = performance.now() + burnAt + 400;
+    const emptyAt = performance.now() + 1_200;
+    let saw = false;
+    let syncs = 0;
+    const tick = () => {
+      if (performance.now() > deadline) return Promise.resolve('timeout');
+      if (count() > beforeCount) return Promise.resolve('landed');
+      const slot = slotOf();
+      if (!slot) {
+        if (saw) return Promise.resolve('lost');
+        if (performance.now() > emptyAt) return Promise.resolve('empty');
+        return sleep(40).then(tick);
       }
-    }
-    await nudgeSnap(page);
-    if ((await itemCount(page, itemId)) > before) return true;
-    const view = await grillView(page);
-    const live = view.slots.filter((s) => !s.hidden && s.phase !== 'empty');
-    if (!live.length) return waitUntil(async () => (await itemCount(page, itemId)) > before, 400);
-    const slot = live[0];
-    if (slot.phase === 'burnt') {
-      await clickGrill(page, slot.i);
-      await waitUntil(async () => !(await grillOccupied(page)), 400);
-      return false;
-    }
-    if (slot.phase === 'raw') {
-      await sleep(Math.min(280, Math.max(80, READY_AT - slot.age + 40)));
-      continue;
-    }
-    await clickGrill(page, slot.i);
-    if (await waitUntil(async () => (await itemCount(page, itemId)) > before, 500)) return true;
-    await nudgeSnap(page);
-    if ((await itemCount(page, itemId)) > before) return true;
-    const after = await grillView(page);
-    const still = after.slots.find((s) => s.i === slot.i && !s.hidden && s.phase !== 'empty');
-    if (!still) return false;
-    await sleep(100);
+      saw = true;
+      if (slot.age >= burnAt - 150) {
+        // A stale snapshot makes a fresh loaf look burnt. Ask for a new one instead of trashing it.
+        if (syncs < 2 && slot.extra > 700 && slot.age - slot.extra < burnAt) {
+          syncs++;
+          window.__tb?.net?.send?.({ t: 'mg', action: 'sync' });
+          return sleep(120).then(tick);
+        }
+        feed.on.chapaTake(slot.i);
+        return sleep(60).then(() => 'burnt');
+      }
+      if (slot.age >= readyAt) {
+        feed.on.chapaTake(slot.i);
+        const until = performance.now() + 800;
+        const waitLand = () => {
+          if (count() > beforeCount) return Promise.resolve('landed');
+          if (performance.now() > until) {
+            // Still raw on the server: keep waiting. Gone without landing: the take missed.
+            if (!slotOf()) return Promise.resolve(count() > beforeCount ? 'landed' : 'lost');
+            return tick();
+          }
+          return sleep(40).then(waitLand);
+        };
+        return waitLand();
+      }
+      if (performance.now() > deadline) return Promise.resolve('timeout');
+      return sleep(Math.min(60, Math.max(16, readyAt - slot.age))).then(tick);
+    };
+    return tick();
+  }, { itemId, beforeCount: before, readyAt: READY_AT, burnAt: BURN_MS });
+  if (outcome === 'landed' || (await itemCount(page, itemId)) > before) return true;
+  if (outcome === 'burnt' || outcome === 'lost') {
+    await waitUntil(async () => !(await grillOccupied(page)), 500);
   }
-  return (await itemCount(page, itemId)) > before;
+  if (outcome && outcome !== 'landed') console.log(`  · grill take ${itemId} ${outcome}`);
+  return false;
 }
 
 /** One bread on the chapa, then onto the tray. A burnt one is trashed and tried again. */
 async function grillOne(page, itemId) {
-  for (let attempt = 0; attempt < 2; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     if (!(await shiftLive(page)) || (await frontGone(page))) return;
     const before = await itemCount(page, itemId);
     if (await grillOccupied(page)) {
       await takeGrilled(page);
       if ((await itemCount(page, itemId)) > before) return;
     }
-    const putAt = Date.now();
     if (!(await putOnChapa(page, itemId))) {
       console.log(`  · chapa did not start ${itemId} (attempt ${attempt + 1})`);
       continue;
     }
-    const landed = await takeCooked(page, itemId, before, putAt);
+    const landed = await takeCooked(page, itemId, before);
     if (landed) return;
     await nudgeSnap(page);
     if ((await itemCount(page, itemId)) > before) return;
@@ -436,7 +451,9 @@ async function pourOne(page, itemId, pourMs) {
 /** Pour until the tray holds `qty`. A miss steps the next hold; five tries, then the caller can top up. */
 async function pourUntil(page, itemId, qty, pourMs) {
   let misses = 0;
-  while ((await itemCount(page, itemId)) < qty && misses < 5) {
+  let tries = 0;
+  while ((await itemCount(page, itemId)) < qty && misses < 5 && tries < 6) {
+    tries++;
     if (await frontGone(page)) return;
     const before = await itemCount(page, itemId);
     const { result, fill } = await pourOne(page, itemId, pourMs);
