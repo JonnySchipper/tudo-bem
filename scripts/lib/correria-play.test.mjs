@@ -4,49 +4,49 @@ import { POUR_HOLD, nextPourHold, pourTargetMs } from './correria-play.mjs';
 const start = () => ({ hold: POUR_HOLD.start, spills: 0 });
 
 describe('Correria pour hold', () => {
-  it('starts inside the server window (70%–108%), not at the old 0.50 head start', () => {
+  it('starts where a late page timer and an on-time one both land', () => {
+    // Server window is 70%–108%. Run 37230872315 spilled a 0.86 hold at fill 1.11 (~0.25 late)
+    // and a 0.81 hold at fill 1.13. 0.74 + that lateness is still under the spill line.
     const ms = pourTargetMs(1800, POUR_HOLD.start);
-    expect(ms).toBeGreaterThanOrEqual(Math.round(1800 * 0.7));
-    expect(ms).toBeLessThanOrEqual(Math.round(1800 * 1.08));
+    expect(POUR_HOLD.start).toBeGreaterThanOrEqual(0.7);
+    expect(POUR_HOLD.start + 0.32).toBeLessThan(1.08);
+    expect(ms).toBe(Math.round(1800 * 0.74));
     expect(pourTargetMs(1800, 0.5)).toBe(Math.round(1800 * POUR_HOLD.lo));
   });
 
   it('a landed cup does not move the hold', () => {
-    const next = nextPourHold({ hold: 0.86, spills: 2 }, 'ok');
-    expect(next).toEqual({ hold: 0.86, spills: 0 });
+    const next = nextPourHold({ hold: 0.74, spills: 2 }, 'ok');
+    expect(next).toEqual({ hold: 0.74, spills: 0 });
   });
 
-  it('one short then one spill stays inside the window (the 0.57 thrash)', () => {
-    // Post-merge main (run 37225531207) logged short → 0.75, spill → 0.57. 0.57 is under 70%.
+  it('a measured spill drops toward the aim and stays a legal cup', () => {
+    // 0.86 was above the cap; the same fill from the starting hold must not stay at 0.78,
+    // which is what spilled again (0.78 + 0.32 = 1.10).
+    const spilled = nextPourHold(start(), 'spill', 1.11);
+    expect(spilled.hold).toBe(POUR_HOLD.lo);
+    expect(spilled.hold).toBeGreaterThanOrEqual(0.7);
+    expect(spilled.spills).toBe(1);
+    expect(pourTargetMs(1800, spilled.hold)).toBeGreaterThanOrEqual(Math.round(1800 * 0.7));
+  });
+
+  it('one short then one spill cannot walk under 70% (the 0.57 thrash)', () => {
     let s = start();
-    s = nextPourHold(s, 'short');
-    expect(s.hold).toBe(0.91);
-    s = nextPourHold(s, 'spill');
-    expect(s.hold).toBeGreaterThanOrEqual(POUR_HOLD.safe);
+    s = nextPourHold(s, 'short', 0.62);
     expect(s.hold).toBeLessThanOrEqual(POUR_HOLD.hi);
-    expect(pourTargetMs(1800, s.hold)).toBeGreaterThanOrEqual(Math.round(1800 * 0.7));
+    expect(s.hold).toBeGreaterThan(POUR_HOLD.start);
+    s = nextPourHold(s, 'spill', 1.11);
+    expect(s.hold).toBeGreaterThanOrEqual(POUR_HOLD.lo);
+    expect(s.hold).toBeLessThanOrEqual(POUR_HOLD.hi);
   });
 
-  it('the first spill cannot leave the zero-lag window', () => {
-    const s = nextPourHold(start(), 'spill');
-    expect(s.hold).toBe(0.81);
-    expect(s.spills).toBe(1);
-    expect(s.hold).toBeGreaterThanOrEqual(POUR_HOLD.safe);
-  });
-
-  it('a late runner may step down only after a second spill, and not past the floor', () => {
+  it('repeated spills stop at the floor', () => {
     let s = start();
-    const seen = [];
-    for (let i = 0; i < 8; i++) {
-      s = nextPourHold(s, 'spill');
-      seen.push(s.hold);
-    }
-    expect(seen[0]).toBeGreaterThanOrEqual(POUR_HOLD.safe);
+    for (let i = 0; i < 8; i++) s = nextPourHold(s, 'spill');
     expect(s.hold).toBe(POUR_HOLD.lo);
-    expect(Math.min(...seen)).toBe(POUR_HOLD.lo);
+    expect(s.spills).toBe(8);
   });
 
-  it('shorts climb back from the floor and stop at the cap', () => {
+  it('shorts climb from the floor and stop at the cap', () => {
     let s = { hold: POUR_HOLD.lo, spills: 3 };
     for (let i = 0; i < 20; i++) s = nextPourHold(s, 'short');
     expect(s.hold).toBe(POUR_HOLD.hi);
