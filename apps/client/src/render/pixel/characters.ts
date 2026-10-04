@@ -182,13 +182,28 @@ export function pick<V>(table: Record<string, V>, key: string | null | undefined
 /**
  * Draw scale for player and NPC sprites in the world.
  *
- * A standing LimeZu figure fills about 22 px of the 16×32 frame (`AVATAR_HEAD_LIFT`), on a 16 px floor tile.
- * That is the same height as a wooden chair (21 px) and a lixeira (22 px), so people read as furniture.
- * 4/3 lifted the crown to about 31 px, still too small for a shirt, apron, hat, or pants to read at a glance.
- * 2 doubles the sheet from the feet. At every integer camera zoom (2..5) each art pixel lands on a whole
- * device pixel, so those outfit regions stay crisp (about 46 px to the crown). The feet stay at the sprite origin.
+ * A standing LimeZu figure fills about 22 px of the 16×32 frame (`AVATAR_HEAD_LIFT`), on a 16 px floor tile: the height of a chair,
+ * so at 1× people read as furniture. 2× made outfits read but the chibi heads turned chunky next to benches and lamps.
+ * The target is about 1.4×, snapped so each art pixel lands on a whole number of device pixels at the camera zoom in use:
+ * device zoom 2 → 3/2, 3 → 4/3, 4 → 6/4, 5 → 7/5, 6 → 8/6. The feet stay at the sprite origin.
  */
-export const AVATAR_DRAW_SCALE = 2;
+export const AVATAR_SCALE_TARGET = 1.4;
+
+/** The draw scale at a device zoom (device px per art px): about `AVATAR_SCALE_TARGET`, never less than 1, crisp. */
+export function avatarScaleFor(deviceZoom: number): number {
+  const z = Math.max(1, Math.round(deviceZoom));
+  return Math.max(z, Math.round(z * AVATAR_SCALE_TARGET)) / z;
+}
+
+let drawScale = avatarScaleFor(3);
+
+/** The world camera's device zoom changed: people follow so they stay crisp. */
+export function setAvatarZoom(deviceZoom: number): void {
+  drawScale = avatarScaleFor(deviceZoom);
+}
+
+/** The draw scale in use right now. */
+export const avatarDrawScale = (): number => drawScale;
 
 /** Unscaled art px from the feet anchor to the top of a bare standing head (the frame is empty above the hair). */
 export const AVATAR_HEAD_LIFT = 23;
@@ -196,7 +211,7 @@ export const AVATAR_HEAD_LIFT = 23;
 export const AVATAR_HEAD_SIT_LIFT = 16;
 
 /** World px above the feet for a distance measured on the unscaled sheet. */
-export const avatarPx = (artPx: number): number => artPx * AVATAR_DRAW_SCALE;
+export const avatarPx = (artPx: number): number => artPx * drawScale;
 
 /** World px from the feet anchor to the top of the head, including a hat (`lookHeadLift`, unscaled art px). */
 export const avatarCrown = (sitting: boolean, hatLift = 0): number => avatarPx((sitting ? AVATAR_HEAD_SIT_LIFT : AVATAR_HEAD_LIFT) + hatLift);
