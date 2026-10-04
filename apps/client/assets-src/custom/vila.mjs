@@ -101,6 +101,19 @@ const HOUSES = [
   ['casas/sobrado_verde', 'T', 'verde', 7],
 ];
 
+/** The ESCOLA board on the roof slope over the door (centred on pixel column `cx`): teal board, mustard trim, cream capitals. */
+function escolaSign(img, cx) {
+  const bw = 43, bh = 13, bx = cx - Math.floor(bw / 2), by = 25;
+  rect(img, bx, by, bw, bh, C.teal1);
+  rect(img, bx + 1, by + 1, bw - 2, bh - 2, C.teal2);
+  hline(img, bx + 1, by + 1, bw - 2, C.teal3); vline(img, bx + 1, by + 1, bh - 2, C.teal3);
+  hline(img, bx + 1, by + bh - 2, bw - 2, C.teal0);
+  box(img, bx, by, bw, bh, null, C.navy);
+  for (const sx of [bx + 2, bx + bw - 3]) { dot(img, sx, by + 2, C.y3); dot(img, sx, by + bh - 3, C.y3); }
+  const tw = width5('ESCOLA');
+  drawText5(img, bx + Math.floor((bw - tw) / 2), by + 3, 'ESCOLA', C.cr0, { shadow: C.teal0 });
+}
+
 /** V3: what each house gets on top of the pack front (a real roof for the terraços, grilles, awnings, pots, lamps). */
 function dressUp(img, key, cw) {
   if (key === 'casas/terraco_amarelo') {
@@ -115,6 +128,7 @@ function dressUp(img, key, cw) {
     lantern(img, 53, 66);
     pot(img, 25, 88, '#ff8575'); pot(img, 53, 88, '#ffe57b');
     mailbox(img, 26, 70);
+    escolaSign(img, 40);
   } else if (key === 'casas/terraco_verde') {
     reroof(img, 'casinha', cw);
     grille(img, 9, 63, 14, 14);
