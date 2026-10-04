@@ -212,133 +212,94 @@ async function grillOccupied(page) {
   return (await grillView(page)).slots.some((s) => !s.hidden && s.phase !== 'empty');
 }
 
-/** Put one item on the chapa and wait until the snapshot shows it there. The wait stays in the page: polling it from node is a round trip every tick and is what makes the pour timer late. */
-async function putOnChapa(page, itemId) {
-  if (await frontGone(page)) return false;
-  const started = await page.evaluate((id) => {
-    const feed = window.__tb?.correria?.feed;
-    if (!feed?.on?.chapaPut || !feed.snap) return false;
-    const occupied = () => (feed.snap?.chapa ?? []).some((s) => s && s.item);
-    if (occupied()) return true;
-    feed.on.chapaPut(id);
-    return new Promise((resolve) => {
-      const deadline = performance.now() + 2_000;
-      const tick = () => {
-        if (occupied()) return resolve(true);
-        if (performance.now() > deadline) return resolve(false);
-        setTimeout(tick, 40);
-      };
-      tick();
-    });
-  }, itemId);
-  if (started) return true;
-  await nudgeSnap(page);
-  return grillOccupied(page);
-}
-
 /**
- * Take one cooking slot onto the tray.
- * The server applies any stall *before* the action, so a take that waits on a Playwright round trip can land as burnt.
- * The page itself waits until the loaf is ready and sends the take. Returns true when `itemId` landed on the tray.
+ * Put one loaf on the chapa and take it when it is ready, all inside one page call.
+ * A Playwright round trip between the put and the take is long enough on the Phase 0 runner for the
+ * server clock to cross the burn line first (run 37230872315: `grill take pao_na_chapa lost`, slots empty).
  */
-async function takeCooked(page, itemId, before) {
-  if (!(await shiftLive(page)) || (await frontGone(page))) return false;
-  if ((await itemCount(page, itemId)) > before) return true;
-  // The take has to go out from the page the moment the loaf is ready. A Playwright round trip
-  // after that — the old sync-then-click — is long enough on a busy runner for the server clock
-  // to cross the burn line before chapa_take is applied, and the loaf is trashed.
-  const outcome = await page.evaluate(({ itemId, beforeCount, readyAt, burnAt, landHi }) => {
-    const feed = window.__tb?.correria?.feed;
-    if (!feed?.on?.chapaTake || !feed.snap) return Promise.resolve('gone');
-    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-    const count = () => (feed.snap?.tray ?? []).filter((id) => id === itemId).length;
-    const slotOf = () => {
-      const snap = feed.snap;
-      if (!snap?.chapa) return null;
-      const i = snap.chapa.findIndex((s) => s && s.item === itemId);
-      if (i < 0) return null;
-      let extra = performance.now() - (feed.snapAt || performance.now());
-      if (!Number.isFinite(extra) || extra < 0) extra = 0;
-      if (extra > 8_000) extra = 8_000;
-      return { i, age: snap.chapa[i].age + extra, extra };
-    };
-    const deadline = performance.now() + burnAt + 800;
-    const emptyAt = performance.now() + 2_000;
-    let saw = false;
-    let lastTake = 0;
-    const tick = () => {
-      if (performance.now() > deadline) return Promise.resolve('timeout');
-      if (count() > beforeCount) return Promise.resolve('landed');
-      const slot = slotOf();
-      if (!slot) {
-        if (saw) return Promise.resolve('lost');
-        if (performance.now() > emptyAt) return Promise.resolve('empty');
-        return sleep(40).then(tick);
-      }
-      saw = true;
-      // Woke up late. Take anyway: if catch-up still lands inside the window the loaf is served,
-      // and if it was already burnt the slot clears so the next put can start.
-      if (slot.age > landHi) {
-        const snapAt = feed.snapAt;
-        feed.on.chapaTake(slot.i);
-        const until = performance.now() + 1_200;
-        const waitBurn = () => {
-          if (count() > beforeCount) return Promise.resolve('landed');
-          if ((feed.snapAt !== snapAt && !slotOf()) || performance.now() > until) {
-            return Promise.resolve(count() > beforeCount ? 'landed' : 'burnt');
-          }
-          return sleep(40).then(waitBurn);
-        };
-        return waitBurn();
-      }
-      if (slot.age >= readyAt) {
-        if (performance.now() - lastTake < 200) return sleep(40).then(tick);
-        lastTake = performance.now();
-        const snapAt = feed.snapAt;
-        feed.on.chapaTake(slot.i);
-        const until = performance.now() + 1_500;
-        const waitLand = () => {
-          if (count() > beforeCount) return Promise.resolve('landed');
-          const answered = feed.snapAt !== snapAt;
-          if (answered && !slotOf()) return Promise.resolve(count() > beforeCount ? 'landed' : 'lost');
-          if (performance.now() > until) {
-            if (!slotOf()) return Promise.resolve(count() > beforeCount ? 'landed' : 'lost');
-            return tick();
-          }
-          return sleep(40).then(waitLand);
-        };
-        return waitLand();
-      }
-      return sleep(Math.min(50, Math.max(16, readyAt - slot.age))).then(tick);
-    };
-    return tick();
-  }, { itemId, beforeCount: before, readyAt: READY_AT, burnAt: BURN_MS, landHi: LAND_HI });
-  if (outcome === 'landed' || (await itemCount(page, itemId)) > before) return true;
-  if (outcome === 'burnt' || outcome === 'lost') await sleep(120);
-  if (outcome && outcome !== 'landed') console.log(`  · grill take ${itemId} ${outcome}`);
-  return false;
-}
-
-/** One bread on the chapa, then onto the tray. A burnt one is trashed and tried again. */
 async function grillOne(page, itemId) {
   for (let attempt = 0; attempt < 3; attempt++) {
+    const outcome = await page.evaluate(({ itemId, readyAt, burnAt, landHi }) => {
+      const feed = window.__tb?.correria?.feed;
+      if (!feed?.on?.chapaPut || !feed?.on?.chapaTake || !feed.snap) return Promise.resolve({ outcome: 'gone', slots: [] });
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+      const count = () => (feed.snap?.tray ?? []).filter((id) => id === itemId).length;
+      const alive = () => {
+        if (document.querySelector('#mg-end')) return false;
+        return !!(feed.active && feed.snap && !feed.snap.over && feed.snap.customers?.some((c) => c.state === 'front'));
+      };
+      const ageOf = (entry) => {
+        let extra = performance.now() - (feed.snapAt || performance.now());
+        if (!Number.isFinite(extra) || extra < 0) extra = 0;
+        if (extra > 8_000) extra = 8_000;
+        return entry.age + extra;
+      };
+      const slotOf = (id) => {
+        const chapa = feed.snap?.chapa;
+        if (!chapa) return null;
+        const i = chapa.findIndex((s) => s && (!id || s.item === id));
+        if (i < 0) return null;
+        return { i, item: chapa[i].item, age: ageOf(chapa[i]) };
+      };
+      const slots = () => (feed.snap?.chapa ?? []).map((s, i) => (s ? { i, item: s.item, age: Math.round(ageOf(s)) } : null));
+      const beforeCount = count();
+      const deadline = performance.now() + burnAt + 1_200;
+      let putAt = 0;
+      let lastTake = 0;
+      const report = (outcome) => ({ outcome, before: beforeCount, count: count(), slots: slots() });
+      const afterTake = (kind) => {
+        const snapAt = feed.snapAt;
+        const until = performance.now() + 1_200;
+        const wait = () => {
+          if (count() > beforeCount) return Promise.resolve(report('landed'));
+          const answered = feed.snapAt !== snapAt;
+          if ((answered && !slotOf(itemId)) || performance.now() > until) {
+            return Promise.resolve(report(count() > beforeCount ? 'landed' : kind));
+          }
+          return sleep(40).then(wait);
+        };
+        return wait();
+      };
+      const tick = () => {
+        if (!alive()) return Promise.resolve(report(count() > beforeCount ? 'landed' : 'gone'));
+        if (count() > beforeCount) return Promise.resolve(report('landed'));
+        if (performance.now() > deadline) return Promise.resolve(report('timeout'));
+        const other = slotOf(null);
+        const slot = slotOf(itemId);
+        if (other && (!slot || other.i !== slot.i)) {
+          if (other.age < readyAt) return sleep(Math.min(50, Math.max(16, readyAt - other.age))).then(tick);
+          feed.on.chapaTake(other.i);
+          return sleep(80).then(tick);
+        }
+        if (!slot) {
+          if (!putAt) {
+            feed.on.chapaPut(itemId);
+            putAt = performance.now();
+          } else if (performance.now() > putAt + 2_000) {
+            return Promise.resolve(report('empty'));
+          }
+          return sleep(40).then(tick);
+        }
+        if (slot.age > landHi) {
+          feed.on.chapaTake(slot.i);
+          return afterTake('burnt');
+        }
+        if (slot.age >= readyAt) {
+          if (performance.now() - lastTake < 200) return sleep(40).then(tick);
+          lastTake = performance.now();
+          feed.on.chapaTake(slot.i);
+          return afterTake('lost');
+        }
+        return sleep(Math.min(50, Math.max(16, readyAt - slot.age))).then(tick);
+      };
+      return tick();
+    }, { itemId, readyAt: READY_AT, burnAt: BURN_MS, landHi: LAND_HI });
+    if (!outcome || outcome.outcome === 'gone') return;
+    if (outcome.outcome === 'landed' || outcome.count > outcome.before) return;
+    const late = await itemCount(page, itemId);
+    if (late > outcome.before) return;
+    console.log(`  · grill ${itemId} ${outcome.outcome} (attempt ${attempt + 1}) ${JSON.stringify(outcome.slots)}`);
     if (!(await shiftLive(page)) || (await frontGone(page))) return;
-    const before = await itemCount(page, itemId);
-    if (await grillOccupied(page)) {
-      await takeGrilled(page);
-      if ((await itemCount(page, itemId)) > before) return;
-    }
-    if (!(await putOnChapa(page, itemId))) {
-      console.log(`  · chapa did not start ${itemId} (attempt ${attempt + 1})`);
-      continue;
-    }
-    const landed = await takeCooked(page, itemId, before);
-    if (landed) return;
-    // A sync here catchUp-stalls the server and is how the next loaf arrives already burnt.
-    await sleep(200);
-    if ((await itemCount(page, itemId)) > before) return;
-    const view = await grillView(page);
-    console.log(`  · grill ${itemId} missed the tray (attempt ${attempt + 1}) ${JSON.stringify(view.slots)}`);
   }
 }
 
@@ -409,19 +370,20 @@ let pourState = { hold: POUR_HOLD.start, spills: 0 };
  * the release lands past the spill line whenever the runner is slow. Returns ok / short / spill / miss / gone.
  * A missing feed is a miss, not "the customer left" — bailing there used to skip the coffee and serve the water alone.
  */
-async function pourOne(page, itemId, pourMs) {
-  const fail = (result, fill = null) => ({ result, fill });
-  if (await frontGone(page)) return fail('gone');
-  const before = await itemCount(page, itemId);
-  if ((await snap(page))?.pour) {
-    await endPour(page);
-    if ((await itemCount(page, itemId)) > before) return fail('ok');
-    if (await frontGone(page)) return fail('gone');
-  }
+async function pourOne(page, itemId, pourMs, qty) {
   const target = pourTargetMs(pourMs, pourState.hold);
-  const released = await page.evaluate(({ itemId, target }) => {
+  // One round trip. The hold starts in this call: three snapshot reads before pour_start were ~10s of
+  // patience on the Phase 0 runner (run 37230872315, first café at 12s).
+  const released = await page.evaluate(({ itemId, target, qty }) => {
     const feed = window.__tb?.correria?.feed;
-    if (!feed?.on?.pourStart || !feed.snap) return { status: 'gone' };
+    const count = () => (feed?.snap?.tray ?? []).filter((id) => id === itemId).length;
+    const alive = () => {
+      if (!feed?.snap || !feed.active || feed.snap.over) return false;
+      if (document.querySelector('#mg-end')) return false;
+      return !!feed.snap.customers?.some((c) => c.state === 'front');
+    };
+    if (!feed?.on?.pourStart || !alive()) return { status: 'gone', count: count() };
+    if (count() >= qty) return { status: 'have', count: count() };
     if (!feed.__tbPourTap) {
       const orig = feed.push.bind(feed);
       feed.push = (c) => {
@@ -433,83 +395,81 @@ async function pourOne(page, itemId, pourMs) {
       };
       feed.__tbPourTap = true;
     }
-    feed.__tbLastPour = null;
-    feed.on.pourStart(itemId);
-    const mark = performance.now();
-    const beforeCount = (feed.snap?.tray ?? []).filter((id) => id === itemId).length;
     return new Promise((resolve) => {
-      const releaseAt = mark + target;
-      const tick = () => {
-        if (performance.now() < releaseAt) {
-          setTimeout(tick, Math.min(30, Math.max(0, releaseAt - performance.now())));
-          return;
-        }
-        // Anything stored during the hold belongs to the previous cup.
+      const startHold = () => {
+        if (!alive()) return resolve({ status: 'gone', count: count() });
+        if (count() >= qty) return resolve({ status: 'have', count: count() });
         feed.__tbLastPour = null;
-        const releasedAt = performance.now();
-        feed.on.pourEnd();
-        const until = performance.now() + 1_500;
-        const wait = () => {
-          const n = (feed.snap?.tray ?? []).filter((id) => id === itemId).length;
-          const p = feed.__tbLastPour;
-          const fresh = p && p.at >= releasedAt - 5 ? p : null;
-          if (fresh || n > beforeCount || performance.now() > until) {
-            resolve({
-              status: 'ended',
-              k: fresh?.k ?? (n > beforeCount ? 'pour_ok' : null),
-              fill: typeof fresh?.fill === 'number' ? fresh.fill : null,
-              why: fresh?.why ?? null,
-              grew: n > beforeCount,
-            });
+        feed.on.pourStart(itemId);
+        const mark = performance.now();
+        const beforeCount = count();
+        const releaseAt = mark + target;
+        const tick = () => {
+          if (!alive()) return resolve({ status: 'gone', count: count() });
+          if (performance.now() < releaseAt) {
+            setTimeout(tick, Math.min(30, Math.max(0, releaseAt - performance.now())));
             return;
           }
-          setTimeout(wait, 40);
+          feed.__tbLastPour = null;
+          const releasedAt = performance.now();
+          feed.on.pourEnd();
+          const until = performance.now() + 1_200;
+          const wait = () => {
+            const n = count();
+            const p = feed.__tbLastPour;
+            const fresh = p && p.at >= releasedAt - 5 ? p : null;
+            if (fresh || n > beforeCount || performance.now() > until || !alive()) {
+              resolve({
+                status: alive() ? 'ended' : 'gone',
+                k: fresh?.k ?? (n > beforeCount ? 'pour_ok' : null),
+                fill: typeof fresh?.fill === 'number' ? fresh.fill : null,
+                why: fresh?.why ?? null,
+                grew: n > beforeCount,
+                count: n,
+              });
+              return;
+            }
+            setTimeout(wait, 40);
+          };
+          wait();
         };
-        wait();
+        tick();
       };
-      tick();
+      if (!feed.snap.pour) return startHold();
+      feed.on.pourEnd();
+      const until = performance.now() + 700;
+      const waitClear = () => {
+        if (!feed.snap?.pour || performance.now() > until || !alive()) return startHold();
+        setTimeout(waitClear, 40);
+      };
+      waitClear();
     });
-  }, { itemId, target });
-  if (!(await shiftLive(page)) || (await frontGone(page))) return fail('gone');
-  if (!released || released.status === 'gone') return fail('miss');
-  const fill = typeof released.fill === 'number' ? released.fill : null;
-  if (released.grew || released.k === 'pour_ok' || (await itemCount(page, itemId)) > before) return fail('ok', fill);
-  if (released.why === 'spill') return fail('spill', fill);
-  if (released.why === 'short') return fail('short', fill);
-  await nudgeSnap(page);
-  if ((await itemCount(page, itemId)) > before) return fail('ok', fill);
-  return fail('miss', fill);
+  }, { itemId, target, qty });
+  const fill = typeof released?.fill === 'number' ? released.fill : null;
+  const count = released?.count ?? 0;
+  if (!released || released.status === 'gone') return { result: 'gone', fill, count };
+  if (released.status === 'have' || released.grew || released.k === 'pour_ok' || count >= qty) return { result: 'ok', fill, count };
+  if (released.why === 'spill') return { result: 'spill', fill, count };
+  if (released.why === 'short') return { result: 'short', fill, count };
+  return { result: 'miss', fill, count };
 }
 
-/** Pour until the tray holds `qty`. A miss steps the next hold; five tries, then the caller can top up. */
+/** Pour until the tray holds `qty`. A miss steps the next hold; a cup the server already accepted is not poured again. */
 async function pourUntil(page, itemId, qty, pourMs) {
   let misses = 0;
-  let tries = 0;
-  while ((await itemCount(page, itemId)) < qty && misses < 5 && tries < 6) {
-    tries++;
-    if (await frontGone(page)) return;
-    const before = await itemCount(page, itemId);
-    const { result, fill } = await pourOne(page, itemId, pourMs);
+  for (let tries = 0; tries < 4 && misses < 3; tries++) {
+    const { result, fill, count } = await pourOne(page, itemId, pourMs, qty);
     if (result === 'gone') return;
-    let landed = (await itemCount(page, itemId)) > before;
-    if (!landed && result === 'ok') {
-      landed = await waitUntil(async () => (await itemCount(page, itemId)) > before, 1_500);
-      if (!landed) {
-        await nudgeSnap(page);
-        landed = (await itemCount(page, itemId)) > before;
-      }
-    }
-    // A cup that landed keeps the hold. Chasing its fill is how the next one came out short once the runner caught up.
-    pourState = nextPourHold(pourState, landed ? 'ok' : result, fill);
-    if (landed) {
-      misses = 0;
-      continue;
+    if (count >= qty) {
+      pourState = nextPourHold(pourState, 'ok', fill);
+      return;
     }
     // pour_ok already put a cup on the server tray. Pouring again stacks a second one and the order is rejected.
     if (result === 'ok') {
       console.log(`  · pour ${itemId} ok but not on the tray yet`);
       return;
     }
+    pourState = nextPourHold(pourState, result, fill);
     misses++;
     const fillNote = fill == null ? '' : ` fill=${fill.toFixed(2)}`;
     console.log(`  · pour ${itemId} ${result}${fillNote} → hold ${pourState.hold.toFixed(2)}`);
