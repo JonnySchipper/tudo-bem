@@ -21,7 +21,6 @@ import {
   buildGrid,
   cameraObjectIds,
   diaryVisible,
-  IDLE_HEAR_RANGE,
   PHOTO_SPOTS,
   normalizeDiary,
   unheardIdleLine,
@@ -236,6 +235,13 @@ function openStall(propId?: string) {
 
 function talkTo(npc: NpcDef['id']) {
   closeDialogue();
+  // the player chose to talk to them: the NPC says a line with a word the diary does not have yet (passing chatter teaches nothing)
+  const speaker = game.liveNpcs(now()).find((n) => n.id === npc);
+  const next = speaker ? unheardIdleLine(npc, speaker.idleLines.length, game.profile?.diary) : null;
+  if (speaker && next !== null) {
+    npcSay(npc, localizeGreeting(speaker.idleLines[next]!, clock.minutes()));
+    sendLine(`${npc}.idle${next}`);
+  }
   const vendor = npc === 'tia_lu' || npc === 'ze' || npc === 'chico' || npc === 'rosa';
   // the server counts the talk for NPCs without a Conversa (bond +2 once a day, `falar` steps); the bakers count it through the scene / Conversa,
   // the vendors through their stall panel (it sends `talk` itself)
@@ -907,29 +913,11 @@ function startGame() {
     },
   });
   const idleTalk = new IdleTalk();
-  // an ambient line carries a diary word when it is heard: the player is within earshot (the server checks again), and the NPC said it
-  const hearIdle = (n: { id: string; x: number; y: number; idleLines: readonly { pt: string }[] }, line: { pt: string }) => {
-    const cur = selfTile();
-    if (!cur) return;
-    const i = n.idleLines.findIndex((l) => l.pt === line.pt);
-    if (i < 0 || Math.max(Math.abs(cur.tile.x - n.x), Math.abs(cur.tile.y - n.y)) > IDLE_HEAR_RANGE) return;
-    sendLine(`${n.id}.idle${i}`);
-  };
   setInterval(() => {
     const npcs = game.liveNpcs(now());
     if (!npcs.length || document.hidden || ambientBubblesFull()) return;
-    // somebody within earshot who has a word to teach speaks up first, with that line; otherwise anybody, at random
-    const cur = selfTile();
-    const earned = game.profile?.diary;
-    const teacher = cur
-      ? npcs
-          .map((n) => ({ n, i: unheardIdleLine(n.id, n.idleLines.length, earned) }))
-          .find((e) => e.i !== null && Math.max(Math.abs(cur.tile.x - e.n.x), Math.abs(cur.tile.y - e.n.y)) <= IDLE_HEAR_RANGE)
-      : undefined;
-    const n = teacher?.n ?? npcs[Math.floor(Math.random() * npcs.length)];
-    const own = teacher ? n.idleLines[teacher.i!]! : idleTalk.next(n.idleLines, clock.weather(), clock.minutes());
-    npcSay(n.id, localizeGreeting(own, clock.minutes()));
-    hearIdle(n, own);
+    const n = npcs[Math.floor(Math.random() * npcs.length)];
+    npcSay(n.id, localizeGreeting(idleTalk.next(n.idleLines, clock.weather(), clock.minutes()), clock.minutes()));
   }, 11_000);
   // the feira: a vendor calls out their goods now and then (PT with the gloss); never two calls at once, and not while a dialogue box is open
   setInterval(() => {
@@ -940,7 +928,6 @@ function startGame() {
     const calls = VENDORS[n.id as 'tia_lu'].calls;
     const call = calls[Math.floor(Math.random() * calls.length)]!;
     npcSay(n.id, localizeGreeting(call, clock.minutes()));
-    hearIdle(n, call);
   }, 7_000);
 }
 

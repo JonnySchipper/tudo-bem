@@ -6,7 +6,6 @@ import {
   ARRIVAL_SIGNS,
   COUNTER_STAND_INS,
   HOTSPOT_READ_RANGE,
-  IDLE_HEAR_RANGE,
   PHOTO_RANGE,
   ROOMS,
   FILM,
@@ -273,7 +272,8 @@ export class DiaryTracker {
     const hosts = [info.npc, ...(COUNTER_STAND_INS[info.npc] ?? [])];
     const here = room ? this.d.npcsIn(room).find((n) => hosts.includes(n.id)) : undefined;
     if (!here) return;
-    const range = info.kind === 'idle' ? IDLE_HEAR_RANGE : HOTSPOT_READ_RANGE;
+    // every line is heard by talking to its speaker: from the talking distance
+    const range = HOTSPOT_READ_RANGE;
     const tile = this.d.tileOf(s);
     if (tileDistance(tile, here.tile) > range && tileDistance(tile, here.interact) > range) return;
     this.earn(s, word, 'conversation');
