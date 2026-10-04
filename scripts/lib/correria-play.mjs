@@ -229,6 +229,12 @@ async function takeCooked(page, itemId, before, putAt) {
     if ((await itemCount(page, itemId)) > before) return true;
     const untilClick = putAt + COOK_MS + 160 - Date.now();
     if (untilClick > 60) {
+      // A put that never reached the server leaves the slots empty. Waiting out the cook just burns the customer's patience.
+      if (Date.now() > putAt + 450) {
+        const early = await grillView(page);
+        const live = early.slots.filter((s) => !s.hidden && s.phase !== 'empty');
+        if (!live.length) return (await itemCount(page, itemId)) > before;
+      }
       await sleep(Math.min(untilClick, 180));
       continue;
     }
@@ -315,12 +321,14 @@ async function endPour(page) {
 
 /**
  * How much longer the server keeps the cup than the page's own timer (ms). A busy runner delivers pour_end
- * late; the next cup aims earlier by this much. It is kept for the whole shift — resetting after one good cup
- * is how every coffee spilled again on CI.
+ * late. The first cup aims early (this starts unset); each fill then moves it part of the way, and it is kept
+ * for the whole shift — resetting after one good cup is how every coffee spilled again on CI.
  */
-let pourLagMs = 0;
+let pourLagMs = null;
 /** Middle of the good window (70%–108%). */
 const POUR_AIM = 0.86;
+/** First-cup head start, as a fraction of pourMs. CI's cold timer ran ~0.4 past the aim; 0.36 lands that cup inside the window. */
+const POUR_LAG0 = 0.36;
 
 /**
  * One cup. The good window is 70%–108% of pourMs on the server clock. The hold is a page timer started with
@@ -336,7 +344,8 @@ async function pourOne(page, itemId, pourMs) {
     if ((await itemCount(page, itemId)) > before) return 'ok';
     if (await frontGone(page)) return 'gone';
   }
-  const target = Math.round(Math.max(pourMs * 0.5, Math.min(pourMs * 0.98, pourMs * POUR_AIM - pourLagMs)));
+  if (pourLagMs == null) pourLagMs = Math.round(pourMs * POUR_LAG0);
+  const target = Math.round(Math.max(pourMs * 0.4, Math.min(pourMs * 0.98, pourMs * POUR_AIM - pourLagMs)));
   const released = await page.evaluate(({ itemId, target }) => {
     const feed = window.__tb?.correria?.feed;
     if (!feed?.on?.pourStart || !feed.snap) return { status: 'gone' };
@@ -375,8 +384,9 @@ async function pourOne(page, itemId, pourMs) {
     if (last) {
       const fill = typeof last.fill === 'number' ? last.fill : null;
       if (fill != null && pourMs > 0) {
-        const next = pourLagMs + Math.round((fill - POUR_AIM) * pourMs);
-        pourLagMs = Math.max(Math.round(-pourMs * 0.12), Math.min(Math.round(pourMs * 0.4), next));
+        // Part of the error, not all of it: one cold cup must not swing the next hold out of the window.
+        const next = pourLagMs + Math.round((fill - POUR_AIM) * pourMs * 0.75);
+        pourLagMs = Math.max(Math.round(-pourMs * 0.1), Math.min(Math.round(pourMs * 0.48), next));
       }
       if (last.k === 'pour_ok' || (await itemCount(page, itemId)) > before) return 'ok';
       if (last.why === 'spill') return 'spill';
@@ -405,8 +415,8 @@ async function pourUntil(page, itemId, qty, pourMs) {
     }
     misses++;
     // No fill came back (the cup vanished). Step blind so the next hold is not the same length.
-    if (result === 'miss') pourLagMs = Math.min(Math.round(pourMs * 0.4), pourLagMs + Math.round(pourMs * 0.08));
-    const hold = pourMs > 0 ? Math.round((100 * (pourMs * POUR_AIM - pourLagMs)) / pourMs) / 100 : 0;
+    if (result === 'miss') pourLagMs = Math.min(Math.round(pourMs * 0.48), (pourLagMs ?? 0) + Math.round(pourMs * 0.08));
+    const hold = pourMs > 0 ? Math.round((100 * (pourMs * POUR_AIM - (pourLagMs ?? 0))) / pourMs) / 100 : 0;
     console.log(`  · pour ${itemId} ${result} → hold ${hold}`);
   }
 }
