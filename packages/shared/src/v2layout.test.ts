@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildGrid, floorAt, isWalkable, propTiles, ROOMS } from './rooms.js';
+import { DIARY_PLACEMENTS } from './diaryWorld.js';
 import { scheduleAt } from './schedules.js';
 
 const { rua, rua_leste, praca, feira } = ROOMS;
@@ -88,7 +89,9 @@ describe('V2 composition of Vila Ipê (rua, praça, feira)', () => {
 
   it('keeps the praça calmer than the old map: about a third fewer props in the square than the 56 x 40 map had in it', () => {
     // the old praça block (x10-40, y14-29) held 71 props: the new square, at a comparable ground area, keeps its focal points with fewer
-    const decor = praca.props.filter((p) => !p.id.startsWith('sebe_') && !p.id.startsWith('cerca_'));
+    // the small objects and signs of the language diary are scenery on the ground, not composition: they are counted apart
+    const diary = new Set(DIARY_PLACEMENTS.map((p) => p.id));
+    const decor = praca.props.filter((p) => !p.id.startsWith('sebe_') && !p.id.startsWith('cerca_') && !diary.has(p.id));
     expect(decor.length).toBeLessThanOrEqual(62);
     expect(decor.length).toBeGreaterThanOrEqual(40);
   });

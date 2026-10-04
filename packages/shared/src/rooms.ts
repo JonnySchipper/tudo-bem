@@ -1,6 +1,7 @@
 import type { Appearance, Bilingual, Dir, PlacedFurniture, RoomId, Tile } from './types.js';
 import { furnitureById } from './catalog.js';
 import { SCHEDULES, type ScheduleSlot } from './schedules.js';
+import { DIARY_PLACEMENTS } from './diaryWorld.js';
 
 export type PropKind =
   | 'ipe'
@@ -75,6 +76,8 @@ export interface PropDef {
   gaps?: Tile[];
   /** Pixel view: this prop is a light source at night (a warm pool at its foot, or the preset of its sprite key in `lightPresets.ts`). */
   lightAtNight?: boolean;
+  /** Pixel view: the sprite is nudged this many px sideways inside its tile (two small objects on one tile). */
+  ox?: number;
 }
 
 export type WallSide = 'left' | 'right';
@@ -252,14 +255,28 @@ function feiraFloor(): string[] {
   });
 }
 
+/** The small objects and signs the language diary catalog added to a room (`diaryWorld.ts`): scenery, never in the way. */
+const diaryProps = (room: RoomId): PropDef[] =>
+  DIARY_PLACEMENTS.filter((p) => p.room === room).map((p) => ({
+    id: p.id,
+    kind: 'cenario' as const,
+    x: p.x,
+    y: p.y,
+    ...(p.w ? { w: p.w } : {}),
+    ...(p.h ? { h: p.h } : {}),
+    art: p.art,
+    blocks: false,
+    ...(p.ox ? { ox: p.ox } : {}),
+  }));
+
 const P = (id: string, kind: PropKind, x: number, y: number, extra: Partial<PropDef> = {}): PropDef => ({ id, kind, x, y, blocks: true, ...extra });
 /** A bench: 2 tiles wide, everybody sits facing south. */
 const bench = (id: string, x: number, y: number): PropDef => P(id, 'banco', x, y, { w: 2, blocks: false, seat: 'SW' });
 /** Scenery with its own sprite (`art`): w x h footprint, non-blocking unless `blocks` is set (it usually sits inside something that already blocks). */
 const cen = (id: string, art: string, x: number, y: number, w = 1, h = 1, extra: Partial<PropDef> = {}): PropDef => P(id, 'cenario', x, y, { w, h, art, blocks: false, ...extra });
 /** Vehicles parked along a street's south curb row: [sprite name under vehicles/, first tile x, tiles wide]. Blocking, one tile deep. */
-const parked = (row: number, cars: [string, number, number][]): PropDef[] =>
-  cars.map(([name, x, w], i) => P(`estac_${row}_${i}`, 'cenario', x, row, { w, h: 1, art: `vehicles/${name}` }));
+const parked = (row: number, cars: [string, number, number][], first = 0): PropDef[] =>
+  cars.map(([name, x, w], i) => P(`estac_${row}_${first + i}`, 'cenario', x, row, { w, h: 1, art: `vehicles/${name}` }));
 /** The four stools around a game table at (x, y): each sitter faces the table (a west stool faces east, and so on). */
 const stools = (id: string, x: number, y: number): PropDef[] => [
   cen(`${id}_o`, 'props/banquinho', x - 1, y, 1, 1, { seat: 'SE' }),
@@ -363,6 +380,7 @@ const rua: RoomDef = {
     // ---- the map edge: a barricade across the street and hedges across the sidewalks and the lawn (the east side is open to rua_leste)
     P('barreira_o_8', 'cerca', 0, 8, { w: 2, h: 4, art: 'cerca_rua' }),
     ...[6, 7, 12, 13, 14].map((y) => P(`sebe_o_${y}`, 'sebe', 0, y, { w: 2, art: 'props/hedge_wide' })),
+    ...diaryProps('rua'),
   ],
   walls: [],
   portals: [
@@ -430,7 +448,7 @@ const ruaLeste: RoomDef = {
     P('arv_n2', 'arvore', 2, 14, { w: 2, art: 'props/arvore_rua' }),
     P('arv_n3', 'arvore', 15, 7, { w: 2, art: 'props/arvore_rua' }),
     // the parked taxi in the bay (it blocks its curb tiles only; the traffic lanes sit above it)
-    ...parked(12, [['park_taxi_r', 12, 5]]),
+    ...parked(12, [['park_taxi_r', 12, 5]], 1),
     P('flor_s1', 'sebe', 10, 13, { w: 2, art: 'props/flor_vermelha' }),
     P('flor_s2', 'sebe', 15, 13, { w: 2, art: 'props/flor_mista' }),
     P('arv_s6', 'arvore', 5, 14, { w: 2, art: 'props/arvore_rua' }),
@@ -440,6 +458,7 @@ const ruaLeste: RoomDef = {
     P('arbusto_se', 'sebe', 0, 15, { art: 'props/bush_flower' }),
     P('arbusto_seam', 'sebe', 0, 14, { art: 'props/bush_flower' }),
     P('sebe_s_17', 'sebe', 17, 15, { w: 2, art: 'props/hedge_wide' }),
+    ...diaryProps('rua_leste'),
     // ---- the east map edge: a barricade across the street and hedges across the sidewalks and the lawn (the west side is open to the rua)
     P('barreira_l_8', 'cerca', 17, 8, { w: 2, h: 4, art: 'cerca_rua' }),
     ...[6, 7, 12, 13, 14].map((y) => P(`sebe_l_${y}`, 'sebe', 17, y, { w: 2, art: 'props/hedge_wide' })),
@@ -594,6 +613,7 @@ const praca: RoomDef = {
     P('cerca_oeste', 'cerca', 0, 1, { w: 1, h: PRACA_ROWS - 2, art: 'cerca_jardim' }),
     P('cerca_leste_n', 'cerca', 31, 1, { w: 1, h: 9, art: 'cerca_jardim' }),
     P('cerca_leste_s', 'cerca', 31, 14, { w: 1, h: 9, art: 'cerca_jardim' }),
+    ...diaryProps('praca'),
   ],
   walls: [],
   portals: [
@@ -615,6 +635,8 @@ const praca: RoomDef = {
       idleLines: [
         { pt: 'Esse boné verde fica legal!', en: 'That green cap looks great!' },
         { pt: 'Hoje tem boné verde de graça!', en: 'Free green caps today!' },
+        // needs_br: true (language diary catalog line)
+        { pt: 'Hoje o sol tá forte.', en: 'The sun is strong today.' },
       ],
     },
     {
@@ -632,6 +654,9 @@ const praca: RoomDef = {
       idleLines: [
         { pt: 'Oi! Precisa de ajuda? Fala comigo!', en: 'Hi! Need help? Talk to me!' },
         { pt: 'A padaria do Seu Carlos é ali!', en: 'Seu Carlos’s bakery is over there!' },
+        // needs_br: true (language diary catalog lines)
+        { pt: 'O vizinho senta aqui de manhã.', en: 'The neighbor sits here in the morning.' },
+        { pt: 'Bora dar um passeio?', en: 'Shall we go for a stroll?' },
       ],
     },
   ],
@@ -691,6 +716,7 @@ const feira: RoomDef = {
     P('ipe_lote_2', 'arvore', 28, 16, { w: 2, art: 'props/arvore_rua' }),
     cen('flor_lote', 'props/flor_mista_b', 20, 17, 3, 1),
     bench('banco_feira', 4, 16),
+    ...diaryProps('feira'),
   ],
   walls: [],
   portals: [...edgePortals('feira_praca', 'praca', span(4, 7).map((y) => ({ x: 0, y })), (t) => ({ x: 30, y: t.y + 3 }), 'SW', { pt: 'Praça Central', en: 'Central Square' })],
@@ -803,6 +829,7 @@ const padaria: RoomDef = {
     { id: 'cadeira_3', kind: 'cadeira_padaria', x: 6, y: 6, blocks: false, seat: 'SE' },
     { id: 'cadeira_4', kind: 'cadeira_padaria', x: 7, y: 7, blocks: false, seat: 'NE' },
     { id: 'vaso', kind: 'vaso', x: 9, y: 8, blocks: true },
+    ...diaryProps('padaria'),
   ],
   walls: [
     { kind: 'azulejos', wall: 'left', from: 0, to: 9 },
@@ -892,6 +919,7 @@ const kitnet: RoomDef = {
   props: [
     { id: 'cama', kind: 'cama', x: 6, y: 1, w: 2, h: 2, blocks: true },
     { id: 'cozinha', kind: 'cozinha', x: 1, y: 0, w: 2, h: 1, blocks: true },
+    ...diaryProps('kitnet'),
   ],
   walls: [
     { kind: 'janela_rua', wall: 'right', from: 3, to: 6 },
@@ -961,6 +989,7 @@ const academia: RoomDef = {
     // Mat dressing for the roll (decoration only): the scoreboard at the mat's east edge. The four corner flags are gone: two stood in the
     // walkway (one on Professora Bia's spot) and the room read as clutter; the back wall already carries the flag and the trophies.
     { id: 'placar', kind: 'cenario', x: 8, y: 3, w: 2, h: 1, art: 'props/placar', blocks: false },
+    ...diaryProps('academia'),
   ],
   walls: [
     { kind: 'placa', wall: 'right', from: 0, to: 4, text: 'ACADEMIA DO BAIRRO' },
@@ -1004,6 +1033,10 @@ const academia: RoomDef = {
         { pt: 'Bora treinar?', en: 'Ready to train?' },
         { pt: 'Respeito primeiro, depois o tatame.', en: 'Respect first, then the mat.' },
         { pt: 'Água é vida. Bebe bastante!', en: 'Water is life. Drink plenty!' },
+        // needs_br: true (language diary catalog lines)
+        { pt: 'Cumprimente com um sorriso.', en: 'Greet with a smile.' },
+        { pt: 'O parceiro te espera no tatame.', en: 'Your partner is waiting on the mat.' },
+        { pt: 'Isso é disciplina.', en: 'That is discipline.' },
       ],
     },
   ],
@@ -1035,6 +1068,7 @@ const escola: RoomDef = {
     },
     { id: 'quadro_escola', kind: 'quadro_foto', x: 8, y: 2, blocks: true, label: { pt: 'Escola da Praça', en: 'Square school' } },
     { id: 'cadeira_escola', kind: 'cadeira_padaria', x: 5, y: 4, blocks: false, seat: 'NE' },
+    ...diaryProps('escola'),
   ],
   walls: [
     { kind: 'lousa', wall: 'right', from: 1, to: 3, text: 'AULA' },
@@ -1073,6 +1107,9 @@ const escola: RoomDef = {
       idleLines: [
         { pt: 'Vamos praticar uma palavra?', en: 'Shall we practice a word?' },
         { pt: 'A aula é curtinha.', en: 'The class is a short one.' },
+        // needs_br: true (language diary catalog lines)
+        { pt: 'Como é o seu nome?', en: 'What is your name?' },
+        { pt: 'A lição de hoje é curtinha.', en: 'Today’s lesson is a short one.' },
       ],
     },
   ],

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ROOMS, propTiles, type PropDef, type RoomDef } from '@tudobem/shared';
+import { DIARY_PLACEMENTS, ROOMS, propTiles, type PropDef, type RoomDef } from '@tudobem/shared';
 import type { Manifest, SpriteDef } from './manifest';
 import { T, type Rect } from './coords';
 import { fencePieces, propAnchor, propArtKey, propDepth, propSlices, spriteRect } from './props';
@@ -15,6 +15,7 @@ const rua = ROOMS.rua;
 const leste = ROOMS.rua_leste;
 const praca = ROOMS.praca;
 const allProps = AREAS.flatMap((id) => ROOMS[id].props);
+const diaryIds = new Set(DIARY_PLACEMENTS.map((p) => p.id));
 
 /** World rects of everything a prop draws: its sprite, the overhead part (canopy, awning) and, for a fence, every piece. */
 function propRects(p: PropDef): Rect[] {
@@ -151,8 +152,9 @@ describe('Vila Ipê art coverage (rua, praça, feira)', () => {
     expect(leste.props.some((p) => p.kind === 'ponto_onibus')).toBe(true);
     expect(ROOMS.feira.props.filter((p) => p.kind === 'feira')).toHaveLength(4);
     // the old map had 222 props in one room (58 inside the praça block, 0.117 per tile): the praça now has about 0.07 per tile, calmer, and the three areas together have fewer
-    expect(allProps.length).toBeLessThanOrEqual(222);
-    const decor = praca.props.filter((p) => !p.id.startsWith('sebe_') && !p.id.startsWith('cerca_')).length;
+    // (the language diary's small objects and signs are scenery on the ground, counted apart)
+    expect(allProps.filter((p) => !diaryIds.has(p.id)).length).toBeLessThanOrEqual(222);
+    const decor = praca.props.filter((p) => !p.id.startsWith('sebe_') && !p.id.startsWith('cerca_') && !diaryIds.has(p.id)).length;
     expect(decor / (praca.cols * praca.rows)).toBeLessThanOrEqual(0.117 * 0.7);
   });
 });

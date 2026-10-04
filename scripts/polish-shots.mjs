@@ -66,6 +66,11 @@ try {
   await sleep(520);
   await shot('03-arrival-gifts-fly');
   await waitFor(page, () => window.__tb.game.profile.arrivalIntroDone === true && window.__tb.game.profile.hasCamera, null, 8000, 'camera in hand');
+  // the postcard turns into the airport hall: the first pictures, free; its cards come when the player leaves
+  await page.waitForSelector('#hall-done', { timeout: 5000 });
+  await sleep(700);
+  await shot('03b-arrival-hall');
+  await page.click('#hall-done');
   await sleep(900);
 
   // ---------------------------------------------------------------- camera
@@ -79,13 +84,13 @@ try {
   await sleep(300);
   assert((await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.id, [fx, fy])) === 'world', 'the viewfinder lets the click through to the world canvas');
   await shot('04-camera-viewfinder');
-  const before = await page.evaluate(() => ({ film: window.__tb.game.profile.film, photos: window.__tb.game.profile.photos?.length ?? 0 }));
+  const before = await page.evaluate(() => ({ film: window.__tb.game.profile.film, photos: window.__tb.game.photos?.length ?? 0 }));
   await page.mouse.click(fx, fy);
   await sleep(70);
   await shot('05-camera-shutter');
   await sleep(650);
   await shot('06-camera-new-word');
-  const after = await page.evaluate(() => ({ film: window.__tb.game.profile.film, photos: window.__tb.game.profile.photos?.length ?? 0 }));
+  const after = await page.evaluate(() => ({ film: window.__tb.game.profile.film, photos: window.__tb.game.photos?.length ?? 0 }));
   assert(after.film === before.film - 1 && after.photos === before.photos + 1, `a click takes a photo (film ${before.film}→${after.film}, photos ${before.photos}→${after.photos})`);
   // one photo per opening: the camera closed itself after the shot
   assert(!(await page.evaluate(() => window.__tb.game.cameraOn)), 'the camera closes after a photo');
@@ -97,7 +102,7 @@ try {
   await page.mouse.click(sky.x, sky.y);
   await sleep(1100);
   await shot('07-camera-photo-saved');
-  const after2 = await page.evaluate(() => window.__tb.game.profile.photos?.length ?? 0);
+  const after2 = await page.evaluate(() => window.__tb.game.photos?.length ?? 0);
   assert(after2 === after.photos + 1, 'a second shot while the new-word card is up still fires');
   await sleep(3200);
 
@@ -166,12 +171,17 @@ try {
   await page.waitForSelector('#escola-practice', { timeout: 20_000 });
   await sleep(700);
   await shot('18-escola-board');
+  // the round asks for the English of any word the diary holds (the arrival card's five, whatever was heard on the way): answer from the catalog
+  const catalog = JSON.parse(fs.readFileSync('content/curriculum/phase0/diary-words.json', 'utf8')).words;
+  const asked = (await page.textContent('#escola-gloss'))?.trim();
   const options = await page.$$eval('#escola-options button', (bs) => bs.map((b) => b.dataset.choice));
-  const wrong = options.find((o) => o !== 'fonte');
+  const right = options.find((o) => catalog.some((w) => w.en === asked && w.pt === o));
+  assert(right, `the practice round asks for a word in the catalog (${asked})`);
+  const wrong = options.find((o) => o !== right);
   await page.click(`#escola-options button[data-choice="${wrong}"]`);
   await sleep(450);
   await shot('19-escola-miss');
-  await page.click('#escola-options button[data-choice="fonte"]');
+  await page.click(`#escola-options button[data-choice="${right}"]`);
   await sleep(900);
   await shot('20-escola-right');
   await page.click('#escola-again');
@@ -184,6 +194,7 @@ try {
   const p2 = await newPlayer({ width: 1280, height: 800 }, 'Bia');
   const shot2 = shooter(p2);
   await p2.click('#arrival-done', { timeout: 10_000 });
+  await p2.click('#hall-done', { timeout: 10_000 });
   await sleep(800);
   await goArea(p2, 'rua');
   await p2.evaluate(() => window.__tb.interact({ portal: 'praca_padaria' }));
@@ -203,6 +214,10 @@ try {
   await sleep(3600);
   await shot3('24-phone-arrival');
   await phone.click('#arrival-done');
+  await phone.waitForSelector('#hall-done', { timeout: 5000 });
+  await sleep(700);
+  await shot3('24b-phone-hall');
+  await phone.click('#hall-done');
   await sleep(1500);
   await phone.evaluate(() => window.__tb.net.send({ t: 'diary', action: 'photo', anchors: [], image: undefined }));
   await phone.click('#btn-burger');

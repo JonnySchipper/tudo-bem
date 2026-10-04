@@ -33,6 +33,7 @@ import { paralelepipedo, feiraDecal } from '../apps/client/assets-src/custom/fei
 import { asfalto, busBay, grassPatch, dirtPatch, clover, gtuft } from '../apps/client/assets-src/custom/ground.mjs';
 import { shadowEllipse, petal, petalScatter, glow, cloudShadow, grime, lightPatch } from '../apps/client/assets-src/custom/fx.mjs';
 import { DERIVE, IMAGES, PREP } from '../apps/client/assets-src/custom/derive.mjs';
+import { diaryItem, diarySign } from '../apps/client/assets-src/custom/diaryItems.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = path.join(ROOT, 'apps/client/assets-src');
@@ -57,6 +58,8 @@ const CUSTOM = {
   gtuft: (a) => ({ img: gtuft(a.kind), anchor: [2, 3] }),
   feiraDecal: (a) => { const img = feiraDecal(a.kind, a.n ?? 0); return { img, anchor: [Math.floor(img.w / 2), Math.floor(img.h / 2)] }; },
   grime: (a) => ({ img: grime(a.w, a.h, a.seed), anchor: [Math.floor(a.w / 2), Math.floor(a.h / 2)] }),
+  diaryItem,
+  diarySign,
 };
 
 const resolveSrc = (spec) => {

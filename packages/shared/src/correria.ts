@@ -506,6 +506,8 @@ export interface ShiftStats {
   regulars: string[];
   /** Cards of the served orders (the end card lists the ones new to the Caderno). */
   words: string[];
+  /** Item ids this shift served, once each (Seu Carlos can teach the word of one after a win). */
+  items: string[];
 }
 
 export interface ShiftCtx {
@@ -660,7 +662,7 @@ export function newShift(ctx: ShiftCtx): Shift {
     mods: [],
     chapa: Array.from({ length: chapaSlots(ctx.unlocked) }, () => null),
     pour: null,
-    stats: { served: 0, perfect: 0, second: 0, left: 0, points: 0, tips: 0, combo: 0, bestCombo: 0, askRight: 0, askTotal: 0, regulars: [], words: [] },
+    stats: { served: 0, perfect: 0, second: 0, left: 0, points: 0, tips: 0, combo: 0, bestCombo: 0, askRight: 0, askTotal: 0, regulars: [], words: [], items: [] },
     served: [],
     usedNames: [],
     usedRegulars: [],
@@ -935,6 +937,7 @@ function doServe(sh: Shift, ev: CEvent[]): void {
   for (const l of c.order.lines) {
     const card = mgItemById(l.itemId)?.card.id;
     if (card && !sh.stats.words.includes(card)) sh.stats.words.push(card);
+    if (!sh.stats.items.includes(l.itemId)) sh.stats.items.push(l.itemId);
   }
   sh.tray = [];
   sh.pack = null;
@@ -1195,6 +1198,8 @@ export interface ShiftSummary {
   askRight: number;
   askTotal: number;
   words: string[];
+  /** Item ids this shift served, once each (Seu Carlos can teach the word of one after a win). */
+  items: string[];
   regulars: string[];
 }
 export function summarizeShift(sh: Shift): ShiftSummary {
@@ -1212,6 +1217,7 @@ export function summarizeShift(sh: Shift): ShiftSummary {
     askRight: s.askRight,
     askTotal: s.askTotal,
     words: [...s.words],
+    items: [...s.items],
     regulars: [...s.regulars],
   };
 }

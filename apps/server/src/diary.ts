@@ -3,33 +3,42 @@
  * next to the anchor and records the word once, from that word's own source.
  */
 import {
+  ARRIVAL_SIGNS,
+  COUNTER_STAND_INS,
   HOTSPOT_READ_RANGE,
+  IDLE_HEAR_RANGE,
   PHOTO_RANGE,
-  NPC_TALK,
   ROOMS,
   FILM,
   PHOTO_KEEP,
   areaBoard,
   diaryGame,
   diaryGamesIn,
+  diaryLine,
+  diaryWord,
+  diaryVisible,
+  furnitureById,
   grantDiaryWord,
   handCartela,
   hotspotDistance,
-  isNpcId,
+  isHallObject,
+  normalizeDiary,
   normalizeFilm,
   normalizePhotos,
   photoImage,
+  photoSpotById,
   practiceCorrect,
   practiceRound,
   progressLine,
   tileDistance,
   wordForLine,
-  wordForPhoto,
   wordForSign,
+  wordsForPhoto,
   type Bilingual,
   type ClientMsg,
   type DiaryWord,
   type NpcId,
+  type PlacedFurniture,
   type RoomId,
   type Tile,
 } from '@tudobem/shared';
@@ -46,9 +55,16 @@ export interface DiaryDeps {
   tileOf: (s: Session) => Tile;
   roomOf: (s: Session) => RoomId | null;
   npcsIn: (room: RoomId) => { id: NpcId; tile: Tile; interact: Tile }[];
+  /** The furniture placed in the apartment the player is standing in (the owner's), or nothing outside a kitnet. */
+  apartmentOf: (s: Session) => readonly PlacedFurniture[];
   rng: () => number;
   now: () => number;
+  /** The game day (the small diary objects and signs rotate by it). */
+  day: () => number;
 }
+
+/** Most objects one shot can name (a crowded praça, a dense padaria counter). */
+const MAX_ANCHORS = 24;
 
 function photoAnchors(msg: { anchor?: string; anchors?: string[] }): string[] {
   const raw = [...(msg.anchors ?? []), ...(msg.anchor ? [msg.anchor] : [])];
@@ -56,7 +72,7 @@ function photoAnchors(msg: { anchor?: string; anchors?: string[] }): string[] {
   for (const id of raw) {
     if (typeof id !== 'string' || id.length > 64 || out.includes(id)) continue;
     out.push(id);
-    if (out.length >= 8) break;
+    if (out.length >= MAX_ANCHORS) break;
   }
   return out;
 }
@@ -72,7 +88,7 @@ export class DiaryTracker {
 
   constructor(private readonly d: DiaryDeps) {}
 
-  /** The plane intro, once. Júlia gives the camera and the cartela do bairro. */
+  /** The plane intro, once. Júlia gives the camera and the cartela do bairro, and the card's own words go into the diary. */
   finishArrival(s: Session) {
     const p = s.profile;
     if (!p) return;
@@ -89,6 +105,7 @@ export class DiaryTracker {
     this.d.store.save();
     this.d.pushProfile(s);
     if (!first) return;
+    this.cardWords(s);
     // needs_br: true
     const waiting = cartela.given ? '' : ' A cartela de carimbos ainda não chegou.';
     s.send({
@@ -101,9 +118,29 @@ export class DiaryTracker {
     });
   }
 
+  /** Watch the arrival again (everybody can; accounts from before the intro never saw it): the card's words, if they are still missing. */
+  replayArrival(s: Session) {
+    const p = s.profile;
+    if (!p || p.arrivalIntroDone !== true) return;
+    this.cardWords(s);
+  }
+
+  /** The words of the arrival card: the kicker (reading) and Júlia's four lines (conversation). Earned by taking the card. */
+  private cardWords(s: Session) {
+    const words: { word: DiaryWord; via: DiaryWord['source'] }[] = [];
+    const kicker = wordForSign('arrival.kicker');
+    if (kicker) words.push({ word: kicker, via: 'reading' });
+    for (const id of ['julia.chegada_titulo', 'julia.chegada_aviao', 'julia.chegada_camera', 'julia.chegada_diario']) {
+      const word = wordForLine(id);
+      if (word) words.push({ word, via: 'conversation' });
+    }
+    this.earnMany(s, words);
+  }
+
   handle(s: Session, msg: Extract<ClientMsg, { t: 'diary' }>) {
     if (msg.action === 'photo') return this.photo(s, msg);
     if (msg.action === 'line') return this.line(s, msg.anchor);
+    if (msg.action === 'sign') return this.hallSign(s, msg.anchor);
     if (msg.action === 'practice') return this.practice(s);
     if (msg.action === 'buyFilm') return this.buyFilm(s);
     return this.answer(s, msg.choice);
@@ -112,51 +149,81 @@ export class DiaryTracker {
   /** A sign the player just read (distance already checked). Grants its reading word once. */
   onSign(s: Session, signId: string) {
     const word = wordForSign(signId);
-    if (!word) return;
+    const room = this.d.roomOf(s);
+    // a sign that is not out today is not there to read
+    if (!word || (room && !diaryVisible(room, signId, this.d.day()))) return;
     this.earn(s, word, 'reading');
+  }
+
+  /** A sign in the airport hall (a postcard, not a room): reading it is all it takes, once the intro is done. */
+  private hallSign(s: Session, anchor: unknown) {
+    const p = s.profile;
+    if (!p || p.arrivalIntroDone !== true || typeof anchor !== 'string') return;
+    if (!ARRIVAL_SIGNS.some((x) => x.id === anchor)) return;
+    this.onSign(s, anchor);
+  }
+
+  /** Is this object inside reach of the player right now? Props and wall spots by distance, furniture by being placed, hall objects by the hall. */
+  private reachable(s: Session, id: string, room: RoomId | null, tile: Tile, hall: boolean): boolean {
+    if (isHallObject(id)) return hall;
+    if (hall) return false;
+    const prop = room ? ROOMS[room].props.find((q) => q.id === id) : undefined;
+    if (prop) return diaryVisible(room!, id, this.d.day()) && hotspotDistance(prop, tile) <= PHOTO_RANGE;
+    const spot = photoSpotById(id);
+    if (spot) return spot.room === room && hotspotDistance(spot, tile) <= PHOTO_RANGE;
+    if (furnitureById(id)) return room === 'kitnet' && this.d.apartmentOf(s).some((f) => f.itemId === id);
+    return false;
   }
 
   private photo(s: Session, msg: Extract<ClientMsg, { t: 'diary'; action: 'photo' }>) {
     const p = s.profile;
     if (!p) return;
     if (!p.hasCamera) return this.d.err(s, 'camera', 'Você ainda não tem a câmera.', 'You don’t have the camera yet.');
+    const hall = msg.hall === true;
     const claimed = photoAnchors(msg);
     const room = this.d.roomOf(s);
     const tile = this.d.tileOf(s);
-    const inFrame: string[] = [];
-    for (const id of claimed) {
-      const prop = room ? ROOMS[room].props.find((q) => q.id === id) : undefined;
-      if (prop && hotspotDistance(prop, tile) <= PHOTO_RANGE) inFrame.push(id);
-    }
-    const image = photoImage(msg.image);
+    const inFrame = claimed.filter((id) => this.reachable(s, id, room, tile, hall));
+    // the hall is a postcard: its shots are free and keep no picture
+    const image = hall ? null : photoImage(msg.image);
     if (!inFrame.length && !image) {
       if (claimed.length) return this.d.err(s, 'far', 'Chegue mais perto pra fotografar.', 'Walk closer to take the photo.');
       return this.d.err(s, 'photo', 'Não deu pra fotografar isso.', 'That can’t be photographed.');
     }
     const film = normalizeFilm(p.film);
-    if (film < 1) return this.d.err(s, 'film', 'Sem filme. A Júlia vende rolo na praça.', 'Out of film. Júlia sells rolls in the square.');
-    p.film = film - 1;
-    let granted: DiaryWord | null = null;
+    if (!hall) {
+      if (film < 1) return this.d.err(s, 'film', 'Sem filme. A Júlia vende rolo na praça.', 'Out of film. Júlia sells rolls in the square.');
+      p.film = film - 1;
+    }
+    // every camera word in the frame, in the order the objects were named; a word already in the diary is not given again
+    const fresh: DiaryWord[] = [];
     let seen: DiaryWord | null = null;
     for (const id of inFrame) {
-      const word = wordForPhoto(id);
-      if (!word) continue;
-      const got = grantDiaryWord(p.diary, word.id, 'camera');
-      if (got.ok) {
-        p.diary = got.earned;
-        granted ??= got.word;
-      } else if (got.reason === 'already') seen ??= word;
+      for (const word of wordsForPhoto(id)) {
+        const got = grantDiaryWord(p.diary, word.id, 'camera');
+        if (got.ok) {
+          p.diary = got.earned;
+          fresh.push(got.word);
+        } else if (got.reason === 'already') seen ??= word;
+      }
     }
     if (image) {
-      p.photos = [{ id: crypto.randomUUID(), at: this.d.now(), image, ...(granted ? { wordId: granted.id } : {}) }, ...normalizePhotos(p.photos)].slice(0, PHOTO_KEEP);
+      p.photos = [{ id: crypto.randomUUID(), at: this.d.now(), image, ...(fresh[0] ? { wordId: fresh[0].id } : {}) }, ...normalizePhotos(p.photos)].slice(0, PHOTO_KEEP);
     }
     this.d.store.save();
     this.d.pushProfile(s);
     if (image) this.d.pushPhotos?.(s);
     const left = normalizeFilm(p.film);
-    if (granted) {
-      const board = areaBoard(granted.area, p.diary);
-      s.send({ t: 'diary', phase: 'photo', ok: true, pt: granted.pt, en: granted.en, source: 'camera', areaPt: board.pt, progress: progressLine(board), film: left });
+    if (fresh.length) {
+      // each word's progress as it stood when that word landed, so the cards count up 1/9, 2/9, 3/9 in the order they are shown
+      let running = normalizeDiary(p.diary).filter((id) => !fresh.some((w) => w.id === id));
+      const words = fresh.map((w) => {
+        running = [...running, w.id];
+        const board = areaBoard(w.area, running);
+        return { pt: w.pt, en: w.en, areaPt: board.pt, progress: progressLine(board) };
+      });
+      const first = words[0]!;
+      s.send({ t: 'diary', phase: 'photo', ok: true, pt: first.pt, en: first.en, source: 'camera', areaPt: first.areaPt, progress: first.progress, film: left, words });
       return;
     }
     if (seen) {
@@ -190,19 +257,25 @@ export class DiaryTracker {
     });
   }
 
+  /** A line the player heard (a talk node, an ambient line, a vendor's greeting, the counter): its conversation word, from near the speaker. */
   private line(s: Session, anchor: unknown) {
     if (typeof anchor !== 'string' || anchor.length > 64) return;
     const word = wordForLine(anchor);
-    if (!word) return;
-    const dot = anchor.indexOf('.');
-    const npc = dot < 0 ? '' : anchor.slice(0, dot);
-    const node = dot < 0 ? '' : anchor.slice(dot + 1);
-    if (!isNpcId(npc) || !NPC_TALK[npc]?.nodes[node]) return;
+    const info = diaryLine(anchor);
+    if (!word || !info || info.kind === 'arrival') return;
     const room = this.d.roomOf(s);
-    const here = room ? this.d.npcsIn(room).find((n) => n.id === npc) : undefined;
+    if (info.kind === 'closed') {
+      // the vendor is away: the note is read at their shut stall
+      const stall = room ? ROOMS[room].props.find((q) => q.vendor === info.npc) : undefined;
+      if (stall && hotspotDistance(stall, this.d.tileOf(s)) <= HOTSPOT_READ_RANGE) this.earn(s, word, 'conversation');
+      return;
+    }
+    const hosts = [info.npc, ...(COUNTER_STAND_INS[info.npc] ?? [])];
+    const here = room ? this.d.npcsIn(room).find((n) => hosts.includes(n.id)) : undefined;
     if (!here) return;
+    const range = info.kind === 'idle' ? IDLE_HEAR_RANGE : HOTSPOT_READ_RANGE;
     const tile = this.d.tileOf(s);
-    if (tileDistance(tile, here.tile) > HOTSPOT_READ_RANGE && tileDistance(tile, here.interact) > HOTSPOT_READ_RANGE) return;
+    if (tileDistance(tile, here.tile) > range && tileDistance(tile, here.interact) > range) return;
     this.earn(s, word, 'conversation');
   }
 
@@ -217,17 +290,68 @@ export class DiaryTracker {
     this.announce(s, word, via);
   }
 
+  /** Several words at once: one profile push, and one message that shows them one after another, each counting up in its area. */
+  private earnMany(s: Session, list: readonly { word: DiaryWord; via: DiaryWord['source'] }[]) {
+    const p = s.profile;
+    if (!p) return;
+    const got: { word: DiaryWord; via: DiaryWord['source'] }[] = [];
+    for (const e of list) {
+      const granted = grantDiaryWord(p.diary, e.word.id, e.via);
+      if (!granted.ok) continue;
+      p.diary = granted.earned;
+      got.push(e);
+    }
+    if (!got.length) return;
+    this.d.store.save();
+    this.d.pushProfile(s);
+    if (got.length === 1) return this.announce(s, got[0]!.word, got[0]!.via);
+    let running = normalizeDiary(p.diary).filter((id) => !got.some((e) => e.word.id === id));
+    const words = got.map((e) => {
+      running = [...running, e.word.id];
+      const board = areaBoard(e.word.area, running);
+      return { pt: e.word.pt, en: e.word.en, areaPt: board.pt, progress: progressLine(board), source: e.via };
+    });
+    s.send({ t: 'diary', phase: 'words', words });
+  }
+
   /** The new-word moment on the client (the same card a photo gets). */
   private announce(s: Session, word: { pt: string; en: string; area: string }, via: DiaryWord['source']) {
     const board = areaBoard(word.area, s.profile?.diary);
     s.send({ t: 'diary', phase: 'word', pt: word.pt, en: word.en, source: via, areaPt: board.pt, progress: progressLine(board) });
   }
 
+  /** Does a win teach its word this time? Games with no `chance` always do. */
+  private rolls(chance: number | undefined): boolean {
+    return chance == null || chance >= 1 || this.d.rng() < chance;
+  }
+
+  /**
+   * A won shift of Correria no Balcão. Seu Carlos teaches the word of an item that shift served, sometimes. The RV is the shift's own
+   * payout; showing up with nothing served teaches nothing.
+   */
+  onCorreriaWin(s: Session, items: readonly string[]) {
+    const p = s.profile;
+    const game = diaryGame('correria');
+    if (!p || !game) return;
+    for (const gr of game.grants ?? []) {
+      if (!items.includes(gr.item)) continue;
+      const word = diaryWord(gr.wordId);
+      if (!word || normalizeDiary(p.diary).includes(word.id)) continue;
+      if (!this.rolls(game.chance)) continue;
+      const got = grantDiaryWord(p.diary, word.id, 'game');
+      if (!got.ok) continue;
+      p.diary = got.earned;
+      this.d.store.save();
+      this.d.pushProfile(s);
+      this.announce(s, got.word, 'game');
+    }
+  }
+
   private practice(s: Session) {
     const p = s.profile;
     const room = this.d.roomOf(s);
     if (!p || !room) return;
-    const game = diaryGamesIn(room)[0];
+    const game = diaryGamesIn(room).find((g) => g.kind !== 'correria');
     if (!game) return this.d.err(s, 'escola', 'Aqui não tem aula.', 'There’s no class here.');
     const tile = this.d.tileOf(s);
     const desk = ROOMS[room].props.find((q) => q.action === 'escola');
@@ -276,7 +400,7 @@ export class DiaryTracker {
     }
     this.rounds.delete(s);
     let granted: { pt: string; en: string } | null = null;
-    if (game.grantWordId) {
+    if (game.grantWordId && this.rolls(game.chance)) {
       const got = grantDiaryWord(p.diary, game.grantWordId, 'game');
       if (got.ok) {
         p.diary = got.earned;

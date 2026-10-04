@@ -53,6 +53,7 @@ plaque text + find the window glass), `custom` (a generator from `custom/`).
 | NPC portraits (5 x 4 expressions, 64x64) | **authored** (`custom/portraits.mjs`, painter helpers in `custom/paint.mjs`) | none (the Interiors pack has no face art) |
 | Item icons (15, 16x16) | **authored** (`custom/icons.mjs`) | none (the packs only have a few tiny food pieces) |
 | UI kit: paper panel, speech bubble, button x3 states, guide arrow | **authored** (`custom/ui.mjs`), after the pack's bubble and bobbing arrow in `UI_16x16.png` | `4_User_Interface_Elements` (reference only) |
+| Language diary objects (264) and sign boards (41) | **authored** (`custom/diaryItems.mjs`, grids in `custom/diary/*.mjs`, entries in `import-map.d/diary.json`): one letter per colour with a navy outline added, signs painted from a 3x5 font; a few pieces reuse pack art (pigeon, manhole, doormat, bowl, moto, kombi, flags) | none |
 | Contact shadows, cast shadows | **generated** from sprite silhouettes (down-right) | none |
 | Glow, cloud shadow | **generated** light textures (allowed by D6) | none |
 
