@@ -5,12 +5,12 @@ const start = () => ({ hold: POUR_HOLD.start, spills: 0 });
 
 describe('Correria pour hold', () => {
   it('starts where a late page timer and an on-time one both land', () => {
-    // Server window is 70%–108%. Run 37230872315 spilled a 0.86 hold at fill 1.11 (~0.25 late)
-    // and a 0.81 hold at fill 1.13. 0.74 + that lateness is still under the spill line.
+    // Server window is 70%–108%. Run 37232979457 spilled hold 0.74 at fill 1.09 (~0.35 late).
+    // 0.70 + that lateness is 1.05, and 0.70 itself is still a legal cup.
     const ms = pourTargetMs(1800, POUR_HOLD.start);
-    expect(POUR_HOLD.start).toBeGreaterThanOrEqual(0.7);
-    expect(POUR_HOLD.start + 0.32).toBeLessThan(1.08);
-    expect(ms).toBe(Math.round(1800 * 0.74));
+    expect(POUR_HOLD.start).toBe(0.7);
+    expect(POUR_HOLD.start + 0.35).toBeLessThan(1.08);
+    expect(ms).toBe(Math.round(1800 * 0.7));
     expect(pourTargetMs(1800, 0.5)).toBe(Math.round(1800 * POUR_HOLD.lo));
   });
 
