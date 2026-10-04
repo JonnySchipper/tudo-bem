@@ -300,6 +300,11 @@ export type BoutServerMsg =
 /** Server → client messages. */
 export type ServerMsg =
   | { t: 'welcome'; profile: PrivateProfile; token: string; serverNow?: number }
+  /**
+   * The diary photos (small jpegs). Sent after `welcome` and whenever a photo is added, never inside `profile`: a dozen images in every
+   * profile push made each reward, step and stamp carry ~100 KB.
+   */
+  | { t: 'photos'; photos: import('./diary.js').DiaryPhoto[] }
   | { t: 'needProfile' }
   /** Multiplayer needs an email + password account; this socket has no valid session cookie. */
   | { t: 'authRequired' }

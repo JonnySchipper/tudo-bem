@@ -40,6 +40,8 @@ export interface DiaryDeps {
   store: ProfileStore;
   reward: (s: Session, amount: number, reason: Bilingual) => void;
   pushProfile: (s: Session) => void;
+  /** The photos changed: send them (they are not in the profile). */
+  pushPhotos?: (s: Session) => void;
   err: (s: Session, code: string, pt: string, en: string) => void;
   tileOf: (s: Session) => Tile;
   roomOf: (s: Session) => RoomId | null;
@@ -150,6 +152,7 @@ export class DiaryTracker {
     }
     this.d.store.save();
     this.d.pushProfile(s);
+    if (image) this.d.pushPhotos?.(s);
     const left = normalizeFilm(p.film);
     if (granted) {
       const board = areaBoard(granted.area, p.diary);

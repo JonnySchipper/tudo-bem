@@ -511,6 +511,10 @@ net.on((m: ServerMsg) => {
     case 'feira':
       onFeiraMsg(m);
       break;
+    case 'photos':
+      game.photos = m.photos;
+      game.emit('profile');
+      break;
     case 'profile':
       game.profile = m.profile;
       if (!m.profile.hasCamera) game.cameraOn = false;

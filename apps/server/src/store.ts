@@ -164,7 +164,8 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
 }
 
 export function toPrivate(p: StoredProfile): PrivateProfile {
-  const { token: _t, ageGate18: _a, accountId: _acc, daily: _d, lastSeen: _l, ...rest } = p;
+  // photos travel in their own `photos` message (World.pushPhotos), only when they change
+  const { token: _t, ageGate18: _a, accountId: _acc, daily: _d, lastSeen: _l, photos: _ph, ...rest } = p;
   const mission = p.mission?.date === today() ? p.mission : freshMission(today());
   return structuredClone({ ...rest, mission, bjj: normalizeBjj(p.bjj) });
 }

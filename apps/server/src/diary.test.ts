@@ -108,6 +108,16 @@ describe('arrival, camera, diary and the escola', () => {
     expect(a.all('notice').filter((n) => n.pt.includes('câmera'))).toHaveLength(1);
   });
 
+  it('sends photo images in their own message, never inside the profile', async () => {
+    const world = makeWorld();
+    const a = await client(world);
+    await a.send({ t: 'arrival', action: 'finish' });
+    await a.send({ t: 'diary', action: 'photo', anchors: [], image: 'data:image/jpeg;base64,AAAA' });
+    expect(a.last('photos')?.photos.map((p) => p.image)).toEqual(['data:image/jpeg;base64,AAAA']);
+    for (const m of a.all('profile')) expect(m.profile.photos).toBeUndefined();
+    expect(a.s.profile?.photos).toHaveLength(1);
+  });
+
   it('photographs, reads, and hears each seeded praça word once, and will not take it from another source', async () => {
     const world = makeWorld();
     const a = await client(world);

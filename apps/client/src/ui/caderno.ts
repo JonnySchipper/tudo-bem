@@ -75,7 +75,7 @@ export function openCaderno(groupId?: string, highlight: readonly string[] = [])
     shownTab = tab ?? null;
     const scroll = turned ? 0 : (body.querySelector('.cad-list')?.scrollTop ?? 0);
     const found = diaryBoard(game.profile?.diary);
-    const photos = game.profile?.photos ?? [];
+    const photos = game.photos;
     const left = h(
       'div',
       { class: 'diary-page page-left' },
