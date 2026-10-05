@@ -1078,14 +1078,9 @@ const andar: RoomDef = {
     // Width 4 matches the sliced bleacher art (banco_espectador_*_of_4). Crest sits clear of the seats.
     { id: 'andar_arquibancada', kind: 'banco_espectador', x: 1, y: 0, w: 4, blocks: false, seat: 'SW', label: { pt: 'Arquibancada', en: 'Bleachers' } },
   ],
-  walls: [
-    { kind: 'placa', wall: 'right', from: 1, to: 5, text: 'ANDAR' },
-    { kind: 'janela', wall: 'right', from: 5, to: 8 },
-  ],
-  pixelWalls: [
-    { kind: 'placa', wall: 'right', from: 1, to: 5, text: 'ANDAR' },
-    { kind: 'janela', wall: 'right', from: 5, to: 8 },
-  ],
+  // No public-academy placa: that sprite is painted "ACADEMIA DO BAIRRO". The crest and the floor bar name this room.
+  walls: [{ kind: 'janela', wall: 'right', from: 5, to: 8 }],
+  pixelWalls: [{ kind: 'janela', wall: 'right', from: 5, to: 8 }],
   portals: [
     {
       id: 'andar_academia',
