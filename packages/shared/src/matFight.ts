@@ -14,6 +14,15 @@ export const MAT_TURNS = 10;
 export const PERCENT_CAP = 95;
 export const GRIP_BONUS = 10;
 
+/**
+ * How long the client holds a move's cartoon, and how long it then waits while the opponent decides.
+ * The next pick is not on screen until your cartoon, that pause, and their cartoon have all played.
+ * The server pick clock waits the same span, or Hold fires while the cartoons are still up.
+ */
+export const MAT_CARTOON_MS = 2_000;
+export const MAT_THINK_MS = 3_200;
+export const MAT_INTENT_REVEAL_MS = MAT_CARTOON_MS + MAT_THINK_MS + MAT_CARTOON_MS;
+
 export const BELT_ORDER = ['branca', 'azul', 'roxa', 'marrom', 'preta'] as const satisfies readonly Belt[];
 
 export type MatMoveId =

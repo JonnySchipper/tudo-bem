@@ -5,12 +5,12 @@
  *
  * needs_br: true — Pegada, Quedas, Raspagem. Defesa and Final are already on the bout chrome.
  */
-import { isMatMove, type BjjPositionId, type MatMoveId } from '@tudobem/shared';
+import { MAT_CARTOON_MS, MAT_THINK_MS, isMatMove, type BjjPositionId, type MatMoveId } from '@tudobem/shared';
 
-/** How long the move's cartoon plays before the pose is allowed to change. */
-export const CARTOON_MS = 2000;
+/** How long the move's cartoon plays before the pose is allowed to change. Shared with the server pick clock. */
+export const CARTOON_MS = MAT_CARTOON_MS;
 /** After your cartoon, the opponent sits with the decision before their attempt is shown. */
-export const THINK_MS = 3200;
+export const THINK_MS = MAT_THINK_MS;
 
 export type GagTrackId = 'grips' | 'takedowns' | 'sweeps' | 'defense' | 'subs';
 

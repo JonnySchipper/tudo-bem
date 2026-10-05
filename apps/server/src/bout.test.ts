@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_APPEARANCE,
+  MAT_INTENT_REVEAL_MS,
   MAT_TURNS,
   ROLL_RV_LOSS,
   ROLL_RV_WIN,
@@ -313,6 +314,25 @@ describe('Treino no tatame (server)', () => {
     expect(a.bout().length).toBe(n0);
     await a.send({ t: 'bout', v: 1, action: 'intent', seq: intent.seq, intent: 'hold' });
     expect(a.last('resolve')).toBeTruthy();
+  });
+
+  it('a later pick waits out the cartoons and the think pause before Hold can fire', async () => {
+    const { a } = await setup();
+    await start(a);
+    advance(1000);
+    const first = a.last('intent')!;
+    await a.send({ t: 'bout', v: 1, action: 'intent', seq: first.seq, intent: 'collar_tie' });
+    advance(500);
+    const second = a.last('intent')!;
+    expect(second.seq).not.toBe(first.seq);
+    const timed = () => a.bout().filter((m) => m.phase === 'resolve' && m.yours.timeout);
+    expect(timed()).toHaveLength(0);
+    // The offer itself is already on the wire. The advertised pick is not, until the reveal finishes.
+    advance(second.pickMs + 1000);
+    expect(timed()).toHaveLength(0);
+    expect(a.last('intent')!.seq).toBe(second.seq);
+    advance(MAT_INTENT_REVEAL_MS);
+    expect(timed().length).toBeGreaterThan(0);
   });
 
   it('nobody picking a move is not stuck: Hold is played and pays nothing', async () => {
