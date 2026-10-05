@@ -7,8 +7,10 @@ const MOVES: MatMoveId[] = [
   'sleeve_grip',
   'double_leg',
   'body_lock',
+  'hook_sweep',
   'scissor_sweep',
   'hip_bump',
+  'posture',
   'sprawl',
   'frame',
   'escape_back',
@@ -27,6 +29,8 @@ describe('gag bar', () => {
     expect(listed.sort()).toEqual(MOVES.filter((id) => id !== 'hold').sort());
     expect(trackOf('hold')).toBeNull();
     expect(trackOf('double_leg')?.id).toBe('takedowns');
+    expect(trackOf('hook_sweep')?.id).toBe('sweeps');
+    expect(trackOf('posture')?.id).toBe('defense');
   });
 });
 

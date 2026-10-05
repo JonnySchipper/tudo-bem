@@ -30,8 +30,10 @@ export type MatMoveId =
   | 'sleeve_grip'
   | 'double_leg'
   | 'body_lock'
+  | 'hook_sweep'
   | 'scissor_sweep'
   | 'hip_bump'
+  | 'posture'
   | 'sprawl'
   | 'frame'
   | 'escape_back'
@@ -89,8 +91,12 @@ export const MOVE_LABEL: Record<MatMoveId, Bilingual> = {
   sleeve_grip: { pt: 'Pegar a manga', en: 'Sleeve grip' },
   double_leg: { pt: 'Queda', en: 'Double leg' },
   body_lock: { pt: 'Abraço', en: 'Body lock trip' },
+  // needs_br: true — Gancho. A basic closed-guard sweep, distinct from Tesoura and Quadril.
+  hook_sweep: { pt: 'Gancho', en: 'Hook sweep' },
   scissor_sweep: { pt: 'Tesoura', en: 'Scissor sweep' },
   hip_bump: { pt: 'Quadril', en: 'Hip bump' },
+  // needs_br: true — Postura. A basic standing defense, distinct from Base.
+  posture: { pt: 'Postura', en: 'Posture' },
   sprawl: { pt: 'Base', en: 'Sprawl' },
   frame: { pt: 'Recuperar', en: 'Frame and recover' },
   escape_back: { pt: 'Sair', en: 'Escape back' },
@@ -106,8 +112,10 @@ const PERCENT: Record<Exclude<MatMoveId, 'hold'>, readonly (number | null)[]> = 
   sleeve_grip: [65, 74, 82, 88, 93],
   double_leg: [45, 55, 65, 74, 82],
   body_lock: [50, 60, 70, 78, 85],
+  hook_sweep: [38, 50, 62, 72, 80],
   scissor_sweep: [40, 52, 64, 74, 82],
   hip_bump: [48, 58, 68, 76, 84],
+  posture: [55, 66, 76, 84, 90],
   sprawl: [60, 70, 78, 85, 90],
   frame: [35, 48, 60, 72, 82],
   escape_back: [25, 38, 52, 66, 78],
@@ -119,18 +127,21 @@ const PERCENT: Record<Exclude<MatMoveId, 'hold'>, readonly (number | null)[]> = 
 const POINTS: Partial<Record<MatMoveId, number>> = {
   double_leg: 2,
   body_lock: 2,
+  hook_sweep: 2,
   scissor_sweep: 2,
   hip_bump: 2,
 };
 
 /**
  * One skill per award, in order. White belt is the belt being put on, not a win.
- * Day one is a grip, Queda, and a weak submission, so a new player can leave standing.
- * Later awards fill the track, so a higher belt is choosing among several takedowns or several submissions.
+ * Day one is one move on each gag track: a grip, Queda, Gancho, Postura, and a weak submission.
+ * Later awards fill the track. Sleeve, Abraço, Base, and every later stripe stay on the same award.
  */
 export const UNLOCK_ORDER: readonly { belt: Belt; stripes: number; move: MatMoveId }[] = [
   { belt: 'branca', stripes: 0, move: 'collar_tie' },
   { belt: 'branca', stripes: 0, move: 'double_leg' },
+  { belt: 'branca', stripes: 0, move: 'hook_sweep' },
+  { belt: 'branca', stripes: 0, move: 'posture' },
   { belt: 'branca', stripes: 0, move: 'armbar' },
   { belt: 'branca', stripes: 1, move: 'sleeve_grip' },
   { belt: 'branca', stripes: 3, move: 'body_lock' },
@@ -243,6 +254,9 @@ export function moveLegal(pos: MatPosition, actor: MatSide, id: MatMoveId): bool
     case 'body_lock':
     case 'sprawl':
       return v === 'standing';
+    case 'posture':
+      return v === 'standing';
+    case 'hook_sweep':
     case 'scissor_sweep':
     case 'hip_bump':
       return v === 'closed_bottom';
@@ -423,10 +437,12 @@ function applySuccess(st: MatState, actor: MatSide, id: MatMoveId): { position: 
     grip();
     return { position: { kind: 'standing' }, resetScored: false, clearGrips: false, scoreKey: null, submission: false };
   }
+  if (id === 'posture') return { position: { kind: 'standing' }, resetScored: false, clearGrips: true, scoreKey: null, submission: false };
   if (id === 'sprawl') return { position: { kind: 'standing' }, resetScored: true, clearGrips: true, scoreKey: null, submission: false };
   if (id === 'hold') return { position: st.position, resetScored: false, clearGrips: false, scoreKey: null, submission: false };
   if (id === 'double_leg') return landed(actor, 'side_control', true);
   if (id === 'body_lock') return landed(actor, 'closed_guard', true);
+  if (id === 'hook_sweep') return landed(actor, 'side_control', true);
   if (id === 'scissor_sweep') return landed(actor, 'mount', true);
   if (id === 'hip_bump') return landed(actor, 'side_control', true);
   if (id === 'frame' || id === 'escape_back') return { position: place(actor, 'closed_guard', false), resetScored: true, clearGrips: true, scoreKey: null, submission: false };
@@ -476,7 +492,7 @@ export function chooseBot(state: MatState, belt: Belt, allowed: readonly MatMove
     if (td.length) return best(td);
   }
   if (beltIndex(belt) >= beltIndex('azul') && seen.kind === 'closed_guard' && seen.top !== 'you') {
-    const sweeps = legal.filter((id) => id === 'scissor_sweep' || id === 'hip_bump');
+    const sweeps = legal.filter((id) => id === 'hook_sweep' || id === 'scissor_sweep' || id === 'hip_bump');
     if (sweeps.length) return bestEv(sweeps, pct);
   }
   const scoring = legal.filter((id) => (POINTS[id] ?? 0) > 0);
@@ -499,6 +515,7 @@ function bestEv(ids: MatMoveId[], pct: (id: MatMoveId) => number): MatMoveId {
 /** Where the professor places a compliant partner so the new move is legal. */
 export function drillPosition(id: MatMoveId): MatPosition {
   switch (id) {
+    case 'hook_sweep':
     case 'scissor_sweep':
     case 'hip_bump':
       return { kind: 'closed_guard', top: 'them' };
