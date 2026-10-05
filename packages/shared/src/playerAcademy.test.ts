@@ -15,10 +15,10 @@ import {
 
 describe('player academies, slice 1', () => {
   it('lets a brown or black belt found, and nobody below, using the wins already on the profile', () => {
-    expect(progressForWins(105)).toMatchObject({ belt: 'marrom' });
-    expect(canFoundAcademy({ wins: 105 })).toBe(true);
-    expect(canFoundAcademy({ wins: 225 })).toBe(true);
-    expect(canFoundAcademy({ wins: 104 })).toBe(false);
+    expect(progressForWins(140)).toMatchObject({ belt: 'marrom' });
+    expect(canFoundAcademy({ wins: 140 })).toBe(true);
+    expect(canFoundAcademy({ wins: 300 })).toBe(true);
+    expect(canFoundAcademy({ wins: 139 })).toBe(false);
     expect(canFoundAcademy({ wins: 0 })).toBe(false);
     // a hand-written belt does not beat the win count
     expect(canFoundAcademy({ belt: 'marrom', stripes: 0, wins: 0 })).toBe(false);

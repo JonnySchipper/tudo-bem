@@ -574,6 +574,18 @@ async function main() {
   await page.waitForSelector('#dialogue-box[data-dialogue="gi-buy"]', { timeout: 8000 });
   await page.click('#dialogue-box [data-chip="0"]');
   await waitFor(page, () => window.__tb.game.profile.giOwned, null, 8000, 'gi purchased');
+  // White's first stripe is 5 wins. Stay under that: one grip (collar), level 0, four partners still locked.
+  // A stripe the account is sitting on without its move becomes a one-beat drill and the match never starts.
+  await waitFor(
+    page,
+    () => {
+      const b = window.__tb.game.profile.bjj;
+      return !!b && b.belt === 'branca' && (b.wins ?? 0) < 5 && b.stripes === 0 && b.unlocked?.includes('collar_tie') && !b.pendingDrill;
+    },
+    null,
+    8000,
+    'white belt with the starter grip and no drill waiting',
+  );
   await sleep(400);
   // the bout is in the world (no modal): the lobby, one full match played from the CI hints (TB_TEST_ROLL=1 / ?rolltest), the end card
   const coins0 = (await profile(page)).coins;
@@ -596,7 +608,7 @@ async function main() {
     },
   });
   assert(['you', 'partner', 'draw'].includes(result.winner), `the match ended with a result (${result.winner} / ${result.reason})`);
-  assert(result.moves >= 2, 'at least two grip beats were played');
+  assert(result.moves >= 2, `at least two grip beats were played (${result.moves}, ${result.winner} by ${result.reason})`);
   const score = await page.evaluate(() => ({ you: document.querySelector('.bout-side.you .pts')?.textContent, them: document.querySelector('.bout-side.partner .pts')?.textContent }));
   assert(score.you !== undefined && score.them !== undefined, 'the scoreboard shows passos for both');
   const art = await page.evaluate(() => window.__tb.artMissing.filter((k) => k.startsWith('bjj/') || k === 'props/placar'));

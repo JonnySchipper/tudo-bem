@@ -51,7 +51,7 @@ const look = { crest: 'ipe' as const, giColor: 'azul' as const, giStamp: 'estrel
 describe('player academy elevator', () => {
   it('walks elevator → empty floor → fund (brown) → member gi, and keeps guests and white belts out of it', async () => {
     const { world } = makeWorld();
-    const founder = await player(world, 'Bia', 105);
+    const founder = await player(world, 'Bia', 140);
     const guest = await player(world, 'Ana', 0);
     expect(guest.last('roomState')).toMatchObject({ room: 'academia' });
     expect(guest.last('roomState')!.avatars.some((a) => a.id === npcAvatarId('prof'))).toBe(true);
@@ -126,13 +126,13 @@ describe('player academy elevator', () => {
 
   it('keeps the name first-come and ignores a belt that the wins do not earn', async () => {
     const { world } = makeWorld();
-    const a = await player(world, 'Lia', 105);
-    const b = await player(world, 'Teo', 225);
+    const a = await player(world, 'Lia', 140);
+    const b = await player(world, 'Teo', 300);
     a.s.profile!.bjj = { belt: 'marrom', stripes: 4, wins: 3, unlocked: ['collar_tie'] };
     await a.send({ t: 'academy', action: 'found', name: 'Academia Ipê', ...look });
     expect(a.last('error')?.code).toBe('belt');
 
-    a.s.profile!.bjj = { belt: 'branca', stripes: 0, wins: 105, unlocked: ['collar_tie'] };
+    a.s.profile!.bjj = { belt: 'branca', stripes: 0, wins: 140, unlocked: ['collar_tie'] };
     await a.send({ t: 'academy', action: 'found', name: 'Academia Ipê', ...look });
     expect(a.last('roomState')!.room).toBe('andar');
     await b.send({ t: 'academy', action: 'found', name: 'academia ipe', ...look });
@@ -144,7 +144,7 @@ describe('player academy elevator', () => {
 
   it('refuses the elevator outside Academia do Bairro and decor on the player floor', async () => {
     const { world } = makeWorld();
-    const a = await player(world, 'Nanda', 105);
+    const a = await player(world, 'Nanda', 140);
     await a.send({ t: 'join', room: 'praca' });
     await a.send({ t: 'academy', action: 'directory' });
     expect(a.last('error')).toMatchObject({ code: 'academy' });
@@ -159,7 +159,7 @@ describe('player academy elevator', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tb-academies-'));
     const store = new AcademyStore(academyFileAdapter(dir));
     const { world } = makeWorld(store);
-    const a = await player(world, 'Rosa', 105);
+    const a = await player(world, 'Rosa', 140);
     await a.send({ t: 'academy', action: 'found', name: 'Sol', crest: 'sol', giColor: 'amarelo', giStamp: 'sol' });
     const id = a.last('roomState')!.academy!.id;
     expect(fs.existsSync(path.join(dir, 'academies.json'))).toBe(true);

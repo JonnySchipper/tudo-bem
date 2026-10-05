@@ -179,7 +179,7 @@ async function runPartner() {
   try {
     await enterAcademia(page);
     await page.evaluate(() => {
-      window.__tb.net.debugSession().profile.bjj = { belt: 'azul', stripes: 1, wins: 15 };
+      window.__tb.net.debugSession().profile.bjj = { belt: 'azul', stripes: 1, wins: 30 };
     });
     await openBout(page);
     await sleep(600);

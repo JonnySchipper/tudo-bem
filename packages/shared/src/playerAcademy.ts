@@ -4,10 +4,9 @@
  * (`andar@<id>`), the same instance pattern as a kitnet, not a new shard model.
  *
  * Fundar gates on the belt the account already earned (`normalizeBjj`). Wins stay the
- * source of truth. Brown (`marrom`) and black (`preta`, which has passed brown) may found.
- * The live stripe table is `BELT_LADDER` in academia.ts. Product’s 2026-10-05 table
- * (5 / 10 / 20 / 40 / 80, brown near 100 wins) is a later belt pass. This slice does not
- * add a second win counter.
+ * source of truth. Brown (`marrom`) and black (`preta`) may found.
+ * The live stripe table is `BELT_LADDER` in academia.ts: 5 / 10 / 20 / 40 / 80.
+ * Brown starts at 140 wins and black at 300. There is no second win counter.
  *
  * Join is a free membership flag so members wear the gi and guests do not. No dues,
  * treasury, cup scoring, or floor expansion live here.

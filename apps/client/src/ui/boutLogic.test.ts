@@ -83,7 +83,7 @@ describe('bout UI logic', () => {
   });
 
   it('the end: a win raises a hand and Bia calls the victory; a quit shows nothing', () => {
-    const end = (over: Partial<End>): End => ({ t: 'bout', v: 1, phase: 'end', winner: 'you', reason: 'pontos', st: snap(), rv: 12, bjj: { belt: 'branca', stripes: 1, wins: 3, unlocked: ['collar_tie'] }, belt: 'branca', stripeUp: true, beltUp: false, bond: 3, line: { pt: 'Vitória nos pontos!', en: 'x' }, thanks: { pt: 'Obrigado pela partida.', en: 'x' }, signal: 'vitoria', ...over });
+    const end = (over: Partial<End>): End => ({ t: 'bout', v: 1, phase: 'end', winner: 'you', reason: 'pontos', st: snap(), rv: 12, bjj: { belt: 'branca', stripes: 1, wins: 5, unlocked: ['collar_tie'] }, belt: 'branca', stripeUp: true, beltUp: false, bond: 3, line: { pt: 'Vitória nos pontos!', en: 'x' }, thanks: { pt: 'Obrigado pela partida.', en: 'x' }, signal: 'vitoria', ...over });
     expect(cuesForEnd(end({})).map((c) => c.t)).toEqual(['end', 'ref', 'crowd']);
     expect(cuesForEnd(end({ winner: 'none', reason: 'quit', signal: null }))).toEqual([]);
   });

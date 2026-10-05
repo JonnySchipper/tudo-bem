@@ -88,20 +88,28 @@ export async function playBout(page, { right = () => true, pick = 'bold', maxMs 
         await sleep(60);
         continue;
       }
-      handled.add(key);
-      if (onPhase) await onPhase(st.phase, page);
-      try {
-        await page.click('#bout-drill', { timeout: 5000 });
-        moves++;
-      } catch {
-        handled.delete(key);
-        await sleep(60);
+      if (!handled.has(`saw:${key}`) && onPhase) {
+        handled.add(`saw:${key}`);
+        await onPhase(st.phase, page);
       }
+      const clicked = await page.evaluate(() => {
+        const btn = document.querySelector('#bout-drill');
+        if (!(btn instanceof HTMLButtonElement) || btn.disabled) return false;
+        btn.click();
+        return true;
+      });
+      if (!clicked) {
+        await sleep(60);
+        continue;
+      }
+      handled.add(key);
+      moves++;
       continue;
     }
     if (st.phase === 'intent' && !handled.has(key)) {
-      // Phase flips to "intent" a beat before the chips are in the DOM, and a beat can end between the two reads.
-      // An empty list used to click [data-intent="undefined"] and sit there until the timeout.
+      // The gag moves stay hidden until their track is open. A pointer click that waits to look
+      // "stable" can burn the pick window and let Hold play the beat, so the match ends with
+      // fewer than two played beats. Open the track and press the button in the page instead.
       const choice = await page
         .evaluate((how) => {
           const rows = [...document.querySelectorAll('#bout-intents .bout-intent')]
@@ -122,17 +130,38 @@ export async function playBout(page, { right = () => true, pick = 'bold', maxMs 
         await sleep(60);
         continue;
       }
-      handled.add(key);
-      if (onPhase) await onPhase(st.phase, page);
-      await page.waitForTimeout(200);
-      try {
-        if (choice.track) await page.click(`#gag-bar [data-gag-track="${choice.track}"]`, { timeout: 5000 });
-        await page.click(`#bout-intents .bout-intent[data-intent="${choice.id}"]`, { timeout: 5000 });
-      } catch {
-        handled.delete(key);
+      if (!handled.has(`saw:${key}`) && onPhase) {
+        handled.add(`saw:${key}`);
+        await onPhase(st.phase, page);
+      }
+      const clicked = await page.evaluate(({ id, track }) => {
+        const root = document.querySelector('#bout');
+        if (root?.getAttribute('data-phase') !== 'intent') return false;
+        if (track) {
+          const tab = document.querySelector(`#gag-bar [data-gag-track="${track}"]`);
+          if (tab instanceof HTMLElement && !tab.classList.contains('is-open')) tab.click();
+        }
+        const btn = [...document.querySelectorAll('#bout-intents .bout-intent')].find((e) => e.getAttribute('data-intent') === id);
+        if (!(btn instanceof HTMLButtonElement) || btn.hidden || btn.disabled) return false;
+        btn.click();
+        return true;
+      }, choice);
+      if (!clicked) {
         await sleep(60);
         continue;
       }
+      const accepted = await page
+        .waitForFunction(() => {
+          const phase = document.querySelector('#bout')?.getAttribute('data-phase');
+          return !!phase && phase !== 'intent' && phase !== 'lobby';
+        }, null, { timeout: 2500 })
+        .then(() => true)
+        .catch(() => false);
+      if (!accepted) {
+        await sleep(60);
+        continue;
+      }
+      handled.add(key);
       moves++;
     } else await sleep(120);
   }

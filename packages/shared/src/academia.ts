@@ -62,20 +62,38 @@ export const BELT_COLORS: Record<Belt, string> = {
 };
 
 /**
- * Wins per stripe, then one more stripe's worth of wins promotes (four stripes, then the next belt).
- * Black keeps earning stripes and does not promote.
+ * Wins per stripe. Four stripes promote: the fourth stripe is the new belt, so a belt is worn with 0–3 stripes.
+ * Each belt doubles. Black keeps earning stripes and does not promote.
+ *
+ * Jonny lock 2026-10-05. Cumulative wins to wear the next belt, summing 4 × the stripe rate:
+ * white → blue 20, blue → purple 60, purple → brown 140, brown → black 300.
+ * The product brief's cumulative cells said brown 100 and black 260. Those were arithmetic typos.
+ * CEO confirmed the 4× totals: brown unlocks at 140 wins and black at 300. This ladder is the source of truth.
+ * Fundar reads brown off this same rank, so it opens at 140 wins.
+ * A draw is not a win. A loss does not remove a stripe. The win count on the account is the rank.
  */
 export const BELT_LADDER: readonly { belt: Belt; per: number }[] = [
-  { belt: 'branca', per: 3 },
-  { belt: 'azul', per: 6 },
-  { belt: 'roxa', per: 12 },
-  { belt: 'marrom', per: 24 },
-  { belt: 'preta', per: 48 },
+  { belt: 'branca', per: 5 },
+  { belt: 'azul', per: 10 },
+  { belt: 'roxa', per: 20 },
+  { belt: 'marrom', per: 40 },
+  { belt: 'preta', per: 80 },
 ];
 export const STRIPES_PER_BELT = 4;
-/** @deprecated the live curve is {@link BELT_LADDER}. Kept so older imports still name a number. */
-export const WINS_PER_STRIPE = 3;
-export const BLUE_BELT_WINS = 3 * (STRIPES_PER_BELT + 1);
+/** @deprecated White's rate only. The live curve is {@link BELT_LADDER}; each later belt doubles. */
+export const WINS_PER_STRIPE = BELT_LADDER[0].per;
+/** Cumulative wins to first wear the blue belt. */
+export const BLUE_BELT_WINS = BELT_LADDER[0].per * STRIPES_PER_BELT;
+
+/** Cumulative wins to first wear `belt`. Derived from {@link BELT_LADDER}, not a second counter. */
+export function winsToBelt(belt: Belt): number {
+  let total = 0;
+  for (const step of BELT_LADDER) {
+    if (step.belt === belt) return total;
+    total += step.per * STRIPES_PER_BELT;
+  }
+  return total;
+}
 
 /** One-time kimono purchase at the vestiário; required before rolling on the mat. */
 export const GI_PRICE = 18;
@@ -99,7 +117,7 @@ export function progressForWins(wins: number): { belt: Belt; stripes: number } {
   let w = Math.max(0, Math.floor(Number.isFinite(wins) ? wins : 0));
   for (const step of BELT_LADDER) {
     if (step.belt === 'preta') return { belt: 'preta', stripes: Math.floor(w / step.per) };
-    const span = step.per * (STRIPES_PER_BELT + 1);
+    const span = step.per * STRIPES_PER_BELT;
     if (w < span) return { belt: step.belt, stripes: Math.min(STRIPES_PER_BELT, Math.floor(w / step.per)) };
     w -= span;
   }
@@ -108,6 +126,20 @@ export function progressForWins(wins: number): { belt: Belt; stripes: number } {
 
 /** Awards inserted onto stripes that older saves may already have passed. */
 const LATER_AWARDS = ['knee_on_belly', 'back_take', 'single_leg'] as const satisfies readonly MatMoveId[];
+
+/**
+ * The move taught at four stripes. That stripe is the promotion, so the move joins the account
+ * when the next belt is put on. It is not a second win counter and it does not change the fight.
+ */
+function movesPassedWithTheBelt(belt: Belt): MatMoveId[] {
+  const out: MatMoveId[] = [];
+  for (const step of BELT_LADDER) {
+    if (step.belt === belt) break;
+    const move = moveTaughtAt(step.belt, STRIPES_PER_BELT);
+    if (move) out.push(move);
+  }
+  return out;
+}
 
 function cleanMoves(raw: unknown, through: readonly MatMoveId[]): MatMoveId[] {
   const allow = new Set(through);
@@ -137,6 +169,7 @@ export function normalizeBjj(p?: Partial<BjjProgress> | null): BjjProgress {
     const passed = beltIndex(award.belt) < beltIndex(belt) || (award.belt === belt && award.stripes < stripes);
     if (passed) unlocked.push(id);
   }
+  for (const id of movesPassedWithTheBelt(belt)) if (through.includes(id) && !unlocked.includes(id)) unlocked.push(id);
   const taught = moveTaughtAt(belt, stripes);
   let pending: MatMoveId | null = isMatMove(p?.pendingDrill) ? p!.pendingDrill! : null;
   if (pending && (unlocked.includes(pending) || !through.includes(pending) || pending !== taught)) pending = null;
