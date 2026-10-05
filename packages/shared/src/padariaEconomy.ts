@@ -31,10 +31,14 @@ export const PADARIA_DOOR_PLUS_TIERS_RV =
   PADARIA_OWNERSHIP_RV.tier3Sonho;
 
 /**
- * Padaria SIZE tiers (Jonny addendum — not Slice 1; no RV numbers locked yet).
- * Separate from sweet tiers (brigadeiro / bolo / sonho). Future ownership buys only:
- * - Size 1 (starter after Fundar): shelf is coffee + pão francês only.
- * - Size 2 (expensive RV upgrade): full menu like Seu Carlos’s shared counter.
- * - Size 3 (very expensive): restaurant food unlocked on the owner’s counter.
+ * Padaria SIZE tiers (Jonny lock — not Slice 1). Separate from sweet tiers (brigadeiro / bolo / sonho).
+ * Ownership v1 eventually ships all three sizes (menu scope per tier, not built in S1):
+ * - Balcão (900 RV): starter owned shelf — coffee + pão francês only.
+ * - Padaria (1500 RV): full menu like Seu Carlos’s shared counter.
+ * - Restaurante (3000 RV): restaurant food on the owner’s counter.
  */
-export const PADARIA_SIZE_TIERS_NOTE = 'size-1-starter | size-2-full-counter | size-3-restaurant' as const;
+export const PADARIA_SIZE_RV = {
+  balcao: 900,
+  padaria: 1500,
+  restaurante: 3000,
+} as const;
