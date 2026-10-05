@@ -166,7 +166,7 @@ describe('Treino no tatame (server)', () => {
 
   it('a connected takedown carries a whoosh, a mount a thump, a submission attempt the same tone either way', async () => {
     const { a } = await setup();
-    a.s.profile!.bjj = { belt: 'branca', stripes: 2, wins: 6, unlocked: ['collar_tie', 'sleeve_grip', 'double_leg'] };
+    a.s.profile!.bjj = { belt: 'branca', stripes: 2, wins: 6, unlocked: ['collar_tie', 'sleeve_grip', 'double_leg', 'knee_on_belly'] };
     await start(a);
     advance(1000);
     a.s.bout!.rng = () => 0;
@@ -174,7 +174,7 @@ describe('Treino no tatame (server)', () => {
     await a.send({ t: 'bout', v: 1, action: 'intent', seq: grip.seq, intent: 'collar_tie' });
     expect(a.last('resolve')!.sound).toBe('hit');
 
-    a.s.profile!.bjj = { belt: 'branca', stripes: 2, wins: 6, unlocked: ['collar_tie', 'sleeve_grip', 'double_leg'] };
+    a.s.profile!.bjj = { belt: 'branca', stripes: 2, wins: 6, unlocked: ['collar_tie', 'sleeve_grip', 'double_leg', 'knee_on_belly'] };
     await a.send({ t: 'bout', v: 1, action: 'quit' });
     await start(a);
     advance(1000);

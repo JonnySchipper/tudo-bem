@@ -23,10 +23,10 @@ export interface GagTrack {
 
 export const GAG_TRACKS: readonly GagTrack[] = [
   { id: 'grips', pt: 'Pegada', en: 'Grips', moves: ['collar_tie', 'sleeve_grip'] },
-  { id: 'takedowns', pt: 'Quedas', en: 'Takedowns', moves: ['double_leg', 'body_lock'] },
+  { id: 'takedowns', pt: 'Quedas', en: 'Takedowns', moves: ['double_leg', 'body_lock', 'single_leg'] },
   { id: 'sweeps', pt: 'Raspagem', en: 'Sweeps', moves: ['hook_sweep', 'scissor_sweep', 'hip_bump'] },
   { id: 'defense', pt: 'Defesa', en: 'Defense', moves: ['posture', 'sprawl', 'frame', 'escape_back'] },
-  { id: 'passes', pt: 'Passagem', en: 'Passes', moves: ['passar'] },
+  { id: 'passes', pt: 'Passagem', en: 'Passes', moves: ['passar', 'knee_on_belly', 'back_take'] },
   { id: 'subs', pt: 'Final', en: 'Submissions', moves: ['armbar', 'americana', 'rnc'] },
 ];
 
@@ -62,6 +62,9 @@ const SIGNATURE: Record<MatMoveId, { x: number; y: number; rot: number }> = {
   hip_bump: { x: 4, y: -26, rot: 24 },
   posture: { x: -34, y: 14, rot: 8 },
   passar: { x: 40, y: 16, rot: -8 },
+  knee_on_belly: { x: 18, y: -10, rot: -22 },
+  back_take: { x: -16, y: 20, rot: 46 },
+  single_leg: { x: 10, y: 36, rot: 26 },
   sprawl: { x: -22, y: 18, rot: 14 },
   frame: { x: 32, y: -6, rot: -12 },
   escape_back: { x: -8, y: -14, rot: 40 },

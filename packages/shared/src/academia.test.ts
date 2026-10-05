@@ -50,6 +50,22 @@ describe('belts, stripes and the profile', () => {
     expect(normalizeBjj({ belt: 'azul', stripes: 2, wins: 18 })).toMatchObject({ belt: 'azul', stripes: 0, wins: 18 });
   });
 
+  it('a save that already passed a new stripe keeps that move, and one sitting on it still drills', () => {
+    const passed = normalizeBjj({
+      wins: 12,
+      unlocked: ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar', 'sleeve_grip', 'body_lock', 'sprawl'],
+    });
+    expect(passed.unlocked).toContain('knee_on_belly');
+    expect(passed.pendingDrill).toBeUndefined();
+    const sitting = normalizeBjj({
+      wins: 6,
+      unlocked: ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar', 'sleeve_grip'],
+    });
+    expect(sitting).toMatchObject({ belt: 'branca', stripes: 2 });
+    expect(sitting.unlocked).not.toContain('knee_on_belly');
+    expect(sitting.pendingDrill).toBe('knee_on_belly');
+  });
+
   it('recording a win reports stripe and belt changes', () => {
     let p = normalizeBjj();
     const seen: string[] = [];
