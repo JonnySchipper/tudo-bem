@@ -291,7 +291,19 @@ export type BoutServerMsg =
       line: Bilingual;
       signal: RefSignal;
     }
-  | { t: 'bout'; v: 1; phase: 'intent'; seq: number; st: BoutSnapshot; intents: BoutIntentOut[]; finish: boolean; pickMs: number }
+  | {
+      t: 'bout';
+      v: 1;
+      phase: 'intent';
+      seq: number;
+      st: BoutSnapshot;
+      /** Legal this position. These are the ones the player can confirm. */
+      intents: BoutIntentOut[];
+      /** Owned moves, including ones this position cannot play yet, so the bar can show their percent. */
+      owned?: BoutIntentOut[];
+      finish: boolean;
+      pickMs: number;
+    }
   | {
       t: 'bout';
       v: 1;
@@ -327,6 +339,8 @@ export type BoutServerMsg =
       intent: string;
       /** Whose move just resolved. */
       actor?: 'you' | 'partner';
+      /** The move that just played, so the mat can run that gag's cartoon before the pose changes. */
+      move?: string;
       /** Placeholder tone. Missing audio must not stop the match. */
       sound?: 'hit' | 'whoosh' | 'mount' | 'sub' | 'none';
       say?: Bilingual;

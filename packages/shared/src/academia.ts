@@ -121,7 +121,10 @@ export function normalizeBjj(p?: Partial<BjjProgress> | null): BjjProgress {
   const through = movesThrough(belt, stripes);
   const stored = cleanMoves(p?.unlocked, through);
   // a save from before skills were stored keeps every move those wins already earned
-  const unlocked = stored.length || wins === 0 ? (stored.includes('collar_tie') ? stored : ['collar_tie' as const, ...stored]) : through;
+  const base = !stored.length && wins > 0 ? [...through] : stored.includes('collar_tie') ? stored : ['collar_tie' as const, ...stored];
+  const starters = movesThrough('branca', 0);
+  const unlocked = [...base];
+  for (const id of starters) if (through.includes(id) && !unlocked.includes(id)) unlocked.push(id);
   const taught = moveTaughtAt(belt, stripes);
   let pending: MatMoveId | null = isMatMove(p?.pendingDrill) ? p!.pendingDrill! : null;
   if (pending && (unlocked.includes(pending) || !through.includes(pending) || pending !== taught)) pending = null;

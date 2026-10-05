@@ -15,7 +15,17 @@ export type StageCue =
   | { t: 'end'; winner: BoutWinner | 'none'; reason: BoutReason }
   | { t: 'hit'; strength: 1 | 2 }
   | { t: 'miss' }
-  | { t: 'long' };
+  | { t: 'long' }
+  | {
+      t: 'cartoon';
+      move: string;
+      hit: boolean;
+      from: BjjPositionId;
+      to: BjjPositionId;
+      aheadFrom: 'you' | 'partner' | null;
+      aheadTo: 'you' | 'partner' | null;
+      ms: number;
+    };
 
 export interface FeedPartner {
   id: string;
@@ -38,6 +48,8 @@ class BoutFeed {
   private cues: StageCue[] = [];
   /** performance.now() of the last change, so the stage can tell a fresh bout from an old one */
   epoch = 0;
+  /** A gag cartoon is on screen. The snapshot may still be the pose the move started from. */
+  holding = false;
 
   begin(partner: FeedPartner, belt: Belt, snap: BoutSnapshot): void {
     this.active = true;
@@ -45,6 +57,7 @@ class BoutFeed {
     this.belt = belt;
     this.snap = snap;
     this.cues = [];
+    this.holding = false;
     this.epoch++;
   }
 
@@ -58,6 +71,7 @@ class BoutFeed {
     this.active = false;
     this.cues = [];
     this.snap = null;
+    this.holding = false;
     this.epoch++;
   }
 

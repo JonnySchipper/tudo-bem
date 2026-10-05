@@ -16,6 +16,7 @@ import { swapKeys } from './palette';
 import { animKey } from './charsheet';
 import { lookForAppearance, type Look } from './looks';
 import { boutFeed, type StageCue } from './boutFeed';
+import { cartoonFor, sampleCartoon, type Cartoon } from './gagCartoon';
 import { DEPTH } from './props';
 import { originOf } from './spriteUtil';
 import {
@@ -39,7 +40,7 @@ import {
   type RefArt,
 } from './bjjArt';
 
-type Mode = 'off' | 'walkin' | 'face' | 'bump' | 'fight' | 'trans' | 'finish' | 'win' | 'draw';
+type Mode = 'off' | 'walkin' | 'face' | 'bump' | 'fight' | 'trans' | 'cartoon' | 'finish' | 'win' | 'draw';
 
 export interface StageHost {
   scene: Phaser.Scene;
@@ -114,6 +115,18 @@ export class BoutStage {
   private slide = 0;
   /** 1 → 0 while a miss stumbles and returns to the same pose. */
   private wobble = 0;
+  /** The gag cartoon in progress. The pose stays on `from` until it lands. */
+  private cartoon: Cartoon | null = null;
+  private cartoonFrom: BjjPositionId = 'de_pe';
+  private cartoonAheadTo: 'you' | 'partner' | null = null;
+  private cartoonT0 = 0;
+  private cartoonMs = 760;
+  private cartoonOff = { x: 0, y: 0, rot: 0 };
+  private cartoonRead: 'gain' | 'stumble' | 'stick' | null = null;
+  private cartoonPuffed = false;
+  /** How far a pose change slides. A gag that gained ground travels farther than an ordinary step. */
+  private slideAmp = 14;
+  private wobbleAmp = 5;
 
   private popsEl: HTMLElement | null = null;
   /** live cheers: they stay glued to the spectator's head while the camera settles */
@@ -229,12 +242,14 @@ export class BoutStage {
     this.top = null;
     this.frames = [];
     this.nudge = { x: 0, y: 0 };
-    this.pair!.setVisible(false);
+    this.clearCartoon();
+    this.pair!.setRotation(0).setScale(1).setVisible(false);
   }
 
   private stop(): void {
     this.mode = 'off';
-    this.pair?.setVisible(false);
+    this.clearCartoon();
+    this.pair?.setRotation(0).setScale(1).setVisible(false);
     this.ph?.setVisible(false);
     this.shadow?.setVisible(false);
     this.killWalkers();
@@ -317,10 +332,12 @@ export class BoutStage {
       this.puff(a.x, a.y - 14, 4);
     } else if (this.mode === 'bump' && now >= this.modeEnd) this.goFight();
     else if (this.mode === 'trans' && this.isDone()) this.goFight();
+    else if (this.mode === 'cartoon') this.stepCartoon(now, a);
 
-    // the snapshot is the truth: if the pair is not where the server says (a missed cue, a reconnect), cut to it
+    // the snapshot is the truth: if the pair is not where the server says (a missed cue, a reconnect), cut to it.
+    // While a cartoon is holding, the snapshot is still the pose the move started from.
     const snap = boutFeed.snap;
-    if (this.mode === 'fight' && snap && (snap.position !== this.pos || snap.ahead !== this.top)) {
+    if (this.mode === 'fight' && !boutFeed.holding && snap && (snap.position !== this.pos || snap.ahead !== this.top)) {
       this.pos = snap.position;
       this.top = snap.ahead;
       this.setFrames(pairFrames(this.pos), 4, true);
@@ -333,8 +350,8 @@ export class BoutStage {
       this.shadow?.setVisible(false);
       return;
     }
-    if (this.slide > 0) this.slide = Math.max(0, this.slide - dt * 2.4);
-    if (this.wobble > 0) this.wobble = Math.max(0, this.wobble - dt * 3);
+    if (this.slide > 0) this.slide = Math.max(0, this.slide - dt * 0.7);
+    if (this.wobble > 0) this.wobble = Math.max(0, this.wobble - dt * 0.9);
     this.t += dt;
     const keys = this.frames.length ? this.frames : pairFrames(this.pos);
     const n = keys.length;
@@ -350,6 +367,66 @@ export class BoutStage {
     this.mode = 'fight';
     this.top = this.top === null && this.pos === 'de_pe' ? null : this.top;
     this.setFrames(pairFrames(this.pos), 4, true);
+  }
+
+  private clearCartoon(): void {
+    this.cartoon = null;
+    this.cartoonOff = { x: 0, y: 0, rot: 0 };
+    this.cartoonRead = null;
+    this.cartoonPuffed = false;
+    this.slide = 0;
+    this.slideAmp = 14;
+    this.wobble = 0;
+    this.wobbleAmp = 5;
+  }
+
+  /** Sample the gag. The pose stays put until the cartoon finishes, then a hit slides and a miss wobbles. */
+  private stepCartoon(now: number, a: { x: number; y: number }): void {
+    const played = this.cartoon;
+    if (!played) {
+      this.goFight();
+      return;
+    }
+    const u = (now - this.cartoonT0) / this.cartoonMs;
+    if (u >= 1) {
+      this.landCartoon(played, a);
+      return;
+    }
+    const s = sampleCartoon(played.path, u);
+    this.cartoonOff = { x: s.x, y: s.y, rot: s.rot };
+    this.pos = s.pose;
+    if (!this.cartoonPuffed && u >= 0.36) {
+      this.cartoonPuffed = true;
+      this.puff(a.x + s.x, a.y - 10, played.read === 'stumble' ? 5 : 8);
+      this.kick(played.read === 'gain' ? 2 : 1);
+    }
+  }
+
+  private landCartoon(played: Cartoon, a: { x: number; y: number }): void {
+    const from = this.cartoonFrom;
+    const aheadTo = this.cartoonAheadTo;
+    this.cartoon = null;
+    this.cartoonOff = { x: 0, y: 0, rot: 0 };
+    this.pos = played.then;
+    this.top = played.then === 'de_pe' ? null : aheadTo;
+    this.mode = 'fight';
+    this.setFrames(pairFrames(this.pos), 4, true);
+    this.cartoonRead = null;
+    if (played.then !== from) {
+      this.slideAmp = played.read === 'gain' ? 36 : 22;
+      this.slide = 1;
+      this.wobble = 0;
+      this.puff(a.x, a.y - 4, played.read === 'gain' ? 9 : 6);
+      this.kick(played.read === 'gain' ? 2 : 1);
+    } else if (played.read === 'stumble') {
+      this.slide = 0;
+      this.wobbleAmp = 16;
+      this.wobble = 1;
+      this.kick(1);
+    } else {
+      this.slide = 0;
+      this.wobble = 0;
+    }
   }
 
   private drawFrame(key: string, a: { x: number; y: number }): void {
@@ -370,8 +447,18 @@ export class BoutStage {
     this.ph?.setVisible(false);
     const p = this.pair!;
     if (p.texture.key !== tex) p.setTexture(tex);
-    const ox = this.slide > 0 ? Math.sin(this.slide * Math.PI) * 14 : this.wobble > 0 ? Math.sin(this.wobble * 24) * 5 : 0;
-    p.setOrigin(d.ax / d.w, d.ay / d.h).setPosition(a.x + ox, a.y).setDepth(depth).setVisible(true);
+    const lean = this.cartoonOff.x;
+    const ox = lean + (this.slide > 0 ? Math.sin(this.slide * Math.PI) * this.slideAmp : this.wobble > 0 ? Math.sin(this.wobble * 24) * this.wobbleAmp : 0);
+    const oy = this.cartoonOff.y;
+    const mag = Math.hypot(this.cartoonOff.x, this.cartoonOff.y);
+    const sx = mag > 1 && this.cartoonRead === 'stumble' ? 1.22 : 1;
+    const sy = mag > 1 && this.cartoonRead === 'stumble' ? 0.7 : mag > 1 ? 1.14 : 1;
+    p.setOrigin(d.ax / d.w, d.ay / d.h)
+      .setPosition(a.x + ox, a.y - oy)
+      .setRotation((this.cartoonOff.rot * Math.PI) / 180)
+      .setScale(sx, sy)
+      .setDepth(depth)
+      .setVisible(true);
   }
 
   // ------------------------------------------------------------------ cues
@@ -445,6 +532,24 @@ export class BoutStage {
           this.mode = 'win';
           this.setFrames(presentFrames((k) => !!this.h.manifest.sprites[k], Array.from({ length: FRAMES.winRaise }, (_, i) => winRaiseKey(i))), 3, false);
         }
+        break;
+      }
+      case 'cartoon': {
+        const played = cartoonFor(c.move, c.hit, c.from, c.to);
+        this.cartoon = played;
+        this.cartoonFrom = c.from;
+        this.cartoonAheadTo = c.aheadTo;
+        this.cartoonT0 = now;
+        this.cartoonMs = Math.max(1, c.ms);
+        this.cartoonOff = { x: 0, y: 0, rot: 0 };
+        this.cartoonRead = played.read;
+        this.cartoonPuffed = false;
+        this.slide = 0;
+        this.wobble = 0;
+        this.mode = 'cartoon';
+        this.pos = c.from;
+        this.top = c.from === 'de_pe' ? null : c.aheadFrom;
+        this.setFrames(pairFrames(c.from), 8, true);
         break;
       }
       case 'hit':
