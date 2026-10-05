@@ -291,7 +291,19 @@ export type BoutServerMsg =
       line: Bilingual;
       signal: RefSignal;
     }
-  | { t: 'bout'; v: 1; phase: 'intent'; seq: number; st: BoutSnapshot; intents: BoutIntentOut[]; finish: boolean; pickMs: number }
+  | {
+      t: 'bout';
+      v: 1;
+      phase: 'intent';
+      seq: number;
+      st: BoutSnapshot;
+      /** Legal this position. These are the ones the player can confirm. */
+      intents: BoutIntentOut[];
+      /** Owned moves, including ones this position cannot play yet, so the bar can show their percent. */
+      owned?: BoutIntentOut[];
+      finish: boolean;
+      pickMs: number;
+    }
   | {
       t: 'bout';
       v: 1;

@@ -157,9 +157,9 @@ describe('percent table', () => {
     sprawl: [60, 70, 78, 85, 90],
     frame: [35, 48, 60, 72, 82],
     escape_back: [25, 38, 52, 66, 78],
-    armbar: [0, 30, 42, 55, 68],
-    americana: [0, 0, 28, 44, 60],
-    rnc: [0, 0, 0, 36, 55],
+    armbar: [18, 30, 42, 55, 68],
+    americana: [0, 22, 28, 44, 60],
+    rnc: [0, 0, 24, 36, 55],
   };
   const belts = ['branca', 'azul', 'roxa', 'marrom', 'preta'] as const;
 
@@ -211,6 +211,7 @@ describe('stripe unlock order', () => {
   it('teaches one move per award, in order, and then stops', () => {
     expect(UNLOCK_ORDER.map((u) => u.move)).toEqual([
       'collar_tie',
+      'armbar',
       'sleeve_grip',
       'double_leg',
       'body_lock',
@@ -219,35 +220,35 @@ describe('stripe unlock order', () => {
       'hip_bump',
       'frame',
       'escape_back',
-      'armbar',
       'americana',
       'rnc',
     ]);
     expect(moveTaughtAt('branca', 0)).toBe('collar_tie');
     expect(moveTaughtAt('roxa', 1)).toBeNull();
-    expect(moveTaughtAt('marrom', 0)).toBe('rnc');
+    expect(moveTaughtAt('roxa', 0)).toBe('rnc');
+    expect(moveTaughtAt('marrom', 0)).toBeNull();
     expect(moveTaughtAt('preta', 0)).toBeNull();
   });
 
   it('a win stores the stripe on the account and holds the new move for the drill', () => {
     let p = normalizeBjj();
-    expect(p.unlocked).toEqual(['collar_tie']);
+    expect(p.unlocked).toEqual(['collar_tie', 'armbar']);
     p = recordWin(p).progress;
     p = recordWin(p).progress;
     const third = recordWin(p);
     expect(third.stripeUp).toBe(true);
     expect(third.move).toBe('sleeve_grip');
     expect(third.progress.pendingDrill).toBe('sleeve_grip');
-    expect(third.progress.unlocked).toEqual(['collar_tie']);
+    expect(third.progress.unlocked).toEqual(['collar_tie', 'armbar']);
     expect(third.progress).toMatchObject({ belt: 'branca', stripes: 1, wins: 3 });
     const drilled = completeDrill(third.progress, 'sleeve_grip');
-    expect(drilled.unlocked).toEqual(['collar_tie', 'sleeve_grip']);
+    expect(drilled.unlocked).toEqual(['collar_tie', 'armbar', 'sleeve_grip']);
     expect(drilled.pendingDrill).toBeUndefined();
     const again = completeDrill(drilled, 'sleeve_grip');
-    expect(again.unlocked).toEqual(['collar_tie', 'sleeve_grip']);
+    expect(again.unlocked).toEqual(['collar_tie', 'armbar', 'sleeve_grip']);
   });
 
-  it('walks the belts: blue at 15, americana on the purple belt, the choke on the brown belt', () => {
+  it('walks the belts: two takedowns by white, a second submission at blue, the choke at purple', () => {
     const at = (wins: number) => {
       let p = normalizeBjj();
       let move: string | null = null;
@@ -260,10 +261,10 @@ describe('stripe unlock order', () => {
     };
     expect(at(12)).toMatchObject({ belt: 'branca', stripes: 4, move: 'sprawl' });
     expect(at(15)).toMatchObject({ belt: 'azul', stripes: 0, move: 'scissor_sweep' });
-    expect(at(39).unlocked).toContain('armbar');
-    expect(at(45)).toMatchObject({ belt: 'roxa', stripes: 0, move: 'americana' });
+    expect(at(39).unlocked).toEqual(expect.arrayContaining(['armbar', 'americana']));
+    expect(at(45)).toMatchObject({ belt: 'roxa', stripes: 0, move: 'rnc' });
     expect(at(57).move).toBeNull();
-    expect(at(105)).toMatchObject({ belt: 'marrom', stripes: 0, move: 'rnc' });
+    expect(at(105)).toMatchObject({ belt: 'marrom', stripes: 0, move: null });
     expect(at(129).move).toBeNull();
     expect(progressForWins(225)).toEqual({ belt: 'preta', stripes: 0 });
   });
@@ -272,10 +273,12 @@ describe('stripe unlock order', () => {
 describe('cross-rank cap', () => {
   it('a brown belt against a white belt only gets the white pool, at brown percents', () => {
     const moves = fightMoves({ belt: 'marrom', unlocked: rankPool('marrom'), opponentBelt: 'branca' });
-    expect(moves).toEqual(['collar_tie', 'sleeve_grip', 'double_leg', 'body_lock', 'sprawl']);
+    expect(moves).toEqual(['collar_tie', 'armbar', 'sleeve_grip', 'double_leg', 'body_lock', 'sprawl']);
     expect(movePercent('double_leg', 'marrom')).toBe(74);
     expect(movePercent('double_leg', 'branca')).toBe(45);
-    expect(moves).not.toContain('armbar');
+    expect(movePercent('armbar', 'marrom')).toBe(55);
+    expect(movePercent('armbar', 'branca')).toBe(18);
+    expect(moves).not.toContain('americana');
     expect(moves).not.toContain('rnc');
   });
 

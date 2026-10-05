@@ -215,6 +215,15 @@ export class BoutEngine {
         risk: 1 as const,
         ...(id === 'hold' ? {} : { percent: movePercent(id, prog.belt, bonus) }),
       })),
+      owned: allowed
+        .filter((id) => id !== 'hold')
+        .map((id) => ({
+          id,
+          pt: MOVE_LABEL[id].pt,
+          en: MOVE_LABEL[id].en,
+          risk: 1 as const,
+          percent: movePercent(id, prog.belt, bonus),
+        })),
       finish: false,
       pickMs: b.pickMs,
     });

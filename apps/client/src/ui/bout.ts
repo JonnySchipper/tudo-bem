@@ -25,7 +25,7 @@ import { ambience } from '../ambience';
 import { readShowEnglish, writeShowEnglish } from './dialogueLogic';
 import { beltChip } from './beltChip';
 import { boutFeed } from '../render/pixel/boutFeed';
-import { CARTOON_MS, GAG_TRACKS, cartoonFor } from '../render/pixel/gagCartoon';
+import { CARTOON_MS, GAG_TRACKS, THINK_MS, cartoonFor } from '../render/pixel/gagCartoon';
 import { mountCharPreview } from '../render/pixel/charPreview';
 import { RISK_LABEL, callOf, cuesForEnd, cuesForFinishEnd, cuesForResolve } from './boutLogic';
 
@@ -70,6 +70,8 @@ export class BoutUI {
   private cartoonTimer = 0;
   private pendingPose: BoutSnapshot | null = null;
   private pendingSlap = false;
+  /** Your cartoon just finished and the match is still going, so the partner gets a beat to decide. */
+  private thinkAfter = false;
   private queue: BoutServerMsg[] = [];
 
   constructor(private readonly a: BoutActions) {
@@ -185,6 +187,8 @@ export class BoutUI {
     this.phase = p;
     this.root.dataset.phase = p;
     this.panel.dataset.phase = p;
+    delete this.root.dataset.think;
+    delete this.panel.dataset.think;
   }
 
   private sfx(kind: Parameters<typeof ambience.sfx>[0]): void {
@@ -354,9 +358,10 @@ export class BoutUI {
   /** Five tracks along the bottom. Locked moves stay visible. Hold is its own button. */
   private paintIntent(m: Msg<'intent'>): void {
     const offered = new Map(m.intents.map((i) => [i.id, i]));
+    const owned = new Map((m.owned ?? []).map((i) => [i.id, i]));
     const tracks = GAG_TRACKS.map((track) => {
       const open = this.gagTrack === track.id;
-      const ready = track.moves.some((id) => offered.has(id));
+      const ready = track.moves.some((id) => offered.has(id) || owned.has(id));
       return h(
         'button',
         {
@@ -391,22 +396,25 @@ export class BoutUI {
     const moves = GAG_TRACKS.flatMap((track) =>
       track.moves.map((id, k) => {
         const offer = offered.get(id);
+        const have = owned.get(id) ?? offer;
         const open = this.gagTrack === track.id;
         const label = MOVE_LABEL[id];
-        const pct = offer?.percent != null ? h('span', { class: 'bout-pct' }, `${offer.percent}%`) : null;
+        const percent = offer?.percent ?? have?.percent;
+        const waiting = !offer && !!have;
+        const pct = percent != null ? h('span', { class: 'bout-pct' }, `${percent}%`) : null;
         return h(
           'button',
           {
-            class: 'bout-intent gag-move',
+            class: `bout-intent gag-move${waiting ? ' is-waiting' : ''}`,
             type: 'button',
             'data-intent': id,
             'data-track': track.id,
             'data-k': String(k + 1),
-            'data-locked': offer ? '0' : '1',
-            'data-percent': offer?.percent == null ? '' : String(offer.percent),
+            'data-locked': have ? '0' : '1',
+            'data-percent': percent == null ? '' : String(percent),
             hidden: !open,
             disabled: !offer,
-            'aria-label': offer?.percent == null ? label.pt : `${label.pt} ${offer.percent}%`,
+            'aria-label': percent == null ? label.pt : `${label.pt} ${percent}%`,
             onclick: () => {
               if (offer) this.pickIntent(m.seq, id);
             },
@@ -611,6 +619,12 @@ export class BoutUI {
     const from = this.snap;
     const fromPos = from?.position ?? m.st.position;
     const move = m.move && isMatMove(m.move) ? m.move : 'hold';
+    const tried = MOVE_LABEL[move];
+    // needs_br: true — Acertou! A miss already says Errou!, and points say how many.
+    const distinct = call && call.pt !== tried.pt ? call : null;
+    const outcome = distinct ?? (landed ? { pt: 'Acertou!', en: 'It lands!' } : { pt: 'Errou!', en: 'Missed!' });
+    const matchOver = m.st.exchange >= MAT_TURNS || call?.pt === 'Final!';
+    this.thinkAfter = m.actor !== 'partner' && !matchOver;
     const cartoon = cartoonFor(move, landed, fromPos, m.st.position);
     this.pendingPose = m.st;
     this.pendingSlap = !!from && (from.position !== m.st.position || from.ahead !== m.st.ahead);
@@ -638,8 +652,10 @@ export class BoutUI {
           'data-cartoon': move,
           'data-read': cartoon.read,
         },
-        h('b', { class: 'bout-banner' }, call?.pt ?? ''),
-        call ? en(call.en) : null,
+        h('b', { class: 'bout-banner' }, tried.pt),
+        en(tried.en),
+        h('span', { class: 'bout-outcome' }, outcome.pt),
+        en(outcome.en),
         h('span', { class: 'bout-who' }, who),
       ),
     );
@@ -679,7 +695,28 @@ export class BoutUI {
     this.pendingSlap = false;
     this.clearCartoonMark();
     boutFeed.holding = false;
+    const next = this.queue[0];
+    const wait = this.thinkAfter && (!next || (next.phase === 'resolve' && next.actor === 'partner'));
+    this.thinkAfter = false;
+    if (wait) {
+      this.showThink();
+      this.cartoonUntil = performance.now() + THINK_MS;
+      window.clearTimeout(this.cartoonTimer);
+      this.cartoonTimer = window.setTimeout(() => this.flush(), THINK_MS);
+      return;
+    }
     this.flush();
+  }
+
+  /** needs_br: true — the pause while the partner picks, before their cartoon. */
+  private showThink(): void {
+    const name = this.partnerName;
+    this.root.dataset.think = '1';
+    this.panel.dataset.think = '1';
+    this.body.replaceChildren(
+      h('div', { class: 'bout-resolve think', id: 'bout-think' }, h('b', { class: 'bout-banner' }, `${name} está pensando…`), en(`${name} is thinking…`)),
+    );
+    this.measure();
   }
 
   private cancelCartoon(): void {
@@ -687,6 +724,7 @@ export class BoutUI {
     this.cartoonUntil = 0;
     this.pendingPose = null;
     this.pendingSlap = false;
+    this.thinkAfter = false;
     this.clearCartoonMark();
     boutFeed.holding = false;
   }

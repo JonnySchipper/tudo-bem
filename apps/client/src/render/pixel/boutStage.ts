@@ -350,8 +350,8 @@ export class BoutStage {
       this.shadow?.setVisible(false);
       return;
     }
-    if (this.slide > 0) this.slide = Math.max(0, this.slide - dt * 2.4);
-    if (this.wobble > 0) this.wobble = Math.max(0, this.wobble - dt * 3);
+    if (this.slide > 0) this.slide = Math.max(0, this.slide - dt * 0.7);
+    if (this.wobble > 0) this.wobble = Math.max(0, this.wobble - dt * 0.9);
     this.t += dt;
     const keys = this.frames.length ? this.frames : pairFrames(this.pos);
     const n = keys.length;

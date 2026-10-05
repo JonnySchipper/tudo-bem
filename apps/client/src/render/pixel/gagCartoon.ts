@@ -7,7 +7,10 @@
  */
 import { isMatMove, type BjjPositionId, type MatMoveId } from '@tudobem/shared';
 
-export const CARTOON_MS = 760;
+/** How long the move's cartoon plays before the pose is allowed to change. */
+export const CARTOON_MS = 2000;
+/** After your cartoon, the opponent sits with the decision before their attempt is shown. */
+export const THINK_MS = 3200;
 
 export type GagTrackId = 'grips' | 'takedowns' | 'sweeps' | 'defense' | 'subs';
 

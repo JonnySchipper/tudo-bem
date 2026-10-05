@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MatMoveId } from '@tudobem/shared';
-import { CARTOON_MS, GAG_TRACKS, cartoonFor, sampleCartoon, trackOf } from './gagCartoon';
+import { CARTOON_MS, GAG_TRACKS, THINK_MS, cartoonFor, sampleCartoon, trackOf } from './gagCartoon';
 
 const MOVES: MatMoveId[] = [
   'collar_tie',
@@ -64,8 +64,10 @@ describe('move cartoons', () => {
     expect(dumped.path.every((s) => s.pose === 'montada')).toBe(true);
   });
 
-  it('is a short beat', () => {
-    expect(CARTOON_MS).toBeGreaterThan(400);
-    expect(CARTOON_MS).toBeLessThan(1000);
+  it('is a short beat, slow enough to read, with a pause before the opponent shows their hand', () => {
+    expect(CARTOON_MS).toBeGreaterThan(1200);
+    expect(CARTOON_MS).toBeLessThan(2500);
+    expect(THINK_MS).toBeGreaterThan(2000);
+    expect(THINK_MS).toBeLessThan(5000);
   });
 });

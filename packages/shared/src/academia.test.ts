@@ -18,9 +18,10 @@ import {
 } from './index.js';
 
 describe('belts, stripes and the profile', () => {
-  it('a fresh profile is a white belt with collar tie and no stripes', () => {
-    expect(normalizeBjj()).toEqual({ belt: 'branca', stripes: 0, wins: 0, unlocked: ['collar_tie'] });
-    expect(normalizeBjj(null)).toEqual({ belt: 'branca', stripes: 0, wins: 0, unlocked: ['collar_tie'] });
+  it('a fresh profile is a white belt with a grip, a weak submission, and no stripes', () => {
+    expect(normalizeBjj()).toEqual({ belt: 'branca', stripes: 0, wins: 0, unlocked: ['collar_tie', 'armbar'] });
+    expect(normalizeBjj(null)).toEqual({ belt: 'branca', stripes: 0, wins: 0, unlocked: ['collar_tie', 'armbar'] });
+    expect(normalizeBjj({ belt: 'branca', stripes: 0, wins: 0, unlocked: ['collar_tie'] }).unlocked).toEqual(['collar_tie', 'armbar']);
   });
 
   it('wins, not a single win, move stripes and then the next belt', () => {
@@ -41,7 +42,7 @@ describe('belts, stripes and the profile', () => {
   it('old saves follow the win count, and odd ones come back coherent', () => {
     expect(normalizeBjj({ belt: 'branca', stripes: 4, wins: 4 })).toMatchObject({ belt: 'branca', stripes: 1, wins: 4 });
     expect(normalizeBjj({ belt: 'branca', stripes: 2, wins: 2 })).toMatchObject({ belt: 'branca', stripes: 0, wins: 2 });
-    expect(normalizeBjj({ stripes: 4, wins: 0 })).toMatchObject({ belt: 'branca', stripes: 0, unlocked: ['collar_tie'] });
+    expect(normalizeBjj({ stripes: 4, wins: 0 })).toMatchObject({ belt: 'branca', stripes: 0, unlocked: ['collar_tie', 'armbar'] });
     expect(normalizeBjj({ stripes: -3, wins: -9 } as never)).toMatchObject({ belt: 'branca', stripes: 0, wins: 0 });
     expect(normalizeBjj({ stripes: 'x', wins: 'y', belt: 'preta' } as never)).toMatchObject({ belt: 'branca', stripes: 0, wins: 0 });
     // 18 wins is a blue belt with no stripe yet (white takes 15)

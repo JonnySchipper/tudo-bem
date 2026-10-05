@@ -102,9 +102,9 @@ const PERCENT: Record<Exclude<MatMoveId, 'hold'>, readonly (number | null)[]> = 
   sprawl: [60, 70, 78, 85, 90],
   frame: [35, 48, 60, 72, 82],
   escape_back: [25, 38, 52, 66, 78],
-  armbar: [null, 30, 42, 55, 68],
-  americana: [null, null, 28, 44, 60],
-  rnc: [null, null, null, 36, 55],
+  armbar: [18, 30, 42, 55, 68],
+  americana: [null, 22, 28, 44, 60],
+  rnc: [null, null, 24, 36, 55],
 };
 
 const POINTS: Partial<Record<MatMoveId, number>> = {
@@ -114,9 +114,14 @@ const POINTS: Partial<Record<MatMoveId, number>> = {
   hip_bump: 2,
 };
 
-/** One skill per award, in order. White belt is the belt being put on, not a win. */
+/**
+ * One skill per award, in order. White belt is the belt being put on, not a win.
+ * Day one is a grip and a weak submission. Later awards fill the track, so a higher belt
+ * is choosing among several takedowns or several submissions.
+ */
 export const UNLOCK_ORDER: readonly { belt: Belt; stripes: number; move: MatMoveId }[] = [
   { belt: 'branca', stripes: 0, move: 'collar_tie' },
+  { belt: 'branca', stripes: 0, move: 'armbar' },
   { belt: 'branca', stripes: 1, move: 'sleeve_grip' },
   { belt: 'branca', stripes: 2, move: 'double_leg' },
   { belt: 'branca', stripes: 3, move: 'body_lock' },
@@ -125,9 +130,8 @@ export const UNLOCK_ORDER: readonly { belt: Belt; stripes: number; move: MatMove
   { belt: 'azul', stripes: 1, move: 'hip_bump' },
   { belt: 'azul', stripes: 2, move: 'frame' },
   { belt: 'azul', stripes: 3, move: 'escape_back' },
-  { belt: 'azul', stripes: 4, move: 'armbar' },
-  { belt: 'roxa', stripes: 0, move: 'americana' },
-  { belt: 'marrom', stripes: 0, move: 'rnc' },
+  { belt: 'azul', stripes: 4, move: 'americana' },
+  { belt: 'roxa', stripes: 0, move: 'rnc' },
 ];
 
 const MOVE_IDS = new Set<string>(Object.keys(MOVE_LABEL));

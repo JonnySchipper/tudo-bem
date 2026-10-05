@@ -1733,6 +1733,19 @@ body.bout-on .toasts {
   opacity: 0.42;
 }
 
+.bout-intent.gag-move.is-waiting {
+  opacity: 0.72;
+}
+
+.bout-resolve.think .bout-banner {
+  font-size: 22px;
+}
+
+.bout-outcome {
+  font-family: var(--font-pixel);
+  font-size: 16px;
+}
+
 .gag-moves {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
