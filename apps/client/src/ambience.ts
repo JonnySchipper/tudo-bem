@@ -9,7 +9,7 @@ import { playBoutSfx, type BoutSfx } from './audio/boutSfx';
 import { playCorreriaSfx, type CorreriaSfx } from './audio/correriaSfx';
 import { DIARY_SFX, playDiarySfx, type DiarySfx } from './audio/diarySfx';
 
-const CORRERIA_SFX = ['grab', 'sizzle', 'ready', 'burnt', 'pour', 'ding', 'clink', 'cash', 'paper', 'chime', 'nope', 'combo'] as const;
+const CORRERIA_SFX = ['grab', 'sizzle', 'ready', 'burnt', 'pop', 'pour', 'glug', 'ding', 'clink', 'chain', 'cash', 'paper', 'chime', 'nope', 'combo', 'tick', 'slap', 'sigh'] as const;
 
 /**
  * Room beds made in Web Audio — no samples, no paid service.

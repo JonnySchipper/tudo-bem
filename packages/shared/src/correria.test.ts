@@ -29,6 +29,7 @@ import {
   orderTotal,
   parseNumberAnswer,
   patienceMs,
+  patiencePipMs,
   patienceStage,
   payNote,
   pourFrame,
@@ -518,11 +519,10 @@ describe('serving, corrections, scoring', () => {
     expect(Math.min(rate(a!.id), rate(b!.id))).toBeLessThan(1);
   });
 
-  it('listening replays cost patience (less at Verde) and written orders cannot be replayed', () => {
-    const find = (level: number) => {
+  it('listening replays cost 1 then 2 patience pips, the third is ignored, and written orders cannot be replayed', () => {
+    const find = () => {
       for (let seed = 1; seed <= 400; seed++) {
-        const sh = newShift(ctx({ seed, level }));
-        // jump to the third wave, where listening is likeliest
+        const sh = newShift(ctx({ seed, level: 2 }));
         sh.spawned = 9;
         sh.nextSpawnAt = 0;
         for (let i = 0; i < 60 && !frontOf(sh); i++) shiftAdvance(sh, 250);
@@ -531,18 +531,22 @@ describe('serving, corrections, scoring', () => {
       }
       throw new Error('no listening customer found');
     };
-    const hard = find(3);
-    const p = hard.f.patience;
-    expect(shiftAct(hard.sh, { a: 'replay' })[0]).toMatchObject({ k: 'replay' });
-    expect(p - hard.f.patience).toBeCloseTo(hard.f.patienceMax * LEVELS[3]!.replayCost, 0);
-    const easy = find(0);
-    const q = easy.f.patience;
-    shiftAct(easy.sh, { a: 'replay' });
-    expect(q - easy.f.patience).toBeLessThan(p - hard.f.patience);
-    const sh = newShift(ctx({ seed: 3 }));
-    for (let i = 0; i < 60 && !frontOf(sh); i++) shiftAdvance(sh, 250);
-    expect(frontOf(sh)!.mode).toBe('written');
-    expect(shiftAct(sh, { a: 'replay' })).toEqual([]);
+    const { sh, f } = find();
+    const pip = patiencePipMs(f.patienceMax);
+    const p0 = f.patience;
+    expect(shiftAct(sh, { a: 'replay' })[0]).toMatchObject({ k: 'replay' });
+    expect(p0 - f.patience).toBeCloseTo(pip, 0);
+    expect(f.replays).toBe(1);
+    const p1 = f.patience;
+    expect(shiftAct(sh, { a: 'replay' })[0]).toMatchObject({ k: 'replay' });
+    expect(p1 - f.patience).toBeCloseTo(pip * 2, 0);
+    expect(f.replays).toBe(2);
+    expect(shiftAct(sh, { a: 'replay' })[0]).toMatchObject({ k: 'replay_deny' });
+    expect(f.replays).toBe(2);
+    const shW = newShift(ctx({ seed: 3 }));
+    for (let i = 0; i < 60 && !frontOf(shW); i++) shiftAdvance(shW, 250);
+    expect(frontOf(shW)!.mode).toBe('written');
+    expect(shiftAct(shW, { a: 'replay' })).toEqual([]);
   });
 
   it('combos pay more and the baker cheers at 3 / 5 / 8', () => {

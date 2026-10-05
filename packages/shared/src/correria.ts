@@ -187,6 +187,17 @@ export const pourFrame = (fill: number): 0 | 1 | 2 | 3 => (fill < 0.25 ? 0 : fil
 
 /** The patience meter art state over a customer: 4 = full ... 1 = nearly gone, 0 = out. */
 export const patienceStage = (frac: number): 0 | 1 | 2 | 3 | 4 => (frac <= 0 ? 0 : frac > 0.75 ? 4 : frac > 0.5 ? 3 : frac > 0.25 ? 2 : 1);
+/** Patience pips on the counter meter (matches `patienceStage` buckets). */
+export const PATIENCE_PIPS = 4;
+/** Ms of patience one pip costs for this customer. */
+export const patiencePipMs = (patienceMax: number): number => patienceMax / PATIENCE_PIPS;
+/** Listening replay pip cost before the tap; `null` = third tap, ignored (needs_br: Carlos sigh). */
+export function replayPatiencePips(replaysSoFar: number): number | null {
+  if (replaysSoFar >= 2) return null;
+  return replaysSoFar === 0 ? 1 : 2;
+}
+/** needs_br: true */
+export const REPLAY_DENY_CARLOS: Bilingual = { pt: 'Ui… de novo não, tá?', en: 'Ugh… not again, okay?' };
 /** The tip jar's fill state 0..3 from the reais in it. */
 export const tipJarStage = (tips: number): 0 | 1 | 2 | 3 => (tips < 1 ? 0 : tips < 10 ? 1 : tips < 24 ? 2 : 3);
 
@@ -567,6 +578,7 @@ export type CEvent =
   | { k: 'mod'; id: string; on: boolean }
   | { k: 'clear' }
   | { k: 'replay'; id: number }
+  | { k: 'replay_deny'; id: number; line: Bilingual }
   | { k: 'serve'; id: number; outcome: 'perfeito' | 'segunda'; line: Bilingual; emote: string; points: number; tip: number; combo: number; speed: number }
   | { k: 'correct'; id: number; line: Bilingual }
   | { k: 'ask'; id: number; line: Bilingual }
@@ -1045,9 +1057,15 @@ export function shiftAct(sh: Shift, a: CAct): CEvent[] {
     case 'replay': {
       const c = front(sh);
       if (!c || c.state !== 'front' || c.mode !== 'listening') return ev;
-      c.patience = Math.max(0, c.patience - c.patienceMax * levelOf(sh).replayCost);
+      const pips = replayPatiencePips(c.replays);
+      if (pips === null) {
+        ev.push({ k: 'replay_deny', id: c.id, line: REPLAY_DENY_CARLOS });
+        return ev;
+      }
+      c.patience = Math.max(0, c.patience - patiencePipMs(c.patienceMax) * pips);
       c.replays++;
       ev.push({ k: 'replay', id: c.id });
+      if (c.patience <= 0) leave(sh, c, 'tempo', ev);
       return ev;
     }
     case 'answer': {

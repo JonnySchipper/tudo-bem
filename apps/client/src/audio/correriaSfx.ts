@@ -4,7 +4,25 @@
  * paper for the bag, the door chime of a new wave, a low "nope" and a rising combo arpeggio. Pure recipes over an AudioContext.
  */
 
-export type CorreriaSfx = 'grab' | 'sizzle' | 'ready' | 'burnt' | 'pour' | 'ding' | 'clink' | 'cash' | 'paper' | 'chime' | 'nope' | 'combo' | 'tick';
+export type CorreriaSfx =
+  | 'grab'
+  | 'sizzle'
+  | 'ready'
+  | 'burnt'
+  | 'pop'
+  | 'pour'
+  | 'glug'
+  | 'ding'
+  | 'clink'
+  | 'chain'
+  | 'cash'
+  | 'paper'
+  | 'chime'
+  | 'nope'
+  | 'combo'
+  | 'tick'
+  | 'slap'
+  | 'sigh';
 
 export function noise(ctx: AudioContext, white: AudioBuffer, dest: AudioNode, when: number, dur: number, type: BiquadFilterType, f0: number, f1: number, peak: number, q = 0.8, attack = 0.01) {
   const src = ctx.createBufferSource();
@@ -58,7 +76,12 @@ export function playCorreriaSfx(ctx: AudioContext, dest: AudioNode, white: Audio
       tone(ctx, dest, now, 150, 90, 0.35, 0.09, 'sawtooth');
       noise(ctx, white, dest, now, 0.3, 'lowpass', 900, 400, 0.08, 0.8, 0.02);
       break;
+    case 'pop':
+      noise(ctx, white, dest, now, 0.06, 'bandpass', 420, 220, 0.11, 1.4, 0.001);
+      tone(ctx, dest, now, 180, 95, 0.14, 0.08, 'triangle');
+      break;
     case 'pour':
+    case 'glug':
       // a short glug of low band-passed noise with a wobbling tone
       noise(ctx, white, dest, now, 0.22, 'bandpass', 520, 780, 0.08, 1.6, 0.03);
       tone(ctx, dest, now, 240, 330, 0.18, 0.025, 'sine');
@@ -72,6 +95,17 @@ export function playCorreriaSfx(ctx: AudioContext, dest: AudioNode, white: Audio
     case 'clink':
       tone(ctx, dest, now, 2600, 2400, 0.12, 0.06, 'triangle');
       tone(ctx, dest, now + 0.06, 3300, 3000, 0.16, 0.05, 'triangle');
+      break;
+    case 'chain':
+      for (const [dt, f] of [[0, 2200], [0.05, 2800], [0.11, 3400]] as const) tone(ctx, dest, now + dt, f, f * 0.98, 0.1, 0.055, 'triangle');
+      break;
+    case 'slap':
+      noise(ctx, white, dest, now, 0.05, 'bandpass', 900, 600, 0.09, 1.1, 0.001);
+      tone(ctx, dest, now, 320, 180, 0.08, 0.07, 'triangle');
+      break;
+    case 'sigh':
+      tone(ctx, dest, now, 220, 160, 0.35, 0.05, 'sine');
+      tone(ctx, dest, now + 0.12, 190, 140, 0.28, 0.04, 'sine');
       break;
     case 'cash':
       noise(ctx, white, dest, now, 0.07, 'bandpass', 2400, 1800, 0.07, 1.2, 0.002);
