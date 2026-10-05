@@ -48,7 +48,7 @@ The roll happens **in the world, on the academia mat**, with a compact overlay. 
   - defensive (hard to finish);
   - balanced.
 - Each partner has a portrait card and a one-line PT bio.
-- Partners unlock with stripes. **Belts:** 4 stripes on the faixa branca earns the **faixa azul** (blue belt), worn on the avatar in the academia and shown on the profile card. Belts can't be bought.
+- Partners unlock with stripes. **Belts (Jonny lock 2026-10-05):** wins per stripe double each belt — white 5, blue 10, purple 20, brown 40, black 80. Four stripes promote (the fourth stripe is the next belt, so a belt is worn with 0–3 stripes). Cumulative wins: blue 20, purple 60, brown 140, black 300. Rank is derived from the win count. Belts can't be bought.
 - **Verde-friendly:** generous timers at the start, and "Mostrar inglês" respected. Timers shrink only as the player's stripes grow.
 
 ### Feel ("juice")

@@ -166,7 +166,7 @@ describe('Treino no tatame (server)', () => {
 
   it('a connected takedown carries a whoosh, a mount a thump, a submission attempt the same tone either way', async () => {
     const { a } = await setup();
-    a.s.profile!.bjj = { belt: 'branca', stripes: 2, wins: 6, unlocked: ['collar_tie', 'sleeve_grip', 'double_leg', 'knee_on_belly'] };
+    a.s.profile!.bjj = { belt: 'branca', stripes: 2, wins: 10, unlocked: ['collar_tie', 'sleeve_grip', 'double_leg', 'knee_on_belly'] };
     await start(a);
     advance(1000);
     a.s.bout!.rng = () => 0;
@@ -174,7 +174,7 @@ describe('Treino no tatame (server)', () => {
     await a.send({ t: 'bout', v: 1, action: 'intent', seq: grip.seq, intent: 'collar_tie' });
     expect(a.last('resolve')!.sound).toBe('hit');
 
-    a.s.profile!.bjj = { belt: 'branca', stripes: 2, wins: 6, unlocked: ['collar_tie', 'sleeve_grip', 'double_leg', 'knee_on_belly'] };
+    a.s.profile!.bjj = { belt: 'branca', stripes: 2, wins: 10, unlocked: ['collar_tie', 'sleeve_grip', 'double_leg', 'knee_on_belly'] };
     await a.send({ t: 'bout', v: 1, action: 'quit' });
     await start(a);
     advance(1000);
@@ -190,7 +190,7 @@ describe('Treino no tatame (server)', () => {
     a.s.profile!.bjj = {
       belt: 'azul',
       stripes: 0,
-      wins: 15,
+      wins: 20,
       unlocked: ['collar_tie', 'sleeve_grip', 'double_leg', 'body_lock', 'sprawl', 'scissor_sweep'],
     };
     await start(a);
@@ -206,8 +206,8 @@ describe('Treino no tatame (server)', () => {
     await a.send({ t: 'bout', v: 1, action: 'quit' });
     a.s.profile!.bjj = {
       belt: 'azul',
-      stripes: 4,
-      wins: 39,
+      stripes: 3,
+      wins: 50,
       unlocked: ['collar_tie', 'sleeve_grip', 'double_leg', 'body_lock', 'sprawl', 'scissor_sweep', 'hip_bump', 'frame', 'escape_back', 'armbar'],
     };
     await start(a);
@@ -244,6 +244,7 @@ describe('Treino no tatame (server)', () => {
   it('a loss earns no word and takes no stripe', async () => {
     const { a } = await setup();
     a.s.profile!.diary = ['diary.rua.academia'];
+    a.s.profile!.bjj = { belt: 'branca', stripes: 1, wins: 5, unlocked: ['collar_tie', 'sleeve_grip'] };
     await start(a);
     await holdOut(a, 0, 4);
     const end = a.last('end')!;
@@ -251,18 +252,31 @@ describe('Treino no tatame (server)', () => {
     expect(end.rv).toBe(ROLL_RV_LOSS);
     expect(end.word ?? null).toBeNull();
     expect(end.stripeUp).toBe(false);
-    expect(a.s.profile!.bjj?.wins).toBe(0);
+    expect(end.beltUp).toBe(false);
+    expect(a.s.profile!.bjj).toMatchObject({ belt: 'branca', stripes: 1, wins: 5 });
     expect(a.s.profile!.diary).toEqual(['diary.rua.academia']);
   });
 
-  it('the third win starts the professor drill, and landing it unlocks the move', async () => {
+  it('a draw earns no win and takes no stripe', async () => {
     const { a } = await setup();
-    a.s.profile!.bjj = { belt: 'branca', stripes: 0, wins: 2, unlocked: ['collar_tie'] };
+    a.s.profile!.bjj = { belt: 'branca', stripes: 1, wins: 5, unlocked: ['collar_tie', 'sleeve_grip'] };
+    await start(a);
+    await holdOut(a, 1, 1);
+    const end = a.last('end')!;
+    expect(end.winner).toBe('draw');
+    expect(end.stripeUp).toBe(false);
+    expect(end.beltUp).toBe(false);
+    expect(a.s.profile!.bjj).toMatchObject({ belt: 'branca', stripes: 1, wins: 5 });
+  });
+
+  it('the fifth win starts the professor drill, and landing it unlocks the move', async () => {
+    const { a } = await setup();
+    a.s.profile!.bjj = { belt: 'branca', stripes: 0, wins: 4, unlocked: ['collar_tie'] };
     await start(a);
     await holdOut(a, 2, 0);
     const drill = a.last('drill')!;
     expect(drill.move.id).toBe('sleeve_grip');
-    expect(a.s.profile!.bjj).toMatchObject({ belt: 'branca', stripes: 1, wins: 3, pendingDrill: 'sleeve_grip' });
+    expect(a.s.profile!.bjj).toMatchObject({ belt: 'branca', stripes: 1, wins: 5, pendingDrill: 'sleeve_grip' });
     expect(a.s.bout).toBeDefined();
     await a.send({ t: 'bout', v: 1, action: 'intent', seq: drill.seq, intent: 'sleeve_grip' });
     advance(2000);
@@ -276,20 +290,21 @@ describe('Treino no tatame (server)', () => {
 
   it('a pending drill is still there on the next visit', async () => {
     const { a } = await setup();
-    a.s.profile!.bjj = { belt: 'branca', stripes: 1, wins: 3, unlocked: ['collar_tie'], pendingDrill: 'sleeve_grip' };
+    a.s.profile!.bjj = { belt: 'branca', stripes: 1, wins: 5, unlocked: ['collar_tie'], pendingDrill: 'sleeve_grip' };
     await a.send({ t: 'bout', v: 1, action: 'open' });
     expect(a.last('drill')!.move.id).toBe('sleeve_grip');
     expect(a.last('lobby')).toBeUndefined();
   });
 
-  it('fifteen wins put on the blue belt', async () => {
+  it('twenty wins put on the blue belt', async () => {
     const { world, a } = await setup();
-    a.s.profile!.bjj = { belt: 'branca', stripes: 4, wins: 14, unlocked: ['collar_tie', 'sleeve_grip', 'double_leg', 'body_lock', 'sprawl'] };
+    a.s.profile!.bjj = { belt: 'branca', stripes: 3, wins: 19, unlocked: ['collar_tie', 'sleeve_grip', 'double_leg', 'body_lock'] };
     await start(a);
     await holdOut(a, 2, 0);
     const drill = a.last('drill')!;
     expect(drill.move.id).toBe('scissor_sweep');
-    expect(a.s.profile!.bjj).toMatchObject({ belt: 'azul', stripes: 0, wins: 15, pendingDrill: 'scissor_sweep' });
+    expect(a.s.profile!.bjj).toMatchObject({ belt: 'azul', stripes: 0, wins: 20, pendingDrill: 'scissor_sweep' });
+    expect(a.s.profile!.bjj?.unlocked).toContain('sprawl');
     expect(a.inbox.some((m) => m.t === 'avatarUpdated' && m.avatar.belt === 'azul')).toBe(true);
     expect(world.publicAvatar(a.s).belt).toBe('azul');
   });
@@ -411,10 +426,10 @@ describe('Treino no tatame (server)', () => {
 
   it('a profile saved with only the old fields follows the win count', async () => {
     const { a } = await setup();
-    a.s.profile!.bjj = { belt: 'azul', stripes: 0, wins: 6, unlocked: [] };
+    a.s.profile!.bjj = { belt: 'azul', stripes: 0, wins: 10, unlocked: [] };
     await a.send({ t: 'bout', v: 1, action: 'open' });
     const lobby = a.last('lobby')!;
-    expect(lobby.bjj).toMatchObject({ belt: 'branca', stripes: 2, wins: 6 });
+    expect(lobby.bjj).toMatchObject({ belt: 'branca', stripes: 2, wins: 10 });
     expect(lobby.level).toBe(2);
     expect(lobby.partners.filter((p) => p.unlocked).map((p) => p.id)).toEqual(['mateus', 'felipe', 'helena']);
   });
