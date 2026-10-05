@@ -1,3 +1,4 @@
+import { normalizeFounderFlag } from '@tudobem/shared';
 import {
   freshMission,
   normalizeCartela,
@@ -160,6 +161,7 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
     p.parrotColor = p.parrotColor ?? null;
   }
   if (p.giOwned == null) p.giOwned = !!p.bjj;
+  if (p.founder === undefined) p.founder = normalizeFounderFlag(undefined);
   return p;
 }
 

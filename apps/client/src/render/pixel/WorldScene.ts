@@ -1637,6 +1637,7 @@ export class WorldScene extends Phaser.Scene {
           kind: id === selfId ? 'me' : 'player',
           show: cpuShow,
           ...(a.pub.academyGi ? { mark: CRESTS[a.pub.academyGi.stamp].glyph } : {}),
+          ...(a.pub.founder ? { founder: true } : {}),
         },
         bubbles,
       });

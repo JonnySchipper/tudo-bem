@@ -79,6 +79,7 @@ import {
   talkOpener,
   type TutorialStep,
   normalizeBjj,
+  normalizeFounderFlag,
   GI_ITEM_ID,
   GI_PRICE,
   PARROT_COLORS,
@@ -106,6 +107,7 @@ import { AcademyStore } from './academyStore.js';
 import { ProfileStore, today, todaySaoPaulo, toPrivate, type StoredProfile } from './store.js';
 import { CpuCrowd } from './ambiance.js';
 import { readEnv } from './env.js';
+import { founderGrantNewEnabled } from './founder.js';
 import { NPC_TICK_MS, NpcDirector } from './npcs.js';
 import { RecadoTracker, sceneItems } from './recados.js';
 import { CadernoTracker } from './caderno.js';
@@ -725,6 +727,7 @@ export class World {
       diary: [],
       film: 0,
       photos: [],
+      founder: founderGrantNewEnabled(),
     };
     this.store.add(p);
     if (this.accounts && s.accountId) this.linkAccount(s.accountId, p);
@@ -1105,6 +1108,7 @@ export class World {
       carry: s.carry,
       ...this.wornGi(s),
       nameplate: p.nameplate,
+      founder: normalizeFounderFlag(p.founder),
       x: cur.tile.x,
       y: cur.tile.y,
       dir: sitting && s.instance ? (this.grid(s.instance).seats.get(key(cur.tile.x, cur.tile.y)) ?? cur.dir) : cur.dir,
