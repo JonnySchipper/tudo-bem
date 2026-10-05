@@ -1,6 +1,7 @@
 import {
   BOUT_PROTOCOL_VERSION,
   INTRO_MS,
+  MAT_INTENT_REVEAL_MS,
   MAT_TURNS,
   MOVE_LABEL,
   PARTNERS,
@@ -65,6 +66,8 @@ export interface BoutSession {
   seq: number;
   offerAt: number;
   pickMs: number;
+  /** Wall time when the next player intent is actually on screen. 0 until the player has just moved. */
+  intentRevealAt: number;
   /** Moves the player chose themselves. A timed-out match pays nothing. */
   beats: number;
   drillMove: MatMoveId | null;
@@ -165,6 +168,7 @@ export class BoutEngine {
       seq: 0,
       offerAt: 0,
       pickMs: 0,
+      intentRevealAt: 0,
       beats: 0,
       drillMove: null,
       card: null,
@@ -228,10 +232,13 @@ export class BoutEngine {
       pickMs: b.pickMs,
     });
     const seq = b.seq;
+    // The intent message can sit in the client queue through the cartoons. Hold waits until the pick is visible.
+    const revealWait = Math.max(0, b.intentRevealAt - this.d.now());
+    b.intentRevealAt = 0;
     this.d.schedule(() => {
       const c = this.live(s, token);
       if (c && c.phase === 'intent' && c.seq === seq) this.intent(s, seq, 'hold', true);
-    }, b.pickMs + PICK_GRACE_MS);
+    }, revealWait + b.pickMs + PICK_GRACE_MS);
   }
 
   private intent(s: Session, seq: number, raw: string, auto = false) {
@@ -265,6 +272,7 @@ export class BoutEngine {
     const res = resolveMat(b.mat, actor, id, b.rng(), belt);
     if (!res.ok) return;
     b.mat = res.state;
+    if (actor === 'you' && !b.mat.over) b.intentRevealAt = this.d.now() + MAT_INTENT_REVEAL_MS;
     const holdMs = this.pause(res.from !== res.to || res.submission ? 900 : 700);
     s.send(resolveMsg(b, res, actor, timeout, holdMs, id));
     if (b.mat.over) {
@@ -288,6 +296,7 @@ export class BoutEngine {
       seq: ++this.seq,
       offerAt: this.d.now(),
       pickMs: 0,
+      intentRevealAt: 0,
       beats: 1,
       drillMove: move,
       card,

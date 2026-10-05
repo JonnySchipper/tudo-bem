@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   DEFAULT_APPEARANCE,
+  MAT_INTENT_REVEAL_MS,
   MAT_TURNS,
   ROLL_RV_LOSS,
   ROLL_RV_WIN,
@@ -112,7 +113,7 @@ describe('Treino no tatame (server)', () => {
     expect(lobby.partners.filter((p) => p.unlocked).map((p) => p.id)).toEqual(['mateus']);
     expect(lobby.level).toBe(0);
     expect(lobby.bjj.belt).toBe('branca');
-    expect(lobby.bjj.unlocked).toEqual(['collar_tie', 'armbar']);
+    expect(lobby.bjj.unlocked).toEqual(['collar_tie', 'double_leg', 'armbar']);
     expect(lobby.suggested).toBe('mateus');
     for (const p of lobby.partners) {
       expect(p.bio.pt.length).toBeGreaterThan(10);
@@ -147,8 +148,11 @@ describe('Treino no tatame (server)', () => {
     const hold = intent.intents.find((i) => i.id === 'hold')!;
     expect(collar.percent).toBe(70);
     expect(hold.percent).toBeUndefined();
+    expect(intent.intents.find((i) => i.id === 'double_leg')?.percent).toBe(45);
+    expect(intent.intents.some((i) => i.id === 'body_lock')).toBe(false);
     expect(intent.intents.some((i) => i.id === 'armbar')).toBe(false);
     expect(intent.owned?.find((i) => i.id === 'armbar')?.percent).toBe(18);
+    expect(intent.owned?.find((i) => i.id === 'double_leg')?.percent).toBe(45);
     expect(a.last('challenge')).toBeUndefined();
   });
 
@@ -222,7 +226,7 @@ describe('Treino no tatame (server)', () => {
     expect(end.word).toEqual({ pt: 'academia', en: 'gym' });
     expect(end.stripeUp).toBe(false);
     expect(a.s.profile!.coins).toBe(coins0 + end.rv);
-    expect(a.s.profile!.bjj).toMatchObject({ belt: 'branca', stripes: 0, wins: 1, unlocked: ['collar_tie', 'armbar'] });
+    expect(a.s.profile!.bjj).toMatchObject({ belt: 'branca', stripes: 0, wins: 1, unlocked: ['collar_tie', 'double_leg', 'armbar'] });
     expect(a.s.profile!.diary).toEqual(['diary.rua.academia']);
     expect(a.s.bout).toBeUndefined();
     await a.send({ t: 'bout', v: 1, action: 'open' });
@@ -257,7 +261,7 @@ describe('Treino no tatame (server)', () => {
     const end = a.last('end')!;
     expect(end.stripeUp).toBe(true);
     expect(end.word).toEqual({ pt: 'academia', en: 'gym' });
-    expect(a.s.profile!.bjj?.unlocked).toEqual(['collar_tie', 'armbar', 'sleeve_grip']);
+    expect(a.s.profile!.bjj?.unlocked).toEqual(['collar_tie', 'double_leg', 'armbar', 'sleeve_grip']);
     expect(a.s.profile!.bjj?.pendingDrill).toBeUndefined();
     expect(a.s.bout).toBeUndefined();
   });
@@ -310,6 +314,25 @@ describe('Treino no tatame (server)', () => {
     expect(a.bout().length).toBe(n0);
     await a.send({ t: 'bout', v: 1, action: 'intent', seq: intent.seq, intent: 'hold' });
     expect(a.last('resolve')).toBeTruthy();
+  });
+
+  it('a later pick waits out the cartoons and the think pause before Hold can fire', async () => {
+    const { a } = await setup();
+    await start(a);
+    advance(1000);
+    const first = a.last('intent')!;
+    await a.send({ t: 'bout', v: 1, action: 'intent', seq: first.seq, intent: 'collar_tie' });
+    advance(500);
+    const second = a.last('intent')!;
+    expect(second.seq).not.toBe(first.seq);
+    const timed = () => a.bout().filter((m) => m.phase === 'resolve' && m.yours.timeout);
+    expect(timed()).toHaveLength(0);
+    // The offer itself is already on the wire. The advertised pick is not, until the reveal finishes.
+    advance(second.pickMs + 1000);
+    expect(timed()).toHaveLength(0);
+    expect(a.last('intent')!.seq).toBe(second.seq);
+    advance(MAT_INTENT_REVEAL_MS);
+    expect(timed().length).toBeGreaterThan(0);
   });
 
   it('nobody picking a move is not stuck: Hold is played and pays nothing', async () => {

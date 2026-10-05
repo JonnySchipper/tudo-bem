@@ -14,6 +14,15 @@ export const MAT_TURNS = 10;
 export const PERCENT_CAP = 95;
 export const GRIP_BONUS = 10;
 
+/**
+ * How long the client holds a move's cartoon, and how long it then waits while the opponent decides.
+ * The next pick is not on screen until your cartoon, that pause, and their cartoon have all played.
+ * The server pick clock waits the same span, or Hold fires while the cartoons are still up.
+ */
+export const MAT_CARTOON_MS = 2_000;
+export const MAT_THINK_MS = 3_200;
+export const MAT_INTENT_REVEAL_MS = MAT_CARTOON_MS + MAT_THINK_MS + MAT_CARTOON_MS;
+
 export const BELT_ORDER = ['branca', 'azul', 'roxa', 'marrom', 'preta'] as const satisfies readonly Belt[];
 
 export type MatMoveId =
@@ -116,14 +125,14 @@ const POINTS: Partial<Record<MatMoveId, number>> = {
 
 /**
  * One skill per award, in order. White belt is the belt being put on, not a win.
- * Day one is a grip and a weak submission. Later awards fill the track, so a higher belt
- * is choosing among several takedowns or several submissions.
+ * Day one is a grip, Queda, and a weak submission, so a new player can leave standing.
+ * Later awards fill the track, so a higher belt is choosing among several takedowns or several submissions.
  */
 export const UNLOCK_ORDER: readonly { belt: Belt; stripes: number; move: MatMoveId }[] = [
   { belt: 'branca', stripes: 0, move: 'collar_tie' },
+  { belt: 'branca', stripes: 0, move: 'double_leg' },
   { belt: 'branca', stripes: 0, move: 'armbar' },
   { belt: 'branca', stripes: 1, move: 'sleeve_grip' },
-  { belt: 'branca', stripes: 2, move: 'double_leg' },
   { belt: 'branca', stripes: 3, move: 'body_lock' },
   { belt: 'branca', stripes: 4, move: 'sprawl' },
   { belt: 'azul', stripes: 0, move: 'scissor_sweep' },

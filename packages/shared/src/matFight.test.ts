@@ -211,9 +211,9 @@ describe('stripe unlock order', () => {
   it('teaches one move per award, in order, and then stops', () => {
     expect(UNLOCK_ORDER.map((u) => u.move)).toEqual([
       'collar_tie',
+      'double_leg',
       'armbar',
       'sleeve_grip',
-      'double_leg',
       'body_lock',
       'sprawl',
       'scissor_sweep',
@@ -224,6 +224,7 @@ describe('stripe unlock order', () => {
       'rnc',
     ]);
     expect(moveTaughtAt('branca', 0)).toBe('collar_tie');
+    expect(moveTaughtAt('branca', 2)).toBeNull();
     expect(moveTaughtAt('roxa', 1)).toBeNull();
     expect(moveTaughtAt('roxa', 0)).toBe('rnc');
     expect(moveTaughtAt('marrom', 0)).toBeNull();
@@ -232,20 +233,20 @@ describe('stripe unlock order', () => {
 
   it('a win stores the stripe on the account and holds the new move for the drill', () => {
     let p = normalizeBjj();
-    expect(p.unlocked).toEqual(['collar_tie', 'armbar']);
+    expect(p.unlocked).toEqual(['collar_tie', 'double_leg', 'armbar']);
     p = recordWin(p).progress;
     p = recordWin(p).progress;
     const third = recordWin(p);
     expect(third.stripeUp).toBe(true);
     expect(third.move).toBe('sleeve_grip');
     expect(third.progress.pendingDrill).toBe('sleeve_grip');
-    expect(third.progress.unlocked).toEqual(['collar_tie', 'armbar']);
+    expect(third.progress.unlocked).toEqual(['collar_tie', 'double_leg', 'armbar']);
     expect(third.progress).toMatchObject({ belt: 'branca', stripes: 1, wins: 3 });
     const drilled = completeDrill(third.progress, 'sleeve_grip');
-    expect(drilled.unlocked).toEqual(['collar_tie', 'armbar', 'sleeve_grip']);
+    expect(drilled.unlocked).toEqual(['collar_tie', 'double_leg', 'armbar', 'sleeve_grip']);
     expect(drilled.pendingDrill).toBeUndefined();
     const again = completeDrill(drilled, 'sleeve_grip');
-    expect(again.unlocked).toEqual(['collar_tie', 'armbar', 'sleeve_grip']);
+    expect(again.unlocked).toEqual(['collar_tie', 'double_leg', 'armbar', 'sleeve_grip']);
   });
 
   it('walks the belts: two takedowns by white, a second submission at blue, the choke at purple', () => {
@@ -259,6 +260,9 @@ describe('stripe unlock order', () => {
       }
       return { belt: p.belt, stripes: p.stripes, move, unlocked: p.unlocked };
     };
+    expect(at(0).unlocked).toEqual(['collar_tie', 'double_leg', 'armbar']);
+    expect(at(6)).toMatchObject({ belt: 'branca', stripes: 2, move: null });
+    expect(at(9)).toMatchObject({ belt: 'branca', stripes: 3, move: 'body_lock' });
     expect(at(12)).toMatchObject({ belt: 'branca', stripes: 4, move: 'sprawl' });
     expect(at(15)).toMatchObject({ belt: 'azul', stripes: 0, move: 'scissor_sweep' });
     expect(at(39).unlocked).toEqual(expect.arrayContaining(['armbar', 'americana']));
@@ -273,7 +277,7 @@ describe('stripe unlock order', () => {
 describe('cross-rank cap', () => {
   it('a brown belt against a white belt only gets the white pool, at brown percents', () => {
     const moves = fightMoves({ belt: 'marrom', unlocked: rankPool('marrom'), opponentBelt: 'branca' });
-    expect(moves).toEqual(['collar_tie', 'armbar', 'sleeve_grip', 'double_leg', 'body_lock', 'sprawl']);
+    expect(moves).toEqual(['collar_tie', 'double_leg', 'armbar', 'sleeve_grip', 'body_lock', 'sprawl']);
     expect(movePercent('double_leg', 'marrom')).toBe(74);
     expect(movePercent('double_leg', 'branca')).toBe(45);
     expect(movePercent('armbar', 'marrom')).toBe(55);
