@@ -1681,11 +1681,11 @@ body.bout-on .toasts {
   }
 }
 
-/* ---------------------------------------------------------------- gag bar (five tracks + Hold) */
+/* ---------------------------------------------------------------- gag bar (six tracks + Hold) */
 
 .gag-bar {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 4px;
 }
 
@@ -1712,8 +1712,9 @@ body.bout-on .toasts {
 .bout-intent.gag-move .pt {
   font-family: var(--font-pixel);
   font-weight: 400;
-  font-size: 13px;
+  font-size: 12px;
   line-height: 1.05;
+  text-align: center;
 }
 
 .gag-track .en,
