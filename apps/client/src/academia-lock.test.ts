@@ -24,7 +24,8 @@ const FORBIDDEN: { name: string; re: RegExp }[] = [
   { name: 'Mount (label)', re: /["'`]Mount["'`]|\bMount ·/ },
   { name: 'Montada (label)', re: /["'`>]\s*Montada\b|Montada ·/ },
   { name: 'Costas (label)', re: /["'`>]\s*Costas\b|Costas ·/ },
-  { name: 'Finalização / Submission', re: /Finaliza[cç]|Submission/ },
+  // The gag track is the plural "Submissions". Singular Submission and Finalização stay forbidden.
+  { name: 'Finalização / Submission', re: /Finaliza[cç]|Submission(?!s)/ },
 ];
 
 describe('Academia #49 lock: no position or submission names in the client bundle', () => {

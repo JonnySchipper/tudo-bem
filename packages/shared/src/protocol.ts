@@ -327,6 +327,8 @@ export type BoutServerMsg =
       intent: string;
       /** Whose move just resolved. */
       actor?: 'you' | 'partner';
+      /** The move that just played, so the mat can run that gag's cartoon before the pose changes. */
+      move?: string;
       /** Placeholder tone. Missing audio must not stop the match. */
       sound?: 'hit' | 'whoosh' | 'mount' | 'sub' | 'none';
       say?: Bilingual;

@@ -8,13 +8,14 @@ import {
   MAT_TURNS,
   cpuLook,
   type BjjProgress,
-  type BoutIntentOut,
   type BoutPartnerCard,
   type BoutServerMsg,
   type BoutSnapshot,
   type ChallengeView,
   type ClientMsg,
   INTENTS,
+  isMatMove,
+  MOVE_LABEL,
   type PartnerId,
 } from '@tudobem/shared';
 import { game } from '../state';
@@ -24,6 +25,7 @@ import { ambience } from '../ambience';
 import { readShowEnglish, writeShowEnglish } from './dialogueLogic';
 import { beltChip } from './beltChip';
 import { boutFeed } from '../render/pixel/boutFeed';
+import { CARTOON_MS, GAG_TRACKS, cartoonFor } from '../render/pixel/gagCartoon';
 import { mountCharPreview } from '../render/pixel/charPreview';
 import { RISK_LABEL, callOf, cuesForEnd, cuesForFinishEnd, cuesForResolve } from './boutLogic';
 
@@ -61,6 +63,14 @@ export class BoutUI {
   private closedFlag = false;
   private lastEndWinner: Msg<'end'>['winner'] = 'none';
   private canRematchPosition = false;
+  /** Which gag track is open. Null until the player taps one. */
+  private gagTrack: string | null = null;
+  /** performance.now() until the current move cartoon finishes. Later messages wait. */
+  private cartoonUntil = 0;
+  private cartoonTimer = 0;
+  private pendingPose: BoutSnapshot | null = null;
+  private pendingSlap = false;
+  private queue: BoutServerMsg[] = [];
 
   constructor(private readonly a: BoutActions) {
     this.top = h('div', { class: 'bout-top', id: 'bout-top', 'aria-live': 'off' });
@@ -92,8 +102,32 @@ export class BoutUI {
     const t = e.target as HTMLElement | null;
     if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
     const n = Number(e.key);
-    if (n >= 1 && n <= 4) {
-      const els = this.body.querySelectorAll<HTMLButtonElement>(this.phase === 'intent' ? '.bout-intent:not(.finalizar)' : this.phase === 'challenge' ? '.bout-opt' : '.bout-card-partner:not(.locked)');
+    if ((e.key === 'h' || e.key === 'H') && this.phase === 'intent') {
+      const hold = this.body.querySelector<HTMLButtonElement>('.gag-hold:not([disabled])');
+      if (hold) {
+        e.preventDefault();
+        hold.click();
+      }
+      return;
+    }
+    if (n >= 1 && n <= 5 && this.phase === 'intent' && !this.gagTrack) {
+      const track = this.body.querySelectorAll<HTMLButtonElement>('.gag-track')[n - 1];
+      if (track) {
+        e.preventDefault();
+        track.click();
+      }
+      return;
+    }
+    if (n >= 1 && n <= 9 && this.phase === 'intent' && this.gagTrack) {
+      const move = [...this.body.querySelectorAll<HTMLButtonElement>('.gag-move')].filter((el) => !el.hidden && !el.disabled)[n - 1];
+      if (move) {
+        e.preventDefault();
+        move.click();
+      }
+      return;
+    }
+    if (n >= 1 && n <= 4 && this.phase !== 'intent') {
+      const els = this.body.querySelectorAll<HTMLButtonElement>(this.phase === 'challenge' ? '.bout-opt' : '.bout-card-partner:not(.locked)');
       const el = els[n - 1];
       if (el && !el.disabled) {
         e.preventDefault();
@@ -120,6 +154,10 @@ export class BoutUI {
   destroy(): void {
     if (this.closedFlag) return;
     this.closedFlag = true;
+    window.clearTimeout(this.cartoonTimer);
+    this.cartoonUntil = 0;
+    this.queue = [];
+    boutFeed.holding = false;
     ambience.setScene(null);
     cancelAnimationFrame(this.raf);
     this.ro?.disconnect();
@@ -160,6 +198,20 @@ export class BoutUI {
   // ------------------------------------------------------------------ messages
   handle(m: BoutServerMsg): void {
     if (this.closedFlag) return;
+    if (m.phase === 'lobby' || m.phase === 'intro') {
+      this.cancelCartoon();
+      this.queue = [];
+      this.dispatch(m);
+      return;
+    }
+    if (this.cartoonUntil > performance.now()) {
+      this.queue.push(m);
+      return;
+    }
+    this.dispatch(m);
+  }
+
+  private dispatch(m: BoutServerMsg): void {
     switch (m.phase) {
       case 'lobby':
         return this.lobby(m);
@@ -292,9 +344,79 @@ export class BoutUI {
     this.setPhase('intent');
     this.seq = m.seq;
     this.locked = false;
+    this.gagTrack = null;
     this.setSnap(m.st);
     this.startTimer(m.pickMs);
-    const chips = m.intents.map((i, k) => this.intentChip(i, () => this.pickIntent(m.seq, i.id), k + 1));
+    if (m.finish) this.sfx('gasp');
+    this.paintIntent(m);
+  }
+
+  /** Five tracks along the bottom. Locked moves stay visible. Hold is its own button. */
+  private paintIntent(m: Msg<'intent'>): void {
+    const offered = new Map(m.intents.map((i) => [i.id, i]));
+    const tracks = GAG_TRACKS.map((track) => {
+      const open = this.gagTrack === track.id;
+      const ready = track.moves.some((id) => offered.has(id));
+      return h(
+        'button',
+        {
+          class: `gag-track${open ? ' is-open' : ''}`,
+          type: 'button',
+          'data-gag-track': track.id,
+          'data-ready': ready ? '1' : '0',
+          'aria-pressed': String(open),
+          onclick: () => this.toggleTrack(m, track.id),
+        },
+        h('b', { class: 'pt' }, track.pt),
+        en(track.en),
+      );
+    });
+    const hold = offered.get('hold');
+    const holdBtn = h(
+      'button',
+      {
+        class: 'bout-intent gag-hold',
+        type: 'button',
+        'data-intent': 'hold',
+        'data-ready': hold ? '1' : '0',
+        disabled: !hold,
+        'aria-label': MOVE_LABEL.hold.pt,
+        onclick: () => {
+          if (hold) this.pickIntent(m.seq, 'hold');
+        },
+      },
+      h('b', { class: 'pt' }, MOVE_LABEL.hold.pt),
+      en(MOVE_LABEL.hold.en),
+    );
+    const moves = GAG_TRACKS.flatMap((track) =>
+      track.moves.map((id, k) => {
+        const offer = offered.get(id);
+        const open = this.gagTrack === track.id;
+        const label = MOVE_LABEL[id];
+        const pct = offer?.percent != null ? h('span', { class: 'bout-pct' }, `${offer.percent}%`) : null;
+        return h(
+          'button',
+          {
+            class: 'bout-intent gag-move',
+            type: 'button',
+            'data-intent': id,
+            'data-track': track.id,
+            'data-k': String(k + 1),
+            'data-locked': offer ? '0' : '1',
+            'data-percent': offer?.percent == null ? '' : String(offer.percent),
+            hidden: !open,
+            disabled: !offer,
+            'aria-label': offer?.percent == null ? label.pt : `${label.pt} ${offer.percent}%`,
+            onclick: () => {
+              if (offer) this.pickIntent(m.seq, id);
+            },
+          },
+          h('b', { class: 'pt' }, label.pt),
+          pct,
+          en(label.en),
+        );
+      }),
+    );
     const fin = m.finish
       ? h(
           'button',
@@ -303,31 +425,24 @@ export class BoutUI {
           en('Go for the finish'),
         )
       : null;
-    if (m.finish) {
-      this.sfx('gasp');
-    }
     this.body.replaceChildren(
       h(
         'div',
         { class: 'bout-intents', id: 'bout-intents', 'data-finish': String(m.finish), 'data-seq': String(m.seq) },
         h('div', { class: 'bout-ask' }, h('span', { class: 'pt' }, 'O que você faz?'), this.quitBtn()),
         fin,
-        h('div', { class: 'bout-chips' }, ...chips),
+        h('div', { class: 'gag-bar', id: 'gag-bar' }, ...tracks, holdBtn),
+        h('div', { class: 'gag-moves', id: 'gag-moves' }, ...moves),
         this.timerBar(),
       ),
     );
     this.measure();
   }
 
-  private intentChip(i: BoutIntentOut, pick: () => void, n: number): HTMLElement {
-    const pct = i.percent != null ? h('span', { class: 'bout-pct' }, `${i.percent}%`) : null;
-    return h(
-      'button',
-      { class: 'bout-intent risk-1', type: 'button', 'data-intent': i.id, 'data-k': String(n), 'data-percent': i.percent == null ? '' : String(i.percent), 'aria-label': i.percent == null ? i.pt : `${i.pt} ${i.percent}%`, onclick: pick },
-      h('b', { class: 'pt' }, i.pt),
-      pct,
-      en(i.en),
-    );
+  private toggleTrack(m: Msg<'intent'>, id: string): void {
+    if (this.locked || this.phase !== 'intent') return;
+    this.gagTrack = this.gagTrack === id ? null : id;
+    this.paintIntent(m);
   }
 
   private pickIntent(seq: number, intent: string): void {
@@ -488,26 +603,99 @@ export class BoutUI {
     this.setPhase('resolve');
     this.locked = true;
     this.stopTimer();
-    this.setSnap(m.st);
     const picked = this.body.querySelector('.picked');
     const landed = m.actor === 'partner' ? m.partner.correct : m.yours.correct;
     picked?.classList.add(landed ? 'right' : 'wrong');
     const call = m.say ?? callOf(m);
     const who = m.actor === 'partner' ? this.partnerName : (game.profile?.name ?? 'Você');
+    const from = this.snap;
+    const fromPos = from?.position ?? m.st.position;
+    const move = m.move && isMatMove(m.move) ? m.move : 'hold';
+    const cartoon = cartoonFor(move, landed, fromPos, m.st.position);
+    this.pendingPose = m.st;
+    this.pendingSlap = !!from && (from.position !== m.st.position || from.ahead !== m.st.ahead);
+    this.cartoonUntil = performance.now() + CARTOON_MS;
+    boutFeed.holding = true;
+    boutFeed.push({
+      t: 'cartoon',
+      move,
+      hit: landed,
+      from: fromPos,
+      to: m.st.position,
+      aheadFrom: from?.ahead ?? null,
+      aheadTo: m.st.ahead,
+      ms: CARTOON_MS,
+    });
+    this.markCartoon(move, cartoon.read);
     this.body.replaceChildren(
       h(
         'div',
-        { class: `bout-resolve ${landed ? 'right' : 'wrong'}`, id: 'bout-resolve', 'data-correct': String(landed), 'data-sound': m.sound ?? 'none' },
+        {
+          class: `bout-resolve ${landed ? 'right' : 'wrong'}`,
+          id: 'bout-resolve',
+          'data-correct': String(landed),
+          'data-sound': m.sound ?? 'none',
+          'data-cartoon': move,
+          'data-read': cartoon.read,
+        },
         h('b', { class: 'bout-banner' }, call?.pt ?? ''),
         call ? en(call.en) : null,
         h('span', { class: 'bout-who' }, who),
       ),
     );
-    for (const c of cuesForResolve(m)) boutFeed.push(c);
+    for (const c of cuesForResolve(m)) {
+      if (c.t === 'transition' || c.t === 'hit' || c.t === 'miss') continue;
+      boutFeed.push(c);
+    }
     this.playMatSound(m.sound);
-    if (m.events.some((e) => e.type === 'transition')) this.sfx('slap');
     if (call) this.say(call.pt);
+    window.clearTimeout(this.cartoonTimer);
+    this.cartoonTimer = window.setTimeout(() => this.finishCartoon(), CARTOON_MS);
     this.measure();
+  }
+
+  private markCartoon(move: string, read: string): void {
+    this.root.dataset.cartoon = move;
+    this.panel.dataset.cartoon = move;
+    this.root.dataset.read = read;
+    this.panel.dataset.read = read;
+  }
+
+  private clearCartoonMark(): void {
+    delete this.root.dataset.cartoon;
+    delete this.panel.dataset.cartoon;
+    delete this.root.dataset.read;
+    delete this.panel.dataset.read;
+  }
+
+  /** The pose changes only after the cartoon. A queued intent or end card waits for that too. */
+  private finishCartoon(): void {
+    if (this.closedFlag) return;
+    this.cartoonUntil = 0;
+    const pose = this.pendingPose;
+    this.pendingPose = null;
+    if (pose) this.setSnap(pose);
+    if (this.pendingSlap) this.sfx('slap');
+    this.pendingSlap = false;
+    this.clearCartoonMark();
+    boutFeed.holding = false;
+    this.flush();
+  }
+
+  private cancelCartoon(): void {
+    window.clearTimeout(this.cartoonTimer);
+    this.cartoonUntil = 0;
+    this.pendingPose = null;
+    this.pendingSlap = false;
+    this.clearCartoonMark();
+    boutFeed.holding = false;
+  }
+
+  private flush(): void {
+    while (this.queue.length && this.cartoonUntil <= performance.now()) {
+      const next = this.queue.shift();
+      if (next) this.dispatch(next);
+    }
   }
 
   /** Placeholder tones. A failure here is swallowed so the match keeps going. */

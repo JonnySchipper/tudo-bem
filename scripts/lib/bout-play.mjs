@@ -105,15 +105,20 @@ export async function playBout(page, { right = () => true, pick = 'bold', maxMs 
       const choice = await page
         .evaluate((how) => {
           const rows = [...document.querySelectorAll('#bout-intents .bout-intent')]
-            .map((e) => ({ id: e.getAttribute('data-intent') || '', percent: Number(e.getAttribute('data-percent') || '0') }))
-            .filter((r) => r.id && r.id !== 'finalizar');
-          if (!rows.length) return '';
-          if (how === 'safe') return (rows.find((r) => r.id === 'hold') ?? rows[0]).id;
+            .map((e) => ({
+              id: e.getAttribute('data-intent') || '',
+              percent: Number(e.getAttribute('data-percent') || '0'),
+              locked: e.getAttribute('data-locked') === '1' || e.hasAttribute('disabled'),
+              track: e.getAttribute('data-track') || '',
+            }))
+            .filter((r) => r.id && r.id !== 'finalizar' && !r.locked);
+          if (!rows.length) return null;
+          if (how === 'safe') return rows.find((r) => r.id === 'hold') ?? rows[0];
           const go = rows.filter((r) => r.id !== 'hold').sort((a, b) => b.percent - a.percent);
-          return (go[0] ?? rows[0]).id;
+          return go[0] ?? rows[0];
         }, pick)
-        .catch(() => '');
-      if (!choice) {
+        .catch(() => null);
+      if (!choice?.id) {
         await sleep(60);
         continue;
       }
@@ -121,7 +126,8 @@ export async function playBout(page, { right = () => true, pick = 'bold', maxMs 
       if (onPhase) await onPhase(st.phase, page);
       await page.waitForTimeout(200);
       try {
-        await page.click(`#bout-intents .bout-intent[data-intent="${choice}"]`, { timeout: 5000 });
+        if (choice.track) await page.click(`#gag-bar [data-gag-track="${choice.track}"]`, { timeout: 5000 });
+        await page.click(`#bout-intents .bout-intent[data-intent="${choice.id}"]`, { timeout: 5000 });
       } catch {
         handled.delete(key);
         await sleep(60);

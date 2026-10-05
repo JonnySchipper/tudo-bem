@@ -1680,3 +1680,92 @@ body.bout-on .toasts {
     font-size: 15px;
   }
 }
+
+/* ---------------------------------------------------------------- gag bar (five tracks + Hold) */
+
+.gag-bar {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.gag-track,
+.bout-intent.gag-hold {
+  min-height: 42px;
+  padding: 3px 2px;
+  gap: 0;
+  box-shadow: 0 2px 0 rgba(20, 16, 26, 0.3);
+}
+
+.gag-track {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  border: 3px solid var(--bout-ink);
+  background: #fff;
+  color: var(--bout-ink);
+  cursor: pointer;
+}
+
+.gag-track .pt,
+.bout-intent.gag-hold .pt,
+.bout-intent.gag-move .pt {
+  font-family: var(--font-pixel);
+  font-weight: 400;
+  font-size: 13px;
+  line-height: 1.05;
+}
+
+.gag-track .en,
+.bout-intent.gag-hold .en,
+.bout-intent.gag-move .en {
+  font-size: 9px;
+}
+
+.gag-track.is-open,
+.gag-track:focus-visible {
+  background: var(--bout-gold);
+}
+
+.gag-track[data-ready='0'],
+.bout-intent.gag-move[data-locked='1'],
+.bout-intent.gag-hold[data-ready='0'] {
+  opacity: 0.42;
+}
+
+.gag-moves {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.gag-moves:not(:has(.gag-move:not([hidden]))) {
+  display: none;
+}
+
+.bout-intent.gag-move {
+  min-height: 48px;
+  padding: 4px;
+}
+
+.bout-intent.gag-move[hidden] {
+  display: none;
+}
+
+.bout-pct {
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  line-height: 1;
+}
+
+@media (max-width: 900px) {
+  .bout-panel:has(.gag-bar) {
+    max-height: 48vh;
+    overflow-y: auto;
+  }
+  .gag-track .pt,
+  .bout-intent.gag-hold .pt,
+  .bout-intent.gag-move .pt {
+    font-size: 11px;
+  }
+}

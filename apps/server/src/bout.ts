@@ -257,7 +257,7 @@ export class BoutEngine {
     if (!res.ok) return;
     b.mat = res.state;
     const holdMs = this.pause(res.from !== res.to || res.submission ? 900 : 700);
-    s.send(resolveMsg(b, res, actor, timeout, holdMs));
+    s.send(resolveMsg(b, res, actor, timeout, holdMs, id));
     if (b.mat.over) {
       this.d.schedule(() => this.finish(s, b), holdMs);
       return;
@@ -309,7 +309,7 @@ export class BoutEngine {
     b.phase = 'over';
     const landing = resolveMat(b.mat, 'you', move, 0, prog.belt, true);
     const card = b.card;
-    s.send(resolveMsg(b, landing, 'you', false, 700));
+    s.send(resolveMsg(b, landing, 'you', false, 700, move));
     this.d.schedule(() => {
       this.clear(s);
       this.sendEnd(s, {
@@ -455,7 +455,7 @@ export class BoutEngine {
   }
 }
 
-function resolveMsg(b: BoutSession, res: MatResult, actor: MatSide, timeout: boolean, holdMs: number): Extract<BoutServerMsg, { phase: 'resolve' }> {
+function resolveMsg(b: BoutSession, res: MatResult, actor: MatSide, timeout: boolean, holdMs: number, move: MatMoveId): Extract<BoutServerMsg, { phase: 'resolve' }> {
   const events: ExchangeEvent[] = [];
   if (res.points > 0) {
     const signal = signalForPoints(res.points);
@@ -472,6 +472,7 @@ function resolveMsg(b: BoutSession, res: MatResult, actor: MatSide, timeout: boo
     st: snap(res.state),
     intent: res.line.en,
     actor: actor === 'you' ? 'you' : 'partner',
+    move,
     sound: res.sound,
     say: res.line,
     yours: { correct: res.success, speed: 1, fast: false, timeout: actor === 'you' && timeout },
