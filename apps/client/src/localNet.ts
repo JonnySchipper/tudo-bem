@@ -5,11 +5,13 @@
  */
 import type { ClientMsg, ServerMsg } from '@tudobem/shared';
 import { World, type Session } from '@tudobem/server/world';
+import { AcademyStore, type AcademyPersistence } from '@tudobem/server/academy';
 import { ProfileStore, type PersistenceAdapter, type StoredProfile } from '@tudobem/server/store';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, MemoryModerationQueue, PhrasebookGloss } from '@tudobem/server/services';
 import type { NetLike, NetStatus } from './net';
 
 const KEY = 'tb_solo_profiles_v1';
+const ACADEMY_KEY = 'tb_solo_academies_v1';
 
 const localAdapter: PersistenceAdapter = {
   describe: () => 'localStorage',
@@ -21,6 +23,19 @@ const localAdapter: PersistenceAdapter = {
     }
   },
   save: (rows) => localStorage.setItem(KEY, JSON.stringify(rows)),
+};
+
+const academyAdapter: AcademyPersistence = {
+  describe: () => 'localStorage academies',
+  load: () => {
+    try {
+      const raw = JSON.parse(localStorage.getItem(ACADEMY_KEY) ?? '[]') as unknown;
+      return Array.isArray(raw) ? raw : [];
+    } catch {
+      return [];
+    }
+  },
+  save: (rows) => localStorage.setItem(ACADEMY_KEY, JSON.stringify(rows)),
 };
 
 type Handler = (m: ServerMsg) => void;
@@ -50,6 +65,7 @@ export class LocalNet implements NetLike {
       boutPace: Number(new URLSearchParams(location.search).get('boutpace')) || undefined,
       // test hook, the solo twin of TB_TEST_CLOCK_OFFSET_MIN: `?tbclockmin=<real minutes>` shifts the game clock (schedules, greetings, the sky)
       clockOffsetMs: Number(new URLSearchParams(location.search).get('tbclockmin') ?? 0) * 60_000 || 0,
+      academies: new AcademyStore(academyAdapter),
     });
     // JSON round-trip mirrors the wire so client state never aliases server state.
     this.session = this.world.connect(

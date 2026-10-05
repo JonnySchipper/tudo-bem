@@ -51,7 +51,7 @@ export type PropKind =
   | 'feira'
   | 'hortifruti';
 
-export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi' | 'escola';
+export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi' | 'escola' | 'academy_elevator';
 
 export interface PropDef {
   id: string;
@@ -983,6 +983,18 @@ const academia: RoomDef = {
     // One continuous arquibancada along the back edge of the mat: spectators face the tatame and the camera.
     { id: 'arquibancada', kind: 'banco_espectador', x: 1, y: 0, w: 4, blocks: false, seat: 'SW', label: { pt: 'Arquibancada', en: 'Bleachers' } },
     { id: 'vestiario', kind: 'vestiario', x: 0, y: 7, blocks: true, action: 'buy_gi', interact: { x: 1, y: 7 }, label: { pt: 'Kimono · comece aqui', en: 'Gi · start here' } },
+    // Elevator directory (player academies). A picture on the floor, not a second academia door. needs_br: true
+    {
+      id: 'elevador',
+      kind: 'quadro_foto',
+      x: 4,
+      y: 7,
+      blocks: true,
+      action: 'academy_elevator',
+      // Stand east of the panel. {4,6} is an ambiance idle spot and must stay free.
+      interact: { x: 5, y: 7 },
+      label: { pt: 'Elevador · academias', en: 'Elevator · academies' },
+    },
     // V3 dressing (decoration only, nothing blocks or seats): a bench along the south wall and a water cooler in the corner
     { id: 'banco_gym', kind: 'cenario', x: 5, y: 8, w: 2, h: 1, art: 'props/banco_gym', blocks: false },
     { id: 'bebedouro', kind: 'cenario', x: 10, y: 8, art: 'props/bebedouro', blocks: false },
@@ -1040,6 +1052,53 @@ const academia: RoomDef = {
       ],
     },
   ],
+  private: false,
+};
+
+/**
+ * Empty player-academy floor. One instance per academy (`andar@<id>`), reached from the elevator
+ * in Academia do Bairro. No street door, no professor, no roll queue. Guests may sit and watch.
+ * needs_br: true (the room name and the exit label)
+ */
+const andar: RoomDef = {
+  id: 'andar',
+  name: 'Andar',
+  gloss: 'Academy floor',
+  cols: 9,
+  rows: 7,
+  floor: ['jjjjjjjjj', 'jjjjjjjjj', 'jjjjjjjjj', 'jjjjjjjjj', 'jjjjjjjjj', 'jjjjjjjjj', 'jjjjjjjjj'],
+  wallHeight: 148,
+  wallColor: '#F5E6D3',
+  wallTrim: '#8B5E3C',
+  lighting: 'manha',
+  spawn: { x: 1, y: 5 },
+  props: [
+    { id: 'andar_tatame', kind: 'tatame', x: 2, y: 1, w: 5, h: 3, blocks: false, label: { pt: 'Tatame vazio', en: 'Empty mat' } },
+    { id: 'andar_brasao', kind: 'quadro_foto', x: 6, y: 0, blocks: true, label: { pt: 'Brasão da academia', en: 'Academy crest' } },
+    // Width 4 matches the sliced bleacher art (banco_espectador_*_of_4). Crest sits clear of the seats.
+    { id: 'andar_arquibancada', kind: 'banco_espectador', x: 1, y: 0, w: 4, blocks: false, seat: 'SW', label: { pt: 'Arquibancada', en: 'Bleachers' } },
+  ],
+  walls: [
+    { kind: 'placa', wall: 'right', from: 1, to: 5, text: 'ANDAR' },
+    { kind: 'janela', wall: 'right', from: 5, to: 8 },
+  ],
+  pixelWalls: [
+    { kind: 'placa', wall: 'right', from: 1, to: 5, text: 'ANDAR' },
+    { kind: 'janela', wall: 'right', from: 5, to: 8 },
+  ],
+  portals: [
+    {
+      id: 'andar_academia',
+      x: 0,
+      y: 5,
+      wall: 'left',
+      to: 'academia',
+      arrive: { x: 5, y: 7 },
+      arriveDir: 'SE',
+      label: { pt: 'Elevador · Academia do Bairro', en: 'Elevator · Neighborhood Academy' },
+    },
+  ],
+  npcs: [],
   private: false,
 };
 
@@ -1116,7 +1175,7 @@ const escola: RoomDef = {
   private: false,
 };
 
-export const ROOMS: Record<RoomId, RoomDef> = { praca, rua, rua_leste: ruaLeste, feira, padaria, kitnet, academia, escola };
+export const ROOMS: Record<RoomId, RoomDef> = { praca, rua, rua_leste: ruaLeste, feira, padaria, kitnet, academia, escola, andar };
 export const ROOM_IDS = Object.keys(ROOMS) as RoomId[];
 
 export const isRoomId = (v: unknown): v is RoomId => typeof v === 'string' && v in ROOMS;

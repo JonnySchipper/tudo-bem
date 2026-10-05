@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { atomicWriteFileSync } from './atomicWrite.js';
+import type { PlayerAcademy } from '@tudobem/shared';
+import type { AcademyPersistence } from './academyStore.js';
 import type { PersistenceAdapter, StoredProfile } from './store.js';
 
 type Photos = NonNullable<StoredProfile['photos']>;
@@ -47,6 +49,19 @@ export function fileAdapter(dataDir: string): PersistenceAdapter {
         atomicWriteFileSync(photoFile, JSON.stringify(all));
       }
       atomicWriteFileSync(file, JSON.stringify(rows, (k, v) => (k === 'photos' ? undefined : v)));
+    },
+  };
+}
+
+/** Player academies. One JSON array beside the profiles. */
+export function academyFileAdapter(dataDir: string): AcademyPersistence {
+  const file = path.join(dataDir, 'academies.json');
+  return {
+    describe: () => file,
+    load: () => (fs.existsSync(file) ? (JSON.parse(fs.readFileSync(file, 'utf8')) as unknown[]) : []),
+    save: (rows: PlayerAcademy[]) => {
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      atomicWriteFileSync(file, JSON.stringify(rows));
     },
   };
 }

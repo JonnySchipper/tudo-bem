@@ -17,6 +17,7 @@ import type { SafetyAction } from './safety.js';
 import type { NpcId } from './rooms.js';
 import type { ConversaGrade, ConversaMeter, ConversaScores, ConversaSubject } from './conversa.js';
 import type { BjjPositionId, BjjProgress, BoutReason, BoutWinner, Belt, PartnerId } from './academia.js';
+import type { AcademyCard, CrestId, GiColorId, GiStampId } from './playerAcademy.js';
 import type { BoutAnswer, ChallengeView } from './challenges.js';
 import type { ExchangeEvent, IntentId, RefSignal, Score } from './bout.js';
 import type { RecadoActiveView, RecadoOfferView } from './recados.js';
@@ -121,6 +122,17 @@ export type ClientMsg =
   | { t: 'admin'; action: 'money'; amount: number }
   | { t: 'admin'; action: 'clock'; minute: number }
   | { t: 'admin'; action: 'weather'; weather: Weather | null }
+  /**
+   * Player academies (slice 1). The elevator in Academia do Bairro asks for `directory`.
+   * `found` takes a first-come name (brown belt). `visit` loads the empty floor without joining.
+   * `join` / `leave` are a free membership flag (no dues). `look` sets the crest and gi (owner).
+   */
+  | { t: 'academy'; action: 'directory' }
+  | { t: 'academy'; action: 'found'; name: string; crest: CrestId; giColor: GiColorId; giStamp: GiStampId }
+  | { t: 'academy'; action: 'visit'; id: string }
+  | { t: 'academy'; action: 'join'; id: string }
+  | { t: 'academy'; action: 'leave'; id: string }
+  | { t: 'academy'; action: 'look'; id: string; crest: CrestId; giColor: GiColorId; giStamp: GiStampId }
   | { t: 'ping' };
 
 /** One online player row for the admin panel. */
@@ -154,6 +166,8 @@ export interface RoomStateMsg {
   furniture: PlacedFurniture[];
   /** Server `Date.now()` when sent; the client derives `skew = serverNow - Date.now()` for the game clock. */
   serverNow?: number;
+  /** Set on a player academy floor (`andar`). Absent in every public room, including Academia do Bairro. */
+  academy?: AcademyCard;
 }
 
 export type NoticeLevel = 'info' | 'warn' | 'block' | 'reward' | 'error';
@@ -462,4 +476,8 @@ export type ServerMsg =
   | { t: 'diary'; phase: 'practice'; ok: false; host: string; pt: string; en: string }
   | { t: 'diary'; phase: 'result'; correct: boolean; host: string; line: Bilingual; granted: { pt: string; en: string } | null }
   | { t: 'error'; code: string; pt: string; en: string }
-  | { t: 'pong' };
+  | { t: 'pong' }
+  /** Elevator directory. `canFound` is this player's belt. `ownedId` is the academy they founded, if any. */
+  | { t: 'academy'; phase: 'directory'; rows: AcademyCard[]; canFound: boolean; ownedId: string | null }
+  /** Crest / gi / membership changed on the floor you are standing in. */
+  | { t: 'academy'; phase: 'floor'; academy: AcademyCard };

@@ -91,8 +91,18 @@ import {
   counterOrderLine,
   counterPrice,
   isCounterItem,
+  academyCard,
+  academyIdFromInstance,
+  academyInstanceId,
+  canFoundAcademy,
+  isCrestId,
+  isGiColorId,
+  validateAcademyName,
+  type AcademyCard,
+  type PlayerAcademy,
 } from '@tudobem/shared';
 import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
+import { AcademyStore } from './academyStore.js';
 import { ProfileStore, today, todaySaoPaulo, toPrivate, type StoredProfile } from './store.js';
 import { CpuCrowd } from './ambiance.js';
 import { readEnv } from './env.js';
@@ -145,6 +155,8 @@ export interface WorldOptions {
    * pass `null` to disable admin on this world.
    */
   adminPassword?: string | null;
+  /** Player academies. Omit for an in-memory store (tests, and any caller that does not persist). */
+  academies?: AcademyStore;
 }
 
 /** What the World needs from the account store (kept tiny so world.ts stays browser-safe for solo mode). */
@@ -254,6 +266,8 @@ export class World {
   private readonly feira: FeiraCounter;
   /** Correria no Balcão: shifts, clocks and parked resume (apps/server/src/correria.ts). */
   private readonly correria: CorreriaEngine;
+  /** Named player academies (slice 1). Durable when the host passes a file-backed store. */
+  readonly academies: AcademyStore;
 
   constructor(
     readonly store: ProfileStore,
@@ -276,6 +290,7 @@ export class World {
     }
     this.npcs = new NpcDirector(() => this.clockNow());
     this.accounts = opts.accounts;
+    this.academies = opts.academies ?? new AcademyStore(null);
     this.idleKickMs = Math.max(1000, opts.idleKickMs ?? IDLE_KICK_MS);
     this.cartela = new CartelaTracker({
       now: () => this.now(),
@@ -315,7 +330,8 @@ export class World {
       roomOf: (s) => s.instance?.def.id ?? null,
       npcsIn: (room) => this.npcs.whoIn(room),
       apartmentOf: (s) => {
-        const owner = s.instance?.ownerId;
+        if (s.instance?.def.id !== 'kitnet') return [];
+        const owner = s.instance.ownerId;
         return (owner ? this.store.get(owner)?.apartment : undefined) ?? [];
       },
       rng: () => this.rng(),
@@ -507,7 +523,116 @@ export class World {
         return;
       case 'admin':
         return this.admin(s, msg);
+      case 'academy':
+        return this.academy(s, msg);
     }
+  }
+
+  // ---------- player academies (slice 1) ----------
+
+  private academy(s: Session, msg: Extract<ClientMsg, { t: 'academy' }>) {
+    if (msg.action === 'directory') return this.academyDirectory(s);
+    if (msg.action === 'found') return this.foundAcademy(s, msg);
+    if (msg.action === 'visit') return this.visitAcademy(s, msg.id);
+    if (msg.action === 'join') return this.joinAcademy(s, msg.id);
+    if (msg.action === 'leave') return this.leaveAcademy(s, msg.id);
+    return this.lookAcademy(s, msg);
+  }
+
+  private inFlagship(s: Session) {
+    return s.instance?.def.id === 'academia';
+  }
+
+  private academyDirectory(s: Session) {
+    if (!this.inFlagship(s)) return this.err(s, 'academy', 'O elevador fica na Academia do Bairro.', 'The elevator is in Academia do Bairro.');
+    const id = s.profile!.id;
+    s.send({
+      t: 'academy',
+      phase: 'directory',
+      rows: this.academies.list().map((a) => academyCard(a, this.store.get(a.ownerId)?.name ?? '—', id)),
+      canFound: canFoundAcademy(s.profile!.bjj),
+      ownedId: this.academies.ownedBy(id)?.id ?? null,
+    });
+  }
+
+  private foundAcademy(s: Session, msg: Extract<ClientMsg, { t: 'academy'; action: 'found' }>) {
+    if (!this.inFlagship(s)) return this.err(s, 'academy', 'O elevador fica na Academia do Bairro.', 'The elevator is in Academia do Bairro.');
+    const p = s.profile!;
+    if (!canFoundAcademy(p.bjj)) return this.err(s, 'belt', 'Fundar academia é da faixa marrom.', 'Founding an academy takes a brown belt.');
+    if (this.academies.ownedBy(p.id)) return this.err(s, 'owned', 'Você já fundou uma academia.', 'You already founded an academy.');
+    const named = validateAcademyName(msg.name);
+    if (!named.ok) return this.err(s, 'name', named.reason.pt, named.reason.en);
+    if (this.academies.byNameKey(named.key)) return this.err(s, 'name', 'Esse nome já é de outra academia.', 'That name already belongs to another academy.');
+    if (!isCrestId(msg.crest) || !isGiColorId(msg.giColor) || !isCrestId(msg.giStamp))
+      return this.err(s, 'look', 'Escolha um brasão e um kimono.', 'Pick a crest and a gi.');
+    const row: PlayerAcademy = {
+      id: this.academies.newId(),
+      name: named.name,
+      nameKey: named.key,
+      ownerId: p.id,
+      crest: msg.crest,
+      giColor: msg.giColor,
+      giStamp: msg.giStamp,
+      members: [p.id],
+      createdAt: this.now(),
+    };
+    this.academies.add(row);
+    this.visitAcademy(s, row.id);
+  }
+
+  private visitAcademy(s: Session, id: string) {
+    if (!this.academies.get(String(id ?? ''))) return this.err(s, 'academy', 'Essa academia não existe.', 'That academy does not exist.');
+    this.join(s, 'andar', { academyId: id });
+  }
+
+  private joinAcademy(s: Session, id: string) {
+    const row = this.academies.get(String(id ?? ''));
+    if (!row) return this.err(s, 'academy', 'Essa academia não existe.', 'That academy does not exist.');
+    const pid = s.profile!.id;
+    if (!row.members.includes(pid)) {
+      row.members.push(pid);
+      this.academies.save();
+    }
+    this.visitAcademy(s, row.id);
+    this.pushFloor(row.id);
+  }
+
+  private leaveAcademy(s: Session, id: string) {
+    const row = this.academies.get(String(id ?? ''));
+    if (!row) return this.err(s, 'academy', 'Essa academia não existe.', 'That academy does not exist.');
+    const pid = s.profile!.id;
+    if (row.ownerId === pid) return this.err(s, 'owner', 'Quem fundou não sai da academia.', 'The founder does not leave the academy.');
+    row.members = row.members.filter((m) => m !== pid);
+    this.academies.save();
+    this.pushFloor(row.id);
+    if (this.inFlagship(s)) this.academyDirectory(s);
+  }
+
+  private lookAcademy(s: Session, msg: Extract<ClientMsg, { t: 'academy'; action: 'look' }>) {
+    const row = this.academies.get(String(msg.id ?? ''));
+    if (!row) return this.err(s, 'academy', 'Essa academia não existe.', 'That academy does not exist.');
+    if (row.ownerId !== s.profile!.id) return this.err(s, 'owner', 'Só quem fundou muda o brasão e o kimono.', 'Only the founder changes the crest and the gi.');
+    if (!isCrestId(msg.crest) || !isGiColorId(msg.giColor) || !isCrestId(msg.giStamp))
+      return this.err(s, 'look', 'Escolha um brasão e um kimono.', 'Pick a crest and a gi.');
+    row.crest = msg.crest;
+    row.giColor = msg.giColor;
+    row.giStamp = msg.giStamp;
+    this.academies.save();
+    this.pushFloor(row.id);
+    if (this.inFlagship(s)) this.academyDirectory(s);
+  }
+
+  /** Tell everyone on the floor about the crest, the gi, and who is wearing it. */
+  private pushFloor(academyId: string) {
+    const row = this.academies.get(academyId);
+    const inst = this.instances.get(academyInstanceId(academyId));
+    if (!row || !inst) return;
+    for (const m of inst.members.values()) {
+      const id = m.profile?.id;
+      if (!id) continue;
+      m.send({ t: 'academy', phase: 'floor', academy: academyCard(row, this.store.get(row.ownerId)?.name ?? '—', id) });
+    }
+    for (const m of inst.members.values()) this.broadcast(inst, { t: 'avatarUpdated', avatar: this.publicAvatar(m) });
   }
 
   // ---------- profile ----------
@@ -656,8 +781,21 @@ export class World {
 
   // ---------- rooms ----------
 
-  private instanceFor(room: RoomId, s: Session, opts: { instanceId?: string; ownerId?: string }): Instance | { error: Bilingual } {
+  private instanceFor(room: RoomId, s: Session, opts: { instanceId?: string; ownerId?: string; academyId?: string }): Instance | { error: Bilingual } {
     const def = ROOMS[room];
+    if (def.id === 'andar') {
+      const academyId = opts.academyId ?? academyIdFromInstance(opts.instanceId);
+      const academy = academyId ? this.academies.get(academyId) : undefined;
+      if (!academy) return { error: { pt: 'Escolha uma academia no elevador.', en: 'Pick an academy in the elevator.' } };
+      const id = academyInstanceId(academy.id);
+      let inst = this.instances.get(id);
+      if (!inst) {
+        inst = new Instance(id, def, academy.name, academy.ownerId);
+        this.instances.set(id, inst);
+      }
+      if (inst.members.size >= this.cap) return { error: { pt: 'O andar está lotado!', en: 'This floor is full!' } };
+      return inst;
+    }
     if (def.private) {
       const ownerId = opts.ownerId ?? s.profile!.id;
       const owner = this.store.get(ownerId);
@@ -690,7 +828,7 @@ export class World {
     }
   }
 
-  join(s: Session, room: RoomId, opts: { instanceId?: string; ownerId?: string } = {}, arrive?: { tile: Tile; dir: Dir }) {
+  join(s: Session, room: RoomId, opts: { instanceId?: string; ownerId?: string; academyId?: string } = {}, arrive?: { tile: Tile; dir: Dir }) {
     if (!isRoomId(room)) return this.err(s, 'room', 'Sala desconhecida.', 'Unknown room.');
     const target = this.instanceFor(room, s, opts);
     if ('error' in target) return this.err(s, 'join', target.error.pt, target.error.en);
@@ -715,6 +853,7 @@ export class World {
       avatars: [...[...target.members.values()].map((m) => this.publicAvatar(m)), ...(target.crowd?.avatars() ?? []), ...(target.def.private ? [] : this.npcs.avatarsIn(def.id))],
       furniture,
       serverNow: this.clockNow(),
+      ...(target.def.id === 'andar' ? { academy: this.floorCard(target, s) } : {}),
     });
     // a joiner mid-walk: the avatars above are at the tile each NPC has reached, this sends the rest of each walk
     for (const p of this.npcs.posesIn(def.id)) {
@@ -934,7 +1073,7 @@ export class World {
   }
 
   private furnitureOf(inst: Instance): PlacedFurniture[] {
-    if (!inst.ownerId) return [];
+    if (inst.def.id !== 'kitnet' || !inst.ownerId) return [];
     return this.store.get(inst.ownerId)?.apartment ?? [];
   }
 
@@ -964,14 +1103,36 @@ export class World {
       parrot: p.parrotOwned && p.parrotEquipped,
       parrotColor: p.parrotOwned && p.parrotEquipped ? p.parrotColor ?? 'verde' : null,
       carry: s.carry,
-      gi: !!p.giOwned,
-      belt: p.giOwned ? normalizeBjj(p.bjj).belt : undefined,
+      ...this.wornGi(s),
       nameplate: p.nameplate,
       x: cur.tile.x,
       y: cur.tile.y,
       dir: sitting && s.instance ? (this.grid(s.instance).seats.get(key(cur.tile.x, cur.tile.y)) ?? cur.dir) : cur.dir,
       sitting,
     };
+  }
+
+  /** Personal gi from the vestiário, plus the academy uniform when this player is a member of the floor they are in. */
+  private wornGi(s: Session): { gi: boolean; belt?: PublicAvatar['belt']; academyGi?: PublicAvatar['academyGi'] } {
+    const p = s.profile!;
+    const academy = this.floorAcademy(s);
+    const member = !!(academy && academy.members.includes(p.id));
+    if (member && academy) return { gi: true, belt: normalizeBjj(p.bjj).belt, academyGi: { color: academy.giColor, stamp: academy.giStamp } };
+    if (p.giOwned) return { gi: true, belt: normalizeBjj(p.bjj).belt };
+    return { gi: false, belt: undefined };
+  }
+
+  private floorAcademy(s: Session): PlayerAcademy | undefined {
+    if (s.instance?.def.id !== 'andar') return undefined;
+    const id = academyIdFromInstance(s.instance.id);
+    return id ? this.academies.get(id) : undefined;
+  }
+
+  private floorCard(inst: Instance, s: Session): AcademyCard | undefined {
+    const id = academyIdFromInstance(inst.id);
+    const academy = id ? this.academies.get(id) : undefined;
+    if (!academy || !s.profile) return undefined;
+    return academyCard(academy, this.store.get(academy.ownerId)?.name ?? '—', s.profile.id);
   }
 
   private broadcast(inst: Instance, m: ServerMsg, except?: Session) {
@@ -1369,7 +1530,7 @@ export class World {
     }
     const item = furnitureById(itemId);
     if (!item) return;
-    if (s.instance?.ownerId !== p.id) return this.err(s, 'shop', 'Compre móveis na sua kitnet.', 'Buy furniture from inside your own apartment.');
+    if (s.instance?.def.id !== 'kitnet' || s.instance.ownerId !== p.id) return this.err(s, 'shop', 'Compre móveis na sua kitnet.', 'Buy furniture from inside your own apartment.');
     if (p.coins < item.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
     p.coins -= item.price;
     p.furniture[item.id] = (p.furniture[item.id] ?? 0) + 1;
@@ -1488,7 +1649,7 @@ export class World {
   private furniture(s: Session, m: Extract<ClientMsg, { t: 'furniture' }>) {
     const p = s.profile!;
     const inst = s.instance;
-    if (!inst || inst.ownerId !== p.id) return this.err(s, 'furniture', 'Só dá pra decorar a sua kitnet.', 'You can only decorate your own apartment.');
+    if (!inst || inst.def.id !== 'kitnet' || inst.ownerId !== p.id) return this.err(s, 'furniture', 'Só dá pra decorar a sua kitnet.', 'You can only decorate your own apartment.');
     const room = inst.def;
     const rot: 0 | 1 = 'rot' in m && m.rot === 1 ? 1 : 0;
     if (m.action === 'place') {

@@ -6,7 +6,8 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import { WS_MAX_PAYLOAD, type ClientMsg } from '@tudobem/shared';
 import { World, type CloseReason } from './world.js';
 import { ProfileStore } from './store.js';
-import { fileAdapter } from './fileStore.js';
+import { AcademyStore } from './academyStore.js';
+import { academyFileAdapter, fileAdapter } from './fileStore.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 import { FileModerationQueue } from './services/fileModeration.js';
 import { handleConversaApi } from './conversaApi.js';
@@ -64,6 +65,7 @@ const MIME: Record<string, string> = {
 export function createApp(opts: AppOptions) {
   const { dataDir, clientDist } = opts;
   const store = new ProfileStore(fileAdapter(dataDir));
+  const academies = new AcademyStore(academyFileAdapter(dataDir));
   const accounts = new AccountStore(accountsFileAdapter(dataDir), { sessionTtlMs: opts.sessionTtlMs, scrypt: opts.scrypt });
   const world = new World(
     store,
@@ -74,7 +76,7 @@ export function createApp(opts: AppOptions) {
       student: new InMemoryStudentModel(),
       moderation: new FileModerationQueue(path.join(dataDir, 'moderation.jsonl')),
     },
-    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, idleKickMs: opts.idleKickMs },
+    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, idleKickMs: opts.idleKickMs, academies },
   );
   const conversaMemory = new ConversaMemory({ store, onProfileChanged: (playerId) => world.pushProfileById(playerId) });
   const limiters = defaultLimiters();
@@ -217,6 +219,7 @@ export function createApp(opts: AppOptions) {
       for (const ws of wss.clients) ws.terminate();
       wss.close();
       store.flush();
+      academies.save();
       return new Promise<void>((resolve) => server.close(() => resolve()));
     },
   };

@@ -98,7 +98,7 @@ export function roomBounds(room: RoomDef, tallestFacade = 0): Rect {
 
 // ------------------------------------------------------------------ wall art (art track 3): mapping tables and pure layout
 /** Wall art style per room (`walls/north_<style>_l|_m|_r`, `walls/west_<style>`, `walls/west_<style>_b`). */
-export const WALL_STYLE: Record<RoomId, string> = { praca: 'praca', rua: 'praca', rua_leste: 'praca', feira: 'praca', padaria: 'padaria', kitnet: 'kitnet', academia: 'academia', escola: 'academia' };
+export const WALL_STYLE: Record<RoomId, string> = { praca: 'praca', rua: 'praca', rua_leste: 'praca', feira: 'praca', padaria: 'padaria', kitnet: 'kitnet', academia: 'academia', escola: 'academia', andar: 'academia' };
 
 export const northWallKey = (style: string, part: 'l' | 'm' | 'r') => `walls/north_${style}_${part}`;
 export const westWallKey = (style: string, bottom: boolean) => `walls/west_${style}${bottom ? '_b' : ''}`;

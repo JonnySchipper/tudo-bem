@@ -3,6 +3,7 @@ import type { CartelaState } from './cartela.js';
 import type { StreetSnackId } from './streetSnacks.js';
 import type { CounterItemId } from './padaria.js';
 import type { BjjProgress, Belt } from './academia.js';
+import type { AcademyCard, AcademyGi } from './playerAcademy.js';
 import type { NpcId } from './rooms.js';
 import type { NpcActivity } from './schedules.js';
 import type { RecadoState } from './recados.js';
@@ -41,7 +42,7 @@ export type Nameplate = 'verde' | 'amarelo' | 'azul' | 'roxo' | 'dourado';
 /** Screen-facing: S = toward camera. SE = moving +x, SW = +y, NE = -y, NW = -x. */
 export type Dir = 'SE' | 'SW' | 'NE' | 'NW';
 
-export type RoomId = 'praca' | 'rua' | 'rua_leste' | 'feira' | 'padaria' | 'kitnet' | 'academia' | 'escola';
+export type RoomId = 'praca' | 'rua' | 'rua_leste' | 'feira' | 'padaria' | 'kitnet' | 'academia' | 'escola' | 'andar';
 
 export type EmoteKind = 'oi' | 'dancar' | 'rir' | 'valeu' | 'desculpa';
 
@@ -64,6 +65,11 @@ export interface PublicAvatar {
   carry?: StreetSnackId | CounterItemId | null;
   /** Wears the academia gi (and belt) in every room after buying at the vestiário. */
   gi?: boolean;
+  /**
+   * Academy uniform worn on that academy's floor, and only by a member.
+   * Guests keep their own look. The personal belt stays on `belt`.
+   */
+  academyGi?: AcademyGi;
   nameplate: Nameplate;
   x: number;
   y: number;

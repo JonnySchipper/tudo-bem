@@ -31,6 +31,7 @@ import {
   type RoomGrid,
   type WallDecor,
   COUNTER_MENU,
+  CRESTS,
 } from '@tudobem/shared';
 import { game, type ClientAvatar } from '../../state';
 import type { Guide, Hit } from '../view';
@@ -41,7 +42,7 @@ import { CharSheets } from './charCache';
 import type { CharAssets } from './charAssets';
 import { composeLook } from './composeLook';
 import { avatarCrown, avatarDrawScale, avatarPx, setAvatarZoom } from './characters';
-import { lookForAppearance, lookForNpc, lookHeadLift, type Look } from './looks';
+import { academyUniformKey, lookForAvatar, lookForNpc, lookHeadLift, type Look } from './looks';
 import { LightingRig, type Light } from './lightingRig';
 import { computeLook, isOutdoor, lightDelay, windowPanes, type SceneLook } from './dayNight';
 import { WeatherBlend, groundWetTint, type FxLevel } from './weatherLook';
@@ -116,6 +117,8 @@ interface AvatarView {
   appearance: unknown;
   hat: string | null;
   belt?: string;
+  /** Academy uniform key (`academyUniformKey`). Empty when the avatar wears no academy gi. */
+  uniform: string;
   look: Look;
   parrot: Phaser.GameObjects.Sprite | null;
   /** Street snack in hand (session carry). */
@@ -810,10 +813,7 @@ export class WorldScene extends Phaser.Scene {
   /** The look of an avatar: a neighbour wears its own style (portrait match), everyone else their appearance. */
   private lookOf(a: ClientAvatar): Look {
     if (a.pub.npc) return lookForNpc(a.pub.npc, a.pub.appearance, a.pub.hat);
-    if (a.pub.gi) {
-      return lookForAppearance(a.pub.appearance, { hat: a.pub.hat, gi: true, belt: a.pub.belt ?? 'branca' });
-    }
-    return lookForAppearance(a.pub.appearance, { hat: a.pub.hat });
+    return lookForAvatar(a.pub);
   }
 
   /** Nanda's stall is closed (dimmed) unless she is standing at it. */
@@ -1193,6 +1193,7 @@ export class WorldScene extends Phaser.Scene {
       appearance: a.pub.appearance,
       hat: a.pub.hat,
       belt: a.pub.belt,
+      uniform: academyUniformKey(a.pub),
       look,
       parrot: null,
       carry: null,
@@ -1224,10 +1225,12 @@ export class WorldScene extends Phaser.Scene {
 
   private updateAvatar(v: AvatarView, a: ClientAvatar, def: RoomDef, now: number, dyn: HitBox[]): void {
     // appearance or hat changed (wardrobe, avatarUpdated): swap the sheet
-    if (a.pub.appearance !== v.appearance || a.pub.hat !== v.hat || a.pub.belt !== v.belt) {
+    const uniform = academyUniformKey(a.pub);
+    if (a.pub.appearance !== v.appearance || a.pub.hat !== v.hat || a.pub.belt !== v.belt || uniform !== v.uniform) {
       v.appearance = a.pub.appearance;
       v.hat = a.pub.hat;
       v.belt = a.pub.belt;
+      v.uniform = uniform;
       v.look = this.lookOf(a);
       const sheetKey = this.sheets.acquire(v.look);
       this.sheets.release(v.sheet);
@@ -1625,7 +1628,18 @@ export class WorldScene extends Phaser.Scene {
       // CPUs are scenery: their name shows on hover, within ~3.5 tiles of you, or while they emote
       const near = !!selfView && Math.hypot(v.wx - selfView.wx, v.wy - selfView.wy) <= 3.5 * T;
       const cpuShow = !isCpuId(id) || game.hoverKey === `av:${id}` || near || (!!a.emote && performance.now() - a.emote.t0 < 3500);
-      stacks.push({ key: `av:${id}`, x: p.px, y: p.py, plate: { text: a.pub.name, kind: id === selfId ? 'me' : 'player', show: cpuShow }, bubbles });
+      stacks.push({
+        key: `av:${id}`,
+        x: p.px,
+        y: p.py,
+        plate: {
+          text: a.pub.name,
+          kind: id === selfId ? 'me' : 'player',
+          show: cpuShow,
+          ...(a.pub.academyGi ? { mark: CRESTS[a.pub.academyGi.stamp].glyph } : {}),
+        },
+        bubbles,
+      });
     }
     const guides: GuideItem[] = this.host.guides().map((g, i) => {
       const w = tileToWorld(g.x, g.y);
