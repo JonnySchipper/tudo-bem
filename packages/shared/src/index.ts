@@ -19,6 +19,7 @@ export * from './ambiance.js';
 export * from './looks.js';
 export * from './conversa.js';
 export * from './academia.js';
+export * from './matFight.js';
 export * from './challenges.js';
 export * from './bout.js';
 export * from './gripFight.js';

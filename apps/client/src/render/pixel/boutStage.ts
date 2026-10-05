@@ -110,6 +110,10 @@ export class BoutStage {
   private scratch: HTMLCanvasElement | null = null;
   private introMs = 0;
   private sweatAt = 0;
+  /** 1 → 0 while a pose change without transition art slides into place, so the swap is not a cut. */
+  private slide = 0;
+  /** 1 → 0 while a miss stumbles and returns to the same pose. */
+  private wobble = 0;
 
   private popsEl: HTMLElement | null = null;
   /** live cheers: they stay glued to the spectator's head while the camera settles */
@@ -329,6 +333,8 @@ export class BoutStage {
       this.shadow?.setVisible(false);
       return;
     }
+    if (this.slide > 0) this.slide = Math.max(0, this.slide - dt * 2.4);
+    if (this.wobble > 0) this.wobble = Math.max(0, this.wobble - dt * 3);
     this.t += dt;
     const keys = this.frames.length ? this.frames : pairFrames(this.pos);
     const n = keys.length;
@@ -364,7 +370,8 @@ export class BoutStage {
     this.ph?.setVisible(false);
     const p = this.pair!;
     if (p.texture.key !== tex) p.setTexture(tex);
-    p.setOrigin(d.ax / d.w, d.ay / d.h).setPosition(a.x, a.y).setDepth(depth).setVisible(true);
+    const ox = this.slide > 0 ? Math.sin(this.slide * Math.PI) * 14 : this.wobble > 0 ? Math.sin(this.wobble * 24) * 5 : 0;
+    p.setOrigin(d.ax / d.w, d.ay / d.h).setPosition(a.x + ox, a.y).setDepth(depth).setVisible(true);
   }
 
   // ------------------------------------------------------------------ cues
@@ -399,8 +406,9 @@ export class BoutStage {
           this.mode = 'trans';
           this.setFrames(have, 9, false);
         } else {
-          // no art for this step: cut straight to the new position
+          // no baked clip for this step: slide the pair into the new pose instead of cutting
           this.mode = 'fight';
+          this.slide = 1;
           this.setFrames(pairFrames(c.to), 4, true);
         }
         // the ladder is standing again: nobody is on top in the neutral frame
@@ -446,6 +454,7 @@ export class BoutStage {
         break;
       case 'miss':
         this.kick(1);
+        this.wobble = 1;
         break;
       case 'long':
         this.sweatAt = now;

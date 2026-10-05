@@ -82,18 +82,41 @@ export async function playBout(page, { right = () => true, pick = 'bold', maxMs 
     }
     if (st.phase === 'end') break;
     const key = `${st.phase}:${st.seq}`;
-    if (st.phase === 'intent' && !handled.has(key)) {
-      // Phase flips to "intent" a beat before the chips are in the DOM, and a beat can end between the two reads.
-      // An empty list used to click [data-intent="undefined"] and sit there until the timeout.
-      const intents = await page
-        .$$eval('#bout-intents .bout-intent', (els) => els.map((e) => e.getAttribute('data-intent')))
-        .catch(() => []);
-      const ready = intents.filter((id) => typeof id === 'string' && id.length > 0);
-      if (!ready.length) {
+    if (st.phase === 'drill' && !handled.has(key)) {
+      const drill = await page.$('#bout-drill');
+      if (!drill) {
         await sleep(60);
         continue;
       }
-      const choice = ready.includes('finalizar') ? 'finalizar' : pick === 'safe' ? ready[0] : ready.at(-1);
+      handled.add(key);
+      if (onPhase) await onPhase(st.phase, page);
+      try {
+        await page.click('#bout-drill', { timeout: 5000 });
+        moves++;
+      } catch {
+        handled.delete(key);
+        await sleep(60);
+      }
+      continue;
+    }
+    if (st.phase === 'intent' && !handled.has(key)) {
+      // Phase flips to "intent" a beat before the chips are in the DOM, and a beat can end between the two reads.
+      // An empty list used to click [data-intent="undefined"] and sit there until the timeout.
+      const choice = await page
+        .evaluate((how) => {
+          const rows = [...document.querySelectorAll('#bout-intents .bout-intent')]
+            .map((e) => ({ id: e.getAttribute('data-intent') || '', percent: Number(e.getAttribute('data-percent') || '0') }))
+            .filter((r) => r.id && r.id !== 'finalizar');
+          if (!rows.length) return '';
+          if (how === 'safe') return (rows.find((r) => r.id === 'hold') ?? rows[0]).id;
+          const go = rows.filter((r) => r.id !== 'hold').sort((a, b) => b.percent - a.percent);
+          return (go[0] ?? rows[0]).id;
+        }, pick)
+        .catch(() => '');
+      if (!choice) {
+        await sleep(60);
+        continue;
+      }
       handled.add(key);
       if (onPhase) await onPhase(st.phase, page);
       await page.waitForTimeout(200);
@@ -104,7 +127,6 @@ export async function playBout(page, { right = () => true, pick = 'bold', maxMs 
         await sleep(60);
         continue;
       }
-      if (choice === 'finalizar') finalizacoes++;
       moves++;
     } else await sleep(120);
   }

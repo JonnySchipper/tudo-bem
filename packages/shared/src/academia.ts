@@ -8,6 +8,7 @@
  * academia-lock.test.ts, which also greps the client bundle); no brand names (academia-branding.test.ts).
  */
 import type { Bilingual } from './types.js';
+import { isMatMove, moveTaughtAt, movesThrough, type MatMoveId } from './matFight.js';
 
 export type BjjPositionId =
   | 'de_pe'
@@ -41,20 +42,40 @@ export function boutStepLabel(rung: number): Bilingual {
 
 // ---------------------------------------------------------------- belts and stripes (never purchasable)
 
-export type Belt = 'branca' | 'azul';
+export type Belt = 'branca' | 'azul' | 'roxa' | 'marrom' | 'preta';
 
 export const BELT_LABELS: Record<Belt, Bilingual> = {
-  // needs_br: true
+  // needs_br: true (roxa, marrom and preta; branca and azul were already on the wall)
   branca: { pt: 'Faixa branca', en: 'White belt' },
   azul: { pt: 'Faixa azul', en: 'Blue belt' },
+  roxa: { pt: 'Faixa roxa', en: 'Purple belt' },
+  marrom: { pt: 'Faixa marrom', en: 'Brown belt' },
+  preta: { pt: 'Faixa preta', en: 'Black belt' },
 };
 
-export const BELT_COLORS: Record<Belt, string> = { branca: '#f4f1ea', azul: '#2f5fb0' };
+export const BELT_COLORS: Record<Belt, string> = {
+  branca: '#f4f1ea',
+  azul: '#2f5fb0',
+  roxa: '#6b3fa0',
+  marrom: '#6b3a1f',
+  preta: '#1c1c28',
+};
 
-/** One round win per stripe; four stripes on the white belt earn the blue belt. */
-export const WINS_PER_STRIPE = 1;
+/**
+ * Wins per stripe, then one more stripe's worth of wins promotes (four stripes, then the next belt).
+ * Black keeps earning stripes and does not promote.
+ */
+export const BELT_LADDER: readonly { belt: Belt; per: number }[] = [
+  { belt: 'branca', per: 3 },
+  { belt: 'azul', per: 6 },
+  { belt: 'roxa', per: 12 },
+  { belt: 'marrom', per: 24 },
+  { belt: 'preta', per: 48 },
+];
 export const STRIPES_PER_BELT = 4;
-export const BLUE_BELT_WINS = WINS_PER_STRIPE * STRIPES_PER_BELT;
+/** @deprecated the live curve is {@link BELT_LADDER}. Kept so older imports still name a number. */
+export const WINS_PER_STRIPE = 3;
+export const BLUE_BELT_WINS = 3 * (STRIPES_PER_BELT + 1);
 
 /** One-time kimono purchase at the vestiário; required before rolling on the mat. */
 export const GI_PRICE = 18;
@@ -64,59 +85,96 @@ export interface BjjProgress {
   belt: Belt;
   stripes: number;
   wins: number;
+  /** Skills finished on this account. They stay across matches, sessions and devices. */
+  unlocked: MatMoveId[];
+  /** A stripe is already saved; the professor drill still has to land this move. */
+  pendingDrill?: MatMoveId | null;
   /** Bond points paid today for bouts (a small daily cap keeps friendship from being farmed). */
   bondDay?: string;
   bondToday?: number;
 }
 
-/** Belt and stripes from a win count (the single source of truth: the stored fields can only agree with it or be older). */
+/** Belt and stripes from a win count. Wins are the source of truth on the account. */
 export function progressForWins(wins: number): { belt: Belt; stripes: number } {
-  const w = Math.max(0, Math.floor(Number.isFinite(wins) ? wins : 0));
-  if (w < BLUE_BELT_WINS) return { belt: 'branca', stripes: Math.floor(w / WINS_PER_STRIPE) };
-  return { belt: 'azul', stripes: Math.min(STRIPES_PER_BELT, Math.floor((w - BLUE_BELT_WINS) / WINS_PER_STRIPE)) };
+  let w = Math.max(0, Math.floor(Number.isFinite(wins) ? wins : 0));
+  for (const step of BELT_LADDER) {
+    if (step.belt === 'preta') return { belt: 'preta', stripes: Math.floor(w / step.per) };
+    const span = step.per * (STRIPES_PER_BELT + 1);
+    if (w < span) return { belt: step.belt, stripes: Math.min(STRIPES_PER_BELT, Math.floor(w / step.per)) };
+    w -= span;
+  }
+  return { belt: 'preta', stripes: 0 };
 }
 
-/** Old saves (white belt, stripes only, no `belt`) and hand-edited ones come back coherent. Never throws. */
+function cleanMoves(raw: unknown, through: readonly MatMoveId[]): MatMoveId[] {
+  const allow = new Set(through);
+  const out: MatMoveId[] = [];
+  if (!Array.isArray(raw)) return out;
+  for (const id of raw) if (isMatMove(id) && allow.has(id) && !out.includes(id)) out.push(id);
+  return out;
+}
+
+/** Old saves and hand-edited ones come back coherent. Never throws. Wins decide the belt. */
 export function normalizeBjj(p?: Partial<BjjProgress> | null): BjjProgress {
   const wins = Math.max(0, Math.floor(Number(p?.wins) || 0));
-  const fromWins = progressForWins(wins);
-  const storedStripes = Number.isFinite(Number(p?.stripes)) ? Math.min(STRIPES_PER_BELT, Math.max(0, Math.floor(Number(p!.stripes)))) : 0;
-  // never go backwards: a save with more stripes than its wins explain (older rule) keeps them, and four stripes on white are a blue belt
-  const storedBelt: Belt = p?.belt === 'azul' ? 'azul' : 'branca';
-  let belt: Belt = storedBelt === 'azul' || fromWins.belt === 'azul' ? 'azul' : 'branca';
-  let stripes = belt === fromWins.belt ? fromWins.stripes : 0;
-  // the stored stripes only count on the belt they were earned on
-  if (belt === storedBelt) stripes = Math.max(stripes, storedStripes);
-  if (belt === 'branca' && stripes >= STRIPES_PER_BELT) {
-    belt = 'azul';
-    stripes = 0;
-  }
-  const out: BjjProgress = { belt, stripes, wins };
+  const { belt, stripes } = progressForWins(wins);
+  const through = movesThrough(belt, stripes);
+  const stored = cleanMoves(p?.unlocked, through);
+  // a save from before skills were stored keeps every move those wins already earned
+  const unlocked = stored.length || wins === 0 ? (stored.includes('collar_tie') ? stored : ['collar_tie' as const, ...stored]) : through;
+  const taught = moveTaughtAt(belt, stripes);
+  let pending: MatMoveId | null = isMatMove(p?.pendingDrill) ? p!.pendingDrill! : null;
+  if (pending && (unlocked.includes(pending) || !through.includes(pending) || pending !== taught)) pending = null;
+  const out: BjjProgress = { belt, stripes, wins, unlocked, ...(pending ? { pendingDrill: pending } : {}) };
   if (typeof p?.bondDay === 'string') out.bondDay = p.bondDay;
   if (Number.isFinite(Number(p?.bondToday))) out.bondToday = Math.max(0, Math.floor(Number(p!.bondToday)));
   return out;
 }
 
-/** 0..8: white belt stripes 0..3, then the blue belt (4) plus its stripes. Timers and partner unlocks follow it. */
+/** Partner unlocks: white stripes 0..4, then each later belt adds four. */
 export function bjjLevel(p?: Partial<BjjProgress> | null): number {
   const n = normalizeBjj(p);
-  return (n.belt === 'azul' ? STRIPES_PER_BELT : 0) + n.stripes;
+  const idx = Math.max(0, BELT_LADDER.findIndex((b) => b.belt === n.belt));
+  return idx * STRIPES_PER_BELT + Math.min(STRIPES_PER_BELT, n.stripes);
 }
 
 export interface WinResult {
   progress: BjjProgress;
-  /** a stripe was added */
+  /** a stripe was added on the same belt */
   stripeUp: boolean;
-  /** the blue belt was earned this time */
+  /** the belt changed */
   beltUp: boolean;
+  /** The skill this award teaches, waiting on the professor drill. Null when the list is exhausted. */
+  move: MatMoveId | null;
 }
 
 export function recordWin(p?: Partial<BjjProgress> | null): WinResult {
   const before = normalizeBjj(p);
   const wins = before.wins + 1;
   const now = progressForWins(wins);
-  const progress = normalizeBjj({ ...before, wins, belt: now.belt, stripes: now.stripes });
-  return { progress, stripeUp: now.belt === before.belt && progress.stripes > before.stripes, beltUp: before.belt === 'branca' && progress.belt === 'azul' };
+  const changed = now.belt !== before.belt || now.stripes !== before.stripes;
+  const taught = changed ? moveTaughtAt(now.belt, now.stripes) : null;
+  const move = taught && !before.unlocked.includes(taught) ? taught : null;
+  const progress = normalizeBjj({
+    ...before,
+    wins,
+    belt: now.belt,
+    stripes: now.stripes,
+    unlocked: before.unlocked,
+    pendingDrill: move,
+  });
+  return { progress, stripeUp: now.belt === before.belt && now.stripes > before.stripes, beltUp: now.belt !== before.belt, move };
+}
+
+/** The drill landed. The skill joins the account and the pending drill clears. */
+export function completeDrill(p: BjjProgress | null | undefined, move: MatMoveId): BjjProgress {
+  const n = normalizeBjj(p);
+  if (n.pendingDrill !== move || n.unlocked.includes(move)) {
+    const { pendingDrill: _pending, ...rest } = n;
+    return rest;
+  }
+  const { pendingDrill: _drop, ...rest } = n;
+  return { ...rest, unlocked: [...n.unlocked, move] };
 }
 
 // ---------------------------------------------------------------- partners
