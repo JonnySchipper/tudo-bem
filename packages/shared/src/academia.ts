@@ -8,7 +8,7 @@
  * academia-lock.test.ts, which also greps the client bundle); no brand names (academia-branding.test.ts).
  */
 import type { Bilingual } from './types.js';
-import { isMatMove, moveTaughtAt, movesThrough, type MatMoveId } from './matFight.js';
+import { beltIndex, isMatMove, moveTaughtAt, movesThrough, UNLOCK_ORDER, type MatMoveId } from './matFight.js';
 
 export type BjjPositionId =
   | 'de_pe'
@@ -106,6 +106,9 @@ export function progressForWins(wins: number): { belt: Belt; stripes: number } {
   return { belt: 'preta', stripes: 0 };
 }
 
+/** Awards inserted onto stripes that older saves may already have passed. */
+const LATER_AWARDS = ['knee_on_belly', 'back_take', 'single_leg'] as const satisfies readonly MatMoveId[];
+
 function cleanMoves(raw: unknown, through: readonly MatMoveId[]): MatMoveId[] {
   const allow = new Set(through);
   const out: MatMoveId[] = [];
@@ -125,9 +128,19 @@ export function normalizeBjj(p?: Partial<BjjProgress> | null): BjjProgress {
   const starters = movesThrough('branca', 0);
   const unlocked = [...base];
   for (const id of starters) if (through.includes(id) && !unlocked.includes(id)) unlocked.push(id);
+  // Moves added onto stripes some accounts had already passed. They join once that stripe is behind.
+  // The stripe the account is on still waits for the professor drill.
+  for (const id of LATER_AWARDS) {
+    if (!through.includes(id) || unlocked.includes(id)) continue;
+    const award = UNLOCK_ORDER.find((u) => u.move === id);
+    if (!award) continue;
+    const passed = beltIndex(award.belt) < beltIndex(belt) || (award.belt === belt && award.stripes < stripes);
+    if (passed) unlocked.push(id);
+  }
   const taught = moveTaughtAt(belt, stripes);
   let pending: MatMoveId | null = isMatMove(p?.pendingDrill) ? p!.pendingDrill! : null;
   if (pending && (unlocked.includes(pending) || !through.includes(pending) || pending !== taught)) pending = null;
+  if (!pending && taught && (LATER_AWARDS as readonly MatMoveId[]).includes(taught) && !unlocked.includes(taught)) pending = taught;
   const out: BjjProgress = { belt, stripes, wins, unlocked, ...(pending ? { pendingDrill: pending } : {}) };
   if (typeof p?.bondDay === 'string') out.bondDay = p.bondDay;
   if (Number.isFinite(Number(p?.bondToday))) out.bondToday = Math.max(0, Math.floor(Number(p!.bondToday)));

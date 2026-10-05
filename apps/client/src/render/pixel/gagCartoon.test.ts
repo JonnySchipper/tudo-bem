@@ -7,10 +7,14 @@ const MOVES: MatMoveId[] = [
   'sleeve_grip',
   'double_leg',
   'body_lock',
+  'single_leg',
   'hook_sweep',
   'scissor_sweep',
   'hip_bump',
   'posture',
+  'passar',
+  'knee_on_belly',
+  'back_take',
   'sprawl',
   'frame',
   'escape_back',
@@ -21,8 +25,8 @@ const MOVES: MatMoveId[] = [
 ];
 
 describe('gag bar', () => {
-  it('has the five tracks and leaves Hold off the bar', () => {
-    expect(GAG_TRACKS.map((t) => t.en)).toEqual(['Grips', 'Takedowns', 'Sweeps', 'Defense', 'Submissions']);
+  it('has the six tracks and leaves Hold off the bar', () => {
+    expect(GAG_TRACKS.map((t) => t.en)).toEqual(['Grips', 'Takedowns', 'Sweeps', 'Defense', 'Passes', 'Submissions']);
     const listed = GAG_TRACKS.flatMap((t) => [...t.moves]);
     expect(listed).not.toContain('hold');
     expect(new Set(listed).size).toBe(listed.length);
@@ -31,6 +35,7 @@ describe('gag bar', () => {
     expect(trackOf('double_leg')?.id).toBe('takedowns');
     expect(trackOf('hook_sweep')?.id).toBe('sweeps');
     expect(trackOf('posture')?.id).toBe('defense');
+    expect(trackOf('passar')?.id).toBe('passes');
   });
 });
 

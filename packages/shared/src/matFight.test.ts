@@ -26,10 +26,14 @@ const ALL: MatMoveId[] = [
   'sleeve_grip',
   'double_leg',
   'body_lock',
+  'single_leg',
   'hook_sweep',
   'scissor_sweep',
   'hip_bump',
   'posture',
+  'passar',
+  'knee_on_belly',
+  'back_take',
   'sprawl',
   'frame',
   'escape_back',
@@ -45,7 +49,7 @@ describe('position machine', () => {
     expect(st.position).toEqual({ kind: 'standing' });
     expect(st.actor).toBe('you');
     const legal = matLegalMoves(st, 'you', ALL);
-    expect(legal.sort()).toEqual(['body_lock', 'collar_tie', 'double_leg', 'hold', 'posture', 'sleeve_grip', 'sprawl'].sort());
+    expect(legal.sort()).toEqual(['body_lock', 'collar_tie', 'double_leg', 'hold', 'posture', 'single_leg', 'sleeve_grip', 'sprawl'].sort());
     expect(moveLegal(st.position, 'you', 'armbar')).toBe(false);
     expect(moveLegal(st.position, 'you', 'scissor_sweep')).toBe(false);
   });
@@ -121,6 +125,8 @@ describe('position machine', () => {
     expect(movePercent('double_leg', 'branca', 20)).toBe(65);
     expect(movePercent('double_leg', 'preta', 20)).toBe(95);
     expect(movePercent('body_lock', 'preta', 20)).toBe(95);
+    expect(movePercent('single_leg', 'roxa', 20)).toBe(60);
+    expect(movePercent('single_leg', 'branca', 20)).toBe(0);
     st = { ...st, actor: 'you' };
     const shot = resolveMat(st, 'you', 'double_leg', 0, 'branca');
     expect(shot.success).toBe(true);
@@ -151,6 +157,50 @@ describe('position machine', () => {
     expect(r.points).toBe(0);
   });
 
+  it('Passar leaves the Queda position for mount, and the top of guard for side control', () => {
+    const afterQueda = resolveMat(newMat(), 'you', 'double_leg', 0, 'branca').state;
+    expect(afterQueda.position).toEqual({ kind: 'side_control', top: 'you' });
+    expect(moveLegal(afterQueda.position, 'you', 'passar')).toBe(true);
+    expect(moveLegal(afterQueda.position, 'you', 'armbar')).toBe(false);
+    const passed = resolveMat({ ...afterQueda, actor: 'you' }, 'you', 'passar', 0, 'branca');
+    expect(passed.points).toBe(3);
+    expect(passed.line.pt).toBe('Três pontos!');
+    expect(passed.state.position).toEqual({ kind: 'mount', top: 'you' });
+    expect(moveLegal(passed.state.position, 'you', 'armbar')).toBe(true);
+    const fromGuard = resolveMat({ ...newMat(), position: { kind: 'closed_guard', top: 'you' } }, 'you', 'passar', 0, 'branca');
+    expect(fromGuard.state.position).toEqual({ kind: 'side_control', top: 'you' });
+    expect(fromGuard.points).toBe(3);
+    const knee = resolveMat({ ...newMat(), position: { kind: 'knee_on_belly', top: 'you' } }, 'you', 'passar', 0, 'branca');
+    expect(knee.state.position).toEqual({ kind: 'mount', top: 'you' });
+    expect(moveLegal(newMat().position, 'you', 'passar')).toBe(false);
+  });
+
+  it('Joelho, Encaixe, and Tornozelo only fire from positions the match can reach', () => {
+    const afterQueda = resolveMat(newMat(), 'you', 'double_leg', 0, 'branca').state;
+    expect(moveLegal(afterQueda.position, 'you', 'knee_on_belly')).toBe(true);
+    expect(moveLegal(afterQueda.position, 'you', 'back_take')).toBe(true);
+    expect(moveLegal(newMat().position, 'you', 'knee_on_belly')).toBe(false);
+    expect(moveLegal(newMat().position, 'you', 'back_take')).toBe(false);
+    const knee = resolveMat({ ...afterQueda, actor: 'you' }, 'you', 'knee_on_belly', 0, 'branca');
+    expect(knee.points).toBe(2);
+    expect(knee.state.position).toEqual({ kind: 'knee_on_belly', top: 'you' });
+    const mount = resolveMat({ ...knee.state, actor: 'you' }, 'you', 'passar', 0, 'branca');
+    expect(mount.state.position).toEqual({ kind: 'mount', top: 'you' });
+    expect(moveLegal(mount.state.position, 'you', 'armbar')).toBe(true);
+    const back = resolveMat({ ...mount.state, actor: 'you' }, 'you', 'back_take', 0, 'roxa');
+    expect(back.points).toBe(4);
+    expect(back.line.pt).toBe('Quatro pontos!');
+    expect(back.state.position).toEqual({ kind: 'back_control', top: 'you' });
+    expect(moveLegal(back.state.position, 'you', 'rnc')).toBe(true);
+    expect(moveLegal(back.state.position, 'them', 'escape_back')).toBe(true);
+    const ankle = resolveMat(newMat(), 'you', 'single_leg', 0, 'roxa');
+    expect(ankle.points).toBe(2);
+    expect(ankle.state.position).toEqual({ kind: 'knee_on_belly', top: 'you' });
+    expect(ankle.state.grips.you).toEqual({ collar: false, sleeve: false });
+    expect(movePercent('back_take', 'azul')).toBe(0);
+    expect(movePercent('knee_on_belly', 'branca')).toBe(44);
+  });
+
   it('frame and escape return the bottom player to closed guard', () => {
     const side = resolveMat({ ...newMat(), position: { kind: 'side_control', top: 'them' } }, 'you', 'frame', 0, 'azul');
     expect(side.state.position).toEqual({ kind: 'closed_guard', top: 'them' });
@@ -169,10 +219,14 @@ describe('percent table', () => {
     sleeve_grip: [65, 74, 82, 88, 93],
     double_leg: [45, 55, 65, 74, 82],
     body_lock: [50, 60, 70, 78, 85],
+    single_leg: [0, 0, 40, 52, 64],
     hook_sweep: [38, 50, 62, 72, 80],
     scissor_sweep: [40, 52, 64, 74, 82],
     hip_bump: [48, 58, 68, 76, 84],
     posture: [55, 66, 76, 84, 90],
+    passar: [50, 62, 72, 80, 88],
+    knee_on_belly: [44, 56, 66, 76, 84],
+    back_take: [0, 0, 36, 50, 64],
     sprawl: [60, 70, 78, 85, 90],
     frame: [35, 48, 60, 72, 82],
     escape_back: [25, 38, 52, 66, 78],
@@ -233,8 +287,10 @@ describe('stripe unlock order', () => {
       'double_leg',
       'hook_sweep',
       'posture',
+      'passar',
       'armbar',
       'sleeve_grip',
+      'knee_on_belly',
       'body_lock',
       'sprawl',
       'scissor_sweep',
@@ -243,34 +299,38 @@ describe('stripe unlock order', () => {
       'escape_back',
       'americana',
       'rnc',
+      'back_take',
+      'single_leg',
     ]);
     expect(moveTaughtAt('branca', 0)).toBe('collar_tie');
     expect(moveTaughtAt('branca', 1)).toBe('sleeve_grip');
-    expect(moveTaughtAt('branca', 2)).toBeNull();
+    expect(moveTaughtAt('branca', 2)).toBe('knee_on_belly');
     expect(moveTaughtAt('branca', 3)).toBe('body_lock');
     expect(moveTaughtAt('branca', 4)).toBe('sprawl');
-    expect(moveTaughtAt('roxa', 1)).toBeNull();
     expect(moveTaughtAt('roxa', 0)).toBe('rnc');
+    expect(moveTaughtAt('roxa', 1)).toBe('back_take');
+    expect(moveTaughtAt('roxa', 2)).toBe('single_leg');
+    expect(moveTaughtAt('roxa', 3)).toBeNull();
     expect(moveTaughtAt('marrom', 0)).toBeNull();
     expect(moveTaughtAt('preta', 0)).toBeNull();
   });
 
   it('a win stores the stripe on the account and holds the new move for the drill', () => {
     let p = normalizeBjj();
-    expect(p.unlocked).toEqual(['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'armbar']);
+    expect(p.unlocked).toEqual(['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar']);
     p = recordWin(p).progress;
     p = recordWin(p).progress;
     const third = recordWin(p);
     expect(third.stripeUp).toBe(true);
     expect(third.move).toBe('sleeve_grip');
     expect(third.progress.pendingDrill).toBe('sleeve_grip');
-    expect(third.progress.unlocked).toEqual(['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'armbar']);
+    expect(third.progress.unlocked).toEqual(['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar']);
     expect(third.progress).toMatchObject({ belt: 'branca', stripes: 1, wins: 3 });
     const drilled = completeDrill(third.progress, 'sleeve_grip');
-    expect(drilled.unlocked).toEqual(['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'armbar', 'sleeve_grip']);
+    expect(drilled.unlocked).toEqual(['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar', 'sleeve_grip']);
     expect(drilled.pendingDrill).toBeUndefined();
     const again = completeDrill(drilled, 'sleeve_grip');
-    expect(again.unlocked).toEqual(['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'armbar', 'sleeve_grip']);
+    expect(again.unlocked).toEqual(['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar', 'sleeve_grip']);
   });
 
   it('walks the belts: two takedowns by white, a second submission at blue, the choke at purple', () => {
@@ -284,14 +344,16 @@ describe('stripe unlock order', () => {
       }
       return { belt: p.belt, stripes: p.stripes, move, unlocked: p.unlocked };
     };
-    expect(at(0).unlocked).toEqual(['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'armbar']);
-    expect(at(6)).toMatchObject({ belt: 'branca', stripes: 2, move: null });
+    expect(at(0).unlocked).toEqual(['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar']);
+    expect(at(6)).toMatchObject({ belt: 'branca', stripes: 2, move: 'knee_on_belly' });
     expect(at(9)).toMatchObject({ belt: 'branca', stripes: 3, move: 'body_lock' });
     expect(at(12)).toMatchObject({ belt: 'branca', stripes: 4, move: 'sprawl' });
     expect(at(15)).toMatchObject({ belt: 'azul', stripes: 0, move: 'scissor_sweep' });
     expect(at(39).unlocked).toEqual(expect.arrayContaining(['armbar', 'americana']));
     expect(at(45)).toMatchObject({ belt: 'roxa', stripes: 0, move: 'rnc' });
-    expect(at(57).move).toBeNull();
+    expect(at(57).move).toBe('back_take');
+    expect(at(69)).toMatchObject({ belt: 'roxa', stripes: 2, move: 'single_leg' });
+    expect(at(81).move).toBeNull();
     expect(at(105)).toMatchObject({ belt: 'marrom', stripes: 0, move: null });
     expect(at(129).move).toBeNull();
     expect(progressForWins(225)).toEqual({ belt: 'preta', stripes: 0 });
@@ -301,13 +363,26 @@ describe('stripe unlock order', () => {
 describe('cross-rank cap', () => {
   it('a brown belt against a white belt only gets the white pool, at brown percents', () => {
     const moves = fightMoves({ belt: 'marrom', unlocked: rankPool('marrom'), opponentBelt: 'branca' });
-    expect(moves).toEqual(['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'armbar', 'sleeve_grip', 'body_lock', 'sprawl']);
+    expect(moves).toEqual([
+      'collar_tie',
+      'double_leg',
+      'hook_sweep',
+      'posture',
+      'passar',
+      'armbar',
+      'sleeve_grip',
+      'knee_on_belly',
+      'body_lock',
+      'sprawl',
+    ]);
     expect(movePercent('double_leg', 'marrom')).toBe(74);
     expect(movePercent('double_leg', 'branca')).toBe(45);
     expect(movePercent('armbar', 'marrom')).toBe(55);
     expect(movePercent('armbar', 'branca')).toBe(18);
     expect(moves).not.toContain('americana');
     expect(moves).not.toContain('rnc');
+    expect(moves).not.toContain('back_take');
+    expect(moves).not.toContain('single_leg');
   });
 
   it('the higher belt has the whole lower pool even when the lower fighter is still on the first move', () => {
@@ -331,6 +406,8 @@ describe('bot policy', () => {
     expect(chooseBot(newMat(), belt, allowed)).toBe('collar_tie');
     const gripped: MatState = { ...newMat(), grips: { you: { collar: false, sleeve: false }, them: { collar: true, sleeve: true } }, actor: 'them' };
     expect(chooseBot(gripped, belt, allowed)).toBe('body_lock');
+    const side: MatState = { ...newMat(), position: { kind: 'side_control', top: 'you' } };
+    expect(chooseBot(side, belt, allowed)).toBe('passar');
   });
 
   it('a blue belt sweeps, and armbars only when that finish is the best answer to a losing match', () => {

@@ -19,7 +19,7 @@ import {
 
 describe('belts, stripes and the profile', () => {
   it('a fresh profile is a white belt with one move on each gag track, and no stripes', () => {
-    const starters = ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'armbar'];
+    const starters = ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar'];
     expect(normalizeBjj()).toEqual({ belt: 'branca', stripes: 0, wins: 0, unlocked: starters });
     expect(normalizeBjj(null)).toEqual({ belt: 'branca', stripes: 0, wins: 0, unlocked: starters });
     expect(normalizeBjj({ belt: 'branca', stripes: 0, wins: 0, unlocked: ['collar_tie'] }).unlocked).toEqual(starters);
@@ -43,11 +43,27 @@ describe('belts, stripes and the profile', () => {
   it('old saves follow the win count, and odd ones come back coherent', () => {
     expect(normalizeBjj({ belt: 'branca', stripes: 4, wins: 4 })).toMatchObject({ belt: 'branca', stripes: 1, wins: 4 });
     expect(normalizeBjj({ belt: 'branca', stripes: 2, wins: 2 })).toMatchObject({ belt: 'branca', stripes: 0, wins: 2 });
-    expect(normalizeBjj({ stripes: 4, wins: 0 })).toMatchObject({ belt: 'branca', stripes: 0, unlocked: ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'armbar'] });
+    expect(normalizeBjj({ stripes: 4, wins: 0 })).toMatchObject({ belt: 'branca', stripes: 0, unlocked: ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar'] });
     expect(normalizeBjj({ stripes: -3, wins: -9 } as never)).toMatchObject({ belt: 'branca', stripes: 0, wins: 0 });
     expect(normalizeBjj({ stripes: 'x', wins: 'y', belt: 'preta' } as never)).toMatchObject({ belt: 'branca', stripes: 0, wins: 0 });
     // 18 wins is a blue belt with no stripe yet (white takes 15)
     expect(normalizeBjj({ belt: 'azul', stripes: 2, wins: 18 })).toMatchObject({ belt: 'azul', stripes: 0, wins: 18 });
+  });
+
+  it('a save that already passed a new stripe keeps that move, and one sitting on it still drills', () => {
+    const passed = normalizeBjj({
+      wins: 12,
+      unlocked: ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar', 'sleeve_grip', 'body_lock', 'sprawl'],
+    });
+    expect(passed.unlocked).toContain('knee_on_belly');
+    expect(passed.pendingDrill).toBeUndefined();
+    const sitting = normalizeBjj({
+      wins: 6,
+      unlocked: ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar', 'sleeve_grip'],
+    });
+    expect(sitting).toMatchObject({ belt: 'branca', stripes: 2 });
+    expect(sitting.unlocked).not.toContain('knee_on_belly');
+    expect(sitting.pendingDrill).toBe('knee_on_belly');
   });
 
   it('recording a win reports stripe and belt changes', () => {

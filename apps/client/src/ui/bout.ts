@@ -355,7 +355,7 @@ export class BoutUI {
     this.paintIntent(m);
   }
 
-  /** Five tracks along the bottom. Locked moves stay visible. Hold is its own button. */
+  /** Six tracks along the bottom. Locked moves stay visible. Hold is its own button. */
   private paintIntent(m: Msg<'intent'>): void {
     const offered = new Map(m.intents.map((i) => [i.id, i]));
     const owned = new Map((m.owned ?? []).map((i) => [i.id, i]));

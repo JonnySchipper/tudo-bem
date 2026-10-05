@@ -30,10 +30,14 @@ export type MatMoveId =
   | 'sleeve_grip'
   | 'double_leg'
   | 'body_lock'
+  | 'single_leg'
   | 'hook_sweep'
   | 'scissor_sweep'
   | 'hip_bump'
   | 'posture'
+  | 'passar'
+  | 'knee_on_belly'
+  | 'back_take'
   | 'sprawl'
   | 'frame'
   | 'escape_back'
@@ -91,12 +95,20 @@ export const MOVE_LABEL: Record<MatMoveId, Bilingual> = {
   sleeve_grip: { pt: 'Pegar a manga', en: 'Sleeve grip' },
   double_leg: { pt: 'Queda', en: 'Double leg' },
   body_lock: { pt: 'Abraço', en: 'Body lock trip' },
+  // needs_br: true — Tornozelo. A later takedown from standing into the knee.
+  single_leg: { pt: 'Tornozelo', en: 'Ankle pick' },
   // needs_br: true — Gancho. A basic closed-guard sweep, distinct from Tesoura and Quadril.
   hook_sweep: { pt: 'Gancho', en: 'Hook sweep' },
   scissor_sweep: { pt: 'Tesoura', en: 'Scissor sweep' },
   hip_bump: { pt: 'Quadril', en: 'Hip bump' },
   // needs_br: true — Postura. A basic standing defense, distinct from Base.
   posture: { pt: 'Postura', en: 'Posture' },
+  // needs_br: true — Passar. From the top after Queda, or from the top of closed guard.
+  passar: { pt: 'Passar', en: 'Pass' },
+  // needs_br: true — Joelho. From side control into the knee.
+  knee_on_belly: { pt: 'Joelho', en: 'Knee ride' },
+  // needs_br: true — Encaixe. From side, knee, or mount onto the back.
+  back_take: { pt: 'Encaixe', en: 'Seatbelt' },
   sprawl: { pt: 'Base', en: 'Sprawl' },
   frame: { pt: 'Recuperar', en: 'Frame and recover' },
   escape_back: { pt: 'Sair', en: 'Escape back' },
@@ -112,10 +124,14 @@ const PERCENT: Record<Exclude<MatMoveId, 'hold'>, readonly (number | null)[]> = 
   sleeve_grip: [65, 74, 82, 88, 93],
   double_leg: [45, 55, 65, 74, 82],
   body_lock: [50, 60, 70, 78, 85],
+  single_leg: [null, null, 40, 52, 64],
   hook_sweep: [38, 50, 62, 72, 80],
   scissor_sweep: [40, 52, 64, 74, 82],
   hip_bump: [48, 58, 68, 76, 84],
   posture: [55, 66, 76, 84, 90],
+  passar: [50, 62, 72, 80, 88],
+  knee_on_belly: [44, 56, 66, 76, 84],
+  back_take: [null, null, 36, 50, 64],
   sprawl: [60, 70, 78, 85, 90],
   frame: [35, 48, 60, 72, 82],
   escape_back: [25, 38, 52, 66, 78],
@@ -127,23 +143,30 @@ const PERCENT: Record<Exclude<MatMoveId, 'hold'>, readonly (number | null)[]> = 
 const POINTS: Partial<Record<MatMoveId, number>> = {
   double_leg: 2,
   body_lock: 2,
+  single_leg: 2,
   hook_sweep: 2,
   scissor_sweep: 2,
   hip_bump: 2,
+  passar: 3,
+  knee_on_belly: 2,
+  back_take: 4,
 };
 
 /**
  * One skill per award, in order. White belt is the belt being put on, not a win.
- * Day one is one move on each gag track: a grip, Queda, Gancho, Postura, and a weak submission.
- * Later awards fill the track. Sleeve, Abraço, Base, and every later stripe stay on the same award.
+ * Day one is one move on each gag track: a grip, Queda, Gancho, Postura, Passar, and a weak submission.
+ * Later awards fill the track. Sleeve, Abraço, Base, Tesoura, Quadril, Recuperar, Sair, Americana, and Pescoço stay on the same stripe.
+ * The empty white stripe teaches Joelho. Purple then teaches Encaixe, so the choke can be reached, and Tornozelo, a third takedown.
  */
 export const UNLOCK_ORDER: readonly { belt: Belt; stripes: number; move: MatMoveId }[] = [
   { belt: 'branca', stripes: 0, move: 'collar_tie' },
   { belt: 'branca', stripes: 0, move: 'double_leg' },
   { belt: 'branca', stripes: 0, move: 'hook_sweep' },
   { belt: 'branca', stripes: 0, move: 'posture' },
+  { belt: 'branca', stripes: 0, move: 'passar' },
   { belt: 'branca', stripes: 0, move: 'armbar' },
   { belt: 'branca', stripes: 1, move: 'sleeve_grip' },
+  { belt: 'branca', stripes: 2, move: 'knee_on_belly' },
   { belt: 'branca', stripes: 3, move: 'body_lock' },
   { belt: 'branca', stripes: 4, move: 'sprawl' },
   { belt: 'azul', stripes: 0, move: 'scissor_sweep' },
@@ -152,6 +175,8 @@ export const UNLOCK_ORDER: readonly { belt: Belt; stripes: number; move: MatMove
   { belt: 'azul', stripes: 3, move: 'escape_back' },
   { belt: 'azul', stripes: 4, move: 'americana' },
   { belt: 'roxa', stripes: 0, move: 'rnc' },
+  { belt: 'roxa', stripes: 1, move: 'back_take' },
+  { belt: 'roxa', stripes: 2, move: 'single_leg' },
 ];
 
 const MOVE_IDS = new Set<string>(Object.keys(MOVE_LABEL));
@@ -207,7 +232,7 @@ export function movePercent(id: MatMoveId, belt: Belt, bonus = 0): number {
   if (id === 'hold') return 100;
   const row = PERCENT[id][beltIndex(belt)];
   if (row == null) return 0;
-  const extra = id === 'double_leg' || id === 'body_lock' ? Math.max(0, bonus) : 0;
+  const extra = id === 'double_leg' || id === 'body_lock' || id === 'single_leg' ? Math.max(0, bonus) : 0;
   return Math.min(PERCENT_CAP, row + extra);
 }
 
@@ -252,10 +277,17 @@ export function moveLegal(pos: MatPosition, actor: MatSide, id: MatMoveId): bool
     case 'sleeve_grip':
     case 'double_leg':
     case 'body_lock':
+    case 'single_leg':
     case 'sprawl':
       return v === 'standing';
+    case 'knee_on_belly':
+      return v === 'side_top';
+    case 'back_take':
+      return v === 'side_top' || v === 'knee_top' || v === 'mount_top';
     case 'posture':
       return v === 'standing';
+    case 'passar':
+      return v === 'closed_top' || v === 'side_top' || v === 'knee_top';
     case 'hook_sweep':
     case 'scissor_sweep':
     case 'hip_bump':
@@ -328,7 +360,7 @@ function finishScore(st: MatState): void {
 }
 
 const SUBS = new Set<MatMoveId>(['armbar', 'americana', 'rnc']);
-const TAKEDOWNS = new Set<MatMoveId>(['double_leg', 'body_lock']);
+const TAKEDOWNS = new Set<MatMoveId>(['double_leg', 'body_lock', 'single_leg']);
 
 function soundFor(id: MatMoveId, success: boolean, next: MatPosition): MatSound {
   if (SUBS.has(id)) return 'sub';
@@ -440,8 +472,16 @@ function applySuccess(st: MatState, actor: MatSide, id: MatMoveId): { position: 
   if (id === 'posture') return { position: { kind: 'standing' }, resetScored: false, clearGrips: true, scoreKey: null, submission: false };
   if (id === 'sprawl') return { position: { kind: 'standing' }, resetScored: true, clearGrips: true, scoreKey: null, submission: false };
   if (id === 'hold') return { position: st.position, resetScored: false, clearGrips: false, scoreKey: null, submission: false };
+  if (id === 'passar') {
+    const v = viewKind(st.position, actor);
+    if (v === 'closed_top') return landed(actor, 'side_control', true);
+    return landed(actor, 'mount', true);
+  }
   if (id === 'double_leg') return landed(actor, 'side_control', true);
   if (id === 'body_lock') return landed(actor, 'closed_guard', true);
+  if (id === 'single_leg') return landed(actor, 'knee_on_belly', true);
+  if (id === 'knee_on_belly') return landed(actor, 'knee_on_belly', true);
+  if (id === 'back_take') return landed(actor, 'back_control', true);
   if (id === 'hook_sweep') return landed(actor, 'side_control', true);
   if (id === 'scissor_sweep') return landed(actor, 'mount', true);
   if (id === 'hip_bump') return landed(actor, 'side_control', true);
@@ -523,6 +563,11 @@ export function drillPosition(id: MatMoveId): MatPosition {
       return { kind: 'side_control', top: 'them' };
     case 'escape_back':
       return { kind: 'back_control', top: 'them' };
+    case 'passar':
+    case 'knee_on_belly':
+      return { kind: 'side_control', top: 'you' };
+    case 'back_take':
+      return { kind: 'mount', top: 'you' };
     case 'armbar':
       return { kind: 'mount', top: 'you' };
     case 'americana':
