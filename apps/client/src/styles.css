@@ -1980,3 +1980,106 @@ body:has(.onboarding) .joystick {
     transform: none;
   }
 }
+
+/* Player academies: elevator directory and the floor bar. Phone width (~390) stacks under 420px. */
+.academy-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid rgba(42, 34, 51, 0.12);
+}
+
+.academy-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.academy-meta b,
+.academy-floor-name b {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.academy-facts,
+.academy-chip {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.academy-actions {
+  display: flex;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.academy-crest {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 8px;
+  color: #2a2233;
+  font-size: 18px;
+  flex: 0 0 auto;
+  border: 1px solid #2a2233;
+}
+
+.academy-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.academy-picks button {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 10px;
+}
+
+.academy-picks button.on {
+  outline: 2px solid #2a2233;
+}
+
+.academy-floor {
+  position: fixed;
+  z-index: 16;
+  left: 8px;
+  right: 8px;
+  top: 72px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  background: var(--cream, #f6efe4);
+  border: 1px solid #2a2233;
+  border-radius: 14px;
+  padding: 8px 10px;
+  max-width: calc(100vw - 16px);
+  box-sizing: border-box;
+}
+
+.academy-floor-name {
+  min-width: 0;
+  flex: 1 1 120px;
+}
+
+@media (max-width: 420px) {
+  .academy-dir .academy-row,
+  .academy-floor.stacked {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .academy-dir .academy-actions,
+  .academy-dir .academy-actions button,
+  .academy-found button[type='submit'],
+  .academy-floor button {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .academy-floor {
+    top: auto;
+    bottom: calc(72px + var(--safe-bottom, 0px));
+  }
+}

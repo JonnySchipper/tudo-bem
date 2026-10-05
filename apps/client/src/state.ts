@@ -84,7 +84,7 @@ class Game {
   }
 
   get isOwnKitnet(): boolean {
-    return !!this.room && !!this.profile && this.room.ownerId === this.profile.id;
+    return !!this.room && this.room.room === 'kitnet' && !!this.profile && this.room.ownerId === this.profile.id;
   }
 
   on(evt: string, fn: Listener) {

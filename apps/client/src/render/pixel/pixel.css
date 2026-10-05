@@ -92,6 +92,12 @@
   padding: 3px 9px 4px;
 }
 
+.wl-mark {
+  display: inline-block;
+  margin-right: 4px;
+  font-style: normal;
+}
+
 .wl-plate-guide {
   --edge: #2a2233;
   --fill: #f2c230;

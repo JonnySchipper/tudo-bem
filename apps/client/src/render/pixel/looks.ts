@@ -2,7 +2,7 @@
  * Character looks (HOWTO §6 Phase 3): an `Appearance` (+ hat, + NPC extras) becomes an ordered list of layers with the ramp colors to
  * swap in. Pure: no Phaser, no DOM. The layers are drawn back to front by `composeRgba` (charcompose.ts).
  */
-import { CLOTH_COLORS, DEFAULT_APPEARANCE, HAIR_COLORS, garbParts, SHOE_COLORS, SKIN_TONES, hatById, type Appearance, type Belt, type BodyType, type NpcId } from '@tudobem/shared';
+import { academyOutfit, CLOTH_COLORS, DEFAULT_APPEARANCE, HAIR_COLORS, garbParts, SHOE_COLORS, SKIN_TONES, hatById, type AcademyGi, type Appearance, type Belt, type BodyType, type NpcId } from '@tudobem/shared';
 import { CHAR_LAYERS, GARBS, HAT_LIFT, hatLayer, outfitKey, pick, type GarbColors, type GarbPiece, type IdleEntry } from './characters';
 import type { Ramps } from './charcompose';
 
@@ -109,6 +109,22 @@ export function lookForAppearance(a: Appearance, opts: LookOptions = {}): Look {
   // gestures (raised hands) are drawn over the hair and the hat: the hand reaches up in front of the head (wave 2: a brim used to hide it)
   layers.push({ key: CHAR_LAYERS.gestures, ramps: { skin, top } });
   return { body, layers, idle };
+}
+
+/** What makes a sheet unique for the academy uniform. Empty when the avatar wears no academy gi. */
+export function academyUniformKey(pub: { gi?: boolean; academyGi?: AcademyGi | null }): string {
+  if (!pub.academyGi) return pub.gi ? 'gi' : '';
+  return `acad:${pub.academyGi.color}:${pub.academyGi.stamp}`;
+}
+
+/**
+ * Player look. Members on their academy floor wear that gi (color) over the personal belt.
+ * Guests keep the vestiário gi or street clothes, with no academy stamp.
+ */
+export function lookForAvatar(pub: { appearance: Appearance; hat: string | null; gi?: boolean; belt?: Belt; academyGi?: AcademyGi | null }): Look {
+  if (pub.academyGi) return lookForAppearance(academyOutfit(pub.appearance, pub.academyGi.color), { hat: pub.hat, gi: true, belt: pub.belt ?? 'branca' });
+  if (pub.gi) return lookForAppearance(pub.appearance, { hat: pub.hat, gi: true, belt: pub.belt ?? 'branca' });
+  return lookForAppearance(pub.appearance, { hat: pub.hat });
 }
 
 /** Art px from the top of a bare head to the top of this look's sprite (hat, plus the body height change): labels stand above it. */

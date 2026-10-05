@@ -86,6 +86,7 @@ import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira
 import { openCaderno, setArrivalReplay } from './ui/caderno';
 import { syncArrival } from './ui/arrival';
 import { syncGrants } from './ui/grants';
+import { askElevator, bindAcademy, onAcademyDirectory, syncAcademyFloor } from './ui/academy';
 import { isArrivalHallOpen, openArrivalHall } from './ui/arrivalHall';
 import type { WordMoment } from './ui/diaryWordQueue';
 import { cameraFrameAt, captureFrame, celebrateWord, celebrateWords, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
@@ -383,7 +384,19 @@ function propAction(action: string, propId?: string) {
   else if (action === 'buy_gi') openGiShop(!!game.profile?.giOwned, () => net.send({ t: 'buy', kind: 'gi', itemId: 'kimono' }));
   else if (action === 'bjj_roll') openBout();
   else if (action === 'escola') net.send({ t: 'diary', action: 'practice' });
+  else if (action === 'academy_elevator') {
+    askElevator();
+    net.send({ t: 'academy', action: 'directory' });
+  }
 }
+
+bindAcademy({
+  found: (name, look) => net.send({ t: 'academy', action: 'found', name, crest: look.crest, giColor: look.giColor, giStamp: look.giStamp }),
+  visit: (id) => net.send({ t: 'academy', action: 'visit', id }),
+  join: (id) => net.send({ t: 'academy', action: 'join', id }),
+  leave: (id) => net.send({ t: 'academy', action: 'leave', id }),
+  look: (id, look) => net.send({ t: 'academy', action: 'look', id, crest: look.crest, giColor: look.giColor, giStamp: look.giStamp }),
+});
 
 wireParrotShop({
   buy: (id) => net.send({ t: 'buy', kind: 'parrot', itemId: id }),
@@ -477,6 +490,7 @@ function updateGuides() {
       // step 2 points at Professora Bia ("Quer treinar?" → the mat), not the board up on the back wall
       add(guideAt('npc', 'prof', 120, '2 · Treino no tatame'));
       add(guideAt('portal', 'academia_praca', 110, '← Rua'));
+      add(guideAt('prop', 'elevador', 120, 'Elevador'));
     }
   }
 }
@@ -617,7 +631,7 @@ net.on((m: ServerMsg) => {
       game.placing = null;
       game.selectedFurniture = null;
       game.npcBubbles.clear();
-      if (m.room !== 'kitnet' || m.ownerId === game.profile?.id) sessionStorage.setItem(LAST_ROOM_KEY, m.room);
+      if (m.room !== 'andar' && (m.room !== 'kitnet' || m.ownerId === game.profile?.id)) sessionStorage.setItem(LAST_ROOM_KEY, m.room);
       ambience.setRoom(m.room);
       updateGuides();
       game.emit('room');
@@ -645,8 +659,17 @@ net.on((m: ServerMsg) => {
       }
       if (keepMg) correriaUi?.requestSync();
       syncArrival(arrivalFinish, arrivalHall);
+      syncAcademyFloor();
       break;
     }
+    case 'academy':
+      if (m.phase === 'directory') onAcademyDirectory(m.rows, m.canFound, m.ownedId);
+      else if (game.room?.room === 'andar' && game.room.academy?.id === m.academy.id) {
+        game.room = { ...game.room, academy: m.academy };
+        syncAcademyFloor();
+        game.emit('room');
+      }
+      break;
     case 'diary':
       if (m.phase === 'photo') showPhoto(m);
       else if (m.phase === 'word') celebrateWord(m);

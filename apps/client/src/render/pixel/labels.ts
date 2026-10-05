@@ -25,7 +25,7 @@ export interface StackItem {
   /** CSS px of the point the stack stands on (just above the head) */
   x: number;
   y: number;
-  plate: { text: string; kind: 'npc' | 'player' | 'me'; /** false: keep the element but fade it out (a CPU far from you) */ show?: boolean } | null;
+  plate: { text: string; kind: 'npc' | 'player' | 'me'; /** false: keep the element but fade it out (a CPU far from you) */ show?: boolean; /** Academy stamp glyph, members only. */ mark?: string } | null;
   bubbles: BubbleItem[];
 }
 
@@ -373,13 +373,20 @@ export class LabelLayer {
     }
 
     // nameplate: text and kind change rarely; measure only then
-    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}` : '';
+    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}|${s.plate.mark ?? ''}` : '';
     if (pk !== el.plateKey) {
       el.plateKey = pk;
       if (s.plate) {
         el.plate.style.display = '';
         el.plate.textContent = s.plate.text;
         el.plate.className = `wl-plate wl-plate-${s.plate.kind}`;
+        if (s.plate.mark) {
+          const mark = document.createElement('i');
+          mark.className = 'wl-mark';
+          mark.textContent = s.plate.mark;
+          mark.setAttribute('aria-hidden', 'true');
+          el.plate.prepend(mark);
+        }
         const w = el.plate.offsetWidth;
         el.plateW = w % 2 ? w + 1 : w;
         el.plateH = el.plate.offsetHeight;
