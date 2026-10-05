@@ -116,14 +116,14 @@ const POINTS: Partial<Record<MatMoveId, number>> = {
 
 /**
  * One skill per award, in order. White belt is the belt being put on, not a win.
- * Day one is a grip and a weak submission. Later awards fill the track, so a higher belt
- * is choosing among several takedowns or several submissions.
+ * Day one is a grip, Queda, and a weak submission, so a new player can leave standing.
+ * Later awards fill the track, so a higher belt is choosing among several takedowns or several submissions.
  */
 export const UNLOCK_ORDER: readonly { belt: Belt; stripes: number; move: MatMoveId }[] = [
   { belt: 'branca', stripes: 0, move: 'collar_tie' },
+  { belt: 'branca', stripes: 0, move: 'double_leg' },
   { belt: 'branca', stripes: 0, move: 'armbar' },
   { belt: 'branca', stripes: 1, move: 'sleeve_grip' },
-  { belt: 'branca', stripes: 2, move: 'double_leg' },
   { belt: 'branca', stripes: 3, move: 'body_lock' },
   { belt: 'branca', stripes: 4, move: 'sprawl' },
   { belt: 'azul', stripes: 0, move: 'scissor_sweep' },
