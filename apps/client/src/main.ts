@@ -1178,7 +1178,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && started && !game.modalOpen) {
     e.preventDefault();
     const near = propOnInteractTile();
-    if (near?.action) propAction(near.action, near.id);
+    if (near?.action === 'padaria_door') propAction(near.action, near.id);
     else hud?.focusChat();
   }
   if ((e.key === 'r' || e.key === 'R') && game.placing) {

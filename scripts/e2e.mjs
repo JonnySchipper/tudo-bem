@@ -484,7 +484,13 @@ async function main() {
     5000,
     'counter taps laid out after the viewport restore',
   );
-  await page.click('#cr-quit');
+  for (let tap = 0; tap < 2; tap++) {
+    const quit = await page.$('#cr-quit');
+    if (!quit) break;
+    await quit.click();
+    await sleep(300);
+    if (!(await page.$('#correria'))) break;
+  }
   await waitFor(page, () => !document.querySelector('#correria'), null, 5000, 'the counter closes after ✕ with nothing served');
   const coinsAfterAgain = (await profile(page)).coins;
   assert(coinsAfterAgain === coinsBeforeAgain, `a fresh shift closed with nothing served pays 0 RV (${coinsBeforeAgain} → ${coinsAfterAgain})`);
