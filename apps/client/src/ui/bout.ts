@@ -116,6 +116,14 @@ export class BoutUI {
       }
       return;
     }
+    if (this.phase === 'drill' && (n === 1 || e.key === 'Enter')) {
+      const go = this.body.querySelector<HTMLButtonElement>('#bout-drill:not([disabled])');
+      if (go) {
+        e.preventDefault();
+        go.click();
+      }
+      return;
+    }
     if (n >= 1 && n <= 9 && this.phase === 'intent') {
       const move = this.body.querySelectorAll<HTMLButtonElement>('.move-card.gag-move:not([disabled])')[n - 1];
       if (move) {
@@ -553,18 +561,26 @@ export class BoutUI {
     this.stopTimer();
     this.setSnap(m.st);
     boutFeed.push({ t: 'transition', from: m.from, to: m.st.position, rungFrom: m.aheadFrom === 'partner' ? -1 : m.aheadFrom === 'you' ? 1 : 0, rungTo: m.st.rung, gain: m.st.ahead });
+    // the stripe's lesson: Bia sets the partner up and you land the new move once, as a card like the ones you will pick from
+    const id = isMatMove(m.move.id) ? m.move.id : null;
+    const track = id ? GAG_TRACKS.find((t) => (t.moves as readonly string[]).includes(id)) : undefined;
+    const hint = id ? moveHint(id, undefined) : { pt: '', en: '' };
     const go = h(
       'button',
-      { class: 'bout-intent', type: 'button', id: 'bout-drill', 'data-intent': m.move.id, onclick: () => this.pickIntent(m.seq, m.move.id) },
-      h('b', { class: 'pt' }, m.move.pt),
+      { class: 'bout-intent gag-move move-card tone-good is-drill', type: 'button', id: 'bout-drill', 'data-intent': m.move.id, 'data-gag': track?.id ?? '', onclick: () => this.pickIntent(m.seq, m.move.id) },
+      h('span', { class: 'mc-top' }, h('span', { class: 'mc-track' }, track?.pt ?? ''), h('span', { class: 'mc-key', 'aria-hidden': 'true' }, '1')),
+      h('b', { class: 'pt mc-name' }, m.move.pt),
       en(m.move.en),
+      hint.pt ? h('span', { class: 'mc-hint' }, h('span', { class: 'pt' }, hint.pt), en(hint.en)) : null,
+      h('span', { class: 'mc-hint' }, h('span', { class: 'pt' }, 'Toque para treinar'), en('Tap to drill it')),
     );
     this.body.replaceChildren(
       h(
         'div',
-        { class: 'bout-intents', id: 'bout-drill-panel', 'data-seq': String(m.seq) },
-        h('div', { class: 'bout-ask' }, h('span', { class: 'pt' }, m.line.pt), en(m.line.en)),
-        go,
+        { class: 'bout-intents bout-drill', id: 'bout-drill-panel', 'data-seq': String(m.seq) },
+        h('div', { class: 'bout-ask' }, h('span', { class: 'pt' }, 'Nova listra! Aula da Professora Bia'), en('New stripe! A lesson from Professora Bia')),
+        h('p', { class: 'bout-drill-line' }, h('span', { class: 'pt' }, `Golpe novo: ${m.move.pt}. ${m.line.pt}`), en(`New move: ${m.move.en}. ${m.line.en}`)),
+        h('div', { class: 'move-cards n1' }, go),
       ),
     );
     this.say(m.move.pt);

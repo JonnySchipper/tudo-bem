@@ -1368,6 +1368,12 @@ export class WorldScene extends Phaser.Scene {
     v.wx = wx;
     v.wy = wy;
     v.sprite.setPosition(wx, wy - bounce).setScale(avatarDrawScale());
+    // under the mat camera, neighbours who wander about step out of the picture; the seated crowd stays to watch
+    if (isCpuId(a.pub.id)) {
+      const away = boutFeed.camera && !sitting;
+      v.sprite.setAlpha(away ? 0 : 1);
+      v.shadow.setAlpha(away ? 0 : 1);
+    }
     v.shadow.setPosition(wx, wy - 1).setScale(avatarDrawScale(), 1);
     // sitters draw just above what they sit on (the bench's bottom edge is the tile's bottom edge)
     const depth = sitting ? (pos.tile.y + 1) * T + 0.5 : standingDepth(f.wy, a.pub.id);

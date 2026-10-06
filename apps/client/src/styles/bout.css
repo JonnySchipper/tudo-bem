@@ -526,7 +526,8 @@ body.bout-on .toasts {
 .bout-cards {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(150px, 1fr);
+  /* five partners fit a 1280 desktop panel without a cut-off last card; phones scroll */
+  grid-auto-columns: minmax(136px, 1fr);
   gap: 8px;
   overflow-x: auto;
   padding-bottom: 4px;
@@ -535,7 +536,7 @@ body.bout-on .toasts {
 
 .bout-card-partner {
   display: grid;
-  grid-template-columns: 56px 1fr;
+  grid-template-columns: 46px 1fr;
   gap: 8px;
   align-items: start;
   text-align: left;
@@ -563,15 +564,15 @@ body.bout-on .toasts {
 .bout-portrait-wrap {
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 72px;
+  width: 46px;
+  height: 60px;
   background: linear-gradient(#cfe3c4, #f5e6d3);
   border: 2px solid var(--bout-ink);
 }
 
 .bout-portrait {
-  width: 56px;
-  height: 72px;
+  width: 44px;
+  height: 56px;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   image-rendering: pixelated;
@@ -1949,6 +1950,7 @@ body.bout-on .toasts {
 
 .bout-end-score {
   display: flex;
+  width: min(420px, 100%);
   align-items: center;
   justify-content: center;
   gap: 12px;
@@ -2034,4 +2036,25 @@ body.bout-on .toasts {
 /* the end card says the result: the live position line is done */
 .bout-panel[data-phase='end'] .bout-meters {
   display: none;
+}
+
+/* the stripe lesson: one big card, centred */
+.bout-drill .move-cards {
+  justify-content: center;
+}
+.bout-drill .move-card.is-drill {
+  flex: 0 1 280px;
+  border-color: var(--bout-gold);
+  box-shadow: 0 0 0 3px rgba(242, 194, 48, 0.45), 0 3px 0 rgba(20, 16, 26, 0.3);
+}
+.bout-drill-line {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+.bout-drill-line .en {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
 }

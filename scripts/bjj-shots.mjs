@@ -74,6 +74,24 @@ async function run(name) {
     await waitFor(page, () => window.__tb.game.profile.giOwned, null, 8000, 'gi purchased');
     await sleep(800);
     await shot('gi_on');
+    if (process.env.DRILL) {
+      // a fresh stripe with its move still to drill: the lesson card, then the end card it leads to
+      await page.evaluate(() => {
+        window.__tb.net.session.profile.bjj = { belt: 'branca', stripes: 1, wins: 5, unlocked: ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar'], pendingDrill: 'sleeve_grip' };
+      });
+      await openBout(page);
+      await sleep(600);
+      await startBout(page);
+      await page.waitForSelector('#bout-drill', { timeout: 15_000 });
+      await sleep(600);
+      await shot('drill');
+      await page.click('#bout-drill');
+      await page.waitForSelector('#bout-end', { timeout: 15_000 });
+      await sleep(800);
+      await shot('drill_end');
+      if (errors.length) console.log('  ! page errors:', errors);
+      return;
+    }
     if (process.env.ACADEMY) {
       // a brown belt (140 wins) founds an academy from the elevator, then stands on its floor
       await page.evaluate(() => {
