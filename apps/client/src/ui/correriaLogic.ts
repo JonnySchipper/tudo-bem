@@ -10,6 +10,7 @@ import {
   moneyLabel,
   moneyPt,
   numberPt,
+  replayPatiencePips,
   type Bilingual,
   type CEvent,
   type CorreriaEnd,
@@ -62,15 +63,25 @@ export interface OrderMirror {
   /** The follow-up or change of mind said after the order, if any. */
   follow: Bilingual | null;
   canReplay: boolean;
-  replayCost: number;
+  /** Next replay patience cost in pips, or 0 when further taps are ignored. */
+  replayPips: number;
 }
 
 export function orderMirror(c: CustomerView | undefined, level: number): OrderMirror | null {
   if (!c || c.state === 'queue' || c.state === 'walk') return null;
-  const lv = LEVELS[Math.min(LEVELS.length - 1, Math.max(0, level))]!;
-  // a listening order stays words-free until it is served (then the customer is asking for the total, and the words come back)
-  const hidden = c.mode === 'listening' && c.state === 'front';
-  return { who: c.who.name, pt: hidden ? 'Escute o pedido…' : c.pt, en: hidden ? 'Listen to the order…' : c.en, hidden, follow: c.follow, canReplay: hidden && c.state === 'front', replayCost: Math.round(lv.replayCost * 100) };
+  void level;
+  // listening: hide words until a replay reveals them (replay also replays audio)
+  const hidden = c.mode === 'listening' && c.state === 'front' && c.replays === 0;
+  const nextPips = c.mode === 'listening' ? replayPatiencePips(c.replays) : null;
+  return {
+    who: c.who.name,
+    pt: hidden ? 'Escute o pedido…' : c.pt,
+    en: hidden ? 'Listen to the order…' : c.en,
+    hidden,
+    follow: c.follow,
+    canReplay: c.mode === 'listening' && c.state === 'front',
+    replayPips: nextPips ?? 0,
+  };
 }
 
 /** Patience left (0..1) of a customer `ageMs` after the snapshot. */
@@ -135,11 +146,11 @@ export function cueFor(e: CEvent): { sfx?: CorreriaSfx; toast?: Bilingual & { to
     case 'chapa_raw':
       return { sfx: 'nope', toast: { pt: 'Ainda está cru!', en: 'Still raw!', tone: 'info' } };
     case 'chapa_burnt':
-      return { sfx: 'burnt', toast: { pt: 'Queimou!', en: 'It burned!', tone: 'bad' } };
+      return { sfx: 'pop', toast: { pt: 'Queimou!', en: 'It burned!', tone: 'bad' } };
     case 'chapa_trash':
       return { sfx: 'nope' };
     case 'pour_start':
-      return { sfx: 'pour' };
+      return { sfx: 'glug' };
     case 'pour_ok':
       return { sfx: 'ready' };
     case 'pour_bad':
@@ -147,9 +158,18 @@ export function cueFor(e: CEvent): { sfx?: CorreriaSfx; toast?: Bilingual & { to
     case 'pack':
       return { sfx: 'paper' };
     case 'serve':
-      return { sfx: e.combo >= 3 ? 'combo' : 'ding', toast: { ...e.line, tone: 'good' } };
+      return {
+        sfx: e.outcome === 'perfeito' && e.combo >= 3 ? (e.combo === 3 ? 'chain' : 'combo') : 'ding',
+        toast: { ...e.line, tone: 'good' },
+      };
     case 'correct':
       return { sfx: 'nope', toast: { ...e.line, tone: 'bad' } };
+    case 'front':
+      return { sfx: 'slap' };
+    case 'replay':
+      return { sfx: 'slap' };
+    case 'replay_deny':
+      return { sfx: 'sigh', toast: { ...e.line, tone: 'info' } };
     case 'leave':
       return { sfx: 'nope', toast: { ...e.line, tone: 'bad' } };
     case 'ask_result':

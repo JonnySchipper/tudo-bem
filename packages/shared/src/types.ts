@@ -77,6 +77,8 @@ export interface PublicAvatar {
   sitting: boolean;
   /** The belt earned in the academia (never bought): shown on the profile card and on the gi when worn. Players only. */
   belt?: Belt;
+  /** Beta founder chip beside the nameplate. */
+  founder?: boolean;
   /** Praça ambiance CPU (scripted scenery, outside the player cap, never chats). */
   cpu?: boolean;
   /** A neighbour (Seu Carlos, Nanda...) walking its schedule: id is `npc-<id>`, broadcast like a CPU but flagged with its NpcId. */
@@ -189,6 +191,8 @@ export interface PrivateProfile {
   photos?: { id: string; at: number; image: string; wordId?: string }[];
   /** Cartela de carimbos do bairro (seven stamps pay RV; persists across sessions). */
   cartela?: CartelaState;
+  /** Beta founder badge on the overhead nameplate. Absent on old saves until normalized (treated as true). */
+  founder?: boolean;
 }
 
 export interface Bilingual {

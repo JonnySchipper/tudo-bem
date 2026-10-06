@@ -10,6 +10,7 @@
  *    targets pin the arrow to the nearest edge of the free screen region and turn it toward the target (`guides.ts`).
  */
 import './pixel.css';
+import { FOUNDER_BADGE } from '@tudobem/shared';
 import { diffIds } from './reconcile';
 import { GUIDE_ROTATION, pinGuide, type GuideDir, type GuideInsets } from './guides';
 
@@ -25,7 +26,16 @@ export interface StackItem {
   /** CSS px of the point the stack stands on (just above the head) */
   x: number;
   y: number;
-  plate: { text: string; kind: 'npc' | 'player' | 'me'; /** false: keep the element but fade it out (a CPU far from you) */ show?: boolean; /** Academy stamp glyph, members only. */ mark?: string } | null;
+  plate: {
+    text: string;
+    kind: 'npc' | 'player' | 'me';
+    /** false: keep the element but fade it out (a CPU far from you) */
+    show?: boolean;
+    /** Academy stamp glyph, members only. */
+    mark?: string;
+    /** Beta founder chip beside the nameplate. */
+    founder?: boolean;
+  } | null;
   bubbles: BubbleItem[];
 }
 
@@ -164,7 +174,9 @@ interface BubbleEl {
 
 interface StackEl {
   root: HTMLElement;
+  plateRow: HTMLElement;
   plate: HTMLElement;
+  founder: HTMLElement;
   bubbles: BubbleEl[];
   side: 'left' | 'right';
   plateKey: string;
@@ -307,7 +319,7 @@ export class LabelLayer {
       if (el.hidden) continue;
       let under = false;
       if (this.hudRects.length) {
-        for (const part of [el.plate, ...el.bubbles.map((b) => b.root)]) {
+        for (const part of [el.plateRow, ...el.bubbles.map((b) => b.root)]) {
           if (part.style.display === 'none') continue;
           const r = part.getBoundingClientRect();
           if (r.width && underHud({ l: r.left, r: r.right, t: r.top, b: r.bottom }, this.hudRects)) {
@@ -327,10 +339,16 @@ export class LabelLayer {
   private createStack(): StackEl {
     const root = document.createElement('div');
     root.className = 'wl-stack';
+    const plateRow = document.createElement('div');
+    plateRow.className = 'wl-plate-row';
     const plate = document.createElement('div');
     plate.className = 'wl-plate';
-    root.appendChild(plate);
-    return { root, plate, bubbles: [], side: 'left', plateKey: '', plateW: 0, plateH: 0, transform: '', hidden: false, occluded: false, baseBottoms: [], plateBottom: '' };
+    const founder = document.createElement('span');
+    founder.className = 'wl-founder';
+    founder.style.display = 'none';
+    plateRow.append(plate, founder);
+    root.appendChild(plateRow);
+    return { root, plateRow, plate, founder, bubbles: [], side: 'left', plateKey: '', plateW: 0, plateH: 0, transform: '', hidden: false, occluded: false, baseBottoms: [], plateBottom: '' };
   }
 
   private createBubble(): BubbleEl {
@@ -352,7 +370,7 @@ export class LabelLayer {
     const pb = px(PLATE_LIFT + plateLift);
     if (pb !== el.plateBottom) {
       el.plateBottom = pb;
-      el.plate.style.bottom = pb;
+      el.plateRow.style.bottom = pb;
     }
     el.bubbles.forEach((be, i) => {
       const b = px((el.baseBottoms[i] ?? 0) + pileLift);
@@ -373,34 +391,51 @@ export class LabelLayer {
     }
 
     // nameplate: text and kind change rarely; measure only then
-    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}|${s.plate.mark ?? ''}` : '';
+    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}|${s.plate.mark ?? ''}|${s.plate.founder ? '1' : ''}` : '';
     if (pk !== el.plateKey) {
       el.plateKey = pk;
       if (s.plate) {
+        el.plateRow.style.display = '';
         el.plate.style.display = '';
         el.plate.textContent = s.plate.text;
         el.plate.className = `wl-plate wl-plate-${s.plate.kind}`;
+        el.plate.replaceChildren();
         if (s.plate.mark) {
           const mark = document.createElement('i');
           mark.className = 'wl-mark';
           mark.textContent = s.plate.mark;
           mark.setAttribute('aria-hidden', 'true');
-          el.plate.prepend(mark);
+          el.plate.append(mark, document.createTextNode(s.plate.text));
+        } else {
+          el.plate.append(document.createTextNode(s.plate.text));
         }
-        const w = el.plate.offsetWidth;
+        if (s.plate.founder) {
+          el.founder.style.display = '';
+          const fpt = document.createElement('span');
+          fpt.className = 'pt';
+          fpt.textContent = FOUNDER_BADGE.pt;
+          const fen = document.createElement('span');
+          fen.className = 'en';
+          fen.textContent = FOUNDER_BADGE.en;
+          el.founder.replaceChildren(fpt, fen);
+          el.founder.setAttribute('aria-label', `${FOUNDER_BADGE.pt} · ${FOUNDER_BADGE.en}`);
+        } else {
+          el.founder.style.display = 'none';
+          el.founder.replaceChildren();
+        }
+        const w = el.plateRow.offsetWidth;
         el.plateW = w % 2 ? w + 1 : w;
-        el.plateH = el.plate.offsetHeight;
-        el.plate.style.minWidth = px(el.plateW);
-        el.plate.style.marginLeft = px(-el.plateW / 2);
+        el.plateH = el.plateRow.offsetHeight;
+        el.plateRow.style.marginLeft = px(-el.plateW / 2);
       } else {
-        el.plate.style.display = 'none';
+        el.plateRow.style.display = 'none';
         el.plateW = 0;
         el.plateH = 0;
       }
     }
 
     const plateOn = !!s.plate && s.plate.show !== false;
-    if (plateOn === el.plate.classList.contains('wl-plate-off')) el.plate.classList.toggle('wl-plate-off', !plateOn);
+    if (plateOn === el.plateRow.classList.contains('wl-plate-off')) el.plateRow.classList.toggle('wl-plate-off', !plateOn);
 
     // bubbles: one element per line, rewritten only when its text changes
     while (el.bubbles.length > s.bubbles.length) el.bubbles.pop()?.root.remove();

@@ -45,6 +45,7 @@ export class CorreriaUI {
   private sayUntil = 0;
   private askSig = '';
   private mirrorSig = '';
+  private orderLand = 0;
   private barFill: HTMLElement | null = null;
   private askSecs: HTMLElement | null = null;
   private serveBtn: HTMLButtonElement;
@@ -245,8 +246,11 @@ export class CorreriaUI {
     switch (e.k) {
       case 'front': {
         const c = snap.customers.find((x) => x.id === e.id);
-        // a written order is already in the mirror; a listening one is spoken
-        if (c?.mode === 'listening') this.sayIt(c.pt);
+        this.orderLand = performance.now();
+        this.mirror.classList.remove('land');
+        void this.mirror.offsetWidth;
+        this.mirror.classList.add('land');
+        if (c) this.sayIt(c.pt);
         break;
       }
       case 'grab':
@@ -264,9 +268,15 @@ export class CorreriaUI {
       }
       case 'replay': {
         const c = snap.customers.find((x) => x.id === e.id);
-        if (c) this.sayIt(c.pt, 0.85);
+        if (c) {
+          this.mirrorSig = '';
+          this.sayIt(c.pt, 0.92);
+        }
         break;
       }
+      case 'replay_deny':
+        correriaFeed.push({ t: 'cheer', pt: e.line.pt, en: e.line.en, baker: snap.baker });
+        break;
       case 'serve':
         this.sayIt(e.line.pt);
         this.flash(e.line);
@@ -275,6 +285,10 @@ export class CorreriaUI {
       case 'correct':
         this.sayIt(e.line.pt);
         this.flash(e.line, true);
+        this.panel.classList.remove('squash');
+        void this.panel.offsetWidth;
+        this.panel.classList.add('squash');
+        window.setTimeout(() => this.panel.classList.remove('squash'), 420);
         break;
       case 'leave':
         this.sayIt(e.line.pt);
@@ -337,6 +351,7 @@ export class CorreriaUI {
     if (sig !== this.mirrorSig) {
       this.mirrorSig = sig;
       this.renderMirror(mir);
+      if (mir && this.orderLand) this.mirror.classList.add('subtitle-in');
     }
     this.renderAsk(front);
     // tray, mods
@@ -385,7 +400,12 @@ export class CorreriaUI {
         h('span', { class: 'cr-say-pt', id: 'cr-order-pt' }, mir.hidden ? '🔊 ' : '', mir.pt),
         mir.hidden ? h('span', { class: 'en' }, mir.en) : h('span', { class: 'en' }, mir.en),
         mir.canReplay
-          ? h('button', { type: 'button', class: 'cr-replay', id: 'cr-replay', onclick: () => this.act({ a: 'replay' }) }, '🔊 Ouvir de novo', h('span', { class: 'en' }, `Replay · costs ${mir.replayCost}% patience`))
+          ? h(
+              'button',
+              { type: 'button', class: 'cr-replay', id: 'cr-replay', onclick: () => this.act({ a: 'replay' }) },
+              '🔊 Ouvir de novo',
+              h('span', { class: 'en' }, mir.replayPips ? `Replay · −${mir.replayPips} patience pip${mir.replayPips > 1 ? 's' : ''}` : 'Replay · Carlos shrugs it off'),
+            )
           : null,
         mir.follow ? h('span', { class: 'cr-follow', id: 'cr-follow' }, mir.follow.pt, h('span', { class: 'en' }, mir.follow.en)) : null,
       ),

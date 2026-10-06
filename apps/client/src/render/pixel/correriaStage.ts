@@ -735,10 +735,11 @@ export class CounterStage {
       case 'serve':
         this.bellUntil = this.nowMs + 450;
         this.emoteAt(e.id, e.emote, snap);
-        if (e.combo >= 3) this.kick();
+        if (e.outcome === 'perfeito' && e.combo >= 3) this.kick();
         break;
       case 'correct':
-        this.emoteAt(e.id, '😤', snap);
+        this.emoteAt(e.id, '🤷', snap);
+        this.kick();
         break;
       case 'leave':
         this.emoteAt(e.id, e.emote, snap);

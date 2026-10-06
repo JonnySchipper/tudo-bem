@@ -41,7 +41,10 @@ describe('the Correria overlay view-model', () => {
     expect(listening.hidden).toBe(true);
     expect(listening.pt).not.toBe(f.pt);
     expect(listening.canReplay).toBe(true);
-    expect(listening.replayCost).toBe(10);
+    expect(listening.replayPips).toBe(1);
+    expect(orderMirror({ ...f, mode: 'listening', replays: 1 }, 3)!.hidden).toBe(false);
+    expect(orderMirror({ ...f, mode: 'listening', replays: 1 }, 3)!.replayPips).toBe(2);
+    expect(orderMirror({ ...f, mode: 'listening', replays: 2 }, 3)!.replayPips).toBe(0);
     expect(orderMirror({ ...f, state: 'queue' }, 0)).toBeNull();
     expect(orderMirror(undefined, 0)).toBeNull();
   });
@@ -88,9 +91,11 @@ describe('the Correria overlay view-model', () => {
   it('events make the right sound and toast: ding on a serve, a nope on a correction, burnt in red', () => {
     expect(cueFor({ k: 'grab', item: 'pao' }).sfx).toBe('grab');
     expect(cueFor({ k: 'serve', id: 1, outcome: 'perfeito', line: { pt: 'Perfeito!', en: 'Perfect!' }, emote: '😋', points: 14, tip: 2, combo: 1, speed: 0.8 })).toMatchObject({ sfx: 'ding', toast: { pt: 'Perfeito!', tone: 'good' } });
+    expect(cueFor({ k: 'serve', id: 1, outcome: 'perfeito', line: { pt: 'x', en: 'y' }, emote: '❤️', points: 20, tip: 3, combo: 3, speed: 1 }).sfx).toBe('chain');
     expect(cueFor({ k: 'serve', id: 1, outcome: 'perfeito', line: { pt: 'x', en: 'y' }, emote: '❤️', points: 20, tip: 3, combo: 4, speed: 1 }).sfx).toBe('combo');
     expect(cueFor({ k: 'correct', id: 1, line: { pt: 'Não, eu pedi DOIS pães…', en: 'No, I ordered TWO…' } })).toMatchObject({ sfx: 'nope', toast: { tone: 'bad' } });
-    expect(cueFor({ k: 'chapa_burnt', slot: 0 })).toMatchObject({ sfx: 'burnt', toast: { pt: 'Queimou!', tone: 'bad' } });
+    expect(cueFor({ k: 'chapa_burnt', slot: 0 })).toMatchObject({ sfx: 'pop', toast: { pt: 'Queimou!', tone: 'bad' } });
+    expect(cueFor({ k: 'front', id: 1 }).sfx).toBe('slap');
     expect(cueFor({ k: 'chapa_raw', slot: 0 }).toast?.pt).toBe('Ainda está cru!');
     expect(cueFor({ k: 'pour_bad', why: 'spill', fill: 1.4 }).toast?.pt).toBe('Derramou!');
     expect(cueFor({ k: 'pour_bad', why: 'short', fill: 0.3 }).toast?.pt).toBe('Faltou café!');

@@ -217,6 +217,21 @@ body.cr-on .toasts {
   min-height: 44px;
   display: grid;
   gap: 4px;
+  transform-origin: top center;
+}
+
+.cr-mirror.land {
+  animation: cr-card-slap 0.22s cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+
+.cr-mirror.subtitle-in .cr-say-pt,
+.cr-mirror.subtitle-in .cr-line .en {
+  animation: cr-order-fade 1s ease forwards;
+  opacity: 0;
+}
+
+.cr-panel.squash .cr-build {
+  animation: cr-tray-squash 0.38s ease-out;
 }
 
 .cr-line {
@@ -547,6 +562,41 @@ body.cr-on .toasts {
   100% {
     opacity: 0;
     transform: translate(-50%, -62%) scale(1);
+  }
+}
+
+@keyframes cr-card-slap {
+  0% {
+    transform: translateY(-10px) scale(0.96);
+    opacity: 0.2;
+  }
+  55% {
+    transform: translateY(2px) scale(1.02);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes cr-order-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes cr-tray-squash {
+  0% {
+    transform: scaleY(1);
+  }
+  35% {
+    transform: scaleY(0.82) scaleX(1.04);
+  }
+  100% {
+    transform: scaleY(1);
   }
 }
 
