@@ -86,7 +86,7 @@ import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira
 import { openCaderno, setArrivalReplay } from './ui/caderno';
 import { syncArrival } from './ui/arrival';
 import { syncGrants } from './ui/grants';
-import { askElevator, bindAcademy, onAcademyDirectory, syncAcademyFloor } from './ui/academy';
+import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAcademyFloor } from './ui/academy';
 import { askPadariaDoor, bindPadariaOwn, chooseBakery, onPadariaDoor, openHouseCounter, openPadariaBook, syncPadariaFloor, welcomeOwner } from './ui/padariaOwn';
 import { isArrivalHallOpen, openArrivalHall } from './ui/arrivalHall';
 import type { WordMoment } from './ui/diaryWordQueue';
@@ -400,6 +400,9 @@ function propAction(action: string, propId?: string) {
   else if (action === 'academy_elevator') {
     askElevator();
     net.send({ t: 'academy', action: 'directory' });
+  } else if (action === 'academy_board') {
+    const card = game.room?.room === 'andar' ? game.room.academy : undefined;
+    if (card) openAcademyBoard(card);
   } else if (action === 'padaria_door') {
     // inside an owned padaria the vaso is its book (Melhorias for the owner, the shop's card for a visitor)
     const own = game.room?.padaria;
@@ -520,6 +523,11 @@ function updateGuides() {
     else if (!t.cadeira || t.meveum) add(guideAt('portal', 'praca_rua_1', 60, t.cadeira ? 'Academia: pela Rua ↑' : 'Minha kitnet: pela Rua ↑'));
   } else if (r.room === 'feira') {
     add(guideAt('portal', 'feira_praca_1', 60, '← Praça'));
+  } else if (r.room === 'andar' && r.academy) {
+    // a player academy's floor: its own mat, and the crest board (the owner's look editor, a guest's join card)
+    add(guideAt('prop', 'andar_tatame', 60, 'Treinar'));
+    if (r.academy.owner) add(guideAt('prop', 'andar_brasao', 30, 'Brasão e kimono'));
+    else if (!r.academy.member) add(guideAt('prop', 'andar_brasao', 30, 'Entrar na equipe'));
   } else if (r.room === 'padaria' && r.padaria) {
     // a player-owned padaria: no baker on duty, the owner works the counter
     if (r.padaria.owner) {
@@ -726,6 +734,8 @@ net.on((m: ServerMsg) => {
       else if (game.room?.room === 'andar' && game.room.academy?.id === m.academy.id) {
         game.room = { ...game.room, academy: m.academy };
         syncAcademyFloor();
+        updateGuides();
+        game.emit('hud');
         game.emit('room');
       }
       break;
@@ -1042,6 +1052,8 @@ function hitLabel(hit: Hit | null): [string, string] | null {
     case 'prop': {
       const here = game.room?.padaria;
       const own = game.profile?.padaria;
+      const team = game.room?.room === 'andar' ? game.room.academy : undefined;
+      if (hit.prop.action === 'academy_board' && team) return team.owner ? ['Brasão e kimono', 'Crest and gi — edit your team look'] : [team.name, team.member ? 'Your team — leave or look' : 'Join this team (free)'];
       if (hit.prop.action === 'padaria_door' && here) return here.owner ? ['Melhorias da padaria', 'Upgrades — size and sweets'] : [here.name, `${here.ownerName}’s bakery — about this shop`];
       if (hit.prop.action === 'padaria_counter' && here) return [`Balcão da ${here.name}`, 'House counter — buy here'];
       if (hit.prop.action === 'padaria_door' && own) return [`Sua padaria: ${own.name}`, `Your bakery: ${own.name} — click to go in`];

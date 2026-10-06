@@ -2235,3 +2235,105 @@ body:has(.onboarding) .joystick {
     bottom: calc(72px + var(--safe-bottom, 0px));
   }
 }
+
+/* Player academies (polish): live preview, labelled pickers, the crest board card */
+.academy-found,
+.academy-look {
+  display: grid;
+  gap: 10px;
+}
+.academy-found .field,
+.academy-look .field {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+}
+.academy-found .field > span,
+.academy-look .field > span {
+  font-weight: 800;
+}
+.academy-found .field .en,
+.academy-look .field .en {
+  margin-left: 6px;
+  font-weight: 500;
+}
+.academy-found input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.academy-picks button {
+  display: grid;
+  place-items: center;
+  gap: 0;
+  padding: 4px 6px;
+}
+.academy-picks button .glyph {
+  font-size: 18px;
+  line-height: 1;
+}
+.academy-picks button small {
+  font-size: 10px;
+  font-weight: 700;
+}
+.academy-picks button.on {
+  outline: 3px solid #2a2233;
+  outline-offset: 1px;
+}
+.academy-preview {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1.5px solid rgba(42, 34, 51, 0.18);
+  border-radius: 14px;
+  background: #fffaf1;
+}
+.academy-preview .academy-crest {
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 26px;
+  flex: 0 0 auto;
+}
+.academy-preview-text {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+}
+.academy-preview-text b {
+  font-size: 18px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.academy-gi {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 46px;
+  border: 2px solid #2a2233;
+  border-radius: 8px 8px 4px 4px;
+  font-size: 16px;
+  color: #2a2233;
+  text-shadow: 0 0 2px #fff;
+  flex: 0 0 auto;
+}
+.academy-board {
+  width: min(440px, calc(100vw - 24px));
+}
+.academy-board-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.academy-board-actions button {
+  flex: 1;
+}
+/* the dark gi swatches carry light text */
+.academy-picks button[data-id='preto'],
+.academy-picks button[data-id='azul'],
+.academy-picks button[data-id='vermelho'],
+.academy-picks button[data-id='verde'] {
+  color: #fff;
+}

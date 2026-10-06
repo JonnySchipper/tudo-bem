@@ -1,5 +1,6 @@
 import {
   CARTELA_COPY,
+  CRESTS,
   PADARIA_SIZE_NAMES,
   CARTELA_GOAL,
   classifyChat,
@@ -320,6 +321,8 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
 
   /** A player-owned padaria is not Seu Carlos's: say whose it is and its size instead of the room's gloss. */
   const roomGloss = (r: NonNullable<typeof game.room>) => {
+    const team = r.room === 'andar' ? r.academy : undefined;
+    if (team) return `${team.owner ? 'Sua academia' : `De ${team.ownerName}`} · ${CRESTS[team.crest].glyph} ${team.size} ${team.size === 1 ? 'membro' : 'membros'}`;
     const own = r.padaria;
     if (!own) return game.roomDef?.gloss ?? '';
     return `${own.owner ? 'Sua padaria' : `De ${own.ownerName}`} · ${PADARIA_SIZE_NAMES[own.size].pt}`;

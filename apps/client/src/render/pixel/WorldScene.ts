@@ -1709,6 +1709,13 @@ export class WorldScene extends Phaser.Scene {
       const p = at(((lousa.from + lousa.to) / 2) * T, -17);
       stacks.push({ key: `sign:${own.id}`, x: p.px, y: p.py, plate: { text: own.name, kind: 'sign' }, bubbles: [] });
     }
+    // a player academy: its crest and name on a plate over the crest board
+    const team = game.room?.room === 'andar' ? game.room.academy : undefined;
+    const board = team ? def.props.find((q) => q.id === 'andar_brasao') : undefined;
+    if (team && board) {
+      const p = at((board.x + 0.5) * T, -6);
+      stacks.push({ key: `sign:academy:${team.id}`, x: p.px, y: p.py, plate: { text: `${CRESTS[team.crest].glyph} ${team.name}`, kind: 'sign' }, bubbles: [] });
+    }
     const guides: GuideItem[] = this.host.guides().map((g, i) => {
       const w = tileToWorld(g.x, g.y);
       const lift = Math.min(48, Math.max(12, g.lift * 0.3));

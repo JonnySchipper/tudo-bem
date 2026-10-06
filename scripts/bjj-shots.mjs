@@ -74,6 +74,40 @@ async function run(name) {
     await waitFor(page, () => window.__tb.game.profile.giOwned, null, 8000, 'gi purchased');
     await sleep(800);
     await shot('gi_on');
+    if (process.env.ACADEMY) {
+      // a brown belt (140 wins) founds an academy from the elevator, then stands on its floor
+      await page.evaluate(() => {
+        window.__tb.net.session.profile.bjj = { belt: 'marrom', stripes: 0, wins: 140, unlocked: [] };
+        window.__tb.net.session.profile.coins = 500;
+      });
+      await page.evaluate(() => window.__tb.interact({ prop: 'elevador' }));
+      await page.waitForSelector('.academy-dir', { timeout: 15_000 });
+      await sleep(400);
+      await shot('elevator');
+      await page.fill('#academy-name', 'Equipe Ipê');
+      await shot('elevator_found_form');
+      await page.click('.academy-found button[type="submit"]');
+      await waitFor(page, () => window.__tb.game.room?.room === 'andar', null, 20_000, 'academy floor');
+      await sleep(1800);
+      await shot('floor_owner');
+      await page.evaluate(() => window.__tb.interact({ prop: 'andar_brasao' }));
+      await page.waitForSelector('.academy-look', { timeout: 15_000 });
+      await page.click('.academy-look button[data-id="azul"]');
+      await sleep(300);
+      await shot('floor_look_editor');
+      await page.click('.academy-look button[type="submit"]');
+      await sleep(800);
+      // train on the academy's own mat
+      await page.evaluate(() => window.__tb.interact({ prop: 'andar_tatame' }));
+      await page.waitForSelector('#bout[data-phase="lobby"]', { timeout: 15_000 });
+      await sleep(900);
+      await shot('floor_bout_lobby');
+      await startBout(page);
+      await sleep(4000);
+      await shot('floor_bout');
+      if (errors.length) console.log('  ! page errors:', errors);
+      return;
+    }
     await openBout(page);
     await sleep(900);
     await shot('lobby');

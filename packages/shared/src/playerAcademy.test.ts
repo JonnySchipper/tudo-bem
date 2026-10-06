@@ -60,7 +60,7 @@ describe('player academies, slice 1', () => {
     expect(elevatorLayout(421)).toEqual({ stacked: false, actionWidth: 'auto' });
   });
 
-  it('puts the elevator in Academia do Bairro and an empty floor behind it', () => {
+  it('puts the elevator in Academia do Bairro and a floor with its own mat behind it', () => {
     expect(ROOMS.academia.name).toBe('Academia do Bairro');
     expect(ROOMS.rua_leste.portals.some((p) => p.to === 'academia')).toBe(true);
     expect(ROOMS.academia.portals.some((p) => p.to === 'andar')).toBe(false);
@@ -72,7 +72,14 @@ describe('player academies, slice 1', () => {
     expect(isWalkable(g, 5, 7)).toBe(true);
 
     expect(ROOMS.andar.npcs).toEqual([]);
-    expect(ROOMS.andar.props.some((p) => p.action === 'bjj_roll' || p.action === 'buy_gi')).toBe(false);
+    // slice 2 (polish): the floor's own mat trains and its crest board opens the team card; the gi is still bought at the flagship
+    expect(ROOMS.andar.props.some((p) => p.action === 'buy_gi')).toBe(false);
+    const ag = buildGrid(ROOMS.andar);
+    for (const id of ['andar_tatame', 'andar_brasao']) {
+      const p = ROOMS.andar.props.find((q) => q.id === id)!;
+      expect(p.action, id).toBeTruthy();
+      expect(findPath(ag, ROOMS.andar.spawn, p.interact!), id).not.toBeNull();
+    }
     expect(ROOMS.andar.portals.map((p) => p.to)).toEqual(['academia']);
     expect(seatTiles(ROOMS.andar).length).toBeGreaterThan(0);
     const floor = buildGrid(ROOMS.andar);

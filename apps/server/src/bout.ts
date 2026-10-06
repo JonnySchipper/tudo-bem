@@ -96,6 +96,9 @@ export interface BoutDeps {
 }
 
 /** `v: 1` bout messages. The account (`profile.bjj`) holds the belt and the unlocked moves, the same way Correria holds stars. */
+/** The flagship academia, or a player academy's own floor (`andar@<id>`): both have a mat to train on. */
+const onMat = (s: Session): boolean => s.instance?.def.id === 'academia' || s.instance?.def.id === 'andar';
+
 export class BoutEngine {
   private seq = 0;
   constructor(private readonly d: BoutDeps) {}
@@ -127,7 +130,7 @@ export class BoutEngine {
   }
 
   private open(s: Session) {
-    if (s.instance?.def.id !== 'academia') return this.d.err(s, 'bout', 'O tatame fica na academia.', 'The mat is in the academy.');
+    if (!onMat(s)) return this.d.err(s, 'bout', 'O tatame fica na academia.', 'The mat is in the academy.');
     if (!s.profile!.giOwned) {
       return this.d.err(s, 'bout', 'Compre o kimono no vestiário antes de entrar na fila.', 'Buy your gi at the changing area before joining the mat queue.');
     }
@@ -150,7 +153,7 @@ export class BoutEngine {
   }
 
   private start(s: Session, partnerId: unknown, _rematch: boolean) {
-    if (s.instance?.def.id !== 'academia') return this.d.err(s, 'bout', 'O tatame fica na academia.', 'The mat is in the academy.');
+    if (!onMat(s)) return this.d.err(s, 'bout', 'O tatame fica na academia.', 'The mat is in the academy.');
     if (this.of(s)) return;
     const prog = normalizeBjj(s.profile!.bjj);
     s.profile!.bjj = prog;

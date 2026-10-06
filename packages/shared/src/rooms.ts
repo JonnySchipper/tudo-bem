@@ -51,7 +51,7 @@ export type PropKind =
   | 'feira'
   | 'hortifruti';
 
-export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi' | 'escola' | 'academy_elevator' | 'padaria_door' | 'padaria_counter';
+export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi' | 'escola' | 'academy_elevator' | 'academy_board' | 'padaria_door' | 'padaria_counter';
 
 export interface PropDef {
   id: string;
@@ -979,7 +979,7 @@ const academia: RoomDef = {
       blocks: true,
       action: 'bjj_roll',
       interact: { x: 9, y: 2 },
-      label: { pt: 'Treino no tatame →', en: 'Word game on the mat →' },
+      label: { pt: 'Treino no tatame →', en: 'Mat practice →' },
     },
     { id: 'faixas', kind: 'parede_faixas', x: 0, y: 1, h: 2, blocks: true, label: { pt: 'Parede de faixas', en: 'Belt wall' } },
     { id: 'quadro', kind: 'quadro_foto', x: 10, y: 4, blocks: true, label: { pt: 'Academia do Bairro', en: 'Academy photo' } },
@@ -1076,8 +1076,10 @@ const andar: RoomDef = {
   lighting: 'manha',
   spawn: { x: 1, y: 5 },
   props: [
-    { id: 'andar_tatame', kind: 'tatame', x: 2, y: 1, w: 5, h: 3, blocks: false, label: { pt: 'Tatame vazio', en: 'Empty mat' } },
-    { id: 'andar_brasao', kind: 'quadro_foto', x: 6, y: 0, blocks: true, label: { pt: 'Brasão da academia', en: 'Academy crest' } },
+    // the academy's own mat: owner, members and guests train here like on the flagship's (the bout stage finds any tatame)
+    { id: 'andar_tatame', kind: 'tatame', x: 2, y: 1, w: 5, h: 3, blocks: false, action: 'bjj_roll', interact: { x: 4, y: 4 }, label: { pt: 'Treinar no tatame', en: 'Train on the mat' } },
+    // the crest board: the owner edits crest and gi here, a guest joins or leaves the team
+    { id: 'andar_brasao', kind: 'quadro_foto', x: 6, y: 0, blocks: true, action: 'academy_board', interact: { x: 6, y: 1 }, label: { pt: 'Brasão da academia', en: 'Academy crest' } },
     // Width 4 matches the sliced bleacher art (banco_espectador_*_of_4). Crest sits clear of the seats.
     { id: 'andar_arquibancada', kind: 'banco_espectador', x: 1, y: 0, w: 4, blocks: false, seat: 'SW', label: { pt: 'Arquibancada', en: 'Bleachers' } },
   ],
