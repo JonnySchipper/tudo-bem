@@ -4,7 +4,7 @@
  *
  * Layer sheets are built by `assets-src/custom/chars.mjs` (see assets-src/README.md for what is derived from LimeZu and what is authored).
  */
-import { HATS, type BodyType, type BottomStyle, type ExtraStyle, type FaceStyle, type HairStyle, type IdlePose, type TopStyle } from '@tudobem/shared';
+import { ALL_HATS, type BodyType, type BottomStyle, type ExtraStyle, type FaceStyle, type HairStyle, type IdlePose, type TopStyle } from '@tudobem/shared';
 
 export interface OutfitEntry {
   /** layer key at body type `medio`; esguio / forte add a `__<body>` suffix (the body warp is baked at import) */
@@ -265,7 +265,7 @@ export function allLayerKeys(): string[] {
     keys.add(f.overlay);
   }
   for (const e of Object.values(CHAR_LAYERS.extra)) if (e) keys.add(e.layer);
-  for (const h of HATS) keys.add(CHAR_LAYERS.hat[h.id]);
+  for (const h of ALL_HATS) keys.add(CHAR_LAYERS.hat[h.id]);
   for (const h of Object.values(CHAR_LAYERS.npcHat)) keys.add(h);
   for (const i of Object.values(CHAR_LAYERS.idle)) for (const l of i.layers) if (l !== 'pose_bracos') keys.add(l);
   keys.add(CHAR_LAYERS.gestures);

@@ -83,7 +83,8 @@ import {
   normalizeFounderFlag,
   GI_ITEM_ID,
   GI_PRICE,
-  PARROT_COLORS,
+  buyParrotColor,
+  ownedParrotColorIds,
   parrotColorById,
   snackById,
   snackForProp,
@@ -1688,17 +1689,13 @@ export class World {
       return;
     }
     if (kind === 'parrot') {
-      const color = parrotColorById(itemId);
-      if (!color || color.id !== itemId) return;
+      if (!parrotColorById(itemId)) return;
       if (s.instance?.def.id !== 'praca') return this.err(s, 'shop', 'O poleiro fica na praça.', 'The parrot perch is in the square.');
-      if (!p.parrotColors) p.parrotColors = [];
-      if (p.parrotColors.includes(color.id)) return this.equipParrotColor(s, color.id);
-      if (p.coins < color.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
-      p.coins -= color.price;
-      p.parrotColors.push(color.id);
-      p.parrotOwned = true;
-      p.parrotEquipped = true;
-      p.parrotColor = color.id;
+      const result = buyParrotColor(p, itemId);
+      if (result === 'unknown') return;
+      if (result === 'coins') return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
+      if (result === 'equipped') return this.equipParrotColor(s, itemId);
+      const color = parrotColorById(itemId)!;
       this.store.save();
       s.send({ t: 'notice', level: 'reward', pt: `Papagaio ${color.pt}!`, en: `${color.en} parrot!` });
       this.pushProfile(s);
@@ -1826,7 +1823,10 @@ export class World {
 
   private equipParrotColor(s: Session, colorId: string) {
     const p = s.profile!;
-    if (!p.parrotColors?.includes(colorId)) return;
+    const colors = ownedParrotColorIds(p);
+    if (!colors.includes(colorId)) return;
+    p.parrotColors = colors;
+    p.parrotOwned = true;
     p.parrotColor = colorId;
     p.parrotEquipped = true;
     this.store.save();
@@ -1845,8 +1845,8 @@ export class World {
       if (s.instance?.def.id !== 'praca') return;
       p.parrotOwned = true;
       p.parrotEquipped = true;
-      if (!p.parrotColors) p.parrotColors = [];
-      if (!p.parrotColors.includes('verde')) p.parrotColors.push('verde');
+      p.parrotColors = ownedParrotColorIds(p);
+      if (!p.parrotColors.includes('verde')) p.parrotColors = ['verde', ...p.parrotColors];
       p.parrotColor = 'verde';
       s.send({ t: 'notice', level: 'reward', pt: 'Um papagaio agora é seu amigo! Ele sussurra palavras.', en: 'A parrot is now your buddy! It whispers study words (hint).' });
     } else if (action === 'toggle') {

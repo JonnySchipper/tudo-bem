@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HATS } from '@tudobem/shared';
+import { ALL_HATS } from '@tudobem/shared';
 import { CUT_ABOVE_FEET, applyBodyHeight, frameBottoms, type Geometry } from './bodytype';
 import { HAT_LIFT, hatLayer } from './characters';
 
@@ -50,6 +50,6 @@ describe('body height (esguio taller, forte shorter)', () => {
 
 describe('hat lift', () => {
   it('every catalog hat has a lift for its layer', () => {
-    for (const h of HATS) expect(HAT_LIFT[hatLayer(h.id) as string], h.id).toBeGreaterThanOrEqual(0);
+    for (const h of ALL_HATS) expect(HAT_LIFT[hatLayer(h.id) as string], h.id).toBeGreaterThanOrEqual(0);
   });
 });

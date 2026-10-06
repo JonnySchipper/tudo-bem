@@ -2,7 +2,8 @@
  * DOM previews of the composed pixel character, for both views (the iso view has no Phaser): the avatar creator (8x, with a turn button),
  * the wardrobe / hat shop, and the hat icons. They compose through the same layer table and composer as the game scene.
  */
-import type { Appearance } from '@tudobem/shared';
+import { parrotColorById, type Appearance } from '@tudobem/shared';
+import { recolorParrotPixels } from './parrotRecolor';
 import { sharedCharAssets, type CharAssets } from './charAssets';
 import { composeRgba } from './charcompose';
 import { composeLook } from './composeLook';
@@ -20,6 +21,8 @@ export interface PreviewSpec {
   appearance: Appearance;
   hat?: string | null;
   parrot?: boolean;
+  /** Poleiro colour id. The preview draws that body colour, not only the green base. */
+  parrotColor?: string | null;
 }
 
 export const TURN_ORDER: Facing[] = ['S', 'E', 'N', 'W'];
@@ -64,6 +67,8 @@ function composedFor(assets: CharAssets, spec: PreviewSpec): { key: string; look
 }
 
 const parrotImg = new Map<string, HTMLImageElement>();
+const parrotFrameCache = new Map<string, HTMLCanvasElement>();
+
 function parrotStrip(assets: CharAssets): { img: HTMLImageElement; frames: number; frameW: number; h: number } | null {
   const meta = assets.manifest.images?.['chars/parrot_strip'];
   if (!meta) return null;
@@ -75,6 +80,27 @@ function parrotStrip(assets: CharAssets): { img: HTMLImageElement; frames: numbe
     parrotImg.set(url, img);
   }
   return img.complete && img.naturalWidth ? { img, frames: meta.frames ?? 4, frameW: meta.frameW ?? 10, h: meta.h } : null;
+}
+
+/** One frame of the shoulder parrot, body recolored for the poleiro colour (cached). */
+function parrotFrame(img: HTMLImageElement, frame: number, frameW: number, h: number, colorId: string | null | undefined): HTMLCanvasElement {
+  const tint = parrotColorById(colorId)?.tint ?? 0xffffff;
+  const key = `${img.src}:${tint}:${frame}`;
+  const hit = parrotFrameCache.get(key);
+  if (hit) return hit;
+  const canvas = document.createElement('canvas');
+  canvas.width = frameW;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+  ctx.drawImage(img, frame * frameW, 0, frameW, h, 0, 0, frameW, h);
+  if (tint !== 0xffffff) {
+    const image = ctx.getImageData(0, 0, frameW, h);
+    recolorParrotPixels(image.data, tint);
+    ctx.putImageData(image, 0, 0);
+  }
+  parrotFrameCache.set(key, canvas);
+  return canvas;
 }
 
 /**
@@ -126,6 +152,7 @@ export function mountCharPreview(canvas: HTMLCanvasElement, get: () => PreviewSp
       const p = parrotStrip(assets);
       if (p) {
         const pf = Math.floor((now / 1000) * 3) % p.frames;
+        const bird = parrotFrame(p.img, pf, p.frameW, p.h, spec.parrotColor);
         const side = facing === 'W' ? 1 : -1;
         const bob = Math.round(Math.sin(now / 420) * 1.5);
         const px = FX + 8 + side * 9 - Math.round(p.frameW / 2);
@@ -134,9 +161,9 @@ export function mountCharPreview(canvas: HTMLCanvasElement, get: () => PreviewSp
           ctx.save();
           ctx.translate(px + p.frameW, py);
           ctx.scale(-1, 1);
-          ctx.drawImage(p.img, pf * p.frameW, 0, p.frameW, p.h, 0, 0, p.frameW, p.h);
+          ctx.drawImage(bird, 0, 0);
           ctx.restore();
-        } else ctx.drawImage(p.img, pf * p.frameW, 0, p.frameW, p.h, px, py, p.frameW, p.h);
+        } else ctx.drawImage(bird, px, py);
       }
     }
     ctx.drawImage(c.sheet, col * fw, row * fh, fw, fh, FX, FY, fw, fh);
