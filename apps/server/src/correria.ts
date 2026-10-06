@@ -58,6 +58,8 @@ export interface CorreriaDeps {
   err: (s: Session, code: string, pt: string, en: string) => void;
   /** Owned padaria menu cap (undefined = shared Seu Carlos shelf). */
   ownedMenu?: (s: Session) => readonly string[] | undefined;
+  /** The player-owned padaria this shift runs in (its name), so the end line is about your own till, not Seu Carlos's thanks. */
+  ownedName?: (s: Session) => string | undefined;
   /** When false, Correria stays on shared shards only (flag-off). */
   allowOwnedShift?: (s: Session) => boolean;
   testHints: boolean;
@@ -260,7 +262,12 @@ export class CorreriaEngine {
           : abandoned
             ? { pt: `Turno encerrado. Aqui estão ${coins} reais virtuais pelo que você já serviu.`, en: `Shift closed. Here are ${coins} RV for what you already served.` }
             : { pt: `Valeu pela ajuda! Aqui estão ${coins} reais virtuais.`, en: `Thanks for the help! Here are ${coins} RV coins.` };
-    s.send({ t: 'mg', phase: 'end', end, carlos });
+    const house = this.d.ownedName?.(s);
+    const line: Bilingual =
+      house && sum.served > 0 && !dailyBlocked
+        ? { pt: `Turno fechado na ${house}! O caixa fez ${coins} reais virtuais.`, en: `Shift closed at ${house}! The till made ${coins} RV.` }
+        : carlos;
+    s.send({ t: 'mg', phase: 'end', end, carlos: line });
   }
 
   private quit(s: Session, run: CorreriaRun): void {

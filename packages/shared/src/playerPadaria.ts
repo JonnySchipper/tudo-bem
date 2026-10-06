@@ -90,6 +90,16 @@ export function checkPadariaUpgrade(row: PlayerPadaria, kind: PadariaUpgradeKind
   return { ok: false, code: 'padaria', reason: { pt: 'Upgrade desconhecido.', en: 'Unknown upgrade.' } };
 }
 
+/** The upgrade to point an owner at next: the Padaria size, then the sweets (cheapest first), then the Restaurante. Null when all are bought. */
+export function nextPadariaUpgrade(row: Pick<PlayerPadaria, 'size' | 'sweets'>): { kind: PadariaUpgradeKind; label: Bilingual; cost: number } | null {
+  const order: PadariaUpgradeKind[] = ['size2', 'brigadeiro', 'boloCenoura', 'sonho', 'size3'];
+  for (const kind of order) {
+    const check = checkPadariaUpgrade({ ...(row as PlayerPadaria), sweets: { ...row.sweets } }, kind);
+    if (check.ok) return { kind, label: check.label, cost: check.cost };
+  }
+  return null;
+}
+
 /** Apply an upgrade that `checkPadariaUpgrade` allowed. */
 export function applyPadariaUpgrade(row: PlayerPadaria, kind: PadariaUpgradeKind) {
   if (kind === 'size2') row.size = 2;
@@ -186,13 +196,14 @@ export function canBuySweet(row: PlayerPadaria, tier: keyof PadariaSweets): bool
 
 const RESTAURANT: readonly OwnedShelfId[] = ['prato_feito', 'arroz_feijao', 'bife_acebolado', 'salada', 'feijoada', 'pudim'];
 
-export function counterMenuForOwned(row: PlayerPadaria): string[] {
+/** The caixa da casa's menu (works on the row or the client's card). */
+export function counterMenuForOwned(row: Pick<PlayerPadaria, 'size' | 'sweets'>): string[] {
   if (row.size === 1) return ['cafe', 'pao'];
   const ids = ['coxinha', 'cafe', 'cafe_com_leite', 'pao_na_chapa', 'suco_de_laranja', 'agua', 'pao', 'misto_quente', 'pastel', 'bolo', 'pao_de_queijo', 'guarana'];
   if (row.size >= 3) ids.push(...RESTAURANT);
-  if (row.sweets.brigadeiro) ids.push('brigadeiro');
-  if (row.sweets.boloCenoura) ids.push('bolo_de_cenoura');
-  if (row.sweets.sonho) ids.push('sonho');
+  if (row.sweets?.brigadeiro) ids.push('brigadeiro');
+  if (row.sweets?.boloCenoura) ids.push('bolo_de_cenoura');
+  if (row.sweets?.sonho) ids.push('sonho');
   return ids;
 }
 

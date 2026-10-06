@@ -51,7 +51,7 @@ export type PropKind =
   | 'feira'
   | 'hortifruti';
 
-export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi' | 'escola' | 'academy_elevator' | 'padaria_door';
+export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi' | 'escola' | 'academy_elevator' | 'padaria_door' | 'padaria_counter';
 
 export interface PropDef {
   id: string;
@@ -806,7 +806,8 @@ const padaria: RoomDef = {
   spawn: { x: 1, y: 6 },
   props: [
     { id: 'caixa', kind: 'caixa', x: 0, y: 2, blocks: true, label: { pt: 'Caixa', en: 'Cash register' } },
-    { id: 'balcao', kind: 'balcao', x: 1, y: 2, w: 5, h: 1, blocks: true },
+    // the counter: order from the baker on duty, or from the house menu in a player-owned padaria
+    { id: 'balcao', kind: 'balcao', x: 1, y: 2, w: 5, h: 1, blocks: true, action: 'padaria_counter', interact: { x: 2, y: 3 }, label: { pt: 'Balcão', en: 'Counter' } },
     { id: 'vitrine', kind: 'vitrine', x: 6, y: 2, blocks: true },
     { id: 'estufa', kind: 'estufa', x: 7, y: 2, blocks: true, label: { pt: 'Estufa de salgados', en: 'Warm snack display' } },
     {

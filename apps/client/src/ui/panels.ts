@@ -1,6 +1,7 @@
 import {
   FURNITURE,
   HATS,
+  ALL_HATS,
   PARROT_COLORS,
   MISSION_COPY,
   MISSION_REWARD,
@@ -318,7 +319,7 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
         hat ? `“${hat.pt}? Fica bem em você!”` : '“Sem chapéu também fica ótimo!”',
         en(hat ? `${hat.en}? Looks good on you!` : 'No hat looks great too!'),
       );
-    const list = mode === 'shop' ? HATS : HATS.filter((x) => prof.hats.includes(x.id));
+    const list = mode === 'shop' ? HATS : ALL_HATS.filter((x) => prof.hats.includes(x.id));
     clear(grid);
     if (!list.length) grid.append(h('div', null, 'Você ainda não tem chapéus.', en('No hats yet — visit Nanda’s stall in the Praça.')));
     for (const hatDef of list) {

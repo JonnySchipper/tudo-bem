@@ -28,7 +28,8 @@ export interface StackItem {
   y: number;
   plate: {
     text: string;
-    kind: 'npc' | 'player' | 'me';
+    /** `sign`: a shop name chalked on a board (a player-owned padaria), not a person. */
+    kind: 'npc' | 'player' | 'me' | 'sign';
     /** false: keep the element but fade it out (a CPU far from you) */
     show?: boolean;
     /** Academy stamp glyph, members only. */

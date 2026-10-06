@@ -60,5 +60,18 @@ export const FURNITURE: FurnitureDef[] = [
 export const STARTER_FURNITURE: Record<string, number> = { cadeira_madeira: 1 };
 export const STARTER_HATS: string[] = [];
 
-export const hatById = (id: string | null | undefined): HatDef | undefined => HATS.find((h) => h.id === id);
+/**
+ * Hats that are earned, never sold at Nanda’s stall. The founder toque comes only from Fundar (player padaria);
+ * the mustard band matches the founder “f” mark. needs_br: true
+ */
+export const EARNED_HATS: HatDef[] = [
+  { id: 'chapeu_padeiro_casa', pt: 'Chapéu de dono da padaria', en: 'Bakery owner’s hat', price: 0, shape: 'chef', color: '#ffffff', accent: '#e0ae3c' },
+];
+
+/** Every hat a profile can wear (the stall plus the earned ones). */
+export const ALL_HATS: HatDef[] = [...HATS, ...EARNED_HATS];
+
+export const hatById = (id: string | null | undefined): HatDef | undefined => ALL_HATS.find((h) => h.id === id);
+/** Only the stall sells hats; earned hats come from their own feature. */
+export const isStallHat = (id: string): boolean => HATS.some((h) => h.id === id);
 export const furnitureById = (id: string): FurnitureDef | undefined => FURNITURE.find((f) => f.id === id);

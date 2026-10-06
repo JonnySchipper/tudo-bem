@@ -16,6 +16,7 @@ import {
   HAIR_COLORS,
   HAIR_STYLES,
   hatById,
+  isStallHat,
   npcAvatarId,
   ADMIN_KICKED_COPY,
   IDLE_KICK_MS,
@@ -118,6 +119,7 @@ import {
   SWEET_WORD_IDS,
   type PadariaCard,
   type PlayerPadaria,
+  type PrivateProfile,
 } from '@tudobem/shared';
 import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
 import { AcademyStore } from './academyStore.js';
@@ -407,6 +409,7 @@ export class World {
         this.services.student.record({ playerId: s.profile!.id, itemIds, channel: listening ? 'listen' : 'read', score, latencyMs, place: 'padaria', nameplate: s.profile!.nameplate, at: this.now() }),
       err: (s, code, pt, en) => this.err(s, code, pt, en),
       ownedMenu: (s) => this.ownedCorreriaMenu(s),
+      ownedName: (s) => this.floorPadaria(s)?.name,
       allowOwnedShift: (s) => this.correriaAllowed(s),
       testHints: opts.testMg ?? readEnv('TB_TEST_MG') === '1',
     });
@@ -829,7 +832,7 @@ export class World {
     s.profile = p;
     p.nameplate = this.services.student.nameplateFor(p);
     p.lastSeen = this.now();
-    s.send({ t: 'welcome', profile: toPrivate(p), token: p.token, serverNow: this.clockNow(), weather: this.weatherPin });
+    s.send({ t: 'welcome', profile: this.privateProfile(p), token: p.token, serverNow: this.clockNow(), weather: this.weatherPin });
     if (p.photos?.length) this.pushPhotos(s);
     this.notifyFriendsOfPresence(p.id);
     const incoming = this.incomingFriendReqs.get(p.id);
@@ -893,7 +896,15 @@ export class World {
   }
 
   private pushProfile(s: Session) {
-    if (s.profile) s.send({ t: 'profile', profile: toPrivate(s.profile) });
+    if (s.profile) s.send({ t: 'profile', profile: this.privateProfile(s.profile) });
+  }
+
+  /** The profile the client sees, plus the padaria this player founded (flag-on only) so the HUD and the door can take them home. */
+  private privateProfile(p: StoredProfile): PrivateProfile {
+    const out = toPrivate(p);
+    const own = this.padariaOwnership ? this.padarias.ownedBy(p.id) : undefined;
+    if (own) out.padaria = { id: own.id, name: own.name, size: own.size };
+    return out;
   }
 
   /** A feature that shipped after this player already lived here. Only an owed grant changes the profile. */
@@ -1696,7 +1707,7 @@ export class World {
     }
     if (kind === 'hat') {
       const hat = hatById(itemId);
-      if (!hat) return;
+      if (!hat || !isStallHat(hat.id)) return;
       if (s.instance?.def.id !== 'praca') return this.err(s, 'shop', 'A barraca da Nanda fica na praça.', 'Nanda’s stall is in the square.');
       if (p.hats.includes(hat.id)) return this.err(s, 'owned', 'Você já tem esse chapéu.', 'You already own this hat.');
       if (p.coins < hat.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet — play “Me vê um…” or talk to Seu Carlos.');
@@ -1770,6 +1781,16 @@ export class World {
       if (itemId === 'brigadeiro' || itemId === 'bolo_de_cenoura' || itemId === 'sonho') {
         const wid = SWEET_WORD_IDS[itemId as keyof typeof SWEET_WORD_IDS];
         if (wid) this.caderno.seen(s, cardById(wid)?.form ?? itemId, [wid]);
+      }
+      // a visitor's reais go into the owner's till (a transfer, never new RV)
+      const owner = owned.ownerId !== p.id ? this.store.get(owned.ownerId) : undefined;
+      if (owner) {
+        owner.coins += price;
+        const os = this.sessionByProfile(owner.id);
+        if (os) {
+          this.pushProfile(os);
+          os.send({ t: 'notice', level: 'reward', pt: `${p.name} comprou ${card?.form ?? itemId} na ${owned.name}: +${price} RV`, en: `${p.name} bought ${card?.gloss_en ?? itemId} at ${owned.name}: +${price} RV` });
+        }
       }
       this.store.save();
       s.send({ t: 'notice', level: 'reward', pt: `Comprou: ${card?.form ?? itemId}`, en: `Bought: ${card?.gloss_en ?? itemId}` });

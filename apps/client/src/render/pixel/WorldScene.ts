@@ -524,6 +524,8 @@ export class WorldScene extends Phaser.Scene {
 
     // ---- readable world (Phase 7): a click box per hotspot (the footprint, plus the wall rows above it for a sign painted on a north wall)
     for (const hs of hotspotsInRoom(def.id)) {
+      // Seu Carlos's own shelf sign does not hang in a player-owned padaria
+      if (game.room?.padaria && hs.id === 'padaria_prateleira') continue;
       if (!diaryVisible(def.id, hs.id, this.diaryDay)) continue;
       const b = hotspotBox(hs);
       this.staticHits.push({ x0: b.x0 * T, y0: b.y0 * T, x1: b.x1 * T, y1: b.y1 * T, hit: { kind: 'hotspot', hotspot: hs }, depth: b.y1 * T - 0.25 });
@@ -1641,6 +1643,13 @@ export class WorldScene extends Phaser.Scene {
         },
         bubbles,
       });
+    }
+    // a player-owned padaria: its name in chalk on the blackboard (Seu Carlos's board stays plain)
+    const own = game.room?.padaria;
+    const lousa = own ? northDecor(def).find((d) => d.kind === 'lousa') : undefined;
+    if (own && lousa) {
+      const p = at(((lousa.from + lousa.to) / 2) * T, -17);
+      stacks.push({ key: `sign:${own.id}`, x: p.px, y: p.py, plate: { text: own.name, kind: 'sign' }, bubbles: [] });
     }
     const guides: GuideItem[] = this.host.guides().map((g, i) => {
       const w = tileToWorld(g.x, g.y);

@@ -87,7 +87,7 @@ import { openCaderno, setArrivalReplay } from './ui/caderno';
 import { syncArrival } from './ui/arrival';
 import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, syncAcademyFloor } from './ui/academy';
-import { askPadariaDoor, bindPadariaOwn, onPadariaDoor, syncPadariaFloor } from './ui/padariaOwn';
+import { askPadariaDoor, bindPadariaOwn, chooseBakery, onPadariaDoor, openHouseCounter, openPadariaBook, syncPadariaFloor, welcomeOwner } from './ui/padariaOwn';
 import { isArrivalHallOpen, openArrivalHall } from './ui/arrivalHall';
 import type { WordMoment } from './ui/diaryWordQueue';
 import { cameraFrameAt, captureFrame, celebrateWord, celebrateWords, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
@@ -197,8 +197,12 @@ function runPending() {
   const p = game.pending;
   game.pending = null;
   if (!p) return;
-  if (p.kind === 'portal') net.send({ t: 'portal', portalId: p.portalId });
-  else if (p.kind === 'npc') talkTo(p.npc);
+  if (p.kind === 'portal') {
+    const to = game.roomDef?.portals.find((q) => q.id === p.portalId)?.to;
+    // an owner at Seu Carlos's door picks: their own padaria or his (the facade is shared; the owned shop has no door of its own)
+    if (to === 'padaria' && game.profile?.padaria) chooseBakery(game.profile.padaria, () => net.send({ t: 'portal', portalId: p.portalId }));
+    else net.send({ t: 'portal', portalId: p.portalId });
+  } else if (p.kind === 'npc') talkTo(p.npc);
   else if (p.kind === 'hotspot') {
     const hs = hotspotById(p.hotspotId);
     if (hs) readHotspot(hs);
@@ -396,7 +400,21 @@ function propAction(action: string, propId?: string) {
   else if (action === 'academy_elevator') {
     askElevator();
     net.send({ t: 'academy', action: 'directory' });
-  } else if (action === 'padaria_door') askPadariaDoor();
+  } else if (action === 'padaria_door') {
+    // inside an owned padaria the vaso is its book (Melhorias for the owner, the shop's card for a visitor)
+    const own = game.room?.padaria;
+    if (own) openPadariaBook(own);
+    else askPadariaDoor();
+  } else if (action === 'padaria_counter') {
+    const own = game.room?.padaria;
+    if (own) openHouseCounter(own);
+    else {
+      // Seu Carlos's register: whoever is on duty takes the order
+      const baker = game.liveNpcs(now()).find((n) => n.id === 'carlos' || n.id === 'graca');
+      if (baker) talkTo(baker.id);
+      else toast('info', 'Ninguém no caixa agora.', 'Nobody at the register right now.');
+    }
+  }
 }
 
 bindAcademy({
@@ -417,6 +435,7 @@ bindPadariaOwn({
     else net.send({ t: 'padariaOwn', action: 'visit' });
   },
   upgrade: (kind) => net.send({ t: 'padariaOwn', action: 'upgrade', kind }),
+  buy: (itemId) => net.send({ t: 'padaria', action: 'buy', itemId }),
 });
 
 wireParrotShop({
@@ -487,6 +506,8 @@ function updateGuides() {
     else if (!t.chapeu) add(guideAt('portal', 'rua_praca_1', 60, 'Chapéus: Praça ↓'));
     else if (!t.cadeira) add(guideAt('portal', 'praca_kitnet', 110, 'Minha kitnet'));
     if (t.meveum) add(guideAt('portal', 'rua_leste_1', 60, 'Academia: leste →'));
+    // an owner's shop is behind the same door: their name over it, every visit
+    if (t.carlos && p.padaria) add(guideAt('portal', 'praca_padaria', 110, `${p.padaria.name} ↑`));
   } else if (r.room === 'rua_leste') {
     if (t.meveum) add(guideAt('portal', 'praca_academia', 110, 'Academia do Bairro →'));
     else if (!t.carlos) add(guideAt('portal', 'leste_rua_1', 60, '← Padaria: pela Rua'));
@@ -498,6 +519,17 @@ function updateGuides() {
     else if (!t.cadeira || t.meveum) add(guideAt('portal', 'praca_rua_1', 60, t.cadeira ? 'Academia: pela Rua ↑' : 'Minha kitnet: pela Rua ↑'));
   } else if (r.room === 'feira') {
     add(guideAt('portal', 'feira_praca_1', 60, '← Praça'));
+  } else if (r.room === 'padaria' && r.padaria) {
+    // a player-owned padaria: no baker on duty, the owner works the counter
+    if (r.padaria.owner) {
+      add(guideAt('prop', 'trilho', 128, 'Seu balcão: Correria'));
+      // on the vaso itself (its interact tile is where you stand, so an arrow there points at your own head)
+      const vaso = game.roomDef?.props.find((q) => q.id === 'padaria_porta_fundar');
+      if (vaso) add({ x: vaso.x, y: vaso.y, lift: 60, label: 'Melhorias' });
+    } else {
+      add(guideAt('prop', 'balcao', 60, 'Balcão da casa'));
+      add(guideAt('portal', 'padaria_praca', 110, '← Rua'));
+    }
   } else if (r.room === 'padaria') {
     // Click opens AI Conversa. Don't label the tile "Conversar" — that word was the chip-scene trap.
     // the baker at the counter: Seu Carlos by day, Dona Graça at night
@@ -661,7 +693,9 @@ net.on((m: ServerMsg) => {
       game.emit('decor');
       if (m.room === 'kitnet' && m.ownerId === game.profile?.id && !game.profile?.tutorial.cadeira)
         toast('info', 'Sua kitnet! Clique em “Decorar” e coloque sua cadeira.', 'Your apartment! Click “Decorar” (top right) and place your free chair.');
-      if (m.room === 'padaria' && !game.profile?.tutorial.carlos)
+      // your own padaria: what is where, the first time you stand in it
+      if (m.padaria?.owner) setTimeout(welcomeOwner, 900);
+      if (m.room === 'padaria' && !m.padaria && !game.profile?.tutorial.carlos)
         setTimeout(() => {
           // whoever is at the counter greets you the way the hour asks (bom dia / boa tarde / boa noite)
           const baker = game.liveNpcs(now()).find((q) => q.id === 'carlos' || q.id === 'graca')?.id ?? 'carlos';
@@ -699,6 +733,7 @@ net.on((m: ServerMsg) => {
       else if (m.phase === 'floor' && game.room?.padaria?.id === m.padaria.id) {
         game.room = { ...game.room, padaria: m.padaria };
         syncPadariaFloor();
+        game.emit('hud');
         game.emit('room');
       }
       break;
@@ -1001,8 +1036,14 @@ function hitLabel(hit: Hit | null): [string, string] | null {
   switch (hit.kind) {
     case 'npc':
       return [`${hit.npc.name}  ♥ ${heartsWith(game.profile?.bond, hit.npc.id)}`, `${hit.npc.role.en} — click to talk`];
-    case 'prop':
+    case 'prop': {
+      const here = game.room?.padaria;
+      const own = game.profile?.padaria;
+      if (hit.prop.action === 'padaria_door' && here) return here.owner ? ['Melhorias da padaria', 'Upgrades — size and sweets'] : [here.name, `${here.ownerName}’s bakery — about this shop`];
+      if (hit.prop.action === 'padaria_counter' && here) return [`Balcão da ${here.name}`, 'House counter — buy here'];
+      if (hit.prop.action === 'padaria_door' && own) return [`Sua padaria: ${own.name}`, `Your bakery: ${own.name} — click to go in`];
       return hit.prop.label ? [hit.prop.label.pt, hit.prop.label.en] : null;
+    }
     case 'hotspot': {
       const t = hotspotTitle(hit.hotspot);
       return [t.pt, `${t.en} — click to read`];

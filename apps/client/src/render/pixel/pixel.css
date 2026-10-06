@@ -140,6 +140,19 @@
   padding: 3px 9px 4px;
 }
 
+.wl-plate-sign {
+  --edge: #5b3b22;
+  --fill: #2f4a3a;
+  --ink: #f4ede2;
+  font-family: var(--font-title, 'Baloo 2', system-ui, sans-serif);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  max-width: 132px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .wl-mark {
   display: inline-block;
   margin-right: 4px;

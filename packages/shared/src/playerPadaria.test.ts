@@ -11,7 +11,7 @@ import {
   upgradeSizeCostRv,
   validatePadariaName,
 } from './playerPadaria.js';
-import { applyPadariaUpgrade, checkPadariaUpgrade, normalizePadaria, padariaCard } from './playerPadaria.js';
+import { applyPadariaUpgrade, checkPadariaUpgrade, nextPadariaUpgrade, normalizePadaria, padariaCard } from './playerPadaria.js';
 
 describe('player padaria Fundar', () => {
   it('fundar costs 900 RV and the door meter tracks coins', () => {
@@ -90,6 +90,18 @@ describe('padaria upgrades', () => {
     applyPadariaUpgrade(row, 'sonho');
     expect(row.sweets.sonho).toBe(true);
     expect(checkPadariaUpgrade(row, 'sonho')).toMatchObject({ ok: false, code: 'owned' });
+  });
+
+  it('points the owner at the next upgrade in order', () => {
+    const row = base();
+    expect(nextPadariaUpgrade(row)?.kind).toBe('size2');
+    for (const k of ['size2', 'brigadeiro', 'boloCenoura', 'sonho'] as const) {
+      expect(nextPadariaUpgrade(row)?.kind).toBe(k);
+      applyPadariaUpgrade(row, k);
+    }
+    expect(nextPadariaUpgrade(row)).toMatchObject({ kind: 'size3', cost: 3000 });
+    applyPadariaUpgrade(row, 'size3');
+    expect(nextPadariaUpgrade(row)).toBeNull();
   });
 
   it('the floor card carries the bought sweets', () => {
