@@ -7,7 +7,7 @@ import {
   frontOf,
   hearts,
   levelForStars,
-  mgItemById,
+  mgItemByIdAny,
   newShift,
   newUnlocks,
   normalizeCorreria,
@@ -56,7 +56,10 @@ export interface CorreriaDeps {
   caderno: { seen: (s: Session, text: string, ids?: readonly string[]) => void; heard: (s: Session, ids: unknown) => void };
   record: (s: Session, itemIds: string[], listening: boolean, score: number, latencyMs: number) => void;
   err: (s: Session, code: string, pt: string, en: string) => void;
-  /** Test hook (TB_TEST_MG): snapshots carry each order's lines. */
+  /** Owned padaria menu cap (undefined = shared Seu Carlos shelf). */
+  ownedMenu?: (s: Session) => readonly string[] | undefined;
+  /** When false, Correria stays on shared shards only (flag-off). */
+  allowOwnedShift?: (s: Session) => boolean;
   testHints: boolean;
   /** How often the clock runs (ms). */
   tickMs?: number;
@@ -117,12 +120,25 @@ export class CorreriaEngine {
   private start(s: Session): void {
     const p = s.profile!;
     if (s.instance?.def.id !== 'padaria') return this.d.err(s, 'mg', 'O jogo fica no balcão da padaria.', 'The game is at the bakery counter.');
+    if (this.d.allowOwnedShift && !this.d.allowOwnedShift(s)) {
+      return this.d.err(s, 'mg', 'O jogo fica no balcão da padaria.', 'The game is at the bakery counter.');
+    }
     s.scene = undefined;
     p.correria = normalizeCorreria(p.correria);
     const stars = p.correria.stars;
     const clk = this.d.clock();
     const regulars = REGULAR_NPCS.map((npc) => ({ npc, hearts: hearts(p.bond?.[npc] ?? 0) })).filter((r) => r.hearts >= 1 && npcDefById(r.npc));
-    const shift = newShift({ seed: (this.d.now() ^ (Math.random() * 1e9)) >>> 0, level: levelForStars(stars), unlocked: unlockedFor(stars), saturday: clk.saturday, minute: clk.minute, baker: clk.baker, regulars });
+    const menuIds = this.d.ownedMenu?.(s);
+    const shift = newShift({
+      seed: (this.d.now() ^ (Math.random() * 1e9)) >>> 0,
+      level: levelForStars(stars),
+      unlocked: unlockedFor(stars),
+      menuIds,
+      saturday: clk.saturday,
+      minute: clk.minute,
+      baker: clk.baker,
+      regulars,
+    });
     shift.debug = this.d.testHints;
     const run: CorreriaRun = { token: ++this.seq, shift, last: this.d.now(), lastSent: 0 };
     s.mg = run;
@@ -161,14 +177,14 @@ export class CorreriaEngine {
   private after(s: Session, run: CorreriaRun, ev: CEvent[], before: { id: number; mode: 'written' | 'listening'; pt: string; lines: { itemId: string; qty: number }[]; wait: number } | null): void {
     for (const e of ev) {
       if (e.k === 'serve' && before && e.id === before.id) {
-        const cards = before.lines.map((l) => mgItemById(l.itemId)!.card.id);
+        const cards = before.lines.map((l) => mgItemByIdAny(l.itemId)!.card.id);
         this.d.record(s, [...cards, 'lex.padaria.me_ve'], before.mode === 'listening', e.outcome === 'perfeito' ? 3 : 2, before.wait);
         if (before.mode === 'listening') this.d.caderno.heard(s, cards);
         else this.d.caderno.seen(s, before.pt);
         this.d.ordered(s, before.lines);
         if (run.shift.stats.served === 1) this.d.missionStep(s);
       } else if ((e.k === 'leave' && before && e.id === before.id) || (e.k === 'leave' && e.why === 'tempo')) {
-        if (before && e.id === before.id) this.d.record(s, [...before.lines.map((l) => mgItemById(l.itemId)!.card.id), 'lex.padaria.me_ve'], before.mode === 'listening', 0, before.wait);
+        if (before && e.id === before.id) this.d.record(s, [...before.lines.map((l) => mgItemByIdAny(l.itemId)!.card.id), 'lex.padaria.me_ve'], before.mode === 'listening', 0, before.wait);
       }
     }
   }

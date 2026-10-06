@@ -25,6 +25,13 @@ export const MG_ITEMS: MgItem[] = SHELF.map((id) => {
 });
 export const mgItemById = (id: string) => MG_ITEMS.find((i) => i.id === id);
 
+/** Player-owned shelf items (lazy import avoids a cycle with padariaOwnedItems). */
+let _ownedLookup: ((id: string) => MgItem | undefined) | undefined;
+export function registerOwnedMgLookup(fn: (id: string) => MgItem | undefined) {
+  _ownedLookup = fn;
+}
+export const mgItemByIdAny = (id: string) => mgItemById(id) ?? _ownedLookup?.(id);
+
 export interface MgMod {
   id: string;
   pt: string;

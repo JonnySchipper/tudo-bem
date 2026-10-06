@@ -65,3 +65,16 @@ export function academyFileAdapter(dataDir: string): AcademyPersistence {
     },
   };
 }
+
+/** Player-owned padarias beside profiles. */
+export function padariaFileAdapter(dataDir: string): import('./padariaStore.js').PadariaPersistence {
+  const file = path.join(dataDir, 'padarias.json');
+  return {
+    describe: () => file,
+    load: () => (fs.existsSync(file) ? (JSON.parse(fs.readFileSync(file, 'utf8')) as unknown[]) : []),
+    save: (rows) => {
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      atomicWriteFileSync(file, JSON.stringify(rows));
+    },
+  };
+}

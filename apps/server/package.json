@@ -25,6 +25,7 @@
     "./world": "./src/world.ts",
     "./store": "./src/store.ts",
     "./academy": "./src/academyStore.ts",
+    "./padaria": "./src/padariaStore.ts",
     "./services": "./src/services/stubs.ts"
   }
 }

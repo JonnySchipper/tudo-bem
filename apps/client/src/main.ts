@@ -87,6 +87,7 @@ import { openCaderno, setArrivalReplay } from './ui/caderno';
 import { syncArrival } from './ui/arrival';
 import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, syncAcademyFloor } from './ui/academy';
+import { askPadariaDoor, bindPadariaOwn, onPadariaDoor, syncPadariaFloor } from './ui/padariaOwn';
 import { isArrivalHallOpen, openArrivalHall } from './ui/arrivalHall';
 import type { WordMoment } from './ui/diaryWordQueue';
 import { cameraFrameAt, captureFrame, celebrateWord, celebrateWords, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
@@ -387,7 +388,7 @@ function propAction(action: string, propId?: string) {
   else if (action === 'academy_elevator') {
     askElevator();
     net.send({ t: 'academy', action: 'directory' });
-  }
+  } else if (action === 'padaria_door') askPadariaDoor();
 }
 
 bindAcademy({
@@ -396,6 +397,18 @@ bindAcademy({
   join: (id) => net.send({ t: 'academy', action: 'join', id }),
   leave: (id) => net.send({ t: 'academy', action: 'leave', id }),
   look: (id, look) => net.send({ t: 'academy', action: 'look', id, crest: look.crest, giColor: look.giColor, giStamp: look.giStamp }),
+});
+
+bindPadariaOwn({
+  door: () => net.send({ t: 'padariaOwn', action: 'door' }),
+  found: (name) => net.send({ t: 'padariaOwn', action: 'found', name }),
+  visit: (id) => net.send({ t: 'padariaOwn', action: 'visit', id }),
+  visitMine: () => {
+    const id = game.profile && game.room?.padaria?.owner ? game.room.padaria.id : null;
+    if (id) net.send({ t: 'padariaOwn', action: 'visit', id });
+    else net.send({ t: 'padariaOwn', action: 'visit' });
+  },
+  upgrade: (kind) => net.send({ t: 'padariaOwn', action: 'upgrade', kind }),
 });
 
 wireParrotShop({
@@ -660,6 +673,7 @@ net.on((m: ServerMsg) => {
       if (keepMg) correriaUi?.requestSync();
       syncArrival(arrivalFinish, arrivalHall);
       syncAcademyFloor();
+      syncPadariaFloor();
       break;
     }
     case 'academy':
@@ -667,6 +681,14 @@ net.on((m: ServerMsg) => {
       else if (game.room?.room === 'andar' && game.room.academy?.id === m.academy.id) {
         game.room = { ...game.room, academy: m.academy };
         syncAcademyFloor();
+        game.emit('room');
+      }
+      break;
+    case 'padariaOwn':
+      if (m.phase === 'door') onPadariaDoor(m.enabled, m.door, m.rows);
+      else if (m.phase === 'floor' && game.room?.padaria?.id === m.padaria.id) {
+        game.room = { ...game.room, padaria: m.padaria };
+        syncPadariaFloor();
         game.emit('room');
       }
       break;

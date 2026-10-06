@@ -18,6 +18,7 @@ import type { NpcId } from './rooms.js';
 import type { ConversaGrade, ConversaMeter, ConversaScores, ConversaSubject } from './conversa.js';
 import type { BjjPositionId, BjjProgress, BoutReason, BoutWinner, Belt, PartnerId } from './academia.js';
 import type { AcademyCard, CrestId, GiColorId, GiStampId } from './playerAcademy.js';
+import type { PadariaCard, PadariaDoorState } from './playerPadaria.js';
 import type { BoutAnswer, ChallengeView } from './challenges.js';
 import type { ExchangeEvent, IntentId, RefSignal, Score } from './bout.js';
 import type { RecadoActiveView, RecadoOfferView } from './recados.js';
@@ -32,7 +33,7 @@ export type ClientMsg =
   /** Real player input (pointer / key / touch) since the last report. Resets the server idle clock; `ping` never does. */
   | { t: 'active' }
   | { t: 'updateAppearance'; appearance: Appearance }
-  | { t: 'join'; room: RoomId; instanceId?: string; ownerId?: string }
+  | { t: 'join'; room: RoomId; instanceId?: string; ownerId?: string; padariaId?: string }
   | { t: 'move'; x: number; y: number; sit?: boolean }
   | { t: 'stand' }
   | { t: 'emote'; kind: EmoteKind }
@@ -133,6 +134,14 @@ export type ClientMsg =
   | { t: 'academy'; action: 'join'; id: string }
   | { t: 'academy'; action: 'leave'; id: string }
   | { t: 'academy'; action: 'look'; id: string; crest: CrestId; giColor: GiColorId; giStamp: GiStampId }
+  /**
+   * Player-owned padaria (Fundar). `door` opens the savings meter UI at the praça facade or shared padaria exit.
+   * `found` spends 900 RV once. `visit` loads your room. `upgrade` buys size 2/3 or sweets (owner, in-room).
+   */
+  | { t: 'padariaOwn'; action: 'door' }
+  | { t: 'padariaOwn'; action: 'found'; name: string }
+  | { t: 'padariaOwn'; action: 'visit'; id?: string }
+  | { t: 'padariaOwn'; action: 'upgrade'; kind: 'size2' | 'size3' | 'brigadeiro' | 'boloCenoura' | 'sonho' }
   | { t: 'ping' };
 
 /** One online player row for the admin panel. */
@@ -168,6 +177,8 @@ export interface RoomStateMsg {
   serverNow?: number;
   /** Set on a player academy floor (`andar`). Absent in every public room, including Academia do Bairro. */
   academy?: AcademyCard;
+  /** Set in a player-owned padaria instance (`padaria@…`). */
+  padaria?: PadariaCard;
 }
 
 export type NoticeLevel = 'info' | 'warn' | 'block' | 'reward' | 'error';
@@ -480,4 +491,6 @@ export type ServerMsg =
   /** Elevator directory. `canFound` is this player's belt. `ownedId` is the academy they founded, if any. */
   | { t: 'academy'; phase: 'directory'; rows: AcademyCard[]; canFound: boolean; ownedId: string | null }
   /** Crest / gi / membership changed on the floor you are standing in. */
-  | { t: 'academy'; phase: 'floor'; academy: AcademyCard };
+  | { t: 'academy'; phase: 'floor'; academy: AcademyCard }
+  | { t: 'padariaOwn'; phase: 'door'; enabled: boolean; door: PadariaDoorState; rows: PadariaCard[] }
+  | { t: 'padariaOwn'; phase: 'floor'; padaria: PadariaCard };

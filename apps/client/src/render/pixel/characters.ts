@@ -98,6 +98,7 @@ export const CHAR_LAYERS = {
     panama: 'hat_panama',
     coroa_flores: 'hat_coroa_flores',
     chapeu_chef: 'hat_chapeu_chef',
+    chapeu_padeiro_casa: 'hat_chapeu_chef',
     cartola: 'hat_cartola',
   } as Record<string, string>,
   /** standing poses: props on the idle rows, or the pack's phone loop (S only). `solto` is the plain pack idle. */

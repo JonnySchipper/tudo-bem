@@ -9,7 +9,7 @@ describe('caderno view-model', () => {
     const v = cadernoView(undefined, undefined);
     expect(v.groups.map((g) => g.id)).toEqual(cadernoGroups().map((g) => g.id));
     expect(v.groups.map((g) => g.label.pt)).toEqual(['Padaria', 'Cumprimentos', 'Números']);
-    expect(v.total).toBe(58);
+    expect(v.total).toBe(67);
     expect(v.learned).toBe(0);
     expect(v.met).toBe(0);
     for (const g of v.groups) {
