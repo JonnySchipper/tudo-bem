@@ -111,11 +111,10 @@ import {
   PADARIA_FOUNDER_HAT,
   displayFounderHat,
   fundarCostRv,
-  upgradeSizeCostRv,
-  sweetCostRv,
+  checkPadariaUpgrade,
+  applyPadariaUpgrade,
   ownedCorreriaMenuIds,
   counterMenuForOwned,
-  canBuySweet,
   SWEET_WORD_IDS,
   type PadariaCard,
   type PlayerPadaria,
@@ -721,7 +720,7 @@ export class World {
     this.store.save();
     this.pushProfile(s);
     this.broadcastAvatar(s);
-    s.send({ t: 'notice', level: 'reward', pt: `Padaria ${row.name} fundada! Chapéu de padeiro na cabeça.`, en: `${row.name} is open! Baker’s hat on.` });
+    s.send({ t: 'notice', level: 'reward', pt: `${row.name}: porta aberta! Chapéu de padeiro na cabeça.`, en: `${row.name} is open! Baker’s hat on.` });
     this.visitPadaria(s, row.id);
   }
 
@@ -736,31 +735,19 @@ export class World {
     if (!row) return this.err(s, 'padaria', 'Compre upgrades na sua padaria.', 'Buy upgrades inside your bakery.');
     if (row.ownerId !== s.profile!.id) return this.err(s, 'owner', 'Só quem fundou compra upgrades.', 'Only the founder buys upgrades.');
     const p = s.profile!;
-    let cost = 0;
-    if (kind === 'size2') {
-      if (row.size >= 2) return this.err(s, 'owned', 'Você já tem o balcão completo.', 'You already have the full counter.');
-      cost = upgradeSizeCostRv(2);
-      row.size = 2;
-    } else if (kind === 'size3') {
-      if (row.size < 2) return this.err(s, 'gate', 'Primeiro vire Padaria (tamanho 2).', 'Get size 2 Padaria first.');
-      if (row.size >= 3) return this.err(s, 'owned', 'Você já tem o restaurante.', 'You already have the restaurant.');
-      cost = upgradeSizeCostRv(3);
-      row.size = 3;
-    } else if (kind === 'brigadeiro' || kind === 'boloCenoura' || kind === 'sonho') {
-      const tier = kind === 'brigadeiro' ? 'brigadeiro' : kind === 'boloCenoura' ? 'boloCenoura' : 'sonho';
-      if (!canBuySweet(row, tier)) return this.err(s, 'gate', 'Precisa do tamanho Padaria e ainda não comprou.', 'Needs size 2 and is not bought yet.');
-      cost = sweetCostRv(tier);
-      if (tier === 'brigadeiro') row.sweets.brigadeiro = true;
-      else if (tier === 'boloCenoura') row.sweets.boloCenoura = true;
-      else row.sweets.sonho = true;
-    } else return this.err(s, 'padaria', 'Upgrade desconhecido.', 'Unknown upgrade.');
-    if (p.coins < cost) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
-    p.coins -= cost;
+    const check = checkPadariaUpgrade(row, kind);
+    if (!check.ok) return this.err(s, check.code, check.reason.pt, check.reason.en);
+    // charge before changing the row: a short owner must not get the upgrade
+    if (p.coins < check.cost) return this.err(s, 'coins', `Faltam ${check.cost - p.coins} RV.`, `${check.cost - p.coins} RV short.`);
+    p.coins -= check.cost;
+    applyPadariaUpgrade(row, kind);
     this.padarias.save();
     this.store.save();
     this.pushProfile(s);
     this.pushPadariaFloor(row.id);
-    s.send({ t: 'notice', level: 'reward', pt: 'Upgrade feito!', en: 'Upgrade done!' });
+    if (kind === 'size2' || kind === 'size3')
+      s.send({ t: 'notice', level: 'reward', pt: `${row.name} cresceu: agora é ${check.label.pt}!`, en: `${row.name} grew: now a ${check.label.en.toLowerCase()}!` });
+    else s.send({ t: 'notice', level: 'reward', pt: `${check.label.pt} na vitrine!`, en: `${check.label.en} in the case!` });
   }
 
   private pushPadariaFloor(padariaId: string) {

@@ -11,7 +11,7 @@ import {
   upgradeSizeCostRv,
   validatePadariaName,
 } from './playerPadaria.js';
-import { normalizePadaria } from './playerPadaria.js';
+import { applyPadariaUpgrade, checkPadariaUpgrade, normalizePadaria, padariaCard } from './playerPadaria.js';
 
 describe('player padaria Fundar', () => {
   it('fundar costs 900 RV and the door meter tracks coins', () => {
@@ -66,5 +66,36 @@ describe('player padaria Fundar', () => {
     expect(displayFounderHat(null, true, 'praca', false)).toBe(PADARIA_FOUNDER_HAT);
     expect(displayFounderHat(null, true, 'kitnet', true)).toBeNull();
     expect(displayFounderHat('bone_verde', true, 'kitnet', true)).toBe('bone_verde');
+  });
+});
+
+describe('padaria upgrades', () => {
+  const base = () => normalizePadaria({ id: 'abcdef01', ownerId: 'abcdef02', name: 'Padaria da Bia', size: 1, sweets: {} })!;
+
+  it('prices the next size and gates sweets on size 2', () => {
+    const row = base();
+    expect(checkPadariaUpgrade(row, 'size2')).toMatchObject({ ok: true, cost: 1500 });
+    expect(checkPadariaUpgrade(row, 'size3')).toMatchObject({ ok: false, code: 'gate' });
+    expect(checkPadariaUpgrade(row, 'brigadeiro')).toMatchObject({ ok: false, code: 'gate' });
+  });
+
+  it('checking never changes the row; applying does', () => {
+    const row = base();
+    checkPadariaUpgrade(row, 'size2');
+    expect(row.size).toBe(1);
+    applyPadariaUpgrade(row, 'size2');
+    expect(row.size).toBe(2);
+    expect(checkPadariaUpgrade(row, 'size2')).toMatchObject({ ok: false, code: 'owned' });
+    expect(checkPadariaUpgrade(row, 'sonho')).toMatchObject({ ok: true, cost: 500 });
+    applyPadariaUpgrade(row, 'sonho');
+    expect(row.sweets.sonho).toBe(true);
+    expect(checkPadariaUpgrade(row, 'sonho')).toMatchObject({ ok: false, code: 'owned' });
+  });
+
+  it('the floor card carries the bought sweets', () => {
+    const row = base();
+    row.size = 2;
+    row.sweets.brigadeiro = true;
+    expect(padariaCard(row, 'Bia', row.ownerId).sweets).toEqual({ brigadeiro: true });
   });
 });

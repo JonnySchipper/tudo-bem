@@ -47,6 +47,27 @@ describe('player-owned padaria', () => {
     expect(p.last('mg')?.phase).toBe('state');
   });
 
+  it('a short owner is refused an upgrade and the row stays as it was', async () => {
+    const padarias = new PadariaStore(null);
+    const world = makeWorld(padarias);
+    const p = await player(world, 'Lia', fundarCostRv());
+    await p.send({ t: 'padariaOwn', action: 'found', name: 'Padaria da Lia' });
+    const row = padarias.ownedBy(p.s.profile!.id)!;
+    p.s.profile!.coins = 100;
+    await p.send({ t: 'padariaOwn', action: 'upgrade', kind: 'size2' });
+    expect(p.last('error')?.code).toBe('coins');
+    expect(row.size).toBe(1);
+    expect(p.s.profile!.coins).toBe(100);
+    p.s.profile!.coins = 1500;
+    await p.send({ t: 'padariaOwn', action: 'upgrade', kind: 'size2' });
+    expect(row.size).toBe(2);
+    expect(p.s.profile!.coins).toBe(0);
+    expect(p.last('padariaOwn')).toMatchObject({ phase: 'floor', padaria: { size: 2, sweets: {} } });
+    await p.send({ t: 'padariaOwn', action: 'upgrade', kind: 'brigadeiro' });
+    expect(p.last('error')?.code).toBe('coins');
+    expect(row.sweets.brigadeiro).toBeUndefined();
+  });
+
   it('door cofre opens on the rua facade', async () => {
     const world = makeWorld();
     const p = await player(world, 'Rua', 100);
