@@ -33,7 +33,7 @@ export interface StackItem {
     show?: boolean;
     /** Academy stamp glyph, members only. */
     mark?: string;
-    /** Beta founder chip beside the nameplate. */
+    /** Beta founder “f” mark beside the nameplate. */
     founder?: boolean;
   } | null;
   bubbles: BubbleItem[];
@@ -411,14 +411,11 @@ export class LabelLayer {
         }
         if (s.plate.founder) {
           el.founder.style.display = '';
-          const fpt = document.createElement('span');
-          fpt.className = 'pt';
-          fpt.textContent = FOUNDER_BADGE.pt;
-          const fen = document.createElement('span');
-          fen.className = 'en';
-          fen.textContent = FOUNDER_BADGE.en;
-          el.founder.replaceChildren(fpt, fen);
-          el.founder.setAttribute('aria-label', `${FOUNDER_BADGE.pt} · ${FOUNDER_BADGE.en}`);
+          el.founder.textContent = 'f';
+          el.founder.setAttribute('role', 'img');
+          const founderTip = `${FOUNDER_BADGE.pt} · ${FOUNDER_BADGE.en}`;
+          el.founder.setAttribute('aria-label', founderTip);
+          el.founder.setAttribute('title', founderTip);
         } else {
           el.founder.style.display = 'none';
           el.founder.replaceChildren();
