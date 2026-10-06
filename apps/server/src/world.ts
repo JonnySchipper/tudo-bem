@@ -90,6 +90,7 @@ import {
   type CounterItemId,
   itemById,
   counterOrderLine,
+  COUNTER_PRICES,
   counterPrice,
   isCounterItem,
   academyCard,
@@ -101,9 +102,26 @@ import {
   validateAcademyName,
   type AcademyCard,
   type PlayerAcademy,
+  padariaCard,
+  padariaDoorState,
+  padariaIdFromInstance,
+  padariaInstanceId,
+  validatePadariaName,
+  PADARIA_FOUNDER_HAT,
+  displayFounderHat,
+  fundarCostRv,
+  upgradeSizeCostRv,
+  sweetCostRv,
+  ownedCorreriaMenuIds,
+  counterMenuForOwned,
+  canBuySweet,
+  SWEET_WORD_IDS,
+  type PadariaCard,
+  type PlayerPadaria,
 } from '@tudobem/shared';
 import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
 import { AcademyStore } from './academyStore.js';
+import { PadariaStore } from './padariaStore.js';
 import { ProfileStore, today, todaySaoPaulo, toPrivate, type StoredProfile } from './store.js';
 import { CpuCrowd } from './ambiance.js';
 import { readEnv } from './env.js';
@@ -159,6 +177,10 @@ export interface WorldOptions {
   adminPassword?: string | null;
   /** Player academies. Omit for an in-memory store (tests, and any caller that does not persist). */
   academies?: AcademyStore;
+  /** Player-owned padarias (Fundar). Omit for in-memory only. */
+  padarias?: PadariaStore;
+  /** When false, owned instances and Fundar UI stay off; shared Correria unchanged. Env: TB_PADARIA_OWNERSHIP=1 */
+  padariaOwnership?: boolean;
 }
 
 /** What the World needs from the account store (kept tiny so world.ts stays browser-safe for solo mode). */
@@ -270,6 +292,8 @@ export class World {
   private readonly correria: CorreriaEngine;
   /** Named player academies (slice 1). Durable when the host passes a file-backed store. */
   readonly academies: AcademyStore;
+  readonly padarias: PadariaStore;
+  readonly padariaOwnership: boolean;
 
   constructor(
     readonly store: ProfileStore,
@@ -293,6 +317,8 @@ export class World {
     this.npcs = new NpcDirector(() => this.clockNow());
     this.accounts = opts.accounts;
     this.academies = opts.academies ?? new AcademyStore(null);
+    this.padarias = opts.padarias ?? new PadariaStore(null);
+    this.padariaOwnership = opts.padariaOwnership ?? readEnv('TB_PADARIA_OWNERSHIP') === '1';
     this.idleKickMs = Math.max(1000, opts.idleKickMs ?? IDLE_KICK_MS);
     this.cartela = new CartelaTracker({
       now: () => this.now(),
@@ -380,6 +406,8 @@ export class World {
       record: (s, itemIds, listening, score, latencyMs) =>
         this.services.student.record({ playerId: s.profile!.id, itemIds, channel: listening ? 'listen' : 'read', score, latencyMs, place: 'padaria', nameplate: s.profile!.nameplate, at: this.now() }),
       err: (s, code, pt, en) => this.err(s, code, pt, en),
+      ownedMenu: (s) => this.ownedCorreriaMenu(s),
+      allowOwnedShift: (s) => this.correriaAllowed(s),
       testHints: opts.testMg ?? readEnv('TB_TEST_MG') === '1',
     });
   }
@@ -527,6 +555,8 @@ export class World {
         return this.admin(s, msg);
       case 'academy':
         return this.academy(s, msg);
+      case 'padariaOwn':
+        return this.padariaOwn(s, msg);
     }
   }
 
@@ -635,6 +665,140 @@ export class World {
       m.send({ t: 'academy', phase: 'floor', academy: academyCard(row, this.store.get(row.ownerId)?.name ?? '—', id) });
     }
     for (const m of inst.members.values()) this.broadcast(inst, { t: 'avatarUpdated', avatar: this.publicAvatar(m) });
+  }
+
+  // ---------- player-owned padarias (Fundar) ----------
+
+  private padariaOwn(s: Session, msg: Extract<ClientMsg, { t: 'padariaOwn' }>) {
+    if (!this.padariaOwnership) return this.err(s, 'padaria', 'Em breve.', 'Coming soon.');
+    if (msg.action === 'door') return this.padariaDoor(s);
+    if (msg.action === 'found') return this.foundPadaria(s, msg.name);
+    if (msg.action === 'visit') return this.visitPadaria(s, msg.id ?? this.padarias.ownedBy(s.profile!.id)?.id ?? '');
+    if (msg.action === 'upgrade') return this.upgradePadaria(s, msg.kind);
+    return this.err(s, 'padaria', 'Ação desconhecida.', 'Unknown action.');
+  }
+
+  private atPadariaDoor(s: Session) {
+    const room = s.instance?.def.id;
+    return room === 'praca' || (room === 'padaria' && !padariaIdFromInstance(s.instance?.id));
+  }
+
+  private padariaDoor(s: Session) {
+    if (!this.atPadariaDoor(s)) return this.err(s, 'padaria', 'O cofre da porta fica na fachada da padaria.', 'The door fund is at the bakery facade.');
+    const p = s.profile!;
+    const owned = this.padarias.ownedBy(p.id);
+    s.send({
+      t: 'padariaOwn',
+      phase: 'door',
+      enabled: true,
+      door: padariaDoorState(p.coins, owned),
+      rows: this.padarias.list().map((row) => padariaCard(row, this.store.get(row.ownerId)?.name ?? '—', p.id)),
+    });
+  }
+
+  private foundPadaria(s: Session, rawName: string) {
+    if (!this.atPadariaDoor(s)) return this.err(s, 'padaria', 'Fundar é na porta da padaria.', 'Found your bakery at the door.');
+    const p = s.profile!;
+    if (this.padarias.ownedBy(p.id)) return this.err(s, 'owned', 'Você já fundou uma padaria.', 'You already founded a bakery.');
+    const named = validatePadariaName(rawName);
+    if (!named.ok) return this.err(s, 'name', named.reason.pt, named.reason.en);
+    if (this.padarias.byNameKey(named.key)) return this.err(s, 'name', 'Esse nome já é de outra padaria.', 'That name already belongs to another bakery.');
+    const cost = fundarCostRv();
+    if (p.coins < cost) return this.err(s, 'coins', 'Faltam reais virtuais para a porta.', 'Not enough RV for the door yet.');
+    p.coins -= cost;
+    if (!p.hats.includes(PADARIA_FOUNDER_HAT)) p.hats.push(PADARIA_FOUNDER_HAT);
+    p.hat = PADARIA_FOUNDER_HAT;
+    const row: PlayerPadaria = {
+      id: this.padarias.newId(),
+      name: named.name,
+      nameKey: named.key,
+      ownerId: p.id,
+      size: 1,
+      sweets: {},
+      createdAt: this.now(),
+    };
+    this.padarias.add(row);
+    this.store.save();
+    this.pushProfile(s);
+    this.broadcastAvatar(s);
+    s.send({ t: 'notice', level: 'reward', pt: `Padaria ${row.name} fundada! Chapéu de padeiro na cabeça.`, en: `${row.name} is open! Baker’s hat on.` });
+    this.visitPadaria(s, row.id);
+  }
+
+  private visitPadaria(s: Session, id: string) {
+    const row = this.padarias.get(String(id ?? ''));
+    if (!row) return this.err(s, 'padaria', 'Essa padaria não existe.', 'That bakery does not exist.');
+    this.join(s, 'padaria', { padariaId: row.id });
+  }
+
+  private upgradePadaria(s: Session, kind: Extract<ClientMsg, { t: 'padariaOwn'; action: 'upgrade' }>['kind']) {
+    const row = this.floorPadaria(s);
+    if (!row) return this.err(s, 'padaria', 'Compre upgrades na sua padaria.', 'Buy upgrades inside your bakery.');
+    if (row.ownerId !== s.profile!.id) return this.err(s, 'owner', 'Só quem fundou compra upgrades.', 'Only the founder buys upgrades.');
+    const p = s.profile!;
+    let cost = 0;
+    if (kind === 'size2') {
+      if (row.size >= 2) return this.err(s, 'owned', 'Você já tem o balcão completo.', 'You already have the full counter.');
+      cost = upgradeSizeCostRv(2);
+      row.size = 2;
+    } else if (kind === 'size3') {
+      if (row.size < 2) return this.err(s, 'gate', 'Primeiro vire Padaria (tamanho 2).', 'Get size 2 Padaria first.');
+      if (row.size >= 3) return this.err(s, 'owned', 'Você já tem o restaurante.', 'You already have the restaurant.');
+      cost = upgradeSizeCostRv(3);
+      row.size = 3;
+    } else if (kind === 'brigadeiro' || kind === 'boloCenoura' || kind === 'sonho') {
+      const tier = kind === 'brigadeiro' ? 'brigadeiro' : kind === 'boloCenoura' ? 'boloCenoura' : 'sonho';
+      if (!canBuySweet(row, tier)) return this.err(s, 'gate', 'Precisa do tamanho Padaria e ainda não comprou.', 'Needs size 2 and is not bought yet.');
+      cost = sweetCostRv(tier);
+      if (tier === 'brigadeiro') row.sweets.brigadeiro = true;
+      else if (tier === 'boloCenoura') row.sweets.boloCenoura = true;
+      else row.sweets.sonho = true;
+    } else return this.err(s, 'padaria', 'Upgrade desconhecido.', 'Unknown upgrade.');
+    if (p.coins < cost) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
+    p.coins -= cost;
+    this.padarias.save();
+    this.store.save();
+    this.pushProfile(s);
+    this.pushPadariaFloor(row.id);
+    s.send({ t: 'notice', level: 'reward', pt: 'Upgrade feito!', en: 'Upgrade done!' });
+  }
+
+  private pushPadariaFloor(padariaId: string) {
+    const row = this.padarias.get(padariaId);
+    const inst = this.instances.get(padariaInstanceId(padariaId));
+    if (!row || !inst) return;
+    for (const m of inst.members.values()) {
+      const id = m.profile?.id;
+      if (!id) continue;
+      m.send({ t: 'padariaOwn', phase: 'floor', padaria: padariaCard(row, this.store.get(row.ownerId)?.name ?? '—', id) });
+    }
+  }
+
+  private floorPadaria(s: Session): PlayerPadaria | undefined {
+    if (s.instance?.def.id !== 'padaria') return undefined;
+    const id = padariaIdFromInstance(s.instance.id);
+    return id ? this.padarias.get(id) : undefined;
+  }
+
+  private floorPadariaCard(inst: Instance, s: Session): PadariaCard | undefined {
+    const id = padariaIdFromInstance(inst.id);
+    const row = id ? this.padarias.get(id) : undefined;
+    if (!row || !s.profile) return undefined;
+    return padariaCard(row, this.store.get(row.ownerId)?.name ?? '—', s.profile.id);
+  }
+
+  private ownedCorreriaMenu(s: Session): readonly string[] | undefined {
+    const row = this.floorPadaria(s);
+    if (!row) return undefined;
+    return ownedCorreriaMenuIds(row);
+  }
+
+  /** Shared shard only when flag-off or not an owned instance id. */
+  private correriaAllowed(s: Session): boolean {
+    if (s.instance?.def.id !== 'padaria') return false;
+    const ownedId = padariaIdFromInstance(s.instance.id);
+    if (!ownedId) return true;
+    return this.padariaOwnership;
   }
 
   // ---------- profile ----------
@@ -784,7 +948,7 @@ export class World {
 
   // ---------- rooms ----------
 
-  private instanceFor(room: RoomId, s: Session, opts: { instanceId?: string; ownerId?: string; academyId?: string }): Instance | { error: Bilingual } {
+  private instanceFor(room: RoomId, s: Session, opts: { instanceId?: string; ownerId?: string; academyId?: string; padariaId?: string }): Instance | { error: Bilingual } {
     const def = ROOMS[room];
     if (def.id === 'andar') {
       const academyId = opts.academyId ?? academyIdFromInstance(opts.instanceId);
@@ -798,6 +962,21 @@ export class World {
       }
       if (inst.members.size >= this.cap) return { error: { pt: 'O andar está lotado!', en: 'This floor is full!' } };
       return inst;
+    }
+    if (def.id === 'padaria' && this.padariaOwnership) {
+      const pid = opts.padariaId ?? padariaIdFromInstance(opts.instanceId);
+      if (pid) {
+        const row = this.padarias.get(pid);
+        if (!row) return { error: { pt: 'Essa padaria não existe.', en: 'That bakery does not exist.' } };
+        const id = padariaInstanceId(row.id);
+        let inst = this.instances.get(id);
+        if (!inst) {
+          inst = new Instance(id, def, row.name, row.ownerId);
+          this.instances.set(id, inst);
+        }
+        if (inst.members.size >= this.cap) return { error: { pt: 'A padaria está lotada!', en: 'The bakery is full!' } };
+        return inst;
+      }
     }
     if (def.private) {
       const ownerId = opts.ownerId ?? s.profile!.id;
@@ -831,7 +1010,7 @@ export class World {
     }
   }
 
-  join(s: Session, room: RoomId, opts: { instanceId?: string; ownerId?: string; academyId?: string } = {}, arrive?: { tile: Tile; dir: Dir }) {
+  join(s: Session, room: RoomId, opts: { instanceId?: string; ownerId?: string; academyId?: string; padariaId?: string } = {}, arrive?: { tile: Tile; dir: Dir }) {
     if (!isRoomId(room)) return this.err(s, 'room', 'Sala desconhecida.', 'Unknown room.');
     const target = this.instanceFor(room, s, opts);
     if ('error' in target) return this.err(s, 'join', target.error.pt, target.error.en);
@@ -853,10 +1032,11 @@ export class World {
       ownerName: target.ownerId ? (this.store.get(target.ownerId)?.name ?? null) : null,
       cap: this.cap,
       selfId: s.profile!.id,
-      avatars: [...[...target.members.values()].map((m) => this.publicAvatar(m)), ...(target.crowd?.avatars() ?? []), ...(target.def.private ? [] : this.npcs.avatarsIn(def.id))],
+      avatars: [...[...target.members.values()].map((m) => this.publicAvatar(m)), ...(target.crowd?.avatars() ?? []), ...(target.def.private || padariaIdFromInstance(target.id) ? [] : this.npcs.avatarsIn(def.id))],
       furniture,
       serverNow: this.clockNow(),
       ...(target.def.id === 'andar' ? { academy: this.floorCard(target, s) } : {}),
+      ...(padariaIdFromInstance(target.id) ? { padaria: this.floorPadariaCard(target, s) } : {}),
     });
     // a joiner mid-walk: the avatars above are at the tile each NPC has reached, this sends the rest of each walk
     for (const p of this.npcs.posesIn(def.id)) {
@@ -867,6 +1047,11 @@ export class World {
     this.recados.onEvent(s, { kind: 'entered', room: def.id, tile });
     this.cartela.onEntered(s, def.id);
     this.broadcast(target, { t: 'avatarJoined', avatar: this.publicAvatar(s) }, s);
+    const ownedPid = padariaIdFromInstance(target.id);
+    if (ownedPid) {
+      const row = this.padarias.get(ownedPid);
+      if (row && s.profile) s.send({ t: 'padariaOwn', phase: 'floor', padaria: padariaCard(row, this.store.get(row.ownerId)?.name ?? '—', s.profile.id) });
+    }
     target.crowd?.sync();
     this.startNpcTick();
     this.notifyFriendsOfPresence(s.profile!.id);
@@ -1097,12 +1282,15 @@ export class World {
     const cur = s.avatar ? this.currentTile(s) : { tile: { x: 0, y: 0 }, dir: 'SE' as Dir, moving: false };
     const a = s.avatar;
     const sitting = !!a && !cur.moving && (a.sitting || a.sitOnArrive);
+    const hasFounderHat = p.hats.includes(PADARIA_FOUNDER_HAT);
+    const inOwnKitnet = s.instance?.def.id === 'kitnet' && s.instance.ownerId === p.id;
+    const hat = displayFounderHat(p.hat, hasFounderHat, s.instance?.def.id, inOwnKitnet);
     return {
       id: p.id,
       name: p.name,
       pronoun: p.pronoun,
       appearance: p.appearance,
-      hat: p.hat,
+      hat,
       parrot: p.parrotOwned && p.parrotEquipped,
       parrotColor: p.parrotOwned && p.parrotEquipped ? p.parrotColor ?? 'verde' : null,
       carry: s.carry,
@@ -1573,10 +1761,36 @@ export class World {
     this.broadcastAvatar(s);
   }
 
-  /** The padaria counter: pay the baker on duty, carry it out, and it counts as ordered for the recados (it goes in the bag). */
+  /** The padaria counter: pay the baker on duty (shared) or the case (owned), carry it out, and it counts as ordered for the recados. */
   private buyCounter(s: Session, itemId: string) {
     const p = s.profile!;
-    if (!isCounterItem(itemId) || s.instance?.def.id !== 'padaria') return;
+    if (s.instance?.def.id !== 'padaria') return;
+    const owned = this.floorPadaria(s);
+    if (owned) {
+      const menu = counterMenuForOwned(owned);
+      if (!menu.includes(itemId)) return;
+      const balcao = s.instance!.def.props.find((q) => q.id === 'balcao');
+      const spot = balcao ? { x: balcao.x + 2, y: balcao.y + 1 } : s.instance!.def.spawn;
+      const cur = this.currentTile(s).tile;
+      if (Math.max(Math.abs(cur.x - spot.x), Math.abs(cur.y - spot.y)) > 3) return this.err(s, 'far', 'Chegue mais perto do balcão.', 'Walk closer to the counter.');
+      const price = COUNTER_PRICES[itemId] ?? counterPrice(isCounterItem(itemId) ? itemId : 'cafe');
+      if (p.coins < price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
+      p.coins -= price;
+      s.carry = itemId as CounterItemId;
+      this.rollDaily(p);
+      const card = cardById(`lex.padaria.${itemId}`);
+      if (card) this.caderno.seen(s, card.form, [card.id]);
+      if (itemId === 'brigadeiro' || itemId === 'bolo_de_cenoura' || itemId === 'sonho') {
+        const wid = SWEET_WORD_IDS[itemId as keyof typeof SWEET_WORD_IDS];
+        if (wid) this.caderno.seen(s, cardById(wid)?.form ?? itemId, [wid]);
+      }
+      this.store.save();
+      s.send({ t: 'notice', level: 'reward', pt: `Comprou: ${card?.form ?? itemId}`, en: `Bought: ${card?.gloss_en ?? itemId}` });
+      this.pushProfile(s);
+      this.broadcastAvatar(s);
+      return;
+    }
+    if (!isCounterItem(itemId)) return;
     const baker = this.npcs.whoIn('padaria').find((n) => n.id === 'carlos' || n.id === 'graca');
     if (!baker) return;
     const cur = this.currentTile(s).tile;

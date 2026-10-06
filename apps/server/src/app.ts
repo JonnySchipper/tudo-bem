@@ -7,7 +7,8 @@ import { WS_MAX_PAYLOAD, type ClientMsg } from '@tudobem/shared';
 import { World, type CloseReason } from './world.js';
 import { ProfileStore } from './store.js';
 import { AcademyStore } from './academyStore.js';
-import { academyFileAdapter, fileAdapter } from './fileStore.js';
+import { PadariaStore } from './padariaStore.js';
+import { academyFileAdapter, fileAdapter, padariaFileAdapter } from './fileStore.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 import { FileModerationQueue } from './services/fileModeration.js';
 import { handleConversaApi } from './conversaApi.js';
@@ -66,6 +67,7 @@ export function createApp(opts: AppOptions) {
   const { dataDir, clientDist } = opts;
   const store = new ProfileStore(fileAdapter(dataDir));
   const academies = new AcademyStore(academyFileAdapter(dataDir));
+  const padarias = new PadariaStore(padariaFileAdapter(dataDir));
   const accounts = new AccountStore(accountsFileAdapter(dataDir), { sessionTtlMs: opts.sessionTtlMs, scrypt: opts.scrypt });
   const world = new World(
     store,
@@ -76,7 +78,7 @@ export function createApp(opts: AppOptions) {
       student: new InMemoryStudentModel(),
       moderation: new FileModerationQueue(path.join(dataDir, 'moderation.jsonl')),
     },
-    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, idleKickMs: opts.idleKickMs, academies },
+    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, idleKickMs: opts.idleKickMs, academies, padarias },
   );
   const conversaMemory = new ConversaMemory({ store, onProfileChanged: (playerId) => world.pushProfileById(playerId) });
   const limiters = defaultLimiters();
@@ -220,6 +222,7 @@ export function createApp(opts: AppOptions) {
       wss.close();
       store.flush();
       academies.save();
+      padarias.save();
       return new Promise<void>((resolve) => server.close(() => resolve()));
     },
   };

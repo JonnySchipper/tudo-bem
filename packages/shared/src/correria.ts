@@ -25,7 +25,7 @@ import {
   generateCombo,
   lineEn,
   linePt,
-  mgItemById,
+  mgItemByIdAny,
   mgModById,
   pick,
   orderTimeMs,
@@ -80,6 +80,15 @@ export const SHELF_OF: Record<string, Shelf> = {
   suco_de_laranja: 'geladeira',
   agua: 'geladeira',
   guarana: 'geladeira',
+  brigadeiro: 'vitrine',
+  bolo_de_cenoura: 'vitrine',
+  sonho: 'vitrine',
+  prato_feito: 'vitrine',
+  arroz_feijao: 'vitrine',
+  bife_acebolado: 'vitrine',
+  salada: 'vitrine',
+  feijoada: 'vitrine',
+  pudim: 'vitrine',
 };
 
 /** Prices in whole reais (the totals stay under 100 so `numberPt` can say them). */
@@ -96,6 +105,15 @@ export const COUNTER_PRICES: Record<string, number> = {
   pao_de_queijo: 5,
   misto_quente: 10,
   guarana: 6,
+  brigadeiro: 5,
+  bolo_de_cenoura: 8,
+  sonho: 6,
+  prato_feito: 11,
+  arroz_feijao: 10,
+  bife_acebolado: 11,
+  salada: 8,
+  feijoada: 11,
+  pudim: 8,
 };
 
 export const orderTotal = (lines: readonly MgOrderLine[]): number => lines.reduce((s, l) => s + (COUNTER_PRICES[l.itemId] ?? 0) * l.qty, 0);
@@ -162,6 +180,16 @@ export const newUnlocks = (before: number, after: number): Unlock[] => UNLOCKS.f
 /** The items on the counter for these unlocks (pastel and coxinha open with `salgados`). */
 export function itemsFor(unlocked: readonly string[]): MgItem[] {
   return MG_ITEMS.filter((i) => (i.id === 'pastel' || i.id === 'coxinha' ? unlocked.includes('salgados') : true));
+}
+
+/** Counter items for this shift: star unlocks, optional owned-room menu cap, plus owned-only SKUs. */
+export function shiftItemPool(ctx: Pick<ShiftCtx, 'unlocked' | 'menuIds'>): MgItem[] {
+  let items = itemsFor(ctx.unlocked);
+  if (ctx.menuIds?.length) {
+    const allow = new Set(ctx.menuIds);
+    items = items.filter((i) => allow.has(i.id));
+  }
+  return items;
 }
 export const chapaSlots = (unlocked: readonly string[]): number => (unlocked.includes('chapa2') ? 2 : 1);
 export const pourMsFor = (unlocked: readonly string[]): number => (unlocked.includes('cafe_rapido') ? POUR.fastMs : POUR.fullMs);
@@ -310,7 +338,7 @@ export function correctionFor(order: MgOrder, tray: Tray, check: TrayCheck): Bil
   for (const line of order.lines) {
     const have = tray[line.itemId] ?? 0;
     if (have > 0 && have !== line.qty) {
-      const item = mgItemById(line.itemId)!;
+      const item = mgItemByIdAny(line.itemId)!;
       const g = item.card.gender ?? 'm';
       const noun = line.qty === 1 ? item.card.form : (item.card.plural ?? item.card.form);
       const enNoun = line.qty === 1 ? (item.card.gloss_en_tray ?? item.card.gloss_en) : (item.card.gloss_en_plural ?? item.card.gloss_en);
@@ -326,7 +354,7 @@ export function correctionFor(order: MgOrder, tray: Tray, check: TrayCheck): Bil
   // 3. something I did not order
   const extra = check.extra[0];
   if (extra) {
-    const item = mgItemById(extra.itemId)!;
+    const item = mgItemByIdAny(extra.itemId)!;
     return { pt: `Eu não pedi ${item.card.form}.`, en: `I didn’t order ${item.card.gloss_en_tray ?? item.card.gloss_en}.` };
   }
   // 4. the mods
@@ -377,13 +405,13 @@ export function makeFollow(rng: Rng, order: MgOrder, items: readonly MgItem[]): 
     const cand = order.lines.filter((l) => l.qty < 3);
     const line = pick(rng, cand);
     const lines = order.lines.map((l) => (l === line ? { ...l, qty: l.qty + 1 } : { ...l }));
-    return { kind: 'extra', pt: `Ah, e mais ${linePt({ itemId: line.itemId, qty: 1 })}!`, en: `Oh, and one more ${enArt(mgItemById(line.itemId)!).replace(/^(a|an) /, '')}!`, lines, mods: [...order.mods] };
+    return { kind: 'extra', pt: `Ah, e mais ${linePt({ itemId: line.itemId, qty: 1 })}!`, en: `Oh, and one more ${enArt(mgItemByIdAny(line.itemId)!).replace(/^(a|an) /, '')}!`, lines, mods: [...order.mods] };
   }
   const oldLine = pick(rng, order.lines.filter((l) => l.qty === 1 && DRINKS.includes(l.itemId)));
-  const old = mgItemById(oldLine.itemId)!;
+  const old = mgItemByIdAny(oldLine.itemId)!;
   const options = DRINKS.filter((d) => ids.has(d) && d !== oldLine.itemId && !order.lines.some((l) => l.itemId === d));
   if (!options.length) return null;
-  const nu = mgItemById(pick(rng, options))!;
+  const nu = mgItemByIdAny(pick(rng, options))!;
   // the new drink keeps the spot of the old one; the coffee mods only make sense with coffee
   const keepMods = CAFE_ITEMS.includes(nu.id) ? [...order.mods] : order.mods.filter((m) => mgModById(m)?.group !== 'coffee');
   const lines = order.lines.map((l) => (l === oldLine ? { itemId: nu.id, qty: 1 } : { ...l }));
@@ -399,10 +427,10 @@ export function makeFollow(rng: Rng, order: MgOrder, items: readonly MgItem[]): 
 /** The order for a customer: authored tickets early, generated combos later, only items the player has unlocked. */
 export function makeCorrOrder(
   rng: Rng,
-  o: { level: number; wave: number; unlocked: readonly string[]; saturday: boolean; avoid: readonly string[]; minute?: number; customer?: string },
+  o: { level: number; wave: number; unlocked: readonly string[]; menuIds?: readonly string[]; saturday: boolean; avoid: readonly string[]; minute?: number; customer?: string },
 ): MgOrder & { special?: boolean } {
   const lv = LEVELS[Math.max(0, Math.min(LEVELS.length - 1, o.level))]!;
-  const items = itemsFor(o.unlocked);
+  const items = shiftItemPool(o);
   const ids = new Set(items.map((i) => i.id));
   const customer = o.customer ?? 'Cliente';
   const finish = <T extends MgOrder>(ord: T): T => (o.minute === undefined ? ord : { ...ord, ...localizeGreeting({ pt: ord.pt, en: ord.en }, o.minute) });
@@ -525,6 +553,8 @@ export interface ShiftCtx {
   seed: number;
   level: number;
   unlocked: readonly string[];
+  /** When set (owned size 1), orders only draw from these shared-shelf ids. */
+  menuIds?: readonly string[];
   saturday: boolean;
   /** Game-clock minute, so customers greet by the hour. */
   minute: number;
@@ -605,7 +635,7 @@ export type CAct =
 export function sanitizeAct(raw: unknown): CAct | null {
   if (!raw || typeof raw !== 'object') return null;
   const r = raw as Record<string, unknown>;
-  const item = (v: unknown) => (typeof v === 'string' && mgItemById(v) ? v : null);
+  const item = (v: unknown) => (typeof v === 'string' && mgItemByIdAny(v) ? v : null);
   const slot = (v: unknown) => (Number.isInteger(v) && (v as number) >= 0 && (v as number) < 2 ? (v as number) : null);
   switch (r.a) {
     case 'grab': {
@@ -739,11 +769,11 @@ function spawn(sh: Shift, ev: CEvent[]): void {
   const wave = waveOf(idx);
   const lv = levelOf(sh);
   const who = pickWho(sh);
-  const order = makeCorrOrder(sh.rng, { level: sh.ctx.level, wave, unlocked: sh.ctx.unlocked, saturday: sh.ctx.saturday, avoid: sh.served, minute: sh.ctx.minute, customer: who.name });
+  const order = makeCorrOrder(sh.rng, { level: sh.ctx.level, wave, unlocked: sh.ctx.unlocked, menuIds: sh.ctx.menuIds, saturday: sh.ctx.saturday, avoid: sh.served, minute: sh.ctx.minute, customer: who.name });
   sh.served.push(order.pt);
   const regular = !!who.npc;
   const mode: OrderMode = sh.rng() < lv.listen[wave]! ? 'listening' : 'written';
-  const follow = sh.rng() < lv.follow[wave]! ? makeFollow(sh.rng, order, itemsFor(sh.ctx.unlocked)) : null;
+  const follow = sh.rng() < lv.follow[wave]! ? makeFollow(sh.rng, order, shiftItemPool(sh.ctx)) : null;
   const pMax = patienceMs(order, sh.ctx.level, wave, regular);
   const c: Customer = {
     id: sh.nextId++,
@@ -947,7 +977,7 @@ function doServe(sh: Shift, ev: CEvent[]): void {
   sh.stats.tips += tip;
   if (c.regular && perfect) sh.stats.regulars.push(c.who.key);
   for (const l of c.order.lines) {
-    const card = mgItemById(l.itemId)?.card.id;
+    const card = mgItemByIdAny(l.itemId)?.card.id;
     if (card && !sh.stats.words.includes(card)) sh.stats.words.push(card);
     if (!sh.stats.items.includes(l.itemId)) sh.stats.items.push(l.itemId);
   }
@@ -973,7 +1003,7 @@ function doServe(sh: Shift, ev: CEvent[]): void {
 export function shiftAct(sh: Shift, a: CAct): CEvent[] {
   const ev: CEvent[] = [];
   if (sh.over) return ev;
-  const items = itemsFor(sh.ctx.unlocked);
+  const items = shiftItemPool(sh.ctx);
   switch (a.a) {
     case 'grab': {
       if (!items.some((i) => i.id === a.item)) return no('locked', 'Esse item ainda está trancado.', 'That item is still locked.');

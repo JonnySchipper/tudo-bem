@@ -51,7 +51,7 @@ export type PropKind =
   | 'feira'
   | 'hortifruti';
 
-export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi' | 'escola' | 'academy_elevator';
+export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi' | 'escola' | 'academy_elevator' | 'padaria_door';
 
 export interface PropDef {
   id: string;
@@ -352,6 +352,7 @@ const rua: RoomDef = {
     P('orelhao', 'orelhao', 14, 6, { label: { pt: 'Orelhão', en: 'Public phone booth (“big ear”)' } }),
     P('lixeira_n1', 'lixeira', 10, 6),
     P('floreira_n1', 'floreira', 3, 6),
+    P('padaria_porta_fundar', 'floreira', 5, 6, { blocks: false, action: 'padaria_door', interact: { x: 4, y: 6 }, label: { pt: 'Cofre da porta', en: 'Door fund' } }),
     P('floreira_n2', 'floreira', 16, 6),
     P('vaso_n1', 'vaso', 18, 6),
     P('mesa_cafe', 'mesa_cafe', 2, 6, { label: { pt: 'Mesinha da padaria', en: 'Bakery sidewalk table' } }),
@@ -829,6 +830,7 @@ const padaria: RoomDef = {
     { id: 'cadeira_3', kind: 'cadeira_padaria', x: 6, y: 6, blocks: false, seat: 'SE' },
     { id: 'cadeira_4', kind: 'cadeira_padaria', x: 7, y: 7, blocks: false, seat: 'NE' },
     { id: 'vaso', kind: 'vaso', x: 9, y: 8, blocks: true },
+    { id: 'padaria_porta_fundar', kind: 'vaso', x: 0, y: 5, blocks: false, action: 'padaria_door', interact: { x: 0, y: 6 }, label: { pt: 'Cofre da porta', en: 'Door fund' } },
     ...diaryProps('padaria'),
   ],
   walls: [

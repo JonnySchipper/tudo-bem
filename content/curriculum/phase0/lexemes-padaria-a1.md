@@ -269,3 +269,86 @@ Promoted from `cards.json` engineering-seed. Signoff after this review: **needs_
 - **wrongs:** free (EN only); por conta do bar (alcohol framing — never)  
 - **places:** padaria  
 - **note:** Optional reward line only; never implies alcohol tab. Family-safe.
+
+## Player-owned padaria (Fundar room only)
+
+### lex.padaria.brigadeiro
+- **form:** brigadeiro
+- **pos/tags:** noun; food; padaria; A1; doce
+- **gloss_en:** chocolate truffle
+- **patterns:** Me vê um brigadeiro, por favor.
+- **accepts:** brigadeiro; um brigadeiro; me ve um brigadeiro
+- **wrongs:** brownie
+- **places:** padaria
+
+### lex.padaria.bolo_de_cenoura
+- **form:** bolo de cenoura
+- **pos/tags:** noun phrase; food; padaria; A1; doce
+- **gloss_en:** carrot cake
+- **patterns:** Me vê um bolo de cenoura, por favor.
+- **accepts:** bolo de cenoura; me ve um bolo de cenoura
+- **wrongs:** carrot bread
+- **places:** padaria
+
+### lex.padaria.sonho
+- **form:** sonho
+- **pos/tags:** noun; food; padaria; A1; doce
+- **gloss_en:** cream-filled doughnut
+- **patterns:** Me vê um sonho, por favor.
+- **accepts:** sonho; um sonho; me ve um sonho
+- **wrongs:** dream
+- **places:** padaria
+
+### lex.padaria.prato_feito
+- **form:** prato feito
+- **pos/tags:** noun phrase; food; padaria; A1; restaurante
+- **gloss_en:** daily plate lunch
+- **patterns:** Me vê um prato feito, por favor.
+- **accepts:** prato feito; me ve um prato feito
+- **wrongs:** plate made
+- **places:** padaria
+
+### lex.padaria.arroz_feijao
+- **form:** arroz e feijão
+- **pos/tags:** noun phrase; food; padaria; A1; restaurante
+- **gloss_en:** rice and beans
+- **patterns:** Me vê arroz e feijão, por favor.
+- **accepts:** arroz e feijao; me ve arroz e feijao
+- **wrongs:** rice with beans
+- **places:** padaria
+
+### lex.padaria.bife_acebolado
+- **form:** bife acebolado
+- **pos/tags:** noun phrase; food; padaria; A1; restaurante
+- **gloss_en:** steak with onions
+- **patterns:** Me vê um bife acebolado, por favor.
+- **accepts:** bife acebolado; me ve um bife acebolado
+- **wrongs:** onion steak
+- **places:** padaria
+
+### lex.padaria.salada
+- **form:** salada
+- **pos/tags:** noun; food; padaria; A1; restaurante
+- **gloss_en:** salad
+- **patterns:** Me vê uma salada, por favor.
+- **accepts:** salada; uma salada; me ve uma salada
+- **wrongs:** lettuce
+- **places:** padaria
+
+### lex.padaria.feijoada
+- **form:** feijoada
+- **pos/tags:** noun; food; padaria; A1; restaurante
+- **gloss_en:** black bean stew
+- **patterns:** Me vê uma feijoada, por favor.
+- **accepts:** feijoada; uma feijoada; me ve uma feijoada
+- **wrongs:** bean stew
+- **places:** padaria
+
+### lex.padaria.pudim
+- **form:** pudim
+- **pos/tags:** noun; food; padaria; A1; restaurante
+- **gloss_en:** flan
+- **patterns:** Me vê um pudim, por favor.
+- **accepts:** pudim; um pudim; me ve um pudim
+- **wrongs:** pudding
+- **places:** padaria

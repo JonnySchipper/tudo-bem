@@ -3,7 +3,7 @@
   "generatedBy": "scripts/build-curriculum.mjs from lexemes-*.md (markdown is canonical — edit it, then `pnpm content`)",
   "status": "DRAFT — every card needs Brazilian human sign-off before default-path (signoff field)",
   "counts": {
-   "pack": 58
+   "pack": 67
   }
  },
  "cards": [
@@ -797,6 +797,263 @@
     "padaria"
    ],
    "note": "Optional reward line only; never implies alcohol tab. Family-safe.",
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.brigadeiro",
+   "form": "brigadeiro",
+   "pos": "noun",
+   "tags": [
+    "food",
+    "padaria",
+    "A1",
+    "doce"
+   ],
+   "gloss_en": "chocolate truffle",
+   "patterns": [
+    "Me vê um brigadeiro, por favor."
+   ],
+   "accepts": [
+    "brigadeiro",
+    "um brigadeiro",
+    "me ve um brigadeiro"
+   ],
+   "wrongs": [
+    "brownie"
+   ],
+   "prereq": [],
+   "places": [
+    "padaria"
+   ],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.bolo_de_cenoura",
+   "form": "bolo de cenoura",
+   "pos": "noun phrase",
+   "tags": [
+    "food",
+    "padaria",
+    "A1",
+    "doce"
+   ],
+   "gloss_en": "carrot cake",
+   "patterns": [
+    "Me vê um bolo de cenoura, por favor."
+   ],
+   "accepts": [
+    "bolo de cenoura",
+    "me ve um bolo de cenoura"
+   ],
+   "wrongs": [
+    "carrot bread"
+   ],
+   "prereq": [],
+   "places": [
+    "padaria"
+   ],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.sonho",
+   "form": "sonho",
+   "pos": "noun",
+   "tags": [
+    "food",
+    "padaria",
+    "A1",
+    "doce"
+   ],
+   "gloss_en": "cream-filled doughnut",
+   "patterns": [
+    "Me vê um sonho, por favor."
+   ],
+   "accepts": [
+    "sonho",
+    "um sonho",
+    "me ve um sonho"
+   ],
+   "wrongs": [
+    "dream"
+   ],
+   "prereq": [],
+   "places": [
+    "padaria"
+   ],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.prato_feito",
+   "form": "prato feito",
+   "pos": "noun phrase",
+   "tags": [
+    "food",
+    "padaria",
+    "A1",
+    "restaurante"
+   ],
+   "gloss_en": "daily plate lunch",
+   "patterns": [
+    "Me vê um prato feito, por favor."
+   ],
+   "accepts": [
+    "prato feito",
+    "me ve um prato feito"
+   ],
+   "wrongs": [
+    "plate made"
+   ],
+   "prereq": [],
+   "places": [
+    "padaria"
+   ],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.arroz_feijao",
+   "form": "arroz e feijão",
+   "pos": "noun phrase",
+   "tags": [
+    "food",
+    "padaria",
+    "A1",
+    "restaurante"
+   ],
+   "gloss_en": "rice and beans",
+   "patterns": [
+    "Me vê arroz e feijão, por favor."
+   ],
+   "accepts": [
+    "arroz e feijao",
+    "me ve arroz e feijao"
+   ],
+   "wrongs": [
+    "rice with beans"
+   ],
+   "prereq": [],
+   "places": [
+    "padaria"
+   ],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.bife_acebolado",
+   "form": "bife acebolado",
+   "pos": "noun phrase",
+   "tags": [
+    "food",
+    "padaria",
+    "A1",
+    "restaurante"
+   ],
+   "gloss_en": "steak with onions",
+   "patterns": [
+    "Me vê um bife acebolado, por favor."
+   ],
+   "accepts": [
+    "bife acebolado",
+    "me ve um bife acebolado"
+   ],
+   "wrongs": [
+    "onion steak"
+   ],
+   "prereq": [],
+   "places": [
+    "padaria"
+   ],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.salada",
+   "form": "salada",
+   "pos": "noun",
+   "tags": [
+    "food",
+    "padaria",
+    "A1",
+    "restaurante"
+   ],
+   "gloss_en": "salad",
+   "patterns": [
+    "Me vê uma salada, por favor."
+   ],
+   "accepts": [
+    "salada",
+    "uma salada",
+    "me ve uma salada"
+   ],
+   "wrongs": [
+    "lettuce"
+   ],
+   "prereq": [],
+   "places": [
+    "padaria"
+   ],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.feijoada",
+   "form": "feijoada",
+   "pos": "noun",
+   "tags": [
+    "food",
+    "padaria",
+    "A1",
+    "restaurante"
+   ],
+   "gloss_en": "black bean stew",
+   "patterns": [
+    "Me vê uma feijoada, por favor."
+   ],
+   "accepts": [
+    "feijoada",
+    "uma feijoada",
+    "me ve uma feijoada"
+   ],
+   "wrongs": [
+    "bean stew"
+   ],
+   "prereq": [],
+   "places": [
+    "padaria"
+   ],
+   "source": "lexemes-padaria-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.padaria.pudim",
+   "form": "pudim",
+   "pos": "noun",
+   "tags": [
+    "food",
+    "padaria",
+    "A1",
+    "restaurante"
+   ],
+   "gloss_en": "flan",
+   "patterns": [
+    "Me vê um pudim, por favor."
+   ],
+   "accepts": [
+    "pudim",
+    "um pudim",
+    "me ve um pudim"
+   ],
+   "wrongs": [
+    "pudding"
+   ],
+   "prereq": [],
+   "places": [
+    "padaria"
+   ],
    "source": "lexemes-padaria-a1.md",
    "signoff": "needs_br"
   },
