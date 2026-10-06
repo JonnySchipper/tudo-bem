@@ -75,7 +75,10 @@ describe('CHAR_LAYERS covers every creator option', () => {
 
   it('every hat in the catalog has a layer, and every layer key exists in the manifest', () => {
     for (const h of HATS) expect(hatLayer(h.id), h.id).toBeTruthy();
-    expect(HATS).toHaveLength(12);
+    expect(HATS).toHaveLength(11);
+    expect(HATS.some((h) => h.id === 'chapeu_chef')).toBe(false);
+    expect(hatLayer('chapeu_chef')).toBe('hat_chapeu_chef');
+    expect(hatLayer('chapeu_padeiro_casa')).toBe('hat_chapeu_chef');
     for (const key of allLayerKeys()) expect(manifest.chars[key], `${key} in the manifest`).toBeTruthy();
   });
 

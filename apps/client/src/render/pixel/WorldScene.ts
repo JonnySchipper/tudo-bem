@@ -99,6 +99,7 @@ import {
   westStripRect,
 } from './roomLayout';
 import { ensureAnim, originOf } from './spriteUtil';
+import { recolorParrotPixels } from './parrotRecolor';
 import { GHOST_ALPHA, ghostFor, type GhostSpec } from './decorate';
 
 export interface SceneHost {
@@ -123,6 +124,8 @@ interface AvatarView {
   uniform: string;
   look: Look;
   parrot: Phaser.GameObjects.Sprite | null;
+  /** Animation key the shoulder parrot is playing (`anim:chars/parrot` or a recolored `anim:parrot:<color>`). */
+  parrotKey: string;
   /** Street snack in hand (session carry). */
   carry: Phaser.GameObjects.Image | null;
   carryKey: string;
@@ -1255,6 +1258,7 @@ export class WorldScene extends Phaser.Scene {
       uniform: academyUniformKey(a.pub),
       look,
       parrot: null,
+      parrotKey: '',
       carry: null,
       carryKey: '',
       icon: null,
@@ -1435,6 +1439,49 @@ export class WorldScene extends Phaser.Scene {
     v.icon.setPosition(wx + avatarPx(8), Math.round(wy - top - avatarPx(1) + rise * avatarPx(4))).setAlpha(Math.min(1, (EMOTE_ICON_S - t) / 0.25)).setVisible(true);
   }
 
+  /** Copy one atlas frame and remap the green body to `tint`. Returns false when the source frame is not ready. */
+  private paintParrotFrame(atlas: string, frameName: string, texKey: string, tint: number): boolean {
+    const tex = this.textures.get(atlas);
+    if (!tex || tex.key === '__MISSING') return false;
+    const f = tex.get(frameName);
+    const src = f?.source?.image as CanvasImageSource | undefined;
+    if (!f || !src || f.name === '__BASE') return false;
+    const canvas = this.textures.createCanvas(texKey, f.width, f.height);
+    if (!canvas) return false;
+    const ctx = canvas.getContext();
+    ctx.clearRect(0, 0, f.width, f.height);
+    ctx.drawImage(src, f.cutX, f.cutY, f.cutWidth, f.cutHeight, 0, 0, f.width, f.height);
+    const image = ctx.getImageData(0, 0, f.width, f.height);
+    recolorParrotPixels(image.data, tint);
+    ctx.putImageData(image, 0, 0);
+    canvas.refresh();
+    return true;
+  }
+
+  /**
+   * Animation for the shoulder parrot. Verde plays the green sheet. Any other colour gets its own
+   * frames, because a multiply tint leaves the green body green.
+   */
+  private parrotAnim(colorId: string | null | undefined): string {
+    const d = this.m.sprites['chars/parrot'];
+    const plain = d ? ensureAnim(this, 'chars/parrot', d) : '';
+    if (!d?.anim) return plain;
+    const def = parrotColorById(colorId);
+    const tint = def?.tint ?? 0xffffff;
+    if (!def || tint === 0xffffff) return plain;
+    const animKey = `anim:parrot:${def.id}`;
+    if (this.anims.exists(animKey)) return animKey;
+    const frames: { key: string }[] = [];
+    for (let i = 0; i < d.anim.frames.length; i++) {
+      const name = d.anim.frames[i]!;
+      const texKey = `parrot:${def.id}:${i}`;
+      if (!this.textures.exists(texKey) && !this.paintParrotFrame(d.atlas, name, texKey, tint)) return plain;
+      frames.push({ key: texKey });
+    }
+    this.anims.create({ key: animKey, frames, frameRate: d.anim.fps, repeat: -1 });
+    return animKey;
+  }
+
   /** The companion parrot (profile.parrotEquipped -> PublicAvatar.parrot): the poleiro parrot hovering at the avatar's shoulder. */
   private updateParrot(v: AvatarView, a: ClientAvatar, facing: Facing, wx: number, wy: number, depth: number, now: number): void {
     const d = this.m.sprites['chars/parrot'];
@@ -1442,12 +1489,19 @@ export class WorldScene extends Phaser.Scene {
       if (v.parrot) {
         v.parrot.destroy();
         v.parrot = null;
+        v.parrotKey = '';
       }
       return;
     }
+    const anim = this.parrotAnim(a.pub.parrotColor);
     if (!v.parrot) {
       v.parrot = this.rig.world(this.add.sprite(0, 0, d.atlas, d.frame)).setOrigin(...originOf(d));
-      v.parrot.play({ key: ensureAnim(this, 'chars/parrot', d), startFrame: Math.floor(hash01(a.seed) * 4) });
+      v.parrotKey = '';
+    }
+    if (anim && v.parrotKey !== anim) {
+      v.parrotKey = anim;
+      v.parrot.clearTint();
+      v.parrot.play({ key: anim, startFrame: Math.floor(hash01(a.seed) * 4) });
     }
     // it hovers beside the head on the far shoulder: behind the body when walking away, mirrored so it always looks toward its owner
     const side = facing === 'W' ? 1 : -1;
@@ -1455,9 +1509,6 @@ export class WorldScene extends Phaser.Scene {
     v.parrot.setPosition(wx + side * avatarPx(9), wy - avatarPx(14) + bob);
     v.parrot.setFlipX(side === 1);
     v.parrot.setDepth(facing === 'N' ? depth - 0.05 : depth + 0.05);
-    const tint = parrotColorById(a.pub.parrotColor)?.tint ?? 0xffffff;
-    if (tint === 0xffffff) v.parrot.clearTint();
-    else v.parrot.setTint(tint);
   }
 
   /** Popcorn or coconut water bought at the praça carts (session `carry` on the avatar). */

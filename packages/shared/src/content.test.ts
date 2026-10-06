@@ -8,7 +8,7 @@ import { SCHEDULES } from './schedules.js';
 import { findPath, positionAlong, pathDuration } from './path.js';
 import { ACADEMIA_AMBIANCE, ambianceNavGrid } from './ambiance.js';
 import { classifyChat } from './safety.js';
-import { HATS, FURNITURE } from './catalog.js';
+import { HATS, FURNITURE, hatById, isStallHat } from './catalog.js';
 import { DEFAULT_APPEARANCE, STARTER_OUTFITS } from './constants.js';
 
 describe('numbers', () => {
@@ -250,9 +250,14 @@ describe('rooms + pathing', () => {
 });
 
 describe('catalog', () => {
-  it('ships 12 hats with some free and names inside the constitution', () => {
-    expect(HATS).toHaveLength(12);
+  it('ships the stall hats with some free and names inside the constitution', () => {
+    expect(HATS).toHaveLength(11);
     expect(HATS.filter((h) => h.price === 0).length).toBeGreaterThanOrEqual(2);
+    expect(HATS.some((h) => h.id === 'chapeu_chef' || h.shape === 'chef')).toBe(false);
+    expect(isStallHat('chapeu_chef')).toBe(false);
+    expect(isStallHat('chapeu_padeiro_casa')).toBe(false);
+    expect(isStallHat('bone_verde')).toBe(true);
+    expect(hatById('chapeu_chef')?.pt).toBe('Chapéu de padeiro');
     for (const item of [...HATS, ...FURNITURE]) expect(classifyChat(item.pt).action).toBe('allow');
   });
 });

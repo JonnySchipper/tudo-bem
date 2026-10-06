@@ -21,7 +21,6 @@ export const HATS: HatDef[] = [
   { id: 'capacete_bike', pt: 'Capacete de bike', en: 'Bike helmet', price: 20, shape: 'capacete', color: '#2f9a94', accent: '#1d4f4c' },
   { id: 'panama', pt: 'Chapéu panamá', en: 'Panama hat', price: 25, shape: 'panama', color: '#efe3c4', accent: '#2a2a33' },
   { id: 'coroa_flores', pt: 'Coroa de flores', en: 'Flower crown', price: 30, shape: 'flores', color: '#f2c230', accent: '#e5572f' },
-  { id: 'chapeu_chef', pt: 'Chapéu de padeiro', en: 'Baker’s hat', price: 40, shape: 'chef', color: '#ffffff', accent: '#e0dcd2' },
   { id: 'cartola', pt: 'Cartola de Carnaval', en: 'Carnival top hat', price: 60, shape: 'cartola', color: '#6a45a0', accent: '#e8b634' },
 ];
 
@@ -68,10 +67,18 @@ export const EARNED_HATS: HatDef[] = [
   { id: 'chapeu_padeiro_casa', pt: 'Chapéu de dono da padaria', en: 'Bakery owner’s hat', price: 0, shape: 'chef', color: '#ffffff', accent: '#e0ae3c' },
 ];
 
-/** Every hat a profile can wear (the stall plus the earned ones). */
-export const ALL_HATS: HatDef[] = [...HATS, ...EARNED_HATS];
+/**
+ * Taken off Nanda’s stall. Still a real hat: Seu Carlos wears it, and a profile that already bought it can keep wearing it from the wardrobe.
+ * The padaria founder toque is a different id (`chapeu_padeiro_casa`).
+ */
+export const RETIRED_HATS: HatDef[] = [
+  { id: 'chapeu_chef', pt: 'Chapéu de padeiro', en: 'Baker’s hat', price: 40, shape: 'chef', color: '#ffffff', accent: '#e0dcd2' },
+];
+
+/** Every hat a profile can wear (the stall, the earned ones, and retired stall hats someone may already own). */
+export const ALL_HATS: HatDef[] = [...HATS, ...EARNED_HATS, ...RETIRED_HATS];
 
 export const hatById = (id: string | null | undefined): HatDef | undefined => ALL_HATS.find((h) => h.id === id);
-/** Only the stall sells hats; earned hats come from their own feature. */
+/** Only the stall sells hats; earned and retired hats are not in the shop. */
 export const isStallHat = (id: string): boolean => HATS.some((h) => h.id === id);
 export const furnitureById = (id: string): FurnitureDef | undefined => FURNITURE.find((f) => f.id === id);

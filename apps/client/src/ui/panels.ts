@@ -3,6 +3,7 @@ import {
   HATS,
   ALL_HATS,
   PARROT_COLORS,
+  ownedParrotColorIds,
   MISSION_COPY,
   MISSION_REWARD,
   MISSION_STEPS,
@@ -245,7 +246,7 @@ export function openParrotShop(actions: { buy: (id: string) => void; equip: (id:
     const prof = game.profile!;
     clear(grid);
     for (const c of PARROT_COLORS) {
-      const owned = prof.parrotColors?.includes(c.id) ?? (c.id === 'verde' && prof.parrotOwned);
+      const owned = ownedParrotColorIds(prof).includes(c.id);
       const wearing = (prof.parrotColor ?? 'verde') === c.id && prof.parrotEquipped;
       const btn = owned
         ? h(

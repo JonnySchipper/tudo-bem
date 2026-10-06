@@ -23,7 +23,7 @@ import {
 } from '@tudobem/shared';
 import { sanitizeAppearance, World, MG_RESUME_MS, type AccountLink, type Session, type WorldOptions } from './world.js';
 import { serveFront } from './correriaTestKit.js';
-import { ProfileStore, type StoredProfile } from './store.js';
+import { ProfileStore, normalizeProfile, type StoredProfile } from './store.js';
 import { AuthoredNpcDialogue, MemoryModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 
 let clock = 1_000_000;
@@ -339,6 +339,77 @@ describe('World', () => {
     expect(b.last('roomState')!.ownerName).toBe('Ana');
     await b.send({ t: 'furniture', action: 'place', itemId: 'cadeira_madeira', x: 3, y: 3, rot: 0 });
     expect(b.last('error')!.code).toBe('furniture');
+  });
+
+  it('does not sell the baker hat at Nanda’s stall, and keeps a hat someone already owns', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    a.s.profile!.coins = 100;
+    await a.send({ t: 'buy', kind: 'hat', itemId: 'chapeu_chef' });
+    expect(a.s.profile!.hats).not.toContain('chapeu_chef');
+    expect(a.s.profile!.coins).toBe(100);
+    await a.send({ t: 'buy', kind: 'hat', itemId: 'chapeu_padeiro_casa' });
+    expect(a.s.profile!.hats).not.toContain('chapeu_padeiro_casa');
+    expect(a.s.profile!.coins).toBe(100);
+    a.s.profile!.hats.push('chapeu_chef');
+    await a.send({ t: 'equipHat', hatId: 'chapeu_chef' });
+    expect(a.s.profile!.hat).toBe('chapeu_chef');
+  });
+
+  it('buying a papagaio colour keeps the ones already owned', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    a.s.profile!.coins = 40;
+    await a.send({ t: 'parrot', action: 'adopt' });
+    await a.send({ t: 'buy', kind: 'parrot', itemId: 'azul' });
+    expect(a.s.profile!.parrotColors).toEqual(['verde', 'azul']);
+    expect(a.s.profile!.parrotColor).toBe('azul');
+    expect(a.s.profile!.parrotOwned).toBe(true);
+    expect(a.s.profile!.parrotEquipped).toBe(true);
+    expect(a.s.profile!.coins).toBe(28);
+    expect(world.publicAvatar(a.s).parrot).toBe(true);
+    expect(world.publicAvatar(a.s).parrotColor).toBe('azul');
+
+    await a.send({ t: 'buy', kind: 'parrot', itemId: 'azul' });
+    expect(a.s.profile!.parrotColors).toEqual(['verde', 'azul']);
+    expect(a.s.profile!.coins).toBe(28);
+
+    const broke = a.s.profile! as StoredProfile;
+    broke.parrotOwned = true;
+    broke.parrotEquipped = true;
+    broke.parrotColor = 'verde';
+    (broke as { parrotColors?: unknown }).parrotColors = 'verde';
+    broke.coins = 40;
+    await a.send({ t: 'buy', kind: 'parrot', itemId: 'azul' });
+    expect(a.s.profile!.parrotColors).toEqual(['verde', 'azul']);
+    expect(a.s.profile!.coins).toBe(28);
+
+    a.s.profile!.coins = 0;
+    a.s.profile!.parrotColors = ['verde'];
+    a.s.profile!.parrotColor = 'verde';
+    await a.send({ t: 'buy', kind: 'parrot', itemId: 'amarelo' });
+    expect(a.last('error')!.code).toBe('coins');
+    expect(a.s.profile!.parrotColors).toEqual(['verde']);
+    expect(a.s.profile!.parrotColor).toBe('verde');
+    expect(a.s.profile!.coins).toBe(0);
+  });
+
+  it('repairs a wiped papagaio list when the profile loads', () => {
+    const wiped = { parrotOwned: true, parrotColors: [] as string[], parrotColor: null } as unknown as StoredProfile;
+    normalizeProfile(wiped);
+    expect(wiped.parrotColors).toEqual(['verde']);
+    expect(wiped.parrotColor).toBe('verde');
+    expect(wiped.parrotOwned).toBe(true);
+
+    const blueOnly = { parrotOwned: true, parrotColors: ['azul'], parrotColor: 'azul' } as unknown as StoredProfile;
+    normalizeProfile(blueOnly);
+    expect(blueOnly.parrotColors).toEqual(['azul']);
+
+    const fresh = { parrotOwned: false, parrotColors: [] as string[], parrotColor: null } as unknown as StoredProfile;
+    normalizeProfile(fresh);
+    expect(fresh.parrotOwned).toBe(false);
+    expect(fresh.parrotColors).toEqual([]);
+    expect(fresh.parrotColor).toBeNull();
   });
 
   it('free hats cost nothing and parrot hint has a cooldown', async () => {
