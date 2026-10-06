@@ -185,6 +185,14 @@ function walkTo(tile: Tile, pending: PendingAction | null, sit = false) {
   net.send({ t: 'move', x: tile.x, y: tile.y, sit });
 }
 
+/** Prop whose interact tile the avatar is standing on (keyboard / proximity prompts). */
+function propOnInteractTile(): PropDef | undefined {
+  const room = game.roomDef;
+  const cur = selfTile();
+  if (!room || !cur || cur.moving) return undefined;
+  return room.props.find((p) => p.action && p.interact && p.interact.x === cur.tile.x && p.interact.y === cur.tile.y);
+}
+
 function runPending() {
   const p = game.pending;
   game.pending = null;
@@ -459,7 +467,9 @@ function guideAt(kind: 'portal' | 'prop' | 'npc', id: string, lift: number, labe
   }
   if (kind === 'prop') {
     const p = room.props.find((q) => q.id === id);
-    return p ? { x: p.x + ((p.w ?? 1) - 1) / 2, y: p.y + (p.h ?? 1) - 1, lift, label } : null;
+    if (!p) return null;
+    if (p.interact) return { x: p.interact.x, y: p.interact.y, lift, label };
+    return { x: p.x + ((p.w ?? 1) - 1) / 2, y: p.y + (p.h ?? 1) - 1, lift, label };
   }
   const n = game.liveNpcs(now()).find((q) => q.id === id);
   return n ? { x: n.x, y: n.y, lift, label } : null;
@@ -1167,7 +1177,9 @@ document.addEventListener('keydown', (e) => {
   if (tag === 'INPUT' || tag === 'SELECT' || modalId() || document.querySelector('.idle-kicked')) return;
   if (e.key === 'Enter' && started && !game.modalOpen) {
     e.preventDefault();
-    hud?.focusChat();
+    const near = propOnInteractTile();
+    if (near?.action) propAction(near.action, near.id);
+    else hud?.focusChat();
   }
   if ((e.key === 'r' || e.key === 'R') && game.placing) {
     game.placing.rot = game.placing.rot === 0 ? 1 : 0;
@@ -1270,6 +1282,13 @@ function frame(ts: number) {
         const t = game.pending.tile;
         const d = Math.max(Math.abs(cur.tile.x - t.x), Math.abs(cur.tile.y - t.y));
         if (d === 0 || (game.pending.kind === 'portal' && d <= 1 && game.self?.path.length === 0)) runPending();
+      }
+    }
+    if (!game.modalOpen && !modalId() && !game.cameraOn && !isTyping(document.activeElement)) {
+      const near = propOnInteractTile();
+      if (near?.label) {
+        const { px, py } = renderer.tileToClient(near.interact!.x, near.interact!.y);
+        hoverLabel(px, py, near.label.pt, near.label.en);
       }
     }
   } catch (e) {

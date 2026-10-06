@@ -47,6 +47,15 @@ describe('player-owned padaria', () => {
     expect(p.last('mg')?.phase).toBe('state');
   });
 
+  it('door cofre opens on the rua facade', async () => {
+    const world = makeWorld();
+    const p = await player(world, 'Rua', 100);
+    await p.send({ t: 'join', room: 'rua' });
+    await p.send({ t: 'padariaOwn', action: 'door' });
+    const door = p.last('padariaOwn');
+    expect(door?.phase).toBe('door');
+  });
+
   it('flag-off keeps shared Correria and disables Fundar UI', async () => {
     const world = new World(
       new ProfileStore(null),
