@@ -176,6 +176,16 @@ describe('language diary catalog v2', () => {
     expect(DIARY_WORDS.find((w) => w.pt === 'aula')).toMatchObject({ source: 'game', anchor: { id: 'escola.pratica' } });
   });
 
+  it('shows the praça stray as Viralata Caramello in the diary and on the prop', () => {
+    expect(DIARY_WORDS.find((w) => w.id === 'diary.praca.vira_lata')).toMatchObject({
+      pt: 'Viralata Caramello',
+      en: 'caramel stray dog',
+      area: 'praca',
+      source: 'camera',
+    });
+    expect(ROOMS.praca.props.find((p) => p.id === 'vira_lata')?.label?.pt).toBe('Viralata Caramello');
+  });
+
   it('teaches every camera word an object names, in catalog order (a crate of melancias is a caixote and a melancia)', () => {
     expect(wordsForPhoto('caixote_3').map((w) => w.pt)).toEqual(['caixote', 'melancia']);
     expect(wordsForPhoto('caixote_1').map((w) => w.pt)).toEqual(['caixote']);

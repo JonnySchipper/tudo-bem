@@ -391,7 +391,7 @@ Only labels that exist on a prop are listed; the older ones from the first three
 | 282 | Quiosque de missões | Quest kiosk | `packages/shared/src/rooms.ts (praca)` | prop quiosque | |
 | 283 | Chapéus da Nanda | Nanda’s Hats | `packages/shared/src/rooms.ts (praca)` | prop barraca | |
 | 284 | Poleiro do papagaio | Parrot perch | `packages/shared/src/rooms.ts (praca)` | prop poleiro | |
-| 285 | Vira-lata caramelo | Caramel stray dog (vira-lata) | `packages/shared/src/rooms.ts (praca)` | prop vira_lata | |
+| 285 | Viralata Caramello | Caramel stray dog (vira-lata) | `packages/shared/src/rooms.ts (praca)` | prop vira_lata | |
 | 286 | Feira livre | Street market | `packages/shared/src/rooms.ts (praca)` | prop feira_livre | |
 | 287 | Frutas da Tia Lu | Tia Lu’s fruit stall | `packages/shared/src/rooms.ts (praca)` | prop feira_tia_lu | |
 | 288 | Verduras do Seu Zé | Seu Zé’s vegetable stall | `packages/shared/src/rooms.ts (praca)` | prop feira_ze | |
