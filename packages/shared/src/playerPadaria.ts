@@ -73,6 +73,13 @@ export function padariaIdFromInstance(instanceId: string | undefined | null): st
   return /^[a-f0-9]{8,32}$/.test(id) ? id : null;
 }
 
+/** Shared Seu Carlos padaria and the outdoor door cofre (rua facade); not player-owned instances. */
+export function isPadariaDoorRoom(roomId: string | undefined | null, instanceId: string | undefined | null): boolean {
+  if (!roomId) return false;
+  if (roomId === 'rua' || roomId === 'praca') return true;
+  return roomId === 'padaria' && !padariaIdFromInstance(instanceId);
+}
+
 export function fundarCostRv(): number {
   return PADARIA_SIZE_RV.balcao;
 }

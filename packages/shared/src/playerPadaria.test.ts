@@ -5,6 +5,7 @@ import {
   fundarCostRv,
   ownedCorreriaMenuIds,
   padariaDoorState,
+  isPadariaDoorRoom,
   padariaIdFromInstance,
   padariaInstanceId,
   upgradeSizeCostRv,
@@ -24,6 +25,14 @@ describe('player padaria Fundar', () => {
   it('accepts Fundar with zero shifts (RV only gate)', () => {
     expect(validatePadariaName('Padaria da Bia').ok).toBe(true);
     expect(padariaDoorState(900, null).canFundar).toBe(true);
+  });
+
+  it('door cofre works on rua, praça and shared padaria only', () => {
+    expect(isPadariaDoorRoom('rua', 'rua#1')).toBe(true);
+    expect(isPadariaDoorRoom('praca', 'praca#1')).toBe(true);
+    expect(isPadariaDoorRoom('padaria', 'padaria#1')).toBe(true);
+    expect(isPadariaDoorRoom('padaria', 'padaria@abc12345')).toBe(false);
+    expect(isPadariaDoorRoom('kitnet', 'kitnet#1')).toBe(false);
   });
 
   it('instance ids use padaria@ prefix', () => {

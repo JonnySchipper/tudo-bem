@@ -104,6 +104,7 @@ import {
   type PlayerAcademy,
   padariaCard,
   padariaDoorState,
+  isPadariaDoorRoom,
   padariaIdFromInstance,
   padariaInstanceId,
   validatePadariaName,
@@ -679,8 +680,7 @@ export class World {
   }
 
   private atPadariaDoor(s: Session) {
-    const room = s.instance?.def.id;
-    return room === 'praca' || (room === 'padaria' && !padariaIdFromInstance(s.instance?.id));
+    return isPadariaDoorRoom(s.instance?.def.id, s.instance?.id);
   }
 
   private padariaDoor(s: Session) {
