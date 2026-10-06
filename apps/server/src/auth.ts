@@ -281,6 +281,11 @@ export class AccountStore implements AccountLink {
     return this.byId.get(accountId)?.profileId;
   }
 
+  /** Profile linked to this email, if the account exists and has finished the avatar creator. */
+  profileIdForEmail(email: string): string | undefined {
+    return this.byId.get(this.byEmail.get(normalizeEmail(email)) ?? '')?.profileId;
+  }
+
   linkProfile(accountId: string, profileId: string) {
     const a = this.byId.get(accountId);
     if (!a) return;

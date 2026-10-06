@@ -26,6 +26,7 @@ import {
 } from './auth.js';
 import { publicAppConfig, readOpsSmokeConfig, type OpsSmokeConfig } from './opsSmoke.js';
 import { readGoogleOAuthConfig, type GoogleOAuthConfig, type GoogleTokenPayload } from './googleAuth.js';
+import { repairPapagaios } from './papagaioRepair.js';
 
 export interface AppOptions {
   dataDir: string;
@@ -69,6 +70,8 @@ export function createApp(opts: AppOptions) {
   const academies = new AcademyStore(academyFileAdapter(dataDir));
   const padarias = new PadariaStore(padariaFileAdapter(dataDir));
   const accounts = new AccountStore(accountsFileAdapter(dataDir), { sessionTtlMs: opts.sessionTtlMs, scrypt: opts.scrypt });
+  const fixedPapagaios = repairPapagaios((email) => accounts.profileIdForEmail(email), store);
+  if (fixedPapagaios.length) console.log(`[papagaio] restored colours for ${fixedPapagaios.join(', ')}`);
   const world = new World(
     store,
     {
