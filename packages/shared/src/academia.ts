@@ -124,6 +124,20 @@ export function progressForWins(wins: number): { belt: Belt; stripes: number } {
   return { belt: 'preta', stripes: 0 };
 }
 
+/** Where a win count sits on the way to the next stripe: wins into it, wins per stripe there, and how many to go. */
+export function nextStripe(wins: number): { into: number; per: number; left: number } {
+  let w = Math.max(0, Math.floor(Number.isFinite(wins) ? wins : 0));
+  for (const step of BELT_LADDER) {
+    const span = step.per * STRIPES_PER_BELT;
+    if (step.belt === 'preta' || w < span) {
+      const into = w % step.per;
+      return { into, per: step.per, left: step.per - into };
+    }
+    w -= span;
+  }
+  return { into: 0, per: BELT_LADDER[BELT_LADDER.length - 1]!.per, left: BELT_LADDER[BELT_LADDER.length - 1]!.per };
+}
+
 /** Awards inserted onto stripes that older saves may already have passed. */
 const LATER_AWARDS = ['knee_on_belly', 'back_take', 'single_leg'] as const satisfies readonly MatMoveId[];
 

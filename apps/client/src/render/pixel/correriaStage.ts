@@ -30,6 +30,7 @@ import type { Manifest } from './manifest';
 import { animKey } from './charsheet';
 import { lookForAppearance, lookForNpc, type Look } from './looks';
 import { correriaFeed, type StageCue } from './correriaFeed';
+import { game } from '../../state';
 import { originOf } from './spriteUtil';
 import { DEPTH } from './props';
 import {
@@ -645,7 +646,8 @@ export class CounterStage {
       const bubble = document.createElement('div');
       bubble.className = 'cr-bubble baker';
       bubble.style.display = 'none';
-      bubble.dataset.who = d.name;
+      // a player-owned padaria has no baker on duty: the cheers come from the regulars at the counter
+      bubble.dataset.who = game.room?.padaria ? 'Freguesia' : d.name;
       this.popsEl!.append(bubble);
       this.baker = { id, bubble };
     }

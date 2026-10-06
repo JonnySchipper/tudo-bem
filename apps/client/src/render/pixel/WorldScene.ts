@@ -18,6 +18,8 @@ import {
   hotspotBox,
   diaryVisible,
   hotspotsInRoom,
+  normalizeDiary,
+  wordForSign,
   isCpuId,
   key as tileKey,
   parrotColorById,
@@ -234,6 +236,10 @@ export class WorldScene extends Phaser.Scene {
   private roomId = '';
   private roomDef: RoomDef | null = null;
   private roomObjs: Phaser.GameObjects.GameObject[] = [];
+  /** Reading words in this room: a small twinkle over each one this player has not read yet (the signs have no sprite of their own). */
+  private glints: { word: string; img: Phaser.GameObjects.Image; phase: number }[] = [];
+  private glintDiary: unknown = null;
+  private glintHave = new Set<string>();
   private roomMap: Phaser.Tilemaps.Tilemap | null = null;
   private staticHits: HitBox[] = [];
   private placeholders: { key: string; rect: Rect }[] = [];
@@ -338,6 +344,54 @@ export class WorldScene extends Phaser.Scene {
     this.ready = true;
   }
 
+  /** The twinkle sprite (7 x 7 art px, drawn once): a four-point star in the guide arrow's gold. */
+  private glintTexture(): string {
+    const key = 'fx:glint';
+    if (!this.textures.exists(key))
+      this.textures.generate(key, {
+        data: ['...1...', '...2...', '..232..', '1233321', '..232..', '...2...', '...1...'],
+        pixelWidth: 1,
+        palette: { 1: '#c9921c', 2: '#f2c230', 3: '#fffbe8' } as unknown as Phaser.Types.Create.Palette,
+      });
+    return key;
+  }
+
+  /** One twinkle per reading word in the room, at the top of the thing it is written on. Shown only while the word is unread (`syncGlints`). */
+  private buildGlints(def: RoomDef): void {
+    const tex = this.glintTexture();
+    for (const hs of hotspotsInRoom(def.id)) {
+      const word = wordForSign(hs.id);
+      if (!word) continue;
+      const b = hotspotBox(hs);
+      const img = this.reg(this.add.image(((b.x0 + b.x1) / 2) * T, b.y0 * T + 3, tex)).setDepth(DEPTH.overhead - 10).setVisible(false);
+      this.glints.push({ word: word.id, img, phase: hash01(b.x0 * 13 + b.y0 * 7) * Math.PI * 2 });
+    }
+  }
+
+  /** Twinkle the unread words (slow, staggered; steady under reduced motion); hidden while a counter or bout has the screen. */
+  private syncGlints(now: number): void {
+    if (!this.glints.length) return;
+    // the diary set is rebuilt only when the profile's diary array changes (a new profile push)
+    const diary = game.profile?.diary;
+    if (diary !== this.glintDiary) {
+      this.glintDiary = diary;
+      this.glintHave = new Set(normalizeDiary(diary));
+    }
+    const have = this.glintHave;
+    const busy = correriaFeed.active || boutFeed.active || game.cameraOn;
+    for (const g of this.glints) {
+      const show = !busy && !have.has(g.word);
+      g.img.setVisible(show);
+      if (!show) continue;
+      if (this.fxLevel.reduced) {
+        g.img.setAlpha(0.9).setScale(1);
+        continue;
+      }
+      const t = (Math.sin(now / 520 + g.phase) + 1) / 2;
+      g.img.setAlpha(0.35 + 0.65 * t).setScale(0.75 + 0.35 * t);
+    }
+  }
+
   private reg<G extends Phaser.GameObjects.GameObject>(o: G): G {
     this.rig.world(o);
     this.roomObjs.push(o);
@@ -393,6 +447,7 @@ export class WorldScene extends Phaser.Scene {
     this.roomMap?.destroy();
     this.roomMap = null;
     this.staticHits = [];
+    this.glints = [];
     this.placeholders = [];
     this.canopies = [];
     this.trilho = null;
@@ -524,10 +579,13 @@ export class WorldScene extends Phaser.Scene {
 
     // ---- readable world (Phase 7): a click box per hotspot (the footprint, plus the wall rows above it for a sign painted on a north wall)
     for (const hs of hotspotsInRoom(def.id)) {
+      // Seu Carlos's own shelf sign does not hang in a player-owned padaria
+      if (game.room?.padaria && hs.id === 'padaria_prateleira') continue;
       if (!diaryVisible(def.id, hs.id, this.diaryDay)) continue;
       const b = hotspotBox(hs);
       this.staticHits.push({ x0: b.x0 * T, y0: b.y0 * T, x1: b.x1 * T, y1: b.y1 * T, hit: { kind: 'hotspot', hotspot: hs }, depth: b.y1 * T - 0.25 });
     }
+    this.buildGlints(def);
 
     // (the neighbours are not part of the room: the server walks them along their schedules and sends them as avatars)
 
@@ -858,6 +916,7 @@ export class WorldScene extends Phaser.Scene {
     const dyn: HitBox[] = [];
     this.syncFurniture(dyn);
     this.syncAvatars(def, now, dyn);
+    this.syncGlints(now);
     this.syncBout(dt, now);
     this.syncCounter(dt, now);
     this.updateCanopies(dt);
@@ -1309,6 +1368,12 @@ export class WorldScene extends Phaser.Scene {
     v.wx = wx;
     v.wy = wy;
     v.sprite.setPosition(wx, wy - bounce).setScale(avatarDrawScale());
+    // under the mat camera, neighbours who wander about step out of the picture; the seated crowd stays to watch
+    if (isCpuId(a.pub.id)) {
+      const away = boutFeed.camera && !sitting;
+      v.sprite.setAlpha(away ? 0 : 1);
+      v.shadow.setAlpha(away ? 0 : 1);
+    }
     v.shadow.setPosition(wx, wy - 1).setScale(avatarDrawScale(), 1);
     // sitters draw just above what they sit on (the bench's bottom edge is the tile's bottom edge)
     const depth = sitting ? (pos.tile.y + 1) * T + 0.5 : standingDepth(f.wy, a.pub.id);
@@ -1613,7 +1678,8 @@ export class WorldScene extends Phaser.Scene {
           key: `npc:${a.pub.npc}`,
           x: p.px,
           y: p.py,
-          plate: { text: role && game.hoverKey === `npc:${a.pub.npc}` ? `${a.pub.name} · ${role}` : a.pub.name, kind: 'npc' },
+          // the mat camera keeps the pair and the scoreboard clear: neighbours' plates wait until the bout is over (their bubbles still talk)
+          plate: boutFeed.camera ? null : { text: role && game.hoverKey === `npc:${a.pub.npc}` ? `${a.pub.name} · ${role}` : a.pub.name, kind: 'npc' },
           // Bia is the referee while a bout is on: her idle chatter stays quiet
           bubbles: b && age < 7000 && !(boutFeed.camera && a.pub.npc === 'prof') ? [{ text: b.text, gloss: b.gloss, alpha: bubbleAlpha(age) }] : [],
         });
@@ -1627,7 +1693,7 @@ export class WorldScene extends Phaser.Scene {
             .map((b) => ({ text: b.text, gloss: b.gloss, alpha: bubbleAlpha(now - b.at) }));
       // CPUs are scenery: their name shows on hover, within ~3.5 tiles of you, or while they emote
       const near = !!selfView && Math.hypot(v.wx - selfView.wx, v.wy - selfView.wy) <= 3.5 * T;
-      const cpuShow = !isCpuId(id) || game.hoverKey === `av:${id}` || near || (!!a.emote && performance.now() - a.emote.t0 < 3500);
+      const cpuShow = !boutFeed.camera && (!isCpuId(id) || game.hoverKey === `av:${id}` || near || (!!a.emote && performance.now() - a.emote.t0 < 3500));
       stacks.push({
         key: `av:${id}`,
         x: p.px,
@@ -1641,6 +1707,20 @@ export class WorldScene extends Phaser.Scene {
         },
         bubbles,
       });
+    }
+    // a player-owned padaria: its name in chalk on the blackboard (Seu Carlos's board stays plain)
+    const own = game.room?.padaria;
+    const lousa = own ? northDecor(def).find((d) => d.kind === 'lousa') : undefined;
+    if (own && lousa) {
+      const p = at(((lousa.from + lousa.to) / 2) * T, -17);
+      stacks.push({ key: `sign:${own.id}`, x: p.px, y: p.py, plate: { text: own.name, kind: 'sign' }, bubbles: [] });
+    }
+    // a player academy: its crest and name on a plate over the crest board
+    const team = game.room?.room === 'andar' ? game.room.academy : undefined;
+    const board = team ? def.props.find((q) => q.id === 'andar_brasao') : undefined;
+    if (team && board) {
+      const p = at((board.x + 0.5) * T, -16);
+      stacks.push({ key: `sign:academy:${team.id}`, x: p.px, y: p.py, plate: { text: `${CRESTS[team.crest].glyph} ${team.name}`, kind: 'sign' }, bubbles: [] });
     }
     const guides: GuideItem[] = this.host.guides().map((g, i) => {
       const w = tileToWorld(g.x, g.y);

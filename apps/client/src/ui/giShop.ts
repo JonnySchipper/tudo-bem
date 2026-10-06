@@ -1,5 +1,6 @@
 import { GI_PRICE } from '@tudobem/shared';
 import { showDialogue, closeDialogue } from './panels';
+import { game } from '../state';
 
 export function openGiShop(owned: boolean, buy: () => void): void {
   if (owned) {
@@ -13,6 +14,23 @@ export function openGiShop(owned: boolean, buy: () => void): void {
       chips: [{ pt: 'Entendi', en: 'Got it' }],
       onChoose: () => closeDialogue(),
       key: 'gi-owned',
+      onClose: closeDialogue,
+    });
+    return;
+  }
+  const short = GI_PRICE - (game.profile?.coins ?? GI_PRICE);
+  if (short > 0) {
+    // needs_br: true. Not enough yet: say how much and where it comes from, instead of a buy button that only errors
+    showDialogue({
+      npc: null,
+      speaker: 'Vestiário',
+      line: {
+        pt: `O kimono custa ${GI_PRICE} RV. Faltam ${short} RV: o balcão do Seu Carlos e a feira pagam rapidinho.`,
+        en: `The gi costs ${GI_PRICE} RV. You need ${short} more: Seu Carlos's counter and the market pay quickly.`,
+      },
+      chips: [{ pt: 'Volto já', en: 'Be right back' }],
+      onChoose: () => closeDialogue(),
+      key: 'gi-short',
       onClose: closeDialogue,
     });
     return;

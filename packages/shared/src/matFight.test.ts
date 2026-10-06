@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { completeDrill, normalizeBjj, progressForWins, recordWin } from './academia.js';
+import { completeDrill, normalizeBjj, partnerById, progressForWins, recordWin } from './academia.js';
 import { diaryWord } from './diary.js';
 import {
   MAT_TURNS,
@@ -9,7 +9,10 @@ import {
   chooseBot,
   drillPosition,
   fightMoves,
+  matEffect,
   matLegalMoves,
+  matStyle,
+  thinkMsFor,
   moveLegal,
   movePercent,
   moveTaughtAt,
@@ -508,5 +511,54 @@ describe('drill placement', () => {
       const pos = drillPosition(u.move);
       expect(moveLegal(pos, 'you', u.move), u.move).toBe(true);
     }
+  });
+});
+
+describe('polish: grips, partner styles, move effects', () => {
+  it('a grip you already hold is not offered again, and cannot be played', () => {
+    const st = resolveMat(newMat(), 'you', 'collar_tie', 0, 'branca').state;
+    const back: MatState = { ...st, actor: 'you' };
+    expect(matLegalMoves(back, 'you', ['collar_tie', 'sleeve_grip', 'double_leg'])).not.toContain('collar_tie');
+    expect(matLegalMoves(back, 'you', ['collar_tie', 'sleeve_grip', 'double_leg'])).toContain('sleeve_grip');
+    expect(resolveMat(back, 'you', 'collar_tie', 0, 'branca').ok).toBe(false);
+  });
+
+  it('the bot does not burn turns re-gripping', () => {
+    const both: MatState = { ...newMat(), actor: 'them', grips: { you: { collar: false, sleeve: false }, them: { collar: true, sleeve: false } } };
+    const pick = chooseBot(both, 'branca', botMoves('branca', 'branca'));
+    expect(pick).not.toBe('collar_tie');
+  });
+
+  it('partners fight like their cards: Rafael hunts the finish, Daniel escapes, Felipe shoots off one grip', () => {
+    const rafael = matStyle(partnerById('rafael')!);
+    const daniel = matStyle(partnerById('daniel')!);
+    const felipe = matStyle(partnerById('felipe')!);
+    const guardTop: MatState = { ...newMat(), position: { kind: 'closed_guard', top: 'them' }, actor: 'them' };
+    expect(chooseBot(guardTop, 'azul', botMoves('azul', 'azul'), rafael)).toBe('americana');
+    expect(chooseBot(guardTop, 'azul', botMoves('azul', 'azul'))).toBe('passar');
+    const pinned: MatState = { ...newMat(), position: { kind: 'side_control', top: 'you' }, actor: 'them' };
+    expect(chooseBot(pinned, 'azul', botMoves('azul', 'azul'), daniel)).toBe('frame');
+    const oneGrip: MatState = { ...newMat(), actor: 'them', grips: { you: { collar: false, sleeve: false }, them: { collar: true, sleeve: false } } };
+    expect(['double_leg', 'body_lock']).toContain(chooseBot(oneGrip, 'branca', botMoves('branca', 'branca'), felipe));
+    expect(chooseBot(oneGrip, 'branca', botMoves('branca', 'branca'))).toBe('sleeve_grip');
+  });
+
+  it('accuracy is an edge on the odds; speed sets a think time inside 2-5 s', () => {
+    expect(matStyle(partnerById('mateus')!).edge).toBe(0);
+    expect(matStyle(partnerById('helena')!).edge).toBeGreaterThan(5);
+    // a 45% takedown at roll 0.5 misses plain, lands with Helena's edge
+    expect(resolveMat(newMat(), 'you', 'double_leg', 0.5, 'branca').success).toBe(false);
+    expect(resolveMat(newMat(), 'you', 'double_leg', 0.5, 'branca', false, matStyle(partnerById('helena')!).edge).success).toBe(true);
+    const felipe = thinkMsFor(matStyle(partnerById('felipe')!));
+    const helena = thinkMsFor(matStyle(partnerById('helena')!));
+    expect(felipe).toBeLessThan(helena);
+    for (const t of [felipe, helena, thinkMsFor(null)]) expect(t >= 2000 && t <= 5000).toBe(true);
+  });
+
+  it('matEffect says what a move does if it lands', () => {
+    expect(matEffect(newMat(), 'you', 'double_leg')).toMatchObject({ points: 2, to: 'cem_quilos', toAhead: 'you', submission: false });
+    const mount: MatState = { ...newMat(), position: { kind: 'mount', top: 'you' } };
+    expect(matEffect(mount, 'you', 'armbar')).toMatchObject({ submission: true, riskBottom: true });
+    expect(matEffect(newMat(), 'you', 'collar_tie')).toMatchObject({ points: 0, to: 'de_pe' });
   });
 });

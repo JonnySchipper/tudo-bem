@@ -187,6 +187,13 @@ body.bout-on .toasts {
   opacity: 0.35;
 }
 
+/* no match yet: the lobby and a stripe lesson have no scoreboard */
+.bout-root[data-phase='lobby'] .bout-top,
+.bout-root[data-phase='drill'] .bout-top,
+.bout-root.is-lesson .bout-top {
+  display: none;
+}
+
 .belt-dot {
   display: inline-block;
   width: 14px;
@@ -521,7 +528,8 @@ body.bout-on .toasts {
 .bout-cards {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(150px, 1fr);
+  /* five partners fit a 1280 desktop panel without a cut-off last card; phones scroll */
+  grid-auto-columns: minmax(136px, 1fr);
   gap: 8px;
   overflow-x: auto;
   padding-bottom: 4px;
@@ -530,7 +538,7 @@ body.bout-on .toasts {
 
 .bout-card-partner {
   display: grid;
-  grid-template-columns: 56px 1fr;
+  grid-template-columns: 46px 1fr;
   gap: 8px;
   align-items: start;
   text-align: left;
@@ -558,15 +566,15 @@ body.bout-on .toasts {
 .bout-portrait-wrap {
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 72px;
+  width: 46px;
+  height: 60px;
   background: linear-gradient(#cfe3c4, #f5e6d3);
   border: 2px solid var(--bout-ink);
 }
 
 .bout-portrait {
-  width: 56px;
-  height: 72px;
+  width: 44px;
+  height: 56px;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   image-rendering: pixelated;
@@ -1782,4 +1790,273 @@ body.bout-on .toasts {
   .bout-intent.gag-move .pt {
     font-size: 11px;
   }
+}
+
+/* ---------------------------------------------------------------- move cards (every playable move at once; the gag track is the colour) */
+
+.move-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.move-cards > .move-card {
+  flex: 1 1 150px;
+  max-width: 260px;
+}
+
+/* holding is the quiet option: a narrow card at the end */
+.move-cards > .move-card.is-hold {
+  flex: 0 1 112px;
+}
+
+.bout-intent.move-card {
+  --track: #8a7f96;
+  display: grid;
+  grid-template-rows: auto auto auto 1fr;
+  justify-items: start;
+  align-content: start;
+  text-align: left;
+  min-height: 104px;
+  padding: 0 8px 8px;
+  gap: 2px;
+  border: 3px solid var(--bout-ink);
+  background: #fff;
+  overflow: hidden;
+}
+
+.move-card[data-gag='grips'] { --track: #2b5ba8; }
+.move-card[data-gag='takedowns'] { --track: #c45c26; }
+.move-card[data-gag='sweeps'] { --track: #2e8a55; }
+.move-card[data-gag='defense'] { --track: #6a5d7b; }
+.move-card[data-gag='passes'] { --track: #b8860b; }
+.move-card[data-gag='subs'] { --track: #c0392b; }
+
+.move-card .mc-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  align-self: stretch;
+  width: calc(100% + 16px);
+  margin: 0 -8px 4px;
+  padding: 3px 8px;
+  background: var(--track);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.move-card .mc-key {
+  font-family: var(--font-pixel);
+  opacity: 0.85;
+}
+
+.bout-intent.move-card .mc-name {
+  font-size: 20px;
+  line-height: 1.05;
+}
+
+.bout-intent.move-card > .en {
+  font-size: 11px;
+  margin-top: -1px;
+}
+
+.move-card .mc-pct {
+  position: absolute;
+  right: 8px;
+  top: 28px;
+  padding: 2px 6px;
+  border: 2px solid var(--bout-ink);
+  background: #e9f6ec;
+  font-size: 16px;
+}
+
+.move-card.tone-fair .mc-pct { background: #fff4cc; }
+.move-card.tone-long .mc-pct { background: #fde4df; }
+
+.move-card .mc-hint {
+  display: grid;
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--bout-ink);
+  line-height: 1.15;
+}
+
+.move-card .mc-hint .en,
+.move-card .mc-risk .en {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.move-card .mc-risk {
+  display: grid;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--bout-red);
+  line-height: 1.1;
+}
+
+.move-card.is-finish {
+  border-color: var(--bout-red);
+  box-shadow: 0 3px 0 rgba(192, 57, 43, 0.45);
+}
+
+.bout-intent.move-card.is-hold {
+  --track: #d8cfc0;
+  background: #f6f1e8;
+  min-height: 104px;
+}
+
+.bout-intent.move-card.is-hold .mc-top {
+  color: var(--bout-ink);
+  justify-content: flex-end;
+}
+
+.bout-intent.move-card:hover,
+.bout-intent.move-card:focus-visible {
+  background: #fff8e0;
+  outline: none;
+}
+
+.bout-intent.move-card.picked {
+  background: var(--bout-gold);
+}
+
+.bout-noen .move-card .en {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .move-cards > .move-card {
+    flex-basis: calc(50% - 3px);
+  }
+  .move-cards > .move-card.is-hold {
+    flex-basis: calc(50% - 3px);
+  }
+  .bout-intent.move-card {
+    min-height: 92px;
+  }
+  .bout-intent.move-card .mc-name {
+    font-size: 17px;
+  }
+}
+
+.bout-intent.move-card[data-k]::before {
+  content: none;
+}
+
+/* ---------------------------------------------------------------- end card: score, next stripe, Bia's tip */
+
+.bout-end-score {
+  display: flex;
+  width: min(420px, 100%);
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 2px 0 4px;
+  font-weight: 800;
+}
+
+.bout-end-score .who.you {
+  text-align: right;
+}
+
+.bout-end-score b {
+  font-family: var(--font-pixel);
+  font-size: 26px;
+  font-weight: 400;
+}
+
+.bout-end-score .who {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.75;
+}
+
+.bout-end-score .who.won {
+  opacity: 1;
+  color: var(--bout-green);
+}
+
+.bout-next {
+  display: grid;
+  gap: 4px;
+  width: min(360px, 100%);
+  margin: 6px auto 2px;
+}
+
+.bout-next-bar {
+  height: 10px;
+  border: 2px solid var(--bout-ink);
+  background: var(--bout-paper-lo);
+}
+
+.bout-next-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--bout-green), #6fbf73);
+}
+
+.bout-next-text {
+  display: grid;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.bout-next-text .en {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.bout-tip {
+  margin: 6px auto 0;
+  max-width: 460px;
+  padding: 6px 10px;
+  border-left: 4px solid var(--bout-gold);
+  background: #fff8e0;
+  font-size: 13px;
+  text-align: left;
+}
+
+.bout-tip .en {
+  display: block;
+  font-size: 11px;
+}
+
+.bout-noen .bout-next-text .en,
+.bout-noen .bout-tip .en {
+  display: none;
+}
+
+/* the end card says the result: the live position line is done */
+.bout-panel[data-phase='end'] .bout-meters {
+  display: none;
+}
+
+/* the stripe lesson: one big card, centred */
+.bout-drill .move-cards {
+  justify-content: center;
+}
+.bout-drill .move-card.is-drill {
+  flex: 0 1 280px;
+  border-color: var(--bout-gold);
+  box-shadow: 0 0 0 3px rgba(242, 194, 48, 0.45), 0 3px 0 rgba(20, 16, 26, 0.3);
+}
+.bout-drill-line {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+.bout-drill-line .en {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
 }

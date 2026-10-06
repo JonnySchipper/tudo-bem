@@ -17,6 +17,7 @@ import {
   progressForWins,
   recordWin,
   winsToBelt,
+  nextStripe,
 } from './index.js';
 
 describe('belts, stripes and the profile', () => {
@@ -188,5 +189,15 @@ describe('rewards', () => {
     expect(boutBond('you', p, 'd1').gain).toBe(0);
     expect(boutBond('you', p, 'd2').gain).toBeGreaterThan(0);
     expect(boutBond('partner', normalizeBjj(), 'd1').gain).toBeLessThan(boutBond('you', normalizeBjj(), 'd1').gain);
+  });
+});
+
+describe('nextStripe', () => {
+  it('counts wins into the stripe and wins to go along the ladder', () => {
+    expect(nextStripe(0)).toEqual({ into: 0, per: 5, left: 5 });
+    expect(nextStripe(3)).toEqual({ into: 3, per: 5, left: 2 });
+    // blue starts at 20 wins and pays every 10
+    expect(nextStripe(20)).toEqual({ into: 0, per: 10, left: 10 });
+    expect(nextStripe(305)).toEqual({ into: 5, per: 80, left: 75 });
   });
 });

@@ -4,6 +4,7 @@ import type { StreetSnackId } from './streetSnacks.js';
 import type { CounterItemId } from './padaria.js';
 import type { BjjProgress, Belt } from './academia.js';
 import type { AcademyCard, AcademyGi } from './playerAcademy.js';
+import type { PadariaSize } from './playerPadaria.js';
 import type { NpcId } from './rooms.js';
 import type { NpcActivity } from './schedules.js';
 import type { RecadoState } from './recados.js';
@@ -131,6 +132,8 @@ export interface CorreriaProgress {
 }
 
 export interface PrivateProfile {
+  /** The padaria this player founded (derived by the server from padarias.json each push, never stored on the profile). */
+  padaria?: { id: string; name: string; size: PadariaSize };
   id: string;
   name: string;
   pronoun: Pronoun;

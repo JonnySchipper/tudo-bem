@@ -16,6 +16,10 @@ import {
   INTENTS,
   isMatMove,
   MOVE_LABEL,
+  moveTaughtAt,
+  nextStripe,
+  progressForWins,
+  type MatMoveId,
   type PartnerId,
 } from '@tudobem/shared';
 import { game } from '../state';
@@ -27,7 +31,7 @@ import { beltChip } from './beltChip';
 import { boutFeed } from '../render/pixel/boutFeed';
 import { CARTOON_MS, GAG_TRACKS, THINK_MS, cartoonFor } from '../render/pixel/gagCartoon';
 import { mountCharPreview } from '../render/pixel/charPreview';
-import { RISK_LABEL, callOf, cuesForEnd, cuesForFinishEnd, cuesForResolve } from './boutLogic';
+import { callOf, coachTip, cuesForEnd, cuesForFinishEnd, cuesForResolve, moveHint, oddsTone } from './boutLogic';
 
 type Msg<P extends BoutServerMsg['phase']> = Extract<BoutServerMsg, { phase: P }>;
 /** a client bout message without its `t` and `v` (distributed over the actions) */
@@ -63,8 +67,6 @@ export class BoutUI {
   private closedFlag = false;
   private lastEndWinner: Msg<'end'>['winner'] = 'none';
   private canRematchPosition = false;
-  /** Which gag track is open. Null until the player taps one. */
-  private gagTrack: string | null = null;
   /** performance.now() until the current move cartoon finishes. Later messages wait. */
   private cartoonUntil = 0;
   private cartoonTimer = 0;
@@ -73,6 +75,10 @@ export class BoutUI {
   /** Your cartoon just finished and the match is still going, so the partner gets a beat to decide. */
   private thinkAfter = false;
   private queue: BoutServerMsg[] = [];
+  /** The move of the stripe lesson in progress: its end card is a lesson card, not a match result. */
+  private lesson: { id: string; pt: string; en: string } | null = null;
+  /** This partner's pause before their move (quick Felipe, careful Helena), from the intro message. */
+  private thinkMs = THINK_MS;
 
   constructor(private readonly a: BoutActions) {
     this.top = h('div', { class: 'bout-top', id: 'bout-top', 'aria-live': 'off' });
@@ -98,7 +104,7 @@ export class BoutUI {
   // ------------------------------------------------------------------ plumbing
   private onResize = () => this.measure();
 
-  /** Desktop keys: 1-4 pick the intent or the answer, F goes for the finalização (typing in the answer box is left alone). */
+  /** Desktop keys: 1-9 pick a move card, H holds, 1-4 pick a partner in the lobby, Enter starts (typing in an input is left alone). */
   private onKey = (e: KeyboardEvent): void => {
     if (this.closedFlag || e.ctrlKey || e.metaKey || e.altKey) return;
     const t = e.target as HTMLElement | null;
@@ -112,16 +118,16 @@ export class BoutUI {
       }
       return;
     }
-    if (n >= 1 && n <= 5 && this.phase === 'intent' && !this.gagTrack) {
-      const track = this.body.querySelectorAll<HTMLButtonElement>('.gag-track')[n - 1];
-      if (track) {
+    if (this.phase === 'drill' && (n === 1 || e.key === 'Enter')) {
+      const go = this.body.querySelector<HTMLButtonElement>('#bout-drill:not([disabled])');
+      if (go) {
         e.preventDefault();
-        track.click();
+        go.click();
       }
       return;
     }
-    if (n >= 1 && n <= 9 && this.phase === 'intent' && this.gagTrack) {
-      const move = [...this.body.querySelectorAll<HTMLButtonElement>('.gag-move')].filter((el) => !el.hidden && !el.disabled)[n - 1];
+    if (n >= 1 && n <= 9 && this.phase === 'intent') {
+      const move = this.body.querySelectorAll<HTMLButtonElement>('.move-card.gag-move:not([disabled])')[n - 1];
       if (move) {
         e.preventDefault();
         move.click();
@@ -247,6 +253,7 @@ export class BoutUI {
   // ------------------------------------------------------------------ lobby
   private lobby(m: Msg<'lobby'>): void {
     this.setPhase('lobby');
+    this.root.classList.remove('is-lesson');
     ambience.setScene(null);
     this.snap = null;
     boutFeed.snap = null;
@@ -311,10 +318,12 @@ export class BoutUI {
   // ------------------------------------------------------------------ intro
   private intro(m: Msg<'intro'>): void {
     this.setPhase('intro');
+    this.root.classList.remove('is-lesson');
     ambience.setBoost(0);
     ambience.setScene('bout');
     this.partnerName = m.partner.name;
     this.partnerId = m.partner.id;
+    this.thinkMs = m.thinkMs ?? THINK_MS;
     this.locked = true;
     for (const p of this.previews) p.stop();
     this.previews = [];
@@ -348,83 +357,57 @@ export class BoutUI {
     this.setPhase('intent');
     this.seq = m.seq;
     this.locked = false;
-    this.gagTrack = null;
     this.setSnap(m.st);
     this.startTimer(m.pickMs);
     if (m.finish) this.sfx('gasp');
     this.paintIntent(m);
   }
 
-  /** Six tracks along the bottom. Locked moves stay visible. Hold is its own button. */
+  /**
+   * Every move you can play right now, as a card: the category (the gag track's colour and name), the odds, and what it does if it lands.
+   * No hidden tabs: a turn is one look and one tap. Hold is the slim card at the end (H). Keys 1-9 pick the cards in order.
+   */
   private paintIntent(m: Msg<'intent'>): void {
-    const offered = new Map(m.intents.map((i) => [i.id, i]));
-    const owned = new Map((m.owned ?? []).map((i) => [i.id, i]));
-    const tracks = GAG_TRACKS.map((track) => {
-      const open = this.gagTrack === track.id;
-      const ready = track.moves.some((id) => offered.has(id) || owned.has(id));
+    const order = GAG_TRACKS.flatMap((t) => t.moves as readonly string[]);
+    const offered = m.intents.filter((i) => i.id !== 'hold' && isMatMove(i.id)).sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+    const cards = offered.map((i, k) => {
+      const id = i.id as MatMoveId;
+      const track = GAG_TRACKS.find((t) => (t.moves as readonly string[]).includes(id));
+      const hint = moveHint(id, i.effect);
+      const label = MOVE_LABEL[id];
       return h(
         'button',
         {
-          class: `gag-track${open ? ' is-open' : ''}`,
+          class: `bout-intent gag-move move-card tone-${oddsTone(i.percent)}${i.effect?.submission ? ' is-finish' : ''}`,
           type: 'button',
-          'data-gag-track': track.id,
-          'data-ready': ready ? '1' : '0',
-          'aria-pressed': String(open),
-          onclick: () => this.toggleTrack(m, track.id),
+          'data-intent': id,
+          'data-gag': track?.id ?? '',
+          'data-k': String(k + 1),
+          'data-locked': '0',
+          'data-percent': i.percent == null ? '' : String(i.percent),
+          'aria-label': `${label.pt}, ${i.percent ?? 100}%. ${hint.pt}`,
+          onclick: () => this.pickIntent(m.seq, id),
         },
-        h('b', { class: 'pt' }, track.pt),
-        en(track.en),
+        h('span', { class: 'mc-top' }, h('span', { class: 'mc-track' }, track?.pt ?? ''), h('span', { class: 'mc-key', 'aria-hidden': 'true' }, String(k + 1))),
+        h('b', { class: 'pt mc-name' }, label.pt),
+        en(label.en),
+        i.percent != null ? h('span', { class: 'bout-pct mc-pct' }, `${i.percent}%`) : null,
+        hint.pt ? h('span', { class: 'mc-hint' }, h('span', { class: 'pt' }, hint.pt), en(hint.en)) : null,
+        hint.risk ? h('span', { class: 'mc-risk' }, h('span', { class: 'pt' }, hint.risk.pt), en(hint.risk.en)) : null,
       );
     });
-    const hold = offered.get('hold');
-    const holdBtn = h(
-      'button',
-      {
-        class: 'bout-intent gag-hold',
-        type: 'button',
-        'data-intent': 'hold',
-        'data-ready': hold ? '1' : '0',
-        disabled: !hold,
-        'aria-label': MOVE_LABEL.hold.pt,
-        onclick: () => {
-          if (hold) this.pickIntent(m.seq, 'hold');
-        },
-      },
-      h('b', { class: 'pt' }, MOVE_LABEL.hold.pt),
-      en(MOVE_LABEL.hold.en),
-    );
-    const moves = GAG_TRACKS.flatMap((track) =>
-      track.moves.map((id, k) => {
-        const offer = offered.get(id);
-        const have = owned.get(id) ?? offer;
-        const open = this.gagTrack === track.id;
-        const label = MOVE_LABEL[id];
-        const percent = offer?.percent ?? have?.percent;
-        const waiting = !offer && !!have;
-        const pct = percent != null ? h('span', { class: 'bout-pct' }, `${percent}%`) : null;
-        return h(
+    const hold = m.intents.find((i) => i.id === 'hold');
+    const holdHint = moveHint('hold', undefined);
+    const holdBtn = hold
+      ? h(
           'button',
-          {
-            class: `bout-intent gag-move${waiting ? ' is-waiting' : ''}`,
-            type: 'button',
-            'data-intent': id,
-            'data-track': track.id,
-            'data-k': String(k + 1),
-            'data-locked': have ? '0' : '1',
-            'data-percent': percent == null ? '' : String(percent),
-            hidden: !open,
-            disabled: !offer,
-            'aria-label': percent == null ? label.pt : `${label.pt} ${percent}%`,
-            onclick: () => {
-              if (offer) this.pickIntent(m.seq, id);
-            },
-          },
-          h('b', { class: 'pt' }, label.pt),
-          pct,
-          en(label.en),
-        );
-      }),
-    );
+          { class: 'bout-intent gag-hold move-card is-hold', type: 'button', 'data-intent': 'hold', 'data-ready': '1', 'aria-label': `${MOVE_LABEL.hold.pt}: ${holdHint.pt}`, onclick: () => this.pickIntent(m.seq, 'hold') },
+          h('span', { class: 'mc-top' }, h('span', { class: 'mc-key', 'aria-hidden': 'true' }, 'H')),
+          h('b', { class: 'pt mc-name' }, MOVE_LABEL.hold.pt),
+          en(MOVE_LABEL.hold.en),
+          h('span', { class: 'mc-hint' }, h('span', { class: 'pt' }, holdHint.pt), en(holdHint.en)),
+        )
+      : null;
     const fin = m.finish
       ? h(
           'button',
@@ -437,20 +420,13 @@ export class BoutUI {
       h(
         'div',
         { class: 'bout-intents', id: 'bout-intents', 'data-finish': String(m.finish), 'data-seq': String(m.seq) },
-        h('div', { class: 'bout-ask' }, h('span', { class: 'pt' }, 'O que você faz?'), this.quitBtn()),
+        h('div', { class: 'bout-ask' }, h('span', { class: 'pt' }, 'Sua vez'), en('Your move'), this.quitBtn()),
         fin,
-        h('div', { class: 'gag-bar', id: 'gag-bar' }, ...tracks, holdBtn),
-        h('div', { class: 'gag-moves', id: 'gag-moves' }, ...moves),
+        h('div', { class: `move-cards n${cards.length + (holdBtn ? 1 : 0)}`, id: 'gag-moves' }, ...cards, holdBtn),
         this.timerBar(),
       ),
     );
     this.measure();
-  }
-
-  private toggleTrack(m: Msg<'intent'>, id: string): void {
-    if (this.locked || this.phase !== 'intent') return;
-    this.gagTrack = this.gagTrack === id ? null : id;
-    this.paintIntent(m);
   }
 
   private pickIntent(seq: number, intent: string): void {
@@ -586,21 +562,37 @@ export class BoutUI {
     this.setPhase('drill');
     this.seq = m.seq;
     this.locked = false;
+    this.lesson = m.move;
+    this.root.classList.add('is-lesson');
     this.stopTimer();
+    // a lesson opened straight from the mat queue (no match before it): put the pair on the mat with Bia's drill partner
+    if (!boutFeed.active) {
+      this.partnerName = 'Mateus';
+      this.partnerId = 'mateus';
+      boutFeed.begin({ id: 'mateus', name: 'Mateus', appearance: cpuLook('Mateus').appearance }, this.bjj?.belt ?? game.profile?.bjj?.belt ?? 'branca', m.st);
+    }
     this.setSnap(m.st);
     boutFeed.push({ t: 'transition', from: m.from, to: m.st.position, rungFrom: m.aheadFrom === 'partner' ? -1 : m.aheadFrom === 'you' ? 1 : 0, rungTo: m.st.rung, gain: m.st.ahead });
+    // the stripe's lesson: Bia sets the partner up and you land the new move once, as a card like the ones you will pick from
+    const id = isMatMove(m.move.id) ? m.move.id : null;
+    const track = id ? GAG_TRACKS.find((t) => (t.moves as readonly string[]).includes(id)) : undefined;
+    const hint = id ? moveHint(id, undefined) : { pt: '', en: '' };
     const go = h(
       'button',
-      { class: 'bout-intent', type: 'button', id: 'bout-drill', 'data-intent': m.move.id, onclick: () => this.pickIntent(m.seq, m.move.id) },
-      h('b', { class: 'pt' }, m.move.pt),
+      { class: 'bout-intent gag-move move-card tone-good is-drill', type: 'button', id: 'bout-drill', 'data-intent': m.move.id, 'data-gag': track?.id ?? '', onclick: () => this.pickIntent(m.seq, m.move.id) },
+      h('span', { class: 'mc-top' }, h('span', { class: 'mc-track' }, track?.pt ?? ''), h('span', { class: 'mc-key', 'aria-hidden': 'true' }, '1')),
+      h('b', { class: 'pt mc-name' }, m.move.pt),
       en(m.move.en),
+      hint.pt ? h('span', { class: 'mc-hint' }, h('span', { class: 'pt' }, hint.pt), en(hint.en)) : null,
+      h('span', { class: 'mc-hint' }, h('span', { class: 'pt' }, 'Toque para treinar'), en('Tap to drill it')),
     );
     this.body.replaceChildren(
       h(
         'div',
-        { class: 'bout-intents', id: 'bout-drill-panel', 'data-seq': String(m.seq) },
-        h('div', { class: 'bout-ask' }, h('span', { class: 'pt' }, m.line.pt), en(m.line.en)),
-        go,
+        { class: 'bout-intents bout-drill', id: 'bout-drill-panel', 'data-seq': String(m.seq) },
+        h('div', { class: 'bout-ask' }, h('span', { class: 'pt' }, 'Nova listra! Aula da Professora Bia'), en('New stripe! A lesson from Professora Bia')),
+        h('p', { class: 'bout-drill-line' }, h('span', { class: 'pt' }, `Golpe novo: ${m.move.pt}. ${m.line.pt}`), en(`New move: ${m.move.en}. ${m.line.en}`)),
+        h('div', { class: 'move-cards n1' }, go),
       ),
     );
     this.say(m.move.pt);
@@ -700,9 +692,9 @@ export class BoutUI {
     this.thinkAfter = false;
     if (wait) {
       this.showThink();
-      this.cartoonUntil = performance.now() + THINK_MS;
+      this.cartoonUntil = performance.now() + this.thinkMs;
       window.clearTimeout(this.cartoonTimer);
-      this.cartoonTimer = window.setTimeout(() => this.flush(), THINK_MS);
+      this.cartoonTimer = window.setTimeout(() => this.flush(), this.thinkMs);
       return;
     }
     this.flush();
@@ -803,15 +795,52 @@ export class BoutUI {
       m.word && m.winner === 'you'
         ? h('div', { class: 'cr-end-words', id: 'bout-word' }, h('b', null, 'Palavras novas no Caderno'), h('span', { class: 'cr-chip' }, m.word.pt, h('span', { class: 'en' }, m.word.en)))
         : null;
+    const lesson = this.lesson;
+    this.lesson = null;
+    const me = game.profile?.name ?? 'Você';
+    const score =
+      m.winner === 'none' || lesson
+        ? null
+        : h(
+            'div',
+            { class: 'bout-end-score', id: 'bout-end-score' },
+            h('span', { class: `who you${m.winner === 'you' ? ' won' : ''}` }, me),
+            h('b', null, `${m.st.points.you} × ${m.st.points.partner}`),
+            h('span', { class: `who them${m.winner === 'partner' ? ' won' : ''}` }, this.partnerName),
+          );
+    const tip = lesson
+      ? { pt: `${lesson.pt} já está nos seus golpes. Use no próximo treino!`, en: `${lesson.en} is in your moves now. Use it next match!` }
+      : coachTip({ winner: m.winner, reason: m.reason, you: m.st.points.you, them: m.st.points.partner, unlocked: m.bjj.unlocked });
+    const tipEl = tip ? h('p', { class: 'bout-tip', id: 'bout-tip' }, h('b', null, 'Professora Bia: '), h('span', { class: 'pt' }, tip.pt), en(tip.en)) : null;
+    // the next stripe: wins to go, and the move Bia teaches there
+    const ns = nextStripe(m.bjj.wins);
+    const after = progressForWins(m.bjj.wins + ns.left);
+    const teaches = moveTaughtAt(after.belt, after.stripes);
+    const stripe = h(
+      'div',
+      { class: 'bout-next', id: 'bout-next', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': String(ns.per), 'aria-valuenow': String(ns.into) },
+      h('div', { class: 'bout-next-bar' }, h('i', { style: `width:${Math.round((ns.into / ns.per) * 100)}%` })),
+      h(
+        'span',
+        { class: 'bout-next-text' },
+        h('span', { class: 'pt' }, `Próxima listra: ${ns.left} ${ns.left === 1 ? 'vitória' : 'vitórias'}${teaches ? ` · aprende ${MOVE_LABEL[teaches].pt}` : ''}`),
+        en(`Next stripe: ${ns.left} ${ns.left === 1 ? 'win' : 'wins'}${teaches ? ` · learn ${MOVE_LABEL[teaches].en}` : ''}`),
+      ),
+    );
     this.body.replaceChildren(
       h(
         'div',
         { class: `bout-end result-${m.winner}`, id: 'bout-end', 'data-winner': m.winner, 'data-reason': m.reason },
-        h('div', { class: 'bout-end-line' }, h('b', null, m.line.pt), en(m.line.en)),
+        lesson
+          ? h('div', { class: 'bout-end-line' }, h('b', null, 'Aula concluída!'), en('Lesson done!'))
+          : h('div', { class: 'bout-end-line' }, h('b', null, m.line.pt), en(m.line.en)),
+        score,
         m.rv > 0 ? h('div', { class: 'bout-rv' }, `+${m.rv} RV`) : null,
         word,
         this.beltRow(m.bjj),
         ...lines,
+        stripe,
+        tipEl,
         h('p', { class: 'bout-thanks' }, ...this.bi(m.thanks.pt, m.thanks.en)),
         h('div', { class: 'bout-end-actions' }, leave, m.winner === 'none' ? null : again),
       ),

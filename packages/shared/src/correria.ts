@@ -182,7 +182,10 @@ export function itemsFor(unlocked: readonly string[]): MgItem[] {
   return MG_ITEMS.filter((i) => (i.id === 'pastel' || i.id === 'coxinha' ? unlocked.includes('salgados') : true));
 }
 
-/** Counter items for this shift: star unlocks, optional owned-room menu cap, plus owned-only SKUs. */
+/**
+ * Counter items for this shift: star unlocks, capped by an owned room's menu. The owned-only items (sweets, restaurant plates) have no board
+ * art or shelf spot yet, so they never enter a shift: owners sell them at the balcão da casa instead.
+ */
 export function shiftItemPool(ctx: Pick<ShiftCtx, 'unlocked' | 'menuIds'>): MgItem[] {
   let items = itemsFor(ctx.unlocked);
   if (ctx.menuIds?.length) {

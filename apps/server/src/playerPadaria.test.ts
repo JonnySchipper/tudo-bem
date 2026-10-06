@@ -47,6 +47,63 @@ describe('player-owned padaria', () => {
     expect(p.last('mg')?.phase).toBe('state');
   });
 
+  it('a short owner is refused an upgrade and the row stays as it was', async () => {
+    const padarias = new PadariaStore(null);
+    const world = makeWorld(padarias);
+    const p = await player(world, 'Lia', fundarCostRv());
+    await p.send({ t: 'padariaOwn', action: 'found', name: 'Padaria da Lia' });
+    const row = padarias.ownedBy(p.s.profile!.id)!;
+    p.s.profile!.coins = 100;
+    await p.send({ t: 'padariaOwn', action: 'upgrade', kind: 'size2' });
+    expect(p.last('error')?.code).toBe('coins');
+    expect(row.size).toBe(1);
+    expect(p.s.profile!.coins).toBe(100);
+    p.s.profile!.coins = 1500;
+    await p.send({ t: 'padariaOwn', action: 'upgrade', kind: 'size2' });
+    expect(row.size).toBe(2);
+    expect(p.s.profile!.coins).toBe(0);
+    expect(p.last('padariaOwn')).toMatchObject({ phase: 'floor', padaria: { size: 2, sweets: {} } });
+    await p.send({ t: 'padariaOwn', action: 'upgrade', kind: 'brigadeiro' });
+    expect(p.last('error')?.code).toBe('coins');
+    expect(row.sweets.brigadeiro).toBeUndefined();
+  });
+
+  it('the profile carries the owned padaria so the client can take the owner home', async () => {
+    const world = makeWorld();
+    const p = await player(world, 'Rui', fundarCostRv());
+    expect(p.last('profile')?.profile.padaria).toBeUndefined();
+    await p.send({ t: 'padariaOwn', action: 'found', name: 'Padaria do Rui' });
+    expect(p.last('profile')?.profile.padaria).toMatchObject({ name: 'Padaria do Rui', size: 1 });
+  });
+
+  it("a visitor's purchase at the house counter goes to the owner's till", async () => {
+    const padarias = new PadariaStore(null);
+    const world = makeWorld(padarias);
+    const owner = await player(world, 'Dona', fundarCostRv() + 1500 + 300);
+    await owner.send({ t: 'padariaOwn', action: 'found', name: 'Padaria da Dona' });
+    await owner.send({ t: 'padariaOwn', action: 'upgrade', kind: 'size2' });
+    const id = padarias.ownedBy(owner.s.profile!.id)!.id;
+    const guest = await player(world, 'Leo', 50);
+    await guest.send({ t: 'padariaOwn', action: 'visit', id });
+    // brigadeiro is not on the menu until the owner buys it
+    await guest.send({ t: 'padaria', action: 'buy', itemId: 'brigadeiro' });
+    expect(guest.s.profile!.coins).toBe(50);
+    await owner.send({ t: 'padariaOwn', action: 'upgrade', kind: 'brigadeiro' });
+    expect(owner.s.profile!.coins).toBe(0);
+    await guest.send({ t: 'padaria', action: 'buy', itemId: 'brigadeiro' });
+    expect(guest.s.profile!.coins).toBe(45);
+    expect(owner.s.profile!.coins).toBe(5);
+    expect(owner.last('notice')?.pt).toContain('Leo comprou');
+  });
+
+  it('the founder hat is earned, never sold at the stall', async () => {
+    const world = makeWorld();
+    const p = await player(world, 'Ivo', 5000);
+    await p.send({ t: 'buy', kind: 'hat', itemId: 'chapeu_padeiro_casa' });
+    expect(p.s.profile!.hats).not.toContain('chapeu_padeiro_casa');
+    expect(p.s.profile!.coins).toBe(5000);
+  });
+
   it('door cofre opens on the rua facade', async () => {
     const world = makeWorld();
     const p = await player(world, 'Rua', 100);

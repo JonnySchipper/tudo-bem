@@ -307,10 +307,15 @@ export function moveLegal(pos: MatPosition, actor: MatSide, id: MatMoveId): bool
   }
 }
 
+/** A grip this fighter already holds is not offered again (re-taking it would only burn the turn). */
+export function gripHeld(state: MatState, actor: MatSide, id: MatMoveId): boolean {
+  return (id === 'collar_tie' && state.grips[actor].collar) || (id === 'sleeve_grip' && state.grips[actor].sleeve);
+}
+
 export function matLegalMoves(state: MatState, actor: MatSide, allowed: readonly MatMoveId[]): MatMoveId[] {
   const set = new Set<MatMoveId>(allowed);
   set.add('hold');
-  return (Object.keys(MOVE_LABEL) as MatMoveId[]).filter((id) => set.has(id) && moveLegal(state.position, actor, id));
+  return (Object.keys(MOVE_LABEL) as MatMoveId[]).filter((id) => set.has(id) && moveLegal(state.position, actor, id) && !gripHeld(state, actor, id));
 }
 
 const ART: Record<MatKind, BjjPositionId> = {
@@ -375,7 +380,7 @@ function soundFor(id: MatMoveId, success: boolean, next: MatPosition): MatSound 
  * `force` guarantees success (the professor's drill). A miss on a submission dumps both fighters
  * to closed guard with the attacker on the bottom.
  */
-export function resolveMat(state: MatState, actor: MatSide, id: MatMoveId, roll: number, belt: Belt, force = false): MatResult {
+export function resolveMat(state: MatState, actor: MatSide, id: MatMoveId, roll: number, belt: Belt, force = false, edge = 0): MatResult {
   const from = artOf(state.position);
   const fail = (line: Bilingual): MatResult => ({
     state,
@@ -395,8 +400,10 @@ export function resolveMat(state: MatState, actor: MatSide, id: MatMoveId, roll:
   if (state.over || state.actor !== actor || !isMatMove(id)) return fail({ pt: 'Não.', en: 'No.' });
   const st = clone(state);
   const bonus = gripBonus(st.grips[actor]);
-  const percent = movePercent(id, belt, bonus);
-  if (!moveLegal(st.position, actor, id)) return fail({ pt: 'Não.', en: 'No.' });
+  const base = movePercent(id, belt, bonus);
+  // a partner's accuracy nudges their odds (never a locked move into an open one, never past the cap)
+  const percent = base > 0 && id !== 'hold' ? Math.max(5, Math.min(PERCENT_CAP, base + edge)) : base;
+  if (!moveLegal(st.position, actor, id) || gripHeld(st, actor, id)) return fail({ pt: 'Não.', en: 'No.' });
   if (!force && percent <= 0 && id !== 'hold') return fail({ pt: 'Não.', en: 'No.' });
   if (TAKEDOWNS.has(id)) st.grips[actor] = emptyGrips();
   const success = force || id === 'hold' || roll < percent / 100;
@@ -504,7 +511,7 @@ export function turnsLeft(st: MatState): number {
  * From purple up, Americana (and the choke at brown) come out when the bot is behind with 2 turns or fewer left.
  * Otherwise the legal move with the highest expected points. Hold only when ahead and every scoring move expects under 1.
  */
-export function chooseBot(state: MatState, belt: Belt, allowed: readonly MatMoveId[]): MatMoveId {
+export function chooseBot(state: MatState, belt: Belt, allowed: readonly MatMoveId[], style?: MatStyle): MatMoveId {
   const legal = matLegalMoves(state, state.actor, allowed);
   if (!legal.length) return 'hold';
   const pct = (id: MatMoveId) => movePercent(id, belt, gripBonus(state.grips[state.actor]));
@@ -512,6 +519,24 @@ export function chooseBot(state: MatState, belt: Belt, allowed: readonly MatMove
   const behind = state.points[state.actor] < state.points[other(state.actor)];
   const ahead = state.points[state.actor] > state.points[other(state.actor)];
   const subs = legal.filter((id) => SUBS.has(id));
+  const seenNow = seenBy(state.position, state.actor);
+  const takedowns = legal.filter((id) => TAKEDOWNS.has(id));
+  const grip = state.grips[state.actor];
+  // the partner's character (their lobby card): who hunts the finish, who shoots early, who turtles on a lead
+  if (style && style.aggression >= 0.8) {
+    const shots = subs.filter((id) => pct(id) >= 20);
+    if (shots.length) return best(shots);
+    if (seenNow.kind === 'standing' && takedowns.length) return best(takedowns);
+  }
+  if (style && style.defense >= 0.8) {
+    const out = legal.filter((id) => id === 'frame' || id === 'escape_back');
+    if (out.length) return best(out);
+    const theirs = state.grips[other(state.actor)];
+    if (seenNow.kind === 'standing' && (theirs.collar || theirs.sleeve) && legal.includes('posture')) return 'posture';
+    const ev = (id: MatMoveId) => (pct(id) / 100) * (POINTS[id] ?? 0);
+    if (ahead && legal.filter((id) => (POINTS[id] ?? 0) > 0).every((id) => ev(id) < 1.5)) return 'hold';
+  }
+  if (style && style.speed >= 0.8 && seenNow.kind === 'standing' && (grip.collar || grip.sleeve) && takedowns.length) return best(takedowns);
   if (behind && beltIndex(belt) >= beltIndex('roxa') && turnsLeft(state) <= 2) {
     const clutch = subs.filter((id) => id === 'americana' || (id === 'rnc' && beltIndex(belt) >= beltIndex('marrom')));
     if (clutch.length) return best(clutch);
@@ -550,6 +575,42 @@ function bestEv(ids: MatMoveId[], pct: (id: MatMoveId) => number): MatMoveId {
     if (eb !== ea) return eb > ea ? b : a;
     return pct(b) > pct(a) ? b : a;
   });
+}
+
+/** How a partner fights: an accuracy edge on their odds (percent points), and the leanings `chooseBot` reads. */
+export interface MatStyle {
+  edge: number;
+  speed: number;
+  aggression: number;
+  defense: number;
+}
+
+/** A partner card's numbers as a fighting style. Accuracy 0.6 (Mateus) is the plain belt odds. */
+export function matStyle(p: { accuracy: number; speed: number; aggression: number; defense: number }): MatStyle {
+  return { edge: Math.round((p.accuracy - 0.6) * 40), speed: p.speed, aggression: p.aggression, defense: p.defense };
+}
+
+/** How long a partner thinks before their move (quick Felipe, careful Helena), inside the 2-5 s the slower opponent turn asked for. */
+export function thinkMsFor(style?: Pick<MatStyle, 'speed'> | null): number {
+  if (!style) return MAT_THINK_MS;
+  return Math.round(Math.min(4600, Math.max(2200, 4200 - style.speed * 2200)));
+}
+
+/** What a move does if it lands, for the picker: points, where the pair ends up, a finish, or a grip. */
+export interface MatEffect {
+  points: number;
+  to: BjjPositionId;
+  toAhead: 'you' | 'partner' | null;
+  submission: boolean;
+  /** a miss on a finish drops the attacker to the bottom of closed guard */
+  riskBottom: boolean;
+}
+
+export function matEffect(state: MatState, actor: MatSide, id: MatMoveId): MatEffect | null {
+  if (state.actor !== actor) state = { ...state, actor };
+  const r = resolveMat(state, actor, id, 0, 'preta', true);
+  if (!r.ok) return null;
+  return { points: r.points, to: r.to, toAhead: r.toAhead, submission: r.submission, riskBottom: SUBS.has(id) };
 }
 
 /** Where the professor places a compliant partner so the new move is legal. */

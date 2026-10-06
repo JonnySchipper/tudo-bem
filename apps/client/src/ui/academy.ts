@@ -55,29 +55,44 @@ export function onAcademyDirectory(rows: AcademyCard[], canFound: boolean, owned
   renderDirectory(rows, canFound, ownedId);
 }
 
+/** The floor bar is gone (it covered the HUD): the HUD names the floor, the crest board opens the team card. This keeps an open card current. */
 export function syncAcademyFloor() {
+  document.getElementById('academy-floor')?.remove();
   const card = game.room?.room === 'andar' ? game.room.academy : undefined;
-  let bar = document.getElementById('academy-floor');
-  if (!card) {
-    bar?.remove();
-    return;
-  }
-  if (!bar) {
-    bar = h('div', { id: 'academy-floor', class: 'academy-floor' });
-    document.getElementById('ui')?.append(bar);
-  }
-  const stacked = elevatorLayout(window.innerWidth).stacked;
-  bar.classList.toggle('stacked', stacked);
-  const controls: Node[] = [
-    crestEl(card.crest, 28),
-    h('div', { class: 'academy-floor-name' }, h('b', null, card.name), en(`${card.ownerName} · ${card.size}`)),
-    h('span', { class: 'academy-chip' }, `${GI_COLORS[card.giColor].pt} ${CRESTS[card.giStamp].glyph}`),
-    h('span', { class: 'academy-chip' }, card.fees.pt),
-    h('span', { class: 'academy-chip' }, card.cup.pt),
-  ];
-  if (card.owner) controls.push(h('button', { type: 'button', class: 'green', onclick: () => openLook(card) }, bi('Brasão e kimono', 'Crest and gi')));
-  else if (card.member) controls.push(h('button', { type: 'button', onclick: () => actions?.leave(card.id) }, bi('Sair', 'Leave')));
-  bar.replaceChildren(...controls);
+  const open = document.querySelector('.academy-board');
+  if (open && card) open.replaceWith(boardPanel(card));
+}
+
+/** The crest board on an academy floor: the owner edits crest and gi; anyone else sees the team and joins or leaves. */
+export function openAcademyBoard(card: AcademyCard) {
+  if (card.owner) return openLook(card);
+  openModal('academy-board', boardPanel(card));
+}
+
+function boardPanel(card: AcademyCard) {
+  const members = `${card.size} ${card.size === 1 ? 'membro' : 'membros'}`;
+  const action = card.member
+    ? h('button', { type: 'button', onclick: () => actions?.leave(card.id) }, bi('Sair da equipe', 'Leave the team'))
+    : h('button', { type: 'button', class: 'green', id: 'academy-join', onclick: () => actions?.join(card.id) }, bi('Entrar na equipe', 'Join the team'));
+  return h(
+    'div',
+    { class: 'panel academy-dir academy-board', role: 'dialog', 'aria-label': card.name },
+    preview(card.name, { crest: card.crest, giColor: card.giColor, giStamp: card.giStamp }, `de ${card.ownerName} · ${members}`),
+    h('p', null, card.member ? 'Você é da equipe: aqui você treina com o kimono dela.' : 'Quem entra na equipe treina aqui com o kimono dela. É grátis.', en(card.member ? 'You are on the team: here you train in its gi.' : 'Team members train here in its gi. It is free.')),
+    h('div', { class: 'academy-board-actions' }, action, h('button', { type: 'button', class: 'ghost', onclick: () => closeModal() }, bi('Fechar', 'Close'))),
+  );
+}
+
+/** Crest, name and a gi swatch with its stamp: what the team looks like, live while you pick. */
+function preview(name: string, look: AcademyLook, sub?: string) {
+  const gi = GI_COLORS[look.giColor];
+  return h(
+    'div',
+    { class: 'academy-preview' },
+    crestEl(look.crest, 52),
+    h('div', { class: 'academy-preview-text' }, h('b', null, name || 'Sua academia'), sub ? h('span', { class: 'hint' }, sub) : null),
+    h('span', { class: 'academy-gi', title: `${gi.pt} · ${CRESTS[look.giStamp].pt}`, style: `background:${gi.fill}` }, CRESTS[look.giStamp].glyph),
+  );
 }
 
 function renderDirectory(rows: AcademyCard[], canFound: boolean, ownedId: string | null) {
@@ -135,51 +150,50 @@ function rowEl(row: AcademyCard, stacked: boolean) {
 function foundBlock(canFound: boolean, ownedId: string | null, stacked: boolean) {
   if (ownedId) return h('p', { class: 'hint' }, 'Você já fundou uma academia.', en('You already founded an academy.'));
   if (!canFound) return h('p', { class: 'hint' }, 'Fundar academia é da faixa marrom.', en('Founding an academy takes a brown belt.'));
-  const name = h('input', { id: 'academy-name', maxlength: '24', placeholder: 'Nome da academia', autocomplete: 'off' }) as HTMLInputElement;
-  const look = { crest: 'ipe' as CrestId, giColor: 'branco' as GiColorId, giStamp: 'ipe' as GiStampId };
-  const crestPick = picker(CREST_IDS, look.crest, (id) => {
-    look.crest = id;
-  }, (id) => CRESTS[id].glyph, (id) => CRESTS[id].pt);
-  const colorPick = picker(GI_COLOR_IDS, look.giColor, (id) => {
-    look.giColor = id;
-  }, (id) => '', (id) => GI_COLORS[id].pt, (id) => GI_COLORS[id].fill);
-  const stampPick = picker(CREST_IDS, look.giStamp, (id) => {
-    look.giStamp = id;
-  }, (id) => CRESTS[id].glyph, (id) => CRESTS[id].pt);
+  const name = h('input', { id: 'academy-name', maxlength: '24', placeholder: 'Equipe …', autocomplete: 'off' }) as HTMLInputElement;
+  const look: AcademyLook = { crest: 'ipe', giColor: 'branco', giStamp: 'ipe' };
+  const box = h('div', { class: 'academy-preview-box' });
+  const paint = () => box.replaceChildren(preview(name.value.trim(), look, 'Prévia · Preview'));
+  name.addEventListener('input', paint);
+  paint();
   return h(
     'form',
     {
       class: `academy-found${stacked ? ' stacked' : ''}`,
       onsubmit: (e: Event) => {
         e.preventDefault();
+        if (!name.value.trim()) return name.focus();
         actions?.found(name.value, { ...look });
       },
     },
     h('h3', null, 'Fundar academia'),
     en('Found an academy'),
-    h('label', { class: 'field' }, 'Nome', name),
-    h('div', { class: 'field' }, h('span', null, 'Brasão'), crestPick),
-    h('div', { class: 'field' }, h('span', null, 'Cor do kimono'), colorPick),
-    h('div', { class: 'field' }, h('span', null, 'Estampa'), stampPick),
+    box,
+    h('label', { class: 'field' }, h('span', null, 'Nome', en('Name')), name),
+    ...lookFields(look, paint),
     h('button', { type: 'submit', class: 'green' }, bi('Fundar academia', 'Found academy')),
   );
 }
 
+/** The three look pickers (crest, gi colour, gi stamp), each repainting the preview. */
+function lookFields(look: AcademyLook, paint: () => void) {
+  const field = (pt: string, enText: string, control: HTMLElement) => h('div', { class: 'field' }, h('span', null, pt, en(enText)), control);
+  return [
+    field('Brasão', 'Crest', picker(CREST_IDS, look.crest, (id) => ((look.crest = id), paint()), (id) => CRESTS[id].glyph, (id) => CRESTS[id].pt)),
+    field('Cor do kimono', 'Gi colour', picker(GI_COLOR_IDS, look.giColor, (id) => ((look.giColor = id), paint()), () => '', (id) => GI_COLORS[id].pt, (id) => GI_COLORS[id].fill)),
+    field('Estampa no kimono', 'Gi stamp', picker(CREST_IDS, look.giStamp, (id) => ((look.giStamp = id), paint()), (id) => CRESTS[id].glyph, (id) => CRESTS[id].pt)),
+  ];
+}
+
 function openLook(card: AcademyCard) {
-  const look = { crest: card.crest, giColor: card.giColor, giStamp: card.giStamp };
-  const crestPick = picker(CREST_IDS, look.crest, (id) => {
-    look.crest = id;
-  }, (id) => CRESTS[id].glyph, (id) => CRESTS[id].pt);
-  const colorPick = picker(GI_COLOR_IDS, look.giColor, (id) => {
-    look.giColor = id;
-  }, (id) => '', (id) => GI_COLORS[id].pt, (id) => GI_COLORS[id].fill);
-  const stampPick = picker(CREST_IDS, look.giStamp, (id) => {
-    look.giStamp = id;
-  }, (id) => CRESTS[id].glyph, (id) => CRESTS[id].pt);
+  const look: AcademyLook = { crest: card.crest, giColor: card.giColor, giStamp: card.giStamp };
+  const box = h('div', { class: 'academy-preview-box' });
+  const paint = () => box.replaceChildren(preview(card.name, look, `${card.size} ${card.size === 1 ? 'membro' : 'membros'}`));
+  paint();
   const panel = h(
     'form',
     {
-      class: 'panel academy-dir',
+      class: 'panel academy-dir academy-look',
       role: 'dialog',
       'aria-label': 'Brasão e kimono',
       onsubmit: (e: Event) => {
@@ -190,9 +204,9 @@ function openLook(card: AcademyCard) {
     },
     h('h2', null, 'Brasão e kimono'),
     en('Crest and gi'),
-    h('div', { class: 'field' }, h('span', null, 'Brasão'), crestPick),
-    h('div', { class: 'field' }, h('span', null, 'Cor do kimono'), colorPick),
-    h('div', { class: 'field' }, h('span', null, 'Estampa'), stampPick),
+    box,
+    ...lookFields(look, paint),
+    h('p', { class: 'hint' }, 'Os membros treinam aqui com este kimono.', en('Members train here in this gi.')),
     h('button', { type: 'submit', class: 'green' }, bi('Salvar', 'Save')),
   );
   const close = openModal('academy-look', panel);
@@ -235,7 +249,7 @@ function picker<T extends string>(
           paint(id);
         },
       },
-      glyph(id) || label(id),
+      glyph(id) ? [h('span', { class: 'glyph', 'aria-hidden': 'true' }, glyph(id)), h('small', null, label(id))] : label(id),
     ) as HTMLButtonElement;
     buttons.push(b);
     box.append(b);

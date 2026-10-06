@@ -1,7 +1,10 @@
 import {
   BOUT_PROTOCOL_VERSION,
   INTRO_MS,
-  MAT_INTENT_REVEAL_MS,
+  MAT_CARTOON_MS,
+  matEffect,
+  matStyle,
+  thinkMsFor,
   MAT_TURNS,
   MOVE_LABEL,
   PARTNERS,
@@ -93,6 +96,9 @@ export interface BoutDeps {
 }
 
 /** `v: 1` bout messages. The account (`profile.bjj`) holds the belt and the unlocked moves, the same way Correria holds stars. */
+/** The flagship academia, or a player academy's own floor (`andar@<id>`): both have a mat to train on. */
+const onMat = (s: Session): boolean => s.instance?.def.id === 'academia' || s.instance?.def.id === 'andar';
+
 export class BoutEngine {
   private seq = 0;
   constructor(private readonly d: BoutDeps) {}
@@ -124,7 +130,7 @@ export class BoutEngine {
   }
 
   private open(s: Session) {
-    if (s.instance?.def.id !== 'academia') return this.d.err(s, 'bout', 'O tatame fica na academia.', 'The mat is in the academy.');
+    if (!onMat(s)) return this.d.err(s, 'bout', 'O tatame fica na academia.', 'The mat is in the academy.');
     if (!s.profile!.giOwned) {
       return this.d.err(s, 'bout', 'Compre o kimono no vestiário antes de entrar na fila.', 'Buy your gi at the changing area before joining the mat queue.');
     }
@@ -147,7 +153,7 @@ export class BoutEngine {
   }
 
   private start(s: Session, partnerId: unknown, _rematch: boolean) {
-    if (s.instance?.def.id !== 'academia') return this.d.err(s, 'bout', 'O tatame fica na academia.', 'The mat is in the academy.');
+    if (!onMat(s)) return this.d.err(s, 'bout', 'O tatame fica na academia.', 'The mat is in the academy.');
     if (this.of(s)) return;
     const prog = normalizeBjj(s.profile!.bjj);
     s.profile!.bjj = prog;
@@ -182,6 +188,7 @@ export class BoutEngine {
       partner: { id: partner.id, name: partner.name, style: partner.style },
       st: snap(b.mat),
       introMs,
+      thinkMs: thinkMsFor(matStyle(partner)),
       level: b.level,
       line: REF_LINES.combate,
       signal: 'combate',
@@ -218,6 +225,10 @@ export class BoutEngine {
         en: MOVE_LABEL[id].en,
         risk: 1 as const,
         ...(id === 'hold' ? {} : { percent: movePercent(id, prog.belt, bonus) }),
+        ...(() => {
+          const effect = matEffect(b.mat, 'you', id);
+          return effect ? { effect } : {};
+        })(),
       })),
       owned: allowed
         .filter((id) => id !== 'hold')
@@ -261,7 +272,7 @@ export class BoutEngine {
   private botTurn(s: Session, b: BoutSession) {
     const prog = normalizeBjj(s.profile!.bjj);
     const allowed = botMoves(prog.belt, prog.belt);
-    const id = chooseBot(b.mat, prog.belt, allowed);
+    const id = chooseBot(b.mat, prog.belt, allowed, matStyle(b.partner));
     this.play(s, b, 'them', id, false);
   }
 
@@ -269,10 +280,11 @@ export class BoutEngine {
     const prog = normalizeBjj(s.profile!.bjj);
     const belt = prog.belt;
     b.phase = 'resolve';
-    const res = resolveMat(b.mat, actor, id, b.rng(), belt);
+    // the partner's accuracy is their edge; the player always rolls the plain belt odds shown on the button
+    const res = resolveMat(b.mat, actor, id, b.rng(), belt, false, actor === 'them' ? matStyle(b.partner).edge : 0);
     if (!res.ok) return;
     b.mat = res.state;
-    if (actor === 'you' && !b.mat.over) b.intentRevealAt = this.d.now() + MAT_INTENT_REVEAL_MS;
+    if (actor === 'you' && !b.mat.over) b.intentRevealAt = this.d.now() + MAT_CARTOON_MS + thinkMsFor(matStyle(b.partner)) + MAT_CARTOON_MS;
     const holdMs = this.pause(res.from !== res.to || res.submission ? 900 : 700);
     s.send(resolveMsg(b, res, actor, timeout, holdMs, id));
     if (b.mat.over) {

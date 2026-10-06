@@ -18,7 +18,7 @@ import type { NpcId } from './rooms.js';
 import type { ConversaGrade, ConversaMeter, ConversaScores, ConversaSubject } from './conversa.js';
 import type { BjjPositionId, BjjProgress, BoutReason, BoutWinner, Belt, PartnerId } from './academia.js';
 import type { AcademyCard, CrestId, GiColorId, GiStampId } from './playerAcademy.js';
-import type { PadariaCard, PadariaDoorState } from './playerPadaria.js';
+import type { PadariaCard, PadariaDoorState, PadariaUpgradeKind } from './playerPadaria.js';
 import type { BoutAnswer, ChallengeView } from './challenges.js';
 import type { ExchangeEvent, IntentId, RefSignal, Score } from './bout.js';
 import type { RecadoActiveView, RecadoOfferView } from './recados.js';
@@ -141,7 +141,7 @@ export type ClientMsg =
   | { t: 'padariaOwn'; action: 'door' }
   | { t: 'padariaOwn'; action: 'found'; name: string }
   | { t: 'padariaOwn'; action: 'visit'; id?: string }
-  | { t: 'padariaOwn'; action: 'upgrade'; kind: 'size2' | 'size3' | 'brigadeiro' | 'boloCenoura' | 'sonho' }
+  | { t: 'padariaOwn'; action: 'upgrade'; kind: PadariaUpgradeKind }
   | { t: 'ping' };
 
 /** One online player row for the admin panel. */
@@ -298,6 +298,8 @@ export interface BoutIntentOut {
   risk: 1 | 2 | 3;
   /** Shown before the player confirms. Omitted for Hold, which always works. */
   percent?: number;
+  /** If it lands: points scored, where the pair ends up (who on top), whether it finishes; a finish that misses puts you on your back. */
+  effect?: { points: number; to: BjjPositionId; toAhead: 'you' | 'partner' | null; submission: boolean; riskBottom: boolean };
 }
 
 export type BoutRole = 'exchange' | 'finish' | 'escape';
@@ -312,6 +314,8 @@ export type BoutServerMsg =
       partner: { id: PartnerId; name: string; style: Bilingual };
       st: BoutSnapshot;
       introMs: number;
+      /** How long this partner thinks before their move (the client's pause between the cartoons). */
+      thinkMs?: number;
       level: number;
       line: Bilingual;
       signal: RefSignal;

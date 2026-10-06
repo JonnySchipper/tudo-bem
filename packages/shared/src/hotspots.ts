@@ -115,7 +115,7 @@ const BASE_HOTSPOTS: HotspotDef[] = [
 
 /**
  * The signs added for the language diary: the free-lot plates of the feira, the escola's wall poster and exit, and one board for each
- * added reading word (its placement in `diaryWorld.ts`). Needs_br: every word comes from the catalog and the signs print nothing more.
+ * added reading word, on the real thing it is written on (its placement in `diaryWorld.ts`). Needs_br: every word comes from the catalog and the signs print nothing more.
  */
 const DIARY_SIGNS: HotspotDef[] = [
   ...(['a3', 'a4', 'b3', 'b4'] as const).map((slot): HotspotDef => ({
@@ -128,7 +128,7 @@ const DIARY_SIGNS: HotspotDef[] = [
   })),
   { id: 'escola_poster', room: 'escola', x: 7, y: 0, w: 2, h: 1, up: 2, pt: 'ESCOLA', en: 'SCHOOL' },
   { id: 'escola_saida', room: 'escola', x: 0, y: 5, pt: 'SAÍDA · Rua', en: 'EXIT · Street' },
-  ...DIARY_PLACEMENTS.filter((p) => p.sign).map((p): HotspotDef => ({ id: p.id, room: p.room, x: p.x, y: p.y, ...(p.w ? { w: p.w } : {}), pt: p.sign!.pt, en: p.sign!.en })),
+  ...DIARY_PLACEMENTS.filter((p) => p.sign).map((p): HotspotDef => ({ id: p.id, room: p.room, x: p.x, y: p.y, ...(p.w ? { w: p.w } : {}), ...(p.h ? { h: p.h } : {}), ...(p.up ? { up: p.up } : {}), pt: p.sign!.pt, en: p.sign!.en })),
 ];
 
 export const HOTSPOTS: HotspotDef[] = [...BASE_HOTSPOTS, ...DIARY_SIGNS];

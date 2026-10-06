@@ -1,5 +1,7 @@
 import {
   CARTELA_COPY,
+  CRESTS,
+  PADARIA_SIZE_NAMES,
   CARTELA_GOAL,
   classifyChat,
   MAX_CHAT_LEN,
@@ -317,6 +319,15 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
   };
 
+  /** A player-owned padaria is not Seu Carlos's: say whose it is and its size instead of the room's gloss. */
+  const roomGloss = (r: NonNullable<typeof game.room>) => {
+    const team = r.room === 'andar' ? r.academy : undefined;
+    if (team) return `${team.owner ? 'Sua academia' : `De ${team.ownerName}`} · ${CRESTS[team.crest].glyph} ${team.size} ${team.size === 1 ? 'membro' : 'membros'}`;
+    const own = r.padaria;
+    if (!own) return game.roomDef?.gloss ?? '';
+    return `${own.owner ? 'Sua padaria' : `De ${own.ownerName}`} · ${PADARIA_SIZE_NAMES[own.size].pt}`;
+  };
+
   const refresh = () => {
     const p = game.profile;
     const r = game.room;
@@ -324,7 +335,7 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       const all = [...game.avatars.values()].filter((a) => !a.pub.npc); // the neighbours are not people in the room (the seat count is players)
       const count = all.filter((a) => !a.pub.cpu).length;
       const neighbors = all.length - count;
-      roomName.replaceChildren(h('span', { class: 'room-name' }, ...(r.instanceName.includes(' · ') ? [r.instanceName.split(' · ')[0]!, h('span', { class: 'room-inst' }, ` · ${r.instanceName.split(' · ').slice(1).join(' · ')}`)] : [r.instanceName])), h('small', null, `${game.roomDef?.gloss ?? ''} · ${count}/${r.cap} aqui${neighbors ? ` · ${neighbors} vizinhos` : ''}`));
+      roomName.replaceChildren(h('span', { class: 'room-name' }, ...(r.instanceName.includes(' · ') ? [r.instanceName.split(' · ')[0]!, h('span', { class: 'room-inst' }, ` · ${r.instanceName.split(' · ').slice(1).join(' · ')}`)] : [r.instanceName])), h('small', null, `${roomGloss(r)} · ${count}/${r.cap} aqui${neighbors ? ` · ${neighbors} vizinhos` : ''}`));
       document.title = `Tudo Bem · ${r.instanceName}`;
     }
     if (p) {

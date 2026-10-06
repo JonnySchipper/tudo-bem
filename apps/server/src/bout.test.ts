@@ -434,3 +434,47 @@ describe('Treino no tatame (server)', () => {
     expect(lobby.partners.filter((p) => p.unlocked).map((p) => p.id)).toEqual(['mateus', 'felipe', 'helena']);
   });
 });
+
+describe('polish: partners and academy floors', () => {
+  beforeEach(() => {
+    pending.length = 0;
+  });
+
+  it('every offered move says what it does if it lands, and a held grip is not offered again', async () => {
+    const { a } = await setup();
+    await a.send({ t: 'bout', v: 1, action: 'start', partner: 'mateus' });
+    advance(2000);
+    const first = a.last('intent')!;
+    for (const i of first.intents.filter((x) => x.id !== 'hold')) expect(i.effect, i.id).toBeDefined();
+    await a.send({ t: 'bout', v: 1, action: 'intent', seq: first.seq, intent: 'collar_tie' });
+    advance(20_000);
+    const next = a.last('intent')!;
+    expect(next.seq).not.toBe(first.seq);
+    const mine = a.bout().find((m): m is Phase<'resolve'> => m.phase === 'resolve' && m.actor === 'you');
+    // a landed collar tie is held, so it is not offered again; a missed one still is
+    if (mine?.yours.correct) expect(next.intents.map((i) => i.id)).not.toContain('collar_tie');
+    else expect(next.intents.map((i) => i.id)).toContain('collar_tie');
+  });
+
+  it('the intro carries the partner think time', async () => {
+    const { a } = await setup();
+    await a.send({ t: 'bout', v: 1, action: 'start', partner: 'mateus' });
+    const intro = a.last('intro')!;
+    expect(intro.thinkMs).toBeGreaterThanOrEqual(2000);
+    expect(intro.thinkMs).toBeLessThanOrEqual(5000);
+  });
+
+  it('an academy floor has its own mat: a bout runs there', async () => {
+    const { world, a } = await setup();
+    a.s.profile!.bjj = { belt: 'marrom', stripes: 0, wins: 140, unlocked: [] };
+    await a.send({ t: 'academy', action: 'directory' });
+    await a.send({ t: 'academy', action: 'found', name: 'Equipe Teste', crest: 'ipe', giColor: 'azul', giStamp: 'sol' });
+    expect(a.s.instance?.def.id).toBe('andar');
+    await a.send({ t: 'bout', v: 1, action: 'open' });
+    expect(a.last('lobby')).toBeDefined();
+    await a.send({ t: 'bout', v: 1, action: 'start', partner: 'mateus' });
+    await play(a);
+    expect(a.last('end')).toBeDefined();
+    void world;
+  });
+});

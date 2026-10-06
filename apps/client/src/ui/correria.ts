@@ -5,7 +5,7 @@
  *
  * The server owns the shift (apps/server/src/correria.ts) and judges every step; this file sends the player's taps and draws what comes back.
  */
-import { MG_ITEMS, MG_MODS, type Bilingual, type CAct, type CEvent, type ClientMsg, type CorreriaSnap, type MgServerMsg } from '@tudobem/shared';
+import { MG_ITEMS, MG_MODS, nextPadariaUpgrade, type Bilingual, type CAct, type CEvent, type ClientMsg, type CorreriaSnap, type MgServerMsg } from '@tudobem/shared';
 import { game } from '../state';
 import { h } from './dom';
 import { speak, stopSpeaking } from '../audio';
@@ -468,6 +468,21 @@ export class CorreriaUI {
   };
 
   // ------------------------------------------------------------------ end
+  /** In your own padaria: how close the next upgrade is, so a shift always points somewhere. */
+  private ownerNext(): HTMLElement | null {
+    const own = game.room?.padaria;
+    if (!own?.owner) return null;
+    const next = nextPadariaUpgrade(own);
+    if (!next) return h('p', { class: 'cr-end-daily' }, 'Sua padaria está completa!', h('span', { class: 'en' }, 'Your bakery has every upgrade!'));
+    const short = Math.max(0, next.cost - (game.profile?.coins ?? 0));
+    return h(
+      'p',
+      { class: 'cr-end-daily cr-end-next' },
+      short ? `Próxima melhoria: ${next.label.pt} · faltam ${short} RV` : `Já dá pra comprar: ${next.label.pt}! (vaso perto da porta)`,
+      h('span', { class: 'en' }, short ? `Next upgrade: ${next.label.en} · ${short} RV to go` : `You can buy ${next.label.en} now! (pot by the door)`),
+    );
+  }
+
   private onEnd(m: Extract<MgServerMsg, { phase: 'end' }>): void {
     this.ended = true;
     document.body.classList.add('cr-ended');
@@ -488,6 +503,7 @@ export class CorreriaUI {
         : h('div', { class: 'cr-end-rows' }, ...model.rows.map((r) => h('div', { class: 'row' }, h('span', { class: 'k' }, r.label.pt, h('span', { class: 'en' }, r.label.en)), h('b', null, r.value)))),
       !lost && m.end.dailyBlocked ? h('p', { class: 'cr-end-daily' }, 'RV de hoje: já pagamos os turnos do dia. As estrelas contam!', h('span', { class: 'en' }, 'Today’s paid shifts are used up. The stars still count!')) : null,
       !lost && model.words.length ? h('div', { class: 'cr-end-words' }, h('b', null, 'Palavras novas no Caderno'), ...model.words.map((w) => h('span', { class: 'cr-chip' }, w.pt, h('span', { class: 'en' }, w.en)))) : null,
+      !lost ? this.ownerNext() : null,
       !lost && model.unlocks.length ? h('div', { class: 'cr-end-unlock' }, h('b', null, 'Novidade no balcão! ✨'), ...model.unlocks.map((u) => h('span', null, u.pt, h('span', { class: 'en' }, u.en)))) : null,
       h(
         'div',
