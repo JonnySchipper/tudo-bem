@@ -298,6 +298,8 @@ export interface BoutIntentOut {
   risk: 1 | 2 | 3;
   /** Shown before the player confirms. Omitted for Hold, which always works. */
   percent?: number;
+  /** If it lands: points scored, where the pair ends up (who on top), whether it finishes; a finish that misses puts you on your back. */
+  effect?: { points: number; to: BjjPositionId; toAhead: 'you' | 'partner' | null; submission: boolean; riskBottom: boolean };
 }
 
 export type BoutRole = 'exchange' | 'finish' | 'escape';
@@ -312,6 +314,8 @@ export type BoutServerMsg =
       partner: { id: PartnerId; name: string; style: Bilingual };
       st: BoutSnapshot;
       introMs: number;
+      /** How long this partner thinks before their move (the client's pause between the cartoons). */
+      thinkMs?: number;
       level: number;
       line: Bilingual;
       signal: RefSignal;

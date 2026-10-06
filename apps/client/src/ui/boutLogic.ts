@@ -2,7 +2,7 @@
  * Pure bits of the bout UI (no DOM, no Phaser): how the server's messages turn into stage cues and into what the overlay shows.
  * Unit tested (boutLogic.test.ts).
  */
-import { MOMENTUM_THRESHOLD, REF_LINES, RUNG_MAX, formatBoutClock, type Bilingual, type BoutServerMsg, type BoutSnapshot, type CrowdCue, type RefSignal } from '@tudobem/shared';
+import { MOMENTUM_THRESHOLD, REF_LINES, RUNG_MAX, formatBoutClock, type Bilingual, type BoutIntentOut, type BoutServerMsg, type BoutSnapshot, type CrowdCue, type RefSignal } from '@tudobem/shared';
 import type { StageCue } from '../render/pixel/boutFeed';
 
 type Msg<P extends BoutServerMsg['phase']> = Extract<BoutServerMsg, { phase: P }>;
@@ -115,3 +115,51 @@ export function clockAt(snapClockMs: number, sinceMs: number, rate: number, runn
 }
 
 export const COMBATE: Bilingual = REF_LINES.combate;
+
+// ---------------------------------------------------------------- the move picker (the #49 lock: no position names, only who ends on top)
+
+export type OddsTone = 'good' | 'fair' | 'long';
+
+/** How the percent reads at a glance: 60%+ is a good bet, under 35% a long shot. */
+export const oddsTone = (percent: number | undefined): OddsTone => (percent == null || percent >= 60 ? 'good' : percent >= 35 ? 'fair' : 'long');
+
+/**
+ * One line under a move: what it does if it lands. needs_br: true (every line).
+ * Grips add to the takedowns, defenses say what they undo, scoring moves say the points and who ends on top, a finish says it wins.
+ */
+export function moveHint(id: string, effect: NonNullable<BoutIntentOut['effect']> | undefined): { pt: string; en: string; risk?: Bilingual } {
+  if (id === 'hold') return { pt: 'Passa a vez', en: 'Pass the turn' };
+  if (id === 'collar_tie' || id === 'sleeve_grip') return { pt: '+10% nas quedas', en: '+10% on takedowns' };
+  if (id === 'posture') return { pt: 'Solta as pegadas', en: 'Breaks the grips' };
+  if (id === 'sprawl') return { pt: 'Zera as pegadas', en: 'Resets the grips' };
+  if (id === 'frame' || id === 'escape_back') return { pt: 'Sai de baixo', en: 'Gets out from under' };
+  if (!effect) return { pt: '', en: '' };
+  const risk = effect.riskBottom ? { pt: 'Se errar: você por baixo', en: 'Miss: you end on the bottom' } : undefined;
+  if (effect.submission) return { pt: 'Vale a vitória!', en: 'Wins the match!', risk };
+  const top = effect.toAhead === 'you';
+  if (effect.points > 0) return { pt: `+${effect.points} · você por cima`, en: `+${effect.points} · you on top` };
+  return top ? { pt: 'Você por cima (já pontuou)', en: 'You on top (already scored)' } : { pt: '', en: '' };
+}
+
+/**
+ * Professora Bia's one tip on the end card: the next thing to try, from how the match went and the moves the player has. needs_br: true.
+ * Never names a position (the #49 lock); it talks about moves and who is on top.
+ */
+export function coachTip(o: { winner: 'you' | 'partner' | 'draw' | 'none'; reason: string; you: number; them: number; unlocked: readonly string[] }): Bilingual | null {
+  const has = (id: string) => o.unlocked.includes(id);
+  if (o.winner === 'none') return null;
+  if (o.winner === 'you' && o.reason === 'finalizacao') return { pt: 'Que final! Agora tente vencer o próximo nos pontos também.', en: 'What a finish! Next time try to win on points too.' };
+  if (o.winner === 'partner' && o.reason === 'finalizacao')
+    return has('frame')
+      ? { pt: 'Quando estiver por baixo, use Recuperar antes que ele tente o final.', en: 'When you are on the bottom, use Recuperar before they go for the finish.' }
+      : { pt: 'Por baixo, tente o Gancho: virar o jogo vale pontos e tira você do aperto.', en: 'On the bottom, try Gancho: a sweep scores and gets you out of trouble.' };
+  if (o.you === 0 && o.them === 0)
+    return has('double_leg')
+      ? { pt: 'Pegue a gola e depois vá de Queda: cada pegada deixa a Queda mais forte.', en: 'Take the collar, then go for Queda: each grip makes the takedown stronger.' }
+      : { pt: 'Arrisque um golpe que vale pontos. Segurar não pontua.', en: 'Try a move that scores. Holding never does.' };
+  if (o.winner === 'partner') return { pt: 'Por baixo, tente o Gancho. Por cima, Passar vale três pontos.', en: 'On the bottom, try Gancho. On top, Passar is worth three points.' };
+  if (o.winner === 'draw') return { pt: 'Empate! Quando estiver na frente no fim, Segurar mantém a vitória.', en: 'A draw! When you are ahead near the end, Hold keeps the win.' };
+  return has('armbar')
+    ? { pt: 'Boa! Por cima e na frente, o Braço pode acabar a luta mais cedo.', en: 'Nice! On top and ahead, Braço can end the match early.' }
+    : { pt: 'Boa! Continue somando pontos por cima.', en: 'Nice! Keep scoring from on top.' };
+}

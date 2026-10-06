@@ -1672,7 +1672,8 @@ export class WorldScene extends Phaser.Scene {
           key: `npc:${a.pub.npc}`,
           x: p.px,
           y: p.py,
-          plate: { text: role && game.hoverKey === `npc:${a.pub.npc}` ? `${a.pub.name} · ${role}` : a.pub.name, kind: 'npc' },
+          // the mat camera keeps the pair and the scoreboard clear: neighbours' plates wait until the bout is over (their bubbles still talk)
+          plate: boutFeed.camera ? null : { text: role && game.hoverKey === `npc:${a.pub.npc}` ? `${a.pub.name} · ${role}` : a.pub.name, kind: 'npc' },
           // Bia is the referee while a bout is on: her idle chatter stays quiet
           bubbles: b && age < 7000 && !(boutFeed.camera && a.pub.npc === 'prof') ? [{ text: b.text, gloss: b.gloss, alpha: bubbleAlpha(age) }] : [],
         });
@@ -1686,7 +1687,7 @@ export class WorldScene extends Phaser.Scene {
             .map((b) => ({ text: b.text, gloss: b.gloss, alpha: bubbleAlpha(now - b.at) }));
       // CPUs are scenery: their name shows on hover, within ~3.5 tiles of you, or while they emote
       const near = !!selfView && Math.hypot(v.wx - selfView.wx, v.wy - selfView.wy) <= 3.5 * T;
-      const cpuShow = !isCpuId(id) || game.hoverKey === `av:${id}` || near || (!!a.emote && performance.now() - a.emote.t0 < 3500);
+      const cpuShow = !boutFeed.camera && (!isCpuId(id) || game.hoverKey === `av:${id}` || near || (!!a.emote && performance.now() - a.emote.t0 < 3500));
       stacks.push({
         key: `av:${id}`,
         x: p.px,

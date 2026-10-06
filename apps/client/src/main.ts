@@ -498,7 +498,8 @@ function updateGuides() {
   const p = game.profile;
   const r = game.room;
   renderer.guides = [];
-  if (!p || !r || isDialogueBoxOpen()) return;
+  // a bout has the whole screen: no tutorial arrows over the mat
+  if (!p || !r || isDialogueBoxOpen() || boutUi?.open) return;
   const t = p.tutorial;
   const add = (g: Guide | null) => g && renderer.guides.push(g);
   if (r.room === 'rua') {
@@ -708,8 +709,8 @@ net.on((m: ServerMsg) => {
           () =>
             toast(
               'info',
-              'Bem-vindo à Academia do Bairro! Jogo de palavras no tatame — não é treino de luta.',
-              'Welcome to Academia do Bairro! Word-game rolls on the mat — not martial-arts training.',
+              'Bem-vindo à Academia do Bairro! No tatame é brincadeira: escolha os golpes, faça pontos e respeito sempre.',
+              'Welcome to Academia do Bairro! The mat is a game: pick your moves, score points, respect always.',
             ),
           700,
         );
@@ -872,8 +873,10 @@ net.on((m: ServerMsg) => {
           send: (msg) => net.send(msg),
           closed: () => {
             boutUi = null;
+            updateGuides();
           },
         });
+        updateGuides();
       }
       boutUi?.handle(m);
       break;

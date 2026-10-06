@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { MOMENTUM_THRESHOLD, REF_LINES, type BoutServerMsg, type BoutSnapshot } from '@tudobem/shared';
-import { callOf, clockAt, crowdForResolve, cuesForEnd, cuesForFinishEnd, cuesForResolve, ladderDots, momentumFrac, resultBanner } from './boutLogic';
+import { callOf, clockAt, crowdForResolve, cuesForEnd, cuesForFinishEnd, cuesForResolve, ladderDots, momentumFrac, resultBanner, moveHint, oddsTone, coachTip } from './boutLogic';
 
 type Resolve = Extract<BoutServerMsg, { phase: 'resolve' }>;
 type FinishEnd = Extract<BoutServerMsg, { phase: 'finish_end' }>;
@@ -92,5 +92,34 @@ describe('bout UI logic', () => {
     expect(clockAt(300_000, 5_000, 2, true)).toBe('4:50');
     expect(clockAt(300_000, 5_000, 2, false)).toBe('5:00');
     expect(clockAt(10_000, 99_000, 2, true)).toBe('0:00');
+  });
+});
+
+describe('move picker hints and the end-card tip (polish)', () => {
+  const NAMES = /guarda|montada|costas|cem quilos|joelho na|finaliza|submission|closed guard|side control|\bmount\b/i;
+
+  it('says what a move does without naming a position', () => {
+    expect(moveHint('collar_tie', undefined).pt).toBe('+10% nas quedas');
+    expect(moveHint('double_leg', { points: 2, to: 'cem_quilos', toAhead: 'you', submission: false, riskBottom: false }).pt).toBe('+2 · você por cima');
+    const arm = moveHint('armbar', { points: 0, to: 'montada', toAhead: 'you', submission: true, riskBottom: true });
+    expect(arm.pt).toBe('Vale a vitória!');
+    expect(arm.risk?.pt).toBe('Se errar: você por baixo');
+    expect(moveHint('hold', undefined).pt).toBe('Passa a vez');
+    const all = ['collar_tie', 'posture', 'sprawl', 'frame', 'hold'].map((id) => moveHint(id, undefined)).concat([arm]);
+    expect(all.flatMap((x) => [x.pt, x.en, x.risk?.pt ?? '', x.risk?.en ?? '']).join(' ')).not.toMatch(NAMES);
+  });
+
+  it('reads the odds as good, fair or a long shot', () => {
+    expect([oddsTone(70), oddsTone(45), oddsTone(18), oddsTone(undefined)]).toEqual(['good', 'fair', 'long', 'good']);
+  });
+
+  it('Bia gives one tip that fits the result and the moves you have', () => {
+    expect(coachTip({ winner: 'none', reason: 'quit', you: 0, them: 0, unlocked: [] })).toBeNull();
+    expect(coachTip({ winner: 'draw', reason: 'empate', you: 0, them: 0, unlocked: ['double_leg'] })?.pt).toContain('Queda');
+    expect(coachTip({ winner: 'partner', reason: 'finalizacao', you: 0, them: 0, unlocked: ['frame'] })?.pt).toContain('Recuperar');
+    const tips = (['you', 'partner', 'draw'] as const).flatMap((w) =>
+      ['pontos', 'finalizacao', 'empate'].map((r) => coachTip({ winner: w, reason: r, you: 2, them: 1, unlocked: ['armbar', 'frame', 'double_leg'] })),
+    );
+    expect(tips.flatMap((t) => [t?.pt ?? '', t?.en ?? '']).join(' ')).not.toMatch(NAMES);
   });
 });
