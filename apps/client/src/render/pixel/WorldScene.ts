@@ -1719,7 +1719,7 @@ export class WorldScene extends Phaser.Scene {
     const team = game.room?.room === 'andar' ? game.room.academy : undefined;
     const board = team ? def.props.find((q) => q.id === 'andar_brasao') : undefined;
     if (team && board) {
-      const p = at((board.x + 0.5) * T, -6);
+      const p = at((board.x + 0.5) * T, -16);
       stacks.push({ key: `sign:academy:${team.id}`, x: p.px, y: p.py, plate: { text: `${CRESTS[team.crest].glyph} ${team.name}`, kind: 'sign' }, bubbles: [] });
     }
     const guides: GuideItem[] = this.host.guides().map((g, i) => {

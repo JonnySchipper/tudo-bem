@@ -878,7 +878,8 @@ net.on((m: ServerMsg) => {
       }
       break;
     case 'bout':
-      if (m.phase === 'lobby' && (!boutUi || !boutUi.open)) {
+      // a pending stripe lesson opens straight into the drill (no lobby): that message must open the overlay too
+      if ((m.phase === 'lobby' || m.phase === 'drill') && (!boutUi || !boutUi.open)) {
         boutUi = new BoutUI({
           send: (msg) => net.send(msg),
           closed: () => {

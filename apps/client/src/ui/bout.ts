@@ -75,6 +75,8 @@ export class BoutUI {
   /** Your cartoon just finished and the match is still going, so the partner gets a beat to decide. */
   private thinkAfter = false;
   private queue: BoutServerMsg[] = [];
+  /** The move of the stripe lesson in progress: its end card is a lesson card, not a match result. */
+  private lesson: { id: string; pt: string; en: string } | null = null;
   /** This partner's pause before their move (quick Felipe, careful Helena), from the intro message. */
   private thinkMs = THINK_MS;
 
@@ -251,6 +253,7 @@ export class BoutUI {
   // ------------------------------------------------------------------ lobby
   private lobby(m: Msg<'lobby'>): void {
     this.setPhase('lobby');
+    this.root.classList.remove('is-lesson');
     ambience.setScene(null);
     this.snap = null;
     boutFeed.snap = null;
@@ -315,6 +318,7 @@ export class BoutUI {
   // ------------------------------------------------------------------ intro
   private intro(m: Msg<'intro'>): void {
     this.setPhase('intro');
+    this.root.classList.remove('is-lesson');
     ambience.setBoost(0);
     ambience.setScene('bout');
     this.partnerName = m.partner.name;
@@ -558,7 +562,15 @@ export class BoutUI {
     this.setPhase('drill');
     this.seq = m.seq;
     this.locked = false;
+    this.lesson = m.move;
+    this.root.classList.add('is-lesson');
     this.stopTimer();
+    // a lesson opened straight from the mat queue (no match before it): put the pair on the mat with Bia's drill partner
+    if (!boutFeed.active) {
+      this.partnerName = 'Mateus';
+      this.partnerId = 'mateus';
+      boutFeed.begin({ id: 'mateus', name: 'Mateus', appearance: cpuLook('Mateus').appearance }, this.bjj?.belt ?? game.profile?.bjj?.belt ?? 'branca', m.st);
+    }
     this.setSnap(m.st);
     boutFeed.push({ t: 'transition', from: m.from, to: m.st.position, rungFrom: m.aheadFrom === 'partner' ? -1 : m.aheadFrom === 'you' ? 1 : 0, rungTo: m.st.rung, gain: m.st.ahead });
     // the stripe's lesson: Bia sets the partner up and you land the new move once, as a card like the ones you will pick from
@@ -783,9 +795,11 @@ export class BoutUI {
       m.word && m.winner === 'you'
         ? h('div', { class: 'cr-end-words', id: 'bout-word' }, h('b', null, 'Palavras novas no Caderno'), h('span', { class: 'cr-chip' }, m.word.pt, h('span', { class: 'en' }, m.word.en)))
         : null;
+    const lesson = this.lesson;
+    this.lesson = null;
     const me = game.profile?.name ?? 'Você';
     const score =
-      m.winner === 'none'
+      m.winner === 'none' || lesson
         ? null
         : h(
             'div',
@@ -794,7 +808,9 @@ export class BoutUI {
             h('b', null, `${m.st.points.you} × ${m.st.points.partner}`),
             h('span', { class: `who them${m.winner === 'partner' ? ' won' : ''}` }, this.partnerName),
           );
-    const tip = coachTip({ winner: m.winner, reason: m.reason, you: m.st.points.you, them: m.st.points.partner, unlocked: m.bjj.unlocked });
+    const tip = lesson
+      ? { pt: `${lesson.pt} já está nos seus golpes. Use no próximo treino!`, en: `${lesson.en} is in your moves now. Use it next match!` }
+      : coachTip({ winner: m.winner, reason: m.reason, you: m.st.points.you, them: m.st.points.partner, unlocked: m.bjj.unlocked });
     const tipEl = tip ? h('p', { class: 'bout-tip', id: 'bout-tip' }, h('b', null, 'Professora Bia: '), h('span', { class: 'pt' }, tip.pt), en(tip.en)) : null;
     // the next stripe: wins to go, and the move Bia teaches there
     const ns = nextStripe(m.bjj.wins);
@@ -815,7 +831,9 @@ export class BoutUI {
       h(
         'div',
         { class: `bout-end result-${m.winner}`, id: 'bout-end', 'data-winner': m.winner, 'data-reason': m.reason },
-        h('div', { class: 'bout-end-line' }, h('b', null, m.line.pt), en(m.line.en)),
+        lesson
+          ? h('div', { class: 'bout-end-line' }, h('b', null, 'Aula concluída!'), en('Lesson done!'))
+          : h('div', { class: 'bout-end-line' }, h('b', null, m.line.pt), en(m.line.en)),
         score,
         m.rv > 0 ? h('div', { class: 'bout-rv' }, `+${m.rv} RV`) : null,
         word,

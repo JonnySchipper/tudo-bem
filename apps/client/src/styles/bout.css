@@ -187,8 +187,10 @@ body.bout-on .toasts {
   opacity: 0.35;
 }
 
-/* no match yet: the lobby has no scoreboard */
-.bout-root[data-phase='lobby'] .bout-top {
+/* no match yet: the lobby and a stripe lesson have no scoreboard */
+.bout-root[data-phase='lobby'] .bout-top,
+.bout-root[data-phase='drill'] .bout-top,
+.bout-root.is-lesson .bout-top {
   display: none;
 }
 

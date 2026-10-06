@@ -79,9 +79,8 @@ async function run(name) {
       await page.evaluate(() => {
         window.__tb.net.session.profile.bjj = { belt: 'branca', stripes: 1, wins: 5, unlocked: ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar'], pendingDrill: 'sleeve_grip' };
       });
-      await openBout(page);
-      await sleep(600);
-      await startBout(page);
+      // the pending lesson opens straight from the mat queue, no lobby
+      await page.evaluate(() => window.__tb.interact({ prop: 'fila' }));
       await page.waitForSelector('#bout-drill', { timeout: 15_000 });
       await sleep(600);
       await shot('drill');
