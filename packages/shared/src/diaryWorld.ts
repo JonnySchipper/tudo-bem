@@ -1,6 +1,7 @@
 /**
- * Where the objects and signs added for the language diary catalog stand. A camera word anchors `d_<word>`, a reading word `s_<word>`
- * (a sign you read), and each placement is a non-blocking prop (and, for a sign, a hotspot) next to the thing it belongs to. Positions
+ * Where the objects and signs added for the language diary catalog stand. A camera word anchors `d_<word>` (a non-blocking prop with its
+ * own sprite, next to the thing it belongs to); a reading word `s_<word>` is a sign on a real thing already in the room (a post, a
+ * shopfront, the vitrine, a wall) and is only a hotspot: the floor plates that used to print each word were removed (2026-10-06). Positions
  * come from a one-off pass that put each item on the free tile nearest its anchor; two small items may share a tile (`ox` nudges one
  * of them sideways). Every Portuguese string here is needs_br and comes from the catalog: a sign prints the word, nothing more.
  */
@@ -15,10 +16,15 @@ export interface DiaryPlacement {
   h?: number;
   /** Pixels the sprite is nudged sideways inside its tile (two small items on one tile). */
   ox?: number;
-  /** Manifest sprite key. */
-  art: string;
-  /** A reading word: the sign text, and the hotspot that reads it. */
+  /** Manifest sprite key (camera words). A reading word has none: it is read off a real thing in the room. */
+  art?: string;
+  /**
+   * A reading word: the text written on whatever stands at x, y (w x h): a post, a shopfront, the vitrine, a wall (`up` rows, interiors
+   * only). No sprite of its own: the hotspot reads it, and the word sparkles until this player has it.
+   */
   sign?: { pt: string; en: string };
+  /** Wall rows above the footprint the sign is on (interior north walls, as a hotspot's `up`). */
+  up?: number;
 }
 
 export const DIARY_PLACEMENTS: DiaryPlacement[] = [
@@ -38,16 +44,16 @@ export const DIARY_PLACEMENTS: DiaryPlacement[] = [
   { id: 'd_cruzamento', room: 'rua_leste', x: 3, y: 7, art: 'diary/cruzamento' },
   { id: 'd_skate', room: 'rua_leste', x: 5, y: 7, art: 'diary/skate' },
   { id: 'd_patinete', room: 'rua_leste', x: 9, y: 7, art: 'diary/patinete' },
-  { id: 's_pare', room: 'rua_leste', x: 1, y: 6, w: 2, art: 'diary/sign_pare', sign: { pt: "PARE", en: "Stop" } },
-  { id: 's_obra', room: 'rua_leste', x: 7, y: 13, w: 2, art: 'diary/sign_obra', sign: { pt: "OBRAS", en: "Road work" } },
-  { id: 's_sentido', room: 'rua_leste', x: 8, y: 6, w: 4, art: 'diary/sign_sentido', sign: { pt: "SENTIDO ÚNICO", en: "Direction" } },
-  { id: 's_farmacia', room: 'rua_leste', x: 2, y: 5, w: 3, art: 'diary/sign_farmacia', sign: { pt: "FARMÁCIA", en: "Pharmacy" } },
-  { id: 's_loterica', room: 'rua_leste', x: 6, y: 5, w: 3, art: 'diary/sign_loterica', sign: { pt: "LOTÉRICA", en: "Lottery shop" } },
-  { id: 's_acougue', room: 'rua_leste', x: 9, y: 5, w: 2, art: 'diary/sign_acougue', sign: { pt: "AÇOUGUE", en: "Butcher" } },
-  { id: 's_mercado', room: 'rua_leste', x: 10, y: 7, w: 2, art: 'diary/sign_mercado', sign: { pt: "MERCADO", en: "Market" } },
-  { id: 's_chaveiro', room: 'rua_leste', x: 14, y: 5, w: 3, art: 'diary/sign_chaveiro', sign: { pt: "CHAVEIRO", en: "Locksmith" } },
-  { id: 's_ladeira', room: 'rua_leste', x: 17, y: 5, w: 2, art: 'diary/sign_ladeira', sign: { pt: "LADEIRA", en: "Hill street" } },
-  { id: 's_travessa', room: 'rua_leste', x: 1, y: 12, w: 3, art: 'diary/sign_travessa', sign: { pt: "TRAVESSA", en: "Side lane" } },
+  { id: 's_pare', room: 'rua_leste', x: 4, y: 13, sign: { pt: "PARE", en: "Stop" } }, // on the post at the crossing
+  { id: 's_obra', room: 'rua_leste', x: 14, y: 13, sign: { pt: "OBRAS", en: "Road work" } }, // on the rubble bag
+  { id: 's_sentido', room: 'rua_leste', x: 13, y: 7, sign: { pt: "SENTIDO ÚNICO", en: "Direction" } }, // on the lamp post
+  { id: 's_farmacia', room: 'rua_leste', x: 0, y: 3, w: 2, h: 2, sign: { pt: "FARMÁCIA", en: "Pharmacy" } }, // on the Academia block, west shopfront
+  { id: 's_loterica', room: 'rua_leste', x: 8, y: 3, w: 2, h: 2, sign: { pt: "LOTÉRICA", en: "Lottery shop" } }, // on the Academia block, east shopfront
+  { id: 's_acougue', room: 'rua_leste', x: 10, y: 3, w: 2, h: 2, sign: { pt: "AÇOUGUE", en: "Butcher" } }, // on the Escola block, west shopfront
+  { id: 's_mercado', room: 'rua_leste', x: 13, y: 3, w: 2, h: 2, sign: { pt: "MERCADO", en: "Market" } }, // on the Escola block, east shopfront
+  { id: 's_chaveiro', room: 'rua_leste', x: 16, y: 3, w: 3, h: 2, sign: { pt: "CHAVEIRO", en: "Locksmith" } }, // on the end wall shopfront
+  { id: 's_ladeira', room: 'rua_leste', x: 17, y: 9, w: 2, h: 2, sign: { pt: "LADEIRA", en: "Hill street" } }, // on the barrier at the end of the street
+  { id: 's_travessa', room: 'rua_leste', x: 2, y: 13, sign: { pt: "TRAVESSA", en: "Side lane" } }, // on the lamp post
   { id: 'd_pombo', room: 'praca', x: 15, y: 9, art: 'critters/pigeon' },
   { id: 'd_paralelepipedo', room: 'praca', x: 16, y: 8, art: 'diary/paralelepipedo' },
   { id: 'd_grama', room: 'praca', x: 5, y: 8, art: 'decals/gtuft_0' },
@@ -129,16 +135,16 @@ export const DIARY_PLACEMENTS: DiaryPlacement[] = [
   { id: 'd_borboleta', room: 'praca', x: 17, y: 14, art: 'diary/borboleta' },
   { id: 'd_cigarra', room: 'praca', x: 22, y: 8, art: 'diary/cigarra' },
   { id: 'd_formiga', room: 'praca', x: 9, y: 18, art: 'diary/formiga' },
-  { id: 's_banheiro', room: 'praca', x: 27, y: 21, w: 3, art: 'diary/sign_banheiro', sign: { pt: "BANHEIRO", en: "Restroom" } },
-  { id: 's_reciclagem', room: 'praca', x: 17, y: 7, w: 3, art: 'diary/sign_reciclagem', sign: { pt: "RECICLAGEM", en: "Recycling" } },
-  { id: 's_mapa', room: 'praca', x: 12, y: 3, w: 2, art: 'diary/sign_mapa', sign: { pt: "MAPA", en: "Map" } },
-  { id: 's_horario', room: 'praca', x: 10, y: 1, w: 2, art: 'diary/sign_horario', sign: { pt: "HORÁRIO", en: "Hours" } },
-  { id: 's_entrada', room: 'praca', x: 29, y: 10, w: 2, art: 'diary/sign_entrada', sign: { pt: "ENTRADA", en: "Entrance" } },
-  { id: 's_fechado', room: 'praca', x: 11, y: 4, w: 2, art: 'diary/sign_fechado', sign: { pt: "FECHADO", en: "Closed" } },
-  { id: 's_cuidado', room: 'praca', x: 17, y: 9, w: 2, art: 'diary/sign_cuidado', sign: { pt: "CUIDADO", en: "Caution" } },
-  { id: 's_wifi', room: 'praca', x: 13, y: 4, w: 2, art: 'diary/sign_wifi', sign: { pt: "WIFI", en: "Wifi" } },
-  { id: 's_emergencia', room: 'praca', x: 14, y: 2, w: 3, art: 'diary/sign_emergencia', sign: { pt: "EMERGÊNCIA", en: "Emergency" } },
-  { id: 's_informacao', room: 'praca', x: 14, y: 3, w: 3, art: 'diary/sign_informacao', sign: { pt: "INFORMAÇÃO", en: "Information" } },
+  { id: 's_banheiro', room: 'praca', x: 20, y: 14, sign: { pt: "BANHEIRO", en: "Restroom" } }, // on the lamp post (a direction plate)
+  { id: 's_reciclagem', room: 'praca', x: 19, y: 6, sign: { pt: "RECICLAGEM", en: "Recycling" } }, // on the bin
+  { id: 's_mapa', room: 'praca', x: 18, y: 0, w: 2, sign: { pt: "MAPA", en: "Map" } }, // on the board by the street gate
+  { id: 's_horario', room: 'praca', x: 10, y: 0, w: 2, sign: { pt: "HORÁRIO", en: "Hours" } }, // on the board by the street gate
+  { id: 's_entrada', room: 'praca', x: 31, y: 8, sign: { pt: "ENTRADA", en: "Entrance" } }, // on the fence by the feira gate
+  { id: 's_fechado', room: 'praca', x: 21, y: 5, w: 2, h: 2, sign: { pt: "FECHADO", en: "Closed" } }, // on the coreto gate
+  { id: 's_cuidado', room: 'praca', x: 6, y: 16, w: 3, sign: { pt: "CUIDADO", en: "Caution" } }, // on the slide
+  { id: 's_wifi', room: 'praca', x: 11, y: 8, sign: { pt: "WIFI", en: "Wifi" } }, // on the lamp post
+  { id: 's_emergencia', room: 'praca', x: 11, y: 14, sign: { pt: "EMERGÊNCIA", en: "Emergency" } }, // on the lamp post
+  { id: 's_informacao', room: 'praca', x: 11, y: 3, sign: { pt: "INFORMAÇÃO", en: "Information" } }, // on the hedge board by the kiosk
   { id: 'd_moto', room: 'rua', x: 8, y: 12, w: 2, art: 'vehicles/park_moto_e' },
   { id: 'd_van', room: 'rua', x: 2, y: 13, w: 4, h: 2, art: 'vehicles/park_kombi_w' },
   { id: 'd_semaforo', room: 'rua', x: 19, y: 7, art: 'diary/semaforo' },
@@ -160,13 +166,13 @@ export const DIARY_PLACEMENTS: DiaryPlacement[] = [
   { id: 'd_pneu', room: 'rua', x: 11, y: 12, art: 'diary/pneu' },
   { id: 'd_guidao', room: 'rua', x: 15, y: 6, art: 'diary/guidao' },
   { id: 'd_pedal', room: 'rua', x: 14, y: 7, art: 'diary/pedal' },
-  { id: 's_ciclovia', room: 'rua', x: 4, y: 11, w: 3, art: 'diary/sign_ciclovia', sign: { pt: "CICLOVIA", en: "Bike lane" } },
-  { id: 's_correio', room: 'rua', x: 17, y: 12, w: 3, art: 'diary/sign_correio', sign: { pt: "CORREIOS", en: "Post office" } },
-  { id: 's_devagar', room: 'rua', x: 18, y: 11, w: 2, art: 'diary/sign_devagar', sign: { pt: "DEVAGAR", en: "Slow" } },
-  { id: 's_salao', room: 'rua', x: 5, y: 5, w: 2, art: 'diary/sign_salao', sign: { pt: "SALÃO", en: "Salon" } },
-  { id: 's_barbearia', room: 'rua', x: 9, y: 5, w: 3, art: 'diary/sign_barbearia', sign: { pt: "BARBEARIA", en: "Barbershop" } },
-  { id: 's_lavanderia', room: 'rua', x: 17, y: 13, w: 3, art: 'diary/sign_lavanderia', sign: { pt: "LAVANDERIA", en: "Laundromat" } },
-  { id: 's_igreja', room: 'rua', x: 2, y: 5, w: 2, art: 'diary/sign_igreja', sign: { pt: "IGREJA", en: "Church" } },
+  { id: 's_ciclovia', room: 'rua', x: 2, y: 12, w: 3, sign: { pt: "CICLOVIA", en: "Bike lane" } }, // on the painted lane
+  { id: 's_correio', room: 'rua', x: 13, y: 13, sign: { pt: "CORREIOS", en: "Post office" } }, // on the post with the mailbox
+  { id: 's_devagar', room: 'rua', x: 9, y: 13, sign: { pt: "DEVAGAR", en: "Slow" } }, // on the post
+  { id: 's_salao', room: 'rua', x: 14, y: 3, w: 2, h: 2, sign: { pt: "SALÃO", en: "Salon" } }, // on Edifício Ipê, ground floor
+  { id: 's_barbearia', room: 'rua', x: 16, y: 3, w: 2, h: 2, sign: { pt: "BARBEARIA", en: "Barbershop" } }, // on Edifício Ipê, ground floor
+  { id: 's_lavanderia', room: 'rua', x: 18, y: 3, w: 3, h: 2, sign: { pt: "LAVANDERIA", en: "Laundromat" } }, // on Edifício Ipê, the shutter
+  { id: 's_igreja', room: 'rua', x: 2, y: 7, sign: { pt: "IGREJA", en: "Church" } }, // on the lamp post (a direction plate)
   { id: 'd_abacaxi', room: 'feira', x: 7, y: 7, art: 'diary/abacaxi' },
   { id: 'd_mamao', room: 'feira', x: 6, y: 7, art: 'diary/mamao' },
   { id: 'd_maracuja', room: 'feira', x: 8, y: 7, art: 'diary/maracuja' },
@@ -212,10 +218,10 @@ export const DIARY_PLACEMENTS: DiaryPlacement[] = [
   { id: 'd_giz', room: 'feira', x: 10, y: 5, art: 'diary/giz' },
   { id: 'd_engradado', room: 'feira', x: 4, y: 11, art: 'diary/engradado' },
   { id: 'd_feirante', room: 'feira', x: 19, y: 5, art: 'diary/feirante' },
-  { id: 's_organico', room: 'feira', x: 3, y: 3, w: 3, art: 'diary/sign_organico', sign: { pt: "ORGÂNICO", en: "Organic" } },
-  { id: 's_quilo', room: 'feira', x: 9, y: 6, w: 2, art: 'diary/sign_quilo', sign: { pt: "R$ / KG", en: "Kilo" } },
-  { id: 's_duzia', room: 'feira', x: 15, y: 11, w: 2, art: 'diary/sign_duzia', sign: { pt: "DÚZIA", en: "Dozen" } },
-  { id: 's_unidade', room: 'feira', x: 9, y: 13, w: 2, art: 'diary/sign_unidade', sign: { pt: "UNIDADE", en: "Each" } },
+  { id: 's_organico', room: 'feira', x: 4, y: 4, sign: { pt: "ORGÂNICO", en: "Organic" } }, // on the crate
+  { id: 's_quilo', room: 'feira', x: 8, y: 5, sign: { pt: "R$ / KG", en: "Kilo" } }, // on the scale
+  { id: 's_duzia', room: 'feira', x: 15, y: 12, sign: { pt: "DÚZIA", en: "Dozen" } }, // on the egg crate
+  { id: 's_unidade', room: 'feira', x: 8, y: 13, sign: { pt: "UNIDADE", en: "Each" } }, // on the scale
   { id: 'd_forno', room: 'padaria', x: 8, y: 0, ox: -4, art: 'diary/forno' },
   { id: 'd_chapa', room: 'padaria', x: 9, y: 0, ox: -4, art: 'diary/chapa' },
   { id: 'd_geladeira', room: 'padaria', x: 0, y: 0, ox: -4, art: 'diary/geladeira' },
@@ -249,8 +255,8 @@ export const DIARY_PLACEMENTS: DiaryPlacement[] = [
   { id: 'd_sabonete', room: 'padaria', x: 9, y: 7, ox: -4, art: 'diary/sabonete' },
   { id: 'd_detergente', room: 'padaria', x: 9, y: 7, ox: 4, art: 'diary/detergente' },
   { id: 'd_esponja', room: 'padaria', x: 9, y: 6, ox: -4, art: 'diary/esponja' },
-  { id: 's_desconto', room: 'padaria', x: 2, y: 4, w: 3, art: 'diary/sign_desconto', sign: { pt: "DESCONTO", en: "Discount" } },
-  { id: 's_promocao', room: 'padaria', x: 4, y: 7, w: 3, art: 'diary/sign_promocao', sign: { pt: "PROMOÇÃO", en: "Special offer" } },
+  { id: 's_desconto', room: 'padaria', x: 6, y: 2, sign: { pt: "DESCONTO", en: "Discount" } }, // on the vitrine
+  { id: 's_promocao', room: 'padaria', x: 5, y: 0, w: 2, up: 2, sign: { pt: "PROMOÇÃO", en: "Special offer" } }, // taped to the window
   { id: 'd_fogao', room: 'kitnet', x: 0, y: 0, ox: -4, art: 'diary/fogao' },
   { id: 'd_pia', room: 'kitnet', x: 3, y: 0, ox: -4, art: 'diary/pia' },
   { id: 'd_torneira', room: 'kitnet', x: 3, y: 0, ox: 4, art: 'diary/torneira' },
@@ -294,9 +300,9 @@ export const DIARY_PLACEMENTS: DiaryPlacement[] = [
   { id: 'd_extensao', room: 'kitnet', x: 4, y: 2, ox: -4, art: 'diary/extensao' },
   { id: 'd_retrato', room: 'kitnet', x: 5, y: 3, ox: 4, art: 'diary/retrato' },
   { id: 'd_chave', room: 'kitnet', x: 1, y: 4, ox: 4, art: 'diary/chave' },
-  { id: 's_recado', room: 'kitnet', x: 0, y: 2, w: 2, art: 'diary/sign_recado', sign: { pt: "RECADO", en: "Note" } },
-  { id: 's_lista', room: 'kitnet', x: 3, y: 3, w: 2, art: 'diary/sign_lista', sign: { pt: "LISTA", en: "List" } },
-  { id: 's_conta', room: 'kitnet', x: 0, y: 3, w: 2, art: 'diary/sign_conta', sign: { pt: "CONTA", en: "Bill" } },
+  { id: 's_recado', room: 'kitnet', x: 3, y: 0, up: 2, sign: { pt: "RECADO", en: "Note" } }, // by the window
+  { id: 's_lista', room: 'kitnet', x: 4, y: 0, up: 2, sign: { pt: "LISTA", en: "List" } }, // by the window
+  { id: 's_conta', room: 'kitnet', x: 5, y: 0, up: 2, sign: { pt: "CONTA", en: "Bill" } }, // by the window
   { id: 'bandeira_br', room: 'academia', x: 10, y: 0, ox: -4, art: 'props/bandeira_br' },
   { id: 'd_cronometro', room: 'academia', x: 8, y: 3, ox: -4, art: 'diary/cronometro' },
   { id: 'd_apito', room: 'academia', x: 7, y: 5, ox: -4, art: 'diary/apito' },
@@ -311,8 +317,8 @@ export const DIARY_PLACEMENTS: DiaryPlacement[] = [
   { id: 'd_meia', room: 'academia', x: 5, y: 8, ox: -4, art: 'diary/meia' },
   { id: 'd_squeeze', room: 'academia', x: 10, y: 8, ox: -4, art: 'diary/squeeze' },
   { id: 'd_isotonico', room: 'academia', x: 10, y: 8, ox: 4, art: 'diary/isotonico' },
-  { id: 's_extintor', room: 'academia', x: 8, y: 7, w: 3, art: 'diary/sign_extintor', sign: { pt: "EXTINTOR", en: "Fire extinguisher" } },
-  { id: 's_presenca', room: 'academia', x: 0, y: 3, w: 3, art: 'diary/sign_presenca', sign: { pt: "PRESENÇA", en: "Attendance" } },
+  { id: 's_extintor', room: 'academia', x: 10, y: 8, sign: { pt: "EXTINTOR", en: "Fire extinguisher" } }, // by the water fountain
+  { id: 's_presenca', room: 'academia', x: 1, y: 0, w: 4, up: 2, sign: { pt: "PRESENÇA", en: "Attendance" } }, // on the plaque over the stands
   { id: 'd_lapis', room: 'escola', x: 4, y: 2, ox: -4, art: 'diary/lapis' },
   { id: 'd_caneta', room: 'escola', x: 4, y: 2, ox: 4, art: 'diary/caneta' },
   { id: 'd_borracha', room: 'escola', x: 3, y: 3, ox: -4, art: 'diary/borracha' },
@@ -333,7 +339,7 @@ export const DIARY_PLACEMENTS: DiaryPlacement[] = [
   { id: 'd_sino', room: 'escola', x: 9, y: 5, ox: -4, art: 'diary/sino' },
   { id: 'd_corredor', room: 'escola', x: 9, y: 6, ox: -4, art: 'diary/corredor' },
   { id: 'd_patio', room: 'escola', x: 9, y: 4, ox: -4, art: 'diary/patio' },
-  { id: 's_silencio', room: 'escola', x: 0, y: 5, w: 3, art: 'diary/sign_silencio', sign: { pt: "SILÊNCIO", en: "Silence" } },
-  { id: 's_biblioteca', room: 'escola', x: 6, y: 6, w: 3, art: 'diary/sign_biblioteca', sign: { pt: "BIBLIOTECA", en: "Library" } },
-  { id: 's_chamada', room: 'escola', x: 2, y: 0, w: 2, art: 'diary/sign_chamada', sign: { pt: "CHAMADA", en: "Roll call" } },
+  { id: 's_silencio', room: 'escola', x: 4, y: 0, w: 2, up: 2, sign: { pt: "SILÊNCIO", en: "Silence" } }, // by the window
+  { id: 's_biblioteca', room: 'escola', x: 8, y: 2, sign: { pt: "BIBLIOTECA", en: "Library" } }, // on the board
+  { id: 's_chamada', room: 'escola', x: 1, y: 0, w: 2, up: 2, sign: { pt: "CHAMADA", en: "Roll call" } }, // on the blackboard
 ];

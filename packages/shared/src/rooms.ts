@@ -255,9 +255,9 @@ function feiraFloor(): string[] {
   });
 }
 
-/** The small objects and signs the language diary catalog added to a room (`diaryWorld.ts`): scenery, never in the way. */
+/** The small objects the language diary catalog added to a room (`diaryWorld.ts`): scenery, never in the way. Reading words are hotspots only. */
 const diaryProps = (room: RoomId): PropDef[] =>
-  DIARY_PLACEMENTS.filter((p) => p.room === room).map((p) => ({
+  DIARY_PLACEMENTS.filter((p) => p.room === room && !p.sign && p.art).map((p) => ({
     id: p.id,
     kind: 'cenario' as const,
     x: p.x,

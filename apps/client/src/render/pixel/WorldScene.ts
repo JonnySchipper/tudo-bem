@@ -18,6 +18,8 @@ import {
   hotspotBox,
   diaryVisible,
   hotspotsInRoom,
+  normalizeDiary,
+  wordForSign,
   isCpuId,
   key as tileKey,
   parrotColorById,
@@ -234,6 +236,10 @@ export class WorldScene extends Phaser.Scene {
   private roomId = '';
   private roomDef: RoomDef | null = null;
   private roomObjs: Phaser.GameObjects.GameObject[] = [];
+  /** Reading words in this room: a small twinkle over each one this player has not read yet (the signs have no sprite of their own). */
+  private glints: { word: string; img: Phaser.GameObjects.Image; phase: number }[] = [];
+  private glintDiary: unknown = null;
+  private glintHave = new Set<string>();
   private roomMap: Phaser.Tilemaps.Tilemap | null = null;
   private staticHits: HitBox[] = [];
   private placeholders: { key: string; rect: Rect }[] = [];
@@ -338,6 +344,54 @@ export class WorldScene extends Phaser.Scene {
     this.ready = true;
   }
 
+  /** The twinkle sprite (7 x 7 art px, drawn once): a four-point star in the guide arrow's gold. */
+  private glintTexture(): string {
+    const key = 'fx:glint';
+    if (!this.textures.exists(key))
+      this.textures.generate(key, {
+        data: ['...1...', '...2...', '..232..', '1233321', '..232..', '...2...', '...1...'],
+        pixelWidth: 1,
+        palette: { 1: '#c9921c', 2: '#f2c230', 3: '#fffbe8' } as unknown as Phaser.Types.Create.Palette,
+      });
+    return key;
+  }
+
+  /** One twinkle per reading word in the room, at the top of the thing it is written on. Shown only while the word is unread (`syncGlints`). */
+  private buildGlints(def: RoomDef): void {
+    const tex = this.glintTexture();
+    for (const hs of hotspotsInRoom(def.id)) {
+      const word = wordForSign(hs.id);
+      if (!word) continue;
+      const b = hotspotBox(hs);
+      const img = this.reg(this.add.image(((b.x0 + b.x1) / 2) * T, b.y0 * T + 3, tex)).setDepth(DEPTH.overhead - 10).setVisible(false);
+      this.glints.push({ word: word.id, img, phase: hash01(b.x0 * 13 + b.y0 * 7) * Math.PI * 2 });
+    }
+  }
+
+  /** Twinkle the unread words (slow, staggered; steady under reduced motion); hidden while a counter or bout has the screen. */
+  private syncGlints(now: number): void {
+    if (!this.glints.length) return;
+    // the diary set is rebuilt only when the profile's diary array changes (a new profile push)
+    const diary = game.profile?.diary;
+    if (diary !== this.glintDiary) {
+      this.glintDiary = diary;
+      this.glintHave = new Set(normalizeDiary(diary));
+    }
+    const have = this.glintHave;
+    const busy = correriaFeed.active || boutFeed.active || game.cameraOn;
+    for (const g of this.glints) {
+      const show = !busy && !have.has(g.word);
+      g.img.setVisible(show);
+      if (!show) continue;
+      if (this.fxLevel.reduced) {
+        g.img.setAlpha(0.9).setScale(1);
+        continue;
+      }
+      const t = (Math.sin(now / 520 + g.phase) + 1) / 2;
+      g.img.setAlpha(0.35 + 0.65 * t).setScale(0.75 + 0.35 * t);
+    }
+  }
+
   private reg<G extends Phaser.GameObjects.GameObject>(o: G): G {
     this.rig.world(o);
     this.roomObjs.push(o);
@@ -393,6 +447,7 @@ export class WorldScene extends Phaser.Scene {
     this.roomMap?.destroy();
     this.roomMap = null;
     this.staticHits = [];
+    this.glints = [];
     this.placeholders = [];
     this.canopies = [];
     this.trilho = null;
@@ -530,6 +585,7 @@ export class WorldScene extends Phaser.Scene {
       const b = hotspotBox(hs);
       this.staticHits.push({ x0: b.x0 * T, y0: b.y0 * T, x1: b.x1 * T, y1: b.y1 * T, hit: { kind: 'hotspot', hotspot: hs }, depth: b.y1 * T - 0.25 });
     }
+    this.buildGlints(def);
 
     // (the neighbours are not part of the room: the server walks them along their schedules and sends them as avatars)
 
@@ -860,6 +916,7 @@ export class WorldScene extends Phaser.Scene {
     const dyn: HitBox[] = [];
     this.syncFurniture(dyn);
     this.syncAvatars(def, now, dyn);
+    this.syncGlints(now);
     this.syncBout(dt, now);
     this.syncCounter(dt, now);
     this.updateCanopies(dt);
