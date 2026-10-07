@@ -1,0 +1,129 @@
+/* Shared look for /privacy and /terms. Warm cream and terracotta, same family as the game, kept simple. */
+:root {
+  --cream: #fbf1e3;
+  --paper: #fffaf2;
+  --ink: #2c2c2c;
+  --ink-soft: #5e5550;
+  --terracota: #c45c26;
+  --terracota-dark: #8f3e15;
+  --mustard: #d4a017;
+  --wood: #8b5e3c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: #f3e2cc;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--ink);
+  font-family: "Nunito", "Segoe UI", system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.55;
+  background:
+    radial-gradient(ellipse 80% 40% at 50% -10%, rgba(212, 160, 23, 0.28), transparent 60%),
+    linear-gradient(180deg, #f8e7d0 0%, var(--cream) 28%, #f3e2cc 100%);
+}
+
+main {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 28px 20px 64px;
+}
+
+.brand {
+  margin: 0 0 18px;
+  font-family: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.brand a {
+  color: var(--terracota-dark);
+  text-decoration: none;
+}
+
+.card {
+  background: var(--paper);
+  border: 2px solid rgba(44, 44, 44, 0.88);
+  border-radius: 22px;
+  box-shadow: 0 8px 22px rgba(58, 34, 22, 0.16);
+  padding: 28px 26px 8px;
+  position: relative;
+}
+
+.card::before {
+  content: "";
+  display: block;
+  height: 12px;
+  margin: -28px -26px 22px;
+  border-radius: 20px 20px 0 0;
+  background: repeating-linear-gradient(
+    90deg,
+    #c45c26 0 28px,
+    #f4efe6 28px 36px
+  );
+}
+
+h1 {
+  margin: 0 0 6px;
+  font-family: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  font-size: 2.1rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.effective {
+  margin: 0 0 22px;
+  color: var(--ink-soft);
+  font-weight: 700;
+}
+
+h2 {
+  margin: 1.6em 0 0.4em;
+  font-family: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  font-size: 1.25rem;
+  color: var(--terracota-dark);
+}
+
+p,
+li {
+  margin: 0.55em 0;
+}
+
+ul {
+  padding-left: 1.2em;
+}
+
+a {
+  color: var(--terracota-dark);
+  font-weight: 800;
+}
+
+a:hover {
+  color: var(--terracota);
+}
+
+a:focus-visible {
+  outline: 3px solid var(--mustard);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.foot {
+  margin-top: 28px;
+  padding-top: 14px;
+  border-top: 2px solid rgba(139, 94, 60, 0.25);
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+}
+
+.foot a {
+  margin-right: 0.9em;
+}

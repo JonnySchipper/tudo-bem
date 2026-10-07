@@ -275,7 +275,12 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       smoke,
       smokeNew,
       guest,
-      h('p', { class: 'intro-legal' }, 'Fase 0 · sua conta guarda seu avatar, suas RV e sua kitnet.'),
+      h(
+        'p',
+        { class: 'intro-legal' },
+        h('span', { class: 'intro-legal-note' }, 'Fase 0 · sua conta guarda seu avatar, suas RV e sua kitnet.'),
+        h('span', { class: 'intro-policies' }, h('a', { href: '/privacy' }, 'Privacy'), ' · ', h('a', { href: '/terms' }, 'Terms')),
+      ),
     );
 
     form.addEventListener('submit', async (e) => {
