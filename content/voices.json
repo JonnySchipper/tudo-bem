@@ -1,0 +1,16 @@
+{
+  "_readme": "The cast: who speaks, and how they sound. `speaker` ids are NPC ids (packages/shared/src/rooms.ts) plus `ui` (signs, words, drills). Voices are free Microsoft Edge neural pt-BR voices (edge-tts); only Antonio (male) and Francisca (female) exist for pt-BR, so NPCs of the same sex are told apart by `rate` (speed, e.g. \"-8%\") and `pitch` (e.g. \"-6Hz\"). Changing a voice/rate/pitch re-bakes that speaker's clips on the next `pnpm tts`; `carlos` and `ui` have no tweaks so their existing clips stay.",
+  "cast": {
+    "carlos": { "voice": "pt-BR-AntonioNeural", "about": "Seu Carlos, padeiro" },
+    "ui": { "voice": "pt-BR-FranciscaNeural", "about": "signs, menus, words in the Caderno, listening drills, the parrot" },
+    "graca": { "voice": "pt-BR-FranciscaNeural", "rate": "-10%", "pitch": "-8Hz", "about": "Dona Graça, padeira da noite: older, slower, warm" },
+    "nanda": { "voice": "pt-BR-FranciscaNeural", "rate": "+6%", "pitch": "+4Hz", "about": "Nanda, the hat shop: young and bright" },
+    "julia": { "voice": "pt-BR-FranciscaNeural", "rate": "+2%", "pitch": "+1Hz", "about": "Júlia, guia da praça: clear and friendly" },
+    "prof": { "voice": "pt-BR-FranciscaNeural", "rate": "+4%", "pitch": "-4Hz", "about": "Professora Bia: calm and firm" },
+    "lucia": { "voice": "pt-BR-FranciscaNeural", "rate": "-4%", "pitch": "-2Hz", "about": "Lúcia" },
+    "tia_lu": { "voice": "pt-BR-FranciscaNeural", "rate": "-4%", "pitch": "-5Hz", "about": "Tia Lu, feira: warm and a little loud" },
+    "rosa": { "voice": "pt-BR-FranciscaNeural", "rate": "-8%", "pitch": "+5Hz", "about": "Dona Rosa, flores: soft" },
+    "ze": { "voice": "pt-BR-AntonioNeural", "rate": "+6%", "pitch": "+4Hz", "about": "Seu Zé, hortaliças: quick and chatty" },
+    "chico": { "voice": "pt-BR-AntonioNeural", "rate": "-6%", "pitch": "-6Hz", "about": "Seu Chico, pastel: deep and easygoing" }
+  }
+}

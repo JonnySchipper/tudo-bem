@@ -65,7 +65,7 @@ const npcOf = (v: VendorId): NpcId => VENDORS[v].npc;
 const obrigad = () => (game.profile?.pronoun === 'ela' ? 'obrigada' : 'obrigado');
 
 function say(line: Bilingual) {
-  speak(line.pt);
+  speak(line.pt, { speaker: st ? npcOf(st.vendor) : undefined });
   noteHeard(line.pt);
 }
 

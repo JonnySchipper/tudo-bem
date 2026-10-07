@@ -37,6 +37,8 @@ export * from './bonds.js';
 export * from './recados.js';
 export * from './caderno.js';
 export * from './npcTalk.js';
+export * from './juliaTalk.js';
+export * from './spokenLines.js';
 export * from './npcMemory.js';
 export * from './feira.js';
 export * from './streetSnacks.js';

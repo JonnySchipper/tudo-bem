@@ -44,7 +44,7 @@ The client presentation layer is replaced. Everything else is kept and extended.
 | Shared rules and content | `packages/shared/src/*` (curriculum, `accept.ts`, `carlos.ts`, `conversa.ts`, `meveum.ts`, `numbers.ts`, `safety.ts`, `gloss.ts`, `cards.ts`, `catalog.ts`, `protocol.ts`, `path.ts`, `academia.ts`) | **Keep.** Extend with new modules. |
 | Room data | `packages/shared/src/rooms.ts` | **Keep the shape; change the data.** Rooms become bigger. The Praça becomes the Vila Ipê outdoor map (Phase 5). |
 | Server | `apps/server/src/*` (`world.ts`, `ambiance.ts`, `auth.ts`, `store.ts`, `app.ts`, `services/*`) | **Keep.** New systems go in **new files**, called from small hooks in `world.ts`. |
-| Content packs, TTS | `content/`, `apps/client/public/audio`, `scripts/bake-tts.mjs`, `scripts/build-curriculum.mjs` | **Keep.** |
+| Content packs, TTS | `content/`, `apps/client/public/audio`, `scripts/bake-tts.mjs` (see `docs/VOICES.md`), `scripts/build-curriculum.mjs` | **Keep.** |
 | Client state, net, auth | `apps/client/src/state.ts`, `net.ts`, `localNet.ts`, `auth/*` | **Keep.** |
 | Client DOM UI | `apps/client/src/ui/*` | **Keep the logic, restyle it** (pixel chrome). The dialogue presentation is rebuilt in Phase 7. |
 | Client entry | `apps/client/src/main.ts` | **Keep.** Refactor it to depend on a `WorldView` interface (Phase 0). |

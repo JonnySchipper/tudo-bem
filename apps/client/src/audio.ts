@@ -84,8 +84,22 @@ function fallback(text: string, rate: number | undefined, gen: number, release: 
   }
 }
 
-/** Speak Portuguese. Prebaked Antonio/Francisca clips win; otherwise a pt-BR voice, never English. */
-export function speak(text: string, opts: { force?: boolean; rate?: number } = {}) {
+/**
+ * Lines that had no prebaked clip and fell to the system voice this session (the robot). Dev builds warn once per line; `pnpm tts`
+ * bakes everything found in the game data, so what lands here is dynamic text (typed names, generated Conversa turns) or new dialogue
+ * that is not wired into `collectSpokenLines` yet.
+ */
+export const unbakedLines = new Set<string>();
+
+function noteUnbaked(speaker: string | undefined, text: string) {
+  const key = `${speaker ?? '?'}: ${text}`;
+  if (unbakedLines.has(key)) return;
+  unbakedLines.add(key);
+  if (import.meta.env.DEV) console.warn(`[tts] no clip, using the system voice → ${key}  (run: pnpm tts)`);
+}
+
+/** Speak Portuguese. A prebaked neural clip (the speaker's own, see content/voices.json) wins; otherwise the best pt-BR system voice, never English. */
+export function speak(text: string, opts: { force?: boolean; rate?: number; speaker?: string } = {}) {
   if (!game.sound && !opts.force) return;
   const raw = text.trim();
   if (!raw) return;
@@ -100,11 +114,12 @@ export function speak(text: string, opts: { force?: boolean; rate?: number } = {
   ambience.duck(true);
   window.setTimeout(release, 20000);
 
-  const clip = findClip(raw);
+  const clip = findClip(raw, opts.speaker);
   let fellBack = false;
   const goFallback = () => {
     if (fellBack || gen !== voiceGen) return;
     fellBack = true;
+    noteUnbaked(opts.speaker, raw);
     fallback(raw, opts.rate, gen, release);
   };
   if (!clip) return goFallback();
@@ -118,6 +133,12 @@ export function speak(text: string, opts: { force?: boolean; rate?: number } = {
   const pending = el.play();
   if (!pending) return goFallback();
   void pending.catch(() => goFallback());
+}
+
+if (import.meta.env.DEV) {
+  // paste the result into content/tts/extra-lines.json, then `pnpm tts`
+  (window as unknown as { ttsMissing: () => string }).ttsMissing = () =>
+    JSON.stringify([...unbakedLines].map((k) => ({ speaker: k.slice(0, k.indexOf(': ')).replace('?', 'ui'), text: k.slice(k.indexOf(': ') + 2) })), null, 2);
 }
 
 export function hasPtVoice() {
