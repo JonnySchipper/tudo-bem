@@ -146,7 +146,7 @@ function build(s: BoxSpec): HTMLElement[] {
             class: 'speak-btn dbx-listen',
             title: 'Ouvir / Listen',
             onclick: () => {
-              speak(listenText, { force: true });
+              speak(listenText, { force: true, speaker: s.npcId ?? undefined });
               noteHeard(listenText);
             },
           },

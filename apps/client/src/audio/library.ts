@@ -2,14 +2,16 @@ import manifest from './manifest.json';
 
 export interface TtsLine {
   id: string;
-  voice: 'carlos' | 'ui';
+  /** The speaker (a key of content/voices.json): who says it, and so which voice the clip was baked with. */
+  voice: string;
   text: string;
   file: string;
 }
 
 export interface TtsManifest {
   version: number;
-  voices: { carlos: string; ui: string };
+  /** speaker -> neural voice name */
+  voices: Record<string, string>;
   lines: TtsLine[];
 }
 
@@ -26,18 +28,25 @@ export function clipKey(text: string): string {
 }
 
 const byKey = new Map<string, TtsLine>();
-for (const line of TTS_MANIFEST.lines) byKey.set(clipKey(line.text), line);
-
-export function findClip(text: string): TtsLine | null {
-  return byKey.get(clipKey(text)) ?? null;
+const bySpeaker = new Map<string, TtsLine>();
+for (const line of TTS_MANIFEST.lines) {
+  const key = clipKey(line.text);
+  if (!byKey.has(key)) byKey.set(key, line);
+  bySpeaker.set(`${line.voice}\n${key}`, line);
 }
 
-/** Brazilian Portuguese first, then any Portuguese. Never an English voice. */
-export function pickPtVoice<T extends { lang: string }>(voices: readonly T[]): T | null {
+/** The clip for a line: the speaker's own take first, then the same words in any other cast voice (better than a robot). */
+export function findClip(text: string, speaker?: string): TtsLine | null {
+  const key = clipKey(text);
+  return (speaker ? bySpeaker.get(`${speaker}\n${key}`) : undefined) ?? byKey.get(key) ?? null;
+}
+
+/** The system voices that sound human (cloud / "natural" / "premium") beat the compact offline ones that sound like a robot. */
+const NATURAL = /natural|neural|online|premium|enhanced|google|luciana|francisca|antonio|thalita/i;
+
+/** Brazilian Portuguese first, then any Portuguese; within each, the most natural-sounding voice. Never an English voice. */
+export function pickPtVoice<T extends { lang: string; name?: string }>(voices: readonly T[]): T | null {
   const lang = (v: T) => v.lang.toLowerCase().replace(/_/g, '-');
-  return (
-    voices.find((v) => lang(v) === 'pt-br' || lang(v).startsWith('pt-br')) ??
-    voices.find((v) => lang(v).startsWith('pt-') || lang(v) === 'pt') ??
-    null
-  );
+  const best = (list: T[]) => list.find((v) => NATURAL.test(v.name ?? '')) ?? list[0] ?? null;
+  return best(voices.filter((v) => lang(v).startsWith('pt-br'))) ?? best(voices.filter((v) => lang(v).startsWith('pt-') || lang(v) === 'pt'));
 }

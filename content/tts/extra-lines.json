@@ -1,0 +1,389 @@
+{
+  "_readme": "Spoken lines that are not found by walking the game data (collectSpokenLines): correria and bout feedback, conta stamps, anything captured in play. Add {speaker,text}; then run pnpm tts. In a dev build, window.ttsMissing() prints the lines that fell back to the system voice in this session, ready to paste here.",
+  "lines": [
+    {
+      "speaker": "carlos",
+      "text": "Bom dia! Tudo bem?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Aqui a gente fala português, tá? Devagarinho: Bom… dia! Tudo… bem?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Pois não. O que vai ser hoje?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Sem pressa."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Sem pressa. Tem pão na chapa, coxinha e pastel quentinho."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Sem pressa, meu filho. Tem pão na chapa, coxinha e pastel quentinho."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Sem pressa, minha filha. Tem pão na chapa, coxinha e pastel quentinho."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Tá bom, meu filho."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Tá bom, minha filha."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Pão na chapa? Coxinha? Pastel? Fala assim: “Me vê um pão na chapa, por favor.”"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Café puro ou café com leite? Fala: “Um café com leite, por favor.”"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Pronto. Pra comer aqui ou pra viagem?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "“To go” é “pra viagem”. E “for here” é “pra comer aqui”."
+    },
+    {
+      "speaker": "carlos",
+      "text": "“Por conta da casa” quer dizer que você não paga nada. É de graça!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Tá na mão. Volte sempre! Quer ajudar no balcão? É a “Correria no Balcão”."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Tá na mão, meu filho. Volte sempre! Quer ajudar no balcão? É a “Correria no Balcão”."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Tá na mão, minha filha. Volte sempre! Quer ajudar no balcão? É a “Correria no Balcão”."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Isso aí! Um pão na chapa saindo. E pra beber? Café com leite, suco de laranja ou água?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Isso aí! Uma coxinha saindo. E pra beber? Café com leite, suco de laranja ou água?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Isso aí! Um pastel saindo. E pra beber? Café com leite, suco de laranja ou água?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Isso aí! Seu pedido saindo. E pra beber? Café com leite, suco de laranja ou água?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Isso aí! Um café com leite saindo. E pra comer? Pão na chapa, coxinha ou pastel?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Isso aí! Um café saindo. E pra comer? Pão na chapa, coxinha ou pastel?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Isso aí! Um suco de laranja saindo. E pra comer? Pão na chapa, coxinha ou pastel?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Isso aí! Uma água saindo. E pra comer? Pão na chapa, coxinha ou pastel?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Isso aí! Seu pedido saindo. E pra comer? Pão na chapa, coxinha ou pastel?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Deu três reais (R$ 3)… Mas hoje é por conta da casa!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Deu quatro reais (R$ 4)… Mas hoje é por conta da casa!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Deu cinco reais (R$ 5)… Mas hoje é por conta da casa!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Deu oito reais (R$ 8)… Mas hoje é por conta da casa!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Deu nove reais (R$ 9)… Mas hoje é por conta da casa!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Deu dez reais (R$ 10)… Mas hoje é por conta da casa!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Deu onze reais (R$ 11)… Mas hoje é por conta da casa!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Deu doze reais (R$ 12)… Mas hoje é por conta da casa!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Deu treze reais (R$ 13)… Mas hoje é por conta da casa!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Deu catorze reais (R$ 14)… Mas hoje é por conta da casa!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Deu quinze reais (R$ 15)… Mas hoje é por conta da casa!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Deu dezesseis reais (R$ 16)… Mas hoje é por conta da casa!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Bom dia! O que vai ser hoje?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Bom dia! O que posso servir?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "E aí, tudo bem? Vai querer o quê?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Pronto. O que posso servir?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Deixa eu anotar — o que vai ser?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Tá com fome? Me fala o pedido."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Oi! Café da manhã pra você?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Oi, beleza?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "E aí, tudo bem?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Pão na chapa saindo! E pra beber?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Pão na chapa, anotei. Quer café, suco ou água?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Isso aí, pão na chapa. Deixa eu anotar. E pra beber?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Uma coxinha quentinha! E pra beber?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Coxinha, boa. Deixa eu anotar. E pra beber?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Pastel de carne ou queijo? E pra beber?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Pastel, anotei. Carne ou queijo — e pra beber?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Café com leite saindo! Pra comer aqui ou pra viagem?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Café com leite, tá na mão. Pra comer aqui ou pra viagem?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Anotei o café com leite. Aqui ou pra viagem?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Suco de laranja fresquinho! Pra comer aqui ou pra viagem?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Suco de laranja, anotei. Aqui ou pra viagem?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Uma água geladinha! Pra comer aqui ou pra viagem?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Água, tá na mão. Pra comer aqui ou pra viagem?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Pronto! Tá na mão. Volte sempre!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Tá na mão. Pode sentar. Volte sempre!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Pra viagem, então. Tá na mão. Volte sempre!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Volte sempre!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Volte sempre! Até amanhã."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Bom dia! Tudo bem? O que vai ser hoje?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Bom dia! Beleza? Me conta o que vai ser."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Bom dia! E aí, o que vai querer?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Não entendi bem. O que você quer pedir?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Hmm. Mais alguma coisa?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Quer mais alguma coisa?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Deixa eu anotar. O que mais?"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Isso mesmo! Cliente feliz!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Que rapidez! Tá pegando o jeito!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Agora sim! Muito bem."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Mandou bem!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Passou"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Quase!"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Tenta de novo"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Opa, não é bem isso. Vou repetir devagar…"
+    },
+    {
+      "speaker": "carlos",
+      "text": "Tudo bem, acontece! Próximo cliente."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Ih, o cliente cansou de esperar! Próximo."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 8 reais virtuais."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 9 reais virtuais."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 10 reais virtuais."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 11 reais virtuais."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 12 reais virtuais."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 13 reais virtuais."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 14 reais virtuais."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 15 reais virtuais."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 16 reais virtuais."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 17 reais virtuais."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 18 reais virtuais."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 19 reais virtuais."
+    },
+    {
+      "speaker": "carlos",
+      "text": "Valeu pela ajuda! Aqui estão 20 reais virtuais."
+    }
+  ]
+}
