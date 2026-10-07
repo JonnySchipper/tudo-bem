@@ -13,6 +13,7 @@ import { chromium } from 'playwright-core';
 import { findChrome } from './lib/chrome.mjs';
 import { requirePinnedClock } from './lib/clock-pin.mjs';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
+import { finishArrival } from './lib/arrival.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
 const LOWFX = process.argv.includes('--lowfx');
@@ -46,7 +47,7 @@ for (const v of VIEWS) {
   await page.fill('#avatar-name', 'Perf');
   await page.click('button:has-text("ele (he)")');
   await page.click('#enter-praca');
-  await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 15_000, 'praça');
+  await finishArrival(page);
   for (const s of SCENES) {
     await page.evaluate((s) => window.__tb.setClock({ time: s.time, weather: 'chuva' }), s);
     await page.evaluate(([x, y]) => window.__tb.walkTo(x, y), s.at);

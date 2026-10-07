@@ -1,0 +1,6 @@
+{
+  "$comment": "The airport of the arrival tutorial (ROOMS.aeroporto): every piece is authored in custom/aeroporto.mjs, one derive that emits all the aero/* parts.",
+  "sprites": [
+    {"key":"aero/aviao","kind":"derive","fn":"aeroporto"}
+  ]
+}

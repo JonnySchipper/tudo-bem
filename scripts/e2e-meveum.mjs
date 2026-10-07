@@ -109,7 +109,6 @@ async function signUp(page, name) {
   await page.fill('#avatar-name', name);
   await page.click('button:has-text("ele (he)")');
   await page.click('#enter-praca');
-  await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
   await finishArrival(page);
 }
 

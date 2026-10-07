@@ -2,7 +2,7 @@
  * Praça street snacks: bought at the carts, carried until the session ends (not saved on the profile).
  * Prices are virtual reais (RV). The beta stays free — nothing here takes real money.
  */
-export type StreetSnackId = 'pipoca_salgada' | 'pipoca_doce' | 'pipoca_doce_leite' | 'agua_de_coco';
+export type StreetSnackId = 'pipoca_salgada' | 'pipoca_doce' | 'pipoca_doce_leite' | 'agua_de_coco' | 'pao_de_queijo' | 'cafezinho';
 
 /** Optional condensed milk on sweet popcorn only. */
 export const LEITE_CONDENSADO_RV = 3;
@@ -12,7 +12,7 @@ export interface StreetSnackDef {
   pt: string;
   en: string;
   price: number;
-  /** Prop id in `ROOMS.praca` that sells this snack. */
+  /** Prop id that sells this snack (the praça carts, the airport café). */
   propId: string;
   /** Icon under `icons/` in the pixel manifest. Sweet popcorn reuses the red `pipoca` art. */
   icon: string;
@@ -42,6 +42,9 @@ export const STREET_SNACKS: StreetSnackDef[] = [
     addonOf: 'pipoca_doce',
   },
   { id: 'agua_de_coco', pt: 'Água de coco', en: 'Coconut water', price: 7, propId: 'carrinho_coco', icon: 'agua_de_coco' },
+  // the airport café (the arrival tutorial's first purchase: the starting coins cover it). needs_br: true
+  { id: 'pao_de_queijo', pt: 'Pão de queijo', en: 'Cheese bread', price: 4, propId: 'lanchonete_aero', icon: 'pao_de_queijo' },
+  { id: 'cafezinho', pt: 'Cafezinho', en: 'A little coffee', price: 3, propId: 'lanchonete_aero', icon: 'cafe' },
 ];
 
 /** The old single popcorn id is the salty bag. */

@@ -78,8 +78,8 @@ export type ClientMsg =
   /** The player played 🔊 for these cards (Caderno). At most 10 known card ids; rate-limited per session. */
   | { t: 'heard'; cardIds: string[] }
   /**
-   * Finish the plane arrival: Júlia gives the camera and the cartela, and the card's own words go into the diary. Once.
-   * `replay` watches it again (accounts from before the intro never saw it): only the card's missing words.
+   * Finish the arrival: at the airport's information desk Célia hands over the camera, the cartela and Júlia's note, whose words go into the
+   * diary. Once. `replay` (a visit to the airport from the diary's Chegada area): only the note's missing words.
    */
   | { t: 'arrival'; action: 'finish' | 'replay' }
   /**
@@ -89,12 +89,10 @@ export type ClientMsg =
   | { t: 'grant'; id: string }
   /**
    * Take a photo. `anchors` are the camera objects inside the viewfinder (props, wall spots, placed furniture); every camera word they
-   * teach is given, in the order named. `image` is a small jpeg of the frame. Every shot spends one film, except one in the airport
-   * hall (`hall`: a postcard of the arrival, free, only its own objects).
+   * teach is given, in the order named. `image` is a small jpeg of the frame. Every shot spends one film, except in the airport (the
+   * arrival tutorial's first photos are free).
    */
-  | { t: 'diary'; action: 'photo'; anchor?: string; anchors?: string[]; image?: string; hall?: boolean }
-  /** Read a sign in the airport hall of the arrival. */
-  | { t: 'diary'; action: 'sign'; anchor: string }
+  | { t: 'diary'; action: 'photo'; anchor?: string; anchors?: string[]; image?: string }
   /** Buy a pack of film from Júlia. Virtual RV only. */
   | { t: 'diary'; action: 'buyFilm' }
   /** Heard an NPC line (`npc.node`) that can teach a conversation word. */

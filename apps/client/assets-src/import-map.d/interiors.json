@@ -15,7 +15,8 @@
     "l": {"name":"ladrilho","kind":"flush","custom":"ladrilho","rim":"#7a5a48"},
     "m": {"name":"madeira","kind":"flush","custom":"taco","sheet":"rbFloors","rim":"#4a2f22"},
     "k": {"name":"xadrez","kind":"flush","custom":"xadrez","rim":"#3a3a50"},
-    "j": {"name":"tatame","kind":"flush","custom":"tatame","rim":"#2b3a5c"}
+    "j": {"name":"tatame","kind":"flush","custom":"tatame","rim":"#2b3a5c"},
+    "z": {"name":"granilite","kind":"flush","custom":"granilite","rim":"#8b8bab"}
   },
   "sprites": [
     {"key":"walls/north_praca_l","kind":"derive","fn":"wallSet","args":{"style":"praca"}},

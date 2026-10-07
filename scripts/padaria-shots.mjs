@@ -53,7 +53,6 @@ async function run(name) {
     await page.fill('#avatar-name', 'Lia');
     await page.click('button:has-text("ela (she)")');
     await page.click('#enter-praca');
-    await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 20_000, 'praça');
     await finishArrival(page);
     await sleep(600);
     await goArea(page, 'rua');

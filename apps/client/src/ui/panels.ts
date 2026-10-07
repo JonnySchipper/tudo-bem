@@ -434,6 +434,7 @@ export function openMap(go: (room: RoomId) => void) {
         card('academia', 'Academia do Bairro', 'Word-game roll — academy Portuguese (not real MA training)', ['#2f5f7a', '#8ab4c8']),
         card('escola', 'Escola da Praça', 'Practice diary words — the door is on Rua dos Ipês', ['#2f6f4e', '#c9e2c2']),
         card('kitnet', 'Minha kitnet', 'My studio apartment — decorate', ['#f5e6d3', '#a8c5d4'], false, true),
+        card('aeroporto', 'Aeroporto', 'Airport — where you landed: the first-steps tutorial (bus 875)', ['#2e8a55', '#f8d239']),
         card(null, 'Estação de Metrô', 'Subway (Phase 1)', null, true),
         card(null, 'Praia', 'Beach day trip (Phase 2)', null, true),
       ),

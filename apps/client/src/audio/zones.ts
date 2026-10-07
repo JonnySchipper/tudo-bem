@@ -121,6 +121,8 @@ export const FOOTSTEPS: Record<FloorKind, FootstepSound> = {
   paralelepipedo: { freq: 1500, q: 1.1, filter: 'bandpass', dur: 0.05, gain: 0.05, thump: 20 },
   asfalto: { freq: 1100, q: 0.9, filter: 'bandpass', dur: 0.06, gain: 0.046, thump: 0 },
   tatame: { freq: 420, q: 0.7, filter: 'lowpass', dur: 0.08, gain: 0.04, thump: 90 },
+  // the airport's polished stone: a bright, short click
+  granilite: { freq: 3200, q: 1.7, filter: 'bandpass', dur: 0.04, gain: 0.046, thump: 0 },
 };
 
 /** Playback-rate / filter multiplier for one step: 1 ± 5%. `r` is a 0..1 random. */

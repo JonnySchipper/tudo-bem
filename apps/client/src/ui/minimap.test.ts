@@ -35,7 +35,7 @@ describe('Vila Ipê minimaps (one per open-air area)', () => {
     const doors = ms.filter((m) => m.kind === 'door');
     expect(doors).toHaveLength(4); // two doors and ONE marker for each opening (the south path, the east seam)
     expect(doors.map((d) => d.label).sort()).toEqual(['Edifício Ipê — Minha kitnet', 'Padaria do Seu Carlos', 'Praça Central', 'Rua dos Ipês (leste)'].sort());
-    expect(markers(leste, null).filter((m) => m.kind === 'door').map((d) => d.label).sort()).toEqual(['Academia do Bairro', 'Escola da Praça', 'Rua dos Ipês'].sort());
+    expect(markers(leste, null).filter((m) => m.kind === 'door').map((d) => d.label).sort()).toEqual(['Academia do Bairro', 'Escola da Praça', 'Ônibus para o Aeroporto', 'Rua dos Ipês'].sort());
     expect(ms.filter((m) => m.kind === 'me')).toHaveLength(1);
     expect(markers(rua, null).some((m) => m.kind === 'me')).toBe(false);
     // the praça: one marker per exit (north to the rua, east to the feira), and Nanda and Júlia at their home tiles
@@ -44,6 +44,9 @@ describe('Vila Ipê minimaps (one per open-air area)', () => {
     // the feira: the gate to the praça, and the four vendors
     expect(markers(feira, null).filter((m) => m.kind === 'door').map((m) => m.label)).toEqual(['Praça Central']);
     expect(markers(feira, null).filter((m) => m.kind === 'npc').map((m) => m.label).sort()).toEqual(['Dona Rosa', 'Seu Chico', 'Seu Zé', 'Tia Lu']);
+    // the airport: the bus to the Vila, Célia and the agent
+    expect(markers(ROOMS.aeroporto, null).filter((m) => m.kind === 'door').map((m) => m.label)).toEqual(['Ônibus 875 · Vila Ipê']);
+    expect(markers(ROOMS.aeroporto, null).filter((m) => m.kind === 'npc').map((m) => m.label).sort()).toEqual(['Agente Paulo', 'Célia']);
   });
 
   it('marks the NPCs where they are now when the caller says so (schedules move them)', () => {

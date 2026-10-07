@@ -11,6 +11,7 @@
 import { chromium } from 'playwright-core';
 import { findChrome } from './lib/chrome.mjs';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
+import { finishArrival } from './lib/arrival.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:4173/';
 const SOFT = !!process.env.FACING_SOFT; // report only (the before-the-fix run)
@@ -64,7 +65,7 @@ try {
   await page.fill('#avatar-name', 'Diag');
   await page.click('button:has-text("ela (she)")');
   await page.click('#enter-praca');
-  await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 15_000, 'praça');
+  await finishArrival(page);
   await sleep(1500);
   const settle = async (x, y) => {
     await page.evaluate(([x, y]) => window.__tb.walkTo(x, y), [x, y]);

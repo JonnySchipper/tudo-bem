@@ -213,8 +213,8 @@ export function buildCpuNames() {
  * Ids the recado validator accepts. Mirrors the shared engine (packages/shared/src/rooms.ts, recados.ts,
  * meveum.ts); curriculum.test.ts fails if any list drifts from the code.
  */
-export const RECADO_NPC_IDS = ['carlos', 'nanda', 'julia', 'graca', 'prof', 'tia_lu', 'ze', 'chico', 'rosa', 'lucia'];
-export const RECADO_ROOM_IDS = ['praca', 'rua', 'rua_leste', 'feira', 'padaria', 'kitnet', 'academia', 'escola', 'andar'];
+export const RECADO_NPC_IDS = ['carlos', 'nanda', 'julia', 'graca', 'prof', 'tia_lu', 'ze', 'chico', 'rosa', 'lucia', 'celia', 'agente'];
+export const RECADO_ROOM_IDS = ['praca', 'rua', 'rua_leste', 'feira', 'padaria', 'kitnet', 'academia', 'escola', 'andar', 'aeroporto'];
 export const RECADO_FLAG_IDS = ['feira', 'dialogue'];
 export const RECADO_ITEM_IDS = [
   // the padaria shelf (meveum.ts SHELF)

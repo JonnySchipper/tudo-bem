@@ -1,7 +1,8 @@
 /**
- * The plane arrival card and the airport hall behind it. The card is not a walkable room: Júlia speaks it once, and the hall is a
- * postcard the player can photograph and read (the camera words and signs of the Chegada area).
- * Every Portuguese string here is needs_br; the card lines are the ones already on screen, unchanged.
+ * The arrival. A new account lands at the airport (`ROOMS.aeroporto`) and walks the tutorial there; at the information desk Célia hands over
+ * what Júlia left for them: the camera, the cartela do bairro, and a note. The note's lines are Júlia's (they teach the conversation words
+ * of the diary's Chegada area); the airport's signs and things teach its reading and camera words like any other room's.
+ * Every Portuguese string here is needs_br.
  */
 import type { Bilingual } from './types.js';
 
@@ -13,23 +14,10 @@ export const ARRIVAL_CARD = {
   diary: { pt: 'Fotografe o que você vê e as palavras ficam no diário.', en: 'Photograph what you see and the words stay in the diary.' },
 } as const satisfies Record<string, Bilingual>;
 
-/** Reading anchors of the arrival: the card kicker and the signs in the hall. `text` is what is painted. */
-export const ARRIVAL_SIGNS: readonly { id: string; pt: string; en: string }[] = [
-  { id: 'arrival.kicker', pt: ARRIVAL_CARD.kicker.pt, en: ARRIVAL_CARD.kicker.en },
-  { id: 'hall_s_desembarque', pt: 'DESEMBARQUE', en: 'Arrivals' },
-  { id: 'hall_s_bagagem', pt: 'BAGAGEM', en: 'Baggage' },
-  { id: 'hall_s_alfandega', pt: 'ALFÂNDEGA', en: 'Customs' },
-  { id: 'hall_s_embarque', pt: 'EMBARQUE', en: 'Departures' },
-  { id: 'hall_s_terminal', pt: 'TERMINAL', en: 'Terminal' },
-];
-
-/** Conversation anchors of the card, all Júlia's. */
+/** Conversation anchors of Júlia's note. */
 export const ARRIVAL_LINES: Record<string, Bilingual> = {
   'julia.chegada_titulo': ARRIVAL_CARD.title,
   'julia.chegada_aviao': ARRIVAL_CARD.landed,
   'julia.chegada_camera': ARRIVAL_CARD.camera,
   'julia.chegada_diario': ARRIVAL_CARD.diary,
 };
-
-export const isArrivalSign = (id: string): boolean => ARRIVAL_SIGNS.some((s) => s.id === id);
-export const isHallObject = (id: string): boolean => id.startsWith('hall_') && !id.startsWith('hall_s_');

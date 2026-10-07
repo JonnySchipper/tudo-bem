@@ -12,6 +12,7 @@ import * as edificio from './edificio.mjs';
 import * as academia from './academia.mjs';
 import * as portraits from './portraits.mjs';
 import * as feiraMod from './feira.mjs';
+import * as aeroMod from './aeroporto.mjs';
 import * as iconsMod from './icons.mjs';
 import * as uiMod from './ui.mjs';
 import * as uiIconsMod from './uiicons.mjs';
@@ -69,6 +70,7 @@ export const DERIVE = {
   fusca: vauth.fusca,
   moto: vauth.moto,
   feira: feiraMod.feira,
+  aeroporto: aeroMod.aeroporto,
   guideArrow: uiMod.guideArrow,
   casas: vilaMod.casas,
   telhados: telhadosMod.telhados,

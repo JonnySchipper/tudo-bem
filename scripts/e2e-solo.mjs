@@ -45,7 +45,6 @@ try {
   await page.fill('#avatar-name', 'Solo');
   await page.click('button:has-text("ela (she)")');
   await page.click('#enter-praca');
-  await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 15_000, 'praça');
   await finishArrival(page);
   await sleep(1200);
   assert(await page.isVisible('#solo-pill'), 'the solo pill shows (HUD, top left)');

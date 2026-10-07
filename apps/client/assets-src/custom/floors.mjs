@@ -7,6 +7,7 @@
 //   m  madeira/taco  herringbone parquet: the LimeZu chevron floor (Room_Builder_Floors 144,160) recolored to warm woods
 //   k  xadrez        black-and-white checker (8 px squares), authored
 //   j  tatame        blue / green foam puzzle mats with seams (32 px mats, 2x2 phases), authored
+//   z  granilite     the airport terminal: big polished terrazzo slabs (32 px, 2x2 phases), pale grey with stone chips, authored
 import { blank, clone, crop } from '../../../../scripts/lib/pixel/img.mjs';
 import { C, K, put, fillRect, h2 } from './paint.mjs';
 import { recolorRamp } from './kit.mjs';
@@ -146,12 +147,56 @@ export function tatame() {
   return calm(out, 0.8);
 }
 
+// ------------------------------------------------------------------ z: granilite (the airport terminal)
+// Polished terrazzo in 32 px slabs: a pale lavender-grey base, a lighter sheen band across the top-left of each slab, sparse chips in three
+// stone tones (never two touching), and a 1 px joint that is lit on its upper-left edge and shaded on the lower-right.
+const GRAN = { base: '#e3e0ea', baseLo: '#d9d5e2', sheen: '#eeebf3', joint: '#b9b4c8', jointLo: '#a7a2b8', chips: ['#c9c3d4', '#b8b1c6', '#f6f4f8', '#cfc6b6'] };
+
+export function granilite() {
+  const sheet = blank(64, 64);
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
+    const sx = x % 32, sy = y % 32;
+    // a soft diagonal sheen on the upper-left of each slab, the lower-right a shade darker
+    const d = sx + sy;
+    put(sheet, x, y, d < 18 ? GRAN.sheen : d > 46 ? GRAN.baseLo : GRAN.base);
+  }
+  // stone chips: sparse, deterministic, never on a joint, never two side by side
+  const taken = new Set();
+  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
+    if (x % 32 === 31 || y % 32 === 31 || x % 32 === 0 || y % 32 === 0) continue;
+    if (h2(x, y, 41) > 0.05) continue;
+    if (taken.has(`${x - 1},${y}`) || taken.has(`${x},${y - 1}`) || taken.has(`${x - 1},${y - 1}`) || taken.has(`${x + 1},${y - 1}`)) continue;
+    taken.add(`${x},${y}`);
+    put(sheet, x, y, GRAN.chips[Math.floor(h2(x, y, 43) * GRAN.chips.length) % GRAN.chips.length]);
+  }
+  // joints: the slab's last column and row; the first column and row of the next slab catch the light
+  for (let i = 0; i < 64; i++) {
+    for (const j of [31, 63]) {
+      put(sheet, j, i, GRAN.joint);
+      put(sheet, i, j, GRAN.joint);
+    }
+    for (const j of [0, 32]) {
+      put(sheet, j, i, i % 32 === 31 ? GRAN.joint : '#f2f0f6');
+      put(sheet, i, j, i % 32 === 31 ? GRAN.joint : '#f2f0f6');
+    }
+    for (const j of [30, 62]) {
+      if (i % 32 !== 31 && i % 32 !== 0) put(sheet, j, i, GRAN.baseLo);
+      if (i % 32 !== 31 && i % 32 !== 0) put(sheet, i, j, GRAN.baseLo);
+    }
+  }
+  for (const j of [31, 63]) for (const k of [31, 63]) put(sheet, j, k, GRAN.jointLo);
+  const out = [];
+  for (let py = 0; py < 4; py++) for (let px = 0; px < 4; px++) out.push(crop(sheet, px * 16, py * 16, 16, 16));
+  return out;
+}
+
 export const FLOORS = {
   tijolo: { fn: tijolo, phasesX: 1, phasesY: 1 },
   ladrilho: { fn: ladrilho, phasesX: 1, phasesY: 1 },
   taco: { fn: taco, phasesX: 1, phasesY: 1, needsPack: true },
   xadrez: { fn: xadrez, phasesX: 1, phasesY: 1 },
   tatame: { fn: tatame, phasesX: 4, phasesY: 4 },
+  granilite: { fn: granilite, phasesX: 4, phasesY: 4 },
 };
 
 export { C, clone };

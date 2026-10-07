@@ -115,7 +115,7 @@ export interface PortalDef {
 export const OFFSTAGE_NPCS: Partial<Record<NpcId, { name: string; role: Bilingual }>> = {};
 
 /** The feira vendors (Phase 9): Tia Lu (fruit), Seu Zé (vegetables), Seu Chico (pastel and caldo de cana), Dona Rosa (flowers). */
-export type NpcId = 'carlos' | 'nanda' | 'julia' | 'graca' | 'prof' | 'tia_lu' | 'ze' | 'chico' | 'rosa' | 'lucia';
+export type NpcId = 'carlos' | 'nanda' | 'julia' | 'graca' | 'prof' | 'tia_lu' | 'ze' | 'chico' | 'rosa' | 'lucia' | 'celia' | 'agente';
 
 export interface NpcDef {
   id: NpcId;
@@ -135,7 +135,7 @@ export interface NpcDef {
   idleLines: Bilingual[];
 }
 
-export type FloorKind = 'calcada' | 'grama' | 'tijolo' | 'xadrez' | 'ladrilho' | 'madeira' | 'asfalto' | 'tatame' | 'paralelepipedo';
+export type FloorKind = 'calcada' | 'grama' | 'tijolo' | 'xadrez' | 'ladrilho' | 'madeira' | 'asfalto' | 'tatame' | 'paralelepipedo' | 'granilite';
 
 export interface RoomDef {
   id: RoomId;
@@ -151,6 +151,11 @@ export interface RoomDef {
   lighting: 'tarde' | 'manha' | 'dia';
   /** An open-air map (Vila Ipê): no wall band, the terrain runs to the map edge, buildings are props. */
   outdoor?: boolean;
+  /**
+   * Rows of an open-air map that are under a roof (the airport's terminal, glass front included): the sky and the clock still light them,
+   * but no rain falls there.
+   */
+  roof?: { y0: number; y1: number };
   spawn: Tile;
   props: PropDef[];
   walls: WallDecor[];
@@ -177,6 +182,7 @@ export const FLOOR_CHARS: Record<string, FloorKind> = {
   a: 'asfalto',
   j: 'tatame',
   p: 'paralelepipedo',
+  z: 'granilite',
 };
 
 // ---------------------------------------------------------------- Vila Ipê, split into three open-air areas ("Split into areas")
@@ -199,6 +205,8 @@ const RUA_ROWS = 16;
 const PRACA_COLS = 32;
 const PRACA_ROWS = 24;
 const FEIRA_COLS = 32;
+const AERO_COLS = 30;
+const AERO_ROWS = 26;
 const FEIRA_ROWS = 20;
 
 /** Parking bays on the south curb of Rua dos Ipês: first and last tile x of each, all on row 12 (asphalt notches in the sidewalk). Per area (the east one is in rua_leste's own tiles). */
@@ -252,6 +260,22 @@ function pracaFloor(): string[] {
 function feiraFloor(): string[] {
   return floorGrid(FEIRA_COLS, FEIRA_ROWS, 'p', (paint) => {
     paint('t', 0, 7, 2, 10); // the brick threshold from the praça
+  });
+}
+
+/**
+ * The airport, top to bottom: the runway (rows 0-1), a strip of grass, the apron with the plane at the gate (rows 3-7: seen through the
+ * glass, nobody walks there), the terminal's glass front (row 8), the terminal floor (rows 9-20), a low glass front with the exit doors
+ * (row 21), the sidewalk (row 22) and the road where the bus to the Vila waits (row 23).
+ */
+function aeroFloor(): string[] {
+  return floorGrid(AERO_COLS, AERO_ROWS, 'z', (paint) => {
+    paint('g', 0, 0, AERO_COLS - 1, 1);
+    paint('a', 0, 2, AERO_COLS - 1, 3);
+    paint('g', 0, 4, AERO_COLS - 1, 4);
+    paint('a', 0, 5, AERO_COLS - 1, 9);
+    paint('c', 0, 24, AERO_COLS - 1, 24);
+    paint('a', 0, 25, AERO_COLS - 1, 25);
   });
 }
 
@@ -442,6 +466,7 @@ const ruaLeste: RoomDef = {
     cen('bici_3', 'props/bicicletario', 12, 7, 1, 1, { blocks: true }),
     // ---- south calçada: the bus stop, a utility pole, lamp, bins
     P('ponto', 'ponto_onibus', 6, 12, { w: 3, label: { pt: 'Ponto de ônibus', en: 'Bus stop' } }),
+    cen('placa_aeroporto', 'aero/placa_onibus', 9, 12),
     P('poste_4', 'poste', 4, 13),
     P('lampada_s2', 'poste', 2, 13, { art: 'props/lamp_old' }),
     P('lixeira_s1', 'lixeira', 3, 13),
@@ -486,6 +511,8 @@ const ruaLeste: RoomDef = {
       doorAt: { x: 12, y: 5 },
       label: { pt: 'Escola da Praça', en: 'Square school' },
     },
+    // the airport bus (line 875) stops here too: the little sign next to the shelter
+    { id: 'rua_aeroporto', x: 9, y: 12, to: 'aeroporto', arrive: { x: 20, y: 24 }, arriveDir: 'NW', doorAt: { x: 9, y: 12 }, label: { pt: 'Ônibus para o Aeroporto', en: 'Bus to the Airport' } },
     ...edgePortals('leste_rua', 'rua', RUA_SEAM_ROWS.map((y) => ({ x: 0, y })), (t) => ({ x: RUA_COLS - 2, y: t.y }), 'SW', { pt: 'Rua dos Ipês', en: 'Ipê Street' }),
   ],
   npcs: [],
@@ -1175,7 +1202,139 @@ const escola: RoomDef = {
   private: false,
 };
 
-export const ROOMS: Record<RoomId, RoomDef> = { praca, rua, rua_leste: ruaLeste, feira, padaria, kitnet, academia, escola, andar };
+// ---------------------------------------------------------------- aeroporto
+/**
+ * Where every new arrival starts: the plane has just come in to gate 3. A walk-through tutorial runs north to south (client
+ * `airportTutorial.ts`): out of the gate, read a sign, Célia at the information desk hands over the camera and the cartela, a first photo
+ * (of the plane through the glass: shots here cost no film), the passport check with the agent, a seat, a wave, a pão de queijo, and the
+ * bus to the Vila. Anyone can come back by the bus from the stop on Rua dos Ipês (leste). The fourteen camera words and the reading words
+ * of the diary's Chegada area are the things in here (`hall_*`). Needs_br: every Portuguese string in this room.
+ */
+const glassRow = (id: string, art: string, y: number, xs: number[], blocks = true): PropDef[] => xs.map((x) => P(`${id}_${x}`, 'cenario', x, y, { art, blocks }));
+const AERO_VILA: Bilingual = { pt: 'Ônibus 875 · Vila Ipê', en: 'Bus 875 · to Vila Ipê' };
+
+const aeroporto: RoomDef = {
+  id: 'aeroporto',
+  name: 'Aeroporto',
+  gloss: 'Airport',
+  cols: AERO_COLS,
+  rows: AERO_ROWS,
+  outdoor: true,
+  roof: { y0: 10, y1: 23 },
+  floor: aeroFloor(),
+  wallHeight: 0,
+  wallColor: '#d8d4e4',
+  wallTrim: '#8b8bab',
+  lighting: 'dia',
+  spawn: { x: 11, y: 11 },
+  props: [
+    // ---- the apron, behind the glass: the plane at the gate, the jet bridge, the tower, a baggage tug and its carts, cones
+    cen('aviao', 'aero/aviao', 0, 5, 12, 3, { blocks: true, label: { pt: 'Avião', en: 'Airplane' } }),
+    cen('hall_ponte', 'aero/ponte', 10, 8, 3, 2, { blocks: true }),
+    cen('hall_torre', 'aero/torre', 26, 7, 2, 2, { blocks: true }),
+    cen('rebocador', 'aero/rebocador', 15, 7, 5, 1, { blocks: true }),
+    cen('cone_pista_1', 'diary/cone', 14, 8, 1, 1, { blocks: true }),
+    cen('cone_pista_2', 'diary/cone', 21, 8, 1, 1, { blocks: true }),
+    // the runway's edge lights, on the grass either side of it
+    ...[1, 5, 9, 13, 17, 21, 25, 29].map((x) => cen(`luz_pista_n${x}`, 'aero/luz_pista', x, 1)),
+    ...[3, 7, 23, 27].map((x) => cen(`luz_pista_s${x}`, 'aero/luz_pista', x, 4)),
+    // ---- the glass front of the terminal: gate 3 (the jet bridge's door, where you come out), the big AEROPORTO letters
+    ...glassRow('vidro_n', 'aero/vidraca', 10, [...span(10, 0), ...span(5, 13), ...span(6, 24)]),
+    cen('portao', 'aero/portao', 10, 10, 3, 1, { blocks: true, label: { pt: 'Portão 3', en: 'Gate 3' } }),
+    cen('letreiro', 'aero/vidraca_letreiro', 18, 10, 6, 1, { blocks: true }),
+    // ---- the gate lounge: seats, the gate counter, the departures board, the information desk
+    cen('cadeiras_1', 'aero/cadeiras', 1, 12, 3, 1, { seat: 'SW' }),
+    cen('cadeiras_2', 'aero/cadeiras', 5, 12, 3, 1, { seat: 'SW' }),
+    cen('cadeiras_3', 'aero/cadeiras', 1, 14, 3, 1, { seat: 'SW' }),
+    cen('cadeiras_4', 'aero/cadeiras', 5, 14, 3, 1, { seat: 'SW' }),
+    cen('placa_terminal', 'aero/placa_terminal', 3, 11, 3, 1),
+    cen('balcao_portao', 'aero/balcao_portao', 13, 11, 2, 1, { blocks: true, label: { pt: 'Balcão do portão', en: 'Gate counter' } }),
+    cen('painel_voos', 'aero/painel', 16, 11, 3, 1, { blocks: true }),
+    cen('informacoes', 'aero/informacoes', 21, 12, 3, 1, { blocks: true, label: { pt: 'Informações', en: 'Information desk' } }),
+    cen('cadeiras_5', 'aero/cadeiras', 25, 14, 3, 1, { seat: 'SW' }),
+    cen('vaso_a1', 'props/vaso_topiaria_a', 0, 11, 1, 1, { blocks: true }),
+    cen('vaso_a2', 'props/vaso_topiaria_b', 25, 11, 1, 1, { blocks: true }),
+    cen('vaso_a3', 'props/vaso_topiaria_a', 29, 11, 1, 1, { blocks: true }),
+    // ---- passport control: the agent's booth and a closed one, with the queue posts on either side of the lane between them
+    cen('cabine_1', 'aero/cabine', 11, 15, 3, 2, { blocks: true, label: { pt: 'Controle de passaporte', en: 'Passport control' } }),
+    cen('cabine_2', 'aero/cabine_fechada', 16, 15, 3, 2, { blocks: true }),
+    cen('fila_1', 'aero/fila', 8, 15, 3, 1, { blocks: true }),
+    cen('fila_2', 'aero/fila', 19, 15, 3, 1, { blocks: true }),
+    // the banner hangs high: its board shows two rows above its footprint (the hotspot is on the rows it covers)
+    cen('faixa_boasvindas', 'aero/faixa', 15, 20, 6, 1),
+    // ---- baggage claim (west): the belt with the bags going round, a trolley
+    cen('placa_bagagem', 'aero/placa_bagagem', 2, 17, 3, 1),
+    cen('hall_esteira', 'aero/esteira', 1, 18, 6, 2, { blocks: true }),
+    cen('carrinho_bagagem', 'aero/carrinho', 7, 19, 1, 1, { blocks: true }),
+    cen('carrinho_bagagem_2', 'aero/carrinho_vazio', 7, 21, 1, 1, { blocks: true }),
+    // ---- customs (east): the sign, the x-ray belt, the green channel
+    cen('placa_alfandega', 'aero/placa_alfandega', 23, 16, 3, 1),
+    cen('raio_x', 'aero/raiox', 23, 18, 4, 1, { blocks: true, label: { pt: 'Raio-x da alfândega', en: 'Customs x-ray' } }),
+    cen('canal_verde', 'aero/canal_verde', 28, 18, 1, 1, { blocks: true }),
+    cen('vaso_a4', 'props/vaso_topiaria_b', 29, 21, 1, 1, { blocks: true }),
+    cen('vaso_a5', 'props/vaso_topiaria_a', 0, 22, 1, 1, { blocks: true }),
+    // ---- arrivals: the café, seats, the exit sign
+    cen('lanchonete_aero', 'aero/lanchonete', 9, 20, 4, 2, { blocks: true, action: 'street_snack', interact: { x: 11, y: 22 }, label: { pt: 'Lanchonete · pão de queijo', en: 'Café · cheese bread' } }),
+    cen('cadeiras_6', 'aero/cadeiras', 18, 21, 3, 1, { seat: 'SW' }),
+    cen('cadeiras_7', 'aero/cadeiras', 22, 21, 3, 1, { seat: 'SW' }),
+    cen('placa_desembarque', 'aero/placa_desembarque', 13, 22, 4, 1),
+    // ---- the low glass front with the automatic doors, the sidewalk, the bus and a taxi
+    ...glassRow('vidro_s', 'aero/vidraca_baixa', 23, [...span(14, 0), ...span(14, 16)]),
+    cen('porta_auto', 'aero/porta_auto', 14, 23, 2, 1),
+    P('poste_aero_1', 'poste', 3, 24, { art: 'props/lamp_curve' }),
+    P('poste_aero_2', 'poste', 26, 24, { art: 'props/lamp_curve' }),
+    P('ponto_aero', 'ponto_onibus', 22, 24, { w: 3, label: { pt: 'Ponto de ônibus', en: 'Bus stop' } }),
+    cen('onibus_aero', 'vehicles/onibus_w', 15, 25, 7, 1, { blocks: true, label: AERO_VILA }),
+    cen('taxi_aero', 'vehicles/park_taxi_r', 5, 25, 5, 1, { blocks: true }),
+    P('palmeira_aero_1', 'arvore', 0, 24, { w: 2, art: 'props/jeriva' }),
+    P('palmeira_aero_2', 'arvore', 28, 24, { w: 2, art: 'props/jeriva_b' }),
+    // ---- the diary's camera words that are things of their own (the plane's wing and engine, the runway, the passport and the stamp
+    // on the booth counter are photo spots: `photoSpots.ts`)
+    cen('hall_mala', 'aero/mala', 1, 21),
+    cen('hall_etiqueta', 'aero/etiqueta', 2, 21),
+    cen('hall_mochila', 'aero/mochila', 4, 21),
+    cen('hall_fone', 'aero/fone', 4, 12),
+    cen('hall_cinto', 'aero/cinto', 8, 14),
+    cen('hall_bilhete', 'aero/bilhete', 13, 12),
+  ],
+  walls: [],
+  portals: [{ id: 'aero_vila', x: 19, y: 24, to: 'rua_leste', arrive: { x: 9, y: 13 }, arriveDir: 'SW', doorAt: { x: 18.5, y: 25 }, label: AERO_VILA }],
+  npcs: [
+    {
+      id: 'celia',
+      name: 'Célia',
+      role: { pt: 'Informações do aeroporto', en: 'Airport information desk' },
+      x: 22,
+      y: 11,
+      dir: 'SW',
+      interact: { x: 22, y: 13 },
+      appearance: { body: 'medio', skin: 4, hair: 'coque', hairColor: 0, top: 'camisa', topColor: 5, bottom: 'saia', bottomColor: 10, shoes: 0, face: 'doce', extra: 'brincos', idle: 'bracos' },
+      hat: null,
+      idleLines: [
+        { pt: 'Bem-vindo ao Brasil!', en: 'Welcome to Brazil!' },
+        { pt: 'Precisa de ajuda? É só perguntar.', en: 'Need help? Just ask.' },
+      ],
+    },
+    {
+      id: 'agente',
+      name: 'Agente Paulo',
+      role: { pt: 'Polícia Federal · passaportes', en: 'Federal Police · passports' },
+      x: 12,
+      y: 15,
+      dir: 'SW',
+      interact: { x: 12, y: 17 },
+      appearance: { body: 'forte', skin: 3, hair: 'raspado', hairColor: 0, top: 'camisa', topColor: 10, bottom: 'calca', bottomColor: 10, shoes: 2, face: 'marcante', extra: 'nenhum', idle: 'bracos' },
+      hat: null,
+      idleLines: [
+        { pt: 'Próximo, por favor!', en: 'Next, please!' },
+        { pt: 'Passaporte, por favor.', en: 'Passport, please.' },
+      ],
+    },
+  ],
+  private: false,
+};
+
+export const ROOMS: Record<RoomId, RoomDef> = { praca, rua, rua_leste: ruaLeste, feira, padaria, kitnet, academia, escola, andar, aeroporto };
 export const ROOM_IDS = Object.keys(ROOMS) as RoomId[];
 
 export const isRoomId = (v: unknown): v is RoomId => typeof v === 'string' && v in ROOMS;
