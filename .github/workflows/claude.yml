@@ -1,0 +1,59 @@
+name: Claude Code
+
+# Interactive Claude Code runs, billed to the Claude subscription in
+# CLAUDE_CODE_OAUTH_TOKEN. The workflow file on the default branch is the one
+# GitHub uses for these events.
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  pull_request_review:
+    types: [submitted]
+  issues:
+    types: [opened, assigned]
+
+jobs:
+  claude:
+    # Public repo: only the owner may spend the subscription. author_association
+    # is the triggering comment/review author, or the issue author for opened/assigned.
+    if: |
+      (github.event_name == 'issue_comment' && github.event.comment.author_association == 'OWNER' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review_comment' && github.event.comment.author_association == 'OWNER' && contains(github.event.comment.body, '@claude')) ||
+      (github.event_name == 'pull_request_review' && github.event.review.author_association == 'OWNER' && contains(github.event.review.body, '@claude')) ||
+      (github.event_name == 'issues' && github.event.issue.author_association == 'OWNER' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+    runs-on: ubuntu-latest
+    # The action's setup-node step defaults to Node 18. This repo requires 22 (see ci.yml).
+    env:
+      NODE_VERSION: "22"
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    steps:
+      # Same toolchain as .github/workflows/ci.yml so Claude can verify with
+      # pnpm install, test, typecheck, and build.
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run Claude Code
+        id: claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            actions: read
+          # Model: leave --model unset so the action keeps its default.
+          # To pick Opus, add a --model flag to claude_args (the README passes
+          # these through to the Claude Code CLI). Example:
+          #   --model claude-opus-4-7
+          # Bash is denied unless listed. These are the repo's verify commands,
+          # plus pnpm tts for new spoken dialogue (see CLAUDE.md).
+          claude_args: |
+            --allowedTools "Bash(pnpm install),Bash(pnpm install:*),Bash(pnpm test),Bash(pnpm test:*),Bash(pnpm typecheck),Bash(pnpm typecheck:*),Bash(pnpm build),Bash(pnpm build:*),Bash(pnpm tts),Bash(pnpm tts:*)"
