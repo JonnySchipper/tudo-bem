@@ -56,6 +56,7 @@ export function markAirportStep(id: keyof AirportFlags): void {
     /* private mode: the step still counts for this visit */
   }
   refreshPanel?.();
+  stepped?.();
 }
 
 export const inAirport = (): boolean => game.room?.room === 'aeroporto';
@@ -69,9 +70,12 @@ export function airportGuide(): AirportGuide | null {
 // ---------------------------------------------------------------- the checklist card
 
 let refreshPanel: (() => void) | null = null;
+/** The page's hook for a step that ticked on this side (main.ts moves the guide arrow on). */
+let stepped: (() => void) | null = null;
 
-/** The card under the top bar while you are in the airport (the recado tracker steps aside). */
-export function mountAirportTutorial(): { refresh: () => void } {
+/** The card under the top bar while you are in the airport (the recado tracker steps aside). `onStep` runs when a page-side step ticks. */
+export function mountAirportTutorial(onStep?: () => void): { refresh: () => void } {
+  stepped = onStep ?? null;
   const head = h('button', { class: 'rtrack-head aero-tut-head', type: 'button', 'aria-expanded': 'true', title: 'Primeiros passos — mostrar ou esconder / show or hide' });
   const now = h('div', { class: 'aero-tut-now' });
   const list = h('ol', { class: 'aero-tut-list' });

@@ -1001,7 +1001,7 @@ function startGame() {
           },
   });
   mountTracker(openJournal);
-  mountAirportTutorial();
+  mountAirportTutorial(updateGuides);
   mountJoystick((dx, dy) => {
     if (game.modalOpen || game.editMode || game.placing) return;
     const room = game.roomDef;
