@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="data:,">
+  <title>Opção 4 — staging preview</title>
+  <style>
+    :root {
+      --ink: #2c2c2c;
+      --cream: #f5e6d3;
+      --terra: #c45c26;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #1d1b26;
+      color: var(--ink);
+      font: 15px/1.35 "Iowan Old Style", Palatino, Georgia, serif;
+      touch-action: none;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      cursor: crosshair;
+    }
+    #hud {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 12px 16px 0;
+      pointer-events: none;
+    }
+    #hud p { margin: 0; }
+    .title {
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      color: var(--ink);
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+    }
+    .title span {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 7px 2px;
+      border-radius: 999px;
+      background: var(--terra);
+      color: #fff;
+      font: 11px/1.4 ui-sans-serif, system-ui, sans-serif;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      vertical-align: 2px;
+    }
+    .hint, #status {
+      font: 13px/1.35 ui-sans-serif, system-ui, sans-serif;
+      color: #3a342c;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+    }
+    #status {
+      position: fixed;
+      left: 16px;
+      bottom: 14px;
+      margin: 0;
+    }
+    #pad {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      display: grid;
+      grid-template-columns: 56px 56px 56px;
+      grid-template-rows: 56px 56px 56px;
+      gap: 6px;
+    }
+    #pad button {
+      border: 0;
+      border-radius: 12px;
+      background: rgba(44, 44, 44, 0.78);
+      color: #fff;
+      font: 22px/1 ui-sans-serif, system-ui, sans-serif;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #pad button:active { background: var(--terra); }
+    #pad button[data-dir="up"] { grid-column: 2; grid-row: 1; }
+    #pad button[data-dir="left"] { grid-column: 1; grid-row: 2; }
+    #pad button[data-dir="down"] { grid-column: 2; grid-row: 3; }
+    #pad button[data-dir="right"] { grid-column: 3; grid-row: 2; }
+  </style>
+</head>
+<body>
+  <canvas id="view"></canvas>
+  <div id="hud">
+    <p class="title">Opção 4 <span>staging</span></p>
+    <p class="hint">WASD / setas · toque no chão · direcional</p>
+  </div>
+  <p id="status">carregando…</p>
+  <div id="pad" aria-label="Direcional">
+    <button type="button" data-dir="up" aria-label="Cima">↑</button>
+    <button type="button" data-dir="left" aria-label="Esquerda">←</button>
+    <button type="button" data-dir="down" aria-label="Baixo">↓</button>
+    <button type="button" data-dir="right" aria-label="Direita">→</button>
+  </div>
+  <script>
+    const ANCHORS = { x: 56, y: 178 };
+    const FACING = {
+      down: { idle: 'idle-down', walk: 'walk-down', flip: false, label: 'frente' },
+      up: { idle: 'idle-up', walk: 'walk-up', flip: false, label: 'costas' },
+      right: { idle: 'idle-right', walk: 'walk-right', flip: false, label: 'direita' },
+      left: { idle: 'idle-right', walk: 'walk-right', flip: true, label: 'esquerda' },
+    };
+    const FRAMES = { idle: 4, walk: 6 };
+    const FPS = { idle: 5, walk: 10 };
+
+    const canvas = document.getElementById('view');
+    const ctx = canvas.getContext('2d');
+    const statusEl = document.getElementById('status');
+
+    const images = {};
+    const keys = new Set();
+    const pad = new Set();
+    let dest = null;
+    let facing = 'down';
+    let anim = 'idle';
+    let frame = 0;
+    let frameAcc = 0;
+    let player = { x: 0, y: 0 };
+    let world = { w: 800, h: 500 };
+    let floor = { x: 24, y: 120, w: 752, h: 360 };
+    let bounds = { l: 40, r: 760, t: 140, b: 460 };
+    let obstacles = [];
+    let ready = false;
+
+    function spriteScale() {
+      const target = Math.max(150, Math.min(220, world.h * 0.42));
+      return target / 184;
+    }
+
+    function layout() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      world.w = window.innerWidth;
+      world.h = window.innerHeight;
+      canvas.width = Math.round(world.w * dpr);
+      canvas.height = Math.round(world.h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const top = Math.max(78, Math.round(world.h * 0.18));
+      floor = { x: 20, y: top, w: world.w - 40, h: world.h - top - 18 };
+      const margin = 26;
+      bounds = {
+        l: floor.x + margin,
+        r: floor.x + floor.w - margin,
+        t: floor.y + 16,
+        b: floor.y + floor.h - 16,
+      };
+      const benchW = Math.min(120, floor.w * 0.22);
+      const benchH = 28;
+      obstacles = [
+        { x: floor.x + 36, y: floor.y + floor.h * 0.28, w: benchW, h: benchH, kind: 'bench' },
+        { x: floor.x + floor.w - 78, y: floor.y + floor.h * 0.55, w: 40, h: 40, kind: 'plant' },
+      ];
+      if (!ready) {
+        player.x = (bounds.l + bounds.r) / 2;
+        player.y = (bounds.t + bounds.b) / 2 + 10;
+      } else {
+        player.x = Math.min(bounds.r, Math.max(bounds.l, player.x));
+        player.y = Math.min(bounds.b, Math.max(bounds.t, player.y));
+      }
+    }
+
+    function blocked(x, y) {
+      if (x < bounds.l || x > bounds.r || y < bounds.t || y > bounds.b) return true;
+      const r = 12;
+      for (const o of obstacles) {
+        if (x > o.x - r && x < o.x + o.w + r && y > o.y - r && y < o.y + o.h + r) return true;
+      }
+      return false;
+    }
+
+    function loadFrames() {
+      const jobs = [];
+      for (const name of ['idle-down', 'walk-down', 'idle-right', 'walk-right', 'idle-up', 'walk-up']) {
+        const n = name.startsWith('idle') ? 4 : 6;
+        images[name] = [];
+        for (let i = 0; i < n; i++) {
+          jobs.push(new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => resolve();
+            img.onerror = () => reject(new Error(name + '-' + i));
+            img.src = 'frames/' + name + '-' + i + '.png';
+            images[name][i] = img;
+          }));
+        }
+      }
+      return Promise.all(jobs);
+    }
+
+    function inputVec() {
+      const right = keys.has('arrowright') || keys.has('d') || pad.has('right');
+      const left = keys.has('arrowleft') || keys.has('a') || pad.has('left');
+      const down = keys.has('arrowdown') || keys.has('s') || pad.has('down');
+      const up = keys.has('arrowup') || keys.has('w') || pad.has('up');
+      let x = (right ? 1 : 0) - (left ? 1 : 0);
+      let y = (down ? 1 : 0) - (up ? 1 : 0);
+      if (x || y) {
+        dest = null;
+        const len = Math.hypot(x, y);
+        return { x: x / len, y: y / len };
+      }
+      if (dest) {
+        const dx = dest.x - player.x;
+        const dy = dest.y - player.y;
+        const len = Math.hypot(dx, dy);
+        if (len < 3) {
+          dest = null;
+          return { x: 0, y: 0 };
+        }
+        return { x: dx / len, y: dy / len };
+      }
+      return { x: 0, y: 0 };
+    }
+
+    function facingFrom(vx, vy) {
+      if (!vx && !vy) return facing;
+      if (Math.abs(vx) > Math.abs(vy) * 1.15) return vx > 0 ? 'right' : 'left';
+      if (Math.abs(vy) > Math.abs(vx) * 1.15) return vy > 0 ? 'down' : 'up';
+      return facing;
+    }
+
+    let last = performance.now();
+    function tick(now) {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      if (ready) {
+        const v = inputVec();
+        const moving = v.x !== 0 || v.y !== 0;
+        const nextFacing = facingFrom(v.x, v.y);
+        const nextAnim = moving ? 'walk' : 'idle';
+        if (nextFacing !== facing || nextAnim !== anim) {
+          facing = nextFacing;
+          anim = nextAnim;
+          frame = 0;
+          frameAcc = 0;
+        }
+        const speed = Math.max(90, spriteScale() * 184 * 0.85);
+        const stepX = v.x * speed * dt;
+        const stepY = v.y * speed * dt;
+        if (!blocked(player.x + stepX, player.y)) player.x += stepX;
+        if (!blocked(player.x, player.y + stepY)) player.y += stepY;
+        frameAcc += dt * FPS[anim];
+        if (frameAcc >= 1) {
+          const steps = Math.floor(frameAcc);
+          frameAcc -= steps;
+          frame = (frame + steps) % FRAMES[anim];
+        }
+        const face = FACING[facing];
+        statusEl.textContent = moving ? 'andando · ' + face.label : 'parada';
+      }
+      draw();
+      requestAnimationFrame(tick);
+    }
+
+    function draw() {
+      const w = world.w;
+      const h = world.h;
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = '#f5e6d3';
+      ctx.fillRect(0, 0, w, h);
+
+      // Window onto a late-afternoon sky.
+      const win = { x: 28, y: 14, w: w - 56, h: Math.max(36, floor.y - 36) };
+      ctx.fillStyle = '#a8c5d4';
+      ctx.fillRect(win.x, win.y, win.w, win.h);
+      ctx.fillStyle = 'rgba(212, 160, 23, 0.28)';
+      ctx.fillRect(win.x, win.y + win.h * 0.55, win.w, win.h * 0.45);
+      ctx.strokeStyle = '#8b5e3c';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(win.x + 1.5, win.y + 1.5, win.w - 3, win.h - 3);
+      ctx.beginPath();
+      ctx.moveTo(win.x + win.w / 2, win.y);
+      ctx.lineTo(win.x + win.w / 2, win.y + win.h);
+      ctx.moveTo(win.x, win.y + win.h / 2);
+      ctx.lineTo(win.x + win.w, win.y + win.h / 2);
+      ctx.stroke();
+
+      const tile = 32;
+      for (let y = floor.y; y < floor.y + floor.h; y += tile) {
+        for (let x = floor.x; x < floor.x + floor.w; x += tile) {
+          const odd = ((Math.floor(x / tile) + Math.floor(y / tile)) & 1) === 1;
+          ctx.fillStyle = odd ? '#c9a36a' : '#b8925c';
+          ctx.fillRect(x, y, Math.min(tile, floor.x + floor.w - x), Math.min(tile, floor.y + floor.h - y));
+        }
+      }
+      ctx.fillStyle = '#c45c26';
+      ctx.fillRect(floor.x, floor.y - 7, floor.w, 7);
+
+      // Rug, under the props and the avatar.
+      const rugW = Math.min(180, floor.w * 0.34);
+      const rugH = Math.min(100, floor.h * 0.28);
+      const rugX = floor.x + (floor.w - rugW) / 2;
+      const rugY = floor.y + floor.h * 0.42;
+      ctx.fillStyle = '#2f5d50';
+      ctx.fillRect(rugX, rugY, rugW, rugH);
+      ctx.strokeStyle = '#d4a017';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(rugX + 5, rugY + 5, rugW - 10, rugH - 10);
+
+      for (const o of obstacles) {
+        if (o.kind === 'bench') {
+          ctx.fillStyle = '#6e4a2e';
+          ctx.fillRect(o.x, o.y + 8, o.w, o.h - 8);
+          ctx.fillStyle = '#8b5e3c';
+          ctx.fillRect(o.x, o.y, o.w, 12);
+          ctx.fillStyle = '#5c3d24';
+          ctx.fillRect(o.x + 4, o.y + o.h - 4, 6, 10);
+          ctx.fillRect(o.x + o.w - 10, o.y + o.h - 4, 6, 10);
+        } else {
+          ctx.fillStyle = '#8b5e3c';
+          ctx.fillRect(o.x + 10, o.y + 22, 20, 18);
+          ctx.fillStyle = '#2f5d50';
+          ctx.beginPath();
+          ctx.arc(o.x + 20, o.y + 16, 16, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#3f7a68';
+          ctx.beginPath();
+          ctx.arc(o.x + 14, o.y + 12, 8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      if (!ready) return;
+      const scale = spriteScale();
+      const face = FACING[facing];
+      const sheet = face[anim];
+      const img = images[sheet][frame];
+      ctx.save();
+      ctx.translate(player.x, player.y);
+      ctx.fillStyle = 'rgba(44, 44, 44, 0.22)';
+      ctx.beginPath();
+      ctx.ellipse(0, -2, 18 * scale, 7 * scale, 0, 0, Math.PI * 2);
+      ctx.fill();
+      if (face.flip) ctx.scale(-1, 1);
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(img, -ANCHORS.x * scale, -ANCHORS.y * scale, img.width * scale, img.height * scale);
+      ctx.restore();
+    }
+
+    function worldPoint(event) {
+      const rect = canvas.getBoundingClientRect();
+      return {
+        x: (event.clientX - rect.left) * (world.w / rect.width),
+        y: (event.clientY - rect.top) * (world.h / rect.height),
+      };
+    }
+
+    canvas.addEventListener('pointerdown', (event) => {
+      if (!ready) return;
+      const p = worldPoint(event);
+      dest = {
+        x: Math.min(bounds.r, Math.max(bounds.l, p.x)),
+        y: Math.min(bounds.b, Math.max(bounds.t, p.y)),
+      };
+    });
+
+    const keyOf = (event) => event.key.toLowerCase();
+    window.addEventListener('keydown', (event) => {
+      const k = keyOf(event);
+      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) event.preventDefault();
+      keys.add(k);
+    });
+    window.addEventListener('keyup', (event) => keys.delete(keyOf(event)));
+    window.addEventListener('blur', () => { keys.clear(); pad.clear(); });
+
+    for (const button of document.querySelectorAll('#pad button')) {
+      const dir = button.dataset.dir;
+      const hold = (event) => {
+        event.preventDefault();
+        pad.add(dir);
+        button.setPointerCapture(event.pointerId);
+      };
+      const release = () => pad.delete(dir);
+      button.addEventListener('pointerdown', hold);
+      button.addEventListener('pointerup', release);
+      button.addEventListener('pointercancel', release);
+    }
+
+    window.addEventListener('resize', layout);
+    layout();
+
+    window.__opt4 = {
+      get ready() { return ready; },
+      get state() {
+        return { x: player.x, y: player.y, facing, anim, frame, moving: anim === 'walk' };
+      },
+    };
+
+    loadFrames().then(() => {
+      ready = true;
+      statusEl.textContent = 'parada';
+    }).catch((err) => {
+      statusEl.textContent = 'não carregou os quadros (' + err.message + ')';
+    });
+    requestAnimationFrame(tick);
+  </script>
+</body>
+</html>
