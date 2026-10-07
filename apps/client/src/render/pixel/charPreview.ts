@@ -4,11 +4,13 @@
  */
 import { parrotColorById, type Appearance } from '@tudobem/shared';
 import { recolorParrotPixels } from './parrotRecolor';
-import { sharedCharAssets, type CharAssets } from './charAssets';
+import { hiresSource, sharedCharAssets, type CharAssets } from './charAssets';
+import { HIRES } from './characters';
+import { hiresEnabled } from './hires';
 import { composeRgba } from './charcompose';
 import { composeLook } from './composeLook';
 import { FACING_ROW, type Facing } from './facing';
-import { hatSpec, lookForAppearance, lookKey } from './looks';
+import { hatSpec, lookForAppearance, lookForAvatarHires, lookKey, useHires } from './looks';
 
 /** Art px of the preview canvas: the 16x32 frame with room for a hat, a parrot and the bow. */
 export const PREVIEW_W = 28;
@@ -46,19 +48,21 @@ interface Composed {
 const composedCache = new Map<string, Composed>();
 
 function composedFor(assets: CharAssets, spec: PreviewSpec): { key: string; look: ReturnType<typeof lookForAppearance>; c: Composed } {
-  const look = lookForAppearance(spec.appearance, { hat: spec.hat ?? null });
+  // the same rule as the game scene: a player with no hat is drawn from the 32x32 generator
+  const look = hiresEnabled() && useHires({ hat: spec.hat ?? null }) ? lookForAvatarHires(spec.appearance) : lookForAppearance(spec.appearance, { hat: spec.hat ?? null });
   const key = lookKey(look);
   let c = composedCache.get(key);
   if (c) {
     composedCache.delete(key);
     composedCache.set(key, c);
   } else {
+    const src = look.hires ? hiresSource(assets, HIRES.scale) : assets;
     const sheet = document.createElement('canvas');
-    sheet.width = assets.sheetW;
-    sheet.height = assets.sheetH;
+    sheet.width = src.sheetW;
+    sheet.height = src.sheetH;
     const ctx = sheet.getContext('2d');
     if (!ctx) throw new Error('2d canvas unavailable');
-    ctx.putImageData(new ImageData(new Uint8ClampedArray(composeLook(assets, look)), assets.sheetW, assets.sheetH), 0, 0);
+    ctx.putImageData(new ImageData(new Uint8ClampedArray(composeLook(src, look)), src.sheetW, src.sheetH), 0, 0);
     c = { sheet };
     composedCache.set(key, c);
     while (composedCache.size > 8) composedCache.delete(composedCache.keys().next().value as string);
@@ -129,7 +133,13 @@ export function mountCharPreview(canvas: HTMLCanvasElement, get: () => PreviewSp
     const spec = get();
     const { look, c } = composedFor(assets, spec);
     const meta = assets.manifest.sheet;
-    const [fw, fh] = meta.frame;
+    // a hi-res sheet has 2x the art px: the canvas doubles too (CSS keeps its size), so the 16x32 layout below is scaled by k
+    const k = look.hires ? HIRES.scale : 1;
+    if (canvas.width !== PREVIEW_W * k) {
+      canvas.width = PREVIEW_W * k;
+      canvas.height = PREVIEW_H * k;
+    }
+    const [fw, fh] = [meta.frame[0] * k, meta.frame[1] * k];
     const oi = meta.anims.oi;
     const waving = now - waveT0 < ((oi.frames / (oi.fps ?? 8)) * (oi.repeat ?? 1)) * 1000;
     let row: number;
@@ -148,6 +158,7 @@ export function mountCharPreview(canvas: HTMLCanvasElement, get: () => PreviewSp
       col = Math.floor((now / 1000) * (meta.anims.idle.fps ?? 5) * look.idle.speed) % meta.anims.idle.frames;
     }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.imageSmoothingEnabled = false; // the parrot is scaled by k on a hi-res preview
     if (spec.parrot) {
       const p = parrotStrip(assets);
       if (p) {
@@ -157,16 +168,17 @@ export function mountCharPreview(canvas: HTMLCanvasElement, get: () => PreviewSp
         const bob = Math.round(Math.sin(now / 420) * 1.5);
         const px = FX + 8 + side * 9 - Math.round(p.frameW / 2);
         const py = FY + 31 - 14 + bob - (p.h - 1);
+        ctx.save();
+        ctx.scale(k, k);
         if (side === 1) {
-          ctx.save();
           ctx.translate(px + p.frameW, py);
           ctx.scale(-1, 1);
           ctx.drawImage(bird, 0, 0);
-          ctx.restore();
         } else ctx.drawImage(bird, px, py);
+        ctx.restore();
       }
     }
-    ctx.drawImage(c.sheet, col * fw, row * fh, fw, fh, FX, FY, fw, fh);
+    ctx.drawImage(c.sheet, col * fw, row * fh, fw, fh, FX * k, FY * k, fw, fh);
   };
   raf = requestAnimationFrame(draw);
 

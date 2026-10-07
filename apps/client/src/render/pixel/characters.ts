@@ -128,6 +128,17 @@ export const CHAR_LAYERS = {
   phone: 'acc_phone',
 } as const;
 
+/**
+ * Player avatars at the LimeZu 32x32 generator (32x64 frames, the same canonical rows as the 16x32 sheets). Built by
+ * `assets-src/custom/chars.mjs` (HIRES). Drawn at half the avatar draw scale, so a player is the same size in the world as before
+ * (every `avatarPx` offset still holds) with twice the detail in the face and clothes.
+ */
+export const HIRES = {
+  layers: { body: 'hr_body', eyes: 'hr_eyes', outfit: 'hr_outfit', hair: 'hr_hair' },
+  /** art px of a hi-res sheet per art px of a 16x32 sheet */
+  scale: 2,
+} as const;
+
 /** Colors a garb piece may take from the wearer (hex). */
 export interface GarbColors {
   top: string;
@@ -273,6 +284,7 @@ export function allLayerKeys(): string[] {
   for (const k of CHAR_LAYERS.regularHair) keys.add(k);
   for (const k of CHAR_LAYERS.regularHat) keys.add(k);
   for (const k of CHAR_LAYERS.regularProp) for (const b of Object.keys(CHAR_LAYERS.bodySuffix) as BodyType[]) keys.add(k + CHAR_LAYERS.bodySuffix[b]);
+  for (const k of Object.values(HIRES.layers)) keys.add(k);
   for (const pieces of Object.values(GARBS)) {
     for (const p of pieces) {
       if (p.warped) for (const b of Object.keys(CHAR_LAYERS.bodySuffix) as BodyType[]) keys.add(p.key + CHAR_LAYERS.bodySuffix[b]);

@@ -27,6 +27,13 @@ export const BODY_TYPES = ['esguio', 'medio', 'forte'];
 /** creator hair style -> LimeZu hairstyle number (or a derived style, see buildHairs) */
 export const HAIR_BASE = { curto: '12', raspado: '20', undercut: '26', cacheado: '25', black: '25', ondulado: '07', longo: '15', coque: '16', trancas: '16' };
 
+/**
+ * Player at the 32x32 generator (32x64 frames, `hr_` layers): one starter look for the first bake. LimeZu layer order is
+ * body -> eyes -> outfit -> hairstyle; skin and hair keep their key ramps so the creator's colours apply, the outfit keeps the pack's
+ * own colours (green tee, blue trousers, brown shoes).
+ */
+export const HIRES = { body: 'Body_32x32_01', eyes: 'Eyes_32x32_01', outfit: 'Outfit_04_32x32_01', hair: 'Hairstyle_20_32x32_01' };
+
 /** face style -> LimeZu eyes number (the pack's eyes differ by iris color only) */
 export const EYES_BASE = { suave: '01', marcante: '04', doce: '02', maduro: '05' };
 
@@ -124,6 +131,14 @@ export async function buildChars({ base }) {
 
   // ---- the five regulars: custom face, hat (or ponytail) and one prop over the LimeZu body
   buildRegulars({ layers, an, regBody });
+
+  // ---- player at 32x32 (not body-warped: the hi-res path has one body type for now)
+  const loadHi = async (kind, name) => crop(await loadPng(path.join(base, kind, '32x32', name + '.png')), 0, 0, 896 * 2, SRC_H * 2);
+  const canonHi = async (kind, name) => toCanonicalSheet(await loadHi(kind, name), { scale: 2 });
+  layers.hr_body = keyLayer(await canonHi('Bodies', HIRES.body), { skin: ['#aa5e56', '#b57972', '#bf8b78', '#c49d85'] });
+  layers.hr_eyes = await canonHi('Eyes', HIRES.eyes);
+  layers.hr_outfit = await canonHi('Outfits', HIRES.outfit);
+  layers.hr_hair = keyAuto(await canonHi('Hairstyles', HIRES.hair), 'hair').img;
 
   // ---- body variants
   for (const [key, img] of Object.entries(bodyAttached)) {

@@ -48,7 +48,7 @@ export const ROW_FRAMES = (() => {
 /** Facing of a canonical row (emotes and the phone row face S). */
 export const rowFacing = (r) => (r < 12 ? FACINGS[r % 4] : 'S');
 
-const frame = (src, row, col) => crop(src, col * FRAME_W, row * FRAME_H, FRAME_W, FRAME_H);
+const frameAt = (sc) => (src, row, col) => crop(src, col * FRAME_W * sc, row * FRAME_H * sc, FRAME_W * sc, FRAME_H * sc);
 
 /** Shifts a frame down by `dy` px, dropping what falls off the bottom (used to fake a front/back sit under a bench seat). */
 function shiftDown(img, dy) {
@@ -62,12 +62,14 @@ const PICKUP_S = [36, 37, 38, 39, 40, 41, 42, 46];
 const PHONE = [3, 4, 5, 6, 7, 8];
 
 /**
- * @param src merged layer image (896 wide, LimeZu layout, at least 10 rows tall)
- * @param opts { sitFrontDrop: number } px to lower the idle frame for S/N sit
+ * @param src merged layer image (896 wide, LimeZu layout, at least 10 rows tall; 1792 wide at `scale` 2)
+ * @param opts { sitFrontDrop: number } px to lower the idle frame for S/N sit (at 16x16); { scale: 2 } for the 32x32 generator (32x64 frames)
  */
 export function toCanonicalSheet(src, opts = {}) {
-  const out = blank(CANON_COLS * FRAME_W, CANON_ROWS * FRAME_H);
-  const put = (img, col, row) => paste(out, img, col * FRAME_W, row * FRAME_H);
+  const sc = opts.scale ?? 1;
+  const frame = frameAt(sc);
+  const out = blank(CANON_COLS * FRAME_W * sc, CANON_ROWS * FRAME_H * sc);
+  const put = (img, col, row) => paste(out, img, col * FRAME_W * sc, row * FRAME_H * sc);
   FACINGS.forEach((f, fi) => {
     const block = SRC_BLOCK[f];
     for (let k = 0; k < 6; k++) {
@@ -76,7 +78,7 @@ export function toCanonicalSheet(src, opts = {}) {
     }
   });
   // sit: side views come from the pack; front/back are the idle frame lowered so the bench seat hides the legs
-  const drop = opts.sitFrontDrop ?? 4;
+  const drop = (opts.sitFrontDrop ?? 4) * sc;
   put(shiftDown(frame(src, 1, SRC_BLOCK.S * 6), drop), 0, CANON_ANIMS.sit.rows[0]);
   put(frame(src, 4, 6), 0, CANON_ANIMS.sit.rows[1]); // W
   put(frame(src, 4, 0), 0, CANON_ANIMS.sit.rows[2]); // E

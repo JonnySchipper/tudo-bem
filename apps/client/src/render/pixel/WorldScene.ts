@@ -42,10 +42,11 @@ import type { Manifest } from './manifest';
 import { FACING, facingAlongPath, type Facing } from './facing';
 import { addSheetTexture, animKey, animNames, emoteDuration, sitFrame } from './charsheet';
 import { CharSheets } from './charCache';
-import type { CharAssets } from './charAssets';
+import { hiresSource, type CharAssets } from './charAssets';
 import { composeLook } from './composeLook';
-import { avatarCrown, avatarDrawScale, avatarPx, setAvatarZoom } from './characters';
-import { academyUniformKey, lookForAvatar, lookForNpc, lookHeadLift, type Look } from './looks';
+import { HIRES, avatarCrown, avatarDrawScale, avatarPx, setAvatarZoom } from './characters';
+import { academyUniformKey, lookDrawScale, lookForAvatar, lookForAvatarHires, lookForNpc, lookHeadLift, useHires, type Look } from './looks';
+import { hiresEnabled } from './hires';
 import { LightingRig, type Light } from './lightingRig';
 import { computeLook, isOutdoor, lightDelay, windowPanes, type SceneLook } from './dayNight';
 import { WeatherBlend, groundWetTint, type FxLevel } from './weatherLook';
@@ -304,7 +305,10 @@ export class WorldScene extends Phaser.Scene {
     this.ao = new AoLayer(this, this.rig);
     this.water = new WaterFx(this, this.rig);
     this.sheets = new CharSheets({
-      add: (key, look) => addSheetTexture(this, key, composeLook(this.assets, look), this.m.sheet),
+      add: (key, look) =>
+        look.hires
+          ? addSheetTexture(this, key, composeLook(hiresSource(this.assets, HIRES.scale), look), { ...this.m.sheet, frame: [this.m.sheet.frame[0] * HIRES.scale, this.m.sheet.frame[1] * HIRES.scale] })
+          : addSheetTexture(this, key, composeLook(this.assets, look), this.m.sheet),
       remove: (key) => {
         for (const name of animNames(this.m.sheet)) for (const f of ['S', 'W', 'E', 'N'] as Facing[]) this.anims.remove(animKey(key, name, f));
         if (this.textures.exists(key)) this.textures.remove(key);
@@ -878,6 +882,8 @@ export class WorldScene extends Phaser.Scene {
   /** The look of an avatar: a neighbour wears its own style (portrait match), everyone else their appearance. */
   private lookOf(a: ClientAvatar): Look {
     if (a.pub.npc) return lookForNpc(a.pub.npc, a.pub.appearance, a.pub.hat);
+    // players (not the Praça regulars) come from the 32x32 generator, unless they wear something only the 16x32 sheets have
+    if (hiresEnabled() && !isCpuId(a.pub.id) && useHires(a.pub)) return lookForAvatarHires(a.pub.appearance);
     return lookForAvatar(a.pub);
   }
 
@@ -1247,7 +1253,7 @@ export class WorldScene extends Phaser.Scene {
   private createAvatar(a: ClientAvatar): AvatarView {
     const look = this.lookOf(a);
     const sheet = this.sheets.acquire(look);
-    const sprite = this.rig.world(this.add.sprite(0, 0, sheet, 0)).setOrigin(0.5, 1).setScale(avatarDrawScale());
+    const sprite = this.rig.world(this.add.sprite(0, 0, sheet, 0)).setOrigin(0.5, 1).setScale(lookDrawScale(look));
     const s16 = this.m.sprites['fx/shadow_16'];
     // wider with the body, still flat on the tile so the feet read as planted
     const shadow = this.rig.world(this.add.image(0, 0, s16.atlas, s16.frame)).setOrigin(...originOf(s16)).setDepth(DEPTH.shadowContact).setScale(avatarDrawScale(), 1);
@@ -1375,7 +1381,7 @@ export class WorldScene extends Phaser.Scene {
     const wy = Math.round(f.wy);
     v.wx = wx;
     v.wy = wy;
-    v.sprite.setPosition(wx, wy - bounce).setScale(avatarDrawScale());
+    v.sprite.setPosition(wx, wy - bounce).setScale(lookDrawScale(v.look));
     // under the mat camera, neighbours who wander about step out of the picture; the seated crowd stays to watch
     if (isCpuId(a.pub.id)) {
       const away = boutFeed.camera && !sitting;

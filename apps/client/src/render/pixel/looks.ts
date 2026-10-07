@@ -3,7 +3,7 @@
  * swap in. Pure: no Phaser, no DOM. The layers are drawn back to front by `composeRgba` (charcompose.ts).
  */
 import { academyOutfit, CLOTH_COLORS, DEFAULT_APPEARANCE, HAIR_COLORS, garbParts, SHOE_COLORS, SKIN_TONES, hatById, type AcademyGi, type Appearance, type Belt, type BodyType, type NpcId } from '@tudobem/shared';
-import { CHAR_LAYERS, GARBS, HAT_LIFT, hatLayer, outfitKey, pick, type GarbColors, type GarbPiece, type IdleEntry } from './characters';
+import { CHAR_LAYERS, GARBS, HAT_LIFT, HIRES, avatarDrawScale, hatLayer, outfitKey, pick, type GarbColors, type GarbPiece, type IdleEntry } from './characters';
 import type { Ramps } from './charcompose';
 
 export interface LookLayer {
@@ -22,6 +22,8 @@ export interface Look {
   layers: LookLayer[];
   /** the standing pose (prop layers are already in `layers`; the scene picks the animation and pace) */
   idle: IdleEntry;
+  /** composed from the 32x32 generator layers (32x64 frames, `HIRES`) */
+  hires?: boolean;
 }
 
 export interface HatSpec {
@@ -126,6 +128,27 @@ export function lookForAvatar(pub: { appearance: Appearance; hat: string | null;
   if (pub.gi) return lookForAppearance(pub.appearance, { hat: pub.hat, gi: true, belt: pub.belt ?? 'branca' });
   return lookForAppearance(pub.appearance, { hat: pub.hat });
 }
+
+/**
+ * Player look at the 32x32 generator, LimeZu order body -> eyes -> outfit -> hairstyle: the player's skin and hair colours on the one
+ * starter outfit and hairstyle. Hats, gi, poses and the other creator styles stay on the 16x32 sheets for now (`useHires`).
+ */
+export function lookForAvatarHires(a: Appearance): Look {
+  const L = HIRES.layers;
+  const layers: LookLayer[] = [
+    { key: L.body, ramps: { skin: pickColor(SKIN_TONES, a.skin) } },
+    { key: L.eyes },
+    { key: L.outfit },
+    { key: L.hair, ramps: { hair: pickColor(HAIR_COLORS, a.hairColor) } },
+  ];
+  return { body: 'medio', layers, idle: CHAR_LAYERS.idle.solto, hires: true };
+}
+
+/** Whether a player is drawn from the 32x32 generator: no hat and no gi yet (those layers only exist at 16x32). */
+export const useHires = (pub: { hat: string | null; gi?: boolean; academyGi?: AcademyGi | null }): boolean => !pub.hat && !pub.gi && !pub.academyGi;
+
+/** World px per art px for a look's sheet: hi-res sheets have twice the art px, so they draw at half the scale. */
+export const lookDrawScale = (look: Look): number => (look.hires ? avatarDrawScale() / HIRES.scale : avatarDrawScale());
 
 /** Art px from the top of a bare head to the top of this look's sprite (hat, plus the body height change): labels stand above it. */
 export function lookHeadLift(look: Look): number {
