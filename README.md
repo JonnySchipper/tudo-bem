@@ -137,6 +137,7 @@ apps/client       Phaser 3 pixel view + DOM UI; the title screen, dialogue box, 
 - **The server is authoritative**: movement, rewards, payments, hand-overs and the clock are validated server-side; the client is a view.
 - **Adults only (18+) in intent**: the only age prompt is an optional 18+ tick on signup. No birth date is collected. See [docs/AGE_POLICY.md](docs/AGE_POLICY.md).
 - **Accounts**: multiplayer requires an email + password account. Passwords are hashed with scrypt; the session is an `HttpOnly; SameSite=Lax` cookie stored only as a SHA-256 hash in `DATA_DIR/accounts.json`, with a 30-day sliding expiry. Failed logins are rate-limited per email and per IP. Auth POSTs and the WebSocket upgrade reject other sites' origins. `/api/conversa` pays RV to the signed-in player only.
+- **Feedback**: the **Fala** chip on the HUD opens a short note (optional Problema / Ideia / Gostei). `POST /api/feedback` appends it to `DATA_DIR/feedback.json`. A signed-in player is stored by account id only — the account email is not copied. A guest may leave an optional contact. Daily review: `GET /api/feedback` with `Authorization: Bearer $TB_ADMIN_PASSWORD` (the same secret as the hidden admin panel; local dev uses that panel's password).
 - **Idle kick**: no real input for 15 minutes (warning at 14) frees the seat with a soft *"Volte quando quiser"* card. The account stays signed in.
 
 ## Content packs

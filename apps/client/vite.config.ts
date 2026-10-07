@@ -15,6 +15,7 @@ export default defineConfig({
       '/api/conversa': { target: SERVER },
       '/api/auth': { target: SERVER },
       '/api/config': { target: SERVER },
+      '/api/feedback': { target: SERVER },
     },
   },
   build: {

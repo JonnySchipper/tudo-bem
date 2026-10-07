@@ -3,6 +3,7 @@ import path from 'node:path';
 import { atomicWriteFileSync } from './atomicWrite.js';
 import type { PlayerAcademy } from '@tudobem/shared';
 import type { AcademyPersistence } from './academyStore.js';
+import type { FeedbackPersistence } from './feedbackStore.js';
 import type { PersistenceAdapter, StoredProfile } from './store.js';
 
 type Photos = NonNullable<StoredProfile['photos']>;
@@ -62,6 +63,19 @@ export function academyFileAdapter(dataDir: string): AcademyPersistence {
     save: (rows: PlayerAcademy[]) => {
       fs.mkdirSync(path.dirname(file), { recursive: true });
       atomicWriteFileSync(file, JSON.stringify(rows));
+    },
+  };
+}
+
+/** Player feedback notes beside profiles. Mode 0600: a guest may have typed a contact. */
+export function feedbackFileAdapter(dataDir: string): FeedbackPersistence {
+  const file = path.join(dataDir, 'feedback.json');
+  return {
+    describe: () => file,
+    load: () => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : { version: 1, items: [] }),
+    save: (data) => {
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      atomicWriteFileSync(file, JSON.stringify(data), 0o600);
     },
   };
 }
