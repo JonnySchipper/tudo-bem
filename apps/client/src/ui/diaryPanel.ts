@@ -11,6 +11,7 @@ import { game } from '../state';
 import { h, en } from './dom';
 import { ambience } from '../ambience';
 import { WordQueue, cardMs, momentsOfShot, type QueuedWord, type WordMoment } from './diaryWordQueue';
+import { flyWord } from './wordFlight';
 
 export const FRAME_W = 220;
 export const FRAME_H = 148;
@@ -147,34 +148,68 @@ export function flyInto(el: HTMLElement, targetId = 'btn-caderno', after?: () =>
   };
 }
 
-/** The new-word card over the world. It never blocks the world: only its button takes the pointer. A shot's cards hand over one after another. */
+/** A word read this long ago is still flown in from where it was; older (it waited behind a game or another card), the card just pops. */
+const FROM_FRESH_MS = 2500;
+
+/**
+ * The new-word card over the world. It never blocks the world: only its button takes the pointer. A shot's cards hand over one after another.
+ * A word read in a line of dialogue (`from`) lifts off that line and flies into the card's empty slot, and the card then goes into the Diário.
+ */
 function celebrate(m: QueuedWord<HTMLElement>) {
   document.getElementById('photo-celebrate')?.remove();
+  const from = m.from && performance.now() - m.from.at < FROM_FRESH_MS && !reduceMotion() ? m.from : null;
+  let timer = 0;
+  let closed = false;
   const close = () => {
+    if (closed) return;
+    closed = true;
     window.clearTimeout(timer);
-    card.classList.add('leaving');
-    window.setTimeout(() => card.remove(), 260);
+    chip?.remove();
+    if (from && inner.isConnected) {
+      // a heard word goes into the diary with its card
+      card.classList.add('filing');
+      flyInto(inner, 'btn-caderno', () => card.remove());
+    } else {
+      card.classList.add('leaving');
+      window.setTimeout(() => card.remove(), 260);
+    }
     if (m.print?.isConnected) flyInto(m.print);
     // the next card of the queue comes once this one is gone
     window.clearTimeout(pumping);
     pumping = window.setTimeout(pump, 300);
   };
-  const card = h(
+  const word = h('b', { class: `celebrate-pt${from ? ' awaiting' : ''}`, id: 'photo-word', lang: 'pt-BR' }, m.pt);
+  const burst = h('div', { class: `celebrate-burst${from ? ' held' : ''}`, 'aria-hidden': 'true' }, ...Array.from({ length: 10 }, (_, i) => h('i', { style: `--i:${i}` })));
+  const inner = h(
     'div',
-    { id: 'photo-celebrate', role: 'status' },
-    h('div', { class: 'celebrate-burst', 'aria-hidden': 'true' }, ...Array.from({ length: 10 }, (_, i) => h('i', { style: `--i:${i}` }))),
-    h(
-      'div',
-      { class: 'celebrate-card' },
-      h('p', { class: 'celebrate-kicker' }, 'Nova palavra!', m.total > 1 ? h('span', { class: 'celebrate-count' }, `${m.index}/${m.total}`) : null),
-      h('b', { class: 'celebrate-pt', id: 'photo-word', lang: 'pt-BR' }, m.pt),
-      en(m.en),
-      m.progress ? h('p', { class: 'celebrate-progress', id: 'photo-progress' }, `${m.areaPt ?? ''}: ${m.progress}`) : null,
-      h('button', { type: 'button', class: 'primary', id: 'photo-close', onclick: close }, 'Que bom!'),
-    ),
+    { class: 'celebrate-card' },
+    h('p', { class: 'celebrate-kicker' }, 'Nova palavra!', m.total > 1 ? h('span', { class: 'celebrate-count' }, `${m.index}/${m.total}`) : null),
+    word,
+    en(m.en),
+    m.progress ? h('p', { class: 'celebrate-progress', id: 'photo-progress' }, `${m.areaPt ?? ''}: ${m.progress}`) : null,
+    h('button', { type: 'button', class: 'primary', id: 'photo-close', onclick: close }, 'Que bom!'),
   );
+  const card = h('div', { id: 'photo-celebrate', role: 'status', class: from ? 'heard' : '' }, burst, inner);
   document.getElementById('ui')?.append(card);
-  const timer = window.setTimeout(close, cardMs(m));
+  const arrived = () => {
+    word.classList.remove('awaiting');
+    word.classList.add('arrived');
+    burst.classList.remove('held');
+    ambience.sting('caderno');
+    timer = window.setTimeout(close, cardMs(m));
+  };
+  const chip = from
+    ? flyWord(
+        from,
+        () => (word.isConnected ? word.getBoundingClientRect() : null),
+        () => parseFloat(getComputedStyle(word).fontSize) || 48,
+        arrived,
+      )
+    : null;
+  if (!from) {
+    ambience.sting('caderno');
+    timer = window.setTimeout(close, cardMs(m));
+  }
 }
 
 // ---------------------------------------------------------------- every new diary word gets the moment, one at a time
@@ -208,7 +243,6 @@ function pump() {
     pumping = window.setTimeout(pump, 400);
     return;
   }
-  ambience.sting('caderno');
   celebrate(next);
 }
 

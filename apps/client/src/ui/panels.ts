@@ -1,6 +1,11 @@
 import {
   FURNITURE,
   HATS,
+  JULIA_INTRO,
+  JULIA_INTRO_FROM_GREETING,
+  JULIA_TREE,
+  fillTalk,
+  spokenNameless,
   ALL_HATS,
   PARROT_COLORS,
   ownedParrotColorIds,
@@ -90,7 +95,7 @@ export function showScene(view: SceneView, extra: { said?: Bilingual; feedback?:
   // the baker at the counter: Seu Carlos by day, Dona Graça at night (D12), the same authored scene
   const onDuty = [...game.avatars.values()].find((a) => (a.pub.npc === 'carlos' || a.pub.npc === 'graca') && a.pub.activity === 'trabalhando');
   const carlos = npcDefById(onDuty?.pub.npc ?? 'carlos') ?? ROOMS.padaria.npcs.find((n) => n.id === 'carlos')!;
-  speak(view.line.pt);
+  speak(view.line.pt, { speaker: carlos.id });
   const footer = view.end
     ? h(
         'div',
@@ -117,31 +122,13 @@ export function showScene(view: SceneView, extra: { said?: Bilingual; feedback?:
 }
 
 // Authored guide NPC (client-only chips; no rewards, so no server authority needed).
-const JULIA_TREE: { q: Bilingual; a: Bilingual }[] = [
-  { q: { pt: 'Como eu ando?', en: 'How do I walk?' }, a: { pt: 'É só clicar no chão! Pra sentar, clique num banco.', en: 'Just click the floor! To sit, click a bench.' } },
-  {
-    q: { pt: 'Como eu falo com as pessoas?', en: 'How do I talk to people?' },
-    a: { pt: 'Escreva no chat lá embaixo e aperte Enter. O botão “Oi!” faz você acenar.', en: 'Type in the chat at the bottom and press Enter. The “Oi!” button makes you wave.' },
-  },
-  {
-    q: { pt: 'Onde fica a padaria?', en: 'Where is the bakery?' },
-    a: { pt: 'Ali, na porta com o toldo vermelho! O Seu Carlos adora conversar.', en: 'Right there — the door with the red awning! Seu Carlos loves to chat.' },
-  },
-  {
-    q: { pt: 'Como ganho reais virtuais?', en: 'How do I earn RV coins?' },
-    a: {
-      pt: 'Tome café com o Seu Carlos e jogue a “Correria no Balcão” no balcão. Depois compre um chapéu com a Nanda!',
-      en: 'Have breakfast with Seu Carlos and play “Correria no Balcão” (Counter Rush) at the counter. Then buy a hat from Nanda!',
-    },
-  },
-];
 
 /** Júlia's tutorial Q&A. `fromGreeting`: the box already met her, so the first line goes straight to the questions. */
 export function showJulia(fromGreeting = false) {
   const julia = ROOMS.praca.npcs.find((n) => n.id === 'julia')!;
   const name = game.profile?.name ?? '';
-  const root = (line: Bilingual) => {
-    speak(line.pt);
+  const root = (line: Bilingual, spoken: string = line.pt) => {
+    speak(spoken, { speaker: 'julia' });
     showDialogue({
       npc: julia,
       speaker: 'Júlia',
@@ -155,8 +142,8 @@ export function showJulia(fromGreeting = false) {
       onClose: closeDialogue,
     });
   };
-  if (fromGreeting) root({ pt: 'Claro! O que você quer saber?', en: 'Of course! What do you want to know?' });
-  else root({ pt: `Oi, ${name}! Eu sou a Júlia, guia da praça. Posso te ajudar?`, en: 'Hi! I’m Júlia, the square’s guide. Can I help you?' });
+  if (fromGreeting) root(JULIA_INTRO_FROM_GREETING);
+  else root({ pt: fillTalk(JULIA_INTRO.pt, { name }), en: JULIA_INTRO.en }, spokenNameless(JULIA_INTRO.pt, { minute: clock.minutes() }));
 }
 
 // ---------------------------------------------------------------- daily kiosk

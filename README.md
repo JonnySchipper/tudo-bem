@@ -67,7 +67,7 @@ VITE_LOCAL_WORLD=1 pnpm --filter @tudobem/client build      # then serve apps/cl
 packages/shared   rooms, schedules, clock, weather, recados, bonds, caderno, feira, hotspots, talk trees, safety, protocol (pure TS, tested)
 apps/server       authoritative Node server: world.ts, npcs.ts, recados.ts, feira.ts, caderno.ts, auth.ts, store.ts, app.ts
 apps/client       Vite + Phaser 3 view (render/pixel), DOM UI (ui/), pixel UI chrome (styles/)
-scripts/          pixel-import.mjs, build-curriculum.mjs, bake-tts.mjs and the e2e / screenshot scripts
+scripts/          pixel-import.mjs, build-curriculum.mjs, bake-tts.mjs (`pnpm tts`, see [docs/VOICES.md](docs/VOICES.md)) and the e2e / screenshot scripts
 docs/lifesim      HOWTO, DECISIONS (every phase), BR-REVIEW (every new Portuguese string)
 ```
 

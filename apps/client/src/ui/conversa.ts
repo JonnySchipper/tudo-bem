@@ -93,14 +93,14 @@ export function setConversaLineSink(fn: ((anchor: string) => void) | null): void
 
 /** The baker's line is spoken, and when it is the to-go answer at the counter ("Pra viagem, então. Tá na mão.") the diary hears it too. */
 function say(pt: string): void {
-  speak(pt);
+  speak(pt, { speaker: state?.npcId });
   const counter = COUNTER_LINES['carlos.viagem']!;
   if (pt.includes(counter.slice(0, counter.indexOf('Volte')).trim())) lineSink?.('carlos.viagem');
 }
 
 /** Speak the Portuguese rubber stamp only. `speak()` plays the prebaked clip when the text matches. */
 function speakContaStamp(grade: ConversaGrade) {
-  speak(gradeCopy(grade).label.pt);
+  speak(gradeCopy(grade).label.pt, { speaker: state?.npcId });
 }
 
 /** The conta: a paper bill with a PT-primary rubber stamp (Mandou bem! / Quase! / Tenta de novo). */

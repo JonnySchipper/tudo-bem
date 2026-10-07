@@ -62,7 +62,7 @@ interface ZoneLayers {
 }
 
 /** How loud each layer is at full presence (the bed's own wind sits at 0.05). */
-const ZONE_LEVEL: Record<keyof ZoneMix, number> = { traffic: 0.16, fountain: 0.035, birds: 1, crickets: 1, rain: 0.15, radio: 1 };
+const ZONE_LEVEL: Record<keyof ZoneMix, number> = { traffic: 0.16, fountain: 0.035, birds: 1, crickets: 1, rain: 0.07, radio: 1 };
 const ZONE_TAU = 0.35;
 
 /** Seconds a bed takes to fade out (about four crossfade time constants). */
@@ -200,7 +200,7 @@ function buildZones(ctx: AudioContext, dest: GainNode, bed: Bed, brown: AudioBuf
   keep(burble, burbleDepth);
 
   // rain on the ground: hiss plus a soft drumming
-  keep(...loopNoise(ctx, gains.rain, white, 4200, 'bandpass', 0.6, 0.4));
+  keep(...loopNoise(ctx, gains.rain, white, 3400, 'bandpass', 0.6, 0.3));
   keep(...loopNoise(ctx, gains.rain, brown, 420, 'lowpass', 0.7, 0.5));
 
   // birds (day): the old chirps, now more of them and only where and when the birds are

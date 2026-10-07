@@ -10,6 +10,7 @@ import { h, en, bi } from './dom';
 import { toast } from './hud';
 import { expressionForScore } from './pixelArt';
 import { speak } from '../audio';
+import { counterSpeaker } from './counterSpeaker';
 import { ticketLinesFromSaid, type TicketLine } from './pedido-ticket';
 import { closeDialogueBox, showDialogueBox, type BoxSpec } from './dialogue';
 
@@ -232,7 +233,7 @@ export function updatePedido(
   state.payout = extra.payout;
   state.dailyBlocked = extra.dailyBlocked;
 
-  speak(view.line.pt);
+  speak(view.line.pt, { speaker: counterSpeaker() });
   render();
 }
 
@@ -262,6 +263,6 @@ export function openPedido(
     dailyBlocked: false
   };
 
-  speak(view.line.pt);
+  speak(view.line.pt, { speaker: counterSpeaker() });
   render();
 }

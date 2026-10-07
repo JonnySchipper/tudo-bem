@@ -1,10 +1,3883 @@
 {
-  "version": 1,
+  "version": 2,
   "voices": {
     "carlos": "pt-BR-AntonioNeural",
-    "ui": "pt-BR-FranciscaNeural"
+    "ui": "pt-BR-FranciscaNeural",
+    "graca": "pt-BR-FranciscaNeural",
+    "nanda": "pt-BR-FranciscaNeural",
+    "julia": "pt-BR-FranciscaNeural",
+    "prof": "pt-BR-FranciscaNeural",
+    "lucia": "pt-BR-FranciscaNeural",
+    "tia_lu": "pt-BR-FranciscaNeural",
+    "rosa": "pt-BR-FranciscaNeural",
+    "ze": "pt-BR-AntonioNeural",
+    "chico": "pt-BR-AntonioNeural"
   },
   "lines": [
+    {
+      "id": "nanda-d0f35a5622",
+      "voice": "nanda",
+      "text": "Bom dia! Tudo bem? Eu sou a Nanda.",
+      "file": "nanda-d0f35a5622.mp3"
+    },
+    {
+      "id": "nanda-5f59e710bc",
+      "voice": "nanda",
+      "text": "Boa tarde! Tudo bem? Eu sou a Nanda.",
+      "file": "nanda-5f59e710bc.mp3"
+    },
+    {
+      "id": "nanda-b385767c01",
+      "voice": "nanda",
+      "text": "Boa noite! Tudo bem? Eu sou a Nanda.",
+      "file": "nanda-b385767c01.mp3"
+    },
+    {
+      "id": "nanda-d94b2ae77d",
+      "voice": "nanda",
+      "text": "Tudo ótimo! Gostou dos chapéus? Tem boné, boina e chapéu de sol.",
+      "file": "nanda-d94b2ae77d.mp3"
+    },
+    {
+      "id": "nanda-f7349e2455",
+      "voice": "nanda",
+      "text": "Beleza! Volte sempre. Tchau!",
+      "file": "nanda-f7349e2455.mp3"
+    },
+    {
+      "id": "graca-057932378d",
+      "voice": "graca",
+      "text": "Bom dia! Eu sou a Dona Graça, a padeira da noite.",
+      "file": "graca-057932378d.mp3"
+    },
+    {
+      "id": "graca-062a79e91a",
+      "voice": "graca",
+      "text": "Boa tarde! Eu sou a Dona Graça, a padeira da noite.",
+      "file": "graca-062a79e91a.mp3"
+    },
+    {
+      "id": "graca-8241fe7d24",
+      "voice": "graca",
+      "text": "Boa noite! Eu sou a Dona Graça, a padeira da noite.",
+      "file": "graca-8241fe7d24.mp3"
+    },
+    {
+      "id": "graca-4ab50ee64a",
+      "voice": "graca",
+      "text": "Tudo bem! Quer um cafezinho?",
+      "file": "graca-4ab50ee64a.mp3"
+    },
+    {
+      "id": "graca-a66948a3a3",
+      "voice": "graca",
+      "text": "Tá bom! Volte sempre. Tchau!",
+      "file": "graca-a66948a3a3.mp3"
+    },
+    {
+      "id": "prof-4d72f01706",
+      "voice": "prof",
+      "text": "Oi! Tudo bem? Eu sou a professora Bia.",
+      "file": "prof-4d72f01706.mp3"
+    },
+    {
+      "id": "prof-a5fecf7f23",
+      "voice": "prof",
+      "text": "Tudo ótimo! O tatame está livre. Quer treinar?",
+      "file": "prof-a5fecf7f23.mp3"
+    },
+    {
+      "id": "prof-3f794cf6c7",
+      "voice": "prof",
+      "text": "Beleza! Até a próxima.",
+      "file": "prof-3f794cf6c7.mp3"
+    },
+    {
+      "id": "julia-7b43b4bfbb",
+      "voice": "julia",
+      "text": "Bom dia! Eu sou a Júlia. Tudo bem?",
+      "file": "julia-7b43b4bfbb.mp3"
+    },
+    {
+      "id": "julia-dba5bb93be",
+      "voice": "julia",
+      "text": "Boa tarde! Eu sou a Júlia. Tudo bem?",
+      "file": "julia-dba5bb93be.mp3"
+    },
+    {
+      "id": "julia-ff94089cff",
+      "voice": "julia",
+      "text": "Boa noite! Eu sou a Júlia. Tudo bem?",
+      "file": "julia-ff94089cff.mp3"
+    },
+    {
+      "id": "julia-5b2b061b32",
+      "voice": "julia",
+      "text": "Que bom! Eu sou a guia da praça. Posso te ajudar?",
+      "file": "julia-5b2b061b32.mp3"
+    },
+    {
+      "id": "julia-5fef280ff4",
+      "voice": "julia",
+      "text": "Beleza! Aproveite a praça. Tchau!",
+      "file": "julia-5fef280ff4.mp3"
+    },
+    {
+      "id": "julia-a13cfa886f",
+      "voice": "julia",
+      "text": "Oi! Eu sou a Júlia, guia da praça. Posso te ajudar?",
+      "file": "julia-a13cfa886f.mp3"
+    },
+    {
+      "id": "julia-e753437801",
+      "voice": "julia",
+      "text": "Claro! O que você quer saber?",
+      "file": "julia-e753437801.mp3"
+    },
+    {
+      "id": "julia-218329ef07",
+      "voice": "julia",
+      "text": "É só clicar no chão! Pra sentar, clique num banco.",
+      "file": "julia-218329ef07.mp3"
+    },
+    {
+      "id": "julia-d9c503b993",
+      "voice": "julia",
+      "text": "Escreva no chat lá embaixo e aperte Enter. O botão “Oi!” faz você acenar.",
+      "file": "julia-d9c503b993.mp3"
+    },
+    {
+      "id": "julia-79229ba989",
+      "voice": "julia",
+      "text": "Ali, na porta com o toldo vermelho! O Seu Carlos adora conversar.",
+      "file": "julia-79229ba989.mp3"
+    },
+    {
+      "id": "julia-e97b61f876",
+      "voice": "julia",
+      "text": "Tome café com o Seu Carlos e jogue a “Correria no Balcão” no balcão. Depois compre um chapéu com a Nanda!",
+      "file": "julia-e97b61f876.mp3"
+    },
+    {
+      "id": "tia_lu-cc0f54207a",
+      "voice": "tia_lu",
+      "text": "Bom dia, freguês! Tá fresquinha a fruta hoje! O que vai ser?",
+      "file": "tia_lu-cc0f54207a.mp3"
+    },
+    {
+      "id": "tia_lu-9fe49f1066",
+      "voice": "tia_lu",
+      "text": "Boa tarde, freguês! Tá fresquinha a fruta hoje! O que vai ser?",
+      "file": "tia_lu-9fe49f1066.mp3"
+    },
+    {
+      "id": "tia_lu-a0efaf4d70",
+      "voice": "tia_lu",
+      "text": "Boa noite, freguês! Tá fresquinha a fruta hoje! O que vai ser?",
+      "file": "tia_lu-a0efaf4d70.mp3"
+    },
+    {
+      "id": "tia_lu-2a729957e4",
+      "voice": "tia_lu",
+      "text": "A feira já fechou. Volte amanhã às seis da manhã!",
+      "file": "tia_lu-2a729957e4.mp3"
+    },
+    {
+      "id": "ze-f35ce814e4",
+      "voice": "ze",
+      "text": "Bom dia! Alface e tomate fresquinhos. O que vai levar?",
+      "file": "ze-f35ce814e4.mp3"
+    },
+    {
+      "id": "ze-c17a5cbe1a",
+      "voice": "ze",
+      "text": "Boa tarde! Alface e tomate fresquinhos. O que vai levar?",
+      "file": "ze-c17a5cbe1a.mp3"
+    },
+    {
+      "id": "ze-21e903e8ab",
+      "voice": "ze",
+      "text": "Boa noite! Alface e tomate fresquinhos. O que vai levar?",
+      "file": "ze-21e903e8ab.mp3"
+    },
+    {
+      "id": "ze-502d7d3f27",
+      "voice": "ze",
+      "text": "Já fechei a banca. Amanhã tem mais, às seis!",
+      "file": "ze-502d7d3f27.mp3"
+    },
+    {
+      "id": "chico-82d47e1468",
+      "voice": "chico",
+      "text": "Bom dia! Pastel quentinho e caldo de cana gelado! O que vai ser?",
+      "file": "chico-82d47e1468.mp3"
+    },
+    {
+      "id": "chico-3744c4f3c1",
+      "voice": "chico",
+      "text": "Boa tarde! Pastel quentinho e caldo de cana gelado! O que vai ser?",
+      "file": "chico-3744c4f3c1.mp3"
+    },
+    {
+      "id": "chico-24596ee4d4",
+      "voice": "chico",
+      "text": "Boa noite! Pastel quentinho e caldo de cana gelado! O que vai ser?",
+      "file": "chico-24596ee4d4.mp3"
+    },
+    {
+      "id": "chico-6e0c248753",
+      "voice": "chico",
+      "text": "Acabou o pastel por hoje. Volte amanhã às seis!",
+      "file": "chico-6e0c248753.mp3"
+    },
+    {
+      "id": "rosa-9032a1c112",
+      "voice": "rosa",
+      "text": "Bom dia! Flores bonitas pra você! Quer levar um buquê?",
+      "file": "rosa-9032a1c112.mp3"
+    },
+    {
+      "id": "rosa-605c5acdc3",
+      "voice": "rosa",
+      "text": "Boa tarde! Flores bonitas pra você! Quer levar um buquê?",
+      "file": "rosa-605c5acdc3.mp3"
+    },
+    {
+      "id": "rosa-d7c68444fc",
+      "voice": "rosa",
+      "text": "Boa noite! Flores bonitas pra você! Quer levar um buquê?",
+      "file": "rosa-d7c68444fc.mp3"
+    },
+    {
+      "id": "rosa-d99a7b3701",
+      "voice": "rosa",
+      "text": "As flores já descansaram por hoje. Volte amanhã às seis!",
+      "file": "rosa-d99a7b3701.mp3"
+    },
+    {
+      "id": "tia_lu-dee6fb4656",
+      "voice": "tia_lu",
+      "text": "Hortifrúti da banca: fruta, verdura e flores o dia todo. O que vai ser?",
+      "file": "tia_lu-dee6fb4656.mp3"
+    },
+    {
+      "id": "tia_lu-9ca912d7ec",
+      "voice": "tia_lu",
+      "text": "A feira volta amanhã às 6h.",
+      "file": "tia_lu-9ca912d7ec.mp3"
+    },
+    {
+      "id": "tia_lu-c3e37c7ed9",
+      "voice": "tia_lu",
+      "text": "A banana custa dois reais. Três por cinco reais!",
+      "file": "tia_lu-c3e37c7ed9.mp3"
+    },
+    {
+      "id": "tia_lu-e48f8af58e",
+      "voice": "tia_lu",
+      "text": "Uma banana: dois reais.",
+      "file": "tia_lu-e48f8af58e.mp3"
+    },
+    {
+      "id": "tia_lu-e109cddbca",
+      "voice": "tia_lu",
+      "text": "Três bananas: cinco reais.",
+      "file": "tia_lu-e109cddbca.mp3"
+    },
+    {
+      "id": "tia_lu-e8e3167a45",
+      "voice": "tia_lu",
+      "text": "Seis bananas: dez reais.",
+      "file": "tia_lu-e8e3167a45.mp3"
+    },
+    {
+      "id": "tia_lu-c5d4ec5db6",
+      "voice": "tia_lu",
+      "text": "A laranja custa um real.",
+      "file": "tia_lu-c5d4ec5db6.mp3"
+    },
+    {
+      "id": "tia_lu-e5544426f9",
+      "voice": "tia_lu",
+      "text": "Uma laranja: um real.",
+      "file": "tia_lu-e5544426f9.mp3"
+    },
+    {
+      "id": "tia_lu-60d7708dc6",
+      "voice": "tia_lu",
+      "text": "Duas laranjas: dois reais.",
+      "file": "tia_lu-60d7708dc6.mp3"
+    },
+    {
+      "id": "tia_lu-886bbd303e",
+      "voice": "tia_lu",
+      "text": "Quatro laranjas: quatro reais.",
+      "file": "tia_lu-886bbd303e.mp3"
+    },
+    {
+      "id": "tia_lu-5a8dbafa9d",
+      "voice": "tia_lu",
+      "text": "A maçã custa um real e cinquenta centavos.",
+      "file": "tia_lu-5a8dbafa9d.mp3"
+    },
+    {
+      "id": "tia_lu-f3f1fe27e8",
+      "voice": "tia_lu",
+      "text": "Uma maçã: um real e cinquenta centavos.",
+      "file": "tia_lu-f3f1fe27e8.mp3"
+    },
+    {
+      "id": "tia_lu-f7671c6e39",
+      "voice": "tia_lu",
+      "text": "Duas maçãs: três reais.",
+      "file": "tia_lu-f7671c6e39.mp3"
+    },
+    {
+      "id": "tia_lu-ed5e4cd74b",
+      "voice": "tia_lu",
+      "text": "Três maçãs: quatro reais e cinquenta centavos.",
+      "file": "tia_lu-ed5e4cd74b.mp3"
+    },
+    {
+      "id": "ze-c797dcb393",
+      "voice": "ze",
+      "text": "A alface custa três reais e cinquenta centavos.",
+      "file": "ze-c797dcb393.mp3"
+    },
+    {
+      "id": "ze-de15e001b0",
+      "voice": "ze",
+      "text": "Uma alface: três reais e cinquenta centavos.",
+      "file": "ze-de15e001b0.mp3"
+    },
+    {
+      "id": "ze-ef39d6e02c",
+      "voice": "ze",
+      "text": "Duas alfaces: sete reais.",
+      "file": "ze-ef39d6e02c.mp3"
+    },
+    {
+      "id": "tia_lu-fbc05cd6bd",
+      "voice": "tia_lu",
+      "text": "A alface custa três reais e cinquenta centavos.",
+      "file": "tia_lu-fbc05cd6bd.mp3"
+    },
+    {
+      "id": "tia_lu-14dcb9ae2d",
+      "voice": "tia_lu",
+      "text": "Uma alface: três reais e cinquenta centavos.",
+      "file": "tia_lu-14dcb9ae2d.mp3"
+    },
+    {
+      "id": "tia_lu-21407d172d",
+      "voice": "tia_lu",
+      "text": "Duas alfaces: sete reais.",
+      "file": "tia_lu-21407d172d.mp3"
+    },
+    {
+      "id": "ze-421f15cc70",
+      "voice": "ze",
+      "text": "O tomate custa dois reais e cinquenta centavos.",
+      "file": "ze-421f15cc70.mp3"
+    },
+    {
+      "id": "ze-0e0ad6d025",
+      "voice": "ze",
+      "text": "Um tomate: dois reais e cinquenta centavos.",
+      "file": "ze-0e0ad6d025.mp3"
+    },
+    {
+      "id": "ze-9cbbdf7376",
+      "voice": "ze",
+      "text": "Dois tomates: cinco reais.",
+      "file": "ze-9cbbdf7376.mp3"
+    },
+    {
+      "id": "ze-3417de7b53",
+      "voice": "ze",
+      "text": "Três tomates: sete reais e cinquenta centavos.",
+      "file": "ze-3417de7b53.mp3"
+    },
+    {
+      "id": "tia_lu-0774189558",
+      "voice": "tia_lu",
+      "text": "O tomate custa dois reais e cinquenta centavos.",
+      "file": "tia_lu-0774189558.mp3"
+    },
+    {
+      "id": "tia_lu-24516f5509",
+      "voice": "tia_lu",
+      "text": "Um tomate: dois reais e cinquenta centavos.",
+      "file": "tia_lu-24516f5509.mp3"
+    },
+    {
+      "id": "tia_lu-320184c4bd",
+      "voice": "tia_lu",
+      "text": "Dois tomates: cinco reais.",
+      "file": "tia_lu-320184c4bd.mp3"
+    },
+    {
+      "id": "tia_lu-7336115b61",
+      "voice": "tia_lu",
+      "text": "Três tomates: sete reais e cinquenta centavos.",
+      "file": "tia_lu-7336115b61.mp3"
+    },
+    {
+      "id": "chico-bdf799914e",
+      "voice": "chico",
+      "text": "O pastel custa seis reais.",
+      "file": "chico-bdf799914e.mp3"
+    },
+    {
+      "id": "chico-c32f99ca70",
+      "voice": "chico",
+      "text": "Um pastel: seis reais.",
+      "file": "chico-c32f99ca70.mp3"
+    },
+    {
+      "id": "chico-2cd3f1445e",
+      "voice": "chico",
+      "text": "Dois pastéis: doze reais.",
+      "file": "chico-2cd3f1445e.mp3"
+    },
+    {
+      "id": "chico-7f455e4c32",
+      "voice": "chico",
+      "text": "O caldo de cana custa cinco reais.",
+      "file": "chico-7f455e4c32.mp3"
+    },
+    {
+      "id": "chico-7526288640",
+      "voice": "chico",
+      "text": "Um caldo de cana: cinco reais.",
+      "file": "chico-7526288640.mp3"
+    },
+    {
+      "id": "chico-a4001772b0",
+      "voice": "chico",
+      "text": "Dois caldos de cana: dez reais.",
+      "file": "chico-a4001772b0.mp3"
+    },
+    {
+      "id": "tia_lu-6020128e94",
+      "voice": "tia_lu",
+      "text": "O buquê de flores custa doze reais.",
+      "file": "tia_lu-6020128e94.mp3"
+    },
+    {
+      "id": "tia_lu-8f3a8c61d4",
+      "voice": "tia_lu",
+      "text": "Um buquê de flores: doze reais.",
+      "file": "tia_lu-8f3a8c61d4.mp3"
+    },
+    {
+      "id": "tia_lu-5ce1fbf9a7",
+      "voice": "tia_lu",
+      "text": "Dois buquês de flores: vinte e quatro reais.",
+      "file": "tia_lu-5ce1fbf9a7.mp3"
+    },
+    {
+      "id": "rosa-220bc074ae",
+      "voice": "rosa",
+      "text": "O buquê de flores custa doze reais.",
+      "file": "rosa-220bc074ae.mp3"
+    },
+    {
+      "id": "rosa-1a88e5e808",
+      "voice": "rosa",
+      "text": "Um buquê de flores: doze reais.",
+      "file": "rosa-1a88e5e808.mp3"
+    },
+    {
+      "id": "rosa-0524c4f513",
+      "voice": "rosa",
+      "text": "Dois buquês de flores: vinte e quatro reais.",
+      "file": "rosa-0524c4f513.mp3"
+    },
+    {
+      "id": "tia_lu-f52add3791",
+      "voice": "tia_lu",
+      "text": "Pronto! Valor certinho. Obrigada!",
+      "file": "tia_lu-f52add3791.mp3"
+    },
+    {
+      "id": "tia_lu-55691d5db3",
+      "voice": "tia_lu",
+      "text": "Você ainda não pagou nada.",
+      "file": "tia_lu-55691d5db3.mp3"
+    },
+    {
+      "id": "tia_lu-9b2df1ddcd",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: cinquenta centavos. Obrigada!",
+      "file": "tia_lu-9b2df1ddcd.mp3"
+    },
+    {
+      "id": "tia_lu-1054c0a0cd",
+      "voice": "tia_lu",
+      "text": "Faltam cinquenta centavos.",
+      "file": "tia_lu-1054c0a0cd.mp3"
+    },
+    {
+      "id": "tia_lu-731e27ef8c",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: um real. Obrigada!",
+      "file": "tia_lu-731e27ef8c.mp3"
+    },
+    {
+      "id": "tia_lu-67c5b37c5c",
+      "voice": "tia_lu",
+      "text": "Faltam um real.",
+      "file": "tia_lu-67c5b37c5c.mp3"
+    },
+    {
+      "id": "tia_lu-b7aad070ae",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: um real e cinquenta centavos. Obrigada!",
+      "file": "tia_lu-b7aad070ae.mp3"
+    },
+    {
+      "id": "tia_lu-0e235017e2",
+      "voice": "tia_lu",
+      "text": "Faltam um real e cinquenta centavos.",
+      "file": "tia_lu-0e235017e2.mp3"
+    },
+    {
+      "id": "tia_lu-5fdb17f358",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: dois reais. Obrigada!",
+      "file": "tia_lu-5fdb17f358.mp3"
+    },
+    {
+      "id": "tia_lu-2c6047c65c",
+      "voice": "tia_lu",
+      "text": "Faltam dois reais.",
+      "file": "tia_lu-2c6047c65c.mp3"
+    },
+    {
+      "id": "tia_lu-acfcd65cf7",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: dois reais e cinquenta centavos. Obrigada!",
+      "file": "tia_lu-acfcd65cf7.mp3"
+    },
+    {
+      "id": "tia_lu-c8c1464df8",
+      "voice": "tia_lu",
+      "text": "Faltam dois reais e cinquenta centavos.",
+      "file": "tia_lu-c8c1464df8.mp3"
+    },
+    {
+      "id": "tia_lu-718578f73e",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: três reais. Obrigada!",
+      "file": "tia_lu-718578f73e.mp3"
+    },
+    {
+      "id": "tia_lu-274baec79f",
+      "voice": "tia_lu",
+      "text": "Faltam três reais.",
+      "file": "tia_lu-274baec79f.mp3"
+    },
+    {
+      "id": "tia_lu-fad77ef429",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: três reais e cinquenta centavos. Obrigada!",
+      "file": "tia_lu-fad77ef429.mp3"
+    },
+    {
+      "id": "tia_lu-3d64838852",
+      "voice": "tia_lu",
+      "text": "Faltam três reais e cinquenta centavos.",
+      "file": "tia_lu-3d64838852.mp3"
+    },
+    {
+      "id": "tia_lu-72a21b96e7",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: quatro reais. Obrigada!",
+      "file": "tia_lu-72a21b96e7.mp3"
+    },
+    {
+      "id": "tia_lu-52a748858c",
+      "voice": "tia_lu",
+      "text": "Faltam quatro reais.",
+      "file": "tia_lu-52a748858c.mp3"
+    },
+    {
+      "id": "tia_lu-0091f08af2",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: quatro reais e cinquenta centavos. Obrigada!",
+      "file": "tia_lu-0091f08af2.mp3"
+    },
+    {
+      "id": "tia_lu-9254228340",
+      "voice": "tia_lu",
+      "text": "Faltam quatro reais e cinquenta centavos.",
+      "file": "tia_lu-9254228340.mp3"
+    },
+    {
+      "id": "tia_lu-92826a1387",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: cinco reais. Obrigada!",
+      "file": "tia_lu-92826a1387.mp3"
+    },
+    {
+      "id": "tia_lu-c15bd2424d",
+      "voice": "tia_lu",
+      "text": "Faltam cinco reais.",
+      "file": "tia_lu-c15bd2424d.mp3"
+    },
+    {
+      "id": "tia_lu-9f2a12c7f4",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: cinco reais e cinquenta centavos. Obrigada!",
+      "file": "tia_lu-9f2a12c7f4.mp3"
+    },
+    {
+      "id": "tia_lu-8696321a1f",
+      "voice": "tia_lu",
+      "text": "Faltam cinco reais e cinquenta centavos.",
+      "file": "tia_lu-8696321a1f.mp3"
+    },
+    {
+      "id": "tia_lu-05e80737e1",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: seis reais. Obrigada!",
+      "file": "tia_lu-05e80737e1.mp3"
+    },
+    {
+      "id": "tia_lu-4a6db02f5e",
+      "voice": "tia_lu",
+      "text": "Faltam seis reais.",
+      "file": "tia_lu-4a6db02f5e.mp3"
+    },
+    {
+      "id": "tia_lu-20051a4485",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: seis reais e cinquenta centavos. Obrigada!",
+      "file": "tia_lu-20051a4485.mp3"
+    },
+    {
+      "id": "tia_lu-73963f90f5",
+      "voice": "tia_lu",
+      "text": "Faltam seis reais e cinquenta centavos.",
+      "file": "tia_lu-73963f90f5.mp3"
+    },
+    {
+      "id": "tia_lu-14e5195afe",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: sete reais. Obrigada!",
+      "file": "tia_lu-14e5195afe.mp3"
+    },
+    {
+      "id": "tia_lu-151d3a2951",
+      "voice": "tia_lu",
+      "text": "Faltam sete reais.",
+      "file": "tia_lu-151d3a2951.mp3"
+    },
+    {
+      "id": "tia_lu-ca7cb90eb9",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: sete reais e cinquenta centavos. Obrigada!",
+      "file": "tia_lu-ca7cb90eb9.mp3"
+    },
+    {
+      "id": "tia_lu-e732eb8a70",
+      "voice": "tia_lu",
+      "text": "Faltam sete reais e cinquenta centavos.",
+      "file": "tia_lu-e732eb8a70.mp3"
+    },
+    {
+      "id": "tia_lu-c68b8dc846",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: oito reais. Obrigada!",
+      "file": "tia_lu-c68b8dc846.mp3"
+    },
+    {
+      "id": "tia_lu-c9e3f2c02b",
+      "voice": "tia_lu",
+      "text": "Faltam oito reais.",
+      "file": "tia_lu-c9e3f2c02b.mp3"
+    },
+    {
+      "id": "tia_lu-23d2e25305",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: oito reais e cinquenta centavos. Obrigada!",
+      "file": "tia_lu-23d2e25305.mp3"
+    },
+    {
+      "id": "tia_lu-61ea530672",
+      "voice": "tia_lu",
+      "text": "Faltam oito reais e cinquenta centavos.",
+      "file": "tia_lu-61ea530672.mp3"
+    },
+    {
+      "id": "tia_lu-c63d6755bb",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: nove reais. Obrigada!",
+      "file": "tia_lu-c63d6755bb.mp3"
+    },
+    {
+      "id": "tia_lu-698e980828",
+      "voice": "tia_lu",
+      "text": "Faltam nove reais.",
+      "file": "tia_lu-698e980828.mp3"
+    },
+    {
+      "id": "tia_lu-b455654882",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: nove reais e cinquenta centavos. Obrigada!",
+      "file": "tia_lu-b455654882.mp3"
+    },
+    {
+      "id": "tia_lu-3d9ad81d05",
+      "voice": "tia_lu",
+      "text": "Faltam nove reais e cinquenta centavos.",
+      "file": "tia_lu-3d9ad81d05.mp3"
+    },
+    {
+      "id": "tia_lu-abdb32676a",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: dez reais. Obrigada!",
+      "file": "tia_lu-abdb32676a.mp3"
+    },
+    {
+      "id": "tia_lu-a11a1697dc",
+      "voice": "tia_lu",
+      "text": "Faltam dez reais.",
+      "file": "tia_lu-a11a1697dc.mp3"
+    },
+    {
+      "id": "tia_lu-6084826e36",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: dez reais e cinquenta centavos. Obrigada!",
+      "file": "tia_lu-6084826e36.mp3"
+    },
+    {
+      "id": "tia_lu-59a3bc4e77",
+      "voice": "tia_lu",
+      "text": "Faltam dez reais e cinquenta centavos.",
+      "file": "tia_lu-59a3bc4e77.mp3"
+    },
+    {
+      "id": "tia_lu-5f2e270c59",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: onze reais. Obrigada!",
+      "file": "tia_lu-5f2e270c59.mp3"
+    },
+    {
+      "id": "tia_lu-d9bc595128",
+      "voice": "tia_lu",
+      "text": "Faltam onze reais.",
+      "file": "tia_lu-d9bc595128.mp3"
+    },
+    {
+      "id": "tia_lu-4b5ce705e0",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: onze reais e cinquenta centavos. Obrigada!",
+      "file": "tia_lu-4b5ce705e0.mp3"
+    },
+    {
+      "id": "tia_lu-bc79851ce7",
+      "voice": "tia_lu",
+      "text": "Faltam onze reais e cinquenta centavos.",
+      "file": "tia_lu-bc79851ce7.mp3"
+    },
+    {
+      "id": "tia_lu-2b8d0cf178",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: doze reais. Obrigada!",
+      "file": "tia_lu-2b8d0cf178.mp3"
+    },
+    {
+      "id": "tia_lu-6634827fc1",
+      "voice": "tia_lu",
+      "text": "Faltam doze reais.",
+      "file": "tia_lu-6634827fc1.mp3"
+    },
+    {
+      "id": "tia_lu-a60dd9977b",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: doze reais e cinquenta centavos. Obrigada!",
+      "file": "tia_lu-a60dd9977b.mp3"
+    },
+    {
+      "id": "tia_lu-bca3657cd2",
+      "voice": "tia_lu",
+      "text": "Faltam doze reais e cinquenta centavos.",
+      "file": "tia_lu-bca3657cd2.mp3"
+    },
+    {
+      "id": "tia_lu-9ff02589ac",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: treze reais. Obrigada!",
+      "file": "tia_lu-9ff02589ac.mp3"
+    },
+    {
+      "id": "tia_lu-5ddb07a3c8",
+      "voice": "tia_lu",
+      "text": "Faltam treze reais.",
+      "file": "tia_lu-5ddb07a3c8.mp3"
+    },
+    {
+      "id": "tia_lu-a9cb69b9e4",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: treze reais e cinquenta centavos. Obrigada!",
+      "file": "tia_lu-a9cb69b9e4.mp3"
+    },
+    {
+      "id": "tia_lu-a70385e316",
+      "voice": "tia_lu",
+      "text": "Faltam treze reais e cinquenta centavos.",
+      "file": "tia_lu-a70385e316.mp3"
+    },
+    {
+      "id": "tia_lu-7bce2568f1",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: catorze reais. Obrigada!",
+      "file": "tia_lu-7bce2568f1.mp3"
+    },
+    {
+      "id": "tia_lu-7cb6168d19",
+      "voice": "tia_lu",
+      "text": "Faltam catorze reais.",
+      "file": "tia_lu-7cb6168d19.mp3"
+    },
+    {
+      "id": "tia_lu-1b1db4abe6",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: catorze reais e cinquenta centavos. Obrigada!",
+      "file": "tia_lu-1b1db4abe6.mp3"
+    },
+    {
+      "id": "tia_lu-cfc48ef822",
+      "voice": "tia_lu",
+      "text": "Faltam catorze reais e cinquenta centavos.",
+      "file": "tia_lu-cfc48ef822.mp3"
+    },
+    {
+      "id": "tia_lu-1c9189c771",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: quinze reais. Obrigada!",
+      "file": "tia_lu-1c9189c771.mp3"
+    },
+    {
+      "id": "tia_lu-145c4c54ad",
+      "voice": "tia_lu",
+      "text": "Faltam quinze reais.",
+      "file": "tia_lu-145c4c54ad.mp3"
+    },
+    {
+      "id": "tia_lu-79a6a8e14d",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: quinze reais e cinquenta centavos. Obrigada!",
+      "file": "tia_lu-79a6a8e14d.mp3"
+    },
+    {
+      "id": "tia_lu-f1c4e40915",
+      "voice": "tia_lu",
+      "text": "Faltam quinze reais e cinquenta centavos.",
+      "file": "tia_lu-f1c4e40915.mp3"
+    },
+    {
+      "id": "tia_lu-0535bf8320",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: dezesseis reais. Obrigada!",
+      "file": "tia_lu-0535bf8320.mp3"
+    },
+    {
+      "id": "tia_lu-aaace030f5",
+      "voice": "tia_lu",
+      "text": "Faltam dezesseis reais.",
+      "file": "tia_lu-aaace030f5.mp3"
+    },
+    {
+      "id": "tia_lu-a67fedcda3",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: dezesseis reais e cinquenta centavos. Obrigada!",
+      "file": "tia_lu-a67fedcda3.mp3"
+    },
+    {
+      "id": "tia_lu-c9d237de37",
+      "voice": "tia_lu",
+      "text": "Faltam dezesseis reais e cinquenta centavos.",
+      "file": "tia_lu-c9d237de37.mp3"
+    },
+    {
+      "id": "tia_lu-8ec67939ae",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: dezessete reais. Obrigada!",
+      "file": "tia_lu-8ec67939ae.mp3"
+    },
+    {
+      "id": "tia_lu-c89fc67873",
+      "voice": "tia_lu",
+      "text": "Faltam dezessete reais.",
+      "file": "tia_lu-c89fc67873.mp3"
+    },
+    {
+      "id": "tia_lu-a9f8a40dca",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: dezessete reais e cinquenta centavos. Obrigada!",
+      "file": "tia_lu-a9f8a40dca.mp3"
+    },
+    {
+      "id": "tia_lu-e652de7058",
+      "voice": "tia_lu",
+      "text": "Faltam dezessete reais e cinquenta centavos.",
+      "file": "tia_lu-e652de7058.mp3"
+    },
+    {
+      "id": "tia_lu-ade7b7e0f4",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: dezoito reais. Obrigada!",
+      "file": "tia_lu-ade7b7e0f4.mp3"
+    },
+    {
+      "id": "tia_lu-c8c58da684",
+      "voice": "tia_lu",
+      "text": "Faltam dezoito reais.",
+      "file": "tia_lu-c8c58da684.mp3"
+    },
+    {
+      "id": "tia_lu-417f867916",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: dezoito reais e cinquenta centavos. Obrigada!",
+      "file": "tia_lu-417f867916.mp3"
+    },
+    {
+      "id": "tia_lu-5da0c0270d",
+      "voice": "tia_lu",
+      "text": "Faltam dezoito reais e cinquenta centavos.",
+      "file": "tia_lu-5da0c0270d.mp3"
+    },
+    {
+      "id": "tia_lu-499c3dc6a5",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: dezenove reais. Obrigada!",
+      "file": "tia_lu-499c3dc6a5.mp3"
+    },
+    {
+      "id": "tia_lu-64b2d685b1",
+      "voice": "tia_lu",
+      "text": "Faltam dezenove reais.",
+      "file": "tia_lu-64b2d685b1.mp3"
+    },
+    {
+      "id": "tia_lu-dd935b6e07",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: dezenove reais e cinquenta centavos. Obrigada!",
+      "file": "tia_lu-dd935b6e07.mp3"
+    },
+    {
+      "id": "tia_lu-8a9b3cc388",
+      "voice": "tia_lu",
+      "text": "Faltam dezenove reais e cinquenta centavos.",
+      "file": "tia_lu-8a9b3cc388.mp3"
+    },
+    {
+      "id": "tia_lu-2c82119b4d",
+      "voice": "tia_lu",
+      "text": "Aqui o seu troco: vinte reais. Obrigada!",
+      "file": "tia_lu-2c82119b4d.mp3"
+    },
+    {
+      "id": "tia_lu-85e9bf9e38",
+      "voice": "tia_lu",
+      "text": "Faltam vinte reais.",
+      "file": "tia_lu-85e9bf9e38.mp3"
+    },
+    {
+      "id": "ze-b94f4116c6",
+      "voice": "ze",
+      "text": "Pronto! Valor certinho. Obrigado!",
+      "file": "ze-b94f4116c6.mp3"
+    },
+    {
+      "id": "ze-8a61871c7b",
+      "voice": "ze",
+      "text": "Você ainda não pagou nada.",
+      "file": "ze-8a61871c7b.mp3"
+    },
+    {
+      "id": "ze-ba1754d1a5",
+      "voice": "ze",
+      "text": "Aqui o seu troco: cinquenta centavos. Obrigado!",
+      "file": "ze-ba1754d1a5.mp3"
+    },
+    {
+      "id": "ze-1070b4b588",
+      "voice": "ze",
+      "text": "Faltam cinquenta centavos.",
+      "file": "ze-1070b4b588.mp3"
+    },
+    {
+      "id": "ze-e1bd971a0f",
+      "voice": "ze",
+      "text": "Aqui o seu troco: um real. Obrigado!",
+      "file": "ze-e1bd971a0f.mp3"
+    },
+    {
+      "id": "ze-8180ff29b1",
+      "voice": "ze",
+      "text": "Faltam um real.",
+      "file": "ze-8180ff29b1.mp3"
+    },
+    {
+      "id": "ze-b196736aa5",
+      "voice": "ze",
+      "text": "Aqui o seu troco: um real e cinquenta centavos. Obrigado!",
+      "file": "ze-b196736aa5.mp3"
+    },
+    {
+      "id": "ze-031a3a5af5",
+      "voice": "ze",
+      "text": "Faltam um real e cinquenta centavos.",
+      "file": "ze-031a3a5af5.mp3"
+    },
+    {
+      "id": "ze-195cfe8bcb",
+      "voice": "ze",
+      "text": "Aqui o seu troco: dois reais. Obrigado!",
+      "file": "ze-195cfe8bcb.mp3"
+    },
+    {
+      "id": "ze-f6038d61be",
+      "voice": "ze",
+      "text": "Faltam dois reais.",
+      "file": "ze-f6038d61be.mp3"
+    },
+    {
+      "id": "ze-88eef0ebf5",
+      "voice": "ze",
+      "text": "Aqui o seu troco: dois reais e cinquenta centavos. Obrigado!",
+      "file": "ze-88eef0ebf5.mp3"
+    },
+    {
+      "id": "ze-3462efa645",
+      "voice": "ze",
+      "text": "Faltam dois reais e cinquenta centavos.",
+      "file": "ze-3462efa645.mp3"
+    },
+    {
+      "id": "ze-bc109210b9",
+      "voice": "ze",
+      "text": "Aqui o seu troco: três reais. Obrigado!",
+      "file": "ze-bc109210b9.mp3"
+    },
+    {
+      "id": "ze-8909d9aa16",
+      "voice": "ze",
+      "text": "Faltam três reais.",
+      "file": "ze-8909d9aa16.mp3"
+    },
+    {
+      "id": "ze-3bdddea1f1",
+      "voice": "ze",
+      "text": "Aqui o seu troco: três reais e cinquenta centavos. Obrigado!",
+      "file": "ze-3bdddea1f1.mp3"
+    },
+    {
+      "id": "ze-86aa4a2448",
+      "voice": "ze",
+      "text": "Faltam três reais e cinquenta centavos.",
+      "file": "ze-86aa4a2448.mp3"
+    },
+    {
+      "id": "ze-bf3c41e28d",
+      "voice": "ze",
+      "text": "Aqui o seu troco: quatro reais. Obrigado!",
+      "file": "ze-bf3c41e28d.mp3"
+    },
+    {
+      "id": "ze-82009043e0",
+      "voice": "ze",
+      "text": "Faltam quatro reais.",
+      "file": "ze-82009043e0.mp3"
+    },
+    {
+      "id": "ze-0982e948ca",
+      "voice": "ze",
+      "text": "Aqui o seu troco: quatro reais e cinquenta centavos. Obrigado!",
+      "file": "ze-0982e948ca.mp3"
+    },
+    {
+      "id": "ze-8f308b4ee8",
+      "voice": "ze",
+      "text": "Faltam quatro reais e cinquenta centavos.",
+      "file": "ze-8f308b4ee8.mp3"
+    },
+    {
+      "id": "ze-a5cf1536db",
+      "voice": "ze",
+      "text": "Aqui o seu troco: cinco reais. Obrigado!",
+      "file": "ze-a5cf1536db.mp3"
+    },
+    {
+      "id": "ze-c1bde16697",
+      "voice": "ze",
+      "text": "Faltam cinco reais.",
+      "file": "ze-c1bde16697.mp3"
+    },
+    {
+      "id": "ze-98106d4024",
+      "voice": "ze",
+      "text": "Aqui o seu troco: cinco reais e cinquenta centavos. Obrigado!",
+      "file": "ze-98106d4024.mp3"
+    },
+    {
+      "id": "ze-8acaaac217",
+      "voice": "ze",
+      "text": "Faltam cinco reais e cinquenta centavos.",
+      "file": "ze-8acaaac217.mp3"
+    },
+    {
+      "id": "ze-08f19b6f5c",
+      "voice": "ze",
+      "text": "Aqui o seu troco: seis reais. Obrigado!",
+      "file": "ze-08f19b6f5c.mp3"
+    },
+    {
+      "id": "ze-afc33a98e7",
+      "voice": "ze",
+      "text": "Faltam seis reais.",
+      "file": "ze-afc33a98e7.mp3"
+    },
+    {
+      "id": "ze-af208ebfb8",
+      "voice": "ze",
+      "text": "Aqui o seu troco: seis reais e cinquenta centavos. Obrigado!",
+      "file": "ze-af208ebfb8.mp3"
+    },
+    {
+      "id": "ze-3da2b9a8db",
+      "voice": "ze",
+      "text": "Faltam seis reais e cinquenta centavos.",
+      "file": "ze-3da2b9a8db.mp3"
+    },
+    {
+      "id": "ze-d4bb5d4769",
+      "voice": "ze",
+      "text": "Aqui o seu troco: sete reais. Obrigado!",
+      "file": "ze-d4bb5d4769.mp3"
+    },
+    {
+      "id": "ze-84a9e3ddb8",
+      "voice": "ze",
+      "text": "Faltam sete reais.",
+      "file": "ze-84a9e3ddb8.mp3"
+    },
+    {
+      "id": "ze-4949ef2d23",
+      "voice": "ze",
+      "text": "Aqui o seu troco: sete reais e cinquenta centavos. Obrigado!",
+      "file": "ze-4949ef2d23.mp3"
+    },
+    {
+      "id": "ze-4b6245dcc9",
+      "voice": "ze",
+      "text": "Faltam sete reais e cinquenta centavos.",
+      "file": "ze-4b6245dcc9.mp3"
+    },
+    {
+      "id": "ze-b0d0b5765e",
+      "voice": "ze",
+      "text": "Aqui o seu troco: oito reais. Obrigado!",
+      "file": "ze-b0d0b5765e.mp3"
+    },
+    {
+      "id": "ze-ab4bdc38de",
+      "voice": "ze",
+      "text": "Faltam oito reais.",
+      "file": "ze-ab4bdc38de.mp3"
+    },
+    {
+      "id": "ze-d159bab15f",
+      "voice": "ze",
+      "text": "Aqui o seu troco: oito reais e cinquenta centavos. Obrigado!",
+      "file": "ze-d159bab15f.mp3"
+    },
+    {
+      "id": "ze-e227221c10",
+      "voice": "ze",
+      "text": "Faltam oito reais e cinquenta centavos.",
+      "file": "ze-e227221c10.mp3"
+    },
+    {
+      "id": "ze-8ef024899d",
+      "voice": "ze",
+      "text": "Aqui o seu troco: nove reais. Obrigado!",
+      "file": "ze-8ef024899d.mp3"
+    },
+    {
+      "id": "ze-0df6d380b2",
+      "voice": "ze",
+      "text": "Faltam nove reais.",
+      "file": "ze-0df6d380b2.mp3"
+    },
+    {
+      "id": "ze-64a7d08e69",
+      "voice": "ze",
+      "text": "Aqui o seu troco: nove reais e cinquenta centavos. Obrigado!",
+      "file": "ze-64a7d08e69.mp3"
+    },
+    {
+      "id": "ze-a7cd0e8f7d",
+      "voice": "ze",
+      "text": "Faltam nove reais e cinquenta centavos.",
+      "file": "ze-a7cd0e8f7d.mp3"
+    },
+    {
+      "id": "ze-67e2ee9a19",
+      "voice": "ze",
+      "text": "Aqui o seu troco: dez reais. Obrigado!",
+      "file": "ze-67e2ee9a19.mp3"
+    },
+    {
+      "id": "ze-f871cea054",
+      "voice": "ze",
+      "text": "Faltam dez reais.",
+      "file": "ze-f871cea054.mp3"
+    },
+    {
+      "id": "ze-acd0f8a526",
+      "voice": "ze",
+      "text": "Aqui o seu troco: dez reais e cinquenta centavos. Obrigado!",
+      "file": "ze-acd0f8a526.mp3"
+    },
+    {
+      "id": "ze-1bf1a7cbbf",
+      "voice": "ze",
+      "text": "Faltam dez reais e cinquenta centavos.",
+      "file": "ze-1bf1a7cbbf.mp3"
+    },
+    {
+      "id": "ze-b1a822ae96",
+      "voice": "ze",
+      "text": "Aqui o seu troco: onze reais. Obrigado!",
+      "file": "ze-b1a822ae96.mp3"
+    },
+    {
+      "id": "ze-7ca38a4bec",
+      "voice": "ze",
+      "text": "Faltam onze reais.",
+      "file": "ze-7ca38a4bec.mp3"
+    },
+    {
+      "id": "ze-e6adf5a62b",
+      "voice": "ze",
+      "text": "Aqui o seu troco: onze reais e cinquenta centavos. Obrigado!",
+      "file": "ze-e6adf5a62b.mp3"
+    },
+    {
+      "id": "ze-6d99d3703c",
+      "voice": "ze",
+      "text": "Faltam onze reais e cinquenta centavos.",
+      "file": "ze-6d99d3703c.mp3"
+    },
+    {
+      "id": "ze-81aa2e590f",
+      "voice": "ze",
+      "text": "Aqui o seu troco: doze reais. Obrigado!",
+      "file": "ze-81aa2e590f.mp3"
+    },
+    {
+      "id": "ze-39299039f7",
+      "voice": "ze",
+      "text": "Faltam doze reais.",
+      "file": "ze-39299039f7.mp3"
+    },
+    {
+      "id": "ze-9973be8375",
+      "voice": "ze",
+      "text": "Aqui o seu troco: doze reais e cinquenta centavos. Obrigado!",
+      "file": "ze-9973be8375.mp3"
+    },
+    {
+      "id": "ze-c17e680af7",
+      "voice": "ze",
+      "text": "Faltam doze reais e cinquenta centavos.",
+      "file": "ze-c17e680af7.mp3"
+    },
+    {
+      "id": "ze-8dfc6908e8",
+      "voice": "ze",
+      "text": "Aqui o seu troco: treze reais. Obrigado!",
+      "file": "ze-8dfc6908e8.mp3"
+    },
+    {
+      "id": "ze-a7407eb46a",
+      "voice": "ze",
+      "text": "Faltam treze reais.",
+      "file": "ze-a7407eb46a.mp3"
+    },
+    {
+      "id": "ze-3091a1eb51",
+      "voice": "ze",
+      "text": "Aqui o seu troco: treze reais e cinquenta centavos. Obrigado!",
+      "file": "ze-3091a1eb51.mp3"
+    },
+    {
+      "id": "ze-a5fb495688",
+      "voice": "ze",
+      "text": "Faltam treze reais e cinquenta centavos.",
+      "file": "ze-a5fb495688.mp3"
+    },
+    {
+      "id": "ze-2c9cbc0d77",
+      "voice": "ze",
+      "text": "Aqui o seu troco: catorze reais. Obrigado!",
+      "file": "ze-2c9cbc0d77.mp3"
+    },
+    {
+      "id": "ze-83cb01a801",
+      "voice": "ze",
+      "text": "Faltam catorze reais.",
+      "file": "ze-83cb01a801.mp3"
+    },
+    {
+      "id": "ze-d682912c66",
+      "voice": "ze",
+      "text": "Aqui o seu troco: catorze reais e cinquenta centavos. Obrigado!",
+      "file": "ze-d682912c66.mp3"
+    },
+    {
+      "id": "ze-2cc726b7f2",
+      "voice": "ze",
+      "text": "Faltam catorze reais e cinquenta centavos.",
+      "file": "ze-2cc726b7f2.mp3"
+    },
+    {
+      "id": "ze-7ea68709ef",
+      "voice": "ze",
+      "text": "Aqui o seu troco: quinze reais. Obrigado!",
+      "file": "ze-7ea68709ef.mp3"
+    },
+    {
+      "id": "ze-baf473f286",
+      "voice": "ze",
+      "text": "Faltam quinze reais.",
+      "file": "ze-baf473f286.mp3"
+    },
+    {
+      "id": "ze-c388ab6faa",
+      "voice": "ze",
+      "text": "Aqui o seu troco: quinze reais e cinquenta centavos. Obrigado!",
+      "file": "ze-c388ab6faa.mp3"
+    },
+    {
+      "id": "ze-916ac7f23c",
+      "voice": "ze",
+      "text": "Faltam quinze reais e cinquenta centavos.",
+      "file": "ze-916ac7f23c.mp3"
+    },
+    {
+      "id": "ze-8cecdb4448",
+      "voice": "ze",
+      "text": "Aqui o seu troco: dezesseis reais. Obrigado!",
+      "file": "ze-8cecdb4448.mp3"
+    },
+    {
+      "id": "ze-cba8b450da",
+      "voice": "ze",
+      "text": "Faltam dezesseis reais.",
+      "file": "ze-cba8b450da.mp3"
+    },
+    {
+      "id": "ze-1f1bce4dfa",
+      "voice": "ze",
+      "text": "Aqui o seu troco: dezesseis reais e cinquenta centavos. Obrigado!",
+      "file": "ze-1f1bce4dfa.mp3"
+    },
+    {
+      "id": "ze-e05539d6fa",
+      "voice": "ze",
+      "text": "Faltam dezesseis reais e cinquenta centavos.",
+      "file": "ze-e05539d6fa.mp3"
+    },
+    {
+      "id": "ze-65507f27a8",
+      "voice": "ze",
+      "text": "Aqui o seu troco: dezessete reais. Obrigado!",
+      "file": "ze-65507f27a8.mp3"
+    },
+    {
+      "id": "ze-25cc0bd35b",
+      "voice": "ze",
+      "text": "Faltam dezessete reais.",
+      "file": "ze-25cc0bd35b.mp3"
+    },
+    {
+      "id": "ze-db8686bb11",
+      "voice": "ze",
+      "text": "Aqui o seu troco: dezessete reais e cinquenta centavos. Obrigado!",
+      "file": "ze-db8686bb11.mp3"
+    },
+    {
+      "id": "ze-73c69256f9",
+      "voice": "ze",
+      "text": "Faltam dezessete reais e cinquenta centavos.",
+      "file": "ze-73c69256f9.mp3"
+    },
+    {
+      "id": "ze-db813d6389",
+      "voice": "ze",
+      "text": "Aqui o seu troco: dezoito reais. Obrigado!",
+      "file": "ze-db813d6389.mp3"
+    },
+    {
+      "id": "ze-307ec3b559",
+      "voice": "ze",
+      "text": "Faltam dezoito reais.",
+      "file": "ze-307ec3b559.mp3"
+    },
+    {
+      "id": "ze-5ae1a6f33c",
+      "voice": "ze",
+      "text": "Aqui o seu troco: dezoito reais e cinquenta centavos. Obrigado!",
+      "file": "ze-5ae1a6f33c.mp3"
+    },
+    {
+      "id": "ze-f57502195a",
+      "voice": "ze",
+      "text": "Faltam dezoito reais e cinquenta centavos.",
+      "file": "ze-f57502195a.mp3"
+    },
+    {
+      "id": "ze-264af6ab3f",
+      "voice": "ze",
+      "text": "Aqui o seu troco: dezenove reais. Obrigado!",
+      "file": "ze-264af6ab3f.mp3"
+    },
+    {
+      "id": "ze-7d68030cfc",
+      "voice": "ze",
+      "text": "Faltam dezenove reais.",
+      "file": "ze-7d68030cfc.mp3"
+    },
+    {
+      "id": "ze-d805aee40c",
+      "voice": "ze",
+      "text": "Aqui o seu troco: dezenove reais e cinquenta centavos. Obrigado!",
+      "file": "ze-d805aee40c.mp3"
+    },
+    {
+      "id": "ze-bca06e2018",
+      "voice": "ze",
+      "text": "Faltam dezenove reais e cinquenta centavos.",
+      "file": "ze-bca06e2018.mp3"
+    },
+    {
+      "id": "ze-cd430dfb21",
+      "voice": "ze",
+      "text": "Aqui o seu troco: vinte reais. Obrigado!",
+      "file": "ze-cd430dfb21.mp3"
+    },
+    {
+      "id": "ze-b012e34ad3",
+      "voice": "ze",
+      "text": "Faltam vinte reais.",
+      "file": "ze-b012e34ad3.mp3"
+    },
+    {
+      "id": "chico-4b11389c7b",
+      "voice": "chico",
+      "text": "Pronto! Valor certinho. Obrigado!",
+      "file": "chico-4b11389c7b.mp3"
+    },
+    {
+      "id": "chico-90c9cbaa6b",
+      "voice": "chico",
+      "text": "Você ainda não pagou nada.",
+      "file": "chico-90c9cbaa6b.mp3"
+    },
+    {
+      "id": "chico-162e58d802",
+      "voice": "chico",
+      "text": "Aqui o seu troco: cinquenta centavos. Obrigado!",
+      "file": "chico-162e58d802.mp3"
+    },
+    {
+      "id": "chico-05a2cf084e",
+      "voice": "chico",
+      "text": "Faltam cinquenta centavos.",
+      "file": "chico-05a2cf084e.mp3"
+    },
+    {
+      "id": "chico-5e76b4ccd1",
+      "voice": "chico",
+      "text": "Aqui o seu troco: um real. Obrigado!",
+      "file": "chico-5e76b4ccd1.mp3"
+    },
+    {
+      "id": "chico-df70439f8c",
+      "voice": "chico",
+      "text": "Faltam um real.",
+      "file": "chico-df70439f8c.mp3"
+    },
+    {
+      "id": "chico-d3a1a67ea1",
+      "voice": "chico",
+      "text": "Aqui o seu troco: um real e cinquenta centavos. Obrigado!",
+      "file": "chico-d3a1a67ea1.mp3"
+    },
+    {
+      "id": "chico-e89c0bfaf6",
+      "voice": "chico",
+      "text": "Faltam um real e cinquenta centavos.",
+      "file": "chico-e89c0bfaf6.mp3"
+    },
+    {
+      "id": "chico-4f14137437",
+      "voice": "chico",
+      "text": "Aqui o seu troco: dois reais. Obrigado!",
+      "file": "chico-4f14137437.mp3"
+    },
+    {
+      "id": "chico-b2d68900bd",
+      "voice": "chico",
+      "text": "Faltam dois reais.",
+      "file": "chico-b2d68900bd.mp3"
+    },
+    {
+      "id": "chico-a564a2522b",
+      "voice": "chico",
+      "text": "Aqui o seu troco: dois reais e cinquenta centavos. Obrigado!",
+      "file": "chico-a564a2522b.mp3"
+    },
+    {
+      "id": "chico-143e7f7894",
+      "voice": "chico",
+      "text": "Faltam dois reais e cinquenta centavos.",
+      "file": "chico-143e7f7894.mp3"
+    },
+    {
+      "id": "chico-1f39ae3cc8",
+      "voice": "chico",
+      "text": "Aqui o seu troco: três reais. Obrigado!",
+      "file": "chico-1f39ae3cc8.mp3"
+    },
+    {
+      "id": "chico-45c985c0c0",
+      "voice": "chico",
+      "text": "Faltam três reais.",
+      "file": "chico-45c985c0c0.mp3"
+    },
+    {
+      "id": "chico-17672a2a5f",
+      "voice": "chico",
+      "text": "Aqui o seu troco: três reais e cinquenta centavos. Obrigado!",
+      "file": "chico-17672a2a5f.mp3"
+    },
+    {
+      "id": "chico-7fe9211171",
+      "voice": "chico",
+      "text": "Faltam três reais e cinquenta centavos.",
+      "file": "chico-7fe9211171.mp3"
+    },
+    {
+      "id": "chico-edd85e360f",
+      "voice": "chico",
+      "text": "Aqui o seu troco: quatro reais. Obrigado!",
+      "file": "chico-edd85e360f.mp3"
+    },
+    {
+      "id": "chico-f6e7315470",
+      "voice": "chico",
+      "text": "Faltam quatro reais.",
+      "file": "chico-f6e7315470.mp3"
+    },
+    {
+      "id": "chico-4a25e2399f",
+      "voice": "chico",
+      "text": "Aqui o seu troco: quatro reais e cinquenta centavos. Obrigado!",
+      "file": "chico-4a25e2399f.mp3"
+    },
+    {
+      "id": "chico-bc28228e13",
+      "voice": "chico",
+      "text": "Faltam quatro reais e cinquenta centavos.",
+      "file": "chico-bc28228e13.mp3"
+    },
+    {
+      "id": "chico-2cb418b6cc",
+      "voice": "chico",
+      "text": "Aqui o seu troco: cinco reais. Obrigado!",
+      "file": "chico-2cb418b6cc.mp3"
+    },
+    {
+      "id": "chico-48d3caa9b2",
+      "voice": "chico",
+      "text": "Faltam cinco reais.",
+      "file": "chico-48d3caa9b2.mp3"
+    },
+    {
+      "id": "chico-f270904586",
+      "voice": "chico",
+      "text": "Aqui o seu troco: cinco reais e cinquenta centavos. Obrigado!",
+      "file": "chico-f270904586.mp3"
+    },
+    {
+      "id": "chico-74a4fbee96",
+      "voice": "chico",
+      "text": "Faltam cinco reais e cinquenta centavos.",
+      "file": "chico-74a4fbee96.mp3"
+    },
+    {
+      "id": "chico-40dd078a8b",
+      "voice": "chico",
+      "text": "Aqui o seu troco: seis reais. Obrigado!",
+      "file": "chico-40dd078a8b.mp3"
+    },
+    {
+      "id": "chico-0547f185c3",
+      "voice": "chico",
+      "text": "Faltam seis reais.",
+      "file": "chico-0547f185c3.mp3"
+    },
+    {
+      "id": "chico-55aabaf648",
+      "voice": "chico",
+      "text": "Aqui o seu troco: seis reais e cinquenta centavos. Obrigado!",
+      "file": "chico-55aabaf648.mp3"
+    },
+    {
+      "id": "chico-3d44561afc",
+      "voice": "chico",
+      "text": "Faltam seis reais e cinquenta centavos.",
+      "file": "chico-3d44561afc.mp3"
+    },
+    {
+      "id": "chico-d7d1edc43f",
+      "voice": "chico",
+      "text": "Aqui o seu troco: sete reais. Obrigado!",
+      "file": "chico-d7d1edc43f.mp3"
+    },
+    {
+      "id": "chico-99b29ec927",
+      "voice": "chico",
+      "text": "Faltam sete reais.",
+      "file": "chico-99b29ec927.mp3"
+    },
+    {
+      "id": "chico-402089e8fe",
+      "voice": "chico",
+      "text": "Aqui o seu troco: sete reais e cinquenta centavos. Obrigado!",
+      "file": "chico-402089e8fe.mp3"
+    },
+    {
+      "id": "chico-28b0e0a4c8",
+      "voice": "chico",
+      "text": "Faltam sete reais e cinquenta centavos.",
+      "file": "chico-28b0e0a4c8.mp3"
+    },
+    {
+      "id": "chico-1940d2d8b6",
+      "voice": "chico",
+      "text": "Aqui o seu troco: oito reais. Obrigado!",
+      "file": "chico-1940d2d8b6.mp3"
+    },
+    {
+      "id": "chico-f2e1d57146",
+      "voice": "chico",
+      "text": "Faltam oito reais.",
+      "file": "chico-f2e1d57146.mp3"
+    },
+    {
+      "id": "chico-b62460b198",
+      "voice": "chico",
+      "text": "Aqui o seu troco: oito reais e cinquenta centavos. Obrigado!",
+      "file": "chico-b62460b198.mp3"
+    },
+    {
+      "id": "chico-d325ed4fdd",
+      "voice": "chico",
+      "text": "Faltam oito reais e cinquenta centavos.",
+      "file": "chico-d325ed4fdd.mp3"
+    },
+    {
+      "id": "chico-a72644f48d",
+      "voice": "chico",
+      "text": "Aqui o seu troco: nove reais. Obrigado!",
+      "file": "chico-a72644f48d.mp3"
+    },
+    {
+      "id": "chico-586eab8f9a",
+      "voice": "chico",
+      "text": "Faltam nove reais.",
+      "file": "chico-586eab8f9a.mp3"
+    },
+    {
+      "id": "chico-7752f44022",
+      "voice": "chico",
+      "text": "Aqui o seu troco: nove reais e cinquenta centavos. Obrigado!",
+      "file": "chico-7752f44022.mp3"
+    },
+    {
+      "id": "chico-5d2bd86acb",
+      "voice": "chico",
+      "text": "Faltam nove reais e cinquenta centavos.",
+      "file": "chico-5d2bd86acb.mp3"
+    },
+    {
+      "id": "chico-242dea598b",
+      "voice": "chico",
+      "text": "Aqui o seu troco: dez reais. Obrigado!",
+      "file": "chico-242dea598b.mp3"
+    },
+    {
+      "id": "chico-ba0db91084",
+      "voice": "chico",
+      "text": "Faltam dez reais.",
+      "file": "chico-ba0db91084.mp3"
+    },
+    {
+      "id": "chico-febb9124ca",
+      "voice": "chico",
+      "text": "Aqui o seu troco: dez reais e cinquenta centavos. Obrigado!",
+      "file": "chico-febb9124ca.mp3"
+    },
+    {
+      "id": "chico-83167a59a7",
+      "voice": "chico",
+      "text": "Faltam dez reais e cinquenta centavos.",
+      "file": "chico-83167a59a7.mp3"
+    },
+    {
+      "id": "chico-8be6bdb82c",
+      "voice": "chico",
+      "text": "Aqui o seu troco: onze reais. Obrigado!",
+      "file": "chico-8be6bdb82c.mp3"
+    },
+    {
+      "id": "chico-40cb21f089",
+      "voice": "chico",
+      "text": "Faltam onze reais.",
+      "file": "chico-40cb21f089.mp3"
+    },
+    {
+      "id": "chico-7160f0b165",
+      "voice": "chico",
+      "text": "Aqui o seu troco: onze reais e cinquenta centavos. Obrigado!",
+      "file": "chico-7160f0b165.mp3"
+    },
+    {
+      "id": "chico-b364950c57",
+      "voice": "chico",
+      "text": "Faltam onze reais e cinquenta centavos.",
+      "file": "chico-b364950c57.mp3"
+    },
+    {
+      "id": "chico-bbef9df387",
+      "voice": "chico",
+      "text": "Aqui o seu troco: doze reais. Obrigado!",
+      "file": "chico-bbef9df387.mp3"
+    },
+    {
+      "id": "chico-660a4d4c89",
+      "voice": "chico",
+      "text": "Faltam doze reais.",
+      "file": "chico-660a4d4c89.mp3"
+    },
+    {
+      "id": "chico-581e5ccfe8",
+      "voice": "chico",
+      "text": "Aqui o seu troco: doze reais e cinquenta centavos. Obrigado!",
+      "file": "chico-581e5ccfe8.mp3"
+    },
+    {
+      "id": "chico-df40561f1f",
+      "voice": "chico",
+      "text": "Faltam doze reais e cinquenta centavos.",
+      "file": "chico-df40561f1f.mp3"
+    },
+    {
+      "id": "chico-bdbdb492d6",
+      "voice": "chico",
+      "text": "Aqui o seu troco: treze reais. Obrigado!",
+      "file": "chico-bdbdb492d6.mp3"
+    },
+    {
+      "id": "chico-68c70c32d2",
+      "voice": "chico",
+      "text": "Faltam treze reais.",
+      "file": "chico-68c70c32d2.mp3"
+    },
+    {
+      "id": "chico-557b12fc9b",
+      "voice": "chico",
+      "text": "Aqui o seu troco: treze reais e cinquenta centavos. Obrigado!",
+      "file": "chico-557b12fc9b.mp3"
+    },
+    {
+      "id": "chico-d9354ef4ae",
+      "voice": "chico",
+      "text": "Faltam treze reais e cinquenta centavos.",
+      "file": "chico-d9354ef4ae.mp3"
+    },
+    {
+      "id": "chico-c8b824be14",
+      "voice": "chico",
+      "text": "Aqui o seu troco: catorze reais. Obrigado!",
+      "file": "chico-c8b824be14.mp3"
+    },
+    {
+      "id": "chico-a3373a9dcb",
+      "voice": "chico",
+      "text": "Faltam catorze reais.",
+      "file": "chico-a3373a9dcb.mp3"
+    },
+    {
+      "id": "chico-83b27b0cb9",
+      "voice": "chico",
+      "text": "Aqui o seu troco: catorze reais e cinquenta centavos. Obrigado!",
+      "file": "chico-83b27b0cb9.mp3"
+    },
+    {
+      "id": "chico-144f319d99",
+      "voice": "chico",
+      "text": "Faltam catorze reais e cinquenta centavos.",
+      "file": "chico-144f319d99.mp3"
+    },
+    {
+      "id": "chico-40d2718ff4",
+      "voice": "chico",
+      "text": "Aqui o seu troco: quinze reais. Obrigado!",
+      "file": "chico-40d2718ff4.mp3"
+    },
+    {
+      "id": "chico-865e16934a",
+      "voice": "chico",
+      "text": "Faltam quinze reais.",
+      "file": "chico-865e16934a.mp3"
+    },
+    {
+      "id": "chico-ed3b29ee62",
+      "voice": "chico",
+      "text": "Aqui o seu troco: quinze reais e cinquenta centavos. Obrigado!",
+      "file": "chico-ed3b29ee62.mp3"
+    },
+    {
+      "id": "chico-216d4eb89c",
+      "voice": "chico",
+      "text": "Faltam quinze reais e cinquenta centavos.",
+      "file": "chico-216d4eb89c.mp3"
+    },
+    {
+      "id": "chico-61fd4e9ded",
+      "voice": "chico",
+      "text": "Aqui o seu troco: dezesseis reais. Obrigado!",
+      "file": "chico-61fd4e9ded.mp3"
+    },
+    {
+      "id": "chico-de96f7adca",
+      "voice": "chico",
+      "text": "Faltam dezesseis reais.",
+      "file": "chico-de96f7adca.mp3"
+    },
+    {
+      "id": "chico-daf9f83e7b",
+      "voice": "chico",
+      "text": "Aqui o seu troco: dezesseis reais e cinquenta centavos. Obrigado!",
+      "file": "chico-daf9f83e7b.mp3"
+    },
+    {
+      "id": "chico-b2c57d3763",
+      "voice": "chico",
+      "text": "Faltam dezesseis reais e cinquenta centavos.",
+      "file": "chico-b2c57d3763.mp3"
+    },
+    {
+      "id": "chico-24722b24b7",
+      "voice": "chico",
+      "text": "Aqui o seu troco: dezessete reais. Obrigado!",
+      "file": "chico-24722b24b7.mp3"
+    },
+    {
+      "id": "chico-87450813d2",
+      "voice": "chico",
+      "text": "Faltam dezessete reais.",
+      "file": "chico-87450813d2.mp3"
+    },
+    {
+      "id": "chico-e600eef07d",
+      "voice": "chico",
+      "text": "Aqui o seu troco: dezessete reais e cinquenta centavos. Obrigado!",
+      "file": "chico-e600eef07d.mp3"
+    },
+    {
+      "id": "chico-6e70781f68",
+      "voice": "chico",
+      "text": "Faltam dezessete reais e cinquenta centavos.",
+      "file": "chico-6e70781f68.mp3"
+    },
+    {
+      "id": "chico-d9c3cf8ad0",
+      "voice": "chico",
+      "text": "Aqui o seu troco: dezoito reais. Obrigado!",
+      "file": "chico-d9c3cf8ad0.mp3"
+    },
+    {
+      "id": "chico-b90fcdfc60",
+      "voice": "chico",
+      "text": "Faltam dezoito reais.",
+      "file": "chico-b90fcdfc60.mp3"
+    },
+    {
+      "id": "chico-b90eec3048",
+      "voice": "chico",
+      "text": "Aqui o seu troco: dezoito reais e cinquenta centavos. Obrigado!",
+      "file": "chico-b90eec3048.mp3"
+    },
+    {
+      "id": "chico-e1fc5acaa0",
+      "voice": "chico",
+      "text": "Faltam dezoito reais e cinquenta centavos.",
+      "file": "chico-e1fc5acaa0.mp3"
+    },
+    {
+      "id": "chico-42d637cce4",
+      "voice": "chico",
+      "text": "Aqui o seu troco: dezenove reais. Obrigado!",
+      "file": "chico-42d637cce4.mp3"
+    },
+    {
+      "id": "chico-28e4d316c5",
+      "voice": "chico",
+      "text": "Faltam dezenove reais.",
+      "file": "chico-28e4d316c5.mp3"
+    },
+    {
+      "id": "chico-8e75910dae",
+      "voice": "chico",
+      "text": "Aqui o seu troco: dezenove reais e cinquenta centavos. Obrigado!",
+      "file": "chico-8e75910dae.mp3"
+    },
+    {
+      "id": "chico-7ef7f33705",
+      "voice": "chico",
+      "text": "Faltam dezenove reais e cinquenta centavos.",
+      "file": "chico-7ef7f33705.mp3"
+    },
+    {
+      "id": "chico-df9ab8e932",
+      "voice": "chico",
+      "text": "Aqui o seu troco: vinte reais. Obrigado!",
+      "file": "chico-df9ab8e932.mp3"
+    },
+    {
+      "id": "chico-50de74651c",
+      "voice": "chico",
+      "text": "Faltam vinte reais.",
+      "file": "chico-50de74651c.mp3"
+    },
+    {
+      "id": "rosa-5b649fe49b",
+      "voice": "rosa",
+      "text": "Pronto! Valor certinho. Obrigada!",
+      "file": "rosa-5b649fe49b.mp3"
+    },
+    {
+      "id": "rosa-ca2cee903a",
+      "voice": "rosa",
+      "text": "Você ainda não pagou nada.",
+      "file": "rosa-ca2cee903a.mp3"
+    },
+    {
+      "id": "rosa-0b071e871e",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: cinquenta centavos. Obrigada!",
+      "file": "rosa-0b071e871e.mp3"
+    },
+    {
+      "id": "rosa-719779ae67",
+      "voice": "rosa",
+      "text": "Faltam cinquenta centavos.",
+      "file": "rosa-719779ae67.mp3"
+    },
+    {
+      "id": "rosa-8cffa419d7",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: um real. Obrigada!",
+      "file": "rosa-8cffa419d7.mp3"
+    },
+    {
+      "id": "rosa-2ce8f3e051",
+      "voice": "rosa",
+      "text": "Faltam um real.",
+      "file": "rosa-2ce8f3e051.mp3"
+    },
+    {
+      "id": "rosa-5459c6e65e",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: um real e cinquenta centavos. Obrigada!",
+      "file": "rosa-5459c6e65e.mp3"
+    },
+    {
+      "id": "rosa-fc75de59fd",
+      "voice": "rosa",
+      "text": "Faltam um real e cinquenta centavos.",
+      "file": "rosa-fc75de59fd.mp3"
+    },
+    {
+      "id": "rosa-84123b6814",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: dois reais. Obrigada!",
+      "file": "rosa-84123b6814.mp3"
+    },
+    {
+      "id": "rosa-103cb14de8",
+      "voice": "rosa",
+      "text": "Faltam dois reais.",
+      "file": "rosa-103cb14de8.mp3"
+    },
+    {
+      "id": "rosa-bf3bdba432",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: dois reais e cinquenta centavos. Obrigada!",
+      "file": "rosa-bf3bdba432.mp3"
+    },
+    {
+      "id": "rosa-4c44d016c3",
+      "voice": "rosa",
+      "text": "Faltam dois reais e cinquenta centavos.",
+      "file": "rosa-4c44d016c3.mp3"
+    },
+    {
+      "id": "rosa-209b009b43",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: três reais. Obrigada!",
+      "file": "rosa-209b009b43.mp3"
+    },
+    {
+      "id": "rosa-2bcad315ce",
+      "voice": "rosa",
+      "text": "Faltam três reais.",
+      "file": "rosa-2bcad315ce.mp3"
+    },
+    {
+      "id": "rosa-5cbdef5518",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: três reais e cinquenta centavos. Obrigada!",
+      "file": "rosa-5cbdef5518.mp3"
+    },
+    {
+      "id": "rosa-c2b6cbcc6a",
+      "voice": "rosa",
+      "text": "Faltam três reais e cinquenta centavos.",
+      "file": "rosa-c2b6cbcc6a.mp3"
+    },
+    {
+      "id": "rosa-30a430a4f2",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: quatro reais. Obrigada!",
+      "file": "rosa-30a430a4f2.mp3"
+    },
+    {
+      "id": "rosa-00970603f0",
+      "voice": "rosa",
+      "text": "Faltam quatro reais.",
+      "file": "rosa-00970603f0.mp3"
+    },
+    {
+      "id": "rosa-f9914c7baa",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: quatro reais e cinquenta centavos. Obrigada!",
+      "file": "rosa-f9914c7baa.mp3"
+    },
+    {
+      "id": "rosa-f9545c1730",
+      "voice": "rosa",
+      "text": "Faltam quatro reais e cinquenta centavos.",
+      "file": "rosa-f9545c1730.mp3"
+    },
+    {
+      "id": "rosa-b819ecbe78",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: cinco reais. Obrigada!",
+      "file": "rosa-b819ecbe78.mp3"
+    },
+    {
+      "id": "rosa-c162f4a059",
+      "voice": "rosa",
+      "text": "Faltam cinco reais.",
+      "file": "rosa-c162f4a059.mp3"
+    },
+    {
+      "id": "rosa-b8ed6f46db",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: cinco reais e cinquenta centavos. Obrigada!",
+      "file": "rosa-b8ed6f46db.mp3"
+    },
+    {
+      "id": "rosa-a148996b41",
+      "voice": "rosa",
+      "text": "Faltam cinco reais e cinquenta centavos.",
+      "file": "rosa-a148996b41.mp3"
+    },
+    {
+      "id": "rosa-ec10b0a59d",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: seis reais. Obrigada!",
+      "file": "rosa-ec10b0a59d.mp3"
+    },
+    {
+      "id": "rosa-85a001d9e8",
+      "voice": "rosa",
+      "text": "Faltam seis reais.",
+      "file": "rosa-85a001d9e8.mp3"
+    },
+    {
+      "id": "rosa-135cfed1bd",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: seis reais e cinquenta centavos. Obrigada!",
+      "file": "rosa-135cfed1bd.mp3"
+    },
+    {
+      "id": "rosa-930058c02f",
+      "voice": "rosa",
+      "text": "Faltam seis reais e cinquenta centavos.",
+      "file": "rosa-930058c02f.mp3"
+    },
+    {
+      "id": "rosa-46f1e31133",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: sete reais. Obrigada!",
+      "file": "rosa-46f1e31133.mp3"
+    },
+    {
+      "id": "rosa-7543103f4d",
+      "voice": "rosa",
+      "text": "Faltam sete reais.",
+      "file": "rosa-7543103f4d.mp3"
+    },
+    {
+      "id": "rosa-f386b0de37",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: sete reais e cinquenta centavos. Obrigada!",
+      "file": "rosa-f386b0de37.mp3"
+    },
+    {
+      "id": "rosa-fb79489719",
+      "voice": "rosa",
+      "text": "Faltam sete reais e cinquenta centavos.",
+      "file": "rosa-fb79489719.mp3"
+    },
+    {
+      "id": "rosa-3eabe4fdd7",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: oito reais. Obrigada!",
+      "file": "rosa-3eabe4fdd7.mp3"
+    },
+    {
+      "id": "rosa-eb370e0333",
+      "voice": "rosa",
+      "text": "Faltam oito reais.",
+      "file": "rosa-eb370e0333.mp3"
+    },
+    {
+      "id": "rosa-50a0c1b954",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: oito reais e cinquenta centavos. Obrigada!",
+      "file": "rosa-50a0c1b954.mp3"
+    },
+    {
+      "id": "rosa-b55295db37",
+      "voice": "rosa",
+      "text": "Faltam oito reais e cinquenta centavos.",
+      "file": "rosa-b55295db37.mp3"
+    },
+    {
+      "id": "rosa-12dec11c1e",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: nove reais. Obrigada!",
+      "file": "rosa-12dec11c1e.mp3"
+    },
+    {
+      "id": "rosa-527f55794d",
+      "voice": "rosa",
+      "text": "Faltam nove reais.",
+      "file": "rosa-527f55794d.mp3"
+    },
+    {
+      "id": "rosa-975c8b0e21",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: nove reais e cinquenta centavos. Obrigada!",
+      "file": "rosa-975c8b0e21.mp3"
+    },
+    {
+      "id": "rosa-73e789981a",
+      "voice": "rosa",
+      "text": "Faltam nove reais e cinquenta centavos.",
+      "file": "rosa-73e789981a.mp3"
+    },
+    {
+      "id": "rosa-e7523a23dd",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: dez reais. Obrigada!",
+      "file": "rosa-e7523a23dd.mp3"
+    },
+    {
+      "id": "rosa-2c1877c1b7",
+      "voice": "rosa",
+      "text": "Faltam dez reais.",
+      "file": "rosa-2c1877c1b7.mp3"
+    },
+    {
+      "id": "rosa-ff4b9d4e23",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: dez reais e cinquenta centavos. Obrigada!",
+      "file": "rosa-ff4b9d4e23.mp3"
+    },
+    {
+      "id": "rosa-b728eb4d38",
+      "voice": "rosa",
+      "text": "Faltam dez reais e cinquenta centavos.",
+      "file": "rosa-b728eb4d38.mp3"
+    },
+    {
+      "id": "rosa-270a4f8b15",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: onze reais. Obrigada!",
+      "file": "rosa-270a4f8b15.mp3"
+    },
+    {
+      "id": "rosa-107f0367b1",
+      "voice": "rosa",
+      "text": "Faltam onze reais.",
+      "file": "rosa-107f0367b1.mp3"
+    },
+    {
+      "id": "rosa-39ef9d31ec",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: onze reais e cinquenta centavos. Obrigada!",
+      "file": "rosa-39ef9d31ec.mp3"
+    },
+    {
+      "id": "rosa-5ad10c2c90",
+      "voice": "rosa",
+      "text": "Faltam onze reais e cinquenta centavos.",
+      "file": "rosa-5ad10c2c90.mp3"
+    },
+    {
+      "id": "rosa-3db0f78171",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: doze reais. Obrigada!",
+      "file": "rosa-3db0f78171.mp3"
+    },
+    {
+      "id": "rosa-4cb5898a4a",
+      "voice": "rosa",
+      "text": "Faltam doze reais.",
+      "file": "rosa-4cb5898a4a.mp3"
+    },
+    {
+      "id": "rosa-ab35fad053",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: doze reais e cinquenta centavos. Obrigada!",
+      "file": "rosa-ab35fad053.mp3"
+    },
+    {
+      "id": "rosa-8bec21c68b",
+      "voice": "rosa",
+      "text": "Faltam doze reais e cinquenta centavos.",
+      "file": "rosa-8bec21c68b.mp3"
+    },
+    {
+      "id": "rosa-0caf85b17a",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: treze reais. Obrigada!",
+      "file": "rosa-0caf85b17a.mp3"
+    },
+    {
+      "id": "rosa-22533b5fe6",
+      "voice": "rosa",
+      "text": "Faltam treze reais.",
+      "file": "rosa-22533b5fe6.mp3"
+    },
+    {
+      "id": "rosa-01a5a83ef3",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: treze reais e cinquenta centavos. Obrigada!",
+      "file": "rosa-01a5a83ef3.mp3"
+    },
+    {
+      "id": "rosa-a345c3b1b9",
+      "voice": "rosa",
+      "text": "Faltam treze reais e cinquenta centavos.",
+      "file": "rosa-a345c3b1b9.mp3"
+    },
+    {
+      "id": "rosa-c2b1c25399",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: catorze reais. Obrigada!",
+      "file": "rosa-c2b1c25399.mp3"
+    },
+    {
+      "id": "rosa-c325a5e6b6",
+      "voice": "rosa",
+      "text": "Faltam catorze reais.",
+      "file": "rosa-c325a5e6b6.mp3"
+    },
+    {
+      "id": "rosa-63ddd44e06",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: catorze reais e cinquenta centavos. Obrigada!",
+      "file": "rosa-63ddd44e06.mp3"
+    },
+    {
+      "id": "rosa-68ed340de4",
+      "voice": "rosa",
+      "text": "Faltam catorze reais e cinquenta centavos.",
+      "file": "rosa-68ed340de4.mp3"
+    },
+    {
+      "id": "rosa-cb1bc9696a",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: quinze reais. Obrigada!",
+      "file": "rosa-cb1bc9696a.mp3"
+    },
+    {
+      "id": "rosa-b56e25ab51",
+      "voice": "rosa",
+      "text": "Faltam quinze reais.",
+      "file": "rosa-b56e25ab51.mp3"
+    },
+    {
+      "id": "rosa-1ad2b066db",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: quinze reais e cinquenta centavos. Obrigada!",
+      "file": "rosa-1ad2b066db.mp3"
+    },
+    {
+      "id": "rosa-906c895261",
+      "voice": "rosa",
+      "text": "Faltam quinze reais e cinquenta centavos.",
+      "file": "rosa-906c895261.mp3"
+    },
+    {
+      "id": "rosa-997e022c28",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: dezesseis reais. Obrigada!",
+      "file": "rosa-997e022c28.mp3"
+    },
+    {
+      "id": "rosa-d3e66bbf7e",
+      "voice": "rosa",
+      "text": "Faltam dezesseis reais.",
+      "file": "rosa-d3e66bbf7e.mp3"
+    },
+    {
+      "id": "rosa-9e2843f217",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: dezesseis reais e cinquenta centavos. Obrigada!",
+      "file": "rosa-9e2843f217.mp3"
+    },
+    {
+      "id": "rosa-4a8aea2779",
+      "voice": "rosa",
+      "text": "Faltam dezesseis reais e cinquenta centavos.",
+      "file": "rosa-4a8aea2779.mp3"
+    },
+    {
+      "id": "rosa-2298e966f5",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: dezessete reais. Obrigada!",
+      "file": "rosa-2298e966f5.mp3"
+    },
+    {
+      "id": "rosa-731cdcdc0c",
+      "voice": "rosa",
+      "text": "Faltam dezessete reais.",
+      "file": "rosa-731cdcdc0c.mp3"
+    },
+    {
+      "id": "rosa-23eb1c7d78",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: dezessete reais e cinquenta centavos. Obrigada!",
+      "file": "rosa-23eb1c7d78.mp3"
+    },
+    {
+      "id": "rosa-d0e8cca772",
+      "voice": "rosa",
+      "text": "Faltam dezessete reais e cinquenta centavos.",
+      "file": "rosa-d0e8cca772.mp3"
+    },
+    {
+      "id": "rosa-c6bb4a8151",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: dezoito reais. Obrigada!",
+      "file": "rosa-c6bb4a8151.mp3"
+    },
+    {
+      "id": "rosa-22e08a4e3b",
+      "voice": "rosa",
+      "text": "Faltam dezoito reais.",
+      "file": "rosa-22e08a4e3b.mp3"
+    },
+    {
+      "id": "rosa-15dad79aad",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: dezoito reais e cinquenta centavos. Obrigada!",
+      "file": "rosa-15dad79aad.mp3"
+    },
+    {
+      "id": "rosa-88045a8f9f",
+      "voice": "rosa",
+      "text": "Faltam dezoito reais e cinquenta centavos.",
+      "file": "rosa-88045a8f9f.mp3"
+    },
+    {
+      "id": "rosa-36ceea5dc1",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: dezenove reais. Obrigada!",
+      "file": "rosa-36ceea5dc1.mp3"
+    },
+    {
+      "id": "rosa-3e40dca5a1",
+      "voice": "rosa",
+      "text": "Faltam dezenove reais.",
+      "file": "rosa-3e40dca5a1.mp3"
+    },
+    {
+      "id": "rosa-2ac8b01b62",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: dezenove reais e cinquenta centavos. Obrigada!",
+      "file": "rosa-2ac8b01b62.mp3"
+    },
+    {
+      "id": "rosa-38835e2195",
+      "voice": "rosa",
+      "text": "Faltam dezenove reais e cinquenta centavos.",
+      "file": "rosa-38835e2195.mp3"
+    },
+    {
+      "id": "rosa-fcd3215338",
+      "voice": "rosa",
+      "text": "Aqui o seu troco: vinte reais. Obrigada!",
+      "file": "rosa-fcd3215338.mp3"
+    },
+    {
+      "id": "rosa-3dfa8d20c2",
+      "voice": "rosa",
+      "text": "Faltam vinte reais.",
+      "file": "rosa-3dfa8d20c2.mp3"
+    },
+    {
+      "id": "carlos-a827756ccf",
+      "voice": "carlos",
+      "text": "Bom dia! Tudo bem?",
+      "file": "carlos-a827756ccf.mp3"
+    },
+    {
+      "id": "graca-ea2fd10752",
+      "voice": "graca",
+      "text": "Bom dia! Tudo bem?",
+      "file": "graca-ea2fd10752.mp3"
+    },
+    {
+      "id": "carlos-60ee28a42e",
+      "voice": "carlos",
+      "text": "Boa tarde! Tudo bem?",
+      "file": "carlos-60ee28a42e.mp3"
+    },
+    {
+      "id": "graca-77687849ae",
+      "voice": "graca",
+      "text": "Boa tarde! Tudo bem?",
+      "file": "graca-77687849ae.mp3"
+    },
+    {
+      "id": "carlos-47c622c30f",
+      "voice": "carlos",
+      "text": "Boa noite! Tudo bem?",
+      "file": "carlos-47c622c30f.mp3"
+    },
+    {
+      "id": "graca-9b6ddc6304",
+      "voice": "graca",
+      "text": "Boa noite! Tudo bem?",
+      "file": "graca-9b6ddc6304.mp3"
+    },
+    {
+      "id": "carlos-f74714d123",
+      "voice": "carlos",
+      "text": "Aqui a gente fala português, tá? Devagarinho: Bom… dia! Tudo… bem?",
+      "file": "carlos-f74714d123.mp3"
+    },
+    {
+      "id": "graca-129228b6df",
+      "voice": "graca",
+      "text": "Aqui a gente fala português, tá? Devagarinho: Bom… dia! Tudo… bem?",
+      "file": "graca-129228b6df.mp3"
+    },
+    {
+      "id": "carlos-421ab33a64",
+      "voice": "carlos",
+      "text": "Aqui a gente fala português, tá? Devagarinho: Boa… tarde! Tudo… bem?",
+      "file": "carlos-421ab33a64.mp3"
+    },
+    {
+      "id": "graca-4cae5865e4",
+      "voice": "graca",
+      "text": "Aqui a gente fala português, tá? Devagarinho: Boa… tarde! Tudo… bem?",
+      "file": "graca-4cae5865e4.mp3"
+    },
+    {
+      "id": "carlos-bd7fb3bd28",
+      "voice": "carlos",
+      "text": "Aqui a gente fala português, tá? Devagarinho: Boa… noite! Tudo… bem?",
+      "file": "carlos-bd7fb3bd28.mp3"
+    },
+    {
+      "id": "graca-122d67edb3",
+      "voice": "graca",
+      "text": "Aqui a gente fala português, tá? Devagarinho: Boa… noite! Tudo… bem?",
+      "file": "graca-122d67edb3.mp3"
+    },
+    {
+      "id": "carlos-58d1817c1f",
+      "voice": "carlos",
+      "text": "Pois não. O que vai ser hoje?",
+      "file": "carlos-58d1817c1f.mp3"
+    },
+    {
+      "id": "graca-c7a883318d",
+      "voice": "graca",
+      "text": "Pois não. O que vai ser hoje?",
+      "file": "graca-c7a883318d.mp3"
+    },
+    {
+      "id": "carlos-ffa2e1e600",
+      "voice": "carlos",
+      "text": "Sem pressa. Tem pão na chapa, coxinha e pastel quentinho.",
+      "file": "carlos-ffa2e1e600.mp3"
+    },
+    {
+      "id": "graca-6c33865403",
+      "voice": "graca",
+      "text": "Sem pressa. Tem pão na chapa, coxinha e pastel quentinho.",
+      "file": "graca-6c33865403.mp3"
+    },
+    {
+      "id": "carlos-06bfa995ae",
+      "voice": "carlos",
+      "text": "Sem pressa, meu filho. Tem pão na chapa, coxinha e pastel quentinho.",
+      "file": "carlos-06bfa995ae.mp3"
+    },
+    {
+      "id": "graca-1d9391a24e",
+      "voice": "graca",
+      "text": "Sem pressa, meu filho. Tem pão na chapa, coxinha e pastel quentinho.",
+      "file": "graca-1d9391a24e.mp3"
+    },
+    {
+      "id": "carlos-b3488bd746",
+      "voice": "carlos",
+      "text": "Sem pressa, minha filha. Tem pão na chapa, coxinha e pastel quentinho.",
+      "file": "carlos-b3488bd746.mp3"
+    },
+    {
+      "id": "graca-488f51eadb",
+      "voice": "graca",
+      "text": "Sem pressa, minha filha. Tem pão na chapa, coxinha e pastel quentinho.",
+      "file": "graca-488f51eadb.mp3"
+    },
+    {
+      "id": "carlos-8435eae903",
+      "voice": "carlos",
+      "text": "Pão na chapa? Coxinha? Pastel? Fala assim: “Me vê um pão na chapa, por favor.”",
+      "file": "carlos-8435eae903.mp3"
+    },
+    {
+      "id": "graca-fd7bd397e3",
+      "voice": "graca",
+      "text": "Pão na chapa? Coxinha? Pastel? Fala assim: “Me vê um pão na chapa, por favor.”",
+      "file": "graca-fd7bd397e3.mp3"
+    },
+    {
+      "id": "carlos-e9cc749489",
+      "voice": "carlos",
+      "text": "Isso aí! Seu pedido saindo. E pra beber? Café com leite, suco de laranja ou água?",
+      "file": "carlos-e9cc749489.mp3"
+    },
+    {
+      "id": "graca-d5e8235cb6",
+      "voice": "graca",
+      "text": "Isso aí! Seu pedido saindo. E pra beber? Café com leite, suco de laranja ou água?",
+      "file": "graca-d5e8235cb6.mp3"
+    },
+    {
+      "id": "carlos-6ecd9e3967",
+      "voice": "carlos",
+      "text": "Isso aí! Um pão na chapa saindo. E pra beber? Café com leite, suco de laranja ou água?",
+      "file": "carlos-6ecd9e3967.mp3"
+    },
+    {
+      "id": "graca-1b19d32774",
+      "voice": "graca",
+      "text": "Isso aí! Um pão na chapa saindo. E pra beber? Café com leite, suco de laranja ou água?",
+      "file": "graca-1b19d32774.mp3"
+    },
+    {
+      "id": "carlos-693af29dcc",
+      "voice": "carlos",
+      "text": "Isso aí! Uma coxinha saindo. E pra beber? Café com leite, suco de laranja ou água?",
+      "file": "carlos-693af29dcc.mp3"
+    },
+    {
+      "id": "graca-65902554b6",
+      "voice": "graca",
+      "text": "Isso aí! Uma coxinha saindo. E pra beber? Café com leite, suco de laranja ou água?",
+      "file": "graca-65902554b6.mp3"
+    },
+    {
+      "id": "carlos-fee86fc006",
+      "voice": "carlos",
+      "text": "Isso aí! Um pastel saindo. E pra beber? Café com leite, suco de laranja ou água?",
+      "file": "carlos-fee86fc006.mp3"
+    },
+    {
+      "id": "graca-9721ec4d56",
+      "voice": "graca",
+      "text": "Isso aí! Um pastel saindo. E pra beber? Café com leite, suco de laranja ou água?",
+      "file": "graca-9721ec4d56.mp3"
+    },
+    {
+      "id": "carlos-02bbd005aa",
+      "voice": "carlos",
+      "text": "Café puro ou café com leite? Fala: “Um café com leite, por favor.”",
+      "file": "carlos-02bbd005aa.mp3"
+    },
+    {
+      "id": "graca-08c8a4f70f",
+      "voice": "graca",
+      "text": "Café puro ou café com leite? Fala: “Um café com leite, por favor.”",
+      "file": "graca-08c8a4f70f.mp3"
+    },
+    {
+      "id": "carlos-570ce30ae2",
+      "voice": "carlos",
+      "text": "Isso aí! Seu pedido saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
+      "file": "carlos-570ce30ae2.mp3"
+    },
+    {
+      "id": "graca-ba5932522e",
+      "voice": "graca",
+      "text": "Isso aí! Seu pedido saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
+      "file": "graca-ba5932522e.mp3"
+    },
+    {
+      "id": "carlos-02110349d5",
+      "voice": "carlos",
+      "text": "Isso aí! Um café com leite saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
+      "file": "carlos-02110349d5.mp3"
+    },
+    {
+      "id": "graca-3a5b6599ce",
+      "voice": "graca",
+      "text": "Isso aí! Um café com leite saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
+      "file": "graca-3a5b6599ce.mp3"
+    },
+    {
+      "id": "carlos-a692336d87",
+      "voice": "carlos",
+      "text": "Isso aí! Um café saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
+      "file": "carlos-a692336d87.mp3"
+    },
+    {
+      "id": "graca-ec75d23ee7",
+      "voice": "graca",
+      "text": "Isso aí! Um café saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
+      "file": "graca-ec75d23ee7.mp3"
+    },
+    {
+      "id": "carlos-c381098918",
+      "voice": "carlos",
+      "text": "Isso aí! Um suco de laranja saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
+      "file": "carlos-c381098918.mp3"
+    },
+    {
+      "id": "graca-ed0ed02cef",
+      "voice": "graca",
+      "text": "Isso aí! Um suco de laranja saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
+      "file": "graca-ed0ed02cef.mp3"
+    },
+    {
+      "id": "carlos-245454ef42",
+      "voice": "carlos",
+      "text": "Isso aí! Uma água saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
+      "file": "carlos-245454ef42.mp3"
+    },
+    {
+      "id": "graca-d524d8e4d0",
+      "voice": "graca",
+      "text": "Isso aí! Uma água saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
+      "file": "graca-d524d8e4d0.mp3"
+    },
+    {
+      "id": "carlos-6e84b923ca",
+      "voice": "carlos",
+      "text": "Pronto. Pra comer aqui ou pra viagem?",
+      "file": "carlos-6e84b923ca.mp3"
+    },
+    {
+      "id": "graca-5e6fb7d96a",
+      "voice": "graca",
+      "text": "Pronto. Pra comer aqui ou pra viagem?",
+      "file": "graca-5e6fb7d96a.mp3"
+    },
+    {
+      "id": "carlos-237ce86696",
+      "voice": "carlos",
+      "text": "“To go” é “pra viagem”. E “for here” é “pra comer aqui”.",
+      "file": "carlos-237ce86696.mp3"
+    },
+    {
+      "id": "graca-555b06249c",
+      "voice": "graca",
+      "text": "“To go” é “pra viagem”. E “for here” é “pra comer aqui”.",
+      "file": "graca-555b06249c.mp3"
+    },
+    {
+      "id": "carlos-6ad651583f",
+      "voice": "carlos",
+      "text": "Deu zero reais (R$ 0)… Mas hoje é por conta da casa!",
+      "file": "carlos-6ad651583f.mp3"
+    },
+    {
+      "id": "graca-7429b53f80",
+      "voice": "graca",
+      "text": "Deu zero reais (R$ 0)… Mas hoje é por conta da casa!",
+      "file": "graca-7429b53f80.mp3"
+    },
+    {
+      "id": "carlos-50e855e5d6",
+      "voice": "carlos",
+      "text": "Deu cinco reais (R$ 5)… Mas hoje é por conta da casa!",
+      "file": "carlos-50e855e5d6.mp3"
+    },
+    {
+      "id": "graca-9f0f696ebd",
+      "voice": "graca",
+      "text": "Deu cinco reais (R$ 5)… Mas hoje é por conta da casa!",
+      "file": "graca-9f0f696ebd.mp3"
+    },
+    {
+      "id": "carlos-e1a294132c",
+      "voice": "carlos",
+      "text": "Deu quatro reais (R$ 4)… Mas hoje é por conta da casa!",
+      "file": "carlos-e1a294132c.mp3"
+    },
+    {
+      "id": "graca-74b123afe6",
+      "voice": "graca",
+      "text": "Deu quatro reais (R$ 4)… Mas hoje é por conta da casa!",
+      "file": "graca-74b123afe6.mp3"
+    },
+    {
+      "id": "carlos-fe1ead49d1",
+      "voice": "carlos",
+      "text": "Deu oito reais (R$ 8)… Mas hoje é por conta da casa!",
+      "file": "carlos-fe1ead49d1.mp3"
+    },
+    {
+      "id": "graca-b7fe1dfc31",
+      "voice": "graca",
+      "text": "Deu oito reais (R$ 8)… Mas hoje é por conta da casa!",
+      "file": "graca-b7fe1dfc31.mp3"
+    },
+    {
+      "id": "carlos-affe1730bb",
+      "voice": "carlos",
+      "text": "Deu três reais (R$ 3)… Mas hoje é por conta da casa!",
+      "file": "carlos-affe1730bb.mp3"
+    },
+    {
+      "id": "graca-e4b2c1dd63",
+      "voice": "graca",
+      "text": "Deu três reais (R$ 3)… Mas hoje é por conta da casa!",
+      "file": "graca-e4b2c1dd63.mp3"
+    },
+    {
+      "id": "carlos-6010f41900",
+      "voice": "carlos",
+      "text": "Deu seis reais (R$ 6)… Mas hoje é por conta da casa!",
+      "file": "carlos-6010f41900.mp3"
+    },
+    {
+      "id": "graca-b721639eb2",
+      "voice": "graca",
+      "text": "Deu seis reais (R$ 6)… Mas hoje é por conta da casa!",
+      "file": "graca-b721639eb2.mp3"
+    },
+    {
+      "id": "carlos-5405ce9f40",
+      "voice": "carlos",
+      "text": "Deu onze reais (R$ 11)… Mas hoje é por conta da casa!",
+      "file": "carlos-5405ce9f40.mp3"
+    },
+    {
+      "id": "graca-8368187f04",
+      "voice": "graca",
+      "text": "Deu onze reais (R$ 11)… Mas hoje é por conta da casa!",
+      "file": "graca-8368187f04.mp3"
+    },
+    {
+      "id": "carlos-6f36615f93",
+      "voice": "carlos",
+      "text": "Deu dez reais (R$ 10)… Mas hoje é por conta da casa!",
+      "file": "carlos-6f36615f93.mp3"
+    },
+    {
+      "id": "graca-70ef26639d",
+      "voice": "graca",
+      "text": "Deu dez reais (R$ 10)… Mas hoje é por conta da casa!",
+      "file": "graca-70ef26639d.mp3"
+    },
+    {
+      "id": "carlos-962ca9b11d",
+      "voice": "carlos",
+      "text": "Deu catorze reais (R$ 14)… Mas hoje é por conta da casa!",
+      "file": "carlos-962ca9b11d.mp3"
+    },
+    {
+      "id": "graca-144b13a6b2",
+      "voice": "graca",
+      "text": "Deu catorze reais (R$ 14)… Mas hoje é por conta da casa!",
+      "file": "graca-144b13a6b2.mp3"
+    },
+    {
+      "id": "carlos-1e05a47149",
+      "voice": "carlos",
+      "text": "Deu nove reais (R$ 9)… Mas hoje é por conta da casa!",
+      "file": "carlos-1e05a47149.mp3"
+    },
+    {
+      "id": "graca-ea204154c6",
+      "voice": "graca",
+      "text": "Deu nove reais (R$ 9)… Mas hoje é por conta da casa!",
+      "file": "graca-ea204154c6.mp3"
+    },
+    {
+      "id": "carlos-6cc88070ed",
+      "voice": "carlos",
+      "text": "Deu sete reais (R$ 7)… Mas hoje é por conta da casa!",
+      "file": "carlos-6cc88070ed.mp3"
+    },
+    {
+      "id": "graca-0b3b3684bf",
+      "voice": "graca",
+      "text": "Deu sete reais (R$ 7)… Mas hoje é por conta da casa!",
+      "file": "graca-0b3b3684bf.mp3"
+    },
+    {
+      "id": "carlos-c6a881318b",
+      "voice": "carlos",
+      "text": "Deu doze reais (R$ 12)… Mas hoje é por conta da casa!",
+      "file": "carlos-c6a881318b.mp3"
+    },
+    {
+      "id": "graca-3ea10ffbd7",
+      "voice": "graca",
+      "text": "Deu doze reais (R$ 12)… Mas hoje é por conta da casa!",
+      "file": "graca-3ea10ffbd7.mp3"
+    },
+    {
+      "id": "carlos-299ff12cde",
+      "voice": "carlos",
+      "text": "Deu quinze reais (R$ 15)… Mas hoje é por conta da casa!",
+      "file": "carlos-299ff12cde.mp3"
+    },
+    {
+      "id": "graca-4016513ff9",
+      "voice": "graca",
+      "text": "Deu quinze reais (R$ 15)… Mas hoje é por conta da casa!",
+      "file": "graca-4016513ff9.mp3"
+    },
+    {
+      "id": "carlos-4710b3c77f",
+      "voice": "carlos",
+      "text": "Deu treze reais (R$ 13)… Mas hoje é por conta da casa!",
+      "file": "carlos-4710b3c77f.mp3"
+    },
+    {
+      "id": "graca-0d0b7dccbb",
+      "voice": "graca",
+      "text": "Deu treze reais (R$ 13)… Mas hoje é por conta da casa!",
+      "file": "graca-0d0b7dccbb.mp3"
+    },
+    {
+      "id": "carlos-06ec1e53e5",
+      "voice": "carlos",
+      "text": "Deu dezesseis reais (R$ 16)… Mas hoje é por conta da casa!",
+      "file": "carlos-06ec1e53e5.mp3"
+    },
+    {
+      "id": "graca-a3af0ee3e0",
+      "voice": "graca",
+      "text": "Deu dezesseis reais (R$ 16)… Mas hoje é por conta da casa!",
+      "file": "graca-a3af0ee3e0.mp3"
+    },
+    {
+      "id": "carlos-c6e4408958",
+      "voice": "carlos",
+      "text": "“Por conta da casa” quer dizer que você não paga nada. É de graça!",
+      "file": "carlos-c6e4408958.mp3"
+    },
+    {
+      "id": "graca-3b99048078",
+      "voice": "graca",
+      "text": "“Por conta da casa” quer dizer que você não paga nada. É de graça!",
+      "file": "graca-3b99048078.mp3"
+    },
+    {
+      "id": "carlos-4aa51bab0c",
+      "voice": "carlos",
+      "text": "Tá na mão. Volte sempre! Quer ajudar no balcão? É a “Correria no Balcão”.",
+      "file": "carlos-4aa51bab0c.mp3"
+    },
+    {
+      "id": "graca-5b2a31adac",
+      "voice": "graca",
+      "text": "Tá na mão. Volte sempre! Quer ajudar no balcão? É a “Correria no Balcão”.",
+      "file": "graca-5b2a31adac.mp3"
+    },
+    {
+      "id": "carlos-ebd4230c70",
+      "voice": "carlos",
+      "text": "Tá na mão, meu filho. Volte sempre! Quer ajudar no balcão? É a “Correria no Balcão”.",
+      "file": "carlos-ebd4230c70.mp3"
+    },
+    {
+      "id": "graca-c5ab635ae5",
+      "voice": "graca",
+      "text": "Tá na mão, meu filho. Volte sempre! Quer ajudar no balcão? É a “Correria no Balcão”.",
+      "file": "graca-c5ab635ae5.mp3"
+    },
+    {
+      "id": "carlos-2433b80a19",
+      "voice": "carlos",
+      "text": "Tá na mão, minha filha. Volte sempre! Quer ajudar no balcão? É a “Correria no Balcão”.",
+      "file": "carlos-2433b80a19.mp3"
+    },
+    {
+      "id": "graca-14e609c7bd",
+      "voice": "graca",
+      "text": "Tá na mão, minha filha. Volte sempre! Quer ajudar no balcão? É a “Correria no Balcão”.",
+      "file": "graca-14e609c7bd.mp3"
+    },
+    {
+      "id": "carlos-a4bcebcdbc",
+      "voice": "carlos",
+      "text": "Bom dia! O que vai ser hoje?",
+      "file": "carlos-a4bcebcdbc.mp3"
+    },
+    {
+      "id": "carlos-0ef5411305",
+      "voice": "carlos",
+      "text": "Pão na chapa saindo! E pra beber?",
+      "file": "carlos-0ef5411305.mp3"
+    },
+    {
+      "id": "carlos-f72c6b457d",
+      "voice": "carlos",
+      "text": "Pão na chapa, anotei. Quer café, suco ou água?",
+      "file": "carlos-f72c6b457d.mp3"
+    },
+    {
+      "id": "carlos-a3fc934d91",
+      "voice": "carlos",
+      "text": "Isso aí, pão na chapa. Deixa eu anotar. E pra beber?",
+      "file": "carlos-a3fc934d91.mp3"
+    },
+    {
+      "id": "carlos-851e9165c9",
+      "voice": "carlos",
+      "text": "Uma coxinha quentinha! E pra beber?",
+      "file": "carlos-851e9165c9.mp3"
+    },
+    {
+      "id": "carlos-7246892990",
+      "voice": "carlos",
+      "text": "Coxinha, boa. Deixa eu anotar. E pra beber?",
+      "file": "carlos-7246892990.mp3"
+    },
+    {
+      "id": "carlos-3bdca53d90",
+      "voice": "carlos",
+      "text": "Pastel de carne ou queijo? E pra beber?",
+      "file": "carlos-3bdca53d90.mp3"
+    },
+    {
+      "id": "carlos-4db7e39c8c",
+      "voice": "carlos",
+      "text": "Pastel, anotei. Carne ou queijo — e pra beber?",
+      "file": "carlos-4db7e39c8c.mp3"
+    },
+    {
+      "id": "carlos-e03258372b",
+      "voice": "carlos",
+      "text": "Café com leite saindo! Pra comer aqui ou pra viagem?",
+      "file": "carlos-e03258372b.mp3"
+    },
+    {
+      "id": "carlos-70d86fda4d",
+      "voice": "carlos",
+      "text": "Café com leite, tá na mão. Pra comer aqui ou pra viagem?",
+      "file": "carlos-70d86fda4d.mp3"
+    },
+    {
+      "id": "carlos-63ad1689fb",
+      "voice": "carlos",
+      "text": "Anotei o café com leite. Aqui ou pra viagem?",
+      "file": "carlos-63ad1689fb.mp3"
+    },
+    {
+      "id": "carlos-a3556ef33c",
+      "voice": "carlos",
+      "text": "Suco de laranja fresquinho! Pra comer aqui ou pra viagem?",
+      "file": "carlos-a3556ef33c.mp3"
+    },
+    {
+      "id": "carlos-93c6b4f025",
+      "voice": "carlos",
+      "text": "Suco de laranja, anotei. Aqui ou pra viagem?",
+      "file": "carlos-93c6b4f025.mp3"
+    },
+    {
+      "id": "carlos-9207a5dafb",
+      "voice": "carlos",
+      "text": "Uma água geladinha! Pra comer aqui ou pra viagem?",
+      "file": "carlos-9207a5dafb.mp3"
+    },
+    {
+      "id": "carlos-a67c22fa10",
+      "voice": "carlos",
+      "text": "Água, tá na mão. Pra comer aqui ou pra viagem?",
+      "file": "carlos-a67c22fa10.mp3"
+    },
+    {
+      "id": "carlos-7ebd994c36",
+      "voice": "carlos",
+      "text": "Pronto! Tá na mão. Volte sempre!",
+      "file": "carlos-7ebd994c36.mp3"
+    },
+    {
+      "id": "carlos-7076e8544f",
+      "voice": "carlos",
+      "text": "Tá na mão. Pode sentar. Volte sempre!",
+      "file": "carlos-7076e8544f.mp3"
+    },
+    {
+      "id": "carlos-75cfb8f63a",
+      "voice": "carlos",
+      "text": "Pra viagem, então. Tá na mão. Volte sempre!",
+      "file": "carlos-75cfb8f63a.mp3"
+    },
+    {
+      "id": "carlos-a235d6f8b8",
+      "voice": "carlos",
+      "text": "Volte sempre!",
+      "file": "carlos-a235d6f8b8.mp3"
+    },
+    {
+      "id": "carlos-2580a39618",
+      "voice": "carlos",
+      "text": "Volte sempre! Até amanhã.",
+      "file": "carlos-2580a39618.mp3"
+    },
+    {
+      "id": "carlos-6cc2fedb94",
+      "voice": "carlos",
+      "text": "Bom dia! Tudo bem? O que vai ser hoje?",
+      "file": "carlos-6cc2fedb94.mp3"
+    },
+    {
+      "id": "carlos-b1c1987bbc",
+      "voice": "carlos",
+      "text": "Bom dia! Beleza? Me conta o que vai ser.",
+      "file": "carlos-b1c1987bbc.mp3"
+    },
+    {
+      "id": "carlos-1d6d88ddfb",
+      "voice": "carlos",
+      "text": "Bom dia! E aí, o que vai querer?",
+      "file": "carlos-1d6d88ddfb.mp3"
+    },
+    {
+      "id": "graca-ed8b4bcf27",
+      "voice": "graca",
+      "text": "Bom dia! O que vai ser hoje?",
+      "file": "graca-ed8b4bcf27.mp3"
+    },
+    {
+      "id": "graca-c1291057c1",
+      "voice": "graca",
+      "text": "Pão na chapa saindo! E pra beber?",
+      "file": "graca-c1291057c1.mp3"
+    },
+    {
+      "id": "graca-1e572718e7",
+      "voice": "graca",
+      "text": "Pão na chapa, anotei. Quer café, suco ou água?",
+      "file": "graca-1e572718e7.mp3"
+    },
+    {
+      "id": "graca-79be3226e1",
+      "voice": "graca",
+      "text": "Isso aí, pão na chapa. Deixa eu anotar. E pra beber?",
+      "file": "graca-79be3226e1.mp3"
+    },
+    {
+      "id": "graca-8dc17bb5d4",
+      "voice": "graca",
+      "text": "Uma coxinha quentinha! E pra beber?",
+      "file": "graca-8dc17bb5d4.mp3"
+    },
+    {
+      "id": "graca-c7d45db5c7",
+      "voice": "graca",
+      "text": "Coxinha, boa. Deixa eu anotar. E pra beber?",
+      "file": "graca-c7d45db5c7.mp3"
+    },
+    {
+      "id": "graca-32d171333b",
+      "voice": "graca",
+      "text": "Pastel de carne ou queijo? E pra beber?",
+      "file": "graca-32d171333b.mp3"
+    },
+    {
+      "id": "graca-620bb3246f",
+      "voice": "graca",
+      "text": "Pastel, anotei. Carne ou queijo — e pra beber?",
+      "file": "graca-620bb3246f.mp3"
+    },
+    {
+      "id": "graca-ed22c10f28",
+      "voice": "graca",
+      "text": "Café com leite saindo! Pra comer aqui ou pra viagem?",
+      "file": "graca-ed22c10f28.mp3"
+    },
+    {
+      "id": "graca-c60bec610b",
+      "voice": "graca",
+      "text": "Café com leite, tá na mão. Pra comer aqui ou pra viagem?",
+      "file": "graca-c60bec610b.mp3"
+    },
+    {
+      "id": "graca-07cd76b2f3",
+      "voice": "graca",
+      "text": "Anotei o café com leite. Aqui ou pra viagem?",
+      "file": "graca-07cd76b2f3.mp3"
+    },
+    {
+      "id": "graca-ba3f66332c",
+      "voice": "graca",
+      "text": "Suco de laranja fresquinho! Pra comer aqui ou pra viagem?",
+      "file": "graca-ba3f66332c.mp3"
+    },
+    {
+      "id": "graca-ca25377c18",
+      "voice": "graca",
+      "text": "Suco de laranja, anotei. Aqui ou pra viagem?",
+      "file": "graca-ca25377c18.mp3"
+    },
+    {
+      "id": "graca-42caf52a14",
+      "voice": "graca",
+      "text": "Uma água geladinha! Pra comer aqui ou pra viagem?",
+      "file": "graca-42caf52a14.mp3"
+    },
+    {
+      "id": "graca-1faf229a27",
+      "voice": "graca",
+      "text": "Água, tá na mão. Pra comer aqui ou pra viagem?",
+      "file": "graca-1faf229a27.mp3"
+    },
+    {
+      "id": "graca-238c49f6dd",
+      "voice": "graca",
+      "text": "Pronto! Tá na mão. Volte sempre!",
+      "file": "graca-238c49f6dd.mp3"
+    },
+    {
+      "id": "graca-6549eb880f",
+      "voice": "graca",
+      "text": "Tá na mão. Pode sentar. Volte sempre!",
+      "file": "graca-6549eb880f.mp3"
+    },
+    {
+      "id": "graca-dddcc6ff5a",
+      "voice": "graca",
+      "text": "Pra viagem, então. Tá na mão. Volte sempre!",
+      "file": "graca-dddcc6ff5a.mp3"
+    },
+    {
+      "id": "graca-5ef7109ad2",
+      "voice": "graca",
+      "text": "Volte sempre!",
+      "file": "graca-5ef7109ad2.mp3"
+    },
+    {
+      "id": "graca-9d28db52e7",
+      "voice": "graca",
+      "text": "Volte sempre! Até amanhã.",
+      "file": "graca-9d28db52e7.mp3"
+    },
+    {
+      "id": "graca-a1be252e8f",
+      "voice": "graca",
+      "text": "Bom dia! Tudo bem? O que vai ser hoje?",
+      "file": "graca-a1be252e8f.mp3"
+    },
+    {
+      "id": "graca-b4ed32c65d",
+      "voice": "graca",
+      "text": "Bom dia! Beleza? Me conta o que vai ser.",
+      "file": "graca-b4ed32c65d.mp3"
+    },
+    {
+      "id": "graca-99e3d8137b",
+      "voice": "graca",
+      "text": "Bom dia! E aí, o que vai querer?",
+      "file": "graca-99e3d8137b.mp3"
+    },
+    {
+      "id": "carlos-9daa0c498a",
+      "voice": "carlos",
+      "text": "Boa tarde! O que vai ser hoje?",
+      "file": "carlos-9daa0c498a.mp3"
+    },
+    {
+      "id": "carlos-c43f1c3aa2",
+      "voice": "carlos",
+      "text": "Boa noite! O que vai ser hoje?",
+      "file": "carlos-c43f1c3aa2.mp3"
+    },
+    {
+      "id": "carlos-7e70995d33",
+      "voice": "carlos",
+      "text": "E aí, tudo bem? Vai querer o quê?",
+      "file": "carlos-7e70995d33.mp3"
+    },
+    {
+      "id": "carlos-1eeb369b55",
+      "voice": "carlos",
+      "text": "Pronto. O que posso servir?",
+      "file": "carlos-1eeb369b55.mp3"
+    },
+    {
+      "id": "carlos-009c352c69",
+      "voice": "carlos",
+      "text": "Deixa eu anotar — o que vai ser?",
+      "file": "carlos-009c352c69.mp3"
+    },
+    {
+      "id": "carlos-31470ecd7b",
+      "voice": "carlos",
+      "text": "Tá com fome? Me fala o pedido.",
+      "file": "carlos-31470ecd7b.mp3"
+    },
+    {
+      "id": "carlos-be87716ee9",
+      "voice": "carlos",
+      "text": "Oi! Café da manhã pra você?",
+      "file": "carlos-be87716ee9.mp3"
+    },
+    {
+      "id": "carlos-070acb03e8",
+      "voice": "carlos",
+      "text": "Oi, beleza?",
+      "file": "carlos-070acb03e8.mp3"
+    },
+    {
+      "id": "carlos-ccad2a3d05",
+      "voice": "carlos",
+      "text": "E aí, tudo bem?",
+      "file": "carlos-ccad2a3d05.mp3"
+    },
+    {
+      "id": "carlos-8f5a44622f",
+      "voice": "carlos",
+      "text": "E aí, tá gostando do bairro?",
+      "file": "carlos-8f5a44622f.mp3"
+    },
+    {
+      "id": "carlos-698d43574c",
+      "voice": "carlos",
+      "text": "Você mora aqui perto?",
+      "file": "carlos-698d43574c.mp3"
+    },
+    {
+      "id": "carlos-6b93c471d0",
+      "voice": "carlos",
+      "text": "Já conheceu a Nanda e a Júlia?",
+      "file": "carlos-6b93c471d0.mp3"
+    },
+    {
+      "id": "carlos-e5ad0e5f2e",
+      "voice": "carlos",
+      "text": "A praça tá bonita hoje, né?",
+      "file": "carlos-e5ad0e5f2e.mp3"
+    },
+    {
+      "id": "graca-da1acd596d",
+      "voice": "graca",
+      "text": "Boa tarde! O que vai ser hoje?",
+      "file": "graca-da1acd596d.mp3"
+    },
+    {
+      "id": "graca-ee4d430766",
+      "voice": "graca",
+      "text": "Boa noite! O que vai ser hoje?",
+      "file": "graca-ee4d430766.mp3"
+    },
+    {
+      "id": "graca-932641c61c",
+      "voice": "graca",
+      "text": "E aí, tudo bem? Vai querer o quê?",
+      "file": "graca-932641c61c.mp3"
+    },
+    {
+      "id": "graca-360172bba8",
+      "voice": "graca",
+      "text": "Pronto. O que posso servir?",
+      "file": "graca-360172bba8.mp3"
+    },
+    {
+      "id": "graca-597b3df8b4",
+      "voice": "graca",
+      "text": "Deixa eu anotar — o que vai ser?",
+      "file": "graca-597b3df8b4.mp3"
+    },
+    {
+      "id": "graca-2de606251f",
+      "voice": "graca",
+      "text": "Tá com fome? Me fala o pedido.",
+      "file": "graca-2de606251f.mp3"
+    },
+    {
+      "id": "graca-c89d94d6e8",
+      "voice": "graca",
+      "text": "Oi! Café da manhã pra você?",
+      "file": "graca-c89d94d6e8.mp3"
+    },
+    {
+      "id": "graca-b310c093cc",
+      "voice": "graca",
+      "text": "Oi, beleza?",
+      "file": "graca-b310c093cc.mp3"
+    },
+    {
+      "id": "graca-dbc85356da",
+      "voice": "graca",
+      "text": "E aí, tudo bem?",
+      "file": "graca-dbc85356da.mp3"
+    },
+    {
+      "id": "graca-0b9c7e01de",
+      "voice": "graca",
+      "text": "E aí, tá gostando do bairro?",
+      "file": "graca-0b9c7e01de.mp3"
+    },
+    {
+      "id": "graca-e3debf955f",
+      "voice": "graca",
+      "text": "Você mora aqui perto?",
+      "file": "graca-e3debf955f.mp3"
+    },
+    {
+      "id": "graca-6b81769bf4",
+      "voice": "graca",
+      "text": "Já conheceu a Nanda e a Júlia?",
+      "file": "graca-6b81769bf4.mp3"
+    },
+    {
+      "id": "graca-93dbe0a5bd",
+      "voice": "graca",
+      "text": "A praça tá bonita hoje, né?",
+      "file": "graca-93dbe0a5bd.mp3"
+    },
+    {
+      "id": "ui-b0c866c2be",
+      "voice": "ui",
+      "text": "PADARIA. DO SEU CARLOS",
+      "file": "ui-b0c866c2be.mp3"
+    },
+    {
+      "id": "ui-8e1ac10f7a",
+      "voice": "ui",
+      "text": "TUDO BEM?",
+      "file": "ui-8e1ac10f7a.mp3"
+    },
+    {
+      "id": "ui-ea7733ebe0",
+      "voice": "ui",
+      "text": "EDIFÍCIO IPÊ",
+      "file": "ui-ea7733ebe0.mp3"
+    },
+    {
+      "id": "ui-9bf34a584f",
+      "voice": "ui",
+      "text": "Nº 42",
+      "file": "ui-9bf34a584f.mp3"
+    },
+    {
+      "id": "ui-24519e411c",
+      "voice": "ui",
+      "text": "ACADEMIA. DO BAIRRO",
+      "file": "ui-24519e411c.mp3"
+    },
+    {
+      "id": "ui-3663a47a0d",
+      "voice": "ui",
+      "text": "BANCA. HOJE: Chuva à noite. Feira livre: todo dia, 6h às 13h. Padaria faz festa",
+      "file": "ui-3663a47a0d.mp3"
+    },
+    {
+      "id": "ui-f7b9e0053d",
+      "voice": "ui",
+      "text": "R. DOS IPÊS",
+      "file": "ui-f7b9e0053d.mp3"
+    },
+    {
+      "id": "ui-31d4be2d70",
+      "voice": "ui",
+      "text": "ORELHÃO. Telefone público",
+      "file": "ui-31d4be2d70.mp3"
+    },
+    {
+      "id": "ui-406ab5ecff",
+      "voice": "ui",
+      "text": "LIXO",
+      "file": "ui-406ab5ecff.mp3"
+    },
+    {
+      "id": "ui-f7cd71287f",
+      "voice": "ui",
+      "text": "Café quatro reais. Pão na chapa seis reais",
+      "file": "ui-f7cd71287f.mp3"
+    },
+    {
+      "id": "ui-3e0a463c5a",
+      "voice": "ui",
+      "text": "BICICLETÁRIO",
+      "file": "ui-3e0a463c5a.mp3"
+    },
+    {
+      "id": "ui-221187400e",
+      "voice": "ui",
+      "text": "ÔNIBUS. Linha 875 · Centro",
+      "file": "ui-221187400e.mp3"
+    },
+    {
+      "id": "ui-44328d97aa",
+      "voice": "ui",
+      "text": "ESTACIONAMENTO. cinco reais por hora",
+      "file": "ui-44328d97aa.mp3"
+    },
+    {
+      "id": "ui-1c1760c6ed",
+      "voice": "ui",
+      "text": "Praça Central. Fonte de 1985",
+      "file": "ui-1c1760c6ed.mp3"
+    },
+    {
+      "id": "ui-c673d7b404",
+      "voice": "ui",
+      "text": "DONA IPÊ. Fundadora da Vila. 1897",
+      "file": "ui-c673d7b404.mp3"
+    },
+    {
+      "id": "ui-6cb2438241",
+      "voice": "ui",
+      "text": "CORETO DA PRAÇA. Banda toda domingo, às 10h",
+      "file": "ui-6cb2438241.mp3"
+    },
+    {
+      "id": "ui-7022319268",
+      "voice": "ui",
+      "text": "DOMINÓ. Quem perde paga o café",
+      "file": "ui-7022319268.mp3"
+    },
+    {
+      "id": "ui-b52f8a9fb8",
+      "voice": "ui",
+      "text": "PIPOCA. Salgada cinco reais. Doce sete reais. Leite condensado +três reais (na doce)",
+      "file": "ui-b52f8a9fb8.mp3"
+    },
+    {
+      "id": "ui-32e7ecbc66",
+      "voice": "ui",
+      "text": "ÁGUA DE COCO. Geladinha · sete reais",
+      "file": "ui-32e7ecbc66.mp3"
+    },
+    {
+      "id": "ui-93adbf6cad",
+      "voice": "ui",
+      "text": "FEIRA LIVRE. Todo dia · 6h às 13h",
+      "file": "ui-93adbf6cad.mp3"
+    },
+    {
+      "id": "ui-d509430a46",
+      "voice": "ui",
+      "text": "FRUTAS DA TIA LU. Banana dois reais. 3 bananas cinco reais. Laranja um real. Maçã um real e cinquenta centavos. Flores doze reais",
+      "file": "ui-d509430a46.mp3"
+    },
+    {
+      "id": "ui-5d2caecda0",
+      "voice": "ui",
+      "text": "VERDURAS DO SEU ZÉ. Alface três reais e cinquenta centavos. Tomate dois reais e cinquenta centavos",
+      "file": "ui-5d2caecda0.mp3"
+    },
+    {
+      "id": "ui-cb0de51dcb",
+      "voice": "ui",
+      "text": "PASTEL E CALDO DE CANA. Pastel seis reais. Caldo de cana cinco reais",
+      "file": "ui-cb0de51dcb.mp3"
+    },
+    {
+      "id": "ui-7c861c7bd5",
+      "voice": "ui",
+      "text": "FLORES DA DONA ROSA. Buquê doze reais",
+      "file": "ui-7c861c7bd5.mp3"
+    },
+    {
+      "id": "ui-cb195d4f86",
+      "voice": "ui",
+      "text": "HORTIFRÚTI. Banana dois reais. Laranja um real. Maçã um real e cinquenta centavos. Alface três reais e cinquenta centavos. Tomate dois reais e cinquenta centavos. Flores doze reais. Aberto o dia todo",
+      "file": "ui-cb195d4f86.mp3"
+    },
+    {
+      "id": "ui-ffad7a7504",
+      "voice": "ui",
+      "text": "CARDÁPIO. Pão na chapa seis reais. Coxinha sete reais. Pastel oito reais. Café quatro reais. Café com leite cinco reais. Suco de laranja oito reais. Água três reais",
+      "file": "ui-ffad7a7504.mp3"
+    },
+    {
+      "id": "ui-0865d23a59",
+      "voice": "ui",
+      "text": "PADARIA DO SEU CARLOS. Desde 1978",
+      "file": "ui-0865d23a59.mp3"
+    },
+    {
+      "id": "ui-7de84323a2",
+      "voice": "ui",
+      "text": "CAIXA. Aceitamos Pix",
+      "file": "ui-7de84323a2.mp3"
+    },
+    {
+      "id": "ui-c782dd8544",
+      "voice": "ui",
+      "text": "Salgado bem quente!. Coxinha sete reais · Pastel oito reais",
+      "file": "ui-c782dd8544.mp3"
+    },
+    {
+      "id": "ui-5fbfe9206a",
+      "voice": "ui",
+      "text": "SÃO PAULO. A cidade que não para",
+      "file": "ui-5fbfe9206a.mp3"
+    },
+    {
+      "id": "ui-891b4e5d73",
+      "voice": "ui",
+      "text": "Minha família. e meus amigos",
+      "file": "ui-891b4e5d73.mp3"
+    },
+    {
+      "id": "ui-cb5452946a",
+      "voice": "ui",
+      "text": "REGRAS. 1. Tire os sapatos.. 2. Respeite o parceiro.. 3. Cumprimente com um sorriso.",
+      "file": "ui-cb5452946a.mp3"
+    },
+    {
+      "id": "ui-086360cdf1",
+      "voice": "ui",
+      "text": "TREINO. COMUNIDADE",
+      "file": "ui-086360cdf1.mp3"
+    },
+    {
+      "id": "ui-96ea3fe89d",
+      "voice": "ui",
+      "text": "AULAS. Segunda a sexta: 18h. Sábado: 10h",
+      "file": "ui-96ea3fe89d.mp3"
+    },
+    {
+      "id": "ui-a35eb4449d",
+      "voice": "ui",
+      "text": "FAIXAS. branca · azul · roxa. marrom · preta",
+      "file": "ui-a35eb4449d.mp3"
+    },
+    {
+      "id": "ui-b36c320347",
+      "voice": "ui",
+      "text": "KIMONO. Compre aqui. antes do tatame",
+      "file": "ui-b36c320347.mp3"
+    },
+    {
+      "id": "ui-97e4ea2659",
+      "voice": "ui",
+      "text": "Vaga livre para uma nova barraca",
+      "file": "ui-97e4ea2659.mp3"
+    },
+    {
+      "id": "ui-49a4714669",
+      "voice": "ui",
+      "text": "ESCOLA",
+      "file": "ui-49a4714669.mp3"
+    },
+    {
+      "id": "ui-f4a330e738",
+      "voice": "ui",
+      "text": "SAÍDA · Rua",
+      "file": "ui-f4a330e738.mp3"
+    },
+    {
+      "id": "ui-1467dd2e99",
+      "voice": "ui",
+      "text": "PARE",
+      "file": "ui-1467dd2e99.mp3"
+    },
+    {
+      "id": "ui-da79b650f4",
+      "voice": "ui",
+      "text": "OBRAS",
+      "file": "ui-da79b650f4.mp3"
+    },
+    {
+      "id": "ui-787bb01c4c",
+      "voice": "ui",
+      "text": "SENTIDO ÚNICO",
+      "file": "ui-787bb01c4c.mp3"
+    },
+    {
+      "id": "ui-bba74f9e26",
+      "voice": "ui",
+      "text": "FARMÁCIA",
+      "file": "ui-bba74f9e26.mp3"
+    },
+    {
+      "id": "ui-0fd8993c17",
+      "voice": "ui",
+      "text": "LOTÉRICA",
+      "file": "ui-0fd8993c17.mp3"
+    },
+    {
+      "id": "ui-cef3dc9213",
+      "voice": "ui",
+      "text": "AÇOUGUE",
+      "file": "ui-cef3dc9213.mp3"
+    },
+    {
+      "id": "ui-433c40e573",
+      "voice": "ui",
+      "text": "MERCADO",
+      "file": "ui-433c40e573.mp3"
+    },
+    {
+      "id": "ui-89543a5424",
+      "voice": "ui",
+      "text": "CHAVEIRO",
+      "file": "ui-89543a5424.mp3"
+    },
+    {
+      "id": "ui-7a3581c613",
+      "voice": "ui",
+      "text": "LADEIRA",
+      "file": "ui-7a3581c613.mp3"
+    },
+    {
+      "id": "ui-1b9d937165",
+      "voice": "ui",
+      "text": "TRAVESSA",
+      "file": "ui-1b9d937165.mp3"
+    },
+    {
+      "id": "ui-0e0f67eb93",
+      "voice": "ui",
+      "text": "BANHEIRO",
+      "file": "ui-0e0f67eb93.mp3"
+    },
+    {
+      "id": "ui-49a2534243",
+      "voice": "ui",
+      "text": "RECICLAGEM",
+      "file": "ui-49a2534243.mp3"
+    },
+    {
+      "id": "ui-2628a47ef0",
+      "voice": "ui",
+      "text": "MAPA",
+      "file": "ui-2628a47ef0.mp3"
+    },
+    {
+      "id": "ui-dabab4f98f",
+      "voice": "ui",
+      "text": "HORÁRIO",
+      "file": "ui-dabab4f98f.mp3"
+    },
+    {
+      "id": "ui-29300b7d72",
+      "voice": "ui",
+      "text": "ENTRADA",
+      "file": "ui-29300b7d72.mp3"
+    },
+    {
+      "id": "ui-658dcf5d85",
+      "voice": "ui",
+      "text": "FECHADO",
+      "file": "ui-658dcf5d85.mp3"
+    },
+    {
+      "id": "ui-e13cab5878",
+      "voice": "ui",
+      "text": "CUIDADO",
+      "file": "ui-e13cab5878.mp3"
+    },
+    {
+      "id": "ui-f35a5a2e2a",
+      "voice": "ui",
+      "text": "WIFI",
+      "file": "ui-f35a5a2e2a.mp3"
+    },
+    {
+      "id": "ui-19c38dc5d3",
+      "voice": "ui",
+      "text": "EMERGÊNCIA",
+      "file": "ui-19c38dc5d3.mp3"
+    },
+    {
+      "id": "ui-67f85348a5",
+      "voice": "ui",
+      "text": "INFORMAÇÃO",
+      "file": "ui-67f85348a5.mp3"
+    },
+    {
+      "id": "ui-d2c75e9106",
+      "voice": "ui",
+      "text": "CICLOVIA",
+      "file": "ui-d2c75e9106.mp3"
+    },
+    {
+      "id": "ui-f700dda94d",
+      "voice": "ui",
+      "text": "CORREIOS",
+      "file": "ui-f700dda94d.mp3"
+    },
+    {
+      "id": "ui-1f96c29ce3",
+      "voice": "ui",
+      "text": "DEVAGAR",
+      "file": "ui-1f96c29ce3.mp3"
+    },
+    {
+      "id": "ui-a28479f527",
+      "voice": "ui",
+      "text": "SALÃO",
+      "file": "ui-a28479f527.mp3"
+    },
+    {
+      "id": "ui-9cce33f828",
+      "voice": "ui",
+      "text": "BARBEARIA",
+      "file": "ui-9cce33f828.mp3"
+    },
+    {
+      "id": "ui-4371b9f33b",
+      "voice": "ui",
+      "text": "LAVANDERIA",
+      "file": "ui-4371b9f33b.mp3"
+    },
+    {
+      "id": "ui-ffff742da0",
+      "voice": "ui",
+      "text": "IGREJA",
+      "file": "ui-ffff742da0.mp3"
+    },
+    {
+      "id": "ui-77629627e6",
+      "voice": "ui",
+      "text": "ORGÂNICO",
+      "file": "ui-77629627e6.mp3"
+    },
+    {
+      "id": "ui-60c93fa494",
+      "voice": "ui",
+      "text": "R$ / KG",
+      "file": "ui-60c93fa494.mp3"
+    },
+    {
+      "id": "ui-823c441f65",
+      "voice": "ui",
+      "text": "DÚZIA",
+      "file": "ui-823c441f65.mp3"
+    },
+    {
+      "id": "ui-4b4be44154",
+      "voice": "ui",
+      "text": "UNIDADE",
+      "file": "ui-4b4be44154.mp3"
+    },
+    {
+      "id": "ui-46212c20af",
+      "voice": "ui",
+      "text": "DESCONTO",
+      "file": "ui-46212c20af.mp3"
+    },
+    {
+      "id": "ui-1dfafc6b04",
+      "voice": "ui",
+      "text": "PROMOÇÃO",
+      "file": "ui-1dfafc6b04.mp3"
+    },
+    {
+      "id": "ui-b4d5e57611",
+      "voice": "ui",
+      "text": "RECADO",
+      "file": "ui-b4d5e57611.mp3"
+    },
+    {
+      "id": "ui-6f8ca37240",
+      "voice": "ui",
+      "text": "LISTA",
+      "file": "ui-6f8ca37240.mp3"
+    },
+    {
+      "id": "ui-f215d6335f",
+      "voice": "ui",
+      "text": "CONTA",
+      "file": "ui-f215d6335f.mp3"
+    },
+    {
+      "id": "ui-0bc7daa0d2",
+      "voice": "ui",
+      "text": "EXTINTOR",
+      "file": "ui-0bc7daa0d2.mp3"
+    },
+    {
+      "id": "ui-eb9377f76c",
+      "voice": "ui",
+      "text": "PRESENÇA",
+      "file": "ui-eb9377f76c.mp3"
+    },
+    {
+      "id": "ui-035081a017",
+      "voice": "ui",
+      "text": "SILÊNCIO",
+      "file": "ui-035081a017.mp3"
+    },
+    {
+      "id": "ui-0b4762406b",
+      "voice": "ui",
+      "text": "BIBLIOTECA",
+      "file": "ui-0b4762406b.mp3"
+    },
+    {
+      "id": "ui-9b869c65ca",
+      "voice": "ui",
+      "text": "CHAMADA",
+      "file": "ui-9b869c65ca.mp3"
+    },
     {
       "id": "ui-bfc1d05b9b",
       "voice": "ui",
@@ -174,6 +4047,60 @@
       "file": "ui-f3e10e138a.mp3"
     },
     {
+      "id": "ui-8d87e10be1",
+      "voice": "ui",
+      "text": "brigadeiro",
+      "file": "ui-8d87e10be1.mp3"
+    },
+    {
+      "id": "ui-7a11aa36b2",
+      "voice": "ui",
+      "text": "bolo de cenoura",
+      "file": "ui-7a11aa36b2.mp3"
+    },
+    {
+      "id": "ui-5a0cb34c0b",
+      "voice": "ui",
+      "text": "sonho",
+      "file": "ui-5a0cb34c0b.mp3"
+    },
+    {
+      "id": "ui-99fd08331c",
+      "voice": "ui",
+      "text": "prato feito",
+      "file": "ui-99fd08331c.mp3"
+    },
+    {
+      "id": "ui-f922ae4392",
+      "voice": "ui",
+      "text": "arroz e feijão",
+      "file": "ui-f922ae4392.mp3"
+    },
+    {
+      "id": "ui-4265513bfb",
+      "voice": "ui",
+      "text": "bife acebolado",
+      "file": "ui-4265513bfb.mp3"
+    },
+    {
+      "id": "ui-e7c54bfda8",
+      "voice": "ui",
+      "text": "salada",
+      "file": "ui-e7c54bfda8.mp3"
+    },
+    {
+      "id": "ui-d707ff73f7",
+      "voice": "ui",
+      "text": "feijoada",
+      "file": "ui-d707ff73f7.mp3"
+    },
+    {
+      "id": "ui-9861dafe22",
+      "voice": "ui",
+      "text": "pudim",
+      "file": "ui-9861dafe22.mp3"
+    },
+    {
       "id": "ui-8f97792d48",
       "voice": "ui",
       "text": "Bom dia",
@@ -222,6 +4149,12 @@
       "file": "ui-04781fbbf2.mp3"
     },
     {
+      "id": "ui-34cfc76f74",
+      "voice": "ui",
+      "text": "Obrigado",
+      "file": "ui-34cfc76f74.mp3"
+    },
+    {
       "id": "ui-329997c41f",
       "voice": "ui",
       "text": "De nada",
@@ -240,10 +4173,22 @@
       "file": "ui-162065ffc2.mp3"
     },
     {
+      "id": "ui-ec92b74306",
+      "voice": "ui",
+      "text": "um",
+      "file": "ui-ec92b74306.mp3"
+    },
+    {
       "id": "ui-1c5eb92803",
       "voice": "ui",
       "text": "dois / duas",
       "file": "ui-1c5eb92803.mp3"
+    },
+    {
+      "id": "ui-7b426791b4",
+      "voice": "ui",
+      "text": "dois",
+      "file": "ui-7b426791b4.mp3"
     },
     {
       "id": "ui-a4316f3116",
@@ -316,6 +4261,12 @@
       "voice": "ui",
       "text": "quatorze / catorze",
       "file": "ui-19355528a8.mp3"
+    },
+    {
+      "id": "ui-ae9c35e7ce",
+      "voice": "ui",
+      "text": "quatorze",
+      "file": "ui-ae9c35e7ce.mp3"
     },
     {
       "id": "ui-6c00d38dec",
@@ -438,46 +4389,10 @@
       "file": "ui-a00239cb37.mp3"
     },
     {
-      "id": "carlos-a827756ccf",
-      "voice": "carlos",
-      "text": "Bom dia! Tudo bem?",
-      "file": "carlos-a827756ccf.mp3"
-    },
-    {
-      "id": "carlos-f74714d123",
-      "voice": "carlos",
-      "text": "Aqui a gente fala português, tá? Devagarinho: Bom… dia! Tudo… bem?",
-      "file": "carlos-f74714d123.mp3"
-    },
-    {
-      "id": "carlos-58d1817c1f",
-      "voice": "carlos",
-      "text": "Pois não. O que vai ser hoje?",
-      "file": "carlos-58d1817c1f.mp3"
-    },
-    {
       "id": "carlos-f0eea8e48e",
       "voice": "carlos",
       "text": "Sem pressa.",
       "file": "carlos-f0eea8e48e.mp3"
-    },
-    {
-      "id": "carlos-ffa2e1e600",
-      "voice": "carlos",
-      "text": "Sem pressa. Tem pão na chapa, coxinha e pastel quentinho.",
-      "file": "carlos-ffa2e1e600.mp3"
-    },
-    {
-      "id": "carlos-06bfa995ae",
-      "voice": "carlos",
-      "text": "Sem pressa, meu filho. Tem pão na chapa, coxinha e pastel quentinho.",
-      "file": "carlos-06bfa995ae.mp3"
-    },
-    {
-      "id": "carlos-b3488bd746",
-      "voice": "carlos",
-      "text": "Sem pressa, minha filha. Tem pão na chapa, coxinha e pastel quentinho.",
-      "file": "carlos-b3488bd746.mp3"
     },
     {
       "id": "carlos-5da0d5de4f",
@@ -492,364 +4407,10 @@
       "file": "carlos-114dbcba09.mp3"
     },
     {
-      "id": "carlos-8435eae903",
-      "voice": "carlos",
-      "text": "Pão na chapa? Coxinha? Pastel? Fala assim: “Me vê um pão na chapa, por favor.”",
-      "file": "carlos-8435eae903.mp3"
-    },
-    {
-      "id": "carlos-02bbd005aa",
-      "voice": "carlos",
-      "text": "Café puro ou café com leite? Fala: “Um café com leite, por favor.”",
-      "file": "carlos-02bbd005aa.mp3"
-    },
-    {
-      "id": "carlos-6e84b923ca",
-      "voice": "carlos",
-      "text": "Pronto. Pra comer aqui ou pra viagem?",
-      "file": "carlos-6e84b923ca.mp3"
-    },
-    {
-      "id": "carlos-237ce86696",
-      "voice": "carlos",
-      "text": "“To go” é “pra viagem”. E “for here” é “pra comer aqui”.",
-      "file": "carlos-237ce86696.mp3"
-    },
-    {
-      "id": "carlos-c6e4408958",
-      "voice": "carlos",
-      "text": "“Por conta da casa” quer dizer que você não paga nada. É de graça!",
-      "file": "carlos-c6e4408958.mp3"
-    },
-    {
-      "id": "carlos-42b5830da2",
-      "voice": "carlos",
-      "text": "Tá na mão. Volte sempre! Quer ajudar no balcão? É o “Me vê um…”.",
-      "file": "carlos-42b5830da2.mp3"
-    },
-    {
-      "id": "carlos-c87c0326bc",
-      "voice": "carlos",
-      "text": "Tá na mão, meu filho. Volte sempre! Quer ajudar no balcão? É o “Me vê um…”.",
-      "file": "carlos-c87c0326bc.mp3"
-    },
-    {
-      "id": "carlos-a147d35e38",
-      "voice": "carlos",
-      "text": "Tá na mão, minha filha. Volte sempre! Quer ajudar no balcão? É o “Me vê um…”.",
-      "file": "carlos-a147d35e38.mp3"
-    },
-    {
-      "id": "carlos-6ecd9e3967",
-      "voice": "carlos",
-      "text": "Isso aí! Um pão na chapa saindo. E pra beber? Café com leite, suco de laranja ou água?",
-      "file": "carlos-6ecd9e3967.mp3"
-    },
-    {
-      "id": "carlos-693af29dcc",
-      "voice": "carlos",
-      "text": "Isso aí! Uma coxinha saindo. E pra beber? Café com leite, suco de laranja ou água?",
-      "file": "carlos-693af29dcc.mp3"
-    },
-    {
-      "id": "carlos-fee86fc006",
-      "voice": "carlos",
-      "text": "Isso aí! Um pastel saindo. E pra beber? Café com leite, suco de laranja ou água?",
-      "file": "carlos-fee86fc006.mp3"
-    },
-    {
-      "id": "carlos-e9cc749489",
-      "voice": "carlos",
-      "text": "Isso aí! Seu pedido saindo. E pra beber? Café com leite, suco de laranja ou água?",
-      "file": "carlos-e9cc749489.mp3"
-    },
-    {
-      "id": "carlos-02110349d5",
-      "voice": "carlos",
-      "text": "Isso aí! Um café com leite saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
-      "file": "carlos-02110349d5.mp3"
-    },
-    {
-      "id": "carlos-a692336d87",
-      "voice": "carlos",
-      "text": "Isso aí! Um café saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
-      "file": "carlos-a692336d87.mp3"
-    },
-    {
-      "id": "carlos-c381098918",
-      "voice": "carlos",
-      "text": "Isso aí! Um suco de laranja saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
-      "file": "carlos-c381098918.mp3"
-    },
-    {
-      "id": "carlos-245454ef42",
-      "voice": "carlos",
-      "text": "Isso aí! Uma água saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
-      "file": "carlos-245454ef42.mp3"
-    },
-    {
-      "id": "carlos-570ce30ae2",
-      "voice": "carlos",
-      "text": "Isso aí! Seu pedido saindo. E pra comer? Pão na chapa, coxinha ou pastel?",
-      "file": "carlos-570ce30ae2.mp3"
-    },
-    {
-      "id": "carlos-affe1730bb",
-      "voice": "carlos",
-      "text": "Deu três reais (R$ 3)… Mas hoje é por conta da casa!",
-      "file": "carlos-affe1730bb.mp3"
-    },
-    {
-      "id": "carlos-e1a294132c",
-      "voice": "carlos",
-      "text": "Deu quatro reais (R$ 4)… Mas hoje é por conta da casa!",
-      "file": "carlos-e1a294132c.mp3"
-    },
-    {
-      "id": "carlos-50e855e5d6",
-      "voice": "carlos",
-      "text": "Deu cinco reais (R$ 5)… Mas hoje é por conta da casa!",
-      "file": "carlos-50e855e5d6.mp3"
-    },
-    {
-      "id": "carlos-fe1ead49d1",
-      "voice": "carlos",
-      "text": "Deu oito reais (R$ 8)… Mas hoje é por conta da casa!",
-      "file": "carlos-fe1ead49d1.mp3"
-    },
-    {
-      "id": "carlos-1e05a47149",
-      "voice": "carlos",
-      "text": "Deu nove reais (R$ 9)… Mas hoje é por conta da casa!",
-      "file": "carlos-1e05a47149.mp3"
-    },
-    {
-      "id": "carlos-6f36615f93",
-      "voice": "carlos",
-      "text": "Deu dez reais (R$ 10)… Mas hoje é por conta da casa!",
-      "file": "carlos-6f36615f93.mp3"
-    },
-    {
-      "id": "carlos-5405ce9f40",
-      "voice": "carlos",
-      "text": "Deu onze reais (R$ 11)… Mas hoje é por conta da casa!",
-      "file": "carlos-5405ce9f40.mp3"
-    },
-    {
-      "id": "carlos-c6a881318b",
-      "voice": "carlos",
-      "text": "Deu doze reais (R$ 12)… Mas hoje é por conta da casa!",
-      "file": "carlos-c6a881318b.mp3"
-    },
-    {
-      "id": "carlos-4710b3c77f",
-      "voice": "carlos",
-      "text": "Deu treze reais (R$ 13)… Mas hoje é por conta da casa!",
-      "file": "carlos-4710b3c77f.mp3"
-    },
-    {
-      "id": "carlos-962ca9b11d",
-      "voice": "carlos",
-      "text": "Deu catorze reais (R$ 14)… Mas hoje é por conta da casa!",
-      "file": "carlos-962ca9b11d.mp3"
-    },
-    {
-      "id": "carlos-299ff12cde",
-      "voice": "carlos",
-      "text": "Deu quinze reais (R$ 15)… Mas hoje é por conta da casa!",
-      "file": "carlos-299ff12cde.mp3"
-    },
-    {
-      "id": "carlos-06ec1e53e5",
-      "voice": "carlos",
-      "text": "Deu dezesseis reais (R$ 16)… Mas hoje é por conta da casa!",
-      "file": "carlos-06ec1e53e5.mp3"
-    },
-    {
-      "id": "carlos-a4bcebcdbc",
-      "voice": "carlos",
-      "text": "Bom dia! O que vai ser hoje?",
-      "file": "carlos-a4bcebcdbc.mp3"
-    },
-    {
       "id": "carlos-2033321b98",
       "voice": "carlos",
       "text": "Bom dia! O que posso servir?",
       "file": "carlos-2033321b98.mp3"
-    },
-    {
-      "id": "carlos-7e70995d33",
-      "voice": "carlos",
-      "text": "E aí, tudo bem? Vai querer o quê?",
-      "file": "carlos-7e70995d33.mp3"
-    },
-    {
-      "id": "carlos-1eeb369b55",
-      "voice": "carlos",
-      "text": "Pronto. O que posso servir?",
-      "file": "carlos-1eeb369b55.mp3"
-    },
-    {
-      "id": "carlos-009c352c69",
-      "voice": "carlos",
-      "text": "Deixa eu anotar — o que vai ser?",
-      "file": "carlos-009c352c69.mp3"
-    },
-    {
-      "id": "carlos-31470ecd7b",
-      "voice": "carlos",
-      "text": "Tá com fome? Me fala o pedido.",
-      "file": "carlos-31470ecd7b.mp3"
-    },
-    {
-      "id": "carlos-be87716ee9",
-      "voice": "carlos",
-      "text": "Oi! Café da manhã pra você?",
-      "file": "carlos-be87716ee9.mp3"
-    },
-    {
-      "id": "carlos-070acb03e8",
-      "voice": "carlos",
-      "text": "Oi, beleza?",
-      "file": "carlos-070acb03e8.mp3"
-    },
-    {
-      "id": "carlos-ccad2a3d05",
-      "voice": "carlos",
-      "text": "E aí, tudo bem?",
-      "file": "carlos-ccad2a3d05.mp3"
-    },
-    {
-      "id": "carlos-0ef5411305",
-      "voice": "carlos",
-      "text": "Pão na chapa saindo! E pra beber?",
-      "file": "carlos-0ef5411305.mp3"
-    },
-    {
-      "id": "carlos-f72c6b457d",
-      "voice": "carlos",
-      "text": "Pão na chapa, anotei. Quer café, suco ou água?",
-      "file": "carlos-f72c6b457d.mp3"
-    },
-    {
-      "id": "carlos-a3fc934d91",
-      "voice": "carlos",
-      "text": "Isso aí, pão na chapa. Deixa eu anotar. E pra beber?",
-      "file": "carlos-a3fc934d91.mp3"
-    },
-    {
-      "id": "carlos-851e9165c9",
-      "voice": "carlos",
-      "text": "Uma coxinha quentinha! E pra beber?",
-      "file": "carlos-851e9165c9.mp3"
-    },
-    {
-      "id": "carlos-7246892990",
-      "voice": "carlos",
-      "text": "Coxinha, boa. Deixa eu anotar. E pra beber?",
-      "file": "carlos-7246892990.mp3"
-    },
-    {
-      "id": "carlos-3bdca53d90",
-      "voice": "carlos",
-      "text": "Pastel de carne ou queijo? E pra beber?",
-      "file": "carlos-3bdca53d90.mp3"
-    },
-    {
-      "id": "carlos-4db7e39c8c",
-      "voice": "carlos",
-      "text": "Pastel, anotei. Carne ou queijo — e pra beber?",
-      "file": "carlos-4db7e39c8c.mp3"
-    },
-    {
-      "id": "carlos-e03258372b",
-      "voice": "carlos",
-      "text": "Café com leite saindo! Pra comer aqui ou pra viagem?",
-      "file": "carlos-e03258372b.mp3"
-    },
-    {
-      "id": "carlos-70d86fda4d",
-      "voice": "carlos",
-      "text": "Café com leite, tá na mão. Pra comer aqui ou pra viagem?",
-      "file": "carlos-70d86fda4d.mp3"
-    },
-    {
-      "id": "carlos-63ad1689fb",
-      "voice": "carlos",
-      "text": "Anotei o café com leite. Aqui ou pra viagem?",
-      "file": "carlos-63ad1689fb.mp3"
-    },
-    {
-      "id": "carlos-a3556ef33c",
-      "voice": "carlos",
-      "text": "Suco de laranja fresquinho! Pra comer aqui ou pra viagem?",
-      "file": "carlos-a3556ef33c.mp3"
-    },
-    {
-      "id": "carlos-93c6b4f025",
-      "voice": "carlos",
-      "text": "Suco de laranja, anotei. Aqui ou pra viagem?",
-      "file": "carlos-93c6b4f025.mp3"
-    },
-    {
-      "id": "carlos-9207a5dafb",
-      "voice": "carlos",
-      "text": "Uma água geladinha! Pra comer aqui ou pra viagem?",
-      "file": "carlos-9207a5dafb.mp3"
-    },
-    {
-      "id": "carlos-a67c22fa10",
-      "voice": "carlos",
-      "text": "Água, tá na mão. Pra comer aqui ou pra viagem?",
-      "file": "carlos-a67c22fa10.mp3"
-    },
-    {
-      "id": "carlos-7ebd994c36",
-      "voice": "carlos",
-      "text": "Pronto! Tá na mão. Volte sempre!",
-      "file": "carlos-7ebd994c36.mp3"
-    },
-    {
-      "id": "carlos-7076e8544f",
-      "voice": "carlos",
-      "text": "Tá na mão. Pode sentar. Volte sempre!",
-      "file": "carlos-7076e8544f.mp3"
-    },
-    {
-      "id": "carlos-75cfb8f63a",
-      "voice": "carlos",
-      "text": "Pra viagem, então. Tá na mão. Volte sempre!",
-      "file": "carlos-75cfb8f63a.mp3"
-    },
-    {
-      "id": "carlos-a235d6f8b8",
-      "voice": "carlos",
-      "text": "Volte sempre!",
-      "file": "carlos-a235d6f8b8.mp3"
-    },
-    {
-      "id": "carlos-2580a39618",
-      "voice": "carlos",
-      "text": "Volte sempre! Até amanhã.",
-      "file": "carlos-2580a39618.mp3"
-    },
-    {
-      "id": "carlos-6cc2fedb94",
-      "voice": "carlos",
-      "text": "Bom dia! Tudo bem? O que vai ser hoje?",
-      "file": "carlos-6cc2fedb94.mp3"
-    },
-    {
-      "id": "carlos-b1c1987bbc",
-      "voice": "carlos",
-      "text": "Bom dia! Beleza? Me conta o que vai ser.",
-      "file": "carlos-b1c1987bbc.mp3"
-    },
-    {
-      "id": "carlos-1d6d88ddfb",
-      "voice": "carlos",
-      "text": "Bom dia! E aí, o que vai querer?",
-      "file": "carlos-1d6d88ddfb.mp3"
     },
     {
       "id": "carlos-bacee5ea37",

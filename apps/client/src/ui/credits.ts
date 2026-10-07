@@ -23,11 +23,13 @@ function line(c: CreditLine): HTMLElement {
   );
 }
 
-/** The small art credit line on the title / sign-in screen ("Art: LimeZu — limezu.itch.io"). */
+/** The small footer on the title / sign-in screen: Privacy and Terms, then the LimeZu art credit. */
 export function artCredit(): HTMLElement {
   return h(
     'footer',
     { class: 'intro-art-credit', id: 'intro-art-credit' },
+    h('span', { class: 'intro-policies' }, h('a', { href: '/privacy' }, 'Privacy'), ' · ', h('a', { href: '/terms' }, 'Terms')),
+    h('span', { class: 'intro-art-sep', 'aria-hidden': 'true' }, '·'),
     'Art: ',
     h('a', { href: LIMEZU_URL, target: '_blank', rel: 'noopener noreferrer' }, 'LimeZu'),
     ' — limezu.itch.io',

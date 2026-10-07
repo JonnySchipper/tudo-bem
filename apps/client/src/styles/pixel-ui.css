@@ -214,6 +214,12 @@
   right: 0;
   bottom: calc(6px + var(--safe-bottom));
   z-index: 6;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0 0.45em;
+  padding: 0 12px;
   text-align: center;
   font-size: 11px;
   font-weight: 700;
@@ -227,6 +233,12 @@
   text-decoration: underline;
   text-underline-offset: 2px;
   pointer-events: auto;
+}
+
+.intro-art-credit a:focus-visible {
+  outline: 3px solid var(--mustard);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .cl-progress {

@@ -88,6 +88,7 @@ import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAcademyFloor } from './ui/academy';
 import { askPadariaDoor, bindPadariaOwn, chooseBakery, onPadariaDoor, openHouseCounter, openPadariaBook, syncPadariaFloor, welcomeOwner } from './ui/padariaOwn';
 import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia } from './ui/airportTutorial';
+import { flyHeardWord, noteLine } from './ui/heardWord';
 import { cameraFrameAt, captureFrame, celebrateWord, celebrateWords, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
 import { escolaPracticeOpen, openEscolaPractice, showEscolaResult } from './ui/escola';
 import { openHotspotCard } from './ui/hotspotCard';
@@ -329,7 +330,15 @@ function takePhoto(clientX: number, clientY: number) {
   if (!game.profile?.hasCamera) return;
   if ((game.profile.film ?? 0) < 1 && !inAirport()) {
     shutterJam();
-    toast('info', 'Sem filme. Fala com a Júlia.', 'Out of film. Ask Júlia.');
+    ambience.sfx('empty');
+    toast('info', 'Sem filme! Fala com a Júlia para comprar mais.', 'Out of film! Ask Júlia to buy more.');
+    // nothing left to shoot: leave the viewfinder (after the red shake has been seen)
+    window.setTimeout(() => {
+      if (!game.cameraOn) return;
+      game.cameraOn = false;
+      syncCameraBanner();
+      game.emit('hud');
+    }, 350);
     return;
   }
   // the blades are still moving: one shot per beat
@@ -748,7 +757,8 @@ net.on((m: ServerMsg) => {
       break;
     case 'diary':
       if (m.phase === 'photo') showPhoto(m);
-      else if (m.phase === 'word') celebrateWord(m);
+      // a word heard in a line flies out of that line into the Diário; the others (a sign, a game) get the card
+      else if (m.phase === 'word') (m.source === 'conversation' ? flyHeardWord(m) : celebrateWord(m));
       else if (m.phase === 'words') celebrateWords(m.words);
       else if (m.phase === 'practice') {
         if (m.ok)
@@ -923,6 +933,7 @@ net.on((m: ServerMsg) => {
 
 function npcSay(id: string, line: { pt: string; en: string }) {
   game.npcBubbles.set(id, { text: line.pt, gloss: line.en, at: now() });
+  noteLine(game.avatars.get(`npc-${id}`)?.pub.name ?? npcDefById(id)?.name ?? id, line.pt);
 }
 
 /** Over-stimulation cap (split into areas): never more than two ambient NPC speech bubbles on screen at once (a bubble lives 7 s). */
