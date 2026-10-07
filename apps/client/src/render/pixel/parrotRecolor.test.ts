@@ -28,7 +28,7 @@ describe('parrot body recolor', () => {
   });
 
   it('turns the green body into the bought colour', () => {
-    for (const id of ['azul', 'amarelo', 'vermelho', 'laranja'] as const) {
+    for (const id of ['azul', 'canarinho', 'vermelha', 'periquito'] as const) {
       const tint = parrotColorById(id)!.tint;
       const body = px(0x5dbb54);
       recolorParrotPixels(body, tint);

@@ -598,7 +598,7 @@ const praca: RoomDef = {
       blocks: true,
       action: 'parrot_perch',
       interact: { x: 21, y: 14 },
-      label: { pt: 'Poleiro do papagaio', en: 'Parrot perch' },
+      label: { pt: 'Puleiro dos Pássaros', en: 'Bird perch' },
     },
     // the vira-lata corner (south-west)
     cen('vira_lata', 'critters/vira_lata_sleep_e', 3, 21, 1, 1, { blocks: true, label: { pt: 'Vira-lata caramelo', en: 'Caramel stray dog (vira-lata)' } }),

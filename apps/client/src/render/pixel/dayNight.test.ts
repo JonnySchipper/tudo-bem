@@ -96,6 +96,25 @@ describe('outdoor vs interior rooms', () => {
     expect(isOutdoor(ROOMS.kitnet)).toBe(false);
     expect(isOutdoor(ROOMS.academia)).toBe(false);
   });
+
+  it('the feira follows the same outdoor clock and weather as the other open-air rooms', () => {
+    for (const id of ['rua', 'rua_leste', 'praca', 'feira'] as const) expect(isOutdoor(ROOMS[id]), id).toBe(true);
+    for (const id of ['padaria', 'kitnet', 'academia', 'escola', 'andar'] as const) expect(isOutdoor(ROOMS[id]), id).toBe(false);
+    // setts alone are not outdoors; the feira is, because the room is open-air
+    expect(isOutdoor({ floor: ['pppp', 'pttp'] })).toBe(false);
+    expect(ROOMS.feira.floor.some((row) => row.includes('g') || row.includes('a'))).toBe(false);
+
+    const look = (room: keyof typeof ROOMS, minutes: number, weather = WEATHER_PARAMS.sol) =>
+      computeLook({ outdoor: isOutdoor(ROOMS[room]), roomHour: ROOM_HOUR[ROOMS[room].lighting], minutes, weather });
+    const sunnyFixed = computeLook({ outdoor: false, roomHour: ROOM_HOUR.tarde, minutes: T(12), weather: WEATHER_PARAMS.chuva });
+    const sky = (l: ReturnType<typeof look>) => ({ grade: l.grade, dark: l.dark, wet: l.wet, sun: l.sun, night: l.night, cast: l.cast, glow: l.glow });
+    expect(look('feira', T(23)).dark).toBeGreaterThan(0.45);
+    expect(sunnyFixed.dark).toBe(0);
+    expect(look('feira', T(12), WEATHER_PARAMS.chuva).wet).toBeGreaterThan(0);
+    expect(look('feira', T(12), WEATHER_PARAMS.chuva).dark).toBeGreaterThan(sunnyFixed.dark);
+    expect(sky(look('feira', T(21), WEATHER_PARAMS.garoa))).toEqual(sky(look('praca', T(21), WEATHER_PARAMS.garoa)));
+    expect(sky(look('feira', T(8), WEATHER_PARAMS.nublado))).toEqual(sky(look('rua', T(8), WEATHER_PARAMS.nublado)));
+  });
 });
 
 describe('computeLook', () => {
