@@ -344,7 +344,15 @@ function takePhoto(clientX: number, clientY: number) {
   if (!game.profile?.hasCamera) return;
   if ((game.profile.film ?? 0) < 1) {
     shutterJam();
-    toast('info', 'Sem filme. Fala com a Júlia.', 'Out of film. Ask Júlia.');
+    ambience.sfx('empty');
+    toast('info', 'Sem filme! Fala com a Júlia para comprar mais.', 'Out of film! Ask Júlia to buy more.');
+    // nothing left to shoot: leave the viewfinder (after the red shake has been seen)
+    window.setTimeout(() => {
+      if (!game.cameraOn) return;
+      game.cameraOn = false;
+      syncCameraBanner();
+      game.emit('hud');
+    }, 350);
     return;
   }
   // the blades are still moving: one shot per beat
