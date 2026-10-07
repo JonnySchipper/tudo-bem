@@ -90,6 +90,7 @@ import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAca
 import { askPadariaDoor, bindPadariaOwn, chooseBakery, onPadariaDoor, openHouseCounter, openPadariaBook, syncPadariaFloor, welcomeOwner } from './ui/padariaOwn';
 import { isArrivalHallOpen, openArrivalHall } from './ui/arrivalHall';
 import type { WordMoment } from './ui/diaryWordQueue';
+import { flyHeardWord, noteLine } from './ui/heardWord';
 import { cameraFrameAt, captureFrame, celebrateWord, celebrateWords, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
 import { escolaPracticeOpen, openEscolaPractice, showEscolaResult } from './ui/escola';
 import { openHotspotCard } from './ui/hotspotCard';
@@ -758,7 +759,8 @@ net.on((m: ServerMsg) => {
       break;
     case 'diary':
       if (m.phase === 'photo') showPhoto(m);
-      else if (m.phase === 'word') celebrateWord(m);
+      // a word heard in a line flies out of that line into the Diário; the others (a sign, a game) get the card
+      else if (m.phase === 'word') (m.source === 'conversation' ? flyHeardWord(m) : celebrateWord(m));
       else if (m.phase === 'words') (heldCardWords ? heldCardWords.push(m.words) : celebrateWords(m.words));
       else if (m.phase === 'practice') {
         if (m.ok)
@@ -931,6 +933,7 @@ net.on((m: ServerMsg) => {
 
 function npcSay(id: string, line: { pt: string; en: string }) {
   game.npcBubbles.set(id, { text: line.pt, gloss: line.en, at: now() });
+  noteLine(game.avatars.get(`npc-${id}`)?.pub.name ?? npcDefById(id)?.name ?? id, line.pt);
 }
 
 /** Over-stimulation cap (split into areas): never more than two ambient NPC speech bubbles on screen at once (a bubble lives 7 s). */

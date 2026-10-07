@@ -1947,6 +1947,227 @@ html.px-ui .backdrop > .panel.escola-panel,
   }
 }
 
+/* ---------------------------------------------------------------- a word heard in a line: marked where it was said, then flown into the Diário */
+
+.heard-mark {
+  position: fixed;
+  z-index: 60;
+  border-radius: 6px 3px 7px 4px;
+  background: linear-gradient(100deg, rgba(242, 194, 48, 0.55), rgba(255, 214, 102, 0.75) 60%, rgba(242, 194, 48, 0.6));
+  mix-blend-mode: multiply;
+  box-shadow: 0 0 0 0 rgba(242, 194, 48, 0.55);
+  pointer-events: none;
+  transform-origin: left center;
+  animation:
+    heard-sweep 0.38s var(--dy-out) both,
+    heard-glow 0.7s ease-out 0.38s both;
+}
+
+.heard-mark.leaving {
+  animation: dy-fade-out 0.28s ease-in forwards;
+}
+
+@keyframes heard-sweep {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes heard-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(242, 194, 48, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(242, 194, 48, 0);
+  }
+}
+
+.heard-chip {
+  position: fixed;
+  z-index: 61;
+  padding: 0 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+  color: #8f3e15;
+  background: var(--dy-paper);
+  box-shadow:
+    0 0 0 2px var(--dy-gold),
+    0 0 18px 4px rgba(255, 214, 102, 0.7),
+    0 6px 0 rgba(20, 10, 6, 0.18);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  will-change: left, top, transform, opacity;
+}
+
+.heard-spark {
+  position: fixed;
+  z-index: 60;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: var(--dy-gold);
+  box-shadow: 0 0 6px 1px rgba(255, 214, 102, 0.9);
+  pointer-events: none;
+  animation: heard-spark 0.65s ease-out forwards;
+}
+
+.heard-spark.star {
+  border-radius: 1px;
+  background: #fff6cf;
+  transform: rotate(45deg);
+}
+
+@keyframes heard-spark {
+  to {
+    opacity: 0;
+    translate: var(--dx) var(--dy);
+    scale: 0.2;
+  }
+}
+
+.heard-ring {
+  position: fixed;
+  z-index: 60;
+  width: 18px;
+  height: 18px;
+  margin: -9px 0 0 -9px;
+  border: 3px solid var(--dy-gold);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: heard-ring 0.6s var(--dy-out) forwards;
+}
+
+@keyframes heard-ring {
+  to {
+    opacity: 0;
+    scale: 4;
+  }
+}
+
+#heard-quote {
+  position: fixed;
+  top: 22%;
+  left: 50%;
+  z-index: 59;
+  display: grid;
+  gap: 3px;
+  max-width: min(460px, calc(100vw - 32px));
+  padding: 9px 16px 11px;
+  border-radius: 4px;
+  color: var(--dy-ink);
+  background: var(--hud-paper, #fbf1e3);
+  box-shadow:
+    0 0 0 3px var(--dy-ink),
+    0 6px 0 rgba(20, 10, 6, 0.3);
+  transform: translateX(-50%);
+  pointer-events: none;
+  animation: heard-quote-in 0.32s var(--dy-out) both;
+}
+
+#heard-quote.leaving {
+  animation: dy-fade-out 0.3s ease-in forwards;
+}
+
+#heard-quote .heard-who {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dy-stamp);
+}
+
+#heard-quote .heard-line {
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+@keyframes heard-quote-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+
+#heard-landed {
+  position: fixed;
+  z-index: 60;
+  display: grid;
+  justify-items: start;
+  gap: 1px;
+  max-width: min(280px, calc(100vw - 16px));
+  padding: 7px 12px 8px;
+  border-radius: 4px;
+  color: var(--dy-ink);
+  background: var(--hud-paper, #fbf1e3);
+  box-shadow:
+    0 0 0 3px var(--dy-ink),
+    0 5px 0 rgba(20, 10, 6, 0.3);
+  pointer-events: none;
+  animation: heard-in 0.4s var(--dy-pop) both;
+}
+
+#heard-landed.leaving {
+  animation: dy-fade-out 0.3s ease-in forwards;
+}
+
+#heard-landed::after {
+  content: '';
+  position: absolute;
+  left: var(--tip, 50%);
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  background: inherit;
+  box-shadow: 3px 3px 0 0 var(--dy-ink);
+}
+
+#heard-landed.below::after {
+  top: -5px;
+  transform: rotate(225deg);
+}
+
+#heard-landed.above::after {
+  bottom: -5px;
+  transform: rotate(45deg);
+}
+
+#heard-landed:not(.below, .above)::after {
+  display: none;
+}
+
+#heard-landed .heard-kicker {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dy-stamp);
+}
+
+#heard-landed .heard-pt {
+  font-family: var(--font-pixel, inherit);
+  font-size: 1.7rem;
+  line-height: 1;
+  color: #8f3e15;
+}
+
+#heard-landed .heard-progress {
+  font-size: 0.78rem;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+@keyframes heard-in {
+  from {
+    opacity: 0;
+    scale: 0.7;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   #arrival-intro *,
   #arrival-intro,
@@ -1963,7 +2184,10 @@ html.px-ui .backdrop > .panel.escola-panel,
   .cartela-banner,
   .cartela-banner *,
   .cartela-hole .ink,
-  #cartela-pill {
+  #cartela-pill,
+  #heard-landed,
+  #heard-quote,
+  .heard-mark {
     animation-duration: 0.01ms !important;
     animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
