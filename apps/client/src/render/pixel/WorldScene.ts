@@ -882,7 +882,7 @@ export class WorldScene extends Phaser.Scene {
   /** The look of an avatar: a neighbour wears its own style (portrait match), everyone else their appearance. */
   private lookOf(a: ClientAvatar): Look {
     if (a.pub.npc) return lookForNpc(a.pub.npc, a.pub.appearance, a.pub.hat);
-    // players (not the Praça regulars) come from the 32x32 generator, unless they wear something only the 16x32 sheets have
+    // players (not the Praça regulars) come from the option-4 sheet, unless they wear something only the 16x32 sheets have
     if (hiresEnabled() && !isCpuId(a.pub.id) && useHires(a.pub)) return lookForAvatarHires(a.pub.appearance);
     return lookForAvatar(a.pub);
   }

@@ -48,7 +48,7 @@ interface Composed {
 const composedCache = new Map<string, Composed>();
 
 function composedFor(assets: CharAssets, spec: PreviewSpec): { key: string; look: ReturnType<typeof lookForAppearance>; c: Composed } {
-  // the same rule as the game scene: a player with no hat is drawn from the 32x32 generator
+  // the same rule as the game scene: a player with no hat is drawn from the option-4 sheet
   const look = hiresEnabled() && useHires({ hat: spec.hat ?? null }) ? lookForAvatarHires(spec.appearance) : lookForAppearance(spec.appearance, { hat: spec.hat ?? null });
   const key = lookKey(look);
   let c = composedCache.get(key);

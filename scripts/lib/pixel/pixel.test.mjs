@@ -70,20 +70,6 @@ describe('buildSlabTiles (16 dual-grid mask tiles)', () => {
   });
 });
 
-describe('toCanonicalSheet at the 32x32 generator (scale 2)', () => {
-  const src = blank(896 * 2, 64 * 10);
-  for (let r = 0; r < 10; r++) for (let c = 0; c < 56; c++) setPx(src, c * 32 + 16, r * 64 + 40, [r * 10, c, 200, 255]);
-  const out = toCanonicalSheet(src, { scale: 2 });
-
-  it('keeps the canonical grid with 32x64 frames and the same source mapping', () => {
-    expect(out.w).toBe(CANON_COLS * FRAME_W * 2);
-    expect(out.h).toBe(CANON_ROWS * FRAME_H * 2);
-    const marker = (row, col) => rgbAt(out, col * FRAME_W * 2 + 16, row * FRAME_H * 2 + 40);
-    expect(marker(CANON_ANIMS.idle.rows[0], 0)).toEqual([10, 18, 200]);
-    expect(marker(CANON_ANIMS.walk.rows[2], 3)).toEqual([20, 3, 200]);
-  });
-});
-
 describe('toCanonicalSheet (LimeZu layer -> canonical 8x17 sheet)', () => {
   // Source frame (row r, col c) is stamped with a marker pixel encoding r and c.
   const src = blank(896, 32 * 10);

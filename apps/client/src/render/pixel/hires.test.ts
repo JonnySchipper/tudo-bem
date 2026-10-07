@@ -1,20 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { HAIR_COLORS, SKIN_TONES, type Appearance } from '@tudobem/shared';
+import type { Appearance } from '@tudobem/shared';
 import { HIRES, avatarDrawScale, setAvatarZoom } from './characters';
 import { hiresEnabled } from './hires';
 import { lookDrawScale, lookForAppearance, lookForAvatarHires, lookHeadLift, lookKey, useHires } from './looks';
 
 const base: Appearance = { body: 'medio', skin: 2, hair: 'curto', hairColor: 1, top: 'camiseta', topColor: 3, bottom: 'calca', bottomColor: 4, shoes: 0 };
 
-describe('hi-res players (LimeZu 32x32 generator)', () => {
-  it('stacks body -> eyes -> outfit -> hairstyle with the player skin and hair colours', () => {
+describe('option-4 players (32x64 sheet)', () => {
+  it('is the one option-4 sheet, whatever the creator picked', () => {
     const l = lookForAvatarHires(base);
     expect(l.hires).toBe(true);
-    expect(l.layers.map((x) => x.key)).toEqual([HIRES.layers.body, HIRES.layers.eyes, HIRES.layers.outfit, HIRES.layers.hair]);
-    expect(l.layers[0].ramps).toEqual({ skin: SKIN_TONES[2] });
-    expect(l.layers[3].ramps).toEqual({ hair: HAIR_COLORS[1] });
+    expect(l.layers).toEqual([{ key: HIRES.layers.player }]);
+    expect(lookKey(lookForAvatarHires({ ...base, skin: 5, hairColor: 3 }))).toBe(lookKey(l));
     expect(lookKey(l)).not.toBe(lookKey(lookForAppearance(base)));
-    expect(lookKey(lookForAvatarHires({ ...base, skin: 5 }))).not.toBe(lookKey(l));
   });
 
   it('draws at half the avatar scale, so a player keeps the same size in the world', () => {

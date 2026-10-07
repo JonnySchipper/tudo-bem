@@ -24,10 +24,11 @@ function strays(img, allowed) {
 const keys = (...ramps) => ramps.flatMap((r) => KEY_RAMPS[r]);
 
 describe('character layer build (import)', () => {
-  it('every layer is a canonical 8x18 sheet', () => {
+  it('every layer is a canonical 8x18 sheet (the option-4 player at 2x: 32x64 frames)', () => {
     for (const [k, img] of Object.entries(out.layers)) {
-      expect(img.w, k).toBe(CANON_COLS * FRAME_W);
-      expect(img.h, k).toBe(CANON_ROWS * FRAME_H);
+      const s = k === 'opt4_player' ? 2 : 1;
+      expect(img.w, k).toBe(CANON_COLS * FRAME_W * s);
+      expect(img.h, k).toBe(CANON_ROWS * FRAME_H * s);
     }
   });
 

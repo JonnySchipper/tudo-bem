@@ -129,12 +129,12 @@ export const CHAR_LAYERS = {
 } as const;
 
 /**
- * Player avatars at the LimeZu 32x32 generator (32x64 frames, the same canonical rows as the 16x32 sheets). Built by
- * `assets-src/custom/chars.mjs` (HIRES). Drawn at half the avatar draw scale, so a player is the same size in the world as before
- * (every `avatarPx` offset still holds) with twice the detail in the face and clothes.
+ * The option-4 player avatar (staging test): one painted character baked into a 32x64-per-frame sheet (`assets-src/custom/opt4.mjs`,
+ * the same canonical rows as the 16x32 sheets at 2x). Drawn at half the avatar draw scale, so a player is the same size in the world
+ * as before (every `avatarPx` offset still holds) with twice the pixels in the face and clothes.
  */
 export const HIRES = {
-  layers: { body: 'hr_body', eyes: 'hr_eyes', outfit: 'hr_outfit', hair: 'hr_hair' },
+  layers: { player: 'opt4_player' },
   /** art px of a hi-res sheet per art px of a 16x32 sheet */
   scale: 2,
 } as const;

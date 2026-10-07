@@ -22,7 +22,7 @@ export interface Look {
   layers: LookLayer[];
   /** the standing pose (prop layers are already in `layers`; the scene picks the animation and pace) */
   idle: IdleEntry;
-  /** composed from the 32x32 generator layers (32x64 frames, `HIRES`) */
+  /** composed from the option-4 sheet (32x64 frames, `HIRES`) */
   hires?: boolean;
 }
 
@@ -130,21 +130,14 @@ export function lookForAvatar(pub: { appearance: Appearance; hat: string | null;
 }
 
 /**
- * Player look at the 32x32 generator, LimeZu order body -> eyes -> outfit -> hairstyle: the player's skin and hair colours on the one
- * starter outfit and hairstyle. Hats, gi, poses and the other creator styles stay on the 16x32 sheets for now (`useHires`).
+ * Player look on the option-4 sheet: one fixed painted character (auburn bob, striped tee, shorts, red sneakers), so the creator's
+ * styles and colours do not apply to it yet. Hats and the gi stay on the 16x32 sheets (`useHires`).
  */
-export function lookForAvatarHires(a: Appearance): Look {
-  const L = HIRES.layers;
-  const layers: LookLayer[] = [
-    { key: L.body, ramps: { skin: pickColor(SKIN_TONES, a.skin) } },
-    { key: L.eyes },
-    { key: L.outfit },
-    { key: L.hair, ramps: { hair: pickColor(HAIR_COLORS, a.hairColor) } },
-  ];
-  return { body: 'medio', layers, idle: CHAR_LAYERS.idle.solto, hires: true };
+export function lookForAvatarHires(_a: Appearance): Look {
+  return { body: 'medio', layers: [{ key: HIRES.layers.player }], idle: CHAR_LAYERS.idle.solto, hires: true };
 }
 
-/** Whether a player is drawn from the 32x32 generator: no hat and no gi yet (those layers only exist at 16x32). */
+/** Whether a player is drawn from the option-4 sheet: no hat and no gi yet (those layers only exist at 16x32). */
 export const useHires = (pub: { hat: string | null; gi?: boolean; academyGi?: AcademyGi | null }): boolean => !pub.hat && !pub.gi && !pub.academyGi;
 
 /** World px per art px for a look's sheet: hi-res sheets have twice the art px, so they draw at half the scale. */

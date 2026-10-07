@@ -72,7 +72,7 @@ export function sharedCharAssets(): Promise<CharAssets> {
   return shared;
 }
 
-/** The same decoded layers seen at the 32x32 generator's size (32x64 frames, same grid), for composing hi-res looks. */
+/** The same decoded layers seen at 2x size (32x64 frames, same grid), for composing hi-res looks. */
 export function hiresSource(assets: CharAssets, scale: number) {
   const g = assets.geometry;
   return {
