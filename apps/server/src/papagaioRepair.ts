@@ -1,4 +1,4 @@
-import { normalizeEmail, ownedParrotColorIds } from '@tudobem/shared';
+import { normalizeEmail, ownedParrotColorIds, parrotColorById } from '@tudobem/shared';
 import type { ProfileStore, StoredProfile } from './store.js';
 
 /**
@@ -30,8 +30,9 @@ export function repairPapagaios(
 export function grantPapagaio(p: StoredProfile, colors: readonly string[], equip: string): boolean {
   const owned = ownedParrotColorIds(p);
   for (const id of colors) if (!owned.includes(id)) owned.push(id);
-  const wearing = !!p.parrotColor && owned.includes(p.parrotColor);
-  const nextColor = wearing ? p.parrotColor! : equip;
+  const wearingId = parrotColorById(p.parrotColor)?.id;
+  const wearing = !!wearingId && owned.includes(wearingId);
+  const nextColor = wearing ? wearingId : equip;
   const nextEquipped = wearing ? p.parrotEquipped : true;
   const same =
     p.parrotOwned === true &&

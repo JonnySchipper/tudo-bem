@@ -387,7 +387,7 @@ describe('World', () => {
     a.s.profile!.coins = 0;
     a.s.profile!.parrotColors = ['verde'];
     a.s.profile!.parrotColor = 'verde';
-    await a.send({ t: 'buy', kind: 'parrot', itemId: 'amarelo' });
+    await a.send({ t: 'buy', kind: 'parrot', itemId: 'canarinho' });
     expect(a.last('error')!.code).toBe('coins');
     expect(a.s.profile!.parrotColors).toEqual(['verde']);
     expect(a.s.profile!.parrotColor).toBe('verde');
@@ -410,6 +410,40 @@ describe('World', () => {
     expect(fresh.parrotOwned).toBe(false);
     expect(fresh.parrotColors).toEqual([]);
     expect(fresh.parrotColor).toBeNull();
+
+    const legacy = { parrotOwned: true, parrotColors: ['verde', 'amarelo', 'vermelho'], parrotColor: 'laranja' } as unknown as StoredProfile;
+    normalizeProfile(legacy);
+    expect(legacy.parrotColors).toEqual(['verde', 'canarinho', 'vermelha', 'periquito']);
+    expect(legacy.parrotColor).toBe('periquito');
+  });
+
+  it('sells salty popcorn for 5 RV, sweet for 7, and condensed milk only with the sweet one', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    a.s.avatar!.from = { x: 19, y: 20 };
+    a.s.avatar!.path = [];
+    a.s.profile!.coins = 30;
+    await a.send({ t: 'snack', action: 'buy', itemId: 'pipoca_salgada' });
+    expect(a.s.profile!.coins).toBe(25);
+    expect(a.s.carry).toBe('pipoca_salgada');
+    expect(world.publicAvatar(a.s).carry).toBe('pipoca_salgada');
+    await a.send({ t: 'snack', action: 'buy', itemId: 'pipoca_doce' });
+    expect(a.s.profile!.coins).toBe(18);
+    expect(a.s.carry).toBe('pipoca_doce');
+    await a.send({ t: 'snack', action: 'buy', itemId: 'pipoca_doce_leite' });
+    expect(a.s.profile!.coins).toBe(8);
+    expect(a.s.carry).toBe('pipoca_doce_leite');
+    await a.send({ t: 'snack', action: 'buy', itemId: 'pipoca_salgada_leite' });
+    expect(a.s.profile!.coins).toBe(8);
+    expect(a.s.carry).toBe('pipoca_doce_leite');
+    await a.send({ t: 'snack', action: 'buy', itemId: 'pipoca' });
+    expect(a.s.profile!.coins).toBe(3);
+    expect(a.s.carry).toBe('pipoca_salgada');
+    a.s.profile!.coins = 2;
+    await a.send({ t: 'snack', action: 'buy', itemId: 'pipoca_doce' });
+    expect(a.last('error')!.code).toBe('coins');
+    expect(a.s.carry).toBe('pipoca_salgada');
+    expect(a.s.profile!.coins).toBe(2);
   });
 
   it('free hats cost nothing and parrot hint has a cooldown', async () => {

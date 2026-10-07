@@ -25,6 +25,15 @@ describe('Rafaella papagaio repair', () => {
     expect(p.parrotEquipped).toBe(true);
   });
 
+  it('keeps a bird they are already wearing under an old colour id', () => {
+    const p = { parrotOwned: true, parrotEquipped: true, parrotColors: ['amarelo'], parrotColor: 'amarelo' } as unknown as StoredProfile;
+    expect(grantPapagaio(p, ['verde'], 'verde')).toBe(true);
+    expect(p.parrotColor).toBe('canarinho');
+    expect(p.parrotEquipped).toBe(true);
+    expect(p.parrotColors).toEqual(['canarinho', 'verde']);
+    expect(grantPapagaio(p, ['verde'], 'verde')).toBe(false);
+  });
+
   it('writes the repair through the account email and leaves a worn colour alone', () => {
     const p = { id: 'p1', parrotOwned: true, parrotEquipped: true, parrotColors: ['azul'], parrotColor: 'azul' } as unknown as StoredProfile;
     let flushes = 0;

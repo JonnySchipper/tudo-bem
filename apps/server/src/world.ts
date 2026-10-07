@@ -87,7 +87,6 @@ import {
   ownedParrotColorIds,
   parrotColorById,
   snackById,
-  snackForProp,
   type StreetSnackId,
   type CounterItemId,
   itemById,
@@ -1690,14 +1689,14 @@ export class World {
     }
     if (kind === 'parrot') {
       if (!parrotColorById(itemId)) return;
-      if (s.instance?.def.id !== 'praca') return this.err(s, 'shop', 'O poleiro fica na praça.', 'The parrot perch is in the square.');
+      if (s.instance?.def.id !== 'praca') return this.err(s, 'shop', 'O puleiro fica na praça.', 'The bird perch is in the square.');
       const result = buyParrotColor(p, itemId);
       if (result === 'unknown') return;
       if (result === 'coins') return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
       if (result === 'equipped') return this.equipParrotColor(s, itemId);
       const color = parrotColorById(itemId)!;
       this.store.save();
-      s.send({ t: 'notice', level: 'reward', pt: `Papagaio ${color.pt}!`, en: `${color.en} parrot!` });
+      s.send({ t: 'notice', level: 'reward', pt: `${color.pt} no ombro!`, en: `${color.en} on your shoulder!` });
       this.pushProfile(s);
       this.broadcastAvatar(s);
       return;

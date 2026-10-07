@@ -290,8 +290,29 @@ function tomate() {
   put(img, 5, 6, C.g3); put(img, 11, 6, C.g3); put(img, 8, 3, C.g3);
   return img;
 }
+function pipocaSalgada() {
+  // pipoca salgada: the same cup in white paper, heaped with white popcorn
+  const img = icon();
+  const puffs = [[4.8, 6.6, 1.7], [7, 5.4, 1.9], [9.4, 5.6, 1.8], [11.2, 6.6, 1.6], [5.8, 3.9, 1.5], [8.3, 3, 1.6], [10.4, 3.8, 1.3], [7.2, 1.6, 1]];
+  shape(img, or(...puffs.map(([cx, cy, r]) => ell(cx, cy, r, r))), [7, 4, 5, 4], ['#c4b8a6', '#e4dccf', '#f6f1e6', '#fffdf8'], {
+    ol: NAVY,
+    t: [0.8, 0.35, -0.2],
+    pattern: (x, y, i) => ((x * 2 + y * 3) % 5 === 0 ? Math.max(0, i - 2) : i),
+  });
+  for (const [x, y] of [[6, 3], [9, 2], [10, 5], [5, 6], [8, 4], [11, 6]]) put(img, x, y, '#ffffff');
+  for (const [x, y] of [[7, 6], [9, 6], [4, 7]]) put(img, x, y, '#b7aa96');
+  const cup = (x, y) => y >= 7.5 && y < 15 && x >= 3.4 + (y - 7.5) * 0.22 && x < 12.6 - (y - 7.5) * 0.22;
+  const cells = flat(img, cup, '#fffdf6', { ol: NAVY });
+  for (const [x, y] of cells) {
+    const stripe = Math.floor((x - 3) / 2) % 2 === 0;
+    const shade = x >= 10 || y >= 13;
+    put(img, x, y, stripe ? (shade ? '#e4ddd2' : '#fffdf8') : shade ? '#d9d0c4' : '#f4efe6');
+  }
+  for (let x = 4; x <= 11; x++) put(img, x, 8, x % 2 ? '#f4efe6' : '#fffdf8');
+  return img;
+}
 function pipoca() {
-  // pipoca doce: a green-and-white striped paper cup heaped with red sweet popcorn
+  // pipoca doce: a green-and-white striped paper cup heaped with red sweet popcorn (reused for doce, with or without leite condensado)
   const img = icon();
   // the heap first, one bumpy silhouette with a single outline; light kernels dotted on top
   const puffs = [[4.8, 6.6, 1.7], [7, 5.4, 1.9], [9.4, 5.6, 1.8], [11.2, 6.6, 1.6], [5.8, 3.9, 1.5], [8.3, 3, 1.6], [10.4, 3.8, 1.3], [7.2, 1.6, 1]];
@@ -370,6 +391,7 @@ export const ICONS = {
   tomate,
   caldo_de_cana: caldoDeCana,
   pipoca,
+  pipoca_salgada: pipocaSalgada,
   agua_de_coco: aguaDeCoco,
 };
 
