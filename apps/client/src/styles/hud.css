@@ -3,7 +3,7 @@
  * a notched pixel frame (2 px warm-ink edge with the corners cut, a light bevel, a hard 3 px shadow), drawn with box-shadows so it costs
  * nothing, is crisp at every zoom and does not turn its children into a containing block (the phone drawer is `position: fixed`).
  *  - top left: one plate with the brand, where you are and the clock;
- *  - top right: RV + Verde and a bar of pixel icons (labels on hover / focus), the gear holds Música, Voz, Créditos, Sair;
+ *  - top right: RV + Verde, a Fala chip (feedback), and a bar of pixel icons (labels on hover / focus), the gear holds Música, Voz, Créditos, Sair;
  *  - bottom: the emote chips and the chat bar; the tracker (recados.css) and the toast stack never overlap (hudLayout.ts sets --hud-bottom, --toast-top);
  *  - phone (<= 640 px wide, or a landscape phone under 520 px tall): one strip, a drawer behind the burger, the emotes behind a smiley.
  * Learning text stays Nunito (D9); Pixelify Sans is for the brand, the clock, the numbers and the small labels.
@@ -169,6 +169,51 @@
   align-items: flex-start;
   gap: 12px;
   flex: none;
+}
+
+/* Fala — always on the strip, desktop and phone, one tap to the note form. */
+.hud-feedback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  flex: none;
+  min-width: 64px;
+  height: 44px;
+  padding: 2px 10px 4px;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1.05;
+}
+
+.hud-feedback .pt {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--terracota-dark);
+}
+
+.hud-feedback .hud-gloss {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 9px;
+  color: var(--ink-soft);
+}
+
+.hud-feedback:hover,
+.hud-feedback:focus-visible {
+  background: #fffdf8;
+}
+
+.hud-feedback:focus-visible {
+  outline: 3px solid var(--azul);
+  outline-offset: -3px;
+}
+
+.hud-feedback:active {
+  transform: translateY(2px);
 }
 
 .hud-stats {

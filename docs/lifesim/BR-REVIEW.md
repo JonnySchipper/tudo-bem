@@ -639,6 +639,36 @@ No card was added during the conversion (the rule in HOWTO section 8: reference 
 | P8 | lex.rua.* and lex.academia.* packs: padaria, banca, orelhão, ônibus, correio, lixo, faixa (white, blue, purple, brown, black), regras | Words on signs that have no card, so those signs have no "Guardar no caderno" button. | `packages/shared/src/hotspots.ts` |
 | P9 | moro, gosto, bairro, vizinho/vizinha, recado, mochila, entregar | Words of the O bairro subject, the recados and the journal. | `packages/shared/src/conversa.ts, apps/client/src/ui/recados.ts` |
 
+## T. Fala pra gente (in-game feedback)
+
+<a id="t-feedback"></a>
+The HUD chip and the note form. Safety refusals reuse the existing chat notes (no new strings). **needs_br.**
+
+| # | PT | EN | Where | Note | OK? |
+|---|---|---|---|---|---|
+| 469 | Fala | Feedback | `packages/shared/src/feedback.ts` (`FEEDBACK_COPY.button`) | HUD chip, top right, always visible | |
+| 470 | Fala pra gente | A note for us | same, `title` | Form title and the chip's accessible name | |
+| 471 | Um recado curto. A gente lê todo dia. | A short note. We read these every day. | same, `lead` | Under the title | |
+| 472 | O que você quer contar? | What do you want to tell us? | same, `textLabel` | Note field | |
+| 473 | A porta emperrou, uma ideia, ou só um oi. | The door stuck, an idea, or just a hello. | same, `textPlaceholder` | Placeholder | |
+| 474 | Se quiser, marca um tipo | If you want, pick a type | same, `kindLabel` | Optional category | |
+| 475 | Problema | Something's off | same, `bug` | Category chip | |
+| 476 | Ideia | Idea | same, `idea` | Category chip | |
+| 477 | Gostei | Something I love | same, `love` | Category chip | |
+| 478 | Como te achar (opcional) | How to reach you (optional) | same, `contactLabel` | Guests only. Signed-in players do not see this | |
+| 479 | E-mail ou um apelido. Só se você quiser. | An email or a nickname, only if you want. | same, `contactPlaceholder` | | |
+| 480 | Você está na sua conta. Não precisa deixar contato. | You're signed in, so no need to leave a contact. | same, `signedIn` | Shown instead of the contact field | |
+| 481 | Mandar | Send | same, `send` | | |
+| 482 | Valeu! A gente lê isso todo dia. | Thanks! We read these every day. | same, `thanks` | After a saved note | |
+| 483 | Escreve um pouquinho, por favor. | Write a short note, please. | same, `empty` / `short` | | |
+| 484 | Esse recado ficou longo demais. Encurta um pouco. | That note is too long. Shorten it a little. | same, `long` | | |
+| 485 | Escolhe problema, ideia ou gostei. | Pick a problem, an idea, or something you love. | same, `category` | | |
+| 486 | Esse contato não parece certo. | That contact doesn't look right. | same, `contact` | | |
+| 487 | Deixa o contato no campo de contato, não dentro do recado. | Put a way to reach you in the contact field, not inside the note. | same, `pii` | Note body refused an email or phone | |
+| 488 | Calma, já recebemos o seu recado. Tenta de novo mais tarde. | We already got your note. Try again later. | same, `rate` | | |
+| 489 | Não deu pra enviar agora. Tenta de novo daqui a pouco. | Couldn't send just now. Try again in a moment. | same, `offline` | | |
+| 490 | Não deu pra ler esse recado. | We couldn't read that note. | same, `bad_request` | | |
+
 ## Totals
 
-468 numbered strings in sections A to Q and S, plus 9 proposed-card entries.
+490 numbered strings in sections A to Q, S and T, plus 9 proposed-card entries.

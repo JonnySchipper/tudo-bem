@@ -8,7 +8,7 @@ import { World, type CloseReason } from './world.js';
 import { ProfileStore } from './store.js';
 import { AcademyStore } from './academyStore.js';
 import { PadariaStore } from './padariaStore.js';
-import { academyFileAdapter, fileAdapter, padariaFileAdapter } from './fileStore.js';
+import { academyFileAdapter, feedbackFileAdapter, fileAdapter, padariaFileAdapter } from './fileStore.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 import { FileModerationQueue } from './services/fileModeration.js';
 import { handleConversaApi } from './conversaApi.js';
@@ -24,6 +24,9 @@ import {
   type CookieSecure,
   type ScryptParams,
 } from './auth.js';
+import { feedbackLimiter, handleFeedbackApi } from './feedbackApi.js';
+import { FeedbackStore } from './feedbackStore.js';
+import { readAdminAuthConfig, type AdminAuthConfig } from './adminAuth.js';
 import { publicAppConfig, readOpsSmokeConfig, type OpsSmokeConfig } from './opsSmoke.js';
 import { readGoogleOAuthConfig, type GoogleOAuthConfig, type GoogleTokenPayload } from './googleAuth.js';
 import { repairPapagaios } from './papagaioRepair.js';
@@ -47,6 +50,8 @@ export interface AppOptions {
   googleOAuth?: GoogleOAuthConfig;
   /** Skip JWKS network verification in tests. */
   verifyGoogleIdToken?: (token: string, clientId: string) => Promise<GoogleTokenPayload | null>;
+  /** Override admin auth for GET /api/feedback (tests). Defaults to `TB_ADMIN_PASSWORD`. */
+  feedbackAdmin?: AdminAuthConfig;
 }
 
 /** WebSocket close codes the client understands (see apps/client/src/net.ts). */
@@ -69,6 +74,9 @@ export function createApp(opts: AppOptions) {
   const store = new ProfileStore(fileAdapter(dataDir));
   const academies = new AcademyStore(academyFileAdapter(dataDir));
   const padarias = new PadariaStore(padariaFileAdapter(dataDir));
+  const feedback = new FeedbackStore(feedbackFileAdapter(dataDir));
+  const feedbackLimit = feedbackLimiter();
+  const feedbackAdmin = opts.feedbackAdmin ?? readAdminAuthConfig();
   const accounts = new AccountStore(accountsFileAdapter(dataDir), { sessionTtlMs: opts.sessionTtlMs, scrypt: opts.scrypt });
   const fixedPapagaios = repairPapagaios((email) => accounts.profileIdForEmail(email), store);
   if (fixedPapagaios.length) console.log(`[papagaio] restored colours for ${fixedPapagaios.join(', ')}`);
@@ -125,6 +133,20 @@ export function createApp(opts: AppOptions) {
         onLogout: (accountId) => world.dropAccount(accountId),
       }).catch((e) => {
         console.error('[auth] handler error', e);
+        if (!res.headersSent) res.writeHead(500);
+        res.end();
+      });
+    }
+    if (url.pathname === '/api/feedback') {
+      return handleFeedbackApi(req, res, {
+        store: feedback,
+        accounts,
+        limiter: feedbackLimit,
+        admin: feedbackAdmin,
+        moderation: world.services.moderation,
+        allowedOrigins,
+      }).catch((e) => {
+        console.error('[feedback] handler error', e);
         if (!res.headersSent) res.writeHead(500);
         res.end();
       });
@@ -226,6 +248,7 @@ export function createApp(opts: AppOptions) {
       store.flush();
       academies.save();
       padarias.save();
+      feedback.save();
       return new Promise<void>((resolve) => server.close(() => resolve()));
     },
   };

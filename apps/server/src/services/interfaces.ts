@@ -51,7 +51,7 @@ export interface StudentModelService {
 /** Escalation-queue row (content/safety/phase0/ops/report-mute-kick-phase0.md). `text` is the frozen snapshot. */
 export interface ModerationEvent {
   kind: 'escalate' | 'block' | 'warn' | 'report';
-  surface: 'chat' | 'npc_reply' | 'profile';
+  surface: 'chat' | 'npc_reply' | 'profile' | 'feedback';
   playerId: string;
   playerName: string;
   room: string;

@@ -18,6 +18,8 @@ import { icon, type IconName } from '../art/ui';
 import { mountIdleKickBirds } from './introParrots';
 import { mountClockPill } from './clockPill';
 import { COMPACT_QUERY, placeHud } from './hudLayout';
+import { FEEDBACK_COPY } from '@tudobem/shared';
+import { openFeedback } from './feedback';
 
 export interface HudActions {
   chat: (text: string) => void;
@@ -90,7 +92,7 @@ export function missionBanner() {
 
 /**
  * One slim HUD (V4). Top left: the brand, where you are and the clock, in one plate. Top right: the RV coin, the Verde plate and a bar of pixel
- * icons (Mapa, Recados, Diário, Chapéus, Amigos) plus a gear for Música / Voz / Créditos / Sair; the labels (Portuguese with the English gloss)
+ * icons (Mapa, Recados, Diário, Chapéus, Amigos) plus a gear for Música / Voz / Créditos / Sair, and a Fala chip for feedback; the labels (Portuguese with the English gloss)
  * show on hover and focus. On a phone (<= 640 px wide, or a landscape phone under 520 px tall) the same buttons become a drawer behind one ☰,
  * and the emote row hides behind a smiley next to the chat field. Ids are the old ones (`btn-map`, `btn-music`, ...).
  */
@@ -172,6 +174,22 @@ export function buildHud(actions: HudActions) {
     btn('btn-friends', 'friends', 'Amigos', 'Friends', actions.openFriends),
     gearWrap,
   );
+  const feedbackBtn = h(
+    'button',
+    {
+      class: 'hud-feedback hud-slab',
+      id: 'btn-feedback',
+      type: 'button',
+      'aria-haspopup': 'dialog',
+      'aria-label': `${FEEDBACK_COPY.title.pt} (${FEEDBACK_COPY.button.en})`,
+      onclick: () => {
+        closeMenus();
+        openFeedback();
+      },
+    },
+    h('b', { class: 'pt' }, FEEDBACK_COPY.button.pt),
+    h('i', { class: 'hud-gloss' }, FEEDBACK_COPY.button.en),
+  );
   const burger = h('button', { class: 'hud-btn hud-burger hud-slab', id: 'btn-burger', type: 'button', 'aria-expanded': 'false', 'aria-controls': 'hud-actions', 'aria-label': 'Menu (Menu)' }, icon('burger', 32));
   const scrim = h('div', { class: 'hud-scrim', 'aria-hidden': 'true' });
 
@@ -189,6 +207,7 @@ export function buildHud(actions: HudActions) {
       'div',
       { class: 'hud-right' },
       h('div', { class: 'hud-stats hud-slab' }, plate, h('span', { class: 'hud-rv', title: 'Reais Virtuais (RV) — soft currency' }, icon('rv', 16), coins)),
+      feedbackBtn,
       burger,
       actionsNav,
     ),

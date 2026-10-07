@@ -50,3 +50,4 @@ export * from './photoSpots.js';
 export * from './diaryLines.js';
 export * from './diaryWorld.js';
 export * from './diaryDaily.js';
+export * from './feedback.js';
