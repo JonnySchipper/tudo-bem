@@ -21,8 +21,13 @@ export const MAX_LIGHT_DELAY = 40;
 /** Game minutes a light takes to fade fully on (or off): 5 game minutes are 10 real seconds. */
 export const LIGHT_FADE_MIN = 5;
 
-/** Outdoor rooms have grass or asphalt in their floor; interiors have tile, parquet or tatame. Outdoor rooms follow the live clock and weather. */
-export function isOutdoor(def: { floor: readonly string[] }): boolean {
+/**
+ * Open-air maps follow the live clock and weather. The room's `outdoor` flag wins: the feira is
+ * setts (`p`), not grass or asphalt, and used to stay on its fixed sunny afternoon. Otherwise
+ * grass or asphalt in the floor still means outdoors.
+ */
+export function isOutdoor(def: { floor: readonly string[]; outdoor?: boolean }): boolean {
+  if (def.outdoor) return true;
   return def.floor.some((row) => row.includes('g') || row.includes('a'));
 }
 

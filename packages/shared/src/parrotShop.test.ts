@@ -1,11 +1,32 @@
 import { describe, expect, it } from 'vitest';
-import { buyParrotColor, ownedParrotColorIds, type ParrotBuyer } from './parrotShop.js';
+import { ROOMS } from './rooms.js';
+import { PARROT_COLORS, buyParrotColor, ownedParrotColorIds, parrotColorById, type ParrotBuyer } from './parrotShop.js';
 
 function owner(over: Partial<ParrotBuyer> = {}): ParrotBuyer {
   return { coins: 40, parrotOwned: false, parrotEquipped: false, parrotColors: [], parrotColor: null, ...over };
 }
 
 describe('papagaio colours', () => {
+  it('sells the puleiro birds at the approved virtual prices', () => {
+    expect(PARROT_COLORS.map((c) => [c.id, c.pt, c.price])).toEqual([
+      ['verde', 'Verde', 0],
+      ['azul', 'Azul', 12],
+      ['canarinho', 'Canarinho', 15],
+      ['vermelha', 'Vermelha', 18],
+      ['periquito', 'Periquito', 20],
+    ]);
+    expect(ROOMS.praca.props.find((p) => p.id === 'poleiro')?.label?.pt).toBe('Puleiro dos Pássaros');
+  });
+
+  it('keeps a bird bought under the old colour id', () => {
+    expect(ownedParrotColorIds({ parrotColors: ['amarelo', 'vermelho', 'laranja'], parrotColor: 'laranja' })).toEqual(['canarinho', 'vermelha', 'periquito']);
+    expect(parrotColorById('amarelo')?.id).toBe('canarinho');
+    const p = owner({ coins: 20, parrotColors: ['amarelo'], parrotColor: 'amarelo', parrotOwned: true, parrotEquipped: true });
+    expect(buyParrotColor(p, 'canarinho')).toBe('equipped');
+    expect(p.parrotColors).toEqual(['canarinho']);
+    expect(p.coins).toBe(20);
+  });
+
   it('buying blue keeps the green bird and grants blue', () => {
     const p = owner({ parrotOwned: true, parrotEquipped: true, parrotColor: 'verde', parrotColors: ['verde'] });
     expect(buyParrotColor(p, 'azul')).toBe('ok');

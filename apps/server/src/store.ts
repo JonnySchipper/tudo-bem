@@ -1,4 +1,4 @@
-import { normalizeFounderFlag, ownedParrotColorIds } from '@tudobem/shared';
+import { normalizeFounderFlag, ownedParrotColorIds, parrotColorById } from '@tudobem/shared';
 import {
   freshMission,
   normalizeCartela,
@@ -157,7 +157,8 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.parrotColors = parrotColors;
   if (p.parrotOwned || parrotColors.length > 0) {
     p.parrotOwned = true;
-    if (!p.parrotColor || !parrotColors.includes(p.parrotColor)) p.parrotColor = parrotColors[0] ?? 'verde';
+    const wearing = parrotColorById(p.parrotColor)?.id;
+    p.parrotColor = wearing && parrotColors.includes(wearing) ? wearing : parrotColors[0] ?? 'verde';
   } else {
     p.parrotColor = null;
   }

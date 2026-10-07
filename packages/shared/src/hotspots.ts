@@ -60,7 +60,7 @@ const BASE_HOTSPOTS: HotspotDef[] = [
   { id: 'busto_placa', room: 'praca', x: 7, y: 5, w: 2, h: 2, pt: 'DONA IPÊ\nFundadora da Vila\n1897', en: 'DONA IPÊ\nFounder of the village\n1897' },
   { id: 'coreto_placa', room: 'praca', x: 23, y: 4, w: 5, h: 3, pt: 'CORETO DA PRAÇA\nBanda toda domingo, às 10h', en: 'THE BANDSTAND\nBand every Sunday, 10 am' },
   { id: 'mesa_domino_placa', room: 'praca', x: 22, y: 17, pt: 'DOMINÓ\nQuem perde paga o café', en: 'DOMINOES\nLoser buys the coffee' },
-  { id: 'pipoqueiro_placa', room: 'praca', x: 18, y: 20, w: 3, h: 1, pt: 'PIPOCA\nR$ 5 o saquinho', en: 'POPCORN\nR$ 5 a bag' },
+  { id: 'pipoqueiro_placa', room: 'praca', x: 18, y: 20, w: 3, h: 1, pt: 'PIPOCA\nSalgada R$ 5\nDoce R$ 7\nLeite condensado +R$ 3 (na doce)', en: 'POPCORN\nSalty R$ 5\nSweet R$ 7\nCondensed milk +R$ 3 (sweet only)' },
   { id: 'coco_placa', room: 'praca', x: 24, y: 8, w: 3, h: 1, pt: 'ÁGUA DE COCO\nGeladinha · R$ 7', en: 'COCONUT WATER\nIce cold · R$ 7' },
   // ---- the feira livre (Phase 9). needs_br: every line. Prices equal `GOODS` in feira.ts (tested).
   { id: 'feira_livre', room: 'feira', x: 6, y: 1, w: 5, h: 1, pt: 'FEIRA LIVRE\nTodo dia · 6h às 13h', en: 'STREET MARKET\nEvery day · 6 am to 1 pm' },

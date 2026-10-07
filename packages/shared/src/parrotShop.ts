@@ -1,4 +1,7 @@
-/** Companion parrots at the poleiro: several colours, cosmetic only (like hats). */
+/**
+ * Birds at the Puleiro dos Pássaros: cosmetic only (like hats), paid in virtual reais.
+ * The same shoulder sprite is recolored; a fuller model is not required.
+ */
 export interface ParrotColorDef {
   id: string;
   pt: string;
@@ -11,14 +14,28 @@ export interface ParrotColorDef {
 export const PARROT_COLORS: ParrotColorDef[] = [
   { id: 'verde', pt: 'Verde', en: 'Green', price: 0, tint: 0xffffff },
   { id: 'azul', pt: 'Azul', en: 'Blue', price: 12, tint: 0x7eb8ff },
-  { id: 'amarelo', pt: 'Amarelo', en: 'Yellow', price: 15, tint: 0xffe566 },
-  { id: 'vermelho', pt: 'Vermelho', en: 'Red', price: 18, tint: 0xff7070 },
-  { id: 'laranja', pt: 'Laranja', en: 'Orange', price: 20, tint: 0xffa64d },
+  { id: 'canarinho', pt: 'Canarinho', en: 'Canary', price: 15, tint: 0xffe566 },
+  { id: 'vermelha', pt: 'Vermelha', en: 'Red', price: 18, tint: 0xff7070 },
+  { id: 'periquito', pt: 'Periquito', en: 'Parakeet', price: 20, tint: 0xb6e84a },
 ];
 
-export const parrotColorById = (id: string | null | undefined): ParrotColorDef | undefined => PARROT_COLORS.find((p) => p.id === id);
+/** Colour ids from before the puleiro rename. Owning one still owns the bird it became. */
+const LEGACY_PARROT_IDS: Record<string, string> = {
+  amarelo: 'canarinho',
+  vermelho: 'vermelha',
+  laranja: 'periquito',
+};
 
-const parrotIdOk = (id: unknown): id is string => typeof id === 'string' && PARROT_COLORS.some((c) => c.id === id);
+function canonicalParrotId(id: unknown): string | null {
+  if (typeof id !== 'string' || !id) return null;
+  const next = LEGACY_PARROT_IDS[id] ?? id;
+  return PARROT_COLORS.some((c) => c.id === next) ? next : null;
+}
+
+export const parrotColorById = (id: string | null | undefined): ParrotColorDef | undefined => {
+  const next = canonicalParrotId(id);
+  return next ? PARROT_COLORS.find((p) => p.id === next) : undefined;
+};
 
 /**
  * Colours this profile owns, in catalog order of first appearance.
@@ -28,8 +45,9 @@ const parrotIdOk = (id: unknown): id is string => typeof id === 'string' && PARR
 export function ownedParrotColorIds(p: { parrotOwned?: boolean; parrotColors?: unknown; parrotColor?: string | null }): string[] {
   const out: string[] = [];
   const add = (id: unknown) => {
-    if (!parrotIdOk(id) || out.includes(id)) return;
-    out.push(id);
+    const next = canonicalParrotId(id);
+    if (!next || out.includes(next)) return;
+    out.push(next);
   };
   const raw = p.parrotColors;
   if (Array.isArray(raw)) for (const id of raw) add(id);
