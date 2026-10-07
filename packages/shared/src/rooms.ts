@@ -601,7 +601,7 @@ const praca: RoomDef = {
       label: { pt: 'Poleiro do papagaio', en: 'Parrot perch' },
     },
     // the vira-lata corner (south-west)
-    cen('vira_lata', 'critters/vira_lata_sleep_e', 3, 21, 1, 1, { blocks: true, label: { pt: 'Vira-lata caramelo', en: 'Caramel stray dog (vira-lata)' } }),
+    cen('vira_lata', 'critters/vira_lata_sleep_e', 3, 21, 1, 1, { blocks: true, label: { pt: 'Viralata Caramello', en: 'Caramel stray dog (vira-lata)' } }),
     cen('topiaria_cao', 'props/topiaria_cao', 1, 21, 2, 1, { blocks: true }),
     P('lixeira_p1', 'lixeira', 19, 6),
     P('lixeira_p2', 'lixeira', 13, 19),
