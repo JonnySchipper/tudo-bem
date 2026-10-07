@@ -140,7 +140,7 @@ describe('language diary catalog v2', () => {
     expect(diaryPackProblems(pack())).toEqual([]);
   });
 
-  it('gives every camera word an object that exists in a room, a wall spot, the furniture catalog or the airport hall', () => {
+  it('gives every camera word an object that exists in a room, a photo spot (wall decor, part of the airport’s plane or booth) or the furniture catalog', () => {
     for (const w of DIARY_WORDS.filter((x) => x.source === 'camera')) {
       for (const id of [w.anchor.id, ...(w.also ?? [])]) expect(objectAnchorExists(id), `${w.pt}: ${id}`).toBe(true);
     }

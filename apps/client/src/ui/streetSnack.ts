@@ -1,6 +1,12 @@
 import { snackAddon, snacksAt, type StreetSnackDef } from '@tudobem/shared';
 import { showDialogue, closeDialogue } from './panels';
 
+/** Who calls out at a cart with a menu of more than one thing. needs_br: true */
+const CALL: Record<string, { speaker: string; line: { pt: string; en: string } }> = {
+  pipoqueiro: { speaker: 'Pipoqueiro', line: { pt: 'Pipoca quentinha! Salgada ou doce?', en: 'Hot popcorn! Salty or sweet?' } },
+  lanchonete_aero: { speaker: 'Lanchonete', line: { pt: 'Pão de queijo quentinho! E um cafezinho?', en: 'Warm cheese bread! And a little coffee?' } },
+};
+
 export function openStreetSnack(propId: string, buy: (itemId: string) => void): void {
   const menu = snacksAt(propId);
   if (!menu.length) return;
@@ -8,10 +14,11 @@ export function openStreetSnack(propId: string, buy: (itemId: string) => void): 
     openSingle(menu[0]!, buy);
     return;
   }
+  const call = CALL[propId] ?? CALL.pipoqueiro!;
   showDialogue({
     npc: null,
-    speaker: 'Pipoqueiro',
-    line: { pt: 'Pipoca quentinha! Salgada ou doce?', en: 'Hot popcorn! Salty or sweet?' },
+    speaker: call.speaker,
+    line: call.line,
     chips: [
       ...menu.map((s) => ({ pt: `${s.pt} · ${s.price} RV`, en: `${s.en} · ${s.price} RV` })),
       { pt: 'Agora não', en: 'Not now' },

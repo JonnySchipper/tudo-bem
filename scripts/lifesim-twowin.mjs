@@ -11,6 +11,7 @@
  */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
+import { finishArrival } from './lib/arrival.mjs';
 
 const argv = Object.fromEntries(process.argv.slice(2).filter((a) => a.startsWith('--')).map((a) => a.slice(2).split('=')));
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
@@ -49,7 +50,7 @@ async function enter(browser, name) {
   await page.fill('#avatar-name', name);
   await page.click('button:has-text("ele (he)")');
   await page.click('#enter-praca');
-  await page.waitForFunction(() => window.__tb.game.room?.room === 'praca', null, { timeout: 15_000 });
+  await finishArrival(page);
   return page;
 }
 

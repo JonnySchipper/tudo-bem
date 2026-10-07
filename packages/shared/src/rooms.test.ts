@@ -128,7 +128,7 @@ describe('Vila Ipê split into four open-air areas (rua, rua_leste, praca, feira
   it('has each rua door on row 5 inside its facade, walkable, with the sidewalk tile in front as the arrive tile', () => {
     const doors = ROOMS.rua.portals.filter((p) => !p.edge);
     expect(doors.map((p) => p.to).sort()).toEqual(['kitnet', 'padaria']);
-    for (const p of [...doors, ...ROOMS.rua_leste.portals.filter((q) => !q.edge)]) {
+    for (const p of [...doors, ...ROOMS.rua_leste.portals.filter((q) => !q.edge && q.to !== 'aeroporto')]) {
       const rua = ROOMS[p.to === 'academia' || p.to === 'escola' ? 'rua_leste' : 'rua'];
       const grid = buildGrid(rua);
       expect(p.wall, p.id).toBeUndefined();
@@ -215,7 +215,7 @@ describe('Vila Ipê split into four open-air areas (rua, rua_leste, praca, feira
     const seen = new Set<string>(['praca']);
     const queue = ['praca'] as (keyof typeof ROOMS)[];
     while (queue.length) for (const p of ROOMS[queue.shift()!].portals) if (!seen.has(p.to)) (seen.add(p.to), queue.push(p.to));
-    expect([...seen].sort()).toEqual(['academia', 'escola', 'feira', 'kitnet', 'padaria', 'praca', 'rua', 'rua_leste']);
+    expect([...seen].sort()).toEqual(['academia', 'aeroporto', 'escola', 'feira', 'kitnet', 'padaria', 'praca', 'rua', 'rua_leste']);
   });
 });
 
@@ -275,7 +275,7 @@ describe('the street is two areas (rua west, rua_leste east)', () => {
     for (const a of ['rua', 'rua_leste', 'praca'] as const) for (const b of ['rua', 'rua_leste', 'praca'] as const) expect(reach(a).has(b), `${a} -> ${b}`).toBe(true);
     // the rua_leste is only joined to the rua (not to the praça directly)
     expect(ROOMS.rua_leste.portals.filter((p) => p.edge).every((p) => p.to === 'rua')).toBe(true);
-    expect(ROOMS.rua_leste.portals.filter((p) => !p.edge).map((p) => p.to).sort()).toEqual(['academia', 'escola']);
+    expect(ROOMS.rua_leste.portals.filter((p) => !p.edge).map((p) => p.to).sort()).toEqual(['academia', 'aeroporto', 'escola']);
     expect(ROOMS.rua.portals.filter((p) => !p.edge).map((p) => p.to).sort()).toEqual(['kitnet', 'padaria']);
   });
 
@@ -302,7 +302,8 @@ describe('the street is two areas (rua west, rua_leste east)', () => {
   it('has every interior door return to the half it was entered from, on the sidewalk tile in front of the door', () => {
     for (const half of ['rua', 'rua_leste'] as const) {
       const room = ROOMS[half];
-      for (const door of room.portals.filter((p) => !p.edge)) {
+      // (the airport bus is not a door: it has its own test)
+      for (const door of room.portals.filter((p) => !p.edge && p.to !== 'aeroporto')) {
         const inside = ROOMS[door.to];
         const exits = inside.portals.filter((p) => p.to === half || p.to === (half === 'rua' ? 'rua_leste' : 'rua'));
         expect(exits, `${door.to}`).toHaveLength(1);
@@ -324,5 +325,37 @@ describe('the street is two areas (rua west, rua_leste east)', () => {
     expect(edificio.x + (edificio.w ?? 1)).toBe(ROOMS.rua.cols);
     expect(ROOMS.rua_leste.props.find((p) => p.id === 'academia')!.x).toBe(0);
     expect(ROOMS.rua.cols + ROOMS.rua_leste.cols).toBe(40);
+  });
+});
+
+describe('the airport (where a new arrival starts)', () => {
+  const room = ROOMS.aeroporto;
+  const grid = buildGrid(room);
+
+  it('walks from the gate to everything the tutorial points at, and out to the bus', () => {
+    expect(isWalkable(grid, room.spawn.x, room.spawn.y)).toBe(true);
+    const goals: [string, { x: number; y: number }][] = [
+      ...room.npcs.map((n): [string, { x: number; y: number }] => [n.id, n.interact]),
+      ...room.props.filter((p) => p.interact).map((p): [string, { x: number; y: number }] => [p.id, p.interact!]),
+      ...seatTiles(room).map((t): [string, { x: number; y: number }] => [`seat ${t.prop.id}`, t]),
+      ...room.portals.map((p): [string, { x: number; y: number }] => [p.id, p]),
+    ];
+    for (const [id, t] of goals) {
+      expect(isWalkable(grid, t.x, t.y), `${id} at ${t.x},${t.y}`).toBe(true);
+      expect(findPath(grid, room.spawn, t), `${id} reachable`).not.toBeNull();
+    }
+  });
+
+  it('keeps the apron behind the glass: no tile north of the glass front can be reached', () => {
+    for (let y = 0; y <= 10; y++) for (let x = 0; x < room.cols; x++) if (isWalkable(grid, x, y)) expect(findPath(grid, room.spawn, { x, y }), `${x},${y}`).toBeNull();
+  });
+
+  it('runs the bus both ways between the airport and the stop on Rua dos Ipês (leste)', () => {
+    const out = room.portals.find((p) => p.to === 'rua_leste')!;
+    const back = ROOMS.rua_leste.portals.find((p) => p.to === 'aeroporto')!;
+    expect(isWalkable(buildGrid(ROOMS.rua_leste), out.arrive.x, out.arrive.y)).toBe(true);
+    expect(isWalkable(grid, back.arrive.x, back.arrive.y)).toBe(true);
+    expect(findPath(grid, back.arrive, out)).not.toBeNull();
+    expect(findPath(buildGrid(ROOMS.rua_leste), out.arrive, back)).not.toBeNull();
   });
 });

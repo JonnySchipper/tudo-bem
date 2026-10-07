@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { ARRIVAL_CARD, ARRIVAL_SIGNS, isArrivalSign } from './arrival.js';
+import { ARRIVAL_CARD } from './arrival.js';
 import { COUNTER_LINES, diaryLine } from './diaryLines.js';
 import { DIARY_WORDS, textTeaches, unheardIdleLine, wordForLine, wordsForPhoto } from './diary.js';
 import { HOTSPOTS } from './hotspots.js';
@@ -26,15 +26,14 @@ describe('where a conversation word is heard', () => {
     expect(conversa).toContain(COUNTER_LINES['carlos.viagem']);
   });
 
-  it('keeps the arrival card as it was: the kicker, the title and the three lines are the strings the card already had', () => {
+  it('keeps Júlia’s arrival note as it was, and puts the Chegada signs on the airport’s walls', () => {
     expect(ARRIVAL_CARD.kicker.pt).toBe('Aeroporto');
     expect(ARRIVAL_CARD.title.pt).toBe('Você chegou ao Brasil');
     expect(ARRIVAL_CARD.landed.pt).toBe('O avião acabou de pousar. Júlia te espera na praça.');
     expect(ARRIVAL_CARD.camera.pt).toBe('Toma a câmera e a cartela do bairro.');
     expect(ARRIVAL_CARD.diary.pt).toBe('Fotografe o que você vê e as palavras ficam no diário.');
-    expect(ARRIVAL_SIGNS.map((s) => s.id)).toEqual(['arrival.kicker', 'hall_s_desembarque', 'hall_s_bagagem', 'hall_s_alfandega', 'hall_s_embarque', 'hall_s_terminal']);
-    expect(isArrivalSign('hall_s_bagagem')).toBe(true);
-    expect(isArrivalSign('coreto_placa')).toBe(false);
+    const signs = ['arrival.kicker', 'hall_s_desembarque', 'hall_s_bagagem', 'hall_s_alfandega', 'hall_s_embarque', 'hall_s_terminal'];
+    for (const id of signs) expect(HOTSPOTS.find((h) => h.id === id)?.room, id).toBe('aeroporto');
   });
 
   it('has every word in the line or sign it is earned from', () => {
@@ -66,8 +65,13 @@ describe('what the camera and the readers can reach', () => {
     }
   });
 
-  it('has the wall spots on the north wall band of an interior, and no two objects with one id', () => {
+  it('has the wall spots on the north wall band of an interior, the airport’s on its map, and no two objects with one id', () => {
     for (const s of PHOTO_SPOTS) {
+      if (s.room === 'aeroporto') {
+        // parts of the plane, the runway, the booth counter: inside the map
+        expect(s.x >= 0 && s.y >= 0 && s.x + s.w <= ROOMS.aeroporto.cols && s.y + s.h <= ROOMS.aeroporto.rows, s.id).toBe(true);
+        continue;
+      }
       expect(ROOMS[s.room].outdoor, s.id).toBeFalsy();
       expect(s.y, s.id).toBeLessThan(0);
       expect(s.y + s.h, s.id).toBeLessThanOrEqual(0);

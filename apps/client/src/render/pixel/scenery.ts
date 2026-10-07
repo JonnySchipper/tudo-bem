@@ -73,6 +73,8 @@ const DRESSING: Record<string, RoomDressing> = {
   },
   praca: { streets: [], crosswalks: [], mosaics: [], busBay: null, manholes: [{ x: 18, y: 19 }, { x: 25, y: 13 }, { x: 13, y: 5 }] },
   feira: { streets: [], crosswalks: [], mosaics: [], busBay: null, manholes: [{ x: 20, y: 9 }, { x: 16, y: 16 }] },
+  // the airport: the runway's centre line (rows 2-3)
+  aeroporto: { streets: [{ y0: 2, y1: 3, dashDy: 15 }], crosswalks: [], mosaics: [], busBay: null, manholes: [] },
 };
 
 /** Vila Ipê's dressing, or null for a room that has none (the interiors). */

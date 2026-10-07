@@ -3,7 +3,6 @@
  * next to the anchor and records the word once, from that word's own source.
  */
 import {
-  ARRIVAL_SIGNS,
   COUNTER_STAND_INS,
   HOTSPOT_READ_RANGE,
   PHOTO_RANGE,
@@ -21,7 +20,6 @@ import {
   handCamera,
   handCartela,
   hotspotDistance,
-  isHallObject,
   normalizeDiary,
   normalizeFilm,
   normalizePhotos,
@@ -88,7 +86,7 @@ export class DiaryTracker {
 
   constructor(private readonly d: DiaryDeps) {}
 
-  /** The plane intro, once. Júlia gives the camera and the cartela do bairro, and the card's own words go into the diary. */
+  /** The arrival, once: Célia at the airport's information desk hands over the camera, the cartela do bairro and Júlia's note (its words go into the diary). */
   finishArrival(s: Session) {
     const p = s.profile;
     if (!p) return;
@@ -107,29 +105,27 @@ export class DiaryTracker {
     if (!first) return;
     this.cardWords(s);
     // needs_br: true
-    const waiting = cartela.given ? '' : ' A cartela de carimbos ainda não chegou.';
+    const waiting = cartela.given ? ' e a cartela do bairro' : '';
     s.send({
       t: 'notice',
       level: 'info',
-      pt: `Júlia te entrega a câmera e ${FILM.starter} filmes.${waiting}`,
+      pt: `Célia te entrega o pacote da Júlia: a câmera, ${FILM.starter} filmes${waiting}.`,
       en: cartela.given
-        ? `Júlia hands you the camera and ${FILM.starter} shots of film.`
-        : `Júlia hands you the camera and ${FILM.starter} shots of film. The stamp card isn’t on this build yet.`,
+        ? `Célia hands you Júlia’s package: the camera, ${FILM.starter} shots of film and the neighborhood stamp card.`
+        : `Célia hands you Júlia’s package: the camera and ${FILM.starter} shots of film.`,
     });
   }
 
-  /** Watch the arrival again (everybody can; accounts from before the intro never saw it): the card's words, if they are still missing. */
+  /** Back at the airport from the diary's Chegada area (accounts from before the airport never had the note): the note's words, if still missing. */
   replayArrival(s: Session) {
     const p = s.profile;
     if (!p || p.arrivalIntroDone !== true) return;
     this.cardWords(s);
   }
 
-  /** The words of the arrival card: the kicker (reading) and Júlia's four lines (conversation). Earned by taking the card. */
+  /** The words of Júlia's note (conversation), earned when Célia hands it over. The AEROPORTO letters are read off the airport's glass front. */
   private cardWords(s: Session) {
     const words: { word: DiaryWord; via: DiaryWord['source'] }[] = [];
-    const kicker = wordForSign('arrival.kicker');
-    if (kicker) words.push({ word: kicker, via: 'reading' });
     for (const id of ['julia.chegada_titulo', 'julia.chegada_aviao', 'julia.chegada_camera', 'julia.chegada_diario']) {
       const word = wordForLine(id);
       if (word) words.push({ word, via: 'conversation' });
@@ -140,7 +136,6 @@ export class DiaryTracker {
   handle(s: Session, msg: Extract<ClientMsg, { t: 'diary' }>) {
     if (msg.action === 'photo') return this.photo(s, msg);
     if (msg.action === 'line') return this.line(s, msg.anchor);
-    if (msg.action === 'sign') return this.hallSign(s, msg.anchor);
     if (msg.action === 'practice') return this.practice(s);
     if (msg.action === 'buyFilm') return this.buyFilm(s);
     return this.answer(s, msg.choice);
@@ -155,18 +150,8 @@ export class DiaryTracker {
     this.earn(s, word, 'reading');
   }
 
-  /** A sign in the airport hall (a postcard, not a room): reading it is all it takes, once the intro is done. */
-  private hallSign(s: Session, anchor: unknown) {
-    const p = s.profile;
-    if (!p || p.arrivalIntroDone !== true || typeof anchor !== 'string') return;
-    if (!ARRIVAL_SIGNS.some((x) => x.id === anchor)) return;
-    this.onSign(s, anchor);
-  }
-
-  /** Is this object inside reach of the player right now? Props and wall spots by distance, furniture by being placed, hall objects by the hall. */
-  private reachable(s: Session, id: string, room: RoomId | null, tile: Tile, hall: boolean): boolean {
-    if (isHallObject(id)) return hall;
-    if (hall) return false;
+  /** Is this object inside reach of the player right now? Props and photo spots by distance, furniture by being placed. */
+  private reachable(s: Session, id: string, room: RoomId | null, tile: Tile): boolean {
     const prop = room ? ROOMS[room].props.find((q) => q.id === id) : undefined;
     if (prop) return diaryVisible(room!, id, this.d.day()) && hotspotDistance(prop, tile) <= PHOTO_RANGE;
     const spot = photoSpotById(id);
@@ -179,19 +164,19 @@ export class DiaryTracker {
     const p = s.profile;
     if (!p) return;
     if (!p.hasCamera) return this.d.err(s, 'camera', 'Você ainda não tem a câmera.', 'You don’t have the camera yet.');
-    const hall = msg.hall === true;
     const claimed = photoAnchors(msg);
     const room = this.d.roomOf(s);
     const tile = this.d.tileOf(s);
-    const inFrame = claimed.filter((id) => this.reachable(s, id, room, tile, hall));
-    // the hall is a postcard: its shots are free and keep no picture
-    const image = hall ? null : photoImage(msg.image);
+    const inFrame = claimed.filter((id) => this.reachable(s, id, room, tile));
+    // the arrival tutorial's first photos cost no film
+    const free = room === 'aeroporto';
+    const image = photoImage(msg.image);
     if (!inFrame.length && !image) {
       if (claimed.length) return this.d.err(s, 'far', 'Chegue mais perto pra fotografar.', 'Walk closer to take the photo.');
       return this.d.err(s, 'photo', 'Não deu pra fotografar isso.', 'That can’t be photographed.');
     }
     const film = normalizeFilm(p.film);
-    if (!hall) {
+    if (!free) {
       if (film < 1) return this.d.err(s, 'film', 'Sem filme. A Júlia vende rolo na praça.', 'Out of film. Júlia sells rolls in the square.');
       p.film = film - 1;
     }

@@ -43,14 +43,15 @@ function apply(): void {
   const barBox: Box | null = left || stats ? { top: Math.min(left?.top ?? 1e9, stats?.top ?? 1e9), bottom: Math.max(left?.bottom ?? 0, stats?.bottom ?? 0), left: left?.left ?? 0, right: stats?.right ?? 0 } : null;
   if (barBox) root.style.setProperty('--hud-bottom', `${Math.round(barBox.bottom + 5)}px`);
   const compact = window.matchMedia(COMPACT_QUERY).matches;
-  const tracker = rectOf(document.querySelector('.rtrack'));
+  // the recado tracker, or the airport tutorial card that takes its place in the airport
+  const tracker = [...document.querySelectorAll<HTMLElement>('.rtrack')].map(rectOf).find((r) => r) ?? null;
   const mission = rectOf(document.getElementById('mission-pill'));
   const cartela = rectOf(document.getElementById('cartela-pill'));
   // desktop: the tracker is on the other side of the screen from the toasts; on a phone they share the column
   root.style.setProperty('--toast-top', `${toastTop(barBox ? { ...barBox, bottom: barBox.bottom + 5 } : null, compact ? [tracker, mission, cartela] : [mission, cartela])}px`);
   if (typeof ResizeObserver !== 'undefined') {
     ro ??= new ResizeObserver(() => placeHud());
-    for (const el of [bar, document.querySelector('.rtrack'), document.getElementById('mission-pill'), document.getElementById('cartela-pill')]) {
+    for (const el of [bar, ...document.querySelectorAll('.rtrack'), document.getElementById('mission-pill'), document.getElementById('cartela-pill')]) {
       if (el && !watched.has(el)) {
         watched.add(el);
         ro.observe(el);

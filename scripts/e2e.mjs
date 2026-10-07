@@ -179,7 +179,6 @@ async function createAvatar(page, name, pronoun, { tick18 = false, guest = SOLO 
   assert(!(await page.$('#confirm-18')), 'the avatar creator asks no age question');
   return async () => {
     await page.click('#enter-praca');
-    await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 10_000, 'praça');
     await finishArrival(page);
     await sleep(400);
   };

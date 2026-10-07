@@ -52,7 +52,7 @@ const BASE_HOTSPOTS: HotspotDef[] = [
   },
   { id: 'bicicletario', room: 'rua', x: 17, y: 7, pt: 'BICICLETÁRIO', en: 'Bike rack' },
   // ---- Vila Ipê, south sidewalk and the praça
-  { id: 'ponto_onibus', room: 'rua_leste', x: 6, y: 12, w: 3, h: 1, pt: 'ÔNIBUS\nLinha 875 · Centro', en: 'BUS\nLine 875 · Downtown' },
+  { id: 'ponto_onibus', room: 'rua_leste', x: 6, y: 12, w: 3, h: 1, pt: 'ÔNIBUS\nLinha 875 · Centro · Aeroporto', en: 'BUS\nLine 875 · Downtown · Airport' },
   { id: 'parquimetro', room: 'rua', x: 14, y: 12, pt: 'ESTACIONAMENTO\nR$ 5 por hora', en: 'PARKING\nR$ 5 per hour' },
   { id: 'lixeira_praca', room: 'rua_leste', x: 3, y: 13, pt: 'LIXO', en: 'Trash' },
   { id: 'fonte_praca', room: 'praca', x: 14, y: 10, w: 4, h: 3, pt: 'Praça Central\nFonte de 1985', en: 'Central Square\nFountain from 1985' },
@@ -114,6 +114,31 @@ const BASE_HOTSPOTS: HotspotDef[] = [
 ];
 
 /**
+ * The airport (the arrival tutorial). The `hall_s_*` signs and `arrival.kicker` (the big AEROPORTO letters) are the reading words of the
+ * diary's Chegada area; the rest are just signs. needs_br: every line.
+ */
+const AIRPORT_SIGNS: HotspotDef[] = [
+  { id: 'arrival.kicker', room: 'aeroporto', x: 18, y: 10, w: 6, h: 1, pt: 'AEROPORTO\nVila Ipê · Internacional', en: 'AIRPORT\nVila Ipê · International' },
+  { id: 'hall_s_terminal', room: 'aeroporto', x: 3, y: 11, w: 3, h: 1, pt: 'TERMINAL 1\nPortões 1 a 6', en: 'TERMINAL 1\nGates 1 to 6' },
+  {
+    id: 'hall_s_embarque',
+    room: 'aeroporto',
+    x: 16,
+    y: 11,
+    w: 3,
+    h: 1,
+    pt: 'EMBARQUE\nLisboa · 14h20 · Portão 3\nRecife · 15h05 · Portão 5\nBuenos Aires · 16h40 · Portão 6',
+    en: 'DEPARTURES\nLisbon · 2:20 pm · Gate 3\nRecife · 3:05 pm · Gate 5\nBuenos Aires · 4:40 pm · Gate 6',
+  },
+  { id: 'hall_s_bagagem', room: 'aeroporto', x: 2, y: 17, w: 3, h: 1, pt: 'BAGAGEM\nEsteira 1', en: 'BAGGAGE\nBelt 1' },
+  { id: 'hall_s_alfandega', room: 'aeroporto', x: 23, y: 16, w: 3, h: 1, pt: 'ALFÂNDEGA\nNada a declarar? Siga pelo verde.', en: 'CUSTOMS\nNothing to declare? Follow the green.' },
+  { id: 'hall_s_desembarque', room: 'aeroporto', x: 13, y: 22, w: 4, h: 1, pt: 'DESEMBARQUE\nSaída · Ônibus · Táxi', en: 'ARRIVALS\nExit · Bus · Taxi' },
+  { id: 'aero_bemvindo', room: 'aeroporto', x: 15, y: 18, w: 6, h: 1, pt: 'BEM-VINDO AO BRASIL!', en: 'WELCOME TO BRAZIL!' },
+  { id: 'aero_ponto', room: 'aeroporto', x: 22, y: 24, w: 3, h: 1, pt: 'ÔNIBUS 875\nAeroporto → Vila Ipê\nA cada 15 minutos', en: 'BUS 875\nAirport → Vila Ipê\nEvery 15 minutes' },
+  { id: 'aero_portao', room: 'aeroporto', x: 13, y: 11, w: 2, h: 1, pt: 'PORTÃO 3\nDesembarque do voo 2026', en: 'GATE 3\nFlight 2026 arriving' },
+];
+
+/**
  * The signs added for the language diary: the free-lot plates of the feira, the escola's wall poster and exit, and one board for each
  * added reading word, on the real thing it is written on (its placement in `diaryWorld.ts`). Needs_br: every word comes from the catalog and the signs print nothing more.
  */
@@ -131,7 +156,7 @@ const DIARY_SIGNS: HotspotDef[] = [
   ...DIARY_PLACEMENTS.filter((p) => p.sign).map((p): HotspotDef => ({ id: p.id, room: p.room, x: p.x, y: p.y, ...(p.w ? { w: p.w } : {}), ...(p.h ? { h: p.h } : {}), ...(p.up ? { up: p.up } : {}), pt: p.sign!.pt, en: p.sign!.en })),
 ];
 
-export const HOTSPOTS: HotspotDef[] = [...BASE_HOTSPOTS, ...DIARY_SIGNS];
+export const HOTSPOTS: HotspotDef[] = [...BASE_HOTSPOTS, ...AIRPORT_SIGNS, ...DIARY_SIGNS];
 
 export const hotspotById = (id: string): HotspotDef | undefined => HOTSPOTS.find((h) => h.id === id);
 
