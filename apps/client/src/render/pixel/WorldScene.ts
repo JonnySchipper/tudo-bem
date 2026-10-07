@@ -99,7 +99,7 @@ import {
   westStripRect,
 } from './roomLayout';
 import { ensureAnim, originOf } from './spriteUtil';
-import { recolorParrotPixels } from './parrotRecolor';
+import { PARROT_FRAME_COUNT, PARROT_H, PARROT_W, parrotPixels, parrotSpecies } from './parrotSpecies';
 import { GHOST_ALPHA, ghostFor, type GhostSpec } from './decorate';
 
 export interface SceneHost {
@@ -1439,46 +1439,29 @@ export class WorldScene extends Phaser.Scene {
     v.icon.setPosition(wx + avatarPx(8), Math.round(wy - top - avatarPx(1) + rise * avatarPx(4))).setAlpha(Math.min(1, (EMOTE_ICON_S - t) / 0.25)).setVisible(true);
   }
 
-  /** Copy one atlas frame and remap the green body to `tint`. Returns false when the source frame is not ready. */
-  private paintParrotFrame(atlas: string, frameName: string, texKey: string, tint: number): boolean {
-    const tex = this.textures.get(atlas);
-    if (!tex || tex.key === '__MISSING') return false;
-    const f = tex.get(frameName);
-    const src = f?.source?.image as CanvasImageSource | undefined;
-    if (!f || !src || f.name === '__BASE') return false;
-    const canvas = this.textures.createCanvas(texKey, f.width, f.height);
-    if (!canvas) return false;
-    const ctx = canvas.getContext();
-    ctx.clearRect(0, 0, f.width, f.height);
-    ctx.drawImage(src, f.cutX, f.cutY, f.cutWidth, f.cutHeight, 0, 0, f.width, f.height);
-    const image = ctx.getImageData(0, 0, f.width, f.height);
-    recolorParrotPixels(image.data, tint);
-    ctx.putImageData(image, 0, 0);
-    canvas.refresh();
-    return true;
-  }
-
   /**
-   * Animation for the shoulder parrot. Verde plays the green sheet. Any other colour gets its own
-   * frames, because a multiply tint leaves the green body green.
+   * Animation for the shoulder parrot. Verde plays the poleiro sheet. Every other colour is its own authored bird
+   * (`parrotSpecies.ts`), painted once into canvas textures of the same size and anchor.
    */
   private parrotAnim(colorId: string | null | undefined): string {
     const d = this.m.sprites['chars/parrot'];
     const plain = d ? ensureAnim(this, 'chars/parrot', d) : '';
-    if (!d?.anim) return plain;
-    const def = parrotColorById(colorId);
-    const tint = def?.tint ?? 0xffffff;
-    if (!def || tint === 0xffffff) return plain;
-    const animKey = `anim:parrot:${def.id}`;
+    const species = parrotSpecies(colorId);
+    if (species === 'verde') return plain;
+    const animKey = `anim:parrot:${species}`;
     if (this.anims.exists(animKey)) return animKey;
     const frames: { key: string }[] = [];
-    for (let i = 0; i < d.anim.frames.length; i++) {
-      const name = d.anim.frames[i]!;
-      const texKey = `parrot:${def.id}:${i}`;
-      if (!this.textures.exists(texKey) && !this.paintParrotFrame(d.atlas, name, texKey, tint)) return plain;
+    for (let i = 0; i < PARROT_FRAME_COUNT; i++) {
+      const texKey = `parrot:${species}:${i}`;
+      if (!this.textures.exists(texKey)) {
+        const canvas = this.textures.createCanvas(texKey, PARROT_W, PARROT_H);
+        if (!canvas) return plain;
+        canvas.getContext().putImageData(new ImageData(parrotPixels(species, i), PARROT_W, PARROT_H), 0, 0);
+        canvas.refresh();
+      }
       frames.push({ key: texKey });
     }
-    this.anims.create({ key: animKey, frames, frameRate: d.anim.fps, repeat: -1 });
+    this.anims.create({ key: animKey, frames, frameRate: d?.anim?.fps ?? 3, repeat: -1 });
     return animKey;
   }
 
