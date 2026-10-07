@@ -22,7 +22,6 @@ import {
   wordForSign,
   isCpuId,
   key as tileKey,
-  parrotColorById,
   positionAlong,
   propTiles,
   type Dir,
