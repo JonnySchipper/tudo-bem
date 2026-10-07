@@ -2029,25 +2029,6 @@ html.px-ui .backdrop > .panel.escola-panel,
   }
 }
 
-.heard-ring {
-  position: fixed;
-  z-index: 60;
-  width: 18px;
-  height: 18px;
-  margin: -9px 0 0 -9px;
-  border: 3px solid var(--dy-gold);
-  border-radius: 50%;
-  pointer-events: none;
-  animation: heard-ring 0.6s var(--dy-out) forwards;
-}
-
-@keyframes heard-ring {
-  to {
-    opacity: 0;
-    scale: 4;
-  }
-}
-
 #heard-quote {
   position: fixed;
   top: 22%;
@@ -2093,79 +2074,52 @@ html.px-ui .backdrop > .panel.escola-panel,
   }
 }
 
-#heard-landed {
-  position: fixed;
-  z-index: 60;
-  display: grid;
-  justify-items: start;
-  gap: 1px;
-  max-width: min(280px, calc(100vw - 16px));
-  padding: 7px 12px 8px;
-  border-radius: 4px;
-  color: var(--dy-ink);
-  background: var(--hud-paper, #fbf1e3);
+#heard-quote.docked {
+  top: auto;
+  transform: none;
+  border-radius: 6px 6px 0 0;
   box-shadow:
     0 0 0 3px var(--dy-ink),
-    0 5px 0 rgba(20, 10, 6, 0.3);
-  pointer-events: none;
-  animation: heard-in 0.4s var(--dy-pop) both;
+    0 -3px 0 3px rgba(20, 10, 6, 0.12);
+  animation: heard-tab-in 0.32s var(--dy-out) both;
 }
 
-#heard-landed.leaving {
-  animation: dy-fade-out 0.3s ease-in forwards;
-}
-
-#heard-landed::after {
-  content: '';
-  position: absolute;
-  left: var(--tip, 50%);
-  width: 10px;
-  height: 10px;
-  margin-left: -5px;
-  background: inherit;
-  box-shadow: 3px 3px 0 0 var(--dy-ink);
-}
-
-#heard-landed.below::after {
-  top: -5px;
-  transform: rotate(225deg);
-}
-
-#heard-landed.above::after {
-  bottom: -5px;
-  transform: rotate(45deg);
-}
-
-#heard-landed:not(.below, .above)::after {
-  display: none;
-}
-
-#heard-landed .heard-kicker {
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--dy-stamp);
-}
-
-#heard-landed .heard-pt {
-  font-family: var(--font-pixel, inherit);
-  font-size: 1.7rem;
-  line-height: 1;
-  color: #8f3e15;
-}
-
-#heard-landed .heard-progress {
-  font-size: 0.78rem;
-  font-weight: 700;
-  opacity: 0.8;
-}
-
-@keyframes heard-in {
+@keyframes heard-tab-in {
   from {
     opacity: 0;
-    scale: 0.7;
+    translate: 0 14px;
   }
+}
+
+/* a heard word's card: the slot waits empty while the word flies in from the dialogue box, then pops */
+#photo-celebrate .celebrate-pt.awaiting {
+  visibility: hidden;
+  animation: none;
+}
+
+#photo-celebrate .celebrate-pt.arrived {
+  animation: heard-arrive 0.5s var(--dy-pop) both;
+}
+
+@keyframes heard-arrive {
+  0% {
+    transform: scale(1.18);
+    text-shadow: 0 0 18px rgba(255, 214, 102, 0.95);
+  }
+  100% {
+    transform: scale(1);
+    text-shadow: 0 0 0 rgba(255, 214, 102, 0);
+  }
+}
+
+#photo-celebrate .celebrate-burst.held i {
+  opacity: 0;
+  animation: none;
+}
+
+#photo-celebrate.filing {
+  background: transparent;
+  transition: background 0.3s ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2185,7 +2139,6 @@ html.px-ui .backdrop > .panel.escola-panel,
   .cartela-banner *,
   .cartela-hole .ink,
   #cartela-pill,
-  #heard-landed,
   #heard-quote,
   .heard-mark {
     animation-duration: 0.01ms !important;
