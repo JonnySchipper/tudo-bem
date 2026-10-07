@@ -3,7 +3,8 @@
 //   node scripts/audio-lab.mjs levels            in-game loudness of every bed, phrase and stinger (after audio/mix, through the master)
 //   node scripts/audio-lab.mjs stems <kind>      loudness of each voice of one arrangement (intro, padaria, ...)
 //   node scripts/audio-lab.mjs sfx               loudness of the bout's sound effects
-//   node scripts/audio-lab.mjs mp3 [dir]         listening copies (default docs/audio)
+//   node scripts/audio-lab.mjs mp3 [dir] [name]  listening copies (default docs/audio); `name` renders just that one
+// How a new piece goes from idea to the game: docs/audio/COMPOSING.md.
 import { createRequire } from 'node:module';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -48,7 +49,7 @@ function wav(file, r) {
   fs.writeFileSync(file, Buffer.concat([h, data]));
 }
 
-const BEDS = ['intro', 'radio', 'padaria', 'padariaNight', 'kitnet', 'academia', 'bout'];
+const BEDS = ['intro', 'radio', 'padaria', 'padariaNight', 'kitnet', 'academia', 'bout', 'feira'];
 const STINGS = ['recado', 'heart', 'coin', 'mission', 'caderno', 'win', 'lose', 'door'];
 
 const MOOD_PHRASES = (await server.ssrLoadModule('/src/audio/conductor.ts')).MOOD_PHRASES;
@@ -88,11 +89,13 @@ if (mode === 'calibrate') {
     ['kitnet', { what: 'arr', kind: 'kitnet', gain: levels.bed('kitnet') }],
     ['academia', { what: 'arr', kind: 'academia', gain: levels.bed('academia') }],
     ['bout', { what: 'arr', kind: 'bout', gain: levels.bed('bout') }],
+    ['feira', { what: 'arr', kind: 'feira', gain: levels.bed('feira') }],
     ['praca-golden', { what: 'phrase', kind: 'bridge', mood: 'golden', gain: levels.phrase('golden') }],
     ['praca-night', { what: 'phrase', kind: 'close', mood: 'night', gain: levels.phrase('night') }],
     ...['recado', 'mission', 'win', 'lose'].map((k) => [`sting-${k}`, { what: 'sting', kind: k, gain: levels.sting(k) }]),
   ];
-  for (const [name, job] of out) {
+  const only = process.argv[4];
+  for (const [name, job] of out.filter(([n]) => !only || n === only)) {
     // listening copies are normalized up so a bed can be heard on its own; the in-game balance is what `levels` prints
     const r = await run({ ...job, gain: 1, wav: true });
     const w = path.join(tmp, `${name}.wav`);

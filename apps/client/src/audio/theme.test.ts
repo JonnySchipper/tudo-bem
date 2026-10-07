@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ARRANGEMENTS, BORROWED_PC, D_MAJOR, FORM_BARS, FORM_CHORDS, FORM_MELODY, MOODS, MOTIF, MOTIF_DEGREES, PERCUSSION, degreeOf, moodAt, padariaIsNight, phraseNotes, scoreBar, shiftDiatonic, stingNotes, type ArrangementKind, type StingKind } from './theme';
+import { ARRANGEMENTS, BORROWED_PC, D_MAJOR, FEIRA_CHORDS, FEIRA_MELODY, FORM_BARS, FORM_CHORDS, FORM_MELODY, MOODS, MOTIF, MOTIF_DEGREES, PERCUSSION, degreeOf, moodAt, padariaIsNight, phraseNotes, scoreBar, shiftDiatonic, stingNotes, type ArrangementKind, type StingKind } from './theme';
 import { MOOD_PHRASES, choosePhrase } from './conductor';
 import { stepSeconds } from './sequencer';
 
@@ -80,6 +80,27 @@ describe('the theme', () => {
     expect(hasHook(contour('bout', [0, 1], ['stab']))).toBe(true);
     expect(hasHook(contour('academia', [0, 1], ['harm']))).toBe(true);
     expect(hasHook(contour('padariaNight', [0, 1], ['harm']))).toBe(true);
+    expect(hasHook(contour('feira', [0], ['sanfona']))).toBe(true);
+  });
+
+  it('the feira is a cousin of the theme, not a copy: same notes and bridge, new home, new groove, new tune', () => {
+    expect(FEIRA_CHORDS).toHaveLength(FORM_BARS);
+    expect(FEIRA_MELODY).toHaveLength(FORM_BARS);
+    // familiar: the hook's pitches open it, and its bridge is the theme's A section changes
+    expect(FEIRA_MELODY[0]!.map(([, midi]) => midi)).toEqual(MOTIF.map((m) => m.midi));
+    expect(FEIRA_CHORDS.slice(16, 24)).toEqual(FORM_CHORDS.slice(0, 8));
+    // not redundant: A mixolydian (home on A, the G natural in the tune), and no bar of melody is lifted from the theme
+    for (const bar of [0, 8, 24]) expect(FEIRA_CHORDS[bar]!.name).toBe('A7');
+    expect(FEIRA_MELODY[FORM_BARS - 1]!.at(-1)![1] % 12).toBe(9);
+    expect(FEIRA_MELODY.flat().some(([, midi]) => midi % 12 === 7)).toBe(true);
+    const theme = new Set(FORM_MELODY.map((p) => JSON.stringify(p)));
+    for (const p of FEIRA_MELODY) expect(theme.has(JSON.stringify(p))).toBe(false);
+    for (const p of FEIRA_MELODY) for (const [step, midi, dur] of p) expect([step + dur <= 16, inKey(midi, 0)]).toEqual([true, true]);
+    // the trio is always there; the pife takes A' and A''
+    const voices = (b: number) => new Set(scoreBar('feira', b).map((n) => n.voice));
+    for (const b of [0, 9, 18, 27]) for (const v of ['zabumba', 'triangle', 'bass', 'accordion'] as const) expect(voices(b).has(v)).toBe(true);
+    expect(voices(3).has('pife')).toBe(false);
+    expect(voices(11).has('pife')).toBe(true);
   });
 
   it('the kitnet music box plays once and then rests', () => {

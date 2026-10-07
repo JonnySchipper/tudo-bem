@@ -8,6 +8,8 @@
  *   kitnet     a music box playing the first eight bars, then silence
  *   academia   a soft samba pulse, the hook on vibes; and `bout`, the same hook as brass stabs over a batucada
  *   praça      sparse phrases of the tune over the street, by time of day and weather (see `phraseNotes`)
+ *   feira      "Baião da Feira", the theme's cousin: a new tune in A mixolydian (sanfona, pife, zabumba, triângulo) that opens
+ *              with the hook squeezed into one baião bar and whose bridge is the theme's own first eight chords
  *   stingers   recado done, a heart, RV, the daily mission, a Caderno group, a win, a loss, the padaria door
  *
  * No Web Audio in here: `audio/synth.ts` makes the sounds, `audio/sequencer.ts` schedules them, and the tests read this file.
@@ -34,9 +36,13 @@ export type Voice =
   | 'clave'
   | 'surdo'
   | 'brush'
-  | 'pandeiro';
+  | 'pandeiro'
+  | 'sanfona'
+  | 'pife'
+  | 'zabumba'
+  | 'triangle';
 
-export const PERCUSSION: ReadonlySet<Voice> = new Set<Voice>(['shaker', 'clave', 'surdo', 'brush', 'pandeiro']);
+export const PERCUSSION: ReadonlySet<Voice> = new Set<Voice>(['shaker', 'clave', 'surdo', 'brush', 'pandeiro', 'zabumba', 'triangle']);
 
 export interface ScoreNote {
   voice: Voice;
@@ -265,7 +271,7 @@ export function shiftDiatonic(midi: number, n: number): number {
 
 // ---------------------------------------------------------------- arrangements
 
-export type ArrangementKind = 'intro' | 'radio' | 'padaria' | 'padariaNight' | 'kitnet' | 'academia' | 'bout';
+export type ArrangementKind = 'intro' | 'radio' | 'padaria' | 'padariaNight' | 'kitnet' | 'academia' | 'bout' | 'feira';
 
 export interface Arrangement {
   bpm: number;
@@ -285,6 +291,8 @@ export const ARRANGEMENTS: Record<ArrangementKind, Arrangement> = {
   kitnet: { bpm: 70, transpose: 0, melShift: 0, loopBars: 16 },
   academia: { bpm: 100, transpose: 0, melShift: 0, loopBars: 8 },
   bout: { bpm: 118, transpose: 0, melShift: 0, loopBars: 8 },
+  // A mixolydian has exactly D major's notes, so the feira needs no transpose: it is the same seven notes with a new home
+  feira: { bpm: 116, transpose: 0, melShift: 0, loopBars: FORM_BARS },
 };
 
 const mod = (n: number, m: number) => ((n % m) + m) % m;
@@ -418,6 +426,8 @@ export function scoreBar(kind: ArrangementKind, index: number, boost = 0): Score
     return out;
   }
 
+  if (kind === 'feira') return feiraBar(bar, boost);
+
   // academia and bout: the first four chords of the tune as a loop, a batucada under them
   const loopChord = SECTION_A[bar % 4 === 3 ? 3 : bar % 4]!;
   const swing = kind === 'bout';
@@ -439,6 +449,231 @@ export function scoreBar(kind: ArrangementKind, index: number, boost = 0): Score
     for (const [step, midi] of m as [number, number][]) out.push({ voice: 'stab', step, midi: midi - 12, dur: 3, vel: 0.8 });
   }
   if (boost > 0 && bar % 2 === 0) for (const m of loopChord.voicing) out.push({ voice: 'stab', step: 0, midi: m, dur: 4, vel: 0.32 });
+  return out;
+}
+
+// ---------------------------------------------------------------- the feira: "Baião da Feira"
+
+/*
+ * A cousin of the theme, not a cover of it. What it keeps: the hook's five pitches (E F♯ C♯ D E) open the tune, the same seven
+ * notes (A mixolydian is D major starting on A, the G♮ is what makes it sound nordestino), and the bridge is the theme's own first
+ * eight chords. What it changes: the groove (baião, 3+3+2), the home note (A), the band (a forró trio and a pife) and every bar
+ * of melody after the first.
+ */
+
+const A7: Chord = { name: 'A7', root: 33, fifth: 40, voicing: [55, 61, 64, 69] };
+const G6: Chord = { name: 'G6', root: 43, fifth: 50, voicing: [55, 59, 62, 64] };
+const D6: Chord = { name: 'D6', root: 38, fifth: 45, voicing: [54, 57, 59, 62] };
+const EM7: Chord = { name: 'Em7', root: 40, fifth: 47, voicing: [52, 55, 59, 62] };
+
+/** A · A' · B · A''. The bridge borrows the theme's A section changes whole: walking in from the Praça, that is what sounds like home. */
+const FEIRA_A: Chord[] = [A7, A7, G6, A7, D6, G6, EM7, A7];
+export const FEIRA_CHORDS: Chord[] = [...FEIRA_A, ...FEIRA_A, ...SECTION_A, ...FEIRA_A];
+
+/** Baião phrasing: most bars fall 3 + 3 + 2 + 3 + 5 sixteenths. */
+const FEIRA_MEL_A: Phrase[] = [
+  // the hook, E F♯ C♯ D E, squeezed into one bar of baião
+  [
+    [0, 76, 3],
+    [3, 78, 3],
+    [6, 73, 2],
+    [8, 74, 3],
+    [11, 76, 5],
+  ],
+  // and the answer the theme never gives: up to the flat seventh, down the A7 to the root
+  [
+    [0, 79, 3],
+    [3, 78, 3],
+    [6, 76, 2],
+    [8, 73, 4],
+    [12, 69, 4],
+  ],
+  // the hook again, one step down the scale (D E B C♯ D) over G
+  [
+    [0, 74, 3],
+    [3, 76, 3],
+    [6, 71, 2],
+    [8, 73, 3],
+    [11, 74, 5],
+  ],
+  [
+    [0, 76, 3],
+    [3, 74, 3],
+    [6, 73, 2],
+    [8, 69, 8],
+  ],
+  [
+    [0, 78, 3],
+    [3, 81, 3],
+    [6, 78, 2],
+    [8, 74, 3],
+    [11, 78, 5],
+  ],
+  [
+    [0, 79, 3],
+    [3, 83, 3],
+    [6, 79, 2],
+    [8, 76, 3],
+    [11, 74, 5],
+  ],
+  [
+    [0, 74, 3],
+    [3, 76, 3],
+    [6, 79, 2],
+    [8, 78, 3],
+    [11, 76, 5],
+  ],
+  [
+    [2, 73, 2],
+    [4, 76, 2],
+    [6, 69, 10],
+  ],
+];
+
+/** A' turns at bar 3 into a question (up to the high A) and its last bar leans on G, the seventh of A, which falls to the F♯ of the bridge's D. */
+const FEIRA_MEL_A2: Phrase[] = [
+  FEIRA_MEL_A[0]!,
+  FEIRA_MEL_A[1]!,
+  FEIRA_MEL_A[2]!,
+  [
+    [0, 76, 3],
+    [3, 78, 3],
+    [6, 79, 2],
+    [8, 81, 8],
+  ],
+  FEIRA_MEL_A[4]!,
+  FEIRA_MEL_A[5]!,
+  [
+    [0, 79, 3],
+    [3, 78, 3],
+    [6, 76, 2],
+    [8, 74, 3],
+    [11, 73, 5],
+  ],
+  [
+    [0, 76, 6],
+    [8, 73, 2],
+    [10, 76, 2],
+    [12, 79, 4],
+  ],
+];
+
+/** The bridge, over Dmaj9 · Bm9 · Em9 · A13 · F♯m7 · Bm9 · Gmaj9 · A13: still baião, but now singing the theme's harmony. */
+const FEIRA_MEL_B: Phrase[] = [
+  [
+    [0, 74, 3],
+    [3, 76, 3],
+    [6, 78, 10],
+  ],
+  [
+    [0, 73, 3],
+    [3, 74, 3],
+    [6, 76, 2],
+    [8, 78, 4],
+    [12, 74, 4],
+  ],
+  [
+    [0, 79, 3],
+    [3, 78, 3],
+    [6, 76, 2],
+    [8, 74, 3],
+    [11, 71, 5],
+  ],
+  [
+    [0, 73, 3],
+    [3, 76, 3],
+    [6, 78, 2],
+    [8, 76, 8],
+  ],
+  [
+    [0, 76, 3],
+    [3, 78, 3],
+    [6, 81, 2],
+    [8, 78, 3],
+    [11, 76, 5],
+  ],
+  [
+    [0, 74, 3],
+    [3, 73, 3],
+    [6, 74, 2],
+    [8, 78, 3],
+    [11, 74, 5],
+  ],
+  [
+    [0, 71, 3],
+    [3, 74, 3],
+    [6, 78, 2],
+    [8, 81, 4],
+    [12, 79, 4],
+  ],
+  [
+    [0, 78, 3],
+    [3, 76, 3],
+    [6, 73, 2],
+    [8, 76, 8],
+  ],
+];
+
+/** A'' ends on the baião tag: down the A7 with the G♮ in it, A G E C♯ A. */
+const FEIRA_TAG: Phrase = [
+  [0, 81, 2],
+  [2, 79, 2],
+  [4, 76, 2],
+  [6, 73, 2],
+  [8, 69, 8],
+];
+
+export const FEIRA_MELODY: Phrase[] = [...FEIRA_MEL_A, ...FEIRA_MEL_A2, ...FEIRA_MEL_B, ...FEIRA_MEL_A.slice(0, 7), FEIRA_TAG];
+
+/** Zabumba: the boom on 1, the "a" of 1, 3 and the "a" of 3 (accents ≥ 0.6), the bacalhau stick on the rim in between (soft hits). */
+const ZABUMBA: [number, number][] = [
+  [0, 1],
+  [3, 0.75],
+  [4, 0.35],
+  [6, 0.45],
+  [8, 0.95],
+  [11, 0.75],
+  [12, 0.35],
+  [14, 0.45],
+];
+
+function feiraBar(bar: number, boost: number): ScoreNote[] {
+  const out: ScoreNote[] = [];
+  const section = Math.floor(bar / 8);
+  const chord = FEIRA_CHORDS[bar]!;
+  const tune = FEIRA_MELODY[bar]!;
+  const full = section === 3 || boost > 0;
+
+  // the sanfona's left hand: bass buttons with the zabumba, chord buttons on the off-beats
+  for (const [step, midi, dur, vel] of [
+    [0, chord.root, 3, 1],
+    [3, chord.root, 2, 0.7],
+    [6, chord.fifth, 2, 0.75],
+    [8, chord.root, 3, 0.95],
+    [11, chord.root, 2, 0.7],
+    [14, chord.fifth, 2, 0.7],
+  ] as [number, number, number, number][])
+    out.push({ voice: 'bass', step, midi, dur, vel });
+  for (const step of [2, 6, 10, 14]) for (const m of chord.voicing) out.push({ voice: 'accordion', step, midi: m, dur: 2, vel: step % 8 === 6 ? 0.8 : 0.65 });
+
+  // the trio's drums: zabumba and triângulo (open on the off-beat eighths, choked in between)
+  for (const [step, vel] of ZABUMBA) out.push({ voice: 'zabumba', step, midi: 0, dur: 1, vel });
+  for (let step = 0; step < 16; step++) out.push({ voice: 'triangle', step, midi: 0, dur: 1, vel: step % 4 === 2 ? 0.9 : step % 2 === 0 ? 0.5 : 0.35 });
+
+  // who sings: the sanfona in A and the bridge, the pife (an octave up) in A' and A'', the sanfona a third under it in A''
+  const lead: Voice = section === 1 || section === 3 ? 'pife' : 'sanfona';
+  for (const [step, midi, dur] of tune) out.push({ voice: lead, step, midi: lead === 'pife' ? midi + 12 : midi, dur, vel: 0.95 });
+  if (section === 3)
+    for (const [step, midi, dur] of tune) out.push({ voice: 'sanfona', step, midi: shiftDiatonic(midi, -2), dur, vel: 0.55 });
+
+  // the bridge opens up: the cavaquinho joins, and a bell marks the theme's chords
+  if (section === 2) {
+    strum(chord, bar, out, 'cavaco', 0.55, [2, 6, 10, 14]);
+    if (bar % 2 === 0) out.push({ voice: 'bell', step: 0, midi: chord.voicing[3]! + 12, dur: 6, vel: 0.35 });
+  }
+  if (full) out.push({ voice: 'surdo', step: 8, midi: 0, dur: 1, vel: 0.55 });
+  // the last bar before the loop: a zabumba pickup into the top
+  if (bar === FORM_BARS - 1) out.push({ voice: 'zabumba', step: 15, midi: 0, dur: 1, vel: 0.8 });
   return out;
 }
 

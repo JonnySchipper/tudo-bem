@@ -78,10 +78,12 @@ export const FEELS: Record<ArrangementKind | 'phrase', Feel> = {
   kitnet: { swing: 0, jitter: 0.012, vel: 0.12, layBack: 0.02 },
   academia: { swing: 0.14, jitter: 0.003, vel: 0.1, layBack: 0.004 },
   bout: { swing: 0.12, jitter: 0.002, vel: 0.08, layBack: 0 },
+  // forró sits straighter than bossa, pushed rather than laid back
+  feira: { swing: 0.06, jitter: 0.004, vel: 0.1, layBack: 0.004 },
   phrase: { swing: 0.1, jitter: 0.008, vel: 0.1, layBack: 0.015 },
 };
 
-const TUNE: ReadonlySet<Voice> = new Set<Voice>(['mel', 'lead', 'box', 'clar', 'harm']);
+const TUNE: ReadonlySet<Voice> = new Set<Voice>(['mel', 'lead', 'box', 'clar', 'harm', 'sanfona', 'pife']);
 
 /** A tiny deterministic hash → 0..1, so the same bar is always played the same way (and tests and renders are stable). */
 function h01(a: number, b: number, c: number): number {
@@ -90,7 +92,7 @@ function h01(a: number, b: number, c: number): number {
   return ((x ^ (x >>> 16)) >>> 0) / 4294967296;
 }
 
-const VOICE_ID: Record<Voice, number> = { bass: 1, comp: 2, pad: 3, mel: 4, lead: 5, harm: 6, arp: 7, bell: 8, box: 9, cavaco: 10, accordion: 11, clar: 12, stab: 13, shaker: 14, clave: 15, surdo: 16, brush: 17, pandeiro: 18 };
+const VOICE_ID: Record<Voice, number> = { bass: 1, comp: 2, pad: 3, mel: 4, lead: 5, harm: 6, arp: 7, bell: 8, box: 9, cavaco: 10, accordion: 11, clar: 12, stab: 13, shaker: 14, clave: 15, surdo: 16, brush: 17, pandeiro: 18, sanfona: 19, pife: 20, zabumba: 21, triangle: 22 };
 
 /** The moment and the velocity a note is actually played with. `at` is in 16th steps (fractional for strums). */
 export function humanize(feel: Feel, bar: number, at: number, voice: Voice, vel: number, step: number): { t: number; vel: number } {
@@ -127,6 +129,7 @@ export const MIX: Partial<Record<ArrangementKind, Partial<Record<Voice, number>>
   kitnet: { box: 1.5, pad: 4, bass: 2.5 },
   academia: { harm: 4, bass: 0.5, cavaco: 3.5, pandeiro: 3, shaker: 4.5, clave: 3.5 },
   bout: { stab: 3.5, bass: 1, surdo: 2, pandeiro: -2, shaker: 4, clave: 1.5 },
+  feira: { sanfona: 2, pife: -1.5, triangle: 3 },
 };
 
 /** Per-arrangement instrument swaps: the padaria's pad is the accordion, the night one is a felt piano, and so on. */
@@ -135,6 +138,8 @@ const SWAPS: Partial<Record<ArrangementKind, Partial<Record<Voice, Inst>>>> = {
   padaria: { comp: 'cavaco', pad: 'accordion', harm: 'vibes' },
   padariaNight: { harm: 'vibes', pad: 'felt' },
   kitnet: { pad: 'felt' },
+  // the sanfona's left hand plays the chord chops
+  feira: { accordion: 'sanfona' },
 };
 
 /** Play timed notes (a phrase or a stinger) starting at `when`. `swap` retunes voices to the mood's instruments. */
