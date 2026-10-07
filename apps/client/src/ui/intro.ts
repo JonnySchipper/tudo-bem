@@ -19,7 +19,7 @@ export interface IntroGateResult {
 }
 
 /** Must match the split-layout media query in styles/intro.css. */
-const WIDE_QUERY = '(min-width: 900px) and (min-aspect-ratio: 5/4), (min-width: 600px) and (min-aspect-ratio: 3/2) and (max-height: 520px)';
+const WIDE_QUERY = '(min-width: 600px) and (min-aspect-ratio: 3/2) and (max-height: 520px)';
 
 function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
