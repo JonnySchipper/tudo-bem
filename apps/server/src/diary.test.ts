@@ -458,9 +458,9 @@ describe('arrival, camera, diary and the escola', () => {
     const win = [...a.inbox].reverse().find((m) => m.t === 'diary' && m.phase === 'result');
     expect(win).toMatchObject({ correct: true, host: 'Dona Lúcia', granted: { pt: 'aula', en: 'class' } });
     if (win && win.t === 'diary' && win.phase === 'result') expect(win.line.pt).toMatch(/Dona Lúcia/);
-    expect(a.all('reward').at(-1)).toMatchObject({ amount: 8 });
+    expect(a.all('reward').at(-1)).toMatchObject({ amount: 1 });
     expect(a.all('reward').at(-1)?.reason.pt).toMatch(/Dona Lúcia/);
-    expect(a.s.profile?.coins).toBe(ECONOMY.startingCoins + 8);
+    expect(a.s.profile?.coins).toBe(ECONOMY.startingCoins + 1);
     expect(held()).toContain('aula');
     expect(diaryWord('seed.praca.aula')?.source).toBe('game');
     expect(diaryWord('seed.praca.aula')?.area).toBe('escola');
@@ -472,7 +472,7 @@ describe('arrival, camera, diary and the escola', () => {
     await a.send({ t: 'diary', action: 'answer', choice: asked2 });
     const win2 = [...a.inbox].reverse().find((m) => m.t === 'diary' && m.phase === 'result');
     expect(win2).toMatchObject({ correct: true, granted: null });
-    expect(a.s.profile?.coins).toBe(ECONOMY.startingCoins + 16);
+    expect(a.s.profile?.coins).toBe(ECONOMY.startingCoins + 2);
     expect(held().filter((pt) => pt === 'aula')).toHaveLength(1);
   });
 });

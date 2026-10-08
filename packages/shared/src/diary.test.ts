@@ -168,7 +168,7 @@ describe('language diary catalog v2', () => {
     expect(DIARY_WORDS.filter((w) => w.area === 'academia' && w.source === 'game')).toEqual([]);
     expect(DIARY_GAMES.map((g) => g.id).sort()).toEqual(['correria', 'escola.pratica']);
     expect(DIARY_GAMES.find((g) => g.id === 'correria')).toMatchObject({ room: 'padaria', host: { npc: 'carlos' } });
-    expect(DIARY_GAMES.find((g) => g.id === 'escola.pratica')).toMatchObject({ room: 'escola', host: { npc: 'lucia' }, rv: 8 });
+    expect(DIARY_GAMES.find((g) => g.id === 'escola.pratica')).toMatchObject({ room: 'escola', host: { npc: 'lucia' }, rv: 1 });
     for (const pt of ['fonte', 'coreto', 'guia', 'aula']) expect(DIARY_WORDS.find((w) => w.pt === pt)?.seed, pt).toBe(true);
     expect(DIARY_WORDS.find((w) => w.pt === 'fonte')).toMatchObject({ source: 'camera', anchor: { id: 'fonte' } });
     expect(DIARY_WORDS.find((w) => w.pt === 'coreto')).toMatchObject({ source: 'reading', anchor: { id: 'coreto_placa' } });

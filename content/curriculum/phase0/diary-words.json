@@ -6610,7 +6610,7 @@
     "npc": "lucia",
     "name": "Dona Lúcia"
    },
-   "rv": 8,
+   "rv": 1,
    "grantWordId": "seed.praca.aula",
    "chance": 1,
    "decoys": [
