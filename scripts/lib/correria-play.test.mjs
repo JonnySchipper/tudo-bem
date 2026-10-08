@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { POUR_HOLD, nextPourHold, pourTargetMs } from './correria-play.mjs';
+import { JUICER, POUR_HOLD, SUCO, nextJuiceTap, nextPourHold, pourTargetMs } from './correria-play.mjs';
+import { JUICE, SUCO_ITEMS, juiceVerdict, orangeAt } from '../../packages/shared/src/correria.ts';
 
 const start = () => ({ hold: POUR_HOLD.start, spills: 0 });
 
@@ -55,5 +56,25 @@ describe('Correria tap-to-stop pour', () => {
 
   it('a miss lengthens the same way a short does', () => {
     expect(nextPourHold(start(), 'miss').hold).toBe(nextPourHold(start(), 'short').hold);
+  });
+});
+
+describe('Correria juicer (espremedor)', () => {
+  it('uses the same numbers as the shared rules', () => {
+    expect(JUICER).toEqual({ cycleMs: JUICE.cycleMs, goodMin: JUICE.goodMin, spillAt: JUICE.spillAt, sizes: { ...JUICE.sizes } });
+    expect([...SUCO]).toEqual([...SUCO_ITEMS]);
+  });
+
+  it('drops oranges until the line, then takes the glass, and lands it for any hopper', () => {
+    expect(nextJuiceTap(0)).toBe('drop');
+    expect(nextJuiceTap(0.6)).toBe('drop');
+    expect(nextJuiceTap(JUICE.goodMin)).toBe('take');
+    for (let seed = 1; seed <= 200; seed++) {
+      let fill = 0;
+      let n = 0;
+      while (nextJuiceTap(fill) === 'drop') fill = Math.round((fill + JUICE.sizes[orangeAt(seed, n++)]) * 100) / 100;
+      expect(juiceVerdict(fill)).toBe('ok');
+      expect(n).toBeLessThanOrEqual(4);
+    }
   });
 });
