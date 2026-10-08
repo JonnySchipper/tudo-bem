@@ -9,6 +9,12 @@ import {
   MISSION_STEPS,
   stampsOnDay,
   todayEastern,
+  currentStreak,
+  localDay,
+  normalizeEscola,
+  tierRule,
+  todayXp,
+  type PrivateProfile,
   type EmoteKind,
   type NoticeLevel,
 } from '@tudobem/shared';
@@ -20,6 +26,21 @@ import { mountClockPill } from './clockPill';
 import { COMPACT_QUERY, placeHud } from './hudLayout';
 import { FEEDBACK_COPY, carryAction } from '@tudobem/shared';
 import { openFeedback } from './feedback';
+import { tierIcon, tierName } from './plate';
+
+/** The HUD's escola reminder: today's XP against the goal (until it is met) and the streak flame. Null before the diary has a word. */
+export function escolaGoalChip(p: PrivateProfile): { xp: number; goal: number; streak: number; met: boolean; title: string } | null {
+  if (!p.diary?.length) return null;
+  const st = normalizeEscola(p.escola, p.diary);
+  const today = localDay(Date.now(), -new Date().getTimezoneOffset());
+  const xp = todayXp(st, today);
+  const streak = currentStreak(st, today);
+  const met = xp >= st.goal;
+  if (met && !streak) return null;
+  // needs_br: true
+  const title = met ? `Meta de hoje cumprida! ${streak} dias seguidos. · Today’s goal done!` : `Sua meta de hoje: ${xp}/${st.goal} XP — aulas com a Dona Lúcia, na Escola. · Today’s goal, lessons at the Escola.`;
+  return { xp, goal: st.goal, streak, met, title };
+}
 
 export interface HudActions {
   chat: (text: string) => void;
@@ -40,6 +61,8 @@ export interface HudActions {
   carry: (action: 'consume' | 'toss') => void;
   toggleSound: () => void;
   toggleMusic: () => void;
+  /** English glosses under Portuguese chat: a player setting, separate from the nameplate colour. */
+  toggleEnglish: () => void;
   /** Multiplayer only (solo has no account). */
   logout?: () => void;
 }
@@ -119,7 +142,9 @@ export function buildHud(actions: HudActions) {
     },
     h('span', { class: 'hud-chip-text' }, `${CARTELA_COPY.hud.pt} 0/${CARTELA_GOAL}`),
   );
-  const plate = h('span', { class: 'hud-verde', title: 'Verde: you see English under Portuguese' }, icon('verde', 16), 'Verde');
+  const plate = h('span', { class: 'hud-verde', id: 'hud-plate' }, icon('verde', 16), 'Verde');
+  // a gentle reminder, never a notification: today's escola goal until it is met, and the streak flame
+  const goalChip = h('span', { class: 'hud-goal', id: 'escola-goal-pill', style: 'display:none' });
 
   // ---- the actions: one set of buttons, an icon bar on desktop and a drawer on a phone
   const btn = (id: string, ico: IconName, pt: string, enText: string, onclick: () => void, cls = '') =>
@@ -146,8 +171,10 @@ export function buildHud(actions: HudActions) {
   const decorBtn = btn('btn-decor', 'decor', 'Decorar', 'Decorate', actions.toggleDecor, 'hud-decor');
   const soundBtn = toggleBtn('btn-sound', actions.toggleSound);
   const musicBtn = toggleBtn('btn-music', actions.toggleMusic);
+  const englishBtn = toggleBtn('btn-english', actions.toggleEnglish);
   soundBtn.title = 'Voz / Voice';
   musicBtn.title = 'Música / Music';
+  englishBtn.title = 'Inglês embaixo do português / English under the Portuguese (your choice; the nameplate colour never changes it)';
   const creditsBtn = btn('btn-credits', 'info', 'Créditos', 'Credits', actions.openCredits);
   const logoutBtn = actions.logout ? btn('btn-logout', 'logout', 'Sair', 'Log out', actions.logout) : null;
   const gear = h('button', { class: 'hud-btn hud-gear', id: 'btn-menu', type: 'button', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-controls': 'hud-menu', 'aria-label': 'Ajustes (Settings)' }, icon('gear', 32), h('span', { class: 'hud-label' }, h('b', { class: 'pt' }, 'Ajustes'), h('i', { class: 'hud-gloss' }, 'Music, voice, credits')));
@@ -156,11 +183,13 @@ export function buildHud(actions: HudActions) {
     { class: 'hud-menu', id: 'hud-menu', role: 'group', 'aria-label': 'Ajustes' },
     musicBtn,
     soundBtn,
+    englishBtn,
     creditsBtn,
     logoutBtn,
   );
   const gearWrap = h('div', { class: 'hud-gear-wrap' }, gear, menu);
-  const drawerPlate = h('span', { class: 'hud-drawer-head' }, h('span', { class: 'hud-verde', title: 'Verde: you see English under Portuguese' }, icon('verde', 16), 'Verde'), h('span', { class: 'hud-drawer-hint' }, 'Menu'));
+  const drawerPlateChip = h('span', { class: 'hud-verde' }, icon('verde', 16), 'Verde');
+  const drawerPlate = h('span', { class: 'hud-drawer-head' }, drawerPlateChip, h('span', { class: 'hud-drawer-hint' }, 'Menu'));
   const cameraBtn = btn('btn-camera', 'camera', 'Câmera', 'Camera', actions.toggleCamera);
   cameraBtn.style.display = 'none';
   const actionsNav = h(
@@ -208,7 +237,7 @@ export function buildHud(actions: HudActions) {
     h(
       'div',
       { class: 'hud-right' },
-      h('div', { class: 'hud-stats hud-slab' }, plate, h('span', { class: 'hud-rv', title: 'Reais Virtuais (RV) — soft currency' }, icon('rv', 16), coins)),
+      h('div', { class: 'hud-stats hud-slab' }, plate, goalChip, h('span', { class: 'hud-rv', title: 'Reais Virtuais (RV) — soft currency' }, icon('rv', 16), coins)),
       feedbackBtn,
       burger,
       actionsNav,
@@ -371,6 +400,23 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
     if (p) {
       coins.textContent = String(p.coins);
       coins.title = `${p.coins} RV`;
+      const tier = p.nameplate ?? 'verde';
+      const plateTitle = `Placa ${tierName(tier)}: ${tierRule(tier).en} nameplate, earned in the Escola by words mastered. English help is your own setting (Ajustes).`;
+      for (const el of [plate, drawerPlateChip]) {
+        el.className = `hud-verde hud-tier-${tier}`;
+        el.title = plateTitle;
+        el.replaceChildren(tier === 'verde' ? icon('verde', 16) : tierIcon(tier), tierName(tier));
+      }
+      const goal = escolaGoalChip(p);
+      goalChip.style.display = goal ? '' : 'none';
+      if (goal) {
+        goalChip.title = goal.title;
+        goalChip.classList.toggle('met', goal.met);
+        goalChip.replaceChildren(
+          goal.streak ? h('span', { class: 'hud-flame', 'aria-label': `${goal.streak} dias seguidos` }, h('i', { class: 'flame-ico', 'aria-hidden': 'true' }), String(goal.streak)) : '',
+          goal.met ? '' : h('span', { class: 'hud-goal-text' }, h('b', { class: 'hud-goal-label' }, 'Meta '), `${goal.xp}/${goal.goal} XP`),
+        );
+      }
       const m = p.mission;
       const done = m ? MISSION_STEPS.filter((s) => m.steps[s.id]).length : 0;
       missionPill.style.display = m?.taken && !m.rewarded ? '' : 'none';
@@ -405,6 +451,7 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
     decorBtn.classList.toggle('on', game.editMode);
     setToggle(soundBtn, game.sound ? 'soundOn' : 'soundOff', game.sound, 'Voz', 'Voice on', 'Voice off');
     setToggle(musicBtn, game.music ? 'musicOn' : 'musicOff', game.music, 'Música', 'Music on', 'Music off');
+    setToggle(englishBtn, 'info', game.englishHelp, 'Inglês', 'English help on', 'English help off');
     const self = game.self;
     standBtn.style.display = self && (self.pub.sitting || self.sitOnArrive) ? '' : 'none';
     const act = carryAction(self?.pub.carry);

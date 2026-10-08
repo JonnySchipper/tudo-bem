@@ -20,6 +20,7 @@ import {
   type RvNote,
   type NpcDef,
   type NpcId,
+  type Nameplate,
 } from '@tudobem/shared';
 import { game } from '../state';
 import { clock } from '../gameClock';
@@ -65,6 +66,14 @@ let quickOrder: (() => void) | null = null;
 let boxOwned = false;
 /** One safety toast per send. The server notice is a backstop when the client has not already shown it. */
 let safetyToastShown = false;
+
+/**
+ * How much help a Conversa reply gets (`CONVERSA_WORD_CAP`): the shortest replies while English help is on, whatever the plate colour; with
+ * English help off, the earned plate lets the neighbours talk longer. The colour alone never takes help away (DECISIONS.md).
+ */
+function assistLevel(): Nameplate {
+  return game.englishHelp ? 'verde' : (game.profile?.nameplate ?? 'verde');
+}
 
 function showSafetyToast(notice: ConversaSafetyNotice | null | undefined) {
   if (!notice || safetyToastShown) return;
@@ -220,7 +229,7 @@ async function handleSend(input: HTMLInputElement) {
       state.subjectId,
       game.profile?.name ?? 'Jogador',
       game.profile?.pronoun ?? 'nome',
-      game.profile?.nameplate ?? 'verde',
+      assistLevel(),
       game.profile?.id ?? '',
       gate.text,
       state.history,
@@ -437,7 +446,7 @@ export async function openConversa(
       npcId,
       p.name,
       p.pronoun,
-      p.nameplate,
+      assistLevel(),
       p.id,
       daily,
       opts?.subjectId,
