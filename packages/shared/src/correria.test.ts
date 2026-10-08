@@ -38,6 +38,7 @@ import {
   makeFollow,
   menuCountForShifts,
   menuIdsForShifts,
+  menuLadder,
   menuPayMul,
   menuPayPct,
   newShift,
@@ -54,6 +55,7 @@ import {
   payNote,
   pourFrame,
   pourVerdict,
+  pourZone,
   sanitizeAct,
   shiftAct,
   shiftAdvance,
@@ -395,6 +397,13 @@ describe('the coffee pour', () => {
     expect(pourVerdict(POUR.fullMs).verdict).toBe('ok');
     expect(pourVerdict(POUR.fullMs * 1.09).verdict).toBe('spill');
     expect([0, 0.3, 0.6, 0.9].map(pourFrame)).toEqual([0, 1, 2, 3]);
+  });
+
+  it('the "Agora!" zone is exactly the window the server accepts', () => {
+    for (const f of [0, 0.5, 0.69, 0.7, 0.85, 1, 1.08, 1.09, 1.4]) {
+      const v = pourVerdict(POUR.fullMs * f).verdict;
+      expect(pourZone(f)).toBe(v === 'ok' ? 'agora' : v === 'short' ? 'filling' : 'over');
+    }
   });
 
   it('tap to start, the cup fills alone, tap again in the window; leaving it spills', () => {
@@ -943,6 +952,28 @@ describe('the menu ladder', () => {
     expect(snap.payMul).toBeCloseTo(1.06);
     expect(snap.bump?.pt).toMatch(/\+6%/);
     expect(snap.lesson?.id).toBe('agua');
+    expect(snap.ladder).toEqual({ open: ['cafe', 'pao', 'agua'], fresh: ['agua'], next: 'pao_de_queijo', nextIn: 2, total: MENU_LADDER.length });
+  });
+
+  it('the ladder view names the next item and the shifts to go', () => {
+    expect(menuLadder(0)).toEqual({ open: ['cafe', 'pao'], fresh: [], next: 'agua', nextIn: 2, total: MENU_LADDER.length });
+    expect(menuLadder(1)).toMatchObject({ fresh: [], next: 'agua', nextIn: 1 });
+    expect(menuLadder(2)).toMatchObject({ fresh: ['agua'], next: 'pao_de_queijo', nextIn: 2 });
+    expect(menuLadder(3)).toMatchObject({ fresh: [], nextIn: 1 });
+    // the next item opens exactly when `nextIn` more shifts are done
+    for (let n = 0; n < FULL_MENU_SHIFTS; n++) {
+      const v = menuLadder(n);
+      expect(menuLadder(n + v.nextIn).open).toContain(v.next);
+      expect(menuLadder(n + v.nextIn - 1).open).not.toContain(v.next);
+    }
+    const full = menuLadder(FULL_MENU_SHIFTS + 5);
+    expect(full).toMatchObject({ next: null, nextIn: 0, fresh: [] });
+    expect(full.open).toEqual([...MENU_LADDER]);
+    expect(menuLadder(FULL_MENU_SHIFTS).fresh).toEqual(['misto_quente']);
+    // an owned room's menu caps the ladder: its next item skips what it does not sell
+    const capped = menuLadder(2, ['cafe', 'pao', 'pao_de_queijo']);
+    expect(capped).toMatchObject({ open: ['cafe', 'pao'], fresh: [], next: 'pao_de_queijo', nextIn: 2, total: 3 });
+    expect(menuLadder(NaN).open).toEqual(['cafe', 'pao']);
   });
 
   it('pra viagem / pra comer aqui is absent before 6 items and on every order after', () => {

@@ -264,6 +264,36 @@ export function shiftItemPool(ctx: Pick<ShiftCtx, 'shifts' | 'menuIds'>): MgItem
 }
 export const whereRequired = (itemCount: number): boolean => itemCount >= WHERE_MENU_AT;
 
+/** Where a counter stands on the ladder: what is open, what this shift added, and the next item with the shifts still to go. */
+export interface MenuLadderView {
+  /** Open item ids, in teaching order. */
+  open: string[];
+  /** Items this shift added (empty on the first shift and when the menu did not grow). */
+  fresh: string[];
+  /** The next item to open, or null when this counter's menu is complete. */
+  next: string | null;
+  /** Completed shifts still needed before `next` opens (0 when there is none). */
+  nextIn: number;
+  /** Items this counter can ever open (the ladder after an owned-room cap). */
+  total: number;
+}
+export function menuLadder(shifts: number, menuIds?: readonly string[]): MenuLadderView {
+  const n = Math.max(0, Math.floor(Number.isFinite(shifts) ? shifts : 0));
+  const inLadder = (ids: string[]) => MENU_LADDER.filter((id) => ids.includes(id)) as string[];
+  const open = inLadder(shiftItemPool({ shifts: n, menuIds }).map((i) => i.id));
+  const prev = n > 0 ? shiftItemPool({ shifts: n - 1, menuIds }).map((i) => i.id) : open;
+  const allow = menuIds?.length ? new Set(menuIds) : null;
+  const reach = MENU_LADDER.filter((id) => !allow || allow.has(id));
+  const k = MENU_LADDER.findIndex((id) => !open.includes(id) && (!allow || allow.has(id)));
+  return {
+    open,
+    fresh: open.filter((id) => !prev.includes(id)),
+    next: k >= 0 ? MENU_LADDER[k]! : null,
+    nextIn: k >= 0 ? Math.max(1, (k - 1) * ITEM_EVERY_SHIFTS - n) : 0,
+    total: reach.length,
+  };
+}
+
 /** One-time card at the start of the shift that first opens an item (or packing). On screen, not spoken. */
 export interface CounterLesson {
   id: string;
@@ -348,6 +378,9 @@ export function pourVerdict(heldMs: number, fullMs: number = POUR.fullMs): { fil
   const fill = Math.max(0, heldMs) / fullMs;
   return { fill, verdict: fill < POUR.goodMin ? 'short' : fill > POUR.spillAt ? 'spill' : 'ok' };
 }
+/** What the machine shows while a pour runs: still filling, "Agora!" (a tap now lands it, same window as `pourVerdict`), or overflowing. */
+export type PourZone = 'filling' | 'agora' | 'over';
+export const pourZone = (fill: number): PourZone => (fill < POUR.goodMin ? 'filling' : fill <= POUR.spillAt ? 'agora' : 'over');
 /** 0 = idle, 1..4 -> `coffee_pour_<0..3>` is `fill` bucket 0..3. */
 export const pourFrame = (fill: number): 0 | 1 | 2 | 3 => (fill < 0.25 ? 0 : fill < 0.5 ? 1 : fill < 0.75 ? 2 : 3);
 
@@ -1388,6 +1421,8 @@ export interface CorreriaSnap {
   lesson: CounterLesson | null;
   /** "+1 item no cardápio: pagamento +6%" when the menu grew this shift. */
   bump: Bilingual | null;
+  /** The menu ladder for this shift: what is open, what just opened, what comes next. */
+  ladder: MenuLadderView;
   over: boolean;
 }
 
@@ -1438,6 +1473,7 @@ export function shiftSnapshot(sh: Shift): CorreriaSnap {
     payMul: menuPayMul(shiftItemPool(sh.ctx).length),
     lesson: sh.ctx.lesson ?? null,
     bump: sh.ctx.bump ?? null,
+    ladder: menuLadder(sh.ctx.shifts ?? 0, sh.ctx.menuIds),
     over: sh.over,
   };
 }
