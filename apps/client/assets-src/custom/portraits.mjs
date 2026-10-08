@@ -26,8 +26,8 @@ const WIN = 20; // sprite px across the window (60 px at 3x)
  * they cannot be told from blush and scarf by colour. `room`: the background when the NPC has no room in ROOMS. `browHidden`: under a brim.
  */
 const TUNE = {
-  carlos: {},
-  nanda: {},
+  carlos: { squeeze: 6 },
+  nanda: { squeeze: 6 },
   // the smile is the navy line and the teeth; the reds next to it are the blush and the scarf
   julia: { mouth: [[8, 21], [9, 21], [10, 21], [5, 22], [6, 22], [7, 22], [8, 22]] },
   graca: {},
