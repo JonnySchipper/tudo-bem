@@ -1,13 +1,23 @@
-import type { Bilingual, JevNpcReplyAnswers, Nameplate, PrivateProfile, SafetyVerdict, SceneCtx, SceneView, TypedReplyScore } from '@tudobem/shared';
+import type { Bilingual, JevModelTrace, JevNpcReplyAnswers, Nameplate, PrivateProfile, SafetyVerdict, SceneCtx, SceneView, TypedReplyScore } from '@tudobem/shared';
 
 /**
  * Seams for the AI services described in GDD §5.9 / §12.3.
  * Phase 0 wires deterministic stubs; later phases swap implementations without touching the world code.
  */
 
+export interface ChatSafetyCtx {
+  playerId: string;
+  room: string;
+  nameplate: Nameplate;
+  /** The room's last few delivered lines, oldest first (the Jev model reads the sender's own recent lines). */
+  recent?: ReadonlyArray<{ playerId: string; text: string }>;
+  /** Under-13 sender: hold unconfirmed warns when the model is down (design-only in Phase 0, which is 18+). */
+  under13?: boolean;
+}
+
 /** Jev chat classifier: safe / warn / block / escalate on every message (<400ms p95 target). */
 export interface ChatSafetyService {
-  classify(text: string, ctx: { playerId: string; room: string; nameplate: Nameplate }): Promise<SafetyVerdict>;
+  classify(text: string, ctx: ChatSafetyCtx): Promise<SafetyVerdict>;
 }
 
 /** English gloss under Portuguese bubbles for Verde/Amarelo viewers. */
@@ -59,6 +69,8 @@ export interface ModerationEvent {
   labels: string[];
   rules?: string[];
   toxicity?: number;
+  /** Jev model layer: score, per-label scores, latency, fallback reason. */
+  jev?: JevModelTrace;
   targetId?: string;
   /** Escalations and reports wait for a human; nothing is auto-actioned in Phase 0. */
   status?: 'pending';

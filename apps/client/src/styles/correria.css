@@ -34,6 +34,11 @@ body.cr-ended .cr-pops .cr-tag {
   display: none !important;
 }
 
+/* #cr-hot is a body sibling (z-index 12) and paints over #ui, so lesson z-index inside .cr-root cannot win; hide taps while the card is up */
+body.cr-on:has(#cr-lesson) .cr-hot {
+  display: none !important;
+}
+
 body.cr-on #world-labels,
 body.cr-on #hotspot-cues {
   display: none !important;
@@ -554,8 +559,7 @@ body.cr-on .toasts {
   animation: cr-banner 1.9s ease-out forwards;
 }
 
-/* One-time how-to at the start of a shift. Sits over the counter, does not push the order strip.
-   Above the shelf taps (z-index 12): a tall card, the juicer lesson, used to land on the tray hit, so Entendi could not be tapped and the shelf names drew through the text. */
+/* One-time how-to at the start of a shift. Sits over the counter, does not push the order strip. Tall enough that Entendi stays inside the card. */
 .cr-lesson {
   position: absolute;
   left: 0;

@@ -140,7 +140,19 @@ export function roomZoom(view: { w: number; h: number }, bounds: Rect, insets: I
  * bounds and the north wall is never cropped.
  */
 export function roomFraming(view: { w: number; h: number }, bounds: Rect, focus: { x: number; y: number }, insets: Insets, cssZoom: number, dpr: number, north: { rows: number; bandPx: number } | false = { rows: NORTH_ROWS, bandPx: NORTH_BAND_PX }): { zoom: number; cx: number; cy: number; fits: boolean } {
-  const zoom = roomZoom(view, bounds, insets, cssZoom, dpr);
+  return framingAt(view, bounds, focus, insets, roomZoom(view, bounds, insets, cssZoom, dpr), north);
+}
+
+/**
+ * The camera for an open-air map (issue #123): the window's own integer zoom, never stepped down to fit the map, following the avatar and
+ * clamped to the map's bounds (an axis narrower than the screen is centred). The town drawn around the map (surround.ts) fills the rest
+ * of the window, so a street on a big desktop is seen at the same scale as everywhere else instead of shrunk onto black.
+ */
+export function outdoorFraming(view: { w: number; h: number }, bounds: Rect, focus: { x: number; y: number }, insets: Insets, cssZoom: number, dpr: number): { zoom: number; cx: number; cy: number; fits: boolean } {
+  return framingAt(view, bounds, focus, insets, deviceZoomFor(cssZoom, dpr), OUTDOOR_NORTH);
+}
+
+function framingAt(view: { w: number; h: number }, bounds: Rect, focus: { x: number; y: number }, insets: Insets, zoom: number, north: { rows: number; bandPx: number } | false): { zoom: number; cx: number; cy: number; fits: boolean } {
   const c = cameraCenter({ w: view.w, h: view.h, zoom }, bounds, focus, insets);
   let cy = c.cy;
   const toLoY = (view.h / 2 - insets.top) / zoom;
@@ -163,3 +175,6 @@ export const NORTH_BAND_PX = 3 * T;
 
 /** World y of the top edge of the free region (just under the HUD) for a camera centre: what the player sees at the top of the map. */
 export const viewTop = (view: { h: number }, cy: number, zoom: number, insets: Insets): number => cy - (view.h / 2 - insets.top) / zoom;
+
+/** World rect the whole canvas shows (HUD areas included) for a camera centre and device zoom. */
+export const viewRect = (view: { w: number; h: number }, cx: number, cy: number, zoom: number): Rect => ({ x0: cx - view.w / 2 / zoom, y0: cy - view.h / 2 / zoom, x1: cx + view.w / 2 / zoom, y1: cy + view.h / 2 / zoom });
