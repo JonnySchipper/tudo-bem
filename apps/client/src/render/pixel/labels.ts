@@ -11,7 +11,7 @@
  *    targets pin the arrow to the nearest edge of the free screen region and turn it toward the target (`guides.ts`).
  */
 import './pixel.css';
-import { BUBBLE_STYLES, FOUNDER_BADGE, tierRule, type BubbleStyle, type Nameplate } from '@tudobem/shared';
+import { BELT_COLORS, BUBBLE_STYLES, FOUNDER_BADGE, STRIPES_PER_BELT, tierRule, type Belt, type BubbleStyle, type Nameplate } from '@tudobem/shared';
 import { diffIds } from './reconcile';
 import { GUIDE_ROTATION, pinGuide, type GuideDir, type GuideInsets } from './guides';
 
@@ -45,6 +45,10 @@ export interface StackItem {
     feiraCrown?: boolean;
     /** Players: the nameplate colour earned in the escola (verde is the plain plate; the others add their colour and shape). */
     tier?: Nameplate;
+    /** BJJ belt on the plate when the server sent one (gi, a test profile, or any rank past a fresh white belt). */
+    belt?: Belt;
+    /** Stripes for your own plate. Other players only see the belt colour. */
+    stripes?: number;
   } | null;
   bubbles: BubbleItem[];
   /** Paint order among tags. A pet tag uses its screen y so a nearer pet's name sits in front. */
@@ -232,6 +236,25 @@ async function mirrorImage(url: string): Promise<string> {
   g.scale(-1, 1);
   g.drawImage(img, 0, 0);
   return c.toDataURL('image/png');
+}
+
+function beltBar(belt: Belt, stripes?: number): HTMLElement {
+  const bar = document.createElement('i');
+  bar.className = `wl-belt belt-${belt}`;
+  bar.setAttribute('aria-hidden', 'true');
+  const band = document.createElement('i');
+  band.className = 'bar';
+  band.style.background = BELT_COLORS[belt];
+  bar.append(band);
+  if (stripes !== undefined) {
+    const n = Math.min(STRIPES_PER_BELT, Math.max(0, stripes));
+    for (let i = 0; i < STRIPES_PER_BELT; i++) {
+      const pip = document.createElement('i');
+      pip.className = i < n ? 'pip on' : 'pip';
+      bar.append(pip);
+    }
+  }
+  return bar;
 }
 
 export class LabelLayer {
@@ -436,7 +459,7 @@ export class LabelLayer {
 
     // nameplate: text and kind change rarely; measure only then
     const tier = s.plate && (s.plate.kind === 'player' || s.plate.kind === 'me') && s.plate.tier && s.plate.tier !== 'verde' ? s.plate.tier : null;
-    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}|${s.plate.mark ?? ''}|${s.plate.founder ? '1' : ''}|${s.plate.subBadge ? 'b' : ''}|${s.plate.feiraCrown ? 'c' : ''}|${tier ?? ''}` : '';
+    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}|${s.plate.mark ?? ''}|${s.plate.founder ? '1' : ''}|${s.plate.subBadge ? 'b' : ''}|${s.plate.feiraCrown ? 'c' : ''}|${tier ?? ''}|${s.plate.belt ?? ''}|${s.plate.stripes ?? ''}` : '';
     if (pk !== el.plateKey) {
       el.plateKey = pk;
       if (s.plate) {
@@ -462,6 +485,7 @@ export class LabelLayer {
         } else {
           el.plate.append(document.createTextNode(s.plate.text));
         }
+        if (s.plate.belt) el.plate.append(beltBar(s.plate.belt, s.plate.stripes));
         if (s.plate.kind === 'pet') {
           const paw = document.createElement('i');
           paw.className = 'wl-paw';

@@ -21,6 +21,7 @@ import {
   normalizeDiary,
   wordForSign,
   isCpuId,
+  normalizeBjj,
   key as tileKey,
   parrotColorById,
   positionAlong,
@@ -2085,6 +2086,8 @@ export class WorldScene extends Phaser.Scene {
           ...(a.pub.founderBadge ? { subBadge: true } : {}),
           ...(a.pub.feiraCrown || game.feiraCrownId === id ? { feiraCrown: true } : {}),
           ...(!isCpuId(id) && a.pub.nameplate ? { tier: a.pub.nameplate } : {}),
+          ...(a.pub.belt ? { belt: a.pub.belt } : {}),
+          ...(id === selfId && a.pub.belt && game.profile ? { stripes: normalizeBjj(game.profile.bjj).stripes } : {}),
         },
         bubbles,
       });

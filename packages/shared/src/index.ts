@@ -64,3 +64,4 @@ export * from './feiraCaldo.js';
 export * from './leaderboards.js';
 export * from './layout.js';
 export * from './roomLayoutFiles.js';
+export * from './adminTestes.js';

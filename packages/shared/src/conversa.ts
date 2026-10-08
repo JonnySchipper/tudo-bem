@@ -850,9 +850,8 @@ export function offlineConversaOpen(npcId: NpcId, minute?: number): {
   return { npcName: cast.name, subject, line: presented.line, chips: presented.chips, maxTurns: CONVERSA_MAX_PLAYER_MSGS };
 }
 
-export function conversaDateKey(): string {
-  const spTime = new Date().toLocaleString('en-CA', { timeZone: 'America/Sao_Paulo' });
-  return spTime.split(',')[0];
+export function conversaDateKey(nowMs = Date.now()): string {
+  return new Date(nowMs).toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
 }
 
 export function canStartConversa(

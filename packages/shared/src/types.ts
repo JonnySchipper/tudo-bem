@@ -242,6 +242,31 @@ export interface PrivateProfile {
   bubbleStyle?: import('./subscription.js').BubbleStyle;
   /** Support subscription. Absent means never subscribed. */
   subscription?: import('./subscription.js').PlayerSubscription | null;
+  /**
+   * Set when an admin Testes action changes this profile. Public words, streak, and Feira boards skip it.
+   * Absent means a normal player.
+   */
+  testUser?: boolean;
+  /**
+   * Calendar days added only when this profile's daily cap keys are computed.
+   * Absent means 0. It does not move the shared clock or anyone else's day.
+   */
+  testDayOffset?: number;
+  /**
+   * Milliseconds added only to this profile's sky and errand clock.
+   * Absent means 0. The neighborhood clock (`clockOffsetMs`) stays put.
+   */
+  testClockOffsetMs?: number;
+  /**
+   * Feira cart paid runs for a test profile, keyed by their own calendar day.
+   * The public board's paid map is not used.
+   */
+  testFeiraPaid?: { day: string; n: number };
+  /**
+   * Admin test: the HUD plate and the overhead nameplate stay Verde.
+   * The earned escola tier is kept and comes back when this is off.
+   */
+  verdeMode?: boolean;
 }
 
 export interface Bilingual {
