@@ -34,9 +34,29 @@ body.cr-ended .cr-pops .cr-tag {
   display: none !important;
 }
 
-/* #cr-hot is a body sibling (z-index 12) and paints over #ui, so lesson z-index inside .cr-root cannot win; hide taps while the card is up */
-body.cr-on:has(#cr-lesson) .cr-hot {
-  display: none !important;
+/* #cr-hot is a body sibling (z-index 12) and paints over #ui; lift the overlay while a step lesson is open (see correria.ts `cr-lesson-open`). */
+body.cr-lesson-open #ui {
+  z-index: 13;
+}
+
+/*
+ * #ui > * sets pointer-events: auto on .cr-root; let shelf taps reach #cr-hot under the lesson card while the
+ * HUD, Entendi, and the bottom strip (Quanto é?, tray, Entregar) stay interactive.
+ */
+body.cr-lesson-open #ui > .cr-root {
+  pointer-events: none;
+}
+
+body.cr-lesson-open #cr-top,
+body.cr-lesson-open #cr-top *,
+body.cr-lesson-open #cr-panel,
+body.cr-lesson-open #cr-panel *,
+body.cr-lesson-open .cr-lesson-ok {
+  pointer-events: auto;
+}
+
+body.cr-lesson-open .cr-lesson {
+  pointer-events: none;
 }
 
 body.cr-on #world-labels,

@@ -1632,7 +1632,7 @@ Suco de laranja is no longer a grab from the fridge. It comes off the espremedor
 - **The card.** Lesson id is `espremedor`, not the item id, so a player who already saw the old suco card still gets this one once. On screen, not spoken. `pendingLesson` still shows the packing card first when that one is due.
 - **Old saves.** `normalizeCorreria` with no `taught` and shifts already played marks every old item card and `where` as seen. It does not mark `espremedor`, so the juicer card still shows once. A save that already lists `taught` is kept as it is.
 - **Reduced motion.** The cycle is not played: the machine stays on the idle frame and the glass jumps to the server's level.
-- **On screen.** The camera `NEED` is 162×216 and `FOCUS` sits at (80, 40), so the tower (it starts above the old shelf) stays under the HUD and the zoom backs off a step when the free band is short. The lesson card is tall enough that Entendi is inside the card. Shelf taps (`#cr-hot`, z-index 12 as a body sibling) paint over `#ui`, so while `#cr-lesson` is up the tap layer is hidden.
+- **On screen.** The camera `NEED` is 162×216 and `FOCUS` sits at (80, 40), so the tower (it starts above the old shelf) stays under the HUD and the zoom backs off a step when the free band is short. The lesson card is tall enough that Entendi is inside the card. Shelf taps (`#cr-hot`, z-index 12 as a body sibling) paint over `#ui`, so while a step lesson is open (`body.cr-lesson-open`) `#ui` stacks above the taps and the card ignores pointer events except Entendi.
 - **Free beta.** Nothing here is bought. The shift still pays the existing virtual RV, scaled by the menu as before.
 - All new Portuguese is `needs_br`.
 

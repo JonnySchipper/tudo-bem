@@ -197,7 +197,7 @@ export class CorreriaUI {
     document.removeEventListener('keydown', this.onKey);
     stopSpeaking();
     this.root.remove();
-    document.body.classList.remove('cr-on', 'cr-ended');
+    document.body.classList.remove('cr-on', 'cr-ended', 'cr-lesson-open');
     correriaFeed.setCamera(false);
     game.modalOpen = false;
     game.emit('modal');
@@ -257,17 +257,24 @@ export class CorreriaUI {
     }
   }
 
-  private mountTeach(title: Bilingual, steps: Bilingual[], bump: Bilingual | null): void {
+  /** Step lessons sit over the counter taps; pay-bump-only cards use the same shell but must not hide #cr-hot. */
+  private closeTeach(): void {
     this.root.querySelector('#cr-lesson')?.remove();
+    document.body.classList.remove('cr-lesson-open');
+  }
+
+  private mountTeach(title: Bilingual, steps: Bilingual[], bump: Bilingual | null): void {
+    this.closeTeach();
     const card = h(
       'div',
       { class: 'cr-lesson', id: 'cr-lesson', role: 'dialog', 'aria-label': title.pt },
       h('h3', null, h('span', { class: 'pt' }, title.pt), h('span', { class: 'gloss' }, title.en)),
       steps.length ? h('ol', null, ...steps.map((s) => h('li', null, h('span', { class: 'pt' }, s.pt), h('span', { class: 'gloss' }, s.en)))) : null,
       bump ? h('p', { class: 'cr-bump' }, bump.pt, h('span', { class: 'gloss' }, bump.en)) : null,
-      h('button', { type: 'button', class: 'cr-lesson-ok', onclick: () => card.remove() }, h('span', { class: 'pt' }, 'Entendi'), h('span', { class: 'gloss' }, 'Got it')),
+      h('button', { type: 'button', class: 'cr-lesson-ok', onclick: () => this.closeTeach() }, h('span', { class: 'pt' }, 'Entendi'), h('span', { class: 'gloss' }, 'Got it')),
     );
     this.root.append(card);
+    if (steps.length) document.body.classList.add('cr-lesson-open');
   }
 
   private onEvent(e: CEvent, snap: CorreriaSnap): void {
@@ -527,7 +534,7 @@ export class CorreriaUI {
 
   private onEnd(m: Extract<MgServerMsg, { phase: 'end' }>): void {
     this.ended = true;
-    this.root.querySelector('#cr-lesson')?.remove();
+    this.closeTeach();
     document.body.classList.add('cr-ended');
     const lost = !!m.lost;
     const model = endModel(m.end, m.carlos);
@@ -569,7 +576,7 @@ export class CorreriaUI {
     this.ended = false;
     this.teachId = '';
     this.bumpShown = false;
-    this.root.querySelector('#cr-lesson')?.remove();
+    this.closeTeach();
     this.mirrorSig = '';
     this.askSig = '';
     correriaFeed.end();
