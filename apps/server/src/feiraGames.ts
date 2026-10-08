@@ -65,6 +65,12 @@ export interface FeiraGamesDeps {
   /** Push the public avatar so the crown overlay updates for people in the same room. */
   broadcastAvatar: (s: Session) => void;
   rng?: () => number;
+  /**
+   * Test and screenshot pin (`?feiraon=pastel` on the solo world). Starts that game instead of
+   * today's rotation pick. Ignored unless the id is implemented. Production leaves it unset.
+   * When an admin enable-flag lands, the pin still has to be a game the flag has switched on.
+   */
+  pin?: string;
 }
 
 const NEAR: Bilingual = { pt: 'Chegue mais perto do carrinho.', en: 'Walk closer to the cart.' };
@@ -169,13 +175,20 @@ export class FeiraGamesEngine {
     return Math.max(dx, dy) <= FEIRA_CART_REACH;
   }
 
+  /** Today's game, or the test pin when this world was started with one. */
+  private todayGame(): import('@tudobem/shared').FeiraGameId {
+    const pin = this.d.pin;
+    if (pin && isFeiraGameId(pin) && feiraModule(pin)) return pin;
+    return featuredGameAt(this.d.now());
+  }
+
   private start(s: Session): void {
     if (!s.profile) return;
     if (s.mg) return this.d.err(s, 'busy', BUSY.pt, BUSY.en);
     if (s.feiraGame && !s.feiraGame.done) return this.d.err(s, 'busy', BUSY.pt, BUSY.en);
     if (!this.near(s, FEIRA_CART_PROP)) return this.d.err(s, 'far', NEAR.pt, NEAR.en);
     const day = todayEastern(this.d.now());
-    const game = featuredGameAt(this.d.now());
+    const game = this.todayGame();
     if (!feiraModule(game) || !isFeiraGameId(game)) return this.d.err(s, 'game', NOT_TODAY.pt, NOT_TODAY.en);
     const seed = (Math.floor((this.d.rng ?? Math.random)() * 0x7fffffff) ^ (this.d.now() & 0xffff)) >>> 0;
     const run: FeiraGameRun = { game, seed, startedAt: this.d.now(), day };
@@ -286,7 +299,7 @@ export class FeiraGamesEngine {
       t: 'feiraGame',
       phase: 'board',
       day,
-      game: featuredGameAt(this.d.now()),
+      game: this.todayGame(),
       top: feiraTop(st.scores, 3, s.profile?.id),
       medals: medalTallies(st.medals, names, 10),
       crownId: crownHolder(st.scores),

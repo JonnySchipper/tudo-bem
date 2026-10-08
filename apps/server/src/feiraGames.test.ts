@@ -4,7 +4,11 @@ import { World, type Session } from './world.js';
 import { ProfileStore, type StoredProfile } from './store.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 import { FeiraGamesEngine, memoryFeiraGames, type FeiraGamesDeps } from './feiraGames.js';
-import { tapiocaOrders } from '@tudobem/shared';
+import { pastelOrders, tapiocaOrders, type FeiraGameId } from '@tudobem/shared';
+
+function ordersFor(game: FeiraGameId, seed: number): { at: number }[] {
+  return game === 'pastel' ? pastelOrders(seed) : tapiocaOrders(seed);
+}
 
 function profile(id: string, name: string): StoredProfile {
   return {
@@ -66,7 +70,7 @@ describe('feira games server', () => {
       const start = sent.find((m) => m.t === 'feiraGame' && m.phase === 'start');
       expect(start && start.t === 'feiraGame' && start.phase === 'start').toBeTruthy();
       if (!start || start.t !== 'feiraGame' || start.phase !== 'start') return;
-      const orders = tapiocaOrders(start.seed);
+      const orders = ordersFor(start.game, start.seed);
       now += 20_000;
       const outcomes = orders.filter((o) => o.at <= 18_000).slice(0, 2).map((o, i) => ({
         i: orders.indexOf(o),
@@ -197,5 +201,30 @@ describe('feira games server', () => {
     engine.handle(s, { t: 'feiraGame', action: 'start' });
     expect(sent.some((m) => m.t === 'error' && m.code === 'far')).toBe(true);
     expect(s.feiraGame).toBeUndefined();
+  });
+
+  it('a test pin starts pastel even when today is tapioca', () => {
+    // 1970-01-01 17:00 UTC is still Jan 1 in ET, and that slot is tapioca.
+    const now = Date.parse('1970-01-01T17:00:00.000Z');
+    const store = new ProfileStore(null);
+    const ana = profile('ana', 'Ana');
+    store.add(ana);
+    const sent: ServerMsg[] = [];
+    const s = { id: 's', profile: ana, send: (m: ServerMsg) => sent.push(m), instance: { def: ROOMS.feira } } as unknown as Session;
+    const engine = new FeiraGamesEngine({
+      now: () => now,
+      store,
+      games: memoryFeiraGames(() => now),
+      reward: () => {},
+      pushProfile: () => {},
+      err: () => {},
+      tileOf: () => ({ x: 22, y: 9, room: 'feira' }),
+      broadcastAll: () => {},
+      broadcastAvatar: () => {},
+      pin: 'pastel',
+    });
+    engine.handle(s, { t: 'feiraGame', action: 'start' });
+    const start = sent.find((m) => m.t === 'feiraGame' && m.phase === 'start');
+    expect(start && start.t === 'feiraGame' && start.phase === 'start' && start.game).toBe('pastel');
   });
 });

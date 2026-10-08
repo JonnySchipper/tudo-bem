@@ -1,15 +1,15 @@
 /**
  * Feira cart games: the cart offer, the sign board, and the hand-off into today's featured game.
  *
- * The server owns the run (`feiraGame` messages). This file only opens the right view — today, Tapioca —
- * and the placar panel. Adding Pastel or Caldo is one branch in `openGame`.
+ * The server owns the run (`feiraGame` messages). This file only opens the right view — Tapioca or Pastel —
+ * and the placar panel. Adding Caldo is one branch in `openGame`.
  *
  * needs_br: true
  */
 import {
-  FEIRA_CART_GREET,
   FEIRA_GAME_INTRO,
   FEIRA_GAME_LABEL,
+  feiraCartGreet,
   type FeiraGameId,
   type ServerMsg,
 } from '@tudobem/shared';
@@ -17,6 +17,7 @@ import { game } from '../state';
 import { h, en } from './dom';
 import { openModal } from './modal';
 import { TapiocaView, type TapiocaEnd } from './feiraTapioca';
+import { PastelView } from './feiraPastel';
 
 type FeiraGameMsg = Extract<ServerMsg, { t: 'feiraGame' }>;
 
@@ -27,8 +28,10 @@ export interface FeiraGameHooks {
   sendBoard: () => void;
 }
 
+type PlayView = { destroy(): void; showEnd(end: TapiocaEnd): void };
+
 let hooks: FeiraGameHooks | null = null;
-let view: TapiocaView | null = null;
+let view: PlayView | null = null;
 let closeOffer: (() => void) | null = null;
 
 export function bindFeiraGames(hks: FeiraGameHooks) {
@@ -43,6 +46,7 @@ export function feiraGameOpen(): boolean {
 export function openFeiraCart(gameId: FeiraGameId) {
   const intro = FEIRA_GAME_INTRO[gameId];
   const label = FEIRA_GAME_LABEL[gameId];
+  const greet = feiraCartGreet(gameId);
   const close = openModal(
     'feira-cart',
     h('div', { class: 'panel feira-game-panel', id: 'feira-cart-panel' },
@@ -51,7 +55,7 @@ export function openFeiraCart(gameId: FeiraGameId) {
       h('h2', { id: 'feira-cart-game' }, label.pt, en(label.en)),
       h('p', { class: 'fg-intro', lang: 'pt-BR' }, intro.pt),
       h('p', { class: 'en' }, intro.en),
-      h('p', { class: 'fg-greet' }, FEIRA_CART_GREET.pt, en(FEIRA_CART_GREET.en)),
+      h('p', { class: 'fg-greet' }, greet.pt, en(greet.en)),
       h('button', {
         type: 'button',
         class: 'primary',
@@ -120,20 +124,25 @@ function openGame(m: Extract<FeiraGameMsg, { phase: 'start' }>) {
   view?.destroy();
   closeOffer?.();
   closeOffer = null;
+  const hooksFor = {
+    finish: (outcomes: import('@tudobem/shared').FeiraOrderOutcome[]) => hooks?.sendFinish(outcomes),
+    quit: () => {
+      view?.destroy();
+      view = null;
+      hooks?.sendQuit();
+    },
+    again: () => {
+      view?.destroy();
+      view = null;
+      hooks?.sendStart();
+    },
+  };
   if (m.game === 'tapioca') {
-    view = new TapiocaView(m.seed, {
-      finish: (outcomes) => hooks?.sendFinish(outcomes),
-      quit: () => {
-        view?.destroy();
-        view = null;
-        hooks?.sendQuit();
-      },
-      again: () => {
-        view?.destroy();
-        view = null;
-        hooks?.sendStart();
-      },
-    });
+    view = new TapiocaView(m.seed, hooksFor);
+    return;
+  }
+  if (m.game === 'pastel') {
+    view = new PastelView(m.seed, hooksFor);
     return;
   }
   // Unimplemented games never start: the server only deals a registered module.

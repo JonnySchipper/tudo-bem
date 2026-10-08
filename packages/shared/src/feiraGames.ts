@@ -2,10 +2,9 @@
  * Feira cart games: a daily rotation of skill minigames at the Feira cart.
  *
  * Adding a game later = one game-logic module (orders, score, timing) + one client view,
- * then register it in `FEIRA_GAME_MODULES` and (if it should enter the cycle) in `FEIRA_ROTATION_ORDER`.
- * Pastel and Caldo de cana are reserved in the order but not implemented yet: the featured pick
- * falls back to an implemented game until they land, so the schedule stays a real 3-day cycle
- * the day those modules exist.
+ * then register it in `FEIRA_GAME_MODULES` and `FEIRA_IMPLEMENTED_GAMES` (the rotation order
+ * already reserves the id). Caldo de cana is reserved but not implemented yet: that slot falls
+ * back to Pastel, the previous implemented game.
  *
  * Rotation is deterministic from the America/New_York calendar date (ET), not the game clock.
  * Scoring is recomputed from compact per-order outcomes; the client never names the score.
@@ -20,8 +19,8 @@ import type { Bilingual } from './types.js';
 export const FEIRA_ROTATION_ORDER = ['tapioca', 'pastel', 'caldo'] as const;
 export type FeiraRotationId = (typeof FEIRA_ROTATION_ORDER)[number];
 
-/** Games this build can actually start. Pastel and caldo join this set in later PRs. */
-export const FEIRA_IMPLEMENTED_GAMES = ['tapioca'] as const;
+/** Games this build can actually start. Caldo joins this set in a later PR. */
+export const FEIRA_IMPLEMENTED_GAMES = ['tapioca', 'pastel'] as const;
 export type FeiraGameId = (typeof FEIRA_IMPLEMENTED_GAMES)[number];
 
 export const isFeiraGameId = (v: unknown): v is FeiraGameId =>
@@ -50,9 +49,9 @@ export function rotationSlot(day: string, order: readonly string[] = FEIRA_ROTAT
 
 /**
  * Featured game for an ET date (`YYYY-MM-DD`). Unimplemented slots fall back to the nearest
- * earlier implemented game in the cycle (wrapping), so a 1-game build always features tapioca
- * and a 3-game build is the real cycle. `implemented` is injectable so tests can prove the fallback
- * without waiting for Pastel and Caldo.
+ * earlier implemented game in the cycle (wrapping). With Pastel built, a caldo day features
+ * Pastel; a 3-game build is the real cycle. `implemented` is injectable so tests can prove the
+ * fallback without waiting for Caldo.
  */
 export function featuredGame(
   day: string,
@@ -60,7 +59,7 @@ export function featuredGame(
   order: readonly string[] = FEIRA_ROTATION_ORDER,
 ): FeiraGameId {
   // `implemented` defaults to the games this build can start. Tests pass a wider list to prove
-  // the 3-day cycle before Pastel and Caldo exist. An empty list falls back to tapioca.
+  // the 3-day cycle before Caldo exists. An empty list falls back to tapioca.
   const pool = implemented.length ? implemented : ['tapioca'];
   const slot = rotationSlot(day, order);
   if (pool.includes(slot)) return slot as FeiraGameId;
@@ -89,12 +88,25 @@ export const FEIRA_GAME_INTRO: Record<FeiraGameId, Bilingual> = {
     pt: 'A chapa tá quente. Espalha a goma, vira no ponto e enrola o recheio.',
     en: 'The griddle is hot. Spread the batter, flip on time, and roll the filling.',
   },
+  pastel: {
+    pt: 'Pega a massa, põe o recheio, fecha com o garfo e tira do óleo no dourado.',
+    en: 'Grab the dough, add the filling, crimp it shut, and pull it from the oil when it is golden.',
+  },
 };
 
-export const FEIRA_CART_GREET: Bilingual = {
-  pt: 'Oi! Hoje o carrinho é de tapioca. Quer jogar?',
-  en: 'Hi! Today the cart is tapioca. Want to play?',
-};
+/** Cart line before Jogar. needs_br: true. Tapioca keeps the sentence it shipped with. */
+export function feiraCartGreet(game: FeiraGameId): Bilingual {
+  if (game === 'tapioca') {
+    return {
+      pt: 'Oi! Hoje o carrinho é de tapioca. Quer jogar?',
+      en: 'Hi! Today the cart is tapioca. Want to play?',
+    };
+  }
+  return {
+    pt: 'Oi! Hoje o carrinho é de pastel. Quer jogar?',
+    en: 'Hi! Today the cart is pastel. Want to play?',
+  };
+}
 
 // ---------------------------------------------------------------- shared run shape
 
@@ -330,7 +342,7 @@ export interface FeiraCustomerOrder {
   name: string;
 }
 
-/** Registry. A later PR pushes pastel / caldo here and into FEIRA_IMPLEMENTED_GAMES. */
+/** Registry. A later PR pushes caldo here and into FEIRA_IMPLEMENTED_GAMES. */
 export const FEIRA_GAME_MODULES: Partial<Record<FeiraGameId, FeiraGameModule>> = {};
 
 export function feiraModule(id: FeiraGameId): FeiraGameModule | undefined {

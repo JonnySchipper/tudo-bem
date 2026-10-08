@@ -21,6 +21,7 @@ import {
   type FeiraDayScore,
 } from './feiraGames.js';
 import { tapiocaOrders, tapiocaServeQuality } from './feiraTapioca.js';
+import './feiraPastel.js';
 
 describe('feira rotation', () => {
   it('is daysSinceEpoch(ET) mod 3 over a fixed order', () => {
@@ -43,7 +44,7 @@ describe('feira rotation', () => {
     expect(todayEastern(early)).toBe('2026-10-09');
     expect(featuredGameAt(late)).toBe(featuredGame('2026-10-08'));
     expect(featuredGameAt(early)).toBe(featuredGame('2026-10-09'));
-    // with only tapioca built, both days feature it; the slot itself still changes
+    // the slot still changes across midnight even when the fallback lands on the same game
     expect(rotationSlot('2026-10-08')).not.toBe(rotationSlot('2026-10-09'));
   });
 
@@ -56,12 +57,18 @@ describe('feira rotation', () => {
     expect(featuredGame('2026-11-01')).toBe(featuredGameAt(Date.parse('2026-11-01T05:30:00.000Z')));
   });
 
-  it('only features an implemented game, and falls back until pastel and caldo land', () => {
-    expect(FEIRA_IMPLEMENTED_GAMES).toEqual(['tapioca']);
+  it('features pastel on its own slot, and caldo still falls back to pastel', () => {
+    expect(FEIRA_IMPLEMENTED_GAMES).toEqual(['tapioca', 'pastel']);
+    expect(featuredGame('1970-01-01')).toBe('tapioca');
+    expect(featuredGame('1970-01-02')).toBe('pastel');
+    // caldo is not built: that slot falls back to pastel, not tapioca
+    expect(featuredGame('1970-01-03')).toBe('pastel');
+    expect(rotationSlot('1970-01-03')).toBe('caldo');
     for (const day of ['2026-10-08', '2026-10-09', '2026-10-10', '2026-01-01', '2026-07-04']) {
-      expect(featuredGame(day)).toBe('tapioca');
+      const slot = rotationSlot(day);
+      expect(featuredGame(day)).toBe(slot === 'caldo' ? 'pastel' : slot);
     }
-    // once pastel and caldo are registered, the slot is the schedule
+    // once caldo is registered too, the slot is the schedule
     const all = ['tapioca', 'pastel', 'caldo'] as const;
     expect(featuredGame('1970-01-01', all)).toBe('tapioca');
     expect(featuredGame('1970-01-02', all)).toBe('pastel');
