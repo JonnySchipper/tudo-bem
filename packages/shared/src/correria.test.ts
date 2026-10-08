@@ -7,11 +7,17 @@ import {
   CORRERIA_TOTAL,
   COUNTER_PRICES,
   DAILY_PAID_SHIFTS,
+  FULL_MENU_SHIFTS,
+  ITEM_EVERY_SHIFTS,
   LEVELS,
   MAX_PRESENT,
   MAX_SHIFT_POINTS,
+  MENU_LADDER,
+  PAY_MUL_MAX,
+  PAY_STEP_PCT,
   POUR,
   UNLOCKS,
+  WHERE_MENU_AT,
   WAVE_SIZES,
   askOptions,
   chapaFrame,
@@ -24,8 +30,16 @@ import {
   levelForStars,
   makeCorrOrder,
   makeFollow,
+  menuCountForShifts,
+  menuIdsForShifts,
+  menuPayMul,
+  menuPayPct,
   newShift,
   newUnlocks,
+  normalizeCorreria,
+  noteLesson,
+  payBump,
+  pendingLesson,
   orderTotal,
   parseNumberAnswer,
   patienceMs,
@@ -37,6 +51,7 @@ import {
   sanitizeAct,
   shiftAct,
   shiftAdvance,
+  shiftItemPool,
   shiftSnapshot,
   starsFor,
   summarizeShift,
@@ -44,6 +59,7 @@ import {
   unlockedFor,
   wantOf,
   waveOf,
+  whereRequired,
   whoAppearance,
   type CEvent,
   type Shift,
@@ -52,7 +68,7 @@ import {
 import { checkTray, mulberry32, type MgOrder, type Tray } from './meveum.js';
 import { MG_ITEMS } from './meveum.js';
 
-const ctx = (over: Partial<ShiftCtx> = {}): ShiftCtx => ({ seed: 7, level: 0, unlocked: [], saturday: false, minute: 8 * 60 + 30, baker: 'carlos', regulars: [], ...over });
+const ctx = (over: Partial<ShiftCtx> = {}): ShiftCtx => ({ seed: 7, level: 0, unlocked: [], shifts: FULL_MENU_SHIFTS, saturday: false, minute: 8 * 60 + 30, baker: 'carlos', regulars: [], ...over });
 
 const wrongItem = (sh: Shift) => ['pao', 'bolo', 'pao_de_queijo', 'guarana'].find((i) => !wantOf(sh)!.lines.some((l) => l.itemId === i))!;
 
@@ -201,21 +217,19 @@ describe('difficulty by level', () => {
 });
 
 describe('order generation', () => {
-  it('pastel and coxinha only appear once the estufa is unlocked', () => {
-    const lockedItems = itemsFor([]).map((i) => i.id);
-    expect(lockedItems).not.toContain('pastel');
-    expect(lockedItems).not.toContain('coxinha');
-    expect(itemsFor(['salgados']).map((i) => i.id)).toContain('coxinha');
+  it('a new counter only orders café and pão; pastel and coxinha wait for the ladder', () => {
+    expect(itemsFor(0).map((i) => i.id).sort()).toEqual(['cafe', 'pao']);
+    expect(itemsFor(FULL_MENU_SHIFTS).map((i) => i.id)).toEqual(expect.arrayContaining(['pastel', 'coxinha']));
     const seen = new Set<string>();
-    for (let seed = 1; seed <= 200; seed++) {
-      const o = makeCorrOrder(mulberry32(seed), { level: seed % 4, wave: seed % 3, unlocked: [], saturday: false, avoid: [] });
+    for (let seed = 1; seed <= 80; seed++) {
+      const o = makeCorrOrder(mulberry32(seed), { level: seed % 4, wave: seed % 3, unlocked: ['salgados', 'sabado'], shifts: 0, saturday: seed % 2 === 0, avoid: [] });
       for (const l of o.lines) seen.add(l.itemId);
+      expect(o.mods.some((m) => m === 'pra_viagem' || m === 'pra_comer_aqui')).toBe(false);
     }
-    expect(seen.has('pastel')).toBe(false);
-    expect(seen.has('coxinha')).toBe(false);
-    const withSalgados = new Set<string>();
-    for (let seed = 1; seed <= 300; seed++) for (const l of makeCorrOrder(mulberry32(seed), { level: 2, wave: 2, unlocked: ['salgados'], saturday: false, avoid: [] }).lines) withSalgados.add(l.itemId);
-    expect(withSalgados.has('pastel') || withSalgados.has('coxinha')).toBe(true);
+    expect([...seen].sort()).toEqual(['cafe', 'pao']);
+    const later = new Set<string>();
+    for (let seed = 1; seed <= 200; seed++) for (const l of makeCorrOrder(mulberry32(seed), { level: 2, wave: 2, unlocked: [], shifts: FULL_MENU_SHIFTS, saturday: false, avoid: [] }).lines) later.add(l.itemId);
+    expect(later.has('pastel') || later.has('coxinha')).toBe(true);
   });
 
   it('Verde only draws authored tickets (never a generated combo)', () => {
@@ -264,7 +278,7 @@ describe('follow-ups and changes of mind', () => {
     for (let seed = 1; seed <= 300; seed++) {
       const rng = mulberry32(seed);
       const o = makeCorrOrder(rng, { level: 2, wave: 1, unlocked: ['salgados'], saturday: false, avoid: [] });
-      const f = makeFollow(rng, o, itemsFor(['salgados']));
+      const f = makeFollow(rng, o, itemsFor(FULL_MENU_SHIFTS));
       if (!f) continue;
       for (const l of f.lines) {
         expect(MG_ITEMS.some((i) => i.id === l.itemId)).toBe(true);
@@ -370,7 +384,7 @@ describe('the coffee pour', () => {
     expect([0, 0.3, 0.6, 0.9].map(pourFrame)).toEqual([0, 1, 2, 3]);
   });
 
-  it('a good pour puts the cup on the tray; short and spilled pours do not; holding too long spills by itself', () => {
+  it('tap to start, the cup fills alone, tap again in the window; leaving it spills', () => {
     const sh = newShift(ctx());
     shiftAct(sh, { a: 'pour_start', item: 'cafe' });
     shiftAdvance(sh, POUR.fullMs * 0.85);
@@ -384,6 +398,13 @@ describe('the coffee pour', () => {
     expect(ev.some((e) => e.k === 'pour_bad' && e.why === 'spill')).toBe(true);
     expect(sh.pour).toBeNull();
     expect(sh.tray).toEqual(['cafe']);
+  });
+
+  it('a café that is not on the menu cannot be started', () => {
+    const sh = newShift(ctx({ shifts: 0 }));
+    expect(shiftAct(sh, { a: 'pour_start', item: 'cafe_com_leite' })[0]).toMatchObject({ k: 'no', why: 'locked' });
+    expect(sh.pour).toBeNull();
+    expect(shiftAct(sh, { a: 'pour_start', item: 'cafe' })[0]).toMatchObject({ k: 'pour_start', item: 'cafe' });
   });
 
   it('the faster machine fills sooner', () => {
@@ -403,7 +424,9 @@ describe('anti-cheat: the tray can only be filled through the real steps', () =>
     const sh = newShift(ctx());
     expect(shiftAct(sh, { a: 'grab', item: 'pao_na_chapa' })[0]).toMatchObject({ k: 'no', why: 'station' });
     expect(shiftAct(sh, { a: 'grab', item: 'cafe' })[0]).toMatchObject({ k: 'no', why: 'station' });
-    expect(shiftAct(sh, { a: 'grab', item: 'pastel' })[0]).toMatchObject({ k: 'no', why: 'locked' });
+    const fresh = newShift(ctx({ shifts: 0 }));
+    expect(shiftAct(fresh, { a: 'grab', item: 'pastel' })[0]).toMatchObject({ k: 'no', why: 'locked' });
+    expect(shiftAct(fresh, { a: 'grab', item: 'agua' })[0]).toMatchObject({ k: 'no', why: 'locked' });
     expect(sh.tray).toEqual([]);
     for (let i = 0; i < 12; i++) shiftAct(sh, { a: 'grab', item: 'agua' });
     expect(sh.tray).toHaveLength(9);
@@ -733,6 +756,87 @@ describe('a whole shift', () => {
   });
 });
 
+describe('the menu ladder', () => {
+  const whereMods = (mods: readonly string[]) => mods.filter((m) => m === 'pra_viagem' || m === 'pra_comer_aqui');
+
+  it('opens one item every two shifts, in teaching order, and a size-1 shop stays on café and pão', () => {
+    expect(ITEM_EVERY_SHIFTS).toBe(2);
+    expect(MENU_LADDER).toEqual(['cafe', 'pao', 'agua', 'pao_de_queijo', 'cafe_com_leite', 'suco_de_laranja', 'pao_na_chapa', 'coxinha', 'pastel', 'bolo', 'guarana', 'misto_quente']);
+    expect(menuIdsForShifts(0)).toEqual(['cafe', 'pao']);
+    expect(menuIdsForShifts(1)).toEqual(['cafe', 'pao']);
+    expect(menuCountForShifts(2)).toBe(3);
+    expect(menuIdsForShifts(2)[2]).toBe('agua');
+    expect(menuCountForShifts(8)).toBe(WHERE_MENU_AT);
+    expect(menuIdsForShifts(8)[5]).toBe('suco_de_laranja');
+    expect(menuIdsForShifts(FULL_MENU_SHIFTS)).toEqual([...MENU_LADDER]);
+    expect(menuIdsForShifts(99)).toEqual([...MENU_LADDER]);
+    expect(shiftItemPool({ shifts: 40, menuIds: ['cafe', 'pao'] }).map((i) => i.id).sort()).toEqual(['cafe', 'pao']);
+    expect(payBump(40, ['cafe', 'pao'])).toBeNull();
+  });
+
+  it('teaches each new item once, and the packing card wins the shift it unlocks', () => {
+    expect(pendingLesson(['cafe', 'pao'], [], false)?.id).toBe('cafe');
+    expect(pendingLesson(['cafe', 'pao'], ['cafe'], false)?.id).toBe('pao');
+    expect(pendingLesson(['cafe', 'pao'], ['cafe', 'pao'], false)).toBeNull();
+    const open = menuIdsForShifts(8);
+    expect(whereRequired(open.length)).toBe(true);
+    expect(pendingLesson(open, ['cafe'], true)?.id).toBe('where');
+    expect(pendingLesson(open, [...MENU_LADDER], true)?.id).toBe('where');
+    expect(pendingLesson(open, [...MENU_LADDER, 'where'], true)).toBeNull();
+    const agua = pendingLesson(menuIdsForShifts(2), ['cafe', 'pao'], false);
+    expect(agua?.id).toBe('agua');
+    expect(agua?.title.en.length).toBeGreaterThan(2);
+    expect(agua?.steps[0]?.pt).toMatch(/geladeira/);
+    expect(noteLesson(['cafe'], agua)).toEqual(['cafe', 'agua']);
+    expect(noteLesson(['cafe'], null)).toEqual(['cafe']);
+    expect(noteLesson(['cafe'], pendingLesson(['cafe', 'pao'], ['cafe'], false))).toEqual(['cafe', 'pao']);
+    expect(normalizeCorreria(undefined).taught).toEqual([]);
+    expect(normalizeCorreria({ stars: 1, shifts: 4, best: 1 }).taught).toEqual([...MENU_LADDER, 'where']);
+    expect(normalizeCorreria({ stars: 0, shifts: 0, best: 0, taught: ['cafe', 'nope', 'cafe'] }).taught).toEqual(['cafe']);
+  });
+
+  it('pays +6% of today per extra item, at most 1.6×, and says so when the menu grew', () => {
+    expect(PAY_STEP_PCT).toBe(6);
+    expect(menuPayPct(2)).toBe(0);
+    expect(menuPayMul(2)).toBe(1);
+    expect(menuPayPct(MENU_LADDER.length)).toBe(60);
+    expect(menuPayMul(MENU_LADDER.length)).toBe(PAY_MUL_MAX);
+    expect(menuPayMul(3)).toBeCloseTo(1.06);
+    expect(payBump(0)).toBeNull();
+    expect(payBump(1)).toBeNull();
+    expect(payBump(2)).toEqual({ pt: '+1 item no cardápio: pagamento +6%', en: '+1 menu item: pay +6%' });
+    expect(payBump(3)).toBeNull();
+    const sh = newShift(ctx({ shifts: 2, bump: payBump(2), lesson: pendingLesson(menuIdsForShifts(2), ['cafe', 'pao'], false) }));
+    const snap = shiftSnapshot(sh);
+    expect(snap.menu).toHaveLength(3);
+    expect(snap.payMul).toBeCloseTo(1.06);
+    expect(snap.bump?.pt).toMatch(/\+6%/);
+    expect(snap.lesson?.id).toBe('agua');
+  });
+
+  it('pra viagem / pra comer aqui is absent before 6 items and on every order after', () => {
+    expect(whereRequired(5)).toBe(false);
+    expect(whereRequired(6)).toBe(true);
+    for (let seed = 1; seed <= 40; seed++) {
+      const small = makeCorrOrder(mulberry32(seed), { level: 3, wave: 2, unlocked: ['sabado'], shifts: 6, saturday: false, avoid: [] });
+      expect(menuCountForShifts(6)).toBe(5);
+      expect(whereMods(small.mods)).toEqual([]);
+      const big = makeCorrOrder(mulberry32(seed + 90), { level: 2, wave: 1, unlocked: [], shifts: 8, saturday: false, avoid: [] });
+      expect(whereMods(big.mods)).toHaveLength(1);
+      expect(big.pt).toMatch(/pra viagem|pra comer aqui/);
+      expect(big.en).toMatch(/to go|for here/i);
+      const rng = mulberry32(seed + 200);
+      const full = makeCorrOrder(rng, { level: 3, wave: 2, unlocked: ['salgados'], shifts: FULL_MENU_SHIFTS, saturday: false, avoid: [] });
+      expect(whereMods(full.mods)).toHaveLength(1);
+      const follow = makeFollow(rng, full, itemsFor(FULL_MENU_SHIFTS));
+      if (follow) expect(whereMods(follow.mods)).toEqual(whereMods(full.mods));
+      const early = makeCorrOrder(mulberry32(seed + 400), { level: 3, wave: 2, unlocked: [], shifts: 0, saturday: false, avoid: [] });
+      const earlyFollow = makeFollow(mulberry32(seed + 500), early, itemsFor(0));
+      if (earlyFollow) expect(whereMods(earlyFollow.mods)).toEqual([]);
+    }
+  });
+});
+
 describe('stars, payout and the daily gate numbers', () => {
   it('stars by points, RV by the existing economy range', () => {
     expect([0, 0.2, 0.3, 0.5, 0.7, 1].map((r) => starsFor(r * MAX_SHIFT_POINTS))).toEqual([0, 0, 1, 2, 3, 3]);
@@ -740,6 +844,10 @@ describe('stars, payout and the daily gate numbers', () => {
     expect(correriaPayout(1, 1)).toBeGreaterThanOrEqual(8);
     expect(correriaPayout(MAX_SHIFT_POINTS, 15)).toBe(20);
     expect(correriaPayout(MAX_SHIFT_POINTS * 5, 15)).toBe(20);
+    expect(correriaPayout(MAX_SHIFT_POINTS, 15, 2)).toBe(20);
+    expect(correriaPayout(MAX_SHIFT_POINTS, 15, MENU_LADDER.length)).toBe(32);
+    expect(correriaPayout(MAX_SHIFT_POINTS, 15, 99)).toBe(32);
+    expect(correriaPayout(MAX_SHIFT_POINTS, 15, 12)).toBeLessThanOrEqual(Math.round(20 * PAY_MUL_MAX));
     expect(DAILY_PAID_SHIFTS).toBe(3);
   });
 

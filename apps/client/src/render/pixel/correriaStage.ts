@@ -273,6 +273,18 @@ export class CounterStage {
       else document.body.append(el);
     }
     const on = correriaFeed;
+    /** Tap starts the pour; the cup fills alone; a second tap stops it. Not a pointer hold. */
+    const togglePour = (itemId?: string) => {
+      if (this.pouring) {
+        this.pouring = false;
+        on.on.pourEnd();
+        return;
+      }
+      const id = itemId || on.cup || 'cafe';
+      on.cup = id;
+      this.pouring = true;
+      on.on.pourStart(id);
+    };
     const btn = (id: string, cls: string, spot: Spot, w: number, h: number, label: string, labelEn: string, handlers: Partial<Record<'click' | 'down' | 'up', () => void>>): void => {
       const b = document.createElement('button');
       b.type = 'button';
@@ -322,35 +334,11 @@ export class CounterStage {
       const isCup = CAFE_ITEMS.includes(id);
       const labels = { pt: it.card.form, en: it.card.gloss_en };
       btn(`item-${id}`, `cr-item shelf-${SHELF_OF[id]}`, spot, 25, 22, labels.pt, labels.en, {
-        click: isCup ? undefined : () => (CHAPA_ITEMS.includes(id) ? on.on.chapaPut(id) : on.on.grab(id)),
-        down: isCup
-          ? () => {
-              on.cup = id;
-              this.pouring = true;
-              on.on.pourStart(id);
-            }
-          : undefined,
-        up: isCup
-          ? () => {
-              if (this.pouring) {
-                this.pouring = false;
-                on.on.pourEnd();
-              }
-            }
-          : undefined,
+        click: isCup ? () => togglePour(id) : () => (CHAPA_ITEMS.includes(id) ? on.on.chapaPut(id) : on.on.grab(id)),
       });
     }
-    btn('machine', 'cr-machine', { x: COFFEE_SPOT.x, y: COFFEE_SPOT.y }, 32, 40, 'Cafeteira', 'Coffee machine', {
-      down: () => {
-        this.pouring = true;
-        on.on.pourStart(on.cup);
-      },
-      up: () => {
-        if (this.pouring) {
-          this.pouring = false;
-          on.on.pourEnd();
-        }
-      },
+    btn('machine', 'cr-machine', { x: COFFEE_SPOT.x, y: COFFEE_SPOT.y }, 32, 40, 'Cafeteira', 'Tap to pour', {
+      click: () => togglePour(),
     });
     for (let i = 0; i < 2; i++) btn(`grill-${i}`, 'cr-grill', CHAPA_SLOTS[i]!, 16, 16, '', '', { click: () => on.on.chapaTake(i) });
     btn('bag', 'cr-pack', BAG_SPOT, 24, 30, 'Sacola', 'Bag (to go)', { click: () => on.on.pack('bag') });
@@ -438,15 +426,25 @@ export class CounterStage {
     this.stepPops();
   }
 
-  /** Items are lit up when the player can use them: dimmed when locked. */
+  /** Items are lit up when the player can use them: dimmed when they are not on this shift's menu. An empty menu (old snap) leaves the shelf open. */
   private drawPieces(snap: CorreriaSnap, age: number): void {
-    const unlocked = new Set(snap.unlocked);
+    const open = snap.menu?.length ? new Set(snap.menu) : null;
     for (const it of MG_ITEMS) {
-      const lock = (it.id === 'pastel' || it.id === 'coxinha') && !unlocked.has('salgados');
+      const lock = !!open && !open.has(it.id);
       const p = this.items.get(it.id)!;
       p.set(itemKey(it.id), { alpha: lock ? 0.28 : 1, scale: ITEM_SCALE });
       const hot = this.hot.get(`item-${it.id}`);
       if (hot) hot.el.disabled = lock;
+    }
+    const machine = this.hot.get('machine');
+    if (machine) {
+      const live = !!snap.pour || this.pouring;
+      machine.el.disabled = !!open && !open.has('cafe') && !open.has('cafe_com_leite');
+      const pt = machine.el.querySelector('.cr-lab');
+      const en = machine.el.querySelector('.cr-lab-en');
+      if (pt) pt.textContent = live ? 'Toque de novo' : 'Cafeteira';
+      if (en) en.textContent = live ? 'Tap again at the right time' : 'Tap to pour';
+      machine.el.setAttribute('aria-label', live ? 'Toque de novo (Tap again at the right time)' : 'Cafeteira (Tap to pour)');
     }
     // the tray: the base plus a miniature per item (a full one past five)
     const tray = snap.tray;
@@ -729,10 +727,15 @@ export class CounterStage {
         this.puff(CHAPA_SLOTS[e.slot]!.x, CHAPA_SLOTS[e.slot]!.y - 4, 2, true);
         break;
       case 'pour_ok':
+        this.pouring = false;
         this.popAt(COFFEE_SPOT.x, COFFEE_SPOT.y - 40, '☕');
         break;
       case 'pour_bad':
+        this.pouring = false;
         this.popAt(COFFEE_SPOT.x, COFFEE_SPOT.y - 40, e.why === 'spill' ? '💦' : '…');
+        break;
+      case 'no':
+        if (this.pouring && !snap.pour) this.pouring = false;
         break;
       case 'serve':
         this.bellUntil = this.nowMs + 450;

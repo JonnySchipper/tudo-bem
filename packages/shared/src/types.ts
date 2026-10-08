@@ -128,7 +128,7 @@ export interface FriendInfo {
   instanceId: string | null;
 }
 
-/** The padaria counter game's progress. Stars unlock tools and set the level; they are earned by playing, never bought. */
+/** The padaria counter game's progress. Stars unlock tools and set the level; they are earned by playing, never bought. The counter menu grows from completed shifts, not from stars. */
 export interface CorreriaProgress {
   stars: number;
   shifts: number;
@@ -136,6 +136,8 @@ export interface CorreriaProgress {
   /** The real day (YYYY-MM-DD) `paid` counts shifts of: only the first few shifts a day pay RV. */
   date?: string;
   paid?: number;
+  /** Lesson ids already shown (item ids, plus `where`). Server-owned; a missing list on an old save means they already played the wide counter. */
+  taught?: string[];
 }
 
 export interface PrivateProfile {

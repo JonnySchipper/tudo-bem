@@ -4,7 +4,7 @@
  *
  * A shift is three waves (4 + 5 + 6 = 15 customers, about three real minutes). Customers queue at the counter with a patience meter,
  * order in a speech bubble (written) or by voice only (listening), may add something or change their mind, and the player builds the
- * tray in the world: shelves, the estufa, the chapa (a cooking window that ends in a burn), the coffee pour meter, a bag or a plate.
+ * tray in the world: shelves, the estufa, the chapa (a cooking window that ends in a burn), the coffee pour (tap to start, tap again in the window), a bag or a plate.
  * "Me vê um…" stays what customers SAY; the order text comes from the curriculum pack (`meveum.ts`) plus generated combos.
  * Every PT string here is new content: `needs_br: true` (listed in DECISIONS.md).
  */
@@ -57,6 +57,7 @@ export const MISTAKE_COST = 0.15;
 export const ASK_MS = 15_000;
 
 export const CHAPA = { cookMs: 2400, burnMs: 5400, toleranceMs: 150, sizzleStepMs: 800 } as const;
+/** The cup fills on its own after the start tap. A second tap inside goodMin..spillAt lands it; past abortFactor it spills by itself, like the chapa burns. */
 export const POUR = { fullMs: 1800, fastMs: 1300, goodMin: 0.7, spillAt: 1.08, minHoldMs: 120, abortFactor: 1.7 } as const;
 
 /** Shelf items that need the chapa / the coffee machine; every other item is a plain grab (the estufa, the vitrine, the geladeira). */
@@ -167,9 +168,9 @@ export interface Unlock {
   en: string;
   hint: Bilingual;
 }
-/** Never pay-to-win: shift stars only, and each one is a new tool or a new kind of customer. */
+/** Never pay-to-win: shift stars only, and each one is a new tool or a new kind of customer. Pastel and coxinha are on the shift ladder, not behind `salgados`. */
 export const UNLOCKS: readonly Unlock[] = [
-  { id: 'salgados', stars: 2, pt: 'Pastel e coxinha na estufa', en: 'Pastel and coxinha in the warmer', hint: { pt: 'Agora tem salgado na estufa!', en: 'The warmer has snacks now!' } },
+  { id: 'salgados', stars: 2, pt: 'Pastel e coxinha na estufa', en: 'Pastel and coxinha in the warmer', hint: { pt: 'Pastel e coxinha entram na estufa quando o cardápio chega neles.', en: 'Pastel and coxinha join the warmer when the menu reaches them.' } },
   { id: 'chapa2', stars: 4, pt: 'Segunda chapa', en: 'A second grill spot', hint: { pt: 'A chapa agora tem dois lugares.', en: 'The grill has two spots now.' } },
   { id: 'cafe_rapido', stars: 7, pt: 'Cafeteira mais rápida', en: 'A faster coffee machine', hint: { pt: 'A cafeteira novinha enche mais rápido.', en: 'The new machine fills faster.' } },
   { id: 'sabado', stars: 10, pt: 'Pedidos de sábado', en: 'Saturday orders', hint: { pt: 'Aos sábados vêm pedidos grandes, com bônus.', en: 'On Saturdays, big orders come in with a bonus.' } },
@@ -177,22 +178,115 @@ export const UNLOCKS: readonly Unlock[] = [
 export const unlockedFor = (stars: number): UnlockId[] => UNLOCKS.filter((u) => stars >= u.stars).map((u) => u.id);
 export const newUnlocks = (before: number, after: number): Unlock[] => UNLOCKS.filter((u) => before < u.stars && after >= u.stars);
 
-/** The items on the counter for these unlocks (pastel and coxinha open with `salgados`). */
-export function itemsFor(unlocked: readonly string[]): MgItem[] {
-  return MG_ITEMS.filter((i) => (i.id === 'pastel' || i.id === 'coxinha' ? unlocked.includes('salgados') : true));
+/** Completed shifts between each new counter item. The first two are on the counter from the start. */
+export const ITEM_EVERY_SHIFTS = 2;
+/**
+ * Teaching order. A new player has café and pão francês; one more item opens every `ITEM_EVERY_SHIFTS` completed shifts.
+ * Pastel and coxinha sit on this ladder (the `salgados` star is only the milestone hint).
+ */
+export const MENU_LADDER = ['cafe', 'pao', 'agua', 'pao_de_queijo', 'cafe_com_leite', 'suco_de_laranja', 'pao_na_chapa', 'coxinha', 'pastel', 'bolo', 'guarana', 'misto_quente'] as const;
+/** Shifts that open the whole ladder. */
+export const FULL_MENU_SHIFTS = (MENU_LADDER.length - 2) * ITEM_EVERY_SHIFTS;
+/** From this many open items, every order says pra viagem or pra comer aqui. */
+export const WHERE_MENU_AT = 6;
+/** Lesson id for the packing card (not an item). */
+export const WHERE_LESSON_ID = 'where';
+/** Pay scale over today's 2-item payout: +6% of that base per extra item, 1.60 at the full menu (10 extras × 6). */
+export const PAY_STEP_PCT = 6;
+export const PAY_MUL_MAX = 1.6;
+
+export function menuCountForShifts(shifts: number): number {
+  const done = Math.max(0, Math.floor(Number.isFinite(shifts) ? shifts : 0));
+  return Math.min(MENU_LADDER.length, 2 + Math.floor(done / ITEM_EVERY_SHIFTS));
+}
+export function menuIdsForShifts(shifts: number): string[] {
+  return MENU_LADDER.slice(0, menuCountForShifts(shifts));
+}
+/** Percent points added to the 2-item payout (0 at two items, 60 at the full menu). */
+export function menuPayPct(itemCount: number): number {
+  const span = MENU_LADDER.length - 2;
+  const extra = Math.max(0, Math.min(span, Math.floor(itemCount) - 2));
+  return PAY_STEP_PCT * extra;
+}
+export function menuPayMul(itemCount: number): number {
+  return 1 + menuPayPct(itemCount) / 100;
+}
+
+/** The items on the counter after this many completed shifts (the ladder, before an owned-room cap). */
+export function itemsFor(shifts: number): MgItem[] {
+  const ids = new Set(menuIdsForShifts(shifts));
+  return MG_ITEMS.filter((i) => ids.has(i.id));
 }
 
 /**
- * Counter items for this shift: star unlocks, capped by an owned room's menu. The owned-only items (sweets, restaurant plates) have no board
+ * Counter items for this shift: the ladder, capped by an owned room's menu. The owned-only items (sweets, restaurant plates) have no board
  * art or shelf spot yet, so they never enter a shift: owners sell them at the balcão da casa instead.
  */
-export function shiftItemPool(ctx: Pick<ShiftCtx, 'unlocked' | 'menuIds'>): MgItem[] {
-  let items = itemsFor(ctx.unlocked);
+export function shiftItemPool(ctx: Pick<ShiftCtx, 'shifts' | 'menuIds'>): MgItem[] {
+  let items = itemsFor(ctx.shifts ?? 0);
   if (ctx.menuIds?.length) {
     const allow = new Set(ctx.menuIds);
     items = items.filter((i) => allow.has(i.id));
   }
   return items;
+}
+export const whereRequired = (itemCount: number): boolean => itemCount >= WHERE_MENU_AT;
+
+/** One-time card at the start of the shift that first opens an item (or packing). On screen, not spoken. */
+export interface CounterLesson {
+  id: string;
+  title: Bilingual;
+  steps: Bilingual[];
+}
+const step = (pt: string, en: string): Bilingual => ({ pt, en });
+const LESSONS: Record<string, CounterLesson> = {
+  cafe: { id: 'cafe', title: step('Café', 'Coffee'), steps: [step('Toque na cafeteira para começar a servir.', 'Tap the coffee machine to start the pour.'), step('A xícara enche sozinha. Toque de novo na hora certa.', 'The cup fills on its own. Tap again at the right time.'), step('Cedo demais fica curto; tarde demais derrama.', 'Too early comes up short; too late spills.')] },
+  pao: { id: 'pao', title: step('Pão francês', 'French bread roll'), steps: [step('Pegue o pão na vitrine.', 'Take the bread from the display case.'), step('Ponha na bandeja e entregue.', 'Put it on the tray and serve.')] },
+  agua: { id: 'agua', title: step('Água', 'Water'), steps: [step('A água fica na geladeira.', 'The water is in the fridge.'), step('Toque nela para pôr na bandeja.', 'Tap it to put it on the tray.')] },
+  pao_de_queijo: { id: 'pao_de_queijo', title: step('Pão de queijo', 'Cheese bread'), steps: [step('Pegue o pão de queijo na vitrine.', 'Take the cheese bread from the display case.')] },
+  cafe_com_leite: { id: 'cafe_com_leite', title: step('Café com leite', 'Coffee with milk'), steps: [step('O café com leite sai da cafeteira, como o café.', 'Coffee with milk comes from the machine, like coffee.'), step('Toque para começar e toque de novo na hora certa.', 'Tap to start, then tap again at the right time.')] },
+  suco_de_laranja: { id: 'suco_de_laranja', title: step('Suco de laranja', 'Orange juice'), steps: [step('Pegue o suco de laranja na geladeira.', 'Take the orange juice from the fridge.')] },
+  pao_na_chapa: { id: 'pao_na_chapa', title: step('Pão na chapa', 'Grilled bread'), steps: [step('Ponha o pão na chapa.', 'Put the bread on the grill.'), step('Tire quando dourar. Se passar, queima.', 'Take it off when it browns. Leave it and it burns.')] },
+  coxinha: { id: 'coxinha', title: step('Coxinha', 'Coxinha'), steps: [step('Pegue a coxinha na estufa.', 'Take the coxinha from the warmer.')] },
+  pastel: { id: 'pastel', title: step('Pastel', 'Pastel'), steps: [step('Pegue o pastel na estufa.', 'Take the pastel from the warmer.')] },
+  bolo: { id: 'bolo', title: step('Bolo', 'Cake'), steps: [step('Pegue o bolo na vitrine.', 'Take the cake from the display case.')] },
+  guarana: { id: 'guarana', title: step('Guaraná', 'Guaraná soda'), steps: [step('Pegue o guaraná na geladeira.', 'Take the guaraná from the fridge.')] },
+  misto_quente: { id: 'misto_quente', title: step('Misto-quente', 'Ham and cheese toast'), steps: [step('Ponha o misto-quente na chapa.', 'Put the toastie on the grill.'), step('Tire quando dourar. Se passar, queima.', 'Take it off when it browns. Leave it and it burns.')] },
+};
+const WHERE_LESSON: CounterLesson = {
+  id: WHERE_LESSON_ID,
+  title: step('Pra viagem ou pra comer aqui', 'To go or for here'),
+  steps: [step('Agora todo pedido diz pra viagem ou pra comer aqui.', 'Every order now says to go or for here.'), step('Pra viagem = saquinho ou copo pra levar.', 'To go = a bag or a cup to take away.'), step('Pra comer aqui = prato ou xícara.', 'For here = a plate or a cup.')],
+};
+/** The earliest untaught item on this menu, or the packing card the shift it becomes mandatory. Null when everything here was already shown. */
+export function pendingLesson(menuIds: readonly string[], taught: readonly string[], whereOn: boolean): CounterLesson | null {
+  const seen = new Set(taught);
+  if (whereOn && !seen.has(WHERE_LESSON_ID)) return WHERE_LESSON;
+  for (const id of MENU_LADDER) {
+    if (!menuIds.includes(id) || seen.has(id)) continue;
+    const lesson = LESSONS[id];
+    if (lesson) return lesson;
+  }
+  return null;
+}
+export function noteLesson(taught: readonly string[] | undefined, lesson: CounterLesson | null): string[] {
+  const out = [...(taught ?? [])];
+  if (lesson && !out.includes(lesson.id)) out.push(lesson.id);
+  return out;
+}
+/** The line when this shift's counter is bigger than the one before it. Null when nothing new opened. */
+export function payBump(shifts: number, menuIds?: readonly string[]): Bilingual | null {
+  const n = Math.max(0, Math.floor(Number.isFinite(shifts) ? shifts : 0));
+  if (n <= 0) return null;
+  const now = shiftItemPool({ shifts: n, menuIds }).length;
+  const prev = shiftItemPool({ shifts: n - 1, menuIds }).length;
+  if (now <= prev) return null;
+  const pct = menuPayPct(now) - menuPayPct(prev);
+  const added = now - prev;
+  return {
+    pt: `+${added} ${added === 1 ? 'item' : 'itens'} no cardápio: pagamento +${pct}%`,
+    en: `+${added} menu ${added === 1 ? 'item' : 'items'}: pay +${pct}%`,
+  };
 }
 export const chapaSlots = (unlocked: readonly string[]): number => (unlocked.includes('chapa2') ? 2 : 1);
 export const pourMsFor = (unlocked: readonly string[]): number => (unlocked.includes('cafe_rapido') ? POUR.fastMs : POUR.fullMs);
@@ -391,11 +485,11 @@ const DRINKS = ['cafe', 'cafe_com_leite', 'suco_de_laranja', 'agua', 'guarana'];
 const art = (item: MgItem) => ((item.card.gender ?? 'm') === 'f' ? 'da' : 'do');
 const enArt = (item: MgItem) => item.card.gloss_en_tray ?? item.card.gloss_en;
 
-/** "Ah, e pra viagem!" / "Ah, e mais um pão!" / "Não, um suco em vez do café." Always solvable from the new order. */
-export function makeFollow(rng: Rng, order: MgOrder, items: readonly MgItem[]): Follow | null {
+/** "Ah, e pra viagem!" / "Ah, e mais um pão!" / "Não, um suco em vez do café." Always solvable from the new order. `where` adds a packing line only when the caller asks (the ladder puts it on the order itself once the menu is big enough). */
+export function makeFollow(rng: Rng, order: MgOrder, items: readonly MgItem[], opts: { where?: boolean } = {}): Follow | null {
   const ids = new Set(items.map((i) => i.id));
   const kinds: ('where' | 'more' | 'swap')[] = [];
-  if (!order.mods.some((m) => mgModById(m)?.group === 'where')) kinds.push('where');
+  if (opts.where && !order.mods.some((m) => mgModById(m)?.group === 'where')) kinds.push('where');
   if (order.lines.some((l) => l.qty < 3)) kinds.push('more');
   if (order.lines.some((l) => l.qty === 1 && DRINKS.includes(l.itemId))) kinds.push('swap');
   if (!kinds.length) return null;
@@ -427,21 +521,39 @@ export function makeFollow(rng: Rng, order: MgOrder, items: readonly MgItem[]): 
   };
 }
 
-/** The order for a customer: authored tickets early, generated combos later, only items the player has unlocked. */
+const hasWhere = (mods: readonly string[]): boolean => mods.some((m) => mgModById(m)?.group === 'where');
+const stitch = (sentence: string, extra: string): string => {
+  const t = sentence.trim();
+  if (/[.!?…]$/.test(t)) return `${t.slice(0, -1)}, ${extra}${t.slice(-1)}`;
+  return `${t}, ${extra}.`;
+};
+/** Once the menu is big enough, every order names pra viagem or pra comer aqui. Before that, those mods stay off. */
+export function withWhere<T extends MgOrder>(rng: Rng, order: T, required: boolean): T {
+  if (!required || hasWhere(order.mods)) return order;
+  const w = pick(rng, MG_MODS.filter((m) => m.group === 'where'));
+  const mods = [...order.mods, w.id];
+  return { ...order, mods, pt: stitch(order.pt, w.pt), en: stitch(order.en, w.en), timeMs: orderTimeMs(order.lines, mods) };
+}
+
+/** The order for a customer: authored tickets early, generated combos later, only items open on this shift's menu. Omitted `shifts` is the full ladder (old callers). */
 export function makeCorrOrder(
   rng: Rng,
-  o: { level: number; wave: number; unlocked: readonly string[]; menuIds?: readonly string[]; saturday: boolean; avoid: readonly string[]; minute?: number; customer?: string },
+  o: { level: number; wave: number; unlocked: readonly string[]; menuIds?: readonly string[]; shifts?: number; saturday: boolean; avoid: readonly string[]; minute?: number; customer?: string },
 ): MgOrder & { special?: boolean } {
   const lv = LEVELS[Math.max(0, Math.min(LEVELS.length - 1, o.level))]!;
-  const items = shiftItemPool(o);
+  const shifts = o.shifts ?? FULL_MENU_SHIFTS;
+  const items = shiftItemPool({ shifts, menuIds: o.menuIds });
   const ids = new Set(items.map((i) => i.id));
+  const whereOn = whereRequired(items.length);
   const customer = o.customer ?? 'Cliente';
   const finish = <T extends MgOrder>(ord: T): T => (o.minute === undefined ? ord : { ...ord, ...localizeGreeting({ pt: ord.pt, en: ord.en }, o.minute) });
   const skip = new Set(o.avoid.map((pt) => localizeGreeting({ pt }, 600).pt));
+  const seen = (pt: string) => skip.has(localizeGreeting({ pt }, 600).pt);
   const wave = Math.max(0, Math.min(2, o.wave));
+  const comboOpts = { pool: items, minLines: lv.maxLines >= 3 ? 2 : 1, maxLines: lv.maxLines, maxQty: lv.maxQty, coffeeModChance: o.level >= 2 ? 0.3 : 0, whereChance: whereOn ? 1 : 0 };
   // Saturday: some customers bring a big order (unlocked with the stars; it pays +50%)
   if (o.saturday && o.unlocked.includes('sabado') && rng() < 0.4) {
-    const c = generateCombo(rng, customer, { pool: items, minLines: 3, maxLines: 3, maxQty: 2, whereChance: 0.4 });
+    const c = withWhere(rng, generateCombo(rng, customer, { pool: items, minLines: 3, maxLines: 3, maxQty: 2, whereChance: whereOn ? 1 : 0 }), whereOn);
     const body = c.pt.replace(/^(Bom dia|Boa tarde|Boa noite)! /, '').replace(/^Me vê /, '');
     return finish({ ...c, pt: `Sábado! Hoje é festa: me vê ${body.replace(/^[A-ZÀ-Ú]/, (m) => m.toLowerCase())}`, en: `Saturday! Party day: I’ll take ${c.en.replace(/^(Good (morning|afternoon|evening)! )?(I’ll take )?/i, '').replace(/^[A-Z]/, (m) => m.toLowerCase())}`, special: true });
   }
@@ -456,16 +568,24 @@ export function makeCorrOrder(
   let round = r0;
   if (o.level <= 1 && wave === 1) round = rng() < 0.5 ? 0 : 2;
   if (o.level === 2 && wave === 1) round = rng() < 0.5 ? 2 : 4;
-  const pool = AUTHORED_ORDERS.filter((a) => (round < 2 ? a.level === 'verde' : a.level === 'bump') && a.lines?.length && a.lines.every(([id]) => ids.has(id)));
+  const pool = AUTHORED_ORDERS.filter((a) => (round < 2 ? a.level === 'verde' : a.level === 'bump') && a.lines?.length && a.lines.every(([id]) => ids.has(id)) && (whereOn || !hasWhere(a.mods ?? [])));
   if (round < 4 && pool.length) {
-    const fresh = pool.filter((a) => !skip.has(a.pt));
-    const a = pick(rng, fresh.length ? fresh : pool);
-    const lines = a.lines.map(([itemId, qty]) => ({ itemId, qty }));
-    return finish({ customer, lines, mods: [...(a.mods ?? [])], pt: a.pt, en: a.en, timeMs: orderTimeMs(lines, a.mods ?? []), authored: true });
+    const choices = [...pool];
+    let fallback: (MgOrder & { special?: boolean }) | null = null;
+    while (choices.length) {
+      const a = choices.splice(Math.floor(rng() * choices.length), 1)[0]!;
+      const lines = a.lines.map(([itemId, qty]) => ({ itemId, qty }));
+      const mods = [...(a.mods ?? [])];
+      const done = finish(withWhere(rng, { customer, lines, mods, pt: a.pt, en: a.en, timeMs: orderTimeMs(lines, mods), authored: true }, whereOn));
+      if (!fallback) fallback = done;
+      if (!seen(done.pt)) return done;
+    }
+    if (fallback && !seen(fallback.pt)) return fallback;
   }
-  let made = generateCombo(rng, customer, { pool: items, minLines: lv.maxLines >= 3 ? 2 : 1, maxLines: lv.maxLines, maxQty: lv.maxQty, coffeeModChance: o.level >= 2 ? 0.3 : 0 });
-  for (let i = 1; i < 8 && skip.has(localizeGreeting({ pt: made.pt }, 600).pt); i++) made = generateCombo(rng, customer, { pool: items, minLines: lv.maxLines >= 3 ? 2 : 1, maxLines: lv.maxLines, maxQty: lv.maxQty, coffeeModChance: o.level >= 2 ? 0.3 : 0 });
-  return finish(made);
+  const bake = () => finish(withWhere(rng, generateCombo(rng, customer, comboOpts), whereOn));
+  let made = bake();
+  for (let i = 1; i < 8 && seen(made.pt); i++) made = bake();
+  return made;
 }
 
 // ---------------------------------------------------------------- customers
@@ -556,8 +676,14 @@ export interface ShiftCtx {
   seed: number;
   level: number;
   unlocked: readonly string[];
+  /** Completed shifts before this one. The menu ladder reads it. Omitted means a brand-new counter (café and pão). */
+  shifts?: number;
   /** When set (owned size 1), orders only draw from these shared-shelf ids. */
   menuIds?: readonly string[];
+  /** One-time card for this shift, already marked taught by the server. */
+  lesson?: CounterLesson | null;
+  /** Set when this shift's menu just grew. */
+  bump?: Bilingual | null;
   saturday: boolean;
   /** Game-clock minute, so customers greet by the hour. */
   minute: number;
@@ -693,7 +819,7 @@ export function newShift(ctx: ShiftCtx): Shift {
   const rng = ctx.rng ?? mulberry(ctx.seed);
   return {
     v: 1,
-    ctx: { ...ctx, unlocked: [...ctx.unlocked], regulars: ctx.regulars.map((r) => ({ ...r })) },
+    ctx: { ...ctx, shifts: Math.max(0, Math.floor(ctx.shifts ?? 0)), unlocked: [...ctx.unlocked], regulars: ctx.regulars.map((r) => ({ ...r })), lesson: ctx.lesson ?? null, bump: ctx.bump ?? null },
     rng,
     t: 0,
     customers: [],
@@ -772,11 +898,13 @@ function spawn(sh: Shift, ev: CEvent[]): void {
   const wave = waveOf(idx);
   const lv = levelOf(sh);
   const who = pickWho(sh);
-  const order = makeCorrOrder(sh.rng, { level: sh.ctx.level, wave, unlocked: sh.ctx.unlocked, menuIds: sh.ctx.menuIds, saturday: sh.ctx.saturday, avoid: sh.served, minute: sh.ctx.minute, customer: who.name });
+  const pool = shiftItemPool(sh.ctx);
+  const order = makeCorrOrder(sh.rng, { level: sh.ctx.level, wave, unlocked: sh.ctx.unlocked, menuIds: sh.ctx.menuIds, shifts: sh.ctx.shifts ?? 0, saturday: sh.ctx.saturday, avoid: sh.served, minute: sh.ctx.minute, customer: who.name });
   sh.served.push(order.pt);
   const regular = !!who.npc;
   const mode: OrderMode = sh.rng() < lv.listen[wave]! ? 'listening' : 'written';
-  const follow = sh.rng() < lv.follow[wave]! ? makeFollow(sh.rng, order, shiftItemPool(sh.ctx)) : null;
+  // Packing is on the order itself once the menu is big enough, and absent before that — a follow-up does not sneak it in early.
+  const follow = sh.rng() < lv.follow[wave]! ? makeFollow(sh.rng, order, pool, { where: false }) : null;
   const pMax = patienceMs(order, sh.ctx.level, wave, regular);
   const c: Customer = {
     id: sh.nextId++,
@@ -883,7 +1011,7 @@ function tickOnce(sh: Shift, dt: number, ev: CEvent[]): void {
       ev.push({ k: 'chapa_burnt', slot: i });
     }
   });
-  // a pour held far too long spills by itself
+  // a pour left running past the window spills by itself (the second tap never came)
   if (sh.pour && sh.t - sh.pour.at > pourMsFor(sh.ctx.unlocked) * POUR.abortFactor) {
     ev.push({ k: 'pour_bad', why: 'spill', fill: (sh.t - sh.pour.at) / pourMsFor(sh.ctx.unlocked) });
     sh.pour = null;
@@ -1048,6 +1176,7 @@ export function shiftAct(sh: Shift, a: CAct): CEvent[] {
     }
     case 'pour_start': {
       if (!CAFE_ITEMS.includes(a.item)) return no('cafe_item', 'Esse não sai da cafeteira.', 'That doesn’t come from the coffee machine.');
+      if (!items.some((i) => i.id === a.item)) return no('locked', 'Esse item ainda está trancado.', 'That item is still locked.');
       if (sh.pour) return ev;
       if (sh.tray.length >= MG_MAX_TRAY) return no('full', 'A bandeja está cheia.', 'The tray is full.');
       sh.pour = { itemId: a.item, at: sh.t };
@@ -1159,6 +1288,14 @@ export interface CorreriaSnap {
   pourMs: number;
   stats: { served: number; perfect: number; left: number; points: number; tips: number; combo: number; bestCombo: number };
   unlocked: string[];
+  /** Item ids open on this shift (the ladder, after an owned-room cap). */
+  menu: string[];
+  /** Payout scale for this menu (1 at two items, 1.6 at the full counter). */
+  payMul: number;
+  /** One-time how-to for the item (or packing) that just opened. Null once it has been shown. */
+  lesson: CounterLesson | null;
+  /** "+1 item no cardápio: pagamento +6%" when the menu grew this shift. */
+  bump: Bilingual | null;
   over: boolean;
 }
 
@@ -1203,6 +1340,10 @@ export function shiftSnapshot(sh: Shift): CorreriaSnap {
     pourMs: pourMsFor(sh.ctx.unlocked),
     stats: { served: sh.stats.served, perfect: sh.stats.perfect, left: sh.stats.left, points: sh.stats.points, tips: sh.stats.tips, combo: sh.stats.combo, bestCombo: sh.stats.bestCombo },
     unlocked: [...sh.ctx.unlocked],
+    menu: shiftItemPool(sh.ctx).map((i) => i.id),
+    payMul: menuPayMul(shiftItemPool(sh.ctx).length),
+    lesson: sh.ctx.lesson ?? null,
+    bump: sh.ctx.bump ?? null,
     over: sh.over,
   };
 }
@@ -1215,13 +1356,22 @@ export function starsFor(points: number): 0 | 1 | 2 | 3 {
   const r = points / MAX_SHIFT_POINTS;
   return r >= 0.7 ? 3 : r >= 0.5 ? 2 : r >= 0.28 ? 1 : 0;
 }
-/** RV for a shift: ECONOMY.minigameMin..Max by points (a perfect fast shift reaches the cap), nothing when nobody was served. */
-export function correriaPayout(points: number, served: number): number {
+/**
+ * RV for a shift: ECONOMY.minigameMin..Max by points (a perfect fast shift reaches the cap), times the menu scale.
+ * Two items pay today's amount; the full menu pays 1.6× that and no more. Nothing when nobody was served.
+ * Omitted `itemCount` is the starter counter, so old callers keep today's coins.
+ */
+export function correriaPayout(points: number, served: number, itemCount = 2): number {
   if (served <= 0) return 0;
   const r = Math.max(0, Math.min(1, points / (MAX_SHIFT_POINTS * 0.85)));
-  return ECONOMY.minigameMin + Math.round((ECONOMY.minigameMax - ECONOMY.minigameMin) * r);
+  const base = ECONOMY.minigameMin + Math.round((ECONOMY.minigameMax - ECONOMY.minigameMin) * r);
+  const pct = menuPayPct(itemCount);
+  const scaled = Math.round((base * (100 + pct)) / 100);
+  const cap = Math.round((base * (100 + menuPayPct(MENU_LADDER.length))) / 100);
+  return Math.min(scaled, cap);
 }
-/** Old saves and hand-edited ones come back coherent. Never throws. */
+const LESSON_IDS = new Set<string>([...MENU_LADDER, WHERE_LESSON_ID]);
+/** Old saves and hand-edited ones come back coherent. Never throws. A save from before the ladder (no `taught`, and shifts already played) is marked as having seen every lesson. */
 export function normalizeCorreria(raw: unknown): CorreriaProgress {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const n = (v: unknown, max: number) => (Number.isFinite(Number(v)) ? Math.max(0, Math.min(max, Math.floor(Number(v)))) : 0);
@@ -1230,6 +1380,13 @@ export function normalizeCorreria(raw: unknown): CorreriaProgress {
     out.date = r.date;
     out.paid = n(r.paid, 99);
   }
+  if (Array.isArray(r.taught)) {
+    const taught: string[] = [];
+    for (const x of r.taught) if (typeof x === 'string' && LESSON_IDS.has(x) && !taught.includes(x)) taught.push(x);
+    out.taught = taught;
+  } else if (out.shifts > 0) {
+    out.taught = [...MENU_LADDER, WHERE_LESSON_ID];
+  } else out.taught = [];
   return out;
 }
 
@@ -1264,7 +1421,7 @@ export function summarizeShift(sh: Shift): ShiftSummary {
     tips: s.tips,
     bestCombo: s.bestCombo,
     stars: starsFor(s.points),
-    coins: correriaPayout(s.points, s.served),
+    coins: correriaPayout(s.points, s.served, shiftItemPool(sh.ctx).length),
     askRight: s.askRight,
     askTotal: s.askTotal,
     words: [...s.words],

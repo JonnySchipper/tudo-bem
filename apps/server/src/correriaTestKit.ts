@@ -20,7 +20,7 @@ export async function waitFront(world: World, a: KitClient, adv: (ms: number) =>
   throw new Error('no customer came to the counter');
 }
 
-/** Build the front customer's order through the real steps (grab, chapa, pour, pack, mods). Leaves the serve to the caller. */
+/** Build the front customer's order through the real steps (grab, chapa, tap-start / wait / tap-stop pour, pack, mods). Leaves the serve to the caller. */
 export async function buildFront(world: World, a: KitClient, adv: (ms: number) => void): Promise<void> {
   await waitFront(world, a, adv);
   const order = world.debugOrder(a.s)!;

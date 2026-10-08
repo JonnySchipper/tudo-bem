@@ -94,7 +94,7 @@ export async function wantOf(page, c) {
   return o;
 }
 
-/** Click the order together: grab, grill (wait, take), pour (hold), then the bag / plate and coffee mods. */
+/** Click the order together: grab, grill (wait, take), pour (tap to start, wait, tap to stop), then the bag / plate and coffee mods. */
 const trace = (...a) => process.env.CR_TRACE && console.log(`    [${new Date().toISOString().slice(14, 23)}]`, ...a);
 
 const trayCounts = (tray) => {
@@ -219,12 +219,13 @@ const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 const round2 = (n) => Math.round(n * 100) / 100;
 
 /**
- * Hold as a fraction of pourMs. The server accepts 70%–108%. The page timer starts with pour_start
- * and only wakes late, so the server fill is this fraction plus the lateness.
- * Run 37230872315: hold 0.86 → fill 1.11, then 0.81 → 1.13.
- * Run 37232979457: hold 0.74 → fill 1.09 (about 0.35 late). 0.74 + 0.35 spills; 0.70 + 0.35 is 1.05.
+ * Wait between the start tap and the stop tap, as a fraction of pourMs. Not a pointer hold: the cup fills on its own.
+ * The server accepts 70%–108%. The page timer starts with pour_start and only wakes late, so the server fill is this
+ * fraction plus the lateness.
+ * Run 37230872315: wait 0.86 → fill 1.11, then 0.81 → 1.13.
+ * Run 37232979457: wait 0.74 → fill 1.09 (about 0.35 late). 0.74 + 0.35 spills; 0.70 + 0.35 is 1.05.
  * `start` is the floor, which is still a legal cup when the timer is on time. A measured miss steps
- * toward `aim` by the whole error, and never outside [lo, hi]. A cup that landed does not move the hold.
+ * toward `aim` by the whole error, and never outside [lo, hi]. A cup that landed does not move the wait.
  */
 export const POUR_HOLD = { start: 0.7, hi: 0.8, lo: 0.7, aim: 0.88, step: 0.03 };
 
@@ -473,6 +474,7 @@ async function assembleOrder(page, want) {
       if (!alive()) return { result: 'gone', fill: null, count: count(itemId) };
       if (count(itemId) >= qty) return { result: 'ok', fill: null, count: count(itemId) };
       feed.__tbLastPour = null;
+      // Tap to start. The cup fills on its own; the wait below is not a pointer hold.
       feed.on.pourStart(itemId);
       const before = count(itemId);
       const releaseAt = performance.now() + target;
@@ -485,6 +487,7 @@ async function assembleOrder(page, want) {
       }
       feed.__tbLastPour = null;
       const releasedAt = performance.now();
+      // Tap again to stop inside the good window.
       feed.on.pourEnd();
       const until = performance.now() + 1_200;
       let fresh = null;
@@ -542,7 +545,7 @@ async function assembleOrder(page, want) {
             stepHold(poured.result, poured.fill);
             misses++;
             const fillNote = poured.fill == null ? '' : ` fill=${poured.fill.toFixed(2)}`;
-            notes.push(`pour ${line.itemId} ${poured.result}${fillNote} → hold ${hold.toFixed(2)}`);
+            notes.push(`pour ${line.itemId} ${poured.result}${fillNote} → wait ${hold.toFixed(2)}`);
           }
         } else if (line.station === 'chapa') {
           let made = 0;
