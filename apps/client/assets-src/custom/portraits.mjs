@@ -246,8 +246,11 @@ async function npcParts(K, src, id) {
   // the window: 20 sprite columns around the body, rows down to the shoulders. The eye row and the row over it are shown twice (the
   // face gets room for the eyes and brows); above the brows a hair row that repeats the one under it is dropped (the hair mass is
   // shorter, the hat keeps its crown).
+  // A pack face has the jaw right under the eyes: its eye row (lifted, so skin) is shown a third time and the mouth goes there.
   const bottom = tune.bottom ?? eyeRow + 5;
-  const mouthRow = face.mouth.length ? Math.min(...face.mouth.map(([, y]) => y)) : eyeRow + 1;
+  const ownMouth = face.mouth.length > 0;
+  const mouthRow = ownMouth ? Math.min(...face.mouth.map(([, y]) => y)) : eyeRow;
+  const eyeCopies = ownMouth ? 2 : 3;
   const rowDiff = (a, b) => { let n = 0; for (let x = 0; x < FRAME_W; x++) if (rgbaAt(lifted, x, a) !== rgbaAt(lifted, x, b)) n++; return n; };
   const rows = [];
   let skipped = false;
@@ -256,7 +259,7 @@ async function npcParts(K, src, id) {
     if (y < face.browRow - 1 && rows.length && !skipped && rowDiff(y, rows[0]) <= (tune.squeeze ?? 2)) { skipped = true; continue; }
     skipped = false;
     rows.unshift(y);
-    if ((y === eyeRow || y === eyeRow - 1) && rows.length < WIN) rows.unshift(y);
+    for (let c = 1; c < (y === eyeRow ? eyeCopies : y === eyeRow - 1 ? 2 : 1) && rows.length < WIN; c++) rows.unshift(y);
   }
   while (rows.length < WIN) rows.unshift(rows[0] - 1);
   if (process.env.PORTRAIT_DEBUG) console.log(id, JSON.stringify({ eyeRow, eyes: face.eyes, browRow: face.browRow, brow: face.brow, mouth: face.mouth, rows }));
@@ -296,6 +299,8 @@ async function npcParts(K, src, id) {
   BACKGROUNDS[bgKind](base, TARP[id]);
   for (let y = 0; y < big.h; y++) for (let x = 0; x < big.w; x++) if (alpha(big, x, y) > 0) copyPx(base, OX + x, OY + y, big, x, y);
 
+  // the face centre (between the eyes, halfway down to the mouth): the small cards crop the bust to it
+  const faceAt = [Math.round(OX + (mouthX - X0) * S), Math.round((P(0, eyeRow)[1] + P(0, mouthRow)[1] + (ownMouth ? 0 : 2 * S) + S) / 2)];
   const parts = [];
   for (const expr of EXPRESSIONS) {
     const img = { w: SIZE, h: SIZE, data: new Uint8Array(base.data) };
@@ -307,7 +312,8 @@ async function npcParts(K, src, id) {
       const w = (e.x1 - e.x0 + 1) * S;
       const g = EYE[expr];
       const gx = ex + Math.round((w - 6) / 2);
-      grid(img, g, { o: lash, w: '#f4f1ea', i: iris, p: mix(iris, '#100c18', 0.6), h: '#ffffff', l: skinShade }, gx, eyeTop + EYE_DY[expr], !e.irisRight);
+      // pensativo glances aside: both irises to the viewer's right, whatever side the sprite has them on
+      grid(img, g, { o: lash, w: '#f4f1ea', i: iris, p: mix(iris, '#100c18', 0.6), h: '#ffffff', l: skinShade }, gx, eyeTop + EYE_DY[expr], expr === 'pensativo' ? false : !e.irisRight);
     }
     // brows
     if (!tune.browHidden && face.eyes.length) {
@@ -323,7 +329,8 @@ async function npcParts(K, src, id) {
       });
     }
     // mouth
-    const [mx0, my0] = P(Math.floor(mouthX), mouthRow);
+    const [mx0, myTop] = P(Math.floor(mouthX), mouthRow);
+    const my0 = ownMouth ? myTop : myTop + 2 * S - 1; // the third copy of the eye row
     const mx = mx0 + (mouthX % 1 ? S / 2 : 0);
     const g = MOUTH[expr];
     grid(img, g, { d: lip, w: '#f6f0e6', t: '#d56868', m: '#4a1a24' }, Math.round(mx - g[0].length / 2 + S / 2), my0 + (expr === 'surpreso' ? 0 : 1));
@@ -353,7 +360,7 @@ async function npcParts(K, src, id) {
       }
     }
     frame(img);
-    parts.push({ key: `portraits/${id}_${expr}`, img });
+    parts.push({ key: `portraits/${id}_${expr}`, img, meta: { face: faceAt } });
   }
   return parts;
 }

@@ -54,8 +54,15 @@ export function expressionForGrade(grade: 'pass' | 'almost' | 'tryAgain' | null 
 export function npcPortrait(npcId: NpcId | string | null, expr: Expression, cls: string): HTMLElement {
   const box = h('div', { class: `${cls} px-portrait` });
   if (!npcId) return box;
-  const img = pxImg(portraitKey(npcId, expr), 2, '', 'px-portrait-img');
+  const key = portraitKey(npcId, expr);
+  const img = pxImg(key, 2, '', 'px-portrait-img');
   img.addEventListener('error', () => img.remove(), { once: true });
+  // where the face is in the 64 px bust: the small cards (tracker, journal) crop to it (recados.css)
+  const face = imageDef(key)?.face;
+  if (face) {
+    img.style.setProperty('--face-x', `${face[0]}px`);
+    img.style.setProperty('--face-y', `${face[1]}px`);
+  }
   box.append(img);
   return box;
 }
