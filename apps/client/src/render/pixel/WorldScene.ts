@@ -1906,6 +1906,7 @@ export class WorldScene extends Phaser.Scene {
           show: cpuShow,
           ...(a.pub.academyGi ? { mark: CRESTS[a.pub.academyGi.stamp].glyph } : {}),
           ...(a.pub.founder ? { founder: true } : {}),
+          ...(!isCpuId(id) && a.pub.nameplate ? { tier: a.pub.nameplate } : {}),
         },
         bubbles,
       });

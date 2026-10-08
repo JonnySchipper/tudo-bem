@@ -10,6 +10,8 @@ import {
   normalizeCadernoPaid,
   normalizeArrival,
   normalizeDiary,
+  normalizeEscola,
+  earnedTier,
   normalizeFilm,
   normalizePhotos,
   normalizeNpcMemory,
@@ -150,6 +152,9 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.arrivalIntroDone = arrival.arrivalIntroDone;
   p.hasCamera = arrival.hasCamera;
   p.diary = normalizeDiary(p.diary);
+  // saves from before the escola lessons: every diary word is learned (new), nothing mastered, the plate Verde
+  p.escola = normalizeEscola(p.escola, p.diary);
+  p.nameplate = earnedTier(p.escola, p.diary);
   p.film = normalizeFilm(p.film);
   p.photos = normalizePhotos(p.photos);
   p.cartela = normalizeCartela(p.cartela);

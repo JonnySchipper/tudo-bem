@@ -424,55 +424,5 @@ describe('arrival, camera, diary and the escola', () => {
     expect(DIARY_WORDS.filter((w) => w.source === 'game')).toHaveLength(6);
   });
 
-  it('practices an earned word in the escola: a miss pays nothing, a win pays RV and one game word from the host', async () => {
-    const world = makeWorld();
-    const a = await client(world);
-    await a.send({ t: 'arrival', action: 'finish' });
-    const fonte = ROOMS.praca.props.find((p) => p.id === 'fonte')!;
-    const near = spotNear('praca', fonte);
-    await walkTo(a, near.x, near.y);
-    await a.send({ t: 'diary', action: 'photo', anchor: 'fonte' });
-    expect(a.s.profile?.coins).toBe(ECONOMY.startingCoins);
-    const held = () => ptOf(a.s.profile?.diary);
-
-    await a.send({ t: 'join', room: 'escola' });
-    expect(a.last('roomState')?.room).toBe('escola');
-    expect(a.last('roomState')?.avatars.some((v) => v.npc === 'lucia')).toBe(true);
-    await a.send({ t: 'diary', action: 'practice' });
-    const dealt = [...a.inbox].reverse().find((m) => m.t === 'diary' && m.phase === 'practice');
-    expect(dealt).toMatchObject({ ok: true, host: 'Dona Lúcia' });
-    if (!dealt || dealt.t !== 'diary' || dealt.phase !== 'practice' || !dealt.ok) throw new Error('practice did not start');
-    // the prompt is the English of a word the player holds; the right option is its Portuguese
-    const asked = held().find((pt) => DIARY_WORDS.some((w) => w.pt === pt && w.en === dealt.en))!;
-    expect(asked).toBeTruthy();
-    const wrong = dealt.options.find((o) => o.toLowerCase() !== asked.toLowerCase())!;
-    expect(wrong).toBeTruthy();
-    await a.send({ t: 'diary', action: 'answer', choice: wrong });
-    const miss = [...a.inbox].reverse().find((m) => m.t === 'diary' && m.phase === 'result');
-    expect(miss).toMatchObject({ correct: false, host: 'Dona Lúcia', granted: null });
-    expect(a.s.profile?.coins).toBe(ECONOMY.startingCoins);
-    expect(held()).not.toContain('aula');
-    expect(a.all('reward')).toHaveLength(0);
-
-    await a.send({ t: 'diary', action: 'answer', choice: asked });
-    const win = [...a.inbox].reverse().find((m) => m.t === 'diary' && m.phase === 'result');
-    expect(win).toMatchObject({ correct: true, host: 'Dona Lúcia', granted: { pt: 'aula', en: 'class' } });
-    if (win && win.t === 'diary' && win.phase === 'result') expect(win.line.pt).toMatch(/Dona Lúcia/);
-    expect(a.all('reward').at(-1)).toMatchObject({ amount: 1 });
-    expect(a.all('reward').at(-1)?.reason.pt).toMatch(/Dona Lúcia/);
-    expect(a.s.profile?.coins).toBe(ECONOMY.startingCoins + 1);
-    expect(held()).toContain('aula');
-    expect(diaryWord('seed.praca.aula')?.source).toBe('game');
-    expect(diaryWord('seed.praca.aula')?.area).toBe('escola');
-
-    await a.send({ t: 'diary', action: 'practice' });
-    const dealt2 = [...a.inbox].reverse().find((m) => m.t === 'diary' && m.phase === 'practice' && m.ok);
-    if (!dealt2 || dealt2.t !== 'diary' || dealt2.phase !== 'practice' || !dealt2.ok) throw new Error('no second round');
-    const asked2 = held().find((pt) => DIARY_WORDS.some((w) => w.pt === pt && w.en === dealt2.en))!;
-    await a.send({ t: 'diary', action: 'answer', choice: asked2 });
-    const win2 = [...a.inbox].reverse().find((m) => m.t === 'diary' && m.phase === 'result');
-    expect(win2).toMatchObject({ correct: true, granted: null });
-    expect(a.s.profile?.coins).toBe(ECONOMY.startingCoins + 2);
-    expect(held().filter((pt) => pt === 'aula')).toHaveLength(1);
-  });
+  // the escola (Dona Lúcia's lessons over these words) is tested in escola.test.ts
 });
