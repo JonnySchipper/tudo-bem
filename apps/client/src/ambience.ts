@@ -21,6 +21,7 @@ const CORRERIA_SFX = ['grab', 'sizzle', 'ready', 'burnt', 'pop', 'pour', 'glug',
  * Kitnet: a music box plays the first eight bars, room tone and a slow fan under it.
  * Academia: a soft samba pulse with the hook; the bout swaps it for a batucada and brass stabs on the hook.
  * Feira (06:00-13:00, while it is open): "Baião da Feira", the theme's forró cousin, over the crowd and the outdoor zones; closed, it is the Praça's bed.
+ * When it closes with you in it the trio plays to the end of its phrase and then fades out slowly, never cut off mid-tune.
  * Stingers (recado, heart, RV, mission, Caderno, win, lose, the padaria door) are fragments of the same tune.
  * Every level comes from audio/mix (measured loudness targets), and everything goes through one master limiter.
  * Unlocks on the first gesture, crossfades on room change (each bed picks its tune up where it left it), ducks under speech.
@@ -70,6 +71,8 @@ const ZONE_TAU = 0.35;
 const FADE = XFADE_TAU * 4;
 const INTRO_FADE_IN = 3.2;
 const INTRO_FADE_OUT = 1.6;
+/** The feira packing up at 13:00 while you stand in it: once the trio has finished its phrase, the market crowd thins out this slowly under the Praça. */
+const FEIRA_CLOSE_FADE = 4;
 /** Title beat sounds a little distant; the card arrival opens it up. */
 const INTRO_TONE_TITLE = 1100;
 const INTRO_TONE_OPEN = 5200;
@@ -409,6 +412,8 @@ class Ambience {
   private bed: Bed | null = null;
   private unlocked = false;
   private ducked = false;
+  /** The feira's closing: the timer that hands over to the Praça's bed once the trio's last phrase ends. */
+  private windDown: number | null = null;
   private listeners = new Set<() => void>();
   enabled = typeof localStorage !== 'undefined' && localStorage.getItem('tb_music') !== 'off';
 
@@ -498,7 +503,23 @@ class Ambience {
   /** The game clock and the rain, a few times a second: the Praça's phrases follow the hour, the padaria changes shift at 22:00, the feira opens and packs up. */
   setWorld(w: World) {
     this.world = w;
-    if ((this.room === 'padaria' || this.room === 'feira') && !this.scene && this.playing !== this.target()) this.sync();
+    if ((this.room === 'padaria' || this.room === 'feira') && !this.scene && this.playing !== this.target()) {
+      // 13:00 at the feira: let the trio finish the phrase instead of cutting the tune off mid-bar
+      if (this.playing === 'feira' && this.target() === 'praca' && this.bed?.seq && this.ctx) return this.packUp(this.ctx, this.bed.seq);
+      this.sync();
+    }
+  }
+
+  /** The feira closes while you are in it: the band stops at the end of its 8-bar phrase, then the Praça's bed fades in slowly. */
+  private packUp(ctx: AudioContext, seq: ThemeSequencer) {
+    if (this.windDown !== null) return;
+    const end = seq.finish(8);
+    // the last notes ring a little past the bar line
+    const ms = Math.max(0, (end - ctx.currentTime) * 1000) + 400;
+    this.windDown = window.setTimeout(() => {
+      this.windDown = null;
+      if (this.playing === 'feira' && this.target() === 'praca') this.sync(FEIRA_CLOSE_FADE);
+    }, ms);
   }
 
   /** The band plays harder: a finishing chance in the bout. */
@@ -637,6 +658,10 @@ class Ambience {
   }
 
   private sync(fade = FADE) {
+    if (this.windDown !== null) {
+      window.clearTimeout(this.windDown);
+      this.windDown = null;
+    }
     const next = this.target();
     if (!next) return this.halt(fade);
     if (this.playing !== next) this.play(next, fade);
