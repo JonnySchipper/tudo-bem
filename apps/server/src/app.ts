@@ -8,7 +8,8 @@ import { World, type CloseReason } from './world.js';
 import { ProfileStore } from './store.js';
 import { AcademyStore } from './academyStore.js';
 import { PadariaStore } from './padariaStore.js';
-import { academyFileAdapter, feedbackFileAdapter, feiraGamesFileAdapter, fileAdapter, padariaFileAdapter } from './fileStore.js';
+import { academyFileAdapter, feedbackFileAdapter, feiraCartFileAdapter, feiraGamesFileAdapter, fileAdapter, padariaFileAdapter } from './fileStore.js';
+import { FeiraCartStore } from './feiraCart.js';
 import { FeiraGamesStore } from './feiraGames.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 import { FileModerationQueue } from './services/fileModeration.js';
@@ -98,6 +99,8 @@ export function createApp(opts: AppOptions) {
   const store = new ProfileStore(fileAdapter(dataDir));
   const feiraGamesFile = feiraGamesFileAdapter(dataDir);
   const feiraGames = new FeiraGamesStore(() => feiraGamesFile.load(), (state) => feiraGamesFile.save(state), () => Date.now());
+  const feiraCartFile = feiraCartFileAdapter(dataDir);
+  const feiraCart = new FeiraCartStore(() => feiraCartFile.load(), (state) => feiraCartFile.save(state));
   const academies = new AcademyStore(academyFileAdapter(dataDir));
   const padarias = new PadariaStore(padariaFileAdapter(dataDir));
   const feedback = new FeedbackStore(feedbackFileAdapter(dataDir));
@@ -116,7 +119,7 @@ export function createApp(opts: AppOptions) {
       student: new InMemoryStudentModel(),
       moderation: new FileModerationQueue(path.join(dataDir, 'moderation.jsonl')),
     },
-    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, idleKickMs: opts.idleKickMs, academies, padarias, feiraGames },
+    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, idleKickMs: opts.idleKickMs, academies, padarias, feiraGames, feiraCart },
   );
   const conversaMemory = new ConversaMemory({ store, onProfileChanged: (playerId) => world.pushProfileById(playerId) });
   const limiters = defaultLimiters();
@@ -295,6 +298,7 @@ export function createApp(opts: AppOptions) {
       wss.close();
       store.flush();
       feiraGames.persist();
+      feiraCart.persist();
       academies.save();
       padarias.save();
       feedback.save();

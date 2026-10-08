@@ -5,6 +5,8 @@
  *   BASE_URL=https://playtudobem.com/ node scripts/feira-games-shots.mjs        # live server (guest)
  *   BASE_URL=http://localhost:9311/?solo node scripts/feira-games-shots.mjs     # solo build
  *   SHOTS_DIR (default /workspace/feira-games-shots), VIEWS=desktop,phone, GAME=tapioca|pastel|caldo (forces nothing; just labels)
+ *   TB_ADMIN_PASSWORD (default tb-admin-praca, the local admin password) turns today's game on first.
+ *   The cart ships off; this script enables GAME (default tapioca) from the credits admin door.
  */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
@@ -71,7 +73,29 @@ async function mclick(page, sel) {
   await page.mouse.up();
 }
 
-export { enter, shot, mclick, log };
+/** The cart games default to off. Turn today's game on through the credits admin door. */
+async function enableCart(page, ids) {
+  const password = process.env.TB_ADMIN_PASSWORD || 'tb-admin-praca';
+  await page.click('#btn-menu').catch(() => page.click('#btn-burger'));
+  await page.click('#btn-credits');
+  await page.waitForSelector('#credits-admin-door', { timeout: 8_000 });
+  await page.click('#credits-admin-door');
+  await page.waitForSelector('#admin-password', { timeout: 8_000 });
+  await page.fill('#admin-password', password);
+  await page.click('#admin-login-go');
+  await page.waitForSelector('#admin-feira-games button', { timeout: 8_000 });
+  for (const id of ids) {
+    const sel = `#admin-feira-${id}`;
+    await page.waitForSelector(sel, { timeout: 8_000 });
+    const on = await page.getAttribute(sel, 'aria-checked');
+    if (on !== 'true') await page.click(sel);
+    await page.waitForFunction((gid) => document.querySelector(`#admin-feira-${gid}`)?.getAttribute('aria-checked') === 'true', id);
+  }
+  await page.keyboard.press('Escape');
+  await sleep(400);
+}
+
+export { enter, shot, mclick, log, enableCart };
 
 async function run(viewName) {
   const browser = await chromium.launch({ executablePath: CHROME, headless: true });
@@ -80,6 +104,7 @@ async function run(viewName) {
   page.on('pageerror', (e) => console.log('PAGEERROR', e.message));
   try {
     await enter(page);
+    await enableCart(page, [process.env.GAME ?? 'tapioca']);
     await shot(page, `${TAG}-${viewName}-feira-room`);
     // the walk to the sign is long (around the stalls); wait for the panel, not a fixed sleep
     await page.evaluate(() => window.__tb.interact({ prop: 'placa_jogos' }));
