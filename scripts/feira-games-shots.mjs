@@ -72,8 +72,10 @@ async function run(viewName) {
   try {
     await enter(page);
     await shot(page, `${TAG}-${viewName}-feira-room`);
+    // the walk to the sign is long (around the stalls); wait for the panel, not a fixed sleep
     await page.evaluate(() => window.__tb.interact({ prop: 'placa_jogos' }));
-    await sleep(1800);
+    await page.waitForSelector('[data-modal="feira-sign"]', { timeout: 30_000 });
+    await sleep(300);
     await shot(page, `${TAG}-${viewName}-sign`);
     await page.keyboard.press('Escape');
     await sleep(400);
