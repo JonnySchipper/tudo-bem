@@ -146,6 +146,8 @@ export type ClientMsg =
   /** Subscriber pet and chat-bubble appearance. The server ignores a perk the subscription does not currently allow. */
   | { t: 'perk'; action: 'pet'; pet: 'dog' | 'cat' | null }
   | { t: 'perk'; action: 'bubble'; style: import('./subscription.js').BubbleStyle }
+  /** Name the dog or the cat. The server trims, checks the shape, then runs chat moderation. It never rewrites the name. */
+  | { t: 'perk'; action: 'petName'; pet: 'dog' | 'cat'; name: string }
   /**
    * Player academies (slice 1). The elevator in Academia do Bairro asks for `directory`.
    * `found` takes a first-come name (brown belt). `visit` loads the empty floor without joining.

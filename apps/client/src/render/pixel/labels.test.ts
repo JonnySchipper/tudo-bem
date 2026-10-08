@@ -30,6 +30,14 @@ describe('de-overlap of nameplates and bubbles', () => {
     expect(f.pileLift).toBeGreaterThanOrEqual(f.plateLift);
   });
 
+  it('lifts the owner name off a pet tag that would cover it', () => {
+    const owner = box('av:me', 200, 180);
+    const pet = box('pet:me', 210, 196);
+    const r = deoverlapStacks([owner, pet]);
+    expect(r.get('pet:me')!.plateLift).toBe(0);
+    expect(r.get('av:me')!.plateLift).toBeGreaterThan(0);
+  });
+
   it('is deterministic and caps the lift', () => {
     const many = Array.from({ length: 12 }, (_, i) => box(`n${i}`, 300, 400 - i * 6, [{ left: -18, w: 100, h: 44 }]));
     const a = deoverlapStacks(many);
