@@ -18,7 +18,7 @@ import { icon, type IconName } from '../art/ui';
 import { mountIdleKickBirds } from './introParrots';
 import { mountClockPill } from './clockPill';
 import { COMPACT_QUERY, placeHud } from './hudLayout';
-import { FEEDBACK_COPY } from '@tudobem/shared';
+import { FEEDBACK_COPY, carryAction } from '@tudobem/shared';
 import { openFeedback } from './feedback';
 
 export interface HudActions {
@@ -36,6 +36,8 @@ export interface HudActions {
   toggleDecor: () => void;
   parrotHint: () => void;
   toggleParrot: () => void;
+  /** Eat, drink, or throw away the snack in hand. */
+  carry: (action: 'consume' | 'toss') => void;
   toggleSound: () => void;
   toggleMusic: () => void;
   /** Multiplayer only (solo has no account). */
@@ -304,6 +306,15 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       bi(pt, e),
     );
   const standBtn = h('button', { onclick: actions.stand, id: 'btn-stand', style: 'display:none' }, bi('Levantar', 'Stand up'));
+  const carryBtn = h('button', {
+    type: 'button',
+    id: 'btn-carry',
+    style: 'display:none',
+    onclick: () => {
+      const act = carryAction(game.self?.pub.carry);
+      if (act) actions.carry(act.action);
+    },
+  });
   const parrotBtn = h('button', { class: 'green', onclick: actions.parrotHint, id: 'btn-parrot', style: 'display:none' }, bi('Dica do papagaio', 'Parrot hint'));
   parrotBtn.prepend(icon('parrot', 16));
   const parrotToggle = h('button', { onclick: actions.toggleParrot, id: 'btn-parrot-toggle', style: 'display:none' });
@@ -322,7 +333,7 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       parrotBtn,
       parrotToggle,
     ),
-    h('div', { class: 'chatbar' }, emoteToggle, input, hint, sendBtn),
+    h('div', { class: 'chatbar' }, emoteToggle, carryBtn, input, hint, sendBtn),
   );
 
   toastsEl = h('div', { class: 'toasts', 'aria-live': 'polite' });
@@ -396,6 +407,15 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
     setToggle(musicBtn, game.music ? 'musicOn' : 'musicOff', game.music, 'Música', 'Music on', 'Music off');
     const self = game.self;
     standBtn.style.display = self && (self.pub.sitting || self.sitOnArrive) ? '' : 'none';
+    const act = carryAction(self?.pub.carry);
+    carryBtn.style.display = act ? '' : 'none';
+    if (act && carryBtn.dataset.label !== act.pt) {
+      carryBtn.dataset.label = act.pt;
+      carryBtn.className = act.action === 'toss' ? '' : 'green';
+      carryBtn.replaceChildren(bi(act.pt, act.en));
+      carryBtn.setAttribute('aria-label', `${act.pt} (${act.en})`);
+    }
+    if (!act) delete carryBtn.dataset.label;
     placeHud();
   };
   game.on('profile', refresh);

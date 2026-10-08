@@ -35,6 +35,7 @@ import {
   COUNTER_MENU,
   CRESTS,
   STREET_SNACKS,
+  carryOf,
 } from '@tudobem/shared';
 import { game, type ClientAvatar } from '../../state';
 import type { Guide, Hit } from '../view';
@@ -132,6 +133,8 @@ interface AvatarView {
   /** Street snack in hand (session carry). */
   carry: Phaser.GameObjects.Image | null;
   carryKey: string;
+  /** When the held icon last changed, so the pop can run while scale is reapplied every frame. */
+  carryPop: number;
   /** the pop-up icon over the head while an emote plays (fx/emote_<kind>), and the emote it shows */
   icon: Phaser.GameObjects.Sprite | null;
   iconKey: string;
@@ -1308,6 +1311,7 @@ export class WorldScene extends Phaser.Scene {
       parrotKey: '',
       carry: null,
       carryKey: '',
+      carryPop: 0,
       icon: null,
       iconKey: '',
       anim: '',
@@ -1558,26 +1562,73 @@ export class WorldScene extends Phaser.Scene {
     v.parrot.setDepth(facing === 'N' ? depth - 0.05 : depth + 0.05);
   }
 
-  /** Popcorn or coconut water bought at the praça carts (session `carry` on the avatar). */
+  /** Snack, drink, or empty in the hand (session `carry`). Empties reuse a full item's icon, tinted grey. */
   private updateCarry(v: AvatarView, a: ClientAvatar, facing: Facing, wx: number, wy: number, depth: number): void {
-    const id = a.pub.carry;
-    if (!id) {
-      if (v.carry) {
-        v.carry.destroy();
-        v.carry = null;
-        v.carryKey = '';
-      }
+    const info = carryOf(a.pub.carry);
+    if (!info) {
+      this.releaseCarry(v);
       return;
     }
-    const tex = `carry:${id}`;
+    const tex = `carry:${info.tex}`;
     if (!this.textures.exists(tex)) return;
-    if (!v.carry || v.carryKey !== id) {
+    const fresh = !v.carry || v.carryKey !== a.pub.carry;
+    if (fresh) {
+      const prevKind = carryOf(v.carryKey)?.kind;
+      const cx = v.carry?.x ?? wx;
+      const cy = v.carry?.y ?? wy;
       v.carry?.destroy();
       v.carry = this.rig.world(this.add.image(0, 0, tex)).setOrigin(0.5, 1);
-      v.carryKey = id;
+      v.carryKey = a.pub.carry ?? '';
+      v.carryPop = this.time.now;
+      if (info.kind === 'trash') v.carry.setTint(0x8d8d8d).setAlpha(0.72);
+      if (prevKind === 'food') this.carryCrumbs(cx, cy, depth);
     }
+    const age = this.time.now - v.carryPop;
+    const bump = age >= 0 && age < 320 ? Math.sin((age / 320) * Math.PI) : 0;
     const side = facing === 'W' ? -1 : 1;
-    v.carry.setPosition(wx + side * avatarPx(6), wy - avatarPx(7)).setScale(0.6 * avatarDrawScale()).setDepth(depth + 0.08);
+    v.carry!.setPosition(wx + side * avatarPx(6), wy - avatarPx(7) - bump * 5).setScale(0.6 * avatarDrawScale() * (1 + 0.28 * bump)).setDepth(depth + 0.08);
+  }
+
+  /** Drop the held icon. Scale is reapplied every frame, so the toss itself is the tween. */
+  private releaseCarry(v: AvatarView): void {
+    const img = v.carry;
+    const prev = carryOf(v.carryKey);
+    if (!img) {
+      v.carryKey = '';
+      return;
+    }
+    v.carry = null;
+    v.carryKey = '';
+    if (prev?.kind === 'food') this.carryCrumbs(img.x, img.y, img.depth);
+    this.tweens.add({
+      targets: img,
+      y: img.y - 12,
+      alpha: 0,
+      scale: Math.max(0.08, img.scaleX * 0.4),
+      duration: 240,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        if (img.active) img.destroy();
+      },
+    });
+  }
+
+  private carryCrumbs(x: number, y: number, depth: number): void {
+    const colors = [0xe6c07b, 0xc48a4a, 0xf2e2c4];
+    for (let i = 0; i < 5; i++) {
+      const c = this.rig.world(this.add.rectangle(x, y, 2, 2, colors[i % colors.length]!)).setDepth(depth + 0.2);
+      this.tweens.add({
+        targets: c,
+        x: x + (i - 2) * 7,
+        y: y + 12 + (i % 3) * 3,
+        alpha: 0,
+        duration: 360 + i * 30,
+        ease: 'Quad.easeOut',
+        onComplete: () => {
+          if (c.active) c.destroy();
+        },
+      });
+    }
   }
 
   // ---- placed furniture: `furniture/<id>_<rot>` sprites (art track 3); a magenta box when the art is missing
