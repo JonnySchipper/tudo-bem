@@ -83,26 +83,23 @@ async function freezeWalking(page) {
   const info = await page.evaluate(async () => {
     const tb = window.__tb;
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-    const trailing = (owner, pet, facing) => {
-      const dx = owner.x - pet.x;
-      const dy = owner.y - pet.y;
-      if (facing === 'E') return dx > 12 && Math.abs(pet.y - owner.y) < 22;
-      if (facing === 'W') return dx < -12 && Math.abs(pet.y - owner.y) < 22;
-      if (facing === 'S') return dy > 12 && Math.abs(pet.x - owner.x) < 22;
-      if (facing === 'N') return dy < -12 && Math.abs(pet.x - owner.x) < 22;
-      return false;
+    // Settled trail: a couple of tiles behind, facing the way it is walking, not still turning around.
+    const trailGap = (owner, pet, facing) => {
+      if (facing === 'E') return { along: owner.x - pet.x, lateral: Math.abs(pet.y - owner.y) };
+      if (facing === 'W') return { along: pet.x - owner.x, lateral: Math.abs(pet.y - owner.y) };
+      if (facing === 'S') return { along: owner.y - pet.y, lateral: Math.abs(pet.x - owner.x) };
+      if (facing === 'N') return { along: pet.y - owner.y, lateral: Math.abs(pet.x - owner.x) };
+      return { along: 0, lateral: 99 };
     };
     tb.renderer.scene.scene.resume();
     const here = tb.selfTile();
     if (!here?.tile) throw new Error('no self tile');
     const { x: hx, y: hy } = here.tile;
     const tries = [
-      [hx + 10, hy],
-      [hx - 10, hy],
-      [hx, hy + 8],
-      [hx, hy - 8],
-      [24, 12],
-      [8, 16],
+      [hx + 12, hy],
+      [hx - 12, hy],
+      [hx, hy + 10],
+      [hx, hy - 10],
     ];
     let moved = false;
     let dest = null;
@@ -111,16 +108,20 @@ async function freezeWalking(page) {
       if (x === hx && y === hy) continue;
       tb.walkTo(x, y);
       dest = { x, y };
-      const until = performance.now() + 3200;
+      const until = performance.now() + 5000;
       while (performance.now() < until) {
         const scene = tb.renderer.scene;
         const me = [...scene.avatars.values()].find((v) => v.pet);
         const key = me?.petKey ?? '';
-        if (me?.moving && me.pet && key.includes('walk') && trailing({ x: me.wx, y: me.wy }, { x: me.pet.x, y: me.pet.y }, me.facing)) {
+        const gap = me?.pet ? trailGap({ x: me.wx, y: me.wy }, { x: me.pet.x, y: me.pet.y }, me.facing) : null;
+        const settled = me?.moving && me.pet && key.includes('walk') && me.petFollow?.pose === 'walk' && me.petFollow.facing === me.facing && gap && gap.along >= 30 && gap.along <= 58 && gap.lateral < 16;
+        if (settled) {
           moved = true;
           pose = {
             petKey: key,
             facing: me.facing,
+            petFacing: me.petFollow.facing,
+            gap: Math.round(gap.along),
             owner: { x: me.wx, y: me.wy },
             pet: { x: me.pet.x, y: me.pet.y },
             flip: me.pet.flipX,
@@ -162,7 +163,7 @@ async function freezeWalking(page) {
     }
   });
   log('walk', JSON.stringify(info));
-  if (!info.moved || !String(info.petKey ?? '').includes('walk')) {
+  if (!info.moved || !String(info.petKey ?? '').includes('walk') || !(info.gap >= 30) || info.petFacing !== info.facing) {
     throw new Error(`expected a pet trailing behind, got ${JSON.stringify(info)}`);
   }
   return info;
