@@ -779,6 +779,20 @@ button.hud-burger,
   background: #d46a30;
 }
 
+#btn-carry {
+  flex: none;
+  min-height: 36px;
+  padding: 1px 10px 3px;
+  white-space: nowrap;
+  line-height: 1.05;
+}
+
+#btn-carry .btn-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .chatbar button.primary:active {
   transform: translateY(2px);
   box-shadow:
@@ -1069,6 +1083,10 @@ body:has(.dbx) .bottombar {
   .hud-emote-toggle[aria-expanded='true'] {
     background: #f7d9b4;
     box-shadow: inset 0 -3px 0 0 var(--terracota);
+  }
+
+  #btn-carry {
+    min-height: 44px;
   }
 
   .chatbar button.primary {

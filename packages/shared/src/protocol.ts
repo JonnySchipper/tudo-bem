@@ -57,6 +57,8 @@ export type ClientMsg =
   | { t: 'snack'; action: 'buy'; itemId: string }
   /** Order at the padaria counter (the baker on duty): pay, carry it, and it goes in the bag. */
   | { t: 'padaria'; action: 'buy'; itemId: string }
+  /** Eat or drink what you're holding, or toss it (an empty coconut, an empty bag, or the snack itself). */
+  | { t: 'carry'; action: 'consume' | 'toss' }
   | { t: 'equipHat'; hatId: string | null }
   | { t: 'parrot'; action: 'adopt' | 'toggle' | 'hint' | 'color'; colorId?: string }
   | { t: 'furniture'; action: 'place'; itemId: string; x: number; y: number; rot: 0 | 1 }

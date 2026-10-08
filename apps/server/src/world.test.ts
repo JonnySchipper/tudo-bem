@@ -446,6 +446,92 @@ describe('World', () => {
     expect(a.s.profile!.coins).toBe(2);
   });
 
+  it('eats or drinks what you are holding and tosses the empty, nicer beside a lixeira', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    const stand = (x: number, y: number) => {
+      a.s.avatar!.from = { x, y };
+      a.s.avatar!.path = [];
+    };
+    const freshNotices = async (send: () => Promise<void>) => {
+      const n = a.all('notice').length;
+      await send();
+      return a.all('notice').slice(n);
+    };
+
+    a.s.profile!.coins = 40;
+    stand(19, 20);
+    await a.send({ t: 'snack', action: 'buy', itemId: 'pipoca_salgada' });
+    expect(a.s.carry).toBe('pipoca_salgada');
+    let added = await freshNotices(() => a.send({ t: 'carry', action: 'consume' }));
+    expect(a.s.carry).toBe('saquinho_vazio');
+    expect(world.publicAvatar(a.s).carry).toBe('saquinho_vazio');
+    expect(added[0]).toMatchObject({ t: 'notice', pt: 'Que delícia!', en: 'Delicious!' });
+    added = await freshNotices(() => a.send({ t: 'carry', action: 'consume' }));
+    expect(added).toHaveLength(0);
+    expect(a.s.carry).toBe('saquinho_vazio');
+    added = await freshNotices(() => a.send({ t: 'carry', action: 'toss' }));
+    expect(a.s.carry).toBeNull();
+    expect(world.publicAvatar(a.s).carry).toBeNull();
+    expect(added[0]).toMatchObject({ pt: 'Jogou fora o saquinho vazio', en: 'Tossed the empty popcorn bag' });
+
+    stand(19, 9);
+    a.s.carry = 'saquinho_vazio';
+    added = await freshNotices(() => a.send({ t: 'carry', action: 'toss' }));
+    expect(added[0]?.pt).toBe('Jogou fora o saquinho vazio');
+
+    stand(24, 10);
+    added = await freshNotices(() => a.send({ t: 'snack', action: 'buy', itemId: 'agua_de_coco' }));
+    expect(a.s.carry).toBe('agua_de_coco');
+    added = await freshNotices(() => a.send({ t: 'carry', action: 'consume' }));
+    expect(a.s.carry).toBe('coco_vazio');
+    expect(added[0]).toMatchObject({ pt: 'Que delícia!', en: 'Delicious!' });
+    stand(19, 8);
+    added = await freshNotices(() => a.send({ t: 'carry', action: 'toss' }));
+    expect(a.s.carry).toBeNull();
+    expect(added[0]).toMatchObject({ pt: 'Lixo no lixo!', en: 'Trash in the trash!' });
+
+    a.s.carry = 'pao_de_queijo';
+    await a.send({ t: 'carry', action: 'consume' });
+    expect(a.s.carry).toBeNull();
+    a.s.carry = 'coxinha';
+    await a.send({ t: 'carry', action: 'consume' });
+    expect(a.s.carry).toBeNull();
+    a.s.carry = 'pao_na_chapa';
+    await a.send({ t: 'carry', action: 'consume' });
+    expect(a.s.carry).toBeNull();
+    a.s.carry = 'cafe';
+    await a.send({ t: 'carry', action: 'consume' });
+    expect(a.s.carry).toBe('copinho_vazio');
+    a.s.carry = 'cafezinho';
+    await a.send({ t: 'carry', action: 'consume' });
+    expect(a.s.carry).toBe('copinho_vazio');
+    a.s.carry = 'cafe_com_leite';
+    await a.send({ t: 'carry', action: 'consume' });
+    expect(a.s.carry).toBe('copinho_vazio');
+    a.s.carry = 'suco_de_laranja';
+    await a.send({ t: 'carry', action: 'consume' });
+    expect(a.s.carry).toBe('copo_vazio');
+    a.s.carry = 'agua';
+    await a.send({ t: 'carry', action: 'consume' });
+    expect(a.s.carry).toBe('copo_vazio');
+    await a.send({ t: 'carry', action: 'toss' });
+    expect(a.s.carry).toBeNull();
+
+    added = await freshNotices(() => a.send({ t: 'carry', action: 'toss' }));
+    expect(added).toHaveLength(0);
+    expect(a.s.carry).toBeNull();
+    await a.send({ t: 'buy', kind: 'hat', itemId: 'bone_verde' });
+    expect(a.s.carry).toBeNull();
+    expect(a.s.profile!.hat).toBe('bone_verde');
+    a.s.carry = 'bone_verde' as never;
+    added = await freshNotices(() => a.send({ t: 'carry', action: 'consume' }));
+    expect(added).toHaveLength(0);
+    added = await freshNotices(() => a.send({ t: 'carry', action: 'toss' }));
+    expect(added).toHaveLength(0);
+    expect(a.s.carry).toBe('bone_verde');
+  });
+
   it('free hats cost nothing and parrot hint has a cooldown', async () => {
     const { world } = makeWorld();
     const a = await client(world);
