@@ -35,7 +35,18 @@ async function interact(page, target) {
   if (!ok) throw new Error(`no such interact target: ${JSON.stringify(target)}`);
 }
 const waitRoom = (page, id) => page.waitForFunction((id) => window.__tb.game.room?.room === id, id, { timeout: 15_000 });
-const box = (page, key) => page.waitForSelector(`#dialogue-box[data-dialogue="${key}"]`, { timeout: 20_000 });
+const box = async (page, key) => {
+  const sel = `#dialogue-box[data-dialogue="${key}"]`;
+  for (let i = 0; i < 4; i++) {
+    await page.waitForSelector('#dialogue-box', { timeout: 20_000 });
+    if (await page.$(sel)) return;
+    const cur = await page.getAttribute('#dialogue-box', 'data-dialogue');
+    if (!cur?.startsWith('idle-')) break;
+    await page.click('#dialogue-box [data-chip="0"]'); // Continuar — the learned line, then the talk
+    await sleep(350);
+  }
+  await page.waitForSelector(sel, { timeout: 20_000 });
+};
 /** The line finished typing (45 chars/s): wait for the rest of it to be gone. */
 const typed = (page) => page.waitForFunction(() => !document.querySelector('#dialogue-box .tw-rest')?.textContent, null, { timeout: 15_000 }).catch(() => {});
 const boxPct = (page) => page.evaluate(() => { const b = document.querySelector('#dialogue-box')?.getBoundingClientRect(); return b ? +(100 * b.height / innerHeight).toFixed(1) : 0; });

@@ -16,7 +16,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { findChrome } from './lib/chrome.mjs';
 import { requirePinnedClock } from './lib/clock-pin.mjs';
-import { openNpc } from './lib/npc.mjs';
+import { openNpc, passIdle } from './lib/npc.mjs';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
 
 const argv = Object.fromEntries(process.argv.slice(2).filter((a) => a.startsWith('--')).map((a) => a.slice(2).split('=')));
@@ -214,6 +214,7 @@ async function sectionHud(browser, vp) {
   await sleep(3500);
   await interact(page, { npc: 'carlos' });
   await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
+  await passIdle(page);
   let key = await page.getAttribute('#dialogue-box', 'data-dialogue');
   if (key === 'offer-carlos') {
     await sleep(1000);
