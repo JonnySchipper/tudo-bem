@@ -69,13 +69,14 @@ describe('mergeVerdict', () => {
   });
 });
 
-describe.runIf(hasModel)('JevModelSafety (Horizon-Labs/multilingual-toxicity-small)', () => {
+// Threshold checks, not latency: generous timeouts so a busy CI runner never turns a model verdict into a stub fallback.
+describe.runIf(hasModel)('JevModelSafety (Horizon-Labs/multilingual-toxicity-small)', { timeout: 120_000 }, () => {
   let safety: JevModelSafety;
   let model: ToxModel;
 
   beforeAll(async () => {
     model = await loadOnnxToxModel(MODEL_DIR, { threads: 1 });
-    safety = new JevModelSafety(new JevStubSafety(), model, { timeoutMs: 2000 });
+    safety = new JevModelSafety(new JevStubSafety(), model, { timeoutMs: 30_000 });
     await safety.ready();
   }, 60_000);
 
@@ -87,6 +88,7 @@ describe.runIf(hasModel)('JevModelSafety (Horizon-Labs/multilingual-toxicity-sma
   it.each(modelPack.fixtures.map((f) => [f.text, f] as const))('fixture: %s', async (_t, f) => {
     const recent = (f.recent ?? []).map((text) => ({ playerId: 'p1', text }));
     const v = await safety.classify(f.text, { ...solo, recent });
+    expect(v.jev?.fallback, f.text).toBeUndefined();
     expect(v.action, `${f.text} (${f.why})`).toBe(f.action);
     if (f.label) expect(v.labels, f.text).toContain(f.label);
   });
