@@ -124,7 +124,8 @@ async function main() {
       await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
       const key = await page.getAttribute('#dialogue-box', 'data-dialogue');
       if (key === 'counter-graca') break;
-      if (key?.startsWith('offer-') || key?.startsWith('give-')) await page.click('#dialogue-box [data-chip="1"]');
+      if (key?.startsWith('idle-')) await page.click('#dialogue-box [data-chip="0"]'); // Continuar — the learned line
+      else if (key?.startsWith('offer-') || key?.startsWith('give-')) await page.click('#dialogue-box [data-chip="1"]');
       await sleep(350);
     }
     await page.waitForSelector('#dialogue-box[data-dialogue="counter-graca"]', { timeout: 12_000 });

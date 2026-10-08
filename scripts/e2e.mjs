@@ -76,9 +76,10 @@ const walkTo = (page, x, y, sit = false) => page.evaluate(([x, y, sit]) => windo
 const clickTileHit = (page, x, y) => page.evaluate(([x, y]) => window.__tb.clickHit({ kind: 'tile', tile: { x, y } }), [x, y]);
 
 /**
- * Open an NPC's dialogue. Since Phase 8a an NPC may start with an offer (Pode deixar! / Agora não) or a hand-over (Entregar …) before the usual box
- * (`finalKey`, the `data-dialogue` of the box we want). `offer: 'accept'` takes the errand and returns 'accepted'; `give: true` hands the item over and
- * returns 'gave'; otherwise offers are declined ("Agora não" / "Só conversar") until the usual box is open ('open').
+ * Open an NPC's dialogue. A learned idle line opens the talk ("Continuar"), then Phase 8a may offer an errand (Pode deixar! / Agora não) or a
+ * hand-over (Entregar …) before the usual box (`finalKey`, the `data-dialogue` of the box we want). `offer: 'accept'` takes the errand and returns
+ * 'accepted'; `give: true` hands the item over and returns 'gave'; otherwise offers are declined ("Agora não" / "Só conversar") until the usual box
+ * is open ('open').
  */
 async function openNpc(page, npc, finalKey, { offer = 'decline', give = false } = {}) {
   await interact(page, { npc });
@@ -86,7 +87,9 @@ async function openNpc(page, npc, finalKey, { offer = 'decline', give = false } 
     await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
     const key = await page.getAttribute('#dialogue-box', 'data-dialogue');
     if (key === finalKey) return 'open';
-    if (key?.startsWith('offer-')) {
+    if (key?.startsWith('idle-')) {
+      await page.click('#dialogue-box [data-chip="0"]'); // Continuar
+    } else if (key?.startsWith('offer-')) {
       if (offer === 'accept') {
         await page.click('#dialogue-box [data-chip="0"]');
         return 'accepted';
