@@ -143,6 +143,7 @@ import { RecadoTracker, sceneItems } from './recados.js';
 import { CadernoTracker } from './caderno.js';
 import { DiaryTracker } from './diary.js';
 import { EscolaTracker, escolaOf } from './escola.js';
+import { Leaderboards } from './leaderboards.js';
 import { FeiraCounter } from './feira.js';
 import { FeiraGamesEngine, FeiraGamesStore, type FeiraGameRun } from './feiraGames.js';
 import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria.js';
@@ -308,6 +309,8 @@ export class World {
   private readonly diary: DiaryTracker;
   /** Dona Lúcia's lessons: spaced repetition over the diary, XP, streak, the nameplate tiers. */
   private readonly escola: EscolaTracker;
+  /** Praça dual leaderboards (words learned + escola streak). */
+  private readonly leaderboards: Leaderboards;
   /** The feira's prices and payments (Phase 9). */
   private readonly feira: FeiraCounter;
   /** Feira cart games: daily rotation, the board, medals, the crown. */
@@ -424,6 +427,7 @@ export class World {
       },
       teachLessonWord: (s, gameId) => this.diary.teachLessonWord(s, gameId),
     });
+    this.leaderboards = new Leaderboards(store, () => this.rng());
     this.bouts = new BoutEngine({
       now: () => this.now(),
       schedule: (fn, ms) => this.schedule(fn, ms),
@@ -596,6 +600,8 @@ export class World {
         return this.friend(s, msg.action, msg.targetId);
       case 'friends':
         return this.sendFriends(s);
+      case 'leaderboards':
+        return this.leaderboards.sendTo(s);
       case 'mission':
         return this.takeMission(s);
       case 'bout':
@@ -965,6 +971,8 @@ export class World {
   }
 
   private pushProfile(s: Session) {
+    // Diary grants and escola streak bumps both push the profile; rebuild boards next read.
+    this.leaderboards.markDirty();
     if (s.profile) s.send({ t: 'profile', profile: this.privateProfile(s.profile) });
   }
 
@@ -1113,6 +1121,12 @@ export class World {
     this.correria.resume(s);
     this.recados.onEvent(s, { kind: 'entered', room: def.id, tile });
     this.cartela.onEntered(s, def.id);
+    if (def.id === 'padaria' && !padariaIdFromInstance(target.id)) {
+      const minute = gameMinutes(this.clockNow());
+      const baker = bakerOnDuty(minute) === 'graca' ? 'graca' : 'carlos';
+      const line = this.leaderboards.maybeMentionStreak(s, baker);
+      if (line) s.send({ t: 'notice', level: 'info', pt: line.pt, en: line.en });
+    }
     this.broadcast(target, { t: 'avatarJoined', avatar: this.publicAvatar(s) }, s);
     const ownedPid = padariaIdFromInstance(target.id);
     if (ownedPid) {

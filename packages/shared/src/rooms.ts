@@ -51,7 +51,7 @@ export type PropKind =
   | 'feira'
   | 'hortifruti';
 
-export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi' | 'escola' | 'academy_elevator' | 'academy_board' | 'padaria_door' | 'padaria_counter' | 'feira_cart' | 'feira_sign';
+export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi' | 'escola' | 'academy_elevator' | 'academy_board' | 'padaria_door' | 'padaria_counter' | 'feira_cart' | 'feira_sign' | 'leaderboard';
 
 export interface PropDef {
   id: string;
@@ -588,6 +588,13 @@ const praca: RoomDef = {
     P('canteiro_2', 'canteiro', 18, 15, { w: 2 }),
     P('lampada_p1', 'poste', 11, 8, { art: 'props/lamp_old' }),
     P('lampada_p2', 'poste', 20, 8, { art: 'props/lamp_old' }),
+    // Village leaderboards: words learned + escola streak (tap to open)
+    cen('placar_vila', 'props/placar', 16, 7, 2, 1, {
+      blocks: true,
+      action: 'leaderboard',
+      interact: { x: 16, y: 8 },
+      label: { pt: 'Placar da Vila', en: 'Village board' },
+    }),
     P('lampada_p3', 'poste', 11, 14, { art: 'props/lamp_old' }),
     P('lampada_p4', 'poste', 20, 14, { art: 'props/lamp_old' }),
     P('arbusto_1', 'sebe', 11, 3, { art: 'props/bush_flower' }),

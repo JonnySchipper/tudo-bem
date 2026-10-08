@@ -131,7 +131,7 @@ export class ProfileStore {
     return this.byId.size;
   }
 
-  /** Every stored profile (admin, and the Feira crown broadcast). */
+  /** Every stored profile (leaderboards, admin, and the Feira crown broadcast). */
   all(): StoredProfile[] {
     return [...this.byId.values()];
   }
