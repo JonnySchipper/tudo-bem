@@ -31,7 +31,7 @@ import { beltChip } from './beltChip';
 import { boutFeed } from '../render/pixel/boutFeed';
 import { CARTOON_MS, GAG_TRACKS, THINK_MS, cartoonFor } from '../render/pixel/gagCartoon';
 import { mountCharPreview } from '../render/pixel/charPreview';
-import { callOf, coachTip, cuesForEnd, cuesForFinishEnd, cuesForResolve, moveHint, oddsTone } from './boutLogic';
+import { callOf, coachTip, cuesForEnd, cuesForFinishEnd, cuesForResolve, matGlossLocked, matRootClass, moveHint, oddsTone } from './boutLogic';
 
 type Msg<P extends BoutServerMsg['phase']> = Extract<BoutServerMsg, { phase: P }>;
 /** a client bout message without its `t` and `v` (distributed over the actions) */
@@ -85,7 +85,7 @@ export class BoutUI {
     this.meters = h('div', { class: 'bout-meters', id: 'bout-meters' });
     this.body = h('div', { class: 'bout-body', id: 'bout-body' });
     this.panel = h('div', { class: 'bout-panel', id: 'bout', role: 'region', 'aria-label': 'Treino no tatame' }, this.meters, this.body);
-    this.root = h('div', { class: 'bout-root bout-grip bout-noen', id: 'bout-root' }, this.top, this.panel);
+    this.root = h('div', { class: matRootClass(game.profile?.nameplate), id: 'bout-root' }, this.top, this.panel);
     document.body.classList.add('bout-on');
     (document.getElementById('ui') ?? document.body).append(this.root);
     game.modalOpen = true;
@@ -388,7 +388,7 @@ export class BoutUI {
           'aria-label': `${label.pt}, ${i.percent ?? 100}%. ${hint.pt}`,
           onclick: () => this.pickIntent(m.seq, id),
         },
-        h('span', { class: 'mc-top' }, h('span', { class: 'mc-track' }, track?.pt ?? ''), h('span', { class: 'mc-key', 'aria-hidden': 'true' }, String(k + 1))),
+        h('span', { class: 'mc-top' }, h('span', { class: 'mc-track' }, track?.pt ?? '', track ? en(track.en) : null), h('span', { class: 'mc-key', 'aria-hidden': 'true' }, String(k + 1))),
         h('b', { class: 'pt mc-name' }, label.pt),
         en(label.en),
         i.percent != null ? h('span', { class: 'bout-pct mc-pct' }, `${i.percent}%`) : null,
@@ -580,7 +580,7 @@ export class BoutUI {
     const go = h(
       'button',
       { class: 'bout-intent gag-move move-card tone-good is-drill', type: 'button', id: 'bout-drill', 'data-intent': m.move.id, 'data-gag': track?.id ?? '', onclick: () => this.pickIntent(m.seq, m.move.id) },
-      h('span', { class: 'mc-top' }, h('span', { class: 'mc-track' }, track?.pt ?? ''), h('span', { class: 'mc-key', 'aria-hidden': 'true' }, '1')),
+      h('span', { class: 'mc-top' }, h('span', { class: 'mc-track' }, track?.pt ?? '', track ? en(track.en) : null), h('span', { class: 'mc-key', 'aria-hidden': 'true' }, '1')),
       h('b', { class: 'pt mc-name' }, m.move.pt),
       en(m.move.en),
       hint.pt ? h('span', { class: 'mc-hint' }, h('span', { class: 'pt' }, hint.pt), en(hint.en)) : null,
@@ -793,7 +793,7 @@ export class BoutUI {
     if (m.bond > 0) lines.push(h('p', { class: 'bout-bond' }, '♥ ', ...this.bi('Professora Bia gostou do treino.', 'Professora Bia enjoyed the match.')));
     const word =
       m.word && m.winner === 'you'
-        ? h('div', { class: 'cr-end-words', id: 'bout-word' }, h('b', null, 'Palavras novas no Caderno'), h('span', { class: 'cr-chip' }, m.word.pt, h('span', { class: 'en' }, m.word.en)))
+        ? h('div', { class: 'cr-end-words', id: 'bout-word' }, h('b', null, 'Palavras novas no Caderno'), en('New words in the Diary'), h('span', { class: 'cr-chip' }, m.word.pt, h('span', { class: 'en' }, m.word.en)))
         : null;
     const lesson = this.lesson;
     this.lesson = null;
@@ -892,15 +892,19 @@ export class BoutUI {
   }
 
   private enToggle(): HTMLElement {
+    const locked = matGlossLocked(game.profile?.nameplate);
+    const on = locked || this.showEn;
     return h(
       'button',
       {
         class: 'bout-entoggle ghost',
         type: 'button',
         role: 'switch',
-        'aria-checked': String(this.showEn),
+        'aria-checked': String(on),
         title: 'Mostrar inglês / Show English',
         onclick: (e: Event) => {
+          // Verde locks glosses on (same as Correria). Later plates keep the shared switch.
+          if (matGlossLocked(game.profile?.nameplate)) return;
           this.showEn = !this.showEn;
           writeShowEnglish(this.showEn);
           this.root.classList.toggle('bout-noen', !this.showEn);

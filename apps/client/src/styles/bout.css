@@ -1848,6 +1848,21 @@ body.bout-on .toasts {
   text-transform: uppercase;
 }
 
+.move-card .mc-track .en {
+  display: inline;
+  margin-left: 4px;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.92;
+}
+
+.bout-root.bout-noen .move-card .mc-track .en {
+  display: none;
+}
+
 .move-card .mc-key {
   font-family: var(--font-pixel);
   opacity: 0.85;
