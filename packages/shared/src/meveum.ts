@@ -120,7 +120,9 @@ export function orderTimeMs(lines: MgOrderLine[], mods: string[]): number {
   const totalItems = lines.reduce((s, l) => s + l.qty, 0);
   const needsPack = ticketNeedsPack(mods);
   const prepItems = lines.reduce((s, l) => s + (mgPrepStation(l.itemId) ? l.qty : 0), 0);
-  let ms = 12_000 + totalItems * 7_500 + prepItems * 1_500;
+  // a suco goes through the espremedor (about three oranges), a little longer than a fridge grab
+  const juiced = lines.reduce((s, l) => s + (l.itemId === 'suco_de_laranja' ? l.qty : 0), 0);
+  let ms = 12_000 + totalItems * 7_500 + prepItems * 1_500 + juiced * 2_000;
   if (needsPack) ms += totalItems * 2_500;
   for (const id of mods) {
     const mod = mgModById(id);
