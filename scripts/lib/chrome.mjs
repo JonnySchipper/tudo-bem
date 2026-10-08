@@ -7,6 +7,7 @@ export function findChrome() {
   return [
     '/usr/local/bin/google-chrome',
     '/usr/bin/google-chrome',
+    '/opt/google/chrome/chrome',
     '/usr/bin/chromium',
     '/usr/bin/chromium-browser',
     '/opt/google/chrome/chrome',
