@@ -213,9 +213,11 @@ for (const def of map.sprites) {
 // ------------------------------------------------------------------ standalone images (portraits, icons, UI kit)
 // These are meant for the DOM (<img>, CSS border-image, background) and are shown at 2-4x, so each is its own PNG under
 // public/pixel/<group>/ and gets a manifest.images[key] = { file, w, h, ...meta } entry (meta: slice insets, frame counts...).
+// The character layers are built first: the portraits are composed from them (a portrait is a close-up of the sprite).
+const charBuild = await buildChars({ base: resolveSrc(map.chars.base) });
 for (const def of map.images ?? []) {
   if (!IMAGES[def.fn]) throw new Error(`import-map: unknown images fn '${def.fn}'`);
-  for (const part of await IMAGES[def.fn](deriveCtx, def.args ?? {})) {
+  for (const part of await IMAGES[def.fn]({ ...deriveCtx, charLayers: charBuild.layers }, def.args ?? {})) {
     const file = `${part.key}.png`;
     fs.mkdirSync(path.dirname(path.join(OUT, file)), { recursive: true });
     await savePng(part.img, path.join(OUT, file));
@@ -308,7 +310,7 @@ for (const [name, items] of Object.entries(atlasItems)) {
 
 // ------------------------------------------------------------------ characters
 {
-  const { layers } = await buildChars({ base: resolveSrc(map.chars.base) });
+  const { layers } = charBuild;
   for (const key of Object.keys(layers).sort()) {
     await savePng(layers[key], path.join(OUT, `chars/${key}.png`));
     manifest.chars[key] = `chars/${key}.png`;

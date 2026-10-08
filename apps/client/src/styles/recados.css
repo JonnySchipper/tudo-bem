@@ -104,11 +104,12 @@
   position: relative;
 }
 
-/* the 64 px portrait cropped to the face, at 1/2 scale (still integer pixels: 64 -> 32 would blur, so show it at 1x and crop the head) */
+/* the 64 px portrait cropped to the face, at 1/2 scale (still integer pixels: 64 -> 32 would blur, so show it at 1x and crop the head).
+   --face-x / --face-y: the face centre of that portrait (manifest `face`, set by npcPortrait); the crop stays inside the 64 px card. */
 .rtrack-row .rt-face .px-portrait-img {
   position: absolute;
-  left: -16px;
-  top: -6px;
+  left: clamp(-32px, calc(16px - var(--face-x, 32px)), 0px);
+  top: clamp(-32px, calc(16px - var(--face-y, 22px)), 0px);
   width: 64px !important;
   height: 64px !important;
   max-width: none;
@@ -382,11 +383,15 @@ html.px-ui .recado-done {
 .rj-sec.welcome h3 em { margin-left: auto; }
 .rj-sec h3 em { font-style: normal; color: var(--terracota-dark); }
 
-.rj-face { width: 64px; height: 64px; flex: none; position: relative; background: #f2dfc3; border: 2px solid var(--px-ink, #573c2c); overflow: hidden; }
-.rj-face.small { width: 40px; height: 40px; }
-.rj-face.small .px-portrait-img { position: relative; left: -12px; top: -4px; }
-.rj-sec.welcome .rj-face { width: 40px; height: 40px; }
-.rj-sec.welcome .rj-face .px-portrait-img { position: relative; left: -12px; top: -4px; }
+/* --box: the card size; a card smaller than the 64 px portrait crops it to the face (--face-x / --face-y), never past its edges */
+.rj-face { --box: 64px; width: var(--box); height: var(--box); flex: none; position: relative; background: #f2dfc3; border: 2px solid var(--px-ink, #573c2c); overflow: hidden; }
+.rj-face .px-portrait-img {
+  position: relative;
+  left: clamp(calc(var(--box) - 64px), calc(var(--box) / 2 - var(--face-x, 32px)), 0px);
+  top: clamp(calc(var(--box) - 64px), calc(var(--box) / 2 - var(--face-y, 24px)), 0px);
+}
+.rj-face.small { --box: 40px; }
+.rj-sec.welcome .rj-face { --box: 40px; }
 
 .rj-steps { list-style: none; margin: 4px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 3px 12px; }
 .rj-steps li { display: flex; gap: 6px; align-items: flex-start; font-size: 0.9em; line-height: 1.2; }
@@ -439,7 +444,7 @@ html.px-ui .recado-done {
 @media (max-width: 640px) {
   .offer-title { display: none !important; }
   .rj-steps { grid-template-columns: 1fr; }
-  .rj-face { width: 48px; height: 48px; }
+  .rj-face { --box: 48px; }
   .rj-friends { grid-template-columns: 1fr; }
 }
 

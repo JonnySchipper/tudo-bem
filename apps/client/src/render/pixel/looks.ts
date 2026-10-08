@@ -145,7 +145,10 @@ export interface NpcSignature {
   prop?: { key: string; ramps?: Ramps };
 }
 
-/** Everything that makes an NPC read like their portrait (public/pixel/portraits): the appearance, plus a hat and an apron. */
+/**
+ * Everything an NPC looks like: the appearance, plus a hat and an apron. Their portraits (public/pixel/portraits) are composed from this
+ * same look by `pnpm pixel` (assets-src/custom/portraits.mjs), so a change here shows up in the dialogue box too.
+ */
 export interface NpcStyle {
   /** used when the caller has no room appearance (Dona Graça and Tia Lu are not in a room yet) */
   appearance: Appearance;
@@ -223,12 +226,12 @@ export const NPC_STYLES: Record<NpcId, NpcStyle> = {
     },
   },
   // Professora Bia (BJJ): a white gi (camisa + calça outfit in off-white) with the gi layer on top (crossed lapels, black belt and knot),
-  // short dark hair, arms crossed. Her portrait (portraits/prof_*) is a woman in her 30s with short dark hair and a gi collar.
+  // short dark hair, arms crossed.
   prof: {
     appearance: base({ body: 'medio', skin: 4, hair: 'curto', hairColor: 0, top: 'camisa', topColor: 4, bottom: 'calca', bottomColor: 4, shoes: 0, face: 'marcante', extra: 'nenhum', idle: 'bracos' }),
     gi: true,
   },
-  // Dona Lúcia (escola): bun, glasses, blouse and skirt, from layers that already exist. Portrait is Júlia's until she has her own.
+  // Dona Lúcia (escola): bun, glasses, blouse and skirt, from layers that already exist.
   lucia: {
     appearance: base({ body: 'medio', skin: 3, hair: 'coque', hairColor: 4, top: 'blusa', topColor: 0, bottom: 'saia', bottomColor: 2, shoes: 2, face: 'maduro', extra: 'oculos', idle: 'bracos' }),
   },
