@@ -11,7 +11,7 @@ import { PadariaStore } from './padariaStore.js';
 import { academyFileAdapter, feedbackFileAdapter, fileAdapter, padariaFileAdapter } from './fileStore.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 import { FileModerationQueue } from './services/fileModeration.js';
-import { JevModelSafety, loadOnnxToxModel } from './services/jevModel.js';
+import { JevModelSafety, jevSelfCheck, loadOnnxToxModel } from './services/jevModel.js';
 import type { ChatSafetyService } from './services/interfaces.js';
 import { handleConversaApi } from './conversaApi.js';
 import { ConversaMemory } from './conversaMemory.js';
@@ -67,8 +67,12 @@ function chatSafety(dir: string | undefined): ChatSafetyService & { status?: Jev
   const safety = new JevModelSafety(new JevStubSafety(), loadOnnxToxModel(dir, { threads }));
   void safety.ready().then((st) => {
     const rss = Math.round(process.memoryUsage().rss / 1e6);
-    if (st.state === 'ready') console.log(`[jev] model ${st.model} ready in ${Date.now() - t0}ms (rss ${rss} MB)`);
-    else console.error(`[jev] model unavailable, stub-only chat safety: ${st.error}`);
+    if (st.state !== 'ready') return console.error(`[jev] model unavailable, stub-only chat safety: ${st.error}`);
+    console.log(`[jev] model ${st.model} ready in ${Date.now() - t0}ms (rss ${rss} MB)`);
+    if (process.env.TB_JEV_SELFCHECK === '0') return;
+    void jevSelfCheck(safety).then((r) =>
+      console.log(`[jev] self-check ${r.pass}/${r.total} model-pack cases ok, p50 ${r.p50}ms p95 ${r.p95}ms${r.failed.length ? `; FAILED: ${r.failed.join(' | ')}` : ''}`),
+    );
   });
   return safety;
 }

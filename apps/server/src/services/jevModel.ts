@@ -369,3 +369,30 @@ export class JevModelSafety implements ChatSafetyService {
     return { ...base, jev };
   }
 }
+
+/**
+ * Startup self-check (logged): the model pack's catches and banter guards through the live safety path, with
+ * latency. Proves on the deployed machine that the model loaded, thresholds hold and the latency budget fits.
+ */
+export async function jevSelfCheck(safety: ChatSafetyService): Promise<{ pass: number; total: number; failed: string[]; p50: number; p95: number }> {
+  const cases = [
+    ...modelPack.fixtures.map((f) => ({ text: f.text, recent: f.recent ?? [], want: f.action })),
+    ...modelPack.guards.map((g) => ({ text: g.text, recent: g.recent ?? [], want: 'allow' })),
+  ];
+  const lat: number[] = [];
+  const failed: string[] = [];
+  for (const c of cases) {
+    const t0 = performance.now();
+    const v = await safety.classify(c.text, {
+      playerId: 'jev-selfcheck',
+      room: 'selfcheck',
+      nameplate: 'verde',
+      recent: c.recent.map((text) => ({ playerId: 'jev-selfcheck', text })),
+    });
+    lat.push(performance.now() - t0);
+    if (v.action !== c.want || v.jev?.fallback) failed.push(`${c.text} → ${v.action}${v.jev?.fallback ? ` (${v.jev.fallback})` : ''}`);
+  }
+  lat.sort((a, b) => a - b);
+  const q = (p: number) => Math.round(lat[Math.min(lat.length - 1, Math.floor(lat.length * p))] * 10) / 10;
+  return { pass: cases.length - failed.length, total: cases.length, failed, p50: q(0.5), p95: q(0.95) };
+}
