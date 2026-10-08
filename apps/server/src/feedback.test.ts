@@ -7,12 +7,13 @@ import { createApp } from './app.js';
 import { FEEDBACK_HOURLY_MAX } from './feedbackApi.js';
 import { FeedbackStore } from './feedbackStore.js';
 import { feedbackFileAdapter } from './fileStore.js';
+import { closeDatabase, openDatabase } from './sqliteDb.js';
 
 const NOTE = 'A porta da padaria não abre direito.';
 const ADMIN = 'tb-admin-praca';
 
 describe('feedback store', () => {
-  it('round-trips newest-first and ignores a broken file', () => {
+  it('round-trips newest-first, keeps the database private, and skips an unreadable row', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tb-fb-'));
     const store = new FeedbackStore(feedbackFileAdapter(dir));
     store.add({ text: 'primeiro recado da praça', category: null, contact: null, accountId: null, profileId: null, room: null, createdAt: 10 });
@@ -21,12 +22,13 @@ describe('feedback store', () => {
     expect(again.list({ limit: 1 }).map((row) => row.text)).toEqual(['segundo recado da rua']);
     expect(again.list({ limit: 10, since: 20 })).toHaveLength(1);
     expect(again.count(11)).toBe(1);
-    const mode = fs.statSync(path.join(dir, 'feedback.json')).mode & 0o777;
+    const mode = fs.statSync(path.join(dir, 'tudobem.sqlite')).mode & 0o777;
     expect(mode).toBe(0o600);
 
-    fs.writeFileSync(path.join(dir, 'feedback.json'), '{');
+    openDatabase(dir).prepare('INSERT INTO feedback (id, created_at, json) VALUES (?, ?, ?)').run('abcd9999', 1, '{');
     const fresh = new FeedbackStore(feedbackFileAdapter(dir));
-    expect(fresh.stored()).toBe(0);
+    expect(fresh.stored()).toBe(2);
+    closeDatabase(dir);
     fs.rmSync(dir, { recursive: true, force: true });
   });
 });
@@ -57,7 +59,10 @@ describe('POST /api/feedback and the review list', () => {
   const post = (body: unknown, headers: Record<string, string> = {}) =>
     fetch(base + '/api/feedback', { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) });
   const cookieOf = (res: Response) => (res.headers.get('set-cookie') ?? '').split(';')[0]!;
-  const saved = () => JSON.parse(fs.readFileSync(path.join(dir, 'feedback.json'), 'utf8')) as { items: Array<Record<string, unknown>> };
+  const saved = () => {
+    const items = (openDatabase(dir).prepare('SELECT json FROM feedback').all() as { json: string }[]).map((row) => JSON.parse(row.json) as Record<string, unknown>);
+    return { items };
+  };
 
   it('stores a guest note with an optional contact and lists it for the admin password', async () => {
     await start();
@@ -89,7 +94,7 @@ describe('POST /api/feedback and the review list', () => {
     expect(reg.status).toBe(201);
     const created = await post({ text: NOTE, contact: 'secret@exemplo.com', category: 'love' }, { cookie: cookieOf(reg) });
     expect(created.status).toBe(201);
-    const file = fs.readFileSync(path.join(dir, 'feedback.json'), 'utf8');
+    const file = (openDatabase(dir).prepare('SELECT json FROM feedback').all() as { json: string }[]).map((row) => row.json).join('\n');
     expect(file).not.toContain('secret@exemplo.com');
     expect(file).not.toContain('dona@exemplo.com');
     expect(file).not.toContain('Dona@Exemplo.com');
@@ -105,13 +110,13 @@ describe('POST /api/feedback and the review list', () => {
     const insult = await post({ text: 'você é um idiota' });
     expect(insult.status).toBe(400);
     expect(await insult.json()).toMatchObject({ ok: false, code: 'unsafe' });
-    expect(fs.existsSync(path.join(dir, 'feedback.json'))).toBe(false);
+    expect((openDatabase(dir).prepare('SELECT COUNT(*) AS n FROM feedback').get() as { n: number }).n).toBe(0);
     expect(app!.world.services.moderation.recent(5).some((ev) => ev.surface === 'feedback' && ev.kind === 'block')).toBe(true);
 
     const pii = await post({ text: 'Me escreve em foo@bar.com por favor.' });
     expect(pii.status).toBe(400);
     expect(await pii.json()).toMatchObject({ ok: false, code: 'pii' });
-    expect(fs.existsSync(path.join(dir, 'feedback.json'))).toBe(false);
+    expect((openDatabase(dir).prepare('SELECT COUNT(*) AS n FROM feedback').get() as { n: number }).n).toBe(0);
   });
 
   it('rate-limits a burst and rejects another site', async () => {

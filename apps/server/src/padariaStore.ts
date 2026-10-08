@@ -1,5 +1,5 @@
 /**
- * Player-owned padarias. Same persistence pattern as academies (`padarias.json`).
+ * Player-owned padarias. Same persistence pattern as academies (SQLite `padarias`).
  */
 import { normalizePadaria, type PlayerPadaria } from '@tudobem/shared';
 

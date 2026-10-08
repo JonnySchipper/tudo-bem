@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_APPEARANCE, npcAvatarId, type ClientMsg, type ServerMsg } from '@tudobem/shared';
 import { AcademyStore } from './academyStore.js';
 import { academyFileAdapter } from './fileStore.js';
+import { closeDatabase, openDatabase } from './sqliteDb.js';
 import { World } from './world.js';
 import { ProfileStore } from './store.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, MemoryModerationQueue, PhrasebookGloss } from './services/stubs.js';
@@ -162,7 +163,7 @@ describe('player academy elevator', () => {
     const a = await player(world, 'Rosa', 140);
     await a.send({ t: 'academy', action: 'found', name: 'Sol', crest: 'sol', giColor: 'amarelo', giStamp: 'sol' });
     const id = a.last('roomState')!.academy!.id;
-    expect(fs.existsSync(path.join(dir, 'academies.json'))).toBe(true);
+    expect((openDatabase(dir).prepare('SELECT COUNT(*) AS n FROM academies').get() as { n: number }).n).toBe(1);
 
     const again = new AcademyStore(academyFileAdapter(dir));
     expect(again.get(id)).toMatchObject({ name: 'Sol', crest: 'sol', giColor: 'amarelo', giStamp: 'sol', ownerId: a.s.profile!.id });
@@ -171,5 +172,7 @@ describe('player academy elevator', () => {
     await b.send({ t: 'academy', action: 'directory' });
     const rows = b.last('academy');
     expect(rows && rows.t === 'academy' && rows.phase === 'directory' && rows.rows.map((r) => r.name)).toEqual(['Sol']);
+    closeDatabase(dir);
+    fs.rmSync(dir, { recursive: true, force: true });
   });
 });

@@ -1,118 +1,236 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { atomicWriteFileSync } from './atomicWrite.js';
+/**
+ * Store adapters backed by SQLite. The classes World and auth already use (`ProfileStore`,
+ * `AccountStore`, `AcademyStore`, …) keep the same load/save surface. Each save writes changed
+ * rows in one transaction.
+ *
+ * Photos stay out of the profiles table. A save rewrites a photo row only when that profile's
+ * photo ids change (same rule as the old `photos.json` split: image bytes live under an id).
+ *
+ * `layouts.json` (design mode, not on this branch yet) is a kv row so a volume that already has
+ * the file is imported, and `layoutFileAdapter` speaks the same load/save shape.
+ */
 import type { PlayerAcademy } from '@tudobem/shared';
 import type { AcademyPersistence } from './academyStore.js';
-import type { FeedbackPersistence } from './feedbackStore.js';
+import type { AccountPersistence, AccountsData } from './auth.js';
+import type { FeedbackFile, FeedbackPersistence } from './feedbackStore.js';
+import type { PadariaPersistence } from './padariaStore.js';
 import type { PersistenceAdapter, StoredProfile } from './store.js';
+import { commitImmediate, countOf, loadJsonList, loadKv, loadSingleton, openDatabase, rowsOf, saveKv, saveSingleton, sqlitePath, syncRows, syncRowsCommitted, type SqliteDatabase } from './sqliteDb.js';
 
 type Photos = NonNullable<StoredProfile['photos']>;
 
-/**
- * JSON-file persistence for the Node server.
- *
- * `profiles.json` is rewritten (synchronously, debounced) whenever anyone's profile changes, so it holds no photo images: a dozen jpegs
- * per player made every write serialize megabytes and stalled the server for everyone. The images live in `photos.json`, rewritten only
- * when somebody's photos actually change. Saves from before the split still carry their photos inline and are moved over on the next write.
- */
+const photoSignature = (photos: Photos | undefined) => (photos ?? []).map((p) => p.id).join(',');
+
+function dbFor(dataDir: string): SqliteDatabase {
+  return openDatabase(dataDir);
+}
+
+function writable(db: SqliteDatabase): boolean {
+  return db.open;
+}
+
 export function fileAdapter(dataDir: string): PersistenceAdapter {
-  const file = path.join(dataDir, 'profiles.json');
-  const photoFile = path.join(dataDir, 'photos.json');
-  /** what photos.json holds now, by profile id: the photo ids in order */
+  const db = dbFor(dataDir);
+  /** Photo ids last written or loaded, by profile id. Missing key means no photo row. */
   const written = new Map<string, string>();
-  const signature = (photos: Photos | undefined) => (photos ?? []).map((p) => p.id).join(',');
   return {
-    describe: () => file,
+    describe: () => sqlitePath(dataDir),
     load: () => {
-      const rows = fs.existsSync(file) ? (JSON.parse(fs.readFileSync(file, 'utf8')) as StoredProfile[]) : [];
-      const photos = fs.existsSync(photoFile) ? (JSON.parse(fs.readFileSync(photoFile, 'utf8')) as Record<string, Photos>) : {};
-      for (const row of rows) {
-        const kept = photos[row.id];
-        if (kept) {
-          row.photos = kept;
-          written.set(row.id, signature(kept));
+      written.clear();
+      const photos = new Map<string, Photos>();
+      for (const row of rowsOf(db, 'SELECT profile_id AS id, json FROM photos')) {
+        try {
+          const parsed = JSON.parse(row.json) as Photos;
+          if (Array.isArray(parsed) && parsed.length) {
+            photos.set(row.id, parsed);
+            written.set(row.id, photoSignature(parsed));
+          }
+        } catch {
+          console.error('[sqlite] skipped unreadable photo row');
+        }
+      }
+      const rows: StoredProfile[] = [];
+      for (const row of rowsOf(db, 'SELECT id, json FROM profiles')) {
+        try {
+          const profile = JSON.parse(row.json) as StoredProfile;
+          const kept = photos.get(profile.id);
+          if (kept) profile.photos = kept;
+          rows.push(profile);
+        } catch {
+          console.error('[sqlite] skipped unreadable profile row');
         }
       }
       return rows;
     },
     save: (rows) => {
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-      let photosChanged = false;
-      for (const r of rows) if ((r.photos?.length || written.has(r.id)) && signature(r.photos) !== (written.get(r.id) ?? '')) photosChanged = true;
-      if (photosChanged) {
-        const all: Record<string, Photos> = {};
-        written.clear();
-        for (const r of rows) {
-          if (!r.photos?.length) continue;
-          all[r.id] = r.photos;
-          written.set(r.id, signature(r.photos));
+      if (!writable(db)) return;
+      const profiles = rows.map((row) => {
+        const json = JSON.stringify(row, (k, v) => (k === 'photos' ? undefined : v));
+        return { id: row.id, json, params: [row.id, json] };
+      });
+      const next = new Map<string, string>();
+      commitImmediate(db, () => {
+        syncRows(
+          db,
+          'SELECT id, json FROM profiles',
+          'INSERT INTO profiles (id, json) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET json = excluded.json',
+          'DELETE FROM profiles WHERE id = ?',
+          profiles,
+        );
+        const seen = new Set(rows.map((r) => r.id));
+        const photoIds = new Set((db.prepare('SELECT profile_id AS id FROM photos').all() as { id: string }[]).map((r) => r.id));
+        const upsert = db.prepare('INSERT INTO photos (profile_id, json) VALUES (?, ?) ON CONFLICT(profile_id) DO UPDATE SET json = excluded.json');
+        const del = db.prepare('DELETE FROM photos WHERE profile_id = ?');
+        for (const row of rows) {
+          const has = !!row.photos?.length;
+          if (!has) {
+            if (photoIds.has(row.id) || written.has(row.id)) del.run(row.id);
+            continue;
+          }
+          const sig = photoSignature(row.photos);
+          next.set(row.id, sig);
+          if (written.get(row.id) === sig && photoIds.has(row.id)) continue;
+          upsert.run(row.id, JSON.stringify(row.photos));
         }
-        atomicWriteFileSync(photoFile, JSON.stringify(all));
-      }
-      atomicWriteFileSync(file, JSON.stringify(rows, (k, v) => (k === 'photos' ? undefined : v)));
+        for (const id of photoIds) if (!seen.has(id)) del.run(id);
+      });
+      written.clear();
+      for (const [id, sig] of next) written.set(id, sig);
     },
   };
 }
 
-/** Player academies. One JSON array beside the profiles. */
 export function academyFileAdapter(dataDir: string): AcademyPersistence {
-  const file = path.join(dataDir, 'academies.json');
+  const db = dbFor(dataDir);
   return {
-    describe: () => file,
-    load: () => (fs.existsSync(file) ? (JSON.parse(fs.readFileSync(file, 'utf8')) as unknown[]) : []),
+    describe: () => sqlitePath(dataDir),
+    load: () => loadJsonList(db, 'SELECT json FROM academies ORDER BY id'),
     save: (rows: PlayerAcademy[]) => {
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-      atomicWriteFileSync(file, JSON.stringify(rows));
+      if (!writable(db)) return;
+      saveIdRows(db, 'academies', rows);
     },
   };
 }
 
-/** Feira cart on/off switch (one mode per game). Missing file means every game is off. */
-export function feiraCartFileAdapter(dataDir: string): { load: () => unknown; save: (state: unknown) => void } {
-  const file = path.join(dataDir, 'feiraCart.json');
+export function padariaFileAdapter(dataDir: string): PadariaPersistence {
+  const db = dbFor(dataDir);
   return {
-    load: () => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null),
-    save: (state) => {
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-      atomicWriteFileSync(file, JSON.stringify(state));
-    },
-  };
-}
-
-/** Feira cart games: the live ET-day board, permanent medals, today's paid-run counts. */
-export function feiraGamesFileAdapter(dataDir: string): { load: () => unknown; save: (state: unknown) => void } {
-  const file = path.join(dataDir, 'feiraGames.json');
-  return {
-    load: () => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null),
-    save: (state) => {
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-      atomicWriteFileSync(file, JSON.stringify(state));
-    },
-  };
-}
-
-/** Player feedback notes beside profiles. Mode 0600: a guest may have typed a contact. */
-export function feedbackFileAdapter(dataDir: string): FeedbackPersistence {
-  const file = path.join(dataDir, 'feedback.json');
-  return {
-    describe: () => file,
-    load: () => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : { version: 1, items: [] }),
-    save: (data) => {
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-      atomicWriteFileSync(file, JSON.stringify(data), 0o600);
-    },
-  };
-}
-
-/** Player-owned padarias beside profiles. */
-export function padariaFileAdapter(dataDir: string): import('./padariaStore.js').PadariaPersistence {
-  const file = path.join(dataDir, 'padarias.json');
-  return {
-    describe: () => file,
-    load: () => (fs.existsSync(file) ? (JSON.parse(fs.readFileSync(file, 'utf8')) as unknown[]) : []),
+    describe: () => sqlitePath(dataDir),
+    load: () => loadJsonList(db, 'SELECT json FROM padarias ORDER BY id'),
     save: (rows) => {
-      fs.mkdirSync(path.dirname(file), { recursive: true });
-      atomicWriteFileSync(file, JSON.stringify(rows));
+      if (!writable(db)) return;
+      saveIdRows(db, 'padarias', rows);
     },
   };
+}
+
+export function feedbackFileAdapter(dataDir: string): FeedbackPersistence {
+  const db = dbFor(dataDir);
+  return {
+    describe: () => sqlitePath(dataDir),
+    load: () => {
+      const items = loadJsonList(db, 'SELECT json FROM feedback ORDER BY created_at, id');
+      return { version: 1, items };
+    },
+    save: (data: FeedbackFile) => {
+      if (!writable(db)) return;
+      const rows = data.items.map((row) => ({
+        id: row.id,
+        json: JSON.stringify(row),
+        params: [row.id, row.createdAt, JSON.stringify(row)],
+      }));
+      syncRowsCommitted(
+        db,
+        'SELECT id, json FROM feedback',
+        'INSERT INTO feedback (id, created_at, json) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET created_at = excluded.created_at, json = excluded.json',
+        'DELETE FROM feedback WHERE id = ?',
+        rows,
+      );
+    },
+  };
+}
+
+export function feiraCartFileAdapter(dataDir: string): { load: () => unknown; save: (state: unknown) => void } {
+  const db = dbFor(dataDir);
+  return {
+    load: () => loadSingleton(db, 'feira_cart'),
+    save: (state) => {
+      if (writable(db)) saveSingleton(db, 'feira_cart', state);
+    },
+  };
+}
+
+export function feiraGamesFileAdapter(dataDir: string): { load: () => unknown; save: (state: unknown) => void } {
+  const db = dbFor(dataDir);
+  return {
+    load: () => loadSingleton(db, 'feira_games'),
+    save: (state) => {
+      if (writable(db)) saveSingleton(db, 'feira_games', state);
+    },
+  };
+}
+
+/** Design-mode overrides. Missing row means every room uses the layout shipped in the repo. */
+export function layoutFileAdapter(dataDir: string): { load: () => unknown; save: (state: unknown) => void } {
+  const db = dbFor(dataDir);
+  return {
+    load: () => loadKv(db, 'layouts'),
+    save: (state) => {
+      if (writable(db)) saveKv(db, 'layouts', state);
+    },
+  };
+}
+
+export function accountsFileAdapter(dataDir: string): AccountPersistence {
+  const db = dbFor(dataDir);
+  return {
+    load: () => {
+      if (countOf(db, 'accounts') === 0 && countOf(db, 'sessions') === 0) return null;
+      const accounts = loadJsonList(db, 'SELECT json FROM accounts ORDER BY id') as AccountsData['accounts'];
+      const sessions = loadJsonList(db, 'SELECT json FROM sessions ORDER BY hash') as AccountsData['sessions'];
+      return { version: 1, accounts, sessions };
+    },
+    save: (data: AccountsData) => {
+      if (!writable(db)) return;
+      const accounts = data.accounts.map((row) => ({
+        id: row.id,
+        json: JSON.stringify(row),
+        params: [row.id, row.email, JSON.stringify(row)],
+      }));
+      const sessions = data.sessions.map((row) => ({
+        id: row.hash,
+        json: JSON.stringify(row),
+        params: [row.hash, row.accountId, row.expiresAt, JSON.stringify(row)],
+      }));
+      commitImmediate(db, () => {
+        syncRows(
+          db,
+          'SELECT id, json FROM accounts',
+          'INSERT INTO accounts (id, email, json) VALUES (?, ?, ?) ON CONFLICT(id) DO UPDATE SET email = excluded.email, json = excluded.json',
+          'DELETE FROM accounts WHERE id = ?',
+          accounts,
+        );
+        syncRows(
+          db,
+          'SELECT hash AS id, json FROM sessions',
+          'INSERT INTO sessions (hash, account_id, expires_at, json) VALUES (?, ?, ?, ?) ON CONFLICT(hash) DO UPDATE SET account_id = excluded.account_id, expires_at = excluded.expires_at, json = excluded.json',
+          'DELETE FROM sessions WHERE hash = ?',
+          sessions,
+        );
+      });
+    },
+  };
+}
+
+function saveIdRows(db: SqliteDatabase, table: 'academies' | 'padarias', rows: { id: string }[]): void {
+  syncRowsCommitted(
+    db,
+    `SELECT id, json FROM ${table}`,
+    `INSERT INTO ${table} (id, json) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET json = excluded.json`,
+    `DELETE FROM ${table} WHERE id = ?`,
+    rows.map((row) => {
+      const json = JSON.stringify(row);
+      return { id: row.id, json, params: [row.id, json] };
+    }),
+  );
 }
