@@ -30,6 +30,7 @@ import {
 } from './feiraGames.js';
 import { tapiocaOrders, tapiocaServeQuality } from './feiraTapioca.js';
 import './feiraPastel.js';
+import './feiraCaldo.js';
 
 describe('feira rotation', () => {
   it('is daysSinceEpoch(ET) mod 3 over a fixed order', () => {
@@ -65,25 +66,24 @@ describe('feira rotation', () => {
     expect(featuredGame('2026-11-01')).toBe(featuredGameAt(Date.parse('2026-11-01T05:30:00.000Z')));
   });
 
-  it('features pastel on its own slot, and caldo still falls back to pastel', () => {
-    expect(FEIRA_IMPLEMENTED_GAMES).toEqual(['tapioca', 'pastel']);
+  it('features every built game on its own slot', () => {
+    expect(FEIRA_IMPLEMENTED_GAMES).toEqual(['tapioca', 'pastel', 'caldo']);
     expect(featuredGame('1970-01-01')).toBe('tapioca');
     expect(featuredGame('1970-01-02')).toBe('pastel');
-    // caldo is not built: that slot falls back to pastel, not tapioca
-    expect(featuredGame('1970-01-03')).toBe('pastel');
-    expect(rotationSlot('1970-01-03')).toBe('caldo');
+    expect(featuredGame('1970-01-03')).toBe('caldo');
     for (const day of ['2026-10-08', '2026-10-09', '2026-10-10', '2026-01-01', '2026-07-04']) {
-      const slot = rotationSlot(day);
-      expect(featuredGame(day)).toBe(slot === 'caldo' ? 'pastel' : slot);
+      expect(featuredGame(day)).toBe(rotationSlot(day));
     }
-    // once caldo is registered too, the slot is the schedule
+    // with only some games switched on, the server passes that subset
     const all = ['tapioca', 'pastel', 'caldo'] as const;
     expect(featuredGame('1970-01-01', all)).toBe('tapioca');
     expect(featuredGame('1970-01-02', all)).toBe('pastel');
     expect(featuredGame('1970-01-03', all)).toBe('caldo');
-    // pastel missing: that slot falls back to tapioca (the previous implemented game)
+    // pastel off: that slot falls back to tapioca (the previous switched-on game)
     expect(featuredGame('1970-01-02', ['tapioca', 'caldo'])).toBe('tapioca');
     expect(featuredGame('1970-01-03', ['tapioca', 'caldo'])).toBe('caldo');
+    // caldo off: that slot falls back to pastel
+    expect(featuredGame('1970-01-03', ['tapioca', 'pastel'])).toBe('pastel');
   });
 });
 
@@ -185,7 +185,7 @@ describe('feira cart switch', () => {
       games: [
         { id: 'tapioca', mode: 'off', implemented: true },
         { id: 'pastel', mode: 'off', implemented: true },
-        { id: 'caldo', mode: 'off', implemented: false },
+        { id: 'caldo', mode: 'off', implemented: true },
       ],
     });
     expect(withFeiraCartMode(cfg, 'not-a-game', 'on')).toBeNull();

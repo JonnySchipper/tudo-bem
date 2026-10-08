@@ -1623,6 +1623,19 @@ Dona Lúcia's desk was one multiple-choice card. It is now a lesson loop over th
 - **Test hook.** `POST /__test/escola` (only with `TB_TEST_CLOCK_CONTROL=1`) seeds an online player's escola for screenshots.
 - All new Portuguese is `needs_br`.
 
+## Espremedor automático (#131, 2026-10-08)
+
+Suco de laranja is no longer a grab from the fridge. It comes off the espremedor on the right-hand tower, above the coffee machine (`JUICE` in `packages/shared/src/correria.ts`). Shots: `node scripts/juicer-shots.mjs` (built client, `TB_TEST_CLOCK_CONTROL=1`), `docs/lifesim/shots/juicer/`.
+
+- **One tap, one orange.** `juice_drop` sends the next orange through the machine (roll, cut, press, pour, peel, 640 ms). Three sizes, seeded: pequena 0.26, média 0.34, grande 0.40 of the line. The glass has a line (`JUICE_LINE_ROWS` 7). Tap the glass (`juice_take`) to serve. The server judges it: under 0.80 is short (thrown out), over 1.20 overflows at once, between them lands. Every glass still under 0.80 has room for the biggest orange.
+- **When it unlocks.** Suco is the step after pão na chapa on `MENU_LADDER` (one new item every 2 completed shifts, so the 7th item opens at 10). That shift's pay bump is the usual +6%.
+- **The card.** Lesson id is `espremedor`, not the item id, so a player who already saw the old suco card still gets this one once. On screen, not spoken. `pendingLesson` still shows the packing card first when that one is due.
+- **Old saves.** `normalizeCorreria` with no `taught` and shifts already played marks every old item card and `where` as seen. It does not mark `espremedor`, so the juicer card still shows once. A save that already lists `taught` is kept as it is.
+- **Reduced motion.** The cycle is not played: the machine stays on the idle frame and the glass jumps to the server's level.
+- **On screen.** The camera `NEED` is 162×216 and `FOCUS` sits at (80, 40), so the tower (it starts above the old shelf) stays under the HUD and the zoom backs off a step when the free band is short. The lesson card is tall enough that Entendi is inside the card. Shelf taps (`#cr-hot`, z-index 12 as a body sibling) paint over `#ui`, so while a step lesson is open (`body.cr-lesson-open`) `#ui` stacks above the taps and the card ignores pointer events except Entendi.
+- **Free beta.** Nothing here is bought. The shift still pays the existing virtual RV, scaled by the menu as before.
+- All new Portuguese is `needs_br`.
+
 ## Feira cart games: daily rotation, Tapioca (2026-10-08)
 
 Three skill games share one cart in the Feira. This PR ships the framework and the first game (Tapioca). Pastel and Caldo de cana are later PRs: adding one is a game-logic module plus a client view, registered in `FEIRA_GAME_MODULES` and `FEIRA_IMPLEMENTED_GAMES`.
@@ -1636,11 +1649,11 @@ Three skill games share one cart in the Feira. This PR ships the framework and t
 
 ## Feira cart games: Pastel (2026-10-08)
 
-Pastel joins the rotation. Caldo de cana is still unimplemented, so a caldo day falls back to Pastel instead of Tapioca.
+Pastel joins the rotation. With Caldo de cana merged too, all three slots are real games; a slot whose game is switched off falls back to the previous switched-on game in the cycle.
 
 - **Play.** Made to order: massa, the filling, the fork, then the oil. Two pastels fry at once from the start (a third slot after 4 serves). Pull while it is golden. Leave it and the ladder is golden → dark → black → a charcoal block → fire. "Apaga!" puts the fire out. There is no extinguisher. Burnt, raw, or a fire you smothered is a soft fail (score only). The run does not end. Combo fillings (frango com catupiry, camarão com catupiry, Romeu e Julieta, banana com canela) are two bowl taps, arrive from the sixth customer on, and use a shorter golden window.
 - **Score.** Same server path as Tapioca: per-order quality, recomputed from the seed, hard cap 500, RV in the Correria band, first 3 runs of the ET day pay. Beta stays free. Chat, belts, nameplates and stripes are untouched.
-- **Registry.** Pastel is registered the same way as the other cart games: the id is in `FEIRA_ROTATION_ORDER`, `FEIRA_IMPLEMENTED_GAMES`, and `FEIRA_GAME_MODULES`. The admin list is that rotation order, so Pastel is its own toggle (`#admin-feira-pastel`) and a missing flag is off. Caldo stays on the list as not playable yet. Shots turn Pastel on from the credits admin door, and the solo pin `?feiraon=pastel` does the same switch. Neither assumes the cart is open.
+- **Registry.** Pastel is registered the same way as the other cart games: the id is in `FEIRA_ROTATION_ORDER`, `FEIRA_IMPLEMENTED_GAMES`, and `FEIRA_GAME_MODULES`. The admin list is that rotation order, so Pastel is its own toggle (`#admin-feira-pastel`) and a missing flag is off. Caldo has its own real toggle (`#admin-feira-caldo`), also off by default. Shots turn Pastel on from the credits admin door, and the solo pin `?feiraon=pastel` does the same switch. Neither assumes the cart is open.
 - **Shots.** `GAME=pastel node scripts/feira-games-shots.mjs` adds `?feiraon=pastel`. Real mouse clicks, including one pastel left until it catches fire. Shots in `docs/lifesim/shots/feira-games/`.
 - All new Portuguese is `needs_br`.
 
@@ -1662,4 +1675,13 @@ Jonny (via TB Brainstorm): two live boards, visible in the world, not buried in 
 - **Surfacing.** A `props/placar` board in the Praça (`placar_vila`, action `leaderboard`) — tap to open the full list. The Padaria counter NPC (Seu Carlos / Dona Graça) occasionally mentions the #1 streak holder by display name when you enter the padaria (at most once per player per São Paulo day, ~1 in 4 enters); the line is unvoiced because the name is dynamic.
 - **Rules.** Display names only. Ties share a rank (1, 2, 2, 4). Top 10 plus your own row if you are outside. Server-authoritative; the client refreshes on open and every 15 s while the panel is up. Free beta: no purchases or real-money rewards on either board. Chat is never rewritten.
 - **Code.** `packages/shared/src/leaderboards.ts` (pure rank), `apps/server/src/leaderboards.ts`, client `apps/client/src/ui/leaderboards.ts`. Shots: `docs/lifesim/shots/leaderboards/`.
+
+## Feira cart games: Caldo de cana (2026-10-08)
+
+Caldo de cana is the third slot in the same rotation (`tapioca`, `pastel`, `caldo`). A day whose game is switched off falls back to the previous game that is both built and switched on.
+
+- **Off until an admin turns it on.** Cart games use the rotation registry (`off` | `on` | `rotation`, default off). The admin panel lists one switch per id in `FEIRA_ROTATION_ORDER`, so Caldo is `admin-feira-caldo` and starts off. Turning only Caldo on features it every day. A start is refused with `feira_closed` while the cart is closed. Solo screenshots call `__tb.enableFeiraGame('caldo')` before opening the cart.
+- **Play.** Load cane, turn the lever, catch the juice under the spout (a miss spills into a puddle), pump the flavor, add gelo when the order asks, and serve before the customer leaves. Several orders wait at once. A second crank while the press is already full overflows it. A wrong flavor, missing ice, or a spill costs points and annoys the customer; it does not end the run. Drag is pointer events (mouse and touch) with a click-click fallback. The stall DOM is built once and updated in place.
+- **Orders and score.** `caldoOrders(seed)` is pure. Lines are bilingual, for example "Um caldo de cana com limão, com gelo, por favor." / "A sugarcane juice with lime, with ice, please." Flavors: limão, abacaxi, maracujá, gengibre, hortelã, laranja, abacaxi com hortelã. The server recomputes the score and keeps the same 500 cap, 8–20 RV band, +5 flawless (25), and 3 paid runs a day. Beta stays free. Chat, belts, nameplates, and stripes are untouched.
+- **Code.** `packages/shared/src/feiraCaldo.ts`, `apps/client/src/ui/feiraCaldo.ts`, `apps/client/src/styles/feiraCaldo.css`. Shots: `docs/lifesim/shots/feira-games/` (`play-*-caldo-*`).
 

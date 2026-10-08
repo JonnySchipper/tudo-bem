@@ -1069,7 +1069,7 @@ describe('Admin panel', () => {
       expect(locked.games.map((g) => g.id)).toEqual(['tapioca', 'pastel', 'caldo']);
       expect(locked.games.every((g) => g.mode === 'off')).toBe(true);
       expect(locked.games.find((g) => g.id === 'pastel')).toMatchObject({ mode: 'off', implemented: true });
-      expect(locked.games.find((g) => g.id === 'caldo')).toMatchObject({ mode: 'off', implemented: false });
+      expect(locked.games.find((g) => g.id === 'caldo')).toMatchObject({ mode: 'off', implemented: true });
     }
 
     await a.send({ t: 'admin', action: 'feiraCartSet', game: 'tapioca', mode: 'on' });

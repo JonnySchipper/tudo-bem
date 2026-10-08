@@ -1299,6 +1299,11 @@ export class World {
     s.send({ t: 'admin', phase: 'players', players });
   }
 
+  /** Solo / shot hook: turn one Feira cart game on. Games ship off. */
+  enableFeiraGame(id: string): boolean {
+    return this.feiraGames.setCartMode(id, 'on');
+  }
+
   private adminKick(s: Session, targetId: string) {
     const id = String(targetId ?? '');
     if (!id || id === s.profile?.id) {

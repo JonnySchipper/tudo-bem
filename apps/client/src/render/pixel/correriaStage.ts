@@ -1,6 +1,7 @@
 /**
  * "Correria no Balcão" in the world (Phaser side). Everything happens behind the padaria counter, no modal:
  *  - a wooden work board over the counter area with the shelves, the estufa, the geladeira, the chapa, the coffee machine, the
+ *    espremedor (the orange juicer: one tap, one orange through roll / cut / press / pour / peel, the glass with its line), the
  *    register, the tip jar, the bell, the tray, the bag and the plate (`correriaArt.ts` is the art contract and the layout);
  *  - every piece is a transparent DOM button over its sprite (taps work on phones, the keyboard can focus them, e2e can click them);
  *  - the customers queue at the front on the character sheets, with a patience meter and a speech bubble;
@@ -13,10 +14,13 @@ import {
   CHAPA,
   CHAPA_ITEMS,
   CAFE_ITEMS,
+  JUICE,
   MG_ITEMS,
   SHELF_OF,
+  SUCO_ITEMS,
   chapaFrame,
   chapaPhase,
+  juicerStep,
   npcDefById,
   patienceStage,
   pourFrame,
@@ -39,6 +43,19 @@ import {
   BAKER_SPOT,
   BELL_SPOT,
   BOARD,
+  BOARD_SHELF_TOP,
+  BOARD_TOWER_X,
+  CRATE_KEY,
+  HOPPER_NEXT,
+  JUICER_SPOT,
+  JUICE_GLASS_SPOT,
+  JUICE_LINE_ROWS,
+  JUICE_SPOUT,
+  PEEL_BIN,
+  juiceGlassKey,
+  juiceRows,
+  juicerKey,
+  orangeKey,
   CHAPA_ITEM_SCALE,
   CHAPA_SLOTS,
   CHAPA_SPOT,
@@ -85,6 +102,11 @@ const WALK_PX_S = 46;
 const POP_MS = 1500;
 
 type Img = Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
+
+/** Suco's shelf cell holds a crate of oranges (the juice itself comes out of the espremedor). */
+const shelfKey = (id: string): string => (SUCO_ITEMS.includes(id) ? CRATE_KEY : itemKey(id));
+/** The next orange's size, said on the machine: pequena / média / grande. */
+const SIZE_WORD = { p: { pt: 'pequena', en: 'small' }, m: { pt: 'média', en: 'medium' }, g: { pt: 'grande', en: 'big' } } as const;
 
 /** A sprite that can change its manifest key; a missing key is a magenta box of the contracted size. */
 class Piece {
@@ -157,6 +179,10 @@ interface Particle {
   vy: number;
   life: number;
   max: number;
+  /** Juice drops and peels fall (px/s²) and snap to whole pixels; steam floats. */
+  grav?: number;
+  fx?: number;
+  fy?: number;
 }
 
 export class CounterStage {
@@ -174,6 +200,13 @@ export class CounterStage {
   private chapaItems: Piece[] = [];
   private coffee: Piece | null = null;
   private cup: Piece | null = null;
+  private juicer: Piece | null = null;
+  private glass: Piece | null = null;
+  private nextOrange: Piece | null = null;
+  /** The glass just overflowed (a server `juice_bad` spill): show the overflow frame until then. */
+  private spillUntil = 0;
+  /** The last juicer step drawn (a splash on entering the press). */
+  private lastStep = 'idle';
   private register: Piece | null = null;
   private bell: Piece | null = null;
   private jar: Piece | null = null;
@@ -219,7 +252,10 @@ export class CounterStage {
     this.board = this.h.world(s.add.graphics()).setDepth(D.board);
     this.meters = this.h.world(s.add.graphics()).setDepth(D.hud);
     this.drawBoard();
-    for (const i of MG_ITEMS) this.items.set(i.id, this.img(itemKey(i.id), ITEM_SPOTS[i.id]!, D.item));
+    for (const i of MG_ITEMS) this.items.set(i.id, this.img(shelfKey(i.id), ITEM_SPOTS[i.id]!, D.item));
+    this.juicer = this.img(juicerKey('idle'), JUICER_SPOT, D.piece);
+    this.glass = new Piece(this.h, D.item + 5, JUICE_GLASS_SPOT);
+    this.nextOrange = new Piece(this.h, D.item + 4, HOPPER_NEXT);
     this.trayBase = this.img(ART.tray, TRAY_SPOT, D.tray);
     this.bag = this.img(ART.bag, BAG_SPOT, D.piece);
     this.plate = this.img(ART.plate, PLATE_SPOT, D.piece);
@@ -236,18 +272,27 @@ export class CounterStage {
   private drawBoard(): void {
     const g = this.board!;
     const { x0, y0, x1, y1 } = BOARD;
+    // the shelf part stops at BOARD_SHELF_TOP; the station column (the juicer on top) rises to y0
+    const sy = BOARD_SHELF_TOP;
+    const tx = BOARD_TOWER_X;
     g.clear();
-    g.fillStyle(0x3b2314, 1).fillRect(x0 - 2, y0 - 2, x1 - x0 + 4, y1 - y0 + 4);
-    g.fillStyle(0xcf9b62, 1).fillRect(x0, y0, x1 - x0, y1 - y0);
+    g.fillStyle(0x3b2314, 1).fillRect(x0 - 2, sy - 2, x1 - x0 + 4, y1 - sy + 4);
+    g.fillStyle(0x3b2314, 1).fillRect(tx - 2, y0 - 2, x1 - tx + 4, sy - y0 + 2);
+    g.fillStyle(0xcf9b62, 1).fillRect(x0, sy, x1 - x0, y1 - sy);
+    g.fillStyle(0xcf9b62, 1).fillRect(tx, y0, x1 - tx, sy - y0);
     // planks
-    for (let y = y0 + 8; y < y1; y += 14) g.fillStyle(0xbd8850, 1).fillRect(x0, y, x1 - x0, 1);
-    g.fillStyle(0xe2b97e, 1).fillRect(x0, y0, x1 - x0, 2);
+    for (let y = y0 + 8; y < y1; y += 14) {
+      const from = y < sy ? tx : x0;
+      g.fillStyle(0xbd8850, 1).fillRect(from, y, x1 - from, 1);
+    }
+    g.fillStyle(0xe2b97e, 1).fillRect(x0, sy, tx - x0, 2);
+    g.fillStyle(0xe2b97e, 1).fillRect(tx, y0, x1 - tx, 2);
     g.fillStyle(0x8a5a32, 1).fillRect(x0, y1 - 3, x1 - x0, 3);
     // a rail under each shelf row
     for (const ry of [-5, 27, 59]) g.fillStyle(0x9c6a3a, 1).fillRect(x0 + 6, ry + 9, 104, 1);
-    // the station column (coffee machine over the chapa)
-    g.fillStyle(0xb98048, 1).fillRect(117, y0 + 5, x1 - 117 - 3, 112);
-    g.fillStyle(0x8a5a32, 1).fillRect(117, y0 + 5, 1, 112);
+    // the station column (the juicer over the coffee machine over the chapa)
+    g.fillStyle(0xb98048, 1).fillRect(117, y0 + 5, x1 - 117 - 3, 140);
+    g.fillStyle(0x8a5a32, 1).fillRect(117, y0 + 5, 1, 140);
     // the service strip along the front (pack row and register row)
     g.fillStyle(0xc28c54, 1).fillRect(x0 + 3, 76, 110, 52);
     g.fillStyle(0x8a5a32, 1).fillRect(x0 + 3, 76, 110, 1);
@@ -332,14 +377,38 @@ export class CounterStage {
       const id = it.id;
       const spot = ITEM_SPOTS[id]!;
       const isCup = CAFE_ITEMS.includes(id);
-      const labels = { pt: it.card.form, en: it.card.gloss_en };
+      const isJuice = SUCO_ITEMS.includes(id);
+      // the crate in suco's cell feeds the juicer, like a tap on the machine
+      const labels = isJuice ? { pt: 'laranjas', en: 'oranges' } : { pt: it.card.form, en: it.card.gloss_en };
       btn(`item-${id}`, `cr-item shelf-${SHELF_OF[id]}`, spot, 25, 22, labels.pt, labels.en, {
-        click: isCup ? () => togglePour(id) : () => (CHAPA_ITEMS.includes(id) ? on.on.chapaPut(id) : on.on.grab(id)),
+        click: isCup ? () => togglePour(id) : isJuice ? () => on.on.juiceDrop() : () => (CHAPA_ITEMS.includes(id) ? on.on.chapaPut(id) : on.on.grab(id)),
       });
     }
     btn('machine', 'cr-machine', { x: COFFEE_SPOT.x, y: COFFEE_SPOT.y }, 32, 40, 'Cafeteira', 'Tap to pour', {
       click: () => togglePour(),
     });
+    // the espremedor: a tap anywhere on it drops one orange; the glass on its tray is its own target (tap it at the line)
+    btn('juicer', 'cr-juicer', JUICER_SPOT, 34, 36, 'Espremedor', 'Juicer · 1 tap = 1 orange', { click: () => on.on.juiceDrop() });
+    btn('juice-glass', 'cr-glass', { x: JUICE_GLASS_SPOT.x, y: JUICE_GLASS_SPOT.y + 1 }, 16, 14, '', 'Glass: tap it at the line', { click: () => on.on.juiceTake() });
+    {
+      const glass = this.hot.get('juice-glass')!.el;
+      glass.setAttribute('aria-label', 'Copo de suco: toque na linha (Juice glass: tap it at the line)');
+      // the line's name beside its red ticks, and the next orange's size over the hopper
+      const line = document.createElement('span');
+      line.className = 'cr-word cr-line-word';
+      // the hit box is 14 rows over the glass's 12 (from row 2), and the line is glass row 9 - 7 + 1
+      line.style.top = `${(((2 + (9 - JUICE_LINE_ROWS + 1)) / 14) * 100).toFixed(1)}%`;
+      line.innerHTML = '<b>linha</b><i>line</i>';
+      glass.append(line);
+      const juicer = this.hot.get('juicer')!.el;
+      const next = document.createElement('span');
+      next.className = 'cr-word cr-next-word';
+      juicer.append(next);
+      const bin = document.createElement('span');
+      bin.className = 'cr-word cr-bin-word';
+      bin.innerHTML = '<b>bagaço</b><i>peels</i>';
+      juicer.append(bin);
+    }
     for (let i = 0; i < 2; i++) btn(`grill-${i}`, 'cr-grill', CHAPA_SLOTS[i]!, 16, 16, '', '', { click: () => on.on.chapaTake(i) });
     btn('bag', 'cr-pack', BAG_SPOT, 24, 30, 'Sacola', 'Bag (to go)', { click: () => on.on.pack('bag') });
     btn('plate', 'cr-pack', PLATE_SPOT, 28, 14, 'Prato', 'Plate (for here)', { click: () => on.on.pack('plate') });
@@ -358,6 +427,8 @@ export class CounterStage {
     this.lastTips = 0;
     this.bellUntil = 0;
     this.pouring = false;
+    this.spillUntil = 0;
+    this.lastStep = 'idle';
     this.nudge = { x: 0, y: 0 };
   }
 
@@ -366,7 +437,7 @@ export class CounterStage {
     this.hotEl && (this.hotEl.style.display = 'none');
     this.board?.setVisible(false);
     this.meters?.clear();
-    for (const p of [...this.items.values(), this.trayBase, this.bag, this.plate, this.chapa, this.coffee, this.cup, this.register, this.bell, this.jar, ...this.trayMinis, ...this.chapaItems]) p?.hide();
+    for (const p of [...this.items.values(), this.trayBase, this.bag, this.plate, this.chapa, this.coffee, this.cup, this.juicer, this.glass, this.nextOrange, this.register, this.bell, this.jar, ...this.trayMinis, ...this.chapaItems]) p?.hide();
     this.clearCustomers();
     this.clearParticles();
     if (this.baker) {
@@ -432,7 +503,7 @@ export class CounterStage {
     for (const it of MG_ITEMS) {
       const lock = !!open && !open.has(it.id);
       const p = this.items.get(it.id)!;
-      p.set(itemKey(it.id), { alpha: lock ? 0.28 : 1, scale: ITEM_SCALE });
+      p.set(shelfKey(it.id), { alpha: lock ? 0.28 : 1, scale: ITEM_SCALE });
       const hot = this.hot.get(`item-${it.id}`);
       if (hot) hot.el.disabled = lock;
     }
@@ -486,12 +557,96 @@ export class CounterStage {
       this.coffee!.set(coffeeKey('idle'));
       this.cup!.hide();
     }
+    this.drawJuicer(snap, age, open);
     this.register!.set(ART.register);
     this.bell!.set(bellKey(this.nowMs < this.bellUntil ? 1 : 0));
     const jar = tipJarStage(snap.stats.tips);
     this.jar!.set(tipjarKey(jar));
     if (snap.stats.tips > this.lastTips && !this.h.reduced()) this.hop.push({ piece: this.jar!, t: 0, dur: 0.22 });
     this.lastTips = snap.stats.tips;
+  }
+
+  /** Where the juicer is in its cycle for this frame ('idle' when no orange is going through). */
+  private juiceStep(snap: CorreriaSnap, age: number): ReturnType<typeof juicerStep> {
+    return snap.juice ? juicerStep(snap.juice.age + age) : 'idle';
+  }
+
+  /**
+   * The espremedor: the machine frame by the step of its cycle (roll, cut, press, pour, peel), the glass filling from the level before
+   * this orange to the new one while it pours, the next orange waiting in the hopper, the overflow frame after a spill. Under reduced
+   * motion the cycle is not played: the machine stays idle and the glass shows the server's level at once.
+   */
+  private drawJuicer(snap: CorreriaSnap, age: number, open: Set<string> | null): void {
+    const locked = !!open && !SUCO_ITEMS.some((id) => open.has(id));
+    const reduced = this.h.reduced();
+    const j = snap.juice;
+    const step = reduced ? 'idle' : this.juiceStep(snap, age);
+    this.juicer!.set(juicerKey(step), { alpha: locked ? 0.4 : 1 });
+    if (step === 'press' && this.lastStep !== 'press') this.splash();
+    if (step === 'peel' && this.lastStep !== 'peel') this.peelDrop();
+    this.lastStep = step;
+    // the next orange sits at the chute mouth (while one rolls in, the machine frame draws it)
+    const next = snap.hopper?.[0];
+    if (next && !locked && step !== 'roll') this.nextOrange!.set(orangeKey(next));
+    else this.nextOrange!.hide();
+    // the glass: overflow for a moment after a spill, else the level (eased from `prev` during the pour, in whole rows)
+    if (this.nowMs < this.spillUntil) this.glass!.set(juiceGlassKey('spill'));
+    else if (j) this.glass!.set(juiceGlassKey(juiceRows(this.shownFill(snap, age))));
+    else if (!locked) this.glass!.set(juiceGlassKey(0));
+    else this.glass!.hide();
+    const hot = this.hot.get('juicer');
+    if (hot) {
+      hot.el.disabled = locked;
+      hot.el.dataset.step = step;
+      const word = hot.el.querySelector<HTMLElement>('.cr-next-word');
+      const w = next ? SIZE_WORD[next] : null;
+      const text = w ? `${w.pt}|${w.en}` : '';
+      if (word && word.dataset.v !== text) {
+        word.dataset.v = text;
+        word.innerHTML = w ? `<b>${w.pt}</b><i>${w.en}</i>` : '';
+      }
+    }
+    const glass = this.hot.get('juice-glass');
+    if (glass) {
+      glass.el.disabled = locked;
+      const fill = j?.fill ?? 0;
+      glass.el.dataset.state = !j ? 'empty' : fill >= JUICE.goodMin ? 'ready' : 'short';
+    }
+  }
+
+  /** The juice level to draw: the server's, or on its way there while this orange pours. */
+  private shownFill(snap: CorreriaSnap, age: number): number {
+    const j = snap.juice;
+    if (!j) return 0;
+    if (this.h.reduced()) return j.fill;
+    const t = j.age + age;
+    const a = JUICE.cycleMs * 0.58;
+    const b = JUICE.cycleMs * 0.84;
+    if (t <= a) return j.prev;
+    if (t >= b) return j.fill;
+    return j.prev + ((j.fill - j.prev) * (t - a)) / (b - a);
+  }
+
+  /** A few juice drops off the press (crisp 1 px squares, no tween of the sprite itself). */
+  private splash(): void {
+    if (this.h.reduced()) return;
+    const s = this.h.scene;
+    for (let i = 0; i < 4; i++) {
+      const img = this.h.world(s.add.rectangle(JUICER_SPOT.x + 1 + (i - 1.5) * 2, JUICER_SPOT.y - 19, 1, 1, i % 2 ? 0xffb43a : 0xf6a021, 1)).setOrigin(0, 0);
+      img.setDepth(D.fx);
+      this.particles.push({ img, vx: (i - 1.5) * 9, vy: -14 - Math.random() * 6, life: 0, max: 0.35, grav: 120 });
+    }
+  }
+
+  /** The two spent peels tumble the last pixels into the bin (bagaço). */
+  private peelDrop(): void {
+    if (this.h.reduced()) return;
+    const s = this.h.scene;
+    for (let i = 0; i < 2; i++) {
+      const img = this.h.world(s.add.rectangle(PEEL_BIN.x + i * 2, PEEL_BIN.y - 4 + i, 2, 1, i ? 0xb4520e : 0xe07a14, 1)).setOrigin(0, 0);
+      img.setDepth(D.fx);
+      this.particles.push({ img, vx: -4, vy: 6, life: 0, max: 0.3, grav: 60 });
+    }
   }
 
   private stepHops(dt: number): void {
@@ -705,6 +860,30 @@ export class CounterStage {
       const hh = Math.round(hgt * Math.min(1, fill));
       g.fillStyle(col, 1).fillRect(x, top + hgt - hh, 3, hh);
     }
+    this.drawJuiceMeter(g, snap, age);
+  }
+
+  /** Juicer: a fill bar beside the machine (the good band green, the line a red notch), and the stream while an orange pours. */
+  private drawJuiceMeter(g: Phaser.GameObjects.Graphics, snap: CorreriaSnap, age: number): void {
+    const j = snap.juice;
+    if (!j && this.nowMs >= this.spillUntil) return;
+    const fill = this.nowMs < this.spillUntil ? JUICE.spillAt + 0.05 : this.shownFill(snap, age);
+    const x = 117;
+    const top = JUICER_SPOT.y - 33;
+    const hgt = 28;
+    const max = 1.3;
+    const yOf = (f: number) => top + hgt - Math.round((hgt * Math.min(max, f)) / max);
+    g.fillStyle(0x1b1210, 0.9).fillRect(x - 1, top - 1, 5, hgt + 2);
+    g.fillStyle(0x2e8a55, 0.9).fillRect(x, yOf(JUICE.spillAt), 3, yOf(JUICE.goodMin) - yOf(JUICE.spillAt));
+    const col = fill < JUICE.goodMin ? 0xf2c230 : fill <= JUICE.spillAt ? 0xffb43a : 0xc0392b;
+    const yy = yOf(fill);
+    g.fillStyle(col, 1).fillRect(x, yy, 3, top + hgt - yy);
+    g.fillStyle(0xd93232, 1).fillRect(x - 1, yOf(1), 5, 1);
+    // the stream from the spout into the glass while this orange pours
+    if (j && !this.h.reduced() && this.juiceStep(snap, age) === 'pour') {
+      const surface = JUICE_GLASS_SPOT.y - 2 - juiceRows(fill);
+      g.fillStyle(0xf6a021, 1).fillRect(JUICE_SPOUT.x, JUICE_SPOUT.y, 1, Math.max(1, surface - JUICE_SPOUT.y));
+    }
   }
 
   // ------------------------------------------------------------------ events (juice)
@@ -733,6 +912,16 @@ export class CounterStage {
       case 'pour_bad':
         this.pouring = false;
         this.popAt(COFFEE_SPOT.x, COFFEE_SPOT.y - 40, e.why === 'spill' ? '💦' : '…');
+        break;
+      case 'juice_ok':
+        this.popAt(JUICER_SPOT.x, JUICER_SPOT.y - 24, '🍊');
+        break;
+      case 'juice_bad':
+        if (e.why === 'spill') {
+          this.spillUntil = this.nowMs + 900;
+          this.kick();
+        }
+        this.popAt(JUICER_SPOT.x, JUICER_SPOT.y - 24, e.why === 'spill' ? '💦' : '…');
         break;
       case 'no':
         if (this.pouring && !snap.pour) this.pouring = false;
@@ -799,9 +988,17 @@ export class CounterStage {
     }
     this.particles = this.particles.filter((p) => {
       p.life += dt;
-      p.img.x += p.vx * dt;
-      p.img.y += p.vy * dt;
-      p.img.setAlpha(Math.max(0, 0.8 * (1 - p.life / p.max)));
+      if (p.grav !== undefined) {
+        // a falling bit of juice or peel: exact position kept aside, drawn on whole pixels, fully opaque
+        p.fx = (p.fx ?? p.img.x) + p.vx * dt;
+        p.fy = (p.fy ?? p.img.y) + p.vy * dt;
+        p.vy += p.grav * dt;
+        p.img.setPosition(Math.round(p.fx), Math.round(p.fy));
+      } else {
+        p.img.x += p.vx * dt;
+        p.img.y += p.vy * dt;
+        p.img.setAlpha(Math.max(0, 0.8 * (1 - p.life / p.max)));
+      }
       if (p.life >= p.max) {
         p.img.destroy();
         return false;
@@ -815,6 +1012,7 @@ export class CounterStage {
     const k = this.h.cssScale();
     // below about 2 css px per world px the shelf labels would collide: the names come as a line when an item is tapped instead
     this.hotEl!.classList.toggle('small', k < 2.2);
+    this.hotEl!.classList.toggle('cr-show-en', correriaFeed.showEn);
     this.hotEl!.style.setProperty('--cr-fs', `${Math.max(7, Math.min(11, k * 2.9)).toFixed(1)}px`);
     const sig = `${Math.round(this.h.toCanvas(0, 0).px)}|${Math.round(this.h.toCanvas(0, 0).py)}|${k.toFixed(3)}|${correriaFeed.showEn}`;
     // the grill spots only exist as many as the chapa has slots

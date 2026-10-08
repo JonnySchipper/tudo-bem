@@ -25,8 +25,8 @@ import type { Bilingual } from './types.js';
 export const FEIRA_ROTATION_ORDER = ['tapioca', 'pastel', 'caldo'] as const;
 export type FeiraRotationId = (typeof FEIRA_ROTATION_ORDER)[number];
 
-/** Games this build can actually start. Caldo joins this set in a later PR. */
-export const FEIRA_IMPLEMENTED_GAMES = ['tapioca', 'pastel'] as const;
+/** Games this build can actually start. Each one still ships off until an admin switches it on. */
+export const FEIRA_IMPLEMENTED_GAMES = ['tapioca', 'pastel', 'caldo'] as const;
 export type FeiraGameId = (typeof FEIRA_IMPLEMENTED_GAMES)[number];
 
 export const isFeiraGameId = (v: unknown): v is FeiraGameId =>
@@ -55,9 +55,9 @@ export function rotationSlot(day: string, order: readonly string[] = FEIRA_ROTAT
 
 /**
  * Featured game for an ET date (`YYYY-MM-DD`). Unimplemented slots fall back to the nearest
- * earlier implemented game in the cycle (wrapping). With Pastel built, a caldo day features
- * Pastel; a 3-game build is the real cycle. `implemented` is injectable so tests can prove the
- * fallback without waiting for Caldo.
+ * earlier implemented game in the cycle (wrapping), so a 1-game build always features tapioca
+ * and a 3-game build is the real cycle. `implemented` is injectable so tests can prove the fallback
+ * and so the server can pass only the games an admin has switched on.
  */
 export function featuredGame(
   day: string,
@@ -65,7 +65,7 @@ export function featuredGame(
   order: readonly string[] = FEIRA_ROTATION_ORDER,
 ): FeiraGameId {
   // `implemented` defaults to the games this build can start. Tests pass a wider list to prove
-  // the 3-day cycle before Caldo exists. An empty list falls back to tapioca.
+  // the 3-day cycle with any subset switched on. An empty list falls back to tapioca.
   const pool = implemented.length ? implemented : ['tapioca'];
   const slot = rotationSlot(day, order);
   if (pool.includes(slot)) return slot as FeiraGameId;
@@ -270,6 +270,10 @@ export const FEIRA_GAME_INTRO: Record<FeiraGameId, Bilingual> = {
   pastel: {
     pt: 'Pega a massa, põe o recheio, fecha com o garfo e tira do óleo no dourado.',
     en: 'Grab the dough, add the filling, crimp it shut, and pull it from the oil when it is golden.',
+  },
+  caldo: {
+    pt: 'A moenda tá ligada. Moa a cana, pega o caldo no copo e põe o sabor.',
+    en: 'The press is on. Crush the cane, catch the juice in a cup, and add the flavor.',
   },
 };
 
@@ -530,7 +534,7 @@ export interface FeiraCustomerOrder {
   name: string;
 }
 
-/** Registry. A later PR pushes caldo here and into FEIRA_IMPLEMENTED_GAMES. */
+/** Registry. Each game module registers itself here (feiraTapioca.ts, feiraPastel.ts, feiraCaldo.ts). */
 export const FEIRA_GAME_MODULES: Partial<Record<FeiraGameId, FeiraGameModule>> = {};
 
 export function feiraModule(id: FeiraGameId): FeiraGameModule | undefined {

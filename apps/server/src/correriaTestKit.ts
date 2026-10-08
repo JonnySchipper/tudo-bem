@@ -1,4 +1,4 @@
-import { CAFE_ITEMS, CHAPA, CHAPA_ITEMS, POUR, frontOf, type CAct, type ClientMsg } from '@tudobem/shared';
+import { CAFE_ITEMS, CHAPA, CHAPA_ITEMS, JUICE, POUR, SUCO_ITEMS, frontOf, type CAct, type ClientMsg } from '@tudobem/shared';
 import type { Session, World } from './world.js';
 
 /** Test helpers: play the counter game through real `mg` messages (what a client sends), using the server's order as the test hook. */
@@ -20,7 +20,7 @@ export async function waitFront(world: World, a: KitClient, adv: (ms: number) =>
   throw new Error('no customer came to the counter');
 }
 
-/** Build the front customer's order through the real steps (grab, chapa, tap-start / wait / tap-stop pour, pack, mods). Leaves the serve to the caller. */
+/** Build the front customer's order through the real steps (grab, chapa, tap-start / wait / tap-stop pour, oranges through the juicer, pack, mods). Leaves the serve to the caller. */
 export async function buildFront(world: World, a: KitClient, adv: (ms: number) => void): Promise<void> {
   await waitFront(world, a, adv);
   const order = world.debugOrder(a.s)!;
@@ -35,6 +35,13 @@ export async function buildFront(world: World, a: KitClient, adv: (ms: number) =
         await act(a, { a: 'pour_start', item: l.itemId });
         adv(POUR.fullMs * 0.85);
         await act(a, { a: 'pour_end' });
+      } else if (SUCO_ITEMS.includes(l.itemId)) {
+        // one orange per tap until the glass reaches the line, then tap the glass
+        for (let n = 0; n < 6 && (world.debugShift(a.s)?.juice?.fill ?? 0) < JUICE.goodMin; n++) {
+          await act(a, { a: 'juice_drop' });
+          adv(JUICE.cycleMs + 20);
+        }
+        await act(a, { a: 'juice_take' });
       } else await act(a, { a: 'grab', item: l.itemId });
     }
   }

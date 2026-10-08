@@ -5,9 +5,9 @@
  *   BASE_URL=https://playtudobem.com/ node scripts/feira-games-shots.mjs        # live server (guest)
  *   BASE_URL=http://localhost:9311/?solo node scripts/feira-games-shots.mjs     # solo build
  *   SHOTS_DIR (default /workspace/feira-games-shots), VIEWS=desktop,phone, GAME=tapioca|pastel|caldo
- *   The cart ships off. A live server turns GAME on from the credits admin door
- *   (TB_ADMIN_PASSWORD, local default tb-admin-praca). Solo reads ?feiraon=GAME,
- *   which is the same switch without the admin password.
+ *   GAME picks the game to switch on (they ship off) and drives feira-play-<game>.mjs.
+ *   A live server turns GAME on from the credits admin door (TB_ADMIN_PASSWORD, local default
+ *   tb-admin-praca). Solo reads ?feiraon=GAME, and __tb.enableFeiraGame(GAME) is the same switch.
  */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
@@ -114,9 +114,11 @@ async function run(viewName) {
   page.on('pageerror', (e) => console.log('PAGEERROR', e.message));
   try {
     await enter(page);
-    // Solo already switched GAME on via ?feiraon=. A Node server ignores that query.
+    // Solo already switched GAME on via ?feiraon= (__tb.enableFeiraGame is the backup). A Node server ignores both.
+    const enabled = BASE.includes('solo') && (await page.evaluate((id) => window.__tb.enableFeiraGame?.(id) ?? false, GAME));
+    log('enabled', GAME, enabled);
     if (!BASE.includes('solo')) await enableCart(page, [GAME]);
-    // Pastel shots keep their own names so a pastel run does not overwrite the tapioca set.
+    // Pastel and caldo shots keep their own names so they do not overwrite the tapioca set.
     const leaf = (name) => (GAME === 'tapioca' ? name : `${GAME}-${name}`);
     await shot(page, `${TAG}-${viewName}-${leaf('feira-room')}`);
     // the walk to the sign is long (around the stalls); wait for the panel, not a fixed sleep
