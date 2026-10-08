@@ -2312,6 +2312,60 @@ body.bout-on .toasts {
   border: 2px solid #14101a;
 }
 
+/* the telegraph sits in the "Sua vez" row: one line for whose turn it is and what is coming */
+.bout-ask.has-plan .bout-plan {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
+.bout-ask .bout-ask-you {
+  flex: 0 0 auto;
+}
+
+.bout-ask .bout-ask-you .en {
+  display: block;
+  font-size: 11px;
+}
+
+.bout-ask.has-plan .bout-quit {
+  margin-left: 0;
+}
+
+/* desktop: every card in one row, so the panel stays short and the fighters get the screen */
+@media (min-width: 900px) {
+  .bout-panel[data-phase='intent'],
+  .bout-panel[data-phase='resolve'] {
+    width: min(1120px, calc(100vw - 16px));
+  }
+  .bout-intents .move-cards {
+    flex-wrap: nowrap;
+  }
+  .bout-intents .move-cards > .move-card {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 210px;
+  }
+  .bout-intents .move-cards > .move-card.is-hold {
+    flex: 0.7 1 0;
+  }
+  .bout-intents .bout-intent.move-card {
+    min-height: 0;
+  }
+  .bout-intents .bout-intent.move-card .mc-name {
+    font-size: 17px;
+    padding-right: 44px;
+  }
+  .bout-intents .move-card .mc-pct {
+    top: 26px;
+    font-size: 14px;
+    padding: 1px 4px;
+  }
+  .bout-intents .move-card .mc-hint {
+    font-size: 12px;
+  }
+}
+
 /* cards: answers to the telegraph, grip combos, brace buttons, odds parts */
 .move-card .mc-badge {
   justify-self: start;
@@ -2586,6 +2640,21 @@ body.bout-on .toasts {
   .gc-pips i {
     width: 4px;
     height: 4px;
+  }
+  .bout-ask.has-plan {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .bout-ask.has-plan .bout-quit {
+    margin-left: auto;
+  }
+  .bout-ask.has-plan .bout-plan {
+    order: 3;
+    flex-basis: 100%;
+  }
+  .bout-ask .bout-ask-you .en,
+  .bout-plan .plan-eye {
+    display: none;
   }
   .bout-plan {
     padding: 3px 6px;

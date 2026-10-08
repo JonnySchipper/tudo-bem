@@ -151,6 +151,8 @@ export class BoutStage {
   private flashUntil = 0;
   /** The held-grip hands on the standing pair, one per fighter and grip. */
   private gripHands = new Map<string, Phaser.GameObjects.Rectangle>();
+  /** Where the pair was last drawn (its anchor plus the slide, wobble or lean), so the grip hands stay on the gis. */
+  private drawnAt = { x: 0, y: 0 };
 
   constructor(private readonly h: StageHost) {}
 
@@ -479,6 +481,7 @@ export class BoutStage {
     const sy = mag > 1 && read === 'stumble' ? 0.7 : mag > 1 && read === 'brace' ? 0.9 : mag > 1 ? 1.14 : 1;
     if (this.nowMs < this.flashUntil) p.setTintFill(0xffffff);
     else if (p.isTinted) p.clearTint();
+    this.drawnAt = { x: a.x + ox, y: a.y - oy };
     p.setOrigin(d.ax / d.w, d.ay / d.h)
       .setPosition(a.x + ox, a.y - oy)
       .setRotation((this.cartoonOff.rot * Math.PI) / 180)
@@ -599,20 +602,25 @@ export class BoutStage {
         if (c.kind === 'vantagem') this.puff(a.x + (c.side === 'you' ? -6 : 6), a.y - 8, 6);
         break;
       case 'ground':
-        this.word(a, 0, `bout-word bout-groundpop ${c.dir}`, `${c.dir === 'gain' ? '▲' : '▼'} ${c.delta > 0 ? '+' : '−'}${Math.abs(c.delta)}`);
+        // needs_br: true — Ganhou! / Perdeu! (the ground of the move, from the player's seat)
+        this.word(a, 0, `bout-word bout-groundpop ${c.dir}`, c.dir === 'gain' ? '▲ Ganhou!' : '▼ Perdeu!', true);
         break;
     }
   }
 
-  /** A word over the pair (Vantagem!, a grip, the ground arrow) that follows the camera like the crowd's cheers. Several stack upward. */
-  private word(a: { x: number; y: number }, dx: number, cls: string, text: string): void {
+  /**
+   * A word that follows the camera like the crowd's cheers: over the heads (Vantagem!, a grip), stacking up when several land together,
+   * or under the feet (`feet`: the ground arrow, so it never hides behind the scoreboard).
+   */
+  private word(a: { x: number; y: number }, dx: number, cls: string, text: string, feet = false): void {
     if (!this.popsEl) return;
-    const live = this.pops.filter((p) => p.el.classList.contains('bout-word') && p.until > this.nowMs).length;
+    const live = feet ? 0 : this.pops.filter((p) => p.el.classList.contains('bout-word') && !p.el.classList.contains('bout-groundpop') && p.until > this.nowMs).length;
     const el = document.createElement('div');
     el.className = cls;
     el.textContent = text;
     const wx = a.x + dx;
-    const wy = a.y - PAIR_SIZE.h - 4 - live * 9;
+    // the figures fill the lower ~30 px of the frame: heads are about 31 px over the anchor
+    const wy = feet ? a.y + 7 : a.y - 33 - live * 7;
     const { px, py } = this.h.toCanvas(wx, wy);
     el.style.left = `${Math.round(px)}px`;
     el.style.top = `${Math.round(py)}px`;
@@ -641,8 +649,7 @@ export class BoutStage {
         const spot = GRIP_SPOT[side][g];
         const age = snap!.grips![side].age[g];
         const blink = age >= 2 && !this.h.reduced() && Math.floor(this.nowMs / 180) % 2 === 0;
-        const ox = this.slide > 0 ? Math.sin(this.slide * Math.PI) * this.slideAmp : 0;
-        r.setPosition(a.x + spot.x + ox, a.y + spot.y).setDepth(a.y + 1).setAlpha(blink ? 0.35 : 1).setVisible(true);
+        r.setPosition(Math.round(this.drawnAt.x + spot.x), Math.round(this.drawnAt.y + spot.y)).setDepth(a.y + 1).setAlpha(blink ? 0.35 : 1).setVisible(true);
       }
     }
   }

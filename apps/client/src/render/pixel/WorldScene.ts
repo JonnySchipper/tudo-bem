@@ -66,7 +66,7 @@ import { buildTerrainLayers } from './terrainLayers';
 import { LabelLayer, type GuideItem, type StackItem } from './labels';
 import { OUTDOOR_NORTH, T, cssZoomFor, feet, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
 import { pickHit, type HitBox } from './hit';
-import { dialogueFraming, easeOut, stepBlend } from './dialogueCam';
+import { boutZoomStep, dialogueFraming, easeOut, stepBlend } from './dialogueCam';
 import { BoutStage } from './boutStage';
 import { boutFeed } from './boutFeed';
 import { CounterStage } from './correriaStage';
@@ -191,8 +191,13 @@ interface Canopy {
 
 /** seconds the emote pop-up icon stays over the head */
 const EMOTE_ICON_S = 1.1;
-/** World px below the mat's middle the bout camera aims at: the middle of the pair (it stands 18 below the mat centre, 42 tall). */
-const BOUT_PAIR_FOCUS = -3;
+/**
+ * World px below the mat's middle the bout camera aims at: the middle of the fighters. The pair frame stands 18 below the mat centre and is
+ * 42 tall, but the figures only fill its lower ~30 px (heads start about 13 px down), so their middle is about 4 below the mat centre.
+ */
+const BOUT_PAIR_FOCUS = 4;
+/** The part of a 56 x 42 pair frame the fighters actually fill, standing or on the ground: what the bout camera sizes them by. */
+const BOUT_PAIR_BODY = { w: 56, h: 32 } as const;
 
 const hex = (h: string) => Phaser.Display.Color.HexStringToColor(h).color;
 const hash01 = (n: number) => {
@@ -240,6 +245,9 @@ export class WorldScene extends Phaser.Scene {
   /** the Treino no tatame bout on the academia mat (pair sprite, referee, crowd, fx) */
   private stage!: BoutStage;
   private boutBlend = 0;
+  /** The bout camera's extra device zoom right now (it walks toward its target one px at a time); 0 while the camera is off. */
+  private boutStep = 0;
+  private boutStepT = 0;
   /** the Correria no Balcão counter (board, queue, shelf taps) behind the padaria counter */
   private counter!: CounterStage;
   private counterBlend = 0;
@@ -1127,22 +1135,38 @@ export class WorldScene extends Phaser.Scene {
   // ---- Treino no tatame: the camera eases one zoom step onto the mat, above the overlay and under the scoreboard (like the dialogue)
   private withBout(f: { zoom: number; cx: number; cy: number; fits: boolean }, ins: Insets, k: number, dt: number): typeof f {
     this.boutBlend = stepBlend(this.boutBlend, boutFeed.camera ? 1 : 0, dt, 0.4, this.fxLevel.reduced || !!this.host.shot);
-    if (this.boutBlend <= 0) return f;
+    if (this.boutBlend <= 0) {
+      this.boutStep = 0;
+      return f;
+    }
     const mat = this.matCenter();
     if (!mat) return f;
+    const unit = Math.max(1, Math.round(k));
+    // during a match the camera works around the tallest the overlay has been, so it holds still while the panel changes
+    const box = boutFeed.active ? boutFeed.fightBox(this.cam.h / k) : boutFeed.boxPx;
+    // the lobby is one step in; a match on the mat goes in until the fighters fill the free band, so they are big and the grips readable
+    const target = boutFeed.active ? boutZoomStep({ baseZoom: f.zoom, unit, view: { w: this.cam.w, h: this.cam.h }, topPx: (boutFeed.topPx + 6) * k, boxPx: (box + 6) * k, pair: BOUT_PAIR_BODY, fill: 0.7 }) : unit;
+    // and it walks there one whole device px at a time (crisp at every frame), not in one cut
+    if (this.boutStep <= 0 || this.fxLevel.reduced || this.host.shot) this.boutStep = target;
+    else if (this.boutStep !== target) {
+      this.boutStepT += dt;
+      if (this.boutStepT >= 0.06) {
+        this.boutStepT = 0;
+        this.boutStep += Math.sign(target - this.boutStep);
+      }
+    }
     const g = dialogueFraming({
       base: f,
       view: { w: this.cam.w, h: this.cam.h },
       bounds: this.bounds,
       // The mat sits a little lower in the free band (when the screen has spare height) so the north wall's sign is not cut by the top of the screen.
-      insets: { top: (boutFeed.topPx + this.boutWallReveal(boutFeed.topPx, boutFeed.boxPx + 6, k)) * k, bottom: 0, left: ins.left * k, right: ins.right * k },
-      boxPx: (boutFeed.boxPx + 6) * k,
+      insets: { top: (boutFeed.topPx + this.boutWallReveal(boutFeed.topPx, box + 6, k)) * k, bottom: 0, left: ins.left * k, right: ins.right * k },
+      boxPx: (box + 6) * k,
       // the pair itself, not the mat's middle: the fighters stand a little below it
       self: { x: mat.x, y: mat.y + (boutFeed.active ? BOUT_PAIR_FOCUS : 0) },
       npc: null,
       blend: easeOut(this.boutBlend),
-      // the lobby is one step in; a match on the mat is two, so the fighters are big and the grips readable
-      step: Math.max(1, Math.round(k)) * (boutFeed.active ? 2 : 1),
+      step: this.boutStep,
     });
     return { ...f, ...g };
   }

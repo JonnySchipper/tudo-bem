@@ -491,8 +491,7 @@ export class BoutUI {
       h(
         'div',
         { class: 'bout-intents', id: 'bout-intents', 'data-finish': String(m.finish), 'data-seq': String(m.seq) },
-        h('div', { class: 'bout-ask' }, h('span', { class: 'pt' }, 'Sua vez'), en('Your move'), this.quitBtn()),
-        plan,
+        h('div', { class: `bout-ask${plan ? ' has-plan' : ''}` }, h('span', { class: 'bout-ask-you' }, h('span', { class: 'pt' }, 'Sua vez'), en('Your move')), plan, this.quitBtn()),
         fin,
         h('div', { class: `move-cards n${cards.length + (holdBtn ? 1 : 0)}`, id: 'gag-moves' }, ...cards, holdBtn),
         needs,

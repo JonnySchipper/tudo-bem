@@ -122,6 +122,12 @@ export async function playBout(page, { right = () => true, pick = 'bold', maxMs 
             .filter((r) => r.id && r.id !== 'finalizar' && !r.locked);
           if (!rows.length) return null;
           if (how === 'safe') return rows.find((r) => r.id === 'hold') ?? rows[0];
+          if (how === 'read') {
+            // read the partner's telegraph: play the card that answers it, else the best percent
+            const answers = [...document.querySelectorAll('#bout-intents .bout-intent[data-answers="1"]')].map((e) => e.getAttribute('data-intent'));
+            const answer = rows.filter((r) => answers.includes(r.id)).sort((a, b) => b.percent - a.percent)[0];
+            if (answer) return answer;
+          }
           const go = rows.filter((r) => r.id !== 'hold').sort((a, b) => b.percent - a.percent);
           return go[0] ?? rows[0];
         }, pick)
@@ -170,6 +176,27 @@ export async function playBout(page, { right = () => true, pick = 'bold', maxMs 
     const e = document.querySelector('#bout-end');
     return { winner: e.getAttribute('data-winner'), reason: e.getAttribute('data-reason'), text: e.textContent };
   }).then((r) => ({ ...r, answers: moves, moves, finalizacoes }));
+}
+
+/**
+ * What the Tatame v2 HUD shows right now: the control meter, each side's lit grip chips, braces and tiredness, the telegraph,
+ * the cards that answer it, and (on a resolve) the ground read.
+ */
+export function readBoutHud(page) {
+  return page.evaluate(() => {
+    const chips = (side) => [...document.querySelectorAll(`#bout-grips-${side} .grip-chip.on`)].map((e) => e.getAttribute('data-grip') ?? e.getAttribute('data-brace') ?? (e.getAttribute('data-tired') ? 'tired' : ''));
+    const plan = document.querySelector('#bout-plan');
+    return {
+      meter: document.querySelector('#bout-ctl') ? Number(document.querySelector('#bout-ctl').getAttribute('data-meter')) : null,
+      you: chips('you'),
+      partner: chips('partner'),
+      plan: plan ? { kind: plan.getAttribute('data-kind'), move: plan.getAttribute('data-move'), text: plan.querySelector('.plan-line .pt')?.textContent ?? '' } : null,
+      answers: [...document.querySelectorAll('#bout-intents .bout-intent[data-answers="1"]')].map((e) => e.getAttribute('data-intent')),
+      braces: [...document.querySelectorAll('#bout-intents .bout-intent.is-brace')].map((e) => e.getAttribute('data-intent')),
+      combos: [...document.querySelectorAll('#bout-intents .bout-intent.is-combo')].map((e) => e.getAttribute('data-intent')),
+      ground: document.querySelector('#bout-ground')?.className.replace('bout-ground', '').trim() ?? null,
+    };
+  });
 }
 
 export async function waitBoutPhase(page, phase, timeout = 20_000) {

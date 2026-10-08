@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dialogueFraming, easeOut, stepBlend } from './dialogueCam';
+import { boutZoomStep, dialogueFraming, easeOut, stepBlend } from './dialogueCam';
 
 const base = { zoom: 4, cx: 100, cy: 100 };
 const args = {
@@ -79,5 +79,22 @@ describe('tween progress', () => {
     expect(easeOut(1)).toBe(1);
     expect(easeOut(0.5)).toBeCloseTo(0.75, 5);
     expect(easeOut(2)).toBe(1);
+  });
+});
+
+describe('bout camera', () => {
+  const pair = { w: 56, h: 42 };
+  it('zooms until the fighters fill most of the free band, in whole device px', () => {
+    // desktop: a 1280 x 800 screen with an 80 px scoreboard and a 300 px overlay leaves 420 px: the pair gets about 260 of it
+    const step = boutZoomStep({ baseZoom: 3, unit: 1, view: { w: 1280, h: 800 }, topPx: 80, boxPx: 300, pair });
+    expect(Number.isInteger(step)).toBe(true);
+    expect((3 + step) * pair.h).toBeLessThanOrEqual(420 * 0.62);
+    expect((3 + step + 1) * pair.h).toBeGreaterThan(420 * 0.62);
+  });
+
+  it('never zooms out past the lobby step, and a narrow phone is bounded by its width', () => {
+    expect(boutZoomStep({ baseZoom: 4, unit: 1, view: { w: 1280, h: 800 }, topPx: 80, boxPx: 600, pair })).toBe(1);
+    const phone = boutZoomStep({ baseZoom: 4, unit: 2, view: { w: 780, h: 1688 }, topPx: 260, boxPx: 600, pair });
+    expect((4 + phone) * pair.w).toBeLessThanOrEqual(780 * 0.62 * 1.3);
   });
 });

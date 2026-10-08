@@ -66,6 +66,7 @@ class BoutFeed {
     this.snap = snap;
     this.cues = [];
     this.holding = false;
+    this.fightBoxPx = 0;
     this.epoch++;
   }
 
@@ -97,7 +98,17 @@ class BoutFeed {
   setBoxes(bottom: number, top: number): void {
     this.boxPx = Math.max(0, Math.round(bottom));
     this.topPx = Math.max(0, Math.round(top));
+    if (this.active) this.fightBoxPx = Math.max(this.fightBoxPx, this.boxPx);
   }
+
+  /**
+   * The tallest the overlay has been this match (CSS px), at least `floor` of the screen: the fight camera sizes the fighters by it,
+   * so the zoom holds still while the panel changes between picking, resolving and thinking.
+   */
+  fightBox(viewCssH: number, floor = 0.38): number {
+    return Math.max(this.fightBoxPx, Math.round(viewCssH * floor));
+  }
+  private fightBoxPx = 0;
 }
 
 export const boutFeed = new BoutFeed();
