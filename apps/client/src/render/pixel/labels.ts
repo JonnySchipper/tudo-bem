@@ -32,7 +32,7 @@ export interface StackItem {
   plate: {
     text: string;
     /** `sign`: a shop name chalked on a board (a player-owned padaria), not a person. */
-    kind: 'npc' | 'player' | 'me' | 'sign';
+    kind: 'npc' | 'player' | 'me' | 'sign' | 'pet';
     /** false: keep the element but fade it out (a CPU far from you) */
     show?: boolean;
     /** Academy stamp glyph, members only. */
@@ -47,6 +47,8 @@ export interface StackItem {
     tier?: Nameplate;
   } | null;
   bubbles: BubbleItem[];
+  /** Paint order among tags. A pet tag uses its screen y so a nearer pet's name sits in front. */
+  z?: number;
 }
 
 export interface GuideItem {
@@ -321,6 +323,8 @@ export class LabelLayer {
         this.root.appendChild(el.root);
       }
       const box = this.updateStack(el, s, view);
+      const z = typeof s.z === 'number' ? String(Math.round(s.z)) : '';
+      if (el.root.style.zIndex !== z) el.root.style.zIndex = z;
       if (box) boxes.push(box);
     }
     // nameplates and bubbles of neighbours must not cover each other: lift the farther one's label (pure, see `deoverlapStacks`)
@@ -458,6 +462,13 @@ export class LabelLayer {
         } else {
           el.plate.append(document.createTextNode(s.plate.text));
         }
+        if (s.plate.kind === 'pet') {
+          const paw = document.createElement('i');
+          paw.className = 'wl-paw';
+          paw.setAttribute('aria-hidden', 'true');
+          el.plate.prepend(paw);
+          el.root.dataset.petName = s.plate.text;
+        } else delete el.root.dataset.petName;
         if (s.plate.feiraCrown) {
           el.crown.style.display = '';
           el.crown.title = 'Fada da Feira';
