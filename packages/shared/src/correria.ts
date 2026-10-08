@@ -302,11 +302,11 @@ export interface CounterLesson {
 }
 const step = (pt: string, en: string): Bilingual => ({ pt, en });
 const LESSONS: Record<string, CounterLesson> = {
-  cafe: { id: 'cafe', title: step('Café', 'Coffee'), steps: [step('Toque na cafeteira para começar a servir.', 'Tap the coffee machine to start the pour.'), step('A xícara enche sozinha. Toque de novo na hora certa.', 'The cup fills on its own. Tap again at the right time.'), step('Cedo demais fica curto; tarde demais derrama.', 'Too early comes up short; too late spills.')] },
+  cafe: { id: 'cafe', title: step('Café', 'Coffee'), steps: [step('Toque na cafeteira para começar a servir.', 'Tap the coffee machine to start the pour.'), step('A xícara enche sozinha. Toque de novo quando ficar verde: “Agora!”', 'The cup fills on its own. Tap again when it turns green: “Agora!” (now!)'), step('Cedo demais fica curto; tarde demais derrama.', 'Too early comes up short; too late spills.')] },
   pao: { id: 'pao', title: step('Pão francês', 'French bread roll'), steps: [step('Pegue o pão na vitrine.', 'Take the bread from the display case.'), step('Ponha na bandeja e entregue.', 'Put it on the tray and serve.')] },
   agua: { id: 'agua', title: step('Água', 'Water'), steps: [step('A água fica na geladeira.', 'The water is in the fridge.'), step('Toque nela para pôr na bandeja.', 'Tap it to put it on the tray.')] },
   pao_de_queijo: { id: 'pao_de_queijo', title: step('Pão de queijo', 'Cheese bread'), steps: [step('Pegue o pão de queijo na vitrine.', 'Take the cheese bread from the display case.')] },
-  cafe_com_leite: { id: 'cafe_com_leite', title: step('Café com leite', 'Coffee with milk'), steps: [step('O café com leite sai da cafeteira, como o café.', 'Coffee with milk comes from the machine, like coffee.'), step('Toque para começar e toque de novo na hora certa.', 'Tap to start, then tap again at the right time.')] },
+  cafe_com_leite: { id: 'cafe_com_leite', title: step('Café com leite', 'Coffee with milk'), steps: [step('O café com leite sai da cafeteira, como o café.', 'Coffee with milk comes from the machine, like coffee.'), step('Toque para começar e toque de novo no “Agora!”', 'Tap to start, then tap again at “Agora!” (now!)')] },
   suco_de_laranja: {
     id: JUICER_LESSON_ID,
     title: step('Suco de laranja: o espremedor', 'Orange juice: the juicer'),

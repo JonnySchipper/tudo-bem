@@ -661,7 +661,10 @@ body.cr-on .toasts {
 }
 
 .cr-kicker .gloss {
+  display: inline;
   margin-left: 6px;
+  font-family: var(--font-body);
+  letter-spacing: 0;
 }
 
 @keyframes cr-lesson-in {
@@ -686,9 +689,9 @@ body.cr-on .toasts {
 .cr-ladder ol {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 10px 4px;
   margin: 0;
-  padding: 0;
+  padding: 4px 0 0;
   list-style: none;
 }
 
@@ -727,7 +730,7 @@ body.cr-on .toasts {
 
 .cr-ladder .cr-ladder-item .tag {
   position: absolute;
-  top: -8px;
+  top: -11px;
   right: -6px;
   padding: 0 3px;
   font-family: var(--font-pixel);
@@ -795,10 +798,28 @@ body.cr-on .toasts {
   border: 2px solid var(--cr-gold);
 }
 
+.cr-end-full .gloss,
 .cr-end-fresh .gloss {
   display: inline;
   margin-left: 6px;
   font-weight: 600;
+}
+
+/* a long card scrolls under Entendi, which stays on screen */
+.cr-lesson .cr-lesson-ok {
+  position: sticky;
+  bottom: 0;
+}
+
+@media (max-width: 640px), (max-height: 520px) {
+  .cr-ladder .cr-ladder-item {
+    font-size: 12px;
+  }
+
+  .cr-root .cr-ladder .cr-ladder-item .en,
+  .cr-root .cr-ladder-next .gloss {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

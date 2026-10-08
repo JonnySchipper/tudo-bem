@@ -562,11 +562,12 @@ export class CorreriaUI {
     );
   }
 
-  /** What the next shift brings: the item it opens (gold), or the countdown to the next one, over the menu strip. */
+  /** What the next shift brings: the item it opens (gold), or the countdown to the next one, over the menu strip. A full menu is one line. */
   private endLadder(l: MenuLadderView | undefined): HTMLElement | null {
+    const { fresh, next } = ladderEnd(l);
+    if (l && !l.next && !fresh && next) return h('p', { class: 'cr-end-daily cr-end-full' }, `🏆 ${next.pt}`, h('span', { class: 'gloss' }, next.en));
     const strip = this.ladderEl(l);
     if (!strip) return null;
-    const { fresh } = ladderEnd(l);
     return h('div', { class: `cr-end-ladder${fresh ? ' grew' : ''}`, id: 'cr-end-ladder' }, fresh ? h('p', { class: 'cr-end-fresh' }, `✨ ${fresh.pt}`, h('span', { class: 'gloss' }, fresh.en)) : null, strip);
   }
 
