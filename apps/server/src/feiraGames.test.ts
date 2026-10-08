@@ -4,14 +4,18 @@ import { World, type Session } from './world.js';
 import { ProfileStore, type StoredProfile } from './store.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 import { FeiraGamesEngine, memoryFeiraGames, type FeiraGamesDeps } from './feiraGames.js';
+import { pastelOrders, tapiocaOrders, type FeiraGameId } from '@tudobem/shared';
 import { memoryFeiraCart } from './feiraCart.js';
+
+function ordersFor(game: FeiraGameId, seed: number): { at: number }[] {
+  return game === 'pastel' ? pastelOrders(seed) : tapiocaOrders(seed);
+}
 
 function cartOn(...ids: string[]) {
   const cart = memoryFeiraCart();
   for (const id of ids) cart.setMode(id, 'on');
   return cart;
 }
-import { tapiocaOrders } from '@tudobem/shared';
 
 function profile(id: string, name: string): StoredProfile {
   return {
@@ -74,7 +78,7 @@ describe('feira games server', () => {
       const start = sent.find((m) => m.t === 'feiraGame' && m.phase === 'start');
       expect(start && start.t === 'feiraGame' && start.phase === 'start').toBeTruthy();
       if (!start || start.t !== 'feiraGame' || start.phase !== 'start') return;
-      const orders = tapiocaOrders(start.seed);
+      const orders = ordersFor(start.game, start.seed);
       now += 20_000;
       const outcomes = orders.filter((o) => o.at <= 18_000).slice(0, 2).map((o, i) => ({
         i: orders.indexOf(o),
@@ -251,6 +255,63 @@ describe('feira games server', () => {
     expect(sent.some((m) => m.t === 'error' && m.code === 'feira_closed')).toBe(true);
     expect(ana.coins).toBe(coins);
     expect(games.state.scores.ana).toBeUndefined();
+  });
+
+  it('pastel is its own switch and stays off until it is turned on', () => {
+    // 1970-01-02 is Pastel's calendar slot. Implemented is not the same as on.
+    const now = Date.parse('1970-01-02T17:00:00.000Z');
+    const store = new ProfileStore(null);
+    const ana = profile('ana', 'Ana');
+    store.add(ana);
+    const cart = memoryFeiraCart();
+    const sent: ServerMsg[] = [];
+    const s = { id: 's', profile: ana, send: (m: ServerMsg) => sent.push(m), instance: { def: ROOMS.feira } } as unknown as Session;
+    const engine = new FeiraGamesEngine({
+      now: () => now,
+      store,
+      games: memoryFeiraGames(() => now),
+      cart,
+      reward: () => {},
+      pushProfile: () => {},
+      err: (_s, code) => sent.push({ t: 'error', code, pt: 'x', en: 'y' }),
+      tileOf: () => ({ x: 22, y: 9, room: 'feira' }),
+      broadcastAll: () => {},
+      broadcastAvatar: () => {},
+    });
+    expect(engine.featuredNow()).toBeNull();
+    engine.handle(s, { t: 'feiraGame', action: 'start' });
+    expect(sent.some((m) => m.t === 'error' && m.code === 'feira_closed')).toBe(true);
+    cart.setMode('pastel', 'on');
+    sent.length = 0;
+    engine.handle(s, { t: 'feiraGame', action: 'start' });
+    const start = sent.find((m) => m.t === 'feiraGame' && m.phase === 'start');
+    expect(start && start.t === 'feiraGame' && start.phase === 'start' && start.game).toBe('pastel');
+  });
+
+  it('a test pin switches pastel on even when today is tapioca and the saved flags are off', () => {
+    // 1970-01-01 17:00 UTC is still Jan 1 in ET, and that slot is tapioca.
+    const now = Date.parse('1970-01-01T17:00:00.000Z');
+    const store = new ProfileStore(null);
+    const ana = profile('ana', 'Ana');
+    store.add(ana);
+    const sent: ServerMsg[] = [];
+    const s = { id: 's', profile: ana, send: (m: ServerMsg) => sent.push(m), instance: { def: ROOMS.feira } } as unknown as Session;
+    const engine = new FeiraGamesEngine({
+      now: () => now,
+      store,
+      games: memoryFeiraGames(() => now),
+      reward: () => {},
+      pushProfile: () => {},
+      err: () => {},
+      tileOf: () => ({ x: 22, y: 9, room: 'feira' }),
+      broadcastAll: () => {},
+      broadcastAvatar: () => {},
+      pin: 'pastel',
+    });
+    expect(engine.featuredNow()).toBe('pastel');
+    engine.handle(s, { t: 'feiraGame', action: 'start' });
+    const start = sent.find((m) => m.t === 'feiraGame' && m.phase === 'start');
+    expect(start && start.t === 'feiraGame' && start.phase === 'start' && start.game).toBe('pastel');
   });
 
   it('does not mint medals on a day nobody played', () => {

@@ -83,6 +83,8 @@ export class LocalNet implements NetLike {
       academies: new AcademyStore(academyAdapter),
       padarias: new PadariaStore(padariaAdapter),
       padariaOwnership: true,
+      // shots/e2e: `?feiraon=pastel` switches that cart game on. The admin flags still default off.
+      feiraPin: new URLSearchParams(location.search).get('feiraon') ?? undefined,
     });
     // JSON round-trip mirrors the wire so client state never aliases server state.
     this.session = this.world.connect(

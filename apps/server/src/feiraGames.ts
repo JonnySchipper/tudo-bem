@@ -74,6 +74,11 @@ export interface FeiraGamesDeps {
   rng?: () => number;
   /** On/off switch. Omitted in older tests: a memory store that starts off. */
   cart?: FeiraCartStore;
+  /**
+   * Solo/shots pin (`?feiraon=pastel`). Switches that one game on for this world.
+   * Ignored unless the id is implemented. Production leaves it unset, so the admin flags stay off.
+   */
+  pin?: string;
 }
 
 const NEAR: Bilingual = { pt: 'Chegue mais perto do carrinho.', en: 'Walk closer to the cart.' };
@@ -137,6 +142,8 @@ export class FeiraGamesEngine {
   private readonly cart: FeiraCartStore;
   constructor(private readonly d: FeiraGamesDeps) {
     this.cart = d.cart ?? memoryFeiraCart();
+    // The test pin is the setup that turns one game on. It does not invent a second flag store.
+    if (d.pin && isFeiraGameId(d.pin)) this.cart.setMode(d.pin, 'on');
   }
 
   /** Today's playable game, or null when every cart game is off (or not implemented yet). */

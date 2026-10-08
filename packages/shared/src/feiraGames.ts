@@ -5,6 +5,7 @@
  * then register its id in `FEIRA_ROTATION_ORDER` (and `FEIRA_GAME_LABEL`). That id is the admin
  * toggle: the panel lists the order, so Pastel and Caldo do not need their own switch code.
  * A game is playable once it also joins `FEIRA_IMPLEMENTED_GAMES` and `FEIRA_GAME_MODULES`.
+ * Caldo de cana is reserved but not implemented yet: that slot falls back to Pastel.
  *
  * Which games are on is a persisted config (`off` | `on` | `rotation`), default off.
  * `featuredEnabled` picks today's game from the ones that are on and implemented.
@@ -24,8 +25,8 @@ import type { Bilingual } from './types.js';
 export const FEIRA_ROTATION_ORDER = ['tapioca', 'pastel', 'caldo'] as const;
 export type FeiraRotationId = (typeof FEIRA_ROTATION_ORDER)[number];
 
-/** Games this build can actually start. Pastel joins this set in its own PR. Each one still ships off. */
-export const FEIRA_IMPLEMENTED_GAMES = ['tapioca', 'caldo'] as const;
+/** Games this build can actually start. Each one still ships off until an admin switches it on. */
+export const FEIRA_IMPLEMENTED_GAMES = ['tapioca', 'pastel', 'caldo'] as const;
 export type FeiraGameId = (typeof FEIRA_IMPLEMENTED_GAMES)[number];
 
 export const isFeiraGameId = (v: unknown): v is FeiraGameId =>
@@ -64,7 +65,7 @@ export function featuredGame(
   order: readonly string[] = FEIRA_ROTATION_ORDER,
 ): FeiraGameId {
   // `implemented` defaults to the games this build can start. Tests pass a wider list to prove
-  // the 3-day cycle before Pastel and Caldo exist. An empty list falls back to tapioca.
+  // the 3-day cycle with any subset switched on. An empty list falls back to tapioca.
   const pool = implemented.length ? implemented : ['tapioca'];
   const slot = rotationSlot(day, order);
   if (pool.includes(slot)) return slot as FeiraGameId;
@@ -266,15 +267,14 @@ export const FEIRA_GAME_INTRO: Record<FeiraGameId, Bilingual> = {
     pt: 'A chapa tá quente. Espalha a goma, vira no ponto e enrola o recheio.',
     en: 'The griddle is hot. Spread the batter, flip on time, and roll the filling.',
   },
+  pastel: {
+    pt: 'Pega a massa, põe o recheio, fecha com o garfo e tira do óleo no dourado.',
+    en: 'Grab the dough, add the filling, crimp it shut, and pull it from the oil when it is golden.',
+  },
   caldo: {
     pt: 'A moenda tá ligada. Moa a cana, pega o caldo no copo e põe o sabor.',
     en: 'The press is on. Crush the cane, catch the juice in a cup, and add the flavor.',
   },
-};
-
-export const FEIRA_CART_GREET: Bilingual = {
-  pt: 'Oi! Hoje o carrinho é de tapioca. Quer jogar?',
-  en: 'Hi! Today the cart is tapioca. Want to play?',
 };
 
 /** The cart when no game is on. needs_br: true */
@@ -282,6 +282,12 @@ export const FEIRA_CART_CLOSED: Bilingual = { pt: 'Fechado', en: 'Closed today' 
 export const FEIRA_CART_CLOSED_LINE: Bilingual = {
   pt: 'O carrinho está fechado hoje.',
   en: 'The cart is closed today.',
+};
+
+/** Tapioca keeps the sentence it shipped with. needs_br: true */
+export const FEIRA_CART_GREET: Bilingual = {
+  pt: 'Oi! Hoje o carrinho é de tapioca. Quer jogar?',
+  en: 'Hi! Today the cart is tapioca. Want to play?',
 };
 
 /** Offer line for today's game. Tapioca keeps the original sentence. needs_br: true */
@@ -528,7 +534,7 @@ export interface FeiraCustomerOrder {
   name: string;
 }
 
-/** Registry. A later PR pushes pastel here and into FEIRA_IMPLEMENTED_GAMES. Caldo registers from feiraCaldo.ts. */
+/** Registry. Each game module registers itself here (feiraTapioca.ts, feiraPastel.ts, feiraCaldo.ts). */
 export const FEIRA_GAME_MODULES: Partial<Record<FeiraGameId, FeiraGameModule>> = {};
 
 export function feiraModule(id: FeiraGameId): FeiraGameModule | undefined {

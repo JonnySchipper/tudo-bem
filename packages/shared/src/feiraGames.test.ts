@@ -29,6 +29,8 @@ import {
   type FeiraDayScore,
 } from './feiraGames.js';
 import { tapiocaOrders, tapiocaServeQuality } from './feiraTapioca.js';
+import './feiraPastel.js';
+import './feiraCaldo.js';
 
 describe('feira rotation', () => {
   it('is daysSinceEpoch(ET) mod 3 over a fixed order', () => {
@@ -51,7 +53,7 @@ describe('feira rotation', () => {
     expect(todayEastern(early)).toBe('2026-10-09');
     expect(featuredGameAt(late)).toBe(featuredGame('2026-10-08'));
     expect(featuredGameAt(early)).toBe(featuredGame('2026-10-09'));
-    // with only tapioca built, both days feature it; the slot itself still changes
+    // the slot still changes across midnight even when the fallback lands on the same game
     expect(rotationSlot('2026-10-08')).not.toBe(rotationSlot('2026-10-09'));
   });
 
@@ -64,24 +66,24 @@ describe('feira rotation', () => {
     expect(featuredGame('2026-11-01')).toBe(featuredGameAt(Date.parse('2026-11-01T05:30:00.000Z')));
   });
 
-  it('only features an implemented game, and pastel still falls back until it lands', () => {
-    expect(FEIRA_IMPLEMENTED_GAMES).toEqual(['tapioca', 'caldo']);
+  it('features every built game on its own slot', () => {
+    expect(FEIRA_IMPLEMENTED_GAMES).toEqual(['tapioca', 'pastel', 'caldo']);
+    expect(featuredGame('1970-01-01')).toBe('tapioca');
+    expect(featuredGame('1970-01-02')).toBe('pastel');
+    expect(featuredGame('1970-01-03')).toBe('caldo');
     for (const day of ['2026-10-08', '2026-10-09', '2026-10-10', '2026-01-01', '2026-07-04']) {
-      const slot = rotationSlot(day);
-      const featured = featuredGame(day);
-      expect(featured === 'tapioca' || featured === 'caldo').toBe(true);
-      if (slot === 'pastel') expect(featured).toBe('tapioca');
-      if (slot === 'caldo') expect(featured).toBe('caldo');
-      if (slot === 'tapioca') expect(featured).toBe('tapioca');
+      expect(featuredGame(day)).toBe(rotationSlot(day));
     }
-    // once pastel is registered too, the slot is the schedule
+    // with only some games switched on, the server passes that subset
     const all = ['tapioca', 'pastel', 'caldo'] as const;
     expect(featuredGame('1970-01-01', all)).toBe('tapioca');
     expect(featuredGame('1970-01-02', all)).toBe('pastel');
     expect(featuredGame('1970-01-03', all)).toBe('caldo');
-    // pastel missing: that slot falls back to tapioca (the previous implemented game)
+    // pastel off: that slot falls back to tapioca (the previous switched-on game)
     expect(featuredGame('1970-01-02', ['tapioca', 'caldo'])).toBe('tapioca');
     expect(featuredGame('1970-01-03', ['tapioca', 'caldo'])).toBe('caldo');
+    // caldo off: that slot falls back to pastel
+    expect(featuredGame('1970-01-03', ['tapioca', 'pastel'])).toBe('pastel');
   });
 });
 
@@ -178,7 +180,14 @@ describe('feira cart switch', () => {
     expect(enabledFeiraGameIds(cfg, '2026-10-08')).toEqual([]);
     expect(featuredEnabled('2026-10-08', [])).toBeNull();
     expect(feiraCartCatalog().map((g) => g.id)).toEqual(['tapioca', 'pastel', 'caldo']);
-    expect(feiraCartAdminView(cfg, '2026-10-08')).toMatchObject({ featured: null, games: [{ id: 'tapioca', mode: 'off' }, { id: 'pastel', mode: 'off' }, { id: 'caldo', mode: 'off' }] });
+    expect(feiraCartAdminView(cfg, '2026-10-08')).toMatchObject({
+      featured: null,
+      games: [
+        { id: 'tapioca', mode: 'off', implemented: true },
+        { id: 'pastel', mode: 'off', implemented: true },
+        { id: 'caldo', mode: 'off', implemented: true },
+      ],
+    });
     expect(withFeiraCartMode(cfg, 'not-a-game', 'on')).toBeNull();
   });
 
@@ -193,11 +202,13 @@ describe('feira cart switch', () => {
     expect(featuredEnabled('1970-01-01', enabledFeiraGameIds(both, '1970-01-01'), built)).toBe('tapioca');
     expect(featuredEnabled('1970-01-02', enabledFeiraGameIds(both, '1970-01-02'), built)).toBe('caldo');
     expect(featuredEnabled('1970-01-03', enabledFeiraGameIds(both, '1970-01-03'), built)).toBe('tapioca');
-    // pastel on but not implemented yet: skipped, tapioca still every day
+    // pastel switched on before a build can start it: skipped, tapioca still every day
     const pastelOn = withFeiraCartMode(emptyFeiraCartConfig(), 'pastel', 'on')!;
     const tapiocaToo = withFeiraCartMode(pastelOn, 'tapioca', 'on')!;
-    expect(featuredEnabled('1970-01-02', enabledFeiraGameIds(pastelOn, '1970-01-02'))).toBeNull();
-    expect(featuredEnabled('1970-01-02', enabledFeiraGameIds(tapiocaToo, '1970-01-02'))).toBe('tapioca');
+    expect(featuredEnabled('1970-01-02', enabledFeiraGameIds(pastelOn, '1970-01-02'), ['tapioca'])).toBeNull();
+    expect(featuredEnabled('1970-01-02', enabledFeiraGameIds(tapiocaToo, '1970-01-02'), ['tapioca'])).toBe('tapioca');
+    // this build can start Pastel, so turning that toggle on features Pastel
+    expect(featuredEnabled('1970-01-02', enabledFeiraGameIds(pastelOn, '1970-01-02'))).toBe('pastel');
   });
 
   it('keeps a rotation window for later, and leaves the game off until that window matches', () => {

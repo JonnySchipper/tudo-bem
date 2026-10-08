@@ -4,10 +4,10 @@
  *
  *   BASE_URL=https://playtudobem.com/ node scripts/feira-games-shots.mjs        # live server (guest)
  *   BASE_URL=http://localhost:9311/?solo node scripts/feira-games-shots.mjs     # solo build
- *   SHOTS_DIR (default /workspace/feira-games-shots), VIEWS=desktop,phone
- *   GAME=tapioca|caldo enables that game (they ship off) and drives feira-play-<game>.mjs
- *   Solo builds use __tb.enableFeiraGame. A live server uses the credits admin door
- *   (TB_ADMIN_PASSWORD, default tb-admin-praca).
+ *   SHOTS_DIR (default /workspace/feira-games-shots), VIEWS=desktop,phone, GAME=tapioca|pastel|caldo
+ *   GAME picks the game to switch on (they ship off) and drives feira-play-<game>.mjs.
+ *   A live server turns GAME on from the credits admin door (TB_ADMIN_PASSWORD, local default
+ *   tb-admin-praca). Solo reads ?feiraon=GAME, and __tb.enableFeiraGame(GAME) is the same switch.
  */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
@@ -18,6 +18,7 @@ import { finishArrival } from './lib/arrival.mjs';
 import { sleep } from './lib/meveum-play.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:9311/?solo';
+const GAME = process.env.GAME ?? 'tapioca';
 const SHOTS = process.env.SHOTS_DIR ?? '/workspace/feira-games-shots';
 const VIEWS = (process.env.VIEWS ?? 'desktop,phone').split(',');
 const TAG = process.env.TAG ?? 'local';
@@ -29,8 +30,16 @@ const VIEW = {
 };
 const log = (...a) => console.log('  ·', ...a);
 
+function startUrl() {
+  let url = `${BASE}${BASE.includes('?') ? '&' : '?'}notype=1`;
+  // Solo worlds read this as the test pin that switches GAME on. A real server ignores it;
+  // enableCart() is the switch there. The cart still defaults off without one of these.
+  if (!url.includes('feiraon=')) url += `&feiraon=${GAME}`;
+  return url;
+}
+
 async function enter(page) {
-  await page.goto(`${BASE}${BASE.includes('?') ? '&' : '?'}notype=1`);
+  await page.goto(startUrl());
   await page.waitForSelector('#intro-enter', { timeout: 30_000 });
   await page.click('#intro-enter');
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
@@ -105,32 +114,33 @@ async function run(viewName) {
   page.on('pageerror', (e) => console.log('PAGEERROR', e.message));
   try {
     await enter(page);
-    // Cart games ship off. Turn on the one this run plays, before the cart offer is painted.
-    const gameId = process.env.GAME ?? 'tapioca';
-    const enabled = await page.evaluate((id) => window.__tb.enableFeiraGame?.(id) ?? false, gameId);
-    log('enabled', gameId, enabled);
-    if (!enabled) await enableCart(page, [gameId]);
-    await shot(page, `${TAG}-${viewName}-feira-room`);
+    // Solo already switched GAME on via ?feiraon= (__tb.enableFeiraGame is the backup). A Node server ignores both.
+    const enabled = BASE.includes('solo') && (await page.evaluate((id) => window.__tb.enableFeiraGame?.(id) ?? false, GAME));
+    log('enabled', GAME, enabled);
+    if (!BASE.includes('solo')) await enableCart(page, [GAME]);
+    // Pastel and caldo shots keep their own names so they do not overwrite the tapioca set.
+    const leaf = (name) => (GAME === 'tapioca' ? name : `${GAME}-${name}`);
+    await shot(page, `${TAG}-${viewName}-${leaf('feira-room')}`);
     // the walk to the sign is long (around the stalls); wait for the panel, not a fixed sleep
     await page.evaluate(() => window.__tb.interact({ prop: 'placa_jogos' }));
     await page.waitForSelector('[data-modal="feira-sign"]', { timeout: 30_000 });
     await sleep(300);
-    await shot(page, `${TAG}-${viewName}-sign`);
+    await shot(page, `${TAG}-${viewName}-${leaf('sign')}`);
     await page.keyboard.press('Escape');
     await sleep(400);
     await page.evaluate(() => document.querySelectorAll('#feira-sign-panel .close, [data-modal] .close').forEach((b) => b.click()));
     await page.evaluate(() => window.__tb.interact({ prop: 'carrinho_jogos' }));
     await page.waitForSelector('#feira-cart-play', { timeout: 15_000 });
-    await shot(page, `${TAG}-${viewName}-cart-offer`);
+    await shot(page, `${TAG}-${viewName}-${leaf('cart-offer')}`);
     const game = await page.evaluate(() => document.querySelector('#feira-cart-game')?.textContent ?? '');
     log('featured', game);
-    await page.click('#feira-cart-play');
-    const play = (await import(`./feira-play-${gameId}.mjs`)).play;
+    await mclick(page, '#feira-cart-play');
+    const play = (await import(`./feira-play-${GAME}.mjs`)).play;
     await play(page, { shot: (n) => shot(page, `${TAG}-${viewName}-${n}`), mclick: (s) => mclick(page, s), log });
     await sleep(1000);
     await page.evaluate(() => document.querySelector('[id$="-close"]')?.click());
     await sleep(1500);
-    await shot(page, `${TAG}-${viewName}-after-crown`);
+    await shot(page, `${TAG}-${viewName}-${leaf('after-crown')}`);
   } finally {
     await browser.close();
   }

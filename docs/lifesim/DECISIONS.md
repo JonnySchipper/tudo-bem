@@ -1647,6 +1647,16 @@ Three skill games share one cart in the Feira. This PR ships the framework and t
 - **Cart and sign.** `carrinho_jogos` is its own sprite (`props/carrinho_feira`: striped awning, chapa, tapiocas, a TAPIOCA board), interact tile (22, 9). The sign `placa_jogos` is its own bright easel (`props/placa_feira`, not the mat scoreboard), on the aisle just west of the cart, interact (19, 8). Usable at any game-clock hour (D12). The Tapioca view builds its DOM once and updates it in place, so a real mouse click lands on the button that received it. DOM ids for a screenshot script: `#feira-cart-panel`, `#feira-cart-play`, `#tapioca-root`, `#tapioca-pan-0`, `#tapioca-end`.
 - All new Portuguese is `needs_br`.
 
+## Feira cart games: Pastel (2026-10-08)
+
+Pastel joins the rotation. With Caldo de cana merged too, all three slots are real games; a slot whose game is switched off falls back to the previous switched-on game in the cycle.
+
+- **Play.** Made to order: massa, the filling, the fork, then the oil. Two pastels fry at once from the start (a third slot after 4 serves). Pull while it is golden. Leave it and the ladder is golden → dark → black → a charcoal block → fire. "Apaga!" puts the fire out. There is no extinguisher. Burnt, raw, or a fire you smothered is a soft fail (score only). The run does not end. Combo fillings (frango com catupiry, camarão com catupiry, Romeu e Julieta, banana com canela) are two bowl taps, arrive from the sixth customer on, and use a shorter golden window.
+- **Score.** Same server path as Tapioca: per-order quality, recomputed from the seed, hard cap 500, RV in the Correria band, first 3 runs of the ET day pay. Beta stays free. Chat, belts, nameplates and stripes are untouched.
+- **Registry.** Pastel is registered the same way as the other cart games: the id is in `FEIRA_ROTATION_ORDER`, `FEIRA_IMPLEMENTED_GAMES`, and `FEIRA_GAME_MODULES`. The admin list is that rotation order, so Pastel is its own toggle (`#admin-feira-pastel`) and a missing flag is off. Caldo has its own real toggle (`#admin-feira-caldo`), also off by default. Shots turn Pastel on from the credits admin door, and the solo pin `?feiraon=pastel` does the same switch. Neither assumes the cart is open.
+- **Shots.** `GAME=pastel node scripts/feira-games-shots.mjs` adds `?feiraon=pastel`. Real mouse clicks, including one pastel left until it catches fire. Shots in `docs/lifesim/shots/feira-games/`.
+- All new Portuguese is `needs_br`.
+
 ## Outdoor framing: the street fills the window (#123, 2026-10-08)
 
 On a desktop the open-air maps were stepping down a zoom so the whole map fit, which left a small square of street with black around it. Shots: `docs/lifesim/shots/street-framing/` (`node scripts/street-framing-shots.mjs`).
@@ -1668,7 +1678,7 @@ Jonny (via TB Brainstorm): two live boards, visible in the world, not buried in 
 
 ## Feira cart games: Caldo de cana (2026-10-08)
 
-Caldo de cana is the third slot in the same rotation (`tapioca`, `pastel`, `caldo`). Pastel is still unimplemented, so a pastel day falls back to the previous game that is both built and switched on.
+Caldo de cana is the third slot in the same rotation (`tapioca`, `pastel`, `caldo`). A day whose game is switched off falls back to the previous game that is both built and switched on.
 
 - **Off until an admin turns it on.** Cart games use the rotation registry (`off` | `on` | `rotation`, default off). The admin panel lists one switch per id in `FEIRA_ROTATION_ORDER`, so Caldo is `admin-feira-caldo` and starts off. Turning only Caldo on features it every day. A start is refused with `feira_closed` while the cart is closed. Solo screenshots call `__tb.enableFeiraGame('caldo')` before opening the cart.
 - **Play.** Load cane, turn the lever, catch the juice under the spout (a miss spills into a puddle), pump the flavor, add gelo when the order asks, and serve before the customer leaves. Several orders wait at once. A second crank while the press is already full overflows it. A wrong flavor, missing ice, or a spill costs points and annoys the customer; it does not end the run. Drag is pointer events (mouse and touch) with a click-click fallback. The stall DOM is built once and updated in place.

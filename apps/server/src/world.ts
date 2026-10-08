@@ -208,6 +208,11 @@ export interface WorldOptions {
   padarias?: PadariaStore;
   /** When false, owned instances and Fundar UI stay off; shared Correria unchanged. Env: TB_PADARIA_OWNERSHIP=1 */
   padariaOwnership?: boolean;
+  /**
+   * Solo/shots only: turn this cart game on (`?feiraon=pastel`). The admin flags stay off
+   * without it. Ignored unless the id is one this build can start.
+   */
+  feiraPin?: string;
 }
 
 /** What the World needs from the account store (kept tiny so world.ts stays browser-safe for solo mode). */
@@ -402,6 +407,7 @@ export class World {
       },
       broadcastAvatar: (s) => this.broadcastAvatar(s),
       rng: () => this.rng(),
+      pin: opts.feiraPin,
     });
     this.caderno = new CadernoTracker({ now: () => this.now(), store, reward: (s, a, r) => this.reward(s, a, r), pushProfile: (s) => this.pushProfile(s) });
     this.diary = new DiaryTracker({

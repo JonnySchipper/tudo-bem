@@ -59,5 +59,6 @@ export * from './escola.js';
 export * from './escolaCopy.js';
 export * from './feiraGames.js';
 export * from './feiraTapioca.js';
+export * from './feiraPastel.js';
 export * from './feiraCaldo.js';
 export * from './leaderboards.js';

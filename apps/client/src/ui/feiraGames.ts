@@ -1,8 +1,8 @@
 /**
  * Feira cart games: the cart offer, the sign board, and the hand-off into today's featured game.
  *
- * The server owns the run (`feiraGame` messages). This file only opens the right view — Tapioca or Caldo —
- * and the placar panel. Adding Pastel is one branch in `openGame`.
+ * The server owns the run (`feiraGame` messages). This file only opens the right view — Tapioca, Pastel
+ * or Caldo — and the placar panel. Adding another game is one branch in `openGame`.
  *
  * needs_br: true
  */
@@ -19,6 +19,7 @@ import { game } from '../state';
 import { h, en } from './dom';
 import { modalId, openModal } from './modal';
 import { TapiocaView, type TapiocaEnd } from './feiraTapioca';
+import { PastelView } from './feiraPastel';
 import { CaldoView } from './feiraCaldo';
 
 type FeiraGameMsg = Extract<ServerMsg, { t: 'feiraGame' }>;
@@ -30,10 +31,10 @@ export interface FeiraGameHooks {
   sendBoard: () => void;
 }
 
-type FeiraPlayView = { destroy(): void; showEnd(end: TapiocaEnd): void };
+type PlayView = { destroy(): void; showEnd(end: TapiocaEnd): void };
 
 let hooks: FeiraGameHooks | null = null;
-let view: FeiraPlayView | null = null;
+let view: PlayView | null = null;
 let closeOffer: (() => void) | null = null;
 
 export function bindFeiraGames(hks: FeiraGameHooks) {
@@ -143,36 +144,29 @@ function openGame(m: Extract<FeiraGameMsg, { phase: 'start' }>) {
   view?.destroy();
   closeOffer?.();
   closeOffer = null;
+  const hooksFor = {
+    finish: (outcomes: import('@tudobem/shared').FeiraOrderOutcome[]) => hooks?.sendFinish(outcomes),
+    quit: () => {
+      view?.destroy();
+      view = null;
+      hooks?.sendQuit();
+    },
+    again: () => {
+      view?.destroy();
+      view = null;
+      hooks?.sendStart();
+    },
+  };
   if (m.game === 'tapioca') {
-    view = new TapiocaView(m.seed, {
-      finish: (outcomes) => hooks?.sendFinish(outcomes),
-      quit: () => {
-        view?.destroy();
-        view = null;
-        hooks?.sendQuit();
-      },
-      again: () => {
-        view?.destroy();
-        view = null;
-        hooks?.sendStart();
-      },
-    });
+    view = new TapiocaView(m.seed, hooksFor);
+    return;
+  }
+  if (m.game === 'pastel') {
+    view = new PastelView(m.seed, hooksFor);
     return;
   }
   if (m.game === 'caldo') {
-    view = new CaldoView(m.seed, {
-      finish: (outcomes) => hooks?.sendFinish(outcomes),
-      quit: () => {
-        view?.destroy();
-        view = null;
-        hooks?.sendQuit();
-      },
-      again: () => {
-        view?.destroy();
-        view = null;
-        hooks?.sendStart();
-      },
-    });
+    view = new CaldoView(m.seed, hooksFor);
     return;
   }
   // Unimplemented games never start: the server only deals a registered module.
