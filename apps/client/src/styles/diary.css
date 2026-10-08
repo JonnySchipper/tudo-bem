@@ -240,14 +240,8 @@
   color: #8f3e15;
 }
 
-#grant-offer .arrival-julia,
-#grant-offer .arrival-gift,
-#grant-offer .arrival-actions {
-  animation-delay: 0.05s;
-}
-
-#grant-offer .arrival-gifts.one {
-  grid-template-columns: 1fr;
+#grant-offer .arrival-julia {
+  animation-delay: 0.12s;
 }
 
 #grant-offer .arrival-actions {
@@ -256,6 +250,201 @@
   align-items: center;
   gap: 8px;
   text-align: left;
+  animation-delay: 0.9s;
+}
+
+/* Júlia's bust with a name tag stitched under it, like the NPC labels in the world */
+.grant-julia {
+  position: relative;
+  display: grid;
+  justify-items: center;
+}
+
+.grant-julia .arrival-portrait {
+  background: #bfe3d0;
+}
+
+.grant-nametag {
+  position: relative;
+  margin-top: -8px;
+  padding: 1px 8px 2px;
+  font-family: var(--font-pixel, inherit);
+  font-size: 0.82rem;
+  line-height: 1.1;
+  color: #fff8ec;
+  background: var(--terracota, #c45c26);
+  box-shadow:
+    0 0 0 2px var(--dy-ink),
+    0 3px 0 rgba(20, 10, 6, 0.25);
+}
+
+#grant-offer .arrival-says p {
+  margin: 0 0 2px;
+}
+
+/* the hand-over: the item comes out of Júlia's side of the card, hops onto a sunburst and waits with its paper tag */
+.grant-give {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  padding: 14px 16px 2px;
+  overflow: hidden;
+}
+
+.grant-shine {
+  position: absolute;
+  left: 50%;
+  /* centred on the item's tile */
+  top: -34px;
+  width: 160px;
+  height: 160px;
+  margin-left: -80px;
+  pointer-events: none;
+  background: repeating-conic-gradient(from 0deg, rgba(242, 194, 48, 0.45) 0deg 12deg, transparent 12deg 30deg);
+  -webkit-mask: radial-gradient(circle, #000 0 30%, transparent 62%);
+  mask: radial-gradient(circle, #000 0 30%, transparent 62%);
+  animation: grant-shine 1.2s var(--dy-out) 0.55s both;
+}
+
+.grant-item {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  animation: grant-handover 0.62s var(--dy-pop) 0.4s both;
+}
+
+.grant-item .gift-art {
+  width: 84px;
+  height: 64px;
+  background: #fff;
+  box-shadow:
+    0 0 0 3px var(--dy-ink),
+    inset 0 -4px 0 #ecdfc8,
+    0 5px 0 rgba(20, 10, 6, 0.22);
+}
+
+.grant-item .cam-body {
+  transform: scale(1.25);
+}
+
+/* the paper tag hanging off the item: what it is, and the extra that comes with it */
+.grant-tag {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 10px 4px;
+  background: #fff6d6;
+  box-shadow: 0 0 0 2px var(--dy-ink);
+  transform: rotate(-2deg);
+}
+
+.grant-tag::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -8px;
+  width: 2px;
+  height: 8px;
+  background: var(--dy-ink);
+}
+
+.grant-tag b {
+  font-family: var(--font-pixel, inherit);
+  font-size: 1rem;
+  line-height: 1.1;
+}
+
+.grant-tag small {
+  font-weight: 800;
+  color: var(--dy-stamp);
+}
+
+.grant-tag-en {
+  margin-top: 4px;
+  text-align: center;
+  animation: dy-up 0.3s var(--dy-out) 0.85s both;
+}
+
+/* the generic present for a grant with no art of its own */
+.gift-box {
+  position: relative;
+  width: 40px;
+  height: 28px;
+  margin-top: 8px;
+  background: #4f9a6a;
+  box-shadow:
+    0 0 0 2px var(--dy-ink),
+    inset 0 -3px 0 #2f5d50;
+}
+
+.gift-lid {
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  top: -9px;
+  height: 9px;
+  background: #6cb383;
+  box-shadow: 0 0 0 2px var(--dy-ink);
+}
+
+.gift-ribbon {
+  position: absolute;
+  left: 16px;
+  top: -9px;
+  width: 8px;
+  bottom: 0;
+  background: var(--dy-gold);
+  box-shadow:
+    -2px 0 0 #c38f10,
+    0 -6px 0 -1px var(--dy-gold),
+    -6px -8px 0 -2px var(--dy-gold),
+    6px -8px 0 -2px var(--dy-gold);
+}
+
+/* Pegar: the item hops toward you as Júlia lets go (the flying copy takes it to the HUD) */
+#grant-offer.giving .grant-item .gift-art {
+  animation: grant-take 0.32s var(--dy-out) both;
+}
+
+#grant-offer.giving .grant-shine {
+  animation: grant-flare 0.35s ease-out both;
+}
+
+@keyframes grant-handover {
+  0% {
+    opacity: 0;
+    transform: translate(-46%, -42px) scale(0.45) rotate(-14deg);
+  }
+  55% {
+    opacity: 1;
+    transform: translate(-6%, -18px) scale(0.95) rotate(4deg);
+  }
+}
+
+@keyframes grant-shine {
+  from {
+    opacity: 0;
+    transform: scale(0.4) rotate(-40deg);
+  }
+}
+
+@keyframes grant-take {
+  50% {
+    transform: translateY(-10px) scale(1.12);
+  }
+  to {
+    transform: translateY(-4px) scale(1.05);
+    opacity: 0;
+  }
+}
+
+@keyframes grant-flare {
+  to {
+    opacity: 0;
+    transform: scale(1.5);
+  }
 }
 
 /* Célia hands over Júlia's package in the dialogue box: the two gifts and the note, at once (no stagger: the box is already the moment) */

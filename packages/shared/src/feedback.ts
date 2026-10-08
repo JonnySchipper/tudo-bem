@@ -35,6 +35,7 @@ export const FEEDBACK_COPY: Record<
   | 'contactPlaceholder'
   | 'signedIn'
   | 'send'
+  | 'thanksTitle'
   | 'thanks'
   | 'empty'
   | 'short'
@@ -60,6 +61,7 @@ export const FEEDBACK_COPY: Record<
   contactPlaceholder: { pt: 'E-mail ou um apelido. Só se você quiser.', en: 'An email or a nickname, only if you want.' },
   signedIn: { pt: 'Você está na sua conta. Não precisa deixar contato.', en: "You're signed in, so no need to leave a contact." },
   send: { pt: 'Mandar', en: 'Send' },
+  thanksTitle: { pt: 'Obrigado!', en: 'Thank you!' },
   thanks: { pt: 'Valeu! A gente lê isso todo dia.', en: 'Thanks! We read these every day.' },
   empty: { pt: 'Escreve um pouquinho, por favor.', en: 'Write a short note, please.' },
   short: { pt: 'Escreve um pouquinho, por favor.', en: 'Write a short note, please.' },
