@@ -58,6 +58,8 @@ export interface DialogueOpts {
   onChoose: (i: number) => void;
   onClose: () => void;
   footer?: HTMLElement;
+  /** Between the line and the chips (a cart's menu board). */
+  extras?: HTMLElement;
   /** Box key (the typewriter restarts when it changes); default `talk-<npc>`. */
   key?: string;
   /** Free-typed reply (scored with accept-list rules). */
@@ -82,6 +84,7 @@ function boxSpecFor(o: DialogueOpts): BoxSpec {
     line: o.line,
     said: o.said?.pt ?? null,
     feedback: o.feedback ? h('span', { class: `feedback dbx-feedback s${score}` }, `${o.feedback.text.pt} · ${o.feedback.text.en}`) : null,
+    extras: o.extras,
     chips: o.chips,
     input: o.chips.length && o.onType ? { id: 'scene-type', placeholder: 'Responda em português…', send: 'Responder', onSend: (text) => o.onType?.(text) } : null,
     footer: o.footer,

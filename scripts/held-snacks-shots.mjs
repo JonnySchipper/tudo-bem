@@ -74,9 +74,11 @@ async function openCart(page, prop) {
   await sleep(700);
 }
 
-async function chooseChip(page, re) {
-  const chip = page.locator('#dialogue-box .dbx-chip', { hasText: re }).first();
-  await chip.click();
+/** A cart's menu-board tile (`data-snack`), or the chip on builds without the board. */
+async function choose(page, snackId, chipRe) {
+  const tile = page.locator(`#dialogue-box .snack-pick[data-snack="${snackId}"]`);
+  if (await tile.count()) await tile.click();
+  else await page.locator('#dialogue-box .dbx-chip', { hasText: chipRe }).first().click();
 }
 
 async function useCarry(page) {
@@ -102,11 +104,11 @@ for (const [size, opts] of Object.entries(VIEW)) {
     // 1. the pipoqueiro: salgada / doce, then the leite condensado step
     await openCart(page, 'pipoqueiro');
     await shot('pipoca_menu');
-    await chooseChip(page, /Pipoca doce/);
+    await choose(page, 'pipoca_doce', /Pipoca doce/);
     await page.waitForSelector('#dialogue-box[data-dialogue="street-snack-leite"]', { timeout: 5000 });
     await sleep(500);
     await shot('pipoca_leite');
-    await chooseChip(page, /Com leite condensado/);
+    await choose(page, 'pipoca_doce_leite', /Com leite condensado/);
     await waitFor(page, () => window.__tb.game.self?.pub.carry === 'pipoca_doce_leite', null, 8000, 'holding pipoca doce com leite');
     await page.evaluate(() => document.querySelector('.dbx-close')?.click());
     // step out from behind the cart, onto the path by the playground lixeira (lixeira_p2 at 13,19)
@@ -127,8 +129,9 @@ for (const [size, opts] of Object.entries(VIEW)) {
 
     // 3. toss into the lixeira (two tiles away: in reach)
     await clearToasts(page);
+    // the arc is under half a second and a WebGL screenshot takes a while: shoot as soon as the bag leaves the hand
     await useCarry(page);
-    await sleep(260);
+    await waitFor(page, () => window.__tb.game.self?.pub.carry === null, null, 8000, 'tossed');
     await shot('toss_lixeira');
     await waitFor(page, () => window.__tb.game.self?.pub.carry === null, null, 8000, 'tossed');
     await sleep(500);
@@ -141,7 +144,7 @@ for (const [size, opts] of Object.entries(VIEW)) {
     await clearToasts(page);
     await openCart(page, 'carrinho_coco');
     await shot('coco_menu');
-    await chooseChip(page, /Comprar/);
+    await choose(page, 'agua_de_coco', /Comprar/);
     await waitFor(page, () => window.__tb.game.self?.pub.carry === 'agua_de_coco', null, 8000, 'holding água de coco');
     await page.evaluate(() => document.querySelector('.dbx-close')?.click());
     // onto the brick path south of the cart: no lixeira within reach, so the toss lands on the ground
