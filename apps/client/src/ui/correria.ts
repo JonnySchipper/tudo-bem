@@ -5,7 +5,7 @@
  *
  * The server owns the shift (apps/server/src/correria.ts) and judges every step; this file sends the player's taps and draws what comes back.
  */
-import { MG_ITEMS, MG_MODS, nextPadariaUpgrade, type Bilingual, type CAct, type CEvent, type ClientMsg, type CorreriaSnap, type MgServerMsg } from '@tudobem/shared';
+import { JUICE, MG_ITEMS, MG_MODS, juiceVerdict, nextPadariaUpgrade, type Bilingual, type CAct, type CEvent, type ClientMsg, type CorreriaSnap, type MgServerMsg } from '@tudobem/shared';
 import { game } from '../state';
 import { h } from './dom';
 import { speak, stopSpeaking } from '../audio';
@@ -307,6 +307,15 @@ export class CorreriaUI {
         // the orange that just went in, by size (the shelf words are hidden on small screens)
         const w = ORANGE_WORDS[e.size];
         this.flash({ pt: `Uma laranja ${w.pt}`, en: `A ${w.en} orange` }, false, 1100);
+        // this orange brings the glass up to the line: when its pour ends, a chime and the next step (the green lamp lights then too)
+        const before = e.fill - JUICE.sizes[e.size];
+        if (juiceVerdict(e.fill) === 'ok' && before < JUICE.goodMin - 1e-9) {
+          window.setTimeout(() => {
+            if (this.closedFlag || this.ended) return;
+            this.sfx('line');
+            this.flash({ pt: 'Na linha! Toque no copo.', en: 'At the line! Tap the glass.' }, false, 2200);
+          }, JUICE.cycleMs * 0.84);
+        }
         break;
       }
       case 'follow': {

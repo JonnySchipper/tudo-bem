@@ -1013,8 +1013,8 @@ body.cr-on .toasts {
 }
 
 .cr-next-word {
-  left: 74%;
-  top: 2%;
+  left: 62%;
+  top: -14%;
 }
 
 .cr-bin-word {
@@ -1035,6 +1035,38 @@ body.cr-on .toasts {
   line-height: 1;
   animation: cr-rise 1.5s ease-out forwards;
   filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.35));
+}
+
+/* a word that rises off the juicer: "na linha!" when the glass reaches the line (PT bold, the EN gloss under it when English is on) */
+.cr-pop.cr-pop-word {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2px 7px 3px;
+  border: 2px solid var(--cr-ink);
+  border-radius: 6px;
+  font-size: 14px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.cr-pop.cr-pop-word i {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.cr-pop.cr-pop-word.good {
+  background: #2e8a55;
+  color: #fff8e6;
+}
+
+.cr-pop.cr-pop-word.good i {
+  color: #c8ffd0;
+}
+
+.cr-pop.cr-pop-word.bad {
+  background: #c0392b;
+  color: #fff8e6;
 }
 
 @keyframes cr-rise {
