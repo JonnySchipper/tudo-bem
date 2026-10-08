@@ -63,7 +63,7 @@ export interface ImageDef {
   css?: string;
   /** portraits: the centre of the face in image px (small cards crop the bust to it) */
   face?: [number, number];
-  /** pet strips: inclusive frame ranges (walkE, walkS, walkN, idleS, sitE, sitS, sitN) */
+  /** pet strips: inclusive frame ranges (walkE, walkS, walkN, idleS, sitE, sitS, sitN, lieE, lieS, lieN) */
   anims?: Record<string, [number, number]>;
 }
 
