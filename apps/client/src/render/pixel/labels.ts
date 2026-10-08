@@ -11,10 +11,8 @@
  *    targets pin the arrow to the nearest edge of the free screen region and turn it toward the target (`guides.ts`).
  */
 import './pixel.css';
-import { FOUNDER_BADGE, type Nameplate } from '@tudobem/shared';
+import { FOUNDER_BADGE, tierRule, type Nameplate } from '@tudobem/shared';
 import { diffIds } from './reconcile';
-
-const TIER_PT: Record<Nameplate, string> = { verde: 'Verde', amarelo: 'Amarela', azul: 'Azul', roxo: 'Roxa', dourado: 'Dourada' };
 import { GUIDE_ROTATION, pinGuide, type GuideDir, type GuideInsets } from './guides';
 
 export interface BubbleItem {
@@ -413,7 +411,7 @@ export class LabelLayer {
           ico.className = `wl-tier-ico tier-ico tier-ico-${tier}`;
           ico.setAttribute('aria-hidden', 'true');
           el.plate.append(ico);
-          el.plate.title = `Placa ${TIER_PT[tier]}`;
+          el.plate.title = `Placa ${tierRule(tier).pt}`;
         } else el.plate.removeAttribute('title');
         if (s.plate.mark) {
           const mark = document.createElement('i');

@@ -28,7 +28,7 @@ import {
 } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi, ui, clear } from './dom';
-import { tierChip } from './plate';
+import { TIER_HEX, tierChip } from './plate';
 import { mountCharPreview, setHatIcon } from '../render/pixel/charPreview';
 import { furnitureIcon, expressionForScore } from './pixelArt';
 import { speak } from '../audio';
@@ -390,9 +390,10 @@ function mapView(areaId: RoomId): HTMLElement {
   const npcs = inArea
     ? game.liveNpcs(performance.now())
     : npcPosesIn(areaId, clock.now()).map((p) => ({ name: npcDefById(p.npc)?.name ?? p.npc, ...poseWalk(p, clock.now()).tile }));
-  const canvas = drawMinimap(ROOMS[areaId], here, npcs);
+  const meColor = TIER_HEX[game.profile?.nameplate ?? 'verde'];
+  const canvas = drawMinimap(ROOMS[areaId], here, npcs, meColor);
   canvas.setAttribute('aria-label', `Mapa: ${ROOMS[areaId].name}`);
-  return h('div', { class: 'minimap-wrap' }, canvas, h('div', { class: 'minimap-key' }, h('span', { class: 'k door' }), ' portas e saídas ', h('span', { class: 'k npc' }), ' vizinhos ', h('span', { class: 'k me' }), ' você'));
+  return h('div', { class: 'minimap-wrap' }, canvas, h('div', { class: 'minimap-key' }, h('span', { class: 'k door' }), ' portas e saídas ', h('span', { class: 'k npc' }), ' vizinhos ', h('span', { class: 'k me', style: `background:${meColor}` }), ' você'));
 }
 
 export function openMap(go: (room: RoomId) => void) {
@@ -489,7 +490,8 @@ export function openFriends(actions: { request: (id: string) => void; accept: (i
           h(
             'div',
             { class: 'r' },
-            h('span', { class: 'plate' }, h('span', { class: 'seed' }), a.pub.name),
+            h('b', null, a.pub.name),
+            tierChip(a.pub.nameplate ?? 'verde'),
             h('span', { class: 'spacer' }),
             game.profile?.friends.includes(a.pub.id) ? h('span', { class: 'feedback' }, 'Amigo') : h('button', { class: 'green', onclick: () => actions.request(a.pub.id) }, bi('Adicionar', 'Add friend')),
           ),

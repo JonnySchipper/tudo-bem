@@ -7,6 +7,9 @@ import { h } from './dom';
 
 export const TIER_SHAPE: Record<Nameplate, string> = { verde: 'muda', amarelo: 'sol', azul: 'gota', roxo: 'estrela', dourado: 'coroa' };
 
+/** The plate's fill as one flat colour (the minimap's "você" dot); matches `wl-tier-*` in pixel.css. */
+export const TIER_HEX: Record<Nameplate, string> = { verde: '#2f5d50', amarelo: '#f2c230', azul: '#2f6fb5', roxo: '#7a4bb0', dourado: '#d4a017' };
+
 /** "Verde" / "Amarela": the plate (a placa) is feminine. */
 export const tierName = (t: Nameplate) => tierRule(t).pt;
 
