@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { MOMENTUM_THRESHOLD, REF_LINES, type BoutServerMsg, type BoutSnapshot } from '@tudobem/shared';
-import { callOf, clockAt, crowdForResolve, cuesForEnd, cuesForFinishEnd, cuesForResolve, ladderDots, momentumFrac, resultBanner, moveHint, oddsTone, coachTip } from './boutLogic';
+import { MOMENTUM_THRESHOLD, MOVE_LABEL, REF_LINES, type BoutServerMsg, type BoutSnapshot } from '@tudobem/shared';
+import { GAG_TRACKS } from '../render/pixel/gagCartoon';
+import { callOf, clockAt, crowdForResolve, cuesForEnd, cuesForFinishEnd, cuesForResolve, ladderDots, matGlossLocked, matRootClass, momentumFrac, resultBanner, moveHint, oddsTone, coachTip } from './boutLogic';
 
 type Resolve = Extract<BoutServerMsg, { phase: 'resolve' }>;
 type FinishEnd = Extract<BoutServerMsg, { phase: 'finish_end' }>;
@@ -8,6 +9,49 @@ type End = Extract<BoutServerMsg, { phase: 'end' }>;
 
 const snap = (over: Partial<BoutSnapshot> = {}): BoutSnapshot => ({ rung: 0, momentum: 0, points: { you: 0, partner: 0 }, adv: { you: 0, partner: 0 }, pegada: 0, pegadaB: 0, clockMs: 300_000, exchange: 1, position: 'de_pe', ahead: null, streak: 0, ...over });
 const resolve = (over: Partial<Resolve> = {}): Resolve => ({ t: 'bout', v: 1, phase: 'resolve', seq: 1, st: snap(), intent: 'puxar', yours: { correct: true, speed: 0.4, fast: false, timeout: false }, partner: { intent: 'empurrar', correct: false }, delta: 3, events: [], holdMs: 1300, ...over });
+
+describe('Verde glosses on the mat', () => {
+  it('locks English on for Verde, and leaves every later plate behind bout-noen', () => {
+    expect(matGlossLocked('verde')).toBe(true);
+    expect(matGlossLocked(undefined)).toBe(true);
+    expect(matGlossLocked(null)).toBe(true);
+    expect(matRootClass('verde')).toBe('bout-root bout-grip');
+    expect(matRootClass(null)).toBe('bout-root bout-grip');
+    for (const plate of ['amarelo', 'azul', 'roxo', 'dourado'] as const) {
+      expect(matGlossLocked(plate)).toBe(false);
+      expect(matRootClass(plate)).toBe('bout-root bout-grip bout-noen');
+    }
+  });
+
+  it('move names, category labels and coach lines all carry an English gloss', () => {
+    for (const [id, label] of Object.entries(MOVE_LABEL)) {
+      expect(label.pt.trim().length, id).toBeGreaterThan(0);
+      expect(label.en.trim().length, id).toBeGreaterThan(0);
+      expect(label.en, id).not.toBe(label.pt);
+    }
+    for (const track of GAG_TRACKS) {
+      expect(track.en.trim().length, track.id).toBeGreaterThan(0);
+      expect(track.en, track.id).not.toBe(track.pt);
+    }
+    const tips = [
+      coachTip({ winner: 'you', reason: 'finalizacao', you: 2, them: 0, unlocked: [] }),
+      coachTip({ winner: 'partner', reason: 'finalizacao', you: 0, them: 2, unlocked: ['frame'] }),
+      coachTip({ winner: 'partner', reason: 'pontos', you: 0, them: 2, unlocked: [] }),
+      coachTip({ winner: 'draw', reason: 'empate', you: 1, them: 1, unlocked: [] }),
+      coachTip({ winner: 'you', reason: 'pontos', you: 4, them: 1, unlocked: ['armbar'] }),
+      coachTip({ winner: 'you', reason: 'pontos', you: 2, them: 0, unlocked: [] }),
+    ];
+    for (const tip of tips) {
+      expect(tip?.en.trim().length).toBeGreaterThan(0);
+      expect(tip?.en).not.toBe(tip?.pt);
+    }
+    for (const id of Object.keys(MOVE_LABEL)) {
+      const hint = moveHint(id, id === 'armbar' ? { points: 0, to: 'montada', toAhead: 'you', submission: true, riskBottom: true } : { points: 2, to: 'cem_quilos', toAhead: 'you', submission: false, riskBottom: false });
+      if (!hint.pt) continue;
+      expect(hint.en.trim().length, id).toBeGreaterThan(0);
+    }
+  });
+});
 
 describe('bout UI logic', () => {
   it('the momentum bar shows progress to the next rung, -1..1', () => {

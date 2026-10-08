@@ -2,10 +2,25 @@
  * Pure bits of the bout UI (no DOM, no Phaser): how the server's messages turn into stage cues and into what the overlay shows.
  * Unit tested (boutLogic.test.ts).
  */
-import { MOMENTUM_THRESHOLD, REF_LINES, RUNG_MAX, formatBoutClock, type Bilingual, type BoutIntentOut, type BoutServerMsg, type BoutSnapshot, type CrowdCue, type RefSignal } from '@tudobem/shared';
+import { MOMENTUM_THRESHOLD, REF_LINES, RUNG_MAX, formatBoutClock, type Bilingual, type BoutIntentOut, type BoutServerMsg, type BoutSnapshot, type CrowdCue, type Nameplate, type RefSignal } from '@tudobem/shared';
 import type { StageCue } from '../render/pixel/boutFeed';
+import { glossOn } from './correriaLogic';
 
 type Msg<P extends BoutServerMsg['phase']> = Extract<BoutServerMsg, { phase: P }>;
+
+/**
+ * Verde (the beginner plate; Phase 0's only plate) locks English glosses on, the same rule as Correria's Verde level
+ * (`glossOn` at level 0). Later plates keep today's mat overlay: glosses stay behind `bout-noen` until the EN switch.
+ */
+export function matGlossLocked(nameplate: Nameplate | null | undefined): boolean {
+  if (nameplate && nameplate !== 'verde') return false;
+  return glossOn(0, false);
+}
+
+/** Root classes for the overlay. `bout-noen` hides every `.en` line. */
+export function matRootClass(nameplate: Nameplate | null | undefined): string {
+  return `bout-root bout-grip${matGlossLocked(nameplate) ? '' : ' bout-noen'}`;
+}
 
 /** -1..1: how far the momentum bar is toward the next rung (1 = about to move your way, -1 = the partner's way). */
 export const momentumFrac = (m: number): number => Math.max(-1, Math.min(1, m / MOMENTUM_THRESHOLD));

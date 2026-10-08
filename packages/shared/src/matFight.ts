@@ -113,7 +113,7 @@ export const MOVE_LABEL: Record<MatMoveId, Bilingual> = {
   frame: { pt: 'Recuperar', en: 'Frame and recover' },
   escape_back: { pt: 'Sair', en: 'Escape back' },
   armbar: { pt: 'Braço', en: 'Armbar' },
-  americana: { pt: 'Americana', en: 'Americana' },
+  americana: { pt: 'Americana', en: 'Arm lock' },
   rnc: { pt: 'Pescoço', en: 'Rear naked choke' },
   hold: { pt: 'Segurar', en: 'Hold' },
 };
