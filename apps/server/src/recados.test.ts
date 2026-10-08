@@ -121,6 +121,41 @@ describe('recados on the server', () => {
     expect(a.last('recados')!.active).toHaveLength(1);
   });
 
+  it('an errand still on the board can be accepted after the game day rolls', async () => {
+    // The day is 48 real minutes. The offer is sent on room entry and not again until something else happens, so a click
+    // just after midnight still names yesterday's errand. That one must become active even when today's roll left it out.
+    const id = 'graca_pao_pra_julia';
+    let sawOmittedFromToday = false;
+    for (let i = 0; i < 40 && !sawOmittedFromToday; i++) {
+      const world = makeWorld();
+      const a = await client(world);
+      const p = a.s.profile!;
+      p.recados = { day: gameDay(clock) - 1, offered: [id], active: [], done: [], talked: [], graded: [] };
+      await a.send({ t: 'recados', action: 'accept', id });
+      expect(errors(a), `try ${i}`).toEqual([]);
+      expect(p.recados!.day).toBe(gameDay(clock));
+      expect(p.recados!.active).toEqual([{ id, step: 0 }]);
+      expect(a.last('recados')!.active.map((r) => r.id)).toEqual([id]);
+      if (!p.recados!.offered.includes(id)) sawOmittedFromToday = true;
+    }
+    expect(sawOmittedFromToday).toBe(true);
+  });
+
+  it('a day roll still refuses an errand that was not on the board, and sends the new one', async () => {
+    const world = makeWorld();
+    const a = await client(world);
+    const p = a.s.profile!;
+    p.recados = { day: gameDay(clock) - 1, offered: ['nanda_coxinha'], active: [], done: [], talked: [], graded: [] };
+    const before = a.all('recados').length;
+    await a.send({ t: 'recados', action: 'accept', id: 'carlos_agua_pra_julia' }); // needs a heart, and it was not on the board
+    expect(errors(a)).toEqual(['recado']);
+    expect(p.recados!.active).toEqual([]);
+    expect(p.recados!.day).toBe(gameDay(clock));
+    expect(a.all('recados').length).toBeGreaterThan(before);
+    expect(a.last('recados')!.offered.length).toBeGreaterThan(0);
+    expect(a.last('recados')!.offered.map((o) => o.id)).not.toContain('carlos_agua_pra_julia');
+  });
+
   it('accept → order at the padaria → give to the NPC → rewarded once', async () => {
     const world = makeWorld();
     const a = await client(world);
