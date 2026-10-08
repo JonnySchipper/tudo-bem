@@ -7,6 +7,7 @@
     "nanda": "pt-BR-FranciscaNeural",
     "julia": "pt-BR-FranciscaNeural",
     "prof": "pt-BR-FranciscaNeural",
+    "comissaria": "pt-BR-FranciscaNeural",
     "lucia": "pt-BR-FranciscaNeural",
     "tia_lu": "pt-BR-FranciscaNeural",
     "rosa": "pt-BR-FranciscaNeural",
@@ -3789,6 +3790,12 @@
       "file": "ui-05bfe8bd4e.mp3"
     },
     {
+      "id": "ui-2059ec9361",
+      "voice": "ui",
+      "text": "DESEMBARQUE. Saída para o aeroporto",
+      "file": "ui-2059ec9361.mp3"
+    },
+    {
       "id": "ui-97e4ea2659",
       "voice": "ui",
       "text": "Vaga livre para uma nova barraca",
@@ -4681,6 +4688,12 @@
       "voice": "ui",
       "text": "terminal",
       "file": "ui-46d551dae6.mp3"
+    },
+    {
+      "id": "ui-fbe323685f",
+      "voice": "ui",
+      "text": "bem-vindo",
+      "file": "ui-fbe323685f.mp3"
     },
     {
       "id": "ui-e4f88bf4b0",

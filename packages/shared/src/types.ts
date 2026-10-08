@@ -54,7 +54,7 @@ export type Nameplate = 'verde' | 'amarelo' | 'azul' | 'roxo' | 'dourado';
 /** Screen-facing: S = toward camera. SE = moving +x, SW = +y, NE = -y, NW = -x. */
 export type Dir = 'SE' | 'SW' | 'NE' | 'NW';
 
-export type RoomId = 'praca' | 'rua' | 'rua_leste' | 'feira' | 'padaria' | 'kitnet' | 'academia' | 'escola' | 'andar' | 'aeroporto';
+export type RoomId = 'praca' | 'rua' | 'rua_leste' | 'feira' | 'padaria' | 'kitnet' | 'academia' | 'escola' | 'andar' | 'aeroporto' | 'desembarque';
 
 export type EmoteKind = 'oi' | 'dancar' | 'rir' | 'valeu' | 'desculpa';
 
@@ -211,6 +211,11 @@ export interface PrivateProfile {
    * New profiles set this false and see the intro once.
    */
   arrivalIntroDone?: boolean;
+  /**
+   * The arrivals hall (`desembarque`, the guided tutorial before the airport) is done or skipped. Missing on saves from before the hall:
+   * those players are never sent there. New profiles set this false.
+   */
+  desembarqueDone?: boolean;
   /** Júlia's camera. Photographs tagged things into the language diary. */
   hasCamera?: boolean;
   /** Language-diary word ids earned once. */

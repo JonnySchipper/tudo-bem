@@ -674,6 +674,7 @@ export class World {
       case 'heard':
         return this.caderno.heard(s, msg.cardIds);
       case 'arrival':
+        if (msg.action === 'landed') return this.landed(s);
         return msg.action === 'replay' ? this.diary.replayArrival(s) : this.diary.finishArrival(s);
       case 'grant':
         return this.giveGrant(s, msg.id);
@@ -1015,6 +1016,8 @@ export class World {
       lastSeen: this.now(),
       // Set before save: a missing flag is treated as already home, so a new account must say false itself.
       arrivalIntroDone: false,
+      // the arrivals hall comes first (the guided tutorial), then the airport
+      desembarqueDone: false,
       hasCamera: false,
       diary: [],
       film: 0,
@@ -1024,6 +1027,15 @@ export class World {
     this.store.add(p);
     if (this.accounts && s.accountId) this.linkAccount(s.accountId, p);
     this.attachProfile(s, p);
+  }
+
+  /** The arrivals hall is done (or skipped): the next login goes on to the airport. Only ever turns the flag on. */
+  private landed(s: Session) {
+    const p = s.profile!;
+    if (p.desembarqueDone !== false) return;
+    p.desembarqueDone = true;
+    this.store.save();
+    this.pushProfile(s);
   }
 
   private updateAppearance(s: Session, a: Appearance) {
@@ -2226,7 +2238,9 @@ export class World {
     p.coins -= snack.price;
     s.carry = snack.id;
     this.store.save();
-    s.send({ t: 'notice', level: 'reward', pt: `Comprou: ${snack.pt}`, en: `Bought: ${snack.en}` });
+    // the water cooler gives, it does not sell
+    if (snack.price === 0) s.send({ t: 'notice', level: 'info', pt: `Pegou: ${snack.pt}`, en: `Picked up: ${snack.en}` });
+    else s.send({ t: 'notice', level: 'reward', pt: `Comprou: ${snack.pt}`, en: `Bought: ${snack.en}` });
     this.pushProfile(s);
     this.broadcastAvatar(s);
   }

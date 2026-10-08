@@ -88,6 +88,22 @@ export function openStreetSnack(propId: string, buy: (itemId: string) => void): 
 }
 
 function openSingle(snack: StreetSnackDef, buy: (itemId: string) => void): void {
+  // the arrivals hall's water cooler: free, so it is "pegar" (take), not "comprar" (buy). needs_br: true
+  if (snack.price === 0) {
+    showDialogue({
+      npc: null,
+      speaker: 'Bebedouro',
+      line: { pt: 'Água fresquinha, de graça.', en: 'Cool water, free.' },
+      chips: [{ pt: `Pegar um ${snack.pt.toLowerCase()}`, en: `Take ${snack.en.toLowerCase()}` }, { pt: 'Agora não', en: 'Not now' }],
+      onChoose: (i) => {
+        if (i === 0) buy(snack.id);
+        closeDialogue();
+      },
+      key: 'street-snack',
+      onClose: closeDialogue,
+    });
+    return;
+  }
   const line =
     snack.id === 'agua_de_coco'
       ? { pt: 'Água de coco geladinha com canudo!', en: 'Ice-cold coconut water with a straw!' }
