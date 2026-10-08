@@ -85,6 +85,7 @@ import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira
 import { openCaderno, setArrivalReplay } from './ui/caderno';
 import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAcademyFloor } from './ui/academy';
+import { openLeaderboards } from './ui/leaderboards';
 import { askPadariaDoor, bindPadariaOwn, chooseBakery, onPadariaDoor, openHouseCounter, openPadariaBook, syncPadariaFloor, welcomeOwner } from './ui/padariaOwn';
 import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia } from './ui/airportTutorial';
 import { flyHeardWord } from './ui/heardWord';
@@ -427,6 +428,8 @@ function propAction(action: string, propId?: string) {
   } else if (action === 'academy_board') {
     const card = game.room?.room === 'andar' ? game.room.academy : undefined;
     if (card) openAcademyBoard(card);
+  } else if (action === 'leaderboard') {
+    openLeaderboards(() => net.send({ t: 'leaderboards' }));
   } else if (action === 'padaria_door') {
     // inside an owned padaria the vaso is its book (Melhorias for the owner, the shop's card for a visitor)
     const own = game.room?.padaria;
@@ -927,6 +930,10 @@ net.on((m: ServerMsg) => {
       game.furniture = m.furniture;
       if (game.selectedFurniture && !m.furniture.some((f) => f.uid === game.selectedFurniture)) game.selectedFurniture = null;
       game.emit('decor');
+      break;
+    case 'leaderboards':
+      game.leaderboards = { words: m.words, streak: m.streak, at: m.at };
+      game.emit('leaderboards');
       break;
     case 'friends':
       game.friends = m.friends;
@@ -1492,6 +1499,7 @@ window.__tb = {
   walkTo: (x: number, y: number, sit = false) => walkTo({ x, y }, null, sit),
   /** Renderer-independent interaction by id, resolved against the current room's data. */
   interact: (target: InteractTarget) => interact(target),
+  openLeaderboards: () => openLeaderboards(() => net.send({ t: 'leaderboards' })),
   get decor() {
     return decor;
   },

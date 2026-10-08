@@ -54,6 +54,7 @@ VITE_LOCAL_WORLD=1 pnpm --filter @tudobem/client build      # then serve apps/cl
 8. **Feira livre** (east lot, every day 06:00 to 13:00, plus the Hortifrúti corner at the banca at any hour). Ask "Quanto custa a banana?", hear the price in words, say how many, then pay with coins and notes. Overpay and you get *troco*; underpay and nothing is bought.
 9. **Caderno de palavras.** Every word you see, hear and use fills a notebook by group; finishing a group pays RV.
 10. **Hats, kitnet and friends.** Nanda's stall (hats), your kitnet at Nº 42 (decorate, sit), the Academia do Bairro (Professora Bia, tatame, a CPU roll), the parrot perch, friends in the top bar.
+10b. **Placar da Vila.** In the Praça, tap the scoreboard by the fountain for **Most Words Learned** and **Highest Current Streak** (Escola). Free for everyone; display names only.
 11. **Academia: Treino no tatame.** Buy your gi at the vestiário, then join the Fila do tatame with Professora Bia. Each round is **closed guard** on the clock (~one minute): take or clear grips on **gola, manga, calça**, or **puxar / empurrar** a grip you hold (wrong force bounces). First to **two passos** or a **Final!** wins the round; wins add a **listra** (5 on white, then 10, 20, 40 and 80; four stripes change the belt). No quiz — the Portuguese move name appears after it lands. Lose and **De novo** rematches the same position.
 
 ## How it is built
