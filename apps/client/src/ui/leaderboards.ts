@@ -13,7 +13,11 @@ function rowEl(r: BoardRow, kind: 'words' | 'streak') {
   return h(
     'div',
     { class: `r lb-row${r.you ? ' you' : ''}` },
-    h('span', { class: `lb-rank${r.rank <= 3 ? ` medal-${r.rank}` : ''}` }, `#${r.rank}`),
+    h(
+      'span',
+      { class: 'lb-rank', 'aria-label': `#${r.rank}` },
+      r.rank <= 3 ? h('i', { class: `lb-medal medal-${r.rank}` }, String(r.rank)) : `#${r.rank}`,
+    ),
     h('b', { class: 'lb-name' }, r.name),
     r.you ? h('span', { class: 'lb-you' }, bi('você', 'you')) : '',
     h('span', { class: 'spacer' }),

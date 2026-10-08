@@ -918,25 +918,24 @@ html {
   min-width: 2.4em;
 }
 /* Gold / silver / bronze discs for the top three (ties share a medal: ranks are competition ranks). */
-.lb-panel .lb-rank[class*='medal-'] {
-  min-width: 0;
-  width: 2.1em;
-  height: 2.1em;
-  margin-right: 0.3em;
+.lb-panel .lb-medal {
+  width: 1.6em;
+  height: 1.6em;
   display: inline-grid;
   place-items: center;
   border: 2px solid #3a3a50;
   border-radius: 50%;
-  font-size: 0.8em;
+  font-style: normal;
   color: #3a3a50;
+  vertical-align: middle;
 }
-.lb-panel .lb-rank.medal-1 {
+.lb-panel .lb-medal.medal-1 {
   background: radial-gradient(circle at 35% 30%, #fff59a, #f2b22b 60%, #ed931e);
 }
-.lb-panel .lb-rank.medal-2 {
+.lb-panel .lb-medal.medal-2 {
   background: radial-gradient(circle at 35% 30%, #f8f8f8, #b2aecb 60%, #8b8bab);
 }
-.lb-panel .lb-rank.medal-3 {
+.lb-panel .lb-medal.medal-3 {
   background: radial-gradient(circle at 35% 30%, #f1ce8e, #b35e3f 60%, #ab4a36);
   color: #fff6e0;
 }
