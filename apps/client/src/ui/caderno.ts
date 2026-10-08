@@ -3,7 +3,7 @@
  * that plays the word (and tells the server it was `heard`), what the player did with it (seen / heard / used), and the progress of the group.
  * Words not met yet show as "???". The group reward (+15 RV, once) arrives as the server's normal reward toast.
  */
-import { diaryBoard, diaryWord, normalizeEscola, progressLine, wordCounts } from '@tudobem/shared';
+import { diaryBoard, diaryWord, FEIRA_GAME_LABEL, normalizeEscola, progressLine, wordCounts } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi } from './dom';
 import { openModal } from './modal';
@@ -14,6 +14,35 @@ import { cadernoView, spokenForm, type GroupView, type WordView } from './cadern
 
 /** The tab the panel was on last time (kept for the session). */
 let lastTab: string | null = null;
+
+const MEDAL_PT = { gold: 'Ouro', silver: 'Prata', bronze: 'Bronze' } as const;
+const MEDAL_EN = { gold: 'Gold', silver: 'Silver', bronze: 'Bronze' } as const;
+
+/** Permanent Feira medals (written by the server when an ET day finalizes). needs_br: true */
+function medalSection(): HTMLElement {
+  const list = game.profile?.feiraMedals ?? [];
+  return h(
+    'section',
+    { class: 'cad-found fg-diary', id: 'feira-medals' },
+    h('h3', null, 'Medalhas da Feira', en('Market medals')),
+    list.length
+      ? h(
+          'ul',
+          null,
+          ...[...list].reverse().map((a) => {
+            const gameLabel = a.game in FEIRA_GAME_LABEL ? FEIRA_GAME_LABEL[a.game as keyof typeof FEIRA_GAME_LABEL] : { pt: a.game, en: a.game };
+            const medal = a.medal === 'gold' || a.medal === 'silver' || a.medal === 'bronze' ? a.medal : 'bronze';
+            return h(
+              'li',
+              { 'data-medal': a.day },
+              h('i', { class: `fg-medal ${medal}`, 'aria-hidden': 'true' }, medal === 'gold' ? '1' : medal === 'silver' ? '2' : '3'),
+              h('span', null, `${MEDAL_PT[medal]} · ${a.day} · ${gameLabel.pt}`, en(`${MEDAL_EN[medal]} · ${gameLabel.en}`)),
+            );
+          }),
+        )
+      : h('p', { class: 'cad-empty' }, 'Nenhuma medalha ainda.', en('No medals yet.')),
+  );
+}
 
 const STATE_TITLE: Record<WordView['state'], string> = {
   unseen: 'Ainda não vista · Not met yet',
@@ -151,6 +180,7 @@ export function openCaderno(groupId?: string, highlight: readonly string[] = [])
             )
           : h('p', { class: 'cad-empty' }, 'Nenhuma foto ainda.', en('No photos yet.')),
       ),
+      medalSection(),
     );
     const right = h(
       'div',

@@ -12,6 +12,7 @@ import './styles/bout.css';
 import './styles/correria.css';
 import './styles/diary.css';
 import './styles/escola.css';
+import './styles/feiraGames.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
@@ -82,6 +83,7 @@ import { mountTracker, openJournal, runPrelude } from './ui/recados';
 import { heartsWith } from './ui/recadoView';
 import { openNpcTalk } from './ui/npcTalk';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira';
+import { bindFeiraGames, closeFeiraGame, feiraGameOpen, onFeiraGameMsg, openFeiraCart, openFeiraSign } from './ui/feiraGames';
 import { openCaderno, setArrivalReplay } from './ui/caderno';
 import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAcademyFloor } from './ui/academy';
@@ -435,6 +437,11 @@ function propAction(action: string, propId?: string) {
     const own = game.room?.padaria;
     if (own) openPadariaBook(own);
     else askPadariaDoor();
+  } else if (action === 'feira_cart' || action === 'feira_sign') {
+    // The server names today's featured game (ET date). The cart is usable at any game-clock hour (D12).
+    const open = action === 'feira_cart' ? 'cart' : 'sign';
+    game.pendingFeiraOpen = open;
+    net.send({ t: 'feiraGame', action: 'board', open });
   } else if (action === 'padaria_counter') {
     const own = game.room?.padaria;
     if (own) openHouseCounter(own);
@@ -453,6 +460,13 @@ bindAcademy({
   join: (id) => net.send({ t: 'academy', action: 'join', id }),
   leave: (id) => net.send({ t: 'academy', action: 'leave', id }),
   look: (id, look) => net.send({ t: 'academy', action: 'look', id, crest: look.crest, giColor: look.giColor, giStamp: look.giStamp }),
+});
+
+bindFeiraGames({
+  sendStart: () => net.send({ t: 'feiraGame', action: 'start' }),
+  sendFinish: (outcomes) => net.send({ t: 'feiraGame', action: 'finish', outcomes }),
+  sendQuit: () => net.send({ t: 'feiraGame', action: 'quit' }),
+  sendBoard: () => net.send({ t: 'feiraGame', action: 'board', open: 'sign' }),
 });
 
 bindPadariaOwn({
@@ -698,6 +712,9 @@ net.on((m: ServerMsg) => {
     case 'feira':
       onFeiraMsg(m);
       break;
+    case 'feiraGame':
+      onFeiraGameMsg(m);
+      break;
     case 'photos':
       game.photos = m.photos;
       game.emit('profile');
@@ -721,6 +738,7 @@ net.on((m: ServerMsg) => {
       if (!keepMg) {
         correriaUi?.destroy();
         correriaUi = null;
+        closeFeiraGame();
         closeModal();
       }
       closeDialogue();
@@ -1519,4 +1537,6 @@ window.__tb = {
   },
   openCartela: () => openCartela(),
   cartelaBanner: (stamps: number) => cartelaBanner(stamps),
+  /** Feira cart games: true while the Tapioca overlay is up (shots / e2e). */
+  feiraGame: () => feiraGameOpen(),
 };

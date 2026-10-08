@@ -90,6 +90,11 @@ export interface PublicAvatar {
   belt?: Belt;
   /** Beta founder chip beside the nameplate. */
   founder?: boolean;
+  /**
+   * Live "Fada da Feira" crown: today's top Feira-cart score. A display overlay only —
+   * it is not a belt, a nameplate tier, or a stripe, and it clears at midnight ET.
+   */
+  feiraCrown?: boolean;
   /** Praça ambiance CPU (scripted scenery, outside the player cap, never chats). */
   cpu?: boolean;
   /** A neighbour (Seu Carlos, Nanda...) walking its schedule: id is `npc-<id>`, broadcast like a CPU but flagged with its NpcId. */
@@ -212,6 +217,11 @@ export interface PrivateProfile {
   cartela?: CartelaState;
   /** Beta founder badge on the overhead nameplate. Absent on old saves until normalized (treated as true). */
   founder?: boolean;
+  /**
+   * Permanent Feira medals (gold / silver / bronze), newest last. Written by the server when an ET day
+   * finalizes; the diary lists them. Absent on saves from before the cart games.
+   */
+  feiraMedals?: { day: string; game: string; medal: 'gold' | 'silver' | 'bronze'; score: number }[];
 }
 
 export interface Bilingual {

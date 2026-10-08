@@ -1623,6 +1623,17 @@ Dona Lúcia's desk was one multiple-choice card. It is now a lesson loop over th
 - **Test hook.** `POST /__test/escola` (only with `TB_TEST_CLOCK_CONTROL=1`) seeds an online player's escola for screenshots.
 - All new Portuguese is `needs_br`.
 
+## Feira cart games: daily rotation, Tapioca (2026-10-08)
+
+Three skill games share one cart in the Feira. This PR ships the framework and the first game (Tapioca). Pastel and Caldo de cana are later PRs: adding one is a game-logic module plus a client view, registered in `FEIRA_GAME_MODULES` and `FEIRA_IMPLEMENTED_GAMES`.
+
+- **Rotation.** `daysSinceEpoch(America/New_York date) mod 3` over the fixed order `['tapioca', 'pastel', 'caldo']`. `featuredGame(etDate)` is the helper. A slot whose game is not implemented yet falls back to the previous implemented game in the cycle, so until Pastel and Caldo land every day is Tapioca, and the day they register the schedule becomes the real 3-day cycle. The ET date (not the game clock) picks the game, including across the 23:30 / 00:30 ET boundary and the DST days.
+- **Scoring.** The client sends per-order quality (`perfect` / `ok` / `soft` / `miss`) and timing. The server recomputes the score from the seed's orders and hard-caps it at `FEIRA_GAME_MAX_SCORE` (500). A finish under 8 seconds is rejected. Extra or forged rows are dropped, never trusted. A mistimed flip is a soft fail (score only), never a game over.
+- **RV.** Same band as Correria (`ECONOMY.minigameMin` 8 to `minigameMax` 20), with a flawless run paying 25. Nothing when nobody was served. The first `FEIRA_DAILY_PAID_RUNS` (3) runs of an ET day pay; later runs still count for the board and pay 0, with a bilingual note. Beta is free: no purchase and no real-money gate.
+- **Board, medals, crown.** One ET-day board of each player's best score (any Feira game). Ties go to whoever reached the score first. At midnight ET (lazy, on any read/write and on the idle timer) 1st/2nd/3rd receive a permanent gold/silver/bronze medal, copied onto the profile and listed in the diary under "Medalhas da Feira". The board then starts empty. The live leader wears a small pixel crown ("Fada da Feira") on the overhead nameplate until midnight. The crown is a display overlay only: belts, nameplate tiers and stripes are untouched. The sign `placa_jogos` opens today's game, the live top 3 and all-time medal counts.
+- **Cart and sign.** `carrinho_jogos` is its own sprite (`props/carrinho_feira`: striped awning, chapa, tapiocas, a TAPIOCA board), interact tile (22, 9). The sign `placa_jogos` is its own bright easel (`props/placa_feira`, not the mat scoreboard), on the aisle just west of the cart, interact (19, 8). Usable at any game-clock hour (D12). The Tapioca view builds its DOM once and updates it in place, so a real mouse click lands on the button that received it. DOM ids for a screenshot script: `#feira-cart-panel`, `#feira-cart-play`, `#tapioca-root`, `#tapioca-pan-0`, `#tapioca-end`.
+- All new Portuguese is `needs_br`.
+
 ## Outdoor framing: the street fills the window (#123, 2026-10-08)
 
 On a desktop the open-air maps were stepping down a zoom so the whole map fit, which left a small square of street with black around it. Shots: `docs/lifesim/shots/street-framing/` (`node scripts/street-framing-shots.mjs`).

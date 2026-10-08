@@ -51,7 +51,7 @@ export type PropKind =
   | 'feira'
   | 'hortifruti';
 
-export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi' | 'escola' | 'academy_elevator' | 'academy_board' | 'padaria_door' | 'padaria_counter' | 'leaderboard';
+export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi' | 'escola' | 'academy_elevator' | 'academy_board' | 'padaria_door' | 'padaria_counter' | 'feira_cart' | 'feira_sign' | 'leaderboard';
 
 export interface PropDef {
   id: string;
@@ -751,6 +751,21 @@ const feira: RoomDef = {
     P('ipe_lote_2', 'arvore', 28, 16, { w: 2, art: 'props/arvore_rua' }),
     cen('flor_lote', 'props/flor_mista_b', 20, 17, 3, 1),
     bench('banco_feira', 4, 16),
+    // Cart games (daily rotation). Open paving east of the stalls, clear of the free-slot signs (vaga at x19 / x25).
+    // The board stands on the aisle immediately west of the cart, so reaching it is the walk to the cart, not a second trek.
+    // Usable at any game-clock hour — learning loops are never locked behind the feira's 06:00–13:00 window (D12).
+    cen('placa_jogos', 'props/placa_feira', 18, 7, 2, 1, {
+      blocks: true,
+      action: 'feira_sign',
+      interact: { x: 19, y: 8 },
+      label: { pt: 'Placar da Feira', en: 'Market board' },
+    }),
+    cen('carrinho_jogos', 'props/carrinho_feira', 21, 7, 3, 1, {
+      blocks: true,
+      action: 'feira_cart',
+      interact: { x: 22, y: 9 },
+      label: { pt: 'Carrinho de jogos', en: 'Game cart' },
+    }),
     ...diaryProps('feira'),
   ],
   walls: [],
