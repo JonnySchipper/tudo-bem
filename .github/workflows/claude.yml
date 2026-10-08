@@ -49,11 +49,13 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           additional_permissions: |
             actions: read
-          # Model: leave --model unset so the action keeps its default.
-          # To pick Opus, add a --model flag to claude_args (the README passes
-          # these through to the Claude Code CLI). Example:
-          #   --model claude-opus-4-7
+          # Model: the action's default unless the run asks for Opus. A run asks
+          # for Opus when its issue or PR has the `opus` label, or when the
+          # triggering comment/review contains `/opus`. Then `--model opus` is
+          # passed to the Claude Code CLI; the alias is the latest Opus.
           # Bash is denied unless listed. These are the repo's verify commands,
-          # plus pnpm tts for new spoken dialogue (see CLAUDE.md).
+          # pnpm tts for new spoken dialogue (see CLAUDE.md), and the local
+          # server + node scripts/*-shots.mjs used for PR screenshots.
           claude_args: |
-            --allowedTools "Bash(pnpm install),Bash(pnpm install:*),Bash(pnpm test),Bash(pnpm test:*),Bash(pnpm typecheck),Bash(pnpm typecheck:*),Bash(pnpm build),Bash(pnpm build:*),Bash(pnpm tts),Bash(pnpm tts:*)"
+            ${{ (contains(github.event.issue.labels.*.name, 'opus') || contains(github.event.pull_request.labels.*.name, 'opus') || contains(github.event.comment.body, '/opus') || contains(github.event.review.body, '/opus')) && '--model opus' || '' }}
+            --allowedTools "Bash(pnpm install),Bash(pnpm install:*),Bash(pnpm test),Bash(pnpm test:*),Bash(pnpm typecheck),Bash(pnpm typecheck:*),Bash(pnpm build),Bash(pnpm build:*),Bash(pnpm tts),Bash(pnpm tts:*),Bash(pnpm verify),Bash(pnpm content),Bash(pnpm content:*),Bash(pnpm start),Bash(pnpm start:*),Bash(pnpm e2e:*),Bash(node scripts/*),Bash(BASE_URL=* node scripts/*),Bash(PORT=* pnpm start*),Bash(curl -s http://localhost:*),Bash(sleep:*)"
