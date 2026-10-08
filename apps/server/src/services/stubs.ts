@@ -7,7 +7,10 @@ import {
   detectLang,
   SCENE_START,
   viewNode,
+  earnedTier,
+  normalizeEscola,
   type Nameplate,
+  type PrivateProfile,
   type SceneCtx,
 } from '@tudobem/shared';
 import type {
@@ -96,8 +99,9 @@ export class InMemoryStudentModel implements StudentModelService {
     return scored.sort((a, b) => b.weight - a.weight).slice(0, n).map((c) => c.id);
   }
 
-  nameplateFor(): Nameplate {
-    return 'verde';
+  /** The plate colour the escola earned (words mastered; never bought). A colour only: English help is a player setting. */
+  nameplateFor(p: PrivateProfile): Nameplate {
+    return earnedTier(normalizeEscola(p.escola, p.diary), p.diary);
   }
 }
 

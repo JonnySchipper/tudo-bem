@@ -140,6 +140,63 @@
   padding: 3px 9px 4px;
 }
 
+/* ---- the nameplate colour earned in the escola (labels.ts): its colour and its shape (sun, drop, star, crown), the ring on yourself kept ---- */
+.wl-tier {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wl-plate-player.wl-tier-amarelo,
+.wl-plate-me.wl-tier-amarelo {
+  --fill: #f2c230;
+  --ink: #2a2233;
+}
+
+.wl-plate-player.wl-tier-amarelo {
+  --edge: #8a6a12;
+}
+
+.wl-plate-player.wl-tier-azul,
+.wl-plate-me.wl-tier-azul {
+  --fill: #2f6fb5;
+  --ink: #f5f1e6;
+}
+
+.wl-plate-player.wl-tier-azul {
+  --edge: #173a63;
+}
+
+.wl-plate-player.wl-tier-roxo,
+.wl-plate-me.wl-tier-roxo {
+  --fill: #7a4bb0;
+  --ink: #f8f0ff;
+}
+
+.wl-plate-player.wl-tier-roxo {
+  --edge: #3d2160;
+}
+
+.wl-plate-player.wl-tier-dourado,
+.wl-plate-me.wl-tier-dourado {
+  --fill: linear-gradient(180deg, #ffe08a, #d4a017);
+  --ink: #2a2233;
+}
+
+.wl-plate-player.wl-tier-dourado {
+  --edge: #7a5a08;
+}
+
+.wl-tier::before {
+  background: var(--fill);
+}
+
+.wl-tier-ico {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
+}
+
 .wl-plate-sign {
   --edge: #5b3b22;
   --fill: #2f4a3a;

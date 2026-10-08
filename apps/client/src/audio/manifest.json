@@ -3465,10 +3465,10 @@
       "file": "ui-3e0a463c5a.mp3"
     },
     {
-      "id": "ui-221187400e",
+      "id": "ui-6adfc3166a",
       "voice": "ui",
-      "text": "ÔNIBUS. Linha 875 · Centro",
-      "file": "ui-221187400e.mp3"
+      "text": "ÔNIBUS. Linha 875 · Centro · Aeroporto",
+      "file": "ui-6adfc3166a.mp3"
     },
     {
       "id": "ui-44328d97aa",
@@ -3613,6 +3613,60 @@
       "voice": "ui",
       "text": "KIMONO. Compre aqui. antes do tatame",
       "file": "ui-b36c320347.mp3"
+    },
+    {
+      "id": "ui-4e34534995",
+      "voice": "ui",
+      "text": "AEROPORTO. Vila Ipê · Internacional",
+      "file": "ui-4e34534995.mp3"
+    },
+    {
+      "id": "ui-04b55bee0c",
+      "voice": "ui",
+      "text": "TERMINAL 1. Portões 1 a 6",
+      "file": "ui-04b55bee0c.mp3"
+    },
+    {
+      "id": "ui-67e76a1b65",
+      "voice": "ui",
+      "text": "EMBARQUE. Lisboa · 14h20 · Portão 3. Recife · 15h05 · Portão 5. Buenos Aires · 16h40 · Portão 6",
+      "file": "ui-67e76a1b65.mp3"
+    },
+    {
+      "id": "ui-02bb177c6a",
+      "voice": "ui",
+      "text": "BAGAGEM. Esteira 1",
+      "file": "ui-02bb177c6a.mp3"
+    },
+    {
+      "id": "ui-afd9f63135",
+      "voice": "ui",
+      "text": "ALFÂNDEGA. Nada a declarar? Siga pelo verde.",
+      "file": "ui-afd9f63135.mp3"
+    },
+    {
+      "id": "ui-3f7bd27726",
+      "voice": "ui",
+      "text": "DESEMBARQUE. Saída · Ônibus · Táxi",
+      "file": "ui-3f7bd27726.mp3"
+    },
+    {
+      "id": "ui-7ce333603f",
+      "voice": "ui",
+      "text": "BEM-VINDO AO BRASIL!",
+      "file": "ui-7ce333603f.mp3"
+    },
+    {
+      "id": "ui-1e8e6ff7ed",
+      "voice": "ui",
+      "text": "ÔNIBUS 875. Aeroporto → Vila Ipê. A cada 15 minutos",
+      "file": "ui-1e8e6ff7ed.mp3"
+    },
+    {
+      "id": "ui-05bfe8bd4e",
+      "voice": "ui",
+      "text": "PORTÃO 3. Desembarque do voo 2026",
+      "file": "ui-05bfe8bd4e.mp3"
     },
     {
       "id": "ui-97e4ea2659",
@@ -4387,6 +4441,3036 @@
       "voice": "ui",
       "text": "Me vê um bolo pra comer aqui.",
       "file": "ui-a00239cb37.mp3"
+    },
+    {
+      "id": "ui-18c0d2709b",
+      "voice": "ui",
+      "text": "mala",
+      "file": "ui-18c0d2709b.mp3"
+    },
+    {
+      "id": "ui-f19e0e06d7",
+      "voice": "ui",
+      "text": "passaporte",
+      "file": "ui-f19e0e06d7.mp3"
+    },
+    {
+      "id": "ui-248333838a",
+      "voice": "ui",
+      "text": "esteira",
+      "file": "ui-248333838a.mp3"
+    },
+    {
+      "id": "ui-a02f4c78a6",
+      "voice": "ui",
+      "text": "mochila",
+      "file": "ui-a02f4c78a6.mp3"
+    },
+    {
+      "id": "ui-9df43a039a",
+      "voice": "ui",
+      "text": "pista",
+      "file": "ui-9df43a039a.mp3"
+    },
+    {
+      "id": "ui-a006e3e5ba",
+      "voice": "ui",
+      "text": "torre",
+      "file": "ui-a006e3e5ba.mp3"
+    },
+    {
+      "id": "ui-498d8ebb59",
+      "voice": "ui",
+      "text": "ponte",
+      "file": "ui-498d8ebb59.mp3"
+    },
+    {
+      "id": "ui-fdfe92cf7b",
+      "voice": "ui",
+      "text": "cinto",
+      "file": "ui-fdfe92cf7b.mp3"
+    },
+    {
+      "id": "ui-65417b70a1",
+      "voice": "ui",
+      "text": "asa",
+      "file": "ui-65417b70a1.mp3"
+    },
+    {
+      "id": "ui-ba2af8b699",
+      "voice": "ui",
+      "text": "fone",
+      "file": "ui-ba2af8b699.mp3"
+    },
+    {
+      "id": "ui-d98d49da1c",
+      "voice": "ui",
+      "text": "bilhete",
+      "file": "ui-d98d49da1c.mp3"
+    },
+    {
+      "id": "ui-fd67b2f665",
+      "voice": "ui",
+      "text": "visto",
+      "file": "ui-fd67b2f665.mp3"
+    },
+    {
+      "id": "ui-dac90b3e03",
+      "voice": "ui",
+      "text": "etiqueta",
+      "file": "ui-dac90b3e03.mp3"
+    },
+    {
+      "id": "ui-987321af6e",
+      "voice": "ui",
+      "text": "turbina",
+      "file": "ui-987321af6e.mp3"
+    },
+    {
+      "id": "ui-886813d602",
+      "voice": "ui",
+      "text": "aeroporto",
+      "file": "ui-886813d602.mp3"
+    },
+    {
+      "id": "ui-84d1469d86",
+      "voice": "ui",
+      "text": "desembarque",
+      "file": "ui-84d1469d86.mp3"
+    },
+    {
+      "id": "ui-252c434fbe",
+      "voice": "ui",
+      "text": "bagagem",
+      "file": "ui-252c434fbe.mp3"
+    },
+    {
+      "id": "ui-259726c2d9",
+      "voice": "ui",
+      "text": "alfândega",
+      "file": "ui-259726c2d9.mp3"
+    },
+    {
+      "id": "ui-79ffd84af4",
+      "voice": "ui",
+      "text": "embarque",
+      "file": "ui-79ffd84af4.mp3"
+    },
+    {
+      "id": "ui-46d551dae6",
+      "voice": "ui",
+      "text": "terminal",
+      "file": "ui-46d551dae6.mp3"
+    },
+    {
+      "id": "ui-e4f88bf4b0",
+      "voice": "ui",
+      "text": "brasil",
+      "file": "ui-e4f88bf4b0.mp3"
+    },
+    {
+      "id": "ui-01f2812399",
+      "voice": "ui",
+      "text": "avião",
+      "file": "ui-01f2812399.mp3"
+    },
+    {
+      "id": "ui-5a74d500f7",
+      "voice": "ui",
+      "text": "câmera",
+      "file": "ui-5a74d500f7.mp3"
+    },
+    {
+      "id": "ui-6c9cd57ed6",
+      "voice": "ui",
+      "text": "diário",
+      "file": "ui-6c9cd57ed6.mp3"
+    },
+    {
+      "id": "ui-a98bc6293d",
+      "voice": "ui",
+      "text": "fonte",
+      "file": "ui-a98bc6293d.mp3"
+    },
+    {
+      "id": "ui-8339f984a0",
+      "voice": "ui",
+      "text": "banco",
+      "file": "ui-8339f984a0.mp3"
+    },
+    {
+      "id": "ui-0fcf9713d4",
+      "voice": "ui",
+      "text": "papagaio",
+      "file": "ui-0fcf9713d4.mp3"
+    },
+    {
+      "id": "ui-2947a25264",
+      "voice": "ui",
+      "text": "árvore",
+      "file": "ui-2947a25264.mp3"
+    },
+    {
+      "id": "ui-b7bffc61c1",
+      "voice": "ui",
+      "text": "busto",
+      "file": "ui-b7bffc61c1.mp3"
+    },
+    {
+      "id": "ui-c22ae3b856",
+      "voice": "ui",
+      "text": "pipoqueiro",
+      "file": "ui-c22ae3b856.mp3"
+    },
+    {
+      "id": "ui-318c8bc755",
+      "voice": "ui",
+      "text": "quiosque",
+      "file": "ui-318c8bc755.mp3"
+    },
+    {
+      "id": "ui-a2dd12f981",
+      "voice": "ui",
+      "text": "chapéu",
+      "file": "ui-a2dd12f981.mp3"
+    },
+    {
+      "id": "ui-cca39afda6",
+      "voice": "ui",
+      "text": "damas",
+      "file": "ui-cca39afda6.mp3"
+    },
+    {
+      "id": "ui-e4f2580690",
+      "voice": "ui",
+      "text": "Viralata Caramello",
+      "file": "ui-e4f2580690.mp3"
+    },
+    {
+      "id": "ui-ed919b5767",
+      "voice": "ui",
+      "text": "canteiro",
+      "file": "ui-ed919b5767.mp3"
+    },
+    {
+      "id": "ui-34bbe760fd",
+      "voice": "ui",
+      "text": "cerca",
+      "file": "ui-34bbe760fd.mp3"
+    },
+    {
+      "id": "ui-a998f56877",
+      "voice": "ui",
+      "text": "topiaria",
+      "file": "ui-a998f56877.mp3"
+    },
+    {
+      "id": "ui-505b375213",
+      "voice": "ui",
+      "text": "jerivá",
+      "file": "ui-505b375213.mp3"
+    },
+    {
+      "id": "ui-008e7ec90f",
+      "voice": "ui",
+      "text": "lixeira",
+      "file": "ui-008e7ec90f.mp3"
+    },
+    {
+      "id": "ui-9a54a8f042",
+      "voice": "ui",
+      "text": "pombo",
+      "file": "ui-9a54a8f042.mp3"
+    },
+    {
+      "id": "ui-6bea37d277",
+      "voice": "ui",
+      "text": "paralelepípedo",
+      "file": "ui-6bea37d277.mp3"
+    },
+    {
+      "id": "ui-2c03bc4d5f",
+      "voice": "ui",
+      "text": "grama",
+      "file": "ui-2c03bc4d5f.mp3"
+    },
+    {
+      "id": "ui-9b01c6d93a",
+      "voice": "ui",
+      "text": "folha",
+      "file": "ui-9b01c6d93a.mp3"
+    },
+    {
+      "id": "ui-3c1fcfacde",
+      "voice": "ui",
+      "text": "relógio",
+      "file": "ui-3c1fcfacde.mp3"
+    },
+    {
+      "id": "ui-3aa76062c2",
+      "voice": "ui",
+      "text": "estátua",
+      "file": "ui-3aa76062c2.mp3"
+    },
+    {
+      "id": "ui-30d407abdb",
+      "voice": "ui",
+      "text": "guarda-sol",
+      "file": "ui-30d407abdb.mp3"
+    },
+    {
+      "id": "ui-183221b97c",
+      "voice": "ui",
+      "text": "cesta",
+      "file": "ui-183221b97c.mp3"
+    },
+    {
+      "id": "ui-405e148daa",
+      "voice": "ui",
+      "text": "garrafa",
+      "file": "ui-405e148daa.mp3"
+    },
+    {
+      "id": "ui-8effcb86ae",
+      "voice": "ui",
+      "text": "copo",
+      "file": "ui-8effcb86ae.mp3"
+    },
+    {
+      "id": "ui-00366908b7",
+      "voice": "ui",
+      "text": "lata",
+      "file": "ui-00366908b7.mp3"
+    },
+    {
+      "id": "ui-8ae69eed58",
+      "voice": "ui",
+      "text": "bolsa",
+      "file": "ui-8ae69eed58.mp3"
+    },
+    {
+      "id": "ui-db686c59f9",
+      "voice": "ui",
+      "text": "moeda",
+      "file": "ui-db686c59f9.mp3"
+    },
+    {
+      "id": "ui-c0dbb4173f",
+      "voice": "ui",
+      "text": "cédula",
+      "file": "ui-c0dbb4173f.mp3"
+    },
+    {
+      "id": "ui-c99f07733d",
+      "voice": "ui",
+      "text": "celular",
+      "file": "ui-c99f07733d.mp3"
+    },
+    {
+      "id": "ui-fa5b0809e5",
+      "voice": "ui",
+      "text": "folheto",
+      "file": "ui-fa5b0809e5.mp3"
+    },
+    {
+      "id": "ui-6f0caf11c2",
+      "voice": "ui",
+      "text": "cartaz",
+      "file": "ui-6f0caf11c2.mp3"
+    },
+    {
+      "id": "ui-6fe5f136b9",
+      "voice": "ui",
+      "text": "bueiro",
+      "file": "ui-6fe5f136b9.mp3"
+    },
+    {
+      "id": "ui-22ec4e6971",
+      "voice": "ui",
+      "text": "poça",
+      "file": "ui-22ec4e6971.mp3"
+    },
+    {
+      "id": "ui-8bc18ba26e",
+      "voice": "ui",
+      "text": "mastro",
+      "file": "ui-8bc18ba26e.mp3"
+    },
+    {
+      "id": "ui-e55a227216",
+      "voice": "ui",
+      "text": "degrau",
+      "file": "ui-e55a227216.mp3"
+    },
+    {
+      "id": "ui-9edd8246c0",
+      "voice": "ui",
+      "text": "corrimão",
+      "file": "ui-9edd8246c0.mp3"
+    },
+    {
+      "id": "ui-d36f34bddf",
+      "voice": "ui",
+      "text": "pilar",
+      "file": "ui-d36f34bddf.mp3"
+    },
+    {
+      "id": "ui-881ad15f95",
+      "voice": "ui",
+      "text": "telhado",
+      "file": "ui-881ad15f95.mp3"
+    },
+    {
+      "id": "ui-e2af9f553d",
+      "voice": "ui",
+      "text": "lâmpada",
+      "file": "ui-e2af9f553d.mp3"
+    },
+    {
+      "id": "ui-e5286a413c",
+      "voice": "ui",
+      "text": "fio",
+      "file": "ui-e5286a413c.mp3"
+    },
+    {
+      "id": "ui-ffa01995db",
+      "voice": "ui",
+      "text": "mureta",
+      "file": "ui-ffa01995db.mp3"
+    },
+    {
+      "id": "ui-8480c24d79",
+      "voice": "ui",
+      "text": "palco",
+      "file": "ui-8480c24d79.mp3"
+    },
+    {
+      "id": "ui-8b32c3e797",
+      "voice": "ui",
+      "text": "violão",
+      "file": "ui-8b32c3e797.mp3"
+    },
+    {
+      "id": "ui-d63e1ed64a",
+      "voice": "ui",
+      "text": "pandeiro",
+      "file": "ui-d63e1ed64a.mp3"
+    },
+    {
+      "id": "ui-e86635009f",
+      "voice": "ui",
+      "text": "microfone",
+      "file": "ui-e86635009f.mp3"
+    },
+    {
+      "id": "ui-8f52e4ccae",
+      "voice": "ui",
+      "text": "alto-falante",
+      "file": "ui-8f52e4ccae.mp3"
+    },
+    {
+      "id": "ui-79c602800c",
+      "voice": "ui",
+      "text": "panela",
+      "file": "ui-79c602800c.mp3"
+    },
+    {
+      "id": "ui-749b626a39",
+      "voice": "ui",
+      "text": "saquinho",
+      "file": "ui-749b626a39.mp3"
+    },
+    {
+      "id": "ui-23bda1dfc7",
+      "voice": "ui",
+      "text": "sorvete",
+      "file": "ui-23bda1dfc7.mp3"
+    },
+    {
+      "id": "ui-0129f61705",
+      "voice": "ui",
+      "text": "picolé",
+      "file": "ui-0129f61705.mp3"
+    },
+    {
+      "id": "ui-a13c153b10",
+      "voice": "ui",
+      "text": "guardanapo",
+      "file": "ui-a13c153b10.mp3"
+    },
+    {
+      "id": "ui-bbcb83f1e3",
+      "voice": "ui",
+      "text": "cavalete",
+      "file": "ui-bbcb83f1e3.mp3"
+    },
+    {
+      "id": "ui-8e3547d8f5",
+      "voice": "ui",
+      "text": "tinta",
+      "file": "ui-8e3547d8f5.mp3"
+    },
+    {
+      "id": "ui-50015d4fae",
+      "voice": "ui",
+      "text": "balde",
+      "file": "ui-50015d4fae.mp3"
+    },
+    {
+      "id": "ui-105bef07cc",
+      "voice": "ui",
+      "text": "pano",
+      "file": "ui-105bef07cc.mp3"
+    },
+    {
+      "id": "ui-7446a431b7",
+      "voice": "ui",
+      "text": "vassoura",
+      "file": "ui-7446a431b7.mp3"
+    },
+    {
+      "id": "ui-1870be099e",
+      "voice": "ui",
+      "text": "pá",
+      "file": "ui-1870be099e.mp3"
+    },
+    {
+      "id": "ui-0451416e7b",
+      "voice": "ui",
+      "text": "luva",
+      "file": "ui-0451416e7b.mp3"
+    },
+    {
+      "id": "ui-38e86fd29b",
+      "voice": "ui",
+      "text": "grafite",
+      "file": "ui-38e86fd29b.mp3"
+    },
+    {
+      "id": "ui-d2e5ad9423",
+      "voice": "ui",
+      "text": "adesivo",
+      "file": "ui-d2e5ad9423.mp3"
+    },
+    {
+      "id": "ui-fcb937ea16",
+      "voice": "ui",
+      "text": "madeira",
+      "file": "ui-fcb937ea16.mp3"
+    },
+    {
+      "id": "ui-48cb0202d1",
+      "voice": "ui",
+      "text": "ferro",
+      "file": "ui-48cb0202d1.mp3"
+    },
+    {
+      "id": "ui-d5830d1031",
+      "voice": "ui",
+      "text": "concreto",
+      "file": "ui-d5830d1031.mp3"
+    },
+    {
+      "id": "ui-183dd8f0e1",
+      "voice": "ui",
+      "text": "tijolo",
+      "file": "ui-183dd8f0e1.mp3"
+    },
+    {
+      "id": "ui-cb030c5eec",
+      "voice": "ui",
+      "text": "papel",
+      "file": "ui-cb030c5eec.mp3"
+    },
+    {
+      "id": "ui-2f8813186d",
+      "voice": "ui",
+      "text": "vidro",
+      "file": "ui-2f8813186d.mp3"
+    },
+    {
+      "id": "ui-87c1d2226b",
+      "voice": "ui",
+      "text": "tampinha",
+      "file": "ui-87c1d2226b.mp3"
+    },
+    {
+      "id": "ui-485d6dea8d",
+      "voice": "ui",
+      "text": "papelão",
+      "file": "ui-485d6dea8d.mp3"
+    },
+    {
+      "id": "ui-101d5e3e5a",
+      "voice": "ui",
+      "text": "coleira",
+      "file": "ui-101d5e3e5a.mp3"
+    },
+    {
+      "id": "ui-4229aeda03",
+      "voice": "ui",
+      "text": "tigela",
+      "file": "ui-4229aeda03.mp3"
+    },
+    {
+      "id": "ui-914da9cc7b",
+      "voice": "ui",
+      "text": "formigueiro",
+      "file": "ui-914da9cc7b.mp3"
+    },
+    {
+      "id": "ui-4df3f56db1",
+      "voice": "ui",
+      "text": "sabiá",
+      "file": "ui-4df3f56db1.mp3"
+    },
+    {
+      "id": "ui-8a49f8c252",
+      "voice": "ui",
+      "text": "bem-te-vi",
+      "file": "ui-8a49f8c252.mp3"
+    },
+    {
+      "id": "ui-92805395b1",
+      "voice": "ui",
+      "text": "andorinha",
+      "file": "ui-92805395b1.mp3"
+    },
+    {
+      "id": "ui-895a6a4481",
+      "voice": "ui",
+      "text": "ninho",
+      "file": "ui-895a6a4481.mp3"
+    },
+    {
+      "id": "ui-b96ab516bf",
+      "voice": "ui",
+      "text": "pena",
+      "file": "ui-b96ab516bf.mp3"
+    },
+    {
+      "id": "ui-e095bc0381",
+      "voice": "ui",
+      "text": "galho",
+      "file": "ui-e095bc0381.mp3"
+    },
+    {
+      "id": "ui-df68d751ba",
+      "voice": "ui",
+      "text": "tronco",
+      "file": "ui-df68d751ba.mp3"
+    },
+    {
+      "id": "ui-58a251af1f",
+      "voice": "ui",
+      "text": "cogumelo",
+      "file": "ui-58a251af1f.mp3"
+    },
+    {
+      "id": "ui-28f0d35d09",
+      "voice": "ui",
+      "text": "cipó",
+      "file": "ui-28f0d35d09.mp3"
+    },
+    {
+      "id": "ui-e2f49bdd24",
+      "voice": "ui",
+      "text": "portão",
+      "file": "ui-e2f49bdd24.mp3"
+    },
+    {
+      "id": "ui-317b87fb6c",
+      "voice": "ui",
+      "text": "cadeado",
+      "file": "ui-317b87fb6c.mp3"
+    },
+    {
+      "id": "ui-4265bccfd7",
+      "voice": "ui",
+      "text": "meio-fio",
+      "file": "ui-4265bccfd7.mp3"
+    },
+    {
+      "id": "ui-541df78ae1",
+      "voice": "ui",
+      "text": "sarjeta",
+      "file": "ui-541df78ae1.mp3"
+    },
+    {
+      "id": "ui-892c21e029",
+      "voice": "ui",
+      "text": "calçada",
+      "file": "ui-892c21e029.mp3"
+    },
+    {
+      "id": "ui-887d910188",
+      "voice": "ui",
+      "text": "rampa",
+      "file": "ui-887d910188.mp3"
+    },
+    {
+      "id": "ui-67758b6f71",
+      "voice": "ui",
+      "text": "caminho",
+      "file": "ui-67758b6f71.mp3"
+    },
+    {
+      "id": "ui-4f84f716df",
+      "voice": "ui",
+      "text": "pedra",
+      "file": "ui-4f84f716df.mp3"
+    },
+    {
+      "id": "ui-eb5dbf9696",
+      "voice": "ui",
+      "text": "musgo",
+      "file": "ui-eb5dbf9696.mp3"
+    },
+    {
+      "id": "ui-eb94d272ce",
+      "voice": "ui",
+      "text": "samambaia",
+      "file": "ui-eb94d272ce.mp3"
+    },
+    {
+      "id": "ui-3d388b89eb",
+      "voice": "ui",
+      "text": "margarida",
+      "file": "ui-3d388b89eb.mp3"
+    },
+    {
+      "id": "ui-5efc86ca88",
+      "voice": "ui",
+      "text": "rosa",
+      "file": "ui-5efc86ca88.mp3"
+    },
+    {
+      "id": "ui-c961ec079c",
+      "voice": "ui",
+      "text": "pétala",
+      "file": "ui-c961ec079c.mp3"
+    },
+    {
+      "id": "ui-bfd1c43b55",
+      "voice": "ui",
+      "text": "abelha",
+      "file": "ui-bfd1c43b55.mp3"
+    },
+    {
+      "id": "ui-eb62f7cbae",
+      "voice": "ui",
+      "text": "borboleta",
+      "file": "ui-eb62f7cbae.mp3"
+    },
+    {
+      "id": "ui-ddb1baad80",
+      "voice": "ui",
+      "text": "cigarra",
+      "file": "ui-ddb1baad80.mp3"
+    },
+    {
+      "id": "ui-60427db7b9",
+      "voice": "ui",
+      "text": "formiga",
+      "file": "ui-60427db7b9.mp3"
+    },
+    {
+      "id": "ui-a91a66c1c5",
+      "voice": "ui",
+      "text": "praça",
+      "file": "ui-a91a66c1c5.mp3"
+    },
+    {
+      "id": "ui-61d8d553af",
+      "voice": "ui",
+      "text": "ipê",
+      "file": "ui-61d8d553af.mp3"
+    },
+    {
+      "id": "ui-4f29146697",
+      "voice": "ui",
+      "text": "coreto",
+      "file": "ui-4f29146697.mp3"
+    },
+    {
+      "id": "ui-f6d23b4fc6",
+      "voice": "ui",
+      "text": "dominó",
+      "file": "ui-f6d23b4fc6.mp3"
+    },
+    {
+      "id": "ui-f3fec87749",
+      "voice": "ui",
+      "text": "pipoca",
+      "file": "ui-f3fec87749.mp3"
+    },
+    {
+      "id": "ui-bada2dae7e",
+      "voice": "ui",
+      "text": "água de coco",
+      "file": "ui-bada2dae7e.mp3"
+    },
+    {
+      "id": "ui-ab24c5bf04",
+      "voice": "ui",
+      "text": "banheiro",
+      "file": "ui-ab24c5bf04.mp3"
+    },
+    {
+      "id": "ui-932c064401",
+      "voice": "ui",
+      "text": "reciclagem",
+      "file": "ui-932c064401.mp3"
+    },
+    {
+      "id": "ui-4a472d01a3",
+      "voice": "ui",
+      "text": "mapa",
+      "file": "ui-4a472d01a3.mp3"
+    },
+    {
+      "id": "ui-e15014f168",
+      "voice": "ui",
+      "text": "horário",
+      "file": "ui-e15014f168.mp3"
+    },
+    {
+      "id": "ui-a9df7a764c",
+      "voice": "ui",
+      "text": "entrada",
+      "file": "ui-a9df7a764c.mp3"
+    },
+    {
+      "id": "ui-1af2adf4ff",
+      "voice": "ui",
+      "text": "fechado",
+      "file": "ui-1af2adf4ff.mp3"
+    },
+    {
+      "id": "ui-ff6aa34304",
+      "voice": "ui",
+      "text": "cuidado",
+      "file": "ui-ff6aa34304.mp3"
+    },
+    {
+      "id": "ui-86a28d88f0",
+      "voice": "ui",
+      "text": "wifi",
+      "file": "ui-86a28d88f0.mp3"
+    },
+    {
+      "id": "ui-e81e5babb5",
+      "voice": "ui",
+      "text": "emergência",
+      "file": "ui-e81e5babb5.mp3"
+    },
+    {
+      "id": "ui-995f1bfef3",
+      "voice": "ui",
+      "text": "informação",
+      "file": "ui-995f1bfef3.mp3"
+    },
+    {
+      "id": "ui-7a17d1c312",
+      "voice": "ui",
+      "text": "guia",
+      "file": "ui-7a17d1c312.mp3"
+    },
+    {
+      "id": "ui-3344079d98",
+      "voice": "ui",
+      "text": "ajuda",
+      "file": "ui-3344079d98.mp3"
+    },
+    {
+      "id": "ui-d2f447d53f",
+      "voice": "ui",
+      "text": "boné",
+      "file": "ui-d2f447d53f.mp3"
+    },
+    {
+      "id": "ui-d6755114d2",
+      "voice": "ui",
+      "text": "boina",
+      "file": "ui-d6755114d2.mp3"
+    },
+    {
+      "id": "ui-18b80eae0a",
+      "voice": "ui",
+      "text": "beleza",
+      "file": "ui-18b80eae0a.mp3"
+    },
+    {
+      "id": "ui-3eb982e3c4",
+      "voice": "ui",
+      "text": "tchau",
+      "file": "ui-3eb982e3c4.mp3"
+    },
+    {
+      "id": "ui-66aef91d3b",
+      "voice": "ui",
+      "text": "vizinho",
+      "file": "ui-66aef91d3b.mp3"
+    },
+    {
+      "id": "ui-fbb93bb966",
+      "voice": "ui",
+      "text": "sol",
+      "file": "ui-fbb93bb966.mp3"
+    },
+    {
+      "id": "ui-3edeffb6c8",
+      "voice": "ui",
+      "text": "passeio",
+      "file": "ui-3edeffb6c8.mp3"
+    },
+    {
+      "id": "ui-9d2f7db2ee",
+      "voice": "ui",
+      "text": "orelhão",
+      "file": "ui-9d2f7db2ee.mp3"
+    },
+    {
+      "id": "ui-1ed6f1a1e8",
+      "voice": "ui",
+      "text": "banca",
+      "file": "ui-1ed6f1a1e8.mp3"
+    },
+    {
+      "id": "ui-a412662094",
+      "voice": "ui",
+      "text": "jornal",
+      "file": "ui-a412662094.mp3"
+    },
+    {
+      "id": "ui-a28abde6e5",
+      "voice": "ui",
+      "text": "poste",
+      "file": "ui-a28abde6e5.mp3"
+    },
+    {
+      "id": "ui-a280e318c9",
+      "voice": "ui",
+      "text": "revista",
+      "file": "ui-a280e318c9.mp3"
+    },
+    {
+      "id": "ui-cc7351f00d",
+      "voice": "ui",
+      "text": "ponto",
+      "file": "ui-cc7351f00d.mp3"
+    },
+    {
+      "id": "ui-a471212230",
+      "voice": "ui",
+      "text": "parquímetro",
+      "file": "ui-a471212230.mp3"
+    },
+    {
+      "id": "ui-80c6cb5975",
+      "voice": "ui",
+      "text": "hidrante",
+      "file": "ui-80c6cb5975.mp3"
+    },
+    {
+      "id": "ui-5107926a58",
+      "voice": "ui",
+      "text": "floreira",
+      "file": "ui-5107926a58.mp3"
+    },
+    {
+      "id": "ui-9a6028b4f4",
+      "voice": "ui",
+      "text": "vaso",
+      "file": "ui-9a6028b4f4.mp3"
+    },
+    {
+      "id": "ui-902ec012de",
+      "voice": "ui",
+      "text": "táxi",
+      "file": "ui-902ec012de.mp3"
+    },
+    {
+      "id": "ui-432a676583",
+      "voice": "ui",
+      "text": "barreira",
+      "file": "ui-432a676583.mp3"
+    },
+    {
+      "id": "ui-ae970b2f45",
+      "voice": "ui",
+      "text": "bicicleta",
+      "file": "ui-ae970b2f45.mp3"
+    },
+    {
+      "id": "ui-3959fc6166",
+      "voice": "ui",
+      "text": "carro",
+      "file": "ui-3959fc6166.mp3"
+    },
+    {
+      "id": "ui-1f7f1c7a64",
+      "voice": "ui",
+      "text": "moto",
+      "file": "ui-1f7f1c7a64.mp3"
+    },
+    {
+      "id": "ui-efa44987b6",
+      "voice": "ui",
+      "text": "van",
+      "file": "ui-efa44987b6.mp3"
+    },
+    {
+      "id": "ui-4999d38ec8",
+      "voice": "ui",
+      "text": "caminhão",
+      "file": "ui-4999d38ec8.mp3"
+    },
+    {
+      "id": "ui-fd6b66b5b0",
+      "voice": "ui",
+      "text": "semáforo",
+      "file": "ui-fd6b66b5b0.mp3"
+    },
+    {
+      "id": "ui-d29ae7b14f",
+      "voice": "ui",
+      "text": "esquina",
+      "file": "ui-d29ae7b14f.mp3"
+    },
+    {
+      "id": "ui-10f8e6ddbb",
+      "voice": "ui",
+      "text": "muro",
+      "file": "ui-10f8e6ddbb.mp3"
+    },
+    {
+      "id": "ui-2bafe70fae",
+      "voice": "ui",
+      "text": "interfone",
+      "file": "ui-2bafe70fae.mp3"
+    },
+    {
+      "id": "ui-af76de9bde",
+      "voice": "ui",
+      "text": "capacho",
+      "file": "ui-af76de9bde.mp3"
+    },
+    {
+      "id": "ui-8c0a1c4253",
+      "voice": "ui",
+      "text": "varanda",
+      "file": "ui-8c0a1c4253.mp3"
+    },
+    {
+      "id": "ui-39a6bd435e",
+      "voice": "ui",
+      "text": "grade",
+      "file": "ui-39a6bd435e.mp3"
+    },
+    {
+      "id": "ui-289610fbe6",
+      "voice": "ui",
+      "text": "ar-condicionado",
+      "file": "ui-289610fbe6.mp3"
+    },
+    {
+      "id": "ui-7d9c5dcdf0",
+      "voice": "ui",
+      "text": "antena",
+      "file": "ui-7d9c5dcdf0.mp3"
+    },
+    {
+      "id": "ui-ec3461e277",
+      "voice": "ui",
+      "text": "retrovisor",
+      "file": "ui-ec3461e277.mp3"
+    },
+    {
+      "id": "ui-b783a0a9b8",
+      "voice": "ui",
+      "text": "porta-malas",
+      "file": "ui-b783a0a9b8.mp3"
+    },
+    {
+      "id": "ui-8ed985515c",
+      "voice": "ui",
+      "text": "farol",
+      "file": "ui-8ed985515c.mp3"
+    },
+    {
+      "id": "ui-1f19c582aa",
+      "voice": "ui",
+      "text": "volante",
+      "file": "ui-1f19c582aa.mp3"
+    },
+    {
+      "id": "ui-935e5b6673",
+      "voice": "ui",
+      "text": "buzina",
+      "file": "ui-935e5b6673.mp3"
+    },
+    {
+      "id": "ui-085be82fa3",
+      "voice": "ui",
+      "text": "maçaneta",
+      "file": "ui-085be82fa3.mp3"
+    },
+    {
+      "id": "ui-88343fa9ab",
+      "voice": "ui",
+      "text": "lombada",
+      "file": "ui-88343fa9ab.mp3"
+    },
+    {
+      "id": "ui-be60dc73b5",
+      "voice": "ui",
+      "text": "cone",
+      "file": "ui-be60dc73b5.mp3"
+    },
+    {
+      "id": "ui-cb25a62783",
+      "voice": "ui",
+      "text": "tapume",
+      "file": "ui-cb25a62783.mp3"
+    },
+    {
+      "id": "ui-6c80e55099",
+      "voice": "ui",
+      "text": "andaime",
+      "file": "ui-6c80e55099.mp3"
+    },
+    {
+      "id": "ui-6e9892c9e5",
+      "voice": "ui",
+      "text": "escada",
+      "file": "ui-6e9892c9e5.mp3"
+    },
+    {
+      "id": "ui-3da1145f12",
+      "voice": "ui",
+      "text": "encomenda",
+      "file": "ui-3da1145f12.mp3"
+    },
+    {
+      "id": "ui-ab14054520",
+      "voice": "ui",
+      "text": "envelope",
+      "file": "ui-ab14054520.mp3"
+    },
+    {
+      "id": "ui-a032abda6e",
+      "voice": "ui",
+      "text": "selo",
+      "file": "ui-a032abda6e.mp3"
+    },
+    {
+      "id": "ui-773dd05041",
+      "voice": "ui",
+      "text": "tênis",
+      "file": "ui-773dd05041.mp3"
+    },
+    {
+      "id": "ui-62d32e0221",
+      "voice": "ui",
+      "text": "guarda-chuva",
+      "file": "ui-62d32e0221.mp3"
+    },
+    {
+      "id": "ui-45e6a068ca",
+      "voice": "ui",
+      "text": "ambulância",
+      "file": "ui-45e6a068ca.mp3"
+    },
+    {
+      "id": "ui-1e455f627e",
+      "voice": "ui",
+      "text": "cruzamento",
+      "file": "ui-1e455f627e.mp3"
+    },
+    {
+      "id": "ui-faeb7dc758",
+      "voice": "ui",
+      "text": "capacete",
+      "file": "ui-faeb7dc758.mp3"
+    },
+    {
+      "id": "ui-be9fdbedf7",
+      "voice": "ui",
+      "text": "pneu",
+      "file": "ui-be9fdbedf7.mp3"
+    },
+    {
+      "id": "ui-91de65e7fb",
+      "voice": "ui",
+      "text": "guidão",
+      "file": "ui-91de65e7fb.mp3"
+    },
+    {
+      "id": "ui-8d3eb82f81",
+      "voice": "ui",
+      "text": "pedal",
+      "file": "ui-8d3eb82f81.mp3"
+    },
+    {
+      "id": "ui-71701bcaa4",
+      "voice": "ui",
+      "text": "skate",
+      "file": "ui-71701bcaa4.mp3"
+    },
+    {
+      "id": "ui-1889dbe8dd",
+      "voice": "ui",
+      "text": "patinete",
+      "file": "ui-1889dbe8dd.mp3"
+    },
+    {
+      "id": "ui-eeda2b9f1c",
+      "voice": "ui",
+      "text": "campainha",
+      "file": "ui-eeda2b9f1c.mp3"
+    },
+    {
+      "id": "ui-5764cf1c36",
+      "voice": "ui",
+      "text": "padaria",
+      "file": "ui-5764cf1c36.mp3"
+    },
+    {
+      "id": "ui-d722a518d2",
+      "voice": "ui",
+      "text": "bem",
+      "file": "ui-d722a518d2.mp3"
+    },
+    {
+      "id": "ui-6302c969d8",
+      "voice": "ui",
+      "text": "edifício",
+      "file": "ui-6302c969d8.mp3"
+    },
+    {
+      "id": "ui-413b54cff6",
+      "voice": "ui",
+      "text": "número",
+      "file": "ui-413b54cff6.mp3"
+    },
+    {
+      "id": "ui-1d5879f5fc",
+      "voice": "ui",
+      "text": "academia",
+      "file": "ui-1d5879f5fc.mp3"
+    },
+    {
+      "id": "ui-77ffa3e084",
+      "voice": "ui",
+      "text": "chuva",
+      "file": "ui-77ffa3e084.mp3"
+    },
+    {
+      "id": "ui-6600b21ee1",
+      "voice": "ui",
+      "text": "rua",
+      "file": "ui-6600b21ee1.mp3"
+    },
+    {
+      "id": "ui-c58c45ba8c",
+      "voice": "ui",
+      "text": "telefone",
+      "file": "ui-c58c45ba8c.mp3"
+    },
+    {
+      "id": "ui-6d6332a545",
+      "voice": "ui",
+      "text": "lixo",
+      "file": "ui-6d6332a545.mp3"
+    },
+    {
+      "id": "ui-5bddf2e296",
+      "voice": "ui",
+      "text": "bicicletário",
+      "file": "ui-5bddf2e296.mp3"
+    },
+    {
+      "id": "ui-5d9a02c3a8",
+      "voice": "ui",
+      "text": "ônibus",
+      "file": "ui-5d9a02c3a8.mp3"
+    },
+    {
+      "id": "ui-28f95112c3",
+      "voice": "ui",
+      "text": "estacionamento",
+      "file": "ui-28f95112c3.mp3"
+    },
+    {
+      "id": "ui-364e19be03",
+      "voice": "ui",
+      "text": "hortifrúti",
+      "file": "ui-364e19be03.mp3"
+    },
+    {
+      "id": "ui-5c17d449e6",
+      "voice": "ui",
+      "text": "pare",
+      "file": "ui-5c17d449e6.mp3"
+    },
+    {
+      "id": "ui-1fa59f797e",
+      "voice": "ui",
+      "text": "ciclovia",
+      "file": "ui-1fa59f797e.mp3"
+    },
+    {
+      "id": "ui-bab22ed75c",
+      "voice": "ui",
+      "text": "correio",
+      "file": "ui-bab22ed75c.mp3"
+    },
+    {
+      "id": "ui-034110fc79",
+      "voice": "ui",
+      "text": "obra",
+      "file": "ui-034110fc79.mp3"
+    },
+    {
+      "id": "ui-4a823f3929",
+      "voice": "ui",
+      "text": "sentido",
+      "file": "ui-4a823f3929.mp3"
+    },
+    {
+      "id": "ui-3d061c1f4c",
+      "voice": "ui",
+      "text": "devagar",
+      "file": "ui-3d061c1f4c.mp3"
+    },
+    {
+      "id": "ui-b36a4b1fba",
+      "voice": "ui",
+      "text": "farmácia",
+      "file": "ui-b36a4b1fba.mp3"
+    },
+    {
+      "id": "ui-d72bcb93d0",
+      "voice": "ui",
+      "text": "lotérica",
+      "file": "ui-d72bcb93d0.mp3"
+    },
+    {
+      "id": "ui-21ad7c9ca7",
+      "voice": "ui",
+      "text": "açougue",
+      "file": "ui-21ad7c9ca7.mp3"
+    },
+    {
+      "id": "ui-a822bd0a82",
+      "voice": "ui",
+      "text": "mercado",
+      "file": "ui-a822bd0a82.mp3"
+    },
+    {
+      "id": "ui-7c5b76936a",
+      "voice": "ui",
+      "text": "chaveiro",
+      "file": "ui-7c5b76936a.mp3"
+    },
+    {
+      "id": "ui-bf7509100d",
+      "voice": "ui",
+      "text": "salão",
+      "file": "ui-bf7509100d.mp3"
+    },
+    {
+      "id": "ui-21583e0577",
+      "voice": "ui",
+      "text": "barbearia",
+      "file": "ui-21583e0577.mp3"
+    },
+    {
+      "id": "ui-bfd9c7c721",
+      "voice": "ui",
+      "text": "lavanderia",
+      "file": "ui-bfd9c7c721.mp3"
+    },
+    {
+      "id": "ui-a0befdd9fa",
+      "voice": "ui",
+      "text": "igreja",
+      "file": "ui-a0befdd9fa.mp3"
+    },
+    {
+      "id": "ui-75996b1305",
+      "voice": "ui",
+      "text": "ladeira",
+      "file": "ui-75996b1305.mp3"
+    },
+    {
+      "id": "ui-19868321a2",
+      "voice": "ui",
+      "text": "travessa",
+      "file": "ui-19868321a2.mp3"
+    },
+    {
+      "id": "ui-4da59bf814",
+      "voice": "ui",
+      "text": "balcão",
+      "file": "ui-4da59bf814.mp3"
+    },
+    {
+      "id": "ui-5aad2aaa58",
+      "voice": "ui",
+      "text": "estufa",
+      "file": "ui-5aad2aaa58.mp3"
+    },
+    {
+      "id": "ui-70ee46709f",
+      "voice": "ui",
+      "text": "banqueta",
+      "file": "ui-70ee46709f.mp3"
+    },
+    {
+      "id": "ui-d8a6412541",
+      "voice": "ui",
+      "text": "vitrine",
+      "file": "ui-d8a6412541.mp3"
+    },
+    {
+      "id": "ui-cd505bb919",
+      "voice": "ui",
+      "text": "bandeja",
+      "file": "ui-cd505bb919.mp3"
+    },
+    {
+      "id": "ui-1912344af1",
+      "voice": "ui",
+      "text": "forno",
+      "file": "ui-1912344af1.mp3"
+    },
+    {
+      "id": "ui-67cbffcb15",
+      "voice": "ui",
+      "text": "chapa",
+      "file": "ui-67cbffcb15.mp3"
+    },
+    {
+      "id": "ui-cc881517ea",
+      "voice": "ui",
+      "text": "cafeteira",
+      "file": "ui-cc881517ea.mp3"
+    },
+    {
+      "id": "ui-d9f3e93cfe",
+      "voice": "ui",
+      "text": "pires",
+      "file": "ui-d9f3e93cfe.mp3"
+    },
+    {
+      "id": "ui-beb967c081",
+      "voice": "ui",
+      "text": "leite",
+      "file": "ui-beb967c081.mp3"
+    },
+    {
+      "id": "ui-6afc729d25",
+      "voice": "ui",
+      "text": "faca",
+      "file": "ui-6afc729d25.mp3"
+    },
+    {
+      "id": "ui-00911a7afe",
+      "voice": "ui",
+      "text": "tábua",
+      "file": "ui-00911a7afe.mp3"
+    },
+    {
+      "id": "ui-3e3f007d22",
+      "voice": "ui",
+      "text": "avental",
+      "file": "ui-3e3f007d22.mp3"
+    },
+    {
+      "id": "ui-bcd8d3d65d",
+      "voice": "ui",
+      "text": "touca",
+      "file": "ui-bcd8d3d65d.mp3"
+    },
+    {
+      "id": "ui-fd16f35f49",
+      "voice": "ui",
+      "text": "prateleira",
+      "file": "ui-fd16f35f49.mp3"
+    },
+    {
+      "id": "ui-bff1f76846",
+      "voice": "ui",
+      "text": "torrada",
+      "file": "ui-bff1f76846.mp3"
+    },
+    {
+      "id": "ui-25d1fa691d",
+      "voice": "ui",
+      "text": "manteiga",
+      "file": "ui-25d1fa691d.mp3"
+    },
+    {
+      "id": "ui-53f8d27d0b",
+      "voice": "ui",
+      "text": "requeijão",
+      "file": "ui-53f8d27d0b.mp3"
+    },
+    {
+      "id": "ui-a0938f96fb",
+      "voice": "ui",
+      "text": "presunto",
+      "file": "ui-a0938f96fb.mp3"
+    },
+    {
+      "id": "ui-6ca5f0c592",
+      "voice": "ui",
+      "text": "ovo",
+      "file": "ui-6ca5f0c592.mp3"
+    },
+    {
+      "id": "ui-000689c8fb",
+      "voice": "ui",
+      "text": "geladeira",
+      "file": "ui-000689c8fb.mp3"
+    },
+    {
+      "id": "ui-3e835a5412",
+      "voice": "ui",
+      "text": "freezer",
+      "file": "ui-3e835a5412.mp3"
+    },
+    {
+      "id": "ui-17540c37e6",
+      "voice": "ui",
+      "text": "xícara",
+      "file": "ui-17540c37e6.mp3"
+    },
+    {
+      "id": "ui-9a36cb0dc5",
+      "voice": "ui",
+      "text": "jarra",
+      "file": "ui-9a36cb0dc5.mp3"
+    },
+    {
+      "id": "ui-1a0b9a83c6",
+      "voice": "ui",
+      "text": "liquidificador",
+      "file": "ui-1a0b9a83c6.mp3"
+    },
+    {
+      "id": "ui-4ae7c4efbb",
+      "voice": "ui",
+      "text": "comanda",
+      "file": "ui-4ae7c4efbb.mp3"
+    },
+    {
+      "id": "ui-9c4147619b",
+      "voice": "ui",
+      "text": "ficha",
+      "file": "ui-9c4147619b.mp3"
+    },
+    {
+      "id": "ui-823898da85",
+      "voice": "ui",
+      "text": "sineta",
+      "file": "ui-823898da85.mp3"
+    },
+    {
+      "id": "ui-460098024d",
+      "voice": "ui",
+      "text": "gaveta",
+      "file": "ui-460098024d.mp3"
+    },
+    {
+      "id": "ui-be19519dd2",
+      "voice": "ui",
+      "text": "maquininha",
+      "file": "ui-be19519dd2.mp3"
+    },
+    {
+      "id": "ui-911f409273",
+      "voice": "ui",
+      "text": "sabonete",
+      "file": "ui-911f409273.mp3"
+    },
+    {
+      "id": "ui-12332fe645",
+      "voice": "ui",
+      "text": "detergente",
+      "file": "ui-12332fe645.mp3"
+    },
+    {
+      "id": "ui-bd41fb23e8",
+      "voice": "ui",
+      "text": "esponja",
+      "file": "ui-bd41fb23e8.mp3"
+    },
+    {
+      "id": "ui-ebdcf56bfd",
+      "voice": "ui",
+      "text": "azulejo",
+      "file": "ui-ebdcf56bfd.mp3"
+    },
+    {
+      "id": "ui-6a3116830c",
+      "voice": "ui",
+      "text": "embalagem",
+      "file": "ui-6a3116830c.mp3"
+    },
+    {
+      "id": "ui-ca7d10cb0b",
+      "voice": "ui",
+      "text": "açúcar",
+      "file": "ui-ca7d10cb0b.mp3"
+    },
+    {
+      "id": "ui-799a39875b",
+      "voice": "ui",
+      "text": "colher",
+      "file": "ui-799a39875b.mp3"
+    },
+    {
+      "id": "ui-f2d87309ce",
+      "voice": "ui",
+      "text": "cardápio",
+      "file": "ui-f2d87309ce.mp3"
+    },
+    {
+      "id": "ui-998e7c5fcf",
+      "voice": "ui",
+      "text": "pix",
+      "file": "ui-998e7c5fcf.mp3"
+    },
+    {
+      "id": "ui-6da59e204a",
+      "voice": "ui",
+      "text": "salgado",
+      "file": "ui-6da59e204a.mp3"
+    },
+    {
+      "id": "ui-cb911ab023",
+      "voice": "ui",
+      "text": "desconto",
+      "file": "ui-cb911ab023.mp3"
+    },
+    {
+      "id": "ui-7e034188f9",
+      "voice": "ui",
+      "text": "promoção",
+      "file": "ui-7e034188f9.mp3"
+    },
+    {
+      "id": "ui-9f73c6d528",
+      "voice": "ui",
+      "text": "cafezinho",
+      "file": "ui-9f73c6d528.mp3"
+    },
+    {
+      "id": "ui-2f846ffe6c",
+      "voice": "ui",
+      "text": "noite",
+      "file": "ui-2f846ffe6c.mp3"
+    },
+    {
+      "id": "ui-fc05ea7009",
+      "voice": "ui",
+      "text": "padeira",
+      "file": "ui-fc05ea7009.mp3"
+    },
+    {
+      "id": "ui-499b7081af",
+      "voice": "ui",
+      "text": "pedir",
+      "file": "ui-499b7081af.mp3"
+    },
+    {
+      "id": "ui-ea04963ef2",
+      "voice": "ui",
+      "text": "viagem",
+      "file": "ui-ea04963ef2.mp3"
+    },
+    {
+      "id": "ui-fc42828ba3",
+      "voice": "ui",
+      "text": "queijo",
+      "file": "ui-fc42828ba3.mp3"
+    },
+    {
+      "id": "ui-896960b12c",
+      "voice": "ui",
+      "text": "misto",
+      "file": "ui-896960b12c.mp3"
+    },
+    {
+      "id": "ui-bf74713d92",
+      "voice": "ui",
+      "text": "barraca",
+      "file": "ui-bf74713d92.mp3"
+    },
+    {
+      "id": "ui-b9915a4079",
+      "voice": "ui",
+      "text": "caixote",
+      "file": "ui-b9915a4079.mp3"
+    },
+    {
+      "id": "ui-1b41b097e6",
+      "voice": "ui",
+      "text": "balança",
+      "file": "ui-1b41b097e6.mp3"
+    },
+    {
+      "id": "ui-a329513c76",
+      "voice": "ui",
+      "text": "melancia",
+      "file": "ui-a329513c76.mp3"
+    },
+    {
+      "id": "ui-346284efe2",
+      "voice": "ui",
+      "text": "repolho",
+      "file": "ui-346284efe2.mp3"
+    },
+    {
+      "id": "ui-520aff2a1d",
+      "voice": "ui",
+      "text": "saco",
+      "file": "ui-520aff2a1d.mp3"
+    },
+    {
+      "id": "ui-45672334ab",
+      "voice": "ui",
+      "text": "carrinho",
+      "file": "ui-45672334ab.mp3"
+    },
+    {
+      "id": "ui-b5a61cf9bb",
+      "voice": "ui",
+      "text": "bandeirinha",
+      "file": "ui-b5a61cf9bb.mp3"
+    },
+    {
+      "id": "ui-c0341fc79d",
+      "voice": "ui",
+      "text": "abacaxi",
+      "file": "ui-c0341fc79d.mp3"
+    },
+    {
+      "id": "ui-6bbb8d92f1",
+      "voice": "ui",
+      "text": "mamão",
+      "file": "ui-6bbb8d92f1.mp3"
+    },
+    {
+      "id": "ui-7f5f967980",
+      "voice": "ui",
+      "text": "maracujá",
+      "file": "ui-7f5f967980.mp3"
+    },
+    {
+      "id": "ui-b81720f47f",
+      "voice": "ui",
+      "text": "limão",
+      "file": "ui-b81720f47f.mp3"
+    },
+    {
+      "id": "ui-7bbd1c1e41",
+      "voice": "ui",
+      "text": "abacate",
+      "file": "ui-7bbd1c1e41.mp3"
+    },
+    {
+      "id": "ui-2d2c2a1400",
+      "voice": "ui",
+      "text": "uva",
+      "file": "ui-2d2c2a1400.mp3"
+    },
+    {
+      "id": "ui-c892c30c1a",
+      "voice": "ui",
+      "text": "morango",
+      "file": "ui-c892c30c1a.mp3"
+    },
+    {
+      "id": "ui-dbc2c03edc",
+      "voice": "ui",
+      "text": "goiaba",
+      "file": "ui-dbc2c03edc.mp3"
+    },
+    {
+      "id": "ui-e621aa0e59",
+      "voice": "ui",
+      "text": "tangerina",
+      "file": "ui-e621aa0e59.mp3"
+    },
+    {
+      "id": "ui-42bc05d76b",
+      "voice": "ui",
+      "text": "milho",
+      "file": "ui-42bc05d76b.mp3"
+    },
+    {
+      "id": "ui-8467b174e8",
+      "voice": "ui",
+      "text": "batata",
+      "file": "ui-8467b174e8.mp3"
+    },
+    {
+      "id": "ui-62358800e6",
+      "voice": "ui",
+      "text": "cenoura",
+      "file": "ui-62358800e6.mp3"
+    },
+    {
+      "id": "ui-2e3698d701",
+      "voice": "ui",
+      "text": "beterraba",
+      "file": "ui-2e3698d701.mp3"
+    },
+    {
+      "id": "ui-1247a068a0",
+      "voice": "ui",
+      "text": "cebola",
+      "file": "ui-1247a068a0.mp3"
+    },
+    {
+      "id": "ui-8a6cd819d6",
+      "voice": "ui",
+      "text": "alho",
+      "file": "ui-8a6cd819d6.mp3"
+    },
+    {
+      "id": "ui-0a0f8cd581",
+      "voice": "ui",
+      "text": "pimentão",
+      "file": "ui-0a0f8cd581.mp3"
+    },
+    {
+      "id": "ui-7631047c2f",
+      "voice": "ui",
+      "text": "pepino",
+      "file": "ui-7631047c2f.mp3"
+    },
+    {
+      "id": "ui-0a9669a50e",
+      "voice": "ui",
+      "text": "abobrinha",
+      "file": "ui-0a9669a50e.mp3"
+    },
+    {
+      "id": "ui-e615605b99",
+      "voice": "ui",
+      "text": "chuchu",
+      "file": "ui-e615605b99.mp3"
+    },
+    {
+      "id": "ui-21bd5291a7",
+      "voice": "ui",
+      "text": "mandioca",
+      "file": "ui-21bd5291a7.mp3"
+    },
+    {
+      "id": "ui-8becd2ddd1",
+      "voice": "ui",
+      "text": "couve",
+      "file": "ui-8becd2ddd1.mp3"
+    },
+    {
+      "id": "ui-c4e5af8067",
+      "voice": "ui",
+      "text": "brócolis",
+      "file": "ui-c4e5af8067.mp3"
+    },
+    {
+      "id": "ui-bcf578d5d9",
+      "voice": "ui",
+      "text": "coentro",
+      "file": "ui-bcf578d5d9.mp3"
+    },
+    {
+      "id": "ui-8afd2bd1db",
+      "voice": "ui",
+      "text": "gengibre",
+      "file": "ui-8afd2bd1db.mp3"
+    },
+    {
+      "id": "ui-69b5c312ec",
+      "voice": "ui",
+      "text": "acerola",
+      "file": "ui-69b5c312ec.mp3"
+    },
+    {
+      "id": "ui-4b8f9924e5",
+      "voice": "ui",
+      "text": "caju",
+      "file": "ui-4b8f9924e5.mp3"
+    },
+    {
+      "id": "ui-6ee2c98d0c",
+      "voice": "ui",
+      "text": "pitaya",
+      "file": "ui-6ee2c98d0c.mp3"
+    },
+    {
+      "id": "ui-92bd707341",
+      "voice": "ui",
+      "text": "quiabo",
+      "file": "ui-92bd707341.mp3"
+    },
+    {
+      "id": "ui-c2ce95d7b4",
+      "voice": "ui",
+      "text": "jiló",
+      "file": "ui-c2ce95d7b4.mp3"
+    },
+    {
+      "id": "ui-9d3ba4ac7a",
+      "voice": "ui",
+      "text": "berinjela",
+      "file": "ui-9d3ba4ac7a.mp3"
+    },
+    {
+      "id": "ui-84db887326",
+      "voice": "ui",
+      "text": "vagem",
+      "file": "ui-84db887326.mp3"
+    },
+    {
+      "id": "ui-06c34d216a",
+      "voice": "ui",
+      "text": "cana",
+      "file": "ui-06c34d216a.mp3"
+    },
+    {
+      "id": "ui-f08a644d5a",
+      "voice": "ui",
+      "text": "lona",
+      "file": "ui-f08a644d5a.mp3"
+    },
+    {
+      "id": "ui-8b33c24dca",
+      "voice": "ui",
+      "text": "sacola",
+      "file": "ui-8b33c24dca.mp3"
+    },
+    {
+      "id": "ui-84c07d0814",
+      "voice": "ui",
+      "text": "giz",
+      "file": "ui-84c07d0814.mp3"
+    },
+    {
+      "id": "ui-7b3fb2ba63",
+      "voice": "ui",
+      "text": "óleo",
+      "file": "ui-7b3fb2ba63.mp3"
+    },
+    {
+      "id": "ui-ca3808392d",
+      "voice": "ui",
+      "text": "molho",
+      "file": "ui-ca3808392d.mp3"
+    },
+    {
+      "id": "ui-2194c68b00",
+      "voice": "ui",
+      "text": "pimenta",
+      "file": "ui-2194c68b00.mp3"
+    },
+    {
+      "id": "ui-c75e605447",
+      "voice": "ui",
+      "text": "girassol",
+      "file": "ui-c75e605447.mp3"
+    },
+    {
+      "id": "ui-3484426063",
+      "voice": "ui",
+      "text": "laço",
+      "file": "ui-3484426063.mp3"
+    },
+    {
+      "id": "ui-629d74018a",
+      "voice": "ui",
+      "text": "engradado",
+      "file": "ui-629d74018a.mp3"
+    },
+    {
+      "id": "ui-b7d76ff3d3",
+      "voice": "ui",
+      "text": "bacia",
+      "file": "ui-b7d76ff3d3.mp3"
+    },
+    {
+      "id": "ui-5aa0aefff1",
+      "voice": "ui",
+      "text": "feirante",
+      "file": "ui-5aa0aefff1.mp3"
+    },
+    {
+      "id": "ui-84582742a2",
+      "voice": "ui",
+      "text": "gelo",
+      "file": "ui-84582742a2.mp3"
+    },
+    {
+      "id": "ui-8f7b09ffac",
+      "voice": "ui",
+      "text": "canudo",
+      "file": "ui-8f7b09ffac.mp3"
+    },
+    {
+      "id": "ui-53b766fa83",
+      "voice": "ui",
+      "text": "feira",
+      "file": "ui-53b766fa83.mp3"
+    },
+    {
+      "id": "ui-1ea8c03fd2",
+      "voice": "ui",
+      "text": "fruta",
+      "file": "ui-1ea8c03fd2.mp3"
+    },
+    {
+      "id": "ui-c63cd472ab",
+      "voice": "ui",
+      "text": "verdura",
+      "file": "ui-c63cd472ab.mp3"
+    },
+    {
+      "id": "ui-64137be9ab",
+      "voice": "ui",
+      "text": "buquê",
+      "file": "ui-64137be9ab.mp3"
+    },
+    {
+      "id": "ui-72b1e12a3a",
+      "voice": "ui",
+      "text": "vaga",
+      "file": "ui-72b1e12a3a.mp3"
+    },
+    {
+      "id": "ui-325aba0c92",
+      "voice": "ui",
+      "text": "orgânico",
+      "file": "ui-325aba0c92.mp3"
+    },
+    {
+      "id": "ui-b19b8568b3",
+      "voice": "ui",
+      "text": "quilo",
+      "file": "ui-b19b8568b3.mp3"
+    },
+    {
+      "id": "ui-96d8469509",
+      "voice": "ui",
+      "text": "dúzia",
+      "file": "ui-96d8469509.mp3"
+    },
+    {
+      "id": "ui-675c3e5a72",
+      "voice": "ui",
+      "text": "unidade",
+      "file": "ui-675c3e5a72.mp3"
+    },
+    {
+      "id": "ui-250e77f12a",
+      "voice": "ui",
+      "text": "banana",
+      "file": "ui-250e77f12a.mp3"
+    },
+    {
+      "id": "ui-4571e3d8f8",
+      "voice": "ui",
+      "text": "laranja",
+      "file": "ui-4571e3d8f8.mp3"
+    },
+    {
+      "id": "ui-b0c51b4734",
+      "voice": "ui",
+      "text": "maçã",
+      "file": "ui-b0c51b4734.mp3"
+    },
+    {
+      "id": "ui-13f20098aa",
+      "voice": "ui",
+      "text": "tomate",
+      "file": "ui-13f20098aa.mp3"
+    },
+    {
+      "id": "ui-e3a25d2fbe",
+      "voice": "ui",
+      "text": "alface",
+      "file": "ui-e3a25d2fbe.mp3"
+    },
+    {
+      "id": "ui-29a5e542fc",
+      "voice": "ui",
+      "text": "caldo",
+      "file": "ui-29a5e542fc.mp3"
+    },
+    {
+      "id": "ui-4cb270f3d7",
+      "voice": "ui",
+      "text": "flor",
+      "file": "ui-4cb270f3d7.mp3"
+    },
+    {
+      "id": "ui-7445bb87ac",
+      "voice": "ui",
+      "text": "freguês",
+      "file": "ui-7445bb87ac.mp3"
+    },
+    {
+      "id": "ui-8a87dcb01f",
+      "voice": "ui",
+      "text": "amanhã",
+      "file": "ui-8a87dcb01f.mp3"
+    },
+    {
+      "id": "ui-1bef95abfc",
+      "voice": "ui",
+      "text": "cama",
+      "file": "ui-1bef95abfc.mp3"
+    },
+    {
+      "id": "ui-d4ca9c866a",
+      "voice": "ui",
+      "text": "cozinha",
+      "file": "ui-d4ca9c866a.mp3"
+    },
+    {
+      "id": "ui-e9215e0d97",
+      "voice": "ui",
+      "text": "janela",
+      "file": "ui-e9215e0d97.mp3"
+    },
+    {
+      "id": "ui-632ddcf1a7",
+      "voice": "ui",
+      "text": "cobogó",
+      "file": "ui-632ddcf1a7.mp3"
+    },
+    {
+      "id": "ui-644a93ee99",
+      "voice": "ui",
+      "text": "cadeira",
+      "file": "ui-644a93ee99.mp3"
+    },
+    {
+      "id": "ui-d91fd83dc5",
+      "voice": "ui",
+      "text": "poltrona",
+      "file": "ui-d91fd83dc5.mp3"
+    },
+    {
+      "id": "ui-4eecf6afa6",
+      "voice": "ui",
+      "text": "pufe",
+      "file": "ui-4eecf6afa6.mp3"
+    },
+    {
+      "id": "ui-d72c663593",
+      "voice": "ui",
+      "text": "mesinha",
+      "file": "ui-d72c663593.mp3"
+    },
+    {
+      "id": "ui-7d1a6177ae",
+      "voice": "ui",
+      "text": "planta",
+      "file": "ui-7d1a6177ae.mp3"
+    },
+    {
+      "id": "ui-fc4e88aad2",
+      "voice": "ui",
+      "text": "tapete",
+      "file": "ui-fc4e88aad2.mp3"
+    },
+    {
+      "id": "ui-613f542f7a",
+      "voice": "ui",
+      "text": "rádio",
+      "file": "ui-613f542f7a.mp3"
+    },
+    {
+      "id": "ui-b772708af5",
+      "voice": "ui",
+      "text": "ventilador",
+      "file": "ui-b772708af5.mp3"
+    },
+    {
+      "id": "ui-8f39c63d50",
+      "voice": "ui",
+      "text": "gato",
+      "file": "ui-8f39c63d50.mp3"
+    },
+    {
+      "id": "ui-ca1438b3cb",
+      "voice": "ui",
+      "text": "luminária",
+      "file": "ui-ca1438b3cb.mp3"
+    },
+    {
+      "id": "ui-98778b44cf",
+      "voice": "ui",
+      "text": "estante",
+      "file": "ui-98778b44cf.mp3"
+    },
+    {
+      "id": "ui-d5d5d8e189",
+      "voice": "ui",
+      "text": "quadro",
+      "file": "ui-d5d5d8e189.mp3"
+    },
+    {
+      "id": "ui-99cbd24440",
+      "voice": "ui",
+      "text": "rede",
+      "file": "ui-99cbd24440.mp3"
+    },
+    {
+      "id": "ui-2ed57602de",
+      "voice": "ui",
+      "text": "filtro",
+      "file": "ui-2ed57602de.mp3"
+    },
+    {
+      "id": "ui-7c4f4064fe",
+      "voice": "ui",
+      "text": "travesseiro",
+      "file": "ui-7c4f4064fe.mp3"
+    },
+    {
+      "id": "ui-ce49bd221e",
+      "voice": "ui",
+      "text": "lençol",
+      "file": "ui-ce49bd221e.mp3"
+    },
+    {
+      "id": "ui-a13d84b525",
+      "voice": "ui",
+      "text": "cobertor",
+      "file": "ui-a13d84b525.mp3"
+    },
+    {
+      "id": "ui-a47843b494",
+      "voice": "ui",
+      "text": "edredom",
+      "file": "ui-a47843b494.mp3"
+    },
+    {
+      "id": "ui-55b8d843e6",
+      "voice": "ui",
+      "text": "colchão",
+      "file": "ui-55b8d843e6.mp3"
+    },
+    {
+      "id": "ui-c72d20eb78",
+      "voice": "ui",
+      "text": "fronha",
+      "file": "ui-c72d20eb78.mp3"
+    },
+    {
+      "id": "ui-dbb693d0a2",
+      "voice": "ui",
+      "text": "abajur",
+      "file": "ui-dbb693d0a2.mp3"
+    },
+    {
+      "id": "ui-304cc82933",
+      "voice": "ui",
+      "text": "guarda-roupa",
+      "file": "ui-304cc82933.mp3"
+    },
+    {
+      "id": "ui-249da3b8a8",
+      "voice": "ui",
+      "text": "cabide",
+      "file": "ui-249da3b8a8.mp3"
+    },
+    {
+      "id": "ui-be9ad4ea35",
+      "voice": "ui",
+      "text": "cômoda",
+      "file": "ui-be9ad4ea35.mp3"
+    },
+    {
+      "id": "ui-339678380d",
+      "voice": "ui",
+      "text": "cortina",
+      "file": "ui-339678380d.mp3"
+    },
+    {
+      "id": "ui-adbac10caa",
+      "voice": "ui",
+      "text": "chinelo",
+      "file": "ui-adbac10caa.mp3"
+    },
+    {
+      "id": "ui-a8d6bdc5b6",
+      "voice": "ui",
+      "text": "óculos",
+      "file": "ui-a8d6bdc5b6.mp3"
+    },
+    {
+      "id": "ui-babeca347d",
+      "voice": "ui",
+      "text": "espelho",
+      "file": "ui-babeca347d.mp3"
+    },
+    {
+      "id": "ui-7aa9a0454d",
+      "voice": "ui",
+      "text": "fogão",
+      "file": "ui-7aa9a0454d.mp3"
+    },
+    {
+      "id": "ui-5cd788f9fa",
+      "voice": "ui",
+      "text": "pia",
+      "file": "ui-5cd788f9fa.mp3"
+    },
+    {
+      "id": "ui-a128928cf2",
+      "voice": "ui",
+      "text": "torneira",
+      "file": "ui-a128928cf2.mp3"
+    },
+    {
+      "id": "ui-7bf462e9ae",
+      "voice": "ui",
+      "text": "sabão",
+      "file": "ui-7bf462e9ae.mp3"
+    },
+    {
+      "id": "ui-460a2215a9",
+      "voice": "ui",
+      "text": "prato",
+      "file": "ui-460a2215a9.mp3"
+    },
+    {
+      "id": "ui-7d3ac0371d",
+      "voice": "ui",
+      "text": "garfo",
+      "file": "ui-7d3ac0371d.mp3"
+    },
+    {
+      "id": "ui-afb72d39d2",
+      "voice": "ui",
+      "text": "frigideira",
+      "file": "ui-afb72d39d2.mp3"
+    },
+    {
+      "id": "ui-7670617c97",
+      "voice": "ui",
+      "text": "tampa",
+      "file": "ui-7670617c97.mp3"
+    },
+    {
+      "id": "ui-4a22e6adba",
+      "voice": "ui",
+      "text": "micro-ondas",
+      "file": "ui-4a22e6adba.mp3"
+    },
+    {
+      "id": "ui-4f5474b9ae",
+      "voice": "ui",
+      "text": "chaleira",
+      "file": "ui-4f5474b9ae.mp3"
+    },
+    {
+      "id": "ui-5d53a561d2",
+      "voice": "ui",
+      "text": "chuveiro",
+      "file": "ui-5d53a561d2.mp3"
+    },
+    {
+      "id": "ui-f0ba07e1c5",
+      "voice": "ui",
+      "text": "toalha",
+      "file": "ui-f0ba07e1c5.mp3"
+    },
+    {
+      "id": "ui-fd75e79c8d",
+      "voice": "ui",
+      "text": "xampu",
+      "file": "ui-fd75e79c8d.mp3"
+    },
+    {
+      "id": "ui-c7d8a6d722",
+      "voice": "ui",
+      "text": "box",
+      "file": "ui-c7d8a6d722.mp3"
+    },
+    {
+      "id": "ui-df862a4140",
+      "voice": "ui",
+      "text": "escova",
+      "file": "ui-df862a4140.mp3"
+    },
+    {
+      "id": "ui-2089599722",
+      "voice": "ui",
+      "text": "creme",
+      "file": "ui-2089599722.mp3"
+    },
+    {
+      "id": "ui-93bdded6db",
+      "voice": "ui",
+      "text": "pente",
+      "file": "ui-93bdded6db.mp3"
+    },
+    {
+      "id": "ui-c15c9bbdb8",
+      "voice": "ui",
+      "text": "varal",
+      "file": "ui-c15c9bbdb8.mp3"
+    },
+    {
+      "id": "ui-5f85f9151d",
+      "voice": "ui",
+      "text": "pregador",
+      "file": "ui-5f85f9151d.mp3"
+    },
+    {
+      "id": "ui-cebbbcd2f2",
+      "voice": "ui",
+      "text": "tomada",
+      "file": "ui-cebbbcd2f2.mp3"
+    },
+    {
+      "id": "ui-7a822fa357",
+      "voice": "ui",
+      "text": "interruptor",
+      "file": "ui-7a822fa357.mp3"
+    },
+    {
+      "id": "ui-f16b82ad54",
+      "voice": "ui",
+      "text": "carregador",
+      "file": "ui-f16b82ad54.mp3"
+    },
+    {
+      "id": "ui-d4fe82c882",
+      "voice": "ui",
+      "text": "retrato",
+      "file": "ui-d4fe82c882.mp3"
+    },
+    {
+      "id": "ui-71ea58aa78",
+      "voice": "ui",
+      "text": "perfume",
+      "file": "ui-71ea58aa78.mp3"
+    },
+    {
+      "id": "ui-7ceb8e4a0a",
+      "voice": "ui",
+      "text": "despertador",
+      "file": "ui-7ceb8e4a0a.mp3"
+    },
+    {
+      "id": "ui-9d47852b5c",
+      "voice": "ui",
+      "text": "extensão",
+      "file": "ui-9d47852b5c.mp3"
+    },
+    {
+      "id": "ui-042040cca4",
+      "voice": "ui",
+      "text": "ração",
+      "file": "ui-042040cca4.mp3"
+    },
+    {
+      "id": "ui-25ec6a59ab",
+      "voice": "ui",
+      "text": "pote",
+      "file": "ui-25ec6a59ab.mp3"
+    },
+    {
+      "id": "ui-dca6ea9ae4",
+      "voice": "ui",
+      "text": "chave",
+      "file": "ui-dca6ea9ae4.mp3"
+    },
+    {
+      "id": "ui-96e19aafa7",
+      "voice": "ui",
+      "text": "parede",
+      "file": "ui-96e19aafa7.mp3"
+    },
+    {
+      "id": "ui-3844f1d97e",
+      "voice": "ui",
+      "text": "teto",
+      "file": "ui-3844f1d97e.mp3"
+    },
+    {
+      "id": "ui-41a74f5c34",
+      "voice": "ui",
+      "text": "rodapé",
+      "file": "ui-41a74f5c34.mp3"
+    },
+    {
+      "id": "ui-0d0e22fb42",
+      "voice": "ui",
+      "text": "cidade",
+      "file": "ui-0d0e22fb42.mp3"
+    },
+    {
+      "id": "ui-f851ff6b71",
+      "voice": "ui",
+      "text": "família",
+      "file": "ui-f851ff6b71.mp3"
+    },
+    {
+      "id": "ui-0f710f284a",
+      "voice": "ui",
+      "text": "recado",
+      "file": "ui-0f710f284a.mp3"
+    },
+    {
+      "id": "ui-22d01cec21",
+      "voice": "ui",
+      "text": "lista",
+      "file": "ui-22d01cec21.mp3"
+    },
+    {
+      "id": "ui-9065669188",
+      "voice": "ui",
+      "text": "conta",
+      "file": "ui-9065669188.mp3"
+    },
+    {
+      "id": "ui-1a4fb0969e",
+      "voice": "ui",
+      "text": "tatame",
+      "file": "ui-1a4fb0969e.mp3"
+    },
+    {
+      "id": "ui-6baf34f51c",
+      "voice": "ui",
+      "text": "arquibancada",
+      "file": "ui-6baf34f51c.mp3"
+    },
+    {
+      "id": "ui-930eac7b32",
+      "voice": "ui",
+      "text": "bebedouro",
+      "file": "ui-930eac7b32.mp3"
+    },
+    {
+      "id": "ui-5d6600af81",
+      "voice": "ui",
+      "text": "vestiário",
+      "file": "ui-5d6600af81.mp3"
+    },
+    {
+      "id": "ui-88bacd3fb4",
+      "voice": "ui",
+      "text": "placar",
+      "file": "ui-88bacd3fb4.mp3"
+    },
+    {
+      "id": "ui-22ca60f828",
+      "voice": "ui",
+      "text": "bandeira",
+      "file": "ui-22ca60f828.mp3"
+    },
+    {
+      "id": "ui-31cfcb7ab2",
+      "voice": "ui",
+      "text": "cronômetro",
+      "file": "ui-31cfcb7ab2.mp3"
+    },
+    {
+      "id": "ui-e5f4f1c253",
+      "voice": "ui",
+      "text": "apito",
+      "file": "ui-e5f4f1c253.mp3"
+    },
+    {
+      "id": "ui-4254fb7884",
+      "voice": "ui",
+      "text": "prancheta",
+      "file": "ui-4254fb7884.mp3"
+    },
+    {
+      "id": "ui-d89b5fbf9b",
+      "voice": "ui",
+      "text": "medalha",
+      "file": "ui-d89b5fbf9b.mp3"
+    },
+    {
+      "id": "ui-dd7e3bdd93",
+      "voice": "ui",
+      "text": "troféu",
+      "file": "ui-dd7e3bdd93.mp3"
+    },
+    {
+      "id": "ui-0eb57679c4",
+      "voice": "ui",
+      "text": "foto",
+      "file": "ui-0eb57679c4.mp3"
+    },
+    {
+      "id": "ui-9b1403099f",
+      "voice": "ui",
+      "text": "corda",
+      "file": "ui-9b1403099f.mp3"
+    },
+    {
+      "id": "ui-b5479252bf",
+      "voice": "ui",
+      "text": "armário",
+      "file": "ui-b5479252bf.mp3"
+    },
+    {
+      "id": "ui-7da0518220",
+      "voice": "ui",
+      "text": "recepção",
+      "file": "ui-7da0518220.mp3"
+    },
+    {
+      "id": "ui-bccdcb8b25",
+      "voice": "ui",
+      "text": "computador",
+      "file": "ui-bccdcb8b25.mp3"
+    },
+    {
+      "id": "ui-0372e88617",
+      "voice": "ui",
+      "text": "pódio",
+      "file": "ui-0372e88617.mp3"
+    },
+    {
+      "id": "ui-fb28977098",
+      "voice": "ui",
+      "text": "meia",
+      "file": "ui-fb28977098.mp3"
+    },
+    {
+      "id": "ui-a1259b421a",
+      "voice": "ui",
+      "text": "squeeze",
+      "file": "ui-a1259b421a.mp3"
+    },
+    {
+      "id": "ui-2e21136be6",
+      "voice": "ui",
+      "text": "isotônico",
+      "file": "ui-2e21136be6.mp3"
+    },
+    {
+      "id": "ui-056bd783f5",
+      "voice": "ui",
+      "text": "sapato",
+      "file": "ui-056bd783f5.mp3"
+    },
+    {
+      "id": "ui-40b8102cf7",
+      "voice": "ui",
+      "text": "treino",
+      "file": "ui-40b8102cf7.mp3"
+    },
+    {
+      "id": "ui-1e73aa8ef0",
+      "voice": "ui",
+      "text": "sábado",
+      "file": "ui-1e73aa8ef0.mp3"
+    },
+    {
+      "id": "ui-7a3bfc55f3",
+      "voice": "ui",
+      "text": "faixa",
+      "file": "ui-7a3bfc55f3.mp3"
+    },
+    {
+      "id": "ui-1826e2db06",
+      "voice": "ui",
+      "text": "kimono",
+      "file": "ui-1826e2db06.mp3"
+    },
+    {
+      "id": "ui-f6d0315d13",
+      "voice": "ui",
+      "text": "extintor",
+      "file": "ui-f6d0315d13.mp3"
+    },
+    {
+      "id": "ui-d6581f70b2",
+      "voice": "ui",
+      "text": "presença",
+      "file": "ui-d6581f70b2.mp3"
+    },
+    {
+      "id": "ui-321673fee4",
+      "voice": "ui",
+      "text": "treinar",
+      "file": "ui-321673fee4.mp3"
+    },
+    {
+      "id": "ui-cb339dcf13",
+      "voice": "ui",
+      "text": "respeito",
+      "file": "ui-cb339dcf13.mp3"
+    },
+    {
+      "id": "ui-c4ae4985b8",
+      "voice": "ui",
+      "text": "professora",
+      "file": "ui-c4ae4985b8.mp3"
+    },
+    {
+      "id": "ui-99ec559742",
+      "voice": "ui",
+      "text": "sorriso",
+      "file": "ui-99ec559742.mp3"
+    },
+    {
+      "id": "ui-0c3a1082dc",
+      "voice": "ui",
+      "text": "parceiro",
+      "file": "ui-0c3a1082dc.mp3"
+    },
+    {
+      "id": "ui-aaa0c8fd47",
+      "voice": "ui",
+      "text": "disciplina",
+      "file": "ui-aaa0c8fd47.mp3"
+    },
+    {
+      "id": "ui-31ee30a258",
+      "voice": "ui",
+      "text": "carteira",
+      "file": "ui-31ee30a258.mp3"
+    },
+    {
+      "id": "ui-6b31fae72c",
+      "voice": "ui",
+      "text": "lousa",
+      "file": "ui-6b31fae72c.mp3"
+    },
+    {
+      "id": "ui-81d05f0e4c",
+      "voice": "ui",
+      "text": "lápis",
+      "file": "ui-81d05f0e4c.mp3"
+    },
+    {
+      "id": "ui-5648134607",
+      "voice": "ui",
+      "text": "caneta",
+      "file": "ui-5648134607.mp3"
+    },
+    {
+      "id": "ui-cb9c0b7f0a",
+      "voice": "ui",
+      "text": "borracha",
+      "file": "ui-cb9c0b7f0a.mp3"
+    },
+    {
+      "id": "ui-ece98ae9e8",
+      "voice": "ui",
+      "text": "caderno",
+      "file": "ui-ece98ae9e8.mp3"
+    },
+    {
+      "id": "ui-d48e19ea6e",
+      "voice": "ui",
+      "text": "livro",
+      "file": "ui-d48e19ea6e.mp3"
+    },
+    {
+      "id": "ui-f41eeb0bfb",
+      "voice": "ui",
+      "text": "estojo",
+      "file": "ui-f41eeb0bfb.mp3"
+    },
+    {
+      "id": "ui-1878d9f864",
+      "voice": "ui",
+      "text": "apontador",
+      "file": "ui-1878d9f864.mp3"
+    },
+    {
+      "id": "ui-24b2d5ae7e",
+      "voice": "ui",
+      "text": "régua",
+      "file": "ui-24b2d5ae7e.mp3"
+    },
+    {
+      "id": "ui-279f7e8e2f",
+      "voice": "ui",
+      "text": "tesoura",
+      "file": "ui-279f7e8e2f.mp3"
+    },
+    {
+      "id": "ui-7ff2f15b82",
+      "voice": "ui",
+      "text": "cola",
+      "file": "ui-7ff2f15b82.mp3"
+    },
+    {
+      "id": "ui-aaebc1496c",
+      "voice": "ui",
+      "text": "apagador",
+      "file": "ui-aaebc1496c.mp3"
+    },
+    {
+      "id": "ui-31039edadd",
+      "voice": "ui",
+      "text": "globo",
+      "file": "ui-31039edadd.mp3"
+    },
+    {
+      "id": "ui-2ea6768865",
+      "voice": "ui",
+      "text": "dicionário",
+      "file": "ui-2ea6768865.mp3"
+    },
+    {
+      "id": "ui-d8260c48f0",
+      "voice": "ui",
+      "text": "grampeador",
+      "file": "ui-d8260c48f0.mp3"
+    },
+    {
+      "id": "ui-82e0893ea1",
+      "voice": "ui",
+      "text": "clipe",
+      "file": "ui-82e0893ea1.mp3"
+    },
+    {
+      "id": "ui-46139b0b16",
+      "voice": "ui",
+      "text": "pasta",
+      "file": "ui-46139b0b16.mp3"
+    },
+    {
+      "id": "ui-066d641af9",
+      "voice": "ui",
+      "text": "crachá",
+      "file": "ui-066d641af9.mp3"
+    },
+    {
+      "id": "ui-2a0af7fef2",
+      "voice": "ui",
+      "text": "sino",
+      "file": "ui-2a0af7fef2.mp3"
+    },
+    {
+      "id": "ui-5a9691efd7",
+      "voice": "ui",
+      "text": "corredor",
+      "file": "ui-5a9691efd7.mp3"
+    },
+    {
+      "id": "ui-445a27e25f",
+      "voice": "ui",
+      "text": "pátio",
+      "file": "ui-445a27e25f.mp3"
+    },
+    {
+      "id": "ui-74a61d7fe1",
+      "voice": "ui",
+      "text": "escola",
+      "file": "ui-74a61d7fe1.mp3"
+    },
+    {
+      "id": "ui-a55079e6b8",
+      "voice": "ui",
+      "text": "saída",
+      "file": "ui-a55079e6b8.mp3"
+    },
+    {
+      "id": "ui-174968b5bf",
+      "voice": "ui",
+      "text": "silêncio",
+      "file": "ui-174968b5bf.mp3"
+    },
+    {
+      "id": "ui-973f3077d2",
+      "voice": "ui",
+      "text": "biblioteca",
+      "file": "ui-973f3077d2.mp3"
+    },
+    {
+      "id": "ui-1fccf5fd04",
+      "voice": "ui",
+      "text": "chamada",
+      "file": "ui-1fccf5fd04.mp3"
+    },
+    {
+      "id": "ui-72bd6ed941",
+      "voice": "ui",
+      "text": "palavra",
+      "file": "ui-72bd6ed941.mp3"
+    },
+    {
+      "id": "ui-de4da44e7e",
+      "voice": "ui",
+      "text": "nome",
+      "file": "ui-de4da44e7e.mp3"
+    },
+    {
+      "id": "ui-ea962a57ed",
+      "voice": "ui",
+      "text": "lição",
+      "file": "ui-ea962a57ed.mp3"
+    },
+    {
+      "id": "ui-b1fb0f86c0",
+      "voice": "ui",
+      "text": "aula",
+      "file": "ui-b1fb0f86c0.mp3"
+    },
+    {
+      "id": "lucia-70aae4b72b",
+      "voice": "lucia",
+      "text": "Seu diário ainda tá vazio. Tire fotos, leia as placas e converse com o pessoal, depois volta aqui!",
+      "file": "lucia-70aae4b72b.mp3"
+    },
+    {
+      "id": "lucia-80c63c4386",
+      "voice": "lucia",
+      "text": "Oi! Bora aprender umas palavras hoje?",
+      "file": "lucia-80c63c4386.mp3"
+    },
+    {
+      "id": "lucia-9b28873503",
+      "voice": "lucia",
+      "text": "Que bom te ver! Vamos manter a sequência?",
+      "file": "lucia-9b28873503.mp3"
+    },
+    {
+      "id": "lucia-00a5b6521b",
+      "voice": "lucia",
+      "text": "Olha só, que dedicação! Sua sequência tá pegando fogo.",
+      "file": "lucia-00a5b6521b.mp3"
+    },
+    {
+      "id": "lucia-fc1685ed6e",
+      "voice": "lucia",
+      "text": "Uma semana ou mais sem falhar? Tô orgulhosa de você!",
+      "file": "lucia-fc1685ed6e.mp3"
+    },
+    {
+      "id": "lucia-07e9ec13cf",
+      "voice": "lucia",
+      "text": "Que saudade! Vamos começar uma sequência nova?",
+      "file": "lucia-07e9ec13cf.mp3"
+    },
+    {
+      "id": "lucia-e5ac915c05",
+      "voice": "lucia",
+      "text": "Meta de hoje cumprida! Quer treinar mais um pouco?",
+      "file": "lucia-e5ac915c05.mp3"
+    },
+    {
+      "id": "lucia-e7b1ee8a8e",
+      "voice": "lucia",
+      "text": "Não foi dessa vez. Olha a resposta certa.",
+      "file": "lucia-e7b1ee8a8e.mp3"
+    },
+    {
+      "id": "lucia-fbfe4ca0a1",
+      "voice": "lucia",
+      "text": "Quase! Faltou o acento.",
+      "file": "lucia-fbfe4ca0a1.mp3"
+    },
+    {
+      "id": "lucia-665b10a2c5",
+      "voice": "lucia",
+      "text": "Quase! Cuidado com a ortografia.",
+      "file": "lucia-665b10a2c5.mp3"
+    },
+    {
+      "id": "lucia-fbce855db4",
+      "voice": "lucia",
+      "text": "Que sequência! Continua assim.",
+      "file": "lucia-fbce855db4.mp3"
+    },
+    {
+      "id": "lucia-705297dadf",
+      "voice": "lucia",
+      "text": "Essa voltou pra você tentar de novo.",
+      "file": "lucia-705297dadf.mp3"
+    },
+    {
+      "id": "lucia-4176cd6238",
+      "voice": "lucia",
+      "text": "Aula concluída! Bom trabalho.",
+      "file": "lucia-4176cd6238.mp3"
+    },
+    {
+      "id": "lucia-bddde5131d",
+      "voice": "lucia",
+      "text": "Lição perfeita! Nenhum erro.",
+      "file": "lucia-bddde5131d.mp3"
+    },
+    {
+      "id": "lucia-4fbc40ce23",
+      "voice": "lucia",
+      "text": "Meta do dia cumprida! Até amanhã?",
+      "file": "lucia-4fbc40ce23.mp3"
+    },
+    {
+      "id": "lucia-e4e0a42ff1",
+      "voice": "lucia",
+      "text": "Muito bem!",
+      "file": "lucia-e4e0a42ff1.mp3"
+    },
+    {
+      "id": "lucia-807d502709",
+      "voice": "lucia",
+      "text": "Isso mesmo!",
+      "file": "lucia-807d502709.mp3"
+    },
+    {
+      "id": "lucia-5e567a0931",
+      "voice": "lucia",
+      "text": "Perfeito!",
+      "file": "lucia-5e567a0931.mp3"
+    },
+    {
+      "id": "lucia-c14b19229c",
+      "voice": "lucia",
+      "text": "Mandou muito bem!",
+      "file": "lucia-c14b19229c.mp3"
+    },
+    {
+      "id": "lucia-a7c6d8a688",
+      "voice": "lucia",
+      "text": "Arrasou!",
+      "file": "lucia-a7c6d8a688.mp3"
+    },
+    {
+      "id": "lucia-af0a4029b7",
+      "voice": "lucia",
+      "text": "Parabéns! Sua placa agora é amarela.",
+      "file": "lucia-af0a4029b7.mp3"
+    },
+    {
+      "id": "lucia-4937a776e4",
+      "voice": "lucia",
+      "text": "Parabéns! Sua placa agora é azul.",
+      "file": "lucia-4937a776e4.mp3"
+    },
+    {
+      "id": "lucia-b4643ebda9",
+      "voice": "lucia",
+      "text": "Que orgulho! Sua placa agora é roxa.",
+      "file": "lucia-b4643ebda9.mp3"
+    },
+    {
+      "id": "lucia-732f5fe856",
+      "voice": "lucia",
+      "text": "Incrível! Sua placa agora é dourada.",
+      "file": "lucia-732f5fe856.mp3"
     },
     {
       "id": "carlos-f0eea8e48e",

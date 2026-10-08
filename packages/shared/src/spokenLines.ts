@@ -8,6 +8,8 @@ import { CARDS } from './cards.js';
 import { AUTHORED_ORDERS } from './meveum.js';
 import { JULIA_INTRO, JULIA_INTRO_FROM_GREETING, JULIA_TREE } from './juliaTalk.js';
 import { localizeGreetingText } from './clock.js';
+import { DIARY_WORDS } from './diary.js';
+import { luciaSpokenLines } from './escolaCopy.js';
 import type { NpcId } from './rooms.js';
 
 /**
@@ -121,6 +123,10 @@ export function collectSpokenLines(): SpokenLine[] {
 
   // listening drills
   for (const item of [...challengeBank(), ...finishBank()]) add('ui', item.listenPt, `challenge ${item.id}`);
+
+  // every diary word (the escola plays it on each reveal, the Caderno on 🔊), and Dona Lúcia at her desk
+  for (const w of DIARY_WORDS) add('ui', w.pt, `diary ${w.id}`);
+  for (const text of luciaSpokenLines()) add('lucia', text, 'escola lucia');
 
   return out;
 }

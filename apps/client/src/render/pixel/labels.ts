@@ -3,14 +3,15 @@
  * so text stays crisp at every zoom and accents render. One `#world-labels` layer with `pointer-events: none`; elements are created once
  * per key and only moved (transform: translate, whole CSS px) each frame; a bubble line or a guide is rewritten only when its text changes.
  *
- *  - Nameplates: Verde plate for players, terracotta for NPCs, a mustard ring on yourself, stepped pixel corners (pixel.css).
+ *  - Nameplates: Verde plate for players (or the colour and shape they earned in the escola), terracotta for NPCs, a mustard ring on yourself,
+ *    stepped pixel corners (pixel.css).
  *  - Speech bubbles: the art track 2 9-slice bubble (`ui/bubble`, slice and file from the manifest's `images`), 2x. The tail is bottom-left;
  *    when the speaker is in the right half of the screen a mirrored copy (tail bottom-right) is used so the bubble opens toward the middle.
  *  - Guides: the bouncing pixel arrow (`ui/guide_arrow_strip`, a CSS steps animation over its 4 frames) with a small label. Off-screen
  *    targets pin the arrow to the nearest edge of the free screen region and turn it toward the target (`guides.ts`).
  */
 import './pixel.css';
-import { FOUNDER_BADGE } from '@tudobem/shared';
+import { FOUNDER_BADGE, tierRule, type Nameplate } from '@tudobem/shared';
 import { diffIds } from './reconcile';
 import { GUIDE_ROTATION, pinGuide, type GuideDir, type GuideInsets } from './guides';
 
@@ -36,6 +37,8 @@ export interface StackItem {
     mark?: string;
     /** Beta founder “f” mark beside the nameplate. */
     founder?: boolean;
+    /** Players: the nameplate colour earned in the escola (verde is the plain plate; the others add their colour and shape). */
+    tier?: Nameplate;
   } | null;
   bubbles: BubbleItem[];
 }
@@ -392,15 +395,24 @@ export class LabelLayer {
     }
 
     // nameplate: text and kind change rarely; measure only then
-    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}|${s.plate.mark ?? ''}|${s.plate.founder ? '1' : ''}` : '';
+    const tier = s.plate && (s.plate.kind === 'player' || s.plate.kind === 'me') && s.plate.tier && s.plate.tier !== 'verde' ? s.plate.tier : null;
+    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}|${s.plate.mark ?? ''}|${s.plate.founder ? '1' : ''}|${tier ?? ''}` : '';
     if (pk !== el.plateKey) {
       el.plateKey = pk;
       if (s.plate) {
         el.plateRow.style.display = '';
         el.plate.style.display = '';
         el.plate.textContent = s.plate.text;
-        el.plate.className = `wl-plate wl-plate-${s.plate.kind}`;
+        el.plate.className = `wl-plate wl-plate-${s.plate.kind}${tier ? ` wl-tier wl-tier-${tier}` : ''}`;
         el.plate.replaceChildren();
+        if (tier) {
+          // the colour and a shape (sun, drop, star, crown): readable without telling colours apart
+          const ico = document.createElement('i');
+          ico.className = `wl-tier-ico tier-ico tier-ico-${tier}`;
+          ico.setAttribute('aria-hidden', 'true');
+          el.plate.append(ico);
+          el.plate.title = `Placa ${tierRule(tier).pt}`;
+        } else el.plate.removeAttribute('title');
         if (s.plate.mark) {
           const mark = document.createElement('i');
           mark.className = 'wl-mark';
