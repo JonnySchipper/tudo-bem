@@ -40,7 +40,6 @@ import {
   isWalkable,
   readSpot,
   subjectChoices,
-  FEIRA_CART_CLOSED,
   VENDORS,
   type EmoteKind,
   type HotspotDef,
@@ -1135,7 +1134,6 @@ function hitLabel(hit: Hit | null): [string, string] | null {
       if (hit.prop.action === 'padaria_door' && here) return here.owner ? ['Melhorias da padaria', 'Upgrades — size and sweets'] : [here.name, `${here.ownerName}’s bakery — about this shop`];
       if (hit.prop.action === 'padaria_counter' && here) return [`Balcão da ${here.name}`, 'House counter — buy here'];
       if (hit.prop.action === 'padaria_door' && own) return [`Sua padaria: ${own.name}`, `Your bakery: ${own.name} — click to go in`];
-      if (hit.prop.action === 'feira_cart' && game.feiraCart?.closed) return [FEIRA_CART_CLOSED.pt, FEIRA_CART_CLOSED.en];
       return hit.prop.label ? [hit.prop.label.pt, hit.prop.label.en] : null;
     }
     case 'hotspot': {
@@ -1237,9 +1235,9 @@ function handleClickInner(hit: Hit | null) {
 /** Target of the `window.__tb.interact` test hook: something in the current room, by id. */
 type InteractTarget = { npc: NpcId } | { prop: string } | { portal: string } | { hotspot: string };
 
-/** Resolve a target in `ROOMS[game.room.room]` and feed the matching Hit through `handleClick`. Returns false if not found. */
+/** Resolve a target in the room as it is drawn and feed the matching Hit through `handleClick`. Returns false if not found. */
 function interact(target: InteractTarget): boolean {
-  const room = game.room ? ROOMS[game.room.room] : null;
+  const room = game.roomDef;
   if (!room) return false;
   let hit: Hit | null = null;
   if ('npc' in target) {
@@ -1530,6 +1528,8 @@ window.__tb = {
     if (o.speed !== undefined) clock.setSpeed(o.speed);
   },
   tileToClient: (x: number, y: number) => renderer.tileToClient(x, y),
+  /** Frame names of the sprites in the current room (the Feira game cart and its sign, when they are up). */
+  drawnFrames: () => ('drawnFrames' in renderer ? (renderer as { drawnFrames: () => string[] }).drawnFrames() : []),
   selfTile: () => selfTile(),
   clickHit: (hit: Hit) => handleClick(hit),
   /** Renderer-independent walk: the same function the click handler uses. */

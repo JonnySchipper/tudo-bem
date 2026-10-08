@@ -205,6 +205,8 @@ export class FeiraGamesEngine {
   private near(s: Session, propId: string): boolean {
     const here = this.d.tileOf(s);
     if (!here || here.room !== 'feira') return false;
+    // A game that is off, or outside its window, is not in the world: there is nothing to stand next to.
+    if (!this.featuredNow() && (propId === FEIRA_CART_PROP || propId === FEIRA_SIGN_PROP)) return false;
     const prop = s.instance?.def.props.find((p) => p.id === propId);
     if (!prop) return false;
     const w = prop.w ?? 1;

@@ -13,7 +13,9 @@ import {
   MISSION_REWARD,
   MISSION_STEPS,
   ROOMS,
+  feiraCartShown,
   furnitureById,
+  withoutHiddenFeiraCart,
   hatById,
   npcDefById,
   npcPosesIn,
@@ -391,7 +393,8 @@ function mapView(areaId: RoomId): HTMLElement {
     ? game.liveNpcs(performance.now())
     : npcPosesIn(areaId, clock.now()).map((p) => ({ name: npcDefById(p.npc)?.name ?? p.npc, ...poseWalk(p, clock.now()).tile }));
   const meColor = TIER_HEX[game.profile?.nameplate ?? 'verde'];
-  const canvas = drawMinimap(ROOMS[areaId], here, npcs, meColor);
+  const mapRoom = areaId === 'feira' ? withoutHiddenFeiraCart(ROOMS.feira, feiraCartShown(game.feiraCart)) : ROOMS[areaId];
+  const canvas = drawMinimap(mapRoom, here, npcs, meColor);
   canvas.setAttribute('aria-label', `Mapa: ${ROOMS[areaId].name}`);
   return h('div', { class: 'minimap-wrap' }, canvas, h('div', { class: 'minimap-key' }, h('span', { class: 'k door' }), ' portas e saídas ', h('span', { class: 'k npc' }), ' vizinhos ', h('span', { class: 'k me', style: `background:${meColor}` }), ' você'));
 }

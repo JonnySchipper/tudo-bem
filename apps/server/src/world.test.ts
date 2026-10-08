@@ -1082,4 +1082,33 @@ describe('Admin panel', () => {
     expect(still && still.phase === 'feiraCart' && still.games.find((g) => g.id === 'tapioca')?.mode).toBe('on');
     expect(still && still.phase === 'feiraCart' && still.games.find((g) => g.id === 'pastel')?.mode).toBe('off');
   });
+
+  it('lets you walk the cart tiles while every game is off, then shows Pastel live to people already there and to a new joiner', async () => {
+    const { world } = makeWorld(16, { adminPassword: 'tb-admin-praca' });
+    const a = await client(world, 'Admin');
+    const b = await client(world, 'Lia');
+    await a.send({ t: 'join', room: 'feira' });
+    await b.send({ t: 'join', room: 'feira' });
+    expect(a.last('roomState')?.feiraCart).toMatchObject({ closed: true, game: null });
+
+    const before = a.all('avatarMoved').length;
+    await a.send({ t: 'move', x: 22, y: 7, sit: false });
+    const onto = a.all('avatarMoved').at(-1);
+    expect(a.all('avatarMoved').length).toBe(before + 1);
+    expect(onto?.path.at(-1)).toEqual({ x: 22, y: 7 });
+
+    await a.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
+    await a.send({ t: 'admin', action: 'feiraCartSet', game: 'pastel', mode: 'on' });
+    expect(b.last('feiraGame')).toMatchObject({ phase: 'cart', closed: false, game: 'pastel' });
+    expect(a.last('feiraGame')).toMatchObject({ phase: 'cart', closed: false, game: 'pastel' });
+
+    const stuck = b.all('avatarMoved').length;
+    await b.send({ t: 'move', x: 18, y: 7, sit: false });
+    expect(b.all('avatarMoved').length).toBe(stuck);
+
+    const c = await client(world, 'Nova');
+    await c.send({ t: 'join', room: 'feira' });
+    const entered = c.last('roomState');
+    expect(entered && entered.t === 'roomState' && entered.feiraCart).toMatchObject({ closed: false, game: 'pastel' });
+  });
 });

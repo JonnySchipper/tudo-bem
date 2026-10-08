@@ -237,7 +237,7 @@ describe('feira games server', () => {
     });
     expect(engine.featuredNow()).toBeNull();
     engine.handle(s, { t: 'feiraGame', action: 'start' });
-    expect(sent.some((m) => m.t === 'error' && m.code === 'feira_closed')).toBe(true);
+    expect(sent.some((m) => m.t === 'error' && m.code === 'far')).toBe(true);
     expect(s.feiraGame).toBeUndefined();
     const before = ana.coins;
     engine.handle(s, { t: 'feiraGame', action: 'finish', outcomes: [{ i: 0, quality: 'perfect', atMs: 12_000 }] });
@@ -280,7 +280,7 @@ describe('feira games server', () => {
     });
     expect(engine.featuredNow()).toBeNull();
     engine.handle(s, { t: 'feiraGame', action: 'start' });
-    expect(sent.some((m) => m.t === 'error' && m.code === 'feira_closed')).toBe(true);
+    expect(sent.some((m) => m.t === 'error' && m.code === 'far')).toBe(true);
     cart.setMode('pastel', 'on');
     sent.length = 0;
     engine.handle(s, { t: 'feiraGame', action: 'start' });
@@ -339,7 +339,7 @@ describe('feira games server', () => {
     expect(engine.crownId()).toBeNull();
   });
 
-  it('tells the sign the cart is closed, and still lists medals', () => {
+  it('does not open the sign when the cart is hidden, and still keeps medals on the tally', () => {
     const now = Date.parse('2026-10-08T16:00:00.000Z');
     const store = new ProfileStore(null);
     const ana = profile('ana', 'Ana');
@@ -354,14 +354,14 @@ describe('feira games server', () => {
       games,
       reward: () => {},
       pushProfile: () => {},
-      err: () => {},
+      err: (_s, code) => sent.push({ t: 'error', code, pt: 'x', en: 'y' }),
       tileOf: () => ({ x: 19, y: 8, room: 'feira' }),
       broadcastAll: () => {},
       broadcastAvatar: () => {},
     });
     engine.handle(s, { t: 'feiraGame', action: 'board' });
-    const board = sent.find((m) => m.t === 'feiraGame' && m.phase === 'board');
-    expect(board && board.t === 'feiraGame' && board.phase === 'board' && board.closed && board.game === null).toBe(true);
-    if (board && board.t === 'feiraGame' && board.phase === 'board') expect(board.medals[0]).toMatchObject({ id: 'ana', gold: 1 });
+    expect(sent.some((m) => m.t === 'feiraGame' && m.phase === 'board')).toBe(false);
+    expect(sent.some((m) => m.t === 'error' && m.code === 'far')).toBe(true);
+    expect(games.state.medals.ana?.[0]).toMatchObject({ medal: 'gold' });
   });
 });

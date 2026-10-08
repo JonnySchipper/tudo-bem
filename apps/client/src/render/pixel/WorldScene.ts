@@ -266,6 +266,8 @@ export class WorldScene extends Phaser.Scene {
   private furniture = new Map<string, FurnitureView>();
   private grid: RoomGrid | null = null;
   private gridFurniture: PlacedFurniture[] | null = null;
+  /** The room the grid was built from, so a live cart toggle rebuilds collision with the sprites. */
+  private gridDef: RoomDef | null = null;
   private bounds: Rect = { x0: 0, y0: 0, x1: 1, y1: 1 };
   private snapCamera = true;
   private hoverRect!: Phaser.GameObjects.Rectangle;
@@ -1022,9 +1024,10 @@ export class WorldScene extends Phaser.Scene {
       this.roomDef = def;
       this.buildRoom(def);
     }
-    if (this.gridFurniture !== game.furniture || !this.grid) {
+    if (this.gridFurniture !== game.furniture || this.gridDef !== def || !this.grid) {
       this.grid = buildGrid(def, game.furniture);
       this.gridFurniture = game.furniture;
+      this.gridDef = def;
     }
     this.applyZoom();
     const dyn: HitBox[] = [];
@@ -1948,14 +1951,6 @@ export class WorldScene extends Phaser.Scene {
       const p = at(this.stall.wx, this.stall.wy - 30);
       stacks.push({ key: 'stall:closed', x: p.px, y: p.py, plate: { text: 'Fechado · volta às 8h', kind: 'npc' }, bubbles: [] });
     }
-    // the game cart is closed until an admin turns a game on
-    if (def.id === 'feira' && game.feiraCart?.closed) {
-      const cart = def.props.find((q) => q.id === 'carrinho_jogos');
-      if (cart) {
-        const p = at((cart.x + (cart.w ?? 1) / 2) * T, cart.y * T - 22);
-        stacks.push({ key: 'feira-cart:closed', x: p.px, y: p.py, plate: { text: 'Fechado', kind: 'npc' }, bubbles: [] });
-      }
-    }
     // the feira's banner says it is closed outside 06:00-13:00
     if (this.feiraStalls.length && !feiraOpen(clock.minutes())) {
       const b = def.props.find((q) => q.id === 'feira_livre');
@@ -2056,6 +2051,17 @@ export class WorldScene extends Phaser.Scene {
 
   currentRoom(): RoomDef | null {
     return game.roomDef;
+  }
+
+  /** Frame names of the sprites built for this room (e2e: the game cart and its sign). */
+  drawnFrames(): string[] {
+    const out: string[] = [];
+    for (const o of this.roomObjs) {
+      const spr = o as { frame?: { name?: string }; visible?: boolean };
+      if (spr.visible === false) continue;
+      if (typeof spr.frame?.name === 'string') out.push(spr.frame.name);
+    }
+    return out;
   }
 
   info() {
