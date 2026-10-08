@@ -93,6 +93,8 @@ export interface BoutDeps {
   err: (s: Session, code: string, pt: string, en: string) => void;
   avatarChanged: (s: Session) => void;
   onBoutComplete?: (s: Session, played: boolean) => void;
+  /** UTC day the bond cap uses. Defaults to the real UTC date. */
+  today?: () => string;
 }
 
 /** `v: 1` bout messages. The account (`profile.bjj`) holds the belt and the unlocked moves, the same way Correria holds stars. */
@@ -401,7 +403,7 @@ export class BoutEngine {
     }
     let bond = 0;
     if (played) {
-      const b2 = boutBond(winner, prog, today());
+      const b2 = boutBond(winner, prog, this.d.today?.() ?? today());
       prog = b2.next;
       bond = b2.gain;
     }

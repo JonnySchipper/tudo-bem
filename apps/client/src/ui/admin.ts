@@ -7,6 +7,7 @@ import { clock } from '../gameClock';
 import { game } from '../state';
 import { h, en } from './dom';
 import { closeModal, modalId, openModal } from './modal.js';
+import { adminTestesSection, bindAdminTestes, onAdminTestState } from './adminTestes.js';
 
 export type AdminSend = (m: Extract<ClientMsg, { t: 'admin' }>) => void;
 
@@ -22,6 +23,7 @@ let unlocked = false;
 /** Wire the WebSocket sender (called once from main). */
 export function bindAdmin(send: AdminSend): void {
   sendAdmin = send;
+  bindAdminTestes(send);
 }
 
 export function isAdminUnlocked(): boolean {
@@ -54,6 +56,7 @@ export function onAdminMsg(m: Extract<ServerMsg, { t: 'admin' } | { t: 'sky' }>)
   if (m.phase === 'players') renderPlayers(m.players);
   if (m.phase === 'feiraCart') renderFeiraCart(m.day, m.featured, m.games);
   if (m.phase === 'subscribers') renderSubscribers(m.subscribers);
+  if (m.phase === 'testes') onAdminTestState(m.state);
 }
 
 function showAuthError(pt: string): void {
@@ -174,6 +177,7 @@ function openAdminPanel(): void {
     en('Test subscriptions. No payment. The founder badge and banner stay if you revoke.', true),
     (subsEl = h('div', { class: 'admin-subs', id: 'admin-subs' }, h('p', { class: 'admin-empty' }, '…'))),
     h('button', { class: 'ghost', id: 'admin-subs-refresh', type: 'button', onclick: () => sendAdmin?.({ t: 'admin', action: 'subscribers' }) }, 'Atualizar assinaturas'),
+    adminTestesSection(),
     h('h3', null, 'Reais virtuais'),
     en('Adds RV to your own pocket.', true),
     h(
@@ -202,6 +206,7 @@ function openAdminPanel(): void {
   sendAdmin?.({ t: 'admin', action: 'list' });
   sendAdmin?.({ t: 'admin', action: 'feiraCart' });
   sendAdmin?.({ t: 'admin', action: 'subscribers' });
+  sendAdmin?.({ t: 'admin', action: 'testes' });
 }
 
 function feiraStateLabel(mode: FeiraCartAdminGame['mode']): string {

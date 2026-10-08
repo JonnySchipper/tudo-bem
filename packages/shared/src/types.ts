@@ -238,6 +238,16 @@ export interface PrivateProfile {
   bubbleStyle?: import('./subscription.js').BubbleStyle;
   /** Support subscription. Absent means never subscribed. */
   subscription?: import('./subscription.js').PlayerSubscription | null;
+  /**
+   * Set when an admin Testes action changes this profile. Public words and streak boards skip it.
+   * Absent means a normal player.
+   */
+  testUser?: boolean;
+  /**
+   * Admin test: the HUD plate and the overhead nameplate stay Verde.
+   * The earned escola tier is kept and comes back when this is off.
+   */
+  verdeMode?: boolean;
 }
 
 export interface Bilingual {

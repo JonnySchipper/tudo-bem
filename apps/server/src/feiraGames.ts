@@ -72,6 +72,8 @@ export interface FeiraGamesDeps {
   /** Push the public avatar so the crown overlay updates for people in the same room. */
   broadcastAvatar: (s: Session) => void;
   rng?: () => number;
+  /** Clock for the ET day key (paid runs, the board). Defaults to `now`. An admin day roll shifts only this. */
+  dayNow?: () => number;
   /** On/off switch. Omitted in older tests: a memory store that starts off. */
   cart?: FeiraCartStore;
   /**
@@ -146,18 +148,35 @@ export class FeiraGamesEngine {
     if (d.pin && isFeiraGameId(d.pin)) this.cart.setMode(d.pin, 'on');
   }
 
+  private calendarDay(): string {
+    return todayEastern((this.d.dayNow ?? this.d.now)());
+  }
+
+  /** Drop today's paid-run count for one player. Scores on the board stay. */
+  clearPaid(playerId: string): void {
+    const st = this.d.games.ensure(this.calendarDay());
+    if (!st.paid[playerId]) return;
+    delete st.paid[playerId];
+    this.d.games.persist();
+  }
+
+  /** Close the ET day the board is on and open `day` (medals, then a fresh paid-run count). */
+  rollBoard(day: string): void {
+    this.d.games.roll(day);
+  }
+
   /** Today's playable game, or null when every cart game is off (or not implemented yet). */
-  featuredNow(day = todayEastern(this.d.now())): FeiraGameId | null {
+  featuredNow(day = this.calendarDay()): FeiraGameId | null {
     const id = featuredEnabled(day, enabledFeiraGameIds(this.cart.config(), day));
     return isFeiraGameId(id) ? id : null;
   }
 
-  cartSnapshot(day = todayEastern(this.d.now())): { closed: boolean; game: FeiraGameId | null } {
+  cartSnapshot(day = this.calendarDay()): { closed: boolean; game: FeiraGameId | null } {
     const game = this.featuredNow(day);
     return { closed: game === null, game };
   }
 
-  cartView(day = todayEastern(this.d.now())) {
+  cartView(day = this.calendarDay()) {
     return feiraCartAdminView(this.cart.config(), day);
   }
 
@@ -166,7 +185,7 @@ export class FeiraGamesEngine {
     return this.cart.setMode(id, mode, schedule);
   }
 
-  cartMsg(day = todayEastern(this.d.now())): Extract<ServerMsg, { t: 'feiraGame'; phase: 'cart' }> {
+  cartMsg(day = this.calendarDay()): Extract<ServerMsg, { t: 'feiraGame'; phase: 'cart' }> {
     const snap = this.cartSnapshot(day);
     return { t: 'feiraGame', phase: 'cart', closed: snap.closed, game: snap.game };
   }
@@ -186,7 +205,7 @@ export class FeiraGamesEngine {
    * Copies new medals onto profiles and tells everyone the crown cleared.
    */
   tick(): { rolled: boolean; awards: { id: string; award: FeiraMedalAward }[] } {
-    const day = todayEastern(this.d.now());
+    const day = this.calendarDay();
     if (this.d.games.state.day === day) return { rolled: false, awards: [] };
     const awards = this.d.games.roll(day);
     this.applyMedals(awards);
@@ -220,7 +239,7 @@ export class FeiraGamesEngine {
     if (s.mg) return this.d.err(s, 'busy', BUSY.pt, BUSY.en);
     if (s.feiraGame && !s.feiraGame.done) return this.d.err(s, 'busy', BUSY.pt, BUSY.en);
     if (!this.near(s, FEIRA_CART_PROP)) return this.d.err(s, 'far', NEAR.pt, NEAR.en);
-    const day = todayEastern(this.d.now());
+    const day = this.calendarDay();
     const game = this.featuredNow(day);
     if (!game || !feiraModule(game) || !isFeiraGameId(game)) return this.d.err(s, 'feira_closed', CLOSED.pt, CLOSED.en);
     const seed = (Math.floor((this.d.rng ?? Math.random)() * 0x7fffffff) ^ (this.d.now() & 0xffff)) >>> 0;
@@ -237,7 +256,7 @@ export class FeiraGamesEngine {
     const p = s.profile;
     const run = s.feiraGame;
     if (!p || !run || run.done) return this.d.err(s, 'no_run', 'Não há jogo aberto.', 'There is no open game.');
-    const day = todayEastern(this.d.now());
+    const day = this.calendarDay();
     if (!enabledFeiraGameIds(this.cart.config(), day).includes(run.game)) {
       run.done = true;
       s.feiraGame = undefined;
@@ -267,7 +286,7 @@ export class FeiraGamesEngine {
     rejected: boolean,
   ): void {
     const p = s.profile!;
-    const st = this.d.games.ensure(todayEastern(this.d.now()));
+    const st = this.d.games.ensure(this.calendarDay());
     // a run started yesterday and finished after midnight still scores on the new day (the board it lands on)
     const score = judged.score;
     const wouldPay = rejected ? 0 : feiraPayout(score, judged.served);
@@ -333,7 +352,7 @@ export class FeiraGamesEngine {
     for (const id of Object.keys(st.medals)) {
       if (!names[id]) names[id] = this.d.store.get(id)?.name ?? id;
     }
-    const day = todayEastern(this.d.now());
+    const day = this.calendarDay();
     const snap = this.cartSnapshot(day);
     s.send({
       t: 'feiraGame',

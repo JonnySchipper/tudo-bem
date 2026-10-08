@@ -77,6 +77,8 @@ export interface ConversaApiDeps {
   playerIdFor?: (req: IncomingMessage) => string | undefined;
   /** The game minute (0..1439): the NPC greets with the hour that fits it (bom dia / boa tarde / boa noite). */
   clockMinutes?: () => number;
+  /** São Paulo day the Conversa payout cap uses. Defaults to the real date. */
+  dateKey?: () => string;
 }
 
 interface ConversaStartRequest {
@@ -401,7 +403,7 @@ async function handleEnd(req: ConversaEndRequest, res: ServerResponse, deps: Con
   const grantRv = rv > 0 && shouldGrantRV(req.npcId, daily, rvOnceFromEnv());
   const rvNote: RvNote | undefined = !grantRv && rv > 0 ? 'already_today' : undefined;
 
-  const todayKey = conversaDateKey();
+  const todayKey = deps.dateKey?.() ?? conversaDateKey();
   const updateDaily: ConversaEndResponse['updateDaily'] = {
     conversaClears: { ...daily.conversaClears, [req.npcId]: todayKey },
   };

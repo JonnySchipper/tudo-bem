@@ -67,6 +67,8 @@ export interface EscolaDeps {
   npcsIn: (room: RoomId) => { id: NpcId; tile: Tile; interact: Tile }[];
   rng: () => number;
   now: () => number;
+  /** Calendar ms for "which day is it" (streak, RV cap, the mission). Defaults to `now`. */
+  dayNow?: () => number;
   /** The plate colour changed: show it to everyone in the room. */
   avatarChanged: (s: Session) => void;
   /** A short line to the other players in the same room. */
@@ -298,7 +300,7 @@ export class EscolaTracker {
     const p = s.profile;
     if (!p) return;
     const st = escolaOf(p);
-    const today = localDay(this.d.now(), st.tz);
+    const today = localDay(this.d.dayNow?.() ?? this.d.now(), st.tz);
     const m = st.mission;
     if (!m || m.done || m.day !== today || m.area !== word.area) return;
     m.done = true;
@@ -317,7 +319,7 @@ export class EscolaTracker {
     if (!l || !p) return;
     const st = escolaOf(p);
     const now = this.d.now();
-    const today = localDay(now, l.tz);
+    const today = localDay(this.d.dayNow?.() ?? now, l.tz);
     const strengthened: StrengthenedWord[] = [];
     let newlyMastered = 0;
     for (const [id, right] of l.results) {
@@ -346,7 +348,7 @@ export class EscolaTracker {
     const tier = earnedTier(st, p.diary);
     const tierUp = tierRank(tier) > tierRank(before) ? tier : null;
     st.tier = tier;
-    p.nameplate = tier;
+    p.nameplate = p.verdeMode ? 'verde' : tier;
     let mission = null;
     if (!partial) {
       if (st.mission?.day !== today) {

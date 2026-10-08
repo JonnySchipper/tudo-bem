@@ -798,6 +798,30 @@ html {
   overflow: auto;
 }
 
+.admin-testes h4 {
+  margin: 10px 0 2px;
+  font-size: 0.95rem;
+}
+
+.admin-test-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 6px 0;
+}
+
+.admin-test-row button.on {
+  outline: 2px solid #2a2233;
+  outline-offset: 1px;
+}
+
+.admin-test-read,
+.admin-test-found {
+  margin: 6px 0;
+  font-weight: 800;
+}
+
 .admin-feira-featured {
   margin: 8px 0 4px;
   font-weight: 800;

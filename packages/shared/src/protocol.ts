@@ -27,6 +27,7 @@ import type { PriceOption, VendorId } from './feira.js';
 import type { Weather } from './weather.js';
 import type { FeiraBoardRow, FeiraCartAdminGame, FeiraCartMode, FeiraCartSchedule, FeiraGameId, FeiraMedalTally, FeiraOrderOutcome } from './feiraGames.js';
 import type { BoardRow } from './leaderboards.js';
+import type { AdminTestSnapshot } from './adminTestes.js';
 
 /** Client → server messages. JSON over a single WebSocket at /ws. */
 export type ClientMsg =
@@ -143,6 +144,22 @@ export type ClientMsg =
   /** Dev/test subscription (no payment). Admin socket only. */
   | { t: 'admin'; action: 'grantSub'; targetId: string }
   | { t: 'admin'; action: 'revokeSub'; targetId: string }
+  /**
+   * Testes (admin socket only). `username` omitted means the signed-in admin.
+   * Each action is refused until the admin password has unlocked this socket.
+   */
+  | { t: 'admin'; action: 'testes'; username?: string }
+  | { t: 'admin'; action: 'testBelt'; username?: string; belt?: Belt; stripes?: number; wins?: number; deltaWins?: number }
+  | { t: 'admin'; action: 'testCoins'; username?: string; coins: number }
+  | { t: 'admin'; action: 'testProgress'; username?: string; xp?: number; goal?: number; verde?: boolean; tz?: number }
+  | { t: 'admin'; action: 'testEscola'; username?: string; streak?: number; words?: number; tz?: number }
+  | { t: 'admin'; action: 'testTeleport'; username?: string; room: RoomId }
+  | { t: 'admin'; action: 'testClock'; minute?: number; rollDay?: boolean }
+  | { t: 'admin'; action: 'testCaps'; username?: string }
+  | { t: 'admin'; action: 'testTutorial'; username?: string; mode: 'reset' | 'skip' }
+  | { t: 'admin'; action: 'testPadaria'; username?: string; menu?: number; stage?: 0 | 1 | 2 | 3 }
+  | { t: 'admin'; action: 'testPerk'; username?: string; grant?: boolean; revoke?: boolean; pet?: 'dog' | 'cat' | null; bubble?: import('./subscription.js').BubbleStyle }
+  | { t: 'admin'; action: 'testReset'; username?: string; confirm?: boolean }
   /** Subscriber pet and chat-bubble appearance. The server ignores a perk the subscription does not currently allow. */
   | { t: 'perk'; action: 'pet'; pet: 'dog' | 'cat' | null }
   | { t: 'perk'; action: 'bubble'; style: import('./subscription.js').BubbleStyle }
@@ -473,6 +490,7 @@ export type ServerMsg =
   | { t: 'admin'; phase: 'auth'; ok: false; pt: string; en: string }
   | { t: 'admin'; phase: 'players'; players: AdminPlayerRow[] }
   | { t: 'admin'; phase: 'subscribers'; subscribers: AdminSubscriberRow[] }
+  | { t: 'admin'; phase: 'testes'; state: AdminTestSnapshot }
   | { t: 'admin'; phase: 'disabled'; pt: string; en: string }
   /** Feira cart switches. `featured` is today's playable game, or null when the cart is closed. */
   | { t: 'admin'; phase: 'feiraCart'; day: string; featured: FeiraGameId | null; games: FeiraCartAdminGame[] }

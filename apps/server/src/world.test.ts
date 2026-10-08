@@ -1,7 +1,8 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import {
   buildGrid,
   CPU_NAMES,
+  DIARY_WORDS,
   gameMinutes,
   greetingCap,
   greetingFor,
@@ -1081,5 +1082,86 @@ describe('Admin panel', () => {
     const still = a.all('admin').filter((m) => m.phase === 'feiraCart').at(-1);
     expect(still && still.phase === 'feiraCart' && still.games.find((g) => g.id === 'tapioca')?.mode).toBe('on');
     expect(still && still.phase === 'feiraCart' && still.games.find((g) => g.id === 'pastel')?.mode).toBe('off');
+  });
+
+  it('rejects every Testes action without the admin password', async () => {
+    const { world } = makeWorld(16, { adminPassword: 'tb-admin-praca' });
+    const a = await client(world, 'Jonny');
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const coins = a.s.profile!.coins;
+    const minute = world.gameMinuteNow();
+    const day = a.s.profile!.recados?.day;
+    const actions: ClientMsg[] = [
+      { t: 'admin', action: 'testes' },
+      { t: 'admin', action: 'testBelt', belt: 'azul' },
+      { t: 'admin', action: 'testCoins', coins: 500 },
+      { t: 'admin', action: 'testProgress', xp: 20, goal: 30, verde: true },
+      { t: 'admin', action: 'testEscola', streak: 4, words: 3 },
+      { t: 'admin', action: 'testTeleport', room: 'escola' },
+      { t: 'admin', action: 'testClock', minute: 120 },
+      { t: 'admin', action: 'testClock', rollDay: true },
+      { t: 'admin', action: 'testCaps' },
+      { t: 'admin', action: 'testTutorial', mode: 'skip' },
+      { t: 'admin', action: 'testPadaria', menu: 6, stage: 2 },
+      { t: 'admin', action: 'testPerk', grant: true, pet: 'dog', bubble: 'sol' },
+      { t: 'admin', action: 'testPerk', revoke: true },
+      { t: 'admin', action: 'testReset', confirm: true },
+    ];
+    for (const msg of actions) {
+      await a.send(msg);
+      expect(a.last('admin')).toMatchObject({ phase: 'auth', ok: false });
+    }
+    expect(a.s.profile!.coins).toBe(coins);
+    expect(a.s.profile!.testUser).not.toBe(true);
+    expect(a.s.profile!.bjj?.wins ?? 0).toBe(0);
+    expect(a.s.instance?.def.id).toBe('praca');
+    expect(world.gameMinuteNow()).toBe(minute);
+    expect(a.s.profile!.recados?.day).toBe(day);
+    expect(log.mock.calls.some((c) => String(c[0]).includes('[admin-testes] rejected'))).toBe(true);
+    log.mockRestore();
+  });
+
+  it('sets a belt from wins, promotes on the fourth stripe, and unlocks founding at brown', async () => {
+    const { world } = makeWorld(16, { adminPassword: 'tb-admin-praca' });
+    const a = await client(world, 'Jonny');
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    await a.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
+    await a.send({ t: 'admin', action: 'testBelt', belt: 'branca', stripes: 3 });
+    expect(a.s.profile!.bjj).toMatchObject({ belt: 'branca', stripes: 3, wins: 15 });
+    expect(a.last('admin')).toMatchObject({ phase: 'testes', state: { belt: 'branca', stripes: 3, wins: 15, canFound: false } });
+    await a.send({ t: 'admin', action: 'testBelt', stripes: 4 });
+    expect(a.s.profile!.bjj).toMatchObject({ belt: 'azul', stripes: 0, wins: 20 });
+    await a.send({ t: 'admin', action: 'testBelt', belt: 'marrom' });
+    expect(a.s.profile!.bjj).toMatchObject({ belt: 'marrom', stripes: 0, wins: 140 });
+    expect(a.s.profile!.testUser).toBe(true);
+    expect(a.last('avatarUpdated')?.avatar.belt).toBe('marrom');
+    await a.send({ t: 'admin', action: 'testTeleport', room: 'academia' });
+    expect(a.s.instance?.def.id).toBe('academia');
+    await a.send({ t: 'academy', action: 'directory' });
+    expect(a.last('academy')).toMatchObject({ phase: 'directory', canFound: true });
+    await a.send({ t: 'admin', action: 'testBelt', wins: 139 });
+    expect(a.s.profile!.bjj).toMatchObject({ belt: 'roxa', wins: 139 });
+    await a.send({ t: 'academy', action: 'directory' });
+    expect(a.last('academy')).toMatchObject({ phase: 'directory', canFound: false });
+    expect(log.mock.calls.some((c) => String(c[0]).startsWith('[admin-testes]'))).toBe(true);
+    log.mockRestore();
+  });
+
+  it('leaves admin-adjusted profiles off the public words and streak boards', async () => {
+    const { world } = makeWorld(16, { adminPassword: 'tb-admin-praca' });
+    const admin = await client(world, 'Jonny');
+    const other = await client(world, 'Lia');
+    other.s.profile!.diary = DIARY_WORDS.slice(0, 2).map((w) => w.id);
+    const words = Math.min(8, DIARY_WORDS.length);
+    expect(words).toBeGreaterThan(2);
+    await admin.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
+    await admin.send({ t: 'admin', action: 'testEscola', words, streak: 12, tz: 0 });
+    expect(admin.s.profile!.testUser).toBe(true);
+    expect(admin.s.profile!.diary).toHaveLength(words);
+    await other.send({ t: 'leaderboards' });
+    const board = other.last('leaderboards');
+    expect(board?.words.some((row) => row.name === 'Jonny')).toBe(false);
+    expect(board?.streak.some((row) => row.name === 'Jonny')).toBe(false);
+    expect(board?.words.some((row) => row.name === 'Lia' && row.score === 2)).toBe(true);
   });
 });

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { WebSocketServer, type WebSocket } from 'ws';
-import { WS_MAX_PAYLOAD, type ClientMsg } from '@tudobem/shared';
+import { WS_MAX_PAYLOAD, conversaDateKey, type ClientMsg } from '@tudobem/shared';
 import { World, type CloseReason } from './world.js';
 import { ProfileStore } from './store.js';
 import { AcademyStore } from './academyStore.js';
@@ -217,6 +217,7 @@ export function createApp(opts: AppOptions) {
         onConversaLine: (playerId, who, pt) => world.conversaLine(playerId, who, pt),
         memory: conversaMemory,
         clockMinutes: () => world.gameMinuteNow(),
+        dateKey: () => conversaDateKey(world.wallNow()),
         playerIdFor: (r) => accounts.accountForSession(sessionCookieOf(r))?.profileId,
       });
     }

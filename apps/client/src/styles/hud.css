@@ -224,6 +224,37 @@
   padding: 2px 12px;
 }
 
+.hud-belt {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.hud-belt .band {
+  width: 16px;
+  height: 7px;
+  border: 2px solid #1c1c28;
+  box-sizing: border-box;
+}
+
+.hud-belt .pip {
+  width: 4px;
+  height: 7px;
+  border: 1px solid #1c1c28;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.hud-belt .pip.on {
+  background: #1c1c28;
+}
+
+.hud-belt.belt-branca .band { background: #f4f1ea; }
+.hud-belt.belt-azul .band { background: #2f5fb0; }
+.hud-belt.belt-roxa .band { background: #6b3fa0; }
+.hud-belt.belt-marrom .band { background: #6b3a1f; }
+.hud-belt.belt-preta .band { background: #1c1c28; }
+
 .hud-verde {
   display: inline-flex;
   align-items: center;

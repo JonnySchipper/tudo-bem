@@ -161,7 +161,9 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.diary = normalizeDiary(p.diary);
   // saves from before the escola lessons: every diary word is learned (new), nothing mastered, the plate Verde
   p.escola = normalizeEscola(p.escola, p.diary);
-  p.nameplate = earnedTier(p.escola, p.diary);
+  p.testUser = p.testUser === true;
+  p.verdeMode = p.verdeMode === true;
+  p.nameplate = p.verdeMode ? 'verde' : earnedTier(p.escola, p.diary);
   p.film = normalizeFilm(p.film);
   p.photos = normalizePhotos(p.photos);
   p.cartela = normalizeCartela(p.cartela);
@@ -196,9 +198,9 @@ function normalizeSubscription(raw: unknown): PlayerSubscription | undefined {
   return { status: r.status, currentPeriodEnd: end, portalUrl: portal, providerSubscriptionId: subId, provider };
 }
 
-export function toPrivate(p: StoredProfile): PrivateProfile {
+export function toPrivate(p: StoredProfile, day = today()): PrivateProfile {
   // photos travel in their own `photos` message (World.pushPhotos), only when they change
   const { token: _t, ageGate18: _a, accountId: _acc, daily: _d, lastSeen: _l, photos: _ph, billingEventIds: _ev, ...rest } = p;
-  const mission = p.mission?.date === today() ? p.mission : freshMission(today());
+  const mission = p.mission?.date === day ? p.mission : freshMission(day);
   return structuredClone({ ...rest, mission, bjj: normalizeBjj(p.bjj) });
 }

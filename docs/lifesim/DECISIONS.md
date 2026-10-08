@@ -1685,3 +1685,14 @@ Caldo de cana is the third slot in the same rotation (`tapioca`, `pastel`, `cald
 - **Orders and score.** `caldoOrders(seed)` is pure. Lines are bilingual, for example "Um caldo de cana com limão, com gelo, por favor." / "A sugarcane juice with lime, with ice, please." Flavors: limão, abacaxi, maracujá, gengibre, hortelã, laranja, abacaxi com hortelã. The server recomputes the score and keeps the same 500 cap, 8–20 RV band, +5 flawless (25), and 3 paid runs a day. Beta stays free. Chat, belts, nameplates, and stripes are untouched.
 - **Code.** `packages/shared/src/feiraCaldo.ts`, `apps/client/src/ui/feiraCaldo.ts`, `apps/client/src/styles/feiraCaldo.css`. Shots: `docs/lifesim/shots/feira-games/` (`play-*-caldo-*`).
 
+## Admin Testes (2026-10-08)
+
+The credits admin panel has a Testes section for the signed-in admin's own profile (or one username). It reuses the existing password check (`s.admin` after `adminPasswordMatches`). Nothing in it is shown to a normal player, and every action is refused until that check passes.
+
+- **testUser.** A boolean on the profile, set when a Testes action writes the profile. The public words and streak boards (`Leaderboards.rebuild` and `entriesFromProfiles`) skip `testUser` before they rank. The clock and a teleport do not write the profile and do not set the flag. A side table of touched ids would not survive a restart; the flag does.
+- **Belts.** Wins stay the source of truth (`normalizeBjj` / `BELT_LADDER`). Picking a belt or a stripe count writes the win total that rank already means (white 5, blue 10, purple 20, brown 40, black 80; four stripes, then promote). Brown at 140 wins can found an academy; 139 cannot. The grip-fight protocol is untouched.
+- **Verde.** Verde mode forces the plate the HUD and the nameplate show to Verde. `escola.tier` is kept and comes back when the mode is off.
+- **Day roll.** One game day on the neighborhood clock (errands follow `clockNow`) and 24 hours on the payout date keys (Feira paid runs, escola lesson RV, cartela, correria, conversa, pedido). The public boards stay on the real São Paulo date, so a day roll does not rewrite who is on them. Test profiles are filtered out either way.
+- **Not in this change.** Billing, the Lemon Squeezy webhook, learning content, and chat moderation.
+- **Shots.** `docs/lifesim/shots/admin/`.
+

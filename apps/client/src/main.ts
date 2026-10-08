@@ -26,6 +26,7 @@ import {
   diaryVisible,
   PHOTO_SPOTS,
   normalizeDiary,
+  normalizeBjj,
   wordForLine,
   furnitureById,
   greetingFor,
@@ -167,6 +168,17 @@ function failClearMinigame() {
 // ---------------------------------------------------------------- helpers
 
 const now = () => performance.now();
+
+/** Keep your own nameplate and belt in step with a profile push (the HUD reads the profile; the plate reads the avatar). */
+function syncSelfPlate(p: NonNullable<typeof game.profile>): void {
+  const me = game.avatars.get(p.id);
+  if (!me) return;
+  me.pub.nameplate = p.nameplate;
+  const bjj = normalizeBjj(p.bjj);
+  const ranked = p.testUser === true || bjj.belt !== 'branca' || bjj.stripes > 0 || bjj.wins > 0;
+  me.pub.belt = me.pub.gi || me.pub.academyGi || ranked ? bjj.belt : undefined;
+  game.emit('avatars');
+}
 
 function toClientAvatar(pub: ClientAvatar['pub']): ClientAvatar {
   return { pub, from: { x: pub.x, y: pub.y }, path: [], start: now(), sitOnArrive: false, emote: null, bubbles: [], seed: Math.random() * 10 };
@@ -725,6 +737,7 @@ net.on((m: ServerMsg) => {
       break;
     case 'profile':
       game.profile = m.profile;
+      syncSelfPlate(m.profile);
       if (!m.profile.hasCamera) game.cameraOn = false;
       syncCameraBanner();
       syncGrants((id) => net.send({ t: 'grant', id }));
