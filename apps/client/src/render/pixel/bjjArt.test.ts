@@ -121,6 +121,20 @@ describe('palette swaps: the player is always the white gi, the partner always t
     expect(run(c, BELT_BLACK)).toEqual(packed(buildRamp(BELT_COLORS.branca, 3)));
   });
 
+  it('the partner wears their own belt on the blue gi, on top or under', () => {
+    const under: PairColors = { ...colors('you'), partnerBelt: 'roxa' };
+    expect(run(under, BELT_BLACK)).toEqual(packed(buildRamp(BELT_COLORS.roxa, 3)));
+    expect(run(under, KEY_RAMPS.belt)).toEqual(packed(buildRamp(BELT_COLORS.azul, 3)));
+    const over: PairColors = { ...colors('partner', 'branca'), partnerBelt: 'roxa' };
+    expect(run(over, KEY_RAMPS.belt)).toEqual(packed(buildRamp(BELT_COLORS.roxa, 3)));
+    expect(run(over, BELT_BLACK)).toEqual(packed(buildRamp(BELT_COLORS.branca, 3)));
+    expect(colorsSig(under)).not.toBe(colorsSig(colors('you')));
+    for (const c of [under, over]) {
+      const sources = [...pairTable(c).keys()];
+      expect(new Set(sources).size).toBe(sources.length);
+    }
+  });
+
   it('a neutral frame (nobody on top) is the player-on-top table', () => {
     expect(run(colors(null), KEY_RAMPS.skin)).toEqual(run(colors('you'), KEY_RAMPS.skin));
   });

@@ -29,7 +29,6 @@ export * from './playerPadaria.js';
 export * from './matFight.js';
 export * from './challenges.js';
 export * from './bout.js';
-export * from './gripFight.js';
 export * from './auth.js';
 export * from './clock.js';
 export * from './weather.js';

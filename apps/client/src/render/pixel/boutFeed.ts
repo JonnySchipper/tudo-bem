@@ -16,6 +16,12 @@ export type StageCue =
   | { t: 'hit'; strength: 1 | 2 }
   | { t: 'miss' }
   | { t: 'long' }
+  /** A white hit flash on the pair (2: a throw or points, 1: a blocked attack). */
+  | { t: 'flash'; strength: 1 | 2 }
+  /** A word that pops off the fighter who earned it (Vantagem!, a grip snap, a strip, a slip, a brace). */
+  | { t: 'pop'; kind: 'vantagem' | 'grip' | 'strip' | 'slip' | 'brace'; side: 'you' | 'partner'; text: string }
+  /** The move's ground read: an arrow over the pair toward who gained the ground. */
+  | { t: 'ground'; dir: 'gain' | 'loss'; delta: number }
   | {
       t: 'cartoon';
       move: string;
@@ -31,6 +37,8 @@ export interface FeedPartner {
   id: string;
   name: string;
   appearance: Appearance;
+  /** The belt the partner wears on the mat. The bot fights at the player's own belt, so that is the default. */
+  belt?: Belt;
 }
 
 class BoutFeed {
@@ -58,6 +66,7 @@ class BoutFeed {
     this.snap = snap;
     this.cues = [];
     this.holding = false;
+    this.fightBoxPx = 0;
     this.epoch++;
   }
 
@@ -89,7 +98,17 @@ class BoutFeed {
   setBoxes(bottom: number, top: number): void {
     this.boxPx = Math.max(0, Math.round(bottom));
     this.topPx = Math.max(0, Math.round(top));
+    if (this.active) this.fightBoxPx = Math.max(this.fightBoxPx, this.boxPx);
   }
+
+  /**
+   * The tallest the overlay has been this match (CSS px), at least `floor` of the screen: the fight camera sizes the fighters by it,
+   * so the zoom holds still while the panel changes between picking, resolving and thinking.
+   */
+  fightBox(viewCssH: number, floor = 0.38): number {
+    return Math.max(this.fightBoxPx, Math.round(viewCssH * floor));
+  }
+  private fightBoxPx = 0;
 }
 
 export const boutFeed = new BoutFeed();
