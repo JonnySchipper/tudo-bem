@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ROOMS } from '@tudobem/shared';
-import { T, cssZoomFor, deviceZoomFor, fitsAt, outdoorFraming, roomFraming, roomZoom, viewTop, type Insets } from './coords';
+import { EDGE_KNEE, T, cssZoomFor, deviceZoomFor, fitsAt, outdoorFraming, roomFraming, roomZoom, viewTop, type Insets } from './coords';
 import { roomBounds } from './roomLayout';
 
 // Phase 4a: the whole room, wall band included, when it fits; otherwise follow the avatar with the north wall in view.
@@ -179,7 +179,10 @@ describe('outdoorFraming', () => {
     // mid-map, below the north-sidewalk hold: the camera has followed down and is not pinned to an edge
     const north = outdoorFraming(desktop, b, { x: 16 * T, y: 4 * T }, desktopIns, css, 1);
     const mid = outdoorFraming(desktop, b, { x: 16 * T, y: 14 * T }, desktopIns, css, 1);
-    expect(free(north).y0).toBeCloseTo(b.y0, 5);
+    // the soft edge (issue #154) may leave the view a few px short of the sky margin's top, never past it, and never into the map itself
+    expect(free(north).y0).toBeGreaterThanOrEqual(b.y0 - 1e-6);
+    expect(free(north).y0).toBeLessThanOrEqual(b.y0 + EDGE_KNEE / 4);
+    expect(free(north).y0).toBeLessThan(0);
     expect(mid.cy).toBeGreaterThan(north.cy);
     expect(mid.cx).toBeCloseTo(16 * T, 5);
     const seenMid = free(mid);
