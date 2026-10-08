@@ -54,6 +54,8 @@ export class CorreriaUI {
   private quitBtn: HTMLButtonElement;
   private quitArmed = 0;
   private lastPourSfx = 0;
+  private teachId = '';
+  private bumpShown = false;
   private handlers: CounterHandlers;
 
   constructor(private readonly a: CorreriaActions) {
@@ -232,8 +234,37 @@ export class CorreriaUI {
     } else correriaFeed.update(snap);
     this.syncEn();
     if (!resync) for (const e of ev) this.onEvent(e, snap);
+    this.showTeach(snap);
     this.render();
     this.measure();
+  }
+
+  /** One-time how-to (and the pay bump) at the start of the shift. On screen, not spoken. English stays visible when the player hides EN. */
+  private showTeach(snap: CorreriaSnap): void {
+    const lesson = snap.lesson;
+    if (lesson && this.teachId !== lesson.id) {
+      this.teachId = lesson.id;
+      this.mountTeach(lesson.title, lesson.steps, snap.bump);
+      if (snap.bump) this.bumpShown = true;
+      return;
+    }
+    if (snap.bump && !this.bumpShown) {
+      this.bumpShown = true;
+      this.mountTeach(snap.bump, [], null);
+    }
+  }
+
+  private mountTeach(title: Bilingual, steps: Bilingual[], bump: Bilingual | null): void {
+    this.root.querySelector('#cr-lesson')?.remove();
+    const card = h(
+      'div',
+      { class: 'cr-lesson', id: 'cr-lesson', role: 'dialog', 'aria-label': title.pt },
+      h('h3', null, h('span', { class: 'pt' }, title.pt), h('span', { class: 'gloss' }, title.en)),
+      steps.length ? h('ol', null, ...steps.map((s) => h('li', null, h('span', { class: 'pt' }, s.pt), h('span', { class: 'gloss' }, s.en)))) : null,
+      bump ? h('p', { class: 'cr-bump' }, bump.pt, h('span', { class: 'gloss' }, bump.en)) : null,
+      h('button', { type: 'button', class: 'cr-lesson-ok', onclick: () => card.remove() }, h('span', { class: 'pt' }, 'Entendi'), h('span', { class: 'gloss' }, 'Got it')),
+    );
+    this.root.append(card);
   }
 
   private onEvent(e: CEvent, snap: CorreriaSnap): void {
@@ -485,6 +516,7 @@ export class CorreriaUI {
 
   private onEnd(m: Extract<MgServerMsg, { phase: 'end' }>): void {
     this.ended = true;
+    this.root.querySelector('#cr-lesson')?.remove();
     document.body.classList.add('cr-ended');
     const lost = !!m.lost;
     const model = endModel(m.end, m.carlos);
@@ -502,6 +534,7 @@ export class CorreriaUI {
         ? null
         : h('div', { class: 'cr-end-rows' }, ...model.rows.map((r) => h('div', { class: 'row' }, h('span', { class: 'k' }, r.label.pt, h('span', { class: 'en' }, r.label.en)), h('b', null, r.value)))),
       !lost && m.end.dailyBlocked ? h('p', { class: 'cr-end-daily' }, 'RV de hoje: já pagamos os turnos do dia. As estrelas contam!', h('span', { class: 'en' }, 'Today’s paid shifts are used up. The stars still count!')) : null,
+      !lost && m.end.menuNote ? h('p', { class: 'cr-end-daily cr-end-bump' }, m.end.menuNote.pt, h('span', { class: 'gloss' }, m.end.menuNote.en)) : null,
       !lost && model.words.length ? h('div', { class: 'cr-end-words' }, h('b', null, 'Palavras novas no Caderno'), ...model.words.map((w) => h('span', { class: 'cr-chip' }, w.pt, h('span', { class: 'en' }, w.en)))) : null,
       !lost ? this.ownerNext() : null,
       !lost && model.unlocks.length ? h('div', { class: 'cr-end-unlock' }, h('b', null, 'Novidade no balcão! ✨'), ...model.unlocks.map((u) => h('span', null, u.pt, h('span', { class: 'en' }, u.en)))) : null,
@@ -523,6 +556,9 @@ export class CorreriaUI {
     this.panel.classList.remove('ended');
     this.snap = null;
     this.ended = false;
+    this.teachId = '';
+    this.bumpShown = false;
+    this.root.querySelector('#cr-lesson')?.remove();
     this.mirrorSig = '';
     this.askSig = '';
     correriaFeed.end();

@@ -3,10 +3,10 @@ import { POUR_HOLD, nextPourHold, pourTargetMs } from './correria-play.mjs';
 
 const start = () => ({ hold: POUR_HOLD.start, spills: 0 });
 
-describe('Correria pour hold', () => {
-  it('starts where a late page timer and an on-time one both land', () => {
-    // Server window is 70%–108%. Run 37232979457 spilled hold 0.74 at fill 1.09 (~0.35 late).
-    // 0.70 + that lateness is 1.05, and 0.70 itself is still a legal cup.
+describe('Correria tap-to-stop pour', () => {
+  it('waits between the start tap and the stop tap where a late page timer and an on-time one both land', () => {
+    // Server window is 70%–108%. Run 37232979457: a 0.74 wait landed at fill 1.09 (~0.35 late).
+    // 0.70 + that lateness is 1.05, and 0.70 itself is still a legal cup. Not a pointer hold.
     const ms = pourTargetMs(1800, POUR_HOLD.start);
     expect(POUR_HOLD.start).toBe(0.7);
     expect(POUR_HOLD.start + 0.35).toBeLessThan(1.08);

@@ -11,13 +11,18 @@ import {
   newShift,
   newUnlocks,
   normalizeCorreria,
+  noteLesson,
   npcDefById,
+  payBump,
+  pendingLesson,
   sanitizeAct,
   shiftAct,
   shiftAdvance,
+  shiftItemPool,
   shiftSnapshot,
   summarizeShift,
   unlockedFor,
+  whereRequired,
   type Bilingual,
   type CEvent,
   type ClientMsg,
@@ -126,16 +131,26 @@ export class CorreriaEngine {
       return this.d.err(s, 'mg', 'O jogo fica no balcão da padaria.', 'The game is at the bakery counter.');
     }
     s.scene = undefined;
+    const rawTaught = !!(p.correria && Array.isArray((p.correria as { taught?: unknown }).taught));
     p.correria = normalizeCorreria(p.correria);
     const stars = p.correria.stars;
     const clk = this.d.clock();
     const regulars = REGULAR_NPCS.map((npc) => ({ npc, hearts: hearts(p.bond?.[npc] ?? 0) })).filter((r) => r.hearts >= 1 && npcDefById(r.npc));
     const menuIds = this.d.ownedMenu?.(s);
+    const pool = shiftItemPool({ shifts: p.correria.shifts, menuIds });
+    const taughtBefore = [...(p.correria.taught ?? [])];
+    const lesson = pendingLesson(pool.map((i) => i.id), taughtBefore, whereRequired(pool.length));
+    const nextTaught = noteLesson(taughtBefore, lesson);
+    p.correria.taught = nextTaught;
+    if (!rawTaught || nextTaught.join('\n') !== taughtBefore.join('\n')) this.d.store.save();
     const shift = newShift({
       seed: (this.d.now() ^ (Math.random() * 1e9)) >>> 0,
       level: levelForStars(stars),
       unlocked: unlockedFor(stars),
+      shifts: p.correria.shifts,
       menuIds,
+      lesson,
+      bump: payBump(p.correria.shifts, menuIds),
       saturday: clk.saturday,
       minute: clk.minute,
       baker: clk.baker,
@@ -193,7 +208,7 @@ export class CorreriaEngine {
 
   // ------------------------------------------------------------------ the end
 
-  private summaryToEnd(s: Session, sum: ShiftSummary, coins: number, dailyBlocked: boolean, before: number, wordsNew: Bilingual[]): CorreriaEnd {
+  private summaryToEnd(s: Session, sum: ShiftSummary, coins: number, dailyBlocked: boolean, before: number, wordsNew: Bilingual[], menuNote: Bilingual | null): CorreriaEnd {
     const p = s.profile!;
     const cp = normalizeCorreria(p.correria);
     return {
@@ -214,6 +229,7 @@ export class CorreriaEngine {
       totalStars: cp.stars,
       level: levelForStars(cp.stars),
       regulars: sum.regulars.map((k) => npcDefById(k.replace('npc:', '') as NpcId)?.name ?? k),
+      menuNote,
     };
   }
 
@@ -253,7 +269,7 @@ export class CorreriaEngine {
       if (!abandoned) this.d.shiftWon?.(s, sum.items);
     }
     this.d.pushProfile(s);
-    const end = this.summaryToEnd(s, sum, coins, dailyBlocked, before, wordsNew);
+    const end = this.summaryToEnd(s, sum, coins, dailyBlocked, before, wordsNew, run.shift.ctx.bump ?? null);
     const carlos: Bilingual =
       sum.served === 0
         ? { pt: 'Turno encerrado. Dessa vez não deu RV — pode começar de novo quando quiser.', en: 'Shift closed. No RV this time — you can start again whenever you want.' }

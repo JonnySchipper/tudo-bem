@@ -204,6 +204,8 @@ export interface CorreriaEnd {
   totalStars: number;
   level: number;
   regulars: string[];
+  /** Set when this shift's menu just grew: "+1 item no cardápio: pagamento +6%". */
+  menuNote?: Bilingual | null;
 }
 
 export type MgServerMsg =

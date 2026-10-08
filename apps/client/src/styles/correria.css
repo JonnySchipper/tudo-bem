@@ -77,6 +77,17 @@ body.cr-on .toasts {
   display: none;
 }
 
+/* Lesson and pay-bump English stays on even when the player hides the rest of the glosses. */
+.cr-root .gloss {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.78em;
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1.2;
+  color: var(--cr-green);
+}
+
 /* ---------------------------------------------------------------- HUD (top) */
 
 .cr-top {
@@ -542,6 +553,69 @@ body.cr-on .toasts {
 
 .cr-wave.on {
   animation: cr-banner 1.9s ease-out forwards;
+}
+
+/* One-time how-to at the start of a shift. Sits over the counter, does not push the order strip. */
+.cr-lesson {
+  position: absolute;
+  left: 50%;
+  top: 16%;
+  transform: translateX(-50%);
+  width: min(420px, calc(100vw - 24px));
+  max-height: min(46vh, 320px);
+  overflow: auto;
+  pointer-events: auto;
+  z-index: 4;
+  padding: 10px 14px 12px;
+  background: var(--cr-paper);
+  color: var(--cr-ink);
+  border: 3px solid var(--cr-ink);
+  box-shadow: 4px 4px 0 #14101a;
+}
+
+.cr-lesson h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.cr-lesson h3 .gloss,
+.cr-lesson-ok .gloss,
+.cr-end-bump .gloss {
+  display: inline;
+  margin: 0 0 0 6px;
+}
+
+.cr-lesson ol {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.cr-lesson li {
+  margin: 5px 0;
+}
+
+.cr-lesson li .pt,
+.cr-lesson .cr-bump {
+  display: block;
+  font-weight: 800;
+}
+
+.cr-lesson .cr-bump {
+  margin: 8px 0 0;
+}
+
+.cr-lesson-ok {
+  margin-top: 8px;
+  padding: 6px 12px;
+  background: var(--cr-green);
+  color: #fff;
+  border: 3px solid var(--cr-ink);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cr-lesson-ok .gloss {
+  color: #d8ffe6;
 }
 
 @keyframes cr-banner {

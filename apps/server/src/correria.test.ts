@@ -72,6 +72,36 @@ describe('Correria no Balcão, server side', () => {
     expect(s0).toMatchObject({ v: 1, wave: 0, waves: 3, total: 15, level: 0, baker: expect.stringMatching(/carlos|graca/) });
     expect(s0.chapa).toEqual([null]);
     expect(s0.unlocked).toEqual([]);
+    expect([...s0.menu].sort()).toEqual(['cafe', 'pao']);
+    expect(s0.lesson?.id).toBe('cafe');
+    expect(s0.payMul).toBe(1);
+    expect(s0.bump).toBeNull();
+    expect(a.s.profile!.correria!.taught).toEqual(['cafe']);
+  });
+
+  it('shows each lesson once, then the pay bump when the menu grows', async () => {
+    const world = makeWorld();
+    const a = await player(world);
+    await a.send({ t: 'mg', action: 'start' });
+    await a.send({ t: 'mg', action: 'quit' });
+    a.inbox.length = 0;
+    await a.send({ t: 'mg', action: 'start' });
+    expect(snap(a).lesson?.id).toBe('pao');
+    expect(a.s.profile!.correria!.taught).toEqual(['cafe', 'pao']);
+    expect(a.s.profile!.correria!.shifts).toBe(0);
+    a.s.profile!.correria = { stars: 0, shifts: 2, best: 0, taught: ['cafe', 'pao'] };
+    a.inbox.length = 0;
+    await a.send({ t: 'mg', action: 'quit' });
+    await a.send({ t: 'mg', action: 'start' });
+    expect(snap(a).menu).toContain('agua');
+    expect(snap(a).lesson?.id).toBe('agua');
+    expect(snap(a).bump?.pt).toBe('+1 item no cardápio: pagamento +6%');
+    expect(snap(a).payMul).toBeCloseTo(1.06);
+    a.inbox.length = 0;
+    await a.send({ t: 'mg', action: 'quit' });
+    await a.send({ t: 'mg', action: 'start' });
+    expect(snap(a).lesson).toBeNull();
+    expect(a.s.profile!.correria!.taught).toContain('agua');
   });
 
   it('customers arrive over time, one steps up to order, patience runs on the server clock', async () => {
@@ -93,6 +123,7 @@ describe('Correria no Balcão, server side', () => {
   it('only the real steps fill the tray: a correct tray cannot be sent, a station item cannot be grabbed', async () => {
     const world = makeWorld();
     const a = await player(world);
+    a.s.profile!.correria = { stars: 0, shifts: 40, best: 0 };
     await a.send({ t: 'mg', action: 'start' });
     await waitFront(world, a, advance);
     await act(a, { a: 'grab', item: 'pao_na_chapa' });
@@ -107,6 +138,7 @@ describe('Correria no Balcão, server side', () => {
   it('chapa and coffee timing is judged by the server clock, not the client', async () => {
     const world = makeWorld();
     const a = await player(world);
+    a.s.profile!.correria = { stars: 0, shifts: 40, best: 0 };
     await a.send({ t: 'mg', action: 'start' });
     await waitFront(world, a, advance);
     await act(a, { a: 'chapa_put', slot: 0, item: 'pao_na_chapa' });
@@ -122,7 +154,7 @@ describe('Correria no Balcão, server side', () => {
     expect(evs(a).some((e) => e.k === 'chapa_burnt')).toBe(true);
     await act(a, { a: 'chapa_take', slot: 0 });
     expect(snap(a).tray).toEqual(['pao_na_chapa']);
-    // pour: a tap is short, a long hold spills, the right hold fills
+    // pour: tap to start, a quick second tap is short, leaving it spills, tap again in the window fills
     await act(a, { a: 'pour_start', item: 'cafe' });
     advance(200);
     await act(a, { a: 'pour_end' });
@@ -136,6 +168,7 @@ describe('Correria no Balcão, server side', () => {
   it('a wrong tray is corrected (glossed) and keeps the tray; fixing it scores the second chance', async () => {
     const world = makeWorld();
     const a = await player(world);
+    a.s.profile!.correria = { stars: 0, shifts: 40, best: 0 };
     await a.send({ t: 'mg', action: 'start' });
     await waitFront(world, a, advance);
     await act(a, { a: 'grab', item: ['pao', 'bolo', 'guarana'].find((i) => !world.debugOrder(a.s)!.lines.some((l) => l.itemId === i))! });
@@ -191,6 +224,8 @@ describe('Correria no Balcão, server side', () => {
     expect(s0.level).toBe(1);
     expect(s0.unlocked).toEqual(['salgados', 'chapa2']);
     expect(s0.chapa).toHaveLength(2);
+    expect(s0.lesson).toBeNull();
+    expect(s0.menu).toHaveLength(3);
   });
 
   it('an idle player loses everyone and earns nothing, then the shift ends by itself', async () => {
