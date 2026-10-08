@@ -58,6 +58,11 @@ class Game {
   sound = localStorage.getItem('tb_sound') !== 'off';
   /** Background beds. Separate from voice so Carlos can stay on while the room is quiet. */
   music = localStorage.getItem('tb_music') !== 'off';
+  /**
+   * English glosses under other players' Portuguese chat. The player's own setting (Ajustes), on by default; earning a nameplate colour in
+   * the escola never turns it off (DECISIONS.md, "nameplate colour vs English help").
+   */
+  englishHelp = localStorage.getItem('tb_english') !== 'off';
   private listeners = new Map<string, Set<Listener>>();
 
   get roomDef(): RoomDef | null {

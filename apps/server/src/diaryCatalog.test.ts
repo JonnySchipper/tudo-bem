@@ -29,6 +29,7 @@ import {
 } from '@tudobem/shared';
 import { World, type Session } from './world.js';
 import { ProfileStore } from './store.js';
+import { playLesson } from './escolaTestKit.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, MemoryModerationQueue, PhrasebookGloss } from './services/stubs.js';
 
 let clock = 0;
@@ -176,11 +177,8 @@ describe('every catalog word can be earned from its own source', () => {
     setGameTime(10);
     room = null;
     await goRoom('escola');
-    await a.send({ t: 'diary', action: 'practice' });
-    const asked = [...a.inbox].reverse().find((m): m is Extract<ServerMsg, { t: 'diary'; phase: 'practice' }> => m.t === 'diary' && m.phase === 'practice');
-    if (!asked || !asked.ok) throw new Error('no practice round');
-    const word = DIARY_WORDS.find((w) => have(a).has(w.id) && w.en === asked.en)!;
-    await a.send({ t: 'diary', action: 'answer', choice: word.pt });
+    // a finished lesson teaches the practice game's word (aula)
+    await playLesson({ inbox: a.inbox, send: a.send, held: () => a.s.profile!.diary ?? [] });
     const diary = (world as unknown as { diary: { onCorreriaWin: (s: Session, items: string[]) => void } }).diary;
     diary.onCorreriaWin(a.s, ['bolo', 'guarana', 'coxinha', 'pao_de_queijo', 'misto_quente']);
     for (const w of DIARY_WORDS.filter((x) => x.source === 'game')) expect(have(a).has(w.id), `game: ${w.pt}`).toBe(true);

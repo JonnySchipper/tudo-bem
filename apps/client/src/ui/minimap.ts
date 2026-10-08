@@ -86,7 +86,7 @@ export function markers(room: RoomDef, me: Tile | null, npcs?: { name: string; x
 const COLORS = { door: '#f2c230', npc: '#c45c26', me: '#2f5d50' } as const;
 
 /** Paints the terrain once and the markers on top; returns the canvas. */
-export function drawMinimap(room: RoomDef, me: Tile | null, npcs?: { name: string; x: number; y: number }[]): HTMLCanvasElement {
+export function drawMinimap(room: RoomDef, me: Tile | null, npcs?: { name: string; x: number; y: number }[], meColor: string = COLORS.me): HTMLCanvasElement {
   const px = minimapPixels(room);
   const canvas = document.createElement('canvas');
   canvas.width = px.w;
@@ -104,7 +104,7 @@ export function drawMinimap(room: RoomDef, me: Tile | null, npcs?: { name: strin
     ctx.fillStyle = m.kind === 'me' ? '#ffffff' : COLORS[m.kind];
     ctx.fillRect(cx - r, cy - r, 2 * r, 2 * r);
     if (m.kind === 'me') {
-      ctx.fillStyle = COLORS.me;
+      ctx.fillStyle = meColor;
       ctx.fillRect(cx - 1, cy - 1, 2, 2);
     }
   }

@@ -3,7 +3,7 @@
  * that plays the word (and tells the server it was `heard`), what the player did with it (seen / heard / used), and the progress of the group.
  * Words not met yet show as "???". The group reward (+15 RV, once) arrives as the server's normal reward toast.
  */
-import { diaryBoard, diaryWord, progressLine } from '@tudobem/shared';
+import { diaryBoard, diaryWord, normalizeEscola, progressLine, wordCounts } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi } from './dom';
 import { openModal } from './modal';
@@ -80,6 +80,8 @@ export function openCaderno(groupId?: string, highlight: readonly string[] = [])
     shownTab = tab ?? null;
     const scroll = turned ? 0 : (body.querySelector('.cad-list')?.scrollTop ?? 0);
     const found = diaryBoard(game.profile?.diary);
+    const escola = normalizeEscola(game.profile?.escola, game.profile?.diary);
+    const counts = wordCounts(escola, game.profile?.diary, Date.now());
     const photos = game.photos;
     const left = h(
       'div',
@@ -89,12 +91,19 @@ export function openCaderno(groupId?: string, highlight: readonly string[] = [])
         { class: 'cad-found' },
         h('h3', null, 'Palavras encontradas'),
         en('How many words you found in each place, by camera, reading, conversation, and game.'),
+        h(
+          'p',
+          { class: 'cad-mastery', id: 'cad-mastery' },
+          `${counts.mastered} dominadas · ${counts.learned} aprendidas · ${counts.toFind} pra descobrir`,
+          en(`${counts.mastered} mastered in the Escola · ${counts.learned} learned · ${counts.toFind} still to find`),
+        ),
         ...found.map((area) =>
           h(
             'div',
             { class: 'cad-area', 'data-area': area.id },
             h('p', { class: 'cad-area-name' }, area.pt, en(area.en)),
             h('p', { class: 'cad-area-progress', 'data-progress': area.id }, progressLine(area)),
+            h('p', { class: 'cad-area-mastery' }, `${wordCounts(escola, game.profile?.diary, Date.now(), area.id).mastered} dominadas`),
             area.id === 'chegada' && replayArrival
               ? h(
                   'button',

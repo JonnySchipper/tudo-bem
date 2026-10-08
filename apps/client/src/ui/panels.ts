@@ -18,6 +18,8 @@ import {
   npcDefById,
   npcPosesIn,
   poseWalk,
+  tierRule,
+  FOUNDER_BADGE,
   type Bilingual,
   type NpcDef,
   type PublicAvatar,
@@ -26,6 +28,7 @@ import {
 } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi, ui, clear } from './dom';
+import { TIER_HEX, tierChip } from './plate';
 import { mountCharPreview, setHatIcon } from '../render/pixel/charPreview';
 import { furnitureIcon, expressionForScore } from './pixelArt';
 import { speak } from '../audio';
@@ -387,9 +390,10 @@ function mapView(areaId: RoomId): HTMLElement {
   const npcs = inArea
     ? game.liveNpcs(performance.now())
     : npcPosesIn(areaId, clock.now()).map((p) => ({ name: npcDefById(p.npc)?.name ?? p.npc, ...poseWalk(p, clock.now()).tile }));
-  const canvas = drawMinimap(ROOMS[areaId], here, npcs);
+  const meColor = TIER_HEX[game.profile?.nameplate ?? 'verde'];
+  const canvas = drawMinimap(ROOMS[areaId], here, npcs, meColor);
   canvas.setAttribute('aria-label', `Mapa: ${ROOMS[areaId].name}`);
-  return h('div', { class: 'minimap-wrap' }, canvas, h('div', { class: 'minimap-key' }, h('span', { class: 'k door' }), ' portas e saídas ', h('span', { class: 'k npc' }), ' vizinhos ', h('span', { class: 'k me' }), ' você'));
+  return h('div', { class: 'minimap-wrap' }, canvas, h('div', { class: 'minimap-key' }, h('span', { class: 'k door' }), ' portas e saídas ', h('span', { class: 'k npc' }), ' vizinhos ', h('span', { class: 'k me', style: `background:${meColor}` }), ' você'));
 }
 
 export function openMap(go: (room: RoomId) => void) {
@@ -468,6 +472,7 @@ export function openFriends(actions: { request: (id: string) => void; accept: (i
             { class: 'r' },
             h('span', { class: `dot ${f.online ? 'on' : ''}` }),
             h('b', null, f.name),
+            tierChip(f.nameplate ?? 'verde'),
             h('span', { style: 'color:var(--ink-soft);font-weight:700;font-size:.85em' }, f.online ? (f.roomName ?? 'online') : 'offline'),
             h('span', { class: 'spacer' }),
             f.online && f.room && f.room !== 'kitnet' ? h('button', { class: 'green', onclick: () => (actions.hop(f.room!, f.instanceId), close()) }, bi('Ir até', 'Join')) : '',
@@ -485,7 +490,8 @@ export function openFriends(actions: { request: (id: string) => void; accept: (i
           h(
             'div',
             { class: 'r' },
-            h('span', { class: 'plate' }, h('span', { class: 'seed' }), a.pub.name),
+            h('b', null, a.pub.name),
+            tierChip(a.pub.nameplate ?? 'verde'),
             h('span', { class: 'spacer' }),
             game.profile?.friends.includes(a.pub.id) ? h('span', { class: 'feedback' }, 'Amigo') : h('button', { class: 'green', onclick: () => actions.request(a.pub.id) }, bi('Adicionar', 'Add friend')),
           ),
@@ -512,9 +518,9 @@ export function openProfileCard(a: PublicAvatar, actions: { request: (id: string
       closeBtn(() => close()),
       canvas,
       h('h2', null, a.name),
-      h('div', { class: 'row', style: 'justify-content:center' }, h('span', { class: 'plate' }, h('span', { class: 'seed' }), 'Verde'), h('span', { style: 'font-weight:700;color:var(--ink-soft)' }, `trate por: ${pronoun}`)),
+      h('div', { class: 'row', style: 'justify-content:center' }, tierChip(a.nameplate ?? 'verde', { id: 'profile-plate' }), a.founder ? h('span', { class: 'wl-founder founder-chip', title: `${FOUNDER_BADGE.pt} · ${FOUNDER_BADGE.en}` }, 'f') : null, h('span', { style: 'font-weight:700;color:var(--ink-soft)' }, `trate por: ${pronoun}`)),
       a.belt ? h('div', { class: 'row', style: 'justify-content:center;margin-top:8px' }, beltChip(a.belt)) : null,
-      en('Verde plate: tourist level — sees English glosses. Plates come from learning, never from money.'),
+      en(`${tierRule(a.nameplate ?? 'verde').en} nameplate: earned in the Escola by words mastered. Plates come from learning, never from money.`),
       h(
         'div',
         { class: 'row', style: 'justify-content:center;margin-top:12px' },

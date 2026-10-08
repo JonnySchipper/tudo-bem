@@ -118,6 +118,13 @@ export function createApp(opts: AppOptions) {
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
       return res.end(JSON.stringify({ ok: true, gameMinute: world.setClockMinute(min) }));
     }
+    // Test only: `POST /__test/escola?name=Lia&words=24&mastered=14&ready=4&streak=6` seeds an online player's escola (the escola screenshots).
+    if (url.pathname === '/__test/escola' && process.env.TB_TEST_CLOCK_CONTROL === '1') {
+      const n = (k: string) => Math.max(0, Math.min(500, Math.floor(Number(url.searchParams.get(k)) || 0)));
+      const ok = world.testSeedEscola(url.searchParams.get('name') ?? '', { words: n('words'), mastered: n('mastered'), ready: n('ready'), streak: n('streak') });
+      res.writeHead(ok ? 200 : 404, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+      return res.end(JSON.stringify({ ok }));
+    }
     if (url.pathname === '/api/config') {
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
       return res.end(JSON.stringify(publicAppConfig(opsSmoke, googleOAuth.ready ? googleOAuth.clientId : '')));
