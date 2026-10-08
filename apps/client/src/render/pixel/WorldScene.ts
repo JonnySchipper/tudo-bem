@@ -314,10 +314,7 @@ export class WorldScene extends Phaser.Scene {
     cam.setBackgroundColor('#1d1b26');
     cam.setRoundPixels(true);
     this.rig = new LightingRig(this, cam, 'fx:glow');
-    for (const kind of ['dog', 'cat'] as const) {
-      if (!this.textures.exists(`pet:${kind}`) || this.anims.exists(`anim:pet:${kind}`)) continue;
-      this.anims.create({ key: `anim:pet:${kind}`, frames: this.anims.generateFrameNumbers(`pet:${kind}`, { start: 0, end: 3 }), frameRate: 6, repeat: -1 });
-    }
+    for (const kind of ['dog', 'cat'] as const) this.createPetAnims(kind);
     this.shadows = new ShadowLayer(this, this.rig);
     this.rig.shadows = this.shadows;
     this.ao = new AoLayer(this, this.rig);
@@ -1641,13 +1638,49 @@ export class WorldScene extends Phaser.Scene {
   }
 
   /**
-   * Subscriber dog or cat. Same follow idea as the shoulder parrot (side of the facing, a bob, flip toward the owner)
-   * but on the ground a step behind, so it reads as walking along.
+   * Frame ranges baked into `chars/pet_*` (see pets.mjs). The manifest's `anims` wins when present.
+   * Side poses face east; west is the same strip flipped.
    */
-  private updatePet(v: AvatarView, a: ClientAvatar, facing: Facing, wx: number, wy: number, depth: number, now: number): void {
+  private petAnims(kind: 'dog' | 'cat'): Record<string, [number, number]> {
+    const fromManifest = this.m.images?.[`chars/pet_${kind}`]?.anims;
+    if (fromManifest?.walkE && fromManifest.walkS && fromManifest.walkN && fromManifest.idleS && fromManifest.sitE && fromManifest.sitS && fromManifest.sitN) return fromManifest;
+    return { walkE: [0, 3], walkS: [4, 7], walkN: [8, 11], idleS: [12, 13], sitE: [14, 14], sitS: [15, 15], sitN: [16, 16] };
+  }
+
+  private createPetAnims(kind: 'dog' | 'cat'): void {
+    if (!this.textures.exists(`pet:${kind}`)) return;
+    const fps = this.m.images?.[`chars/pet_${kind}`]?.fps ?? 8;
+    for (const [name, range] of Object.entries(this.petAnims(kind))) {
+      const key = `anim:pet:${kind}:${name}`;
+      if (this.anims.exists(key)) continue;
+      const [start, end] = range;
+      this.anims.create({ key, frames: this.anims.generateFrameNumbers(`pet:${kind}`, { start, end }), frameRate: name.startsWith('idle') ? 3 : fps, repeat: -1 });
+    }
+  }
+
+  /** Which strip to play, and whether to mirror it. West reuses the east poses. */
+  private petPose(facing: Facing, moving: boolean, sitting: boolean): { name: string; flip: boolean } {
+    if (moving) {
+      if (facing === 'N') return { name: 'walkN', flip: false };
+      if (facing === 'S') return { name: 'walkS', flip: false };
+      return { name: 'walkE', flip: facing === 'W' };
+    }
+    if (!sitting && facing === 'S') return { name: 'idleS', flip: false };
+    if (facing === 'N') return { name: 'sitN', flip: false };
+    if (facing === 'S') return { name: 'sitS', flip: false };
+    return { name: 'sitE', flip: facing === 'W' };
+  }
+
+  /**
+   * Subscriber dog or cat. Follows at the feet, opposite the shoulder parrot, facing the way the
+   * owner walks. The frames are critter-scale (the vira-lata and the parrot are 1 art px per world
+   * px), so they are not given the people's extra draw scale.
+   */
+  private updatePet(v: AvatarView, a: ClientAvatar, facing: Facing, wx: number, wy: number, depth: number, _now: number): void {
     const kind = a.pub.pet === 'dog' || a.pub.pet === 'cat' ? a.pub.pet : null;
-    const anim = kind ? `anim:pet:${kind}` : '';
-    if (!kind || !this.anims.exists(anim)) {
+    const pose = kind ? this.petPose(facing, v.moving, v.sitting) : null;
+    const anim = kind && pose ? `anim:pet:${kind}:${pose.name}` : '';
+    if (!kind || !pose || !this.anims.exists(anim)) {
       if (v.pet) {
         v.pet.destroy();
         v.pet = null;
@@ -1655,19 +1688,21 @@ export class WorldScene extends Phaser.Scene {
       }
       return;
     }
-    if (!v.pet || v.petKey !== anim) {
-      v.pet?.destroy();
+    if (!v.pet) {
       v.pet = this.rig.world(this.add.sprite(0, 0, `pet:${kind}`, 0)).setOrigin(0.5, 1);
-      v.petKey = anim;
-      v.pet.play({ key: anim, startFrame: Math.floor(hash01(a.seed) * 4) });
+      v.petKey = '';
     }
-    const side = facing === 'W' ? 1 : -1;
-    const bob = Math.round(Math.sin(now / 180 + a.seed) * 1);
+    if (v.petKey !== anim) {
+      v.petKey = anim;
+      v.pet.play({ key: anim, startFrame: 0 });
+    }
+    const flank = facing === 'W' ? 1 : -1;
+    const reach = Math.round(avatarPx(8) + 14);
     v.pet.setVisible(true);
-    v.pet.setPosition(wx - side * avatarPx(11), wy - avatarPx(1) + bob);
-    v.pet.setFlipX(side === -1);
+    v.pet.setPosition(wx - flank * reach, wy);
+    v.pet.setFlipX(pose.flip);
     v.pet.setDepth(facing === 'N' ? depth + 0.05 : depth - 0.05);
-    v.pet.setScale(avatarDrawScale());
+    v.pet.setScale(1);
   }
 
   /** Snack, drink, or empty in the hand (session `carry`). Empties reuse a full item's icon, tinted grey. */

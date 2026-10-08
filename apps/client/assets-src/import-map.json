@@ -1132,6 +1132,9 @@
     },
     {
       "fn": "pets"
+    },
+    {
+      "fn": "bubbleSkins"
     }
   ],
   "terrain": {

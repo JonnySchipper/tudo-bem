@@ -291,45 +291,17 @@
   color: #6a6660;
 }
 
-/* Subscriber bubble skins. Colour and edge only — the words stay the same ink. */
-.wl-art-bubble .wl-bubble.wl-style-sol,
-.wl-art-bubble .wl-bubble.wl-style-mar,
-.wl-art-bubble .wl-bubble.wl-style-mata,
-.wl-art-bubble .wl-bubble.wl-style-festa,
-.wl-bubble.wl-style-sol,
-.wl-bubble.wl-style-mar,
-.wl-bubble.wl-style-mata,
-.wl-bubble.wl-style-festa {
-  border-image: none;
-  border-style: solid;
-  border-width: 3px;
-  color: #2c2c2c;
-  padding: 4px 8px 6px;
-}
+/* Subscriber skins: the same 9-slice and tail as ui/bubble. Only the trim image changes.
+   .pt / .en are not restyled, so the words render exactly as they do in the classic bubble. */
+.wl-art-bubble .wl-bubble.wl-style-sol { border-image: var(--wl-bubble-sol) var(--wl-bubble-slice) fill / var(--wl-bubble-width) stretch; }
+.wl-art-bubble .wl-bubble.wl-style-mar { border-image: var(--wl-bubble-mar) var(--wl-bubble-slice) fill / var(--wl-bubble-width) stretch; }
+.wl-art-bubble .wl-bubble.wl-style-mata { border-image: var(--wl-bubble-mata) var(--wl-bubble-slice) fill / var(--wl-bubble-width) stretch; }
+.wl-art-bubble .wl-bubble.wl-style-festa { border-image: var(--wl-bubble-festa) var(--wl-bubble-slice) fill / var(--wl-bubble-width) stretch; }
 
-.wl-bubble.wl-style-sol {
-  background: #fff3c4;
-  border-color: #e0a020;
-  box-shadow: 3px 3px 0 #c48410;
-}
-
-.wl-bubble.wl-style-mar {
-  background: #e5f4ff;
-  border-color: #2f6fb5;
-  box-shadow: 3px 3px 0 #173a63;
-}
-
-.wl-bubble.wl-style-mata {
-  background: #e7f6e4;
-  border-color: #2e8f58;
-  box-shadow: 3px 3px 0 #1d4f32;
-}
-
-.wl-bubble.wl-style-festa {
-  background: #f8e8ff;
-  border-color: #7a4bb0;
-  box-shadow: 3px 3px 0 #e85aa0;
-}
+.wl-art-bubble .wl-mirror .wl-bubble.wl-style-sol { border-image: var(--wl-bubble-sol-m) var(--wl-bubble-slice-m) fill / var(--wl-bubble-width-m) stretch; }
+.wl-art-bubble .wl-mirror .wl-bubble.wl-style-mar { border-image: var(--wl-bubble-mar-m) var(--wl-bubble-slice-m) fill / var(--wl-bubble-width-m) stretch; }
+.wl-art-bubble .wl-mirror .wl-bubble.wl-style-mata { border-image: var(--wl-bubble-mata-m) var(--wl-bubble-slice-m) fill / var(--wl-bubble-width-m) stretch; }
+.wl-art-bubble .wl-mirror .wl-bubble.wl-style-festa { border-image: var(--wl-bubble-festa-m) var(--wl-bubble-slice-m) fill / var(--wl-bubble-width-m) stretch; }
 
 /* ---- guides: the bouncing pixel arrow (4 frames, the bounce is drawn into the strip) + a small label ---- */
 .wl-guide {

@@ -16638,19 +16638,131 @@
   },
   "chars/pet_dog": {
    "file": "chars/pet_dog.png",
-   "w": 64,
-   "h": 16,
-   "frames": 4,
-   "frameW": 16,
-   "fps": 6
+   "w": 408,
+   "h": 20,
+   "frames": 17,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ]
+   }
   },
   "chars/pet_cat": {
    "file": "chars/pet_cat.png",
-   "w": 64,
-   "h": 16,
-   "frames": 4,
-   "frameW": 16,
-   "fps": 6
+   "w": 408,
+   "h": 20,
+   "frames": 17,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ]
+   }
+  },
+  "ui/bubble_sol": {
+   "file": "ui/bubble_sol.png",
+   "w": 30,
+   "h": 27,
+   "slice": {
+    "top": 7,
+    "right": 7,
+    "bottom": 13,
+    "left": 16
+   },
+   "css": "7 7 13 16",
+   "note": "subscriber chat bubble (sol): same tail and 9-slice as ui/bubble, trim only"
+  },
+  "ui/bubble_mar": {
+   "file": "ui/bubble_mar.png",
+   "w": 30,
+   "h": 27,
+   "slice": {
+    "top": 7,
+    "right": 7,
+    "bottom": 13,
+    "left": 16
+   },
+   "css": "7 7 13 16",
+   "note": "subscriber chat bubble (mar): same tail and 9-slice as ui/bubble, trim only"
+  },
+  "ui/bubble_mata": {
+   "file": "ui/bubble_mata.png",
+   "w": 30,
+   "h": 27,
+   "slice": {
+    "top": 7,
+    "right": 7,
+    "bottom": 13,
+    "left": 16
+   },
+   "css": "7 7 13 16",
+   "note": "subscriber chat bubble (mata): same tail and 9-slice as ui/bubble, trim only"
+  },
+  "ui/bubble_festa": {
+   "file": "ui/bubble_festa.png",
+   "w": 30,
+   "h": 27,
+   "slice": {
+    "top": 7,
+    "right": 7,
+    "bottom": 13,
+    "left": 16
+   },
+   "css": "7 7 13 16",
+   "note": "subscriber chat bubble (festa): same tail and 9-slice as ui/bubble, trim only"
   }
  },
  "chars": {
