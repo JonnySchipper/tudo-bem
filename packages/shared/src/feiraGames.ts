@@ -3,9 +3,9 @@
  *
  * Adding a game later = one game-logic module (orders, score, timing) + one client view,
  * then register it in `FEIRA_GAME_MODULES` and (if it should enter the cycle) in `FEIRA_ROTATION_ORDER`.
- * Pastel and Caldo de cana are reserved in the order but not implemented yet: the featured pick
- * falls back to an implemented game until they land, so the schedule stays a real 3-day cycle
- * the day those modules exist.
+ * Pastel is reserved in the order but not implemented yet: the featured pick falls back to an
+ * implemented game until it lands. Every implemented game ships OFF. An admin turns each one on;
+ * the featured pick is then taken from the games that are both implemented and switched on.
  *
  * Rotation is deterministic from the America/New_York calendar date (ET), not the game clock.
  * Scoring is recomputed from compact per-order outcomes; the client never names the score.
@@ -20,8 +20,8 @@ import type { Bilingual } from './types.js';
 export const FEIRA_ROTATION_ORDER = ['tapioca', 'pastel', 'caldo'] as const;
 export type FeiraRotationId = (typeof FEIRA_ROTATION_ORDER)[number];
 
-/** Games this build can actually start. Pastel and caldo join this set in later PRs. */
-export const FEIRA_IMPLEMENTED_GAMES = ['tapioca'] as const;
+/** Games this build can actually start. Pastel joins this set in its own PR. Each one still ships off. */
+export const FEIRA_IMPLEMENTED_GAMES = ['tapioca', 'caldo'] as const;
 export type FeiraGameId = (typeof FEIRA_IMPLEMENTED_GAMES)[number];
 
 export const isFeiraGameId = (v: unknown): v is FeiraGameId =>
@@ -52,7 +52,7 @@ export function rotationSlot(day: string, order: readonly string[] = FEIRA_ROTAT
  * Featured game for an ET date (`YYYY-MM-DD`). Unimplemented slots fall back to the nearest
  * earlier implemented game in the cycle (wrapping), so a 1-game build always features tapioca
  * and a 3-game build is the real cycle. `implemented` is injectable so tests can prove the fallback
- * without waiting for Pastel and Caldo.
+ * and so the server can pass only the games an admin has switched on.
  */
 export function featuredGame(
   day: string,
@@ -89,12 +89,25 @@ export const FEIRA_GAME_INTRO: Record<FeiraGameId, Bilingual> = {
     pt: 'A chapa tá quente. Espalha a goma, vira no ponto e enrola o recheio.',
     en: 'The griddle is hot. Spread the batter, flip on time, and roll the filling.',
   },
+  caldo: {
+    pt: 'A moenda tá ligada. Moa a cana, pega o caldo no copo e põe o sabor.',
+    en: 'The press is on. Crush the cane, catch the juice in a cup, and add the flavor.',
+  },
 };
 
-export const FEIRA_CART_GREET: Bilingual = {
-  pt: 'Oi! Hoje o carrinho é de tapioca. Quer jogar?',
-  en: 'Hi! Today the cart is tapioca. Want to play?',
-};
+/** Cart greeting for the game on offer. needs_br: true */
+export function feiraCartGreet(game: FeiraRotationId): Bilingual {
+  const name = FEIRA_GAME_LABEL[game];
+  const pt = name.pt.charAt(0).toLowerCase() + name.pt.slice(1);
+  const en = name.en.charAt(0).toLowerCase() + name.en.slice(1);
+  return {
+    pt: `Oi! Hoje o carrinho é de ${pt}. Quer jogar?`,
+    en: `Hi! Today the cart is ${en}. Want to play?`,
+  };
+}
+
+/** @deprecated Use `feiraCartGreet`. Kept so older call sites still compile. */
+export const FEIRA_CART_GREET: Bilingual = feiraCartGreet('tapioca');
 
 // ---------------------------------------------------------------- shared run shape
 
@@ -164,9 +177,27 @@ export interface FeiraGamesState {
   medals: Record<string, FeiraMedalAward[]>;
   /** Paid runs already counted today, per player. Reset with the ET day. */
   paid: Record<string, number>;
+  /**
+   * Admin switches. Missing or false means off. Every game ships off, including ones added later.
+   * Not cleared at midnight: it is a setting, not a score.
+   */
+  enabled: Partial<Record<FeiraGameId, boolean>>;
 }
 
-export const emptyFeiraGames = (day: string): FeiraGamesState => ({ day, scores: {}, medals: {}, paid: {} });
+export const emptyFeiraGames = (day: string): FeiraGamesState => ({ day, scores: {}, medals: {}, paid: {}, enabled: {} });
+
+/** Games an admin has switched on, in registry order. An empty list means the cart is closed. */
+export function enabledFeiraGames(state: FeiraGamesState, implemented: readonly FeiraGameId[] = FEIRA_IMPLEMENTED_GAMES): FeiraGameId[] {
+  return implemented.filter((id) => state.enabled[id] === true);
+}
+
+/** Turn one registered game on or off. Unknown ids are ignored. Mutates `state`. */
+export function setFeiraEnabled(state: FeiraGamesState, id: string, on: boolean): boolean {
+  if (!isFeiraGameId(id)) return false;
+  if (on) state.enabled[id] = true;
+  else delete state.enabled[id];
+  return true;
+}
 
 const MEDAL_OF_RANK: Record<number, FeiraMedal> = { 1: 'gold', 2: 'silver', 3: 'bronze' };
 
@@ -300,7 +331,13 @@ export function normalizeFeiraGames(raw: unknown, day: string): FeiraGamesState 
       if (id && Number.isFinite(v) && v > 0) paid[id] = Math.min(99, Math.floor(v));
     }
   }
-  return { day: storedDay, scores, medals, paid };
+  const enabled: Partial<Record<FeiraGameId, boolean>> = {};
+  if (r.enabled && typeof r.enabled === 'object') {
+    for (const [id, on] of Object.entries(r.enabled as Record<string, unknown>)) {
+      if (isFeiraGameId(id) && on === true) enabled[id] = true;
+    }
+  }
+  return { day: storedDay, scores, medals, paid, enabled };
 }
 
 // ---------------------------------------------------------------- game modules
@@ -330,7 +367,7 @@ export interface FeiraCustomerOrder {
   name: string;
 }
 
-/** Registry. A later PR pushes pastel / caldo here and into FEIRA_IMPLEMENTED_GAMES. */
+/** Registry. A later PR pushes pastel here and into FEIRA_IMPLEMENTED_GAMES. Caldo registers from feiraCaldo.ts. */
 export const FEIRA_GAME_MODULES: Partial<Record<FeiraGameId, FeiraGameModule>> = {};
 
 export function feiraModule(id: FeiraGameId): FeiraGameModule | undefined {

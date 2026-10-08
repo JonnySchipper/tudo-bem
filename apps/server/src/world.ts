@@ -1240,6 +1240,10 @@ export class World {
         en: `Neighborhood clock set.`,
       });
     }
+    if (msg.action === 'feiraGame') {
+      this.feiraGames.setEnabled(msg.game, msg.on);
+      return this.adminList(s);
+    }
     if (msg.action === 'weather') {
       if (msg.weather !== null && !(WEATHER_KINDS as readonly string[]).includes(msg.weather)) {
         return this.err(s, 'admin', 'Clima inválido.', 'Invalid weather.');
@@ -1264,7 +1268,12 @@ export class World {
         room: x.instance?.def.id ?? null,
         roomName: x.instance?.name ?? null,
       }));
-    s.send({ t: 'admin', phase: 'players', players });
+    s.send({ t: 'admin', phase: 'players', players, feira: this.feiraGames.toggles() });
+  }
+
+  /** Solo / shot hook: turn one Feira cart game on. Games ship off. */
+  enableFeiraGame(id: string): boolean {
+    return this.feiraGames.setEnabled(id, true);
   }
 
   private adminKick(s: Session, targetId: string) {

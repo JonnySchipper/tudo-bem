@@ -1,15 +1,15 @@
 /**
  * Feira cart games: the cart offer, the sign board, and the hand-off into today's featured game.
  *
- * The server owns the run (`feiraGame` messages). This file only opens the right view — today, Tapioca —
- * and the placar panel. Adding Pastel or Caldo is one branch in `openGame`.
+ * The server owns the run (`feiraGame` messages). This file only opens the right view — Tapioca or Caldo —
+ * and the placar panel. Adding Pastel is one branch in `openGame`.
  *
  * needs_br: true
  */
 import {
-  FEIRA_CART_GREET,
   FEIRA_GAME_INTRO,
   FEIRA_GAME_LABEL,
+  feiraCartGreet,
   type FeiraGameId,
   type ServerMsg,
 } from '@tudobem/shared';
@@ -17,6 +17,7 @@ import { game } from '../state';
 import { h, en } from './dom';
 import { openModal } from './modal';
 import { TapiocaView, type TapiocaEnd } from './feiraTapioca';
+import { CaldoView } from './feiraCaldo';
 
 type FeiraGameMsg = Extract<ServerMsg, { t: 'feiraGame' }>;
 
@@ -27,8 +28,10 @@ export interface FeiraGameHooks {
   sendBoard: () => void;
 }
 
+type FeiraPlayView = { destroy(): void; showEnd(end: TapiocaEnd): void };
+
 let hooks: FeiraGameHooks | null = null;
-let view: TapiocaView | null = null;
+let view: FeiraPlayView | null = null;
 let closeOffer: (() => void) | null = null;
 
 export function bindFeiraGames(hks: FeiraGameHooks) {
@@ -39,10 +42,11 @@ export function feiraGameOpen(): boolean {
   return !!view;
 }
 
-/** Cart hotspot: today's game and a Jogar button. The server confirms the featured game on start. */
-export function openFeiraCart(gameId: FeiraGameId) {
+/** Cart hotspot: today's game and a Jogar button. Closed when that game is switched off. */
+export function openFeiraCart(gameId: FeiraGameId, playable = true) {
   const intro = FEIRA_GAME_INTRO[gameId];
   const label = FEIRA_GAME_LABEL[gameId];
+  const greet = feiraCartGreet(gameId);
   const close = openModal(
     'feira-cart',
     h('div', { class: 'panel feira-game-panel', id: 'feira-cart-panel' },
@@ -51,16 +55,20 @@ export function openFeiraCart(gameId: FeiraGameId) {
       h('h2', { id: 'feira-cart-game' }, label.pt, en(label.en)),
       h('p', { class: 'fg-intro', lang: 'pt-BR' }, intro.pt),
       h('p', { class: 'en' }, intro.en),
-      h('p', { class: 'fg-greet' }, FEIRA_CART_GREET.pt, en(FEIRA_CART_GREET.en)),
-      h('button', {
-        type: 'button',
-        class: 'primary',
-        id: 'feira-cart-play',
-        onclick: () => {
-          close();
-          hooks?.sendStart();
-        },
-      }, 'Jogar', en('Play')),
+      playable
+        ? h('p', { class: 'fg-greet' }, greet.pt, en(greet.en))
+        : h('p', { class: 'fg-greet', id: 'feira-cart-closed' }, 'O carrinho está fechado agora.', en('The cart is closed right now.')),
+      playable
+        ? h('button', {
+          type: 'button',
+          class: 'primary',
+          id: 'feira-cart-play',
+          onclick: () => {
+            close();
+            hooks?.sendStart();
+          },
+        }, 'Jogar', en('Play'))
+        : null,
     ),
   );
   closeOffer = close;
@@ -77,7 +85,7 @@ function medalMark(kind: 'gold' | 'silver' | 'bronze'): string {
 
 function paintBoard(m: Extract<FeiraGameMsg, { phase: 'board' }>, alsoCart: boolean) {
   if (alsoCart) {
-    openFeiraCart(m.game);
+    openFeiraCart(m.game, m.playable);
     return;
   }
   const label = FEIRA_GAME_LABEL[m.game];
@@ -122,6 +130,22 @@ function openGame(m: Extract<FeiraGameMsg, { phase: 'start' }>) {
   closeOffer = null;
   if (m.game === 'tapioca') {
     view = new TapiocaView(m.seed, {
+      finish: (outcomes) => hooks?.sendFinish(outcomes),
+      quit: () => {
+        view?.destroy();
+        view = null;
+        hooks?.sendQuit();
+      },
+      again: () => {
+        view?.destroy();
+        view = null;
+        hooks?.sendStart();
+      },
+    });
+    return;
+  }
+  if (m.game === 'caldo') {
+    view = new CaldoView(m.seed, {
       finish: (outcomes) => hooks?.sendFinish(outcomes),
       quit: () => {
         view?.destroy();

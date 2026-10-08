@@ -13,6 +13,7 @@ import './styles/correria.css';
 import './styles/diary.css';
 import './styles/escola.css';
 import './styles/feiraGames.css';
+import './styles/feiraCaldo.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
@@ -1537,6 +1538,11 @@ window.__tb = {
   },
   openCartela: () => openCartela(),
   cartelaBanner: (stamps: number) => cartelaBanner(stamps),
-  /** Feira cart games: true while the Tapioca overlay is up (shots / e2e). */
+  /** Feira cart games: true while a cart overlay is up (shots / e2e). */
   feiraGame: () => feiraGameOpen(),
+  /** Cart games ship off. Shots and e2e turn one on (`caldo`, `tapioca`) instead of assuming it is open. */
+  enableFeiraGame: (id: string) => {
+    const hook = net as { enableFeiraGame?: (id: string) => boolean };
+    return hook.enableFeiraGame?.(id) ?? false;
+  },
 };

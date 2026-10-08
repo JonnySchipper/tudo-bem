@@ -59,6 +59,7 @@ describe('feira games server', () => {
       broadcastAvatar: () => {},
       rng: () => 0.42,
     } satisfies FeiraGamesDeps);
+    engine.setEnabled('tapioca', true);
 
     const play = (scoreOutcomes: 'perfect' | 'ok') => {
       sent.length = 0;
@@ -116,6 +117,7 @@ describe('feira games server', () => {
       broadcastAvatar: () => {},
       rng: () => 0.2,
     });
+    engine.setEnabled('tapioca', true);
     engine.handle(s, { t: 'feiraGame', action: 'start' });
     now += 400;
     const before = ana.coins;

@@ -2,7 +2,7 @@
  * Hidden admin panel (opened from a plain-looking credits line). Login asks the server for the password;
  * once unlocked, kick players, pin the shared clock / weather, and grant RV to yourself.
  */
-import { WEATHER_COPY, WEATHER_KINDS, formatClock, type AdminPlayerRow, type ClientMsg, type ServerMsg, type Weather } from '@tudobem/shared';
+import { FEIRA_GAME_LABEL, WEATHER_COPY, WEATHER_KINDS, formatClock, type AdminPlayerRow, type ClientMsg, type FeiraGameId, type ServerMsg, type Weather } from '@tudobem/shared';
 import { clock } from '../gameClock';
 import { game } from '../state';
 import { h, en } from './dom';
@@ -13,6 +13,7 @@ export type AdminSend = (m: Extract<ClientMsg, { t: 'admin' }>) => void;
 let sendAdmin: AdminSend | null = null;
 let panelRoot: HTMLElement | null = null;
 let playersEl: HTMLElement | null = null;
+let feiraEl: HTMLElement | null = null;
 let authError: HTMLElement | null = null;
 let unlocked = false;
 
@@ -48,7 +49,10 @@ export function onAdminMsg(m: Extract<ServerMsg, { t: 'admin' } | { t: 'sky' }>)
     }
     return;
   }
-  if (m.phase === 'players') renderPlayers(m.players);
+  if (m.phase === 'players') {
+    renderPlayers(m.players);
+    renderFeira(m.feira);
+  }
 }
 
 function showAuthError(pt: string): void {
@@ -161,6 +165,9 @@ function openAdminPanel(): void {
     h('h3', null, 'Clima'),
     en('Pins weather for everyone.', true),
     weatherRow,
+    h('h3', null, 'Carrinho da feira'),
+    en('Each game stays off until you turn it on.', true),
+    (feiraEl = h('div', { class: 'admin-feira', id: 'admin-feira' })),
     h('h3', null, 'Reais virtuais'),
     en('Adds RV to your own pocket.', true),
     h(
@@ -187,6 +194,30 @@ function openAdminPanel(): void {
 
   openModal('admin', panelRoot);
   sendAdmin?.({ t: 'admin', action: 'list' });
+}
+
+function renderFeira(rows: { id: FeiraGameId; on: boolean }[] | undefined): void {
+  if (!feiraEl) return;
+  feiraEl.replaceChildren();
+  if (!rows?.length) return;
+  for (const row of rows) {
+    const label = FEIRA_GAME_LABEL[row.id];
+    const on = row.on;
+    feiraEl.append(
+      h(
+        'button',
+        {
+          type: 'button',
+          class: on ? 'primary admin-feira-toggle' : 'ghost admin-feira-toggle',
+          id: `admin-feira-${row.id}`,
+          'aria-pressed': on ? 'true' : 'false',
+          onclick: () => sendAdmin?.({ t: 'admin', action: 'feiraGame', game: row.id, on: !on }),
+        },
+        on ? `${label.pt}: ligado` : `${label.pt}: desligado`,
+        en(on ? `${label.en}: on` : `${label.en}: off`),
+      ),
+    );
+  }
 }
 
 function renderPlayers(players: AdminPlayerRow[]): void {

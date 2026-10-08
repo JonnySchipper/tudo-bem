@@ -102,6 +102,11 @@ export class LocalNet implements NetLike {
     void this.world.handle(this.session, JSON.parse(JSON.stringify(m)));
   }
 
+  /** Shot / e2e hook: cart games ship off. Turn one on for this solo session (`caldo`, `tapioca`). */
+  enableFeiraGame(id: string): boolean {
+    return this.world?.enableFeiraGame(id) ?? false;
+  }
+
   /** Test/shots hook (`?rolltest` only): the live bout state of the in-page world, to stage a moment (a full pegada at the top of the ladder). */
   debugBout(): { st: Record<string, unknown> } | null {
     return new URLSearchParams(location.search).has('rolltest') ? ((this.session?.bout as unknown as { st: Record<string, unknown> } | undefined) ?? null) : null;

@@ -134,6 +134,8 @@ export type ClientMsg =
   | { t: 'admin'; action: 'money'; amount: number }
   | { t: 'admin'; action: 'clock'; minute: number }
   | { t: 'admin'; action: 'weather'; weather: Weather | null }
+  /** Switch one Feira cart game on or off. Games ship off; only an admin turns one on. */
+  | { t: 'admin'; action: 'feiraGame'; game: FeiraGameId; on: boolean }
   /**
    * Player academies (slice 1). The elevator in Academia do Bairro asks for `directory`.
    * `found` takes a first-come name (brown belt). `visit` loads the empty floor without joining.
@@ -446,7 +448,7 @@ export type ServerMsg =
   | { t: 'sky'; serverNow: number; weather: Weather | null }
   | { t: 'admin'; phase: 'auth'; ok: true }
   | { t: 'admin'; phase: 'auth'; ok: false; pt: string; en: string }
-  | { t: 'admin'; phase: 'players'; players: AdminPlayerRow[] }
+  | { t: 'admin'; phase: 'players'; players: AdminPlayerRow[]; feira?: { id: FeiraGameId; on: boolean }[] }
   | { t: 'admin'; phase: 'disabled'; pt: string; en: string }
   | { t: 'avatarJoined'; avatar: PublicAvatar }
   | { t: 'avatarLeft'; id: string }
@@ -564,6 +566,8 @@ export type ServerMsg =
       phase: 'board';
       day: string;
       game: FeiraGameId;
+      /** False when today's game is switched off. The cart stays closed until an admin enables it. */
+      playable: boolean;
       top: FeiraBoardRow[];
       medals: FeiraMedalTally[];
       crownId: string | null;
