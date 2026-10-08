@@ -6,7 +6,8 @@
  *
  *   PHASE=day    walk to Tia Lu, ask the price (chip), hear 3-for-5, pay exactly with a R$ 5 note, get 3 bananas in the bag; then a typed question,
  *                an over-payment with change, and an under-payment that buys nothing.
- *   PHASE=night  the stalls are folded and closed (note), the Hortifrúti corner at the banca still sells (D12).
+ *   PHASE=night  the stalls are folded and closed (note), Tia Lu on her praça bench talks off duty (#170), the Hortifrúti corner at the banca
+ *                still sells (D12).
  *
  *   node scripts/e2e-feira.mjs   (BASE_URL, CHROME_PATH, SHOTS_DIR, SHOT_PREFIX, VIEW=390x844, PHASE)
  */
@@ -168,6 +169,26 @@ async function main() {
     await shot(page, 'closed_note');
     await page.keyboard.press('Escape');
     await sleep(300);
+    // #170: Tia Lu rests on her praça bench in the afternoon and talks off duty (no stall greeting, no offer to sell), pointing to tomorrow's feira
+    await goArea(page, 'praca');
+    await interact(page, { npc: 'tia_lu' });
+    for (let i = 0; i < 6; i++) {
+      await page.waitForSelector('#dialogue-box', { timeout: 20_000 });
+      const key = await page.getAttribute('#dialogue-box', 'data-dialogue');
+      assert(key !== 'feira' && key !== 'feira-fechada' && !key?.startsWith('idle-'), `Tia Lu off duty does not talk shop (${key}: ${await line(page)})`);
+      if (key === 'vendor-off-duty') break;
+      if (key?.startsWith('offer-') || key?.startsWith('give-')) await page.click('#dialogue-box [data-chip="1"]');
+      await sleep(350);
+    }
+    await page.waitForSelector('#dialogue-box[data-dialogue="vendor-off-duty"]', { timeout: 8000 });
+    assert(!/freguê|custa|reais/i.test(await line(page)), `off-duty small talk (${await line(page)})`);
+    await shot(page, 'off_duty_praca');
+    await page.click('#dialogue-box [data-chip="0"]'); // Dá pra comprar alguma coisa?
+    await waitLine(page, /amanhã/i, 'tomorrow’s feira');
+    assert(/seis/.test(await line(page)), `the buy answer names the hours (${await line(page)})`);
+    await page.keyboard.press('Escape');
+    await sleep(300);
+    log('Tia Lu off duty in the praça at', hhmm(await minutes(page)));
     // D12: the Hortifrúti corner at the banca (on the rua, back through the praça) still sells
     await goArea(page, 'rua');
     await interact(page, { prop: 'hortifruti' });
