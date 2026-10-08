@@ -67,6 +67,18 @@ export function academyFileAdapter(dataDir: string): AcademyPersistence {
   };
 }
 
+/** Design-mode layout overrides. Missing file means every room uses the bundled JSON. */
+export function layoutFileAdapter(dataDir: string): { load: () => unknown; save: (state: unknown) => void } {
+  const file = path.join(dataDir, 'layouts.json');
+  return {
+    load: () => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null),
+    save: (state) => {
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      atomicWriteFileSync(file, JSON.stringify(state));
+    },
+  };
+}
+
 /** Feira cart on/off switch (one mode per game). Missing file means every game is off. */
 export function feiraCartFileAdapter(dataDir: string): { load: () => unknown; save: (state: unknown) => void } {
   const file = path.join(dataDir, 'feiraCart.json');
