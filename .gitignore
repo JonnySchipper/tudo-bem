@@ -9,3 +9,6 @@ artifacts/
 
 .conversa-briefs/
 CONVERSA_ART_LOCK.md
+
+# Jev model weights (scripts/fetch-jev-model.py)
+models/

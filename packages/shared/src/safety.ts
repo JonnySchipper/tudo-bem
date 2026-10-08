@@ -58,6 +58,24 @@ export interface SafetyVerdict {
   note?: Bilingual;
   /** 0 clean → 1 severe (public-chat-pack `toxicity`). */
   toxicity: number;
+  /** Server-only: what the Jev model layer saw (score, latency, fallback reason). Absent on the client stub. */
+  jev?: JevModelTrace;
+}
+
+/** Jev model layer trace (server). Logged into moderation.jsonl with the verdict. */
+export interface JevModelTrace {
+  model: string;
+  /** Highest model score that drove the decision (0 clean → 1 severe). */
+  score?: number;
+  /** Per-label scores of the worst-scoring variant (rounded). */
+  scores?: Record<string, number>;
+  /** Score of the sender's recent lines + this message, when context was scored. */
+  context?: number;
+  /** Model rule that changed the stub verdict, if any. */
+  rule?: string;
+  ms: number;
+  /** Set when the model could not answer and the stub verdict stood. */
+  fallback?: 'timeout' | 'error' | 'unavailable';
 }
 
 /** Lowercase, unify apostrophes, strip accents, undo light leetspeak, collapse 3+ repeated letters. */
@@ -69,6 +87,27 @@ export function normalize(input: string): string {
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[013457@$]/g, (c) => ({ '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '@': 'a', $: 's' })[c] ?? c)
     .replace(/(.)\1{2,}/g, '$1');
+}
+
+/** Single-word blocklist terms (normalized), for resolving wildcard tokens like f*ck / p*rra. Filled once RULES compile. */
+let WILDCARD_TERMS: string[] = [];
+
+/**
+ * Undo deliberate obfuscation on normalized text so the blocklists (and the server model) see the real word:
+ *   - wildcard letters inside a word: f*ck, f#ck, p*rra, f*der → the blocklist term they stand for
+ *   - spaced / dotted single letters: f u c k, f.u.c.k, p o r r a, f.d.p → fuck, porra, fdp (3+ letters)
+ * Returns the input unchanged when nothing looks obfuscated. Never used to rewrite chat, only to classify it.
+ */
+export function deobfuscate(norm: string): string {
+  let out = norm.replace(/(?<![a-z])[a-z](?:[\s._*,+~-]+[a-z](?![a-z])){2,}/g, (run) => run.replace(/[^a-z]/g, ''));
+  out = out.replace(/[a-z*#%!?]*[a-z][*#%!?]+[a-z*#%!?]*/g, (tok) => {
+    const core = tok.replace(/[!?]+$/, '');
+    if (!/[a-z]/.test(core) || !/[*#%!?]/.test(core) || core.length < 3) return tok;
+    const re = new RegExp(`^${core.replace(/[*#%!?]/g, '[a-z]')}$`);
+    const hit = WILDCARD_TERMS.find((t) => t.length === core.length && re.test(t));
+    return hit ? hit + tok.slice(core.length) : tok;
+  });
+  return out;
 }
 
 export interface RuleJson {
@@ -145,6 +184,8 @@ const RULES: CompiledRule[] = Object.entries(RULE_PACKS).flatMap(([pack, { rules
   })),
 );
 
+WILDCARD_TERMS = [...new Set(Object.values(RULE_PACKS).flatMap(({ rules }) => rules.flatMap((r) => r.terms ?? [])).map(normalize).filter((t) => /^[a-z]{3,}$/.test(t)))];
+
 /** Everyday Brazilian slang (+ the substance pack's explicitly allowed drinks), consulted before any term rule. */
 const ALLOW_TERMS = [...allowPack.terms, ...substancePack.explicitly_allowed.map((e) => e.term)];
 export const ALLOWLIST = new Set(ALLOW_TERMS.map(normalize));
@@ -170,7 +211,7 @@ const PII: CompiledPii[] = (piiPack.patterns as PiiPatternJson[]).map((p) => ({
   normalized: !!p.normalized,
 }));
 
-const NOTES: Record<SafetyLabel, Bilingual> = {
+export const SAFETY_NOTES: Record<SafetyLabel, Bilingual> = {
   pii: { pt: 'Opa! Nada de dados pessoais aqui, tá?', en: 'Oops! No personal info here (phone, email, address, school, links).' },
   off_platform_contact: { pt: 'Vamos conversar aqui mesmo na praça!', en: 'Let’s keep chatting here in the world — no outside apps or contacts.' },
   slur: { pt: 'Essa mensagem não pode ser enviada.', en: 'That message can’t be sent.' },
@@ -185,9 +226,9 @@ const NOTES: Record<SafetyLabel, Bilingual> = {
   ethnic_review: { pt: 'Sua mensagem foi para a revisão da moderação.', en: 'Your message was sent to moderator review.' },
   spam: { pt: 'Calma! Uma mensagem de cada vez.', en: 'Easy! One message at a time.' },
 };
-const ESCALATE_NOTE: Bilingual = { pt: 'Sua mensagem foi para a revisão da moderação.', en: 'Your message was sent to moderator review.' };
+export const ESCALATE_NOTE: Bilingual = { pt: 'Sua mensagem foi para a revisão da moderação.', en: 'Your message was sent to moderator review.' };
 
-const SEVERITY: Record<SafetyAction, number> = { allow: 0, warn: 1, block: 2, escalate: 3 };
+export const SAFETY_SEVERITY: Record<SafetyAction, number> = { allow: 0, warn: 1, block: 2, escalate: 3 };
 /** Among hits with the most severe action, the later label wins (pc08 phone + WhatsApp = pii; pc10 vendo conta + pix = scam). */
 const LABEL_ORDER: SafetyLabel[] = ['spam', 'bullying', 'prohibited_substance', 'politics', 'off_platform_contact', 'dating', 'profanity', 'scam', 'pii', 'sexual', 'slur', 'ethnic_review', 'self_harm'];
 const priority = (l: SafetyLabel) => LABEL_ORDER.indexOf(l);
@@ -256,12 +297,15 @@ function evaluate(raw: string): { verdict: SafetyVerdict; hits: Hit[] } {
     if (p.re.test(p.normalized ? norm : text)) hits.push({ id: `pii.${p.id}`, label: p.label, category: p.category, action: 'block' });
   }
   hits.push(...ruleHits(norm));
+  // Obfuscated spellings (f*ck, f u c k, p.o.r.r.a) hit the same rules as the plain word.
+  const deob = deobfuscate(norm);
+  if (deob !== norm) for (const h of ruleHits(deob)) if (!hits.some((x) => x.id === h.id)) hits.push({ ...h, id: `${h.id}+deobf` });
   // Laughter (kkkkkkkk, hahaha, rsrsrs) is normal chat, not spam.
   if (/([^ksahr\s])\1{7,}/i.test(text) || (text.length > 24 && text === text.toUpperCase() && /[A-Z]{12,}/.test(text)))
     hits.push({ id: 'spam.shout', label: 'spam', category: 'spam', action: 'warn' });
 
   if (!hits.length) return { verdict: { action: 'allow', labels: [], rules: [], text, toxicity: 0 }, hits };
-  hits.sort((a, b) => SEVERITY[b.action] - SEVERITY[a.action] || priority(b.label) - priority(a.label));
+  hits.sort((a, b) => SAFETY_SEVERITY[b.action] - SAFETY_SEVERITY[a.action] || priority(b.label) - priority(a.label));
   const top = hits[0];
   const toxicity = Math.max(...hits.map((h) => TOXICITY[h.label] * ACTION_FACTOR[h.action]));
   const verdict: SafetyVerdict = {
@@ -269,7 +313,7 @@ function evaluate(raw: string): { verdict: SafetyVerdict; hits: Hit[] } {
     labels: [...new Set(hits.map((h) => h.label))],
     rules: hits.map((h) => h.id),
     text: top.action === 'warn' ? text : '',
-    note: top.note ?? (top.action === 'escalate' && top.label !== 'self_harm' ? ESCALATE_NOTE : NOTES[top.label]),
+    note: top.note ?? (top.action === 'escalate' && top.label !== 'self_harm' ? ESCALATE_NOTE : SAFETY_NOTES[top.label]),
     toxicity: Math.round(toxicity * 100) / 100,
   };
   return { verdict, hits };

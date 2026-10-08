@@ -11,6 +11,8 @@ import { PadariaStore } from './padariaStore.js';
 import { academyFileAdapter, feedbackFileAdapter, fileAdapter, padariaFileAdapter } from './fileStore.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 import { FileModerationQueue } from './services/fileModeration.js';
+import { JevModelSafety, loadOnnxToxModel } from './services/jevModel.js';
+import type { ChatSafetyService } from './services/interfaces.js';
 import { handleConversaApi } from './conversaApi.js';
 import { ConversaMemory } from './conversaMemory.js';
 import { staticCacheControl } from './cacheControl.js';
@@ -53,6 +55,22 @@ export interface AppOptions {
   verifyGoogleIdToken?: (token: string, clientId: string) => Promise<GoogleTokenPayload | null>;
   /** Override admin auth for GET /api/feedback (tests). Defaults to `TB_ADMIN_PASSWORD`. */
   feedbackAdmin?: AdminAuthConfig;
+  /** Jev model folder (scripts/fetch-jev-model.py). Defaults to `TB_JEV_MODEL_DIR`; unset = stub only. */
+  jevModelDir?: string;
+}
+
+/** Server chat safety: the Jev model behind the stub when a model folder is configured, else the stub alone. */
+function chatSafety(dir: string | undefined): ChatSafetyService & { status?: JevModelSafety['status'] } {
+  if (!dir) return new JevStubSafety();
+  const threads = Number(process.env.TB_JEV_THREADS) || 1;
+  const t0 = Date.now();
+  const safety = new JevModelSafety(new JevStubSafety(), loadOnnxToxModel(dir, { threads }));
+  void safety.ready().then((st) => {
+    const rss = Math.round(process.memoryUsage().rss / 1e6);
+    if (st.state === 'ready') console.log(`[jev] model ${st.model} ready in ${Date.now() - t0}ms (rss ${rss} MB)`);
+    else console.error(`[jev] model unavailable, stub-only chat safety: ${st.error}`);
+  });
+  return safety;
 }
 
 /** WebSocket close codes the client understands (see apps/client/src/net.ts). */
@@ -81,10 +99,11 @@ export function createApp(opts: AppOptions) {
   const accounts = new AccountStore(accountsFileAdapter(dataDir), { sessionTtlMs: opts.sessionTtlMs, scrypt: opts.scrypt });
   const fixedPapagaios = repairPapagaios((email) => accounts.profileIdForEmail(email), store);
   if (fixedPapagaios.length) console.log(`[papagaio] restored colours for ${fixedPapagaios.join(', ')}`);
+  const safety = chatSafety(opts.jevModelDir ?? (process.env.TB_JEV_MODEL_DIR || undefined));
   const world = new World(
     store,
     {
-      safety: new JevStubSafety(),
+      safety,
       gloss: new PhrasebookGloss(),
       npc: new AuthoredNpcDialogue(),
       student: new InMemoryStudentModel(),
@@ -106,7 +125,7 @@ export function createApp(opts: AppOptions) {
     const url = new URL(req.url ?? '/', 'http://x');
     if (url.pathname === '/healthz') {
       res.writeHead(200, { 'content-type': 'application/json' });
-      return res.end(JSON.stringify({ ok: true, ...world.stats(), accounts: accounts.count(), gameMinute: world.gameMinuteNow() }));
+      return res.end(JSON.stringify({ ok: true, ...world.stats(), accounts: accounts.count(), gameMinute: world.gameMinuteNow(), jev: safety.status?.() ?? { state: 'stub' } }));
     }
     // Test only: `POST /__test/clock?min=510` sets the game clock to 08:30 (e2e runs pin it). Off unless TB_TEST_CLOCK_CONTROL=1.
     if (url.pathname === '/__test/clock' && process.env.TB_TEST_CLOCK_CONTROL === '1') {
