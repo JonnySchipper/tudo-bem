@@ -23,6 +23,7 @@ export interface CorreriaActions {
 }
 
 const SAY_MS = 4200;
+const ORANGE_WORDS = { p: { pt: 'pequena', en: 'small' }, m: { pt: 'média', en: 'medium' }, g: { pt: 'grande', en: 'big' } } as const;
 
 export class CorreriaUI {
   private root: HTMLElement;
@@ -90,6 +91,8 @@ export class CorreriaUI {
       chapaTake: (slot) => this.act({ a: 'chapa_take', slot }),
       pourStart: (item) => this.act({ a: 'pour_start', item }),
       pourEnd: () => this.act({ a: 'pour_end' }),
+      juiceDrop: () => this.act({ a: 'juice_drop' }),
+      juiceTake: () => this.act({ a: 'juice_take' }),
       pack: (kind) => this.act({ a: 'pack', kind: this.snap?.pack === kind ? null : kind }),
       serve: () => this.act({ a: 'serve' }),
       clear: () => this.act({ a: 'clear' }),
@@ -286,10 +289,17 @@ export class CorreriaUI {
       }
       case 'grab':
       case 'chapa_ok':
-      case 'pour_ok': {
+      case 'pour_ok':
+      case 'juice_ok': {
         // the name of what was just taken, with its gloss (the shelf labels are hidden on small screens)
-        const it = MG_ITEMS.find((i) => i.id === (e.k === 'grab' ? e.item : e.item));
+        const it = MG_ITEMS.find((i) => i.id === e.item);
         if (it) this.flash({ pt: it.card.form, en: it.card.gloss_en }, false, 1400);
+        break;
+      }
+      case 'juice_drop': {
+        // the orange that just went in, by size (the shelf words are hidden on small screens)
+        const w = ORANGE_WORDS[e.size];
+        this.flash({ pt: `Uma laranja ${w.pt}`, en: `A ${w.en} orange` }, false, 1100);
         break;
       }
       case 'follow': {
@@ -344,7 +354,8 @@ export class CorreriaUI {
       case 'no':
       case 'chapa_raw':
       case 'chapa_burnt':
-      case 'pour_bad': {
+      case 'pour_bad':
+      case 'juice_bad': {
         const t = cue.toast;
         if (t) this.flash(t, t.tone === 'bad');
         break;

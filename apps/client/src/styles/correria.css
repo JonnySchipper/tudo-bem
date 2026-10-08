@@ -928,6 +928,80 @@ body.cr-on .toasts {
   display: none;
 }
 
+/* the espremedor: the glass glows once it reaches the line; small PT words with a verde EN gloss name its parts */
+.cr-hit.cr-glass[data-state='ready'] {
+  outline: 2px solid #66d27f;
+  background: rgba(102, 210, 127, 0.18);
+  animation: cr-glow 0.7s ease-out infinite;
+}
+
+.cr-hit.cr-glass[data-state='empty'] {
+  pointer-events: none;
+}
+
+.cr-word {
+  position: absolute;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0 3px 1px;
+  border-radius: 4px;
+  background: rgba(42, 34, 51, 0.78);
+  font-size: calc(var(--cr-fs, 10px) * 0.9);
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.cr-word:empty {
+  display: none;
+}
+
+.cr-word b {
+  font-weight: 900;
+  color: #fff8e6;
+}
+
+.cr-word i {
+  display: none;
+  font-size: 0.85em;
+  font-weight: 700;
+  color: #8ff0a4;
+}
+
+.cr-hot.cr-show-en .cr-word i {
+  display: block;
+}
+
+.cr-hot.small .cr-word {
+  display: none;
+}
+
+.cr-line-word {
+  left: calc(100% + 2px);
+  transform: translateY(-50%);
+}
+
+.cr-line-word b {
+  color: #ffb4a8;
+}
+
+.cr-next-word {
+  left: 74%;
+  top: 2%;
+}
+
+.cr-bin-word {
+  right: 76%;
+  top: 62%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cr-hit.cr-glass[data-state='ready'] {
+    animation: none;
+  }
+}
+
 .cr-pop {
   position: absolute;
   transform: translate(-50%, -100%);
