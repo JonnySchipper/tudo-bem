@@ -57,7 +57,8 @@ jobs:
           # passed to the Claude Code CLI; the alias is the latest Opus.
           # Bash is denied unless listed. These are the repo's verify commands,
           # pnpm tts for new spoken dialogue (see CLAUDE.md), and the local
-          # server + node scripts/*-shots.mjs used for PR screenshots.
+          # server + node scripts/*-shots.mjs used for PR screenshots, and pnpm pixel
+          # (rebuilds public/pixel from assets-src).
           claude_args: |
             ${{ (contains(github.event.issue.labels.*.name, 'opus') || contains(github.event.pull_request.labels.*.name, 'opus') || contains(github.event.comment.body, '/opus') || contains(github.event.review.body, '/opus')) && '--model opus' || '' }}
-            --allowedTools "Bash(pnpm install),Bash(pnpm install:*),Bash(pnpm test),Bash(pnpm test:*),Bash(pnpm typecheck),Bash(pnpm typecheck:*),Bash(pnpm build),Bash(pnpm build:*),Bash(pnpm tts),Bash(pnpm tts:*),Bash(pnpm verify),Bash(pnpm content),Bash(pnpm content:*),Bash(pnpm start),Bash(pnpm start:*),Bash(pnpm e2e:*),Bash(node scripts/*),Bash(BASE_URL=* node scripts/*),Bash(PORT=* pnpm start*),Bash(curl -s http://localhost:*),Bash(sleep:*)"
+            --allowedTools "Bash(pnpm install),Bash(pnpm install:*),Bash(pnpm test),Bash(pnpm test:*),Bash(pnpm typecheck),Bash(pnpm typecheck:*),Bash(pnpm build),Bash(pnpm build:*),Bash(pnpm tts),Bash(pnpm tts:*),Bash(pnpm verify),Bash(pnpm content),Bash(pnpm content:*),Bash(pnpm pixel),Bash(pnpm pixel:*),Bash(pnpm start),Bash(pnpm start:*),Bash(pnpm e2e:*),Bash(node scripts/*),Bash(BASE_URL=* node scripts/*),Bash(PORT=* pnpm start*),Bash(curl -s http://localhost:*),Bash(sleep:*)"
