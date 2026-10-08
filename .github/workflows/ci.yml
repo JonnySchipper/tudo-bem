@@ -17,7 +17,17 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      - name: Cache Jev model
+        uses: actions/cache@v4
+        with:
+          path: models/jev-tox-small
+          key: jev-model-${{ hashFiles('scripts/fetch-jev-model.py') }}
+      - name: Fetch Jev model (pinned, sha256-checked)
+        run: python3 scripts/fetch-jev-model.py
       - run: pnpm test
+        env:
+          # Jev model fixtures, v0.1 fixtures and the PT-slang KPI run through the real model (apps/server/src/services/jevModel.test.ts).
+          TB_JEV_MODEL_REQUIRED: '1'
       - run: pnpm build
       - name: Browser e2e (play path + recado, feira day/night, night NPCs, Me vê um across restarts)
         # e2e:all starts its own server with a pinned game clock (TB_TEST_CLOCK_CONTROL, TB_TEST_OFFER, TB_TEST_ROLL), so the result

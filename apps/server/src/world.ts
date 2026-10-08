@@ -131,6 +131,7 @@ import {
   type PrivateProfile,
 } from '@tudobem/shared';
 import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
+import { JEV_CONTEXT_LINES } from './services/jevModel.js';
 import { AcademyStore } from './academyStore.js';
 import { PadariaStore } from './padariaStore.js';
 import { ProfileStore, today, todaySaoPaulo, toPrivate, type StoredProfile } from './store.js';
@@ -259,6 +260,8 @@ export class Instance {
   crowd?: CpuCrowd;
   /** The last walk of each NPC that was broadcast here (`NpcPose.legId`), so the tick only sends what changed. */
   readonly npcSeen = new Map<NpcId, string>();
+  /** The last few delivered chat lines (oldest first): context for the Jev model. */
+  readonly recentChat: { playerId: string; text: string }[] = [];
   constructor(
     readonly id: string,
     readonly def: RoomDef,
@@ -1510,7 +1513,7 @@ export class World {
     if (s.chatTimes.length >= CHAT_RATE.max)
       return s.send({ t: 'notice', level: 'warn', pt: 'Calma! Uma mensagem de cada vez.', en: 'Easy! Too many messages — wait a few seconds.' });
     s.chatTimes.push(now);
-    const verdict = await this.services.safety.classify(text, { playerId: p.id, room: inst.id, nameplate: p.nameplate });
+    const verdict = await this.services.safety.classify(text, { playerId: p.id, room: inst.id, nameplate: p.nameplate, recent: inst.recentChat.slice() });
     if (verdict.action === 'block' || verdict.action === 'escalate') {
       this.flag(s, 'chat', verdict, text);
       return s.send({ t: 'notice', level: 'block', pt: verdict.note?.pt ?? 'Mensagem bloqueada.', en: verdict.note?.en ?? 'Message blocked.' });
@@ -1520,6 +1523,8 @@ export class World {
     // Delivered verbatim: player chat is never rewritten (CEO-LOCKS §3).
     const { gloss, lang } = await this.services.gloss.gloss(verdict.text);
     this.broadcast(inst, { t: 'chat', id: p.id, name: p.name, text: verdict.text, gloss, lang, action: verdict.action });
+    inst.recentChat.push({ playerId: p.id, text: verdict.text });
+    if (inst.recentChat.length > JEV_CONTEXT_LINES) inst.recentChat.shift();
     if (verdict.action === 'warn' && verdict.note) s.send({ t: 'notice', level: 'warn', pt: verdict.note.pt, en: verdict.note.en });
     this.completeStep(s, 'conversar');
     this.caderno.used(s, verdict.text);
@@ -1540,6 +1545,7 @@ export class World {
       labels: verdict.labels,
       rules: verdict.rules,
       toxicity: verdict.toxicity,
+      ...(verdict.jev ? { jev: verdict.jev } : {}),
       ...(verdict.action === 'escalate' ? { status: 'pending' as const } : {}),
       at: this.now(),
     });

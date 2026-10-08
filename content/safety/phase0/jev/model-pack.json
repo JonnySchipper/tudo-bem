@@ -1,0 +1,285 @@
+{
+ "_meta": {
+  "status": "safety-v0.1",
+  "source": "eng — Jev model layer (server). Not part of the v0.1 TB Safety snapshot; owned with apps/server/src/services/jevModel.ts.",
+  "model": "Horizon-Labs/multilingual-toxicity-small@3baf773 (Apache-2.0). Fetched by scripts/fetch-jev-model.py.",
+  "stack_position": "after the stub (PII → overlays → blocklists); the model can only make a verdict stricter, never rewrite chat",
+  "thresholds": "JEV_THRESHOLDS in apps/server/src/services/jevModel.ts. CI runs every fixture below, the v0.1 public-chat fixtures and the PT-slang false-block KPI through the real model.",
+  "fixtures": "Messages the model layer (or the server's context stitching) must catch. `recent` = the sender's own earlier lines in the room, oldest first.",
+  "guards": "Banter, compliments and idioms that must stay allow (the model scores some of them 0.7–0.9)."
+ },
+ "directed_insult_cues": [
+  "lixo",
+  "nojo",
+  "nojento",
+  "nojenta",
+  "inútil",
+  "inuteis",
+  "vergonha",
+  "vadia",
+  "verme",
+  "escroto",
+  "escrota",
+  "ridículo",
+  "ridícula",
+  "patético",
+  "patética",
+  "fracassado",
+  "fracassada",
+  "ninguém gosta de você",
+  "ninguém te quer",
+  "worthless",
+  "trash",
+  "garbage",
+  "pathetic",
+  "disgusting",
+  "useless",
+  "nobody likes you",
+  "nobody wants you"
+ ],
+ "fixtures": [
+  {
+   "text": "você é inútil, ninguém te quer aqui",
+   "action": "block",
+   "label": "bullying",
+   "why": "harassment, no swear word"
+  },
+  {
+   "text": "você é uma vergonha",
+   "action": "block",
+   "label": "bullying",
+   "why": "harassment, no swear word"
+  },
+  {
+   "text": "seu lixo",
+   "action": "block",
+   "label": "bullying",
+   "why": "harassment, no swear word"
+  },
+  {
+   "text": "você é um nojo",
+   "action": "block",
+   "label": "bullying",
+   "why": "harassment, no swear word"
+  },
+  {
+   "text": "you're worthless, nobody wants you here",
+   "action": "block",
+   "label": "bullying",
+   "why": "harassment, no swear word"
+  },
+  {
+   "text": "sua mãe é uma vadia",
+   "action": "warn",
+   "label": "bullying",
+   "why": "insult not in the blocklists"
+  },
+  {
+   "text": "você é burrinho kkk",
+   "action": "warn",
+   "label": "bullying",
+   "why": "diminutive slips past the burro/burra terms"
+  },
+  {
+   "text": "I'll beat you up",
+   "action": "escalate",
+   "label": "bullying",
+   "why": "threat, no blocklist phrase"
+  },
+  {
+   "text": "f*ck you",
+   "action": "block",
+   "label": "profanity",
+   "why": "wildcard obfuscation (stub de-obfuscation)"
+  },
+  {
+   "text": "f u c k you",
+   "action": "block",
+   "label": "profanity",
+   "why": "spaced letters"
+  },
+  {
+   "text": "f.u.c.k off",
+   "action": "block",
+   "label": "profanity",
+   "why": "dotted letters"
+  },
+  {
+   "text": "sh!t",
+   "action": "block",
+   "label": "profanity",
+   "why": "wildcard obfuscation"
+  },
+  {
+   "text": "vai se f*der",
+   "action": "block",
+   "label": "profanity",
+   "why": "wildcard obfuscation (pt)"
+  },
+  {
+   "text": "p o r r a",
+   "action": "block",
+   "label": "profanity",
+   "why": "spaced letters (pt)"
+  },
+  {
+   "text": "f.d.p",
+   "action": "block",
+   "label": "profanity",
+   "why": "dotted abbreviation"
+  },
+  {
+   "recent": [
+    "você",
+    "é"
+   ],
+   "text": "um lixo",
+   "action": "block",
+   "label": "bullying",
+   "why": "insult split over lines (model context)"
+  },
+  {
+   "recent": [
+    "you are"
+   ],
+   "text": "worthless",
+   "action": "block",
+   "label": "bullying",
+   "why": "insult split over lines (model context)"
+  },
+  {
+   "recent": [
+    "kill"
+   ],
+   "text": "yourself",
+   "action": "escalate",
+   "label": "bullying",
+   "why": "threat split over lines (stub context)"
+  },
+  {
+   "recent": [
+    "f",
+    "u",
+    "c"
+   ],
+   "text": "k",
+   "action": "block",
+   "label": "profanity",
+   "why": "one letter per line (stub context)"
+  }
+ ],
+ "guards": [
+  {
+   "text": "you're crazy"
+  },
+  {
+   "text": "você é louco"
+  },
+  {
+   "text": "tu é maluco"
+  },
+  {
+   "text": "you're a beast"
+  },
+  {
+   "text": "você é fera"
+  },
+  {
+   "text": "você é um monstro no jiu-jitsu"
+  },
+  {
+   "text": "vou acabar com você no jiu-jitsu"
+  },
+  {
+   "text": "I'm gonna destroy you in checkers"
+  },
+  {
+   "text": "vou te destruir no xadrez"
+  },
+  {
+   "text": "you killed it"
+  },
+  {
+   "text": "você mata a pau"
+  },
+  {
+   "text": "quero matar essa saudade"
+  },
+  {
+   "text": "vou matar a saudade da praça"
+  },
+  {
+   "text": "vou matar essa fome"
+  },
+  {
+   "text": "nice kill"
+  },
+  {
+   "text": "matei ele no jiu-jitsu"
+  },
+  {
+   "text": "esse pão tá um lixo"
+  },
+  {
+   "text": "que nojo esse café"
+  },
+  {
+   "text": "que vergonha, você errou"
+  },
+  {
+   "text": "you're so annoying haha"
+  },
+  {
+   "text": "você é o pior jogador kkk"
+  },
+  {
+   "text": "seu noob"
+  },
+  {
+   "text": "você é chato"
+  },
+  {
+   "text": "eu odeio você kkk brincadeira"
+  },
+  {
+   "text": "you suck at this game lol"
+  },
+  {
+   "text": "seu bobo kkk"
+  },
+  {
+   "text": "você é muito engraçado"
+  },
+  {
+   "text": "seu papagaio é lindo"
+  },
+  {
+   "text": "vou te pegar no próximo round"
+  },
+  {
+   "text": "this game is sick"
+  },
+  {
+   "text": "kkkk mano que massa"
+  },
+  {
+   "recent": [
+    "você é muito chato"
+   ],
+   "text": "bora jogar?"
+  },
+  {
+   "recent": [
+    "vou matar"
+   ],
+   "text": "a saudade da praça"
+  },
+  {
+   "recent": [
+    "oi gente",
+    "tudo bem?"
+   ],
+   "text": "bora pra padaria comer pão de queijo"
+  }
+ ]
+}

@@ -64,7 +64,7 @@ import { FrameProbe, LowFxGovernor, reducedMotion } from './perf';
 import { clock } from '../../gameClock';
 import { buildTerrainLayers } from './terrainLayers';
 import { LabelLayer, type GuideItem, type StackItem } from './labels';
-import { OUTDOOR_NORTH, T, cssZoomFor, feet, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
+import { T, cssZoomFor, feet, outdoorFraming, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
 import { pickHit, type HitBox } from './hit';
 import { dialogueFraming, easeOut, stepBlend } from './dialogueCam';
 import { BoutStage } from './boutStage';
@@ -74,7 +74,8 @@ import { correriaFeed } from './correriaFeed';
 import { FOCUS, NEED } from './correriaArt';
 import { roomKey, syncViews } from './reconcile';
 import { DEPTH, PROP_LIGHT, fencePieces, footprintRect, inflate, propAnchor, propClickKind, propDepth, furnitureArtKey, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
-import { sceneryFor } from './scenery';
+import { sceneryFor, type WireRun } from './scenery';
+import { SURROUND_TILES, surroundFor, type Surround } from './surround';
 import {
   FLOOR_PLACEHOLDER,
   CAMERA_LEAD_NORTH,
@@ -473,7 +474,7 @@ export class WorldScene extends Phaser.Scene {
     const y = Math.round(wy);
     const spr = this.reg(this.add.sprite(x, y, d.atlas, d.frame)).setOrigin(...originOf(d)).setDepth(depth);
     if (d.anim) spr.play({ key: ensureAnim(this, key, d), startFrame: Math.floor(hash01(x * 31 + y) * d.anim.frames.length) });
-    if (key.startsWith('vehicles/')) this.reg(this.rig.liftBody(spr)); // a parked car keeps its shape at night
+    if (shadow && key.startsWith('vehicles/')) this.reg(this.rig.liftBody(spr)); // a parked car keeps its shape at night
     this.lastShadow = shadow && this.roomOutdoor ? this.shadows.addStatic(key, d, x, y, depth) : null;
     if (shadow && this.roomOutdoor) this.ao.add(aoForSprite(key, d, x, y));
     if (shadow) {
@@ -518,8 +519,10 @@ export class WorldScene extends Phaser.Scene {
     const has = (k: string) => !!m.sprites[k];
     const missingBefore = this.artMissing.length;
 
-    // ---- terrain: dual-grid layers for the floor chars that have art; substitutes and flat placeholders for the rest
-    const res = buildTerrainLayers(this, def.floor, m.terrain, 'terrainTs', { outside: def.outdoor ? undefined : 'x', wrap: (o) => this.rig.world(o), substitute: FLOOR_SUBSTITUTE });
+    // ---- terrain: dual-grid layers for the floor chars that have art; substitutes and flat placeholders for the rest. An open-air map draws
+    // the town around it too (surround.ts): the same layers, started `margin` tiles out, so the ground runs on past the map edge
+    const sur = surroundFor(def);
+    const res = buildTerrainLayers(this, sur ? sur.floor : def.floor, m.terrain, 'terrainTs', { outside: def.outdoor ? undefined : 'x', wrap: (o) => this.rig.world(o), substitute: FLOOR_SUBSTITUTE, offset: sur ? -sur.margin : 0 });
     this.roomMap = res.map;
     this.groundLayers = res.layers.map((layer, i) => ({ ch: res.drawn[i], layer }));
     this.wetApplied = -1;
@@ -616,16 +619,20 @@ export class WorldScene extends Phaser.Scene {
       if (pd) this.reg(this.add.image(Math.round(a.wx) + 3, Math.round(a.wy) - 1, pd.atlas, pd.frame)).setOrigin(0.5, 0.5).setDepth(-4900);
     }
 
-    // ---- sky and far skyline in the top margin of an open-air map
-    if (def.outdoor) this.buildBackdrop(def);
+    // ---- sky and far skyline above the street of an open-air map
+    if (sur) this.buildBackdrop(sur);
 
-    // ---- ground dressing and wires of an open-air map
+    // ---- ground dressing and wires of an open-air map, and of the neighbouring areas drawn around it
     this.buildScenery(def);
+    if (sur) this.buildSurroundScenery(sur);
 
     // ---- props
     // the small diary objects and signs stand out a couple at a time, a different couple each game day
     this.diaryDay = clock.day();
     for (const p of def.props) if (diaryVisible(def.id, p.id, this.diaryDay)) this.buildProp(p);
+    // the town around an open-air map: scenery only (no action, label or seat, outside the walkable grid).
+    // Static sprites, no sun-shadow caster and no lamp: those are per-frame, and a phone was paying for a whole neighbouring block (issue #123).
+    for (const p of sur?.props ?? []) this.buildProp(p, true);
 
     // ---- readable world (Phase 7): a click box per hotspot (the footprint, plus the wall rows above it for a sign painted on a north wall)
     for (const hs of hotspotsInRoom(def.id)) {
@@ -727,7 +734,8 @@ export class WorldScene extends Phaser.Scene {
     this.sprite(art.key, left + spr.ax, art.bottom, DEPTH.wallDecor, false);
   }
 
-  private buildProp(p: PropDef): void {
+  /** `scenery`: a surround prop. One sprite, no sun-shadow caster, no lamp and no stall logic (those update every frame). */
+  private buildProp(p: PropDef, scenery = false): void {
     const m = this.m;
     if (p.kind === 'cerca') {
       this.buildFence(p);
@@ -748,30 +756,30 @@ export class WorldScene extends Phaser.Scene {
         const wx = (s.x + 0.5) * T;
         const wy = (s.y + 1) * T;
         if (sd) {
-          this.sprite(s.key, wx, wy, depth);
+          this.sprite(s.key, wx, wy, depth, !scenery);
           visual = unionRect(visual, spriteRect(Math.round(wx), Math.round(wy), sd));
         } else this.placeholder(`${s.key}#${p.id}`, { x0: s.x * T, y0: s.y * T, x1: (s.x + 1) * T, y1: (s.y + 1) * T }, depth);
       }
     } else if (artKey && d) {
-      const main = this.sprite(artKey, a.wx, a.wy, depth);
+      const main = this.sprite(artKey, a.wx, a.wy, depth, !scenery);
       const mainShadow = this.lastShadow;
-      const feiraEntry = p.kind === 'feira' ? { open: (main ? [main] : []) as Phaser.GameObjects.GameObject[], closed: [] as Phaser.GameObjects.GameObject[], isOpen: null as boolean | null } : null;
+      const feiraEntry = !scenery && p.kind === 'feira' ? { open: (main ? [main] : []) as Phaser.GameObjects.GameObject[], closed: [] as Phaser.GameObjects.GameObject[], isOpen: null as boolean | null } : null;
       if (feiraEntry && mainShadow) feiraEntry.open.push(mainShadow as unknown as Phaser.GameObjects.GameObject);
-      if (p.kind === 'barraca_chapeus') this.stall = { main, canopy: null, wx: a.wx, wy: a.wy, closed: false };
-      if (p.kind === 'trilho_pedidos' && main && d.anim) {
+      if (!scenery && p.kind === 'barraca_chapeus') this.stall = { main, canopy: null, wx: a.wx, wy: a.wy, closed: false };
+      if (!scenery && p.kind === 'trilho_pedidos' && main && d.anim) {
         // the ticket rail is still until Correria no Balcão opens (updateTrilho)
         main.anims.stop();
         main.setFrame(d.anim.frames[0]);
         this.trilho = main;
         this.trilhoLive = false;
       }
-      if (d.lit && m.sprites[d.lit]) {
+      if (!scenery && d.lit && m.sprites[d.lit]) {
         const ld = m.sprites[d.lit];
         this.rig.litOverlays.push(this.reg(this.add.image(Math.round(a.wx), Math.round(a.wy), ld.atlas, ld.frame)).setOrigin(...originOf(ld)).setDepth(depth + 0.01).setAlpha(0).setData('delay', lightDelay(a.wx, a.wy)));
       }
       visual = unionRect(foot, spriteRect(Math.round(a.wx), Math.round(a.wy), d));
       // lit windows of a building front: light pools on the sidewalk at night
-      for (const [wx, wy, ww, wh] of d.windows ?? []) {
+      if (!scenery) for (const [wx, wy, ww, wh] of d.windows ?? []) {
         this.rig.lights.push({ x: Math.round(a.wx) - d.ax + wx + ww / 2, y: Math.round(a.wy) - d.ay + wy + wh + 5, r: 22 + ww * 0.5, color: 0xffc060, squash: 0.6, kind: 'window' });
       }
       if (typeof d.overhead === 'string' && m.sprites[d.overhead]) {
@@ -780,29 +788,33 @@ export class WorldScene extends Phaser.Scene {
         const y = Math.round(a.wy);
         const spr = this.reg(this.add.sprite(x, y, od.atlas, od.frame)).setOrigin(...originOf(od)).setDepth(DEPTH.overhead + y / 1000);
         if (od.anim) spr.play({ key: ensureAnim(this, d.overhead, od), startFrame: Math.floor(hash01(x * 7 + y) * 4) });
-        if (p.kind === 'barraca_chapeus' && this.stall) this.stall.canopy = spr;
+        if (!scenery && p.kind === 'barraca_chapeus' && this.stall) this.stall.canopy = spr;
         feiraEntry?.open.push(spr);
-        const canopyShadow = this.roomOutdoor ? this.shadows.addStatic(d.overhead, od, x, y, DEPTH.overhead + y / 1000) : null;
-        if (this.roomOutdoor && p.kind !== 'feira') this.ao.add(aoForOverhead(d.overhead, od, x, y, d.footprint));
+        const canopyShadow = !scenery && this.roomOutdoor ? this.shadows.addStatic(d.overhead, od, x, y, DEPTH.overhead + y / 1000) : null;
+        if (!scenery && this.roomOutdoor && p.kind !== 'feira') this.ao.add(aoForOverhead(d.overhead, od, x, y, d.footprint));
         if (feiraEntry && canopyShadow) feiraEntry.open.push(canopyShadow as unknown as Phaser.GameObjects.GameObject);
-        const left = x - od.ax;
-        const top = y - od.ay;
-        this.canopies.push({ sprite: spr, r: { x0: left, y0: top + 8, x1: left + od.w, y1: top + od.h + 14 }, fade: 1, stall: p.kind === 'feira' || p.kind === 'barraca_chapeus' });
-      }
-      if (feiraEntry) this.buildFeiraClosed(artKey, a, depth, feiraEntry);
-      const L = d.light ? { x: d.light.x - d.ax, y: d.light.y - d.ay, r: d.light.r, color: d.light.color } : PROP_LIGHT[p.kind];
-      if (L) this.addLampLights(Math.round(a.wx), Math.round(a.wy), L);
-      else {
-        // V5: lights from data: the sprite key's preset, or the generic pool for a prop flagged lightAtNight
-        const pr = presetFor(artKey, p.lightAtNight);
-        if (pr) {
-          const bx = Math.round(a.wx);
-          const by = Math.round(a.wy);
-          const delay = lightDelay(bx, by);
-          for (const s of pr.lights) this.rig.lights.push({ x: bx + s.x, y: by + s.y, r: s.r, color: parseInt(s.color.slice(1), 16), squash: s.squash, kind: 'lamp', glow: s.glow ?? 0.4, delay });
+        if (!scenery) {
+          const left = x - od.ax;
+          const top = y - od.ay;
+          this.canopies.push({ sprite: spr, r: { x0: left, y0: top + 8, x1: left + od.w, y1: top + od.h + 14 }, fade: 1, stall: p.kind === 'feira' || p.kind === 'barraca_chapeus' });
         }
       }
-      if (this.roomOutdoor && presetFor(artKey, p.lightAtNight)?.water) {
+      if (feiraEntry) this.buildFeiraClosed(artKey, a, depth, feiraEntry);
+      if (!scenery) {
+        const L = d.light ? { x: d.light.x - d.ax, y: d.light.y - d.ay, r: d.light.r, color: d.light.color } : PROP_LIGHT[p.kind];
+        if (L) this.addLampLights(Math.round(a.wx), Math.round(a.wy), L);
+        else {
+          // V5: lights from data: the sprite key's preset, or the generic pool for a prop flagged lightAtNight
+          const pr = presetFor(artKey, p.lightAtNight);
+          if (pr) {
+            const bx = Math.round(a.wx);
+            const by = Math.round(a.wy);
+            const delay = lightDelay(bx, by);
+            for (const s of pr.lights) this.rig.lights.push({ x: bx + s.x, y: by + s.y, r: s.r, color: parseInt(s.color.slice(1), 16), squash: s.squash, kind: 'lamp', glow: s.glow ?? 0.4, delay });
+          }
+        }
+      }
+      if (!scenery && this.roomOutdoor && presetFor(artKey, p.lightAtNight)?.water) {
         const px = this.shadows.readFrame(d.atlas, d.frame);
         if (px) this.water.add(artKey, px.data as Uint8ClampedArray, px.w, px.h, a.wx, a.wy, d.ax, d.ay, depth);
       }
@@ -871,16 +883,54 @@ export class WorldScene extends Phaser.Scene {
   }
 
   /** Ground decals (crosswalks, mosaic, flowers, tufts, grime) and the overhead wires of an open-air map. */
-  /** The strip of sky and distant buildings above the north row (`backdrop/sky_0..3`, 14 tiles each); the facades hide their feet. */
-  private buildBackdrop(def: RoomDef): void {
-    for (let i = 0; i * 14 < def.cols; i++) {
-      const sd = this.m.sprites[`backdrop/sky_${i % 4}`];
-      if (!sd) continue;
-      const img = this.reg(this.add.image(i * 14 * T, 0, sd.atlas, sd.frame)).setOrigin(0, 1).setDepth(-9500);
-      // the last strip stops at the room's east edge (a 21- or 19-column area would otherwise show sky past its end)
-      const left = def.cols - i * 14;
-      if (left < 14) img.setCrop(0, 0, left * T, img.height);
+  /**
+   * The strip of sky and distant buildings standing on the street's north edge (`backdrop/sky_0..3`, 14 tiles each), across the whole width
+   * the camera can show; the facades hide its feet. Above it, open sky in three bands, lightest at the horizon (the strip's own top colour).
+   */
+  private buildBackdrop(sur: Surround): void {
+    const y = sur.skyline;
+    // strips on the town grid's 14-tile rhythm, so the skyline lines up across the rua / rua_leste seam
+    const W = 14 * T;
+    const ox = sur.townX * T;
+    for (let i = Math.floor((sur.skyX0 + ox) / W); i * W - ox < sur.skyX1; i++) {
+      const sd = this.m.sprites[`backdrop/sky_${((i % 4) + 4) % 4}`];
+      if (sd) this.reg(this.add.image(i * W - ox, y, sd.atlas, sd.frame)).setOrigin(0, 1).setDepth(-9500);
     }
+    const top = y - 32 - SURROUND_TILES * T;
+    const bands: [number, number][] = [
+      [y - 32 - 2 * T, 0x94b6cf],
+      [y - 32 - 6 * T, 0x8aaecb],
+      [top, 0x80a7c6],
+    ];
+    let bottom = y - 32;
+    for (const [y0, color] of bands) {
+      this.reg(this.add.rectangle(sur.skyX0, y0, sur.skyX1 - sur.skyX0, bottom - y0, color, 1)).setOrigin(0, 0).setDepth(-9501);
+      bottom = y0;
+    }
+  }
+
+  /** Ground dressing of the neighbouring areas around an open-air map (shifted onto this map's tiles) and the lane dashes of the generated blocks. */
+  private buildSurroundScenery(sur: Surround): void {
+    const has = (k: string) => !!this.m.sprites[k];
+    const r = sur.reach;
+    for (const n of sur.neighbours) {
+      const sc = sceneryFor(n.def, has);
+      if (!sc) continue;
+      const dx = n.dx * T;
+      const dy = n.dy * T;
+      for (const d of sc.decals) {
+        const x = d.x + dx;
+        const y = d.y + dy;
+        if (x < r.x0 || x > r.x1 || y < r.y0 || y > r.y1) continue;
+        const sd = this.m.sprites[d.key];
+        const img = this.reg(this.add.image(x, y, sd.atlas, sd.frame)).setDepth(d.depth);
+        if (d.origin === 'tl') img.setOrigin(0, 0);
+        else img.setOrigin(...originOf(sd));
+      }
+      this.buildWires(sc.wires, dx, dy);
+    }
+    const dash = this.m.sprites['decals/lane_dash'];
+    if (dash) for (const d of sur.dashes) this.reg(this.add.image(d.x, d.y, dash.atlas, dash.frame)).setOrigin(0, 0).setDepth(DEPTH.groundDecal);
   }
 
   private buildScenery(def: RoomDef): void {
@@ -892,11 +942,16 @@ export class WorldScene extends Phaser.Scene {
       if (d.origin === 'tl') img.setOrigin(0, 0);
       else img.setOrigin(...originOf(sd));
     }
+    this.buildWires(sc.wires, 0, 0);
+  }
+
+  /** The overhead wires between utility poles, shifted by (dx, dy) world px (a neighbouring area's wires drawn around this map). */
+  private buildWires(runs: WireRun[], dx: number, dy: number): void {
     const pole = this.m.sprites['props/poste_fios'];
     const attachY = pole?.attach?.[1] ?? -51;
-    for (const run of sc.wires) {
-      let wx = run.x;
-      const wy = run.y + attachY;
+    for (const run of runs) {
+      let wx = run.x + dx;
+      const wy = run.y + dy + attachY;
       for (const key of run.keys) {
         const wd = this.m.sprites[key];
         if (!wd) {
@@ -1239,8 +1294,12 @@ export class WorldScene extends Phaser.Scene {
     const ins = this.host.insets();
     const k = this.cam.dpr;
     const dpr = k; // the effective (possibly capped, see bufferPixels) ratio of the backing store
-    // the whole room (walls included) when it fits at this or the next lower integer zoom, else follow the avatar with the north wall kept in view
-    let f = roomFraming({ w: this.cam.w, h: this.cam.h }, this.bounds, focus, { top: ins.top * k, bottom: ins.bottom * k, left: ins.left * k, right: ins.right * k }, cssZoomFor(window.innerWidth, window.innerHeight), dpr, def.outdoor ? OUTDOOR_NORTH : undefined);
+    // interiors: the whole room (walls included) when it fits at this or the next lower integer zoom, else follow the avatar with the north wall
+    // kept in view. Open-air maps: the window's zoom, following the avatar; the town drawn around the map fills the rest (issue #123)
+    const view = { w: this.cam.w, h: this.cam.h };
+    const insDev = { top: ins.top * k, bottom: ins.bottom * k, left: ins.left * k, right: ins.right * k };
+    const cssZoom = cssZoomFor(window.innerWidth, window.innerHeight);
+    let f = def.outdoor ? outdoorFraming(view, this.bounds, focus, insDev, cssZoom, dpr) : roomFraming(view, this.bounds, focus, insDev, cssZoom, dpr);
     if (this.host.shot === 'map' && def.outdoor) {
       // debug `?shot=map`: the whole map in one frame, at the biggest integer zoom that fits (1x on a 1280 x 800 window), centred, no follow
       const zoom = Math.max(1, Math.floor(Math.min(this.cam.w / (def.cols * T), this.cam.h / (def.rows * T))));
