@@ -11,7 +11,7 @@
  *    targets pin the arrow to the nearest edge of the free screen region and turn it toward the target (`guides.ts`).
  */
 import './pixel.css';
-import { FOUNDER_BADGE, tierRule, type Nameplate } from '@tudobem/shared';
+import { FOUNDER_BADGE, tierRule, type BubbleStyle, type Nameplate } from '@tudobem/shared';
 import { diffIds } from './reconcile';
 import { GUIDE_ROTATION, pinGuide, type GuideDir, type GuideInsets } from './guides';
 
@@ -20,6 +20,8 @@ export interface BubbleItem {
   gloss: string | null;
   /** 0..1 */
   alpha: number;
+  /** Appearance only. Classic (or omitted) is the free bubble. The text is never derived from this. */
+  style?: BubbleStyle;
 }
 
 export interface StackItem {
@@ -37,6 +39,8 @@ export interface StackItem {
     mark?: string;
     /** Beta founder “f” mark beside the nameplate. */
     founder?: boolean;
+    /** Subscription founder badge. A separate mark; it does not change the plate tier. */
+    subBadge?: boolean;
     /** Live Fada da Feira crown. A display overlay only — not a tier, belt or stripe. */
     feiraCrown?: boolean;
     /** Players: the nameplate colour earned in the escola (verde is the plain plate; the others add their colour and shape). */
@@ -183,6 +187,7 @@ interface StackEl {
   plateRow: HTMLElement;
   plate: HTMLElement;
   founder: HTMLElement;
+  subBadge: HTMLElement;
   crown: HTMLElement;
   bubbles: BubbleEl[];
   side: 'left' | 'right';
@@ -353,13 +358,16 @@ export class LabelLayer {
     const founder = document.createElement('span');
     founder.className = 'wl-founder';
     founder.style.display = 'none';
+    const subBadge = document.createElement('span');
+    subBadge.className = 'wl-sub-badge';
+    subBadge.style.display = 'none';
     const crown = document.createElement('i');
     crown.className = 'wl-feira-crown';
     crown.style.display = 'none';
     crown.setAttribute('aria-hidden', 'true');
-    plateRow.append(crown, plate, founder);
+    plateRow.append(crown, plate, subBadge, founder);
     root.appendChild(plateRow);
-    return { root, plateRow, plate, founder, crown, bubbles: [], side: 'left', plateKey: '', plateW: 0, plateH: 0, transform: '', hidden: false, occluded: false, baseBottoms: [], plateBottom: '' };
+    return { root, plateRow, plate, founder, subBadge, crown, bubbles: [], side: 'left', plateKey: '', plateW: 0, plateH: 0, transform: '', hidden: false, occluded: false, baseBottoms: [], plateBottom: '' };
   }
 
   private createBubble(): BubbleEl {
@@ -403,7 +411,7 @@ export class LabelLayer {
 
     // nameplate: text and kind change rarely; measure only then
     const tier = s.plate && (s.plate.kind === 'player' || s.plate.kind === 'me') && s.plate.tier && s.plate.tier !== 'verde' ? s.plate.tier : null;
-    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}|${s.plate.mark ?? ''}|${s.plate.founder ? '1' : ''}|${s.plate.feiraCrown ? 'c' : ''}|${tier ?? ''}` : '';
+    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}|${s.plate.mark ?? ''}|${s.plate.founder ? '1' : ''}|${s.plate.subBadge ? 'b' : ''}|${s.plate.feiraCrown ? 'c' : ''}|${tier ?? ''}` : '';
     if (pk !== el.plateKey) {
       el.plateKey = pk;
       if (s.plate) {
@@ -447,6 +455,15 @@ export class LabelLayer {
           el.founder.style.display = 'none';
           el.founder.replaceChildren();
         }
+        if (s.plate.subBadge) {
+          el.subBadge.style.display = '';
+          el.subBadge.setAttribute('role', 'img');
+          el.subBadge.setAttribute('aria-label', 'Fundador · Founder');
+          el.subBadge.setAttribute('title', 'Fundador · Founder');
+        } else {
+          el.subBadge.style.display = 'none';
+          el.subBadge.removeAttribute('aria-label');
+        }
         const w = el.plateRow.offsetWidth;
         el.plateW = w % 2 ? w + 1 : w;
         el.plateH = el.plateRow.offsetHeight;
@@ -472,6 +489,12 @@ export class LabelLayer {
         el.root.appendChild(be.root);
       }
       const gloss = b.gloss ?? '';
+      const style = b.style && b.style !== 'classic' ? b.style : 'classic';
+      const cls = style === 'classic' ? 'wl-bubble' : `wl-bubble wl-style-${style}`;
+      if (be.root.className !== cls) {
+        be.root.className = cls;
+        remeasure = true;
+      }
       if (be.text !== b.text || be.gloss !== gloss) {
         be.text = b.text;
         be.gloss = gloss;

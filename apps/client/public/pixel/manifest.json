@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 1024,
    "h": 1984,
-   "frames": 1194
+   "frames": 1196
   }
  },
  "terrain": {
@@ -12424,6 +12424,36 @@
    "overhead": null,
    "shadow": "fx/shadow_16"
   },
+  "furniture/banner_fundadores_0": {
+   "atlas": "outdoor",
+   "frame": "furniture/banner_fundadores_0",
+   "w": 16,
+   "h": 28,
+   "ax": 8,
+   "ay": 26,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "furniture/banner_fundadores_1": {
+   "atlas": "outdoor",
+   "frame": "furniture/banner_fundadores_1",
+   "w": 16,
+   "h": 28,
+   "ax": 8,
+   "ay": 26,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
   "furniture/tapete_0": {
    "atlas": "outdoor",
    "frame": "furniture/tapete_0",
@@ -16605,6 +16635,22 @@
    "frames": 4,
    "frameW": 30,
    "fps": 8
+  },
+  "chars/pet_dog": {
+   "file": "chars/pet_dog.png",
+   "w": 64,
+   "h": 16,
+   "frames": 4,
+   "frameW": 16,
+   "fps": 6
+  },
+  "chars/pet_cat": {
+   "file": "chars/pet_cat.png",
+   "w": 64,
+   "h": 16,
+   "frames": 4,
+   "frameW": 16,
+   "fps": 6
   }
  },
  "chars": {

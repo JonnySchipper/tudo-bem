@@ -16,6 +16,7 @@ export * from './carlos.js';
 export * from './padaria.js';
 export * from './padariaEconomy.js';
 export * from './founder.js';
+export * from './subscription.js';
 export * from './protocol.js';
 export * from './ambiance.js';
 export * from './looks.js';

@@ -623,6 +623,71 @@ html {
   width: min(480px, calc(100vw - 24px));
 }
 
+.admin-sub-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.support-panel {
+  width: min(440px, calc(100vw - 24px));
+  /* Clears the top HUD and the chat bar. min-height: 0 lets max-height win inside the centered grid. */
+  min-height: 0;
+  max-height: calc(100dvh - 180px);
+  overflow-y: auto;
+}
+
+.support-free {
+  font-weight: 800;
+  color: var(--terracota-dark, #8a3d1c);
+}
+
+.support-price {
+  font-family: var(--font-pixel);
+  font-size: 1.2rem;
+}
+
+.support-perks {
+  margin: 8px 0;
+  padding-left: 1.1rem;
+}
+
+.support-age,
+.support-confirm {
+  font-size: 0.92rem;
+}
+
+.support-confirm {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 10px 0;
+}
+
+.support-row,
+.support-bubbles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 12px;
+}
+
+.support-swatch.wl-bubble {
+  position: relative;
+  left: auto;
+  top: auto;
+  min-width: 72px;
+  cursor: pointer;
+}
+
+.support-swatch.on {
+  outline: 2px solid #2a2233;
+  outline-offset: 2px;
+}
+
+.support-swatch .en {
+  display: block;
+}
+
 .admin-panel h3 {
   margin: 14px 0 2px;
   font-family: var(--font-pixel);

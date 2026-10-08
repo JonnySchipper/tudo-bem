@@ -131,6 +131,9 @@ interface AvatarView {
   parrot: Phaser.GameObjects.Sprite | null;
   /** Animation key the shoulder parrot is playing (`anim:chars/parrot` or a recolored `anim:parrot:<color>`). */
   parrotKey: string;
+  /** Subscriber dog or cat, following at the feet the way the parrot follows the shoulder. */
+  pet: Phaser.GameObjects.Sprite | null;
+  petKey: string;
   /** Street snack in hand (session carry). */
   carry: Phaser.GameObjects.Image | null;
   carryKey: string;
@@ -300,6 +303,10 @@ export class WorldScene extends Phaser.Scene {
       const img = m.images?.[`icons/${icon}`];
       if (img?.file) this.load.image(`carry:${id}`, b + img.file);
     }
+    for (const kind of ['dog', 'cat'] as const) {
+      const img = m.images?.[`chars/pet_${kind}`];
+      if (img?.file && img.frameW) this.load.spritesheet(`pet:${kind}`, b + img.file, { frameWidth: img.frameW, frameHeight: img.h });
+    }
   }
 
   create(): void {
@@ -307,6 +314,10 @@ export class WorldScene extends Phaser.Scene {
     cam.setBackgroundColor('#1d1b26');
     cam.setRoundPixels(true);
     this.rig = new LightingRig(this, cam, 'fx:glow');
+    for (const kind of ['dog', 'cat'] as const) {
+      if (!this.textures.exists(`pet:${kind}`) || this.anims.exists(`anim:pet:${kind}`)) continue;
+      this.anims.create({ key: `anim:pet:${kind}`, frames: this.anims.generateFrameNumbers(`pet:${kind}`, { start: 0, end: 3 }), frameRate: 6, repeat: -1 });
+    }
     this.shadows = new ShadowLayer(this, this.rig);
     this.rig.shadows = this.shadows;
     this.ao = new AoLayer(this, this.rig);
@@ -1232,6 +1243,7 @@ export class WorldScene extends Phaser.Scene {
         me.sprite.setVisible(false);
         me.shadow.setVisible(false);
         me.parrot?.setVisible(false);
+        me.pet?.setVisible(false);
       } else if (this.counterWasOn && !boutFeed.active) {
         me.sprite.setVisible(true);
         me.shadow.setVisible(true);
@@ -1282,7 +1294,10 @@ export class WorldScene extends Phaser.Scene {
     if (me) {
       me.sprite.setVisible(!hide);
       me.shadow.setVisible(!hide);
-      if (hide) me.parrot?.setVisible(false);
+      if (hide) {
+        me.parrot?.setVisible(false);
+        me.pet?.setVisible(false);
+      }
     }
     this.stage.update(dt, now);
   }
@@ -1368,6 +1383,8 @@ export class WorldScene extends Phaser.Scene {
       look,
       parrot: null,
       parrotKey: '',
+      pet: null,
+      petKey: '',
       carry: null,
       carryKey: '',
       carryPop: 0,
@@ -1389,6 +1406,7 @@ export class WorldScene extends Phaser.Scene {
 
   private destroyAvatar(v: AvatarView): void {
     v.parrot?.destroy();
+    v.pet?.destroy();
     v.carry?.destroy();
     v.icon?.destroy();
     v.sprite.destroy();
@@ -1515,6 +1533,7 @@ export class WorldScene extends Phaser.Scene {
       }
     }
     this.updateParrot(v, a, facing, wx, wy, depth, now);
+    this.updatePet(v, a, facing, wx, wy, depth, now);
     this.updateCarry(v, a, facing, wx, wy, depth);
     this.updateEmoteIcon(v, a, wx, wy - bounce, sitting, now);
     const h = avatarPx(sitting ? 24 : 32);
@@ -1619,6 +1638,36 @@ export class WorldScene extends Phaser.Scene {
     v.parrot.setPosition(wx + side * avatarPx(9), wy - avatarPx(14) + bob);
     v.parrot.setFlipX(side === 1);
     v.parrot.setDepth(facing === 'N' ? depth - 0.05 : depth + 0.05);
+  }
+
+  /**
+   * Subscriber dog or cat. Same follow idea as the shoulder parrot (side of the facing, a bob, flip toward the owner)
+   * but on the ground a step behind, so it reads as walking along.
+   */
+  private updatePet(v: AvatarView, a: ClientAvatar, facing: Facing, wx: number, wy: number, depth: number, now: number): void {
+    const kind = a.pub.pet === 'dog' || a.pub.pet === 'cat' ? a.pub.pet : null;
+    const anim = kind ? `anim:pet:${kind}` : '';
+    if (!kind || !this.anims.exists(anim)) {
+      if (v.pet) {
+        v.pet.destroy();
+        v.pet = null;
+        v.petKey = '';
+      }
+      return;
+    }
+    if (!v.pet || v.petKey !== anim) {
+      v.pet?.destroy();
+      v.pet = this.rig.world(this.add.sprite(0, 0, `pet:${kind}`, 0)).setOrigin(0.5, 1);
+      v.petKey = anim;
+      v.pet.play({ key: anim, startFrame: Math.floor(hash01(a.seed) * 4) });
+    }
+    const side = facing === 'W' ? 1 : -1;
+    const bob = Math.round(Math.sin(now / 180 + a.seed) * 1);
+    v.pet.setVisible(true);
+    v.pet.setPosition(wx - side * avatarPx(11), wy - avatarPx(1) + bob);
+    v.pet.setFlipX(side === -1);
+    v.pet.setDepth(facing === 'N' ? depth + 0.05 : depth - 0.05);
+    v.pet.setScale(avatarDrawScale());
   }
 
   /** Snack, drink, or empty in the hand (session `carry`). Empties reuse a full item's icon, tinted grey. */
@@ -1906,7 +1955,12 @@ export class WorldScene extends Phaser.Scene {
         : a.bubbles
             .filter((b) => now - b.at < 7000)
             .slice(-2)
-            .map((b) => ({ text: b.text, gloss: b.gloss, alpha: bubbleAlpha(now - b.at) }));
+            .map((b) => ({
+              text: b.text,
+              gloss: b.gloss,
+              alpha: bubbleAlpha(now - b.at),
+              ...(a.pub.bubbleStyle && a.pub.bubbleStyle !== 'classic' ? { style: a.pub.bubbleStyle } : {}),
+            }));
       // CPUs are scenery: their name shows on hover, within ~3.5 tiles of you, or while they emote
       const near = !!selfView && Math.hypot(v.wx - selfView.wx, v.wy - selfView.wy) <= 3.5 * T;
       const cpuShow = !boutFeed.camera && (!isCpuId(id) || game.hoverKey === `av:${id}` || near || (!!a.emote && performance.now() - a.emote.t0 < 3500));
@@ -1920,6 +1974,7 @@ export class WorldScene extends Phaser.Scene {
           show: cpuShow,
           ...(a.pub.academyGi ? { mark: CRESTS[a.pub.academyGi.stamp].glyph } : {}),
           ...(a.pub.founder ? { founder: true } : {}),
+          ...(a.pub.founderBadge ? { subBadge: true } : {}),
           ...(a.pub.feiraCrown || game.feiraCrownId === id ? { feiraCrown: true } : {}),
           ...(!isCpuId(id) && a.pub.nameplate ? { tier: a.pub.nameplate } : {}),
         },

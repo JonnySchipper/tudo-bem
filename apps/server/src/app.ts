@@ -32,6 +32,8 @@ import {
 import { feedbackLimiter, handleFeedbackApi } from './feedbackApi.js';
 import { FeedbackStore } from './feedbackStore.js';
 import { readAdminAuthConfig, type AdminAuthConfig } from './adminAuth.js';
+import { handleBillingApi } from './billing/http.js';
+import { billingConfigured, readBillingConfig } from './billing/provider.js';
 import { publicAppConfig, readOpsSmokeConfig, type OpsSmokeConfig } from './opsSmoke.js';
 import { readGoogleOAuthConfig, type GoogleOAuthConfig, type GoogleTokenPayload } from './googleAuth.js';
 import { repairPapagaios } from './papagaioRepair.js';
@@ -59,6 +61,10 @@ export interface AppOptions {
   feedbackAdmin?: AdminAuthConfig;
   /** Jev model folder (scripts/fetch-jev-model.py). Defaults to `TB_JEV_MODEL_DIR`; unset = stub only. */
   jevModelDir?: string;
+  /** Lemon Squeezy secrets. Omit to read the process env. Missing any secret disables checkout and the webhook. */
+  billing?: import('./billing/provider.js').BillingConfig;
+  /** Test double for the Lemon Squeezy HTTP client. */
+  billingFetch?: (input: string, init?: RequestInit) => Promise<Response>;
 }
 
 /** Server chat safety: the Jev model behind the stub when a model folder is configured, else the stub alone. */
@@ -106,6 +112,7 @@ export function createApp(opts: AppOptions) {
   const feedback = new FeedbackStore(feedbackFileAdapter(dataDir));
   const feedbackLimit = feedbackLimiter();
   const feedbackAdmin = opts.feedbackAdmin ?? readAdminAuthConfig();
+  const billing = opts.billing ?? readBillingConfig(process.env);
   const accounts = new AccountStore(accountsFileAdapter(dataDir), { sessionTtlMs: opts.sessionTtlMs, scrypt: opts.scrypt });
   const fixedPapagaios = repairPapagaios((email) => accounts.profileIdForEmail(email), store);
   if (fixedPapagaios.length) console.log(`[papagaio] restored colours for ${fixedPapagaios.join(', ')}`);
@@ -156,7 +163,7 @@ export function createApp(opts: AppOptions) {
     }
     if (url.pathname === '/api/config') {
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
-      return res.end(JSON.stringify(publicAppConfig(opsSmoke, googleOAuth.ready ? googleOAuth.clientId : '')));
+      return res.end(JSON.stringify(publicAppConfig(opsSmoke, googleOAuth.ready ? googleOAuth.clientId : '', billingConfigured(billing))));
     }
     if (url.pathname.startsWith('/api/auth/')) {
       return handleAuthApi(req, res, {
@@ -171,6 +178,19 @@ export function createApp(opts: AppOptions) {
         onLogout: (accountId) => world.dropAccount(accountId),
       }).catch((e) => {
         console.error('[auth] handler error', e);
+        if (!res.headersSent) res.writeHead(500);
+        res.end();
+      });
+    }
+    if (url.pathname === '/api/billing/checkout' || url.pathname === '/api/billing/webhook') {
+      return handleBillingApi(req, res, {
+        config: billing,
+        accounts,
+        store,
+        sync: (userId) => world.syncEntitlements(userId),
+        fetchImpl: opts.billingFetch,
+      }).catch((e) => {
+        console.error('[billing] handler error', e);
         if (!res.headersSent) res.writeHead(500);
         res.end();
       });

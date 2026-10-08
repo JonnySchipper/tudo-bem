@@ -86,6 +86,16 @@
   pointer-events: none;
 }
 
+/* Subscription founder badge: a small ipê blossom beside the plate. It does not recolor the plate. */
+.wl-sub-badge {
+  flex-shrink: 0;
+  width: 14px;
+  height: 16px;
+  margin-top: -1px;
+  image-rendering: pixelated;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='7' height='8' shape-rendering='crispEdges'><rect width='7' height='8' fill='%232a2233'/><rect x='1' y='1' width='5' height='6' fill='%23f2c230'/><rect x='2' y='2' width='3' height='1' fill='%23fff59a'/><rect x='3' y='3' width='1' height='1' fill='%23c45c26'/><rect x='2' y='4' width='1' height='1' fill='%233f8a4a'/><rect x='4' y='4' width='1' height='1' fill='%233f8a4a'/><rect x='3' y='5' width='1' height='1' fill='%232e6a3a'/></svg>") center / 14px 16px no-repeat;
+}
+
 .wl-founder {
   flex-shrink: 0;
   pointer-events: auto;
@@ -279,6 +289,46 @@
   font-size: 11px;
   line-height: 1.2;
   color: #6a6660;
+}
+
+/* Subscriber bubble skins. Colour and edge only — the words stay the same ink. */
+.wl-art-bubble .wl-bubble.wl-style-sol,
+.wl-art-bubble .wl-bubble.wl-style-mar,
+.wl-art-bubble .wl-bubble.wl-style-mata,
+.wl-art-bubble .wl-bubble.wl-style-festa,
+.wl-bubble.wl-style-sol,
+.wl-bubble.wl-style-mar,
+.wl-bubble.wl-style-mata,
+.wl-bubble.wl-style-festa {
+  border-image: none;
+  border-style: solid;
+  border-width: 3px;
+  color: #2c2c2c;
+  padding: 4px 8px 6px;
+}
+
+.wl-bubble.wl-style-sol {
+  background: #fff3c4;
+  border-color: #e0a020;
+  box-shadow: 3px 3px 0 #c48410;
+}
+
+.wl-bubble.wl-style-mar {
+  background: #e5f4ff;
+  border-color: #2f6fb5;
+  box-shadow: 3px 3px 0 #173a63;
+}
+
+.wl-bubble.wl-style-mata {
+  background: #e7f6e4;
+  border-color: #2e8f58;
+  box-shadow: 3px 3px 0 #1d4f32;
+}
+
+.wl-bubble.wl-style-festa {
+  background: #f8e8ff;
+  border-color: #7a4bb0;
+  box-shadow: 3px 3px 0 #e85aa0;
 }
 
 /* ---- guides: the bouncing pixel arrow (4 frames, the bounce is drawn into the strip) + a small label ---- */

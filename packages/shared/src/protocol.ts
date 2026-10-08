@@ -138,6 +138,14 @@ export type ClientMsg =
   /** Feira cart games switch. `feiraCart` reads the list; `feiraCartSet` turns one game off, on, or (later) onto a schedule. */
   | { t: 'admin'; action: 'feiraCart' }
   | { t: 'admin'; action: 'feiraCartSet'; game: string; mode: FeiraCartMode; schedule?: FeiraCartSchedule | null }
+  /** Subscriber list for the Assinaturas section. */
+  | { t: 'admin'; action: 'subscribers' }
+  /** Dev/test subscription (no payment). Admin socket only. */
+  | { t: 'admin'; action: 'grantSub'; targetId: string }
+  | { t: 'admin'; action: 'revokeSub'; targetId: string }
+  /** Subscriber pet and chat-bubble appearance. The server ignores a perk the subscription does not currently allow. */
+  | { t: 'perk'; action: 'pet'; pet: 'dog' | 'cat' | null }
+  | { t: 'perk'; action: 'bubble'; style: import('./subscription.js').BubbleStyle }
   /**
    * Player academies (slice 1). The elevator in Academia do Bairro asks for `directory`.
    * `found` takes a first-come name (brown belt). `visit` loads the empty floor without joining.
@@ -174,6 +182,17 @@ export interface AdminPlayerRow {
   name: string;
   room: RoomId | null;
   roomName: string | null;
+}
+
+/** One row in the admin Assinaturas list. */
+export interface AdminSubscriberRow {
+  id: string;
+  name: string;
+  status: 'active' | 'cancelled' | 'expired' | 'none';
+  currentPeriodEnd: number | null;
+  founderBadge: boolean;
+  founderBanner: boolean;
+  online: boolean;
 }
 
 /** One new word of a shot, as the card shows it. A shot that teaches several words sends one of these for each, in the order to show them. */
@@ -453,6 +472,7 @@ export type ServerMsg =
   | { t: 'admin'; phase: 'auth'; ok: true }
   | { t: 'admin'; phase: 'auth'; ok: false; pt: string; en: string }
   | { t: 'admin'; phase: 'players'; players: AdminPlayerRow[] }
+  | { t: 'admin'; phase: 'subscribers'; subscribers: AdminSubscriberRow[] }
   | { t: 'admin'; phase: 'disabled'; pt: string; en: string }
   /** Feira cart switches. `featured` is today's playable game, or null when the cart is closed. */
   | { t: 'admin'; phase: 'feiraCart'; day: string; featured: FeiraGameId | null; games: FeiraCartAdminGame[] }

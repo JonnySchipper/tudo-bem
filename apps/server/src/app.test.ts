@@ -205,7 +205,7 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     await start({ opsSmoke: smokeOff });
     expect((await post('/api/auth/ops-smoke', {})).status).toBe(403);
     expect((await post('/api/auth/ops-smoke-new', {})).status).toBe(403);
-    expect(await (await fetch(base + '/api/config')).json()).toEqual({ opsSmoke: false, googleClientId: '' });
+    expect(await (await fetch(base + '/api/config')).json()).toEqual({ opsSmoke: false, googleClientId: '', billingReady: false });
   });
 
   it('Ops smoke rejects missing or wrong admin password', async () => {
@@ -220,7 +220,7 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
 
   it('Ops smoke establishes a session and can enter multiplayer (not a guest bypass)', async () => {
     await start({ opsSmoke: smokeOn(), feedbackAdmin: testAdmin });
-    expect(await (await fetch(base + '/api/config')).json()).toEqual({ opsSmoke: true, googleClientId: '' });
+    expect(await (await fetch(base + '/api/config')).json()).toEqual({ opsSmoke: true, googleClientId: '', billingReady: false });
     const login = await post('/api/auth/ops-smoke', { adminPassword: testAdmin.password });
     expect(login.status).toBe(200);
     expect(await login.json()).toEqual({ ok: true, account: { email: OPS_SMOKE_EMAIL, hasProfile: false } });
@@ -273,7 +273,7 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
       verifyGoogleIdToken: async (token) =>
         token === 'valid-token' ? { sub: 'g-sub', email: 'google@exemplo.com', emailVerified: true } : null,
     });
-    expect(await (await fetch(base + '/api/config')).json()).toEqual({ opsSmoke: false, googleClientId: 'test.apps.googleusercontent.com' });
+    expect(await (await fetch(base + '/api/config')).json()).toEqual({ opsSmoke: false, googleClientId: 'test.apps.googleusercontent.com', billingReady: false });
     const bad = await post('/api/auth/google', { credential: 'nope' });
     expect(bad.status).toBe(401);
     const ok = await post('/api/auth/google', { credential: 'valid-token' });

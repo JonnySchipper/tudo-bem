@@ -19,6 +19,8 @@ export type PublicAppConfig = {
   opsSmoke: boolean;
   /** Google Identity Services client id (public); empty when TB_GOOGLE_CLIENT_ID is unset. */
   googleClientId: string;
+  /** True when Lemon Squeezy checkout and the webhook secret are both configured. */
+  billingReady: boolean;
 };
 
 export function readOpsSmokeConfig(env: NodeJS.ProcessEnv = process.env): OpsSmokeConfig {
@@ -44,6 +46,6 @@ export function readOpsSmokeConfig(env: NodeJS.ProcessEnv = process.env): OpsSmo
   return { enabled: true, ready: true, email, password: OPS_SMOKE_DEV_PASSWORD };
 }
 
-export function publicAppConfig(cfg: OpsSmokeConfig, googleClientId = ''): PublicAppConfig {
-  return { opsSmoke: cfg.ready, googleClientId };
+export function publicAppConfig(cfg: OpsSmokeConfig, googleClientId = '', billingReady = false): PublicAppConfig {
+  return { opsSmoke: cfg.ready, googleClientId, billingReady };
 }

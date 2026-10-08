@@ -48,6 +48,7 @@ export interface HudActions {
   stand: () => void;
   openMap: () => void;
   openCredits: () => void;
+  openSupport: () => void;
   openCaderno: () => void;
   toggleCamera: () => void;
   openRecados: () => void;
@@ -176,6 +177,7 @@ export function buildHud(actions: HudActions) {
   musicBtn.title = 'Música / Music';
   englishBtn.title = 'Inglês embaixo do português / English under the Portuguese (your choice; the nameplate colour never changes it)';
   const creditsBtn = btn('btn-credits', 'info', 'Créditos', 'Credits', actions.openCredits);
+  const supportBtn = btn('btn-support', 'coracao', 'Apoiar', 'Support', actions.openSupport);
   const logoutBtn = actions.logout ? btn('btn-logout', 'logout', 'Sair', 'Log out', actions.logout) : null;
   const gear = h('button', { class: 'hud-btn hud-gear', id: 'btn-menu', type: 'button', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-controls': 'hud-menu', 'aria-label': 'Ajustes (Settings)' }, icon('gear', 32), h('span', { class: 'hud-label' }, h('b', { class: 'pt' }, 'Ajustes'), h('i', { class: 'hud-gloss' }, 'Music, voice, credits')));
   const menu = h(
@@ -184,6 +186,7 @@ export function buildHud(actions: HudActions) {
     musicBtn,
     soundBtn,
     englishBtn,
+    supportBtn,
     creditsBtn,
     logoutBtn,
   );

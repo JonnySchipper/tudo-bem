@@ -171,6 +171,32 @@ function filtro(rot) {
   return { img, anchor: [8, 29] };
 }
 
+/** Wall banner: a rod and a mustard cloth with an ipê. Walkable, so it hangs without blocking the floor. */
+function bannerFundadores() {
+  const img = blank(16, 28);
+  fillRect(img, 1, 1, 14, 2, WOOD.base);
+  fillRect(img, 1, 1, 14, 1, WOOD.hi);
+  put(img, 0, 2, NAVY);
+  put(img, 15, 2, NAVY);
+  put(img, 3, 3, WOOD.lo);
+  put(img, 12, 3, WOOD.lo);
+  fillRect(img, 2, 4, 12, 16, NAVY);
+  fillRect(img, 3, 5, 10, 14, '#f2c230');
+  fillRect(img, 3, 5, 10, 2, '#ffe57b');
+  put(img, 7, 10, '#c45c26');
+  put(img, 6, 9, '#fff59a');
+  put(img, 8, 9, '#fff59a');
+  put(img, 7, 9, '#fff59a');
+  put(img, 6, 11, '#f8d239');
+  put(img, 8, 11, '#f8d239');
+  put(img, 7, 11, '#f2b22b');
+  put(img, 5, 10, '#ffe57b');
+  put(img, 9, 10, '#ffe57b');
+  fillRect(img, 3, 17, 10, 2, '#c45c26');
+  for (let x = 3; x < 13; x += 2) put(img, x, 19, '#c45c26');
+  return { img, anchor: [8, 26] };
+}
+
 function easel() {
   const img = blank(18, 32);
   // three wooden legs, a canvas with a yellow ipê
@@ -228,6 +254,7 @@ export const FURNITURE_ART = {
   rede: { a: () => rede(0), b: () => rede(1) },
   filtro: { a: () => filtro(0), b: () => filtro(1) },
   quadro: { a: easel, b: easel },
+  banner_fundadores: { a: bannerFundadores, b: bannerFundadores },
 };
 
 export function furnitureAuthored(_ctx, { id, rot }) {

@@ -62,6 +62,27 @@ describe('leaderboards server', () => {
     ]);
   });
 
+  it('ignores subscriber status: a paying player does not outrank the same diary and streak', () => {
+    const today = '2026-10-08';
+    const escola = { words: {}, xp: 0, lessons: 0, perfect: 0, goal: 10 as const, dayXp: 0, streak: 4, best: 4, freezes: 0, tier: 'verde' as const, lastDay: today };
+    const plain = profile({ id: '1', name: 'Ana', diary: ids(0, 1), escola });
+    const paying = profile({
+      id: '2',
+      name: 'Bia',
+      diary: ids(0, 1),
+      escola,
+      founderBadge: true,
+      founderBanner: true,
+      subscription: { status: 'active', currentPeriodEnd: Date.parse('2026-11-08T00:00:00Z'), provider: 'lemonsqueezy' },
+      pet: 'dog',
+      bubbleStyle: 'festa',
+    });
+    const { words, streak } = entriesFromProfiles([paying, plain], today);
+    expect(words.map((r) => r.score)).toEqual([2, 2]);
+    expect(streak.map((r) => r.score)).toEqual([4, 4]);
+    expect(rankBoard(words, undefined).map((r) => r.score)).toEqual([2, 2]);
+  });
+
   it('msgFor includes own rank outside top 10', () => {
     const store = new ProfileStore(null);
     for (let i = 0; i < 12; i++) {
