@@ -296,8 +296,8 @@ export class WorldScene extends Phaser.Scene {
   private surroundReach = 0;
   private hoverRect!: Phaser.GameObjects.Rectangle;
   /** the tap-to-walk marker (tapMark.ts): the ring under the destination, or the refused cross */
-  private tapGfx!: Phaser.GameObjects.Graphics;
-  private tap: { kind: TapCue; wx: number; wy: number; t0: number; tile: { x: number; y: number } | null; sig: string } | null = null;
+  private tapImg!: Phaser.GameObjects.Image;
+  private tap: { kind: TapCue; wx: number; wy: number; t0: number; tile: { x: number; y: number } | null } | null = null;
   private lastT = 0;
   /** the game day the room was built for (a new day brings a new couple of small diary objects) */
   private diaryDay = -1;
@@ -357,7 +357,7 @@ export class WorldScene extends Phaser.Scene {
     });
     // the hover marker belongs to the scene, not to a room layer
     this.hoverRect = this.rig.world(this.add.rectangle(0, 0, T, T, 0xffffff, 0.22)).setOrigin(0, 0).setStrokeStyle(1, 0xffffff, 0.8).setDepth(49000).setVisible(false);
-    this.tapGfx = this.rig.world(this.add.graphics()).setVisible(false);
+    this.tapImg = this.rig.world(this.add.image(0, 0, '__WHITE')).setOrigin(0, 0).setVisible(false);
     this.fxLevel.lowfx = this.host.lowfx;
     this.fxLevel.reduced = reducedMotion();
     this.gov = new LowFxGovernor(this.probe, this.host.lowfx);
@@ -1988,20 +1988,20 @@ export class WorldScene extends Phaser.Scene {
 
   /**
    * Show the tap marker (tapMark.ts) for a tap on `tile`, or at a world point off the walkable map (a refused tap on the town around it).
-   * A ring sits on the ground where the feet will stand; the refused cross is drawn over everything, since the tap may have been on a wall.
+   * The ring circles where the feet will stand. Both it and the refused cross draw over the world, so a prop in front never hides them.
    */
   markTap(kind: TapCue, at: { tile: { x: number; y: number } } | { wx: number; wy: number }): void {
     const p = 'tile' in at ? { wx: (at.tile.x + 0.5) * T, wy: (at.tile.y + 1) * T - 4 } : at;
     // a steer onto the same tile keeps the ring as it is (no restart every move of the finger)
     if (kind === 'steer' && this.tap && 'tile' in at && this.tap.tile?.x === at.tile.x && this.tap.tile?.y === at.tile.y && this.tap.kind !== 'refused') return;
-    this.tap = { kind, wx: Math.round(p.wx), wy: Math.round(p.wy), t0: performance.now(), tile: 'tile' in at ? at.tile : null, sig: '' };
+    this.tap = { kind, wx: Math.round(p.wx), wy: Math.round(p.wy), t0: performance.now(), tile: 'tile' in at ? at.tile : null };
   }
 
   private updateTap(now: number): void {
     const tap = this.tap;
-    const g = this.tapGfx;
+    const img = this.tapImg;
     if (!tap || game.modalOpen) {
-      if (g.visible) g.clear().setVisible(false);
+      if (img.visible) img.setVisible(false);
       if (tap && game.modalOpen) this.tap = null;
       return;
     }
@@ -2013,29 +2013,54 @@ export class WorldScene extends Phaser.Scene {
     const f = tapFrame(tap.kind, t, arrived, this.fxLevel.reduced);
     if (!f) {
       this.tap = null;
-      g.clear().setVisible(false);
+      img.setVisible(false);
       return;
     }
-    const sig = `${f.radius}|${f.shake}|${f.alpha.toFixed(2)}`;
-    if (sig === tap.sig && g.visible) return;
-    tap.sig = sig;
-    const color = TAP_COLORS[tap.kind];
-    g.clear().setVisible(true).setPosition(tap.wx + f.shake, tap.wy);
-    if (tap.kind === 'refused') {
-      g.setDepth(49001);
-      // a dark rim one px around the cross, so it reads on the pale calçada and on dark asphalt alike
-      g.fillStyle(0x2a1a1a, 0.6 * f.alpha);
-      for (const [x, y] of CROSS_PIXELS) g.fillRect(x - 1, y - 1, 3, 3);
-      g.fillStyle(color, f.alpha);
-      for (const [x, y] of CROSS_PIXELS) g.fillRect(x, y, 1, 1);
-      return;
+    const tex = this.tapTexture(tap.kind, f.radius);
+    // an Image, not live Graphics: images are rounded to the device px grid with the camera, Graphics blurred over two px at half-px scrolls.
+    // Over the world, like the hover square: on the ground the ring hid behind the bench or stall in front of the tile, just where it mattered
+    img
+      .setTexture(tex.key)
+      .setPosition(tap.wx + f.shake - tex.ox, tap.wy - tex.oy)
+      .setAlpha(f.alpha)
+      .setDepth(tap.kind === 'refused' ? 49001 : 48999)
+      .setVisible(true);
+  }
+
+  /** The baked marker art for a kind and ring radius: 1 art px per texel, with a dark edge so it reads on pale calçada and dark asphalt. */
+  private tapTexture(kind: TapCue, radius: number): { key: string; ox: number; oy: number } {
+    const refused = kind === 'refused';
+    const color = TAP_COLORS[kind];
+    const key = refused ? 'tap:cross' : `tap:ring:${color.toString(16)}:${radius}`;
+    const px = refused ? CROSS_PIXELS : ringPixels(radius);
+    let ox = 0;
+    let oy = 0;
+    for (const [x, y] of px) {
+      ox = Math.max(ox, -x + 1);
+      oy = Math.max(oy, -y + 1);
     }
-    g.setDepth(DEPTH.shadowContact + 10);
-    const ring = ringPixels(f.radius);
-    g.fillStyle(0x1d1b26, 0.35 * f.alpha);
-    for (const [x, y] of ring) g.fillRect(x, y + 1, 1, 1);
-    g.fillStyle(color, f.alpha);
-    for (const [x, y] of ring) g.fillRect(x, y, 1, 1);
+    if (!this.textures.exists(key)) {
+      const g = this.make.graphics({}, false);
+      let w = 0;
+      let h = 0;
+      for (const [x, y] of px) {
+        w = Math.max(w, x + ox + 2);
+        h = Math.max(h, y + oy + 2);
+      }
+      if (refused) {
+        g.fillStyle(0x2a1a1a, 0.7);
+        for (const [x, y] of px) g.fillRect(x + ox - 1, y + oy - 1, 3, 3);
+      } else {
+        // a drop shadow one px down
+        g.fillStyle(0x1d1b26, 0.45);
+        for (const [x, y] of px) g.fillRect(x + ox, y + oy + 1, 1, 1);
+      }
+      g.fillStyle(color, 1);
+      for (const [x, y] of px) g.fillRect(x + ox, y + oy, 1, 1);
+      g.generateTexture(key, w, h);
+      g.destroy();
+    }
+    return { key, ox, oy };
   }
 
   private updateGhost(g: GhostSpec | null): void {

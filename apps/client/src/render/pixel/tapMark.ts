@@ -13,13 +13,13 @@ export const TAP_COLORS: Record<TapCue, number> = { walk: 0xffffff, target: 0xf2
 
 /** Seconds the ring takes to pop out; the refused cross's whole life. */
 export const TAP_POP_S = 0.3;
-export const TAP_REFUSED_S = 0.5;
+export const TAP_REFUSED_S = 0.7;
 /** A ring nobody walks to (the server refused the path, a dialogue opened) goes away on its own. */
 export const TAP_HOLD_MAX_S = 8;
 /** Ground ellipse: the ring is a circle seen from the game's top-down angle. */
 export const RING_SQUASH = 0.6;
-const RING_SETTLED = 4;
-const RING_PEAK = 7;
+const RING_SETTLED = 5;
+const RING_PEAK = 8;
 
 export interface TapFrame {
   /** ring radius in art px (0 for the cross) */
@@ -38,7 +38,9 @@ export function tapFrame(kind: TapCue, t: number, arrived: boolean, reduced = fa
   if (kind === 'refused') {
     if (t >= TAP_REFUSED_S) return null;
     const u = t / TAP_REFUSED_S;
-    return { radius: 0, alpha: 1 - u * u, shake: reduced ? 0 : Math.round(Math.sin(t * 50) * 1.6 * (1 - u)) };
+    // full strength for the first half (the eye has to find it), then gone quickly
+    const fade = Math.max(0, u - 0.5) * 2;
+    return { radius: 0, alpha: 1 - fade * fade, shake: reduced ? 0 : Math.round(Math.sin(t * 50) * 1.6 * (1 - u)) };
   }
   const popping = kind !== 'steer' && !reduced && t < TAP_POP_S;
   if (popping) {
@@ -70,5 +72,5 @@ export function ringPixels(r: number, squash = RING_SQUASH): [number, number][] 
   return out;
 }
 
-/** Offsets (art px) of the refused cross: two 5 px diagonals. */
-export const CROSS_PIXELS: [number, number][] = [-2, -1, 0, 1, 2].flatMap((d) => (d === 0 ? [[0, 0]] : [[d, d], [d, -d]])) as [number, number][];
+/** Offsets (art px) of the refused cross: two 7 px diagonals. */
+export const CROSS_PIXELS: [number, number][] = [-3, -2, -1, 0, 1, 2, 3].flatMap((d) => (d === 0 ? [[0, 0]] : [[d, d], [d, -d]])) as [number, number][];

@@ -134,9 +134,10 @@ describe('tapFrame', () => {
     expect(tapFrame('steer', 0.05, false)!.radius).toBe(tapFrame('walk', TAP_POP_S + 1, false)!.radius);
   });
 
-  it('the refused cross shakes and fades within half a second', () => {
-    const early = tapFrame('refused', 0.03, false)!;
-    expect(early.alpha).toBeGreaterThan(0.9);
+  it('the refused cross shakes, holds for a moment and fades within TAP_REFUSED_S', () => {
+    expect(tapFrame('refused', 0.03, false)!.alpha).toBe(1);
+    expect(tapFrame('refused', TAP_REFUSED_S * 0.45, false)!.alpha).toBe(1);
+    expect(tapFrame('refused', TAP_REFUSED_S * 0.9, false)!.alpha).toBeLessThan(0.5);
     const shakes = new Set<number>();
     for (let t = 0; t < TAP_REFUSED_S; t += 0.01) shakes.add(tapFrame('refused', t, false)!.shake);
     expect(shakes.size).toBeGreaterThan(1);

@@ -98,16 +98,37 @@ for (const vp of VIEWPORTS) {
       await page.evaluate(([x, y]) => window.__tb.walkTo(x, y), [sx, sy]);
       await page.waitForFunction(([x, y]) => { const t = window.__tb.selfTile(); return t && !t.moving && t.tile.x === x && t.tile.y === y; }, [sx, sy], { timeout: 30_000 }).catch(() => {});
       await sleep(1200);
-      const to = await page.evaluate(([x, y]) => window.__tb.tileToClient(x, y), [sx - 3, sy + 2]);
+      // down the walkway, three tiles south of where the avatar stands
+      const to = await page.evaluate(([x, y]) => window.__tb.tileToClient(x, y), [sx, sy + 3]);
+      const hit = await page.evaluate(([x, y]) => window.__tb.renderer.hitTest(x, y)?.kind ?? null, [to.px, to.py]);
       await press(page, vp, to.px, to.py);
-      await sleep(260);
+      await sleep(220);
+      console.log(`    tap on ${hit}:`, JSON.stringify(await page.evaluate(() => ({ mark: window.__tb.renderer.scene?.tap?.kind ?? null, self: window.__tb.selfTile() }))));
       await page.screenshot({ path: path.join(OUT, `${PHASE}_${vp.name}_tap.png`) });
       console.log('  ·', `${PHASE}_${vp.name}_tap.png`);
       await sleep(2500);
-      // the left edge of the window, level with the avatar: outside the praça on a desktop, the town around it
-      const me = await page.evaluate(() => { const t = window.__tb.selfTile(); return t ? window.__tb.tileToClient(t.tile.x, t.tile.y) : null; });
+      // the nearest blocked floor tile on screen (a planter, the fountain's rim): nobody can stand there
+      const me = await page.evaluate(() => {
+        const t = window.__tb.selfTile();
+        const grid = window.__tb.renderer.scene?.grid;
+        if (!t || !grid) return null;
+        let best = null;
+        for (let dy = -8; dy <= 8; dy++) {
+          for (let dx = -8; dx <= 8; dx++) {
+            const x = t.tile.x + dx;
+            const y = t.tile.y + dy;
+            if (!grid.blocked.has(`${x},${y}`)) continue;
+            const c = window.__tb.tileToClient(x, y);
+            if (c.px < 30 || c.py < 200 || c.px > innerWidth - 30 || c.py > innerHeight - 120) continue;
+            if (window.__tb.renderer.hitTest(c.px, c.py)?.kind !== 'tile') continue;
+            const d = Math.abs(dx) + Math.abs(dy);
+            if (!best || d < best.d) best = { d, ...c };
+          }
+        }
+        return best;
+      });
       if (me) {
-        await press(page, vp, 6, me.py);
+        await press(page, vp, me.px, me.py);
         await sleep(160);
         await page.screenshot({ path: path.join(OUT, `${PHASE}_${vp.name}_refused.png`) });
         console.log('  ·', `${PHASE}_${vp.name}_refused.png`);
