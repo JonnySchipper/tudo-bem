@@ -59,11 +59,6 @@ html.px-ui .dbx {
   }
 }
 
-/* the bottom bar (emotes, chat) and the joystick would sit under the box: the box has its own reply field */
-body:has(.dbx) .joystick {
-  display: none;
-}
-
 .dbx-side {
   grid-column: 1;
   grid-row: 1 / span 2;

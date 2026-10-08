@@ -76,13 +76,13 @@ async function run(browser, vp) {
   page.on('pageerror', (e) => errors.push(String(e)));
   await toWorld(page, vp);
 
-  // 1. Júlia's welcome chain, as the tracker (also on a phone, clear of the joystick and the chat)
+  // 1. Júlia's welcome chain, as the tracker (also on a phone, clear of the chat)
   const tr = await rect(page, '#recado-tracker');
   assert(tr?.shown, 'the tracker shows');
   const head = await page.textContent('#recado-tracker');
   assert(head.includes('Bem-vindo à Vila Ipê'), `welcome chain title (${head})`);
   if (vp.touch) {
-    for (const sel of ['#joystick', '.bottombar', '.chatbar']) assert(!overlap(tr, await rect(page, sel)), `tracker clears ${sel}`);
+    for (const sel of ['.bottombar', '.chatbar']) assert(!overlap(tr, await rect(page, sel)), `tracker clears ${sel}`);
     assert(tr.r <= vp.width && tr.b < vp.height * 0.4, 'the tracker stays small on a phone');
   }
   assert(!(await page.$('#checklist')), 'the old checklist is gone');
