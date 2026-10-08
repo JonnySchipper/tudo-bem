@@ -11,7 +11,7 @@
  *    targets pin the arrow to the nearest edge of the free screen region and turn it toward the target (`guides.ts`).
  */
 import './pixel.css';
-import { FOUNDER_BADGE, tierRule, type BubbleStyle, type Nameplate } from '@tudobem/shared';
+import { BUBBLE_STYLES, FOUNDER_BADGE, tierRule, type BubbleStyle, type Nameplate } from '@tudobem/shared';
 import { diffIds } from './reconcile';
 import { GUIDE_ROTATION, pinGuide, type GuideDir, type GuideInsets } from './guides';
 
@@ -262,9 +262,30 @@ export class LabelLayer {
       st.setProperty('--wl-bubble-in-m', `${px(-(s.top * k - 8))} ${px(-(s.left * k - 8))} ${px(-(s.bottom * k - 20))} ${px(-(s.right * k - 8))}`);
       st.setProperty('--wl-bubble-pad-bottom', px(s.bottom * k));
       this.root.classList.add('wl-art-bubble');
+      const rootStyle = document.documentElement.style;
+      rootStyle.setProperty('--wl-bubble', `url("${url}")`);
+      rootStyle.setProperty('--wl-bubble-slice', `${s.top} ${s.right} ${s.bottom} ${s.left}`);
+      rootStyle.setProperty('--wl-bubble-width', `${px(s.top * k)} ${px(s.right * k)} ${px(s.bottom * k)} ${px(s.left * k)}`);
       void mirrorImage(url)
-        .then((m) => this.root.style.setProperty('--wl-bubble-m', `url("${m}")`))
+        .then((m) => {
+          this.root.style.setProperty('--wl-bubble-m', `url("${m}")`);
+          rootStyle.setProperty('--wl-bubble-m', `url("${m}")`);
+        })
         .catch(() => undefined);
+      for (const style of BUBBLE_STYLES) {
+        if (style === 'classic') continue;
+        const skin = art.images[`ui/bubble_${style}`];
+        if (!skin?.file) continue;
+        const skinUrl = art.base + skin.file;
+        st.setProperty(`--wl-bubble-${style}`, `url("${skinUrl}")`);
+        rootStyle.setProperty(`--wl-bubble-${style}`, `url("${skinUrl}")`);
+        void mirrorImage(skinUrl)
+          .then((m) => {
+            this.root.style.setProperty(`--wl-bubble-${style}-m`, `url("${m}")`);
+            rootStyle.setProperty(`--wl-bubble-${style}-m`, `url("${m}")`);
+          })
+          .catch(() => undefined);
+      }
     }
     const a = art.images['ui/guide_arrow_strip'];
     if (a) {

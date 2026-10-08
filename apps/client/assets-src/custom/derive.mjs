@@ -93,4 +93,5 @@ export const IMAGES = {
   parrot: emotefx.parrotStrip,
   flock: flockMod.flockStrips,
   pets: petsMod.petStrips,
+  bubbleSkins: uiMod.bubbleSkins,
 };
