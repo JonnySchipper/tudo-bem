@@ -34,9 +34,11 @@ RUN echo '{"private":true}' > package.json \
 # drops that prebuild, node-gyp needs python3, make, and g++ in this stage.
 FROM node:22-bookworm-slim AS sqlite
 WORKDIR /sqlite
-COPY apps/server/package.json ./package.json
+# Copy the manifest only to read the version. Installing it in place fails: it depends on
+# workspace:* and npm would try to install the whole server package.
+COPY apps/server/package.json /tmp/server-package.json
 RUN npm install --omit=dev --no-audit --no-fund \
-    "better-sqlite3@$(node -p "require('./package.json').dependencies['better-sqlite3']")" \
+    "better-sqlite3@$(node -p "require('/tmp/server-package.json').dependencies['better-sqlite3']")" \
   && node -e "const D=require('better-sqlite3'); const db=new D(':memory:'); db.pragma('journal_mode=WAL'); if (db.pragma('journal_mode',{simple:true})!=='wal') process.exit(1); console.log('better-sqlite3', db.prepare('select sqlite_version() v').get().v);"
 
 FROM node:22-bookworm-slim
