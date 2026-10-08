@@ -60,6 +60,7 @@ import { AoLayer } from './aoLayer';
 import { v5on } from './v5flags';
 import { WaterFx } from './water';
 import { presetFor } from './lightPresets';
+import { roofLights } from './roofLights';
 import { aoForOverhead, aoForSprite } from './ao';
 import { AmbientLife, ambientHandlesProp } from './ambient';
 import { ZoneFeed } from '../../audio/zonesFeed';
@@ -671,6 +672,8 @@ export class WorldScene extends Phaser.Scene {
     }
     this.buildGlints(def);
     this.buildRunway(def);
+    // ---- the ceiling panels of a roofed open-air map (the airport terminal): warm pools on the hall floor from dusk to dawn
+    for (const l of roofLights(def)) this.rig.lights.push({ ...l, kind: 'lamp' });
 
     // (the neighbours are not part of the room: the server walks them along their schedules and sends them as avatars)
 

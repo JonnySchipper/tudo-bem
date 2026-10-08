@@ -43,6 +43,8 @@ for (const vp of VIEWPORTS) {
   page.on('pageerror', (e) => console.error('pageerror', String(e)));
   await page.goto(`${BASE}?notype=1`);
   await page.waitForSelector('#intro-enter', { timeout: 20_000 });
+  // pin the sky before the world's first frame, which snaps the weather blend (later pins ease in over a long while)
+  await page.evaluate(() => window.__tb.setClock({ time: '12:00', weather: 'sol' }));
   await page.click('#intro-enter');
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
   await page.click('#intro-skip');
