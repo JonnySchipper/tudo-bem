@@ -32,7 +32,7 @@ let redo: string[] = [];
 let dirty = false;
 let awaitingSave = false;
 let status = '';
-let drag: { id: string; pointer: number; wx: number; wy: number; snap: PropDef; pushed: boolean } | null = null;
+let drag: { kind: 'prop'; id: string; pointer: number; wx: number; wy: number; snap: PropDef; pushed: boolean } | { kind: 'pan'; pointer: number; sx: number; sy: number; pan: { x: number; y: number } } | null = null;
 let root: HTMLElement | null = null;
 let banner: HTMLElement | null = null;
 let outline: HTMLElement | null = null;
@@ -123,10 +123,11 @@ function placeAt(entry: PaletteEntry, x: number, y: number): PropDef {
 }
 
 function applyFromSnap(dx: number, dy: number, ox: number, oy: number): void {
-  if (!drag) return;
-  const p = draft.find((q) => q.id === drag!.id);
+  const current = drag;
+  if (!current || current.kind !== 'prop') return;
+  const p = draft.find((q) => q.id === current.id);
   if (!p) return;
-  const snap = clone(drag.snap);
+  const snap = clone(current.snap);
   Object.assign(p, snap);
   shiftProp(p, dx, dy);
   if (ox) p.ox = ox;
@@ -156,12 +157,19 @@ function onDown(e: PointerEvent): void {
   }
   const hit = pick(w.wx, w.wy);
   selectedId = hit?.id ?? null;
-  drag = hit ? { id: hit.id, pointer: e.pointerId, wx: w.wx, wy: w.wy, snap: clone(hit), pushed: false } : null;
+  drag = hit
+    ? { kind: 'prop', id: hit.id, pointer: e.pointerId, wx: w.wx, wy: w.wy, snap: clone(hit), pushed: false }
+    : { kind: 'pan', pointer: e.pointerId, sx: e.clientX, sy: e.clientY, pan: { x: game.designPan.x, y: game.designPan.y } };
   renderMeta();
 }
 
 function onMove(e: PointerEvent): void {
   if (!drag || e.pointerId !== drag.pointer) return;
+  if (drag.kind === 'pan') {
+    const scale = tb().renderer?.cam?.scale || 1;
+    game.designPan = { x: drag.pan.x - (e.clientX - drag.sx) / scale, y: drag.pan.y - (e.clientY - drag.sy) / scale };
+    return;
+  }
   const w = worldAt(e.clientX, e.clientY);
   if (!w) return;
   const useFree = free || e.shiftKey;
@@ -191,7 +199,7 @@ function onMove(e: PointerEvent): void {
 
 function onUp(e: PointerEvent): void {
   if (!drag || e.pointerId !== drag.pointer) return;
-  if (drag.pushed) paint();
+  if (drag.kind === 'prop' && drag.pushed) paint();
   drag = null;
   renderMeta();
 }
@@ -279,6 +287,10 @@ function onKey(e: KeyboardEvent): void {
   if (!d) return;
   e.preventDefault();
   e.stopPropagation();
+  if (!selected()) {
+    game.designPan = { x: game.designPan.x + d[0] * T, y: game.designPan.y + d[1] * T };
+    return;
+  }
   nudge(d[0], d[1]);
 }
 
@@ -323,6 +335,7 @@ function exitDesign(): void {
   const room = roomId;
   active = false;
   game.designMode = false;
+  game.designPan = { x: 0, y: 0 };
   painted = '';
   if (room) installRoomProps(room, baseline);
   game.bumpLayout();
@@ -356,6 +369,7 @@ function enterDesign(room: RoomId): void {
   free = false;
   active = true;
   game.designMode = true;
+  game.designPan = { x: 0, y: 0 };
   game.pending = null;
   game.bumpLayout();
   send({ t: 'admin', action: 'layoutGet', room });

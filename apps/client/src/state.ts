@@ -73,6 +73,8 @@ class Game {
   englishHelp = localStorage.getItem('tb_english') !== 'off';
   /** Admin design mode: world props can be moved. Player walking and clicks pause. */
   designMode = false;
+  /** Extra camera offset (world px) while designing, so a phone can pan props out from under the panel. */
+  designPan = { x: 0, y: 0 };
   /** Bumped when a room's props change so the scene and walk grid rebuild. */
   layoutEpoch = 0;
   /** Last layout pushed by the server (the design editor listens). */

@@ -1389,8 +1389,12 @@ export class WorldScene extends Phaser.Scene {
     const nudge = this.stage.cameraNudge();
     const cn = this.counter.cameraNudge();
     // On a phone the design panel covers the bottom of the screen. Look a little south so the avatar sits in the open part.
+    // The offset is on the camera state too, so a tap lands on the prop the picture shows.
     const designLift = game.designMode && window.innerWidth <= 720 ? (this.cam.h * 0.2) / Math.max(1, this.cam.zoom) : 0;
-    this.cameras.main.centerOn(this.cam.cx + nudge.x + cn.x, this.cam.cy + nudge.y + cn.y + designLift);
+    const pan = game.designMode ? game.designPan : { x: 0, y: 0 };
+    this.cam.ox = pan.x;
+    this.cam.oy = pan.y + designLift;
+    this.cameras.main.centerOn(this.cam.cx + nudge.x + cn.x + this.cam.ox, this.cam.cy + nudge.y + cn.y + this.cam.oy);
     if (this.counterBlend > 0) this.counter.invalidate();
   }
 

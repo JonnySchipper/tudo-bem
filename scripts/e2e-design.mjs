@@ -76,32 +76,56 @@ async function showAdminToggle(page) {
 
 const benchX = (page) => page.evaluate(() => window.__tb.rooms.praca.props.find((p) => p.id === 'banco_4')?.x ?? null);
 
-async function selectBench(page) {
-  const pt = await page.evaluate(() => {
-    const p = window.__tb.rooms.praca.props.find((q) => q.id === 'banco_4');
-    return window.__tb.tileToClient(p.x + 1, p.y);
-  });
-  await page.mouse.click(pt.px, pt.py);
-  await page.waitForFunction(() => document.getElementById('design-meta')?.textContent?.includes('banco_4'), null, { timeout: 4_000 });
+async function focusProp(page, id) {
+  await page.evaluate((id) => {
+    const p = window.__tb.rooms.praca.props.find((q) => q.id === id);
+    const pt = window.__tb.tileToClient(p.x, p.y);
+    const panel = document.getElementById('design-panel')?.getBoundingClientRect();
+    const inPanel = !!panel && pt.px >= panel.left && pt.px <= panel.right && pt.py >= panel.top && pt.py <= panel.bottom;
+    const bottom = panel && panel.top > window.innerHeight * 0.4 ? panel.top - 24 : window.innerHeight - 80;
+    if (pt.px > 36 && pt.px < window.innerWidth - 36 && pt.py > 90 && pt.py < bottom && !inPanel) return;
+    const targetX = window.innerWidth / 2;
+    const targetY = Math.max(150, Math.min(bottom * 0.55, 300));
+    const scale = window.__tb.renderer?.cam?.scale || 1;
+    const pan = window.__tb.game.designPan;
+    window.__tb.game.designPan = { x: pan.x + (pt.px - targetX) / scale, y: pan.y + (pt.py - targetY) / scale };
+  }, id);
+  await sleep(350);
 }
 
-async function dragBench(page) {
-  const spots = await page.evaluate(() => {
-    const p = window.__tb.rooms.praca.props.find((q) => q.id === 'banco_4');
-    return { from: window.__tb.tileToClient(p.x + 1, p.y), to: window.__tb.tileToClient(p.x + 4, p.y) };
-  });
+async function selectProp(page, id) {
+  await focusProp(page, id);
+  const pt = await page.evaluate((id) => {
+    const p = window.__tb.rooms.praca.props.find((q) => q.id === id);
+    return window.__tb.tileToClient(p.x, p.y);
+  }, id);
+  await page.mouse.click(pt.px, pt.py);
+  try {
+    await page.waitForFunction((id) => document.getElementById('design-meta')?.textContent?.includes(id), id, { timeout: 4_000 });
+  } catch (err) {
+    const meta = await page.locator('#design-meta').textContent().catch(() => '');
+    log('meta after click', id, meta);
+    throw err;
+  }
+}
+
+async function dragProp(page, id) {
+  const spots = await page.evaluate((id) => {
+    const p = window.__tb.rooms.praca.props.find((q) => q.id === id);
+    return { from: window.__tb.tileToClient(p.x, p.y), to: window.__tb.tileToClient(p.x + 3, p.y) };
+  }, id);
   await page.mouse.move(spots.from.px, spots.from.py);
   await page.mouse.down();
   await page.mouse.move(spots.to.px, spots.to.py, { steps: 10 });
   await sleep(250);
 }
 
-async function editorShots(page, prefix) {
+async function editorShots(page, prefix, id) {
   await page.waitForSelector('#design-banner', { timeout: 8_000 });
   await sleep(400);
-  await selectBench(page);
+  await selectProp(page, id);
   await shot(page, `${prefix}-selected`);
-  await dragBench(page);
+  await dragProp(page, id);
   await shot(page, `${prefix}-dragging`);
   await page.mouse.up();
   await sleep(200);
@@ -133,7 +157,7 @@ async function main() {
     await showAdminToggle(admin);
     await shot(admin, '1280x800-admin-toggle');
     await admin.click('#admin-design-toggle');
-    const moved = await editorShots(admin, '1280x800');
+    const moved = await editorShots(admin, '1280x800', 'banco_4');
     assert(typeof moved === 'number' && moved !== before, `drag left banco_4 at ${moved}`);
     log('dragged banco_4', before, '→', moved);
 
@@ -163,11 +187,12 @@ async function main() {
     await showAdminToggle(admin);
     await shot(admin, '390x844-admin-toggle');
     await admin.click('#admin-design-toggle');
-    await editorShots(admin, '390x844');
+    await editorShots(admin, '390x844', 'lixeira_p2');
     await admin.click('#design-discard');
     await sleep(300);
+    await guest.evaluate(() => window.__tb.walkTo(20, 19, false));
     await guest.evaluate(() => window.__tb.setClock({ time: '10:30', weather: 'sol' }));
-    await sleep(400);
+    await sleep(500);
     await shot(guest, '390x844-saved-guest');
     assert((await benchX(guest)) === moved, 'phone shots changed the saved layout');
 
