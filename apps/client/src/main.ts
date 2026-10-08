@@ -42,6 +42,9 @@ import {
   readSpot,
   subjectChoices,
   VENDORS,
+  OFF_DUTY,
+  isStallVendor,
+  vendorTalkMode,
   type EmoteKind,
   type HotspotDef,
   type NpcDef,
@@ -86,7 +89,7 @@ import { isDialogueBoxOpen, setDialogueHost, showDialogueBox } from './ui/dialog
 import { mountTracker, openJournal, runPrelude } from './ui/recados';
 import { heartsWith } from './ui/recadoView';
 import { openNpcTalk } from './ui/npcTalk';
-import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira';
+import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed, openFeiraOffDuty } from './ui/feira';
 import { bindFeiraGames, closeFeiraGame, feiraGameOpen, onFeiraGameMsg, openFeiraCart, openFeiraSign } from './ui/feiraGames';
 import { openCaderno, setArrivalReplay } from './ui/caderno';
 import { syncGrants } from './ui/grants';
@@ -246,12 +249,19 @@ function openStall(propId?: string) {
   if (vendor !== 'banca') sendLine(`${VENDORS[vendor].npc}.${there ? 'greet' : 'closed'}`);
 }
 
+/** A feira vendor talks shop only at their open stall; anywhere else (Tia Lu's praça bench after 13:00) they are off duty (#170). */
+function vendorOffDuty(npc: NpcId): boolean {
+  if (!isStallVendor(npc)) return false;
+  return vendorTalkMode({ room: game.room?.room, activity: game.avatars.get(`npc-${npc}`)?.pub.activity }, clock.minutes()) === 'off_duty';
+}
+
 function talkTo(npc: NpcDef['id']) {
   closeDialogue();
-  // the player chose to talk: an unheard idle line is this conversation's first line in the box (passing chatter stays a bubble and teaches nothing)
+  // the player chose to talk: an unheard idle line is this conversation's first line in the box (passing chatter stays a bubble and teaches nothing).
+  // A vendor's idle lines are stall calls, so off duty they open with their own small talk instead.
   const speaker = game.liveNpcs(now()).find((n) => n.id === npc);
-  const idle = speaker ? talkIdleOpen(npc, speaker.idleLines, game.profile?.diary, clock.minutes()) : null;
-  const vendor = npc === 'tia_lu' || npc === 'ze' || npc === 'chico' || npc === 'rosa';
+  const idle = speaker && !vendorOffDuty(npc) ? talkIdleOpen(npc, speaker.idleLines, game.profile?.diary, clock.minutes()) : null;
+  const vendor = isStallVendor(npc);
   // the server counts the talk for NPCs without a Conversa (bond +2 once a day, `falar` steps); the bakers count it through the scene / Conversa,
   // the vendors through their stall panel (it sends `talk` itself)
   if (!vendor && npc !== 'carlos' && npc !== 'graca') net.send({ t: 'talk', npc });
@@ -287,9 +297,9 @@ function talkTo(npc: NpcDef['id']) {
 
 function talkFlow(npc: NpcDef['id']) {
   closeDialogue();
-  if (npc === 'tia_lu' || npc === 'ze' || npc === 'chico' || npc === 'rosa') {
-    // a vendor resting on a bench (Tia Lu in the afternoon) is not serving: the closed note
-    if (game.avatars.get(`npc-${npc}`)?.pub.activity !== 'trabalhando') return openFeiraClosed(npc);
+  if (isStallVendor(npc)) {
+    // a vendor away from the open stall (Tia Lu resting on a praça bench in the afternoon) is not serving: off-duty small talk
+    if (vendorOffDuty(npc)) return openFeiraOffDuty(npc);
     return openFeira(npc, { send: (m) => net.send(m) }, { talked: (id) => net.send({ t: 'talk', npc: id }) });
   }
   if (npc === 'carlos' || npc === 'graca') {
@@ -1130,12 +1140,14 @@ function startGame() {
     const npcs = game.liveNpcs(now());
     if (!npcs.length || document.hidden || ambientBubblesFull()) return;
     const n = npcs[Math.floor(Math.random() * npcs.length)];
-    npcSay(n.id, localizeGreeting(idleTalk.next(n.idleLines, clock.weather(), clock.minutes()), clock.minutes()));
+    // a vendor's own idle lines are stall calls: off duty they chat about their day instead
+    const own = isStallVendor(n.id) && vendorOffDuty(n.id) ? OFF_DUTY[n.id].lines : n.idleLines;
+    npcSay(n.id, localizeGreeting(idleTalk.next(own, clock.weather(), clock.minutes()), clock.minutes()));
   }, 11_000);
-  // the feira: a vendor calls out their goods now and then (PT with the gloss); never two calls at once, and not while a dialogue box is open
+  // the feira: a vendor at the open stall calls out their goods now and then (PT with the gloss); never two calls at once, and not while a dialogue box is open
   setInterval(() => {
     if (document.hidden || game.modalOpen || ambientBubblesFull()) return;
-    const vendors = game.liveNpcs(now()).filter((n) => n.id === 'tia_lu' || n.id === 'ze' || n.id === 'chico' || n.id === 'rosa');
+    const vendors = game.liveNpcs(now()).filter((n) => isStallVendor(n.id) && !vendorOffDuty(n.id));
     if (!vendors.length) return;
     const n = vendors[Math.floor(Math.random() * vendors.length)]!;
     const calls = VENDORS[n.id as 'tia_lu'].calls;
