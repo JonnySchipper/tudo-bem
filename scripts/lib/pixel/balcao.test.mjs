@@ -6,7 +6,7 @@ import { MG_ITEMS } from '../../../packages/shared/src/meveum.ts';
 const manifest = JSON.parse(fs.readFileSync(new URL('../../../apps/client/public/pixel/manifest.json', import.meta.url), 'utf8'));
 
 /** The contract the gameplay side consumes: key -> number of single-frame sprites sharing the `<base>_<n>` pattern. */
-const JUICER = ['juicer_idle', 'juicer_roll', 'juicer_cut', 'juicer_press', 'juicer_pour', 'juicer_peel', 'juice_glass_spill', 'orange_p', 'orange_m', 'orange_g', 'laranjas'];
+const JUICER = ['juicer_idle', 'juicer_roll', 'juicer_cut', 'juicer_press', 'juicer_pour', 'juicer_peel', 'juicer_ready', 'juice_glass_spill', 'orange_p', 'orange_m', 'orange_g', 'laranjas'];
 const SINGLES = ['tray', 'tray_full', 'bag', 'plate', 'chapa_idle', 'chapa_burnt', 'coffee_idle', 'register', ...JUICER];
 const STRIPS = { chapa_sizzle: 3, coffee_pour: 4, bell: 2, tipjar: 4, patience: 5, juice_glass: 10 };
 const contract = [
@@ -57,10 +57,10 @@ describe('Correria no Balcao art contract', () => {
     }
   });
 
-  it('the juicer cycle is six different frames, and the orange sizes grow p < m < g', () => {
+  it('the juicer is seven different frames (the cycle and ready), and the orange sizes grow p < m < g', () => {
     const gen = new Map(balcaoParts().map((p) => [p.key, p]));
     const frames = JUICER.filter((k) => k.startsWith('juicer_')).map((k) => Buffer.from(gen.get(`balcao/${k}`).img.data).toString('base64'));
-    expect(new Set(frames).size).toBe(6);
+    expect(new Set(frames).size).toBe(7);
     const w = (s) => gen.get(`balcao/orange_${s}`).img.w;
     expect(w('p')).toBeLessThan(w('m'));
     expect(w('m')).toBeLessThan(w('g'));

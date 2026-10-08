@@ -9,12 +9,12 @@ const manifest = JSON.parse(fs.readFileSync(path.resolve(import.meta.dirname, '.
 describe('the Correria no Balcão art contract', () => {
   it('lists the keys of the contract: an item per shelf item, the pieces, their states and the steam', () => {
     const keys = allArtKeys();
-    // + the juicer: 6 machine frames, 10 glass levels and the overflow, 3 orange sizes, the crate
-    expect(keys).toHaveLength(MG_ITEMS.length + 5 + 5 + 5 + 2 + 4 + 5 + 4 + 6 + 11 + 3 + 1);
+    // + the juicer: 7 machine frames (the cycle and ready), 10 glass levels and the overflow, 3 orange sizes, the crate
+    expect(keys).toHaveLength(MG_ITEMS.length + 5 + 5 + 5 + 2 + 4 + 5 + 4 + 7 + 11 + 3 + 1);
     expect(new Set(keys).size).toBe(keys.length);
     for (const i of MG_ITEMS) expect(keys).toContain(`balcao/item_${i.id}`);
     for (const k of ['balcao/tray', 'balcao/tray_full', 'balcao/bag', 'balcao/plate', 'balcao/register', 'balcao/chapa_burnt', 'balcao/coffee_pour_3', 'balcao/bell_1', 'balcao/tipjar_3', 'balcao/patience_0', 'fx/steam_3']) expect(keys).toContain(k);
-    for (const k of ['balcao/juicer_idle', 'balcao/juicer_cut', 'balcao/juicer_peel', 'balcao/juice_glass_7', 'balcao/juice_glass_spill', 'balcao/orange_g', 'balcao/laranjas']) expect(keys).toContain(k);
+    for (const k of ['balcao/juicer_idle', 'balcao/juicer_ready', 'balcao/juicer_cut', 'balcao/juicer_peel', 'balcao/juice_glass_7', 'balcao/juice_glass_spill', 'balcao/orange_g', 'balcao/laranjas']) expect(keys).toContain(k);
   });
 
   it('every key is in the manifest at the contracted size and anchor (bottom-centre)', () => {
