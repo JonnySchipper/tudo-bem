@@ -117,7 +117,7 @@ export interface PortalDef {
 export const OFFSTAGE_NPCS: Partial<Record<NpcId, { name: string; role: Bilingual }>> = {};
 
 /** The feira vendors (Phase 9): Tia Lu (fruit), Seu Zé (vegetables), Seu Chico (pastel and caldo de cana), Dona Rosa (flowers). */
-export type NpcId = 'carlos' | 'nanda' | 'julia' | 'graca' | 'prof' | 'tia_lu' | 'ze' | 'chico' | 'rosa' | 'lucia' | 'celia' | 'agente';
+export type NpcId = 'carlos' | 'nanda' | 'julia' | 'graca' | 'prof' | 'tia_lu' | 'ze' | 'chico' | 'rosa' | 'lucia' | 'celia' | 'agente' | 'comissaria';
 
 export interface NpcDef {
   id: NpcId;
@@ -902,7 +902,103 @@ const aeroporto: RoomDef = {
   private: false,
 };
 
-export const ROOMS: Record<RoomId, RoomDef> = { praca, rua, rua_leste: ruaLeste, feira, padaria, kitnet, academia, escola, andar, aeroporto };
+// ---------------------------------------------------------------- desembarque
+/**
+ * The first room every new account enters: the small arrivals hall at the end of the jet bridge, before the airport. It is quiet on
+ * purpose (a few seats, the plane through the glass, a baggage belt, a water cooler, one flight attendant) so the guided tutorial
+ * (client `desembarqueTutorial.ts`) can teach one thing at a time. The automatic doors at the bottom lead into the airport at gate 3.
+ * Needs_br: every Portuguese string in this room.
+ */
+const DESEMB_COLS = 14;
+const DESEMB_ROWS = 15;
+/** The exit to the airport: the tutorial's last step points here. */
+export const DESEMBARQUE_EXIT = 'desemb_aero';
+/** The comissária: the first person a new arrival talks to, and the first word of the diary. */
+export const DESEMBARQUE_HOST: NpcId = 'comissaria';
+
+function desembFloor(): string[] {
+  return floorGrid(DESEMB_COLS, DESEMB_ROWS, 'z', (paint) => {
+    paint('g', 0, 0, DESEMB_COLS - 1, 1);
+    paint('a', 0, 2, DESEMB_COLS - 1, 6);
+  });
+}
+
+const desembarque: RoomDef = {
+  id: 'desembarque',
+  name: 'Desembarque',
+  gloss: 'Arrivals',
+  cols: DESEMB_COLS,
+  rows: DESEMB_ROWS,
+  outdoor: true,
+  roof: { y0: 7, y1: 14 },
+  floor: desembFloor(),
+  wallHeight: 0,
+  wallColor: '#d8d4e4',
+  wallTrim: '#8b8bab',
+  lighting: 'dia',
+  spawn: { x: 11, y: 8 },
+  props: [
+    // ---- outside the glass: the plane you came in on, at the end of its jet bridge, and the runway lights
+    cen('desemb_aviao', 'aero/aviao', 0, 2, 12, 3, { blocks: true, label: { pt: 'Avião', en: 'Airplane' } }),
+    cen('desemb_ponte', 'aero/ponte', 10, 5, 3, 2, { blocks: true }),
+    cen('desemb_cone', 'diary/cone', 13, 6, 1, 1, { blocks: true }),
+    ...[1, 5, 9, 13].map((x) => cen(`desemb_luz_${x}`, 'aero/luz_pista', x, 1)),
+    // ---- the glass front with the gate door you walk out of
+    ...glassRow('desemb_vidro_n', 'aero/vidraca', 7, [...span(10, 0), 13]),
+    cen('desemb_portao', 'aero/portao', 10, 7, 3, 1, { blocks: true, label: { pt: 'Portão 3', en: 'Gate 3' } }),
+    // ---- the hall: the sign, two rows of seats, the water cooler, the baggage belt with a trolley
+    cen('desemb_placa', 'aero/placa_desembarque', 4, 8, 4, 1),
+    cen('desemb_cadeiras_1', 'aero/cadeiras', 1, 10, 3, 1, { seat: 'SW' }),
+    cen('desemb_cadeiras_2', 'aero/cadeiras', 1, 12, 3, 1, { seat: 'SW' }),
+    cen('desemb_vaso_1', 'props/vaso_topiaria_a', 0, 8, 1, 1, { blocks: true }),
+    cen('desemb_vaso_2', 'props/vaso_topiaria_b', 13, 8, 1, 1, { blocks: true }),
+    cen('desemb_bebedouro', 'props/bebedouro', 13, 10, 1, 1, {
+      blocks: true,
+      action: 'street_snack',
+      interact: { x: 12, y: 10 },
+      label: { pt: 'Bebedouro · água grátis', en: 'Water cooler · free water' },
+    }),
+    cen('desemb_esteira', 'aero/esteira', 7, 11, 6, 2, { blocks: true, label: { pt: 'Esteira de bagagem', en: 'Baggage belt' } }),
+    cen('desemb_carrinho', 'aero/carrinho', 13, 12, 1, 1, { blocks: true }),
+    // ---- the low glass front and the automatic doors into the airport
+    ...glassRow('desemb_vidro_s', 'aero/vidraca_baixa', 14, [...span(6, 0), ...span(6, 8)]),
+    cen('desemb_porta', 'aero/porta_auto', 6, 14, 2, 1),
+  ],
+  walls: [],
+  portals: [
+    {
+      id: DESEMBARQUE_EXIT,
+      x: 6,
+      y: 14,
+      to: 'aeroporto',
+      arrive: { x: 11, y: 11 },
+      arriveDir: 'SW',
+      doorAt: { x: 6.5, y: 14 },
+      label: { pt: 'Siga para o aeroporto', en: 'On to the airport' },
+    },
+  ],
+  npcs: [
+    {
+      id: 'comissaria',
+      name: 'Comissária Lia',
+      role: { pt: 'Comissária de bordo', en: 'Flight attendant' },
+      x: 6,
+      y: 10,
+      dir: 'SW',
+      interact: { x: 6, y: 11 },
+      appearance: { body: 'medio', skin: 2, hair: 'coque', hairColor: 2, top: 'camisa', topColor: 7, bottom: 'saia', bottomColor: 10, shoes: 1, face: 'doce', extra: 'brincos', idle: 'bracos' },
+      hat: null,
+      // the first line is the first word of every new diary (the diary's Chegada area: "bem-vindo")
+      idleLines: [
+        { pt: 'Bem-vindo ao Brasil!', en: 'Welcome to Brazil!' },
+        { pt: 'A porta do aeroporto é ali embaixo.', en: 'The door to the airport is down there.' },
+      ],
+    },
+  ],
+  private: false,
+};
+
+export const ROOMS: Record<RoomId, RoomDef> = { praca, rua, rua_leste: ruaLeste, feira, padaria, kitnet, academia, escola, andar, aeroporto, desembarque };
 export const ROOM_IDS = Object.keys(ROOMS) as RoomId[];
 
 export const isRoomId = (v: unknown): v is RoomId => typeof v === 'string' && v in ROOMS;

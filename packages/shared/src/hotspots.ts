@@ -136,6 +136,8 @@ const AIRPORT_SIGNS: HotspotDef[] = [
   { id: 'aero_bemvindo', room: 'aeroporto', x: 15, y: 18, w: 6, h: 1, pt: 'BEM-VINDO AO BRASIL!', en: 'WELCOME TO BRAZIL!' },
   { id: 'aero_ponto', room: 'aeroporto', x: 22, y: 24, w: 3, h: 1, pt: 'ÔNIBUS 875\nAeroporto → Vila Ipê\nA cada 15 minutos', en: 'BUS 875\nAirport → Vila Ipê\nEvery 15 minutes' },
   { id: 'aero_portao', room: 'aeroporto', x: 13, y: 11, w: 2, h: 1, pt: 'PORTÃO 3\nDesembarque do voo 2026', en: 'GATE 3\nFlight 2026 arriving' },
+  // the arrivals hall before the airport (the first room): its sign teaches "desembarque" too, the same word as the airport's sign
+  { id: 'desemb_s_desembarque', room: 'desembarque', x: 4, y: 8, w: 4, h: 1, pt: 'DESEMBARQUE\nSaída para o aeroporto', en: 'ARRIVALS\nWay out to the airport' },
 ];
 
 /**
