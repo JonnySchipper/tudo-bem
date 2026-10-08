@@ -196,6 +196,32 @@ export function enabledFeiraGameIds(cfg: FeiraCartConfig, day: string, order: re
 }
 
 /**
+ * The game cart and its board in the Feira. Not the stall carts, the coconut cart, or pipoca.
+ * They exist in the world only while a game is featured today (`feiraCartShown`).
+ */
+export const FEIRA_CART_WORLD_IDS = ['carrinho_jogos', 'placa_jogos'] as const;
+
+export function isFeiraCartWorldProp(id: string): boolean {
+  return (FEIRA_CART_WORLD_IDS as readonly string[]).includes(id);
+}
+
+/** True when today's featured game is on, so the cart and the sign should stand in the Feira. */
+export function feiraCartShown(snap: { closed: boolean; game: string | null } | null | undefined): boolean {
+  return !!snap && snap.closed === false && !!snap.game;
+}
+
+/**
+ * The room players walk and see. When nothing is featured, the game cart and its sign are gone:
+ * no sprite, no collision, no click. Other Feira props stay.
+ */
+export function withoutHiddenFeiraCart<R extends { id: string; props: readonly { id: string }[] }>(room: R, shown: boolean): R {
+  if (shown || room.id !== 'feira') return room;
+  const props = room.props.filter((p) => !isFeiraCartWorldProp(p.id));
+  if (props.length === room.props.length) return room;
+  return { ...room, props };
+}
+
+/**
  * Replace one game's mode. `schedule === undefined` keeps the stored window; `null` clears it.
  * Returns null when `id` is not in the rotation (the admin list) or `mode` is not a real mode.
  */

@@ -234,6 +234,11 @@ export class PixelView implements WorldView {
   info() {
     return this.scene?.info() ?? null;
   }
+
+  /** Frame names drawn in the current room (`window.__tb.drawnFrames`). */
+  drawnFrames(): string[] {
+    return this.scene?.drawnFrames() ?? [];
+  }
 }
 
 /** The "recarregar" overlay shown when the world can no longer draw (lost WebGL context, stopped render loop): never a silent blank world. */

@@ -1,5 +1,5 @@
 import type { BoardRow, EmoteKind, FriendInfo, NpcDef, NpcId, PlacedFurniture, PrivateProfile, PublicAvatar, RoomDef, RoomStateMsg, Tile } from '@tudobem/shared';
-import { npcDefById, positionAlong, ROOMS } from '@tudobem/shared';
+import { feiraCartShown, npcDefById, positionAlong, ROOMS, withoutHiddenFeiraCart } from '@tudobem/shared';
 import type { RecadoBoard } from './ui/recadoView';
 
 export interface Bubble {
@@ -72,9 +72,14 @@ class Game {
    */
   englishHelp = localStorage.getItem('tb_english') !== 'off';
   private listeners = new Map<string, Set<Listener>>();
+  /** Feira with the game cart and sign removed. Stable so the scene does not rebuild every frame. */
+  private hiddenFeira: RoomDef | null = null;
 
   get roomDef(): RoomDef | null {
-    return this.room ? ROOMS[this.room.room] : null;
+    if (!this.room) return null;
+    const base = ROOMS[this.room.room];
+    if (base.id !== 'feira' || feiraCartShown(this.feiraCart)) return base;
+    return (this.hiddenFeira ??= withoutHiddenFeiraCart(base, false));
   }
 
   /**
