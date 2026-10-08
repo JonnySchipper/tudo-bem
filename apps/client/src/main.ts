@@ -86,6 +86,7 @@ import { isDialogueBoxOpen, setDialogueHost, showDialogueBox } from './ui/dialog
 import { mountTracker, openJournal, runPrelude } from './ui/recados';
 import { heartsWith } from './ui/recadoView';
 import { openNpcTalk } from './ui/npcTalk';
+import { profileMetJulia } from './ui/juliaMet';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira';
 import { bindFeiraGames, closeFeiraGame, feiraGameOpen, onFeiraGameMsg, openFeiraCart, openFeiraSign } from './ui/feiraGames';
 import { openCaderno, setArrivalReplay } from './ui/caderno';
@@ -252,6 +253,8 @@ function talkTo(npc: NpcDef['id']) {
   const speaker = game.liveNpcs(now()).find((n) => n.id === npc);
   const idle = speaker ? talkIdleOpen(npc, speaker.idleLines, game.profile?.diary, clock.minutes()) : null;
   const vendor = npc === 'tia_lu' || npc === 'ze' || npc === 'chico' || npc === 'rosa';
+  // read before `talk`: that message pays bond at once, and an idle line can sit on screen until the profile push lands
+  const juliaMet = npc === 'julia' && profileMetJulia();
   // the server counts the talk for NPCs without a Conversa (bond +2 once a day, `falar` steps); the bakers count it through the scene / Conversa,
   // the vendors through their stall panel (it sends `talk` itself)
   if (!vendor && npc !== 'carlos' && npc !== 'graca') net.send({ t: 'talk', npc });
@@ -260,7 +263,7 @@ function talkTo(npc: NpcDef['id']) {
     runPrelude(npc, {
       accept: (id) => net.send({ t: 'recados', action: 'accept', id }),
       give: (to, itemId) => net.send({ t: 'give', npc: to, itemId }),
-      proceed: () => talkFlow(npc),
+      proceed: () => talkFlow(npc, juliaMet),
     });
   if (!speaker || !idle) return proceed();
   let went = false;
@@ -285,7 +288,7 @@ function talkTo(npc: NpcDef['id']) {
   sendLine(idle.anchor);
 }
 
-function talkFlow(npc: NpcDef['id']) {
+function talkFlow(npc: NpcDef['id'], juliaMet = false) {
   closeDialogue();
   if (npc === 'tia_lu' || npc === 'ze' || npc === 'chico' || npc === 'rosa') {
     // a vendor resting on a bench (Tia Lu in the afternoon) is not serving: the closed note
@@ -329,6 +332,7 @@ function talkFlow(npc: NpcDef['id']) {
       onLine: (anchor) => sendLine(anchor),
       buyFilm: () => net.send({ t: 'diary', action: 'buyFilm' }),
       openMat: () => openBout(),
+      juliaAlreadyMet: npc === 'julia' ? juliaMet : undefined,
     });
   }
 }

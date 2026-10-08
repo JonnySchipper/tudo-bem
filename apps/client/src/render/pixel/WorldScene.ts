@@ -45,6 +45,7 @@ import type { Manifest } from './manifest';
 import { FACING, facingAlongPath, type Facing } from './facing';
 import { createPetFollow, petCommandFromLines, stepPet, type PetFollow } from './petFollow';
 import { addSheetTexture, animKey, animNames, emoteDuration, sitFrame } from './charsheet';
+import { danceSway, emotePlaysSheet } from './emoteMotion';
 import { CharSheets } from './charCache';
 import type { CharAssets } from './charAssets';
 import { composeLook } from './composeLook';
@@ -1513,13 +1514,17 @@ export class WorldScene extends Phaser.Scene {
     v.moving = pos.moving;
 
     const f = feet(pos.x, pos.y);
-    // emotes play the sheet's real frames (oi, dancar, rir, valeu, desculpa); the 2 px bounce is only the fallback for a sheet without them
+    // rir and desculpa play their sheet rows. oi, valeu and dancar do not: those rows paint an extra arm.
+    // The pop-up icon still names the emote. Dançar leans side to side on the idle body. The 2 px bounce is only a fallback.
     let bounce = 0;
+    let sway = 0;
     let emote: string | null = null;
     if (a.emote && !pos.moving && !sitting) {
       const t = now / 1000 - a.emote.t0;
       const dur = emoteDuration(this.m.sheet, a.emote.kind) / 1000;
-      if (dur > 0) {
+      if (!emotePlaysSheet(a.emote.kind)) {
+        sway = danceSway(a.emote.kind, t, dur > 0 ? dur : 1.3, reducedMotion());
+      } else if (dur > 0) {
         if (t >= 0 && t < dur) emote = `${a.emote.kind}@${a.emote.t0}`;
       } else if (t >= 0 && t < 1.3) bounce = Math.round(Math.abs(Math.sin(t * 9)) * 2);
     }
@@ -1538,7 +1543,8 @@ export class WorldScene extends Phaser.Scene {
     const wy = Math.round(f.wy);
     v.wx = wx;
     v.wy = wy;
-    v.sprite.setPosition(wx, wy - bounce).setScale(avatarDrawScale());
+    const bodyX = wx + sway;
+    v.sprite.setPosition(bodyX, wy - bounce).setScale(avatarDrawScale());
     // under the mat camera, neighbours who wander about step out of the picture; the seated crowd stays to watch
     if (isCpuId(a.pub.id)) {
       const away = boutFeed.camera && !sitting;
@@ -1571,10 +1577,10 @@ export class WorldScene extends Phaser.Scene {
         v.sprite.anims.timeScale = walking ? 1 : v.look.idle.speed * (0.9 + 0.2 * hash01(a.seed * 977 + 3));
       }
     }
-    this.updateParrot(v, a, facing, wx, wy, depth, now);
+    this.updateParrot(v, a, facing, bodyX, wy, depth, now);
     this.updatePet(v, a, wx, wy, dt);
-    this.updateCarry(v, a, facing, wx, wy, depth);
-    this.updateEmoteIcon(v, a, wx, wy - bounce, sitting, now);
+    this.updateCarry(v, a, facing, bodyX, wy, depth);
+    this.updateEmoteIcon(v, a, bodyX, wy - bounce, sitting, now);
     const h = avatarPx(sitting ? 24 : 32);
     const half = avatarPx(9);
     const base = a.pub.npc ? npcDefById(a.pub.npc) : undefined;

@@ -4,6 +4,7 @@ import {
   JULIA_INTRO,
   JULIA_INTRO_FROM_GREETING,
   JULIA_TREE,
+  juliaHelpOpener,
   fillTalk,
   spokenNameless,
   ALL_HATS,
@@ -39,6 +40,7 @@ import { icon } from '../art/ui';
 import { drawMinimap } from './minimap';
 import { beltChip } from './beltChip';
 import { clock } from '../gameClock';
+import { profileMetJulia, rememberJuliaMet } from './juliaMet';
 
 // ---------------------------------------------------------------- modal base
 
@@ -147,7 +149,10 @@ export function showJulia(fromGreeting = false) {
       onClose: closeDialogue,
     });
   };
-  if (fromGreeting) root(JULIA_INTRO_FROM_GREETING);
+  const met = fromGreeting || profileMetJulia();
+  if (!met) rememberJuliaMet();
+  const opener = juliaHelpOpener(met);
+  if (opener === JULIA_INTRO_FROM_GREETING) root(opener);
   else root({ pt: fillTalk(JULIA_INTRO.pt, { name }), en: JULIA_INTRO.en }, spokenNameless(JULIA_INTRO.pt, { minute: clock.minutes() }));
 }
 
