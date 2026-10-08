@@ -64,7 +64,7 @@ import { FrameProbe, LowFxGovernor, reducedMotion } from './perf';
 import { clock } from '../../gameClock';
 import { buildTerrainLayers } from './terrainLayers';
 import { LabelLayer, type GuideItem, type StackItem } from './labels';
-import { OUTDOOR_NORTH, T, cssZoomFor, feet, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
+import { T, cssZoomFor, feet, outdoorFraming, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
 import { pickHit, type HitBox } from './hit';
 import { dialogueFraming, easeOut, stepBlend } from './dialogueCam';
 import { BoutStage } from './boutStage';
@@ -74,7 +74,8 @@ import { correriaFeed } from './correriaFeed';
 import { FOCUS, NEED } from './correriaArt';
 import { roomKey, syncViews } from './reconcile';
 import { DEPTH, PROP_LIGHT, fencePieces, footprintRect, inflate, propAnchor, propClickKind, propDepth, furnitureArtKey, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
-import { sceneryFor } from './scenery';
+import { sceneryFor, type WireRun } from './scenery';
+import { SURROUND_TILES, surroundFor, type Surround } from './surround';
 import {
   FLOOR_PLACEHOLDER,
   CAMERA_LEAD_NORTH,
@@ -518,8 +519,10 @@ export class WorldScene extends Phaser.Scene {
     const has = (k: string) => !!m.sprites[k];
     const missingBefore = this.artMissing.length;
 
-    // ---- terrain: dual-grid layers for the floor chars that have art; substitutes and flat placeholders for the rest
-    const res = buildTerrainLayers(this, def.floor, m.terrain, 'terrainTs', { outside: def.outdoor ? undefined : 'x', wrap: (o) => this.rig.world(o), substitute: FLOOR_SUBSTITUTE });
+    // ---- terrain: dual-grid layers for the floor chars that have art; substitutes and flat placeholders for the rest. An open-air map draws
+    // the town around it too (surround.ts): the same layers, started `margin` tiles out, so the ground runs on past the map edge
+    const sur = surroundFor(def);
+    const res = buildTerrainLayers(this, sur ? sur.floor : def.floor, m.terrain, 'terrainTs', { outside: def.outdoor ? undefined : 'x', wrap: (o) => this.rig.world(o), substitute: FLOOR_SUBSTITUTE, offset: sur ? -sur.margin : 0 });
     this.roomMap = res.map;
     this.groundLayers = res.layers.map((layer, i) => ({ ch: res.drawn[i], layer }));
     this.wetApplied = -1;
@@ -616,16 +619,19 @@ export class WorldScene extends Phaser.Scene {
       if (pd) this.reg(this.add.image(Math.round(a.wx) + 3, Math.round(a.wy) - 1, pd.atlas, pd.frame)).setOrigin(0.5, 0.5).setDepth(-4900);
     }
 
-    // ---- sky and far skyline in the top margin of an open-air map
-    if (def.outdoor) this.buildBackdrop(def);
+    // ---- sky and far skyline above the street of an open-air map
+    if (sur) this.buildBackdrop(sur);
 
-    // ---- ground dressing and wires of an open-air map
+    // ---- ground dressing and wires of an open-air map, and of the neighbouring areas drawn around it
     this.buildScenery(def);
+    if (sur) this.buildSurroundScenery(sur);
 
     // ---- props
     // the small diary objects and signs stand out a couple at a time, a different couple each game day
     this.diaryDay = clock.day();
     for (const p of def.props) if (diaryVisible(def.id, p.id, this.diaryDay)) this.buildProp(p);
+    // the town around an open-air map: scenery only (no action, label or seat, outside the walkable grid)
+    for (const p of sur?.props ?? []) this.buildProp(p);
 
     // ---- readable world (Phase 7): a click box per hotspot (the footprint, plus the wall rows above it for a sign painted on a north wall)
     for (const hs of hotspotsInRoom(def.id)) {
@@ -871,16 +877,54 @@ export class WorldScene extends Phaser.Scene {
   }
 
   /** Ground decals (crosswalks, mosaic, flowers, tufts, grime) and the overhead wires of an open-air map. */
-  /** The strip of sky and distant buildings above the north row (`backdrop/sky_0..3`, 14 tiles each); the facades hide their feet. */
-  private buildBackdrop(def: RoomDef): void {
-    for (let i = 0; i * 14 < def.cols; i++) {
-      const sd = this.m.sprites[`backdrop/sky_${i % 4}`];
-      if (!sd) continue;
-      const img = this.reg(this.add.image(i * 14 * T, 0, sd.atlas, sd.frame)).setOrigin(0, 1).setDepth(-9500);
-      // the last strip stops at the room's east edge (a 21- or 19-column area would otherwise show sky past its end)
-      const left = def.cols - i * 14;
-      if (left < 14) img.setCrop(0, 0, left * T, img.height);
+  /**
+   * The strip of sky and distant buildings standing on the street's north edge (`backdrop/sky_0..3`, 14 tiles each), across the whole width
+   * the camera can show; the facades hide its feet. Above it, open sky in three bands, lightest at the horizon (the strip's own top colour).
+   */
+  private buildBackdrop(sur: Surround): void {
+    const y = sur.skyline;
+    // strips on the town grid's 14-tile rhythm, so the skyline lines up across the rua / rua_leste seam
+    const W = 14 * T;
+    const ox = sur.townX * T;
+    for (let i = Math.floor((sur.skyX0 + ox) / W); i * W - ox < sur.skyX1; i++) {
+      const sd = this.m.sprites[`backdrop/sky_${((i % 4) + 4) % 4}`];
+      if (sd) this.reg(this.add.image(i * W - ox, y, sd.atlas, sd.frame)).setOrigin(0, 1).setDepth(-9500);
     }
+    const top = y - 32 - SURROUND_TILES * T;
+    const bands: [number, number][] = [
+      [y - 32 - 2 * T, 0x94b6cf],
+      [y - 32 - 6 * T, 0x8aaecb],
+      [top, 0x80a7c6],
+    ];
+    let bottom = y - 32;
+    for (const [y0, color] of bands) {
+      this.reg(this.add.rectangle(sur.skyX0, y0, sur.skyX1 - sur.skyX0, bottom - y0, color, 1)).setOrigin(0, 0).setDepth(-9501);
+      bottom = y0;
+    }
+  }
+
+  /** Ground dressing of the neighbouring areas around an open-air map (shifted onto this map's tiles) and the lane dashes of the generated blocks. */
+  private buildSurroundScenery(sur: Surround): void {
+    const has = (k: string) => !!this.m.sprites[k];
+    const r = sur.reach;
+    for (const n of sur.neighbours) {
+      const sc = sceneryFor(n.def, has);
+      if (!sc) continue;
+      const dx = n.dx * T;
+      const dy = n.dy * T;
+      for (const d of sc.decals) {
+        const x = d.x + dx;
+        const y = d.y + dy;
+        if (x < r.x0 || x > r.x1 || y < r.y0 || y > r.y1) continue;
+        const sd = this.m.sprites[d.key];
+        const img = this.reg(this.add.image(x, y, sd.atlas, sd.frame)).setDepth(d.depth);
+        if (d.origin === 'tl') img.setOrigin(0, 0);
+        else img.setOrigin(...originOf(sd));
+      }
+      this.buildWires(sc.wires, dx, dy);
+    }
+    const dash = this.m.sprites['decals/lane_dash'];
+    if (dash) for (const d of sur.dashes) this.reg(this.add.image(d.x, d.y, dash.atlas, dash.frame)).setOrigin(0, 0).setDepth(DEPTH.groundDecal);
   }
 
   private buildScenery(def: RoomDef): void {
@@ -892,11 +936,16 @@ export class WorldScene extends Phaser.Scene {
       if (d.origin === 'tl') img.setOrigin(0, 0);
       else img.setOrigin(...originOf(sd));
     }
+    this.buildWires(sc.wires, 0, 0);
+  }
+
+  /** The overhead wires between utility poles, shifted by (dx, dy) world px (a neighbouring area's wires drawn around this map). */
+  private buildWires(runs: WireRun[], dx: number, dy: number): void {
     const pole = this.m.sprites['props/poste_fios'];
     const attachY = pole?.attach?.[1] ?? -51;
-    for (const run of sc.wires) {
-      let wx = run.x;
-      const wy = run.y + attachY;
+    for (const run of runs) {
+      let wx = run.x + dx;
+      const wy = run.y + dy + attachY;
       for (const key of run.keys) {
         const wd = this.m.sprites[key];
         if (!wd) {
@@ -1239,8 +1288,12 @@ export class WorldScene extends Phaser.Scene {
     const ins = this.host.insets();
     const k = this.cam.dpr;
     const dpr = k; // the effective (possibly capped, see bufferPixels) ratio of the backing store
-    // the whole room (walls included) when it fits at this or the next lower integer zoom, else follow the avatar with the north wall kept in view
-    let f = roomFraming({ w: this.cam.w, h: this.cam.h }, this.bounds, focus, { top: ins.top * k, bottom: ins.bottom * k, left: ins.left * k, right: ins.right * k }, cssZoomFor(window.innerWidth, window.innerHeight), dpr, def.outdoor ? OUTDOOR_NORTH : undefined);
+    // interiors: the whole room (walls included) when it fits at this or the next lower integer zoom, else follow the avatar with the north wall
+    // kept in view. Open-air maps: the window's zoom, following the avatar; the town drawn around the map fills the rest (issue #123)
+    const view = { w: this.cam.w, h: this.cam.h };
+    const insDev = { top: ins.top * k, bottom: ins.bottom * k, left: ins.left * k, right: ins.right * k };
+    const cssZoom = cssZoomFor(window.innerWidth, window.innerHeight);
+    let f = def.outdoor ? outdoorFraming(view, this.bounds, focus, insDev, cssZoom, dpr) : roomFraming(view, this.bounds, focus, insDev, cssZoom, dpr);
     if (this.host.shot === 'map' && def.outdoor) {
       // debug `?shot=map`: the whole map in one frame, at the biggest integer zoom that fits (1x on a 1280 x 800 window), centred, no follow
       const zoom = Math.max(1, Math.floor(Math.min(this.cam.w / (def.cols * T), this.cam.h / (def.rows * T))));
