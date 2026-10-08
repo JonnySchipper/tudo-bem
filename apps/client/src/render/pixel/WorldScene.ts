@@ -1106,7 +1106,8 @@ export class WorldScene extends Phaser.Scene {
     const t = performance.now();
     if (this.lastUpdateAt) this.probe.record(t - this.lastUpdateAt, t);
     this.lastUpdateAt = t;
-    if (this.gov.check(t)) this.degrade('p90');
+    // A review frame (`?shot=`) keeps the full effect set. A slow box would otherwise drop the clouds the shot is there to show.
+    if (!this.host.shot && this.gov.check(t)) this.degrade('p90');
     if (t - this.reducedCheckAt > 1000) {
       this.reducedCheckAt = t;
       this.fxLevel.reduced = reducedMotion();

@@ -705,7 +705,11 @@ export function cloudShadowAlpha(sun: number, dark: number): number {
 /** Cloud shadow drift, px per second. */
 export const CLOUD_SPEED = 6;
 
-/** Regions of fx/cloud_shadow.png (512x256) that hold one blob each: [x, y, w, h]. */
+/**
+ * Regions of fx/cloud_shadow.png (512x256) sampled for one shadow each: [x, y, w, h].
+ * The noise runs through these rectangles, so the sprite multiplies by `cloudSpriteMask` and the edge goes to nothing
+ * instead of showing the cut.
+ */
 export const CLOUD_CROPS: readonly [number, number, number, number][] = [
   [150, 0, 120, 92],
   [14, 146, 214, 110],
@@ -714,23 +718,116 @@ export const CLOUD_CROPS: readonly [number, number, number, number][] = [
   [60, 0, 60, 50],
 ];
 
+/** How long a cloud takes to fade in after an area loads, seconds. */
+export const CLOUD_FADE_SEC = 0.4;
+
 export interface CloudBlob {
   /** index into CLOUD_CROPS */
   crop: number;
-  /** world px of the crop's top-left corner */
+  /** world px of the sprite's top-left corner */
   x: number;
   y: number;
 }
 
-/** Up to 5 blobs (3-5 in use) drifting east at 6 px/s, wrapping around a map of w x h px. */
-export function cloudBlobs(count: number, tSec: number, w: number, h: number): CloudBlob[] {
-  const out: CloudBlob[] = [];
-  const span = w + 480;
+/** Where a cloud is standing when the area loads, before it drifts. */
+export interface CloudHome {
+  x: number;
+  y: number;
+}
+
+export interface CloudView {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+const smooth01 = (t: number): number => {
+  const u = Math.max(0, Math.min(1, t));
+  return u * u * (3 - 2 * u);
+};
+
+/**
+ * 0 on the rectangle's edge, 1 in the body. The crop is a hard slice of a bigger blob; this window is what makes the
+ * sprite a whole cloud instead of one cut in half.
+ */
+export function cloudSpriteMask(x: number, y: number, w: number, h: number): number {
+  if (w < 3 || h < 3) return 0;
+  if (x <= 0 || y <= 0 || x >= w - 1 || y >= h - 1) return 0;
+  const nx = ((x + 0.5) / w) * 2 - 1;
+  const ny = ((y + 0.5) / h) * 2 - 1;
+  const r = Math.hypot(nx, ny);
+  const inner = 0.55;
+  if (r >= 1) return 0;
+  if (r <= inner) return 1;
+  return smooth01((1 - r) / (1 - inner));
+}
+
+/** 0 at the moment an area loads, 1 after `CLOUD_FADE_SEC`. */
+export function cloudEnterAlpha(ageSec: number): number {
+  return smooth01(ageSec / CLOUD_FADE_SEC);
+}
+
+/**
+ * 1 while the whole sprite is inside the map, fading to 0 as it crosses either side so a camera clamped to the map
+ * never slices an opaque edge. Fully off the map: 0.
+ */
+export function cloudCrossFade(x: number, spriteW: number, mapW: number): number {
+  if (spriteW <= 0) return 0;
+  if (x + spriteW <= 0 || x >= mapW) return 0;
+  const band = Math.min(36, spriteW * 0.3);
+  let fade = 1;
+  if (x < 0) fade = Math.min(fade, smooth01((x + spriteW) / band));
+  if (x + spriteW > mapW) fade = Math.min(fade, smooth01((mapW - x) / band));
+  return fade;
+}
+
+/** A slot along `map` that holds `size`, preferring the part the camera can see. */
+function placedAlong(u: number, size: number, map: number, view0?: number, view1?: number): number {
+  let lo = 0;
+  let hi = map - size;
+  if (view0 !== undefined && view1 !== undefined) {
+    lo = Math.max(lo, view0);
+    hi = Math.min(map, view1) - size;
+  }
+  if (hi >= lo) return lo + (hi - lo) * (0.12 + 0.76 * u);
+  const mid = view0 !== undefined && view1 !== undefined ? (Math.max(0, view0) + Math.min(map, view1)) / 2 : map / 2;
+  return mid - size / 2;
+}
+
+/** Homes for the clouds on an area: each sprite sits whole inside the map, and inside `view` when it fits. */
+export function cloudHome(count: number, mapW: number, mapH: number, view?: CloudView): CloudHome[] {
+  const out: CloudHome[] = [];
   for (let i = 0; i < Math.min(count, CLOUD_CROPS.length); i++) {
     const c = CLOUD_CROPS[i];
-    const y = (0.08 + 0.84 * unit(i, 3, 32)) * h - c[3] / 2;
-    const x = ((unit(i, 3, 33) * span + tSec * CLOUD_SPEED) % span) - 240 - c[2] / 2;
-    out.push({ crop: i, x, y });
+    out.push({
+      x: placedAlong(unit(i, 3, 33), c[2], mapW, view?.x0, view?.x1),
+      y: placedAlong(unit(i, 3, 32), c[3], mapH, view?.y0, view?.y1),
+    });
+  }
+  return out;
+}
+
+const posMod = (n: number, m: number): number => (m <= 0 ? 0 : ((n % m) + m) % m);
+
+/**
+ * Eastward drift from `home`. The run ends with the sprite fully past the right side of the map and resumes fully
+ * past the left, so the wrap itself is off-screen.
+ */
+export function cloudX(homeX: number, spriteW: number, mapW: number, tSec: number): number {
+  const period = mapW + spriteW;
+  const d = posMod(tSec * CLOUD_SPEED, period);
+  const exit = mapW - homeX;
+  return d < exit ? homeX + d : -spriteW + (d - exit);
+}
+
+/** Up to 5 blobs (3-5 in use) drifting east at 6 px/s. Pass `home` to keep the positions chosen when the area loaded. */
+export function cloudBlobs(count: number, tSec: number, w: number, h: number, home?: readonly CloudHome[]): CloudBlob[] {
+  const starts = home ?? cloudHome(count, w, h);
+  const out: CloudBlob[] = [];
+  for (let i = 0; i < Math.min(count, starts.length, CLOUD_CROPS.length); i++) {
+    const c = CLOUD_CROPS[i];
+    out.push({ crop: i, x: cloudX(starts[i].x, c[2], w, tSec), y: starts[i].y });
   }
   return out;
 }
