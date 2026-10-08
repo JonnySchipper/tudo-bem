@@ -110,8 +110,10 @@ export function kitnetGuideDone(v: KitnetGuideView, p: KitnetGuideProgress): Set
   const buy = p.bought || p.skippedBuy;
   if (v.editMode || buy) done.add('abrir');
   if (buy) done.add('loja').add('comprar');
+  else if (v.editMode && v.tab === 'loja') done.add('loja');
   if (p.placed) done.add('meus').add('escolher').add('colocar');
   else if (v.placing) done.add('meus').add('escolher');
+  else if (buy && v.editMode && v.tab === 'meus') done.add('meus');
   if (p.rotated) done.add('girar');
   if (kitnetGuideStep(v, p) === null) done.add('sair');
   return done;

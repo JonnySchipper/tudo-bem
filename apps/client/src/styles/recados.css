@@ -588,21 +588,34 @@ body.in-aeroporto #recado-tracker {
 }
 
 /* ---------------------------------------------------------------- the kitnet first-visit guide (ui/kitnetGuide.ts)
- * The airport card's look, on the left on a desktop (the Decorar panel takes the right), the tracker's corner on a phone. */
+ * The airport card's look: bottom left on a desktop (the Decorar panel takes the right, the cartela and the toasts the top left), the
+ * tracker's corner on a phone (the Decorar sheet comes up from the bottom). It steps aside while the phone menu is open. */
 
 body.kitnet-guide-on #recado-tracker {
   display: none;
 }
 
 .kg-card[hidden],
-.kg-pointer[hidden] {
+.kg-pointer[hidden],
+body:has(#hud-actions.open) .kg-card {
   display: none;
 }
 
 .kg-card {
   left: calc(12px + var(--safe-left, 0px));
   right: auto;
-  z-index: 16;
+  top: auto;
+  bottom: calc(16px + var(--safe-bottom, 0px));
+}
+
+/* a phone: the whole width, under the pills (kitnetGuide.ts sets the exact top) */
+@media (max-width: 640px), (max-height: 520px) {
+  .rtrack.kg-card {
+    top: calc(var(--hud-bottom, 60px) + 10px);
+    bottom: auto;
+    width: calc(100vw - 20px - var(--safe-left, 0px) - var(--safe-right, 0px));
+    max-width: 420px;
+  }
 }
 
 .kg-head {

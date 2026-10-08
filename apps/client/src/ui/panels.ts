@@ -576,7 +576,14 @@ export function buildDecorPanel(actions: { buy: (id: string) => void; rotate: (u
             h('div', { class: 'row', style: 'margin-top:6px' }, h('button', { onclick: () => actions.rotate(selF.uid), id: 'decor-rotate' }, bi('Girar', 'Rotate')), h('button', { onclick: () => actions.pickup(selF.uid) }, bi('Guardar', 'Pick up'))),
           )
         : game.placing
-          ? h('div', { class: 'hintbox', style: 'margin-top:8px' }, `Colocando: ${furnitureById(game.placing.itemId)?.pt}`, en('Click a free floor tile. Press R to rotate, Esc to cancel.'))
+          ? h(
+              'div',
+              { class: 'hintbox', style: 'margin-top:8px' },
+              `Colocando: ${furnitureById(game.placing.itemId)?.pt}`,
+              en('Click a free floor tile. Press R to rotate, Esc to cancel.'),
+              // the same turn as R, for a phone (no keyboard)
+              h('div', { class: 'row', style: 'margin-top:6px' }, h('button', { onclick: () => game.placing && ((game.placing.rot = game.placing.rot === 0 ? 1 : 0), game.emit('decor')), id: 'decor-rotate' }, bi('Girar', 'Rotate'))),
+            )
           : '',
       tab === 'meus'
         ? h(
@@ -592,7 +599,7 @@ export function buildDecorPanel(actions: { buy: (id: string) => void; rotate: (u
                   onclick: () => {
                     game.selectedFurniture = null;
                     game.placing = game.placing?.itemId === id ? null : { itemId: id, rot: 0 };
-                    render();
+                    game.emit('decor');
                   },
                   'data-furniture': id,
                 },

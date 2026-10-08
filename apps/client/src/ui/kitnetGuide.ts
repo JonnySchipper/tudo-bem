@@ -11,7 +11,7 @@ import { furnitureById } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, ui } from './dom';
 import { toast } from './hud';
-import { placeHud } from './hudLayout';
+import { COMPACT_QUERY, placeHud } from './hudLayout';
 import type { Guide } from '../render/view';
 import {
   KITNET_GUIDE_STEPS,
@@ -70,6 +70,7 @@ export function mountKitnetGuide(opts: { tab: () => 'meus' | 'loja'; onStep: () 
   let running = false;
   let progress: KitnetGuideProgress = { ...NO_PROGRESS };
   let step: KitnetGuideStepId | null = null;
+  let worldKey = '';
   let lastBought: string | null = null;
   let placedUid: string | null = null;
   let prevProfile: { coins: number; furniture: Record<string, number> } | null = null;
@@ -101,6 +102,7 @@ export function mountKitnetGuide(opts: { tab: () => 'meus' | 'loja'; onStep: () 
     running = true;
     progress = { ...NO_PROGRESS };
     step = null;
+    worldKey = '';
     lastBought = null;
     placedUid = null;
     scrolledFor = null;
@@ -155,7 +157,8 @@ export function mountKitnetGuide(opts: { tab: () => 'meus' | 'loja'; onStep: () 
       case 'escolher':
         return (lastBought && q(`[data-furniture="${lastBought}"]`)) || q('[data-furniture]');
       case 'girar':
-        return game.selectedFurniture ? q('#decor-rotate') : null;
+        // the panel's Girar: for the selected piece, or the one still in hand
+        return q('#decor-rotate');
       case 'sair':
         return q('#decor-exit');
       default:
@@ -163,9 +166,14 @@ export function mountKitnetGuide(opts: { tab: () => 'meus' | 'loja'; onStep: () 
     }
   }
 
-  /** Put the arrow on the current control (or hide it). */
+  /** Put the arrow on the current control (or hide it); on a phone the card hangs under the pills (the cartela, the mission). */
   function place(): void {
     if (!running) return;
+    if (window.matchMedia(COMPACT_QUERY).matches) {
+      const under = ['hud-top', 'cartela-pill', 'mission-pill'].map((id) => document.getElementById(id)?.getBoundingClientRect()).filter((r) => r && r.height > 0);
+      const top = Math.round(Math.max(0, ...under.map((r) => r!.bottom)) + 8);
+      if (card.style.top !== `${top}px`) card.style.top = `${top}px`;
+    } else if (card.style.top) card.style.top = '';
     const el = target();
     pulse(el);
     if (!visible(el)) {
@@ -194,7 +202,10 @@ export function mountKitnetGuide(opts: { tab: () => 'meus' | 'loja'; onStep: () 
     const v = view();
     const next = kitnetGuideStep(v, progress);
     if (next === null) return finish(true);
-    const changed = next !== step;
+    // the world arrow moves on a new step, and on "girar" when the panel's Girar comes or goes (a piece selected or in hand)
+    const key = `${next}:${!!document.getElementById('decor-rotate')}`;
+    const changed = key !== worldKey;
+    worldKey = key;
     step = next;
     const done = kitnetGuideDone(v, progress);
     const s = KITNET_GUIDE_STEPS.find((x) => x.id === next)!;
@@ -249,7 +260,7 @@ export function mountKitnetGuide(opts: { tab: () => 'meus' | 'loja'; onStep: () 
       const t = suggestTile(game.roomDef, game.furniture, me ? [me.path.at(-1) ?? me.from] : []);
       return t ? { x: t.x, y: t.y, lift: 20, label: 'Coloque aqui' } : null;
     }
-    if (step === 'girar' && !game.selectedFurniture) {
+    if (step === 'girar' && !document.getElementById('decor-rotate')) {
       const f = game.furniture.find((x) => x.uid === placedUid) ?? game.furniture.at(-1);
       return f ? { x: f.x, y: f.y, lift: 36, label: `Clique: ${furnitureById(f.itemId)?.pt ?? 'móvel'}` } : null;
     }
