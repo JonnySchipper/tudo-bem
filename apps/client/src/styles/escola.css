@@ -530,6 +530,7 @@ html.px-ui .backdrop > .panel.escola-panel.escola-v2,
 
 .escola-start small .en {
   display: inline;
+  margin-left: 0.4em;
 }
 
 /* ---- the mission */
@@ -698,7 +699,7 @@ html.px-ui .backdrop > .panel.escola-panel.escola-v2,
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: -14px 34px 10px 0;
+  margin: -14px 58px 10px 0;
 }
 
 .escola-top .escola-bar.lesson {
@@ -749,7 +750,7 @@ html.px-ui .backdrop > .panel.escola-panel.escola-v2,
   gap: 4px 12px;
 }
 
-.escola-face.small,
+#escola-face.small,
 .escola-face.small .escola-portrait,
 .escola-face.small .escola-portrait img {
   width: 56px !important;
@@ -1362,7 +1363,7 @@ html.px-ui .backdrop > .panel.escola-panel.escola-v2,
   letter-spacing: 0.04em;
 }
 
-.escola-tierup h2 {
+.panel.escola-v2 .escola-tierup h2 {
   margin: 0;
   color: #fff;
   font-size: 2rem;

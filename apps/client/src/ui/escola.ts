@@ -550,7 +550,7 @@ function matchBox(pt: string[], enList: string[]) {
   const col = (side: 'pt' | 'en', list: string[]) =>
     h(
       'div',
-      { class: `escola-col ${side}` },
+      { class: `escola-col col-${side}` },
       ...list.map((text, i) =>
         h(
           'button',
