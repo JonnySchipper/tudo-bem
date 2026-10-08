@@ -378,7 +378,7 @@
     {
       "id": "lampada_f3",
       "kind": "poste",
-      "x": 21,
+      "x": 26,
       "y": 9,
       "blocks": true,
       "art": "props/lamp_old"

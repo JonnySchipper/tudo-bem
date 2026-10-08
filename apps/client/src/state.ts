@@ -1,5 +1,5 @@
 import type { BoardRow, EmoteKind, FriendInfo, NpcDef, NpcId, PlacedFurniture, PrivateProfile, PublicAvatar, RoomDef, RoomStateMsg, Tile } from '@tudobem/shared';
-import { feiraCartShown, npcDefById, positionAlong, ROOMS, withoutHiddenFeiraCart } from '@tudobem/shared';
+import { feiraCartShown, feiraRoomFor, npcDefById, positionAlong, ROOMS } from '@tudobem/shared';
 import type { RecadoBoard } from './ui/recadoView';
 
 export interface Bubble {
@@ -82,12 +82,12 @@ class Game {
   /** Last layout pushed by the server (the design editor listens). */
   layoutNotice: { room: import('@tudobem/shared').RoomId; objects: import('@tudobem/shared').PropDef[] | null } | null = null;
   private listeners = new Map<string, Set<Listener>>();
-  /** Feira with the game cart and sign removed. Stable so the scene does not rebuild every frame. */
-  private hiddenFeira: RoomDef | null = null;
+  /** Feira as shown for each cart state (hidden, or dressed for one game). Stable so the scene does not rebuild every frame. */
+  private feiraViews = new Map<string, RoomDef>();
 
-  /** Props changed: drop the cached Feira-without-cart view and rebuild the scene. */
+  /** Props changed: drop cached Feira cart views and rebuild the scene. */
   bumpLayout(): void {
-    this.hiddenFeira = null;
+    this.feiraViews.clear();
     this.layoutEpoch++;
   }
 
@@ -95,8 +95,11 @@ class Game {
     if (!this.room) return null;
     const base = ROOMS[this.room.room];
     if (this.designMode) return base;
-    if (base.id !== 'feira' || feiraCartShown(this.feiraCart)) return base;
-    return (this.hiddenFeira ??= withoutHiddenFeiraCart(base, false));
+    if (base.id !== 'feira') return base;
+    const key = feiraCartShown(this.feiraCart) ? this.feiraCart!.game! : '';
+    let view = this.feiraViews.get(key);
+    if (!view) this.feiraViews.set(key, (view = feiraRoomFor(base, this.feiraCart)));
+    return view;
   }
 
   /**

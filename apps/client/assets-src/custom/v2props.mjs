@@ -1,7 +1,7 @@
 // Praça props of the V2 composition pass: domino and chess tables, stools, the bust on its plinth, flower beds of different shapes, the
 // popcorn cart (pipoqueiro) and the coconut-water cart (derived from LimeZu street carts), hanging bunting, a magazine rack, the parked
 // Fusca / Kombi / moto (static frames of the traffic art). Authored with the pack palette, light from the upper left, navy outline.
-import { blank, put, shape, flat, grid, line, ell, box, or, and, sub, fillRect, NAVY, h2 } from './paint.mjs';
+import { blank, put, shape, flat, grid, line, ell, box, or, and, sub, fillRect, ring, NAVY, h2 } from './paint.mjs';
 import { C, K, outlineAround, stripSoftAlpha, paste, crop, rect, hline, vline, dot } from './kit.mjs';
 import { drawText3, width3 } from './font5.mjs';
 import * as vauth from './vehicles-auth.mjs';
@@ -368,36 +368,31 @@ export { pipoqueiro, cocoCart };
 
 // ------------------------------------------------------------------ Feira game cart and the bright board (not the coconut cart, not the mat scoreboard)
 
-/** A push-cart for the Feira games: striped awning, a little chapa with tapiocas, filling bowls, and a TAPIOCA board. */
-export async function feiraGameCart() {
-  const W = 64, H = 62;
-  const img = blank(W, H);
-  // wheels
-  for (const cx of [16, 46]) {
-    shape(img, ell(cx, 54, 6.2, 6.2), [cx, 54, 6.2, 6.2], [C.navy, C.slate, C.slate2, C.mist], { ol: NAVY, t: [0.8, 0.4, 0] });
-    shape(img, ell(cx, 54, 2.4, 2.4), [cx, 54, 2.4, 2.4], [C.w4, C.w2, C.w1, C.w0], { ol: NAVY, t: [0.85, 0.4, 0] });
-  }
-  // axle and the lower body
-  fillRect(img, 8, 48, 48, 4, C.w5);
-  fillRect(img, 8, 48, 48, 1, C.w3);
-  fillRect(img, 8, 51, 48, 1, C.w6);
-  // cart box
-  fillRect(img, 6, 30, 52, 19, C.w3);
-  fillRect(img, 6, 30, 52, 2, C.w1);
-  fillRect(img, 6, 30, 2, 19, C.w1);
-  fillRect(img, 56, 30, 2, 19, C.w5);
-  fillRect(img, 6, 47, 52, 2, C.w5);
-  // plank seams
-  for (const x of [18, 30, 42]) fillRect(img, x, 32, 1, 15, C.w4);
-  // the TAPIOCA plaque on the front (yellow on terracotta — not the coconut cart's COCO board)
-  fillRect(img, 16, 36, 32, 9, NAVY);
-  fillRect(img, 17, 37, 30, 7, C.r3);
-  fillRect(img, 17, 37, 30, 1, C.r1);
-  drawText3(img, 18, 38, 'TAPIOCA', C.y1, C.r5);
-  // counter top
-  fillRect(img, 5, 26, 54, 5, C.w2);
-  fillRect(img, 5, 26, 54, 1, C.w0);
-  fillRect(img, 5, 30, 54, 1, C.w4);
+/**
+ * A push-cart for the Feira games, one per game (`args.game`), so the cart always names today's game:
+ *   tapioca  red / yellow / green awning, a little chapa with tapiocas, filling bowls, a TAPIOCA plaque
+ *   pastel   yellow / red awning, a fryer with golden oil, a glass case of pastéis, a PASTEL plaque
+ *   caldo    green / yellow awning, the green cane press with its flywheel, cane and two cups, a CALDO DE CANA plaque
+ */
+const CART_LOOK = {
+  tapioca: { stripes: [C.r2, C.cr0, C.y2, C.cr0, C.g2, C.cr0], plaque: ['TAPIOCA'], bg: [C.r3, C.r1], fg: [C.y1, C.r5] },
+  pastel: { stripes: [C.y2, C.cr0, C.r2, C.cr0], plaque: ['PASTEL'], bg: [C.y2, C.y0], fg: [C.r4, C.y4] },
+  caldo: { stripes: [C.g2, C.cr0, C.y2, C.cr0], plaque: ['CALDO', 'DE CANA'], bg: [C.teal2, C.teal4], fg: [C.y1, C.teal0] },
+};
+
+/** The plaque on the cart front: navy frame, one or two lines of 3x5 capitals, centred on the cart box (x 6..57). */
+function cartPlaque(img, lines, bg, fg) {
+  const w = Math.max(...lines.map(width3)) + 6;
+  const h = lines.length * 6 + 3;
+  const x = 32 - Math.floor(w / 2);
+  const y = lines.length > 1 ? 33 : 36;
+  fillRect(img, x, y, w, h, NAVY);
+  fillRect(img, x + 1, y + 1, w - 2, h - 2, bg[0]);
+  fillRect(img, x + 1, y + 1, w - 2, 1, bg[1]);
+  lines.forEach((t, i) => drawText3(img, 32 - Math.floor(width3(t) / 2), y + 2 + i * 6, t, fg[0], fg[1]));
+}
+
+function tapiocaCounter(img) {
   // a small steel chapa on the left of the counter
   fillRect(img, 8, 18, 22, 9, C.slate);
   fillRect(img, 8, 18, 22, 1, C.mist2);
@@ -419,13 +414,97 @@ export async function feiraGameCart() {
     fillRect(img, x + 1, 23, 3, 2, c);
     put(img, x + 1, 23, C.white);
   });
+}
+
+/** a golden half-moon pastel (5x4) with a crimped top edge */
+function pastelBit(img, x, y) {
+  fillRect(img, x, y + 1, 5, 3, C.y3); fillRect(img, x + 1, y, 3, 1, C.y2);
+  put(img, x + 1, y, C.y1); put(img, x, y + 1, C.y1); put(img, x + 4, y + 3, C.y4); put(img, x + 2, y + 3, C.y4);
+  for (let i = 0; i < 5; i += 2) put(img, x + i, y + 1, C.y4);
+}
+
+function pastelCounter(img) {
+  // the fryer: a steel tank with golden oil, a wire basket handle, steam
+  fillRect(img, 8, 17, 21, 10, NAVY);
+  fillRect(img, 9, 18, 19, 8, C.slate);
+  fillRect(img, 9, 18, 19, 1, C.mist2); fillRect(img, 9, 18, 1, 8, C.mist);
+  fillRect(img, 10, 19, 17, 3, C.y3); fillRect(img, 10, 19, 17, 1, C.y1);
+  for (const x of [12, 17, 23]) put(img, x, 20, C.y0);
+  pastelBit(img, 11, 18); pastelBit(img, 19, 18);
+  line(img, 27, 19, 30, 15, C.slate2); put(img, 30, 14, C.mist2);
+  for (const [sx, sy] of [[13, 15], [14, 14], [21, 14], [22, 13], [16, 12]]) put(img, sx, sy, C.lav3);
+  put(img, 11, 24, C.r1); put(img, 13, 24, C.y2);
+  // the glass case: two shelves of pastéis
+  fillRect(img, 33, 14, 22, 13, NAVY);
+  fillRect(img, 34, 15, 20, 11, K.gl2);
+  fillRect(img, 34, 15, 20, 1, K.gl1); fillRect(img, 34, 15, 1, 11, K.gl1);
+  fillRect(img, 34, 20, 20, 1, C.lav3);
+  for (const x of [36, 42, 48]) { pastelBit(img, x, 16); pastelBit(img, x, 21); }
+  fillRect(img, 34, 25, 20, 1, C.lav);
+}
+
+function caldoCounter(img) {
+  // the green cane press: hopper on top, a yellow band, the flywheel on its left, a spout over a cup
+  fillRect(img, 12, 14, 15, 13, NAVY);
+  fillRect(img, 13, 15, 13, 11, C.teal3);
+  fillRect(img, 13, 15, 13, 1, C.teal5); fillRect(img, 13, 15, 1, 11, C.teal5); fillRect(img, 25, 16, 1, 10, C.teal1);
+  fillRect(img, 13, 19, 13, 3, C.y2); fillRect(img, 13, 19, 13, 1, C.y1); fillRect(img, 13, 21, 13, 1, C.y4);
+  fillRect(img, 15, 10, 9, 5, NAVY); fillRect(img, 16, 11, 7, 3, C.slate2); fillRect(img, 16, 11, 7, 1, C.mist2);
+  ring(img, 10, 20, 4.3, (x, y) => (x + y < 28 ? C.lav3 : C.slate2));
+  fillRect(img, 9, 19, 2, 2, C.y3); put(img, 9, 19, C.y1);
+  fillRect(img, 26, 22, 4, 2, NAVY); put(img, 27, 22, C.mist2); put(img, 28, 22, C.mist2);
+  put(img, 29, 24, '#d4e56a');
+  // cane leaning into the hopper
+  for (let i = 0; i < 3; i++) line(img, 17 + i * 2, 13, 22 + i * 2, 2, i === 1 ? C.g2 : C.g3);
+  for (const [nx, ny] of [[18, 10], [20, 6], [22, 9], [23, 4], [25, 7]]) put(img, nx, ny, C.y2);
+  // two cups of juice and a bundle of cane on the right of the counter
+  for (const x of [32, 38]) {
+    fillRect(img, x, 19, 5, 7, NAVY);
+    fillRect(img, x + 1, 20, 3, 5, K.gl1);
+    fillRect(img, x + 1, 22, 3, 3, '#d4e56a'); put(img, x + 1, 22, '#f7f8d8');
+  }
+  for (let i = 0; i < 4; i++) { fillRect(img, 45 + i * 3, 16, 2, 10, i % 2 ? C.g3 : C.g2); put(img, 45 + i * 3, 19, C.y2); put(img, 46 + i * 3, 23, C.y3); }
+  fillRect(img, 44, 21, 13, 1, K.br2);
+}
+
+export async function feiraGameCart(_ctx, args = {}) {
+  const look = CART_LOOK[args.game ?? 'tapioca'];
+  if (!look) throw new Error(`feiraGameCart: unknown game ${args.game}`);
+  const W = 64, H = 62;
+  const img = blank(W, H);
+  // wheels
+  for (const cx of [16, 46]) {
+    shape(img, ell(cx, 54, 6.2, 6.2), [cx, 54, 6.2, 6.2], [C.navy, C.slate, C.slate2, C.mist], { ol: NAVY, t: [0.8, 0.4, 0] });
+    shape(img, ell(cx, 54, 2.4, 2.4), [cx, 54, 2.4, 2.4], [C.w4, C.w2, C.w1, C.w0], { ol: NAVY, t: [0.85, 0.4, 0] });
+  }
+  // axle and the lower body
+  fillRect(img, 8, 48, 48, 4, C.w5);
+  fillRect(img, 8, 48, 48, 1, C.w3);
+  fillRect(img, 8, 51, 48, 1, C.w6);
+  // cart box
+  fillRect(img, 6, 30, 52, 19, C.w3);
+  fillRect(img, 6, 30, 52, 2, C.w1);
+  fillRect(img, 6, 30, 2, 19, C.w1);
+  fillRect(img, 56, 30, 2, 19, C.w5);
+  fillRect(img, 6, 47, 52, 2, C.w5);
+  // plank seams
+  for (const x of [18, 30, 42]) fillRect(img, x, 32, 1, 15, C.w4);
+  // the game's plaque on the front (each cart names its own game)
+  cartPlaque(img, look.plaque, look.bg, look.fg);
+  // counter top
+  fillRect(img, 5, 26, 54, 5, C.w2);
+  fillRect(img, 5, 26, 54, 1, C.w0);
+  fillRect(img, 5, 30, 54, 1, C.w4);
+  if (args.game === 'pastel') pastelCounter(img);
+  else if (args.game === 'caldo') caldoCounter(img);
+  else tapiocaCounter(img);
   // awning poles
   fillRect(img, 8, 8, 2, 18, C.w4);
   fillRect(img, 8, 8, 1, 18, C.w1);
   fillRect(img, 54, 8, 2, 18, C.w4);
   fillRect(img, 55, 8, 1, 18, C.w6);
   // striped awning (feira red / cream / yellow / green), scalloped front
-  const STRIPES = [C.r2, C.cr0, C.y2, C.cr0, C.g2, C.cr0];
+  const STRIPES = look.stripes;
   for (let x = 6; x <= 57; x++) {
     const col = STRIPES[Math.floor((x - 6) / 4) % STRIPES.length];
     const scallop = (x % 6) < 2 ? 1 : (x % 6) > 3 ? 1 : 0;
