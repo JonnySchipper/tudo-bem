@@ -1,7 +1,7 @@
 // Kitnet: cama (LimeZu bed), cozinha (kitchenette, authored) and every piece of the furniture catalog in both rotations
 // (`furniture/<id>_0` faces SE = east, `_1` faces SW = south). Pack pieces are cropped from the theme sorters; the Brazilian ones
 // (rede, filtro de barro, rádio antigo, monstera, quadro de ipê) and the fan / cat animations are authored in the pack style.
-import { put, fillRect, shape, mix, h2, ell, box, or, sub, NAVY, line } from './paint.mjs';
+import { put, fillRect, shape, mix, h2, ell, box, or, sub, NAVY, line, alphaAt } from './paint.mjs';
 import { blank, crop, flipH, trim, paste } from '../../../../scripts/lib/pixel/img.mjs';
 import { recolorRamp } from './kit.mjs';
 
@@ -283,18 +283,62 @@ export async function packPiece(ctx, { sheet, rect, ramp, foot = 2, mirror = fal
   return [{ img, anchor: [Math.floor(img.w / 2), img.h - foot] }];
 }
 
-/** The pack cat (18 frames of 32x16: settling, lying, tail flick) trimmed to their common box; rot 1 is mirrored so it faces the other way. */
-export async function gato(ctx, { rot }) {
-  const sheet = recolorRamp(await ctx.sheet('cat'), ['#8f4f1a', '#b8692a', '#e0913f', '#f0b060', '#f8d896']);
-  const frames = Array.from({ length: 18 }, (_, i) => crop(sheet, i * 32, 0, 32, 16));
-  let x0 = 32, y0 = 16, x1 = 0, y1 = 0;
-  for (const f of frames) {
-    const t = trim(f);
-    if (t.img.w === 1 && t.img.h === 1) continue;
-    x0 = Math.min(x0, t.x); y0 = Math.min(y0, t.y); x1 = Math.max(x1, t.x + t.img.w); y1 = Math.max(y1, t.y + t.img.h);
+const CAT = { ramp: ['#8f4f1a', '#b8692a', '#e0913f', '#f0b060'], cream: '#f8d896', ol: '#6b3a16', nose: '#d9776a' };
+
+/**
+ * One frame of a curled, sleeping orange cat (head on the right, chin on a paw, tail wrapped round the front).
+ * `breath` 0..1 lifts the top of the back by up to 1 px (bottom stays put); `ear` folds the far ear, `tail` lifts the tail tip.
+ */
+function catFrame({ breath = 0, ear = false, tail = false } = {}) {
+  const img = blank(22, 14);
+  const R = CAT.ramp;
+  // back: the upper half of the loaf grows by up to 1 px at the crest (less towards the sides), the lower half stays on the floor
+  const cx = 9.5, cy = 8.6, rx = 8.4, top = 4.4 + breath, bot = 4.4;
+  const back = (x, y) => ((x - cx) / rx) ** 2 + ((y - cy) / (y < cy ? top : bot)) ** 2 <= 1;
+  shape(img, back, [cx, cy, rx, 4.4], R, {
+    pattern: (x, y, i) => (i >= 2 && y < 9 && (x + (y >> 1)) % 4 === 0 ? i - 1 : i), // soft tabby stripes on the back
+  });
+  // tail wrapped round the front, ringed, its cream tip under the nose; it lifts 1 px when it twitches
+  for (let x = 3; x <= 11; x++) {
+    put(img, x, 10, CAT.ol);
+    put(img, x, 11, x % 3 === 0 ? R[1] : R[2]);
+    put(img, x, 12, R[1]);
   }
-  const out = frames.map((f) => { const c = crop(f, x0, y0, x1 - x0, y1 - y0); return rot === 1 ? flipH(c) : c; });
-  return [{ frames: out, anchor: [Math.floor((x1 - x0) / 2), y1 - y0 - 1], fps: 6 }];
+  put(img, 2, 11, CAT.ol); put(img, 2, 12, CAT.ol);
+  const ty = tail ? 10 : 11;
+  fillRect(img, 12, ty - 1, 2, 1, CAT.ol); fillRect(img, 12, ty, 2, 2, CAT.cream); put(img, 12, ty, '#fff2c8');
+  if (tail) fillRect(img, 12, 12, 2, 1, R[1]);
+  put(img, 14, ty, CAT.ol); put(img, 14, ty + 1, CAT.ol);
+  // head resting low at the front: closed eyes, pink nose, cream muzzle, a paw tucked under the chin
+  shape(img, ell(16.6, 9.4, 4.2, 3.3), [16, 8.6, 4.2, 3.3], R, { ol: CAT.ol });
+  fillRect(img, 15, 10, 4, 1, CAT.cream); fillRect(img, 16, 11, 2, 1, CAT.cream);
+  put(img, 17, 10, CAT.nose);
+  for (const [x, y] of [[14, 9], [15, 9], [18, 9], [19, 9]]) put(img, x, y, CAT.ol); // eyes shut
+  put(img, 13, 9, R[3]); put(img, 16, 7, R[1]); put(img, 17, 7, R[1]); // cheek light, forehead stripe
+  shape(img, ell(17.5, 12.5, 2, 0.9), [17.5, 12, 2, 1], [CAT.cream, CAT.cream, CAT.cream, '#fff2c8'], { ol: CAT.ol });
+  // ears on the top of the head, pink inside; the far one folds back flat when it twitches
+  const near = ['.N.', 'NhN', 'NphN'], far = ear ? ['...', '.NN', 'NmmN'] : ['.N.', 'NmN', 'NpmN'];
+  stamp(img, near, 13, 3);
+  stamp(img, far, 17, 3);
+  return img;
+}
+
+/** Stamp a tiny cat-palette grid ('N' navy, 'h' / 'm' fur, 'p' pink, '.' clear) at (ox, oy). */
+function stamp(img, rows, ox, oy) {
+  const pal = { N: NAVY, h: CAT.ramp[3], m: CAT.ramp[2], p: CAT.nose };
+  rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') put(img, ox + x, oy + y, pal[ch]); }));
+}
+
+/**
+ * The kitnet cat: curled up asleep with a calm breathing loop (the back rises and falls 1 px every 2.5 s) and, once every few
+ * breaths, a slow ear or tail-tip twitch. Five unique frames played through `seq` at 4 fps; rot 1 is mirrored.
+ */
+export async function gato(_ctx, { rot }) {
+  const frames = [catFrame(), catFrame({ breath: 0.5 }), catFrame({ breath: 1 }), catFrame({ ear: true }), catFrame({ tail: true })];
+  const breath = [0, 0, 0, 0, 1, 2, 2, 2, 1, 0]; // 2.5 s: rest, half-in, held in, half-out
+  const seq = [...breath, ...breath, 0, 0, 3, 3, 0, 1, 2, 2, 2, 1, ...breath, 0, 0, 0, 4, 4, 1, 2, 2, 2, 1];
+  const out = rot === 1 ? frames.map(flipH) : frames;
+  return [{ frames: out, seq, anchor: [11, 13], fps: 4 }];
 }
 
 /** A 1-tile-wide bookshelf: the pack's 2-tile shelf cut to its left 14 px plus a mirrored copy of its left post as the right side. */
