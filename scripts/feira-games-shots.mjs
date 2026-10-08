@@ -33,7 +33,15 @@ async function enter(page) {
   await page.waitForSelector('#intro-skip', { timeout: 12_000 });
   await page.click('#intro-skip');
   await page.waitForSelector('#intro-guest', { state: 'visible', timeout: 12_000 });
-  await page.click('#intro-guest');
+  // A multiplayer server no longer lets a guest into the world (main, the sign-in gate). Solo still does.
+  if (BASE.includes('solo')) {
+    await page.click('#intro-guest');
+  } else {
+    await page.click('#intro-tab-register');
+    await page.fill('#intro-email', `feira+${TAG}${Date.now().toString(36)}@exemplo.com`);
+    await page.fill('#intro-password', 'pao-de-queijo-2026');
+    await page.click('#intro-submit');
+  }
   await page.waitForSelector('#avatar-name', { timeout: 15_000 });
   await page.fill('#avatar-name', 'Lia');
   await page.click('button:has-text("ela (she)")');
@@ -54,6 +62,7 @@ const shot = async (page, name) => {
 /** Real mouse click at an element's centre (not el.click()), so per-frame DOM rebuilds would show up as lost clicks. */
 async function mclick(page, sel) {
   const el = await page.waitForSelector(sel, { timeout: 5000 });
+  await el.scrollIntoViewIfNeeded();
   const b = await el.boundingBox();
   if (!b) throw new Error(`no box for ${sel}`);
   await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);

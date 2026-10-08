@@ -412,6 +412,7 @@ export class TapiocaView {
   }
 
   private ensurePans(want: number) {
+    while (this.pans.length < want) this.pans.push({ phase: 'empty', spreadAt: 0, flip: null, filling: null });
     while (this.panNodes.length < want) this.addPan(this.panNodes.length);
     this.griddleEl.classList.toggle('pans-1', want === 1);
     this.griddleEl.classList.toggle('pans-2', want === 2);
@@ -565,13 +566,16 @@ export class TapiocaView {
   }
 
   private pickFilling(f: TapiocaFilling) {
-    this.selected = this.selected === f ? null : f;
-    for (const [id, btn] of this.bowlButtons) btn.classList.toggle('on', id === this.selected);
     const flipped = this.pans.findIndex((p) => p.phase === 'flipped');
-    if (flipped >= 0 && this.selected) {
-      this.pans[flipped]!.filling = this.selected;
+    // A pan waiting for a filling always takes the bowl you tap, even if that bowl was already selected.
+    if (flipped >= 0) {
+      this.selected = f;
+      this.pans[flipped]!.filling = f;
       this.pans[flipped]!.phase = 'filled';
+    } else {
+      this.selected = this.selected === f ? null : f;
     }
+    for (const [id, btn] of this.bowlButtons) btn.classList.toggle('on', id === this.selected);
   }
 
   private serveTo(c: LiveCustomer) {
