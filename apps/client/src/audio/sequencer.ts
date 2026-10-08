@@ -7,12 +7,23 @@ import { ARRANGEMENTS, PERCUSSION, scoreBar, stingNotes, type ArrangementKind, t
 
 export const stepSeconds = (bpm: number) => 60 / bpm / 4;
 
+/**
+ * Where a looping arrangement can stop without cutting a phrase off: the first `phrase`-bar boundary at or after `bar` (the next
+ * bar not yet scheduled), and the audio time it lands on (`next` is when that bar starts, `barSeconds` how long a bar lasts).
+ */
+export function phraseEnd(bar: number, next: number, barSeconds: number, phrase = 8): { bar: number; at: number } {
+  const end = Math.ceil(bar / phrase) * phrase;
+  return { bar: end, at: next + (end - bar) * barSeconds };
+}
+
 export class ThemeSequencer {
   readonly rig: Rig;
   private bar: number;
   private next: number;
   private boostLevel: number;
   private readonly step: number;
+  /** Set by `finish`: the band stops before this bar (a whole phrase, never mid-tune). */
+  private lastBar = Infinity;
 
   constructor(
     ctx: BaseAudioContext,
@@ -45,13 +56,24 @@ export class ThemeSequencer {
     this.boostLevel = n;
   }
 
+  /**
+   * Let the band play to the end of the current `phrase`-bar phrase and stop there (the feira packing up at 13:00 while you are in it).
+   * Returns the audio time the last bar ends. Calling it again keeps the first ending.
+   */
+  finish(phrase = 8): number {
+    if (this.lastBar !== Infinity) return this.next + Math.max(0, this.lastBar - this.bar) * this.barSeconds;
+    const end = phraseEnd(this.bar, this.next, this.barSeconds, phrase);
+    this.lastBar = end.bar;
+    return end.at;
+  }
+
   /** `audible: false` keeps the clock moving without making sound (a radio you are too far from to hear). */
   tick(lookahead = 1.4, audible = true) {
     const ctx = this.rig.ctx;
     const now = ctx.currentTime;
     // A throttled background tab: skip what was missed instead of bursting it all at once.
     if (this.next < now - 0.05) this.next = now + 0.05;
-    while (this.next < now + lookahead) {
+    while (this.next < now + lookahead && this.bar < this.lastBar) {
       if (audible) scheduleBar(this.rig, this.kind, this.bar, this.next, this.boostLevel);
       this.bar++;
       this.next += this.barSeconds;
