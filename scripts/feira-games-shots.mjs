@@ -4,9 +4,10 @@
  *
  *   BASE_URL=https://playtudobem.com/ node scripts/feira-games-shots.mjs        # live server (guest)
  *   BASE_URL=http://localhost:9311/?solo node scripts/feira-games-shots.mjs     # solo build
- *   SHOTS_DIR (default /workspace/feira-games-shots), VIEWS=desktop,phone, GAME=tapioca|pastel|caldo (forces nothing; just labels)
- *   TB_ADMIN_PASSWORD (default tb-admin-praca, the local admin password) turns today's game on first.
- *   The cart ships off; this script enables GAME (default tapioca) from the credits admin door.
+ *   SHOTS_DIR (default /workspace/feira-games-shots), VIEWS=desktop,phone
+ *   GAME=tapioca|caldo enables that game (they ship off) and drives feira-play-<game>.mjs
+ *   Solo builds use __tb.enableFeiraGame. A live server uses the credits admin door
+ *   (TB_ADMIN_PASSWORD, default tb-admin-praca).
  */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
@@ -104,7 +105,11 @@ async function run(viewName) {
   page.on('pageerror', (e) => console.log('PAGEERROR', e.message));
   try {
     await enter(page);
-    await enableCart(page, [process.env.GAME ?? 'tapioca']);
+    // Cart games ship off. Turn on the one this run plays, before the cart offer is painted.
+    const gameId = process.env.GAME ?? 'tapioca';
+    const enabled = await page.evaluate((id) => window.__tb.enableFeiraGame?.(id) ?? false, gameId);
+    log('enabled', gameId, enabled);
+    if (!enabled) await enableCart(page, [gameId]);
     await shot(page, `${TAG}-${viewName}-feira-room`);
     // the walk to the sign is long (around the stalls); wait for the panel, not a fixed sleep
     await page.evaluate(() => window.__tb.interact({ prop: 'placa_jogos' }));
@@ -120,7 +125,7 @@ async function run(viewName) {
     const game = await page.evaluate(() => document.querySelector('#feira-cart-game')?.textContent ?? '');
     log('featured', game);
     await page.click('#feira-cart-play');
-    const play = (await import(`./feira-play-${process.env.GAME ?? 'tapioca'}.mjs`)).play;
+    const play = (await import(`./feira-play-${gameId}.mjs`)).play;
     await play(page, { shot: (n) => shot(page, `${TAG}-${viewName}-${n}`), mclick: (s) => mclick(page, s), log });
     await sleep(1000);
     await page.evaluate(() => document.querySelector('[id$="-close"]')?.click());

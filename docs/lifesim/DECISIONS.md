@@ -1666,3 +1666,12 @@ Jonny (via TB Brainstorm): two live boards, visible in the world, not buried in 
 - **Rules.** Display names only. Ties share a rank (1, 2, 2, 4). Top 10 plus your own row if you are outside. Server-authoritative; the client refreshes on open and every 15 s while the panel is up. Free beta: no purchases or real-money rewards on either board. Chat is never rewritten.
 - **Code.** `packages/shared/src/leaderboards.ts` (pure rank), `apps/server/src/leaderboards.ts`, client `apps/client/src/ui/leaderboards.ts`. Shots: `docs/lifesim/shots/leaderboards/`.
 
+## Feira cart games: Caldo de cana (2026-10-08)
+
+Caldo de cana is the third slot in the same rotation (`tapioca`, `pastel`, `caldo`). Pastel is still unimplemented, so a pastel day falls back to the previous game that is both built and switched on.
+
+- **Off until an admin turns it on.** Cart games use the rotation registry (`off` | `on` | `rotation`, default off). The admin panel lists one switch per id in `FEIRA_ROTATION_ORDER`, so Caldo is `admin-feira-caldo` and starts off. Turning only Caldo on features it every day. A start is refused with `feira_closed` while the cart is closed. Solo screenshots call `__tb.enableFeiraGame('caldo')` before opening the cart.
+- **Play.** Load cane, turn the lever, catch the juice under the spout (a miss spills into a puddle), pump the flavor, add gelo when the order asks, and serve before the customer leaves. Several orders wait at once. A second crank while the press is already full overflows it. A wrong flavor, missing ice, or a spill costs points and annoys the customer; it does not end the run. Drag is pointer events (mouse and touch) with a click-click fallback. The stall DOM is built once and updated in place.
+- **Orders and score.** `caldoOrders(seed)` is pure. Lines are bilingual, for example "Um caldo de cana com limão, com gelo, por favor." / "A sugarcane juice with lime, with ice, please." Flavors: limão, abacaxi, maracujá, gengibre, hortelã, laranja, abacaxi com hortelã. The server recomputes the score and keeps the same 500 cap, 8–20 RV band, +5 flawless (25), and 3 paid runs a day. Beta stays free. Chat, belts, nameplates, and stripes are untouched.
+- **Code.** `packages/shared/src/feiraCaldo.ts`, `apps/client/src/ui/feiraCaldo.ts`, `apps/client/src/styles/feiraCaldo.css`. Shots: `docs/lifesim/shots/feira-games/` (`play-*-caldo-*`).
+

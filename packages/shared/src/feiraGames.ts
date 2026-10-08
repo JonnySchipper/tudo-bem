@@ -24,8 +24,8 @@ import type { Bilingual } from './types.js';
 export const FEIRA_ROTATION_ORDER = ['tapioca', 'pastel', 'caldo'] as const;
 export type FeiraRotationId = (typeof FEIRA_ROTATION_ORDER)[number];
 
-/** Games this build can actually start. Pastel and caldo join this set in later PRs. */
-export const FEIRA_IMPLEMENTED_GAMES = ['tapioca'] as const;
+/** Games this build can actually start. Pastel joins this set in its own PR. Each one still ships off. */
+export const FEIRA_IMPLEMENTED_GAMES = ['tapioca', 'caldo'] as const;
 export type FeiraGameId = (typeof FEIRA_IMPLEMENTED_GAMES)[number];
 
 export const isFeiraGameId = (v: unknown): v is FeiraGameId =>
@@ -56,7 +56,7 @@ export function rotationSlot(day: string, order: readonly string[] = FEIRA_ROTAT
  * Featured game for an ET date (`YYYY-MM-DD`). Unimplemented slots fall back to the nearest
  * earlier implemented game in the cycle (wrapping), so a 1-game build always features tapioca
  * and a 3-game build is the real cycle. `implemented` is injectable so tests can prove the fallback
- * without waiting for Pastel and Caldo.
+ * and so the server can pass only the games an admin has switched on.
  */
 export function featuredGame(
   day: string,
@@ -265,6 +265,10 @@ export const FEIRA_GAME_INTRO: Record<FeiraGameId, Bilingual> = {
   tapioca: {
     pt: 'A chapa tá quente. Espalha a goma, vira no ponto e enrola o recheio.',
     en: 'The griddle is hot. Spread the batter, flip on time, and roll the filling.',
+  },
+  caldo: {
+    pt: 'A moenda tá ligada. Moa a cana, pega o caldo no copo e põe o sabor.',
+    en: 'The press is on. Crush the cane, catch the juice in a cup, and add the flavor.',
   },
 };
 
@@ -524,7 +528,7 @@ export interface FeiraCustomerOrder {
   name: string;
 }
 
-/** Registry. A later PR pushes pastel / caldo here and into FEIRA_IMPLEMENTED_GAMES. */
+/** Registry. A later PR pushes pastel here and into FEIRA_IMPLEMENTED_GAMES. Caldo registers from feiraCaldo.ts. */
 export const FEIRA_GAME_MODULES: Partial<Record<FeiraGameId, FeiraGameModule>> = {};
 
 export function feiraModule(id: FeiraGameId): FeiraGameModule | undefined {

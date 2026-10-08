@@ -64,12 +64,17 @@ describe('feira rotation', () => {
     expect(featuredGame('2026-11-01')).toBe(featuredGameAt(Date.parse('2026-11-01T05:30:00.000Z')));
   });
 
-  it('only features an implemented game, and falls back until pastel and caldo land', () => {
-    expect(FEIRA_IMPLEMENTED_GAMES).toEqual(['tapioca']);
+  it('only features an implemented game, and pastel still falls back until it lands', () => {
+    expect(FEIRA_IMPLEMENTED_GAMES).toEqual(['tapioca', 'caldo']);
     for (const day of ['2026-10-08', '2026-10-09', '2026-10-10', '2026-01-01', '2026-07-04']) {
-      expect(featuredGame(day)).toBe('tapioca');
+      const slot = rotationSlot(day);
+      const featured = featuredGame(day);
+      expect(featured === 'tapioca' || featured === 'caldo').toBe(true);
+      if (slot === 'pastel') expect(featured).toBe('tapioca');
+      if (slot === 'caldo') expect(featured).toBe('caldo');
+      if (slot === 'tapioca') expect(featured).toBe('tapioca');
     }
-    // once pastel and caldo are registered, the slot is the schedule
+    // once pastel is registered too, the slot is the schedule
     const all = ['tapioca', 'pastel', 'caldo'] as const;
     expect(featuredGame('1970-01-01', all)).toBe('tapioca');
     expect(featuredGame('1970-01-02', all)).toBe('pastel');

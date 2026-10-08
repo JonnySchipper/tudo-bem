@@ -1,8 +1,8 @@
 /**
  * Feira cart games: the cart offer, the sign board, and the hand-off into today's featured game.
  *
- * The server owns the run (`feiraGame` messages). This file only opens the right view — today, Tapioca —
- * and the placar panel. Adding Pastel or Caldo is one branch in `openGame`.
+ * The server owns the run (`feiraGame` messages). This file only opens the right view — Tapioca or Caldo —
+ * and the placar panel. Adding Pastel is one branch in `openGame`.
  *
  * needs_br: true
  */
@@ -19,6 +19,7 @@ import { game } from '../state';
 import { h, en } from './dom';
 import { modalId, openModal } from './modal';
 import { TapiocaView, type TapiocaEnd } from './feiraTapioca';
+import { CaldoView } from './feiraCaldo';
 
 type FeiraGameMsg = Extract<ServerMsg, { t: 'feiraGame' }>;
 
@@ -29,8 +30,10 @@ export interface FeiraGameHooks {
   sendBoard: () => void;
 }
 
+type FeiraPlayView = { destroy(): void; showEnd(end: TapiocaEnd): void };
+
 let hooks: FeiraGameHooks | null = null;
-let view: TapiocaView | null = null;
+let view: FeiraPlayView | null = null;
 let closeOffer: (() => void) | null = null;
 
 export function bindFeiraGames(hks: FeiraGameHooks) {
@@ -41,7 +44,7 @@ export function feiraGameOpen(): boolean {
   return !!view;
 }
 
-/** Cart hotspot: today's game and a Jogar button. The server confirms the featured game on start. */
+/** Cart hotspot: today's game and a Jogar button. The closed panel is `openFeiraCartClosed`. */
 export function openFeiraCart(gameId: FeiraGameId) {
   const intro = FEIRA_GAME_INTRO[gameId];
   const label = FEIRA_GAME_LABEL[gameId];
@@ -142,6 +145,22 @@ function openGame(m: Extract<FeiraGameMsg, { phase: 'start' }>) {
   closeOffer = null;
   if (m.game === 'tapioca') {
     view = new TapiocaView(m.seed, {
+      finish: (outcomes) => hooks?.sendFinish(outcomes),
+      quit: () => {
+        view?.destroy();
+        view = null;
+        hooks?.sendQuit();
+      },
+      again: () => {
+        view?.destroy();
+        view = null;
+        hooks?.sendStart();
+      },
+    });
+    return;
+  }
+  if (m.game === 'caldo') {
+    view = new CaldoView(m.seed, {
       finish: (outcomes) => hooks?.sendFinish(outcomes),
       quit: () => {
         view?.destroy();
