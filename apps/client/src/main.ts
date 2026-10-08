@@ -1569,6 +1569,8 @@ window.__tb = {
   get decor() {
     return decor;
   },
+  /** The kitnet first-visit guide: running or not, and its world arrow (the tile it suggests), for the shots and e2e. */
+  kitnetGuide: () => ({ running: kitnetGuideRunning(), world: kitnetWorldGuide() }),
   /** Treino no tatame: the live overlay and the feed the world scene reads (e2e and shots). */
   bout: {
     get ui() {
