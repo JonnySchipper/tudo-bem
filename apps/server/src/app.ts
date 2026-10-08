@@ -159,6 +159,7 @@ export function createApp(opts: AppOptions) {
         allowedOrigins,
         limiters,
         opsSmoke,
+        adminAuth: feedbackAdmin,
         googleOAuth,
         verifyGoogleIdToken,
         onLogout: (accountId) => world.dropAccount(accountId),

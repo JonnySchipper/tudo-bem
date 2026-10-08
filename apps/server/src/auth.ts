@@ -6,6 +6,7 @@ import { AUTH_COPY, validateEmail, validatePassword, normalizeEmail, type AuthEr
 import type { GoogleOAuthConfig, GoogleTokenPayload } from './googleAuth.js';
 import { verifyGoogleIdToken } from './googleAuth.js';
 import { atomicWriteFileSync } from './atomicWrite.js';
+import { ADMIN_WRONG_PASSWORD, adminPasswordMatches, type AdminAuthConfig } from './adminAuth.js';
 import type { OpsSmokeConfig } from './opsSmoke.js';
 import type { AccountLink } from './world.js';
 
@@ -411,6 +412,8 @@ export interface AuthApiDeps {
   onLogout?: (accountId: string) => void;
   limiters: AuthLimiters;
   opsSmoke?: OpsSmokeConfig;
+  /** Same secret as the hidden admin panel (`TB_ADMIN_PASSWORD`). */
+  adminAuth?: AdminAuthConfig;
   googleOAuth?: GoogleOAuthConfig;
   /** Test hook: skip network JWKS verification. */
   verifyGoogleIdToken?: (token: string, clientId: string) => Promise<GoogleTokenPayload | null>;
@@ -470,6 +473,27 @@ function send(res: ServerResponse, status: number, body: AuthResponse, setCookie
 const fail = (code: AuthErrorCode, copy: { pt: string; en: string }): AuthResponse => ({ ok: false, code, ...copy });
 const okBody = (a: Account): AuthResponse => ({ ok: true, account: { email: a.email, hasProfile: !!a.profileId } });
 
+type AdminGateFail = { ok: false; status: number; body: AuthResponse };
+
+function verifyAdminGate(
+  admin: AdminAuthConfig | undefined,
+  limiters: AuthLimiters,
+  ip: string,
+  adminPassword: string,
+): { ok: true } | AdminGateFail {
+  if (!admin?.ready || !admin.password) {
+    return { ok: false, status: 403, body: fail('bad_request', AUTH_COPY.badRequest) };
+  }
+  if (limiters.ip.blocked(ip)) {
+    return { ok: false, status: 429, body: fail('rate', AUTH_COPY.rate) };
+  }
+  if (!adminPassword || !adminPasswordMatches(adminPassword, admin.password)) {
+    limiters.ip.hit(ip);
+    return { ok: false, status: 401, body: fail('credentials', ADMIN_WRONG_PASSWORD) };
+  }
+  return { ok: true };
+}
+
 /** POST /api/auth/register · POST /api/auth/login · POST /api/auth/logout · GET /api/auth/me */
 export async function handleAuthApi(req: IncomingMessage, res: ServerResponse, deps: AuthApiDeps): Promise<void> {
   const url = new URL(req.url ?? '/', 'http://x');
@@ -486,6 +510,19 @@ export async function handleAuthApi(req: IncomingMessage, res: ServerResponse, d
     return send(res, 200, okBody(account), cookie(raw!, maxAge, secure));
   }
 
+  if (action === 'admin-gate' && req.method === 'POST') {
+    if (!originAllowed(req, deps.allowedOrigins) || !String(req.headers['content-type'] ?? '').includes('application/json')) {
+      return send(res, 403, fail('bad_request', AUTH_COPY.badRequest));
+    }
+    const body = await readJson(req);
+    const adminPassword = typeof body?.adminPassword === 'string' ? body.adminPassword : '';
+    const gate = verifyAdminGate(deps.adminAuth, limiters, clientIp(req), adminPassword);
+    if (!gate.ok) return send(res, gate.status, gate.body);
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+    res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+
   if (action === 'ops-smoke' && req.method === 'POST') {
     if (!deps.opsSmoke?.ready || !deps.opsSmoke.password) {
       return send(res, 403, fail('bad_request', AUTH_COPY.badRequest));
@@ -493,6 +530,10 @@ export async function handleAuthApi(req: IncomingMessage, res: ServerResponse, d
     if (!originAllowed(req, deps.allowedOrigins) || !String(req.headers['content-type'] ?? '').includes('application/json')) {
       return send(res, 403, fail('bad_request', AUTH_COPY.badRequest));
     }
+    const body = await readJson(req);
+    const adminPassword = typeof body?.adminPassword === 'string' ? body.adminPassword : '';
+    const gate = verifyAdminGate(deps.adminAuth, limiters, clientIp(req), adminPassword);
+    if (!gate.ok) return send(res, gate.status, gate.body);
     const account = await accounts.ensureSmokeAccount(deps.opsSmoke.email, deps.opsSmoke.password);
     return send(res, 200, okBody(account), cookie(accounts.createSession(account.id), maxAge, secure));
   }
@@ -504,7 +545,11 @@ export async function handleAuthApi(req: IncomingMessage, res: ServerResponse, d
     if (!originAllowed(req, deps.allowedOrigins) || !String(req.headers['content-type'] ?? '').includes('application/json')) {
       return send(res, 403, fail('bad_request', AUTH_COPY.badRequest));
     }
+    const body = await readJson(req);
+    const adminPassword = typeof body?.adminPassword === 'string' ? body.adminPassword : '';
     const ip = clientIp(req);
+    const gate = verifyAdminGate(deps.adminAuth, limiters, ip, adminPassword);
+    if (!gate.ok) return send(res, gate.status, gate.body);
     if (limiters.signup.blocked(ip)) return send(res, 429, fail('rate', AUTH_COPY.rate));
     const account = await accounts.createFreshSmokeAccount(deps.opsSmoke.password);
     limiters.signup.hit(ip);

@@ -147,7 +147,7 @@ import { FeiraCounter } from './feira.js';
 import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria.js';
 import { BoutEngine, type BoutSession } from './bout.js';
 import { CartelaTracker } from './cartela.js';
-import { ADMIN_MONEY_MAX, readAdminAuthConfig } from './adminAuth.js';
+import { ADMIN_MONEY_MAX, ADMIN_WRONG_PASSWORD, adminPasswordMatches, readAdminAuthConfig } from './adminAuth.js';
 
 export interface Services {
   safety: ChatSafetyService;
@@ -1153,14 +1153,13 @@ export class World {
           en: 'Admin is off on this server.',
         });
       }
-      if (msg.password !== this.adminPassword) {
+      if (!adminPasswordMatches(msg.password, this.adminPassword)) {
         s.admin = false;
         return s.send({
           t: 'admin',
           phase: 'auth',
           ok: false,
-          pt: 'Senha incorreta.',
-          en: 'Wrong password.',
+          ...ADMIN_WRONG_PASSWORD,
         });
       }
       s.admin = true;
