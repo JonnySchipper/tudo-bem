@@ -36,6 +36,7 @@ import {
   CRESTS,
   PET_COPY,
   STREET_SNACKS,
+  CARRY,
   carryOf,
 } from '@tudobem/shared';
 import { game, type ClientAvatar } from '../../state';
@@ -110,6 +111,7 @@ import {
 import { ensureAnim, originOf } from './spriteUtil';
 import { PARROT_FRAME_COUNT, PARROT_H, PARROT_W, parrotPixels, parrotSpecies } from './parrotSpecies';
 import { GHOST_ALPHA, ghostFor, type GhostSpec } from './decorate';
+import { CARRY_BEAT_MS, arcPoint, beatPose, binInReach, carryMove, groundSpot } from './carryFx';
 
 export interface SceneHost {
   labels: LabelLayer;
@@ -147,6 +149,8 @@ interface AvatarView {
   carryKey: string;
   /** When the held icon last changed, so the pop can run while scale is reapplied every frame. */
   carryPop: number;
+  /** Comer / Beber in progress: the full item at the mouth (`carryFx.beatPose`); the empty, if any, waits hidden in `carry`. */
+  carryBeat: { kind: 'eat' | 'drink'; t0: number; lastMs: number; img: Phaser.GameObjects.Image } | null;
   /** the pop-up icon over the head while an emote plays (fx/emote_<kind>), and the emote it shows */
   icon: Phaser.GameObjects.Sprite | null;
   iconKey: string;
@@ -278,6 +282,8 @@ export class WorldScene extends Phaser.Scene {
   private staticHits: HitBox[] = [];
   private placeholders: { key: string; rect: Rect }[] = [];
   private stall: StallView | null = null;
+  /** Lixeiras in this room (tile, sprite, the y of the open mouth): where a Jogar fora lands, and what bounces when it does. */
+  private bins: { x: number; y: number; sprite: Phaser.GameObjects.Sprite; mouthY: number }[] = [];
   private canopies: Canopy[] = [];
   /** Feira stalls (Phase 9): the open sprites and tarp, and the folded ones, shown by the game clock (06:00-13:00). */
   private feiraStalls: { open: Phaser.GameObjects.GameObject[]; closed: Phaser.GameObjects.GameObject[]; isOpen: boolean | null }[] = [];
@@ -316,10 +322,11 @@ export class WorldScene extends Phaser.Scene {
     for (const [name, a] of Object.entries(m.atlases)) this.load.atlas(name, b + a.image, b + a.data);
     this.load.image('terrainTs', b + m.terrain.tileset);
     for (const [key, f] of Object.entries(m.fx)) this.load.image(`fx:${key}`, b + f.file);
-    // what you can carry: the praça snacks (sweet popcorn reuses the red icon) and the padaria counter menu
+    // what you can carry: the praça snacks, the padaria counter menu, and the empties they leave
     const carry = new Map<string, string>();
     for (const s of STREET_SNACKS) carry.set(s.id, s.icon);
     for (const id of COUNTER_MENU) carry.set(id, id);
+    for (const c of Object.values(CARRY)) if (c.kind === 'trash') carry.set(c.id, c.tex);
     for (const [id, icon] of carry) {
       const img = m.images?.[`icons/${icon}`];
       if (img?.file) this.load.image(`carry:${id}`, b + img.file);
@@ -520,6 +527,7 @@ export class WorldScene extends Phaser.Scene {
   // ------------------------------------------------------------------ room layer
   private destroyRoom(): void {
     this.stall = null;
+    this.bins = [];
     this.feiraStalls = [];
     for (const o of this.roomObjs) o.destroy();
     this.roomObjs = [];
@@ -797,6 +805,7 @@ export class WorldScene extends Phaser.Scene {
       const feiraEntry = !scenery && p.kind === 'feira' ? { open: (main ? [main] : []) as Phaser.GameObjects.GameObject[], closed: [] as Phaser.GameObjects.GameObject[], isOpen: null as boolean | null } : null;
       if (feiraEntry && mainShadow) feiraEntry.open.push(mainShadow as unknown as Phaser.GameObjects.GameObject);
       if (!scenery && p.kind === 'barraca_chapeus') this.stall = { main, canopy: null, wx: a.wx, wy: a.wy, closed: false };
+      if (!scenery && p.kind === 'lixeira' && main) this.bins.push({ x: p.x, y: p.y, sprite: main, mouthY: Math.round(a.wy) - d.ay + 4 });
       if (!scenery && p.kind === 'trilho_pedidos' && main && d.anim) {
         // the ticket rail is still until Correria no Balcão opens (updateTrilho)
         main.anims.stop();
@@ -1440,6 +1449,7 @@ export class WorldScene extends Phaser.Scene {
       carry: null,
       carryKey: '',
       carryPop: 0,
+      carryBeat: null,
       icon: null,
       iconKey: '',
       anim: '',
@@ -1460,6 +1470,7 @@ export class WorldScene extends Phaser.Scene {
     v.parrot?.destroy();
     v.pet?.destroy();
     v.carry?.destroy();
+    v.carryBeat?.img.destroy();
     v.icon?.destroy();
     v.sprite.destroy();
     v.shadow.destroy();
@@ -1776,65 +1787,165 @@ export class WorldScene extends Phaser.Scene {
     v.pet.setScale(1);
   }
 
-  /** Snack, drink, or empty in the hand (session `carry`). Empties reuse a full item's icon, tinted grey. */
+  /**
+   * Snack, drink, or empty in the hand (session `carry`), and what a change of it looks like (`carryFx.ts`): Comer / Beber raise the item to
+   * the mouth for three bites or sips before the empty comes back down; Jogar fora throws it, into a lixeira in reach or onto the ground.
+   */
   private updateCarry(v: AvatarView, a: ClientAvatar, facing: Facing, wx: number, wy: number, depth: number): void {
-    const info = carryOf(a.pub.carry);
-    if (!info) {
-      this.releaseCarry(v);
-      return;
+    const key = carryOf(a.pub.carry) ? a.pub.carry! : '';
+    if (key !== v.carryKey) this.carryChanged(v, a, key, facing, wx, wy, depth);
+    const side = facing === 'W' ? -1 : 1;
+    const hand = { x: wx + side * avatarPx(6), y: wy - avatarPx(7) };
+    const mouth = { x: wx + side * avatarPx(3), y: wy - avatarPx(13) };
+    const at = (k: number) => ({ x: hand.x + (mouth.x - hand.x) * k, y: hand.y + (mouth.y - hand.y) * k });
+    const base = 0.6 * avatarDrawScale();
+    // at the mouth of someone facing away, the item is behind the head
+    const front = facing === 'N' ? depth - 0.08 : depth + 0.08;
+    const beat = v.carryBeat;
+    if (beat) {
+      const ms = this.time.now - beat.t0;
+      const pose = beatPose(beat.kind, ms, beat.lastMs);
+      beat.lastMs = ms;
+      v.sprite.y += avatarPx(pose.nod);
+      if (!pose.finished) {
+        const p = at(pose.lift);
+        beat.img.setPosition(p.x, p.y).setScale(base * pose.scale).setAngle(side * pose.angle).setDepth(front);
+        if (pose.bite >= 0 && beat.kind === 'eat') this.carryCrumbs(mouth.x, mouth.y + 2, depth, 3);
+        v.carry?.setVisible(false);
+        return;
+      }
+      // the last bite or sip: the full item is gone, the empty (if any) comes back down to the hand
+      if (beat.img.active) beat.img.destroy();
+      if (ms < CARRY_BEAT_MS && v.carry) {
+        const p = at(pose.lift);
+        v.carry.setVisible(true).setPosition(p.x, p.y).setScale(base).setAngle(0).setDepth(front);
+        return;
+      }
+      v.carryBeat = null;
     }
-    const tex = `carry:${info.tex}`;
-    if (!this.textures.exists(tex)) return;
-    const fresh = !v.carry || v.carryKey !== a.pub.carry;
-    if (fresh) {
-      const prevKind = carryOf(v.carryKey)?.kind;
-      const cx = v.carry?.x ?? wx;
-      const cy = v.carry?.y ?? wy;
-      v.carry?.destroy();
-      v.carry = this.rig.world(this.add.image(0, 0, tex)).setOrigin(0.5, 1);
-      v.carryKey = a.pub.carry ?? '';
-      v.carryPop = this.time.now;
-      if (info.kind === 'trash') v.carry.setTint(0x8d8d8d).setAlpha(0.72);
-      if (prevKind === 'food') this.carryCrumbs(cx, cy, depth);
-    }
+    if (!v.carry) return;
     const age = this.time.now - v.carryPop;
     const bump = age >= 0 && age < 320 ? Math.sin((age / 320) * Math.PI) : 0;
-    const side = facing === 'W' ? -1 : 1;
-    v.carry!.setPosition(wx + side * avatarPx(6), wy - avatarPx(7) - bump * 5).setScale(0.6 * avatarDrawScale() * (1 + 0.28 * bump)).setDepth(depth + 0.08);
+    v.carry.setVisible(true).setPosition(hand.x, hand.y - bump * 5).setScale(base * (1 + 0.28 * bump)).setAngle(0).setDepth(depth + 0.08);
   }
 
-  /** Drop the held icon. Scale is reapplied every frame, so the toss itself is the tween. */
-  private releaseCarry(v: AvatarView): void {
-    const img = v.carry;
-    const prev = carryOf(v.carryKey);
-    if (!img) {
-      v.carryKey = '';
+  /** The held item changed on the wire: start the beat it reads as (`carryMove`) and put the new item, if any, in the hand. */
+  private carryChanged(v: AvatarView, a: ClientAvatar, key: string, facing: Facing, wx: number, wy: number, depth: number): void {
+    const prevKey = v.carryKey;
+    const old = v.carry;
+    v.carry = null;
+    v.carryKey = key;
+    if (v.carryBeat) {
+      if (v.carryBeat.img.active) v.carryBeat.img.destroy();
+      v.carryBeat = null;
+    }
+    // finger food leaves nothing either way: your own Comer / Jogar fora tells the two apart
+    const intent = a.pub.id === game.room?.selfId && game.carryIntent && performance.now() - game.carryIntent.at < 5000 ? game.carryIntent.action : null;
+    const move = old ? carryMove(prevKey, key, intent) : 'swap';
+    const beat = (move === 'eat' || move === 'drink') && !reducedMotion();
+    if (key) {
+      const tex = `carry:${carryOf(key)!.tex}`;
+      if (this.textures.exists(tex)) {
+        v.carry = this.rig.world(this.add.image(0, 0, tex)).setOrigin(0.5, 1).setVisible(!beat);
+        // the pop plays when it lands in the hand
+        v.carryPop = this.time.now + (beat ? CARRY_BEAT_MS : 0);
+      }
+    }
+    if (!old) return;
+    if (beat) {
+      v.carryBeat = { kind: move, t0: this.time.now, lastMs: -1, img: old };
       return;
     }
-    v.carry = null;
-    v.carryKey = '';
-    if (prev?.kind === 'food') this.carryCrumbs(img.x, img.y, img.depth);
+    if (move === 'toss') {
+      this.tossCarry(old, facing, wx, wy);
+      return;
+    }
+    if (move === 'eat' || carryOf(prevKey)?.kind === 'food') this.carryCrumbs(old.x, old.y, depth);
+    old.destroy();
+  }
+
+  /** Jogar fora: an arc into the lixeira in reach (the bin bounces as it lands), else onto the ground a step ahead, where it hops and fades. */
+  private tossCarry(img: Phaser.GameObjects.Image, facing: Facing, wx: number, wy: number): void {
+    const from = { x: img.x, y: img.y };
+    const i = binInReach({ x: Math.floor(wx / T), y: Math.floor((wy - 1) / T) }, this.bins);
+    const bin = i >= 0 ? this.bins[i]! : null;
+    const to = bin ? { x: bin.sprite.x, y: bin.mouthY + 3 } : groundSpot({ x: wx, y: wy }, facing, T * 1.2);
+    const h = bin ? 14 + Math.abs(to.x - from.x) * 0.15 : 9;
+    const scale = img.scaleX;
+    const spin = (to.x >= from.x ? 1 : -1) * (bin ? 300 : 400);
+    const lift = img.depth;
+    const p = { t: 0 };
+    img.setAngle(0);
     this.tweens.add({
+      targets: p,
+      t: 1,
+      duration: bin ? 440 : 380,
+      ease: 'Linear',
+      onUpdate: () => {
+        const q = arcPoint(from, to, h, p.t);
+        img.setPosition(q.x, q.y).setAngle(spin * p.t).setScale(scale * (1 - 0.2 * p.t));
+        // over the bin on the way up, into its mouth (behind the front of the can) on the way down
+        if (bin) img.setDepth(p.t > 0.72 ? bin.sprite.depth - 0.01 : Math.max(lift, bin.sprite.depth + 0.01));
+        else img.setDepth(Math.max(lift, standingDepth(q.y + 2, 'toss')));
+      },
+      onComplete: () => {
+        if (!img.active) return;
+        if (bin) {
+          img.destroy();
+          this.binBounce(bin.sprite, bin.mouthY);
+        } else this.landOnGround(img, scale * 0.8);
+      },
+    });
+  }
+
+  /** The lixeira takes it: a squash and stretch from its feet and a little puff out of the mouth. */
+  private binBounce(bin: Phaser.GameObjects.Sprite, mouthY: number): void {
+    this.carryCrumbs(bin.x, mouthY, bin.depth, 3, [0xf8f8f8, 0xd8d0e0], -8);
+    if (bin.getData('bounce')) return;
+    bin.setData('bounce', true);
+    const sx = bin.scaleX;
+    const sy = bin.scaleY;
+    this.tweens.chain({
+      targets: bin,
+      tweens: [
+        { scaleX: sx * 1.12, scaleY: sy * 0.84, duration: 70, ease: 'Quad.easeOut' },
+        { scaleX: sx * 0.94, scaleY: sy * 1.1, duration: 110, ease: 'Quad.easeOut' },
+        { scaleX: sx, scaleY: sy, duration: 220, ease: 'Bounce.easeOut' },
+      ],
+      onComplete: () => {
+        bin.setScale(sx, sy);
+        bin.setData('bounce', false);
+      },
+    });
+  }
+
+  /** A toss with no lixeira in reach: it lands, hops once in a puff of dust, lies there a moment and fades. */
+  private landOnGround(img: Phaser.GameObjects.Image, scale: number): void {
+    const y = img.y;
+    img.setDepth(standingDepth(y, 'toss'));
+    this.carryCrumbs(img.x, y, img.depth, 4, [0xd8d0c4, 0xb7aa96], 0);
+    this.tweens.chain({
       targets: img,
-      y: img.y - 12,
-      alpha: 0,
-      scale: Math.max(0.08, img.scaleX * 0.4),
-      duration: 240,
-      ease: 'Quad.easeOut',
+      tweens: [
+        { y: y - 4, angle: img.angle + 40, duration: 120, ease: 'Quad.easeOut' },
+        { y, angle: img.angle + 70, duration: 120, ease: 'Quad.easeIn' },
+        { alpha: 0, scale: scale * 0.6, duration: 480, delay: 420, ease: 'Quad.easeIn' },
+      ],
       onComplete: () => {
         if (img.active) img.destroy();
       },
     });
   }
 
-  private carryCrumbs(x: number, y: number, depth: number): void {
-    const colors = [0xe6c07b, 0xc48a4a, 0xf2e2c4];
-    for (let i = 0; i < 5; i++) {
+  /** A few 2 px bits flying out: crumbs off a bite (falling), dust from a landing (`fall` 0), a puff out of a bin (rising). */
+  private carryCrumbs(x: number, y: number, depth: number, n = 5, colors = [0xe6c07b, 0xc48a4a, 0xf2e2c4], fall = 12): void {
+    for (let i = 0; i < n; i++) {
       const c = this.rig.world(this.add.rectangle(x, y, 2, 2, colors[i % colors.length]!)).setDepth(depth + 0.2);
+      const spread = i - (n - 1) / 2;
       this.tweens.add({
         targets: c,
-        x: x + (i - 2) * 7,
-        y: y + 12 + (i % 3) * 3,
+        x: x + spread * 7,
+        y: y + fall + (i % 3) * (fall < 0 ? -2 : 3),
         alpha: 0,
         duration: 360 + i * 30,
         ease: 'Quad.easeOut',
