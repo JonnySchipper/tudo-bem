@@ -1,178 +1,135 @@
 #!/usr/bin/env node
 /**
- * Prebake Carlos (pt-BR-AntonioNeural) and UI/parrot (pt-BR-FranciscaNeural) lines.
- * No paid TTS. Re-run: node scripts/bake-tts.mjs
- * Requires /workspace/venvs/tts (edge-tts). Skips files already on disk unless --force.
+ * Neural voices for everything the game says aloud (replaces the robotic browser voice). No paid TTS: Microsoft Edge's free pt-BR voices via edge-tts.
+ *
+ *   pnpm tts              bake every spoken line that has no clip yet (finds them in the game data), update the manifest
+ *   pnpm tts:check        no network: list the lines that would fall back to the robot voice; exit 1 if any
+ *                         (+ `-- --update-pending` to record the gaps in pending.json when you cannot bake right now)
+ *   pnpm tts -- --force   re-bake everything        pnpm tts -- --speaker=graca   re-bake one speaker's clips
+ *
+ * The lines come from `collectSpokenLines` (packages/shared/src/spokenLines.ts) plus content/tts/extra-lines.json; who says them and how they
+ * sound is content/voices.json. Adding dialogue to the game needs nothing else: write it, run `pnpm tts`, commit the new mp3s + manifest.json.
+ * Needs `pip install edge-tts` (or EDGE_TTS=/path/to/edge-tts) and outbound access to speech.platform.bing.com.
  */
-import { spawn } from 'node:child_process';
-import crypto from 'node:crypto';
+import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const TTS = process.env.EDGE_TTS ?? '/workspace/venvs/tts/bin/edge-tts';
-const AUDIO_DIR = path.join(ROOT, 'apps/client/public/audio/tts');
-const MANIFEST = path.join(ROOT, 'apps/client/src/audio/manifest.json');
-const FORCE = process.argv.includes('--force');
-const VOICES = { carlos: 'pt-BR-AntonioNeural', ui: 'pt-BR-FranciscaNeural' };
+const { createServer } = createRequire(path.join(ROOT, 'apps/client/package.json'))('vite');
+const args = process.argv.slice(2);
+const FORCE = args.includes('--force');
+const CHECK = args.includes('--check');
+const ONLY = args.find((a) => a.startsWith('--speaker='))?.slice('--speaker='.length);
 
-/** Fixed Seu Carlos lines (scene, kinship, common orders, Conversa, tray praise). */
-const CARLOS = [
-  'Bom dia! Tudo bem?',
-  'Aqui a gente fala português, tá? Devagarinho: Bom… dia! Tudo… bem?',
-  'Pois não. O que vai ser hoje?',
-  'Sem pressa.',
-  'Sem pressa. Tem pão na chapa, coxinha e pastel quentinho.',
-  'Sem pressa, meu filho. Tem pão na chapa, coxinha e pastel quentinho.',
-  'Sem pressa, minha filha. Tem pão na chapa, coxinha e pastel quentinho.',
-  'Tá bom, meu filho.',
-  'Tá bom, minha filha.',
-  'Pão na chapa? Coxinha? Pastel? Fala assim: “Me vê um pão na chapa, por favor.”',
-  'Café puro ou café com leite? Fala: “Um café com leite, por favor.”',
-  'Pronto. Pra comer aqui ou pra viagem?',
-  '“To go” é “pra viagem”. E “for here” é “pra comer aqui”.',
-  '“Por conta da casa” quer dizer que você não paga nada. É de graça!',
-  'Tá na mão. Volte sempre! Quer ajudar no balcão? É a “Correria no Balcão”.',
-  'Tá na mão, meu filho. Volte sempre! Quer ajudar no balcão? É a “Correria no Balcão”.',
-  'Tá na mão, minha filha. Volte sempre! Quer ajudar no balcão? É a “Correria no Balcão”.',
-  'Isso aí! Um pão na chapa saindo. E pra beber? Café com leite, suco de laranja ou água?',
-  'Isso aí! Uma coxinha saindo. E pra beber? Café com leite, suco de laranja ou água?',
-  'Isso aí! Um pastel saindo. E pra beber? Café com leite, suco de laranja ou água?',
-  'Isso aí! Seu pedido saindo. E pra beber? Café com leite, suco de laranja ou água?',
-  'Isso aí! Um café com leite saindo. E pra comer? Pão na chapa, coxinha ou pastel?',
-  'Isso aí! Um café saindo. E pra comer? Pão na chapa, coxinha ou pastel?',
-  'Isso aí! Um suco de laranja saindo. E pra comer? Pão na chapa, coxinha ou pastel?',
-  'Isso aí! Uma água saindo. E pra comer? Pão na chapa, coxinha ou pastel?',
-  'Isso aí! Seu pedido saindo. E pra comer? Pão na chapa, coxinha ou pastel?',
-  ...['três', 'quatro', 'cinco', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'catorze', 'quinze', 'dezesseis'].map(
-    (w, i) => `Deu ${w} reais (R$ ${[3, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16][i]})… Mas hoje é por conta da casa!`,
-  ),
-  'Bom dia! O que vai ser hoje?',
-  'Bom dia! O que posso servir?',
-  'E aí, tudo bem? Vai querer o quê?',
-  'Pronto. O que posso servir?',
-  'Deixa eu anotar — o que vai ser?',
-  'Tá com fome? Me fala o pedido.',
-  'Oi! Café da manhã pra você?',
-  'Oi, beleza?',
-  'E aí, tudo bem?',
-  'Pão na chapa saindo! E pra beber?',
-  'Pão na chapa, anotei. Quer café, suco ou água?',
-  'Isso aí, pão na chapa. Deixa eu anotar. E pra beber?',
-  'Uma coxinha quentinha! E pra beber?',
-  'Coxinha, boa. Deixa eu anotar. E pra beber?',
-  'Pastel de carne ou queijo? E pra beber?',
-  'Pastel, anotei. Carne ou queijo — e pra beber?',
-  'Café com leite saindo! Pra comer aqui ou pra viagem?',
-  'Café com leite, tá na mão. Pra comer aqui ou pra viagem?',
-  'Anotei o café com leite. Aqui ou pra viagem?',
-  'Suco de laranja fresquinho! Pra comer aqui ou pra viagem?',
-  'Suco de laranja, anotei. Aqui ou pra viagem?',
-  'Uma água geladinha! Pra comer aqui ou pra viagem?',
-  'Água, tá na mão. Pra comer aqui ou pra viagem?',
-  'Pronto! Tá na mão. Volte sempre!',
-  'Tá na mão. Pode sentar. Volte sempre!',
-  'Pra viagem, então. Tá na mão. Volte sempre!',
-  'Volte sempre!',
-  'Volte sempre! Até amanhã.',
-  'Bom dia! Tudo bem? O que vai ser hoje?',
-  'Bom dia! Beleza? Me conta o que vai ser.',
-  'Bom dia! E aí, o que vai querer?',
-  'Não entendi bem. O que você quer pedir?',
-  'Hmm. Mais alguma coisa?',
-  'Quer mais alguma coisa?',
-  'Deixa eu anotar. O que mais?',
-  'Isso mesmo! Cliente feliz!',
-  'Que rapidez! Tá pegando o jeito!',
-  'Agora sim! Muito bem.',
-  // Conta stamps. Passou is the Art alternate for Mandou bem! — both stay prebaked.
-  'Mandou bem!',
-  'Passou',
-  'Quase!',
-  'Tenta de novo',
-  'Opa, não é bem isso. Vou repetir devagar…',
-  'Tudo bem, acontece! Próximo cliente.',
-  'Ih, o cliente cansou de esperar! Próximo.',
-  ...Array.from({ length: 13 }, (_, i) => `Valeu pela ajuda! Aqui estão ${i + 8} reais virtuais.`),
-];
+// the plan is TypeScript (it walks the shared game data): load it through Vite, as audio-lab does
+const vite = await createServer({ root: path.join(ROOT, 'apps/client'), logLevel: 'silent', server: { middlewareMode: true }, appType: 'custom' });
+let plan;
+try {
+  plan = await vite.ssrLoadModule(path.join(ROOT, 'apps/client/src/audio/plan.ts'));
+} catch (e) {
+  await vite.close();
+  throw e;
+}
+const { buildPlan, loadCast, hasClip, pendingKey, AUDIO_DIR, MANIFEST_PATH, PENDING_PATH } = plan;
 
-function loadJson(rel) {
-  return JSON.parse(fs.readFileSync(path.join(ROOT, rel), 'utf8'));
+const cast = loadCast();
+const lines = buildPlan();
+const todo = lines.filter((l) => (!ONLY || l.speaker === ONLY) && (FORCE || ONLY ? true : !hasClip(l)));
+const missing = lines.filter((l) => !hasClip(l));
+
+function writePending() {
+  const keys = lines.filter((l) => !hasClip(l)).map(pendingKey).sort();
+  fs.writeFileSync(PENDING_PATH, JSON.stringify({ _readme: JSON.parse(fs.readFileSync(PENDING_PATH, 'utf8'))._readme, lines: keys }, null, 2) + '\n');
 }
 
-const cards = loadJson('content/curriculum/phase0/cards.json');
-const orders = loadJson('content/curriculum/phase0/me-ve-um-orders.json');
-const UI = [...cards.cards.map((c) => c.form), ...orders.orders.map((o) => o.pt)];
-
-function idFor(voice, text) {
-  return `${voice}-${crypto.createHash('sha1').update(text).digest('hex').slice(0, 10)}`;
+if (CHECK) {
+  await vite.close();
+  if (args.includes('--update-pending')) writePending(); // accept the current gaps as known (only when you cannot bake right now)
+  const by = new Map();
+  for (const l of missing) by.set(l.source.split(' ')[0] + ' / ' + l.speaker, (by.get(l.source.split(' ')[0] + ' / ' + l.speaker) ?? 0) + 1);
+  console.log(`${lines.length} spoken lines, ${missing.length} without a clip (they would use the robot voice).`);
+  for (const [k, n] of [...by].sort()) console.log(`  ${String(n).padStart(4)}  ${k}`);
+  for (const l of missing.slice(0, 15)) console.log(`        ${l.speaker}: ${l.text.slice(0, 90)}`);
+  if (missing.length > 15) console.log(`        … and ${missing.length - 15} more`);
+  if (missing.length) console.log('\nFix: pnpm tts   (needs edge-tts and network access to speech.platform.bing.com)');
+  process.exit(missing.length ? 1 : 0);
 }
 
-function synth(voice, text, file) {
+const TTS = [process.env.EDGE_TTS, 'edge-tts', '/workspace/venvs/tts/bin/edge-tts'].filter(Boolean).find((c) => spawnSync(c, ['--help'], { stdio: 'ignore' }).status === 0);
+
+function synth(speaker, text, file) {
+  const c = cast[speaker];
+  const argv = ['--voice', c.voice, '--text', text, '--write-media', file];
+  if (c.rate) argv.push(`--rate=${c.rate}`);
+  if (c.pitch) argv.push(`--pitch=${c.pitch}`);
   return new Promise((resolve, reject) => {
-    const child = spawn(TTS, ['--voice', voice, '--text', text, '--write-media', file], { stdio: ['ignore', 'ignore', 'pipe'] });
+    const child = spawn(TTS, argv, { stdio: ['ignore', 'ignore', 'pipe'] });
     let err = '';
     child.stderr.on('data', (d) => (err += d));
     child.on('error', reject);
-    child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`${voice} failed (${code}): ${err.slice(0, 400)}`))));
+    child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`${speaker} failed (${code}): ${err.trim().split('\n').pop()?.slice(0, 300)}`))));
   });
 }
 
 async function pool(jobs, n) {
   const q = [...jobs];
-  const workers = Array.from({ length: n }, async () => {
-    while (q.length) {
-      const job = q.shift();
-      await job();
-    }
-  });
-  await Promise.all(workers);
-}
-
-const lines = [];
-const seen = new Set();
-for (const [voice, texts] of [
-  ['ui', UI],
-  ['carlos', CARLOS],
-]) {
-  for (const text of texts) {
-    const key = text.replace(/\s+/g, ' ').trim();
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    const id = idFor(voice, key);
-    lines.push({ id, voice, text: key, file: `${id}.mp3` });
-  }
+  await Promise.all(Array.from({ length: n }, async () => { while (q.length) await q.shift()(); }));
 }
 
 fs.mkdirSync(AUDIO_DIR, { recursive: true });
-const jobs = [];
-let skipped = 0;
-for (const line of lines) {
-  const dest = path.join(AUDIO_DIR, line.file);
-  if (!FORCE && fs.existsSync(dest) && fs.statSync(dest).size > 400) {
-    skipped++;
-    continue;
+let failed = 0;
+let firstError = '';
+if (todo.length) {
+  if (!TTS) {
+    await vite.close();
+    console.error('edge-tts not found. Install it: pip install edge-tts   (or set EDGE_TTS=/path/to/edge-tts)');
+    process.exit(2);
   }
-  jobs.push(async () => {
+  // one probe first: a blocked network should stop here with a clear message, not fail 400 times
+  const probe = path.join(os.tmpdir(), `tts-probe-${process.pid}.mp3`);
+  try {
+    await synth(todo[0].speaker, 'Tudo bem?', probe);
+    fs.rmSync(probe, { force: true });
+  } catch (e) {
+    await vite.close();
+    console.error(`Cannot reach the voice service: ${e.message}\nedge-tts talks to speech.platform.bing.com:443; allow that host (cloud sessions: environment network settings) and run again.`);
+    process.exit(2);
+  }
+}
+console.log(`Baking ${todo.length} of ${lines.length} clips${ONLY ? ` (speaker ${ONLY})` : ''} → ${path.relative(ROOT, AUDIO_DIR)}`);
+await pool(
+  todo.map((l) => async () => {
+    const dest = path.join(AUDIO_DIR, l.file);
     const tmp = `${dest}.part`;
-    await synth(VOICES[line.voice], line.text, tmp);
-    fs.renameSync(tmp, dest);
-    process.stdout.write(`  ${line.voice} ${line.file}\n`);
-  });
+    try {
+      await synth(l.speaker, l.text, tmp);
+      fs.renameSync(tmp, dest);
+      process.stdout.write(`  ${l.speaker} ${l.file}\n`);
+    } catch (e) {
+      failed++;
+      firstError ||= e.message;
+      fs.rmSync(tmp, { force: true });
+    }
+  }),
+  5,
+);
+await vite.close();
+
+const baked = lines.filter(hasClip);
+if (!failed) {
+  const keep = new Set(lines.map((l) => l.file));
+  for (const name of fs.readdirSync(AUDIO_DIR)) if (name.endsWith('.mp3') && !keep.has(name)) fs.unlinkSync(path.join(AUDIO_DIR, name));
 }
-
-console.log(`Baking ${jobs.length} clips (${skipped} already on disk) → ${path.relative(ROOT, AUDIO_DIR)}`);
-await pool(jobs, 5);
-
-const keep = new Set(lines.map((l) => l.file));
-for (const name of fs.readdirSync(AUDIO_DIR)) {
-  if (name.endsWith('.mp3') && !keep.has(name)) fs.unlinkSync(path.join(AUDIO_DIR, name));
+const voices = Object.fromEntries(Object.entries(cast).map(([k, v]) => [k, v.voice]));
+const manifest = { version: 2, voices, lines: baked.map(({ id, speaker, text, file }) => ({ id, voice: speaker, text, file })) };
+fs.writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2) + '\n');
+writePending();
+console.log(`Manifest: ${baked.length}/${lines.length} lines → ${path.relative(ROOT, MANIFEST_PATH)}`);
+if (failed) {
+  console.error(`${failed} clip(s) failed (first: ${firstError}). Run again to retry; nothing was pruned.`);
+  process.exit(1);
 }
-
-const manifest = { version: 1, voices: VOICES, lines };
-fs.mkdirSync(path.dirname(MANIFEST), { recursive: true });
-fs.writeFileSync(MANIFEST, JSON.stringify(manifest, null, 2) + '\n');
-const carlosN = lines.filter((l) => l.voice === 'carlos').length;
-const uiN = lines.filter((l) => l.voice === 'ui').length;
-console.log(`Manifest ${carlosN} Carlos + ${uiN} UI → ${path.relative(ROOT, MANIFEST)}`);

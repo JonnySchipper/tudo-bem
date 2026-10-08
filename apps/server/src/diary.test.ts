@@ -96,7 +96,7 @@ const inPraca = (c: Client) => (c.s.profile?.diary ?? []).filter((id) => diaryWo
 const photoMsgs = (c: Client) => c.all('diary').filter((m): m is Extract<typeof m, { phase: 'photo' }> => m.phase === 'photo');
 const wordsMsgs = (c: Client) => c.all('diary').filter((m): m is Extract<typeof m, { phase: 'words' }> => m.phase === 'words');
 const wordMsgs = (c: Client) => c.all('diary').filter((m): m is Extract<typeof m, { phase: 'word' }> => m.phase === 'word');
-const CARD_WORDS = ['aeroporto', 'brasil', 'avião', 'câmera', 'diário'];
+const CARD_WORDS = ['brasil', 'avião', 'câmera', 'diário'];
 const ptOf = (ids: readonly string[] | undefined) => (ids ?? []).map((id) => diaryWord(id)!.pt);
 
 describe('arrival, camera, diary and the escola', () => {
@@ -112,35 +112,33 @@ describe('arrival, camera, diary and the escola', () => {
     expect(a.s.profile).toMatchObject({ arrivalIntroDone: true, hasCamera: true, film: FILM.starter });
     const notice = a.all('notice').map((n) => n.pt).join(' ');
     expect(notice).toMatch(/câmera/);
-    // the cartela is on this build: Júlia hands it over in the intro, and the notice no longer says it is missing
+    // the cartela is on this build: Célia hands it over at the airport, and the notice no longer says it is missing
     expect(notice).not.toMatch(/ainda não chegou/);
     expect(a.s.profile?.cartela).toMatchObject({ stamps: 0 });
-    // the card is read once, and its five words go into the diary: the kicker (reading) and Júlia's four lines (conversation)
+    // Júlia's note comes with them, once, and its four lines go into the diary (the AEROPORTO letters are read off the airport's glass)
     expect(ptOf(a.s.profile?.diary).sort()).toEqual([...CARD_WORDS].sort());
     // ...as one message, shown one after another and counting up in the Chegada area
     expect(wordMsgs(a)).toHaveLength(0);
     const card = wordsMsgs(a);
     expect(card).toHaveLength(1);
     expect(card[0]!.words.map((w) => [w.pt, w.source])).toEqual([
-      ['aeroporto', 'reading'],
       ['brasil', 'conversation'],
       ['avião', 'conversation'],
       ['câmera', 'conversation'],
       ['diário', 'conversation'],
     ]);
     expect(card[0]!.words.map((w) => w.progress)).toEqual([
-      '0/14 câmera · 1/6 leitura · 0/4 conversa',
-      '0/14 câmera · 1/6 leitura · 1/4 conversa',
-      '0/14 câmera · 1/6 leitura · 2/4 conversa',
-      '0/14 câmera · 1/6 leitura · 3/4 conversa',
-      '0/14 câmera · 1/6 leitura · 4/4 conversa',
+      '0/14 câmera · 0/6 leitura · 1/4 conversa',
+      '0/14 câmera · 0/6 leitura · 2/4 conversa',
+      '0/14 câmera · 0/6 leitura · 3/4 conversa',
+      '0/14 câmera · 0/6 leitura · 4/4 conversa',
     ]);
     await a.send({ t: 'arrival', action: 'finish' });
     expect(a.all('notice').filter((n) => n.pt.includes('câmera'))).toHaveLength(1);
     expect(wordsMsgs(a)).toHaveLength(1);
   });
 
-  it('lets anybody watch the arrival again for the card’s words, never twice, and never before the intro is done', async () => {
+  it('gives Júlia’s note words on a visit back to the airport, never twice, and never before the arrival is done', async () => {
     const world = makeWorld();
     const a = await client(world);
     await a.send({ t: 'arrival', action: 'replay' });
@@ -306,30 +304,40 @@ describe('arrival, camera, diary and the escola', () => {
     expect(inPraca(a)).toEqual(['diary.praca.pombo']);
   });
 
-  it('takes the airport hall as a postcard: free shots of its own objects, its signs to read, nothing else', async () => {
+  it('makes the airport a room like any other: its things to photograph (free of film), its signs to read, nothing from elsewhere', async () => {
     const world = makeWorld();
     const a = await client(world);
     await a.send({ t: 'arrival', action: 'finish' });
     const film = a.s.profile!.film!;
-    // hall objects are only in the hall, and nothing else is
+    // the airport's things are in the airport, not in the praça
     await a.send({ t: 'diary', action: 'photo', anchors: ['hall_mala', 'hall_esteira'] });
     expect(a.all('error').some((e) => e.code === 'far')).toBe(true);
-    await a.send({ t: 'diary', action: 'photo', anchors: ['fonte'], hall: true });
+    await a.send({ t: 'join', room: 'aeroporto' });
+    expect(a.last('roomState')?.room).toBe('aeroporto');
+    await a.send({ t: 'diary', action: 'photo', anchors: ['fonte'] });
     expect(a.all('error').filter((e) => e.code === 'far')).toHaveLength(2);
-    expect(a.s.profile?.film).toBe(film);
 
-    await a.send({ t: 'diary', action: 'photo', anchors: ['hall_mala', 'hall_esteira', 'hall_etiqueta'], hall: true, image: 'data:image/jpeg;base64,AAAA' });
+    // down by the baggage belt: a shot there costs no film and keeps the picture
+    await walkTo(a, 5, 20);
+    await a.send({ t: 'diary', action: 'photo', anchors: ['hall_mala', 'hall_esteira', 'hall_etiqueta'], image: 'data:image/jpeg;base64,AAAA' });
     const shot = photoMsgs(a).at(-1)!;
     expect(shot.ok && shot.words?.map((w) => w.pt)).toEqual(['mala', 'esteira', 'etiqueta']);
     expect(shot.ok && shot.areaPt).toBe('Chegada');
     expect(a.s.profile?.film).toBe(film);
-    expect(a.s.profile?.photos ?? []).toHaveLength(0);
+    expect(a.s.profile?.photos ?? []).toHaveLength(1);
 
-    await a.send({ t: 'diary', action: 'sign', anchor: 'hall_s_bagagem' });
+    // the BAGAGEM sign over the belt is read like any sign
+    await a.send({ t: 'read', hotspotId: 'hall_s_bagagem' });
     expect(wordMsgs(a).at(-1)).toMatchObject({ pt: 'bagagem', source: 'reading' });
-    await a.send({ t: 'diary', action: 'sign', anchor: 'hall_s_bagagem' });
-    await a.send({ t: 'diary', action: 'sign', anchor: 'coreto_placa' });
+    await a.send({ t: 'read', hotspotId: 'hall_s_bagagem' });
     expect(ptOf(a.s.profile?.diary)).toEqual([...CARD_WORDS, 'mala', 'esteira', 'etiqueta', 'bagagem']);
+
+    // the plane, through the glass, from the gate
+    await walkTo(a, 6, 11);
+    await a.send({ t: 'diary', action: 'photo', anchors: ['hall_asa', 'hall_turbina', 'hall_ponte'] });
+    const plane = photoMsgs(a).at(-1)!;
+    expect(plane.ok && plane.words?.map((w) => w.pt)).toEqual(['asa', 'turbina', 'ponte']);
+    expect(a.s.profile?.film).toBe(film);
   });
 
   it('photographs wall decor and placed furniture in the kitnet, not furniture that is still in the box', async () => {
@@ -371,7 +379,7 @@ describe('arrival, camera, diary and the escola', () => {
     // a line that is not a line of anyone, and the arrival card's own (taken with the card), teach nothing
     await a.send({ t: 'diary', action: 'line', anchor: 'julia.idle99' });
     await a.send({ t: 'diary', action: 'line', anchor: 'julia.chegada_titulo' });
-    expect(ptOf(a.s.profile?.diary)).toHaveLength(8);
+    expect(ptOf(a.s.profile?.diary)).toHaveLength(7);
 
     await a.send({ t: 'join', room: 'feira' });
     await a.send({ t: 'diary', action: 'line', anchor: 'tia_lu.greet' });

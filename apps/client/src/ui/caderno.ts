@@ -60,7 +60,7 @@ function rewardLine(g: GroupView): HTMLElement {
   return h('div', { class: 'cad-reward' }, `Aprenda todas: +${g.reward} RV`, en(`Learn them all for +${g.reward} RV, once`, true));
 }
 
-/** Where "watch the arrival again" goes (the airport hall). The page registers it. */
+/** Where "back to the airport" goes (the bus to the airport, the arrival tutorial). The page registers it. */
 let replayArrival: (() => void) | null = null;
 export function setArrivalReplay(fn: (() => void) | null): void {
   replayArrival = fn;
@@ -108,7 +108,7 @@ export function openCaderno(groupId?: string, highlight: readonly string[] = [])
                     },
                   },
                   // needs_br: true (button label)
-                  bi('Rever a chegada', 'Watch the arrival again'),
+                  bi('Voltar ao aeroporto', 'Back to the airport'),
                 )
               : null,
             area.words.length

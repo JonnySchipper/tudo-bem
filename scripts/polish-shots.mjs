@@ -15,6 +15,7 @@ import { findChrome } from './lib/chrome.mjs';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
 import { goArea } from './lib/areas.mjs';
 import { DAY_MIN, offsetMinFor } from './lib/clock-pin.mjs';
+import { finishArrival } from './lib/arrival.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:4173/';
 const SHOTS = process.env.SHOTS_DIR ?? 'docs/lifesim/shots/visual-polish';
@@ -35,7 +36,7 @@ async function newPlayer(viewport, name) {
   await page.fill('#avatar-name', name, { timeout: 15_000 });
   await page.click('button:has-text("ela (she)")');
   await page.click('#enter-praca');
-  await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 15_000, 'praça');
+  await page.waitForFunction(() => window.__tb?.game?.room?.room === 'aeroporto', null, { timeout: 20_000 });
   await page.evaluate(() => window.__tb.setClock({ weather: 'sol' }));
   return page;
 }
@@ -57,20 +58,19 @@ try {
   // ---------------------------------------------------------------- arrival
   const page = await newPlayer({ width: 1280, height: 800 }, 'Lia');
   const shot = shooter(page);
-  await page.waitForSelector('#arrival-intro', { timeout: 10_000 });
-  await sleep(500);
-  await shot('01-arrival-landing');
-  await sleep(3400);
+  // a new arrival lands at the airport: the gate, then Célia hands over Júlia's package (the camera and the cartela)
+  await sleep(1500);
+  await shot('01-arrival-airport');
+  await page.evaluate(() => window.__tb.interact({ npc: 'celia' }));
+  await page.waitForSelector('#dialogue-box', { timeout: 20_000 });
+  await sleep(1200);
   await shot('02-arrival-handover');
-  await page.click('#arrival-done');
+  await page.click('#dialogue-box .dbx-chips button');
   await sleep(520);
   await shot('03-arrival-gifts-fly');
   await waitFor(page, () => window.__tb.game.profile.arrivalIntroDone === true && window.__tb.game.profile.hasCamera, null, 8000, 'camera in hand');
-  // the postcard turns into the airport hall: the first pictures, free; its cards come when the player leaves
-  await page.waitForSelector('#hall-done', { timeout: 5000 });
-  await sleep(700);
-  await shot('03b-arrival-hall');
-  await page.click('#hall-done');
+  // then straight to the praça for the rest of the shots
+  await finishArrival(page);
   await sleep(900);
 
   // ---------------------------------------------------------------- camera
@@ -193,8 +193,7 @@ try {
   // ---------------------------------------------------------------- Carlos in the padaria, at the 2x draw scale
   const p2 = await newPlayer({ width: 1280, height: 800 }, 'Bia');
   const shot2 = shooter(p2);
-  await p2.click('#arrival-done', { timeout: 10_000 });
-  await p2.click('#hall-done', { timeout: 10_000 });
+  await finishArrival(p2);
   await sleep(800);
   await goArea(p2, 'rua');
   await p2.evaluate(() => window.__tb.interact({ portal: 'praca_padaria' }));
@@ -207,17 +206,12 @@ try {
   await shot2('23-regular-carlos');
   await p2.context().close();
 
-  // ---------------------------------------------------------------- phone: the same intro and the diary
+  // ---------------------------------------------------------------- phone: the airport and the diary
   const phone = await newPlayer({ width: 390, height: 844 }, 'Rafa');
   const shot3 = shooter(phone);
-  await phone.waitForSelector('#arrival-intro', { timeout: 10_000 });
-  await sleep(3600);
-  await shot3('24-phone-arrival');
-  await phone.click('#arrival-done');
-  await phone.waitForSelector('#hall-done', { timeout: 5000 });
-  await sleep(700);
-  await shot3('24b-phone-hall');
-  await phone.click('#hall-done');
+  await sleep(1500);
+  await shot3('24-phone-airport');
+  await finishArrival(phone);
   await sleep(1500);
   await phone.evaluate(() => window.__tb.net.send({ t: 'diary', action: 'photo', anchors: [], image: undefined }));
   await phone.click('#btn-burger');

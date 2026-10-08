@@ -2,7 +2,6 @@
  * The shape of the language diary catalog and everything that can be wrong with one. No state: the catalog is loaded in diary.ts,
  * so a pack can be checked (and its problems listed) without it having to be valid first.
  */
-import { ARRIVAL_SIGNS, isHallObject } from './arrival.js';
 import { isNpcId } from './bonds.js';
 import { furnitureById } from './catalog.js';
 import { diaryLine } from './diaryLines.js';
@@ -95,19 +94,14 @@ export function asAnchor(raw: unknown): DiaryAnchor | null {
   return null;
 }
 
-/** Where a camera object can be: a prop of a room, a wall spot, a piece of kitnet furniture, or an object of the arrival hall. */
+/** Where a camera object can be: a prop of a room, a photo spot (wall decor, part of a bigger sprite), or a piece of kitnet furniture. */
 export function objectAnchorExists(id: string): boolean {
-  return (
-    Object.values(ROOMS).some((r) => r.props.some((p) => p.id === id)) ||
-    !!photoSpotById(id) ||
-    !!furnitureById(id) ||
-    isHallObject(id)
-  );
+  return Object.values(ROOMS).some((r) => r.props.some((p) => p.id === id)) || !!photoSpotById(id) || !!furnitureById(id);
 }
 
 /** The Portuguese a sign or line prints, or null when there is no such anchor. */
 function anchorText(anchor: DiaryAnchor): string | null {
-  if (anchor.kind === 'sign') return hotspotById(anchor.id)?.pt ?? ARRIVAL_SIGNS.find((s) => s.id === anchor.id)?.pt ?? null;
+  if (anchor.kind === 'sign') return hotspotById(anchor.id)?.pt ?? null;
   if (anchor.kind === 'line') return diaryLine(anchor.id)?.pt ?? null;
   return null;
 }

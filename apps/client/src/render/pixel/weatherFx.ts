@@ -142,6 +142,8 @@ export class WeatherFx {
   private rows = 0;
   private bandTop = 0;
   private bandBottom = Infinity;
+  /** world px band under a roof (the airport terminal): no streaks there */
+  private roof: { top: number; bottom: number } | null = null;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -252,6 +254,8 @@ export class WeatherFx {
     while (bottom > 0 && rowOpen[bottom - 1] < 0.4) bottom--;
     this.bandTop = top * T;
     this.bandBottom = bottom >= def.rows ? Infinity : bottom * T;
+    // the roof starts at the top of the glass front (its sprite stands about three rows tall over its row)
+    this.roof = def.roof ? { top: def.roof.y0 * T - 40, bottom: (def.roof.y1 + 1) * T } : null;
   }
 
   /** True when world px (wx, wy) is on walkable ground. */
@@ -267,7 +271,8 @@ export class WeatherFx {
   private streakFade(wy: number): number {
     const a = Math.min(1, Math.max(0, (wy - (this.bandTop - 14)) / 22));
     const b = Math.min(1, Math.max(0, (this.bandBottom + 6 - wy) / 22));
-    return Math.min(a, b);
+    const r = this.roof ? Math.min(1, Math.max(0, (this.roof.top - wy) / 10, (wy - this.roof.bottom) / 10)) : 1;
+    return Math.min(a, b, r);
   }
 
   clearRoom(): void {
@@ -281,6 +286,7 @@ export class WeatherFx {
     this.ground = null;
     this.bandTop = 0;
     this.bandBottom = Infinity;
+    this.roof = null;
   }
 
   /** for tests and shots */

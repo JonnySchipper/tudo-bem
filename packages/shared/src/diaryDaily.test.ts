@@ -29,10 +29,11 @@ describe('the small diary objects, a couple a day', () => {
     }
   });
 
-  it('never hides what was already in the rooms, or the airport hall, or a flag that is a fixture', () => {
+  it('never hides what was already in the rooms, or the airport’s things, or a flag that is a fixture', () => {
     expect(diaryVisible('praca', 'fonte', 0)).toBe(true);
     expect(diaryVisible('praca', 'coreto_placa', 9)).toBe(true);
     expect(diaryVisible('academia', 'bandeira_br', 3)).toBe(true);
+    for (const day of [0, 1, 7]) expect(diaryVisible('aeroporto', 'hall_mala', day)).toBe(true);
     // a rotating id asked about in the wrong room is not that room's object
     expect(diaryVisible('rua', 'd_pombo', 0)).toBe(true);
   });

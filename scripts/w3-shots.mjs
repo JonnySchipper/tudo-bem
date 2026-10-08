@@ -14,6 +14,7 @@ import path from 'node:path';
 import { findChrome } from './lib/chrome.mjs';
 import { offsetMinFor } from './lib/clock-pin.mjs';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
+import { finishArrival } from './lib/arrival.mjs';
 
 const argv = process.argv.slice(2);
 const opt = Object.fromEntries(argv.filter((a) => a.startsWith('--') && a.includes('=')).map((a) => a.slice(2).split('=')));
@@ -59,7 +60,7 @@ async function run(browser, vp, hour) {
   await page.fill('#avatar-name', 'Jonny');
   await page.click('button:has-text("ele (he)")');
   await page.click('#enter-praca');
-  await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 30_000, 'praça');
+  await finishArrival(page);
   await sleep(2500);
   await page.evaluate((t) => window.__tb.setClock({ time: t, weather: 'sol' }), hour);
   await page.addStyleTag({ content: '#ui{visibility:hidden !important}' });

@@ -1,0 +1,15 @@
+{
+  "_readme": "Lines the game speaks that have no clip yet (the coverage test lets exactly these through). `pnpm tts` rewrites this file; when everything is baked it is empty. Do not add to it by hand: bake instead.",
+  "lines": [
+    "ui: AEROPORTO. Vila Ipê · Internacional",
+    "ui: ALFÂNDEGA. Nada a declarar? Siga pelo verde.",
+    "ui: BAGAGEM. Esteira 1",
+    "ui: BEM-VINDO AO BRASIL!",
+    "ui: DESEMBARQUE. Saída · Ônibus · Táxi",
+    "ui: EMBARQUE. Lisboa · 14h20 · Portão 3. Recife · 15h05 · Portão 5. Buenos Aires · 16h40 · Portão 6",
+    "ui: PORTÃO 3. Desembarque do voo 2026",
+    "ui: TERMINAL 1. Portões 1 a 6",
+    "ui: ÔNIBUS 875. Aeroporto → Vila Ipê. A cada 15 minutos",
+    "ui: ÔNIBUS. Linha 875 · Centro · Aeroporto"
+  ]
+}

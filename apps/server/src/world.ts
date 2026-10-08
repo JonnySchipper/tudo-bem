@@ -1739,9 +1739,9 @@ export class World {
     const snack = snackById(itemId);
     const p = s.profile!;
     if (!snack) return;
-    if (s.instance?.def.id !== 'praca') return this.err(s, 'shop', 'Compre na praça.', 'Buy this in the square.');
-    const prop = s.instance.def.props.find((q) => q.id === snack.propId);
-    if (!prop) return;
+    // the cart (or the airport café) has to be in the room you are standing in
+    const prop = s.instance?.def.props.find((q) => q.id === snack.propId);
+    if (!prop) return this.err(s, 'shop', 'Compre na praça.', 'Buy this in the square.');
     const cur = this.currentTile(s);
     const spot = prop.interact ?? { x: prop.x, y: prop.y };
     const d = Math.max(Math.abs(cur.tile.x - spot.x), Math.abs(cur.tile.y - spot.y));

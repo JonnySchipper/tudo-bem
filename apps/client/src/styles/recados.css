@@ -442,3 +442,218 @@ html.px-ui .recado-done {
   .rj-face { width: 48px; height: 48px; }
   .rj-friends { grid-template-columns: 1fr; }
 }
+
+/* ---------------------------------------------------------------- the airport tutorial (ui/airportTutorial.ts)
+ * In the airport the checklist takes the recado tracker's place (same plate, same corner): the step you are on, large, with how to do it,
+ * then the ten steps as a short list. The HUD button a step needs pulses. */
+
+body.in-aeroporto #recado-tracker {
+  display: none;
+}
+
+.aero-tut[hidden] {
+  display: none;
+}
+
+.aero-tut {
+  width: 300px;
+}
+
+.aero-tut-plane {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  background: var(--azul, #3d6fd8);
+  color: #fff;
+  font-size: 13px;
+  border: 2px solid var(--px-ink, #573c2c);
+}
+
+.aero-tut-now {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0 8px 6px;
+  padding: 7px 8px;
+  background: #fff8e4;
+  border: 2px solid var(--px-ink, #573c2c);
+  box-shadow: inset 0 -3px 0 #f2c230;
+  animation: aero-now 0.45s steps(5, end);
+}
+
+.aero-tut-n {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  background: #f2c230;
+  color: var(--px-ink, #573c2c);
+  font-family: var(--font-pixel, var(--font-title));
+  font-weight: 700;
+  border: 2px solid var(--px-ink, #573c2c);
+}
+
+.aero-tut-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  line-height: 1.2;
+}
+
+.aero-tut-text b {
+  font-family: var(--font-pixel, var(--font-title));
+  font-size: 15px;
+}
+
+.aero-tut-how {
+  font-size: 0.82em;
+}
+
+.aero-tut-text .en {
+  font-size: 0.75em;
+}
+
+.aero-tut-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 8px 6px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 8px;
+  font-size: 0.74em;
+  line-height: 1.15;
+}
+
+.aero-tut-list li {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+  color: var(--ink-soft, #7a6655);
+}
+
+.aero-tut-list li span:last-child {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.aero-tut-tick {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  font-size: 10px;
+  font-weight: 800;
+  border: 1px solid currentColor;
+}
+
+.aero-tut-list li.done {
+  color: var(--verde-dark, #2f7a43);
+}
+
+.aero-tut-list li.done .aero-tut-tick {
+  background: var(--verde, #3fa45b);
+  border-color: var(--px-ink, #573c2c);
+  color: #fff;
+}
+
+.aero-tut-list li.done span:last-child {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.aero-tut-list li.current {
+  color: var(--ink, #3a2a20);
+  font-weight: 700;
+}
+
+.aero-tut-list li.current .aero-tut-tick {
+  background: #f2c230;
+  border-color: var(--px-ink, #573c2c);
+}
+
+.aero-tut.collapsed .aero-tut-now,
+.aero-tut.collapsed .aero-tut-list {
+  display: none;
+}
+
+/* the HUD button the current step needs */
+.tut-pulse {
+  position: relative;
+  animation: tut-pulse 1.1s steps(6, end) infinite;
+}
+
+.tut-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border: 3px solid #f2c230;
+  pointer-events: none;
+  animation: tut-ring 1.1s steps(6, end) infinite;
+}
+
+@keyframes tut-pulse {
+  0%, 100% { transform: none; }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes tut-ring {
+  0% { opacity: 1; transform: scale(0.9); }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+
+@keyframes aero-now {
+  from { transform: translateX(10px); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tut-pulse, .tut-pulse::after, .aero-tut-now { animation: none; }
+  .tut-pulse::after { opacity: 1; transform: none; }
+}
+
+@media (max-width: 640px), (max-height: 520px) {
+  .aero-tut {
+    width: min(300px, calc(100vw - 20px - 120px));
+  }
+
+  .aero-tut-list {
+    display: none;
+  }
+}
+
+/* the entry stamp the agent puts in your passport */
+.aero-visto {
+  display: inline-grid;
+  justify-items: center;
+  margin: 6px 0 2px 8px;
+  padding: 4px 12px;
+  color: #2f7a43;
+  border: 3px double #2f7a43;
+  border-radius: 6px;
+  transform: rotate(-6deg);
+  font-family: var(--font-pixel, var(--font-title));
+  line-height: 1.05;
+  animation: aero-stamp 0.35s steps(4, end);
+}
+
+.aero-visto b {
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+.aero-visto span {
+  font-size: 12px;
+}
+
+.aero-visto small {
+  font-size: 10px;
+}
+
+@keyframes aero-stamp {
+  from { transform: rotate(-6deg) scale(1.8); opacity: 0; }
+}

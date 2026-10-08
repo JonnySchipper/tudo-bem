@@ -2,7 +2,7 @@
  * The short authored greeting with Nanda and Júlia (Phase 7 step 4): three lines, two reply chips each, in the dialogue box. Client-side only
  * (no rewards); opening it tells the server (`talk`) so the recado engine's `talked` event fires. Nanda's box also has "Ver chapéus".
  */
-import { FILM, NPC_TALK, fillTalk, type NpcId } from '@tudobem/shared';
+import { FILM, NPC_TALK, fillTalk, spokenNameless, type NpcId } from '@tudobem/shared';
 import { clock } from '../gameClock';
 import { heartsWith } from './recadoView';
 import { game } from '../state';
@@ -47,7 +47,8 @@ export function openNpcTalk(npcId: NpcId, hooks: TalkHooks): void {
     if (!node) return closeDialogue();
     hooks.onLine?.(`${npcId}.${nodeId}`);
     const line = { pt: fillTalk(node.line.pt, ctx), en: fillTalk(node.line.en, ctx) };
-    speak(line.pt);
+    // the clip is the nameless line: the player's name stays on screen, never in the voice (one clip serves every player)
+    speak(spokenNameless(node.line.pt, { pronoun: p?.pronoun, minute: ctx.minute }), { speaker: npcId });
     const chips: BoxChip[] = node.chips.map((c) => ({ pt: fillTalk(c.pt, ctx), en: fillTalk(c.en, ctx) }));
     const choose = (i: number) => {
       const c = node.chips[i];

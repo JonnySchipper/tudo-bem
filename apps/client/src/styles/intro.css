@@ -1075,9 +1075,9 @@ body.intro-active #world {
   }
 }
 
-/* ---------- desktop: title-screen split — wordmark over the Praça, card on the right ---------- */
+/* ---------- desktop: landscape-phone split — wordmark over the Praça, card on the right ---------- */
 
-@media (min-width: 900px) and (min-aspect-ratio: 5/4), (min-width: 600px) and (min-aspect-ratio: 3/2) and (max-height: 520px) {
+@media (min-width: 600px) and (min-aspect-ratio: 3/2) and (max-height: 520px) {
   .intro-gate {
     --sun-x: 38%;
     --sun-y: 31%;
@@ -1135,7 +1135,15 @@ body.intro-active #world {
   }
 }
 
-@media (min-width: 900px) and (min-aspect-ratio: 5/4) and (max-height: 760px) {
+/* ---------- desktop: the phone column, centred over the Praça (short windows drop the small print) ---------- */
+
+@media (min-width: 601px) and (min-height: 521px) {
+  .intro-shell {
+    max-width: 460px;
+  }
+}
+
+@media (min-width: 601px) and (max-height: 760px) {
   .intro-legal {
     display: none;
   }

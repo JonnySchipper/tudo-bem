@@ -48,6 +48,7 @@ import { avatarCrown, avatarDrawScale, avatarPx, setAvatarZoom } from './charact
 import { academyUniformKey, lookForAvatar, lookForNpc, lookHeadLift, type Look } from './looks';
 import { LightingRig, type Light } from './lightingRig';
 import { computeLook, isOutdoor, lightDelay, windowPanes, type SceneLook } from './dayNight';
+import { RUNWAYS, runwayPose, type RunwayDef } from './runway';
 import { WeatherBlend, groundWetTint, type FxLevel } from './weatherLook';
 import { WeatherFx } from './weatherFx';
 import { ShadowLayer, type ShadowHandle } from './shadowLayer';
@@ -75,6 +76,7 @@ import { DEPTH, PROP_LIGHT, fencePieces, footprintRect, inflate, propAnchor, pro
 import { sceneryFor } from './scenery';
 import {
   FLOOR_PLACEHOLDER,
+  CAMERA_LEAD_NORTH,
   FLOOR_SUBSTITUTE,
   NORTH_BAND_TILES,
   WEST_STRIP_TILES,
@@ -242,6 +244,8 @@ export class WorldScene extends Phaser.Scene {
   private roomObjs: Phaser.GameObjects.GameObject[] = [];
   /** Reading words in this room: a small twinkle over each one this player has not read yet (the signs have no sprite of their own). */
   private glints: { word: string; img: Phaser.GameObjects.Image; phase: number }[] = [];
+  /** The airport's runway: the plane that lands now and then, its shadow and the touchdown puff (`runway.ts`). */
+  private runway: { def: RunwayDef; plane: Phaser.GameObjects.Image; shadow: Phaser.GameObjects.Image | null; puff: Phaser.GameObjects.Image | null } | null = null;
   private glintDiary: unknown = null;
   private glintHave = new Set<string>();
   private roomMap: Phaser.Tilemaps.Tilemap | null = null;
@@ -375,6 +379,41 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
+  /** The landing plane of a room with a runway (the airport): hidden until the clock brings it round. */
+  private buildRunway(def: RoomDef): void {
+    this.runway = null;
+    const rw = RUNWAYS[def.id];
+    const d = rw ? this.m.sprites['aero/aviao_pista'] : undefined;
+    if (!rw || !d) return;
+    const plane = this.reg(this.add.image(0, 0, d.atlas, d.frame)).setOrigin(...originOf(d)).setDepth(rw.y + 0.5).setVisible(false);
+    const sd = this.m.sprites['fx/shadow_48'];
+    const shadow = sd ? this.reg(this.add.image(0, 0, sd.atlas, sd.frame)).setOrigin(...originOf(sd)).setDepth(DEPTH.shadowContact).setVisible(false) : null;
+    const pd = this.m.sprites['aero/fumaca'];
+    const puff = pd ? this.reg(this.add.image(0, 0, pd.atlas, pd.frame)).setOrigin(...originOf(pd)).setDepth(rw.y + 0.6).setVisible(false) : null;
+    this.runway = { def: rw, plane, shadow, puff };
+  }
+
+  private syncRunway(): void {
+    const r = this.runway;
+    if (!r) return;
+    const p = runwayPose(r.def, Date.now() + clock.skewMs);
+    r.plane.setVisible(p.visible);
+    r.shadow?.setVisible(p.visible);
+    if (!p.visible) {
+      r.puff?.setVisible(false);
+      return;
+    }
+    const x = Math.round(p.x);
+    const back = p.dir === 'w' ? -1 : 1;
+    r.plane.setPosition(x, Math.round(p.groundY - p.alt)).setRotation(p.pitch * back).setFlipX(p.dir === 'w');
+    // the shadow on the runway: smaller and fainter the higher the plane is
+    r.shadow?.setPosition(x + Math.round(p.alt * 0.25), p.groundY).setScale(Math.max(0.4, 1.4 - p.alt / 120), 0.8).setAlpha(Math.max(0.15, 0.7 - p.alt / 160));
+    if (r.puff) {
+      r.puff.setVisible(p.puff > 0);
+      if (p.puff > 0) r.puff.setPosition(x - back * (14 + Math.round((1 - p.puff) * 10)), p.groundY).setAlpha(p.puff).setScale(1 + (1 - p.puff) * 0.8);
+    }
+  }
+
   /** Twinkle the unread words (slow, staggered; steady under reduced motion); hidden while a counter or bout has the screen. */
   private syncGlints(now: number): void {
     if (!this.glints.length) return;
@@ -455,6 +494,7 @@ export class WorldScene extends Phaser.Scene {
     this.roomMap = null;
     this.staticHits = [];
     this.glints = [];
+    this.runway = null;
     this.placeholders = [];
     this.canopies = [];
     this.trilho = null;
@@ -593,6 +633,7 @@ export class WorldScene extends Phaser.Scene {
       this.staticHits.push({ x0: b.x0 * T, y0: b.y0 * T, x1: b.x1 * T, y1: b.y1 * T, hit: { kind: 'hotspot', hotspot: hs }, depth: b.y1 * T - 0.25 });
     }
     this.buildGlints(def);
+    this.buildRunway(def);
 
     // (the neighbours are not part of the room: the server walks them along their schedules and sends them as avatars)
 
@@ -956,6 +997,7 @@ export class WorldScene extends Phaser.Scene {
     const look = computeLook({ outdoor: this.outdoor, roomHour: ROOM_HOUR[def.lighting], minutes: clock.minutesExact(), weather: params });
     this.look = look;
     const people = [...this.avatars.values()].map((v) => ({ x: v.wx, y: v.wy }));
+    this.syncRunway();
     this.ambient.update({ dt, t: Date.now() + clock.skewMs, minute: clock.minutesExact(), params, dark: look.dark, people, cam: this.cameras.main });
     this.zoneFeed.update(def, me ? { x: me.wx, y: me.wy, moving: me.moving } : null, clock.minutes(), params.rain, performance.now());
     // V5: the sun's shadows draw in outdoor rooms unless low-fx dropped them (then the baked cast shadows are used)
@@ -1189,7 +1231,8 @@ export class WorldScene extends Phaser.Scene {
 
   private updateCamera(dt: number, def: RoomDef): void {
     const self = game.self ? this.avatars.get(game.self.pub.id) : undefined;
-    const focus = self ? { x: self.wx, y: self.wy - avatarPx(10) } : { x: (def.cols * T) / 2, y: (def.rows * T) / 2 };
+    const lead = CAMERA_LEAD_NORTH[def.id] ?? 0;
+    const focus = self ? { x: self.wx, y: self.wy - avatarPx(10) - lead } : { x: (def.cols * T) / 2, y: (def.rows * T) / 2 };
     const ins = this.host.insets();
     const k = this.cam.dpr;
     const dpr = k; // the effective (possibly capped, see bufferPixels) ratio of the backing store

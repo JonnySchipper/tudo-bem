@@ -98,7 +98,13 @@ export function roomBounds(room: RoomDef, tallestFacade = 0): Rect {
 
 // ------------------------------------------------------------------ wall art (art track 3): mapping tables and pure layout
 /** Wall art style per room (`walls/north_<style>_l|_m|_r`, `walls/west_<style>`, `walls/west_<style>_b`). */
-export const WALL_STYLE: Record<RoomId, string> = { praca: 'praca', rua: 'praca', rua_leste: 'praca', feira: 'praca', padaria: 'padaria', kitnet: 'kitnet', academia: 'academia', escola: 'academia', andar: 'academia' };
+/**
+ * World px the camera looks ahead to the north of the avatar, per room. The airport: the runway and the plane at the gate are behind the
+ * terminal's glass, north of everywhere you can walk, so the view leans toward them (the south end still frames: the camera clamps there).
+ */
+export const CAMERA_LEAD_NORTH: Partial<Record<RoomId, number>> = { aeroporto: 4 * 16 };
+
+export const WALL_STYLE: Record<RoomId, string> = { praca: 'praca', rua: 'praca', rua_leste: 'praca', feira: 'praca', padaria: 'padaria', kitnet: 'kitnet', academia: 'academia', escola: 'academia', andar: 'academia', aeroporto: 'praca' };
 
 export const northWallKey = (style: string, part: 'l' | 'm' | 'r') => `walls/north_${style}_${part}`;
 export const westWallKey = (style: string, bottom: boolean) => `walls/west_${style}${bottom ? '_b' : ''}`;

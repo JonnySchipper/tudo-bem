@@ -14,6 +14,7 @@ import { FileModerationQueue } from './services/fileModeration.js';
 import { handleConversaApi } from './conversaApi.js';
 import { ConversaMemory } from './conversaMemory.js';
 import { staticCacheControl } from './cacheControl.js';
+import { legalPageFile } from './legalPages.js';
 import {
   AccountStore,
   accountsFileAdapter,
@@ -165,6 +166,17 @@ export function createApp(opts: AppOptions) {
     if (!clientDist) {
       res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8' });
       return res.end('Tudo Bem server is running. In dev, open the Vite client at http://localhost:5173');
+    }
+    // Privacy and terms are real HTML. Without this, /privacy falls through to the game shell and looks blank.
+    const legalName = legalPageFile(url.pathname);
+    if (legalName) {
+      const file = path.join(clientDist, legalName);
+      if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
+        res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-cache' });
+        return res.end('Not found');
+      }
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' });
+      return fs.createReadStream(file).pipe(res);
     }
     const rel = path.normalize(decodeURIComponent(url.pathname)).replace(/^([/\\])+/, '');
     let file = path.join(clientDist, rel);

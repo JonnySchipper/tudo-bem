@@ -5,7 +5,7 @@
 import { blank, put, shape, flat, grid, line, over, ell, box, or, sub, and, profile, hwAt, mx, mix, h2, fillRect, hoop, NAVY, alphaAt } from './paint.mjs';
 
 export const EXPRESSIONS = ['neutro', 'feliz', 'surpreso', 'pensativo'];
-export const NPCS = ['carlos', 'nanda', 'julia', 'graca', 'tia_lu', 'prof', 'ze', 'chico', 'rosa', 'lucia'];
+export const NPCS = ['carlos', 'nanda', 'julia', 'graca', 'tia_lu', 'prof', 'ze', 'chico', 'rosa', 'lucia', 'celia', 'agente'];
 
 // ------------------------------------------------------------------ palettes ([dark, shade, base, hi])
 const SKIN = {
@@ -33,7 +33,7 @@ const CLOTH = {
   denim: ['#3d56d2', '#4280dd', '#4995e3', '#50a7e8'],
   orange: ['#c46823', '#ed931e', '#f2b22b', '#ffe57b'],
 };
-const IRIS = { carlos: '#573c2c', nanda: '#453a4c', julia: '#4280dd', graca: '#573c2c', tia_lu: '#573c2c', prof: '#453a4c', ze: '#573c2c', chico: '#3a2820', rosa: '#573c2c', lucia: '#3f6a3a' };
+const IRIS = { carlos: '#573c2c', nanda: '#453a4c', julia: '#4280dd', graca: '#573c2c', tia_lu: '#573c2c', prof: '#453a4c', ze: '#573c2c', chico: '#3a2820', rosa: '#573c2c', lucia: '#3f6a3a', celia: '#3a2820', agente: '#453a4c' };
 /** Four-shade ramp from a brand hex (dark → hi). */
 const ramp4 = (hex, dk = '#2a2218') => [mix(hex, dk, 0.42), mix(hex, dk, 0.2), hex, mix(hex, '#ffffff', 0.26)];
 const ZE_SKIN = ramp4('#c68a5f');
@@ -593,6 +593,67 @@ RENDER.lucia = (img, expr) => {
   fillRect(img, 31, 26, 3, 1, '#5a3a2a');
 };
 
+// Célia, the airport's information desk (world sprite: dark bun, teal uniform shirt). The airline's teal with a yellow-and-green scarf knotted at
+// the neck, a name badge, a small headset mic over one ear.
+RENDER.celia = (img, expr) => {
+  const skin = ramp4('#a8694a'), hair = HAIR.black, kp = faceKp({ cheek: 14.6, jaw: 11.8 });
+  const teal = ramp4('#2e8a8a', '#0f2a2a');
+  torso(img, teal, { ol: '#1a4a4a' });
+  // the white blouse collar points under the scarf
+  for (const sx of [-1, 1]) flat(img, (x, y) => y >= 46 && y < 52 && sx * (x - CX) >= 2 + (y - 46) * 0.4 && sx * (x - CX) <= 9 - (y - 46) * 0.6, '#f4efe6', { ol: '#a8a090' });
+  neck(img, skin);
+  // the scarf: a yellow knot with two green tails
+  shape(img, ell(CX, 49.5, 4.5, 2.6), [CX, 49, 5, 3], ramp4('#f2c230', '#5a4010'), { ol: '#8a6a10' });
+  for (const sx of [-1, 1]) shape(img, (x, y) => y >= 51 && y < 58 && Math.abs(x - (CX + sx * (2 + (y - 51) * 0.5))) <= 1.6, [CX + sx * 4, 54, 3, 4], ramp4('#3fa565', '#123018'), { ol: '#1d5f3a' });
+  // name badge on the left of the chest
+  fillRect(img, 40, 55, 8, 4, '#f4efe6'); fillRect(img, 41, 56, 6, 1, '#4280dd'); fillRect(img, 41, 57, 4, 1, '#8b8bab');
+  head(img, skin, kp);
+  faceSet(img, 'celia', expr, skin, { brow: hair[0], browY: 21, lash: true, mouth: { y: 38, lip: '#9a3a44' }, blush: 1 });
+  // hair pulled back into a high bun, sleek, a little shine
+  shape(img, and(ell(CX, 15, 17, 11.5), (x, y) => y < 18.5 + (Math.abs(x - CX) > 12 ? (Math.abs(x - CX) - 12) * 3 : 0)), [CX, 12, 17, 12], hair, { ol: '#231f2e', t: [0.8, 0.3, -0.1] });
+  for (const sx of [-1, 1]) for (let y = 19; y < 26; y++) put(img, Math.round(CX + sx * (hwAt(kp, y) - 0.8)), y, hair[1]);
+  shape(img, ell(CX, 3.6, 7, 4.2), [CX, 4, 7, 4], hair, { ol: '#231f2e', t: [0.8, 0.3, -0.1] });
+  for (let i = 0; i < 5; i++) put(img, 24 + i, 9 - Math.round(i * 0.4), hair[3]);
+  // the headset: a band over the right ear and a thin mic toward the mouth
+  for (let y = 22; y < 30; y++) put(img, Math.round(CX + hwAt(kp, y) + 1.4), y, '#3a3a50');
+  shape(img, ell(CX + 16.8, 30, 2.2, 2.8), [CX + 17, 30, 2, 3], ['#3a3a50', '#46465e', '#565972', '#6c6e85'], { ol: '#2a2a3a' });
+  for (let i = 0; i < 8; i++) put(img, CX + 15 - i, 33 + Math.round(i * 0.45), '#46465e');
+  put(img, CX + 7, 37, '#d93232');
+  for (const sx of [-1, 1]) put(img, Math.round(CX + sx * 15.8), 35, '#f8d239');
+};
+
+// Agente Paulo, Federal Police at passport control (world sprite: navy cap and shirt). The navy cap with a gold band and badge, the navy shirt
+// with a gold star on the chest, short dark hair at the temples, a trimmed mustache.
+RENDER.agente = (img, expr) => {
+  const skin = ramp4('#b07650'), kp = faceKp({ cheek: 15.4, jaw: 13.4 });
+  const navyCloth = ramp4('#2e3550', '#0e1020');
+  torso(img, navyCloth, { ol: '#161a2a' });
+  // the shirt collar and a dark tie
+  for (const sx of [-1, 1]) flat(img, (x, y) => y >= 46 && y < 51 && sx * (x - CX) >= 1 + (y - 46) * 0.3 && sx * (x - CX) <= 8 - (y - 46) * 0.7, '#3e4a6a', { ol: '#161a2a' });
+  neck(img, skin);
+  shape(img, (x, y) => y >= 48 && y < 64 && Math.abs(x - CX) <= 1.6 + (y - 48) * 0.08, [CX, 55, 2, 8], ['#121420', '#1d2238', '#232842', '#2e3550'], { ol: '#0e1020' });
+  // the gold star on the chest and the shoulder strap
+  for (const [x, y] of [[44, 54], [43, 55], [44, 55], [45, 55], [44, 56], [42, 55], [46, 55]]) put(img, x, y, '#f2c230');
+  put(img, 44, 55, '#fff59a');
+  fillRect(img, 14, 49, 8, 2, '#3e4a6a');
+  head(img, skin, kp);
+  // short dark hair at the temples, under the cap
+  for (const sx of [-1, 1]) for (let y = 17; y < 27; y++) { const x0 = Math.round(CX + sx * (hwAt(kp, y) - 0.5)); put(img, x0, y, '#2e2a3c'); if (y < 23) put(img, x0 - sx, y, '#453a4c'); }
+  faceSet(img, 'agente', expr, skin, { brow: '#2e2a3c', browY: 21, noseWide: 1, mouth: { y: 39, lip: LIP_DARK } });
+  // a trimmed mustache
+  for (let x = CX - 5; x <= CX + 5; x++) put(img, x, 36, '#2e2a3c');
+  for (let x = CX - 4; x <= CX + 4; x++) if (Math.abs(x - CX) > 0) put(img, x, 37, '#453a4c');
+  // the cap: crown, gold band, a peak that shades the brow
+  const crown = or(ell(CX, 9, 17, 7.5), box(15, 9, 49, 16));
+  shape(img, crown, [CX, 8, 17, 7.5], ['#161a2a', '#232842', '#2e3550', '#3e4a6a'], { ol: '#0e1020', t: [0.85, 0.3, -0.15] });
+  fillRect(img, 15, 13, 34, 3, '#c48f16'); fillRect(img, 15, 13, 34, 1, '#f2c230');
+  const peak = (x, y) => y >= 16 && y < 19.5 && Math.abs(x - CX) <= 16.5 - (y - 16) * 0.8;
+  shape(img, peak, [CX, 17, 16, 2], ['#0e1020', '#161a2a', '#232842', '#2e3550'], { ol: '#0e1020', t: [0.9, 0.3, -0.3] });
+  // the badge on the cap
+  for (const [x, y] of [[31, 7], [32, 6], [33, 7], [30, 8], [34, 8], [31, 9], [32, 9], [33, 9], [32, 8]]) put(img, x, y, '#f2c230');
+  put(img, 32, 8, '#2e3550');
+};
+
 export function renderPortrait(npc, expr, bgFn) {
   const img = blank(64, 64);
   const fg = blank(64, 64);
@@ -615,6 +676,16 @@ const BG = {
   ze: { base: '#b8c878', hi: '#d0dea0', lo: '#9aab62' },
   chico: { base: '#f0d890', hi: '#f8e8b0', lo: '#d8c070' },
   rosa: { base: '#e8b8c8', hi: '#f5d0dc', lo: '#d098a8' },
+  celia: { base: '#a9cfe0', hi: '#c4e0ec', lo: '#8ab4c8' },
+  agente: {
+    base: '#a7aec8',
+    hi: '#bec4da',
+    lo: '#8c94b2',
+    // the flag's green and yellow in a thin stripe behind him (the wall of the booth)
+    deco: (img) => {
+      for (let x = 2; x < 62; x++) { put(img, x, 40, '#2e8a55'); put(img, x, 41, '#f2c230'); }
+    },
+  },
   lucia: {
     base: '#3f6a52',
     hi: '#4f7d63',

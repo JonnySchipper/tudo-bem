@@ -19,7 +19,6 @@ import {
   diaryLine,
   furnitureById,
   hotspotById,
-  isHallObject,
   isWalkable,
   photoSpotById,
   readSpot,
@@ -105,8 +104,7 @@ describe('every catalog word can be earned from its own source', () => {
 
     // ---------------------------------------------------------------- camera: one shot of one object, from within range
     const cameraWords = DIARY_WORDS.filter((w) => w.source === 'camera');
-    const objectRoom = (id: string): RoomId | 'hall' => {
-      if (isHallObject(id)) return 'hall';
+    const objectRoom = (id: string): RoomId => {
       const spot = photoSpotById(id);
       if (spot) return spot.room;
       if (furnitureById(id)) return 'kitnet';
@@ -114,24 +112,20 @@ describe('every catalog word can be earned from its own source', () => {
       if (!r) throw new Error(`no room for object ${id}`);
       return r;
     };
-    const byRoom = new Map<RoomId | 'hall', DiaryWord[]>();
+    const byRoom = new Map<RoomId, DiaryWord[]>();
     for (const w of cameraWords) byRoom.set(objectRoom(w.anchor.id), [...(byRoom.get(objectRoom(w.anchor.id)) ?? []), w]);
     for (const [where, words] of byRoom) {
-      if (where === 'hall') {
-        for (const w of words) await a.send({ t: 'diary', action: 'photo', anchors: [w.anchor.id], hall: true });
-      } else {
-        await goRoom(where);
-        for (const w of words) {
-          const id = w.anchor.id;
-          const box = ROOMS[where].props.find((p) => p.id === id) ?? photoSpotById(id) ?? { x: ROOMS[where].spawn.x, y: ROOMS[where].spawn.y };
-          // the small objects are out a couple at a time: wait for the day this one is
-          setGameTime(10, diaryDayFor(id, 3));
-          const t = nearTile(where, box, PHOTO_RANGE);
-          await walk(t.x, t.y);
-          // film is not what is being tried: a roll a shot
-          a.s.profile!.film = 99;
-          await a.send({ t: 'diary', action: 'photo', anchors: [id] });
-        }
+      await goRoom(where);
+      for (const w of words) {
+        const id = w.anchor.id;
+        const box = ROOMS[where].props.find((p) => p.id === id) ?? photoSpotById(id) ?? { x: ROOMS[where].spawn.x, y: ROOMS[where].spawn.y };
+        // the small objects are out a couple at a time: wait for the day this one is
+        setGameTime(10, diaryDayFor(id, 3));
+        const t = nearTile(where, box, PHOTO_RANGE);
+        await walk(t.x, t.y);
+        // film is not what is being tried: a roll a shot
+        a.s.profile!.film = 99;
+        await a.send({ t: 'diary', action: 'photo', anchors: [id] });
       }
       for (const w of words) expect(have(a).has(w.id), `camera: ${w.pt} (${w.anchor.id}) in ${where}`).toBe(true);
     }
@@ -139,20 +133,12 @@ describe('every catalog word can be earned from its own source', () => {
     // ---------------------------------------------------------------- reading: read the sign from within reading range
     for (const w of DIARY_WORDS.filter((x) => x.source === 'reading')) {
       const id = w.anchor.id;
-      if (id === 'arrival.kicker') {
-        expect(have(a).has(w.id), `reading: ${w.pt}`).toBe(true);
-        continue;
-      }
-      if (id.startsWith('hall_s_')) {
-        await a.send({ t: 'diary', action: 'sign', anchor: id });
-      } else {
-        const h = hotspotById(id)!;
-        setGameTime(10, diaryDayFor(id, 3));
-        await goRoom(h.room);
-        const t = nearTile(h.room, h, HOTSPOT_READ_RANGE);
-        await walk(t.x, t.y);
-        await a.send({ t: 'read', hotspotId: id });
-      }
+      const h = hotspotById(id)!;
+      setGameTime(10, diaryDayFor(id, 3));
+      await goRoom(h.room);
+      const t = nearTile(h.room, h, HOTSPOT_READ_RANGE);
+      await walk(t.x, t.y);
+      await a.send({ t: 'read', hotspotId: id });
       expect(have(a).has(w.id), `reading: ${w.pt} (${id})`).toBe(true);
     }
 

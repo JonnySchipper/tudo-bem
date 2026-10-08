@@ -3,11 +3,15 @@
  * land while a card is still up): every word goes into this queue in the order it was earned, and a card is taken only when none is
  * showing and no game is on. Nothing is dropped and nothing is replaced. Pure: the panel draws what this hands out.
  */
+import type { WordSource } from './wordFlight';
+
 export interface WordMoment {
   pt: string;
   en: string;
   areaPt?: string;
   progress?: string;
+  /** Where the word was read on screen (a line of dialogue): the card's word flies in from there. */
+  from?: WordSource;
 }
 
 export interface QueuedWord<P = unknown> extends WordMoment {

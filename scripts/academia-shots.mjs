@@ -17,6 +17,7 @@ import { goArea } from './lib/areas.mjs';
 import { DAY_MIN, offsetMinFor } from './lib/clock-pin.mjs';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
 import { answerChallenge, boutPhase, openBout, playBout, startBout } from './lib/bout-play.mjs';
+import { finishArrival } from './lib/arrival.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BASE = process.env.BASE_URL ?? 'http://localhost:9211/';
@@ -45,7 +46,7 @@ async function enterAcademia(page) {
   await page.fill('#avatar-name', 'Lia');
   await page.click('button:has-text("ela (she)")');
   await page.click('#enter-praca');
-  await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 20_000, 'praça');
+  await finishArrival(page);
   await sleep(800);
   await goArea(page, 'rua_leste');
   await page.evaluate(() => window.__tb.interact({ portal: 'praca_academia' }));

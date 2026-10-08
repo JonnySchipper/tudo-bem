@@ -1,7 +1,7 @@
 /*
- * Arrival, camera, language diary, escola practice, cartela.
- * Motion budget: every moment here is under a second and a half, nothing loops on screen except the runway lights, the viewfinder's
- * rec dot and a cloud drift; `prefers-reduced-motion` keeps the end states and drops the travel.
+ * Arrival hand-over, camera, language diary, escola practice, cartela.
+ * Motion budget: every moment here is under a second and a half, nothing loops on screen except the viewfinder's rec dot;
+ * `prefers-reduced-motion` keeps the end states and drops the travel.
  */
 
 :root {
@@ -20,205 +20,7 @@
   --dy-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* ================================================================ arrival: a postcard from the airport */
-
-#arrival-intro {
-  position: fixed;
-  inset: 0;
-  z-index: 70;
-  display: grid;
-  place-items: center;
-  padding: 16px;
-  background: rgba(20, 16, 12, 0.5);
-  animation: dy-fade 0.4s ease-out both;
-  overflow-y: auto;
-}
-
-#arrival-intro.leaving {
-  animation: dy-fade-out 0.45s ease-in forwards;
-  pointer-events: none;
-}
-
-#arrival-intro .arrival-card {
-  position: relative;
-  width: min(560px, 100%);
-  padding: 8px;
-  color: var(--dy-ink);
-  /* airmail edge: the red and blue stripes of a "via aérea" envelope, paper inside (rows fade in over paper, not stripes) */
-  background:
-    linear-gradient(var(--hud-paper, #fbf1e3), var(--hud-paper, #fbf1e3)) content-box,
-    repeating-linear-gradient(135deg, #c2402f 0 10px, #fbf1e3 10px 16px, #2b5ba8 16px 26px, #fbf1e3 26px 32px) border-box;
-  box-shadow:
-    0 0 0 3px var(--dy-ink),
-    0 12px 0 rgba(20, 10, 6, 0.35);
-  animation: arrival-rise 0.6s var(--dy-out) both;
-}
-
-#arrival-intro.leaving .arrival-card {
-  animation: arrival-drop 0.45s ease-in forwards;
-}
-
-#arrival-intro .arrival-card > :not(.arrival-scene) {
-  background: var(--hud-paper, #fbf1e3);
-}
-
-.arrival-scene {
-  position: relative;
-  height: 172px;
-  overflow: hidden;
-  box-shadow: inset 0 0 0 3px var(--dy-ink);
-  /* golden hour in hard pixel bands */
-  background: linear-gradient(#5b7fc7 0 16%, #7d92cd 16% 30%, #b997bd 30% 42%, #ec9f6a 42% 56%, #f6bf7a 56% 70%, #f9dca6 70%);
-}
-
-.arrival-scene i,
-.arrival-scene b,
-.arrival-scene > div {
-  position: absolute;
-  display: block;
-}
-
-.arr-sun {
-  right: 20%;
-  bottom: 34%;
-  width: 40px;
-  height: 40px;
-  background: #ffe57b;
-  clip-path: polygon(30% 0, 70% 0, 70% 10%, 90% 10%, 90% 30%, 100% 30%, 100% 70%, 90% 70%, 90% 90%, 70% 90%, 70% 100%, 30% 100%, 30% 90%, 10% 90%, 10% 70%, 0 70%, 0 30%, 10% 30%, 10% 10%, 30% 10%);
-  box-shadow: 0 0 0 10px rgba(255, 229, 123, 0.25);
-  animation: arr-sun 3s var(--dy-out) both;
-}
-
-.arr-cloud {
-  height: 10px;
-  background: #fff5e6;
-  opacity: 0.92;
-  animation: arr-drift 22s linear infinite;
-}
-
-.arr-cloud::before,
-.arr-cloud::after {
-  content: '';
-  position: absolute;
-  bottom: 100%;
-  background: inherit;
-}
-
-.arr-cloud::before {
-  left: 20%;
-  width: 40%;
-  height: 8px;
-}
-
-.arr-cloud::after {
-  left: 45%;
-  width: 30%;
-  height: 14px;
-}
-
-.arr-cloud.c1 {
-  left: 8%;
-  top: 22%;
-  width: 70px;
-}
-
-.arr-cloud.c2 {
-  left: 58%;
-  top: 12%;
-  width: 52px;
-  opacity: 0.75;
-  animation-duration: 30s;
-}
-
-.arr-cloud.c3 {
-  left: 30%;
-  top: 42%;
-  width: 44px;
-  opacity: 0.6;
-  animation-duration: 26s;
-}
-
-.arrival-scene .arr-skyline {
-  left: 0;
-  right: 0;
-  bottom: 18px;
-  height: 44px;
-}
-
-.arr-skyline-svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.arrival-scene .arr-runway {
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 18px;
-  background: linear-gradient(#8a8098 0 3px, #4a4458 3px);
-  box-shadow: inset 0 -3px 0 var(--dy-ink);
-}
-
-.arr-runway b {
-  top: 8px;
-  left: calc(4% + var(--i) * 11.5%);
-  width: 6px;
-  height: 3px;
-  background: #fff5d0;
-  animation: arr-lights 1.6s steps(1) infinite;
-  animation-delay: calc(var(--i) * 0.12s);
-}
-
-.arrival-scene .arr-plane {
-  left: -30%;
-  bottom: 74%;
-  width: 112px;
-  height: 42px;
-  transform-origin: 60% 80%;
-  animation: arr-land 2.6s cubic-bezier(0.3, 0.6, 0.35, 1) 0.2s both;
-}
-
-.arr-plane-svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.arr-plane .arr-shadow {
-  left: 10%;
-  right: 10%;
-  bottom: -8px;
-  height: 4px;
-  background: rgba(40, 30, 50, 0.4);
-  animation: arr-shadow 2.6s ease-in 0.2s both;
-}
-
-.arrival-head {
-  padding: 12px 16px 2px;
-  animation: dy-up 0.4s var(--dy-out) 0.9s both;
-}
-
-#arrival-intro .arrival-kicker {
-  margin: 0 0 2px;
-  font-size: 0.78rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #2b5ba8;
-}
-
-#arrival-intro h2 {
-  margin: 0 0 4px;
-  font-family: var(--font-pixel, inherit);
-  font-size: 1.7rem;
-  line-height: 1;
-  color: #8f3e15;
-}
-
-#arrival-intro p {
-  margin: 0 0 2px;
-}
+/* ================================================================ arrival: the hand-over at the airport and the catch-up grant */
 
 .arrival-julia {
   display: grid;
@@ -456,6 +258,20 @@
   text-align: left;
 }
 
+/* Célia hands over Júlia's package in the dialogue box: the two gifts and the note, at once (no stagger: the box is already the moment) */
+.arrival-handover .arrival-julia,
+.arrival-handover .arrival-gift {
+  animation-delay: 0s;
+}
+
+.arrival-handover .arrival-julia {
+  padding: 6px 0 0;
+}
+
+.arrival-handover .arrival-gifts {
+  padding: 0;
+}
+
 .arrival-flyer {
   position: fixed;
   z-index: 80;
@@ -463,14 +279,6 @@
 }
 
 @media (max-width: 520px) {
-  .arrival-scene {
-    height: 128px;
-  }
-
-  #arrival-intro h2 {
-    font-size: 1.4rem;
-  }
-
   .arrival-julia {
     grid-template-columns: 64px minmax(0, 1fr);
   }
@@ -493,13 +301,6 @@
   }
 }
 
-@keyframes arrival-drop {
-  to {
-    opacity: 0;
-    transform: translateY(40px) rotate(2deg) scale(0.96);
-  }
-}
-
 @keyframes arrival-julia {
   from {
     opacity: 0;
@@ -511,63 +312,6 @@
   from {
     opacity: 0;
     transform: translateY(14px) scale(0.6);
-  }
-}
-
-@keyframes arr-land {
-  0% {
-    left: -30%;
-    bottom: 74%;
-    transform: rotate(-7deg) scale(1);
-  }
-  62% {
-    left: 40%;
-    bottom: 22px;
-    transform: rotate(-3deg) scale(0.84);
-  }
-  70% {
-    bottom: 16px;
-    transform: rotate(0deg) scale(0.82);
-  }
-  100% {
-    left: 58%;
-    bottom: 16px;
-    transform: rotate(0deg) scale(0.8);
-  }
-}
-
-@keyframes arr-shadow {
-  0%,
-  45% {
-    opacity: 0;
-    transform: scaleX(0.3) translateY(60px);
-  }
-  62%,
-  100% {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes arr-sun {
-  from {
-    transform: translateY(18px);
-  }
-}
-
-@keyframes arr-drift {
-  to {
-    transform: translateX(60px);
-  }
-}
-
-@keyframes arr-lights {
-  0%,
-  100% {
-    background: #fff5d0;
-  }
-  50% {
-    background: #f2c230;
   }
 }
 
@@ -1947,9 +1691,184 @@ html.px-ui .backdrop > .panel.escola-panel,
   }
 }
 
+/* ---------------------------------------------------------------- a word heard in a line: marked where it was said, then flown into the Diário */
+
+.heard-mark {
+  position: fixed;
+  z-index: 60;
+  border-radius: 6px 3px 7px 4px;
+  background: linear-gradient(100deg, rgba(242, 194, 48, 0.55), rgba(255, 214, 102, 0.75) 60%, rgba(242, 194, 48, 0.6));
+  mix-blend-mode: multiply;
+  box-shadow: 0 0 0 0 rgba(242, 194, 48, 0.55);
+  pointer-events: none;
+  transform-origin: left center;
+  animation:
+    heard-sweep 0.38s var(--dy-out) both,
+    heard-glow 0.7s ease-out 0.38s both;
+}
+
+.heard-mark.leaving {
+  animation: dy-fade-out 0.28s ease-in forwards;
+}
+
+@keyframes heard-sweep {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes heard-glow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(242, 194, 48, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(242, 194, 48, 0);
+  }
+}
+
+.heard-chip {
+  position: fixed;
+  z-index: 61;
+  padding: 0 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+  color: #8f3e15;
+  background: var(--dy-paper);
+  box-shadow:
+    0 0 0 2px var(--dy-gold),
+    0 0 18px 4px rgba(255, 214, 102, 0.7),
+    0 6px 0 rgba(20, 10, 6, 0.18);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  will-change: left, top, transform, opacity;
+}
+
+.heard-spark {
+  position: fixed;
+  z-index: 60;
+  width: 7px;
+  height: 7px;
+  margin: -3.5px 0 0 -3.5px;
+  border-radius: 50%;
+  background: var(--dy-gold);
+  box-shadow: 0 0 6px 1px rgba(255, 214, 102, 0.9);
+  pointer-events: none;
+  animation: heard-spark 0.65s ease-out forwards;
+}
+
+.heard-spark.star {
+  border-radius: 1px;
+  background: #fff6cf;
+  transform: rotate(45deg);
+}
+
+@keyframes heard-spark {
+  to {
+    opacity: 0;
+    translate: var(--dx) var(--dy);
+    scale: 0.2;
+  }
+}
+
+#heard-quote {
+  position: fixed;
+  top: 22%;
+  left: 50%;
+  z-index: 59;
+  display: grid;
+  gap: 3px;
+  max-width: min(460px, calc(100vw - 32px));
+  padding: 9px 16px 11px;
+  border-radius: 4px;
+  color: var(--dy-ink);
+  background: var(--hud-paper, #fbf1e3);
+  box-shadow:
+    0 0 0 3px var(--dy-ink),
+    0 6px 0 rgba(20, 10, 6, 0.3);
+  transform: translateX(-50%);
+  pointer-events: none;
+  animation: heard-quote-in 0.32s var(--dy-out) both;
+}
+
+#heard-quote.leaving {
+  animation: dy-fade-out 0.3s ease-in forwards;
+}
+
+#heard-quote .heard-who {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--dy-stamp);
+}
+
+#heard-quote .heard-line {
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+@keyframes heard-quote-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+
+#heard-quote.docked {
+  top: auto;
+  transform: none;
+  border-radius: 6px 6px 0 0;
+  box-shadow:
+    0 0 0 3px var(--dy-ink),
+    0 -3px 0 3px rgba(20, 10, 6, 0.12);
+  animation: heard-tab-in 0.32s var(--dy-out) both;
+}
+
+@keyframes heard-tab-in {
+  from {
+    opacity: 0;
+    translate: 0 14px;
+  }
+}
+
+/* a heard word's card: the slot waits empty while the word flies in from the dialogue box, then pops */
+#photo-celebrate .celebrate-pt.awaiting {
+  visibility: hidden;
+  animation: none;
+}
+
+#photo-celebrate .celebrate-pt.arrived {
+  animation: heard-arrive 0.5s var(--dy-pop) both;
+}
+
+@keyframes heard-arrive {
+  0% {
+    transform: scale(1.18);
+    text-shadow: 0 0 18px rgba(255, 214, 102, 0.95);
+  }
+  100% {
+    transform: scale(1);
+    text-shadow: 0 0 0 rgba(255, 214, 102, 0);
+  }
+}
+
+#photo-celebrate .celebrate-burst.held i {
+  opacity: 0;
+  animation: none;
+}
+
+#photo-celebrate.filing {
+  background: transparent;
+  transition: background 0.3s ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  #arrival-intro *,
-  #arrival-intro,
+  .arrival-handover,
+  .arrival-handover *,
   #grant-offer,
   #grant-offer *,
   #camera-frame,
@@ -1963,7 +1882,9 @@ html.px-ui .backdrop > .panel.escola-panel,
   .cartela-banner,
   .cartela-banner *,
   .cartela-hole .ink,
-  #cartela-pill {
+  #cartela-pill,
+  #heard-quote,
+  .heard-mark {
     animation-duration: 0.01ms !important;
     animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
@@ -1973,160 +1894,6 @@ html.px-ui .backdrop > .panel.escola-panel,
   .diary-cover {
     display: none;
   }
-}
-
-/* ================================================================ the airport hall: a postcard to photograph and read (Chegada) */
-
-#arrival-hall {
-  position: fixed;
-  inset: 0;
-  z-index: 11;
-  display: grid;
-  place-items: center;
-  padding: 12px;
-  background: rgba(20, 16, 12, 0.6);
-  cursor: crosshair;
-  overflow-y: auto;
-  animation: dy-fade 0.3s ease-out both;
-}
-
-#arrival-hall .hall-card {
-  width: min(640px, 100%);
-  padding: 8px 8px 10px;
-  color: var(--dy-ink);
-  background: var(--hud-paper, #fbf1e3);
-  box-shadow:
-    0 0 0 3px var(--dy-ink),
-    0 10px 0 rgba(20, 10, 6, 0.35);
-  text-align: center;
-}
-
-#arrival-hall .hall-kicker {
-  margin: 2px 0 6px;
-  font-size: 0.95rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #2b5ba8;
-}
-
-#arrival-hall .hall-scene {
-  container-type: inline-size;
-  position: relative;
-  width: 100%;
-  aspect-ratio: 160 / 112;
-  overflow: hidden;
-  background: #8fd0ee;
-  box-shadow: 0 0 0 3px var(--dy-ink);
-}
-
-#arrival-hall .hall-scene > i {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  pointer-events: none;
-}
-
-#arrival-hall .hall-sky {
-  top: 0;
-  height: 42%;
-  background: linear-gradient(#6fb9e6, #cfe9f0 62%, #fbe3a6);
-}
-
-#arrival-hall .hall-ground {
-  top: 30%;
-  height: 13%;
-  background: repeating-linear-gradient(90deg, #5c6a5a 0 6%, #667563 6% 12%);
-}
-
-#arrival-hall .hall-wall {
-  top: 41%;
-  height: 27%;
-  background: #e8dfcc;
-  border-top: 4px solid var(--dy-ink);
-}
-
-#arrival-hall .hall-floor {
-  top: 68%;
-  height: 32%;
-  background: repeating-linear-gradient(90deg, #b8ab91 0 12%, #a99d83 12% 24%);
-}
-
-#arrival-hall .hall-booth {
-  left: 36% !important;
-  top: 74%;
-  width: 28% !important;
-  height: 26%;
-  background: linear-gradient(#daa463 0 12%, #a9764f 12%);
-  box-shadow: 0 0 0 3px var(--dy-ink);
-}
-
-#arrival-hall .hall-obj {
-  position: absolute;
-  pointer-events: none;
-}
-
-#arrival-hall .hall-art {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-#arrival-hall .hall-sign {
-  position: absolute;
-  padding: 0.2cqw 1.4cqw;
-  border: 2px solid var(--dy-ink);
-  font-family: var(--font-pixel, inherit);
-  font-size: max(7px, 2.5cqw);
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  line-height: 1.5;
-  box-shadow: 0 2px 0 rgba(20, 10, 6, 0.35);
-  cursor: pointer;
-}
-
-#arrival-hall .tone-blue {
-  background: #3d56d2;
-  color: #fff;
-}
-
-#arrival-hall .tone-red {
-  background: #d93232;
-  color: #fff;
-}
-
-#arrival-hall .tone-yellow {
-  background: #f8d239;
-  color: var(--dy-ink);
-}
-
-#arrival-hall .tone-white {
-  background: #f8f8f8;
-  color: var(--dy-ink);
-}
-
-#arrival-hall .hall-sign:hover,
-#arrival-hall .hall-sign:focus-visible {
-  outline: 3px solid var(--dy-gold);
-  outline-offset: 1px;
-}
-
-#arrival-hall .hall-hint {
-  margin: 8px 0 4px;
-  font-weight: 700;
-}
-
-#arrival-hall .hall-actions {
-  display: flex;
-  justify-content: center;
-  margin-top: 6px;
-  cursor: default;
-}
-
-/* the hall's shots are free and keep no picture: no film count, no empty print */
-#ui:has(#arrival-hall) #camera-banner,
-#ui:has(#arrival-hall) #camera-film {
-  display: none;
 }
 
 #photo-print .print-img:empty {

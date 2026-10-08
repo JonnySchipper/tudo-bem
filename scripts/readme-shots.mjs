@@ -14,6 +14,7 @@ import { findChrome } from './lib/chrome.mjs';
 import { requirePinnedClock } from './lib/clock-pin.mjs';
 import { openNpc } from './lib/npc.mjs';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
+import { finishArrival } from './lib/arrival.mjs';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:8787';
 const OUT = process.env.SHOTS_DIR ?? path.join('docs', 'screenshots');
@@ -49,7 +50,7 @@ await page.waitForSelector('#avatar-name', { timeout: 15_000 });
 await page.fill('#avatar-name', 'Jonny');
 await page.click('button:has-text("ele (he)")');
 await page.click('#enter-praca');
-await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 15_000, 'praça');
+await finishArrival(page);
 await sleep(1500);
 
 // 1. the street in front of the padaria, golden hour

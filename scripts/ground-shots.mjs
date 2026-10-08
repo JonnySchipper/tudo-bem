@@ -14,6 +14,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { findChrome } from './lib/chrome.mjs';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
+import { finishArrival } from './lib/arrival.mjs';
 
 const argv = Object.fromEntries(process.argv.slice(2).filter((a) => a.startsWith('--')).map((a) => a.slice(2).split('=')));
 const BASE = process.env.BASE_URL ?? 'http://localhost:8877';
@@ -75,7 +76,7 @@ async function boot(page, vp) {
   await page.fill('#avatar-name', 'Jonny');
   await page.click('button:has-text("ele (he)")');
   await page.click('#enter-praca');
-  await waitFor(page, () => window.__tb.game.room?.room === 'praca', null, 20_000, 'room praca');
+  await finishArrival(page);
   await sleep(2000);
 }
 

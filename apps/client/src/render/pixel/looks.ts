@@ -232,6 +232,15 @@ export const NPC_STYLES: Record<NpcId, NpcStyle> = {
   lucia: {
     appearance: base({ body: 'medio', skin: 3, hair: 'coque', hairColor: 4, top: 'blusa', topColor: 0, bottom: 'saia', bottomColor: 2, shoes: 2, face: 'maduro', extra: 'oculos', idle: 'bracos' }),
   },
+  // The airport (arrival tutorial). Célia at the information desk: bun, the airport's teal uniform shirt with a yellow scarf knot (the
+  // apron layer in yellow reads as the scarf and the badge strip). Agente Paulo at passport control: the Federal Police navy cap and shirt.
+  celia: {
+    appearance: base({ body: 'medio', skin: 4, hair: 'coque', hairColor: 0, top: 'camisa', topColor: 5, bottom: 'saia', bottomColor: 10, shoes: 0, face: 'doce', extra: 'brincos', idle: 'bracos' }),
+  },
+  agente: {
+    appearance: base({ body: 'forte', skin: 3, hair: 'raspado', hairColor: 0, top: 'camisa', topColor: 10, bottom: 'calca', bottomColor: 10, shoes: 2, face: 'marcante', extra: 'nenhum', idle: 'bracos' }),
+    hat: { layer: 'hat_bone_verde', color: '#2e3550', accent: '#f2c230' },
+  },
 };
 
 /**
