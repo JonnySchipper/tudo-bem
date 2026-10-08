@@ -39,7 +39,7 @@ WORKDIR /sqlite
 COPY apps/server/package.json /tmp/server-package.json
 RUN npm install --omit=dev --no-audit --no-fund \
     "better-sqlite3@$(node -p "require('/tmp/server-package.json').dependencies['better-sqlite3']")" \
-  && node -e "const D=require('better-sqlite3'); const db=new D(':memory:'); db.pragma('journal_mode=WAL'); if (db.pragma('journal_mode',{simple:true})!=='wal') process.exit(1); console.log('better-sqlite3', db.prepare('select sqlite_version() v').get().v);"
+  && node -e "const D=require('better-sqlite3'); const db=new D('/tmp/t.sqlite'); db.pragma('journal_mode=WAL'); if (db.pragma('journal_mode',{simple:true})!=='wal') { console.error('journal', db.pragma('journal_mode',{simple:true})); process.exit(1); } console.log('better-sqlite3', db.prepare('select sqlite_version() v').get().v);"
 
 FROM node:22-bookworm-slim
 WORKDIR /app
