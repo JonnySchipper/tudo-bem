@@ -643,6 +643,169 @@ body.cr-on .toasts {
   color: #d8ffe6;
 }
 
+/* a lesson lands with a small pop; numbered steps read as a recipe */
+.cr-lesson {
+  animation: cr-lesson-in 0.32s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.cr-lesson ol {
+  list-style: none;
+  padding-left: 0;
+  counter-reset: cr-step;
+}
+
+.cr-lesson li {
+  position: relative;
+  padding-left: 26px;
+  counter-increment: cr-step;
+}
+
+.cr-lesson li::before {
+  content: counter(cr-step);
+  position: absolute;
+  left: 0;
+  top: 1px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  background: var(--cr-ink);
+  color: var(--cr-paper);
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.cr-lesson-item {
+  border-color: #8a5a10;
+  box-shadow:
+    4px 4px 0 #14101a,
+    inset 0 0 0 2px var(--cr-gold);
+}
+
+.cr-ribbon {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: -2px 0 6px;
+  padding: 2px 8px;
+  background: var(--cr-gold);
+  border: 2px solid var(--cr-ink);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cr-ribbon .gloss {
+  display: inline;
+  margin: 0;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #5a3c06;
+}
+
+@keyframes cr-lesson-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* the cardápio: what is open, what just opened, and the next item */
+.cr-ladder {
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: #fff8ea;
+  border: 2px dashed #b58f5a;
+  font-size: 12px;
+}
+
+.cr-ladder-news {
+  margin: 0 0 6px;
+  font-weight: 900;
+  font-size: 14px;
+  color: #6a4a10;
+}
+
+.cr-ladder-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.cr-ladder-k {
+  margin-right: 2px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cr-lchip {
+  padding: 1px 6px;
+  border: 2px solid var(--cr-ink);
+  background: #fff;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.cr-lchip.fresh {
+  background: var(--cr-gold);
+  animation: cr-chip-pop 0.5s 0.25s cubic-bezier(0.2, 1.6, 0.4, 1) both;
+}
+
+.cr-lchip.fresh::after {
+  content: ' ✨';
+}
+
+.cr-lchip.locked {
+  border-style: dashed;
+  background: transparent;
+  color: #7a6a58;
+}
+
+.cr-ladder-next {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 6px;
+  margin: 6px 0 0;
+}
+
+.cr-ladder-next .gloss {
+  display: inline;
+  margin: 0;
+}
+
+.cr-pips {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.cr-pips i {
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--cr-ink);
+  background: #fff;
+}
+
+.cr-pips i.on {
+  background: var(--cr-green);
+}
+
+@keyframes cr-chip-pop {
+  0% {
+    transform: scale(0.4);
+  }
+  100% {
+    transform: none;
+  }
+}
+
 @keyframes cr-banner {
   0% {
     opacity: 0;
@@ -937,6 +1100,77 @@ body.cr-on .toasts {
 
 .cr-hit.cr-grill[data-state='burnt'] {
   outline: 2px solid var(--cr-red);
+}
+
+/* NOVO: an item that just joined the menu, until it has been made once this shift */
+.cr-new {
+  display: none;
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  padding: 1px 3px;
+  background: var(--cr-gold);
+  border: 1px solid var(--cr-ink);
+  color: var(--cr-ink);
+  font-size: calc(var(--cr-fs, 10px) * 0.8);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+  transform: rotate(8deg);
+}
+
+.cr-hit.fresh .cr-new {
+  display: block;
+  animation: cr-new-bob 1.1s ease-in-out infinite;
+}
+
+.cr-hit.fresh {
+  outline: 2px dashed var(--cr-gold);
+  outline-offset: -1px;
+}
+
+@keyframes cr-new-bob {
+  0%,
+  100% {
+    transform: rotate(8deg) translateY(0);
+  }
+  50% {
+    transform: rotate(8deg) translateY(-2px);
+  }
+}
+
+/* the coffee machine follows the pour: wait (gold), now (green, pulsing), too late (red) */
+.cr-hit.cr-machine[data-state='short'] {
+  outline: 2px solid var(--cr-gold);
+  outline-offset: -2px;
+}
+
+.cr-hit.cr-machine[data-state='now'] {
+  outline: 3px solid #8ff0a4;
+  outline-offset: -2px;
+  background: rgba(102, 210, 127, 0.28);
+  animation: cr-glow 0.35s ease-out infinite;
+}
+
+.cr-hit.cr-machine[data-state='over'] {
+  outline: 2px solid var(--cr-red);
+  outline-offset: -2px;
+  background: rgba(192, 57, 43, 0.2);
+}
+
+.cr-hit.cr-machine[data-state='now'] .cr-lab {
+  color: #c9ffd6;
+  font-size: calc(var(--cr-fs, 10px) * 1.25);
+}
+
+.cr-hit.cr-machine[data-state='over'] .cr-lab {
+  color: #ffc4bc;
+}
+
+/* while a pour runs its label shows even where the shelf names are hidden: it is the only place that says when to tap */
+.cr-hot.small .cr-machine:not([data-state='idle']) .cr-lab {
+  display: block;
 }
 
 .cr-hit.cr-pack.on {
@@ -1289,10 +1523,32 @@ body.cr-on .toasts {
   .cr-follow,
   .cr-end,
   .cr-stat.combo.hot b,
-  .cr-hit.cr-grill[data-state='ready'] {
+  .cr-hit.cr-grill[data-state='ready'],
+  .cr-hit.cr-machine[data-state='now'],
+  .cr-hit.fresh .cr-new,
+  .cr-lesson,
+  .cr-lchip.fresh {
     animation: none;
   }
   .cr-pop {
     opacity: 1;
+  }
+}
+
+/* a phone: the cardápio strip stays one compact block */
+@media (max-width: 640px) {
+  .cr-ladder {
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+  .cr-ladder-news {
+    font-size: 13px;
+  }
+  .cr-lesson li {
+    padding-left: 22px;
+  }
+  .cr-lesson li::before {
+    width: 16px;
+    height: 16px;
   }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { newShift, shiftAct, shiftAdvance, shiftSnapshot, type CEvent, type CorreriaEnd, type CorreriaSnap } from '@tudobem/shared';
-import { askCard, cueFor, endModel, frontOf, glossOn, hud, modChips, orderMirror, patienceFrac, trayChips } from './correriaLogic';
+import { POUR, menuLadder, newShift, pourVerdict, shiftAct, shiftAdvance, shiftSnapshot, type CEvent, type CorreriaEnd, type CorreriaSnap } from '@tudobem/shared';
+import { askCard, cueFor, endModel, frontOf, glossOn, hud, ladderModel, ladderNews, modChips, orderMirror, patienceFrac, pourMeter, pourZone, trayChips } from './correriaLogic';
 
 const shiftAt = (seed: number, level = 0): CorreriaSnap => {
   const sh = newShift({ seed, level, unlocked: [], saturday: false, minute: 540, baker: 'carlos', regulars: [] });
@@ -122,5 +122,43 @@ describe('the Correria overlay view-model', () => {
     const sh = newShift({ seed: 1, level: 0, unlocked: [], saturday: false, minute: 540, baker: 'carlos', regulars: [] });
     const ev = [...shiftAdvance(sh, 5000), ...shiftAct(sh, { a: 'grab', item: 'agua' }), ...shiftAct(sh, { a: 'clear' }), ...shiftAct(sh, { a: 'pack', kind: 'bag' })];
     for (const e of ev) expect(() => cueFor(e)).not.toThrow();
+  });
+
+  it('the coffee meter marks the same window the server judges, and shows an overpour', () => {
+    expect(pourZone(0.5)).toBe('short');
+    expect(pourZone(0.7)).toBe('now');
+    expect(pourZone(1.08)).toBe('now');
+    expect(pourZone(1.1)).toBe('over');
+    for (const f of [0.2, 0.69, 0.71, 0.9, 1, 1.07, 1.09, 1.5]) {
+      const ms = f * POUR.fullMs;
+      const server = pourVerdict(ms).verdict;
+      expect(pourZone(f)).toBe(server === 'ok' ? 'now' : server === 'short' ? 'short' : 'over');
+    }
+    const m = pourMeter(1, 48);
+    expect(m.full).toBe(8);
+    expect(m.goodTop).toBeLessThan(m.full);
+    expect(m.goodBottom).toBeGreaterThan(m.full);
+    expect(pourMeter(0, 48).level).toBe(48);
+    expect(pourMeter(1.1, 48).level).toBeLessThan(m.goodTop);
+    expect(pourMeter(9, 48).level).toBe(0);
+  });
+
+  it('the cardápio strip: open items, the fresh ones, and the next item with its pips', () => {
+    const first = ladderModel(menuLadder(0));
+    expect(first.chips.map((c) => [c.id, c.open, c.fresh])).toEqual([['cafe', true, true], ['pao', true, true], ['agua', false, false]]);
+    expect(first.next?.pt).toBe('Próximo: água · faltam 2 turnos');
+    expect(first.pips).toEqual([false, false]);
+    const one = ladderModel(menuLadder(1));
+    expect(one.next?.pt).toBe('Próximo: água · falta 1 turno');
+    expect(one.next?.en).toMatch(/1 more shift/);
+    expect(one.pips).toEqual([true, false]);
+    expect(ladderNews(menuLadder(1))).toBeNull();
+    expect(ladderNews(menuLadder(2))).toEqual({ pt: 'Novo no cardápio: água! Já no próximo turno.', en: expect.stringMatching(/^New on the menu: .+! From your next shift\.$/) });
+    const full = ladderModel(menuLadder(99));
+    expect(full.next?.pt).toBe('Cardápio completo!');
+    expect(full.pips).toEqual([]);
+    expect(full.chips.every((c) => c.open)).toBe(true);
+    // an owned size-1 shop promises nothing
+    expect(ladderModel(menuLadder(9, ['cafe', 'pao'])).next).toBeNull();
   });
 });

@@ -3,7 +3,10 @@
  * card and the end card say, and which sounds and cues a server event causes. `ui/correria.ts` only draws what these return.
  */
 import {
+  ITEM_EVERY_SHIFTS,
   LEVELS,
+  MENU_LADDER,
+  POUR,
   UNLOCKS,
   mgItemById,
   mgModById,
@@ -16,6 +19,7 @@ import {
   type CorreriaEnd,
   type CorreriaSnap,
   type CustomerView,
+  type MenuLadderView,
 } from '@tudobem/shared';
 import type { CorreriaSfx } from '../audio/correriaSfx';
 
@@ -219,6 +223,61 @@ export function endModel(end: CorreriaEnd, carlos: Bilingual): EndModel {
     words: end.words,
     unlocks: end.newUnlocks.map((u) => ({ pt: UNLOCKS.find((x) => x.id === u.id)?.hint.pt ?? u.pt, en: UNLOCKS.find((x) => x.id === u.id)?.hint.en ?? u.en })),
     note: carlos,
+  };
+}
+
+/** The coffee meter runs past the full cup, so the whole good band (`POUR.goodMin`..`POUR.spillAt`) and an overpour both show. */
+export const POUR_METER_MAX = 1.2;
+export type PourZone = 'short' | 'now' | 'over';
+/** The same verdict the server gives a pour stopped at `fill`. */
+export const pourZone = (fill: number): PourZone => (fill < POUR.goodMin ? 'short' : fill <= POUR.spillAt ? 'now' : 'over');
+
+/** Rows from the top of a meter `height` px tall: the fill level, the good band, and the full-cup line. */
+export function pourMeter(fill: number, height: number): { level: number; goodTop: number; goodBottom: number; full: number; zone: PourZone } {
+  const y = (f: number) => height - Math.round((height * Math.max(0, Math.min(POUR_METER_MAX, f))) / POUR_METER_MAX);
+  return { level: y(fill), goodTop: y(POUR.spillAt), goodBottom: y(POUR.goodMin), full: y(1), zone: pourZone(fill) };
+}
+
+export interface LadderModel {
+  /** Every ladder item; `open` ones are on the counter, `fresh` ones just joined it. */
+  chips: { id: string; pt: string; en: string; open: boolean; fresh: boolean }[];
+  /** The line under the strip: the next item and when, or the full menu. Null when an owned room's menu stops the ladder. */
+  next: Bilingual | null;
+  /** One pip per shift between items, filled for the ones already played. */
+  pips: boolean[];
+}
+
+const itemName = (id: string): Bilingual => {
+  const it = mgItemById(id);
+  return { pt: it?.card.form ?? id, en: it?.card.gloss_en ?? id };
+};
+
+/** The cardápio strip of the lesson and end cards. */
+export function ladderModel(v: MenuLadderView): LadderModel {
+  const open = new Set(v.open);
+  const fresh = new Set(v.fresh);
+  const shown = MENU_LADDER.filter((id) => open.has(id) || id === v.next);
+  const chips = shown.map((id) => ({ id, ...itemName(id), open: open.has(id), fresh: fresh.has(id) }));
+  let next: Bilingual | null = null;
+  if (v.next) {
+    const n = itemName(v.next);
+    // `toNext` counts completed shifts, this one included when a shift is on
+    next =
+      v.toNext <= 1
+        ? { pt: `Próximo: ${n.pt} · falta 1 turno`, en: `Next: ${n.en} · 1 more shift` }
+        : { pt: `Próximo: ${n.pt} · faltam ${v.toNext} turnos`, en: `Next: ${n.en} · ${v.toNext} more shifts` };
+  } else if (v.open.length >= MENU_LADDER.length) next = { pt: 'Cardápio completo!', en: 'Full menu!' };
+  const done = v.next ? ITEM_EVERY_SHIFTS - Math.max(1, Math.min(ITEM_EVERY_SHIFTS, v.toNext)) : 0;
+  return { chips, next, pips: v.next ? Array.from({ length: ITEM_EVERY_SHIFTS }, (_, i) => i < done) : [] };
+}
+
+/** The end card's headline when the next shift opens something: "Novo no cardápio: água! Já no próximo turno.". */
+export function ladderNews(v: MenuLadderView): Bilingual | null {
+  if (!v.fresh.length) return null;
+  const names = v.fresh.map(itemName);
+  return {
+    pt: `Novo no cardápio: ${names.map((n) => n.pt).join(' e ')}! Já no próximo turno.`,
+    en: `New on the menu: ${names.map((n) => n.en).join(' and ')}! From your next shift.`,
   };
 }
 

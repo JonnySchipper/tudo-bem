@@ -37,6 +37,7 @@ import { correriaFeed, type StageCue } from './correriaFeed';
 import { game } from '../../state';
 import { originOf } from './spriteUtil';
 import { DEPTH } from './props';
+import { pourMeter, pourZone, type PourZone } from '../../ui/correriaLogic';
 import {
   ART,
   BAG_SPOT,
@@ -100,6 +101,16 @@ export interface CounterHost {
 const D = { board: 2000, piece: 2010, tray: 2020, item: 2030, customer: 2100, fx: 2300, hud: 2400 } as const;
 const WALK_PX_S = 46;
 const POP_MS = 1500;
+/** The coffee meter beside the machine, in world px (the machine stands from y -18 to 22). */
+const POUR_METER_TOP = -18;
+const POUR_METER_H = 36;
+/** The machine's label by the pour: start it, wait for green, tap now, too late. */
+const POUR_LABEL: Record<'idle' | PourZone, { pt: string; en: string }> = {
+  idle: { pt: 'Cafeteira', en: 'Tap to pour' },
+  short: { pt: 'Espere o verde…', en: 'Wait for green…' },
+  now: { pt: 'Agora!', en: 'Tap now!' },
+  over: { pt: 'Passou!', en: 'Too much!' },
+};
 
 type Img = Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
 
@@ -227,6 +238,8 @@ export class CounterStage {
   private hotSig = '';
   private hotSnap = '';
   private pouring = false;
+  /** Items made at least once this shift (their NOVO tag is gone). */
+  private made = new Set<string>();
 
   constructor(private readonly h: CounterHost) {}
 
@@ -349,6 +362,13 @@ export class CounterStage {
           b.append(en);
         }
       }
+      if (id.startsWith('item-') || id === 'machine') {
+        const tag = document.createElement('span');
+        tag.className = 'cr-new';
+        tag.textContent = 'NOVO';
+        tag.setAttribute('aria-hidden', 'true');
+        b.append(tag);
+      }
       if (handlers.click) b.addEventListener('click', handlers.click);
       if (handlers.down) {
         const down = (e: Event) => {
@@ -427,6 +447,7 @@ export class CounterStage {
     this.lastTips = 0;
     this.bellUntil = 0;
     this.pouring = false;
+    this.made.clear();
     this.spillUntil = 0;
     this.lastStep = 'idle';
     this.nudge = { x: 0, y: 0 };
@@ -500,22 +521,35 @@ export class CounterStage {
   /** Items are lit up when the player can use them: dimmed when they are not on this shift's menu. An empty menu (old snap) leaves the shelf open. */
   private drawPieces(snap: CorreriaSnap, age: number): void {
     const open = snap.menu?.length ? new Set(snap.menu) : null;
+    // just on the menu and not made yet this shift: a NOVO tag on the shelf (the machine carries it for the cups)
+    const fresh = new Set((snap.ladder?.fresh ?? []).filter((id) => !this.made.has(id)));
     for (const it of MG_ITEMS) {
       const lock = !!open && !open.has(it.id);
       const p = this.items.get(it.id)!;
       p.set(shelfKey(it.id), { alpha: lock ? 0.28 : 1, scale: ITEM_SCALE });
       const hot = this.hot.get(`item-${it.id}`);
-      if (hot) hot.el.disabled = lock;
+      if (hot) {
+        hot.el.disabled = lock;
+        hot.el.classList.toggle('fresh', !lock && fresh.has(it.id));
+      }
     }
     const machine = this.hot.get('machine');
     if (machine) {
       const live = !!snap.pour || this.pouring;
+      // the label follows the server's window: "Agora!" while a tap would be right
+      const zone = snap.pour ? pourZone((snap.pour.age + age) / snap.pourMs) : null;
+      const state = !live ? 'idle' : zone ?? 'short';
       machine.el.disabled = !!open && !open.has('cafe') && !open.has('cafe_com_leite');
-      const pt = machine.el.querySelector('.cr-lab');
-      const en = machine.el.querySelector('.cr-lab-en');
-      if (pt) pt.textContent = live ? 'Toque de novo' : 'Cafeteira';
-      if (en) en.textContent = live ? 'Tap again at the right time' : 'Tap to pour';
-      machine.el.setAttribute('aria-label', live ? 'Toque de novo (Tap again at the right time)' : 'Cafeteira (Tap to pour)');
+      machine.el.classList.toggle('fresh', !live && CAFE_ITEMS.some((id) => fresh.has(id)));
+      if (machine.el.dataset.state !== state) {
+        machine.el.dataset.state = state;
+        const label = POUR_LABEL[state];
+        const pt = machine.el.querySelector('.cr-lab');
+        const en = machine.el.querySelector('.cr-lab-en');
+        if (pt) pt.textContent = label.pt;
+        if (en) en.textContent = label.en;
+        machine.el.setAttribute('aria-label', `${label.pt} (${label.en})`);
+      }
     }
     // the tray: the base plus a miniature per item (a full one past five)
     const tray = snap.tray;
@@ -848,17 +882,20 @@ export class CounterStage {
       const phase = chapaPhase(a);
       g.fillStyle(phase === 'burnt' ? 0xc0392b : 0xfff2c2, 1).fillRect(x + Math.round(w * u), y - 1, 1, 4);
     });
-    // coffee: a vertical fill bar beside the machine, the good zone marked
+    // coffee: a vertical fill bar beside the machine. The scale runs past a full cup, so the whole good band the server accepts and an
+    // overpour both show; the frame blinks while a tap now would be right.
     if (snap.pour) {
-      const fill = Math.min(1.15, (snap.pour.age + age) / snap.pourMs);
+      const m = pourMeter((snap.pour.age + age) / snap.pourMs, POUR_METER_H);
       const x = 117;
-      const top = -16;
-      const hgt = 34;
-      g.fillStyle(0x1b1210, 0.9).fillRect(x - 1, top - 1, 5, hgt + 2);
-      g.fillStyle(0x2e8a55, 0.9).fillRect(x, top + Math.round(hgt * (1 - 1.0)), 3, Math.round(hgt * 0.3));
-      const col = fill < 0.7 ? 0xf2c230 : fill <= 1.08 ? 0x66d27f : 0xc0392b;
-      const hh = Math.round(hgt * Math.min(1, fill));
-      g.fillStyle(col, 1).fillRect(x, top + hgt - hh, 3, hh);
+      const top = POUR_METER_TOP;
+      const blink = m.zone === 'now' && (this.h.reduced() || Math.floor(this.nowMs / 140) % 2 === 0);
+      g.fillStyle(blink ? 0xfff8e6 : 0x1b1210, 0.95).fillRect(x - 1, top - 1, 6, POUR_METER_H + 2);
+      g.fillStyle(0x3b2314, 1).fillRect(x, top, 4, POUR_METER_H);
+      g.fillStyle(0x2e8a55, 1).fillRect(x, top + m.goodTop, 4, m.goodBottom - m.goodTop);
+      const col = m.zone === 'short' ? 0xf2c230 : m.zone === 'now' ? 0x8ff0a4 : 0xc0392b;
+      g.fillStyle(col, 1).fillRect(x + 1, top + m.level, 2, POUR_METER_H - m.level);
+      // the full-cup line pokes out on both sides, so the target reads even under the level
+      g.fillStyle(0xfff2c2, 1).fillRect(x - 2, top + m.full, 8, 1);
     }
     this.drawJuiceMeter(g, snap, age);
   }
@@ -891,6 +928,7 @@ export class CounterStage {
     if (c.t === 'shake') return this.kick();
     if (c.t === 'cheer') return this.baker_say(c.pt, c.en);
     const e: CEvent = c.e;
+    if (e.k === 'grab' || e.k === 'chapa_ok' || e.k === 'pour_ok' || e.k === 'juice_ok') this.made.add(e.item);
     switch (e.k) {
       case 'chapa_put':
         this.puff(CHAPA_SLOTS[e.slot]!.x, CHAPA_SLOTS[e.slot]!.y - 6, 1);
