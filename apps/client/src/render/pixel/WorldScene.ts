@@ -60,7 +60,7 @@ import { AoLayer } from './aoLayer';
 import { v5on } from './v5flags';
 import { WaterFx } from './water';
 import { presetFor } from './lightPresets';
-import { roofLights } from './roofLights';
+import { roofHall } from './roofLights';
 import { aoForOverhead, aoForSprite } from './ao';
 import { AmbientLife, ambientHandlesProp } from './ambient';
 import { ZoneFeed } from '../../audio/zonesFeed';
@@ -672,8 +672,8 @@ export class WorldScene extends Phaser.Scene {
     }
     this.buildGlints(def);
     this.buildRunway(def);
-    // ---- the ceiling panels of a roofed open-air map (the airport terminal): warm pools on the hall floor from dusk to dawn
-    for (const l of roofLights(def)) this.rig.lights.push({ ...l, kind: 'lamp' });
+    // ---- the ceiling panels of a roofed open-air map (the airport terminal): the hall stays lit from dusk to dawn
+    this.rig.roof = roofHall(def);
 
     // (the neighbours are not part of the room: the server walks them along their schedules and sends them as avatars)
 
@@ -840,7 +840,7 @@ export class WorldScene extends Phaser.Scene {
             const bx = Math.round(a.wx);
             const by = Math.round(a.wy);
             const delay = lightDelay(bx, by);
-            for (const s of pr.lights) this.rig.lights.push({ x: bx + s.x, y: by + s.y, r: s.r, color: parseInt(s.color.slice(1), 16), squash: s.squash, kind: 'lamp', glow: s.glow ?? 0.4, delay });
+            for (const s of pr.lights) this.rig.lights.push({ x: bx + s.x, y: by + s.y, r: s.r, color: parseInt(s.color.slice(1), 16), squash: s.squash, kind: 'lamp', glow: s.glow ?? 0.4, delay, halo: s.halo });
           }
         }
       }

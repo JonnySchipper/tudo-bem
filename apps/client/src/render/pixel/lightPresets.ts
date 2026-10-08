@@ -14,6 +14,8 @@ export interface LightSpec {
   squash: number;
   /** additive glow alpha override */
   glow?: number;
+  /** only the glow, no hole in the night (`Light.halo`): for a sign inside a lit hall */
+  halo?: boolean;
 }
 
 export interface LightPreset {
@@ -45,17 +47,18 @@ export const LIGHT_PRESETS: Record<string, LightPreset> = {
   // a popcorn cart, a coconut-water cart
   'props/pipoqueiro': { lights: [{ x: 0, y: -22, r: 28, color: '#ffcf6a', squash: 0.9, glow: 0.45 }] },
   'props/carrinho_coco': { lights: [{ x: 0, y: -22, r: 26, color: '#fff0b8', squash: 0.9, glow: 0.4 }] },
-  // the airport terminal at night (issue #168; the ceiling pools are `roofLights.ts`): the departures board glows over its own pool, the
-  // AEROPORTO letters over the glass, the backlit signs, the gate number, the information desk lamp and the café counter
-  'aero/painel': { lights: [{ x: 0, y: -28, r: 30, color: '#ffe9b0', squash: 0.8, glow: 0.45 }, { x: 0, y: -2, r: 34, color: '#ffe0a0', squash: 0.5, glow: 0.2 }] },
-  'aero/vidraca_letreiro': { lights: [{ x: -24, y: -36, r: 30, color: '#ffd560', squash: 0.55, glow: 0.45 }, { x: 24, y: -36, r: 30, color: '#ffd560', squash: 0.55, glow: 0.45 }] },
+  // the airport terminal at night (issue #168; the hall itself is lit by `roofLights.ts`): full lights on what stands against the dark
+  // glass front (the AEROPORTO letters, the gate number, the departures board and the TERMINAL sign in the front row), halos only (the
+  // hall is lit already, and stamps cost a phone) on the backlit signs further in, the information desk lamp and the café counter
+  'aero/vidraca_letreiro': { lights: [{ x: 0, y: -36, r: 52, color: '#ffd560', squash: 0.32, glow: 0.45 }] },
   'aero/portao': { lights: [{ x: 0, y: -36, r: 18, color: '#ffd560', squash: 0.9, glow: 0.45 }] },
+  'aero/painel': { lights: [{ x: 0, y: -28, r: 30, color: '#ffe9b0', squash: 0.8, glow: 0.45 }] },
   'aero/placa_terminal': { lights: [{ x: 0, y: -34, r: 24, color: '#eaf2ff', squash: 0.6, glow: 0.35 }] },
-  'aero/placa_bagagem': { lights: [{ x: 0, y: -34, r: 24, color: '#eaf2ff', squash: 0.6, glow: 0.35 }] },
-  'aero/placa_alfandega': { lights: [{ x: 0, y: -34, r: 24, color: '#eaf2ff', squash: 0.6, glow: 0.35 }] },
-  'aero/placa_desembarque': { lights: [{ x: 0, y: -34, r: 30, color: '#eaf2ff', squash: 0.55, glow: 0.35 }] },
-  'aero/informacoes': { lights: [{ x: 0, y: -18, r: 32, color: '#ffd690', squash: 0.75, glow: 0.35 }] },
-  'aero/lanchonete': { lights: [{ x: 0, y: -30, r: 42, color: '#ffc46a', squash: 0.75, glow: 0.4 }] },
+  'aero/placa_bagagem': { lights: [{ x: 0, y: -34, r: 24, color: '#eaf2ff', squash: 0.6, glow: 0.4, halo: true }] },
+  'aero/placa_alfandega': { lights: [{ x: 0, y: -34, r: 24, color: '#eaf2ff', squash: 0.6, glow: 0.4, halo: true }] },
+  'aero/placa_desembarque': { lights: [{ x: 0, y: -34, r: 30, color: '#eaf2ff', squash: 0.55, glow: 0.4, halo: true }] },
+  'aero/informacoes': { lights: [{ x: 0, y: -18, r: 32, color: '#ffd690', squash: 0.75, glow: 0.4, halo: true }] },
+  'aero/lanchonete': { lights: [{ x: 0, y: -30, r: 42, color: '#ffc46a', squash: 0.75, glow: 0.45, halo: true }] },
 };
 
 /** The preset of a sprite key, the generic one when the prop is flagged, else none. */

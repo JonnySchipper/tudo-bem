@@ -1,57 +1,59 @@
 /**
- * The ceiling lights of a roofed open-air map (the airport terminal, issue #168): a grid of warm panel pools on the floor under
- * `RoomDef.roof`, so the terminal reads as a lit building at dusk and at night while the apron and the sidewalk outside follow the sky.
- * They switch on with the lamps (`dayNight.lightState`, 18:00 to 06:00), one bank per row of panels a few game minutes apart, so the hall
- * lights up front to back instead of all at once. Pure, so the layout is unit tested; `WorldScene` turns each into a rig light.
+ * The ceiling lights of a roofed open-air map (the airport terminal, issue #168): the hall under `RoomDef.roof` is lit at dusk and at
+ * night, warm and nearly as bright as by day, while the apron and the sidewalk outside follow the sky.
+ *
+ * Cheap on phones: lamp pools are render-texture stamps, and pools over a whole hall cost a phone about three extra full-screen passes
+ * (some 40 ms a frame in the headless perf probe). So the hall is not a light at all: the lighting rig already fills the grade and the
+ * darkness over the whole screen every frame, and it fills the hall's bands with a lighter value in that same fill (`LightingRig.roof`).
+ * The bands are the rows of ceiling panels, front (north) to back; they switch on with the lamps (`dayNight.lightState`, 18:00 to
+ * 06:00) a few game minutes apart, so the hall lights up bank by bank instead of all at once. Pure, so the layout is unit tested.
  */
 import { T } from './coords';
-import { hashPos01 } from './dayNight';
 
-export interface RoofLight {
-  /** world px of the pool's centre */
-  x: number;
-  y: number;
-  /** world px radius */
-  r: number;
-  color: number;
-  squash: number;
-  glow: number;
-  /** game minutes this panel lags the 18:00 / 06:00 switch */
+export interface RoofBand {
+  /** world px */
+  y0: number;
+  y1: number;
+  /** game minutes this bank lags the 18:00 / 06:00 switch */
   delay: number;
 }
 
-/** Tiles between two ceiling panels across, and the pool radius (world px): neighbours overlap a little so the floor has no black gaps. */
-const PANEL_STEP_X = 6;
-const PANEL_R = 62;
-/** Warm fluorescent: a touch cooler than the street lamps' sodium amber. */
-const PANEL_COLOR = 0xffe2a8;
-/** Game minutes between two banks (rows of panels) switching on. */
+export interface RoofHall {
+  /** world px across the hall */
+  x0: number;
+  x1: number;
+  /** the banks of panels, top to bottom, edge to edge */
+  bands: RoofBand[];
+  /** multiply colour of the lit hall: a warm off-white (fluorescent panels, a touch cooler than the lamps' sodium amber) */
+  tint: number;
+  /** 0..1 how far a lit bank lifts the night toward `tint` (1 = all the way): a terminal at night is lit, not noon */
+  gain: number;
+}
+
+/** Game minutes between two banks switching on. */
 const BANK_LAG = 4;
-/** At most this many rows of panels: three cover the airport's 13-row hall and keep the light count low for phones. */
+/** At most this many banks: three cover the airport's 12-row hall. */
 const MAX_BANKS = 3;
 
-/** The ceiling pools under the roof of `def`, or none for a map without a roof. */
-export function roofLights(def: { cols: number; roof?: { y0: number; y1: number } }): RoofLight[] {
+/** The lit hall under the roof of `def`, or null for a map without a roof. */
+export function roofHall(def: { cols: number; roof?: { y0: number; y1: number } }): RoofHall | null {
   const roof = def.roof;
-  if (!roof) return [];
-  // the glass front stands on the roof's first and last rows: the panels hang over the floor between them
-  const top = roof.y0 + 1;
-  const bottom = roof.y1;
-  const rows = bottom - top;
-  if (rows <= 0) return [];
-  const banks = Math.max(1, Math.min(MAX_BANKS, Math.round(rows / 4)));
-  const cols = Math.max(1, Math.round(def.cols / PANEL_STEP_X));
-  const stepX = (def.cols * T) / cols;
-  const stepY = (rows * T) / banks;
-  const out: RoofLight[] = [];
-  for (let b = 0; b < banks; b++) {
-    const y = Math.round(top * T + stepY * (b + 0.5));
-    for (let c = 0; c < cols; c++) {
-      const x = Math.round(stepX * (c + 0.5));
-      // a bank switches on together, give or take a tube that is slow to strike
-      const delay = b * BANK_LAG + hashPos01(x, y) * 2;
-      out.push({ x, y, r: PANEL_R, color: PANEL_COLOR, squash: 0.72, glow: 0.22, delay });
-    }
-  }
-  return out;
+  if (!roof) return null;
+  // the north glass front stands on the roof's first row: the hall starts at its foot. The low south glass (the last row) is inside.
+  const top = (roof.y0 + 1) * T;
+  const bottom = (roof.y1 + 1) * T;
+  if (bottom <= top) return null;
+  const banks = Math.max(1, Math.min(MAX_BANKS, Math.round((bottom - top) / (4 * T))));
+  const h = (bottom - top) / banks;
+  const bands: RoofBand[] = [];
+  for (let b = 0; b < banks; b++) bands.push({ y0: Math.round(top + h * b), y1: Math.round(top + h * (b + 1)), delay: b * BANK_LAG });
+  return { x0: 0, x1: def.cols * T, bands, tint: 0xffe9c4, gain: 0.7 };
+}
+
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+/** The grade colour of a band lit to `k` (0..1): the outdoor grade pulled toward the hall's tint. At k = 0 it is the grade itself. */
+export function litGrade(grade: number, tint: number, k: number): number {
+  const ch = (s: number) => Math.round(lerp((grade >> s) & 255, (tint >> s) & 255, k));
+  return (ch(16) << 16) | (ch(8) << 8) | ch(0);
 }
