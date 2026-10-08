@@ -20,7 +20,11 @@ import {
   DogSim,
   butterfliesActive,
   cloudBlobs,
+  cloudCrossFade,
+  cloudEnterAlpha,
+  cloudHome,
   cloudShadowAlpha,
+  cloudSpriteMask,
   dogKey,
   firefliesActive,
   makeFlock,
@@ -30,6 +34,7 @@ import {
   stepFlock,
   TrafficSim,
   vehicleAt,
+  type CloudHome,
   type Vehicle as SimVehicle,
   type Pigeon,
   type Pt,
@@ -143,6 +148,10 @@ export class AmbientLife {
   private butterflyVis = 0;
   private fireflyVis = 0;
   private cloudVis = 0;
+  /** seconds since this outdoor area was built; clouds fade in from here */
+  private cloudAge = 0;
+  /** where each cloud stood when the area loaded (whole sprite, inside the camera when it fits) */
+  private cloudHome: CloudHome[] | null = null;
   private last = { vehicles: 0, bus: false, dogAnim: '', flocksAway: 0, clouds: 0 };
 
   constructor(
@@ -163,6 +172,7 @@ export class AmbientLife {
       ctx.fillStyle = '#fffff0';
       ctx.fillRect(1, 1, 1, 1);
     });
+    this.bakeClouds();
     makeTex(s, 'amb:drop', 3, 4, (ctx) => {
       // a fat droplet: bright head, white body, blue tail (reads at 1x as a spark and at 4x as a droplet)
       ctx.fillStyle = '#ffffff';
@@ -172,6 +182,37 @@ export class AmbientLife {
       ctx.fillRect(1, 2, 1, 1);
       ctx.fillStyle = '#6fb6e8';
       ctx.fillRect(1, 3, 1, 1);
+    });
+  }
+
+  /**
+   * One canvas per crop. The source rectangle cuts through the noise, so the alpha is multiplied by a mask that is 0
+   * on the rectangle edge. Done once; the frames are a few dozen kilobytes.
+   */
+  private bakeClouds(): void {
+    const scene = this.scene;
+    if (!scene.textures.exists('fx:cloudShadow')) return;
+    const src = scene.textures.get('fx:cloudShadow').getSourceImage() as CanvasImageSource;
+    CLOUD_CROPS.forEach((c, i) => {
+      const key = `amb:cloud${i}`;
+      if (scene.textures.exists(key)) return;
+      const tex = scene.textures.createCanvas(key, c[2], c[3]);
+      if (!tex) return;
+      const ctx = tex.getContext();
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(src, c[0], c[1], c[2], c[3], 0, 0, c[2], c[3]);
+      const image = ctx.getImageData(0, 0, c[2], c[3]);
+      const px = image.data;
+      for (let y = 0; y < c[3]; y++) {
+        for (let x = 0; x < c[2]; x++) {
+          const m = cloudSpriteMask(x, y, c[2], c[3]);
+          if (m === 1) continue;
+          const o = (y * c[2] + x) * 4 + 3;
+          px[o] = Math.round(px[o] * m);
+        }
+      }
+      ctx.putImageData(image, 0, 0);
+      tex.refresh();
     });
   }
 
@@ -196,6 +237,8 @@ export class AmbientLife {
     this.traffic.reset();
     this.current = [];
     this.clearRoom();
+    this.cloudAge = 0;
+    this.cloudHome = null;
     const data = AMBIENT[def.id];
     if (!data || !def.outdoor) return;
     this.data = data;
@@ -278,13 +321,11 @@ export class AmbientLife {
       const img = this.reg(this.scene.add.image(0, 0, 'amb:drop')).setDepth(DEPTH_FLY).setVisible(false);
       this.spray.push({ img, phase: i / N_DROPS, dx: (unit(i, 7, 71) - 0.5) * 2, idx: i });
     }
-    // cloud shadows: crops of the shadow texture
-    if (this.scene.textures.exists('fx:cloudShadow')) {
-      for (let i = 0; i < 4; i++) {
-        const c = CLOUD_CROPS[i];
-        const img = this.reg(this.scene.add.image(0, 0, 'fx:cloudShadow')).setOrigin(0, 0).setDepth(DEPTH_CLOUD).setAlpha(0).setCrop(c[0], c[1], c[2], c[3]);
-        this.clouds.push(img);
-      }
+    // cloud shadows: a whole soft sprite each (the crop's hard edge is masked out in bakeClouds)
+    for (let i = 0; i < 4; i++) {
+      const key = `amb:cloud${i}`;
+      if (!this.scene.textures.exists(key)) continue;
+      this.clouds.push(this.reg(this.scene.add.image(0, 0, key)).setOrigin(0, 0).setDepth(DEPTH_CLOUD).setAlpha(0));
     }
     this.rig.syncLights();
   }
@@ -574,15 +615,28 @@ export class AmbientLife {
     const on = !fx.lowfx && !fx.reduced;
     const a = on ? cloudShadowAlpha(f.params.sun, f.dark) : 0;
     this.cloudVis += (a - this.cloudVis) * Math.min(1, f.dt * 1.5);
+    this.cloudAge += f.dt;
     const w = (this.def?.cols ?? 56) * T;
     const h = (this.def?.rows ?? 40) * T;
-    const blobs = cloudBlobs(this.clouds.length, this.tSec, w, h);
+    if (!this.cloudHome) {
+      const z = f.cam.zoom || 1;
+      this.cloudHome = cloudHome(this.clouds.length, w, h, {
+        x0: f.cam.scrollX,
+        y0: f.cam.scrollY,
+        x1: f.cam.scrollX + f.cam.width / z,
+        y1: f.cam.scrollY + f.cam.height / z,
+      });
+    }
+    const blobs = cloudBlobs(this.clouds.length, this.cloudAge, w, h, this.cloudHome);
+    const enter = cloudEnterAlpha(this.cloudAge);
     this.clouds.forEach((img, i) => {
       const b = blobs[i];
       const c = CLOUD_CROPS[b.crop];
-      img.setVisible(this.cloudVis > 0.01).setAlpha(this.cloudVis * 0.28).setPosition(Math.round(b.x - c[0]), Math.round(b.y - c[1]));
+      const fade = enter * cloudCrossFade(b.x, c[2], w);
+      const alpha = this.cloudVis * 0.28 * fade;
+      img.setVisible(alpha > 0.004).setAlpha(alpha).setPosition(Math.round(b.x), Math.round(b.y));
     });
-    this.last.clouds = this.cloudVis > 0.01 ? this.clouds.length : 0;
+    this.last.clouds = this.cloudVis > 0.01 && enter > 0.02 ? this.clouds.length : 0;
   }
 
   // ------------------------------------------------------------------ info
