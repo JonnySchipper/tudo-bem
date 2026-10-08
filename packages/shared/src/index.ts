@@ -56,3 +56,4 @@ export * from './diaryDaily.js';
 export * from './feedback.js';
 export * from './escola.js';
 export * from './escolaCopy.js';
+export * from './leaderboards.js';

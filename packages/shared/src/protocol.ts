@@ -25,6 +25,7 @@ import type { RecadoActiveView, RecadoOfferView } from './recados.js';
 import type { CartelaActivity } from './cartela.js';
 import type { PriceOption, VendorId } from './feira.js';
 import type { Weather } from './weather.js';
+import type { BoardRow } from './leaderboards.js';
 
 /** Client → server messages. JSON over a single WebSocket at /ws. */
 export type ClientMsg =
@@ -66,6 +67,8 @@ export type ClientMsg =
   | { t: 'furniture'; action: 'pickup'; uid: string }
   | { t: 'friend'; action: 'request' | 'accept' | 'decline' | 'remove'; targetId: string }
   | { t: 'friends' }
+  /** Dual Praça leaderboards (words learned + escola streak). */
+  | { t: 'leaderboards' }
   | { t: 'mission'; action: 'take' }
   /** Hand one recado's worth of an item from the bag to an NPC standing next to you. */
   | { t: 'give'; npc: NpcId; itemId: string }
@@ -516,6 +519,8 @@ export type ServerMsg =
   | { t: 'escola'; phase: 'done'; summary: import('./escola.js').EscolaSummary }
   /** The lesson could not start (an empty diary, too far from the desk). */
   | { t: 'escola'; phase: 'closed'; line: Bilingual }
+  /** Dual Praça leaderboards. `words` = diary length; `streak` = Escola currentStreak. */
+  | { t: 'leaderboards'; words: BoardRow[]; streak: BoardRow[]; at: number }
   | { t: 'error'; code: string; pt: string; en: string }
   | { t: 'pong' }
   /** Elevator directory. `canFound` is this player's belt. `ownedId` is the academy they founded, if any. */

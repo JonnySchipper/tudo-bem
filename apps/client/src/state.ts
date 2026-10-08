@@ -1,4 +1,4 @@
-import type { EmoteKind, FriendInfo, NpcDef, NpcId, PlacedFurniture, PrivateProfile, PublicAvatar, RoomDef, RoomStateMsg, Tile } from '@tudobem/shared';
+import type { BoardRow, EmoteKind, FriendInfo, NpcDef, NpcId, PlacedFurniture, PrivateProfile, PublicAvatar, RoomDef, RoomStateMsg, Tile } from '@tudobem/shared';
 import { npcDefById, positionAlong, ROOMS } from '@tudobem/shared';
 import type { RecadoBoard } from './ui/recadoView';
 
@@ -40,6 +40,8 @@ class Game {
   furniture: PlacedFurniture[] = [];
   friends: FriendInfo[] = [];
   incoming: { id: string; name: string }[] = [];
+  /** Dual Praça leaderboards from the server. */
+  leaderboards: { words: BoardRow[]; streak: BoardRow[]; at: number } | null = null;
   npcBubbles = new Map<string, Bubble>();
   pending: PendingAction | null = null;
   editMode = false;
