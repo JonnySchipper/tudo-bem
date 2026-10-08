@@ -747,7 +747,7 @@ export class CounterStage {
   /** The finished glass leaves the drip tray in a hop and lands in its slot on the tray. */
   private flyGlass(fill: number, idx: number): void {
     this.dropFlight();
-    if (this.h.reduced()) return;
+    if (this.h.reduced() || idx < 0) return;
     const d = this.h.manifest.sprites[juiceGlassKey(juiceRows(fill))];
     if (!d) return;
     const from = { x: JUICE_GLASS_SPOT.x, y: JUICE_GLASS_SPOT.y };
