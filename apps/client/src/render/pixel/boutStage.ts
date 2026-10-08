@@ -12,7 +12,6 @@ import Phaser from 'phaser';
 import { HAIR_COLORS, SKIN_TONES, cpuLook, formatBoutClock, type Appearance, type BjjPositionId, type CrowdCue, CROWD, type RefSignal } from '@tudobem/shared';
 import { game } from '../../state';
 import type { Manifest, SpriteDef } from './manifest';
-import { swapKeys } from './palette';
 import { animKey } from './charsheet';
 import { lookForAppearance, type Look } from './looks';
 import { boutFeed, type StageCue } from './boutFeed';
@@ -21,6 +20,7 @@ import { DEPTH } from './props';
 import { originOf } from './spriteUtil';
 import {
   FRAMES,
+  MATCH_ATLAS,
   PAIR_SIZE,
   PLACAR_CELLS,
   PLACAR_KEY,
@@ -29,7 +29,8 @@ import {
   finishTapKey,
   fistbumpKey,
   pairFrames,
-  pairTable,
+  pairSwap,
+  partnerGi,
   presentFrames,
   refKey,
   refTable,
@@ -39,8 +40,26 @@ import {
   type PairColors,
   type RefArt,
 } from './bjjArt';
+import { CLIP_FRAMES, IMPACT, LAND, SLAM_FAMILIES, clipDef, clipFrameAt, clipKey, standGrip, standKey, STAND_FRAMES, type ClipDef } from './bjjClips';
+import { applySwap, type PairSwap } from './bjjSwap';
 
-type Mode = 'off' | 'walkin' | 'face' | 'bump' | 'fight' | 'trans' | 'cartoon' | 'finish' | 'win' | 'draw';
+type Mode = 'off' | 'walkin' | 'face' | 'bump' | 'fight' | 'trans' | 'cartoon' | 'clip' | 'finish' | 'win' | 'draw';
+
+/** A baked move clip in progress (bjjClips.ts): the mover is art slot A, the frames may be mirrored so the partner stays on the right. */
+interface ClipRun {
+  def: ClipDef;
+  keys: string[];
+  hit: boolean;
+  actor: 'you' | 'partner';
+  flip: boolean;
+  /** the finishing move: the big frame and the landing hang in slow motion */
+  slow: boolean;
+  to: BjjPositionId;
+  aheadTo: 'you' | 'partner' | null;
+  t0: number;
+  ms: number;
+  shown: number;
+}
 
 export interface StageHost {
   scene: Phaser.Scene;
@@ -51,8 +70,10 @@ export interface StageHost {
   releaseSheet: (key: string) => void;
   /** the player's own appearance (the local avatar) */
   playerAppearance: () => Appearance | null;
-  /** Professora Bia's avatar view, to swap her for a referee frame */
-  bia: () => { sprite: Phaser.GameObjects.Sprite; wx: number; wy: number; depth: number } | null;
+  /** Professora Bia's avatar view, to swap her for the referee during a match */
+  bia: () => { sprite: Phaser.GameObjects.Sprite; shadow?: Phaser.GameObjects.GameObject & { setVisible(v: boolean): unknown }; wx: number; wy: number; depth: number } | null;
+  /** load a lazy atlas of the manifest (the match frames); `done` runs once it is in the texture manager */
+  loadAtlas: (name: string, done: () => void) => void;
   /** world px of the head of every spectator that can cheer */
   crowd: () => { id: string; x: number; y: number }[];
   mat: () => { x: number; y: number; x0: number; x1: number } | null;
@@ -73,7 +94,11 @@ const hash01 = (n: number) => {
 /** Art px the pair stands below the mat centre (the frame is 42 tall: its middle lands near the mat's middle). */
 const PAIR_DROP = 18;
 const REF_SHOW_MS = 1500;
+/** World px between the mat's east edge and the referee's feet (her frame is 16 wide: she stands clear of the mat's border). */
+const REF_GAP = 14;
 const HITSTOP_MS = 80;
+/** How fast the dust moves during the finishing move's slow-motion beat. */
+const SLOW_PARTICLES = 0.3;
 const CROWD_MS = 1500;
 const FLASH_MS = 90;
 const WORD_MS = 1300;
@@ -118,7 +143,7 @@ export class BoutStage {
   private walkers: { you: Phaser.GameObjects.Sprite; partner: Phaser.GameObjects.Sprite; keys: string[]; from: { x: number; y: number }[]; to: { x: number; y: number }[] } | null = null;
   private refSprite: Phaser.GameObjects.Sprite | null = null;
   private refUntil = 0;
-  private refHidden: Phaser.GameObjects.Sprite | null = null;
+  private refHidden: { sprite: Phaser.GameObjects.Sprite; shadow?: { setVisible(v: boolean): unknown } } | null = null;
   private particles: Particle[] = [];
   private textures: string[] = [];
   private scratch: HTMLCanvasElement | null = null;
@@ -153,6 +178,15 @@ export class BoutStage {
   private gripHands = new Map<string, Phaser.GameObjects.Rectangle>();
   /** Where the pair was last drawn (its anchor plus the slide, wobble or lean), so the grip hands stay on the gis. */
   private drawnAt = { x: 0, y: 0 };
+  /** The pair is drawn mirrored: after a takedown or a sweep that landed the other way, until the fighters stand again. */
+  private flip = false;
+  /** The move clip on screen, and the slot-A person of the frames on screen when a clip set them (null: the idle rule). */
+  private clip: ClipRun | null = null;
+  private clipActor: 'you' | 'partner' | null = null;
+  /** The match atlas (the clips and the standing grip loops): loaded when a match starts. */
+  private matchAtlas: 'none' | 'loading' | 'ready' = 'none';
+  /** Particles crawl until then (the slow-motion beat of the finishing move). */
+  private slowUntil = 0;
 
   constructor(private readonly h: StageHost) {}
 
@@ -185,8 +219,8 @@ export class BoutStage {
     return g.getImageData(0, 0, c.width, c.height);
   }
 
-  /** Texture name of a manifest frame with `table` swapped in (built once per palette signature), or null when the art is missing. */
-  private tex(key: string, table: Map<number, number>, sig: string): string | null {
+  /** Texture name of a manifest frame with `swap` applied (built once per palette signature), or null when the art is missing. */
+  private tex(key: string, swap: PairSwap, sig: string): string | null {
     const d = this.h.manifest.sprites[key];
     if (!d) {
       this.h.noteMissing(key);
@@ -196,7 +230,7 @@ export class BoutStage {
     if (this.h.scene.textures.exists(name)) return name;
     const px = this.readPixels(d);
     if (!px) return null;
-    swapKeys(px.data, table);
+    applySwap(px.data, swap);
     const c = document.createElement('canvas');
     c.width = px.width;
     c.height = px.height;
@@ -210,13 +244,35 @@ export class BoutStage {
     const a = this.h.playerAppearance();
     const p = boutFeed.partner;
     if (!a || !p) return null;
-    return {
-      you: { skin: SKIN_TONES[a.skin] ?? SKIN_TONES[3]!, hair: HAIR_COLORS[a.hairColor] ?? HAIR_COLORS[0]! },
-      partner: { skin: SKIN_TONES[p.appearance.skin] ?? SKIN_TONES[3]!, hair: HAIR_COLORS[p.appearance.hairColor] ?? HAIR_COLORS[0]! },
-      belt: boutFeed.belt,
-      partnerBelt: p.belt ?? boutFeed.belt,
-      top,
-    };
+    const fighter = (ap: Appearance) => ({
+      skin: SKIN_TONES[ap.skin] ?? SKIN_TONES[3]!,
+      hair: HAIR_COLORS[ap.hairColor] ?? HAIR_COLORS[0]!,
+      style: ap.hair,
+      beard: ap.extra === 'barba',
+    });
+    return { you: fighter(a), partner: fighter(p.appearance), belt: boutFeed.belt, partnerBelt: p.belt ?? boutFeed.belt, partnerGi: partnerGi(p.id), top };
+  }
+
+  /** Start loading the match atlas (once); until it is in, the idle frames and the old lean stand in for the clips. */
+  private loadMatchAtlas(): void {
+    if (this.matchAtlas !== 'none') return;
+    if (this.h.scene.textures.exists(MATCH_ATLAS)) {
+      this.matchAtlas = 'ready';
+      return;
+    }
+    if (!this.h.manifest.atlases[MATCH_ATLAS]) return;
+    this.matchAtlas = 'loading';
+    this.h.loadAtlas(MATCH_ATLAS, () => {
+      this.matchAtlas = this.h.scene.textures.exists(MATCH_ATLAS) ? 'ready' : 'none';
+    });
+  }
+
+  /** Every key is in the manifest and its atlas is loaded. */
+  private haveAll(keys: readonly string[]): boolean {
+    return keys.every((k) => {
+      const d = this.h.manifest.sprites[k];
+      return !!d && (d.atlas !== MATCH_ATLAS || this.matchAtlas === 'ready');
+    });
   }
 
   // ------------------------------------------------------------------ lifecycle
@@ -262,13 +318,19 @@ export class BoutStage {
     this.top = null;
     this.frames = [];
     this.nudge = { x: 0, y: 0 };
+    this.flip = false;
+    this.clipActor = null;
     this.clearCartoon();
     this.pair!.setRotation(0).setScale(1).setVisible(false);
+    this.loadMatchAtlas();
+    this.showRef(null);
   }
 
   private stop(): void {
     this.mode = 'off';
     this.clearCartoon();
+    this.flip = false;
+    this.clipActor = null;
     this.pair?.setRotation(0).setScale(1).setVisible(false);
     this.ph?.setVisible(false);
     this.shadow?.setVisible(false);
@@ -310,8 +372,8 @@ export class BoutStage {
     const hold = nowMs < this.holdUntil;
     this.nudge = this.h.reduced() ? { x: 0, y: 0 } : { x: Math.round(this.nudge.x * 0.6), y: Math.round(this.nudge.y * 0.6) };
     this.advance(hold ? 0 : dt, mat);
-    this.updateRef();
-    this.updateParticles(dt);
+    this.updateRef(mat);
+    this.updateParticles(nowMs < this.slowUntil ? dt * SLOW_PARTICLES : dt);
     this.updateSweat(dt, mat);
     this.updatePops(nowMs);
     this.updateGrips(mat);
@@ -323,10 +385,11 @@ export class BoutStage {
   }
 
   /** The fighters' colours for the current frame family. */
-  private pairColors(): { c: PairColors; sig: string; table: Map<number, number> } | null {
-    const c = this.colors(this.top);
+  private pairColors(): { c: PairColors; sig: string; swap: PairSwap } | null {
+    // a clip's frames (and the tap loop after a finish) carry the mover in slot A; the idle frames the one on top
+    const c = this.colors(this.clipActor ?? this.top);
     if (!c) return null;
-    return { c, sig: colorsSig(c), table: pairTable(c) };
+    return { c, sig: colorsSig(c), swap: pairSwap(c) };
   }
 
   private setFrames(keys: string[], fps: number, loop: boolean, t = 0): void {
@@ -357,6 +420,7 @@ export class BoutStage {
     } else if (this.mode === 'bump' && now >= this.modeEnd) this.goFight();
     else if (this.mode === 'trans' && this.isDone()) this.goFight();
     else if (this.mode === 'cartoon') this.stepCartoon(now, a);
+    else if (this.mode === 'clip') this.stepClip(now, a);
 
     // the snapshot is the truth: if the pair is not where the server says (a missed cue, a reconnect), cut to it.
     // While a cartoon is holding, the snapshot is still the pose the move started from.
@@ -364,7 +428,13 @@ export class BoutStage {
     if (this.mode === 'fight' && !boutFeed.holding && snap && (snap.position !== this.pos || snap.ahead !== this.top)) {
       this.pos = snap.position;
       this.top = snap.ahead;
-      this.setFrames(pairFrames(this.pos), 4, true);
+      if (this.pos === 'de_pe') this.flip = false;
+      this.setFrames(this.idleFrames(), 4, true);
+    }
+    // standing, the loop follows the grips held (a fist on the lapel, a fist on the sleeve)
+    if (this.mode === 'fight' && this.pos === 'de_pe') {
+      const want = this.idleFrames();
+      if (want[0] !== this.frames[0]) this.setFrames(want, 4, true, this.t);
     }
 
     // draw the current frame
@@ -377,10 +447,26 @@ export class BoutStage {
     if (this.slide > 0) this.slide = Math.max(0, this.slide - dt * 0.7);
     if (this.wobble > 0) this.wobble = Math.max(0, this.wobble - dt * 0.9);
     this.t += dt;
+    if (this.mode === 'clip' && this.clip) {
+      const c = this.clip;
+      this.drawFrame(c.keys[c.shown] ?? c.keys[0]!, a);
+      return;
+    }
     const keys = this.frames.length ? this.frames : pairFrames(this.pos);
     const n = keys.length;
     const idx = this.loop ? Math.floor(this.t * this.fps) % Math.max(1, n) : Math.min(n - 1, Math.floor(this.t * this.fps));
     this.drawFrame(keys[idx] ?? keys[0] ?? '', a);
+  }
+
+  /** The idle loop of the current position: standing, the grips each fighter holds are drawn in (when the match atlas is in). */
+  private idleFrames(): string[] {
+    if (this.pos === 'de_pe') {
+      const g = boutFeed.snap?.grips;
+      const you = standGrip(g?.you), them = standGrip(g?.partner);
+      const keys = Array.from({ length: STAND_FRAMES }, (_, i) => standKey(you, them, i));
+      if (this.haveAll(keys)) return keys;
+    }
+    return pairFrames(this.pos);
   }
 
   private isDone(): boolean {
@@ -389,11 +475,14 @@ export class BoutStage {
 
   private goFight(): void {
     this.mode = 'fight';
+    this.clipActor = null;
     this.top = this.top === null && this.pos === 'de_pe' ? null : this.top;
-    this.setFrames(pairFrames(this.pos), 4, true);
+    if (this.pos === 'de_pe') this.flip = false;
+    this.setFrames(this.idleFrames(), 4, true);
   }
 
   private clearCartoon(): void {
+    this.clip = null;
     this.cartoon = null;
     this.cartoonOff = { x: 0, y: 0, rot: 0 };
     this.cartoonRead = null;
@@ -424,6 +513,80 @@ export class BoutStage {
       this.puff(a.x + s.x, a.y - 10, played.read === 'stumble' ? 5 : 8);
       this.kick(played.read === 'gain' ? 2 : 1);
     }
+  }
+
+  /**
+   * Play the move's baked clip (bjjClips.ts) when there is one and the match atlas is in: the mover is slot A; from standing the clip is
+   * mirrored when the partner moves (they stay on the right); on the ground it keeps the pair's current mirroring.
+   */
+  private startClip(c: Extract<StageCue, { t: 'cartoon' }>, now: number): boolean {
+    const def = clipDef(c.move, c.from);
+    if (!def || this.matchAtlas !== 'ready') return false;
+    const keys = Array.from({ length: CLIP_FRAMES }, (_, i) => clipKey(def.move, def.from, c.hit, i));
+    if (!this.haveAll(keys)) return false;
+    const actor = c.actor ?? 'you';
+    this.clearCartoon();
+    this.clip = {
+      def,
+      keys,
+      hit: c.hit,
+      actor,
+      flip: c.from === 'de_pe' ? actor === 'partner' : this.flip,
+      slow: !!c.finale && !this.h.reduced(),
+      to: c.to,
+      aheadTo: c.aheadTo,
+      t0: now,
+      ms: Math.max(1, c.ms),
+      shown: 0,
+    };
+    this.clipActor = actor;
+    this.mode = 'clip';
+    this.pos = c.from;
+    return true;
+  }
+
+  /** Step the clip: frame by beat; the grip snap kicks the camera, a landing throws the mat dust, the end hands over to the idle loop. */
+  private stepClip(now: number, a: { x: number; y: number }): void {
+    const c = this.clip;
+    if (!c) return this.goFight();
+    const u = (now - c.t0) / c.ms;
+    if (u >= 1) return this.landClip(c);
+    const i = clipFrameAt(u, c.slow);
+    if (i === c.shown) return;
+    c.shown = i;
+    const side = c.flip ? -1 : 1;
+    if (i === IMPACT) {
+      this.kick(c.hit ? 2 : 1);
+      if (c.slow && c.hit) this.slowUntil = this.nowMs + c.ms * 0.4;
+      if (c.def.family === 'grip' || c.def.family === 'posture') this.puff(a.x + side * 6, a.y - 18, c.hit ? 4 : 2);
+    }
+    if (i === LAND) {
+      const slam = c.hit && SLAM_FAMILIES.includes(c.def.family);
+      // the mat dust: a wide cloud along the body that hit the mat, a small one for a step or a miss
+      if (slam) {
+        this.dust(a.x + side * 4, a.y - 2, 26, 16);
+        if (!this.h.reduced()) this.holdUntil = now + HITSTOP_MS * (c.slow ? 3 : 1.5);
+      } else this.puff(a.x, a.y - 4, c.hit ? 6 : 4);
+      this.kick(slam ? 2 : 1);
+    }
+  }
+
+  private landClip(c: ClipRun): void {
+    this.clip = null;
+    this.mode = 'fight';
+    const endMirrored = c.hit ? !!c.def.mirror : !!c.def.missTo;
+    // a finish that landed: keep the last two frames (the tap) looping until the match ends
+    if (c.hit && c.def.family === 'sub') {
+      this.mode = 'finish';
+      this.flip = c.flip;
+      this.setFrames([c.keys[CLIP_FRAMES - 2]!, c.keys[CLIP_FRAMES - 1]!], 4, true);
+      return;
+    }
+    this.clipActor = null;
+    this.pos = c.to;
+    this.top = c.to === 'de_pe' ? null : c.aheadTo;
+    this.flip = c.to === 'de_pe' ? false : c.flip !== endMirrored;
+    this.setFrames(this.idleFrames(), 4, true);
   }
 
   private landCartoon(played: Cartoon, a: { x: number; y: number }): void {
@@ -458,7 +621,7 @@ export class BoutStage {
     const depth = a.y + 0.4;
     if (this.shadow) this.shadow.setPosition(a.x, a.y - 1).setVisible(true);
     const d = this.h.manifest.sprites[key];
-    const tex = pc && d ? this.tex(key, pc.table, pc.sig) : null;
+    const tex = pc && d ? this.tex(key, pc.swap, pc.sig) : null;
     if (!d || !tex) {
       this.h.noteMissing(key || `bjj/pair_${this.pos}_0`);
       this.pair?.setVisible(false);
@@ -471,21 +634,19 @@ export class BoutStage {
     this.ph?.setVisible(false);
     const p = this.pair!;
     if (p.texture.key !== tex) p.setTexture(tex);
-    const lean = this.cartoonOff.x;
-    const ox = lean + (this.slide > 0 ? Math.sin(this.slide * Math.PI) * this.slideAmp : this.wobble > 0 ? Math.sin(this.wobble * 24) * this.wobbleAmp : 0);
-    const oy = this.cartoonOff.y;
-    const mag = Math.hypot(this.cartoonOff.x, this.cartoonOff.y);
-    // a stumble squashes flat, a brace sinks wide and low, everything else stretches with the effort
-    const read = this.cartoonRead;
-    const sx = mag > 1 && read === 'stumble' ? 1.22 : mag > 1 && read === 'brace' ? 1.12 : 1;
-    const sy = mag > 1 && read === 'stumble' ? 0.7 : mag > 1 && read === 'brace' ? 0.9 : mag > 1 ? 1.14 : 1;
+    // the art moves the bodies; the sprite itself only slides (a pose change with no clip) or shakes (a miss with no clip), never tilts
+    const ox = Math.round(this.cartoonOff.x * 0.35 + (this.slide > 0 ? Math.sin(this.slide * Math.PI) * this.slideAmp : this.wobble > 0 ? Math.sin(this.wobble * 24) * this.wobbleAmp : 0));
+    const oy = Math.round(this.cartoonOff.y * 0.25);
     if (this.nowMs < this.flashUntil) p.setTintFill(0xffffff);
     else if (p.isTinted) p.clearTint();
     this.drawnAt = { x: a.x + ox, y: a.y - oy };
-    p.setOrigin(d.ax / d.w, d.ay / d.h)
+    // a mirrored frame flips about its anchor (a trimmed clip frame's anchor is not its middle)
+    const flip = this.mode === 'clip' && this.clip ? this.clip.flip : this.flip;
+    p.setFlipX(flip)
+      .setOrigin(flip ? 1 - d.ax / d.w : d.ax / d.w, d.ay / d.h)
       .setPosition(a.x + ox, a.y - oy)
-      .setRotation((this.cartoonOff.rot * Math.PI) / 180)
-      .setScale(sx, sy)
+      .setRotation(0)
+      .setScale(1)
       .setDepth(depth)
       .setVisible(true);
   }
@@ -511,6 +672,8 @@ export class BoutStage {
         if (this.mode !== 'walkin' && this.mode !== 'face' && this.mode !== 'bump') this.goFight();
         break;
       case 'transition': {
+        this.clip = null;
+        this.clipActor = null;
         this.top = topSide(c.rungFrom, c.rungTo);
         const frames = transFrames(c.from, c.to);
         const have = frames ? presentFrames((k) => !!this.h.manifest.sprites[k], frames) : [];
@@ -528,7 +691,10 @@ export class BoutStage {
           this.setFrames(pairFrames(c.to), 4, true);
         }
         // the ladder is standing again: nobody is on top in the neutral frame
-        if (c.to === 'de_pe') this.top = null;
+        if (c.to === 'de_pe') {
+          this.top = null;
+          this.flip = false;
+        }
         break;
       }
       case 'ref':
@@ -538,6 +704,10 @@ export class BoutStage {
         this.crowd(c.cue);
         break;
       case 'finish':
+        // a finish clip already loops its own tap
+        if (this.mode === 'finish' && this.clipActor) break;
+        this.clip = null;
+        this.clipActor = null;
         this.top = c.winner;
         this.mode = 'finish';
         this.pos = 'montada';
@@ -553,6 +723,9 @@ export class BoutStage {
         break;
       case 'end': {
         if (c.winner === 'none') break;
+        this.clip = null;
+        this.clipActor = null;
+        this.flip = false;
         this.top = c.winner === 'partner' ? 'partner' : null;
         if (c.winner === 'draw') {
           this.mode = 'draw';
@@ -564,6 +737,7 @@ export class BoutStage {
         break;
       }
       case 'cartoon': {
+        if (this.startClip(c, now)) break;
         const played = cartoonFor(c.move, c.hit, c.from, c.to);
         this.cartoon = played;
         this.cartoonFrom = c.from;
@@ -636,7 +810,10 @@ export class BoutStage {
     for (const side of ['you', 'partner'] as const) {
       for (const g of ['collar', 'sleeve'] as const) {
         const key = `${side}:${g}`;
-        const held = show && !!snap!.grips![side][g];
+        // the art draws every held grip (a fist on the gi); the little hand only blinks over a grip that is about to slip
+        // (or stands in for the grips while the match atlas is still loading)
+        const inArt = this.frames[0]?.startsWith('bjj/stand_');
+        const held = show && !!snap!.grips![side][g] && (!inArt || snap!.grips![side].age[g] >= 2);
         let r = this.gripHands.get(key);
         if (!held) {
           r?.setVisible(false);
@@ -713,40 +890,51 @@ export class BoutStage {
     put(w.partner, 1, 'E', w.keys[1]!);
   }
 
-  // ------------------------------------------------------------------ Bia as a referee
+  // ------------------------------------------------------------------ Bia as the referee
+  /**
+   * During a match Professora Bia is the referee: her avatar steps aside and her referee frames stand at the referee's spot, off the mat's
+   * east edge and under the scoreboard (watching between calls, `espera`). A call shows its signal for a moment. Off the mat she is back.
+   */
   private showRef(signal: RefArt | null): void {
-    if (!signal) {
+    const onMat = this.mode !== 'off';
+    if (!onMat) {
       this.refUntil = 0;
       this.refSprite?.setVisible(false);
       if (this.refHidden) {
-        this.refHidden.setVisible(true);
+        this.refHidden.sprite.setVisible(true);
+        this.refHidden.shadow?.setVisible(true);
         this.refHidden = null;
       }
       return;
     }
     const bia = this.h.bia();
     if (!bia) return;
-    const key = refKey(signal);
+    const key = refKey(signal ?? 'espera');
     const d = this.h.manifest.sprites[key];
     const ap = { skin: SKIN_TONES[4]!, hair: HAIR_COLORS[0]! };
-    const tex = d ? this.tex(key, refTable(ap), `ref${ap.skin}`) : null;
-    if (!d || !tex) {
-      this.h.noteMissing(key);
-    }
+    const tex = d ? this.tex(key, { table: refTable(ap), clear: new Set() }, `ref${ap.skin}`) : null;
+    if (!d || !tex) this.h.noteMissing(key);
     const s = this.h.scene;
     if (!this.refSprite) this.refSprite = this.h.world(s.add.sprite(0, 0, '__DEFAULT')).setOrigin(0.5, 1).setVisible(false);
     if (d && tex) {
-      this.refSprite.setTexture(tex).setOrigin(d.ax / d.w, d.ay / d.h);
-      this.refSprite.setVisible(true);
-      this.refHidden = bia.sprite;
+      this.refSprite.setTexture(tex).setOrigin(d.ax / d.w, d.ay / d.h).setVisible(true);
+      this.refHidden = { sprite: bia.sprite, shadow: bia.shadow };
       bia.sprite.setVisible(false);
+      bia.shadow?.setVisible(false);
     }
-    this.refUntil = this.nowMs + REF_SHOW_MS;
+    this.refUntil = signal ? this.nowMs + REF_SHOW_MS : 0;
   }
 
-  private updateRef(): void {
-    const bia = this.h.bia();
-    if (this.refSprite?.visible && bia) this.refSprite.setPosition(bia.wx, bia.wy).setDepth(bia.depth + 0.01);
+  /** The referee's spot: off the mat's east edge, level with the fighters (world px of her feet). */
+  private refSpot(mat: { x: number; y: number; x1: number }): { x: number; y: number } {
+    return { x: Math.round(mat.x1 + REF_GAP), y: Math.round(mat.y + PAIR_DROP + 8) };
+  }
+
+  private updateRef(mat: { x: number; y: number; x1: number }): void {
+    if (this.mode === 'off') return;
+    if (!this.refSprite?.visible) this.showRef(null);
+    const at = this.refSpot(mat);
+    this.refSprite?.setPosition(at.x, at.y).setDepth(at.y + 0.2);
     if (this.refUntil && this.nowMs >= this.refUntil) this.showRef(null);
   }
 
@@ -770,6 +958,28 @@ export class BoutStage {
       p.life = p.max = 0.35 + Math.random() * 0.3;
       const big = Math.random() < 0.35;
       p.r.setSize(big ? 3 : 2, big ? 3 : 2).setPosition(Math.round(x + (Math.random() - 0.5) * 22), Math.round(y)).setAlpha(0.9).setVisible(true).setDepth(y + 2);
+    }
+  }
+
+  /** Mat dust from a body slamming down: a low cloud along `width` px that rolls outward and settles. */
+  private dust(x: number, y: number, width: number, n: number): void {
+    if (this.h.reduced()) return;
+    const s = this.h.scene;
+    for (let i = 0; i < n; i++) {
+      let p = this.particles.find((q) => q.life <= 0);
+      if (!p) {
+        if (this.particles.length >= 48) return;
+        const r = this.h.world(s.add.rectangle(0, 0, 2, 2, 0xe9ddc6, 1)).setDepth(y + 2);
+        p = { r, vx: 0, vy: 0, life: 0, max: 1, g: 0 };
+        this.particles.push(p);
+      }
+      const off = (Math.random() - 0.5) * width;
+      p.vx = Math.sign(off || 1) * (10 + Math.random() * 26);
+      p.vy = -6 - Math.random() * 12;
+      p.g = 18;
+      p.life = p.max = 0.5 + Math.random() * 0.45;
+      const big = Math.random() < 0.5;
+      p.r.setFillStyle(Math.random() < 0.3 ? 0xf6efe0 : 0xe9ddc6, 1).setSize(big ? 3 : 2, big ? 3 : 2).setPosition(Math.round(x + off), Math.round(y - Math.random() * 3)).setAlpha(0.95).setVisible(true).setDepth(y + 2);
     }
   }
 

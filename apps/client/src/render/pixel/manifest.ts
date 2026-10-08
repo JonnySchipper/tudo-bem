@@ -38,7 +38,8 @@ export interface TerrainLayerDef {
 export interface Manifest {
   version: number;
   tile: number;
-  atlases: Record<string, { image: string; data: string; w: number; h: number; frames: number }>;
+  /** `lazy`: not loaded with the world; its owner loads it when needed (the bjj match frames, see boutStage.ts) */
+  atlases: Record<string, { image: string; data: string; w: number; h: number; frames: number; lazy?: boolean }>;
   terrain: { tileset: string; tile: number; margin: number; spacing: number; columns: number; count: number; layers: Record<string, TerrainLayerDef> };
   sprites: Record<string, SpriteDef>;
   chars: Record<string, string>;

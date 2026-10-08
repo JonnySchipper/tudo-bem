@@ -123,7 +123,7 @@ export class FrameScene extends Phaser.Scene {
   preload(): void {
     const m = this.m;
     const b = this.base;
-    for (const [name, a] of Object.entries(m.atlases)) this.load.atlas(name, b + a.image, b + a.data);
+    for (const [name, a] of Object.entries(m.atlases)) if (!a.lazy) this.load.atlas(name, b + a.image, b + a.data);
     this.load.image('terrainTs', b + m.terrain.tileset);
     for (const [key, f] of Object.entries(m.fx)) this.load.image(`fx:${key}`, b + f.file);
   }

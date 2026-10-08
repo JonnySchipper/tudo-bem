@@ -16,6 +16,7 @@ import {
   type ClientMsg,
   INTENTS,
   isMatMove,
+  isSubmission,
   MOVE_LABEL,
   moveTaughtAt,
   nextStripe,
@@ -703,6 +704,8 @@ export class BoutUI {
       aheadFrom: from?.ahead ?? null,
       aheadTo: m.st.ahead,
       ms: CARTOON_MS,
+      actor: m.actor === 'partner' ? 'partner' : 'you',
+      finale: landed && (matchOver || isSubmission(move)),
     });
     this.markCartoon(move, cartoon.read);
     // every answer reads as ground gained or lost (the control meter, from your seat), whoever moved

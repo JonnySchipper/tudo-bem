@@ -27,13 +27,16 @@ const sparkle = (x, y) => (cv, put) => {
   for (const [dx, dy, c] of [[0, 0, FX_COL.w], [-2, 1, FX_COL.y], [2, 1, FX_COL.y], [0, -2, FX_COL.y]]) put(cv, x + dx, y + dy, c);
 };
 
-export const REF_SIGNALS = ['combate', 'pontos2', 'pontos3', 'pontos4', 'vantagem', 'parar', 'vitoria'];
+export const REF_SIGNALS = ['combate', 'pontos2', 'pontos3', 'pontos4', 'vantagem', 'parar', 'vitoria', 'espera'];
 
 export function refFrame(signal) {
   const P = base();
   const fx = [];
   const glyphs = [];
   switch (signal) {
+    case 'espera': // watching the match between calls: hands on the belt
+      P.hands = [[5.2, 26.4], [10.8, 26.4]]; P.elbows = [[3.2, 24.2], [12.8, 24.2]];
+      break;
     case 'combate': // both forearms up in front of the chest, hands about to meet
       P.hands = [[6.6, 19.6], [9.4, 19.6]]; P.elbows = [[4.2, 24.6], [11.8, 24.6]];
       P.z = { arm0: 'over', arm1: 'over' };
