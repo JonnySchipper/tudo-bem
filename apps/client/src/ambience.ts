@@ -653,7 +653,8 @@ class Ambience {
     // the open-air areas share one outdoor bed, so walking between them never restarts the music; the feira has its own while it is open
     if (this.room === 'feira') return feiraOpen(this.world.minute) ? 'feira' : 'praca';
     if (this.room === 'rua' || this.room === 'rua_leste') return 'praca';
-    if (this.room === 'escola') return 'kitnet';
+    // the arrivals hall (the first room): the kitnet's quiet bed, so the tutorial and the journal reveal sit over something calm
+    if (this.room === 'escola' || this.room === 'desembarque') return 'kitnet';
     return this.room === 'padaria' && padariaIsNight(this.world.minute) ? 'padariaNight' : this.room;
   }
 

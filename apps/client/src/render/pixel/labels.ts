@@ -32,7 +32,9 @@ export interface StackItem {
   plate: {
     text: string;
     /** `sign`: a shop name chalked on a board (a player-owned padaria), not a person. */
-    kind: 'npc' | 'player' | 'me' | 'sign' | 'pet';
+    kind: 'npc' | 'player' | 'me' | 'sign' | 'pet' | 'door' | 'doorNew';
+    /** A door tag's English, on a second small line under the Portuguese (`door`; `doorNew` glows: your first visit to the room). */
+    gloss?: string;
     /** false: keep the element but fade it out (a CPU far from you) */
     show?: boolean;
     /** Academy stamp glyph, members only. */
@@ -472,7 +474,7 @@ export class LabelLayer {
 
     // nameplate: text and kind change rarely; measure only then
     const tier = s.plate && (s.plate.kind === 'player' || s.plate.kind === 'me') && s.plate.tier && s.plate.tier !== 'verde' ? s.plate.tier : null;
-    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}|${s.plate.mark ?? ''}|${s.plate.founder ? '1' : ''}|${s.plate.subBadge ? 'b' : ''}|${s.plate.feiraCrown ? 'c' : ''}|${tier ?? ''}|${s.plate.belt ?? ''}|${s.plate.stripes ?? ''}` : '';
+    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}|${s.plate.mark ?? ''}|${s.plate.founder ? '1' : ''}|${s.plate.subBadge ? 'b' : ''}|${s.plate.feiraCrown ? 'c' : ''}|${tier ?? ''}|${s.plate.belt ?? ''}|${s.plate.stripes ?? ''}|${s.plate.gloss ?? ''}` : '';
     if (pk !== el.plateKey) {
       el.plateKey = pk;
       if (s.plate) {
@@ -499,6 +501,12 @@ export class LabelLayer {
           el.plate.append(document.createTextNode(s.plate.text));
         }
         if (s.plate.belt) el.plate.append(beltBar(s.plate.belt, s.plate.stripes));
+        if (s.plate.gloss) {
+          const g = document.createElement('i');
+          g.className = 'wl-door-en';
+          g.textContent = s.plate.gloss;
+          el.plate.append(g);
+        }
         if (s.plate.kind === 'pet') {
           const paw = document.createElement('i');
           paw.className = 'wl-paw';

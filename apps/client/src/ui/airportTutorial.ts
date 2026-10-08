@@ -9,7 +9,7 @@
  * Needs_br: every Portuguese line here.
  */
 import { CARTELA_COPY, CARTELA_GOAL, CARTELA_REWARD, FILM, ARRIVAL_CARD, greetingFor } from '@tudobem/shared';
-import { AIRPORT_STEPS, GREETING_EN, airportDone, cap, nextAirportStep, passportChips, thanksFor, type AirportFlags, type AirportGuide, type AirportStepId } from './airportTutorialLogic';
+import { AIRPORT_NEXT, AIRPORT_STEPS, GREETING_EN, airportDone, cap, nextAirportStep, passportChips, thanksFor, type AirportFlags, type AirportGuide, type AirportStepId } from './airportTutorialLogic';
 import { game } from '../state';
 import { clock } from '../gameClock';
 import { speak } from '../audio';
@@ -123,17 +123,18 @@ export function mountAirportTutorial(onStep?: () => void): { refresh: () => void
     const n = AIRPORT_STEPS.indexOf(next) + 1;
     head.replaceChildren(
       h('span', { class: 'aero-tut-plane', 'aria-hidden': 'true' }, '✈'),
-      h('b', null, 'Primeiros passos'),
+      h('b', null, 'Next steps'),
       h('small', null, `${done.size}/${AIRPORT_STEPS.length}`),
       h('span', { class: 'rtrack-caret', 'aria-hidden': 'true' }),
     );
+    // English first (what to do, and how), the Portuguese of the step beside it
     now.replaceChildren(
       h('span', { class: 'aero-tut-n' }, String(n)),
-      h('span', { class: 'aero-tut-text' }, h('b', { lang: 'pt-BR' }, next.pt), h('span', { class: 'aero-tut-how', lang: 'pt-BR' }, next.how.pt), en(next.how.en)),
+      h('span', { class: 'aero-tut-text' }, h('b', null, next.en), h('span', { class: 'desemb-pt', lang: 'pt-BR' }, next.pt), h('span', { class: 'desemb-how' }, next.how.en)),
     );
     list.replaceChildren(
       ...AIRPORT_STEPS.map((s, i) =>
-        h('li', { class: done.has(s.id) ? 'done' : s === next ? 'current' : '', 'data-step': s.id }, h('span', { class: 'aero-tut-tick', 'aria-hidden': 'true' }, done.has(s.id) ? '✓' : String(i + 1)), h('span', { lang: 'pt-BR' }, s.pt)),
+        h('li', { class: done.has(s.id) ? 'done' : s === next ? 'current' : '', 'data-step': s.id, title: s.pt }, h('span', { class: 'aero-tut-tick', 'aria-hidden': 'true' }, done.has(s.id) ? '✓' : String(i + 1)), h('span', null, s.en)),
       ),
     );
     pulse(next.hud ?? null);
@@ -150,6 +151,22 @@ export function mountAirportTutorial(onStep?: () => void): { refresh: () => void
   });
   render();
   return { refresh: render };
+}
+
+/** Out of the arrivals hall: a short card with where to go next (the checklist and the arrow carry on from there). */
+export function showAirportNext(): void {
+  document.getElementById('aero-next')?.remove();
+  const ok = h('button', { type: 'button', class: 'primary', id: 'aero-next-ok', onclick: () => card.remove() }, 'Let’s go!', h('span', { class: 'en' }, ' · Vamos!'));
+  const card = h(
+    'div',
+    { class: 'tb-note aero-next', id: 'aero-next', role: 'dialog', 'aria-label': AIRPORT_NEXT.title },
+    h('h3', null, AIRPORT_NEXT.title),
+    h('p', { class: 'tb-note-small', lang: 'pt-BR' }, AIRPORT_NEXT.pt),
+    ...AIRPORT_NEXT.goals.map((g, i) => h('div', { class: 'aero-next-goal' }, h('b', null, String(i + 1)), h('span', null, g))),
+    h('div', { class: 'tb-note-foot' }, ok),
+  );
+  ui().append(card);
+  ok.focus({ preventScroll: true });
 }
 
 // ---------------------------------------------------------------- Célia: the hand-over
