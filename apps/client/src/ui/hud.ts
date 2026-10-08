@@ -67,6 +67,8 @@ export interface HudActions {
   toggleMusic: () => void;
   /** English glosses under Portuguese chat: a player setting, separate from the nameplate colour. */
   toggleEnglish: () => void;
+  /** Back to the arrivals hall to play the guided tutorial again (settings). */
+  replayTutorial: () => void;
   /** Multiplayer only (solo has no account). */
   logout?: () => void;
 }
@@ -180,6 +182,7 @@ export function buildHud(actions: HudActions) {
   musicBtn.title = 'Música / Music';
   englishBtn.title = 'Inglês embaixo do português / English under the Portuguese (your choice; the nameplate colour never changes it)';
   const creditsBtn = btn('btn-credits', 'info', 'Créditos', 'Credits', actions.openCredits);
+  const tutorialBtn = btn('btn-tutorial', 'mark', 'Tutorial', 'Replay the tutorial', actions.replayTutorial);
   const supportBtn = btn('btn-support', 'coracao', 'Apoiar', 'Support', actions.openSupport);
   const logoutBtn = actions.logout ? btn('btn-logout', 'logout', 'Sair', 'Log out', actions.logout) : null;
   const gear = h('button', { class: 'hud-btn hud-gear', id: 'btn-menu', type: 'button', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-controls': 'hud-menu', 'aria-label': 'Ajustes (Settings)' }, icon('gear', 32), h('span', { class: 'hud-label' }, h('b', { class: 'pt' }, 'Ajustes'), h('i', { class: 'hud-gloss' }, 'Music, voice, credits')));
@@ -190,6 +193,7 @@ export function buildHud(actions: HudActions) {
     soundBtn,
     englishBtn,
     supportBtn,
+    tutorialBtn,
     creditsBtn,
     logoutBtn,
   );
@@ -243,7 +247,7 @@ export function buildHud(actions: HudActions) {
     h(
       'div',
       { class: 'hud-right' },
-      h('div', { class: 'hud-stats hud-slab' }, h('span', { class: 'hud-belt', id: 'hud-belt' }), plate, goalChip, h('span', { class: 'hud-rv', title: 'Reais Virtuais (RV) — soft currency' }, icon('rv', 16), coins)),
+      h('div', { class: 'hud-stats hud-slab' }, h('span', { class: 'hud-belt', id: 'hud-belt' }), plate, goalChip, h('span', { class: 'hud-rv', id: 'hud-rv', title: 'Reais Virtuais (RV) — soft currency' }, icon('rv', 16), coins)),
       feedbackBtn,
       burger,
       actionsNav,

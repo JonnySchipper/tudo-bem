@@ -7606,6 +7606,24 @@
       "file": "lucia-732f5fe856.mp3"
     },
     {
+      "id": "comissaria-d293b32fd0",
+      "voice": "comissaria",
+      "text": "Aqui é o desembarque. Siga para o aeroporto pela porta de vidro.",
+      "file": "comissaria-d293b32fd0.mp3"
+    },
+    {
+      "id": "comissaria-d198393bde",
+      "voice": "comissaria",
+      "text": "Bem-vindo ao Brasil!",
+      "file": "comissaria-d198393bde.mp3"
+    },
+    {
+      "id": "comissaria-235be7666b",
+      "voice": "comissaria",
+      "text": "A porta do aeroporto é ali embaixo.",
+      "file": "comissaria-235be7666b.mp3"
+    },
+    {
       "id": "carlos-f0eea8e48e",
       "voice": "carlos",
       "text": "Sem pressa.",

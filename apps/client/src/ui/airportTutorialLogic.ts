@@ -10,7 +10,12 @@ export interface Chip {
   en?: string;
 }
 
-export type AirportStepId = 'andar' | 'ler' | 'celia' | 'foto' | 'diario' | 'passaporte' | 'sentar' | 'acenar' | 'lanche' | 'onibus';
+/**
+ * The airport comes after the arrivals hall (`desembarque`), which already taught walking, talking, the Diário, reading a sign, waving,
+ * picking up and using things, money, the map and doors. So the airport only asks for what is new here: the camera from Célia and a first
+ * photo, the passport check, a snack bought with RV, and the bus to the Vila.
+ */
+export type AirportStepId = 'celia' | 'foto' | 'passaporte' | 'lanche' | 'onibus';
 
 export interface AirportGuide {
   kind: 'npc' | 'prop' | 'portal' | 'hotspot';
@@ -34,103 +39,62 @@ export interface AirportStep {
 
 export const AIRPORT_STEPS: readonly AirportStep[] = [
   {
-    id: 'andar',
-    pt: 'Ande pelo terminal',
-    en: 'Walk around the terminal',
-    how: { pt: 'Clique no chão pra andar. Setas ou WASD também funcionam.', en: 'Click the floor to walk. Arrow keys or WASD work too.' },
-    guide: { kind: 'hotspot', id: 'hall_s_terminal', label: 'Ande até aqui', lift: 40 },
-  },
-  {
-    id: 'ler',
-    pt: 'Leia uma placa',
-    en: 'Read a sign',
-    how: { pt: 'Clique numa placa, como TERMINAL. As palavras que brilham vão pro seu diário.', en: 'Click a sign, like TERMINAL. Sparkling words go into your diary.' },
-    guide: { kind: 'hotspot', id: 'hall_s_terminal', label: 'Clique pra ler', lift: 40 },
-  },
-  {
     id: 'celia',
     pt: 'Fale com a Célia',
-    en: 'Talk to Célia',
-    how: { pt: 'Ela está no balcão de Informações. A Júlia deixou um pacote pra você!', en: 'She is at the information desk. Júlia left a package for you!' },
-    guide: { kind: 'npc', id: 'celia', label: 'Célia · Informações', lift: 120 },
+    en: 'Get your camera from Célia',
+    how: { pt: 'Ela está no balcão de Informações. A Júlia deixou um pacote pra você!', en: 'She is at the information desk, to your right. Júlia left a package for you: a camera and a stamp card.' },
+    guide: { kind: 'npc', id: 'celia', label: 'Célia · Information', lift: 120 },
   },
   {
     id: 'foto',
     pt: 'Tire uma foto do avião',
     en: 'Take a photo of the plane',
-    how: { pt: 'Chegue perto da janela, clique em Câmera e depois no avião. Aqui no aeroporto as fotos são de graça.', en: 'Go up to the window, click Camera, then the plane. Photos are free here at the airport.' },
-    guide: { kind: 'prop', id: 'aviao', label: 'Fotografe o avião', lift: 70 },
-    hud: '#btn-camera',
-  },
-  {
-    id: 'diario',
-    pt: 'Abra o Diário',
-    en: 'Open your Diário',
-    how: { pt: 'Clique em Diário: as palavras que você ganhou ficam lá.', en: 'Click Diário: the words you earned live there.' },
-    guide: null,
-    hud: '#btn-caderno',
+    how: { pt: 'Chegue perto da janela, clique em Câmera e depois no avião. Aqui no aeroporto as fotos são de graça.', en: 'Go up to the window, click Câmera, then the plane. Each thing you photograph teaches its word. Photos are free here.' },
+    guide: { kind: 'prop', id: 'aviao', label: 'Photograph · Fotografe', lift: 70 },
+    hud: '#btn-camera, #btn-burger',
   },
   {
     id: 'passaporte',
     pt: 'Mostre o passaporte',
     en: 'Show your passport',
-    how: { pt: 'Fale com o Agente Paulo no controle de passaporte. Cumprimente ele primeiro!', en: 'Talk to Agent Paulo at passport control. Greet him first!' },
-    guide: { kind: 'npc', id: 'agente', label: 'Controle de passaporte', lift: 120 },
-  },
-  {
-    id: 'sentar',
-    pt: 'Sente numa cadeira',
-    en: 'Sit down',
-    how: { pt: 'Clique numa cadeira pra sentar. Pra levantar, é só andar.', en: 'Click a seat to sit. To get up, just walk.' },
-    guide: { kind: 'prop', id: 'cadeiras_6', label: 'Sente aqui', lift: 36 },
-  },
-  {
-    id: 'acenar',
-    pt: 'Dê um oi',
-    en: 'Wave hello',
-    how: { pt: 'Clique em Oi!, embaixo, perto do chat (no celular, abra o rostinho primeiro). Todo mundo por perto vê.', en: 'Click Oi! at the bottom, by the chat (on a phone, open the smiley first). Everyone nearby sees it.' },
-    guide: null,
-    hud: '#btn-emotes, [data-emote="oi"]',
+    how: { pt: 'Fale com o Agente Paulo no controle de passaporte. Cumprimente ele primeiro!', en: 'Talk to Agent Paulo at passport control, south of the gate. Greet him the right way for the time of day!' },
+    guide: { kind: 'npc', id: 'agente', label: 'Passport · Passaporte', lift: 120 },
   },
   {
     id: 'lanche',
     pt: 'Compre um pão de queijo',
     en: 'Buy a pão de queijo',
-    how: { pt: 'Na lanchonete. Custa R$ 4 dos seus reais virtuais (RV): o saldo fica lá em cima.', en: 'At the café. It costs R$ 4 of your virtual reais (RV): your balance is at the top.' },
-    guide: { kind: 'prop', id: 'lanchonete_aero', label: 'Lanchonete', lift: 70 },
+    how: { pt: 'Na lanchonete. Custa R$ 4 dos seus reais virtuais (RV): o saldo fica lá em cima.', en: 'At the café (lanchonete). It costs 4 of your RV: your balance is at the top right.' },
+    guide: { kind: 'prop', id: 'lanchonete_aero', label: 'Café · Lanchonete', lift: 70 },
   },
   {
     id: 'onibus',
     pt: 'Pegue o ônibus pra Vila Ipê',
     en: 'Take the bus to Vila Ipê',
-    how: { pt: 'Saia pelas portas e clique no ônibus 875. A Júlia te espera na praça!', en: 'Go out the doors and click bus 875. Júlia is waiting for you in the square!' },
-    guide: { kind: 'portal', id: 'aero_vila', label: 'Ônibus 875 · Vila Ipê', lift: 60 },
+    how: { pt: 'Saia pelas portas e clique no ônibus 875. A Júlia te espera na praça!', en: 'Go out the glass doors at the bottom and click bus 875. Júlia is waiting for you in the square!' },
+    guide: { kind: 'portal', id: 'aero_vila', label: 'Bus 875 · Vila Ipê', lift: 60 },
   },
 ];
 
 /** The steps only this page knows about, per profile. */
-export type AirportFlags = Partial<Record<'diario' | 'passaporte' | 'lanche' | 'onibus', boolean>>;
+export type AirportFlags = Partial<Record<'passaporte' | 'lanche' | 'onibus', boolean>>;
 
-type ProfileBits = Pick<PrivateProfile, 'tutorial' | 'arrivalIntroDone' | 'diary'>;
+type ProfileBits = Pick<PrivateProfile, 'arrivalIntroDone' | 'diary'>;
 
-const chegada = (diary: readonly string[] | undefined, source: 'reading' | 'camera') =>
+const chegadaPhoto = (diary: readonly string[] | undefined) =>
   normalizeDiary(diary).some((id) => {
     const w = diaryWord(id);
-    return w?.area === 'chegada' && w.source === source;
+    return w?.area === 'chegada' && w.source === 'camera';
   });
 
-/** Which steps are done: from the profile (walked, sat, waved, the arrival, the Chegada words in the diary) and this page's flags. */
+/** Which steps are done: from the profile (the arrival, a Chegada photo in the diary) and this page's flags. */
 export function airportDone(p: ProfileBits | null | undefined, flags: AirportFlags): Set<AirportStepId> {
   const done = new Set<AirportStepId>();
   if (!p) return done;
-  if (p.tutorial?.andar) done.add('andar');
-  if (chegada(p.diary, 'reading')) done.add('ler');
   // an account from before the airport (no `arrivalIntroDone` on the save) already has its camera
   if (p.arrivalIntroDone !== false) done.add('celia');
-  if (chegada(p.diary, 'camera')) done.add('foto');
-  if (p.tutorial?.sentar) done.add('sentar');
-  if (p.tutorial?.acenar) done.add('acenar');
-  for (const k of ['diario', 'passaporte', 'lanche', 'onibus'] as const) if (flags[k]) done.add(k);
+  if (chegadaPhoto(p.diary)) done.add('foto');
+  for (const k of ['passaporte', 'lanche', 'onibus'] as const) if (flags[k]) done.add(k);
   return done;
 }
 
@@ -159,3 +123,13 @@ export function passportChips(minute: number): { chips: Chip[]; right: number } 
   };
 }
 
+/** The airport's "what next" card, shown once when you come out of the arrivals hall. */
+export const AIRPORT_NEXT = {
+  title: 'You’re in the airport!',
+  pt: 'Bem-vindo ao aeroporto!',
+  goals: [
+    'Get your camera from Célia at the information desk (follow the arrow).',
+    'Take a photo, show your passport and grab a snack if you like.',
+    'Then go out the glass doors at the bottom and take bus 875 to Vila Ipê, where Júlia is waiting.',
+  ],
+} as const;
