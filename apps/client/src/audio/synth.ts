@@ -29,7 +29,7 @@ function rng(seed: number) {
   };
 }
 
-export type Inst = 'guitar' | 'cavaco' | 'epiano' | 'vibes' | 'box' | 'bell' | 'whistle' | 'flute' | 'clar' | 'felt' | 'strings' | 'accordion' | 'bass' | 'stab';
+export type Inst = 'guitar' | 'cavaco' | 'epiano' | 'vibes' | 'box' | 'bell' | 'whistle' | 'flute' | 'clar' | 'felt' | 'strings' | 'accordion' | 'sanfona' | 'bass' | 'stab';
 
 export interface Rig {
   readonly ctx: BaseAudioContext;
@@ -564,6 +564,54 @@ function sawPad(rig: Rig, f: number, when: number, dur: number, peak: number, pa
   }
 }
 
+/**
+ * Sanfona (the forró accordion played as a lead): three reeds a few cents apart, the musette beating that makes it sound like a
+ * sanfona and not an organ, a reedy formant, and a bellows push at the start of each note. Quick enough to chop chords with.
+ */
+function sanfona(rig: Rig, f: number, when: number, dur: number, peak: number, pan: number) {
+  const { ctx } = rig;
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.Q.value = 0.7;
+  lp.frequency.setValueAtTime(Math.min(5200, f * 6), when);
+  const body = ctx.createBiquadFilter();
+  body.type = 'peaking';
+  body.frequency.value = 1250;
+  body.Q.value = 1.1;
+  body.gain.value = 4;
+  const g = vca(ctx);
+  const att = 0.022;
+  const end = Math.max(att + 0.04, dur);
+  g.gain.setValueAtTime(0.0001, when);
+  g.gain.exponentialRampToValueAtTime(peak * 1.15, when + att);
+  g.gain.exponentialRampToValueAtTime(peak * 0.85, when + att + 0.09);
+  g.gain.setValueAtTime(peak * 0.85, when + end - 0.03);
+  g.gain.exponentialRampToValueAtTime(0.0001, when + end + 0.09);
+  const oscs: OscillatorNode[] = [];
+  for (const [type, cents, amp] of [
+    ['sawtooth', 0, 0.6],
+    ['square', -11, 0.4],
+    ['square', 12, 0.4],
+  ] as [OscillatorType, number, number][]) {
+    const o = ctx.createOscillator();
+    o.type = type;
+    o.frequency.value = f;
+    o.detune.value = cents;
+    const a = ctx.createGain();
+    a.gain.value = amp;
+    o.connect(a);
+    a.connect(lp);
+    oscs.push(o);
+  }
+  lp.connect(body);
+  body.connect(g);
+  g.connect(strip(rig, pan, 0.28, 1, 0.05));
+  for (const o of oscs) {
+    o.start(when);
+    o.stop(when + end + 0.12);
+  }
+}
+
 /** Upright bass: a Karplus-Strong string with a sine underneath for weight. */
 function uprightBass(rig: Rig, midi: number, when: number, dur: number, peak: number) {
   const { ctx } = rig;
@@ -642,6 +690,8 @@ export function playInst(rig: Rig, inst: Inst, midi: number, when: number, dur: 
       return sawPad(rig, f, when, dur, 0.017 * vel, pan * 0.7, false);
     case 'accordion':
       return sawPad(rig, f, when, dur, 0.02 * vel, pan * 0.6, true);
+    case 'sanfona':
+      return sanfona(rig, f, when, dur, 0.08 * vel, -0.15 + pan * 0.4);
     case 'bass':
       return uprightBass(rig, midi, when, dur, 0.34 * vel);
     case 'stab':
@@ -651,7 +701,7 @@ export function playInst(rig: Rig, inst: Inst, midi: number, when: number, dur: 
 
 // ---------------------------------------------------------------- percussion
 
-export type Drum = 'shaker' | 'clave' | 'surdo' | 'brush' | 'pandeiro';
+export type Drum = 'shaker' | 'clave' | 'surdo' | 'brush' | 'pandeiro' | 'zabumba' | 'triangle';
 
 function noiseHit(rig: Rig, when: number, type: BiquadFilterType, freq: number, q: number, attack: number, end: number, peak: number, pan: number, send = 0.2) {
   const { ctx } = rig;
@@ -702,13 +752,40 @@ export function playDrum(rig: Rig, drum: Drum, when: number, vel: number, gain =
       noiseHit(rig, when, 'bandpass', 6800, 0.8, 0.003, 0.1, 0.032 * vel * gain, 0.45, 0.2);
       if (vel >= 0.7) sineHit(rig, when, 210, 130, 0.07, 0.07 * vel * gain, 0.45, 0.15);
       return;
+    case 'zabumba':
+      // accents are the mallet on the big skin (a boom with a slap on top), soft hits the bacalhau stick on the other side
+      if (vel >= 0.6) {
+        sineHit(rig, when, 128, 62, 0.28, 0.26 * vel * gain, -0.1, 0.1);
+        return noiseHit(rig, when, 'lowpass', 420, 0.8, 0.003, 0.05, 0.08 * vel * gain, -0.1, 0.05);
+      }
+      return noiseHit(rig, when, 'bandpass', 3200, 1.6, 0.002, 0.035, 0.1 * vel * gain, -0.2, 0.15);
+    case 'triangle': {
+      // three inharmonic partials; open (accents) rings, choked (soft) is just the tick
+      const ring = vel >= 0.7 ? 0.32 : 0.035;
+      for (const [fq, amp] of [
+        [4180, 1],
+        [6370, 0.6],
+        [8890, 0.35],
+      ] as [number, number][]) {
+        const o = rig.ctx.createOscillator();
+        o.type = 'sine';
+        o.frequency.value = fq;
+        const g = vca(rig.ctx);
+        ramp(g.gain, when, 0.002, 0.018 * amp * vel * gain, 0.002, ring);
+        o.connect(g);
+        g.connect(strip(rig, 0.5, 0.2));
+        o.start(when);
+        o.stop(when + ring + 0.03);
+      }
+      return;
+    }
   }
 }
 
 // ---------------------------------------------------------------- voice → instrument
 
 /** Which instrument plays a voice of the score; a mood or an arrangement can swap any of them. */
-export const VOICE_INST: Record<Exclude<Voice, 'shaker' | 'clave' | 'surdo' | 'brush' | 'pandeiro'>, Inst> = {
+export const VOICE_INST: Record<Exclude<Voice, Drum>, Inst> = {
   bass: 'bass',
   comp: 'guitar',
   pad: 'felt',
@@ -722,6 +799,8 @@ export const VOICE_INST: Record<Exclude<Voice, 'shaker' | 'clave' | 'surdo' | 'b
   accordion: 'accordion',
   clar: 'clar',
   stab: 'stab',
+  sanfona: 'sanfona',
+  pife: 'flute',
 };
 
 /**
@@ -747,9 +826,13 @@ export const VOICE_DB: Record<Voice, number> = {
   shaker: 14,
   brush: 12,
   pandeiro: 12,
+  sanfona: 2,
+  pife: 2,
+  zabumba: 0,
+  triangle: 6,
 };
 
-const PERC: ReadonlySet<Voice> = new Set<Voice>(['shaker', 'clave', 'surdo', 'brush', 'pandeiro']);
+const PERC: ReadonlySet<Voice> = new Set<Voice>(['shaker', 'clave', 'surdo', 'brush', 'pandeiro', 'zabumba', 'triangle']);
 
 /** One note of the score. `trimDb` is the arrangement's own adjustment for this voice. */
 export function playVoice(rig: Rig, voice: Voice, midi: number, when: number, dur: number, vel: number, swap?: Partial<Record<Voice, Inst>>, trimDb = 0) {

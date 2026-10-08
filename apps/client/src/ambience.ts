@@ -1,4 +1,4 @@
-import type { FloorKind, RoomId } from '@tudobem/shared';
+import { feiraOpen, type FloorKind, type RoomId } from '@tudobem/shared';
 import { Conductor } from './audio/conductor';
 import { DUCK, STING_DIP, XFADE_TAU, createMaster, levels } from './audio/mix';
 import { playSting, ThemeSequencer } from './audio/sequencer';
@@ -20,6 +20,7 @@ const CORRERIA_SFX = ['grab', 'sizzle', 'ready', 'burnt', 'pop', 'pour', 'glug',
  * Padaria: a choro-ish take on the theme in G, a slow vibes version at night, with the murmur and the coffee machine.
  * Kitnet: a music box plays the first eight bars, room tone and a slow fan under it.
  * Academia: a soft samba pulse with the hook; the bout swaps it for a batucada and brass stabs on the hook.
+ * Feira (06:00-13:00, while it is open): "Baião da Feira", the theme's forró cousin, over the crowd and the outdoor zones; closed, it is the Praça's bed.
  * Stingers (recado, heart, RV, mission, Caderno, win, lose, the padaria door) are fragments of the same tune.
  * Every level comes from audio/mix (measured loudness targets), and everything goes through one master limiter.
  * Unlocks on the first gesture, crossfades on room change (each bed picks its tune up where it left it), ducks under speech.
@@ -271,7 +272,7 @@ function buildBed(ctx: AudioContext, dest: AudioNode, room: BedId, world: () => 
       if ('start' in n) bed.sources.push(n as Source);
     }
   };
-  const band = (kind: 'intro' | 'padaria' | 'padariaNight' | 'kitnet' | 'academia' | 'bout', dst: AudioNode, boost = 0) => {
+  const band = (kind: Exclude<ArrangementKind, 'radio'>, dst: AudioNode, boost = 0) => {
     const seq = new ThemeSequencer(ctx, dst, kind, { level: levels.bed(kind), boost, startAt: now + 0.15, startBar: resume(kind) });
     keep(...seq.nodes);
     seq.tick();
@@ -307,6 +308,12 @@ function buildBed(ctx: AudioContext, dest: AudioNode, room: BedId, world: () => 
     keep(...rig.nodes);
     const conductor = new Conductor(rig, world, () => bed.zones?.mix.radio ?? 0);
     bed.timers.push(window.setInterval(() => conductor.tick(), 1000));
+    buildZones(ctx, gain, bed, buf, keep);
+  } else if (room === 'feira') {
+    // the market: a breeze, the crowd between the stalls, the trio playing at the end of the aisle, and the outdoor zones (birds, rain)
+    keep(...loopNoise(ctx, gain, buf, 700, 'lowpass', 0.035, 0.6));
+    keep(...loopNoise(ctx, gain, buf, 520, 'bandpass', 0.03, 0.9));
+    band('feira', gain);
     buildZones(ctx, gain, bed, buf, keep);
   } else if (room === 'padaria' || room === 'padariaNight') {
     // the room: a murmur and, now and then, the coffee machine
@@ -488,10 +495,10 @@ class Ambience {
     if (changed && !first && room === 'padaria') this.sting('door');
   }
 
-  /** The game clock and the rain, a few times a second: the Praça's phrases follow the hour, and the padaria changes shift at 22:00. */
+  /** The game clock and the rain, a few times a second: the Praça's phrases follow the hour, the padaria changes shift at 22:00, the feira opens and packs up. */
   setWorld(w: World) {
     this.world = w;
-    if (this.room === 'padaria' && !this.scene && this.playing !== this.target()) this.sync();
+    if ((this.room === 'padaria' || this.room === 'feira') && !this.scene && this.playing !== this.target()) this.sync();
   }
 
   /** The band plays harder: a finishing chance in the bout. */
@@ -622,8 +629,9 @@ class Ambience {
     if (!this.enabled) return null;
     if (this.scene) return this.scene;
     if (!this.unlocked) return null;
-    // the three open-air areas (rua, praça, feira) share one outdoor bed, so walking between them never restarts the music
-    if (this.room === 'rua' || this.room === 'rua_leste' || this.room === 'feira') return 'praca';
+    // the open-air areas share one outdoor bed, so walking between them never restarts the music; the feira has its own while it is open
+    if (this.room === 'feira') return feiraOpen(this.world.minute) ? 'feira' : 'praca';
+    if (this.room === 'rua' || this.room === 'rua_leste') return 'praca';
     if (this.room === 'escola') return 'kitnet';
     return this.room === 'padaria' && padariaIsNight(this.world.minute) ? 'padariaNight' : this.room;
   }
