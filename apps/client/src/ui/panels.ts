@@ -590,7 +590,7 @@ export function buildDecorPanel(actions: { buy: (id: string) => void; rotate: (u
         : h(
             'div',
             { class: 'list' },
-            ...FURNITURE.map((d) =>
+            ...FURNITURE.filter((d) => !d.earned).map((d) =>
               h(
                 'button',
                 { onclick: () => actions.buy(d.id), disabled: p.coins < d.price, 'data-buy-furniture': d.id },

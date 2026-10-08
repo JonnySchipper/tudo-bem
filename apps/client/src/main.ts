@@ -78,6 +78,7 @@ import {
 } from './ui/panels';
 import { openPedido, updatePedido, closePedido, isPedidoOpen } from './ui/pedido';
 import { openCredits } from './ui/credits';
+import { openSupport } from './ui/support';
 import { bindAdmin, onAdminMsg } from './ui/admin';
 import { isDialogueBoxOpen, setDialogueHost, showDialogueBox } from './ui/dialogue';
 import { mountTracker, openJournal, runPrelude } from './ui/recados';
@@ -1010,6 +1011,19 @@ function startGame() {
     carry: (action) => net.send({ t: 'carry', action }),
     openMap: () => openMap((room) => joinRoom(room)),
     openCredits,
+    openSupport: () => {
+      void openSupport({
+        subscribe: async () => {
+          const res = await fetch('/api/billing/checkout', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+          if (res.status === 503) return { soon: true };
+          if (!res.ok) return { soon: true };
+          const data = (await res.json()) as { url?: string };
+          return typeof data.url === 'string' ? { url: data.url } : { soon: true };
+        },
+        setPet: (pet) => net.send({ t: 'perk', action: 'pet', pet }),
+        setBubble: (style) => net.send({ t: 'perk', action: 'bubble', style }),
+      });
+    },
     openCaderno: () => {
       markAirportStep('diario');
       openCaderno();

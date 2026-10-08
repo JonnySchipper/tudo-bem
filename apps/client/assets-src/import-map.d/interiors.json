@@ -72,6 +72,8 @@
     {"footprint":[1,1],"key":"furniture/filtro_1","kind":"derive","fn":"kitFurniture","args":{"id":"filtro","rot":1},"shadow":"fx/shadow_16"},
     {"footprint":[1,1],"key":"furniture/quadro_0","kind":"derive","fn":"kitFurniture","args":{"id":"quadro","rot":0},"shadow":"fx/shadow_16"},
     {"footprint":[1,1],"key":"furniture/quadro_1","kind":"derive","fn":"kitFurniture","args":{"id":"quadro","rot":1},"shadow":"fx/shadow_16"},
+    {"footprint":[1,1],"key":"furniture/banner_fundadores_0","kind":"derive","fn":"kitFurniture","args":{"id":"banner_fundadores","rot":0},"shadow":null},
+    {"footprint":[1,1],"key":"furniture/banner_fundadores_1","kind":"derive","fn":"kitFurniture","args":{"id":"banner_fundadores","rot":1},"shadow":null},
     {"footprint":[1,1],"key":"furniture/tapete_0","kind":"derive","fn":"kitFurniture","args":{"id":"tapete","rot":0},"shadow":null},
     {"footprint":[1,1],"key":"furniture/tapete_1","kind":"derive","fn":"kitFurniture","args":{"id":"tapete","rot":1},"shadow":null},
     {"footprint":[1,1],"key":"furniture/ventilador_0","kind":"derive","fn":"kitVentilador","args":{"rot":0},"shadow":"fx/shadow_16"},

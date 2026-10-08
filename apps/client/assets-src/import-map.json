@@ -1129,6 +1129,9 @@
     },
     {
       "fn": "flock"
+    },
+    {
+      "fn": "pets"
     }
   ],
   "terrain": {

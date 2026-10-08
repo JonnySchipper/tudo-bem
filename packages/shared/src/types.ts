@@ -90,6 +90,12 @@ export interface PublicAvatar {
   belt?: Belt;
   /** Beta founder chip beside the nameplate. */
   founder?: boolean;
+  /** Subscription founder badge (permanent). Separate from belts, nameplates and stripes. */
+  founderBadge?: boolean;
+  /** Which subscriber pet is out. Absent or null when none is following. */
+  pet?: 'dog' | 'cat' | null;
+  /** Chat bubble appearance. Classic for anyone without an active subscription. */
+  bubbleStyle?: import('./subscription.js').BubbleStyle;
   /**
    * Live "Fada da Feira" crown: today's top Feira-cart score. A display overlay only —
    * it is not a belt, a nameplate tier, or a stripe, and it clears at midnight ET.
@@ -222,6 +228,16 @@ export interface PrivateProfile {
    * finalizes; the diary lists them. Absent on saves from before the cart games.
    */
   feiraMedals?: { day: string; game: string; medal: 'gold' | 'silver' | 'bronze'; score: number }[];
+  /** Permanent subscription founder badge. Absent means false. Never revoked. */
+  founderBadge?: boolean;
+  /** Permanent founders banner already granted. The item itself lives in `furniture`. */
+  founderBanner?: boolean;
+  /** Subscriber pet choice. Shown only while the subscription is active. */
+  pet?: 'dog' | 'cat' | null;
+  /** Subscriber chat-bubble appearance. Reverts to classic when the subscription ends. */
+  bubbleStyle?: import('./subscription.js').BubbleStyle;
+  /** Support subscription. Absent means never subscribed. */
+  subscription?: import('./subscription.js').PlayerSubscription | null;
 }
 
 export interface Bilingual {

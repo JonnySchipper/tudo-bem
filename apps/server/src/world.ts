@@ -86,6 +86,11 @@ import {
   type TutorialStep,
   normalizeBjj,
   normalizeFounderFlag,
+  bubbleAppearance,
+  hasPerkAccess,
+  isBubbleStyle,
+  revokeTestSubscription,
+  visiblePet,
   GI_ITEM_ID,
   GI_PRICE,
   buyParrotColor,
@@ -152,6 +157,7 @@ import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria
 import { BoutEngine, type BoutSession } from './bout.js';
 import { CartelaTracker } from './cartela.js';
 import { ADMIN_MONEY_MAX, ADMIN_WRONG_PASSWORD, adminPasswordMatches, readAdminAuthConfig } from './adminAuth.js';
+import { DevBillingProvider } from './billing/devProvider.js';
 
 export interface Services {
   safety: ChatSafetyService;
@@ -599,6 +605,8 @@ export class World {
         return this.equipHat(s, msg.hatId);
       case 'parrot':
         return this.parrot(s, msg.action, msg.colorId);
+      case 'perk':
+        return this.perk(s, msg);
       case 'furniture':
         return this.furniture(s, msg);
       case 'friend':
@@ -1260,6 +1268,58 @@ export class World {
         en: msg.weather ? `Weather: ${msg.weather}.` : 'Weather follows the day again.',
       });
     }
+    if (msg.action === 'subscribers') return this.adminSubscribers(s);
+    if (msg.action === 'grantSub') return this.adminGrantSub(s, msg.targetId);
+    if (msg.action === 'revokeSub') return this.adminRevokeSub(s, msg.targetId);
+  }
+
+  private adminSubscribers(s: Session) {
+    const online = new Set([...this.sessions.values()].filter((x) => x.profile).map((x) => x.profile!.id));
+    const subscribers = this.store
+      .all()
+      .filter((p) => p.subscription || p.founderBadge || online.has(p.id))
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        status: p.subscription?.status ?? ('none' as const),
+        currentPeriodEnd: p.subscription?.currentPeriodEnd ?? null,
+        founderBadge: p.founderBadge === true,
+        founderBanner: p.founderBanner === true,
+        online: online.has(p.id),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt'));
+    s.send({ t: 'admin', phase: 'subscribers', subscribers });
+  }
+
+  /** Dev provider: admin only, no payment. Founder marks stick; perks follow the test period. */
+  private adminGrantSub(s: Session, targetId: string) {
+    const id = String(targetId ?? '');
+    const dev = new DevBillingProvider({
+      isAdmin: () => s.admin === true,
+      now: () => this.now(),
+      getProfile: (userId) => this.store.get(userId),
+      afterChange: (userId) => {
+        this.store.save();
+        this.syncEntitlements(userId);
+      },
+    });
+    void dev.createCheckout(id).then(
+      () => {
+        this.adminSubscribers(s);
+        s.send({ t: 'notice', level: 'info', pt: 'Assinatura de teste ligada.', en: 'Test subscription on.' });
+      },
+      () => this.err(s, 'admin', 'Não achei esse perfil.', 'No profile with that id.'),
+    );
+  }
+
+  private adminRevokeSub(s: Session, targetId: string) {
+    const p = this.store.get(String(targetId ?? ''));
+    if (!p) return this.err(s, 'admin', 'Não achei esse perfil.', 'No profile with that id.');
+    revokeTestSubscription(p, this.now());
+    this.store.save();
+    this.syncEntitlements(p.id);
+    this.adminSubscribers(s);
+    s.send({ t: 'notice', level: 'info', pt: 'Assinatura de teste encerrada.', en: 'Test subscription ended.' });
   }
 
   private adminFeiraCart(s: Session) {
@@ -1433,6 +1493,9 @@ export class World {
       ...this.wornGi(s),
       nameplate: p.nameplate,
       founder: normalizeFounderFlag(p.founder),
+      founderBadge: p.founderBadge === true,
+      pet: visiblePet(p.pet, hasPerkAccess(p.subscription, this.now())),
+      bubbleStyle: bubbleAppearance('', p.bubbleStyle, hasPerkAccess(p.subscription, this.now())).style,
       ...(this.feiraGames.crownId() === p.id ? { feiraCrown: true } : {}),
       x: cur.tile.x,
       y: cur.tile.y,
@@ -1748,6 +1811,35 @@ export class World {
     if (s) this.pushProfile(s);
   }
 
+  /** Profile + avatar after a billing event, so pets, bubbles and the badge update live. */
+  syncEntitlements(userId: string) {
+    const s = this.sessionByProfile(userId);
+    if (!s?.profile) return;
+    this.pushProfile(s);
+    this.broadcastAvatar(s);
+  }
+
+  private perk(s: Session, msg: Extract<ClientMsg, { t: 'perk' }>) {
+    const p = s.profile!;
+    const active = hasPerkAccess(p.subscription, this.now());
+    if (msg.action === 'pet') {
+      if (msg.pet !== null && msg.pet !== 'dog' && msg.pet !== 'cat') return;
+      if (msg.pet && !active) {
+        return this.err(s, 'perk', 'Pets de assinante ficam disponíveis enquanto a assinatura está ativa.', 'Subscriber pets are available while the subscription is active.');
+      }
+      p.pet = msg.pet;
+    } else {
+      if (!isBubbleStyle(msg.style)) return;
+      if (msg.style !== 'classic' && !active) {
+        return this.err(s, 'perk', 'Esses balões são de quem assina.', 'Those bubbles are for subscribers.');
+      }
+      p.bubbleStyle = msg.style;
+    }
+    this.store.save();
+    this.pushProfile(s);
+    this.broadcastAvatar(s);
+  }
+
   // ---------- Correria no Balcão (the padaria counter game; apps/server/src/correria.ts) ----------
 
   private minigame(s: Session, m: Extract<ClientMsg, { t: 'mg' }>) {
@@ -1857,7 +1949,7 @@ export class World {
       return this.equipHat(s, hat.id);
     }
     const item = furnitureById(itemId);
-    if (!item) return;
+    if (!item || item.earned) return;
     if (s.instance?.def.id !== 'kitnet' || s.instance.ownerId !== p.id) return this.err(s, 'shop', 'Compre móveis na sua kitnet.', 'Buy furniture from inside your own apartment.');
     if (p.coins < item.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
     p.coins -= item.price;
