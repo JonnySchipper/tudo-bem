@@ -7,6 +7,7 @@ import {
   frontOf,
   hearts,
   levelForStars,
+  menuLadder,
   mgItemByIdAny,
   newShift,
   newUnlocks,
@@ -208,7 +209,7 @@ export class CorreriaEngine {
 
   // ------------------------------------------------------------------ the end
 
-  private summaryToEnd(s: Session, sum: ShiftSummary, coins: number, dailyBlocked: boolean, before: number, wordsNew: Bilingual[], menuNote: Bilingual | null): CorreriaEnd {
+  private summaryToEnd(s: Session, sum: ShiftSummary, coins: number, dailyBlocked: boolean, before: number, wordsNew: Bilingual[], menuNote: Bilingual | null, menuIds?: readonly string[]): CorreriaEnd {
     const p = s.profile!;
     const cp = normalizeCorreria(p.correria);
     return {
@@ -230,6 +231,7 @@ export class CorreriaEngine {
       level: levelForStars(cp.stars),
       regulars: sum.regulars.map((k) => npcDefById(k.replace('npc:', '') as NpcId)?.name ?? k),
       menuNote,
+      ladder: menuLadder(cp.shifts, menuIds),
     };
   }
 
@@ -269,7 +271,7 @@ export class CorreriaEngine {
       if (!abandoned) this.d.shiftWon?.(s, sum.items);
     }
     this.d.pushProfile(s);
-    const end = this.summaryToEnd(s, sum, coins, dailyBlocked, before, wordsNew, run.shift.ctx.bump ?? null);
+    const end = this.summaryToEnd(s, sum, coins, dailyBlocked, before, wordsNew, run.shift.ctx.bump ?? null, run.shift.ctx.menuIds);
     const carlos: Bilingual =
       sum.served === 0
         ? { pt: 'Turno encerrado. Dessa vez não deu RV — pode começar de novo quando quiser.', en: 'Shift closed. No RV this time — you can start again whenever you want.' }

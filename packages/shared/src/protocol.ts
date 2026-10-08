@@ -12,7 +12,7 @@ import type {
   TutorialStep,
 } from './types.js';
 import type { SceneView } from './carlos.js';
-import type { CAct, CEvent, CorreriaSnap, UnlockId } from './correria.js';
+import type { CAct, CEvent, CorreriaSnap, MenuLadderView, UnlockId } from './correria.js';
 import type { SafetyAction } from './safety.js';
 import type { NpcId } from './rooms.js';
 import type { ConversaGrade, ConversaMeter, ConversaScores, ConversaSubject } from './conversa.js';
@@ -253,6 +253,8 @@ export interface CorreriaEnd {
   regulars: string[];
   /** Set when this shift's menu just grew: "+1 item no cardápio: pagamento +6%". */
   menuNote?: Bilingual | null;
+  /** The ladder for the next shift: `fresh` is what it opens, `next` and `toNext` what comes after. */
+  ladder?: MenuLadderView;
 }
 
 export type MgServerMsg =

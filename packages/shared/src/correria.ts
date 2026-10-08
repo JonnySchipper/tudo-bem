@@ -264,6 +264,31 @@ export function shiftItemPool(ctx: Pick<ShiftCtx, 'shifts' | 'menuIds'>): MgItem
 }
 export const whereRequired = (itemCount: number): boolean => itemCount >= WHERE_MENU_AT;
 
+/** Where a counter stands on the ladder: what is open, what this shift opened, and the next item with the shifts left until it. */
+export interface MenuLadderView {
+  /** Open item ids, in ladder order. */
+  open: string[];
+  /** Items this shift added (both starters on the very first shift). */
+  fresh: string[];
+  /** The next ladder item, or null at the top or when an owned room's menu stops it. */
+  next: string | null;
+  /** Completed shifts still needed before `next` opens (1..ITEM_EVERY_SHIFTS). */
+  toNext: number;
+}
+export function menuLadder(shifts: number, menuIds?: readonly string[]): MenuLadderView {
+  const n = Math.max(0, Math.floor(Number.isFinite(shifts) ? shifts : 0));
+  const ids = (k: number) => {
+    const pool = new Set(shiftItemPool({ shifts: k, menuIds }).map((i) => i.id));
+    return MENU_LADDER.filter((id) => pool.has(id));
+  };
+  const open = ids(n);
+  const before = n > 0 ? new Set(ids(n - 1)) : new Set<string>();
+  const count = menuCountForShifts(n);
+  const nextId = MENU_LADDER[count] ?? null;
+  const next = nextId && (!menuIds?.length || menuIds.includes(nextId)) ? nextId : null;
+  return { open, fresh: open.filter((id) => !before.has(id)), next, toNext: next ? (count - 1) * ITEM_EVERY_SHIFTS - n : 0 };
+}
+
 /** One-time card at the start of the shift that first opens an item (or packing). On screen, not spoken. */
 export interface CounterLesson {
   id: string;
@@ -272,11 +297,11 @@ export interface CounterLesson {
 }
 const step = (pt: string, en: string): Bilingual => ({ pt, en });
 const LESSONS: Record<string, CounterLesson> = {
-  cafe: { id: 'cafe', title: step('Café', 'Coffee'), steps: [step('Toque na cafeteira para começar a servir.', 'Tap the coffee machine to start the pour.'), step('A xícara enche sozinha. Toque de novo na hora certa.', 'The cup fills on its own. Tap again at the right time.'), step('Cedo demais fica curto; tarde demais derrama.', 'Too early comes up short; too late spills.')] },
+  cafe: { id: 'cafe', title: step('Café', 'Coffee'), steps: [step('Toque na cafeteira para começar a servir.', 'Tap the coffee machine to start the pour.'), step('A xícara enche sozinha. Toque de novo quando a barra ficar verde.', 'The cup fills on its own. Tap again when the bar turns green.'), step('Cedo demais fica curto; tarde demais derrama.', 'Too early comes up short; too late spills.')] },
   pao: { id: 'pao', title: step('Pão francês', 'French bread roll'), steps: [step('Pegue o pão na vitrine.', 'Take the bread from the display case.'), step('Ponha na bandeja e entregue.', 'Put it on the tray and serve.')] },
   agua: { id: 'agua', title: step('Água', 'Water'), steps: [step('A água fica na geladeira.', 'The water is in the fridge.'), step('Toque nela para pôr na bandeja.', 'Tap it to put it on the tray.')] },
   pao_de_queijo: { id: 'pao_de_queijo', title: step('Pão de queijo', 'Cheese bread'), steps: [step('Pegue o pão de queijo na vitrine.', 'Take the cheese bread from the display case.')] },
-  cafe_com_leite: { id: 'cafe_com_leite', title: step('Café com leite', 'Coffee with milk'), steps: [step('O café com leite sai da cafeteira, como o café.', 'Coffee with milk comes from the machine, like coffee.'), step('Toque para começar e toque de novo na hora certa.', 'Tap to start, then tap again at the right time.')] },
+  cafe_com_leite: { id: 'cafe_com_leite', title: step('Café com leite', 'Coffee with milk'), steps: [step('O café com leite sai da cafeteira, como o café.', 'Coffee with milk comes from the machine, like coffee.'), step('Toque para começar e toque de novo na barra verde.', 'Tap to start, then tap again on the green bar.')] },
   suco_de_laranja: {
     id: JUICER_LESSON_ID,
     title: step('Suco de laranja: o espremedor', 'Orange juice: the juicer'),
@@ -1388,6 +1413,8 @@ export interface CorreriaSnap {
   lesson: CounterLesson | null;
   /** "+1 item no cardápio: pagamento +6%" when the menu grew this shift. */
   bump: Bilingual | null;
+  /** The menu ladder for this shift (optional so an older server's snapshot still draws). */
+  ladder?: MenuLadderView;
   over: boolean;
 }
 
@@ -1438,6 +1465,7 @@ export function shiftSnapshot(sh: Shift): CorreriaSnap {
     payMul: menuPayMul(shiftItemPool(sh.ctx).length),
     lesson: sh.ctx.lesson ?? null,
     bump: sh.ctx.bump ?? null,
+    ladder: menuLadder(sh.ctx.shifts ?? 0, sh.ctx.menuIds),
     over: sh.over,
   };
 }

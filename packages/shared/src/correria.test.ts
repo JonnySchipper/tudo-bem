@@ -38,6 +38,7 @@ import {
   makeFollow,
   menuCountForShifts,
   menuIdsForShifts,
+  menuLadder,
   menuPayMul,
   menuPayPct,
   newShift,
@@ -884,6 +885,25 @@ describe('the menu ladder', () => {
     expect(menuIdsForShifts(99)).toEqual([...MENU_LADDER]);
     expect(shiftItemPool({ shifts: 40, menuIds: ['cafe', 'pao'] }).map((i) => i.id).sort()).toEqual(['cafe', 'pao']);
     expect(payBump(40, ['cafe', 'pao'])).toBeNull();
+  });
+
+  it('the ladder view says what is open, what just opened, and how far the next item is', () => {
+    expect(menuLadder(0)).toEqual({ open: ['cafe', 'pao'], fresh: ['cafe', 'pao'], next: 'agua', toNext: 2 });
+    expect(menuLadder(1)).toEqual({ open: ['cafe', 'pao'], fresh: [], next: 'agua', toNext: 1 });
+    expect(menuLadder(2)).toEqual({ open: ['cafe', 'pao', 'agua'], fresh: ['agua'], next: 'pao_de_queijo', toNext: 2 });
+    expect(menuLadder(3).toNext).toBe(1);
+    for (let n = 0; n < FULL_MENU_SHIFTS; n++) {
+      const v = menuLadder(n);
+      expect(v.open).toEqual(menuIdsForShifts(n));
+      // `toNext` shifts later, the next item is on the counter
+      expect(menuIdsForShifts(n + v.toNext)).toContain(v.next);
+      expect(menuIdsForShifts(n + v.toNext - 1)).not.toContain(v.next);
+    }
+    expect(menuLadder(FULL_MENU_SHIFTS)).toMatchObject({ fresh: ['misto_quente'], next: null, toNext: 0 });
+    expect(menuLadder(99)).toMatchObject({ fresh: [], next: null });
+    // an owned size-1 shop: nothing further opens, and nothing is promised
+    expect(menuLadder(6, ['cafe', 'pao'])).toEqual({ open: ['cafe', 'pao'], fresh: [], next: null, toNext: 0 });
+    expect(menuLadder(-3)).toEqual(menuLadder(0));
   });
 
   it('teaches each new item once, and the packing card wins the shift it unlocks', () => {
