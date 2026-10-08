@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import {
   buildGrid,
   CPU_NAMES,
@@ -13,6 +13,7 @@ import {
   MISSION_REWARD,
   mulberry32,
   ROOMS,
+  revertRoomProps,
   SCORE_FEEDBACK,
   seatTiles,
   TYPED_MISS_HINT,
@@ -22,6 +23,7 @@ import {
   type Tile,
 } from '@tudobem/shared';
 import { sanitizeAppearance, World, MG_RESUME_MS, type AccountLink, type Session, type WorldOptions } from './world.js';
+import { LayoutStore } from './layoutStore.js';
 import { serveFront } from './correriaTestKit.js';
 import { ProfileStore, normalizeProfile, type StoredProfile } from './store.js';
 import { AuthoredNpcDialogue, MemoryModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
@@ -1110,5 +1112,74 @@ describe('Admin panel', () => {
     await c.send({ t: 'join', room: 'feira' });
     const entered = c.last('roomState');
     expect(entered && entered.t === 'roomState' && entered.feiraCart).toMatchObject({ closed: false, game: 'pastel' });
+  });
+});
+
+describe('design mode admin guard', () => {
+  afterEach(() => {
+    revertRoomProps('praca');
+  });
+
+  it('ignores layout saves until the socket has the admin password', async () => {
+    const { world } = makeWorld(8, { adminPassword: 'tb-admin-praca', githubToken: null });
+    const player = await client(world, 'Lia');
+    const before = ROOMS.praca.props.find((p) => p.id === 'banco_4')!.x;
+    const objects = ROOMS.praca.props.map((p) => (p.id === 'banco_4' ? { ...p, x: before + 1 } : p));
+    await player.send({ t: 'admin', action: 'layoutSave', room: 'praca', objects });
+    expect(player.last('admin')).toMatchObject({ phase: 'auth', ok: false });
+    expect(ROOMS.praca.props.find((p) => p.id === 'banco_4')!.x).toBe(before);
+    expect(player.all('layout')).toHaveLength(0);
+  });
+
+  it('saves for everyone, survives a restart, and rejects an unknown type', async () => {
+    const disk: { state: unknown } = { state: null };
+    const io = {
+      load: () => disk.state,
+      save: (state: unknown) => {
+        disk.state = state;
+      },
+    };
+    const { world } = makeWorld(8, { adminPassword: 'tb-admin-praca', githubToken: null, layouts: new LayoutStore(io) });
+    const admin = await client(world, 'Admin');
+    const other = await client(world, 'Lia');
+    const before = ROOMS.praca.props.find((p) => p.id === 'banco_4')!.x;
+    const moved = () => ROOMS.praca.props.map((p) => (p.id === 'banco_4' ? { ...p, x: before + 1 } : p));
+
+    await admin.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
+    await admin.send({ t: 'admin', action: 'layoutSave', room: 'praca', objects: [{ id: 'x', kind: 'dragao', x: 1, y: 1, blocks: true }] });
+    expect(admin.last('error')).toMatchObject({ code: 'admin' });
+    expect(ROOMS.praca.props.find((p) => p.id === 'banco_4')!.x).toBe(before);
+
+    await admin.send({ t: 'admin', action: 'layoutSave', room: 'praca', objects: moved() });
+    expect(admin.last('admin')).toMatchObject({ phase: 'layout', room: 'praca', source: 'override' });
+    expect(other.last('layout')).toMatchObject({ room: 'praca' });
+    const live = other.last('layout');
+    expect(live && live.t === 'layout' && live.objects?.find((p) => p.id === 'banco_4')?.x).toBe(before + 1);
+
+    revertRoomProps('praca');
+    makeWorld(8, { githubToken: null, layouts: new LayoutStore(io) });
+    expect(ROOMS.praca.props.find((p) => p.id === 'banco_4')!.x).toBe(before + 1);
+
+    await admin.send({ t: 'admin', action: 'layoutRevert', room: 'praca' });
+    expect(admin.last('admin')).toMatchObject({ phase: 'layout', source: 'code' });
+    expect(ROOMS.praca.props.find((p) => p.id === 'banco_4')!.x).toBe(before);
+    expect(other.all('layout').at(-1)).toMatchObject({ room: 'praca', objects: null });
+  });
+
+  it('asks the client to download the layout when TB_GITHUB_TOKEN is unset', async () => {
+    let called = false;
+    const { world } = makeWorld(8, {
+      adminPassword: 'tb-admin-praca',
+      githubToken: null,
+      githubFetch: () => {
+        called = true;
+        return Promise.resolve(new Response('{}'));
+      },
+    });
+    const admin = await client(world, 'Admin');
+    await admin.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
+    await admin.send({ t: 'admin', action: 'layoutPublish', room: 'praca', objects: ROOMS.praca.props });
+    expect(admin.last('admin')).toMatchObject({ phase: 'layoutPublished', fallback: true });
+    expect(called).toBe(false);
   });
 });

@@ -6,7 +6,7 @@
  *
  * The server runs on a temp DATA_DIR with a PINNED game clock: TB_TEST_CLOCK_CONTROL=1 lets each script set the hour it needs right before it starts
  * (08:30 for e2e, 08:50 / 15:35 for the feira, 20:40 / 22:15 for the night scripts), plus TB_TEST_OFFER=carlos_cafe_pra_nanda (the whole recado is
- * part of `e2e`) and TB_TEST_ROLL=1 (Academia roll hints). Order: e2e, e2e-feira (day, night), e2e-feira-cart (carts off, then Pastel live), e2e-night (a, b), then e2e:meveum (that one
+ * part of `e2e`) and TB_TEST_ROLL=1 (Academia roll hints). Order: e2e, e2e-feira (day, night), e2e-feira-cart (carts off, then Pastel live), e2e-design (moves a bench, then reverts it), e2e-night (a, b), then e2e:meveum (that one
  * restarts its own server twice by design (a deploy drops the shift), so it brings its own pinned server on another port), then e2e:solo (builds the static VITE_LOCAL_WORLD client into a temp dir and serves it itself).
  */
 import { spawn } from 'node:child_process';
@@ -116,6 +116,7 @@ try {
   results.push(await run('e2e-feira day', 'e2e-feira.mjs', { PHASE: 'day' }));
   results.push(await run('e2e-feira night', 'e2e-feira.mjs', { PHASE: 'night' }));
   results.push(await run('e2e-feira-cart', 'e2e-feira-cart.mjs', { SHOTS: '0' }));
+  results.push(await run('e2e-design', 'e2e-design.mjs', { SHOTS: '0' }));
   results.push(await run('e2e-night a', 'e2e-night.mjs', { PHASE: 'a' }));
   results.push(await run('e2e-night b', 'e2e-night.mjs', { PHASE: 'b' }));
 } finally {

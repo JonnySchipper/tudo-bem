@@ -62,3 +62,5 @@ export * from './feiraTapioca.js';
 export * from './feiraPastel.js';
 export * from './feiraCaldo.js';
 export * from './leaderboards.js';
+export * from './layout.js';
+export * from './roomLayoutFiles.js';

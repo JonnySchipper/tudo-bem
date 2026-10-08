@@ -32,6 +32,9 @@ import {
   idleWarningCopy,
   type Weather,
   withoutHiddenFeiraCart,
+  installRoomProps,
+  revertRoomProps,
+  validateRoomLayout,
   isRoomId,
   key,
   MAX_CHAT_LEN,
@@ -160,6 +163,8 @@ import { BoutEngine, type BoutSession } from './bout.js';
 import { CartelaTracker } from './cartela.js';
 import { ADMIN_MONEY_MAX, ADMIN_WRONG_PASSWORD, adminPasswordMatches, readAdminAuthConfig } from './adminAuth.js';
 import { DevBillingProvider } from './billing/devProvider.js';
+import { publishLayoutPullRequest } from './designGithub.js';
+import { LayoutStore } from './layoutStore.js';
 
 export interface Services {
   safety: ChatSafetyService;
@@ -215,6 +220,12 @@ export interface WorldOptions {
    * without it. Ignored unless the id is one this build can start.
    */
   feiraPin?: string;
+  /** Saved design-mode layouts. Omit for none (tests). The Node server passes the file-backed store. */
+  layouts?: LayoutStore;
+  /** GitHub token for "Enviar para o código". Omit to read `TB_GITHUB_TOKEN`. `null` forces it unset. */
+  githubToken?: string | null;
+  /** Test double for the GitHub REST client. */
+  githubFetch?: typeof fetch;
 }
 
 /** What the World needs from the account store (kept tiny so world.ts stays browser-safe for solo mode). */
@@ -338,6 +349,9 @@ export class World {
   readonly academies: AcademyStore;
   readonly padarias: PadariaStore;
   readonly padariaOwnership: boolean;
+  private readonly layouts: LayoutStore;
+  private readonly githubToken?: string;
+  private readonly githubFetch?: typeof fetch;
 
   constructor(
     readonly store: ProfileStore,
@@ -363,6 +377,15 @@ export class World {
     this.academies = opts.academies ?? new AcademyStore(null);
     this.padarias = opts.padarias ?? new PadariaStore(null);
     this.padariaOwnership = opts.padariaOwnership ?? readEnv('TB_PADARIA_OWNERSHIP') === '1';
+    this.layouts = opts.layouts ?? new LayoutStore();
+    for (const row of this.layouts.overrides()) installRoomProps(row.room, row.objects);
+    if (opts.githubToken === null) this.githubToken = undefined;
+    else if (typeof opts.githubToken === 'string') this.githubToken = opts.githubToken.trim() || undefined;
+    else {
+      const fromEnv = readEnv('TB_GITHUB_TOKEN')?.trim();
+      this.githubToken = fromEnv || undefined;
+    }
+    this.githubFetch = opts.githubFetch;
     this.idleKickMs = Math.max(1000, opts.idleKickMs ?? IDLE_KICK_MS);
     this.cartela = new CartelaTracker({
       now: () => this.now(),
@@ -928,7 +951,15 @@ export class World {
     s.profile = p;
     p.nameplate = this.services.student.nameplateFor(p);
     p.lastSeen = this.now();
-    s.send({ t: 'welcome', profile: this.privateProfile(p), token: p.token, serverNow: this.clockNow(), weather: this.weatherPin });
+    const layouts = this.layouts.overrides();
+    s.send({
+      t: 'welcome',
+      profile: this.privateProfile(p),
+      token: p.token,
+      serverNow: this.clockNow(),
+      weather: this.weatherPin,
+      ...(layouts.length ? { layouts } : {}),
+    });
     if (p.photos?.length) this.pushPhotos(s);
     this.notifyFriendsOfPresence(p.id);
     const incoming = this.incomingFriendReqs.get(p.id);
@@ -1279,6 +1310,10 @@ export class World {
     if (msg.action === 'subscribers') return this.adminSubscribers(s);
     if (msg.action === 'grantSub') return this.adminGrantSub(s, msg.targetId);
     if (msg.action === 'revokeSub') return this.adminRevokeSub(s, msg.targetId);
+    if (msg.action === 'layoutGet') return this.adminLayoutGet(s, msg.room);
+    if (msg.action === 'layoutSave') return this.adminLayoutSave(s, msg.room, msg.objects);
+    if (msg.action === 'layoutRevert') return this.adminLayoutRevert(s, msg.room);
+    if (msg.action === 'layoutPublish') return this.adminLayoutPublish(s, msg.room, msg.objects);
   }
 
   private adminSubscribers(s: Session) {
@@ -1328,6 +1363,65 @@ export class World {
     this.syncEntitlements(p.id);
     this.adminSubscribers(s);
     s.send({ t: 'notice', level: 'info', pt: 'Assinatura de teste encerrada.', en: 'Test subscription ended.' });
+  }
+
+  private noteLayout(room: string) {
+    if (room === 'feira') this.hiddenFeira = null;
+  }
+
+  private broadcastLayout(room: import('@tudobem/shared').RoomId, objects: import('@tudobem/shared').PropDef[] | null) {
+    const msg = { t: 'layout' as const, room, objects };
+    for (const sess of this.sessions.values()) if (sess.profile) sess.send(msg);
+  }
+
+  private adminLayoutGet(s: Session, roomId: string) {
+    if (!isRoomId(roomId)) return this.err(s, 'admin', 'Sala desconhecida.', 'Unknown room.');
+    s.send({ t: 'admin', phase: 'layout', room: roomId, source: this.layouts.has(roomId) ? 'override' : 'code' });
+  }
+
+  private adminLayoutSave(s: Session, roomId: string, objects: unknown) {
+    const v = validateRoomLayout(roomId, objects);
+    if (!v.ok) return this.err(s, 'admin', v.pt, v.en);
+    installRoomProps(v.room, v.objects);
+    this.noteLayout(v.room);
+    this.layouts.set(v.room, v.objects);
+    this.broadcastLayout(v.room, v.objects);
+    s.send({ t: 'admin', phase: 'layout', room: v.room, source: 'override' });
+    s.send({ t: 'notice', level: 'info', pt: 'Layout salvo. Todo mundo já vê.', en: 'Layout saved. Everyone can see it.' });
+  }
+
+  private adminLayoutRevert(s: Session, roomId: string) {
+    if (!isRoomId(roomId)) return this.err(s, 'admin', 'Sala desconhecida.', 'Unknown room.');
+    revertRoomProps(roomId);
+    this.noteLayout(roomId);
+    this.layouts.set(roomId, null);
+    this.broadcastLayout(roomId, null);
+    s.send({ t: 'admin', phase: 'layout', room: roomId, source: 'code' });
+    s.send({ t: 'notice', level: 'info', pt: 'Sala de volta ao código.', en: 'Room is back to the code layout.' });
+  }
+
+  private adminLayoutPublish(s: Session, roomId: string, objects: unknown) {
+    const v = validateRoomLayout(roomId, objects);
+    if (!v.ok) return this.err(s, 'admin', v.pt, v.en);
+    return publishLayoutPullRequest({ token: this.githubToken, room: v.room, objects: v.objects, fetch: this.githubFetch }).then((r) => {
+      if (this.sessions.get(s.id) !== s) return;
+      if (r.ok) {
+        s.send({ t: 'admin', phase: 'layoutPublished', room: v.room, url: r.url, fallback: false, pt: 'Pull request aberto.', en: 'Pull request opened.' });
+        return;
+      }
+      if (r.reason === 'no-token') {
+        s.send({
+          t: 'admin',
+          phase: 'layoutPublished',
+          room: v.room,
+          fallback: true,
+          pt: 'O token do GitHub não está configurado. Baixe o arquivo e guarde no repositório.',
+          en: 'The GitHub token is not configured. Download the file and commit it in the repo.',
+        });
+        return;
+      }
+      s.send({ t: 'notice', level: 'warn', pt: 'Não consegui abrir o pull request.', en: 'Could not open the pull request.' });
+    });
   }
 
   private adminFeiraCart(s: Session) {

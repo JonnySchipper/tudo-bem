@@ -18,6 +18,7 @@ import type { Dir, RoomId, Tile } from './types.js';
 export const NPC_NAV_OPEN: Partial<Record<RoomId, Tile[]>> = { padaria: [{ x: 9, y: 2 }] };
 
 const navGrids = new Map<RoomId, RoomGrid>();
+
 /** The static grid NPCs path on: the room's props, minus the staff gap, and no NPC blocks another (a schedule never walks two into a corridor). */
 export function npcNavGrid(room: RoomId): RoomGrid {
   let g = navGrids.get(room);
@@ -48,6 +49,13 @@ function leg(room: RoomId, from: Tile, to: Tile, vanish: boolean): NpcLeg {
 }
 
 const legCache = new Map<string, NpcLeg[]>();
+
+/** Drop cached paths for a room whose props just moved (design mode). The next walk builds a fresh grid. */
+export function invalidateRoomNavigation(room?: RoomId): void {
+  if (room) navGrids.delete(room);
+  else navGrids.clear();
+  legCache.clear();
+}
 
 /** The public rooms an NPC may walk through on the way to another one (a kitnet is private: it is only ever a start or an end). */
 const routeCache = new Map<string, RoomId[] | null>();

@@ -254,6 +254,7 @@ export class WorldScene extends Phaser.Scene {
   private counterWasOn = false;
   private roomId = '';
   private roomDef: RoomDef | null = null;
+  private layoutEpoch = -1;
   private roomObjs: Phaser.GameObjects.GameObject[] = [];
   /** Reading words in this room: a small twinkle over each one this player has not read yet (the signs have no sprite of their own). */
   private glints: { word: string; img: Phaser.GameObjects.Image; phase: number }[] = [];
@@ -1025,9 +1026,12 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
     const key = roomKey(room);
-    if (key !== this.roomId || this.roomDef !== def || clock.day() !== this.diaryDay) {
+    if (key !== this.roomId || this.roomDef !== def || clock.day() !== this.diaryDay || game.layoutEpoch !== this.layoutEpoch) {
       this.roomId = key;
       this.roomDef = def;
+      this.layoutEpoch = game.layoutEpoch;
+      this.grid = null;
+      this.gridFurniture = null;
       this.buildRoom(def);
     }
     if (this.gridFurniture !== game.furniture || this.gridDef !== def || !this.grid) {
@@ -1356,7 +1360,9 @@ export class WorldScene extends Phaser.Scene {
     this.cam.cy = snapToDevice(this.cam.cy, this.cam.zoom);
     const nudge = this.stage.cameraNudge();
     const cn = this.counter.cameraNudge();
-    this.cameras.main.centerOn(this.cam.cx + nudge.x + cn.x, this.cam.cy + nudge.y + cn.y);
+    // On a phone the design panel covers the bottom of the screen. Look a little south so the avatar sits in the open part.
+    const designLift = game.designMode && window.innerWidth <= 720 ? (this.cam.h * 0.2) / Math.max(1, this.cam.zoom) : 0;
+    this.cameras.main.centerOn(this.cam.cx + nudge.x + cn.x, this.cam.cy + nudge.y + cn.y + designLift);
     if (this.counterBlend > 0) this.counter.invalidate();
   }
 

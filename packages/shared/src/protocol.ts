@@ -14,7 +14,7 @@ import type {
 import type { SceneView } from './carlos.js';
 import type { CAct, CEvent, CorreriaSnap, UnlockId } from './correria.js';
 import type { SafetyAction } from './safety.js';
-import type { NpcId } from './rooms.js';
+import type { NpcId, PropDef } from './rooms.js';
 import type { ConversaGrade, ConversaMeter, ConversaScores, ConversaSubject } from './conversa.js';
 import type { BjjPositionId, BjjProgress, BoutReason, BoutWinner, Belt, PartnerId } from './academia.js';
 import type { AcademyCard, CrestId, GiColorId, GiStampId } from './playerAcademy.js';
@@ -143,6 +143,16 @@ export type ClientMsg =
   /** Dev/test subscription (no payment). Admin socket only. */
   | { t: 'admin'; action: 'grantSub'; targetId: string }
   | { t: 'admin'; action: 'revokeSub'; targetId: string }
+  /**
+   * Design mode. `layoutGet` reports whether this room has a saved override.
+   * `layoutSave` validates and stores it for everyone. `layoutRevert` drops the override.
+   * `layoutPublish` opens a GitHub pull request (or tells the client to download the file).
+   * The server ignores all of these until this socket has passed the admin password.
+   */
+  | { t: 'admin'; action: 'layoutGet'; room: string }
+  | { t: 'admin'; action: 'layoutSave'; room: string; objects: unknown }
+  | { t: 'admin'; action: 'layoutRevert'; room: string }
+  | { t: 'admin'; action: 'layoutPublish'; room: string; objects: unknown }
   /** Subscriber pet and chat-bubble appearance. The server ignores a perk the subscription does not currently allow. */
   | { t: 'perk'; action: 'pet'; pet: 'dog' | 'cat' | null }
   | { t: 'perk'; action: 'bubble'; style: import('./subscription.js').BubbleStyle }
@@ -453,7 +463,7 @@ export type BoutServerMsg =
 
 /** Server → client messages. */
 export type ServerMsg =
-  | { t: 'welcome'; profile: PrivateProfile; token: string; serverNow?: number; weather?: import('./weather.js').Weather | null }
+  | { t: 'welcome'; profile: PrivateProfile; token: string; serverNow?: number; weather?: import('./weather.js').Weather | null; layouts?: { room: RoomId; objects: PropDef[] }[] }
   /**
    * The diary photos (small jpegs). Sent after `welcome` and whenever a photo is added, never inside `profile`: a dozen images in every
    * profile push made each reward, step and stamp carry ~100 KB.
@@ -476,6 +486,12 @@ export type ServerMsg =
   | { t: 'admin'; phase: 'disabled'; pt: string; en: string }
   /** Feira cart switches. `featured` is today's playable game, or null when the cart is closed. */
   | { t: 'admin'; phase: 'feiraCart'; day: string; featured: FeiraGameId | null; games: FeiraCartAdminGame[] }
+  /** Design mode: whether this room is using a saved override or the layout in the repo. */
+  | { t: 'admin'; phase: 'layout'; room: RoomId; source: 'override' | 'code' }
+  /** Design mode: pull request opened, or the client should download the JSON because no token is configured. */
+  | { t: 'admin'; phase: 'layoutPublished'; room: RoomId; url?: string; fallback: boolean; pt: string; en: string }
+  /** Live layout. `objects: null` means this room is back to the layout shipped in the repo. */
+  | { t: 'layout'; room: RoomId; objects: PropDef[] | null }
   | { t: 'avatarJoined'; avatar: PublicAvatar }
   | { t: 'avatarLeft'; id: string }
   | { t: 'avatarMoved'; id: string; from: Tile; path: Tile[]; sit: boolean }
