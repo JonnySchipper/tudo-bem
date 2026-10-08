@@ -15744,242 +15744,434 @@
   "portraits/carlos_neutro": {
    "file": "portraits/carlos_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/carlos_feliz": {
    "file": "portraits/carlos_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/carlos_surpreso": {
    "file": "portraits/carlos_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/carlos_pensativo": {
    "file": "portraits/carlos_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/nanda_neutro": {
    "file": "portraits/nanda_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/nanda_feliz": {
    "file": "portraits/nanda_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/nanda_surpreso": {
    "file": "portraits/nanda_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/nanda_pensativo": {
    "file": "portraits/nanda_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/julia_neutro": {
    "file": "portraits/julia_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/julia_feliz": {
    "file": "portraits/julia_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/julia_surpreso": {
    "file": "portraits/julia_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/julia_pensativo": {
    "file": "portraits/julia_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/graca_neutro": {
    "file": "portraits/graca_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/graca_feliz": {
    "file": "portraits/graca_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/graca_surpreso": {
    "file": "portraits/graca_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/graca_pensativo": {
    "file": "portraits/graca_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/tia_lu_neutro": {
    "file": "portraits/tia_lu_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/tia_lu_feliz": {
    "file": "portraits/tia_lu_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/tia_lu_surpreso": {
    "file": "portraits/tia_lu_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/tia_lu_pensativo": {
    "file": "portraits/tia_lu_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/prof_neutro": {
    "file": "portraits/prof_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/prof_feliz": {
    "file": "portraits/prof_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/prof_surpreso": {
    "file": "portraits/prof_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/prof_pensativo": {
    "file": "portraits/prof_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/ze_neutro": {
    "file": "portraits/ze_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/ze_feliz": {
    "file": "portraits/ze_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/ze_surpreso": {
    "file": "portraits/ze_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/ze_pensativo": {
    "file": "portraits/ze_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/chico_neutro": {
    "file": "portraits/chico_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/chico_feliz": {
    "file": "portraits/chico_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/chico_surpreso": {
    "file": "portraits/chico_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/chico_pensativo": {
    "file": "portraits/chico_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/rosa_neutro": {
    "file": "portraits/rosa_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/rosa_feliz": {
    "file": "portraits/rosa_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/rosa_surpreso": {
    "file": "portraits/rosa_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/rosa_pensativo": {
    "file": "portraits/rosa_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/lucia_neutro": {
    "file": "portraits/lucia_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/lucia_feliz": {
    "file": "portraits/lucia_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/lucia_surpreso": {
    "file": "portraits/lucia_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/lucia_pensativo": {
    "file": "portraits/lucia_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/celia_neutro": {
    "file": "portraits/celia_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/celia_feliz": {
    "file": "portraits/celia_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/celia_surpreso": {
    "file": "portraits/celia_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/celia_pensativo": {
    "file": "portraits/celia_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/agente_neutro": {
    "file": "portraits/agente_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/agente_feliz": {
    "file": "portraits/agente_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/agente_surpreso": {
    "file": "portraits/agente_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/agente_pensativo": {
    "file": "portraits/agente_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "icons/pao": {
    "file": "icons/pao.png",
