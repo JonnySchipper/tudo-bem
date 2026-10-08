@@ -94,6 +94,8 @@ export interface PublicAvatar {
   founderBadge?: boolean;
   /** Which subscriber pet is out. Absent or null when none is following. */
   pet?: 'dog' | 'cat' | null;
+  /** Name on that pet's collar tag. Present only while the pet is out and has a name. */
+  petName?: string | null;
   /** Chat bubble appearance. Classic for anyone without an active subscription. */
   bubbleStyle?: import('./subscription.js').BubbleStyle;
   /**
@@ -234,6 +236,8 @@ export interface PrivateProfile {
   founderBanner?: boolean;
   /** Subscriber pet choice. Shown only while the subscription is active. */
   pet?: 'dog' | 'cat' | null;
+  /** Names the player gave the dog and the cat. Kept when the pet is put away or the subscription lapses. */
+  petNames?: { dog?: string; cat?: string };
   /** Subscriber chat-bubble appearance. Reverts to classic when the subscription ends. */
   bubbleStyle?: import('./subscription.js').BubbleStyle;
   /** Support subscription. Absent means never subscribed. */

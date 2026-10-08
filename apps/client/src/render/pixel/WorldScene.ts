@@ -1110,7 +1110,8 @@ export class WorldScene extends Phaser.Scene {
     const t = performance.now();
     if (this.lastUpdateAt) this.probe.record(t - this.lastUpdateAt, t);
     this.lastUpdateAt = t;
-    if (this.gov.check(t)) this.degrade('p90');
+    // A review frame (`?shot=`) keeps the full effect set. A slow box would otherwise drop the clouds the shot is there to show.
+    if (!this.host.shot && this.gov.check(t)) this.degrade('p90');
     if (t - this.reducedCheckAt > 1000) {
       this.reducedCheckAt = t;
       this.fxLevel.reduced = reducedMotion();
@@ -1735,7 +1736,11 @@ export class WorldScene extends Phaser.Scene {
    */
   private updatePet(v: AvatarView, a: ClientAvatar, wx: number, wy: number, dt: number): void {
     const kind = a.pub.pet === 'dog' || a.pub.pet === 'cat' ? a.pub.pet : null;
-    const heard = petCommandFromLines(a.bubbles, v.petHeard, kind ? [PET_COPY[kind].pt, PET_COPY[kind].en] : []);
+    const heard = petCommandFromLines(
+      a.bubbles,
+      v.petHeard,
+      kind ? [PET_COPY[kind].pt, PET_COPY[kind].en, ...(a.pub.petName ? [a.pub.petName] : [])] : [],
+    );
     v.petHeard = heard.heardAt;
     if (!kind) {
       if (v.pet) {
@@ -2044,6 +2049,7 @@ export class WorldScene extends Phaser.Scene {
           key: `npc:${a.pub.npc}`,
           x: p.px,
           y: p.py,
+          z: Math.round(p.py),
           // the mat camera keeps the pair and the scoreboard clear: neighbours' plates wait until the bout is over (their bubbles still talk)
           plate: boutFeed.camera ? null : { text: role && game.hoverKey === `npc:${a.pub.npc}` ? `${a.pub.name} · ${role}` : a.pub.name, kind: 'npc' },
           // Bia is the referee while a bout is on: her idle chatter stays quiet
@@ -2069,6 +2075,7 @@ export class WorldScene extends Phaser.Scene {
         key: `av:${id}`,
         x: p.px,
         y: p.py,
+        z: Math.round(p.py),
         plate: {
           text: a.pub.name,
           kind: id === selfId ? 'me' : 'player',
@@ -2081,6 +2088,20 @@ export class WorldScene extends Phaser.Scene {
         },
         bubbles,
       });
+      // Collar tag: follows the pet sprite (already depth-sorted in the world) and hides with it.
+      const petName = a.pub.petName;
+      if (petName && v.pet?.visible) {
+        const lift = v.petFollow.pose === 'lie' ? 14 : 22;
+        const tag = at(v.pet.x, v.pet.y - lift);
+        stacks.push({
+          key: `pet:${id}`,
+          x: tag.px,
+          y: tag.py,
+          z: Math.round(tag.py),
+          plate: { text: petName, kind: 'pet' },
+          bubbles: [],
+        });
+      }
     }
     // a player-owned padaria: its name in chalk on the blackboard (Seu Carlos's board stays plain)
     const own = game.room?.padaria;

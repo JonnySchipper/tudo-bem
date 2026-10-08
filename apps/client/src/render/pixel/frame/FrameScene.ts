@@ -78,6 +78,9 @@ export class FrameScene extends Phaser.Scene {
   private hour: number;
   private rig!: LightingRig;
   private cloud!: Phaser.GameObjects.TileSprite;
+  /** world-space scroll of the cloud pattern; the sprite itself is resized to the camera so its edge stays off screen */
+  private cloudDriftX = 0;
+  private cloudDriftY = 0;
   private walker!: WalkerState;
   private pigeons: PigeonState[] = [];
   private cars: CarState[] = [];
@@ -461,7 +464,22 @@ export class FrameScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ ambient: cloud shadows
   private buildAmbient(): void {
-    this.cloud = this.W(this.add.tileSprite(-64, -64, WORLD_W + 128, WORLD_H + 128, 'fx:cloudShadow')).setOrigin(0, 0).setDepth(60000).setAlpha(0.13).setTint(0x1c2a66);
+    // sized to the camera in layoutCloud; a fixed world-sized sheet was smaller than a tall phone or a zoomed-out window, and its edge cut the clouds
+    this.cloud = this.W(this.add.tileSprite(0, 0, 16, 16, 'fx:cloudShadow')).setOrigin(0, 0).setDepth(60000).setAlpha(0.13).setTint(0x1c2a66);
+    this.layoutCloud();
+  }
+
+  /** Cover the camera. The noise wraps, so the pattern has no seam; the sprite's own edge stays a pixel outside the view. */
+  private layoutCloud(): void {
+    const cam = this.cameras.main;
+    const viewW = Math.max(2, Math.ceil(cam.width / cam.zoom) + 2);
+    const viewH = Math.max(2, Math.ceil(cam.height / cam.zoom) + 2);
+    const x = Math.floor(cam.scrollX) - 1;
+    const y = Math.floor(cam.scrollY) - 1;
+    if (this.cloud.width !== viewW || this.cloud.height !== viewH) this.cloud.setSize(viewW, viewH).setOrigin(0, 0);
+    this.cloud.setPosition(x, y);
+    this.cloud.tilePositionX = this.cloudDriftX - x;
+    this.cloud.tilePositionY = this.cloudDriftY - y;
   }
 
   // ------------------------------------------------------------------ lighting (fx camera, screen space)
@@ -482,8 +500,9 @@ export class FrameScene extends Phaser.Scene {
     this.updatePigeons(dt);
     this.updateCars(dt);
     this.updateCanopies(dt);
-    this.cloud.tilePositionX = Math.round((this.cloud.tilePositionX + dt * 4) * 4) / 4;
-    this.cloud.tilePositionY = Math.round((this.cloud.tilePositionY + dt * 1.4) * 4) / 4;
+    this.cloudDriftX = Math.round((this.cloudDriftX + dt * 4) * 4) / 4;
+    this.cloudDriftY = Math.round((this.cloudDriftY + dt * 1.4) * 4) / 4;
+    this.layoutCloud();
     const pl = this.lightSrc.find((l) => l.kind === 'player');
     if (pl) {
       pl.x = this.walker.x;

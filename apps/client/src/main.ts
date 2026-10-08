@@ -79,6 +79,7 @@ import {
 import { openPedido, updatePedido, closePedido, isPedidoOpen } from './ui/pedido';
 import { openCredits } from './ui/credits';
 import { openSupport } from './ui/support';
+import { bindPetName, maybeAskPetName, openPetName, showPetNameError } from './ui/petName';
 import { bindAdmin, onAdminMsg } from './ui/admin';
 import { applyServerLayout } from './ui/layoutSync';
 import { isDialogueBoxOpen, setDialogueHost, showDialogueBox } from './ui/dialogue';
@@ -714,7 +715,9 @@ net.on((m: ServerMsg) => {
       if (m.code === 'far' || m.code === 'photo' || m.code === 'film' || m.code === 'camera') dropPendingPrint();
       if (m.code === 'feira_closed') closeFeiraGame();
       if (onboarding && m.code === 'name') onboarding.setError(m.pt, m.en);
-      else toast('error', m.pt, m.en);
+      else if (m.code === 'petName' && showPetNameError(m.pt, m.en)) {
+        /* the naming dialog shows the note */
+      } else toast('error', m.pt, m.en);
       onFeiraError();
       break;
     case 'feira':
@@ -734,6 +737,7 @@ net.on((m: ServerMsg) => {
       syncGrants((id) => net.send({ t: 'grant', id }));
       game.emit('profile');
       updateGuides();
+      maybeAskPetName();
       break;
     case 'roomState': {
       clock.syncServer(m.serverNow);
@@ -794,6 +798,7 @@ net.on((m: ServerMsg) => {
       if (keepMg) correriaUi?.requestSync();
       syncAcademyFloor();
       syncPadariaFloor();
+      maybeAskPetName();
       break;
     }
     case 'academy':
@@ -1005,6 +1010,7 @@ function ambientBubblesFull(): boolean {
 
 function startGame() {
   started = true;
+  bindPetName((pet, name) => net.send({ t: 'perk', action: 'petName', pet, name }));
   window.dispatchEvent(new Event('tb:game-start'));
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' && correriaUi?.live) correriaUi.requestSync();
@@ -1027,6 +1033,7 @@ function startGame() {
         },
         setPet: (pet) => net.send({ t: 'perk', action: 'pet', pet }),
         setBubble: (style) => net.send({ t: 'perk', action: 'bubble', style }),
+        renamePet: (pet) => openPetName(pet),
       });
     },
     openCaderno: () => {
