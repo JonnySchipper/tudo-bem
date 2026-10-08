@@ -34,7 +34,7 @@ export function openMap(go: (room: RoomId) => void) {
   // the fog over the coming-soon edges: a dither of pale pixels
   const defs = svgEl('defs', {});
   const fog = svgEl('pattern', { id: 'tm-fog', width: 4, height: 4, patternUnits: 'userSpaceOnUse' });
-  fog.append(svgEl('rect', { x: 0, y: 0, width: 4, height: 4, fill: 'rgba(246,240,230,0.38)' }), svgEl('rect', { x: 0, y: 0, width: 2, height: 2, fill: 'rgba(255,255,255,0.35)' }));
+  fog.append(svgEl('rect', { x: 0, y: 0, width: 4, height: 4, fill: 'rgba(246,240,230,0.2)' }), svgEl('rect', { x: 0, y: 0, width: 2, height: 2, fill: 'rgba(255,255,255,0.22)' }));
   defs.append(fog);
   svg.append(defs);
   const back = svgEl('g', { class: 'tm-backdrop', 'aria-hidden': 'true' });
@@ -49,7 +49,7 @@ export function openMap(go: (room: RoomId) => void) {
   const showTeaser = (spot: MapSpot) => {
     teaser.replaceChildren(
       h('div', { class: 'tm-ribbon static' }, 'Em breve', h('span', null, ' · Coming soon')),
-      h('h3', null, spot.pt, h('span', { class: 'en plain' }, ` · ${spot.en}`)),
+      h('h3', null, spot.pt, h('span', { class: 'tm-en' }, ` · ${spot.en}`)),
       h('p', { class: 'tm-teaser-pt' }, spot.soon!.pt),
       en(spot.soon!.en),
       h('div', { class: 'row' }, h('span', { class: 'spacer' }), h('button', { class: 'primary', 'data-teaser-ok': '', onclick: () => (teaser.hidden = true) }, 'Ok!')),
@@ -87,7 +87,8 @@ export function openMap(go: (room: RoomId) => void) {
     if (spot.soon) for (const [x, y, w, hh] of spot.hit) g.append(svgEl('rect', { x, y, width: w, height: hh, fill: 'url(#tm-fog)', class: 'tm-fog' }));
     for (const [x, y, w, hh] of spot.hit) g.append(svgEl('rect', { x, y, width: w, height: hh, fill: 'transparent', class: 'tm-hit' }));
     g.addEventListener('pointerdown', (e) => (touch = e.pointerType !== 'mouse'));
-    g.addEventListener('pointerenter', (e) => e.pointerType === 'mouse' && labels.get(spot.id)?.classList.add('hover'));
+    // only a real pointer hovers (an emulated mouse on a phone would leave a stray label up)
+    g.addEventListener('pointerenter', (e) => e.pointerType === 'mouse' && matchMedia('(hover: hover)').matches && labels.get(spot.id)?.classList.add('hover'));
     g.addEventListener('pointerleave', () => labels.get(spot.id)?.classList.remove('hover'));
     g.addEventListener('focus', () => labels.get(spot.id)?.classList.add('hover'));
     g.addEventListener('blur', () => labels.get(spot.id)?.classList.remove('hover'));

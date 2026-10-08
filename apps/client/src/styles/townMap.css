@@ -16,10 +16,13 @@ html.px-ui .backdrop > .panel.townmap,
 
 .townmap > h2 + .en {
   margin-bottom: 8px;
+  padding-right: 52px;
 }
 
 .tm-scroll {
   position: relative;
+  align-self: center;
+  max-width: 100%;
   overflow: auto;
   overscroll-behavior: contain;
   touch-action: pan-x pan-y pinch-zoom;
@@ -36,8 +39,7 @@ html.px-ui .backdrop > .panel.townmap,
 .tm-stage {
   position: relative;
   aspect-ratio: 320 / 200;
-  width: min(100%, calc((100dvh - 150px) * 1.6));
-  margin: 0 auto;
+  width: min(calc(100vw - 62px), 1196px, calc((100dvh - 150px) * 1.6));
 }
 
 .tm-svg {
@@ -60,12 +62,27 @@ html.px-ui .backdrop > .panel.townmap,
   pointer-events: all;
 }
 
-/* the place is the button: it lifts and glows */
-.tm-spot:hover,
+/* the place is the button: it lifts and glows (hover only where there is a real pointer: a tap would leave it stuck on a phone) */
 .tm-spot:focus-visible,
 .tm-spot.sel {
   transform: translateY(-2px);
   filter: drop-shadow(0 0 1px #fff7c2) drop-shadow(0 0 2px #f2c230) drop-shadow(0 2px 0 rgba(42, 26, 18, 0.45));
+}
+
+@media (hover: hover) {
+  .tm-spot:hover {
+    transform: translateY(-2px);
+    filter: drop-shadow(0 0 1px #fff7c2) drop-shadow(0 0 2px #f2c230) drop-shadow(0 2px 0 rgba(42, 26, 18, 0.45));
+  }
+
+  .tm-spot.soon:hover {
+    filter: drop-shadow(0 0 2px #fffdf8);
+    transform: none;
+  }
+
+  .tm-spot.soon:hover .tm-art {
+    filter: grayscale(0.3);
+  }
 }
 
 .tm-spot.soon {
@@ -73,19 +90,17 @@ html.px-ui .backdrop > .panel.townmap,
 }
 
 .tm-spot.soon .tm-art {
-  filter: grayscale(0.75) brightness(1.08) contrast(0.85);
+  filter: grayscale(0.55) contrast(0.9);
 }
 
-.tm-spot.soon:hover,
 .tm-spot.soon:focus-visible,
 .tm-spot.soon.sel {
   filter: drop-shadow(0 0 2px #fffdf8);
   transform: none;
 }
 
-.tm-spot.soon:hover .tm-art,
 .tm-spot.soon.sel .tm-art {
-  filter: grayscale(0.45) brightness(1.06);
+  filter: grayscale(0.3);
 }
 
 /* the name tag: Portuguese first, English after */
@@ -271,6 +286,13 @@ html.px-ui .backdrop > .panel.townmap,
   font-size: 1.5rem;
 }
 
+.tm-teaser h3 .tm-en {
+  font-family: var(--font-body);
+  font-size: 0.6em;
+  font-weight: 800;
+  color: var(--ink-soft, #6b5a4a);
+}
+
 .tm-teaser-pt {
   margin: 0 0 2px;
   font-weight: 700;
@@ -296,6 +318,7 @@ html.px-ui .backdrop > .panel.townmap,
 
   .tm-scroll {
     flex: 1;
+    align-self: stretch;
   }
 
   .tm-stage {

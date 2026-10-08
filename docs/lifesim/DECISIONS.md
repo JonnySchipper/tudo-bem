@@ -1709,3 +1709,15 @@ The credits admin panel has a Testes section for the signed-in admin's own profi
 - **Not in this change.** Billing, the Lemon Squeezy webhook, learning content, and chat moderation.
 - **Shots.** `docs/lifesim/shots/admin/`.
 
+
+## Mapa: one big illustrated map (#173, 2026-10-08)
+
+The Mapa panel is now one pixel-art map of Vila Ipê. The named room cards and the per-area minimap tabs are gone (`ui/minimap.ts` was removed).
+
+- **Each place is the button.** Aeroporto, Edifício Ipê (kitnet), Padaria, Academia, Escola, Rua dos Ipês, Rua dos Ipês (leste) with the 875 bus stop, Praça (fountain, ipês, the puleiro) and Feira are each drawn as their own place. Hover or keyboard focus lifts a place, makes it glow and shows "PT · EN". The label is the room's own `name` and `gloss` from the shared room list.
+- **Travel rules unchanged.** A click sends the same `join` the old cards sent: the server's existing fast travel, with no new teleport rules. On touch, the first tap lifts the place and shows "Toque de novo para ir · Tap again to go", and a second tap travels. Tapping the place you are already in closes the map.
+- **Room ids.** `ROOM_ON_MAP: Record<RoomId, …>` in `ui/townMapData.ts`, so a new RoomId does not compile until it is placed. `andar` (a player academy's floor) is `{ via: 'academia' }`: it is not its own button, and "você está aqui" shows on the Academia.
+- **Você está aqui.** A bobbing pin with "Você está aqui · You are here" on your current place.
+- **Coming soon.** Praia (sea, sand, a coconut kiosk, parasols, a boat) and Fazenda (barn, fence, animals, fields) sit on the map edges. They are desaturated under a pixel fog, with an "Em breve · Coming soon" ribbon. Tapping one shows a small bilingual teaser and never travels. Copy is marked `needs_br`. The teaser is not spoken, so it needs no TTS.
+- **Screens.** Desktop: the map fits the window at about 3.6× (1280×800). Phone: a full-screen sheet where the map fills the height (about 3.4 px per art pixel, so every place is at least 44 px) and pans sideways, starting centred on you.
+- **Shots.** `docs/lifesim/shots/map-redo/`, from `scripts/map-redo-shots.mjs`. The script also checks that a click on every place joins that room and that Praia and Fazenda never travel.

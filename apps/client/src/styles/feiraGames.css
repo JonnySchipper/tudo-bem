@@ -110,13 +110,11 @@ body.tp-on .topbar,
 body.tp-on .bottombar,
 body.tp-on .hud-actions,
 body.tp-on .hud-burger,
-body.tp-on .minimap,
 body.tp-on #world-labels,
 body.ps-on .topbar,
 body.ps-on .bottombar,
 body.ps-on .hud-actions,
 body.ps-on .hud-burger,
-body.ps-on .minimap,
 body.ps-on #world-labels {
   display: none !important;
 }

@@ -150,12 +150,13 @@ function aeroportoArt(): Px[] {
   // a plane on the apron
   out.push(r(128, 30, 18, 4, C.white), r(128, 33, 18, 1, C.calcadaDark), r(146, 31, 2, 2, C.white), r(134, 25, 4, 14, C.white), r(134, 25, 4, 1, C.blue), r(134, 38, 4, 1, C.blue), r(128, 27, 3, 3, C.blue), r(128, 30, 1, 3, C.blue));
   for (let i = 0; i < 4; i++) out.push(r(136 + i * 2, 31, 1, 1, C.glassDark));
-  return out;
+  // the whole airport sits 2 px higher, clear of the Edifício Ipê's roof
+  return out.map(([x, y, w, h, fill]) => r(x, y - 2, w, h, fill));
 }
 
 function kitnetArt(): Px[] {
   // Edifício Ipê: a tall cream building, a yellow ipê at its door
-  const out: Px[] = [...framed(72, 46, 24, 38, C.cream), r(71, 45, 26, 3, C.terracotaDark), r(72, 48, 24, 1, C.terracota), ...windows(75, 51, 4, 6, 5, 5, C.glass)];
+  const out: Px[] = [...framed(72, 46, 24, 38, C.cream), r(71, 46, 26, 2, C.terracotaDark), r(72, 48, 24, 1, C.terracota), ...windows(75, 51, 4, 6, 5, 5, C.glass)];
   out.push(...framed(81, 78, 6, 6, C.wood), r(83, 81, 1, 1, C.faixa));
   out.push(...ipe(92, 70));
   return out;
@@ -281,8 +282,8 @@ const place = (id: RoomId, hit: Box[], art: Px[]): MapSpot => ({ id, room: id, .
 
 /** Every room of the shared room list: drawn as its own place, or reached through another place (shown there as "você está aqui"). */
 export const ROOM_ON_MAP: Record<RoomId, MapSpot | { via: RoomId }> = {
-  aeroporto: place('aeroporto', [[66, 6, 84, 42]], aeroportoArt()),
-  kitnet: place('kitnet', [[70, 44, 30, 40]], kitnetArt()),
+  aeroporto: place('aeroporto', [[66, 4, 84, 42]], aeroportoArt()),
+  kitnet: place('kitnet', [[70, 46, 30, 38]], kitnetArt()),
   padaria: place('padaria', [[103, 56, 38, 28]], padariaArt()),
   academia: place('academia', [[162, 52, 40, 32]], academiaArt()),
   escola: place('escola', [[203, 42, 36, 42]], escolaArt()),
