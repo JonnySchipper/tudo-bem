@@ -885,8 +885,28 @@ html {
     grid-template-columns: 1fr;
   }
 }
+/* Each list hangs under a wooden plaque, like the board by the fountain (props/placar_vila). */
 .lb-panel .lb-board h3 {
   margin: 4px 0 8px;
+  padding: 6px 10px;
+  border: 2px solid #3a3a50;
+  border-radius: 4px;
+  background: linear-gradient(#a9764f, #916e41);
+  box-shadow: inset 0 2px 0 #c78c59, inset 0 -2px 0 #6b4c2c;
+  color: #fff6e0;
+  text-shadow: 1px 1px 0 #573c2c;
+}
+.lb-panel .lb-board h3::before {
+  margin-right: 6px;
+}
+.lb-panel .lb-words h3::before {
+  content: '📖';
+}
+.lb-panel .lb-streak h3::before {
+  content: '🔥';
+}
+.lb-panel .lb-board h3 .en {
+  color: #f1ce8e;
 }
 .lb-panel .lb-row.you {
   background: rgba(196, 92, 38, 0.12);
@@ -896,6 +916,29 @@ html {
   font-family: var(--font-pixel);
   color: var(--terracota-dark);
   min-width: 2.4em;
+}
+/* Gold / silver / bronze discs for the top three (ties share a medal: ranks are competition ranks). */
+.lb-panel .lb-rank[class*='medal-'] {
+  min-width: 0;
+  width: 2.1em;
+  height: 2.1em;
+  margin-right: 0.3em;
+  display: inline-grid;
+  place-items: center;
+  border: 2px solid #3a3a50;
+  border-radius: 50%;
+  font-size: 0.8em;
+  color: #3a3a50;
+}
+.lb-panel .lb-rank.medal-1 {
+  background: radial-gradient(circle at 35% 30%, #fff59a, #f2b22b 60%, #ed931e);
+}
+.lb-panel .lb-rank.medal-2 {
+  background: radial-gradient(circle at 35% 30%, #f8f8f8, #b2aecb 60%, #8b8bab);
+}
+.lb-panel .lb-rank.medal-3 {
+  background: radial-gradient(circle at 35% 30%, #f1ce8e, #b35e3f 60%, #ab4a36);
+  color: #fff6e0;
 }
 .lb-panel .lb-you {
   margin-left: 6px;

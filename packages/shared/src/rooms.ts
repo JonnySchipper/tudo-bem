@@ -589,7 +589,7 @@ const praca: RoomDef = {
     P('lampada_p1', 'poste', 11, 8, { art: 'props/lamp_old' }),
     P('lampada_p2', 'poste', 20, 8, { art: 'props/lamp_old' }),
     // Village leaderboards: words learned + escola streak (tap to open)
-    cen('placar_vila', 'props/placar', 16, 7, 2, 1, {
+    cen('placar_vila', 'props/placar_vila', 16, 7, 2, 1, {
       blocks: true,
       action: 'leaderboard',
       interact: { x: 16, y: 8 },
