@@ -991,3 +991,13 @@ html {
   padding-top: 6px;
   border-top: 2px dashed rgba(87, 60, 44, 0.25);
 }
+
+/* Desktop UI scale (issue #169, --ui-scale in styles.css): panels are zoomed like the HUD. Their own caps are in vw / vh, which zoom would
+   grow past the screen, so on these screens the cap is the backdrop itself (percentages are not zoomed). Phones never get here. */
+@media (min-width: 1200px) and (min-height: 760px) {
+  .backdrop > .panel {
+    zoom: var(--ui-scale);
+    max-width: calc(100% - 24px) !important;
+    max-height: calc(100% - 24px) !important;
+  }
+}

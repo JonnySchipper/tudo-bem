@@ -114,7 +114,31 @@ async function overlaps(page, label) {
   return res.bad.map((b) => `${label}: ${b}`);
 }
 
+/** A panel (modal) is drawn over the HUD on purpose; it only has to stay on the screen. */
+async function panelFits(page, label) {
+  const r = await page.evaluate(() => {
+    const el = document.querySelector('.backdrop > .panel');
+    if (!el) return null;
+    const b = el.getBoundingClientRect();
+    return { l: b.left, t: b.top, r: b.right, b: b.bottom, vw: innerWidth, vh: innerHeight };
+  });
+  if (!r) return [`${label}: no panel`];
+  log(label, `panel ${Math.round(r.l)},${Math.round(r.t)}-${Math.round(r.r)},${Math.round(r.b)}`);
+  return r.l < -1 || r.t < -1 || r.r > r.vw + 1 || r.b > r.vh + 1 ? [`${label}: the panel leaves the screen`] : [];
+}
+
+/** The "Nova palavra!" cards that pop up after a line is heard: click them away so the shot shows the scene. */
+async function dismissWordCards(page) {
+  for (let i = 0; i < 6; i++) {
+    const btn = await page.$('#photo-close');
+    if (!btn) return;
+    await btn.click().catch(() => {});
+    await sleep(300);
+  }
+}
+
 async function shot(page, size, what) {
+  await dismissWordCards(page);
   const dir = KEEP.has(size) ? SHOTS : fs.mkdtempSync(path.join(os.tmpdir(), 'tb-ui-scale-shot-'));
   const file = path.join(dir, `${PREFIX}_${what}_${size}.png`);
   await page.screenshot({ path: file });
@@ -175,6 +199,15 @@ try {
     await shot(page, size, 'hud');
     problems.push(...(await overlaps(page, `${size} praça`)));
 
+    // a panel: the Recados journal (on a phone its button is in the drawer, so click it from the page)
+    await page.evaluate(() => document.getElementById('btn-recados')?.click());
+    await page.waitForSelector('[data-modal="recados"]', { timeout: 8000 });
+    await sleep(500);
+    await shot(page, size, 'panel');
+    problems.push(...(await panelFits(page, `${size} recados`)));
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('[data-modal="recados"]', { state: 'detached', timeout: 5000 });
+
     // the dialogue close-up: Seu Carlos at the padaria counter
     await goArea(page, 'rua');
     await page.evaluate(() => window.__tb.interact({ portal: 'praca_padaria' }));
@@ -191,6 +224,8 @@ try {
     }
     await page.evaluate(() => document.querySelector('.toasts')?.replaceChildren());
     await sleep(1500);
+    await dismissWordCards(page);
+    await sleep(800);
     await shot(page, size, 'dialogue');
     problems.push(...(await overlaps(page, `${size} dialogue`)));
     problems.push(...(await speakersClear(page, `${size} dialogue`)));
