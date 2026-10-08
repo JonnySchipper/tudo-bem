@@ -16,11 +16,25 @@ import { T, type Rect } from './coords';
 /** Tiles of terrain drawn past each edge of an open-air map: more than any window shows around it (a 3840 x 2160 desktop at zoom 5 sees 15). */
 export const SURROUND_TILES = 24;
 /**
- * Props, dashes and neighbour dressing are only built this far (tiles) past the map edges. A 1920×1080 window at the street zoom sees about
- * 6 tiles past the barricade, and a phone less than that; 8 covers both with the next house. Further out stays ground (the tilemap) and sky,
- * so a phone does not keep the sprites, shadows and lamps of a whole neighbouring area it cannot see (issue #123).
+ * The least distance (tiles) past the map edges that props, dashes and neighbour dressing are built. A phone sees far less than that, so it
+ * does not keep the sprites of a whole neighbouring area it cannot see (issue #123). A wider window asks for more with `surroundReachFor`, so
+ * the cut where the props stop is always off screen (issue #154). Further out stays ground (the tilemap) and sky.
  */
 export const SURROUND_PROP_REACH = 8;
+
+/**
+ * Prop reach (tiles) for a window: how far past the map edges the camera can show at this size, plus a tile for a house that is only partly in
+ * view, rounded up to a multiple of 4 (so a resize drag does not rebuild the room every few pixels). Never under `SURROUND_PROP_REACH`, never
+ * past the ground (`SURROUND_TILES`). `view` and `insets` are CSS px; `zoom` is CSS px per art px.
+ *
+ * The camera clamps to the map on an axis wider than the free region, so the surround only shows on an axis that fits: half of what is left over,
+ * shifted by at most the larger HUD inset. The rows above the map (OUTDOOR_TOP_MARGIN) are sky and skyline, never cut.
+ */
+export function surroundReachFor(map: { cols: number; rows: number }, view: { w: number; h: number }, zoom: number, insets: { top: number; bottom: number; left: number; right: number }): number {
+  const past = (size: number, tiles: number, a: number, b: number) => Math.max(0, (size / zoom - tiles * T) / 2 + Math.abs(a - b) / 2 / zoom);
+  const tiles = Math.ceil(Math.max(past(view.w, map.cols, insets.left, insets.right), past(view.h, map.rows, insets.top, insets.bottom)) / T) + 1;
+  return Math.min(SURROUND_TILES, Math.max(SURROUND_PROP_REACH, Math.ceil(tiles / 4) * 4));
+}
 
 /** Top-left tile of each open-air area on the town grid. The rua is the origin; see `vilaLayout.test` for the portal check. */
 export const VILA_LAYOUT: Partial<Record<RoomId, { x: number; y: number }>> = (() => {
@@ -55,7 +69,7 @@ export interface Surround {
   /** world px x range the skyline strip and the sky cover */
   skyX0: number;
   skyX1: number;
-  /** world px rect the props and dressing are limited to (the map plus SURROUND_PROP_REACH) */
+  /** world px rect the props and dressing are limited to (the map plus the prop reach) */
   reach: Rect;
 }
 
@@ -128,11 +142,11 @@ function streetBlock(edge: number, dir: -1 | 1, len: number, tag: string): { pro
   return { props, bays };
 }
 
-/** The surround of an open-air area, or null for an interior. */
-export function surroundFor(def: RoomDef): Surround | null {
+/** The surround of an open-air area, or null for an interior. `reach` (tiles) is how far past the edges props are built (`surroundReachFor`). */
+export function surroundFor(def: RoomDef, propReach = SURROUND_PROP_REACH): Surround | null {
   if (!def.outdoor) return null;
   const M = SURROUND_TILES;
-  const R = SURROUND_PROP_REACH;
+  const R = Math.min(M, Math.max(0, propReach));
   const home = VILA_LAYOUT[def.id];
   const ox = home?.x ?? 0;
   const oy = home?.y ?? 0;
