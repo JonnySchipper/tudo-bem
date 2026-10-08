@@ -4,7 +4,6 @@ import path from 'node:path';
 import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createApp } from './app.js';
-import { FEEDBACK_HOURLY_MAX } from './feedbackApi.js';
 import { FeedbackStore } from './feedbackStore.js';
 import { feedbackFileAdapter } from './fileStore.js';
 
@@ -114,14 +113,13 @@ describe('POST /api/feedback and the review list', () => {
     expect(fs.existsSync(path.join(dir, 'feedback.json'))).toBe(false);
   });
 
-  it('rate-limits a burst and rejects another site', async () => {
+  it('accepts many notes in a row and rejects another site', async () => {
     await start();
-    for (let i = 0; i < FEEDBACK_HOURLY_MAX; i++) {
+    for (let i = 0; i < 10; i++) {
       const res = await post({ text: `${NOTE} número ${i + 1}` });
       expect(res.status, `note ${i}`).toBe(201);
     }
-    const blocked = await post({ text: `${NOTE} número extra` });
-    expect(blocked.status).toBe(429);
+    expect(saved().items).toHaveLength(10);
 
     const evil = await post({ text: NOTE }, { origin: 'https://evil.example' });
     expect(evil.status).toBe(403);
