@@ -147,9 +147,17 @@ describe('Treino no tatame (server)', () => {
     const collar = intent.intents.find((i) => i.id === 'collar_tie')!;
     const hold = intent.intents.find((i) => i.id === 'hold')!;
     expect(collar.percent).toBe(70);
+    expect(collar.sets).toEqual({ pt: 'Queda +25% · abre Arrastar', en: 'Takedown +25% · opens Drag' });
     expect(hold.percent).toBeUndefined();
-    expect(intent.intents.find((i) => i.id === 'double_leg')?.percent).toBe(45);
+    // every throw waits for a grip: Queda is owned, not on offer, and says why
+    expect(intent.intents.some((i) => i.id === 'double_leg')).toBe(false);
+    expect(intent.owned?.find((i) => i.id === 'double_leg')?.needs).toEqual({ pt: 'Precisa de uma pegada', en: 'Needs a grip' });
     expect(intent.intents.find((i) => i.id === 'posture')?.percent).toBe(55);
+    // the partner telegraphs before you choose, by name, and the meter starts level
+    expect(intent.plan?.line.pt.startsWith('Mateus vai')).toBe(true);
+    expect(intent.plan?.line.en.startsWith('Mateus ')).toBe(true);
+    expect(intent.st.meter).toBe(0);
+    expect(intent.st.grips).toEqual({ you: { collar: false, sleeve: false, age: { collar: 0, sleeve: 0 } }, partner: { collar: false, sleeve: false, age: { collar: 0, sleeve: 0 } } });
     expect(intent.intents.some((i) => i.id === 'body_lock')).toBe(false);
     expect(intent.intents.some((i) => i.id === 'hook_sweep')).toBe(false);
     expect(intent.intents.some((i) => i.id === 'armbar')).toBe(false);
@@ -159,7 +167,7 @@ describe('Treino no tatame (server)', () => {
     expect(intent.owned?.find((i) => i.id === 'hook_sweep')?.percent).toBe(38);
     expect(intent.owned?.find((i) => i.id === 'double_leg')?.percent).toBe(45);
     const standing = intent.intents.filter((i) => i.id !== 'hold');
-    expect(standing.map((i) => i.id).sort()).toEqual(['collar_tie', 'double_leg', 'posture']);
+    expect(standing.map((i) => i.id).sort()).toEqual(['collar_tie', 'posture']);
     expect(Math.max(...standing.map((i) => i.percent ?? 0))).toBe(70);
     expect(a.last('challenge')).toBeUndefined();
   });
@@ -172,17 +180,23 @@ describe('Treino no tatame (server)', () => {
     a.s.bout!.rng = () => 0;
     const grip = a.last('intent')!;
     await a.send({ t: 'bout', v: 1, action: 'intent', seq: grip.seq, intent: 'collar_tie' });
-    expect(a.last('resolve')!.sound).toBe('hit');
+    const gripped = a.last('resolve')!;
+    expect(gripped.sound).toBe('hit');
+    expect(gripped.grip).toEqual([{ kind: 'grip', side: 'you', grip: 'collar' }]);
+    expect(gripped.st.grips?.you.collar).toBe(true);
+    expect(gripped.meterTo!).toBeGreaterThan(gripped.meterFrom!);
 
     a.s.profile!.bjj = { belt: 'branca', stripes: 2, wins: 10, unlocked: ['collar_tie', 'sleeve_grip', 'double_leg', 'knee_on_belly'] };
     await a.send({ t: 'bout', v: 1, action: 'quit' });
     await start(a);
     advance(1000);
     a.s.bout!.rng = () => 0;
+    a.s.bout!.mat.grips.you.collar = true;
     const td = a.last('intent')!;
     await a.send({ t: 'bout', v: 1, action: 'intent', seq: td.seq, intent: 'double_leg' });
     const whoosh = a.last('resolve')!;
     expect(whoosh.sound).toBe('whoosh');
+    expect(whoosh.percent).toBe(70);
     expect(whoosh.st.points.you).toBe(2);
     expect(whoosh.st.position).toBe('cem_quilos');
 

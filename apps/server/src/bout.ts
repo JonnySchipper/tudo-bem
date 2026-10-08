@@ -15,7 +15,6 @@ import {
   botMoves,
   boutBond,
   boutRv,
-  chooseBot,
   completeDrill,
   drillPosition,
   endLine,
@@ -31,7 +30,8 @@ import {
   planAnswers,
   planBot,
   planLine,
-  planStands,
+  botCommit,
+  gripNeed,
   COMBOS,
   newMat,
   nextMatWord,
@@ -253,13 +253,17 @@ export class BoutEngine {
       }),
       owned: allowed
         .filter((id) => id !== 'hold')
-        .map((id) => ({
-          id,
-          pt: MOVE_LABEL[id].pt,
-          en: MOVE_LABEL[id].en,
-          risk: 1 as const,
-          percent: movePercent(id, prog.belt),
-        })),
+        .map((id) => {
+          const needs = gripNeed(b.mat, 'you', id);
+          return {
+            id,
+            pt: MOVE_LABEL[id].pt,
+            en: MOVE_LABEL[id].en,
+            risk: 1 as const,
+            percent: movePercent(id, prog.belt),
+            ...(needs ? { needs } : {}),
+          };
+        }),
       finish: false,
       pickMs: b.pickMs,
       plan: { kind: b.plan.kind, move: b.plan.move, line: planLine(b.plan.kind, b.partner.name), answers: [...answers] },
@@ -296,12 +300,12 @@ export class BoutEngine {
     const allowed = botMoves(prog.belt, prog.belt);
     const yours = fightMoves({ belt: prog.belt, unlocked: prog.unlocked, opponentBelt: prog.belt });
     // the telegraphed plan, unless your answer broke it
-    const id = b.plan && planStands(b.mat, b.plan, allowed) ? b.plan.move : chooseBot(b.mat, prog.belt, allowed, matStyle(b.partner), yours);
+    const pick = botCommit(b.mat, b.plan, prog.belt, allowed, matStyle(b.partner), yours);
     b.plan = null;
-    this.play(s, b, 'them', id, false);
+    this.play(s, b, 'them', pick.move, false, pick.replanned);
   }
 
-  private play(s: Session, b: BoutSession, actor: MatSide, id: MatMoveId, timeout: boolean) {
+  private play(s: Session, b: BoutSession, actor: MatSide, id: MatMoveId, timeout: boolean, replanned = false) {
     const prog = normalizeBjj(s.profile!.bjj);
     const belt = prog.belt;
     b.phase = 'resolve';
@@ -311,7 +315,7 @@ export class BoutEngine {
     b.mat = res.state;
     if (actor === 'you' && !b.mat.over) b.intentRevealAt = this.d.now() + MAT_CARTOON_MS + thinkMsFor(matStyle(b.partner)) + MAT_CARTOON_MS;
     const holdMs = this.pause(res.from !== res.to || res.submission ? 900 : 700);
-    s.send(resolveMsg(b, res, actor, timeout, holdMs, id));
+    s.send({ ...resolveMsg(b, res, actor, timeout, holdMs, id), ...(replanned ? { replanned: true } : {}) });
     if (b.mat.over) {
       this.d.schedule(() => this.finish(s, b), holdMs);
       return;

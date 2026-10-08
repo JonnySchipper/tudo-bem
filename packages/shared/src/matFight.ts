@@ -24,7 +24,7 @@ export const PERCENT_CAP = 95;
 export const PERCENT_FLOOR = 5;
 
 /** What each grip is worth (percent points). */
-export const COLLAR_QUEDA = 20;
+export const COLLAR_QUEDA = 25;
 export const SLEEVE_SHIELD = 20;
 export const LONE_COLLAR_PUNISH = 15;
 export const SLEEVE_SWEEP = 20;
@@ -172,7 +172,7 @@ export const MOVE_LABEL: Record<MatMoveId, Bilingual> = {
   knee_on_belly: { pt: 'Joelho', en: 'Knee ride' },
   // needs_br: true — Encaixe. From side, knee, or mount onto the back.
   back_take: { pt: 'Encaixe', en: 'Seatbelt' },
-  sprawl: { pt: 'Base', en: 'Base' },
+  sprawl: { pt: 'Base', en: 'Sprawl' },
   frame: { pt: 'Recuperar', en: 'Frame and recover' },
   escape_back: { pt: 'Sair', en: 'Escape back' },
   armbar: { pt: 'Braço', en: 'Armbar' },
@@ -188,9 +188,9 @@ const PERCENT: Record<Exclude<MatMoveId, 'hold'>, readonly (number | null)[]> = 
   double_leg: [45, 55, 65, 74, 82],
   body_lock: [50, 60, 70, 78, 85],
   single_leg: [null, null, 40, 52, 64],
-  collar_drag: [52, 62, 70, 78, 85],
+  collar_drag: [55, 64, 72, 80, 86],
   sleeve_pull: [80, 85, 89, 92, 94],
-  hip_throw: [62, 70, 78, 85, 90],
+  hip_throw: [75, 80, 85, 90, 93],
   hook_sweep: [38, 50, 62, 72, 80],
   scissor_sweep: [40, 52, 64, 74, 82],
   hip_bump: [48, 58, 68, 76, 84],
@@ -399,13 +399,28 @@ export function moveLegal(pos: MatPosition, actor: MatSide, id: MatMoveId): bool
   }
 }
 
-/** The grips a follow-up needs are in hand. */
+/**
+ * The grips a move needs are in hand. Every throw from standing needs a grip: Queda and Tornozelo any grip, Arrastar the collar,
+ * Puxar the sleeve, Arremesso both. Abraço needs a grip too, or their collar on you (a lone collar lets you in close).
+ */
 export function gripReady(state: MatState, actor: MatSide, id: MatMoveId): boolean {
   const g = state.grips[actor];
+  const any = g.collar || g.sleeve;
+  if (id === 'double_leg' || id === 'single_leg') return any;
+  if (id === 'body_lock') return any || state.grips[other(actor)].collar;
   if (id === 'collar_drag') return g.collar;
   if (id === 'sleeve_pull') return g.sleeve;
   if (id === 'hip_throw') return g.collar && g.sleeve;
   return true;
+}
+
+/** needs_br: true — why an owned throw is not on offer yet ("Precisa da gola"), or null when it is open. */
+export function gripNeed(state: MatState, actor: MatSide, id: MatMoveId): Bilingual | null {
+  if (gripReady(state, actor, id) || !moveLegal(state.position, actor, id)) return null;
+  if (id === 'collar_drag') return { pt: 'Precisa da gola', en: 'Needs the collar' };
+  if (id === 'sleeve_pull') return { pt: 'Precisa da manga', en: 'Needs the sleeve' };
+  if (id === 'hip_throw') return { pt: 'Precisa da gola e da manga', en: 'Needs collar and sleeve' };
+  return { pt: 'Precisa de uma pegada', en: 'Needs a grip' };
 }
 
 /** A grip this fighter already holds is not offered again (re-taking it would only burn the turn). */
@@ -520,7 +535,7 @@ export function matOdds(state: MatState, actor: MatSide, id: MatMoveId, belt: Be
   if (id === 'double_leg' && mine.collar) parts.push({ pt: 'Gola', en: 'Collar', delta: COLLAR_QUEDA });
   if (id === 'single_leg' && mine.sleeve) parts.push({ pt: 'Manga', en: 'Sleeve', delta: SLEEVE_ANKLE });
   if (SWEEPS.has(id) && mine.sleeve) parts.push({ pt: 'Manga', en: 'Sleeve', delta: SLEEVE_SWEEP });
-  if (id === 'body_lock' && theirs.collar && !theirs.sleeve) parts.push({ pt: 'Gola sozinha', en: 'Lone collar', delta: LONE_COLLAR_PUNISH });
+  if (id === 'body_lock' && theirs.collar && !theirs.sleeve) parts.push({ pt: 'Gola sozinha dele', en: 'Their lone collar', delta: LONE_COLLAR_PUNISH });
   if (atk && atk !== 'pegada' && theirs.sleeve) parts.push({ pt: 'Manga dele', en: 'Their sleeve', delta: -SLEEVE_SHIELD });
   const brace = state.brace?.[foe];
   const cut = brace && atk ? (BRACE_CUT[brace][atk] ?? 0) : 0;
@@ -601,7 +616,7 @@ export function resolveMat(state: MatState, actor: MatSide, id: MatMoveId, roll:
   const foeBrace = st.brace[foe];
   const braced = !!(foeBrace && atk && BRACE_CUT[foeBrace][atk]);
   const keepSleeve = id === 'sleeve_pull';
-  // a throw spends the grips it was set up with, whether it lands or not
+  // a throw commits the grips it was set up with: hit or miss, they are gone
   if (TAKEDOWNS.has(id)) {
     st.grips[actor] = emptyGrips();
     st.gripAge[actor] = zeroAge();
@@ -722,10 +737,13 @@ function applySuccess(st: MatState, actor: MatSide, id: MatMoveId, events: MatEv
   }
   const brace = braceOf(st, actor, id);
   if (id === 'posture') {
-    const had = (['collar', 'sleeve'] as const).filter((g) => st.grips[foe][g]);
-    st.grips[foe] = emptyGrips();
-    st.gripAge[foe] = zeroAge();
-    if (had.length) events.push({ kind: 'strip', side: actor, grips: had });
+    // one grip breaks: the collar first (it is the bigger threat), else the sleeve
+    const g: GripId | null = st.grips[foe].collar ? 'collar' : st.grips[foe].sleeve ? 'sleeve' : null;
+    if (g) {
+      st.grips[foe][g] = false;
+      st.gripAge[foe][g] = 0;
+      events.push({ kind: 'strip', side: actor, grips: [g] });
+    }
   }
   if (brace) {
     st.brace[actor] = brace;
@@ -739,7 +757,7 @@ function applySuccess(st: MatState, actor: MatSide, id: MatMoveId, events: MatEv
     return landed(actor, 'mount', true);
   }
   if (id === 'double_leg') return landed(actor, 'side_control', true);
-  if (id === 'hip_throw') return landed(actor, 'side_control', true);
+  if (id === 'hip_throw') return landed(actor, 'knee_on_belly', true);
   if (id === 'collar_drag') return landed(actor, 'back_control', true);
   if (id === 'body_lock') return landed(actor, 'closed_guard', true);
   if (id === 'single_leg') return landed(actor, 'knee_on_belly', true);
@@ -785,49 +803,88 @@ export function thinkMsFor(style?: Pick<MatStyle, 'speed'> | null): number {
 
 const NEUTRAL: MatStyle = { edge: 0, speed: 0.5, aggression: 0.5, defense: 0.5 };
 const POS_VALUE: Record<MatKind, number> = { standing: 0, closed_guard: 0.5, side_control: 1.1, knee_on_belly: 1.3, mount: 1.9, back_control: 2.2 };
+/**
+ * Roughly what an attack is worth if it lands, for the AI's threat read: points, the position it reaches, and (for a throw)
+ * the attacks it opens on the ground. A grip is worth exactly how much it raises the next one of these.
+ */
+const ATTACK_GAIN: Partial<Record<MatMoveId, number>> = {
+  double_leg: 4.4,
+  body_lock: 3.6,
+  single_leg: 4.6,
+  collar_drag: 5.5,
+  hip_throw: 4.7,
+  sleeve_pull: 1.2,
+  hook_sweep: 3.6,
+  scissor_sweep: 4.4,
+  hip_bump: 3.6,
+  passar: 3.6,
+  knee_on_belly: 2.2,
+  back_take: 4.9,
+};
+
+interface AiCtx {
+  belt: Belt;
+  style: MatStyle;
+  edge: (s: MatSide) => number;
+  allowed: Pair<readonly MatMoveId[]>;
+}
+
+/** The best attack `s` could make from here, as an expected gain: what grips, braces, a shield and tiredness are really worth. */
+function threat(st: MatState, s: MatSide, ctx: AiCtx): number {
+  let best = 0;
+  const seen: MatState = st.actor === s ? st : { ...st, actor: s };
+  for (const id of ctx.allowed[s]) {
+    const gain = ATTACK_GAIN[id];
+    if (!gain || !moveLegal(st.position, s, id) || !gripReady(st, s, id)) continue;
+    const p = matOdds(seen, s, id, ctx.belt, ctx.edge(s)).percent / 100;
+    if (p * gain > best) best = p * gain;
+  }
+  return best;
+}
 
 /** How good this state is for `side`, in points. The partner's style weighs what it values. */
-function valueFor(st: MatState, side: MatSide, style: MatStyle): number {
+function valueFor(st: MatState, side: MatSide, ctx: AiCtx): number {
   const foe = other(side);
+  const style = ctx.style;
   if (st.over) {
     if (st.winner === 'draw') return 0;
     return st.winner === side ? 12 : -12;
   }
   const late = Math.min(1, turnsLeft(st) / 4);
   let v = (st.points[side] - st.points[foe]) * (1 + 0.3 * style.aggression);
-  v += (st.adv[side] - st.adv[foe]) * 0.4;
+  v += (st.adv[side] - st.adv[foe]) * 0.45;
   if (st.position.kind !== 'standing') {
     const pv = POS_VALUE[st.position.kind];
     v += (st.position.top === side ? pv : -pv * (0.8 + 0.6 * style.defense)) * late;
   }
-  const mine = st.grips[side];
-  const theirs = st.grips[foe];
-  const gripW = 1.25 - 0.6 * style.speed;
-  v += (gripCount(mine) * 0.45 + (mine.collar && mine.sleeve ? 0.35 : 0)) * gripW * late;
-  v -= (gripCount(theirs) * 0.45 + (theirs.collar && theirs.sleeve ? 0.35 : 0)) * (0.8 + 0.6 * style.defense) * late;
-  if (st.tired[side]) v -= 0.3 * late;
-  if (st.tired[foe]) v += 0.3 * late;
+  // the next attack each side has lined up: the one to move can take it now, the other has to survive a turn first
+  const nowW = st.actor === side ? 0.9 : 0.5;
+  const thenW = st.actor === side ? 0.5 : 0.9;
+  v += threat(st, side, ctx) * nowW * (0.85 + 0.3 * style.aggression) * late;
+  v -= threat(st, foe, ctx) * thenW * (0.8 + 0.4 * style.defense) * late;
+  // holding grips is its own comfort (the shield, the combos); a fast fighter cares less and shoots sooner
+  v += gripCount(st.grips[side]) * 0.2 * (1.2 - 0.6 * style.speed) * late;
+  v -= gripCount(st.grips[foe]) * 0.15 * late;
   return v;
 }
 
 /** The expected value of `id` for its actor (the state's actor), looking one reply ahead when `depth` allows. */
-function expectFor(st: MatState, id: MatMoveId, belt: Belt, edgeOf: (s: MatSide) => number, side: MatSide, style: MatStyle, foeAllowed: readonly MatMoveId[], ownAllowed: readonly MatMoveId[], depth: number): number {
+function expectFor(st: MatState, id: MatMoveId, side: MatSide, ctx: AiCtx, depth: number): number {
   const actor = st.actor;
-  const hit = resolveMat(st, actor, id, 0, belt, false, edgeOf(actor));
+  const hit = resolveMat(st, actor, id, 0, ctx.belt, false, ctx.edge(actor));
   if (!hit.ok) return -Infinity;
   const p = hit.percent / 100;
-  const miss = id === 'hold' || p >= 1 ? null : resolveMat(st, actor, id, 0.99999, belt, false, edgeOf(actor));
+  const miss = id === 'hold' || p >= 1 ? null : resolveMat(st, actor, id, 0.99999, ctx.belt, false, ctx.edge(actor));
   const leaf = (s: MatState) => {
-    if (depth <= 0 || s.over) return valueFor(s, side, style);
+    if (depth <= 0 || s.over) return valueFor(s, side, ctx);
     // the other fighter answers with what is best for them (worst for `side`)
-    const nextAllowed = s.actor === side ? ownAllowed : foeAllowed;
-    const replies = matLegalMoves(s, s.actor, nextAllowed);
+    const replies = matLegalMoves(s, s.actor, ctx.allowed[s.actor]);
     let best = s.actor === side ? -Infinity : Infinity;
     for (const r of replies) {
-      const v = expectFor(s, r, belt, edgeOf, side, style, foeAllowed, ownAllowed, depth - 1);
+      const v = expectFor(s, r, side, ctx, depth - 1);
       if (s.actor === side ? v > best : v < best) best = v;
     }
-    return Number.isFinite(best) ? best : valueFor(s, side, style);
+    return Number.isFinite(best) ? best : valueFor(s, side, ctx);
   };
   return p * leaf(hit.state) + (miss ? (1 - p) * leaf(miss.state) : 0);
 }
@@ -866,20 +923,23 @@ export function planKindOf(state: MatState, actor: MatSide, id: MatMoveId): MatP
  */
 export function planBot(state: MatState, belt: Belt, allowed: readonly MatMoveId[], style?: MatStyle, foeAllowed?: readonly MatMoveId[]): MatPlan {
   const st: MatState = state.actor === 'them' ? state : { ...state, actor: 'them' };
-  const s = style ?? NEUTRAL;
-  const legal = matLegalMoves(st, 'them', allowed);
-  if (!legal.length) return { move: 'hold', kind: 'segurar' };
-  const edgeOf = (side: MatSide) => (side === 'them' ? s.edge : 0);
   let best: MatMoveId = 'hold';
   let bestV = -Infinity;
-  for (const id of legal) {
-    const v = expectFor(st, id, belt, edgeOf, 'them', s, foeAllowed ?? allowed, allowed, 1);
+  for (const [id, v] of planValues(state, belt, allowed, style, foeAllowed)) {
     if (v > bestV + 1e-9) {
       bestV = v;
       best = id;
     }
   }
   return { move: best, kind: planKindOf(st, 'them', best) };
+}
+
+/** Every legal partner move with its two-ply value (the AI's whole read; tests and tuning). */
+export function planValues(state: MatState, belt: Belt, allowed: readonly MatMoveId[], style?: MatStyle, foeAllowed?: readonly MatMoveId[]): [MatMoveId, number][] {
+  const st: MatState = state.actor === 'them' ? state : { ...state, actor: 'them' };
+  const s = style ?? NEUTRAL;
+  const ctx: AiCtx = { belt, style: s, edge: (side) => (side === 'them' ? s.edge : 0), allowed: { them: withCombos(allowed), you: withCombos(foeAllowed ?? allowed) } };
+  return matLegalMoves(st, 'them', allowed).map((id) => [id, expectFor(st, id, 'them', ctx, 1)]);
 }
 
 /** The partner's move this turn (the plan, re-read from the state as it is now). */
@@ -890,6 +950,28 @@ export function chooseBot(state: MatState, belt: Belt, allowed: readonly MatMove
 /** The plan still stands after your move: same fighter to move, and the move is still legal. Otherwise the partner re-plans. */
 export function planStands(state: MatState, plan: MatPlan | null, allowed: readonly MatMoveId[]): boolean {
   return !!plan && !state.over && state.actor === 'them' && matLegalMoves(state, 'them', allowed).includes(plan.move);
+}
+
+/** How much worse (in points) the telegraphed move may have become before the partner drops it for a better one. */
+export const PLAN_INERTIA = 0.6;
+
+/**
+ * The partner's move on its turn: the telegraphed plan, unless your move broke it (made it illegal, or made it clearly worse
+ * than its best option now). `replanned` says the telegraph was not kept, so the overlay can say so.
+ */
+export function botCommit(state: MatState, plan: MatPlan | null, belt: Belt, allowed: readonly MatMoveId[], style?: MatStyle, foeAllowed?: readonly MatMoveId[]): { move: MatMoveId; replanned: boolean } {
+  const values = planValues(state, belt, allowed, style, foeAllowed);
+  let best: MatMoveId = 'hold';
+  let bestV = -Infinity;
+  for (const [id, v] of values) {
+    if (v > bestV + 1e-9) {
+      bestV = v;
+      best = id;
+    }
+  }
+  const kept = plan ? values.find(([id]) => id === plan.move) : undefined;
+  if (kept && kept[1] >= bestV - PLAN_INERTIA) return { move: kept[0], replanned: false };
+  return { move: best, replanned: !!plan };
 }
 
 /** Your moves that answer the partner's plan: a brace, a strip, the shield, or using your grips before they are stripped. */

@@ -340,6 +340,8 @@ export interface BoutIntentOut {
   answers?: boolean;
   /** A follow-up the grips opened (Arrastar, Puxar, Arremesso). */
   combo?: boolean;
+  /** Owned but waiting for a grip ("Precisa da gola"). */
+  needs?: Bilingual;
 }
 
 export type BoutRole = 'exchange' | 'finish' | 'escape';
@@ -429,6 +431,8 @@ export type BoutServerMsg =
       /** The control meter before and after. */
       meterFrom?: number;
       meterTo?: number;
+      /** The partner dropped its telegraphed move because your answer broke it. */
+      replanned?: boolean;
     }
   | { t: 'bout'; v: 1; phase: 'finish_end'; kind: 'finalizacao' | 'escape'; success: boolean; st: BoutSnapshot; line: Bilingual; signal: RefSignal | null; holdMs: number }
   | {
