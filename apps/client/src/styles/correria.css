@@ -554,17 +554,19 @@ body.cr-on .toasts {
   animation: cr-banner 1.9s ease-out forwards;
 }
 
-/* One-time how-to at the start of a shift. Sits over the counter, does not push the order strip. */
+/* One-time how-to at the start of a shift. Sits over the counter, does not push the order strip.
+   Above the shelf taps (z-index 12): a tall card, the juicer lesson, used to land on the tray hit, so Entendi could not be tapped and the shelf names drew through the text. */
 .cr-lesson {
   position: absolute;
-  left: 50%;
-  top: 16%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  top: 12%;
+  margin-inline: auto;
   width: min(420px, calc(100vw - 24px));
-  max-height: min(46vh, 320px);
+  max-height: min(72vh, 520px);
   overflow: auto;
   pointer-events: auto;
-  z-index: 4;
+  z-index: 20;
   padding: 10px 14px 12px;
   background: var(--cr-paper);
   color: var(--cr-ink);

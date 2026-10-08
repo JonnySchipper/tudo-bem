@@ -1611,3 +1611,16 @@ Dona Lúcia's desk was one multiple-choice card. It is now a lesson loop over th
 - **Saves from before.** Every diary word starts at box 0 (learned, not mastered), so everyone starts Verde; `normalizeEscola` fills the rest.
 - **Test hook.** `POST /__test/escola` (only with `TB_TEST_CLOCK_CONTROL=1`) seeds an online player's escola for screenshots.
 - All new Portuguese is `needs_br`.
+
+## Espremedor automático (#131, 2026-10-08)
+
+Suco de laranja is no longer a grab from the fridge. It comes off the espremedor on the right-hand tower, above the coffee machine (`JUICE` in `packages/shared/src/correria.ts`). Shots: `node scripts/juicer-shots.mjs` (built client, `TB_TEST_CLOCK_CONTROL=1`), `docs/lifesim/shots/juicer/`.
+
+- **One tap, one orange.** `juice_drop` sends the next orange through the machine (roll, cut, press, pour, peel, 640 ms). Three sizes, seeded: pequena 0.26, média 0.34, grande 0.40 of the line. The glass has a line (`JUICE_LINE_ROWS` 7). Tap the glass (`juice_take`) to serve. The server judges it: under 0.80 is short (thrown out), over 1.20 overflows at once, between them lands. Every glass still under 0.80 has room for the biggest orange.
+- **When it unlocks.** Suco is the step after pão na chapa on `MENU_LADDER` (one new item every 2 completed shifts, so the 7th item opens at 10). That shift's pay bump is the usual +6%.
+- **The card.** Lesson id is `espremedor`, not the item id, so a player who already saw the old suco card still gets this one once. On screen, not spoken. `pendingLesson` still shows the packing card first when that one is due.
+- **Old saves.** `normalizeCorreria` with no `taught` and shifts already played marks every old item card and `where` as seen. It does not mark `espremedor`, so the juicer card still shows once. A save that already lists `taught` is kept as it is.
+- **Reduced motion.** The cycle is not played: the machine stays on the idle frame and the glass jumps to the server's level.
+- **On screen.** The camera `NEED` is 162×216 and `FOCUS` sits at (80, 40), so the tower (it starts above the old shelf) stays under the HUD and the zoom backs off a step when the free band is short. The lesson card is `z-index: 20` (shelf taps are 12) and tall enough that Entendi is inside the card, not under the tray hit.
+- **Free beta.** Nothing here is bought. The shift still pays the existing virtual RV, scaled by the menu as before.
+- All new Portuguese is `needs_br`.

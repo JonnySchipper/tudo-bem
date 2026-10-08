@@ -181,9 +181,9 @@ export const QUEUE_SPOTS: Spot[] = [
 export const DOOR_SPOT: Spot = { x: -14, y: 142 };
 
 /** The counter's focus for the camera (room px): the middle of the board and the queue. */
-export const FOCUS: Spot = { x: 80, y: 44 };
-/** World px the camera must show: the board and the queue. */
-export const NEED = { w: 162, h: 198 } as const;
+export const FOCUS: Spot = { x: 80, y: 40 };
+/** World px the camera must show: the juicer tower (it starts at BOARD.y0), the board and the queue. Taller than the old shelf so the hopper stays under the HUD. */
+export const NEED = { w: 162, h: 216 } as const;
 
 /** Miniature item size on the tray (item sprites are drawn at this scale there). */
 export const TRAY_ITEM_SCALE = 0.5;
