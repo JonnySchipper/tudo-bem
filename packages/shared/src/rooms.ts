@@ -745,18 +745,19 @@ const feira: RoomDef = {
     cen('flor_lote', 'props/flor_mista_b', 20, 17, 3, 1),
     bench('banco_feira', 4, 16),
     // Cart games (daily rotation). Open paving east of the stalls, clear of the free-slot signs (vaga at x19 / x25).
+    // The board stands on the aisle immediately west of the cart, so reaching it is the walk to the cart, not a second trek.
     // Usable at any game-clock hour — learning loops are never locked behind the feira's 06:00–13:00 window (D12).
-    cen('carrinho_jogos', 'props/carrinho_coco', 21, 7, 3, 1, {
+    cen('placa_jogos', 'props/placa_feira', 18, 7, 2, 1, {
+      blocks: true,
+      action: 'feira_sign',
+      interact: { x: 19, y: 8 },
+      label: { pt: 'Placar da Feira', en: 'Market board' },
+    }),
+    cen('carrinho_jogos', 'props/carrinho_feira', 21, 7, 3, 1, {
       blocks: true,
       action: 'feira_cart',
       interact: { x: 22, y: 9 },
       label: { pt: 'Carrinho de jogos', en: 'Game cart' },
-    }),
-    cen('placa_jogos', 'props/placar', 26, 9, 2, 1, {
-      blocks: true,
-      action: 'feira_sign',
-      interact: { x: 27, y: 10 },
-      label: { pt: 'Placar da Feira', en: 'Market board' },
     }),
     ...diaryProps('feira'),
   ],

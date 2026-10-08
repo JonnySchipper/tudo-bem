@@ -5,8 +5,9 @@
  * the player sees is what the server will score. This view only collects per-order quality and timing;
  * it never sends a score.
  *
- * One pan to start, a second after 3 serves, a third after 6. A mistimed flip tears or sticks (drawn),
- * and only soft-fails the order. Mouse and touch: every control is a button, so a tap and a click are the same.
+ * The stall is built once. A frame only rewrites text, classes and a cook bar, so a mouse click lands
+ * on the same button that received the press. One pan to start, a second after 3 serves, a third after 6.
+ * A mistimed flip tears or sticks, and only soft-fails the order.
  *
  * needs_br: true (order lines, pops, end card).
  */
@@ -28,9 +29,8 @@ import {
   type TapiocaOrder,
 } from '@tudobem/shared';
 import { h, en } from './dom';
-import { npcPortrait } from './pixelArt';
-import { pixelSvg } from './pixelSvg';
-import type { Expression } from './pixelArt';
+import { npcPortrait, portraitKey, type Expression } from './pixelArt';
+import { imageUrl } from '../render/pixel/manifest';
 
 export interface TapiocaEnd {
   score: number;
@@ -70,103 +70,180 @@ interface LiveCustomer {
   gone: boolean;
 }
 
-const INK = '#2a2233';
-const CREAM = '#fbf1e3';
-const GOLD = '#e2b340';
-const WHITE = '#fffdf8';
-const LACE = '#f0d090';
-const BROWN = '#8a4b24';
-const TEAR = '#c45c26';
-const GREEN = '#2f5d50';
-
-const FILL_INK: Record<TapiocaFilling, string> = {
-  queijo: '#f2c230',
-  coco: '#fff6e6',
-  chocolate: '#6b3a22',
-  goiabada: '#c44536',
-};
-
-function panArt(pan: Pan, now: number): SVGSVGElement {
-  const age = pan.phase === 'cooking' || pan.phase === 'spread' ? now - pan.spreadAt : TAPIOCA_COOK.cookMs;
-  const lace = pan.phase === 'cooking' && age > TAPIOCA_COOK.cookMs - 400;
-  const stuck = pan.flip === 'late';
-  const torn = pan.flip === 'early';
-  const rows: string[] = [];
-  const W = 22;
-  const H = 16;
-  const blank = '.'.repeat(W);
-  for (let y = 0; y < H; y++) rows.push(blank);
-  const put = (x: number, y: number, c: string) => {
-    if (y < 0 || y >= H || x < 0 || x >= W) return;
-    const row = rows[y]!;
-    rows[y] = row.slice(0, x) + c + row.slice(x + 1);
-  };
-  // pan ring
-  for (let x = 2; x < 18; x++) {
-    put(x, 3, 'k');
-    put(x, 13, 'k');
-  }
-  for (let y = 4; y < 13; y++) {
-    put(2, y, 'k');
-    put(17, y, 'k');
-  }
-  put(18, 8, 'k');
-  put(19, 8, 'k');
-  put(20, 8, 'h');
-  if (pan.phase === 'empty') {
-    for (let y = 5; y < 13; y++) for (let x = 4; x < 16; x++) put(x, y, 'p');
-  } else {
-    const disc = torn ? 't' : stuck ? 'b' : lace || pan.phase !== 'spread' ? 'l' : 'w';
-    for (let y = 5; y < 13; y++) {
-      for (let x = 4; x < 16; x++) {
-        const edge = y === 5 || y === 12 || x === 4 || x === 15;
-        if (torn && ((x + y) % 5 === 0)) {
-          put(x, y, 'p');
-          continue;
-        }
-        put(x, y, edge ? (stuck ? 'b' : 'l') : disc);
-      }
-    }
-    if (pan.filling && (pan.phase === 'filled' || pan.phase === 'rolled')) {
-      const mark = pan.filling === 'queijo' ? 'q' : pan.filling === 'coco' ? 'c' : pan.filling === 'chocolate' ? 'h' : 'g';
-      if (pan.phase === 'rolled') {
-        for (let y = 7; y < 11; y++) for (let x = 6; x < 14; x++) put(x, y, mark);
-      } else {
-        for (let y = 7; y < 11; y++) for (let x = 7; x < 13; x++) put(x, y, mark);
-      }
-    }
-    // steam pixels while it cooks
-    if (pan.phase === 'cooking') {
-      const puff = Math.floor(now / 180) % 3;
-      put(6 + puff, 2, 's');
-      put(10, 1, 's');
-      put(13 - puff, 2, 's');
-    }
-  }
-  return pixelSvg(rows, {
-    k: INK,
-    h: '#6b4a32',
-    p: '#c4a574',
-    w: WHITE,
-    l: LACE,
-    b: BROWN,
-    t: TEAR,
-    q: FILL_INK.queijo,
-    c: FILL_INK.coco,
-    g: FILL_INK.goiabada,
-    s: '#d8e4ea',
-    '.': 'transparent',
-  }, 'tp-pan-svg');
+interface PanNode {
+  btn: HTMLButtonElement;
+  svg: SVGSVGElement;
+  meter: HTMLElement;
+  pt: Text;
+  en: Text;
+  phase: PanPhase;
+  flip: FlipVerdict | null;
+  filling: TapiocaFilling | null;
+  visual: string;
 }
 
-function patiencePips(frac: number): HTMLElement {
-  const n = 4;
-  const lit = Math.max(0, Math.min(n, Math.ceil(frac * n)));
-  return h(
-    'div',
-    { class: 'tp-pips', 'aria-label': `${lit} of ${n}` },
-    ...Array.from({ length: n }, (_, i) => h('i', { class: i < lit ? 'on' : '' })),
-  );
+interface CustomerNode {
+  root: HTMLElement;
+  pips: HTMLElement[];
+  img: HTMLImageElement | null;
+  expr: Expression;
+}
+
+const NS = 'http://www.w3.org/2000/svg';
+const PW = 48;
+const PH = 34;
+const PCX = 16;
+const PCY = 17;
+
+const FILL_INK: Record<TapiocaFilling, { base: string; hi: string; dark: string }> = {
+  queijo: { base: '#f2c230', hi: '#fff59a', dark: '#c48a14' },
+  coco: { base: '#fff6e6', hi: '#ffffff', dark: '#e0d0b2' },
+  chocolate: { base: '#6b3a22', hi: '#a85f46', dark: '#3a1e12' },
+  goiabada: { base: '#c44536', hi: '#e07070', dark: '#8a2a22' },
+};
+
+function svgEl<K extends keyof SVGElementTagNameMap>(tag: K, attrs: Record<string, string> = {}): SVGElementTagNameMap[K] {
+  const el = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+  return el;
+}
+
+function addPx(g: SVGGElement, cells: [number, number, string][]) {
+  for (const [x, y, fill] of cells) {
+    if (x < 0 || y < 0 || x >= PW || y >= PH) continue;
+    g.append(svgEl('rect', { x: String(x), y: String(y), width: '1', height: '1', fill }));
+  }
+}
+
+function inDisc(x: number, y: number, cx: number, cy: number, r: number) {
+  const dx = x + 0.5 - cx;
+  const dy = y + 0.5 - cy;
+  return dx * dx + dy * dy <= r * r;
+}
+
+/** The tapioqueira: an aluminium pan, a goma disc, lace / tear / stuck, and each filling. Built once. */
+function buildPanSvg(): SVGSVGElement {
+  const svg = svgEl('svg', { viewBox: `0 0 ${PW} ${PH}`, class: 'tp-pan-svg st-empty', 'shape-rendering': 'crispEdges' });
+  const base = svgEl('g', { class: 'g-base' });
+  const disc = svgEl('g', { class: 'g-disc' });
+  const lace = svgEl('g', { class: 'g-lace' });
+  const tear = svgEl('g', { class: 'g-tear' });
+  const stuck = svgEl('g', { class: 'g-stuck' });
+  const roll = svgEl('g', { class: 'g-roll' });
+  const steam = svgEl('g', { class: 'g-steam' });
+  const pan: [number, number, string][] = [];
+  const goma: [number, number, string][] = [];
+  const lacePx: [number, number, string][] = [];
+  const tearPx: [number, number, string][] = [];
+  const stuckPx: [number, number, string][] = [];
+  const rollPx: [number, number, string][] = [];
+  for (let y = 0; y < PH; y++) {
+    for (let x = 0; x < PW; x++) {
+      const dx = x + 0.5 - PCX;
+      const dy = y + 0.5 - PCY;
+      const r2 = dx * dx + dy * dy;
+      const handle = x >= 26 && x <= 45 && y >= 15 && y <= 19 && !inDisc(x, y, 42, 17, 2.2);
+      const hole = inDisc(x, y, 42, 17, 2.2) && x >= 39;
+      if (hole) continue;
+      if (r2 <= 13 * 13 || handle) {
+        const rim = r2 > 10.5 * 10.5 && r2 <= 13 * 13;
+        const lit = dx < -2 && dy < -1;
+        let c = rim ? (lit ? '#f8f8f8' : dx > 4 ? '#6c6e85' : '#c6c8d4') : lit ? '#d8d0e0' : '#8b8bab';
+        if (handle) c = y === 15 ? '#daa463' : y === 19 ? '#6b4c2c' : x % 5 === 0 ? '#916e41' : '#a9764f';
+        if (rim && (x + y) % 9 === 0) c = '#f8f8f8';
+        pan.push([x, y, c]);
+      }
+      if (r2 <= 9 * 9) {
+        const edge = r2 > 7.2 * 7.2;
+        const bubble = (x * 3 + y * 5) % 11 === 0 && r2 < 36;
+        goma.push([x, y, edge ? '#f0d090' : bubble ? '#fff59a' : '#fffdf8']);
+        if (edge) lacePx.push([x, y, '#e2b340']);
+        else if ((x + y) % 6 === 0) lacePx.push([x, y, '#f2c230']);
+        if ((x + y) % 5 === 0) tearPx.push([x, y, '#6c6e85']);
+        if (edge || (x * 2 + y) % 4 === 0) stuckPx.push([x, y, edge ? '#573c2c' : '#8a4b24']);
+      }
+      if (y >= 14 && y <= 20 && x >= 10 && x <= 24) {
+        rollPx.push([x, y, y === 14 || y === 20 ? '#e2b340' : x % 4 === 0 ? '#f0d090' : '#fffdf8']);
+      }
+    }
+  }
+  // a rivet where the handle meets the pan, and a shine on the empty metal
+  pan.push([26, 16, '#f8f8f8'], [26, 18, '#565972'], [12, 10, '#ffffff'], [13, 10, '#ffffff'], [12, 11, '#f8f8f8']);
+  addPx(base, pan);
+  addPx(disc, goma);
+  addPx(lace, lacePx);
+  addPx(tear, tearPx);
+  addPx(stuck, stuckPx);
+  addPx(roll, rollPx);
+  for (const [sx, sy] of [[10, 6], [16, 4], [22, 7]] as const) {
+    const puff = svgEl('g', { class: 'puff' });
+    addPx(puff, [[sx, sy, '#f8f8f8'], [sx + 1, sy, '#d8e4ea'], [sx, sy + 1, '#d8e4ea']]);
+    steam.append(puff);
+  }
+  svg.append(base, disc, lace, tear, stuck, roll, steam);
+  for (const f of TAPIOCA_FILLINGS) {
+    const ink = FILL_INK[f];
+    const heap = svgEl('g', { class: `g-heap g-heap-${f}` });
+    const bar = svgEl('g', { class: `g-rfill g-rfill-${f}` });
+    const heapPx: [number, number, string][] = [];
+    const barPx: [number, number, string][] = [];
+    for (let y = 0; y < PH; y++) {
+      for (let x = 0; x < PW; x++) {
+        if (inDisc(x, y, PCX, PCY, 4.2)) {
+          const speck = (x + y * 2) % 3 === 0;
+          heapPx.push([x, y, speck ? ink.hi : (x + y) % 5 === 0 ? ink.dark : ink.base]);
+        }
+        if (y >= 15 && y <= 19 && x >= 12 && x <= 22) barPx.push([x, y, y === 15 ? ink.hi : ink.base]);
+      }
+    }
+    addPx(heap, heapPx);
+    addPx(bar, barPx);
+    svg.append(heap, bar);
+  }
+  return svg;
+}
+
+/** A ceramic bowl of one filling. Built once per button. */
+function bowlSvg(f: TapiocaFilling): SVGSVGElement {
+  const ink = FILL_INK[f];
+  const w = 28;
+  const h = 18;
+  const svg = svgEl('svg', { viewBox: `0 0 ${w} ${h}`, class: 'tp-bowl-svg', 'shape-rendering': 'crispEdges' });
+  const g = svgEl('g');
+  const cells: [number, number, string][] = [];
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const bowl = inDisc(x, y, 14, 11, 11) && y >= 6 && inDisc(x, y, 14, 8, 12);
+      const rim = y >= 5 && y <= 8 && inDisc(x, y, 14, 7, 12) && !inDisc(x, y, 14, 7, 8);
+      if (rim) cells.push([x, y, x < 8 ? '#ffffff' : '#c6bdd5']);
+      else if (bowl && y >= 8) {
+        const heap = inDisc(x, y, 14, 10, 7);
+        cells.push([x, y, heap ? ((x + y) % 3 === 0 ? ink.hi : ink.base) : y > 14 ? '#d8d0e0' : '#f8f8f8']);
+      }
+    }
+  }
+  for (const [x, y, fill] of cells) g.append(svgEl('rect', { x: String(x), y: String(y), width: '1', height: '1', fill }));
+  svg.append(g);
+  return svg;
+}
+
+const PAN_LABEL: Record<PanPhase, { pt: string; en: string }> = {
+  empty: { pt: 'Goma', en: 'Spread' },
+  spread: { pt: 'Virar', en: 'Flip' },
+  cooking: { pt: 'Virar', en: 'Flip' },
+  flipped: { pt: 'Recheio', en: 'Filling' },
+  filled: { pt: 'Enrolar', en: 'Roll' },
+  rolled: { pt: 'Pronta', en: 'Ready' },
+};
+
+function visualKey(pan: Pan, lace: boolean): string {
+  if (pan.phase === 'empty') return 'empty';
+  if (pan.phase === 'cooking' || pan.phase === 'spread') return lace ? 'lace' : 'pale';
+  if (pan.flip === 'early') return 'tear';
+  if (pan.flip === 'late') return 'stuck';
+  if (pan.phase === 'rolled') return `roll-${pan.filling ?? ''}`;
+  if (pan.phase === 'filled') return `fill-${pan.filling ?? ''}-${pan.flip === 'perfect' ? 'lace' : pan.flip ?? 'pale'}`;
+  return `flipped-${pan.flip ?? 'pale'}`;
 }
 
 export class TapiocaView {
@@ -181,9 +258,18 @@ export class TapiocaView {
   private started: number;
   private raf = 0;
   private over = false;
-  private pop: HTMLElement | null = null;
   private selected: TapiocaFilling | null = null;
   private dragFrom: number | null = null;
+  private timerEl: HTMLElement;
+  private scoreEl: HTMLElement;
+  private queueEl: HTMLElement;
+  private griddleEl: HTMLElement;
+  private popEl: HTMLElement;
+  private panNodes: PanNode[] = [];
+  private customerNodes = new Map<number, CustomerNode>();
+  private bowlButtons = new Map<TapiocaFilling, HTMLButtonElement>();
+  private waitEl: HTMLElement;
+  private shownSecond = -1;
 
   constructor(
     private readonly seed: number,
@@ -191,7 +277,58 @@ export class TapiocaView {
   ) {
     this.orders = tapiocaOrders(seed);
     this.started = performance.now();
-    this.root = h('div', { id: 'tapioca-root', class: 'tp-root' });
+    this.timerEl = h('span', { id: 'tapioca-timer' }, '90s');
+    this.scoreEl = h('span', { id: 'tapioca-live-score' }, '0');
+    this.queueEl = h('div', { class: 'tp-queue', id: 'tapioca-queue' });
+    this.griddleEl = h('div', { class: 'tp-griddle pans-1', id: 'tapioca-griddle' });
+    this.waitEl = h('p', { class: 'tp-wait' }, 'Aguardando…', en('Waiting…'));
+    this.queueEl.append(this.waitEl);
+    this.popEl = h('div', { class: 'tp-pop', id: 'tapioca-pop' });
+    this.popEl.hidden = true;
+    const bowls = h('div', { class: 'tp-bowls', id: 'tapioca-bowls' });
+    for (const f of TAPIOCA_FILLINGS) {
+      const lab = TAPIOCA_FILLING_LABEL[f];
+      const btn = h('button', {
+        type: 'button',
+        class: 'tp-bowl',
+        'data-filling': f,
+        id: `tapioca-bowl-${f}`,
+        onclick: () => this.pickFilling(f),
+      }, bowlSvg(f), h('span', { class: 'tp-bowl-name' }, lab.pt, en(lab.en))) as HTMLButtonElement;
+      this.bowlButtons.set(f, btn);
+      bowls.append(btn);
+    }
+    this.root = h('div', { id: 'tapioca-root', class: 'tp-root' },
+      h('div', { class: 'tp-sky', 'aria-hidden': 'true' }),
+      h('div', { class: 'tp-bunting', 'aria-hidden': 'true' }),
+      h('header', { class: 'tp-hud', id: 'tapioca-hud' },
+        h('span', { class: 'tp-title' }, 'Tapioca'),
+        this.timerEl,
+        this.scoreEl,
+        h('button', { type: 'button', class: 'ghost tp-quit', id: 'tapioca-quit', onclick: () => this.abandon() }, 'Sair'),
+      ),
+      h('div', { class: 'tp-awning', 'aria-hidden': 'true' },
+        h('span', { class: 'tp-awning-title' }, 'Tapioca da feira'),
+      ),
+      this.queueEl,
+      h('div', { class: 'tp-stall' },
+        h('div', { class: 'tp-chapa' },
+          h('div', { class: 'tp-splash', 'aria-hidden': 'true' }),
+          this.griddleEl,
+          h('div', { class: 'tp-cabinet', 'aria-hidden': 'true' },
+            h('i', { class: 'tp-dial hot' }),
+            h('i', { class: 'tp-dial' }),
+            h('i', { class: 'tp-dial' }),
+            h('i', { class: 'tp-pilot' }),
+          ),
+        ),
+        h('div', { class: 'tp-counter', 'aria-hidden': 'true' }),
+      ),
+      bowls,
+      h('div', { class: 'tp-floor', 'aria-hidden': 'true' }),
+      this.popEl,
+    );
+    this.ensurePans(1);
     document.body.classList.add('tp-on');
     document.getElementById('ui')?.append(this.root);
     this.frame();
@@ -263,46 +400,129 @@ export class TapiocaView {
   }
 
   private paint(now: number) {
-    const elapsed = now - this.started;
-    const left = Math.max(0, TAPIOCA_DURATION_MS - elapsed);
-    const want = tapiocaPans(this.served);
-    while (this.pans.length < want) this.pans.push({ phase: 'empty', spreadAt: 0, flip: null, filling: null });
-    const hud = h('div', { class: 'tp-hud', id: 'tapioca-hud' },
-      h('span', { class: 'tp-title' }, 'Tapioca'),
-      h('span', { id: 'tapioca-timer' }, `${Math.ceil(left / 1000)}s`),
-      h('span', { id: 'tapioca-live-score' }, String(this.scoreGuess)),
-      h('button', { type: 'button', class: 'ghost tp-quit', id: 'tapioca-quit', onclick: () => this.abandon() }, 'Sair'),
-    );
-    const queue = h('div', { class: 'tp-queue', id: 'tapioca-queue' },
-      ...this.liveCustomers().map((c) => this.customerEl(c, now)),
-      this.liveCustomers().length ? null : h('p', { class: 'tp-wait' }, 'Aguardando…', en('Waiting…')),
-    );
-    const griddle = h('div', { class: 'tp-griddle', id: 'tapioca-griddle' },
-      ...this.pans.map((pan, i) => this.panEl(pan, i, now)),
-    );
-    const bowls = h('div', { class: 'tp-bowls', id: 'tapioca-bowls' },
-      ...TAPIOCA_FILLINGS.map((f) => {
-        const lab = TAPIOCA_FILLING_LABEL[f];
-        return h('button', {
-          type: 'button',
-          class: `tp-bowl${this.selected === f ? ' on' : ''}`,
-          'data-filling': f,
-          id: `tapioca-bowl-${f}`,
-          onclick: () => this.pickFilling(f),
-        }, h('i', { class: `tp-dot tp-dot-${f}` }), lab.pt, en(lab.en));
-      }),
-    );
-    this.root.replaceChildren(hud, queue, griddle, bowls, this.pop ?? h('span', { class: 'tp-pop-slot' }));
+    const left = Math.max(0, Math.ceil((TAPIOCA_DURATION_MS - (now - this.started)) / 1000));
+    if (left !== this.shownSecond) {
+      this.shownSecond = left;
+      this.timerEl.textContent = `${left}s`;
+    }
+    if (this.scoreEl.textContent !== String(this.scoreGuess)) this.scoreEl.textContent = String(this.scoreGuess);
+    this.syncCustomers(now);
+    this.ensurePans(tapiocaPans(this.served));
+    this.panNodes.forEach((node, i) => this.syncPan(node, this.pans[i]!, now));
   }
 
-  private customerEl(c: LiveCustomer, now: number): HTMLElement {
-    const frac = Math.max(0, 1 - (now - c.shownAt) / c.order.patienceMs);
-    const expr: Expression = frac < 0.28 ? 'pensativo' : 'neutro';
-    return h('div', { class: 'tp-customer', 'data-order': String(c.index) },
-      npcPortrait(c.order.who, expr, 'tp-portrait'),
+  private ensurePans(want: number) {
+    while (this.panNodes.length < want) this.addPan(this.panNodes.length);
+    this.griddleEl.classList.toggle('pans-1', want === 1);
+    this.griddleEl.classList.toggle('pans-2', want === 2);
+    this.griddleEl.classList.toggle('pans-3', want === 3);
+  }
+
+  private addPan(index: number) {
+    const svg = buildPanSvg();
+    const meter = h('i');
+    const pt = document.createTextNode(PAN_LABEL.empty.pt);
+    const gloss = document.createTextNode(PAN_LABEL.empty.en);
+    const btn = h('button', {
+      type: 'button',
+      class: 'tp-pan tp-empty',
+      'data-pan': String(index),
+      id: `tapioca-pan-${index}`,
+      onclick: () => this.onPan(index),
+    },
+      h('span', { class: 'tp-pan-art' }, svg, h('span', { class: 'tp-meter' }, meter)),
+      h('span', { class: 'tp-pan-label' }, pt, en('')),
+    ) as HTMLButtonElement;
+    const glossEl = btn.querySelector('.tp-pan-label .en')!;
+    glossEl.textContent = '';
+    glossEl.append(gloss);
+    btn.addEventListener('pointerdown', () => {
+      if (this.pans[index]?.phase === 'rolled') this.dragFrom = index;
+    });
+    const node: PanNode = { btn, svg, meter, pt, en: gloss, phase: 'empty', flip: null, filling: null, visual: '' };
+    this.panNodes.push(node);
+    this.griddleEl.append(btn);
+  }
+
+  private syncPan(node: PanNode, pan: Pan, now: number) {
+    const age = pan.phase === 'cooking' || pan.phase === 'spread' ? now - pan.spreadAt : 0;
+    const lace = pan.phase === 'cooking' && age > TAPIOCA_COOK.cookMs - 400;
+    const ready = pan.phase === 'cooking'
+      && age >= TAPIOCA_COOK.cookMs - TAPIOCA_COOK.earlyMs
+      && age <= TAPIOCA_COOK.cookMs + TAPIOCA_COOK.lateMs;
+    const label = PAN_LABEL[pan.phase];
+    if (node.pt.data !== label.pt) node.pt.data = label.pt;
+    if (node.en.data !== label.en) node.en.data = label.en;
+    if (node.phase !== pan.phase) {
+      node.btn.classList.remove(`tp-${node.phase}`);
+      node.btn.classList.add(`tp-${pan.phase}`);
+      node.phase = pan.phase;
+    }
+    if (node.flip !== pan.flip) {
+      if (node.flip) node.btn.classList.remove(`tp-flip-${node.flip}`);
+      if (pan.flip) node.btn.classList.add(`tp-flip-${pan.flip}`);
+      node.flip = pan.flip;
+    }
+    node.btn.classList.toggle('tp-ready', ready);
+    const visual = visualKey(pan, lace);
+    if (node.visual !== visual || node.filling !== pan.filling) {
+      node.visual = visual;
+      node.filling = pan.filling;
+      const st = visual.startsWith('roll') ? 'st-roll'
+        : visual.startsWith('fill') ? 'st-fill'
+          : visual === 'lace' ? 'st-lace'
+            : visual === 'tear' ? 'st-tear'
+              : visual === 'stuck' ? 'st-stuck'
+                : visual === 'empty' ? 'st-empty'
+                  : 'st-pale';
+      const bits = ['tp-pan-svg', st];
+      if (pan.filling) bits.push(`fill-${pan.filling}`);
+      if (pan.flip) bits.push(`flip-${pan.flip}`);
+      node.svg.setAttribute('class', bits.join(' '));
+    }
+    const cooking = pan.phase === 'cooking';
+    node.meter.parentElement!.hidden = !cooking;
+    if (cooking) {
+      const span = TAPIOCA_COOK.cookMs + TAPIOCA_COOK.lateMs;
+      node.meter.style.width = `${Math.max(4, Math.min(100, Math.round((age / span) * 100)))}%`;
+    }
+  }
+
+  private syncCustomers(now: number) {
+    const live = this.liveCustomers();
+    const ids = new Set(live.map((c) => c.index));
+    for (const [i, node] of this.customerNodes) {
+      if (ids.has(i)) continue;
+      node.root.remove();
+      this.customerNodes.delete(i);
+    }
+    this.waitEl.hidden = live.length > 0;
+    for (const c of live) {
+      let node = this.customerNodes.get(c.index);
+      if (!node) {
+        node = this.makeCustomer(c);
+        this.customerNodes.set(c.index, node);
+        this.queueEl.append(node.root);
+      }
+      const frac = Math.max(0, 1 - (now - c.shownAt) / c.order.patienceMs);
+      const lit = Math.max(0, Math.min(4, Math.ceil(frac * 4)));
+      node.pips.forEach((pip, i) => pip.classList.toggle('on', i < lit));
+      const expr: Expression = frac < 0.28 ? 'pensativo' : 'neutro';
+      if (node.img && node.expr !== expr) {
+        node.expr = expr;
+        node.img.src = imageUrl(portraitKey(c.order.who, expr));
+      }
+    }
+  }
+
+  private makeCustomer(c: LiveCustomer): CustomerNode {
+    const pips = [0, 1, 2, 3].map(() => h('i', { class: 'on' }));
+    const face = npcPortrait(c.order.who, 'neutro', 'tp-portrait');
+    const root = h('div', { class: 'tp-customer', 'data-order': String(c.index) },
+      face,
       h('div', { class: 'tp-order' },
         h('b', null, c.order.name),
-        patiencePips(frac),
+        h('div', { class: 'tp-pips', 'aria-label': '4 of 4' }, ...pips),
         h('p', { class: 'tp-pt', lang: 'pt-BR' }, c.order.line.pt),
         h('p', { class: 'en' }, c.order.line.en),
       ),
@@ -314,34 +534,7 @@ export class TapiocaView {
         onclick: () => this.serveTo(c),
       }, 'Servir', en('Serve')),
     );
-  }
-
-  private panEl(pan: Pan, index: number, now: number): HTMLElement {
-    const label = pan.phase === 'empty' ? 'Goma' : pan.phase === 'cooking' || pan.phase === 'spread' ? 'Virar' : pan.phase === 'flipped' ? 'Recheio' : pan.phase === 'filled' ? 'Enrolar' : 'Pronta';
-    const hint = pan.phase === 'empty' ? 'Spread' : pan.phase === 'cooking' || pan.phase === 'spread' ? 'Flip' : pan.phase === 'flipped' ? 'Filling' : pan.phase === 'filled' ? 'Roll' : 'Ready';
-    return h('button', {
-      type: 'button',
-      class: `tp-pan tp-${pan.phase}${pan.flip ? ` tp-flip-${pan.flip}` : ''}`,
-      'data-pan': String(index),
-      id: `tapioca-pan-${index}`,
-      ontouchstart: (e: Event) => this.onPanDown(index, e),
-      onmousedown: (e: Event) => this.onPanDown(index, e),
-      onclick: () => this.onPan(index),
-    }, panArt(pan, now), h('span', { class: 'tp-pan-label' }, label, en(hint)));
-  }
-
-  private onPanDown(index: number, e: Event) {
-    const pan = this.pans[index];
-    if (!pan || pan.phase !== 'rolled') return;
-    this.dragFrom = index;
-    const up = () => {
-      this.dragFrom = null;
-      window.removeEventListener('mouseup', up);
-      window.removeEventListener('touchend', up);
-    };
-    window.addEventListener('mouseup', up);
-    window.addEventListener('touchend', up);
-    e.preventDefault?.();
+    return { root, pips, img: face.querySelector('img'), expr: 'neutro' };
   }
 
   private onPan(index: number) {
@@ -368,12 +561,12 @@ export class TapiocaView {
     }
     if (pan.phase === 'filled') {
       pan.phase = 'rolled';
-      return;
     }
   }
 
   private pickFilling(f: TapiocaFilling) {
     this.selected = this.selected === f ? null : f;
+    for (const [id, btn] of this.bowlButtons) btn.classList.toggle('on', id === this.selected);
     const flipped = this.pans.findIndex((p) => p.phase === 'flipped');
     if (flipped >= 0 && this.selected) {
       this.pans[flipped]!.filling = this.selected;
@@ -402,9 +595,11 @@ export class TapiocaView {
 
   private flash(kind: 'perfect' | 'soft' | 'miss', why?: 'wrong') {
     const line = why === 'wrong' ? TAPIOCA_WRONG : kind === 'perfect' ? TAPIOCA_POP.perfect : kind === 'soft' ? TAPIOCA_POP.soft : TAPIOCA_POP.miss;
-    this.pop = h('div', { class: `tp-pop tp-pop-${kind}`, id: 'tapioca-pop' }, line.pt, en(line.en));
+    this.popEl.replaceChildren(document.createTextNode(line.pt), en(line.en));
+    this.popEl.className = `tp-pop tp-pop-${kind}`;
+    this.popEl.hidden = false;
     window.setTimeout(() => {
-      if (this.pop?.id === 'tapioca-pop') this.pop = null;
+      this.popEl.hidden = true;
     }, 700);
   }
 
@@ -416,7 +611,6 @@ export class TapiocaView {
     if (this.over) return;
     this.over = true;
     cancelAnimationFrame(this.raf);
-    // customers still waiting count as left, so the server sees the same set the clock would
     const now = Math.round(this.elapsed());
     for (const c of this.customers) {
       if (c.gone) continue;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildGrid, FEIRA_SLOTS, floorAt, FLOOR_CHARS, isWalkable, key, propTiles, ROOMS, seatTiles, type RoomDef, type RoomGrid, type Tile } from './rooms.js';
 import { SCHEDULES } from './schedules.js';
-import { findPath } from './path.js';
+import { findPath, pathDuration } from './path.js';
 
 
 /** Every tile that belongs to some fully walkable 2x2 block: a corridor that is at least two tiles wide. */
@@ -234,6 +234,20 @@ describe('the feira has room to grow', () => {
         expect(feira.props.some((p) => p.id === `vaga_${s.id}`), `${s.id} sign`).toBe(true);
       } else expect(feira.props.some((p) => p.kind === 'feira' && p.vendor === s.vendor && p.x === s.x && p.y === s.y)).toBe(true);
     }
+    // the game cart and its board share the open paving, with their own art, close enough that the board is not a second walk
+    const cart = feira.props.find((p) => p.id === 'carrinho_jogos')!;
+    const sign = feira.props.find((p) => p.id === 'placa_jogos')!;
+    expect(cart.art).toBe('props/carrinho_feira');
+    expect(sign.art).toBe('props/placa_feira');
+    expect(isWalkable(grid, cart.interact!.x, cart.interact!.y)).toBe(true);
+    expect(isWalkable(grid, sign.interact!.x, sign.interact!.y)).toBe(true);
+    const near = Math.max(Math.abs(sign.interact!.x - (cart.x + 1)), Math.abs(sign.interact!.y - cart.y));
+    expect(near).toBeLessThanOrEqual(3);
+    const gate = { x: 1, y: 8 };
+    const toSign = findPath(grid, gate, sign.interact!);
+    expect(toSign).not.toBeNull();
+    expect(pathDuration(gate, toSign!)).toBeLessThan(5_500);
+
     // plenty of open paving beyond the grid (south band) for the next row
     let open = 0;
     for (let y = 15; y < feira.rows - 1; y++) for (let x = 1; x < feira.cols - 1; x++) if (isWalkable(grid, x, y)) open++;
