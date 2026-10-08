@@ -1,0 +1,832 @@
+{
+  "room": "feira",
+  "objects": [
+    {
+      "id": "cerca_feira",
+      "kind": "cerca",
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 20,
+      "blocks": true,
+      "art": "cerca_feira",
+      "gaps": [
+        {
+          "x": 0,
+          "y": 7
+        },
+        {
+          "x": 0,
+          "y": 8
+        },
+        {
+          "x": 0,
+          "y": 9
+        },
+        {
+          "x": 0,
+          "y": 10
+        }
+      ]
+    },
+    {
+      "id": "feira_livre",
+      "kind": "cenario",
+      "x": 6,
+      "y": 1,
+      "w": 5,
+      "h": 1,
+      "blocks": false,
+      "label": {
+        "pt": "Feira livre",
+        "en": "Street market"
+      },
+      "art": "props/feira_livre"
+    },
+    {
+      "id": "feira_tia_lu",
+      "kind": "feira",
+      "x": 6,
+      "y": 3,
+      "w": 3,
+      "h": 2,
+      "blocks": true,
+      "action": "feira_stall",
+      "interact": {
+        "x": 7,
+        "y": 6
+      },
+      "label": {
+        "pt": "Frutas da Tia Lu",
+        "en": "Tia Lu’s fruit stall"
+      },
+      "art": "feira/frutas",
+      "vendor": "tia_lu"
+    },
+    {
+      "id": "feira_ze",
+      "kind": "feira",
+      "x": 12,
+      "y": 3,
+      "w": 3,
+      "h": 2,
+      "blocks": true,
+      "action": "feira_stall",
+      "interact": {
+        "x": 13,
+        "y": 6
+      },
+      "label": {
+        "pt": "Verduras do Seu Zé",
+        "en": "Seu Zé’s vegetable stall"
+      },
+      "art": "feira/verduras",
+      "vendor": "ze"
+    },
+    {
+      "id": "feira_chico",
+      "kind": "feira",
+      "x": 6,
+      "y": 11,
+      "w": 3,
+      "h": 2,
+      "blocks": true,
+      "action": "feira_stall",
+      "interact": {
+        "x": 7,
+        "y": 14
+      },
+      "label": {
+        "pt": "Pastel e caldo de cana do Seu Chico",
+        "en": "Seu Chico’s pastel and sugarcane juice"
+      },
+      "art": "feira/pastel",
+      "vendor": "chico"
+    },
+    {
+      "id": "feira_rosa",
+      "kind": "feira",
+      "x": 12,
+      "y": 11,
+      "w": 3,
+      "h": 2,
+      "blocks": true,
+      "action": "feira_stall",
+      "interact": {
+        "x": 13,
+        "y": 14
+      },
+      "label": {
+        "pt": "Flores da Dona Rosa",
+        "en": "Dona Rosa’s flowers"
+      },
+      "art": "feira/flores",
+      "vendor": "rosa"
+    },
+    {
+      "id": "caixote_1",
+      "kind": "cenario",
+      "x": 4,
+      "y": 4,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "feira/cx_banana"
+    },
+    {
+      "id": "caixote_2",
+      "kind": "cenario",
+      "x": 5,
+      "y": 4,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "feira/cx_tomate"
+    },
+    {
+      "id": "caixote_3",
+      "kind": "cenario",
+      "x": 15,
+      "y": 4,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "feira/cx_melancia"
+    },
+    {
+      "id": "caixote_4",
+      "kind": "cenario",
+      "x": 16,
+      "y": 4,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "feira/cx_repolho"
+    },
+    {
+      "id": "caixote_5",
+      "kind": "cenario",
+      "x": 4,
+      "y": 12,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "feira/cx_repolho"
+    },
+    {
+      "id": "caixote_6",
+      "kind": "cenario",
+      "x": 15,
+      "y": 12,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "feira/cx_tomate"
+    },
+    {
+      "id": "carrinho_feira_1",
+      "kind": "cenario",
+      "x": 9,
+      "y": 4,
+      "w": 3,
+      "h": 1,
+      "blocks": true,
+      "art": "feira/carrinho_a"
+    },
+    {
+      "id": "carrinho_feira_2",
+      "kind": "cenario",
+      "x": 9,
+      "y": 12,
+      "w": 3,
+      "h": 1,
+      "blocks": true,
+      "art": "feira/carrinho_b"
+    },
+    {
+      "id": "sacos_1",
+      "kind": "cenario",
+      "x": 15,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "feira/sacos"
+    },
+    {
+      "id": "balanca_1",
+      "kind": "cenario",
+      "x": 8,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "feira/balanca"
+    },
+    {
+      "id": "balanca_2",
+      "kind": "cenario",
+      "x": 14,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "feira/balanca"
+    },
+    {
+      "id": "balanca_3",
+      "kind": "cenario",
+      "x": 8,
+      "y": 13,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "feira/balanca"
+    },
+    {
+      "id": "balanca_4",
+      "kind": "cenario",
+      "x": 14,
+      "y": 13,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "feira/balanca"
+    },
+    {
+      "id": "lousa_tia_lu",
+      "kind": "cenario",
+      "x": 5,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "feira/preco_lousa"
+    },
+    {
+      "id": "lousa_ze",
+      "kind": "cenario",
+      "x": 11,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "feira/preco_lousa"
+    },
+    {
+      "id": "lousa_chico",
+      "kind": "cenario",
+      "x": 5,
+      "y": 13,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "feira/preco_lousa"
+    },
+    {
+      "id": "lousa_rosa",
+      "kind": "cenario",
+      "x": 11,
+      "y": 13,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "feira/preco_lousa"
+    },
+    {
+      "id": "bandeirinhas_1",
+      "kind": "cenario",
+      "x": 4,
+      "y": 8,
+      "w": 6,
+      "h": 1,
+      "blocks": false,
+      "art": "props/bandeirinhas_b"
+    },
+    {
+      "id": "bandeirinhas_2",
+      "kind": "cenario",
+      "x": 10,
+      "y": 8,
+      "w": 6,
+      "h": 1,
+      "blocks": false,
+      "art": "props/bandeirinhas_b"
+    },
+    {
+      "id": "vaga_a3",
+      "kind": "cenario",
+      "x": 19,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "label": {
+        "pt": "Vaga livre para uma nova barraca",
+        "en": "Free spot for a new stall"
+      },
+      "art": "feira/preco_placa"
+    },
+    {
+      "id": "vaga_a4",
+      "kind": "cenario",
+      "x": 25,
+      "y": 5,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "label": {
+        "pt": "Vaga livre para uma nova barraca",
+        "en": "Free spot for a new stall"
+      },
+      "art": "feira/preco_placa"
+    },
+    {
+      "id": "vaga_b3",
+      "kind": "cenario",
+      "x": 19,
+      "y": 13,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "label": {
+        "pt": "Vaga livre para uma nova barraca",
+        "en": "Free spot for a new stall"
+      },
+      "art": "feira/preco_placa"
+    },
+    {
+      "id": "vaga_b4",
+      "kind": "cenario",
+      "x": 25,
+      "y": 13,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "label": {
+        "pt": "Vaga livre para uma nova barraca",
+        "en": "Free spot for a new stall"
+      },
+      "art": "feira/preco_placa"
+    },
+    {
+      "id": "lampada_f1",
+      "kind": "poste",
+      "x": 2,
+      "y": 6,
+      "blocks": true,
+      "art": "props/lamp_old"
+    },
+    {
+      "id": "lampada_f2",
+      "kind": "poste",
+      "x": 2,
+      "y": 11,
+      "blocks": true,
+      "art": "props/lamp_old"
+    },
+    {
+      "id": "lampada_f3",
+      "kind": "poste",
+      "x": 21,
+      "y": 9,
+      "blocks": true,
+      "art": "props/lamp_old"
+    },
+    {
+      "id": "ipe_lote_1",
+      "kind": "arvore",
+      "x": 28,
+      "y": 2,
+      "w": 2,
+      "blocks": true,
+      "art": "props/arvore_rua"
+    },
+    {
+      "id": "ipe_lote_2",
+      "kind": "arvore",
+      "x": 28,
+      "y": 16,
+      "w": 2,
+      "blocks": true,
+      "art": "props/arvore_rua"
+    },
+    {
+      "id": "flor_lote",
+      "kind": "cenario",
+      "x": 20,
+      "y": 17,
+      "w": 3,
+      "h": 1,
+      "blocks": false,
+      "art": "props/flor_mista_b"
+    },
+    {
+      "id": "banco_feira",
+      "kind": "banco",
+      "x": 4,
+      "y": 16,
+      "w": 2,
+      "blocks": false,
+      "seat": "SW"
+    },
+    {
+      "id": "placa_jogos",
+      "kind": "cenario",
+      "x": 18,
+      "y": 7,
+      "w": 2,
+      "h": 1,
+      "blocks": true,
+      "action": "feira_sign",
+      "interact": {
+        "x": 19,
+        "y": 8
+      },
+      "label": {
+        "pt": "Placar da Feira",
+        "en": "Market board"
+      },
+      "art": "props/placa_feira"
+    },
+    {
+      "id": "carrinho_jogos",
+      "kind": "cenario",
+      "x": 21,
+      "y": 7,
+      "w": 3,
+      "h": 1,
+      "blocks": true,
+      "action": "feira_cart",
+      "interact": {
+        "x": 22,
+        "y": 9
+      },
+      "label": {
+        "pt": "Carrinho de jogos",
+        "en": "Game cart"
+      },
+      "art": "props/carrinho_feira"
+    },
+    {
+      "id": "d_abacaxi",
+      "kind": "cenario",
+      "x": 7,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/abacaxi"
+    },
+    {
+      "id": "d_mamao",
+      "kind": "cenario",
+      "x": 6,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/mamao"
+    },
+    {
+      "id": "d_maracuja",
+      "kind": "cenario",
+      "x": 8,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/maracuja"
+    },
+    {
+      "id": "d_limao",
+      "kind": "cenario",
+      "x": 7,
+      "y": 8,
+      "blocks": false,
+      "art": "diary/limao"
+    },
+    {
+      "id": "d_abacate",
+      "kind": "cenario",
+      "x": 6,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/abacate"
+    },
+    {
+      "id": "d_uva",
+      "kind": "cenario",
+      "x": 8,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/uva"
+    },
+    {
+      "id": "d_morango",
+      "kind": "cenario",
+      "x": 6,
+      "y": 8,
+      "blocks": false,
+      "art": "diary/morango"
+    },
+    {
+      "id": "d_goiaba",
+      "kind": "cenario",
+      "x": 8,
+      "y": 8,
+      "blocks": false,
+      "art": "diary/goiaba"
+    },
+    {
+      "id": "d_tangerina",
+      "kind": "cenario",
+      "x": 5,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/tangerina"
+    },
+    {
+      "id": "d_acerola",
+      "kind": "cenario",
+      "x": 9,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/acerola"
+    },
+    {
+      "id": "d_caju",
+      "kind": "cenario",
+      "x": 7,
+      "y": 9,
+      "blocks": false,
+      "art": "diary/caju"
+    },
+    {
+      "id": "d_pitaya",
+      "kind": "cenario",
+      "x": 6,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/pitaya"
+    },
+    {
+      "id": "d_milho",
+      "kind": "cenario",
+      "x": 13,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/milho"
+    },
+    {
+      "id": "d_batata",
+      "kind": "cenario",
+      "x": 12,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/batata"
+    },
+    {
+      "id": "d_cenoura",
+      "kind": "cenario",
+      "x": 14,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/cenoura"
+    },
+    {
+      "id": "d_beterraba",
+      "kind": "cenario",
+      "x": 13,
+      "y": 8,
+      "blocks": false,
+      "art": "diary/beterraba"
+    },
+    {
+      "id": "d_cebola",
+      "kind": "cenario",
+      "x": 12,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/cebola"
+    },
+    {
+      "id": "d_alho",
+      "kind": "cenario",
+      "x": 14,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/alho"
+    },
+    {
+      "id": "d_pimentao",
+      "kind": "cenario",
+      "x": 12,
+      "y": 8,
+      "blocks": false,
+      "art": "diary/pimentao"
+    },
+    {
+      "id": "d_pepino",
+      "kind": "cenario",
+      "x": 14,
+      "y": 8,
+      "blocks": false,
+      "art": "diary/pepino"
+    },
+    {
+      "id": "d_abobrinha",
+      "kind": "cenario",
+      "x": 11,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/abobrinha"
+    },
+    {
+      "id": "d_chuchu",
+      "kind": "cenario",
+      "x": 15,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/chuchu"
+    },
+    {
+      "id": "d_mandioca",
+      "kind": "cenario",
+      "x": 13,
+      "y": 9,
+      "blocks": false,
+      "art": "diary/mandioca"
+    },
+    {
+      "id": "d_couve",
+      "kind": "cenario",
+      "x": 12,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/couve"
+    },
+    {
+      "id": "d_brocolis",
+      "kind": "cenario",
+      "x": 11,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/brocolis"
+    },
+    {
+      "id": "d_coentro",
+      "kind": "cenario",
+      "x": 15,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/coentro"
+    },
+    {
+      "id": "d_gengibre",
+      "kind": "cenario",
+      "x": 11,
+      "y": 8,
+      "blocks": false,
+      "art": "diary/gengibre"
+    },
+    {
+      "id": "d_quiabo",
+      "kind": "cenario",
+      "x": 15,
+      "y": 8,
+      "blocks": false,
+      "art": "diary/quiabo"
+    },
+    {
+      "id": "d_jilo",
+      "kind": "cenario",
+      "x": 12,
+      "y": 9,
+      "blocks": false,
+      "art": "diary/jilo"
+    },
+    {
+      "id": "d_berinjela",
+      "kind": "cenario",
+      "x": 14,
+      "y": 9,
+      "blocks": false,
+      "art": "diary/berinjela"
+    },
+    {
+      "id": "d_vagem",
+      "kind": "cenario",
+      "x": 11,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/vagem"
+    },
+    {
+      "id": "d_cana",
+      "kind": "cenario",
+      "x": 7,
+      "y": 15,
+      "blocks": false,
+      "art": "diary/cana"
+    },
+    {
+      "id": "d_lona",
+      "kind": "cenario",
+      "x": 6,
+      "y": 15,
+      "blocks": false,
+      "art": "diary/lona"
+    },
+    {
+      "id": "d_oleo",
+      "kind": "cenario",
+      "x": 8,
+      "y": 15,
+      "blocks": false,
+      "art": "diary/oleo"
+    },
+    {
+      "id": "d_molho",
+      "kind": "cenario",
+      "x": 7,
+      "y": 16,
+      "blocks": false,
+      "art": "diary/molho"
+    },
+    {
+      "id": "d_pimenta",
+      "kind": "cenario",
+      "x": 6,
+      "y": 14,
+      "blocks": false,
+      "art": "diary/pimenta"
+    },
+    {
+      "id": "d_gelo",
+      "kind": "cenario",
+      "x": 8,
+      "y": 14,
+      "blocks": false,
+      "art": "diary/gelo"
+    },
+    {
+      "id": "d_canudo",
+      "kind": "cenario",
+      "x": 6,
+      "y": 16,
+      "blocks": false,
+      "art": "diary/canudo"
+    },
+    {
+      "id": "d_girassol",
+      "kind": "cenario",
+      "x": 13,
+      "y": 15,
+      "blocks": false,
+      "art": "diary/girassol"
+    },
+    {
+      "id": "d_laco",
+      "kind": "cenario",
+      "x": 12,
+      "y": 15,
+      "blocks": false,
+      "art": "diary/laco"
+    },
+    {
+      "id": "d_bacia",
+      "kind": "cenario",
+      "x": 14,
+      "y": 15,
+      "blocks": false,
+      "art": "diary/bacia"
+    },
+    {
+      "id": "d_sacola",
+      "kind": "cenario",
+      "x": 10,
+      "y": 3,
+      "blocks": false,
+      "art": "diary/sacola"
+    },
+    {
+      "id": "d_giz",
+      "kind": "cenario",
+      "x": 10,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/giz"
+    },
+    {
+      "id": "d_engradado",
+      "kind": "cenario",
+      "x": 4,
+      "y": 11,
+      "blocks": false,
+      "art": "diary/engradado"
+    },
+    {
+      "id": "d_feirante",
+      "kind": "cenario",
+      "x": 19,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/feirante"
+    }
+  ]
+}
