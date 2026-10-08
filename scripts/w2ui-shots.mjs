@@ -7,7 +7,7 @@
  *   BASE_URL=http://localhost:8847 node scripts/v4-shots.mjs --tag=after [--only=out,hud,panels,crowd,phone,land]
  *
  * Output: docs/lifesim/shots/v4/<tag>_<viewport>_<name>.png (override the folder with SHOTS_DIR). Also prints the HUD coverage: the share of the
- * screen covered by the union of the HUD boxes while walking (top bar, tracker, chat bar, emotes, joystick), and checks the phone tap targets.
+ * screen covered by the union of the HUD boxes while walking (top bar, tracker, chat bar, emotes), and checks the phone tap targets.
  * Works against the old HUD (ids kept) and the new one: menu items that live in the settings menu / drawer are opened first when hidden.
  */
 import { chromium } from 'playwright-core';
@@ -16,7 +16,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { findChrome } from './lib/chrome.mjs';
 import { requirePinnedClock } from './lib/clock-pin.mjs';
-import { openNpc } from './lib/npc.mjs';
+import { openNpc, passIdle } from './lib/npc.mjs';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
 import { openBout, playBout, startBout, waitBoutPhase } from './lib/bout-play.mjs';
 
@@ -72,7 +72,7 @@ async function snap(page, vp, name, opts = {}) {
 async function hudStats(page, label) {
   const r = await page.evaluate(() => {
     const sel = [
-      '.brand', '.top-left > *', '.top-right > *', '.hud-slab', '.hud-chip', '.rtrack', '.chatbar', '.emotes button', '.hud-emote-toggle', '.toast', '.joystick',
+      '.brand', '.top-left > *', '.top-right > *', '.hud-slab', '.hud-chip', '.rtrack', '.chatbar', '.emotes button', '.hud-emote-toggle', '.toast',
       '#mission-pill', '.mission-banner',
     ].join(',');
     const W = window.innerWidth;
@@ -215,6 +215,7 @@ async function sectionHud(browser, vp) {
   await sleep(3500);
   await interact(page, { npc: 'carlos' });
   await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
+  await passIdle(page);
   let key = await page.getAttribute('#dialogue-box', 'data-dialogue');
   if (key === 'offer-carlos') {
     await sleep(1000);

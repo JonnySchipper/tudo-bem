@@ -23,7 +23,6 @@ import {
   diaryVisible,
   PHOTO_SPOTS,
   normalizeDiary,
-  unheardIdleLine,
   wordForLine,
   furnitureById,
   greetingFor,
@@ -38,7 +37,6 @@ import {
   isWalkable,
   readSpot,
   subjectChoices,
-  npcDefById,
   VENDORS,
   type EmoteKind,
   type HotspotDef,
@@ -88,7 +86,8 @@ import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAcademyFloor } from './ui/academy';
 import { askPadariaDoor, bindPadariaOwn, chooseBakery, onPadariaDoor, openHouseCounter, openPadariaBook, syncPadariaFloor, welcomeOwner } from './ui/padariaOwn';
 import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia } from './ui/airportTutorial';
-import { flyHeardWord, noteLine } from './ui/heardWord';
+import { flyHeardWord } from './ui/heardWord';
+import { talkIdleOpen } from './ui/talkIdle';
 import { cameraFrameAt, captureFrame, celebrateWord, celebrateWords, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
 import { escolaPracticeOpen, openEscolaPractice, showEscolaResult } from './ui/escola';
 import { openHotspotCard } from './ui/hotspotCard';
@@ -105,7 +104,6 @@ import { boutFeed } from './render/pixel/boutFeed';
 import { speak, stopSpeaking, unlockSpeech } from './audio';
 import { ambience } from './ambience';
 import { installViewport } from './ui/viewport';
-import { mountJoystick } from './ui/joystick';
 import { arrowForKey, stepForHeld, stepTarget, type Arrow } from './ui/keys';
 import { installUiArt } from './art/ui';
 
@@ -225,31 +223,49 @@ function openStall(propId?: string) {
   if (!vendor) return;
   closeDialogue();
   const there = vendor === 'banca' || game.liveNpcs(now()).some((n) => n.id === VENDORS[vendor].npc && game.avatars.get(`npc-${n.id}`)?.pub.activity === 'trabalhando');
-  // the vendor's own lines carry diary words: the greeting at an open stall, the closing note at a shut one
+  // the greeting (open) or the closing note (shut) is the line in the box; the word flies from it. The banca corner has no line word.
+  if (!there) openFeiraClosed(vendor);
+  else openFeira(vendor, { send: (m) => net.send(m) }, { talked: (id) => net.send({ t: 'talk', npc: id }) });
   if (vendor !== 'banca') sendLine(`${VENDORS[vendor].npc}.${there ? 'greet' : 'closed'}`);
-  if (!there) return openFeiraClosed(vendor);
-  openFeira(vendor, { send: (m) => net.send(m) }, { talked: (id) => net.send({ t: 'talk', npc: id }) });
 }
 
 function talkTo(npc: NpcDef['id']) {
   closeDialogue();
-  // the player chose to talk to them: the NPC says a line with a word the diary does not have yet (passing chatter teaches nothing)
+  // the player chose to talk: an unheard idle line is this conversation's first line in the box (passing chatter stays a bubble and teaches nothing)
   const speaker = game.liveNpcs(now()).find((n) => n.id === npc);
-  const next = speaker ? unheardIdleLine(npc, speaker.idleLines.length, game.profile?.diary) : null;
-  if (speaker && next !== null) {
-    npcSay(npc, localizeGreeting(speaker.idleLines[next]!, clock.minutes()));
-    sendLine(`${npc}.idle${next}`);
-  }
+  const idle = speaker ? talkIdleOpen(npc, speaker.idleLines, game.profile?.diary, clock.minutes()) : null;
   const vendor = npc === 'tia_lu' || npc === 'ze' || npc === 'chico' || npc === 'rosa';
   // the server counts the talk for NPCs without a Conversa (bond +2 once a day, `falar` steps); the bakers count it through the scene / Conversa,
   // the vendors through their stall panel (it sends `talk` itself)
   if (!vendor && npc !== 'carlos' && npc !== 'graca') net.send({ t: 'talk', npc });
   // an NPC first hands you what they came with: a thank-you hand-over ("Entregar …") or today's errand ("Pode deixar!" / "Agora não")
-  runPrelude(npc, {
-    accept: (id) => net.send({ t: 'recados', action: 'accept', id }),
-    give: (to, itemId) => net.send({ t: 'give', npc: to, itemId }),
-    proceed: () => talkFlow(npc),
+  const proceed = () =>
+    runPrelude(npc, {
+      accept: (id) => net.send({ t: 'recados', action: 'accept', id }),
+      give: (to, itemId) => net.send({ t: 'give', npc: to, itemId }),
+      proceed: () => talkFlow(npc),
+    });
+  if (!speaker || !idle) return proceed();
+  let went = false;
+  const go = () => {
+    if (went) return;
+    went = true;
+    closeDialogue();
+    proceed();
+  };
+  speak(idle.line.pt, { speaker: npc });
+  showDialogueBox({
+    key: `idle-${npc}`,
+    npcId: npc,
+    speaker: speaker.name,
+    role: speaker.role.pt,
+    expression: 'feliz',
+    line: idle.line,
+    chips: [{ pt: 'Continuar', en: 'Continue' }],
+    onChip: go,
+    onClose: go,
   });
+  sendLine(idle.anchor);
 }
 
 function talkFlow(npc: NpcDef['id']) {
@@ -933,7 +949,6 @@ net.on((m: ServerMsg) => {
 
 function npcSay(id: string, line: { pt: string; en: string }) {
   game.npcBubbles.set(id, { text: line.pt, gloss: line.en, at: now() });
-  noteLine(game.avatars.get(`npc-${id}`)?.pub.name ?? npcDefById(id)?.name ?? id, line.pt);
 }
 
 /** Over-stimulation cap (split into areas): never more than two ambient NPC speech bubbles on screen at once (a bubble lives 7 s). */
@@ -956,6 +971,7 @@ function startGame() {
     chat: (text) => net.send({ t: 'chat', text }),
     emote: (kind: EmoteKind) => net.send({ t: 'emote', kind }),
     stand: () => net.send({ t: 'stand' }),
+    carry: (action) => net.send({ t: 'carry', action }),
     openMap: () => openMap((room) => joinRoom(room)),
     openCredits,
     openCaderno: () => {
@@ -1013,16 +1029,6 @@ function startGame() {
   });
   mountTracker(openJournal);
   mountAirportTutorial(updateGuides);
-  mountJoystick((dx, dy) => {
-    if (game.modalOpen || game.editMode || game.placing) return;
-    const room = game.roomDef;
-    const cur = selfTile();
-    if (!room || !cur) return;
-    const x = Math.max(0, Math.min(room.cols - 1, cur.tile.x + dx));
-    const y = Math.max(0, Math.min(room.rows - 1, cur.tile.y + dy));
-    if (x === cur.tile.x && y === cur.tile.y) return;
-    walkTo({ x, y }, null);
-  }, { mode: 'topdown' });
   decor = buildDecorPanel({
     buy: (id) => net.send({ t: 'buy', kind: 'furniture', itemId: id }),
     rotate: (uid) => {
@@ -1232,17 +1238,36 @@ canvas.addEventListener('pointerleave', () => {
   game.hoverTile = null;
   hoverLabel(0, 0, null);
 });
-canvas.addEventListener('click', (e) => {
-  lastPointer.x = e.clientX;
-  lastPointer.y = e.clientY;
+/** Walk or act at a canvas point. Mouse clicks and touch taps both land here. */
+function onWorldActivate(clientX: number, clientY: number) {
+  lastPointer.x = clientX;
+  lastPointer.y = clientY;
   if (boutUi?.open) return; // the mat is busy: the overlay is the only input
   if (game.modalOpen && (modalId() || isDialogueBoxOpen())) return;
   hoverLabel(0, 0, null);
   if (game.cameraOn && game.profile?.hasCamera) {
-    takePhoto(e.clientX, e.clientY);
+    takePhoto(clientX, clientY);
     return;
   }
-  handleClick(renderer.hitTest(e.clientX, e.clientY));
+  handleClick(renderer.hitTest(clientX, clientY));
+}
+// viewport.ts preventDefault()s touchmove, which cancels the synthetic click as soon as the finger
+// jitters. A touch release within this radius is still a tap; a mouse release on the canvas is a click.
+const TAP_SLOP_PX = 10;
+let worldDown: { id: number; x: number; y: number; touch: boolean } | null = null;
+canvas.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 || !e.isPrimary) return;
+  worldDown = { id: e.pointerId, x: e.clientX, y: e.clientY, touch: e.pointerType === 'touch' };
+});
+canvas.addEventListener('pointerup', (e) => {
+  const down = worldDown;
+  if (!down || e.pointerId !== down.id) return;
+  worldDown = null;
+  if (down.touch && Math.hypot(e.clientX - down.x, e.clientY - down.y) > TAP_SLOP_PX) return;
+  onWorldActivate(e.clientX, e.clientY);
+});
+canvas.addEventListener('pointercancel', (e) => {
+  if (worldDown?.id === e.pointerId) worldDown = null;
 });
 document.addEventListener('keydown', (e) => {
   const tag = (e.target as HTMLElement)?.tagName;

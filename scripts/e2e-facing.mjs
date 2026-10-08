@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Diagonal facing check: walks the local avatar along diagonal paths (click/walkTo, held W+D keys, the joystick) in the static
+ * Diagonal facing check: walks the local avatar along diagonal paths (click/walkTo, held W+D keys) in the static
  * `VITE_LOCAL_WORLD=1` build and records the facing/animation drawn every frame via `window.__tb.facings()`. A diagonal walk must keep ONE
  * facing (E/W) from the first frame to the last: no flicker, no idle/walk facing flip between keyboard steps.
  *
@@ -94,24 +94,6 @@ try {
     check(facings.size === 1, `${name}: one facing for the whole keyboard diagonal (steps and pauses), saw ${[...facings].join(', ')}`);
   }
 
-  // 3) the joystick pushed diagonally (down-right, then up-left)
-  await page.evaluate(() => { const j = document.getElementById('joystick'); if (j) j.style.display = 'block'; });
-  for (const [name, ox, oy, sx, sy] of [['joystick down-right', 40, 40, 22, 14], ['joystick up-left', -40, -40, 19, 11]]) {
-    await settle(sx, sy);
-    const box = await page.locator('#joystick').boundingBox();
-    assert(box, 'joystick present');
-    const cx = box.x + box.width / 2;
-    const cy = box.y + box.height / 2;
-    const r = await record(name, async () => {
-      await page.mouse.move(cx, cy);
-      await page.mouse.down();
-      await page.mouse.move(cx + ox, cy + oy, { steps: 4 });
-      await sleep(1000);
-      await page.mouse.up();
-    }, 1500);
-    const walk = new Set(r.frames.filter((f) => f.startsWith('walk')));
-    check(walk.size === 1, `${name}: one walking facing, saw ${[...walk].join(', ')}`);
-  }
   assert(errors.length === 0, `no page errors: ${errors.join(' | ')}`);
   console.log('e2e-facing OK');
 } finally {

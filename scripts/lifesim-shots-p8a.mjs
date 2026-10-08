@@ -38,7 +38,18 @@ async function interact(page, target) {
   assert(ok, `interact target ${JSON.stringify(target)}`);
 }
 const waitRoom = (page, id) => page.waitForFunction((id) => window.__tb.game.room?.room === id, id, { timeout: 20_000 });
-const box = (page, key) => page.waitForSelector(`#dialogue-box[data-dialogue="${key}"]`, { timeout: 25_000 });
+const box = async (page, key) => {
+  const sel = `#dialogue-box[data-dialogue="${key}"]`;
+  for (let i = 0; i < 4; i++) {
+    await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
+    if (await page.$(sel)) return;
+    const cur = await page.getAttribute('#dialogue-box', 'data-dialogue');
+    if (!cur?.startsWith('idle-')) break;
+    await page.click('#dialogue-box [data-chip="0"]'); // Continuar — the learned line, then the talk
+    await sleep(350);
+  }
+  await page.waitForSelector(sel, { timeout: 25_000 });
+};
 const typed = (page) => page.waitForFunction(() => !document.querySelector('#dialogue-box .tw-rest')?.textContent, null, { timeout: 15_000 }).catch(() => {});
 
 async function toWorld(page, vp) {
@@ -76,13 +87,13 @@ async function run(browser, vp) {
   page.on('pageerror', (e) => errors.push(String(e)));
   await toWorld(page, vp);
 
-  // 1. Júlia's welcome chain, as the tracker (also on a phone, clear of the joystick and the chat)
+  // 1. Júlia's welcome chain, as the tracker (also on a phone, clear of the chat)
   const tr = await rect(page, '#recado-tracker');
   assert(tr?.shown, 'the tracker shows');
   const head = await page.textContent('#recado-tracker');
   assert(head.includes('Bem-vindo à Vila Ipê'), `welcome chain title (${head})`);
   if (vp.touch) {
-    for (const sel of ['#joystick', '.bottombar', '.chatbar']) assert(!overlap(tr, await rect(page, sel)), `tracker clears ${sel}`);
+    for (const sel of ['.bottombar', '.chatbar']) assert(!overlap(tr, await rect(page, sel)), `tracker clears ${sel}`);
     assert(tr.r <= vp.width && tr.b < vp.height * 0.4, 'the tracker stays small on a phone');
   }
   assert(!(await page.$('#checklist')), 'the old checklist is gone');
@@ -171,7 +182,7 @@ async function run(browser, vp) {
     const key = await page.getAttribute('#dialogue-box', 'data-dialogue');
     console.log('    nanda box:', key);
     if (key === 'talk-nanda') break;
-    await page.click('#dialogue-box [data-chip="1"]');
+    await page.click(`#dialogue-box [data-chip="${key?.startsWith('idle-') ? '0' : '1'}"]`);
     await sleep(400);
   }
   assert((await page.getAttribute('#dialogue-box', 'data-dialogue')) === 'talk-nanda', 'Nanda greets after the offers are declined');

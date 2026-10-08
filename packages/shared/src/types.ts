@@ -9,6 +9,14 @@ import type { NpcId } from './rooms.js';
 import type { NpcActivity } from './schedules.js';
 import type { RecadoState } from './recados.js';
 
+/** Left in the hand after you finish a snack or a drink. Not edible. */
+export type EmptyCarryId = 'coco_vazio' | 'saquinho_vazio' | 'copinho_vazio' | 'copo_vazio';
+/**
+ * In hand this session: a praça snack, a padaria order, or the empty it leaves.
+ * Hats, birds, and outfits are never carry ids.
+ */
+export type CarryId = StreetSnackId | CounterItemId | EmptyCarryId;
+
 export type Pronoun = 'ele' | 'ela' | 'nome';
 export type BodyType = 'esguio' | 'medio' | 'forte';
 export type HairStyle = 'curto' | 'raspado' | 'cacheado' | 'black' | 'longo' | 'coque' | 'trancas' | 'ondulado' | 'undercut';
@@ -61,9 +69,8 @@ export interface PublicAvatar {
   parrot: boolean;
   /** Companion tint id when `parrot` is true (defaults to verde). */
   parrotColor?: string | null;
-  /** Street snack in hand until logout (session); not on the saved profile. */
-  /** In hand: a praça snack, or what you ordered at the padaria counter (session only). */
-  carry?: StreetSnackId | CounterItemId | null;
+  /** In hand this session: a snack, a drink, or the empty it leaves. Not saved, and never a cosmetic. */
+  carry?: CarryId | null;
   /** Wears the academia gi (and belt) in every room after buying at the vestiário. */
   gi?: boolean;
   /**

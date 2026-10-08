@@ -18,7 +18,7 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { findChrome } from './lib/chrome.mjs';
 import { requirePinnedClock } from './lib/clock-pin.mjs';
-import { openNpc } from './lib/npc.mjs';
+import { openNpc, passIdle } from './lib/npc.mjs';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
 
 const argv = Object.fromEntries(process.argv.slice(2).filter((a) => a.startsWith('--')).map((a) => a.slice(2).split('=')));
@@ -329,6 +329,7 @@ async function sectionUi(browser, vp) {
   await sleep(4000);
   await interact(page, { npc: 'carlos' });
   await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
+  await passIdle(page);
   let key = await page.getAttribute('#dialogue-box', 'data-dialogue');
   if (key === 'offer-carlos') {
     await sleep(1200);
@@ -342,6 +343,8 @@ async function sectionUi(browser, vp) {
     await close();
   }
   await interact(page, { npc: 'carlos' });
+  await page.waitForSelector('#dialogue-box', { timeout: 25_000 });
+  await passIdle(page);
   await page.waitForSelector('#dialogue-box[data-dialogue="conversa"]', { timeout: 25_000 });
   await sleep(1200);
   await ui('dialogue_carlos_conversa');

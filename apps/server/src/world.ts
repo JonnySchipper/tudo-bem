@@ -87,7 +87,11 @@ import {
   ownedParrotColorIds,
   parrotColorById,
   snackById,
-  type StreetSnackId,
+  carryOf,
+  carryTossNotice,
+  CARRY_BIN,
+  CARRY_YUM,
+  type CarryId,
   type CounterItemId,
   itemById,
   counterOrderLine,
@@ -230,8 +234,8 @@ export interface Session {
   boutRematch?: { partner: import('@tudobem/shared').PartnerId; position: import('@tudobem/shared').BjjPositionId; weakSpot?: import('@tudobem/shared').GripSpot };
   chatTimes: number[];
   lastHintAt: number;
-  /** Street snack in hand (session only; cleared on disconnect). */
-  carry: StreetSnackId | CounterItemId | null;
+  /** Snack, drink, or empty in hand (session only; cleared on disconnect). Never a cosmetic. */
+  carry: CarryId | null;
   /** Hidden admin panel unlocked for this socket (password checked server-side). */
   admin?: boolean;
 }
@@ -521,6 +525,8 @@ export class World {
         return this.buySnack(s, msg.itemId);
       case 'padaria':
         return this.buyCounter(s, msg.itemId);
+      case 'carry':
+        return this.useCarry(s, msg.action);
       case 'equipHat':
         return this.equipHat(s, msg.hatId);
       case 'parrot':
@@ -1818,6 +1824,33 @@ export class World {
     s.send({ t: 'notice', level: 'reward', pt: `Comprou: ${item?.name.pt ?? itemId}`, en: `Bought: ${item?.name.en ?? itemId}` });
     this.pushProfile(s);
     this.broadcastAvatar(s);
+  }
+
+  /** Eat, drink, or toss the snack in hand. Cosmetics are not carry items, so they never match. */
+  private useCarry(s: Session, action: string) {
+    const held = carryOf(s.carry);
+    if (!held) return;
+    if (action === 'consume') {
+      if (held.kind === 'trash') return;
+      s.carry = held.leaves;
+      s.send({ t: 'notice', level: 'reward', pt: CARRY_YUM.pt, en: CARRY_YUM.en });
+      this.broadcastAvatar(s);
+      return;
+    }
+    if (action !== 'toss') return;
+    const tossed = carryTossNotice(held.id);
+    if (!tossed) return;
+    const note = this.nearLixeira(s) ? CARRY_BIN : tossed;
+    s.carry = null;
+    s.send({ t: 'notice', level: 'info', pt: note.pt, en: note.en });
+    this.broadcastAvatar(s);
+  }
+
+  /** Chebyshev distance, same reach as buying at a cart (~2 tiles). */
+  private nearLixeira(s: Session): boolean {
+    if (!s.instance || !s.avatar) return false;
+    const { x, y } = this.currentTile(s).tile;
+    return s.instance.def.props.some((p) => p.kind === 'lixeira' && Math.max(Math.abs(x - p.x), Math.abs(y - p.y)) <= 2);
   }
 
   private equipParrotColor(s: Session, colorId: string) {

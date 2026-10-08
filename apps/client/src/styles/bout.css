@@ -22,7 +22,6 @@ body.bout-on .bottombar,
 body.bout-on .hud-actions,
 body.bout-on .hud-burger,
 body.bout-on .hud-scrim,
-body.bout-on .joystick,
 body.bout-on .minimap,
 body.bout-on .rtrack,
 body.bout-on .hud-solo,
@@ -1846,6 +1845,21 @@ body.bout-on .toasts {
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+.move-card .mc-track .en {
+  display: inline;
+  margin-left: 4px;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.92;
+}
+
+.bout-root.bout-noen .move-card .mc-track .en {
+  display: none;
 }
 
 .move-card .mc-key {

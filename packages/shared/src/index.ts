@@ -42,6 +42,7 @@ export * from './spokenLines.js';
 export * from './npcMemory.js';
 export * from './feira.js';
 export * from './streetSnacks.js';
+export * from './carry.js';
 export * from './parrotShop.js';
 export * from './checkers.js';
 export * from './diary.js';
