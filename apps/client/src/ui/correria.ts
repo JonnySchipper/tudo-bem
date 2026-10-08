@@ -5,14 +5,14 @@
  *
  * The server owns the shift (apps/server/src/correria.ts) and judges every step; this file sends the player's taps and draws what comes back.
  */
-import { MG_ITEMS, MG_MODS, nextPadariaUpgrade, type Bilingual, type CAct, type CEvent, type ClientMsg, type CorreriaSnap, type MgServerMsg } from '@tudobem/shared';
+import { MG_ITEMS, MG_MODS, nextPadariaUpgrade, type Bilingual, type CAct, type CEvent, type ClientMsg, type CorreriaSnap, type MenuLadderView, type MgServerMsg } from '@tudobem/shared';
 import { game } from '../state';
 import { h } from './dom';
 import { speak, stopSpeaking } from '../audio';
 import { ambience } from '../ambience';
 import { readShowEnglish, writeShowEnglish } from './dialogueLogic';
 import { correriaFeed, type CounterHandlers } from '../render/pixel/correriaFeed';
-import { askCard, cueFor, endModel, frontOf, glossOn, hud, modChips, orderMirror, patienceFrac, trayChips } from './correriaLogic';
+import { askCard, cueFor, endModel, frontOf, glossOn, hud, ladderEnd, ladderNext, ladderStrip, modChips, orderMirror, patienceFrac, trayChips } from './correriaLogic';
 
 export interface CorreriaActions {
   send: (m: ClientMsg) => void;
@@ -23,7 +23,8 @@ export interface CorreriaActions {
 }
 
 const SAY_MS = 4200;
-const ORANGE_WORDS = { p: { pt: 'pequena', en: 'small' }, m: { pt: 'média', en: 'medium' }, g: { pt: 'grande', en: 'big' } } as const;
+const NEW_ON_MENU: Bilingual = { pt: 'Novo no cardápio!', en: 'New on the menu!' };
+const ORANGE_WORDS ={ p: { pt: 'pequena', en: 'small' }, m: { pt: 'média', en: 'medium' }, g: { pt: 'grande', en: 'big' } } as const;
 
 export class CorreriaUI {
   private root: HTMLElement;
@@ -247,14 +248,40 @@ export class CorreriaUI {
     const lesson = snap.lesson;
     if (lesson && this.teachId !== lesson.id) {
       this.teachId = lesson.id;
-      this.mountTeach(lesson.title, lesson.steps, snap.bump);
+      this.mountTeach(lesson.title, lesson.steps, snap.bump, snap.ladder);
       if (snap.bump) this.bumpShown = true;
       return;
     }
     if (snap.bump && !this.bumpShown) {
       this.bumpShown = true;
-      this.mountTeach(snap.bump, [], null);
+      this.mountTeach(NEW_ON_MENU, [], snap.bump, snap.ladder);
     }
+  }
+
+  /** The menu as a row of chips: open, NOVO, and the next one locked with its countdown. */
+  private ladderEl(l: MenuLadderView | undefined): HTMLElement | null {
+    const chips = ladderStrip(l);
+    if (!chips.length) return null;
+    const next = ladderNext(l);
+    return h(
+      'div',
+      { class: 'cr-ladder' },
+      h(
+        'ol',
+        { 'aria-label': 'Cardápio' },
+        ...chips.map((c) =>
+          h(
+            'li',
+            { class: `cr-ladder-item ${c.state}`, 'data-item': c.id },
+            c.state === 'next' ? h('span', { class: 'lock', 'aria-hidden': 'true' }, '🔒') : null,
+            h('span', { class: 'pt' }, c.pt),
+            h('span', { class: 'en' }, c.en),
+            c.state === 'new' ? h('b', { class: 'tag' }, 'NOVO') : null,
+          ),
+        ),
+      ),
+      next ? h('p', { class: 'cr-ladder-next' }, next.pt, h('span', { class: 'gloss' }, next.en)) : null,
+    );
   }
 
   /** Step lessons sit over the counter taps; pay-bump-only cards use the same shell but must not hide #cr-hot. */
@@ -263,13 +290,16 @@ export class CorreriaUI {
     document.body.classList.remove('cr-lesson-open');
   }
 
-  private mountTeach(title: Bilingual, steps: Bilingual[], bump: Bilingual | null): void {
+  private mountTeach(title: Bilingual, steps: Bilingual[], bump: Bilingual | null, ladder?: MenuLadderView): void {
     this.closeTeach();
+    const grew = !!ladder?.fresh.length;
     const card = h(
       'div',
-      { class: 'cr-lesson', id: 'cr-lesson', role: 'dialog', 'aria-label': title.pt },
+      { class: `cr-lesson${grew ? ' grew' : ''}`, id: 'cr-lesson', role: 'dialog', 'aria-label': title.pt },
+      grew && title !== NEW_ON_MENU ? h('p', { class: 'cr-kicker' }, `✨ ${NEW_ON_MENU.pt}`, h('span', { class: 'gloss' }, NEW_ON_MENU.en)) : null,
       h('h3', null, h('span', { class: 'pt' }, title.pt), h('span', { class: 'gloss' }, title.en)),
-      steps.length ? h('ol', null, ...steps.map((s) => h('li', null, h('span', { class: 'pt' }, s.pt), h('span', { class: 'gloss' }, s.en)))) : null,
+      steps.length ? h('ol', { class: 'cr-steps' }, ...steps.map((s) => h('li', null, h('span', { class: 'pt' }, s.pt), h('span', { class: 'gloss' }, s.en)))) : null,
+      this.ladderEl(ladder),
       bump ? h('p', { class: 'cr-bump' }, bump.pt, h('span', { class: 'gloss' }, bump.en)) : null,
       h('button', { type: 'button', class: 'cr-lesson-ok', onclick: () => this.closeTeach() }, h('span', { class: 'pt' }, 'Entendi'), h('span', { class: 'gloss' }, 'Got it')),
     );
@@ -532,6 +562,14 @@ export class CorreriaUI {
     );
   }
 
+  /** What the next shift brings: the item it opens (gold), or the countdown to the next one, over the menu strip. */
+  private endLadder(l: MenuLadderView | undefined): HTMLElement | null {
+    const strip = this.ladderEl(l);
+    if (!strip) return null;
+    const { fresh } = ladderEnd(l);
+    return h('div', { class: `cr-end-ladder${fresh ? ' grew' : ''}`, id: 'cr-end-ladder' }, fresh ? h('p', { class: 'cr-end-fresh' }, `✨ ${fresh.pt}`, h('span', { class: 'gloss' }, fresh.en)) : null, strip);
+  }
+
   private onEnd(m: Extract<MgServerMsg, { phase: 'end' }>): void {
     this.ended = true;
     this.closeTeach();
@@ -553,6 +591,7 @@ export class CorreriaUI {
         : h('div', { class: 'cr-end-rows' }, ...model.rows.map((r) => h('div', { class: 'row' }, h('span', { class: 'k' }, r.label.pt, h('span', { class: 'en' }, r.label.en)), h('b', null, r.value)))),
       !lost && m.end.dailyBlocked ? h('p', { class: 'cr-end-daily' }, 'RV de hoje: já pagamos os turnos do dia. As estrelas contam!', h('span', { class: 'en' }, 'Today’s paid shifts are used up. The stars still count!')) : null,
       !lost && m.end.menuNote ? h('p', { class: 'cr-end-daily cr-end-bump' }, m.end.menuNote.pt, h('span', { class: 'gloss' }, m.end.menuNote.en)) : null,
+      !lost ? this.endLadder(m.end.ladder) : null,
       !lost && model.words.length ? h('div', { class: 'cr-end-words' }, h('b', null, 'Palavras novas no Caderno'), ...model.words.map((w) => h('span', { class: 'cr-chip' }, w.pt, h('span', { class: 'en' }, w.en)))) : null,
       !lost ? this.ownerNext() : null,
       !lost && model.unlocks.length ? h('div', { class: 'cr-end-unlock' }, h('b', null, 'Novidade no balcão! ✨'), ...model.unlocks.map((u) => h('span', null, u.pt, h('span', { class: 'en' }, u.en)))) : null,

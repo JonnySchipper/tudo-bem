@@ -643,6 +643,170 @@ body.cr-on .toasts {
   color: #d8ffe6;
 }
 
+/* a shift that opened an item: gold edge and a kicker over the title */
+.cr-lesson.grew {
+  border-color: #7a5a10;
+  box-shadow:
+    0 0 0 3px var(--cr-gold),
+    4px 4px 0 3px #14101a;
+  animation: cr-lesson-in 0.32s ease-out;
+}
+
+.cr-kicker {
+  margin: 0 0 2px;
+  font-family: var(--font-pixel);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: #8a5a00;
+}
+
+.cr-kicker .gloss {
+  margin-left: 6px;
+}
+
+@keyframes cr-lesson-in {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* the menu ladder: open items as chips, NOVO in gold, the next one dashed with its countdown under the row */
+.cr-ladder {
+  margin: 8px 0 0;
+  padding: 6px 6px 4px;
+  background: var(--cr-paper-lo);
+  border: 2px solid #b58f5a;
+}
+
+.cr-ladder ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cr-ladder .cr-ladder-item {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 0;
+  padding: 2px 6px 1px;
+  background: #fff;
+  border: 2px solid var(--cr-ink);
+  line-height: 1.1;
+  font-size: 13px;
+}
+
+.cr-ladder .cr-ladder-item .pt {
+  display: block;
+  font-weight: 800;
+}
+
+.cr-ladder .cr-ladder-item .pt::first-letter {
+  text-transform: uppercase;
+}
+
+.cr-ladder .cr-ladder-item .en {
+  margin: 0;
+  font-size: 10px;
+}
+
+.cr-ladder .cr-ladder-item.new {
+  background: #fff2c2;
+  border-color: #7a5a10;
+  box-shadow: 0 0 0 2px var(--cr-gold);
+}
+
+.cr-ladder .cr-ladder-item .tag {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  padding: 0 3px;
+  font-family: var(--font-pixel);
+  font-weight: 400;
+  font-size: 9px;
+  line-height: 1.3;
+  color: #3b2314;
+  background: var(--cr-gold);
+  border: 2px solid #14101a;
+  transform: rotate(6deg);
+}
+
+.cr-ladder .cr-ladder-item.next {
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border-style: dashed;
+  color: #6a4a10;
+}
+
+.cr-root .cr-ladder .cr-ladder-item.next .en {
+  display: none;
+}
+
+.cr-ladder .cr-ladder-item.next .lock {
+  font-size: 11px;
+}
+
+.cr-ladder .cr-ladder-item.more {
+  justify-content: center;
+  background: transparent;
+  border-color: #b58f5a;
+  color: #6a4a10;
+}
+
+.cr-root .cr-ladder .cr-ladder-item.more .en {
+  display: none;
+}
+
+.cr-ladder-next {
+  margin: 5px 0 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: #6a4a10;
+}
+
+.cr-ladder-next .gloss {
+  display: inline;
+  margin-left: 6px;
+  font-weight: 600;
+}
+
+.cr-end-ladder .cr-ladder {
+  margin: 0;
+}
+
+.cr-end-fresh {
+  margin: 0 0 4px;
+  padding: 4px 8px;
+  font-weight: 900;
+  font-size: 14px;
+  color: #3b2314;
+  background: #fff2c2;
+  border: 2px solid var(--cr-gold);
+}
+
+.cr-end-fresh .gloss {
+  display: inline;
+  margin-left: 6px;
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cr-lesson.grew {
+    animation: none;
+  }
+}
+
 @keyframes cr-banner {
   0% {
     opacity: 0;
@@ -1022,8 +1186,80 @@ body.cr-on .toasts {
   top: 62%;
 }
 
+/* the coffee machine through a pour: amber while it fills, green "Agora!" in the window (shown on phones too), red once it spills */
+.cr-hit.cr-machine[data-zone='filling'] {
+  outline: 2px dashed rgba(242, 194, 48, 0.85);
+  outline-offset: -2px;
+}
+
+.cr-hit.cr-machine[data-zone='agora'] {
+  outline: 3px solid #66d27f;
+  outline-offset: -2px;
+  background: rgba(102, 210, 127, 0.26);
+  animation: cr-glow 0.36s ease-out infinite;
+}
+
+.cr-hit.cr-machine[data-zone='over'] {
+  outline: 3px solid var(--cr-red);
+  outline-offset: -2px;
+  background: rgba(192, 57, 43, 0.22);
+}
+
+.cr-hit.cr-machine[data-zone='agora'] .cr-lab,
+.cr-hit.cr-machine[data-zone='over'] .cr-lab {
+  display: block;
+  padding: 1px 4px;
+  width: auto;
+  font-size: max(12px, var(--cr-fs, 10px));
+  color: #fff;
+  background: #2e8a55;
+  border: 2px solid #14101a;
+  text-shadow: none;
+}
+
+.cr-hit.cr-machine[data-zone='over'] .cr-lab {
+  background: var(--cr-red);
+}
+
+/* NOVO: what this shift added to the menu, until it is first made */
+.cr-hit.cr-new {
+  outline: 2px solid var(--cr-gold);
+  outline-offset: -2px;
+  background: rgba(242, 194, 48, 0.18);
+}
+
+.cr-hit.cr-new::before {
+  content: 'NOVO';
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  padding: 1px 3px;
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: 0.5px;
+  color: #3b2314;
+  background: var(--cr-gold);
+  border: 2px solid #14101a;
+  transform: rotate(8deg);
+  animation: cr-new-bob 1.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes cr-new-bob {
+  0%,
+  100% {
+    transform: rotate(8deg) translateY(0);
+  }
+  50% {
+    transform: rotate(8deg) translateY(-2px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .cr-hit.cr-glass[data-state='ready'] {
+  .cr-hit.cr-glass[data-state='ready'],
+  .cr-hit.cr-machine[data-zone='agora'],
+  .cr-hit.cr-new::before {
     animation: none;
   }
 }

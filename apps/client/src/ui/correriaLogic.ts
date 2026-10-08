@@ -16,6 +16,7 @@ import {
   type CorreriaEnd,
   type CorreriaSnap,
   type CustomerView,
+  type MenuLadderView,
 } from '@tudobem/shared';
 import type { CorreriaSfx } from '../audio/correriaSfx';
 
@@ -220,6 +221,52 @@ export function endModel(end: CorreriaEnd, carlos: Bilingual): EndModel {
     unlocks: end.newUnlocks.map((u) => ({ pt: UNLOCKS.find((x) => x.id === u.id)?.hint.pt ?? u.pt, en: UNLOCKS.find((x) => x.id === u.id)?.hint.en ?? u.en })),
     note: carlos,
   };
+}
+
+export interface LadderChip {
+  id: string;
+  pt: string;
+  en: string;
+  state: 'open' | 'new' | 'next' | 'more';
+}
+
+/**
+ * The menu strip: the open items (the ones this shift added marked new), then the next one, locked. Past `max` chips the oldest open items
+ * fold into one "+N" chip in front, so a long menu stays one short row on a phone.
+ */
+export function ladderStrip(l: MenuLadderView | undefined, max = 6): LadderChip[] {
+  if (!l) return [];
+  const name = (id: string) => mgItemById(id)?.card;
+  const chip = (id: string, state: LadderChip['state']): LadderChip => ({ id, pt: name(id)?.form ?? id, en: name(id)?.gloss_en ?? id, state });
+  const out = l.open.map((id) => chip(id, l.fresh.includes(id) ? 'new' : 'open'));
+  if (l.next) out.push(chip(l.next, 'next'));
+  if (out.length <= max) return out;
+  const keep = out.slice(out.length - (max - 1));
+  const folded = out.length - keep.length;
+  return [{ id: 'more', pt: `+${folded}`, en: `+${folded} more`, state: 'more' }, ...keep];
+}
+
+/** The line about the next item, "Próximo: água em 2 turnos", or the full-menu line. Null without a ladder. */
+export function ladderNext(l: MenuLadderView | undefined): Bilingual | null {
+  if (!l) return null;
+  if (!l.next) return { pt: `Cardápio completo: ${l.open.length} de ${l.total} itens!`, en: `Full menu: ${l.open.length} of ${l.total} items!` };
+  const it = mgItemById(l.next)?.card;
+  const pt = it?.form ?? l.next;
+  const en = it?.gloss_en ?? l.next;
+  return {
+    pt: `Próximo: ${pt} em ${l.nextIn} ${l.nextIn === 1 ? 'turno' : 'turnos'}`,
+    en: `Next: ${en} in ${l.nextIn} ${l.nextIn === 1 ? 'shift' : 'shifts'}`,
+  };
+}
+
+/** End card: what the next shift brings. Items that open next time lead ("Próximo turno: água no cardápio!"), else the countdown. */
+export function ladderEnd(l: MenuLadderView | undefined): { fresh: Bilingual | null; next: Bilingual | null } {
+  if (!l) return { fresh: null, next: null };
+  const names = l.fresh.map((id) => mgItemById(id)?.card).filter((c) => !!c);
+  const fresh = names.length
+    ? { pt: `Próximo turno: ${names.map((c) => c.form).join(' e ')} no cardápio!`, en: `Next shift: ${names.map((c) => c.gloss_en).join(' and ')} on the menu!` }
+    : null;
+  return { fresh, next: ladderNext(l) };
 }
 
 /** What the baker says, spoken, for a cheer event. */

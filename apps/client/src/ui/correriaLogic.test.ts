@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { newShift, shiftAct, shiftAdvance, shiftSnapshot, type CEvent, type CorreriaEnd, type CorreriaSnap } from '@tudobem/shared';
-import { askCard, cueFor, endModel, frontOf, glossOn, hud, modChips, orderMirror, patienceFrac, trayChips } from './correriaLogic';
+import { menuLadder, newShift, shiftAct, shiftAdvance, shiftSnapshot, type CEvent, type CorreriaEnd, type CorreriaSnap } from '@tudobem/shared';
+import { askCard, cueFor, endModel, frontOf, glossOn, hud, ladderEnd, ladderNext, ladderStrip, modChips, orderMirror, patienceFrac, trayChips } from './correriaLogic';
 
 const shiftAt = (seed: number, level = 0): CorreriaSnap => {
   const sh = newShift({ seed, level, unlocked: [], saturday: false, minute: 540, baker: 'carlos', regulars: [] });
@@ -122,5 +122,41 @@ describe('the Correria overlay view-model', () => {
     const sh = newShift({ seed: 1, level: 0, unlocked: [], saturday: false, minute: 540, baker: 'carlos', regulars: [] });
     const ev = [...shiftAdvance(sh, 5000), ...shiftAct(sh, { a: 'grab', item: 'agua' }), ...shiftAct(sh, { a: 'clear' }), ...shiftAct(sh, { a: 'pack', kind: 'bag' })];
     for (const e of ev) expect(() => cueFor(e)).not.toThrow();
+  });
+});
+
+describe('the menu ladder on the counter', () => {
+  it('the strip lists what is open, marks what just opened, and ends on the next item', () => {
+    expect(ladderStrip(undefined)).toEqual([]);
+    const strip = ladderStrip(menuLadder(2));
+    expect(strip.map((c) => [c.id, c.state])).toEqual([
+      ['cafe', 'open'],
+      ['pao', 'open'],
+      ['agua', 'new'],
+      ['pao_de_queijo', 'next'],
+    ]);
+    expect(strip[1]).toMatchObject({ pt: 'pão', en: expect.any(String) });
+    // a long menu folds its oldest items into one "+N" chip and stays six chips long
+    const full = ladderStrip(menuLadder(99));
+    expect(full).toHaveLength(6);
+    expect(full[0]).toMatchObject({ id: 'more', pt: '+7', state: 'more' });
+    expect(full.slice(1).every((c) => c.state === 'open')).toBe(true);
+    expect(full[5]!.id).toBe('misto_quente');
+    const mid = ladderStrip(menuLadder(10));
+    expect(mid.map((c) => c.state)).toEqual(['more', 'open', 'open', 'open', 'new', 'next']);
+  });
+
+  it('the next line counts shifts in Portuguese, singular and plural', () => {
+    expect(ladderNext(menuLadder(0))?.pt).toBe('Próximo: água em 2 turnos');
+    expect(ladderNext(menuLadder(1))?.pt).toBe('Próximo: água em 1 turno');
+    expect(ladderNext(menuLadder(1))?.en).toMatch(/in 1 shift$/);
+    expect(ladderNext(menuLadder(99))?.pt).toMatch(/^Cardápio completo: 12 de 12/);
+    expect(ladderNext(undefined)).toBeNull();
+  });
+
+  it('the end card leads with what the next shift opens', () => {
+    expect(ladderEnd(menuLadder(2)).fresh?.pt).toBe('Próximo turno: água no cardápio!');
+    expect(ladderEnd(menuLadder(3)).fresh).toBeNull();
+    expect(ladderEnd(menuLadder(3)).next?.pt).toMatch(/em 1 turno$/);
   });
 });
