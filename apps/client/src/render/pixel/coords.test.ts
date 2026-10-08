@@ -22,6 +22,19 @@ describe('zoom rule (HOWTO §5.3)', () => {
   });
 });
 
+describe('design-mode look offset', () => {
+  it('shifts the picture and the click by the same world delta', () => {
+    const c = cam({ ox: 32, oy: -16 });
+    const p = worldToCanvas(c, 112, 96);
+    const back = canvasToWorld(c, p.px, p.py);
+    expect(back.wx).toBeCloseTo(112);
+    expect(back.wy).toBeCloseTo(96);
+    const plain = worldToCanvas(cam(), 112, 96);
+    expect(p.px).toBeCloseTo(plain.px - 32 * c.zoom);
+    expect(p.py).toBeCloseTo(plain.py + 16 * c.zoom);
+  });
+});
+
 describe('tileToClient ∘ tileAt round trip', () => {
   const cols = 14;
   const rows = 12;

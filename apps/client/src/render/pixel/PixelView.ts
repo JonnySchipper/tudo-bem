@@ -162,6 +162,10 @@ export class PixelView implements WorldView {
     return { px: r.left + p.px, py: r.top + p.py };
   }
 
+  clientToWorld(px: number, py: number): { wx: number; wy: number } | null {
+    return this.worldAt(px, py);
+  }
+
   private worldAt(px: number, py: number): { wx: number; wy: number } | null {
     if (!this.scene) return null;
     const r = this.rect();
