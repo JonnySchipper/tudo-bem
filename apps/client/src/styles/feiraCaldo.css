@@ -274,7 +274,9 @@ body.cd-on #world-labels {
 }
 #caldo-cup-0 { left: 22%; }
 #caldo-cup-1 { left: 42%; }
-.cd-cup.at-spout {
+/* ids beat a class, so the spout seat repeats the cup id */
+#caldo-cup-0.at-spout,
+#caldo-cup-1.at-spout {
   left: auto;
   right: 4%;
   bottom: 28%;
@@ -420,7 +422,8 @@ body.cd-on #world-labels {
   .cd-cup { width: 48px; height: 58px; }
   #caldo-cup-0 { left: 2px; }
   #caldo-cup-1 { left: 50px; }
-  .cd-cup.at-spout { right: 2px; bottom: 34%; }
+  #caldo-cup-0.at-spout,
+  #caldo-cup-1.at-spout { left: auto; right: 2px; bottom: 34%; }
   .cd-cup-svg { width: 40px; height: 50px; }
   .cd-pump { min-height: 64px; font-size: 0.62rem; }
   .cd-fruit { width: 26px; height: 26px; }

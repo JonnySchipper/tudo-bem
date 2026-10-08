@@ -14,6 +14,7 @@ import {
   CALDO_OVERFLOW,
   CALDO_POP,
   CALDO_PRESS,
+  CALDO_THANKS,
   CALDO_SPILL,
   CALDO_WRONG_FLAVOR,
   CALDO_WRONG_ICE,
@@ -438,7 +439,7 @@ export class CaldoView {
     const now = performance.now();
     const elapsed = now - this.started;
     if (!this.lastPaint) this.lastPaint = now;
-    const dt = Math.min(0.05, (now - this.lastPaint) / 1000);
+    const dt = Math.max(0, (now - this.lastPaint) / 1000);
     this.lastPaint = now;
     this.drain(dt);
     while (this.nextSpawn < this.orders.length && this.orders[this.nextSpawn]!.at <= elapsed) {
@@ -744,7 +745,17 @@ export class CaldoView {
     cup.at = 'rack';
     if (quality !== 'miss') this.served += 1;
     this.scoreGuess += quality === 'perfect' ? 48 : quality === 'ok' ? 32 : quality === 'soft' ? 16 : 0;
-    const line = !flavorOk ? CALDO_WRONG_FLAVOR : !iceOk ? CALDO_WRONG_ICE : quality === 'perfect' ? CALDO_POP.perfect : quality === 'soft' ? CALDO_POP.soft : CALDO_POP.miss;
+    const line = !flavorOk
+      ? CALDO_WRONG_FLAVOR
+      : !iceOk
+        ? CALDO_WRONG_ICE
+        : quality === 'perfect'
+          ? CALDO_POP.perfect
+          : quality === 'ok'
+            ? CALDO_THANKS
+            : quality === 'soft'
+              ? CALDO_POP.soft
+              : CALDO_POP.miss;
     this.flash(quality === 'miss' ? 'miss' : quality === 'perfect' ? 'perfect' : 'soft', line);
     this.syncCups();
   }

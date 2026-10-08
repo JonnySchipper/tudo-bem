@@ -47,66 +47,106 @@ async function crank(page) {
   await sleep(80);
 }
 
+/** The customer with the most patience left, so a slow pour still reaches someone. */
+async function frontOrder(page) {
+  return page.evaluate(() => {
+    const cards = [...document.querySelectorAll('.cd-customer')].map((c) => ({
+      id: c.querySelector('.cd-serve')?.id ?? '',
+      pt: c.querySelector('.cd-pt')?.textContent ?? '',
+      pips: c.querySelectorAll('.cd-pips i.on').length,
+    }));
+    cards.sort((a, b) => b.pips - a.pips);
+    return cards.find((c) => c.id && c.pt) ?? null;
+  });
+}
+
 export async function play(page, { shot, mclick, log }) {
   await page.waitForSelector('#caldo-root', { timeout: 15_000 });
-  await sleep(1400);
+  await sleep(500);
   let served = 0;
   let dragged = false;
+  let poured = false;
+  let flavored = false;
   const t0 = Date.now();
-  while (Date.now() - t0 < 100_000 && served < 3) {
+  while (Date.now() - t0 < 80_000 && served < 3) {
     if (await page.$('#caldo-end')) break;
-    const want = await page.evaluate(() => document.querySelector('.cd-customer .cd-pt')?.textContent ?? '');
-    if (!want) {
-      await sleep(250);
+    const order = await frontOrder(page);
+    if (!order) {
+      await sleep(200);
       continue;
     }
-    const flavor = FLAVOR.find(([pt]) => want.toLowerCase().includes(pt))?.[1];
-    const gelo = want.includes('com gelo');
+    const flavor = FLAVOR.find(([pt]) => order.pt.toLowerCase().includes(pt))?.[1];
+    const gelo = order.pt.includes('com gelo');
     if (!flavor) {
-      await sleep(200);
+      await sleep(150);
       continue;
     }
-    const loaded = await page.$('#caldo-press.cd-loaded');
-    if (!loaded) {
-      await drag(page, '#caldo-cane', '#caldo-press', dragged ? null : async () => {
-        await shot('caldo-drag-cane');
-        dragged = true;
-      });
+    try {
       if (!(await page.$('#caldo-press.cd-loaded'))) {
-        log('fallback', 'cane click');
-        await mclick('#caldo-cane');
-        await mclick('#caldo-press');
+        await drag(page, '#caldo-cane', '#caldo-press', dragged ? null : async () => {
+          await shot('caldo-drag-cane');
+          dragged = true;
+        });
+        if (!(await page.$('#caldo-press.cd-loaded'))) {
+          log('fallback', 'cane click');
+          await mclick('#caldo-cane');
+          await mclick('#caldo-press');
+        }
       }
-    }
-    if (!(await page.$('#caldo-cup-0.at-spout'))) {
-      await drag(page, '#caldo-cup-0', '#caldo-spout');
       if (!(await page.$('#caldo-cup-0.at-spout'))) {
-        log('fallback', 'cup click');
-        await mclick('#caldo-cup-0');
-        await mclick('#caldo-spout');
+        await drag(page, '#caldo-cup-0', '#caldo-spout');
+        if (!(await page.$('#caldo-cup-0.at-spout'))) {
+          log('fallback', 'cup click');
+          await mclick('#caldo-cup-0');
+          await mclick('#caldo-spout');
+        }
       }
-    }
-    if (!(await page.$('#caldo-cup-0.cd-full'))) {
-      await crank(page);
-      if (served === 0) await shot('caldo-pour');
-      await page.waitForSelector('#caldo-cup-0.cd-full', { timeout: 8000 });
-    }
-    await mclick(`#caldo-pump-${flavor}`);
-    if (gelo) await mclick('#caldo-ice');
-    if (served === 0) await shot('caldo-flavor');
-    const serveId = await page.evaluate(() => document.querySelector('.cd-serve')?.id ?? '');
-    if (!serveId) {
+      if (!(await page.$('#caldo-cup-0.at-spout'))) {
+        log('cup missed');
+        continue;
+      }
+      if (!(await page.$('#caldo-cup-0.cd-full'))) {
+        if (!(await page.$('#caldo-press.cd-flow'))) await crank(page);
+        if (!poured) {
+          await shot('caldo-pour');
+          poured = true;
+        }
+        const full = await page.waitForSelector('#caldo-cup-0.cd-full', { timeout: 12_000 }).catch(() => null);
+        if (!full) {
+          log('not full');
+          continue;
+        }
+      }
+      await mclick(`#caldo-pump-${flavor}`);
+      if (gelo) await mclick('#caldo-ice');
+      if (!flavored) {
+        await shot('caldo-flavor');
+        flavored = true;
+      }
+      const btn = await page.$(`#${order.id}`);
+      if (!btn) continue;
+      await btn.scrollIntoViewIfNeeded();
+      const box = await btn.boundingBox();
+      if (!box) {
+        log('left', order.id);
+        continue;
+      }
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      await sleep(150);
+      if (await page.$(`#${order.id}`)) {
+        log('unsold', order.id);
+        continue;
+      }
+      served += 1;
+      log('served', served, flavor, gelo ? 'gelo' : 'puro');
+      if (served === 1) await shot('caldo-serve-pop');
+    } catch (err) {
+      log('retry', err instanceof Error ? err.message.split('\n')[0] : String(err));
       await sleep(200);
-      continue;
     }
-    await mclick(`#${serveId}`);
-    served += 1;
-    log('served', served, flavor, gelo ? 'gelo' : 'puro');
-    if (served === 1) await shot('caldo-serve-pop');
-    await sleep(400);
   }
-  if (served < 3 && !(await page.$('#caldo-end'))) await mclick('#caldo-quit');
+  if (!(await page.$('#caldo-end'))) await mclick('#caldo-quit');
   await page.waitForSelector('#caldo-end', { timeout: 20_000 });
-  await sleep(500);
+  await sleep(400);
   await shot('caldo-end');
 }
