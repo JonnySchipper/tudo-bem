@@ -325,7 +325,37 @@ export interface BoutSnapshot {
   position: BjjPositionId;
   ahead: 'you' | 'partner' | null;
   streak: number;
+  /** Tatame v2: the control meter, -100 (partner) .. 100 (you). */
+  meter?: number;
+  /** The grips each fighter holds, drawn on the fighters and in the HUD. `age` is own turns held (it slips at 3). */
+  grips?: { you: BoutGrips; partner: BoutGrips };
+  /** A defense waiting for the other fighter's next move. */
+  brace?: { you: 'postura' | 'base' | 'recuperar' | null; partner: 'postura' | 'base' | 'recuperar' | null };
+  /** A grip slipped: the next move is weaker. */
+  tired?: { you: boolean; partner: boolean };
 }
+
+export interface BoutGrips {
+  collar: boolean;
+  sleeve: boolean;
+  age: { collar: number; sleeve: number };
+}
+
+/** The partner's telegraphed next move (Tatame v2). `answers` are your moves on offer that counter it. */
+export interface BoutPlanOut {
+  kind: string;
+  move: string;
+  line: Bilingual;
+  answers: string[];
+}
+
+/** A grip or defense moment of a resolved move, for the mat (grip snap, strip, slip, brace, a blocked attack). */
+export type BoutGripEvent =
+  | { kind: 'grip'; side: 'you' | 'partner'; grip: 'collar' | 'sleeve' }
+  | { kind: 'strip'; side: 'you' | 'partner'; grips: ('collar' | 'sleeve')[] }
+  | { kind: 'slip'; side: 'you' | 'partner'; grips: ('collar' | 'sleeve')[] }
+  | { kind: 'brace'; side: 'you' | 'partner'; brace: 'postura' | 'base' | 'recuperar' }
+  | { kind: 'blocked'; side: 'you' | 'partner' };
 
 export interface BoutPartnerCard {
   id: PartnerId;
@@ -347,6 +377,16 @@ export interface BoutIntentOut {
   percent?: number;
   /** If it lands: points scored, where the pair ends up (who on top), whether it finishes; a finish that misses puts you on your back. */
   effect?: { points: number; to: BjjPositionId; toAhead: 'you' | 'partner' | null; submission: boolean; riskBottom: boolean };
+  /** What moved the percent off the belt table ("Gola +20"). */
+  odds?: { pt: string; en: string; delta: number }[];
+  /** What a setup move opens, in a few words. */
+  sets?: Bilingual;
+  /** This move answers the partner's telegraphed plan. */
+  answers?: boolean;
+  /** A follow-up the grips opened (Arrastar, Puxar, Arremesso). */
+  combo?: boolean;
+  /** Owned but waiting for a grip ("Precisa da gola"). */
+  needs?: Bilingual;
 }
 
 export type BoutRole = 'exchange' | 'finish' | 'escape';
@@ -379,6 +419,8 @@ export type BoutServerMsg =
       owned?: BoutIntentOut[];
       finish: boolean;
       pickMs: number;
+      /** What the partner will do next, shown before you choose. */
+      plan?: BoutPlanOut;
     }
   | {
       t: 'bout';
@@ -427,6 +469,15 @@ export type BoutServerMsg =
       events: ExchangeEvent[];
       /** how long the beat lasts on screen (ms) */
       holdMs: number;
+      /** Tatame v2: grip snaps, strips, slips, braces and blocked attacks of this move. */
+      grip?: BoutGripEvent[];
+      /** The percent the move rolled against. */
+      percent?: number;
+      /** The control meter before and after. */
+      meterFrom?: number;
+      meterTo?: number;
+      /** The partner dropped its telegraphed move because your answer broke it. */
+      replanned?: boolean;
     }
   | { t: 'bout'; v: 1; phase: 'finish_end'; kind: 'finalizacao' | 'escape'; success: boolean; st: BoutSnapshot; line: Bilingual; signal: RefSignal | null; holdMs: number }
   | {
