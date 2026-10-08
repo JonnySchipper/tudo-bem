@@ -12,6 +12,7 @@ import './styles/bout.css';
 import './styles/correria.css';
 import './styles/diary.css';
 import './styles/escola.css';
+import './styles/feiraGames.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
@@ -82,9 +83,11 @@ import { mountTracker, openJournal, runPrelude } from './ui/recados';
 import { heartsWith } from './ui/recadoView';
 import { openNpcTalk } from './ui/npcTalk';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira';
+import { bindFeiraGames, closeFeiraGame, feiraGameOpen, onFeiraGameMsg, openFeiraCart, openFeiraSign } from './ui/feiraGames';
 import { openCaderno, setArrivalReplay } from './ui/caderno';
 import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAcademyFloor } from './ui/academy';
+import { openLeaderboards } from './ui/leaderboards';
 import { askPadariaDoor, bindPadariaOwn, chooseBakery, onPadariaDoor, openHouseCounter, openPadariaBook, syncPadariaFloor, welcomeOwner } from './ui/padariaOwn';
 import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia } from './ui/airportTutorial';
 import { flyHeardWord } from './ui/heardWord';
@@ -427,11 +430,18 @@ function propAction(action: string, propId?: string) {
   } else if (action === 'academy_board') {
     const card = game.room?.room === 'andar' ? game.room.academy : undefined;
     if (card) openAcademyBoard(card);
+  } else if (action === 'leaderboard') {
+    openLeaderboards(() => net.send({ t: 'leaderboards' }));
   } else if (action === 'padaria_door') {
     // inside an owned padaria the vaso is its book (Melhorias for the owner, the shop's card for a visitor)
     const own = game.room?.padaria;
     if (own) openPadariaBook(own);
     else askPadariaDoor();
+  } else if (action === 'feira_cart' || action === 'feira_sign') {
+    // The server names today's featured game (ET date). The cart is usable at any game-clock hour (D12).
+    const open = action === 'feira_cart' ? 'cart' : 'sign';
+    game.pendingFeiraOpen = open;
+    net.send({ t: 'feiraGame', action: 'board', open });
   } else if (action === 'padaria_counter') {
     const own = game.room?.padaria;
     if (own) openHouseCounter(own);
@@ -450,6 +460,13 @@ bindAcademy({
   join: (id) => net.send({ t: 'academy', action: 'join', id }),
   leave: (id) => net.send({ t: 'academy', action: 'leave', id }),
   look: (id, look) => net.send({ t: 'academy', action: 'look', id, crest: look.crest, giColor: look.giColor, giStamp: look.giStamp }),
+});
+
+bindFeiraGames({
+  sendStart: () => net.send({ t: 'feiraGame', action: 'start' }),
+  sendFinish: (outcomes) => net.send({ t: 'feiraGame', action: 'finish', outcomes }),
+  sendQuit: () => net.send({ t: 'feiraGame', action: 'quit' }),
+  sendBoard: () => net.send({ t: 'feiraGame', action: 'board', open: 'sign' }),
 });
 
 bindPadariaOwn({
@@ -695,6 +712,9 @@ net.on((m: ServerMsg) => {
     case 'feira':
       onFeiraMsg(m);
       break;
+    case 'feiraGame':
+      onFeiraGameMsg(m);
+      break;
     case 'photos':
       game.photos = m.photos;
       game.emit('profile');
@@ -718,6 +738,7 @@ net.on((m: ServerMsg) => {
       if (!keepMg) {
         correriaUi?.destroy();
         correriaUi = null;
+        closeFeiraGame();
         closeModal();
       }
       closeDialogue();
@@ -927,6 +948,10 @@ net.on((m: ServerMsg) => {
       game.furniture = m.furniture;
       if (game.selectedFurniture && !m.furniture.some((f) => f.uid === game.selectedFurniture)) game.selectedFurniture = null;
       game.emit('decor');
+      break;
+    case 'leaderboards':
+      game.leaderboards = { words: m.words, streak: m.streak, at: m.at };
+      game.emit('leaderboards');
       break;
     case 'friends':
       game.friends = m.friends;
@@ -1492,6 +1517,7 @@ window.__tb = {
   walkTo: (x: number, y: number, sit = false) => walkTo({ x, y }, null, sit),
   /** Renderer-independent interaction by id, resolved against the current room's data. */
   interact: (target: InteractTarget) => interact(target),
+  openLeaderboards: () => openLeaderboards(() => net.send({ t: 'leaderboards' })),
   get decor() {
     return decor;
   },
@@ -1511,4 +1537,6 @@ window.__tb = {
   },
   openCartela: () => openCartela(),
   cartelaBanner: (stamps: number) => cartelaBanner(stamps),
+  /** Feira cart games: true while the Tapioca overlay is up (shots / e2e). */
+  feiraGame: () => feiraGameOpen(),
 };

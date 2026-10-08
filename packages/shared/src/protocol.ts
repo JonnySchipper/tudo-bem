@@ -25,6 +25,8 @@ import type { RecadoActiveView, RecadoOfferView } from './recados.js';
 import type { CartelaActivity } from './cartela.js';
 import type { PriceOption, VendorId } from './feira.js';
 import type { Weather } from './weather.js';
+import type { FeiraBoardRow, FeiraGameId, FeiraMedalTally, FeiraOrderOutcome } from './feiraGames.js';
+import type { BoardRow } from './leaderboards.js';
 
 /** Client → server messages. JSON over a single WebSocket at /ws. */
 export type ClientMsg =
@@ -66,6 +68,8 @@ export type ClientMsg =
   | { t: 'furniture'; action: 'pickup'; uid: string }
   | { t: 'friend'; action: 'request' | 'accept' | 'decline' | 'remove'; targetId: string }
   | { t: 'friends' }
+  /** Dual Praça leaderboards (words learned + escola streak). */
+  | { t: 'leaderboards' }
   | { t: 'mission'; action: 'take' }
   /** Hand one recado's worth of an item from the bag to an NPC standing next to you. */
   | { t: 'give'; npc: NpcId; itemId: string }
@@ -149,6 +153,15 @@ export type ClientMsg =
   | { t: 'padariaOwn'; action: 'found'; name: string }
   | { t: 'padariaOwn'; action: 'visit'; id?: string }
   | { t: 'padariaOwn'; action: 'upgrade'; kind: PadariaUpgradeKind }
+  /**
+   * Feira cart games. `start` asks to play today's featured game at the cart.
+   * `finish` sends compact per-order outcomes; the server recomputes the score.
+   * `board` asks for the live top 3 and all-time medals (the Feira sign).
+   */
+  | { t: 'feiraGame'; action: 'start' }
+  | { t: 'feiraGame'; action: 'finish'; outcomes: FeiraOrderOutcome[] }
+  | { t: 'feiraGame'; action: 'quit' }
+  | { t: 'feiraGame'; action: 'board'; open?: 'cart' | 'sign' }
   | { t: 'ping' };
 
 /** One online player row for the admin panel. */
@@ -516,6 +529,8 @@ export type ServerMsg =
   | { t: 'escola'; phase: 'done'; summary: import('./escola.js').EscolaSummary }
   /** The lesson could not start (an empty diary, too far from the desk). */
   | { t: 'escola'; phase: 'closed'; line: Bilingual }
+  /** Dual Praça leaderboards. `words` = diary length; `streak` = Escola currentStreak. */
+  | { t: 'leaderboards'; words: BoardRow[]; streak: BoardRow[]; at: number }
   | { t: 'error'; code: string; pt: string; en: string }
   | { t: 'pong' }
   /** Elevator directory. `canFound` is this player's belt. `ownedId` is the academy they founded, if any. */
@@ -523,4 +538,34 @@ export type ServerMsg =
   /** Crest / gi / membership changed on the floor you are standing in. */
   | { t: 'academy'; phase: 'floor'; academy: AcademyCard }
   | { t: 'padariaOwn'; phase: 'door'; enabled: boolean; door: PadariaDoorState; rows: PadariaCard[] }
-  | { t: 'padariaOwn'; phase: 'floor'; padaria: PadariaCard };
+  | { t: 'padariaOwn'; phase: 'floor'; padaria: PadariaCard }
+  /**
+   * Feira cart game. `start` deals today's run (seed + orders live in shared code; the client regenerates them).
+   * `end` is the settled result. `board` is the sign. `crown` is the live Fada da Feira (null after midnight).
+   */
+  | { t: 'feiraGame'; phase: 'start'; game: FeiraGameId; seed: number; startedAt: number; day: string }
+  | {
+      t: 'feiraGame';
+      phase: 'end';
+      game: FeiraGameId;
+      score: number;
+      coins: number;
+      dailyBlocked: boolean;
+      served: number;
+      perfect: number;
+      left: number;
+      bestToday: number;
+      place: number;
+      crown: boolean;
+      line: Bilingual;
+    }
+  | {
+      t: 'feiraGame';
+      phase: 'board';
+      day: string;
+      game: FeiraGameId;
+      top: FeiraBoardRow[];
+      medals: FeiraMedalTally[];
+      crownId: string | null;
+    }
+  | { t: 'feiraGame'; phase: 'crown'; id: string | null };

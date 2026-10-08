@@ -51,7 +51,7 @@ export type PropKind =
   | 'feira'
   | 'hortifruti';
 
-export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi' | 'escola' | 'academy_elevator' | 'academy_board' | 'padaria_door' | 'padaria_counter';
+export type PropAction = 'shop_hats' | 'minigame' | 'kiosk' | 'parrot_perch' | 'catalog' | 'bjj_roll' | 'feira_stall' | 'street_snack' | 'checkers' | 'buy_gi' | 'escola' | 'academy_elevator' | 'academy_board' | 'padaria_door' | 'padaria_counter' | 'feira_cart' | 'feira_sign' | 'leaderboard';
 
 export interface PropDef {
   id: string;
@@ -588,6 +588,13 @@ const praca: RoomDef = {
     P('canteiro_2', 'canteiro', 18, 15, { w: 2 }),
     P('lampada_p1', 'poste', 11, 8, { art: 'props/lamp_old' }),
     P('lampada_p2', 'poste', 20, 8, { art: 'props/lamp_old' }),
+    // Village leaderboards: words learned + escola streak (tap to open)
+    cen('placar_vila', 'props/placar', 16, 7, 2, 1, {
+      blocks: true,
+      action: 'leaderboard',
+      interact: { x: 16, y: 8 },
+      label: { pt: 'Placar da Vila', en: 'Village board' },
+    }),
     P('lampada_p3', 'poste', 11, 14, { art: 'props/lamp_old' }),
     P('lampada_p4', 'poste', 20, 14, { art: 'props/lamp_old' }),
     P('arbusto_1', 'sebe', 11, 3, { art: 'props/bush_flower' }),
@@ -744,6 +751,21 @@ const feira: RoomDef = {
     P('ipe_lote_2', 'arvore', 28, 16, { w: 2, art: 'props/arvore_rua' }),
     cen('flor_lote', 'props/flor_mista_b', 20, 17, 3, 1),
     bench('banco_feira', 4, 16),
+    // Cart games (daily rotation). Open paving east of the stalls, clear of the free-slot signs (vaga at x19 / x25).
+    // The board stands on the aisle immediately west of the cart, so reaching it is the walk to the cart, not a second trek.
+    // Usable at any game-clock hour — learning loops are never locked behind the feira's 06:00–13:00 window (D12).
+    cen('placa_jogos', 'props/placa_feira', 18, 7, 2, 1, {
+      blocks: true,
+      action: 'feira_sign',
+      interact: { x: 19, y: 8 },
+      label: { pt: 'Placar da Feira', en: 'Market board' },
+    }),
+    cen('carrinho_jogos', 'props/carrinho_feira', 21, 7, 3, 1, {
+      blocks: true,
+      action: 'feira_cart',
+      interact: { x: 22, y: 9 },
+      label: { pt: 'Carrinho de jogos', en: 'Game cart' },
+    }),
     ...diaryProps('feira'),
   ],
   walls: [],

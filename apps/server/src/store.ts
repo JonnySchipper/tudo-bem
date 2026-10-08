@@ -130,6 +130,11 @@ export class ProfileStore {
   count() {
     return this.byId.size;
   }
+
+  /** Every stored profile (leaderboards, admin, and the Feira crown broadcast). */
+  all(): StoredProfile[] {
+    return [...this.byId.values()];
+  }
 }
 
 /** The feira's daily RV counter: a date string and a small count, or nothing. */

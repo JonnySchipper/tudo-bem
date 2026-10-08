@@ -143,7 +143,9 @@ import { RecadoTracker, sceneItems } from './recados.js';
 import { CadernoTracker } from './caderno.js';
 import { DiaryTracker } from './diary.js';
 import { EscolaTracker, escolaOf } from './escola.js';
+import { Leaderboards } from './leaderboards.js';
 import { FeiraCounter } from './feira.js';
+import { FeiraGamesEngine, FeiraGamesStore, type FeiraGameRun } from './feiraGames.js';
 import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria.js';
 import { BoutEngine, type BoutSession } from './bout.js';
 import { CartelaTracker } from './cartela.js';
@@ -170,6 +172,8 @@ export interface WorldOptions {
   rng?: () => number;
   /** When true, bout challenges include `debugCorrect` and the pauses shrink, for CI e2e (TB_TEST_ROLL=1). */
   testRollHints?: boolean;
+  /** Feira cart board + medals. The Node server passes the file-backed store; tests and solo omit it. */
+  feiraGames?: import('./feiraGames.js').FeiraGamesStore;
   /** Bout intro length in ms (default: 4.2 s, 0.5 s in hint mode). Env `TB_TEST_BOUT_INTRO_MS`. */
   boutIntroMs?: number;
   /** Bout pause scale (default 1, 0.35 in hint mode). Env `TB_TEST_BOUT_PACE`: shots want the real pauses with the hints on. */
@@ -235,6 +239,8 @@ export interface Session {
   avatar?: AvatarState;
   scene?: SceneState;
   mg?: CorreriaRun;
+  /** Feira cart game in progress (apps/server/src/feiraGames.ts). Separate from Correria so the two never share a slot. */
+  feiraGame?: FeiraGameRun;
   /** Treino no tatame: the bout in progress (apps/server/src/bout.ts). */
   bout?: BoutSession;
   /** Last tatame loss: rematch same partner and guard position. */
@@ -303,8 +309,12 @@ export class World {
   private readonly diary: DiaryTracker;
   /** Dona Lúcia's lessons: spaced repetition over the diary, XP, streak, the nameplate tiers. */
   private readonly escola: EscolaTracker;
+  /** Praça dual leaderboards (words learned + escola streak). */
+  private readonly leaderboards: Leaderboards;
   /** The feira's prices and payments (Phase 9). */
   private readonly feira: FeiraCounter;
+  /** Feira cart games: daily rotation, the board, medals, the crown. */
+  private readonly feiraGames: FeiraGamesEngine;
   /** Correria no Balcão: shifts, clocks and parked resume (apps/server/src/correria.ts). */
   private readonly correria: CorreriaEngine;
   /** Named player academies (slice 1). Durable when the host passes a file-backed store. */
@@ -364,6 +374,24 @@ export class World {
       npcsIn: (room) => this.npcs.whoIn(room),
       ordered: (s, npc, items) => this.recados.onEvent(s, { kind: 'ordered', npc, items }),
     });
+    this.feiraGames = new FeiraGamesEngine({
+      now: () => this.now(),
+      store,
+      games: opts.feiraGames ?? new FeiraGamesStore(() => null, () => {}, () => this.now()),
+      reward: (s, a, r) => this.reward(s, a, r),
+      pushProfile: (s) => this.pushProfile(s),
+      err: (s, code, pt, en) => this.err(s, code, pt, en),
+      tileOf: (s) => {
+        if (!s.instance || !s.avatar) return null;
+        const t = this.currentTile(s).tile;
+        return { x: t.x, y: t.y, room: s.instance.def.id };
+      },
+      broadcastAll: (m) => {
+        for (const sess of this.sessions.values()) sess.send(m);
+      },
+      broadcastAvatar: (s) => this.broadcastAvatar(s),
+      rng: () => this.rng(),
+    });
     this.caderno = new CadernoTracker({ now: () => this.now(), store, reward: (s, a, r) => this.reward(s, a, r), pushProfile: (s) => this.pushProfile(s) });
     this.diary = new DiaryTracker({
       store,
@@ -399,6 +427,7 @@ export class World {
       },
       teachLessonWord: (s, gameId) => this.diary.teachLessonWord(s, gameId),
     });
+    this.leaderboards = new Leaderboards(store, () => this.rng());
     this.bouts = new BoutEngine({
       now: () => this.now(),
       schedule: (fn, ms) => this.schedule(fn, ms),
@@ -471,6 +500,12 @@ export class World {
    * Server-authoritative AFK check (call every few seconds). Only players in the world count: a
    * socket still on the login / avatar screen holds no seat. Client pings don't reset the clock.
    */
+  /** Lazy midnight ET: finalize yesterday's Feira board (medals, clear crown) if the day key rolled. */
+  sweepFeiraGames() {
+    const { rolled, awards } = this.feiraGames.tick();
+    if (rolled) this.feiraGames.pushRolled([...this.sessions.values()], awards);
+  }
+
   sweepIdle() {
     const t = this.now();
     const warnWindow = Math.min(IDLE_WARN_MS, Math.floor(this.idleKickMs / 2));
@@ -565,6 +600,8 @@ export class World {
         return this.friend(s, msg.action, msg.targetId);
       case 'friends':
         return this.sendFriends(s);
+      case 'leaderboards':
+        return this.leaderboards.sendTo(s);
       case 'mission':
         return this.takeMission(s);
       case 'bout':
@@ -577,6 +614,8 @@ export class World {
         return this.recados.request(s, msg.action, msg.id);
       case 'feira':
         return msg.action === 'price' ? this.feira.price(s, msg.vendor, msg.itemId) : msg.action === 'pay' ? this.feira.pay(s, msg.vendor, msg.itemId, msg.qty, msg.paid) : undefined;
+      case 'feiraGame':
+        return this.feiraGames.handle(s, msg);
       case 'heard':
         return this.caderno.heard(s, msg.cardIds);
       case 'arrival':
@@ -932,6 +971,8 @@ export class World {
   }
 
   private pushProfile(s: Session) {
+    // Diary grants and escola streak bumps both push the profile; rebuild boards next read.
+    this.leaderboards.markDirty();
     if (s.profile) s.send({ t: 'profile', profile: this.privateProfile(s.profile) });
   }
 
@@ -1080,6 +1121,12 @@ export class World {
     this.correria.resume(s);
     this.recados.onEvent(s, { kind: 'entered', room: def.id, tile });
     this.cartela.onEntered(s, def.id);
+    if (def.id === 'padaria' && !padariaIdFromInstance(target.id)) {
+      const minute = gameMinutes(this.clockNow());
+      const baker = bakerOnDuty(minute) === 'graca' ? 'graca' : 'carlos';
+      const line = this.leaderboards.maybeMentionStreak(s, baker);
+      if (line) s.send({ t: 'notice', level: 'info', pt: line.pt, en: line.en });
+    }
     this.broadcast(target, { t: 'avatarJoined', avatar: this.publicAvatar(s) }, s);
     const ownedPid = padariaIdFromInstance(target.id);
     if (ownedPid) {
@@ -1360,6 +1407,7 @@ export class World {
       ...this.wornGi(s),
       nameplate: p.nameplate,
       founder: normalizeFounderFlag(p.founder),
+      ...(this.feiraGames.crownId() === p.id ? { feiraCrown: true } : {}),
       x: cur.tile.x,
       y: cur.tile.y,
       dir: sitting && s.instance ? (this.grid(s.instance).seats.get(key(cur.tile.x, cur.tile.y)) ?? cur.dir) : cur.dir,
