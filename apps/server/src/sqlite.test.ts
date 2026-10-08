@@ -1,10 +1,12 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { ROOMS } from '@tudobem/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { AccountStore } from './auth.js';
 import { accountsFileAdapter, fileAdapter, layoutFileAdapter } from './fileStore.js';
+import { LayoutStore } from './layoutStore.js';
 import { ProfileStore, type StoredProfile } from './store.js';
 import { backupDatabase, closeDatabase, openDatabase, sqlitePath } from './sqliteDb.js';
 import { exportSqliteToJson } from './sqliteExport.js';
@@ -247,6 +249,38 @@ describe('sqlite per-record writes', () => {
     expect((db.prepare('SELECT COUNT(*) AS n FROM profiles').get() as { n: number }).n).toBe(1);
     expect((db.prepare('SELECT COUNT(*) AS n FROM photos').get() as { n: number }).n).toBe(0);
     expect((db.prepare('SELECT json FROM profiles WHERE id = ?').get('p2') as { json: string }).json).toContain('Bia Maria');
+  });
+
+  it('round-trips Testes clock fields and design-mode layouts, including a backup', async () => {
+    const dir = tempDir();
+    dirs.push(dir);
+    const store = new ProfileStore(fileAdapter(dir));
+    store.add({ id: 'p1', name: 'Ana', token: 't1', ageGate18: true, testDayOffset: 2, testClockOffsetMs: 86_400_000 } as StoredProfile);
+    store.flush();
+    const raw = (openDatabase(dir).prepare('SELECT json FROM profiles WHERE id = ?').get('p1') as { json: string }).json;
+    expect(raw).toContain('"testDayOffset":2');
+    expect(raw).toContain('"testClockOffsetMs":86400000');
+    const again = new ProfileStore(fileAdapter(dir));
+    expect(again.get('p1')?.testDayOffset).toBe(2);
+    expect(again.get('p1')?.testClockOffsetMs).toBe(86_400_000);
+
+    const bench = ROOMS.praca.props.find((p) => p.id === 'banco_4');
+    expect(bench).toBeTruthy();
+    const moved = { ...bench!, x: bench!.x + 1 };
+    new LayoutStore(layoutFileAdapter(dir)).set('praca', [moved]);
+    expect(fs.existsSync(path.join(dir, 'layouts.json'))).toBe(false);
+    const reloaded = new LayoutStore(layoutFileAdapter(dir));
+    expect(reloaded.overrides().find((r) => r.room === 'praca')?.objects.find((o) => o.id === 'banco_4')?.x).toBe(moved.x);
+
+    const dest = await backupDatabase(openDatabase(dir), dir, { force: true });
+    expect(dest).toBeTruthy();
+    const copy = new Database(dest!, { readonly: true, fileMustExist: true });
+    const saved = JSON.parse((copy.prepare(`SELECT json FROM kv WHERE key = 'layouts'`).get() as { json: string }).json) as { rooms: { praca: { id: string; x: number }[] } };
+    const backedProfile = (copy.prepare('SELECT json FROM profiles WHERE id = ?').get('p1') as { json: string }).json;
+    copy.close();
+    expect(saved.rooms.praca.find((o) => o.id === 'banco_4')?.x).toBe(moved.x);
+    expect(backedProfile).toContain('"testDayOffset":2');
+    expect(backedProfile).toContain('"testClockOffsetMs":86400000');
   });
 });
 

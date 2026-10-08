@@ -71,13 +71,28 @@ class Game {
    * the escola never turns it off (DECISIONS.md, "nameplate colour vs English help").
    */
   englishHelp = localStorage.getItem('tb_english') !== 'off';
+  /** Admin design mode: world props can be moved. Player walking and clicks pause. */
+  designMode = false;
+  /** Extra camera offset (world px) while designing, so a phone can pan props out from under the panel. */
+  designPan = { x: 0, y: 0 };
+  /** Bumped when a room's props change so the scene and walk grid rebuild. */
+  layoutEpoch = 0;
+  /** Last layout pushed by the server (the design editor listens). */
+  layoutNotice: { room: import('@tudobem/shared').RoomId; objects: import('@tudobem/shared').PropDef[] | null } | null = null;
   private listeners = new Map<string, Set<Listener>>();
   /** Feira with the game cart and sign removed. Stable so the scene does not rebuild every frame. */
   private hiddenFeira: RoomDef | null = null;
 
+  /** Props changed: drop the cached Feira-without-cart view and rebuild the scene. */
+  bumpLayout(): void {
+    this.hiddenFeira = null;
+    this.layoutEpoch++;
+  }
+
   get roomDef(): RoomDef | null {
     if (!this.room) return null;
     const base = ROOMS[this.room.room];
+    if (this.designMode) return base;
     if (base.id !== 'feira' || feiraCartShown(this.feiraCart)) return base;
     return (this.hiddenFeira ??= withoutHiddenFeiraCart(base, false));
   }

@@ -28,7 +28,7 @@ Each row is the same JSON object the old files held, keyed by id. Writes update 
 
 Lemon Squeezy state stays on the profile (`subscription`, `billingEventIds`). There is no separate billing file. The append-only moderation log stays `moderation.jsonl`.
 
-`#160` (admin Testes) stores its flags on the profile JSON. `#163` (design mode) is not on main; if `layouts.json` is already on the volume it is imported into `kv.layouts`, and `layoutFileAdapter` reads and writes that row.
+Admin Testes flags (`testDayOffset`, `testClockOffsetMs`, and the rest) stay on the profile JSON. Design-mode overrides (`#163`) are the `layouts` kv row. `LayoutStore` reads and writes that row through `layoutFileAdapter`. A volume that still has `layouts.json` is imported on boot and the file is renamed with the others. Backups are a copy of the whole database, so that row is included.
 
 ## Boot migration
 

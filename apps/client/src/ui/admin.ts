@@ -30,6 +30,21 @@ export function isAdminUnlocked(): boolean {
   return unlocked;
 }
 
+let onDesignAdmin: ((m: Extract<ServerMsg, { t: 'admin' }>) => void) | null = null;
+
+/** Design mode (lazy chunk) hears admin replies without living in the main bundle. */
+export function bindDesignAdmin(fn: (m: Extract<ServerMsg, { t: 'admin' }>) => void): void {
+  onDesignAdmin = fn;
+}
+
+async function openDesignMode(): Promise<void> {
+  if (!sendAdmin) return;
+  const send = sendAdmin;
+  closeModal();
+  const { toggleDesignMode } = await import('./designMode.js');
+  toggleDesignMode(send);
+}
+
 /** Handle `admin` and `sky` server messages. */
 export function onAdminMsg(m: Extract<ServerMsg, { t: 'admin' } | { t: 'sky' }>): void {
   if (m.t === 'sky') {
@@ -37,6 +52,7 @@ export function onAdminMsg(m: Extract<ServerMsg, { t: 'admin' } | { t: 'sky' }>)
     clock.setWeather(m.weather);
     return;
   }
+  onDesignAdmin?.(m);
   if (m.phase === 'disabled') {
     unlocked = false;
     showAuthError(m.pt);
@@ -177,6 +193,9 @@ function openAdminPanel(): void {
     en('Test subscriptions. No payment. The founder badge and banner stay if you revoke.', true),
     (subsEl = h('div', { class: 'admin-subs', id: 'admin-subs' }, h('p', { class: 'admin-empty' }, '…'))),
     h('button', { class: 'ghost', id: 'admin-subs-refresh', type: 'button', onclick: () => sendAdmin?.({ t: 'admin', action: 'subscribers' }) }, 'Atualizar assinaturas'),
+    h('h3', null, 'Modo design'),
+    en('Move props in this room. Other players see it when you save.', true),
+    h('button', { type: 'button', class: 'primary', id: 'admin-design-toggle', onclick: () => void openDesignMode() }, 'Modo design'),
     adminTestesSection(),
     h('h3', null, 'Reais virtuais'),
     en('Adds RV to your own pocket.', true),

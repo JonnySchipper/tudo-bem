@@ -1,0 +1,615 @@
+{
+  "room": "rua",
+  "objects": [
+    {
+      "id": "padaria",
+      "kind": "fachada",
+      "x": 0,
+      "y": 0,
+      "w": 8,
+      "h": 6,
+      "blocks": true,
+      "label": {
+        "pt": "Padaria do Seu Carlos",
+        "en": "Seu Carlos’s bakery"
+      },
+      "art": "facades/padaria"
+    },
+    {
+      "id": "empena",
+      "kind": "fachada",
+      "x": 8,
+      "y": 0,
+      "w": 3,
+      "h": 6,
+      "blocks": true,
+      "art": "casas/empena"
+    },
+    {
+      "id": "edificio",
+      "kind": "fachada",
+      "x": 11,
+      "y": 0,
+      "w": 10,
+      "h": 6,
+      "blocks": true,
+      "label": {
+        "pt": "Edifício Ipê Nº 42",
+        "en": "Ipê Building No. 42"
+      },
+      "art": "facades/edificio_ipe"
+    },
+    {
+      "id": "banca",
+      "kind": "banca",
+      "x": 8,
+      "y": 4,
+      "w": 3,
+      "h": 2,
+      "blocks": true,
+      "label": {
+        "pt": "Banca de jornal",
+        "en": "Newsstand"
+      }
+    },
+    {
+      "id": "jornais",
+      "kind": "jornais",
+      "x": 7,
+      "y": 6,
+      "blocks": true,
+      "label": {
+        "pt": "Pilha de jornais",
+        "en": "Newspaper stack"
+      }
+    },
+    {
+      "id": "lampada_n1",
+      "kind": "poste",
+      "x": 2,
+      "y": 7,
+      "blocks": true,
+      "art": "props/lamp_old"
+    },
+    {
+      "id": "lampada_n2",
+      "kind": "poste",
+      "x": 10,
+      "y": 7,
+      "blocks": true,
+      "art": "props/lamp_old"
+    },
+    {
+      "id": "lampada_n3",
+      "kind": "poste",
+      "x": 18,
+      "y": 7,
+      "blocks": true,
+      "art": "props/lamp_old"
+    },
+    {
+      "id": "lampada_n4",
+      "kind": "poste",
+      "x": 11,
+      "y": 13,
+      "blocks": true,
+      "art": "props/lamp_old"
+    },
+    {
+      "id": "orelhao",
+      "kind": "orelhao",
+      "x": 14,
+      "y": 6,
+      "blocks": true,
+      "label": {
+        "pt": "Orelhão",
+        "en": "Public phone booth (“big ear”)"
+      }
+    },
+    {
+      "id": "lixeira_n1",
+      "kind": "lixeira",
+      "x": 10,
+      "y": 6,
+      "blocks": true
+    },
+    {
+      "id": "floreira_n1",
+      "kind": "floreira",
+      "x": 3,
+      "y": 6,
+      "blocks": true
+    },
+    {
+      "id": "padaria_porta_fundar",
+      "kind": "floreira",
+      "x": 5,
+      "y": 6,
+      "blocks": false,
+      "action": "padaria_door",
+      "interact": {
+        "x": 4,
+        "y": 6
+      },
+      "label": {
+        "pt": "Cofre da porta",
+        "en": "Door fund"
+      }
+    },
+    {
+      "id": "floreira_n2",
+      "kind": "floreira",
+      "x": 16,
+      "y": 6,
+      "blocks": true
+    },
+    {
+      "id": "vaso_n1",
+      "kind": "vaso",
+      "x": 18,
+      "y": 6,
+      "blocks": true
+    },
+    {
+      "id": "mesa_cafe",
+      "kind": "mesa_cafe",
+      "x": 2,
+      "y": 6,
+      "blocks": true,
+      "label": {
+        "pt": "Mesinha da padaria",
+        "en": "Bakery sidewalk table"
+      }
+    },
+    {
+      "id": "bici",
+      "kind": "bicicletario",
+      "x": 17,
+      "y": 7,
+      "blocks": true
+    },
+    {
+      "id": "revisteiro",
+      "kind": "cenario",
+      "x": 11,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "label": {
+        "pt": "Revisteiro da banca",
+        "en": "Newsstand magazine rack"
+      },
+      "art": "props/revisteiro"
+    },
+    {
+      "id": "vaso_topiaria_1",
+      "kind": "cenario",
+      "x": 11,
+      "y": 6,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "props/vaso_topiaria_a"
+    },
+    {
+      "id": "hortifruti",
+      "kind": "hortifruti",
+      "x": 7,
+      "y": 7,
+      "blocks": true,
+      "action": "feira_stall",
+      "interact": {
+        "x": 8,
+        "y": 7
+      },
+      "label": {
+        "pt": "Hortifrúti da banca",
+        "en": "Greengrocer at the newsstand"
+      },
+      "art": "feira/caixotes",
+      "vendor": "banca"
+    },
+    {
+      "id": "hortifruti_2",
+      "kind": "cenario",
+      "x": 6,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "feira/caixotes"
+    },
+    {
+      "id": "hortifruti_preco",
+      "kind": "cenario",
+      "x": 6,
+      "y": 6,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "feira/preco_lousa"
+    },
+    {
+      "id": "poste_2",
+      "kind": "poste",
+      "x": 9,
+      "y": 13,
+      "blocks": true
+    },
+    {
+      "id": "poste_3",
+      "kind": "poste",
+      "x": 13,
+      "y": 13,
+      "blocks": true
+    },
+    {
+      "id": "arv_n1",
+      "kind": "arvore",
+      "x": 15,
+      "y": 7,
+      "w": 2,
+      "blocks": true,
+      "art": "props/arvore_rua"
+    },
+    {
+      "id": "estac_12_0",
+      "kind": "cenario",
+      "x": 2,
+      "y": 12,
+      "w": 5,
+      "h": 1,
+      "blocks": true,
+      "art": "vehicles/park_verde_r"
+    },
+    {
+      "id": "hidrante_s",
+      "kind": "sebe",
+      "x": 14,
+      "y": 13,
+      "blocks": true,
+      "art": "props/hidrante_amarelo"
+    },
+    {
+      "id": "parquimetro",
+      "kind": "sebe",
+      "x": 14,
+      "y": 12,
+      "blocks": true,
+      "art": "props/parquimetro"
+    },
+    {
+      "id": "sebe_s_0",
+      "kind": "sebe",
+      "x": 0,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_s_2",
+      "kind": "sebe",
+      "x": 2,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_s_4",
+      "kind": "sebe",
+      "x": 4,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_s_6",
+      "kind": "sebe",
+      "x": 6,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_s_8",
+      "kind": "sebe",
+      "x": 8,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_s_10",
+      "kind": "sebe",
+      "x": 10,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_s_12",
+      "kind": "sebe",
+      "x": 12,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_s_14",
+      "kind": "sebe",
+      "x": 14,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_s_19",
+      "kind": "sebe",
+      "x": 19,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "arv_s5",
+      "kind": "arvore",
+      "x": 11,
+      "y": 14,
+      "w": 2,
+      "blocks": true,
+      "art": "props/arvore_rua"
+    },
+    {
+      "id": "arbusto_s1",
+      "kind": "sebe",
+      "x": 9,
+      "y": 14,
+      "blocks": true,
+      "art": "props/bush_flower"
+    },
+    {
+      "id": "arbusto_seam",
+      "kind": "sebe",
+      "x": 20,
+      "y": 14,
+      "blocks": true,
+      "art": "props/bush_flower"
+    },
+    {
+      "id": "barreira_o_8",
+      "kind": "cerca",
+      "x": 0,
+      "y": 8,
+      "w": 2,
+      "h": 4,
+      "blocks": true,
+      "art": "cerca_rua"
+    },
+    {
+      "id": "sebe_o_6",
+      "kind": "sebe",
+      "x": 0,
+      "y": 6,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_o_7",
+      "kind": "sebe",
+      "x": 0,
+      "y": 7,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_o_12",
+      "kind": "sebe",
+      "x": 0,
+      "y": 12,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_o_13",
+      "kind": "sebe",
+      "x": 0,
+      "y": 13,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_o_14",
+      "kind": "sebe",
+      "x": 0,
+      "y": 14,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "d_moto",
+      "kind": "cenario",
+      "x": 8,
+      "y": 12,
+      "w": 2,
+      "blocks": false,
+      "art": "vehicles/park_moto_e"
+    },
+    {
+      "id": "d_van",
+      "kind": "cenario",
+      "x": 2,
+      "y": 13,
+      "w": 4,
+      "h": 2,
+      "blocks": false,
+      "art": "vehicles/park_kombi_w"
+    },
+    {
+      "id": "d_semaforo",
+      "kind": "cenario",
+      "x": 19,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/semaforo"
+    },
+    {
+      "id": "d_muro",
+      "kind": "cenario",
+      "x": 19,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/muro"
+    },
+    {
+      "id": "d_interfone",
+      "kind": "cenario",
+      "x": 13,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/interfone"
+    },
+    {
+      "id": "d_campainha",
+      "kind": "cenario",
+      "x": 14,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/campainha"
+    },
+    {
+      "id": "d_capacho",
+      "kind": "cenario",
+      "x": 5,
+      "y": 6,
+      "blocks": false,
+      "art": "props/doormat"
+    },
+    {
+      "id": "d_varanda",
+      "kind": "cenario",
+      "x": 16,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/varanda"
+    },
+    {
+      "id": "d_grade",
+      "kind": "cenario",
+      "x": 18,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/grade"
+    },
+    {
+      "id": "d_ar_condicionado",
+      "kind": "cenario",
+      "x": 20,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/ar_condicionado"
+    },
+    {
+      "id": "d_antena",
+      "kind": "cenario",
+      "x": 1,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/antena"
+    },
+    {
+      "id": "d_lombada",
+      "kind": "cenario",
+      "x": 16,
+      "y": 11,
+      "blocks": false,
+      "art": "diary/lombada"
+    },
+    {
+      "id": "d_encomenda",
+      "kind": "cenario",
+      "x": 13,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/encomenda"
+    },
+    {
+      "id": "d_envelope",
+      "kind": "cenario",
+      "x": 12,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/envelope"
+    },
+    {
+      "id": "d_selo",
+      "kind": "cenario",
+      "x": 13,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/selo"
+    },
+    {
+      "id": "d_tenis",
+      "kind": "cenario",
+      "x": 17,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/tenis"
+    },
+    {
+      "id": "d_guarda_chuva",
+      "kind": "cenario",
+      "x": 9,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/guarda_chuva"
+    },
+    {
+      "id": "d_capacete",
+      "kind": "cenario",
+      "x": 8,
+      "y": 13,
+      "blocks": false,
+      "art": "diary/capacete"
+    },
+    {
+      "id": "d_pneu",
+      "kind": "cenario",
+      "x": 11,
+      "y": 12,
+      "blocks": false,
+      "art": "diary/pneu"
+    },
+    {
+      "id": "d_guidao",
+      "kind": "cenario",
+      "x": 15,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/guidao"
+    },
+    {
+      "id": "d_pedal",
+      "kind": "cenario",
+      "x": 14,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/pedal"
+    }
+  ]
+}

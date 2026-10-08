@@ -6,8 +6,8 @@
  * Photos stay out of the profiles table. A save rewrites a photo row only when that profile's
  * photo ids change (same rule as the old `photos.json` split: image bytes live under an id).
  *
- * `layouts.json` (design mode, not on this branch yet) is a kv row so a volume that already has
- * the file is imported, and `layoutFileAdapter` speaks the same load/save shape.
+ * Design-mode `layouts.json` is a kv row. A volume that already has the file is imported, and
+ * `layoutFileAdapter` is what `LayoutStore` loads and saves.
  */
 import type { PlayerAcademy } from '@tudobem/shared';
 import type { AcademyPersistence } from './academyStore.js';

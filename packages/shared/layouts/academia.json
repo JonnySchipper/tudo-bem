@@ -1,0 +1,256 @@
+{
+  "room": "academia",
+  "objects": [
+    {
+      "id": "tatame",
+      "kind": "tatame",
+      "x": 2,
+      "y": 1,
+      "w": 6,
+      "h": 4,
+      "blocks": false,
+      "label": {
+        "pt": "Tatame aberto",
+        "en": "Open mat"
+      }
+    },
+    {
+      "id": "fila",
+      "kind": "quadro_fila",
+      "x": 9,
+      "y": 1,
+      "blocks": true,
+      "action": "bjj_roll",
+      "interact": {
+        "x": 9,
+        "y": 2
+      },
+      "label": {
+        "pt": "Treino no tatame →",
+        "en": "Mat practice →"
+      }
+    },
+    {
+      "id": "faixas",
+      "kind": "parede_faixas",
+      "x": 0,
+      "y": 1,
+      "h": 2,
+      "blocks": true,
+      "label": {
+        "pt": "Parede de faixas",
+        "en": "Belt wall"
+      }
+    },
+    {
+      "id": "quadro",
+      "kind": "quadro_foto",
+      "x": 10,
+      "y": 4,
+      "blocks": true,
+      "label": {
+        "pt": "Academia do Bairro",
+        "en": "Academy photo"
+      }
+    },
+    {
+      "id": "arquibancada",
+      "kind": "banco_espectador",
+      "x": 1,
+      "y": 0,
+      "w": 4,
+      "blocks": false,
+      "seat": "SW",
+      "label": {
+        "pt": "Arquibancada",
+        "en": "Bleachers"
+      }
+    },
+    {
+      "id": "vestiario",
+      "kind": "vestiario",
+      "x": 0,
+      "y": 7,
+      "blocks": true,
+      "action": "buy_gi",
+      "interact": {
+        "x": 1,
+        "y": 7
+      },
+      "label": {
+        "pt": "Kimono · comece aqui",
+        "en": "Gi · start here"
+      }
+    },
+    {
+      "id": "elevador",
+      "kind": "quadro_foto",
+      "x": 4,
+      "y": 7,
+      "blocks": true,
+      "action": "academy_elevator",
+      "interact": {
+        "x": 5,
+        "y": 7
+      },
+      "label": {
+        "pt": "Elevador · academias",
+        "en": "Elevator · academies"
+      }
+    },
+    {
+      "id": "banco_gym",
+      "kind": "cenario",
+      "x": 5,
+      "y": 8,
+      "w": 2,
+      "h": 1,
+      "blocks": false,
+      "art": "props/banco_gym"
+    },
+    {
+      "id": "bebedouro",
+      "kind": "cenario",
+      "x": 10,
+      "y": 8,
+      "blocks": false,
+      "art": "props/bebedouro"
+    },
+    {
+      "id": "placar",
+      "kind": "cenario",
+      "x": 8,
+      "y": 3,
+      "w": 2,
+      "h": 1,
+      "blocks": false,
+      "art": "props/placar"
+    },
+    {
+      "id": "bandeira_br",
+      "kind": "cenario",
+      "x": 10,
+      "y": 0,
+      "blocks": false,
+      "art": "props/bandeira_br",
+      "ox": -4
+    },
+    {
+      "id": "d_cronometro",
+      "kind": "cenario",
+      "x": 8,
+      "y": 3,
+      "blocks": false,
+      "art": "diary/cronometro",
+      "ox": -4
+    },
+    {
+      "id": "d_apito",
+      "kind": "cenario",
+      "x": 7,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/apito",
+      "ox": -4
+    },
+    {
+      "id": "d_prancheta",
+      "kind": "cenario",
+      "x": 9,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/prancheta",
+      "ox": -4
+    },
+    {
+      "id": "d_medalha",
+      "kind": "cenario",
+      "x": 10,
+      "y": 3,
+      "blocks": false,
+      "art": "diary/medalha",
+      "ox": -4
+    },
+    {
+      "id": "d_trofeu",
+      "kind": "cenario",
+      "x": 10,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/trofeu",
+      "ox": -4
+    },
+    {
+      "id": "d_corda",
+      "kind": "cenario",
+      "x": 0,
+      "y": 4,
+      "blocks": false,
+      "art": "diary/corda",
+      "ox": -4
+    },
+    {
+      "id": "d_armario",
+      "kind": "cenario",
+      "x": 0,
+      "y": 8,
+      "blocks": false,
+      "art": "diary/armario",
+      "ox": -4
+    },
+    {
+      "id": "d_recepcao",
+      "kind": "cenario",
+      "x": 10,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/recepcao",
+      "ox": -4
+    },
+    {
+      "id": "d_computador",
+      "kind": "cenario",
+      "x": 10,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/computador",
+      "ox": 4
+    },
+    {
+      "id": "d_podio",
+      "kind": "cenario",
+      "x": 5,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/podio",
+      "ox": -4
+    },
+    {
+      "id": "d_meia",
+      "kind": "cenario",
+      "x": 5,
+      "y": 8,
+      "blocks": false,
+      "art": "diary/meia",
+      "ox": -4
+    },
+    {
+      "id": "d_squeeze",
+      "kind": "cenario",
+      "x": 10,
+      "y": 8,
+      "blocks": false,
+      "art": "diary/squeeze",
+      "ox": -4
+    },
+    {
+      "id": "d_isotonico",
+      "kind": "cenario",
+      "x": 10,
+      "y": 8,
+      "blocks": false,
+      "art": "diary/isotonico",
+      "ox": 4
+    }
+  ]
+}

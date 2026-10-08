@@ -417,11 +417,11 @@ export interface AuthLimiters {
   signup: AttemptLimiter;
 }
 
-export function defaultLimiters(now: () => number = Date.now): AuthLimiters {
+export function defaultLimiters(now: () => number = Date.now, signupMax = 10): AuthLimiters {
   return {
     login: new AttemptLimiter(8, 15 * 60_000, now),
     ip: new AttemptLimiter(40, 15 * 60_000, now),
-    signup: new AttemptLimiter(10, 60 * 60_000, now),
+    signup: new AttemptLimiter(signupMax, 60 * 60_000, now),
   };
 }
 
