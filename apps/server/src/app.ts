@@ -131,7 +131,8 @@ export function createApp(opts: AppOptions) {
     { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, idleKickMs: opts.idleKickMs, academies, padarias, feiraGames, feiraCart, layouts },
   );
   const conversaMemory = new ConversaMemory({ store, onProfileChanged: (playerId) => world.pushProfileById(playerId) });
-  const limiters = defaultLimiters();
+  // Test servers (TB_TEST_CLOCK_CONTROL=1, never set on prod) lift the 10-signups-per-hour-per-IP cap: e2e:all signs up 10+ accounts from 127.0.0.1.
+  const limiters = defaultLimiters(Date.now, process.env.TB_TEST_CLOCK_CONTROL === '1' ? 200 : 10);
   const allowedOrigins = opts.allowedOrigins ?? [];
   const opsSmoke = opts.opsSmoke ?? readOpsSmokeConfig();
   const googleOAuth = opts.googleOAuth ?? readGoogleOAuthConfig();
