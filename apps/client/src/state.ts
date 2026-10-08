@@ -55,6 +55,10 @@ class Game {
   photos: import('@tudobem/shared').DiaryPhoto[] = [];
   /** Solo (static) build: the world runs in this tab; no other humans. */
   solo = false;
+  /** Live Fada da Feira (today's top Feira score). Display only; cleared at midnight ET. */
+  feiraCrownId: string | null = null;
+  /** Which Feira panel to open when the next board message arrives. */
+  pendingFeiraOpen: 'cart' | 'sign' | null = null;
   sound = localStorage.getItem('tb_sound') !== 'off';
   /** Background beds. Separate from voice so Carlos can stay on while the room is quiet. */
   music = localStorage.getItem('tb_music') !== 'off';

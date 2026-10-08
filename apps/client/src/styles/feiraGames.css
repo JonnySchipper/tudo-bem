@@ -1,0 +1,386 @@
+/*
+ * Feira cart games: the cart / sign panels and the Tapioca overlay.
+ * Same cream paper, terracotta, chunky ink edge and pixel headings as the other panels.
+ * Learning lines stay Nunito (the .en gloss under the Portuguese order).
+ */
+
+.feira-game-panel {
+  max-width: min(440px, calc(100vw - 24px));
+  width: 100%;
+}
+
+.feira-game-panel .fg-kicker {
+  margin: 0 0 4px;
+  font-family: var(--font-pixel);
+  color: var(--terracota-dark, #8f3e15);
+  font-size: 0.95rem;
+}
+
+.feira-game-panel h3 {
+  font-family: var(--font-pixel);
+  color: var(--ink);
+  margin: 14px 0 6px;
+  font-size: 1.05rem;
+}
+
+.fg-intro,
+.fg-greet,
+.fg-featured {
+  margin: 6px 0;
+}
+
+.feira-game-panel .primary {
+  margin-top: 12px;
+  min-height: 48px;
+}
+
+.fg-top,
+.fg-medals {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fg-top li,
+.fg-medals li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #fffaf2;
+  box-shadow: inset 0 0 0 2px #2a2233;
+}
+
+.fg-top li.you {
+  background: #fff3c4;
+}
+
+.fg-top b {
+  font-family: var(--font-pixel);
+  width: 1.4rem;
+}
+
+.fg-score {
+  margin-left: auto;
+  font-family: var(--font-pixel);
+}
+
+.fg-counts {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-family: var(--font-pixel);
+}
+
+.fg-medal {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-left: 6px;
+  font-style: normal;
+  font-size: 10px;
+  line-height: 14px;
+  text-align: center;
+  color: #2a2233;
+  box-shadow: inset 0 0 0 2px #2a2233;
+}
+
+.fg-medal.gold { background: #f2c230; }
+.fg-medal.silver { background: #d9d3c7; }
+.fg-medal.bronze { background: #c48a5a; }
+
+.fg-empty {
+  margin: 4px 0 8px;
+}
+
+/* ---------------------------------------------------------------- Tapioca overlay */
+
+body.tp-on .topbar,
+body.tp-on .bottombar,
+body.tp-on .hud-actions,
+body.tp-on .hud-burger,
+body.tp-on .minimap,
+body.tp-on #world-labels {
+  display: none !important;
+}
+
+.tp-root {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 10px calc(12px + env(safe-area-inset-bottom));
+  background: #1c3a34;
+  color: #2a2233;
+  touch-action: manipulation;
+}
+
+.tp-hud {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fbf1e3;
+  font-family: var(--font-pixel);
+  font-size: 1.3rem;
+}
+
+.tp-hud .tp-quit {
+  margin-left: auto;
+  min-height: 40px;
+  color: #fbf1e3;
+}
+
+.tp-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 72px;
+}
+
+.tp-customer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px;
+  background: #fbf1e3;
+  box-shadow: 0 0 0 3px #2a2233;
+}
+
+.tp-portrait {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+}
+
+.tp-order {
+  flex: 1;
+  min-width: 0;
+}
+
+.tp-order .tp-pt {
+  margin: 2px 0 0;
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
+.tp-order .en {
+  display: block;
+  margin-top: 1px;
+}
+
+.tp-pips {
+  display: flex;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.tp-pips i {
+  width: 10px;
+  height: 8px;
+  background: #ead7b8;
+  box-shadow: inset 0 0 0 1px #2a2233;
+}
+
+.tp-pips i.on {
+  background: #2e8a55;
+}
+
+.tp-serve {
+  flex: 0 0 auto;
+  min-width: 72px;
+  min-height: 48px;
+}
+
+.tp-griddle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  padding: 10px 6px;
+  background:
+    repeating-linear-gradient(90deg, #4a3428 0 8px, #3c2a20 8px 16px);
+  box-shadow: inset 0 0 0 3px #2a2233;
+}
+
+.tp-pan {
+  width: 108px;
+  min-height: 108px;
+  padding: 4px;
+  background: #c4a574;
+  border: 0;
+  box-shadow: inset 0 0 0 3px #2a2233, 0 3px 0 #1a120c;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: #2a2233;
+}
+
+.tp-pan-svg {
+  width: 88px;
+  height: 64px;
+  image-rendering: pixelated;
+}
+
+.tp-pan-label {
+  font-family: var(--font-pixel);
+  font-size: 0.85rem;
+  line-height: 1.1;
+}
+
+.tp-pan-label .en {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+}
+
+.tp-pan.tp-flip-early {
+  box-shadow: inset 0 0 0 3px #c45c26, 0 3px 0 #1a120c;
+}
+
+.tp-pan.tp-flip-late {
+  box-shadow: inset 0 0 0 3px #6b3a22, 0 3px 0 #1a120c;
+}
+
+.tp-bowls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.tp-bowl {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #fbf1e3;
+  border: 0;
+  box-shadow: inset 0 0 0 3px #2a2233;
+  font-family: var(--font-pixel);
+}
+
+.tp-bowl.on {
+  background: #fff3c4;
+}
+
+.tp-dot {
+  width: 14px;
+  height: 14px;
+  box-shadow: inset 0 0 0 2px #2a2233;
+}
+
+.tp-dot-queijo { background: #f2c230; }
+.tp-dot-coco { background: #fff6e6; }
+.tp-dot-chocolate { background: #6b3a22; }
+.tp-dot-goiabada { background: #c44536; }
+
+.tp-pop {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  transform: translate(-50%, -50%);
+  padding: 8px 14px;
+  background: #fbf1e3;
+  box-shadow: 0 0 0 3px #2a2233;
+  font-family: var(--font-pixel);
+  font-size: 1.4rem;
+  pointer-events: none;
+}
+
+.tp-pop-perfect { background: #f2c230; }
+
+.tp-end {
+  margin: auto;
+  width: min(420px, 100%);
+  padding: 18px 16px;
+  background: #fbf1e3;
+  box-shadow: 0 0 0 3px #2a2233;
+}
+
+.tp-end h2,
+.tp-score {
+  font-family: var(--font-pixel);
+  color: #8f3e15;
+  margin: 0;
+}
+
+.tp-score {
+  font-size: 2.4rem;
+}
+
+.tp-crown-line {
+  font-family: var(--font-pixel);
+  color: #8f3e15;
+}
+
+.tp-end-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.tp-end-actions button {
+  flex: 1;
+  min-height: 48px;
+}
+
+.tp-wait {
+  color: #fbf1e3;
+  margin: 8px;
+}
+
+/* phone: stack stays usable at 390px */
+@media (max-width: 420px) {
+  .tp-pan {
+    width: calc(33% - 8px);
+    min-width: 96px;
+  }
+  .tp-customer {
+    align-items: flex-start;
+  }
+}
+
+/* Fada da Feira: a small pixel crown above the name, not a plate colour. */
+.wl-feira-crown {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 18px;
+  height: 12px;
+  margin-left: -9px;
+  margin-bottom: 1px;
+  background:
+    linear-gradient(#f2c230, #f2c230) 0 4px / 18px 8px no-repeat,
+    linear-gradient(#2a2233, #2a2233) 0 0 / 4px 6px no-repeat,
+    linear-gradient(#2a2233, #2a2233) 7px 0 / 4px 8px no-repeat,
+    linear-gradient(#2a2233, #2a2233) 14px 0 / 4px 6px no-repeat,
+    linear-gradient(#f2c230, #f2c230) 1px 1px / 2px 4px no-repeat,
+    linear-gradient(#f2c230, #f2c230) 8px 1px / 2px 6px no-repeat,
+    linear-gradient(#f2c230, #f2c230) 15px 1px / 2px 4px no-repeat;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+
+.fg-diary {
+  margin-top: 8px;
+}
+
+.fg-diary li {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 4px 0;
+  border-bottom: 1px dashed rgba(42, 34, 51, 0.25);
+}
+
+.fg-diary .fg-medal {
+  flex: 0 0 auto;
+}

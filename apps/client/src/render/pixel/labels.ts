@@ -37,6 +37,8 @@ export interface StackItem {
     mark?: string;
     /** Beta founder “f” mark beside the nameplate. */
     founder?: boolean;
+    /** Live Fada da Feira crown. A display overlay only — not a tier, belt or stripe. */
+    feiraCrown?: boolean;
     /** Players: the nameplate colour earned in the escola (verde is the plain plate; the others add their colour and shape). */
     tier?: Nameplate;
   } | null;
@@ -181,6 +183,7 @@ interface StackEl {
   plateRow: HTMLElement;
   plate: HTMLElement;
   founder: HTMLElement;
+  crown: HTMLElement;
   bubbles: BubbleEl[];
   side: 'left' | 'right';
   plateKey: string;
@@ -350,9 +353,13 @@ export class LabelLayer {
     const founder = document.createElement('span');
     founder.className = 'wl-founder';
     founder.style.display = 'none';
-    plateRow.append(plate, founder);
+    const crown = document.createElement('i');
+    crown.className = 'wl-feira-crown';
+    crown.style.display = 'none';
+    crown.setAttribute('aria-hidden', 'true');
+    plateRow.append(crown, plate, founder);
     root.appendChild(plateRow);
-    return { root, plateRow, plate, founder, bubbles: [], side: 'left', plateKey: '', plateW: 0, plateH: 0, transform: '', hidden: false, occluded: false, baseBottoms: [], plateBottom: '' };
+    return { root, plateRow, plate, founder, crown, bubbles: [], side: 'left', plateKey: '', plateW: 0, plateH: 0, transform: '', hidden: false, occluded: false, baseBottoms: [], plateBottom: '' };
   }
 
   private createBubble(): BubbleEl {
@@ -396,7 +403,7 @@ export class LabelLayer {
 
     // nameplate: text and kind change rarely; measure only then
     const tier = s.plate && (s.plate.kind === 'player' || s.plate.kind === 'me') && s.plate.tier && s.plate.tier !== 'verde' ? s.plate.tier : null;
-    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}|${s.plate.mark ?? ''}|${s.plate.founder ? '1' : ''}|${tier ?? ''}` : '';
+    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}|${s.plate.mark ?? ''}|${s.plate.founder ? '1' : ''}|${s.plate.feiraCrown ? 'c' : ''}|${tier ?? ''}` : '';
     if (pk !== el.plateKey) {
       el.plateKey = pk;
       if (s.plate) {
@@ -421,6 +428,13 @@ export class LabelLayer {
           el.plate.append(mark, document.createTextNode(s.plate.text));
         } else {
           el.plate.append(document.createTextNode(s.plate.text));
+        }
+        if (s.plate.feiraCrown) {
+          el.crown.style.display = '';
+          el.crown.title = 'Fada da Feira';
+        } else {
+          el.crown.style.display = 'none';
+          el.crown.removeAttribute('title');
         }
         if (s.plate.founder) {
           el.founder.style.display = '';
