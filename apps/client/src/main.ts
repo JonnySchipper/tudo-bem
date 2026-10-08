@@ -82,6 +82,7 @@ import { openCredits } from './ui/credits';
 import { openSupport } from './ui/support';
 import { bindPetName, maybeAskPetName, openPetName, showPetNameError } from './ui/petName';
 import { bindAdmin, onAdminMsg } from './ui/admin';
+import { applyServerLayout } from './ui/layoutSync';
 import { isDialogueBoxOpen, setDialogueHost, showDialogueBox } from './ui/dialogue';
 import { mountTracker, openJournal, runPrelude } from './ui/recados';
 import { heartsWith } from './ui/recadoView';
@@ -704,11 +705,15 @@ net.on((m: ServerMsg) => {
     case 'admin':
       onAdminMsg(m);
       break;
+    case 'layout':
+      applyServerLayout(m.room, m.objects);
+      break;
     case 'welcome': {
       clock.syncServer(m.serverNow);
       if (m.weather !== undefined) clock.setWeather(m.weather);
       localStorage.setItem(TOKEN_KEY, m.token);
       game.profile = m.profile;
+      if (m.layouts) for (const row of m.layouts) applyServerLayout(row.room, row.objects);
       closeOnboarding();
       onboarding = null;
       if (!started) startGame();
@@ -1194,6 +1199,7 @@ function handleClick(hit: Hit | null) {
 }
 
 function handleClickInner(hit: Hit | null) {
+  if (game.designMode) return;
   if (!hit || !game.room) return;
   if (game.placing) {
     const tile = hit.kind === 'tile' ? hit.tile : renderer.tileAt(lastPointer.x, lastPointer.y);
@@ -1387,7 +1393,7 @@ let lastKeyStep = 0;
 let firstKeyAt = 0;
 const KEY_CHORD_MS = 60;
 function keyWalk() {
-  if (!heldArrows.length || !game.room || game.editMode || game.placing) return;
+  if (!heldArrows.length || !game.room || game.editMode || game.placing || game.designMode) return;
   const cur = selfTile();
   const room = game.roomDef;
   // wait for the server's answer to the previous step before asking for the next one
@@ -1555,6 +1561,8 @@ window.__tb = {
     if (o.speed !== undefined) clock.setSpeed(o.speed);
   },
   tileToClient: (x: number, y: number) => renderer.tileToClient(x, y),
+  clientToWorld: (x: number, y: number) => ('clientToWorld' in renderer ? (renderer as { clientToWorld: (x: number, y: number) => { wx: number; wy: number } | null }).clientToWorld(x, y) : null),
+  propClientRect: (p: { x: number; y: number; w?: number; h?: number }) => ('propClientRect' in renderer ? (renderer as { propClientRect: (p: { x: number; y: number; w?: number; h?: number }) => { x: number; y: number; w: number; h: number } | null }).propClientRect(p) : null),
   /** Frame names of the sprites in the current room (the Feira game cart and its sign, when they are up). */
   drawnFrames: () => ('drawnFrames' in renderer ? (renderer as { drawnFrames: () => string[] }).drawnFrames() : []),
   selfTile: () => selfTile(),
