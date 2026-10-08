@@ -20,6 +20,7 @@ import {
   PASTEL_POP,
   PASTEL_RECIPE,
   PASTEL_SHEEPISH,
+  feiraMeterWindow,
   pastelDoneness,
   pastelFromParts,
   pastelFry,
@@ -37,20 +38,9 @@ import { h, en } from './dom';
 import { pixelSvg } from './pixelSvg';
 import { npcPortrait, portraitKey, type Expression } from './pixelArt';
 import { imageUrl } from '../render/pixel/manifest';
+import { StallKit, counterProps, meterWindow, stallEndCard, stallRoof, ticket, type StallEnd } from './feiraStall';
 
-export interface PastelEnd {
-  score: number;
-  coins: number;
-  dailyBlocked: boolean;
-  served: number;
-  perfect: number;
-  left: number;
-  bestToday: number;
-  place: number;
-  crown: boolean;
-  linePt: string;
-  lineEn: string;
-}
+export type PastelEnd = StallEnd;
 
 export interface PastelHooks {
   finish: (outcomes: FeiraOrderOutcome[]) => void;
@@ -120,6 +110,15 @@ interface SlotNode {
   pt: Text;
   gloss: Text;
   visual: string;
+  /** The golden window on the fry meter; it moves for a combo (shorter golden). */
+  sweet: HTMLElement;
+  sweetCombo: boolean | null;
+  fire: boolean;
+}
+
+function goldenWindow(combo: boolean) {
+  const fry = pastelFry(combo);
+  return feiraMeterWindow(fry.goldenAt, fry.darkAt, fry.fireAt);
 }
 
 interface CustomerNode {
@@ -382,6 +381,7 @@ export class PastelView {
   private customerNodes = new Map<number, CustomerNode>();
   private bowlButtons = new Map<PastelPart, HTMLButtonElement>();
   private asmVisual = '';
+  private kit = new StallKit('pastel');
 
   constructor(
     private readonly seed: number,
@@ -430,11 +430,10 @@ export class PastelView {
         h('span', { class: 'ps-title' }, 'Pastel'),
         this.timerEl,
         this.scoreEl,
+        this.kit.meter,
         h('button', { type: 'button', class: 'ghost ps-quit', id: 'pastel-quit', onclick: () => this.abandon() }, 'Sair'),
       ),
-      h('div', { class: 'ps-awning', 'aria-hidden': 'true' },
-        h('span', { class: 'ps-awning-title' }, 'Pastel da feira'),
-      ),
+      stallRoof('pastel'),
       this.queueEl,
       h('div', { class: 'ps-stall' },
         h('div', { class: 'ps-board', id: 'pastel-board' },
@@ -448,12 +447,14 @@ export class PastelView {
             h('div', { class: 'ps-vat-lip', 'aria-hidden': 'true' }),
           ),
         ),
+        counterProps('pastel'),
         h('div', { class: 'ps-counter', 'aria-hidden': 'true' }),
       ),
       bowls,
       h('div', { class: 'ps-floor', 'aria-hidden': 'true' }),
       this.popEl,
     );
+    this.kit.mount(this.root);
     for (let i = 0; i < 3; i++) this.addSlot(i);
     document.body.classList.add('ps-on');
     document.getElementById('ui')?.append(this.root);
@@ -470,27 +471,15 @@ export class PastelView {
   showEnd(end: PastelEnd) {
     this.over = true;
     cancelAnimationFrame(this.raf);
-    const crown = end.crown
-      ? h('p', { class: 'ps-crown-line', id: 'pastel-crown' }, 'Fada da Feira', en('You lead today’s board.'))
-      : null;
-    this.root.replaceChildren(
-      h('div', { class: 'ps-end', id: 'pastel-end' },
-        h('h2', null, 'Pastel'),
-        h('p', { class: 'ps-score', id: 'pastel-score' }, String(end.score), en('points')),
-        h('p', { class: 'ps-line' }, end.linePt, en(end.lineEn)),
-        h('p', { class: 'ps-meta', id: 'pastel-meta' },
-          `${end.coins} RV`,
-          en(end.dailyBlocked ? 'Board only — today’s paid runs are used.' : end.coins ? 'virtual reais' : 'no RV this round'),
-        ),
-        h('p', { class: 'ps-meta' }, `Melhor hoje: ${end.bestToday}`, en(`Best today: ${end.bestToday}`)),
-        h('p', { class: 'ps-meta', id: 'pastel-place' }, end.place ? `${end.place}º no placar` : 'Fora do placar', en(end.place ? `Place ${end.place} today` : 'Not on the board')),
-        crown,
-        h('div', { class: 'ps-end-actions' },
-          h('button', { type: 'button', class: 'primary', id: 'pastel-again', onclick: () => this.hooks.again() }, 'Jogar de novo', en('Play again')),
-          h('button', { type: 'button', class: 'ghost', id: 'pastel-close', onclick: () => this.hooks.quit() }, 'Fechar', en('Close')),
-        ),
-      ),
-    );
+    this.root.replaceChildren(stallEndCard({
+      game: 'pastel',
+      prefix: 'pastel',
+      cls: 'ps',
+      title: 'Pastel',
+      end,
+      again: () => this.hooks.again(),
+      quit: () => this.hooks.quit(),
+    }));
   }
 
   private elapsed() {
@@ -512,6 +501,7 @@ export class PastelView {
         c.gone = true;
         this.outcomes.push({ i: c.index, quality: 'miss', atMs: Math.round(this.elapsed()) });
         this.combo = 0;
+        this.kit.lose(this.customerNodes.get(c.index)?.root);
       }
     }
     this.paint(now);
@@ -596,7 +586,8 @@ export class PastelView {
       },
     }, 'Apaga!', en('Put it out!')) as HTMLButtonElement;
     const wrap = h('div', { class: 'ps-slot-wrap', id: `pastel-wrap-${index}` }, btn, apaga);
-    const node: SlotNode = { wrap, btn, svg, meter, apaga, pt, gloss, visual: '' };
+    const sweet = meterWindow(meter.parentElement!, goldenWindow(false));
+    const node: SlotNode = { wrap, btn, svg, meter, apaga, pt, gloss, visual: '', sweet, sweetCombo: false, fire: false };
     this.slotNodes.push(node);
     this.slotsEl.append(wrap);
   }
@@ -619,6 +610,15 @@ export class PastelView {
     node.btn.classList.toggle('is-ready', state === 'ready');
     node.btn.classList.toggle('is-golden', live === 'golden' && state === 'frying');
     node.apaga.hidden = state !== 'fire';
+    // catching fire shakes the pan once, so it reads before the label does
+    if (state === 'fire' && !node.fire) this.kit.shake(node.wrap);
+    node.fire = state === 'fire';
+    if (slot.phase === 'frying' && node.sweetCombo !== slot.combo) {
+      node.sweetCombo = slot.combo;
+      const w = goldenWindow(slot.combo);
+      node.sweet.style.left = `${(w.from * 100).toFixed(1)}%`;
+      node.sweet.style.width = `${((w.to - w.from) * 100).toFixed(1)}%`;
+    }
     const stage = state === 'empty' ? 'empty' : state === 'ready' ? (slot.pulled ?? 'golden') : (live ?? 'raw');
     const visual = `ps-pas st-${stage === 'empty' ? 'empty' : stage}`;
     if (node.visual !== visual) {
@@ -660,6 +660,7 @@ export class PastelView {
       }
       node.react.hidden = !fire;
       node.root.classList.toggle('ps-sheepish', fire);
+      node.root.classList.toggle('fs-hurry', frac < 0.28);
     }
   }
 
@@ -667,8 +668,15 @@ export class PastelView {
     const pips = [0, 1, 2, 3].map(() => h('i', { class: 'on' }));
     const face = npcPortrait(c.order.who, 'neutro', 'ps-portrait');
     const react = h('p', { class: 'ps-react', hidden: true }, PASTEL_SHEEPISH.pt, en(PASTEL_SHEEPISH.en));
-    const root = h('div', { class: 'ps-customer', 'data-order': String(c.index) },
+    // the ticket shows each part of the order, so a combo reads as two bowls before the line does
+    const icons = PASTEL_RECIPE[c.order.filling].parts.map((part) => {
+      const icon = bowlSvg(part);
+      icon.setAttribute('class', 'fs-ticket-icon');
+      return icon;
+    });
+    const root = h('div', { class: 'ps-customer fs-arrive', 'data-order': String(c.index) },
       face,
+      ticket(...icons),
       h('div', { class: 'ps-order' },
         h('b', null, c.order.name),
         h('div', { class: 'ps-pips', 'aria-label': '4 of 4' }, ...pips),
@@ -726,6 +734,7 @@ export class PastelView {
     const done = pastelDoneness(performance.now() - slot.droppedAt, slot.combo);
     if (done === 'fire') {
       this.flash('fire');
+      this.kit.shake(this.slotNodes[index]?.wrap);
       return;
     }
     slot.phase = 'ready';
@@ -759,6 +768,7 @@ export class PastelView {
     match.s.filling = null;
     match.s.pulled = null;
     match.s.combo = false;
+    const before = this.scoreGuess;
     if (quality === 'perfect') {
       this.combo += 1;
       this.scoreGuess += 48 + Math.min(12, (this.combo - 1) * 4);
@@ -767,6 +777,9 @@ export class PastelView {
       this.scoreGuess += quality === 'ok' ? 32 : quality === 'soft' ? 16 : 0;
     }
     if (quality !== 'miss') this.served += 1;
+    const at = this.customerNodes.get(c.index)?.root;
+    if (quality === 'miss') this.kit.lose(at);
+    else this.kit.gain(at, this.scoreGuess - before, quality);
     if (!fillingOk) this.flash('wrong');
     else if (quality === 'perfect') this.flash('perfect');
     else if (quality === 'ok') this.flash('ok');
