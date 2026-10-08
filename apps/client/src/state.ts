@@ -48,6 +48,8 @@ class Game {
   placing: { itemId: string; rot: 0 | 1 } | null = null;
   selectedFurniture: string | null = null;
   hoverTile: Tile | null = null;
+  /** Where the last tap sent you (or was refused): the pixel view draws the destination ring or the red cross (render/pixel/tapMark.ts). */
+  tapMark: import('./render/pixel/tapMark').TapMark | null = null;
   /** Label key under the pointer (`av:<id>` or `npc:<id>`), so a CPU nameplate can show on hover. */
   hoverKey: string | null = null;
   modalOpen = false;

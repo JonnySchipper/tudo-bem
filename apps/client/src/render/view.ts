@@ -33,6 +33,8 @@ export interface WorldView {
   tileToClient(x: number, y: number): { px: number; py: number };
   hitTest(px: number, py: number): Hit | null;
   tileAt(px: number, py: number): Tile | null;
+  /** The tile under a point even outside the room (the town drawn around an open-air map): where a refused tap's cross goes. */
+  worldTileAt?(px: number, py: number): Tile | null;
   /** A dialogue box opened (`npc`: the NPC's tile, null for something that is not a person) or closed (null): the camera eases one zoom step in. */
   setDialogueFocus?(f: { npc: Tile | null } | null): void;
   /** Height of the dialogue box in CSS px (the speakers are kept above it). */

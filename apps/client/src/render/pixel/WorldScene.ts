@@ -77,7 +77,9 @@ import { FOCUS, NEED } from './correriaArt';
 import { roomKey, syncViews } from './reconcile';
 import { DEPTH, PROP_LIGHT, fencePieces, footprintRect, inflate, propAnchor, propClickKind, propDepth, furnitureArtKey, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
 import { sceneryFor, type WireRun } from './scenery';
-import { SURROUND_TILES, surroundFor, type Surround } from './surround';
+import { SURROUND_TILES, propReachFor, surroundFor, type Surround } from './surround';
+import { TapMarkerLayer } from './tapMarkerLayer';
+import { repathSlide, slideOffset } from './walkSlide';
 import {
   FLOOR_PLACEHOLDER,
   CAMERA_LEAD_NORTH,
@@ -162,6 +164,8 @@ interface AvatarView {
   holdMs: number;
   waitMs: number;
   lastNow: number;
+  /** a new path that starts from a tile other than where the sprite stood (a retap mid-step): that gap, eased away from `t0` (repathSlide) */
+  slide: { dx: number; dy: number; t0: number } | null;
 }
 
 /** Longest an avatar waits for a car in its way before it carries on regardless (a car that is itself waiting for them). */
@@ -276,6 +280,10 @@ export class WorldScene extends Phaser.Scene {
   private gridDef: RoomDef | null = null;
   private bounds: Rect = { x0: 0, y0: 0, x1: 1, y1: 1 };
   private snapCamera = true;
+  /** the surround prop reach the current room was built with; a window grown past it rebuilds the room once (update) */
+  private builtReach = 0;
+  /** the camera follow's own (unsnapped) centre; `cam.cx/cy` is it snapped to the device grid */
+  private camFollow = { cx: 0, cy: 0 };
   private hoverRect!: Phaser.GameObjects.Rectangle;
   private lastT = 0;
   /** the game day the room was built for (a new day brings a new couple of small diary objects) */
@@ -283,6 +291,8 @@ export class WorldScene extends Phaser.Scene {
   /** decorate-mode ghost of the piece being placed or moved (scene-level: it outlives room rebuilds) */
   private ghost: Phaser.GameObjects.Sprite | null = null;
   private ghostKey = '';
+  /** where the last tap sent you, or the red cross where it could not (tapMark.ts) */
+  private tapMarker!: TapMarkerLayer;
   /** the padaria order rail: still until Correria no Balcão is open */
   private trilho: Phaser.GameObjects.Sprite | null = null;
   private trilhoLive = false;
@@ -336,6 +346,7 @@ export class WorldScene extends Phaser.Scene {
     });
     // the hover marker belongs to the scene, not to a room layer
     this.hoverRect = this.rig.world(this.add.rectangle(0, 0, T, T, 0xffffff, 0.22)).setOrigin(0, 0).setStrokeStyle(1, 0xffffff, 0.8).setDepth(49000).setVisible(false);
+    this.tapMarker = new TapMarkerLayer(this, (o) => this.rig.world(o));
     this.fxLevel.lowfx = this.host.lowfx;
     this.fxLevel.reduced = reducedMotion();
     this.gov = new LowFxGovernor(this.probe, this.host.lowfx);
@@ -528,6 +539,15 @@ export class WorldScene extends Phaser.Scene {
     this.weatherFx?.clearRoom();
   }
 
+  /** Surround prop reach for this window (propReachFor): what the window can see past the map at the room's zoom, HUD insets included. */
+  private propReach(def: RoomDef): number {
+    if (!def.outdoor) return 0;
+    const cssZoom = cssZoomFor(window.innerWidth, window.innerHeight);
+    const tile = cssZoom * T;
+    const ins = this.host.insets();
+    return propReachFor(def, window.innerWidth / tile, window.innerHeight / tile, (ins.top - ins.bottom) / 2 / tile);
+  }
+
   private buildRoom(def: RoomDef): void {
     this.destroyRoom();
     this.roomOutdoor = isOutdoor(def);
@@ -537,7 +557,8 @@ export class WorldScene extends Phaser.Scene {
 
     // ---- terrain: dual-grid layers for the floor chars that have art; substitutes and flat placeholders for the rest. An open-air map draws
     // the town around it too (surround.ts): the same layers, started `margin` tiles out, so the ground runs on past the map edge
-    const sur = surroundFor(def);
+    this.builtReach = this.propReach(def);
+    const sur = surroundFor(def, this.builtReach);
     const res = buildTerrainLayers(this, sur ? sur.floor : def.floor, m.terrain, 'terrainTs', { outside: def.outdoor ? undefined : 'x', wrap: (o) => this.rig.world(o), substitute: FLOOR_SUBSTITUTE, offset: sur ? -sur.margin : 0 });
     this.roomMap = res.map;
     this.groundLayers = res.layers.map((layer, i) => ({ ch: res.drawn[i], layer }));
@@ -1025,7 +1046,8 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
     const key = roomKey(room);
-    if (key !== this.roomId || this.roomDef !== def || clock.day() !== this.diaryDay) {
+    // a window made bigger than the surround was built for (say a phone turned, a desktop window maximised) rebuilds it once; smaller keeps it
+    if (key !== this.roomId || this.roomDef !== def || clock.day() !== this.diaryDay || (def.outdoor && this.propReach(def) > this.builtReach)) {
       this.roomId = key;
       this.roomDef = def;
       this.buildRoom(def);
@@ -1044,6 +1066,7 @@ export class WorldScene extends Phaser.Scene {
     this.syncCounter(dt, now);
     this.updateCanopies(dt);
     this.updateHover(def);
+    this.updateTapMarker(now);
     this.updateTrilho();
     this.updateStall();
     this.updateFeira();
@@ -1342,18 +1365,21 @@ export class WorldScene extends Phaser.Scene {
       this.snapCamera = true;
     }
     this.cssScale = f.zoom / this.cam.dpr;
+    const raw = this.camFollow;
     if (this.snapCamera) {
-      this.cam.cx = target.cx;
-      this.cam.cy = target.cy;
+      raw.cx = target.cx;
+      raw.cy = target.cy;
       this.snapCamera = false;
     } else {
       // exponential follow, about 0.12 per 60 fps frame (HOWTO §5.3), frame-rate independent
       const a = 1 - Math.pow(1 - 0.12, dt * 60);
-      this.cam.cx += (target.cx - this.cam.cx) * a;
-      this.cam.cy += (target.cy - this.cam.cy) * a;
+      raw.cx += (target.cx - raw.cx) * a;
+      raw.cy += (target.cy - raw.cy) * a;
     }
-    this.cam.cx = snapToDevice(this.cam.cx, this.cam.zoom);
-    this.cam.cy = snapToDevice(this.cam.cy, this.cam.zoom);
+    // the follow runs unsnapped and only the drawn camera snaps to the device grid: snapping the follow itself left a dead zone (steps under
+    // half a device px never happened, so the camera stopped short, then lurched a whole px when the avatar set off)
+    this.cam.cx = snapToDevice(raw.cx, this.cam.zoom);
+    this.cam.cy = snapToDevice(raw.cy, this.cam.zoom);
     const nudge = this.stage.cameraNudge();
     const cn = this.counter.cameraNudge();
     this.cameras.main.centerOn(this.cam.cx + nudge.x + cn.x, this.cam.cy + nudge.y + cn.y);
@@ -1410,6 +1436,7 @@ export class WorldScene extends Phaser.Scene {
       holdMs: 0,
       waitMs: 0,
       lastNow: 0,
+      slide: null,
     };
   }
 
@@ -1443,6 +1470,9 @@ export class WorldScene extends Phaser.Scene {
     // nobody walks through a car: where the walk would put the feet inside a vehicle the avatar stands still at the kerb (the walk clock is
     // held back frame by frame) and goes on once the car has passed or stopped short
     if (v.walkStart !== a.start) {
+      // the server starts a new walk from the tile nearest the avatar, up to half a tile from where it is drawn: glide over that gap
+      // instead of popping back (or ahead) to the tile
+      v.slide = v.moving && !Number.isNaN(v.walkStart) ? repathSlide(v, feet(a.from.x, a.from.y), now) : null;
       v.walkStart = a.start;
       v.holdMs = 0;
       v.waitMs = 0;
@@ -1502,10 +1532,16 @@ export class WorldScene extends Phaser.Scene {
       const dyT = pos.tile.y - talkTo.y;
       if (Math.abs(dxT) <= 1 && Math.abs(dyT) <= 2) aside = Math.round((dxT < 0 ? -1 : 1) * avatarPx(10) * easeOut(this.dlgBlend));
     }
-    const wx = Math.round(f.wx) + aside;
+    const s = slideOffset(v.slide, now);
+    if (!s) v.slide = null;
+    // standing, the feet sit on whole art px; walking, on whole device px, the grid the camera is snapped to, so a followed avatar keeps
+    // still on screen instead of shuffling back and forth by up to half an art px (zoom/2 device px) between frames
+    const z = this.cam.zoom || 1;
+    const snap = pos.moving || s ? (n: number) => Math.round(n * z) / z : Math.round;
+    const wx = snap(f.wx + (s?.dx ?? 0)) + aside;
     // feet stay on the tile. The scaled figure already puts the head above the padaria counter,
     // so the old 11 px counter lift (which planted the feet on the counter top) is gone.
-    const wy = Math.round(f.wy);
+    const wy = snap(f.wy + (s?.dy ?? 0));
     v.wx = wx;
     v.wy = wy;
     v.sprite.setPosition(wx, wy - bounce).setScale(avatarDrawScale());
@@ -1916,6 +1952,13 @@ export class WorldScene extends Phaser.Scene {
     }
     const ok = game.placing ? canPlaceFurniture(def, game.furniture, t.x, t.y) : !!this.grid && !this.grid.blocked.has(tileKey(t.x, t.y));
     this.hoverRect.setPosition(t.x * T, t.y * T).setFillStyle(ok ? 0xffffff : 0xe5572f, 0.25).setStrokeStyle(1, ok ? 0xffffff : 0xe5572f, 0.8);
+  }
+
+  private updateTapMarker(now: number): void {
+    const me = game.self ? this.avatars.get(game.self.pub.id) : undefined;
+    // the tile under the feet, back from the drawn position (feet() puts them 3 px above the tile's bottom edge)
+    const self = me ? { x: Math.round((me.wx - T / 2) / T), y: Math.round((me.wy + 3) / T - 1), moving: me.moving } : null;
+    this.tapMarker.update(game.tapMark, now, self, this.fxLevel.reduced);
   }
 
   private updateGhost(g: GhostSpec | null): void {

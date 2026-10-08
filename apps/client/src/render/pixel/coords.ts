@@ -92,24 +92,59 @@ export interface Insets {
 }
 
 /**
+ * Screen edges (CSS px) the HUD covers, kept clear of the avatar. Desktop: the top bar, and the emote chips over the chat bar. The phone layout
+ * (`compact`, hudLayout.COMPACT_QUERY) has the emotes behind a smiley in the chat bar: a portrait phone keeps the taller top (the bar and the
+ * pills under it) and only the chat bar at the bottom (the joystick that once sat above it is gone, #127); a landscape phone has a single
+ * bar strip on top and the chat bar, so the avatar is not pushed into the top third of a 390 px tall screen.
+ */
+export function hudInsets(w: number, h: number, compact: boolean, safe: { top: number; bottom: number } = { top: 0, bottom: 0 }): Insets {
+  const landscape = compact && h <= 520 && w > h;
+  const top = landscape ? 60 : compact ? 124 : 64;
+  const bottom = landscape ? 70 : compact ? 76 : 110;
+  return { top: top + safe.top, bottom: bottom + safe.bottom, left: 0, right: 0 };
+}
+
+/**
  * Camera centre for a focus point. Per axis: if the room (`bounds`) is smaller than the free part of the screen it is centred in
  * that part (the outside shows the backdrop); otherwise the focus is followed and clamped so the view never leaves the bounds.
- * `insets` (device px) reserve screen edges for the HUD; the focus is kept inside the free region.
+ * `insets` (device px) reserve screen edges for the HUD; the focus is kept inside the free region. `knee` (world px, 0 = a hard clamp) rounds
+ * the clamp off (`softClamp`), so walking toward an edge the camera slows down and settles instead of stopping dead; `kneeTop` is the north
+ * edge's own (0 where the north hold of `framingAt` already eases it: a knee there would stop the view short of the top of the bounds).
  */
-export function cameraCenter(view: { w: number; h: number; zoom: number }, bounds: Rect, focus: { x: number; y: number }, insets: Insets): { cx: number; cy: number } {
-  const axis = (size: number, lo: number, hi: number, b0: number, b1: number, f: number) => {
+export function cameraCenter(view: { w: number; h: number; zoom: number }, bounds: Rect, focus: { x: number; y: number }, insets: Insets, knee = 0, kneeTop = knee): { cx: number; cy: number } {
+  const axis = (size: number, lo: number, hi: number, b0: number, b1: number, f: number, kLo: number) => {
     // world distance from the centre to the free region's edges
     const toLo = (size / 2 - lo) / view.zoom;
     const toHi = (size / 2 - hi) / view.zoom;
     const min = b0 + toLo;
     const max = b1 - toHi;
     if (min >= max) return (b0 + b1) / 2 - (toHi - toLo) / 2; // fits: centre the room in the free region
-    return Math.min(max, Math.max(min, f));
+    return softClamp(f, min, max, kLo, knee);
   };
   return {
-    cx: axis(view.w, insets.left, insets.right, bounds.x0, bounds.x1, focus.x),
-    cy: axis(view.h, insets.top, insets.bottom, bounds.y0, bounds.y1, focus.y),
+    cx: axis(view.w, insets.left, insets.right, bounds.x0, bounds.x1, focus.x, knee),
+    cy: axis(view.h, insets.top, insets.bottom, bounds.y0, bounds.y1, focus.y, kneeTop),
   };
+}
+
+/**
+ * Clamp `f` to [min, max] with rounded corners: within `kneeLo` / `kneeHi` of a bound the output bends smoothly (a quadratic, slope 1 to 0)
+ * and reaches the bound that far past it, so the followed camera eases into the edge of a map instead of stopping dead. A knee of 0 is a plain
+ * clamp on that side. Each knee is narrowed to half the range so the two corners never overlap.
+ */
+export function softClamp(f: number, min: number, max: number, kneeLo: number, kneeHi = kneeLo): number {
+  const half = (max - min) / 2;
+  const lo = Math.min(kneeLo, half);
+  const hi = Math.min(kneeHi, half);
+  if (hi > 0 && f > max - hi) {
+    const u = Math.min(2 * hi, f - (max - hi));
+    return max - hi + u - (u * u) / (4 * hi);
+  }
+  if (lo > 0 && f < min + lo) {
+    const u = Math.min(2 * lo, min + lo - f);
+    return min + lo - u + (u * u) / (4 * lo);
+  }
+  return Math.min(max, Math.max(min, f));
 }
 
 /** Snap a camera coordinate to the device pixel grid so art pixels never straddle two device pixels. */
@@ -149,22 +184,26 @@ export function roomFraming(view: { w: number; h: number }, bounds: Rect, focus:
  * of the window, so a street on a big desktop is seen at the same scale as everywhere else instead of shrunk onto black.
  */
 export function outdoorFraming(view: { w: number; h: number }, bounds: Rect, focus: { x: number; y: number }, insets: Insets, cssZoom: number, dpr: number): { zoom: number; cx: number; cy: number; fits: boolean } {
-  return framingAt(view, bounds, focus, insets, deviceZoomFor(cssZoom, dpr), OUTDOOR_NORTH);
+  return framingAt(view, bounds, focus, insets, deviceZoomFor(cssZoom, dpr), OUTDOOR_NORTH, OUTDOOR_KNEE);
 }
 
-function framingAt(view: { w: number; h: number }, bounds: Rect, focus: { x: number; y: number }, insets: Insets, zoom: number, north: { rows: number; bandPx: number } | false): { zoom: number; cx: number; cy: number; fits: boolean } {
-  const c = cameraCenter({ w: view.w, h: view.h, zoom }, bounds, focus, insets);
+function framingAt(view: { w: number; h: number }, bounds: Rect, focus: { x: number; y: number }, insets: Insets, zoom: number, north: { rows: number; bandPx: number } | false, knee = 0): { zoom: number; cx: number; cy: number; fits: boolean } {
+  const c = cameraCenter({ w: view.w, h: view.h, zoom }, bounds, focus, insets, knee, north ? 0 : knee);
   let cy = c.cy;
   const toLoY = (view.h / 2 - insets.top) / zoom;
   // the camera centre that puts the top of the north wall band (3 tiles above row 0; a facade may rise higher, that part may be cropped) at the top of the free region
   const topCy = Math.max(bounds.y0, -(north ? north.bandPx : 0)) + toLoY;
   if (north && cy > topCy) {
-    // following: while the avatar is in the top NORTH_ROWS rows the view sits at the top of the bounds, and eases into following over the next four rows
+    // following: while the avatar is in the top NORTH_ROWS rows the view sits at the top of the bounds, and eases into following over the next
+    // four rows (smoothstep: no kink where the hold ends or where the follow takes over)
     const t = Math.min(1, Math.max(0, (focus.y - (north.rows * T - 10)) / (4 * T)));
-    cy = topCy + (cy - topCy) * t;
+    cy = topCy + (cy - topCy) * t * t * (3 - 2 * t);
   }
   return { zoom, cx: c.cx, cy, fits: fitsAt(view, bounds, insets, zoom) };
 }
+
+/** Open-air maps round off the follow clamp over 2 tiles each side of the edge (softClamp). */
+export const OUTDOOR_KNEE = 2 * T;
 
 /** Rows next to the north wall in which the camera keeps the whole wall in view. */
 export const NORTH_ROWS = 3;

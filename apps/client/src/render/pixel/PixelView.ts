@@ -10,7 +10,8 @@ import type { Guide, Hit, WorldView } from '../view';
 import { sharedCharAssets } from './charAssets';
 import { WorldScene } from './WorldScene';
 import { LabelLayer } from './labels';
-import { T, bufferPixels, canvasToWorld, tileAtWorld, tileCenterToCanvas, worldToCanvas, type Insets } from './coords';
+import { T, bufferPixels, canvasToWorld, hudInsets, tileAtWorld, tileCenterToCanvas, worldToCanvas, type Insets } from './coords';
+import { COMPACT_QUERY } from '../../ui/hudLayout';
 import { game } from '../../state';
 
 export class PixelView implements WorldView {
@@ -114,11 +115,11 @@ export class PixelView implements WorldView {
 
   /** HUD space to keep clear of the avatar (same numbers as the iso renderer). */
   private measure(): void {
-    const narrow = window.innerWidth < 700;
+    const compact = window.matchMedia(COMPACT_QUERY).matches;
     const cs = getComputedStyle(document.documentElement);
     const safeTop = parseFloat(cs.getPropertyValue('--safe-top')) || 0;
     const safeBot = parseFloat(cs.getPropertyValue('--safe-bottom')) || 0;
-    this.insetsCss = { top: (narrow ? 124 : 64) + safeTop, bottom: (narrow ? 168 : 110) + safeBot, left: 0, right: 0 };
+    this.insetsCss = hudInsets(window.innerWidth, window.innerHeight, compact, { top: safeTop, bottom: safeBot });
   }
 
   resize(): void {
@@ -186,6 +187,11 @@ export class PixelView implements WorldView {
     const w = this.worldAt(px, py);
     if (!room || !w) return null;
     return tileAtWorld(w.wx, w.wy, room.cols, room.rows);
+  }
+
+  worldTileAt(px: number, py: number): Tile | null {
+    const w = this.worldAt(px, py);
+    return w ? { x: Math.floor(w.wx / T), y: Math.floor(w.wy / T) } : null;
   }
 
   setDialogueFocus(f: { npc: Tile | null } | null): void {

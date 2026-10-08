@@ -24,6 +24,7 @@ import {
   buildGrid,
   cameraObjectIds,
   diaryVisible,
+  findPath,
   PHOTO_SPOTS,
   normalizeDiary,
   wordForLine,
@@ -111,6 +112,7 @@ import { speak, stopSpeaking, unlockSpeech } from './audio';
 import { ambience } from './ambience';
 import { installViewport } from './ui/viewport';
 import { arrowForKey, stepForHeld, stepTarget, type Arrow } from './ui/keys';
+import { STEER_EVERY_MS, shouldSteer, tapKindFor } from './render/pixel/tapMark';
 import { installUiArt } from './art/ui';
 
 installUiArt();
@@ -178,14 +180,38 @@ function selfTile(): { tile: Tile; moving: boolean } | null {
   return { tile: p.tile, moving: p.moving };
 }
 
-function walkTo(tile: Tile, pending: PendingAction | null, sit = false) {
+/**
+ * Walk to a tile; `pending` runs on arrival. `mark` (taps and clicks, not the keyboard) puts the destination ring there: white for the floor,
+ * gold when the walk is for someone or something (render/pixel/tapMark.ts).
+ */
+function walkTo(tile: Tile, pending: PendingAction | null, sit = false, mark: 'floor' | 'act' | null = null) {
   game.pending = pending;
   const cur = selfTile();
   if (cur && !cur.moving && cur.tile.x === tile.x && cur.tile.y === tile.y) {
     if (pending) runPending();
     return;
   }
+  if (mark) {
+    game.tapMark = { x: tile.x, y: tile.y, kind: mark, t0: now() };
+    // a retap on where you are already walking: the ring pops again and the walk goes on (a new path would restart from the nearest tile)
+    const end = game.self?.path.at(-1);
+    if (cur?.moving && !sit && end && end.x === tile.x && end.y === tile.y) return;
+  }
   net.send({ t: 'move', x: tile.x, y: tile.y, sit });
+}
+
+/** True when the avatar can walk to `tile` from where it stands (the server drops a move it cannot path, so a tap there is refused up front). */
+function canWalkTo(tile: Tile): boolean {
+  const room = game.roomDef;
+  const cur = selfTile();
+  if (!room || !cur) return false;
+  const grid = buildGrid(room, game.furniture);
+  return isWalkable(grid, tile.x, tile.y) && findPath(grid, cur.tile, tile) !== null;
+}
+
+/** A tap on a tile you cannot walk to (a prop's footprint, the town drawn past the map edge): the red cross shakes there. */
+function refuseTap(tile: Tile) {
+  game.tapMark = { x: tile.x, y: tile.y, kind: 'refused', t0: now() };
 }
 
 /** Prop whose interact tile the avatar is standing on (keyboard / proximity prompts). */
@@ -338,7 +364,7 @@ function clickHotspot(hs: HotspotDef) {
   const grid = buildGrid(room, game.furniture);
   const spot = readSpot(hs, cur.tile, (x, y) => isWalkable(grid, x, y));
   if (!spot) return toast('info', 'Não consigo chegar perto disso.', 'I can’t get close to that.');
-  walkTo(spot, { kind: 'hotspot', hotspotId: hs.id, tile: spot });
+  walkTo(spot, { kind: 'hotspot', hotspotId: hs.id, tile: spot }, false, 'act');
 }
 
 function rectsOverlap(a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) {
@@ -750,6 +776,7 @@ net.on((m: ServerMsg) => {
       game.avatars = new Map(m.avatars.map((a) => [a.id, toClientAvatar(a)]));
       game.furniture = m.furniture;
       game.pending = null;
+      game.tapMark = null;
       game.editMode = false;
       game.placing = null;
       game.selectedFurniture = null;
@@ -1193,7 +1220,7 @@ function handleClickInner(hit: Hit | null) {
     case 'avatar': {
       if (isCpuId(hit.id)) {
         const t = renderer.tileAt(lastPointer.x, lastPointer.y);
-        if (t) walkTo(t, null);
+        if (t) walkFloor(t);
         break;
       }
       const a = game.avatars.get(hit.id);
@@ -1206,12 +1233,12 @@ function handleClickInner(hit: Hit | null) {
       break;
     }
     case 'npc':
-      walkTo(hit.npc.interact, { kind: 'npc', npc: hit.npc.id, tile: hit.npc.interact });
+      walkTo(hit.npc.interact, { kind: 'npc', npc: hit.npc.id, tile: hit.npc.interact }, false, 'act');
       break;
     case 'prop': {
       const p: PropDef = hit.prop;
       if (game.cameraOn) break;
-      if (p.action && p.interact) walkTo(p.interact, { kind: 'prop', action: p.action, tile: p.interact, propId: p.id });
+      if (p.action && p.interact) walkTo(p.interact, { kind: 'prop', action: p.action, tile: p.interact, propId: p.id }, false, 'act');
       else if (cameraObjectIds().has(p.id)) toast('info', 'Abra a câmera pra fotografar.', 'Open the camera to take a photo.');
       break;
     }
@@ -1219,17 +1246,23 @@ function handleClickInner(hit: Hit | null) {
       clickHotspot(hit.hotspot);
       break;
     case 'portal':
-      walkTo({ x: hit.portal.x, y: hit.portal.y }, { kind: 'portal', portalId: hit.portal.id, tile: { x: hit.portal.x, y: hit.portal.y } });
+      walkTo({ x: hit.portal.x, y: hit.portal.y }, { kind: 'portal', portalId: hit.portal.id, tile: { x: hit.portal.x, y: hit.portal.y } }, false, 'act');
       break;
     case 'seat':
-      walkTo(hit.tile, null, true);
+      walkTo(hit.tile, null, true, tapKindFor(hit));
       break;
     case 'furniture':
       break;
     case 'tile':
-      walkTo(hit.tile, null);
+      walkFloor(hit.tile);
       break;
   }
+}
+
+/** A tap on the floor: walk there with the ring, or the refused cross when there is no way there. */
+function walkFloor(tile: Tile) {
+  if (canWalkTo(tile)) walkTo(tile, null, false, 'floor');
+  else refuseTap(tile);
 }
 
 /** Target of the `window.__tb.interact` test hook: something in the current room, by id. */
@@ -1268,6 +1301,13 @@ window.addEventListener('pointermove', (e) => {
 canvas.addEventListener('pointermove', (e) => {
   lastPointer.x = e.clientX;
   lastPointer.y = e.clientY;
+  if (worldDown?.id === e.pointerId) {
+    worldDown.lx = e.clientX;
+    worldDown.ly = e.clientY;
+    steerTick();
+  }
+  // a finger has no hover: no hover tile left behind on the floor after a tap, no label chasing a drag
+  if (e.pointerType === 'touch') return;
   if (!game.room || game.modalOpen) {
     hoverLabel(0, 0, null);
     return;
@@ -1304,25 +1344,77 @@ function onWorldActivate(clientX: number, clientY: number) {
     takePhoto(clientX, clientY);
     return;
   }
-  handleClick(renderer.hitTest(clientX, clientY));
+  const hit = renderer.hitTest(clientX, clientY);
+  // past the map edge (the town drawn around an open-air area) nothing is walkable: say so where the tap landed
+  if (!hit && game.room && !game.placing && !game.editMode) {
+    const t = renderer.worldTileAt?.(clientX, clientY);
+    if (t) refuseTap(t);
+    return;
+  }
+  handleClick(hit);
 }
+
+/** The world takes taps right now (no overlay on top of it, no viewfinder, not decorating): the only time a press may steer. */
+const worldTakesSteer = () => !!game.room && !game.modalOpen && !game.cameraOn && !game.placing && !game.editMode && !boutUi?.open;
+
 // viewport.ts preventDefault()s touchmove, which cancels the synthetic click as soon as the finger
 // jitters. A touch release within this radius is still a tap; a mouse release on the canvas is a click.
+// A press that began on the floor and is held (HOLD_STEER_MS) or dragged past the slop steers instead: the avatar walks toward the
+// pointer while it is down, re-aimed as the camera moves under it, and the release is not a tap.
 const TAP_SLOP_PX = 10;
-let worldDown: { id: number; x: number; y: number; touch: boolean } | null = null;
+let worldDown: { id: number; x: number; y: number; lx: number; ly: number; t0: number; touch: boolean; floor: boolean; steering: boolean; aimAt: number; aim: string } | null = null;
+let steerTimer = 0;
+function steerTick() {
+  const d = worldDown;
+  if (!d || !worldTakesSteer()) return;
+  const t = now();
+  if (!d.steering) {
+    if (!shouldSteer({ t0: d.t0, x: d.x, y: d.y, floor: d.floor }, t, d.lx, d.ly, TAP_SLOP_PX)) return;
+    d.steering = true;
+    hoverLabel(0, 0, null);
+  }
+  if (t - d.aimAt < STEER_EVERY_MS) return;
+  const tile = renderer.tileAt(d.lx, d.ly);
+  if (!tile) return;
+  const key = `${tile.x},${tile.y}`;
+  if (key === d.aim) return;
+  // a tile you cannot reach (a prop, a car) just keeps the last aim: the walk goes on, no cross flickering under a dragging finger
+  if (!canWalkTo(tile)) return;
+  d.aim = key;
+  d.aimAt = t;
+  walkTo(tile, null, false, 'floor');
+  if (game.tapMark) game.tapMark.held = true;
+}
+function endPress() {
+  window.clearInterval(steerTimer);
+  steerTimer = 0;
+  const d = worldDown;
+  worldDown = null;
+  if (d?.steering && game.tapMark?.held) game.tapMark = { ...game.tapMark, held: false, t0: now() };
+  return d;
+}
 canvas.addEventListener('pointerdown', (e) => {
   if (e.button !== 0 || !e.isPrimary) return;
-  worldDown = { id: e.pointerId, x: e.clientX, y: e.clientY, touch: e.pointerType === 'touch' };
+  endPress();
+  const hit = worldTakesSteer() ? renderer.hitTest(e.clientX, e.clientY) : null;
+  const floor = hit?.kind === 'tile';
+  worldDown = { id: e.pointerId, x: e.clientX, y: e.clientY, lx: e.clientX, ly: e.clientY, t0: now(), touch: e.pointerType === 'touch', floor, steering: false, aimAt: 0, aim: '' };
+  if (floor) {
+    // the mouse keeps steering when it leaves the canvas mid-drag (a finger is captured anyway)
+    if (!worldDown.touch) canvas.setPointerCapture?.(e.pointerId);
+    steerTimer = window.setInterval(steerTick, 60);
+  }
 });
 canvas.addEventListener('pointerup', (e) => {
-  const down = worldDown;
-  if (!down || e.pointerId !== down.id) return;
-  worldDown = null;
+  if (!worldDown || e.pointerId !== worldDown.id) return;
+  const down = endPress()!;
+  if (e.pointerType === 'touch') game.hoverTile = null;
+  if (down.steering) return;
   if (down.touch && Math.hypot(e.clientX - down.x, e.clientY - down.y) > TAP_SLOP_PX) return;
   onWorldActivate(e.clientX, e.clientY);
 });
 canvas.addEventListener('pointercancel', (e) => {
-  if (worldDown?.id === e.pointerId) worldDown = null;
+  if (worldDown?.id === e.pointerId) endPress();
 });
 document.addEventListener('keydown', (e) => {
   const tag = (e.target as HTMLElement)?.tagName;
