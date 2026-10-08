@@ -1,4 +1,5 @@
 import {
+  addCalendarDays,
   CARTELA_COPY,
   CARTELA_GOAL,
   normalizeCartela,
@@ -42,7 +43,7 @@ export class CartelaTracker {
   tryStamp(s: Session, activity: CartelaActivity): boolean {
     const p = s.profile;
     if (!p) return false;
-    const day = this.day();
+    const day = addCalendarDays(this.day(), p.testDayOffset ?? 0);
     const cur = this.of(p);
     const res = tryCartelaStamp(cur, activity, day);
     if (!res.ok) return false;

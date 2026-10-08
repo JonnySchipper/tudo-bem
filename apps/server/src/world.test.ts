@@ -3,8 +3,12 @@ import {
   buildGrid,
   CPU_NAMES,
   DIARY_WORDS,
+  GAME_DAY_MS,
+  gameDay,
   gameMinutes,
+  todayEastern,
   greetingCap,
+  normalizeBjj,
   greetingFor,
   openMatTiles,
   DEFAULT_APPEARANCE,
@@ -24,7 +28,8 @@ import {
 } from '@tudobem/shared';
 import { sanitizeAppearance, World, MG_RESUME_MS, type AccountLink, type Session, type WorldOptions } from './world.js';
 import { serveFront } from './correriaTestKit.js';
-import { ProfileStore, normalizeProfile, type StoredProfile } from './store.js';
+import { memoryFeiraGames } from './feiraGames.js';
+import { ProfileStore, normalizeProfile, today, todaySaoPaulo, type StoredProfile } from './store.js';
 import { AuthoredNpcDialogue, MemoryModerationQueue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 
 let clock = 1_000_000;
@@ -1163,7 +1168,8 @@ describe('Admin panel', () => {
     await a.send({ t: 'admin', action: 'testBelt', belt: 'marrom' });
     expect(a.s.profile!.bjj).toMatchObject({ belt: 'marrom', stripes: 0, wins: 140 });
     expect(a.s.profile!.testUser).toBe(true);
-    expect(a.last('avatarUpdated')?.avatar.belt).toBe('marrom');
+    expect(a.last('avatarUpdated')?.avatar.gi).toBe(false);
+    expect(a.last('avatarUpdated')?.avatar.belt).toBeUndefined();
     await a.send({ t: 'admin', action: 'testTeleport', room: 'academia' });
     expect(a.s.instance?.def.id).toBe('academia');
     await a.send({ t: 'academy', action: 'directory' });
@@ -1192,5 +1198,49 @@ describe('Admin panel', () => {
     expect(board?.words.some((row) => row.name === 'Jonny')).toBe(false);
     expect(board?.streak.some((row) => row.name === 'Jonny')).toBe(false);
     expect(board?.words.some((row) => row.name === 'Lia' && row.score === 2)).toBe(true);
+  });
+
+  it('rolls one test profile’s day without moving another player’s caps or the public Feira board', async () => {
+    const games = memoryFeiraGames(now);
+    const { world } = makeWorld(16, { adminPassword: 'tb-admin-praca', feiraGames: games });
+    const admin = await client(world, 'Jonny');
+    const other = await client(world, 'Lia');
+    const minute = world.gameMinuteNow();
+    const eastern = todayEastern(clock);
+    games.state.day = eastern;
+    games.state.scores = { [other.s.profile!.id]: { name: 'Lia', best: 80, game: 'tapioca', at: clock } };
+    games.state.medals = {};
+    const utc = today();
+    const sp = todaySaoPaulo();
+    other.s.profile!.correria = { stars: 1, shifts: 1, best: 10, date: utc, paid: 2 };
+    other.s.profile!.feira = { date: utc, n: 3 };
+    other.s.profile!.daily.pedidoRvGranted = { carlos: sp };
+    other.s.profile!.bjj = normalizeBjj({ bondDay: utc, bondToday: 1 });
+    other.s.profile!.cartela = { stamps: 1, activityDay: { feira: eastern } };
+    const liaRecados = other.s.profile!.recados?.day;
+    const liaSkies = other.all('sky').length;
+    await admin.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
+    await admin.send({ t: 'admin', action: 'testClock', rollDay: true });
+    expect(admin.s.profile!.testUser).toBe(true);
+    expect(admin.s.profile!.testDayOffset).toBe(1);
+    expect(admin.s.profile!.testClockOffsetMs).toBe(GAME_DAY_MS);
+    expect(admin.s.profile!.recados?.day).toBe(gameDay(clock + GAME_DAY_MS));
+    expect(admin.last('sky')?.serverNow).toBe(clock + GAME_DAY_MS);
+    expect(world.gameMinuteNow()).toBe(minute);
+    expect(other.s.profile!.testDayOffset).toBeUndefined();
+    expect(other.s.profile!.testClockOffsetMs).toBeUndefined();
+    expect(other.s.profile!.correria).toMatchObject({ date: utc, paid: 2 });
+    expect(other.s.profile!.feira).toEqual({ date: utc, n: 3 });
+    expect(other.s.profile!.daily.pedidoRvGranted).toEqual({ carlos: sp });
+    expect(other.s.profile!.bjj?.bondDay).toBe(utc);
+    expect(other.s.profile!.bjj?.bondToday).toBe(1);
+    expect(other.s.profile!.cartela?.activityDay.feira).toBe(eastern);
+    expect(other.s.profile!.recados?.day).toBe(liaRecados);
+    expect(other.all('sky').length).toBe(liaSkies);
+    expect(games.state.day).toBe(eastern);
+    expect(games.state.scores[other.s.profile!.id]?.best).toBe(80);
+    expect(games.state.medals).toEqual({});
+    expect(other.s.profile!.feiraMedals).toBeUndefined();
+    expect(admin.s.profile!.feiraMedals).toBeUndefined();
   });
 });

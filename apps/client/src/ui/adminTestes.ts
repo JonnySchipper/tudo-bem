@@ -142,6 +142,7 @@ export function adminTestesSection(): HTMLElement {
       h('button', { type: 'button', id: 'admin-test-day', onclick: () => go({ t: 'admin', action: 'testClock', rollDay: true }) }, 'Próximo dia'),
       h('button', { type: 'button', id: 'admin-test-caps', onclick: () => go({ t: 'admin', action: 'testCaps' }) }, 'Zerar limites de hoje'),
     ),
+    h('p', { class: 'admin-test-note' }, 'Hora e próximo dia valem só para este perfil. O relógio do bairro fica no lugar.'),
     h('h4', null, 'Tutorial e padaria'),
     h(
       'div',

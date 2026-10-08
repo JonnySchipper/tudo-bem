@@ -217,7 +217,7 @@ export function createApp(opts: AppOptions) {
         onConversaLine: (playerId, who, pt) => world.conversaLine(playerId, who, pt),
         memory: conversaMemory,
         clockMinutes: () => world.gameMinuteNow(),
-        dateKey: () => conversaDateKey(world.wallNow()),
+        dateKey: () => conversaDateKey(),
         playerIdFor: (r) => accounts.accountForSession(sessionCookieOf(r))?.profileId,
       });
     }

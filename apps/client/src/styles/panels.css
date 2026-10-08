@@ -822,6 +822,11 @@ html {
   font-weight: 800;
 }
 
+.admin-test-note {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+}
+
 .admin-feira-featured {
   margin: 8px 0 4px;
   font-weight: 800;

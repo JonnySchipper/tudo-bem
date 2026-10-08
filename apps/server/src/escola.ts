@@ -15,6 +15,7 @@ import {
   LUCIA_RIGHT,
   LUCIA_TIER_UP,
   ROOMS,
+  addCalendarDays,
   addXp,
   areaHunts,
   bumpStreak,
@@ -67,8 +68,6 @@ export interface EscolaDeps {
   npcsIn: (room: RoomId) => { id: NpcId; tile: Tile; interact: Tile }[];
   rng: () => number;
   now: () => number;
-  /** Calendar ms for "which day is it" (streak, RV cap, the mission). Defaults to `now`. */
-  dayNow?: () => number;
   /** The plate colour changed: show it to everyone in the room. */
   avatarChanged: (s: Session) => void;
   /** A short line to the other players in the same room. */
@@ -300,7 +299,7 @@ export class EscolaTracker {
     const p = s.profile;
     if (!p) return;
     const st = escolaOf(p);
-    const today = localDay(this.d.dayNow?.() ?? this.d.now(), st.tz);
+    const today = addCalendarDays(localDay(this.d.now(), st.tz), p.testDayOffset ?? 0);
     const m = st.mission;
     if (!m || m.done || m.day !== today || m.area !== word.area) return;
     m.done = true;
@@ -319,7 +318,7 @@ export class EscolaTracker {
     if (!l || !p) return;
     const st = escolaOf(p);
     const now = this.d.now();
-    const today = localDay(this.d.dayNow?.() ?? now, l.tz);
+    const today = addCalendarDays(localDay(now, l.tz), p.testDayOffset ?? 0);
     const strengthened: StrengthenedWord[] = [];
     let newlyMastered = 0;
     for (const [id, right] of l.results) {

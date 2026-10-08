@@ -1,7 +1,8 @@
 /**
  * Admin Testes actions (credits panel). Every caller has already passed the admin password check.
- * Profile writes mark `testUser` so the public words and streak boards skip that profile.
- * The clock and a teleport do not write the profile and do not set the flag.
+ * Profile writes mark `testUser` so the public words, streak, and Feira boards skip that profile.
+ * A teleport does not write the profile and does not set the flag.
+ * The Testes clock and a day roll write only that profile's own offsets.
  */
 import {
   ECONOMY,
@@ -11,6 +12,7 @@ import {
   TUTORIAL_STEPS,
   WHERE_LESSON_ID,
   WHERE_MENU_AT,
+  addCalendarDays,
   addXp,
   applyAdminBelt,
   canFoundAcademy,
@@ -38,7 +40,6 @@ import {
   freshCartela,
   type AdminTestRoom,
   type AdminTestSnapshot,
-  type Belt,
   type BubbleStyle,
   type ClientMsg,
   type PlayerPadaria,
@@ -80,24 +81,29 @@ export interface AdminTestSession {
 
 export interface AdminTestHost {
   now(): number;
-  /** Game clock (real now + the neighborhood offset). Errands use this. */
+  /** Shared neighborhood clock. Errands add the target profile's own offset on top of this. */
   clockNow(): number;
-  /** World clock plus the payout-day shift. Feira games, escola lesson days, cartela. */
-  simNow(): number;
+  /** Real UTC day. Daily keys add the target profile's `testDayOffset`. */
   utcDay(): string;
+  /** Real America/São Paulo day. */
   spDay(): string;
+  /** Eastern day of the world clock (Feira cart and cartela). */
   easternDay(): string;
-  minute(): number;
-  gameDayNow(): number;
+  minuteOf(p: StoredProfile): number;
+  gameDayOf(p: StoredProfile): number;
   store: ProfileStore;
   padarias: PadariaStore;
   padariaOwnership: boolean;
   findOnline(profileId: string): AdminTestSession | undefined;
-  setMinute(minute: number): number;
-  rollDay(): void;
+  /** Move only this profile's sky so it reads `minute`. The neighborhood clock stays put. */
+  setPersonalMinute(p: StoredProfile, minute: number): number;
+  /** One calendar day and one game day on this profile only. Does not roll the public board. */
+  rollPersonalDay(p: StoredProfile): void;
   join(session: AdminTestSession, room: AdminTestRoom): void;
   clearFeiraPaid(playerId: string): void;
   pushLive(session: AdminTestSession): void;
+  /** Sky and errand board for this session, using that profile's clock offset. */
+  pushPersonalClock(session: AdminTestSession): void;
   err(session: AdminTestSession, pt: string, en: string): void;
   notice(session: AdminTestSession, pt: string, en: string): void;
 }
@@ -118,11 +124,22 @@ export function handleAdminTest(host: AdminTestHost, admin: AdminTestSession, ms
     if (msg.minute !== undefined && (!Number.isFinite(msg.minute) || msg.minute < 0 || msg.minute > 1439)) {
       return host.err(admin, 'Minuto inválido.', 'Invalid minute.');
     }
-    if (msg.minute !== undefined) host.setMinute(msg.minute);
-    if (msg.rollDay) host.rollDay();
-    const minute = host.minute();
-    log(admin, msg.action, who.p, `minute ${minute}${msg.rollDay ? ' day+1' : ''}`);
-    host.notice(admin, msg.rollDay ? 'Dia do bairro avançou.' : 'Horário do bairro atualizado.', msg.rollDay ? 'Neighborhood day rolled.' : 'Neighborhood clock updated.');
+    if (msg.minute === undefined && !msg.rollDay) return host.err(admin, 'Nada para mudar.', 'Nothing to change.');
+    who.p.testUser = true;
+    if (msg.minute !== undefined) host.setPersonalMinute(who.p, msg.minute);
+    if (msg.rollDay) host.rollPersonalDay(who.p);
+    host.store.save();
+    if (who.online) {
+      host.pushPersonalClock(who.online);
+      host.pushLive(who.online);
+    }
+    const minute = host.minuteOf(who.p);
+    log(admin, msg.action, who.p, `minute ${minute}${msg.rollDay ? ' day+1' : ''} (profile only)`);
+    host.notice(
+      admin,
+      msg.rollDay ? 'O dia deste perfil avançou. O relógio do bairro não mudou.' : 'O horário deste perfil foi atualizado. O relógio do bairro não mudou.',
+      msg.rollDay ? 'This profile’s day rolled. The neighborhood clock did not change.' : 'This profile’s clock was updated. The neighborhood clock did not change.',
+    );
     admin.send({ t: 'admin', phase: 'testes', state: snapshot(host, who.p, who.online) });
     return;
   }
@@ -143,6 +160,7 @@ export function handleAdminTest(host: AdminTestHost, admin: AdminTestSession, ms
   refreshPlate(who.p);
   host.store.save();
   if (who.online) host.pushLive(who.online);
+  if (who.online && msg.action === 'testReset') host.pushPersonalClock(who.online);
   log(admin, msg.action, who.p, wrote.detail);
   const extra = msg.action === 'testPadaria' && !host.padariaOwnership ? ' A porta de fundar está desligada neste servidor.' : '';
   host.notice(admin, `${wrote.pt}${extra}`, wrote.en);
@@ -283,23 +301,26 @@ function writeEscola(host: AdminTestHost, p: StoredProfile, msg: Extract<ClientM
 
 function clearCaps(host: AdminTestHost, p: StoredProfile) {
   host.clearFeiraPaid(p.id);
+  const off = p.testDayOffset ?? 0;
+  const utc = addCalendarDays(host.utcDay(), off);
+  const sp = addCalendarDays(host.spDay(), off);
+  const eastern = addCalendarDays(host.easternDay(), off);
   const st = normalizeEscola(p.escola, p.diary);
   if (st.rv) st.rv = { day: st.rv.day, n: 0 };
   p.escola = st;
-  if (p.correria && p.correria.date === host.utcDay()) p.correria.paid = 0;
+  if (p.correria && p.correria.date === utc) p.correria.paid = 0;
   if (p.feira) p.feira = { date: p.feira.date, n: 0 };
   p.daily.sceneClears = {};
-  const days = new Set([host.spDay(), host.utcDay()]);
+  const days = new Set([sp, utc]);
   for (const key of ['conversaClears', 'conversaRvGranted', 'pedidoRvGranted'] as const) {
     const map = p.daily[key];
     if (!map) continue;
     for (const [id, day] of Object.entries(map)) if (days.has(day)) delete map[id];
   }
   const bjj = normalizeBjj(p.bjj);
-  if (bjj.bondDay === host.utcDay()) bjj.bondToday = 0;
+  if (bjj.bondDay === utc) bjj.bondToday = 0;
   p.bjj = bjj;
   const cart = p.cartela ?? freshCartela();
-  const eastern = host.easternDay();
   for (const id of CARTELA_ACTIVITIES) if (cart.activityDay[id] === eastern) delete cart.activityDay[id];
   p.cartela = cart;
 }
@@ -310,7 +331,7 @@ function writeTutorial(host: AdminTestHost, p: StoredProfile, mode: 'reset' | 's
     p.tutorial = Object.fromEntries(TUTORIAL_STEPS.map((t) => [t.id, true])) as Record<TutorialStep, boolean>;
     p.tutorialRewarded = true;
     p.arrivalIntroDone = true;
-    p.recados = { day: host.gameDayNow(), offered: [], active: [], done: RECADOS.map((r) => r.id), talked: [], graded: [] };
+    p.recados = { day: host.gameDayOf(p), offered: [], active: [], done: RECADOS.map((r) => r.id), talked: [], graded: [] };
     return { ok: true, pt: 'Tutorial e recados de hoje pulados.', en: 'Tutorial and today’s errands skipped.', detail: 'skip' };
   }
   p.tutorial = Object.fromEntries(TUTORIAL_STEPS.map((t) => [t.id, false])) as Record<TutorialStep, boolean>;
@@ -409,6 +430,9 @@ function writeReset(host: AdminTestHost, p: StoredProfile, confirm: boolean | un
   p.bubbleStyle = 'classic';
   p.daily = { date: host.utcDay(), sceneClears: {} };
   p.cartela = freshCartela();
+  p.testDayOffset = undefined;
+  p.testClockOffsetMs = undefined;
+  p.testFeiraPaid = undefined;
   if (p.subscription?.provider === 'dev') revokeTestSubscription(p, host.now());
   const owned = host.padarias.ownedBy(p.id);
   if (owned) host.padarias.remove(owned.id);
@@ -449,14 +473,7 @@ function snapshot(host: AdminTestHost, p: StoredProfile, online?: AdminTestSessi
     tutorialDone: TUTORIAL_STEPS.every((t) => p.tutorial[t.id]),
     arrivalIntroDone: p.arrivalIntroDone === true,
     recadoActive: p.recados?.active.length ?? 0,
-    minute: host.minute(),
-    gameDay: host.gameDayNow(),
+    minute: host.minuteOf(p),
+    gameDay: host.gameDayOf(p),
   };
-}
-
-/** Belt shown on the public avatar: the gi, a test profile, or any rank past a fresh white belt. */
-export function publicBelt(p: StoredProfile, wearingGi: boolean): Belt | undefined {
-  const bjj = normalizeBjj(p.bjj);
-  if (wearingGi || p.testUser || bjj.belt !== 'branca' || bjj.stripes > 0 || bjj.wins > 0) return bjj.belt;
-  return undefined;
 }

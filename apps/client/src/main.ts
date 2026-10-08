@@ -168,14 +168,12 @@ function failClearMinigame() {
 
 const now = () => performance.now();
 
-/** Keep your own nameplate and belt in step with a profile push (the HUD reads the profile; the plate reads the avatar). */
+/** Keep your own nameplate in step with a profile push. A test profile also sees their own belt; other players still need a gi. */
 function syncSelfPlate(p: NonNullable<typeof game.profile>): void {
   const me = game.avatars.get(p.id);
   if (!me) return;
   me.pub.nameplate = p.nameplate;
-  const bjj = normalizeBjj(p.bjj);
-  const ranked = p.testUser === true || bjj.belt !== 'branca' || bjj.stripes > 0 || bjj.wins > 0;
-  me.pub.belt = me.pub.gi || me.pub.academyGi || ranked ? bjj.belt : undefined;
+  if (p.testUser) me.pub.belt = normalizeBjj(p.bjj).belt;
   game.emit('avatars');
 }
 
@@ -761,6 +759,10 @@ net.on((m: ServerMsg) => {
       game.room = m;
       if (m.feiraCart) game.feiraCart = m.feiraCart;
       game.avatars = new Map(m.avatars.map((a) => [a.id, toClientAvatar(a)]));
+      if (game.profile?.testUser) {
+        const me = game.avatars.get(game.profile.id);
+        if (me) me.pub.belt = normalizeBjj(game.profile.bjj).belt;
+      }
       game.furniture = m.furniture;
       game.pending = null;
       game.editMode = false;
@@ -860,6 +862,7 @@ net.on((m: ServerMsg) => {
       if (!a) break;
       const moving = renderer.avatarPos(a, now()).moving;
       a.pub = m.avatar;
+      if (game.profile?.testUser && game.profile.id === m.avatar.id) a.pub.belt = normalizeBjj(game.profile.bjj).belt;
       if (!moving) {
         a.from = { x: m.avatar.x, y: m.avatar.y };
         a.path = [];

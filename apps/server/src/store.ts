@@ -139,6 +139,30 @@ export class ProfileStore {
   }
 }
 
+/** A Testes day offset: whole calendar days, or absent when it is zero. */
+function optDayOffset(raw: unknown): number | undefined {
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) return undefined;
+  const n = Math.trunc(raw);
+  if (n === 0) return undefined;
+  return Math.max(-3660, Math.min(3660, n));
+}
+
+/** A Testes sky offset in milliseconds, or absent when it is zero. */
+function optClockOffset(raw: unknown): number | undefined {
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) return undefined;
+  const n = Math.trunc(raw);
+  if (n === 0) return undefined;
+  const cap = 3660 * 86_400_000;
+  return Math.max(-cap, Math.min(cap, n));
+}
+
+function normalizeTestFeiraPaid(raw: unknown): StoredProfile['testFeiraPaid'] {
+  const r = raw as { day?: unknown; n?: unknown } | undefined;
+  if (!r || typeof r.day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(r.day)) return undefined;
+  const n = typeof r.n === 'number' && Number.isFinite(r.n) ? Math.max(0, Math.min(99, Math.floor(r.n))) : 0;
+  return { day: r.day.slice(0, 10), n };
+}
+
 /** The feira's daily RV counter: a date string and a small count, or nothing. */
 function normalizeFeira(raw: unknown): StoredProfile['feira'] {
   const r = raw as { date?: unknown; n?: unknown } | undefined;
@@ -162,6 +186,9 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   // saves from before the escola lessons: every diary word is learned (new), nothing mastered, the plate Verde
   p.escola = normalizeEscola(p.escola, p.diary);
   p.testUser = p.testUser === true;
+  p.testDayOffset = optDayOffset(p.testDayOffset);
+  p.testClockOffsetMs = optClockOffset(p.testClockOffsetMs);
+  p.testFeiraPaid = normalizeTestFeiraPaid(p.testFeiraPaid);
   p.verdeMode = p.verdeMode === true;
   p.nameplate = p.verdeMode ? 'verde' : earnedTier(p.escola, p.diary);
   p.film = normalizeFilm(p.film);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { canFoundAcademy } from './playerAcademy.js';
 import { progressForWins, winsToBelt } from './academia.js';
-import { applyAdminBelt, winsForRank } from './adminTestes.js';
+import { addCalendarDays, applyAdminBelt, winsForRank } from './adminTestes.js';
 
 describe('admin belt ranks follow the stripe ladder', () => {
   it('maps each belt at 0 stripes onto the cumulative win table', () => {
@@ -31,5 +31,13 @@ describe('admin belt ranks follow the stripe ladder', () => {
     const back = applyAdminBelt(brown.ok ? brown.bjj : undefined, { wins: 139 });
     expect(back.ok && back.bjj.belt).toBe('roxa');
     expect(back.ok && canFoundAcademy(back.bjj)).toBe(false);
+  });
+});
+
+describe('addCalendarDays', () => {
+  it('moves a date by whole calendar days across a daylight-saving boundary', () => {
+    expect(addCalendarDays('2026-03-08', 1)).toBe('2026-03-09');
+    expect(addCalendarDays('2026-11-01', -1)).toBe('2026-10-31');
+    expect(addCalendarDays('2026-10-08', 0)).toBe('2026-10-08');
   });
 });

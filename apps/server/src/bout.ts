@@ -10,6 +10,7 @@ import {
   PARTNERS,
   REF_LINES,
   THANKS_LINE,
+  addCalendarDays,
   artOf,
   bjjLevel,
   botMoves,
@@ -433,7 +434,7 @@ export class BoutEngine {
     }
     let bond = 0;
     if (played) {
-      const b2 = boutBond(winner, prog, this.d.today?.() ?? today());
+      const b2 = boutBond(winner, prog, addCalendarDays(this.d.today?.() ?? today(), s.profile?.testDayOffset ?? 0));
       prog = b2.next;
       bond = b2.gain;
     }

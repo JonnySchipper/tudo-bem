@@ -63,6 +63,7 @@ import {
   MISSION_STEPS,
   frontOf,
   weekday,
+  addCalendarDays,
   gameDay,
   GAME_DAY_MS,
   todayEastern,
@@ -144,8 +145,8 @@ import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueServi
 import { JEV_CONTEXT_LINES } from './services/jevModel.js';
 import { AcademyStore } from './academyStore.js';
 import { PadariaStore } from './padariaStore.js';
-import { handleAdminTest, isAdminTestAction, publicBelt, type AdminTestHost } from './adminTestes.js';
-import { ProfileStore, today, toPrivate, type StoredProfile } from './store.js';
+import { handleAdminTest, isAdminTestAction, type AdminTestHost } from './adminTestes.js';
+import { ProfileStore, today, todaySaoPaulo, toPrivate, type StoredProfile } from './store.js';
 import { CpuCrowd } from './ambiance.js';
 import { readEnv } from './env.js';
 import { founderGrantNewEnabled } from './founder.js';
@@ -308,8 +309,6 @@ export class World {
   private readonly testRollHints: boolean;
   private readonly bouts: BoutEngine;
   private clockOffsetMs: number;
-  /** Calendar-day shift for payout caps (Feira runs, escola RV, conversa, pedido). One Testes day roll adds 24h. */
-  private payoutShiftMs = 0;
   /** Shared weather pin for every client (`null` = natural roll from the game day). */
   private weatherPin: Weather | null = null;
   /** Server-side admin password, or null when the panel is off. */
@@ -369,7 +368,6 @@ export class World {
     this.idleKickMs = Math.max(1000, opts.idleKickMs ?? IDLE_KICK_MS);
     this.cartela = new CartelaTracker({
       now: () => this.now(),
-      day: () => todayEastern(this.simNow()),
       store,
       reward: (s, amount, reason) => this.reward(s, amount, reason),
       pushProfile: (s) => this.pushProfile(s),
@@ -387,7 +385,7 @@ export class World {
       },
     });
     this.feira = new FeiraCounter({
-      now: () => this.simNow(),
+      now: () => this.now(),
       store,
       reward: (s, a, r) => this.reward(s, a, r),
       pushProfile: (s) => this.pushProfile(s),
@@ -397,7 +395,6 @@ export class World {
     });
     this.feiraGames = new FeiraGamesEngine({
       now: () => this.now(),
-      dayNow: () => this.simNow(),
       store,
       games: opts.feiraGames ?? new FeiraGamesStore(() => null, () => {}, () => this.now()),
       cart: opts.feiraCart ?? memoryFeiraCart(),
@@ -445,7 +442,6 @@ export class World {
       npcsIn: (room) => this.npcs.whoIn(room),
       rng: () => this.rng(),
       now: () => this.now(),
-      dayNow: () => this.simNow(),
       avatarChanged: (s) => this.broadcastAvatar(s),
       tellRoom: (s, pt, en) => {
         if (s.instance) this.broadcast(s.instance, { t: 'notice', level: 'info', pt, en }, s);
@@ -459,7 +455,6 @@ export class World {
       rng: () => this.rng(),
       store,
       testHints: this.testRollHints,
-      today: () => this.utcWallDay(),
       pace: opts.boutPace ?? (Number(readEnv('TB_TEST_BOUT_PACE')) > 0 ? Number(readEnv('TB_TEST_BOUT_PACE')) : this.testRollHints ? 0.35 : 1),
       introMs: opts.boutIntroMs ?? (Number.isFinite(Number(readEnv('TB_TEST_BOUT_INTRO_MS'))) && readEnv('TB_TEST_BOUT_INTRO_MS') ? Number(readEnv('TB_TEST_BOUT_INTRO_MS')) : undefined),
       reward: (s, a, r) => this.reward(s, a, r),
@@ -476,7 +471,6 @@ export class World {
     });
     this.correria = new CorreriaEngine({
       now: () => this.now(),
-      today: () => this.utcWallDay(),
       schedule: (fn, ms) => this.schedule(fn, ms),
       store,
       clock: () => {
@@ -936,7 +930,7 @@ export class World {
     s.profile = p;
     p.nameplate = this.services.student.nameplateFor(p);
     p.lastSeen = this.now();
-    s.send({ t: 'welcome', profile: this.privateProfile(p), token: p.token, serverNow: this.clockNow(), weather: this.weatherPin });
+    s.send({ t: 'welcome', profile: this.privateProfile(p), token: p.token, serverNow: this.personalNow(p), weather: this.weatherPin });
     if (p.photos?.length) this.pushPhotos(s);
     this.notifyFriendsOfPresence(p.id);
     const incoming = this.incomingFriendReqs.get(p.id);
@@ -1007,7 +1001,7 @@ export class World {
 
   /** The profile the client sees, plus the padaria this player founded (flag-on only) so the HUD and the door can take them home. */
   private privateProfile(p: StoredProfile): PrivateProfile {
-    const out = toPrivate(p, this.utcWallDay());
+    const out = toPrivate(p, this.capDate(today(), p));
     const own = this.padariaOwnership ? this.padarias.ownedBy(p.id) : undefined;
     if (own) out.padaria = { id: own.id, name: own.name, size: own.size };
     return out;
@@ -1138,7 +1132,7 @@ export class World {
       selfId: s.profile!.id,
       avatars: [...[...target.members.values()].map((m) => this.publicAvatar(m)), ...(target.crowd?.avatars() ?? []), ...(target.def.private || padariaIdFromInstance(target.id) ? [] : this.npcs.avatarsIn(def.id))],
       furniture,
-      serverNow: this.clockNow(),
+      serverNow: this.personalNow(s.profile),
       ...(target.def.id === 'andar' ? { academy: this.floorCard(target, s) } : {}),
       ...(padariaIdFromInstance(target.id) ? { padaria: this.floorPadariaCard(target, s) } : {}),
       ...(def.id === 'feira' ? { feiraCart: this.feiraGames.cartSnapshot() } : {}),
@@ -1173,52 +1167,53 @@ export class World {
     return this.now() + this.clockOffsetMs;
   }
 
-  /** World clock plus the Testes payout shift. Lesson days, Feira paid runs, and the cartela use this. */
-  private simNow() {
-    return this.now() + this.payoutShiftMs;
+  /** This profile's sky: the shared neighborhood clock plus only their Testes offset. */
+  private personalNow(p?: { testClockOffsetMs?: number } | null): number {
+    return this.clockNow() + (p?.testClockOffsetMs ?? 0);
   }
 
-  /** Wall clock plus the Testes payout shift. Calendar-date caps (correria, conversa, pedido) use this. */
-  wallNow(): number {
-    return Date.now() + this.payoutShiftMs;
+  /** A real calendar key shifted by this profile's day offset. Other profiles stay on `base`. */
+  private capDate(base: string, p?: { testDayOffset?: number } | null): string {
+    return addCalendarDays(base, p?.testDayOffset ?? 0);
   }
 
-  private utcWallDay(): string {
-    return new Date(this.wallNow()).toISOString().slice(0, 10);
+  /** One calendar day and one game day on this profile. The neighborhood clock and the Feira board stay put. */
+  private rollPersonalDay(p: StoredProfile): void {
+    p.testDayOffset = (p.testDayOffset ?? 0) + 1;
+    p.testClockOffsetMs = (p.testClockOffsetMs ?? 0) + GAME_DAY_MS;
   }
 
-  private spWallDay(): string {
-    return new Date(this.wallNow()).toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
-  }
-
-  /** One game day for errands, and 24h for the payout date keys. The clock minute stays put. */
-  private rollTestDay() {
-    this.clockOffsetMs += GAME_DAY_MS;
-    this.payoutShiftMs += 86_400_000;
-    this.pushSky();
-    this.feiraGames.rollBoard(todayEastern(this.simNow()));
-    for (const sess of this.sessions.values()) if (sess.profile) this.recados.sendBoard(sess);
+  /** Move only this profile's sky so the game minute reads `minute`. */
+  private setPersonalMinute(p: StoredProfile, minute: number): number {
+    const target = Math.max(0, Math.min(1439.99, minute));
+    const cur = gameMinutesExact(this.personalNow(p));
+    p.testClockOffsetMs = (p.testClockOffsetMs ?? 0) + (((target - cur) % 1440) + 1440) % 1440 * MS_PER_GAME_MINUTE;
+    return gameMinutes(this.personalNow(p));
   }
 
   private adminTestHost(): AdminTestHost {
     return {
       now: () => this.now(),
       clockNow: () => this.clockNow(),
-      simNow: () => this.simNow(),
-      utcDay: () => this.utcWallDay(),
-      spDay: () => this.spWallDay(),
-      easternDay: () => todayEastern(this.simNow()),
-      minute: () => gameMinutes(this.clockNow()),
-      gameDayNow: () => gameDay(this.clockNow()),
+      utcDay: () => today(),
+      spDay: () => todaySaoPaulo(),
+      easternDay: () => todayEastern(this.now()),
+      minuteOf: (p) => gameMinutes(this.personalNow(p)),
+      gameDayOf: (p) => gameDay(this.personalNow(p)),
       store: this.store,
       padarias: this.padarias,
       padariaOwnership: this.padariaOwnership,
       findOnline: (id) => this.sessionByProfile(id),
-      setMinute: (minute) => this.setClockMinute(minute),
-      rollDay: () => this.rollTestDay(),
+      setPersonalMinute: (p, minute) => this.setPersonalMinute(p, minute),
+      rollPersonalDay: (p) => this.rollPersonalDay(p),
       join: (session, room) => this.join(session as Session, room),
       clearFeiraPaid: (id) => this.feiraGames.clearPaid(id),
       pushLive: (session) => this.pushTestAvatar(session as Session),
+      pushPersonalClock: (session) => {
+        const s = session as Session;
+        this.pushSky(s);
+        this.recados.sendBoard(s);
+      },
       err: (session, pt, en) => this.err(session as Session, 'admin', pt, en),
       notice: (session, pt, en) => session.send({ t: 'notice', level: 'info', pt, en }),
     };
@@ -1273,11 +1268,14 @@ export class World {
     return true;
   }
 
-  /** Push the live sky (clock stamp + weather pin) to one session or every connected player. */
+  /** Push the live sky. Each player gets the shared weather and their own clock offset. */
   private pushSky(to?: Session) {
-    const msg = { t: 'sky' as const, serverNow: this.clockNow(), weather: this.weatherPin };
-    if (to) return to.send(msg);
-    for (const s of this.sessions.values()) if (s.profile) s.send(msg);
+    const send = (s: Session) => {
+      if (!s.profile) return;
+      s.send({ t: 'sky', serverNow: this.personalNow(s.profile), weather: this.weatherPin });
+    };
+    if (to) return send(to);
+    for (const s of this.sessions.values()) send(s);
   }
 
   private admin(s: Session, msg: Extract<ClientMsg, { t: 'admin' }>) {
@@ -1605,7 +1603,7 @@ export class World {
     const member = !!(academy && academy.members.includes(p.id));
     if (member && academy) return { gi: true, belt: normalizeBjj(p.bjj).belt, academyGi: { color: academy.giColor, stamp: academy.giStamp } };
     if (p.giOwned) return { gi: true, belt: normalizeBjj(p.bjj).belt };
-    return { gi: false, belt: publicBelt(p, false) };
+    return { gi: false };
   }
 
   private floorAcademy(s: Session): PlayerAcademy | undefined {
@@ -1855,7 +1853,7 @@ export class World {
       this.recados.onEvent(s, { kind: 'ordered', npc: 'carlos', items: sceneItems(sc.ctx) });
 
       // Pedido rápido RV: once per America/São_Paulo calendar day (fixes double-dip after Missão/prior Pedido)
-      const spDate = this.spWallDay();
+      const spDate = this.capDate(todaySaoPaulo(), p);
       const lastGrant = p.daily.pedidoRvGranted?.[sc.npc];
       if (lastGrant === spDate) {
         dailyBlocked = true;
@@ -1873,7 +1871,7 @@ export class World {
   }
 
   private rollDaily(p: StoredProfile) {
-    const day = this.utcWallDay();
+    const day = this.capDate(today(), p);
     if (p.daily.date !== day) {
       const { conversaClears, conversaRvGranted } = p.daily;
       p.daily = {
@@ -1956,7 +1954,7 @@ export class World {
   // ---------- daily kiosk (Missão do dia) ----------
 
   private missionOf(p: StoredProfile): DailyMission {
-    const day = this.utcWallDay();
+    const day = this.capDate(today(), p);
     if (p.mission?.date !== day) p.mission = freshMission(day);
     return p.mission;
   }

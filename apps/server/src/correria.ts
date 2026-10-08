@@ -3,6 +3,7 @@ import {
   DAILY_PAID_SHIFTS,
   REGULAR_NPCS,
   UNLOCKS,
+  addCalendarDays,
   cardById,
   frontOf,
   hearts,
@@ -243,7 +244,7 @@ export class CorreriaEngine {
     const sum = summarizeShift(run.shift);
     const cp = (p.correria = normalizeCorreria(p.correria));
     const before = cp.stars;
-    const day = this.d.today?.() ?? today();
+    const day = addCalendarDays(this.d.today?.() ?? today(), p.testDayOffset ?? 0);
     if (cp.date !== day) {
       cp.date = day;
       cp.paid = 0;

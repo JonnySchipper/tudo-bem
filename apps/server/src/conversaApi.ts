@@ -5,6 +5,7 @@ import {
   CONVERSA_MAX_PLAYER_MSGS,
   CONVERSA_SUBJECTS,
   CONVERSA_WORD_CAP,
+  addCalendarDays,
   canStartConversa,
   conversaDateKey,
   gateConversaPlayerLine,
@@ -403,7 +404,10 @@ async function handleEnd(req: ConversaEndRequest, res: ServerResponse, deps: Con
   const grantRv = rv > 0 && shouldGrantRV(req.npcId, daily, rvOnceFromEnv());
   const rvNote: RvNote | undefined = !grantRv && rv > 0 ? 'already_today' : undefined;
 
-  const todayKey = deps.dateKey?.() ?? conversaDateKey();
+  let todayKey = deps.dateKey?.() ?? conversaDateKey();
+  let coins: number | undefined;
+  const profile = deps.store && req.playerId ? deps.store.get(req.playerId) : undefined;
+  if (profile) todayKey = addCalendarDays(todayKey, profile.testDayOffset ?? 0);
   const updateDaily: ConversaEndResponse['updateDaily'] = {
     conversaClears: { ...daily.conversaClears, [req.npcId]: todayKey },
   };
@@ -414,9 +418,6 @@ async function handleEnd(req: ConversaEndRequest, res: ServerResponse, deps: Con
 
   // Store a short vetted summary for the NPC's next Conversa. The template line lands now; an AI one may replace it later.
   if (req.playerId) void deps.memory?.end(req.playerId, req.npcId);
-
-  let coins: number | undefined;
-  const profile =deps.store && req.playerId ? deps.store.get(req.playerId) : undefined;
   if (profile && deps.store) {
     if (grantRv) profile.coins += rv;
     profile.daily = {
