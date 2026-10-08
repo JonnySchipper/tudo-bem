@@ -383,11 +383,6 @@ html {
     animation: none;
   }
 }
-.parrot-shop canvas {
-  display: block;
-  margin: 8px auto;
-}
-
 /* ---------- hidden admin (credits easter egg) ---------- */
 .backdrop > .panel button.credits-door {
   display: block;

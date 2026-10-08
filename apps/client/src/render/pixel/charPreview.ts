@@ -69,7 +69,7 @@ function composedFor(assets: CharAssets, spec: PreviewSpec): { key: string; look
 const parrotImg = new Map<string, HTMLImageElement>();
 const parrotFrameCache = new Map<string, HTMLCanvasElement>();
 
-function parrotStrip(assets: CharAssets): { img: HTMLImageElement; frames: number; frameW: number; h: number } | null {
+function parrotStripImage(assets: CharAssets): { img: HTMLImageElement; frames: number; frameW: number; h: number } | null {
   const meta = assets.manifest.images?.['chars/parrot_strip'];
   if (!meta) return null;
   const url = `${import.meta.env.BASE_URL}pixel/${meta.file}`;
@@ -79,7 +79,12 @@ function parrotStrip(assets: CharAssets): { img: HTMLImageElement; frames: numbe
     img.src = url;
     parrotImg.set(url, img);
   }
-  return img.complete && img.naturalWidth ? { img, frames: meta.frames ?? 4, frameW: meta.frameW ?? 10, h: meta.h } : null;
+  return { img, frames: meta.frames ?? 4, frameW: meta.frameW ?? 10, h: meta.h };
+}
+
+function parrotStrip(assets: CharAssets): { img: HTMLImageElement; frames: number; frameW: number; h: number } | null {
+  const p = parrotStripImage(assets);
+  return p && p.img.complete && p.img.naturalWidth ? p : null;
 }
 
 /** One frame of the shoulder parrot: the poleiro strip for verde, the authored bird for every other colour (cached). */
@@ -238,6 +243,43 @@ export async function hatIconUrl(hatId: string, scale = 4): Promise<string> {
   const url = out.toDataURL('image/png');
   iconCache.set(cacheKey, url);
   return url;
+}
+
+/**
+ * The shoulder parrot's first frame in a Puleiro colour, at `scale`, as a PNG data URL: the same sprite and recolour the shoulder uses,
+ * so the stall shows exactly the bird you get. Resolves to '' when the strip is missing.
+ */
+export async function parrotIconUrl(colorId: string, scale = 4): Promise<string> {
+  const cacheKey = `parrot:${colorId}@${scale}`;
+  const hit = iconCache.get(cacheKey);
+  if (hit) return hit;
+  const p = parrotStripImage(await sharedCharAssets());
+  if (!p) return '';
+  if (!p.img.complete || !p.img.naturalWidth) await p.img.decode();
+  const bird = parrotFrame(p.img, 0, p.frameW, p.h, colorId);
+  const out = document.createElement('canvas');
+  out.width = p.frameW * scale;
+  out.height = p.h * scale;
+  const octx = out.getContext('2d');
+  if (!octx) return '';
+  octx.imageSmoothingEnabled = false;
+  octx.drawImage(bird, 0, 0, out.width, out.height);
+  const url = out.toDataURL('image/png');
+  iconCache.set(cacheKey, url);
+  return url;
+}
+
+/** Fills an <img> with a Puleiro bird icon once the strip is loaded. */
+export function setParrotIcon(img: HTMLImageElement, colorId: string, scale = 4): void {
+  img.style.imageRendering = 'pixelated';
+  img.style.objectFit = 'contain';
+  img.dataset.parrotIcon = colorId;
+  void parrotIconUrl(colorId, scale).then(
+    (url) => {
+      if (url && img.dataset.parrotIcon === colorId) img.src = url;
+    },
+    () => {},
+  );
 }
 
 /** Fills an <img> with the hat icon once the art is ready (keeps the element reusable inside synchronous render code). */

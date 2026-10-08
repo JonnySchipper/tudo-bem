@@ -116,6 +116,14 @@ describe('light presets and sun glow', () => {
     expect(s[6].x).toBe(32);
     expect(s[3].y).toBeGreaterThan(s[0].y);
   });
+  it('the feira bunting carries a few warm bulbs along its wire (night only: they are scheduled lamps)', () => {
+    const b = presetFor('props/bandeirinhas_b', undefined);
+    expect(b?.lights.length).toBe(4);
+    for (const l of b!.lights) {
+      expect(Math.abs(l.x)).toBeLessThanOrEqual(48);
+      expect(l.y).toBeLessThan(-6);
+    }
+  });
   it('the sun glow sits on the side of the sun and has a dawn peak', () => {
     expect(sunScreenX(shadowLook(17.5).bearing)).toBeLessThan(0.3);
     expect(sunScreenX(shadowLook(7).bearing)).toBeGreaterThan(0.7);

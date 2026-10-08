@@ -8,6 +8,7 @@ import './styles/hud.css';
 import './styles/creator.css';
 import './styles/intro-pixel.css';
 import './styles/panels.css';
+import './styles/stalls.css';
 import './styles/bout.css';
 import './styles/correria.css';
 import './styles/diary.css';
