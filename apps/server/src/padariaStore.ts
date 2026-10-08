@@ -63,6 +63,15 @@ export class PadariaStore {
     this.save();
   }
 
+  remove(id: string) {
+    const row = this.byId.get(id);
+    if (!row) return false;
+    this.byId.delete(id);
+    if (this.byName.get(row.nameKey) === id) this.byName.delete(row.nameKey);
+    this.save();
+    return true;
+  }
+
   save() {
     this.adapter?.save(this.list());
   }

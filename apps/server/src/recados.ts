@@ -85,7 +85,7 @@ export class RecadoTracker {
 
   /** Today's board for this profile; rolls the game day over first (new offer, done cleared, active kept). */
   private board(p: StoredProfile): RecadoState {
-    const day = gameDay(this.d.now());
+    const day = gameDay(this.d.now() + Math.trunc(p.testClockOffsetMs ?? 0));
     const st = rollRecadoDay(p, day, mulberry32(seedFor(p.id, day)), this.defs);
     // test hook (TB_TEST_OFFER=id,id): those recados always sit on today's board, so an e2e can pick its errand
     for (const id of (readEnv('TB_TEST_OFFER') ?? '').split(',').map((x) => x.trim()).filter(Boolean).reverse()) {

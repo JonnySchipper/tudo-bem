@@ -11,7 +11,10 @@ import {
   todayEastern,
   currentStreak,
   localDay,
+  normalizeBjj,
   normalizeEscola,
+  BELT_LABELS,
+  STRIPES_PER_BELT,
   tierRule,
   todayXp,
   type PrivateProfile,
@@ -240,7 +243,7 @@ export function buildHud(actions: HudActions) {
     h(
       'div',
       { class: 'hud-right' },
-      h('div', { class: 'hud-stats hud-slab' }, plate, goalChip, h('span', { class: 'hud-rv', title: 'Reais Virtuais (RV) — soft currency' }, icon('rv', 16), coins)),
+      h('div', { class: 'hud-stats hud-slab' }, h('span', { class: 'hud-belt', id: 'hud-belt' }), plate, goalChip, h('span', { class: 'hud-rv', title: 'Reais Virtuais (RV) — soft currency' }, icon('rv', 16), coins)),
       feedbackBtn,
       burger,
       actionsNav,
@@ -401,6 +404,7 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       document.title = `Tudo Bem · ${r.instanceName}`;
     }
     if (p) {
+      paintHudBelt(p.bjj);
       coins.textContent = String(p.coins);
       coins.title = `${p.coins} RV`;
       const tier = p.nameplate ?? 'verde';
@@ -515,6 +519,18 @@ export function overlayMessage(text: string | null, onRetry?: () => void) {
       ),
     ),
   );
+}
+
+/** Belt chip on the HUD. Reads the private profile, so a white belt with no stripes still updates. */
+function paintHudBelt(bjj: PrivateProfile['bjj']): void {
+  const el = document.getElementById('hud-belt');
+  if (!el) return;
+  const b = normalizeBjj(bjj);
+  const label = BELT_LABELS[b.belt];
+  el.className = `hud-belt belt-${b.belt}`;
+  el.setAttribute('aria-label', `${label.pt}, ${b.stripes} ${b.stripes === 1 ? 'grau' : 'graus'}`);
+  const shown = Math.min(STRIPES_PER_BELT, b.stripes);
+  el.replaceChildren(h('i', { class: 'band' }), ...Array.from({ length: STRIPES_PER_BELT }, (_, i) => h('i', { class: i < shown ? 'pip on' : 'pip' })));
 }
 
 /**

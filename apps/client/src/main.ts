@@ -26,6 +26,7 @@ import {
   diaryVisible,
   PHOTO_SPOTS,
   normalizeDiary,
+  normalizeBjj,
   wordForLine,
   furnitureById,
   greetingFor,
@@ -167,6 +168,15 @@ function failClearMinigame() {
 // ---------------------------------------------------------------- helpers
 
 const now = () => performance.now();
+
+/** Keep your own nameplate in step with a profile push. A test profile also sees their own belt; other players still need a gi. */
+function syncSelfPlate(p: NonNullable<typeof game.profile>): void {
+  const me = game.avatars.get(p.id);
+  if (!me) return;
+  me.pub.nameplate = p.nameplate;
+  if (p.testUser) me.pub.belt = normalizeBjj(p.bjj).belt;
+  game.emit('avatars');
+}
 
 function toClientAvatar(pub: ClientAvatar['pub']): ClientAvatar {
   return { pub, from: { x: pub.x, y: pub.y }, path: [], start: now(), sitOnArrive: false, emote: null, bubbles: [], seed: Math.random() * 10 };
@@ -727,6 +737,7 @@ net.on((m: ServerMsg) => {
       break;
     case 'profile':
       game.profile = m.profile;
+      syncSelfPlate(m.profile);
       if (!m.profile.hasCamera) game.cameraOn = false;
       syncCameraBanner();
       syncGrants((id) => net.send({ t: 'grant', id }));
@@ -752,6 +763,10 @@ net.on((m: ServerMsg) => {
       game.room = m;
       if (m.feiraCart) game.feiraCart = m.feiraCart;
       game.avatars = new Map(m.avatars.map((a) => [a.id, toClientAvatar(a)]));
+      if (game.profile?.testUser) {
+        const me = game.avatars.get(game.profile.id);
+        if (me) me.pub.belt = normalizeBjj(game.profile.bjj).belt;
+      }
       game.furniture = m.furniture;
       game.pending = null;
       game.editMode = false;
@@ -852,6 +867,7 @@ net.on((m: ServerMsg) => {
       if (!a) break;
       const moving = renderer.avatarPos(a, now()).moving;
       a.pub = m.avatar;
+      if (game.profile?.testUser && game.profile.id === m.avatar.id) a.pub.belt = normalizeBjj(game.profile.bjj).belt;
       if (!moving) {
         a.from = { x: m.avatar.x, y: m.avatar.y };
         a.path = [];

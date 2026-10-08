@@ -99,8 +99,9 @@ export class InMemoryStudentModel implements StudentModelService {
     return scored.sort((a, b) => b.weight - a.weight).slice(0, n).map((c) => c.id);
   }
 
-  /** The plate colour the escola earned (words mastered; never bought). A colour only: English help is a player setting. */
+  /** The plate colour the escola earned (words mastered; never bought). Verde mode keeps the earned tier and shows Verde. */
   nameplateFor(p: PrivateProfile): Nameplate {
+    if (p.verdeMode) return 'verde';
     return earnedTier(normalizeEscola(p.escola, p.diary), p.diary);
   }
 }
