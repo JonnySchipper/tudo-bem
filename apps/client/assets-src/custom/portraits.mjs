@@ -1,712 +1,378 @@
-// NPC dialogue portraits (art2): 64x64, 4 expressions each (neutro, feliz, surpreso, pensativo), hand-authored.
-// A bust in a small framed card. Skin, hair and cloth use LimeZu ramps (Body_*/Hairstyles palettes, exteriors Palette.png) and the
-// brand colors; light comes from the upper left; outlines are the pack navy against empty space and a tinted dark against parts.
-// The LimeZu Interiors pack ships no face art (UI_16x16 has only speech bubbles and emotes), so these are original.
-import { blank, put, shape, flat, grid, line, over, ell, box, or, sub, and, profile, hwAt, mx, mix, h2, fillRect, hoop, NAVY, alphaAt } from './paint.mjs';
+// NPC dialogue portraits: 64x64, 4 expressions each (neutro, feliz, surpreso, pensativo). A portrait is a close-up of the sprite.
+//
+// Each one starts from the sheet the world draws (looks.ts -> composeLook, through lookkit.mjs): the south-facing idle frame, so the skin,
+// hair, hat, outfit, apron, glasses, earrings and props are the NPC's own pixels and a change to NPC_STYLES shows up here on the next
+// `pnpm pixel`. The bust is cut from that frame (head and shoulders, 20 x 20 sprite px), the eye row and the mouth row are each shown twice
+// so the face has room, the face marks are lifted off, and the frame is scaled 3x with Scale3x: every output pixel is a copy of one sprite
+// pixel, so the palette is the sprite's and nothing is blurred. The silhouette outline is thinned back to 1 px, then the eyes, brows and
+// mouth are redrawn per expression from the sprite's own iris, brow, skin and lip colours, glasses are redrawn thin, and the bust is set
+// on the background of the NPC's room inside the shared frame (portraitbg.mjs).
+import { blank, put, mix, NAVY } from './paint.mjs';
+import { lookKit, charLayers, sheetFrame, SHEET_W, SHEET_H } from './lookkit.mjs';
+import { BACKGROUNDS, TARP, frame } from './portraitbg.mjs';
+import { FRAME_W, FRAME_H, CANON_COLS, CANON_ROWS } from '../../../../scripts/lib/pixel/chars.mjs';
 
 export const EXPRESSIONS = ['neutro', 'feliz', 'surpreso', 'pensativo'];
 export const NPCS = ['carlos', 'nanda', 'julia', 'graca', 'tia_lu', 'prof', 'ze', 'chico', 'rosa', 'lucia', 'celia', 'agente'];
 
-// ------------------------------------------------------------------ palettes ([dark, shade, base, hi])
-const SKIN = {
-  tan: ['#cb794d', '#e6976d', '#f0ae80', '#f5c796'],
-  light: ['#e58078', '#f69784', '#ffb893', '#ffcca8'],
-  brown: ['#a85f46', '#b77455', '#c98b62', '#dca277'],
-  deep: ['#7a3f30', '#96513a', '#b0603f', '#c87a55'],
-  warm: ['#93513a', '#a9614a', '#bd7a55', '#d29468'],
-};
-const HAIR = {
-  black: ['#2e2a3c', '#453a4c', '#5c4a55', '#7a6268'],
-  chestnut: ['#6b3f2c', '#8a5233', '#a9683d', '#c98a55'],
-  grey: ['#8b8bab', '#b2aecb', '#d8d0e0', '#ebe4f2'],
-  saltpepper: ['#54506a', '#76728f', '#9a96b2', '#c6c2d6'],
-};
-const CLOTH = {
-  cream: ['#b2aecb', '#d8d0e0', '#ebe4f2', '#f8f8f8'],
-  terracotta: ['#a13a30', '#b35e3f', '#c45c26', '#dc8446'],
-  mustard: ['#a8700f', '#c48f16', '#d4a017', '#eabd3a'],
-  sky: ['#6f8fa8', '#8fb0c4', '#a8c5d4', '#cfe2ea'],
-  green: ['#2a575b', '#32675a', '#46756a', '#689183'],
-  plum: ['#3f3358', '#54467f', '#76689e', '#968bab'],
-  red: ['#a82b2d', '#cb2a2a', '#e63f38', '#ff8575'],
-  straw: ['#a9764f', '#c78c59', '#daa463', '#f1ce8e'],
-  denim: ['#3d56d2', '#4280dd', '#4995e3', '#50a7e8'],
-  orange: ['#c46823', '#ed931e', '#f2b22b', '#ffe57b'],
-};
-const IRIS = { carlos: '#573c2c', nanda: '#453a4c', julia: '#4280dd', graca: '#573c2c', tia_lu: '#573c2c', prof: '#453a4c', ze: '#573c2c', chico: '#3a2820', rosa: '#573c2c', lucia: '#3f6a3a', celia: '#3a2820', agente: '#453a4c' };
-/** Four-shade ramp from a brand hex (dark → hi). */
-const ramp4 = (hex, dk = '#2a2218') => [mix(hex, dk, 0.42), mix(hex, dk, 0.2), hex, mix(hex, '#ffffff', 0.26)];
-const ZE_SKIN = ramp4('#c68a5f');
-const OLIVE_SHIRT = ramp4('#66753f');
-const KHAKI = ramp4('#b89a6c');
-const CHICO_SKIN = ramp4('#8a5433');
-const CHICO_HAIR = ramp4('#1d1716', '#0a0808');
-const CHICO_TEE = ramp4('#eee6d9', '#8a8070');
-const JEANS = ramp4('#3d5d8f');
-const ROSA_SKIN = ramp4('#d9a07a');
-const ROSA_HAIR = ramp4('#9a5f30', '#4a3018');
-const ROSA_BLOUSE = ramp4('#d98a9b');
-const PLUM_SKIRT = ramp4('#6e4e8f');
-const PANAMA = ramp4('#efe3c4', '#6a5e48');
-const LUCIA_SKIN = ramp4('#c68a5f');
-const LUCIA_HAIR = ramp4('#cfa65a', '#5a4018');
-const LUCIA_BLOUSE = ramp4('#3a8a5c', '#12301f');
-const BUCKET = ramp4('#e8b634', '#6a5010');
-const WHITE = '#f0ecf6';
-const LIP_DARK = '#7f3034';
-const MOUTH_IN = '#4a1a24';
-const TONGUE = '#d56868';
+const SIZE = 64;
+const S = 3; // Scale3x
+const OX = 2, OY = 2; // inside the 2 px frame
+const WIN = 20; // sprite px across the window (60 px at 3x)
 
-// ------------------------------------------------------------------ geometry
-const CX = 32;
-/** Face half-widths by row. Variants tweak jaw/cheek width. */
-const faceKp = (k = {}) => {
-  const cheek = k.cheek ?? 15, jaw = k.jaw ?? 12, chin = k.chin ?? 46;
-  return [[8, 9], [11, 13], [14, cheek - 0.6], [19, cheek], [28, cheek], [34, cheek - 1], [38, jaw], [41, jaw - 2.6], [chin - 2.5, jaw - 6], [chin - 1, 3.4], [chin, 0.8], [chin + 0.4, 0]];
+/**
+ * Hand-touches per NPC, in sprite px of the south idle frame. `bottom`: the last sprite row in the window (default: the eye row + 5,
+ * the shoulders). `eyes`: the two eyes' [x0, x1] when the sprite's eye pixels sit off the face. `mouth`: the sprite's mouth pixels when
+ * they cannot be told from blush and scarf by colour. `room`: the background when the NPC has no room in ROOMS. `browHidden`: under a brim.
+ */
+const TUNE = {
+  carlos: {},
+  nanda: {},
+  // the smile is the navy line and the teeth; the reds next to it are the blush and the scarf
+  julia: { mouth: [[8, 21], [9, 21], [10, 21], [5, 22], [6, 22], [7, 22], [8, 22]] },
+  graca: {},
+  tia_lu: {},
+  prof: {},
+  ze: {},
+  chico: {},
+  // her sprite's eyes sit on the locks either side of the face (they read at 1x); the portrait puts them on the face
+  rosa: { eyes: [[5, 6], [9, 10]] },
+  lucia: { room: 'escola' },
+  celia: { room: 'aeroporto' },
+  agente: { room: 'aeroporto', browHidden: true },
 };
-const TORSO_HW = (y) => (y < 47 ? 0 : 29 * Math.sqrt(Math.max(0, 1 - ((y - 68) / 21) ** 2)));
-const torsoPred = (x, y) => y >= 47 && Math.abs(x - CX) <= TORSO_HW(y);
 
-// ------------------------------------------------------------------ backgrounds (inside the 2 px card frame)
-function backdrop(img, bg) {
-  for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
-    // soft light from the upper left: a diagonal band of lighter tone with a dithered edge
-    const d = (x + y) / 2;
-    const dither = (x + y) % 2 === 0;
-    let c = bg.base;
-    if (d < 15) c = bg.hi;
-    else if (d < 19 && dither) c = bg.hi;
-    else if (d > 50 && d < 53 && dither) c = bg.lo;
-    else if (d >= 53) c = bg.lo;
-    put(img, x, y, c);
-  }
-  bg.deco?.(img);
-}
+// ------------------------------------------------------------------ pixels
+const rgbaAt = (img, x, y) => (x < 0 || y < 0 || x >= img.w || y >= img.h ? 0 : ((img.data[(y * img.w + x) * 4] << 24) | (img.data[(y * img.w + x) * 4 + 1] << 16) | (img.data[(y * img.w + x) * 4 + 2] << 8) | img.data[(y * img.w + x) * 4 + 3]) >>> 0);
+const alpha = (img, x, y) => (x < 0 || y < 0 || x >= img.w || y >= img.h ? 0 : img.data[(y * img.w + x) * 4 + 3]);
+const hexAt = (img, x, y) => {
+  const i = (y * img.w + x) * 4;
+  return '#' + [0, 1, 2].map((c) => img.data[i + c].toString(16).padStart(2, '0')).join('');
+};
+const rgbOf = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+const lumaOf = (hex) => { const [r, g, b] = rgbOf(hex); return 0.299 * r + 0.587 * g + 0.114 * b; };
+const setRgba = (img, x, y, v) => {
+  const i = (y * img.w + x) * 4;
+  img.data[i] = v >>> 24; img.data[i + 1] = (v >>> 16) & 255; img.data[i + 2] = (v >>> 8) & 255; img.data[i + 3] = v & 255;
+};
+const copyPx = (dst, x, y, src, sx, sy) => setRgba(dst, x, y, rgbaAt(src, sx, sy));
 
-function frame(img, f) {
-  const R = (x, y, c) => put(img, x, y, c);
-  // 2 px frame: navy outer edge, wood ring (lit top/left, shaded bottom/right)
-  for (let i = 0; i < 64; i++) {
-    for (const [x, y] of [[i, 0], [i, 63], [0, i], [63, i]]) R(x, y, NAVY);
-    const lit = f.hi, dk = f.lo;
-    if (i >= 1 && i <= 62) {
-      R(i, 1, lit); R(1, i, lit); R(i, 62, dk); R(62, i, dk);
+/**
+ * Scale3x (AdvMAME3x) on a small image. Returns the 3x image; `from[i]` is the index of the source pixel output pixel i copies,
+ * so a flag on a source pixel (it is on the silhouette edge) carries over.
+ */
+export function scale3x(img) {
+  const W3 = img.w * 3, out = blank(W3, img.h * 3), from = new Int32Array(W3 * img.h * 3);
+  const P = (x, y) => (x < 0 || y < 0 || x >= img.w || y >= img.h ? 0 : rgbaAt(img, x, y));
+  for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) {
+    const A = P(x - 1, y - 1), B = P(x, y - 1), C = P(x + 1, y - 1), D = P(x - 1, y), E = P(x, y), F = P(x + 1, y), G = P(x - 1, y + 1), H = P(x, y + 1), I = P(x + 1, y + 1);
+    const idx = { A: [x - 1, y - 1], B: [x, y - 1], D: [x - 1, y], E: [x, y], F: [x + 1, y], H: [x, y + 1] };
+    let e = ['E', 'E', 'E', 'E', 'E', 'E', 'E', 'E', 'E'];
+    if (B !== H && D !== F) {
+      e = [
+        D === B ? 'D' : 'E',
+        (D === B && E !== C) || (B === F && E !== A) ? 'B' : 'E',
+        B === F ? 'F' : 'E',
+        (D === B && E !== G) || (D === H && E !== A) ? 'D' : 'E',
+        'E',
+        (B === F && E !== I) || (H === F && E !== C) ? 'F' : 'E',
+        D === H ? 'D' : 'E',
+        (D === H && E !== I) || (H === F && E !== G) ? 'H' : 'E',
+        H === F ? 'F' : 'E',
+      ];
+    }
+    for (let k = 0; k < 9; k++) {
+      const ox = x * 3 + (k % 3), oy = y * 3 + Math.floor(k / 3);
+      const [sx, sy] = idx[e[k]];
+      setRgba(out, ox, oy, P(sx, sy));
+      from[oy * W3 + ox] = sx < 0 || sy < 0 || sx >= img.w || sy >= img.h ? -1 : sy * img.w + sx;
     }
   }
-  R(62, 1, f.mid); R(1, 62, f.mid);
-  // round the corners
-  for (const [x, y] of [[0, 0], [1, 0], [0, 1], [63, 0], [62, 0], [63, 1], [0, 63], [1, 63], [0, 62], [63, 63], [62, 63], [63, 62]]) img.data[(y * 64 + x) * 4 + 3] = 0;
-  R(1, 1, NAVY); R(62, 1, NAVY); R(1, 62, NAVY); R(62, 62, NAVY);
+  return { img: out, from };
 }
 
-// ------------------------------------------------------------------ body parts
-function neck(img, skin) {
-  shape(img, and(box(24, 40, 40, 51), (x, y) => Math.abs(x - CX) <= 6.6), [CX, 44, 7, 8], [skin[0], skin[0], skin[1], skin[1]], { ol: skin[0], t: [2, 2, -9] });
-}
-
-function torso(img, ramp, o = {}) {
-  shape(img, torsoPred, [CX, 60, 29, 14], ramp, { ol: o.ol ?? ramp[0], t: [0.9, 0.44, 0.0] });
-  // sleeve/arm crease shading hints
-  for (const s of [-1, 1]) for (let y = 55; y < 64; y++) put(img, Math.round(CX + s * (22 + (y - 55) * 0.35)), y, ramp[0]);
-}
-
-function head(img, skin, kp, o = {}) {
-  const face = profile(CX, kp);
-  // ears
-  for (const s of [-1, 1]) {
-    const ex = CX + s * (hwAt(kp, 29) + 0.6);
-    shape(img, ell(ex, 29.5, 2.4, 3.6), [ex, 29.5, 2.4, 3.6], [skin[0], skin[1], skin[2], skin[2]], { ol: skin[0] });
-    put(img, Math.round(ex - 0.5 + s * -0.3), 29, skin[0]); put(img, Math.round(ex - 0.5 + s * -0.3), 30, skin[0]);
+/**
+ * The silhouette outline comes out 3 px thick at 3x: keep the outermost pixel (it touches the outside) and give the inner two the
+ * colour of the part they sit on.
+ */
+function thinOutline(img, from, edge) {
+  const isEdge = (x, y) => alpha(img, x, y) > 0 && from[y * img.w + x] >= 0 && edge[from[y * img.w + x]];
+  const outside = (x, y) => alpha(img, x, y) === 0;
+  const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  const N8 = [...N4, [1, 1], [-1, 1], [1, -1], [-1, -1]];
+  for (let pass = 0; pass < 2; pass++) {
+    const swaps = [];
+    for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) {
+      if (!isEdge(x, y) || N4.some(([dx, dy]) => outside(x + dx, y + dy))) continue;
+      let part = null;
+      for (const list of [N4, N8]) {
+        for (const [dx, dy] of list) if (alpha(img, x + dx, y + dy) > 0 && !isEdge(x + dx, y + dy)) { part = [x + dx, y + dy]; break; }
+        if (part) break;
+      }
+      if (part) swaps.push([x, y, rgbaAt(img, part[0], part[1]), from[part[1] * img.w + part[0]]]);
+    }
+    for (const [x, y, v, f] of swaps) { setRgba(img, x, y, v); from[y * img.w + x] = f; }
   }
-  // clean cel shading: a lit patch upper-left, a shade crescent on the right cheek and under the jaw
-  shape(img, face, [CX, 27, 16, 20], skin, {
-    ol: skin[0],
-    pattern: (x, y) => {
-      const hw = Math.max(4, hwAt(kp, y));
-      const nx = (x + 0.5 - CX) / hw, ny = (y - 27) / 19;
-      const v = 0.85 * nx + 0.7 * ny;
-      if (v > 1.05) return 0;
-      if (v > 0.5) return 1;
-      if (v < -0.62 && ny < 0.35 && ny > -0.5) return 3;
-      return 2;
-    },
-  });
-  return face;
 }
 
-function nose(img, skin, wide = 0) {
-  const x = 31;
-  put(img, x, 32, skin[3]); // bridge highlight
-  put(img, x + 0, 33, skin[3]);
-  put(img, x + 1, 33, skin[1]);
-  for (let i = 0; i <= 1 + wide; i++) put(img, x - wide + i - 1 + 1, 34, skin[0]);
-  put(img, x + 2 + wide, 34, skin[0]);
-  put(img, x + 1, 34, skin[0]);
-  put(img, x, 34, skin[1]);
-  put(img, x + 2, 33, skin[1]);
+// ------------------------------------------------------------------ reading the sprite's face
+const isFaceLayer = (k) => k.startsWith('eyes_') || k.startsWith('face_');
+
+/** The south idle frame of a look, composed exactly like the world does it. */
+function composeFrame(K, src, look) {
+  return sheetFrame({ w: SHEET_W, h: SHEET_H, data: new Uint8Array(K.composeLook(src, look)) }, 0, 0);
 }
 
-// ------------------------------------------------------------------ eyes, brows, mouths
-// Eye grids in final orientation (the highlight `h` sits in the upper-left of the iris for both eyes; the light is upper-left).
-const EYE_L = {
-  neutro: ['.oooo.', 'oihiio', '.oiio.'],
-  feliz: ['..oo..', '.o..o.', 'o....o'],
-  surpreso: ['.oooo.', 'owwwwo', 'owhiwo', 'owiiwo', '.owwo.'],
-  pensativo: ['oooooo', 'oihiww', '.wwww.'],
+/**
+ * Where the face is: the eye row and the two eyes (whites and iris), the brows, the mouth, and which pixels the face layers drew.
+ * Signature faces (the five regulars) carry the beard, the mustache and Rosa's hoops too: those stay, only eyes, brows and mouth lift.
+ */
+function readFace(full, bare, glasses, tune = {}) {
+  const marks = (x, y) => rgbaAt(full, x, y) !== rgbaAt(bare, x, y);
+  const light = (x, y) => alpha(full, x, y) > 0 && lumaOf(hexAt(full, x, y)) > 205;
+  // the eye row: the row with the most light marks inside the face (the whites); behind glasses, the lens rows
+  let eyeRow = -1, best = 0;
+  for (let y = 12; y < 27; y++) {
+    let n = 0;
+    for (let x = 2; x < 14; x++) if ((glasses ? glasses.lens(x, y) : marks(x, y) && light(x, y))) n++;
+    if (n > best) { best = n; eyeRow = y; }
+  }
+  if (eyeRow < 0) throw new Error('portrait: no eyes found on the sprite');
+  if (glasses) eyeRow = glasses.lensRows[glasses.lensRows.length - 1];
+  const eyes = [];
+  for (const side of [0, 1]) {
+    const xs = [];
+    for (let x = side ? 8 : 2; x < (side ? 14 : 8); x++) if (glasses ? glasses.lens(x, eyeRow) : marks(x, eyeRow)) xs.push(x);
+    if (!xs.length) continue;
+    const white = xs.find((x) => light(x, eyeRow)) ?? (side ? xs[0] : xs[xs.length - 1]);
+    const iris = xs.find((x) => !light(x, eyeRow));
+    const [x0, x1] = tune.eyes?.[side] ?? [Math.min(...xs), Math.max(...xs)];
+    eyes.push({ x0, x1, irisRight: iris === undefined ? !side : iris > white, iris: iris === undefined || glasses ? null : hexAt(full, iris, eyeRow) });
+  }
+  // brows: marks up to three rows over the eyes, inside the face
+  const brow = [];
+  for (let y = eyeRow - 3; y < eyeRow; y++) for (let x = 2; x < 14; x++) if (marks(x, y) && !light(x, y)) brow.push([x, y]);
+  const browHex = brow.length ? hexAt(full, ...brow[0]) : null;
+  const browRow = brow.length ? Math.max(...brow.map(([, y]) => y)) : eyeRow - 2;
+  // the mouth: lip-coloured or navy marks just under the eyes, near the middle (dark beard and grey mustache stay)
+  const mouth = tune.mouth ? [...tune.mouth] : [];
+  if (!tune.mouth) for (let y = eyeRow + 1; y <= eyeRow + 2; y++) for (let x = 5; x < 11; x++) {
+    if (!marks(x, y) || alpha(full, x, y) === 0) continue;
+    const [r, g, b] = rgbOf(hexAt(full, x, y));
+    const navy = Math.abs(r - 0x3a) < 8 && Math.abs(g - 0x3a) < 8 && Math.abs(b - 0x50) < 8;
+    if (navy || (r - b > 30 && 0.299 * r + 0.587 * g + 0.114 * b > 60)) mouth.push([x, y]);
+  }
+  return { eyeRow, eyes, brow, browHex, browRow, mouth, marks };
+}
+
+// ------------------------------------------------------------------ the expressions (portrait px)
+// Eye grids, iris on the right (mirrored when the sprite's iris sits on the left). o lash, w white, i iris, p pupil, h light, l lid.
+const EYE = {
+  neutro: ['.oooo.', 'owwhpo', 'owwiio', '.wwww.'],
+  feliz: ['......', '.oooo.', 'o....o', '......'],
+  surpreso: ['.oooo.', 'owwwwo', 'owwhpo', 'owwiio', '.oooo.'],
+  pensativo: ['oooooo', 'lwwhpo', '.wwiio', '......'],
 };
-const EYE_R = { ...EYE_L, pensativo: ['oooooo', 'wihiwo', '.wwww.'] };
-function eye(img, x0, y0, expr, side, npc, opts = {}) {
-  const pal = { o: NAVY, w: WHITE, i: IRIS[npc], h: '#ffffff' };
-  grid(img, (side === 'r' ? EYE_R : EYE_L)[expr], pal, x0, y0, false);
-  if (opts.lash) {
-    // long lashes: a flick outside the outer corner
-    const x = side === 'r' ? x0 + 6 : x0 - 1;
-    put(img, x, y0, NAVY);
-    put(img, x, y0 - 1, NAVY);
-  }
-}
-
+const EYE_DY = { neutro: 1, feliz: 1, surpreso: 0, pensativo: 1 };
+// Brows over the left eye (viewer's left); the right one is mirrored. B brow.
 const BROW = {
-  neutro: [['BBBBBB', '.BBBB.'], ['BBBBBB', '.BBBB.']],
-  feliz: [['.BBBB.', 'BB..BB'], ['.BBBB.', 'BB..BB']],
-  surpreso: [['.BBBB.', 'BB..BB'], ['.BBBB.', 'BB..BB']],
-  pensativo: [['BBB...', '..BBBB'], ['.BBBB.', 'B....B']],
+  neutro: [['.BBBBB', 'BB....'], 0],
+  feliz: [['.BBBB.', 'B....B'], -1],
+  surpreso: [['..BBB.', '.B...B', 'B.....'], -3],
+  pensativo: [['BBBB..', '....BB'], 0],
 };
-const BROW_DY = { neutro: 0, feliz: -2, surpreso: -3, pensativo: 0 };
-function brows(img, expr, color, y0, o = {}) {
-  const pal = { B: color };
-  const [l, r] = BROW[expr];
-  // left brow (viewer's left) and right brow
-  grid(img, l, pal, 23 + (o.dx ?? 0), y0 + BROW_DY[expr] + (o.rowL ?? 0), false);
-  grid(img, r, pal, 35 - (o.dx ?? 0), y0 + BROW_DY[expr] + (expr === 'pensativo' ? -2 : 0) + (o.rowR ?? 0), true);
+const MOUTH = {
+  feliz: ['dddddd', 'dwwwwd', '.dttd.'],
+  surpreso: ['.dd.', 'dmmd', 'dmmd', '.dd.'],
+  pensativo: ['....dd', '.dddd.', 'd.....'],
+  neutro: ['.dddd.'],
+};
+
+function grid(img, rows, pal, x0, y0, mirror = false) {
+  rows.forEach((row, j) => [...row].forEach((ch, i) => {
+    if (ch === '.' || !pal[ch]) return;
+    put(img, mirror ? x0 + row.length - 1 - i : x0 + i, y0 + j, pal[ch]);
+  }));
 }
 
-function mouth(img, expr, skin, o = {}) {
-  const lip = o.lip ?? LIP_DARK;
-  const pal = { d: lip, w: WHITE, p: TONGUE, D: MOUTH_IN, l: o.lipHi ?? '#b95d72' };
-  const y = o.y ?? 38;
-  if (expr === 'neutro') {
-    grid(img, ['.dddd.', ], pal, 29, y + 1);
-    put(img, 28, y, skin[1]); put(img, 35, y, skin[1]);
-  } else if (expr === 'feliz') {
-    grid(img, ['dddddddd', 'dwwwwwwd', '.dwwwwd.', '..dppd..', '...dd...'], pal, 28, y - 1);
-  } else if (expr === 'surpreso') {
-    grid(img, ['.dddd.', 'dDDDDd', 'dDDDDd', 'dDppDd', '.dddd.'], pal, 29, y - 1);
-  } else {
-    // pensativo: small mouth pulled to one side, corner up
-    grid(img, ['.....dd', '.dddd..', 'dd.....'], pal, 28, y);
-    put(img, 27, y + 1, skin[1]);
-  }
-}
-
-function blush(img, skin, strength = 1) {
-  const c = mix(skin[2], '#e07070', 0.45);
-  for (const [x, y] of [[23, 33], [24, 33], [25, 33], [24, 34], [40, 33], [39, 33], [38, 33], [39, 34]]) put(img, x, y, c);
-  if (strength > 1) for (const [x, y] of [[22, 34], [41, 34]]) put(img, x, y, c);
-}
-
-// ------------------------------------------------------------------ characters
-function faceSet(img, npc, expr, skin, o = {}) {
-  brows(img, expr, o.brow, o.browY ?? 21, o.browOpts);
-  const ey = expr === 'surpreso' ? 24 : 25;
-  const l = 23, r = 35;
-  if (expr === 'feliz') { eye(img, l, ey + 1, expr, 'l', npc, o); eye(img, r, ey + 1, expr, 'r', npc, o); }
-  else { eye(img, l, ey, expr, 'l', npc, o); eye(img, r, ey, expr, 'r', npc, o); }
-  nose(img, skin, o.noseWide ?? 0);
-  if (expr === 'feliz') blush(img, skin, o.blush ?? 1);
-  if (o.cheeks) o.cheeks(img, expr);
-  mouth(img, expr, skin, o.mouth);
-}
-
-const RENDER = {};
-
-RENDER.carlos = (img, expr) => {
-  const skin = ramp4('#c68a5f'), kp = faceKp({ cheek: 15.5, jaw: 13.5 });
-  // shirt and apron
-  torso(img, CLOTH.terracotta, { ol: '#7f3034' });
-  neck(img, skin);
-  // collar V of the shirt
-  flat(img, (x, y) => y >= 47 && y < 52 && Math.abs(x - CX) <= 8 - (y - 47) * 1.1 && Math.abs(x - CX) > 4.6 - (y - 47) * 1.0, CLOTH.terracotta[3], { ol: '#7f3034' });
-  // apron bib (cream) + straps over the shoulders
-  const bib = (x, y) => y >= 52 && Math.abs(x - CX) <= 13.5 - Math.max(0, 56 - y) * 0.6 && Math.abs(x - CX) <= TORSO_HW(y) - 3;
-  shape(img, bib, [CX, 58, 14, 8], CLOTH.cream, { ol: '#7a7a95', t: [0.9, 0.35, -0.2] });
-  for (const s of [-1, 1]) for (let i = 0; i < 6; i++) {
-    const x = CX + s * (9 - i * 0.2), y = 47 + i * 1.0;
-    fillRect(img, Math.round(x - 1.5 + (s > 0 ? 0.5 : 0)), Math.round(y), 3, 1, CLOTH.cream[2 + (s < 0 ? 1 : 0)]);
-  }
-  // pocket
-  fillRect(img, 27, 57, 10, 1, CLOTH.cream[1]); fillRect(img, 27, 58, 1, 4, CLOTH.cream[1]); fillRect(img, 36, 58, 1, 4, CLOTH.cream[0]); fillRect(img, 27, 62, 10, 1, CLOTH.cream[0]);
-  put(img, 32, 59, CLOTH.terracotta[1]); put(img, 33, 59, CLOTH.terracotta[1]);
-  head(img, skin, kp);
-  // graying sideburns
-  for (const s of [-1, 1]) for (let y = 22; y < 30; y++) { const x0 = Math.round(CX + s * (hwAt(kp, y) - 0.5) - (s > 0 ? 0 : 0.5)); put(img, x0, y, HAIR.saltpepper[y < 26 ? 2 : 1]); if (y < 27) put(img, x0 - s, y, HAIR.saltpepper[1]); }
-  faceSet(img, 'carlos', expr, skin, {
-    brow: HAIR.saltpepper[0], browY: 21, noseWide: 1, browOpts: { dx: -1 },
-    mouth: { y: 39, lip: LIP_DARK },
-    cheeks: (im) => { for (const s of [-1, 1]) { put(im, s < 0 ? 21 : 42, 31, skin[1]); put(im, s < 0 ? 20 : 43, 30, skin[1]); put(im, s < 0 ? 22 : 41, 22, skin[1]); } },
-  });
-  // mustache: thick, grey-black, over the mouth (drawn above the mouth top)
-  const mustache = (x, y) => {
-    const dx = Math.abs(x - CX);
-    if (y >= 35 && y < 36) return dx <= 6.5;
-    if (y >= 36 && y < 37) return dx <= 9;
-    if (y >= 37 && y < 38) return dx >= 1.2 && dx <= 9.6;
-    if (y >= 38 && y < 39) return dx >= 5.2 && dx <= 9.6;
-    return false;
-  };
-  shape(img, mustache, [CX, 37, 10, 2], ['#3f3b55', '#54506a', '#76728f', '#9a96b2'], { outline: false, t: [0.96, 0.15, -0.8] });
-  put(img, 31, 35, '#3f3b55'); put(img, 32, 35, '#3f3b55');
-  // baker's cap: puffed crown, band, side folds
-  const crown = or(ell(CX, 8.5, 17.5, 7), box(15, 9, 49, 13));
-  shape(img, crown, [CX, 8, 17.5, 7], CLOTH.cream, { ol: '#7a7a95', t: [0.85, 0.3, -0.15] });
-  const bandR = (x, y) => y >= 11 && y < 16.5 && Math.abs(x - CX) <= 16.4 - Math.max(0, y - 14.5) * 1.2;
-  shape(img, bandR, [CX, 14, 17, 3], CLOTH.cream, { ol: '#7a7a95', t: [0.95, 0.4, -0.3] });
-  for (const [x, y] of [[21, 4], [22, 5], [27, 3], [28, 4], [33, 3], [34, 4], [40, 4], [41, 5], [24, 8], [37, 8], [30, 7], [44, 8]]) put(img, x, y, CLOTH.cream[1]);
-  fillRect(img, 17, 15, 30, 1, CLOTH.cream[1]);
-};
-
-/** curly hair texture: bubbly clumps lit from the upper-left, dark gaps between them */
-const curly = (x, y, idx) => {
-  const row = Math.floor(y / 4.6), off = row % 2 ? 2.5 : 0;
-  const ccx = Math.floor((x + off) / 5) * 5 + 2.5 - off, ccy = row * 4.6 + 2.3;
-  const dx = x - ccx, dy = y - ccy;
-  const d = Math.hypot(dx, dy);
-  if (d > 2.6) return 0;
-  if (dx + dy < -1.1) return 3;
-  if (dx + dy < 0.8) return 2;
-  return 1;
-};
-
-RENDER.nanda = (img, expr) => {
-  const skin = SKIN.brown, kp = faceKp({ cheek: 14.5, jaw: 11.5 });
-  // long dark curls behind the shoulders
-  shape(img, or(ell(CX, 30, 22, 19), box(10, 30, 54, 50)), [CX, 32, 22, 20], HAIR.black, { ol: '#231f2e', pattern: (x, y, i) => curly(x, y, i) });
-  torso(img, CLOTH.mustache ?? CLOTH.mustard, { ol: '#7a520a' });
-  // scoop neckline showing skin
-  shape(img, and(ell(CX, 46, 10.5, 8.5), (x, y) => y >= 47), [CX, 47, 11, 8], [skin[0], skin[1], skin[1], skin[2]], { ol: '#7a520a', t: [1.5, 0.3, -0.5] });
-  for (const [x, y] of [[26, 50], [27, 51], [37, 51], [38, 50]]) put(img, x, y, skin[0]);
-  // a thin gold chain
-  for (let i = 0; i < 12; i++) put(img, 26 + i, 50 + Math.round(Math.sin((i / 11) * Math.PI) * 4), '#f8d239');
-  put(img, 32, 55, '#ed931e'); put(img, 31, 55, '#f8d239'); put(img, 32, 54, '#fff59a');
-  neck(img, skin);
-  head(img, skin, kp);
-  // brim shadow across the forehead
-  for (let x = 17; x < 47; x++) if (profile(CX, kp)(x + 0.5, 17.5)) put(img, x, 17, skin[0]);
-  for (let x = 18; x < 46; x++) if (profile(CX, kp)(x + 0.5, 18.5)) put(img, x, 18, skin[1]);
-  faceSet(img, 'nanda', expr, skin, { brow: HAIR.black[0], browY: 21, lash: true, mouth: { y: 38, lip: '#a83c46' }, blush: 1 });
-  // curls falling over the shoulders in front of the ears
-  for (const s of [-1, 1]) shape(img, ell(CX + s * 19.5, 34, 4.6, 13.5), [CX + s * 19.5, 34, 5, 14], HAIR.black, { ol: '#231f2e', pattern: curly });
-  // gold hoops
-  for (const s of [-1, 1]) hoop(img, CX + s * 17.2, 42.5, 2.7);
-  // straw hat: brim first, then the crown with a terracotta band
-  const brim = ell(CX, 11.6, 29, 5.6);
-  shape(img, brim, [CX, 11.6, 29, 6], CLOTH.straw, {
-    ol: '#7b5b3a',
-    pattern: (x, y) => {
-      const r = Math.hypot((x - CX) / 29, (y - 11.6) / 5.6);
-      const ring = Math.floor(r * 13);
-      const lit = (x - CX) + (y - 11.6) * 1.5 < -6 ? 3 : 2;
-      if (r > 0.9) return 1;
-      return ring % 2 ? (lit === 3 ? 2 : 1) : lit;
-    },
-  });
-  const crown = or(ell(CX, 6.6, 12.5, 7.4), box(19.5, 7, 44.5, 12.5));
-  shape(img, crown, [CX, 7, 12.5, 7.4], CLOTH.straw, {
-    ol: '#7b5b3a',
-    pattern: (x, y, idx) => {
-      const weave = (Math.floor(x / 2) + y) % 3 === 0;
-      return weave ? Math.max(0, idx - 1) : idx;
-    },
-  });
-  fillRect(img, 20, 9, 24, 3, CLOTH.terracotta[2]); fillRect(img, 20, 9, 24, 1, CLOTH.terracotta[3]); fillRect(img, 20, 11, 24, 1, CLOTH.terracotta[0]);
-  put(img, 32, 10, '#f8d239'); put(img, 33, 10, '#f8d239');
-};
-
-RENDER.julia = (img, expr) => {
-  // Praça guide: high ponytail and a market tote. Cream blouse, no apron, no baker's cap.
-  const skin = ramp4('#eec1a0'), kp = faceKp({ cheek: 14, jaw: 11 });
-  const hair = ramp4('#9a5f30', '#4a3018');
-  const tote = ramp4('#f4ede2', '#7a7570');
-  torso(img, CLOTH.cream, { ol: '#7a7a95' });
-  neck(img, skin);
-  head(img, skin, kp);
-  faceSet(img, 'julia', expr, skin, { brow: hair[0], browY: 21, lash: true, mouth: { y: 38, lip: '#d56868' }, blush: 1 });
-  // hairline only. A wide cap here turns the tail into a hat, so the brown on the scalp stays below the forehead.
-  shape(img, and(ell(CX, 20, 16.4, 7), (x, y) => y >= 16 && y <= 19), [CX, 17, 16, 3], hair, { ol: '#43261b', t: [0.8, 0.28, -0.1] });
-  for (const s of [-1, 1]) for (let y = 17; y < 24; y++) {
-    const x0 = Math.round(CX + s * (hwAt(kp, y) - 1.2));
-    put(img, x0, y, hair[0]); put(img, x0 - s, y, hair[y < 20 ? 2 : 1]);
-  }
-  // high ponytail: a puff, a neck thinner than the head, a coral scrunchie on that neck alone
-  shape(img, ell(32, 5, 6.2, 3.8), [32, 5, 6, 3.6], hair, { ol: '#43261b', t: [0.82, 0.3, -0.12] });
-  for (let y = 8; y <= 16; y++) {
-    for (let x = 30; x <= 33; x++) put(img, x, y, x < 32 ? hair[2] : hair[1]);
-    put(img, 29, y, '#43261b'); put(img, 34, y, '#43261b');
-  }
-  for (let x = 28; x <= 35; x++) { put(img, x, 14, '#f0a090'); put(img, x, 15, '#c45c26'); }
-  put(img, 28, 14, '#43261b'); put(img, 35, 15, '#43261b');
-  for (const [x, y] of [[30, 3], [31, 4], [33, 4], [34, 5], [32, 7], [31, 9]]) put(img, x, y, hair[3]);
-  // market tote in front of the shoulder: two handles, a cloth bag, a leaf, a terracotta stripe
-  for (let i = 0; i < 12; i++) { put(img, 44, 42 + i, tote[0]); put(img, 45, 42 + i, tote[2]); put(img, 58, 42 + i, tote[1]); put(img, 59, 42 + i, tote[0]); }
-  shape(img, box(42, 50, 62, 63), [52, 56, 10, 7], tote, { ol: '#7a7570', t: [0.9, 0.35, -0.2] });
-  shape(img, (x, y) => {
-    const t = (y - 46) / 8;
-    if (t < 0 || t > 1) return false;
-    return Math.abs(x - 50 - (y - 50) * 0.15) <= Math.sin(t * Math.PI) * 2.4;
-  }, [50, 50, 3, 4], ramp4('#3d8a4e', '#1a3120'), { ol: '#1a3120' });
-  fillRect(img, 43, 56, 18, 2, '#c45c26');
-  fillRect(img, 43, 56, 18, 1, '#e07a5f');
-};
-
-RENDER.graca = (img, expr) => {
-  const skin = SKIN.deep, kp = faceKp({ cheek: 14.5, jaw: 12.5 });
-  const hair = HAIR.grey;
-  // grey bun on top
-  shape(img, ell(CX, 6.5, 7.5, 5.2), [CX, 6.5, 8, 5.5], hair, { ol: '#6c6e85', t: [0.8, 0.3, -0.1], pattern: (x, y, i) => ((x + y * 2) % 5 === 0 ? Math.max(0, i - 1) : i) });
-  torso(img, CLOTH.plum, { ol: '#2a2140' });
-  // collar and apron (pale blue with a cream trim)
-  const bib = (x, y) => y >= 51 && Math.abs(x - CX) <= 12 - Math.max(0, 55 - y) * 0.8 && Math.abs(x - CX) <= TORSO_HW(y) - 3;
-  shape(img, bib, [CX, 58, 13, 8], CLOTH.sky, { ol: '#4e6f86', t: [0.9, 0.35, -0.2] });
-  for (const s of [-1, 1]) for (let i = 0; i < 6; i++) fillRect(img, Math.round(CX + s * (8.5 - i * 0.3) - (s < 0 ? 1.5 : 0.5)), 47 + i, 2, 1, CLOTH.sky[2 + (s < 0 ? 1 : 0)]);
-  fillRect(img, 21, 55, 22, 1, CLOTH.cream[2]);
-  for (let x = 22; x < 42; x += 3) put(img, x, 58, CLOTH.sky[1]);
-  fillRect(img, 28, 60, 8, 3, CLOTH.sky[1]); fillRect(img, 28, 60, 8, 1, CLOTH.sky[3]);
-  neck(img, skin);
-  head(img, skin, kp);
-  // wrinkles: forehead, crow's feet, nasolabial
-  for (const [x, y] of [[26, 18], [27, 18], [36, 18], [37, 18], [22, 33], [21, 34], [41, 33], [42, 34]]) put(img, x, y, skin[1]);
-  for (const s of [-1, 1]) { put(img, s < 0 ? 24 : 39, 31, skin[1]); put(img, s < 0 ? 26 : 37, 31, skin[1]); put(img, s < 0 ? 25 : 38, 31, skin[1]); }
-  faceSet(img, 'graca', expr, skin, { brow: HAIR.grey[0], browY: 21, mouth: { y: 39, lip: '#5a1c26' }, blush: 1 });
-  // pulled-back hair: cap over the crown, hairline, side sweeps above the ears
-  shape(img, and(ell(CX, 14, 16.8, 11.5), (x, y) => y < 18 + Math.abs(x - CX) * -0.12 + (Math.abs(x - CX) > 12 ? (Math.abs(x - CX) - 12) * 3.5 : 0)), [CX, 12, 17, 12], hair, { ol: '#6c6e85', t: [0.75, 0.25, -0.1] });
-  for (let i = 0; i < 4; i++) { put(img, 25 + i, 9 + Math.round(i * 0.7), hair[3]); }
-  put(img, 32, 13, hair[1]); put(img, 32, 14, hair[1]); put(img, 32, 15, hair[1]);
-  for (const s of [-1, 1]) for (let y = 19; y < 24; y++) { const x = Math.round(CX + s * (hwAt(kp, y) - 1)); put(img, x, y, hair[1]); }
-  // round glasses (slate frames, a glint on each lens)
-  for (const [cx, cy] of [[26, 27.5], [38, 27.5]]) {
-    for (let a = 0; a < 40; a++) { const r = 4.9; put(img, Math.floor(cx + Math.cos((a / 40) * 6.2832) * r), Math.floor(cy + Math.sin((a / 40) * 6.2832) * r), '#565972'); }
-    put(img, Math.floor(cx) - 2, Math.floor(cy) - 3, '#d8d0e0'); put(img, Math.floor(cx) - 3, Math.floor(cy) - 2, '#d8d0e0');
-  }
-  fillRect(img, 31, 26, 2, 1, '#565972');
-};
-
-RENDER.tia_lu = (img, expr) => {
-  const skin = SKIN.warm, kp = faceKp({ cheek: 16.2, jaw: 14, chin: 46 });
-  torso(img, CLOTH.green, { ol: '#1f4046' });
-  // orange apron with straps
-  const bib = (x, y) => y >= 51 && Math.abs(x - CX) <= 14 - Math.max(0, 55 - y) * 0.7 && Math.abs(x - CX) <= TORSO_HW(y) - 3;
-  shape(img, bib, [CX, 58, 14, 8], CLOTH.orange, { ol: '#a8600f', t: [0.9, 0.35, -0.2] });
-  for (const s of [-1, 1]) for (let i = 0; i < 6; i++) fillRect(img, Math.round(CX + s * (9.5 - i * 0.3) - (s < 0 ? 1.5 : 0.5)), 47 + i, 2, 1, CLOTH.orange[2 + (s < 0 ? 1 : 0)]);
-  fillRect(img, 26, 58, 12, 1, CLOTH.orange[1]); fillRect(img, 26, 59, 1, 4, CLOTH.orange[1]); fillRect(img, 37, 59, 1, 4, CLOTH.orange[0]); fillRect(img, 26, 63, 12, 1, CLOTH.orange[0]);
-  put(img, 30, 60, '#e63f38'); put(img, 31, 60, '#ff8575'); put(img, 34, 61, '#9bc246'); put(img, 33, 61, '#b8d040'); // painted fruit
-  neck(img, skin);
-  // bead necklace
-  const beads = ['#e63f38', '#f8d239', '#4995e3', '#f8d239', '#e63f38'];
-  for (let i = 0; i < 11; i++) put(img, 26 + i, 48 + Math.round(Math.sin((i / 10) * Math.PI) * 4), beads[i % beads.length]);
-  head(img, skin, kp);
-  // smile lines and cheek roundness
-  for (const [x, y] of [[21, 26], [21, 28], [42, 26], [42, 28], [23, 36], [22, 37], [40, 36], [41, 37]]) put(img, x, y, skin[1]);
-  faceSet(img, 'tia_lu', expr, skin, { brow: HAIR.black[0], browY: 22, lash: true, mouth: { y: 38, lip: '#b0303a' }, blush: 2, noseWide: 1 });
-  // headscarf (lenço): red with cream dots, a rolled band on the forehead, a bow on top
-  const dome = and(ell(CX, 14, 18.6, 12), (x, y) => y < 20.5);
-  shape(img, dome, [CX, 13, 19, 12], CLOTH.red, { ol: '#7a1c20' });
-  // dots need a cream color: repaint them
-  for (let y = 3; y < 21; y++) for (let x = 12; x < 52; x++) if (dome(x + 0.5, y + 0.5) && (Math.floor(y / 3) % 2 ? x + 2 : x) % 5 === 0 && y % 3 === 1 && Math.abs(x - CX) < 17) put(img, x, y, '#f8ecd0');
-  fillRect(img, 14, 17, 36, 3, CLOTH.red[1]);
-  for (let x = 14; x < 50; x += 3) { put(img, x, 17, CLOTH.red[3]); put(img, x + 1, 18, CLOTH.red[3]); put(img, x + 1, 19, CLOTH.red[0]); }
-  for (const s of [-1, 1]) shape(img, ell(CX + s * 6.5, 5.6, 6, 3.4), [CX + s * 6.5, 5.6, 6, 3.5], CLOTH.red, { ol: '#7a1c20', t: [0.8, 0.3, -0.1] });
-  shape(img, ell(CX, 6.5, 2.6, 2.6), [CX, 6.5, 3, 3], CLOTH.red, { ol: '#7a1c20', t: [0.7, 0.2, -0.2] });
-  for (const [x, y] of [[22, 5], [25, 6], [39, 5], [42, 6]]) put(img, x, y, '#f8ecd0');
-  // big hoops
-  for (const s of [-1, 1]) hoop(img, CX + s * 17.9, 36.6, 2.9);
-};
-
-RENDER.prof = (img, expr) => {
-  // Professora Bia: a woman in her 30s, warm brown skin, short dark hair, a white BJJ gi whose crossed lapels open on a dark rashguard
-  const skin = SKIN.warm, kp = faceKp({ cheek: 14.2, jaw: 11.5 });
-  const hair = HAIR.black;
-  // the nape and sides of the short hair, behind the head
-  shape(img, profile(CX, [[8, 10], [11, 15.5], [16, 18], [24, 18.8], [30, 18.4], [35, 16.2], [38, 11]]), [CX, 26, 19, 16], hair, { ol: '#231f2e', t: [0.8, 0.3, -0.1] });
-  torso(img, CLOTH.cream, { ol: '#7a7a95' });
-  neck(img, skin);
-  // rashguard in the V, then the two lapels crossing, each a thick diagonal with a shaded edge
-  flat(img, (x, y) => y >= 47 && y < 57 && Math.abs(x - CX) < 9.5 - (y - 47) * 0.95, '#2e2a3c', { outline: false });
-  for (const s of [-1, 1]) {
-    for (let i = 0; i < 11; i++) {
-      const x = CX + s * (10 - i * 0.98), y = 47 + i * 1.0;
-      fillRect(img, Math.round(x - (s < 0 ? 1 : 2)), Math.round(y), 4, 1, i < 4 ? CLOTH.cream[3] : CLOTH.cream[s < 0 ? 3 : 2]);
-      put(img, Math.round(x + (s < 0 ? 3 : -3)), Math.round(y), CLOTH.cream[0]);
-      put(img, Math.round(x - (s < 0 ? 2 : 3)), Math.round(y), '#8b8bab');
+// ------------------------------------------------------------------ one NPC
+async function npcParts(K, src, id) {
+  const tune = TUNE[id] ?? {};
+  const look = K.lookForNpc(id);
+  const hasGlasses = look.layers.some((l) => l.key === 'extra_oculos');
+  const full = composeFrame(K, src, look);
+  // under the glasses: the same face without them (the lenses are redrawn thin after the scale)
+  const noGlasses = hasGlasses ? composeFrame(K, src, { ...look, layers: look.layers.filter((l) => l.key !== 'extra_oculos') }) : full;
+  const bare = composeFrame(K, src, { ...look, layers: look.layers.filter((l) => !isFaceLayer(l.key) && l.key !== 'extra_oculos') });
+  let glasses = null;
+  if (hasGlasses) {
+    const on = (x, y) => rgbaAt(full, x, y) !== rgbaAt(noGlasses, x, y);
+    const lens = (x, y) => on(x, y) && lumaOf(hexAt(full, x, y)) > 150;
+    const lensRows = [];
+    for (let y = 12; y < 27; y++) if ([...Array(12).keys()].some((i) => lens(i + 2, y))) lensRows.push(y);
+    let frameHex = null, lensHex = null;
+    for (let y = 12; y < 27 && !(frameHex && lensHex); y++) for (let x = 2; x < 14; x++) if (on(x, y)) {
+      if (lens(x, y) && lumaOf(hexAt(full, x, y)) < 245) lensHex ??= hexAt(full, x, y);
+      else if (!lens(x, y)) frameHex ??= hexAt(full, x, y);
     }
+    glasses = { on, lens, lensRows, frameHex: frameHex ?? NAVY, lensHex: lensHex ?? '#c6ecff' };
   }
-  // stitched rib line down each lapel and a small patch on the shoulder
-  for (const s of [-1, 1]) for (let i = 1; i < 10; i += 2) put(img, Math.round(CX + s * (10 - i * 0.98) - s * 0.2), 47 + i, CLOTH.cream[1]);
-  fillRect(img, 14, 58, 6, 3, '#3d56d2'); fillRect(img, 14, 58, 6, 1, '#4995e3'); put(img, 16, 59, '#f8f8f8'); put(img, 17, 59, '#f8f8f8');
-  head(img, skin, kp);
-  faceSet(img, 'prof', expr, skin, { brow: hair[0], browY: 21, lash: true, mouth: { y: 38, lip: '#9a3a44' }, blush: 1 });
-  // short hair: a cap with a side-swept fringe, clean sides over the tops of the ears, a few shine streaks
-  const hairline = (x) => (x < 36 ? 16.2 + (36 - x) * 0.3 : 16 + (x - 36) * 0.5);
-  shape(img, and(ell(CX, 13, 18.2, 13.8), (x, y) => y < hairline(x)), [CX - 3, 11, 18, 13], hair, {
-    ol: '#231f2e', t: [0.78, 0.3, -0.1],
-    pattern: (x, y, i) => ((Math.floor(x + y * 0.5) % 5 === 0) ? Math.min(3, i + 1) : (Math.floor(x + y * 0.5) % 5 === 2 ? Math.max(0, i - 1) : i)),
+  const face = readFace(noGlasses, bare, glasses, tune);
+  const { eyeRow } = face;
+  // the LimeZu body has its own navy eye marks under the eye layer: paint them skin (the colour between the eyes)
+  const mid = face.eyes.length === 2 ? Math.floor((face.eyes[0].x1 + face.eyes[1].x0 + 1) / 2) : 7;
+  const skinHex = hexAt(bare, mid, eyeRow);
+  for (let y = eyeRow - 1; y <= eyeRow + 2; y++) for (let x = 3; x < 13; x++) {
+    if (alpha(bare, x, y) === 0) continue;
+    const [r, , b] = rgbOf(hexAt(bare, x, y));
+    if (b > r) put(bare, x, y, skinHex);
+  }
+
+  // the lifted frame: eyes, brows, mouth (and the glasses) back to the bare skin under them. A pack face (eyes + brows + blush layers)
+  // lifts whole; a regular's own face keeps what is not eyes, brows or mouth (beard, mustache, hoops).
+  const ownFace = look.layers.some((l) => l.key.startsWith('face_npc_'));
+  const lifted = { w: full.w, h: full.h, data: new Uint8Array(full.data) };
+  for (let y = 0; y < full.h; y++) for (let x = 0; x < full.w; x++) {
+    const inEye = y === eyeRow && x >= 2 && x < 14 && (face.marks(x, y) || glasses?.on(x, y));
+    const inBrow = face.brow.some(([bx, by]) => bx === x && by === y);
+    const inGlass = glasses?.on(x, y) && y >= eyeRow - 2 && y <= eyeRow + 1 && x >= 2 && x < 14;
+    const packMark = !ownFace && face.marks(x, y);
+    if (inEye || inBrow || inGlass || packMark) copyPx(lifted, x, y, bare, x, y);
+  }
+  // the sprite's mouth is a pixel or two: it is redrawn thin at portrait size, in the sprite's mouth colour
+  const mouthDark = face.mouth.map(([x, y]) => hexAt(noGlasses, x, y)).sort((a, b) => lumaOf(a) - lumaOf(b))[0] ?? null;
+  for (const [x, y] of face.mouth) copyPx(lifted, x, y, bare, x, y);
+
+  // the window: 20 sprite columns around the body, rows down to the shoulders. The eye row and the row over it are shown twice (the
+  // face gets room for the eyes and brows); above the brows a hair row that repeats the one under it is dropped (the hair mass is
+  // shorter, the hat keeps its crown).
+  const bottom = tune.bottom ?? eyeRow + 5;
+  const mouthRow = face.mouth.length ? Math.min(...face.mouth.map(([, y]) => y)) : eyeRow + 1;
+  const rowDiff = (a, b) => { let n = 0; for (let x = 0; x < FRAME_W; x++) if (rgbaAt(lifted, x, a) !== rgbaAt(lifted, x, b)) n++; return n; };
+  const rows = [];
+  let skipped = false;
+  for (let y = bottom; rows.length < WIN && y >= 0; y--) {
+    // a row of the hair or hat mass that is (almost) the one under it is dropped, never two in a row
+    if (y < face.browRow - 1 && rows.length && !skipped && rowDiff(y, rows[0]) <= (tune.squeeze ?? 2)) { skipped = true; continue; }
+    skipped = false;
+    rows.unshift(y);
+    if ((y === eyeRow || y === eyeRow - 1) && rows.length < WIN) rows.unshift(y);
+  }
+  while (rows.length < WIN) rows.unshift(rows[0] - 1);
+  if (process.env.PORTRAIT_DEBUG) console.log(id, JSON.stringify({ eyeRow, eyes: face.eyes, browRow: face.browRow, brow: face.brow, mouth: face.mouth, rows }));
+  const X0 = Math.round((FRAME_W - WIN) / 2) + (tune.dx ?? 0);
+  const rowAt = (sy) => rows.indexOf(sy);
+  const P = (sx, sy) => [OX + (sx - X0) * S, OY + rowAt(sy) * S];
+
+  // the sprite's colours for the redraw
+  const skinAt = (x, y) => hexAt(bare, x, y);
+  const eyeL = face.eyes[0] ?? { x0: 4, x1: 5, irisRight: true };
+  const skin = skinAt(Math.round((eyeL.x0 + eyeL.x1) / 2), eyeRow);
+  const skinShade = mix(skin, '#5a2a2a', 0.28);
+  const iris = face.eyes.find((e) => e.iris && lumaOf(e.iris) > 40)?.iris ?? '#573c2c';
+  const lash = '#2a2030';
+  const hairHex = look.layers.find((l) => l.key.startsWith('hair_'))?.ramps?.hair ?? '#1d1716';
+  const browHex = face.browHex ?? mix(hairHex, lash, 0.3);
+  const lip = tune.lip ?? (mouthDark && lumaOf(mouthDark) < lumaOf(skin) - 30 ? mouthDark : mix(skin, '#6a2028', 0.55));
+  const mouthX = face.eyes.length === 2 ? (face.eyes[0].x1 + face.eyes[1].x0 + 1) / 2 : 8;
+
+  // the room behind them (ROOMS: who stands where); the open-air streets get the praça
+  const room = tune.room ?? Object.values(K.ROOMS).find((r) => r.npcs?.some((n) => n.id === id))?.id ?? 'praca';
+  const bgKind = BACKGROUNDS[room] ? room : 'praca';
+
+  // the 20 x 20 window, scaled once: the expressions only differ in the face drawn over it
+  const win = blank(WIN, WIN);
+  const edge = new Uint8Array(WIN * WIN);
+  rows.forEach((sy, wy) => {
+    for (let wx = 0; wx < WIN; wx++) {
+      const sx = X0 + wx;
+      copyPx(win, wx, wy, lifted, sx, sy);
+      if (alpha(lifted, sx, sy) > 0 && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => alpha(lifted, sx + dx, sy + dy) === 0)) edge[wy * WIN + wx] = 1;
+    }
   });
-  for (const s of [-1, 1]) for (let y = 17; y < 27; y++) { const x0 = Math.round(CX + s * (hwAt(kp, y) - 1.2) - (s < 0 ? 0 : 1)); put(img, x0, y, hair[y < 22 ? 1 : 0]); put(img, x0 + (s < 0 ? 1 : -1), y, hair[y < 22 ? 2 : 1]); }
-  for (let i = 0; i < 8; i++) put(img, 36 - Math.round(i * 0.2), 6 + i, hair[0]);
-  for (const [x, y] of [[23, 8], [24, 8], [25, 9], [26, 9], [21, 11], [22, 11], [23, 12], [16, 22], [16, 23]]) put(img, x, y, hair[3]);
-};
+  const { img: big, from } = scale3x(win);
+  thinOutline(big, from, edge);
+  const base = blank(SIZE, SIZE);
+  BACKGROUNDS[bgKind](base, TARP[id]);
+  for (let y = 0; y < big.h; y++) for (let x = 0; x < big.w; x++) if (alpha(big, x, y) > 0) copyPx(base, OX + x, OY + y, big, x, y);
 
-RENDER.ze = (img, expr) => {
-  const skin = ZE_SKIN, kp = faceKp({ cheek: 16.2, jaw: 14.2, chin: 46 });
-  torso(img, OLIVE_SHIRT, { ol: OLIVE_SHIRT[0] });
-  flat(img, (x, y) => y >= 60 && torsoPred(x, y), KHAKI[2], { ol: KHAKI[0] });
-  neck(img, skin);
-  flat(img, (x, y) => y >= 47 && y < 52 && Math.abs(x - CX) <= 8 - (y - 47) * 1.0 && Math.abs(x - CX) > 4.2 - (y - 47) * 0.9, OLIVE_SHIRT[3], { ol: OLIVE_SHIRT[0] });
-  // verduras: pointed leaves and one dark olive with a catchlight. No apron — that would make him a second baker.
-  const leaf = (cx, cy, h, w, lean) => (x, y) => {
-    const t = (y - (cy - h / 2)) / h;
-    if (t < 0 || t > 1) return false;
-    const half = Math.sin(t * Math.PI) * w;
-    return Math.abs(x - cx - (y - cy) * lean) <= half;
-  };
-  shape(img, leaf(47, 52, 14, 3.2, -0.15), [47, 52, 4, 7], ramp4('#3d8a4e', '#1a3120'), { ol: '#1a3120' });
-  shape(img, leaf(56, 51, 13, 2.8, 0.2), [56, 51, 4, 7], ramp4('#5cb85c', '#243018'), { ol: '#243018' });
-  shape(img, leaf(51, 48, 12, 2.4, 0.02), [51, 48, 3, 6], ramp4('#7aaa38', '#2a4018'), { ol: '#2a4018' });
-  shape(img, ell(52, 58, 4.2, 3.1), [52, 58, 4, 3], ['#1a2010', '#2a3318', '#3d4a22', '#5a6a30'], { ol: '#0e1408' });
-  put(img, 50, 57, '#d5e2a0'); put(img, 51, 57, '#eef6c8');
-  head(img, skin, kp);
-  const scalp = and(profile(CX, kp), (x, y) => y < 24);
-  const zeHair = CHICO_HAIR;
-  for (let y = 15; y < 23; y++) for (let x = 18; x < 46; x++) if (scalp(x + 0.5, y + 0.5) && h2(x, y, 3) > 0.35) put(img, x, y, zeHair[y < 19 ? 2 : 1]);
-  faceSet(img, 'ze', expr, skin, { brow: zeHair[0], browY: 21, noseWide: 1, mouth: { y: 39, lip: LIP_DARK } });
-  // thin dark mustache plus cheek stubble — not Carlos's solid grey bar
-  const mustache = (x, y) => {
-    const dx = Math.abs(x - CX);
-    if (y === 36) return dx >= 2 && dx <= 5;
-    if (y === 37) return dx >= 1.5 && dx <= 7;
-    return false;
-  };
-  shape(img, mustache, [CX, 37, 8, 1.5], CHICO_HAIR, { outline: false, t: [0.96, 0.15, -0.8] });
-  for (const [x, y] of [[22, 33], [23, 35], [24, 37], [21, 36], [41, 33], [40, 35], [39, 37], [42, 36], [26, 40], [37, 40]]) put(img, x, y, CHICO_HAIR[1]);
-  const brim = ell(CX, 13.2, 27, 5.2);
-  shape(img, brim, [CX, 13, 27, 5.5], PANAMA, { ol: '#6a5e48', t: [0.88, 0.35, -0.12] });
-  const crown = or(ell(CX, 8.2, 14.5, 7.2), box(17, 9, 47, 14));
-  shape(img, crown, [CX, 8, 14.5, 7], PANAMA, { ol: '#6a5e48', t: [0.85, 0.32, -0.15] });
-  fillRect(img, 18, 11, 28, 2, '#2a2a33'); fillRect(img, 18, 11, 28, 1, '#3a3a50');
-  for (const [x, y] of [[22, 5], [28, 4], [34, 4], [40, 5], [25, 7], [38, 7]]) put(img, x, y, PANAMA[1]);
-};
-
-RENDER.chico = (img, expr) => {
-  const skin = CHICO_SKIN, hair = CHICO_HAIR, kp = faceKp({ cheek: 14.8, jaw: 12.5 });
-  shape(img, or(ell(CX, 32, 21, 18), box(11, 30, 53, 48)), [CX, 32, 21, 19], hair, { ol: '#0a0808', t: [0.8, 0.3, -0.1], pattern: (x, y, i) => (Math.floor(x * 0.7 + y) % 4 === 0 ? Math.max(0, i - 1) : i) });
-  torso(img, CHICO_TEE, { ol: CHICO_TEE[0] });
-  flat(img, (x, y) => y >= 58 && torsoPred(x, y), JEANS[2], { ol: JEANS[0] });
-  neck(img, skin);
-  // a pastel: the dome of a fried half-moon (flat crimped edge on the bottom) over a paper corner. No white apron.
-  shape(img, and(ell(50, 56, 10, 8), (x, y) => y <= 56), [50, 52, 10, 6], ramp4('#e8b634', '#6a5010'), { ol: '#6a5010', t: [0.9, 0.4, -0.15] });
-  for (let i = 0; i < 9; i++) put(img, 42 + i * 2, 56 + (i % 2), '#a07818');
-  fillRect(img, 44, 57, 12, 3, '#f4ede2');
-  fillRect(img, 44, 59, 12, 1, '#d8d0c4');
-  head(img, skin, kp);
-  faceSet(img, 'chico', expr, skin, { brow: hair[0], browY: 21, mouth: { y: 38, lip: '#7a3034' }, blush: 1 });
-  const beard = (x, y) => {
-    const hw = hwAt(kp, y);
-    if (y < 37 || y > 43) return false;
-    const dx = Math.abs(x - CX);
-    if (y < 40) return dx >= hw - 4.5 && dx <= hw + 0.5 && dx > 3;
-    return dx >= 4 && dx <= 11.5;
-  };
-  shape(img, beard, [CX, 40, 12, 4], hair, { ol: '#0a0808', t: [0.75, 0.28, -0.1] });
-  shape(img, and(ell(CX, 13.5, 17.5, 12), (x, y) => y < 19), [CX, 12, 17, 12], hair, { ol: '#0a0808', t: [0.78, 0.3, -0.1] });
-  const bucketCrown = (x, y) => y >= 4 && y < 14 && Math.abs(x - CX) <= 14.5 - Math.max(0, y - 10) * 0.8;
-  shape(img, bucketCrown, [CX, 9, 14, 6], BUCKET, { ol: '#a07818', t: [0.88, 0.38, -0.15] });
-  const bucketBrim = (x, y) => y >= 12 && y < 16.5 && Math.abs(x - CX) <= 16 - (y - 12) * 0.5;
-  shape(img, bucketBrim, [CX, 14, 16, 3], BUCKET, { ol: '#a07818', t: [0.92, 0.4, -0.2] });
-  fillRect(img, 20, 13, 24, 1, BUCKET[0]);
-};
-
-RENDER.rosa = (img, expr) => {
-  const skin = ROSA_SKIN, hair = ROSA_HAIR, kp = faceKp({ cheek: 13.8, jaw: 11, chin: 47 });
-  const wavePat = (x, y, i) => (Math.sin((x + y * 0.4) * 0.55) > 0.2 ? Math.min(3, i + 1) : (Math.sin((x - y * 0.3) * 0.5) < -0.35 ? Math.max(0, i - 1) : i));
-  shape(img, profile(CX, [[8, 11], [12, 17], [18, 19.5], [28, 20.5], [40, 20], [48, 18], [54, 14]]), [CX, 33, 22, 22], hair, { ol: '#4a3018', t: [0.78, 0.3, -0.1], pattern: wavePat });
-  torso(img, ROSA_BLOUSE, { ol: '#9a5a68' });
-  flat(img, (x, y) => y >= 57 && torsoPred(x, y), PLUM_SKIRT[2], { ol: PLUM_SKIRT[0] });
-  neck(img, skin);
-  // bouquet: three blooms, a few leaves, a short paper wrap. The crown and the hoops are already on the head.
-  shape(img, ell(46, 50, 4.2, 3.4), [46, 50, 4, 3.2], ramp4('#e63f38'), { ol: '#7a1c20' });
-  shape(img, ell(55, 49, 4.2, 3.4), [55, 49, 4, 3.2], ramp4('#f2c230', '#8a6a10'), { ol: '#6a5010' });
-  shape(img, ell(50, 46, 3.6, 3.2), [50, 46, 3.4, 3], ramp4('#e07a5f', '#8a4030'), { ol: '#7a3030' });
-  put(img, 46, 50, '#f8d239'); put(img, 55, 49, '#fff59a'); put(img, 50, 46, '#f8d239');
-  for (const [x, y] of [[44, 53], [48, 52], [52, 53], [56, 52], [50, 54]]) put(img, x, y, '#3d8a4e');
-  shape(img, box(45, 55, 57, 63), [51, 59, 6, 4], ramp4('#f4ede2', '#7a7570'), { ol: '#7a7570' });
-  head(img, skin, kp);
-  faceSet(img, 'rosa', expr, skin, { brow: hair[0], browY: 21, lash: true, mouth: { y: 38, lip: '#b95d72' }, blush: 1 });
-  shape(img, and(ell(CX, 14.5, 18.5, 13), (x, y) => y < 20 + Math.sin(x * 0.45) * 1.2), [CX, 13, 18, 13], hair, { ol: '#4a3018', t: [0.76, 0.28, -0.1], pattern: wavePat });
-  for (const s of [-1, 1]) for (let y = 20; y < 38; y++) { const x0 = Math.round(CX + s * (hwAt(kp, y) - 1.8)); put(img, x0, y, hair[1 + (y % 3 === 0 ? 1 : 0)]); }
-  for (const s of [-1, 1]) hoop(img, CX + s * 17.4, 36.2, 2.8);
-  const bloom = (cx, cy, petal, center) => {
-    for (let a = 0; a < 6; a++) shape(img, ell(cx + Math.cos(a * 1.05) * 2.2, cy + Math.sin(a * 1.05) * 2, 2.1, 1.6), [cx, cy, 2.5, 2], petal, { outline: false });
-    shape(img, ell(cx, cy, 1.4, 1.4), [cx, cy, 1.5, 1.5], center, { outline: false });
-  };
-  for (const [x, y, c] of [[20, 10, '#e63f38'], [28, 7, '#f8d239'], [36, 7, '#ff8575'], [44, 10, '#e63f38'], [24, 12, '#9bc246'], [40, 12, '#9bc246']]) {
-    bloom(x, y, ramp4(c === '#9bc246' ? '#7aaa38' : c, '#3a1818'), ramp4('#f8d239'));
-  }
-  for (const [x, y] of [[22, 9], [30, 8], [38, 8], [42, 11]]) put(img, x, y, '#5a8a32');
-};
-
-// Dona Lúcia, the escola teacher (world sprite: golden bun, glasses, green blouse). Not Graça: square frames, a pencil in the bun,
-// a white collar, and the chalkboard behind her.
-RENDER.lucia = (img, expr) => {
-  const skin = LUCIA_SKIN, hair = LUCIA_HAIR, kp = faceKp({ cheek: 14.8, jaw: 12.2, chin: 46 });
-  torso(img, LUCIA_BLOUSE, { ol: '#1d4a30' });
-  // white blouse collar, two points
-  for (const sx of [-1, 1]) flat(img, (x, y) => y >= 46 && y < 54 && sx * (x - CX) >= 1 + (y - 46) * 0.5 && sx * (x - CX) <= 10 - (y - 46) * 0.4, '#f4efe6', { ol: '#a8a090' });
-  // a button line and a piece of chalk in the pocket
-  for (let y = 54; y < 64; y += 3) put(img, CX, y, LUCIA_BLOUSE[0]);
-  fillRect(img, 22, 56, 7, 1, LUCIA_BLOUSE[0]); fillRect(img, 23, 54, 2, 2, '#f8f8f8'); fillRect(img, 25, 53, 2, 3, '#f2e6c8');
-  neck(img, skin);
-  head(img, skin, kp);
-  // a few laugh lines
-  for (const [x, y] of [[22, 33], [41, 33], [27, 18], [36, 18]]) put(img, x, y, skin[1]);
-  faceSet(img, 'lucia', expr, skin, { brow: hair[0], browY: 21, lash: true, mouth: { y: 39, lip: '#9a4a40' }, blush: 1 });
-  // hair pulled back: a cap over the crown with a side part, two grey streaks
-  shape(img, and(ell(CX, 14, 17, 11.5), (x, y) => y < 18 + (Math.abs(x - CX) > 12 ? (Math.abs(x - CX) - 12) * 3.2 : 0) - (x > CX - 4 && x < CX + 1 ? 1 : 0)), [CX, 12, 17, 12], hair, { ol: '#7a5a20', t: [0.75, 0.25, -0.1] });
-  for (let i = 0; i < 5; i++) put(img, 22 + i, 10 + Math.round(i * 0.6), '#e8e0d0');
-  for (let i = 0; i < 4; i++) put(img, 37 + i, 9 + Math.round(i * 0.7), '#e8e0d0');
-  for (const s2 of [-1, 1]) for (let y = 19; y < 25; y++) { const x = Math.round(CX + s2 * (hwAt(kp, y) - 1)); put(img, x, y, hair[1]); }
-  // the bun high on the right of the crown, and a yellow pencil through it
-  shape(img, ell(CX + 12, 7, 6.5, 5.5), [CX + 12, 7, 7, 6], hair, { ol: '#7a5a20', t: [0.8, 0.3, -0.1], pattern: (x, y, i) => ((x * 2 + y) % 5 === 0 ? Math.max(0, i - 1) : i) });
-  for (let i = 0; i < 4; i++) put(img, CX + 9 + i, 6 + (i % 2), hair[1]);
-  for (let i = 0; i < 16; i++) {
-    const x = CX + 4 + i, y = 11 - Math.round(i * 0.55);
-    const c = i < 2 ? '#e06a5a' : i === 2 ? '#b8b8c8' : i > 13 ? '#f0d6b0' : '#f2c230';
-    put(img, x, y, c);
-    put(img, x, y + 1, i < 2 ? '#a84a40' : i === 2 ? '#8888a0' : i > 13 ? '#c8a880' : '#c48f16');
-  }
-  put(img, CX + 20, 2, '#3a2a22');
-  // square glasses (dark tortoiseshell), a glint on each lens
-  for (const cx of [26, 38]) {
-    const x0 = cx - 5, x1 = cx + 4, y0 = 24, y1 = 31;
-    for (let x = x0; x <= x1; x++) { put(img, x, y0, '#5a3a2a'); put(img, x, y1, '#5a3a2a'); }
-    for (let y = y0; y <= y1; y++) { put(img, x0, y, '#5a3a2a'); put(img, x1, y, '#5a3a2a'); }
-    put(img, x0 + 2, y0 + 2, '#f4efe6'); put(img, x0 + 3, y0 + 2, '#f4efe6');
-  }
-  fillRect(img, 31, 26, 3, 1, '#5a3a2a');
-};
-
-// Célia, the airport's information desk (world sprite: dark bun, teal uniform shirt). The airline's teal with a yellow-and-green scarf knotted at
-// the neck, a name badge, a small headset mic over one ear.
-RENDER.celia = (img, expr) => {
-  const skin = ramp4('#a8694a'), hair = HAIR.black, kp = faceKp({ cheek: 14.6, jaw: 11.8 });
-  const teal = ramp4('#2e8a8a', '#0f2a2a');
-  torso(img, teal, { ol: '#1a4a4a' });
-  // the white blouse collar points under the scarf
-  for (const sx of [-1, 1]) flat(img, (x, y) => y >= 46 && y < 52 && sx * (x - CX) >= 2 + (y - 46) * 0.4 && sx * (x - CX) <= 9 - (y - 46) * 0.6, '#f4efe6', { ol: '#a8a090' });
-  neck(img, skin);
-  // the scarf: a yellow knot with two green tails
-  shape(img, ell(CX, 49.5, 4.5, 2.6), [CX, 49, 5, 3], ramp4('#f2c230', '#5a4010'), { ol: '#8a6a10' });
-  for (const sx of [-1, 1]) shape(img, (x, y) => y >= 51 && y < 58 && Math.abs(x - (CX + sx * (2 + (y - 51) * 0.5))) <= 1.6, [CX + sx * 4, 54, 3, 4], ramp4('#3fa565', '#123018'), { ol: '#1d5f3a' });
-  // name badge on the left of the chest
-  fillRect(img, 40, 55, 8, 4, '#f4efe6'); fillRect(img, 41, 56, 6, 1, '#4280dd'); fillRect(img, 41, 57, 4, 1, '#8b8bab');
-  head(img, skin, kp);
-  faceSet(img, 'celia', expr, skin, { brow: hair[0], browY: 21, lash: true, mouth: { y: 38, lip: '#9a3a44' }, blush: 1 });
-  // hair pulled back into a high bun, sleek, a little shine
-  shape(img, and(ell(CX, 15, 17, 11.5), (x, y) => y < 18.5 + (Math.abs(x - CX) > 12 ? (Math.abs(x - CX) - 12) * 3 : 0)), [CX, 12, 17, 12], hair, { ol: '#231f2e', t: [0.8, 0.3, -0.1] });
-  for (const sx of [-1, 1]) for (let y = 19; y < 26; y++) put(img, Math.round(CX + sx * (hwAt(kp, y) - 0.8)), y, hair[1]);
-  shape(img, ell(CX, 3.6, 7, 4.2), [CX, 4, 7, 4], hair, { ol: '#231f2e', t: [0.8, 0.3, -0.1] });
-  for (let i = 0; i < 5; i++) put(img, 24 + i, 9 - Math.round(i * 0.4), hair[3]);
-  // the headset: a band over the right ear and a thin mic toward the mouth
-  for (let y = 22; y < 30; y++) put(img, Math.round(CX + hwAt(kp, y) + 1.4), y, '#3a3a50');
-  shape(img, ell(CX + 16.8, 30, 2.2, 2.8), [CX + 17, 30, 2, 3], ['#3a3a50', '#46465e', '#565972', '#6c6e85'], { ol: '#2a2a3a' });
-  for (let i = 0; i < 8; i++) put(img, CX + 15 - i, 33 + Math.round(i * 0.45), '#46465e');
-  put(img, CX + 7, 37, '#d93232');
-  for (const sx of [-1, 1]) put(img, Math.round(CX + sx * 15.8), 35, '#f8d239');
-};
-
-// Agente Paulo, Federal Police at passport control (world sprite: navy cap and shirt). The navy cap with a gold band and badge, the navy shirt
-// with a gold star on the chest, short dark hair at the temples, a trimmed mustache.
-RENDER.agente = (img, expr) => {
-  const skin = ramp4('#b07650'), kp = faceKp({ cheek: 15.4, jaw: 13.4 });
-  const navyCloth = ramp4('#2e3550', '#0e1020');
-  torso(img, navyCloth, { ol: '#161a2a' });
-  // the shirt collar and a dark tie
-  for (const sx of [-1, 1]) flat(img, (x, y) => y >= 46 && y < 51 && sx * (x - CX) >= 1 + (y - 46) * 0.3 && sx * (x - CX) <= 8 - (y - 46) * 0.7, '#3e4a6a', { ol: '#161a2a' });
-  neck(img, skin);
-  shape(img, (x, y) => y >= 48 && y < 64 && Math.abs(x - CX) <= 1.6 + (y - 48) * 0.08, [CX, 55, 2, 8], ['#121420', '#1d2238', '#232842', '#2e3550'], { ol: '#0e1020' });
-  // the gold star on the chest and the shoulder strap
-  for (const [x, y] of [[44, 54], [43, 55], [44, 55], [45, 55], [44, 56], [42, 55], [46, 55]]) put(img, x, y, '#f2c230');
-  put(img, 44, 55, '#fff59a');
-  fillRect(img, 14, 49, 8, 2, '#3e4a6a');
-  head(img, skin, kp);
-  // short dark hair at the temples, under the cap
-  for (const sx of [-1, 1]) for (let y = 17; y < 27; y++) { const x0 = Math.round(CX + sx * (hwAt(kp, y) - 0.5)); put(img, x0, y, '#2e2a3c'); if (y < 23) put(img, x0 - sx, y, '#453a4c'); }
-  faceSet(img, 'agente', expr, skin, { brow: '#2e2a3c', browY: 21, noseWide: 1, mouth: { y: 39, lip: LIP_DARK } });
-  // a trimmed mustache
-  for (let x = CX - 5; x <= CX + 5; x++) put(img, x, 36, '#2e2a3c');
-  for (let x = CX - 4; x <= CX + 4; x++) if (Math.abs(x - CX) > 0) put(img, x, 37, '#453a4c');
-  // the cap: crown, gold band, a peak that shades the brow
-  const crown = or(ell(CX, 9, 17, 7.5), box(15, 9, 49, 16));
-  shape(img, crown, [CX, 8, 17, 7.5], ['#161a2a', '#232842', '#2e3550', '#3e4a6a'], { ol: '#0e1020', t: [0.85, 0.3, -0.15] });
-  fillRect(img, 15, 13, 34, 3, '#c48f16'); fillRect(img, 15, 13, 34, 1, '#f2c230');
-  const peak = (x, y) => y >= 16 && y < 19.5 && Math.abs(x - CX) <= 16.5 - (y - 16) * 0.8;
-  shape(img, peak, [CX, 17, 16, 2], ['#0e1020', '#161a2a', '#232842', '#2e3550'], { ol: '#0e1020', t: [0.9, 0.3, -0.3] });
-  // the badge on the cap
-  for (const [x, y] of [[31, 7], [32, 6], [33, 7], [30, 8], [34, 8], [31, 9], [32, 9], [33, 9], [32, 8]]) put(img, x, y, '#f2c230');
-  put(img, 32, 8, '#2e3550');
-};
-
-export function renderPortrait(npc, expr, bgFn) {
-  const img = blank(64, 64);
-  const fg = blank(64, 64);
-  RENDER[npc](fg, expr);
-  const b = BG[npc];
-  backdrop(img, b);
-  over(img, fg);
-  frame(img, FRAME);
-  return img;
-}
-
-const FRAME = { hi: '#daa463', mid: '#c78c59', lo: '#8a5a38' };
-const BG = {
-  carlos: { base: '#e9c9a0', hi: '#f2dcb8', lo: '#d3ae86' },
-  nanda: { base: '#b5d0d9', hi: '#cfe2ea', lo: '#96b4c3' },
-  julia: { base: '#b9d3a0', hi: '#d0e2b8', lo: '#9ab887' },
-  graca: { base: '#7c78a8', hi: '#948fbc', lo: '#635f8c' },
-  tia_lu: { base: '#f0c0a4', hi: '#f8d6bf', lo: '#dea488' },
-  prof: { base: '#8ea6d6', hi: '#a9bde6', lo: '#6f88bd' },
-  ze: { base: '#b8c878', hi: '#d0dea0', lo: '#9aab62' },
-  chico: { base: '#f0d890', hi: '#f8e8b0', lo: '#d8c070' },
-  rosa: { base: '#e8b8c8', hi: '#f5d0dc', lo: '#d098a8' },
-  celia: { base: '#a9cfe0', hi: '#c4e0ec', lo: '#8ab4c8' },
-  agente: {
-    base: '#a7aec8',
-    hi: '#bec4da',
-    lo: '#8c94b2',
-    // the flag's green and yellow in a thin stripe behind him (the wall of the booth)
-    deco: (img) => {
-      for (let x = 2; x < 62; x++) { put(img, x, 40, '#2e8a55'); put(img, x, 41, '#f2c230'); }
-    },
-  },
-  lucia: {
-    base: '#3f6a52',
-    hi: '#4f7d63',
-    lo: '#2f5442',
-    // a chalk "a" and a line written on the board behind her
-    deco: (img) => {
-      for (let x = 6; x < 18; x++) if (x % 3 !== 0) put(img, x, 12 + (x % 2), '#cfe0d4');
-      for (const [x, y] of [[48, 9], [49, 8], [50, 8], [51, 9], [51, 10], [51, 11], [50, 11], [49, 11], [48, 10], [52, 11]]) put(img, x, y, '#e6efe8');
-    },
-  },
-};
-
-export async function portraitParts() {
   const parts = [];
-  for (const npc of NPCS) for (const expr of EXPRESSIONS) if (RENDER[npc]) parts.push({ key: `portraits/${npc}_${expr}`, img: renderPortrait(npc, expr) });
+  for (const expr of EXPRESSIONS) {
+    const img = { w: SIZE, h: SIZE, data: new Uint8Array(base.data) };
+    if (process.env.PORTRAIT_RAW) { frame(img); parts.push({ key: `portraits/${id}_${expr}`, img }); continue; }
+    // eyes
+    const eyeTop = P(0, eyeRow)[1];
+    for (const e of face.eyes) {
+      const [ex] = P(e.x0, eyeRow);
+      const w = (e.x1 - e.x0 + 1) * S;
+      const g = EYE[expr];
+      const gx = ex + Math.round((w - 6) / 2);
+      grid(img, g, { o: lash, w: '#f4f1ea', i: iris, p: mix(iris, '#100c18', 0.6), h: '#ffffff', l: skinShade }, gx, eyeTop + EYE_DY[expr], !e.irisRight);
+    }
+    // brows
+    if (!tune.browHidden && face.eyes.length) {
+      const [rowsB, dy] = BROW[expr];
+      const by = P(0, face.browRow)[1] + 1 + dy;
+      face.eyes.forEach((e, i) => {
+        const [ex] = P(e.x0, eyeRow);
+        const w = (e.x1 - e.x0 + 1) * S;
+        const gx = ex + Math.round((w - 6) / 2);
+        // pensativo: one brow up, the other down
+        const tilt = expr === 'pensativo' && i === 1 ? -2 : 0;
+        grid(img, rowsB, { B: browHex }, gx, by + tilt, i === 1);
+      });
+    }
+    // mouth
+    const [mx0, my0] = P(Math.floor(mouthX), mouthRow);
+    const mx = mx0 + (mouthX % 1 ? S / 2 : 0);
+    const g = MOUTH[expr];
+    grid(img, g, { d: lip, w: '#f6f0e6', t: '#d56868', m: '#4a1a24' }, Math.round(mx - g[0].length / 2 + S / 2), my0 + (expr === 'surpreso' ? 0 : 1));
+    if (expr === 'feliz') {
+      const blush = mix(skin, '#e86060', 0.35);
+      for (const e of face.eyes) {
+        const [ex] = P(e.x0, eyeRow);
+        const left = e === face.eyes[0];
+        for (const [dx, dy] of [[0, 0], [1, 0], [2, 0]]) put(img, ex + (left ? -1 : 4) + dx, eyeTop + 7 + dy, blush);
+      }
+    }
+    // glasses, thin: a 1 px frame round each lens, the bridge, a glint on the lens
+    if (glasses) {
+      for (const e of face.eyes) {
+        const [ex] = P(e.x0, eyeRow);
+        const w = (e.x1 - e.x0 + 1) * S;
+        const x0 = ex - 1, x1 = ex + w, y0 = eyeTop - 1, y1 = eyeTop + 6;
+        for (let x = x0; x <= x1; x++) { put(img, x, y0, glasses.frameHex); put(img, x, y1, glasses.frameHex); }
+        for (let y = y0; y <= y1; y++) { put(img, x0, y, glasses.frameHex); put(img, x1, y, glasses.frameHex); }
+        put(img, x0 + 1, y0 + 1, glasses.lensHex);
+        put(img, x0 + 2, y0 + 1, glasses.lensHex);
+        put(img, x0 + 1, y0 + 2, glasses.lensHex);
+      }
+      if (face.eyes.length === 2) {
+        const [a] = P(face.eyes[0].x1, eyeRow), [b] = P(face.eyes[1].x0, eyeRow);
+        for (let x = a + S; x < b; x++) put(img, x, eyeTop, glasses.frameHex);
+      }
+    }
+    frame(img);
+    parts.push({ key: `portraits/${id}_${expr}`, img });
+  }
   return parts;
 }
 
-/** scratch preview hook for scripts/_prev.mjs: preview('carlos') -> 4 expressions */
+let cache = null;
+/** `ctx.charLayers`: the character layers `pnpm pixel` just built (else the committed public/pixel/chars are read). */
+export async function portraitParts(ctx = {}) {
+  if (cache && !ctx.charLayers) return cache;
+  const K = await lookKit();
+  const layers = await charLayers(ctx.charLayers);
+  const src = { sheetW: SHEET_W, sheetH: SHEET_H, geometry: { frameW: FRAME_W, frameH: FRAME_H, cols: CANON_COLS, rows: CANON_ROWS }, layer: (k) => layers.get(k) };
+  const parts = [];
+  for (const id of NPCS) parts.push(...(await npcParts(K, src, id)));
+  if (!ctx.charLayers) cache = parts;
+  return parts;
+}
+
+/** scratch preview hook: preview('carlos') -> 4 expressions */
 export async function preview(...npcs) {
-  const out = [];
-  for (const n of npcs.length ? npcs : NPCS) for (const e of EXPRESSIONS) if (RENDER[n]) out.push(renderPortrait(n, e));
-  return out;
+  const parts = await portraitParts();
+  return parts.filter((p) => !npcs.length || npcs.some((n) => p.key.startsWith(`portraits/${n}_`))).map((p) => p.img);
 }

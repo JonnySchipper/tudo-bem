@@ -45,7 +45,27 @@ async function close(page) {
   await sleep(500);
 }
 
+/** The new-word cards ("Nova palavra!") sit over the dialogue box: click them away. */
+async function dismissCards(page) {
+  for (let i = 0; i < 6 && (await page.$('#photo-close')); i++) {
+    await page.click('#photo-close').catch(() => {});
+    await sleep(350);
+  }
+}
+
+/** Leave an interior for the street it opens onto. */
+async function outdoors(page) {
+  const exits = { padaria: 'padaria_praca', escola: 'escola_rua', kitnet: 'kitnet_praca', academia: 'academia_praca' };
+  const room = await page.evaluate(() => window.__tb.game.room?.room);
+  if (!exits[room]) return;
+  const portal = await page.evaluate((r) => window.__tb.rooms[r].portals.find((p) => !p.edge)?.id, room);
+  assert(await interact(page, { portal: portal ?? exits[room] }), `exit of ${room}`);
+  await waitFor(page, (r) => window.__tb.game.room?.room !== r, room, 25_000, `out of ${room}`);
+  await sleep(1500);
+}
+
 async function snap(page, vp, name) {
+  await dismissCards(page);
   await typed(page);
   await sleep(400);
   const file = path.join(OUT, `${vp.name}_${name}.png`);
@@ -125,18 +145,39 @@ async function run(browser, vp) {
     await waitRoom(page, 'padaria');
     await pin(page, '10:00');
     await sleep(3500);
-    let k = await talk(page, 'carlos');
-    if (k?.startsWith('offer-')) {
-      await snap(page, vp, 'recado_offer_carlos');
-      await page.click('#dialogue-box [data-chip="0"]');
-      accepted = true;
-      await sleep(1500);
-      await close(page);
-      k = await talk(page, 'carlos');
+    await talk(page, 'carlos');
+    for (let i = 0; i < 8; i++) {
+      await dismissCards(page);
+      const k = await key(page);
+      console.log('    carlos box:', k);
+      if (k === 'conversa' || k === 'counter-carlos') break;
+      if (!k) {
+        await talk(page, 'carlos');
+        continue;
+      }
+      if (k === 'offer-carlos' && !accepted) {
+        await snap(page, vp, 'recado_offer_carlos');
+        await page.click('#dialogue-box [data-chip="0"]');
+        accepted = true;
+        await sleep(1500);
+        await close(page);
+        await talk(page, 'carlos');
+        continue;
+      }
+      await page.click(`#dialogue-box [data-chip="${k.startsWith('idle-') ? '0' : '1'}"]`);
+      await sleep(500);
     }
-    await page.waitForSelector('#dialogue-box[data-dialogue="conversa"]', { timeout: 15_000 });
+    const k = await key(page);
+    assert(k === 'conversa' || k === 'counter-carlos', `Carlos talks (${k})`);
     await snap(page, vp, 'dialogue_carlos');
-    if (accepted) {
+    if (accepted && k === 'counter-carlos') {
+      // the counter: buy the café com leite for Nanda
+      const chips = await page.$$eval('#dialogue-box [data-chip]', (bs) => bs.map((b) => [b.dataset.chip, b.textContent ?? '']));
+      const chip = chips.find(([, t]) => /caf[ée] com leite/i.test(t))?.[0];
+      assert(chip !== undefined, 'café com leite on the counter');
+      await page.click(`#dialogue-box [data-chip="${chip}"]`);
+      await page.waitForFunction(() => (window.__tb.game.profile.bag?.cafe_com_leite ?? 0) >= 1, null, { timeout: 8000 });
+    } else if (accepted) {
       // café com leite through Pedido rápido, for the thanks card
       await page.click('[data-action="pedido-rapido"]');
       await page.waitForSelector('#dialogue-box[data-dialogue="pedido"]', { timeout: 12_000 });
@@ -151,14 +192,17 @@ async function run(browser, vp) {
     await close(page);
   });
   if (accepted) await step('thanks card', async () => {
-    assert(await interact(page, { portal: 'padaria_praca' }), 'padaria exit');
-    await waitFor(page, () => window.__tb.game.room?.room !== 'padaria', null, 20_000, 'out of the padaria');
+    await outdoors(page);
     await goArea(page, 'praca');
     await sleep(1500);
     assert(await interact(page, { npc: 'nanda' }), 'nanda');
-    for (let i = 0; i < 4 && !(await page.$('#dialogue-box[data-dialogue="give-nanda"]')); i++) {
+    for (let i = 0; i < 6 && !(await page.$('#dialogue-box[data-dialogue="give-nanda"]')); i++) {
       await page.waitForSelector('#dialogue-box', { timeout: 20_000 });
-      if ((await key(page))?.startsWith('idle-')) await page.click('#dialogue-box [data-chip="0"]');
+      await dismissCards(page);
+      const k = await key(page);
+      console.log('    nanda box:', k);
+      if (k?.startsWith('idle-')) await page.click('#dialogue-box [data-chip="0"]');
+      else if (k?.startsWith('offer-')) await page.click('#dialogue-box [data-chip="1"]');
       await sleep(400);
     }
     await typed(page);
@@ -170,6 +214,7 @@ async function run(browser, vp) {
   });
 
   await step('feira', async () => {
+    await outdoors(page);
     await goArea(page, 'feira');
     await pin(page, '10:00');
     await page.evaluate(() => window.__tb.walkTo(7, 6, false));
@@ -194,6 +239,7 @@ async function run(browser, vp) {
   });
 
   await step('escola', async () => {
+    await outdoors(page);
     await goArea(page, 'rua_leste');
     assert(await interact(page, { portal: 'rua_escola' }), 'escola door');
     await waitRoom(page, 'escola');
