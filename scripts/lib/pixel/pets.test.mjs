@@ -133,4 +133,23 @@ describe('subscriber bubble skins', async () => {
       expect(differ).toBeGreaterThan(20);
     }
   });
+
+  it('keeps a dark outline all the way round, so the edge reads on a sunny street and at night', () => {
+    const lum = (d, i) => (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255;
+    // the classic outline is the warm ink (#573c2c); every skin pixel there must stay as dark
+    const ink = [0x57, 0x3c, 0x2c];
+    for (const skin of skins) {
+      for (let i = 0; i < classic.data.length; i += 4) {
+        if (!classic.data[i + 3] || classic.data[i] !== ink[0] || classic.data[i + 1] !== ink[1] || classic.data[i + 2] !== ink[2]) continue;
+        expect(lum(skin.img.data, i), skin.key).toBeLessThan(0.3);
+      }
+    }
+  });
+
+  it('never repaints the paper under the words', () => {
+    const cx = Math.floor(classic.w / 2);
+    const cy = 10;
+    const i = (cy * classic.w + cx) * 4;
+    for (const skin of skins) expect([...skin.img.data.slice(i, i + 4)]).toEqual([...classic.data.slice(i, i + 4)]);
+  });
 });
