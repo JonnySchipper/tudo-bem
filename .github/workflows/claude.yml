@@ -42,6 +42,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # pnpm tts bakes neural voice clips with edge-tts (docs/VOICES.md).
+      - run: pipx install edge-tts
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
