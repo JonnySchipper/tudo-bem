@@ -654,7 +654,7 @@ async function main() {
   await page.click('[data-furniture="planta"]');
   await clickTileHit(page, 5, 4);
   await waitFor(page, () => window.__tb.game.furniture.length === 2, null, 5000, 'plant placed');
-  await page.click('#decor-panel button.ghost');
+  await page.click('#decor-exit');
   await sleep(400);
   await walkTo(page, 3, 4, true);
   await waitIdleAt(page, 3, 4, 'sit on chair');

@@ -562,7 +562,7 @@ export function buildDecorPanel(actions: { buy: (id: string) => void; rotate: (u
         { class: 'row' },
         h('h3', null, 'Decorar a kitnet'),
         h('span', { class: 'spacer' }),
-        h('button', { class: 'ghost', id: 'decor-help', onclick: actions.help, title: 'Como decorar? (How to decorate: show the guide again)', 'aria-label': 'Como decorar? (How to decorate)' }, '?'),
+        h('button', { class: 'decor-help', id: 'decor-help', onclick: actions.help, title: 'Como decorar? (How to decorate: show the guide again)', 'aria-label': 'Como decorar? (How to decorate)' }, '?'),
         h('button', { class: 'ghost', id: 'decor-exit', onclick: actions.exit, 'aria-label': 'Fechar (Close)' }, '✕'),
       ),
       en('Decorate: pick an item, then click a floor tile. R rotates.'),
