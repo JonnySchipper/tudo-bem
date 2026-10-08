@@ -271,15 +271,27 @@ export class RecadoTracker {
     return true;
   }
 
-  /** `recados`: 'list' resends the board; 'accept' starts one of today's offers (max 3 at once). */
+  /**
+   * `recados`: 'list' resends the board; 'accept' starts one of today's offers (max 3 at once).
+   * The game day is 48 real minutes. The board the player is looking at was sent the last time they entered a room,
+   * so an accept can arrive after midnight still naming yesterday's errand. That errand was offered to them: take it.
+   * Rejecting it left the journal on the old board (the solo e2e hits this whenever the run crosses game midnight).
+   */
   request(s: Session, action: 'accept' | 'list', id?: unknown) {
     const p = s.profile;
     if (!p) return;
+    const prevDay = p.recados?.day;
+    const prevOffered = p.recados?.offered ?? [];
     const st = this.board(p);
     if (action !== 'accept') return this.sendBoard(s);
     const def = recadoById(id, this.defs);
-    if (!def || !st.offered.includes(def.id) || st.done.includes(def.id) || st.active.some((a) => a.id === def.id))
+    const rolled = st.day !== prevDay;
+    const onShownBoard = !!def && (st.offered.includes(def.id) || (rolled && prevOffered.includes(def.id)));
+    if (!def || !onShownBoard || st.done.includes(def.id) || st.active.some((a) => a.id === def.id)) {
+      // midnight just replaced the offer: tell the client, or the journal keeps showing errands that can no longer be taken
+      if (rolled) this.sendBoard(s);
       return this.err(s, 'recado', 'Esse recado não está disponível.', 'That errand isn’t available.');
+    }
     if (st.active.length >= RECADO_MAX_ACTIVE)
       return this.err(s, 'recado', 'Termine um recado antes de pegar outro.', 'Finish an errand before taking another.');
     st.active.push({ id: def.id, step: 0 });
