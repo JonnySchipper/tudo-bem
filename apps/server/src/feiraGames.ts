@@ -10,11 +10,14 @@
  * previous day before serving today.
  */
 import {
+  FEIRA_CART_CLOSED_LINE,
   FEIRA_DAILY_BLOCKED,
   FEIRA_DAILY_PAID_RUNS,
   FEIRA_GAME_LABEL,
   crownHolder,
-  featuredGameAt,
+  enabledFeiraGameIds,
+  featuredEnabled,
+  feiraCartAdminView,
   feiraModule,
   feiraPayout,
   feiraTop,
@@ -25,8 +28,11 @@ import {
   normalizeFeiraGames,
   parseFeiraOutcomes,
   placeOf,
+  rankFeiraDay,
   todayEastern,
   type Bilingual,
+  type FeiraCartMode,
+  type FeiraCartSchedule,
   type FeiraGameId,
   type FeiraGamesState,
   type FeiraMedalAward,
@@ -35,6 +41,7 @@ import {
 } from '@tudobem/shared';
 import type { Session } from './world.js';
 import type { ProfileStore, StoredProfile } from './store.js';
+import { FeiraCartStore, memoryFeiraCart } from './feiraCart.js';
 
 /** How close (Chebyshev tiles) the player must be to the cart or the sign. */
 export const FEIRA_CART_REACH = 2;
@@ -65,17 +72,18 @@ export interface FeiraGamesDeps {
   /** Push the public avatar so the crown overlay updates for people in the same room. */
   broadcastAvatar: (s: Session) => void;
   rng?: () => number;
+  /** On/off switch. Omitted in older tests: a memory store that starts off. */
+  cart?: FeiraCartStore;
   /**
-   * Test and screenshot pin (`?feiraon=pastel` on the solo world). Starts that game instead of
-   * today's rotation pick. Ignored unless the id is implemented. Production leaves it unset.
-   * When an admin enable-flag lands, the pin still has to be a game the flag has switched on.
+   * Solo/shots pin (`?feiraon=pastel`). Switches that one game on for this world.
+   * Ignored unless the id is implemented. Production leaves it unset, so the admin flags stay off.
    */
   pin?: string;
 }
 
 const NEAR: Bilingual = { pt: 'Chegue mais perto do carrinho.', en: 'Walk closer to the cart.' };
-const NOT_TODAY: Bilingual = { pt: 'Esse jogo não é o de hoje.', en: 'That game is not today’s.' };
 const BUSY: Bilingual = { pt: 'Termine o jogo primeiro.', en: 'Finish the game first.' };
+const CLOSED = FEIRA_CART_CLOSED_LINE;
 
 export class FeiraGamesStore {
   state: FeiraGamesState;
@@ -96,10 +104,12 @@ export class FeiraGamesStore {
   /**
    * Midnight ET: medals for 1st/2nd/3rd go onto the tally (permanent), the board and the paid-run
    * counts clear, and the crown is gone because today's scores start empty.
+   * A day nobody played (no positive score) mints nothing — the cart being off is that case.
    * Returns the awards so the caller can copy them onto profiles.
    */
   roll(day: string): { id: string; award: FeiraMedalAward }[] {
-    const awards = this.state.day && this.state.day !== day ? medalsForDay(this.state.day, this.state.scores) : [];
+    const played = rankFeiraDay(this.state.scores).length > 0;
+    const awards = played && this.state.day && this.state.day !== day ? medalsForDay(this.state.day, this.state.scores) : [];
     const medals = { ...this.state.medals };
     for (const { id, award } of awards) {
       const prev = medals[id] ?? [];
@@ -129,7 +139,37 @@ export function memoryFeiraGames(now: () => number, raw?: unknown): FeiraGamesSt
 }
 
 export class FeiraGamesEngine {
-  constructor(private readonly d: FeiraGamesDeps) {}
+  private readonly cart: FeiraCartStore;
+  constructor(private readonly d: FeiraGamesDeps) {
+    this.cart = d.cart ?? memoryFeiraCart();
+    // The test pin is the setup that turns one game on. It does not invent a second flag store.
+    if (d.pin && isFeiraGameId(d.pin)) this.cart.setMode(d.pin, 'on');
+  }
+
+  /** Today's playable game, or null when every cart game is off (or not implemented yet). */
+  featuredNow(day = todayEastern(this.d.now())): FeiraGameId | null {
+    const id = featuredEnabled(day, enabledFeiraGameIds(this.cart.config(), day));
+    return isFeiraGameId(id) ? id : null;
+  }
+
+  cartSnapshot(day = todayEastern(this.d.now())): { closed: boolean; game: FeiraGameId | null } {
+    const game = this.featuredNow(day);
+    return { closed: game === null, game };
+  }
+
+  cartView(day = todayEastern(this.d.now())) {
+    return feiraCartAdminView(this.cart.config(), day);
+  }
+
+  /** Admin switch. False when the id is not in the rotation registry. */
+  setCartMode(id: string, mode: FeiraCartMode, schedule?: FeiraCartSchedule | null): boolean {
+    return this.cart.setMode(id, mode, schedule);
+  }
+
+  cartMsg(day = todayEastern(this.d.now())): Extract<ServerMsg, { t: 'feiraGame'; phase: 'cart' }> {
+    const snap = this.cartSnapshot(day);
+    return { t: 'feiraGame', phase: 'cart', closed: snap.closed, game: snap.game };
+  }
 
   /** Test hook. */
   runOf(s: Session): FeiraGameRun | undefined {
@@ -175,21 +215,14 @@ export class FeiraGamesEngine {
     return Math.max(dx, dy) <= FEIRA_CART_REACH;
   }
 
-  /** Today's game, or the test pin when this world was started with one. */
-  private todayGame(): import('@tudobem/shared').FeiraGameId {
-    const pin = this.d.pin;
-    if (pin && isFeiraGameId(pin) && feiraModule(pin)) return pin;
-    return featuredGameAt(this.d.now());
-  }
-
   private start(s: Session): void {
     if (!s.profile) return;
     if (s.mg) return this.d.err(s, 'busy', BUSY.pt, BUSY.en);
     if (s.feiraGame && !s.feiraGame.done) return this.d.err(s, 'busy', BUSY.pt, BUSY.en);
     if (!this.near(s, FEIRA_CART_PROP)) return this.d.err(s, 'far', NEAR.pt, NEAR.en);
     const day = todayEastern(this.d.now());
-    const game = this.todayGame();
-    if (!feiraModule(game) || !isFeiraGameId(game)) return this.d.err(s, 'game', NOT_TODAY.pt, NOT_TODAY.en);
+    const game = this.featuredNow(day);
+    if (!game || !feiraModule(game) || !isFeiraGameId(game)) return this.d.err(s, 'feira_closed', CLOSED.pt, CLOSED.en);
     const seed = (Math.floor((this.d.rng ?? Math.random)() * 0x7fffffff) ^ (this.d.now() & 0xffff)) >>> 0;
     const run: FeiraGameRun = { game, seed, startedAt: this.d.now(), day };
     s.feiraGame = run;
@@ -204,6 +237,12 @@ export class FeiraGamesEngine {
     const p = s.profile;
     const run = s.feiraGame;
     if (!p || !run || run.done) return this.d.err(s, 'no_run', 'Não há jogo aberto.', 'There is no open game.');
+    const day = todayEastern(this.d.now());
+    if (!enabledFeiraGameIds(this.cart.config(), day).includes(run.game)) {
+      run.done = true;
+      s.feiraGame = undefined;
+      return this.d.err(s, 'feira_closed', CLOSED.pt, CLOSED.en);
+    }
     const elapsed = this.d.now() - run.startedAt;
     const outcomes = parseFeiraOutcomes(raw);
     if (!outcomes) {
@@ -295,14 +334,16 @@ export class FeiraGamesEngine {
       if (!names[id]) names[id] = this.d.store.get(id)?.name ?? id;
     }
     const day = todayEastern(this.d.now());
+    const snap = this.cartSnapshot(day);
     s.send({
       t: 'feiraGame',
       phase: 'board',
       day,
-      game: this.todayGame(),
+      game: snap.game,
+      closed: snap.closed,
       top: feiraTop(st.scores, 3, s.profile?.id),
       medals: medalTallies(st.medals, names, 10),
-      crownId: crownHolder(st.scores),
+      crownId: this.crownId(),
     });
   }
 

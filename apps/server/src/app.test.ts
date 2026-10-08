@@ -199,6 +199,7 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     password,
   });
   const smokeOff: OpsSmokeConfig = { enabled: false, ready: false, email: OPS_SMOKE_EMAIL };
+  const testAdmin = { ready: true, password: 'test-admin-pass-11' };
 
   it('hides Ops smoke when the flag is off (403 on endpoint, no public config)', async () => {
     await start({ opsSmoke: smokeOff });
@@ -207,10 +208,20 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     expect(await (await fetch(base + '/api/config')).json()).toEqual({ opsSmoke: false, googleClientId: '' });
   });
 
+  it('Ops smoke rejects missing or wrong admin password', async () => {
+    await start({ opsSmoke: smokeOn(), feedbackAdmin: testAdmin });
+    expect((await post('/api/auth/ops-smoke', {})).status).toBe(401);
+    expect((await post('/api/auth/ops-smoke-new', {})).status).toBe(401);
+    expect((await post('/api/auth/ops-smoke', { adminPassword: 'not-the-admin' })).status).toBe(401);
+    expect((await post('/api/auth/admin-gate', { adminPassword: 'not-the-admin' })).status).toBe(401);
+    expect((await post('/api/auth/admin-gate', { adminPassword: testAdmin.password })).status).toBe(200);
+    expect((await post('/api/auth/ops-smoke', { adminPassword: testAdmin.password })).status).toBe(200);
+  });
+
   it('Ops smoke establishes a session and can enter multiplayer (not a guest bypass)', async () => {
-    await start({ opsSmoke: smokeOn() });
+    await start({ opsSmoke: smokeOn(), feedbackAdmin: testAdmin });
     expect(await (await fetch(base + '/api/config')).json()).toEqual({ opsSmoke: true, googleClientId: '' });
-    const login = await post('/api/auth/ops-smoke', {});
+    const login = await post('/api/auth/ops-smoke', { adminPassword: testAdmin.password });
     expect(login.status).toBe(200);
     expect(await login.json()).toEqual({ ok: true, account: { email: OPS_SMOKE_EMAIL, hasProfile: false } });
     const cookie = cookieOf(login);
@@ -230,18 +241,18 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     expect(await guest.waitFor('authRequired')).toEqual({ t: 'authRequired' });
     guest.ws.close();
 
-    const again = await post('/api/auth/ops-smoke', {});
+    const again = await post('/api/auth/ops-smoke', { adminPassword: testAdmin.password });
     expect(again.status).toBe(200);
     expect(app!.accounts.count()).toBe(1);
 
-    const fresh = await post('/api/auth/ops-smoke-new', {});
+    const fresh = await post('/api/auth/ops-smoke-new', { adminPassword: testAdmin.password });
     expect(fresh.status).toBe(200);
     const freshBody = (await fresh.json()) as { ok: boolean; account: { email: string; hasProfile: boolean } };
     expect(freshBody.ok).toBe(true);
     expect(freshBody.account.hasProfile).toBe(false);
     expect(freshBody.account.email).toMatch(/^ops-new-[0-9a-f-]+@tudobem\.dev$/);
     expect(freshBody.account.email).not.toBe(OPS_SMOKE_EMAIL);
-    const fresh2 = await post('/api/auth/ops-smoke-new', {});
+    const fresh2 = await post('/api/auth/ops-smoke-new', { adminPassword: testAdmin.password });
     const fresh2Body = (await fresh2.json()) as { account: { email: string } };
     expect(fresh2Body.account.email).not.toBe(freshBody.account.email);
     expect(app!.accounts.count()).toBe(3);

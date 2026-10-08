@@ -5,8 +5,9 @@
  *   BASE_URL=https://playtudobem.com/ node scripts/feira-games-shots.mjs        # live server (guest)
  *   BASE_URL=http://localhost:9311/?solo node scripts/feira-games-shots.mjs     # solo build
  *   SHOTS_DIR (default /workspace/feira-games-shots), VIEWS=desktop,phone, GAME=tapioca|pastel|caldo
- *   GAME=pastel adds ?feiraon=pastel so the run enables Pastel instead of trusting the ET rotation
- *   (cart games can default off; the query is the test setup that switches one on).
+ *   The cart ships off. A live server turns GAME on from the credits admin door
+ *   (TB_ADMIN_PASSWORD, local default tb-admin-praca). Solo reads ?feiraon=GAME,
+ *   which is the same switch without the admin password.
  */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
@@ -31,9 +32,9 @@ const log = (...a) => console.log('  ·', ...a);
 
 function startUrl() {
   let url = `${BASE}${BASE.includes('?') ? '&' : '?'}notype=1`;
-  // Enable the game under test. Pastel (and, once the admin flags land, every cart game) stays
-  // off until something switches it on — this query is that switch for shots and e2e.
-  if (GAME !== 'tapioca' && !url.includes('feiraon=')) url += `&feiraon=${GAME}`;
+  // Solo worlds read this as the test pin that switches GAME on. A real server ignores it;
+  // enableCart() is the switch there. The cart still defaults off without one of these.
+  if (!url.includes('feiraon=')) url += `&feiraon=${GAME}`;
   return url;
 }
 
@@ -82,7 +83,29 @@ async function mclick(page, sel) {
   await page.mouse.up();
 }
 
-export { enter, shot, mclick, log };
+/** The cart games default to off. Turn today's game on through the credits admin door. */
+async function enableCart(page, ids) {
+  const password = process.env.TB_ADMIN_PASSWORD || 'tb-admin-praca';
+  await page.click('#btn-menu').catch(() => page.click('#btn-burger'));
+  await page.click('#btn-credits');
+  await page.waitForSelector('#credits-admin-door', { timeout: 8_000 });
+  await page.click('#credits-admin-door');
+  await page.waitForSelector('#admin-password', { timeout: 8_000 });
+  await page.fill('#admin-password', password);
+  await page.click('#admin-login-go');
+  await page.waitForSelector('#admin-feira-games button', { timeout: 8_000 });
+  for (const id of ids) {
+    const sel = `#admin-feira-${id}`;
+    await page.waitForSelector(sel, { timeout: 8_000 });
+    const on = await page.getAttribute(sel, 'aria-checked');
+    if (on !== 'true') await page.click(sel);
+    await page.waitForFunction((gid) => document.querySelector(`#admin-feira-${gid}`)?.getAttribute('aria-checked') === 'true', id);
+  }
+  await page.keyboard.press('Escape');
+  await sleep(400);
+}
+
+export { enter, shot, mclick, log, enableCart };
 
 async function run(viewName) {
   const browser = await chromium.launch({ executablePath: CHROME, headless: true });
@@ -91,6 +114,8 @@ async function run(viewName) {
   page.on('pageerror', (e) => console.log('PAGEERROR', e.message));
   try {
     await enter(page);
+    // Solo already switched GAME on via ?feiraon=. A Node server ignores that query.
+    if (!BASE.includes('solo')) await enableCart(page, [GAME]);
     // Pastel shots keep their own names so a pastel run does not overwrite the tapioca set.
     const leaf = (name) => (GAME === 'tapioca' ? name : `${GAME}-${name}`);
     await shot(page, `${TAG}-${viewName}-${leaf('feira-room')}`);
