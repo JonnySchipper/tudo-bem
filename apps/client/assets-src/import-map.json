@@ -1129,6 +1129,12 @@
     },
     {
       "fn": "flock"
+    },
+    {
+      "fn": "pets"
+    },
+    {
+      "fn": "bubbleSkins"
     }
   ],
   "terrain": {

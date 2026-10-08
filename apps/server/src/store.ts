@@ -1,4 +1,4 @@
-import { normalizeFounderFlag, ownedParrotColorIds, parrotColorById } from '@tudobem/shared';
+import { isBubbleStyle, isPetId, isSubscriptionStatus, normalizeFounderFlag, ownedParrotColorIds, parrotColorById, type PlayerSubscription } from '@tudobem/shared';
 import {
   freshMission,
   normalizeCartela,
@@ -10,6 +10,8 @@ import {
   normalizeCadernoPaid,
   normalizeArrival,
   normalizeDiary,
+  normalizeEscola,
+  earnedTier,
   normalizeFilm,
   normalizePhotos,
   normalizeNpcMemory,
@@ -34,6 +36,8 @@ export interface StoredProfile extends PrivateProfile {
     pedidoRvGranted?: Record<string, string>;
   };
   lastSeen: number;
+  /** Lemon Squeezy webhook ids already applied. Not sent to the client. */
+  billingEventIds?: string[];
 }
 
 export const today = () => new Date().toISOString().slice(0, 10);
@@ -128,6 +132,11 @@ export class ProfileStore {
   count() {
     return this.byId.size;
   }
+
+  /** Every stored profile (leaderboards, admin, and the Feira crown broadcast). */
+  all(): StoredProfile[] {
+    return [...this.byId.values()];
+  }
 }
 
 /** The feira's daily RV counter: a date string and a small count, or nothing. */
@@ -150,6 +159,9 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.arrivalIntroDone = arrival.arrivalIntroDone;
   p.hasCamera = arrival.hasCamera;
   p.diary = normalizeDiary(p.diary);
+  // saves from before the escola lessons: every diary word is learned (new), nothing mastered, the plate Verde
+  p.escola = normalizeEscola(p.escola, p.diary);
+  p.nameplate = earnedTier(p.escola, p.diary);
   p.film = normalizeFilm(p.film);
   p.photos = normalizePhotos(p.photos);
   p.cartela = normalizeCartela(p.cartela);
@@ -164,12 +176,29 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   }
   if (p.giOwned == null) p.giOwned = !!p.bjj;
   if (p.founder === undefined) p.founder = normalizeFounderFlag(undefined);
+  p.founderBadge = p.founderBadge === true;
+  p.founderBanner = p.founderBanner === true;
+  p.subscription = normalizeSubscription(p.subscription);
+  p.pet = isPetId(p.pet) ? p.pet : null;
+  p.bubbleStyle = isBubbleStyle(p.bubbleStyle) ? p.bubbleStyle : 'classic';
+  if (!Array.isArray(p.billingEventIds)) p.billingEventIds = [];
+  else p.billingEventIds = p.billingEventIds.filter((id) => typeof id === 'string').slice(-200);
   return p;
+}
+
+function normalizeSubscription(raw: unknown): PlayerSubscription | undefined {
+  const r = raw as { status?: unknown; currentPeriodEnd?: unknown; portalUrl?: unknown; providerSubscriptionId?: unknown; provider?: unknown } | null | undefined;
+  if (!r || !isSubscriptionStatus(r.status)) return undefined;
+  const end = typeof r.currentPeriodEnd === 'number' && Number.isFinite(r.currentPeriodEnd) ? r.currentPeriodEnd : null;
+  const portal = typeof r.portalUrl === 'string' ? r.portalUrl : null;
+  const subId = typeof r.providerSubscriptionId === 'string' ? r.providerSubscriptionId : null;
+  const provider = r.provider === 'dev' || r.provider === 'lemonsqueezy' ? r.provider : undefined;
+  return { status: r.status, currentPeriodEnd: end, portalUrl: portal, providerSubscriptionId: subId, provider };
 }
 
 export function toPrivate(p: StoredProfile): PrivateProfile {
   // photos travel in their own `photos` message (World.pushPhotos), only when they change
-  const { token: _t, ageGate18: _a, accountId: _acc, daily: _d, lastSeen: _l, photos: _ph, ...rest } = p;
+  const { token: _t, ageGate18: _a, accountId: _acc, daily: _d, lastSeen: _l, photos: _ph, billingEventIds: _ev, ...rest } = p;
   const mission = p.mission?.date === today() ? p.mission : freshMission(today());
   return structuredClone({ ...rest, mission, bjj: normalizeBjj(p.bjj) });
 }

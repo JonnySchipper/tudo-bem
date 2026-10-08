@@ -2,6 +2,7 @@
  * Hidden admin mode (credits easter egg). Password is server-side only (`TB_ADMIN_PASSWORD`).
  * Local / non-production builds fall back to `ADMIN_DEV_PASSWORD` when the env is unset.
  */
+import crypto from 'node:crypto';
 import { validatePassword } from '@tudobem/shared';
 import { readEnv } from './env.js';
 
@@ -10,6 +11,15 @@ export const ADMIN_DEV_PASSWORD = 'tb-admin-praca';
 
 /** Cap on a single admin money grant (RV). */
 export const ADMIN_MONEY_MAX = 500;
+
+export const ADMIN_WRONG_PASSWORD = { pt: 'Senha incorreta.', en: 'Wrong password.' };
+
+/** Constant-time compare for the admin secret (same check as feedback review and Ops smoke). */
+export function adminPasswordMatches(given: string, expected: string): boolean {
+  const a = crypto.createHash('sha256').update(given).digest();
+  const b = crypto.createHash('sha256').update(expected).digest();
+  return crypto.timingSafeEqual(a, b);
+}
 
 export interface AdminAuthConfig {
   /** Admin login is accepted on this world. */

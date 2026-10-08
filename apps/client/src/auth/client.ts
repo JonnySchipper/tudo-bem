@@ -140,18 +140,43 @@ export async function signOut(): Promise<void> {
   clearAuthSession();
 }
 
-/** One-click Ops smoke sign-in when the server advertises `opsSmoke` on `/api/config`. */
-export function signInOpsSmoke(): Promise<AuthResponse> {
-  return signInSmokePath('/ops-smoke');
+/** Ops smoke sign-in (stable account). Requires the same admin password as the hidden admin panel. */
+export function signInOpsSmoke(adminPassword: string): Promise<AuthResponse> {
+  return signInSmokePath('/ops-smoke', adminPassword);
 }
 
-/** A fresh Ops smoke account (no profile), so the arrival intro plays. Same gate as Ops smoke. */
-export function signInOpsSmokeNew(): Promise<AuthResponse> {
-  return signInSmokePath('/ops-smoke-new');
+/** A fresh Ops smoke account (no profile), so the arrival intro plays. Same admin gate as Ops smoke. */
+export function signInOpsSmokeNew(adminPassword: string): Promise<AuthResponse> {
+  return signInSmokePath('/ops-smoke-new', adminPassword);
 }
 
-async function signInSmokePath(path: '/ops-smoke' | '/ops-smoke-new'): Promise<AuthResponse> {
-  const res = await postJson(path, {});
+/** Check the admin password before showing Ops smoke actions on the login screen. */
+export async function verifyAdminGate(adminPassword: string): Promise<AuthResponse> {
+  const res = await postJson('/admin-gate', { adminPassword });
+  if (!res) return OFFLINE;
+  const ct = res.headers.get('content-type') ?? '';
+  if (!ct.includes('json')) {
+    return { ok: false, pt: 'Admin indisponível.', en: 'Admin gate is unavailable.', code: 'server' };
+  }
+  let data: { ok?: boolean; pt?: string; en?: string; code?: string };
+  try {
+    data = await res.json();
+  } catch {
+    return OFFLINE;
+  }
+  if (!res.ok || data.ok !== true) {
+    return {
+      ok: false,
+      pt: data.pt ?? 'Senha incorreta.',
+      en: data.en ?? 'Wrong password.',
+      code: data.code ?? 'credentials',
+    };
+  }
+  return { ok: true, session: { email: OPS_SMOKE_EMAIL, stub: false } };
+}
+
+async function signInSmokePath(path: '/ops-smoke' | '/ops-smoke-new', adminPassword: string): Promise<AuthResponse> {
+  const res = await postJson(path, { adminPassword });
   if (!res) return OFFLINE;
   const ct = res.headers.get('content-type') ?? '';
   if (!ct.includes('json')) {

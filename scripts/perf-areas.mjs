@@ -36,7 +36,8 @@ for (const name of VPS) {
   await page.fill('#avatar-name', 'Perf');
   await page.click('button:has-text("ele (he)")');
   await page.click('#enter-praca');
-  await waitFor(page, (id) => window.__tb.game.room?.room === id, 'praca', 20_000, 'praca');
+  // a new account lands at the airport (the arrival); the scene loop joins each outdoor room from wherever that is
+  await waitFor(page, () => !!window.__tb.game.room?.room, null, 20_000, 'a room');
   for (const sc of SCENES) {
     if ((await page.evaluate(() => window.__tb.game.room?.room)) !== sc.room) {
       await page.evaluate((room) => window.__tb.net.send({ t: 'join', room }), sc.room);

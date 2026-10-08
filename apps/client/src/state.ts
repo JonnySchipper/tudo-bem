@@ -1,4 +1,4 @@
-import type { EmoteKind, FriendInfo, NpcDef, NpcId, PlacedFurniture, PrivateProfile, PublicAvatar, RoomDef, RoomStateMsg, Tile } from '@tudobem/shared';
+import type { BoardRow, EmoteKind, FriendInfo, NpcDef, NpcId, PlacedFurniture, PrivateProfile, PublicAvatar, RoomDef, RoomStateMsg, Tile } from '@tudobem/shared';
 import { npcDefById, positionAlong, ROOMS } from '@tudobem/shared';
 import type { RecadoBoard } from './ui/recadoView';
 
@@ -40,6 +40,8 @@ class Game {
   furniture: PlacedFurniture[] = [];
   friends: FriendInfo[] = [];
   incoming: { id: string; name: string }[] = [];
+  /** Dual Praça leaderboards from the server. */
+  leaderboards: { words: BoardRow[]; streak: BoardRow[]; at: number } | null = null;
   npcBubbles = new Map<string, Bubble>();
   pending: PendingAction | null = null;
   editMode = false;
@@ -55,9 +57,20 @@ class Game {
   photos: import('@tudobem/shared').DiaryPhoto[] = [];
   /** Solo (static) build: the world runs in this tab; no other humans. */
   solo = false;
+  /** Live Fada da Feira (today's top Feira score). Display only; cleared at midnight ET. */
+  feiraCrownId: string | null = null;
+  /** Feira cart switch from the server. Null until a Feira enter or an admin broadcast. */
+  feiraCart: { closed: boolean; game: import('@tudobem/shared').FeiraGameId | null } | null = null;
+  /** Which Feira panel to open when the next board message arrives. */
+  pendingFeiraOpen: 'cart' | 'sign' | null = null;
   sound = localStorage.getItem('tb_sound') !== 'off';
   /** Background beds. Separate from voice so Carlos can stay on while the room is quiet. */
   music = localStorage.getItem('tb_music') !== 'off';
+  /**
+   * English glosses under other players' Portuguese chat. The player's own setting (Ajustes), on by default; earning a nameplate colour in
+   * the escola never turns it off (DECISIONS.md, "nameplate colour vs English help").
+   */
+  englishHelp = localStorage.getItem('tb_english') !== 'off';
   private listeners = new Map<string, Set<Listener>>();
 
   get roomDef(): RoomDef | null {

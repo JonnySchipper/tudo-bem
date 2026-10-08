@@ -83,6 +83,8 @@ export class LocalNet implements NetLike {
       academies: new AcademyStore(academyAdapter),
       padarias: new PadariaStore(padariaAdapter),
       padariaOwnership: true,
+      // shots/e2e: `?feiraon=pastel` switches that cart game on. The admin flags still default off.
+      feiraPin: new URLSearchParams(location.search).get('feiraon') ?? undefined,
     });
     // JSON round-trip mirrors the wire so client state never aliases server state.
     this.session = this.world.connect(
@@ -100,6 +102,11 @@ export class LocalNet implements NetLike {
   send(m: ClientMsg) {
     if (!this.world || !this.session) return;
     void this.world.handle(this.session, JSON.parse(JSON.stringify(m)));
+  }
+
+  /** Shot / e2e hook: cart games ship off. Turn one on for this solo session (`caldo`, `tapioca`). */
+  enableFeiraGame(id: string): boolean {
+    return this.world?.enableFeiraGame(id) ?? false;
   }
 
   /** Test/shots hook (`?rolltest` only): the live bout state of the in-page world, to stage a moment (a full pegada at the top of the ladder). */

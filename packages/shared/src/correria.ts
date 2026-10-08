@@ -4,7 +4,8 @@
  *
  * A shift is three waves (4 + 5 + 6 = 15 customers, about three real minutes). Customers queue at the counter with a patience meter,
  * order in a speech bubble (written) or by voice only (listening), may add something or change their mind, and the player builds the
- * tray in the world: shelves, the estufa, the chapa (a cooking window that ends in a burn), the coffee pour (tap to start, tap again in the window), a bag or a plate.
+ * tray in the world: shelves, the estufa, the chapa (a cooking window that ends in a burn), the coffee pour (tap to start, tap again in the window),
+ * the espremedor (one tap = one orange through the juicer; stop at the line on the glass), a bag or a plate.
  * "Me vê um…" stays what customers SAY; the order text comes from the curriculum pack (`meveum.ts`) plus generated combos.
  * Every PT string here is new content: `needs_br: true` (listed in DECISIONS.md).
  */
@@ -60,14 +61,43 @@ export const CHAPA = { cookMs: 2400, burnMs: 5400, toleranceMs: 150, sizzleStepM
 /** The cup fills on its own after the start tap. A second tap inside goodMin..spillAt lands it; past abortFactor it spills by itself, like the chapa burns. */
 export const POUR = { fullMs: 1800, fastMs: 1300, goodMin: 0.7, spillAt: 1.08, minHoldMs: 120, abortFactor: 1.7 } as const;
 
-/** Shelf items that need the chapa / the coffee machine; every other item is a plain grab (the estufa, the vitrine, the geladeira). */
+/**
+ * The espremedor automático (the Zummo-style juicer on every padaria counter). Each tap drops one orange: it rolls down, is cut, pressed,
+ * and its juice runs into the glass. Oranges come in three sizes (the next one shows in the hopper), so a glass takes 2 to 4 of them,
+ * usually 3. Taking the glass lands it between `goodMin` and `spillAt` of the line; under is short (thrown out, like a short coffee), and an
+ * orange that takes the glass past `spillAt` overflows at once. Every glass still under `goodMin` has room for the biggest orange, so
+ * stopping at the line always works whatever comes next.
+ */
+export const JUICE = { cycleMs: 640, goodMin: 0.8, spillAt: 1.2, sizes: { p: 0.26, m: 0.34, g: 0.4 } } as const;
+export type OrangeSize = keyof typeof JUICE.sizes;
+/** How many oranges of the hopper the snapshot shows (the next one first). */
+export const HOPPER_SHOWN = 3;
+/** The size of the n-th orange of a shift (0-based), from the seed alone: the hopper is the same however the player taps. */
+export function orangeAt(seed: number, n: number): OrangeSize {
+  let h = (Math.imul(seed >>> 0, 0x9e3779b1) ^ Math.imul(n + 1, 0x85ebca6b)) >>> 0;
+  h = Math.imul(h ^ (h >>> 16), 0x7feb352d) >>> 0;
+  h = Math.imul(h ^ (h >>> 15), 0x846ca68b) >>> 0;
+  const r = ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+  return r < 0.3 ? 'p' : r < 0.75 ? 'm' : 'g';
+}
+export type JuiceVerdict = 'ok' | 'short' | 'spill';
+export const juiceVerdict = (fill: number): JuiceVerdict => (fill < JUICE.goodMin - 1e-9 ? 'short' : fill > JUICE.spillAt + 1e-9 ? 'spill' : 'ok');
+/** The step of the juicer's cycle `ms` after a drop (the art has a frame per step; past the cycle it is idle). */
+export type JuicerStep = 'roll' | 'cut' | 'press' | 'pour' | 'peel' | 'idle';
+export function juicerStep(ms: number): JuicerStep {
+  const u = ms / JUICE.cycleMs;
+  return ms < 0 || u >= 1 ? 'idle' : u < 0.18 ? 'roll' : u < 0.36 ? 'cut' : u < 0.58 ? 'press' : u < 0.84 ? 'pour' : 'peel';
+}
+
+/** Shelf items that need the chapa / the coffee machine / the juicer; every other item is a plain grab (the estufa, the vitrine, the geladeira). */
 export const CHAPA_ITEMS: readonly string[] = ['pao_na_chapa', 'misto_quente'];
 export const CAFE_ITEMS: readonly string[] = ['cafe', 'cafe_com_leite'];
-export type Station = 'chapa' | 'cafe';
-export const stationOf = (itemId: string): Station | null => (CHAPA_ITEMS.includes(itemId) ? 'chapa' : CAFE_ITEMS.includes(itemId) ? 'cafe' : null);
+export const SUCO_ITEMS: readonly string[] = ['suco_de_laranja'];
+export type Station = 'chapa' | 'cafe' | 'suco';
+export const stationOf = (itemId: string): Station | null => (CHAPA_ITEMS.includes(itemId) ? 'chapa' : CAFE_ITEMS.includes(itemId) ? 'cafe' : SUCO_ITEMS.includes(itemId) ? 'suco' : null);
 
 /** Where an item lives on the counter (the art and the stage group the shelf this way). */
-export type Shelf = 'vitrine' | 'estufa' | 'chapa' | 'cafe' | 'geladeira';
+export type Shelf = 'vitrine' | 'estufa' | 'chapa' | 'cafe' | 'suco' | 'geladeira';
 export const SHELF_OF: Record<string, Shelf> = {
   pao: 'vitrine',
   bolo: 'vitrine',
@@ -78,7 +108,7 @@ export const SHELF_OF: Record<string, Shelf> = {
   misto_quente: 'chapa',
   cafe: 'cafe',
   cafe_com_leite: 'cafe',
-  suco_de_laranja: 'geladeira',
+  suco_de_laranja: 'suco',
   agua: 'geladeira',
   guarana: 'geladeira',
   brigadeiro: 'vitrine',
@@ -184,13 +214,15 @@ export const ITEM_EVERY_SHIFTS = 2;
  * Teaching order. A new player has café and pão francês; one more item opens every `ITEM_EVERY_SHIFTS` completed shifts.
  * Pastel and coxinha sit on this ladder (the `salgados` star is only the milestone hint).
  */
-export const MENU_LADDER = ['cafe', 'pao', 'agua', 'pao_de_queijo', 'cafe_com_leite', 'suco_de_laranja', 'pao_na_chapa', 'coxinha', 'pastel', 'bolo', 'guarana', 'misto_quente'] as const;
+export const MENU_LADDER = ['cafe', 'pao', 'agua', 'pao_de_queijo', 'cafe_com_leite', 'pao_na_chapa', 'suco_de_laranja', 'coxinha', 'pastel', 'bolo', 'guarana', 'misto_quente'] as const;
 /** Shifts that open the whole ladder. */
 export const FULL_MENU_SHIFTS = (MENU_LADDER.length - 2) * ITEM_EVERY_SHIFTS;
 /** From this many open items, every order says pra viagem or pra comer aqui. */
 export const WHERE_MENU_AT = 6;
 /** Lesson id for the packing card (not an item). */
 export const WHERE_LESSON_ID = 'where';
+/** Lesson id of the juicer card. Its own key (not the item id), so a save that saw the old fridge-grab card for suco still gets it once. */
+export const JUICER_LESSON_ID = 'espremedor';
 /** Pay scale over today's 2-item payout: +6% of that base per extra item, 1.60 at the full menu (10 extras × 6). */
 export const PAY_STEP_PCT = 6;
 export const PAY_MUL_MAX = 1.6;
@@ -245,7 +277,16 @@ const LESSONS: Record<string, CounterLesson> = {
   agua: { id: 'agua', title: step('Água', 'Water'), steps: [step('A água fica na geladeira.', 'The water is in the fridge.'), step('Toque nela para pôr na bandeja.', 'Tap it to put it on the tray.')] },
   pao_de_queijo: { id: 'pao_de_queijo', title: step('Pão de queijo', 'Cheese bread'), steps: [step('Pegue o pão de queijo na vitrine.', 'Take the cheese bread from the display case.')] },
   cafe_com_leite: { id: 'cafe_com_leite', title: step('Café com leite', 'Coffee with milk'), steps: [step('O café com leite sai da cafeteira, como o café.', 'Coffee with milk comes from the machine, like coffee.'), step('Toque para começar e toque de novo na hora certa.', 'Tap to start, then tap again at the right time.')] },
-  suco_de_laranja: { id: 'suco_de_laranja', title: step('Suco de laranja', 'Orange juice'), steps: [step('Pegue o suco de laranja na geladeira.', 'Take the orange juice from the fridge.')] },
+  suco_de_laranja: {
+    id: JUICER_LESSON_ID,
+    title: step('Suco de laranja: o espremedor', 'Orange juice: the juicer'),
+    steps: [
+      step('Ponha as laranjas na máquina: cada toque, uma laranja.', 'Put the oranges in the machine: each tap, one orange.'),
+      step('Ela corta, espreme, e o suco cai no copo.', 'It cuts, squeezes, and the juice runs into the glass.'),
+      step('Pare na linha e toque no copo.', 'Stop at the line and tap the glass.'),
+      step('Pouco suco não serve; demais transborda.', 'Too little won’t do; too much overflows.'),
+    ],
+  },
   pao_na_chapa: { id: 'pao_na_chapa', title: step('Pão na chapa', 'Grilled bread'), steps: [step('Ponha o pão na chapa.', 'Put the bread on the grill.'), step('Tire quando dourar. Se passar, queima.', 'Take it off when it browns. Leave it and it burns.')] },
   coxinha: { id: 'coxinha', title: step('Coxinha', 'Coxinha'), steps: [step('Pegue a coxinha na estufa.', 'Take the coxinha from the warmer.')] },
   pastel: { id: 'pastel', title: step('Pastel', 'Pastel'), steps: [step('Pegue o pastel na estufa.', 'Take the pastel from the warmer.')] },
@@ -263,9 +304,9 @@ export function pendingLesson(menuIds: readonly string[], taught: readonly strin
   const seen = new Set(taught);
   if (whereOn && !seen.has(WHERE_LESSON_ID)) return WHERE_LESSON;
   for (const id of MENU_LADDER) {
-    if (!menuIds.includes(id) || seen.has(id)) continue;
     const lesson = LESSONS[id];
-    if (lesson) return lesson;
+    if (!menuIds.includes(id) || !lesson || seen.has(lesson.id)) continue;
+    return lesson;
   }
   return null;
 }
@@ -710,6 +751,10 @@ export interface Shift {
   mods: string[];
   chapa: (ChapaSlot | null)[];
   pour: { itemId: string; at: number } | null;
+  /** The glass under the juicer: how full (1 = the line), the level before the last orange, the oranges in it, when and which size dropped last. */
+  juice: { fill: number; prev: number; oranges: number; at: number; size: OrangeSize } | null;
+  /** Oranges dropped this shift (the next one in the hopper is `orangeAt(seed, oranges)`). */
+  oranges: number;
   stats: ShiftStats;
   served: string[];
   usedNames: string[];
@@ -733,6 +778,9 @@ export type CEvent =
   | { k: 'pour_start'; item: string }
   | { k: 'pour_ok'; item: string; fill: number }
   | { k: 'pour_bad'; why: 'short' | 'spill'; fill: number }
+  | { k: 'juice_drop'; size: OrangeSize; fill: number }
+  | { k: 'juice_ok'; item: string; fill: number }
+  | { k: 'juice_bad'; why: 'short' | 'spill'; fill: number }
   | { k: 'pack'; kind: 'bag' | 'plate' | null }
   | { k: 'mod'; id: string; on: boolean }
   | { k: 'clear' }
@@ -753,6 +801,8 @@ export type CAct =
   | { a: 'chapa_take'; slot: number }
   | { a: 'pour_start'; item: string }
   | { a: 'pour_end' }
+  | { a: 'juice_drop' }
+  | { a: 'juice_take' }
   | { a: 'pack'; kind: 'bag' | 'plate' | null }
   | { a: 'mod'; id: string }
   | { a: 'clear' }
@@ -786,6 +836,10 @@ export function sanitizeAct(raw: unknown): CAct | null {
     }
     case 'pour_end':
       return { a: 'pour_end' };
+    case 'juice_drop':
+      return { a: 'juice_drop' };
+    case 'juice_take':
+      return { a: 'juice_take' };
     case 'pack':
       return r.kind === 'bag' || r.kind === 'plate' ? { a: 'pack', kind: r.kind } : r.kind === null ? { a: 'pack', kind: null } : null;
     case 'mod':
@@ -833,6 +887,8 @@ export function newShift(ctx: ShiftCtx): Shift {
     mods: [],
     chapa: Array.from({ length: chapaSlots(ctx.unlocked) }, () => null),
     pour: null,
+    juice: null,
+    oranges: 0,
     stats: { served: 0, perfect: 0, second: 0, left: 0, points: 0, tips: 0, combo: 0, bestCombo: 0, askRight: 0, askTotal: 0, regulars: [], words: [], items: [] },
     served: [],
     usedNames: [],
@@ -1138,7 +1194,8 @@ export function shiftAct(sh: Shift, a: CAct): CEvent[] {
   switch (a.a) {
     case 'grab': {
       if (!items.some((i) => i.id === a.item)) return no('locked', 'Esse item ainda está trancado.', 'That item is still locked.');
-      if (stationOf(a.item)) return no('station', stationOf(a.item) === 'chapa' ? 'Esse vai na chapa.' : 'Esse sai da cafeteira.', stationOf(a.item) === 'chapa' ? 'That one goes on the grill.' : 'That one comes from the coffee machine.');
+      const st = stationOf(a.item);
+      if (st) return no('station', st === 'chapa' ? 'Esse vai na chapa.' : st === 'suco' ? 'Esse sai do espremedor.' : 'Esse sai da cafeteira.', st === 'chapa' ? 'That one goes on the grill.' : st === 'suco' ? 'That one comes from the juicer.' : 'That one comes from the coffee machine.');
       if (sh.tray.length >= MG_MAX_TRAY) return no('full', 'A bandeja está cheia.', 'The tray is full.');
       sh.tray.push(a.item);
       ev.push({ k: 'grab', item: a.item });
@@ -1195,6 +1252,37 @@ export function shiftAct(sh: Shift, a: CAct): CEvent[] {
         sh.tray.push(p.itemId);
         ev.push({ k: 'pour_ok', item: p.itemId, fill });
       }
+      return ev;
+    }
+    case 'juice_drop': {
+      if (!items.some((i) => SUCO_ITEMS.includes(i.id))) return no('locked', 'O espremedor ainda está trancado.', 'The juicer is still locked.');
+      // one orange at a time: a tap while the machine still presses the last one does nothing
+      if (sh.juice && sh.t - sh.juice.at < JUICE.cycleMs) return ev;
+      if (sh.tray.length >= MG_MAX_TRAY) return no('full', 'A bandeja está cheia.', 'The tray is full.');
+      const size = orangeAt(sh.ctx.seed, sh.oranges);
+      sh.oranges++;
+      const prev = sh.juice?.fill ?? 0;
+      const fill = Math.round((prev + JUICE.sizes[size]) * 100) / 100;
+      ev.push({ k: 'juice_drop', size, fill });
+      if (juiceVerdict(fill) === 'spill') {
+        sh.juice = null;
+        ev.push({ k: 'juice_bad', why: 'spill', fill });
+      } else sh.juice = { fill, prev, oranges: (sh.juice?.oranges ?? 0) + 1, at: sh.t, size };
+      return ev;
+    }
+    case 'juice_take': {
+      const j = sh.juice;
+      if (!j) return no('juice_empty', 'Ponha uma laranja na máquina primeiro.', 'Put an orange in the machine first.');
+      if (sh.t - j.at < JUICE.cycleMs) return ev;
+      if (juiceVerdict(j.fill) === 'short') {
+        sh.juice = null;
+        ev.push({ k: 'juice_bad', why: 'short', fill: j.fill });
+        return ev;
+      }
+      if (sh.tray.length >= MG_MAX_TRAY) return no('full', 'A bandeja está cheia.', 'The tray is full.');
+      sh.juice = null;
+      sh.tray.push('suco_de_laranja');
+      ev.push({ k: 'juice_ok', item: 'suco_de_laranja', fill: j.fill });
       return ev;
     }
     case 'pack':
@@ -1286,6 +1374,10 @@ export interface CorreriaSnap {
   chapa: ({ item: string; age: number } | null)[];
   pour: { item: string; age: number } | null;
   pourMs: number;
+  /** The glass under the juicer (fill 1 = the line; `prev` is the level before the last orange, `age` ms since it dropped). */
+  juice: { fill: number; prev: number; oranges: number; age: number; size: OrangeSize } | null;
+  /** The next oranges in the hopper, the next one first (their sizes show in the clear hopper, so this is no secret). */
+  hopper: OrangeSize[];
   stats: { served: number; perfect: number; left: number; points: number; tips: number; combo: number; bestCombo: number };
   unlocked: string[];
   /** Item ids open on this shift (the ladder, after an owned-room cap). */
@@ -1338,6 +1430,8 @@ export function shiftSnapshot(sh: Shift): CorreriaSnap {
     chapa: sh.chapa.map((s) => (s ? { item: s.itemId, age: sh.t - s.at } : null)),
     pour: sh.pour ? { item: sh.pour.itemId, age: sh.t - sh.pour.at } : null,
     pourMs: pourMsFor(sh.ctx.unlocked),
+    juice: sh.juice ? { fill: sh.juice.fill, prev: sh.juice.prev, oranges: sh.juice.oranges, age: sh.t - sh.juice.at, size: sh.juice.size } : null,
+    hopper: Array.from({ length: HOPPER_SHOWN }, (_, i) => orangeAt(sh.ctx.seed, sh.oranges + i)),
     stats: { served: sh.stats.served, perfect: sh.stats.perfect, left: sh.stats.left, points: sh.stats.points, tips: sh.stats.tips, combo: sh.stats.combo, bestCombo: sh.stats.bestCombo },
     unlocked: [...sh.ctx.unlocked],
     menu: shiftItemPool(sh.ctx).map((i) => i.id),
@@ -1370,8 +1464,11 @@ export function correriaPayout(points: number, served: number, itemCount = 2): n
   const cap = Math.round((base * (100 + menuPayPct(MENU_LADDER.length))) / 100);
   return Math.min(scaled, cap);
 }
-const LESSON_IDS = new Set<string>([...MENU_LADDER, WHERE_LESSON_ID]);
-/** Old saves and hand-edited ones come back coherent. Never throws. A save from before the ladder (no `taught`, and shifts already played) is marked as having seen every lesson. */
+const LESSON_IDS = new Set<string>([...MENU_LADDER, WHERE_LESSON_ID, ...Object.values(LESSONS).map((l) => l.id)]);
+/**
+ * Old saves and hand-edited ones come back coherent. Never throws. A save from before the ladder (no `taught`, and shifts already played) is
+ * marked as having seen every item's old card; the juicer card (`espremedor`) is new, so it still shows once when suco is on the counter.
+ */
 export function normalizeCorreria(raw: unknown): CorreriaProgress {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const n = (v: unknown, max: number) => (Number.isFinite(Number(v)) ? Math.max(0, Math.min(max, Math.floor(Number(v)))) : 0);

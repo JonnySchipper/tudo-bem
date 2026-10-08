@@ -17,6 +17,7 @@ import * as iconsMod from './icons.mjs';
 import * as uiMod from './ui.mjs';
 import * as uiIconsMod from './uiicons.mjs';
 import * as flockMod from './flock.mjs';
+import * as petsMod from './pets.mjs';
 import * as vilaMod from './vila.mjs';
 import * as telhadosMod from './telhados.mjs';
 import * as backdropMod from './backdrop.mjs';
@@ -91,4 +92,6 @@ export const IMAGES = {
   uiicons: uiIconsMod.uiIconParts,
   parrot: emotefx.parrotStrip,
   flock: flockMod.flockStrips,
+  pets: petsMod.petStrips,
+  bubbleSkins: uiMod.bubbleSkins,
 };

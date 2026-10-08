@@ -1048,4 +1048,38 @@ describe('Admin panel', () => {
     expect(roster).toMatchObject({ phase: 'players' });
     if (roster?.phase === 'players') expect(roster.players.map((p) => p.name)).toEqual(['Admin']);
   });
+
+  it('requires the admin password to turn a Feira cart game on, then tells everyone', async () => {
+    const { world } = makeWorld(16, { adminPassword: 'tb-admin-praca' });
+    const a = await client(world, 'Admin');
+    const b = await client(world, 'Lia');
+    await a.send({ t: 'join', room: 'feira' });
+    const entered = a.last('roomState');
+    expect(entered && entered.t === 'roomState' && entered.feiraCart).toMatchObject({ closed: true, game: null });
+
+    await a.send({ t: 'admin', action: 'feiraCartSet', game: 'tapioca', mode: 'on' });
+    expect(a.last('admin')).toMatchObject({ phase: 'auth', ok: false });
+
+    await a.send({ t: 'admin', action: 'login', password: 'tb-admin-praca' });
+    await a.send({ t: 'admin', action: 'feiraCart' });
+    const locked = a.last('admin');
+    expect(locked?.phase).toBe('feiraCart');
+    if (locked?.phase === 'feiraCart') {
+      expect(locked.featured).toBeNull();
+      expect(locked.games.map((g) => g.id)).toEqual(['tapioca', 'pastel', 'caldo']);
+      expect(locked.games.every((g) => g.mode === 'off')).toBe(true);
+      expect(locked.games.find((g) => g.id === 'pastel')).toMatchObject({ mode: 'off', implemented: true });
+      expect(locked.games.find((g) => g.id === 'caldo')).toMatchObject({ mode: 'off', implemented: true });
+    }
+
+    await a.send({ t: 'admin', action: 'feiraCartSet', game: 'tapioca', mode: 'on' });
+    expect(a.last('admin')).toMatchObject({ phase: 'feiraCart', featured: 'tapioca' });
+    expect(b.last('feiraGame')).toMatchObject({ phase: 'cart', closed: false, game: 'tapioca' });
+
+    await a.send({ t: 'admin', action: 'feiraCartSet', game: 'not-a-game', mode: 'on' });
+    expect(a.last('error')).toMatchObject({ code: 'admin' });
+    const still = a.all('admin').filter((m) => m.phase === 'feiraCart').at(-1);
+    expect(still && still.phase === 'feiraCart' && still.games.find((g) => g.id === 'tapioca')?.mode).toBe('on');
+    expect(still && still.phase === 'feiraCart' && still.games.find((g) => g.id === 'pastel')?.mode).toBe('off');
+  });
 });

@@ -8,9 +8,13 @@ import { World, type CloseReason } from './world.js';
 import { ProfileStore } from './store.js';
 import { AcademyStore } from './academyStore.js';
 import { PadariaStore } from './padariaStore.js';
-import { academyFileAdapter, feedbackFileAdapter, fileAdapter, padariaFileAdapter } from './fileStore.js';
+import { academyFileAdapter, feedbackFileAdapter, feiraCartFileAdapter, feiraGamesFileAdapter, fileAdapter, padariaFileAdapter } from './fileStore.js';
+import { FeiraCartStore } from './feiraCart.js';
+import { FeiraGamesStore } from './feiraGames.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
 import { FileModerationQueue } from './services/fileModeration.js';
+import { JevModelSafety, jevSelfCheck, loadOnnxToxModel } from './services/jevModel.js';
+import type { ChatSafetyService } from './services/interfaces.js';
 import { handleConversaApi } from './conversaApi.js';
 import { ConversaMemory } from './conversaMemory.js';
 import { staticCacheControl } from './cacheControl.js';
@@ -28,6 +32,8 @@ import {
 import { feedbackLimiter, handleFeedbackApi } from './feedbackApi.js';
 import { FeedbackStore } from './feedbackStore.js';
 import { readAdminAuthConfig, type AdminAuthConfig } from './adminAuth.js';
+import { handleBillingApi } from './billing/http.js';
+import { billingConfigured, readBillingConfig } from './billing/provider.js';
 import { publicAppConfig, readOpsSmokeConfig, type OpsSmokeConfig } from './opsSmoke.js';
 import { readGoogleOAuthConfig, type GoogleOAuthConfig, type GoogleTokenPayload } from './googleAuth.js';
 import { repairPapagaios } from './papagaioRepair.js';
@@ -53,6 +59,30 @@ export interface AppOptions {
   verifyGoogleIdToken?: (token: string, clientId: string) => Promise<GoogleTokenPayload | null>;
   /** Override admin auth for GET /api/feedback (tests). Defaults to `TB_ADMIN_PASSWORD`. */
   feedbackAdmin?: AdminAuthConfig;
+  /** Jev model folder (scripts/fetch-jev-model.py). Defaults to `TB_JEV_MODEL_DIR`; unset = stub only. */
+  jevModelDir?: string;
+  /** Lemon Squeezy secrets. Omit to read the process env. Missing any secret disables checkout and the webhook. */
+  billing?: import('./billing/provider.js').BillingConfig;
+  /** Test double for the Lemon Squeezy HTTP client. */
+  billingFetch?: (input: string, init?: RequestInit) => Promise<Response>;
+}
+
+/** Server chat safety: the Jev model behind the stub when a model folder is configured, else the stub alone. */
+function chatSafety(dir: string | undefined): ChatSafetyService & { status?: JevModelSafety['status'] } {
+  if (!dir) return new JevStubSafety();
+  const threads = Number(process.env.TB_JEV_THREADS) || 1;
+  const t0 = Date.now();
+  const safety = new JevModelSafety(new JevStubSafety(), loadOnnxToxModel(dir, { threads }));
+  void safety.ready().then((st) => {
+    const rss = Math.round(process.memoryUsage().rss / 1e6);
+    if (st.state !== 'ready') return console.error(`[jev] model unavailable, stub-only chat safety: ${st.error}`);
+    console.log(`[jev] model ${st.model} ready in ${Date.now() - t0}ms (rss ${rss} MB)`);
+    if (process.env.TB_JEV_SELFCHECK === '0') return;
+    void jevSelfCheck(safety).then((r) =>
+      console.log(`[jev] self-check ${r.pass}/${r.total} model-pack cases ok, p50 ${r.p50}ms p95 ${r.p95}ms${r.failed.length ? `; FAILED: ${r.failed.join(' | ')}` : ''}`),
+    );
+  });
+  return safety;
 }
 
 /** WebSocket close codes the client understands (see apps/client/src/net.ts). */
@@ -73,24 +103,30 @@ const MIME: Record<string, string> = {
 export function createApp(opts: AppOptions) {
   const { dataDir, clientDist } = opts;
   const store = new ProfileStore(fileAdapter(dataDir));
+  const feiraGamesFile = feiraGamesFileAdapter(dataDir);
+  const feiraGames = new FeiraGamesStore(() => feiraGamesFile.load(), (state) => feiraGamesFile.save(state), () => Date.now());
+  const feiraCartFile = feiraCartFileAdapter(dataDir);
+  const feiraCart = new FeiraCartStore(() => feiraCartFile.load(), (state) => feiraCartFile.save(state));
   const academies = new AcademyStore(academyFileAdapter(dataDir));
   const padarias = new PadariaStore(padariaFileAdapter(dataDir));
   const feedback = new FeedbackStore(feedbackFileAdapter(dataDir));
   const feedbackLimit = feedbackLimiter();
   const feedbackAdmin = opts.feedbackAdmin ?? readAdminAuthConfig();
+  const billing = opts.billing ?? readBillingConfig(process.env);
   const accounts = new AccountStore(accountsFileAdapter(dataDir), { sessionTtlMs: opts.sessionTtlMs, scrypt: opts.scrypt });
   const fixedPapagaios = repairPapagaios((email) => accounts.profileIdForEmail(email), store);
   if (fixedPapagaios.length) console.log(`[papagaio] restored colours for ${fixedPapagaios.join(', ')}`);
+  const safety = chatSafety(opts.jevModelDir ?? (process.env.TB_JEV_MODEL_DIR || undefined));
   const world = new World(
     store,
     {
-      safety: new JevStubSafety(),
+      safety,
       gloss: new PhrasebookGloss(),
       npc: new AuthoredNpcDialogue(),
       student: new InMemoryStudentModel(),
       moderation: new FileModerationQueue(path.join(dataDir, 'moderation.jsonl')),
     },
-    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, idleKickMs: opts.idleKickMs, academies, padarias },
+    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, idleKickMs: opts.idleKickMs, academies, padarias, feiraGames, feiraCart },
   );
   const conversaMemory = new ConversaMemory({ store, onProfileChanged: (playerId) => world.pushProfileById(playerId) });
   const limiters = defaultLimiters();
@@ -106,7 +142,7 @@ export function createApp(opts: AppOptions) {
     const url = new URL(req.url ?? '/', 'http://x');
     if (url.pathname === '/healthz') {
       res.writeHead(200, { 'content-type': 'application/json' });
-      return res.end(JSON.stringify({ ok: true, ...world.stats(), accounts: accounts.count(), gameMinute: world.gameMinuteNow() }));
+      return res.end(JSON.stringify({ ok: true, ...world.stats(), accounts: accounts.count(), gameMinute: world.gameMinuteNow(), jev: safety.status?.() ?? { state: 'stub' } }));
     }
     // Test only: `POST /__test/clock?min=510` sets the game clock to 08:30 (e2e runs pin it). Off unless TB_TEST_CLOCK_CONTROL=1.
     if (url.pathname === '/__test/clock' && process.env.TB_TEST_CLOCK_CONTROL === '1') {
@@ -118,9 +154,16 @@ export function createApp(opts: AppOptions) {
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
       return res.end(JSON.stringify({ ok: true, gameMinute: world.setClockMinute(min) }));
     }
+    // Test only: `POST /__test/escola?name=Lia&words=24&mastered=14&ready=4&streak=6` seeds an online player's escola (the escola screenshots).
+    if (url.pathname === '/__test/escola' && process.env.TB_TEST_CLOCK_CONTROL === '1') {
+      const n = (k: string) => Math.max(0, Math.min(500, Math.floor(Number(url.searchParams.get(k)) || 0)));
+      const ok = world.testSeedEscola(url.searchParams.get('name') ?? '', { words: n('words'), mastered: n('mastered'), ready: n('ready'), streak: n('streak') });
+      res.writeHead(ok ? 200 : 404, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+      return res.end(JSON.stringify({ ok }));
+    }
     if (url.pathname === '/api/config') {
       res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
-      return res.end(JSON.stringify(publicAppConfig(opsSmoke, googleOAuth.ready ? googleOAuth.clientId : '')));
+      return res.end(JSON.stringify(publicAppConfig(opsSmoke, googleOAuth.ready ? googleOAuth.clientId : '', billingConfigured(billing))));
     }
     if (url.pathname.startsWith('/api/auth/')) {
       return handleAuthApi(req, res, {
@@ -129,11 +172,25 @@ export function createApp(opts: AppOptions) {
         allowedOrigins,
         limiters,
         opsSmoke,
+        adminAuth: feedbackAdmin,
         googleOAuth,
         verifyGoogleIdToken,
         onLogout: (accountId) => world.dropAccount(accountId),
       }).catch((e) => {
         console.error('[auth] handler error', e);
+        if (!res.headersSent) res.writeHead(500);
+        res.end();
+      });
+    }
+    if (url.pathname === '/api/billing/checkout' || url.pathname === '/api/billing/webhook') {
+      return handleBillingApi(req, res, {
+        config: billing,
+        accounts,
+        store,
+        sync: (userId) => world.syncEntitlements(userId),
+        fetchImpl: opts.billingFetch,
+      }).catch((e) => {
+        console.error('[billing] handler error', e);
         if (!res.headersSent) res.writeHead(500);
         res.end();
       });
@@ -244,7 +301,10 @@ export function createApp(opts: AppOptions) {
       ws.ping();
     }
   }, 30_000);
-  const idleSweep = setInterval(() => world.sweepIdle(), opts.idleSweepMs ?? 15_000);
+  const idleSweep = setInterval(() => {
+    world.sweepIdle();
+    world.sweepFeiraGames();
+  }, opts.idleSweepMs ?? 15_000);
 
   return {
     server,
@@ -258,6 +318,8 @@ export function createApp(opts: AppOptions) {
       for (const ws of wss.clients) ws.terminate();
       wss.close();
       store.flush();
+      feiraGames.persist();
+      feiraCart.persist();
       academies.save();
       padarias.save();
       feedback.save();

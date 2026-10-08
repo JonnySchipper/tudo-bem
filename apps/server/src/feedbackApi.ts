@@ -3,11 +3,10 @@
  * GET  /api/feedback — daily review. Requires the admin password (`Authorization: Bearer …`),
  * the same secret as the hidden admin panel (`TB_ADMIN_PASSWORD`; local default when unset).
  */
-import crypto from 'node:crypto';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { prepareFeedback, type FeedbackCode } from '@tudobem/shared';
 import { AttemptLimiter, clientIp, originAllowed, sessionCookieOf, type AccountStore } from './auth.js';
-import type { AdminAuthConfig } from './adminAuth.js';
+import { adminPasswordMatches, type AdminAuthConfig } from './adminAuth.js';
 import type { FeedbackStore } from './feedbackStore.js';
 import type { ModerationQueue } from './services/interfaces.js';
 
@@ -67,12 +66,6 @@ function bearer(req: IncomingMessage): string {
   return match?.[1]?.trim() ?? '';
 }
 
-function passwordMatches(given: string, expected: string): boolean {
-  const a = crypto.createHash('sha256').update(given).digest();
-  const b = crypto.createHash('sha256').update(expected).digest();
-  return crypto.timingSafeEqual(a, b);
-}
-
 function fail(res: ServerResponse, status: number, code: FeedbackCode | 'unauthorized' | 'disabled', pt?: string, en?: string) {
   send(res, status, { ok: false, code, ...(pt ? { pt, en } : {}) });
 }
@@ -90,7 +83,7 @@ export async function handleFeedbackApi(req: IncomingMessage, res: ServerRespons
       fail(res, 404, 'disabled');
       return;
     }
-    if (!passwordMatches(bearer(req), admin.password)) {
+    if (!adminPasswordMatches(bearer(req), admin.password)) {
       fail(res, 401, 'unauthorized');
       return;
     }

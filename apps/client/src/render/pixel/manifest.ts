@@ -61,6 +61,10 @@ export interface ImageDef {
   /** 9-slice insets in image px (ui kit) and the ready `border-image-slice` string "top right bottom left" */
   slice?: { top: number; right: number; bottom: number; left: number };
   css?: string;
+  /** portraits: the centre of the face in image px (small cards crop the bust to it) */
+  face?: [number, number];
+  /** pet strips: inclusive frame ranges (walkE, walkS, walkN, idleS, sitE, sitS, sitN) */
+  anims?: Record<string, [number, number]>;
 }
 
 export async function loadManifest(base: string): Promise<Manifest> {

@@ -23,6 +23,7 @@ export interface CorreriaActions {
 }
 
 const SAY_MS = 4200;
+const ORANGE_WORDS = { p: { pt: 'pequena', en: 'small' }, m: { pt: 'média', en: 'medium' }, g: { pt: 'grande', en: 'big' } } as const;
 
 export class CorreriaUI {
   private root: HTMLElement;
@@ -90,6 +91,8 @@ export class CorreriaUI {
       chapaTake: (slot) => this.act({ a: 'chapa_take', slot }),
       pourStart: (item) => this.act({ a: 'pour_start', item }),
       pourEnd: () => this.act({ a: 'pour_end' }),
+      juiceDrop: () => this.act({ a: 'juice_drop' }),
+      juiceTake: () => this.act({ a: 'juice_take' }),
       pack: (kind) => this.act({ a: 'pack', kind: this.snap?.pack === kind ? null : kind }),
       serve: () => this.act({ a: 'serve' }),
       clear: () => this.act({ a: 'clear' }),
@@ -194,7 +197,7 @@ export class CorreriaUI {
     document.removeEventListener('keydown', this.onKey);
     stopSpeaking();
     this.root.remove();
-    document.body.classList.remove('cr-on', 'cr-ended');
+    document.body.classList.remove('cr-on', 'cr-ended', 'cr-lesson-open');
     correriaFeed.setCamera(false);
     game.modalOpen = false;
     game.emit('modal');
@@ -254,17 +257,24 @@ export class CorreriaUI {
     }
   }
 
-  private mountTeach(title: Bilingual, steps: Bilingual[], bump: Bilingual | null): void {
+  /** Step lessons sit over the counter taps; pay-bump-only cards use the same shell but must not hide #cr-hot. */
+  private closeTeach(): void {
     this.root.querySelector('#cr-lesson')?.remove();
+    document.body.classList.remove('cr-lesson-open');
+  }
+
+  private mountTeach(title: Bilingual, steps: Bilingual[], bump: Bilingual | null): void {
+    this.closeTeach();
     const card = h(
       'div',
       { class: 'cr-lesson', id: 'cr-lesson', role: 'dialog', 'aria-label': title.pt },
       h('h3', null, h('span', { class: 'pt' }, title.pt), h('span', { class: 'gloss' }, title.en)),
       steps.length ? h('ol', null, ...steps.map((s) => h('li', null, h('span', { class: 'pt' }, s.pt), h('span', { class: 'gloss' }, s.en)))) : null,
       bump ? h('p', { class: 'cr-bump' }, bump.pt, h('span', { class: 'gloss' }, bump.en)) : null,
-      h('button', { type: 'button', class: 'cr-lesson-ok', onclick: () => card.remove() }, h('span', { class: 'pt' }, 'Entendi'), h('span', { class: 'gloss' }, 'Got it')),
+      h('button', { type: 'button', class: 'cr-lesson-ok', onclick: () => this.closeTeach() }, h('span', { class: 'pt' }, 'Entendi'), h('span', { class: 'gloss' }, 'Got it')),
     );
     this.root.append(card);
+    if (steps.length) document.body.classList.add('cr-lesson-open');
   }
 
   private onEvent(e: CEvent, snap: CorreriaSnap): void {
@@ -286,10 +296,17 @@ export class CorreriaUI {
       }
       case 'grab':
       case 'chapa_ok':
-      case 'pour_ok': {
+      case 'pour_ok':
+      case 'juice_ok': {
         // the name of what was just taken, with its gloss (the shelf labels are hidden on small screens)
-        const it = MG_ITEMS.find((i) => i.id === (e.k === 'grab' ? e.item : e.item));
+        const it = MG_ITEMS.find((i) => i.id === e.item);
         if (it) this.flash({ pt: it.card.form, en: it.card.gloss_en }, false, 1400);
+        break;
+      }
+      case 'juice_drop': {
+        // the orange that just went in, by size (the shelf words are hidden on small screens)
+        const w = ORANGE_WORDS[e.size];
+        this.flash({ pt: `Uma laranja ${w.pt}`, en: `A ${w.en} orange` }, false, 1100);
         break;
       }
       case 'follow': {
@@ -344,7 +361,8 @@ export class CorreriaUI {
       case 'no':
       case 'chapa_raw':
       case 'chapa_burnt':
-      case 'pour_bad': {
+      case 'pour_bad':
+      case 'juice_bad': {
         const t = cue.toast;
         if (t) this.flash(t, t.tone === 'bad');
         break;
@@ -516,7 +534,7 @@ export class CorreriaUI {
 
   private onEnd(m: Extract<MgServerMsg, { phase: 'end' }>): void {
     this.ended = true;
-    this.root.querySelector('#cr-lesson')?.remove();
+    this.closeTeach();
     document.body.classList.add('cr-ended');
     const lost = !!m.lost;
     const model = endModel(m.end, m.carlos);
@@ -558,7 +576,7 @@ export class CorreriaUI {
     this.ended = false;
     this.teachId = '';
     this.bumpShown = false;
-    this.root.querySelector('#cr-lesson')?.remove();
+    this.closeTeach();
     this.mirrorSig = '';
     this.askSig = '';
     correriaFeed.end();

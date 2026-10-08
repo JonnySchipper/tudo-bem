@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { CHAPA, DAILY_PAID_SHIFTS, DEFAULT_APPEARANCE, ECONOMY, POUR, frontOf, type ClientMsg, type CorreriaSnap, type ServerMsg } from '@tudobem/shared';
+import { CHAPA, DAILY_PAID_SHIFTS, DEFAULT_APPEARANCE, ECONOMY, JUICE, JUICER_LESSON_ID, MENU_LADDER, POUR, frontOf, type ClientMsg, type CorreriaSnap, type ServerMsg } from '@tudobem/shared';
 import { World, type Session } from './world.js';
 import { ProfileStore } from './store.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, MemoryModerationQueue, PhrasebookGloss } from './services/stubs.js';
@@ -163,6 +163,42 @@ describe('Correria no Balcão, server side', () => {
     advance(POUR.fullMs * 0.85);
     await act(a, { a: 'pour_end' });
     expect(snap(a).tray).toEqual(['pao_na_chapa', 'cafe']);
+  });
+
+  it('the juicer: suco is not a fridge grab, each tap is one orange on the server clock, the server judges the line', async () => {
+    const world = makeWorld();
+    const a = await player(world);
+    a.s.profile!.correria = { stars: 0, shifts: 40, best: 0, taught: [...MENU_LADDER, 'where'] };
+    await a.send({ t: 'mg', action: 'start' });
+    // a save that saw the old fridge card for suco gets the juicer card once
+    expect(snap(a).lesson?.id).toBe(JUICER_LESSON_ID);
+    expect(a.s.profile!.correria!.taught).toContain(JUICER_LESSON_ID);
+    await waitFront(world, a, advance);
+    await act(a, { a: 'grab', item: 'suco_de_laranja' });
+    expect(evs(a).at(-1)).toMatchObject({ k: 'no', why: 'station' });
+    const next = snap(a).hopper[0]!;
+    await act(a, { a: 'juice_drop' });
+    expect(evs(a).at(-1)).toMatchObject({ k: 'juice_drop', size: next, fill: JUICE.sizes[next] });
+    // a second tap while it still presses is ignored by the server
+    await act(a, { a: 'juice_drop' });
+    expect(snap(a).juice?.oranges).toBe(1);
+    // taking it short (one orange) throws it out
+    advance(JUICE.cycleMs + 20);
+    await act(a, { a: 'juice_take' });
+    expect(evs(a).at(-1)).toMatchObject({ k: 'juice_bad', why: 'short' });
+    expect(snap(a).juice).toBeNull();
+    // to the line, then the glass goes on the tray
+    for (let i = 0; i < 6 && (snap(a).juice?.fill ?? 0) < JUICE.goodMin; i++) {
+      await act(a, { a: 'juice_drop' });
+      advance(JUICE.cycleMs + 20);
+    }
+    await act(a, { a: 'juice_take' });
+    expect(evs(a).at(-1)).toMatchObject({ k: 'juice_ok', item: 'suco_de_laranja' });
+    expect(snap(a).tray).toEqual(['suco_de_laranja']);
+    a.inbox.length = 0;
+    await a.send({ t: 'mg', action: 'quit' });
+    await a.send({ t: 'mg', action: 'start' });
+    expect(snap(a).lesson).toBeNull();
   });
 
   it('a wrong tray is corrected (glossed) and keeps the tray; fixing it scores the second chance', async () => {

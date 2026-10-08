@@ -2,7 +2,7 @@
  * Hidden admin panel (opened from a plain-looking credits line). Login asks the server for the password;
  * once unlocked, kick players, pin the shared clock / weather, and grant RV to yourself.
  */
-import { WEATHER_COPY, WEATHER_KINDS, formatClock, type AdminPlayerRow, type ClientMsg, type ServerMsg, type Weather } from '@tudobem/shared';
+import { WEATHER_COPY, WEATHER_KINDS, formatClock, type AdminPlayerRow, type AdminSubscriberRow, type ClientMsg, type FeiraCartAdminGame, type FeiraGameId, type ServerMsg, type Weather } from '@tudobem/shared';
 import { clock } from '../gameClock';
 import { game } from '../state';
 import { h, en } from './dom';
@@ -13,6 +13,9 @@ export type AdminSend = (m: Extract<ClientMsg, { t: 'admin' }>) => void;
 let sendAdmin: AdminSend | null = null;
 let panelRoot: HTMLElement | null = null;
 let playersEl: HTMLElement | null = null;
+let feiraEl: HTMLElement | null = null;
+let feiraFeaturedEl: HTMLElement | null = null;
+let subsEl: HTMLElement | null = null;
 let authError: HTMLElement | null = null;
 let unlocked = false;
 
@@ -49,6 +52,8 @@ export function onAdminMsg(m: Extract<ServerMsg, { t: 'admin' } | { t: 'sky' }>)
     return;
   }
   if (m.phase === 'players') renderPlayers(m.players);
+  if (m.phase === 'feiraCart') renderFeiraCart(m.day, m.featured, m.games);
+  if (m.phase === 'subscribers') renderSubscribers(m.subscribers);
 }
 
 function showAuthError(pt: string): void {
@@ -161,6 +166,14 @@ function openAdminPanel(): void {
     h('h3', null, 'Clima'),
     en('Pins weather for everyone.', true),
     weatherRow,
+    h('h3', { id: 'admin-feira' }, 'Feira — jogos do carrinho'),
+    en('Turn each cart game on or off. Today’s pick rotates among the ones that are on.', true),
+    (feiraFeaturedEl = h('p', { class: 'admin-feira-featured', id: 'admin-feira-featured' }, 'Hoje: …')),
+    (feiraEl = h('div', { class: 'admin-feira-games', id: 'admin-feira-games' }, h('p', { class: 'admin-empty' }, 'Carregando…'))),
+    h('h3', null, 'Assinaturas'),
+    en('Test subscriptions. No payment. The founder badge and banner stay if you revoke.', true),
+    (subsEl = h('div', { class: 'admin-subs', id: 'admin-subs' }, h('p', { class: 'admin-empty' }, '…'))),
+    h('button', { class: 'ghost', id: 'admin-subs-refresh', type: 'button', onclick: () => sendAdmin?.({ t: 'admin', action: 'subscribers' }) }, 'Atualizar assinaturas'),
     h('h3', null, 'Reais virtuais'),
     en('Adds RV to your own pocket.', true),
     h(
@@ -187,6 +200,50 @@ function openAdminPanel(): void {
 
   openModal('admin', panelRoot);
   sendAdmin?.({ t: 'admin', action: 'list' });
+  sendAdmin?.({ t: 'admin', action: 'feiraCart' });
+  sendAdmin?.({ t: 'admin', action: 'subscribers' });
+}
+
+function feiraStateLabel(mode: FeiraCartAdminGame['mode']): string {
+  if (mode === 'on') return 'Ligado';
+  if (mode === 'rotation') return 'Agenda';
+  return 'Desligado';
+}
+
+function renderFeiraCart(day: string, featured: FeiraGameId | null, games: FeiraCartAdminGame[]): void {
+  if (feiraFeaturedEl) {
+    const row = featured ? games.find((g) => g.id === featured) : undefined;
+    feiraFeaturedEl.textContent = row ? `Hoje: ${row.pt}` : 'Hoje: fechado';
+    feiraFeaturedEl.dataset.day = day;
+    feiraFeaturedEl.dataset.featured = featured ?? '';
+  }
+  if (!feiraEl) return;
+  feiraEl.replaceChildren();
+  if (!games.length) {
+    feiraEl.append(h('p', { class: 'admin-empty' }, 'Nenhum jogo no carrinho.'));
+    return;
+  }
+  for (const g of games) {
+    const on = g.mode !== 'off';
+    feiraEl.append(
+      h(
+        'button',
+        {
+          type: 'button',
+          class: 'admin-feira-switch',
+          id: `admin-feira-${g.id}`,
+          role: 'switch',
+          'aria-checked': on ? 'true' : 'false',
+          'data-mode': g.mode,
+          'aria-label': `${g.pt} — ${feiraStateLabel(g.mode)}`,
+          onclick: () => sendAdmin?.({ t: 'admin', action: 'feiraCartSet', game: g.id, mode: on ? 'off' : 'on' }),
+        },
+        h('span', { class: 'admin-feira-name' }, g.pt, en(g.en, true), g.implemented ? null : h('i', { class: 'admin-feira-soon' }, 'em breve', en('not playable yet', true))),
+        h('span', { class: 'sw', 'aria-hidden': 'true' }),
+        h('span', { class: 'admin-feira-state' }, feiraStateLabel(g.mode)),
+      ),
+    );
+  }
 }
 
 function renderPlayers(players: AdminPlayerRow[]): void {
@@ -215,5 +272,35 @@ function renderPlayers(players: AdminPlayerRow[]): void {
           ),
     );
     playersEl.append(row);
+  }
+}
+
+function renderSubscribers(rows: AdminSubscriberRow[]): void {
+  if (!subsEl) return;
+  subsEl.replaceChildren();
+  if (!rows.length) {
+    subsEl.append(h('p', { class: 'admin-empty' }, 'Nenhuma assinatura.'));
+    return;
+  }
+  for (const row of rows) {
+    const when = row.currentPeriodEnd ? new Date(row.currentPeriodEnd).toISOString().slice(0, 10) : '—';
+    subsEl.append(
+      h(
+        'div',
+        { class: 'admin-player', 'data-sub': row.id },
+        h(
+          'div',
+          { class: 'admin-player-who' },
+          h('b', null, row.name),
+          h('span', { class: 'admin-player-room' }, `${row.status} · ${when}${row.founderBadge ? ' · selo' : ''}`),
+        ),
+        h(
+          'span',
+          { class: 'admin-sub-actions' },
+          h('button', { type: 'button', class: 'primary', 'data-grant': row.id, onclick: () => sendAdmin?.({ t: 'admin', action: 'grantSub', targetId: row.id }) }, 'Conceder'),
+          h('button', { type: 'button', class: 'ghost', 'data-revoke': row.id, onclick: () => sendAdmin?.({ t: 'admin', action: 'revokeSub', targetId: row.id }) }, 'Revogar'),
+        ),
+      ),
+    );
   }
 }

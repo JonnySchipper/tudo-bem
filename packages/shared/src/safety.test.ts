@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { RULE_PACKS, classifyChat, compilePii, jevNpcReply, jevPublicChat, normalize, validateName, type PiiPatternJson, type RuleJson } from './safety.js';
+import { RULE_PACKS, classifyChat, compilePii, deobfuscate, jevNpcReply, jevPublicChat, normalize, validateName, type PiiPatternJson, type RuleJson } from './safety.js';
 import publicPack from '../../../content/safety/phase0/jev/public-chat-pack.json';
 import npcPack from '../../../content/safety/phase0/jev/npc-reply-pack.json';
 import piiPack from '../../../content/safety/phase0/pii/regex-fixtures.json';
@@ -39,6 +39,7 @@ describe('TB Safety v0.1 fold', () => {
         'blocklists/politics-religion.json',
         'blocklists/scam-rmt.json',
         'blocklists/harassment-selfharm.json',
+        'jev/model-pack.json',
         'jev/npc-reply-pack.json',
         'jev/public-chat-pack.json',
         'pii/regex-fixtures.json',
@@ -162,6 +163,18 @@ describe('PII regex fixtures (pii/regex-fixtures.json)', () => {
   it('under-13 stricter rules stay design-only (Phase 0 is 18+)', () => {
     expect(piiPack.under13_stricter.status).toMatch(/design-only/);
     expect(classifyChat('eu gosto de @mentions no jogo').action).toBe('allow');
+  });
+});
+
+describe('obfuscation (stub de-obfuscation, client + server)', () => {
+  it('wildcards, spaced and dotted letters hit the same rules as the plain word', () => {
+    for (const m of ['f*ck you', 'f#ck', 'sh!t', 'f u c k you', 'f.u.c.k off', 'vai se f*der', 'p o r r a', 'p.o.r.r.a', 'f.d.p', 'b*tch'])
+      expect(classifyChat(m), m).toMatchObject({ action: 'block', labels: expect.arrayContaining(['profanity']) });
+  });
+
+  it('leaves ordinary text and short letter runs alone', () => {
+    expect(deobfuscate(normalize('eu e a ana vamos pra praca'))).toBe(normalize('eu e a ana vamos pra praca'));
+    for (const ok of ['a e i o u são as vogais', 'oi! tudo bem?', 'que?! sério?', 'nota 5*', 'c u later', 'o b r i g a d o']) expect(classifyChat(ok).action, ok).toBe('allow');
   });
 });
 

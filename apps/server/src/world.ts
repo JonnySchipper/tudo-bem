@@ -1,4 +1,9 @@
 import {
+  DIARY_WORDS,
+  ESCOLA_MAX_BOX,
+  grantDiaryWord,
+  localDay,
+  normalizeDiary,
   BODY_TYPES,
   BOTTOM_STYLES,
   buildGrid,
@@ -81,6 +86,11 @@ import {
   type TutorialStep,
   normalizeBjj,
   normalizeFounderFlag,
+  bubbleAppearance,
+  hasPerkAccess,
+  isBubbleStyle,
+  revokeTestSubscription,
+  visiblePet,
   GI_ITEM_ID,
   GI_PRICE,
   buyParrotColor,
@@ -124,8 +134,10 @@ import {
   type PadariaCard,
   type PlayerPadaria,
   type PrivateProfile,
+  type FeiraCartSchedule,
 } from '@tudobem/shared';
 import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
+import { JEV_CONTEXT_LINES } from './services/jevModel.js';
 import { AcademyStore } from './academyStore.js';
 import { PadariaStore } from './padariaStore.js';
 import { ProfileStore, today, todaySaoPaulo, toPrivate, type StoredProfile } from './store.js';
@@ -136,11 +148,16 @@ import { NPC_TICK_MS, NpcDirector } from './npcs.js';
 import { RecadoTracker, sceneItems } from './recados.js';
 import { CadernoTracker } from './caderno.js';
 import { DiaryTracker } from './diary.js';
+import { EscolaTracker, escolaOf } from './escola.js';
+import { Leaderboards } from './leaderboards.js';
 import { FeiraCounter } from './feira.js';
+import { FeiraGamesEngine, FeiraGamesStore, type FeiraGameRun } from './feiraGames.js';
+import { FeiraCartStore, memoryFeiraCart } from './feiraCart.js';
 import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria.js';
 import { BoutEngine, type BoutSession } from './bout.js';
 import { CartelaTracker } from './cartela.js';
-import { ADMIN_MONEY_MAX, readAdminAuthConfig } from './adminAuth.js';
+import { ADMIN_MONEY_MAX, ADMIN_WRONG_PASSWORD, adminPasswordMatches, readAdminAuthConfig } from './adminAuth.js';
+import { DevBillingProvider } from './billing/devProvider.js';
 
 export interface Services {
   safety: ChatSafetyService;
@@ -163,6 +180,10 @@ export interface WorldOptions {
   rng?: () => number;
   /** When true, bout challenges include `debugCorrect` and the pauses shrink, for CI e2e (TB_TEST_ROLL=1). */
   testRollHints?: boolean;
+  /** Feira cart board + medals. The Node server passes the file-backed store; tests and solo omit it. */
+  feiraGames?: import('./feiraGames.js').FeiraGamesStore;
+  /** Feira cart on/off switch. Omitted stores start with every game off. */
+  feiraCart?: FeiraCartStore;
   /** Bout intro length in ms (default: 4.2 s, 0.5 s in hint mode). Env `TB_TEST_BOUT_INTRO_MS`. */
   boutIntroMs?: number;
   /** Bout pause scale (default 1, 0.35 in hint mode). Env `TB_TEST_BOUT_PACE`: shots want the real pauses with the hints on. */
@@ -187,6 +208,11 @@ export interface WorldOptions {
   padarias?: PadariaStore;
   /** When false, owned instances and Fundar UI stay off; shared Correria unchanged. Env: TB_PADARIA_OWNERSHIP=1 */
   padariaOwnership?: boolean;
+  /**
+   * Solo/shots only: turn this cart game on (`?feiraon=pastel`). The admin flags stay off
+   * without it. Ignored unless the id is one this build can start.
+   */
+  feiraPin?: string;
 }
 
 /** What the World needs from the account store (kept tiny so world.ts stays browser-safe for solo mode). */
@@ -228,6 +254,8 @@ export interface Session {
   avatar?: AvatarState;
   scene?: SceneState;
   mg?: CorreriaRun;
+  /** Feira cart game in progress (apps/server/src/feiraGames.ts). Separate from Correria so the two never share a slot. */
+  feiraGame?: FeiraGameRun;
   /** Treino no tatame: the bout in progress (apps/server/src/bout.ts). */
   bout?: BoutSession;
   chatTimes: number[];
@@ -246,6 +274,8 @@ export class Instance {
   crowd?: CpuCrowd;
   /** The last walk of each NPC that was broadcast here (`NpcPose.legId`), so the tick only sends what changed. */
   readonly npcSeen = new Map<NpcId, string>();
+  /** The last few delivered chat lines (oldest first): context for the Jev model. */
+  readonly recentChat: { playerId: string; text: string }[] = [];
   constructor(
     readonly id: string,
     readonly def: RoomDef,
@@ -290,8 +320,14 @@ export class World {
   private readonly caderno: CadernoTracker;
   /** Language diary: camera, signs, conversation lines, and the escola game. */
   private readonly diary: DiaryTracker;
+  /** Dona Lúcia's lessons: spaced repetition over the diary, XP, streak, the nameplate tiers. */
+  private readonly escola: EscolaTracker;
+  /** Praça dual leaderboards (words learned + escola streak). */
+  private readonly leaderboards: Leaderboards;
   /** The feira's prices and payments (Phase 9). */
   private readonly feira: FeiraCounter;
+  /** Feira cart games: daily rotation, the board, medals, the crown. */
+  private readonly feiraGames: FeiraGamesEngine;
   /** Correria no Balcão: shifts, clocks and parked resume (apps/server/src/correria.ts). */
   private readonly correria: CorreriaEngine;
   /** Named player academies (slice 1). Durable when the host passes a file-backed store. */
@@ -351,6 +387,26 @@ export class World {
       npcsIn: (room) => this.npcs.whoIn(room),
       ordered: (s, npc, items) => this.recados.onEvent(s, { kind: 'ordered', npc, items }),
     });
+    this.feiraGames = new FeiraGamesEngine({
+      now: () => this.now(),
+      store,
+      games: opts.feiraGames ?? new FeiraGamesStore(() => null, () => {}, () => this.now()),
+      cart: opts.feiraCart ?? memoryFeiraCart(),
+      reward: (s, a, r) => this.reward(s, a, r),
+      pushProfile: (s) => this.pushProfile(s),
+      err: (s, code, pt, en) => this.err(s, code, pt, en),
+      tileOf: (s) => {
+        if (!s.instance || !s.avatar) return null;
+        const t = this.currentTile(s).tile;
+        return { x: t.x, y: t.y, room: s.instance.def.id };
+      },
+      broadcastAll: (m) => {
+        for (const sess of this.sessions.values()) sess.send(m);
+      },
+      broadcastAvatar: (s) => this.broadcastAvatar(s),
+      rng: () => this.rng(),
+      pin: opts.feiraPin,
+    });
     this.caderno = new CadernoTracker({ now: () => this.now(), store, reward: (s, a, r) => this.reward(s, a, r), pushProfile: (s) => this.pushProfile(s) });
     this.diary = new DiaryTracker({
       store,
@@ -369,7 +425,24 @@ export class World {
       rng: () => this.rng(),
       now: () => this.now(),
       day: () => gameDay(this.clockNow()),
+      onWord: (s, word) => this.escola.onWord(s, word),
     });
+    this.escola = new EscolaTracker({
+      store,
+      reward: (s, a, r) => this.reward(s, a, r),
+      pushProfile: (s) => this.pushProfile(s),
+      tileOf: (s) => this.currentTile(s).tile,
+      roomOf: (s) => s.instance?.def.id ?? null,
+      npcsIn: (room) => this.npcs.whoIn(room),
+      rng: () => this.rng(),
+      now: () => this.now(),
+      avatarChanged: (s) => this.broadcastAvatar(s),
+      tellRoom: (s, pt, en) => {
+        if (s.instance) this.broadcast(s.instance, { t: 'notice', level: 'info', pt, en }, s);
+      },
+      teachLessonWord: (s, gameId) => this.diary.teachLessonWord(s, gameId),
+    });
+    this.leaderboards = new Leaderboards(store, () => this.rng());
     this.bouts = new BoutEngine({
       now: () => this.now(),
       schedule: (fn, ms) => this.schedule(fn, ms),
@@ -428,6 +501,7 @@ export class World {
   disconnect(s: Session) {
     if (this.sessions.get(s.id) !== s) return;
     this.correria.park(s);
+    this.escola.drop(s);
     this.leaveInstance(s);
     this.sessions.delete(s.id);
     if (s.profile) {
@@ -441,6 +515,12 @@ export class World {
    * Server-authoritative AFK check (call every few seconds). Only players in the world count: a
    * socket still on the login / avatar screen holds no seat. Client pings don't reset the clock.
    */
+  /** Lazy midnight ET: finalize yesterday's Feira board (medals, clear crown) if the day key rolled. */
+  sweepFeiraGames() {
+    const { rolled, awards } = this.feiraGames.tick();
+    if (rolled) this.feiraGames.pushRolled([...this.sessions.values()], awards);
+  }
+
   sweepIdle() {
     const t = this.now();
     const warnWindow = Math.min(IDLE_WARN_MS, Math.floor(this.idleKickMs / 2));
@@ -529,12 +609,16 @@ export class World {
         return this.equipHat(s, msg.hatId);
       case 'parrot':
         return this.parrot(s, msg.action, msg.colorId);
+      case 'perk':
+        return this.perk(s, msg);
       case 'furniture':
         return this.furniture(s, msg);
       case 'friend':
         return this.friend(s, msg.action, msg.targetId);
       case 'friends':
         return this.sendFriends(s);
+      case 'leaderboards':
+        return this.leaderboards.sendTo(s);
       case 'mission':
         return this.takeMission(s);
       case 'bout':
@@ -547,6 +631,8 @@ export class World {
         return this.recados.request(s, msg.action, msg.id);
       case 'feira':
         return msg.action === 'price' ? this.feira.price(s, msg.vendor, msg.itemId) : msg.action === 'pay' ? this.feira.pay(s, msg.vendor, msg.itemId, msg.qty, msg.paid) : undefined;
+      case 'feiraGame':
+        return this.feiraGames.handle(s, msg);
       case 'heard':
         return this.caderno.heard(s, msg.cardIds);
       case 'arrival':
@@ -555,6 +641,8 @@ export class World {
         return this.giveGrant(s, msg.id);
       case 'diary':
         return this.diary.handle(s, msg);
+      case 'escola':
+        return this.escola.handle(s, msg);
       case 'talk':
         if (this.recados.talk(s, msg.npc)) this.caderno.seen(s, talkOpener(msg.npc, s.profile?.name, gameMinutes(this.clockNow())) ?? '');
         return;
@@ -900,6 +988,8 @@ export class World {
   }
 
   private pushProfile(s: Session) {
+    // Diary grants and escola streak bumps both push the profile; rebuild boards next read.
+    this.leaderboards.markDirty();
     if (s.profile) s.send({ t: 'profile', profile: this.privateProfile(s.profile) });
   }
 
@@ -1039,6 +1129,7 @@ export class World {
       serverNow: this.clockNow(),
       ...(target.def.id === 'andar' ? { academy: this.floorCard(target, s) } : {}),
       ...(padariaIdFromInstance(target.id) ? { padaria: this.floorPadariaCard(target, s) } : {}),
+      ...(def.id === 'feira' ? { feiraCart: this.feiraGames.cartSnapshot() } : {}),
     });
     // a joiner mid-walk: the avatars above are at the tile each NPC has reached, this sends the rest of each walk
     for (const p of this.npcs.posesIn(def.id)) {
@@ -1048,6 +1139,12 @@ export class World {
     this.correria.resume(s);
     this.recados.onEvent(s, { kind: 'entered', room: def.id, tile });
     this.cartela.onEntered(s, def.id);
+    if (def.id === 'padaria' && !padariaIdFromInstance(target.id)) {
+      const minute = gameMinutes(this.clockNow());
+      const baker = bakerOnDuty(minute) === 'graca' ? 'graca' : 'carlos';
+      const line = this.leaderboards.maybeMentionStreak(s, baker);
+      if (line) s.send({ t: 'notice', level: 'info', pt: line.pt, en: line.en });
+    }
     this.broadcast(target, { t: 'avatarJoined', avatar: this.publicAvatar(s) }, s);
     const ownedPid = padariaIdFromInstance(target.id);
     if (ownedPid) {
@@ -1075,6 +1172,35 @@ export class World {
     return gameMinutes(this.clockNow());
   }
 
+  /**
+   * Test only (`/__test/escola` when `TB_TEST_CLOCK_CONTROL=1`, for the escola screenshots): an online player gets the first `words` catalog
+   * words, `mastered` of them at the top box, the next `ready` one box short and due, and a streak of `streak` days up to yesterday.
+   */
+  testSeedEscola(name: string, o: { words: number; mastered: number; ready: number; streak: number }): boolean {
+    const s = [...this.sessions.values()].find((x) => x.profile?.name === name);
+    const p = s?.profile;
+    if (!s || !p) return false;
+    for (const w of DIARY_WORDS) {
+      if (normalizeDiary(p.diary).length >= o.words) break;
+      const got = grantDiaryWord(p.diary, w.id, w.source);
+      if (got.ok) p.diary = got.earned;
+    }
+    const st = escolaOf(p);
+    const now = this.now();
+    normalizeDiary(p.diary).forEach((id, i) => {
+      if (i < o.mastered) st.words[id] = { b: ESCOLA_MAX_BOX, due: now + 7 * 86_400_000, last: now - 86_400_000, n: 5, miss: 0 };
+      else if (i < o.mastered + o.ready) st.words[id] = { b: ESCOLA_MAX_BOX - 1, due: now - 1000, last: now - 86_400_000, n: 4, miss: 0 };
+    });
+    if (o.streak > 0) {
+      st.streak = o.streak;
+      st.best = Math.max(st.best, o.streak);
+      st.lastDay = localDay(now - 86_400_000, st.tz);
+    }
+    this.store.save();
+    this.pushProfile(s);
+    return true;
+  }
+
   /** Push the live sky (clock stamp + weather pin) to one session or every connected player. */
   private pushSky(to?: Session) {
     const msg = { t: 'sky' as const, serverNow: this.clockNow(), weather: this.weatherPin };
@@ -1092,14 +1218,13 @@ export class World {
           en: 'Admin is off on this server.',
         });
       }
-      if (msg.password !== this.adminPassword) {
+      if (!adminPasswordMatches(msg.password, this.adminPassword)) {
         s.admin = false;
         return s.send({
           t: 'admin',
           phase: 'auth',
           ok: false,
-          pt: 'Senha incorreta.',
-          en: 'Wrong password.',
+          ...ADMIN_WRONG_PASSWORD,
         });
       }
       s.admin = true;
@@ -1132,6 +1257,8 @@ export class World {
         en: `Neighborhood clock set.`,
       });
     }
+    if (msg.action === 'feiraCart') return this.adminFeiraCart(s);
+    if (msg.action === 'feiraCartSet') return this.adminFeiraCartSet(s, msg.game, msg.mode, msg.schedule);
     if (msg.action === 'weather') {
       if (msg.weather !== null && !(WEATHER_KINDS as readonly string[]).includes(msg.weather)) {
         return this.err(s, 'admin', 'Clima inválido.', 'Invalid weather.');
@@ -1145,6 +1272,77 @@ export class World {
         en: msg.weather ? `Weather: ${msg.weather}.` : 'Weather follows the day again.',
       });
     }
+    if (msg.action === 'subscribers') return this.adminSubscribers(s);
+    if (msg.action === 'grantSub') return this.adminGrantSub(s, msg.targetId);
+    if (msg.action === 'revokeSub') return this.adminRevokeSub(s, msg.targetId);
+  }
+
+  private adminSubscribers(s: Session) {
+    const online = new Set([...this.sessions.values()].filter((x) => x.profile).map((x) => x.profile!.id));
+    const subscribers = this.store
+      .all()
+      .filter((p) => p.subscription || p.founderBadge || online.has(p.id))
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        status: p.subscription?.status ?? ('none' as const),
+        currentPeriodEnd: p.subscription?.currentPeriodEnd ?? null,
+        founderBadge: p.founderBadge === true,
+        founderBanner: p.founderBanner === true,
+        online: online.has(p.id),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt'));
+    s.send({ t: 'admin', phase: 'subscribers', subscribers });
+  }
+
+  /** Dev provider: admin only, no payment. Founder marks stick; perks follow the test period. */
+  private adminGrantSub(s: Session, targetId: string) {
+    const id = String(targetId ?? '');
+    const dev = new DevBillingProvider({
+      isAdmin: () => s.admin === true,
+      now: () => this.now(),
+      getProfile: (userId) => this.store.get(userId),
+      afterChange: (userId) => {
+        this.store.save();
+        this.syncEntitlements(userId);
+      },
+    });
+    void dev.createCheckout(id).then(
+      () => {
+        this.adminSubscribers(s);
+        s.send({ t: 'notice', level: 'info', pt: 'Assinatura de teste ligada.', en: 'Test subscription on.' });
+      },
+      () => this.err(s, 'admin', 'Não achei esse perfil.', 'No profile with that id.'),
+    );
+  }
+
+  private adminRevokeSub(s: Session, targetId: string) {
+    const p = this.store.get(String(targetId ?? ''));
+    if (!p) return this.err(s, 'admin', 'Não achei esse perfil.', 'No profile with that id.');
+    revokeTestSubscription(p, this.now());
+    this.store.save();
+    this.syncEntitlements(p.id);
+    this.adminSubscribers(s);
+    s.send({ t: 'notice', level: 'info', pt: 'Assinatura de teste encerrada.', en: 'Test subscription ended.' });
+  }
+
+  private adminFeiraCart(s: Session) {
+    const view = this.feiraGames.cartView();
+    s.send({ t: 'admin', phase: 'feiraCart', day: view.day, featured: view.featured, games: view.games });
+  }
+
+  private adminFeiraCartSet(s: Session, game: string, mode: string, schedule: unknown) {
+    if (mode !== 'off' && mode !== 'on' && mode !== 'rotation') {
+      return this.err(s, 'admin', 'Modo inválido.', 'Invalid mode.');
+    }
+    if (schedule !== undefined && schedule !== null && (typeof schedule !== 'object' || Array.isArray(schedule))) {
+      return this.err(s, 'admin', 'Agenda inválida.', 'Invalid schedule.');
+    }
+    const ok = this.feiraGames.setCartMode(game, mode, schedule as FeiraCartSchedule | null | undefined);
+    if (!ok) return this.err(s, 'admin', 'Jogo desconhecido.', 'Unknown cart game.');
+    const msg = this.feiraGames.cartMsg();
+    for (const sess of this.sessions.values()) if (sess.profile) sess.send(msg);
+    return this.adminFeiraCart(s);
   }
 
   private adminList(s: Session) {
@@ -1157,6 +1355,11 @@ export class World {
         roomName: x.instance?.name ?? null,
       }));
     s.send({ t: 'admin', phase: 'players', players });
+  }
+
+  /** Solo / shot hook: turn one Feira cart game on. Games ship off. */
+  enableFeiraGame(id: string): boolean {
+    return this.feiraGames.setCartMode(id, 'on');
   }
 
   private adminKick(s: Session, targetId: string) {
@@ -1299,6 +1502,10 @@ export class World {
       ...this.wornGi(s),
       nameplate: p.nameplate,
       founder: normalizeFounderFlag(p.founder),
+      founderBadge: p.founderBadge === true,
+      pet: visiblePet(p.pet, hasPerkAccess(p.subscription, this.now())),
+      bubbleStyle: bubbleAppearance('', p.bubbleStyle, hasPerkAccess(p.subscription, this.now())).style,
+      ...(this.feiraGames.crownId() === p.id ? { feiraCrown: true } : {}),
       x: cur.tile.x,
       y: cur.tile.y,
       dir: sitting && s.instance ? (this.grid(s.instance).seats.get(key(cur.tile.x, cur.tile.y)) ?? cur.dir) : cur.dir,
@@ -1418,7 +1625,7 @@ export class World {
     if (s.chatTimes.length >= CHAT_RATE.max)
       return s.send({ t: 'notice', level: 'warn', pt: 'Calma! Uma mensagem de cada vez.', en: 'Easy! Too many messages — wait a few seconds.' });
     s.chatTimes.push(now);
-    const verdict = await this.services.safety.classify(text, { playerId: p.id, room: inst.id, nameplate: p.nameplate });
+    const verdict = await this.services.safety.classify(text, { playerId: p.id, room: inst.id, nameplate: p.nameplate, recent: inst.recentChat.slice() });
     if (verdict.action === 'block' || verdict.action === 'escalate') {
       this.flag(s, 'chat', verdict, text);
       return s.send({ t: 'notice', level: 'block', pt: verdict.note?.pt ?? 'Mensagem bloqueada.', en: verdict.note?.en ?? 'Message blocked.' });
@@ -1428,6 +1635,8 @@ export class World {
     // Delivered verbatim: player chat is never rewritten (CEO-LOCKS §3).
     const { gloss, lang } = await this.services.gloss.gloss(verdict.text);
     this.broadcast(inst, { t: 'chat', id: p.id, name: p.name, text: verdict.text, gloss, lang, action: verdict.action });
+    inst.recentChat.push({ playerId: p.id, text: verdict.text });
+    if (inst.recentChat.length > JEV_CONTEXT_LINES) inst.recentChat.shift();
     if (verdict.action === 'warn' && verdict.note) s.send({ t: 'notice', level: 'warn', pt: verdict.note.pt, en: verdict.note.en });
     this.completeStep(s, 'conversar');
     this.caderno.used(s, verdict.text);
@@ -1448,6 +1657,7 @@ export class World {
       labels: verdict.labels,
       rules: verdict.rules,
       toxicity: verdict.toxicity,
+      ...(verdict.jev ? { jev: verdict.jev } : {}),
       ...(verdict.action === 'escalate' ? { status: 'pending' as const } : {}),
       at: this.now(),
     });
@@ -1610,6 +1820,35 @@ export class World {
     if (s) this.pushProfile(s);
   }
 
+  /** Profile + avatar after a billing event, so pets, bubbles and the badge update live. */
+  syncEntitlements(userId: string) {
+    const s = this.sessionByProfile(userId);
+    if (!s?.profile) return;
+    this.pushProfile(s);
+    this.broadcastAvatar(s);
+  }
+
+  private perk(s: Session, msg: Extract<ClientMsg, { t: 'perk' }>) {
+    const p = s.profile!;
+    const active = hasPerkAccess(p.subscription, this.now());
+    if (msg.action === 'pet') {
+      if (msg.pet !== null && msg.pet !== 'dog' && msg.pet !== 'cat') return;
+      if (msg.pet && !active) {
+        return this.err(s, 'perk', 'Pets de assinante ficam disponíveis enquanto a assinatura está ativa.', 'Subscriber pets are available while the subscription is active.');
+      }
+      p.pet = msg.pet;
+    } else {
+      if (!isBubbleStyle(msg.style)) return;
+      if (msg.style !== 'classic' && !active) {
+        return this.err(s, 'perk', 'Esses balões são de quem assina.', 'Those bubbles are for subscribers.');
+      }
+      p.bubbleStyle = msg.style;
+    }
+    this.store.save();
+    this.pushProfile(s);
+    this.broadcastAvatar(s);
+  }
+
   // ---------- Correria no Balcão (the padaria counter game; apps/server/src/correria.ts) ----------
 
   private minigame(s: Session, m: Extract<ClientMsg, { t: 'mg' }>) {
@@ -1719,7 +1958,7 @@ export class World {
       return this.equipHat(s, hat.id);
     }
     const item = furnitureById(itemId);
-    if (!item) return;
+    if (!item || item.earned) return;
     if (s.instance?.def.id !== 'kitnet' || s.instance.ownerId !== p.id) return this.err(s, 'shop', 'Compre móveis na sua kitnet.', 'Buy furniture from inside your own apartment.');
     if (p.coins < item.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
     p.coins -= item.price;
@@ -2011,6 +2250,7 @@ export class World {
           room: fs?.instance?.def.id ?? null,
           roomName: fs?.instance?.name ?? null,
           instanceId: fs?.instance?.id ?? null,
+          nameplate: f.nameplate,
         };
       });
     const incoming = [...(this.incomingFriendReqs.get(p.id) ?? [])]

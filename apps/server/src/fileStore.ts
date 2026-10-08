@@ -67,6 +67,30 @@ export function academyFileAdapter(dataDir: string): AcademyPersistence {
   };
 }
 
+/** Feira cart on/off switch (one mode per game). Missing file means every game is off. */
+export function feiraCartFileAdapter(dataDir: string): { load: () => unknown; save: (state: unknown) => void } {
+  const file = path.join(dataDir, 'feiraCart.json');
+  return {
+    load: () => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null),
+    save: (state) => {
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      atomicWriteFileSync(file, JSON.stringify(state));
+    },
+  };
+}
+
+/** Feira cart games: the live ET-day board, permanent medals, today's paid-run counts. */
+export function feiraGamesFileAdapter(dataDir: string): { load: () => unknown; save: (state: unknown) => void } {
+  const file = path.join(dataDir, 'feiraGames.json');
+  return {
+    load: () => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null),
+    save: (state) => {
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      atomicWriteFileSync(file, JSON.stringify(state));
+    },
+  };
+}
+
 /** Player feedback notes beside profiles. Mode 0600: a guest may have typed a contact. */
 export function feedbackFileAdapter(dataDir: string): FeedbackPersistence {
   const file = path.join(dataDir, 'feedback.json');

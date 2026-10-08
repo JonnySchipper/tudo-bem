@@ -86,6 +86,16 @@
   pointer-events: none;
 }
 
+/* Subscription founder badge: a small ipê blossom beside the plate. It does not recolor the plate. */
+.wl-sub-badge {
+  flex-shrink: 0;
+  width: 14px;
+  height: 16px;
+  margin-top: -1px;
+  image-rendering: pixelated;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='7' height='8' shape-rendering='crispEdges'><rect width='7' height='8' fill='%232a2233'/><rect x='1' y='1' width='5' height='6' fill='%23f2c230'/><rect x='2' y='2' width='3' height='1' fill='%23fff59a'/><rect x='3' y='3' width='1' height='1' fill='%23c45c26'/><rect x='2' y='4' width='1' height='1' fill='%233f8a4a'/><rect x='4' y='4' width='1' height='1' fill='%233f8a4a'/><rect x='3' y='5' width='1' height='1' fill='%232e6a3a'/></svg>") center / 14px 16px no-repeat;
+}
+
 .wl-founder {
   flex-shrink: 0;
   pointer-events: auto;
@@ -138,6 +148,63 @@
   --edge: #d4a017;
   --fill: #2f5d50;
   padding: 3px 9px 4px;
+}
+
+/* ---- the nameplate colour earned in the escola (labels.ts): its colour and its shape (sun, drop, star, crown), the ring on yourself kept ---- */
+.wl-tier {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.wl-plate-player.wl-tier-amarelo,
+.wl-plate-me.wl-tier-amarelo {
+  --fill: #f2c230;
+  --ink: #2a2233;
+}
+
+.wl-plate-player.wl-tier-amarelo {
+  --edge: #8a6a12;
+}
+
+.wl-plate-player.wl-tier-azul,
+.wl-plate-me.wl-tier-azul {
+  --fill: #2f6fb5;
+  --ink: #f5f1e6;
+}
+
+.wl-plate-player.wl-tier-azul {
+  --edge: #173a63;
+}
+
+.wl-plate-player.wl-tier-roxo,
+.wl-plate-me.wl-tier-roxo {
+  --fill: #7a4bb0;
+  --ink: #f8f0ff;
+}
+
+.wl-plate-player.wl-tier-roxo {
+  --edge: #3d2160;
+}
+
+.wl-plate-player.wl-tier-dourado,
+.wl-plate-me.wl-tier-dourado {
+  --fill: linear-gradient(180deg, #ffe08a, #d4a017);
+  --ink: #2a2233;
+}
+
+.wl-plate-player.wl-tier-dourado {
+  --edge: #7a5a08;
+}
+
+.wl-tier::before {
+  background: var(--fill);
+}
+
+.wl-tier-ico {
+  width: 9px;
+  height: 9px;
+  flex-shrink: 0;
 }
 
 .wl-plate-sign {
@@ -223,6 +290,18 @@
   line-height: 1.2;
   color: #6a6660;
 }
+
+/* Subscriber skins: the same 9-slice and tail as ui/bubble. Only the trim image changes.
+   .pt / .en are not restyled, so the words render exactly as they do in the classic bubble. */
+.wl-art-bubble .wl-bubble.wl-style-sol { border-image: var(--wl-bubble-sol) var(--wl-bubble-slice) fill / var(--wl-bubble-width) stretch; }
+.wl-art-bubble .wl-bubble.wl-style-mar { border-image: var(--wl-bubble-mar) var(--wl-bubble-slice) fill / var(--wl-bubble-width) stretch; }
+.wl-art-bubble .wl-bubble.wl-style-mata { border-image: var(--wl-bubble-mata) var(--wl-bubble-slice) fill / var(--wl-bubble-width) stretch; }
+.wl-art-bubble .wl-bubble.wl-style-festa { border-image: var(--wl-bubble-festa) var(--wl-bubble-slice) fill / var(--wl-bubble-width) stretch; }
+
+.wl-art-bubble .wl-mirror .wl-bubble.wl-style-sol { border-image: var(--wl-bubble-sol-m) var(--wl-bubble-slice-m) fill / var(--wl-bubble-width-m) stretch; }
+.wl-art-bubble .wl-mirror .wl-bubble.wl-style-mar { border-image: var(--wl-bubble-mar-m) var(--wl-bubble-slice-m) fill / var(--wl-bubble-width-m) stretch; }
+.wl-art-bubble .wl-mirror .wl-bubble.wl-style-mata { border-image: var(--wl-bubble-mata-m) var(--wl-bubble-slice-m) fill / var(--wl-bubble-width-m) stretch; }
+.wl-art-bubble .wl-mirror .wl-bubble.wl-style-festa { border-image: var(--wl-bubble-festa-m) var(--wl-bubble-slice-m) fill / var(--wl-bubble-width-m) stretch; }
 
 /* ---- guides: the bouncing pixel arrow (4 frames, the bounce is drawn into the strip) + a small label ---- */
 .wl-guide {

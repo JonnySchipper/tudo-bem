@@ -11,6 +11,9 @@ import './styles/panels.css';
 import './styles/bout.css';
 import './styles/correria.css';
 import './styles/diary.css';
+import './styles/escola.css';
+import './styles/feiraGames.css';
+import './styles/feiraCaldo.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
@@ -37,6 +40,7 @@ import {
   isWalkable,
   readSpot,
   subjectChoices,
+  FEIRA_CART_CLOSED,
   VENDORS,
   type EmoteKind,
   type HotspotDef,
@@ -75,21 +79,24 @@ import {
 } from './ui/panels';
 import { openPedido, updatePedido, closePedido, isPedidoOpen } from './ui/pedido';
 import { openCredits } from './ui/credits';
+import { openSupport } from './ui/support';
 import { bindAdmin, onAdminMsg } from './ui/admin';
 import { isDialogueBoxOpen, setDialogueHost, showDialogueBox } from './ui/dialogue';
 import { mountTracker, openJournal, runPrelude } from './ui/recados';
 import { heartsWith } from './ui/recadoView';
 import { openNpcTalk } from './ui/npcTalk';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira';
+import { bindFeiraGames, closeFeiraGame, feiraGameOpen, onFeiraGameMsg, openFeiraCart, openFeiraSign } from './ui/feiraGames';
 import { openCaderno, setArrivalReplay } from './ui/caderno';
 import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAcademyFloor } from './ui/academy';
+import { openLeaderboards } from './ui/leaderboards';
 import { askPadariaDoor, bindPadariaOwn, chooseBakery, onPadariaDoor, openHouseCounter, openPadariaBook, syncPadariaFloor, welcomeOwner } from './ui/padariaOwn';
 import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia } from './ui/airportTutorial';
 import { flyHeardWord } from './ui/heardWord';
 import { talkIdleOpen } from './ui/talkIdle';
 import { cameraFrameAt, captureFrame, celebrateWord, celebrateWords, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
-import { escolaPracticeOpen, openEscolaPractice, showEscolaResult } from './ui/escola';
+import { escolaPracticeOpen, openEscola, onEscolaMsg } from './ui/escola';
 import { openHotspotCard } from './ui/hotspotCard';
 import { openStreetSnack } from './ui/streetSnack';
 import { openCheckers } from './ui/checkers';
@@ -300,7 +307,7 @@ function talkFlow(npc: NpcDef['id']) {
     if (game.room?.room !== 'padaria') return conversa();
     openCounter(npc, { buy: (itemId) => net.send({ t: 'padaria', action: 'buy', itemId }), conversa });
   } else if (npc === 'lucia') {
-    net.send({ t: 'diary', action: 'practice' });
+    openEscolaDesk();
   } else if (npc === 'celia') {
     openCelia(staffHooks);
   } else if (npc === 'agente') {
@@ -396,6 +403,19 @@ function takePhoto(clientX: number, clientY: number) {
   }, 320);
 }
 
+/** Dona Lúcia's desk: the escola home (path, streak, goal, plate), and the lessons it starts. */
+const escolaTz = () => -new Date().getTimezoneOffset();
+function openEscolaDesk() {
+  openEscola({
+    start: (area) => net.send({ t: 'escola', action: 'start', tz: escolaTz(), ...(area ? { area } : {}) }),
+    answer: (a) => net.send({ t: 'escola', action: 'answer', ...a }),
+    pair: (pt, en) => net.send({ t: 'escola', action: 'pair', pt, en }),
+    next: () => net.send({ t: 'escola', action: 'next' }),
+    quit: () => net.send({ t: 'escola', action: 'quit' }),
+    goal: (goal) => net.send({ t: 'escola', action: 'goal', goal, tz: escolaTz() }),
+  });
+}
+
 function propAction(action: string, propId?: string) {
   if (action === 'feira_stall') openStall(propId);
   else if (action === 'shop_hats') openShop();
@@ -406,18 +426,25 @@ function propAction(action: string, propId?: string) {
   else if (action === 'checkers') openCheckers();
   else if (action === 'buy_gi') openGiShop(!!game.profile?.giOwned, () => net.send({ t: 'buy', kind: 'gi', itemId: 'kimono' }));
   else if (action === 'bjj_roll') openBout();
-  else if (action === 'escola') net.send({ t: 'diary', action: 'practice' });
+  else if (action === 'escola') openEscolaDesk();
   else if (action === 'academy_elevator') {
     askElevator();
     net.send({ t: 'academy', action: 'directory' });
   } else if (action === 'academy_board') {
     const card = game.room?.room === 'andar' ? game.room.academy : undefined;
     if (card) openAcademyBoard(card);
+  } else if (action === 'leaderboard') {
+    openLeaderboards(() => net.send({ t: 'leaderboards' }));
   } else if (action === 'padaria_door') {
     // inside an owned padaria the vaso is its book (Melhorias for the owner, the shop's card for a visitor)
     const own = game.room?.padaria;
     if (own) openPadariaBook(own);
     else askPadariaDoor();
+  } else if (action === 'feira_cart' || action === 'feira_sign') {
+    // The server names today's featured game (ET date). The cart is usable at any game-clock hour (D12).
+    const open = action === 'feira_cart' ? 'cart' : 'sign';
+    game.pendingFeiraOpen = open;
+    net.send({ t: 'feiraGame', action: 'board', open });
   } else if (action === 'padaria_counter') {
     const own = game.room?.padaria;
     if (own) openHouseCounter(own);
@@ -436,6 +463,13 @@ bindAcademy({
   join: (id) => net.send({ t: 'academy', action: 'join', id }),
   leave: (id) => net.send({ t: 'academy', action: 'leave', id }),
   look: (id, look) => net.send({ t: 'academy', action: 'look', id, crest: look.crest, giColor: look.giColor, giStamp: look.giStamp }),
+});
+
+bindFeiraGames({
+  sendStart: () => net.send({ t: 'feiraGame', action: 'start' }),
+  sendFinish: (outcomes) => net.send({ t: 'feiraGame', action: 'finish', outcomes }),
+  sendQuit: () => net.send({ t: 'feiraGame', action: 'quit' }),
+  sendBoard: () => net.send({ t: 'feiraGame', action: 'board', open: 'sign' }),
 });
 
 bindPadariaOwn({
@@ -674,12 +708,16 @@ net.on((m: ServerMsg) => {
     }
     case 'error':
       if (m.code === 'far' || m.code === 'photo' || m.code === 'film' || m.code === 'camera') dropPendingPrint();
+      if (m.code === 'feira_closed') closeFeiraGame();
       if (onboarding && m.code === 'name') onboarding.setError(m.pt, m.en);
       else toast('error', m.pt, m.en);
       onFeiraError();
       break;
     case 'feira':
       onFeiraMsg(m);
+      break;
+    case 'feiraGame':
+      onFeiraGameMsg(m);
       break;
     case 'photos':
       game.photos = m.photos;
@@ -704,10 +742,12 @@ net.on((m: ServerMsg) => {
       if (!keepMg) {
         correriaUi?.destroy();
         correriaUi = null;
+        closeFeiraGame();
         closeModal();
       }
       closeDialogue();
       game.room = m;
+      if (m.feiraCart) game.feiraCart = m.feiraCart;
       game.avatars = new Map(m.avatars.map((a) => [a.id, toClientAvatar(a)]));
       game.furniture = m.furniture;
       game.pending = null;
@@ -776,15 +816,9 @@ net.on((m: ServerMsg) => {
       // a word heard in a line flies out of that line into the Diário; the others (a sign, a game) get the card
       else if (m.phase === 'word') (m.source === 'conversation' ? flyHeardWord(m) : celebrateWord(m));
       else if (m.phase === 'words') celebrateWords(m.words);
-      else if (m.phase === 'practice') {
-        if (m.ok)
-          openEscolaPractice(
-            m,
-            (choice) => net.send({ t: 'diary', action: 'answer', choice }),
-            () => net.send({ t: 'diary', action: 'practice' }),
-          );
-        else toast('info', m.pt, m.en);
-      } else showEscolaResult(m);
+      break;
+    case 'escola':
+      onEscolaMsg(m);
       break;
     case 'avatarJoined':
       game.avatars.set(m.avatar.id, toClientAvatar(m.avatar));
@@ -830,7 +864,7 @@ net.on((m: ServerMsg) => {
     case 'chat': {
       const a = game.avatars.get(m.id);
       // Live Ops lock: CPUs never chat — guard against server bugs/injection
-      if (a && !a.pub.cpu) a.bubbles.push({ text: m.text, gloss: game.profile?.nameplate === 'verde' ? m.gloss : null, at: now() });
+      if (a && !a.pub.cpu) a.bubbles.push({ text: m.text, gloss: game.englishHelp ? m.gloss : null, at: now() });
       break;
     }
     case 'notice':
@@ -920,6 +954,10 @@ net.on((m: ServerMsg) => {
       if (game.selectedFurniture && !m.furniture.some((f) => f.uid === game.selectedFurniture)) game.selectedFurniture = null;
       game.emit('decor');
       break;
+    case 'leaderboards':
+      game.leaderboards = { words: m.words, streak: m.streak, at: m.at };
+      game.emit('leaderboards');
+      break;
     case 'friends':
       game.friends = m.friends;
       game.incoming = m.incoming;
@@ -974,6 +1012,19 @@ function startGame() {
     carry: (action) => net.send({ t: 'carry', action }),
     openMap: () => openMap((room) => joinRoom(room)),
     openCredits,
+    openSupport: () => {
+      void openSupport({
+        subscribe: async () => {
+          const res = await fetch('/api/billing/checkout', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
+          if (res.status === 503) return { soon: true };
+          if (!res.ok) return { soon: true };
+          const data = (await res.json()) as { url?: string };
+          return typeof data.url === 'string' ? { url: data.url } : { soon: true };
+        },
+        setPet: (pet) => net.send({ t: 'perk', action: 'pet', pet }),
+        setBubble: (style) => net.send({ t: 'perk', action: 'bubble', style }),
+      });
+    },
     openCaderno: () => {
       markAirportStep('diario');
       openCaderno();
@@ -1015,6 +1066,11 @@ function startGame() {
     toggleMusic: () => {
       game.music = !game.music;
       ambience.setEnabled(game.music);
+      game.emit('hud');
+    },
+    toggleEnglish: () => {
+      game.englishHelp = !game.englishHelp;
+      localStorage.setItem('tb_english', game.englishHelp ? 'on' : 'off');
       game.emit('hud');
     },
     logout:
@@ -1079,6 +1135,7 @@ function hitLabel(hit: Hit | null): [string, string] | null {
       if (hit.prop.action === 'padaria_door' && here) return here.owner ? ['Melhorias da padaria', 'Upgrades — size and sweets'] : [here.name, `${here.ownerName}’s bakery — about this shop`];
       if (hit.prop.action === 'padaria_counter' && here) return [`Balcão da ${here.name}`, 'House counter — buy here'];
       if (hit.prop.action === 'padaria_door' && own) return [`Sua padaria: ${own.name}`, `Your bakery: ${own.name} — click to go in`];
+      if (hit.prop.action === 'feira_cart' && game.feiraCart?.closed) return [FEIRA_CART_CLOSED.pt, FEIRA_CART_CLOSED.en];
       return hit.prop.label ? [hit.prop.label.pt, hit.prop.label.en] : null;
     }
     case 'hotspot': {
@@ -1479,6 +1536,7 @@ window.__tb = {
   walkTo: (x: number, y: number, sit = false) => walkTo({ x, y }, null, sit),
   /** Renderer-independent interaction by id, resolved against the current room's data. */
   interact: (target: InteractTarget) => interact(target),
+  openLeaderboards: () => openLeaderboards(() => net.send({ t: 'leaderboards' })),
   get decor() {
     return decor;
   },
@@ -1498,4 +1556,11 @@ window.__tb = {
   },
   openCartela: () => openCartela(),
   cartelaBanner: (stamps: number) => cartelaBanner(stamps),
+  /** Feira cart games: true while a cart overlay is up (shots / e2e). */
+  feiraGame: () => feiraGameOpen(),
+  /** Cart games ship off. Shots and e2e turn one on (`caldo`, `tapioca`) instead of assuming it is open. */
+  enableFeiraGame: (id: string) => {
+    const hook = net as { enableFeiraGame?: (id: string) => boolean };
+    return hook.enableFeiraGame?.(id) ?? false;
+  },
 };

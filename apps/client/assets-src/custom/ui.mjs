@@ -5,7 +5,7 @@
 // Every piece is one PNG plus, for the 9-slice ones, the slice insets in the manifest so CSS can use
 //   border-image: url(panel.png) <top> <right> <bottom> <left> fill / <top>px <right>px <bottom>px <left>px stretch;
 // Display at an integer scale with image-rendering: pixelated.
-import { blank, put, fillRect, shape, NAVY } from './paint.mjs';
+import { blank, put, fillRect, shape, hexPx, NAVY } from './paint.mjs';
 
 const INK = '#573c2c'; // warm ink edge
 const CREAM = '#f5e6d3', CREAM_HI = '#fbf3e6', CREAM_LO = '#e6d2b6', CREAM_LO2 = '#d9c19f';
@@ -43,7 +43,7 @@ function panel() {
 
 // ------------------------------------------------------------------ speech bubble
 export const BUBBLE = { w: 30, h: 27, body: 22, slice: { top: 7, right: 7, bottom: 13, left: 16 } };
-function bubble() {
+export function bubble() {
   const { w, h, body } = BUBBLE;
   const img = blank(w, h);
   for (let y = 0; y < body; y++) for (let x = 0; x < w; x++) {
@@ -65,6 +65,53 @@ function bubble() {
   // open the body outline where the tail joins
   for (let x = 9; x <= 14; x++) put(img, x, body - 1, x <= 10 ? CREAM_HI : CREAM);
   return img;
+}
+
+/**
+ * Subscriber trims. Same pixels as `bubble()` (same tail, same 9-slice). Only the outline and the
+ * one-pixel rim inside it change colour; the cream paper, and so the chat text, stays put.
+ */
+const BUBBLE_TRIMS = {
+  sol: { ink: '#8a5a12', rim: '#e0a020', rimHi: '#ffe7a0' },
+  mar: { ink: '#173a63', rim: '#2f6fb5', rimHi: '#b9dcff' },
+  mata: { ink: '#1d4f32', rim: '#2e8f58', rimHi: '#b7e7c4' },
+  festa: { ink: '#6a2f78', rim: '#c44b8a', rimHi: '#f3b6d8' },
+};
+
+function bubbleSkin(trim) {
+  const src = bubble();
+  const img = blank(src.w, src.h);
+  img.data.set(src.data);
+  const ink = hexPx(INK);
+  const isInk = (x, y) => {
+    if (x < 0 || y < 0 || x >= img.w || y >= img.h) return false;
+    const i = (y * img.w + x) * 4;
+    return img.data[i + 3] > 0 && img.data[i] === ink[0] && img.data[i + 1] === ink[1] && img.data[i + 2] === ink[2];
+  };
+  const marks = [];
+  for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) {
+    const i = (y * img.w + x) * 4;
+    if (!img.data[i + 3]) continue;
+    if (isInk(x, y)) {
+      const lit = x + y < img.w * 0.72;
+      marks.push([x, y, lit ? trim.rimHi : trim.ink]);
+    } else if (isInk(x - 1, y) || isInk(x + 1, y) || isInk(x, y - 1) || isInk(x, y + 1)) {
+      marks.push([x, y, trim.rim]);
+    }
+  }
+  for (const [x, y, c] of marks) put(img, x, y, c);
+  return img;
+}
+
+/** `ui/bubble_sol` and the other subscriber trims. Same slice as the classic bubble. */
+export async function bubbleSkins() {
+  const slice = BUBBLE.slice;
+  const css = `${slice.top} ${slice.right} ${slice.bottom} ${slice.left}`;
+  return Object.entries(BUBBLE_TRIMS).map(([name, trim]) => ({
+    key: `ui/bubble_${name}`,
+    img: bubbleSkin(trim),
+    meta: { slice, css, note: `subscriber chat bubble (${name}): same tail and 9-slice as ui/bubble, trim only` },
+  }));
 }
 
 // ------------------------------------------------------------------ buttons

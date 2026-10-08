@@ -45,7 +45,10 @@ export interface Appearance {
   garb?: string;
 }
 
-/** Fluency band. Driven by the student model, never purchasable. Phase 0: everyone is Verde. */
+/**
+ * Nameplate colour: a status earned in the escola by words mastered (verde → amarelo → azul → roxo → dourado, see escola.ts), never
+ * purchasable. Only a colour: English help is the player's own setting and does not change with the plate (DECISIONS.md).
+ */
 export type Nameplate = 'verde' | 'amarelo' | 'azul' | 'roxo' | 'dourado';
 
 /** Screen-facing: S = toward camera. SE = moving +x, SW = +y, NE = -y, NW = -x. */
@@ -87,6 +90,17 @@ export interface PublicAvatar {
   belt?: Belt;
   /** Beta founder chip beside the nameplate. */
   founder?: boolean;
+  /** Subscription founder badge (permanent). Separate from belts, nameplates and stripes. */
+  founderBadge?: boolean;
+  /** Which subscriber pet is out. Absent or null when none is following. */
+  pet?: 'dog' | 'cat' | null;
+  /** Chat bubble appearance. Classic for anyone without an active subscription. */
+  bubbleStyle?: import('./subscription.js').BubbleStyle;
+  /**
+   * Live "Fada da Feira" crown: today's top Feira-cart score. A display overlay only —
+   * it is not a belt, a nameplate tier, or a stripe, and it clears at midnight ET.
+   */
+  feiraCrown?: boolean;
   /** Praça ambiance CPU (scripted scenery, outside the player cap, never chats). */
   cpu?: boolean;
   /** A neighbour (Seu Carlos, Nanda...) walking its schedule: id is `npc-<id>`, broadcast like a CPU but flagged with its NpcId. */
@@ -126,6 +140,8 @@ export interface FriendInfo {
   room: RoomId | null;
   roomName: string | null;
   instanceId: string | null;
+  /** Their earned nameplate colour. */
+  nameplate?: Nameplate;
 }
 
 /** The padaria counter game's progress. Stars unlock tools and set the level; they are earned by playing, never bought. The counter menu grows from completed shifts, not from stars. */
@@ -197,6 +213,8 @@ export interface PrivateProfile {
   hasCamera?: boolean;
   /** Language-diary word ids earned once. */
   diary?: string[];
+  /** Escola: per-word strength (spaced repetition), XP, streak, daily goal and the earned nameplate tier. Defaulted on load. */
+  escola?: import('./escola.js').EscolaState;
   /** Film rolls left in the camera. Júlia sells more. */
   film?: number;
   /** Photos taken with the camera, newest first. */
@@ -205,6 +223,21 @@ export interface PrivateProfile {
   cartela?: CartelaState;
   /** Beta founder badge on the overhead nameplate. Absent on old saves until normalized (treated as true). */
   founder?: boolean;
+  /**
+   * Permanent Feira medals (gold / silver / bronze), newest last. Written by the server when an ET day
+   * finalizes; the diary lists them. Absent on saves from before the cart games.
+   */
+  feiraMedals?: { day: string; game: string; medal: 'gold' | 'silver' | 'bronze'; score: number }[];
+  /** Permanent subscription founder badge. Absent means false. Never revoked. */
+  founderBadge?: boolean;
+  /** Permanent founders banner already granted. The item itself lives in `furniture`. */
+  founderBanner?: boolean;
+  /** Subscriber pet choice. Shown only while the subscription is active. */
+  pet?: 'dog' | 'cat' | null;
+  /** Subscriber chat-bubble appearance. Reverts to classic when the subscription ends. */
+  bubbleStyle?: import('./subscription.js').BubbleStyle;
+  /** Support subscription. Absent means never subscribed. */
+  subscription?: import('./subscription.js').PlayerSubscription | null;
 }
 
 export interface Bilingual {

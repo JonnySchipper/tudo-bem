@@ -34,6 +34,31 @@ body.cr-ended .cr-pops .cr-tag {
   display: none !important;
 }
 
+/* #cr-hot is a body sibling (z-index 12) and paints over #ui; lift the overlay while a step lesson is open (see correria.ts `cr-lesson-open`). */
+body.cr-lesson-open #ui {
+  z-index: 13;
+}
+
+/*
+ * #ui > * sets pointer-events: auto on .cr-root; let shelf taps reach #cr-hot under the lesson card while the
+ * HUD, Entendi, and the bottom strip (Quanto é?, tray, Entregar) stay interactive.
+ */
+body.cr-lesson-open #ui > .cr-root {
+  pointer-events: none;
+}
+
+body.cr-lesson-open #cr-top,
+body.cr-lesson-open #cr-top *,
+body.cr-lesson-open #cr-panel,
+body.cr-lesson-open #cr-panel *,
+body.cr-lesson-open .cr-lesson-ok {
+  pointer-events: auto;
+}
+
+body.cr-lesson-open .cr-lesson {
+  pointer-events: none;
+}
+
 body.cr-on #world-labels,
 body.cr-on #hotspot-cues {
   display: none !important;
@@ -554,17 +579,18 @@ body.cr-on .toasts {
   animation: cr-banner 1.9s ease-out forwards;
 }
 
-/* One-time how-to at the start of a shift. Sits over the counter, does not push the order strip. */
+/* One-time how-to at the start of a shift. Sits over the counter, does not push the order strip. Tall enough that Entendi stays inside the card. */
 .cr-lesson {
   position: absolute;
-  left: 50%;
-  top: 16%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  top: 12%;
+  margin-inline: auto;
   width: min(420px, calc(100vw - 24px));
-  max-height: min(46vh, 320px);
+  max-height: min(72vh, 520px);
   overflow: auto;
   pointer-events: auto;
-  z-index: 4;
+  z-index: 20;
   padding: 10px 14px 12px;
   background: var(--cr-paper);
   color: var(--cr-ink);
@@ -926,6 +952,80 @@ body.cr-on .toasts {
 
 .cr-hit.cr-tray .cr-lab {
   display: none;
+}
+
+/* the espremedor: the glass glows once it reaches the line; small PT words with a verde EN gloss name its parts */
+.cr-hit.cr-glass[data-state='ready'] {
+  outline: 2px solid #66d27f;
+  background: rgba(102, 210, 127, 0.18);
+  animation: cr-glow 0.7s ease-out infinite;
+}
+
+.cr-hit.cr-glass[data-state='empty'] {
+  pointer-events: none;
+}
+
+.cr-word {
+  position: absolute;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0 3px 1px;
+  border-radius: 4px;
+  background: rgba(42, 34, 51, 0.78);
+  font-size: calc(var(--cr-fs, 10px) * 0.9);
+  line-height: 1.05;
+  white-space: nowrap;
+}
+
+.cr-word:empty {
+  display: none;
+}
+
+.cr-word b {
+  font-weight: 900;
+  color: #fff8e6;
+}
+
+.cr-word i {
+  display: none;
+  font-size: 0.85em;
+  font-weight: 700;
+  color: #8ff0a4;
+}
+
+.cr-hot.cr-show-en .cr-word i {
+  display: block;
+}
+
+.cr-hot.small .cr-word {
+  display: none;
+}
+
+.cr-line-word {
+  left: calc(100% + 2px);
+  transform: translateY(-50%);
+}
+
+.cr-line-word b {
+  color: #ffb4a8;
+}
+
+.cr-next-word {
+  left: 74%;
+  top: 2%;
+}
+
+.cr-bin-word {
+  right: 76%;
+  top: 62%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cr-hit.cr-glass[data-state='ready'] {
+    animation: none;
+  }
 }
 
 .cr-pop {

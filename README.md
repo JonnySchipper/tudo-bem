@@ -54,6 +54,7 @@ VITE_LOCAL_WORLD=1 pnpm --filter @tudobem/client build      # then serve apps/cl
 8. **Feira livre** (east lot, every day 06:00 to 13:00, plus the Hortifrúti corner at the banca at any hour). Ask "Quanto custa a banana?", hear the price in words, say how many, then pay with coins and notes. Overpay and you get *troco*; underpay and nothing is bought.
 9. **Caderno de palavras.** Every word you see, hear and use fills a notebook by group; finishing a group pays RV.
 10. **Hats, kitnet and friends.** Nanda's stall (hats), your kitnet at Nº 42 (decorate, sit), the Academia do Bairro (Professora Bia, tatame, a CPU roll), the parrot perch, friends in the top bar.
+10b. **Placar da Vila.** In the Praça, tap the scoreboard by the fountain for **Most Words Learned** and **Highest Current Streak** (Escola). Free for everyone; display names only.
 11. **Academia: Treino no tatame.** Buy your gi at the vestiário, then join the Fila do tatame with Professora Bia. Each round is **closed guard** on the clock (~one minute): take or clear grips on **gola, manga, calça**, or **puxar / empurrar** a grip you hold (wrong force bounces). First to **two passos** or a **Final!** wins the round; wins add a **listra** (5 on white, then 10, 20, 40 and 80; four stripes change the belt). No quiz — the Portuguese move name appears after it lands. Lose and **De novo** rematches the same position.
 
 ## How it is built
@@ -133,7 +134,9 @@ apps/client       Phaser 3 pixel view + DOM UI; the title screen, dialogue box, 
   - **block:** PII, contact exchange, slurs, profanity, insults, alcohol, dating/sexual, politics, scams.
   - **warn** (delivered verbatim, with a note): ambiguous words and platonic phrases.
   - **escalate** (hidden, queued as `pending`): self-harm, threats, and context-dependent words.
-  - Every v0.1 Jev example, PII example and the PT-slang false-block KPI run in CI. Rate limit 5 msgs / 10 s. Report button on profiles.
+  - **Obfuscation**: `f*ck`, `f u c k`, `p.o.r.r.a`, `f.d.p` are de-obfuscated before the blocklists run (client and server).
+  - **Jev model (server)**: whatever the stub lets through is scored in-process by [Horizon-Labs/multilingual-toxicity-small](https://huggingface.co/Horizon-Labs/multilingual-toxicity-small) (Apache-2.0, 141M params, pt + en + 32 more languages, ONNX on CPU, ~30 ms). It reads the sender's last few lines in the room, so split messages ("você é" / "um lixo") count as one. It can only make a verdict stricter. On load failure, error or a 400 ms timeout the stub verdict stands. Set `TB_JEV_MODEL_DIR` to enable it (the Docker image does); fetch the weights with `python3 scripts/fetch-jev-model.py`. `/healthz` reports `jev.state` and p50/p95 latency; `moderation.jsonl` rows carry `jev.score`, per-label scores and `jev.ms`. See [DECISIONS.md](DECISIONS.md).
+  - Every v0.1 Jev example, PII example and the PT-slang false-block KPI run in CI, through the stub and through the real model, plus the model pack ([`jev/model-pack.json`](content/safety/phase0/jev/model-pack.json): harassment without swear words, obfuscation, context, banter guards). Rate limit 5 msgs / 10 s. Report button on profiles.
 - **No pay-to-win**: RV is earned only from graded language acts, recados and the Caderno; nameplates can't be bought. Everyone is **Verde** in Phase 0.
 - **The server is authoritative**: movement, rewards, payments, hand-overs and the clock are validated server-side; the client is a view.
 - **Adults only (18+) in intent**: the only age prompt is an optional 18+ tick on signup. No birth date is collected. See [docs/AGE_POLICY.md](docs/AGE_POLICY.md).

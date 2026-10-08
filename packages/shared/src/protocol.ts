@@ -25,6 +25,8 @@ import type { RecadoActiveView, RecadoOfferView } from './recados.js';
 import type { CartelaActivity } from './cartela.js';
 import type { PriceOption, VendorId } from './feira.js';
 import type { Weather } from './weather.js';
+import type { FeiraBoardRow, FeiraCartAdminGame, FeiraCartMode, FeiraCartSchedule, FeiraGameId, FeiraMedalTally, FeiraOrderOutcome } from './feiraGames.js';
+import type { BoardRow } from './leaderboards.js';
 
 /** Client → server messages. JSON over a single WebSocket at /ws. */
 export type ClientMsg =
@@ -66,6 +68,8 @@ export type ClientMsg =
   | { t: 'furniture'; action: 'pickup'; uid: string }
   | { t: 'friend'; action: 'request' | 'accept' | 'decline' | 'remove'; targetId: string }
   | { t: 'friends' }
+  /** Dual Praça leaderboards (words learned + escola streak). */
+  | { t: 'leaderboards' }
   | { t: 'mission'; action: 'take' }
   /** Hand one recado's worth of an item from the bag to an NPC standing next to you. */
   | { t: 'give'; npc: NpcId; itemId: string }
@@ -99,10 +103,17 @@ export type ClientMsg =
   | { t: 'diary'; action: 'buyFilm' }
   /** Heard an NPC line (`npc.node`) that can teach a conversation word. */
   | { t: 'diary'; action: 'line'; anchor: string }
-  /** Start the practice game in the room you're in (the escola). */
-  | { t: 'diary'; action: 'practice' }
-  /** Answer the practice round the server just dealt. */
-  | { t: 'diary'; action: 'answer'; choice: string }
+  /**
+   * Dona Lúcia's lessons (the escola desk). `start` deals a lesson from the player's diary (`area`: one unit of the path; `tz`: minutes east
+   * of UTC, so the streak follows the player's own calendar day). `answer` answers the exercise on screen; `pair` is one tap of the match
+   * race; `next` deals the next exercise (or ends the lesson); `quit` leaves (what was answered still counts); `goal` sets the daily XP goal.
+   */
+  | { t: 'escola'; action: 'start'; area?: string; tz?: number }
+  | { t: 'escola'; action: 'answer'; choice?: string; text?: string; order?: number[] }
+  | { t: 'escola'; action: 'pair'; pt: number; en: number }
+  | { t: 'escola'; action: 'next' }
+  | { t: 'escola'; action: 'quit' }
+  | { t: 'escola'; action: 'goal'; goal: number; tz?: number }
   /**
    * Treino no tatame (the Academia bout), protocol version 1. The server owns the bout: the client only picks an intent and answers
    * the challenge the server issued (`seq` must match the prompt on screen); timers and results are the server's.
@@ -115,6 +126,7 @@ export type ClientMsg =
   /**
    * Hidden ops panel (credits easter egg). The server checks the password once per socket; later actions need that flag.
    * `list` refreshes the online player roster; `kick` removes another player; `money` pays the caller; `clock` / `weather` pin the shared sky.
+   * `feiraCart` / `feiraCartSet` turn the Feira cart games on and off (persisted, no redeploy).
    */
   | { t: 'admin'; action: 'login'; password: string }
   | { t: 'admin'; action: 'logout' }
@@ -123,6 +135,17 @@ export type ClientMsg =
   | { t: 'admin'; action: 'money'; amount: number }
   | { t: 'admin'; action: 'clock'; minute: number }
   | { t: 'admin'; action: 'weather'; weather: Weather | null }
+  /** Feira cart games switch. `feiraCart` reads the list; `feiraCartSet` turns one game off, on, or (later) onto a schedule. */
+  | { t: 'admin'; action: 'feiraCart' }
+  | { t: 'admin'; action: 'feiraCartSet'; game: string; mode: FeiraCartMode; schedule?: FeiraCartSchedule | null }
+  /** Subscriber list for the Assinaturas section. */
+  | { t: 'admin'; action: 'subscribers' }
+  /** Dev/test subscription (no payment). Admin socket only. */
+  | { t: 'admin'; action: 'grantSub'; targetId: string }
+  | { t: 'admin'; action: 'revokeSub'; targetId: string }
+  /** Subscriber pet and chat-bubble appearance. The server ignores a perk the subscription does not currently allow. */
+  | { t: 'perk'; action: 'pet'; pet: 'dog' | 'cat' | null }
+  | { t: 'perk'; action: 'bubble'; style: import('./subscription.js').BubbleStyle }
   /**
    * Player academies (slice 1). The elevator in Academia do Bairro asks for `directory`.
    * `found` takes a first-come name (brown belt). `visit` loads the empty floor without joining.
@@ -142,6 +165,15 @@ export type ClientMsg =
   | { t: 'padariaOwn'; action: 'found'; name: string }
   | { t: 'padariaOwn'; action: 'visit'; id?: string }
   | { t: 'padariaOwn'; action: 'upgrade'; kind: PadariaUpgradeKind }
+  /**
+   * Feira cart games. `start` asks to play today's featured game at the cart.
+   * `finish` sends compact per-order outcomes; the server recomputes the score.
+   * `board` asks for the live top 3 and all-time medals (the Feira sign).
+   */
+  | { t: 'feiraGame'; action: 'start' }
+  | { t: 'feiraGame'; action: 'finish'; outcomes: FeiraOrderOutcome[] }
+  | { t: 'feiraGame'; action: 'quit' }
+  | { t: 'feiraGame'; action: 'board'; open?: 'cart' | 'sign' }
   | { t: 'ping' };
 
 /** One online player row for the admin panel. */
@@ -150,6 +182,17 @@ export interface AdminPlayerRow {
   name: string;
   room: RoomId | null;
   roomName: string | null;
+}
+
+/** One row in the admin Assinaturas list. */
+export interface AdminSubscriberRow {
+  id: string;
+  name: string;
+  status: 'active' | 'cancelled' | 'expired' | 'none';
+  currentPeriodEnd: number | null;
+  founderBadge: boolean;
+  founderBanner: boolean;
+  online: boolean;
 }
 
 /** One new word of a shot, as the card shows it. A shot that teaches several words sends one of these for each, in the order to show them. */
@@ -179,6 +222,8 @@ export interface RoomStateMsg {
   academy?: AcademyCard;
   /** Set in a player-owned padaria instance (`padaria@…`). */
   padaria?: PadariaCard;
+  /** Feira room only: whether the cart games are on, so the closed sign is there on enter. */
+  feiraCart?: { closed: boolean; game: FeiraGameId | null };
 }
 
 export type NoticeLevel = 'info' | 'warn' | 'block' | 'reward' | 'error';
@@ -478,7 +523,10 @@ export type ServerMsg =
   | { t: 'admin'; phase: 'auth'; ok: true }
   | { t: 'admin'; phase: 'auth'; ok: false; pt: string; en: string }
   | { t: 'admin'; phase: 'players'; players: AdminPlayerRow[] }
+  | { t: 'admin'; phase: 'subscribers'; subscribers: AdminSubscriberRow[] }
   | { t: 'admin'; phase: 'disabled'; pt: string; en: string }
+  /** Feira cart switches. `featured` is today's playable game, or null when the cart is closed. */
+  | { t: 'admin'; phase: 'feiraCart'; day: string; featured: FeiraGameId | null; games: FeiraCartAdminGame[] }
   | { t: 'avatarJoined'; avatar: PublicAvatar }
   | { t: 'avatarLeft'; id: string }
   | { t: 'avatarMoved'; id: string; from: Tile; path: Tile[]; sit: boolean }
@@ -540,9 +588,28 @@ export type ServerMsg =
   | { t: 'diary'; phase: 'word'; pt: string; en: string; source: string; areaPt: string; progress: string }
   /** Several words went in at once (the arrival card's): shown one after another, each counting up in its area. */
   | { t: 'diary'; phase: 'words'; words: DiaryMoment[] }
-  | { t: 'diary'; phase: 'practice'; ok: true; host: string; en: string; options: string[] }
-  | { t: 'diary'; phase: 'practice'; ok: false; host: string; pt: string; en: string }
-  | { t: 'diary'; phase: 'result'; correct: boolean; host: string; line: Bilingual; granted: { pt: string; en: string } | null }
+  /** The escola: an exercise dealt (never with its answer), the verdict on a try, one pair of the match race, the end of the lesson. */
+  | { t: 'escola'; phase: 'exercise'; ex: import('./escola.js').ExerciseView; index: number; total: number; combo: number; lessonXp: number; retry: boolean }
+  | {
+      t: 'escola';
+      phase: 'checked';
+      correct: boolean;
+      almost?: import('./escola.js').Almost;
+      reveal: { pt: string; en: string; line?: string };
+      /** XP this answer earned. */
+      xp: number;
+      combo: number;
+      lessonXp: number;
+      /** A miss that comes back at the end of the lesson. */
+      retry: boolean;
+      line: Bilingual;
+    }
+  | { t: 'escola'; phase: 'pair'; pt: number; en: number; ok: boolean }
+  | { t: 'escola'; phase: 'done'; summary: import('./escola.js').EscolaSummary }
+  /** The lesson could not start (an empty diary, too far from the desk). */
+  | { t: 'escola'; phase: 'closed'; line: Bilingual }
+  /** Dual Praça leaderboards. `words` = diary length; `streak` = Escola currentStreak. */
+  | { t: 'leaderboards'; words: BoardRow[]; streak: BoardRow[]; at: number }
   | { t: 'error'; code: string; pt: string; en: string }
   | { t: 'pong' }
   /** Elevator directory. `canFound` is this player's belt. `ownedId` is the academy they founded, if any. */
@@ -550,4 +617,38 @@ export type ServerMsg =
   /** Crest / gi / membership changed on the floor you are standing in. */
   | { t: 'academy'; phase: 'floor'; academy: AcademyCard }
   | { t: 'padariaOwn'; phase: 'door'; enabled: boolean; door: PadariaDoorState; rows: PadariaCard[] }
-  | { t: 'padariaOwn'; phase: 'floor'; padaria: PadariaCard };
+  | { t: 'padariaOwn'; phase: 'floor'; padaria: PadariaCard }
+  /**
+   * Feira cart game. `start` deals today's run (seed + orders live in shared code; the client regenerates them).
+   * `end` is the settled result. `board` is the sign. `crown` is the live Fada da Feira (null after midnight).
+   */
+  | { t: 'feiraGame'; phase: 'start'; game: FeiraGameId; seed: number; startedAt: number; day: string }
+  | {
+      t: 'feiraGame';
+      phase: 'end';
+      game: FeiraGameId;
+      score: number;
+      coins: number;
+      dailyBlocked: boolean;
+      served: number;
+      perfect: number;
+      left: number;
+      bestToday: number;
+      place: number;
+      crown: boolean;
+      line: Bilingual;
+    }
+  | {
+      t: 'feiraGame';
+      phase: 'board';
+      day: string;
+      /** Null when no cart game is on. */
+      game: FeiraGameId | null;
+      closed: boolean;
+      top: FeiraBoardRow[];
+      medals: FeiraMedalTally[];
+      crownId: string | null;
+    }
+  /** Live switch. Broadcast when an admin changes it, and included on the Feira room enter. */
+  | { t: 'feiraGame'; phase: 'cart'; closed: boolean; game: FeiraGameId | null }
+  | { t: 'feiraGame'; phase: 'crown'; id: string | null };

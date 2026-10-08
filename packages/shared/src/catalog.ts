@@ -31,10 +31,12 @@ export interface FurnitureDef {
   price: number;
   /** Seat furniture can be sat on. */
   seat: boolean;
-  kind: 'cadeira' | 'poltrona' | 'pufe' | 'mesinha' | 'planta' | 'tapete' | 'radio' | 'ventilador' | 'gato' | 'luminaria' | 'estante' | 'quadro' | 'rede' | 'filtro';
+  kind: 'cadeira' | 'poltrona' | 'pufe' | 'mesinha' | 'planta' | 'tapete' | 'radio' | 'ventilador' | 'gato' | 'luminaria' | 'estante' | 'quadro' | 'rede' | 'filtro' | 'banner';
   color: string;
-  /** Walk-through items (rugs) do not block tiles. */
+  /** Walk-through items (rugs, the founders banner) do not block tiles. */
   walkable?: boolean;
+  /** Earned, never sold at the atelier. Price stays 0 and no RV changes hands. */
+  earned?: boolean;
 }
 
 /** Atelier catalog for the kitnet. */
@@ -53,6 +55,17 @@ export const FURNITURE: FurnitureDef[] = [
   { id: 'quadro', pt: 'Quadro de ipê', en: 'Ipê painting (floor easel)', price: 20, seat: false, kind: 'quadro', color: '#f2c230' },
   { id: 'rede', pt: 'Rede de descanso', en: 'Hammock', price: 45, seat: false, kind: 'rede', color: '#e5572f' },
   { id: 'filtro', pt: 'Filtro de barro', en: 'Clay water filter', price: 25, seat: false, kind: 'filtro', color: '#b8573a' },
+  {
+    id: 'banner_fundadores',
+    pt: 'Banner dos fundadores',
+    en: 'Founders banner',
+    price: 0,
+    seat: false,
+    kind: 'banner',
+    color: '#f2c230',
+    walkable: true,
+    earned: true,
+  },
 ];
 
 /** Every new kitnet comes with one free chair so the first placement is instant. */

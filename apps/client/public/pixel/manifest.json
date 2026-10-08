@@ -6,8 +6,8 @@
    "image": "atlas/outdoor.png",
    "data": "atlas/outdoor.json",
    "w": 1024,
-   "h": 1920,
-   "frames": 1169
+   "h": 1984,
+   "frames": 1196
   }
  },
  "terrain": {
@@ -5964,6 +5964,321 @@
    "h": 24,
    "ax": 7,
    "ay": 23,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/juicer_idle": {
+   "atlas": "outdoor",
+   "frame": "balcao/juicer_idle",
+   "w": 34,
+   "h": 36,
+   "ax": 17,
+   "ay": 35,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/juicer_roll": {
+   "atlas": "outdoor",
+   "frame": "balcao/juicer_roll",
+   "w": 34,
+   "h": 36,
+   "ax": 17,
+   "ay": 35,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/juicer_cut": {
+   "atlas": "outdoor",
+   "frame": "balcao/juicer_cut",
+   "w": 34,
+   "h": 36,
+   "ax": 17,
+   "ay": 35,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/juicer_press": {
+   "atlas": "outdoor",
+   "frame": "balcao/juicer_press",
+   "w": 34,
+   "h": 36,
+   "ax": 17,
+   "ay": 35,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/juicer_pour": {
+   "atlas": "outdoor",
+   "frame": "balcao/juicer_pour",
+   "w": 34,
+   "h": 36,
+   "ax": 17,
+   "ay": 35,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/juicer_peel": {
+   "atlas": "outdoor",
+   "frame": "balcao/juicer_peel",
+   "w": 34,
+   "h": 36,
+   "ax": 17,
+   "ay": 35,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/juice_glass_0": {
+   "atlas": "outdoor",
+   "frame": "balcao/juice_glass_0",
+   "w": 14,
+   "h": 12,
+   "ax": 7,
+   "ay": 11,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/juice_glass_1": {
+   "atlas": "outdoor",
+   "frame": "balcao/juice_glass_1",
+   "w": 14,
+   "h": 12,
+   "ax": 7,
+   "ay": 11,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/juice_glass_2": {
+   "atlas": "outdoor",
+   "frame": "balcao/juice_glass_2",
+   "w": 14,
+   "h": 12,
+   "ax": 7,
+   "ay": 11,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/juice_glass_3": {
+   "atlas": "outdoor",
+   "frame": "balcao/juice_glass_3",
+   "w": 14,
+   "h": 12,
+   "ax": 7,
+   "ay": 11,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/juice_glass_4": {
+   "atlas": "outdoor",
+   "frame": "balcao/juice_glass_4",
+   "w": 14,
+   "h": 12,
+   "ax": 7,
+   "ay": 11,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/juice_glass_5": {
+   "atlas": "outdoor",
+   "frame": "balcao/juice_glass_5",
+   "w": 14,
+   "h": 12,
+   "ax": 7,
+   "ay": 11,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/juice_glass_6": {
+   "atlas": "outdoor",
+   "frame": "balcao/juice_glass_6",
+   "w": 14,
+   "h": 12,
+   "ax": 7,
+   "ay": 11,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/juice_glass_7": {
+   "atlas": "outdoor",
+   "frame": "balcao/juice_glass_7",
+   "w": 14,
+   "h": 12,
+   "ax": 7,
+   "ay": 11,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/juice_glass_8": {
+   "atlas": "outdoor",
+   "frame": "balcao/juice_glass_8",
+   "w": 14,
+   "h": 12,
+   "ax": 7,
+   "ay": 11,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/juice_glass_9": {
+   "atlas": "outdoor",
+   "frame": "balcao/juice_glass_9",
+   "w": 14,
+   "h": 12,
+   "ax": 7,
+   "ay": 11,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/juice_glass_spill": {
+   "atlas": "outdoor",
+   "frame": "balcao/juice_glass_spill",
+   "w": 14,
+   "h": 12,
+   "ax": 7,
+   "ay": 11,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/orange_p": {
+   "atlas": "outdoor",
+   "frame": "balcao/orange_p",
+   "w": 7,
+   "h": 7,
+   "ax": 3,
+   "ay": 6,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/orange_m": {
+   "atlas": "outdoor",
+   "frame": "balcao/orange_m",
+   "w": 9,
+   "h": 9,
+   "ax": 4,
+   "ay": 8,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/orange_g": {
+   "atlas": "outdoor",
+   "frame": "balcao/orange_g",
+   "w": 11,
+   "h": 11,
+   "ax": 5,
+   "ay": 10,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/laranjas": {
+   "atlas": "outdoor",
+   "frame": "balcao/laranjas",
+   "w": 28,
+   "h": 28,
+   "ax": 14,
+   "ay": 26,
    "footprint": [
     1,
     1
@@ -12109,6 +12424,36 @@
    "overhead": null,
    "shadow": "fx/shadow_16"
   },
+  "furniture/banner_fundadores_0": {
+   "atlas": "outdoor",
+   "frame": "furniture/banner_fundadores_0",
+   "w": 16,
+   "h": 28,
+   "ax": 8,
+   "ay": 26,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "furniture/banner_fundadores_1": {
+   "atlas": "outdoor",
+   "frame": "furniture/banner_fundadores_1",
+   "w": 16,
+   "h": 28,
+   "ax": 8,
+   "ay": 26,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
   "furniture/tapete_0": {
    "atlas": "outdoor",
    "frame": "furniture/tapete_0",
@@ -13182,6 +13527,50 @@
     "w": 86,
     "h": 17,
     "ax": 24,
+    "ay": 1
+   }
+  },
+  "props/carrinho_feira": {
+   "atlas": "outdoor",
+   "frame": "props/carrinho_feira",
+   "w": 64,
+   "h": 62,
+   "ax": 32,
+   "ay": 60,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "props/carrinho_feira#cast",
+    "w": 93,
+    "h": 17,
+    "ax": 32,
+    "ay": 1
+   }
+  },
+  "props/placa_feira": {
+   "atlas": "outdoor",
+   "frame": "props/placa_feira",
+   "w": 44,
+   "h": 52,
+   "ax": 22,
+   "ay": 50,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_32",
+   "cast": {
+    "frame": "props/placa_feira#cast",
+    "w": 69,
+    "h": 14,
+    "ax": 22,
     "ay": 1
    }
   },
@@ -15429,242 +15818,434 @@
   "portraits/carlos_neutro": {
    "file": "portraits/carlos_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/carlos_feliz": {
    "file": "portraits/carlos_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/carlos_surpreso": {
    "file": "portraits/carlos_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/carlos_pensativo": {
    "file": "portraits/carlos_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/nanda_neutro": {
    "file": "portraits/nanda_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/nanda_feliz": {
    "file": "portraits/nanda_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/nanda_surpreso": {
    "file": "portraits/nanda_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/nanda_pensativo": {
    "file": "portraits/nanda_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/julia_neutro": {
    "file": "portraits/julia_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/julia_feliz": {
    "file": "portraits/julia_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/julia_surpreso": {
    "file": "portraits/julia_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/julia_pensativo": {
    "file": "portraits/julia_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/graca_neutro": {
    "file": "portraits/graca_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/graca_feliz": {
    "file": "portraits/graca_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/graca_surpreso": {
    "file": "portraits/graca_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/graca_pensativo": {
    "file": "portraits/graca_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/tia_lu_neutro": {
    "file": "portraits/tia_lu_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/tia_lu_feliz": {
    "file": "portraits/tia_lu_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/tia_lu_surpreso": {
    "file": "portraits/tia_lu_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/tia_lu_pensativo": {
    "file": "portraits/tia_lu_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/prof_neutro": {
    "file": "portraits/prof_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/prof_feliz": {
    "file": "portraits/prof_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/prof_surpreso": {
    "file": "portraits/prof_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/prof_pensativo": {
    "file": "portraits/prof_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/ze_neutro": {
    "file": "portraits/ze_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/ze_feliz": {
    "file": "portraits/ze_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/ze_surpreso": {
    "file": "portraits/ze_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/ze_pensativo": {
    "file": "portraits/ze_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/chico_neutro": {
    "file": "portraits/chico_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/chico_feliz": {
    "file": "portraits/chico_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/chico_surpreso": {
    "file": "portraits/chico_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/chico_pensativo": {
    "file": "portraits/chico_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/rosa_neutro": {
    "file": "portraits/rosa_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/rosa_feliz": {
    "file": "portraits/rosa_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/rosa_surpreso": {
    "file": "portraits/rosa_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/rosa_pensativo": {
    "file": "portraits/rosa_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    46
+   ]
   },
   "portraits/lucia_neutro": {
    "file": "portraits/lucia_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/lucia_feliz": {
    "file": "portraits/lucia_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/lucia_surpreso": {
    "file": "portraits/lucia_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/lucia_pensativo": {
    "file": "portraits/lucia_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/celia_neutro": {
    "file": "portraits/celia_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/celia_feliz": {
    "file": "portraits/celia_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/celia_surpreso": {
    "file": "portraits/celia_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/celia_pensativo": {
    "file": "portraits/celia_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/agente_neutro": {
    "file": "portraits/agente_neutro.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/agente_feliz": {
    "file": "portraits/agente_feliz.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/agente_surpreso": {
    "file": "portraits/agente_surpreso.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "portraits/agente_pensativo": {
    "file": "portraits/agente_pensativo.png",
    "w": 64,
-   "h": 64
+   "h": 64,
+   "face": [
+    32,
+    43
+   ]
   },
   "icons/pao": {
    "file": "icons/pao.png",
@@ -16054,6 +16635,134 @@
    "frames": 4,
    "frameW": 30,
    "fps": 8
+  },
+  "chars/pet_dog": {
+   "file": "chars/pet_dog.png",
+   "w": 408,
+   "h": 20,
+   "frames": 17,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ]
+   }
+  },
+  "chars/pet_cat": {
+   "file": "chars/pet_cat.png",
+   "w": 408,
+   "h": 20,
+   "frames": 17,
+   "frameW": 24,
+   "fps": 8,
+   "anims": {
+    "walkE": [
+     0,
+     3
+    ],
+    "walkS": [
+     4,
+     7
+    ],
+    "walkN": [
+     8,
+     11
+    ],
+    "idleS": [
+     12,
+     13
+    ],
+    "sitE": [
+     14,
+     14
+    ],
+    "sitS": [
+     15,
+     15
+    ],
+    "sitN": [
+     16,
+     16
+    ]
+   }
+  },
+  "ui/bubble_sol": {
+   "file": "ui/bubble_sol.png",
+   "w": 30,
+   "h": 27,
+   "slice": {
+    "top": 7,
+    "right": 7,
+    "bottom": 13,
+    "left": 16
+   },
+   "css": "7 7 13 16",
+   "note": "subscriber chat bubble (sol): same tail and 9-slice as ui/bubble, trim only"
+  },
+  "ui/bubble_mar": {
+   "file": "ui/bubble_mar.png",
+   "w": 30,
+   "h": 27,
+   "slice": {
+    "top": 7,
+    "right": 7,
+    "bottom": 13,
+    "left": 16
+   },
+   "css": "7 7 13 16",
+   "note": "subscriber chat bubble (mar): same tail and 9-slice as ui/bubble, trim only"
+  },
+  "ui/bubble_mata": {
+   "file": "ui/bubble_mata.png",
+   "w": 30,
+   "h": 27,
+   "slice": {
+    "top": 7,
+    "right": 7,
+    "bottom": 13,
+    "left": 16
+   },
+   "css": "7 7 13 16",
+   "note": "subscriber chat bubble (mata): same tail and 9-slice as ui/bubble, trim only"
+  },
+  "ui/bubble_festa": {
+   "file": "ui/bubble_festa.png",
+   "w": 30,
+   "h": 27,
+   "slice": {
+    "top": 7,
+    "right": 7,
+    "bottom": 13,
+    "left": 16
+   },
+   "css": "7 7 13 16",
+   "note": "subscriber chat bubble (festa): same tail and 9-slice as ui/bubble, trim only"
   }
  },
  "chars": {

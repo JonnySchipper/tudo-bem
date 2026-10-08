@@ -226,8 +226,10 @@ async function cocoCart(ctx) {
   const cart = stripSoftAlpha(await ctx.load(VEH + 'Fruit_Flowers_Cart_1.png'));
   const img = blank(56, 64);
   paste(img, cart, 0, 0);
-  // repaint the umbrella (rows 9..37): green and cream gores that keep the pack's shading
-  const cx = 16.5, cy = 21;
+  // repaint the umbrella (rows 9..37): green and cream gores that keep the pack's shading.
+  // The canopy is a dome seen from above; the gores radiate from the hub (the pale pixels
+  // at x 16..17, y 14..15), not from the middle of the disc.
+  const cx = 16.5, cy = 14.5;
   const GREEN = ['#2e7177', '#367f82', '#49928f', '#5ea592'];
   const CREAM = ['#c6bdd5', '#d8d0e0', '#ebe4f2', '#f8f8f8'];
   for (let y = 9; y < 38; y++) for (let x = 0; x < 36; x++) {
@@ -350,4 +352,125 @@ export const parkedFusca = () => parkedAuthored('fusca');
 export const parkedKombi = () => parkedAuthored('kombi');
 export const parkedMoto = () => parkedAuthored('moto');
 export { pipoqueiro, cocoCart };
+
+// ------------------------------------------------------------------ Feira game cart and the bright board (not the coconut cart, not the mat scoreboard)
+
+/** A push-cart for the Feira games: striped awning, a little chapa with tapiocas, filling bowls, and a TAPIOCA board. */
+export async function feiraGameCart() {
+  const W = 64, H = 62;
+  const img = blank(W, H);
+  // wheels
+  for (const cx of [16, 46]) {
+    shape(img, ell(cx, 54, 6.2, 6.2), [cx, 54, 6.2, 6.2], [C.navy, C.slate, C.slate2, C.mist], { ol: NAVY, t: [0.8, 0.4, 0] });
+    shape(img, ell(cx, 54, 2.4, 2.4), [cx, 54, 2.4, 2.4], [C.w4, C.w2, C.w1, C.w0], { ol: NAVY, t: [0.85, 0.4, 0] });
+  }
+  // axle and the lower body
+  fillRect(img, 8, 48, 48, 4, C.w5);
+  fillRect(img, 8, 48, 48, 1, C.w3);
+  fillRect(img, 8, 51, 48, 1, C.w6);
+  // cart box
+  fillRect(img, 6, 30, 52, 19, C.w3);
+  fillRect(img, 6, 30, 52, 2, C.w1);
+  fillRect(img, 6, 30, 2, 19, C.w1);
+  fillRect(img, 56, 30, 2, 19, C.w5);
+  fillRect(img, 6, 47, 52, 2, C.w5);
+  // plank seams
+  for (const x of [18, 30, 42]) fillRect(img, x, 32, 1, 15, C.w4);
+  // the TAPIOCA plaque on the front (yellow on terracotta — not the coconut cart's COCO board)
+  fillRect(img, 16, 36, 32, 9, NAVY);
+  fillRect(img, 17, 37, 30, 7, C.r3);
+  fillRect(img, 17, 37, 30, 1, C.r1);
+  drawText3(img, 18, 38, 'TAPIOCA', C.y1, C.r5);
+  // counter top
+  fillRect(img, 5, 26, 54, 5, C.w2);
+  fillRect(img, 5, 26, 54, 1, C.w0);
+  fillRect(img, 5, 30, 54, 1, C.w4);
+  // a small steel chapa on the left of the counter
+  fillRect(img, 8, 18, 22, 9, C.slate);
+  fillRect(img, 8, 18, 22, 1, C.mist2);
+  fillRect(img, 8, 18, 1, 9, C.mist);
+  fillRect(img, 29, 18, 1, 9, C.navy2);
+  fillRect(img, 9, 26, 20, 1, C.navy);
+  // two tapioca discs on the chapa, one still pale and one lacy
+  shape(img, ell(14, 22, 4.2, 3.2), [14, 22, 4.2, 3.2], ['#e2b340', '#f0d090', '#fff6e0', '#fffdf8'], { ol: NAVY, t: [0.8, 0.35, 0] });
+  shape(img, ell(23, 22, 3.6, 2.8), [23, 22, 3.6, 2.8], ['#f0d090', '#fff6e0', '#fffdf8', '#ffffff'], { ol: NAVY, t: [0.82, 0.4, 0] });
+  put(img, 13, 21, '#fffdf8'); put(img, 22, 21, '#fff59a');
+  // a red pilot light and a dial on the chapa front
+  put(img, 10, 25, C.r1); put(img, 12, 25, C.y2);
+  // four filling bowls along the right of the counter
+  const bowls = [C.y2, C.cr0, '#6b3a22', C.r2];
+  bowls.forEach((c, i) => {
+    const x = 34 + i * 6;
+    fillRect(img, x, 22, 5, 4, C.lav3);
+    fillRect(img, x, 22, 5, 1, C.white);
+    fillRect(img, x + 1, 23, 3, 2, c);
+    put(img, x + 1, 23, C.white);
+  });
+  // awning poles
+  fillRect(img, 8, 8, 2, 18, C.w4);
+  fillRect(img, 8, 8, 1, 18, C.w1);
+  fillRect(img, 54, 8, 2, 18, C.w4);
+  fillRect(img, 55, 8, 1, 18, C.w6);
+  // striped awning (feira red / cream / yellow / green), scalloped front
+  const STRIPES = [C.r2, C.cr0, C.y2, C.cr0, C.g2, C.cr0];
+  for (let x = 6; x <= 57; x++) {
+    const col = STRIPES[Math.floor((x - 6) / 4) % STRIPES.length];
+    const scallop = (x % 6) < 2 ? 1 : (x % 6) > 3 ? 1 : 0;
+    for (let y = 4; y < 14 + scallop; y++) put(img, x, y, y < 6 ? (col === C.cr0 ? C.white : col) : col);
+    if (x % 4 === 3) for (let y = 5; y < 13; y++) put(img, x, y, NAVY);
+  }
+  fillRect(img, 6, 4, 52, 1, NAVY);
+  // a string of bulbs under the awning
+  for (let x = 12; x < 54; x += 6) put(img, x, 15, C.y0);
+  // push handle on the right
+  fillRect(img, 58, 20, 2, 16, C.w5);
+  fillRect(img, 58, 20, 1, 16, C.w2);
+  fillRect(img, 57, 18, 5, 2, C.w3);
+  fillRect(img, 57, 18, 5, 1, C.w0);
+  outlineAround(img);
+  return [{ img, anchor: [32, 60] }];
+}
+
+/** A bright Feira easel: cream board, festa stripes, FEIRA in mustard, three medal pips and a little crown. Not the mat scoreboard. */
+export async function feiraGameSign() {
+  const img = blank(44, 52);
+  // legs and feet
+  fillRect(img, 8, 36, 3, 14, C.w4);
+  fillRect(img, 8, 36, 1, 14, C.w1);
+  fillRect(img, 33, 36, 3, 14, C.w4);
+  fillRect(img, 35, 36, 1, 14, C.w6);
+  fillRect(img, 6, 48, 7, 2, C.w5);
+  fillRect(img, 31, 48, 7, 2, C.w5);
+  // cross brace
+  for (let i = 0; i < 10; i++) put(img, 12 + i, 40 + Math.floor(i / 3), C.w5);
+  // board
+  fillRect(img, 2, 6, 40, 32, NAVY);
+  fillRect(img, 3, 7, 38, 30, C.y1);
+  fillRect(img, 3, 7, 38, 2, C.y0);
+  fillRect(img, 3, 7, 2, 30, C.y0);
+  fillRect(img, 39, 7, 2, 30, C.y4);
+  fillRect(img, 3, 35, 38, 2, C.y4);
+  // festa stripe along the top of the face
+  const stripe = [C.r2, C.y2, C.g2, C.b2];
+  for (let x = 5; x < 39; x++) put(img, x, 10, stripe[(x - 5) % 4]);
+  for (let x = 5; x < 39; x++) put(img, x, 11, stripe[(x - 5) % 4]);
+  // a little crown above the word
+  fillRect(img, 18, 13, 8, 3, C.y2);
+  put(img, 18, 12, C.y2); put(img, 21, 12, C.y0); put(img, 25, 12, C.y2);
+  put(img, 19, 14, C.r2); put(img, 22, 14, C.b2); put(img, 24, 14, C.g2);
+  // FEIRA
+  drawText3(img, 12, 18, 'FEIRA', C.r4, C.y4);
+  // three medal pips: gold, silver, bronze — flat discs, a one-pixel shine
+  const medals = [
+    [C.y4, C.y2, C.y1, C.y0],
+    [C.slate2, C.lav, C.lav3, C.white],
+    [K.te4, K.te2, K.te0, K.or0],
+  ];
+  medals.forEach((ramp, i) => {
+    const x = 14 + i * 8;
+    shape(img, ell(x, 29, 3.1, 3.1), [x, 29, 3.1, 3.1], ramp, { ol: NAVY, t: [0.84, 0.5, 0.12] });
+  });
+  outlineAround(img);
+  return [{ img, anchor: [22, 50] }];
+}
 void flat; void sub; void and; void grid; void crop; void rect; void flipH; void NAVY;

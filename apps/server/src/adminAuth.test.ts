@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { ADMIN_DEV_PASSWORD, readAdminAuthConfig } from './adminAuth.js';
+import { ADMIN_DEV_PASSWORD, adminPasswordMatches, readAdminAuthConfig } from './adminAuth.js';
+
+describe('adminPasswordMatches', () => {
+  it('accepts the expected secret and rejects typos in constant time', () => {
+    expect(adminPasswordMatches('super-secret-admin', 'super-secret-admin')).toBe(true);
+    expect(adminPasswordMatches('super-secret-admi', 'super-secret-admin')).toBe(false);
+    expect(adminPasswordMatches('', 'super-secret-admin')).toBe(false);
+  });
+});
 
 describe('readAdminAuthConfig', () => {
   it('uses TB_ADMIN_PASSWORD when valid', () => {
