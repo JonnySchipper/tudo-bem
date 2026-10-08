@@ -1,7 +1,7 @@
 /**
  * Synthesized sound effects of "Correria no Balcão", in the same Web Audio style as boutSfx.ts / ambience.ts (no samples): a pop for a grab,
  * the sizzle of the chapa, a soft "ready" ding, a burnt buzz, the coffee pour, the service bell, the tip jar clink, the register,
- * paper for the bag, the door chime of a new wave, a low "nope" and a rising combo arpeggio. Pure recipes over an AudioContext.
+ * paper for the bag, the door chime of a new wave, a low "nope", a rising combo arpeggio and the espremedor (roll, chop, whirr, squish). Pure recipes over an AudioContext.
  */
 
 export type CorreriaSfx =
@@ -22,7 +22,8 @@ export type CorreriaSfx =
   | 'combo'
   | 'tick'
   | 'slap'
-  | 'sigh';
+  | 'sigh'
+  | 'juicer';
 
 export function noise(ctx: AudioContext, white: AudioBuffer, dest: AudioNode, when: number, dur: number, type: BiquadFilterType, f0: number, f1: number, peak: number, q = 0.8, attack = 0.01) {
   const src = ctx.createBufferSource();
@@ -125,6 +126,14 @@ export function playCorreriaSfx(ctx: AudioContext, dest: AudioNode, white: Audio
       break;
     case 'tick':
       tone(ctx, dest, now, 880, 700, 0.05, 0.03, 'triangle');
+      break;
+    case 'juicer':
+      // the espremedor through one orange: a roll, the blade's chop, the motor whirring the cups shut, and the juice squishing out
+      tone(ctx, dest, now, 300, 220, 0.08, 0.03, 'triangle');
+      noise(ctx, white, dest, now + 0.12, 0.04, 'bandpass', 2600, 1800, 0.09, 1.4, 0.001);
+      tone(ctx, dest, now + 0.2, 110, 150, 0.28, 0.035, 'sawtooth');
+      noise(ctx, white, dest, now + 0.36, 0.2, 'bandpass', 700, 420, 0.07, 1.8, 0.02);
+      tone(ctx, dest, now + 0.4, 260, 340, 0.14, 0.02, 'sine');
       break;
   }
 }

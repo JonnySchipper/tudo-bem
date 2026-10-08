@@ -1,10 +1,12 @@
 // "Correria no Balcão" art: everything that sits on / around the padaria counter in the minigame work area (docs/lifesim/CORRERIA-REDESIGN.md).
 // Keys (one sprite per frame, anchors bottom centre unless noted): balcao/item_<id> (12 shelf items, 28x28), tray, tray_full, bag, plate,
-// chapa_idle / chapa_sizzle_0..2 / chapa_burnt, coffee_idle / coffee_pour_0..3, register, bell_0..1, tipjar_0..3, patience_0..4, fx/steam_0..3.
+// chapa_idle / chapa_sizzle_0..2 / chapa_burnt, coffee_idle / coffee_pour_0..3, register, bell_0..1, tipjar_0..3, patience_0..4, fx/steam_0..3,
+// and the espremedor (juicer_*, juice_glass_*, orange_*, laranjas) from juicer.mjs.
 // Authored with the padaria's palette: navy outline, light from the upper left, LimeZu ramps (K / C), terracotta / cream / mustard accents.
 import { blank, put, fillRect, shape, ell, profile, setPx, hexPx, NAVY, C, K } from './paint.mjs';
 import { outlineAround } from './draw.mjs';
 import { ICONS } from './icons.mjs';
+import { juicerParts } from './juicer.mjs';
 
 // ------------------------------------------------------------------ palette
 const CRUST = ['#a9764f', '#c78c59', '#daa463', '#f2bd7a'];
@@ -734,6 +736,7 @@ export function balcaoParts() {
   for (let k = 0; k < 4; k++) add(`balcao/tipjar_${k}`, tipjar(k), [10, 23]);
   for (let k = 0; k < 5; k++) add(`balcao/patience_${k}`, patience(k), [7, 14]);
   for (let k = 0; k < 4; k++) add(`fx/steam_${k}`, steam(k), [7, 23]);
+  for (const p of juicerParts()) out.push(p);
   return out;
 }
 

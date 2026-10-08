@@ -155,6 +155,12 @@ export function cueFor(e: CEvent): { sfx?: CorreriaSfx; toast?: Bilingual & { to
       return { sfx: 'ready' };
     case 'pour_bad':
       return { sfx: 'nope', toast: e.why === 'short' ? { pt: 'Faltou café!', en: 'Not enough coffee!', tone: 'info' } : { pt: 'Derramou!', en: 'Spilled!', tone: 'bad' } };
+    case 'juice_drop':
+      return { sfx: 'juicer' };
+    case 'juice_ok':
+      return { sfx: 'ready' };
+    case 'juice_bad':
+      return { sfx: e.why === 'spill' ? 'glug' : 'nope', toast: e.why === 'short' ? { pt: 'Faltou suco! Pare na linha.', en: 'Not enough juice! Stop at the line.', tone: 'info' } : { pt: 'Transbordou!', en: 'It overflowed!', tone: 'bad' } };
     case 'pack':
       return { sfx: 'paper' };
     case 'serve':
