@@ -143,6 +143,26 @@
 
 .credits-panel {
   width: min(560px, calc(100vw - 24px));
+  /* min-height: 0 lets max-height win inside the centered grid backdrop */
+  min-height: 0;
+  max-height: min(92dvh, calc(100dvh - 24px));
+  overflow: auto;
+}
+
+.credits-logo {
+  width: auto;
+  height: auto;
+  max-width: min(100%, 340px);
+  max-height: 112px;
+  margin: 12px auto 6px;
+}
+
+@media (max-width: 640px) {
+  .credits-logo {
+    /* The close key sits in the top-right; keep the parrot's head clear of it. */
+    margin-top: 40px;
+    max-width: min(100%, 300px);
+  }
 }
 
 .credits-art {

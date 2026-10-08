@@ -32,6 +32,9 @@ import {
   idleWarningCopy,
   type Weather,
   withoutHiddenFeiraCart,
+  installRoomProps,
+  revertRoomProps,
+  validateRoomLayout,
   isRoomId,
   key,
   MAX_CHAT_LEN,
@@ -63,7 +66,10 @@ import {
   MISSION_STEPS,
   frontOf,
   weekday,
+  addCalendarDays,
   gameDay,
+  GAME_DAY_MS,
+  todayEastern,
   type DailyMission,
   type MissionStep,
   type Appearance,
@@ -91,8 +97,11 @@ import {
   bubbleAppearance,
   hasPerkAccess,
   isBubbleStyle,
+  petNameDecision,
   revokeTestSubscription,
+  validatePetName,
   visiblePet,
+  visiblePetName,
   GI_ITEM_ID,
   GI_PRICE,
   buyParrotColor,
@@ -138,10 +147,11 @@ import {
   type PrivateProfile,
   type FeiraCartSchedule,
 } from '@tudobem/shared';
-import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
+import type { ChatSafetyCtx, ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
 import { JEV_CONTEXT_LINES } from './services/jevModel.js';
 import { AcademyStore } from './academyStore.js';
 import { PadariaStore } from './padariaStore.js';
+import { handleAdminTest, isAdminTestAction, type AdminTestHost } from './adminTestes.js';
 import { ProfileStore, today, todaySaoPaulo, toPrivate, type StoredProfile } from './store.js';
 import { CpuCrowd } from './ambiance.js';
 import { readEnv } from './env.js';
@@ -160,6 +170,8 @@ import { BoutEngine, type BoutSession } from './bout.js';
 import { CartelaTracker } from './cartela.js';
 import { ADMIN_MONEY_MAX, ADMIN_WRONG_PASSWORD, adminPasswordMatches, readAdminAuthConfig } from './adminAuth.js';
 import { DevBillingProvider } from './billing/devProvider.js';
+import { publishLayoutPullRequest } from './designGithub.js';
+import { LayoutStore } from './layoutStore.js';
 
 export interface Services {
   safety: ChatSafetyService;
@@ -215,6 +227,12 @@ export interface WorldOptions {
    * without it. Ignored unless the id is one this build can start.
    */
   feiraPin?: string;
+  /** Saved design-mode layouts. Omit for none (tests). The Node server passes the file-backed store. */
+  layouts?: LayoutStore;
+  /** GitHub token for "Enviar para o código". Omit to read `TB_GITHUB_TOKEN`. `null` forces it unset. */
+  githubToken?: string | null;
+  /** Test double for the GitHub REST client. */
+  githubFetch?: typeof fetch;
 }
 
 /** What the World needs from the account store (kept tiny so world.ts stays browser-safe for solo mode). */
@@ -260,14 +278,18 @@ export interface Session {
   feiraGame?: FeiraGameRun;
   /** Treino no tatame: the bout in progress (apps/server/src/bout.ts). */
   bout?: BoutSession;
-  /** Last tatame loss: rematch same partner and guard position. */
-  boutRematch?: { partner: import('@tudobem/shared').PartnerId; position: import('@tudobem/shared').BjjPositionId; weakSpot?: import('@tudobem/shared').GripSpot };
   chatTimes: number[];
   lastHintAt: number;
   /** Snack, drink, or empty in hand (session only; cleared on disconnect). Never a cosmetic. */
   carry: CarryId | null;
   /** Hidden admin panel unlocked for this socket (password checked server-side). */
   admin?: boolean;
+  /**
+   * Forwarded into the chat safety classifier (the same object chat and pet names use).
+   * Unset in production: the live game is 18+, and the under-13 hold is design-only until a real age path exists.
+   * Tests set it so a model-down warn is held instead of accepted.
+   */
+  under13?: boolean;
 }
 
 const INSTANCE_SUFFIX = ['Norte', 'Sul', 'Leste', 'Oeste'];
@@ -338,6 +360,9 @@ export class World {
   readonly academies: AcademyStore;
   readonly padarias: PadariaStore;
   readonly padariaOwnership: boolean;
+  private readonly layouts: LayoutStore;
+  private readonly githubToken?: string;
+  private readonly githubFetch?: typeof fetch;
 
   constructor(
     readonly store: ProfileStore,
@@ -363,6 +388,15 @@ export class World {
     this.academies = opts.academies ?? new AcademyStore(null);
     this.padarias = opts.padarias ?? new PadariaStore(null);
     this.padariaOwnership = opts.padariaOwnership ?? readEnv('TB_PADARIA_OWNERSHIP') === '1';
+    this.layouts = opts.layouts ?? new LayoutStore();
+    for (const row of this.layouts.overrides()) installRoomProps(row.room, row.objects);
+    if (opts.githubToken === null) this.githubToken = undefined;
+    else if (typeof opts.githubToken === 'string') this.githubToken = opts.githubToken.trim() || undefined;
+    else {
+      const fromEnv = readEnv('TB_GITHUB_TOKEN')?.trim();
+      this.githubToken = fromEnv || undefined;
+    }
+    this.githubFetch = opts.githubFetch;
     this.idleKickMs = Math.max(1000, opts.idleKickMs ?? IDLE_KICK_MS);
     this.cartela = new CartelaTracker({
       now: () => this.now(),
@@ -371,7 +405,7 @@ export class World {
       pushProfile: (s) => this.pushProfile(s),
     });
     this.recados = new RecadoTracker({
-      now: () => this.now(),
+      now: () => this.clockNow(),
       store,
       reward: (s, amount, reason) => this.reward(s, amount, reason),
       pushProfile: (s) => this.pushProfile(s),
@@ -928,7 +962,15 @@ export class World {
     s.profile = p;
     p.nameplate = this.services.student.nameplateFor(p);
     p.lastSeen = this.now();
-    s.send({ t: 'welcome', profile: this.privateProfile(p), token: p.token, serverNow: this.clockNow(), weather: this.weatherPin });
+    const layouts = this.layouts.overrides();
+    s.send({
+      t: 'welcome',
+      profile: this.privateProfile(p),
+      token: p.token,
+      serverNow: this.personalNow(p),
+      weather: this.weatherPin,
+      ...(layouts.length ? { layouts } : {}),
+    });
     if (p.photos?.length) this.pushPhotos(s);
     this.notifyFriendsOfPresence(p.id);
     const incoming = this.incomingFriendReqs.get(p.id);
@@ -999,7 +1041,7 @@ export class World {
 
   /** The profile the client sees, plus the padaria this player founded (flag-on only) so the HUD and the door can take them home. */
   private privateProfile(p: StoredProfile): PrivateProfile {
-    const out = toPrivate(p);
+    const out = toPrivate(p, this.capDate(today(), p));
     const own = this.padariaOwnership ? this.padarias.ownedBy(p.id) : undefined;
     if (own) out.padaria = { id: own.id, name: own.name, size: own.size };
     return out;
@@ -1130,7 +1172,7 @@ export class World {
       selfId: s.profile!.id,
       avatars: [...[...target.members.values()].map((m) => this.publicAvatar(m)), ...(target.crowd?.avatars() ?? []), ...(target.def.private || padariaIdFromInstance(target.id) ? [] : this.npcs.avatarsIn(def.id))],
       furniture,
-      serverNow: this.clockNow(),
+      serverNow: this.personalNow(s.profile),
       ...(target.def.id === 'andar' ? { academy: this.floorCard(target, s) } : {}),
       ...(padariaIdFromInstance(target.id) ? { padaria: this.floorPadariaCard(target, s) } : {}),
       ...(def.id === 'feira' ? { feiraCart: this.feiraGames.cartSnapshot() } : {}),
@@ -1163,6 +1205,67 @@ export class World {
   /** The game clock: real time plus the test offset. Everything the players see as time of day comes from here. */
   private clockNow() {
     return this.now() + this.clockOffsetMs;
+  }
+
+  /** This profile's sky: the shared neighborhood clock plus only their Testes offset. */
+  private personalNow(p?: { testClockOffsetMs?: number } | null): number {
+    return this.clockNow() + (p?.testClockOffsetMs ?? 0);
+  }
+
+  /** A real calendar key shifted by this profile's day offset. Other profiles stay on `base`. */
+  private capDate(base: string, p?: { testDayOffset?: number } | null): string {
+    return addCalendarDays(base, p?.testDayOffset ?? 0);
+  }
+
+  /** One calendar day and one game day on this profile. The neighborhood clock and the Feira board stay put. */
+  private rollPersonalDay(p: StoredProfile): void {
+    p.testDayOffset = (p.testDayOffset ?? 0) + 1;
+    p.testClockOffsetMs = (p.testClockOffsetMs ?? 0) + GAME_DAY_MS;
+  }
+
+  /** Move only this profile's sky so the game minute reads `minute`. */
+  private setPersonalMinute(p: StoredProfile, minute: number): number {
+    const target = Math.max(0, Math.min(1439.99, minute));
+    const cur = gameMinutesExact(this.personalNow(p));
+    p.testClockOffsetMs = (p.testClockOffsetMs ?? 0) + (((target - cur) % 1440) + 1440) % 1440 * MS_PER_GAME_MINUTE;
+    return gameMinutes(this.personalNow(p));
+  }
+
+  private adminTestHost(): AdminTestHost {
+    return {
+      now: () => this.now(),
+      clockNow: () => this.clockNow(),
+      utcDay: () => today(),
+      spDay: () => todaySaoPaulo(),
+      easternDay: () => todayEastern(this.now()),
+      minuteOf: (p) => gameMinutes(this.personalNow(p)),
+      gameDayOf: (p) => gameDay(this.personalNow(p)),
+      store: this.store,
+      padarias: this.padarias,
+      padariaOwnership: this.padariaOwnership,
+      findOnline: (id) => this.sessionByProfile(id),
+      setPersonalMinute: (p, minute) => this.setPersonalMinute(p, minute),
+      rollPersonalDay: (p) => this.rollPersonalDay(p),
+      join: (session, room) => this.join(session as Session, room),
+      clearFeiraPaid: (id) => this.feiraGames.clearPaid(id),
+      pushLive: (session) => this.pushTestAvatar(session as Session),
+      pushPersonalClock: (session) => {
+        const s = session as Session;
+        this.pushSky(s);
+        this.recados.sendBoard(s);
+      },
+      err: (session, pt, en) => this.err(session as Session, 'admin', pt, en),
+      notice: (session, pt, en) => session.send({ t: 'notice', level: 'info', pt, en }),
+    };
+  }
+
+  /** Profile plus the avatar, including the player themselves, so the HUD and the nameplate update together. */
+  private pushTestAvatar(s: Session) {
+    this.pushProfile(s);
+    if (!s.instance || !s.profile) return;
+    const msg = { t: 'avatarUpdated' as const, avatar: this.publicAvatar(s) };
+    s.send(msg);
+    this.broadcast(s.instance, msg, s);
   }
 
   /**
@@ -1205,11 +1308,14 @@ export class World {
     return true;
   }
 
-  /** Push the live sky (clock stamp + weather pin) to one session or every connected player. */
+  /** Push the live sky. Each player gets the shared weather and their own clock offset. */
   private pushSky(to?: Session) {
-    const msg = { t: 'sky' as const, serverNow: this.clockNow(), weather: this.weatherPin };
-    if (to) return to.send(msg);
-    for (const s of this.sessions.values()) if (s.profile) s.send(msg);
+    const send = (s: Session) => {
+      if (!s.profile) return;
+      s.send({ t: 'sky', serverNow: this.personalNow(s.profile), weather: this.weatherPin });
+    };
+    if (to) return send(to);
+    for (const s of this.sessions.values()) send(s);
   }
 
   private admin(s: Session, msg: Extract<ClientMsg, { t: 'admin' }>) {
@@ -1236,6 +1342,7 @@ export class World {
       return this.adminList(s);
     }
     if (!s.admin) {
+      if (isAdminTestAction(msg.action)) console.log(`[admin-testes] rejected ${msg.action} (no admin session)`);
       return s.send({
         t: 'admin',
         phase: 'auth',
@@ -1279,6 +1386,11 @@ export class World {
     if (msg.action === 'subscribers') return this.adminSubscribers(s);
     if (msg.action === 'grantSub') return this.adminGrantSub(s, msg.targetId);
     if (msg.action === 'revokeSub') return this.adminRevokeSub(s, msg.targetId);
+    if (msg.action === 'layoutGet') return this.adminLayoutGet(s, msg.room);
+    if (msg.action === 'layoutSave') return this.adminLayoutSave(s, msg.room, msg.objects);
+    if (msg.action === 'layoutRevert') return this.adminLayoutRevert(s, msg.room);
+    if (msg.action === 'layoutPublish') return this.adminLayoutPublish(s, msg.room, msg.objects);
+    if (isAdminTestAction(msg.action)) return handleAdminTest(this.adminTestHost(), s, msg);
   }
 
   private adminSubscribers(s: Session) {
@@ -1328,6 +1440,65 @@ export class World {
     this.syncEntitlements(p.id);
     this.adminSubscribers(s);
     s.send({ t: 'notice', level: 'info', pt: 'Assinatura de teste encerrada.', en: 'Test subscription ended.' });
+  }
+
+  private noteLayout(room: string) {
+    if (room === 'feira') this.hiddenFeira = null;
+  }
+
+  private broadcastLayout(room: import('@tudobem/shared').RoomId, objects: import('@tudobem/shared').PropDef[] | null) {
+    const msg = { t: 'layout' as const, room, objects };
+    for (const sess of this.sessions.values()) if (sess.profile) sess.send(msg);
+  }
+
+  private adminLayoutGet(s: Session, roomId: string) {
+    if (!isRoomId(roomId)) return this.err(s, 'admin', 'Sala desconhecida.', 'Unknown room.');
+    s.send({ t: 'admin', phase: 'layout', room: roomId, source: this.layouts.has(roomId) ? 'override' : 'code' });
+  }
+
+  private adminLayoutSave(s: Session, roomId: string, objects: unknown) {
+    const v = validateRoomLayout(roomId, objects);
+    if (!v.ok) return this.err(s, 'admin', v.pt, v.en);
+    installRoomProps(v.room, v.objects);
+    this.noteLayout(v.room);
+    this.layouts.set(v.room, v.objects);
+    this.broadcastLayout(v.room, v.objects);
+    s.send({ t: 'admin', phase: 'layout', room: v.room, source: 'override' });
+    s.send({ t: 'notice', level: 'info', pt: 'Layout salvo. Todo mundo já vê.', en: 'Layout saved. Everyone can see it.' });
+  }
+
+  private adminLayoutRevert(s: Session, roomId: string) {
+    if (!isRoomId(roomId)) return this.err(s, 'admin', 'Sala desconhecida.', 'Unknown room.');
+    revertRoomProps(roomId);
+    this.noteLayout(roomId);
+    this.layouts.set(roomId, null);
+    this.broadcastLayout(roomId, null);
+    s.send({ t: 'admin', phase: 'layout', room: roomId, source: 'code' });
+    s.send({ t: 'notice', level: 'info', pt: 'Sala de volta ao código.', en: 'Room is back to the code layout.' });
+  }
+
+  private adminLayoutPublish(s: Session, roomId: string, objects: unknown) {
+    const v = validateRoomLayout(roomId, objects);
+    if (!v.ok) return this.err(s, 'admin', v.pt, v.en);
+    return publishLayoutPullRequest({ token: this.githubToken, room: v.room, objects: v.objects, fetch: this.githubFetch }).then((r) => {
+      if (this.sessions.get(s.id) !== s) return;
+      if (r.ok) {
+        s.send({ t: 'admin', phase: 'layoutPublished', room: v.room, url: r.url, fallback: false, pt: 'Pull request aberto.', en: 'Pull request opened.' });
+        return;
+      }
+      if (r.reason === 'no-token') {
+        s.send({
+          t: 'admin',
+          phase: 'layoutPublished',
+          room: v.room,
+          fallback: true,
+          pt: 'O token do GitHub não está configurado. Baixe o arquivo e guarde no repositório.',
+          en: 'The GitHub token is not configured. Download the file and commit it in the repo.',
+        });
+        return;
+      }
+      s.send({ t: 'notice', level: 'warn', pt: 'Não consegui abrir o pull request.', en: 'Could not open the pull request.' });
+    });
   }
 
   private adminFeiraCart(s: Session) {
@@ -1519,6 +1690,7 @@ export class World {
       founder: normalizeFounderFlag(p.founder),
       founderBadge: p.founderBadge === true,
       pet: visiblePet(p.pet, hasPerkAccess(p.subscription, this.now())),
+      petName: visiblePetName(p.pet, p.petNames, hasPerkAccess(p.subscription, this.now())),
       bubbleStyle: bubbleAppearance('', p.bubbleStyle, hasPerkAccess(p.subscription, this.now())).style,
       ...(this.feiraGames.crownId() === p.id ? { feiraCrown: true } : {}),
       x: cur.tile.x,
@@ -1535,7 +1707,7 @@ export class World {
     const member = !!(academy && academy.members.includes(p.id));
     if (member && academy) return { gi: true, belt: normalizeBjj(p.bjj).belt, academyGi: { color: academy.giColor, stamp: academy.giStamp } };
     if (p.giOwned) return { gi: true, belt: normalizeBjj(p.bjj).belt };
-    return { gi: false, belt: undefined };
+    return { gi: false };
   }
 
   private floorAcademy(s: Session): PlayerAcademy | undefined {
@@ -1640,7 +1812,7 @@ export class World {
     if (s.chatTimes.length >= CHAT_RATE.max)
       return s.send({ t: 'notice', level: 'warn', pt: 'Calma! Uma mensagem de cada vez.', en: 'Easy! Too many messages — wait a few seconds.' });
     s.chatTimes.push(now);
-    const verdict = await this.services.safety.classify(text, { playerId: p.id, room: inst.id, nameplate: p.nameplate, recent: inst.recentChat.slice() });
+    const verdict = await this.services.safety.classify(text, this.safetyCtx(s));
     if (verdict.action === 'block' || verdict.action === 'escalate') {
       this.flag(s, 'chat', verdict, text);
       return s.send({ t: 'notice', level: 'block', pt: verdict.note?.pt ?? 'Mensagem bloqueada.', en: verdict.note?.en ?? 'Message blocked.' });
@@ -1659,8 +1831,23 @@ export class World {
     if (greetingKind(verdict.text)) this.recados.onEvent(s, { kind: 'greeted', text: verdict.text, minute: gameMinutes(this.clockNow()), company: this.hasCompany(inst) });
   }
 
+  /**
+   * The context chat and pet names share, so both hit the word filter first and then the moderation model,
+   * including the under-13 hold when `session.under13` is set.
+   */
+  private safetyCtx(s: Session): ChatSafetyCtx {
+    const p = s.profile!;
+    return {
+      playerId: p.id,
+      room: s.instance?.id ?? '-',
+      nameplate: p.nameplate,
+      recent: s.instance?.recentChat.slice() ?? [],
+      ...(s.under13 ? { under13: true } : {}),
+    };
+  }
+
   /** Log a non-allow Jev verdict; escalations are queued for human review. */
-  private flag(s: Session, surface: 'chat' | 'npc_reply', verdict: SafetyVerdict, text: string) {
+  private flag(s: Session, surface: 'chat' | 'npc_reply' | 'profile', verdict: SafetyVerdict, text: string) {
     const p = s.profile!;
     this.services.moderation.push({
       kind: verdict.action as 'warn' | 'block' | 'escalate',
@@ -1785,7 +1972,7 @@ export class World {
       this.recados.onEvent(s, { kind: 'ordered', npc: 'carlos', items: sceneItems(sc.ctx) });
 
       // Pedido rápido RV: once per America/São_Paulo calendar day (fixes double-dip after Missão/prior Pedido)
-      const spDate = todaySaoPaulo();
+      const spDate = this.capDate(todaySaoPaulo(), p);
       const lastGrant = p.daily.pedidoRvGranted?.[sc.npc];
       if (lastGrant === spDate) {
         dailyBlocked = true;
@@ -1803,10 +1990,11 @@ export class World {
   }
 
   private rollDaily(p: StoredProfile) {
-    if (p.daily.date !== today()) {
+    const day = this.capDate(today(), p);
+    if (p.daily.date !== day) {
       const { conversaClears, conversaRvGranted } = p.daily;
       p.daily = {
-        date: today(),
+        date: day,
         sceneClears: {},
         ...(conversaClears ? { conversaClears } : {}),
         ...(conversaRvGranted ? { conversaRvGranted } : {}),
@@ -1843,7 +2031,11 @@ export class World {
     this.broadcastAvatar(s);
   }
 
-  private perk(s: Session, msg: Extract<ClientMsg, { t: 'perk' }>) {
+  private async perk(s: Session, msg: Extract<ClientMsg, { t: 'perk' }>) {
+    if (msg.action === 'petName') {
+      if (msg.pet !== 'dog' && msg.pet !== 'cat') return;
+      return this.namePet(s, msg.pet, typeof msg.name === 'string' ? msg.name : '');
+    }
     const p = s.profile!;
     const active = hasPerkAccess(p.subscription, this.now());
     if (msg.action === 'pet') {
@@ -1859,6 +2051,31 @@ export class World {
       }
       p.bubbleStyle = msg.style;
     }
+    this.store.save();
+    this.pushProfile(s);
+    this.broadcastAvatar(s);
+  }
+
+  /**
+   * Name one pet. Shape first, then the same classifier as chat (word filter, then the moderation model).
+   * A name that is not `allow` is refused with the classifier's note. The profile keeps the trimmed
+   * text the player typed, or nothing — never a censored or substituted string.
+   */
+  private async namePet(s: Session, pet: 'dog' | 'cat', raw: string) {
+    const p = s.profile!;
+    if (!hasPerkAccess(p.subscription, this.now())) {
+      return this.err(s, 'petName', 'Pets de assinante ficam disponíveis enquanto a assinatura está ativa.', 'Subscriber pets are available while the subscription is active.');
+    }
+    const shape = validatePetName(raw);
+    if (!shape.ok) return this.err(s, 'petName', shape.reason.pt, shape.reason.en);
+    const verdict = await this.services.safety.classify(shape.name, this.safetyCtx(s));
+    if (this.sessions.get(s.id) !== s || s.profile !== p) return;
+    const decision = petNameDecision(shape.name, verdict);
+    if (!decision.ok) {
+      this.flag(s, 'profile', verdict, decision.name);
+      return this.err(s, 'petName', decision.reason.pt, decision.reason.en);
+    }
+    p.petNames = { ...(p.petNames ?? {}), [pet]: decision.name };
     this.store.save();
     this.pushProfile(s);
     this.broadcastAvatar(s);
@@ -1885,7 +2102,8 @@ export class World {
   // ---------- daily kiosk (Missão do dia) ----------
 
   private missionOf(p: StoredProfile): DailyMission {
-    if (p.mission?.date !== today()) p.mission = freshMission(today());
+    const day = this.capDate(today(), p);
+    if (p.mission?.date !== day) p.mission = freshMission(day);
     return p.mission;
   }
 

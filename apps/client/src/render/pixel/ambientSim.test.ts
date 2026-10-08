@@ -18,8 +18,14 @@ import {
   busRemaining,
   busX,
   butterfliesActive,
+  CLOUD_CROPS,
+  CLOUD_FADE_SEC,
   cloudBlobs,
+  cloudCrossFade,
+  cloudEnterAlpha,
+  cloudHome,
   cloudShadowAlpha,
+  cloudSpriteMask,
   dogModeAt,
   firefliesActive,
   makeFlock,
@@ -301,6 +307,56 @@ describe('small things', () => {
     const later = cloudBlobs(4, 10, 896, 640);
     expect(blobs).toHaveLength(4);
     blobs.forEach((b, i) => expect(later[i].x - b.x).toBeCloseTo(CLOUD_SPEED * 10, 5));
+  });
+
+  it('places clouds whole on load and only wraps them once they are fully off the map', () => {
+    const w = 512;
+    const h = 384;
+    const view = { x0: 40, y0: 20, x1: 360, y1: 300 };
+    const home = cloudHome(4, w, h, view);
+    home.forEach((p, i) => {
+      const c = CLOUD_CROPS[i];
+      expect(p.x).toBeGreaterThanOrEqual(view.x0);
+      expect(p.y).toBeGreaterThanOrEqual(view.y0);
+      expect(p.x + c[2]).toBeLessThanOrEqual(view.x1);
+      expect(p.y + c[3]).toBeLessThanOrEqual(view.y1);
+    });
+    // the mask kills the rectangle edge, so a sprite is not a half-cut slice of the noise
+    for (const [, , cw, ch] of CLOUD_CROPS) {
+      expect(cloudSpriteMask(0, Math.floor(ch / 2), cw, ch)).toBe(0);
+      expect(cloudSpriteMask(cw - 1, Math.floor(ch / 2), cw, ch)).toBe(0);
+      expect(cloudSpriteMask(Math.floor(cw / 2), 0, cw, ch)).toBe(0);
+      expect(cloudSpriteMask(Math.floor(cw / 2), ch - 1, cw, ch)).toBe(0);
+      expect(cloudSpriteMask(Math.floor(cw / 2), Math.floor(ch / 2), cw, ch)).toBe(1);
+    }
+    expect(cloudEnterAlpha(0)).toBe(0);
+    expect(cloudEnterAlpha(CLOUD_FADE_SEC)).toBe(1);
+    expect(cloudEnterAlpha(CLOUD_FADE_SEC / 2)).toBeGreaterThan(0);
+    expect(cloudEnterAlpha(CLOUD_FADE_SEC / 2)).toBeLessThan(1);
+    const blobs = cloudBlobs(4, 0, w, h, home);
+    blobs.forEach((b, i) => {
+      const cw = CLOUD_CROPS[i][2];
+      expect(cloudCrossFade(b.x, cw, w)).toBe(1);
+      expect(cloudCrossFade(-cw, cw, w)).toBe(0);
+      expect(cloudCrossFade(w, cw, w)).toBe(0);
+    });
+    const dt = 1 / 20;
+    let wraps = 0;
+    for (let i = 0; i < 4; i++) {
+      const cw = CLOUD_CROPS[i][2];
+      let prev = cloudBlobs(4, 0, w, h, home)[i];
+      for (let t = dt; t < 180; t += dt) {
+        const b = cloudBlobs(4, t, w, h, home)[i];
+        const jumped = Math.abs(b.x - prev.x - CLOUD_SPEED * dt) > 0.5;
+        if (jumped) {
+          wraps++;
+          expect(prev.x).toBeGreaterThanOrEqual(w - 1);
+          expect(b.x + cw).toBeLessThanOrEqual(1);
+        }
+        prev = b;
+      }
+    }
+    expect(wraps).toBeGreaterThan(0);
   });
 });
 

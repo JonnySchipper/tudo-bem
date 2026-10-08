@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MOMENTUM_THRESHOLD, MOVE_LABEL, REF_LINES, type BoutServerMsg, type BoutSnapshot } from '@tudobem/shared';
 import { GAG_TRACKS } from '../render/pixel/gagCartoon';
-import { callOf, clockAt, crowdForResolve, cuesForEnd, cuesForFinishEnd, cuesForResolve, ladderDots, matGlossLocked, matRootClass, momentumFrac, resultBanner, moveHint, oddsTone, coachTip } from './boutLogic';
+import { callOf, clockAt, crowdForResolve, cuesForEnd, cuesForFinishEnd, cuesForResolve, ladderDots, matGlossLocked, matRootClass, momentumFrac, resultBanner, moveHint, oddsTone, coachTip, cuesForGrip, gripEventLine, gripLife, groundRead, isBraceMove, meterFrac } from './boutLogic';
 
 type Resolve = Extract<BoutServerMsg, { phase: 'resolve' }>;
 type FinishEnd = Extract<BoutServerMsg, { phase: 'finish_end' }>;
@@ -143,7 +143,7 @@ describe('move picker hints and the end-card tip (polish)', () => {
   const NAMES = /guarda|montada|costas|cem quilos|joelho na|finaliza|submission|closed guard|side control|\bmount\b/i;
 
   it('says what a move does without naming a position', () => {
-    expect(moveHint('collar_tie', undefined).pt).toBe('+10% nas quedas');
+    expect(moveHint('collar_tie', undefined).pt).toBe('Queda mais forte');
     expect(moveHint('double_leg', { points: 2, to: 'cem_quilos', toAhead: 'you', submission: false, riskBottom: false }).pt).toBe('+2 · você por cima');
     const arm = moveHint('armbar', { points: 0, to: 'montada', toAhead: 'you', submission: true, riskBottom: true });
     expect(arm.pt).toBe('Vale a vitória!');
@@ -165,5 +165,63 @@ describe('move picker hints and the end-card tip (polish)', () => {
       ['pontos', 'finalizacao', 'empate'].map((r) => coachTip({ winner: w, reason: r, you: 2, them: 1, unlocked: ['armbar', 'frame', 'double_leg'] })),
     );
     expect(tips.flatMap((t) => [t?.pt ?? '', t?.en ?? '']).join(' ')).not.toMatch(NAMES);
+  });
+});
+
+describe('Tatame v2: ground, grips, braces', () => {
+  it('reads every move as ground gained or lost from the player seat, and only a still meter as even', () => {
+    expect(groundRead(0, 24)).toMatchObject({ dir: 'gain', delta: 24, pt: 'Você ganhou terreno' });
+    expect(groundRead(10, -7)).toMatchObject({ dir: 'loss', delta: -17, pt: 'Você perdeu terreno' });
+    expect(groundRead(5, 5).dir).toBe('even');
+    expect(groundRead(undefined, undefined).dir).toBe('even');
+    expect(meterFrac(-100)).toBe(0);
+    expect(meterFrac(0)).toBe(0.5);
+    expect(meterFrac(100)).toBe(1);
+    expect(meterFrac(250)).toBe(1);
+  });
+
+  it('names each grip moment for the side that made it, with an English gloss', () => {
+    const lines = [
+      gripEventLine({ kind: 'grip', side: 'you', grip: 'collar' }, 'Mateus'),
+      gripEventLine({ kind: 'grip', side: 'partner', grip: 'sleeve' }, 'Mateus'),
+      gripEventLine({ kind: 'strip', side: 'partner', grips: ['collar'] }, 'Mateus'),
+      gripEventLine({ kind: 'slip', side: 'you', grips: ['sleeve'] }, 'Mateus'),
+      gripEventLine({ kind: 'brace', side: 'you', brace: 'base' }, 'Mateus'),
+      gripEventLine({ kind: 'blocked', side: 'you' }, 'Mateus'),
+    ];
+    expect(lines.map((l) => l.pt)).toEqual(['Pegou a gola!', 'Mateus pegou a manga!', 'Mateus soltou a sua pegada!', 'Sua pegada escorregou!', 'Base firme!', 'Vantagem pra você!']);
+    for (const l of lines) expect(l.en.length).toBeGreaterThan(0);
+  });
+
+  it('turns a resolved move into stage juice: a flash on a throw, Vantagem pops on a blocked attack, a ground arrow', () => {
+    const thrown = resolve({
+      actor: 'you',
+      events: [{ type: 'transition', from: 'de_pe', to: 'cem_quilos', rungFrom: 0, rungTo: 2, gain: 'you' }],
+      grip: [],
+      meterFrom: 9,
+      meterTo: 44,
+    });
+    expect(cuesForGrip(thrown, 'Mateus')).toEqual([
+      { t: 'flash', strength: 2 },
+      { t: 'ground', dir: 'gain', delta: 35 },
+    ]);
+    const blocked = resolve({ actor: 'partner', partner: { intent: 'double_leg', correct: false }, grip: [{ kind: 'blocked', side: 'you' }], meterFrom: 0, meterTo: 12 });
+    const cues = cuesForGrip(blocked, 'Mateus');
+    expect(cues).toContainEqual({ t: 'pop', kind: 'vantagem', side: 'you', text: 'Vantagem!' });
+    expect(cues).toContainEqual({ t: 'flash', strength: 1 });
+    expect(cues.at(-1)).toEqual({ t: 'ground', dir: 'gain', delta: 12 });
+    const held = resolve({ grip: [{ kind: 'grip', side: 'you', grip: 'collar' }], meterFrom: 0, meterTo: 0 });
+    expect(cuesForGrip(held, 'Mateus')).toEqual([{ t: 'pop', kind: 'grip', side: 'you', text: 'Pegou a gola!' }]);
+  });
+
+  it('draws Postura, Base and the closed-guard Recuperar as brace buttons, and counts a grip down to its slip', () => {
+    expect(isBraceMove('posture', undefined)).toBe(true);
+    expect(isBraceMove('sprawl', undefined)).toBe(true);
+    expect(isBraceMove('frame', { pt: 'Trava a passagem dele', en: 'Blocks their pass' })).toBe(true);
+    expect(isBraceMove('frame', undefined)).toBe(false);
+    expect(isBraceMove('double_leg', undefined)).toBe(false);
+    expect(gripLife(0)).toMatchObject({ left: 3 });
+    expect(gripLife(1).pt).toBe('2 turnos');
+    expect(gripLife(2).pt).toBe('Vai escorregar!');
   });
 });

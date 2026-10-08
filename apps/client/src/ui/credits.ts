@@ -44,6 +44,15 @@ export function openCredits(): void {
       'div',
       { class: 'panel credits-panel' },
       h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
+      h('img', {
+        class: 'tb-logo tb-logo-banner credits-logo',
+        src: '/brand/tb-logo-banner.png',
+        alt: 'Tudo Bem',
+        width: '1073',
+        height: '386',
+        decoding: 'async',
+        draggable: 'false',
+      }),
       h('h2', null, 'Créditos'),
       en('Credits — the people and tools behind Tudo Bem.'),
       h(

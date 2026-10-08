@@ -14,7 +14,7 @@ import type {
 import type { SceneView } from './carlos.js';
 import type { CAct, CEvent, CorreriaSnap, UnlockId } from './correria.js';
 import type { SafetyAction } from './safety.js';
-import type { NpcId } from './rooms.js';
+import type { NpcId, PropDef } from './rooms.js';
 import type { ConversaGrade, ConversaMeter, ConversaScores, ConversaSubject } from './conversa.js';
 import type { BjjPositionId, BjjProgress, BoutReason, BoutWinner, Belt, PartnerId } from './academia.js';
 import type { AcademyCard, CrestId, GiColorId, GiStampId } from './playerAcademy.js';
@@ -27,6 +27,7 @@ import type { PriceOption, VendorId } from './feira.js';
 import type { Weather } from './weather.js';
 import type { FeiraBoardRow, FeiraCartAdminGame, FeiraCartMode, FeiraCartSchedule, FeiraGameId, FeiraMedalTally, FeiraOrderOutcome } from './feiraGames.js';
 import type { BoardRow } from './leaderboards.js';
+import type { AdminTestSnapshot } from './adminTestes.js';
 
 /** Client → server messages. JSON over a single WebSocket at /ws. */
 export type ClientMsg =
@@ -143,9 +144,37 @@ export type ClientMsg =
   /** Dev/test subscription (no payment). Admin socket only. */
   | { t: 'admin'; action: 'grantSub'; targetId: string }
   | { t: 'admin'; action: 'revokeSub'; targetId: string }
+  /**
+   * Design mode. `layoutGet` reports whether this room has a saved override.
+   * `layoutSave` validates and stores it for everyone. `layoutRevert` drops the override.
+   * `layoutPublish` opens a GitHub pull request (or tells the client to download the file).
+   * The server ignores all of these until this socket has passed the admin password.
+   */
+  | { t: 'admin'; action: 'layoutGet'; room: string }
+  | { t: 'admin'; action: 'layoutSave'; room: string; objects: unknown }
+  | { t: 'admin'; action: 'layoutRevert'; room: string }
+  | { t: 'admin'; action: 'layoutPublish'; room: string; objects: unknown }
+  /**
+   * Testes (admin socket only). `username` omitted means the signed-in admin.
+   * Each action is refused until the admin password has unlocked this socket.
+   */
+  | { t: 'admin'; action: 'testes'; username?: string }
+  | { t: 'admin'; action: 'testBelt'; username?: string; belt?: Belt; stripes?: number; wins?: number; deltaWins?: number }
+  | { t: 'admin'; action: 'testCoins'; username?: string; coins: number }
+  | { t: 'admin'; action: 'testProgress'; username?: string; xp?: number; goal?: number; verde?: boolean; tz?: number }
+  | { t: 'admin'; action: 'testEscola'; username?: string; streak?: number; words?: number; tz?: number }
+  | { t: 'admin'; action: 'testTeleport'; username?: string; room: RoomId }
+  | { t: 'admin'; action: 'testClock'; minute?: number; rollDay?: boolean }
+  | { t: 'admin'; action: 'testCaps'; username?: string }
+  | { t: 'admin'; action: 'testTutorial'; username?: string; mode: 'reset' | 'skip' }
+  | { t: 'admin'; action: 'testPadaria'; username?: string; menu?: number; stage?: 0 | 1 | 2 | 3 }
+  | { t: 'admin'; action: 'testPerk'; username?: string; grant?: boolean; revoke?: boolean; pet?: 'dog' | 'cat' | null; bubble?: import('./subscription.js').BubbleStyle }
+  | { t: 'admin'; action: 'testReset'; username?: string; confirm?: boolean }
   /** Subscriber pet and chat-bubble appearance. The server ignores a perk the subscription does not currently allow. */
   | { t: 'perk'; action: 'pet'; pet: 'dog' | 'cat' | null }
   | { t: 'perk'; action: 'bubble'; style: import('./subscription.js').BubbleStyle }
+  /** Name the dog or the cat. The server trims, checks the shape, then runs chat moderation. It never rewrites the name. */
+  | { t: 'perk'; action: 'petName'; pet: 'dog' | 'cat'; name: string }
   /**
    * Player academies (slice 1). The elevator in Academia do Bairro asks for `directory`.
    * `found` takes a first-come name (brown belt). `visit` loads the empty floor without joining.
@@ -325,7 +354,37 @@ export interface BoutSnapshot {
   position: BjjPositionId;
   ahead: 'you' | 'partner' | null;
   streak: number;
+  /** Tatame v2: the control meter, -100 (partner) .. 100 (you). */
+  meter?: number;
+  /** The grips each fighter holds, drawn on the fighters and in the HUD. `age` is own turns held (it slips at 3). */
+  grips?: { you: BoutGrips; partner: BoutGrips };
+  /** A defense waiting for the other fighter's next move. */
+  brace?: { you: 'postura' | 'base' | 'recuperar' | null; partner: 'postura' | 'base' | 'recuperar' | null };
+  /** A grip slipped: the next move is weaker. */
+  tired?: { you: boolean; partner: boolean };
 }
+
+export interface BoutGrips {
+  collar: boolean;
+  sleeve: boolean;
+  age: { collar: number; sleeve: number };
+}
+
+/** The partner's telegraphed next move (Tatame v2). `answers` are your moves on offer that counter it. */
+export interface BoutPlanOut {
+  kind: string;
+  move: string;
+  line: Bilingual;
+  answers: string[];
+}
+
+/** A grip or defense moment of a resolved move, for the mat (grip snap, strip, slip, brace, a blocked attack). */
+export type BoutGripEvent =
+  | { kind: 'grip'; side: 'you' | 'partner'; grip: 'collar' | 'sleeve' }
+  | { kind: 'strip'; side: 'you' | 'partner'; grips: ('collar' | 'sleeve')[] }
+  | { kind: 'slip'; side: 'you' | 'partner'; grips: ('collar' | 'sleeve')[] }
+  | { kind: 'brace'; side: 'you' | 'partner'; brace: 'postura' | 'base' | 'recuperar' }
+  | { kind: 'blocked'; side: 'you' | 'partner' };
 
 export interface BoutPartnerCard {
   id: PartnerId;
@@ -347,6 +406,16 @@ export interface BoutIntentOut {
   percent?: number;
   /** If it lands: points scored, where the pair ends up (who on top), whether it finishes; a finish that misses puts you on your back. */
   effect?: { points: number; to: BjjPositionId; toAhead: 'you' | 'partner' | null; submission: boolean; riskBottom: boolean };
+  /** What moved the percent off the belt table ("Gola +20"). */
+  odds?: { pt: string; en: string; delta: number }[];
+  /** What a setup move opens, in a few words. */
+  sets?: Bilingual;
+  /** This move answers the partner's telegraphed plan. */
+  answers?: boolean;
+  /** A follow-up the grips opened (Arrastar, Puxar, Arremesso). */
+  combo?: boolean;
+  /** Owned but waiting for a grip ("Precisa da gola"). */
+  needs?: Bilingual;
 }
 
 export type BoutRole = 'exchange' | 'finish' | 'escape';
@@ -379,6 +448,8 @@ export type BoutServerMsg =
       owned?: BoutIntentOut[];
       finish: boolean;
       pickMs: number;
+      /** What the partner will do next, shown before you choose. */
+      plan?: BoutPlanOut;
     }
   | {
       t: 'bout';
@@ -427,6 +498,15 @@ export type BoutServerMsg =
       events: ExchangeEvent[];
       /** how long the beat lasts on screen (ms) */
       holdMs: number;
+      /** Tatame v2: grip snaps, strips, slips, braces and blocked attacks of this move. */
+      grip?: BoutGripEvent[];
+      /** The percent the move rolled against. */
+      percent?: number;
+      /** The control meter before and after. */
+      meterFrom?: number;
+      meterTo?: number;
+      /** The partner dropped its telegraphed move because your answer broke it. */
+      replanned?: boolean;
     }
   | { t: 'bout'; v: 1; phase: 'finish_end'; kind: 'finalizacao' | 'escape'; success: boolean; st: BoutSnapshot; line: Bilingual; signal: RefSignal | null; holdMs: number }
   | {
@@ -453,7 +533,7 @@ export type BoutServerMsg =
 
 /** Server → client messages. */
 export type ServerMsg =
-  | { t: 'welcome'; profile: PrivateProfile; token: string; serverNow?: number; weather?: import('./weather.js').Weather | null }
+  | { t: 'welcome'; profile: PrivateProfile; token: string; serverNow?: number; weather?: import('./weather.js').Weather | null; layouts?: { room: RoomId; objects: PropDef[] }[] }
   /**
    * The diary photos (small jpegs). Sent after `welcome` and whenever a photo is added, never inside `profile`: a dozen images in every
    * profile push made each reward, step and stamp carry ~100 KB.
@@ -473,9 +553,16 @@ export type ServerMsg =
   | { t: 'admin'; phase: 'auth'; ok: false; pt: string; en: string }
   | { t: 'admin'; phase: 'players'; players: AdminPlayerRow[] }
   | { t: 'admin'; phase: 'subscribers'; subscribers: AdminSubscriberRow[] }
+  | { t: 'admin'; phase: 'testes'; state: AdminTestSnapshot }
   | { t: 'admin'; phase: 'disabled'; pt: string; en: string }
   /** Feira cart switches. `featured` is today's playable game, or null when the cart is closed. */
   | { t: 'admin'; phase: 'feiraCart'; day: string; featured: FeiraGameId | null; games: FeiraCartAdminGame[] }
+  /** Design mode: whether this room is using a saved override or the layout in the repo. */
+  | { t: 'admin'; phase: 'layout'; room: RoomId; source: 'override' | 'code' }
+  /** Design mode: pull request opened, or the client should download the JSON because no token is configured. */
+  | { t: 'admin'; phase: 'layoutPublished'; room: RoomId; url?: string; fallback: boolean; pt: string; en: string }
+  /** Live layout. `objects: null` means this room is back to the layout shipped in the repo. */
+  | { t: 'layout'; room: RoomId; objects: PropDef[] | null }
   | { t: 'avatarJoined'; avatar: PublicAvatar }
   | { t: 'avatarLeft'; id: string }
   | { t: 'avatarMoved'; id: string; from: Tile; path: Tile[]; sit: boolean }

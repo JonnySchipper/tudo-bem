@@ -3,6 +3,7 @@ import {
   DAILY_PAID_SHIFTS,
   REGULAR_NPCS,
   UNLOCKS,
+  addCalendarDays,
   cardById,
   frontOf,
   hearts,
@@ -45,6 +46,8 @@ export interface CorreriaRun {
 
 export interface CorreriaDeps {
   now: () => number;
+  /** UTC day (YYYY-MM-DD) the paid-shift cap uses. Defaults to the real UTC date. */
+  today?: () => string;
   schedule: (fn: () => void, ms: number) => void;
   store: ProfileStore;
   /** Game-clock minute and day-of-week flag, baker on duty. */
@@ -241,8 +244,9 @@ export class CorreriaEngine {
     const sum = summarizeShift(run.shift);
     const cp = (p.correria = normalizeCorreria(p.correria));
     const before = cp.stars;
-    if (cp.date !== today()) {
-      cp.date = today();
+    const day = addCalendarDays(this.d.today?.() ?? today(), p.testDayOffset ?? 0);
+    if (cp.date !== day) {
+      cp.date = day;
       cp.paid = 0;
     }
     const known = (id: string) => (p.caderno?.[id]?.seen ?? 0) > 0 || (p.caderno?.[id]?.heard ?? 0) > 0 || (p.caderno?.[id]?.used ?? 0) > 0;

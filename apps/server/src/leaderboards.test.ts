@@ -121,6 +121,23 @@ describe('leaderboards server', () => {
     expect(always.maybeMentionStreak(s as never, 'carlos')).toBeNull();
   });
 
+  it('leaves out profiles an admin Testes action has marked testUser', () => {
+    const today = '2026-10-08';
+    const escola = { words: {}, xp: 0, lessons: 0, perfect: 0, goal: 10 as const, dayXp: 0, streak: 40, best: 40, freezes: 0, tier: 'verde' as const, lastDay: today };
+    const player = profile({ id: '1', name: 'Ana', diary: ids(0, 1), escola: { ...escola, streak: 2, best: 2 } });
+    const admin = profile({ id: '2', name: 'Jonny', diary: ids(...Array.from({ length: 30 }, (_, i) => i)), escola, testUser: true });
+    const { words, streak } = entriesFromProfiles([admin, player], today);
+    expect(words.map((r) => r.name)).toEqual(['Ana']);
+    expect(streak.map((r) => r.name)).toEqual(['Ana']);
+    const store = new ProfileStore(null);
+    store.add(player);
+    store.add(admin);
+    const board = new Leaderboards(store, () => 0, () => today).msgFor('1');
+    expect(board.words.map((r) => r.name)).toEqual(['Ana']);
+    expect(board.streak.map((r) => r.name)).toEqual(['Ana']);
+    expect(board.words.some((r) => r.id === '2')).toBe(false);
+  });
+
   it('maybeMentionStreak skips when no streak leader', () => {
     const store = new ProfileStore(null);
     store.add(profile({ id: 'v', name: 'Voce', diary: [] }));

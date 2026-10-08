@@ -144,6 +144,31 @@
   --fill: #2f5d50;
 }
 
+.wl-belt {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.wl-belt .bar {
+  flex: 1;
+  height: 4px;
+  min-width: 14px;
+  border: 1px solid #1c1c28;
+  box-sizing: border-box;
+}
+
+.wl-belt .pip {
+  width: 3px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.wl-belt .pip.on {
+  background: #fff;
+}
+
 .wl-plate-me {
   --edge: #d4a017;
   --fill: #2f5d50;
@@ -205,6 +230,28 @@
   width: 9px;
   height: 9px;
   flex-shrink: 0;
+}
+
+/* Collar tag: smaller than a player name, mustard like the pet's collar, with a paw. */
+.wl-plate-pet {
+  --edge: #6b4423;
+  --fill: #f2c56b;
+  --ink: #2a2233;
+  --step: 1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px 2px 4px;
+  font-size: 11px;
+  line-height: 1.05;
+}
+
+.wl-paw {
+  width: 9px;
+  height: 8px;
+  flex: 0 0 9px;
+  image-rendering: pixelated;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='9' height='8' shape-rendering='crispEdges'><rect width='9' height='8' fill='none'/><rect x='0' y='0' width='2' height='2' fill='%232a2233'/><rect x='3' y='0' width='2' height='2' fill='%232a2233'/><rect x='6' y='0' width='2' height='2' fill='%232a2233'/><rect x='1' y='3' width='7' height='3' fill='%232a2233'/><rect x='2' y='6' width='5' height='1' fill='%232a2233'/><rect x='3' y='7' width='3' height='1' fill='%232a2233'/></svg>") center / 9px 8px no-repeat;
 }
 
 .wl-plate-sign {

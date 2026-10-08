@@ -32,6 +32,9 @@ export interface CamState {
   /** canvas size in device px */
   w: number;
   h: number;
+  /** Extra look offset in world px (design-mode pan). Clicks use the same centre as the picture. */
+  ox?: number;
+  oy?: number;
 }
 
 /** CSS zoom (art px -> CSS px): about 26-28 tiles across and 14+ tall on a desktop (1280 x 800 -> 3), phones stay at 2, clamped to 2..5. */
@@ -60,14 +63,20 @@ export function bufferPixels(cssW: number, cssH: number, devicePixelRatio: numbe
   return { dpr, width: Math.max(1, Math.floor(w * dpr)), height: Math.max(1, Math.floor(h * dpr)) };
 }
 
+function look(c: CamState): { cx: number; cy: number } {
+  return { cx: c.cx + (c.ox ?? 0), cy: c.cy + (c.oy ?? 0) };
+}
+
 /** World px -> CSS px, relative to the canvas' top-left corner. */
 export function worldToCanvas(c: CamState, wx: number, wy: number): { px: number; py: number } {
-  return { px: ((wx - c.cx) * c.zoom + c.w / 2) / c.dpr, py: ((wy - c.cy) * c.zoom + c.h / 2) / c.dpr };
+  const o = look(c);
+  return { px: ((wx - o.cx) * c.zoom + c.w / 2) / c.dpr, py: ((wy - o.cy) * c.zoom + c.h / 2) / c.dpr };
 }
 
 /** CSS px (relative to the canvas' top-left corner) -> world px. */
 export function canvasToWorld(c: CamState, px: number, py: number): { wx: number; wy: number } {
-  return { wx: (px * c.dpr - c.w / 2) / c.zoom + c.cx, wy: (py * c.dpr - c.h / 2) / c.zoom + c.cy };
+  const o = look(c);
+  return { wx: (px * c.dpr - c.w / 2) / c.zoom + o.cx, wy: (py * c.dpr - c.h / 2) / c.zoom + o.cy };
 }
 
 /** The tile under a world point, or null outside the room. */

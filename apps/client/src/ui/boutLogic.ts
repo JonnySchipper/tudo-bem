@@ -144,9 +144,10 @@ export const oddsTone = (percent: number | undefined): OddsTone => (percent == n
  */
 export function moveHint(id: string, effect: NonNullable<BoutIntentOut['effect']> | undefined): { pt: string; en: string; risk?: Bilingual } {
   if (id === 'hold') return { pt: 'Passa a vez', en: 'Pass the turn' };
-  if (id === 'collar_tie' || id === 'sleeve_grip') return { pt: '+10% nas quedas', en: '+10% on takedowns' };
+  if (id === 'collar_tie') return { pt: 'Queda mais forte', en: 'Stronger takedown' };
+  if (id === 'sleeve_grip') return { pt: 'Protege você', en: 'Shields you' };
   if (id === 'posture') return { pt: 'Solta as pegadas', en: 'Breaks the grips' };
-  if (id === 'sprawl') return { pt: 'Zera as pegadas', en: 'Resets the grips' };
+  if (id === 'sprawl') return { pt: 'Trava a queda', en: 'Stops the takedown' };
   if (id === 'frame' || id === 'escape_back') return { pt: 'Sai de baixo', en: 'Gets out from under' };
   if (!effect) return { pt: '', en: '' };
   const risk = effect.riskBottom ? { pt: 'Se errar: você por baixo', en: 'Miss: you end on the bottom' } : undefined;
@@ -177,4 +178,81 @@ export function coachTip(o: { winner: 'you' | 'partner' | 'draw' | 'none'; reaso
   return has('armbar')
     ? { pt: 'Boa! Por cima e na frente, o Braço pode acabar a luta mais cedo.', en: 'Nice! On top and ahead, Braço can end the match early.' }
     : { pt: 'Boa! Continue somando pontos por cima.', en: 'Nice! Keep scoring from on top.' };
+}
+
+// ---------------------------------------------------------------- Tatame v2: the control meter, the grips, the telegraph
+
+export type GroundDir = 'gain' | 'loss' | 'even';
+
+/** 0..1 across the meter bar: 0 the partner owns the match, 0.5 even, 1 you do. */
+export const meterFrac = (m: number | undefined): number => Math.max(0, Math.min(1, ((m ?? 0) + 100) / 200));
+
+/**
+ * needs_br: true — every answer reads as ground gained or lost: the control meter before and after the move, from the player's seat.
+ * The meter moves on almost every move (a grip, a brace, who won the exchange), so only Hold reads as even.
+ */
+export function groundRead(from: number | undefined, to: number | undefined): { dir: GroundDir; delta: number; pt: string; en: string } {
+  const d = Math.round((to ?? 0) - (from ?? 0));
+  if (d > 0) return { dir: 'gain', delta: d, pt: 'Você ganhou terreno', en: 'You gained ground' };
+  if (d < 0) return { dir: 'loss', delta: d, pt: 'Você perdeu terreno', en: 'You lost ground' };
+  return { dir: 'even', delta: 0, pt: 'Ninguém saiu do lugar', en: 'Nobody moved' };
+}
+
+type GripEvent = NonNullable<Msg<'resolve'>['grip']>[number];
+
+const GRIP_PT = { collar: 'a gola', sleeve: 'a manga' } as const;
+const GRIP_EN = { collar: 'the collar', sleeve: 'the sleeve' } as const;
+const BRACE_LINE: Record<'postura' | 'base' | 'recuperar', Bilingual> = {
+  postura: { pt: 'Postura firme!', en: 'Posture up!' },
+  base: { pt: 'Base firme!', en: 'Base set!' },
+  recuperar: { pt: 'Travou!', en: 'Locked it down!' },
+};
+
+/** needs_br: true — one short line for a grip moment of a move (the grip snap, a strip, a slip, a brace, a blocked attack). */
+export function gripEventLine(e: GripEvent, partner: string): Bilingual {
+  const you = e.side === 'you';
+  switch (e.kind) {
+    case 'grip':
+      return you ? { pt: `Pegou ${GRIP_PT[e.grip]}!`, en: `Got ${GRIP_EN[e.grip]}!` } : { pt: `${partner} pegou ${GRIP_PT[e.grip]}!`, en: `${partner} got ${GRIP_EN[e.grip]}!` };
+    case 'strip':
+      return you ? { pt: 'Soltou a pegada dele!', en: 'Stripped their grip!' } : { pt: `${partner} soltou a sua pegada!`, en: `${partner} stripped your grip!` };
+    case 'slip':
+      return you ? { pt: 'Sua pegada escorregou!', en: 'Your grip slipped!' } : { pt: `A pegada de ${partner} escorregou!`, en: `${partner}'s grip slipped!` };
+    case 'brace':
+      return BRACE_LINE[e.brace];
+    default:
+      return you ? { pt: 'Vantagem pra você!', en: 'Advantage to you!' } : { pt: `Vantagem: ${partner}`, en: `Advantage: ${partner}` };
+  }
+}
+
+/** The stage juice of a resolved move: a white flash on a big hit, word pops for the grip moments, and the ground read. */
+export function cuesForGrip(m: Msg<'resolve'>, partner: string): StageCue[] {
+  const out: StageCue[] = [];
+  const landed = moveLanded(m);
+  const big = m.events.some((e) => e.type === 'transition' || (e.type === 'points' && e.pts > 0));
+  if (landed && big) out.push({ t: 'flash', strength: 2 });
+  for (const e of m.grip ?? []) {
+    const line = gripEventLine(e, partner);
+    if (e.kind === 'blocked') {
+      out.push({ t: 'flash', strength: 1 });
+      out.push({ t: 'pop', kind: 'vantagem', side: e.side, text: 'Vantagem!' });
+    } else out.push({ t: 'pop', kind: e.kind, side: e.side, text: line.pt });
+  }
+  if (m.meterFrom != null && m.meterTo != null) {
+    const g = groundRead(m.meterFrom, m.meterTo);
+    if (g.dir !== 'even') out.push({ t: 'ground', dir: g.dir, delta: g.delta });
+  }
+  return out;
+}
+
+/** The defenses that wait for the partner's next move (Postura, Base, and Recuperar from the bottom of the guard): drawn as brace buttons. */
+export function isBraceMove(id: string, sets: Bilingual | undefined): boolean {
+  return id === 'posture' || id === 'sprawl' || (id === 'frame' && !!sets);
+}
+
+/** needs_br: true — the grip chips' tooltip: how many more of your turns a grip lasts before it slips. */
+export function gripLife(age: number, slipAt = 3): { left: number; pt: string; en: string } {
+  const left = Math.max(0, slipAt - age);
+  if (left <= 1) return { left, pt: 'Vai escorregar!', en: 'About to slip!' };
+  return { left, pt: `${left} turnos`, en: `${left} turns` };
 }

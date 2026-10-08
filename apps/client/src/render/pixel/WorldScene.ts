@@ -21,6 +21,7 @@ import {
   normalizeDiary,
   wordForSign,
   isCpuId,
+  normalizeBjj,
   key as tileKey,
   parrotColorById,
   positionAlong,
@@ -68,7 +69,7 @@ import { buildTerrainLayers } from './terrainLayers';
 import { LabelLayer, type GuideItem, type StackItem } from './labels';
 import { T, cssZoomFor, feet, outdoorFraming, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
 import { pickHit, type HitBox } from './hit';
-import { dialogueFraming, easeOut, stepBlend } from './dialogueCam';
+import { boutZoomStep, dialogueFraming, easeOut, stepBlend } from './dialogueCam';
 import { BoutStage } from './boutStage';
 import { boutFeed } from './boutFeed';
 import { CounterStage } from './correriaStage';
@@ -201,6 +202,13 @@ interface Canopy {
 
 /** seconds the emote pop-up icon stays over the head */
 const EMOTE_ICON_S = 1.1;
+/**
+ * World px below the mat's middle the bout camera aims at: the middle of the fighters. The pair frame stands 18 below the mat centre and is
+ * 42 tall, but the figures only fill its lower ~30 px (heads start about 13 px down), so their middle is about 4 below the mat centre.
+ */
+const BOUT_PAIR_FOCUS = 4;
+/** The part of a 56 x 42 pair frame the fighters actually fill, standing or on the ground: what the bout camera sizes them by. */
+const BOUT_PAIR_BODY = { w: 56, h: 32 } as const;
 
 const hex = (h: string) => Phaser.Display.Color.HexStringToColor(h).color;
 const hash01 = (n: number) => {
@@ -248,12 +256,16 @@ export class WorldScene extends Phaser.Scene {
   /** the Treino no tatame bout on the academia mat (pair sprite, referee, crowd, fx) */
   private stage!: BoutStage;
   private boutBlend = 0;
+  /** The bout camera's extra device zoom right now (it walks toward its target one px at a time); 0 while the camera is off. */
+  private boutStep = 0;
+  private boutStepT = 0;
   /** the Correria no Balcão counter (board, queue, shelf taps) behind the padaria counter */
   private counter!: CounterStage;
   private counterBlend = 0;
   private counterWasOn = false;
   private roomId = '';
   private roomDef: RoomDef | null = null;
+  private layoutEpoch = -1;
   private roomObjs: Phaser.GameObjects.GameObject[] = [];
   /** Reading words in this room: a small twinkle over each one this player has not read yet (the signs have no sprite of their own). */
   private glints: { word: string; img: Phaser.GameObjects.Image; phase: number }[] = [];
@@ -1025,9 +1037,12 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
     const key = roomKey(room);
-    if (key !== this.roomId || this.roomDef !== def || clock.day() !== this.diaryDay) {
+    if (key !== this.roomId || this.roomDef !== def || clock.day() !== this.diaryDay || game.layoutEpoch !== this.layoutEpoch) {
       this.roomId = key;
       this.roomDef = def;
+      this.layoutEpoch = game.layoutEpoch;
+      this.grid = null;
+      this.gridFurniture = null;
       this.buildRoom(def);
     }
     if (this.gridFurniture !== game.furniture || this.gridDef !== def || !this.grid) {
@@ -1096,7 +1111,8 @@ export class WorldScene extends Phaser.Scene {
     const t = performance.now();
     if (this.lastUpdateAt) this.probe.record(t - this.lastUpdateAt, t);
     this.lastUpdateAt = t;
-    if (this.gov.check(t)) this.degrade('p90');
+    // A review frame (`?shot=`) keeps the full effect set. A slow box would otherwise drop the clouds the shot is there to show.
+    if (!this.host.shot && this.gov.check(t)) this.degrade('p90');
     if (t - this.reducedCheckAt > 1000) {
       this.reducedCheckAt = t;
       this.fxLevel.reduced = reducedMotion();
@@ -1197,20 +1213,38 @@ export class WorldScene extends Phaser.Scene {
   // ---- Treino no tatame: the camera eases one zoom step onto the mat, above the overlay and under the scoreboard (like the dialogue)
   private withBout(f: { zoom: number; cx: number; cy: number; fits: boolean }, ins: Insets, k: number, dt: number): typeof f {
     this.boutBlend = stepBlend(this.boutBlend, boutFeed.camera ? 1 : 0, dt, 0.4, this.fxLevel.reduced || !!this.host.shot);
-    if (this.boutBlend <= 0) return f;
+    if (this.boutBlend <= 0) {
+      this.boutStep = 0;
+      return f;
+    }
     const mat = this.matCenter();
     if (!mat) return f;
+    const unit = Math.max(1, Math.round(k));
+    // during a match the camera works around the tallest the overlay has been, so it holds still while the panel changes
+    const box = boutFeed.active ? boutFeed.fightBox(this.cam.h / k) : boutFeed.boxPx;
+    // the lobby is one step in; a match on the mat goes in until the fighters fill the free band, so they are big and the grips readable
+    const target = boutFeed.active ? boutZoomStep({ baseZoom: f.zoom, unit, view: { w: this.cam.w, h: this.cam.h }, topPx: (boutFeed.topPx + 6) * k, boxPx: (box + 6) * k, pair: BOUT_PAIR_BODY, fill: 0.7 }) : unit;
+    // and it walks there one whole device px at a time (crisp at every frame), not in one cut
+    if (this.boutStep <= 0 || this.fxLevel.reduced || this.host.shot) this.boutStep = target;
+    else if (this.boutStep !== target) {
+      this.boutStepT += dt;
+      if (this.boutStepT >= 0.06) {
+        this.boutStepT = 0;
+        this.boutStep += Math.sign(target - this.boutStep);
+      }
+    }
     const g = dialogueFraming({
       base: f,
       view: { w: this.cam.w, h: this.cam.h },
       bounds: this.bounds,
       // The mat sits a little lower in the free band (when the screen has spare height) so the north wall's sign is not cut by the top of the screen.
-      insets: { top: (boutFeed.topPx + this.boutWallReveal(boutFeed.topPx, boutFeed.boxPx + 6, k)) * k, bottom: 0, left: ins.left * k, right: ins.right * k },
-      boxPx: (boutFeed.boxPx + 6) * k,
-      self: { x: mat.x, y: mat.y },
+      insets: { top: (boutFeed.topPx + this.boutWallReveal(boutFeed.topPx, box + 6, k)) * k, bottom: 0, left: ins.left * k, right: ins.right * k },
+      boxPx: (box + 6) * k,
+      // the pair itself, not the mat's middle: the fighters stand a little below it
+      self: { x: mat.x, y: mat.y + (boutFeed.active ? BOUT_PAIR_FOCUS : 0) },
       npc: null,
       blend: easeOut(this.boutBlend),
-      step: Math.max(1, Math.round(k)),
+      step: this.boutStep,
     });
     return { ...f, ...g };
   }
@@ -1356,7 +1390,13 @@ export class WorldScene extends Phaser.Scene {
     this.cam.cy = snapToDevice(this.cam.cy, this.cam.zoom);
     const nudge = this.stage.cameraNudge();
     const cn = this.counter.cameraNudge();
-    this.cameras.main.centerOn(this.cam.cx + nudge.x + cn.x, this.cam.cy + nudge.y + cn.y);
+    // On a phone the design panel covers the bottom of the screen. Look a little south so the avatar sits in the open part.
+    // The offset is on the camera state too, so a tap lands on the prop the picture shows.
+    const designLift = game.designMode && window.innerWidth <= 720 ? (this.cam.h * 0.2) / Math.max(1, this.cam.zoom) : 0;
+    const pan = game.designMode ? game.designPan : { x: 0, y: 0 };
+    this.cam.ox = pan.x;
+    this.cam.oy = pan.y + designLift;
+    this.cameras.main.centerOn(this.cam.cx + nudge.x + cn.x + this.cam.ox, this.cam.cy + nudge.y + cn.y + this.cam.oy);
     if (this.counterBlend > 0) this.counter.invalidate();
   }
 
@@ -1697,7 +1737,11 @@ export class WorldScene extends Phaser.Scene {
    */
   private updatePet(v: AvatarView, a: ClientAvatar, wx: number, wy: number, dt: number): void {
     const kind = a.pub.pet === 'dog' || a.pub.pet === 'cat' ? a.pub.pet : null;
-    const heard = petCommandFromLines(a.bubbles, v.petHeard, kind ? [PET_COPY[kind].pt, PET_COPY[kind].en] : []);
+    const heard = petCommandFromLines(
+      a.bubbles,
+      v.petHeard,
+      kind ? [PET_COPY[kind].pt, PET_COPY[kind].en, ...(a.pub.petName ? [a.pub.petName] : [])] : [],
+    );
     v.petHeard = heard.heardAt;
     if (!kind) {
       if (v.pet) {
@@ -2006,6 +2050,7 @@ export class WorldScene extends Phaser.Scene {
           key: `npc:${a.pub.npc}`,
           x: p.px,
           y: p.py,
+          z: Math.round(p.py),
           // the mat camera keeps the pair and the scoreboard clear: neighbours' plates wait until the bout is over (their bubbles still talk)
           plate: boutFeed.camera ? null : { text: role && game.hoverKey === `npc:${a.pub.npc}` ? `${a.pub.name} · ${role}` : a.pub.name, kind: 'npc' },
           // Bia is the referee while a bout is on: her idle chatter stays quiet
@@ -2031,6 +2076,7 @@ export class WorldScene extends Phaser.Scene {
         key: `av:${id}`,
         x: p.px,
         y: p.py,
+        z: Math.round(p.py),
         plate: {
           text: a.pub.name,
           kind: id === selfId ? 'me' : 'player',
@@ -2040,9 +2086,25 @@ export class WorldScene extends Phaser.Scene {
           ...(a.pub.founderBadge ? { subBadge: true } : {}),
           ...(a.pub.feiraCrown || game.feiraCrownId === id ? { feiraCrown: true } : {}),
           ...(!isCpuId(id) && a.pub.nameplate ? { tier: a.pub.nameplate } : {}),
+          ...(a.pub.belt ? { belt: a.pub.belt } : {}),
+          ...(id === selfId && a.pub.belt && game.profile ? { stripes: normalizeBjj(game.profile.bjj).stripes } : {}),
         },
         bubbles,
       });
+      // Collar tag: follows the pet sprite (already depth-sorted in the world) and hides with it.
+      const petName = a.pub.petName;
+      if (petName && v.pet?.visible) {
+        const lift = v.petFollow.pose === 'lie' ? 14 : 22;
+        const tag = at(v.pet.x, v.pet.y - lift);
+        stacks.push({
+          key: `pet:${id}`,
+          x: tag.px,
+          y: tag.py,
+          z: Math.round(tag.py),
+          plate: { text: petName, kind: 'pet' },
+          bubbles: [],
+        });
+      }
     }
     // a player-owned padaria: its name in chalk on the blackboard (Seu Carlos's board stays plain)
     const own = game.room?.padaria;

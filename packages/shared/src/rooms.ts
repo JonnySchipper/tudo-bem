@@ -1,7 +1,7 @@
 import type { Appearance, Bilingual, Dir, PlacedFurniture, RoomId, Tile } from './types.js';
 import { furnitureById } from './catalog.js';
 import { SCHEDULES, type ScheduleSlot } from './schedules.js';
-import { DIARY_PLACEMENTS } from './diaryWorld.js';
+import { bundledObjects } from './roomLayoutFiles.js';
 
 export type PropKind =
   | 'ipe'
@@ -78,6 +78,8 @@ export interface PropDef {
   lightAtNight?: boolean;
   /** Pixel view: the sprite is nudged this many px sideways inside its tile (two small objects on one tile). */
   ox?: number;
+  /** Pixel view: nudge down in px. Design mode's free placement uses this; bundled layouts leave it unset. */
+  oy?: number;
 }
 
 export type WallSide = 'left' | 'right';
@@ -279,52 +281,10 @@ function aeroFloor(): string[] {
   });
 }
 
-/** The small objects the language diary catalog added to a room (`diaryWorld.ts`): scenery, never in the way. Reading words are hotspots only. */
-const diaryProps = (room: RoomId): PropDef[] =>
-  DIARY_PLACEMENTS.filter((p) => p.room === room && !p.sign && p.art).map((p) => ({
-    id: p.id,
-    kind: 'cenario' as const,
-    x: p.x,
-    y: p.y,
-    ...(p.w ? { w: p.w } : {}),
-    ...(p.h ? { h: p.h } : {}),
-    art: p.art,
-    blocks: false,
-    ...(p.ox ? { ox: p.ox } : {}),
-  }));
-
-const P = (id: string, kind: PropKind, x: number, y: number, extra: Partial<PropDef> = {}): PropDef => ({ id, kind, x, y, blocks: true, ...extra });
-/** A bench: 2 tiles wide, everybody sits facing south. */
-const bench = (id: string, x: number, y: number): PropDef => P(id, 'banco', x, y, { w: 2, blocks: false, seat: 'SW' });
-/** Scenery with its own sprite (`art`): w x h footprint, non-blocking unless `blocks` is set (it usually sits inside something that already blocks). */
-const cen = (id: string, art: string, x: number, y: number, w = 1, h = 1, extra: Partial<PropDef> = {}): PropDef => P(id, 'cenario', x, y, { w, h, art, blocks: false, ...extra });
-/** Vehicles parked along a street's south curb row: [sprite name under vehicles/, first tile x, tiles wide]. Blocking, one tile deep. */
-const parked = (row: number, cars: [string, number, number][], first = 0): PropDef[] =>
-  cars.map(([name, x, w], i) => P(`estac_${row}_${first + i}`, 'cenario', x, row, { w, h: 1, art: `vehicles/${name}` }));
-/** The four stools around a game table at (x, y): each sitter faces the table (a west stool faces east, and so on). */
-const stools = (id: string, x: number, y: number): PropDef[] => [
-  cen(`${id}_o`, 'props/banquinho', x - 1, y, 1, 1, { seat: 'SE' }),
-  cen(`${id}_l`, 'props/banquinho', x + 1, y, 1, 1, { seat: 'NW' }),
-  cen(`${id}_n`, 'props/banquinho', x, y - 1, 1, 1, { seat: 'SW' }),
-  cen(`${id}_s`, 'props/banquinho', x, y + 1, 1, 1, { seat: 'NE' }),
-];
-/** A building front: `w` x `h` footprint, bottom-centre anchored (x, y is the top-left tile). */
-const front = (id: string, art: string, x: number, y: number, w: number, h: number, label?: Bilingual): PropDef => P(id, 'fachada', x, y, { w, h, art, label });
-/** A line of 2-wide hedges along a row from x0 to x1 (exclusive end, even count), the map edge of a lawn or a sidewalk. */
-const hedgeRow = (id: string, y: number, x0: number, x1: number): PropDef[] => {
-  const out: PropDef[] = [];
-  for (let x = x0; x < x1; x += 2) out.push(P(`${id}_${x}`, 'sebe', x, y, { w: 2, art: 'props/hedge_wide' }));
-  return out;
-};
-
-/** A feira stall: 3x2, blocks, `art` names the open variant (`feira/<name>`); you click it or stand at `interact`, the vendor (an NPC) stands behind it. */
-const feiraStall = (id: string, vendor: 'tia_lu' | 'ze' | 'chico' | 'rosa', name: string, x: number, y: number, label: Bilingual): PropDef =>
-  P(id, 'feira', x, y, { w: 3, h: 2, art: `feira/${name}`, action: 'feira_stall', vendor, interact: { x: x + 1, y: y + 3 }, label });
-
 /**
- * The feira's stall grid: stalls are 3x2 on a 6-tile pitch, two rows (north y3, south y11) with the aisle between. A slot with a `vendor` is
- * built (`feiraStall` below); a free one shows a "vaga livre" sign. To grow the feira, fill a free slot or add columns/rows to the grid
- * (the lot has free paving to the east and south) and give the new stall a vendor in `feira.ts` + `schedules.ts`.
+ * The feira's stall grid: stalls are 3x2 on a 6-tile pitch, two rows (north y3, south y11) with the aisle between. A slot with a `vendor`
+ * is built in `layouts/feira.json`; a free one shows a "vaga livre" sign. To grow the feira, fill a free slot or add columns/rows to the
+ * grid (the lot has free paving to the east and south) and give the new stall a vendor in `feira.ts` + `schedules.ts`.
  */
 export const FEIRA_SLOTS: { id: string; x: number; y: number; vendor: 'tia_lu' | 'ze' | 'chico' | 'rosa' | null }[] = [
   { id: 'a1', x: 6, y: 3, vendor: 'tia_lu' },
@@ -361,52 +321,7 @@ const rua: RoomDef = {
   wallTrim: '#9c8b74',
   lighting: 'tarde',
   spawn: { x: 16, y: 13 },
-  props: [
-    // ---- the building row (y 0-5): the door tile of each facade is a portal on row 5, the rest of the front blocks
-    front('padaria', 'facades/padaria', 0, 0, 8, 6, { pt: 'Padaria do Seu Carlos', en: 'Seu Carlos’s bakery' }),
-    front('empena', 'casas/empena', 8, 0, 3, 6),
-    front('edificio', 'facades/edificio_ipe', 11, 0, 10, 6, { pt: 'Edifício Ipê Nº 42', en: 'Ipê Building No. 42' }),
-    P('banca', 'banca', 8, 4, { w: 3, h: 2, label: { pt: 'Banca de jornal', en: 'Newsstand' } }),
-    P('jornais', 'jornais', 7, 6, { label: { pt: 'Pilha de jornais', en: 'Newspaper stack' } }),
-    // ---- north calçada (y 6-7): lamps on the curb, pots by the doors, bins, phone
-    P('lampada_n1', 'poste', 2, 7, { art: 'props/lamp_old' }),
-    P('lampada_n2', 'poste', 10, 7, { art: 'props/lamp_old' }),
-    P('lampada_n3', 'poste', 18, 7, { art: 'props/lamp_old' }),
-    P('lampada_n4', 'poste', 11, 13, { art: 'props/lamp_old' }),
-    P('orelhao', 'orelhao', 14, 6, { label: { pt: 'Orelhão', en: 'Public phone booth (“big ear”)' } }),
-    P('lixeira_n1', 'lixeira', 10, 6),
-    P('floreira_n1', 'floreira', 3, 6),
-    P('padaria_porta_fundar', 'floreira', 5, 6, { blocks: false, action: 'padaria_door', interact: { x: 4, y: 6 }, label: { pt: 'Cofre da porta', en: 'Door fund' } }),
-    P('floreira_n2', 'floreira', 16, 6),
-    P('vaso_n1', 'vaso', 18, 6),
-    P('mesa_cafe', 'mesa_cafe', 2, 6, { label: { pt: 'Mesinha da padaria', en: 'Bakery sidewalk table' } }),
-    P('bici', 'bicicletario', 17, 7),
-    cen('revisteiro', 'props/revisteiro', 11, 7, 1, 1, { blocks: true, label: { pt: 'Revisteiro da banca', en: 'Newsstand magazine rack' } }),
-    cen('vaso_topiaria_1', 'props/vaso_topiaria_a', 11, 6, 1, 1, { blocks: true }),
-    // ---- the Hortifrúti corner at the banca: Tia Lu's crates, open at every hour (D12)
-    P('hortifruti', 'hortifruti', 7, 7, { art: 'feira/caixotes', action: 'feira_stall', vendor: 'banca', interact: { x: 8, y: 7 }, label: { pt: 'Hortifrúti da banca', en: 'Greengrocer at the newsstand' } }),
-    cen('hortifruti_2', 'feira/caixotes', 6, 7, 1, 1, { blocks: true }),
-    cen('hortifruti_preco', 'feira/preco_lousa', 6, 6),
-    // ---- south calçada (y 12-13): utility poles for the wires, lamps
-    P('poste_2', 'poste', 9, 13),
-    P('poste_3', 'poste', 13, 13),
-    // pit trees along both sidewalks, clear of the doors and crosswalks
-    P('arv_n1', 'arvore', 15, 7, { w: 2, art: 'props/arvore_rua' }),
-    // parked vehicles in the bay (they block their curb tiles only; the traffic lanes sit above them, see ambientData.ts)
-    ...parked(12, [['park_verde_r', 2, 5]]),
-    P('hidrante_s', 'sebe', 14, 13, { art: 'props/hidrante_amarelo' }),
-    P('parquimetro', 'sebe', 14, 12, { art: 'props/parquimetro' }),
-    // ---- the lawns and the way down to the praça: hedges on both sides of the brick path (the path itself is the edge portal band)
-    ...hedgeRow('sebe_s', 15, 0, 15),
-    P('sebe_s_19', 'sebe', 19, 15, { w: 2, art: 'props/hedge_wide' }),
-    P('arv_s5', 'arvore', 11, 14, { w: 2, art: 'props/arvore_rua' }),
-    P('arbusto_s1', 'sebe', 9, 14, { art: 'props/bush_flower' }),
-    P('arbusto_seam', 'sebe', RUA_COLS - 1, 14, { art: 'props/bush_flower' }),
-    // ---- the map edge: a barricade across the street and hedges across the sidewalks and the lawn (the east side is open to rua_leste)
-    P('barreira_o_8', 'cerca', 0, 8, { w: 2, h: 4, art: 'cerca_rua' }),
-    ...[6, 7, 12, 13, 14].map((y) => P(`sebe_o_${y}`, 'sebe', 0, y, { w: 2, art: 'props/hedge_wide' })),
-    ...diaryProps('rua'),
-  ],
+  props: bundledObjects('rua'),
   walls: [],
   portals: [
     {
@@ -450,45 +365,7 @@ const ruaLeste: RoomDef = {
   wallTrim: '#9c8b74',
   lighting: 'tarde',
   spawn: { x: 8, y: 7 },
-  props: [
-    // x is the old rua's x minus RUA_CUT
-    front('academia', 'facades/academia', 0, 0, 10, 6, { pt: 'Academia do Bairro', en: 'Neighborhood Academy' }),
-    // The blue terrace house is the escola door until that facade has its own art. The stamp of the building stays as it is.
-    front('casa_3', 'casas/terraco_azul', 10, 0, 6, 6, { pt: 'Escola da Praça', en: 'Square school' }),
-    front('empena_2', 'casas/empena', 16, 0, 3, 6),
-    // ---- north calçada
-    P('lampada_n5', 'poste', 13, 7, { art: 'props/lamp_old' }),
-    P('placa', 'placa_rua', 2, 7, { label: { pt: 'Rua dos Ipês', en: 'Ipê Street (street sign)' } }),
-    P('lixeira_n2', 'lixeira', 14, 6),
-    P('saco_lixo', 'saco_lixo', 14, 13),
-    P('floreira_n3', 'floreira', 3, 6),
-    P('floreira_n4', 'floreira', 13, 6),
-    cen('bici_3', 'props/bicicletario', 12, 7, 1, 1, { blocks: true }),
-    // ---- south calçada: the bus stop, a utility pole, lamp, bins
-    P('ponto', 'ponto_onibus', 6, 12, { w: 3, label: { pt: 'Ponto de ônibus', en: 'Bus stop' } }),
-    cen('placa_aeroporto', 'aero/placa_onibus', 9, 12),
-    P('poste_4', 'poste', 4, 13),
-    P('lampada_s2', 'poste', 2, 13, { art: 'props/lamp_old' }),
-    P('lixeira_s1', 'lixeira', 3, 13),
-    P('lixeira_s2', 'lixeira', 5, 12),
-    P('arv_n2', 'arvore', 2, 14, { w: 2, art: 'props/arvore_rua' }),
-    P('arv_n3', 'arvore', 15, 7, { w: 2, art: 'props/arvore_rua' }),
-    // the parked taxi in the bay (it blocks its curb tiles only; the traffic lanes sit above it)
-    ...parked(12, [['park_taxi_r', 12, 5]], 1),
-    P('flor_s1', 'sebe', 10, 13, { w: 2, art: 'props/flor_vermelha' }),
-    P('flor_s2', 'sebe', 15, 13, { w: 2, art: 'props/flor_mista' }),
-    P('arv_s6', 'arvore', 5, 14, { w: 2, art: 'props/arvore_rua' }),
-    P('arbusto_s2', 'sebe', 11, 14, { art: 'props/bush_flower' }),
-    // ---- lawn strip hedges
-    ...hedgeRow('sebe_s', 15, 1, 17),
-    P('arbusto_se', 'sebe', 0, 15, { art: 'props/bush_flower' }),
-    P('arbusto_seam', 'sebe', 0, 14, { art: 'props/bush_flower' }),
-    P('sebe_s_17', 'sebe', 17, 15, { w: 2, art: 'props/hedge_wide' }),
-    ...diaryProps('rua_leste'),
-    // ---- the east map edge: a barricade across the street and hedges across the sidewalks and the lawn (the west side is open to the rua)
-    P('barreira_l_8', 'cerca', 17, 8, { w: 2, h: 4, art: 'cerca_rua' }),
-    ...[6, 7, 12, 13, 14].map((y) => P(`sebe_l_${y}`, 'sebe', 17, y, { w: 2, art: 'props/hedge_wide' })),
-  ],
+  props: bundledObjects('rua_leste'),
   walls: [],
   portals: [
     {
@@ -533,123 +410,7 @@ const praca: RoomDef = {
   wallTrim: '#9c8b74',
   lighting: 'tarde',
   spawn: { x: 16, y: 16 },
-  props: [
-    P('fonte', 'fonte', 14, 10, { w: 4, h: 3, label: { pt: 'Fonte da praça', en: 'Square fountain' } }),
-    // trees: the yellow ipê stays the hero; purple and white ipês, a shade tree, a sibipiruna, jerivá palms
-    P('ipe_centro', 'ipe', 4, 3, { w: 2, h: 2, hero: true }),
-    P('ipe_2', 'arvore', 9, 3, { art: 'props/ipe_roxo_medium' }),
-    P('ipe_3', 'arvore', 27, 3, { art: 'props/ipe_roxo_medium_b' }),
-    P('ipe_4', 'arvore', 22, 9, { art: 'props/oiti' }),
-    P('ipe_5', 'ipe', 10, 16, { art: 'props/ipe_amarelo_medium_b' }),
-    P('ipe_6', 'arvore', 28, 19, { w: 2, h: 2, art: 'props/ipe_branco_large' }),
-    P('sibipiruna', 'arvore', 28, 14, { art: 'props/sibipiruna' }),
-    P('jeriva_1', 'arvore', 2, 10, { art: 'props/jeriva' }),
-    P('jeriva_2', 'arvore', 2, 13, { art: 'props/jeriva_b' }),
-    bench('banco_1', 11, 6),
-    bench('banco_2', 24, 20),
-    bench('banco_3', 12, 17),
-    bench('banco_4', 18, 17),
-    bench('banco_5', 5, 20),
-    // the coreto (bandstand): the praça's hero landmark in the north-east lawn
-    cen('coreto', 'props/coreto', 23, 4, 5, 3, { blocks: true, label: { pt: 'Coreto da praça', en: 'Bandstand (coreto)' } }),
-    cen('canteiro_coreto_1', 'props/canteiro_redondo', 21, 5, 2, 2, { blocks: true }),
-    cen('canteiro_coreto_2', 'props/canteiro_redondo', 28, 5, 2, 2, { blocks: true }),
-    // the bust of the founder, in a round flower bed (north-west lawn)
-    cen('busto', 'props/canteiro_busto', 7, 5, 2, 2, { blocks: true, label: { pt: 'Busto da fundadora', en: 'Bust of the founder' } }),
-    // domino and chess tables with their stools (seniors sit here): south-east lawn
-    cen('mesa_domino_1', 'props/mesa_domino', 22, 17, 1, 1, { blocks: true }),
-    cen('mesa_xadrez_1', 'props/mesa_xadrez', 26, 17, 1, 1, {
-      blocks: true,
-      action: 'checkers',
-      interact: { x: 25, y: 17 },
-      label: { pt: 'Damas', en: 'Checkers' },
-    }),
-    ...stools('banquinho_a', 22, 17),
-    ...stools('banquinho_b', 26, 17),
-    // pipoqueiro and the coconut-water cart
-    cen('pipoqueiro', 'props/pipoqueiro', 18, 21, 3, 1, {
-      blocks: true,
-      action: 'street_snack',
-      interact: { x: 19, y: 20 },
-      label: { pt: 'Pipoqueiro', en: 'Popcorn cart' },
-    }),
-    cen('carrinho_coco', 'props/carrinho_coco', 24, 9, 3, 1, {
-      blocks: true,
-      action: 'street_snack',
-      interact: { x: 24, y: 10 },
-      label: { pt: 'Carrinho de água de coco', en: 'Coconut-water cart' },
-    }),
-    // the playground: sand pit with a swing, a slide, a seesaw and monkey bars; a bench watches from the south
-    cen('pg_balanco', 'props/pg_balanco', 4, 16, 2, 1, { blocks: true }),
-    cen('pg_escorregador', 'props/pg_escorregador', 6, 16, 3, 1, { blocks: true }),
-    cen('pg_gangorra', 'props/pg_gangorra', 4, 18, 2, 1, { blocks: true }),
-    cen('pg_trepa', 'props/pg_trepa', 6, 18, 3, 1, { blocks: true }),
-    P('canteiro_1', 'canteiro', 12, 15, { w: 2 }),
-    P('canteiro_2', 'canteiro', 18, 15, { w: 2 }),
-    P('lampada_p1', 'poste', 11, 8, { art: 'props/lamp_old' }),
-    P('lampada_p2', 'poste', 20, 8, { art: 'props/lamp_old' }),
-    // Village leaderboards: words learned + escola streak (tap to open)
-    cen('placar_vila', 'props/placar_vila', 16, 7, 2, 1, {
-      blocks: true,
-      action: 'leaderboard',
-      interact: { x: 16, y: 8 },
-      label: { pt: 'Placar da Vila', en: 'Village board' },
-    }),
-    P('lampada_p3', 'poste', 11, 14, { art: 'props/lamp_old' }),
-    P('lampada_p4', 'poste', 20, 14, { art: 'props/lamp_old' }),
-    P('arbusto_1', 'sebe', 11, 3, { art: 'props/bush_flower' }),
-    P('arbusto_2', 'sebe', 20, 7, { art: 'props/bush_flower' }),
-    P('arbusto_3', 'sebe', 3, 8, { art: 'props/bush_flower' }),
-    cen('topiaria_urso', 'props/topiaria_urso', 9, 8, 1, 1, { blocks: true }),
-    // the kiosk and the stalls near the rua entrance
-    {
-      id: 'quiosque',
-      kind: 'quiosque',
-      x: 12,
-      y: 2,
-      blocks: true,
-      action: 'kiosk',
-      interact: { x: 13, y: 2 },
-      label: { pt: 'Quiosque de missões', en: 'Quest kiosk' },
-    },
-    {
-      id: 'barraca',
-      kind: 'barraca_chapeus',
-      x: 19,
-      y: 2,
-      w: 2,
-      h: 1,
-      blocks: true,
-      action: 'shop_hats',
-      interact: { x: 19, y: 3 },
-      label: { pt: 'Chapéus da Nanda', en: 'Nanda’s Hats' },
-    },
-    {
-      id: 'poleiro',
-      kind: 'poleiro',
-      x: 22,
-      y: 14,
-      blocks: true,
-      action: 'parrot_perch',
-      interact: { x: 21, y: 14 },
-      label: { pt: 'Puleiro dos Pássaros', en: 'Bird perch' },
-    },
-    // the vira-lata corner (south-west)
-    cen('vira_lata', 'critters/vira_lata_sleep_e', 3, 21, 1, 1, { blocks: true, label: { pt: 'Viralata Caramello', en: 'Caramel stray dog (vira-lata)' } }),
-    cen('topiaria_cao', 'props/topiaria_cao', 1, 21, 2, 1, { blocks: true }),
-    P('lixeira_p1', 'lixeira', 19, 6),
-    P('lixeira_p2', 'lixeira', 13, 19),
-    P('flor_p1', 'sebe', 21, 22, { w: 3, art: 'props/flor_mista' }),
-    P('flor_p2', 'sebe', 11, 22, { w: 3, art: 'props/flor_branca_l' }),
-    // ---- the map edges: hedges across the north (the rua entrance stays open) and the south, fences along the west and the east (the feira gate stays open)
-    ...hedgeRow('sebe_n', 0, 0, 14),
-    ...hedgeRow('sebe_n', 0, 18, 32),
-    ...hedgeRow('sebe_s', 23, 0, 32),
-    P('cerca_oeste', 'cerca', 0, 1, { w: 1, h: PRACA_ROWS - 2, art: 'cerca_jardim' }),
-    P('cerca_leste_n', 'cerca', 31, 1, { w: 1, h: 9, art: 'cerca_jardim' }),
-    P('cerca_leste_s', 'cerca', 31, 14, { w: 1, h: 9, art: 'cerca_jardim' }),
-    ...diaryProps('praca'),
-  ],
+  props: bundledObjects('praca'),
   walls: [],
   portals: [
     ...edgePortals('praca_rua', 'rua', span(4, 14).map((x) => ({ x, y: 0 })), (t) => ({ x: t.x + 1, y: 14 }), 'NW', { pt: 'Rua dos Ipês', en: 'Ipê Street' }),
@@ -712,62 +473,7 @@ const feira: RoomDef = {
   wallTrim: '#9c8b74',
   lighting: 'tarde',
   spawn: { x: 3, y: 8 },
-  props: [
-    // the lot is fenced; the gate is the brick threshold on the west edge. Open 06:00-13:00 (`feira.ts`); outside those hours the stalls show folded.
-    // The vendor stands in FRONT of the stall (x + 1, y + 2), facing the aisle; customers talk to them from the next tile (x + 1, y + 3).
-    P('cerca_feira', 'cerca', 0, 0, { w: FEIRA_COLS, h: FEIRA_ROWS, art: 'cerca_feira', gaps: span(4, 7).map((y) => ({ x: 0, y })) }),
-    cen('feira_livre', 'props/feira_livre', 6, 1, 5, 1, { label: { pt: 'Feira livre', en: 'Street market' } }),
-    feiraStall('feira_tia_lu', 'tia_lu', 'frutas', 6, 3, { pt: 'Frutas da Tia Lu', en: 'Tia Lu’s fruit stall' }),
-    feiraStall('feira_ze', 'ze', 'verduras', 12, 3, { pt: 'Verduras do Seu Zé', en: 'Seu Zé’s vegetable stall' }),
-    feiraStall('feira_chico', 'chico', 'pastel', 6, 11, { pt: 'Pastel e caldo de cana do Seu Chico', en: 'Seu Chico’s pastel and sugarcane juice' }),
-    feiraStall('feira_rosa', 'rosa', 'flores', 12, 11, { pt: 'Flores da Dona Rosa', en: 'Dona Rosa’s flowers' }),
-    // crates, a sack, scales and two carts around the stalls (blocking, never on a vendor's or a customer's tile)
-    cen('caixote_1', 'feira/cx_banana', 4, 4, 1, 1, { blocks: true }),
-    cen('caixote_2', 'feira/cx_tomate', 5, 4, 1, 1, { blocks: true }),
-    cen('caixote_3', 'feira/cx_melancia', 15, 4, 1, 1, { blocks: true }),
-    cen('caixote_4', 'feira/cx_repolho', 16, 4, 1, 1, { blocks: true }),
-    cen('caixote_5', 'feira/cx_repolho', 4, 12, 1, 1, { blocks: true }),
-    cen('caixote_6', 'feira/cx_tomate', 15, 12, 1, 1, { blocks: true }),
-    cen('carrinho_feira_1', 'feira/carrinho_a', 9, 4, 3, 1, { blocks: true }),
-    cen('carrinho_feira_2', 'feira/carrinho_b', 9, 12, 3, 1, { blocks: true }),
-    cen('sacos_1', 'feira/sacos', 15, 5, 1, 1, { blocks: true }),
-    cen('balanca_1', 'feira/balanca', 8, 5, 1, 1, { blocks: true }),
-    cen('balanca_2', 'feira/balanca', 14, 5, 1, 1, { blocks: true }),
-    cen('balanca_3', 'feira/balanca', 8, 13, 1, 1, { blocks: true }),
-    cen('balanca_4', 'feira/balanca', 14, 13, 1, 1, { blocks: true }),
-    cen('lousa_tia_lu', 'feira/preco_lousa', 5, 5),
-    cen('lousa_ze', 'feira/preco_lousa', 11, 5),
-    cen('lousa_chico', 'feira/preco_lousa', 5, 13),
-    cen('lousa_rosa', 'feira/preco_lousa', 11, 13),
-    // festa-junina bunting over the aisle (overhead, thin: people stay visible)
-    cen('bandeirinhas_1', 'props/bandeirinhas_b', 4, 8, 6, 1),
-    cen('bandeirinhas_2', 'props/bandeirinhas_b', 10, 8, 6, 1),
-    // free stall slots (FEIRA_SLOTS): a price board with a "vaga livre" label marks each spot where the next stall will go
-    ...FEIRA_SLOTS.filter((s) => !s.vendor).map((s) => cen(`vaga_${s.id}`, 'feira/preco_placa', s.x + 1, s.y + 2, 1, 1, { label: { pt: 'Vaga livre para uma nova barraca', en: 'Free spot for a new stall' } })),
-    P('lampada_f1', 'poste', 2, 6, { art: 'props/lamp_old' }),
-    P('lampada_f2', 'poste', 2, 11, { art: 'props/lamp_old' }),
-    P('lampada_f3', 'poste', 21, 9, { art: 'props/lamp_old' }),
-    P('ipe_lote_1', 'arvore', 28, 2, { w: 2, art: 'props/arvore_rua' }),
-    P('ipe_lote_2', 'arvore', 28, 16, { w: 2, art: 'props/arvore_rua' }),
-    cen('flor_lote', 'props/flor_mista_b', 20, 17, 3, 1),
-    bench('banco_feira', 4, 16),
-    // Cart games (daily rotation). Open paving east of the stalls, clear of the free-slot signs (vaga at x19 / x25).
-    // The board stands on the aisle immediately west of the cart, so reaching it is the walk to the cart, not a second trek.
-    // Usable at any game-clock hour — learning loops are never locked behind the feira's 06:00–13:00 window (D12).
-    cen('placa_jogos', 'props/placa_feira', 18, 7, 2, 1, {
-      blocks: true,
-      action: 'feira_sign',
-      interact: { x: 19, y: 8 },
-      label: { pt: 'Placar da Feira', en: 'Market board' },
-    }),
-    cen('carrinho_jogos', 'props/carrinho_feira', 21, 7, 3, 1, {
-      blocks: true,
-      action: 'feira_cart',
-      interact: { x: 22, y: 9 },
-      label: { pt: 'Carrinho de jogos', en: 'Game cart' },
-    }),
-    ...diaryProps('feira'),
-  ],
+  props: bundledObjects('feira'),
   walls: [],
   portals: [...edgePortals('feira_praca', 'praca', span(4, 7).map((y) => ({ x: 0, y })), (t) => ({ x: 30, y: t.y + 3 }), 'SW', { pt: 'Praça Central', en: 'Central Square' })],
   npcs: [
@@ -853,36 +559,7 @@ const padaria: RoomDef = {
   wallTrim: '#C45C26',
   lighting: 'manha',
   spawn: { x: 1, y: 6 },
-  props: [
-    { id: 'caixa', kind: 'caixa', x: 0, y: 2, blocks: true, label: { pt: 'Caixa', en: 'Cash register' } },
-    // the counter: order from the baker on duty, or from the house menu in a player-owned padaria
-    { id: 'balcao', kind: 'balcao', x: 1, y: 2, w: 5, h: 1, blocks: true, action: 'padaria_counter', interact: { x: 2, y: 3 }, label: { pt: 'Balcão', en: 'Counter' } },
-    { id: 'vitrine', kind: 'vitrine', x: 6, y: 2, blocks: true },
-    { id: 'estufa', kind: 'estufa', x: 7, y: 2, blocks: true, label: { pt: 'Estufa de salgados', en: 'Warm snack display' } },
-    {
-      id: 'trilho',
-      kind: 'trilho_pedidos',
-      x: 8,
-      y: 2,
-      blocks: true,
-      action: 'minigame',
-      interact: { x: 6, y: 4 },
-      label: { pt: 'Correria no Balcão', en: 'Counter Rush' },
-    },
-    { id: 'vaso_canto', kind: 'vaso', x: 9, y: 2, blocks: true },
-    { id: 'banqueta_1', kind: 'banqueta', x: 1, y: 3, blocks: false, seat: 'NE' },
-    { id: 'banqueta_2', kind: 'banqueta', x: 5, y: 3, blocks: false, seat: 'NE' },
-    { id: 'banqueta_3', kind: 'banqueta', x: 6, y: 3, blocks: false, seat: 'NE' },
-    { id: 'mesa_1', kind: 'mesa', x: 3, y: 6, blocks: true },
-    { id: 'cadeira_1', kind: 'cadeira_padaria', x: 2, y: 6, blocks: false, seat: 'SE' },
-    { id: 'cadeira_2', kind: 'cadeira_padaria', x: 3, y: 7, blocks: false, seat: 'NE' },
-    { id: 'mesa_2', kind: 'mesa', x: 7, y: 6, blocks: true },
-    { id: 'cadeira_3', kind: 'cadeira_padaria', x: 6, y: 6, blocks: false, seat: 'SE' },
-    { id: 'cadeira_4', kind: 'cadeira_padaria', x: 7, y: 7, blocks: false, seat: 'NE' },
-    { id: 'vaso', kind: 'vaso', x: 9, y: 8, blocks: true },
-    { id: 'padaria_porta_fundar', kind: 'vaso', x: 0, y: 5, blocks: false, action: 'padaria_door', interact: { x: 1, y: 5 }, label: { pt: 'Cofre da porta', en: 'Door fund' } },
-    ...diaryProps('padaria'),
-  ],
+  props: bundledObjects('padaria'),
   walls: [
     { kind: 'azulejos', wall: 'left', from: 0, to: 9 },
     { kind: 'azulejos', wall: 'right', from: 0, to: 10 },
@@ -968,11 +645,7 @@ const kitnet: RoomDef = {
   wallTrim: '#8B5E3C',
   lighting: 'dia',
   spawn: { x: 1, y: 5 },
-  props: [
-    { id: 'cama', kind: 'cama', x: 6, y: 1, w: 2, h: 2, blocks: true },
-    { id: 'cozinha', kind: 'cozinha', x: 1, y: 0, w: 2, h: 1, blocks: true },
-    ...diaryProps('kitnet'),
-  ],
+  props: bundledObjects('kitnet'),
   walls: [
     { kind: 'janela_rua', wall: 'right', from: 3, to: 6 },
     { kind: 'poster', wall: 'left', from: 1, to: 3, text: 'SP' },
@@ -1018,43 +691,7 @@ const academia: RoomDef = {
   wallTrim: '#8B5E3C',
   lighting: 'manha',
   spawn: { x: 1, y: 7 },
-  props: [
-    { id: 'tatame', kind: 'tatame', x: 2, y: 1, w: 6, h: 4, blocks: false, label: { pt: 'Tatame aberto', en: 'Open mat' } },
-    {
-      id: 'fila',
-      kind: 'quadro_fila',
-      x: 9,
-      y: 1,
-      blocks: true,
-      action: 'bjj_roll',
-      interact: { x: 9, y: 2 },
-      label: { pt: 'Treino no tatame →', en: 'Mat practice →' },
-    },
-    { id: 'faixas', kind: 'parede_faixas', x: 0, y: 1, h: 2, blocks: true, label: { pt: 'Parede de faixas', en: 'Belt wall' } },
-    { id: 'quadro', kind: 'quadro_foto', x: 10, y: 4, blocks: true, label: { pt: 'Academia do Bairro', en: 'Academy photo' } },
-    // One continuous arquibancada along the back edge of the mat: spectators face the tatame and the camera.
-    { id: 'arquibancada', kind: 'banco_espectador', x: 1, y: 0, w: 4, blocks: false, seat: 'SW', label: { pt: 'Arquibancada', en: 'Bleachers' } },
-    { id: 'vestiario', kind: 'vestiario', x: 0, y: 7, blocks: true, action: 'buy_gi', interact: { x: 1, y: 7 }, label: { pt: 'Kimono · comece aqui', en: 'Gi · start here' } },
-    // Elevator directory (player academies). A picture on the floor, not a second academia door. needs_br: true
-    {
-      id: 'elevador',
-      kind: 'quadro_foto',
-      x: 4,
-      y: 7,
-      blocks: true,
-      action: 'academy_elevator',
-      // Stand east of the panel. {4,6} is an ambiance idle spot and must stay free.
-      interact: { x: 5, y: 7 },
-      label: { pt: 'Elevador · academias', en: 'Elevator · academies' },
-    },
-    // V3 dressing (decoration only, nothing blocks or seats): a bench along the south wall and a water cooler in the corner
-    { id: 'banco_gym', kind: 'cenario', x: 5, y: 8, w: 2, h: 1, art: 'props/banco_gym', blocks: false },
-    { id: 'bebedouro', kind: 'cenario', x: 10, y: 8, art: 'props/bebedouro', blocks: false },
-    // Mat dressing for the roll (decoration only): the scoreboard at the mat's east edge. The four corner flags are gone: two stood in the
-    // walkway (one on Professora Bia's spot) and the room read as clutter; the back wall already carries the flag and the trophies.
-    { id: 'placar', kind: 'cenario', x: 8, y: 3, w: 2, h: 1, art: 'props/placar', blocks: false },
-    ...diaryProps('academia'),
-  ],
+  props: bundledObjects('academia'),
   walls: [
     { kind: 'placa', wall: 'right', from: 0, to: 4, text: 'ACADEMIA DO BAIRRO' },
     { kind: 'janela', wall: 'left', from: 3, to: 5 },
@@ -1124,14 +761,7 @@ const andar: RoomDef = {
   wallTrim: '#8B5E3C',
   lighting: 'manha',
   spawn: { x: 1, y: 5 },
-  props: [
-    // the academy's own mat: owner, members and guests train here like on the flagship's (the bout stage finds any tatame)
-    { id: 'andar_tatame', kind: 'tatame', x: 2, y: 1, w: 5, h: 3, blocks: false, action: 'bjj_roll', interact: { x: 4, y: 4 }, label: { pt: 'Treinar no tatame', en: 'Train on the mat' } },
-    // the crest board: the owner edits crest and gi here, a guest joins or leaves the team
-    { id: 'andar_brasao', kind: 'quadro_foto', x: 6, y: 0, blocks: true, action: 'academy_board', interact: { x: 6, y: 1 }, label: { pt: 'Brasão da academia', en: 'Academy crest' } },
-    // Width 4 matches the sliced bleacher art (banco_espectador_*_of_4). Crest sits clear of the seats.
-    { id: 'andar_arquibancada', kind: 'banco_espectador', x: 1, y: 0, w: 4, blocks: false, seat: 'SW', label: { pt: 'Arquibancada', en: 'Bleachers' } },
-  ],
+  props: bundledObjects('andar'),
   // No public-academy placa: that sprite is painted "ACADEMIA DO BAIRRO". The crest and the floor bar name this room.
   walls: [{ kind: 'janela', wall: 'right', from: 5, to: 8 }],
   pixelWalls: [{ kind: 'janela', wall: 'right', from: 5, to: 8 }],
@@ -1163,21 +793,7 @@ const escola: RoomDef = {
   wallTrim: '#8B5E3C',
   lighting: 'manha',
   spawn: { x: 1, y: 6 },
-  props: [
-    {
-      id: 'carteira',
-      kind: 'mesa',
-      x: 4,
-      y: 3,
-      blocks: true,
-      action: 'escola',
-      interact: { x: 4, y: 4 },
-      label: { pt: 'Praticar palavras', en: 'Practice words' },
-    },
-    { id: 'quadro_escola', kind: 'quadro_foto', x: 8, y: 2, blocks: true, label: { pt: 'Escola da Praça', en: 'Square school' } },
-    { id: 'cadeira_escola', kind: 'cadeira_padaria', x: 5, y: 4, blocks: false, seat: 'NE' },
-    ...diaryProps('escola'),
-  ],
+  props: bundledObjects('escola'),
   walls: [
     { kind: 'lousa', wall: 'right', from: 1, to: 3, text: 'AULA' },
     { kind: 'janela', wall: 'right', from: 4, to: 6 },
@@ -1232,7 +848,6 @@ const escola: RoomDef = {
  * bus to the Vila. Anyone can come back by the bus from the stop on Rua dos Ipês (leste). The fourteen camera words and the reading words
  * of the diary's Chegada area are the things in here (`hall_*`). Needs_br: every Portuguese string in this room.
  */
-const glassRow = (id: string, art: string, y: number, xs: number[], blocks = true): PropDef[] => xs.map((x) => P(`${id}_${x}`, 'cenario', x, y, { art, blocks }));
 const AERO_VILA: Bilingual = { pt: 'Ônibus 875 · Vila Ipê', en: 'Bus 875 · to Vila Ipê' };
 
 const aeroporto: RoomDef = {
@@ -1249,76 +864,7 @@ const aeroporto: RoomDef = {
   wallTrim: '#8b8bab',
   lighting: 'dia',
   spawn: { x: 11, y: 11 },
-  props: [
-    // ---- the apron, behind the glass: the plane at the gate, the jet bridge, the tower, a baggage tug and its carts, cones
-    cen('aviao', 'aero/aviao', 0, 5, 12, 3, { blocks: true, label: { pt: 'Avião', en: 'Airplane' } }),
-    cen('hall_ponte', 'aero/ponte', 10, 8, 3, 2, { blocks: true }),
-    cen('hall_torre', 'aero/torre', 26, 7, 2, 2, { blocks: true }),
-    cen('rebocador', 'aero/rebocador', 15, 7, 5, 1, { blocks: true }),
-    cen('cone_pista_1', 'diary/cone', 14, 8, 1, 1, { blocks: true }),
-    cen('cone_pista_2', 'diary/cone', 21, 8, 1, 1, { blocks: true }),
-    // the runway's edge lights, on the grass either side of it
-    ...[1, 5, 9, 13, 17, 21, 25, 29].map((x) => cen(`luz_pista_n${x}`, 'aero/luz_pista', x, 1)),
-    ...[3, 7, 23, 27].map((x) => cen(`luz_pista_s${x}`, 'aero/luz_pista', x, 4)),
-    // ---- the glass front of the terminal: gate 3 (the jet bridge's door, where you come out), the big AEROPORTO letters
-    ...glassRow('vidro_n', 'aero/vidraca', 10, [...span(10, 0), ...span(5, 13), ...span(6, 24)]),
-    cen('portao', 'aero/portao', 10, 10, 3, 1, { blocks: true, label: { pt: 'Portão 3', en: 'Gate 3' } }),
-    cen('letreiro', 'aero/vidraca_letreiro', 18, 10, 6, 1, { blocks: true }),
-    // ---- the gate lounge: seats, the gate counter, the departures board, the information desk
-    cen('cadeiras_1', 'aero/cadeiras', 1, 12, 3, 1, { seat: 'SW' }),
-    cen('cadeiras_2', 'aero/cadeiras', 5, 12, 3, 1, { seat: 'SW' }),
-    cen('cadeiras_3', 'aero/cadeiras', 1, 14, 3, 1, { seat: 'SW' }),
-    cen('cadeiras_4', 'aero/cadeiras', 5, 14, 3, 1, { seat: 'SW' }),
-    cen('placa_terminal', 'aero/placa_terminal', 3, 11, 3, 1),
-    cen('balcao_portao', 'aero/balcao_portao', 13, 11, 2, 1, { blocks: true, label: { pt: 'Balcão do portão', en: 'Gate counter' } }),
-    cen('painel_voos', 'aero/painel', 16, 11, 3, 1, { blocks: true }),
-    cen('informacoes', 'aero/informacoes', 21, 12, 3, 1, { blocks: true, label: { pt: 'Informações', en: 'Information desk' } }),
-    cen('cadeiras_5', 'aero/cadeiras', 25, 14, 3, 1, { seat: 'SW' }),
-    cen('vaso_a1', 'props/vaso_topiaria_a', 0, 11, 1, 1, { blocks: true }),
-    cen('vaso_a2', 'props/vaso_topiaria_b', 25, 11, 1, 1, { blocks: true }),
-    cen('vaso_a3', 'props/vaso_topiaria_a', 29, 11, 1, 1, { blocks: true }),
-    // ---- passport control: the agent's booth and a closed one, with the queue posts on either side of the lane between them
-    cen('cabine_1', 'aero/cabine', 11, 15, 3, 2, { blocks: true, label: { pt: 'Controle de passaporte', en: 'Passport control' } }),
-    cen('cabine_2', 'aero/cabine_fechada', 16, 15, 3, 2, { blocks: true }),
-    cen('fila_1', 'aero/fila', 8, 15, 3, 1, { blocks: true }),
-    cen('fila_2', 'aero/fila', 19, 15, 3, 1, { blocks: true }),
-    // the banner hangs high: its board shows two rows above its footprint (the hotspot is on the rows it covers)
-    cen('faixa_boasvindas', 'aero/faixa', 15, 20, 6, 1),
-    // ---- baggage claim (west): the belt with the bags going round, a trolley
-    cen('placa_bagagem', 'aero/placa_bagagem', 2, 17, 3, 1),
-    cen('hall_esteira', 'aero/esteira', 1, 18, 6, 2, { blocks: true }),
-    cen('carrinho_bagagem', 'aero/carrinho', 7, 19, 1, 1, { blocks: true }),
-    cen('carrinho_bagagem_2', 'aero/carrinho_vazio', 7, 21, 1, 1, { blocks: true }),
-    // ---- customs (east): the sign, the x-ray belt, the green channel
-    cen('placa_alfandega', 'aero/placa_alfandega', 23, 16, 3, 1),
-    cen('raio_x', 'aero/raiox', 23, 18, 4, 1, { blocks: true, label: { pt: 'Raio-x da alfândega', en: 'Customs x-ray' } }),
-    cen('canal_verde', 'aero/canal_verde', 28, 18, 1, 1, { blocks: true }),
-    cen('vaso_a4', 'props/vaso_topiaria_b', 29, 21, 1, 1, { blocks: true }),
-    cen('vaso_a5', 'props/vaso_topiaria_a', 0, 22, 1, 1, { blocks: true }),
-    // ---- arrivals: the café, seats, the exit sign
-    cen('lanchonete_aero', 'aero/lanchonete', 9, 20, 4, 2, { blocks: true, action: 'street_snack', interact: { x: 11, y: 22 }, label: { pt: 'Lanchonete · pão de queijo', en: 'Café · cheese bread' } }),
-    cen('cadeiras_6', 'aero/cadeiras', 18, 21, 3, 1, { seat: 'SW' }),
-    cen('cadeiras_7', 'aero/cadeiras', 22, 21, 3, 1, { seat: 'SW' }),
-    cen('placa_desembarque', 'aero/placa_desembarque', 13, 22, 4, 1),
-    // ---- the low glass front with the automatic doors, the sidewalk, the bus and a taxi
-    ...glassRow('vidro_s', 'aero/vidraca_baixa', 23, [...span(14, 0), ...span(14, 16)]),
-    cen('porta_auto', 'aero/porta_auto', 14, 23, 2, 1),
-    P('poste_aero_1', 'poste', 3, 24, { art: 'props/lamp_curve' }),
-    P('poste_aero_2', 'poste', 26, 24, { art: 'props/lamp_curve' }),
-    P('ponto_aero', 'ponto_onibus', 22, 24, { w: 3, label: { pt: 'Ponto de ônibus', en: 'Bus stop' } }),
-    cen('onibus_aero', 'vehicles/onibus_w', 15, 25, 7, 1, { blocks: true, label: AERO_VILA }),
-    cen('taxi_aero', 'vehicles/park_taxi_r', 5, 25, 5, 1, { blocks: true }),
-    P('palmeira_aero_1', 'arvore', 0, 24, { w: 2, art: 'props/jeriva' }),
-    P('palmeira_aero_2', 'arvore', 28, 24, { w: 2, art: 'props/jeriva_b' }),
-    // ---- the diary's camera words that are things of their own (the plane's wing and engine, the runway, the passport and the stamp
-    // on the booth counter are photo spots: `photoSpots.ts`)
-    cen('hall_mala', 'aero/mala', 1, 21),
-    cen('hall_etiqueta', 'aero/etiqueta', 2, 21),
-    cen('hall_mochila', 'aero/mochila', 4, 21),
-    cen('hall_fone', 'aero/fone', 4, 12),
-    cen('hall_cinto', 'aero/cinto', 8, 14),
-    cen('hall_bilhete', 'aero/bilhete', 13, 12),
-  ],
+  props: bundledObjects('aeroporto'),
   walls: [],
   portals: [{ id: 'aero_vila', x: 19, y: 24, to: 'rua_leste', arrive: { x: 9, y: 13 }, arriveDir: 'SW', doorAt: { x: 18.5, y: 25 }, label: AERO_VILA }],
   npcs: [

@@ -3,12 +3,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { WebSocketServer, type WebSocket } from 'ws';
-import { WS_MAX_PAYLOAD, type ClientMsg } from '@tudobem/shared';
+import { WS_MAX_PAYLOAD, conversaDateKey, type ClientMsg } from '@tudobem/shared';
 import { World, type CloseReason } from './world.js';
 import { ProfileStore } from './store.js';
 import { AcademyStore } from './academyStore.js';
 import { PadariaStore } from './padariaStore.js';
-import { academyFileAdapter, feedbackFileAdapter, feiraCartFileAdapter, feiraGamesFileAdapter, fileAdapter, padariaFileAdapter } from './fileStore.js';
+import { academyFileAdapter, feedbackFileAdapter, feiraCartFileAdapter, feiraGamesFileAdapter, fileAdapter, layoutFileAdapter, padariaFileAdapter } from './fileStore.js';
+import { LayoutStore } from './layoutStore.js';
 import { FeiraCartStore } from './feiraCart.js';
 import { FeiraGamesStore } from './feiraGames.js';
 import { AuthoredNpcDialogue, InMemoryStudentModel, JevStubSafety, PhrasebookGloss } from './services/stubs.js';
@@ -109,6 +110,7 @@ export function createApp(opts: AppOptions) {
   const feiraCart = new FeiraCartStore(() => feiraCartFile.load(), (state) => feiraCartFile.save(state));
   const academies = new AcademyStore(academyFileAdapter(dataDir));
   const padarias = new PadariaStore(padariaFileAdapter(dataDir));
+  const layouts = new LayoutStore(layoutFileAdapter(dataDir));
   const feedback = new FeedbackStore(feedbackFileAdapter(dataDir));
   const feedbackLimit = feedbackLimiter();
   const feedbackAdmin = opts.feedbackAdmin ?? readAdminAuthConfig();
@@ -126,10 +128,11 @@ export function createApp(opts: AppOptions) {
       student: new InMemoryStudentModel(),
       moderation: new FileModerationQueue(path.join(dataDir, 'moderation.jsonl')),
     },
-    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, idleKickMs: opts.idleKickMs, academies, padarias, feiraGames, feiraCart },
+    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, idleKickMs: opts.idleKickMs, academies, padarias, feiraGames, feiraCart, layouts },
   );
   const conversaMemory = new ConversaMemory({ store, onProfileChanged: (playerId) => world.pushProfileById(playerId) });
-  const limiters = defaultLimiters();
+  // Test servers (TB_TEST_CLOCK_CONTROL=1, never set on prod) lift the 10-signups-per-hour-per-IP cap: e2e:all signs up 10+ accounts from 127.0.0.1.
+  const limiters = defaultLimiters(Date.now, process.env.TB_TEST_CLOCK_CONTROL === '1' ? 200 : 10);
   const allowedOrigins = opts.allowedOrigins ?? [];
   const opsSmoke = opts.opsSmoke ?? readOpsSmokeConfig();
   const googleOAuth = opts.googleOAuth ?? readGoogleOAuthConfig();
@@ -217,6 +220,7 @@ export function createApp(opts: AppOptions) {
         onConversaLine: (playerId, who, pt) => world.conversaLine(playerId, who, pt),
         memory: conversaMemory,
         clockMinutes: () => world.gameMinuteNow(),
+        dateKey: () => conversaDateKey(),
         playerIdFor: (r) => accounts.accountForSession(sessionCookieOf(r))?.profileId,
       });
     }

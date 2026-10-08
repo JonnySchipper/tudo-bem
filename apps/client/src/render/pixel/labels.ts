@@ -11,7 +11,7 @@
  *    targets pin the arrow to the nearest edge of the free screen region and turn it toward the target (`guides.ts`).
  */
 import './pixel.css';
-import { BUBBLE_STYLES, FOUNDER_BADGE, tierRule, type BubbleStyle, type Nameplate } from '@tudobem/shared';
+import { BELT_COLORS, BUBBLE_STYLES, FOUNDER_BADGE, STRIPES_PER_BELT, tierRule, type Belt, type BubbleStyle, type Nameplate } from '@tudobem/shared';
 import { diffIds } from './reconcile';
 import { GUIDE_ROTATION, pinGuide, type GuideDir, type GuideInsets } from './guides';
 
@@ -32,7 +32,7 @@ export interface StackItem {
   plate: {
     text: string;
     /** `sign`: a shop name chalked on a board (a player-owned padaria), not a person. */
-    kind: 'npc' | 'player' | 'me' | 'sign';
+    kind: 'npc' | 'player' | 'me' | 'sign' | 'pet';
     /** false: keep the element but fade it out (a CPU far from you) */
     show?: boolean;
     /** Academy stamp glyph, members only. */
@@ -45,8 +45,14 @@ export interface StackItem {
     feiraCrown?: boolean;
     /** Players: the nameplate colour earned in the escola (verde is the plain plate; the others add their colour and shape). */
     tier?: Nameplate;
+    /** BJJ belt on the plate when the server sent one (gi, a test profile, or any rank past a fresh white belt). */
+    belt?: Belt;
+    /** Stripes for your own plate. Other players only see the belt colour. */
+    stripes?: number;
   } | null;
   bubbles: BubbleItem[];
+  /** Paint order among tags. A pet tag uses its screen y so a nearer pet's name sits in front. */
+  z?: number;
 }
 
 export interface GuideItem {
@@ -232,6 +238,25 @@ async function mirrorImage(url: string): Promise<string> {
   return c.toDataURL('image/png');
 }
 
+function beltBar(belt: Belt, stripes?: number): HTMLElement {
+  const bar = document.createElement('i');
+  bar.className = `wl-belt belt-${belt}`;
+  bar.setAttribute('aria-hidden', 'true');
+  const band = document.createElement('i');
+  band.className = 'bar';
+  band.style.background = BELT_COLORS[belt];
+  bar.append(band);
+  if (stripes !== undefined) {
+    const n = Math.min(STRIPES_PER_BELT, Math.max(0, stripes));
+    for (let i = 0; i < STRIPES_PER_BELT; i++) {
+      const pip = document.createElement('i');
+      pip.className = i < n ? 'pip on' : 'pip';
+      bar.append(pip);
+    }
+  }
+  return bar;
+}
+
 export class LabelLayer {
   readonly root: HTMLElement;
   private stacks = new Map<string, StackEl>();
@@ -321,6 +346,8 @@ export class LabelLayer {
         this.root.appendChild(el.root);
       }
       const box = this.updateStack(el, s, view);
+      const z = typeof s.z === 'number' ? String(Math.round(s.z)) : '';
+      if (el.root.style.zIndex !== z) el.root.style.zIndex = z;
       if (box) boxes.push(box);
     }
     // nameplates and bubbles of neighbours must not cover each other: lift the farther one's label (pure, see `deoverlapStacks`)
@@ -432,7 +459,7 @@ export class LabelLayer {
 
     // nameplate: text and kind change rarely; measure only then
     const tier = s.plate && (s.plate.kind === 'player' || s.plate.kind === 'me') && s.plate.tier && s.plate.tier !== 'verde' ? s.plate.tier : null;
-    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}|${s.plate.mark ?? ''}|${s.plate.founder ? '1' : ''}|${s.plate.subBadge ? 'b' : ''}|${s.plate.feiraCrown ? 'c' : ''}|${tier ?? ''}` : '';
+    const pk = s.plate ? `${s.plate.kind}|${s.plate.text}|${s.plate.mark ?? ''}|${s.plate.founder ? '1' : ''}|${s.plate.subBadge ? 'b' : ''}|${s.plate.feiraCrown ? 'c' : ''}|${tier ?? ''}|${s.plate.belt ?? ''}|${s.plate.stripes ?? ''}` : '';
     if (pk !== el.plateKey) {
       el.plateKey = pk;
       if (s.plate) {
@@ -458,6 +485,14 @@ export class LabelLayer {
         } else {
           el.plate.append(document.createTextNode(s.plate.text));
         }
+        if (s.plate.belt) el.plate.append(beltBar(s.plate.belt, s.plate.stripes));
+        if (s.plate.kind === 'pet') {
+          const paw = document.createElement('i');
+          paw.className = 'wl-paw';
+          paw.setAttribute('aria-hidden', 'true');
+          el.plate.prepend(paw);
+          el.root.dataset.petName = s.plate.text;
+        } else delete el.root.dataset.petName;
         if (s.plate.feiraCrown) {
           el.crown.style.display = '';
           el.crown.title = 'Fada da Feira';

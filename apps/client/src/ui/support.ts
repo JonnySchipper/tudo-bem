@@ -16,13 +16,15 @@ import {
 } from '@tudobem/shared';
 import { fetchPublicConfig } from '../auth/config';
 import { game } from '../state';
-import { h, en } from './dom';
+import { bi, h, en } from './dom';
 import { closeModal, openModal } from './modal.js';
 
 export interface SupportActions {
   subscribe: () => Promise<{ url?: string; soon?: boolean }>;
   setPet: (pet: PetId | null) => void;
   setBubble: (style: BubbleStyle) => void;
+  /** Open the naming dialog for the pet that is out. */
+  renamePet: (pet: PetId) => void;
 }
 
 export async function openSupport(actions: SupportActions): Promise<void> {
@@ -109,6 +111,23 @@ export async function openSupport(actions: SupportActions): Promise<void> {
               choice('pet', 'dog', p?.pet ?? null, PET_COPY.dog.pt, () => actions.setPet('dog')),
               choice('pet', 'cat', p?.pet ?? null, PET_COPY.cat.pt, () => actions.setPet('cat')),
             ),
+            p?.pet === 'dog' || p?.pet === 'cat'
+              ? h(
+                  'div',
+                  { class: 'pet-rename-row', id: 'pet-rename-row' },
+                  h(
+                    'p',
+                    { id: 'pet-called', class: 'pet-called' },
+                    p.petNames?.[p.pet] ? p.petNames[p.pet]! : 'Ainda sem nome',
+                    en(p.petNames?.[p.pet] ? 'Their name' : 'No name yet', true),
+                  ),
+                  h(
+                    'button',
+                    { type: 'button', id: 'pet-rename', onclick: () => actions.renamePet(p.pet as PetId) },
+                    bi('Renomear', 'Rename'),
+                  ),
+                )
+              : null,
             h('h3', null, 'Balão'),
             en('Colour and shape only. The sentence stays the one you typed.', true),
             h(
