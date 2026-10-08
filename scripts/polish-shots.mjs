@@ -168,25 +168,18 @@ try {
   await sleep(1200);
   await shot('17-escola-room');
   await page.evaluate(() => window.__tb.interact({ prop: 'carteira' }));
-  await page.waitForSelector('#escola-practice', { timeout: 20_000 });
+  await page.waitForSelector('#escola-start', { timeout: 20_000 });
   await sleep(700);
-  await shot('18-escola-board');
-  // the round asks for the English of any word the diary holds (the arrival card's five, whatever was heard on the way): answer from the catalog
-  const catalog = JSON.parse(fs.readFileSync('content/curriculum/phase0/diary-words.json', 'utf8')).words;
-  const asked = (await page.textContent('#escola-gloss'))?.trim();
-  const options = await page.$$eval('#escola-options button', (bs) => bs.map((b) => b.dataset.choice));
-  const right = options.find((o) => catalog.some((w) => w.en === asked && w.pt === o));
-  assert(right, `the practice round asks for a word in the catalog (${asked})`);
-  const wrong = options.find((o) => o !== right);
-  await page.click(`#escola-options button[data-choice="${wrong}"]`);
-  await sleep(450);
-  await shot('19-escola-miss');
-  await page.click(`#escola-options button[data-choice="${right}"]`);
-  await sleep(900);
-  await shot('20-escola-right');
-  await page.click('#escola-again');
+  await shot('18-escola-home');
+  // the lesson's first card (a new word: pick the Portuguese); the full lesson flow is scripts/escola-shots.mjs
+  await page.click('#escola-start');
+  await page.waitForSelector('#escola-lesson', { timeout: 10_000 });
   await sleep(700);
-  await shot('21-escola-again');
+  await shot('19-escola-lesson');
+  await page.click('#escola-options button');
+  await page.waitForSelector('#escola-verdict', { timeout: 8_000 });
+  await sleep(600);
+  await shot('20-escola-verdict');
   await page.keyboard.press('Escape');
   await page.context().close();
 
