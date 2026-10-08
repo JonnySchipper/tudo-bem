@@ -20,9 +20,13 @@ export const PET_TILE = 16;
 export const CRUMB_PX = 4;
 /** How far behind a walking owner the pet aims to stay (a little over two tiles). */
 export const FOLLOW_LAG_PX = 2.5 * PET_TILE;
-/** Once the owner stops, the pet closes to this far behind, then steps aside. */
-export const REST_BEHIND_PX = 14;
-export const REST_ASIDE_PX = 10;
+/**
+ * Once the owner stops, the pet closes to this far behind, then steps aside. The pet frame is 24px wide, so a full tile
+ * aside keeps an idle, sitting or lying pet clear of the owner's legs (and of the shoulder parrot above them) instead of
+ * half over the owner's feet.
+ */
+export const REST_BEHIND_PX = 18;
+export const REST_ASIDE_PX = PET_TILE;
 /**
  * Own pace, in world px per second. A player tile step is 16px / 0.26s (~62 px/s). The pet is a
  * little quicker so it can hold the lag through a turn, and it never locks to the owner's feet.
