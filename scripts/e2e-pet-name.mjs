@@ -64,18 +64,21 @@ async function grantSelf(page) {
   await page.waitForSelector(`[data-grant="${id}"]`, { timeout: 8_000 });
   await page.click(`[data-grant="${id}"]`);
   await waitFor(page, () => window.__tb.game.profile?.subscription?.status === 'active', null, 8_000, 'test subscription');
+  await page.evaluate(() => window.__tb.net.send({ t: 'admin', action: 'weather', weather: 'sol' }));
+  await page.evaluate(() => window.__tb.setClock({ time: '11:00', weather: 'sol' }));
   await page.keyboard.press('Escape');
   await page.waitForSelector('#admin-subs', { state: 'detached', timeout: 8_000 });
   log('subscription granted');
 }
 
 async function stand(page) {
+  // South of the playground, clear of Júlia (13,9) and the fountain, so the collar tag is the label in the shot.
   const tiles = [
-    [12, 10],
-    [14, 8],
-    [10, 12],
-    [16, 12],
-    [8, 10],
+    [8, 21],
+    [9, 21],
+    [7, 21],
+    [3, 14],
+    [26, 12],
   ];
   for (const [x, y] of tiles) {
     await page.evaluate(([x, y]) => window.__tb.walkTo(x, y, false), [x, y]);
@@ -113,6 +116,8 @@ async function settlePet(page, pose) {
 
 /** Sit the pet, then wait until that chat line has left the screen so the badge is the label in the shot. */
 async function sitForShot(page) {
+  // "vem" drops a sit left over from the other pet, then the pet idles beside the player.
+  await page.evaluate(() => window.__tb.net.send({ t: 'chat', text: 'vem' }));
   await settlePet(page, 'idle');
   await page.evaluate(() => window.__tb.net.send({ t: 'chat', text: 'senta' }));
   await settlePet(page, 'sit');
@@ -160,12 +165,39 @@ async function shot(page, file) {
   log('shot', file);
 }
 
-async function shotPair(page, stem) {
+/** Step toward the pet until its badge sits in the viewport (a phone camera crops a neighbour who is a few tiles off). */
+async function approachBadge(page, name) {
+  for (let i = 0; i < 14; i++) {
+    if (await page.evaluate(badgeInView, name)) return;
+    await page.evaluate((name) => {
+      const tb = window.__tb;
+      const mine = tb.selfTile()?.tile;
+      const owner = [...tb.game.avatars.values()].find((a) => a.pub.petName === name);
+      if (!mine || !owner) return;
+      const dx = owner.pub.x - mine.x;
+      const dy = owner.pub.y - mine.y;
+      if (Math.abs(dx) + Math.abs(dy) <= 1) return;
+      tb.walkTo(mine.x + Math.sign(dx), mine.y + Math.sign(dy), false);
+    }, name);
+    await sleep(650);
+  }
+  await waitBadge(page, name);
+}
+
+async function shotPair(page, stem, badge, ownerClass) {
   await page.setViewportSize({ width: 1280, height: 800 });
   await sleep(350);
+  if (badge) {
+    await approachBadge(page, badge);
+    if (ownerClass) assert((await badgeOverlapsOwner(page, badge, ownerClass)) === false, `${badge} covers a name at 1280 (${stem})`);
+  }
   await shot(page, `${stem}-1280x800.png`);
   await page.setViewportSize({ width: 390, height: 844 });
-  await sleep(450);
+  await sleep(500);
+  if (badge) {
+    await approachBadge(page, badge);
+    if (ownerClass) assert((await badgeOverlapsOwner(page, badge, ownerClass)) === false, `${badge} covers a name at 390 (${stem})`);
+  }
   await shot(page, `${stem}-390x844.png`);
   await page.setViewportSize({ width: 1280, height: 800 });
   await sleep(300);
@@ -214,31 +246,45 @@ async function main() {
     await waitFor(page, () => window.__tb.game.profile?.petNames?.dog === 'Caramelo', null, 8_000, 'Caramelo saved');
     await page.waitForSelector('#pet-name-panel', { state: 'detached', timeout: 8_000 });
 
-    const here = await stand(page);
+    await stand(page);
     await sitForShot(page);
     await waitBadge(page, 'Caramelo');
     assert((await badgeOverlapsOwner(page, 'Caramelo', '.wl-plate-me')) === false, 'dog badge covers Lia’s name');
-    await shotPair(page, 'dog');
-    await waitBadge(page, 'Caramelo');
+    await shotPair(page, 'dog', 'Caramelo', '.wl-plate-me');
 
     const id = await page.evaluate(() => window.__tb.game.profile.id);
     await page.reload();
     await waitFor(page, () => window.__tb?.game?.profile?.petNames?.dog === 'Caramelo' && window.__tb.game.room?.room === 'praca', null, 15_000, 'named dog after reload');
     assert((await page.$('#pet-name-panel')) === null, 'a named pet does not ask again');
     await page.evaluate(() => window.__tb.setClock({ time: '11:00', weather: 'sol' }));
+    const spot = await stand(page);
+    await sitForShot(page);
     await waitBadge(page, 'Caramelo');
-    log('badge persisted', id);
+    log('badge persisted', id, spot);
 
     const ctxB = await browser.newContext({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1 });
     const other = await ctxB.newPage();
     other.on('pageerror', (e) => errors.push(String(e)));
     await signup(other, 'Bia');
-    await other.evaluate(([x, y]) => window.__tb.walkTo(x + 1, y + 1, false), [here.x, here.y]);
-    await sleep(600);
+    await other.evaluate(([x, y]) => window.__tb.walkTo(x + 1, y, false), [spot.x, spot.y]);
     await page.evaluate(() => window.__tb.net.send({ t: 'chat', text: 'senta' }));
-    await waitBadge(other, 'Caramelo');
+    await waitFor(
+      other,
+      () => [...document.querySelectorAll('.wl-bubble .pt')].some((el) => /senta/i.test(el.textContent ?? '')),
+      null,
+      8_000,
+      'senta bubble on the other client',
+    );
+    await waitFor(
+      other,
+      () => ![...document.querySelectorAll('.wl-bubble .pt')].some((el) => /senta/i.test(el.textContent ?? '')),
+      null,
+      12_000,
+      'senta bubble clears for the other client',
+    );
+    await approachBadge(other, 'Caramelo');
     assert((await badgeOverlapsOwner(other, 'Caramelo', '.wl-plate-player')) === false, 'dog badge covers a name on the other screen');
-    await shotPair(other, 'other');
+    await shotPair(other, 'other', 'Caramelo', '.wl-plate-player');
     log('second client sees Caramelo');
 
     await openHud(page, '#btn-support');
@@ -253,6 +299,8 @@ async function main() {
     await waitBadge(other, 'Paçoca');
     log('rename reached the other client');
 
+    await other.evaluate(() => window.__tb.walkTo(20, 12, false));
+    await sleep(900);
     await openHud(page, '#btn-support');
     await page.waitForSelector('[data-perk="pet:cat"]', { timeout: 8_000 });
     await page.click('[data-perk="pet:cat"]');
@@ -261,12 +309,14 @@ async function main() {
     await page.fill('#pet-name-input', 'Pipoca');
     await page.click('#pet-name-save');
     await waitFor(page, () => window.__tb.game.profile?.petNames?.cat === 'Pipoca' && window.__tb.game.profile?.petNames?.dog === 'Paçoca', null, 8_000, 'both names stored');
-    await stand(page);
+    const catAt = await stand(page);
     await sitForShot(page);
     await waitBadge(page, 'Pipoca');
     assert((await page.evaluate(() => document.querySelector('[data-pet-name="Paçoca"]'))) === null, 'the dog badge left with the dog');
     assert((await badgeOverlapsOwner(page, 'Pipoca', '.wl-plate-me')) === false, 'cat badge covers Lia’s name');
-    await shotPair(page, 'cat');
+    await shotPair(page, 'cat', 'Pipoca', '.wl-plate-me');
+    await other.evaluate(([x, y]) => window.__tb.walkTo(x + 1, y + 1, false), [catAt.x, catAt.y]);
+    await sleep(700);
     await waitBadge(other, 'Pipoca');
 
     await page.evaluate(() => window.__tb.net.send({ t: 'perk', action: 'pet', pet: null }));
