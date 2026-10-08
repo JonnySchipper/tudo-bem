@@ -474,7 +474,7 @@ export class WorldScene extends Phaser.Scene {
     const y = Math.round(wy);
     const spr = this.reg(this.add.sprite(x, y, d.atlas, d.frame)).setOrigin(...originOf(d)).setDepth(depth);
     if (d.anim) spr.play({ key: ensureAnim(this, key, d), startFrame: Math.floor(hash01(x * 31 + y) * d.anim.frames.length) });
-    if (key.startsWith('vehicles/')) this.reg(this.rig.liftBody(spr)); // a parked car keeps its shape at night
+    if (shadow && key.startsWith('vehicles/')) this.reg(this.rig.liftBody(spr)); // a parked car keeps its shape at night
     this.lastShadow = shadow && this.roomOutdoor ? this.shadows.addStatic(key, d, x, y, depth) : null;
     if (shadow && this.roomOutdoor) this.ao.add(aoForSprite(key, d, x, y));
     if (shadow) {
@@ -630,8 +630,9 @@ export class WorldScene extends Phaser.Scene {
     // the small diary objects and signs stand out a couple at a time, a different couple each game day
     this.diaryDay = clock.day();
     for (const p of def.props) if (diaryVisible(def.id, p.id, this.diaryDay)) this.buildProp(p);
-    // the town around an open-air map: scenery only (no action, label or seat, outside the walkable grid)
-    for (const p of sur?.props ?? []) this.buildProp(p);
+    // the town around an open-air map: scenery only (no action, label or seat, outside the walkable grid).
+    // Static sprites, no sun-shadow caster and no lamp: those are per-frame, and a phone was paying for a whole neighbouring block (issue #123).
+    for (const p of sur?.props ?? []) this.buildProp(p, true);
 
     // ---- readable world (Phase 7): a click box per hotspot (the footprint, plus the wall rows above it for a sign painted on a north wall)
     for (const hs of hotspotsInRoom(def.id)) {
@@ -733,7 +734,8 @@ export class WorldScene extends Phaser.Scene {
     this.sprite(art.key, left + spr.ax, art.bottom, DEPTH.wallDecor, false);
   }
 
-  private buildProp(p: PropDef): void {
+  /** `scenery`: a surround prop. One sprite, no sun-shadow caster, no lamp and no stall logic (those update every frame). */
+  private buildProp(p: PropDef, scenery = false): void {
     const m = this.m;
     if (p.kind === 'cerca') {
       this.buildFence(p);
@@ -754,30 +756,30 @@ export class WorldScene extends Phaser.Scene {
         const wx = (s.x + 0.5) * T;
         const wy = (s.y + 1) * T;
         if (sd) {
-          this.sprite(s.key, wx, wy, depth);
+          this.sprite(s.key, wx, wy, depth, !scenery);
           visual = unionRect(visual, spriteRect(Math.round(wx), Math.round(wy), sd));
         } else this.placeholder(`${s.key}#${p.id}`, { x0: s.x * T, y0: s.y * T, x1: (s.x + 1) * T, y1: (s.y + 1) * T }, depth);
       }
     } else if (artKey && d) {
-      const main = this.sprite(artKey, a.wx, a.wy, depth);
+      const main = this.sprite(artKey, a.wx, a.wy, depth, !scenery);
       const mainShadow = this.lastShadow;
-      const feiraEntry = p.kind === 'feira' ? { open: (main ? [main] : []) as Phaser.GameObjects.GameObject[], closed: [] as Phaser.GameObjects.GameObject[], isOpen: null as boolean | null } : null;
+      const feiraEntry = !scenery && p.kind === 'feira' ? { open: (main ? [main] : []) as Phaser.GameObjects.GameObject[], closed: [] as Phaser.GameObjects.GameObject[], isOpen: null as boolean | null } : null;
       if (feiraEntry && mainShadow) feiraEntry.open.push(mainShadow as unknown as Phaser.GameObjects.GameObject);
-      if (p.kind === 'barraca_chapeus') this.stall = { main, canopy: null, wx: a.wx, wy: a.wy, closed: false };
-      if (p.kind === 'trilho_pedidos' && main && d.anim) {
+      if (!scenery && p.kind === 'barraca_chapeus') this.stall = { main, canopy: null, wx: a.wx, wy: a.wy, closed: false };
+      if (!scenery && p.kind === 'trilho_pedidos' && main && d.anim) {
         // the ticket rail is still until Correria no Balcão opens (updateTrilho)
         main.anims.stop();
         main.setFrame(d.anim.frames[0]);
         this.trilho = main;
         this.trilhoLive = false;
       }
-      if (d.lit && m.sprites[d.lit]) {
+      if (!scenery && d.lit && m.sprites[d.lit]) {
         const ld = m.sprites[d.lit];
         this.rig.litOverlays.push(this.reg(this.add.image(Math.round(a.wx), Math.round(a.wy), ld.atlas, ld.frame)).setOrigin(...originOf(ld)).setDepth(depth + 0.01).setAlpha(0).setData('delay', lightDelay(a.wx, a.wy)));
       }
       visual = unionRect(foot, spriteRect(Math.round(a.wx), Math.round(a.wy), d));
       // lit windows of a building front: light pools on the sidewalk at night
-      for (const [wx, wy, ww, wh] of d.windows ?? []) {
+      if (!scenery) for (const [wx, wy, ww, wh] of d.windows ?? []) {
         this.rig.lights.push({ x: Math.round(a.wx) - d.ax + wx + ww / 2, y: Math.round(a.wy) - d.ay + wy + wh + 5, r: 22 + ww * 0.5, color: 0xffc060, squash: 0.6, kind: 'window' });
       }
       if (typeof d.overhead === 'string' && m.sprites[d.overhead]) {
@@ -786,29 +788,33 @@ export class WorldScene extends Phaser.Scene {
         const y = Math.round(a.wy);
         const spr = this.reg(this.add.sprite(x, y, od.atlas, od.frame)).setOrigin(...originOf(od)).setDepth(DEPTH.overhead + y / 1000);
         if (od.anim) spr.play({ key: ensureAnim(this, d.overhead, od), startFrame: Math.floor(hash01(x * 7 + y) * 4) });
-        if (p.kind === 'barraca_chapeus' && this.stall) this.stall.canopy = spr;
+        if (!scenery && p.kind === 'barraca_chapeus' && this.stall) this.stall.canopy = spr;
         feiraEntry?.open.push(spr);
-        const canopyShadow = this.roomOutdoor ? this.shadows.addStatic(d.overhead, od, x, y, DEPTH.overhead + y / 1000) : null;
-        if (this.roomOutdoor && p.kind !== 'feira') this.ao.add(aoForOverhead(d.overhead, od, x, y, d.footprint));
+        const canopyShadow = !scenery && this.roomOutdoor ? this.shadows.addStatic(d.overhead, od, x, y, DEPTH.overhead + y / 1000) : null;
+        if (!scenery && this.roomOutdoor && p.kind !== 'feira') this.ao.add(aoForOverhead(d.overhead, od, x, y, d.footprint));
         if (feiraEntry && canopyShadow) feiraEntry.open.push(canopyShadow as unknown as Phaser.GameObjects.GameObject);
-        const left = x - od.ax;
-        const top = y - od.ay;
-        this.canopies.push({ sprite: spr, r: { x0: left, y0: top + 8, x1: left + od.w, y1: top + od.h + 14 }, fade: 1, stall: p.kind === 'feira' || p.kind === 'barraca_chapeus' });
-      }
-      if (feiraEntry) this.buildFeiraClosed(artKey, a, depth, feiraEntry);
-      const L = d.light ? { x: d.light.x - d.ax, y: d.light.y - d.ay, r: d.light.r, color: d.light.color } : PROP_LIGHT[p.kind];
-      if (L) this.addLampLights(Math.round(a.wx), Math.round(a.wy), L);
-      else {
-        // V5: lights from data: the sprite key's preset, or the generic pool for a prop flagged lightAtNight
-        const pr = presetFor(artKey, p.lightAtNight);
-        if (pr) {
-          const bx = Math.round(a.wx);
-          const by = Math.round(a.wy);
-          const delay = lightDelay(bx, by);
-          for (const s of pr.lights) this.rig.lights.push({ x: bx + s.x, y: by + s.y, r: s.r, color: parseInt(s.color.slice(1), 16), squash: s.squash, kind: 'lamp', glow: s.glow ?? 0.4, delay });
+        if (!scenery) {
+          const left = x - od.ax;
+          const top = y - od.ay;
+          this.canopies.push({ sprite: spr, r: { x0: left, y0: top + 8, x1: left + od.w, y1: top + od.h + 14 }, fade: 1, stall: p.kind === 'feira' || p.kind === 'barraca_chapeus' });
         }
       }
-      if (this.roomOutdoor && presetFor(artKey, p.lightAtNight)?.water) {
+      if (feiraEntry) this.buildFeiraClosed(artKey, a, depth, feiraEntry);
+      if (!scenery) {
+        const L = d.light ? { x: d.light.x - d.ax, y: d.light.y - d.ay, r: d.light.r, color: d.light.color } : PROP_LIGHT[p.kind];
+        if (L) this.addLampLights(Math.round(a.wx), Math.round(a.wy), L);
+        else {
+          // V5: lights from data: the sprite key's preset, or the generic pool for a prop flagged lightAtNight
+          const pr = presetFor(artKey, p.lightAtNight);
+          if (pr) {
+            const bx = Math.round(a.wx);
+            const by = Math.round(a.wy);
+            const delay = lightDelay(bx, by);
+            for (const s of pr.lights) this.rig.lights.push({ x: bx + s.x, y: by + s.y, r: s.r, color: parseInt(s.color.slice(1), 16), squash: s.squash, kind: 'lamp', glow: s.glow ?? 0.4, delay });
+          }
+        }
+      }
+      if (!scenery && this.roomOutdoor && presetFor(artKey, p.lightAtNight)?.water) {
         const px = this.shadows.readFrame(d.atlas, d.frame);
         if (px) this.water.add(artKey, px.data as Uint8ClampedArray, px.w, px.h, a.wx, a.wy, d.ax, d.ay, depth);
       }

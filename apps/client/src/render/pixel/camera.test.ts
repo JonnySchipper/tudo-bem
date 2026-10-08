@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ROOMS } from '@tudobem/shared';
-import { T, cssZoomFor, deviceZoomFor, fitsAt, roomFraming, roomZoom, viewTop, type Insets } from './coords';
+import { T, cssZoomFor, deviceZoomFor, fitsAt, outdoorFraming, roomFraming, roomZoom, viewTop, type Insets } from './coords';
 import { roomBounds } from './roomLayout';
 
 // Phase 4a: the whole room, wall band included, when it fits; otherwise follow the avatar with the north wall in view.
@@ -116,5 +116,98 @@ describe('roomFraming', () => {
     const f = roomFraming(phone, b, { x: T, y: 7 * T }, phoneIns, 2, 2);
     expect(f.zoom).toBe(4);
     expect(f.fits).toBe(true);
+  });
+});
+
+// Issue #123: an open-air map keeps the window's zoom and follows the avatar. Interiors stay on roomFraming above.
+describe('outdoorFraming', () => {
+  const wide = { w: 1920, h: 1080 };
+
+  it('keeps the window zoom with no step-down (a street that fits one zoom lower stays at the window zoom)', () => {
+    const css = cssZoomFor(desktop.w, desktop.h); // 3
+    for (const id of ['rua', 'rua_leste'] as const) {
+      const b = roomBounds(ROOMS[id]);
+      const focus = { x: 8 * T, y: 12 * T };
+      const out = outdoorFraming(desktop, b, focus, desktopIns, css, 1);
+      expect(out.zoom, id).toBe(deviceZoomFor(css, 1));
+      // the interior rule would step down: the street fits whole at zoom 2
+      expect(roomZoom(desktop, b, desktopIns, css, 1), id).toBe(css - 1);
+      expect(roomFraming(desktop, b, focus, desktopIns, css, 1).zoom, id).toBe(css - 1);
+    }
+    const rua = roomBounds(ROOMS.rua);
+    expect(outdoorFraming(wide, rua, { x: 8 * T, y: 12 * T }, desktopIns, 4, 1).zoom).toBe(4);
+    expect(roomZoom(wide, rua, desktopIns, 4, 1)).toBe(3);
+  });
+
+  it('is an integer device zoom, including fractional DPRs, and a phone stays at css zoom 2', () => {
+    const b = roomBounds(ROOMS.praca);
+    const focus = { x: 16 * T, y: 16 * T };
+    for (const dpr of [1, 1.25, 1.5, 2, 3]) {
+      const view = { w: Math.round(1280 * dpr), h: Math.round(800 * dpr) };
+      const ins: Insets = { top: desktopIns.top * dpr, bottom: desktopIns.bottom * dpr, left: 0, right: 0 };
+      const f = outdoorFraming(view, b, focus, ins, 3, dpr);
+      expect(Number.isInteger(f.zoom), `dpr ${dpr}`).toBe(true);
+      expect(f.zoom, `dpr ${dpr}`).toBe(deviceZoomFor(3, dpr));
+    }
+    const phoneOut = outdoorFraming(phone, roomBounds(ROOMS.rua), { x: 10 * T, y: 10 * T }, phoneIns, 2, 2);
+    expect(phoneOut.zoom).toBe(4);
+    expect(Number.isInteger(phoneOut.zoom)).toBe(true);
+  });
+
+  it('follows the avatar and clamps at the map edges; an axis narrower than the window stays centred', () => {
+    const b = roomBounds(ROOMS.praca); // bigger than 1280 x 800 at zoom 3 on both axes
+    const css = 3;
+    // the clamp is the HUD-free region; the bars themselves may show the town drawn around the map
+    const free = (f: { cx: number; cy: number; zoom: number }) => ({
+      x0: f.cx - (desktop.w / 2 - desktopIns.left) / f.zoom,
+      x1: f.cx + (desktop.w / 2 - desktopIns.right) / f.zoom,
+      y0: viewTop(desktop, f.cy, f.zoom, desktopIns),
+      y1: f.cy + (desktop.h / 2 - desktopIns.bottom) / f.zoom,
+    });
+    // north-west corner: the free region sits on the map's top and left edges
+    const nw = outdoorFraming(desktop, b, { x: b.x0 + T, y: b.y0 + T }, desktopIns, css, 1);
+    const seenNw = free(nw);
+    expect(seenNw.x0).toBeCloseTo(b.x0, 5);
+    expect(seenNw.y0).toBeCloseTo(b.y0, 5);
+    // south-east corner: the free region sits on the map's bottom and right edges
+    const se = outdoorFraming(desktop, b, { x: b.x1 - T, y: b.y1 - T }, desktopIns, css, 1);
+    const seenSe = free(se);
+    expect(seenSe.x1).toBeCloseTo(b.x1, 5);
+    expect(seenSe.y1).toBeCloseTo(b.y1, 5);
+    expect(seenSe.x0).toBeGreaterThanOrEqual(b.x0 - 1e-6);
+    expect(seenSe.y0).toBeGreaterThanOrEqual(b.y0 - 1e-6);
+    // mid-map, below the north-sidewalk hold: the camera has followed down and is not pinned to an edge
+    const north = outdoorFraming(desktop, b, { x: 16 * T, y: 4 * T }, desktopIns, css, 1);
+    const mid = outdoorFraming(desktop, b, { x: 16 * T, y: 14 * T }, desktopIns, css, 1);
+    expect(free(north).y0).toBeCloseTo(b.y0, 5);
+    expect(mid.cy).toBeGreaterThan(north.cy);
+    expect(mid.cx).toBeCloseTo(16 * T, 5);
+    const seenMid = free(mid);
+    expect(seenMid.x0).toBeGreaterThan(b.x0 + T);
+    expect(seenMid.x1).toBeLessThan(b.x1 - T);
+    expect(seenMid.y0).toBeGreaterThan(b.y0 + T);
+    expect(seenMid.y1).toBeLessThan(b.y1 - T);
+
+    // the rua is narrower than the window at zoom 3: x stays centred wherever the avatar stands, y still clamps
+    const rua = roomBounds(ROOMS.rua);
+    const west = outdoorFraming(desktop, rua, { x: T, y: 12 * T }, desktopIns, css, 1);
+    const east = outdoorFraming(desktop, rua, { x: (ROOMS.rua.cols - 1) * T, y: 12 * T }, desktopIns, css, 1);
+    expect(west.cx).toBeCloseTo((rua.x0 + rua.x1) / 2, 5);
+    expect(east.cx).toBeCloseTo(west.cx, 5);
+    const south = outdoorFraming(desktop, rua, { x: 8 * T, y: rua.y1 + 100 }, desktopIns, css, 1);
+    const seenSouth = free(south);
+    expect(seenSouth.y1).toBeCloseTo(rua.y1, 5);
+    expect(seenSouth.y0).toBeGreaterThanOrEqual(rua.y0 - 1e-6);
+  });
+
+  it('leaves interiors on the old rule: step down to fit, and a room that fits does not follow the avatar', () => {
+    const b = roomBounds(ROOMS.padaria);
+    const interior = roomFraming(desktop, b, { x: 2 * T, y: 8 * T }, desktopIns, 4, 1);
+    const moved = roomFraming(desktop, b, { x: 8 * T, y: 2 * T }, desktopIns, 4, 1);
+    expect(interior.zoom).toBe(3);
+    expect(interior.fits).toBe(true);
+    expect(moved).toEqual(interior);
+    // the same window, treated as outdoor, would have kept zoom 4
+    expect(outdoorFraming(desktop, b, { x: 2 * T, y: 8 * T }, desktopIns, 4, 1).zoom).toBe(4);
   });
 });

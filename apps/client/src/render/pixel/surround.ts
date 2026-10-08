@@ -15,8 +15,12 @@ import { T, type Rect } from './coords';
 
 /** Tiles of terrain drawn past each edge of an open-air map: more than any window shows around it (a 3840 x 2160 desktop at zoom 5 sees 15). */
 export const SURROUND_TILES = 24;
-/** Props and ground dressing of the surround are only built this far (tiles) past the map edges, so a phone never pays for scenery it cannot see. */
-export const SURROUND_PROP_REACH = 16;
+/**
+ * Props, dashes and neighbour dressing are only built this far (tiles) past the map edges. A 1920×1080 window at the street zoom sees about
+ * 6 tiles past the barricade, and a phone less than that; 8 covers both with the next house. Further out stays ground (the tilemap) and sky,
+ * so a phone does not keep the sprites, shadows and lamps of a whole neighbouring area it cannot see (issue #123).
+ */
+export const SURROUND_PROP_REACH = 8;
 
 /** Top-left tile of each open-air area on the town grid. The rua is the origin; see `vilaLayout.test` for the portal check. */
 export const VILA_LAYOUT: Partial<Record<RoomId, { x: number; y: number }>> = (() => {
