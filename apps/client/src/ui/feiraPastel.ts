@@ -72,7 +72,7 @@ const FILL_INK: Record<PastelPart, { base: string; hi: string }> = {
   queijo: { base: '#f2c230', hi: '#fff59a' },
   pizza: { base: '#e63f38', hi: '#ff8575' },
   calabresa: { base: '#cb2a2a', hi: '#fc5c46' },
-  palmito: { base: '#eee1b7', hi: '#f8f8f8' },
+  palmito: { base: '#c78c59', hi: '#f2bd7a' },
   frango: { base: '#f2bd7a', hi: '#fff59a' },
   camarao: { base: '#ff8575', hi: '#fff59a' },
   catupiry: { base: '#fff6e6', hi: '#ffffff' },
@@ -180,18 +180,24 @@ function outline(body: [number, number, string][]): [number, number, string][] {
   return out;
 }
 
-function turnover(ink: { hi: string; mid: string; shade: string; dark: string }): [number, number, string][] {
+/** Open wrapper: a round disc of dough. Sealed pastel: a half-moon with the crimp along the top. */
+function turnover(ink: { hi: string; mid: string; shade: string; dark: string }, sealed: boolean): [number, number, string][] {
   const body: [number, number, string][] = [];
+  const ox = CX;
+  const oy = sealed ? 16 : CY - 2;
+  const rx = 16;
+  const ry = sealed ? 14 : 11;
   for (let y = 0; y < PH; y++) {
     for (let x = 0; x < PW; x++) {
-      const dx = (x + 0.5 - CX) / 16;
-      const dy = (y + 0.5 - CY) / 10.2;
+      const dx = (x + 0.5 - ox) / rx;
+      const dy = (y + 0.5 - oy) / ry;
+      if (sealed && dy < -0.02) continue;
       const r = dx * dx + dy * dy;
       if (r > 1) continue;
-      const edge = r > 0.8;
-      const lit = dx < -0.12 && dy < -0.08;
-      const shade = dx > 0.28 || dy > 0.38;
-      let c = lit ? ink.hi : shade ? ink.dark : r > 0.42 ? ink.shade : ink.mid;
+      const edge = r > 0.82 || (sealed && dy < 0.12);
+      const lit = dx < -0.15 && dy < 0.35;
+      const shade = dx > 0.35 || dy > 0.62;
+      let c = lit ? ink.hi : shade ? ink.dark : r > 0.45 ? ink.shade : ink.mid;
       if (edge) c = ink.dark;
       else if ((x * 3 + y * 5) % 17 === 0) c = ink.hi;
       body.push([x, y, c]);
@@ -202,23 +208,23 @@ function turnover(ink: { hi: string; mid: string; shade: string; dark: string })
 
 function crimpMarks(): [number, number, string][] {
   const cells: [number, number, string][] = [];
-  for (let x = CX - 13; x <= CX + 13; x += 3) {
+  for (let x = CX - 14; x <= CX + 14; x += 3) {
     const dx = (x + 0.5 - CX) / 16;
-    if (Math.abs(dx) >= 1) continue;
-    const y = Math.round(CY - Math.sqrt(1 - dx * dx) * 10.2);
-    cells.push([x, y - 1, NAVY], [x, y, '#f8f8f8'], [x + 1, y, NAVY]);
+    if (Math.abs(dx) > 0.96) continue;
+    const y = 15;
+    cells.push([x, y, NAVY], [x, y + 1, '#f8f8f8'], [x + 1, y, NAVY], [x, y - 1, NAVY]);
   }
   return cells;
 }
 
 function charcoal(): [number, number, string][] {
   const body: [number, number, string][] = [];
-  for (let y = 18; y <= 34; y++) {
-    for (let x = 14; x <= 34; x++) {
-      const edge = x === 14 || x === 34 || y === 18 || y === 34;
-      const lit = x < 20 && y < 23;
-      let c = edge ? NAVY : lit ? '#565972' : (x + y) % 6 === 0 ? '#1a120c' : '#2a2233';
-      if (!edge && y === 26 && x > 18 && x < 30 && x % 2 === 0) c = '#cb2a2a';
+  for (let y = 16; y <= 36; y++) {
+    for (let x = 10; x <= 38; x++) {
+      const edge = x <= 11 || x >= 37 || y <= 17 || y >= 35;
+      const lit = x < 18 && y < 22;
+      let c = edge ? NAVY : lit ? '#565972' : (x + y) % 5 === 0 ? '#1a120c' : '#2a2233';
+      if (!edge && (y === 24 || y === 29) && x > 14 && x < 34 && x % 2 === 0) c = '#cb2a2a';
       body.push([x, y, c]);
     }
   }
@@ -227,12 +233,13 @@ function charcoal(): [number, number, string][] {
 
 function flames(shift: number): [number, number, string][] {
   const cells: [number, number, string][] = [];
-  [17, 24, 31].forEach((x, i) => {
-    const h = 7 + ((i + shift) % 3) * 2;
+  [14, 22, 30, 36].forEach((x, i) => {
+    const h = 10 + ((i + shift) % 3) * 3;
     for (let k = 0; k < h; k++) {
-      const y = 17 - k;
-      const c = k > h - 3 ? '#fff59a' : k > 3 ? '#f2b22b' : '#e63f38';
-      cells.push([x, y, c], [x + (k % 2 === 0 ? 1 : -1), y, k % 2 === 0 ? '#ed931e' : c]);
+      const y = 16 - k;
+      const c = k > h - 3 ? '#fff59a' : k > 4 ? '#f2b22b' : '#e63f38';
+      const w = k % 2 === 0 ? 1 : 0;
+      cells.push([x, y, c], [x + w, y, k < 3 ? '#ed931e' : c], [x - w, y, '#f8d239']);
     }
   });
   return cells;
@@ -280,10 +287,11 @@ function buildPastelSvg(): SVGSVGElement {
     'shape-rendering': 'crispEdges',
   });
   const layers: [string, [number, number, string][]][] = [
-    ['g-raw', turnover(INK.raw)],
-    ['g-golden', turnover(INK.golden)],
-    ['g-dark', turnover(INK.dark)],
-    ['g-black', turnover(INK.black)],
+    ['g-raw', turnover(INK.raw, false)],
+    ['g-folded', turnover(INK.raw, true)],
+    ['g-golden', turnover(INK.golden, true)],
+    ['g-dark', turnover(INK.dark, true)],
+    ['g-black', turnover(INK.black, true)],
     ['g-block', charcoal()],
     ['g-crimp', crimpMarks()],
     ['g-flame g-flame-a', flames(0)],
@@ -540,10 +548,10 @@ export class PastelView {
 
   private syncAssembly() {
     const parts = this.asm.parts;
-    const step = this.asm.step === 'dough' ? 'open' : this.asm.step;
     const bits = ['ps-pas'];
     if (this.asm.step === 'empty') bits.push('st-empty');
-    else bits.push('st-raw', step === 'crimped' ? 'crimped' : 'open', `parts-${parts.length}`);
+    else if (this.asm.step === 'crimped') bits.push('st-folded', 'crimped');
+    else bits.push('st-raw', 'open', `parts-${parts.length}`);
     if (parts[0]) bits.push(`fill-a-${parts[0]}`);
     if (parts[1]) bits.push(`fill-b-${parts[1]}`);
     const visual = bits.join(' ');

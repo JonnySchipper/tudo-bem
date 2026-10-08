@@ -1640,7 +1640,8 @@ Pastel joins the rotation. Caldo de cana is still unimplemented, so a caldo day 
 
 - **Play.** Made to order: massa, the filling, the fork, then the oil. Two pastels fry at once from the start (a third slot after 4 serves). Pull while it is golden. Leave it and the ladder is golden → dark → black → a charcoal block → fire. "Apaga!" puts the fire out. There is no extinguisher. Burnt, raw, or a fire you smothered is a soft fail (score only). The run does not end. Combo fillings (frango com catupiry, camarão com catupiry, Romeu e Julieta, banana com canela) are two bowl taps, arrive from the sixth customer on, and use a shorter golden window.
 - **Score.** Same server path as Tapioca: per-order quality, recomputed from the seed, hard cap 500, RV in the Correria band, first 3 runs of the ET day pay. Beta stays free. Chat, belts, nameplates and stripes are untouched.
-- **Shots.** `GAME=pastel node scripts/feira-games-shots.mjs` adds `?feiraon=pastel` so the run switches Pastel on instead of trusting the calendar. Real mouse clicks. Shots in `docs/lifesim/shots/feira-games/`.
+- **Registry.** Pastel is registered the same way as the other cart games: the id was already in `FEIRA_ROTATION_ORDER`, and this build adds it to `FEIRA_IMPLEMENTED_GAMES` and `FEIRA_GAME_MODULES`. The admin list is that rotation order, so Pastel is its own toggle when the on/off flags are present. A missing flag is off. Shots and the solo test pin turn Pastel on with `?feiraon=pastel` instead of assuming the cart is open.
+- **Shots.** `GAME=pastel node scripts/feira-games-shots.mjs` adds `?feiraon=pastel`. Real mouse clicks, including one pastel left until it catches fire. Shots in `docs/lifesim/shots/feira-games/`.
 - All new Portuguese is `needs_br`.
 
 ## Outdoor framing: the street fills the window (#123, 2026-10-08)

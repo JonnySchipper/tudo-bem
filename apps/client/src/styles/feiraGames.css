@@ -786,6 +786,8 @@ body.ps-on #hotspot-cues {
   flex-wrap: wrap;
   gap: 8px;
   min-height: 64px;
+  max-height: 132px;
+  overflow: auto;
   padding: 8px 10px 0;
 }
 
@@ -866,8 +868,11 @@ body.ps-on #hotspot-cues {
 .ps-oil {
   position: relative;
   flex: 1;
-  min-height: 168px;
-  overflow: hidden;
+  min-height: 220px;
+  overflow: visible;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background:
     linear-gradient(#ed931e, #ed931e) 0 0 / 100% 3px no-repeat,
     repeating-linear-gradient(#66451e 0 2px, #573c2c 2px 5px, #381a08 5px 8px);
@@ -900,29 +905,29 @@ body.ps-on #hotspot-cues {
   z-index: 1;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 16px;
   justify-content: center;
   align-items: center;
-  height: 100%;
+  width: 100%;
+  height: auto;
   padding: 8px;
 }
 
 .ps-slot-wrap {
   position: relative;
-  width: min(240px, 46%);
+  width: auto;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .ps-slot-wrap[hidden] { display: none !important; }
 
-.ps-slots.slots-3 .ps-slot-wrap {
-  width: min(200px, 31%);
-}
-
 .ps-slot {
-  width: 100%;
-  min-height: 148px;
+  width: auto;
+  min-width: 150px;
+  min-height: 0;
   padding: 4px 4px 6px;
   border: 0;
   border-radius: 0;
@@ -1009,12 +1014,10 @@ body.ps-on #hotspot-cues {
 .ps-meter i[data-stage="fire"] { background: #e63f38; }
 
 .ps-apaga {
-  position: absolute;
-  left: 50%;
-  bottom: 8px;
-  transform: translateX(-50%);
+  position: relative;
   z-index: 2;
-  min-width: 96px;
+  margin-top: 4px;
+  min-width: 112px;
   min-height: 48px;
   border: 0;
   border-radius: 0;
@@ -1175,6 +1178,7 @@ body.ps-on #hotspot-cues {
 }
 
 .ps-pas .g-raw,
+.ps-pas .g-folded,
 .ps-pas .g-golden,
 .ps-pas .g-dark,
 .ps-pas .g-black,
@@ -1185,6 +1189,7 @@ body.ps-on #hotspot-cues {
 .ps-pas .g-fill { display: none; }
 
 .ps-pas.st-raw .g-raw,
+.ps-pas.st-folded .g-folded,
 .ps-pas.st-golden .g-golden,
 .ps-pas.st-dark .g-dark,
 .ps-pas.st-black .g-black,
@@ -1195,7 +1200,10 @@ body.ps-on #hotspot-cues {
 .ps-pas.st-black .g-smoke,
 .ps-pas.st-block .g-smoke,
 .ps-pas.st-fire .g-smoke,
-.ps-pas.crimped .g-crimp { display: block; }
+.ps-pas.crimped .g-crimp,
+.ps-pas.st-golden .g-crimp,
+.ps-pas.st-dark .g-crimp,
+.ps-pas.st-black .g-crimp { display: block; }
 
 .ps-pas.open.parts-1.fill-a-carne .g-fill-one-carne,
 .ps-pas.open.parts-1.fill-a-queijo .g-fill-one-queijo,
@@ -1327,10 +1335,9 @@ body.ps-on #hotspot-cues {
 .ps-wait[hidden] { display: none; }
 
 @media (min-width: 900px) {
-  .ps-pas { width: 210px; height: 184px; }
-  .ps-assembly { width: 240px; height: 160px; }
-  .ps-slot { min-height: 196px; }
-  .ps-slot-wrap { width: min(280px, 42%); }
+  .ps-pas { width: 200px; height: 176px; }
+  .ps-assembly { width: 220px; height: 150px; }
+  .ps-oil { min-height: 250px; }
   .ps-bowls {
     display: grid;
     grid-template-columns: repeat(11, minmax(0, 1fr));
@@ -1346,11 +1353,11 @@ body.ps-on #hotspot-cues {
     overflow: auto;
   }
   .ps-board { gap: 6px; min-height: 96px; }
-  .ps-pas { width: 120px; height: 105px; }
-  .ps-assembly { width: 128px; height: 96px; }
+  .ps-pas { width: 132px; height: 116px; }
+  .ps-assembly { width: 140px; height: 108px; }
   .ps-act { min-width: 68px; min-height: 48px; font-size: 0.8rem; }
-  .ps-slot { min-height: 132px; }
-  .ps-slot-wrap { width: calc(50% - 6px); }
+  .ps-slot { min-width: 120px; }
+  .ps-oil { min-height: 200px; }
   .ps-bowl { flex-basis: 72px; min-height: 64px; }
   .ps-customer { align-items: flex-start; }
 }

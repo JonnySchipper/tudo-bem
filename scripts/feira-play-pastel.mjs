@@ -66,19 +66,22 @@ export async function play(page, { shot, mclick, log }) {
   log('slot0 before second drop', mid);
   await mclick('#pastel-slot-1');
 
+  const dropped = await page.getAttribute('#pastel-slot-1', 'data-state');
+  if (dropped === 'empty') await mclick('#pastel-slot-1');
   const burnt = await waitStage(page, 0, 'fire', 12_000);
   log('slot0', burnt, 'slot1', await stageOf(page, 1));
   if (burnt !== 'fire') throw new Error(`expected an on-fire pastel, saw ${burnt}`);
-  await sleep(250);
+  await sleep(300);
   await shot('pastel-fire');
 
   await mclick('#pastel-apaga-0');
   await sleep(200);
   const pulled = await stageOf(page, 1);
-  if (pulled !== 'empty' && pulled !== 'ready') await mclick('#pastel-slot-1');
+  if (pulled && pulled !== 'empty' && pulled !== 'ready') await mclick('#pastel-slot-1');
   await sleep(150);
-  const serve = await page.$('.ps-serve');
-  if (serve) await mclick('.ps-serve');
+  const serve = await page.$('#pastel-serve-0');
+  if (serve) await mclick('#pastel-serve-0');
+  else if (await page.$('.ps-serve')) await mclick('.ps-serve');
   log('served after the fire');
   await sleep(300);
   await mclick('#pastel-quit');
