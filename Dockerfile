@@ -1,7 +1,10 @@
 # Tudo Bem — single container: Node room server + static client + the Jev chat-safety model.
 FROM node:22-alpine AS build
 WORKDIR /app
-RUN corepack enable
+# pnpm runs node-gyp for better-sqlite3 (see onlyBuiltDependencies). The musl prebuild is already
+# in the package, so Python and make are enough for node-gyp to notice it and skip the compile.
+# The runtime image uses the glibc prebuild from the sqlite stage, not this Alpine binary.
+RUN apk add --no-cache python3 make && corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages/shared/package.json packages/shared/
 COPY apps/server/package.json apps/server/
