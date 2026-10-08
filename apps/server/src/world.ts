@@ -129,6 +129,7 @@ import {
   type PadariaCard,
   type PlayerPadaria,
   type PrivateProfile,
+  type FeiraCartSchedule,
 } from '@tudobem/shared';
 import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
 import { JEV_CONTEXT_LINES } from './services/jevModel.js';
@@ -146,10 +147,11 @@ import { EscolaTracker, escolaOf } from './escola.js';
 import { Leaderboards } from './leaderboards.js';
 import { FeiraCounter } from './feira.js';
 import { FeiraGamesEngine, FeiraGamesStore, type FeiraGameRun } from './feiraGames.js';
+import { FeiraCartStore, memoryFeiraCart } from './feiraCart.js';
 import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria.js';
 import { BoutEngine, type BoutSession } from './bout.js';
 import { CartelaTracker } from './cartela.js';
-import { ADMIN_MONEY_MAX, readAdminAuthConfig } from './adminAuth.js';
+import { ADMIN_MONEY_MAX, ADMIN_WRONG_PASSWORD, adminPasswordMatches, readAdminAuthConfig } from './adminAuth.js';
 
 export interface Services {
   safety: ChatSafetyService;
@@ -174,6 +176,8 @@ export interface WorldOptions {
   testRollHints?: boolean;
   /** Feira cart board + medals. The Node server passes the file-backed store; tests and solo omit it. */
   feiraGames?: import('./feiraGames.js').FeiraGamesStore;
+  /** Feira cart on/off switch. Omitted stores start with every game off. */
+  feiraCart?: FeiraCartStore;
   /** Bout intro length in ms (default: 4.2 s, 0.5 s in hint mode). Env `TB_TEST_BOUT_INTRO_MS`. */
   boutIntroMs?: number;
   /** Bout pause scale (default 1, 0.35 in hint mode). Env `TB_TEST_BOUT_PACE`: shots want the real pauses with the hints on. */
@@ -378,6 +382,7 @@ export class World {
       now: () => this.now(),
       store,
       games: opts.feiraGames ?? new FeiraGamesStore(() => null, () => {}, () => this.now()),
+      cart: opts.feiraCart ?? memoryFeiraCart(),
       reward: (s, a, r) => this.reward(s, a, r),
       pushProfile: (s) => this.pushProfile(s),
       err: (s, code, pt, en) => this.err(s, code, pt, en),
@@ -1112,6 +1117,7 @@ export class World {
       serverNow: this.clockNow(),
       ...(target.def.id === 'andar' ? { academy: this.floorCard(target, s) } : {}),
       ...(padariaIdFromInstance(target.id) ? { padaria: this.floorPadariaCard(target, s) } : {}),
+      ...(def.id === 'feira' ? { feiraCart: this.feiraGames.cartSnapshot() } : {}),
     });
     // a joiner mid-walk: the avatars above are at the tile each NPC has reached, this sends the rest of each walk
     for (const p of this.npcs.posesIn(def.id)) {
@@ -1200,14 +1206,13 @@ export class World {
           en: 'Admin is off on this server.',
         });
       }
-      if (msg.password !== this.adminPassword) {
+      if (!adminPasswordMatches(msg.password, this.adminPassword)) {
         s.admin = false;
         return s.send({
           t: 'admin',
           phase: 'auth',
           ok: false,
-          pt: 'Senha incorreta.',
-          en: 'Wrong password.',
+          ...ADMIN_WRONG_PASSWORD,
         });
       }
       s.admin = true;
@@ -1240,10 +1245,8 @@ export class World {
         en: `Neighborhood clock set.`,
       });
     }
-    if (msg.action === 'feiraGame') {
-      this.feiraGames.setEnabled(msg.game, msg.on);
-      return this.adminList(s);
-    }
+    if (msg.action === 'feiraCart') return this.adminFeiraCart(s);
+    if (msg.action === 'feiraCartSet') return this.adminFeiraCartSet(s, msg.game, msg.mode, msg.schedule);
     if (msg.action === 'weather') {
       if (msg.weather !== null && !(WEATHER_KINDS as readonly string[]).includes(msg.weather)) {
         return this.err(s, 'admin', 'Clima inválido.', 'Invalid weather.');
@@ -1259,6 +1262,25 @@ export class World {
     }
   }
 
+  private adminFeiraCart(s: Session) {
+    const view = this.feiraGames.cartView();
+    s.send({ t: 'admin', phase: 'feiraCart', day: view.day, featured: view.featured, games: view.games });
+  }
+
+  private adminFeiraCartSet(s: Session, game: string, mode: string, schedule: unknown) {
+    if (mode !== 'off' && mode !== 'on' && mode !== 'rotation') {
+      return this.err(s, 'admin', 'Modo inválido.', 'Invalid mode.');
+    }
+    if (schedule !== undefined && schedule !== null && (typeof schedule !== 'object' || Array.isArray(schedule))) {
+      return this.err(s, 'admin', 'Agenda inválida.', 'Invalid schedule.');
+    }
+    const ok = this.feiraGames.setCartMode(game, mode, schedule as FeiraCartSchedule | null | undefined);
+    if (!ok) return this.err(s, 'admin', 'Jogo desconhecido.', 'Unknown cart game.');
+    const msg = this.feiraGames.cartMsg();
+    for (const sess of this.sessions.values()) if (sess.profile) sess.send(msg);
+    return this.adminFeiraCart(s);
+  }
+
   private adminList(s: Session) {
     const players = [...this.sessions.values()]
       .filter((x) => x.profile)
@@ -1268,12 +1290,12 @@ export class World {
         room: x.instance?.def.id ?? null,
         roomName: x.instance?.name ?? null,
       }));
-    s.send({ t: 'admin', phase: 'players', players, feira: this.feiraGames.toggles() });
+    s.send({ t: 'admin', phase: 'players', players });
   }
 
   /** Solo / shot hook: turn one Feira cart game on. Games ship off. */
   enableFeiraGame(id: string): boolean {
-    return this.feiraGames.setEnabled(id, true);
+    return this.feiraGames.setCartMode(id, 'on');
   }
 
   private adminKick(s: Session, targetId: string) {

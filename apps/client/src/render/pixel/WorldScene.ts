@@ -1864,6 +1864,14 @@ export class WorldScene extends Phaser.Scene {
       const p = at(this.stall.wx, this.stall.wy - 30);
       stacks.push({ key: 'stall:closed', x: p.px, y: p.py, plate: { text: 'Fechado · volta às 8h', kind: 'npc' }, bubbles: [] });
     }
+    // the game cart is closed until an admin turns a game on
+    if (def.id === 'feira' && game.feiraCart?.closed) {
+      const cart = def.props.find((q) => q.id === 'carrinho_jogos');
+      if (cart) {
+        const p = at((cart.x + (cart.w ?? 1) / 2) * T, cart.y * T - 22);
+        stacks.push({ key: 'feira-cart:closed', x: p.px, y: p.py, plate: { text: 'Fechado', kind: 'npc' }, bubbles: [] });
+      }
+    }
     // the feira's banner says it is closed outside 06:00-13:00
     if (this.feiraStalls.length && !feiraOpen(clock.minutes())) {
       const b = def.props.find((q) => q.id === 'feira_livre');

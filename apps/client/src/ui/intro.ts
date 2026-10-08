@@ -1,4 +1,5 @@
-import { signIn, signInOpsSmoke, signInOpsSmokeNew, signInWithGoogle, signUp } from '../auth/client';
+import { signIn, signInOpsSmoke, signInOpsSmokeNew, signInWithGoogle, signUp, verifyAdminGate } from '../auth/client';
+import { closeModal, openModal } from './modal';
 import { fetchPublicConfig } from '../auth/config';
 import { mountGoogleSignIn } from '../auth/googleSignIn';
 import { introAlreadyPassed, markIntroPassed, readAuthSession, writeAuthSession } from '../auth/session';
@@ -146,17 +147,10 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
     const submit = h('button', { type: 'submit', class: 'primary intro-submit intro-cta', id: 'intro-submit' }, 'Entrar');
     const panelTitle = h('h2', { id: 'intro-panel-title', tabindex: '-1' }, 'Bem-vindo de volta');
     const googleHost = h('div', { class: 'intro-google', id: 'intro-google', style: 'display:none' });
-    const smoke = h(
+    const adminDoor = h(
       'button',
-      { type: 'button', class: 'intro-smoke', id: 'intro-smoke', style: 'display:none' },
-      'Entrar (Ops smoke)',
-      h('span', { class: 'en' }, 'Ops smoke sign-in'),
-    );
-    const smokeNew = h(
-      'button',
-      { type: 'button', class: 'intro-smoke', id: 'intro-smoke-new', style: 'display:none' },
-      'Entrar (new user)',
-      h('span', { class: 'en' }, 'Fresh account — plane intro'),
+      { type: 'button', class: 'intro-admin-door', id: 'intro-admin-door', style: 'display:none', 'aria-label': 'Admin' },
+      'Admin',
     );
     const guest = h(
       'button',
@@ -215,28 +209,92 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       }, reduced ? 0 : 420);
     };
 
-    smoke.addEventListener('click', async () => {
-      clearError();
-      smoke.disabled = true;
-      const result = await signInOpsSmoke();
-      smoke.disabled = false;
-      if (!result.ok) return setError(result.pt, result.en);
-      finish({ mode: 'auth', email: result.session.email });
-    });
+    const openIntroAdmin = () => {
+      let unlockedPassword = '';
+      const authErr = h('p', { class: 'admin-err', hidden: true, id: 'intro-admin-err' });
+      const passwordInput = h('input', {
+        type: 'password',
+        id: 'intro-admin-password',
+        class: 'admin-password',
+        autocomplete: 'off',
+        'aria-label': 'Senha de admin',
+      }) as HTMLInputElement;
+      const smokeActions = h('div', { class: 'intro-admin-smoke', id: 'intro-admin-smoke', hidden: true });
+      const smokeBtn = h('button', { type: 'button', class: 'intro-smoke', id: 'intro-admin-smoke-stable' }, 'Ops smoke');
+      const smokeNewBtn = h(
+        'button',
+        { type: 'button', class: 'intro-smoke', id: 'intro-admin-smoke-new' },
+        'Novo jogador (smoke)',
+        h('span', { class: 'en' }, 'Fresh account — plane intro'),
+      );
+      smokeActions.append(smokeBtn, smokeNewBtn);
 
-    smokeNew.addEventListener('click', async () => {
-      clearError();
-      smokeNew.disabled = true;
-      const result = await signInOpsSmokeNew();
-      smokeNew.disabled = false;
-      if (!result.ok) return setError(result.pt, result.en);
-      finish({ mode: 'auth', email: result.session.email });
-    });
+      const setAuthErr = (pt: string, en: string) => {
+        authErr.hidden = false;
+        authErr.replaceChildren(pt, h('br'), h('i', null, en));
+      };
+      const clearAuthErr = () => {
+        authErr.hidden = true;
+        authErr.replaceChildren();
+      };
+
+      const unlockBtn = h('button', { type: 'button', class: 'primary', id: 'intro-admin-unlock' }, 'Entrar');
+
+      const unlock = async () => {
+        clearAuthErr();
+        const password = passwordInput.value;
+        if (!password) return;
+        unlockBtn.disabled = true;
+        const gate = await verifyAdminGate(password);
+        unlockBtn.disabled = false;
+        if (!gate.ok) return setAuthErr(gate.pt, gate.en);
+        unlockedPassword = password;
+        passwordInput.disabled = true;
+        unlockBtn.hidden = true;
+        smokeActions.hidden = false;
+      };
+
+      const signInSmoke = async (path: 'stable' | 'new') => {
+        clearAuthErr();
+        smokeBtn.disabled = true;
+        smokeNewBtn.disabled = true;
+        const result = path === 'stable' ? await signInOpsSmoke(unlockedPassword) : await signInOpsSmokeNew(unlockedPassword);
+        smokeBtn.disabled = false;
+        smokeNewBtn.disabled = false;
+        if (!result.ok) return setAuthErr(result.pt, result.en);
+        closeModal();
+        finish({ mode: 'auth', email: result.session.email });
+      };
+
+      unlockBtn.addEventListener('click', () => void unlock());
+      passwordInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          void unlock();
+        }
+      });
+      smokeBtn.addEventListener('click', () => void signInSmoke('stable'));
+      smokeNewBtn.addEventListener('click', () => void signInSmoke('new'));
+
+      const panel = h(
+        'div',
+        { class: 'panel admin-panel', role: 'dialog', 'aria-label': 'Admin' },
+        h('h2', null, 'Admin'),
+        h('label', { class: 'admin-label', for: 'intro-admin-password' }, 'Senha', h('span', { class: 'en' }, 'Password')),
+        passwordInput,
+        authErr,
+        unlockBtn,
+        smokeActions,
+      );
+      openModal('intro-admin', panel);
+      passwordInput.focus({ preventScroll: true });
+    };
+
+    adminDoor.addEventListener('click', openIntroAdmin);
 
     void fetchPublicConfig().then((cfg) => {
       if (cfg.opsSmoke) {
-        smoke.style.display = '';
-        smokeNew.style.display = '';
+        adminDoor.style.display = '';
       }
       if (cfg.googleClientId) {
         googleHost.style.display = '';
@@ -272,10 +330,8 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       h('div', { class: 'intro-actions' }, submit),
       h('div', { class: 'intro-or', 'aria-hidden': 'true' }, h('span', null, 'ou')),
       googleHost,
-      smoke,
-      smokeNew,
       guest,
-      h('p', { class: 'intro-legal' }, 'Fase 0 · sua conta guarda seu avatar, suas RV e sua kitnet.'),
+      h('p', { class: 'intro-legal' }, 'Fase 0 · sua conta guarda seu avatar, suas RV e sua kitnet.', adminDoor),
     );
 
     form.addEventListener('submit', async (e) => {

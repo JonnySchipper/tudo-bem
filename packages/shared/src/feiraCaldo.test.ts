@@ -3,12 +3,12 @@ import {
   FEIRA_GAME_MAX_SCORE,
   FEIRA_IMPLEMENTED_GAMES,
   FEIRA_MIN_ELAPSED_MS,
-  emptyFeiraGames,
-  enabledFeiraGames,
-  featuredGame,
+  emptyFeiraCartConfig,
+  enabledFeiraGameIds,
+  featuredEnabled,
   judgeFeiraResult,
   rotationSlot,
-  setFeiraEnabled,
+  withFeiraCartMode,
 } from './feiraGames.js';
 import { CALDO_FLAVORS, caldoOrders, caldoServeQuality } from './feiraCaldo.js';
 
@@ -77,16 +77,19 @@ describe('caldo de cana orders and score', () => {
 
   it('ships off until an admin enables it, then can be the featured game on its own', () => {
     expect(FEIRA_IMPLEMENTED_GAMES).toContain('caldo');
-    const st = emptyFeiraGames('2026-10-08');
-    expect(st.enabled.caldo).toBeUndefined();
-    expect(enabledFeiraGames(st)).toEqual([]);
-    setFeiraEnabled(st, 'caldo', true);
-    expect(enabledFeiraGames(st)).toEqual(['caldo']);
-    // pastel day falls through to caldo when it is the only game switched on
+    const off = emptyFeiraCartConfig();
+    expect(off.games.caldo).toBeUndefined();
+    expect(enabledFeiraGameIds(off, '2026-10-08')).toEqual([]);
+    expect(featuredEnabled('2026-10-08', enabledFeiraGameIds(off, '2026-10-08'))).toBeNull();
+    const on = withFeiraCartMode(off, 'caldo', 'on');
+    expect(on).not.toBeNull();
+    if (!on) return;
+    expect(enabledFeiraGameIds(on, '2026-10-08')).toEqual(['caldo']);
+    // one game switched on is featured every day, including a pastel slot
     expect(rotationSlot('1970-01-02')).toBe('pastel');
-    expect(featuredGame('1970-01-02', enabledFeiraGames(st))).toBe('caldo');
-    expect(featuredGame('1970-01-03', enabledFeiraGames(st))).toBe('caldo');
-    setFeiraEnabled(st, 'caldo', false);
-    expect(enabledFeiraGames(st)).toEqual([]);
+    expect(featuredEnabled('1970-01-02', enabledFeiraGameIds(on, '1970-01-02'))).toBe('caldo');
+    expect(featuredEnabled('1970-01-03', enabledFeiraGameIds(on, '1970-01-03'))).toBe('caldo');
+    const again = withFeiraCartMode(on, 'caldo', 'off');
+    expect(again && enabledFeiraGameIds(again, '2026-10-08')).toEqual([]);
   });
 });

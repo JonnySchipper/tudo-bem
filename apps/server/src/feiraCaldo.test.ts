@@ -62,14 +62,19 @@ describe('caldo de cana on the server', () => {
     store.add(ana);
     const sent: ServerMsg[] = [];
     const { engine, games, s } = engineFor(() => now, ana, store, sent);
-    expect(engine.toggles().find((t) => t.id === 'caldo')?.on).toBe(false);
+    const beforeOn = engine.cartView();
+    expect(beforeOn.games.find((g) => g.id === 'caldo')).toMatchObject({ mode: 'off', implemented: true });
+    expect(beforeOn.games.find((g) => g.id === 'tapioca')?.mode).toBe('off');
+    expect(beforeOn.featured).toBeNull();
     engine.handle(s, { t: 'feiraGame', action: 'start' });
-    expect(sent.some((m) => m.t === 'error' && m.code === 'closed')).toBe(true);
+    expect(sent.some((m) => m.t === 'error' && m.code === 'feira_closed')).toBe(true);
     expect(s.feiraGame).toBeUndefined();
 
-    expect(engine.setEnabled('caldo', true)).toBe(true);
-    expect(engine.toggles().find((t) => t.id === 'caldo')?.on).toBe(true);
-    expect(engine.toggles().find((t) => t.id === 'tapioca')?.on).toBe(false);
+    expect(engine.setCartMode('caldo', 'on')).toBe(true);
+    const turned = engine.cartView();
+    expect(turned.games.find((g) => g.id === 'caldo')?.mode).toBe('on');
+    expect(turned.games.find((g) => g.id === 'tapioca')?.mode).toBe('off');
+    expect(turned.featured).toBe('caldo');
     sent.length = 0;
     engine.handle(s, { t: 'feiraGame', action: 'start' });
     const start = sent.find((m) => m.t === 'feiraGame' && m.phase === 'start');
@@ -87,7 +92,7 @@ describe('caldo de cana on the server', () => {
     expect(ana.coins).toBeGreaterThan(before);
     expect(ana.coins - before).toBeLessThanOrEqual(25);
     expect(games.state.scores.lia!.game).toBe('caldo');
-    expect(games.state.enabled.caldo).toBe(true);
+    expect(engine.cartView().games.find((g) => g.id === 'caldo')?.mode).toBe('on');
   });
 
   it('keeps the caldo switch on when the ET day rolls', () => {
@@ -95,7 +100,6 @@ describe('caldo de cana on the server', () => {
     const store = new ProfileStore(null);
     const games = memoryFeiraGames(() => now);
     games.state.day = todayEastern(now);
-    games.state.enabled = { caldo: true };
     const engine = new FeiraGamesEngine({
       now: () => now,
       store,
@@ -107,10 +111,11 @@ describe('caldo de cana on the server', () => {
       broadcastAll: () => {},
       broadcastAvatar: () => {},
     });
+    expect(engine.setCartMode('caldo', 'on')).toBe(true);
     now = Date.parse('2026-10-09T04:30:00.000Z');
     expect(engine.tick().rolled).toBe(true);
     expect(games.state.scores).toEqual({});
-    expect(games.state.enabled.caldo).toBe(true);
-    expect(engine.toggles().find((t) => t.id === 'caldo')?.on).toBe(true);
+    expect(engine.cartView().games.find((g) => g.id === 'caldo')?.mode).toBe('on');
+    expect(engine.featuredNow()).toBe('caldo');
   });
 });

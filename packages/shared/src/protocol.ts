@@ -25,7 +25,7 @@ import type { RecadoActiveView, RecadoOfferView } from './recados.js';
 import type { CartelaActivity } from './cartela.js';
 import type { PriceOption, VendorId } from './feira.js';
 import type { Weather } from './weather.js';
-import type { FeiraBoardRow, FeiraGameId, FeiraMedalTally, FeiraOrderOutcome } from './feiraGames.js';
+import type { FeiraBoardRow, FeiraCartAdminGame, FeiraCartMode, FeiraCartSchedule, FeiraGameId, FeiraMedalTally, FeiraOrderOutcome } from './feiraGames.js';
 import type { BoardRow } from './leaderboards.js';
 
 /** Client → server messages. JSON over a single WebSocket at /ws. */
@@ -126,6 +126,7 @@ export type ClientMsg =
   /**
    * Hidden ops panel (credits easter egg). The server checks the password once per socket; later actions need that flag.
    * `list` refreshes the online player roster; `kick` removes another player; `money` pays the caller; `clock` / `weather` pin the shared sky.
+   * `feiraCart` / `feiraCartSet` turn the Feira cart games on and off (persisted, no redeploy).
    */
   | { t: 'admin'; action: 'login'; password: string }
   | { t: 'admin'; action: 'logout' }
@@ -134,8 +135,9 @@ export type ClientMsg =
   | { t: 'admin'; action: 'money'; amount: number }
   | { t: 'admin'; action: 'clock'; minute: number }
   | { t: 'admin'; action: 'weather'; weather: Weather | null }
-  /** Switch one Feira cart game on or off. Games ship off; only an admin turns one on. */
-  | { t: 'admin'; action: 'feiraGame'; game: FeiraGameId; on: boolean }
+  /** Feira cart games switch. `feiraCart` reads the list; `feiraCartSet` turns one game off, on, or (later) onto a schedule. */
+  | { t: 'admin'; action: 'feiraCart' }
+  | { t: 'admin'; action: 'feiraCartSet'; game: string; mode: FeiraCartMode; schedule?: FeiraCartSchedule | null }
   /**
    * Player academies (slice 1). The elevator in Academia do Bairro asks for `directory`.
    * `found` takes a first-come name (brown belt). `visit` loads the empty floor without joining.
@@ -201,6 +203,8 @@ export interface RoomStateMsg {
   academy?: AcademyCard;
   /** Set in a player-owned padaria instance (`padaria@…`). */
   padaria?: PadariaCard;
+  /** Feira room only: whether the cart games are on, so the closed sign is there on enter. */
+  feiraCart?: { closed: boolean; game: FeiraGameId | null };
 }
 
 export type NoticeLevel = 'info' | 'warn' | 'block' | 'reward' | 'error';
@@ -448,8 +452,10 @@ export type ServerMsg =
   | { t: 'sky'; serverNow: number; weather: Weather | null }
   | { t: 'admin'; phase: 'auth'; ok: true }
   | { t: 'admin'; phase: 'auth'; ok: false; pt: string; en: string }
-  | { t: 'admin'; phase: 'players'; players: AdminPlayerRow[]; feira?: { id: FeiraGameId; on: boolean }[] }
+  | { t: 'admin'; phase: 'players'; players: AdminPlayerRow[] }
   | { t: 'admin'; phase: 'disabled'; pt: string; en: string }
+  /** Feira cart switches. `featured` is today's playable game, or null when the cart is closed. */
+  | { t: 'admin'; phase: 'feiraCart'; day: string; featured: FeiraGameId | null; games: FeiraCartAdminGame[] }
   | { t: 'avatarJoined'; avatar: PublicAvatar }
   | { t: 'avatarLeft'; id: string }
   | { t: 'avatarMoved'; id: string; from: Tile; path: Tile[]; sit: boolean }
@@ -565,11 +571,13 @@ export type ServerMsg =
       t: 'feiraGame';
       phase: 'board';
       day: string;
-      game: FeiraGameId;
-      /** False when today's game is switched off. The cart stays closed until an admin enables it. */
-      playable: boolean;
+      /** Null when no cart game is on. */
+      game: FeiraGameId | null;
+      closed: boolean;
       top: FeiraBoardRow[];
       medals: FeiraMedalTally[];
       crownId: string | null;
     }
+  /** Live switch. Broadcast when an admin changes it, and included on the Feira room enter. */
+  | { t: 'feiraGame'; phase: 'cart'; closed: boolean; game: FeiraGameId | null }
   | { t: 'feiraGame'; phase: 'crown'; id: string | null };

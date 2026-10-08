@@ -40,6 +40,7 @@ import {
   isWalkable,
   readSpot,
   subjectChoices,
+  FEIRA_CART_CLOSED,
   VENDORS,
   type EmoteKind,
   type HotspotDef,
@@ -706,6 +707,7 @@ net.on((m: ServerMsg) => {
     }
     case 'error':
       if (m.code === 'far' || m.code === 'photo' || m.code === 'film' || m.code === 'camera') dropPendingPrint();
+      if (m.code === 'feira_closed') closeFeiraGame();
       if (onboarding && m.code === 'name') onboarding.setError(m.pt, m.en);
       else toast('error', m.pt, m.en);
       onFeiraError();
@@ -744,6 +746,7 @@ net.on((m: ServerMsg) => {
       }
       closeDialogue();
       game.room = m;
+      if (m.feiraCart) game.feiraCart = m.feiraCart;
       game.avatars = new Map(m.avatars.map((a) => [a.id, toClientAvatar(a)]));
       game.furniture = m.furniture;
       game.pending = null;
@@ -1118,6 +1121,7 @@ function hitLabel(hit: Hit | null): [string, string] | null {
       if (hit.prop.action === 'padaria_door' && here) return here.owner ? ['Melhorias da padaria', 'Upgrades — size and sweets'] : [here.name, `${here.ownerName}’s bakery — about this shop`];
       if (hit.prop.action === 'padaria_counter' && here) return [`Balcão da ${here.name}`, 'House counter — buy here'];
       if (hit.prop.action === 'padaria_door' && own) return [`Sua padaria: ${own.name}`, `Your bakery: ${own.name} — click to go in`];
+      if (hit.prop.action === 'feira_cart' && game.feiraCart?.closed) return [FEIRA_CART_CLOSED.pt, FEIRA_CART_CLOSED.en];
       return hit.prop.label ? [hit.prop.label.pt, hit.prop.label.en] : null;
     }
     case 'hotspot': {

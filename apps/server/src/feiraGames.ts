@@ -10,26 +10,29 @@
  * previous day before serving today.
  */
 import {
+  FEIRA_CART_CLOSED_LINE,
   FEIRA_DAILY_BLOCKED,
   FEIRA_DAILY_PAID_RUNS,
   FEIRA_GAME_LABEL,
-  FEIRA_IMPLEMENTED_GAMES,
   crownHolder,
-  enabledFeiraGames,
-  featuredGameAt,
+  enabledFeiraGameIds,
+  featuredEnabled,
+  feiraCartAdminView,
   feiraModule,
   feiraPayout,
   feiraTop,
   isFeiraGameId,
   judgeFeiraResult,
-  setFeiraEnabled,
   medalTallies,
   medalsForDay,
   normalizeFeiraGames,
   parseFeiraOutcomes,
   placeOf,
+  rankFeiraDay,
   todayEastern,
   type Bilingual,
+  type FeiraCartMode,
+  type FeiraCartSchedule,
   type FeiraGameId,
   type FeiraGamesState,
   type FeiraMedalAward,
@@ -38,6 +41,7 @@ import {
 } from '@tudobem/shared';
 import type { Session } from './world.js';
 import type { ProfileStore, StoredProfile } from './store.js';
+import { FeiraCartStore, memoryFeiraCart } from './feiraCart.js';
 
 /** How close (Chebyshev tiles) the player must be to the cart or the sign. */
 export const FEIRA_CART_REACH = 2;
@@ -68,12 +72,13 @@ export interface FeiraGamesDeps {
   /** Push the public avatar so the crown overlay updates for people in the same room. */
   broadcastAvatar: (s: Session) => void;
   rng?: () => number;
+  /** On/off switch. Omitted in older tests: a memory store that starts off. */
+  cart?: FeiraCartStore;
 }
 
 const NEAR: Bilingual = { pt: 'Chegue mais perto do carrinho.', en: 'Walk closer to the cart.' };
-const NOT_TODAY: Bilingual = { pt: 'Esse jogo não é o de hoje.', en: 'That game is not today’s.' };
-const CLOSED: Bilingual = { pt: 'O carrinho está fechado agora.', en: 'The cart is closed right now.' };
 const BUSY: Bilingual = { pt: 'Termine o jogo primeiro.', en: 'Finish the game first.' };
+const CLOSED = FEIRA_CART_CLOSED_LINE;
 
 export class FeiraGamesStore {
   state: FeiraGamesState;
@@ -94,17 +99,19 @@ export class FeiraGamesStore {
   /**
    * Midnight ET: medals for 1st/2nd/3rd go onto the tally (permanent), the board and the paid-run
    * counts clear, and the crown is gone because today's scores start empty.
+   * A day nobody played (no positive score) mints nothing — the cart being off is that case.
    * Returns the awards so the caller can copy them onto profiles.
    */
   roll(day: string): { id: string; award: FeiraMedalAward }[] {
-    const awards = this.state.day && this.state.day !== day ? medalsForDay(this.state.day, this.state.scores) : [];
+    const played = rankFeiraDay(this.state.scores).length > 0;
+    const awards = played && this.state.day && this.state.day !== day ? medalsForDay(this.state.day, this.state.scores) : [];
     const medals = { ...this.state.medals };
     for (const { id, award } of awards) {
       const prev = medals[id] ?? [];
       if (prev.some((a) => a.day === award.day && a.medal === award.medal)) continue;
       medals[id] = [...prev, award];
     }
-    this.state = { day, scores: {}, medals, paid: {}, enabled: { ...this.state.enabled } };
+    this.state = { day, scores: {}, medals, paid: {} };
     this.save(this.state);
     return awards;
   }
@@ -127,7 +134,35 @@ export function memoryFeiraGames(now: () => number, raw?: unknown): FeiraGamesSt
 }
 
 export class FeiraGamesEngine {
-  constructor(private readonly d: FeiraGamesDeps) {}
+  private readonly cart: FeiraCartStore;
+  constructor(private readonly d: FeiraGamesDeps) {
+    this.cart = d.cart ?? memoryFeiraCart();
+  }
+
+  /** Today's playable game, or null when every cart game is off (or not implemented yet). */
+  featuredNow(day = todayEastern(this.d.now())): FeiraGameId | null {
+    const id = featuredEnabled(day, enabledFeiraGameIds(this.cart.config(), day));
+    return isFeiraGameId(id) ? id : null;
+  }
+
+  cartSnapshot(day = todayEastern(this.d.now())): { closed: boolean; game: FeiraGameId | null } {
+    const game = this.featuredNow(day);
+    return { closed: game === null, game };
+  }
+
+  cartView(day = todayEastern(this.d.now())) {
+    return feiraCartAdminView(this.cart.config(), day);
+  }
+
+  /** Admin switch. False when the id is not in the rotation registry. */
+  setCartMode(id: string, mode: FeiraCartMode, schedule?: FeiraCartSchedule | null): boolean {
+    return this.cart.setMode(id, mode, schedule);
+  }
+
+  cartMsg(day = todayEastern(this.d.now())): Extract<ServerMsg, { t: 'feiraGame'; phase: 'cart' }> {
+    const snap = this.cartSnapshot(day);
+    return { t: 'feiraGame', phase: 'cart', closed: snap.closed, game: snap.game };
+  }
 
   /** Test hook. */
   runOf(s: Session): FeiraGameRun | undefined {
@@ -137,20 +172,6 @@ export class FeiraGamesEngine {
   /** Live crown holder id, or null. Finalizes the day first. */
   crownId(): string | null {
     return crownHolder(this.d.games.ensure().scores);
-  }
-
-  /** Admin switch. Unknown ids are ignored. Returns whether the id is a game this build can start. */
-  setEnabled(id: string, on: boolean): boolean {
-    const st = this.d.games.ensure();
-    const ok = setFeiraEnabled(st, id, on);
-    if (ok) this.d.games.persist();
-    return ok;
-  }
-
-  /** One row per implemented game, for the admin panel. Off unless an admin has turned it on. */
-  toggles(): { id: FeiraGameId; on: boolean }[] {
-    const st = this.d.games.ensure();
-    return FEIRA_IMPLEMENTED_GAMES.map((id) => ({ id, on: st.enabled[id] === true }));
   }
 
   /**
@@ -193,10 +214,8 @@ export class FeiraGamesEngine {
     if (s.feiraGame && !s.feiraGame.done) return this.d.err(s, 'busy', BUSY.pt, BUSY.en);
     if (!this.near(s, FEIRA_CART_PROP)) return this.d.err(s, 'far', NEAR.pt, NEAR.en);
     const day = todayEastern(this.d.now());
-    const on = enabledFeiraGames(this.d.games.ensure(day));
-    if (!on.length) return this.d.err(s, 'closed', CLOSED.pt, CLOSED.en);
-    const game = featuredGameAt(this.d.now(), on);
-    if (!on.includes(game) || !feiraModule(game) || !isFeiraGameId(game)) return this.d.err(s, 'closed', CLOSED.pt, CLOSED.en);
+    const game = this.featuredNow(day);
+    if (!game || !feiraModule(game) || !isFeiraGameId(game)) return this.d.err(s, 'feira_closed', CLOSED.pt, CLOSED.en);
     const seed = (Math.floor((this.d.rng ?? Math.random)() * 0x7fffffff) ^ (this.d.now() & 0xffff)) >>> 0;
     const run: FeiraGameRun = { game, seed, startedAt: this.d.now(), day };
     s.feiraGame = run;
@@ -211,6 +230,12 @@ export class FeiraGamesEngine {
     const p = s.profile;
     const run = s.feiraGame;
     if (!p || !run || run.done) return this.d.err(s, 'no_run', 'Não há jogo aberto.', 'There is no open game.');
+    const day = todayEastern(this.d.now());
+    if (!enabledFeiraGameIds(this.cart.config(), day).includes(run.game)) {
+      run.done = true;
+      s.feiraGame = undefined;
+      return this.d.err(s, 'feira_closed', CLOSED.pt, CLOSED.en);
+    }
     const elapsed = this.d.now() - run.startedAt;
     const outcomes = parseFeiraOutcomes(raw);
     if (!outcomes) {
@@ -302,17 +327,16 @@ export class FeiraGamesEngine {
       if (!names[id]) names[id] = this.d.store.get(id)?.name ?? id;
     }
     const day = todayEastern(this.d.now());
-    const on = enabledFeiraGames(st);
-    const game = on.length ? featuredGameAt(this.d.now(), on) : featuredGameAt(this.d.now());
+    const snap = this.cartSnapshot(day);
     s.send({
       t: 'feiraGame',
       phase: 'board',
       day,
-      game,
-      playable: on.includes(game),
+      game: snap.game,
+      closed: snap.closed,
       top: feiraTop(st.scores, 3, s.profile?.id),
       medals: medalTallies(st.medals, names, 10),
-      crownId: crownHolder(st.scores),
+      crownId: this.crownId(),
     });
   }
 
