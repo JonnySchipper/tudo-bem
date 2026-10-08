@@ -11,6 +11,7 @@ import './styles/panels.css';
 import './styles/bout.css';
 import './styles/correria.css';
 import './styles/diary.css';
+import './styles/escola.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
@@ -90,7 +91,7 @@ import { askPadariaDoor, bindPadariaOwn, chooseBakery, onPadariaDoor, openHouseC
 import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia } from './ui/airportTutorial';
 import { flyHeardWord, noteLine } from './ui/heardWord';
 import { cameraFrameAt, captureFrame, celebrateWord, celebrateWords, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
-import { escolaPracticeOpen, openEscolaPractice, showEscolaResult } from './ui/escola';
+import { escolaPracticeOpen, openEscola, onEscolaMsg } from './ui/escola';
 import { openHotspotCard } from './ui/hotspotCard';
 import { openStreetSnack } from './ui/streetSnack';
 import { openCheckers } from './ui/checkers';
@@ -284,7 +285,7 @@ function talkFlow(npc: NpcDef['id']) {
     if (game.room?.room !== 'padaria') return conversa();
     openCounter(npc, { buy: (itemId) => net.send({ t: 'padaria', action: 'buy', itemId }), conversa });
   } else if (npc === 'lucia') {
-    net.send({ t: 'diary', action: 'practice' });
+    openEscolaDesk();
   } else if (npc === 'celia') {
     openCelia(staffHooks);
   } else if (npc === 'agente') {
@@ -380,6 +381,19 @@ function takePhoto(clientX: number, clientY: number) {
   }, 320);
 }
 
+/** Dona Lúcia's desk: the escola home (path, streak, goal, plate), and the lessons it starts. */
+const escolaTz = () => -new Date().getTimezoneOffset();
+function openEscolaDesk() {
+  openEscola({
+    start: (area) => net.send({ t: 'escola', action: 'start', tz: escolaTz(), ...(area ? { area } : {}) }),
+    answer: (a) => net.send({ t: 'escola', action: 'answer', ...a }),
+    pair: (pt, en) => net.send({ t: 'escola', action: 'pair', pt, en }),
+    next: () => net.send({ t: 'escola', action: 'next' }),
+    quit: () => net.send({ t: 'escola', action: 'quit' }),
+    goal: (goal) => net.send({ t: 'escola', action: 'goal', goal, tz: escolaTz() }),
+  });
+}
+
 function propAction(action: string, propId?: string) {
   if (action === 'feira_stall') openStall(propId);
   else if (action === 'shop_hats') openShop();
@@ -390,7 +404,7 @@ function propAction(action: string, propId?: string) {
   else if (action === 'checkers') openCheckers();
   else if (action === 'buy_gi') openGiShop(!!game.profile?.giOwned, () => net.send({ t: 'buy', kind: 'gi', itemId: 'kimono' }));
   else if (action === 'bjj_roll') openBout();
-  else if (action === 'escola') net.send({ t: 'diary', action: 'practice' });
+  else if (action === 'escola') openEscolaDesk();
   else if (action === 'academy_elevator') {
     askElevator();
     net.send({ t: 'academy', action: 'directory' });
@@ -760,15 +774,9 @@ net.on((m: ServerMsg) => {
       // a word heard in a line flies out of that line into the Diário; the others (a sign, a game) get the card
       else if (m.phase === 'word') (m.source === 'conversation' ? flyHeardWord(m) : celebrateWord(m));
       else if (m.phase === 'words') celebrateWords(m.words);
-      else if (m.phase === 'practice') {
-        if (m.ok)
-          openEscolaPractice(
-            m,
-            (choice) => net.send({ t: 'diary', action: 'answer', choice }),
-            () => net.send({ t: 'diary', action: 'practice' }),
-          );
-        else toast('info', m.pt, m.en);
-      } else showEscolaResult(m);
+      break;
+    case 'escola':
+      onEscolaMsg(m);
       break;
     case 'avatarJoined':
       game.avatars.set(m.avatar.id, toClientAvatar(m.avatar));
@@ -814,7 +822,7 @@ net.on((m: ServerMsg) => {
     case 'chat': {
       const a = game.avatars.get(m.id);
       // Live Ops lock: CPUs never chat — guard against server bugs/injection
-      if (a && !a.pub.cpu) a.bubbles.push({ text: m.text, gloss: game.profile?.nameplate === 'verde' ? m.gloss : null, at: now() });
+      if (a && !a.pub.cpu) a.bubbles.push({ text: m.text, gloss: game.englishHelp ? m.gloss : null, at: now() });
       break;
     }
     case 'notice':
@@ -999,6 +1007,11 @@ function startGame() {
     toggleMusic: () => {
       game.music = !game.music;
       ambience.setEnabled(game.music);
+      game.emit('hud');
+    },
+    toggleEnglish: () => {
+      game.englishHelp = !game.englishHelp;
+      localStorage.setItem('tb_english', game.englishHelp ? 'on' : 'off');
       game.emit('hud');
     },
     logout:

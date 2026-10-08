@@ -1,4 +1,9 @@
 import {
+  DIARY_WORDS,
+  ESCOLA_MAX_BOX,
+  grantDiaryWord,
+  localDay,
+  normalizeDiary,
   BODY_TYPES,
   BOTTOM_STYLES,
   buildGrid,
@@ -132,6 +137,7 @@ import { NPC_TICK_MS, NpcDirector } from './npcs.js';
 import { RecadoTracker, sceneItems } from './recados.js';
 import { CadernoTracker } from './caderno.js';
 import { DiaryTracker } from './diary.js';
+import { EscolaTracker, escolaOf } from './escola.js';
 import { FeiraCounter } from './feira.js';
 import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria.js';
 import { BoutEngine, type BoutSession } from './bout.js';
@@ -288,6 +294,8 @@ export class World {
   private readonly caderno: CadernoTracker;
   /** Language diary: camera, signs, conversation lines, and the escola game. */
   private readonly diary: DiaryTracker;
+  /** Dona Lúcia's lessons: spaced repetition over the diary, XP, streak, the nameplate tiers. */
+  private readonly escola: EscolaTracker;
   /** The feira's prices and payments (Phase 9). */
   private readonly feira: FeiraCounter;
   /** Correria no Balcão: shifts, clocks and parked resume (apps/server/src/correria.ts). */
@@ -367,6 +375,22 @@ export class World {
       rng: () => this.rng(),
       now: () => this.now(),
       day: () => gameDay(this.clockNow()),
+      onWord: (s, word) => this.escola.onWord(s, word),
+    });
+    this.escola = new EscolaTracker({
+      store,
+      reward: (s, a, r) => this.reward(s, a, r),
+      pushProfile: (s) => this.pushProfile(s),
+      tileOf: (s) => this.currentTile(s).tile,
+      roomOf: (s) => s.instance?.def.id ?? null,
+      npcsIn: (room) => this.npcs.whoIn(room),
+      rng: () => this.rng(),
+      now: () => this.now(),
+      avatarChanged: (s) => this.broadcastAvatar(s),
+      tellRoom: (s, pt, en) => {
+        if (s.instance) this.broadcast(s.instance, { t: 'notice', level: 'info', pt, en }, s);
+      },
+      teachLessonWord: (s, gameId) => this.diary.teachLessonWord(s, gameId),
     });
     this.bouts = new BoutEngine({
       now: () => this.now(),
@@ -426,6 +450,7 @@ export class World {
   disconnect(s: Session) {
     if (this.sessions.get(s.id) !== s) return;
     this.correria.park(s);
+    this.escola.drop(s);
     this.leaveInstance(s);
     this.sessions.delete(s.id);
     if (s.profile) {
@@ -551,6 +576,8 @@ export class World {
         return this.giveGrant(s, msg.id);
       case 'diary':
         return this.diary.handle(s, msg);
+      case 'escola':
+        return this.escola.handle(s, msg);
       case 'talk':
         if (this.recados.talk(s, msg.npc)) this.caderno.seen(s, talkOpener(msg.npc, s.profile?.name, gameMinutes(this.clockNow())) ?? '');
         return;
@@ -1069,6 +1096,35 @@ export class World {
     const cur = gameMinutesExact(this.clockNow());
     this.clockOffsetMs += (((target - cur) % 1440) + 1440) % 1440 * MS_PER_GAME_MINUTE;
     return gameMinutes(this.clockNow());
+  }
+
+  /**
+   * Test only (`/__test/escola` when `TB_TEST_CLOCK_CONTROL=1`, for the escola screenshots): an online player gets the first `words` catalog
+   * words, `mastered` of them at the top box, the next `ready` one box short and due, and a streak of `streak` days up to yesterday.
+   */
+  testSeedEscola(name: string, o: { words: number; mastered: number; ready: number; streak: number }): boolean {
+    const s = [...this.sessions.values()].find((x) => x.profile?.name === name);
+    const p = s?.profile;
+    if (!s || !p) return false;
+    for (const w of DIARY_WORDS) {
+      if (normalizeDiary(p.diary).length >= o.words) break;
+      const got = grantDiaryWord(p.diary, w.id, w.source);
+      if (got.ok) p.diary = got.earned;
+    }
+    const st = escolaOf(p);
+    const now = this.now();
+    normalizeDiary(p.diary).forEach((id, i) => {
+      if (i < o.mastered) st.words[id] = { b: ESCOLA_MAX_BOX, due: now + 7 * 86_400_000, last: now - 86_400_000, n: 5, miss: 0 };
+      else if (i < o.mastered + o.ready) st.words[id] = { b: ESCOLA_MAX_BOX - 1, due: now - 1000, last: now - 86_400_000, n: 4, miss: 0 };
+    });
+    if (o.streak > 0) {
+      st.streak = o.streak;
+      st.best = Math.max(st.best, o.streak);
+      st.lastDay = localDay(now - 86_400_000, st.tz);
+    }
+    this.store.save();
+    this.pushProfile(s);
+    return true;
   }
 
   /** Push the live sky (clock stamp + weather pin) to one session or every connected player. */
@@ -1980,6 +2036,7 @@ export class World {
           room: fs?.instance?.def.id ?? null,
           roomName: fs?.instance?.name ?? null,
           instanceId: fs?.instance?.id ?? null,
+          nameplate: f.nameplate,
         };
       });
     const incoming = [...(this.incomingFriendReqs.get(p.id) ?? [])]

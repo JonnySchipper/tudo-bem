@@ -97,10 +97,17 @@ export type ClientMsg =
   | { t: 'diary'; action: 'buyFilm' }
   /** Heard an NPC line (`npc.node`) that can teach a conversation word. */
   | { t: 'diary'; action: 'line'; anchor: string }
-  /** Start the practice game in the room you're in (the escola). */
-  | { t: 'diary'; action: 'practice' }
-  /** Answer the practice round the server just dealt. */
-  | { t: 'diary'; action: 'answer'; choice: string }
+  /**
+   * Dona Lúcia's lessons (the escola desk). `start` deals a lesson from the player's diary (`area`: one unit of the path; `tz`: minutes east
+   * of UTC, so the streak follows the player's own calendar day). `answer` answers the exercise on screen; `pair` is one tap of the match
+   * race; `next` deals the next exercise (or ends the lesson); `quit` leaves (what was answered still counts); `goal` sets the daily XP goal.
+   */
+  | { t: 'escola'; action: 'start'; area?: string; tz?: number }
+  | { t: 'escola'; action: 'answer'; choice?: string; text?: string; order?: number[] }
+  | { t: 'escola'; action: 'pair'; pt: number; en: number }
+  | { t: 'escola'; action: 'next' }
+  | { t: 'escola'; action: 'quit' }
+  | { t: 'escola'; action: 'goal'; goal: number; tz?: number }
   /**
    * Treino no tatame (the Academia bout), protocol version 1. The server owns the bout: the client only picks an intent and answers
    * the challenge the server issued (`seq` must match the prompt on screen); timers and results are the server's.
@@ -485,9 +492,26 @@ export type ServerMsg =
   | { t: 'diary'; phase: 'word'; pt: string; en: string; source: string; areaPt: string; progress: string }
   /** Several words went in at once (the arrival card's): shown one after another, each counting up in its area. */
   | { t: 'diary'; phase: 'words'; words: DiaryMoment[] }
-  | { t: 'diary'; phase: 'practice'; ok: true; host: string; en: string; options: string[] }
-  | { t: 'diary'; phase: 'practice'; ok: false; host: string; pt: string; en: string }
-  | { t: 'diary'; phase: 'result'; correct: boolean; host: string; line: Bilingual; granted: { pt: string; en: string } | null }
+  /** The escola: an exercise dealt (never with its answer), the verdict on a try, one pair of the match race, the end of the lesson. */
+  | { t: 'escola'; phase: 'exercise'; ex: import('./escola.js').ExerciseView; index: number; total: number; combo: number; lessonXp: number; retry: boolean }
+  | {
+      t: 'escola';
+      phase: 'checked';
+      correct: boolean;
+      almost?: import('./escola.js').Almost;
+      reveal: { pt: string; en: string; line?: string };
+      /** XP this answer earned. */
+      xp: number;
+      combo: number;
+      lessonXp: number;
+      /** A miss that comes back at the end of the lesson. */
+      retry: boolean;
+      line: Bilingual;
+    }
+  | { t: 'escola'; phase: 'pair'; pt: number; en: number; ok: boolean }
+  | { t: 'escola'; phase: 'done'; summary: import('./escola.js').EscolaSummary }
+  /** The lesson could not start (an empty diary, too far from the desk). */
+  | { t: 'escola'; phase: 'closed'; line: Bilingual }
   | { t: 'error'; code: string; pt: string; en: string }
   | { t: 'pong' }
   /** Elevator directory. `canFound` is this player's belt. `ownedId` is the academy they founded, if any. */

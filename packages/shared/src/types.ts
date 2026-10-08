@@ -37,7 +37,10 @@ export interface Appearance {
   garb?: string;
 }
 
-/** Fluency band. Driven by the student model, never purchasable. Phase 0: everyone is Verde. */
+/**
+ * Nameplate colour: a status earned in the escola by words mastered (verde → amarelo → azul → roxo → dourado, see escola.ts), never
+ * purchasable. Only a colour: English help is the player's own setting and does not change with the plate (DECISIONS.md).
+ */
 export type Nameplate = 'verde' | 'amarelo' | 'azul' | 'roxo' | 'dourado';
 
 /** Screen-facing: S = toward camera. SE = moving +x, SW = +y, NE = -y, NW = -x. */
@@ -119,6 +122,8 @@ export interface FriendInfo {
   room: RoomId | null;
   roomName: string | null;
   instanceId: string | null;
+  /** Their earned nameplate colour. */
+  nameplate?: Nameplate;
 }
 
 /** The padaria counter game's progress. Stars unlock tools and set the level; they are earned by playing, never bought. */
@@ -188,6 +193,8 @@ export interface PrivateProfile {
   hasCamera?: boolean;
   /** Language-diary word ids earned once. */
   diary?: string[];
+  /** Escola: per-word strength (spaced repetition), XP, streak, daily goal and the earned nameplate tier. Defaulted on load. */
+  escola?: import('./escola.js').EscolaState;
   /** Film rolls left in the camera. Júlia sells more. */
   film?: number;
   /** Photos taken with the camera, newest first. */

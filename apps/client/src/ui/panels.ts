@@ -18,6 +18,8 @@ import {
   npcDefById,
   npcPosesIn,
   poseWalk,
+  tierRule,
+  FOUNDER_BADGE,
   type Bilingual,
   type NpcDef,
   type PublicAvatar,
@@ -26,6 +28,7 @@ import {
 } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi, ui, clear } from './dom';
+import { tierChip } from './plate';
 import { mountCharPreview, setHatIcon } from '../render/pixel/charPreview';
 import { furnitureIcon, expressionForScore } from './pixelArt';
 import { speak } from '../audio';
@@ -468,6 +471,7 @@ export function openFriends(actions: { request: (id: string) => void; accept: (i
             { class: 'r' },
             h('span', { class: `dot ${f.online ? 'on' : ''}` }),
             h('b', null, f.name),
+            tierChip(f.nameplate ?? 'verde'),
             h('span', { style: 'color:var(--ink-soft);font-weight:700;font-size:.85em' }, f.online ? (f.roomName ?? 'online') : 'offline'),
             h('span', { class: 'spacer' }),
             f.online && f.room && f.room !== 'kitnet' ? h('button', { class: 'green', onclick: () => (actions.hop(f.room!, f.instanceId), close()) }, bi('Ir até', 'Join')) : '',
@@ -512,9 +516,9 @@ export function openProfileCard(a: PublicAvatar, actions: { request: (id: string
       closeBtn(() => close()),
       canvas,
       h('h2', null, a.name),
-      h('div', { class: 'row', style: 'justify-content:center' }, h('span', { class: 'plate' }, h('span', { class: 'seed' }), 'Verde'), h('span', { style: 'font-weight:700;color:var(--ink-soft)' }, `trate por: ${pronoun}`)),
+      h('div', { class: 'row', style: 'justify-content:center' }, tierChip(a.nameplate ?? 'verde', { id: 'profile-plate' }), a.founder ? h('span', { class: 'wl-founder founder-chip', title: `${FOUNDER_BADGE.pt} · ${FOUNDER_BADGE.en}` }, 'f') : null, h('span', { style: 'font-weight:700;color:var(--ink-soft)' }, `trate por: ${pronoun}`)),
       a.belt ? h('div', { class: 'row', style: 'justify-content:center;margin-top:8px' }, beltChip(a.belt)) : null,
-      en('Verde plate: tourist level — sees English glosses. Plates come from learning, never from money.'),
+      en(`${tierRule(a.nameplate ?? 'verde').en} nameplate: earned in the Escola by words mastered. Plates come from learning, never from money.`),
       h(
         'div',
         { class: 'row', style: 'justify-content:center;margin-top:12px' },

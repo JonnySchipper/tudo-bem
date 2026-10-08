@@ -11,7 +11,6 @@ import {
   PHOTO_KEEP,
   areaBoard,
   diaryGame,
-  diaryGamesIn,
   diaryLine,
   diaryWord,
   diaryVisible,
@@ -25,8 +24,6 @@ import {
   normalizePhotos,
   photoImage,
   photoSpotById,
-  practiceCorrect,
-  practiceRound,
   progressLine,
   tileDistance,
   wordForLine,
@@ -59,6 +56,8 @@ export interface DiaryDeps {
   now: () => number;
   /** The game day (the small diary objects and signs rotate by it). */
   day: () => number;
+  /** A word just went into the diary (the escola's word mission listens). */
+  onWord?: (s: Session, word: DiaryWord) => void;
 }
 
 /** Most objects one shot can name (a crowded praça, a dense padaria counter). */
@@ -75,15 +74,8 @@ function photoAnchors(msg: { anchor?: string; anchors?: string[] }): string[] {
   return out;
 }
 
-interface Round {
-  wordId: string;
-  gameId: string;
-}
-
-/** One open practice round per session. The client never learns which option is correct. */
+/** Every way a word goes into the diary (the escola lessons are in escola.ts). */
 export class DiaryTracker {
-  private readonly rounds = new WeakMap<Session, Round>();
-
   constructor(private readonly d: DiaryDeps) {}
 
   /** The arrival, once: Célia at the airport's information desk hands over the camera, the cartela do bairro and Júlia's note (its words go into the diary). */
@@ -136,9 +128,7 @@ export class DiaryTracker {
   handle(s: Session, msg: Extract<ClientMsg, { t: 'diary' }>) {
     if (msg.action === 'photo') return this.photo(s, msg);
     if (msg.action === 'line') return this.line(s, msg.anchor);
-    if (msg.action === 'practice') return this.practice(s);
     if (msg.action === 'buyFilm') return this.buyFilm(s);
-    return this.answer(s, msg.choice);
   }
 
   /** A sign the player just read (distance already checked). Grants its reading word once. */
@@ -198,6 +188,7 @@ export class DiaryTracker {
     this.d.store.save();
     this.d.pushProfile(s);
     if (image) this.d.pushPhotos?.(s);
+    for (const w of fresh) this.d.onWord?.(s, w);
     const left = normalizeFilm(p.film);
     if (fresh.length) {
       // each word's progress as it stood when that word landed, so the cards count up 1/9, 2/9, 3/9 in the order they are shown
@@ -274,6 +265,7 @@ export class DiaryTracker {
     this.d.store.save();
     this.d.pushProfile(s);
     this.announce(s, word, via);
+    this.d.onWord?.(s, word);
   }
 
   /** Several words at once: one profile push, and one message that shows them one after another, each counting up in its area. */
@@ -290,6 +282,7 @@ export class DiaryTracker {
     if (!got.length) return;
     this.d.store.save();
     this.d.pushProfile(s);
+    for (const e of got) this.d.onWord?.(s, e.word);
     if (got.length === 1) return this.announce(s, got[0]!.word, got[0]!.via);
     let running = normalizeDiary(p.diary).filter((id) => !got.some((e) => e.word.id === id));
     const words = got.map((e) => {
@@ -330,85 +323,24 @@ export class DiaryTracker {
       this.d.store.save();
       this.d.pushProfile(s);
       this.announce(s, got.word, 'game');
+      this.d.onWord?.(s, got.word);
     }
   }
 
-  private practice(s: Session) {
+  /**
+   * A finished escola lesson: the practice game's own word (aula), once, when the game's chance allows. The client holds the card until the
+   * lesson panel closes (a game word waits for the game to end). Returns the word taught, or null.
+   */
+  teachLessonWord(s: Session, gameId: string): DiaryWord | null {
     const p = s.profile;
-    const room = this.d.roomOf(s);
-    if (!p || !room) return;
-    const game = diaryGamesIn(room).find((g) => g.kind !== 'correria');
-    if (!game) return this.d.err(s, 'escola', 'Aqui não tem aula.', 'There’s no class here.');
-    const tile = this.d.tileOf(s);
-    const desk = ROOMS[room].props.find((q) => q.action === 'escola');
-    const host = this.d.npcsIn(room).find((n) => n.id === game.host.npc);
-    const nearDesk = !!desk && hotspotDistance(desk, tile) <= HOTSPOT_READ_RANGE;
-    const nearHost = !!host && (tileDistance(tile, host.tile) <= HOTSPOT_READ_RANGE || tileDistance(tile, host.interact) <= HOTSPOT_READ_RANGE);
-    if (!nearDesk && !nearHost) return this.d.err(s, 'far', `Chegue mais perto de ${game.host.name}.`, `Walk closer to ${game.host.name}.`);
-    const round = practiceRound(p.diary, game, this.d.rng);
-    if (!round) {
-      // needs_br: true
-      s.send({
-        t: 'diary',
-        phase: 'practice',
-        ok: false,
-        host: game.host.name,
-        pt: 'Traga uma palavra do diário pra praticar.',
-        en: 'Bring a diary word to practice.',
-      });
-      return;
-    }
-    this.rounds.set(s, { wordId: round.wordId, gameId: game.id });
-    s.send({ t: 'diary', phase: 'practice', ok: true, host: game.host.name, en: round.en, options: round.options });
-  }
-
-  private answer(s: Session, choice: unknown) {
-    const p = s.profile;
-    const round = this.rounds.get(s);
-    if (!p || !round) return this.d.err(s, 'escola', 'Não tem aula aberta.', 'There’s no class open.');
-    const game = diaryGame(round.gameId);
-    if (!game) {
-      this.rounds.delete(s);
-      return;
-    }
-    const picked = typeof choice === 'string' ? choice.slice(0, 40) : '';
-    if (!practiceCorrect(round.wordId, picked)) {
-      // needs_br: true
-      s.send({
-        t: 'diary',
-        phase: 'result',
-        correct: false,
-        host: game.host.name,
-        line: { pt: `${game.host.name} diz: quase. Tenta de novo.`, en: `${game.host.name} says: almost. Try again.` },
-        granted: null,
-      });
-      return;
-    }
-    this.rounds.delete(s);
-    let granted: { pt: string; en: string } | null = null;
-    if (game.grantWordId && this.rolls(game.chance)) {
-      const got = grantDiaryWord(p.diary, game.grantWordId, 'game');
-      if (got.ok) {
-        p.diary = got.earned;
-        granted = { pt: got.word.pt, en: got.word.en };
-        this.d.store.save();
-        this.d.pushProfile(s);
-        // the client holds this one until the practice panel closes (a game word waits for the game to end)
-        this.announce(s, got.word, 'game');
-      }
-    }
-    if (game.rv > 0) this.d.reward(s, game.rv, { pt: `${game.host.name} paga a aula.`, en: `${game.host.name} pays for the class.` });
-    // needs_br: true
-    s.send({
-      t: 'diary',
-      phase: 'result',
-      correct: true,
-      host: game.host.name,
-      line: {
-        pt: granted ? `${game.host.name} te ensina: ${granted.pt}.` : `${game.host.name} diz: muito bem!`,
-        en: granted ? `${game.host.name} teaches you: ${granted.pt} (${granted.en}).` : `${game.host.name} says: well done!`,
-      },
-      granted,
-    });
+    const game = diaryGame(gameId);
+    if (!p || !game?.grantWordId || !this.rolls(game.chance)) return null;
+    const got = grantDiaryWord(p.diary, game.grantWordId, 'game');
+    if (!got.ok) return null;
+    p.diary = got.earned;
+    this.d.store.save();
+    this.d.pushProfile(s);
+    this.announce(s, got.word, 'game');
+    return got.word;
   }
 }
