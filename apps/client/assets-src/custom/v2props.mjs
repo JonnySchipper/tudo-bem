@@ -226,8 +226,10 @@ async function cocoCart(ctx) {
   const cart = stripSoftAlpha(await ctx.load(VEH + 'Fruit_Flowers_Cart_1.png'));
   const img = blank(56, 64);
   paste(img, cart, 0, 0);
-  // repaint the umbrella (rows 9..37): green and cream gores that keep the pack's shading
-  const cx = 16.5, cy = 21;
+  // repaint the umbrella (rows 9..37): green and cream gores that keep the pack's shading.
+  // The canopy is a dome seen from above; the gores radiate from the hub (the pale pixels
+  // at x 16..17, y 14..15), not from the middle of the disc.
+  const cx = 16.5, cy = 14.5;
   const GREEN = ['#2e7177', '#367f82', '#49928f', '#5ea592'];
   const CREAM = ['#c6bdd5', '#d8d0e0', '#ebe4f2', '#f8f8f8'];
   for (let y = 9; y < 38; y++) for (let x = 0; x < 36; x++) {
