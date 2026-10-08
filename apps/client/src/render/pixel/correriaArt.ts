@@ -12,11 +12,15 @@
  *   balcao/register 26x24 (13, 23) · bell_<0..1> 22x16 (11, 14) · tipjar_<0..3> 20x24 (10, 23, the fill states)
  *   balcao/patience_<0..4>          14x14 (7, 14), 4 = full ... 0 = out, the meter over a customer's head
  *   fx/steam_<0..3>                 14x24 (7, 23)
+ *   balcao/juicer_<idle|roll|cut|press|pour|peel>  34x36 (17, 35), the espremedor through one orange (`juicerStep`)
+ *   balcao/juice_glass_<0..9> · juice_glass_spill  14x12 (7, 11), the glass under its spout, 7 rows = the line
+ *   balcao/orange_<p|m|g>           7x7 (3, 6) · 9x9 (4, 8) · 11x11 (5, 10), the next orange in the hopper
+ *   balcao/laranjas                 28x28 (14, 26), the crate of oranges in suco's shelf cell (a tap feeds the machine)
  *
  * Positions are room pixels (the padaria is 160 x 144; one tile is 16) of each piece's anchor. The work board is a flat wooden plate the
  * stage draws over the counter area (it hides the room's own counter props while a shift runs), so every piece reads on the same surface.
  */
-import { MG_ITEMS } from '@tudobem/shared';
+import { MG_ITEMS, type JuicerStep, type OrangeSize } from '@tudobem/shared';
 
 export interface Spot {
   x: number;
@@ -37,6 +41,17 @@ export const bellKey = (i: 0 | 1): string => `balcao/bell_${i}`;
 export const tipjarKey = (i: 0 | 1 | 2 | 3): string => `balcao/tipjar_${i}`;
 export const patienceKey = (i: 0 | 1 | 2 | 3 | 4): string => `balcao/patience_${i}`;
 export const steamKey = (i: number): string => `fx/steam_${((i % 4) + 4) % 4}`;
+export const juicerKey = (s: JuicerStep): string => `balcao/juicer_${s}`;
+/** Glass rows: 7 is the line, 9 is to the rim. */
+export const JUICE_GLASS_LEVELS = 10;
+export const JUICE_LINE_ROWS = 7;
+export const juiceGlassKey = (k: number | 'spill'): string => `balcao/juice_glass_${k === 'spill' ? 'spill' : Math.max(0, Math.min(JUICE_GLASS_LEVELS - 1, Math.round(k)))}`;
+/** Glass rows for a fill (1 = the line). */
+export const juiceRows = (fill: number): number => Math.max(0, Math.min(JUICE_GLASS_LEVELS - 1, Math.round(Math.max(0, fill) * JUICE_LINE_ROWS)));
+export const orangeKey = (s: OrangeSize): string => `balcao/orange_${s}`;
+export const CRATE_KEY = 'balcao/laranjas';
+const JUICER_STEPS: readonly JuicerStep[] = ['idle', 'roll', 'cut', 'press', 'pour', 'peel'];
+const ORANGE_SIZE: Record<OrangeSize, [number, number, number, number]> = { p: [7, 7, 3, 6], m: [9, 9, 4, 8], g: [11, 11, 5, 10] };
 
 /** Contracted sprite sizes (w, h, anchor x, anchor y) by key family, for the contract test. */
 export const ART_SIZES: Record<string, [number, number, number, number]> = {
@@ -52,11 +67,18 @@ export const ART_SIZES: Record<string, [number, number, number, number]> = {
   tipjar: [20, 24, 10, 23],
   patience: [14, 14, 7, 14],
   steam: [14, 24, 7, 23],
+  juicer: [34, 36, 17, 35],
+  juice: [14, 12, 7, 11],
+  laranjas: [28, 28, 14, 26],
 };
 
 /** Every key the game may ask the manifest for. */
 export function allArtKeys(): string[] {
-  const keys: string[] = [ART.tray, ART.trayFull, ART.bag, ART.plate, ART.register];
+  const keys: string[] = [ART.tray, ART.trayFull, ART.bag, ART.plate, ART.register, CRATE_KEY];
+  for (const s of JUICER_STEPS) keys.push(juicerKey(s));
+  for (let k = 0; k < JUICE_GLASS_LEVELS; k++) keys.push(juiceGlassKey(k));
+  keys.push(juiceGlassKey('spill'));
+  for (const s of ['p', 'm', 'g'] as const) keys.push(orangeKey(s));
   for (const i of MG_ITEMS) keys.push(itemKey(i.id));
   for (const f of ['idle', 'sizzle_0', 'sizzle_1', 'sizzle_2', 'burnt'] as const) keys.push(chapaKey(f));
   for (const f of ['idle', 0, 1, 2, 3] as const) keys.push(coffeeKey(f));
@@ -75,6 +97,9 @@ export function sizeOfKey(key: string): [number, number, number, number] | null 
   if (key === ART.bag) return ART_SIZES.bag!;
   if (key === ART.plate) return ART_SIZES.plate!;
   if (key === ART.register) return ART_SIZES.register!;
+  if (key === CRATE_KEY) return ART_SIZES.laranjas!;
+  const orange = /^balcao\/orange_([pmg])$/.exec(key)?.[1] as OrangeSize | undefined;
+  if (orange) return ORANGE_SIZE[orange];
   const fam = /^(?:balcao|fx)\/([a-z]+)_/.exec(key)?.[1];
   return fam ? (ART_SIZES[fam] ?? null) : null;
 }
@@ -83,14 +108,18 @@ export function sizeOfKey(key: string): [number, number, number, number] | null 
 //
 // A clean grid on the wooden board (it reaches up over the north wall, so the room's 160 x 144 becomes 160 x ~182 of counter):
 //   left block   four columns x three rows of shelf items (drawn at ITEM_SCALE, label under each, 32 px between rows)
-//   right column the coffee machine over the chapa (the cups and the raw bread are the shelf cells next to them)
+//   right column the juicer on top (the board rises there), the coffee machine, the chapa (the cups, the raw bread and the crate of
+//                oranges are the shelf cells next to them)
 //   pack row     tray, bag, plate (y 92)
 //   service row  register, tip jar, bell (y 120)
 //   floor        the queue on the right (their name tags and meters sit above the pack row, which stays left of x 98)
 // Nothing overlaps (the test checks every rectangle) and every label has a 12 px band under its sprite.
 
-/** The wooden work board the pieces stand on: [x0, y0, x1, y1]. */
-export const BOARD = { x0: 3, y0: -38, x1: 157, y1: 129 } as const;
+/** The wooden work board the pieces stand on: [x0, y0, x1, y1]. It reaches higher on the right for the juicer over the coffee machine. */
+export const BOARD = { x0: 3, y0: -66, x1: 157, y1: 129 } as const;
+/** Left of this x the board stops at `BOARD_SHELF_TOP` (the room's wall shows there); only the station column rises to `BOARD.y0`. */
+export const BOARD_TOWER_X = 115;
+export const BOARD_SHELF_TOP = -38;
 
 /** Shelf items are drawn smaller than the 28 px art so twelve fit in a clean grid with their names. */
 export const ITEM_SCALE = 0.72;
@@ -115,6 +144,16 @@ export const ITEM_SPOTS: Record<string, Spot> = {
   cafe_com_leite: { x: COLS[3]!, y: ROWS[2]! },
 };
 export const COFFEE_SPOT: Spot = { x: 136, y: 22 };
+/** The espremedor stands at the top of the station column, over the coffee machine (its label band ends where the machine starts). */
+export const JUICER_SPOT: Spot = { x: 137, y: -30 };
+/** The glass on the juicer's drip tray, right under the spout (anchor bottom-centre of the 14x12 glass). */
+export const JUICE_GLASS_SPOT: Spot = { x: JUICER_SPOT.x, y: JUICER_SPOT.y - 2 };
+/** The spout tip (the stream runs from here down to the juice). */
+export const JUICE_SPOUT: Spot = { x: JUICER_SPOT.x, y: JUICER_SPOT.y - 14 };
+/** The next orange, waiting at the mouth of the hopper's chute. */
+export const HOPPER_NEXT: Spot = { x: JUICER_SPOT.x + 5, y: JUICER_SPOT.y - 24 };
+/** Where the peels drop into the bin (bagaço), for the little tumble. */
+export const PEEL_BIN: Spot = { x: JUICER_SPOT.x - 11, y: JUICER_SPOT.y - 10 };
 export const CHAPA_SPOT: Spot = { x: 136, y: 70 };
 /** Where a piece on the grill sits (item sprites at CHAPA_ITEM_SCALE), by slot. */
 export const CHAPA_SLOTS: Spot[] = [
@@ -142,9 +181,9 @@ export const QUEUE_SPOTS: Spot[] = [
 export const DOOR_SPOT: Spot = { x: -14, y: 142 };
 
 /** The counter's focus for the camera (room px): the middle of the board and the queue. */
-export const FOCUS: Spot = { x: 80, y: 58 };
-/** World px the camera must show: the board and the queue. */
-export const NEED = { w: 162, h: 170 } as const;
+export const FOCUS: Spot = { x: 80, y: 40 };
+/** World px the camera must show: the juicer tower (it starts at BOARD.y0), the board and the queue. Taller than the old shelf so the hopper stays under the HUD. */
+export const NEED = { w: 162, h: 216 } as const;
 
 /** Miniature item size on the tray (item sprites are drawn at this scale there). */
 export const TRAY_ITEM_SCALE = 0.5;

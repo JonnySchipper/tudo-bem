@@ -13,6 +13,10 @@ export interface CounterHandlers {
   chapaTake: (slot: number) => void;
   pourStart: (itemId: string) => void;
   pourEnd: () => void;
+  /** One orange into the espremedor. */
+  juiceDrop: () => void;
+  /** Take the glass off the juicer (the server judges the line). */
+  juiceTake: () => void;
   pack: (kind: 'bag' | 'plate') => void;
   serve: () => void;
   clear: () => void;
@@ -20,7 +24,7 @@ export interface CounterHandlers {
 }
 
 const noop = () => {};
-export const NO_HANDLERS: CounterHandlers = { grab: noop, chapaPut: noop, chapaTake: noop, pourStart: noop, pourEnd: noop, pack: noop, serve: noop, clear: noop, replay: noop };
+export const NO_HANDLERS: CounterHandlers = { grab: noop, chapaPut: noop, chapaTake: noop, pourStart: noop, pourEnd: noop, juiceDrop: noop, juiceTake: noop, pack: noop, serve: noop, clear: noop, replay: noop };
 
 class CorreriaFeed {
   /** the camera is zoomed onto the counter */

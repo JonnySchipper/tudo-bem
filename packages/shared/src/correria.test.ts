@@ -16,7 +16,13 @@ import {
   PAY_MUL_MAX,
   PAY_STEP_PCT,
   POUR,
+  JUICE,
+  JUICER_LESSON_ID,
+  SUCO_ITEMS,
   UNLOCKS,
+  juiceVerdict,
+  juicerStep,
+  orangeAt,
   WHERE_MENU_AT,
   WAVE_SIZES,
   askOptions,
@@ -87,6 +93,13 @@ function build(sh: Shift, ev: CEvent[] = []): void {
         push(shiftAct(sh, { a: 'pour_start', item: line.itemId }));
         push(shiftAdvance(sh, POUR.fullMs * 0.85));
         push(shiftAct(sh, { a: 'pour_end' }));
+      } else if (SUCO_ITEMS.includes(line.itemId)) {
+        // oranges until the glass reaches the line, then take it
+        while ((sh.juice?.fill ?? 0) < JUICE.goodMin) {
+          push(shiftAct(sh, { a: 'juice_drop' }));
+          push(shiftAdvance(sh, JUICE.cycleMs));
+        }
+        push(shiftAct(sh, { a: 'juice_take' }));
       } else push(shiftAct(sh, { a: 'grab', item: line.itemId }));
     }
   }
@@ -416,6 +429,102 @@ describe('the coffee pour', () => {
     shiftAct(slow, { a: 'pour_start', item: 'cafe' });
     shiftAdvance(slow, POUR.fastMs * 0.85);
     expect(shiftAct(slow, { a: 'pour_end' })[0]).toMatchObject({ k: 'pour_bad', why: 'short' });
+  });
+});
+
+describe('the espremedor (orange juicer)', () => {
+  /** Drop one orange and let the machine finish its cycle. */
+  const drop = (sh: Shift) => {
+    const ev = shiftAct(sh, { a: 'juice_drop' });
+    shiftAdvance(sh, JUICE.cycleMs);
+    return ev;
+  };
+
+  it('suco is a juicer item, not a fridge grab', () => {
+    const sh = newShift(ctx());
+    expect(shiftAct(sh, { a: 'grab', item: 'suco_de_laranja' })[0]).toMatchObject({ k: 'no', why: 'station', line: { pt: 'Esse sai do espremedor.' } });
+    expect(sh.tray).toEqual([]);
+  });
+
+  it('a glass is usually three oranges, never fewer than two or more than four, and stopping at the line always lands it', () => {
+    const counts = new Map<number, number>();
+    for (let seed = 1; seed <= 400; seed++) {
+      // every reachable glass under the line still has room for the biggest orange
+      let fill = 0;
+      let n = 0;
+      for (let i = 0; fill < JUICE.goodMin; i++) {
+        expect(juiceVerdict(fill + JUICE.sizes.g)).not.toBe('spill');
+        fill += JUICE.sizes[orangeAt(seed, i)];
+        n++;
+      }
+      expect(juiceVerdict(fill)).toBe('ok');
+      counts.set(n, (counts.get(n) ?? 0) + 1);
+    }
+    expect([...counts.keys()].every((n) => n >= 2 && n <= 4)).toBe(true);
+    expect(counts.get(3)!).toBeGreaterThan(200);
+    // the sizes are a mix, from the seed alone
+    const sizes = new Set(Array.from({ length: 40 }, (_, i) => orangeAt(7, i)));
+    expect(sizes).toEqual(new Set(['p', 'm', 'g']));
+    expect(orangeAt(7, 3)).toBe(orangeAt(7, 3));
+  });
+
+  it('each tap is one orange; tap the glass at the line and it goes on the tray', () => {
+    const sh = newShift(ctx());
+    expect(shiftSnapshot(sh).hopper).toEqual([orangeAt(7, 0), orangeAt(7, 1), orangeAt(7, 2)]);
+    const ev = drop(sh);
+    expect(ev[0]).toMatchObject({ k: 'juice_drop', size: orangeAt(7, 0), fill: JUICE.sizes[orangeAt(7, 0)] });
+    expect(sh.juice?.oranges).toBe(1);
+    expect(shiftSnapshot(sh).hopper[0]).toBe(orangeAt(7, 1));
+    while ((sh.juice?.fill ?? 0) < JUICE.goodMin) drop(sh);
+    const fill = sh.juice!.fill;
+    expect(shiftAct(sh, { a: 'juice_take' })[0]).toEqual({ k: 'juice_ok', item: 'suco_de_laranja', fill });
+    expect(sh.tray).toEqual(['suco_de_laranja']);
+    expect(sh.juice).toBeNull();
+  });
+
+  it('one orange at a time: a tap while it still presses does nothing, nor does taking the glass mid-press', () => {
+    const sh = newShift(ctx());
+    shiftAct(sh, { a: 'juice_drop' });
+    shiftAdvance(sh, 100);
+    expect(shiftAct(sh, { a: 'juice_drop' })).toEqual([]);
+    expect(shiftAct(sh, { a: 'juice_take' })).toEqual([]);
+    expect(sh.juice?.oranges).toBe(1);
+    expect(sh.oranges).toBe(1);
+  });
+
+  it('taking it short throws the glass out; an orange too many overflows at once', () => {
+    const sh = newShift(ctx());
+    drop(sh);
+    expect(shiftAct(sh, { a: 'juice_take' })[0]).toMatchObject({ k: 'juice_bad', why: 'short' });
+    expect(sh.juice).toBeNull();
+    expect(sh.tray).toEqual([]);
+    while ((sh.juice?.fill ?? 0) <= JUICE.spillAt - JUICE.sizes.p) {
+      const ev = drop(sh);
+      if (ev.some((e) => e.k === 'juice_bad')) break;
+    }
+    // keep going past the line: it overflows by itself
+    let spilled = false;
+    for (let i = 0; i < 6 && !spilled; i++) spilled = drop(sh).some((e) => e.k === 'juice_bad' && e.why === 'spill');
+    expect(spilled).toBe(true);
+    expect(sh.tray).toEqual([]);
+    expect(shiftAct(sh, { a: 'juice_take' })[0]).toMatchObject({ k: 'no', why: 'juice_empty' });
+  });
+
+  it('is locked until suco is on the counter', () => {
+    const sh = newShift(ctx({ shifts: 0 }));
+    expect(shiftAct(sh, { a: 'juice_drop' })[0]).toMatchObject({ k: 'no', why: 'locked' });
+    expect(sh.oranges).toBe(0);
+  });
+
+  it('the art cycle runs roll, cut, press, pour, peel, then idle', () => {
+    const steps = [0, 0.2, 0.4, 0.6, 0.9, 1].map((u) => juicerStep(u * JUICE.cycleMs));
+    expect(steps).toEqual(['roll', 'cut', 'press', 'pour', 'peel', 'idle']);
+    expect(juicerStep(-1)).toBe('idle');
+  });
+
+  it('parses the juicer acts from the wire', () => {
+    expect(sanitizeAct({ a: 'juice_drop' })).toEqual({ a: 'juice_drop' });
+    expect(sanitizeAct({ a: 'juice_take', extra: 1 })).toEqual({ a: 'juice_take' });
   });
 });
 
@@ -761,13 +870,16 @@ describe('the menu ladder', () => {
 
   it('opens one item every two shifts, in teaching order, and a size-1 shop stays on café and pão', () => {
     expect(ITEM_EVERY_SHIFTS).toBe(2);
-    expect(MENU_LADDER).toEqual(['cafe', 'pao', 'agua', 'pao_de_queijo', 'cafe_com_leite', 'suco_de_laranja', 'pao_na_chapa', 'coxinha', 'pastel', 'bolo', 'guarana', 'misto_quente']);
+    // suco comes after the pão na chapa: the juicer is a station of its own, so it opens once the chapa is learnt
+    expect(MENU_LADDER).toEqual(['cafe', 'pao', 'agua', 'pao_de_queijo', 'cafe_com_leite', 'pao_na_chapa', 'suco_de_laranja', 'coxinha', 'pastel', 'bolo', 'guarana', 'misto_quente']);
     expect(menuIdsForShifts(0)).toEqual(['cafe', 'pao']);
     expect(menuIdsForShifts(1)).toEqual(['cafe', 'pao']);
     expect(menuCountForShifts(2)).toBe(3);
     expect(menuIdsForShifts(2)[2]).toBe('agua');
     expect(menuCountForShifts(8)).toBe(WHERE_MENU_AT);
-    expect(menuIdsForShifts(8)[5]).toBe('suco_de_laranja');
+    expect(menuIdsForShifts(8)[5]).toBe('pao_na_chapa');
+    expect(menuIdsForShifts(9)).not.toContain('suco_de_laranja');
+    expect(menuIdsForShifts(10)[6]).toBe('suco_de_laranja');
     expect(menuIdsForShifts(FULL_MENU_SHIFTS)).toEqual([...MENU_LADDER]);
     expect(menuIdsForShifts(99)).toEqual([...MENU_LADDER]);
     expect(shiftItemPool({ shifts: 40, menuIds: ['cafe', 'pao'] }).map((i) => i.id).sort()).toEqual(['cafe', 'pao']);
@@ -793,6 +905,25 @@ describe('the menu ladder', () => {
     expect(normalizeCorreria(undefined).taught).toEqual([]);
     expect(normalizeCorreria({ stars: 1, shifts: 4, best: 1 }).taught).toEqual([...MENU_LADDER, 'where']);
     expect(normalizeCorreria({ stars: 0, shifts: 0, best: 0, taught: ['cafe', 'nope', 'cafe'] }).taught).toEqual(['cafe']);
+  });
+
+  it('the juicer has its own card: shown once, even to saves that saw the old fridge card for suco', () => {
+    const open = menuIdsForShifts(10);
+    const before = [...MENU_LADDER.slice(0, 6), 'where'];
+    const card = pendingLesson(open, before, true);
+    expect(card?.id).toBe(JUICER_LESSON_ID);
+    expect(card?.title.pt).toMatch(/espremedor/);
+    expect(card?.steps.map((s) => s.pt).join(' ')).toMatch(/laranjas na máquina.*Pare na linha/s);
+    for (const s of card!.steps) expect(s.en.length).toBeGreaterThan(5);
+    expect(pendingLesson(open, noteLesson(before, card), true)).toBeNull();
+    // a #130 save that already had 'suco_de_laranja' taught (the fridge card) still gets the juicer once
+    expect(pendingLesson(open, [...before, 'suco_de_laranja'], true)?.id).toBe(JUICER_LESSON_ID);
+    // and a save from before the ladder (every old card marked seen)
+    const old = normalizeCorreria({ stars: 20, shifts: 40, best: 200 });
+    expect(old.taught).not.toContain(JUICER_LESSON_ID);
+    expect(pendingLesson(menuIdsForShifts(40), old.taught!, true)?.id).toBe(JUICER_LESSON_ID);
+    // the new key survives a round trip; unknown keys still drop
+    expect(normalizeCorreria({ shifts: 12, taught: ['cafe', JUICER_LESSON_ID, 'zzz'] }).taught).toEqual(['cafe', JUICER_LESSON_ID]);
   });
 
   it('pays +6% of today per extra item, at most 1.6×, and says so when the menu grew', () => {

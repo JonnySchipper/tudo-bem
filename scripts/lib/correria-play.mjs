@@ -19,6 +19,13 @@ export async function waitFor(page, fn, arg, timeout = 10_000, label = 'conditio
 
 export const CHAPA = new Set(['pao_na_chapa', 'misto_quente']);
 export const CAFE = new Set(['cafe', 'cafe_com_leite']);
+export const SUCO = new Set(['suco_de_laranja']);
+/** Same numbers as `JUICE` in shared/correria.ts: one orange per cycle, a glass is good from goodMin of the line up to spillAt. */
+export const JUICER = { cycleMs: 640, goodMin: 0.8, spillAt: 1.2, sizes: { p: 0.26, m: 0.34, g: 0.4 } };
+/** Juicer: another orange while the glass is under the line, then take it. Stopping at the line never overflows (shared test). */
+export function nextJuiceTap(fill) {
+  return (Number(fill) || 0) < JUICER.goodMin ? 'drop' : 'take';
+}
 const COOK_MS = 2400;
 const POUR_FULL = 1800;
 
@@ -288,11 +295,12 @@ async function assembleOrder(page, want) {
   const lines = [
     ...want.lines.filter((l) => CAFE.has(l.itemId)),
     ...want.lines.filter((l) => CHAPA.has(l.itemId)),
-    ...want.lines.filter((l) => !CAFE.has(l.itemId) && !CHAPA.has(l.itemId)),
+    ...want.lines.filter((l) => SUCO.has(l.itemId)),
+    ...want.lines.filter((l) => !CAFE.has(l.itemId) && !CHAPA.has(l.itemId) && !SUCO.has(l.itemId)),
   ].map((l) => ({
     itemId: l.itemId,
     qty: l.qty,
-    station: CAFE.has(l.itemId) ? 'cafe' : CHAPA.has(l.itemId) ? 'chapa' : 'grab',
+    station: CAFE.has(l.itemId) ? 'cafe' : CHAPA.has(l.itemId) ? 'chapa' : SUCO.has(l.itemId) ? 'suco' : 'grab',
   }));
   const report = await page.evaluate((arg) => new Promise((resolve) => {
     const feed = window.__tb?.correria?.feed;
@@ -311,7 +319,7 @@ async function assembleOrder(page, want) {
       ...extra,
     });
     if (!feed?.on?.grab || !feed.snap) return fail('gone');
-    const { lines, mods, pourHold, readyAt, burnAt, landHi, pourFull } = arg;
+    const { lines, mods, pourHold, readyAt, burnAt, landHi, pourFull, juicer } = arg;
     const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     const wallEnd = performance.now() + 20_000;
     const frontNow = () => feed.snap?.customers?.find((c) => c.state === 'front') ?? null;
@@ -505,6 +513,26 @@ async function assembleOrder(page, want) {
       if (fresh?.why === 'short') return { result: 'short', fill, count: n };
       return { result: 'miss', fill, count: n };
     };
+    /** One glass through the juicer: an orange per tap (waiting out each cut-and-press cycle) until the line, then tap the glass. */
+    const juiceOnce = async (itemId) => {
+      const before = count(itemId);
+      const until = Math.min(wallEnd, performance.now() + 8_000);
+      let lastTap = 0;
+      while (performance.now() < until) {
+        if (!alive()) return count(itemId) > before ? 'landed' : 'gone';
+        if (count(itemId) > before) return 'landed';
+        const j = feed.snap?.juice ?? null;
+        const busy = j ? ageOf(j) < juicer.cycleMs + 40 : false;
+        if (busy || performance.now() - lastTap < juicer.cycleMs + 60) {
+          await sleep(40);
+          continue;
+        }
+        lastTap = performance.now();
+        if ((j?.fill ?? 0) < juicer.goodMin) feed.on.juiceDrop();
+        else feed.on.juiceTake();
+      }
+      return count(itemId) > before ? 'landed' : 'timeout';
+    };
     const run = async () => {
       // A loaf still on the chapa has to come off before a new put. Taking it early (raw) is ignored.
       while (alive() && performance.now() < wallEnd) {
@@ -563,6 +591,12 @@ async function assembleOrder(page, want) {
             }
             if (!landed || count(line.itemId) <= before) break;
           }
+        } else if (line.station === 'suco') {
+          for (let tries = 0; tries < line.qty + 2 && count(line.itemId) < line.qty; tries++) {
+            const outcome = await juiceOnce(line.itemId);
+            if (outcome === 'gone') return resolve({ status: 'gone', ...base() });
+            if (outcome !== 'landed') notes.push(`juice ${line.itemId} ${outcome} ${JSON.stringify(feed.snap?.juice ?? null)}`);
+          }
         } else {
           let misses = 0;
           while (count(line.itemId) < line.qty && misses < 2) {
@@ -607,6 +641,7 @@ async function assembleOrder(page, want) {
     burnAt: BURN_MS,
     landHi: LAND_HI,
     pourFull: POUR_FULL,
+    juicer: JUICER,
   });
   if (report?.pourState) pourState = report.pourState;
   for (const line of report?.notes ?? []) console.log(`  · ${line}`);
