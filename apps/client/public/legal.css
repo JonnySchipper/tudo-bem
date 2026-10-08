@@ -47,6 +47,15 @@ main {
 .brand a {
   color: var(--terracota-dark);
   text-decoration: none;
+  display: inline-block;
+}
+
+.brand .tb-logo {
+  display: block;
+  width: min(100%, 440px);
+  height: auto;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
 }
 
 .card {

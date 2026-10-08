@@ -1,4 +1,4 @@
-import { isBubbleStyle, isPetId, isSubscriptionStatus, normalizeFounderFlag, ownedParrotColorIds, parrotColorById, type PlayerSubscription } from '@tudobem/shared';
+import { isBubbleStyle, isPetId, isSubscriptionStatus, normalizeFounderFlag, normalizePetNames, ownedParrotColorIds, parrotColorById, type PlayerSubscription } from '@tudobem/shared';
 import {
   freshMission,
   normalizeCartela,
@@ -209,6 +209,7 @@ export function normalizeProfile(p: StoredProfile): StoredProfile {
   p.founderBanner = p.founderBanner === true;
   p.subscription = normalizeSubscription(p.subscription);
   p.pet = isPetId(p.pet) ? p.pet : null;
+  p.petNames = normalizePetNames(p.petNames);
   p.bubbleStyle = isBubbleStyle(p.bubbleStyle) ? p.bubbleStyle : 'classic';
   if (!Array.isArray(p.billingEventIds)) p.billingEventIds = [];
   else p.billingEventIds = p.billingEventIds.filter((id) => typeof id === 'string').slice(-200);

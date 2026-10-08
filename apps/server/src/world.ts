@@ -94,8 +94,11 @@ import {
   bubbleAppearance,
   hasPerkAccess,
   isBubbleStyle,
+  petNameDecision,
   revokeTestSubscription,
+  validatePetName,
   visiblePet,
+  visiblePetName,
   GI_ITEM_ID,
   GI_PRICE,
   buyParrotColor,
@@ -141,7 +144,7 @@ import {
   type PrivateProfile,
   type FeiraCartSchedule,
 } from '@tudobem/shared';
-import type { ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
+import type { ChatSafetyCtx, ChatSafetyService, GlossService, ModerationQueue, NpcDialogueService, StudentModelService } from './services/interfaces.js';
 import { JEV_CONTEXT_LINES } from './services/jevModel.js';
 import { AcademyStore } from './academyStore.js';
 import { PadariaStore } from './padariaStore.js';
@@ -270,6 +273,12 @@ export interface Session {
   carry: CarryId | null;
   /** Hidden admin panel unlocked for this socket (password checked server-side). */
   admin?: boolean;
+  /**
+   * Forwarded into the chat safety classifier (the same object chat and pet names use).
+   * Unset in production: the live game is 18+, and the under-13 hold is design-only until a real age path exists.
+   * Tests set it so a model-down warn is held instead of accepted.
+   */
+  under13?: boolean;
 }
 
 const INSTANCE_SUFFIX = ['Norte', 'Sul', 'Leste', 'Oeste'];
@@ -1587,6 +1596,7 @@ export class World {
       founder: normalizeFounderFlag(p.founder),
       founderBadge: p.founderBadge === true,
       pet: visiblePet(p.pet, hasPerkAccess(p.subscription, this.now())),
+      petName: visiblePetName(p.pet, p.petNames, hasPerkAccess(p.subscription, this.now())),
       bubbleStyle: bubbleAppearance('', p.bubbleStyle, hasPerkAccess(p.subscription, this.now())).style,
       ...(this.feiraGames.crownId() === p.id ? { feiraCrown: true } : {}),
       x: cur.tile.x,
@@ -1708,7 +1718,7 @@ export class World {
     if (s.chatTimes.length >= CHAT_RATE.max)
       return s.send({ t: 'notice', level: 'warn', pt: 'Calma! Uma mensagem de cada vez.', en: 'Easy! Too many messages — wait a few seconds.' });
     s.chatTimes.push(now);
-    const verdict = await this.services.safety.classify(text, { playerId: p.id, room: inst.id, nameplate: p.nameplate, recent: inst.recentChat.slice() });
+    const verdict = await this.services.safety.classify(text, this.safetyCtx(s));
     if (verdict.action === 'block' || verdict.action === 'escalate') {
       this.flag(s, 'chat', verdict, text);
       return s.send({ t: 'notice', level: 'block', pt: verdict.note?.pt ?? 'Mensagem bloqueada.', en: verdict.note?.en ?? 'Message blocked.' });
@@ -1727,8 +1737,23 @@ export class World {
     if (greetingKind(verdict.text)) this.recados.onEvent(s, { kind: 'greeted', text: verdict.text, minute: gameMinutes(this.clockNow()), company: this.hasCompany(inst) });
   }
 
+  /**
+   * The context chat and pet names share, so both hit the word filter first and then the moderation model,
+   * including the under-13 hold when `session.under13` is set.
+   */
+  private safetyCtx(s: Session): ChatSafetyCtx {
+    const p = s.profile!;
+    return {
+      playerId: p.id,
+      room: s.instance?.id ?? '-',
+      nameplate: p.nameplate,
+      recent: s.instance?.recentChat.slice() ?? [],
+      ...(s.under13 ? { under13: true } : {}),
+    };
+  }
+
   /** Log a non-allow Jev verdict; escalations are queued for human review. */
-  private flag(s: Session, surface: 'chat' | 'npc_reply', verdict: SafetyVerdict, text: string) {
+  private flag(s: Session, surface: 'chat' | 'npc_reply' | 'profile', verdict: SafetyVerdict, text: string) {
     const p = s.profile!;
     this.services.moderation.push({
       kind: verdict.action as 'warn' | 'block' | 'escalate',
@@ -1912,7 +1937,11 @@ export class World {
     this.broadcastAvatar(s);
   }
 
-  private perk(s: Session, msg: Extract<ClientMsg, { t: 'perk' }>) {
+  private async perk(s: Session, msg: Extract<ClientMsg, { t: 'perk' }>) {
+    if (msg.action === 'petName') {
+      if (msg.pet !== 'dog' && msg.pet !== 'cat') return;
+      return this.namePet(s, msg.pet, typeof msg.name === 'string' ? msg.name : '');
+    }
     const p = s.profile!;
     const active = hasPerkAccess(p.subscription, this.now());
     if (msg.action === 'pet') {
@@ -1928,6 +1957,31 @@ export class World {
       }
       p.bubbleStyle = msg.style;
     }
+    this.store.save();
+    this.pushProfile(s);
+    this.broadcastAvatar(s);
+  }
+
+  /**
+   * Name one pet. Shape first, then the same classifier as chat (word filter, then the moderation model).
+   * A name that is not `allow` is refused with the classifier's note. The profile keeps the trimmed
+   * text the player typed, or nothing — never a censored or substituted string.
+   */
+  private async namePet(s: Session, pet: 'dog' | 'cat', raw: string) {
+    const p = s.profile!;
+    if (!hasPerkAccess(p.subscription, this.now())) {
+      return this.err(s, 'petName', 'Pets de assinante ficam disponíveis enquanto a assinatura está ativa.', 'Subscriber pets are available while the subscription is active.');
+    }
+    const shape = validatePetName(raw);
+    if (!shape.ok) return this.err(s, 'petName', shape.reason.pt, shape.reason.en);
+    const verdict = await this.services.safety.classify(shape.name, this.safetyCtx(s));
+    if (this.sessions.get(s.id) !== s || s.profile !== p) return;
+    const decision = petNameDecision(shape.name, verdict);
+    if (!decision.ok) {
+      this.flag(s, 'profile', verdict, decision.name);
+      return this.err(s, 'petName', decision.reason.pt, decision.reason.en);
+    }
+    p.petNames = { ...(p.petNames ?? {}), [pet]: decision.name };
     this.store.save();
     this.pushProfile(s);
     this.broadcastAvatar(s);
