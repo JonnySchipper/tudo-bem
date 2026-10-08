@@ -37,6 +37,8 @@ import { h, en } from './dom';
 import { pixelSvg } from './pixelSvg';
 import { npcPortrait, portraitKey, type Expression } from './pixelArt';
 import { imageUrl } from '../render/pixel/manifest';
+import { StallJuice, cartFloor, cartPosts, feiraEndCard, jolt, propShelf, stallTop, wantBubble } from './feiraStall';
+import { meterZone, urgency, type Urgency } from './feiraStallLogic';
 
 export interface PastelEnd {
   score: number;
@@ -116,6 +118,9 @@ interface SlotNode {
   btn: HTMLButtonElement;
   svg: SVGSVGElement;
   meter: HTMLElement;
+  zone: HTMLElement;
+  /** Which fry ladder the golden window is drawn for (a combo browns slower). */
+  zoneCombo: boolean | null;
   apaga: HTMLButtonElement;
   pt: Text;
   gloss: Text;
@@ -128,6 +133,7 @@ interface CustomerNode {
   img: HTMLImageElement | null;
   expr: Expression;
   react: HTMLElement;
+  urg: Urgency;
 }
 
 type PopKind = keyof typeof PASTEL_POP;
@@ -382,6 +388,7 @@ export class PastelView {
   private customerNodes = new Map<number, CustomerNode>();
   private bowlButtons = new Map<PastelPart, HTMLButtonElement>();
   private asmVisual = '';
+  private juice = new StallJuice();
 
   constructor(
     private readonly seed: number,
@@ -425,16 +432,15 @@ export class PastelView {
     }
     this.root = h('div', { id: 'pastel-root', class: 'ps-root' },
       h('div', { class: 'ps-sky', 'aria-hidden': 'true' }),
-      h('div', { class: 'ps-bunting', 'aria-hidden': 'true' }),
+      ...cartPosts(),
       h('header', { class: 'ps-hud', id: 'pastel-hud' },
         h('span', { class: 'ps-title' }, 'Pastel'),
         this.timerEl,
         this.scoreEl,
+        this.juice.crowd,
         h('button', { type: 'button', class: 'ghost ps-quit', id: 'pastel-quit', onclick: () => this.abandon() }, 'Sair'),
       ),
-      h('div', { class: 'ps-awning', 'aria-hidden': 'true' },
-        h('span', { class: 'ps-awning-title' }, 'Pastel da feira'),
-      ),
+      stallTop('ps', 'Pastel da feira'),
       this.queueEl,
       h('div', { class: 'ps-stall' },
         h('div', { class: 'ps-board', id: 'pastel-board' },
@@ -448,12 +454,13 @@ export class PastelView {
             h('div', { class: 'ps-vat-lip', 'aria-hidden': 'true' }),
           ),
         ),
-        h('div', { class: 'ps-counter', 'aria-hidden': 'true' }),
+        propShelf(['oleo', 'rolo', 'pimenta', 'guardanapo'], 'fs-shelf-in'),
       ),
       bowls,
-      h('div', { class: 'ps-floor', 'aria-hidden': 'true' }),
+      cartFloor('ps-floor'),
       this.popEl,
     );
+    this.juice.attach(this.root);
     for (let i = 0; i < 3; i++) this.addSlot(i);
     document.body.classList.add('ps-on');
     document.getElementById('ui')?.append(this.root);
@@ -470,27 +477,7 @@ export class PastelView {
   showEnd(end: PastelEnd) {
     this.over = true;
     cancelAnimationFrame(this.raf);
-    const crown = end.crown
-      ? h('p', { class: 'ps-crown-line', id: 'pastel-crown' }, 'Fada da Feira', en('You lead today’s board.'))
-      : null;
-    this.root.replaceChildren(
-      h('div', { class: 'ps-end', id: 'pastel-end' },
-        h('h2', null, 'Pastel'),
-        h('p', { class: 'ps-score', id: 'pastel-score' }, String(end.score), en('points')),
-        h('p', { class: 'ps-line' }, end.linePt, en(end.lineEn)),
-        h('p', { class: 'ps-meta', id: 'pastel-meta' },
-          `${end.coins} RV`,
-          en(end.dailyBlocked ? 'Board only — today’s paid runs are used.' : end.coins ? 'virtual reais' : 'no RV this round'),
-        ),
-        h('p', { class: 'ps-meta' }, `Melhor hoje: ${end.bestToday}`, en(`Best today: ${end.bestToday}`)),
-        h('p', { class: 'ps-meta', id: 'pastel-place' }, end.place ? `${end.place}º no placar` : 'Fora do placar', en(end.place ? `Place ${end.place} today` : 'Not on the board')),
-        crown,
-        h('div', { class: 'ps-end-actions' },
-          h('button', { type: 'button', class: 'primary', id: 'pastel-again', onclick: () => this.hooks.again() }, 'Jogar de novo', en('Play again')),
-          h('button', { type: 'button', class: 'ghost', id: 'pastel-close', onclick: () => this.hooks.quit() }, 'Fechar', en('Close')),
-        ),
-      ),
-    );
+    this.root.replaceChildren(feiraEndCard('pastel', 'ps', 'Pastel', end, this.hooks));
   }
 
   private elapsed() {
@@ -512,6 +499,7 @@ export class PastelView {
         c.gone = true;
         this.outcomes.push({ i: c.index, quality: 'miss', atMs: Math.round(this.elapsed()) });
         this.combo = 0;
+        this.juice.exit(this.customerNodes.get(c.index)?.root ?? this.queueEl, 'left');
       }
     }
     this.paint(now);
@@ -567,6 +555,7 @@ export class PastelView {
   private addSlot(index: number) {
     const svg = buildPastelSvg();
     const meter = h('i');
+    const zone = h('b', { class: 'fs-zone', 'aria-hidden': 'true' });
     const pt = document.createTextNode(STAGE_LABEL.empty.pt);
     const gloss = document.createTextNode(STAGE_LABEL.empty.en);
     const btn = h('button', {
@@ -579,7 +568,7 @@ export class PastelView {
       onclick: () => this.onSlot(index),
     },
       h('span', { class: 'ps-slot-art' }, svg, h('i', { class: 'ps-meniscus', 'aria-hidden': 'true' })),
-      h('span', { class: 'ps-meter' }, meter),
+      h('span', { class: 'ps-meter fs-meter' }, meter, zone),
       h('span', { class: 'ps-slot-label' }, pt, en('')),
     ) as HTMLButtonElement;
     const glossEl = btn.querySelector('.ps-slot-label .en')!;
@@ -596,7 +585,7 @@ export class PastelView {
       },
     }, 'Apaga!', en('Put it out!')) as HTMLButtonElement;
     const wrap = h('div', { class: 'ps-slot-wrap', id: `pastel-wrap-${index}` }, btn, apaga);
-    const node: SlotNode = { wrap, btn, svg, meter, apaga, pt, gloss, visual: '' };
+    const node: SlotNode = { wrap, btn, svg, meter, zone, zoneCombo: null, apaga, pt, gloss, visual: '' };
     this.slotNodes.push(node);
     this.slotsEl.append(wrap);
   }
@@ -622,13 +611,25 @@ export class PastelView {
     const stage = state === 'empty' ? 'empty' : state === 'ready' ? (slot.pulled ?? 'golden') : (live ?? 'raw');
     const visual = `ps-pas st-${stage === 'empty' ? 'empty' : stage}`;
     if (node.visual !== visual) {
+      // catching fire is the loud beat: the whole slot jolts once
+      if (stage === 'fire') {
+        jolt(node.wrap);
+        this.flash('fire');
+      }
       node.visual = visual;
       node.svg.setAttribute('class', visual);
     }
     const cooking = state === 'frying' || state === 'fire';
     node.meter.parentElement!.hidden = !cooking;
     if (cooking) {
-      const span = pastelFry(slot.combo).fireAt;
+      const fry = pastelFry(slot.combo);
+      const span = fry.fireAt;
+      if (node.zoneCombo !== slot.combo) {
+        node.zoneCombo = slot.combo;
+        const z = meterZone(fry.goldenAt, fry.darkAt, span);
+        node.zone.style.left = `${z.left}%`;
+        node.zone.style.width = `${z.width}%`;
+      }
       node.meter.style.width = `${Math.max(6, Math.min(100, Math.round((age / span) * 100)))}%`;
       node.meter.dataset.stage = live ?? 'raw';
     }
@@ -660,6 +661,11 @@ export class PastelView {
       }
       node.react.hidden = !fire;
       node.root.classList.toggle('ps-sheepish', fire);
+      const urg = urgency(frac);
+      if (node.urg !== urg) {
+        node.urg = urg;
+        node.root.dataset.urg = urg;
+      }
     }
   }
 
@@ -667,11 +673,12 @@ export class PastelView {
     const pips = [0, 1, 2, 3].map(() => h('i', { class: 'on' }));
     const face = npcPortrait(c.order.who, 'neutro', 'ps-portrait');
     const react = h('p', { class: 'ps-react', hidden: true }, PASTEL_SHEEPISH.pt, en(PASTEL_SHEEPISH.en));
-    const root = h('div', { class: 'ps-customer', 'data-order': String(c.index) },
+    const want = wantBubble(...PASTEL_RECIPE[c.order.filling].parts.map((part) => bowlSvg(part)));
+    const root = h('div', { class: 'ps-customer fs-cust', 'data-order': String(c.index), 'data-urg': 'calm' },
       face,
       h('div', { class: 'ps-order' },
-        h('b', null, c.order.name),
-        h('div', { class: 'ps-pips', 'aria-label': '4 of 4' }, ...pips),
+        h('div', { class: 'fs-name-row' }, h('b', null, c.order.name), want),
+        h('div', { class: 'ps-pips fs-pips', 'aria-label': '4 of 4' }, ...pips),
         h('p', { class: 'ps-pt', lang: 'pt-BR' }, c.order.line.pt),
         h('p', { class: 'en' }, c.order.line.en),
         react,
@@ -684,7 +691,7 @@ export class PastelView {
         onclick: () => this.serveTo(c),
       }, 'Servir', en('Serve')),
     );
-    return { root, pips, img: face.querySelector('img'), expr: 'neutro', react };
+    return { root, pips, img: face.querySelector('img'), expr: 'neutro', react, urg: 'calm' };
   }
 
   private grabDough() {
@@ -759,6 +766,7 @@ export class PastelView {
     match.s.filling = null;
     match.s.pulled = null;
     match.s.combo = false;
+    const before = this.scoreGuess;
     if (quality === 'perfect') {
       this.combo += 1;
       this.scoreGuess += 48 + Math.min(12, (this.combo - 1) * 4);
@@ -767,10 +775,19 @@ export class PastelView {
       this.scoreGuess += quality === 'ok' ? 32 : quality === 'soft' ? 16 : 0;
     }
     if (quality !== 'miss') this.served += 1;
-    if (!fillingOk) this.flash('wrong');
-    else if (quality === 'perfect') this.flash('perfect');
-    else if (quality === 'ok') this.flash('ok');
-    else this.flash(pulled === 'raw' ? 'raw' : 'soft');
+    const line = !fillingOk
+      ? PASTEL_POP.wrong
+      : quality === 'perfect'
+        ? PASTEL_POP.perfect
+        : quality === 'ok'
+          ? PASTEL_POP.ok
+          : quality === 'miss'
+            ? PASTEL_POP.miss
+            : pulled === 'raw'
+              ? PASTEL_POP.raw
+              : PASTEL_POP.soft;
+    this.juice.exit(this.customerNodes.get(c.index)?.root ?? null, quality, this.scoreGuess - before, line);
+    if (quality === 'miss') jolt(this.slotsEl);
   }
 
   private flash(kind: PopKind) {

@@ -146,31 +146,6 @@ body.ps-on #world-labels {
   pointer-events: none;
 }
 
-.tp-bunting {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 64px;
-  height: 14px;
-  z-index: 2;
-  pointer-events: none;
-  background:
-    linear-gradient(#6b4b30, #6b4b30) 0 2px / 100% 1px no-repeat,
-    repeating-linear-gradient(90deg,
-      #e63f38 0 8px, transparent 8px 10px,
-      #f2b22b 10px 18px, transparent 18px 20px,
-      #64b63b 20px 28px, transparent 28px 30px,
-      #4995e3 30px 38px, transparent 38px 40px);
-  clip-path: polygon(
-    0 0, 100% 0, 100% 2px,
-    98% 100%, 96% 2px, 94% 100%, 92% 2px, 90% 100%, 88% 2px, 86% 100%, 84% 2px, 82% 100%, 80% 2px,
-    78% 100%, 76% 2px, 74% 100%, 72% 2px, 70% 100%, 68% 2px, 66% 100%, 64% 2px, 62% 100%, 60% 2px,
-    58% 100%, 56% 2px, 54% 100%, 52% 2px, 50% 100%, 48% 2px, 46% 100%, 44% 2px, 42% 100%, 40% 2px,
-    38% 100%, 36% 2px, 34% 100%, 32% 2px, 30% 100%, 28% 2px, 26% 100%, 24% 2px, 22% 100%, 20% 2px,
-    18% 100%, 16% 2px, 14% 100%, 12% 2px, 10% 100%, 8% 2px, 6% 100%, 4% 2px, 2% 100%, 0 2px
-  );
-}
-
 .tp-hud {
   position: relative;
   z-index: 3;
@@ -189,31 +164,6 @@ body.ps-on #world-labels {
 .tp-hud .tp-quit {
   margin-left: auto;
   min-height: 40px;
-}
-
-.tp-awning {
-  position: relative;
-  z-index: 2;
-  height: 28px;
-  margin-top: 4px;
-  background: repeating-linear-gradient(90deg,
-    #e63f38 0 8px, #f8f8f8 8px 16px,
-    #f2b22b 16px 24px, #f8f8f8 24px 32px,
-    #64b63b 32px 40px, #f8f8f8 40px 48px);
-  box-shadow: inset 0 4px 0 #3a3a50, inset 0 -4px 0 #3a3a50;
-}
-
-.tp-awning-title {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  padding: 0 8px;
-  background: #fbf1e3;
-  box-shadow: 0 0 0 2px #2a2233;
-  font-family: var(--font-pixel);
-  font-size: 0.85rem;
-  white-space: nowrap;
 }
 
 .tp-queue {
@@ -289,13 +239,6 @@ body.ps-on #world-labels {
   height: 10px;
   background: #ff8a2a;
   box-shadow: inset 0 0 0 2px #2a2233, 2px 0 0 #fff59a;
-}
-
-.tp-counter {
-  height: 14px;
-  background:
-    repeating-linear-gradient(90deg, #c78c59 0 16px, #a9764f 16px 17px, #daa463 17px 18px);
-  box-shadow: inset 0 3px 0 #f2bd7a, inset 0 -3px 0 #6b4c2c;
 }
 
 .tp-floor {
@@ -485,6 +428,25 @@ body.ps-on #world-labels {
 }
 
 .tp-pan.tp-ready .tp-meter i { background: #2e8a55; }
+
+/* in the flip window: the pan itself calls "vira!" with a pulsing green edge */
+.tp-pan.tp-ready {
+  animation: tp-callout 0.5s steps(2, end) infinite;
+}
+
+/* past the window: the goma is sticking, the bar goes red and the pan smokes */
+.tp-pan.tp-over .tp-meter i { background: #e63f38; }
+.tp-pan.tp-over { box-shadow: inset 0 0 0 3px #a82b2d, 0 3px 0 #1a120c; }
+.tp-pan.tp-over .tp-pan-svg { filter: sepia(0.6) saturate(1.4) brightness(0.85); }
+
+@keyframes tp-callout {
+  0%, 100% { box-shadow: inset 0 0 0 3px #2a2233, 0 3px 0 #1a120c; }
+  50% { box-shadow: inset 0 0 0 3px #2e8a55, 0 0 0 3px #64b63b, 0 3px 0 #1a120c; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tp-pan.tp-ready { animation: none; box-shadow: inset 0 0 0 3px #2e8a55, 0 3px 0 #1a120c; }
+}
 
 .tp-pan-label {
   font-family: var(--font-pixel);
@@ -712,31 +674,6 @@ body.ps-on #hotspot-cues {
   background: repeating-linear-gradient(to bottom, #95e3e3 0 4px, #b7e8ea 4px 8px, #defff7 8px 12px);
 }
 
-.ps-bunting {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 64px;
-  height: 14px;
-  z-index: 2;
-  pointer-events: none;
-  background:
-    linear-gradient(#6b4b30, #6b4b30) 0 2px / 100% 1px no-repeat,
-    repeating-linear-gradient(90deg,
-      #e63f38 0 8px, transparent 8px 10px,
-      #f2b22b 10px 18px, transparent 18px 20px,
-      #64b63b 20px 28px, transparent 28px 30px,
-      #4995e3 30px 38px, transparent 38px 40px);
-  clip-path: polygon(
-    0 0, 100% 0, 100% 2px,
-    98% 100%, 96% 2px, 94% 100%, 92% 2px, 90% 100%, 88% 2px, 86% 100%, 84% 2px, 82% 100%, 80% 2px,
-    78% 100%, 76% 2px, 74% 100%, 72% 2px, 70% 100%, 68% 2px, 66% 100%, 64% 2px, 62% 100%, 60% 2px,
-    58% 100%, 56% 2px, 54% 100%, 52% 2px, 50% 100%, 48% 2px, 46% 100%, 44% 2px, 42% 100%, 40% 2px,
-    38% 100%, 36% 2px, 34% 100%, 32% 2px, 30% 100%, 28% 2px, 26% 100%, 24% 2px, 22% 100%, 20% 2px,
-    18% 100%, 16% 2px, 14% 100%, 12% 2px, 10% 100%, 8% 2px, 6% 100%, 4% 2px, 2% 100%, 0 2px
-  );
-}
-
 .ps-hud {
   position: relative;
   z-index: 3;
@@ -755,31 +692,6 @@ body.ps-on #hotspot-cues {
 .ps-hud .ps-quit {
   margin-left: auto;
   min-height: 40px;
-}
-
-.ps-awning {
-  position: relative;
-  z-index: 2;
-  height: 28px;
-  margin-top: 4px;
-  background: repeating-linear-gradient(90deg,
-    #e63f38 0 8px, #f8f8f8 8px 16px,
-    #f2b22b 16px 24px, #f8f8f8 24px 32px,
-    #64b63b 32px 40px, #f8f8f8 40px 48px);
-  box-shadow: inset 0 4px 0 #3a3a50, inset 0 -4px 0 #3a3a50;
-}
-
-.ps-awning-title {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  padding: 0 8px;
-  background: #fbf1e3;
-  box-shadow: 0 0 0 2px #2a2233;
-  font-family: var(--font-pixel);
-  font-size: 0.85rem;
-  white-space: nowrap;
 }
 
 .ps-queue {
@@ -1047,12 +959,6 @@ body.ps-on #hotspot-cues {
     linear-gradient(#d8d0e0, #d8d0e0) 0 0 / 100% 3px no-repeat,
     linear-gradient(#8b8bab, #8b8bab) 0 3px / 100% 4px no-repeat,
     #565972;
-}
-
-.ps-counter {
-  height: 12px;
-  background: repeating-linear-gradient(90deg, #c78c59 0 16px, #a9764f 16px 17px, #daa463 17px 18px);
-  box-shadow: inset 0 3px 0 #f2bd7a, inset 0 -3px 0 #6b4c2c;
 }
 
 .ps-floor {

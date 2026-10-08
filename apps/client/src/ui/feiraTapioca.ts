@@ -31,6 +31,8 @@ import {
 import { h, en } from './dom';
 import { npcPortrait, portraitKey, type Expression } from './pixelArt';
 import { imageUrl } from '../render/pixel/manifest';
+import { StallJuice, cartFloor, cartPosts, feiraEndCard, jolt, propShelf, stallTop, wantBubble } from './feiraStall';
+import { meterZone, pointsFor, urgency, type Urgency } from './feiraStallLogic';
 
 export interface TapiocaEnd {
   score: number;
@@ -87,6 +89,7 @@ interface CustomerNode {
   pips: HTMLElement[];
   img: HTMLImageElement | null;
   expr: Expression;
+  urg: Urgency;
 }
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -270,6 +273,7 @@ export class TapiocaView {
   private bowlButtons = new Map<TapiocaFilling, HTMLButtonElement>();
   private waitEl: HTMLElement;
   private shownSecond = -1;
+  private juice = new StallJuice();
 
   constructor(
     private readonly seed: number,
@@ -300,16 +304,15 @@ export class TapiocaView {
     }
     this.root = h('div', { id: 'tapioca-root', class: 'tp-root' },
       h('div', { class: 'tp-sky', 'aria-hidden': 'true' }),
-      h('div', { class: 'tp-bunting', 'aria-hidden': 'true' }),
+      ...cartPosts(),
       h('header', { class: 'tp-hud', id: 'tapioca-hud' },
         h('span', { class: 'tp-title' }, 'Tapioca'),
         this.timerEl,
         this.scoreEl,
+        this.juice.crowd,
         h('button', { type: 'button', class: 'ghost tp-quit', id: 'tapioca-quit', onclick: () => this.abandon() }, 'Sair'),
       ),
-      h('div', { class: 'tp-awning', 'aria-hidden': 'true' },
-        h('span', { class: 'tp-awning-title' }, 'Tapioca da feira'),
-      ),
+      stallTop('tp', 'Tapioca da feira'),
       this.queueEl,
       h('div', { class: 'tp-stall' },
         h('div', { class: 'tp-chapa' },
@@ -322,12 +325,13 @@ export class TapiocaView {
             h('i', { class: 'tp-pilot' }),
           ),
         ),
-        h('div', { class: 'tp-counter', 'aria-hidden': 'true' }),
+        propShelf(['goma', 'peneira', 'pratos', 'guardanapo'], 'fs-shelf-in'),
       ),
       bowls,
-      h('div', { class: 'tp-floor', 'aria-hidden': 'true' }),
+      cartFloor('tp-floor'),
       this.popEl,
     );
+    this.juice.attach(this.root);
     this.ensurePans(1);
     document.body.classList.add('tp-on');
     document.getElementById('ui')?.append(this.root);
@@ -344,27 +348,7 @@ export class TapiocaView {
   showEnd(end: TapiocaEnd) {
     this.over = true;
     cancelAnimationFrame(this.raf);
-    const crown = end.crown
-      ? h('p', { class: 'tp-crown-line', id: 'tapioca-crown' }, 'Fada da Feira', en('You lead today’s board.'))
-      : null;
-    this.root.replaceChildren(
-      h('div', { class: 'tp-end', id: 'tapioca-end' },
-        h('h2', null, 'Tapioca'),
-        h('p', { class: 'tp-score', id: 'tapioca-score' }, String(end.score), en('points')),
-        h('p', { class: 'tp-line' }, end.linePt, en(end.lineEn)),
-        h('p', { class: 'tp-meta', id: 'tapioca-meta' },
-          `${end.coins} RV`,
-          en(end.dailyBlocked ? 'Board only — today’s paid runs are used.' : end.coins ? 'virtual reais' : 'no RV this round'),
-        ),
-        h('p', { class: 'tp-meta' }, `Melhor hoje: ${end.bestToday}`, en(`Best today: ${end.bestToday}`)),
-        h('p', { class: 'tp-meta', id: 'tapioca-place' }, end.place ? `${end.place}º no placar` : 'Fora do placar', en(end.place ? `Place ${end.place} today` : 'Not on the board')),
-        crown,
-        h('div', { class: 'tp-end-actions' },
-          h('button', { type: 'button', class: 'primary', id: 'tapioca-again', onclick: () => this.hooks.again() }, 'Jogar de novo', en('Play again')),
-          h('button', { type: 'button', class: 'ghost', id: 'tapioca-close', onclick: () => this.hooks.quit() }, 'Fechar', en('Close')),
-        ),
-      ),
-    );
+    this.root.replaceChildren(feiraEndCard('tapioca', 'tp', 'Tapioca', end, this.hooks));
   }
 
   private elapsed() {
@@ -385,6 +369,7 @@ export class TapiocaView {
       if (now - c.shownAt >= c.order.patienceMs) {
         c.gone = true;
         this.outcomes.push({ i: c.index, quality: 'miss', atMs: Math.round(this.elapsed()) });
+        this.juice.exit(this.customerNodes.get(c.index)?.root ?? this.queueEl, 'left');
       }
     }
     this.paint(now);
@@ -422,6 +407,9 @@ export class TapiocaView {
   private addPan(index: number) {
     const svg = buildPanSvg();
     const meter = h('i');
+    // the flip window, so "when" is on screen and not only in the bar's colour
+    const { cookMs, earlyMs, lateMs } = TAPIOCA_COOK;
+    const zone = meterZone(cookMs - earlyMs, cookMs + lateMs, cookMs + lateMs);
     const pt = document.createTextNode(PAN_LABEL.empty.pt);
     const gloss = document.createTextNode(PAN_LABEL.empty.en);
     const btn = h('button', {
@@ -431,7 +419,8 @@ export class TapiocaView {
       id: `tapioca-pan-${index}`,
       onclick: () => this.onPan(index),
     },
-      h('span', { class: 'tp-pan-art' }, svg, h('span', { class: 'tp-meter' }, meter)),
+      h('span', { class: 'tp-pan-art' }, svg, h('span', { class: 'tp-meter fs-meter' }, meter,
+        h('b', { class: 'fs-zone', style: `left:${zone.left}%;width:${zone.width}%`, 'aria-hidden': 'true' }))),
       h('span', { class: 'tp-pan-label' }, pt, en('')),
     ) as HTMLButtonElement;
     const glossEl = btn.querySelector('.tp-pan-label .en')!;
@@ -465,6 +454,7 @@ export class TapiocaView {
       node.flip = pan.flip;
     }
     node.btn.classList.toggle('tp-ready', ready);
+    node.btn.classList.toggle('tp-over', pan.phase === 'cooking' && age > TAPIOCA_COOK.cookMs + TAPIOCA_COOK.lateMs);
     const visual = visualKey(pan, lace);
     if (node.visual !== visual || node.filling !== pan.filling) {
       node.visual = visual;
@@ -513,17 +503,22 @@ export class TapiocaView {
         node.expr = expr;
         node.img.src = imageUrl(portraitKey(c.order.who, expr));
       }
+      const urg = urgency(frac);
+      if (node.urg !== urg) {
+        node.urg = urg;
+        node.root.dataset.urg = urg;
+      }
     }
   }
 
   private makeCustomer(c: LiveCustomer): CustomerNode {
     const pips = [0, 1, 2, 3].map(() => h('i', { class: 'on' }));
     const face = npcPortrait(c.order.who, 'neutro', 'tp-portrait');
-    const root = h('div', { class: 'tp-customer', 'data-order': String(c.index) },
+    const root = h('div', { class: 'tp-customer fs-cust', 'data-order': String(c.index), 'data-urg': 'calm' },
       face,
       h('div', { class: 'tp-order' },
-        h('b', null, c.order.name),
-        h('div', { class: 'tp-pips', 'aria-label': '4 of 4' }, ...pips),
+        h('div', { class: 'fs-name-row' }, h('b', null, c.order.name), wantBubble(bowlSvg(c.order.filling))),
+        h('div', { class: 'tp-pips fs-pips', 'aria-label': '4 of 4' }, ...pips),
         h('p', { class: 'tp-pt', lang: 'pt-BR' }, c.order.line.pt),
         h('p', { class: 'en' }, c.order.line.en),
       ),
@@ -535,7 +530,7 @@ export class TapiocaView {
         onclick: () => this.serveTo(c),
       }, 'Servir', en('Serve')),
     );
-    return { root, pips, img: face.querySelector('img'), expr: 'neutro' };
+    return { root, pips, img: face.querySelector('img'), expr: 'neutro', urg: 'calm' };
   }
 
   private onPan(index: number) {
@@ -552,6 +547,8 @@ export class TapiocaView {
       pan.flip = tapiocaFlip(performance.now() - pan.spreadAt);
       pan.phase = 'flipped';
       this.flash(pan.flip === 'perfect' ? 'perfect' : 'soft');
+      // a torn or stuck goma shakes the pan it happened on
+      if (pan.flip !== 'perfect') jolt(this.panNodes[index]?.btn);
       return;
     }
     if (pan.phase === 'flipped') {
@@ -593,12 +590,14 @@ export class TapiocaView {
     pan.filling = null;
     this.dragFrom = null;
     if (quality !== 'miss') this.served += 1;
-    this.scoreGuess += quality === 'perfect' ? 48 : quality === 'ok' ? 32 : quality === 'soft' ? 16 : 0;
-    this.flash(quality === 'miss' ? 'miss' : quality === 'perfect' ? 'perfect' : 'soft', fillingOk ? undefined : 'wrong');
+    this.scoreGuess += pointsFor(quality);
+    this.juice.exit(this.customerNodes.get(c.index)?.root ?? null, quality, pointsFor(quality), fillingOk ? undefined : TAPIOCA_WRONG);
+    if (quality === 'miss') jolt(this.griddleEl);
   }
 
-  private flash(kind: 'perfect' | 'soft' | 'miss', why?: 'wrong') {
-    const line = why === 'wrong' ? TAPIOCA_WRONG : kind === 'perfect' ? TAPIOCA_POP.perfect : kind === 'soft' ? TAPIOCA_POP.soft : TAPIOCA_POP.miss;
+  /** The flip verdict, over the griddle. Serves float over the customer instead (StallJuice). */
+  private flash(kind: 'perfect' | 'soft') {
+    const line = kind === 'perfect' ? TAPIOCA_POP.perfect : TAPIOCA_POP.soft;
     this.popEl.replaceChildren(document.createTextNode(line.pt), en(line.en));
     this.popEl.className = `tp-pop tp-pop-${kind}`;
     this.popEl.hidden = false;

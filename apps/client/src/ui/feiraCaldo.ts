@@ -28,6 +28,8 @@ import {
 import { h, en } from './dom';
 import { npcPortrait, portraitKey, type Expression } from './pixelArt';
 import { imageUrl } from '../render/pixel/manifest';
+import { StallJuice, cartFloor, cartPosts, feiraEndCard, jolt, propShelf, stallTop, wantBubble, type FeiraEndView } from './feiraStall';
+import { pointsFor, urgency, type Urgency } from './feiraStallLogic';
 
 export interface CaldoHooks {
   finish: (outcomes: FeiraOrderOutcome[]) => void;
@@ -55,6 +57,7 @@ interface CustomerNode {
   pips: HTMLElement[];
   img: HTMLImageElement | null;
   expr: Expression;
+  urg: Urgency;
 }
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -226,6 +229,22 @@ function fruitArt(flavor: CaldoFlavor): SVGSVGElement {
   return svg;
 }
 
+/** A small ice cube for the order bubble. "puro" draws it struck through. */
+function iceIcon(gelo: boolean): HTMLElement {
+  const svg = svgEl('svg', { viewBox: '0 0 12 12', class: 'cd-ice-icon', 'shape-rendering': 'crispEdges' });
+  const g = svgEl('g');
+  const cells: [number, number, string][] = [];
+  for (let y = 2; y < 11; y++) {
+    for (let x = 2; x < 11; x++) {
+      const edge = x === 2 || y === 2 || x === 10 || y === 10;
+      cells.push([x, y, edge ? NAVY : x < 5 && y < 5 ? '#ffffff' : x > 7 || y > 7 ? '#a8c8dc' : '#d8e4ea']);
+    }
+  }
+  px(g, cells);
+  svg.append(g);
+  return h('span', { class: gelo ? 'fs-ice' : 'fs-ice fs-no-ice' }, svg);
+}
+
 function emptyCup(): CupState {
   return { juice: 0, flavor: null, ice: false, spilled: false, at: 'rack' };
 }
@@ -267,6 +286,9 @@ export class CaldoView {
   private customerNodes = new Map<number, CustomerNode>();
   private ghost: HTMLElement;
   private dragKind: 'cane' | 'cup' | 'lever' | null = null;
+  private juice = new StallJuice();
+  /** Juice is running out of the spout with no cup under it. */
+  private spilling = false;
 
   constructor(
     private readonly seed: number,
@@ -355,14 +377,15 @@ export class CaldoView {
 
     this.root = h('div', { id: 'caldo-root', class: 'cd-root' },
       h('div', { class: 'cd-sky', 'aria-hidden': 'true' }),
-      h('div', { class: 'cd-bunting', 'aria-hidden': 'true' }),
+      ...cartPosts(),
       h('header', { class: 'cd-hud', id: 'caldo-hud' },
         h('span', { class: 'cd-title' }, 'Caldo de cana'),
         this.timerEl,
         this.scoreEl,
+        this.juice.crowd,
         h('button', { type: 'button', class: 'ghost cd-quit', id: 'caldo-quit', onclick: () => this.abandon() }, 'Sair'),
       ),
-      h('div', { class: 'cd-awning', 'aria-hidden': 'true' }, h('span', null, 'Caldo de cana')),
+      stallTop('cd', 'Caldo de cana'),
       this.queueEl,
       h('div', { class: 'cd-stage' },
         h('div', { class: 'cd-work' },
@@ -372,10 +395,12 @@ export class CaldoView {
         ),
         pumps,
       ),
-      h('div', { class: 'cd-floor', 'aria-hidden': 'true' }),
+      propShelf(['cana', 'limoes', 'copos', 'isopor'], 'cd-shelf'),
+      cartFloor('cd-floor'),
       this.popEl,
       this.ghost,
     );
+    this.juice.attach(this.root);
     this.bindDrag(caneBtn, 'cane');
     this.bindDrag(this.leverEl, 'lever');
     document.body.classList.add('cd-on');
@@ -392,42 +417,10 @@ export class CaldoView {
     this.root.remove();
   }
 
-  showEnd(end: {
-    score: number;
-    coins: number;
-    dailyBlocked: boolean;
-    served: number;
-    perfect: number;
-    left: number;
-    bestToday: number;
-    place: number;
-    crown: boolean;
-    linePt: string;
-    lineEn: string;
-  }) {
+  showEnd(end: FeiraEndView) {
     this.over = true;
     cancelAnimationFrame(this.raf);
-    const crown = end.crown
-      ? h('p', { class: 'cd-crown-line', id: 'caldo-crown' }, 'Fada da Feira', en('You lead today’s board.'))
-      : null;
-    this.root.replaceChildren(
-      h('div', { class: 'cd-end', id: 'caldo-end' },
-        h('h2', null, 'Caldo de cana'),
-        h('p', { class: 'cd-score', id: 'caldo-score' }, String(end.score), en('points')),
-        h('p', { class: 'cd-line' }, end.linePt, en(end.lineEn)),
-        h('p', { class: 'cd-meta', id: 'caldo-meta' },
-          `${end.coins} RV`,
-          en(end.dailyBlocked ? 'Board only — today’s paid runs are used.' : end.coins ? 'virtual reais' : 'no RV this round'),
-        ),
-        h('p', { class: 'cd-meta' }, `Melhor hoje: ${end.bestToday}`, en(`Best today: ${end.bestToday}`)),
-        h('p', { class: 'cd-meta', id: 'caldo-place' }, end.place ? `${end.place}º no placar` : 'Fora do placar', en(end.place ? `Place ${end.place} today` : 'Not on the board')),
-        crown,
-        h('div', { class: 'cd-end-actions' },
-          h('button', { type: 'button', class: 'primary', id: 'caldo-again', onclick: () => this.hooks.again() }, 'Jogar de novo', en('Play again')),
-          h('button', { type: 'button', class: 'ghost', id: 'caldo-close', onclick: () => this.hooks.quit() }, 'Fechar', en('Close')),
-        ),
-      ),
-    );
+    this.root.replaceChildren(feiraEndCard('caldo', 'cd', 'Caldo de cana', end, this.hooks));
   }
 
   private elapsed() {
@@ -452,6 +445,7 @@ export class CaldoView {
       if (now - c.shownAt >= c.order.patienceMs) {
         c.gone = true;
         this.outcomes.push({ i: c.index, quality: 'miss', atMs: Math.round(this.elapsed()) });
+        this.juice.exit(this.customerNodes.get(c.index)?.root ?? this.queueEl, 'left');
       }
     }
     this.paint(now);
@@ -463,19 +457,27 @@ export class CaldoView {
   };
 
   private drain(dt: number) {
-    if (this.level <= 0 || dt <= 0) return;
+    if (this.level <= 0 || dt <= 0) {
+      this.spilling = false;
+      return;
+    }
     const drip = CALDO_PRESS.drainPerSec * dt;
     const catching = this.cups.find((c) => c.at === 'spout');
+    this.spilling = !catching;
     if (catching && catching.juice < FULL) {
       const take = Math.min(drip, FULL - catching.juice, this.level);
       catching.juice += take;
       this.level -= take;
+      // the cup topping off is its own little beat: the glass bounces under the spout
+      if (catching.juice >= FULL) jolt(this.cupButtons[this.cups.indexOf(catching)], 'cd-ding');
       return;
     }
     if (catching) return;
     const spill = Math.min(drip, this.level);
     this.level -= spill;
+    const before = Math.ceil(this.puddle);
     this.puddle = Math.min(3, this.puddle + spill / 14);
+    if (Math.ceil(this.puddle) > before) jolt(this.root.querySelector('#caldo-puddle'), 'cd-splash');
   }
 
   private paint(now: number) {
@@ -493,6 +495,9 @@ export class CaldoView {
   private syncPress() {
     this.pressEl.classList.toggle('cd-loaded', this.cane);
     this.pressEl.classList.toggle('cd-flow', this.level > 4);
+    this.pressEl.classList.toggle('cd-spilling', this.spilling && this.level > 4);
+    // a crank now would overflow the press: the lever warns before it happens
+    this.pressEl.classList.toggle('cd-risk', this.cane && this.level + CALDO_PRESS.crankJuice > CALDO_PRESS.overflow);
     this.caneLayer.style.display = this.cane ? '' : 'none';
     this.streamLayer.style.display = this.level > 4 ? '' : 'none';
     const h = Math.round((this.level / CALDO_PRESS.overflow) * 10);
@@ -552,17 +557,22 @@ export class CaldoView {
         node.expr = expr;
         node.img.src = imageUrl(portraitKey(c.order.who, expr));
       }
+      const urg = urgency(frac);
+      if (node.urg !== urg) {
+        node.urg = urg;
+        node.root.dataset.urg = urg;
+      }
     }
   }
 
   private makeCustomer(c: LiveCustomer): CustomerNode {
     const pips = [0, 1, 2, 3].map(() => h('i', { class: 'on' }));
     const face = npcPortrait(c.order.who, 'neutro', 'cd-portrait');
-    const root = h('div', { class: 'cd-customer', 'data-order': String(c.index) },
+    const root = h('div', { class: 'cd-customer fs-cust', 'data-order': String(c.index), 'data-urg': 'calm' },
       face,
       h('div', { class: 'cd-order' },
-        h('b', null, c.order.name),
-        h('div', { class: 'cd-pips', 'aria-label': '4 of 4' }, ...pips),
+        h('div', { class: 'fs-name-row' }, h('b', null, c.order.name), wantBubble(fruitArt(c.order.flavor), iceIcon(c.order.ice === 'gelo'))),
+        h('div', { class: 'cd-pips fs-pips', 'aria-label': '4 of 4' }, ...pips),
         h('p', { class: 'cd-pt', lang: 'pt-BR' }, c.order.line.pt),
         h('p', { class: 'en' }, c.order.line.en),
       ),
@@ -574,7 +584,7 @@ export class CaldoView {
         onclick: () => this.serveTo(c),
       }, 'Servir', en('Serve')),
     );
-    return { root, pips, img: face.querySelector('img'), expr: 'neutro' };
+    return { root, pips, img: face.querySelector('img'), expr: 'neutro', urg: 'calm' };
   }
 
   private bindDrag(el: HTMLElement, kind: 'cane' | 'cup' | 'lever', index?: number) {
@@ -679,6 +689,8 @@ export class CaldoView {
       this.level = 0;
       this.puddle = 3;
       this.flash('miss', CALDO_OVERFLOW);
+      jolt(this.pressEl);
+      jolt(this.root.querySelector('#caldo-puddle'), 'cd-splash');
     } else {
       this.level += CALDO_PRESS.crankJuice;
     }
@@ -703,6 +715,8 @@ export class CaldoView {
     this.puddle = Math.min(3, this.puddle + 1.2);
     this.level = Math.max(0, this.level - 18);
     this.flash('soft', CALDO_SPILL);
+    jolt(this.cupButtons[index]);
+    jolt(this.root.querySelector('#caldo-puddle'), 'cd-splash');
   }
 
   private targetCup(): CupState | null {
@@ -744,7 +758,7 @@ export class CaldoView {
     cup.spilled = false;
     cup.at = 'rack';
     if (quality !== 'miss') this.served += 1;
-    this.scoreGuess += quality === 'perfect' ? 48 : quality === 'ok' ? 32 : quality === 'soft' ? 16 : 0;
+    this.scoreGuess += pointsFor(quality);
     const line = !flavorOk
       ? CALDO_WRONG_FLAVOR
       : !iceOk
@@ -756,7 +770,8 @@ export class CaldoView {
             : quality === 'soft'
               ? CALDO_POP.soft
               : CALDO_POP.miss;
-    this.flash(quality === 'miss' ? 'miss' : quality === 'perfect' ? 'perfect' : 'soft', line);
+    this.juice.exit(this.customerNodes.get(c.index)?.root ?? null, quality, pointsFor(quality), line);
+    if (quality === 'miss') jolt(this.pressEl);
     this.syncCups();
   }
 
