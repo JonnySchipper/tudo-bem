@@ -16638,9 +16638,9 @@
   },
   "chars/pet_dog": {
    "file": "chars/pet_dog.png",
-   "w": 408,
+   "w": 480,
    "h": 20,
-   "frames": 17,
+   "frames": 20,
    "frameW": 24,
    "fps": 8,
    "anims": {
@@ -16671,14 +16671,26 @@
     "sitN": [
      16,
      16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
     ]
    }
   },
   "chars/pet_cat": {
    "file": "chars/pet_cat.png",
-   "w": 408,
+   "w": 480,
    "h": 20,
-   "frames": 17,
+   "frames": 20,
    "frameW": 24,
    "fps": 8,
    "anims": {
@@ -16709,6 +16721,18 @@
     "sitN": [
      16,
      16
+    ],
+    "lieE": [
+     17,
+     17
+    ],
+    "lieS": [
+     18,
+     18
+    ],
+    "lieN": [
+     19,
+     19
     ]
    }
   },

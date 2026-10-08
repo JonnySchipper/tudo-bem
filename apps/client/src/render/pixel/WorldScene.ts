@@ -34,6 +34,7 @@ import {
   type WallDecor,
   COUNTER_MENU,
   CRESTS,
+  PET_COPY,
   STREET_SNACKS,
   carryOf,
 } from '@tudobem/shared';
@@ -41,6 +42,7 @@ import { game, type ClientAvatar } from '../../state';
 import type { Guide, Hit } from '../view';
 import type { Manifest } from './manifest';
 import { FACING, facingAlongPath, type Facing } from './facing';
+import { createPetFollow, petCommandFromLines, stepPet, type PetFollow } from './petFollow';
 import { addSheetTexture, animKey, animNames, emoteDuration, sitFrame } from './charsheet';
 import { CharSheets } from './charCache';
 import type { CharAssets } from './charAssets';
@@ -131,9 +133,13 @@ interface AvatarView {
   parrot: Phaser.GameObjects.Sprite | null;
   /** Animation key the shoulder parrot is playing (`anim:chars/parrot` or a recolored `anim:parrot:<color>`). */
   parrotKey: string;
-  /** Subscriber dog or cat, following at the feet the way the parrot follows the shoulder. */
+  /** Subscriber dog or cat. It walks a breadcrumb trail behind the owner; it is not a click target. */
   pet: Phaser.GameObjects.Sprite | null;
+  petKind: string;
   petKey: string;
+  petFollow: PetFollow;
+  /** Chat timestamp already offered to the pet, so a line is heard once. */
+  petHeard: number;
   /** Street snack in hand (session carry). */
   carry: Phaser.GameObjects.Image | null;
   carryKey: string;
@@ -276,6 +282,8 @@ export class WorldScene extends Phaser.Scene {
   private furniture = new Map<string, FurnitureView>();
   private grid: RoomGrid | null = null;
   private gridFurniture: PlacedFurniture[] | null = null;
+  /** The room the grid was built from, so a live cart toggle rebuilds collision with the sprites. */
+  private gridDef: RoomDef | null = null;
   private bounds: Rect = { x0: 0, y0: 0, x1: 1, y1: 1 };
   private snapCamera = true;
   private hoverRect!: Phaser.GameObjects.Rectangle;
@@ -1032,14 +1040,15 @@ export class WorldScene extends Phaser.Scene {
       this.roomDef = def;
       this.buildRoom(def);
     }
-    if (this.gridFurniture !== game.furniture || !this.grid) {
+    if (this.gridFurniture !== game.furniture || this.gridDef !== def || !this.grid) {
       this.grid = buildGrid(def, game.furniture);
       this.gridFurniture = game.furniture;
+      this.gridDef = def;
     }
     this.applyZoom();
     const dyn: HitBox[] = [];
     this.syncFurniture(dyn);
-    this.syncAvatars(def, now, dyn);
+    this.syncAvatars(def, now, dyn, dt);
     this.syncGlints(now);
     this.syncBout(dt, now);
     this.syncCounter(dt, now);
@@ -1380,11 +1389,11 @@ export class WorldScene extends Phaser.Scene {
   }
 
   // ---- avatars
-  private syncAvatars(def: RoomDef, now: number, dyn: HitBox[]): void {
+  private syncAvatars(def: RoomDef, now: number, dyn: HitBox[], dt: number): void {
     const items = new Map(game.avatars);
     syncViews(this.avatars, items, {
       create: (_id, a) => this.createAvatar(a),
-      update: (v, a) => this.updateAvatar(v, a, def, now, dyn),
+      update: (v, a) => this.updateAvatar(v, a, def, now, dyn, dt),
       destroy: (v) => this.destroyAvatar(v),
     });
   }
@@ -1409,7 +1418,10 @@ export class WorldScene extends Phaser.Scene {
       parrot: null,
       parrotKey: '',
       pet: null,
+      petKind: '',
       petKey: '',
+      petFollow: createPetFollow(),
+      petHeard: -1,
       carry: null,
       carryKey: '',
       carryPop: 0,
@@ -1439,7 +1451,7 @@ export class WorldScene extends Phaser.Scene {
     this.sheets.release(v.sheet);
   }
 
-  private updateAvatar(v: AvatarView, a: ClientAvatar, def: RoomDef, now: number, dyn: HitBox[]): void {
+  private updateAvatar(v: AvatarView, a: ClientAvatar, def: RoomDef, now: number, dyn: HitBox[], dt: number): void {
     // appearance or hat changed (wardrobe, avatarUpdated): swap the sheet
     const uniform = academyUniformKey(a.pub);
     if (a.pub.appearance !== v.appearance || a.pub.hat !== v.hat || a.pub.belt !== v.belt || uniform !== v.uniform) {
@@ -1558,7 +1570,7 @@ export class WorldScene extends Phaser.Scene {
       }
     }
     this.updateParrot(v, a, facing, wx, wy, depth, now);
-    this.updatePet(v, a, facing, wx, wy, depth, now);
+    this.updatePet(v, a, wx, wy, dt);
     this.updateCarry(v, a, facing, wx, wy, depth);
     this.updateEmoteIcon(v, a, wx, wy - bounce, sitting, now);
     const h = avatarPx(sitting ? 24 : 32);
@@ -1667,12 +1679,13 @@ export class WorldScene extends Phaser.Scene {
 
   /**
    * Frame ranges baked into `chars/pet_*` (see pets.mjs). The manifest's `anims` wins when present.
-   * Side poses face east; west is the same strip flipped.
+   * Side poses face east; west is the same strip flipped. Lie-down is the same three facings as sit.
    */
   private petAnims(kind: 'dog' | 'cat'): Record<string, [number, number]> {
     const fromManifest = this.m.images?.[`chars/pet_${kind}`]?.anims;
-    if (fromManifest?.walkE && fromManifest.walkS && fromManifest.walkN && fromManifest.idleS && fromManifest.sitE && fromManifest.sitS && fromManifest.sitN) return fromManifest;
-    return { walkE: [0, 3], walkS: [4, 7], walkN: [8, 11], idleS: [12, 13], sitE: [14, 14], sitS: [15, 15], sitN: [16, 16] };
+    const need = ['walkE', 'walkS', 'walkN', 'idleS', 'sitE', 'sitS', 'sitN', 'lieE', 'lieS', 'lieN'] as const;
+    if (fromManifest && need.every((k) => fromManifest[k])) return fromManifest;
+    return { walkE: [0, 3], walkS: [4, 7], walkN: [8, 11], idleS: [12, 13], sitE: [14, 14], sitS: [15, 15], sitN: [16, 16], lieE: [17, 17], lieS: [18, 18], lieN: [19, 19] };
   }
 
   private createPetAnims(kind: 'dog' | 'cat'): void {
@@ -1686,50 +1699,73 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  /** Which strip to play, and whether to mirror it. West reuses the east poses. */
-  private petPose(facing: Facing, moving: boolean, sitting: boolean): { name: string; flip: boolean } {
-    if (moving) {
+  /** Which strip to play, and whether to mirror it. West reuses the east poses. Idle is the front blink. */
+  private petPose(facing: Facing, pose: PetFollow['pose']): { name: string; flip: boolean } {
+    const flip = facing === 'W';
+    if (pose === 'walk') {
       if (facing === 'N') return { name: 'walkN', flip: false };
       if (facing === 'S') return { name: 'walkS', flip: false };
-      return { name: 'walkE', flip: facing === 'W' };
+      return { name: 'walkE', flip };
     }
-    if (!sitting && facing === 'S') return { name: 'idleS', flip: false };
-    if (facing === 'N') return { name: 'sitN', flip: false };
-    if (facing === 'S') return { name: 'sitS', flip: false };
-    return { name: 'sitE', flip: facing === 'W' };
+    if (pose === 'idle') return { name: 'idleS', flip: false };
+    const stem = pose === 'lie' ? 'lie' : 'sit';
+    if (facing === 'N') return { name: `${stem}N`, flip: false };
+    if (facing === 'S') return { name: `${stem}S`, flip: false };
+    return { name: `${stem}E`, flip };
   }
 
   /**
-   * Subscriber dog or cat. Follows at the feet, opposite the shoulder parrot, facing the way the
-   * owner walks. The frames are critter-scale (the vira-lata and the parrot are 1 art px per world
-   * px), so they are not given the people's extra draw scale.
+   * Subscriber dog or cat. It walks the owner's breadcrumb trail a couple of tiles behind, at its
+   * own speed, and idles once it has caught up. "senta" / "deita" / "vem" are read from chat the
+   * owner already sent. The frames are critter-scale (1 art px per world px), so they are not given
+   * the people's extra draw scale.
+   *
+   * The sprite is not a hit target. Clicks are resolved from avatar and NPC boxes, and the pet is
+   * never added to that list, so it cannot take a click meant for the player or a neighbour.
    */
-  private updatePet(v: AvatarView, a: ClientAvatar, facing: Facing, wx: number, wy: number, depth: number, _now: number): void {
+  private updatePet(v: AvatarView, a: ClientAvatar, wx: number, wy: number, dt: number): void {
     const kind = a.pub.pet === 'dog' || a.pub.pet === 'cat' ? a.pub.pet : null;
-    const pose = kind ? this.petPose(facing, v.moving, v.sitting) : null;
-    const anim = kind && pose ? `anim:pet:${kind}:${pose.name}` : '';
-    if (!kind || !pose || !this.anims.exists(anim)) {
+    const heard = petCommandFromLines(a.bubbles, v.petHeard, kind ? [PET_COPY[kind].pt, PET_COPY[kind].en] : []);
+    v.petHeard = heard.heardAt;
+    if (!kind) {
       if (v.pet) {
         v.pet.destroy();
         v.pet = null;
+        v.petKind = '';
         v.petKey = '';
       }
+      if (Number.isFinite(v.petFollow.x)) v.petFollow = createPetFollow();
       return;
     }
-    if (!v.pet) {
+    const follow = stepPet(v.petFollow, {
+      ownerX: wx,
+      ownerY: wy,
+      ownerMoving: v.moving,
+      place: this.roomId,
+      dt,
+      command: heard.command,
+    });
+    const pose = this.petPose(follow.facing, follow.pose);
+    const anim = `anim:pet:${kind}:${pose.name}`;
+    if (!this.anims.exists(anim)) {
+      v.pet?.setVisible(false);
+      return;
+    }
+    if (!v.pet || v.petKind !== kind) {
+      v.pet?.destroy();
       v.pet = this.rig.world(this.add.sprite(0, 0, `pet:${kind}`, 0)).setOrigin(0.5, 1);
+      v.pet.disableInteractive();
+      v.petKind = kind;
       v.petKey = '';
     }
     if (v.petKey !== anim) {
       v.petKey = anim;
       v.pet.play({ key: anim, startFrame: 0 });
     }
-    const flank = facing === 'W' ? 1 : -1;
-    const reach = Math.round(avatarPx(8) + 14);
-    v.pet.setVisible(true);
-    v.pet.setPosition(wx - flank * reach, wy);
+    v.pet.setVisible(v.sprite.visible);
+    v.pet.setPosition(Math.round(follow.x), Math.round(follow.y));
     v.pet.setFlipX(pose.flip);
-    v.pet.setDepth(facing === 'N' ? depth + 0.05 : depth - 0.05);
+    v.pet.setDepth(standingDepth(follow.y, `${a.pub.id}:pet`));
     v.pet.setScale(1);
   }
 
@@ -1976,14 +2012,6 @@ export class WorldScene extends Phaser.Scene {
       const p = at(this.stall.wx, this.stall.wy - 30);
       stacks.push({ key: 'stall:closed', x: p.px, y: p.py, plate: { text: 'Fechado · volta às 8h', kind: 'npc' }, bubbles: [] });
     }
-    // the game cart is closed until an admin turns a game on
-    if (def.id === 'feira' && game.feiraCart?.closed) {
-      const cart = def.props.find((q) => q.id === 'carrinho_jogos');
-      if (cart) {
-        const p = at((cart.x + (cart.w ?? 1) / 2) * T, cart.y * T - 22);
-        stacks.push({ key: 'feira-cart:closed', x: p.px, y: p.py, plate: { text: 'Fechado', kind: 'npc' }, bubbles: [] });
-      }
-    }
     // the feira's banner says it is closed outside 06:00-13:00
     if (this.feiraStalls.length && !feiraOpen(clock.minutes())) {
       const b = def.props.find((q) => q.id === 'feira_livre');
@@ -2084,6 +2112,17 @@ export class WorldScene extends Phaser.Scene {
 
   currentRoom(): RoomDef | null {
     return game.roomDef;
+  }
+
+  /** Frame names of the sprites built for this room (e2e: the game cart and its sign). */
+  drawnFrames(): string[] {
+    const out: string[] = [];
+    for (const o of this.roomObjs) {
+      const spr = o as { frame?: { name?: string }; visible?: boolean };
+      if (spr.visible === false) continue;
+      if (typeof spr.frame?.name === 'string') out.push(spr.frame.name);
+    }
+    return out;
   }
 
   info() {

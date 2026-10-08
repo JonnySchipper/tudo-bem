@@ -48,21 +48,60 @@ describe('subscriber pets', async () => {
   const parts = await petStrips();
   const by = Object.fromEntries(parts.map((p) => [p.key, p]));
 
-  it('ships a dog and a cat strip with walk, front idle and sit', () => {
+  it('ships a dog and a cat strip with walk, front idle, sit and lie', () => {
+    const frames = Math.max(...Object.values(PET_ANIMS).flat()) + 1;
+    expect(frames).toBe(20);
+    expect(PET_ANIMS.lieE).toEqual([17, 17]);
+    expect(PET_ANIMS.lieS).toEqual([18, 18]);
+    expect(PET_ANIMS.lieN).toEqual([19, 19]);
     for (const key of ['chars/pet_dog', 'chars/pet_cat']) {
       const { img, meta } = by[key];
       expect(meta.anims).toEqual(PET_ANIMS);
+      expect(meta.frames).toBe(frames);
       expect(meta.frameW).toBe(PET_W);
       expect(img.h).toBe(PET_H);
-      expect(img.w).toBe(PET_W * 17);
+      expect(img.w).toBe(PET_W * frames);
       expect(img.h).toBeGreaterThan(16);
     }
   });
 
-  it('each frame is one animal with a solid navy outline (the head is not a floating piece)', () => {
+  it('a lie-down sits lower than a sit, and it is not a copy of the sit frame', () => {
+    const slice = (img, f) => {
+      const frame = { w: PET_W, h: PET_H, data: new Uint8Array(PET_W * PET_H * 4) };
+      for (let y = 0; y < PET_H; y++) {
+        const src = (y * img.w + f * PET_W) * 4;
+        frame.data.set(img.data.subarray(src, src + PET_W * 4), y * PET_W * 4);
+      }
+      return frame;
+    };
+    const centroidY = (frame) => {
+      let s = 0;
+      let n = 0;
+      for (let y = 0; y < frame.h; y++) for (let x = 0; x < frame.w; x++) {
+        if (frame.data[(y * frame.w + x) * 4 + 3] === 0) continue;
+        s += y;
+        n++;
+      }
+      return s / n;
+    };
     for (const key of ['chars/pet_dog', 'chars/pet_cat']) {
       const img = by[key].img;
-      for (let f = 0; f < 17; f++) {
+      for (const [lie, sit] of [[17, 14], [18, 15], [19, 16]]) {
+        const a = slice(img, lie);
+        const b = slice(img, sit);
+        let differ = 0;
+        for (let i = 0; i < a.data.length; i++) if (a.data[i] !== b.data[i]) differ++;
+        expect(differ, `${key} lie ${lie} vs sit ${sit}`).toBeGreaterThan(20);
+        expect(centroidY(a), `${key} lie ${lie} is lower`).toBeGreaterThan(centroidY(b));
+      }
+    }
+  });
+
+  it('each frame is one animal with a solid navy outline (the head is not a floating piece)', () => {
+    const frames = Math.max(...Object.values(PET_ANIMS).flat()) + 1;
+    for (const key of ['chars/pet_dog', 'chars/pet_cat']) {
+      const img = by[key].img;
+      for (let f = 0; f < frames; f++) {
         const frame = { w: PET_W, h: PET_H, data: new Uint8Array(PET_W * PET_H * 4) };
         for (let y = 0; y < PET_H; y++) {
           const src = (y * img.w + f * PET_W) * 4;

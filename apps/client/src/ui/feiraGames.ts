@@ -7,8 +7,6 @@
  * needs_br: true
  */
 import {
-  FEIRA_CART_CLOSED,
-  FEIRA_CART_CLOSED_LINE,
   FEIRA_GAME_INTRO,
   FEIRA_GAME_LABEL,
   feiraCartGreet,
@@ -17,7 +15,7 @@ import {
 } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en } from './dom';
-import { modalId, openModal } from './modal';
+import { closeModal, modalId, openModal } from './modal';
 import { TapiocaView, type TapiocaEnd } from './feiraTapioca';
 import { PastelView } from './feiraPastel';
 import { CaldoView } from './feiraCaldo';
@@ -45,7 +43,7 @@ export function feiraGameOpen(): boolean {
   return !!view;
 }
 
-/** Cart hotspot: today's game and a Jogar button. The closed panel is `openFeiraCartClosed`. */
+/** Cart hotspot: today's game and a Jogar button. A game that is off has no cart, so there is no closed panel. */
 export function openFeiraCart(gameId: FeiraGameId) {
   const intro = FEIRA_GAME_INTRO[gameId];
   const label = FEIRA_GAME_LABEL[gameId];
@@ -73,21 +71,6 @@ export function openFeiraCart(gameId: FeiraGameId) {
   closeOffer = close;
 }
 
-/** Cart hotspot when every game is off: no Jogar, the run cannot start. needs_br: true */
-export function openFeiraCartClosed() {
-  const close = openModal(
-    'feira-cart',
-    h('div', { class: 'panel feira-game-panel fg-closed', id: 'feira-cart-panel' },
-      h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
-      h('p', { class: 'fg-kicker' }, 'Carrinho da feira', en('Market cart')),
-      h('h2', { id: 'feira-cart-closed' }, FEIRA_CART_CLOSED.pt, en(FEIRA_CART_CLOSED.en)),
-      h('p', { class: 'fg-intro', lang: 'pt-BR' }, FEIRA_CART_CLOSED_LINE.pt),
-      h('p', { class: 'en' }, FEIRA_CART_CLOSED_LINE.en),
-    ),
-  );
-  closeOffer = close;
-}
-
 /** Sign hotspot: ask the server for the live board, then paint it. */
 export function openFeiraSign() {
   hooks?.sendBoard();
@@ -97,14 +80,29 @@ function medalMark(kind: 'gold' | 'silver' | 'bronze'): string {
   return kind === 'gold' ? '1' : kind === 'silver' ? '2' : '3';
 }
 
+function dismissCartUi() {
+  if (view) {
+    view.destroy();
+    view = null;
+    hooks?.sendQuit();
+  }
+  closeOffer?.();
+  closeOffer = null;
+  if (modalId() === 'feira-cart' || modalId() === 'feira-sign') closeModal();
+}
+
 function paintBoard(m: Extract<FeiraGameMsg, { phase: 'board' }>, alsoCart: boolean) {
   game.feiraCart = { closed: m.closed, game: m.game };
-  if (alsoCart) {
-    if (m.closed || !m.game) openFeiraCartClosed();
-    else openFeiraCart(m.game);
+  game.emit('room');
+  if (m.closed || !m.game) {
+    dismissCartUi();
     return;
   }
-  const label = m.game ? FEIRA_GAME_LABEL[m.game] : FEIRA_CART_CLOSED;
+  if (alsoCart) {
+    openFeiraCart(m.game);
+    return;
+  }
+  const label = FEIRA_GAME_LABEL[m.game];
   const top = m.top.length
     ? h('ol', { class: 'fg-top', id: 'feira-sign-top' },
       ...m.top.map((row) => h('li', { class: row.you ? 'you' : '' },
@@ -176,10 +174,8 @@ export function onFeiraGameMsg(m: FeiraGameMsg) {
   if (m.phase === 'cart') {
     game.feiraCart = { closed: m.closed, game: m.game };
     game.emit('room');
-    if (modalId() === 'feira-cart') {
-      if (m.closed || !m.game) openFeiraCartClosed();
-      else openFeiraCart(m.game);
-    }
+    if (m.closed || !m.game) dismissCartUi();
+    else if (modalId() === 'feira-cart') openFeiraCart(m.game);
     return;
   }
   if (m.phase === 'start') return openGame(m);

@@ -17,6 +17,7 @@ import {
   FACE_STYLES,
   IDLE_POSES,
   findPath,
+  feiraCartShown,
   furnitureById,
   HAIR_COLORS,
   HAIR_STYLES,
@@ -30,6 +31,7 @@ import {
   idleKickedCopy,
   idleWarningCopy,
   type Weather,
+  withoutHiddenFeiraCart,
   isRoomId,
   key,
   MAX_CHAT_LEN,
@@ -1357,9 +1359,12 @@ export class World {
     s.send({ t: 'admin', phase: 'players', players });
   }
 
-  /** Solo / shot hook: turn one Feira cart game on. Games ship off. */
+  /** Solo / shot hook: turn one Feira cart game on and tell everyone, the same way the admin switch does. Games ship off. */
   enableFeiraGame(id: string): boolean {
-    return this.feiraGames.setCartMode(id, 'on');
+    if (!this.feiraGames.setCartMode(id, 'on')) return false;
+    const msg = this.feiraGames.cartMsg();
+    for (const sess of this.sessions.values()) if (sess.profile) sess.send(msg);
+    return true;
   }
 
   private adminKick(s: Session, targetId: string) {
@@ -1470,9 +1475,17 @@ export class World {
     return this.store.get(inst.ownerId)?.apartment ?? [];
   }
 
+  /** Feira with the game cart and sign removed. One object: the authored room does not change. */
+  private hiddenFeira: RoomDef | null = null;
+
   /** The room's grid for players: props and furniture, plus the tiles the NPCs are standing on right now (they move, so nothing static blocks them). */
   private grid(inst: Instance) {
-    return this.npcs.block(inst.def, buildGrid(inst.def, this.furnitureOf(inst)));
+    const base = inst.def;
+    const def =
+      base.id === 'feira' && !feiraCartShown(this.feiraGames.cartSnapshot())
+        ? (this.hiddenFeira ??= withoutHiddenFeiraCart(base, false))
+        : base;
+    return this.npcs.block(base, buildGrid(def, this.furnitureOf(inst)));
   }
 
   private currentTile(s: Session): { tile: Tile; dir: Dir; moving: boolean } {
