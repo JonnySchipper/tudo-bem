@@ -67,7 +67,7 @@ describe('caldo de cana on the server', () => {
     expect(beforeOn.games.find((g) => g.id === 'tapioca')?.mode).toBe('off');
     expect(beforeOn.featured).toBeNull();
     engine.handle(s, { t: 'feiraGame', action: 'start' });
-    expect(sent.some((m) => m.t === 'error' && m.code === 'feira_closed')).toBe(true);
+    expect(sent.some((m) => m.t === 'error' && m.code === 'far')).toBe(true);
     expect(s.feiraGame).toBeUndefined();
 
     expect(engine.setCartMode('caldo', 'on')).toBe(true);

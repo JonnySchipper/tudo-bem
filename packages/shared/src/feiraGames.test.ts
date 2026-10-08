@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { todayEastern } from './cartela.js';
+import { DIARY_PLACEMENTS } from './diaryWorld.js';
+import { HOTSPOTS } from './hotspots.js';
+import { RECADOS } from './recados.js';
+import { ROOMS, buildGrid, isWalkable, key } from './rooms.js';
 import {
+  FEIRA_CART_WORLD_IDS,
   FEIRA_DAILY_PAID_RUNS,
   FEIRA_GAME_MAX_SCORE,
   FEIRA_IMPLEMENTED_GAMES,
@@ -15,6 +20,7 @@ import {
   featuredGameAt,
   feiraCartAdminView,
   feiraCartCatalog,
+  feiraCartShown,
   feiraGameActive,
   feiraPayout,
   judgeFeiraResult,
@@ -26,6 +32,7 @@ import {
   rankFeiraDay,
   rotationSlot,
   withFeiraCartMode,
+  withoutHiddenFeiraCart,
   type FeiraDayScore,
 } from './feiraGames.js';
 import { tapiocaOrders, tapiocaServeQuality } from './feiraTapioca.js';
@@ -234,5 +241,43 @@ describe('feira cart switch', () => {
     });
     expect(cfg.games.tapioca?.mode).toBe('off');
     expect(cfg.games.future_game).toEqual({ mode: 'on', schedule: { from: '2026-01-01', weekdays: [1] } });
+  });
+
+  it('hides the cart and the sign when nothing is featured, including outside a rotation window', () => {
+    const off = { closed: true as const, game: null };
+    expect(feiraCartShown(off)).toBe(false);
+    expect(feiraCartShown(null)).toBe(false);
+    const hidden = withoutHiddenFeiraCart(ROOMS.feira, false);
+    for (const id of FEIRA_CART_WORLD_IDS) expect(hidden.props.some((p) => p.id === id)).toBe(false);
+    // stall carts, Seu Chico, and the coconut cart's cousins stay
+    expect(hidden.props.some((p) => p.id === 'carrinho_feira_1')).toBe(true);
+    expect(hidden.props.some((p) => p.id === 'feira_chico' && p.vendor === 'chico')).toBe(true);
+    const grid = buildGrid(hidden);
+    expect(isWalkable(grid, 21, 7)).toBe(true);
+    expect(isWalkable(grid, 18, 7)).toBe(true);
+    expect(isWalkable(grid, 22, 7)).toBe(true);
+    const shown = withoutHiddenFeiraCart(ROOMS.feira, true);
+    expect(shown).toBe(ROOMS.feira);
+    const blocked = buildGrid(shown);
+    expect(blocked.blocked.has(key(21, 7))).toBe(true);
+    expect(blocked.blocked.has(key(18, 7))).toBe(true);
+    expect(feiraCartShown({ closed: false, game: 'pastel' })).toBe(true);
+
+    // Thursday is in the window; Friday is not, so Friday hides the cart the same way
+    const cfg = withFeiraCartMode(emptyFeiraCartConfig(), 'pastel', 'rotation', { weekdays: [4] })!;
+    expect(featuredEnabled('1970-01-01', enabledFeiraGameIds(cfg, '1970-01-01'))).toBe('pastel');
+    expect(featuredEnabled('1970-01-02', enabledFeiraGameIds(cfg, '1970-01-02'))).toBeNull();
+    expect(feiraCartShown({ closed: true, game: null })).toBe(false);
+  });
+
+  it('does not point a recado, a readable sign, or a diary object at a hidden cart game', () => {
+    const ids = new Set<string>(FEIRA_CART_WORLD_IDS);
+    for (const d of RECADOS) {
+      for (const step of d.steps) {
+        if (step.kind === 'ler') expect(ids.has(step.hotspotId), d.id).toBe(false);
+      }
+    }
+    for (const h of HOTSPOTS) expect(ids.has(h.id), h.id).toBe(false);
+    for (const p of DIARY_PLACEMENTS) expect(ids.has(p.id), p.id).toBe(false);
   });
 });

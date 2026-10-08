@@ -106,6 +106,8 @@ export interface PairColors {
   partner: FighterColors;
   /** the player's belt (worn on the white gi) */
   belt: Belt;
+  /** the partner's belt (worn on the blue gi); unset keeps the baked black belt */
+  partnerBelt?: Belt;
   /** who is on top in this frame (null: standing or a neutral pose, A is the player) */
   top: 'you' | 'partner' | null;
 }
@@ -127,12 +129,14 @@ export function pairTable(c: PairColors): Map<number, number> {
   const youHair = ramp(youIsA ? 'hair' : 'hair2', c.you.hair);
   const tables = [youSkin, youHair, partnerSkin, partnerHair];
   const youBelt = buildRamp(BELT_COLORS[c.belt], 3);
+  const theirBelt = c.partnerBelt && c.partnerBelt !== 'preta' ? buildRamp(BELT_COLORS[c.partnerBelt], 3) : [...BELT_BLACK];
   if (youIsA) {
-    // art A is you: white gi stays, the belt key ramp becomes your belt; art B is the partner: blue gi and black belt stay
+    // art A is you: white gi stays, the belt key ramp becomes your belt; art B is the partner: blue gi stays, the black belt becomes theirs
     tables.push(rampMap(KEY_RAMPS.belt, youBelt));
+    if (c.partnerBelt && c.partnerBelt !== 'preta') tables.push(rampMap(BELT_BLACK, theirBelt));
   } else {
-    // art A is the partner: its white gi turns blue and its belt black; art B is you: the blue gi turns white and the black belt your belt
-    tables.push(rampMap(GI_WHITE, GI_BLUE), rampMap(GI_BLUE, GI_WHITE), rampMap(KEY_RAMPS.belt, BELT_BLACK), rampMap(BELT_BLACK, youBelt));
+    // art A is the partner: its white gi turns blue and its belt theirs; art B is you: the blue gi turns white and the black belt your belt
+    tables.push(rampMap(GI_WHITE, GI_BLUE), rampMap(GI_BLUE, GI_WHITE), rampMap(KEY_RAMPS.belt, theirBelt), rampMap(BELT_BLACK, youBelt));
   }
   return mergeTables(...tables);
 }
@@ -143,4 +147,4 @@ export function refTable(bia: FighterColors): Map<number, number> {
 }
 
 /** Stable signature of a colour set, for texture cache keys. */
-export const colorsSig = (c: PairColors): string => `${c.you.skin}${c.you.hair}${c.partner.skin}${c.partner.hair}${c.belt}${c.top === 'partner' ? 'P' : 'Y'}`;
+export const colorsSig = (c: PairColors): string => `${c.you.skin}${c.you.hair}${c.partner.skin}${c.partner.hair}${c.belt}${c.partnerBelt ?? 'preta'}${c.top === 'partner' ? 'P' : 'Y'}`;

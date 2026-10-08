@@ -5,7 +5,8 @@
 // and sit are drawn to the same frame so the follower can face the way it walks.
 //
 // Strip layout (every frame is PET_W × PET_H, feet on the bottom row, side views face east):
-//   0–3  walkE    4–7 walkS    8–11 walkN    12–13 idleS (front, blink)    14 sitE    15 sitS    16 sitN
+//   0–3  walkE    4–7 walkS    8–11 walkN    12–13 idleS (front, blink)
+//   14 sitE    15 sitS    16 sitN    17 lieE    18 lieS    19 lieN
 import { blank, paste } from '../../../../scripts/lib/pixel/img.mjs';
 import { blank as paintBlank, put, shape, ell, box, or, NAVY } from './paint.mjs';
 import { dogWalk } from './dog.mjs';
@@ -22,6 +23,9 @@ export const PET_ANIMS = {
   sitE: [14, 14],
   sitS: [15, 15],
   sitN: [16, 16],
+  lieE: [17, 17],
+  lieS: [18, 18],
+  lieN: [19, 19],
 };
 
 const COAT = ['#a9764f', '#c78c59', '#daa463', '#f2bd7a'];
@@ -220,6 +224,61 @@ function dogSitSide() {
   return img;
 }
 
+/** On its side, chin toward the paws, collar still visible. Head to the right (east). */
+function dogLieSide() {
+  const img = paintBlank(PET_W, PET_H);
+  shape(img, ell(4.6, 15.2, 2.8, 2.2), [4.6, 15.2, 2.8, 2.2], COAT, { ol: NAVY, t: [0.88, 0.4, 0] });
+  put(img, 3, 14, CREAM[2]);
+  shape(img, ell(11.2, 15.4, 6.6, 3.0), [11.2, 15.4, 6.6, 3.0], COAT, { ol: NAVY, t: [0.86, 0.4, 0] });
+  for (const [x, y] of [[8, 13], [9, 13], [10, 13], [11, 13], [12, 14]]) put(img, x, y, COAT[1]);
+  put(img, 14, 16, CREAM[2]);
+  put(img, 15, 16, CREAM[3]);
+  shape(img, ell(18.0, 14.2, 3.8, 3.2), [18.0, 14.2, 3.8, 3.2], COAT, { ol: NAVY, t: [0.84, 0.4, 0] });
+  shape(img, tri(16.6, 12.2, 18.4, 7.2, 20.4, 12.0), [18.4, 9.6, 1.8, 2.6], COAT, { ol: NAVY, t: [0.88, 0.36, 0] });
+  put(img, 18, 9, EAR);
+  put(img, 19, 9, EAR);
+  shape(img, ell(21.2, 15.2, 2.2, 1.7), [21.2, 15.2, 2.2, 1.7], CREAM, { ol: NAVY, t: [0.9, 0.4, 0] });
+  put(img, 22, 15, NOSE);
+  eye(img, 19, 13, false);
+  shape(img, ell(19.6, 17.6, 2.8, 1.2), [19.6, 17.6, 2.8, 1.2], CREAM, { ol: NAVY, t: [0.95, 0.4, 0] });
+  put(img, 15, 14, COLLAR_HI);
+  put(img, 15, 15, COLLAR);
+  return img;
+}
+
+/** Belly down, facing the camera, paws stretched out in front. */
+function dogLieFront() {
+  const img = paintBlank(PET_W, PET_H);
+  shape(img, ell(12, 15.6, 6.8, 2.8), [12, 15.6, 6.8, 2.8], COAT, { ol: NAVY, t: [0.86, 0.4, 0] });
+  shape(img, ell(12, 12.6, 4.2, 3.0), [12, 12.6, 4.2, 3.0], COAT, { ol: NAVY, t: [0.84, 0.4, 0] });
+  shape(img, ell(7.8, 13.2, 2.2, 1.5), [7.8, 13.2, 2.2, 1.5], FAR, { ol: NAVY, t: [0.9, 0.4, 0] });
+  shape(img, ell(16.2, 13.0, 2.2, 1.5), [16.2, 13.0, 2.2, 1.5], COAT, { ol: NAVY, t: [0.88, 0.38, 0] });
+  shape(img, ell(12, 14.2, 2.4, 1.6), [12, 14.2, 2.4, 1.6], CREAM, { ol: NAVY, t: [0.9, 0.4, 0] });
+  shape(img, ell(9.4, 17.8, 2.0, 1.15), [9.4, 17.8, 2.0, 1.15], CREAM, { ol: NAVY, t: [0.95, 0.4, 0] });
+  shape(img, ell(14.6, 17.8, 2.0, 1.15), [14.6, 17.8, 2.0, 1.15], CREAM, { ol: NAVY, t: [0.95, 0.4, 0] });
+  eye(img, 10, 12, false);
+  eye(img, 13, 12, false);
+  put(img, 11, 14, NOSE);
+  put(img, 12, 14, NOSE);
+  put(img, 11, 15, COLLAR_HI);
+  put(img, 12, 15, COLLAR);
+  put(img, 13, 15, COLLAR);
+  return img;
+}
+
+/** The same lie seen from behind: tail, back, flopped ears, no face. */
+function dogLieBack() {
+  const img = paintBlank(PET_W, PET_H);
+  shape(img, ell(6.2, 14.6, 2.4, 2.0), [6.2, 14.6, 2.4, 2.0], COAT, { ol: NAVY, t: [0.88, 0.4, 0] });
+  put(img, 5, 13, CREAM[2]);
+  shape(img, ell(12.2, 15.6, 6.2, 2.8), [12.2, 15.6, 6.2, 2.8], COAT, { ol: NAVY, t: [0.86, 0.4, 0] });
+  shape(img, ell(12.2, 12.8, 3.6, 2.4), [12.2, 12.8, 3.6, 2.4], COAT, { ol: NAVY, t: [0.84, 0.4, 0] });
+  shape(img, ell(8.8, 13.4, 1.8, 1.3), [8.8, 13.4, 1.8, 1.3], FAR, { ol: NAVY, t: [0.9, 0.4, 0] });
+  shape(img, ell(15.6, 13.2, 1.8, 1.3), [15.6, 13.2, 1.8, 1.3], COAT, { ol: NAVY, t: [0.88, 0.38, 0] });
+  for (const [x, y] of [[10, 14], [11, 14], [12, 14], [13, 14], [12, 15]]) put(img, x, y, COAT[1]);
+  return img;
+}
+
 // ------------------------------------------------------------------ cat
 
 function catEye(img, x, y, blink) {
@@ -343,18 +402,71 @@ function catSide(phase, o = {}) {
   return img;
 }
 
+/** Stretched out on its side, tail behind, head to the right. */
+function catLieSide() {
+  const img = paintBlank(PET_W, PET_H);
+  shape(img, ell(4.2, 15.8, 2.6, 1.6), [4.2, 15.8, 2.6, 1.6], GINGER, { ol: NAVY, t: [0.9, 0.4, 0] });
+  put(img, 3, 15, GINGER_HI);
+  put(img, 5, 16, STRIPE);
+  shape(img, ell(11.2, 15.4, 6.4, 2.6), [11.2, 15.4, 6.4, 2.6], GINGER, { ol: NAVY, t: [0.86, 0.4, 0] });
+  stripes(img, [[8, 14], [10, 14], [12, 15]]);
+  put(img, 14, 16, CREAM[3]);
+  shape(img, ell(18.2, 14.0, 3.6, 3.0), [18.2, 14.0, 3.6, 3.0], GINGER, { ol: NAVY, t: [0.84, 0.4, 0] });
+  shape(img, tri(17.2, 11.6, 18.6, 7.6, 20.2, 11.6), [18.6, 9.6, 1.6, 2.2], GINGER, { ol: NAVY, t: [0.88, 0.36, 0] });
+  put(img, 18, 9, PINK);
+  shape(img, ell(20.8, 15.0, 1.8, 1.4), [20.8, 15.0, 1.8, 1.4], CREAM, { ol: NAVY, t: [0.9, 0.4, 0] });
+  catEye(img, 19, 13, false);
+  put(img, 22, 15, PINK_DEEP);
+  shape(img, ell(16.4, 17.6, 2.2, 1.15), [16.4, 17.6, 2.2, 1.15], CREAM, { ol: NAVY, t: [0.95, 0.4, 0] });
+  return img;
+}
+
+/** A loaf: paws tucked, ears up, tail curled to the side. */
+function catLieFront() {
+  const img = paintBlank(PET_W, PET_H);
+  shape(img, ell(17.4, 15.8, 2.2, 1.6), [17.4, 15.8, 2.2, 1.6], GINGER, { ol: NAVY, t: [0.88, 0.4, 0] });
+  put(img, 18, 15, GINGER_HI);
+  shape(img, ell(11.2, 15.6, 5.6, 2.6), [11.2, 15.6, 5.6, 2.6], GINGER, { ol: NAVY, t: [0.86, 0.4, 0] });
+  shape(img, ell(11.2, 12.6, 4.0, 2.8), [11.2, 12.6, 4.0, 2.8], GINGER, { ol: NAVY, t: [0.84, 0.4, 0] });
+  shape(img, tri(8.6, 11.2, 8.2, 6.8, 11.0, 10.6), [9.2, 9.2, 1.6, 2.4], GINGER_FAR, { ol: NAVY, t: [0.9, 0.4, 0] });
+  shape(img, tri(11.4, 11.2, 14.2, 6.8, 14.4, 10.6), [13, 9.2, 1.6, 2.4], GINGER, { ol: NAVY, t: [0.88, 0.38, 0] });
+  put(img, 9, 8, PINK);
+  put(img, 13, 8, PINK_DEEP);
+  stripes(img, [[10, 11], [12, 11]]);
+  shape(img, ell(11.2, 17.6, 3.2, 1.15), [11.2, 17.6, 3.2, 1.15], CREAM, { ol: NAVY, t: [0.95, 0.4, 0] });
+  catEye(img, 10, 12, false);
+  catEye(img, 13, 12, false);
+  put(img, 11, 14, PINK_DEEP);
+  put(img, 12, 15, CREAM[3]);
+  return img;
+}
+
+/** Loaf from behind: tail, stripes, the back of the ears. */
+function catLieBack() {
+  const img = paintBlank(PET_W, PET_H);
+  shape(img, ell(6.2, 15.2, 2.0, 2.2), [6.2, 15.2, 2.0, 2.2], GINGER, { ol: NAVY, t: [0.9, 0.4, 0] });
+  put(img, 6, 13, GINGER_HI);
+  put(img, 6, 15, STRIPE);
+  shape(img, ell(12, 15.6, 5.4, 2.6), [12, 15.6, 5.4, 2.6], GINGER, { ol: NAVY, t: [0.86, 0.4, 0] });
+  shape(img, ell(12, 12.8, 3.4, 2.4), [12, 12.8, 3.4, 2.4], GINGER, { ol: NAVY, t: [0.84, 0.4, 0] });
+  shape(img, tri(9.6, 11.6, 9.4, 7.8, 11.4, 11.2), [10.2, 9.8, 1.4, 2.0], GINGER_FAR, { ol: NAVY, t: [0.9, 0.4, 0] });
+  shape(img, tri(12.6, 11.6, 14.8, 7.8, 14.8, 11.2), [13.8, 9.8, 1.4, 2.0], GINGER, { ol: NAVY, t: [0.88, 0.38, 0] });
+  stripes(img, [[11, 14], [13, 15], [12, 14]]);
+  return img;
+}
+
 function dogFrames() {
   const side = [0, 1, 2, 3].map((i) => collarSide(fit(dogWalk(i))));
   const front = [0, 1, 2, 3].map((i) => dogFront(i));
   const back = [0, 1, 2, 3].map((i) => dogBack(i));
-  return [...side, ...front, ...back, dogFront(0), dogFront(0, { blink: true }), dogSitSide(), dogFront(0, { sit: true }), dogBack(0, { sit: true })].map(sealOutline);
+  return [...side, ...front, ...back, dogFront(0), dogFront(0, { blink: true }), dogSitSide(), dogFront(0, { sit: true }), dogBack(0, { sit: true }), dogLieSide(), dogLieFront(), dogLieBack()].map(sealOutline);
 }
 
 function catFrames() {
   const side = [0, 1, 2, 3].map((i) => catSide(i));
   const front = [0, 1, 2, 3].map((i) => catFront(i));
   const back = [0, 1, 2, 3].map((i) => catBack(i));
-  return [...side, ...front, ...back, catFront(0), catFront(0, { blink: true }), catSide(0, { sit: true }), catFront(0, { sit: true }), catBack(0, { sit: true })].map(sealOutline);
+  return [...side, ...front, ...back, catFront(0), catFront(0, { blink: true }), catSide(0, { sit: true }), catFront(0, { sit: true }), catBack(0, { sit: true }), catLieSide(), catLieFront(), catLieBack()].map(sealOutline);
 }
 
 function strip(frames) {
@@ -365,7 +477,7 @@ function strip(frames) {
 
 /** Standalone strips for the world spritesheets (`chars/pet_dog`, `chars/pet_cat`). */
 export async function petStrips() {
-  const meta = { frames: 17, frameW: PET_W, fps: 8, anims: PET_ANIMS };
+  const meta = { frames: 20, frameW: PET_W, fps: 8, anims: PET_ANIMS };
   return [
     { key: 'chars/pet_dog', img: strip(dogFrames()), meta },
     { key: 'chars/pet_cat', img: strip(catFrames()), meta },

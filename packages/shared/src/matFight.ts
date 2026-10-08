@@ -1,6 +1,15 @@
 /**
  * Academia mat fight. One function resolves a turn for either fighter (a second human can sit in the same call later).
- * Rolls stay on the server. The client shows the percent before the player confirms.
+ * Rolls stay on the server. The client shows the percent (and what moved it) before the player confirms.
+ *
+ * Grips are strategy, not a flat bonus (docs/lifesim/DECISIONS.md, "Tatame v2"):
+ *  - Gola (collar): Queda +20, and opens Arrastar. A collar with no sleeve is punished: their Abraço gets +15.
+ *  - Manga (sleeve): their attacks on you are −20, and opens Puxar (pull them down; you keep the sleeve, so the next sweep is +20).
+ *  - Both: open Arremesso, the strongest throw.
+ *  - Postura strips their grips and braces against grips; Base braces against takedowns (and sweeps, from on top).
+ *    An attack that runs into a brace and misses is a Vantagem for the defender. A brace waits for one move only.
+ *  - A grip held through three of your turns slips, and you are tired (−10) for one move. Advantages break a points tie.
+ * The partner telegraphs its next move (`planBot`), and the moves that answer it are flagged.
  *
  * needs_br: true on every new Portuguese label below. The words reuse academia copy where it already exists
  * (pegar, gola, manga, segurar, em pé). No quiz and no new technique name in the diary.
@@ -12,7 +21,17 @@ import { diaryKey, diaryWord, normalizeDiary, type DiaryWord } from './diary.js'
 
 export const MAT_TURNS = 10;
 export const PERCENT_CAP = 95;
-export const GRIP_BONUS = 10;
+export const PERCENT_FLOOR = 5;
+
+/** What each grip is worth (percent points). */
+export const COLLAR_QUEDA = 25;
+export const SLEEVE_SHIELD = 20;
+export const LONE_COLLAR_PUNISH = 15;
+export const SLEEVE_SWEEP = 20;
+export const SLEEVE_ANKLE = 15;
+/** A grip slips at the end of the holder's third turn holding it. */
+export const GRIP_SLIP = 3;
+export const TIRED_MALUS = 10;
 
 /**
  * How long the client holds a move's cartoon, and how long it then waits while the opponent decides.
@@ -31,6 +50,9 @@ export type MatMoveId =
   | 'double_leg'
   | 'body_lock'
   | 'single_leg'
+  | 'collar_drag'
+  | 'sleeve_pull'
+  | 'hip_throw'
   | 'hook_sweep'
   | 'scissor_sweep'
   | 'hip_bump'
@@ -56,22 +78,54 @@ export interface GripFlags {
   collar: boolean;
   sleeve: boolean;
 }
+export type GripId = keyof GripFlags;
+
+/** A defense waiting for the other fighter's next move. */
+export type MatBrace = 'postura' | 'base' | 'recuperar';
+/** What an attack is, for braces and the sleeve's shield. */
+export type MatAttack = 'pegada' | 'queda' | 'raspagem' | 'passagem' | 'final';
+
+/** How much each brace takes off each kind of attack. */
+export const BRACE_CUT: Record<MatBrace, Partial<Record<MatAttack, number>>> = {
+  postura: { pegada: 30, queda: 15 },
+  base: { queda: 30, raspagem: 30 },
+  recuperar: { passagem: 30 },
+};
+
+type Pair<T> = { you: T; them: T };
 
 export interface MatState {
   position: MatPosition;
-  points: { you: number; them: number };
+  points: Pair<number>;
+  /** Vantagens: a brace that stopped an attack. They break a points tie. */
+  adv: Pair<number>;
   /** Turns already played, counting both fighters. The match ends at {@link MAT_TURNS}. */
   turnsUsed: number;
   actor: MatSide;
-  grips: { you: GripFlags; them: GripFlags };
+  grips: Pair<GripFlags>;
+  /** Own turns each held grip has been kept. It slips at {@link GRIP_SLIP}. */
+  gripAge: Pair<{ collar: number; sleeve: number }>;
+  brace: Pair<MatBrace | null>;
+  /** A grip slipped: the next move is −{@link TIRED_MALUS}. */
+  tired: Pair<boolean>;
+  /** -1..1 from the player's seat: who won the last exchange (a landed move, or the other side's miss). Feeds the meter. */
+  flow: number;
   /** Position keys already paid this exchange (`you:mount`). Cleared on a reset to standing or a missed submission. */
   scored: string[];
   over: boolean;
   winner: 'you' | 'them' | 'draw' | null;
-  reason: 'submission' | 'points' | 'draw' | null;
+  reason: 'submission' | 'points' | 'advantages' | 'draw' | null;
 }
 
 export type MatSound = 'hit' | 'whoosh' | 'mount' | 'sub' | 'none';
+
+/** What changed besides the position, so the mat can draw the grip snap, the strip, the slip and the advantage. */
+export type MatEvent =
+  | { kind: 'grip'; side: MatSide; grip: GripId }
+  | { kind: 'strip'; side: MatSide; grips: GripId[] }
+  | { kind: 'slip'; side: MatSide; grips: GripId[] }
+  | { kind: 'brace'; side: MatSide; brace: MatBrace }
+  | { kind: 'blocked'; side: MatSide };
 
 export interface MatResult {
   state: MatState;
@@ -87,16 +141,25 @@ export interface MatResult {
   toAhead: 'you' | 'partner' | null;
   fromRung: number;
   toRung: number;
+  /** The percent the roll was made against. */
+  percent: number;
+  events: MatEvent[];
+  meterFrom: number;
+  meterTo: number;
 }
 
 // needs_br: true
 export const MOVE_LABEL: Record<MatMoveId, Bilingual> = {
-  collar_tie: { pt: 'Pegar a gola', en: 'Collar tie' },
+  collar_tie: { pt: 'Pegar a gola', en: 'Collar grip' },
   sleeve_grip: { pt: 'Pegar a manga', en: 'Sleeve grip' },
-  double_leg: { pt: 'Queda', en: 'Double leg' },
+  double_leg: { pt: 'Queda', en: 'Takedown' },
   body_lock: { pt: 'Abraço', en: 'Body lock trip' },
   // needs_br: true — Tornozelo. A later takedown from standing into the knee.
   single_leg: { pt: 'Tornozelo', en: 'Ankle pick' },
+  // needs_br: true — Arrastar, Puxar, Arremesso: plain verbs/nouns, opened by the grips (no technique names).
+  collar_drag: { pt: 'Arrastar', en: 'Drag (needs collar)' },
+  sleeve_pull: { pt: 'Puxar', en: 'Pull down (needs sleeve)' },
+  hip_throw: { pt: 'Arremesso', en: 'Throw (needs both)' },
   // needs_br: true — Gancho. A basic closed-guard sweep, distinct from Tesoura and Quadril.
   hook_sweep: { pt: 'Gancho', en: 'Hook sweep' },
   scissor_sweep: { pt: 'Tesoura', en: 'Scissor sweep' },
@@ -125,6 +188,9 @@ const PERCENT: Record<Exclude<MatMoveId, 'hold'>, readonly (number | null)[]> = 
   double_leg: [45, 55, 65, 74, 82],
   body_lock: [50, 60, 70, 78, 85],
   single_leg: [null, null, 40, 52, 64],
+  collar_drag: [55, 64, 72, 80, 86],
+  sleeve_pull: [80, 85, 89, 92, 94],
+  hip_throw: [75, 80, 85, 90, 93],
   hook_sweep: [38, 50, 62, 72, 80],
   scissor_sweep: [40, 52, 64, 74, 82],
   hip_bump: [48, 58, 68, 76, 84],
@@ -144,6 +210,8 @@ const POINTS: Partial<Record<MatMoveId, number>> = {
   double_leg: 2,
   body_lock: 2,
   single_leg: 2,
+  collar_drag: 2,
+  hip_throw: 2,
   hook_sweep: 2,
   scissor_sweep: 2,
   hip_bump: 2,
@@ -157,6 +225,7 @@ const POINTS: Partial<Record<MatMoveId, number>> = {
  * Day one is one move on each gag track: a grip, Queda, Gancho, Postura, Passar, and a weak submission.
  * Later awards fill the track. Sleeve, Abraço, Base, Tesoura, Quadril, Recuperar, Sair, Americana, and Pescoço stay on the same stripe.
  * The empty white stripe teaches Joelho. Purple then teaches Encaixe, so the choke can be reached, and Tornozelo, a third takedown.
+ * The grip combos (Arrastar, Puxar, Arremesso) are not awards: owning the grips opens them ({@link COMBOS}).
  */
 export const UNLOCK_ORDER: readonly { belt: Belt; stripes: number; move: MatMoveId }[] = [
   { belt: 'branca', stripes: 0, move: 'collar_tie' },
@@ -177,6 +246,13 @@ export const UNLOCK_ORDER: readonly { belt: Belt; stripes: number; move: MatMove
   { belt: 'roxa', stripes: 0, move: 'rnc' },
   { belt: 'roxa', stripes: 1, move: 'back_take' },
   { belt: 'roxa', stripes: 2, move: 'single_leg' },
+];
+
+/** The follow-ups a grip opens: owning the grips (not a stripe) puts these in the fight. */
+export const COMBOS: readonly { move: MatMoveId; needs: readonly MatMoveId[] }[] = [
+  { move: 'collar_drag', needs: ['collar_tie'] },
+  { move: 'sleeve_pull', needs: ['sleeve_grip'] },
+  { move: 'hip_throw', needs: ['collar_tie', 'sleeve_grip'] },
 ];
 
 const MOVE_IDS = new Set<string>(Object.keys(MOVE_LABEL));
@@ -205,16 +281,24 @@ export function rankPool(belt: Belt): MatMoveId[] {
   return movesThrough(belt, 4);
 }
 
+/** The pool plus the follow-ups its grips open. */
+export function withCombos(moves: readonly MatMoveId[]): MatMoveId[] {
+  const out = [...moves];
+  for (const c of COMBOS) if (c.needs.every((n) => moves.includes(n)) && !out.includes(c.move)) out.push(c.move);
+  return out;
+}
+
 /**
  * Moves this fighter may play.
  * Same belt: only what they personally have unlocked.
  * Higher belt: the lower belt's whole pool (belt award + four stripes), even if the lower fighter is missing stripes.
  * Lower belt: only their own unlocks. They cannot reach a move that first unlocks higher.
+ * The grip follow-ups come with the grips.
  */
 export function fightMoves(args: { belt: Belt; unlocked: readonly MatMoveId[]; opponentBelt: Belt }): MatMoveId[] {
   const own = args.unlocked.filter((id) => isMatMove(id) && rankPool(args.belt).includes(id));
-  if (beltIndex(args.belt) > beltIndex(args.opponentBelt)) return rankPool(args.opponentBelt);
-  return own;
+  if (beltIndex(args.belt) > beltIndex(args.opponentBelt)) return withCombos(rankPool(args.opponentBelt));
+  return withCombos(own);
 }
 
 /** The bot is a student at `belt`: the whole pool of that belt, then the cross-rank cap. */
@@ -222,27 +306,29 @@ export function botMoves(belt: Belt, opponentBelt: Belt): MatMoveId[] {
   return fightMoves({ belt, unlocked: rankPool(belt), opponentBelt });
 }
 
-export function gripBonus(g: GripFlags | undefined): number {
-  if (!g) return 0;
-  return (g.collar ? GRIP_BONUS : 0) + (g.sleeve ? GRIP_BONUS : 0);
-}
-
-/** Success percent at this belt. Takedowns add a live grip bonus and cap at 95. Hold is certain. Locked moves are 0. */
+/** Plain table percent at this belt, plus a flat `bonus` (capped). Hold is certain. Locked moves are 0. */
 export function movePercent(id: MatMoveId, belt: Belt, bonus = 0): number {
   if (id === 'hold') return 100;
   const row = PERCENT[id][beltIndex(belt)];
   if (row == null) return 0;
-  const extra = id === 'double_leg' || id === 'body_lock' || id === 'single_leg' ? Math.max(0, bonus) : 0;
-  return Math.min(PERCENT_CAP, row + extra);
+  return Math.max(PERCENT_FLOOR, Math.min(PERCENT_CAP, row + bonus));
 }
+
+const emptyGrips = (): GripFlags => ({ collar: false, sleeve: false });
+const zeroAge = () => ({ collar: 0, sleeve: 0 });
 
 export function newMat(): MatState {
   return {
     position: { kind: 'standing' },
     points: { you: 0, them: 0 },
+    adv: { you: 0, them: 0 },
     turnsUsed: 0,
     actor: 'you',
-    grips: { you: { collar: false, sleeve: false }, them: { collar: false, sleeve: false } },
+    grips: { you: emptyGrips(), them: emptyGrips() },
+    gripAge: { you: zeroAge(), them: zeroAge() },
+    brace: { you: null, them: null },
+    tired: { you: false, them: false },
+    flow: 0,
     scored: [],
     over: false,
     winner: null,
@@ -250,7 +336,7 @@ export function newMat(): MatState {
   };
 }
 
-const other = (s: MatSide): MatSide => (s === 'you' ? 'them' : 'you');
+export const other = (s: MatSide): MatSide => (s === 'you' ? 'them' : 'you');
 
 /** The position as the actor sees it: "top" means the actor is on top. */
 export function seenBy(pos: MatPosition, actor: MatSide): MatPosition {
@@ -258,7 +344,9 @@ export function seenBy(pos: MatPosition, actor: MatSide): MatPosition {
   return { kind: pos.kind, top: pos.top === 'you' ? 'them' : 'you' };
 }
 
-function viewKind(pos: MatPosition, actor: MatSide): 'standing' | 'closed_top' | 'closed_bottom' | 'side_bottom' | 'knee_bottom' | 'mount_bottom' | 'mount_top' | 'back_bottom' | 'back_top' | 'side_top' | 'knee_top' | 'closed_top_only' {
+type View = 'standing' | 'closed_top' | 'closed_bottom' | 'side_bottom' | 'knee_bottom' | 'mount_bottom' | 'mount_top' | 'back_bottom' | 'back_top' | 'side_top' | 'knee_top';
+
+function viewKind(pos: MatPosition, actor: MatSide): View {
   const s = seenBy(pos, actor);
   if (s.kind === 'standing') return 'standing';
   const top = s.top === 'you';
@@ -269,6 +357,7 @@ function viewKind(pos: MatPosition, actor: MatSide): 'standing' | 'closed_top' |
   return top ? 'back_top' : 'back_bottom';
 }
 
+/** Position-only legality. Grip-gated follow-ups also need {@link gripReady}. */
 export function moveLegal(pos: MatPosition, actor: MatSide, id: MatMoveId): boolean {
   if (id === 'hold') return true;
   const v = viewKind(pos, actor);
@@ -278,14 +367,17 @@ export function moveLegal(pos: MatPosition, actor: MatSide, id: MatMoveId): bool
     case 'double_leg':
     case 'body_lock':
     case 'single_leg':
-    case 'sprawl':
+    case 'collar_drag':
+    case 'sleeve_pull':
+    case 'hip_throw':
+    case 'posture':
       return v === 'standing';
+    case 'sprawl':
+      return v === 'standing' || v === 'closed_top';
     case 'knee_on_belly':
       return v === 'side_top';
     case 'back_take':
       return v === 'side_top' || v === 'knee_top' || v === 'mount_top';
-    case 'posture':
-      return v === 'standing';
     case 'passar':
       return v === 'closed_top' || v === 'side_top' || v === 'knee_top';
     case 'hook_sweep':
@@ -293,7 +385,7 @@ export function moveLegal(pos: MatPosition, actor: MatSide, id: MatMoveId): bool
     case 'hip_bump':
       return v === 'closed_bottom';
     case 'frame':
-      return v === 'side_bottom' || v === 'knee_bottom' || v === 'mount_bottom';
+      return v === 'side_bottom' || v === 'knee_bottom' || v === 'mount_bottom' || v === 'closed_bottom';
     case 'escape_back':
       return v === 'back_bottom';
     case 'armbar':
@@ -307,15 +399,39 @@ export function moveLegal(pos: MatPosition, actor: MatSide, id: MatMoveId): bool
   }
 }
 
+/**
+ * The grips a move needs are in hand. Every throw from standing needs a grip: Queda and Tornozelo any grip, Arrastar the collar,
+ * Puxar the sleeve, Arremesso both. Abraço needs a grip too, or their collar on you (a lone collar lets you in close).
+ */
+export function gripReady(state: MatState, actor: MatSide, id: MatMoveId): boolean {
+  const g = state.grips[actor];
+  const any = g.collar || g.sleeve;
+  if (id === 'double_leg' || id === 'single_leg') return any;
+  if (id === 'body_lock') return any || state.grips[other(actor)].collar;
+  if (id === 'collar_drag') return g.collar;
+  if (id === 'sleeve_pull') return g.sleeve;
+  if (id === 'hip_throw') return g.collar && g.sleeve;
+  return true;
+}
+
+/** needs_br: true — why an owned throw is not on offer yet ("Precisa da gola"), or null when it is open. */
+export function gripNeed(state: MatState, actor: MatSide, id: MatMoveId): Bilingual | null {
+  if (gripReady(state, actor, id) || !moveLegal(state.position, actor, id)) return null;
+  if (id === 'collar_drag') return { pt: 'Precisa da gola', en: 'Needs the collar' };
+  if (id === 'sleeve_pull') return { pt: 'Precisa da manga', en: 'Needs the sleeve' };
+  if (id === 'hip_throw') return { pt: 'Precisa da gola e da manga', en: 'Needs collar and sleeve' };
+  return { pt: 'Precisa de uma pegada', en: 'Needs a grip' };
+}
+
 /** A grip this fighter already holds is not offered again (re-taking it would only burn the turn). */
 export function gripHeld(state: MatState, actor: MatSide, id: MatMoveId): boolean {
   return (id === 'collar_tie' && state.grips[actor].collar) || (id === 'sleeve_grip' && state.grips[actor].sleeve);
 }
 
 export function matLegalMoves(state: MatState, actor: MatSide, allowed: readonly MatMoveId[]): MatMoveId[] {
-  const set = new Set<MatMoveId>(allowed);
+  const set = new Set<MatMoveId>(withCombos(allowed));
   set.add('hold');
-  return (Object.keys(MOVE_LABEL) as MatMoveId[]).filter((id) => set.has(id) && moveLegal(state.position, actor, id) && !gripHeld(state, actor, id));
+  return (Object.keys(MOVE_LABEL) as MatMoveId[]).filter((id) => set.has(id) && moveLegal(state.position, actor, id) && gripReady(state, actor, id) && !gripHeld(state, actor, id));
 }
 
 const ART: Record<MatKind, BjjPositionId> = {
@@ -339,38 +455,125 @@ function place(actor: MatSide, kind: Exclude<MatKind, 'standing'>, actorOnTop: b
   return { kind, top };
 }
 
-function emptyGrips(): GripFlags {
-  return { collar: false, sleeve: false };
-}
-
 function clone(st: MatState): MatState {
+  // older snapshots (tests, a reconnect) may lack the v2 fields: fill them in
+  const base = newMat();
   return {
+    ...base,
     ...st,
     points: { ...st.points },
+    adv: { ...(st.adv ?? base.adv) },
     grips: { you: { ...st.grips.you }, them: { ...st.grips.them } },
+    gripAge: { you: { ...(st.gripAge?.you ?? zeroAge()) }, them: { ...(st.gripAge?.them ?? zeroAge()) } },
+    brace: { ...(st.brace ?? base.brace) },
+    tired: { ...(st.tired ?? base.tired) },
+    flow: st.flow ?? 0,
     scored: [...st.scored],
     position: st.position.kind === 'standing' ? { kind: 'standing' } : { kind: st.position.kind, top: st.position.top },
   };
 }
 
 function finishScore(st: MatState): void {
-  if (st.points.you === st.points.them) {
-    st.winner = 'draw';
-    st.reason = 'draw';
-  } else {
+  if (st.points.you !== st.points.them) {
     st.winner = st.points.you > st.points.them ? 'you' : 'them';
     st.reason = 'points';
+  } else if (st.adv.you !== st.adv.them) {
+    st.winner = st.adv.you > st.adv.them ? 'you' : 'them';
+    st.reason = 'advantages';
+  } else {
+    st.winner = 'draw';
+    st.reason = 'draw';
   }
   st.over = true;
 }
 
 const SUBS = new Set<MatMoveId>(['armbar', 'americana', 'rnc']);
-const TAKEDOWNS = new Set<MatMoveId>(['double_leg', 'body_lock', 'single_leg']);
+const TAKEDOWNS = new Set<MatMoveId>(['double_leg', 'body_lock', 'single_leg', 'collar_drag', 'hip_throw']);
+const SWEEPS = new Set<MatMoveId>(['hook_sweep', 'scissor_sweep', 'hip_bump']);
+const PASSES = new Set<MatMoveId>(['passar', 'knee_on_belly', 'back_take']);
+
+export const isSubmission = (id: MatMoveId): boolean => SUBS.has(id);
+export const isTakedown = (id: MatMoveId): boolean => TAKEDOWNS.has(id);
+
+export function attackOf(id: MatMoveId): MatAttack | null {
+  if (id === 'collar_tie' || id === 'sleeve_grip') return 'pegada';
+  if (TAKEDOWNS.has(id)) return 'queda';
+  if (SWEEPS.has(id)) return 'raspagem';
+  if (PASSES.has(id)) return 'passagem';
+  if (SUBS.has(id)) return 'final';
+  return null;
+}
+
+/** The brace a defense sets, if it lands, where it is played. */
+function braceOf(state: MatState, actor: MatSide, id: MatMoveId): MatBrace | null {
+  if (id === 'posture') return 'postura';
+  if (id === 'sprawl') return 'base';
+  if (id === 'frame' && viewKind(state.position, actor) === 'closed_bottom') return 'recuperar';
+  return null;
+}
+
+// ---------------------------------------------------------------- odds
+
+/** One line of the odds breakdown the card shows ("Gola +20%"). needs_br: true */
+export interface OddsPart {
+  pt: string;
+  en: string;
+  delta: number;
+}
+
+/** The percent this move would roll at right now, and what moved it off the belt table. */
+export function matOdds(state: MatState, actor: MatSide, id: MatMoveId, belt: Belt, edge = 0): { percent: number; base: number; parts: OddsPart[] } {
+  if (id === 'hold') return { percent: 100, base: 100, parts: [] };
+  const base = movePercent(id, belt);
+  if (base <= 0) return { percent: 0, base: 0, parts: [] };
+  const raw = PERCENT[id][beltIndex(belt)] ?? 0;
+  const foe = other(actor);
+  const mine = state.grips[actor];
+  const theirs = state.grips[foe];
+  const atk = attackOf(id);
+  const parts: OddsPart[] = [];
+  if (id === 'double_leg' && mine.collar) parts.push({ pt: 'Gola', en: 'Collar', delta: COLLAR_QUEDA });
+  if (id === 'single_leg' && mine.sleeve) parts.push({ pt: 'Manga', en: 'Sleeve', delta: SLEEVE_ANKLE });
+  if (SWEEPS.has(id) && mine.sleeve) parts.push({ pt: 'Manga', en: 'Sleeve', delta: SLEEVE_SWEEP });
+  if (id === 'body_lock' && theirs.collar && !theirs.sleeve) parts.push({ pt: 'Gola sozinha dele', en: 'Their lone collar', delta: LONE_COLLAR_PUNISH });
+  if (atk && atk !== 'pegada' && theirs.sleeve) parts.push({ pt: 'Manga dele', en: 'Their sleeve', delta: -SLEEVE_SHIELD });
+  const brace = state.brace?.[foe];
+  const cut = brace && atk ? (BRACE_CUT[brace][atk] ?? 0) : 0;
+  if (cut) parts.push({ pt: 'Defesa dele', en: 'Their defense', delta: -cut });
+  if (state.tired?.[actor]) parts.push({ pt: 'Cansaço', en: 'Tired', delta: -TIRED_MALUS });
+  if (edge) parts.push({ pt: 'Precisão', en: 'Accuracy', delta: edge });
+  const sum = parts.reduce((a, p) => a + p.delta, 0);
+  const percent = Math.max(PERCENT_FLOOR, Math.min(PERCENT_CAP, raw + sum));
+  return { percent, base, parts };
+}
+
+// ---------------------------------------------------------------- the meter
+
+const gripCount = (g: GripFlags): number => (g.collar ? 1 : 0) + (g.sleeve ? 1 : 0);
+
+/**
+ * The control meter, -100 (the partner owns the match) .. 100 (you do), from the player's seat:
+ * the position, the grips each side holds, advantages, a brace up, a tired fighter, and who won the last exchange.
+ * Every move moves it, so every answer reads as ground gained or lost.
+ */
+export function matMeter(st: MatState): number {
+  let v = artOf(st.position).rung * 17;
+  v += (gripCount(st.grips.you) - gripCount(st.grips.them)) * 9;
+  v += ((st.adv?.you ?? 0) - (st.adv?.them ?? 0)) * 5;
+  v += (st.brace?.you ? 4 : 0) - (st.brace?.them ? 4 : 0);
+  v += (st.tired?.them ? 4 : 0) - (st.tired?.you ? 4 : 0);
+  v += (st.flow ?? 0) * 7;
+  return Math.max(-100, Math.min(100, Math.round(v)));
+}
+
+// ---------------------------------------------------------------- resolve
+
+const SOUND_NONE: MatSound = 'none';
 
 function soundFor(id: MatMoveId, success: boolean, next: MatPosition): MatSound {
   if (SUBS.has(id)) return 'sub';
-  if (!success || id === 'hold') return 'none';
-  if (TAKEDOWNS.has(id)) return 'whoosh';
+  if (!success || id === 'hold') return SOUND_NONE;
+  if (TAKEDOWNS.has(id) || id === 'sleeve_pull') return 'whoosh';
   if (next.kind === 'mount') return 'mount';
   return 'hit';
 }
@@ -378,10 +581,11 @@ function soundFor(id: MatMoveId, success: boolean, next: MatPosition): MatSound 
 /**
  * Resolve one fighter's move. `roll` is in [0, 1). Success when roll < percent/100.
  * `force` guarantees success (the professor's drill). A miss on a submission dumps both fighters
- * to closed guard with the attacker on the bottom.
+ * to closed guard with the attacker on the bottom. `edge` is the partner's accuracy (percent points).
  */
 export function resolveMat(state: MatState, actor: MatSide, id: MatMoveId, roll: number, belt: Belt, force = false, edge = 0): MatResult {
   const from = artOf(state.position);
+  const meterFrom = matMeter(state);
   const fail = (line: Bilingual): MatResult => ({
     state,
     ok: false,
@@ -396,38 +600,85 @@ export function resolveMat(state: MatState, actor: MatSide, id: MatMoveId, roll:
     toAhead: from.ahead,
     fromRung: from.rung,
     toRung: from.rung,
+    percent: 0,
+    events: [],
+    meterFrom,
+    meterTo: meterFrom,
   });
   if (state.over || state.actor !== actor || !isMatMove(id)) return fail({ pt: 'Não.', en: 'No.' });
+  if (!moveLegal(state.position, actor, id) || gripHeld(state, actor, id) || (!force && !gripReady(state, actor, id))) return fail({ pt: 'Não.', en: 'No.' });
   const st = clone(state);
-  const bonus = gripBonus(st.grips[actor]);
-  const base = movePercent(id, belt, bonus);
-  // a partner's accuracy nudges their odds (never a locked move into an open one, never past the cap)
-  const percent = base > 0 && id !== 'hold' ? Math.max(5, Math.min(PERCENT_CAP, base + edge)) : base;
-  if (!moveLegal(st.position, actor, id) || gripHeld(st, actor, id)) return fail({ pt: 'Não.', en: 'No.' });
-  if (!force && percent <= 0 && id !== 'hold') return fail({ pt: 'Não.', en: 'No.' });
-  if (TAKEDOWNS.has(id)) st.grips[actor] = emptyGrips();
+  const foe = other(actor);
+  const percent = matOdds(st, actor, id, belt, edge).percent;
+  if (!force && percent <= 0) return fail({ pt: 'Não.', en: 'No.' });
+  const events: MatEvent[] = [];
+  const atk = attackOf(id);
+  const foeBrace = st.brace[foe];
+  const braced = !!(foeBrace && atk && BRACE_CUT[foeBrace][atk]);
+  const keepSleeve = id === 'sleeve_pull';
+  // a throw commits the grips it was set up with: hit or miss, they are gone
+  if (TAKEDOWNS.has(id)) {
+    st.grips[actor] = emptyGrips();
+    st.gripAge[actor] = zeroAge();
+  }
+  st.tired[actor] = false;
   const success = force || id === 'hold' || roll < percent / 100;
   let points = 0;
   let submission = false;
+  const before = st.position;
   if (!success && SUBS.has(id)) {
     st.position = place(actor, 'closed_guard', false);
     st.scored = [];
-    st.grips = { you: emptyGrips(), them: emptyGrips() };
+  } else if (!success && braced) {
+    st.adv[foe] += 1;
+    events.push({ kind: 'blocked', side: foe });
   } else if (success) {
-    const next = applySuccess(st, actor, id);
+    const next = applySuccess(st, actor, id, events);
     st.position = next.position;
     if (next.resetScored) st.scored = [];
-    if (next.clearGrips) st.grips = { you: emptyGrips(), them: emptyGrips() };
     const raw = POINTS[id] ?? 0;
-    if (raw > 0 && next.scoreKey) {
-      if (!st.scored.includes(next.scoreKey)) {
-        points = raw;
-        st.scored.push(next.scoreKey);
-        st.points[actor] += points;
-      }
+    if (raw > 0 && next.scoreKey && !st.scored.includes(next.scoreKey)) {
+      points = raw;
+      st.scored.push(next.scoreKey);
+      st.points[actor] += points;
     }
     submission = !!next.submission;
   }
+  const moved = st.position.kind !== before.kind || (st.position.kind !== 'standing' && before.kind !== 'standing' && st.position.top !== before.top);
+  if (moved) {
+    // a new position: the grips go (Puxar keeps the sleeve it pulled with), and every brace is spent
+    const kept = keepSleeve && st.grips[actor].sleeve;
+    const age = st.gripAge[actor].sleeve;
+    st.grips = { you: emptyGrips(), them: emptyGrips() };
+    st.gripAge = { you: zeroAge(), them: zeroAge() };
+    if (kept) {
+      st.grips[actor].sleeve = true;
+      st.gripAge[actor].sleeve = age;
+    }
+    st.brace = { you: null, them: null };
+  } else {
+    // the other fighter's brace waited for this move; it is spent now
+    st.brace[foe] = null;
+  }
+  // the grips this fighter kept through the move get older; the third turn of holding lets go and tires them
+  const slipped: GripId[] = [];
+  for (const g of ['collar', 'sleeve'] as const) {
+    if (!st.grips[actor][g]) continue;
+    st.gripAge[actor][g] += 1;
+    if (st.gripAge[actor][g] >= GRIP_SLIP) {
+      st.grips[actor][g] = false;
+      st.gripAge[actor][g] = 0;
+      slipped.push(g);
+    }
+  }
+  if (slipped.length) {
+    st.tired[actor] = true;
+    events.push({ kind: 'slip', side: actor, grips: slipped });
+  }
+  if (id !== 'hold') {
+    const won = success ? actor : foe;
+    st.flow = won === 'you' ? 1 : -1;
+  } else st.flow = 0;
   st.turnsUsed += 1;
   const to = artOf(st.position);
   if (submission) {
@@ -437,8 +688,9 @@ export function resolveMat(state: MatState, actor: MatSide, id: MatMoveId, roll:
   } else if (st.turnsUsed >= MAT_TURNS) {
     finishScore(st);
   } else {
-    st.actor = other(actor);
+    st.actor = foe;
   }
+  const blocked = events.some((e) => e.kind === 'blocked');
   const line = submission
     ? { pt: 'Final!', en: 'Finish!' }
     : points >= 4
@@ -447,16 +699,18 @@ export function resolveMat(state: MatState, actor: MatSide, id: MatMoveId, roll:
         ? { pt: 'Três pontos!', en: 'Three points!' }
         : points === 2
           ? { pt: 'Dois pontos!', en: 'Two points!' }
-          : success
-            ? MOVE_LABEL[id]
-            : { pt: 'Errou!', en: 'Missed!' };
+          : blocked
+            ? { pt: 'Vantagem!', en: 'Advantage!' }
+            : success
+              ? MOVE_LABEL[id]
+              : { pt: 'Errou!', en: 'Missed!' };
   return {
     state: st,
     ok: true,
     success,
     points,
     submission,
-    sound: soundFor(id, success, st.position),
+    sound: blocked ? 'hit' : soundFor(id, success, st.position),
     line,
     from: from.position,
     to: to.position,
@@ -464,120 +718,71 @@ export function resolveMat(state: MatState, actor: MatSide, id: MatMoveId, roll:
     toAhead: to.ahead,
     fromRung: from.rung,
     toRung: to.rung,
+    percent,
+    events,
+    meterFrom,
+    meterTo: matMeter(st),
   };
 }
 
-function applySuccess(st: MatState, actor: MatSide, id: MatMoveId): { position: MatPosition; resetScored: boolean; clearGrips: boolean; scoreKey: string | null; submission: boolean } {
-  const grip = () => {
-    if (id === 'collar_tie') st.grips[actor].collar = true;
-    if (id === 'sleeve_grip') st.grips[actor].sleeve = true;
-  };
+function applySuccess(st: MatState, actor: MatSide, id: MatMoveId, events: MatEvent[]): { position: MatPosition; resetScored: boolean; scoreKey: string | null; submission: boolean } {
+  const stay = { position: st.position, resetScored: false, scoreKey: null, submission: false };
+  const foe = other(actor);
   if (id === 'collar_tie' || id === 'sleeve_grip') {
-    grip();
-    return { position: { kind: 'standing' }, resetScored: false, clearGrips: false, scoreKey: null, submission: false };
+    const g: GripId = id === 'collar_tie' ? 'collar' : 'sleeve';
+    st.grips[actor][g] = true;
+    st.gripAge[actor][g] = 0;
+    events.push({ kind: 'grip', side: actor, grip: g });
+    return stay;
   }
-  if (id === 'posture') return { position: { kind: 'standing' }, resetScored: false, clearGrips: true, scoreKey: null, submission: false };
-  if (id === 'sprawl') return { position: { kind: 'standing' }, resetScored: true, clearGrips: true, scoreKey: null, submission: false };
-  if (id === 'hold') return { position: st.position, resetScored: false, clearGrips: false, scoreKey: null, submission: false };
+  const brace = braceOf(st, actor, id);
+  if (id === 'posture') {
+    // one grip breaks: the collar first (it is the bigger threat), else the sleeve
+    const g: GripId | null = st.grips[foe].collar ? 'collar' : st.grips[foe].sleeve ? 'sleeve' : null;
+    if (g) {
+      st.grips[foe][g] = false;
+      st.gripAge[foe][g] = 0;
+      events.push({ kind: 'strip', side: actor, grips: [g] });
+    }
+  }
+  if (brace) {
+    st.brace[actor] = brace;
+    events.push({ kind: 'brace', side: actor, brace });
+    return stay;
+  }
+  if (id === 'hold') return stay;
   if (id === 'passar') {
     const v = viewKind(st.position, actor);
     if (v === 'closed_top') return landed(actor, 'side_control', true);
     return landed(actor, 'mount', true);
   }
   if (id === 'double_leg') return landed(actor, 'side_control', true);
+  if (id === 'hip_throw') return landed(actor, 'knee_on_belly', true);
+  if (id === 'collar_drag') return landed(actor, 'back_control', true);
   if (id === 'body_lock') return landed(actor, 'closed_guard', true);
   if (id === 'single_leg') return landed(actor, 'knee_on_belly', true);
+  if (id === 'sleeve_pull') return { position: place(actor, 'closed_guard', false), resetScored: false, scoreKey: null, submission: false };
   if (id === 'knee_on_belly') return landed(actor, 'knee_on_belly', true);
   if (id === 'back_take') return landed(actor, 'back_control', true);
   if (id === 'hook_sweep') return landed(actor, 'side_control', true);
   if (id === 'scissor_sweep') return landed(actor, 'mount', true);
   if (id === 'hip_bump') return landed(actor, 'side_control', true);
-  if (id === 'frame' || id === 'escape_back') return { position: place(actor, 'closed_guard', false), resetScored: true, clearGrips: true, scoreKey: null, submission: false };
-  if (SUBS.has(id)) return { position: st.position, resetScored: false, clearGrips: false, scoreKey: null, submission: true };
-  return { position: st.position, resetScored: false, clearGrips: false, scoreKey: null, submission: false };
+  if (id === 'frame' || id === 'escape_back') return { position: place(actor, 'closed_guard', false), resetScored: true, scoreKey: null, submission: false };
+  if (SUBS.has(id)) return { ...stay, submission: true };
+  return stay;
 }
 
-function landed(actor: MatSide, kind: Exclude<MatKind, 'standing'>, onTop: boolean): { position: MatPosition; resetScored: boolean; clearGrips: boolean; scoreKey: string | null; submission: boolean } {
-  return { position: place(actor, kind, onTop), resetScored: false, clearGrips: true, scoreKey: `${actor}:${kind}`, submission: false };
+function landed(actor: MatSide, kind: Exclude<MatKind, 'standing'>, onTop: boolean): { position: MatPosition; resetScored: boolean; scoreKey: string | null; submission: boolean } {
+  return { position: place(actor, kind, onTop), resetScored: false, scoreKey: `${actor}:${kind}`, submission: false };
 }
 
 export function turnsLeft(st: MatState): number {
   return Math.max(0, MAT_TURNS - st.turnsUsed);
 }
 
-/**
- * Bot policy. White prefers a grip, then the higher-percent takedown.
- * An armbar is only thrown when it is the best way to finish a match the bot is losing.
- * From purple up, Americana (and the choke at brown) come out when the bot is behind with 2 turns or fewer left.
- * Otherwise the legal move with the highest expected points. Hold only when ahead and every scoring move expects under 1.
- */
-export function chooseBot(state: MatState, belt: Belt, allowed: readonly MatMoveId[], style?: MatStyle): MatMoveId {
-  const legal = matLegalMoves(state, state.actor, allowed);
-  if (!legal.length) return 'hold';
-  const pct = (id: MatMoveId) => movePercent(id, belt, gripBonus(state.grips[state.actor]));
-  const best = (ids: MatMoveId[]) => ids.reduce((a, b) => (pct(b) > pct(a) ? b : a));
-  const behind = state.points[state.actor] < state.points[other(state.actor)];
-  const ahead = state.points[state.actor] > state.points[other(state.actor)];
-  const subs = legal.filter((id) => SUBS.has(id));
-  const seenNow = seenBy(state.position, state.actor);
-  const takedowns = legal.filter((id) => TAKEDOWNS.has(id));
-  const grip = state.grips[state.actor];
-  // the partner's character (their lobby card): who hunts the finish, who shoots early, who turtles on a lead
-  if (style && style.aggression >= 0.8) {
-    const shots = subs.filter((id) => pct(id) >= 20);
-    if (shots.length) return best(shots);
-    if (seenNow.kind === 'standing' && takedowns.length) return best(takedowns);
-  }
-  if (style && style.defense >= 0.8) {
-    const out = legal.filter((id) => id === 'frame' || id === 'escape_back');
-    if (out.length) return best(out);
-    const theirs = state.grips[other(state.actor)];
-    if (seenNow.kind === 'standing' && (theirs.collar || theirs.sleeve) && legal.includes('posture')) return 'posture';
-    const ev = (id: MatMoveId) => (pct(id) / 100) * (POINTS[id] ?? 0);
-    if (ahead && legal.filter((id) => (POINTS[id] ?? 0) > 0).every((id) => ev(id) < 1.5)) return 'hold';
-  }
-  if (style && style.speed >= 0.8 && seenNow.kind === 'standing' && (grip.collar || grip.sleeve) && takedowns.length) return best(takedowns);
-  if (behind && beltIndex(belt) >= beltIndex('roxa') && turnsLeft(state) <= 2) {
-    const clutch = subs.filter((id) => id === 'americana' || (id === 'rnc' && beltIndex(belt) >= beltIndex('marrom')));
-    if (clutch.length) return best(clutch);
-  }
-  if (behind && legal.includes('armbar')) {
-    const arm = pct('armbar');
-    if (subs.every((id) => pct(id) <= arm)) return 'armbar';
-  }
-  const seen = seenBy(state.position, state.actor);
-  if (belt === 'branca' && seen.kind === 'standing') {
-    const grips = legal.filter((id) => id === 'collar_tie' || id === 'sleeve_grip');
-    const flags = state.grips[state.actor];
-    if (grips.length && !(flags.collar && flags.sleeve)) {
-      const fresh = grips.filter((id) => (id === 'collar_tie' ? !flags.collar : !flags.sleeve));
-      return best(fresh.length ? fresh : grips);
-    }
-    const td = legal.filter((id) => TAKEDOWNS.has(id));
-    if (td.length) return best(td);
-  }
-  if (beltIndex(belt) >= beltIndex('azul') && seen.kind === 'closed_guard' && seen.top !== 'you') {
-    const sweeps = legal.filter((id) => id === 'hook_sweep' || id === 'scissor_sweep' || id === 'hip_bump');
-    if (sweeps.length) return bestEv(sweeps, pct);
-  }
-  const scoring = legal.filter((id) => (POINTS[id] ?? 0) > 0);
-  const ev = (id: MatMoveId) => (pct(id) / 100) * (POINTS[id] ?? 0);
-  if (ahead && legal.includes('hold') && scoring.every((id) => ev(id) < 1)) return 'hold';
-  const ranked = legal.filter((id) => id !== 'hold');
-  if (!ranked.length) return 'hold';
-  return bestEv(ranked, pct);
-}
+// ---------------------------------------------------------------- partner style and AI
 
-function bestEv(ids: MatMoveId[], pct: (id: MatMoveId) => number): MatMoveId {
-  return ids.reduce((a, b) => {
-    const ea = (pct(a) / 100) * (POINTS[a] ?? 0);
-    const eb = (pct(b) / 100) * (POINTS[b] ?? 0);
-    if (eb !== ea) return eb > ea ? b : a;
-    return pct(b) > pct(a) ? b : a;
-  });
-}
-
-/** How a partner fights: an accuracy edge on their odds (percent points), and the leanings `chooseBot` reads. */
+/** How a partner fights: an accuracy edge on their odds (percent points), and the leanings the AI weighs. */
 export interface MatStyle {
   edge: number;
   speed: number;
@@ -594,6 +799,256 @@ export function matStyle(p: { accuracy: number; speed: number; aggression: numbe
 export function thinkMsFor(style?: Pick<MatStyle, 'speed'> | null): number {
   if (!style) return MAT_THINK_MS;
   return Math.round(Math.min(4600, Math.max(2200, 4200 - style.speed * 2200)));
+}
+
+const NEUTRAL: MatStyle = { edge: 0, speed: 0.5, aggression: 0.5, defense: 0.5 };
+const POS_VALUE: Record<MatKind, number> = { standing: 0, closed_guard: 0.5, side_control: 1.1, knee_on_belly: 1.3, mount: 1.9, back_control: 2.2 };
+/**
+ * Roughly what an attack is worth if it lands, for the AI's threat read: points, the position it reaches, and (for a throw)
+ * the attacks it opens on the ground. A grip is worth exactly how much it raises the next one of these.
+ */
+const ATTACK_GAIN: Partial<Record<MatMoveId, number>> = {
+  double_leg: 4.4,
+  body_lock: 3.6,
+  single_leg: 4.6,
+  collar_drag: 5.5,
+  hip_throw: 4.7,
+  sleeve_pull: 1.2,
+  hook_sweep: 3.6,
+  scissor_sweep: 4.4,
+  hip_bump: 3.6,
+  passar: 3.6,
+  knee_on_belly: 2.2,
+  back_take: 4.9,
+};
+
+interface AiCtx {
+  belt: Belt;
+  style: MatStyle;
+  edge: (s: MatSide) => number;
+  allowed: Pair<readonly MatMoveId[]>;
+}
+
+/** The best attack `s` could make from here, as an expected gain: what grips, braces, a shield and tiredness are really worth. */
+function threat(st: MatState, s: MatSide, ctx: AiCtx): number {
+  let best = 0;
+  const seen: MatState = st.actor === s ? st : { ...st, actor: s };
+  for (const id of ctx.allowed[s]) {
+    const gain = ATTACK_GAIN[id];
+    if (!gain || !moveLegal(st.position, s, id) || !gripReady(st, s, id)) continue;
+    const p = matOdds(seen, s, id, ctx.belt, ctx.edge(s)).percent / 100;
+    if (p * gain > best) best = p * gain;
+  }
+  return best;
+}
+
+/** How good this state is for `side`, in points. The partner's style weighs what it values. */
+function valueFor(st: MatState, side: MatSide, ctx: AiCtx): number {
+  const foe = other(side);
+  const style = ctx.style;
+  if (st.over) {
+    if (st.winner === 'draw') return 0;
+    return st.winner === side ? 12 : -12;
+  }
+  const late = Math.min(1, turnsLeft(st) / 4);
+  let v = (st.points[side] - st.points[foe]) * (1 + 0.3 * style.aggression);
+  v += (st.adv[side] - st.adv[foe]) * 0.45;
+  if (st.position.kind !== 'standing') {
+    const pv = POS_VALUE[st.position.kind];
+    v += (st.position.top === side ? pv : -pv * (0.8 + 0.6 * style.defense)) * late;
+  }
+  // the next attack each side has lined up: the one to move can take it now, the other has to survive a turn first
+  const nowW = st.actor === side ? 0.9 : 0.5;
+  const thenW = st.actor === side ? 0.5 : 0.9;
+  v += threat(st, side, ctx) * nowW * (0.85 + 0.3 * style.aggression) * late;
+  v -= threat(st, foe, ctx) * thenW * (0.8 + 0.4 * style.defense) * late;
+  // holding grips is its own comfort (the shield, the combos); a fast fighter cares less and shoots sooner
+  v += gripCount(st.grips[side]) * 0.2 * (1.2 - 0.6 * style.speed) * late;
+  v -= gripCount(st.grips[foe]) * 0.15 * late;
+  return v;
+}
+
+/** The expected value of `id` for its actor (the state's actor), looking one reply ahead when `depth` allows. */
+function expectFor(st: MatState, id: MatMoveId, side: MatSide, ctx: AiCtx, depth: number): number {
+  const actor = st.actor;
+  const hit = resolveMat(st, actor, id, 0, ctx.belt, false, ctx.edge(actor));
+  if (!hit.ok) return -Infinity;
+  const p = hit.percent / 100;
+  const miss = id === 'hold' || p >= 1 ? null : resolveMat(st, actor, id, 0.99999, ctx.belt, false, ctx.edge(actor));
+  const leaf = (s: MatState) => {
+    if (depth <= 0 || s.over) return valueFor(s, side, ctx);
+    // the other fighter answers with what is best for them (worst for `side`)
+    const replies = matLegalMoves(s, s.actor, ctx.allowed[s.actor]);
+    let best = s.actor === side ? -Infinity : Infinity;
+    for (const r of replies) {
+      const v = expectFor(s, r, side, ctx, depth - 1);
+      if (s.actor === side ? v > best : v < best) best = v;
+    }
+    return Number.isFinite(best) ? best : valueFor(s, side, ctx);
+  };
+  return p * leaf(hit.state) + (miss ? (1 - p) * leaf(miss.state) : 0);
+}
+
+/** What the partner is about to do, as the overlay says it ("Mateus vai tentar a queda."). */
+export type MatPlanKind = 'gola' | 'manga' | 'queda' | 'contra' | 'soltar' | 'base' | 'puxar' | 'raspar' | 'passar' | 'subir' | 'finalizar' | 'sair' | 'travar' | 'segurar';
+
+export interface MatPlan {
+  move: MatMoveId;
+  kind: MatPlanKind;
+}
+
+export function planKindOf(state: MatState, actor: MatSide, id: MatMoveId): MatPlanKind {
+  const foe = other(actor);
+  if (id === 'collar_tie') return 'gola';
+  if (id === 'sleeve_grip') return 'manga';
+  if (id === 'body_lock' && state.grips[foe].collar && !state.grips[foe].sleeve) return 'contra';
+  if (TAKEDOWNS.has(id)) return 'queda';
+  if (id === 'posture') return state.grips[foe].collar || state.grips[foe].sleeve ? 'soltar' : 'base';
+  if (id === 'sprawl') return 'base';
+  if (id === 'sleeve_pull') return 'puxar';
+  if (SWEEPS.has(id)) return 'raspar';
+  if (id === 'passar') return 'passar';
+  if (PASSES.has(id)) return 'subir';
+  if (SUBS.has(id)) return 'finalizar';
+  if (id === 'frame' && viewKind(state.position, actor) === 'closed_bottom') return 'travar';
+  if (id === 'frame' || id === 'escape_back') return 'sair';
+  return 'segurar';
+}
+
+/**
+ * The partner's next move: the legal move with the best expected value two moves deep (its move, then your best reply),
+ * weighed by the partner card (fast fighters value grips less and shoot sooner, defensive ones fear being under, aggressive ones
+ * want the points). The plan is computed during your turn and shown to you; the partner then commits to it if it is still legal.
+ * `foeAllowed` is what the player can play (their reply).
+ */
+export function planBot(state: MatState, belt: Belt, allowed: readonly MatMoveId[], style?: MatStyle, foeAllowed?: readonly MatMoveId[]): MatPlan {
+  const st: MatState = state.actor === 'them' ? state : { ...state, actor: 'them' };
+  let best: MatMoveId = 'hold';
+  let bestV = -Infinity;
+  for (const [id, v] of planValues(state, belt, allowed, style, foeAllowed)) {
+    if (v > bestV + 1e-9) {
+      bestV = v;
+      best = id;
+    }
+  }
+  return { move: best, kind: planKindOf(st, 'them', best) };
+}
+
+/** Every legal partner move with its two-ply value (the AI's whole read; tests and tuning). */
+export function planValues(state: MatState, belt: Belt, allowed: readonly MatMoveId[], style?: MatStyle, foeAllowed?: readonly MatMoveId[]): [MatMoveId, number][] {
+  const st: MatState = state.actor === 'them' ? state : { ...state, actor: 'them' };
+  const s = style ?? NEUTRAL;
+  const ctx: AiCtx = { belt, style: s, edge: (side) => (side === 'them' ? s.edge : 0), allowed: { them: withCombos(allowed), you: withCombos(foeAllowed ?? allowed) } };
+  return matLegalMoves(st, 'them', allowed).map((id) => [id, expectFor(st, id, 'them', ctx, 1)]);
+}
+
+/** The partner's move this turn (the plan, re-read from the state as it is now). */
+export function chooseBot(state: MatState, belt: Belt, allowed: readonly MatMoveId[], style?: MatStyle, foeAllowed?: readonly MatMoveId[]): MatMoveId {
+  return planBot(state, belt, allowed, style, foeAllowed).move;
+}
+
+/** The plan still stands after your move: same fighter to move, and the move is still legal. Otherwise the partner re-plans. */
+export function planStands(state: MatState, plan: MatPlan | null, allowed: readonly MatMoveId[]): boolean {
+  return !!plan && !state.over && state.actor === 'them' && matLegalMoves(state, 'them', allowed).includes(plan.move);
+}
+
+/** How much worse (in points) the telegraphed move may have become before the partner drops it for a better one. */
+export const PLAN_INERTIA = 0.6;
+
+/**
+ * The partner's move on its turn: the telegraphed plan, unless your move broke it (made it illegal, or made it clearly worse
+ * than its best option now). `replanned` says the telegraph was not kept, so the overlay can say so.
+ */
+export function botCommit(state: MatState, plan: MatPlan | null, belt: Belt, allowed: readonly MatMoveId[], style?: MatStyle, foeAllowed?: readonly MatMoveId[]): { move: MatMoveId; replanned: boolean } {
+  const values = planValues(state, belt, allowed, style, foeAllowed);
+  let best: MatMoveId = 'hold';
+  let bestV = -Infinity;
+  for (const [id, v] of values) {
+    if (v > bestV + 1e-9) {
+      bestV = v;
+      best = id;
+    }
+  }
+  const kept = plan ? values.find(([id]) => id === plan.move) : undefined;
+  if (kept && kept[1] >= bestV - PLAN_INERTIA) return { move: kept[0], replanned: false };
+  return { move: best, replanned: !!plan };
+}
+
+/** Your moves that answer the partner's plan: a brace, a strip, the shield, or using your grips before they are stripped. */
+export function planAnswers(state: MatState, plan: MatPlan, legal: readonly MatMoveId[]): MatMoveId[] {
+  const pick = (ids: MatMoveId[]) => ids.filter((id) => legal.includes(id));
+  switch (plan.kind) {
+    case 'queda':
+      return pick(['sprawl', 'posture', 'sleeve_grip']);
+    case 'contra':
+      return pick(['sleeve_grip', 'sprawl', 'posture']);
+    case 'gola':
+    case 'manga':
+    case 'puxar':
+      return pick(['posture']);
+    case 'soltar':
+      return pick(['hip_throw', 'collar_drag', 'sleeve_pull', 'double_leg', 'single_leg']);
+    case 'base':
+      return pick(['collar_tie', 'sleeve_grip']);
+    case 'raspar':
+      return pick(['sprawl', 'passar']);
+    case 'passar':
+    case 'subir':
+    case 'finalizar':
+      return pick(['frame', 'escape_back', 'hook_sweep', 'scissor_sweep', 'hip_bump']);
+    case 'sair':
+      return pick(['armbar', 'americana', 'rnc', 'passar', 'knee_on_belly', 'back_take']);
+    default:
+      return [];
+  }
+}
+
+/** needs_br: true — the telegraph line, with the partner's name. No position or technique names (#49). */
+export function planLine(kind: MatPlanKind, name: string): Bilingual {
+  const L: Record<MatPlanKind, [string, string]> = {
+    gola: ['vai pegar a sua gola.', 'is reaching for your collar.'],
+    manga: ['vai pegar a sua manga.', 'is reaching for your sleeve.'],
+    queda: ['vai tentar a queda.', 'is about to shoot a takedown.'],
+    contra: ['vai castigar a sua gola sozinha.', 'will punish your lone collar grip.'],
+    soltar: ['vai soltar as suas pegadas.', 'is going to strip your grips.'],
+    base: ['vai firmar a base.', 'is setting their base.'],
+    puxar: ['vai te puxar pro chão.', 'is going to pull you down.'],
+    raspar: ['vai tentar te virar.', 'is going to try to sweep you.'],
+    passar: ['vai tentar passar.', 'is going to try to pass.'],
+    subir: ['vai subir mais.', 'is going to climb higher.'],
+    finalizar: ['vai tentar finalizar!', 'is going for the finish!'],
+    sair: ['vai tentar sair de baixo.', 'is going to escape from underneath.'],
+    travar: ['vai travar você.', 'is going to block your pass.'],
+    segurar: ['vai segurar.', 'is going to hold.'],
+  };
+  const [pt, en] = L[kind];
+  return { pt: `${name} ${pt}`, en: `${name} ${en}` };
+}
+
+/** needs_br: true — what a setup move opens, in a few words, for its card. Null for moves whose card shows points or who ends on top. */
+export function moveSetsUp(state: MatState, actor: MatSide, id: MatMoveId): Bilingual | null {
+  const g = state.grips[actor];
+  const theirs = state.grips[other(actor)];
+  switch (id) {
+    case 'collar_tie':
+      return g.sleeve ? { pt: 'Abre o Arremesso', en: 'Opens the Throw' } : { pt: `Queda +${COLLAR_QUEDA}% · abre Arrastar`, en: `Takedown +${COLLAR_QUEDA}% · opens Drag` };
+    case 'sleeve_grip':
+      return g.collar ? { pt: 'Abre o Arremesso · protege você', en: 'Opens the Throw · shields you' } : { pt: `Protege você · abre Puxar`, en: `Shields you (−${SLEEVE_SHIELD}% on them) · opens Pull` };
+    case 'collar_drag':
+      return { pt: '+2 · você atrás dele', en: '+2 · you end up behind them' };
+    case 'hip_throw':
+      return { pt: '+2 · a queda mais forte', en: '+2 · the strongest throw' };
+    case 'sleeve_pull':
+      return { pt: `Puxa pro chão · Raspagem +${SLEEVE_SWEEP}%`, en: `Pulls them down · sweeps +${SLEEVE_SWEEP}%` };
+    case 'posture':
+      return theirs.collar || theirs.sleeve ? { pt: 'Solta as pegadas dele', en: 'Strips their grips' } : { pt: 'Trava as pegadas dele', en: 'Blocks their grips' };
+    case 'sprawl':
+      return viewKind(state.position, actor) === 'closed_top' ? { pt: 'Trava a raspagem dele', en: 'Stops their sweep' } : { pt: 'Trava a queda dele', en: 'Stops their takedown' };
+    case 'frame':
+      return viewKind(state.position, actor) === 'closed_bottom' ? { pt: 'Trava a passagem dele', en: 'Blocks their pass' } : null;
+    default:
+      return null;
+  }
 }
 
 /** What a move does if it lands, for the picker: points, where the pair ends up, a finish, or a grip. */
