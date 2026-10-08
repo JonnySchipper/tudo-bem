@@ -1587,32 +1587,6 @@ button:disabled {
   }
 }
 
-.joystick {
-  display: none;
-  position: fixed;
-  z-index: 12;
-  left: calc(10px + var(--safe-left));
-  bottom: calc(128px + var(--safe-bottom) + var(--kb));
-  width: 112px;
-  height: 112px;
-  border-radius: 50%;
-  background: rgba(251, 241, 227, 0.72);
-  border: 1px solid var(--edge);
-  box-shadow: var(--shadow);
-  touch-action: none;
-}
-
-.joystick .knob {
-  position: absolute;
-  left: 34px;
-  top: 34px;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--terracota);
-  border: 1px solid var(--edge);
-}
-
 #ui input,
 #ui select,
 #ui textarea {
@@ -1640,18 +1614,6 @@ select {
     width: 44px;
     height: 44px;
   }
-}
-
-@media (pointer: coarse) and (max-width: 900px) {
-  .joystick {
-    display: block;
-  }
-}
-
-body:has(#dialogue) .joystick,
-body:has([data-modal]) .joystick,
-body:has(.onboarding) .joystick {
-  display: none;
 }
 
 @media (max-width: 640px) {
@@ -1741,22 +1703,6 @@ body:has(.onboarding) .joystick {
   .mods button,
   .item-card button {
     min-height: 44px;
-  }
-}
-
-@media (max-height: 480px) and (orientation: landscape) {
-
-  .joystick {
-    width: 84px;
-    height: 84px;
-    bottom: calc(8px + var(--safe-bottom));
-  }
-
-  .joystick .knob {
-    width: 36px;
-    height: 36px;
-    left: 24px;
-    top: 24px;
   }
 }
 

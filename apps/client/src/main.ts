@@ -105,7 +105,6 @@ import { boutFeed } from './render/pixel/boutFeed';
 import { speak, stopSpeaking, unlockSpeech } from './audio';
 import { ambience } from './ambience';
 import { installViewport } from './ui/viewport';
-import { mountJoystick } from './ui/joystick';
 import { arrowForKey, stepForHeld, stepTarget, type Arrow } from './ui/keys';
 import { installUiArt } from './art/ui';
 
@@ -1014,16 +1013,6 @@ function startGame() {
   });
   mountTracker(openJournal);
   mountAirportTutorial(updateGuides);
-  mountJoystick((dx, dy) => {
-    if (game.modalOpen || game.editMode || game.placing) return;
-    const room = game.roomDef;
-    const cur = selfTile();
-    if (!room || !cur) return;
-    const x = Math.max(0, Math.min(room.cols - 1, cur.tile.x + dx));
-    const y = Math.max(0, Math.min(room.rows - 1, cur.tile.y + dy));
-    if (x === cur.tile.x && y === cur.tile.y) return;
-    walkTo({ x, y }, null);
-  }, { mode: 'topdown' });
   decor = buildDecorPanel({
     buy: (id) => net.send({ t: 'buy', kind: 'furniture', itemId: id }),
     rotate: (uid) => {
@@ -1233,17 +1222,36 @@ canvas.addEventListener('pointerleave', () => {
   game.hoverTile = null;
   hoverLabel(0, 0, null);
 });
-canvas.addEventListener('click', (e) => {
-  lastPointer.x = e.clientX;
-  lastPointer.y = e.clientY;
+/** Walk or act at a canvas point. Mouse clicks and touch taps both land here. */
+function onWorldActivate(clientX: number, clientY: number) {
+  lastPointer.x = clientX;
+  lastPointer.y = clientY;
   if (boutUi?.open) return; // the mat is busy: the overlay is the only input
   if (game.modalOpen && (modalId() || isDialogueBoxOpen())) return;
   hoverLabel(0, 0, null);
   if (game.cameraOn && game.profile?.hasCamera) {
-    takePhoto(e.clientX, e.clientY);
+    takePhoto(clientX, clientY);
     return;
   }
-  handleClick(renderer.hitTest(e.clientX, e.clientY));
+  handleClick(renderer.hitTest(clientX, clientY));
+}
+// viewport.ts preventDefault()s touchmove, which cancels the synthetic click as soon as the finger
+// jitters. A touch release within this radius is still a tap; a mouse release on the canvas is a click.
+const TAP_SLOP_PX = 10;
+let worldDown: { id: number; x: number; y: number; touch: boolean } | null = null;
+canvas.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 || !e.isPrimary) return;
+  worldDown = { id: e.pointerId, x: e.clientX, y: e.clientY, touch: e.pointerType === 'touch' };
+});
+canvas.addEventListener('pointerup', (e) => {
+  const down = worldDown;
+  if (!down || e.pointerId !== down.id) return;
+  worldDown = null;
+  if (down.touch && Math.hypot(e.clientX - down.x, e.clientY - down.y) > TAP_SLOP_PX) return;
+  onWorldActivate(e.clientX, e.clientY);
+});
+canvas.addEventListener('pointercancel', (e) => {
+  if (worldDown?.id === e.pointerId) worldDown = null;
 });
 document.addEventListener('keydown', (e) => {
   const tag = (e.target as HTMLElement)?.tagName;

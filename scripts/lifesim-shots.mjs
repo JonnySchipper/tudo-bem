@@ -13,7 +13,7 @@
  *   PHASE        output folder name under docs/lifesim/shots/ (default p0); SHOTS_DIR overrides the whole path
  *   SOLO         guest entry (static build); otherwise a throwaway account is registered
  *
- * Captures per viewport (1280×800 and 390×844, the phone with touch so the joystick shows): avatar creator, praça, padaria, kitnet,
+ * Captures per viewport (1280×800 and 390×844, the phone with touch): avatar creator, praça, padaria, kitnet,
  * academia, then the panels: Júlia and Nanda dialogue boxes, hat shop, credits, Conversa (portrait), Pedido rápido, Me vê um.
  * Needs a server with a pinned game clock (daytime): start it with TB_TEST_CLOCK_CONTROL=1 (the script sets 08:30) or TB_TEST_CLOCK_OFFSET_MIN; it fails fast otherwise.
  * Rooms are reached by id through window.__tb (interact / net.send), so the script works with any renderer.

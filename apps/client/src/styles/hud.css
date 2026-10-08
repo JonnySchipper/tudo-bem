@@ -1131,31 +1131,8 @@ body:has(.dbx) .bottombar {
     pointer-events: none;
   }
 
-  /* the joystick sits above the chat bar, the open emote row hides it */
-  .joystick {
-    bottom: calc(76px + var(--safe-bottom) + var(--kb));
-    left: calc(10px + var(--safe-left));
-  }
-
-  body:has(.emotes-open) .joystick {
-    visibility: hidden;
-  }
-
   .parrot-whisper {
     bottom: 150px;
-  }
-}
-
-/* a landscape phone: the joystick takes the lower left corner, the chat bar the rest of the row */
-@media (max-height: 520px) and (pointer: coarse) {
-  .bottombar {
-    left: calc(110px + var(--safe-left));
-    right: auto;
-    width: min(500px, calc(100% - 120px - var(--safe-left) - var(--safe-right)));
-  }
-
-  .joystick {
-    bottom: calc(10px + var(--safe-bottom));
   }
 }
 
@@ -1170,8 +1147,7 @@ body:has(.dbx) .bottombar {
   }
 }
 
-body:has(.hud-actions.open) .toasts,
-body:has(.hud-actions.open) .joystick {
+body:has(.hud-actions.open) .toasts {
   visibility: hidden;
 }
 
