@@ -716,6 +716,87 @@ html {
   margin: 8px 0;
 }
 
+.admin-panel {
+  max-height: min(92vh, 820px);
+  overflow: auto;
+}
+
+.admin-feira-featured {
+  margin: 8px 0 4px;
+  font-weight: 800;
+}
+
+.admin-feira-games {
+  display: grid;
+  gap: 6px;
+  margin: 8px 0 4px;
+}
+
+.backdrop > .panel button.admin-feira-switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  background: #fffdf8;
+  color: var(--ink);
+  box-shadow:
+    0 -2px 0 0 #cdb792,
+    0 2px 0 0 #cdb792,
+    -2px 0 0 0 #cdb792,
+    2px 0 0 0 #cdb792;
+}
+
+.admin-feira-name {
+  display: grid;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+  font-weight: 800;
+}
+
+.admin-feira-soon {
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.78em;
+  color: var(--ink-soft);
+}
+
+.admin-feira-switch .sw {
+  width: 36px;
+  height: 18px;
+  border: 2px solid var(--hud-ink, #573c2c);
+  background: #d8cbb6;
+  position: relative;
+  flex: none;
+}
+
+.admin-feira-switch .sw::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 12px;
+  height: 12px;
+  background: var(--hud-ink, #573c2c);
+}
+
+.admin-feira-switch[aria-checked='true'] .sw {
+  background: var(--verde, #3f7d4e);
+}
+
+.admin-feira-switch[aria-checked='true'] .sw::after {
+  left: 17px;
+  background: #fffaf2;
+}
+
+.admin-feira-state {
+  min-width: 4.6em;
+  font-weight: 800;
+  font-size: 0.85em;
+}
+
 /* ---------------------------------------------------------------- Placar da Vila (leaderboards) */
 .lb-panel .lb-cols {
   display: grid;

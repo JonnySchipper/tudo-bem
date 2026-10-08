@@ -59,6 +59,8 @@ class Game {
   solo = false;
   /** Live Fada da Feira (today's top Feira score). Display only; cleared at midnight ET. */
   feiraCrownId: string | null = null;
+  /** Feira cart switch from the server. Null until a Feira enter or an admin broadcast. */
+  feiraCart: { closed: boolean; game: import('@tudobem/shared').FeiraGameId | null } | null = null;
   /** Which Feira panel to open when the next board message arrives. */
   pendingFeiraOpen: 'cart' | 'sign' | null = null;
   sound = localStorage.getItem('tb_sound') !== 'off';

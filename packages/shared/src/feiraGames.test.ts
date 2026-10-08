@@ -8,16 +8,24 @@ import {
   FEIRA_ROTATION_ORDER,
   crownHolder,
   daysSinceEpochET,
+  emptyFeiraCartConfig,
+  enabledFeiraGameIds,
+  featuredEnabled,
   featuredGame,
   featuredGameAt,
+  feiraCartAdminView,
+  feiraCartCatalog,
+  feiraGameActive,
   feiraPayout,
   judgeFeiraResult,
   medalTallies,
   medalsForDay,
+  normalizeFeiraCartConfig,
   normalizeFeiraGames,
   placeOf,
   rankFeiraDay,
   rotationSlot,
+  withFeiraCartMode,
   type FeiraDayScore,
 } from './feiraGames.js';
 import { tapiocaOrders, tapiocaServeQuality } from './feiraTapioca.js';
@@ -155,5 +163,60 @@ describe('medals, crown and ties', () => {
     expect(raw.medals.bia).toHaveLength(1);
     expect(medalTallies(raw.medals, { bia: 'Bia' })[0]).toMatchObject({ gold: 1, name: 'Bia' });
     expect(rankFeiraDay(raw.scores)).toEqual([]);
+  });
+});
+
+describe('feira cart switch', () => {
+  it('defaults every game to off, and the catalog is the rotation registry', () => {
+    const cfg = normalizeFeiraCartConfig(null);
+    expect(cfg.games).toEqual({});
+    expect(enabledFeiraGameIds(cfg, '2026-10-08')).toEqual([]);
+    expect(featuredEnabled('2026-10-08', [])).toBeNull();
+    expect(feiraCartCatalog().map((g) => g.id)).toEqual(['tapioca', 'pastel', 'caldo']);
+    expect(feiraCartAdminView(cfg, '2026-10-08')).toMatchObject({ featured: null, games: [{ id: 'tapioca', mode: 'off' }, { id: 'pastel', mode: 'off' }, { id: 'caldo', mode: 'off' }] });
+    expect(withFeiraCartMode(cfg, 'not-a-game', 'on')).toBeNull();
+  });
+
+  it('features one enabled game every day, and rotates only over the ones that are on', () => {
+    const only = withFeiraCartMode(emptyFeiraCartConfig(), 'tapioca', 'on')!;
+    for (const day of ['1970-01-01', '1970-01-02', '1970-01-03', '2026-10-08']) {
+      expect(featuredEnabled(day, enabledFeiraGameIds(only, day))).toBe('tapioca');
+    }
+    const both = withFeiraCartMode(only, 'caldo', 'on')!;
+    const built = ['tapioca', 'pastel', 'caldo'];
+    // pastel stays off, so the cycle is tapioca, caldo (not the full 3-day order)
+    expect(featuredEnabled('1970-01-01', enabledFeiraGameIds(both, '1970-01-01'), built)).toBe('tapioca');
+    expect(featuredEnabled('1970-01-02', enabledFeiraGameIds(both, '1970-01-02'), built)).toBe('caldo');
+    expect(featuredEnabled('1970-01-03', enabledFeiraGameIds(both, '1970-01-03'), built)).toBe('tapioca');
+    // pastel on but not implemented yet: skipped, tapioca still every day
+    const pastelOn = withFeiraCartMode(emptyFeiraCartConfig(), 'pastel', 'on')!;
+    const tapiocaToo = withFeiraCartMode(pastelOn, 'tapioca', 'on')!;
+    expect(featuredEnabled('1970-01-02', enabledFeiraGameIds(pastelOn, '1970-01-02'))).toBeNull();
+    expect(featuredEnabled('1970-01-02', enabledFeiraGameIds(tapiocaToo, '1970-01-02'))).toBe('tapioca');
+  });
+
+  it('keeps a rotation window for later, and leaves the game off until that window matches', () => {
+    const cfg = withFeiraCartMode(emptyFeiraCartConfig(), 'tapioca', 'rotation', { weekdays: [4] })!;
+    expect(feiraGameActive(cfg.games.tapioca, '1970-01-01')).toBe(true);
+    expect(feiraGameActive(cfg.games.tapioca, '1970-01-02')).toBe(false);
+    expect(featuredEnabled('1970-01-02', enabledFeiraGameIds(cfg, '1970-01-02'))).toBeNull();
+    const waiting = withFeiraCartMode(emptyFeiraCartConfig(), 'tapioca', 'rotation')!;
+    expect(feiraGameActive(waiting.games.tapioca, '1970-01-01')).toBe(false);
+    const kept = withFeiraCartMode(cfg, 'tapioca', 'off')!;
+    expect(kept.games.tapioca).toMatchObject({ mode: 'off', schedule: { weekdays: [4] } });
+    const back = withFeiraCartMode(kept, 'tapioca', 'on')!;
+    expect(feiraGameActive(back.games.tapioca, '1970-01-02')).toBe(true);
+  });
+
+  it('normalizes a saved file without dropping an unknown future game', () => {
+    const cfg = normalizeFeiraCartConfig({
+      version: 1,
+      games: {
+        tapioca: { mode: 'yes-please' },
+        future_game: { mode: 'on', schedule: { weekdays: [1, 1, 9], from: '2026-01-01' } },
+      },
+    });
+    expect(cfg.games.tapioca?.mode).toBe('off');
+    expect(cfg.games.future_game).toEqual({ mode: 'on', schedule: { from: '2026-01-01', weekdays: [1] } });
   });
 });
