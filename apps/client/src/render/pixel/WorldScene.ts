@@ -191,6 +191,8 @@ interface Canopy {
 
 /** seconds the emote pop-up icon stays over the head */
 const EMOTE_ICON_S = 1.1;
+/** World px below the mat's middle the bout camera aims at: the middle of the pair (it stands 18 below the mat centre, 42 tall). */
+const BOUT_PAIR_FOCUS = -3;
 
 const hex = (h: string) => Phaser.Display.Color.HexStringToColor(h).color;
 const hash01 = (n: number) => {
@@ -1135,10 +1137,12 @@ export class WorldScene extends Phaser.Scene {
       // The mat sits a little lower in the free band (when the screen has spare height) so the north wall's sign is not cut by the top of the screen.
       insets: { top: (boutFeed.topPx + this.boutWallReveal(boutFeed.topPx, boutFeed.boxPx + 6, k)) * k, bottom: 0, left: ins.left * k, right: ins.right * k },
       boxPx: (boutFeed.boxPx + 6) * k,
-      self: { x: mat.x, y: mat.y },
+      // the pair itself, not the mat's middle: the fighters stand a little below it
+      self: { x: mat.x, y: mat.y + (boutFeed.active ? BOUT_PAIR_FOCUS : 0) },
       npc: null,
       blend: easeOut(this.boutBlend),
-      step: Math.max(1, Math.round(k)),
+      // the lobby is one step in; a match on the mat is two, so the fighters are big and the grips readable
+      step: Math.max(1, Math.round(k)) * (boutFeed.active ? 2 : 1),
     });
     return { ...f, ...g };
   }

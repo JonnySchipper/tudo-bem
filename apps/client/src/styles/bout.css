@@ -2074,3 +2074,555 @@ body.bout-on .toasts {
   font-size: 11px;
   font-weight: 500;
 }
+
+/* ---------------------------------------------------------------- Tatame v2: control meter, grip chips, the telegraph, brace cards */
+
+.bout-ctl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 2.2fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.ctl-mid {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+}
+
+.ctl-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ctl-label .en {
+  display: inline;
+  margin-left: 4px;
+  font-size: 10px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.ctl-bar {
+  width: 100%;
+}
+
+/* a tug of war: your green pushes from the left, their red from the right, the gold mark is where they meet */
+.ctl-track {
+  position: relative;
+  height: 16px;
+  border: 3px solid var(--bout-ink);
+  background: var(--bout-them);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.18);
+}
+
+.ctl-track::after {
+  /* the even line */
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: rgba(20, 16, 26, 0.45);
+}
+
+.ctl-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  background: var(--bout-you);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.18), inset 0 3px 0 rgba(255, 255, 255, 0.2);
+  transition: width 0.55s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+.ctl-mark {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  left: 50%;
+  width: 6px;
+  margin-left: -3px;
+  background: var(--bout-gold);
+  border: 2px solid var(--bout-ink);
+  transition: left 0.55s cubic-bezier(0.3, 1.4, 0.5, 1);
+  z-index: 1;
+}
+
+.bout-ctl[data-lead='you'] .ctl-label .pt {
+  color: var(--bout-you);
+}
+
+.bout-ctl[data-lead='partner'] .ctl-label .pt {
+  color: var(--bout-them);
+}
+
+.ctl-mid .bout-pos {
+  font-size: 12px;
+  text-align: center;
+}
+
+.ctl-side {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ctl-side.partner {
+  justify-content: flex-end;
+}
+
+.grip-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 2px solid rgba(42, 34, 51, 0.35);
+  background: rgba(255, 255, 255, 0.45);
+  color: rgba(42, 34, 51, 0.5);
+  font-size: 12px;
+  line-height: 1.1;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.grip-chip .pt {
+  font-weight: 800;
+}
+
+.grip-chip .en {
+  display: none;
+}
+
+.grip-chip.on {
+  border-color: var(--bout-ink);
+  color: var(--bout-ink);
+}
+
+.ctl-side.you .grip-chip.on {
+  background: #ffe9a8;
+}
+
+.ctl-side.partner .grip-chip.on {
+  background: #f9c9bd;
+}
+
+/* both grips: the chips glow gold, the Throw is open */
+.grip-chip.on.both {
+  box-shadow: 0 0 0 2px var(--bout-gold);
+}
+
+.gc-pips {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.gc-pips i {
+  width: 5px;
+  height: 5px;
+  background: rgba(42, 34, 51, 0.2);
+}
+
+.gc-pips i.on {
+  background: var(--bout-ink);
+}
+
+.grip-chip.slipping {
+  animation: bout-blink 0.5s steps(2) infinite;
+}
+
+.grip-chip.brace {
+  background: #dde6f6;
+  border-color: var(--bout-blue);
+  color: var(--bout-blue);
+}
+
+.grip-chip.tired {
+  background: #eee;
+  border-style: dashed;
+  color: #6b6370;
+}
+
+.gc-shield {
+  display: inline-block;
+  width: 9px;
+  height: 11px;
+  background: currentColor;
+  clip-path: polygon(0 0, 100% 0, 100% 55%, 50% 100%, 0 55%);
+  vertical-align: -1px;
+  margin-right: 3px;
+}
+
+@keyframes bout-blink {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* the partner's telegraph */
+.bout-plan {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 0 0 6px;
+  padding: 5px 10px;
+  background: var(--bout-ink);
+  color: #fff6dc;
+  border-left: 6px solid var(--bout-them);
+}
+
+.bout-plan .plan-eye {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  background: var(--bout-them);
+  color: #fff;
+  font-family: var(--font-pixel);
+  font-size: 16px;
+  animation: bout-blink 0.9s steps(2) 3;
+}
+
+.bout-plan .plan-line .pt {
+  font-size: 15px;
+}
+
+.bout-plan .en {
+  color: #d9cfc0;
+}
+
+.bout-plan .plan-answers {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.bout-plan .plan-chip {
+  padding: 1px 6px;
+  background: var(--bout-gold);
+  color: var(--bout-ink);
+  border: 2px solid #14101a;
+}
+
+/* cards: answers to the telegraph, grip combos, brace buttons, odds parts */
+.move-card .mc-badge {
+  justify-self: start;
+  margin-top: 2px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 800;
+  border: 2px solid var(--bout-ink);
+}
+
+.move-card .mc-badge .en {
+  display: none;
+}
+
+.move-card .mc-badge.answer {
+  background: var(--bout-gold);
+}
+
+.move-card .mc-badge.combo {
+  background: #c45c26;
+  color: #fff;
+}
+
+.bout-intent.move-card.is-answer {
+  border-color: #b58a00;
+  box-shadow: 0 0 0 3px rgba(242, 194, 48, 0.6), 0 3px 0 rgba(20, 16, 26, 0.3);
+}
+
+.bout-intent.move-card.is-combo {
+  background: #fff3ea;
+}
+
+.bout-intent.move-card.is-brace {
+  background: #eef2fb;
+  border-style: double;
+  border-width: 4px;
+}
+
+.move-card .mc-odds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.move-card .mc-odd {
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 800;
+  border: 1px solid currentColor;
+}
+
+.move-card .mc-odd.up {
+  color: var(--bout-green);
+}
+
+.move-card .mc-odd.down {
+  color: var(--bout-red);
+}
+
+.bout-needs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin-top: 6px;
+  font-size: 11px;
+}
+
+.need-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 1px 6px;
+  border: 2px dashed rgba(42, 34, 51, 0.4);
+  color: #6b6370;
+}
+
+.need-chip b {
+  color: var(--bout-ink);
+}
+
+.need-chip .pt {
+  font-weight: 600;
+}
+
+.need-chip .en {
+  display: none;
+}
+
+/* the resolve panel: who, what, how it went, and the ground it was worth */
+.bout-resolve .bout-moment {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.bout-resolve .bout-moment .en {
+  display: inline;
+  margin-left: 4px;
+}
+
+.bout-replan {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 0 6px;
+  background: var(--bout-them);
+  color: #fff;
+  font-size: 12px;
+}
+
+.bout-replan .en {
+  display: inline;
+  margin-left: 4px;
+  color: #ffe2da;
+}
+
+.bout-ground {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 2px 10px 2px 4px;
+  border: 3px solid var(--bout-ink);
+  font-size: 15px;
+  animation: bout-pop 0.35s ease-out 0.85s both;
+}
+
+.bout-ground .en {
+  display: inline;
+  font-size: 11px;
+}
+
+.bout-ground .gr-arrow {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  color: #fff;
+  font-size: 14px;
+}
+
+.bout-ground.gain {
+  background: #e3f4e7;
+}
+
+.bout-ground.gain .gr-arrow {
+  background: var(--bout-green);
+}
+
+.bout-ground.loss {
+  background: #fde4df;
+}
+
+.bout-ground.loss .gr-arrow {
+  background: var(--bout-red);
+}
+
+.bout-ground.even {
+  background: #f1ebe0;
+}
+
+.bout-ground.even .gr-arrow {
+  background: #8a7f96;
+}
+
+/* words over the pair: Vantagem!, a grip snap, a strip, a slip, a brace, the ground arrow */
+.bout-word {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  padding: 1px 7px;
+  border: 2px solid var(--bout-ink);
+  background: #fffaf2;
+  color: var(--bout-ink);
+  font-family: var(--font-pixel);
+  font-size: 17px;
+  line-height: 1.1;
+  white-space: nowrap;
+  animation: bout-word 1.3s ease-out both;
+}
+
+.bout-word.side-you {
+  background: #fff1c2;
+}
+
+.bout-word.side-partner {
+  background: #fde0d8;
+}
+
+.bout-word.kind-vantagem {
+  background: var(--bout-gold);
+  font-size: 24px;
+  box-shadow: 0 0 0 3px #fff6dc, 0 4px 0 rgba(20, 16, 26, 0.4);
+}
+
+.bout-word.kind-slip,
+.bout-word.kind-strip {
+  font-size: 15px;
+}
+
+.bout-word.kind-brace {
+  background: #dde6f6;
+  color: var(--bout-blue);
+}
+
+.bout-groundpop {
+  font-size: 22px;
+  color: #fff;
+}
+
+.bout-groundpop.gain {
+  background: var(--bout-green);
+}
+
+.bout-groundpop.loss {
+  background: var(--bout-red);
+}
+
+@keyframes bout-word {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -60%) scale(0.5);
+  }
+  14% {
+    opacity: 1;
+    transform: translate(-50%, -100%) scale(1.18);
+  }
+  24% {
+    transform: translate(-50%, -100%) scale(1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -150%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -170%) scale(0.95);
+  }
+}
+
+/* seamless: each new panel eases in instead of cutting */
+.bout-body > * {
+  animation: bout-slidein 0.2s ease-out;
+}
+
+@keyframes bout-slidein {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .bout-ctl {
+    grid-template-columns: minmax(0, 1fr) minmax(120px, 1.6fr) minmax(0, 1fr);
+    gap: 4px;
+  }
+  .ctl-track {
+    height: 12px;
+  }
+  .ctl-label .en,
+  .ctl-mid .bout-pos {
+    display: none;
+  }
+  .grip-chip {
+    padding: 1px 4px;
+    font-size: 10px;
+  }
+  .gc-pips i {
+    width: 4px;
+    height: 4px;
+  }
+  .bout-plan {
+    padding: 3px 6px;
+    margin-bottom: 4px;
+  }
+  .bout-plan .plan-line .pt {
+    font-size: 13px;
+  }
+  .bout-plan .plan-answers {
+    margin-left: 0;
+    font-size: 11px;
+  }
+  .move-card .mc-odds,
+  .bout-needs {
+    display: none;
+  }
+  .bout-ground {
+    font-size: 13px;
+  }
+  .bout-word {
+    font-size: 14px;
+  }
+  .bout-word.kind-vantagem {
+    font-size: 19px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ctl-fill,
+  .ctl-mark {
+    transition: none;
+  }
+  .grip-chip.slipping,
+  .bout-plan .plan-eye,
+  .bout-body > *,
+  .bout-word,
+  .bout-ground {
+    animation: none;
+  }
+}

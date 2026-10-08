@@ -76,6 +76,23 @@ describe('move cartoons', () => {
     expect(dumped.path.every((s) => s.pose === 'montada')).toBe(true);
   });
 
+  it('plays a routine for the grip game: Arremesso turns them over, Puxar sits down, Postura and Base brace', () => {
+    const throwIt = cartoonFor('hip_throw', true, 'de_pe', 'joelho');
+    expect(throwIt.path.at(-1)!.rot % 360).toBe(-0);
+    expect(Math.min(...throwIt.path.map((s) => s.rot))).toBeLessThanOrEqual(-300);
+    const pull = cartoonFor('sleeve_pull', true, 'de_pe', 'guarda_fechada');
+    expect(pull.path.some((s) => s.y < -10)).toBe(true);
+    expect(cartoonFor('posture', true, 'de_pe', 'de_pe').read).toBe('brace');
+    expect(cartoonFor('sprawl', true, 'de_pe', 'de_pe').read).toBe('brace');
+    expect(cartoonFor('sprawl', false, 'de_pe', 'de_pe').read).toBe('stumble');
+    for (const id of ['double_leg', 'collar_drag', 'sleeve_pull', 'hip_throw', 'posture', 'sprawl'] as const) {
+      const c = cartoonFor(id, true, 'de_pe', 'de_pe');
+      expect(c.path.length).toBeGreaterThan(4);
+      expect(c.path[0]).toMatchObject({ at: 0, x: 0, y: 0, rot: 0 });
+      expect(c.path.at(-1)).toMatchObject({ at: 1, x: 0, y: 0 });
+    }
+  });
+
   it('is a short beat, slow enough to read, with a pause before the opponent shows their hand', () => {
     expect(CARTOON_MS).toBeGreaterThan(1200);
     expect(CARTOON_MS).toBeLessThan(2500);

@@ -16,6 +16,12 @@ export type StageCue =
   | { t: 'hit'; strength: 1 | 2 }
   | { t: 'miss' }
   | { t: 'long' }
+  /** A white hit flash on the pair (2: a throw or points, 1: a blocked attack). */
+  | { t: 'flash'; strength: 1 | 2 }
+  /** A word that pops off the fighter who earned it (Vantagem!, a grip snap, a strip, a slip, a brace). */
+  | { t: 'pop'; kind: 'vantagem' | 'grip' | 'strip' | 'slip' | 'brace'; side: 'you' | 'partner'; text: string }
+  /** The move's ground read: an arrow over the pair toward who gained the ground. */
+  | { t: 'ground'; dir: 'gain' | 'loss'; delta: number }
   | {
       t: 'cartoon';
       move: string;
@@ -31,6 +37,8 @@ export interface FeedPartner {
   id: string;
   name: string;
   appearance: Appearance;
+  /** The belt the partner wears on the mat. The bot fights at the player's own belt, so that is the default. */
+  belt?: Belt;
 }
 
 class BoutFeed {

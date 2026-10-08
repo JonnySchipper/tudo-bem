@@ -30,7 +30,7 @@ export const GAG_TRACKS: readonly GagTrack[] = [
   { id: 'subs', pt: 'Final', en: 'Submissions', moves: ['armbar', 'americana', 'rnc'] },
 ];
 
-export type CartoonRead = 'gain' | 'stumble' | 'stick';
+export type CartoonRead = 'gain' | 'stumble' | 'stick' | 'brace';
 
 export interface CartoonSample {
   /** 0..1 along the cartoon. */
@@ -81,11 +81,74 @@ export function trackOf(id: MatMoveId): GagTrack | null {
   return GAG_TRACKS.find((t) => (t.moves as readonly MatMoveId[]).includes(id)) ?? null;
 }
 
+type Beat = [at: number, x: number, y: number, rot: number];
+
+/**
+ * The grip game's big moves get a whole little routine instead of one lean (`y` is up):
+ * Queda loads, shoots low and slams; Arrastar pulls, then whips round behind; Puxar sits down and takes them along;
+ * Arremesso loads the hip and turns them all the way over; Postura stands tall and shoves the grips off; Base sprawls flat.
+ * A miss keeps the shared stumble, so a miss always looks like a miss. Every routine ends where it started (Arremesso a full turn on).
+ */
+const ROUTINE: Partial<Record<MatMoveId, readonly Beat[]>> = {
+  double_leg: [
+    [0, 0, 0, 0],
+    [0.18, -8, -5, 8],
+    [0.42, 30, 4, -28],
+    [0.6, 22, 12, -42],
+    [0.8, 8, -3, -10],
+    [1, 0, 0, 0],
+  ],
+  collar_drag: [
+    [0, 0, 0, 0],
+    [0.2, -18, 2, 14],
+    [0.42, 30, 18, -34],
+    [0.62, 38, 6, -54],
+    [0.82, 10, 0, -12],
+    [1, 0, 0, 0],
+  ],
+  sleeve_pull: [
+    [0, 0, 0, 0],
+    [0.2, -8, 6, 8],
+    [0.42, -20, 26, 30],
+    [0.7, -10, -16, 22],
+    [1, 0, 0, 0],
+  ],
+  hip_throw: [
+    [0, 0, 0, 0],
+    [0.15, -8, 0, 10],
+    [0.42, 12, -18, -60],
+    [0.55, 16, 26, -170],
+    [0.72, 10, 14, -290],
+    [0.86, 4, -2, -350],
+    [1, 0, 0, -360],
+  ],
+  posture: [
+    [0, 0, 0, 0],
+    [0.2, 0, 10, 0],
+    [0.42, -34, 14, 8],
+    [0.7, -12, -2, 0],
+    [1, 0, 0, 0],
+  ],
+  sprawl: [
+    [0, 0, 0, 0],
+    [0.22, -10, 6, 10],
+    [0.42, -22, 18, 14],
+    [0.68, -14, -8, 10],
+    [1, 0, 0, 0],
+  ],
+};
+
+/** The defenses that set a brace: when they land, the pair settles and braces rather than moving. */
+const BRACES = new Set<MatMoveId>(['posture', 'sprawl']);
+
 export function cartoonFor(move: string, hit: boolean, from: BjjPositionId, to: BjjPositionId): Cartoon {
   const id: MatMoveId = isMatMove(move) ? move : 'hold';
   const sig = SIGNATURE[id];
   const pose = from;
-  const path: CartoonSample[] = hit
+  const routine = hit ? ROUTINE[id] : undefined;
+  const path: CartoonSample[] = routine
+    ? routine.map(([at, x, y, rot]) => ({ at, pose, x, y, rot }))
+    : hit
     ? [
         { at: 0, pose, x: 0, y: 0, rot: 0 },
         { at: 0.42, pose, x: sig.x, y: sig.y, rot: sig.rot },
@@ -98,7 +161,7 @@ export function cartoonFor(move: string, hit: boolean, from: BjjPositionId, to: 
         { at: 0.68, pose, x: -sig.x * 0.9, y: Math.abs(sig.y) + 8, rot: -sig.rot * 0.75 },
         { at: 1, pose, x: 0, y: 0, rot: 0 },
       ];
-  const read: CartoonRead = !hit ? 'stumble' : from !== to ? 'gain' : 'stick';
+  const read: CartoonRead = !hit ? 'stumble' : from !== to ? 'gain' : BRACES.has(id) ? 'brace' : 'stick';
   return { move: id, path, then: to, read };
 }
 

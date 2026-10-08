@@ -16,7 +16,7 @@ import { swapKeys } from './palette';
 import { animKey } from './charsheet';
 import { lookForAppearance, type Look } from './looks';
 import { boutFeed, type StageCue } from './boutFeed';
-import { cartoonFor, sampleCartoon, type Cartoon } from './gagCartoon';
+import { cartoonFor, sampleCartoon, type Cartoon, type CartoonRead } from './gagCartoon';
 import { DEPTH } from './props';
 import { originOf } from './spriteUtil';
 import {
@@ -75,6 +75,19 @@ const PAIR_DROP = 18;
 const REF_SHOW_MS = 1500;
 const HITSTOP_MS = 80;
 const CROWD_MS = 1500;
+const FLASH_MS = 90;
+const WORD_MS = 1300;
+
+/**
+ * Where a held grip sits on the standing pair, art px from the pair's anchor (bottom centre). In the standing frame the player (white gi)
+ * is on the left and the partner (blue gi) on the right, so your collar grip is on their lapel and their sleeve grip is on your arm.
+ */
+const GRIP_SPOT: Record<'you' | 'partner', Record<'collar' | 'sleeve', { x: number; y: number }>> = {
+  you: { collar: { x: 3, y: -19 }, sleeve: { x: 7, y: -13 } },
+  partner: { collar: { x: -4, y: -19 }, sleeve: { x: -8, y: -13 } },
+};
+/** Art px a fighter's word pops sit beside the pair's middle (the player on the left). */
+const WORD_SIDE = 14;
 
 interface Particle {
   r: Phaser.GameObjects.Rectangle;
@@ -122,7 +135,7 @@ export class BoutStage {
   private cartoonT0 = 0;
   private cartoonMs = 760;
   private cartoonOff = { x: 0, y: 0, rot: 0 };
-  private cartoonRead: 'gain' | 'stumble' | 'stick' | null = null;
+  private cartoonRead: CartoonRead | null = null;
   private cartoonPuffed = false;
   /** How far a pose change slides. A gag that gained ground travels farther than an ordinary step. */
   private slideAmp = 14;
@@ -134,6 +147,10 @@ export class BoutStage {
   private placarEl: HTMLElement | null = null;
   private placarSig = '';
   private placarCells: Record<string, HTMLElement> = {};
+  /** The pair glows white until then (a big hit, a blocked attack). */
+  private flashUntil = 0;
+  /** The held-grip hands on the standing pair, one per fighter and grip. */
+  private gripHands = new Map<string, Phaser.GameObjects.Rectangle>();
 
   constructor(private readonly h: StageHost) {}
 
@@ -195,6 +212,7 @@ export class BoutStage {
       you: { skin: SKIN_TONES[a.skin] ?? SKIN_TONES[3]!, hair: HAIR_COLORS[a.hairColor] ?? HAIR_COLORS[0]! },
       partner: { skin: SKIN_TONES[p.appearance.skin] ?? SKIN_TONES[3]!, hair: HAIR_COLORS[p.appearance.hairColor] ?? HAIR_COLORS[0]! },
       belt: boutFeed.belt,
+      partnerBelt: p.belt ?? boutFeed.belt,
       top,
     };
   }
@@ -255,6 +273,9 @@ export class BoutStage {
     this.killWalkers();
     this.showRef(null);
     for (const p of this.particles) p.r.setVisible(false);
+    for (const r of this.gripHands.values()) r.setVisible(false);
+    this.flashUntil = 0;
+    this.pair?.clearTint();
     for (const n of this.textures) if (this.h.scene.textures.exists(n)) this.h.scene.textures.remove(n);
     this.textures = [];
     this.nudge = { x: 0, y: 0 };
@@ -291,6 +312,7 @@ export class BoutStage {
     this.updateParticles(dt);
     this.updateSweat(dt, mat);
     this.updatePops(nowMs);
+    this.updateGrips(mat);
     this.updatePlacar(true);
   }
 
@@ -451,8 +473,12 @@ export class BoutStage {
     const ox = lean + (this.slide > 0 ? Math.sin(this.slide * Math.PI) * this.slideAmp : this.wobble > 0 ? Math.sin(this.wobble * 24) * this.wobbleAmp : 0);
     const oy = this.cartoonOff.y;
     const mag = Math.hypot(this.cartoonOff.x, this.cartoonOff.y);
-    const sx = mag > 1 && this.cartoonRead === 'stumble' ? 1.22 : 1;
-    const sy = mag > 1 && this.cartoonRead === 'stumble' ? 0.7 : mag > 1 ? 1.14 : 1;
+    // a stumble squashes flat, a brace sinks wide and low, everything else stretches with the effort
+    const read = this.cartoonRead;
+    const sx = mag > 1 && read === 'stumble' ? 1.22 : mag > 1 && read === 'brace' ? 1.12 : 1;
+    const sy = mag > 1 && read === 'stumble' ? 0.7 : mag > 1 && read === 'brace' ? 0.9 : mag > 1 ? 1.14 : 1;
+    if (this.nowMs < this.flashUntil) p.setTintFill(0xffffff);
+    else if (p.isTinted) p.clearTint();
     p.setOrigin(d.ax / d.w, d.ay / d.h)
       .setPosition(a.x + ox, a.y - oy)
       .setRotation((this.cartoonOff.rot * Math.PI) / 180)
@@ -564,6 +590,60 @@ export class BoutStage {
       case 'long':
         this.sweatAt = now;
         break;
+      case 'flash':
+        if (!this.h.reduced()) this.flashUntil = now + FLASH_MS * c.strength;
+        this.kick(c.strength);
+        break;
+      case 'pop':
+        this.word(a, c.side === 'you' ? -WORD_SIDE : WORD_SIDE, `bout-word kind-${c.kind} side-${c.side}`, c.text);
+        if (c.kind === 'vantagem') this.puff(a.x + (c.side === 'you' ? -6 : 6), a.y - 8, 6);
+        break;
+      case 'ground':
+        this.word(a, 0, `bout-word bout-groundpop ${c.dir}`, `${c.dir === 'gain' ? '▲' : '▼'} ${c.delta > 0 ? '+' : '−'}${Math.abs(c.delta)}`);
+        break;
+    }
+  }
+
+  /** A word over the pair (Vantagem!, a grip, the ground arrow) that follows the camera like the crowd's cheers. Several stack upward. */
+  private word(a: { x: number; y: number }, dx: number, cls: string, text: string): void {
+    if (!this.popsEl) return;
+    const live = this.pops.filter((p) => p.el.classList.contains('bout-word') && p.until > this.nowMs).length;
+    const el = document.createElement('div');
+    el.className = cls;
+    el.textContent = text;
+    const wx = a.x + dx;
+    const wy = a.y - PAIR_SIZE.h - 4 - live * 9;
+    const { px, py } = this.h.toCanvas(wx, wy);
+    el.style.left = `${Math.round(px)}px`;
+    el.style.top = `${Math.round(py)}px`;
+    this.popsEl.append(el);
+    this.pops.push({ el, wx, wy, until: this.nowMs + WORD_MS });
+  }
+
+  /** The held grips as little hands on the standing pair (gold for yours, red for theirs); a grip about to slip blinks. */
+  private updateGrips(mat: { x: number; y: number }): void {
+    const snap = boutFeed.snap;
+    const show = !!snap?.grips && this.pos === 'de_pe' && (this.mode === 'fight' || this.mode === 'trans') && !this.cartoon && !!this.pair?.visible;
+    const a = this.anchor(mat);
+    for (const side of ['you', 'partner'] as const) {
+      for (const g of ['collar', 'sleeve'] as const) {
+        const key = `${side}:${g}`;
+        const held = show && !!snap!.grips![side][g];
+        let r = this.gripHands.get(key);
+        if (!held) {
+          r?.setVisible(false);
+          continue;
+        }
+        if (!r) {
+          r = this.h.world(this.h.scene.add.rectangle(0, 0, 3, 3, side === 'you' ? 0xf2c230 : 0xe0523a, 1)).setStrokeStyle(1, 0x14101a, 1);
+          this.gripHands.set(key, r);
+        }
+        const spot = GRIP_SPOT[side][g];
+        const age = snap!.grips![side].age[g];
+        const blink = age >= 2 && !this.h.reduced() && Math.floor(this.nowMs / 180) % 2 === 0;
+        const ox = this.slide > 0 ? Math.sin(this.slide * Math.PI) * this.slideAmp : 0;
+        r.setPosition(a.x + spot.x + ox, a.y + spot.y).setDepth(a.y + 1).setAlpha(blink ? 0.35 : 1).setVisible(true);
+      }
     }
   }
 
@@ -800,7 +880,19 @@ export class BoutStage {
 
   /** For the shots and the e2e (`__tb.renderer.info().bout`): what the stage is showing. */
   info() {
-    return { mode: this.mode, pos: this.pos, top: this.top, frame: this.pair?.texture.key ?? null, visible: !!this.pair?.visible, placeholder: !!this.ph?.visible, ref: !!this.refSprite?.visible, walkers: !!this.walkers, particles: this.particles.filter((p) => p.life > 0).length };
+    return {
+      mode: this.mode,
+      pos: this.pos,
+      top: this.top,
+      frame: this.pair?.texture.key ?? null,
+      visible: !!this.pair?.visible,
+      placeholder: !!this.ph?.visible,
+      ref: !!this.refSprite?.visible,
+      walkers: !!this.walkers,
+      particles: this.particles.filter((p) => p.life > 0).length,
+      grips: [...this.gripHands.entries()].filter(([, r]) => r.visible).map(([k]) => k),
+      words: this.pops.filter((p) => p.el.classList.contains('bout-word')).map((p) => p.el.textContent ?? ''),
+    };
   }
 
   destroy(): void {
