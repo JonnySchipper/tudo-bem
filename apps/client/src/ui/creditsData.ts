@@ -13,6 +13,9 @@ export interface CreditLine {
 
 export const LIMEZU_URL = 'https://limezu.itch.io/';
 
+/** Where players reach the team (the privacy page and terms use the same address). */
+export const TEAM_EMAIL = 'team@playtudobem.com';
+
 export const CREDITS: CreditLine[] = [
   {
     id: 'art',
@@ -25,12 +28,13 @@ export const CREDITS: CreditLine[] = [
     id: 'voices',
     role: { pt: 'Vozes', en: 'Voices' },
     who: 'Microsoft Edge neural TTS',
-    note: 'pt-BR Antonio (Seu Carlos) e Francisca (papagaio e avisos), gravadas antes com edge-tts',
+    note:
+      'pt-BR Antonio (Seu Carlos, Seu Zé, Seu Chico) e Francisca (Dona Graça, Júlia, Nanda, a professora, a comissária, Dona Lúcia, Tia Lu, Dona Rosa, o papagaio e as placas). Cada personagem tem velocidade e tom próprios; gravadas antes com edge-tts',
   },
   {
     id: 'fonts',
     role: { pt: 'Fontes', en: 'Fonts' },
-    who: 'Nunito, Baloo 2 e Pixelify Sans',
+    who: 'Nunito, Baloo 2 e Jersey 10',
     note: 'Google Fonts, licença SIL Open Font',
     link: { href: 'https://fonts.google.com/', label: 'fonts.google.com' },
   },

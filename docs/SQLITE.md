@@ -61,23 +61,45 @@ While the process runs it takes an online backup (`better-sqlite3`'s `backup()`,
 
 That keeps backup disk use well under the 1 GB volume. The live database is the same data the JSON files already held, plus a small amount of SQLite overhead.
 
-## Restore a backup
+## Copy backups off the machine
 
-Stop the machine first so nothing writes the file.
+The hourly files live on the same volume as the database, so they do not survive losing the volume. Pull them down now and then (and before any risky change):
 
 ```bash
-fly machine stop -a tudo-bem <machine-id>
-fly ssh console -a tudo-bem
-cd /data
-cp tudobem.sqlite tudobem.sqlite.before-restore
-rm -f tudobem.sqlite tudobem.sqlite-wal tudobem.sqlite-shm
-cp backups/tudobem-<stamp>.sqlite tudobem.sqlite
-chmod 600 tudobem.sqlite
-exit
-fly machine start -a tudo-bem <machine-id>
+fly ssh console -a tudo-bem -C "ls -l /data/backups"
+fly ssh sftp get -a tudo-bem /data/backups/tudobem-<stamp>.sqlite ./tudobem-<stamp>.sqlite
 ```
 
-A backup is a single consistent file. It does not need the `-wal` from the live database. Confirm with the boot log (`contas carregadas`, `perfis carregados`) and a login.
+`sftp get` copies one file. `fly ssh sftp shell -a tudo-bem` gives an interactive `get` / `put` / `ls`. Keep downloaded copies private: the file holds password hashes, session hashes and feedback contacts.
+
+## Restore a backup
+
+The image's entrypoint (`scripts/docker-entrypoint.sh`) restores before the server opens the database: if `/data/restore.sqlite` exists at boot, it moves the live `tudobem.sqlite` (and its `-wal` / `-shm`) aside as `tudobem.sqlite.before-restore-<stamp>` and puts `restore.sqlite` in its place.
+
+From a backup that is already on the volume:
+
+```bash
+fly ssh console -a tudo-bem -C "cp /data/backups/tudobem-<stamp>.sqlite /data/restore.sqlite"
+fly machine restart -a tudo-bem <machine-id>
+```
+
+From a file on your computer: `fly ssh sftp shell -a tudo-bem`, then `put ./tudobem-<stamp>.sqlite /data/restore.sqlite`, then restart the machine the same way.
+
+The restart is a normal graceful stop, so the live database gets its final write first and is kept as `before-restore`. A backup is a single consistent file and does not need a `-wal`. Confirm with the boot log (`[entrypoint] restored …`, `contas carregadas`, `perfis carregados`) and a login. To undo, do the same with the `before-restore` file.
+
+## Restore from a Fly volume snapshot
+
+Fly snapshots the whole volume daily and keeps them for `snapshot_retention` days (`fly.toml` sets 14; an older volume keeps its own setting until `fly volumes update <volume-id> --snapshot-retention 14`). Use one when the volume itself is lost or every backup on it is bad.
+
+```bash
+fly volumes list -a tudo-bem                      # the volume id
+fly volumes snapshots list <volume-id>            # pick a snapshot id and time
+fly volumes create tudobem_data -a tudo-bem --snapshot-id <snapshot-id> --region iad --size 1
+```
+
+A volume made from a snapshot is a new volume. The machine still mounts the old one, so either attach the new one by recreating the machine (`fly machine destroy <machine-id>` with the old volume detached or destroyed, then `fly deploy`, which mounts the `tudobem_data` volume that is free), or copy just the file across: mount the new volume on a throwaway machine, `sftp get` its `/data/tudobem.sqlite`, and restore it with `restore.sqlite` as above. The second way leaves the running volume alone and is the safer default.
+
+The server runs as the `node` user. Files copied in as root through `fly ssh console` are handed back to `node` by the entrypoint on the next boot.
 
 ## Roll back to the JSON files
 

@@ -129,7 +129,7 @@ export class FeiraCounter {
       rv = verdict.kind === 'exact' ? FEIRA_RV_EXACT : FEIRA_RV_CHANGE;
     }
     p.feira = st;
-    this.d.store.save();
+    this.d.store.save(p.id);
     s.send({
       t: 'feira',
       phase: 'pay',

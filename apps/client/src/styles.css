@@ -6,7 +6,8 @@
   --ink: #2c2c2c;
   --ink-soft: #5e5550;
   --edge: rgba(44, 44, 44, 0.88);
-  --terracota: #c45c26;
+  /* #b0501f, not the old #c45c26: cream (#fff8ec) on it is 4.96:1, AA for the primary buttons' small text (was 4.05:1) */
+  --terracota: #b0501f;
   --terracota-dark: #8f3e15;
   --mustard: #d4a017;
   --sp-green: #2f5d50;
@@ -119,7 +120,7 @@ button.primary {
 }
 
 button.primary .en {
-  color: rgba(255, 244, 228, 0.85);
+  color: #fff4e4;
 }
 
 button.green {
@@ -1250,8 +1251,13 @@ button:disabled {
 }
 
 #cartela-pill .cartela-mini {
-  font-size: 0.78em;
+  /* never below 11px: the pill's em shrinks on phones (it was 8.4px at 390px) */
+  font-size: max(11px, 0.78em);
   opacity: 0.85;
+}
+
+#cartela-pill .cartela-mini .en {
+  font-size: 11px;
 }
 
 .cartela-acts {

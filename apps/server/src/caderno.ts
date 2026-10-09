@@ -66,7 +66,7 @@ export class CadernoTracker {
     const paid = (p.cadernoPaid ??= []);
     const fresh = completedGroups(p.caderno).filter((g) => !paid.includes(g));
     paid.push(...fresh);
-    this.d.store.save();
+    this.d.store.save(p.id);
     this.d.pushProfile(s);
     for (const id of fresh) {
       const label = cadernoGroups().find((g) => g.id === id)?.label ?? { pt: id, en: id };

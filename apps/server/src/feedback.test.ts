@@ -118,13 +118,14 @@ describe('POST /api/feedback and the review list', () => {
     expect((openDatabase(dir).prepare('SELECT COUNT(*) AS n FROM feedback').get() as { n: number }).n).toBe(0);
   });
 
-  it('accepts many notes in a row and rejects another site', async () => {
+  it('accepts several notes in a row, then asks a guest to wait, and rejects another site', async () => {
     await start();
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 5; i++) {
       const res = await post({ text: `${NOTE} número ${i + 1}` });
       expect(res.status, `note ${i}`).toBe(201);
     }
-    expect(saved().items).toHaveLength(10);
+    expect(saved().items).toHaveLength(5);
+    expect((await post({ text: `${NOTE} número 6` })).status).toBe(429);
 
     const evil = await post({ text: NOTE }, { origin: 'https://evil.example' });
     expect(evil.status).toBe(403);

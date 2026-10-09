@@ -63,12 +63,6 @@ export async function openSupport(actions: SupportActions): Promise<void> {
         perk('pet', 'Cachorro e gato que te seguem', 'A dog and a cat that follow you.'),
         perk('bubble', 'Balões de conversa coloridos', 'Chat bubble colours. The words never change.'),
       ),
-      h(
-        'p',
-        { class: 'support-age', id: 'support-age' },
-        'Quem tem menos de 13 anos precisa que um pai, mãe ou responsável faça a compra.',
-        en('Players under 13 need a parent or guardian to purchase.', true),
-      ),
       ready
         ? h(
             'label',

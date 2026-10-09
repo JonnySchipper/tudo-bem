@@ -1,3 +1,17 @@
+# ⚠ NOT A SUPPORTED HOST. Production is Fly.io (fly.toml, docs/SQLITE.md). Kept as a starting point only.
+#
+# As written this Blueprint loses data: the free plan has no persistent disk, so /data (tudobem.sqlite,
+# every account and profile) is wiped on each restart, deploy and idle spin-down. 512 MB is also below what
+# the server needs resident (Node + the Jev ONNX model; Fly runs it on 1 GB).
+#
+# To use Render for real: pick a paid plan with at least 1 GB (e.g. `standard`) and add a disk, e.g.
+#     plan: standard
+#     disk:
+#       name: tudobem-data
+#       mountPath: /data
+#       sizeGB: 1
+# and keep a single instance (the world is one process with one SQLite file).
+#
 # Render Blueprint: New → Blueprint → pick this repo. WebSockets work on Render web services.
 services:
   - type: web

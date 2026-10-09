@@ -128,7 +128,7 @@ export function handleAdminTest(host: AdminTestHost, admin: AdminTestSession, ms
     who.p.testUser = true;
     if (msg.minute !== undefined) host.setPersonalMinute(who.p, msg.minute);
     if (msg.rollDay) host.rollPersonalDay(who.p);
-    host.store.save();
+    host.store.save(who.p.id);
     if (who.online) {
       host.pushPersonalClock(who.online);
       host.pushLive(who.online);
@@ -158,7 +158,7 @@ export function handleAdminTest(host: AdminTestHost, admin: AdminTestSession, ms
   if (!wrote.ok) return host.err(admin, wrote.pt, wrote.en);
   who.p.testUser = true;
   refreshPlate(who.p);
-  host.store.save();
+  host.store.save(who.p.id);
   if (who.online) host.pushLive(who.online);
   if (who.online && msg.action === 'testReset') host.pushPersonalClock(who.online);
   log(admin, msg.action, who.p, wrote.detail);
