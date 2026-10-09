@@ -104,7 +104,7 @@ function renderDirectory(rows: AcademyCard[], canFound: boolean, ownedId: string
   for (const row of rows) list.append(rowEl(row, stacked));
   const panel = h(
     'div',
-    { class: `panel academy-dir${stacked ? ' academy-dir-stacked' : ''}`, role: 'dialog', 'aria-label': 'Elevador' },
+    { class: `panel academy-dir${stacked ? ' academy-dir-stacked' : ''}`, role: 'dialog', 'aria-label': 'Elevador (Elevator)' },
     h('h2', null, 'Elevador'),
     en('Academies in the neighborhood'),
     h('p', { class: 'hint' }, 'A beta é grátis. Sem taxa pra entrar.'),
@@ -118,7 +118,7 @@ function renderDirectory(rows: AcademyCard[], canFound: boolean, ownedId: string
     },
   });
   directoryOpen = true;
-  panel.append(h('button', { class: 'close ghost', onclick: close, 'aria-label': 'Fechar' }, '✕'));
+  panel.append(h('button', { class: 'close ghost', onclick: close, 'aria-label': 'Fechar (Close)' }, '✕'));
 }
 
 function rowEl(row: AcademyCard, stacked: boolean) {
@@ -150,7 +150,7 @@ function rowEl(row: AcademyCard, stacked: boolean) {
 function foundBlock(canFound: boolean, ownedId: string | null, stacked: boolean) {
   if (ownedId) return h('p', { class: 'hint' }, 'Você já fundou uma academia.', en('You already founded an academy.'));
   if (!canFound) return h('p', { class: 'hint' }, 'Fundar academia é da faixa marrom.', en('Founding an academy takes a brown belt.'));
-  const name = h('input', { id: 'academy-name', maxlength: '24', placeholder: 'Equipe …', autocomplete: 'off' }) as HTMLInputElement;
+  const name = h('input', { id: 'academy-name', maxlength: '24', placeholder: 'Equipe … (Team …)', autocomplete: 'off' }) as HTMLInputElement;
   const look: AcademyLook = { crest: 'ipe', giColor: 'branco', giStamp: 'ipe' };
   const box = h('div', { class: 'academy-preview-box' });
   const paint = () => box.replaceChildren(preview(name.value.trim(), look, 'Prévia · Preview'));
@@ -195,7 +195,7 @@ function openLook(card: AcademyCard) {
     {
       class: 'panel academy-dir academy-look',
       role: 'dialog',
-      'aria-label': 'Brasão e kimono',
+      'aria-label': 'Brasão e kimono (Crest and gi)',
       onsubmit: (e: Event) => {
         e.preventDefault();
         actions?.look(card.id, { ...look });
@@ -210,7 +210,7 @@ function openLook(card: AcademyCard) {
     h('button', { type: 'submit', class: 'green' }, bi('Salvar', 'Save')),
   );
   const close = openModal('academy-look', panel);
-  panel.append(h('button', { class: 'close ghost', type: 'button', onclick: close, 'aria-label': 'Fechar' }, '✕'));
+  panel.append(h('button', { class: 'close ghost', type: 'button', onclick: close, 'aria-label': 'Fechar (Close)' }, '✕'));
 }
 
 function crestEl(id: CrestId, size: number) {

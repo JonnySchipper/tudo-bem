@@ -38,7 +38,7 @@ export function openMap(go: (room: RoomId) => void) {
     .catch(() => picture.classList.add('failed'));
 
   // the places: tap areas over the picture, in map pixels
-  const svg = svgEl('svg', { viewBox: `0 0 ${MAP_W} ${MAP_H}`, class: 'tm-svg', role: 'group', 'aria-label': 'Mapa da Vila Ipê' });
+  const svg = svgEl('svg', { viewBox: `0 0 ${MAP_W} ${MAP_H}`, class: 'tm-svg', role: 'group', 'aria-label': 'Mapa da Vila Ipê (Vila Ipê map)' });
   // the fog over the coming-soon corner: a dither of pale pixels
   const defs = svgEl('defs', {});
   const fog = svgEl('pattern', { id: 'tm-fog', width: 4, height: 4, patternUnits: 'userSpaceOnUse' });
@@ -137,7 +137,7 @@ export function openMap(go: (room: RoomId) => void) {
     h(
       'div',
       { class: 'panel townmap' },
-      h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
+      h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar (Close)' }, '✕'),
       h('h2', null, 'Vila Ipê · São Paulo'),
       en('Tap a place to go there. Praia and Fazenda are coming soon.'),
       scroll,

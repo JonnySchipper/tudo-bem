@@ -51,7 +51,7 @@ export function openFeiraCart(gameId: FeiraGameId) {
   const close = openModal(
     'feira-cart',
     h('div', { class: 'panel feira-game-panel', id: 'feira-cart-panel' },
-      h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
+      h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar (Close)' }, '✕'),
       h('p', { class: 'fg-kicker' }, 'Carrinho da feira', en('Market cart')),
       h('h2', { id: 'feira-cart-game' }, label.pt, en(label.en)),
       h('p', { class: 'fg-intro', lang: 'pt-BR' }, intro.pt),
@@ -125,7 +125,7 @@ function paintBoard(m: Extract<FeiraGameMsg, { phase: 'board' }>, alsoCart: bool
   const close = openModal(
     'feira-sign',
     h('div', { class: 'panel feira-game-panel', id: 'feira-sign-panel' },
-      h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
+      h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar (Close)' }, '✕'),
       h('p', { class: 'fg-kicker' }, 'Placar da Feira', en('Market board')),
       h('h2', null, 'Hoje', en('Today')),
       h('p', { class: 'fg-featured', id: 'feira-sign-game' }, label.pt, en(label.en)),
