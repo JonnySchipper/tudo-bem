@@ -669,6 +669,35 @@ The HUD chip and the note form. Safety refusals reuse the existing chat notes (n
 | 489 | Não deu pra enviar agora. Tenta de novo daqui a pouco. | Couldn't send just now. Try again in a moment. | same, `offline` | | |
 | 490 | Não deu pra ler esse recado. | We couldn't read that note. | same, `bad_request` | | |
 
+## U. Feira vendors off duty (issue #170)
+
+<a id="u-off-duty"></a>
+What a vendor says away from the open stall (Tia Lu on her praça bench, 13:00-17:00). Small talk, never an offer; "Dá pra comprar?" gets tomorrow's hours (06:00-13:00). All in `packages/shared/src/feira.ts` (`OFF_DUTY`), chips and role in `apps/client/src/ui/feira.ts` (`openFeiraOffDuty`). **needs_br.**
+
+| # | PT | EN | Where | Note | OK? |
+|---|---|---|---|---|---|
+| 491 | Ai, que bom descansar um pouquinho! | Oh, it’s so nice to rest a little! | `OFF_DUTY.tia_lu` | Tia Lu | |
+| 492 | Acordei às quatro hoje. Tô cansada! | I got up at four today. I’m tired! | `OFF_DUTY.tia_lu` | Tia Lu. Invented fact: feirantes get up very early | |
+| 493 | Meus netos vêm jantar lá em casa hoje. | My grandkids are coming over for dinner tonight. | `OFF_DUTY.tia_lu` | Tia Lu. Invented fact: she has grandchildren | |
+| 494 | Amanhã cedo tô na feira! | I’ll be at the feira early tomorrow! | `OFF_DUTY.*` | All four vendors say it | |
+| 495 | Agora não, a feira já fechou! Amanhã tem, das seis à uma da tarde. | Not now, the feira has closed! It’s on tomorrow, from six to one in the afternoon. | `OFF_DUTY.tia_lu.buy` | Tia Lu, answer to the buy chip. Check "das seis à uma" | |
+| 496 | Opa! Hoje a feira foi boa. | Hey! The feira went well today. | `OFF_DUTY.ze` | Seu Zé | |
+| 497 | Agora é hora de descansar as pernas. | Now it’s time to rest my legs. | `OFF_DUTY.ze` | Seu Zé | |
+| 498 | Mais tarde tem jogo de futebol na TV. | There’s a football game on TV later. | `OFF_DUTY.ze` | Seu Zé | |
+| 499 | Hoje não dá mais. Amanhã tem feira, das seis à uma da tarde! | Not today anymore. There’s a feira tomorrow, from six to one in the afternoon! | `OFF_DUTY.ze.buy` | Seu Zé | |
+| 500 | Hoje vendi tudo! Que dia! | I sold everything today! What a day! | `OFF_DUTY.chico` | Seu Chico | |
+| 501 | Tô com cheiro de pastel até agora! | I still smell like pastel! | `OFF_DUTY.chico` | Seu Chico | |
+| 502 | Agora eu quero um café e uma soneca. | Now I want a coffee and a nap. | `OFF_DUTY.chico` | Seu Chico | |
+| 503 | Pastel só amanhã! A feira abre às seis e vai até a uma. | Pastel only tomorrow! The feira opens at six and goes until one. | `OFF_DUTY.chico.buy` | Seu Chico | |
+| 504 | Que bom te ver fora da feira! | How nice to see you away from the feira! | `OFF_DUTY.rosa` | Dona Rosa | |
+| 505 | Agora vou cuidar das minhas plantas. | Now I’m going to look after my plants. | `OFF_DUTY.rosa` | Dona Rosa | |
+| 506 | Minha neta adora flores, igual a mim. | My granddaughter loves flowers, just like me. | `OFF_DUTY.rosa` | Dona Rosa. Invented fact: she has a granddaughter | |
+| 507 | As flores ficam pra amanhã. A feira é das seis à uma da tarde! | The flowers will have to wait for tomorrow. The feira is from six to one in the afternoon! | `OFF_DUTY.rosa.buy` | Dona Rosa | |
+| 508 | Dá pra comprar alguma coisa? | Can I buy something? | `OFF_DUTY_ASK` | Player chip | |
+| 509 | Até amanhã! | See you tomorrow! | `OFF_DUTY_BYE` | Player chip | |
+| 510 | Tá bom, {obrigad}! Até amanhã! | Okay, thanks! See you tomorrow! | `apps/client/src/ui/feira.ts` | Player chip after the buy answer | |
+| 511 | Depois da feira | (role line in the box) | `apps/client/src/ui/feira.ts` | Shown under the vendor's name off duty, where the stall box says "Barraca da feira" | |
+
 ## Totals
 
-490 numbered strings in sections A to Q, S and T, plus 9 proposed-card entries.
+511 numbered strings in sections A to Q, S, T and U, plus 9 proposed-card entries.

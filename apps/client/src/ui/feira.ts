@@ -6,6 +6,9 @@
 import {
   COINS,
   FEIRA_CLOSED_NOTE,
+  OFF_DUTY,
+  OFF_DUTY_ASK,
+  OFF_DUTY_BYE,
   VENDORS,
   askChip,
   goodById,
@@ -13,6 +16,7 @@ import {
   makeChange,
   moneyLabel,
   moneyPt,
+  offDutyLine,
   parseQty,
   priceFor,
   qtyChip,
@@ -23,6 +27,7 @@ import {
   type ClientMsg,
   type NpcId,
   type ServerMsg,
+  type StallVendorId,
   type VendorId,
 } from '@tudobem/shared';
 import { game } from '../state';
@@ -298,6 +303,41 @@ export function openFeiraClosed(vendor: VendorId): void {
     chips: [{ pt: `Tá bom, ${obrigad()}!`, en: 'Okay, thanks!' }],
     onChip: () => closeDialogueBox(),
     onClose: () => closeDialogueBox(),
+  });
+}
+
+/** How many times each vendor was talked to off duty this session: each talk opens with the next of their lines. */
+const offDutyTalks = new Map<StallVendorId, number>();
+
+/**
+ * A vendor away from their open stall (Tia Lu on her praça bench after 13:00): a line of small talk, never an offer. "Dá pra comprar?" gets
+ * tomorrow's feira hours. Lines go through `say`, so the Caderno's heard cards count them like any other spoken line.
+ */
+export function openFeiraOffDuty(npc: StallVendorId): void {
+  hooks = null;
+  st = null;
+  const v = VENDORS[npc];
+  const n = offDutyTalks.get(npc) ?? 0;
+  offDutyTalks.set(npc, n + 1);
+  const box = (line: Bilingual, chips: BoxChip[], onChip: (i: number) => void) => {
+    speak(line.pt, { speaker: npc });
+    noteHeard(line.pt);
+    showDialogueBox({
+      key: 'vendor-off-duty',
+      npcId: npc,
+      speaker: v.name,
+      role: 'Depois da feira',
+      expression: 'feliz',
+      line,
+      chips,
+      onChip,
+      onClose: () => closeDialogueBox(),
+    });
+  };
+  const bye = () => closeDialogueBox();
+  box(offDutyLine(npc, n), [OFF_DUTY_ASK, OFF_DUTY_BYE], (i) => {
+    if (i !== 0) return bye();
+    box(OFF_DUTY[npc].buy, [{ pt: `Tá bom, ${obrigad()}! ${OFF_DUTY_BYE.pt}`, en: `Okay, thanks! ${OFF_DUTY_BYE.en}` }], bye);
   });
 }
 
