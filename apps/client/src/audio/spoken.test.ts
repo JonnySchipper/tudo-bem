@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { buildPlan, hasClip, loadCast, pendingKey, PENDING_PATH } from './plan';
-import { findClip, TTS_MANIFEST } from './library';
+import { findClip, loadTtsManifest } from './library';
 
+const TTS_MANIFEST = await loadTtsManifest();
 const pending = new Set<string>((JSON.parse(fs.readFileSync(PENDING_PATH, 'utf8')) as { lines: string[] }).lines);
 
 describe('every line the game speaks has a neural clip', () => {

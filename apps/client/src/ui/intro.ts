@@ -40,7 +40,7 @@ function brandLogo(kind: 'stacked' | 'banner') {
   const stacked = kind === 'stacked';
   return h('img', {
     class: `tb-logo tb-logo-${kind}`,
-    src: stacked ? '/brand/tb-logo-stacked.png' : '/brand/tb-logo-banner.png',
+    src: `${import.meta.env.BASE_URL}brand/${stacked ? 'tb-logo-stacked' : 'tb-logo-banner'}.png`,
     alt: 'Tudo Bem',
     width: stacked ? '732' : '1073',
     height: stacked ? '631' : '386',

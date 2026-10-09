@@ -1,7 +1,7 @@
 import { game } from './state';
 import { ambience } from './ambience';
 import { speechChunks } from '@tudobem/shared';
-import { findClip, pickPtVoice } from './audio/library';
+import { findClip, loadTtsManifest, pickPtVoice, ttsManifestReady } from './audio/library';
 
 const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
 
@@ -29,6 +29,8 @@ function audioEl() {
 
 /** Prime HTML audio inside a user gesture so later clips can play on iOS. */
 export function unlockSpeech() {
+  // the first gesture is a good moment to fetch the clip list, so the first spoken line rarely waits on it
+  void loadTtsManifest().catch(() => {});
   const el = audioEl();
   if (el.src && !el.paused && el.src !== SILENT) return;
   const prev = el.src;
@@ -115,6 +117,18 @@ export function speak(text: string, opts: { force?: boolean; rate?: number; spea
   ambience.duck(true);
   window.setTimeout(release, 20000);
 
+  if (!ttsManifestReady()) {
+    // the clip list is still loading: wait for it (a failed load falls back to the system voice); a newer line cancels this one
+    void loadTtsManifest().then(
+      () => gen === voiceGen && playLine(raw, opts, gen, release),
+      () => gen === voiceGen && playLine(raw, opts, gen, release),
+    );
+    return;
+  }
+  playLine(raw, opts, gen, release);
+}
+
+function playLine(raw: string, opts: { rate?: number; speaker?: string }, gen: number, release: () => void) {
   const clip = findClip(raw, opts.speaker);
   let fellBack = false;
   const goFallback = () => {
