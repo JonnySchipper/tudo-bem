@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   build-test:
     runs-on: ubuntu-latest
@@ -17,6 +20,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
+      - name: Every spoken line has a recorded clip (docs/VOICES.md)
+        run: pnpm tts:check
       - name: Cache Jev model
         uses: actions/cache@v4
         with:
@@ -33,3 +38,38 @@ jobs:
         # e2e:all starts its own server with a pinned game clock (TB_TEST_CLOCK_CONTROL, TB_TEST_OFFER, TB_TEST_ROLL), so the result
         # does not depend on the time of day the job runs. e2e:meveum brings its own pinned server.
         run: CHROME_PATH=$(which google-chrome || which chromium) pnpm e2e:all
+
+  docker-smoke:
+    # Builds the production image and boots it the way Fly does (empty volume at /data), then stops it with
+    # SIGTERM. Local only: no registry login, no push, no Fly.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build --pull -t tudobem:ci .
+      - name: Boot with an empty /data and wait for /healthz
+        run: |
+          data="$(mktemp -d)"
+          docker run -d --name tb -p 8787:8787 -v "$data:/data" tudobem:ci
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:8787/healthz; then echo; echo "healthy after ~$((i * 2)) s"; exit 0; fi
+            if [ "$(docker inspect -f '{{.State.Running}}' tb)" != "true" ]; then echo "container exited"; docker logs tb; exit 1; fi
+            sleep 2
+          done
+          echo "no 200 from /healthz within 120 s"; docker logs tb; exit 1
+      - name: Runs as the node user and writes the database on the volume
+        run: |
+          uid="$(docker exec tb cat /proc/1/status | grep '^Uid:' | cut -f2)"
+          echo "server uid: $uid"
+          test "$uid" = 1000
+          docker exec tb test -f /data/tudobem.sqlite
+      - name: Graceful stop (SIGTERM) exits 0
+        run: |
+          docker stop -t 30 tb
+          docker logs tb 2>&1 | tail -20
+          test "$(docker inspect -f '{{.State.ExitCode}}' tb)" = 0
+          docker logs tb 2>&1 | grep -q '\[shutdown\] SIGTERM'
+      - name: Container log on failure
+        if: failure()
+        run: docker logs tb || true

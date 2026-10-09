@@ -194,8 +194,8 @@ Two builds:
 
 ### Get a permanent URL (one-time setup, pick one)
 
-1. **Fly.io, multiplayer (recommended).** Add the repo secret **`FLY_API_TOKEN`**. On the next push to `main`, `.github/workflows/deploy-fly.yml` creates the app and volume on first run, deploys to region `gru`, and smoke-tests `/healthz` (**https://tudo-bem.fly.dev**; set the repo variable `FLY_APP` if the name is taken).
-2. **Render, multiplayer.** Dashboard → New → Blueprint → this repo (`render.yaml`). The free plan sleeps and has an ephemeral disk.
+1. **Fly.io, multiplayer (recommended).** Add the repo secret **`FLY_API_TOKEN`**. After CI passes on a push to `main`, `.github/workflows/deploy-fly.yml` creates the app and volume on first run, deploys the commit CI tested to region `iad` (`primary_region` in `fly.toml`), and smoke-tests `/healthz` (**https://tudo-bem.fly.dev**; set the repo variable `FLY_APP` if the name is taken).
+2. **Render, multiplayer.** Dashboard → New → Blueprint → this repo (`render.yaml`). **Not supported as written:** the free plan has no disk (every restart wipes `/data`, so every account) and 512 MB is too little; see the comment at the top of `render.yaml` for a paid plan with a disk.
 3. **GitHub Pages, solo.** Settings → Pages → Source: **GitHub Actions**. `.github/workflows/pages.yml` builds the solo client, runs the solo e2e against it, and deploys on every push to `main`.
 
 Other options: **Docker** (`docker build -t tudo-bem . && docker run -p 8787:8787 -v tb-data:/data tudo-bem`), Fly.io by CLI, Railway (uses the `Dockerfile`, add a volume at `/data`), the solo build on Vercel / Netlify / S3, or an instant preview with `pnpm build && pnpm start` plus `cloudflared tunnel --url http://localhost:8787`.

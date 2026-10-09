@@ -148,7 +148,7 @@ export class CorreriaEngine {
     const lesson = pendingLesson(pool.map((i) => i.id), taughtBefore, whereRequired(pool.length));
     const nextTaught = noteLesson(taughtBefore, lesson);
     p.correria.taught = nextTaught;
-    if (!rawTaught || nextTaught.join('\n') !== taughtBefore.join('\n')) this.d.store.save();
+    if (!rawTaught || nextTaught.join('\n') !== taughtBefore.join('\n')) this.d.store.save(p.id);
     const shift = newShift({
       seed: (this.d.now() ^ (Math.random() * 1e9)) >>> 0,
       level: levelForStars(stars),
@@ -267,7 +267,7 @@ export class CorreriaEngine {
     cp.stars += sum.stars;
     cp.shifts += 1;
     cp.best = Math.max(cp.best, sum.points);
-    this.d.store.save();
+    this.d.store.save(p.id);
     if (coins > 0) {
       for (const k of [...new Set(sum.regulars)].slice(0, 3)) this.d.bond(s, k.replace('npc:', '') as NpcId, 1);
       this.d.reward(s, coins, { pt: 'Correria no Balcão', en: 'Counter Rush at the bakery' });
@@ -313,6 +313,12 @@ export class CorreriaEngine {
     const run = this.run(s);
     if (!s.profile || !run || !s.instance) return;
     this.parked.set(s.profile.id, { run, room: s.instance.def.id, at: this.d.now() });
+  }
+
+  /** Drop parked shifts too old to resume (the world's idle sweep). */
+  prune(): void {
+    const now = this.d.now();
+    for (const [id, park] of this.parked) if (now - park.at > CORRERIA_RESUME_MS) this.parked.delete(id);
   }
 
   private fresh(s: Session) {

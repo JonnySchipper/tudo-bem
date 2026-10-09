@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createApp } from './app.js';
+import { logIntegrations } from './integrations.js';
 import type { CookieSecure } from './auth.js';
 import { readOpsSmokeConfig } from './opsSmoke.js';
 import { closeDatabase, openDatabase } from './sqliteDb.js';
@@ -58,11 +59,28 @@ app.server.listen(PORT, HOST, () => {
   console.log(
     `  client: ${CLIENT_DIST ?? '(dev mode — use Vite on :5173)'} · data: ${DATA_DIR} · cap ${ROOM_CAP}/instância · CPUs ${CPU_AMBIANCE ? 'on' : 'off'} · idle kick ${app.world.idleKickMs / 1000}s · ops smoke ${opsSmoke.ready ? 'on' : 'off'}\n`,
   );
+  void logIntegrations();
 });
 
-const shutdown = () => {
-  void app.close().finally(() => process.exit(0));
-  setTimeout(() => process.exit(0), 15_000).unref();
+/** Below Fly's kill_timeout (fly.toml, 30 s): a stuck close still exits on our terms. */
+const SHUTDOWN_HARD_MS = 25_000;
+let stopping = false;
+const shutdown = (signal: NodeJS.Signals) => {
+  // A second signal (impatient Ctrl-C, Fly re-sending SIGINT) must not start a second close.
+  if (stopping) return console.log(`[shutdown] ${signal} again, still stopping`);
+  stopping = true;
+  console.log(`[shutdown] ${signal}`);
+  setTimeout(() => {
+    console.error('[shutdown] timed out');
+    process.exit(1);
+  }, SHUTDOWN_HARD_MS).unref();
+  app.close().then(
+    () => process.exit(0),
+    (e) => {
+      console.error('[shutdown] failed', e);
+      process.exit(1);
+    },
+  );
 };
 // A stray rejection (a fire-and-forget promise somewhere) is logged; the world keeps running.
 process.on('unhandledRejection', (reason) => {

@@ -56,6 +56,8 @@ export interface StudentModelService {
   /** Card ids this player should see next (spaced repetition later). */
   scheduled(playerId: string, place: string, n: number): string[];
   nameplateFor(profile: PrivateProfile): Nameplate;
+  /** Forget in-memory state for players not in `keep` (the world's idle sweep). */
+  prune?(keep: ReadonlySet<string>): void;
 }
 
 /** Escalation-queue row (content/safety/phase0/ops/report-mute-kick-phase0.md). `text` is the frozen snapshot. */

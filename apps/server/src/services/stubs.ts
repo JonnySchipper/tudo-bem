@@ -88,6 +88,11 @@ export class InMemoryStudentModel implements StudentModelService {
     }
   }
 
+  /** Stats only help the player who is here; drop the rest so the map does not grow with every visitor. */
+  prune(keep: ReadonlySet<string>) {
+    for (const id of this.stats.keys()) if (!keep.has(id)) this.stats.delete(id);
+  }
+
   scheduled(playerId: string, _place: string, n: number): string[] {
     const per = this.stats.get(playerId);
     const scored = CARDS.map((c) => {
