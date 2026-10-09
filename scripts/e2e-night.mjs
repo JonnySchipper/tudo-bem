@@ -33,7 +33,8 @@ const shot = async (page, name) => {
 };
 const minutes = (page) => page.evaluate(() => window.__tb.clock.minutes());
 const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
-const npcsHere = (page) => page.evaluate(() => [...window.__tb.game.avatars.values()].filter((a) => a.pub.npc).map((a) => ({ id: a.pub.npc, activity: a.pub.activity, x: a.pub.x, y: a.pub.y })));
+// x, y: where the NPC is heading or standing (the end of its walk): pub.x/y is only the position the server last sent, not the animated one
+const npcsHere = (page) => page.evaluate(() => [...window.__tb.game.avatars.values()].filter((a) => a.pub.npc).map((a) => { const end = a.path.at(-1) ?? { x: a.pub.x, y: a.pub.y }; return { id: a.pub.npc, activity: a.pub.activity, x: end.x, y: end.y }; }));
 const walkTo = (page, x, y) => page.evaluate(([x, y]) => window.__tb.walkTo(x, y, false), [x, y]);
 const interact = async (page, t) => assert(await page.evaluate((t) => window.__tb.interact(t), t), `interact ${JSON.stringify(t)}`);
 const join = async (page, portal, room) => {
@@ -98,7 +99,7 @@ async function main() {
     await walkTo(page, 24, 21); // in front of banco_2
     await waitIdleAt(page, 24, 21);
     // he walks over from the padaria: on a slow runner he is still on the way when the clock passes 22:30, so wait for him to arrive
-    await waitFor(page, () => [...window.__tb.game.avatars.values()].some((a) => a.pub.npc === 'carlos' && a.pub.x === 24 && a.pub.y === 20), null, 90_000, 'Seu Carlos on the bench').catch(() => {});
+    await waitFor(page, () => [...window.__tb.game.avatars.values()].some((a) => { const end = a.path.at(-1) ?? { x: a.pub.x, y: a.pub.y }; return a.pub.npc === 'carlos' && end.x === 24 && end.y === 20; }), null, 90_000, 'Seu Carlos on the bench').catch(() => {});
     await sleep(1000);
     const npcs = await npcsHere(page);
     const carlos = npcs.find((n) => n.id === 'carlos');
