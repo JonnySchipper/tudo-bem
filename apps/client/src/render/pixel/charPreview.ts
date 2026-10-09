@@ -258,12 +258,12 @@ export async function parrotIconUrl(colorId: string, scale = 4): Promise<string>
   if (!p.img.complete || !p.img.naturalWidth) await p.img.decode();
   const bird = parrotFrame(p.img, 0, p.frameW, p.h, colorId);
   const out = document.createElement('canvas');
-  out.width = p.frameW * scale;
-  out.height = p.h * scale;
+  out.width = bird.w * scale;
+  out.height = bird.h * scale;
   const octx = out.getContext('2d');
   if (!octx) return '';
   octx.imageSmoothingEnabled = false;
-  octx.drawImage(bird, 0, 0, out.width, out.height);
+  octx.drawImage(bird.canvas, 0, 0, out.width, out.height);
   const url = out.toDataURL('image/png');
   iconCache.set(cacheKey, url);
   return url;
