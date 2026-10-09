@@ -130,7 +130,7 @@ export async function loadSnapshotAssets(base = pixelBase()): Promise<SnapshotAs
   const manifest = (await (await fetch(`${base}manifest.json`)).json()) as Manifest;
   const atlases: SnapshotAssets['atlases'] = {};
   await Promise.all(
-    Object.entries(manifest.atlases).map(async ([name, a]) => {
+    Object.entries(manifest.atlases).filter(([, a]) => !a.lazy).map(async ([name, a]) => {
       const [img, json] = await Promise.all([loadImage(base + a.image), fetch(base + a.data).then((r) => r.json() as Promise<AtlasJson>)]);
       atlases[name] = { img, json };
     }),

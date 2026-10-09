@@ -1803,6 +1803,51 @@ body.bout-on .toasts {
   max-width: 260px;
 }
 
+/* the carousel's arrows and dots: only on a narrow screen, when the row of cards overflows */
+.mc-carousel {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mc-nav {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.mc-arrow {
+  min-width: 34px;
+  min-height: 26px;
+  padding: 0 8px;
+  border: 2px solid var(--bout-ink);
+  background: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.mc-arrow[disabled] {
+  opacity: 0.3;
+}
+
+.mc-dots {
+  display: inline-flex;
+  gap: 5px;
+}
+
+.mc-dot {
+  width: 8px;
+  height: 8px;
+  border: 2px solid var(--bout-ink);
+  background: #fff;
+}
+
+.mc-dot.on {
+  background: var(--bout-ink);
+}
+
 /* holding is the quiet option: a narrow card at the end */
 .move-cards > .move-card.is-hold {
   flex: 0 1 112px;
@@ -2481,15 +2526,36 @@ body.bout-on .toasts {
   color: #ffe2da;
 }
 
+/* who and the move on one line, the ground read under it (big, on the clip's impact frame), the details last */
+.bout-rhead,
+.bout-rfoot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 2px 8px;
+}
+
+.bout-rhead .en {
+  display: inline;
+}
+
+.bout-rfoot .bout-moment,
+.bout-rfoot .bout-outcome {
+  display: inline;
+}
+
 .bout-ground {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 4px;
-  padding: 2px 10px 2px 4px;
+  margin: 2px 0;
+  padding: 3px 12px 3px 4px;
   border: 3px solid var(--bout-ink);
-  font-size: 15px;
-  animation: bout-pop 0.35s ease-out 0.85s both;
+  font-size: 19px;
+  font-weight: 800;
+  box-shadow: 0 3px 0 rgba(20, 16, 26, 0.3);
+  animation: bout-pop 0.35s ease-out 0.72s both;
 }
 
 .bout-ground .en {
@@ -2671,10 +2737,67 @@ body.bout-on .toasts {
     display: none;
   }
   .bout-ground {
-    font-size: 13px;
+    font-size: 15px;
+  }
+  .bout-rfoot .en {
+    display: none;
   }
   .bout-word {
     font-size: 14px;
+  }
+  /* the move cards: one swipeable row, two and a bit on screen, arrows and a dot per card under it */
+  .bout-intents .move-cards {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .bout-intents .move-cards::-webkit-scrollbar {
+    display: none;
+  }
+  .bout-intents .move-cards > .move-card,
+  .bout-intents .move-cards > .move-card.is-hold {
+    flex: 0 0 calc(44% - 3px);
+    max-width: none;
+    scroll-snap-align: start;
+  }
+  .bout-intents .bout-intent.move-card {
+    min-height: 0;
+    padding-bottom: 6px;
+  }
+  .bout-intents .move-card .mc-hint {
+    font-size: 11px;
+  }
+  .bout-intents .move-card .mc-risk {
+    font-size: 10px;
+  }
+  .mc-nav.needed {
+    display: flex;
+  }
+  .mc-arrow {
+    min-height: 22px;
+    font-size: 16px;
+  }
+  .bout-plan .plan-line .en,
+  .bout-plan .plan-answers,
+  .bout-intents .move-card .mc-hint .en {
+    display: none;
+  }
+  .bout-ask .bout-ask-you .pt {
+    font-size: 13px;
+  }
+  .bout-intents .bout-intent.move-card .mc-name {
+    font-size: 15px;
+  }
+  .bout-intents .move-card .mc-pct {
+    top: 24px;
+    font-size: 13px;
+    padding: 1px 3px;
+  }
+  .bout-panel[data-phase='intent'] {
+    max-height: 40vh;
   }
   .bout-word.kind-vantagem {
     font-size: 19px;

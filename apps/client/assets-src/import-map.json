@@ -30,6 +30,10 @@
   "atlas": {
     "outdoor": {
       "maxWidth": 512
+    },
+    "bjj": {
+      "maxWidth": 1024,
+      "lazy": true
     }
   },
   "sprites": [
