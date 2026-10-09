@@ -42,6 +42,7 @@ import {
   moveDoes,
   moveLegal,
   moveTaughtAt,
+  movesThrough,
   newMat,
   nextMatWord,
   offerCards,
@@ -635,6 +636,20 @@ describe('Virar: everyone’s way out from under', () => {
     const card = offerCards({ ...st, actor: 'you' }, ['collar_tie', 'double_leg', 'passar', 'armbar'], null).find((c) => c.move === 'virar');
     expect(card).toMatchObject({ kind: 'defense', chain: 2, does: { pt: 'Sai de baixo', en: 'Gets out from under' } });
     expect(MOVE_LABEL.virar).toEqual({ pt: 'Virar', en: 'Turn over' });
+  });
+
+  it('a white belt underneath is offered Virar as a card; once unlocked, Recuperar and Sair come with it (the server builds the pick this way)', () => {
+    const white = fightMoves({ belt: 'branca', unlocked: movesThrough('branca', 0), opponentBelt: 'branca' });
+    for (const kind of ['side_control', 'knee_on_belly', 'mount', 'back_control'] as const) {
+      const cards = offerCards({ ...at(kind, 'them'), actor: 'you' }, white, null).map((c) => c.move);
+      expect(cards, kind).toContain('virar');
+    }
+    const blue = fightMoves({ belt: 'azul', unlocked: movesThrough('azul', 3), opponentBelt: 'azul' });
+    expect(offerCards({ ...at('mount', 'them'), actor: 'you' }, blue, null).map((c) => c.move)).toEqual(expect.arrayContaining(['frame', 'virar']));
+    expect(offerCards({ ...at('back_control', 'them'), actor: 'you' }, blue, null).map((c) => c.move)).toEqual(expect.arrayContaining(['escape_back', 'virar']));
+    // the lesson is the better escape: shorter than Virar from the same spot
+    const st = { ...at('mount', 'them'), actor: 'you' as const };
+    expect(chainFor(st, 'you', 'frame').length).toBeLessThan(chainFor(st, 'you', 'virar').length);
   });
 
   it('the partner escapes when it is under, and still prefers a sweep once it is in the guard', () => {
