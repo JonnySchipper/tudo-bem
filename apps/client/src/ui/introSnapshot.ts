@@ -33,10 +33,10 @@ export interface SnapshotPlan {
   fill: { color: [number, number, number]; alpha: number };
 }
 
-/** Everything the snapshot draws, in paint order. */
-export function planSnapshot(def: RoomDef, m: Manifest): SnapshotPlan {
+/** Everything the snapshot draws, in paint order, graded for `minute` (the title's golden hour by default). */
+export function planSnapshot(def: RoomDef, m: Manifest, minute = SNAPSHOT_MINUTE): SnapshotPlan {
   const ops: SnapOp[] = [];
-  const look = computeLook({ outdoor: true, roomHour: 17.5, minutes: SNAPSHOT_MINUTE, weather: WEATHER_PARAMS.sol });
+  const look = computeLook({ outdoor: true, roomHour: minute / 60, minutes: minute, weather: WEATHER_PARAMS.sol });
   const push = (key: string | undefined | null, x: number, y: number, depth: number, alpha = 1, origin: 'anchor' | 'tl' = 'anchor') => {
     const d = key ? m.sprites[key] : undefined;
     if (!d) return null;
