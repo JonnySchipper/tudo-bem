@@ -118,7 +118,8 @@ const NOUN = {
 export function buildCards() {
   const padaria = parseLexemes(readMd('lexemes-padaria-a1.md'), 'lexemes-padaria-a1.md');
   const social = parseLexemes(readMd('lexemes-greetings-numbers-a1.md'), 'lexemes-greetings-numbers-a1.md');
-  const cards = [...padaria, ...social].map((c) => ({ ...c, ...(NOUN[c.id] ?? {}) }));
+  const tatame = parseLexemes(readMd('lexemes-tatame-a1.md'), 'lexemes-tatame-a1.md');
+  const cards = [...padaria, ...social, ...tatame].map((c) => ({ ...c, ...(NOUN[c.id] ?? {}) }));
   return {
     _meta: {
       generatedBy: 'scripts/build-curriculum.mjs from lexemes-*.md (markdown is canonical — edit it, then `pnpm content`)',

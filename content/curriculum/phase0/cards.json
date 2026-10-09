@@ -3,7 +3,7 @@
   "generatedBy": "scripts/build-curriculum.mjs from lexemes-*.md (markdown is canonical — edit it, then `pnpm content`)",
   "status": "DRAFT — every card needs Brazilian human sign-off before default-path (signoff field)",
   "counts": {
-   "pack": 67
+   "pack": 77
   }
  },
  "cards": [
@@ -1731,6 +1731,261 @@
     "*"
    ],
    "source": "lexemes-greetings-numbers-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.tatame.pega",
+   "form": "Pega",
+   "pos": "verb (imperative)",
+   "tags": [
+    "command",
+    "tatame",
+    "A1"
+   ],
+   "gloss_en": "Grab! / Take it!",
+   "patterns": [
+    "Pega!",
+    "Pega a gola!"
+   ],
+   "accepts": [
+    "pega",
+    "pega!"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "academia"
+   ],
+   "source": "lexemes-tatame-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.tatame.puxa",
+   "form": "Puxa",
+   "pos": "verb (imperative)",
+   "tags": [
+    "command",
+    "tatame",
+    "A1"
+   ],
+   "gloss_en": "Pull!",
+   "patterns": [
+    "Puxa!",
+    "Puxa a manga!"
+   ],
+   "accepts": [
+    "puxa",
+    "puxa!"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "academia"
+   ],
+   "source": "lexemes-tatame-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.tatame.empurra",
+   "form": "Empurra",
+   "pos": "verb (imperative)",
+   "tags": [
+    "command",
+    "tatame",
+    "A1"
+   ],
+   "gloss_en": "Push!",
+   "patterns": [
+    "Empurra!"
+   ],
+   "accepts": [
+    "empurra",
+    "empurra!"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "academia"
+   ],
+   "source": "lexemes-tatame-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.tatame.gira",
+   "form": "Gira",
+   "pos": "verb (imperative)",
+   "tags": [
+    "command",
+    "tatame",
+    "A1"
+   ],
+   "gloss_en": "Turn!",
+   "patterns": [
+    "Gira!"
+   ],
+   "accepts": [
+    "gira",
+    "gira!"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "academia"
+   ],
+   "source": "lexemes-tatame-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.tatame.levanta",
+   "form": "Levanta",
+   "pos": "verb (imperative)",
+   "tags": [
+    "command",
+    "tatame",
+    "A1"
+   ],
+   "gloss_en": "Lift! / Get up!",
+   "patterns": [
+    "Levanta!"
+   ],
+   "accepts": [
+    "levanta",
+    "levanta!"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "academia"
+   ],
+   "source": "lexemes-tatame-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.tatame.aperta",
+   "form": "Aperta",
+   "pos": "verb (imperative)",
+   "tags": [
+    "command",
+    "tatame",
+    "A1"
+   ],
+   "gloss_en": "Squeeze! / Press!",
+   "patterns": [
+    "Aperta!"
+   ],
+   "accepts": [
+    "aperta",
+    "aperta!"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "academia"
+   ],
+   "source": "lexemes-tatame-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.tatame.postura",
+   "form": "Postura",
+   "pos": "noun",
+   "tags": [
+    "command",
+    "tatame",
+    "A1",
+    "feminine"
+   ],
+   "gloss_en": "Posture! (stand tall)",
+   "patterns": [
+    "Postura!"
+   ],
+   "accepts": [
+    "postura",
+    "postura!"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "academia"
+   ],
+   "source": "lexemes-tatame-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.tatame.base",
+   "form": "Base",
+   "pos": "noun",
+   "tags": [
+    "command",
+    "tatame",
+    "A1",
+    "feminine"
+   ],
+   "gloss_en": "Base! (feet wide, stay balanced)",
+   "patterns": [
+    "Base!"
+   ],
+   "accepts": [
+    "base",
+    "base!"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "academia"
+   ],
+   "source": "lexemes-tatame-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.tatame.trava",
+   "form": "Trava",
+   "pos": "verb (imperative)",
+   "tags": [
+    "command",
+    "tatame",
+    "A1"
+   ],
+   "gloss_en": "Block! / Lock it!",
+   "patterns": [
+    "Trava!"
+   ],
+   "accepts": [
+    "trava",
+    "trava!"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "academia"
+   ],
+   "source": "lexemes-tatame-a1.md",
+   "signoff": "needs_br"
+  },
+  {
+   "id": "lex.tatame.sai",
+   "form": "Sai",
+   "pos": "verb (imperative)",
+   "tags": [
+    "command",
+    "tatame",
+    "A1"
+   ],
+   "gloss_en": "Get out!",
+   "patterns": [
+    "Sai!",
+    "Sai de baixo!"
+   ],
+   "accepts": [
+    "sai",
+    "sai!"
+   ],
+   "wrongs": [],
+   "prereq": [],
+   "places": [
+    "academia"
+   ],
+   "source": "lexemes-tatame-a1.md",
    "signoff": "needs_br"
   }
  ]

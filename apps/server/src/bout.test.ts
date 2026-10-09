@@ -483,6 +483,11 @@ describe('Treino no tatame v3 (server)', () => {
     const resolves = a.bout().filter((m) => m.phase === 'resolve');
     expect(resolves.length).toBeGreaterThan(0);
     expect(resolves.length).toBeLessThanOrEqual(MAT_TURNS);
+    // the mat feeds the Caderno: every command Bia called is heard, every one tapped right is used
+    const tapped = new Set(a.bout().flatMap((m) => (m.phase === 'chain' ? m.cmds : [])));
+    expect(tapped.size).toBeGreaterThan(0);
+    for (const c of tapped) expect(a.s.profile!.caderno?.[`lex.tatame.${c}`], c).toMatchObject({ used: expect.any(Number), heard: expect.any(Number) });
+    expect(Object.keys(a.s.profile!.caderno ?? {}).some((id) => id.startsWith('lex.tatame.') && a.s.profile!.caderno![id]!.used >= 1)).toBe(true);
   });
 
   it('a win pays one diary word and keeps the belt on the account after the match is gone', async () => {
