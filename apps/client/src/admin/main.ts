@@ -119,6 +119,12 @@ function table(head: (string | Node)[], rows: (Node | string | number | null)[][
   );
 }
 
+/** A report shows the target's lines as the server captured them; anything else shows its own text. Never edited. */
+function modText(m: Json): Node[] {
+  if (m.lines?.length) return (m.lines as string[]).map((l) => h('div', null, `“${l}”`));
+  return m.text ? [h('div', null, m.text)] : [];
+}
+
 function subPill(sub: Json | null) {
   if (!sub) return pill('none');
   if (sub.comp) return pill(`COMP ${sub.active ? 'active' : sub.status}`, 'comp');
@@ -168,7 +174,8 @@ function signupChart(days: { day: string; accounts: number }[]) {
     });
     hit.addEventListener('pointerleave', () => (tip.hidden = true));
     svg.append(hit);
-    if (i % 7 === 0 || i === days.length - 1) {
+    // a label every 7 days, counted back from today so the newest day always has one
+    if ((days.length - 1 - i) % 7 === 0) {
       const t = el('text', { x: x + bw / 2, y: H - 6, 'text-anchor': 'middle', 'font-size': 10, fill: '#737a88' });
       t.textContent = d.day.slice(5);
       svg.append(t);
@@ -617,7 +624,7 @@ async function viewPlayer(id: string): Promise<Node[]> {
       'Moderation history',
       table(
         ['When', 'Kind', 'By', 'About', 'Text'],
-        (d.moderation as Json[]).map((m) => [fmtDate(m.at), pill(m.kind, m.kind === 'block' || m.kind === 'report' ? 'bad' : 'warn'), m.playerName, m.targetName ?? '—', m.lines ? h('div', null, m.text ? h('div', null, m.text) : null, ...m.lines.map((l: string) => h('div', { class: 'small muted' }, `“${l}”`))) : m.text]),
+        (d.moderation as Json[]).map((m) => [fmtDate(m.at), pill(m.kind, m.kind === 'block' || m.kind === 'report' ? 'bad' : 'warn'), m.playerName, m.targetName ?? '—', h('div', null, ...modText(m))]),
         { empty: 'No moderation entries.' },
       ),
     ),
@@ -762,7 +769,7 @@ async function viewModeration(): Promise<Node[]> {
           pill(m.kind, m.kind === 'block' || m.kind === 'report' ? 'bad' : 'warn'),
           `${m.surface} · ${m.room}`,
           h('div', null, playerLink(m.playerId, m.playerName), m.targetName ? h('div', { class: 'small muted' }, 'reported ', playerLink(m.targetId, m.targetName)) : null),
-          h('div', null, m.reason ? h('div', { class: 'small' }, `Reason: ${m.reason}`) : null, m.text ? h('div', null, m.text) : null, ...(m.lines ?? []).map((l: string) => h('div', { class: 'small muted' }, `“${l}”`))),
+          h('div', null, m.reason ? h('div', { class: 'small' }, `Reason: ${m.reason}`) : null, ...modText(m)),
           (m.labels as string[]).join(', ') + (m.toxicity != null ? ` (${Number(m.toxicity).toFixed(2)})` : ''),
           m.subject
             ? h(

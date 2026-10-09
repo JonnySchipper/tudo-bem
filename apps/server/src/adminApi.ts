@@ -154,7 +154,8 @@ export function createAdminApi(deps: AdminApiDeps) {
       server: {
         startedAt: deps.startedAt,
         uptimeSec: Math.round(process.uptime()),
-        version: process.env.TB_GIT_SHA || process.env.FLY_IMAGE_REF || 'dev',
+        // TB_GIT_SHA comes from the Docker build arg; until the deploy passes it, Fly's image ref still names the release
+        version: (process.env.TB_GIT_SHA !== 'unknown' && process.env.TB_GIT_SHA) || process.env.FLY_IMAGE_REF || 'dev',
         node: process.version,
         rssMb: Math.round(process.memoryUsage().rss / 1e6),
         region: process.env.FLY_REGION ?? null,

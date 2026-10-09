@@ -48,6 +48,9 @@ RUN v="$(node -p "require('/tmp/server-package.json').dependencies['better-sqlit
 
 FROM node:22-bookworm-slim
 WORKDIR /app
+# The commit the image was built from, shown on the admin dashboard. `fly deploy --build-arg GIT_SHA=$(git rev-parse HEAD)`.
+ARG GIT_SHA=unknown
+ENV TB_GIT_SHA=$GIT_SHA
 ENV NODE_ENV=production \
     PORT=8787 \
     DATA_DIR=/data \

@@ -62,6 +62,12 @@ pre {
   display: grid;
   grid-template-columns: 210px 1fr;
   min-height: 100vh;
+  /* the sidebar colour runs the full height of a long page, under the sticky nav */
+  background: linear-gradient(to right, var(--side) 210px, var(--bg) 210px);
+}
+td .row {
+  flex-wrap: nowrap;
+  margin: 0;
 }
 .side {
   background: var(--side);
@@ -106,7 +112,7 @@ pre {
   color: #9aa3b2;
 }
 .side .who button {
-  margin-top: 8px;
+  margin: 8px 10px 0 0;
 }
 main {
   padding: 22px 28px 60px;
@@ -122,6 +128,18 @@ main {
 }
 .grid {
   display: grid;
+  gap: 16px;
+}
+.grid {
+  margin-bottom: 16px;
+}
+.grid > .card,
+.grid > div > .card {
+  margin-bottom: 0;
+}
+.grid > div {
+  display: flex;
+  flex-direction: column;
   gap: 16px;
 }
 .grid.two {
@@ -401,6 +419,7 @@ details summary {
 @media (max-width: 860px) {
   .shell {
     grid-template-columns: 1fr;
+    background: var(--bg);
   }
   .side {
     position: static;
