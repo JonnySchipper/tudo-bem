@@ -181,6 +181,11 @@ async function main() {
 
     // Shift 1: the counter opens, customers come, two are served through the taps.
     await startShift(page);
+    // the first shift opens with the How to play card over the counter (it holds the game's clicks until it is closed): read it, "Got it"
+    await page.waitForSelector('#howto-card[data-game="correria"]', { timeout: 8000 });
+    await page.click('#howto-ok');
+    await page.waitForSelector('#howto-card', { state: 'detached', timeout: 4000 });
+    assert(await page.isVisible('#howto-help'), 'the “?” stays to read How to play again');
     assert(await page.isVisible('#cr-panel'), 'the counter strip is up');
     assert(!(await page.$('[data-modal="minigame"]')), 'no modal over the padaria');
     const first = await waitFront(page);
