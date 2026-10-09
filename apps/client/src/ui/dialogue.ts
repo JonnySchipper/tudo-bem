@@ -7,7 +7,7 @@
  * The old centred-modal presentation (`?dialogue=modal`) was removed in Phase 10.
  */
 import { game } from '../state';
-import { h, ui } from './dom';
+import { en, h, ui } from './dom';
 import { speak } from '../audio';
 import { reducedMotion } from '../render/pixel/perf';
 import { npcPortrait, parrotPortrait, type Expression } from './pixelArt';
@@ -126,7 +126,7 @@ function onKey(e: KeyboardEvent) {
 /** Friendship hearts next to the name tag (`♥ 3`); the full row lives in the Recados journal. */
 function hearts(npcId: string): HTMLElement {
   const n = heartsWith(game.profile?.bond, npcId);
-  return h('span', { class: `dbx-hearts${n ? '' : ' zero'}`, title: `Amizade: ${n} de 10 corações · Friendship`, 'aria-label': `${n} corações` }, n ? '♥' : '♡', ' ', String(n));
+  return h('span', { class: `dbx-hearts${n ? '' : ' zero'}`, title: `Amizade: ${n} de 10 corações · Friendship`, 'aria-label': `${n} corações (${n} hearts)` }, n ? '♥' : '♡', ' ', String(n));
 }
 
 function buildPortrait(s: BoxSpec): HTMLElement {
@@ -156,7 +156,8 @@ function build(s: BoxSpec): HTMLElement[] {
               noteHeard(listenText);
             },
           },
-          '🔊 Ouvir',
+          '🔊 Ouvir ',
+          en('Listen'),
         )
       : null,
     h(
@@ -175,19 +176,20 @@ function build(s: BoxSpec): HTMLElement[] {
         },
       },
       h('span', { class: 'sw' }),
-      'Mostrar inglês',
+      'Mostrar inglês ',
+      en('Show English'),
     ),
-    h('button', { class: 'dbx-close ghost', onclick: () => s.onClose(), 'aria-label': 'Fechar', title: 'Fechar (Esc)' }, '✕'),
+    h('button', { class: 'dbx-close ghost', onclick: () => s.onClose(), 'aria-label': 'Fechar (Close)', title: 'Fechar (Esc) · Close' }, '✕'),
   );
 
   typedEl = h('span', { class: 'tw-shown' });
   restEl = h('span', { class: 'tw-rest', 'aria-hidden': 'true' });
   const line = s.thinking
-    ? h('div', { class: 'line-bubble thinking' }, h('span', { class: 'pt dots', 'aria-label': 'Seu Carlos está pensando' }, h('i'), h('i'), h('i')))
+    ? h('div', { class: 'line-bubble thinking' }, h('span', { class: 'pt dots', 'aria-label': 'Seu Carlos está pensando (Seu Carlos is thinking)' }, h('i'), h('i'), h('i')))
     : s.line
       ? h(
           'div',
-          { class: 'line-bubble', title: 'Clique para completar', onclick: skip },
+          { class: 'line-bubble', title: 'Clique para completar · Click to skip ahead', onclick: skip },
           h('span', { class: 'pt', lang: 'pt-BR', 'aria-label': s.line.pt }, typedEl, restEl),
         )
       : null;
@@ -204,7 +206,7 @@ function build(s: BoxSpec): HTMLElement[] {
   const input = s.input;
   let inputRow: HTMLElement | null = null;
   if (input) {
-    const el = h('input', { type: 'text', maxLength: 140, placeholder: input.placeholder, 'aria-label': 'Sua resposta', id: input.id, autocomplete: 'off', disabled: !!input.disabled }) as HTMLInputElement;
+    const el = h('input', { type: 'text', maxLength: 140, placeholder: input.placeholder, 'aria-label': 'Sua resposta (Your answer)', id: input.id, autocomplete: 'off', disabled: !!input.disabled }) as HTMLInputElement;
     const send = () => {
       const v = el.value.trim();
       if (v) input.onSend(v, el);
@@ -221,7 +223,7 @@ function build(s: BoxSpec): HTMLElement[] {
     'div',
     { class: 'dbx-body' },
     head,
-    s.said ? h('div', { class: 'dbx-said you-said' }, `Você: “${s.said}”`) : null,
+    s.said ? h('div', { class: 'dbx-said you-said' }, 'Você', en(' (You)'), `: “${s.said}”`) : null,
     s.feedback ?? null,
     line,
     s.line?.en && !s.thinking ? h('div', { class: 'dbx-en en plain' }, s.line.en) : null,

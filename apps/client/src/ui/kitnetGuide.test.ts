@@ -49,10 +49,12 @@ describe('the kitnet first-visit guide', () => {
     expect(kitnetGuideStep(closed, { ...p, placed: true })).toBe('abrir');
   });
 
-  it('with nothing affordable you can go on with the free chair instead of buying', () => {
+  it('there is no way to skip buying, and the 10 RV kitnet gift pays for the cheapest piece', () => {
     expect(suggestPurchase(0)).toBeNull();
     expect(suggestPurchase(cheapestFurniture().price)).toBe(cheapestFurniture().id);
-    expect(kitnetGuideStep(loja, { ...NO_PROGRESS, skippedBuy: true })).toBe('meus');
+    expect(ECONOMY.kitnetGift).toBe(10);
+    expect(ECONOMY.kitnetGift).toBeGreaterThanOrEqual(cheapestFurniture().price);
+    expect(kitnetGuideStep(loja, NO_PROGRESS)).toBe('comprar');
   });
 
   it('never suggests an earned piece (the founders banner is not for sale)', () => {

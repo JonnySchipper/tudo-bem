@@ -454,21 +454,21 @@ const feminine = (name: string) => readsFeminine(name) || /^(Tia|Dona|Professora
 const thanks = (fem: boolean) => (fem ? 'obrigada' : 'obrigado');
 const Thanks = (fem: boolean) => (fem ? 'Obrigada' : 'Obrigado');
 
-const PERFECT_LINES: ((fem: boolean) => Bilingual)[] = [
+export const PERFECT_LINES: ((fem: boolean) => Bilingual)[] = [
   (f) => ({ pt: `Perfeito, ${thanks(f)}!`, en: 'Perfect, thank you!' }),
   () => ({ pt: 'Isso mesmo, valeu!', en: 'Just right, thanks!' }),
   (f) => ({ pt: `Rapidinho! ${Thanks(f)}!`, en: 'So quick! Thank you!' }),
   () => ({ pt: 'Show! Tá ótimo.', en: 'Great! It looks perfect.' }),
 ];
-const FAST_LINES: ((fem: boolean) => Bilingual)[] = [
+export const FAST_LINES: ((fem: boolean) => Bilingual)[] = [
   (f) => ({ pt: `Nossa, que rapidez! ${Thanks(f)}!`, en: 'Wow, that was fast! Thank you!' }),
   () => ({ pt: 'Que atendimento! Parabéns!', en: 'What service! Congratulations!' }),
 ];
-const SECOND_LINES: ((fem: boolean) => Bilingual)[] = [
+export const SECOND_LINES: ((fem: boolean) => Bilingual)[] = [
   (f) => ({ pt: `Agora sim! ${Thanks(f)}.`, en: 'Now we’re talking! Thank you.' }),
   () => ({ pt: 'Tudo certo agora. Valeu!', en: 'All good now. Thanks!' }),
 ];
-const REGULAR_LINES: ((fem: boolean) => Bilingual)[] = [
+export const REGULAR_LINES: ((fem: boolean) => Bilingual)[] = [
   () => ({ pt: 'Você é o melhor do balcão!', en: 'You’re the best at the counter!' }),
   (f) => ({ pt: `Sempre perfeito! ${Thanks(f)}, viu?`, en: 'Always perfect! Thanks, you know?' }),
 ];
@@ -483,11 +483,11 @@ export const REGULAR_VOICE: Partial<Record<NpcId, { greet: Bilingual; thanks: Bi
   tia_lu: { greet: { pt: 'Oi, meu bem! Rapidinho, tá?', en: 'Hi, dear! Make it quick, okay?' }, thanks: [{ pt: 'Ai, que delícia! Obrigada.', en: 'Oh, how nice! Thank you.' }, { pt: 'Você é um amor!', en: 'You’re a sweetheart!' }] },
 };
 
-const LATE_LINES: ((fem: boolean) => Bilingual)[] = [
+export const LATE_LINES: ((fem: boolean) => Bilingual)[] = [
   (f) => ({ pt: `Ai, não dá, tô atrasad${f ? 'a' : 'o'}! Tchau.`, en: 'Oh, I can’t wait, I’m running late! Bye.' }),
   () => ({ pt: 'Demorou demais, vou embora!', en: 'Too slow, I’m leaving!' }),
 ];
-const GAVE_UP_LINES: Bilingual[] = [
+export const GAVE_UP_LINES: Bilingual[] = [
   { pt: 'Deixa pra lá, eu vou em outra padaria.', en: 'Never mind, I’ll go to another bakery.' },
   { pt: 'Ai, desisto. Tchau!', en: 'Ugh, I give up. Bye!' },
 ];
@@ -1188,12 +1188,16 @@ function resolveAsk(sh: Shift, c: Customer, answer: unknown, ev: CEvent[]): void
     sh.stats.points += points;
   }
   const change = ask.pay - ask.total;
-  const line: Bilingual = ok
-    ? { pt: `Isso! ${cap1(moneyPt(ask.total * 100))}. Toma, ${numberPt(ask.pay)} reais.`, en: `Right! ${moneyEn(ask.total * 100)}. Here, ${numberEn(ask.pay)} reais.` }
-    : { pt: `Hm, são ${moneyPt(ask.total * 100)}. Toma, ${numberPt(ask.pay)} reais.`, en: `Hm, it’s ${moneyEn(ask.total * 100)}. Here, ${numberEn(ask.pay)} reais.` };
+  const line = askResultLine(ok, ask.total, ask.pay);
   sh.customers = sh.customers.filter((x) => x !== c);
   sh.nextFrontAt = Math.max(sh.nextFrontAt, sh.t + STEP_UP_MS);
   ev.push({ k: 'ask_result', id: c.id, ok, total: ask.total, line, pay: ask.pay, change, points });
+}
+/** What the customer says after "Quanto é?": the total and the note they hand over. */
+export function askResultLine(ok: boolean, total: number, pay: number): Bilingual {
+  return ok
+    ? { pt: `Isso! ${cap1(moneyPt(total * 100))}. Toma, ${numberPt(pay)} reais.`, en: `Right! ${moneyEn(total * 100)}. Here, ${numberEn(pay)} reais.` }
+    : { pt: `Hm, são ${moneyPt(total * 100)}. Toma, ${numberPt(pay)} reais.`, en: `Hm, it’s ${moneyEn(total * 100)}. Here, ${numberEn(pay)} reais.` };
 }
 const cap1 = (s: string) => (s ? s[0]!.toUpperCase() + s.slice(1) : s);
 

@@ -1377,3 +1377,23 @@ html {
     max-height: calc(100% - 24px) !important;
   }
 }
+
+/* Compact English glosses inside support / credits buttons. */
+.support-soon .en,
+#btn-subscribe .en,
+.support-row button .en,
+#credits-close .en,
+.credits-door .en {
+  display: inline;
+  font-size: 0.8em;
+  font-weight: 600;
+  color: inherit;
+  text-transform: none;
+}
+
+.support-soon .en::before,
+#btn-subscribe .en::before,
+.credits-door .en::before {
+  content: ' · ';
+}
+#credits-close .en { display: block; }

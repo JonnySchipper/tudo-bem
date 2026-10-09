@@ -31,7 +31,7 @@ export function openCheckers(): () => void {
   let timer = 0;
 
   const status = h('p', { class: 'ck-status', id: 'ck-status', 'aria-live': 'polite' });
-  const squares = h('div', { class: 'ck-squares', role: 'grid', 'aria-label': 'Tabuleiro de damas' });
+  const squares = h('div', { class: 'ck-squares', role: 'grid', 'aria-label': 'Tabuleiro de damas (Checkers board)' });
   const pieces = h('div', { class: 'ck-pieces', 'aria-hidden': 'true' });
   const pieceEls = new Map<number, HTMLElement>();
   const board_ = h('div', { class: 'ck-board' }, squares, pieces);
@@ -75,7 +75,7 @@ export function openCheckers(): () => void {
           disabled: !dark,
           'data-cell': String(i),
           onclick: () => pick(i),
-          'aria-label': dark ? (board[i] ? (board[i]! > 0 ? 'peça preta' : 'peça branca') : 'vazio') : undefined,
+          'aria-label': dark ? (board[i] ? (board[i]! > 0 ? 'peça preta (black piece)' : 'peça branca (white piece)') : 'vazio (empty)') : undefined,
         });
       }),
     );
@@ -165,7 +165,7 @@ export function openCheckers(): () => void {
     h(
       'div',
       { class: 'panel checkers-panel' },
-      h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
+      h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar (Close)' }, '✕'),
       h('h2', null, bi('Damas', 'Checkers')),
       en('You play black against the computer. Jumps are mandatory when you can take a piece.'),
       h(

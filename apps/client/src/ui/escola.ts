@@ -98,8 +98,8 @@ export function openEscola(a: EscolaActions) {
     'escola',
     h(
       'div',
-      { class: 'panel escola-panel escola-v2', id: 'escola-practice', role: 'dialog', 'aria-label': 'Escola da Praça' },
-      h('button', { class: 'close ghost', type: 'button', id: 'escola-close', onclick: () => closeFn?.(), 'aria-label': 'Fechar' }, '✕'),
+      { class: 'panel escola-panel escola-v2', id: 'escola-practice', role: 'dialog', 'aria-label': 'Escola da Praça (Plaza School)' },
+      h('button', { class: 'close ghost', type: 'button', id: 'escola-close', onclick: () => closeFn?.(), 'aria-label': 'Fechar (Close)' }, '✕'),
       body,
     ),
     {
@@ -240,7 +240,7 @@ function renderHome(greet: boolean) {
       h(
         'div',
         { class: 'escola-stat', id: 'escola-goal' },
-        h('span', { class: 'escola-goal-head' }, h('b', null, 'Meta de hoje'), h('span', { class: 'escola-goal-n' }, `${Math.min(xp, 999)}/${st.goal} XP`)),
+        h('span', { class: 'escola-goal-head' }, h('b', null, 'Meta de hoje', en(' · Daily goal', true)), h('span', { class: 'escola-goal-n' }, `${Math.min(xp, 999)}/${st.goal} XP`)),
         bar(xp / st.goal, goalMet ? 'met' : ''),
         goalPick,
       ),
@@ -285,14 +285,14 @@ function unitRow(u: UnitView, i: number) {
   const canStudy = u.found > 0;
   const nodes = u.nodes.map((state, k) => {
     const checkpoint = k === u.nodes.length - 1;
-    const label = checkpoint ? `Checkpoint ${u.pt}` : `Lição ${k + 1} · ${u.pt}`;
+    const label = checkpoint ? `Checkpoint ${u.pt} · Checkpoint` : `Lição ${k + 1} · ${u.pt} · Lesson ${k + 1}`;
     return h(
       'button',
       {
         type: 'button',
         class: `escola-node ${state} ${checkpoint ? 'checkpoint' : ''}`.trim(),
         style: `--zig:${[0, 1, 2, 1, 0][k]}`,
-        'aria-label': `${label}: ${state === 'done' ? 'feita' : state === 'current' ? 'agora' : 'trancada'}`,
+        'aria-label': `${label}: ${state === 'done' ? 'feita (done)' : state === 'current' ? 'agora (current)' : 'trancada (locked)'}`,
         title: label,
         disabled: !canStudy || state === 'locked',
         onclick: () => begin(u.id),
@@ -307,7 +307,7 @@ function unitRow(u: UnitView, i: number) {
       'div',
       { class: 'escola-unit-head' },
       h('b', null, u.pt, en(` ${u.en}`, true)),
-      h('span', { class: 'escola-crowns', 'aria-label': `${u.crowns} de 5 coroas` }, ...Array.from({ length: 5 }, (_, k) => h('i', { class: `crown-ico ${k < u.crowns ? 'on' : ''}`, 'aria-hidden': 'true' }))),
+      h('span', { class: 'escola-crowns', 'aria-label': `${u.crowns} de 5 coroas (${u.crowns} of 5 crowns)` }, ...Array.from({ length: 5 }, (_, k) => h('i', { class: `crown-ico ${k < u.crowns ? 'on' : ''}`, 'aria-hidden': 'true' }))),
       h('small', null, `${u.found}/${u.total} achadas · ${u.mastered} dominadas`),
     ),
     h('div', { class: 'escola-nodes' }, ...nodes),
@@ -712,10 +712,10 @@ function renderDone(s: EscolaSummary) {
     h(
       'li',
       { class: `escola-word ${w.to >= ESCOLA_MAX_BOX ? 'mastered' : ''}` },
-      h('button', { type: 'button', class: 'escola-hear small', 'aria-label': `Ouvir ${w.pt}`, onclick: () => sayWord(w.pt) }, h('i', { class: 'speaker-ico', 'aria-hidden': 'true' })),
+      h('button', { type: 'button', class: 'escola-hear small', 'aria-label': `Ouvir ${w.pt} (Listen)`, onclick: () => sayWord(w.pt) }, h('i', { class: 'speaker-ico', 'aria-hidden': 'true' })),
       h('b', { lang: 'pt-BR' }, w.pt),
       en(w.en),
-      h('span', { class: 'escola-pips', 'aria-label': `força ${w.to} de ${ESCOLA_MAX_BOX}` }, ...Array.from({ length: ESCOLA_MAX_BOX }, (_, k) => h('i', { class: k < w.to ? (k >= w.from ? 'on new' : 'on') : '' }))),
+      h('span', { class: 'escola-pips', 'aria-label': `força ${w.to} de ${ESCOLA_MAX_BOX} (strength ${w.to} of ${ESCOLA_MAX_BOX})` }, ...Array.from({ length: ESCOLA_MAX_BOX }, (_, k) => h('i', { class: k < w.to ? (k >= w.from ? 'on new' : 'on') : '' }))),
     ),
   );
   body.replaceChildren(
@@ -746,7 +746,7 @@ function renderDone(s: EscolaSummary) {
         h(
           'div',
           { class: 'escola-stat', id: 'escola-sum-goal' },
-          h('span', { class: 'escola-goal-head' }, h('b', null, s.goalMet || s.dayXp >= s.goal ? 'Meta cumprida!' : 'Meta de hoje'), h('span', { class: 'escola-goal-n' }, `${s.dayXp}/${s.goal} XP`)),
+          h('span', { class: 'escola-goal-head' }, h('b', null, s.goalMet || s.dayXp >= s.goal ? 'Meta cumprida!' : 'Meta de hoje', en(s.goalMet || s.dayXp >= s.goal ? ' · Goal met!' : ' · Daily goal', true)), h('span', { class: 'escola-goal-n' }, `${s.dayXp}/${s.goal} XP`)),
           bar(s.dayXp / s.goal, s.dayXp >= s.goal ? 'met' : ''),
         ),
       ),

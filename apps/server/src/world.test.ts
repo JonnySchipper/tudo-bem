@@ -289,16 +289,27 @@ describe('World', () => {
     await a.send({ t: 'buy', kind: 'hat', itemId: 'boina_vermelha' });
     expect(a.s.profile!.hat).toBe('boina_vermelha');
 
-    // Kitnet: place the starter chair
+    // Kitnet: the first visit pays the gift, which buys the chair (nothing is free), then place it
+    expect(a.s.profile!.furniture.cadeira_madeira ?? 0).toBe(0);
+    const before = a.s.profile!.coins;
     await a.send({ t: 'join', room: 'kitnet' });
     expect(a.last('roomState')!.ownerId).toBe(a.s.profile!.id);
+    expect(a.s.profile!.coins).toBe(before + ECONOMY.kitnetGift);
+    await a.send({ t: 'buy', kind: 'furniture', itemId: 'cadeira_madeira' });
+    expect(a.s.profile!.furniture.cadeira_madeira).toBe(1);
     await a.send({ t: 'furniture', action: 'place', itemId: 'cadeira_madeira', x: 3, y: 4, rot: 0 });
     expect(a.last('furnitureState')!.furniture).toHaveLength(1);
 
     const p = a.s.profile!;
     expect(Object.values(p.tutorial).every(Boolean)).toBe(true);
     expect(p.tutorialRewarded).toBe(true);
-    expect(p.coins).toBe(start + ECONOMY.sceneMax + end.end.coins - 12 + ECONOMY.tutorialBonus);
+    expect(p.coins).toBe(start + ECONOMY.sceneMax + end.end.coins - 12 + ECONOMY.kitnetGift - 10 + ECONOMY.tutorialBonus);
+
+    // the gift is once: walking out and back in pays nothing more
+    await a.send({ t: 'join', room: 'praca' });
+    const coins = p.coins;
+    await a.send({ t: 'join', room: 'kitnet' });
+    expect(a.s.profile!.coins).toBe(coins);
   });
 
   it('Pedido rápido daily RV gate: once per America/São_Paulo calendar day', async () => {

@@ -224,7 +224,7 @@ export function openCaderno(groupId?: string, highlight: readonly string[] = [])
     { class: 'panel caderno diary-book' },
     h('i', { class: 'diary-cover', 'aria-hidden': 'true' }, h('span', null, 'Diário')),
     h('i', { class: 'diary-ribbon', 'aria-hidden': 'true' }),
-    h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
+    h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar (Close)' }, '✕'),
     h('h2', null, 'Diário'),
     en('Your diary · words you meet, and how you found them'),
     body,

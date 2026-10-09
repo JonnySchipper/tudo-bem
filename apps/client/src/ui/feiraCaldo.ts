@@ -25,7 +25,7 @@ import {
   type FeiraOrderOutcome,
   type FeiraQuality,
 } from '@tudobem/shared';
-import { h, en } from './dom';
+import { h, en, bi } from './dom';
 import { npcPortrait, portraitKey, type Expression } from './pixelArt';
 import { imageUrl } from '../render/pixel/manifest';
 import { StallKit, counterProps, replay, stallEndCard, stallRoof, ticket, type StallEnd } from './feiraStall';
@@ -315,9 +315,9 @@ export class CaldoView {
       type: 'button',
       id: 'caldo-lever',
       class: 'cd-lever',
-      'aria-label': 'Virar a manivela',
+      'aria-label': 'Virar a manivela (Turn the crank)',
     }) as HTMLButtonElement;
-    const spout = h('div', { id: 'caldo-spout', class: 'cd-spout', 'aria-label': 'Debaixo da bica' });
+    const spout = h('div', { id: 'caldo-spout', class: 'cd-spout', 'aria-label': 'Debaixo da bica (Under the spout)' });
     const puddle = h('i', { id: 'caldo-puddle', class: 'cd-puddle', 'aria-hidden': 'true' });
     this.pressEl = h('div', { id: 'caldo-press', class: 'cd-press' }, press.svg, this.leverEl, spout, puddle);
     spout.addEventListener('click', () => this.onSpoutClick());
@@ -351,13 +351,13 @@ export class CaldoView {
       type: 'button',
       id: 'caldo-cane',
       class: 'cd-cane',
-      'aria-label': 'Cana',
+      'aria-label': 'Cana (Cane)',
     }, caneArt(), h('span', null, 'Cana', en('Cane'))) as HTMLButtonElement;
     const iceBtn = h('button', {
       type: 'button',
       id: 'caldo-ice',
       class: 'cd-ice',
-      'aria-label': 'Gelo',
+      'aria-label': 'Gelo (Ice)',
       onclick: () => this.toggleIce(),
     }, h('i', { class: 'cd-ice-cubes', 'aria-hidden': 'true' }), h('span', null, 'Gelo', en('Ice'))) as HTMLButtonElement;
 
@@ -386,7 +386,7 @@ export class CaldoView {
         this.timerEl,
         this.scoreEl,
         this.kit.meter,
-        h('button', { type: 'button', class: 'ghost cd-quit', id: 'caldo-quit', onclick: () => this.abandon() }, 'Sair'),
+        h('button', { type: 'button', class: 'ghost cd-quit', id: 'caldo-quit', onclick: () => this.abandon() }, bi('Sair', 'Leave')),
       ),
       stallRoof('caldo'),
       this.queueEl,

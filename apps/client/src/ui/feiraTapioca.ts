@@ -29,7 +29,7 @@ import {
   type TapiocaFilling,
   type TapiocaOrder,
 } from '@tudobem/shared';
-import { h, en } from './dom';
+import { h, en, bi } from './dom';
 import { npcPortrait, portraitKey, type Expression } from './pixelArt';
 import { imageUrl } from '../render/pixel/manifest';
 import { StallKit, counterProps, meterWindow, replay, stallEndCard, stallRoof, ticket, type StallEnd } from './feiraStall';
@@ -302,7 +302,7 @@ export class TapiocaView {
         this.timerEl,
         this.scoreEl,
         this.kit.meter,
-        h('button', { type: 'button', class: 'ghost tp-quit', id: 'tapioca-quit', onclick: () => this.abandon() }, 'Sair'),
+        h('button', { type: 'button', class: 'ghost tp-quit', id: 'tapioca-quit', onclick: () => this.abandon() }, bi('Sair', 'Leave')),
       ),
       stallRoof('tapioca'),
       this.queueEl,

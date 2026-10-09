@@ -12,6 +12,7 @@ import { DIARY_WORDS } from './diary.js';
 import { luciaSpokenLines } from './escolaCopy.js';
 import { airportSpokenLines } from './airportTalk.js';
 import { ROOMS, type NpcId } from './rooms.js';
+import { correriaSpokenLines } from './correriaSpeech.js';
 
 /**
  * Every Portuguese line the game speaks aloud, found by walking the game's own data. The bake script (`pnpm tts`) turns this list into
@@ -126,6 +127,9 @@ export function collectSpokenLines(): SpokenLine[] {
     add('ui', spokenForm(c.form), `card ${c.id}`);
   }
   for (const o of AUTHORED_ORDERS) add('ui', o.pt, 'me-ve-um order');
+
+  // the bakery counter: fixed lines whole, assembled ones (orders, corrections, prices) as short phrases
+  for (const l of correriaSpokenLines()) add('ui', l.text, l.source);
 
   // listening drills
   for (const item of [...challengeBank(), ...finishBank()]) add('ui', item.listenPt, `challenge ${item.id}`);

@@ -3,7 +3,7 @@ import { closeModal, openModal } from './modal';
 import { fetchPublicConfig } from '../auth/config';
 import { mountGoogleSignIn } from '../auth/googleSignIn';
 import { introAlreadyPassed, markIntroPassed, readAuthSession, writeAuthSession } from '../auth/session';
-import { h, ui } from './dom';
+import { h, en, ui } from './dom';
 import { artCredit } from './credits';
 import { mountIntroParrots, type SkyBand } from './introParrots';
 import { createIntroHeroScene } from './introHeroScene';
@@ -26,8 +26,13 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-function field(pt: string, control: HTMLElement) {
-  return h('div', { class: 'intro-field' }, h('label', { for: control.id }, pt), control);
+function field(pt: string, enText: string, control: HTMLElement) {
+  return h('div', { class: 'intro-field' }, h('label', { for: control.id }, pt, en(enText, true)), control);
+}
+
+/** Portuguese label with a small plain English gloss, for buttons and tabs. */
+function btnText(pt: string, enText: string): (string | HTMLElement)[] {
+  return [pt, en(enText, true)];
 }
 
 /** Official pixel logo. Stacked on the title/login hero; banner on the landing header. */
@@ -62,7 +67,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
     const heroScene = createIntroHeroScene();
     const veil = h('div', { class: 'intro-veil tb-world-veil', 'aria-hidden': 'true' });
     const glow = h('div', { class: 'intro-layer intro-glow', 'aria-hidden': 'true' });
-    const skipBtn = h('button', { type: 'button', class: 'intro-skip', id: 'intro-skip' }, 'Pular', h('span', { class: 'intro-skip-arrow', 'aria-hidden': 'true' }, '›'));
+    const skipBtn = h('button', { type: 'button', class: 'intro-skip', id: 'intro-skip' }, 'Pular', en(' skip', true), h('span', { class: 'intro-skip-arrow', 'aria-hidden': 'true' }, '›'));
 
     let enterDone = false;
     let resolveEnter!: () => void;
@@ -81,7 +86,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       'Um toque para a praça — música e araras juntas.',
       h('span', { class: 'en' }, 'One tap — music and parrots together.'),
     );
-    const enterLayer = h('div', { class: 'intro-enter-layer', role: 'group', 'aria-label': 'Começar' }, enterHint, enterBtn);
+    const enterLayer = h('div', { class: 'intro-enter-layer', role: 'group', 'aria-label': 'Começar (Start)' }, enterHint, enterBtn);
 
     // Music bed: the one switch is the saved tb_music choice (same as the HUD).
     const musicBtn = h('button', { type: 'button', class: 'intro-music', id: 'intro-music' });
@@ -93,7 +98,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       musicBtn.title = on ? 'Música: sim / Music on' : 'Música: não / Music off';
       musicBtn.replaceChildren(
         icon(on ? 'musicOn' : 'musicOff', 18),
-        h('span', { class: 'intro-music-label' }, waiting ? 'Tocar música' : on ? 'Música' : 'Sem música'),
+        h('span', { class: 'intro-music-label' }, ...(waiting ? btnText('Tocar música', 'Play music') : on ? btnText('Música', 'Music') : btnText('Sem música', 'No music'))),
       );
     };
     let audibleAtPress = false;
@@ -126,7 +131,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       autocomplete: 'email',
       inputmode: 'email',
       id: 'intro-email',
-      'aria-label': 'E-mail',
+      'aria-label': 'E-mail (Email)',
       placeholder: 'voce@email.com',
     });
     const password = h('input', {
@@ -134,8 +139,8 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       name: 'password',
       autocomplete: mode === 'login' ? 'current-password' : 'new-password',
       id: 'intro-password',
-      'aria-label': 'Senha',
-      placeholder: 'Sua senha',
+      'aria-label': 'Senha (Password)',
+      placeholder: 'Sua senha (Your password)',
     });
     const adult = h('input', { type: 'checkbox', id: 'intro-18', name: 'confirm18' });
     const adultRow = h(
@@ -145,10 +150,10 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       h('span', null, 'Tenho 18 anos ou mais.', h('span', { class: 'en' }, 'I am 18 or older.')),
     );
 
-    const tabLogin = h('button', { type: 'button', class: 'intro-tab on', id: 'intro-tab-login', role: 'tab', 'aria-selected': 'true' }, 'Entrar');
-    const tabRegister = h('button', { type: 'button', class: 'intro-tab', id: 'intro-tab-register', role: 'tab', 'aria-selected': 'false' }, 'Criar conta');
-    const submit = h('button', { type: 'submit', class: 'primary intro-submit intro-cta', id: 'intro-submit' }, 'Entrar');
-    const panelTitle = h('h2', { id: 'intro-panel-title', tabindex: '-1' }, 'Bem-vindo de volta');
+    const tabLogin = h('button', { type: 'button', class: 'intro-tab on', id: 'intro-tab-login', role: 'tab', 'aria-selected': 'true' }, ...btnText('Entrar', 'Log in'));
+    const tabRegister = h('button', { type: 'button', class: 'intro-tab', id: 'intro-tab-register', role: 'tab', 'aria-selected': 'false' }, ...btnText('Criar conta', 'Sign up'));
+    const submit = h('button', { type: 'submit', class: 'primary intro-submit intro-cta', id: 'intro-submit' }, ...btnText('Entrar', 'Log in'));
+    const panelTitle = h('h2', { id: 'intro-panel-title', tabindex: '-1' }, 'Bem-vindo de volta', en('Welcome back', true));
     const googleHost = h('div', { class: 'intro-google', id: 'intro-google', style: 'display:none' });
     const adminDoor = h(
       'button',
@@ -180,10 +185,10 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       tabLogin.setAttribute('aria-selected', login ? 'true' : 'false');
       tabRegister.setAttribute('aria-selected', login ? 'false' : 'true');
       tabsEl.classList.toggle('is-register', !login);
-      submit.textContent = login ? 'Entrar' : 'Criar conta';
-      panelTitle.textContent = login ? 'Bem-vindo de volta' : 'Crie sua conta';
+      submit.replaceChildren(...(login ? btnText('Entrar', 'Log in') : btnText('Criar conta', 'Sign up')));
+      panelTitle.replaceChildren(...(login ? btnText('Bem-vindo de volta', 'Welcome back') : btnText('Crie sua conta', 'Create your account')));
       password.setAttribute('autocomplete', login ? 'current-password' : 'new-password');
-      password.placeholder = login ? 'Sua senha' : 'Crie uma senha';
+      password.placeholder = login ? 'Sua senha (Your password)' : 'Crie uma senha (Create a password)';
       if (login) adult.checked = false;
     };
 
@@ -220,7 +225,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
         id: 'intro-admin-password',
         class: 'admin-password',
         autocomplete: 'off',
-        'aria-label': 'Senha de admin',
+        'aria-label': 'Senha de admin (Admin password)',
       }) as HTMLInputElement;
       const smokeActions = h('div', { class: 'intro-admin-smoke', id: 'intro-admin-smoke', hidden: true });
       const smokeBtn = h('button', { type: 'button', class: 'intro-smoke', id: 'intro-admin-smoke-stable' }, 'Ops smoke');
@@ -320,21 +325,21 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       email.focus({ preventScroll: true });
     });
 
-    const tabsEl = h('div', { class: 'intro-tabs', role: 'tablist', 'aria-label': 'Entrar ou criar conta' }, h('span', { class: 'intro-tab-thumb', 'aria-hidden': 'true' }), tabLogin, tabRegister);
+    const tabsEl = h('div', { class: 'intro-tabs', role: 'tablist', 'aria-label': 'Entrar ou criar conta (Log in or sign up)' }, h('span', { class: 'intro-tab-thumb', 'aria-hidden': 'true' }), tabLogin, tabRegister);
 
     const form = h(
       'form',
       { class: 'intro-form', novalidate: true },
       tabsEl,
-      field('E-mail', email),
-      field('Senha (8+ caracteres)', password),
+      field('E-mail', 'Email', email),
+      field('Senha (8+ caracteres)', 'Password (8+ characters)', password),
       adultRow,
       err,
       h('div', { class: 'intro-actions' }, submit),
-      h('div', { class: 'intro-or', 'aria-hidden': 'true' }, h('span', null, 'ou')),
+      h('div', { class: 'intro-or', 'aria-hidden': 'true' }, h('span', null, 'ou / or')),
       googleHost,
       guest,
-      h('p', { class: 'intro-legal' }, 'Fase 0 · sua conta guarda seu avatar, suas RV e sua kitnet.', adminDoor),
+      h('p', { class: 'intro-legal' }, 'Fase 0 · sua conta guarda seu avatar, suas RV e sua kitnet.', en('Phase 0 · your account keeps your avatar, your RV and your kitnet.', true), adminDoor),
     );
 
     form.addEventListener('submit', async (e) => {

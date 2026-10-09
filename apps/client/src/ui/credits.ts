@@ -43,7 +43,7 @@ export function openCredits(): void {
     h(
       'div',
       { class: 'panel credits-panel' },
-      h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
+      h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar (Close)' }, '✕'),
       h('img', {
         class: 'tb-logo tb-logo-banner credits-logo',
         src: '/brand/tb-logo-banner.png',
@@ -74,11 +74,12 @@ export function openCredits(): void {
             close();
             openAdmin();
           },
-          'aria-label': 'versão do bairro',
+          'aria-label': 'versão do bairro (neighbourhood version)',
         },
         'versão do bairro',
+        en('neighbourhood version', true),
       ),
-      h('button', { class: 'primary', onclick: () => close(), id: 'credits-close' }, 'Fechar'),
+      h('button', { class: 'primary', onclick: () => close(), id: 'credits-close' }, 'Fechar', en('Close', true)),
     ),
   );
 }
