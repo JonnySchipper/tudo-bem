@@ -14,7 +14,10 @@ export async function finishArrival(page) {
       window.__tb.net.send({ t: 'arrival', action: 'landed' });
       window.__tb.net.send({ t: 'join', room: 'aeroporto' });
     });
-    await page.evaluate(() => document.getElementById('aero-next-ok')?.click());
+    // showAirportNext() is scheduled 700ms after desembarque → aeroporto; dismiss before praça clicks.
+    await page.waitForSelector('#aero-next-ok', { state: 'visible', timeout: 8_000 });
+    await page.click('#aero-next-ok');
+    await page.waitForFunction(() => !document.getElementById('aero-next'), null, { timeout: 5_000 });
   }
   if (needs) {
     await page.waitForFunction(() => window.__tb.game.room?.room === 'aeroporto', null, { timeout: 10_000 });
@@ -27,6 +30,8 @@ export async function finishArrival(page) {
   const room = await page.evaluate(() => window.__tb.game.room?.room);
   if (room === 'aeroporto' || room === 'desembarque') await page.evaluate(() => window.__tb.net.send({ t: 'join', room: 'praca' }));
   await page.waitForFunction(() => window.__tb.game.room?.room === 'praca', null, { timeout: 10_000 });
+  await dismissWordCards(page);
+  if (await page.$('#aero-next-ok')) await page.click('#aero-next-ok');
 }
 
 /** Click through the new-word cards in the page. Night phase A only has a few seconds before 21:00, so this does not wait on Playwright. */
