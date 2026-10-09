@@ -68,7 +68,7 @@ import { FrameProbe, LowFxGovernor, reducedMotion } from './perf';
 import { clock } from '../../gameClock';
 import { buildTerrainLayers } from './terrainLayers';
 import { LabelLayer, type GuideItem, type StackItem } from './labels';
-import { T, cssZoomFor, feet, outdoorFraming, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
+import { T, cssZoomFor, deviceZoomFor, feet, outdoorFraming, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
 import { pickHit, type HitBox } from './hit';
 import { boutZoomStep, dialogueFraming, easeOut, stepBlend } from './dialogueCam';
 import { BoutStage } from './boutStage';
@@ -79,7 +79,8 @@ import { FOCUS, NEED } from './correriaArt';
 import { roomKey, syncViews } from './reconcile';
 import { DEPTH, PROP_LIGHT, fencePieces, footprintRect, inflate, propAnchor, propClickKind, propDepth, furnitureArtKey, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
 import { sceneryFor, type WireRun } from './scenery';
-import { SURROUND_TILES, surroundFor, type Surround } from './surround';
+import { SURROUND_TILES, surroundFor, surroundReachFor, type Surround } from './surround';
+import { CROSS_PIXELS, TAP_COLORS, ringPixels, tapFrame, type TapCue } from './tapMark';
 import {
   FLOOR_PLACEHOLDER,
   CAMERA_LEAD_NORTH,
@@ -289,7 +290,14 @@ export class WorldScene extends Phaser.Scene {
   private gridDef: RoomDef | null = null;
   private bounds: Rect = { x0: 0, y0: 0, x1: 1, y1: 1 };
   private snapCamera = true;
+  /** the camera centre as it follows, unsnapped (`cam.cx/cy` is this snapped to device px) */
+  private follow = { x: 0, y: 0 };
+  /** prop reach (tiles) the current open-air room's surround was built with (surroundReachFor) */
+  private surroundReach = 0;
   private hoverRect!: Phaser.GameObjects.Rectangle;
+  /** the tap-to-walk marker (tapMark.ts): the ring under the destination, or the refused cross */
+  private tapImg!: Phaser.GameObjects.Image;
+  private tap: { kind: TapCue; wx: number; wy: number; t0: number; tile: { x: number; y: number } | null } | null = null;
   private lastT = 0;
   /** the game day the room was built for (a new day brings a new couple of small diary objects) */
   private diaryDay = -1;
@@ -349,6 +357,7 @@ export class WorldScene extends Phaser.Scene {
     });
     // the hover marker belongs to the scene, not to a room layer
     this.hoverRect = this.rig.world(this.add.rectangle(0, 0, T, T, 0xffffff, 0.22)).setOrigin(0, 0).setStrokeStyle(1, 0xffffff, 0.8).setDepth(49000).setVisible(false);
+    this.tapImg = this.rig.world(this.add.image(0, 0, '__WHITE')).setOrigin(0, 0).setVisible(false);
     this.fxLevel.lowfx = this.host.lowfx;
     this.fxLevel.reduced = reducedMotion();
     this.gov = new LowFxGovernor(this.probe, this.host.lowfx);
@@ -550,7 +559,9 @@ export class WorldScene extends Phaser.Scene {
 
     // ---- terrain: dual-grid layers for the floor chars that have art; substitutes and flat placeholders for the rest. An open-air map draws
     // the town around it too (surround.ts): the same layers, started `margin` tiles out, so the ground runs on past the map edge
-    const sur = surroundFor(def);
+    // its props reach as far past the map as this window can see (issue #154), so where they stop is never on screen
+    this.surroundReach = def.outdoor ? this.wantedReach(def) : 0;
+    const sur = surroundFor(def, this.surroundReach);
     const res = buildTerrainLayers(this, sur ? sur.floor : def.floor, m.terrain, 'terrainTs', { outside: def.outdoor ? undefined : 'x', wrap: (o) => this.rig.world(o), substitute: FLOOR_SUBSTITUTE, offset: sur ? -sur.margin : 0 });
     this.roomMap = res.map;
     this.groundLayers = res.layers.map((layer, i) => ({ ch: res.drawn[i], layer }));
@@ -691,6 +702,7 @@ export class WorldScene extends Phaser.Scene {
     this.bounds = roomBounds(def, tallest);
     this.snapCamera = true;
     this.hoverRect.setVisible(false);
+    this.tap = null;
     const skipped = describeSkipped({ [def.id]: def });
     if (skipped.length) console.info('[pixel] west-wall decor skipped in Phase 2:', skipped.join('; '));
     if (this.artMissing.length !== missingBefore) console.info('[pixel] missing art (placeholders):', this.artMissing.join(', '));
@@ -1040,7 +1052,14 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
     const key = roomKey(room);
-    if (key !== this.roomId || this.roomDef !== def || clock.day() !== this.diaryDay || game.layoutEpoch !== this.layoutEpoch) {
+    // a window grown past what the surround was built for (a resize, a rotated tablet) rebuilds it with a longer reach; shrinking keeps it
+    if (
+      key !== this.roomId ||
+      this.roomDef !== def ||
+      clock.day() !== this.diaryDay ||
+      game.layoutEpoch !== this.layoutEpoch ||
+      (def.outdoor && this.wantedReach(def) > this.surroundReach)
+    ) {
       this.roomId = key;
       this.roomDef = def;
       this.layoutEpoch = game.layoutEpoch;
@@ -1062,6 +1081,7 @@ export class WorldScene extends Phaser.Scene {
     this.syncCounter(dt, now);
     this.updateCanopies(dt);
     this.updateHover(def);
+    this.updateTap(now);
     this.updateTrilho();
     this.updateStall();
     this.updateFeira();
@@ -1161,6 +1181,13 @@ export class WorldScene extends Phaser.Scene {
       fx: this.weatherFx.info(),
       shade: { casters: this.shadows.count, rims: this.shadows.rimCount, silhouettes: this.shadows.generated, pages: this.shadows.pageCount, fill: this.shadows.pageFill, aoShapes: this.ao.shapeCount },
     };
+  }
+
+  /** Prop reach (tiles) the surround of an open-air room needs at the current window size and zoom (surround.surroundReachFor). */
+  private wantedReach(def: RoomDef): number {
+    const dpr = this.scale.width / Math.max(1, window.innerWidth);
+    const zoom = deviceZoomFor(cssZoomFor(window.innerWidth, window.innerHeight), dpr) / dpr;
+    return surroundReachFor(def, { w: window.innerWidth, h: window.innerHeight }, zoom, this.host.insets());
   }
 
   /** Canvas size and DPR for this frame; the zoom itself is chosen per room in `updateCamera` (roomFraming). */
@@ -1379,18 +1406,21 @@ export class WorldScene extends Phaser.Scene {
       this.snapCamera = true;
     }
     this.cssScale = f.zoom / this.cam.dpr;
+    const fol = this.follow;
     if (this.snapCamera) {
-      this.cam.cx = target.cx;
-      this.cam.cy = target.cy;
+      fol.x = target.cx;
+      fol.y = target.cy;
       this.snapCamera = false;
     } else {
       // exponential follow, about 0.12 per 60 fps frame (HOWTO §5.3), frame-rate independent
       const a = 1 - Math.pow(1 - 0.12, dt * 60);
-      this.cam.cx += (target.cx - this.cam.cx) * a;
-      this.cam.cy += (target.cy - this.cam.cy) * a;
+      fol.x += (target.cx - fol.x) * a;
+      fol.y += (target.cy - fol.y) * a;
     }
-    this.cam.cx = snapToDevice(this.cam.cx, this.cam.zoom);
-    this.cam.cy = snapToDevice(this.cam.cy, this.cam.zoom);
+    // only what is drawn is snapped. Feeding the snapped centre back into the follow made a dead zone (a step under half a device px
+    // rounded away every frame) and then a lurch once the gap grew past it (issue #154).
+    this.cam.cx = snapToDevice(fol.x, this.cam.zoom);
+    this.cam.cy = snapToDevice(fol.y, this.cam.zoom);
     const nudge = this.stage.cameraNudge();
     const cn = this.counter.cameraNudge();
     // On a phone the design panel covers the bottom of the screen. Look a little south so the avatar sits in the open part.
@@ -1549,10 +1579,13 @@ export class WorldScene extends Phaser.Scene {
       const dyT = pos.tile.y - talkTo.y;
       if (Math.abs(dxT) <= 1 && Math.abs(dyT) <= 2) aside = Math.round((dxT < 0 ? -1 : 1) * avatarPx(10) * easeOut(this.dlgBlend));
     }
-    const wx = Math.round(f.wx) + aside;
+    // a walker lands on device px, not whole art px: the camera glides on device px, so a 1 art px step (4 device px at zoom 4) every few
+    // frames made the walker shake against the street (issue #154). Standing still, the figure sits on the art grid like everything else.
+    const snap = (v: number) => (pos.moving ? snapToDevice(v, this.cam.zoom) : Math.round(v));
+    const wx = snap(f.wx) + aside;
     // feet stay on the tile. The scaled figure already puts the head above the padaria counter,
     // so the old 11 px counter lift (which planted the feet on the counter top) is gone.
-    const wy = Math.round(f.wy);
+    const wy = snap(f.wy);
     v.wx = wx;
     v.wy = wy;
     const bodyX = wx + sway;
@@ -1951,6 +1984,83 @@ export class WorldScene extends Phaser.Scene {
     }
     const ok = game.placing ? canPlaceFurniture(def, game.furniture, t.x, t.y) : !!this.grid && !this.grid.blocked.has(tileKey(t.x, t.y));
     this.hoverRect.setPosition(t.x * T, t.y * T).setFillStyle(ok ? 0xffffff : 0xe5572f, 0.25).setStrokeStyle(1, ok ? 0xffffff : 0xe5572f, 0.8);
+  }
+
+  /**
+   * Show the tap marker (tapMark.ts) for a tap on `tile`, or at a world point off the walkable map (a refused tap on the town around it).
+   * The ring circles where the feet will stand. Both it and the refused cross draw over the world, so a prop in front never hides them.
+   */
+  markTap(kind: TapCue, at: { tile: { x: number; y: number } } | { wx: number; wy: number }): void {
+    const p = 'tile' in at ? { wx: (at.tile.x + 0.5) * T, wy: (at.tile.y + 1) * T - 4 } : at;
+    // a steer onto the same tile keeps the ring as it is (no restart every move of the finger)
+    if (kind === 'steer' && this.tap && 'tile' in at && this.tap.tile?.x === at.tile.x && this.tap.tile?.y === at.tile.y && this.tap.kind !== 'refused') return;
+    this.tap = { kind, wx: Math.round(p.wx), wy: Math.round(p.wy), t0: performance.now(), tile: 'tile' in at ? at.tile : null };
+  }
+
+  private updateTap(now: number): void {
+    const tap = this.tap;
+    const img = this.tapImg;
+    if (!tap || game.modalOpen) {
+      if (img.visible) img.setVisible(false);
+      if (tap && game.modalOpen) this.tap = null;
+      return;
+    }
+    const t = (now - tap.t0) / 1000;
+    const me = game.self ? this.avatars.get(game.self.pub.id) : undefined;
+    // done: standing on the tile, or standing anywhere a second after the tap (the server found no path, or the walk was cut short); a new tap
+    // replaces the marker anyway. The second covers the round trip before the walk starts.
+    const arrived = !!tap.tile && !!me && !me.moving && ((Math.abs(me.wx - tap.wx) < T && Math.abs(me.wy - tap.wy) < T) || t > 1);
+    const f = tapFrame(tap.kind, t, arrived, this.fxLevel.reduced);
+    if (!f) {
+      this.tap = null;
+      img.setVisible(false);
+      return;
+    }
+    const tex = this.tapTexture(tap.kind, f.radius);
+    // an Image, not live Graphics: images are rounded to the device px grid with the camera, Graphics blurred over two px at half-px scrolls.
+    // Over the world, like the hover square: on the ground the ring hid behind the bench or stall in front of the tile, just where it mattered
+    img
+      .setTexture(tex.key)
+      .setPosition(tap.wx + f.shake - tex.ox, tap.wy - tex.oy)
+      .setAlpha(f.alpha)
+      .setDepth(tap.kind === 'refused' ? 49001 : 48999)
+      .setVisible(true);
+  }
+
+  /** The baked marker art for a kind and ring radius: 1 art px per texel, with a dark edge so it reads on pale calçada and dark asphalt. */
+  private tapTexture(kind: TapCue, radius: number): { key: string; ox: number; oy: number } {
+    const refused = kind === 'refused';
+    const color = TAP_COLORS[kind];
+    const key = refused ? 'tap:cross' : `tap:ring:${color.toString(16)}:${radius}`;
+    const px = refused ? CROSS_PIXELS : ringPixels(radius);
+    let ox = 0;
+    let oy = 0;
+    for (const [x, y] of px) {
+      ox = Math.max(ox, -x + 1);
+      oy = Math.max(oy, -y + 1);
+    }
+    if (!this.textures.exists(key)) {
+      const g = this.make.graphics({}, false);
+      let w = 0;
+      let h = 0;
+      for (const [x, y] of px) {
+        w = Math.max(w, x + ox + 2);
+        h = Math.max(h, y + oy + 2);
+      }
+      if (refused) {
+        g.fillStyle(0x2a1a1a, 0.7);
+        for (const [x, y] of px) g.fillRect(x + ox - 1, y + oy - 1, 3, 3);
+      } else {
+        // a drop shadow one px down
+        g.fillStyle(0x1d1b26, 0.45);
+        for (const [x, y] of px) g.fillRect(x + ox, y + oy + 1, 1, 1);
+      }
+      g.fillStyle(color, 1);
+      for (const [x, y] of px) g.fillRect(x + ox, y + oy, 1, 1);
+      g.generateTexture(key, w, h);
+      g.destroy();
+    }
+    return { key, ox, oy };
   }
 
   private updateGhost(g: GhostSpec | null): void {

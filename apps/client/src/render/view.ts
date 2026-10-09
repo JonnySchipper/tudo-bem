@@ -1,5 +1,6 @@
 import type { HotspotDef, NpcDef, PathPos, PlacedFurniture, PortalDef, PropDef, Tile } from '@tudobem/shared';
 import type { ClientAvatar } from '../state';
+import type { TapCue } from './pixel/tapMark';
 
 /** What a pointer can land on. Renderer-independent: every WorldView returns this same union. */
 export type Hit =
@@ -46,4 +47,6 @@ export interface WorldView {
   setDialogueFocus?(f: { npc: Tile | null } | null): void;
   /** Height of the dialogue box in CSS px (the speakers are kept above it). */
   setDialogueBox?(px: number): void;
+  /** Tap feedback (render/pixel/tapMark.ts): the ring on the tile the avatar walks to, or the refused cross on a tile or at a client point. */
+  markTap?(kind: TapCue, at: { tile: Tile } | { px: number; py: number }): void;
 }
