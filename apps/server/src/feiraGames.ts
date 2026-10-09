@@ -383,7 +383,7 @@ export class FeiraGamesEngine {
       this.d.reward(s, coins, { pt: `Carrinho da feira: ${FEIRA_GAME_LABEL[run.game].pt}`, en: `Market cart: ${FEIRA_GAME_LABEL[run.game].en}` });
     }
     if (!test) this.syncMedals(p);
-    this.d.store.save();
+    this.d.store.save(p.id);
     this.d.pushProfile(s);
     const line: Bilingual = rejected
       ? { pt: 'Essa rodada não contou.', en: 'That round did not count.' }
@@ -451,7 +451,7 @@ export class FeiraGamesEngine {
       if (!p) continue;
       this.syncMedals(p);
     }
-    if (touched.size) this.d.store.save();
+    if (touched.size) this.d.store.save(...touched);
   }
 
   /** Push medal copies to every online session after a roll. The world calls this with its session list. */

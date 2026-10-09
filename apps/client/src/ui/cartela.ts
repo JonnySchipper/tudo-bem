@@ -84,7 +84,7 @@ export function openCartela() {
             { class: done ? 'done' : '' },
             h('span', { class: 'ico' }, icon(ACTIVITY_ICON[id], 28)),
             h('span', { class: 'lbl' }, CARTELA_ACTIVITY[id].pt, en(CARTELA_ACTIVITY[id].en, true)),
-            done ? h('span', { class: 'tick', 'aria-label': 'feito hoje' }, '✓') : null,
+            done ? h('span', { class: 'tick', 'aria-label': 'feito hoje (done today)' }, '✓') : null,
           );
         }),
       ),
@@ -98,7 +98,7 @@ export function openCartela() {
     h(
       'div',
       { class: 'panel cartela-panel' },
-      h('button', { class: 'close ghost', type: 'button', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
+      h('button', { class: 'close ghost', type: 'button', onclick: () => close(), 'aria-label': 'Fechar (Close)' }, '✕'),
       h('h2', null, CARTELA_COPY.title.pt),
       en(CARTELA_COPY.title.en),
       body,

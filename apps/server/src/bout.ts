@@ -650,7 +650,7 @@ export class BoutEngine {
     if (!move || !s.profile) return;
     const prog = completeDrill(normalizeBjj(s.profile.bjj), move);
     s.profile.bjj = prog;
-    this.d.store.save();
+    this.d.store.save(s.profile.id);
     b.drillMove = null;
     b.beat = null;
     b.phase = 'over';
@@ -748,7 +748,7 @@ export class BoutEngine {
       }
     }
     s.profile!.bjj = prog;
-    this.d.store.save();
+    this.d.store.save(s.profile!.id);
     if (played) this.teach(s, b);
     if (bond > 0) this.d.bond(s, bond);
     if (beltUp) this.d.avatarChanged(s);

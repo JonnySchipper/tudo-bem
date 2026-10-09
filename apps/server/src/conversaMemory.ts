@@ -115,14 +115,18 @@ export class ConversaMemory {
         const vetted = vetMemory(raw, playerLines);
         if (vetted && this.latest.get(key) === token) this.save(playerId, npc, vetted, true);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        // a newer end() owns the key now; otherwise nothing is waiting on it
+        if (this.latest.get(key) === token) this.latest.delete(key);
+      });
   }
 
   private save(playerId: string, npc: NpcId, text: string, late: boolean) {
     const p = this.d.store.get(playerId);
     if (!p) return;
     p.npcMemory = { ...p.npcMemory, [npc]: text };
-    this.d.store.save();
+    this.d.store.save(playerId);
     if (late) this.d.onProfileChanged?.(playerId);
   }
 

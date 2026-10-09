@@ -3,6 +3,10 @@
  * `AccountStore`, `AcademyStore`, …) keep the same load/save surface. Each save writes changed
  * rows in one transaction.
  *
+ * Profiles: `ProfileStore` calls `upsert` with only the profiles that changed since the last flush and
+ * `remove` for an explicit deletion. `save` (whole set, deletes rows missing from it) stays for tools
+ * and tests.
+ *
  * Photos stay out of the profiles table. A save rewrites a photo row only when that profile's
  * photo ids change (same rule as the old `photos.json` split: image bytes live under an id).
  *
@@ -65,7 +69,7 @@ export function fileAdapter(dataDir: string): PersistenceAdapter {
     save: (rows) => {
       if (!writable(db)) return;
       const profiles = rows.map((row) => {
-        const json = JSON.stringify(row, (k, v) => (k === 'photos' ? undefined : v));
+        const json = profileJson(row);
         return { id: row.id, json, params: [row.id, json] };
       });
       const next = new Map<string, string>();
@@ -97,8 +101,47 @@ export function fileAdapter(dataDir: string): PersistenceAdapter {
       written.clear();
       for (const [id, sig] of next) written.set(id, sig);
     },
+    upsert: (rows) => {
+      if (!writable(db) || !rows.length) return;
+      // No SELECT of the table: SQLite skips a row whose JSON did not change (the WHERE on the upsert).
+      const next = new Map<string, string | null>();
+      commitImmediate(db, () => {
+        const profile = db.prepare('INSERT INTO profiles (id, json) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET json = excluded.json WHERE profiles.json IS NOT excluded.json');
+        const photo = db.prepare('INSERT INTO photos (profile_id, json) VALUES (?, ?) ON CONFLICT(profile_id) DO UPDATE SET json = excluded.json');
+        const delPhoto = db.prepare('DELETE FROM photos WHERE profile_id = ?');
+        for (const row of rows) {
+          profile.run(row.id, profileJson(row));
+          if (!row.photos?.length) {
+            if (written.has(row.id)) delPhoto.run(row.id);
+            next.set(row.id, null);
+            continue;
+          }
+          const sig = photoSignature(row.photos);
+          if (written.get(row.id) !== sig) photo.run(row.id, JSON.stringify(row.photos));
+          next.set(row.id, sig);
+        }
+      });
+      for (const [id, sig] of next) {
+        if (sig === null) written.delete(id);
+        else written.set(id, sig);
+      }
+    },
+    remove: (ids) => {
+      if (!writable(db) || !ids.length) return;
+      commitImmediate(db, () => {
+        const delProfile = db.prepare('DELETE FROM profiles WHERE id = ?');
+        const delPhoto = db.prepare('DELETE FROM photos WHERE profile_id = ?');
+        for (const id of ids) {
+          delProfile.run(id);
+          delPhoto.run(id);
+        }
+      });
+      for (const id of ids) written.delete(id);
+    },
   };
 }
+
+const profileJson = (row: StoredProfile) => JSON.stringify(row, (k, v) => (k === 'photos' ? undefined : v));
 
 export function academyFileAdapter(dataDir: string): AcademyPersistence {
   const db = dbFor(dataDir);

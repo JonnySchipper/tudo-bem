@@ -7,7 +7,7 @@
  */
 import { ROOMS, type RoomDef } from '@tudobem/shared';
 import type { Manifest } from '../render/pixel/manifest';
-import { pixelBase } from '../render/pixel/manifest';
+import { loadManifest, pixelBase } from '../render/pixel/manifest';
 import { T } from '../render/pixel/coords';
 import { DEPTH, fencePieces, propAnchor, propArtKey, propDepth, propSlices, standingDepth } from '../render/pixel/props';
 import { sceneryFor } from '../render/pixel/scenery';
@@ -33,10 +33,10 @@ export interface SnapshotPlan {
   fill: { color: [number, number, number]; alpha: number };
 }
 
-/** Everything the snapshot draws, in paint order. */
-export function planSnapshot(def: RoomDef, m: Manifest): SnapshotPlan {
+/** Everything the snapshot draws, in paint order, graded for `minute` (the title's golden hour by default). */
+export function planSnapshot(def: RoomDef, m: Manifest, minute = SNAPSHOT_MINUTE): SnapshotPlan {
   const ops: SnapOp[] = [];
-  const look = computeLook({ outdoor: true, roomHour: 17.5, minutes: SNAPSHOT_MINUTE, weather: WEATHER_PARAMS.sol });
+  const look = computeLook({ outdoor: true, roomHour: minute / 60, minutes: minute, weather: WEATHER_PARAMS.sol });
   const push = (key: string | undefined | null, x: number, y: number, depth: number, alpha = 1, origin: 'anchor' | 'tl' = 'anchor') => {
     const d = key ? m.sprites[key] : undefined;
     if (!d) return null;
@@ -127,7 +127,7 @@ const loadImage = (src: string) =>
   });
 
 export async function loadSnapshotAssets(base = pixelBase()): Promise<SnapshotAssets> {
-  const manifest = (await (await fetch(`${base}manifest.json`)).json()) as Manifest;
+  const manifest = await loadManifest(base);
   const atlases: SnapshotAssets['atlases'] = {};
   await Promise.all(
     Object.entries(manifest.atlases).filter(([, a]) => !a.lazy).map(async ([name, a]) => {

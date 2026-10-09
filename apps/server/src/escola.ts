@@ -290,7 +290,7 @@ export class EscolaTracker {
     const st = escolaOf(p);
     st.goal = goal as EscolaGoal;
     if (typeof tz === 'number') st.tz = clampTz(tz);
-    this.d.store.save();
+    this.d.store.save(p.id);
     this.d.pushProfile(s);
   }
 
@@ -304,7 +304,7 @@ export class EscolaTracker {
     if (!m || m.done || m.day !== today || m.area !== word.area) return;
     m.done = true;
     addXp(st, today, ESCOLA_XP.mission);
-    this.d.store.save();
+    this.d.store.save(p.id);
     this.d.pushProfile(s);
     // needs_br: true
     s.send({ t: 'notice', level: 'reward', pt: `Missão de palavras cumprida! +${ESCOLA_XP.mission} XP`, en: `Word mission done! +${ESCOLA_XP.mission} XP` });
@@ -356,7 +356,7 @@ export class EscolaTracker {
       }
       mission = st.mission && !st.mission.done ? (areaHunts(p.diary).find((h) => h.area === st.mission!.area) ?? null) : null;
     }
-    this.d.store.save();
+    this.d.store.save(p.id);
     if (rv > 0) this.d.reward(s, rv, { pt: 'Dona Lúcia paga a aula.', en: 'Dona Lúcia pays for the class.' });
     const granted = partial ? null : this.d.teachLessonWord(s, l.gameId);
     this.d.pushProfile(s);

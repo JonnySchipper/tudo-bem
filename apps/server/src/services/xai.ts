@@ -55,6 +55,10 @@ export const DEFAULT_CONVERSA_MODEL = 'grok-4.3';
 const MODEL = process.env.CONVERSA_MODEL || DEFAULT_CONVERSA_MODEL;
 const REASONING_EFFORT = process.env.CONVERSA_REASONING_EFFORT || 'none';
 
+/** Prompt bounds for a Conversa turn: lines of history and characters per line. */
+const MAX_PROMPT_LINES = 12;
+const MAX_PROMPT_LINE_CHARS = 300;
+
 export async function isXaiReady(): Promise<boolean> {
   return !!getApiKey();
 }
@@ -135,14 +139,15 @@ export async function conversaTurn(req: ConversaTurnRequest): Promise<ConversaTu
 
   const last = req.history[req.history.length - 1];
   const history = last?.who === 'player' && last.pt === req.text ? req.history.slice(0, -1) : req.history;
-  for (const line of history) {
+  // Bounded prompt: the last few lines only, each clipped (the caller passes the server's own transcript).
+  for (const line of history.slice(-MAX_PROMPT_LINES)) {
     messages.push({
       role: line.who === 'player' ? 'user' : 'assistant',
-      content: line.pt,
+      content: line.pt.slice(0, MAX_PROMPT_LINE_CHARS),
     });
   }
 
-  messages.push({ role: 'user', content: req.text });
+  messages.push({ role: 'user', content: req.text.slice(0, MAX_PROMPT_LINE_CHARS) });
 
   const prior = (req.priorChips ?? []).filter((c) => c.trim()).slice(0, 4);
   if (prior.length) {
@@ -184,7 +189,7 @@ export async function conversaTurn(req: ConversaTurnRequest): Promise<ConversaTu
     parsed.end = true;
   }
 
-  return presentConversaTurn(parsed, req.priorChips ?? [], req.minute);
+  return presentConversaTurn(parsed, req.priorChips ?? [], req.minute, req.npcId);
 }
 
 /** System prompt for the one-sentence NPC memory summary (never stored raw; the caller vets the answer). */
@@ -217,7 +222,7 @@ export async function summarizeConversa(input: { npcName: string; subjectTitle: 
 }
 
 export function authoredConversaTurn(req: ConversaTurnRequest): ConversaTurnResponse {
-  const { response, chips, end } = authoredFallbackTurn(req.text, req.history);
+  const { response, chips, end } = authoredFallbackTurn(req.text, req.history, req.npcId);
 
   const scores: ConversaScores = {
     portuguese: 2 as Score03,
@@ -238,6 +243,7 @@ export function authoredConversaTurn(req: ConversaTurnRequest): ConversaTurnResp
     },
     req.priorChips ?? [],
     req.minute,
+    req.npcId,
   );
 }
 

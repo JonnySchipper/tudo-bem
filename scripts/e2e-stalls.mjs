@@ -73,7 +73,7 @@ async function main() {
     await page.waitForSelector('[data-modal="parrot-shop"] .stall-panel, [data-modal="parrot-shop"].stall-panel, .parrot-shop.stall-panel', { timeout: 25_000 });
     await waitFor(page, () => document.querySelectorAll('.parrot-shop [data-parrot] img[src^="data:image/png"]').length === 5, null, 8000, 'every bird has its icon');
     const tags = await page.$$eval('.parrot-shop [data-parrot]', (els) => Object.fromEntries(els.map((e) => [e.getAttribute('data-parrot'), (e.querySelector('.price-tag')?.textContent ?? '').trim()])));
-    for (const [id, price] of Object.entries(PRICES)) assert(tags[id] === (price === 0 ? 'Grátis' : String(price)), `${id} tag reads ${price} (got ${tags[id]})`);
+    for (const [id, price] of Object.entries(PRICES)) assert(tags[id] === (price === 0 ? 'Grátis · Free' : String(price)), `${id} tag reads ${price} (got ${tags[id]})`);
     await page.click('[data-modal="parrot-shop"] [data-parrot="verde"] button.primary');
     await waitFor(page, () => window.__tb.game.profile.parrotOwned, null, 8000, 'the green bird is adopted');
     await page.waitForSelector('.parrot-shop [data-shelf="owned"] [data-parrot="verde"] .stall-tag.using', { timeout: 3000 });

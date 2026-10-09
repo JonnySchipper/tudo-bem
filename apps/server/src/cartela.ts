@@ -48,7 +48,7 @@ export class CartelaTracker {
     const res = tryCartelaStamp(cur, activity, day);
     if (!res.ok) return false;
     p.cartela = res.next;
-    this.d.store.save();
+    this.d.store.save(p.id);
     const shown = res.paid ? CARTELA_GOAL : res.next.stamps;
     this.emit(s, activity, shown, stampsOnDay(res.next, day), res.paid);
     if (res.paid) {

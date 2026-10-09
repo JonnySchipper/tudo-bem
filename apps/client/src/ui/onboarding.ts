@@ -5,6 +5,7 @@ import {
   HAIR_COLORS,
   HAIR_STYLES,
   LABELS,
+  LABELS_EN,
   SKIN_TONES,
   STARTER_OUTFITS,
   validateName,
@@ -53,18 +54,18 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
   let pronoun: Pronoun = 'nome';
   // the composed pixel character (same layers as the world), shown at an integer scale with image-rendering: pixelated
   const canvas = h('canvas', { class: 'creator-canvas', id: 'avatar-preview' });
-  const preview = mountCharPreview(canvas, () => ({ appearance: a, hat: null, parrot: false }), { waveOnStart: true });
-  const turn = h('button', { class: 'stage-btn turn-btn', type: 'button', id: 'turn-avatar', 'aria-label': 'Girar o avatar (turn around)', onclick: () => preview.turn() }, '↻ Girar');
-  const walkBtn = h('button', { class: 'stage-btn', type: 'button', id: 'walk-avatar', 'aria-pressed': 'false', 'aria-label': 'Andar (walk in place)' }, '▶ Andar');
+  const preview = mountCharPreview(canvas, () => ({ appearance: a, hat: null, parrot: false }));
+  const turn = h('button', { class: 'stage-btn turn-btn', type: 'button', id: 'turn-avatar', 'aria-label': 'Girar o avatar (turn around)', onclick: () => preview.turn() }, '↻ Girar', en('Turn', true));
+  const walkBtn = h('button', { class: 'stage-btn', type: 'button', id: 'walk-avatar', 'aria-pressed': 'false', 'aria-label': 'Andar (walk in place)' }, '▶ Andar', en('Walk', true));
   walkBtn.addEventListener('click', () => {
     const on = !preview.walking();
     preview.setWalking(on);
     walkBtn.setAttribute('aria-pressed', String(on));
-    walkBtn.textContent = on ? '■ Parar' : '▶ Andar';
+    walkBtn.replaceChildren(on ? '■ Parar' : '▶ Andar', en(on ? 'Stop' : 'Walk', true));
   });
 
-  const go = h('button', { class: 'primary', style: 'font-size:1.1em', id: 'enter-praca' }, 'Entrar na Praça →');
-  const name = h('input', { type: 'text', maxLength: 16, placeholder: 'Ex.: Jonny, Bia, Leo…', 'aria-label': 'Nome', id: 'avatar-name' });
+  const go = h('button', { class: 'primary', style: 'font-size:1.1em', id: 'enter-praca' }, 'Entrar na Praça →', en('Enter the Praça', true));
+  const name = h('input', { type: 'text', maxLength: 16, placeholder: 'Ex.: Jonny, Bia, Leo… (e.g. Jonny, Bia, Leo…)', 'aria-label': 'Nome', id: 'avatar-name' });
   const nameErr = h('div', { class: 'feedback s1', style: 'display:none' });
   const setErr = (pt: string, enText: string) => {
     nameErr.style.display = 'inline-block';
@@ -74,12 +75,12 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
   api.setError = setErr;
 
   const refresh: (() => void)[] = [];
-  const chips = <T extends string>(opts: readonly T[], label: (v: T) => string, get: () => T, set: (v: T) => void) => {
+  const chips = <T extends string>(opts: readonly T[], label: (v: T) => string, gloss: ((v: T) => string) | null, get: () => T, set: (v: T) => void) => {
     const wrap = h('div', { class: 'chips' });
     const render = () =>
       wrap.replaceChildren(
         ...opts.map((o) =>
-          h('button', { class: get() === o ? 'on' : '', type: 'button', onclick: () => (set(o), render()) }, label(o)),
+          h('button', { class: get() === o ? 'on' : '', type: 'button', onclick: () => (set(o), render()) }, label(o), gloss ? en(gloss(o), true) : null),
         ),
       );
     render();
@@ -115,6 +116,7 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
             },
           },
           o.pt,
+          en(o.en, true),
         ),
       ),
     );
@@ -125,6 +127,7 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
   const pronounChips = chips(
     ['ele', 'ela', 'nome'] as const,
     (v) => ({ ele: 'ele (he)', ela: 'ela (she)', nome: 'só meu nome (name only)' })[v],
+    null,
     () => pronoun,
     (v) => (pronoun = v),
   );
@@ -168,7 +171,7 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
           sec(
             'Quem é você?',
             'Who are you?',
-            'cr-who',
+            'creator-who',
             field('Como você se chama?', 'Display name (not your full real name)', h('div', null, name, nameErr)),
             field('Como devemos te chamar?', 'How should NPCs address you? (grammar agreement)', pronounChips),
           ),
@@ -176,11 +179,11 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
             'Seu visual',
             'Your look',
             'cr-look',
-            field('Corpo', 'Body', chips(BODY_TYPES, (v) => LABELS.body[v], () => a.body, (v) => (a.body = v))),
-            field('Rosto', 'Face', chips(FACE_STYLES, (v) => LABELS.face[v], () => a.face ?? 'suave', (v) => (a.face = v))),
+            field('Corpo', 'Body', chips(BODY_TYPES, (v) => LABELS.body[v], (v) => LABELS_EN.body[v], () => a.body, (v) => (a.body = v))),
+            field('Rosto', 'Face', chips(FACE_STYLES, (v) => LABELS.face[v], (v) => LABELS_EN.face[v], () => a.face ?? 'suave', (v) => (a.face = v))),
             field('Tom de pele', 'Skin tone', swatches(SKIN_TONES, () => a.skin, (i) => (a.skin = i))),
             field('Cor do cabelo', 'Hair color', swatches(HAIR_COLORS, () => a.hairColor, (i) => (a.hairColor = i))),
-            h('div', { class: 'field cr-wide' }, h('label', null, 'Cabelo', en('Hair')), chips(HAIR_STYLES, (v) => LABELS.hair[v], () => a.hair, (v) => (a.hair = v))),
+            h('div', { class: 'field cr-wide' }, h('label', null, 'Cabelo', en('Hair')), chips(HAIR_STYLES, (v) => LABELS.hair[v], (v) => LABELS_EN.hair[v], () => a.hair, (v) => (a.hair = v))),
           ),
           sec('Roupa', 'Outfit', 'cr-outfit', field('Visual inicial', 'Starter outfit (tee and jeans only). Hats and more clothes are at Nanda’s stall.', presets)),
           h('div', { class: 'rules rules-m' }, 'Regras da praça', en('Square rules — kind chat only; no personal info (phone, address, school, social handles); no dating, alcohol, slurs or politics. Chat is filtered.')),

@@ -81,17 +81,15 @@ export interface KitnetGuideView {
 /** What happened since the guide started. */
 export interface KitnetGuideProgress {
   bought: boolean;
-  /** "use what I already have" when nothing in the Atelier is affordable */
-  skippedBuy: boolean;
   placed: boolean;
   rotated: boolean;
 }
 
-export const NO_PROGRESS: KitnetGuideProgress = { bought: false, skippedBuy: false, placed: false, rotated: false };
+export const NO_PROGRESS: KitnetGuideProgress = { bought: false, placed: false, rotated: false };
 
 /** The step to show, or null when the guide is finished (bought, placed, rotated, and Decorar closed again). */
 export function kitnetGuideStep(v: KitnetGuideView, p: KitnetGuideProgress): KitnetGuideStepId | null {
-  if (!p.bought && !p.skippedBuy) {
+  if (!p.bought) {
     if (!v.editMode) return 'abrir';
     return v.tab === 'loja' ? 'comprar' : 'loja';
   }
@@ -107,7 +105,7 @@ export function kitnetGuideStep(v: KitnetGuideView, p: KitnetGuideProgress): Kit
 /** The checklist ticks: a step is done once the thing it asks for has happened (or, for the early ones, a later phase has). */
 export function kitnetGuideDone(v: KitnetGuideView, p: KitnetGuideProgress): Set<KitnetGuideStepId> {
   const done = new Set<KitnetGuideStepId>();
-  const buy = p.bought || p.skippedBuy;
+  const buy = p.bought;
   if (v.editMode || buy) done.add('abrir');
   if (buy) done.add('loja').add('comprar');
   else if (v.editMode && v.tab === 'loja') done.add('loja');

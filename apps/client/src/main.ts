@@ -12,6 +12,7 @@ import './styles/stalls.css';
 import './styles/bout.css';
 import './styles/correria.css';
 import './styles/diary.css';
+import './styles/journal.css';
 import './styles/escola.css';
 import './styles/feiraGames.css';
 import './styles/feiraCaldo.css';
@@ -64,7 +65,7 @@ import { game, type ClientAvatar, type PendingAction } from './state';
 import { Net, wsUrl, type NetLike } from './net';
 import { clock, parseTimeOfDay } from './gameClock';
 import { IdleTalk } from './idleTalk';
-import { LocalNet } from './localNet';
+import { CRASH_COPY, installCrashHandlers, showReloadScreen } from './ui/crash';
 import { initPixelArt } from './ui/pixelArt';
 import type { Guide, Hit, WorldView } from './render/view';
 import type { TapCue } from './render/pixel/tapMark';
@@ -101,7 +102,7 @@ import { openNpcTalk } from './ui/npcTalk';
 import { profileMetJulia } from './ui/juliaMet';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed, openFeiraOffDuty } from './ui/feira';
 import { bindFeiraGames, closeFeiraGame, feiraGameOpen, onFeiraGameMsg, openFeiraCart, openFeiraSign } from './ui/feiraGames';
-import { openCaderno, setArrivalReplay } from './ui/caderno';
+import { openDiario, setArrivalReplay, syncJournalBadge } from './ui/journal';
 import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAcademyFloor } from './ui/academy';
 import { openLeaderboards } from './ui/leaderboards';
@@ -136,6 +137,9 @@ import { installViewport } from './ui/viewport';
 import { arrowForKey, stepForHeld, stepTarget, type Arrow } from './ui/keys';
 import { installUiArt } from './art/ui';
 
+/** Static deploys (no WebSocket server) run the World in-page. `?solo` forces it anywhere. */
+const SOLO = import.meta.env.VITE_LOCAL_WORLD === '1' || new URLSearchParams(location.search).has('solo');
+installCrashHandlers({ report: !import.meta.env.DEV && !SOLO });
 installUiArt();
 /** The pixel manifest feeds the DOM art (icons, portraits, ui kit) in both views. A failed load leaves the old chrome and no icons. */
 const pixelArtReady = initPixelArt();
@@ -155,10 +159,21 @@ const canvas = document.getElementById('world') as HTMLCanvasElement;
 // The pixel view (top-down, Phaser) is the only world view. The isometric renderer was deleted in Phase 5; `?view=iso` is ignored.
 if (new URLSearchParams(location.search).get('view') === 'iso') console.info('[view] the isometric view was removed; drawing the pixel view');
 document.body.classList.add('view-pixel');
-const renderer: WorldView = new (await import('./render/pixel/PixelView')).PixelView(canvas);
-/** Static deploys (no WebSocket server) run the World in-page. `?solo` forces it anywhere. */
-const SOLO = import.meta.env.VITE_LOCAL_WORLD === '1' || new URLSearchParams(location.search).has('solo');
-const net: NetLike = SOLO ? new LocalNet() : new Net(wsUrl());
+// The title screen goes up now; the Phaser chunk (~1.2 MB) and, in solo, the in-page World download behind it.
+const pixelViewChunk = import('./render/pixel/PixelView');
+const localNetChunk = SOLO ? import('./localNet') : null;
+const introGate = passIntroGate();
+let renderer: WorldView;
+let net: NetLike;
+try {
+  renderer = new (await pixelViewChunk).PixelView(canvas);
+  net = localNetChunk ? new (await localNetChunk).LocalNet() : new Net(wsUrl());
+} catch (e) {
+  // a chunk that failed to download (flaky network, a deploy that replaced the hashed files) would leave a blank page
+  console.error('[boot] failed to load the world', e);
+  showReloadScreen(CRASH_COPY.load);
+  throw e;
+}
 game.solo = SOLO;
 
 let hud: ReturnType<typeof buildHud> | null = null;
@@ -323,7 +338,7 @@ function openComissaria() {
     key: 'talk-comissaria',
     npcId: 'comissaria',
     speaker: 'Comissária Lia',
-    role: 'Comissária de bordo',
+    role: 'Comissária de bordo (Flight attendant)',
     expression: 'feliz',
     line,
     chips: [thanksFor(game.profile?.pronoun)],
@@ -441,7 +456,7 @@ function openTalk(npc: NpcDef['id'], juliaMet = false) {
 function readHotspot(hs: HotspotDef) {
   closeDialogue();
   if (hs.room === 'desembarque') markDesembStep('placa');
-  openHotspotCard(hs, { onSave: (cards) => openCaderno(cards[0]?.split('.')[1], cards) });
+  openHotspotCard(hs, { onSave: (cards) => openDiario({ cadernoGroup: cards[0]?.split('.')[1], highlight: cards }) });
   net.send({ t: 'read', hotspotId: hs.id });
 }
 
@@ -641,21 +656,21 @@ function joinRoom(room: RoomId, instanceId?: string, ownerId?: string) {
 }
 
 /** Guide arrows look their target up by portal / prop / NPC id in the current room's data, never by raw coordinates (Vila Ipê moved them all). */
-function guideAt(kind: 'portal' | 'prop' | 'npc', id: string, lift: number, label: string): Guide | null {
+function guideAt(kind: 'portal' | 'prop' | 'npc', id: string, lift: number, label: string, en?: string): Guide | null {
   const room = game.roomDef;
   if (!room) return null;
   if (kind === 'portal') {
     const p = room.portals.find((q) => q.id === id);
-    return p ? { x: p.doorAt?.x ?? p.x, y: p.doorAt?.y ?? p.y, lift, label } : null;
+    return p ? { x: p.doorAt?.x ?? p.x, y: p.doorAt?.y ?? p.y, lift, label, en } : null;
   }
   if (kind === 'prop') {
     const p = room.props.find((q) => q.id === id);
     if (!p) return null;
-    if (p.interact) return { x: p.interact.x, y: p.interact.y, lift, label };
-    return { x: p.x + ((p.w ?? 1) - 1) / 2, y: p.y + (p.h ?? 1) - 1, lift, label };
+    if (p.interact) return { x: p.interact.x, y: p.interact.y, lift, label, en };
+    return { x: p.x + ((p.w ?? 1) - 1) / 2, y: p.y + (p.h ?? 1) - 1, lift, label, en };
   }
   const n = game.liveNpcs(now()).find((q) => q.id === id);
-  return n ? { x: n.x, y: n.y, lift, label } : null;
+  return n ? { x: n.x, y: n.y, lift, label, en } : null;
 }
 
 function updateGuides() {
@@ -694,58 +709,58 @@ function updateGuides() {
   // the kitnet guide's floor steps: a free tile for the piece in hand, or the piece to rotate
   if (r.room === 'kitnet') add(kitnetWorldGuide());
   if (r.room === 'rua') {
-    if (!t.carlos) add(guideAt('portal', 'praca_padaria', 110, 'Padaria →'));
-    else if (!t.chapeu) add(guideAt('portal', 'rua_praca_1', 60, 'Chapéus: Praça ↓'));
-    else if (!t.cadeira) add(guideAt('portal', 'praca_kitnet', 110, 'Minha kitnet'));
-    if (t.meveum) add(guideAt('portal', 'rua_leste_1', 60, 'Academia: leste →'));
+    if (!t.carlos) add(guideAt('portal', 'praca_padaria', 110, 'Padaria →', 'Bakery →'));
+    else if (!t.chapeu) add(guideAt('portal', 'rua_praca_1', 60, 'Chapéus: Praça ↓', 'Hats: Square ↓'));
+    else if (!t.cadeira) add(guideAt('portal', 'praca_kitnet', 110, 'Minha kitnet', 'My kitnet'));
+    if (t.meveum) add(guideAt('portal', 'rua_leste_1', 60, 'Academia: leste →', 'Gym: east →'));
     // an owner's shop is behind the same door: their name over it, every visit
-    if (t.carlos && p.padaria) add(guideAt('portal', 'praca_padaria', 110, `${p.padaria.name} ↑`));
+    if (t.carlos && p.padaria) add(guideAt('portal', 'praca_padaria', 110, `${p.padaria.name} ↑`, 'Your bakery ↑'));
     // the Padaria's own sign on its door, every visit: the bakery game is inside
     const door = guideAt('portal', 'praca_padaria', 0, '🥖 Padaria · Jogar no balcão');
     if (door) add({ ...door, en: 'Bakery · Play the bakery game inside', kind: 'door' });
   } else if (r.room === 'rua_leste') {
-    if (t.meveum) add(guideAt('portal', 'praca_academia', 110, 'Academia do Bairro →'));
-    else if (!t.carlos) add(guideAt('portal', 'leste_rua_1', 60, '← Padaria: pela Rua'));
-    else if (!t.chapeu) add(guideAt('portal', 'leste_rua_1', 60, '← Chapéus: pela Rua'));
-    else if (!t.cadeira) add(guideAt('portal', 'leste_rua_1', 60, '← Minha kitnet: pela Rua'));
+    if (t.meveum) add(guideAt('portal', 'praca_academia', 110, 'Academia do Bairro →', 'Neighborhood Gym →'));
+    else if (!t.carlos) add(guideAt('portal', 'leste_rua_1', 60, '← Padaria: pela Rua', '← Bakery: via the Street'));
+    else if (!t.chapeu) add(guideAt('portal', 'leste_rua_1', 60, '← Chapéus: pela Rua', '← Hats: via the Street'));
+    else if (!t.cadeira) add(guideAt('portal', 'leste_rua_1', 60, '← Minha kitnet: pela Rua', '← My kitnet: via the Street'));
   } else if (r.room === 'praca') {
-    if (!t.carlos) add(guideAt('portal', 'praca_rua_1', 60, 'Padaria: pela Rua ↑'));
-    else if (!t.chapeu) add(guideAt('prop', 'barraca', 138, 'Chapéus'));
-    else if (!t.cadeira || t.meveum) add(guideAt('portal', 'praca_rua_1', 60, t.cadeira ? 'Academia: pela Rua ↑' : 'Minha kitnet: pela Rua ↑'));
+    if (!t.carlos) add(guideAt('portal', 'praca_rua_1', 60, 'Padaria: pela Rua ↑', 'Bakery: via the Street ↑'));
+    else if (!t.chapeu) add(guideAt('prop', 'barraca', 138, 'Chapéus', 'Hats'));
+    else if (!t.cadeira || t.meveum) add(guideAt('portal', 'praca_rua_1', 60, t.cadeira ? 'Academia: pela Rua ↑' : 'Minha kitnet: pela Rua ↑', t.cadeira ? 'Gym: via the Street ↑' : 'My kitnet: via the Street ↑'));
   } else if (r.room === 'feira') {
-    add(guideAt('portal', 'feira_praca_1', 60, '← Praça'));
+    add(guideAt('portal', 'feira_praca_1', 60, '← Praça', '← Square'));
   } else if (r.room === 'andar' && r.academy) {
     // a player academy's floor: its own mat, and the crest board (the owner's look editor, a guest's join card)
-    add(guideAt('prop', 'andar_tatame', 60, 'Treinar'));
-    if (r.academy.owner) add(guideAt('prop', 'andar_brasao', 30, 'Brasão e kimono'));
-    else if (!r.academy.member) add(guideAt('prop', 'andar_brasao', 30, 'Entrar na equipe'));
+    add(guideAt('prop', 'andar_tatame', 60, 'Treinar', 'Train'));
+    if (r.academy.owner) add(guideAt('prop', 'andar_brasao', 30, 'Brasão e kimono', 'Crest and kimono'));
+    else if (!r.academy.member) add(guideAt('prop', 'andar_brasao', 30, 'Entrar na equipe', 'Join the team'));
   } else if (r.room === 'padaria' && r.padaria) {
     // a player-owned padaria: no baker on duty, the owner works the counter
     if (r.padaria.owner) {
       add(playSpot('Play the bakery · your counter'));
       // on the vaso itself (its interact tile is where you stand, so an arrow there points at your own head)
       const vaso = game.roomDef?.props.find((q) => q.id === 'padaria_porta_fundar');
-      if (vaso) add({ x: vaso.x, y: vaso.y, lift: 60, label: 'Melhorias' });
+      if (vaso) add({ x: vaso.x, y: vaso.y, lift: 60, label: 'Melhorias', en: 'Upgrades' });
     } else {
-      add(guideAt('prop', 'balcao', 60, 'Balcão da casa'));
-      add(guideAt('portal', 'padaria_praca', 110, '← Rua'));
+      add(guideAt('prop', 'balcao', 60, 'Balcão da casa', 'The house counter'));
+      add(guideAt('portal', 'padaria_praca', 110, '← Rua', '← Street'));
     }
   } else if (r.room === 'padaria') {
     // Click opens AI Conversa. Don't label the tile "Conversar" — that word was the chip-scene trap.
     // the baker at the counter: Seu Carlos by day, Dona Graça at night
     const baker = game.liveNpcs(now()).find((q) => q.id === 'carlos' || q.id === 'graca');
-    if (baker?.id === 'graca') add(guideAt('npc', 'graca', 130, t.carlos ? 'Falar com Dona Graça' : 'Fale com a Dona Graça'));
-    else add(guideAt('npc', 'carlos', 130, t.carlos ? 'Falar com Carlos' : 'Fale com o Seu Carlos'));
+    if (baker?.id === 'graca') add(guideAt('npc', 'graca', 130, t.carlos ? 'Falar com Dona Graça' : 'Fale com a Dona Graça', 'Talk to Dona Graça'));
+    else add(guideAt('npc', 'carlos', 130, t.carlos ? 'Falar com Carlos' : 'Fale com o Seu Carlos', 'Talk to Seu Carlos'));
     add(playSpot('Play the bakery'));
-    if (t.carlos && t.meveum && !t.chapeu) add(guideAt('portal', 'padaria_praca', 110, '← Rua'));
+    if (t.carlos && t.meveum && !t.chapeu) add(guideAt('portal', 'padaria_praca', 110, '← Rua', '← Street'));
   } else if (r.room === 'academia') {
     // one step at a time; the exit arrow only once the gi is bought (the kimono arrow and "← Rua" sat on top of each other by the lockers)
-    if (!p.giOwned) add(guideAt('prop', 'vestiario', 160, '1 · Kimono aqui'));
+    if (!p.giOwned) add(guideAt('prop', 'vestiario', 160, '1 · Kimono aqui', '1 · Kimono here'));
     else {
       // step 2 points at Professora Bia ("Quer treinar?" → the mat), not the board up on the back wall
-      add(guideAt('npc', 'prof', 120, '2 · Treino no tatame'));
-      add(guideAt('portal', 'academia_praca', 110, '← Rua'));
-      add(guideAt('prop', 'elevador', 120, 'Elevador'));
+      add(guideAt('npc', 'prof', 120, '2 · Treino no tatame', '2 · Train on the mat'));
+      add(guideAt('portal', 'academia_praca', 110, '← Rua', '← Street'));
+      add(guideAt('prop', 'elevador', 120, 'Elevador', 'Elevator'));
     }
   }
 }
@@ -805,6 +820,7 @@ net.onStatus = (s) => {
     return;
   }
   reconnectBanner(null);
+  if (s === 'restarting') return overlayMessage('O servidor está reiniciando… · Server restarting…', () => net.retry());
   overlayMessage('Reconectando… · Reconnecting…', () => net.retry());
 };
 
@@ -1126,6 +1142,7 @@ net.on((m: ServerMsg) => {
     case 'friends':
       game.friends = m.friends;
       game.incoming = m.incoming;
+      game.blockedPeople = m.blocked ?? [];
       game.emit('friends');
       break;
     case 'friendRequest':
@@ -1207,7 +1224,7 @@ function startGame() {
     },
     openCaderno: () => {
       markDesembStep('diario');
-      openCaderno();
+      openDiario();
     },
     replayTutorial: () => {
       closeModal();
@@ -1232,6 +1249,7 @@ function startGame() {
         remove: (id) => net.send({ t: 'friend', action: 'remove', targetId: id }),
         hop: (room, instanceId, ownerId) => joinRoom(room, instanceId ?? undefined, ownerId),
         refresh: () => net.send({ t: 'friends' }),
+        unblock: (id) => net.send({ t: 'block', action: 'unblock', targetId: id }),
       }),
     openWardrobe: () => openHatShop('wardrobe', { buy: () => {}, equip: (id) => net.send({ t: 'equipHat', hatId: id }) }),
     toggleDecor: () => {
@@ -1402,7 +1420,8 @@ function handleClickInner(hit: Hit | null) {
       if (a && a.pub.id !== game.room.selfId)
         openProfileCard(a.pub, {
           request: (id) => net.send({ t: 'friend', action: 'request', targetId: id }),
-          report: (id) => net.send({ t: 'report', targetId: id, text: a.bubbles.at(-1)?.text }),
+          report: (id, reason) => net.send({ t: 'report', targetId: id, reason }),
+          block: (id, on) => net.send({ t: 'block', action: on ? 'block' : 'unblock', targetId: id }),
           wave: () => net.send({ t: 'emote', kind: 'oi' }),
         });
       break;
@@ -1688,6 +1707,8 @@ setArrivalReplay(() => {
   net.send({ t: 'arrival', action: 'replay' });
   joinRoom('aeroporto');
 });
+// the Diário button counts the words earned since the Diário was last opened
+game.on('profile', syncJournalBadge);
 
 function frame(ts: number) {
   try {
@@ -1742,15 +1763,23 @@ setInterval(() => {
 
 // ---------------------------------------------------------------- boot
 
-async function boot() {
+/** The session check and title screen. Started before the world chunk is awaited, so it touches no module state (boot() copies the result). */
+async function passIntroGate(): Promise<boolean> {
   // A live session skips the title screen, so a refresh drops straight back into the world.
-  if (!SOLO) signedIn = await hasServerSession();
-  if (!signedIn) {
+  let ok = !SOLO && (await hasServerSession());
+  if (!ok) {
     // Multiplayer is account-only, so a tab without a session always gets the sign-in card.
     if (!SOLO) sessionStorage.removeItem(INTRO_PASSED_KEY);
+    document.getElementById('boot-loading')?.remove();
     const entry = await runIntroGate({ guestEntersWorld: SOLO });
-    signedIn = !SOLO && entry.mode === 'auth';
+    ok = !SOLO && entry.mode === 'auth';
   }
+  return ok;
+}
+
+async function boot() {
+  signedIn = await introGate;
+  document.getElementById('boot-loading')?.remove();
   game.music = ambience.enabled;
   // Phaser starts only now (intro closed, or skipped by a live session); it crashed some GPUs when booted under the title blur.
   if ('start' in renderer) (renderer as { start: () => void }).start();

@@ -231,7 +231,7 @@ export class StallKit {
   /** A customer left without what they wanted (timed out, or the wrong order): the meter moves left. */
   lose(at: Element | null | undefined) {
     this.left += 1;
-    this.float(at, 'Foi embora', 'miss');
+    this.float(at, 'Foi embora · Left', 'miss');
     this.paint();
     replay(this.meter, 'fs-bump-down');
   }

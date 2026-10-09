@@ -143,6 +143,10 @@ export function mountAirportTutorial(onStep?: () => void): { refresh: () => void
   refreshPanel = render;
   game.on('profile', render);
   game.on('room', render);
+  // the "what next" card belongs to the airport: leaving it (doors, bus, a skip) takes the card along
+  game.on('room', () => {
+    if (!inAirport()) document.getElementById('aero-next')?.remove();
+  });
   game.on('hud', render);
   // a snack from the café is in your hand (the server puts it on your avatar)
   game.on('avatars', () => {
@@ -156,6 +160,8 @@ export function mountAirportTutorial(onStep?: () => void): { refresh: () => void
 /** Out of the arrivals hall: a short card with where to go next (the checklist and the arrow carry on from there). */
 export function showAirportNext(): void {
   document.getElementById('aero-next')?.remove();
+  // it is shown a beat after the hall's doors: by then the player may already have gone on
+  if (!inAirport()) return;
   const ok = h('button', { type: 'button', class: 'primary', id: 'aero-next-ok', onclick: () => card.remove() }, 'Let’s go!', h('span', { class: 'en' }, ' · Vamos!'));
   const card = h(
     'div',
@@ -182,15 +188,15 @@ function gifts(): HTMLElement {
         'div',
         { class: 'arrival-gift gift-camera', id: 'arrival-gift-camera' },
         h('span', { class: 'gift-art' }, h('i', { class: 'cam-body' }, h('i', { class: 'cam-lens' }), h('i', { class: 'cam-flash' }))),
-        h('b', null, 'Câmera'),
-        h('small', null, `${FILM.starter} filmes`),
+        h('b', null, 'Câmera', en(' Camera')),
+        h('small', null, `${FILM.starter} filmes`, en(` ${FILM.starter} films`)),
       ),
       h(
         'div',
         { class: 'arrival-gift gift-cartela', id: 'arrival-gift-cartela' },
         h('span', { class: 'gift-art' }, h('i', { class: 'mini-card' }, ...Array.from({ length: CARTELA_GOAL }, () => h('i')))),
-        h('b', null, CARTELA_COPY.title.pt),
-        h('small', null, `Completa 7 e ganha +${CARTELA_REWARD} RV`),
+        h('b', null, CARTELA_COPY.title.pt, en(` ${CARTELA_COPY.title.en}`)),
+        h('small', null, `Completa 7 e ganha +${CARTELA_REWARD} RV`, en(` Complete 7 and earn +${CARTELA_REWARD} RV`)),
       ),
     ),
     // Júlia's note: her four lines, in her hand
@@ -201,7 +207,7 @@ function gifts(): HTMLElement {
       h(
         'div',
         { class: 'arrival-says' },
-        h('b', { class: 'arrival-name' }, 'Bilhete da Júlia'),
+        h('b', { class: 'arrival-name' }, 'Bilhete da Júlia', en(' Júlia\'s note')),
         h('p', null, `${ARRIVAL_CARD.title.pt}! ${ARRIVAL_CARD.landed.pt}`),
         en(`${ARRIVAL_CARD.title.en}! ${ARRIVAL_CARD.landed.en}`),
         h('p', null, `${ARRIVAL_CARD.camera.pt} ${ARRIVAL_CARD.diary.pt}`),
@@ -250,7 +256,7 @@ export function openCelia(hooks: StaffHooks): void {
   const name = p?.name ?? '';
   const box = (line: { pt: string; en: string }, chips: BoxChip[], onChip: (i: number) => void, extras: HTMLElement | null = null, expression: 'feliz' | 'neutro' | 'pensativo' = 'feliz') => {
     speak(line.pt);
-    showDialogueBox({ key: 'talk-celia', npcId: 'celia', speaker: 'Célia', role: 'Informações', expression, line, chips, extras, onChip, onClose: closeDialogue });
+    showDialogueBox({ key: 'talk-celia', npcId: 'celia', speaker: 'Célia', role: 'Informações · Information', expression, line, chips, extras, onChip, onClose: closeDialogue });
   };
   if (p?.arrivalIntroDone === false) {
     box(
@@ -295,7 +301,7 @@ export function openCelia(hooks: StaffHooks): void {
 export function openAgente(hooks: StaffHooks): void {
   const box = (line: { pt: string; en: string }, chips: BoxChip[], onChip: (i: number) => void, expression: 'feliz' | 'neutro' | 'pensativo' | 'surpreso' = 'neutro', extras: HTMLElement | null = null) => {
     speak(line.pt);
-    showDialogueBox({ key: 'talk-agente', npcId: 'agente', speaker: 'Agente Paulo', role: 'Polícia Federal', expression, line, chips, extras, onChip, onClose: closeDialogue });
+    showDialogueBox({ key: 'talk-agente', npcId: 'agente', speaker: 'Agente Paulo', role: 'Polícia Federal · Federal Police', expression, line, chips, extras, onChip, onClose: closeDialogue });
   };
   const minute = clock.minutes();
   const g = greetingFor(minute);

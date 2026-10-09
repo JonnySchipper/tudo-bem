@@ -61,6 +61,7 @@ class CorreriaFeed {
 
   setCamera(on: boolean): void {
     this.camera = on;
+    if (on) this.boxPx = 0;
     if (!on) this.end();
   }
 
@@ -83,7 +84,8 @@ class CorreriaFeed {
   }
 
   setBoxes(bottom: number, top: number): void {
-    this.boxPx = Math.max(0, Math.round(bottom));
+    // the tallest the strip has been this shift: items landing on the tray resize it, and refitting the camera each time zoomed out and back in
+    this.boxPx = Math.max(this.camera ? this.boxPx : 0, Math.round(bottom));
     this.topPx = Math.max(0, Math.round(top));
   }
 }

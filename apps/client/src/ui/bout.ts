@@ -194,7 +194,7 @@ export class BoutUI {
       { class: 'bout-quit ghost', id: 'bout-quit', type: 'button', 'aria-label': 'Sair (Leave)', title: 'Sair / Leave', onclick: () => (this.phase === 'lobby' || this.phase === 'end' ? this.leave() : this.quit()) },
       h('span', { 'aria-hidden': 'true' }, '✕'),
     );
-    this.panel = h('div', { class: 'bout-panel', id: 'bout', role: 'region', 'aria-label': 'Treino no tatame', 'data-phase': 'idle' }, quit, this.meters, this.body);
+    this.panel = h('div', { class: 'bout-panel', id: 'bout', role: 'region', 'aria-label': 'Treino no tatame (Mat practice)', 'data-phase': 'idle' }, quit, this.meters, this.body);
     this.root = h('div', { class: `${matRootClass(game.profile?.nameplate)}${reducedMotion() ? ' bout-reduced' : ''}`, id: 'bout-root', 'data-phase': 'idle' }, this.top, this.panel);
     for (const v of ['lobby', 'intro', 'pick', 'cmd', 'resolve', 'end', 'wait'] as View[]) {
       const el = h('div', { class: `bout-view bv-${v}`, 'data-view': v, hidden: true });

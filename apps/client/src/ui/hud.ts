@@ -29,7 +29,10 @@ import { mountClockPill } from './clockPill';
 import { COMPACT_QUERY, placeHud } from './hudLayout';
 import { FEEDBACK_COPY, carryAction } from '@tudobem/shared';
 import { openFeedback } from './feedback';
+import { openAccount } from './account';
 import { tierIcon, tierName } from './plate';
+import { showSupportButton } from './supportGate';
+import { fetchPublicConfig } from '../auth/config';
 
 /** The HUD's escola reminder: today's XP against the goal (until it is met) and the streak flame. Null before the diary has a word. */
 export function escolaGoalChip(p: PrivateProfile): { xp: number; goal: number; streak: number; met: boolean; title: string } | null {
@@ -184,7 +187,16 @@ export function buildHud(actions: HudActions) {
   const creditsBtn = btn('btn-credits', 'info', 'Créditos', 'Credits', actions.openCredits);
   const tutorialBtn = btn('btn-tutorial', 'mark', 'Tutorial', 'Replay the tutorial', actions.replayTutorial);
   const supportBtn = btn('btn-support', 'coracao', 'Apoiar', 'Support', actions.openSupport);
+  // hidden until /api/config says checkout is switched on (or the player already has perks): no price ads in the free beta
+  let billingReady = false;
+  supportBtn.style.display = 'none';
+  void fetchPublicConfig().then((c) => {
+    billingReady = c.billingReady;
+    refresh();
+  });
   const logoutBtn = actions.logout ? btn('btn-logout', 'logout', 'Sair', 'Log out', actions.logout) : null;
+  // Account settings sit next to Sair: only a signed-in multiplayer session has an account to manage.
+  const accountBtn = actions.logout ? btn('btn-account', 'gear', 'Conta', 'Account', openAccount) : null;
   const gear = h('button', { class: 'hud-btn hud-gear', id: 'btn-menu', type: 'button', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-controls': 'hud-menu', 'aria-label': 'Ajustes (Settings)' }, icon('gear', 32), h('span', { class: 'hud-label' }, h('b', { class: 'pt' }, 'Ajustes'), h('i', { class: 'hud-gloss' }, 'Music, voice, credits')));
   const menu = h(
     'div',
@@ -195,6 +207,7 @@ export function buildHud(actions: HudActions) {
     supportBtn,
     tutorialBtn,
     creditsBtn,
+    accountBtn,
     logoutBtn,
   );
   const gearWrap = h('div', { class: 'hud-gear-wrap' }, gear, menu);
@@ -204,7 +217,7 @@ export function buildHud(actions: HudActions) {
   cameraBtn.style.display = 'none';
   const actionsNav = h(
     'nav',
-    { class: 'hud-actions hud-slab', id: 'hud-actions', 'aria-label': 'Menu do jogo' },
+    { class: 'hud-actions hud-slab', id: 'hud-actions', 'aria-label': 'Menu do jogo (Game menu)' },
     drawerPlate,
     decorBtn,
     btn('btn-map', 'map', 'Mapa', 'Map', actions.openMap),
@@ -293,7 +306,7 @@ export function buildHud(actions: HudActions) {
   window.matchMedia(COMPACT_QUERY).addEventListener('change', closeMenus);
 
   // ---- bottom bar
-  const input = h('input', { type: 'text', maxLength: MAX_CHAT_LEN, placeholder: 'Diga oi! (Say hi — Portuguese or English)', 'aria-label': 'Chat', id: 'chat-input' });
+  const input = h('input', { type: 'text', maxLength: MAX_CHAT_LEN, placeholder: 'Diga oi! (Say hi — Portuguese or English)', 'aria-label': 'Conversa (Chat)', id: 'chat-input' });
 const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.placeholder = phMq.matches ? 'Diga oi! (Say hi)' : 'Diga oi! (Say hi — Portuguese or English)');  setPh();  phMq.addEventListener('change', setPh);
   const hint = h('span', { class: 'hint' }, 'Enter ↵');
   const send = () => {
@@ -321,7 +334,7 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       hint.textContent = `${input.value.length}/${MAX_CHAT_LEN}`;
       hint.className = 'hint';
     } else {
-      hint.textContent = v.action === 'warn' ? 'Vai com aviso' : v.action === 'escalate' ? 'Vai pra revisão' : 'Não pode';
+      hint.textContent = v.action === 'warn' ? 'Vai com aviso · Sends with a warning' : v.action === 'escalate' ? 'Vai pra revisão · Goes to review' : 'Não pode · Not allowed';
       hint.className = 'hint warn';
       hint.title = v.note?.en ?? '';
     }
@@ -383,7 +396,7 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
     b.replaceChildren(
       icon(ico, 32),
       h('span', { class: 'hud-label' }, h('b', { class: 'pt' }, pt), h('i', { class: 'hud-gloss' }, on ? enOn : enOff)),
-      h('span', { class: 'hud-state' }, on ? 'sim' : 'não'),
+      h('span', { class: 'hud-state' }, on ? 'sim' : 'não', en(on ? ' yes' : ' no')),
     );
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
   };
@@ -456,6 +469,7 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       parrotToggle.style.display = p.parrotOwned ? '' : 'none';
       parrotToggle.replaceChildren(bi(p.parrotEquipped ? 'Guardar papagaio' : 'Chamar papagaio', p.parrotEquipped ? 'Hide parrot' : 'Show parrot'));
       cameraBtn.style.display = p.hasCamera ? '' : 'none';
+      supportBtn.style.display = showSupportButton(billingReady, p.subscription, Date.now()) ? '' : 'none';
       cameraBtn.classList.toggle('on', game.cameraOn && !!p.hasCamera);
     }
     decorBtn.style.display = game.isOwnKitnet ? '' : 'none';

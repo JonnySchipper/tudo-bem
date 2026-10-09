@@ -68,10 +68,21 @@ export interface ImageDef {
   anims?: Record<string, [number, number]>;
 }
 
-export async function loadManifest(base: string): Promise<Manifest> {
-  const res = await fetch(`${base}manifest.json`);
-  if (!res.ok) throw new Error(`manifest.json: HTTP ${res.status}`);
-  return (await res.json()) as Manifest;
+const manifests = new Map<string, Promise<Manifest>>();
+
+/** Fetches `manifest.json` (~400 KB) once per base: the DOM art, the title snapshot and the world all share the one request. A failed load is forgotten so a later call retries. */
+export function loadManifest(base: string): Promise<Manifest> {
+  let p = manifests.get(base);
+  if (!p) {
+    p = (async () => {
+      const res = await fetch(`${base}manifest.json`);
+      if (!res.ok) throw new Error(`manifest.json: HTTP ${res.status}`);
+      return (await res.json()) as Manifest;
+    })();
+    p.catch(() => manifests.delete(base));
+    manifests.set(base, p);
+  }
+  return p;
 }
 
 // ---------------------------------------------------------------- DOM image helpers
