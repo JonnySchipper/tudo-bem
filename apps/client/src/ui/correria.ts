@@ -85,7 +85,7 @@ export class CorreriaUI {
       this.askEl,
       h('div', { class: 'cr-build' }, this.trayEl, this.modsEl, this.actionsEl),
     );
-    this.root = h('div', { class: `cr-root${this.showEn ? '' : ' cr-noen'}`, id: 'correria' }, this.top, this.waveEl, this.panel);
+    this.root = h('div', { class: `cr-root${this.showEn ? '' : ' cr-noen'}${this.a.practice ? ' cr-practice' : ''}`, id: 'correria' }, this.top, this.waveEl, this.panel);
     document.body.classList.add('cr-on');
     (document.getElementById('ui') ?? document.body).append(this.root);
     game.modalOpen = true;

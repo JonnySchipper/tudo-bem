@@ -5,6 +5,7 @@
  */
 export async function finishArrival(page) {
   await page.waitForFunction(() => window.__tb?.game?.profile && window.__tb.game.room, null, { timeout: 20_000 });
+  await quietFirstTimeCards(page);
   const needs = await page.evaluate(() => window.__tb.game.profile.arrivalIntroDone === false);
   // a brand-new account starts in the arrivals hall (the guided tutorial): mark it done and go on to the airport
   const hall = await page.evaluate(() => window.__tb.game.profile.desembarqueDone === false);
@@ -51,4 +52,19 @@ async function dismissWordCards(page) {
       while (document.getElementById('photo-close') === gone && performance.now() - started < 700) await sleep(30);
     }
   });
+}
+
+/**
+ * The first-time cards a new player meets in the Vila (the Vila guide, and the "How it works" cards over panels such as Recados or the
+ * Cartela) sit over the screen until "Got it". Play paths that are about something else mark them seen, as a returning player would have.
+ * The minigames' "How to play" cards are left alone: their e2e reads them. Ids: apps/client/src/ui/howToPlayData.ts (kind: 'place').
+ */
+export const PLACE_CARDS = ['balcao', 'conversa', 'recados', 'diario', 'cartela', 'missao', 'camera', 'kimono', 'academias', 'placar-feira'];
+
+export async function quietFirstTimeCards(page) {
+  await page.evaluate((ids) => {
+    const id = window.__tb.game.profile.id;
+    localStorage.setItem(`tb_vila_guia:${id}`, '1');
+    for (const g of ids) localStorage.setItem(`tb_howto:${id}:${g}`, '1');
+  }, PLACE_CARDS);
 }

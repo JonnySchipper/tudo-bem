@@ -2368,7 +2368,7 @@ export class World {
       if (!hat || !isStallHat(hat.id)) return;
       if (s.instance?.def.id !== 'praca') return this.err(s, 'shop', 'A barraca da Nanda fica na praça.', 'Nanda’s stall is in the square.');
       if (p.hats.includes(hat.id)) return this.err(s, 'owned', 'Você já tem esse chapéu.', 'You already own this hat.');
-      if (p.coins < hat.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet — play “Me vê um…” or talk to Seu Carlos.');
+      if (p.coins < hat.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV yet: play “Correria no Balcão” at the bakery, or do an errand (recado).');
       p.coins -= hat.price;
       p.hats.push(hat.id);
       this.store.save(p.id);

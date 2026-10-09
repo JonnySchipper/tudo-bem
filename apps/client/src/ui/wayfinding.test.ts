@@ -41,14 +41,32 @@ describe('wayfinding: every room says where its doors go', () => {
 
 describe('how to play', () => {
   it('covers every minigame, with a goal, steps and controls for a computer and a phone', () => {
-    expect(HOW_TO_PLAY.map((g) => g.id)).toEqual(['correria', 'tapioca', 'pastel', 'caldo', 'bout', 'escola', 'damas', 'feira', 'pedido']);
-    for (const g of HOW_TO_PLAY) {
+    const games = HOW_TO_PLAY.filter((g) => (g.kind ?? 'game') === 'game');
+    expect(games.map((g) => g.id)).toEqual(['correria', 'tapioca', 'pastel', 'caldo', 'bout', 'escola', 'damas', 'feira']);
+    for (const g of games) {
       expect(g.selector.length, g.id).toBeGreaterThan(3);
       expect(g.goal.length, g.id).toBeGreaterThan(10);
       expect(g.steps.length, g.id).toBeGreaterThan(0);
-      expect(g.desktop.length, g.id).toBeGreaterThan(5);
-      expect(g.phone.length, g.id).toBeGreaterThan(5);
+      expect(g.desktop?.length ?? 0, g.id).toBeGreaterThan(5);
+      expect(g.phone?.length ?? 0, g.id).toBeGreaterThan(5);
     }
+  });
+
+  it('explains every panel and activity a new player meets without a guided tutorial', () => {
+    const places = HOW_TO_PLAY.filter((g) => g.kind === 'place');
+    expect(places.map((g) => g.id)).toEqual(['balcao', 'conversa', 'recados', 'diario', 'cartela', 'missao', 'camera', 'kimono', 'academias', 'placar-feira']);
+    for (const g of places) {
+      expect(g.selector.length, g.id).toBeGreaterThan(3);
+      expect(g.goal.length, g.id).toBeGreaterThan(10);
+      expect(g.steps.length, g.id).toBeGreaterThan(1);
+      // English for a player with no Portuguese yet, and short enough to read in one go
+      expect([g.goal, ...g.steps].join(' ').length, g.id).toBeLessThan(800);
+    }
+    expect(new Set(HOW_TO_PLAY.map((g) => g.id)).size).toBe(HOW_TO_PLAY.length);
+  });
+
+  it('keeps the first-time card off the bakery practice order (it has its own coach)', () => {
+    expect(HOW_TO_PLAY.find((g) => g.id === 'correria')!.selector).toContain(':not(.cr-practice)');
   });
 
   it('never makes the jiu-jitsu roll a quiz', () => {
