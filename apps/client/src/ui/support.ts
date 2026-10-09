@@ -37,7 +37,7 @@ export async function openSupport(actions: SupportActions): Promise<void> {
     const portal = p?.subscription?.portalUrl;
     const ready = cfg.billingReady;
     const nodes = [
-      h('button', { class: 'close ghost', onclick: () => closeModal(), 'aria-label': 'Fechar' }, '✕'),
+      h('button', { class: 'close ghost', onclick: () => closeModal(), 'aria-label': 'Fechar (Close)' }, '✕'),
       h('h2', null, 'Apoiar o Tudo Bem'),
       en('Support Tudo Bem'),
       h(
@@ -50,7 +50,7 @@ export async function openSupport(actions: SupportActions): Promise<void> {
         'div',
         { class: `support-price${ready ? '' : ' soon'}`, id: 'support-price' },
         h('p', null, h('b', null, SUBSCRIPTION_PRICE.pt), en(`${SUBSCRIPTION_PRICE.en}. Optional, for anyone who wants to help.`, true)),
-        ready ? null : h('span', { class: 'support-soon', id: 'support-soon' }, 'em breve'),
+        ready ? null : h('span', { class: 'support-soon', id: 'support-soon' }, 'em breve', en('coming soon', true)),
       ),
       h('h3', { class: 'support-head' }, 'O que você ganha'),
       en('What you get. Looks only: nothing here helps you learn faster or win.', true),
@@ -97,11 +97,11 @@ export async function openSupport(actions: SupportActions): Promise<void> {
             if (out.url) window.location.assign(out.url);
             else if (btn) {
               btn.disabled = false;
-              btn.textContent = 'em breve';
+              btn.replaceChildren('em breve', en('coming soon', true));
             }
           },
         },
-        ready ? 'Assinar' : 'em breve',
+        ...(ready ? ['Assinar', en('Subscribe', true)] : ['em breve', en('coming soon', true)]),
       ),
       h('p', { class: 'support-note' }, en(ready ? 'Subscribe for $10/month. Learning stays free.' : 'Checkout is not open yet. Everything in the game stays free in the meantime.', true)),
       portal
@@ -120,9 +120,9 @@ export async function openSupport(actions: SupportActions): Promise<void> {
             h(
               'div',
               { class: 'support-row', role: 'group', 'aria-label': 'Pet' },
-              choice('pet', null, p?.pet ?? null, 'Nenhum', () => actions.setPet(null)),
-              choice('pet', 'dog', p?.pet ?? null, PET_COPY.dog.pt, () => actions.setPet('dog')),
-              choice('pet', 'cat', p?.pet ?? null, PET_COPY.cat.pt, () => actions.setPet('cat')),
+              choice('pet', null, p?.pet ?? null, 'Nenhum', 'None', () => actions.setPet(null)),
+              choice('pet', 'dog', p?.pet ?? null, PET_COPY.dog.pt, PET_COPY.dog.en, () => actions.setPet('dog')),
+              choice('pet', 'cat', p?.pet ?? null, PET_COPY.cat.pt, PET_COPY.cat.en, () => actions.setPet('cat')),
             ),
             p?.pet === 'dog' || p?.pet === 'cat'
               ? h(
@@ -141,11 +141,11 @@ export async function openSupport(actions: SupportActions): Promise<void> {
                   ),
                 )
               : null,
-            h('h3', null, 'Balão'),
+            h('h3', null, 'Balão', en('Bubble', true)),
             en('Colour and shape only. The sentence stays the one you typed.', true),
             h(
               'div',
-              { class: 'support-bubbles', role: 'group', 'aria-label': 'Balão' },
+              { class: 'support-bubbles', role: 'group', 'aria-label': 'Balão (Bubble)' },
               ...BUBBLE_STYLES.map((style) =>
                 h(
                   'button',
@@ -177,11 +177,12 @@ function perk(kind: 'badge' | 'banner' | 'praia' | 'pet' | 'bubble', pt: string,
   return h('li', null, h('i', { class: `support-ico support-ico-${kind}`, 'aria-hidden': 'true' }), h('span', null, pt, en(enText, true)));
 }
 
-function choice(group: string, id: string | null, current: string | null, label: string, onclick: () => void): HTMLElement {
+function choice(group: string, id: string | null, current: string | null, label: string, gloss: string, onclick: () => void): HTMLElement {
   const on = (current ?? null) === id;
   return h(
     'button',
     { type: 'button', class: on ? 'on' : '', 'data-perk': `${group}:${id ?? 'none'}`, onclick },
     label,
+    gloss.toLowerCase() === label.toLowerCase() ? null : en(gloss, true),
   );
 }

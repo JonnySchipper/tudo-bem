@@ -78,7 +78,7 @@ export function openPetName(pet: PetId): void {
   const root = h(
     'div',
     { class: 'panel pet-name-panel', id: 'pet-name-panel', role: 'dialog', 'aria-labelledby': 'pet-name-title' },
-    h('button', { class: 'close ghost', type: 'button', onclick: () => closeModal(), 'aria-label': 'Fechar' }, '✕'),
+    h('button', { class: 'close ghost', type: 'button', onclick: () => closeModal(), 'aria-label': 'Fechar (Close)' }, '✕'),
     h('h2', { id: 'pet-name-title' }, prompt.pt),
     en(prompt.en),
     input,

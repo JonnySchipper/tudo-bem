@@ -94,7 +94,7 @@ function tierCard(title: { pt: string; en: string }, perk: { pt: string; en: str
   return h(
     'div',
     { class: `pad-tier ${state}` },
-    h('div', { class: 'pad-tier-head' }, h('b', null, title.pt), state === 'done' ? h('span', { class: 'pad-tick', 'aria-label': 'feito' }, '✓') : null),
+    h('div', { class: 'pad-tier-head' }, h('b', null, title.pt), state === 'done' ? h('span', { class: 'pad-tick', 'aria-label': 'feito (done)' }, '✓') : null),
     en(title.en),
     h('p', { class: 'pad-tier-perk' }, perk.pt, en(perk.en)),
     action,
@@ -114,7 +114,7 @@ function bookPanel(card: PadariaCard) {
     hatMark(),
     h('div', null, h('h3', null, card.name), h('p', { class: 'hint' }, `${card.owner ? 'Sua padaria' : `De ${card.ownerName}`} · ${size.pt}`, en(`${card.owner ? 'Your bakery' : `${card.ownerName}’s`} · ${size.en}`))),
   );
-  const panel = h('div', { class: 'panel padaria-book', role: 'dialog', 'aria-label': `Melhorias: ${card.name}` }, head);
+  const panel = h('div', { class: 'panel padaria-book', role: 'dialog', 'aria-label': `Melhorias (Upgrades): ${card.name}` }, head);
   if (!card.owner) {
     const sweets = SWEETS.filter((s) => card.sweets?.[s.kind]).map((s) => s.pt);
     panel.append(h('p', null, SIZE_PERKS[card.size].pt, en(SIZE_PERKS[card.size].en)));
@@ -199,7 +199,7 @@ export function chooseBakery(own: { id: string; name: string; size: PadariaSize 
   const size = PADARIA_SIZE_NAMES[own.size];
   const panel = h(
     'div',
-    { class: 'panel padaria-choose', role: 'dialog', 'aria-label': 'Qual padaria?' },
+    { class: 'panel padaria-choose', role: 'dialog', 'aria-label': 'Qual padaria? (Which bakery?)' },
     h('h3', null, 'Qual padaria?'),
     en('Which bakery?'),
     h(
@@ -221,7 +221,7 @@ export function chooseBakery(own: { id: string; name: string; size: PadariaSize 
 function renderDoor(door: PadariaDoorState, rows: PadariaCard[]) {
   const pct = Math.min(100, Math.round((door.coins / door.goalRv) * 100));
   const meter = h('div', { class: 'padaria-meter', role: 'progressbar', 'aria-valuenow': String(pct), 'aria-valuemin': '0', 'aria-valuemax': '100' }, h('div', { class: 'padaria-meter-fill', style: `width:${pct}%` }));
-  const panel = h('div', { class: 'panel padaria-door', role: 'dialog', 'aria-label': 'Porta da padaria' });
+  const panel = h('div', { class: 'panel padaria-door', role: 'dialog', 'aria-label': 'Porta da padaria (Bakery door)' });
   if (door.ownedId) {
     panel.append(
       h('div', { class: 'pad-book-head' }, hatMark(), h('div', null, h('h3', null, door.ownedName ?? ''), en('Your bakery — open for business'))),
@@ -237,7 +237,7 @@ function renderDoor(door: PadariaDoorState, rows: PadariaCard[]) {
       meter,
     );
     if (door.canFundar) {
-      const name = h('input', { maxlength: String(PADARIA_NAME_MAX), placeholder: 'Padaria da …', autocomplete: 'off' }) as HTMLInputElement;
+      const name = h('input', { maxlength: String(PADARIA_NAME_MAX), placeholder: 'Padaria da … (Bakery of …)', autocomplete: 'off' }) as HTMLInputElement;
       const submit = () => {
         const n = name.value.trim();
         if (!n) return name.focus();
@@ -296,7 +296,7 @@ export function welcomeOwner() {
   const row = (pt: string, enText: string) => h('li', null, pt, en(enText));
   const panel = h(
     'div',
-    { class: 'panel padaria-welcome', role: 'dialog', 'aria-label': `Bem-vindo à ${card.name}` },
+    { class: 'panel padaria-welcome', role: 'dialog', 'aria-label': `Bem-vindo à ${card.name} (Welcome to ${card.name})` },
     h('div', { class: 'pad-book-head' }, hatMark(), h('div', null, h('h3', null, card.name), en('Your bakery is open'))),
     h(
       'ul',

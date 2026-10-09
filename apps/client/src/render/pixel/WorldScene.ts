@@ -2260,14 +2260,14 @@ export class WorldScene extends Phaser.Scene {
     const selfView = selfId ? this.avatars.get(selfId) : undefined;
     if (this.stall?.closed) {
       const p = at(this.stall.wx, this.stall.wy - 30);
-      stacks.push({ key: 'stall:closed', x: p.px, y: p.py, plate: { text: 'Fechado · volta às 8h', kind: 'npc' }, bubbles: [] });
+      stacks.push({ key: 'stall:closed', x: p.px, y: p.py, plate: { text: 'Fechado · volta às 8h', gloss: 'Closed · back at 8 am', kind: 'npc' }, bubbles: [] });
     }
     // the feira's banner says it is closed outside 06:00-13:00
     if (this.feiraStalls.length && !feiraOpen(clock.minutes())) {
       const b = def.props.find((q) => q.id === 'feira_livre');
       if (b) {
         const p = at((b.x + (b.w ?? 1) / 2) * T, b.y * T - 22);
-        stacks.push({ key: 'feira:closed', x: p.px, y: p.py, plate: { text: 'Feira fechada · volta às 6h', kind: 'npc' }, bubbles: [] });
+        stacks.push({ key: 'feira:closed', x: p.px, y: p.py, plate: { text: 'Feira fechada · volta às 6h', gloss: 'Market closed · back at 6 am', kind: 'npc' }, bubbles: [] });
       }
     }
     for (const [id, v] of this.avatars) {

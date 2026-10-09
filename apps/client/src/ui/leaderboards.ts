@@ -6,7 +6,7 @@ import { game } from '../state';
 import { h, en, bi } from './dom';
 import { openModal } from './modal.js';
 
-const closeBtn = (close: () => void) => h('button', { class: 'close ghost', onclick: close, 'aria-label': 'Fechar' }, '✕');
+const closeBtn = (close: () => void) => h('button', { class: 'close ghost', onclick: close, 'aria-label': 'Fechar (Close)' }, '✕');
 
 function rowEl(r: BoardRow, kind: 'words' | 'streak') {
   const unit = kind === 'words' ? (r.score === 1 ? 'palavra' : 'palavras') : r.score === 1 ? 'dia' : 'dias';
