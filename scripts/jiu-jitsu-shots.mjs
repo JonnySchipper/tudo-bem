@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 /**
- * Screenshots of Tatame v2, the grip game on the Academia mat (#129), at 1280x800 and 390x844:
+ * Screenshots of Tatame v3 "Comando" (docs/lifesim/TATAME-V3.md), the jiu-jitsu game on the Academia mat, at 1280x800 and 390x844:
  *
  *   node scripts/jiu-jitsu-shots.mjs      # builds the solo client (VITE_LOCAL_WORLD=1) into a temp dir and serves it itself
  *   BASE_URL=http://localhost:9211/ node scripts/jiu-jitsu-shots.mjs     # or shoot a solo build you already serve
- *   SHOTS_DIR (default docs/lifesim/shots/jiu-jitsu), VIEWS=desktop,phone, BOUTS (max matches per view, default 3)
+ *   --out=dir (or SHOTS_DIR, default docs/lifesim/shots/jiu-jitsu-v3), --views=desktop,phone, --bouts=N (max matches per view, default 2),
+ *   --partners=0 skips the first look at the other partners
  *
- * A blue belt plays Mateus reading the telegraph (the card that answers it, else the best percent). It shoots the lobby, the first pick
- * (meter, chips, telegraph), a brace answer on offer, a grip held, a combo on offer, each big move at its big frame (the grip snap, the
- * body in the air) and at its landing (Queda, Arrastar, Puxar, Arremesso, Postura, Base), a Vantagem pop, ground gained and lost, and the
- * end card. Then (`--partners=0` to skip) a first look at each of the other sparring partners on the mat. It also checks the HUD and
- * that the moves play their baked clips (#166) while it plays.
+ * A white belt with three stripes (Bia still calls the defenses) plays Mateus: the first card that scores (the finish when it is on
+ * offer), every command tapped fast on the pad (Perfeito!), every defense answered. It shoots the lobby, the pick, a chain as the first
+ * word comes up, the same chain mid-way with its Perfeito!, the partner's attack with the defense pad, a Defendeu!, a takedown landing on
+ * the mat, the finish, and the end card. It checks the moves play their baked clips driven by the taps (the wind-up frames) as it goes.
  */
 import { chromium } from 'playwright-core';
 import { spawn } from 'node:child_process';
@@ -28,9 +28,9 @@ import { openBout, playBout, readBoutHud, startBout } from './lib/bout-play.mjs'
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 /** `--views=desktop --bouts=1 --out=dir` override the env vars. */
 const flag = (name) => process.argv.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
-const SHOTS = path.resolve(ROOT, flag('out') ?? process.env.SHOTS_DIR ?? 'docs/lifesim/shots/jiu-jitsu');
+const SHOTS = path.resolve(ROOT, flag('out') ?? process.env.SHOTS_DIR ?? 'docs/lifesim/shots/jiu-jitsu-v3');
 const VIEWS = (flag('views') ?? process.env.VIEWS ?? 'desktop,phone').split(',');
-const BOUTS = Number(flag('bouts') ?? process.env.BOUTS ?? 3);
+const BOUTS = Number(flag('bouts') ?? process.env.BOUTS ?? 2);
 const PARTNERS = (flag('partners') ?? '1') !== '0';
 const PORT = Number(process.env.JJ_PORT ?? 9213);
 const CHROME = findChrome();
@@ -43,14 +43,17 @@ const VIEW = {
 };
 const log = (...a) => console.log('  ·', ...a);
 
-/** The blue belt's moves: the whole white belt and the blue belt award, so Base, the combos and Tesoura are all in play. */
-const BLUE = {
-  belt: 'azul',
-  stripes: 0,
-  wins: 20,
-  unlocked: ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar', 'sleeve_grip', 'knee_on_belly', 'body_lock', 'sprawl', 'scissor_sweep'],
+/** Three white stripes: every white move but the last award (Base), so the grips, the throws, the passes and Braço are in play. */
+const WHITE3 = {
+  belt: 'branca',
+  stripes: 3,
+  wins: 15,
+  unlocked: ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar', 'sleeve_grip', 'knee_on_belly', 'body_lock'],
 };
-const BIG_MOVES = ['double_leg', 'collar_drag', 'sleeve_pull', 'hip_throw', 'posture', 'sprawl'];
+const THROWS = ['double_leg', 'body_lock', 'collar_drag', 'hip_throw', 'single_leg', 'sleeve_pull'];
+const SUBS = ['armbar', 'americana', 'rnc'];
+/** The moments the brief asks for: if one is still missing after a match, play another (up to --bouts). */
+const WANT = ['pick', 'chain', 'chain_perfeito', 'defense', 'defendeu', 'throw_land', 'finish', 'end'];
 
 async function serveSolo() {
   if (process.env.BASE_URL) return { base: process.env.BASE_URL, stop: () => {} };
@@ -87,11 +90,26 @@ async function run(name, base) {
   };
   /** Shoot a moment only the first time it shows up. */
   const once = async (label) => {
-    if (took.has(label)) return;
+    if (took.has(label)) return false;
     await shot(label);
+    return true;
   };
-  const checks = { meter: false, chips: false, plan: false, answer: false, brace: false, combo: false, ground: new Set(), moves: new Set(), vantagem: false, clips: new Set() };
   const stage = () => page.evaluate(() => window.__tb.renderer?.info?.()?.bout ?? null).catch(() => null);
+  /** Wait for the mat clip to reach a frame (`:4` the impact, `:5` the landing) and the resolve panel to have painted. */
+  const clipAt = (frames) =>
+    page
+      .waitForFunction(
+        (fs) => {
+          const clip = window.__tb.renderer?.info?.()?.bout?.clip ?? '';
+          const res = document.querySelector('#bout-resolve');
+          return fs.some((k) => clip.endsWith(`:${k}`)) && !!res && getComputedStyle(res).opacity === '1';
+        },
+        frames,
+        { timeout: 2500, polling: 'raf' },
+      )
+      .then(() => true)
+      .catch(() => false);
+  const checks = { meter: false, plan: false, chevrons: false, windup: new Set(), clips: new Set(), perfect: 0 };
   try {
     await page.goto(`${base}${base.includes('?') ? '&' : '?'}solo&notype=1&rolltest&tbclockmin=${offsetMinFor(DAY_MIN)}`);
     await page.click('#intro-enter');
@@ -120,125 +138,98 @@ async function run(name, base) {
     await page.evaluate((bjj) => {
       window.__tb.net.session.profile.bjj = { ...bjj };
       window.__tb.game.profile.bjj = { ...bjj };
-    }, BLUE);
+    }, WHITE3);
 
     await openBout(page);
     await sleep(900);
     await shot('lobby');
     await startBout(page, 'mateus');
 
-    // the resolve moments: polled while the match plays, each shot once
-    let polling = true;
-    const poll = (async () => {
-      while (polling) {
-        const r = await page
-          .evaluate(() => {
-            const res = document.querySelector('#bout-resolve');
-            return {
-              cartoon: res?.getAttribute('data-cartoon') ?? null,
-              correct: res?.getAttribute('data-correct') === 'true',
-              ground: res?.getAttribute('data-ground') ?? null,
-              vantagem: !!document.querySelector('#bout-pops .bout-word.kind-vantagem'),
-              word: !!document.querySelector('#bout-pops .bout-word'),
-              chips: !!document.querySelector('#bout-ctl .grip-chip.on'),
-            };
-          })
-          .catch(() => null);
-        if (r?.chips) checks.chips = true;
-        if (r?.cartoon) {
-          const s = await stage();
-          if (s?.mode === 'clip' && s.frame) checks.clips.add(r.cartoon);
-        }
-        if (r?.vantagem && !checks.vantagem) {
-          checks.vantagem = true;
-          await once('vantagem');
-        }
-        if (r?.cartoon && r.correct && BIG_MOVES.includes(r.cartoon) && !checks.moves.has(r.cartoon)) {
-          checks.moves.add(r.cartoon);
-          // the clip's big frame (the snap, the body in the air), then its landing: wait for the stage to show them (a slow phone run
-          // would otherwise shoot the idle after the move)
-          // (the headless phone renders a few frames a second: also wait for the panel's slide-in to have painted)
-          const frame = (n) =>
-            page
-              .waitForFunction(
-                (k) => {
-                  const res = document.querySelector('#bout-resolve');
-                  return (window.__tb.renderer?.info?.()?.bout?.clip ?? '').endsWith(`:${k}`) && !!res && getComputedStyle(res).opacity === '1';
-                },
-                n,
-                { timeout: 2500, polling: 'raf' },
-              )
-              .then(() => true)
-              .catch(() => false);
-          if (await frame(4)) await once(`move_${r.cartoon}`);
-          if (await frame(5)) await once(`move_${r.cartoon}_land`);
-        }
-        if (r?.ground && r.ground !== 'even' && r.word && !checks.ground.has(r.ground)) {
-          checks.ground.add(r.ground);
-          await once(`ground_${r.ground}`);
-        }
-        await sleep(90);
-      }
-    })();
-
     let bouts = 0;
     while (bouts < BOUTS) {
       bouts++;
       const result = await playBout(page, {
-        pick: 'read',
-        onPhase: async (phase) => {
-          if (phase !== 'intent') return;
-          const hud = await readBoutHud(page);
-          if (hud.meter !== null) checks.meter = true;
-          if (hud.plan) checks.plan = true;
-          if (hud.answers.length) checks.answer = true;
-          if (hud.braces.length) checks.brace = true;
-          if (hud.combos.length) checks.combo = true;
-          if (hud.you.length || hud.partner.length) checks.chips = true;
-          await once('first_pick');
-          if (hud.braces.some((b) => hud.answers.includes(b))) await once('brace_answers_telegraph');
-          if (hud.you.includes('collar') || hud.you.includes('sleeve')) await once('grip_held');
-          if (hud.combos.length) await once('combo_open');
-          if (hud.partner.length) await once('partner_grips');
+        pick: 'bold',
+        tapMs: 90,
+        onBeat: async (b) => {
+          if (b.phase === 'pick') {
+            const hud = await readBoutHud(page);
+            if (hud.meter !== null) checks.meter = true;
+            if (hud.plan) checks.plan = true;
+            if (hud.chevrons.length) checks.chevrons = true;
+            await sleep(250);
+            await once('pick');
+            if (hud.you.length) await once('grip_held');
+          } else if (b.phase === 'chain' && b.step === 0 && b.total >= 2 && !took.has('chain')) {
+            await sleep(120);
+            await once('chain');
+          } else if (b.phase === 'defend' && !took.has('defense')) {
+            await once('defense');
+          } else if (b.phase === 'resolve' && b.resolve) {
+            const r = b.resolve;
+            if (r.how === 'defended' && r.actor === 'partner') {
+              await sleep(150);
+              await once('defendeu');
+            } else if (r.actor === 'you' && r.correct && THROWS.includes(r.move ?? '') && !took.has('throw_land')) {
+              if (await clipAt([5, 6])) await once('throw_land');
+            } else if (r.actor === 'you' && r.correct && SUBS.includes(r.move ?? '') && !took.has('finish')) {
+              if (await clipAt([5, 6, 7])) await once('finish');
+              else await once('finish');
+            }
+          }
+        },
+        onTap: async (b) => {
+          if (b.phase === 'chain') {
+            const s = await stage();
+            if (s?.clip?.includes(':windup:')) checks.windup.add(s.clip.split('@')[0]);
+          }
+          if (b.phase === 'chain' && b.step === 0 && b.total >= 2 && !took.has('chain_perfeito')) {
+            const perfect = await page
+              .waitForFunction(() => !!document.querySelector('#bout-grade.g-perfeito'), null, { timeout: 600 })
+              .then(() => true)
+              .catch(() => false);
+            if (perfect) await once('chain_perfeito');
+          }
         },
       });
-      log('result', result.winner, result.reason, `${result.moves} moves`);
+      checks.perfect += result.perfect;
+      log('result', result.winner, result.reason, `${result.moves} picks, ${result.taps} taps, ${result.perfect} perfect`);
       await sleep(1600);
       await once('end');
-      const missing = ['vantagem', ...BIG_MOVES.slice(0, 4).map((m) => `move_${m}`)].filter((l) => !took.has(l));
-      if (!missing.length || bouts >= BOUTS) break;
+      const missing = WANT.filter((l) => !took.has(l));
+      if (!missing.length || bouts >= BOUTS) {
+        if (missing.length) log('not caught this run:', missing.join(', '));
+        break;
+      }
       log('rematch for', missing.join(', '));
+      took.delete('end');
       await page.click('#bout-again');
-      await waitFor(page, () => ['intro', 'intent'].includes(document.querySelector('#bout')?.getAttribute('data-phase') ?? ''), null, 20_000, 'rematch');
+      await waitFor(page, () => ['intro', 'pick'].includes(document.querySelector('#bout')?.getAttribute('data-phase') ?? ''), null, 20_000, 'rematch');
     }
-    polling = false;
-    await poll;
-    // each other sparring partner on the mat: their own gi, skin and hair
+    // each other sparring partner on the mat: their own gi, skin and hair (the unlocked ones)
     if (PARTNERS) {
       await page.click('#bout-leave');
       await sleep(800);
-      for (const id of ['felipe', 'helena', 'daniel', 'rafael']) {
+      for (const id of ['felipe', 'helena', 'daniel']) {
         await openBout(page);
         await startBout(page, id);
-        await waitFor(page, () => document.querySelector('#bout')?.getAttribute('data-phase') === 'intent', null, 20_000, `${id} first pick`);
+        await waitFor(page, () => document.querySelector('#bout')?.getAttribute('data-phase') === 'pick', null, 20_000, `${id} first pick`);
         await sleep(700);
         await shot(`partner_${id}`);
-        await page.click('.bout-quit');
-        await page.click('.bout-quit');
+        await page.click('#bout-quit');
+        await page.click('#bout-quit');
         await waitFor(page, () => !document.querySelector('#bout-root'), null, 10_000, `${id} left`);
         await sleep(900);
       }
     }
-    assert(checks.clips.size > 0, 'the moves play their baked clips');
+    assert(checks.windup.size > 0, 'the taps drive the moves’ baked clips (wind-up frames)');
     assert(checks.meter, 'the control meter is on the pick screen');
     assert(checks.plan, 'the partner telegraphs its next move');
-    assert(checks.brace, 'a brace card is offered');
-    assert(checks.chips, 'grip chips lit up during the match');
-    assert(checks.ground.size > 0, 'a move read as ground gained or lost');
+    assert(checks.chevrons, 'the cards show the chain length as chevrons');
     const art = await page.evaluate(() => window.__tb.artMissing.filter((k) => k.startsWith('bjj/') || k === 'props/placar'));
     assert(art.length === 0, `no bout art is missing (${art.join(', ')})`);
     assert(!errors.length, `no page errors (${errors.join(' | ')})`);
-    log('checks', JSON.stringify({ ...checks, ground: [...checks.ground], moves: [...checks.moves], clips: [...checks.clips] }));
+    log('checks', JSON.stringify({ ...checks, windup: [...checks.windup], clips: [...checks.clips] }));
   } finally {
     await browser.close();
   }

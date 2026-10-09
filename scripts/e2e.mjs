@@ -595,7 +595,7 @@ async function main() {
     'white belt with the starter grip and no drill waiting',
   );
   await sleep(400);
-  // the bout is in the world (no modal): the lobby, one full match played from the CI hints (TB_TEST_ROLL=1 / ?rolltest), the end card
+  // the bout is in the world (no modal): the lobby, one full match played by tapping the commands on the pad, the end card
   const coins0 = (await profile(page)).coins;
   await openBout(page);
   assert((await page.$$('.bout-card-partner')).length === 5, 'the lobby lists five partners');
@@ -604,26 +604,35 @@ async function main() {
   await sleep(900);
   await shot(page, '09b2_bout_lobby');
   await startBout(page);
-  await waitBoutPhase(page, 'intent', 30_000);
+  await waitBoutPhase(page, 'pick', 30_000);
   const stage = await page.evaluate(() => window.__tb.renderer.info()?.bout);
   assert(stage && stage.mode !== 'off', `the bout stage is on the mat (${JSON.stringify(stage)})`);
   assert(await page.evaluate(() => window.__tb.bout.feed.active), 'the bout feed is active');
-  await shot(page, '09b3_bout_intent');
-  // Tatame v2: the control meter, the grip chips and the partner's telegraph are on the pick screen
+  await shot(page, '09b3_bout_pick');
+  // Tatame v3: the control meter, the grip chips and the partner's telegraph are on the pick; at most four cards and no percentages
   const hud = await readBoutHud(page);
   assert(hud.meter !== null && Number.isFinite(hud.meter), `the control meter is up (${JSON.stringify(hud)})`);
   assert((await page.$$('#bout-grips-you .grip-chip[data-grip]')).length === 2, 'your Gola and Manga chips are on the HUD');
   assert(hud.plan && hud.plan.text.includes('Mateus'), `the partner telegraphs its next move (${JSON.stringify(hud.plan)})`);
+  assert(hud.cards.length >= 1 && hud.cards.length <= 4, `one to four cards on the pick (${hud.cards.join(', ')})`);
+  assert(!(await page.evaluate(() => /\d+\s*%/.test(document.querySelector('#bout')?.textContent ?? ''))), 'no percentages on the overlay');
+  // one full match: the first card that scores, every command Bia calls tapped on the pad, every defense answered
+  let sawChain = false;
+  let sawDefend = false;
   const result = await playBout(page, {
     pick: 'bold',
-    onPhase: async (phase) => {
-      if (phase === 'resolve') await sleep(200);
+    onBeat: async (b) => {
+      if (b.phase === 'chain') sawChain = true;
+      if (b.phase === 'defend') sawDefend = true;
     },
   });
   assert(['you', 'partner', 'draw'].includes(result.winner), `the match ended with a result (${result.winner} / ${result.reason})`);
-  assert(result.moves >= 2, `at least two grip beats were played (${result.moves}, ${result.winner} by ${result.reason})`);
+  assert(result.moves >= 2, `at least two picks were played (${result.moves}, ${result.winner} by ${result.reason})`);
+  assert(sawChain && result.taps >= 2, `commands were tapped on the pad (${result.taps} taps, defense beats: ${sawDefend})`);
+  assert(await page.$('#bout-perfect'), 'the end card counts the perfect commands');
+  assert(await page.$('#bout-today .bt-chip'), 'the end card lists the words of the day');
   const score = await page.evaluate(() => ({ you: document.querySelector('.bout-side.you .pts')?.textContent, them: document.querySelector('.bout-side.partner .pts')?.textContent }));
-  assert(score.you !== undefined && score.them !== undefined, 'the scoreboard shows passos for both');
+  assert(score.you !== undefined && score.them !== undefined, 'the scoreboard shows the points for both');
   const art = await page.evaluate(() => window.__tb.artMissing.filter((k) => k.startsWith('bjj/') || k === 'props/placar'));
   assert(art.length === 0, `no bout art is missing (${art.join(', ')})`);
   await sleep(1500);
@@ -636,7 +645,7 @@ async function main() {
   await interact(page, { portal: 'academia_praca' });
   await waitFor(page, () => window.__tb.game.room?.room === 'rua_leste', null, 15_000, 'back from academia');
   await goArea(page, 'rua'); // the kitnet door is on the west half
-  log(`academia bout ok: ${result.winner} by ${result.reason}, ${result.moves} beats`);
+  log(`academia bout ok: ${result.winner} by ${result.reason}, ${result.moves} picks, ${result.taps} taps, ${result.perfect} perfect`);
 
   // 7. Kitnet: place the free chair
   await interact(page, { portal: 'praca_kitnet' });
