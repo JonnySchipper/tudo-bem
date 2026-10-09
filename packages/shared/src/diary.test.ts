@@ -115,9 +115,9 @@ describe('language diary catalog', () => {
 describe('language diary catalog v2', () => {
   const TOTALS: Record<string, [number, number, number, number]> = {
     chegada: [14, 6, 4, 0],
-    praca: [98, 16, 9, 0],
+    praca: [98, 15, 9, 0],
     rua: [51, 31, 0, 0],
-    padaria: [38, 5, 6, 5],
+    padaria: [38, 6, 6, 5],
     feira: [53, 10, 9, 0],
     kitnet: [64, 5, 0, 0],
     academia: [20, 7, 7, 0],

@@ -64,6 +64,16 @@
       "vendor": "tia_lu"
     },
     {
+      "id": "bandeirinhas_1",
+      "kind": "cenario",
+      "x": 8,
+      "y": 2,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "props/bandeirinha"
+    },
+    {
       "id": "feira_ze",
       "kind": "feira",
       "x": 12,
@@ -292,26 +302,6 @@
       "h": 1,
       "blocks": false,
       "art": "feira/preco_lousa"
-    },
-    {
-      "id": "bandeirinhas_1",
-      "kind": "cenario",
-      "x": 4,
-      "y": 8,
-      "w": 6,
-      "h": 1,
-      "blocks": false,
-      "art": "props/bandeirinhas_b"
-    },
-    {
-      "id": "bandeirinhas_2",
-      "kind": "cenario",
-      "x": 10,
-      "y": 8,
-      "w": 6,
-      "h": 1,
-      "blocks": false,
-      "art": "props/bandeirinhas_b"
     },
     {
       "id": "vaga_a3",

@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 1024,
    "h": 1984,
-   "frames": 1172
+   "frames": 1174
   }
  },
  "terrain": {
@@ -13637,6 +13637,36 @@
     "ax": 22,
     "ay": 1
    }
+  },
+  "props/bandeirinha": {
+   "atlas": "outdoor",
+   "frame": "props/bandeirinha",
+   "w": 3,
+   "h": 3,
+   "ax": 1,
+   "ay": 2,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": "props/bandeirinha_o",
+   "shadow": null
+  },
+  "props/bandeirinha_o": {
+   "atlas": "outdoor",
+   "frame": "props/bandeirinha_o",
+   "w": 16,
+   "h": 14,
+   "ax": 8,
+   "ay": 20,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": true,
+   "shadow": null
   },
   "props/placar_vila": {
    "atlas": "outdoor",
