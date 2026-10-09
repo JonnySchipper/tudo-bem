@@ -3916,12 +3916,6 @@
       "file": "ui-e13cab5878.mp3"
     },
     {
-      "id": "ui-f35a5a2e2a",
-      "voice": "ui",
-      "text": "WIFI",
-      "file": "ui-f35a5a2e2a.mp3"
-    },
-    {
       "id": "ui-19c38dc5d3",
       "voice": "ui",
       "text": "EMERGÊNCIA",
@@ -4004,6 +3998,12 @@
       "voice": "ui",
       "text": "DESCONTO",
       "file": "ui-46212c20af.mp3"
+    },
+    {
+      "id": "ui-f35a5a2e2a",
+      "voice": "ui",
+      "text": "WIFI",
+      "file": "ui-f35a5a2e2a.mp3"
     },
     {
       "id": "ui-1dfafc6b04",
@@ -4484,6 +4484,66 @@
       "voice": "ui",
       "text": "vinte",
       "file": "ui-d6b8c826b9.mp3"
+    },
+    {
+      "id": "ui-80c9475285",
+      "voice": "ui",
+      "text": "Pega",
+      "file": "ui-80c9475285.mp3"
+    },
+    {
+      "id": "ui-0690c20b9c",
+      "voice": "ui",
+      "text": "Puxa",
+      "file": "ui-0690c20b9c.mp3"
+    },
+    {
+      "id": "ui-e9580d47de",
+      "voice": "ui",
+      "text": "Empurra",
+      "file": "ui-e9580d47de.mp3"
+    },
+    {
+      "id": "ui-133759ceb2",
+      "voice": "ui",
+      "text": "Gira",
+      "file": "ui-133759ceb2.mp3"
+    },
+    {
+      "id": "ui-036acd1cd5",
+      "voice": "ui",
+      "text": "Levanta",
+      "file": "ui-036acd1cd5.mp3"
+    },
+    {
+      "id": "ui-4ab10637a8",
+      "voice": "ui",
+      "text": "Aperta",
+      "file": "ui-4ab10637a8.mp3"
+    },
+    {
+      "id": "ui-a004ea83cf",
+      "voice": "ui",
+      "text": "Postura",
+      "file": "ui-a004ea83cf.mp3"
+    },
+    {
+      "id": "ui-077fe9c54e",
+      "voice": "ui",
+      "text": "Base",
+      "file": "ui-077fe9c54e.mp3"
+    },
+    {
+      "id": "ui-fe9050c2c6",
+      "voice": "ui",
+      "text": "Trava",
+      "file": "ui-fe9050c2c6.mp3"
+    },
+    {
+      "id": "ui-6defd06d89",
+      "voice": "ui",
+      "text": "Sai",
+      "file": "ui-6defd06d89.mp3"
     },
     {
       "id": "ui-7542e6b8ff",
@@ -7808,6 +7868,192 @@
       "voice": "carlos",
       "text": "Valeu pela ajuda! Aqui estão 20 reais virtuais.",
       "file": "carlos-240a9218aa.mp3"
+    },
+    {
+      "id": "prof-02e00c9d67",
+      "voice": "prof",
+      "text": "Pega!",
+      "file": "prof-02e00c9d67.mp3"
+    },
+    {
+      "id": "prof-80754bde2e",
+      "voice": "prof",
+      "text": "Puxa!",
+      "file": "prof-80754bde2e.mp3"
+    },
+    {
+      "id": "prof-b1edce9451",
+      "voice": "prof",
+      "text": "Empurra!",
+      "file": "prof-b1edce9451.mp3"
+    },
+    {
+      "id": "prof-ad10890a15",
+      "voice": "prof",
+      "text": "Gira!",
+      "file": "prof-ad10890a15.mp3"
+    },
+    {
+      "id": "prof-072ead33a3",
+      "voice": "prof",
+      "text": "Levanta!",
+      "file": "prof-072ead33a3.mp3"
+    },
+    {
+      "id": "prof-efd329b3cb",
+      "voice": "prof",
+      "text": "Aperta!",
+      "file": "prof-efd329b3cb.mp3"
+    },
+    {
+      "id": "prof-aec049372f",
+      "voice": "prof",
+      "text": "Postura!",
+      "file": "prof-aec049372f.mp3"
+    },
+    {
+      "id": "prof-624958fd7a",
+      "voice": "prof",
+      "text": "Base!",
+      "file": "prof-624958fd7a.mp3"
+    },
+    {
+      "id": "prof-b74dbc9ceb",
+      "voice": "prof",
+      "text": "Trava!",
+      "file": "prof-b74dbc9ceb.mp3"
+    },
+    {
+      "id": "prof-04b42458e7",
+      "voice": "prof",
+      "text": "Sai!",
+      "file": "prof-04b42458e7.mp3"
+    },
+    {
+      "id": "prof-d618442a2b",
+      "voice": "prof",
+      "text": "Perfeito!",
+      "file": "prof-d618442a2b.mp3"
+    },
+    {
+      "id": "prof-25c981527a",
+      "voice": "prof",
+      "text": "Boa!",
+      "file": "prof-25c981527a.mp3"
+    },
+    {
+      "id": "prof-7b4dfdf2c1",
+      "voice": "prof",
+      "text": "Errou!",
+      "file": "prof-7b4dfdf2c1.mp3"
+    },
+    {
+      "id": "prof-10fb1ebb81",
+      "voice": "prof",
+      "text": "Tarde!",
+      "file": "prof-10fb1ebb81.mp3"
+    },
+    {
+      "id": "prof-39658535ad",
+      "voice": "prof",
+      "text": "Final!",
+      "file": "prof-39658535ad.mp3"
+    },
+    {
+      "id": "prof-06447e045c",
+      "voice": "prof",
+      "text": "Quatro pontos!",
+      "file": "prof-06447e045c.mp3"
+    },
+    {
+      "id": "prof-0fc2593765",
+      "voice": "prof",
+      "text": "Três pontos!",
+      "file": "prof-0fc2593765.mp3"
+    },
+    {
+      "id": "prof-29475e6e74",
+      "voice": "prof",
+      "text": "Dois pontos!",
+      "file": "prof-29475e6e74.mp3"
+    },
+    {
+      "id": "prof-ee927c6539",
+      "voice": "prof",
+      "text": "Vantagem!",
+      "file": "prof-ee927c6539.mp3"
+    },
+    {
+      "id": "prof-87f9757b3c",
+      "voice": "prof",
+      "text": "Que ritmo!",
+      "file": "prof-87f9757b3c.mp3"
+    },
+    {
+      "id": "prof-e879b5e15e",
+      "voice": "prof",
+      "text": "Defendeu!",
+      "file": "prof-e879b5e15e.mp3"
+    },
+    {
+      "id": "prof-1ce7270083",
+      "voice": "prof",
+      "text": "Escapou!",
+      "file": "prof-1ce7270083.mp3"
+    },
+    {
+      "id": "prof-7196cb7315",
+      "voice": "prof",
+      "text": "Combate!",
+      "file": "prof-7196cb7315.mp3"
+    },
+    {
+      "id": "prof-4ead3a1020",
+      "voice": "prof",
+      "text": "Agora você.",
+      "file": "prof-4ead3a1020.mp3"
+    },
+    {
+      "id": "prof-672d7631f3",
+      "voice": "prof",
+      "text": "Final! Vitória sua!",
+      "file": "prof-672d7631f3.mp3"
+    },
+    {
+      "id": "prof-14ec0f980f",
+      "voice": "prof",
+      "text": "Vitória nos pontos!",
+      "file": "prof-14ec0f980f.mp3"
+    },
+    {
+      "id": "prof-9f8f90a3be",
+      "voice": "prof",
+      "text": "Vitória nas vantagens!",
+      "file": "prof-9f8f90a3be.mp3"
+    },
+    {
+      "id": "prof-daa4437167",
+      "voice": "prof",
+      "text": "Final! Boa defesa da próxima vez.",
+      "file": "prof-daa4437167.mp3"
+    },
+    {
+      "id": "prof-faabae026a",
+      "voice": "prof",
+      "text": "Vitória do parceiro nos pontos.",
+      "file": "prof-faabae026a.mp3"
+    },
+    {
+      "id": "prof-574fca693f",
+      "voice": "prof",
+      "text": "Vitória do parceiro nas vantagens.",
+      "file": "prof-574fca693f.mp3"
+    },
+    {
+      "id": "prof-8053daf914",
+      "voice": "prof",
+      "text": "Empate!",
+      "file": "prof-8053daf914.mp3"
     }
   ]
 }
