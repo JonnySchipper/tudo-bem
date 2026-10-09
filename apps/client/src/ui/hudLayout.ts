@@ -8,6 +8,13 @@
 /** The phone layout: a narrow portrait screen, or a landscape phone (short). Keep in step with styles/hud.css. */
 export const COMPACT_QUERY = '(max-width: 640px), (max-height: 520px)';
 
+/** The desktop UI scale the HUD is drawn at (`--ui-scale`, set by the window size in styles.css): 1 on phones, 1.25 or 1.5 on a big screen. */
+export function uiScale(): number {
+  if (typeof document === 'undefined') return 1;
+  const v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale'));
+  return v > 0 ? v : 1;
+}
+
 export interface Box {
   top: number;
   bottom: number;

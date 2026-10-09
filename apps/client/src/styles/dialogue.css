@@ -13,8 +13,10 @@
   left: 50%;
   bottom: calc(10px + var(--safe-bottom) + var(--kb));
   transform: translateX(-50%);
-  width: min(880px, calc(100% - 20px - var(--safe-left) - var(--safe-right)));
-  max-height: calc(100dvh - 130px - var(--safe-top) - var(--safe-bottom));
+  /* on a big desktop (--ui-scale, styles.css) the box, its text and the room it leaves for the HUD grow with the scale; the pixel frame stays 1x */
+  width: min(calc(880px * var(--ui-scale)), calc(100% - 20px - var(--safe-left) - var(--safe-right)));
+  max-height: calc(100dvh - 130px * var(--ui-scale) - var(--safe-top) - var(--safe-bottom));
+  font-size: calc(15px * var(--ui-scale));
   z-index: 26;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -1162,5 +1164,50 @@ html.px-ui .dbx {
   .dbx .dbx-en,
   .dbx .en.plain {
     line-height: 1.15;
+  }
+}
+
+/* Desktop UI scale (issue #169): bigger reply chips (comfortable to click), and at the 1.5 step the 64 px portrait at 3x instead of 2x */
+@media (min-width: 1200px) and (min-height: 760px) {
+  .dbx {
+    column-gap: 18px;
+    row-gap: 8px;
+  }
+
+  .dbx-chips {
+    gap: 8px;
+  }
+
+  .dbx .dbx-chip {
+    min-height: 44px;
+    padding: 6px 12px;
+    gap: 10px;
+  }
+
+  .dbx-chip .num {
+    min-width: 1.4em;
+    height: 1.4em;
+  }
+
+  .dbx .dbx-listen,
+  .dbx .dbx-en-toggle,
+  .dbx .dbx-close {
+    min-height: 32px;
+    padding: 4px 12px;
+  }
+
+  .dbx-input input {
+    padding: 8px 12px;
+  }
+}
+
+@media (min-width: 1800px) and (min-height: 1000px) {
+  .dbx-portrait .px-portrait-img {
+    width: 192px !important;
+    height: 192px !important;
+  }
+
+  .dbx-portrait.px-parrot .px-strip {
+    zoom: 1.5;
   }
 }

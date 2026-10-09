@@ -20,12 +20,27 @@
   --radius: 16px;
   --font-title: 'Baloo 2', 'Trebuchet MS', system-ui, sans-serif;
   --font-body: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* the desktop UI scale (issue #169): the HUD, the tracker / tutorial cards and the panels are drawn at this zoom (hud.css). Phones stay 1. */
   --ui-scale: 1;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --kb: 0px;
+}
+
+/* Desktop steps (never on a phone: the compact query is max-width 640px / max-height 520px). 1.25 / 1.5 keep the 16 px pixel icons on
+   (near) whole pixels; the 1.5 step needs 1800 px for the whole top bar at 1.5x. Scripts read the value back with uiScale() (ui/hudLayout.ts). */
+@media (min-width: 1200px) and (min-height: 760px) {
+  :root {
+    --ui-scale: 1.25;
+  }
+}
+
+@media (min-width: 1800px) and (min-height: 1000px) {
+  :root {
+    --ui-scale: 1.5;
+  }
 }
 
 * {
@@ -42,7 +57,7 @@ body {
   background: #2a2233;
   font-family: var(--font-body);
   color: var(--ink);
-  font-size: calc(15px * var(--ui-scale));
+  font-size: 15px;
   -webkit-text-size-adjust: 100%;
   touch-action: manipulation;
 }
