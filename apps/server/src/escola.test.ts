@@ -91,7 +91,8 @@ describe('escola lessons on the server', () => {
     // the views carry the prompt and the cards, never which card is right
     for (const m of dealt) {
       const json = JSON.stringify(m.ex);
-      expect(json).not.toMatch(/"(answer|correct|pairs|key|wordId)"/);
+      // match property names only (followed by ':'), so an option like "key" is not a leak
+      expect(json).not.toMatch(/"(answer|correct|pairs|key|wordId)":/);
     }
     // several exercise shapes in one lesson (a new word is recognised, heard, and the diary is big enough for the match race)
     expect(new Set(dealt.map((m) => m.ex.kind)).size).toBeGreaterThanOrEqual(3);
