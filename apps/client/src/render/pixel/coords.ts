@@ -171,6 +171,20 @@ export function roomZoom(view: { w: number; h: number }, bounds: Rect, insets: I
   return lower < base && fitsAt(view, bounds, insets, lower) ? lower : base;
 }
 
+/** Floor (world px) kept in view below the avatar's feet when the camera leans north: three tiles, so the way south is always visible. */
+export const MIN_VIEW_BELOW = 3 * T;
+
+/**
+ * The north look-ahead (world px) a room asks for (`CAMERA_LEAD_NORTH`), cut down on a short window so at least `MIN_VIEW_BELOW` of floor
+ * stays visible between the avatar's feet and the bottom HUD. The camera centres `feetToFocus + lead` above the feet, so the room for the
+ * lead is the half-height of the canvas above the bottom inset, less that offset and the floor kept below. Never negative.
+ */
+export function leadNorthFor(lead: number, viewH: number, insetBottom: number, zoom: number, feetToFocus: number): number {
+  if (!(lead > 0)) return 0;
+  const room = (viewH / 2 - insetBottom) / zoom - feetToFocus - MIN_VIEW_BELOW;
+  return Math.max(0, Math.min(lead, room));
+}
+
 /**
  * The whole camera for a room: the zoom (`roomZoom`) and its centre. A room that fits is centred in the free region with its whole wall
  * band in view; a bigger one follows `focus`, clamped to the bounds, so with the avatar in the top rows the view sits at the top of the
