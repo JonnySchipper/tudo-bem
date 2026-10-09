@@ -38,7 +38,7 @@ export function listen(deps: ConversaApiDeps): Promise<Api> {
 }
 
 /** A world with one signed-in player (in the padaria) whose profile lives in `store`. */
-export async function worldWithPlayer(store = new ProfileStore(null)): Promise<{ world: World; store: ProfileStore; s: Session; id: string }> {
+export async function worldWithPlayer(store = new ProfileStore(null), name = 'Ana'): Promise<{ world: World; store: ProfileStore; s: Session; id: string }> {
   const world = new World(
     store,
     { safety: new JevStubSafety(), gloss: new PhrasebookGloss(), npc: new AuthoredNpcDialogue(), student: new InMemoryStudentModel(), moderation: new MemoryModerationQueue() },
@@ -46,7 +46,7 @@ export async function worldWithPlayer(store = new ProfileStore(null)): Promise<{
   );
   const s = world.connect('kit', () => {}, () => {});
   await world.handle(s, { t: 'hello' });
-  await world.handle(s, { t: 'createProfile', name: 'Ana', pronoun: 'ela', appearance: DEFAULT_APPEARANCE });
+  await world.handle(s, { t: 'createProfile', name, pronoun: 'ela', appearance: DEFAULT_APPEARANCE });
   return { world, store, s, id: s.profile!.id };
 }
 

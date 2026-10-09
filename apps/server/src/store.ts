@@ -1,4 +1,4 @@
-import { isBubbleStyle, isPetId, isSubscriptionStatus, normalizeFounderFlag, normalizePetNames, ownedParrotColorIds, parrotColorById, type PlayerSubscription } from '@tudobem/shared';
+import { academyNameKey, isBubbleStyle,isPetId, isSubscriptionStatus, normalizeFounderFlag, normalizePetNames, ownedParrotColorIds, parrotColorById, type PlayerSubscription } from '@tudobem/shared';
 import {
   freshMission,
   normalizeCartela,
@@ -151,6 +151,13 @@ export class ProfileStore {
 
   get(id: string) {
     return this.byId.get(id);
+  }
+
+  /** True when another profile already uses this display name (case- and accent-insensitive). */
+  nameTaken(name: string, exceptId?: string): boolean {
+    const key = academyNameKey(name);
+    for (const p of this.byId.values()) if (p.id !== exceptId && academyNameKey(p.name) === key) return true;
+    return false;
   }
 
   add(p: StoredProfile) {

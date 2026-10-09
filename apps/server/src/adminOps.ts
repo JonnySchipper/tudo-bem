@@ -597,6 +597,7 @@ export async function rename(ctx: AdminCtx, actor: string, body: Body): Promise<
   if (!p) return notFound();
   const shape = validateName(str(body.name, 64));
   if (!shape.ok) return fail(400, shape.reason.en);
+  if (ctx.store.nameTaken(shape.name, p.id)) return fail(409, 'That name is already taken by another player.');
   const verdict = await ctx.world.classify(shape.name, p.nameplate);
   if (verdict.action !== 'allow') return fail(422, `Moderation said ${verdict.action}${verdict.labels.length ? ` (${verdict.labels.join(', ')})` : ''}. Pick another name.`);
   // the profile may have been deleted while the classifier ran

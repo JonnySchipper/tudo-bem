@@ -34,6 +34,15 @@ describe('ProfileStore writes', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
+  it('nameTaken ignores case and accents, and can exclude the profile itself', () => {
+    const store = new ProfileStore(null);
+    store.add({ ...profile('a'), name: 'João' });
+    expect(store.nameTaken('joao')).toBe(true);
+    expect(store.nameTaken('JOÃO')).toBe(true);
+    expect(store.nameTaken('Joana')).toBe(false);
+    expect(store.nameTaken('João', 'a')).toBe(false);
+  });
+
   it('writes only the profiles marked dirty', () => {
     const { adapter, upserts } = spyAdapter([profile('a'), profile('b'), profile('c')]);
     const store = new ProfileStore(adapter);
