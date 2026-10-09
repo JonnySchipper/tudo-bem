@@ -96,6 +96,7 @@ import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAca
 import { openLeaderboards } from './ui/leaderboards';
 import { askPadariaDoor, bindPadariaOwn, chooseBakery, onPadariaDoor, openHouseCounter, openPadariaBook, syncPadariaFloor, welcomeOwner } from './ui/padariaOwn';
 import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia } from './ui/airportTutorial';
+import { kitnetGuideRunning, kitnetWorldGuide, mountKitnetGuide, startKitnetGuide } from './ui/kitnetGuide';
 import { flyHeardWord } from './ui/heardWord';
 import { talkIdleOpen } from './ui/talkIdle';
 import { cameraFrameAt, captureFrame, celebrateWord, celebrateWords, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
@@ -573,6 +574,8 @@ function updateGuides() {
     } else if (g) add(guideAt(g.kind, g.id, g.lift, g.label));
     return;
   }
+  // the kitnet guide's floor steps: a free tile for the piece in hand, or the piece to rotate
+  if (r.room === 'kitnet') add(kitnetWorldGuide());
   if (r.room === 'rua') {
     if (!t.carlos) add(guideAt('portal', 'praca_padaria', 110, 'Padaria →'));
     else if (!t.chapeu) add(guideAt('portal', 'rua_praca_1', 60, 'Chapéus: Praça ↓'));
@@ -791,7 +794,7 @@ net.on((m: ServerMsg) => {
         markAirportStep('onibus');
         setTimeout(() => toast('info', 'Bem-vindo à Vila Ipê! A Júlia te espera na praça: siga a Rua pra oeste.', 'Welcome to Vila Ipê! Júlia is waiting in the square: follow the street west.'), 900);
       }
-      if (m.room === 'kitnet' && m.ownerId === game.profile?.id && !game.profile?.tutorial.cadeira)
+      if (m.room === 'kitnet' && m.ownerId === game.profile?.id && !game.profile?.tutorial.cadeira && !kitnetGuideRunning())
         toast('info', 'Sua kitnet! Clique em “Decorar” e coloque sua cadeira.', 'Your apartment! Click “Decorar” (top right) and place your free chair.');
       // your own padaria: what is where, the first time you stand in it
       if (m.padaria?.owner) setTimeout(welcomeOwner, 900);
@@ -1133,7 +1136,9 @@ function startGame() {
       game.emit('decor');
       game.emit('hud');
     },
+    help: startKitnetGuide,
   });
+  mountKitnetGuide({ tab: () => decor?.tab() ?? 'meus', onStep: updateGuides });
   const idleTalk = new IdleTalk();
   setInterval(() => {
     const npcs = game.liveNpcs(now());
@@ -1368,6 +1373,7 @@ document.addEventListener('keydown', (e) => {
   }
   if ((e.key === 'r' || e.key === 'R') && game.placing) {
     game.placing.rot = game.placing.rot === 0 ? 1 : 0;
+    game.emit('decor');
   }
   if (e.key === 'Escape') {
     game.placing = null;
@@ -1575,6 +1581,8 @@ window.__tb = {
   get decor() {
     return decor;
   },
+  /** The kitnet first-visit guide: running or not, and its world arrow (the tile it suggests), for the shots and e2e. */
+  kitnetGuide: () => ({ running: kitnetGuideRunning(), world: kitnetWorldGuide() }),
   /** Treino no tatame: the live overlay and the feed the world scene reads (e2e and shots). */
   bout: {
     get ui() {

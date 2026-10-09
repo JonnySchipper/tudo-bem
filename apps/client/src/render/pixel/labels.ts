@@ -317,14 +317,16 @@ export class LabelLayer {
       const frames = a.frames ?? 4;
       const fw = a.frameW ?? Math.round(a.w / frames);
       const k = ARROW_SCALE;
-      const st = this.root.style;
-      st.setProperty('--wl-arrow', `url("${art.base + a.file}")`);
-      st.setProperty('--wl-arrow-w', px(fw * k));
-      st.setProperty('--wl-arrow-h', px(a.h * k));
-      st.setProperty('--wl-arrow-size', `${px(a.w * k)} ${px(a.h * k)}`);
-      st.setProperty('--wl-arrow-end', px(-a.w * k));
-      st.setProperty('--wl-arrow-steps', String(frames));
-      st.setProperty('--wl-arrow-ms', `${Math.round((frames / (a.fps ?? 6)) * 1000)}ms`);
+      // on the page root too: the kitnet guide points at HUD buttons with the same arrow
+      for (const st of [this.root.style, document.documentElement.style]) {
+        st.setProperty('--wl-arrow', `url("${art.base + a.file}")`);
+        st.setProperty('--wl-arrow-w', px(fw * k));
+        st.setProperty('--wl-arrow-h', px(a.h * k));
+        st.setProperty('--wl-arrow-size', `${px(a.w * k)} ${px(a.h * k)}`);
+        st.setProperty('--wl-arrow-end', px(-a.w * k));
+        st.setProperty('--wl-arrow-steps', String(frames));
+        st.setProperty('--wl-arrow-ms', `${Math.round((frames / (a.fps ?? 6)) * 1000)}ms`);
+      }
       this.root.classList.add('wl-art-arrow');
     }
   }
