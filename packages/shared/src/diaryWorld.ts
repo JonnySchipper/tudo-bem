@@ -142,7 +142,6 @@ export const DIARY_PLACEMENTS: DiaryPlacement[] = [
   { id: 's_entrada', room: 'praca', x: 31, y: 8, sign: { pt: "ENTRADA", en: "Entrance" } }, // on the fence by the feira gate
   { id: 's_fechado', room: 'praca', x: 21, y: 5, w: 2, h: 2, sign: { pt: "FECHADO", en: "Closed" } }, // on the coreto gate
   { id: 's_cuidado', room: 'praca', x: 6, y: 16, w: 3, sign: { pt: "CUIDADO", en: "Caution" } }, // on the slide
-  { id: 's_wifi', room: 'praca', x: 11, y: 8, sign: { pt: "WIFI", en: "Wifi" } }, // on the lamp post
   { id: 's_emergencia', room: 'praca', x: 11, y: 14, sign: { pt: "EMERGÊNCIA", en: "Emergency" } }, // on the lamp post
   { id: 's_informacao', room: 'praca', x: 11, y: 3, sign: { pt: "INFORMAÇÃO", en: "Information" } }, // on the hedge board by the kiosk
   { id: 'd_moto', room: 'rua', x: 8, y: 12, w: 2, art: 'vehicles/park_moto_e' },
@@ -256,6 +255,7 @@ export const DIARY_PLACEMENTS: DiaryPlacement[] = [
   { id: 'd_detergente', room: 'padaria', x: 9, y: 7, ox: 4, art: 'diary/detergente' },
   { id: 'd_esponja', room: 'padaria', x: 9, y: 6, ox: -4, art: 'diary/esponja' },
   { id: 's_desconto', room: 'padaria', x: 6, y: 2, sign: { pt: "DESCONTO", en: "Discount" } }, // on the vitrine
+  { id: 's_wifi', room: 'padaria', x: 1, y: 0, w: 2, up: 2, sign: { pt: "WIFI", en: "Wifi" } }, // on the wall by the entrance
   { id: 's_promocao', room: 'padaria', x: 5, y: 0, w: 2, up: 2, sign: { pt: "PROMOÇÃO", en: "Special offer" } }, // taped to the window
   { id: 'd_fogao', room: 'kitnet', x: 0, y: 0, ox: -4, art: 'diary/fogao' },
   { id: 'd_pia', room: 'kitnet', x: 3, y: 0, ox: -4, art: 'diary/pia' },

@@ -1856,7 +1856,7 @@
    "id": "diary.praca.wifi",
    "pt": "wifi",
    "en": "wifi",
-   "area": "praca",
+   "area": "padaria",
    "source": "reading",
    "anchor": {
     "kind": "sign",
@@ -3972,9 +3972,6 @@
     "kind": "object",
     "id": "bandeirinhas_1"
    },
-   "also": [
-    "bandeirinhas_2"
-   ],
    "origin": "existing",
    "needsBr": true
   },

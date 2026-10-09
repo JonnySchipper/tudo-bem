@@ -202,8 +202,8 @@ describe('arrival, camera, diary and the escola', () => {
     const shot = [...a.inbox].reverse().find((m) => m.t === 'diary' && m.phase === 'photo');
     expect(shot && diaryOf(shot)).toMatchObject({ ok: true, pt: 'fonte', en: 'fountain', source: 'camera' });
     if (shot && shot.t === 'diary' && shot.phase === 'photo' && shot.ok) {
-      // the denominators come from the catalog: the praça has 98 camera words, 16 to read, 9 to hear
-      expect(shot.progress).toBe('1/98 câmera · 0/16 leitura · 0/9 conversa');
+      // the denominators come from the catalog: the praça has 98 camera words, 15 to read (wifi moved to padaria), 9 to hear
+      expect(shot.progress).toBe('1/98 câmera · 0/15 leitura · 0/9 conversa');
       expect(shot.progress).not.toMatch(/\/100\b/);
       expect(shot.areaPt).toBe('Praça');
     }
