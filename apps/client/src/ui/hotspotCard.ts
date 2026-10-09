@@ -55,10 +55,10 @@ export function openHotspotCard(hs: HotspotDef, opts: HotspotCardOpts): void {
     h(
       'div',
       { class: 'panel hotspot-card', 'data-hotspot': hs.id },
-      h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
+      h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar (Close)' }, '✕'),
       h('div', { class: 'hs-kicker' }, '👁 ', title.pt, en(title.en, true)),
       h('div', { class: 'hs-sign' }, ...lines(hs.pt, 'hs-pt')),
-      h('div', { class: 'hs-actions' }, h('button', { class: 'speak-btn', id: 'hs-listen', onclick: () => (speak(spokenText(hs), { force: true }), noteHeard(hs.pt, hs.cards ?? [])) }, '🔊 Ouvir')),
+      h('div', { class: 'hs-actions' }, h('button', { class: 'speak-btn', id: 'hs-listen', onclick: () => (speak(spokenText(hs), { force: true }), noteHeard(hs.pt, hs.cards ?? [])) }, '🔊 Ouvir ', en('Listen'))),
       h('div', { class: 'hs-gloss' }, ...lines(hs.en, 'hs-en')),
       save ? h('div', { class: 'hs-save' }, save) : null,
     ),

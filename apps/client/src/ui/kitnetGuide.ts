@@ -84,7 +84,7 @@ export function mountKitnetGuide(opts: { tab: () => 'meus' | 'loja'; onStep: () 
   const list = h('ol', { class: 'aero-tut-list' });
   const skip = h('button', { type: 'button', class: 'ghost kg-skip', id: 'kitnet-guide-skip', onclick: () => finish(false) }, 'Pular', en(' skip', true));
   const head = h('div', { class: 'rtrack-head aero-tut-head kg-head' });
-  const card = h('section', { class: 'rtrack aero-tut kg-card', id: 'kitnet-guide', role: 'region', 'aria-label': 'Como decorar a kitnet', hidden: true }, head, now, extra, list);
+  const card = h('section', { class: 'rtrack aero-tut kg-card', id: 'kitnet-guide', role: 'region', 'aria-label': 'Como decorar a kitnet · How to decorate the kitnet', hidden: true }, head, now, extra, list);
   const arrow = h('div', { class: 'wl-guide-arrow' });
   const pointer = h('div', { class: 'kg-pointer', 'aria-hidden': 'true', hidden: true }, arrow);
   ui().append(card, pointer);
@@ -214,7 +214,7 @@ export function mountKitnetGuide(opts: { tab: () => 'meus' | 'loja'; onStep: () 
     card.hidden = false;
     head.replaceChildren(
       h('span', { class: 'aero-tut-plane kg-icon', 'aria-hidden': 'true' }, '✦'),
-      h('b', null, 'Como decorar'),
+      h('b', null, 'Como decorar', en(' · How to decorate', true)),
       h('small', null, `${done.size}/${KITNET_GUIDE_STEPS.length}`),
       h('span', { class: 'spacer' }),
       skip,
@@ -226,7 +226,7 @@ export function mountKitnetGuide(opts: { tab: () => 'meus' | 'loja'; onStep: () 
     extra.replaceChildren(...extras(next));
     list.replaceChildren(
       ...KITNET_GUIDE_STEPS.map((x, i) =>
-        h('li', { class: done.has(x.id) ? 'done' : x.id === next ? 'current' : '', 'data-step': x.id }, h('span', { class: 'aero-tut-tick', 'aria-hidden': 'true' }, done.has(x.id) ? '✓' : String(i + 1)), h('span', { lang: 'pt-BR' }, x.pt)),
+        h('li', { class: done.has(x.id) ? 'done' : x.id === next ? 'current' : '', 'data-step': x.id }, h('span', { class: 'aero-tut-tick', 'aria-hidden': 'true' }, done.has(x.id) ? '✓' : String(i + 1)), h('span', { class: 'kg-step', title: x.en }, h('span', { lang: 'pt-BR' }, x.pt), en(x.en))),
       ),
     );
     placeHud();
@@ -234,21 +234,17 @@ export function mountKitnetGuide(opts: { tab: () => 'meus' | 'loja'; onStep: () 
     if (changed) opts.onStep();
   }
 
-  /** The buy step when nothing in the Atelier is affordable yet: say so, and offer to go on with what is already in storage. */
+  /** The buy step when nothing in the Atelier is affordable yet: say so (the first-visit gift normally covers the chair). */
   function extras(id: KitnetGuideStepId): HTMLElement[] {
     const p = game.profile;
     if (id !== 'comprar' || !p || suggestPurchase(p.coins)) return [];
     const c = cheapestFurniture();
-    const have = Object.values(p.furniture).some((n) => n > 0);
     return [
       h(
         'div',
         { class: 'kg-broke' },
         h('span', { lang: 'pt-BR' }, `Você tem ${p.coins} RV e o mais barato custa ${c.price}. Ganhe RV com os recados!`),
         en(`You have ${p.coins} RV and the cheapest piece costs ${c.price}. Earn RV doing errands (Recados)!`),
-        have
-          ? h('button', { type: 'button', class: 'green', id: 'kitnet-guide-use', onclick: () => ((progress.skippedBuy = true), render()) }, 'Usar o que já tenho', en(' use what I have', true))
-          : null,
       ),
     ];
   }
@@ -258,11 +254,12 @@ export function mountKitnetGuide(opts: { tab: () => 'meus' | 'loja'; onStep: () 
     if (step === 'colocar') {
       const me = game.self;
       const t = suggestTile(game.roomDef, game.furniture, me ? [me.path.at(-1) ?? me.from] : []);
-      return t ? { x: t.x, y: t.y, lift: 20, label: 'Coloque aqui' } : null;
+      return t ? { x: t.x, y: t.y, lift: 20, label: 'Coloque aqui', en: 'Place it here' } : null;
     }
     if (step === 'girar' && !document.getElementById('decor-rotate')) {
       const f = game.furniture.find((x) => x.uid === placedUid) ?? game.furniture.at(-1);
-      return f ? { x: f.x, y: f.y, lift: 36, label: `Clique: ${furnitureById(f.itemId)?.pt ?? 'móvel'}` } : null;
+      const def = f ? furnitureById(f.itemId) : undefined;
+      return f ? { x: f.x, y: f.y, lift: 36, label: `Clique: ${def?.pt ?? 'móvel'}`, en: `Click: ${def?.en ?? 'piece'}` } : null;
     }
     return null;
   }

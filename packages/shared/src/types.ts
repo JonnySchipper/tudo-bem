@@ -183,6 +183,8 @@ export interface PrivateProfile {
   friends: string[];
   tutorial: Record<TutorialStep, boolean>;
   tutorialRewarded: boolean;
+  /** The one-time RV gift for first entering your own kitnet has been paid. Missing on older saves. */
+  kitnetGiftPaid?: boolean;
   createdAt: number;
   /** Today's kiosk mission (the server rolls it over each day). */
   mission?: DailyMission;

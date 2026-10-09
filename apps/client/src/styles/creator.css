@@ -577,3 +577,15 @@
     animation: none;
   }
 }
+
+/* Compact English glosses inside creator buttons and chips. */
+.stage-btn .en,
+.creator-panel .chips button .en,
+#enter-praca .en {
+  display: block;
+  font-size: 0.6em;
+  font-weight: 600;
+  line-height: 1.1;
+  color: inherit;
+  opacity: 0.8;
+}

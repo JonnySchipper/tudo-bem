@@ -1212,6 +1212,19 @@ export class World {
     target.crowd?.sync();
     this.startNpcTick();
     this.notifyFriendsOfPresence(s.profile!.id);
+    this.kitnetGift(s, target);
+  }
+
+  /**
+   * First time in your own kitnet: ECONOMY.kitnetGift RV, so the tutorial's furniture step can always be paid for.
+   * Players who already have the chair step done or furniture down (older saves) get nothing.
+   */
+  private kitnetGift(s: Session, inst: Instance) {
+    const p = s.profile;
+    if (!p || inst.def.id !== 'kitnet' || inst.ownerId !== p.id || p.kitnetGiftPaid) return;
+    p.kitnetGiftPaid = true;
+    if (p.tutorial.cadeira || p.apartment.length > 0) return this.store.save();
+    this.reward(s, ECONOMY.kitnetGift, { pt: 'Presente de boas-vindas pra sua kitnet: compre um móvel!', en: 'A welcome gift for your apartment: go buy a piece of furniture!' });
   }
 
   /** The game clock: real time plus the test offset. Everything the players see as time of day comes from here. */

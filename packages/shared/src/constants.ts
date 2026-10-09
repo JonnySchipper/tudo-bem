@@ -62,6 +62,26 @@ export const LABELS = {
   extra: { nenhum: 'Nenhum', oculos: 'Óculos', barba: 'Barba', bigode: 'Bigode', brincos: 'Brincos', sardas: 'Sardas' } as Record<ExtraStyle, string>,
 };
 
+/** English glosses for LABELS (same keys), shown beside the Portuguese in the avatar creator. */
+export const LABELS_EN = {
+  body: { esguio: 'Slim', medio: 'Medium', forte: 'Strong' } as Record<BodyType, string>,
+  hair: {
+    curto: 'Short',
+    raspado: 'Fade',
+    undercut: 'Undercut',
+    ondulado: 'Wavy',
+    cacheado: 'Curly',
+    black: 'Afro',
+    longo: 'Long',
+    coque: 'Bun',
+    trancas: 'Braids',
+  } as Record<HairStyle, string>,
+  top: { camiseta: 'T-shirt', blusa: 'Blouse', regata: 'Tank top', moletom: 'Hoodie', camisa: 'Shirt' } as Record<TopStyle, string>,
+  bottom: { calca: 'Pants', bermuda: 'Shorts', saia: 'Skirt' } as Record<BottomStyle, string>,
+  face: { suave: 'Soft', marcante: 'Bold', doce: 'Sweet', maduro: 'Mature' } as Record<FaceStyle, string>,
+  extra: { nenhum: 'None', oculos: 'Glasses', barba: 'Beard', bigode: 'Moustache', brincos: 'Earrings', sardas: 'Freckles' } as Record<ExtraStyle, string>,
+};
+
 /**
  * One free starter outfit. The creator only applies these clothing fields —
  * hats and further clothes stay on Nanda’s stall. Existing profiles keep whatever they saved.
@@ -99,6 +119,8 @@ export const TUTORIAL_STEPS: { id: TutorialStep; pt: string; en: string }[] = [
 export const ECONOMY = {
   startingCoins: 10,
   tutorialBonus: 25,
+  /** Paid once, the first time you walk into your own kitnet, so the furniture step of the tutorial is always affordable. */
+  kitnetGift: 10,
   sceneMin: 6,
   sceneMax: 14,
   /** Full payouts per NPC per day before decay. */

@@ -44,9 +44,21 @@ const SPEAKER_ROLE: Record<string, string> = {
   rosa: 'Feirante',
 };
 
+const SPEAKER_ROLE_EN: Record<string, string> = {
+  carlos: 'Baker',
+  graca: 'Night baker',
+  nanda: 'Hat shop',
+  julia: 'Plaza guide',
+  prof: 'Jiu-jitsu teacher',
+  tia_lu: 'Market vendor',
+  ze: 'Market vendor',
+  chico: 'Market vendor',
+  rosa: 'Market vendor',
+};
+
 const heartsEl = (points: number | undefined, cls = 'hearts'): HTMLElement => {
   const v = heartsView(points);
-  return h('span', { class: cls, title: `${v.hearts} / 10 ♥`, 'aria-label': `${v.hearts} corações` }, icon('coracao', 16), h('b', null, String(v.hearts)));
+  return h('span', { class: cls, title: `${v.hearts} / 10 ♥`, 'aria-label': `${v.hearts} corações (${v.hearts} hearts)` }, icon('coracao', 16), h('b', null, String(v.hearts)));
 };
 
 // ---------------------------------------------------------------- tracker
@@ -298,8 +310,8 @@ export function openJournal(): void {
               'div',
               { class: 'rj-friend', 'data-npc': f.npc },
               npcPortrait(f.npc, 'neutro', 'rj-face small'),
-              h('div', { class: 'rj-fname' }, f.name, h('small', null, SPEAKER_ROLE[f.npc] ?? '')),
-              h('div', { class: 'rj-hearts', 'aria-label': `${f.hearts.hearts} de 10 corações` }, ...Array.from({ length: 10 }, (_, i) => h('i', { class: i < f.hearts.hearts ? 'on' : i === f.hearts.hearts && f.hearts.next > 0 ? 'part' : '' }))),
+              h('div', { class: 'rj-fname' }, f.name, h('small', null, SPEAKER_ROLE[f.npc] ?? '', SPEAKER_ROLE_EN[f.npc] ? en(` ${SPEAKER_ROLE_EN[f.npc]}`, true) : null)),
+              h('div', { class: 'rj-hearts', 'aria-label': `${f.hearts.hearts} de 10 corações (${f.hearts.hearts} of 10 hearts)` }, ...Array.from({ length: 10 }, (_, i) => h('i', { class: i < f.hearts.hearts ? 'on' : i === f.hearts.hearts && f.hearts.next > 0 ? 'part' : '' }))),
             ),
           ),
         ),
@@ -318,7 +330,7 @@ export function openJournal(): void {
     h(
       'div',
       { class: 'panel recados' },
-      h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
+      h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar (Close)' }, '✕'),
       h('h2', null, 'Recados'),
       en('Errands for the neighbors · your bag · your friends'),
       body,
@@ -353,7 +365,7 @@ export function runPrelude(npc: NpcId, hooks: PreludeHooks): void {
   hooks.proceed();
 }
 
-const common = (npc: NpcId, key: string) => ({ key, npcId: npc, speaker: npcName(npc), role: SPEAKER_ROLE[npc] ?? null, onClose: closeDialogue });
+const common = (npc: NpcId, key: string) => ({ key, npcId: npc, speaker: npcName(npc), role: SPEAKER_ROLE[npc] ? `${SPEAKER_ROLE[npc]} · ${SPEAKER_ROLE_EN[npc]}` : null, onClose: closeDialogue });
 
 function giveBeat(npc: NpcId, options: ReturnType<typeof giveOptions>, hooks: PreludeHooks): void {
   const g = greetingCap(greetingFor(clock.minutes()));

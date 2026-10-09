@@ -959,7 +959,7 @@ export function openDiario(opts: DiarioOpen = {}): void {
     { class: 'panel caderno jb', 'aria-label': 'Diário' },
     cover,
     h('i', { class: 'jb-ribbon', 'aria-hidden': 'true' }),
-    h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar' }, '✕'),
+    h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar (Close)' }, '✕'),
     h('header', { class: 'jb-top' }, h('h2', null, 'Diário'), en('Your words, place by place: tap a sticker to hear it')),
     tabs,
     h('div', { class: 'jb-bookwrap' }, spread),
