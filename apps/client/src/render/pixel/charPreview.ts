@@ -263,7 +263,7 @@ export async function parrotIconUrl(colorId: string, scale = 4): Promise<string>
   const octx = out.getContext('2d');
   if (!octx) return '';
   octx.imageSmoothingEnabled = false;
-  octx.drawImage(bird, 0, 0, out.width, out.height);
+  octx.drawImage(bird.canvas, 0, 0, out.width, out.height);
   const url = out.toDataURL('image/png');
   iconCache.set(cacheKey, url);
   return url;
