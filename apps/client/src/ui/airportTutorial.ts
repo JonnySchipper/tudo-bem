@@ -8,8 +8,8 @@
  * are only client-side (the Diário opened, the passport check, the snack, the bus) are remembered per profile in localStorage.
  * Needs_br: every Portuguese line here.
  */
-import { CARTELA_COPY, CARTELA_GOAL, CARTELA_REWARD, FILM, ARRIVAL_CARD, greetingFor } from '@tudobem/shared';
-import { AIRPORT_NEXT, AIRPORT_STEPS, GREETING_EN, airportDone, cap, nextAirportStep, passportChips, thanksFor, type AirportFlags, type AirportGuide, type AirportStepId } from './airportTutorialLogic';
+import { AGENTE_LINES, CARTELA_COPY, CARTELA_GOAL, CARTELA_REWARD, CELIA_LINES, FILM, ARRIVAL_CARD, agenteAsk, celiaWelcome, greetingFor } from '@tudobem/shared';
+import { AIRPORT_NEXT, AIRPORT_STEPS, airportDone, nextAirportStep, passportChips, thanksFor, type AirportFlags, type AirportGuide, type AirportStepId } from './airportTutorialLogic';
 import { game } from '../state';
 import { clock } from '../gameClock';
 import { speak } from '../audio';
@@ -247,20 +247,19 @@ export interface StaffHooks {
 /** Célia at the information desk: the package from Júlia the first time, then help with the next step. */
 export function openCelia(hooks: StaffHooks): void {
   const p = game.profile;
-  const name = p?.name ?? '';
-  const box = (line: { pt: string; en: string }, chips: BoxChip[], onChip: (i: number) => void, extras: HTMLElement | null = null, expression: 'feliz' | 'neutro' | 'pensativo' = 'feliz') => {
-    speak(line.pt);
-    showDialogueBox({ key: 'talk-celia', npcId: 'celia', speaker: 'Célia', role: 'Informações', expression, line, chips, extras, onChip, onClose: closeDialogue });
+  const box = (line: { pt: string; en: string; spoken?: string }, chips: BoxChip[], onChip: (i: number) => void, extras: HTMLElement | null = null, expression: 'feliz' | 'neutro' | 'pensativo' = 'feliz') => {
+    speak(line.spoken ?? line.pt, { speaker: 'celia' });
+    showDialogueBox({ key: 'talk-celia', npcId: 'celia', speaker: 'Célia', role: 'Informações', expression, line, listen: line.spoken, chips, extras, onChip, onClose: closeDialogue });
   };
   if (p?.arrivalIntroDone === false) {
     box(
-      { pt: `Bem-vindo ao Brasil, ${name}! A Júlia deixou este pacote pra você.`, en: `Welcome to Brazil, ${name}! Júlia left this package for you.` },
+      celiaWelcome(p.name ?? ''),
       [thanksFor(p.pronoun)],
       () => {
         handOver();
         hooks.finish();
         closeDialogue();
-        window.setTimeout(() => hooks.say('celia', { pt: 'Agora tira uma foto do avião! Aqui é de graça.', en: 'Now take a photo of the plane! It’s free here.' }), 700);
+        window.setTimeout(() => hooks.say('celia', CELIA_LINES.photo), 700);
       },
       gifts(),
     );
@@ -268,7 +267,7 @@ export function openCelia(hooks: StaffHooks): void {
   }
   const menu = () =>
     box(
-      { pt: 'Precisa de ajuda?', en: 'Need any help?' },
+      CELIA_LINES.help,
       [
         { pt: 'Como tiro uma foto?', en: 'How do I take a photo?' },
         { pt: 'Onde fica o ônibus?', en: 'Where is the bus?' },
@@ -276,12 +275,7 @@ export function openCelia(hooks: StaffHooks): void {
         { pt: 'Tchau!', en: 'Bye!' },
       ],
       (i) => {
-        const answers = [
-          { pt: 'Clica em Câmera, mira e clica de novo. A palavra do que aparece vai pro diário.', en: 'Click Camera, aim, and click again. The word for what’s in the picture goes into your diary.' },
-          { pt: 'Lá fora, depois das portas. O 875 vai direto pra Vila Ipê.', en: 'Outside, past the doors. The 875 goes straight to Vila Ipê.' },
-          { pt: `Cada coisa nova que você faz no bairro vale um carimbo. Com ${CARTELA_GOAL}, você ganha ${CARTELA_REWARD} RV!`, en: `Every new thing you do in the neighborhood is worth a stamp. With ${CARTELA_GOAL}, you win ${CARTELA_REWARD} RV!` },
-        ];
-        const a = answers[i];
+        const a = CELIA_LINES.answers[i];
         if (!a) return closeDialogue();
         box(a, [{ pt: 'Entendi!', en: 'Got it!' }, { pt: 'Tchau!', en: 'Bye!' }], (j) => (j === 0 ? menu() : closeDialogue()));
       },
@@ -294,7 +288,7 @@ export function openCelia(hooks: StaffHooks): void {
 /** Passport control: greet by the hour, say why you came, get the stamp. */
 export function openAgente(hooks: StaffHooks): void {
   const box = (line: { pt: string; en: string }, chips: BoxChip[], onChip: (i: number) => void, expression: 'feliz' | 'neutro' | 'pensativo' | 'surpreso' = 'neutro', extras: HTMLElement | null = null) => {
-    speak(line.pt);
+    speak(line.pt, { speaker: 'agente' });
     showDialogueBox({ key: 'talk-agente', npcId: 'agente', speaker: 'Agente Paulo', role: 'Polícia Federal', expression, line, chips, extras, onChip, onClose: closeDialogue });
   };
   const minute = clock.minutes();
@@ -302,19 +296,19 @@ export function openAgente(hooks: StaffHooks): void {
   const { chips, right } = passportChips(minute);
   const stamped = () =>
     box(
-      { pt: 'Bem-vindo ao Brasil! Pode passar. Boa estadia!', en: 'Welcome to Brazil! You may go through. Enjoy your stay!' },
+      AGENTE_LINES.stamped,
       [thanksFor(game.profile?.pronoun)],
       () => {
         markAirportStep('passaporte');
         closeDialogue();
-        hooks.say('agente', { pt: 'Próximo, por favor!', en: 'Next, please!' });
+        hooks.say('agente', AGENTE_LINES.next);
       },
       'feliz',
       h('div', { class: 'aero-visto', 'aria-hidden': 'true' }, h('b', null, 'BRASIL'), h('span', null, 'ENTRADA'), h('small', null, `${String(clock.day() % 28 + 1).padStart(2, '0')} · 10 · 2026`)),
     );
   const reason = () =>
     box(
-      { pt: 'Qual é o motivo da viagem?', en: 'What is the reason for your trip?' },
+      AGENTE_LINES.reason,
       [
         { pt: 'Turismo.', en: 'Tourism.' },
         { pt: 'Estudo.', en: 'Studies.' },
@@ -327,9 +321,7 @@ export function openAgente(hooks: StaffHooks): void {
     );
   const ask = (again: boolean) =>
     box(
-      again
-        ? { pt: `Hmm… agora é ${g}. Tenta de novo!`, en: `Hmm… right now it’s “${g}” (${GREETING_EN[g].toLowerCase()}). Try again!` }
-        : { pt: `${cap(g)}! Passaporte, por favor.`, en: `${GREETING_EN[g]}! Passport, please.` },
+      agenteAsk(g, again),
       chips,
       (i) => (i === right ? reason() : ask(true)),
       again ? 'pensativo' : 'neutro',
