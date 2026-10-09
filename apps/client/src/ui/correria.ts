@@ -220,6 +220,8 @@ export class CorreriaUI {
   handle(m: MgServerMsg): void {
     if (this.closedFlag) return;
     if (m.phase === 'state') return this.onState(m.snap, m.ev, !!m.resync);
+    // an act still in flight when the shift ended gets "no open shift" back: keep the real end card
+    if (m.lost && this.ended) return;
     this.onEnd(m);
   }
 
