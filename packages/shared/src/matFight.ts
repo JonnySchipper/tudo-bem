@@ -214,13 +214,14 @@ export const PERFECT_SHARE = 0.45;
 export const FINAL_SQUEEZE = 0.8;
 /**
  * The partner's attack: its window is the chain window × (DEF_BASE − DEF_SPEED × speed); the sleeve grip widens it.
- * Tuned (matSim.test.ts): the brief's 1.1 made every partner a pushover (an average player beat Mateus 73%), so the base is 0.8.
+ * Tuned (matSim.test.ts, round 2 with Virar): 0.82 − 0.22 × speed. Felipe (0.9) gives 0.62 of a command window, Rafael 0.68,
+ * Daniel 0.71, Mateus 0.72, Helena 0.75. A higher DEF_SPEED would keep strong players under 70% against Rafael, but sinks Felipe.
  */
-export const DEF_BASE = 0.8;
-export const DEF_SPEED = 0.4;
+export const DEF_BASE = 0.82;
+export const DEF_SPEED = 0.22;
 export const SLEEVE_SHIELD = 1.35;
-/** An escape from under (Virar, Recuperar, Sair) is slower than a throw: the defense window against it is this much longer. */
-export const ESCAPE_DEF = 1.3;
+/** An escape from under (Virar, Recuperar, Sair) is slower than a throw: the defense window against it is this much longer (tuned). */
+export const ESCAPE_DEF = 1.4;
 /** Each Sai! of the escape mash against a finish is this share of a defense window. */
 export const SAI_SHARE = 0.75;
 /** Network slack the server gives every deadline on top of the window (it never relaxes the grade). */
@@ -237,7 +238,7 @@ export function cmdWindowMs(level: number, first = false): number {
   return first ? Math.round(ms * FIRST_MATCH_SLACK) : ms;
 }
 
-/** The defense window against a partner of this `speed`: Felipe (0.9) gives about 0.44 of a chain window, Helena (0.32) about 0.67. */
+/** The defense window against a partner of this `speed`: Felipe (0.9) gives about 0.62 of a chain window, Helena (0.32) about 0.75. */
 export function defWindowMs(level: number, speed: number, sleeve: boolean, first = false): number {
   const f = Math.max(0.3, DEF_BASE - DEF_SPEED * Math.max(0, Math.min(1, speed)));
   return Math.round(cmdWindowMs(level, first) * f * (sleeve ? SLEEVE_SHIELD : 1));
@@ -641,12 +642,15 @@ export function chainWindows(cmds: readonly MatCommand[], id: MatMoveId, level: 
 
 /**
  * v3 tuning (matSim.test.ts): the partner card's accuracy is lifted by this much before the chain penalty, so a partner lands often
- * enough to make the defense beat matter. The cards themselves (`PARTNERS`) are unchanged; the spread between them is kept.
+ * enough to make the defense beat matter, while sloppy Felipe still botches visibly (0.74 clean on a grip). The cards (`PARTNERS`) are
+ * unchanged; the spread between them is kept.
  */
-export const CLEAN_LIFT = 0.3;
-/** The partner lands a chain of this length on its own (no botch) at `accuracy + CLEAN_LIFT − 0.04 × (length − 1)`, at most 0.97. */
+export const CLEAN_LIFT = 0.2;
+/** No partner is cleaner than this (Helena, Daniel and Rafael sit at or near it). */
+export const CLEAN_MAX = 0.95;
+/** The partner lands a chain of this length on its own (no botch) at `accuracy + CLEAN_LIFT − 0.04 × (length − 1)`, at most CLEAN_MAX. */
 export function partnerClean(accuracy: number, chainLength: number): number {
-  return Math.max(0.05, Math.min(0.97, accuracy + CLEAN_LIFT - 0.04 * Math.max(0, chainLength - 1)));
+  return Math.max(0.05, Math.min(CLEAN_MAX, accuracy + CLEAN_LIFT - 0.04 * Math.max(0, chainLength - 1)));
 }
 
 /** Sai! taps in a row the player needs against the partner's finish (a tough defender's grip takes four). */

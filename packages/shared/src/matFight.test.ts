@@ -3,11 +3,13 @@ import { completeDrill, normalizeBjj, partnerById, progressForWins, recordWin } 
 import { diaryWord } from './diary.js';
 import {
   CLEAN_LIFT,
+  CLEAN_MAX,
   COMBOS,
   COMMANDS,
   COMMAND_LABEL,
   DEFENSES,
   DEFENSE_LABEL,
+  ESCAPE_DEF,
   EXCHANGE_CLOCK_MS,
   MAT_TURNS,
   MAT_WORD_IDS,
@@ -144,8 +146,10 @@ describe('chains', () => {
     const felipe = defWindowMs(0, partnerById('felipe')!.speed, false);
     const helena = defWindowMs(0, partnerById('helena')!.speed, false);
     expect(felipe).toBeLessThan(helena);
-    expect(felipe / cmdWindowMs(0)).toBeCloseTo(0.44, 2);
-    expect(helena / cmdWindowMs(0)).toBeCloseTo(0.672, 2);
+    expect(felipe / cmdWindowMs(0)).toBeCloseTo(0.622, 2);
+    expect(helena / cmdWindowMs(0)).toBeCloseTo(0.75, 2);
+    // an escape from under is slower than a throw: its defense window is ESCAPE_DEF longer (the server and the sim apply it)
+    expect(ESCAPE_DEF).toBeGreaterThan(1);
     expect(defWindowMs(0, 0.5, true)).toBe(Math.round(defWindowMs(0, 0.5, false) * 1.35));
   });
 
@@ -162,8 +166,13 @@ describe('chains', () => {
   it('the partner is clean at its accuracy (lifted) minus 0.04 a command; Daniel needs four Sai!', () => {
     expect(partnerClean(0.6, 1)).toBeCloseTo(0.6 + CLEAN_LIFT, 5);
     expect(partnerClean(0.6, 3)).toBeCloseTo(0.6 + CLEAN_LIFT - 0.08, 5);
-    expect(partnerClean(0.86, 1)).toBeLessThanOrEqual(0.97);
-    expect(partnerClean(partnerById('felipe')!.accuracy, 2)).toBeLessThan(partnerClean(partnerById('helena')!.accuracy, 2));
+    expect(partnerClean(0.86, 1)).toBe(CLEAN_MAX);
+    // partners feel different in the hand: Felipe botches visibly, Helena, Daniel and Rafael are clean on a short move
+    const clean = (id: string, n: number) => partnerClean(partnerById(id)!.accuracy, n);
+    expect(clean('felipe', 1)).toBeCloseTo(0.74, 5);
+    expect(clean('felipe', 2)).toBeCloseTo(0.7, 5);
+    for (const id of ['helena', 'daniel', 'rafael']) expect(clean(id, 1), id).toBeGreaterThanOrEqual(0.9);
+    expect(CLEAN_MAX).toBe(0.95);
     expect(saiCount(partnerById('mateus')!.defense)).toBe(3);
     expect(saiCount(partnerById('daniel')!.defense)).toBe(4);
   });
