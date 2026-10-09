@@ -315,7 +315,7 @@
         "pt": "Vaga livre para uma nova barraca",
         "en": "Free spot for a new stall"
       },
-      "art": "feira/preco_placa"
+      "art": "feira/vaga"
     },
     {
       "id": "vaga_a4",
@@ -329,7 +329,7 @@
         "pt": "Vaga livre para uma nova barraca",
         "en": "Free spot for a new stall"
       },
-      "art": "feira/preco_placa"
+      "art": "feira/vaga"
     },
     {
       "id": "vaga_b3",
@@ -343,7 +343,7 @@
         "pt": "Vaga livre para uma nova barraca",
         "en": "Free spot for a new stall"
       },
-      "art": "feira/preco_placa"
+      "art": "feira/vaga"
     },
     {
       "id": "vaga_b4",
@@ -357,7 +357,7 @@
         "pt": "Vaga livre para uma nova barraca",
         "en": "Free spot for a new stall"
       },
-      "art": "feira/preco_placa"
+      "art": "feira/vaga"
     },
     {
       "id": "lampada_f1",
@@ -378,7 +378,7 @@
     {
       "id": "lampada_f3",
       "kind": "poste",
-      "x": 21,
+      "x": 26,
       "y": 9,
       "blocks": true,
       "art": "props/lamp_old"

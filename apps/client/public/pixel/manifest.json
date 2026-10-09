@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 1024,
    "h": 1984,
-   "frames": 1174
+   "frames": 1180
   },
   "bjj": {
    "image": "atlas/bjj.png",
@@ -2222,6 +2222,21 @@
    "h": 10,
    "ax": 8,
    "ay": 9,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "feira/vaga": {
+   "atlas": "outdoor",
+   "frame": "feira/vaga",
+   "w": 21,
+   "h": 17,
+   "ax": 10,
+   "ay": 16,
    "footprint": [
     1,
     1
@@ -22033,6 +22048,50 @@
    "shadow": "fx/shadow_48",
    "cast": {
     "frame": "props/carrinho_feira#cast",
+    "w": 93,
+    "h": 17,
+    "ax": 32,
+    "ay": 1
+   }
+  },
+  "props/carrinho_feira_pastel": {
+   "atlas": "outdoor",
+   "frame": "props/carrinho_feira_pastel",
+   "w": 64,
+   "h": 62,
+   "ax": 32,
+   "ay": 60,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "props/carrinho_feira_pastel#cast",
+    "w": 93,
+    "h": 17,
+    "ax": 32,
+    "ay": 1
+   }
+  },
+  "props/carrinho_feira_caldo": {
+   "atlas": "outdoor",
+   "frame": "props/carrinho_feira_caldo",
+   "w": 64,
+   "h": 62,
+   "ax": 32,
+   "ay": 60,
+   "footprint": [
+    3,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_48",
+   "cast": {
+    "frame": "props/carrinho_feira_caldo#cast",
     "w": 93,
     "h": 17,
     "ax": 32,

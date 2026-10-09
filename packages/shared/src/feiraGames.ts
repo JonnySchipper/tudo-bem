@@ -221,6 +221,28 @@ export function withoutHiddenFeiraCart<R extends { id: string; props: readonly {
   return { ...room, props };
 }
 
+/** The game cart's sprite per game, so the plaque on the cart always names today's game. */
+export const FEIRA_CART_ART: Record<FeiraGameId, string> = {
+  tapioca: 'props/carrinho_feira',
+  pastel: 'props/carrinho_feira_pastel',
+  caldo: 'props/carrinho_feira_caldo',
+};
+
+/**
+ * The Feira as players see it: no cart or sign when nothing is featured (`withoutHiddenFeiraCart`),
+ * otherwise the cart dressed for the featured game. Other rooms and props come back unchanged.
+ */
+export function feiraRoomFor<R extends { id: string; props: readonly { id: string; art?: string }[] }>(
+  room: R,
+  snap: { closed: boolean; game: string | null } | null | undefined,
+): R {
+  if (room.id !== 'feira') return room;
+  if (!feiraCartShown(snap)) return withoutHiddenFeiraCart(room, false);
+  const art = isFeiraGameId(snap!.game) ? FEIRA_CART_ART[snap!.game] : null;
+  if (!art || room.props.every((p) => p.id !== FEIRA_CART_WORLD_IDS[0] || p.art === art)) return room;
+  return { ...room, props: room.props.map((p) => (p.id === FEIRA_CART_WORLD_IDS[0] ? { ...p, art } : p)) };
+}
+
 /**
  * Replace one game's mode. `schedule === undefined` keeps the stored window; `null` clears it.
  * Returns null when `id` is not in the rotation (the admin list) or `mode` is not a real mode.

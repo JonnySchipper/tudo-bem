@@ -5,6 +5,7 @@
 // under the tarp (same convention as props/barraca_chapeus).
 import { blank, put, shape, flat, grid, line, ell, box, or, and, sub, fillRect, ring, NAVY } from './paint.mjs';
 import { C, K } from './kit.mjs';
+import { drawText3, width3 } from './font5.mjs';
 
 const W = 48, H = 44; // base sprite (3 tiles wide; the bottom 32 px are the 3x2 footprint)
 const TW = 56, TH = 24; // tarp sprite
@@ -332,6 +333,18 @@ function precoTag(kind) {
   return img;
 }
 
+/** The free-slot marker: a slate on a stake with VAGA chalked on it (never a blank board, so an empty slot reads as "free spot"). */
+function vagaSign() {
+  const w = width3('VAGA') + 6, img = blank(w, 17);
+  const sx = Math.floor(w / 2) - 1;
+  fillRect(img, sx, 9, 3, 8, NAVY); fillRect(img, sx + 1, 9, 1, 7, C.w1); put(img, sx + 1, 15, C.w4);
+  fillRect(img, 0, 0, w, 10, NAVY);
+  fillRect(img, 1, 1, w - 2, 8, C.w2); fillRect(img, 1, 1, w - 2, 1, C.w0); fillRect(img, 1, 1, 1, 8, C.w0);
+  fillRect(img, 2, 2, w - 4, 6, C.navy2); fillRect(img, 2, 2, w - 4, 1, C.slate);
+  drawText3(img, 3, 2, 'VAGA', C.white);
+  return img;
+}
+
 // ------------------------------------------------------------------ parts for the import pipeline
 export async function feira() {
   const parts = [];
@@ -351,6 +364,8 @@ export async function feira() {
     const img = precoTag(k);
     parts.push({ key: `feira/preco_${k}`, img, anchor: [Math.floor(img.w / 2), img.h - 1], meta: { footprint: [1, 1], shadow: null } });
   }
+  const vaga = vagaSign();
+  parts.push({ key: 'feira/vaga', img: vaga, anchor: [Math.floor(vaga.w / 2), vaga.h - 1], meta: { footprint: [1, 1], shadow: null } });
   return parts;
 }
 
