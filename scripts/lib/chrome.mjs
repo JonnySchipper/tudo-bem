@@ -9,6 +9,7 @@ export function findChrome() {
     '/usr/bin/google-chrome',
     '/usr/bin/chromium',
     '/usr/bin/chromium-browser',
+    '/opt/google/chrome/chrome',
     '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
     ...win,
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',

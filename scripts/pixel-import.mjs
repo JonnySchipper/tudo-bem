@@ -117,7 +117,7 @@ function addCast(def, img, anchor) {
 }
 
 /**
- * A `derive` generator returns "parts": { key?, img | frames[], fps?, anchor, meta? }. The first part (key = def.key) inherits the
+ * A `derive` generator returns "parts": { key?, img | frames[], seq?, fps?, anchor, meta? }. The first part (key = def.key) inherits the
  * import-map entry (footprint, shadow, cast, light...); extra parts (lit-window overlays, companions) carry their own `meta`.
  */
 async function emitParts(def, parts) {
@@ -129,7 +129,9 @@ async function emitParts(def, parts) {
     await savePng(first, path.join(CUSTOM_PNG, key.replaceAll('/', '_') + '.png'));
     if (part.frames) {
       const names = frames.map((f, i) => { const n = `${key}/${i}`; addFrame('outdoor', n, f); return n; });
-      sprites[key] = { ...baseEntry(m, first, part.anchor), frame: names[0], anim: { frames: names, fps: part.fps ?? 6 } };
+      // `seq` (optional) plays the unique frames in a longer order (holds, rare twitches) without packing a frame twice
+      const order = part.seq ? part.seq.map((i) => names[i]) : names;
+      sprites[key] = { ...baseEntry(m, first, part.anchor), frame: names[0], anim: { frames: order, fps: part.fps ?? 6 } };
     } else {
       addFrame('outdoor', key, first);
       sprites[key] = baseEntry(m, first, part.anchor);
