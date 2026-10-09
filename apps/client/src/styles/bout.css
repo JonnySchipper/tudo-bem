@@ -2069,8 +2069,12 @@ body.bout-on .toasts {
     height: 26px;
   }
   .bout-ctl {
-    grid-template-columns: minmax(0, 1fr) minmax(90px, 1.3fr) minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) minmax(80px, 1.1fr) minmax(0, 1fr) auto;
     gap: 4px;
+  }
+  .ctl-side {
+    flex-wrap: nowrap;
+    gap: 2px;
   }
   .ctl-track {
     height: 10px;
@@ -2085,7 +2089,8 @@ body.bout-on .toasts {
     display: none;
   }
   .grip-chip {
-    padding: 0 3px;
+    gap: 2px;
+    padding: 0 2px;
     font-size: 10px;
   }
   .gc-pips i {
@@ -2176,9 +2181,32 @@ body.bout-on .toasts {
     font-size: 12px;
     flex-basis: 100%;
   }
+  /* the coach note and the escape bar get their own full-width row above the word */
   .cmd-main {
-    gap: 4px;
+    gap: 3px 4px;
     grid-template-columns: minmax(0, 0.7fr) auto minmax(0, 0.7fr);
+  }
+  .cmd-left {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    justify-items: stretch;
+  }
+  .cmd-left:not(:has(> :not([hidden]))) {
+    display: none;
+  }
+  .cmd-center {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .cmd-right {
+    grid-column: 3;
+    grid-row: 2;
+  }
+  .cmd-escape {
+    width: auto;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 6px;
   }
   .cmd-ring {
     min-width: 150px;
@@ -2211,11 +2239,7 @@ body.bout-on .toasts {
     display: none;
   }
   .cmd-escape {
-    width: 80px;
     font-size: 10px;
-  }
-  .cmd-left .bout-coach {
-    display: none;
   }
   .bout-pad {
     gap: 5px;

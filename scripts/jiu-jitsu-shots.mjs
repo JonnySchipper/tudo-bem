@@ -10,10 +10,10 @@
  * slow headless screenshot (software GL, a few frames a second on the 2x phone) still catches the call on the panel. The command and
  * defense windows are the game's own: the timed pad beats are shot at CSS pixels (`fast`) so the capture does not outlast them.
  *
- * A white belt with three stripes (Bia still calls the defenses) plays Mateus: one hold so Mateus attacks first, then the first card
+ * A white belt with three stripes (Bia still calls the defenses) plays Mateus: holds until Mateus attacks and is defended, then the first card
  * that scores (the finish when it is on offer), every command tapped fast on the pad (Perfeito!), every defense answered. It shoots the lobby, the pick, a chain as the first
- * word comes up, the same chain mid-way with its Perfeito!, the partner's attack with the defense pad, a Defendeu!, a takedown landing on
- * the mat, the finish, and the end card. It checks the moves play their baked clips driven by the taps (the wind-up frames) as it goes.
+ * word comes up, the same chain mid-way with its Perfeito!, a Defendeu!, a takedown landing on the mat, the finish, and the end card. The
+ * extras play a first match (Bia's coach note, then the defense pad with her call) and a fifth win into the stripe's drill. It checks the moves play their baked clips driven by the taps (the wind-up frames) as it goes.
  */
 import { chromium } from 'playwright-core';
 import { spawn } from 'node:child_process';
@@ -58,7 +58,7 @@ const WHITE3 = {
 const THROWS = ['double_leg', 'body_lock', 'collar_drag', 'hip_throw', 'single_leg', 'sleeve_pull'];
 const SUBS = ['armbar', 'americana', 'rnc'];
 /** The moments the brief asks for: if one is still missing after a match, play another (up to --bouts). */
-const WANT = ['pick', 'chain', 'chain_perfeito', 'defense', 'defendeu', 'throw_land', 'finish', 'end'];
+const WANT = ['pick', 'chain', 'chain_perfeito', 'defendeu', 'throw_land', 'finish', 'end'];
 
 async function serveSolo() {
   if (process.env.BASE_URL) return { base: process.env.BASE_URL, stop: () => {} };
@@ -146,8 +146,8 @@ async function run(name, base) {
     while (bouts < BOUTS) {
       bouts++;
       const result = await playBout(page, {
-        // hold the first pick so Mateus attacks (the defense pad, a Defendeu!), then go for the takedown, the pass and the finish
-        pick: (n) => (n < 1 && !took.has('defendeu') ? 'safe' : 'bold'),
+        // hold (up to three picks) until Mateus attacks and Lia defends it (a Defendeu!), then go for the takedown, the pass, the finish
+        pick: (n) => (n < 3 && !took.has('defendeu') ? 'safe' : 'bold'),
         tapMs: 90,
         onBeat: async (b) => {
           if (b.phase === 'pick') {
@@ -161,8 +161,6 @@ async function run(name, base) {
           } else if (b.phase === 'chain' && b.step === 0 && b.total >= 2 && !took.has('chain')) {
             await sleep(120);
             await once('chain', true);
-          } else if (b.phase === 'defend' && !took.has('defense')) {
-            await once('defense', true);
           } else if (b.phase === 'resolve' && b.resolve) {
             const r = b.resolve;
             if (r.how === 'defended' && r.actor === 'partner') {
@@ -223,6 +221,30 @@ async function run(name, base) {
       await sleep(400);
       assert(await page.evaluate(() => !!document.querySelector('#bout-pick .bout-coach:not([hidden])')), 'a first match shows Bia’s coach note at the first pick');
       await shot('first_match_coach');
+      // the defense pad with Bia's call: hold until Mateus attacks, shoot the open pad, then leave (a slow capture outlasts a defense
+      // window, so this is shot in a match that is thrown away)
+      for (let i = 0; i < 5 && !took.has('defense'); i++) {
+        const seq = await page.evaluate(() => document.querySelector('#bout-moves')?.getAttribute('data-seq') ?? '');
+        await page.evaluate(() => document.querySelector('#bout-hold')?.click());
+        const next = await page
+          .waitForFunction(
+            (prev) => {
+              const phase = document.querySelector('#bout')?.getAttribute('data-phase');
+              if (phase === 'defend') {
+                const want = document.querySelector('#bout-cmd')?.getAttribute('data-want');
+                const btn = want ? document.querySelector(`#bout-cmd .pad-btn[data-cmd="${want}"]`) : null;
+                return btn && !btn.disabled ? 'defend' : false;
+              }
+              return phase === 'pick' && document.querySelector('#bout-moves')?.getAttribute('data-seq') !== prev ? 'pick' : false;
+            },
+            seq,
+            { timeout: 30_000, polling: 100 },
+          )
+          .then((h) => h.jsonValue())
+          .catch(() => null);
+        if (next === 'defend') await shot('defense', true);
+        else if (!next) break;
+      }
       await page.click('#bout-quit');
       await page.click('#bout-quit');
       await waitFor(page, () => !document.querySelector('#bout-root'), null, 10_000, 'left the first match');
