@@ -49,6 +49,12 @@ export interface WorldView {
   setDialogueBox?(px: number): void;
   /** Tap feedback (render/pixel/tapMark.ts): the ring on the tile the avatar walks to, or the refused cross on a tile or at a client point. */
   markTap?(kind: TapCue, at: { tile: Tile } | { px: number; py: number }): void;
+  /** A sign's star on screen (client px, drawn size in CSS px), or null when that sign has no star in this room. */
+  glintClient?(hotspotId: string): { px: number; py: number; size: number } | null;
+  /** A find animation takes a sign's star over (`on`: the world stops drawing it), or gives it back. */
+  claimGlint?(hotspotId: string, on: boolean): void;
+  /** HUD space kept clear at the screen edges, CSS px. */
+  hudInsets?(): { top: number; bottom: number; left: number; right: number };
   /** Stop drawing while a full-screen scene covers the world (the flight-in cutscene), and start again. */
   hold?(on: boolean): void;
 }

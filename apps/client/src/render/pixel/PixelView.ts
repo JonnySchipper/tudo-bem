@@ -10,6 +10,7 @@ import type { Guide, Hit, WorldView } from '../view';
 import { sharedCharAssets } from './charAssets';
 import { WorldScene } from './WorldScene';
 import { LabelLayer } from './labels';
+import { GlintCompass } from './glintCompass';
 import type { TapCue } from './tapMark';
 import { HUD_COMPACT_QUERY, T, bufferPixels, canvasToWorld, hudInsets, tileAtWorld, tileCenterToCanvas, worldToCanvas, type Insets } from './coords';
 import { game } from '../../state';
@@ -26,11 +27,13 @@ export class PixelView implements WorldView {
   private phaser: Phaser.Game | null = null;
   private host: { shot?: string | null } | null = null;
   private labels: LabelLayer;
+  private compass: GlintCompass;
   private dpr = 1;
   private insetsCss: Insets = { top: 64, bottom: 110, left: 0, right: 0 };
 
   constructor(readonly canvas: HTMLCanvasElement) {
     this.labels = new LabelLayer(canvas);
+    this.compass = new GlintCompass(canvas, () => this.insetsCss);
     this.measure();
     window.addEventListener('resize', () => this.resize());
     window.visualViewport?.addEventListener('resize', () => this.resize());
@@ -70,6 +73,7 @@ export class PixelView implements WorldView {
     this.dpr = buf.dpr;
     const host = {
       labels: this.labels,
+      compass: this.compass,
       guides: () => this.guides,
       insets: () => this.insetsCss,
       lowfx: q.get('lowfx') === '1',
@@ -182,6 +186,23 @@ export class PixelView implements WorldView {
     if (!this.scene) return { px: r.left + r.width / 2, py: r.top + r.height / 2 };
     const p = tileCenterToCanvas(this.scene.cam, x, y);
     return { px: r.left + p.px, py: r.top + p.py };
+  }
+
+  /** Where a sign's star is on screen (client px) and how big it is drawn there (CSS px), or null when that sign has no star here. */
+  glintClient(hotspotId: string): { px: number; py: number; size: number } | null {
+    const at = this.scene?.glintSpotOf(hotspotId);
+    if (!this.scene || !at) return null;
+    const r = this.rect();
+    const p = worldToCanvas(this.scene.cam, at.x, at.y);
+    return { px: r.left + p.px, py: r.top + p.py, size: 7 * this.scene.cssScale };
+  }
+
+  hudInsets(): Insets {
+    return this.insetsCss;
+  }
+
+  claimGlint(hotspotId: string, on: boolean): void {
+    this.scene?.claimGlint(hotspotId, on);
   }
 
   clientToWorld(px: number, py: number): { wx: number; wy: number } | null {
