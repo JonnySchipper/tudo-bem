@@ -13,6 +13,7 @@ import { ambience } from '../ambience';
 import { readShowEnglish, writeShowEnglish } from './dialogueLogic';
 import { correriaFeed, type CounterHandlers } from '../render/pixel/correriaFeed';
 import { askCard, cueFor, endModel, frontOf, glossOn, hud, ladderEnd, ladderNext, ladderStrip, modChips, orderMirror, patienceFrac, trayChips } from './correriaLogic';
+import { HELP_STEPS, HELP_TITLE } from './correriaPracticeLogic';
 
 export interface CorreriaActions {
   send: (m: ClientMsg) => void;
@@ -20,6 +21,10 @@ export interface CorreriaActions {
   closed: () => void;
   /** Jogar de novo */
   again: () => void;
+  /** Set for the first-time practice order (ui/correriaPractice.ts): its "?" starts the practice again. */
+  practice?: { restart: () => void };
+  /** A real shift's "Treino" button (the "?" card and the end card): leave this shift for the practice order. */
+  practiceRound?: () => void;
 }
 
 const SAY_MS = 4200;
@@ -54,6 +59,8 @@ export class CorreriaUI {
   private clearBtn: HTMLButtonElement;
   private enBtn: HTMLButtonElement;
   private quitBtn: HTMLButtonElement;
+  private helpBtn: HTMLButtonElement;
+  private coachEl: HTMLElement | null = null;
   private quitArmed = 0;
   private lastPourSfx = 0;
   private teachId = '';
@@ -65,6 +72,7 @@ export class CorreriaUI {
     this.clearBtn = h('button', { type: 'button', class: 'cr-clear', id: 'cr-clear', onclick: () => this.act({ a: 'clear' }) }, h('span', { class: 'pt' }, 'Limpar'), h('span', { class: 'en' }, 'Empty')) as HTMLButtonElement;
     this.enBtn = h('button', { type: 'button', class: 'cr-en', id: 'cr-en', 'aria-pressed': String(this.showEn), onclick: () => this.toggleEn() }, 'EN') as HTMLButtonElement;
     this.quitBtn = h('button', { type: 'button', class: 'cr-quit', id: 'cr-quit', 'aria-label': 'Sair', onclick: () => this.quit() }, '✕') as HTMLButtonElement;
+    this.helpBtn = h('button', { type: 'button', class: 'cr-help', id: 'cr-help', 'aria-label': 'Como jogar (How to play)', title: 'Como jogar · How to play', onclick: () => this.help() }, '?') as HTMLButtonElement;
     for (const m of MG_MODS.filter((x) => x.group === 'coffee'))
       this.modsEl.append(h('button', { type: 'button', class: 'cr-mod', 'data-mod': m.id, 'aria-pressed': 'false', onclick: () => this.act({ a: 'mod', id: m.id }) }, h('span', { class: 'pt' }, m.pt), h('span', { class: 'en' }, m.en)));
     this.actionsEl.append(this.clearBtn, this.serveBtn);
@@ -125,6 +133,46 @@ export class CorreriaUI {
     return !this.closedFlag;
   }
 
+  /** The practice order runs in the client: server shift messages are not for it. */
+  get practice(): boolean {
+    return !!this.a.practice;
+  }
+
+  /** The last state drawn (the practice coach reads the juice glass from it). */
+  get snapshot(): CorreriaSnap | null {
+    return this.snap;
+  }
+
+  /** The practice coach card, on top of the order strip (the camera keeps the counter above the taller strip). */
+  setCoach(el: HTMLElement | null): void {
+    this.coachEl?.remove();
+    this.coachEl = el;
+    if (el) this.panel.prepend(el);
+    this.measure();
+  }
+
+  /** Back to a clean counter: the next state starts a new shift (Jogar de novo, a practice restart). */
+  fresh(): void {
+    document.body.classList.remove('cr-ended');
+    this.root.querySelector('#mg-end')?.remove();
+    this.panel.classList.remove('ended');
+    this.snap = null;
+    this.ended = false;
+    this.teachId = '';
+    this.bumpShown = false;
+    this.closeTeach();
+    this.mirrorSig = '';
+    this.askSig = '';
+    correriaFeed.end();
+  }
+
+  /** "?": the practice starts over; in a real shift, the how-to card with a way into the practice. */
+  private help(): void {
+    if (this.a.practice) return this.a.practice.restart();
+    const round = this.a.practiceRound;
+    this.mountTeach(HELP_TITLE, [...HELP_STEPS], null, undefined, round ? { pt: '🎓 Fazer o treino', en: 'Practice round', onclick: () => round() } : undefined);
+  }
+
   /** The shift is on (a state came and no end card yet). */
   get live(): boolean {
     return !!this.snap && !this.ended;
@@ -170,7 +218,7 @@ export class CorreriaUI {
 
   private quit(): void {
     const s = this.snap;
-    if (!s || this.ended) return this.destroy();
+    if (!s || this.ended || this.a.practice) return this.destroy();
     const worked = s.stats.served + s.stats.left > 0;
     if (worked && !this.quitArmed) {
       // one more tap within 3 s ends the shift and pays what was served
@@ -290,7 +338,7 @@ export class CorreriaUI {
     document.body.classList.remove('cr-lesson-open');
   }
 
-  private mountTeach(title: Bilingual, steps: Bilingual[], bump: Bilingual | null, ladder?: MenuLadderView): void {
+  private mountTeach(title: Bilingual, steps: Bilingual[], bump: Bilingual | null, ladder?: MenuLadderView, extra?: Bilingual & { onclick: () => void }): void {
     this.closeTeach();
     const grew = !!ladder?.fresh.length;
     const card = h(
@@ -302,6 +350,7 @@ export class CorreriaUI {
       this.ladderEl(ladder),
       bump ? h('p', { class: 'cr-bump' }, bump.pt, h('span', { class: 'gloss' }, bump.en)) : null,
       h('button', { type: 'button', class: 'cr-lesson-ok', onclick: () => this.closeTeach() }, h('span', { class: 'pt' }, 'Entendi'), h('span', { class: 'gloss' }, 'Got it')),
+      extra ? h('button', { type: 'button', class: 'cr-lesson-ok cr-lesson-alt', id: 'cr-help-practice', onclick: extra.onclick }, h('span', { class: 'pt' }, extra.pt), h('span', { class: 'gloss' }, extra.en)) : null,
     );
     this.root.append(card);
     if (steps.length) document.body.classList.add('cr-lesson-open');
@@ -321,7 +370,8 @@ export class CorreriaUI {
         this.mirror.classList.remove('land');
         void this.mirror.offsetWidth;
         this.mirror.classList.add('land');
-        if (c) this.sayIt(c.pt);
+        // the practice order is read on the ticket, not spoken (no baked voice for it)
+        if (c && !this.a.practice) this.sayIt(c.pt);
         break;
       }
       case 'grab':
@@ -451,11 +501,14 @@ export class CorreriaUI {
   private renderTop(snap: CorreriaSnap): void {
     const m = hud(snap);
     this.top.replaceChildren(
-      h('div', { class: 'cr-wavechip' }, h('span', { class: 'pt' }, m.wave), h('span', { class: 'sub' }, `${m.left} clientes`)),
+      this.a.practice
+        ? h('div', { class: 'cr-wavechip' }, h('span', { class: 'pt' }, 'Treino'), h('span', { class: 'sub' }, 'Practice · 1 cliente'))
+        : h('div', { class: 'cr-wavechip' }, h('span', { class: 'pt' }, m.wave), h('span', { class: 'sub' }, `${m.left} clientes`)),
       h('div', { class: 'cr-stat pts', title: 'Pontos' }, h('span', { class: 'k' }, 'Pontos'), h('b', { id: 'cr-points' }, String(m.points))),
       h('div', { class: `cr-stat combo${m.combo >= 2 ? ' hot' : ''}`, title: 'Combo' }, h('span', { class: 'k' }, 'Combo'), h('b', { id: 'cr-combo' }, `x${m.combo}`)),
       h('div', { class: 'cr-stat tips', title: 'Gorjeta' }, h('span', { class: 'k' }, 'Gorjeta'), h('b', { id: 'cr-tips' }, m.tips)),
       h('div', { class: 'cr-lvl', title: 'Nível' }, m.level),
+      this.helpBtn,
       this.enBtn,
       this.quitBtn,
     );
@@ -601,6 +654,7 @@ export class CorreriaUI {
         { class: 'cr-end-actions' },
         h('button', { type: 'button', class: 'cr-again primary', onclick: () => this.again() }, h('span', { class: 'pt' }, 'Jogar de novo'), h('span', { class: 'en' }, 'Play again')),
         h('button', { type: 'button', class: 'cr-leave', onclick: () => this.destroy() }, h('span', { class: 'pt' }, 'Sair'), h('span', { class: 'en' }, 'Leave')),
+        this.a.practiceRound ? h('button', { type: 'button', class: 'cr-leave cr-end-practice', id: 'cr-end-practice', onclick: () => this.a.practiceRound?.() }, h('span', { class: 'pt' }, '? Treino'), h('span', { class: 'en' }, 'Practice')) : null,
       ),
     );
     this.root.append(card);
@@ -609,17 +663,7 @@ export class CorreriaUI {
   }
 
   private again(): void {
-    document.body.classList.remove('cr-ended');
-    this.root.querySelector('#mg-end')?.remove();
-    this.panel.classList.remove('ended');
-    this.snap = null;
-    this.ended = false;
-    this.teachId = '';
-    this.bumpShown = false;
-    this.closeTeach();
-    this.mirrorSig = '';
-    this.askSig = '';
-    correriaFeed.end();
+    this.fresh();
     this.a.again();
   }
 }

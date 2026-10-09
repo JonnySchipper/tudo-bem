@@ -56,6 +56,8 @@ import {
   pourFrame,
   pourVerdict,
   pourZone,
+  practiceShift,
+  PRACTICE_MENU,
   sanitizeAct,
   shiftAct,
   shiftAdvance,
@@ -1016,5 +1018,30 @@ describe('stars, payout and the daily gate numbers', () => {
   it('meters: patience stage, chapa and tip jar fill states map to the art keys', () => {
     expect([1, 0.8, 0.6, 0.3, 0.1, 0].map(patienceStage)).toEqual([4, 4, 3, 2, 1, 0]);
     expect([0, 1, 9, 10, 23, 24, 100].map(tipJarStage)).toEqual([0, 1, 1, 2, 2, 3, 3]);
+  });
+});
+
+describe('practiceShift (the first-time tutorial order)', () => {
+  it('one written order at the counter: a coffee, a French roll and an orange juice, nothing else on the menu', () => {
+    const sh = practiceShift(150);
+    const snap = shiftSnapshot(sh);
+    expect(snap.customers).toHaveLength(1);
+    expect(snap.customers[0]!.state).toBe('front');
+    expect(snap.customers[0]!.mode).toBe('written');
+    expect(snap.customers[0]!.pt).toMatch(/café.*pão.*suco de laranja/);
+    expect([...snap.menu].sort()).toEqual([...PRACTICE_MENU].sort());
+    expect(wantOf(sh)!.lines).toEqual(PRACTICE_MENU.map((itemId) => ({ itemId, qty: 1 })));
+    expect(wantOf(sh)!.mods).toEqual([]);
+  });
+
+  it('built through the real taps it is served (no "Quanto é?") and the shift is over', () => {
+    const sh = practiceShift(150);
+    const ev: CEvent[] = [];
+    build(sh, ev);
+    ev.push(...shiftAct(sh, { a: 'serve' }));
+    expect(ev.some((e) => e.k === 'serve' && e.outcome === 'perfeito')).toBe(true);
+    expect(ev.some((e) => e.k === 'ask')).toBe(false);
+    expect(sh.over).toBe(true);
+    expect(summarizeShift(sh).served).toBe(1);
   });
 });

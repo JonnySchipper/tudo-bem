@@ -248,11 +248,24 @@ body.cr-on .toasts {
   display: none;
 }
 
+/* the order ticket: a white paper slip with dark ink, big enough to read at arm's length on a phone */
 .cr-mirror {
-  min-height: 44px;
+  min-height: 52px;
   display: grid;
-  gap: 4px;
+  gap: 6px;
+  padding: 7px 10px 8px;
+  background: #fffdf7;
+  border: 3px solid var(--cr-ink);
+  border-top: 4px dashed #8a6a48;
+  box-shadow: 0 3px 0 rgba(20, 16, 26, 0.25);
   transform-origin: top center;
+}
+
+.cr-mirror[data-mode='idle'] {
+  background: transparent;
+  border: 2px dashed #b58f5a;
+  box-shadow: none;
+  min-height: 0;
 }
 
 .cr-mirror.land {
@@ -278,16 +291,17 @@ body.cr-on .toasts {
 
 .cr-who {
   font-family: var(--font-pixel);
-  font-size: 14px;
+  font-size: 16px;
   background: var(--cr-ink);
   color: #ffe9a8;
-  padding: 1px 7px;
+  padding: 2px 8px;
 }
 
 .cr-say-pt {
   font-weight: 900;
-  font-size: 19px;
-  line-height: 1.15;
+  font-size: 24px;
+  line-height: 1.2;
+  color: #14101a;
 }
 
 .cr-mirror[data-mode='listening'] .cr-say-pt {
@@ -296,6 +310,8 @@ body.cr-on .toasts {
 
 .cr-line .en {
   flex-basis: 100%;
+  font-size: 16px;
+  color: #3a322e;
 }
 
 .cr-replay {
@@ -322,7 +338,7 @@ body.cr-on .toasts {
 }
 
 .cr-patience {
-  height: 6px;
+  height: 8px;
   background: #d9c6a6;
   border: 1px solid var(--cr-ink);
   overflow: hidden;
@@ -1404,12 +1420,17 @@ body.cr-on .toasts {
   }
   .cr-mirror {
     min-height: 0;
+    padding: 5px 8px 6px;
+    gap: 4px;
+  }
+  .cr-who {
+    font-size: 14px;
   }
   .cr-say-pt {
-    font-size: 16px;
+    font-size: 20px;
   }
   .cr-line .en {
-    font-size: 0.72em;
+    font-size: 14px;
   }
   .cr-build {
     gap: 4px 6px;
@@ -1514,7 +1535,10 @@ body.cr-on .toasts {
     padding: 1px 6px;
   }
   .cr-say-pt {
-    font-size: 15px;
+    font-size: 17px;
+  }
+  .cr-mirror {
+    padding: 3px 8px 4px;
   }
   .cr-top {
     padding: 2px 5px;
@@ -1551,5 +1575,265 @@ body.cr-on .toasts {
   }
   .cr-pop {
     opacity: 1;
+  }
+}
+
+/* ---------------------------------------------------------------- first-time practice (ui/correriaPractice.ts) and the "?" */
+
+.cr-help {
+  align-self: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 6px;
+  background: var(--cr-gold);
+  color: #14101a;
+  border: 2px solid #14101a;
+  font-weight: 900;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.cr-end-actions {
+  flex-wrap: wrap;
+}
+
+.cr-lesson-alt {
+  margin-left: 6px;
+  background: var(--cr-gold);
+  color: #14101a;
+}
+
+.cr-lesson-alt .gloss {
+  color: #4a3410;
+}
+
+/* the coach card: on top of the order strip, one step at a time, English always under the Portuguese */
+.cr-coach {
+  display: grid;
+  gap: 4px;
+  padding: 7px 10px 8px;
+  background: var(--cr-ink);
+  color: #fff6dc;
+  border: 3px solid #14101a;
+  box-shadow: inset 0 0 0 2px var(--cr-gold);
+  animation: cr-lesson-in 0.25s ease-out;
+}
+
+.cr-root .cr-coach .gloss {
+  color: #9fe7b4;
+}
+
+.cr-coach-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cr-coach-n {
+  font-family: var(--font-pixel);
+  font-weight: 400;
+  font-size: 14px;
+  padding: 1px 6px;
+  color: #14101a;
+  background: var(--cr-gold);
+}
+
+.cr-coach-kick {
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  color: #ffe9a8;
+}
+
+.cr-root .cr-coach-kick .gloss {
+  display: inline;
+  margin-left: 6px;
+  font-family: var(--font-body);
+}
+
+.cr-coach-title {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.15;
+}
+
+.cr-root .cr-coach-title .gloss {
+  display: inline;
+  margin-left: 8px;
+  font-size: 15px;
+}
+
+.cr-coach-body,
+.cr-coach-hint {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.cr-coach-body .pt {
+  display: block;
+  font-weight: 800;
+}
+
+.cr-coach-hint {
+  padding: 3px 8px;
+  color: #14101a;
+  background: #ffe9a8;
+  border-left: 5px solid var(--cr-gold);
+}
+
+.cr-coach-hint .pt {
+  display: block;
+}
+
+.cr-root .cr-coach-hint .gloss {
+  color: #5a4210;
+}
+
+.cr-coach-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cr-coach-btn {
+  padding: 6px 14px;
+  border: 3px solid #14101a;
+  background: #fff6dc;
+  color: var(--cr-ink);
+  font-weight: 900;
+  font-size: 15px;
+  line-height: 1.1;
+  cursor: pointer;
+  text-align: center;
+}
+
+.cr-coach-btn.next {
+  background: var(--cr-green);
+  color: #fff;
+}
+
+.cr-root .cr-coach-btn .gloss {
+  display: block;
+  color: inherit;
+  opacity: 0.85;
+}
+
+.cr-coach-btn.skip {
+  margin-left: auto;
+  padding: 2px 8px;
+  font-size: 12px;
+  border-width: 2px;
+  background: transparent;
+  color: #fff6dc;
+  border-color: #6a5a80;
+}
+
+.cr-root .cr-coach-btn.skip .gloss {
+  display: inline;
+  margin-left: 4px;
+}
+
+.cr-coach-dots {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cr-coach-dots li {
+  flex: 1;
+  height: 5px;
+  background: #4a3f5c;
+}
+
+.cr-coach-dots li.done {
+  background: var(--cr-green);
+}
+
+.cr-coach-dots li.on {
+  background: var(--cr-gold);
+}
+
+/* what to tap now: a gold ring that breathes, and a finger under the counter taps */
+.cr-root .cr-coach-lit,
+.cr-hot .cr-coach-lit {
+  outline: 3px solid #ffd84a;
+  outline-offset: 2px;
+  box-shadow:
+    0 0 0 6px rgba(255, 216, 74, 0.35),
+    0 0 22px 8px rgba(255, 216, 74, 0.55);
+  z-index: 3;
+}
+
+.cr-root .cr-coach-lit:not(.cr-mirror) {
+  animation: cr-coach-breathe 0.9s ease-in-out infinite;
+}
+
+.cr-hot .cr-coach-lit::after {
+  content: '👆';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  font-size: 26px;
+  line-height: 1;
+  filter: drop-shadow(0 2px 0 #14101a);
+  transform: translate(-50%, 4px);
+  animation: cr-coach-tap 0.9s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes cr-coach-breathe {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 4px rgba(255, 216, 74, 0.3),
+      0 0 14px 4px rgba(255, 216, 74, 0.45);
+  }
+  50% {
+    box-shadow:
+      0 0 0 8px rgba(255, 216, 74, 0.45),
+      0 0 26px 10px rgba(255, 216, 74, 0.65);
+  }
+}
+
+@keyframes cr-coach-tap {
+  0%,
+  100% {
+    transform: translate(-50%, 4px);
+  }
+  50% {
+    transform: translate(-50%, -4px);
+  }
+}
+
+@media (max-width: 640px) {
+  .cr-coach {
+    padding: 5px 8px 6px;
+    gap: 3px;
+  }
+  .cr-coach-title {
+    font-size: 17px;
+  }
+  .cr-root .cr-coach-title .gloss {
+    display: block;
+    margin: 0;
+    font-size: 13px;
+  }
+  .cr-coach-body,
+  .cr-coach-hint {
+    font-size: 14px;
+  }
+  .cr-coach-btn {
+    padding: 4px 10px;
+    font-size: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cr-coach,
+  .cr-root .cr-coach-lit:not(.cr-mirror),
+  .cr-hot .cr-coach-lit::after {
+    animation: none;
   }
 }

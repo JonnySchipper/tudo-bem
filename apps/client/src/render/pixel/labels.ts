@@ -61,6 +61,14 @@ export interface GuideItem {
   x: number;
   y: number;
   label: string;
+  /** English line under the label */
+  en?: string;
+  /** 'play': a game's start spot (gold sign + a glowing ring on `floor`); 'door': a sign under a street door, no arrow */
+  kind?: 'play' | 'door';
+  /** first visit: "Comece aqui! · Start here!" over the sign */
+  first?: boolean;
+  /** CSS px of the target tile's centre on the floor, and a tile's size in CSS px (the ring of a 'play' guide) */
+  floor?: { x: number; y: number; tile: number };
 }
 
 /** The manifest fields the labels need (`manifest.images`), so this file does not depend on manifest.ts. */
@@ -213,6 +221,9 @@ interface GuideEl {
   root: HTMLElement;
   label: HTMLElement;
   arrow: HTMLElement;
+  /** the glowing ring on the floor of a 'play' guide */
+  spot: HTMLElement | null;
+  kind: string;
   text: string;
   labelW: number;
   labelH: number;
@@ -607,7 +618,22 @@ export class LabelLayer {
     const arrow = document.createElement('div');
     arrow.className = 'wl-guide-arrow';
     root.append(label, arrow);
-    return { root, label, arrow, text: '', labelW: 0, labelH: 0, transform: '', dir: '' };
+    return { root, label, arrow, spot: null, kind: '', text: '', labelW: 0, labelH: 0, transform: '', dir: '' };
+  }
+
+  /** Label text: the plain line, or (a sign) the kicker, the Portuguese and its English. */
+  private fillGuideLabel(el: GuideEl, g: GuideItem): void {
+    if (!g.en && !g.first) {
+      el.label.textContent = g.label;
+      return;
+    }
+    const span = (cls: string, text: string) => {
+      const s = document.createElement('span');
+      s.className = cls;
+      s.textContent = text;
+      return s;
+    };
+    el.label.replaceChildren(...(g.first ? [span('wl-guide-kick', 'Comece aqui! · Start here!')] : []), span('wl-guide-pt', g.label), ...(g.en ? [span('wl-guide-en', g.en)] : []));
   }
 
   private updateGuides(items: readonly GuideItem[], view: { w: number; h: number }, insets: GuideInsets): void {
@@ -615,6 +641,7 @@ export class LabelLayer {
     const d = diffIds(this.guides.keys(), seen.keys());
     for (const k of d.remove) {
       this.guides.get(k)?.root.remove();
+      this.guides.get(k)?.spot?.remove();
       this.guides.delete(k);
     }
     const arrowW = this.cssPx('--wl-arrow-w', 32);
@@ -626,9 +653,19 @@ export class LabelLayer {
         this.guides.set(g.key, el);
         this.root.appendChild(el.root);
       }
-      if (el.text !== g.label) {
-        el.text = g.label;
-        el.label.textContent = g.label;
+      const kind = `${g.kind ?? ''}${g.first ? ' first' : ''}`;
+      if (el.kind !== kind) {
+        el.kind = kind;
+        el.root.classList.toggle('wl-guide-play', g.kind === 'play');
+        el.root.classList.toggle('wl-guide-door', g.kind === 'door');
+        el.root.classList.toggle('wl-guide-first', !!g.first);
+        el.text = '';
+      }
+      const text = `${g.label}\n${g.en ?? ''}\n${g.first ? 1 : 0}`;
+      if (el.text !== text) {
+        el.text = text;
+        el.label.style.minWidth = '';
+        this.fillGuideLabel(el, g);
         const w = el.label.offsetWidth;
         el.labelW = w % 2 ? w + 1 : w;
         el.labelH = el.label.offsetHeight;
@@ -637,6 +674,32 @@ export class LabelLayer {
       const pin = pinGuide(g, view, insets, 4);
       const ax = Math.round(pin.x);
       const ay = Math.round(pin.y);
+      // the start spot of a game: a ring glowing on its floor tile, under the arrow (only while the tile is on screen)
+      if (g.kind === 'play' && g.floor && !pin.off) {
+        if (!el.spot) {
+          el.spot = document.createElement('div');
+          el.spot.className = 'wl-spot';
+          this.root.insertBefore(el.spot, this.root.firstChild);
+        }
+        el.spot.style.display = '';
+        el.spot.style.setProperty('--wl-tile', px(Math.max(24, Math.round(g.floor.tile))));
+        el.spot.style.transform = `translate(${Math.round(g.floor.x)}px, ${Math.round(g.floor.y)}px)`;
+      } else if (el.spot) el.spot.style.display = 'none';
+      // a door sign stays on its door: no arrow, and nothing pinned to the screen edge
+      if (g.kind === 'door') {
+        el.root.style.display = pin.off ? 'none' : '';
+        el.arrow.style.display = 'none';
+        el.label.style.left = px(Math.round(Math.min(Math.max(-el.labelW / 2, 4 - ax), view.w - 4 - el.labelW - ax)));
+        el.label.style.top = px(4);
+        const tf = `translate(${ax}px, ${ay}px)`;
+        if (tf !== el.transform) {
+          el.transform = tf;
+          el.root.style.transform = tf;
+        }
+        continue;
+      }
+      el.root.style.display = '';
+      el.arrow.style.display = '';
       // the arrow box is placed so its tip (bottom-centre before rotation) is at the anchor; rotation turns it about the tip
       const rot = GUIDE_ROTATION[pin.dir];
       // the label sits on the far side of the arrow body from the tip

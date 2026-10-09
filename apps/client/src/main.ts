@@ -108,6 +108,8 @@ import { closeConversa, isConversaOpen, openConversa, setConversaLineSink } from
 import { openCounter } from './ui/padariaCounter';
 import { BoutUI } from './ui/bout';
 import { CorreriaUI } from './ui/correria';
+import { CorreriaPractice } from './ui/correriaPractice';
+import { PRACTICE_KEY, practiceNeeded } from './ui/correriaPracticeLogic';
 import { correriaFeed } from './render/pixel/correriaFeed';
 import { boutFeed } from './render/pixel/boutFeed';
 import { speak, stopSpeaking, unlockSpeech } from './audio';
@@ -152,13 +154,38 @@ let started = false;
 
 /** Correria no Balcão: the overlay and the world's counter open when the first shift state arrives. */
 function newCorreriaUI() {
-  return new CorreriaUI({
+  const ui: CorreriaUI = new CorreriaUI({
     send: (m) => net.send(m),
     closed: () => {
-      correriaUi = null;
+      if (correriaUi === ui) correriaUi = null;
     },
-    again: startMinigame,
+    // Jogar de novo is always a real shift (the practice is only in front of the first one)
+    again: () => net.send({ t: 'mg', action: 'start' }),
+    practiceRound: () => {
+      // "?" → Treino in a real shift: the server ends this one (what was served is paid), then the practice order opens
+      if (ui.live) net.send({ t: 'mg', action: 'quit' });
+      ui.destroy();
+      startPractice();
+    },
   });
+  return ui;
+}
+
+/** The first-time tutorial: a practice order run in the client (ui/correriaPractice.ts). It opens once, before the first real shift. */
+function startPractice() {
+  closeDialogue();
+  correriaUi?.destroy();
+  const baker = game.liveNpcs(now()).some((n) => n.id === 'graca') ? 'graca' : 'carlos';
+  const p: CorreriaPractice = new CorreriaPractice(baker, {
+    start: () => {
+      localStorage.setItem(PRACTICE_KEY, '1');
+      net.send({ t: 'mg', action: 'start' });
+    },
+    closed: () => {
+      if (correriaUi === p.ui) correriaUi = null;
+    },
+  });
+  correriaUi = p.ui;
 }
 
 function failClearMinigame() {
@@ -525,6 +552,7 @@ function openShop() {
 
 function startMinigame() {
   closeDialogue();
+  if (practiceNeeded(localStorage.getItem(PRACTICE_KEY), !!game.profile?.tutorial.meveum)) return startPractice();
   net.send({ t: 'mg', action: 'start' });
 }
 
@@ -560,6 +588,12 @@ function updateGuides() {
   if (!p || !r || isDialogueBoxOpen() || boutUi?.open) return;
   const t = p.tutorial;
   const add = (g: Guide | null) => g && renderer.guides.push(g);
+  // the bakery game: a glowing start spot and a sign on the counter rail, "Comece aqui!" until the first shift
+  const playSpot = (en: string) => {
+    const g = guideAt('prop', 'trilho', 128, 'Jogar: Padaria');
+    const first = t.carlos && practiceNeeded(localStorage.getItem(PRACTICE_KEY), !!t.meveum);
+    return g ? { ...g, en, kind: 'play' as const, first } : null;
+  };
   if (r.room === 'aeroporto') {
     // the airport tutorial: one arrow, on whatever the current step needs
     const g = airportGuide();
@@ -576,6 +610,9 @@ function updateGuides() {
     if (t.meveum) add(guideAt('portal', 'rua_leste_1', 60, 'Academia: leste →'));
     // an owner's shop is behind the same door: their name over it, every visit
     if (t.carlos && p.padaria) add(guideAt('portal', 'praca_padaria', 110, `${p.padaria.name} ↑`));
+    // the Padaria's own sign on its door, every visit: the bakery game is inside
+    const door = guideAt('portal', 'praca_padaria', 0, '🥖 Padaria · Jogar no balcão');
+    if (door) add({ ...door, en: 'Bakery · Play the bakery game inside', kind: 'door' });
   } else if (r.room === 'rua_leste') {
     if (t.meveum) add(guideAt('portal', 'praca_academia', 110, 'Academia do Bairro →'));
     else if (!t.carlos) add(guideAt('portal', 'leste_rua_1', 60, '← Padaria: pela Rua'));
@@ -595,7 +632,7 @@ function updateGuides() {
   } else if (r.room === 'padaria' && r.padaria) {
     // a player-owned padaria: no baker on duty, the owner works the counter
     if (r.padaria.owner) {
-      add(guideAt('prop', 'trilho', 128, 'Seu balcão: Correria'));
+      add(playSpot('Play the bakery · your counter'));
       // on the vaso itself (its interact tile is where you stand, so an arrow there points at your own head)
       const vaso = game.roomDef?.props.find((q) => q.id === 'padaria_porta_fundar');
       if (vaso) add({ x: vaso.x, y: vaso.y, lift: 60, label: 'Melhorias' });
@@ -609,8 +646,8 @@ function updateGuides() {
     const baker = game.liveNpcs(now()).find((q) => q.id === 'carlos' || q.id === 'graca');
     if (baker?.id === 'graca') add(guideAt('npc', 'graca', 130, t.carlos ? 'Falar com Dona Graça' : 'Fale com a Dona Graça'));
     else add(guideAt('npc', 'carlos', 130, t.carlos ? 'Falar com Carlos' : 'Fale com o Seu Carlos'));
-    if (t.carlos && !t.meveum) add(guideAt('prop', 'trilho', 128, 'Me vê um…'));
-    else if (t.carlos && t.meveum && !t.chapeu) add(guideAt('portal', 'padaria_praca', 110, '← Rua'));
+    add(playSpot('Play the bakery'));
+    if (t.carlos && t.meveum && !t.chapeu) add(guideAt('portal', 'padaria_praca', 110, '← Rua'));
   } else if (r.room === 'academia') {
     // one step at a time; the exit arrow only once the gi is bought (the kimono arrow and "← Rua" sat on top of each other by the lockers)
     if (!p.giOwned) add(guideAt('prop', 'vestiario', 160, '1 · Kimono aqui'));
@@ -949,6 +986,8 @@ net.on((m: ServerMsg) => {
       }
       break;
     case 'mg':
+      // The practice order is local: the end of a shift left for it (Treino) must not land on its counter.
+      if (correriaUi?.open && correriaUi.practice) break;
       // A lost-shift reply to a resync that arrives with no counter open has nothing to show.
       if (!correriaUi?.open) {
         if (m.phase !== 'state') break;

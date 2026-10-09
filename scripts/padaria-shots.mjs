@@ -113,7 +113,10 @@ async function run(name) {
     await shot('balcao_da_casa');
     await page.keyboard.press('Escape');
     await sleep(300);
-    await page.evaluate(() => window.__tb.interact({ prop: 'trilho' }));
+    await page.evaluate(() => {
+      localStorage.setItem('tb_cr_practice', '1');
+      window.__tb.interact({ prop: 'trilho' });
+    });
     await sleep(4000);
     await shot('correria_owned');
     if (errors.length) console.log('  ! page errors:', errors);

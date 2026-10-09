@@ -931,6 +931,56 @@ export function newShift(ctx: ShiftCtx): Shift {
   };
 }
 
+/** The practice order of the first-time tutorial: café, pão francês and suco, one item per station. */
+export const PRACTICE_MENU: readonly string[] = ['cafe', 'pao', 'suco_de_laranja'];
+/** Practice patience: the client tops it up every tick, so the customer never walks out. */
+export const PRACTICE_PATIENCE_MS = 100_000;
+
+/**
+ * The first-time tutorial's shift: one written order (a coffee, a French roll, an orange juice) already at the counter, no queue behind it,
+ * level Verde (no "Quanto é?"). The client runs it locally with `shiftAct` / `shiftAdvance`; it never reaches the server and pays no RV.
+ */
+export function practiceShift(seed: number, baker: 'carlos' | 'graca' = 'carlos'): Shift {
+  const sh = newShift({ seed, level: 0, unlocked: [], shifts: FULL_MENU_SHIFTS, menuIds: PRACTICE_MENU, saturday: false, minute: 9 * 60, baker, regulars: [] });
+  const lines: MgOrderLine[] = PRACTICE_MENU.map((itemId) => ({ itemId, qty: 1 }));
+  const [a, b, c] = lines as [MgOrderLine, MgOrderLine, MgOrderLine];
+  const order: MgOrder = {
+    customer: 'Ana',
+    lines,
+    mods: [],
+    pt: `Bom dia! Me vê ${linePt(a)}, ${linePt(b)} e ${linePt(c)}, por favor.`,
+    en: `Good morning! I’ll have ${lineEn(a)}, ${lineEn(b)} and ${lineEn(c)}, please.`,
+    timeMs: orderTimeMs(lines, []),
+    authored: true,
+  };
+  sh.customers.push({
+    id: sh.nextId++,
+    who: { key: 'cpu:Ana', name: 'Ana', fem: true },
+    regular: false,
+    special: false,
+    greet: null,
+    wave: 0,
+    mode: 'written',
+    said: { pt: order.pt, en: order.en },
+    order,
+    follow: null,
+    followAt: null,
+    followFired: false,
+    state: 'front',
+    arrivedAt: 0,
+    readyAt: 0,
+    frontAt: 0,
+    patienceMax: PRACTICE_PATIENCE_MS,
+    patience: PRACTICE_PATIENCE_MS,
+    mistakes: 0,
+    replays: 0,
+    ask: null,
+  });
+  // nobody else comes: the shift is over once Ana is served
+  sh.spawned = CORRERIA_TOTAL;
+  return sh;
+}
+
 function mulberry(seed: number): Rng {
   let a = seed >>> 0;
   return () => {

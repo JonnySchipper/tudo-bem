@@ -18,6 +18,15 @@ export interface Guide {
   y: number;
   lift: number;
   label: string;
+  /** English line under the label (a sign for learners). */
+  en?: string;
+  /**
+   * 'play': a game's start spot (a glowing ring on the floor tile, a gold sign over the bobbing arrow);
+   * 'door': a shop sign on a street door (no arrow, the plate sits just under the door).
+   */
+  kind?: 'play' | 'door';
+  /** First visit: a "Comece aqui! · Start here!" kicker and a stronger pulse. */
+  first?: boolean;
 }
 
 /**
