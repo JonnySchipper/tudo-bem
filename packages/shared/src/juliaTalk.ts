@@ -22,5 +22,23 @@ export const JULIA_TREE: { q: Bilingual; a: Bilingual }[] = [
 
 /** Her opener while the box has not met her yet (the client adds the player's name on screen; it is not spoken). */
 export const JULIA_INTRO: Bilingual = { pt: 'Oi, {nome}! Eu sou a Júlia, guia da praça. Posso te ajudar?', en: 'Hi! I’m Júlia, the square’s guide. Can I help you?' };
-/** When the greeting already introduced her. */
+/** When the greeting already introduced her. Already voiced, so a return visit can reuse it. */
 export const JULIA_INTRO_FROM_GREETING: Bilingual = { pt: 'Claro! O que você quer saber?', en: 'Of course! What do you want to know?' };
+
+/** Browser key for “this profile has already heard Júlia introduce herself.” */
+export const juliaMetKey = (profileId: string): string => `tb_julia_met:${profileId}`;
+
+/**
+ * True after the first meeting on a profile.
+ * `bond` is the friendship points already saved (the first talk still has 0 when the line is chosen).
+ * `remembered` is the same profile's browser flag, set when that intro was shown.
+ */
+export function juliaAlreadyMet(input?: { bond?: number; remembered?: boolean } | number): boolean {
+  if (typeof input === 'number') return input > 0;
+  return input?.remembered === true || (input?.bond ?? 0) > 0;
+}
+
+/** Help-menu opener. After the first meeting, reuse the voiced follow-up instead of “Eu sou a Júlia”. */
+export function juliaHelpOpener(alreadyMet: boolean): Bilingual {
+  return alreadyMet ? JULIA_INTRO_FROM_GREETING : JULIA_INTRO;
+}

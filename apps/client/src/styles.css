@@ -902,6 +902,15 @@ button:disabled {
   font-size: 0.85em;
 }
 
+/* "?" replays the kitnet guide: looks like the ✕ next to it */
+.decor .decor-help {
+  background: transparent;
+  box-shadow: none;
+  border-color: transparent;
+  color: var(--ink-soft);
+  font-weight: 800;
+}
+
 .decor .tabs {
   display: flex;
   gap: 6px;

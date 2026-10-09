@@ -7,6 +7,7 @@ import WebSocket from 'ws';
 import { DEFAULT_APPEARANCE, OPS_SMOKE_EMAIL, WS_MAX_PAYLOAD, type ServerMsg } from '@tudobem/shared';
 import { createApp } from './app.js';
 import type { OpsSmokeConfig } from './opsSmoke.js';
+import { openDatabase } from './sqliteDb.js';
 
 type App = ReturnType<typeof createApp>;
 
@@ -119,7 +120,7 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     c.send({ t: 'hello' });
     expect((await c.waitFor('welcome')).profile.id).toBe(welcome.profile.id);
 
-    const saved = fs.readFileSync(path.join(dir, 'accounts.json'), 'utf8');
+    const saved = (openDatabase(dir).prepare('SELECT json FROM accounts').all() as { json: string }[]).map((r) => r.json).join('\n');
     expect(saved).not.toContain('pao-na-chapa-1');
     expect(saved).toContain('scrypt$');
     c.ws.close();
