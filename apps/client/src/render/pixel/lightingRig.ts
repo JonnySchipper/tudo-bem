@@ -12,6 +12,7 @@ import { rgbToInt } from './lighting';
 import { hourLook, type SceneLook } from './dayNight';
 import type { ShadowLayer } from './shadowLayer';
 import { v5on } from './v5flags';
+import { litGrade, type RoofHall } from './roofLights';
 
 /** A light colour pulled toward white by `1 - k`: the multiply tint of an amber pool on the night grade. */
 export function warmPool(color: number, k: number): number {
@@ -38,6 +39,8 @@ export interface Light {
   delay?: number;
   /** V5: world px below the light where its reflection in wet pavement appears (a lamp head mirrored over the ground); unset = no reflection */
   mirror?: number;
+  /** only the additive halo, no hole in the grade or the night (a backlit sign inside an already lit hall): three fewer stamps a frame */
+  halo?: boolean;
 }
 
 export class LightingRig {
@@ -68,6 +71,8 @@ export class LightingRig {
   private reflSprites: Phaser.GameObjects.Image[] = [];
   /** scratch for `apply`: (light, strength, sx, sy, px) per lit light, flat */
   private litScratch: (Light | number)[] = [];
+  /** the lit hall of a roofed open-air map (the airport terminal), set by the scene; filled lighter in the grade and the darkness */
+  roof: RoofHall | null = null;
 
   constructor(
     private readonly scene: Phaser.Scene,
@@ -96,6 +101,52 @@ export class LightingRig {
   screen<G extends Phaser.GameObjects.GameObject>(o: G): G {
     this.main.ignore(o);
     return o;
+  }
+
+  /**
+   * The roofed hall in fx-camera px, clipped to the screen, with each band's 0..1 lift (`gain` x its bank's switch); null when there is no
+   * hall, it is off screen, or no band is lit (by day: the plain full-screen fills, exactly as without a roof).
+   */
+  private hallOnScreen(look: SceneLook, toScreen: (wx: number, wy: number) => [number, number]): { x0: number; x1: number; tint: number; bands: { y0: number; y1: number; k: number }[] } | null {
+    const r = this.roof;
+    if (!r || !r.bands.length) return null;
+    const W = this.scene.scale.width;
+    const H = this.scene.scale.height;
+    const [ax, ay] = toScreen(r.x0, r.bands[0].y0);
+    const [bx, by] = toScreen(r.x1, r.bands[r.bands.length - 1].y1);
+    const x0 = Math.max(0, Math.round(ax));
+    const x1 = Math.min(W, Math.round(bx));
+    if (x1 <= x0 || by <= 0 || ay >= H) return null;
+    let any = false;
+    const bands: { y0: number; y1: number; k: number }[] = [];
+    for (const b of r.bands) {
+      const y0 = Math.max(0, Math.round(toScreen(0, b.y0)[1]));
+      const y1 = Math.min(H, Math.round(toScreen(0, b.y1)[1]));
+      if (y1 <= y0) continue;
+      const k = r.gain * look.lampOn(b.delay);
+      if (k > 0.001) any = true;
+      bands.push({ y0, y1, k });
+    }
+    return any && bands.length ? { x0, x1, tint: r.tint, bands } : null;
+  }
+
+  /**
+   * Fill a full-screen render texture in pieces: the hall's bands with their own colour and alpha, everything around them with the base.
+   * The pieces tile the screen, so this costs the same fill as one `fill()` (a few more draw calls), not an extra pass.
+   */
+  private fillSplit(rt: Phaser.GameObjects.RenderTexture, hall: NonNullable<ReturnType<LightingRig['hallOnScreen']>>, base: number, alpha: number, band: (k: number) => [number, number]): void {
+    const W = this.scene.scale.width;
+    const H = this.scene.scale.height;
+    const top = hall.bands[0].y0;
+    const bottom = hall.bands[hall.bands.length - 1].y1;
+    if (top > 0) rt.fill(base, alpha, 0, 0, W, top);
+    if (bottom < H) rt.fill(base, alpha, 0, bottom, W, H - bottom);
+    if (hall.x0 > 0) rt.fill(base, alpha, 0, top, hall.x0, bottom - top);
+    if (hall.x1 < W) rt.fill(base, alpha, hall.x1, top, W - hall.x1, bottom - top);
+    for (const b of hall.bands) {
+      const [c, a] = band(b.k);
+      if (a > 0.001) rt.fill(c, a, hall.x0, b.y0, hall.x1 - hall.x0, b.y1 - b.y0);
+    }
   }
 
   /** Create glow sprites for lights added since the last call, and drop the surplus. */
@@ -129,6 +180,7 @@ export class LightingRig {
     this.castShadows = [];
     this.panes = [];
     this.patches = [];
+    this.roof = null;
     this.syncLights();
   }
 
@@ -153,7 +205,10 @@ export class LightingRig {
       if (l.kind === 'car') return look.glow * (l.live ?? 0);
       return l.delay === undefined ? look.glow : look.lampOn(l.delay);
     };
-    this.grade.fill(rgbToInt(look.grade), 1);
+    const gradeInt = rgbToInt(look.grade);
+    const hall = this.hallOnScreen(look, toScreen);
+    if (hall) this.fillSplit(this.grade, hall, gradeInt, 1, (k) => [litGrade(gradeInt, hall.tint, k), 1]);
+    else this.grade.fill(gradeInt, 1);
     this.fill.setFillStyle(rgbToInt(look.fill.color), look.fill.alpha);
     for (const o of this.litOverlays) {
       const d = o.getData('delay') as number | undefined;
@@ -171,7 +226,10 @@ export class LightingRig {
       return true;
     });
     this.dark.clear();
-    if (dark > 0.001) this.dark.fill(0x0b1030, dark);
+    if (dark > 0.001) {
+      if (hall) this.fillSplit(this.dark, hall, 0x0b1030, dark, (k) => [0x0b1030, dark * (1 - k)]);
+      else this.dark.fill(0x0b1030, dark);
+    }
     // Every stamp on a render texture is a capture pass plus a full-screen blit, so the lit lights are collected first and stamped in three batches
     // (grade erase, warm re-tint, darkness erase) instead of three captures per light.
     const lit = this.litScratch;
@@ -182,7 +240,7 @@ export class LightingRig {
       if (!g) return;
       const [sx, sy] = toScreen(l.x, l.y);
       const px = (l.r * 2 * zoom) / 128;
-      if (s > 0.001) lit.push(l, s, sx, sy, px);
+      if (s > 0.001 && !l.halo) lit.push(l, s, sx, sy, px);
       const glowAlpha = l.glow ?? (l.kind === 'window' ? 0.3 : l.kind === 'stall' ? 0.3 : l.kind === 'player' ? 0.22 : l.kind === 'car' ? 0.3 : 0.42);
       g.setPosition(sx, sy).setScale(px, px * l.squash).setTint(l.color).setAlpha(s * glowAlpha);
       // wet pavement mirrors the lamp: a tall, narrow, shimmering streak below the foot of the pole
