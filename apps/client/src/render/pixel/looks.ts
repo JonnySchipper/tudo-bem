@@ -244,6 +244,10 @@ export const NPC_STYLES: Record<NpcId, NpcStyle> = {
     appearance: base({ body: 'forte', skin: 3, hair: 'raspado', hairColor: 0, top: 'camisa', topColor: 10, bottom: 'calca', bottomColor: 10, shoes: 2, face: 'marcante', extra: 'nenhum', idle: 'bracos' }),
     hat: { layer: 'hat_bone_verde', color: '#2e3550', accent: '#f2c230' },
   },
+  // The arrivals hall (the first room). Comissária Lia: bun, earrings, the airline's uniform shirt and skirt.
+  comissaria: {
+    appearance: base({ body: 'medio', skin: 2, hair: 'coque', hairColor: 2, top: 'camisa', topColor: 7, bottom: 'saia', bottomColor: 10, shoes: 1, face: 'doce', extra: 'brincos', idle: 'bracos' }),
+  },
 };
 
 /**

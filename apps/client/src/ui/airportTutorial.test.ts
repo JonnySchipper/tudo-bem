@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { DIARY_WORDS, HOTSPOTS, ROOMS, TUTORIAL_STEPS, greetingFor, type TutorialStep } from '@tudobem/shared';
+import { DIARY_WORDS, HOTSPOTS, ROOMS, greetingFor } from '@tudobem/shared';
 import { AIRPORT_STEPS, airportDone, nextAirportStep, passportChips, thanksFor } from './airportTutorialLogic';
+import { DESEMB_STEPS } from './desembarqueLogic';
 
-const tutorial = (on: TutorialStep[] = []) => Object.fromEntries(TUTORIAL_STEPS.map((s) => [s.id, on.includes(s.id)])) as Record<TutorialStep, boolean>;
 const word = (area: string, source: string) => DIARY_WORDS.find((w) => w.area === area && w.source === source)!.id;
 
 describe('the airport tutorial', () => {
-  it('walks ten steps, each pointing at something that is in the airport', () => {
-    expect(AIRPORT_STEPS.map((s) => s.id)).toEqual(['andar', 'ler', 'celia', 'foto', 'diario', 'passaporte', 'sentar', 'acenar', 'lanche', 'onibus']);
+  it('walks five steps, each pointing at something that is in the airport', () => {
+    expect(AIRPORT_STEPS.map((s) => s.id)).toEqual(['celia', 'foto', 'passaporte', 'lanche', 'onibus']);
     const room = ROOMS.aeroporto;
     for (const s of AIRPORT_STEPS) {
       const g = s.guide;
@@ -21,25 +21,32 @@ describe('the airport tutorial', () => {
     }
   });
 
-  it('reads what the server already knows: walked, the camera from Célia, a Chegada sign and photo, sat, waved', () => {
-    const fresh = { tutorial: tutorial(), arrivalIntroDone: false, diary: [] };
+  it('does not repeat what the arrivals hall already taught', () => {
+    const hall = new Set<string>(DESEMB_STEPS.map((s) => s.id));
+    for (const s of AIRPORT_STEPS) expect(hall.has(s.id), s.id).toBe(false);
+    // walking, reading, the Diário, sitting and waving were airport steps before the hall
+    for (const gone of ['andar', 'ler', 'diario', 'sentar', 'acenar']) expect(AIRPORT_STEPS.some((s) => s.id === gone)).toBe(false);
+  });
+
+  it('reads what the server already knows: the camera from Célia, a Chegada photo', () => {
+    const fresh = { arrivalIntroDone: false, diary: [] };
     expect([...airportDone(fresh, {})]).toEqual([]);
-    expect(nextAirportStep(airportDone(fresh, {}))?.id).toBe('andar');
-    const along = { tutorial: tutorial(['andar', 'sentar', 'acenar']), arrivalIntroDone: true, diary: [word('chegada', 'reading'), word('chegada', 'camera')] };
-    expect([...airportDone(along, {})].sort()).toEqual(['acenar', 'andar', 'celia', 'foto', 'ler', 'sentar']);
-    expect(nextAirportStep(airportDone(along, {}))?.id).toBe('diario');
-    // a word from another area is not a Chegada word
+    expect(nextAirportStep(airportDone(fresh, {}))?.id).toBe('celia');
+    const along = { arrivalIntroDone: true, diary: [word('chegada', 'reading'), word('chegada', 'camera')] };
+    expect([...airportDone(along, {})].sort()).toEqual(['celia', 'foto']);
+    expect(nextAirportStep(airportDone(along, {}))?.id).toBe('passaporte');
+    // a word from another area is not a Chegada photo
     expect(airportDone({ ...fresh, diary: [word('praca', 'camera')] }, {}).has('foto')).toBe(false);
   });
 
   it('keeps the page-only steps in the flags, and is done once the bus is taken', () => {
-    const all = { tutorial: tutorial(['andar', 'sentar', 'acenar']), arrivalIntroDone: true, diary: [word('chegada', 'reading'), word('chegada', 'camera')] };
-    expect(nextAirportStep(airportDone(all, { diario: true, passaporte: true, lanche: true }))?.id).toBe('onibus');
-    expect(nextAirportStep(airportDone(all, { diario: true, passaporte: true, lanche: true, onibus: true }))).toBeNull();
+    const all = { arrivalIntroDone: true, diary: [word('chegada', 'camera')] };
+    expect(nextAirportStep(airportDone(all, { passaporte: true, lanche: true }))?.id).toBe('onibus');
+    expect(nextAirportStep(airportDone(all, { passaporte: true, lanche: true, onibus: true }))).toBeNull();
   });
 
   it('counts an account from before the airport (no arrival flag on the save) as having its camera', () => {
-    expect(airportDone({ tutorial: tutorial(), diary: [] }, {}).has('celia')).toBe(true);
+    expect(airportDone({ diary: [] }, {}).has('celia')).toBe(true);
   });
 
   it('thanks the way the player asked to be addressed', () => {

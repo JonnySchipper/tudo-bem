@@ -756,7 +756,7 @@ export function phraseNotes(id: PhraseId, mood: Mood): { notes: TimedNote[]; bar
 
 // ---------------------------------------------------------------- stingers
 
-export type StingKind = 'recado' | 'heart' | 'coin' | 'mission' | 'caderno' | 'win' | 'lose' | 'door';
+export type StingKind = 'recado' | 'heart' | 'coin' | 'mission' | 'caderno' | 'win' | 'lose' | 'door' | 'diario';
 
 export interface Sting {
   bpm: number;
@@ -818,6 +818,32 @@ export function stingNotes(kind: StingKind): Sting {
     case 'caderno':
       // up the D major scale, one bell at a time
       return { bpm: 140, notes: [74, 76, 78, 79, 81, 83, 85, 86].map((m, i) => n('bell', i * 1.5, m + 12 > 96 ? m : m + 12, 5, 0.55 + i * 0.05)).concat(chordHit(DMAJ9, 12, 'pad', 12, 0.5)) };
+    case 'diario':
+      // The journal reveal (the first word of a new diary). Brief: keeps the hook's five pitches and its rhythm (a pickup into a long
+      // note), music-box high and slow, over the theme's own Dmaj9 → Gmaj9 → Dmaj9; changes the tempo (a held breath, 92) and answers the
+      // hook with a phrase the theme never plays, A F♯ E falling home to D. Tender, not triumphant: the page is just opening.
+      return {
+        bpm: 92,
+        notes: [
+          n('bell', 0, 88, 3, 0.7),
+          n('bell', 3, 90, 5, 0.75),
+          n('bell', 8, 85, 2, 0.6),
+          n('bell', 10, 86, 2, 0.65),
+          n('bell', 12, 88, 6, 0.8),
+          n('bell', 18, 93, 3, 0.7),
+          n('bell', 21, 90, 2, 0.6),
+          n('bell', 23, 88, 2, 0.6),
+          n('bell', 25, 86, 11, 0.75),
+          n('harm', 18, 81, 6, 0.45),
+          n('harm', 25, 78, 11, 0.45),
+          ...chordHit(DMAJ9, 0, 'pad', 16, 0.45),
+          ...chordHit(SECTION_A[6]!, 16, 'pad', 9, 0.45),
+          ...chordHit(DMAJ9, 25, 'pad', 12, 0.5),
+          n('bass', 0, 38, 16, 0.55),
+          n('bass', 16, 43, 9, 0.55),
+          n('bass', 25, 38, 12, 0.6),
+        ],
+      };
     case 'win':
       // the hook as a fanfare: brass stabs, a surdo roll and a last tonic hit
       return {

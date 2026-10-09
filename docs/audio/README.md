@@ -15,6 +15,7 @@ every place has its own level (see below).
 | `feira.mp3` | Feira Livre while it is open (06:00-13:00): "Baião da Feira", the theme's forró cousin in A mixolydian (sanfona, pife, zabumba, triângulo); it opens with the hook in one baião bar and its bridge is the theme's own A section changes |
 | `praca-golden.mp3`, `praca-night.mp3` | Two of the phrases that drift over the Praça (golden hour, night) |
 | `sting-*.mp3` | Recado done, daily mission, bout win, bout loss |
+| `sting-diario` (no MP3 yet) | The journal reveal in the arrivals hall (a new player's first word): the hook's five pitches as a slow music box at 92 BPM over Dmaj9 → Gmaj9 → Dmaj9, answered by A F♯ E falling home to D. The arrivals hall (`desembarque`) itself plays the kitnet's quiet bed |
 
 ## Levels
 
@@ -27,7 +28,7 @@ All loudness lives in `apps/client/src/audio/mix.ts` as targets (integrated LUFS
 | Radio (before the window and the distance) | -27 |
 | Padaria / Feira / Academia / Padaria at night / Kitnet | -28.5 / -29 / -29.5 / -30 / -30.5 |
 | Praça phrases | -30.5 to -32 |
-| Stingers | -23.5 (mission, win) to -31 (RV, door) |
+| Stingers | -23.5 (mission, win) to -31 (RV, door); the journal reveal -26 |
 
 `calibration.json` holds what each one measures at unity gain, so the gain is target minus measurement.
 

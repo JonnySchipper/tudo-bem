@@ -253,6 +253,9 @@
     "kind": "sign",
     "id": "hall_s_desembarque"
    },
+   "also": [
+    "desemb_s_desembarque"
+   ],
    "origin": "added",
    "needsBr": true
   },
@@ -307,6 +310,20 @@
    },
    "origin": "added",
    "needsBr": true
+  },
+  {
+   "id": "diary.chegada.bemvindo",
+   "pt": "bem-vindo",
+   "en": "welcome",
+   "area": "chegada",
+   "source": "conversation",
+   "anchor": {
+    "kind": "line",
+    "id": "comissaria.idle0"
+   },
+   "origin": "added",
+   "needsBr": true,
+   "note": "the first word of every new diary: the flight attendant says it in the arrivals hall (bem-vinda for a woman)"
   },
   {
    "id": "diary.chegada.brasil",

@@ -69,7 +69,11 @@ import { FrameProbe, LowFxGovernor, reducedMotion } from './perf';
 import { clock } from '../../gameClock';
 import { buildTerrainLayers } from './terrainLayers';
 import { LabelLayer, type GuideItem, type StackItem } from './labels';
+import { doorTagsFor, doorsFresh, type DoorTag } from '../../ui/wayfinding';
 import { T, cssZoomFor, deviceZoomFor, feet, outdoorFraming, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
+
+/** Door tags per room definition (they never change while the room is up). */
+const DOOR_TAGS = new WeakMap<object, DoorTag[]>();
 import { pickHit, type HitBox } from './hit';
 import { boutZoomStep, dialogueFraming, easeOut, stepBlend } from './dialogueCam';
 import { BoutStage, type StageHost } from './boutStage';
@@ -2339,6 +2343,17 @@ export class WorldScene extends Phaser.Scene {
     if (team && board) {
       const p = at((board.x + 0.5) * T, -16);
       stacks.push({ key: `sign:academy:${team.id}`, x: p.px, y: p.py, plate: { text: `${CRESTS[team.crest].glyph} ${team.name}`, kind: 'sign' }, bubbles: [] });
+    }
+    // wayfinding: a tag over every way out, destination in PT over EN (glowing on a first visit); not while a bout has the mat camera
+    if (!boutFeed.camera) {
+      let tags = DOOR_TAGS.get(def);
+      if (!tags) DOOR_TAGS.set(def, (tags = doorTagsFor(def)));
+      const kind = doorsFresh() ? 'doorNew' : 'door';
+      for (const t of tags) {
+        const w = tileToWorld(t.x, t.y);
+        const p = at(w.wx, w.wy - 22);
+        stacks.push({ key: `door:${t.key}`, x: p.px, y: p.py, z: Math.round(p.py), plate: { text: t.pt, gloss: t.en, kind }, bubbles: [] });
+      }
     }
     const guides: GuideItem[] = this.host.guides().map((g, i) => {
       const w = tileToWorld(g.x, g.y);

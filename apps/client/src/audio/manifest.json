@@ -7,6 +7,7 @@
     "nanda": "pt-BR-FranciscaNeural",
     "julia": "pt-BR-FranciscaNeural",
     "prof": "pt-BR-FranciscaNeural",
+    "comissaria": "pt-BR-FranciscaNeural",
     "lucia": "pt-BR-FranciscaNeural",
     "tia_lu": "pt-BR-FranciscaNeural",
     "rosa": "pt-BR-FranciscaNeural",
@@ -3789,6 +3790,12 @@
       "file": "ui-05bfe8bd4e.mp3"
     },
     {
+      "id": "ui-2059ec9361",
+      "voice": "ui",
+      "text": "DESEMBARQUE. Saída para o aeroporto",
+      "file": "ui-2059ec9361.mp3"
+    },
+    {
       "id": "ui-97e4ea2659",
       "voice": "ui",
       "text": "Vaga livre para uma nova barraca",
@@ -4681,6 +4688,12 @@
       "voice": "ui",
       "text": "terminal",
       "file": "ui-46d551dae6.mp3"
+    },
+    {
+      "id": "ui-fbe323685f",
+      "voice": "ui",
+      "text": "bem-vindo",
+      "file": "ui-fbe323685f.mp3"
     },
     {
       "id": "ui-e4f88bf4b0",
@@ -7591,6 +7604,24 @@
       "voice": "lucia",
       "text": "Incrível! Sua placa agora é dourada.",
       "file": "lucia-732f5fe856.mp3"
+    },
+    {
+      "id": "comissaria-d293b32fd0",
+      "voice": "comissaria",
+      "text": "Aqui é o desembarque. Siga para o aeroporto pela porta de vidro.",
+      "file": "comissaria-d293b32fd0.mp3"
+    },
+    {
+      "id": "comissaria-d198393bde",
+      "voice": "comissaria",
+      "text": "Bem-vindo ao Brasil!",
+      "file": "comissaria-d198393bde.mp3"
+    },
+    {
+      "id": "comissaria-235be7666b",
+      "voice": "comissaria",
+      "text": "A porta do aeroporto é ali embaixo.",
+      "file": "comissaria-235be7666b.mp3"
     },
     {
       "id": "carlos-f0eea8e48e",
