@@ -614,7 +614,7 @@ function openBout() {
     openGiShop(false, () => net.send({ t: 'buy', kind: 'gi', itemId: 'kimono' }));
     return;
   }
-  net.send({ t: 'bout', v: 1, action: 'open' });
+  net.send({ t: 'bout', v: 2, action: 'open' });
 }
 
 function openShop() {

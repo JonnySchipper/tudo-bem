@@ -5,12 +5,14 @@
  *
  * needs_br: true — Pegada, Quedas, Raspagem, Passagem. Defesa and Final are already on the bout chrome.
  */
-import { MAT_CARTOON_MS, MAT_THINK_MS, isMatMove, type BjjPositionId, type MatMoveId } from '@tudobem/shared';
+import { isMatMove, type BjjPositionId, type MatMoveId } from '@tudobem/shared';
 
-/** How long the move's cartoon plays before the pose is allowed to change. Shared with the server pick clock. */
-export const CARTOON_MS = MAT_CARTOON_MS;
-/** After your cartoon, the opponent sits with the decision before their attempt is shown. */
-export const THINK_MS = MAT_THINK_MS;
+/**
+ * Tatame v3: a move the taps did not drive (Hold, a botch, a brace block, the partner's move with no defense beat, or no baked clip)
+ * plays whole over this long. A driven move only plays its landing (`LAND_MS`): the wind-up already played with the taps.
+ */
+export const CARTOON_MS = 900;
+export const LAND_MS = 650;
 
 export type GagTrackId = 'grips' | 'takedowns' | 'sweeps' | 'defense' | 'passes' | 'subs';
 
