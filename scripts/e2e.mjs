@@ -371,8 +371,19 @@ async function main() {
   await page.evaluate(() => document.activeElement?.blur?.());
   await page.keyboard.press('Escape');
   await page.click('#btn-caderno');
-  // the Diário opens on its Início; the Caderno de palavras is its last tab
-  await page.click('[data-modal="caderno"] [data-journal-tab="caderno"]', { timeout: 5000 });
+  // the Diário opens on its Início; the Caderno de palavras is its last tab. The book first swings its cover open and the
+  // pages slap in (about 2s of animation); a player taps the tab once the book is open, so wait for that before clicking.
+  await waitFor(
+    page,
+    () => {
+      const book = document.querySelector('[data-modal="caderno"] .panel.jb');
+      return !!book && !book.getAnimations({ subtree: true }).some((a) => a.playState === 'running' && !a.effect?.target?.closest?.('.jb-spread'));
+    },
+    null,
+    15_000,
+    'the Diário cover is open',
+  );
+  await page.click('[data-modal="caderno"] [data-journal-tab="caderno"]', { timeout: 15_000 });
   await page.waitForSelector('[data-modal="caderno"] [data-card="lex.padaria.coxinha"]', { timeout: 5000 });
   assert(!(await page.textContent('[data-modal="caderno"] [data-card="lex.padaria.coxinha"] .cad-pt')).includes('???'), 'Caderno shows a word the sign taught');
   await shot(page, '03c_caderno');
