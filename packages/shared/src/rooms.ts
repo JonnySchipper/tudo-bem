@@ -937,33 +937,7 @@ const desembarque: RoomDef = {
   wallTrim: '#8b8bab',
   lighting: 'dia',
   spawn: { x: 11, y: 8 },
-  props: [
-    // ---- outside the glass: the plane you came in on, at the end of its jet bridge, and the runway lights
-    cen('desemb_aviao', 'aero/aviao', 0, 2, 12, 3, { blocks: true, label: { pt: 'Avião', en: 'Airplane' } }),
-    cen('desemb_ponte', 'aero/ponte', 10, 5, 3, 2, { blocks: true }),
-    cen('desemb_cone', 'diary/cone', 13, 6, 1, 1, { blocks: true }),
-    ...[1, 5, 9, 13].map((x) => cen(`desemb_luz_${x}`, 'aero/luz_pista', x, 1)),
-    // ---- the glass front with the gate door you walk out of
-    ...glassRow('desemb_vidro_n', 'aero/vidraca', 7, [...span(10, 0), 13]),
-    cen('desemb_portao', 'aero/portao', 10, 7, 3, 1, { blocks: true, label: { pt: 'Portão 3', en: 'Gate 3' } }),
-    // ---- the hall: the sign, two rows of seats, the water cooler, the baggage belt with a trolley
-    cen('desemb_placa', 'aero/placa_desembarque', 4, 8, 4, 1),
-    cen('desemb_cadeiras_1', 'aero/cadeiras', 1, 10, 3, 1, { seat: 'SW' }),
-    cen('desemb_cadeiras_2', 'aero/cadeiras', 1, 12, 3, 1, { seat: 'SW' }),
-    cen('desemb_vaso_1', 'props/vaso_topiaria_a', 0, 8, 1, 1, { blocks: true }),
-    cen('desemb_vaso_2', 'props/vaso_topiaria_b', 13, 8, 1, 1, { blocks: true }),
-    cen('desemb_bebedouro', 'props/bebedouro', 13, 10, 1, 1, {
-      blocks: true,
-      action: 'street_snack',
-      interact: { x: 12, y: 10 },
-      label: { pt: 'Bebedouro · água grátis', en: 'Water cooler · free water' },
-    }),
-    cen('desemb_esteira', 'aero/esteira', 7, 11, 6, 2, { blocks: true, label: { pt: 'Esteira de bagagem', en: 'Baggage belt' } }),
-    cen('desemb_carrinho', 'aero/carrinho', 13, 12, 1, 1, { blocks: true }),
-    // ---- the low glass front and the automatic doors into the airport
-    ...glassRow('desemb_vidro_s', 'aero/vidraca_baixa', 14, [...span(6, 0), ...span(6, 8)]),
-    cen('desemb_porta', 'aero/porta_auto', 6, 14, 2, 1),
-  ],
+  props: bundledObjects('desembarque'),
   walls: [],
   portals: [
     {
