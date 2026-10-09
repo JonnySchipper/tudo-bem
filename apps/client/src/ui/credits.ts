@@ -46,7 +46,7 @@ export function openCredits(): void {
       h('button', { class: 'close ghost', onclick: () => close(), 'aria-label': 'Fechar (Close)' }, '✕'),
       h('img', {
         class: 'tb-logo tb-logo-banner credits-logo',
-        src: '/brand/tb-logo-banner.png',
+        src: `${import.meta.env.BASE_URL}brand/tb-logo-banner.png`,
         alt: 'Tudo Bem',
         width: '1073',
         height: '386',

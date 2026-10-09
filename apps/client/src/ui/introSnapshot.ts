@@ -7,7 +7,7 @@
  */
 import { ROOMS, type RoomDef } from '@tudobem/shared';
 import type { Manifest } from '../render/pixel/manifest';
-import { pixelBase } from '../render/pixel/manifest';
+import { loadManifest, pixelBase } from '../render/pixel/manifest';
 import { T } from '../render/pixel/coords';
 import { DEPTH, fencePieces, propAnchor, propArtKey, propDepth, propSlices, standingDepth } from '../render/pixel/props';
 import { sceneryFor } from '../render/pixel/scenery';
@@ -127,7 +127,7 @@ const loadImage = (src: string) =>
   });
 
 export async function loadSnapshotAssets(base = pixelBase()): Promise<SnapshotAssets> {
-  const manifest = (await (await fetch(`${base}manifest.json`)).json()) as Manifest;
+  const manifest = await loadManifest(base);
   const atlases: SnapshotAssets['atlases'] = {};
   await Promise.all(
     Object.entries(manifest.atlases).filter(([, a]) => !a.lazy).map(async ([name, a]) => {

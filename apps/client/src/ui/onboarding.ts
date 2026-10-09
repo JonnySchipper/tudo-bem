@@ -171,7 +171,7 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
           sec(
             'Quem é você?',
             'Who are you?',
-            'cr-who',
+            'creator-who',
             field('Como você se chama?', 'Display name (not your full real name)', h('div', null, name, nameErr)),
             field('Como devemos te chamar?', 'How should NPCs address you? (grammar agreement)', pronounChips),
           ),

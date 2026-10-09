@@ -832,7 +832,8 @@ body.intro-active #world {
   align-items: center;
   gap: 10px;
   margin: 8px 0;
-  color: #a58a6c;
+  /* 4.6:1 or better on every intro card paper (the old #a58a6c was 2.9:1) */
+  color: #76603f;
   font-weight: 800;
   font-size: 0.8em;
   text-transform: uppercase;

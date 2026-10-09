@@ -1,4 +1,8 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
+import zlib from 'node:zlib';
 import { defineConfig, type Plugin } from 'vite';
 
 const SERVER = process.env.TB_SERVER ?? 'http://localhost:8787';
@@ -37,8 +41,47 @@ function legalPages(): Plugin {
   };
 }
 
+const PRECOMPRESS = /\.(js|mjs|css|json|html|svg|webmanifest|txt|xml)$/i;
+const brotli = promisify(zlib.brotliCompress);
+const gzip = promisify(zlib.gzip);
+
+/**
+ * Writes `.br` and `.gz` next to every text asset in dist (the server sends them when the browser accepts them). Build-time, so the
+ * strongest settings are affordable. A file whose compressed copy is not smaller (tiny files) is left alone.
+ */
+function precompress(): Plugin {
+  let outDir = '';
+  return {
+    name: 'tudobem-precompress',
+    apply: 'build',
+    configResolved(cfg) {
+      outDir = path.resolve(cfg.root, cfg.build.outDir);
+    },
+    async closeBundle() {
+      const files = (fs.readdirSync(outDir, { recursive: true }) as string[]).map((f) => path.join(outDir, f)).filter((f) => PRECOMPRESS.test(f) && fs.statSync(f).isFile());
+      let raw = 0;
+      let br = 0;
+      await Promise.all(
+        files.map(async (file) => {
+          const src = fs.readFileSync(file);
+          if (src.length < 1024) return;
+          const [b, g] = await Promise.all([
+            brotli(src, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11, [zlib.constants.BROTLI_PARAM_MODE]: zlib.constants.BROTLI_MODE_TEXT, [zlib.constants.BROTLI_PARAM_SIZE_HINT]: src.length } }),
+            gzip(src, { level: 9 }),
+          ]);
+          if (b.length < src.length) fs.writeFileSync(`${file}.br`, b);
+          if (g.length < src.length) fs.writeFileSync(`${file}.gz`, g);
+          raw += src.length;
+          br += Math.min(b.length, src.length);
+        }),
+      );
+      console.log(`[precompress] ${files.length} files: ${(raw / 1024).toFixed(0)} KB -> ${(br / 1024).toFixed(0)} KB brotli`);
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [legalPages()],
+  plugins: [legalPages(), precompress()],
   // GitHub Pages serves under /<repo>/; set VITE_BASE=/tudo-bem/ for that build.
   base: process.env.VITE_BASE ?? '/',
   server: {

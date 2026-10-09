@@ -9,6 +9,7 @@ import { DEFAULT_APPEARANCE, FOUNDER_BANNER_ID, type ServerMsg } from '@tudobem/
 import { ADMIN_DEV_PASSWORD } from '../adminAuth.js';
 import { createApp } from '../app.js';
 import { DevBillingProvider } from './devProvider.js';
+import { billingConfigured, readBillingConfig } from './provider.js';
 import { LemonSqueezyProvider, normalizeLemonEvent } from './lemonsqueezy.js';
 import { signWebhookBody } from './signature.js';
 
@@ -93,7 +94,7 @@ describe('billing HTTP and admin auth', () => {
   let dir = '';
   let base = '';
 
-  async function start(billing?: { apiKey: string; storeId: string; variantId: string; webhookSecret: string } | null, fetchImpl?: (input: string, init?: RequestInit) => Promise<Response>) {
+  async function start(billing?: { apiKey: string; storeId: string; variantId: string; webhookSecret: string; enabled?: boolean } | null, fetchImpl?: (input: string, init?: RequestInit) => Promise<Response>) {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'tb-bill-'));
     app = createApp({
       dataDir: dir,
@@ -149,6 +150,20 @@ describe('billing HTTP and admin auth', () => {
     return { cookie, ws, inbox, send, until, id: welcome.profile.id };
   }
 
+  it('stays dark with every secret set until TB_BILLING_ENABLED=1', async () => {
+    await start({ apiKey: 'k', storeId: '1', variantId: '2', webhookSecret: SECRET });
+    expect((await fetch(base + '/api/billing/checkout', { method: 'POST' })).status).toBe(503);
+    expect(await (await fetch(base + '/api/config')).json()).toMatchObject({ billingReady: false });
+  });
+
+  it('reads the switch and the secrets from the environment', () => {
+    const env = { LEMONSQUEEZY_API_KEY: 'k', LS_STORE_ID: '1', LS_VARIANT_ID: '2', LS_WEBHOOK_SECRET: SECRET };
+    expect(billingConfigured(readBillingConfig(env))).toBe(false);
+    expect(billingConfigured(readBillingConfig({ ...env, TB_BILLING_ENABLED: 'true' }))).toBe(false);
+    expect(billingConfigured(readBillingConfig({ ...env, TB_BILLING_ENABLED: '1' }))).toBe(true);
+    expect(billingConfigured(readBillingConfig({ TB_BILLING_ENABLED: '1' }))).toBe(false);
+  });
+
   it('returns 503 from the webhook and checkout when secrets are missing', async () => {
     await start();
     expect((await fetch(base + '/api/billing/webhook', { method: 'POST', body: '{}' })).status).toBe(503);
@@ -157,7 +172,7 @@ describe('billing HTTP and admin auth', () => {
   });
 
   it('applies a signed payment once, keeps the banner on cancel, and reverts perks on expire', async () => {
-    await start({ apiKey: 'k', storeId: '1', variantId: '2', webhookSecret: SECRET });
+    await start({ apiKey: 'k', storeId: '1', variantId: '2', webhookSecret: SECRET, enabled: true });
     const ana = await player();
     const post = (body: string) =>
       fetch(base + '/api/billing/webhook', { method: 'POST', headers: { 'content-type': 'application/json', 'x-signature': signWebhookBody(body, SECRET) }, body });
