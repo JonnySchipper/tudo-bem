@@ -54,7 +54,9 @@ async function waitIdleAt(page, x, y) {
   await waitFor(page, ([x, y]) => { const t = window.__tb.selfTile(); return t && !t.moving && t.tile.x === x && t.tile.y === y; }, [x, y], 25_000, `at ${x},${y}`);
 }
 const line = async (page) => ((await page.textContent('#dialogue-box .line-bubble .pt')) ?? '').trim();
-const waitLine = (page, re, what) => waitFor(page, (src) => new RegExp(src).test(document.querySelector('#dialogue-box .line-bubble .pt')?.textContent ?? ''), re.source, 8000, what);
+// the pattern crosses into the page as source + flags (a RegExp does not serialize), so `/amanhã/i` stays case-insensitive
+const waitLine = (page, re, what) =>
+  waitFor(page, ([src, flags]) => new RegExp(src, flags).test(document.querySelector('#dialogue-box .line-bubble .pt')?.textContent ?? ''), [re.source, re.flags], 8000, what);
 
 async function main() {
   assert(CHROME, 'set CHROME_PATH');
