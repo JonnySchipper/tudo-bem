@@ -242,6 +242,7 @@ export function createApp(opts: AppOptions) {
         memory: conversaMemory,
         clockMinutes: () => world.gameMinuteNow(),
         dateKey: () => conversaDateKey(),
+        allowedOrigins,
         playerIdFor: (r) => accounts.accountForSession(sessionCookieOf(r))?.profileId,
       }).catch((e) => {
         console.error('[conversa] handler error', e);
