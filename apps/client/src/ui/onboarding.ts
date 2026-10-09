@@ -53,7 +53,7 @@ export function runOnboarding(submit: (p: NewProfile) => void): { setError: (pt:
   let pronoun: Pronoun = 'nome';
   // the composed pixel character (same layers as the world), shown at an integer scale with image-rendering: pixelated
   const canvas = h('canvas', { class: 'creator-canvas', id: 'avatar-preview' });
-  const preview = mountCharPreview(canvas, () => ({ appearance: a, hat: null, parrot: false }), { waveOnStart: true });
+  const preview = mountCharPreview(canvas, () => ({ appearance: a, hat: null, parrot: false }));
   const turn = h('button', { class: 'stage-btn turn-btn', type: 'button', id: 'turn-avatar', 'aria-label': 'Girar o avatar (turn around)', onclick: () => preview.turn() }, '↻ Girar');
   const walkBtn = h('button', { class: 'stage-btn', type: 'button', id: 'walk-avatar', 'aria-pressed': 'false', 'aria-label': 'Andar (walk in place)' }, '▶ Andar');
   walkBtn.addEventListener('click', () => {
