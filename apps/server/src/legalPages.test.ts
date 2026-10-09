@@ -58,7 +58,7 @@ describe('legal pages over HTTP', () => {
       expect(res.status, p).toBe(200);
       expect(res.headers.get('content-type'), p).toMatch(/text\/html/);
       const body = await res.text();
-      expect(body, p).toContain('Effective October 7, 2026');
+      expect(body, p).toContain('Effective October 9, 2026');
       expect(body, p).toContain('team@playtudobem.com');
       expect(body, p).not.toContain('<title>game</title>');
     }
@@ -84,11 +84,15 @@ describe('legal page copy', () => {
     const terms = fs.readFileSync(path.join(publicDir, 'terms.html'), 'utf8');
     for (const html of [privacy, terms]) {
       expect(html).toContain('Davenport, Florida');
-      expect(html).toContain('October 7, 2026');
+      expect(html).toContain('October 9, 2026');
       expect(html).toContain('team@playtudobem.com');
       expect(html).not.toMatch(/GDPR|CCPA|COPPA|SOC\s*2|HIPAA|ISO\s*27001/i);
     }
     expect(privacy).toContain('xAI');
+    expect(privacy).toContain('Fly.io');
+    expect(privacy).toContain('Apagar conta');
+    expect(privacy).toContain('Baixar meus dados');
+    expect(privacy).not.toContain('There is no delete button');
     expect(privacy).toContain('do not sell');
     expect(terms).toContain('no payment');
     expect(terms).toContain('18 or older');

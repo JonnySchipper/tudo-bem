@@ -65,6 +65,15 @@ export class AcademyStore {
     this.save();
   }
 
+  remove(id: string) {
+    const row = this.byId.get(id);
+    if (!row) return false;
+    this.byId.delete(id);
+    if (this.byName.get(row.nameKey) === id) this.byName.delete(row.nameKey);
+    this.save();
+    return true;
+  }
+
   /** Synchronous. The file is small, and a found name has to survive a restart immediately. */
   save() {
     this.adapter?.save(this.list());

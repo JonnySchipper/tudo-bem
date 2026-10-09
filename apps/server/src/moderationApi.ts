@@ -6,12 +6,15 @@
  * Query: `limit` (1-200, default 50), `since` (ms epoch), `kind` (report | escalate | block | warn).
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { adminPasswordMatches, type AdminAuthConfig } from './adminAuth.js';
+import { AdminLoginGuard, type AdminAuthConfig } from './adminAuth.js';
+import { clientIp } from './auth.js';
 import type { ModerationQueue } from './services/interfaces.js';
 import { moderationRows } from './playerModeration.js';
 
 export interface ModerationApiDeps {
   admin: AdminAuthConfig;
+  /** Shared admin lockout (same instance as /api/feedback and the in-world admin login). */
+  adminGuard: AdminLoginGuard;
   moderation: ModerationQueue;
 }
 
@@ -40,7 +43,9 @@ export function handleModerationApi(req: IncomingMessage, res: ServerResponse, d
   const url = new URL(req.url ?? '/', 'http://x');
   if (req.method !== 'GET') return send(res, 405, { ok: false, code: 'bad_request' });
   if (!deps.admin.ready || !deps.admin.password) return send(res, 404, { ok: false, code: 'disabled' });
-  if (!adminPasswordMatches(bearer(req), deps.admin.password)) return send(res, 401, { ok: false, code: 'unauthorized' });
+  const verdict = deps.adminGuard.attempt(AdminLoginGuard.keys({ ip: clientIp(req) }), bearer(req), deps.admin.password, 'moderation list');
+  if (verdict === 'blocked') return send(res, 429, { ok: false, code: 'rate' });
+  if (verdict === 'wrong') return send(res, 401, { ok: false, code: 'unauthorized' });
   const limit = intParam(url, 'limit', 50, 1, 200);
   const since = intParam(url, 'since', 0, 0, Number.MAX_SAFE_INTEGER);
   const kind = url.searchParams.get('kind');

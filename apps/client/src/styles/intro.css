@@ -1337,3 +1337,29 @@ body.view-pixel #world {
   display: block;
   font-size: 0.9em;
 }
+
+/* Login: "Esqueci a senha" (no email provider: Google or a note to the team). Sign up: the Terms / Privacy line. */
+.intro-forgot,
+.intro-consent {
+  font-size: 0.78em;
+  color: var(--ink-soft);
+  font-weight: 600;
+  margin: 8px 0 0;
+  text-align: center;
+}
+
+.intro-forgot summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.intro-forgot p {
+  margin: 6px 0 0;
+  text-align: left;
+}
+
+.intro-forgot .en,
+.intro-consent .en {
+  display: block;
+  font-style: italic;
+}

@@ -5,12 +5,31 @@
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { prepareFeedback, type FeedbackCode } from '@tudobem/shared';
-import { originAllowed, sessionCookieOf, type AccountStore } from './auth.js';
-import { adminPasswordMatches, type AdminAuthConfig } from './adminAuth.js';
+import { clientIp, originAllowed, sessionCookieOf, type AccountStore } from './auth.js';
+import { AttemptLimiter } from './attemptLimiter.js';
+import { ADMIN_TOO_MANY, AdminLoginGuard, type AdminAuthConfig } from './adminAuth.js';
 import type { FeedbackStore } from './feedbackStore.js';
 import type { ModerationQueue } from './services/interfaces.js';
 
 const MAX_BODY = 8 * 1024;
+
+/** Notes per hour: a guest per client IP, a signed-in player per account. */
+export const FEEDBACK_GUEST_PER_HOUR = 5;
+export const FEEDBACK_ACCOUNT_PER_HOUR = 20;
+
+export interface FeedbackLimits {
+  guest: AttemptLimiter;
+  account: AttemptLimiter;
+}
+
+export function defaultFeedbackLimits(now: () => number = Date.now): FeedbackLimits {
+  return {
+    guest: new AttemptLimiter(FEEDBACK_GUEST_PER_HOUR, 60 * 60_000, now),
+    account: new AttemptLimiter(FEEDBACK_ACCOUNT_PER_HOUR, 60 * 60_000, now),
+  };
+}
+
+const FEEDBACK_RATE = { pt: 'Você já mandou vários recados agora. Tenta de novo daqui a pouco.', en: 'You’ve sent several notes just now. Try again in a little while.' };
 
 export interface FeedbackApiDeps {
   store: FeedbackStore;
@@ -19,6 +38,9 @@ export interface FeedbackApiDeps {
   moderation: ModerationQueue;
   allowedOrigins?: readonly string[];
   now?: () => number;
+  /** Shared with the other admin-password checks (app.ts). */
+  adminGuard: AdminLoginGuard;
+  limits: FeedbackLimits;
 }
 
 function send(res: ServerResponse, status: number, body: unknown) {
@@ -58,7 +80,7 @@ function bearer(req: IncomingMessage): string {
   return match?.[1]?.trim() ?? '';
 }
 
-function fail(res: ServerResponse, status: number, code: FeedbackCode | 'unauthorized' | 'disabled', pt?: string, en?: string) {
+function fail(res: ServerResponse, status: number, code: FeedbackCode | 'unauthorized' | 'disabled' | 'rate', pt?: string, en?: string) {
   send(res, status, { ok: false, code, ...(pt ? { pt, en } : {}) });
 }
 
@@ -75,7 +97,12 @@ export async function handleFeedbackApi(req: IncomingMessage, res: ServerRespons
       fail(res, 404, 'disabled');
       return;
     }
-    if (!adminPasswordMatches(bearer(req), admin.password)) {
+    const verdict = deps.adminGuard.attempt(AdminLoginGuard.keys({ ip: clientIp(req) }), bearer(req), admin.password, 'feedback list');
+    if (verdict === 'blocked') {
+      fail(res, 429, 'rate', ADMIN_TOO_MANY.pt, ADMIN_TOO_MANY.en);
+      return;
+    }
+    if (verdict === 'wrong') {
       fail(res, 401, 'unauthorized');
       return;
     }
@@ -122,6 +149,12 @@ export async function handleFeedbackApi(req: IncomingMessage, res: ServerRespons
   }
 
   const account = deps.accounts.accountForSession(sessionCookieOf(req));
+  // Every attempt counts (a refused note can still file a moderation entry).
+  const allowed = account ? deps.limits.account.take(`acct:${account.id}`) : deps.limits.guest.take(`ip:${clientIp(req)}`);
+  if (!allowed) {
+    fail(res, 429, 'rate', FEEDBACK_RATE.pt, FEEDBACK_RATE.en);
+    return;
+  }
 
   const prepared = prepareFeedback(body);
   if (!prepared.ok) {

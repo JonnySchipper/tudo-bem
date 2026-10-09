@@ -279,7 +279,7 @@ describe('server: email/password accounts + idle kick (HTTP + WebSocket)', () =>
     expect(bad.status).toBe(401);
     const ok = await post('/api/auth/google', { credential: 'valid-token' });
     expect(ok.status).toBe(200);
-    expect(await ok.json()).toEqual({ ok: true, account: { email: 'google@exemplo.com', hasProfile: false } });
+    expect(await ok.json()).toEqual({ ok: true, account: { email: 'google@exemplo.com', hasProfile: false, google: true } });
     const cookie = cookieOf(ok);
     const me = await fetch(base + '/api/auth/me', { headers: { cookie } });
     expect(await me.json()).toMatchObject({ ok: true, account: { email: 'google@exemplo.com' } });

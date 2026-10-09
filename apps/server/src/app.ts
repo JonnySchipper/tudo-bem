@@ -33,11 +33,12 @@ import {
   type CookieSecure,
   type ScryptParams,
 } from './auth.js';
-import { handleFeedbackApi } from './feedbackApi.js';
+import { defaultFeedbackLimits, handleFeedbackApi } from './feedbackApi.js';
 import { handleModerationApi } from './moderationApi.js';
 import { IpConnectionCap, MessageBucket, readWsLimits, WS_POLICY_CLOSE, type WsLimitConfig } from './wsLimits.js';
+import { handleAccountApi } from './accountApi.js';
 import { FeedbackStore } from './feedbackStore.js';
-import { adminPasswordMatches, readAdminAuthConfig, type AdminAuthConfig } from './adminAuth.js';
+import { AdminLoginGuard, readAdminAuthConfig, type AdminAuthConfig } from './adminAuth.js';
 import { handleBillingApi } from './billing/http.js';
 import { billingConfigured, readBillingConfig } from './billing/provider.js';
 import { publicAppConfig, readOpsSmokeConfig, type OpsSmokeConfig } from './opsSmoke.js';
@@ -117,10 +118,14 @@ export function createApp(opts: AppOptions) {
   const layouts = new LayoutStore(layoutFileAdapter(dataDir));
   const feedback = new FeedbackStore(feedbackFileAdapter(dataDir));
   const feedbackAdmin = opts.feedbackAdmin ?? readAdminAuthConfig();
+  // One wrong-password throttle for the admin secret over WebSocket and HTTP.
+  const adminGuard = new AdminLoginGuard();
+  const feedbackLimits = defaultFeedbackLimits();
   const billing = opts.billing ?? readBillingConfig(process.env);
   const accounts = new AccountStore(accountsFileAdapter(dataDir), { sessionTtlMs: opts.sessionTtlMs, scrypt: opts.scrypt });
   const fixedPapagaios = repairPapagaios((email) => accounts.profileIdForEmail(email), store);
   if (fixedPapagaios.length) console.log(`[papagaio] restored colours for ${fixedPapagaios.join(', ')}`);
+  const moderation = new FileModerationQueue(path.join(dataDir, 'moderation.jsonl'));
   const safety = chatSafety(opts.jevModelDir ?? (process.env.TB_JEV_MODEL_DIR || undefined));
   const world = new World(
     store,
@@ -129,9 +134,9 @@ export function createApp(opts: AppOptions) {
       gloss: new PhrasebookGloss(),
       npc: new AuthoredNpcDialogue(),
       student: new InMemoryStudentModel(),
-      moderation: new FileModerationQueue(path.join(dataDir, 'moderation.jsonl')),
+      moderation,
     },
-    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, idleKickMs: opts.idleKickMs, academies, padarias, feiraGames, feiraCart, layouts },
+    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, adminGuard, idleKickMs: opts.idleKickMs, academies, padarias, feiraGames, feiraCart, layouts },
   );
   const conversaMemory = new ConversaMemory({ store, onProfileChanged: (playerId) => world.pushProfileById(playerId) });
   // Test servers (TB_TEST_CLOCK_CONTROL=1, never set on prod) lift the 10-signups-per-hour-per-IP cap: e2e:all signs up 10+ accounts from 127.0.0.1.
@@ -147,7 +152,8 @@ export function createApp(opts: AppOptions) {
   /** Admin bearer (same secret as GET /api/feedback): unlocks the counts on /healthz. */
   const isAdmin = (req: http.IncomingMessage) => {
     const m = /^Bearer\s+(.+)$/i.exec(String(req.headers.authorization ?? ''));
-    return !!(m && feedbackAdmin.ready && feedbackAdmin.password && adminPasswordMatches(m[1]!.trim(), feedbackAdmin.password));
+    if (!m || !feedbackAdmin.ready || !feedbackAdmin.password) return false;
+    return adminGuard.attempt(AdminLoginGuard.keys({ ip: clientIp(req) }), m[1]!.trim(), feedbackAdmin.password, 'healthz') === 'ok';
   };
 
   const onRequest = async (req: http.IncomingMessage, res: http.ServerResponse) => {
@@ -224,6 +230,8 @@ export function createApp(opts: AppOptions) {
         admin: feedbackAdmin,
         moderation: world.services.moderation,
         allowedOrigins,
+        adminGuard,
+        limits: feedbackLimits,
       }).catch((e) => {
         console.error('[feedback] handler error', e);
         if (!res.headersSent) res.writeHead(500);
@@ -231,7 +239,28 @@ export function createApp(opts: AppOptions) {
       });
     }
     if (url.pathname === '/api/moderation') {
-      return handleModerationApi(req, res, { admin: feedbackAdmin, moderation: world.services.moderation });
+      return handleModerationApi(req, res, { admin: feedbackAdmin, adminGuard, moderation: world.services.moderation });
+    }
+    if (url.pathname.startsWith('/api/account/')) {
+      return handleAccountApi(req, res, {
+        accounts,
+        store,
+        academies,
+        padarias,
+        feedback,
+        feiraGames,
+        moderation,
+        forgetLive: (accountId, profileId) => world.forgetAccount(accountId, profileId),
+        limiters,
+        admin: feedbackAdmin,
+        adminGuard,
+        allowedOrigins,
+        cookieSecure: opts.cookieSecure,
+      }).catch((e) => {
+        console.error('[account] handler error', e);
+        if (!res.headersSent) res.writeHead(500);
+        res.end();
+      });
     }
     if (url.pathname === '/api/conversa') {
       return handleConversaApi(req, res, {
@@ -314,7 +343,7 @@ export function createApp(opts: AppOptions) {
         if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(m));
       },
       (reason) => ws.close(CLOSE_CODES[reason], reason),
-      { accountId: account?.id },
+      { accountId: account?.id, ip: clientIp(req) },
     );
     // A socket that never says hello, or has no signed-in session, does not get to hold a connection open.
     let helloed = false;

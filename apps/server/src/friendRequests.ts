@@ -34,4 +34,9 @@ export class FriendRequests {
     p.friendRequestsIn = p.friendRequestsIn.filter((id) => id !== fromId);
     this.store.save(toId);
   }
+
+  /** Account deletion: drop every pending request sent by `fromId`. */
+  forget(fromId: string): void {
+    for (const p of this.store.all()) if (p.friendRequestsIn?.includes(fromId)) this.delete(p.id, fromId);
+  }
 }

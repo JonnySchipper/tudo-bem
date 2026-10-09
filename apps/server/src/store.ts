@@ -178,7 +178,12 @@ export class ProfileStore {
     this.dirty.delete(id);
     if (this.closed || !this.adapter) return true;
     this.removed.add(id);
-    this.arm(STORE_SAVE_DEBOUNCE_MS);
+    // write at once, so no later debounced save can bring it back
+    try {
+      this.flush();
+    } catch {
+      this.arm(STORE_SAVE_DEBOUNCE_MS);
+    }
     return true;
   }
 
