@@ -3,6 +3,7 @@
  * Every browser e2e in one go, against ONE server this script starts and stops itself (Phase 10).
  *
  *   pnpm build && pnpm e2e:all        # CHROME_PATH (auto-detected on Windows / macOS / Linux), SHOTS_DIR, E2E_ALL_PORT optional
+ *   E2E_ONLY=night-a,night-b pnpm e2e:all   # just some suites (keys in SUITES below, plus meveum and solo); CI runs them in parallel jobs
  *
  * The server runs on a temp DATA_DIR with a PINNED game clock: TB_TEST_CLOCK_CONTROL=1 lets each script set the hour it needs right before it starts
  * (08:30 for e2e, 08:50 / 15:35 for the feira, 20:40 / 22:05 for the night scripts), plus TB_TEST_OFFER=carlos_cafe_pra_nanda (the whole recado is
@@ -107,27 +108,45 @@ async function runSolo() {
   return { ...res, secs: Math.round((Date.now() - t0) / 1000) };
 }
 
+/** Every suite, in run order. `E2E_ONLY=play,night-b` runs just those (CI splits them across parallel jobs); unset runs them all. */
+const SUITES = [
+  { key: 'play', name: 'e2e (Phase 0 play path + recado)', script: 'e2e.mjs' },
+  { key: 'feira-day', name: 'e2e-feira day', script: 'e2e-feira.mjs', env: { PHASE: 'day' } },
+  { key: 'feira-night', name: 'e2e-feira night', script: 'e2e-feira.mjs', env: { PHASE: 'night' } },
+  { key: 'feira-cart', name: 'e2e-feira-cart', script: 'e2e-feira-cart.mjs', env: { SHOTS: '0' } },
+  { key: 'design', name: 'e2e-design', script: 'e2e-design.mjs', env: { SHOTS: '0' } },
+  { key: 'pet-name', name: 'e2e-pet-name', script: 'e2e-pet-name.mjs', env: { SHOTS: '0' } },
+  { key: 'stalls', name: 'e2e-stalls', script: 'e2e-stalls.mjs' },
+  { key: 'night-a', name: 'e2e-night a', script: 'e2e-night.mjs', env: { PHASE: 'a' } },
+  { key: 'night-b', name: 'e2e-night b', script: 'e2e-night.mjs', env: { PHASE: 'b' } },
+];
+// these two bring their own server
+const OWN_SERVER = ['meveum', 'solo'];
+const only = (process.env.E2E_ONLY ?? '').split(',').map((k) => k.trim()).filter(Boolean);
+const unknown = only.filter((k) => !SUITES.some((x) => x.key === k) && !OWN_SERVER.includes(k));
+if (unknown.length) {
+  console.error(`E2E_ONLY: unknown suite ${unknown.join(', ')} (known: ${[...SUITES.map((x) => x.key), ...OWN_SERVER].join(', ')})`);
+  server.kill();
+  process.exit(1);
+}
+const wanted = (key) => !only.length || only.includes(key);
+
 const results = [];
 let code = 0;
 try {
-  await waitHealthy();
-  console.log(`server up on ${BASE} (pinned clock via /__test/clock), DATA_DIR ${DATA_DIR}`);
-  results.push(await run('e2e (Phase 0 play path + recado)', 'e2e.mjs'));
-  results.push(await run('e2e-feira day', 'e2e-feira.mjs', { PHASE: 'day' }));
-  results.push(await run('e2e-feira night', 'e2e-feira.mjs', { PHASE: 'night' }));
-  results.push(await run('e2e-feira-cart', 'e2e-feira-cart.mjs', { SHOTS: '0' }));
-  results.push(await run('e2e-design', 'e2e-design.mjs', { SHOTS: '0' }));
-  results.push(await run('e2e-pet-name', 'e2e-pet-name.mjs', { SHOTS: '0' }));
-  results.push(await run('e2e-stalls', 'e2e-stalls.mjs'));
-  results.push(await run('e2e-night a', 'e2e-night.mjs', { PHASE: 'a' }));
-  results.push(await run('e2e-night b', 'e2e-night.mjs', { PHASE: 'b' }));
+  const shared = SUITES.filter((x) => wanted(x.key));
+  if (shared.length) {
+    await waitHealthy();
+    console.log(`server up on ${BASE} (pinned clock via /__test/clock), DATA_DIR ${DATA_DIR}`);
+  }
+  for (const x of shared) results.push(await run(x.name, x.script, x.env));
 } finally {
   server.kill();
 }
 // the Me vê um script owns (and restarts) its server
-results.push(await run('e2e:meveum', 'e2e-meveum.mjs', { BASE_URL: undefined }));
+if (wanted('meveum')) results.push(await run('e2e:meveum', 'e2e-meveum.mjs', { BASE_URL: undefined }));
 // the solo build (VITE_LOCAL_WORLD=1: the world runs in the page, no server) is built into a temp dir and served statically
-results.push(await runSolo());
+if (wanted('solo')) results.push(await runSolo());
 
 console.log('\n--- e2e:all summary ---');
 for (const r of results) {

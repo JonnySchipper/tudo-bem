@@ -34,10 +34,52 @@ jobs:
           # Jev model fixtures, v0.1 fixtures and the PT-slang KPI run through the real model (apps/server/src/services/jevModel.test.ts).
           TB_JEV_MODEL_REQUIRED: '1'
       - run: pnpm build
-      - name: Browser e2e (play path + recado, feira day/night, night NPCs, Me vê um across restarts)
+
+  e2e-suites:
+    # The browser e2e suites, split across parallel runners (one pass in a row took ~24 min; this takes about as long as the slowest group).
+    # Groups are balanced by run time; `play` alone is the longest. Every key in scripts/e2e-all.mjs SUITES (plus meveum, solo) must be in one.
+    name: e2e (${{ matrix.group.name }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        group:
+          - { name: play, only: 'play' }
+          - { name: night, only: 'night-a,night-b' }
+          - { name: pet-name, only: 'pet-name,feira-cart,stalls' }
+          - { name: design-feira, only: 'design,feira-day,feira-night' }
+          - { name: meveum-solo, only: 'meveum,solo' }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Cache Jev model
+        uses: actions/cache@v4
+        with:
+          path: models/jev-tox-small
+          key: jev-model-${{ hashFiles('scripts/fetch-jev-model.py') }}
+      - name: Fetch Jev model (pinned, sha256-checked)
+        run: python3 scripts/fetch-jev-model.py
+      - run: pnpm build
+      - name: Browser e2e (${{ matrix.group.only }})
         # e2e:all starts its own server with a pinned game clock (TB_TEST_CLOCK_CONTROL, TB_TEST_OFFER, TB_TEST_ROLL), so the result
         # does not depend on the time of day the job runs. e2e:meveum brings its own pinned server.
         run: CHROME_PATH=$(which google-chrome || which chromium) pnpm e2e:all
+        env:
+          E2E_ONLY: ${{ matrix.group.only }}
+
+  e2e:
+    # One check for branch protection to require: green only when every e2e group passed.
+    if: always()
+    needs: e2e-suites
+    runs-on: ubuntu-latest
+    steps:
+      - run: test "${{ needs.e2e-suites.result }}" = success
 
   docker-smoke:
     # Builds the production image and boots it the way Fly does (empty volume at /data), then stops it with

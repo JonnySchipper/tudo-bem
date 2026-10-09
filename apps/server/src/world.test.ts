@@ -108,6 +108,16 @@ describe('World', () => {
     pending.length = 0;
   });
 
+  it('a test clock jump reaches players already in the world (e2e jumps to an NPC hour)', async () => {
+    const { world } = makeWorld();
+    const a = await client(world);
+    const skies = a.all('sky').length;
+    world.setClockMinute(1350);
+    const sky = a.last('sky');
+    expect(a.all('sky').length).toBe(skies + 1);
+    expect(gameMinutes(sky!.serverNow)).toBe(1350);
+  });
+
   it('sanitizes the character-redesign fields and fills them in for older saves', () => {
     const legacy = { body: 'medio', skin: 2, hair: 'curto', hairColor: 1, top: 'camiseta', topColor: 1, bottom: 'calca', bottomColor: 2, shoes: 0 } as const;
     expect(sanitizeAppearance(legacy)).toMatchObject({ face: 'suave', extra: 'nenhum', idle: 'solto' });
