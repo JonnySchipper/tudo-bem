@@ -155,6 +155,30 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
     const submit = h('button', { type: 'submit', class: 'primary intro-submit intro-cta', id: 'intro-submit' }, ...btnText('Entrar', 'Log in'));
     const panelTitle = h('h2', { id: 'intro-panel-title', tabindex: '-1' }, 'Bem-vindo de volta', en('Welcome back', true));
     const googleHost = h('div', { class: 'intro-google', id: 'intro-google', style: 'display:none' });
+    // No email provider yet: a forgotten password is Google (same Gmail) or a note to the team.
+    const forgot = h(
+      'details',
+      { class: 'intro-forgot', id: 'intro-forgot' },
+      h('summary', null, 'Esqueci a senha', en(' Forgot password?', true)),
+      h(
+        'p',
+        null,
+        'Se a conta é do mesmo Gmail, use Continuar com Google. Se não, escreva para ',
+        h('a', { href: 'mailto:team@playtudobem.com' }, 'team@playtudobem.com'),
+        ' com o e-mail da conta.',
+        en('Same Gmail as the account? Use Continue with Google. Otherwise email team@playtudobem.com from the account address.'),
+      ),
+    );
+    const consent = h(
+      'p',
+      { class: 'intro-consent', id: 'intro-consent', style: 'display:none' },
+      'Ao criar a conta você aceita os ',
+      h('a', { href: '/terms', target: '_blank', rel: 'noopener' }, 'Termos'),
+      ' e a ',
+      h('a', { href: '/privacy', target: '_blank', rel: 'noopener' }, 'Privacidade'),
+      '.',
+      en('By creating an account you accept the Terms and Privacy policy.'),
+    );
     const adminDoor = h(
       'button',
       { type: 'button', class: 'intro-admin-door', id: 'intro-admin-door', style: 'display:none', 'aria-label': 'Admin' },
@@ -190,6 +214,8 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       password.setAttribute('autocomplete', login ? 'current-password' : 'new-password');
       password.placeholder = login ? 'Sua senha (Your password)' : 'Crie uma senha (Create a password)';
       if (login) adult.checked = false;
+      forgot.style.display = login ? '' : 'none';
+      consent.style.display = login ? 'none' : '';
     };
 
     tabLogin.addEventListener('click', () => {
@@ -336,6 +362,8 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
       adultRow,
       err,
       h('div', { class: 'intro-actions' }, submit),
+      consent,
+      forgot,
       h('div', { class: 'intro-or', 'aria-hidden': 'true' }, h('span', null, 'ou / or')),
       googleHost,
       guest,

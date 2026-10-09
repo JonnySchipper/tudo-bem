@@ -171,6 +171,11 @@
   font-weight: 800;
 }
 
+.credits-legal {
+  margin: 10px 0 4px;
+  overflow-wrap: anywhere;
+}
+
 .credit-link {
   color: var(--azul);
   font-weight: 800;

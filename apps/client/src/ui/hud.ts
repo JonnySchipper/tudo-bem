@@ -29,6 +29,7 @@ import { mountClockPill } from './clockPill';
 import { COMPACT_QUERY, placeHud } from './hudLayout';
 import { FEEDBACK_COPY, carryAction } from '@tudobem/shared';
 import { openFeedback } from './feedback';
+import { openAccount } from './account';
 import { tierIcon, tierName } from './plate';
 
 /** The HUD's escola reminder: today's XP against the goal (until it is met) and the streak flame. Null before the diary has a word. */
@@ -185,6 +186,8 @@ export function buildHud(actions: HudActions) {
   const tutorialBtn = btn('btn-tutorial', 'mark', 'Tutorial', 'Replay the tutorial', actions.replayTutorial);
   const supportBtn = btn('btn-support', 'coracao', 'Apoiar', 'Support', actions.openSupport);
   const logoutBtn = actions.logout ? btn('btn-logout', 'logout', 'Sair', 'Log out', actions.logout) : null;
+  // Account settings sit next to Sair: only a signed-in multiplayer session has an account to manage.
+  const accountBtn = actions.logout ? btn('btn-account', 'gear', 'Conta', 'Account', openAccount) : null;
   const gear = h('button', { class: 'hud-btn hud-gear', id: 'btn-menu', type: 'button', 'aria-haspopup': 'true', 'aria-expanded': 'false', 'aria-controls': 'hud-menu', 'aria-label': 'Ajustes (Settings)' }, icon('gear', 32), h('span', { class: 'hud-label' }, h('b', { class: 'pt' }, 'Ajustes'), h('i', { class: 'hud-gloss' }, 'Music, voice, credits')));
   const menu = h(
     'div',
@@ -195,6 +198,7 @@ export function buildHud(actions: HudActions) {
     supportBtn,
     tutorialBtn,
     creditsBtn,
+    accountBtn,
     logoutBtn,
   );
   const gearWrap = h('div', { class: 'hud-gear-wrap' }, gear, menu);

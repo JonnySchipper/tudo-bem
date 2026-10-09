@@ -6,7 +6,7 @@
 import { h, en } from './dom';
 import { closeModal, openModal } from './modal.js';
 import { openAdmin } from './admin.js';
-import { CREDITS, LIMEZU_URL, type CreditLine } from './creditsData';
+import { CREDITS, LIMEZU_URL, TEAM_EMAIL, type CreditLine } from './creditsData';
 
 function line(c: CreditLine): HTMLElement {
   return h(
@@ -63,6 +63,16 @@ export function openCredits(): void {
         en('Art: LimeZu (Modern Exteriors, Modern Interiors)', true),
       ),
       h('ul', { class: 'credits-list' }, ...CREDITS.filter((c) => c.id !== 'art').map(line)),
+      h(
+        'p',
+        { class: 'credits-legal', id: 'credits-legal' },
+        h('a', { class: 'credit-link', href: '/privacy', target: '_blank', rel: 'noopener' }, 'Privacidade'),
+        ' · ',
+        h('a', { class: 'credit-link', href: '/terms', target: '_blank', rel: 'noopener' }, 'Termos'),
+        ' · ',
+        h('a', { class: 'credit-link', href: `mailto:${TEAM_EMAIL}` }, TEAM_EMAIL),
+        en('Privacy · Terms · contact the team', true),
+      ),
       // Plain text on purpose: no button chrome. Opens the admin login.
       h(
         'button',

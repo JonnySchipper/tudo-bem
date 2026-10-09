@@ -24,11 +24,8 @@ Target: `TudoBem-Phase0-MVP.md` (success criteria 1–4) and GDD v1.0 §14.1.
 
 ## Live URL
 
-- **Right now:** https://peace-spent-episode-festival.trycloudflare.com — full multiplayer build served from the build agent's VM through a Cloudflare quick tunnel. **Temporary**: it stops when that VM shuts down.
-- **Permanent:** needs one action from Jonny. The agent had no hosting credentials, and GitHub refuses to let Actions enable Pages on this private repo ("Resource not accessible by integration"). Everything else is automated; pick one:
-  1. Add repo secret **`FLY_API_TOKEN`** → `deploy-fly.yml` deploys multiplayer to **https://tudo-bem.fly.dev** on the next push to `main`.
-  2. Render → New → Blueprint → this repo (`render.yaml`).
-  3. Settings → Pages → Source: GitHub Actions (needs Pro/Team for a private repo) → `pages.yml` deploys the **solo** build to **https://jonnyschipper.github.io/tudo-bem/**.
+- **Live:** https://playtudobem.com (also https://tudo-bem.fly.dev): the multiplayer server on Fly.io (`fly.toml`, region `iad`), deployed by `deploy-fly.yml`. The temporary Cloudflare tunnel from the first slice is gone.
+- **Other hosts:** Render (`render.yaml`) and the solo build on GitHub Pages (`pages.yml`) still work as alternatives; see the README's Deploy section.
 - **Solo build:** the authoritative `World` runs in the browser, so the whole play path works from any static host. The solo e2e passes against it under `/tudo-bem/`, including on GitHub Actions.
 
 ## Character redesign v1 (2026-09-26)
@@ -153,9 +150,8 @@ A verbatim copy of the v0.1 JSON is in `content/safety/source-v0.1/` (the game d
 
 ## Known gaps (honest list)
 
-- **No permanent public deploy yet.** It needs the one-time action above (Fly token, Render blueprint, or enabling Pages). Until then the tunnel URL is temporary.
 - **Age assurance is self-declared** (an optional 18+ checkbox at signup), with no ID or age-estimation check. That fits an internal adult preview; revisit before a public launch.
-- **Persistence** is a JSON file; fine for internal testers, not for concurrency or scale. Accounts (email + password) live in `accounts.json` on the same volume. There's no email verification or password reset yet (Phase 1: needs an email provider). Solo mode is still a guest token in `localStorage`.
+- **Persistence** is one SQLite file on the Fly volume (`tudobem.sqlite`, WAL, hourly online backups, the last 48 kept); a volume with the old JSON files is imported once. One process, so no horizontal scale. Accounts (email + password, or Google) live in the same database. There's no email verification or emailed password reset yet (Phase 1: needs an email provider); a signed-in player can change the password, sign out everywhere, download their data and delete the account from **Conta**, and a forgotten password goes through Google (same Gmail) or the team inbox. Solo mode is still a guest token in `localStorage`.
 - **Safety is stub + a small toxicity model**, not the full Jev question packs. The stub now de-obfuscates (`f*ck`, `f u c k`, `f.d.p`), and the server model catches harassment without swear words (*você é uma vergonha*, *seu lixo*, *you're worthless*) and split messages. Still missed: contextless social harassment the model scores low (*everyone hates you, just leave*, *I know where you live*), new slang outside the training data, and anything that needs the conversation of *other* players (the model reads only the sender's own recent lines). The model scores friendly banter (*você é fera*, *you're a beast*) up to ~0.75, so directed messages only warn from 0.77 unless an insult cue word is present. There's no human review UI for the queue, no report-reason picker (v0.1 ops lists a minimum set), and no mute/kick/ban tools yet. Carlos doesn't yet use the substance pack's `rewrite_hints` to offer guaraná when a typed order is blocked.
 - **Accepted false positives:** the animal *macaco* blocks. Food compliments (*coxinha gostosa*) and pickup football (*pelada*) get a warn note, though they're delivered verbatim. From v0.1: street names and *escola* + name block as PII in free chat, and *vinho* as a color blocks.
 - **Gloss is a phrasebook**, so it’s literal or partial on free-form sentences (unknown words pass through untranslated).
@@ -164,8 +160,8 @@ A verbatim copy of the v0.1 JSON is in `content/safety/source-v0.1/` (the game d
 - **Friends:** no private messages; requests are in-memory (lost on server restart); no “hide my instance”; no party system.
 - **Kitnet:** owner can’t boot guests or set room name / Português-only mode; one theme, 8×8 floor.
 - **Placement test, student-model persistence, spaced repetition, Amarelo+ plates, translation economy:** not in Phase 0 (everyone is Verde).
-- **Audio** uses the browser’s speech synthesis (voice quality varies; some Linux browsers have no pt-BR voice). No music or ambient beds.
-- **Accessibility:** keyboard play for chips/minigame and colorblind-safe plates (icon + color), but no font-scale setting, no screen-reader pass on the canvas, no touch/mobile layout.
+- **Audio:** spoken lines are prebaked neural clips (Edge pt-BR Antonio and Francisca, `pnpm tts`, see `docs/VOICES.md`); the browser’s speech synthesis is only the fallback for text that can't be known ahead of time (AI-written Conversa turns). Music and ambient beds are synthesized in the browser (Web Audio), no recorded tracks.
+- **Accessibility:** keyboard play for chips/minigame and colorblind-safe plates (icon + color), and a phone layout (HUD drawer, tap to walk), but no font-scale setting and no screen-reader pass on the canvas.
 - **Art review pending:** TB Art hasn’t signed off the second pass yet (see `docs/art`). Floors, walls, trees and avatars are drawn live in code, so they can't be replaced through `art-overrides/`; only static sprites and UI SVGs can.
 - **Rendering:** Canvas 2D with procedural art baked to sprites for static pieces (animated pieces, floors, walls and avatars still draw live); 2 facing directions mirrored; long multi-tile props are sliced for depth sorting, but occlusion edge cases exist.
 - **Currency naming:** Carlos quotes prices in *reais* for teaching, but the scene is on the house; RV = Reais Virtuais is the only wallet.

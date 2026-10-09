@@ -1397,3 +1397,55 @@ html {
   content: ' · ';
 }
 #credits-close .en { display: block; }
+
+/* ---------- Conta / Account (ui/account.ts) ---------- */
+.account-email {
+  margin: 0 0 6px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.account-section {
+  margin: 14px 0 0;
+  padding-top: 10px;
+  border-top: 2px dashed rgba(139, 94, 60, 0.3);
+}
+
+.account-section h3 {
+  margin: 0 0 4px;
+  font-family: var(--font-title);
+  font-size: 1.1em;
+}
+
+.account-section p {
+  margin: 0 0 8px;
+}
+
+.account-section summary {
+  cursor: pointer;
+  font-family: var(--font-title);
+  font-weight: 800;
+}
+
+.account-note {
+  margin: 8px 0 0;
+  font-weight: 700;
+}
+
+.account-note.bad {
+  color: #a13f15;
+}
+
+.account-download {
+  font-weight: 800;
+}
+
+.backdrop > .panel button.primary.account-danger:not(.close) {
+  background: #a13f15;
+  color: #fffdf8;
+}
+
+.account-legal {
+  margin: 16px 0 0;
+  font-size: 0.9em;
+}
