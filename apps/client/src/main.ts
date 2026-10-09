@@ -88,7 +88,7 @@ import { openSupport } from './ui/support';
 import { bindPetName, maybeAskPetName, openPetName, showPetNameError } from './ui/petName';
 import { bindAdmin, onAdminMsg } from './ui/admin';
 import { applyServerLayout } from './ui/layoutSync';
-import { isDialogueBoxOpen, setDialogueHost, showDialogueBox } from './ui/dialogue';
+import { dialogueBoxKey, dialogueBoxNpc, isDialogueBoxOpen, setDialogueHost, showDialogueBox } from './ui/dialogue';
 import { mountTracker, openJournal, runPrelude } from './ui/recados';
 import { heartsWith } from './ui/recadoView';
 import { openNpcTalk } from './ui/npcTalk';
@@ -307,11 +307,13 @@ function talkTo(npc: NpcDef['id']) {
       proceed: () => talkFlow(npc, juliaMet),
     });
   if (!speaker || !idle) return proceed();
+  // the line over their head would say it twice: the box has it now
+  game.npcBubbles.delete(npc);
   let went = false;
+  // the next beat takes the same box in place (no close and reopen, the camera stays): one conversation, not two
   const go = () => {
     if (went) return;
     went = true;
-    closeDialogue();
     proceed();
   };
   speak(idle.line.pt, { speaker: npc });
@@ -329,8 +331,14 @@ function talkTo(npc: NpcDef['id']) {
   sendLine(idle.anchor);
 }
 
+/** On with the NPC's usual talk. The beat before it (the idle line, an errand) is replaced in place; a talk that opens no box of its own closes it. */
 function talkFlow(npc: NpcDef['id'], juliaMet = false) {
-  closeDialogue();
+  const before = dialogueBoxKey();
+  openTalk(npc, juliaMet);
+  if (before !== null && dialogueBoxKey() === before) closeDialogue();
+}
+
+function openTalk(npc: NpcDef['id'], juliaMet = false) {
   if (isStallVendor(npc)) {
     // a vendor away from the open stall (Tia Lu resting on a praça bench in the afternoon) is not serving: off-duty small talk
     if (vendorOffDuty(npc)) return openFeiraOffDuty(npc);
@@ -1192,7 +1200,9 @@ function startGame() {
   mountKitnetGuide({ tab: () => decor?.tab() ?? 'meus', onStep: updateGuides });
   const idleTalk = new IdleTalk();
   setInterval(() => {
-    const npcs = game.liveNpcs(now());
+    // the one talking with you in the box does not chatter over their own head
+    const talking = dialogueBoxNpc();
+    const npcs = game.liveNpcs(now()).filter((n) => n.id !== talking);
     if (!npcs.length || document.hidden || ambientBubblesFull()) return;
     const n = npcs[Math.floor(Math.random() * npcs.length)];
     // a vendor's own idle lines are stall calls: off duty they chat about their day instead
