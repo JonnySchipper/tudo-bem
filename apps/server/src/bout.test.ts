@@ -560,7 +560,7 @@ describe('Treino no tatame v3 (server)', () => {
     await start(a);
     await holdOut(a, 0, 2);
     expect(a.last('end')!.winner).toBe('partner');
-    expect(a.s.profile!.bjj.lossStreak).toBe(1);
+    expect(a.s.profile!.bjj!.lossStreak).toBe(1);
     // the next match: every window ×1.12 (chain and defense), and nothing in the messages says so
     a.inbox.length = 0;
     await start(a);
@@ -568,7 +568,7 @@ describe('Treino no tatame v3 (server)', () => {
     await deal(a, 'collar_tie');
     expect(a.last('chain')!.windowMs).toEqual([Math.round(2200 * 1.12)]);
     await a.send({ t: 'bout', v: 2, action: 'quit' });
-    expect(a.s.profile!.bjj.lossStreak).toBe(1);
+    expect(a.s.profile!.bjj!.lossStreak).toBe(1);
     a.inbox.length = 0;
     await start(a);
     await holdOut(a, 0, 2);
@@ -576,7 +576,7 @@ describe('Treino no tatame v3 (server)', () => {
     await holdOut(a, 0, 2);
     await start(a);
     await holdOut(a, 0, 2);
-    expect(a.s.profile!.bjj.lossStreak).toBe(4);
+    expect(a.s.profile!.bjj!.lossStreak).toBe(4);
     a.inbox.length = 0;
     await start(a);
     advance(1000);
@@ -587,11 +587,11 @@ describe('Treino no tatame v3 (server)', () => {
     await start(a);
     await holdOut(a, 0, 0);
     expect(a.last('end')!.winner).toBe('draw');
-    expect(a.s.profile!.bjj.lossStreak).toBe(0);
-    a.s.profile!.bjj.lossStreak = 2;
+    expect(a.s.profile!.bjj!.lossStreak).toBe(0);
+    a.s.profile!.bjj!.lossStreak = 2;
     await start(a);
     await holdOut(a, 2, 0);
-    expect(a.s.profile!.bjj.lossStreak).toBe(0);
+    expect(a.s.profile!.bjj!.lossStreak).toBe(0);
   });
 
   it('comfort windows stop at blue belt', async () => {
