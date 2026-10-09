@@ -19,6 +19,7 @@ function rewriteLegalRequestUrl(url: string): string {
   const base = path.toLowerCase();
   if (base === '/privacy') return `/privacy.html${search}`;
   if (base === '/terms') return `/terms.html${search}`;
+  if (base === '/admin') return `/admin.html${search}`;
   return url;
 }
 
@@ -98,6 +99,7 @@ export default defineConfig({
       '/api/auth': { target: SERVER },
       '/api/config': { target: SERVER },
       '/api/feedback': { target: SERVER },
+      '/api/admin': { target: SERVER },
     },
   },
   build: {
@@ -108,6 +110,8 @@ export default defineConfig({
       input: {
         main: fileURLToPath(new URL('./index.html', import.meta.url)),
         lifesimFrame: fileURLToPath(new URL('./lifesim-frame.html', import.meta.url)),
+        // the admin dashboard (/admin): its own small bundle, no game code
+        admin: fileURLToPath(new URL('./admin.html', import.meta.url)),
       },
     },
   },

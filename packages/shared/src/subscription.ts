@@ -28,8 +28,11 @@ export interface PlayerSubscription {
   currentPeriodEnd: number | null;
   portalUrl?: string | null;
   providerSubscriptionId?: string | null;
-  provider?: 'lemonsqueezy' | 'dev';
+  /** `comp`: an admin granted the supporter perks by hand from the dashboard. No payment, never Lemon Squeezy. */
+  provider?: SubscriptionProvider;
 }
+
+export type SubscriptionProvider = 'lemonsqueezy' | 'dev' | 'comp';
 
 export type PetId = 'dog' | 'cat';
 
@@ -71,7 +74,7 @@ export interface BillingTransition {
   currentPeriodEnd?: number | null;
   portalUrl?: string | null;
   subscriptionId?: string | null;
-  provider?: 'lemonsqueezy' | 'dev';
+  provider?: SubscriptionProvider;
   now: number;
 }
 
@@ -141,7 +144,7 @@ export function mapProviderStatus(status: string | null | undefined): Subscripti
   return null;
 }
 
-function ensureSub(p: EntitlementSlice, provider: 'lemonsqueezy' | 'dev' | undefined): PlayerSubscription {
+function ensureSub(p: EntitlementSlice, provider: SubscriptionProvider | undefined): PlayerSubscription {
   if (!p.subscription || !isSubscriptionStatus(p.subscription.status)) {
     p.subscription = { status: 'active', currentPeriodEnd: null, provider: provider ?? 'lemonsqueezy' };
   }
@@ -242,6 +245,37 @@ export function revokeTestSubscription(p: EntitlementSlice, now: number): void {
     kind: 'expired',
     currentPeriodEnd: now,
     provider: 'dev',
+    now,
+  });
+}
+
+/** Longest comp an admin can grant in one go (days). */
+export const COMP_MAX_DAYS = 366;
+
+/**
+ * Admin comp (dashboard): supporter perks with no payment. The same perks as a paid month (pets, bubbles), but not the founder
+ * badge or banner, which only a real first payment grants. A live Lemon Squeezy subscription is never touched.
+ */
+export function grantCompSubscription(p: EntitlementSlice, now: number, days: number): boolean {
+  if (p.subscription?.provider === 'lemonsqueezy' && hasPerkAccess(p.subscription, now)) return false;
+  const d = Math.max(1, Math.min(COMP_MAX_DAYS, Math.floor(days)));
+  return applyBillingTransition(p, {
+    eventId: `comp-grant-${now}-${p.billingEventIds?.length ?? 0}`,
+    kind: 'created',
+    currentPeriodEnd: now + d * DAY_MS,
+    provider: 'comp',
+    now,
+  });
+}
+
+/** Ends a comp at once. A Lemon Squeezy subscription is left alone. */
+export function revokeCompSubscription(p: EntitlementSlice, now: number): boolean {
+  if (p.subscription?.provider !== 'comp') return false;
+  return applyBillingTransition(p, {
+    eventId: `comp-revoke-${now}-${p.billingEventIds?.length ?? 0}`,
+    kind: 'expired',
+    currentPeriodEnd: now,
+    provider: 'comp',
     now,
   });
 }

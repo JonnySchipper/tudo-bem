@@ -316,6 +316,29 @@ export class AccountStore implements AccountLink {
     return true;
   }
 
+  /** Every account (admin dashboard). The objects are live: callers must not hand `passwordHash` to a client. */
+  all(): Account[] {
+    return [...this.byId.values()];
+  }
+
+  /** Live sessions of an account: times only, never the hash. */
+  sessionsOf(accountId: string): { createdAt: number; expiresAt: number }[] {
+    const t = this.now();
+    return [...this.sessions.values()]
+      .filter((s) => s.accountId === accountId && s.expiresAt > t)
+      .map((s) => ({ createdAt: s.createdAt, expiresAt: s.expiresAt }))
+      .sort((a, b) => b.createdAt - a.createdAt);
+  }
+
+  /** Put back an account from an admin audit snapshot. False when its id or email is taken again. Sessions are not restored. */
+  restoreAccount(account: Account): boolean {
+    if (!account?.id || !account.email || this.byId.has(account.id) || this.byEmail.has(account.email)) return false;
+    this.byId.set(account.id, { ...account });
+    this.byEmail.set(account.email, account.id);
+    this.save();
+    return true;
+  }
+
   profileIdFor(accountId: string) {
     return this.byId.get(accountId)?.profileId;
   }

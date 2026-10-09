@@ -73,6 +73,30 @@ CREATE TABLE IF NOT EXISTS kv (
   key TEXT PRIMARY KEY,
   json TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS admin_audit (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  at INTEGER NOT NULL,
+  actor TEXT NOT NULL,
+  action TEXT NOT NULL,
+  target TEXT,
+  summary TEXT NOT NULL,
+  before_json TEXT,
+  after_json TEXT,
+  snapshot_json TEXT
+);
+CREATE INDEX IF NOT EXISTS admin_audit_at ON admin_audit(at);
+CREATE TRIGGER IF NOT EXISTS admin_audit_no_update BEFORE UPDATE ON admin_audit BEGIN SELECT RAISE(ABORT, 'admin_audit is append-only'); END;
+CREATE TRIGGER IF NOT EXISTS admin_audit_no_delete BEFORE DELETE ON admin_audit BEGIN SELECT RAISE(ABORT, 'admin_audit is append-only'); END;
+CREATE TABLE IF NOT EXISTS billing_events (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  at INTEGER NOT NULL,
+  event_id TEXT NOT NULL,
+  kind TEXT NOT NULL,
+  profile_id TEXT,
+  status TEXT,
+  outcome TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS billing_events_at ON billing_events(at);
 `;
 
 const openDbs = new Map<string, Database>();
@@ -257,13 +281,14 @@ export interface BackupOptions {
   maxBytes?: number;
 }
 
-interface BackupFile {
+export interface BackupFile {
   path: string;
   mtimeMs: number;
   size: number;
 }
 
-function listBackups(dir: string): BackupFile[] {
+/** Backup files under `dir` (normally `dataDir/backups`), newest first. */
+export function listBackups(dir: string): BackupFile[] {
   if (!fs.existsSync(dir)) return [];
   const out: BackupFile[] = [];
   for (const name of fs.readdirSync(dir)) {

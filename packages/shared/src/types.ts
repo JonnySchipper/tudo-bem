@@ -220,6 +220,8 @@ export interface PrivateProfile {
    * those players are never sent there. New profiles set this false.
    */
   desembarqueDone?: boolean;
+  /** An admin reset the flight in: the next sign-in plays the plane cutscene again. The server clears it once it has sent it. */
+  replayFlight?: boolean;
   /** Júlia's camera. Photographs tagged things into the language diary. */
   hasCamera?: boolean;
   /** Language-diary word ids earned once. */

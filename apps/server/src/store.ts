@@ -362,7 +362,7 @@ function normalizeSubscription(raw: unknown): PlayerSubscription | undefined {
   const end = typeof r.currentPeriodEnd === 'number' && Number.isFinite(r.currentPeriodEnd) ? r.currentPeriodEnd : null;
   const portal = typeof r.portalUrl === 'string' ? r.portalUrl : null;
   const subId = typeof r.providerSubscriptionId === 'string' ? r.providerSubscriptionId : null;
-  const provider = r.provider === 'dev' || r.provider === 'lemonsqueezy' ? r.provider : undefined;
+  const provider = r.provider === 'dev' || r.provider === 'lemonsqueezy' || r.provider === 'comp' ? r.provider : undefined;
   return { status: r.status, currentPeriodEnd: end, portalUrl: portal, providerSubscriptionId: subId, provider };
 }
 

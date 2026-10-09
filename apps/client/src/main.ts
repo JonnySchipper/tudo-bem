@@ -113,6 +113,7 @@ import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAge
 import { kitnetGuideRunning, kitnetWorldGuide, mountKitnetGuide, startKitnetGuide } from './ui/kitnetGuide';
 import { desembGuide, inDesembarque, markDesembStep, mountDesembTutorial, resetDesembTutorial } from './ui/desembarqueTutorial';
 import { firstRoom } from './ui/desembarqueLogic';
+import { designLinkRoom, watchDesignLink } from './ui/designLink';
 import { flightIntroActive, playFlightIntro } from './ui/flightIntro';
 import { shouldPlayFlightIntro } from './ui/flightIntroLogic';
 import { thanksFor } from './ui/airportTutorialLogic';
@@ -868,7 +869,8 @@ net.on((m: ServerMsg) => {
       game.profile = m.profile;
       if (m.layouts) for (const row of m.layouts) applyServerLayout(row.room, row.objects);
       // the avatar creator was up: this account was made just now
-      const justCreated = onboarding !== null;
+      // or an admin reset the flight in (the server sends the flag once)
+      const justCreated = onboarding !== null || m.profile.replayFlight === true;
       closeOnboarding();
       onboarding = null;
       if (!started) startGame();
@@ -876,7 +878,10 @@ net.on((m: ServerMsg) => {
       const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'rua_leste' || last === 'feira' || last === 'escola' || last === 'aeroporto' || last === 'desembarque';
       // a new arrival starts in the arrivals hall (the guided tutorial), then the airport until Célia's hand-over; everybody else comes
       // back where they were, or to the praça
-      const room = firstRoom(m.profile) ?? (remembered ? last : 'praca');
+      // the dashboard's design link (`/?design=<room>`) wins over both, once the player has arrived
+      const linked = justCreated || firstRoom(m.profile) ? null : designLinkRoom();
+      if (linked) watchDesignLink();
+      const room = linked ?? firstRoom(m.profile) ?? (remembered ? last : 'praca');
       const seenKey = `tb_flight_seen_${m.profile.id}`;
       if (shouldPlayFlightIntro({ room, justCreated, seen: localStorage.getItem(seenKey) === '1', profile: m.profile, now: Date.now() })) {
         // a brand-new account flies in first (the cutscene), and lands in the arrivals hall

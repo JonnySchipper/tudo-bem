@@ -22,6 +22,8 @@ export interface BillingHttpDeps {
   fetchImpl?: (input: string, init?: RequestInit) => Promise<Response>;
   /** Test hook. Production uses Lemon Squeezy when configured. */
   provider?: BillingProvider | null;
+  /** Webhook history for the admin dashboard (adminStores.ts BillingEventLog). */
+  logEvent?: (e: { eventId: string; kind: string; profileId: string | null; status: string | null; outcome: string }) => void;
 }
 
 function send(res: ServerResponse, status: number, body: unknown) {
@@ -82,13 +84,17 @@ export async function handleBillingApi(req: IncomingMessage, res: ServerResponse
       return true;
     }
     const event = result.event;
+    const log = (profileId: string | null, outcome: string) =>
+      deps.logEvent?.({ eventId: event.eventId, kind: event.kind, profileId, status: event.providerStatus ?? null, outcome });
     const userId = event.userId ?? userIdForSubscription(deps.store, event.subscriptionId);
     if (!userId) {
+      log(null, 'ignored_user');
       send(res, 200, { ok: true, ignored: 'user' });
       return true;
     }
     const profile = deps.store.get(userId);
     if (!profile) {
+      log(userId, 'ignored_user');
       send(res, 200, { ok: true, ignored: 'user' });
       return true;
     }
@@ -106,6 +112,7 @@ export async function handleBillingApi(req: IncomingMessage, res: ServerResponse
       deps.store.save(profile.id);
       deps.sync(userId);
     }
+    log(profile.id, applied ? 'applied' : 'duplicate');
     send(res, 200, { ok: true, duplicate: !applied, eventId: event.eventId });
     return true;
   }
