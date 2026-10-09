@@ -14,6 +14,7 @@ import {
   sanitizeConversaTurn,
   filterNpcLine,
   authoredFallbackTurn,
+  addressNpc,
   canStartConversa,
   shouldGrantRV,
   conversaDateKey,
@@ -512,5 +513,34 @@ describe('offline Conversa open', () => {
     expect(open!.line.pt + open!.chips.map((c) => c.pt).join(' ')).not.toMatch(/Pode falar/i);
     expect(offlineConversaOpen('nanda')).toBeNull();
     expect(offlineConversaOpen('julia')).toBeNull();
+  });
+});
+
+describe('Conversa chips address the NPC on duty', () => {
+  it('Dona Graça gets her own name; Seu Carlos keeps his', () => {
+    expect(addressNpc('graca', 'Obrigado, Seu Carlos!')).toBe('Obrigado, Dona Graça!');
+    expect(addressNpc('carlos', 'Obrigado, Seu Carlos!')).toBe('Obrigado, Seu Carlos!');
+    expect(addressNpc(undefined, 'Tchau, Seu Carlos!')).toBe('Tchau, Seu Carlos!');
+  });
+
+  it('authored fallback and presented chips never call Graça "Seu Carlos"', () => {
+    const history = [{ who: 'npc' as const, pt: 'Oi' }, { who: 'player' as const, pt: 'x' }];
+    for (const text of ['Pra comer aqui', 'Pra viagem', 'pão na chapa']) {
+      for (const h of [history, [...history, ...history]]) {
+        const g = authoredFallbackTurn(text, h, 'graca');
+        expect(JSON.stringify(g.chips)).not.toContain('Seu Carlos');
+        const c = authoredFallbackTurn(text, h);
+        expect(JSON.stringify(c.chips).replace(/Seu Carlos/g, 'Dona Graça')).toBe(JSON.stringify(g.chips));
+      }
+    }
+    const turn = { line: { pt: 'Oi', en: '' }, chips: [{ pt: 'Tchau, Seu Carlos!', en: 'Bye, Seu Carlos!' }, { pt: 'Valeu!', en: '' }], scores: { portuguese: 2, grammar: 2, conversation: 2 } as ConversaScores, tip: null, end: false, order: {} };
+    expect(presentConversaTurn(turn, [], undefined, 'graca').chips[0]).toEqual({ pt: 'Tchau, Dona Graça!', en: 'Bye, Dona Graça!' });
+    const open = offlineConversaOpen('graca');
+    expect(JSON.stringify(open?.chips)).not.toContain('Seu Carlos');
+  });
+
+  it('parseAiResponse keeps a real 0 score and defaults only a missing one', () => {
+    const r = parseAiResponse('{"response":"Oi","chips":[],"scores":{"portuguese":0,"grammar":"3"},"tip":null,"end":false}');
+    expect(r?.scores).toEqual({ portuguese: 0, grammar: 3, conversation: 2 });
   });
 });

@@ -32,10 +32,10 @@ export interface TalkHooks {
 }
 
 const SPEAKER: Record<string, { name: string; role: string }> = {
-  nanda: { name: 'Nanda', role: 'Loja de chapéus' },
-  julia: { name: 'Júlia', role: 'Guia da praça' },
-  graca: { name: 'Dona Graça', role: 'Padeira da noite' },
-  prof: { name: 'Professora Bia', role: 'Professora de jiu-jitsu' },
+  nanda: { name: 'Nanda', role: 'Loja de chapéus (Hat shop)' },
+  julia: { name: 'Júlia', role: 'Guia da praça (Square guide)' },
+  graca: { name: 'Dona Graça', role: 'Padeira da noite (Night baker)' },
+  prof: { name: 'Professora Bia', role: 'Professora de jiu-jitsu (Jiu-jitsu teacher)' },
 };
 
 /** Which node the greeting is on, and how many replies were picked (the expression turns happy once the player answered). */

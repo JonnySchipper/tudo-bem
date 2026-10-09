@@ -2,8 +2,9 @@
 
 html.px-ui .backdrop > .panel.townmap,
 .backdrop > .panel.townmap {
-  width: min(1240px, calc(100vw - 24px));
-  max-height: calc(100dvh - 24px);
+  /* zoomed by --ui-scale on a big screen (panels.css): the screen caps are divided by it so the panel never runs off the screen */
+  width: min(1240px, calc((100vw - 24px) / var(--ui-scale)));
+  max-height: calc((100dvh - 24px) / var(--ui-scale));
   padding: 40px 16px 14px;
   display: flex;
   flex-direction: column;
@@ -35,18 +36,39 @@ html.px-ui .backdrop > .panel.townmap,
   background: #2d79b0;
 }
 
-/* the map keeps its 8:5 shape and fills what the screen allows */
+/* the map keeps its shape (the town is 1184 x 640 game pixels) and fills what the screen allows, never past one screen pixel per game pixel.
+   The panel is zoomed by --ui-scale on a big screen (panels.css), so the screen caps are divided by it. */
 .tm-stage {
   position: relative;
-  aspect-ratio: 320 / 200;
-  width: min(calc(100vw - 62px), 1196px, calc((100dvh - 150px) * 1.6));
+  aspect-ratio: 1184 / 640;
+  width: min(calc((100vw - 62px * var(--ui-scale)) / var(--ui-scale)), calc(1184px / var(--ui-scale)), calc((100dvh - 150px * var(--ui-scale)) / var(--ui-scale) * 1.85));
+  background: #6f9a4a;
 }
 
+.tm-picture,
 .tm-svg {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.tm-picture {
   image-rendering: pixelated;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.tm-picture.ready {
+  opacity: 1;
+}
+
+.tm-picture.smooth {
+  image-rendering: auto;
+}
+
+.tm-svg {
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -55,33 +77,34 @@ html.px-ui .backdrop > .panel.townmap,
 .tm-spot {
   cursor: pointer;
   outline: none;
-  transition: transform 0.08s steps(2), filter 0.08s steps(2);
 }
 
+/* the place is the button: a golden frame lights up round it (hover only where there is a real pointer: a tap would leave it stuck on a phone) */
 .tm-spot .tm-hit {
   pointer-events: all;
+  fill: transparent;
+  stroke: transparent;
+  stroke-width: 4;
+  transition: fill 0.08s steps(2), stroke 0.08s steps(2);
 }
 
-/* the place is the button: it lifts and glows (hover only where there is a real pointer: a tap would leave it stuck on a phone) */
-.tm-spot:focus-visible,
-.tm-spot.sel {
-  transform: translateY(-2px);
-  filter: drop-shadow(0 0 1px #fff7c2) drop-shadow(0 0 2px #f2c230) drop-shadow(0 2px 0 rgba(42, 26, 18, 0.45));
+.tm-spot:focus-visible .tm-hit,
+.tm-spot.sel .tm-hit {
+  fill: rgba(255, 236, 160, 0.16);
+  stroke: #f2c230;
+  filter: drop-shadow(0 0 2px #fff7c2) drop-shadow(0 2px 0 rgba(42, 26, 18, 0.5));
 }
 
 @media (hover: hover) {
-  .tm-spot:hover {
-    transform: translateY(-2px);
-    filter: drop-shadow(0 0 1px #fff7c2) drop-shadow(0 0 2px #f2c230) drop-shadow(0 2px 0 rgba(42, 26, 18, 0.45));
+  .tm-spot:hover .tm-hit {
+    fill: rgba(255, 236, 160, 0.16);
+    stroke: #f2c230;
+    filter: drop-shadow(0 0 2px #fff7c2) drop-shadow(0 2px 0 rgba(42, 26, 18, 0.5));
   }
 
-  .tm-spot.soon:hover {
-    filter: drop-shadow(0 0 2px #fffdf8);
-    transform: none;
-  }
-
-  .tm-spot.soon:hover .tm-art {
-    filter: grayscale(0.3);
+  .tm-spot.soon:hover .tm-hit {
+    fill: rgba(255, 253, 248, 0.12);
+    stroke: #fffdf8;
   }
 }
 
@@ -89,18 +112,10 @@ html.px-ui .backdrop > .panel.townmap,
   cursor: help;
 }
 
-.tm-spot.soon .tm-art {
-  filter: grayscale(0.55) contrast(0.9);
-}
-
-.tm-spot.soon:focus-visible,
-.tm-spot.soon.sel {
-  filter: drop-shadow(0 0 2px #fffdf8);
-  transform: none;
-}
-
-.tm-spot.soon.sel .tm-art {
-  filter: grayscale(0.3);
+.tm-spot.soon:focus-visible .tm-hit,
+.tm-spot.soon.sel .tm-hit {
+  fill: rgba(255, 253, 248, 0.12);
+  stroke: #fffdf8;
 }
 
 /* the name tag: Portuguese first, English after */
@@ -125,6 +140,14 @@ html.px-ui .backdrop > .panel.townmap,
     0 5px 0 0 rgba(20, 10, 6, 0.35);
   opacity: 0;
   visibility: hidden;
+}
+
+.tm-label.start {
+  transform: translate(0, -50%);
+}
+
+.tm-label.end {
+  transform: translate(-100%, -50%);
 }
 
 .tm-label b {
@@ -186,6 +209,26 @@ html.px-ui .backdrop > .panel.townmap,
   font-family: var(--font-body);
   font-weight: 800;
   font-size: 0.7em;
+}
+
+/* on the map: the place's name over "Em breve · Coming soon", hanging inwards from the map's edge */
+.tm-ribbon:not(.static) {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.tm-ribbon b {
+  font-weight: 400;
+}
+
+.tm-ribbon.end {
+  transform: translate(-100%, -50%) rotate(-6deg);
+}
+
+.tm-ribbon.start {
+  transform: translate(0, -50%) rotate(-6deg);
 }
 
 .tm-ribbon.static {

@@ -64,7 +64,8 @@ async function clean(name) {
     }
   }
   fs.mkdirSync(outDir, { recursive: true });
-  await sharp(pix, { raw: { width, height, channels: 4 } }).png().toFile(path.join(outDir, name));
+  // palette PNG (~70% smaller than truecolour; checked by eye for banding at 3x zoom)
+  await sharp(pix, { raw: { width, height, channels: 4 } }).png({ palette: true, quality: 65, dither: 0.5, effort: 10, compressionLevel: 9 }).toFile(path.join(outDir, name));
   console.log(`${name}: cleared ${removed} fringe pixels`);
 }
 

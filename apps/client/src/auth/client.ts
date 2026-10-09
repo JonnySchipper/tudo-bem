@@ -140,6 +140,65 @@ export async function signOut(): Promise<void> {
   clearAuthSession();
 }
 
+export type AccountCallResult = { ok: true } | { ok: false; pt: string; en: string };
+
+/** POST that only needs ok / the server's bilingual reason back (account settings). */
+async function postAccount(url: string, body: unknown): Promise<AccountCallResult> {
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', accept: 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify(body),
+    });
+  } catch {
+    return { ok: false, pt: 'Sem conexão com a Praça. Tenta de novo em instantes.', en: 'Can’t reach the server. Try again in a moment.' };
+  }
+  let data: { ok?: boolean; pt?: string; en?: string } = {};
+  try {
+    data = await res.json();
+  } catch {
+    /* not json */
+  }
+  if (res.ok && data.ok === true) return { ok: true };
+  return { ok: false, pt: data.pt ?? 'Algo deu errado. Tenta de novo?', en: data.en ?? 'Something went wrong. Try again?' };
+}
+
+/** The signed-in account as the server sees it (email, and whether it signs in with Google). */
+export async function fetchAccount(): Promise<{ email: string; google: boolean } | null> {
+  try {
+    const res = await fetch(`${AUTH_BASE}/me`, { headers: { accept: 'application/json' } });
+    const data = (await res.json()) as { ok?: boolean; account?: { email?: string; google?: boolean } | null };
+    if (data.ok !== true || !data.account?.email) return null;
+    return { email: data.account.email, google: data.account.google === true };
+  } catch {
+    return null;
+  }
+}
+
+/** New password; the server signs out every other device. */
+export function changePassword(current: string, next: string): Promise<AccountCallResult> {
+  return postAccount(`${AUTH_BASE}/password`, { current, next });
+}
+
+/** End every session of this account, this browser included. */
+export async function signOutEverywhere(): Promise<AccountCallResult> {
+  const r = await postAccount(`${AUTH_BASE}/logout-all`, {});
+  if (r.ok) clearAuthSession();
+  return r;
+}
+
+/** Delete the account and its game data. `password`, or for a Google account the typed email. */
+export async function deleteAccount(proof: { password?: string; confirmEmail?: string }): Promise<AccountCallResult> {
+  const r = await postAccount('/api/account/delete', proof);
+  if (r.ok) clearAuthSession();
+  return r;
+}
+
+/** Same-origin download of everything the server keeps for this account (the cookie rides along). */
+export const ACCOUNT_EXPORT_URL = '/api/account/export';
+
 /** Ops smoke sign-in (stable account). Requires the same admin password as the hidden admin panel. */
 export function signInOpsSmoke(adminPassword: string): Promise<AuthResponse> {
   return signInSmokePath('/ops-smoke', adminPassword);

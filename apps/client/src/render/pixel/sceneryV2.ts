@@ -29,7 +29,7 @@ interface V2Room {
   patches: { x: number; y: number; k: PatchKind }[];
   hopscotch?: { x: number; y: number };
   bowl?: { x: number; y: number };
-  /** what the market leaves on the paving: the tile rectangle (inclusive) to scatter on; the vendors' price boards get chalk */
+  /** what the market leaves on the paving: the tile rectangle (inclusive) to scatter on */
   market?: { x0: number; y0: number; x1: number; y1: number };
 }
 
@@ -122,12 +122,6 @@ export function v2Decals(def: RoomDef, has: (key: string) => boolean): Decal[] {
         else if (r < 0.062) add({ key: `decals/feira_mancha_${Math.floor(rnd(x, y, 76) * 3)}`, ...at(0, 2), origin: 'anchor', depth: DEPTH_STAIN });
         else if (r < 0.068) add({ key: 'decals/feira_caixa', ...at(0, 0), origin: 'anchor', depth: DEPTH_LITTER + 2 });
       }
-    }
-    // chalk price scribbles on the setts in front of each vendor's board (one tile south of the blackboard)
-    for (const [i, p] of def.props.filter((q) => q.id.startsWith('lousa_')).entries()) {
-      const tx = p.x, ty = p.y + 1;
-      if (def.floor[ty]?.[tx] !== 'p' || occupied.has(`${tx},${ty}`)) continue;
-      add({ key: `decals/feira_giz_${i % 5}`, x: Math.round((tx + 0.5) * T + 2), y: Math.round((ty + 0.5) * T + 3), origin: 'anchor', depth: DEPTH_CHALK });
     }
   }
   return out;

@@ -100,7 +100,7 @@ export class RecadoTracker {
   }
 
   private commit(s: Session) {
-    this.d.store.save();
+    if (s.profile) this.d.store.save(s.profile.id);
     this.d.pushProfile(s);
     this.sendBoard(s);
   }

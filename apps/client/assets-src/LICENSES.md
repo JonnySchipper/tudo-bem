@@ -7,7 +7,8 @@ Third-party art used by Tudo Bem / Vila Ipê. **Credits are required** by both l
 > Art: LimeZu — https://limezu.itch.io/
 
 The style-frame page (`apps/client/lifesim-frame.html`) shows a short version in its footer
-("Art: LimeZu — limezu.itch.io"). The in-game credits screen (a later phase) must carry the full line.
+("Art: LimeZu — limezu.itch.io"). The in-game credits panel (Ajustes → Créditos, `apps/client/src/ui/credits.ts`) carries the full
+line, and the title screen footer carries the short one.
 
 ## LimeZu — Modern Interiors (full version)
 

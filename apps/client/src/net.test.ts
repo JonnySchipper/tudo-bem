@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { NET_CONNECT_TIMEOUT_MS, NET_MAX_RETRIES, Net, type NetSocket, type NetStatus } from './net';
+import { CLOSE_RESTART, NET_CONNECT_TIMEOUT_MS, NET_MAX_RETRIES, NET_RETRY_MAX_MS, Net, reconnectDelay, type NetSocket, type NetStatus } from './net';
 
 class FakeSocket implements NetSocket {
   readyState = 0;
@@ -36,7 +36,7 @@ describe('Net reconnect', () => {
       const s = new FakeSocket('ws://padaria');
       sockets.push(s);
       return s;
-    });
+    }, () => 0);
     net.onStatus = (s) => statuses.push(s);
     net.onOpen = () => net.send({ t: 'hello', token: 'tok' });
     return { net, sockets, statuses };
@@ -105,7 +105,7 @@ describe('Net reconnect', () => {
     for (let i = 0; i < NET_MAX_RETRIES; i++) {
       expect(sockets).toHaveLength(i + 1);
       vi.advanceTimersByTime(NET_CONNECT_TIMEOUT_MS);
-      if (i < NET_MAX_RETRIES - 1) vi.advanceTimersByTime(500 * 2 ** i);
+      if (i < NET_MAX_RETRIES - 1) vi.advanceTimersByTime(reconnectDelay(i + 1, () => 0));
     }
     expect(statuses.at(-1)).toBe('failed');
     expect(sockets).toHaveLength(NET_MAX_RETRIES);
@@ -198,5 +198,57 @@ describe('Net reconnect', () => {
     vi.advanceTimersByTime(60_000);
     expect(sockets).toHaveLength(1);
     expect(statuses.at(-1)).toBe('idle');
+  });
+
+  it('keeps trying for about a minute or more, longer than a deploy or a cold start', () => {
+    const waits = (r: number) => Array.from({ length: NET_MAX_RETRIES - 1 }, (_, i) => reconnectDelay(i + 1, () => r));
+    const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
+    expect(NET_MAX_RETRIES).toBeGreaterThanOrEqual(10);
+    expect(sum(waits(0.5))).toBeGreaterThanOrEqual(60_000);
+    expect(sum(waits(1))).toBeLessThanOrEqual(120_000);
+    for (const r of [0, 0.3, 1]) for (const w of waits(r)) expect(w).toBeLessThanOrEqual(NET_RETRY_MAX_MS);
+    // jitter: two clients do not wait the same time
+    expect(reconnectDelay(4, () => 0)).toBeLessThan(reconnectDelay(4, () => 1));
+  });
+
+  it('shows "restarting" on a 1012 close and keeps reconnecting until the server is back', () => {
+    const { net, sockets, statuses } = harness();
+    net.connect();
+    sockets[0]!.open();
+    sockets[0]!.serverClose(CLOSE_RESTART);
+    expect(statuses.at(-1)).toBe('restarting');
+    vi.advanceTimersByTime(reconnectDelay(1, () => 0));
+    expect(sockets).toHaveLength(2);
+    // the new socket is refused while the machine boots: still the restart message
+    sockets[1]!.serverClose(1006);
+    expect(statuses.at(-1)).toBe('restarting');
+    vi.advanceTimersByTime(reconnectDelay(2, () => 0));
+    sockets[2]!.open();
+    expect(statuses.at(-1)).toBe('open');
+    sockets[2]!.serverClose(1006);
+    expect(statuses.at(-1)).toBe('closed');
+  });
+
+  it('retries at once when the network comes back, even after giving up', () => {
+    const { net, sockets, statuses } = harness();
+    net.connect();
+    sockets[0]!.open();
+    sockets[0]!.serverClose(1006);
+    expect(sockets).toHaveLength(1);
+    net.networkOnline();
+    expect(sockets).toHaveLength(2);
+    for (let i = 1; i < NET_MAX_RETRIES; i++) {
+      sockets.at(-1)!.serverClose(1006);
+      vi.advanceTimersByTime(NET_RETRY_MAX_MS);
+    }
+    expect(statuses.at(-1)).toBe('failed');
+    const n = sockets.length;
+    net.networkOnline();
+    expect(sockets).toHaveLength(n + 1);
+    sockets.at(-1)!.open();
+    expect(statuses.at(-1)).toBe('open');
+    // an open socket ignores the event
+    net.networkOnline();
+    expect(sockets).toHaveLength(n + 1);
   });
 });

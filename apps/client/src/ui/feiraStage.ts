@@ -701,7 +701,7 @@ export class FeiraStage<O extends StageOrder> {
         this.left += 1;
         this.combo = 0;
         this.react(c, 'miss');
-        this.floatAt(this.L.spots[c.spot]!, this.L.counterY - 34, 'Foi embora', 'miss');
+        this.floatAt(this.L.spots[c.spot]!, this.L.counterY - 34, 'Foi embora · Left', 'miss');
         this.sfx('nope');
         this.paintCrowd();
       } else if (p < 0.3 && c.emote !== 'sweat' && c.emote !== 'anger') {

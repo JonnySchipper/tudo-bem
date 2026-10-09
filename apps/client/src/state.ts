@@ -40,6 +40,8 @@ class Game {
   furniture: PlacedFurniture[] = [];
   friends: FriendInfo[] = [];
   incoming: { id: string; name: string }[] = [];
+  /** People this player blocked (friends message), for the unblock list. */
+  blockedPeople: { id: string; name: string }[] = [];
   /** Dual Praça leaderboards from the server. */
   leaderboards: { words: BoardRow[]; streak: BoardRow[]; at: number } | null = null;
   npcBubbles = new Map<string, Bubble>();

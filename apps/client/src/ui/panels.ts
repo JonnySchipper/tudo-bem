@@ -19,6 +19,9 @@ import {
   npcDefById,
   tierRule,
   FOUNDER_BADGE,
+  REPORT_REASONS,
+  REPORT_REASON_LABELS,
+  type ReportReason,
   type Bilingual,
   type NpcDef,
   type PublicAvatar,
@@ -43,7 +46,7 @@ import { profileMetJulia, rememberJuliaMet } from './juliaMet';
 export { closeModal, modalId, openModal } from './modal.js';
 import { closeModal, modalId, openModal } from './modal.js';
 
-const closeBtn = (close: () => void) => h('button', { class: 'close ghost', onclick: close, 'aria-label': 'Fechar' }, '✕');
+const closeBtn = (close: () => void) => h('button', { class: 'close ghost', onclick: close, 'aria-label': 'Fechar (Close)' }, '✕');
 
 // ---------------------------------------------------------------- NPC dialogue
 
@@ -86,7 +89,7 @@ function boxSpecFor(o: DialogueOpts): BoxSpec {
     feedback: o.feedback ? h('span', { class: `feedback dbx-feedback s${score}` }, `${o.feedback.text.pt} · ${o.feedback.text.en}`) : null,
     extras: o.extras,
     chips: o.chips,
-    input: o.chips.length && o.onType ? { id: 'scene-type', placeholder: 'Responda em português…', send: 'Responder', onSend: (text) => o.onType?.(text) } : null,
+    input: o.chips.length && o.onType ? { id: 'scene-type', placeholder: 'Responda em português… (Answer in Portuguese)', send: 'Responder', onSend: (text) => o.onType?.(text) } : null,
     footer: o.footer,
     onChip: o.onChoose,
     onClose: o.onClose,
@@ -138,7 +141,7 @@ export function showJulia(fromGreeting = false) {
     showDialogue({
       npc: julia,
       speaker: 'Júlia',
-      role: 'Guia da praça',
+      role: 'Guia da praça · Plaza guide',
       line,
       key: 'talk-julia',
       chips: JULIA_TREE.map((j) => j.q),
@@ -177,7 +180,7 @@ export function openKiosk(take: () => void) {
           h('b', null, verb),
           h('span', { class: 'detail' }, ` ${rest.join(' ')}`),
           en(s.en, true),
-          done ? h('span', { class: 'tick', 'aria-label': 'feito' }, '✓') : null,
+          done ? h('span', { class: 'tick', 'aria-label': 'feito (done)' }, '✓') : null,
         ),
       );
     });
@@ -271,8 +274,8 @@ interface StallCard {
 function stallCard(s: StallCard): HTMLElement {
   const short = s.owned ? 0 : shortBy(s.coins, s.price);
   const tag = s.owned
-    ? h('span', { class: `stall-tag ${s.using ? 'using' : 'mine'}` }, s.using ? s.usingLabel : '✓ Seu')
-    : h('span', { class: `price price-tag ${s.price === 0 ? 'free' : ''}` }, s.price === 0 ? 'Grátis' : [h('span', { class: 'coin' }), ` ${s.price}`]);
+    ? h('span', { class: `stall-tag ${s.using ? 'using' : 'mine'}` }, s.using ? s.usingLabel : '✓ Seu · Yours')
+    : h('span', { class: `price price-tag ${s.price === 0 ? 'free' : ''}` }, s.price === 0 ? 'Grátis · Free' : [h('span', { class: 'coin' }), ` ${s.price}`]);
   const cls = ['item-card', 'stall-card', s.owned ? 'owned' : 'sale', s.using ? 'using' : '', s.selected ? 'sel' : '', short ? 'cant' : '', s.fresh ? 'just-bought' : ''];
   return h(
     'div',
@@ -281,7 +284,7 @@ function stallCard(s: StallCard): HTMLElement {
     h('div', { class: 'item-icon-box hat-icon-box' }, s.icon),
     h('div', { class: 'name' }, s.pt),
     en(s.en),
-    short ? h('span', { class: 'short' }, `Faltam ${short} RV`) : null,
+    short ? h('span', { class: 'short' }, `Faltam ${short} RV`, en(` · ${short} RV short`, true)) : null,
     s.button,
     s.fresh ? h('span', { class: 'stall-stamp', 'aria-hidden': 'true' }, s.fresh) : null,
   );
@@ -512,7 +515,7 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
 
 // ---------------------------------------------------------------- friends
 
-export function openFriends(actions: { request: (id: string) => void; accept: (id: string) => void; decline: (id: string) => void; remove: (id: string) => void; hop: (roomId: RoomId, instanceId: string | null, ownerId?: string) => void; refresh: () => void }) {
+export function openFriends(actions: { request: (id: string) => void; accept: (id: string) => void; decline: (id: string) => void; remove: (id: string) => void; hop: (roomId: RoomId, instanceId: string | null, ownerId?: string) => void; refresh: () => void; unblock: (id: string) => void }) {
   const body = h('div');
   const render = () => {
     const others = [...game.avatars.values()].filter((a) => a.pub.id !== game.room?.selfId && !a.pub.cpu && !a.pub.npc);
@@ -545,6 +548,12 @@ export function openFriends(actions: { request: (id: string) => void; accept: (i
           ),
         ),
       ),
+      game.blockedPeople.length ? h('div', { class: 'section-title' }, 'Bloqueados', en(' Blocked', true)) : '',
+      h(
+        'div',
+        { class: 'list-rows', id: 'blocked-list' },
+        ...game.blockedPeople.map((b) => h('div', { class: 'r' }, h('b', null, b.name), h('span', { class: 'spacer' }), h('button', { class: 'ghost', onclick: () => actions.unblock(b.id) }, bi('Desbloquear', 'Unblock')))),
+      ),
       h('div', { class: 'section-title' }, 'Nesta sala', en(' In this room', true)),
       h(
         'div',
@@ -569,10 +578,23 @@ export function openFriends(actions: { request: (id: string) => void; accept: (i
   const close = openModal('friends', h('div', { class: 'panel' }, closeBtn(() => close()), h('h2', null, 'Amigos'), en('Friends — see who’s online and hop over.'), body), { onClose: off });
 }
 
-export function openProfileCard(a: PublicAvatar, actions: { request: (id: string) => void; report: (id: string) => void; wave: () => void }) {
+export function openProfileCard(
+  a: PublicAvatar,
+  actions: { request: (id: string) => void; report: (id: string, reason: ReportReason) => void; block: (id: string, on: boolean) => void; wave: () => void },
+) {
   const canvas = h('canvas', { style: 'width:168px;height:216px;image-rendering:pixelated' });
   const preview = mountCharPreview(canvas, () => ({ appearance: a.appearance, hat: a.hat, parrot: a.parrot }));
   const isFriend = game.profile?.friends.includes(a.id);
+  const isBlocked = !!game.profile?.blocked?.includes(a.id);
+  // Report asks why first (one tap per reason); the server attaches what this player actually said.
+  const reasons = h(
+    'div',
+    { class: 'row report-reasons', id: 'report-reasons', style: 'display:none;justify-content:center;flex-wrap:wrap;margin-top:8px' },
+    h('div', { style: 'width:100%;text-align:center;font-weight:700' }, 'Por quê?', en(' Why are you reporting?', true)),
+    ...REPORT_REASONS.map((r) =>
+      h('button', { class: 'ghost', 'data-reason': r, onclick: () => (actions.report(a.id, r), close()) }, bi(REPORT_REASON_LABELS[r].pt, REPORT_REASON_LABELS[r].en)),
+    ),
+  );
   const pronoun = { ele: 'ele', ela: 'ela', nome: 'só o nome' }[a.pronoun];
   const close = openModal(
     'profile',
@@ -590,8 +612,10 @@ export function openProfileCard(a: PublicAvatar, actions: { request: (id: string
         { class: 'row', style: 'justify-content:center;margin-top:12px' },
         h('button', { onclick: () => (actions.wave(), close()) }, bi('Acenar', 'Wave')),
         isFriend ? h('span', { class: 'feedback' }, 'Amigo') : h('button', { class: 'green', onclick: () => (actions.request(a.id), close()), id: 'btn-add-friend' }, bi('Adicionar amigo', 'Add friend')),
-        h('button', { class: 'ghost', onclick: () => (actions.report(a.id), close()) }, bi('Denunciar', 'Report')),
+        h('button', { class: 'ghost', id: 'btn-report', onclick: () => (reasons.style.display = reasons.style.display === 'none' ? 'flex' : 'none') }, bi('Denunciar', 'Report')),
+        h('button', { class: 'ghost', id: 'btn-block', onclick: () => (actions.block(a.id, !isBlocked), close()) }, isBlocked ? bi('Desbloquear', 'Unblock') : bi('Bloquear', 'Block')),
       ),
+      reasons,
     ),
     { onClose: () => preview.stop() },
   );
