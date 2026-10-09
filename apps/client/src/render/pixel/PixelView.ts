@@ -12,6 +12,7 @@ import { WorldScene } from './WorldScene';
 import { LabelLayer } from './labels';
 import { T, bufferPixels, canvasToWorld, tileAtWorld, tileCenterToCanvas, worldToCanvas, type Insets } from './coords';
 import { game } from '../../state';
+import { uiScale } from '../../ui/hudLayout';
 
 export class PixelView implements WorldView {
   /** `scale` is CSS px per art px (HOWTO §5.4); e2e's clickTile multiplies by it. */
@@ -118,7 +119,9 @@ export class PixelView implements WorldView {
     const cs = getComputedStyle(document.documentElement);
     const safeTop = parseFloat(cs.getPropertyValue('--safe-top')) || 0;
     const safeBot = parseFloat(cs.getPropertyValue('--safe-bottom')) || 0;
-    this.insetsCss = { top: (narrow ? 124 : 64) + safeTop, bottom: (narrow ? 168 : 110) + safeBot, left: 0, right: 0 };
+    // the HUD is drawn at the desktop UI scale (hudLayout.uiScale), so the room it takes grows with it
+    const k = narrow ? 1 : uiScale();
+    this.insetsCss = { top: (narrow ? 124 : 64) * k + safeTop, bottom: (narrow ? 168 : 110) * k + safeBot, left: 0, right: 0 };
   }
 
   resize(): void {
