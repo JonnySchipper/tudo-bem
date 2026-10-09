@@ -582,6 +582,39 @@ export interface FeiraCustomerOrder {
   name: string;
 }
 
+/** The regulars who walk up to the cart (portrait / character ids and the names on their bubbles). */
+export const FEIRA_REGULARS: readonly { id: string; name: string }[] = [
+  { id: 'nanda', name: 'Nanda' },
+  { id: 'julia', name: 'Júlia' },
+  { id: 'tia_lu', name: 'Tia Lu' },
+  { id: 'rosa', name: 'Dona Rosa' },
+  { id: 'chico', name: 'Seu Chico' },
+  { id: 'ze', name: 'Seu Zé' },
+  { id: 'graca', name: 'Dona Graça' },
+  { id: 'lucia', name: 'Dona Lúcia' },
+];
+
+/**
+ * `who`, or the next regular after them who is not one of the `recent` faces (the last three), so the three people
+ * at the counter together are never the same person twice. Pushes the pick onto `recent`. Pure: no rng.
+ */
+export function feiraFreshFace(who: { id: string; name: string }, recent: string[]): { id: string; name: string } {
+  let pick = who;
+  if (recent.includes(pick.id)) {
+    const start = Math.max(0, FEIRA_REGULARS.findIndex((w) => w.id === who.id));
+    for (let k = 1; k < FEIRA_REGULARS.length; k++) {
+      const w = FEIRA_REGULARS[(start + k) % FEIRA_REGULARS.length]!;
+      if (!recent.includes(w.id)) {
+        pick = w;
+        break;
+      }
+    }
+  }
+  recent.push(pick.id);
+  if (recent.length > 3) recent.shift();
+  return pick;
+}
+
 /** Registry. Each game module registers itself here (feiraTapioca.ts, feiraPastel.ts, feiraCaldo.ts). */
 export const FEIRA_GAME_MODULES: Partial<Record<FeiraGameId, FeiraGameModule>> = {};
 

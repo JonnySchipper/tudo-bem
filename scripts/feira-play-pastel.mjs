@@ -1,5 +1,10 @@
-/** Drives Pastel with real mouse clicks: dough, filling, fork, oil, pull, and one pastel left until it catches fire. */
+/**
+ * Drives Pastel on the Feira stage with real mouse input: dough, the fillings the customer asked for, the fork,
+ * drag it into the oil, pull it while golden, drag it from the rack to them. One pastel is left in the oil
+ * until it catches fire, then put out.
+ */
 import { sleep } from './lib/meveum-play.mjs';
+import { drag, startRun } from './feira-play-tapioca.mjs';
 
 const RECIPES = [
   ['frango com catupiry', ['frango', 'catupiry']],
@@ -13,77 +18,72 @@ const RECIPES = [
   ['carne', ['carne']],
 ];
 
-async function orderParts(page) {
-  const text = await page.evaluate(() => document.querySelector('.ps-customer .ps-pt')?.textContent ?? '');
+const labelOf = (page, id) => page.evaluate((k) => document.querySelector(`[data-label="${k}"] b`)?.textContent ?? '', id);
+
+async function wantedParts(page) {
+  const text = await page.evaluate(() => document.querySelector('.fst-bubble .fst-bubble-pt')?.textContent ?? '');
   const hit = RECIPES.find(([name]) => text.toLowerCase().includes(name));
-  return hit ? hit[1] : null;
+  return hit ? { name: hit[0], parts: hit[1] } : null;
 }
 
-async function stageOf(page, slot) {
-  return page.getAttribute(`#pastel-slot-${slot}`, 'data-doneness');
-}
-
-/** Poll until the pastel reaches `want`, or a later stage of the ladder. */
-async function waitStage(page, slot, want, timeout = 15_000) {
-  const order = ['empty', 'raw', 'golden', 'dark', 'black', 'block', 'fire'];
-  const need = order.indexOf(want);
-  const deadline = Date.now() + timeout;
-  let stage = await stageOf(page, slot);
-  while (Date.now() < deadline) {
-    stage = await stageOf(page, slot);
-    if (order.indexOf(stage) >= need && need >= 0) return stage;
-    await sleep(120);
+async function assemble(page, mclick, parts) {
+  await mclick('#pastel-dough');
+  await sleep(150);
+  for (const part of parts) {
+    await mclick(`#pastel-bowl-${part}`);
+    await sleep(80);
   }
-  return stage;
+  await mclick('#pastel-crimp');
+  await page.waitForFunction(() => document.querySelector('[data-label="ps-board"] b')?.textContent === 'Pro óleo!', null, { timeout: 5000 });
+}
+
+async function serveRack(page, name) {
+  const to = await page.evaluate((n) => {
+    const bs = [...document.querySelectorAll('.fst-bubble:not(.fst-bubble-out)')];
+    const b = bs.find((x) => x.querySelector('.fst-bubble-pt')?.textContent?.toLowerCase().includes(n)) ?? bs[0];
+    return b?.getAttribute('data-order') ?? null;
+  }, name);
+  if (to !== null) await drag(page, '#pastel-rack-0', `#pastel-serve-${to}`);
 }
 
 export async function play(page, { shot, mclick, log }) {
-  await page.waitForSelector('#pastel-root', { timeout: 15_000 });
-  await page.waitForSelector('.ps-customer .ps-pt', { timeout: 12_000 });
-  await sleep(400);
-  const parts = await orderParts(page);
-  if (!parts) throw new Error('no pastel order to cook');
-  log('order', parts.join('+'));
-
+  await startRun(page, '#pastel-root');
+  await shot('pastel-start');
+  const o = await wantedParts(page);
+  if (!o) throw new Error('no pastel order to cook');
+  log('order', o.name);
   await mclick('#pastel-dough');
-  await sleep(120);
-  for (const part of parts) {
-    await mclick(`#pastel-bowl-${part}`);
-    await sleep(100);
-  }
+  await sleep(150);
+  await mclick(`#pastel-bowl-${o.parts[0]}`);
+  await sleep(150);
   await shot('pastel-filling');
+  for (const part of o.parts.slice(1)) await mclick(`#pastel-bowl-${part}`);
   await mclick('#pastel-crimp');
-  await sleep(120);
-  await mclick('#pastel-slot-0');
-  await sleep(200);
+  await page.waitForFunction(() => document.querySelector('[data-label="ps-board"] b')?.textContent === 'Pro óleo!', null, { timeout: 5000 });
+  await drag(page, '#pastel-board', '#pastel-slot-0');
+  await sleep(300);
   await shot('pastel-frying');
 
-  // A second pastel goes in once the first is already dark, so the fire shot shows two stages.
-  await mclick('#pastel-dough');
-  for (const part of parts) await mclick(`#pastel-bowl-${part}`);
-  await mclick('#pastel-crimp');
-  const mid = await waitStage(page, 0, 'black');
-  log('slot0 before second drop', mid);
-  await mclick('#pastel-slot-1');
-
-  const dropped = await page.getAttribute('#pastel-slot-1', 'data-state');
-  if (dropped === 'empty') await mclick('#pastel-slot-1');
-  const burnt = await waitStage(page, 0, 'fire', 12_000);
-  log('slot0', burnt, 'slot1', await stageOf(page, 1));
-  if (burnt !== 'fire') throw new Error(`expected an on-fire pastel, saw ${burnt}`);
+  // a second one goes in and is left there
+  await assemble(page, mclick, o.parts);
+  await drag(page, '#pastel-board', '#pastel-slot-1');
+  await page.waitForFunction(() => ['Tira!', 'Queimando!', 'Apaga!'].includes(document.querySelector('[data-label="ps-fry-0"] b')?.textContent ?? ''), null, { timeout: 8000 });
+  await shot('pastel-golden');
+  await mclick('#pastel-slot-0');
+  await sleep(250);
+  await shot('pastel-rack');
+  await serveRack(page, o.name);
+  log('served the first');
   await sleep(300);
+
+  const deadline = Date.now() + 12_000;
+  while (Date.now() < deadline && (await labelOf(page, 'ps-fry-1')) !== 'Apaga!') await sleep(150);
+  log('slot1', await labelOf(page, 'ps-fry-1'));
+  await sleep(400);
   await shot('pastel-fire');
-
-  await mclick('#pastel-apaga-0');
-  await sleep(200);
-  const pulled = await stageOf(page, 1);
-  if (pulled && pulled !== 'empty' && pulled !== 'ready') await mclick('#pastel-slot-1');
-  await sleep(150);
-  const serve = await page.$('#pastel-serve-0');
-  if (serve) await mclick('#pastel-serve-0');
-  else if (await page.$('.ps-serve')) await mclick('.ps-serve');
-  log('served after the fire');
+  await mclick('#pastel-slot-1');
   await sleep(300);
+  await shot('pastel-out');
   await mclick('#pastel-quit');
   await page.waitForSelector('#pastel-end', { timeout: 20_000 });
   await sleep(500);

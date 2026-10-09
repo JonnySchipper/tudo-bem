@@ -10,7 +10,7 @@ import {
   rotationSlot,
   withFeiraCartMode,
 } from './feiraGames.js';
-import { CALDO_FLAVORS, caldoOrders, caldoServeQuality } from './feiraCaldo.js';
+import { CALDO_CRANK, CALDO_FLAVORS, caldoFill, caldoOrders, caldoServeQuality } from './feiraCaldo.js';
 
 describe('caldo de cana orders and score', () => {
   it('deals seeded orders in Portuguese with an English hint, gelo or puro', () => {
@@ -71,6 +71,8 @@ describe('caldo de cana orders and score', () => {
     expect(caldoServeQuality({ flavorOk: true, iceOk: false, spilled: false, patienceLeft: 0.8 })).toBe('soft');
     expect(caldoServeQuality({ flavorOk: true, iceOk: true, spilled: true, patienceLeft: 0.8 })).toBe('soft');
     expect(caldoServeQuality({ flavorOk: true, iceOk: true, spilled: false, patienceLeft: 0.2 })).toBe('ok');
+    expect(caldoServeQuality({ flavorOk: true, iceOk: true, spilled: false, short: true, patienceLeft: 0.8 })).toBe('soft');
+    expect(caldoServeQuality({ flavorOk: false, iceOk: true, spilled: false, short: true, patienceLeft: 0.8 })).toBe('miss');
     expect(caldoServeQuality({ flavorOk: true, iceOk: true, spilled: false, patienceLeft: 0.8 })).toBe('perfect');
     expect(caldoServeQuality({ flavorOk: true, iceOk: true, spilled: false, patienceLeft: 0 })).toBe('miss');
   });
@@ -91,5 +93,25 @@ describe('caldo de cana orders and score', () => {
     expect(featuredEnabled('1970-01-03', enabledFeiraGameIds(on, '1970-01-03'))).toBe('caldo');
     const again = withFeiraCartMode(on, 'caldo', 'off');
     expect(again && enabledFeiraGameIds(again, '2026-10-08')).toEqual([]);
+  });
+});
+
+describe('caldo press: fill to the line', () => {
+  it('reads short, on the line, and over the rim', () => {
+    expect(caldoFill(0)).toBe('short');
+    expect(caldoFill(CALDO_CRANK.lineFrom - 0.01)).toBe('short');
+    expect(caldoFill(CALDO_CRANK.lineFrom)).toBe('line');
+    expect(caldoFill(1)).toBe('line');
+    expect(caldoFill(CALDO_CRANK.overAt)).toBe('line');
+    expect(caldoFill(CALDO_CRANK.overAt + 0.01)).toBe('over');
+  });
+
+  it('gives a holdable window: the line band lasts a human beat of cranking', () => {
+    const bandMs = ((CALDO_CRANK.overAt - CALDO_CRANK.lineFrom) / CALDO_CRANK.fillPerSec) * 1000;
+    expect(bandMs).toBeGreaterThan(200);
+    expect(bandMs).toBeLessThan(400);
+    // one cane is more than one cup, but not two
+    expect(CALDO_CRANK.canePerCup).toBeGreaterThan(1);
+    expect(CALDO_CRANK.canePerCup).toBeLessThan(2);
   });
 });
