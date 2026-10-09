@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ROOMS } from '@tudobem/shared';
-import { EDGE_KNEE, T, cssZoomFor, deviceZoomFor, fitsAt, outdoorFraming, roomFraming, roomZoom, viewTop, type Insets } from './coords';
+import { EDGE_KNEE, MIN_VIEW_BELOW, T, cssZoomFor, deviceZoomFor, fitsAt, leadNorthFor, outdoorFraming, roomFraming, roomZoom, viewTop, type Insets } from './coords';
 import { roomBounds } from './roomLayout';
 
 // Phase 4a: the whole room, wall band included, when it fits; otherwise follow the avatar with the north wall in view.
@@ -212,5 +212,24 @@ describe('outdoorFraming', () => {
     expect(moved).toEqual(interior);
     // the same window, treated as outdoor, would have kept zoom 4
     expect(outdoorFraming(desktop, b, { x: 2 * T, y: 8 * T }, desktopIns, 4, 1).zoom).toBe(4);
+  });
+});
+
+describe('leadNorthFor (the airport leans north, but never hides the way south)', () => {
+  const lead = 4 * T;
+  it('keeps the whole lead on a tall window', () => {
+    expect(leadNorthFor(lead, 1080, 110, 3, 10)).toBe(lead);
+  });
+  it('shrinks on a short, non-fullscreen window so MIN_VIEW_BELOW of floor stays visible above the chat bar', () => {
+    const h = 640;
+    const zoom = cssZoomFor(1280, h);
+    const got = leadNorthFor(lead, h, 110, zoom, 10);
+    expect(got).toBeLessThan(lead);
+    // the avatar's feet sit `10 + got` below the camera centre; the free region ends (h/2 - 110)/zoom below it
+    expect((h / 2 - 110) / zoom - 10 - got).toBeGreaterThanOrEqual(MIN_VIEW_BELOW - 1e-9);
+  });
+  it('is never negative and is 0 for rooms without a lead', () => {
+    expect(leadNorthFor(lead, 300, 110, 3, 10)).toBe(0);
+    expect(leadNorthFor(0, 1080, 110, 3, 10)).toBe(0);
   });
 });

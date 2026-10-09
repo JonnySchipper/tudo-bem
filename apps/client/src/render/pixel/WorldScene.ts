@@ -70,7 +70,7 @@ import { clock } from '../../gameClock';
 import { buildTerrainLayers } from './terrainLayers';
 import { LabelLayer, type GuideItem, type StackItem } from './labels';
 import { doorTagsFor, doorsFresh, type DoorTag } from '../../ui/wayfinding';
-import { T, cssZoomFor, deviceZoomFor, feet, outdoorFraming, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
+import { T, cssZoomFor, deviceZoomFor, feet, leadNorthFor, outdoorFraming, roomFraming, roomZoom, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
 
 /** Door tags per room definition (they never change while the room is up). */
 const DOOR_TAGS = new WeakMap<object, DoorTag[]>();
@@ -1405,8 +1405,6 @@ export class WorldScene extends Phaser.Scene {
 
   private updateCamera(dt: number, def: RoomDef): void {
     const self = game.self ? this.avatars.get(game.self.pub.id) : undefined;
-    const lead = CAMERA_LEAD_NORTH[def.id] ?? 0;
-    const focus = self ? { x: self.wx, y: self.wy - avatarPx(10) - lead } : { x: (def.cols * T) / 2, y: (def.rows * T) / 2 };
     const ins = this.host.insets();
     const k = this.cam.dpr;
     const dpr = k; // the effective (possibly capped, see bufferPixels) ratio of the backing store
@@ -1415,6 +1413,10 @@ export class WorldScene extends Phaser.Scene {
     const view = { w: this.cam.w, h: this.cam.h };
     const insDev = { top: ins.top * k, bottom: ins.bottom * k, left: ins.left * k, right: ins.right * k };
     const cssZoom = cssZoomFor(window.innerWidth, window.innerHeight);
+    // the north lead shrinks on a short window so the avatar keeps a few tiles of floor in view below it
+    const zoomForLead = def.outdoor ? deviceZoomFor(cssZoom, dpr) : roomZoom(view, this.bounds, insDev, cssZoom, dpr);
+    const lead = leadNorthFor(CAMERA_LEAD_NORTH[def.id] ?? 0, view.h, insDev.bottom, zoomForLead, avatarPx(10));
+    const focus = self ? { x: self.wx, y: self.wy - avatarPx(10) - lead } : { x: (def.cols * T) / 2, y: (def.rows * T) / 2 };
     let f = def.outdoor ? outdoorFraming(view, this.bounds, focus, insDev, cssZoom, dpr) : roomFraming(view, this.bounds, focus, insDev, cssZoom, dpr);
     if (this.host.shot === 'map' && def.outdoor) {
       // debug `?shot=map`: the whole map in one frame, at the biggest integer zoom that fits (1x on a 1280 x 800 window), centred, no follow
