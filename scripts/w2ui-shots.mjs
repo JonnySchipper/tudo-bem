@@ -271,12 +271,12 @@ async function sectionPanels(browser, vp) {
   await interact(page, { portal: 'praca_academia' });
   await waitRoom(page, 'academia');
   await sleep(2500);
-  // the bout is in the world now (no modal): the lobby, then a match played from the CI hints
+  // the bout is in the world now (no modal): the lobby, then a match played by tapping the commands on the pad
   await openBout(page);
   await sleep(1000);
   await snap(page, vp, 'panel_roll_lobby');
   await startBout(page);
-  await waitBoutPhase(page, 'challenge', 30_000).catch(() => missed.push('bout challenge'));
+  await waitBoutPhase(page, 'pick', 30_000).catch(() => missed.push('bout pick'));
   await sleep(600);
   await snap(page, vp, 'panel_roll_duel');
   await playBout(page, { right: () => true, pick: 'bold' }).catch(() => missed.push('bout end'));

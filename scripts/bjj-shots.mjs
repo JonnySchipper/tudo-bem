@@ -132,8 +132,8 @@ async function run(name) {
     const probe = setInterval(() => void page.evaluate(() => `${document.querySelector('#bout')?.getAttribute('data-phase')} | ${document.querySelector('#bout-top')?.textContent} | ${document.querySelector('#bout-body')?.textContent?.slice(0, 90)}`).then((t) => process.env.PROBE && console.log('    ~', t)).catch(() => {}), 1000);
     const result = await playBout(page, {
       pick: 'bold',
-      onPhase: async (phase) => {
-        if (phase !== 'intent' || picks > 5) return;
+      onBeat: async ({ phase }) => {
+        if (phase !== 'pick' || picks > 5) return;
         picks++;
         await sleep(200);
         await shot(`pick_${picks}`);

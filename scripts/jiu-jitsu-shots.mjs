@@ -10,7 +10,7 @@
  * slow headless screenshot (software GL, a few frames a second on the 2x phone) still catches the call on the panel. The command and
  * defense windows are the game's own: the timed pad beats are shot at CSS pixels (`fast`) so the capture does not outlast them.
  *
- * A white belt with three stripes (Bia still calls the defenses) plays Mateus: two holds so Mateus attacks first, then the first card
+ * A white belt with three stripes (Bia still calls the defenses) plays Mateus: one hold so Mateus attacks first, then the first card
  * that scores (the finish when it is on offer), every command tapped fast on the pad (Perfeito!), every defense answered. It shoots the lobby, the pick, a chain as the first
  * word comes up, the same chain mid-way with its Perfeito!, the partner's attack with the defense pad, a Defendeu!, a takedown landing on
  * the mat, the finish, and the end card. It checks the moves play their baked clips driven by the taps (the wind-up frames) as it goes.
@@ -146,8 +146,8 @@ async function run(name, base) {
     while (bouts < BOUTS) {
       bouts++;
       const result = await playBout(page, {
-        // hold the first two picks so Mateus attacks (the defense pad, a Defendeu!), then go for the takedown, the pass and the finish
-        pick: (n) => (n < 2 && !took.has('defendeu') ? 'safe' : 'bold'),
+        // hold the first pick so Mateus attacks (the defense pad, a Defendeu!), then go for the takedown, the pass and the finish
+        pick: (n) => (n < 1 && !took.has('defendeu') ? 'safe' : 'bold'),
         tapMs: 90,
         onBeat: async (b) => {
           if (b.phase === 'pick') {
