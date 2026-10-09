@@ -38,6 +38,10 @@ export interface StoredProfile extends PrivateProfile {
   lastSeen: number;
   /** Lemon Squeezy webhook ids already applied. Not sent to the client. */
   billingEventIds?: string[];
+  /** Admin chat mute: chat is refused until this time (ms). Not sent to the client. */
+  mutedUntil?: number;
+  /** Admin ban: the account cannot enter the world until an admin lifts it. Not sent to the client. */
+  banned?: { at: number };
 }
 
 export const today = () => new Date().toISOString().slice(0, 10);
@@ -240,7 +244,7 @@ function normalizeSubscription(raw: unknown): PlayerSubscription | undefined {
 
 export function toPrivate(p: StoredProfile, day = today()): PrivateProfile {
   // photos travel in their own `photos` message (World.pushPhotos), only when they change
-  const { token: _t, ageGate18: _a, accountId: _acc, daily: _d, lastSeen: _l, photos: _ph, billingEventIds: _ev, ...rest } = p;
+  const { token: _t, ageGate18: _a, accountId: _acc, daily: _d, lastSeen: _l, photos: _ph, billingEventIds: _ev, mutedUntil: _m, banned: _b, ...rest } = p;
   const mission = p.mission?.date === day ? p.mission : freshMission(day);
   return structuredClone({ ...rest, mission, bjj: normalizeBjj(p.bjj) });
 }

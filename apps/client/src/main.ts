@@ -1127,6 +1127,7 @@ net.on((m: ServerMsg) => {
     case 'friends':
       game.friends = m.friends;
       game.incoming = m.incoming;
+      game.blockedPeople = m.blocked ?? [];
       game.emit('friends');
       break;
     case 'friendRequest':
@@ -1233,6 +1234,7 @@ function startGame() {
         remove: (id) => net.send({ t: 'friend', action: 'remove', targetId: id }),
         hop: (room, instanceId, ownerId) => joinRoom(room, instanceId ?? undefined, ownerId),
         refresh: () => net.send({ t: 'friends' }),
+        unblock: (id) => net.send({ t: 'block', action: 'unblock', targetId: id }),
       }),
     openWardrobe: () => openHatShop('wardrobe', { buy: () => {}, equip: (id) => net.send({ t: 'equipHat', hatId: id }) }),
     toggleDecor: () => {
@@ -1403,7 +1405,8 @@ function handleClickInner(hit: Hit | null) {
       if (a && a.pub.id !== game.room.selfId)
         openProfileCard(a.pub, {
           request: (id) => net.send({ t: 'friend', action: 'request', targetId: id }),
-          report: (id) => net.send({ t: 'report', targetId: id, text: a.bubbles.at(-1)?.text }),
+          report: (id, reason) => net.send({ t: 'report', targetId: id, reason }),
+          block: (id, on) => net.send({ t: 'block', action: on ? 'block' : 'unblock', targetId: id }),
           wave: () => net.send({ t: 'emote', kind: 'oi' }),
         });
       break;

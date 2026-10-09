@@ -1,4 +1,4 @@
-import type { Bilingual, JevModelTrace, JevNpcReplyAnswers, Nameplate, PrivateProfile, SafetyVerdict, SceneCtx, SceneView, TypedReplyScore } from '@tudobem/shared';
+import type { Bilingual, JevModelTrace, ReportReason, JevNpcReplyAnswers, Nameplate, PrivateProfile, SafetyVerdict, SceneCtx, SceneView, TypedReplyScore } from '@tudobem/shared';
 
 /**
  * Seams for the AI services described in GDD §5.9 / §12.3.
@@ -72,6 +72,10 @@ export interface ModerationEvent {
   /** Jev model layer: score, per-label scores, latency, fallback reason. */
   jev?: JevModelTrace;
   targetId?: string;
+  /** Reports: who was reported, why, and their recent lines as the server saw them (never client-sent text). */
+  targetName?: string;
+  reason?: ReportReason;
+  lines?: string[];
   /** Escalations and reports wait for a human; nothing is auto-actioned in Phase 0. */
   status?: 'pending';
   at: number;

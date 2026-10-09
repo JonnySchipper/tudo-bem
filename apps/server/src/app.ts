@@ -24,6 +24,7 @@ import { legalPageFile } from './legalPages.js';
 import {
   AccountStore,
   accountsFileAdapter,
+  clientIp,
   defaultLimiters,
   handleAuthApi,
   originAllowed,
@@ -32,6 +33,8 @@ import {
   type ScryptParams,
 } from './auth.js';
 import { handleFeedbackApi } from './feedbackApi.js';
+import { handleModerationApi } from './moderationApi.js';
+import { IpConnectionCap, MessageBucket, readWsLimits, WS_POLICY_CLOSE, type WsLimitConfig } from './wsLimits.js';
 import { FeedbackStore } from './feedbackStore.js';
 import { readAdminAuthConfig, type AdminAuthConfig } from './adminAuth.js';
 import { handleBillingApi } from './billing/http.js';
@@ -69,6 +72,8 @@ export interface AppOptions {
   billingFetch?: (input: string, init?: RequestInit) => Promise<Response>;
   /** Hourly online backups under `dataDir/backups`, and one on shutdown when the last copy is older than an hour. */
   sqliteBackups?: boolean;
+  /** WebSocket abuse limits (wsLimits.ts). Omit to read the env (`TB_WS_*`). */
+  wsLimits?: Partial<WsLimitConfig>;
 }
 
 /** Server chat safety: the Jev model behind the stub when a model folder is configured, else the stub alone. */
@@ -90,7 +95,7 @@ function chatSafety(dir: string | undefined): ChatSafetyService & { status?: Jev
 }
 
 /** WebSocket close codes the client understands (see apps/client/src/net.ts). */
-export const CLOSE_CODES: Record<CloseReason, number> = { replaced: 4000, idle: 4001, logout: 4002, admin: 4003 };
+export const CLOSE_CODES: Record<CloseReason, number> = { replaced: 4000, idle: 4001, logout: 4002, admin: 4003, banned: 4004 };
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -215,6 +220,9 @@ export function createApp(opts: AppOptions) {
         res.end();
       });
     }
+    if (url.pathname === '/api/moderation') {
+      return handleModerationApi(req, res, { admin: feedbackAdmin, moderation: world.services.moderation });
+    }
     if (url.pathname === '/api/conversa') {
       return handleConversaApi(req, res, {
         store,
@@ -268,8 +276,16 @@ export function createApp(opts: AppOptions) {
    */
   const HEARTBEAT_MISSES = 3;
   const missed = new WeakMap<WebSocket, number>();
+  const wsLimits = { ...readWsLimits(), ...opts.wsLimits };
+  const ipCap = new IpConnectionCap(wsLimits.maxPerIp);
 
   wss.on('connection', (ws, req) => {
+    const ip = clientIp(req);
+    if (!ipCap.acquire(ip)) {
+      ws.on('error', () => {});
+      return ws.close(WS_POLICY_CLOSE, 'too many connections');
+    }
+    ws.once('close', () => ipCap.release(ip));
     missed.set(ws, 0);
     ws.on('pong', () => missed.set(ws, 0));
     // An oversized frame closes this socket. Without a listener the 'error' event takes the process down.
@@ -285,16 +301,30 @@ export function createApp(opts: AppOptions) {
       (reason) => ws.close(CLOSE_CODES[reason], reason),
       { accountId: account?.id },
     );
+    // A socket that never says hello, or has no signed-in session, does not get to hold a connection open.
+    let helloed = false;
+    const helloTimer = setTimeout(() => {
+      if (!helloed || !account) ws.close(WS_POLICY_CLOSE, 'hello timeout');
+    }, wsLimits.helloTimeoutMs);
+    const bucket = new MessageBucket(wsLimits);
     ws.on('message', (data) => {
+      if (!bucket.take()) {
+        if (bucket.abusive) ws.close(WS_POLICY_CLOSE, 'rate limit');
+        return;
+      }
       let msg: ClientMsg;
       try {
         msg = JSON.parse(String(data));
       } catch {
         return;
       }
+      if (msg?.t === 'hello') helloed = true;
       world.handle(session, msg).catch((e) => console.error('[world] handler error', e));
     });
-    ws.on('close', () => world.disconnect(session));
+    ws.on('close', () => {
+      clearTimeout(helloTimer);
+      world.disconnect(session);
+    });
   });
 
   const heartbeat = setInterval(() => {

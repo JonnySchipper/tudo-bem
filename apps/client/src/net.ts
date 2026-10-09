@@ -5,7 +5,7 @@ type Handler = (m: ServerMsg) => void;
 export type NetStatus = 'open' | 'closed' | 'connecting' | 'failed' | 'replaced' | 'idle' | 'loggedOut';
 
 /** Server close codes that mean "don't reconnect on your own" (apps/server/src/app.ts CLOSE_CODES). */
-const TERMINAL_CLOSE: Record<number, NetStatus> = { 4000: 'replaced', 4001: 'idle', 4002: 'loggedOut', 4003: 'idle' };
+const TERMINAL_CLOSE: Record<number, NetStatus> = { 4000: 'replaced', 4001: 'idle', 4002: 'loggedOut', 4003: 'idle', 4004: 'idle' };
 
 export interface NetLike {
   readonly solo: boolean;
