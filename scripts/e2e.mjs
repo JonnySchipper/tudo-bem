@@ -376,6 +376,8 @@ async function main() {
   await page.evaluate(() => document.activeElement?.blur?.());
   await page.keyboard.press('Escape');
   await page.click('#btn-caderno');
+  // the Diário opens on its Início; the Caderno de palavras is its last tab
+  await page.click('[data-modal="caderno"] [data-journal-tab="caderno"]', { timeout: 5000 });
   await page.waitForSelector('[data-modal="caderno"] [data-card="lex.padaria.coxinha"]', { timeout: 5000 });
   assert(!(await page.textContent('[data-modal="caderno"] [data-card="lex.padaria.coxinha"] .cad-pt')).includes('???'), 'Caderno shows a word the sign taught');
   await shot(page, '03c_caderno');
