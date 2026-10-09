@@ -688,6 +688,11 @@ body.bout-on .toasts {
   background: #fff;
 }
 
+.bout-ground[hidden],
+.bout-rline[hidden] {
+  display: none;
+}
+
 .bout-ground .en {
   display: inline;
 }

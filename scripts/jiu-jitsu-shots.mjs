@@ -13,7 +13,8 @@
  * A white belt with three stripes (Bia still calls the defenses) plays Mateus: holds until Mateus attacks and is defended, then the first card
  * that scores (the finish when it is on offer), every command tapped fast on the pad (Perfeito!), every defense answered. It shoots the lobby, the pick, a chain as the first
  * word comes up, the same chain mid-way with its Perfeito!, a Defendeu!, a takedown landing on the mat, the finish, and the end card. The
- * extras play a first match (Bia's coach note, then the defense pad with her call) and a fifth win into the stripe's drill. It checks the moves play their baked clips driven by the taps (the wind-up frames) as it goes.
+ * extras play a first match (Bia's coach note, the defense pad with her call, then Virar on offer with Lia underneath) and a fifth win
+ * into the stripe's drill. It checks the moves play their baked clips driven by the taps (the wind-up frames) as it goes.
  */
 import { chromium } from 'playwright-core';
 import { spawn } from 'node:child_process';
@@ -221,10 +222,19 @@ async function run(name, base) {
       await sleep(400);
       assert(await page.evaluate(() => !!document.querySelector('#bout-pick .bout-coach:not([hidden])')), 'a first match shows Bia’s coach note at the first pick');
       await shot('first_match_coach');
-      // the defense pad with Bia's call: hold until Mateus attacks, shoot the open pad, then leave (a slow capture outlasts a defense
-      // window, so this is shot in a match that is thrown away)
-      for (let i = 0; i < 5 && !took.has('defense'); i++) {
-        const seq = await page.evaluate(() => document.querySelector('#bout-moves')?.getAttribute('data-seq') ?? '');
+      // the defense pad with Bia's call, then Virar on offer: hold until Mateus attacks, shoot the open pad and do not answer it, so his
+      // takedown lands and the next pick has Lia underneath (a slow capture outlasts a defense window anyway: this match is thrown away)
+      for (let i = 0; i < 8 && !(took.has('defense') && took.has('virar_card')); i++) {
+        const pick = await page.evaluate(() => ({
+          phase: document.querySelector('#bout')?.getAttribute('data-phase'),
+          seq: document.querySelector('#bout-moves')?.getAttribute('data-seq') ?? '',
+          virar: !!document.querySelector('#bout-moves .bout-move[data-move="virar"]'),
+        }));
+        if (pick.phase === 'pick' && pick.virar && !took.has('virar_card')) {
+          await sleep(300);
+          await shot('virar_card');
+          continue;
+        }
         await page.evaluate(() => document.querySelector('#bout-hold')?.click());
         const next = await page
           .waitForFunction(
@@ -237,17 +247,23 @@ async function run(name, base) {
               }
               return phase === 'pick' && document.querySelector('#bout-moves')?.getAttribute('data-seq') !== prev ? 'pick' : false;
             },
-            seq,
+            pick.seq,
             { timeout: 30_000, polling: 100 },
           )
           .then((h) => h.jsonValue())
           .catch(() => null);
-        if (next === 'defend') await shot('defense', true);
+        if (next === 'defend' && !took.has('defense')) await shot('defense', true);
+        if (next === 'defend')
+          await page.waitForFunction((prev) => document.querySelector('#bout')?.getAttribute('data-phase') === 'pick' && document.querySelector('#bout-moves')?.getAttribute('data-seq') !== prev, pick.seq, { timeout: 30_000, polling: 100 }).catch(() => {});
         else if (!next) break;
       }
-      await page.click('#bout-quit');
-      await page.click('#bout-quit');
-      await waitFor(page, () => !document.querySelector('#bout-root'), null, 10_000, 'left the first match');
+      // quit is two presses within 3 s: press both in the page (a slow phone page can outlast the arming between two pointer clicks)
+      await page.evaluate(() => {
+        const q = document.querySelector('#bout-quit');
+        q?.click();
+        q?.click();
+      });
+      await waitFor(page, () => !document.querySelector('#bout-root'), null, 15_000, 'left the first match');
       await sleep(800);
       await setBjj({ belt: 'branca', stripes: 0, wins: 4, unlocked: ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar'] });
       await openBout(page);

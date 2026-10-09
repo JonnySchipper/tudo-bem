@@ -1004,6 +1004,8 @@ export class BoutUI {
     r.ground.className = `bout-ground ${ground.dir}`;
     r.ground.dataset.delta = String(ground.delta);
     r.root.dataset.ground = ground.dir;
+    // a finish ends the match: "nobody moved" would read wrong under Final!
+    r.ground.hidden = m.say?.pt === MAT_CALLS.final.pt;
     r.ground.replaceChildren(h('span', { class: 'gr-arrow', 'aria-hidden': 'true' }, ground.dir === 'gain' ? '▲' : ground.dir === 'loss' ? '▼' : '='), h('span', { class: 'pt' }, ground.pt), en(ground.en));
     this.setPhase('resolve');
     const say = resolveSpeech(m);
