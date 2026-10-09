@@ -4,6 +4,7 @@ import {
   JULIA_INTRO,
   JULIA_INTRO_FROM_GREETING,
   JULIA_TREE,
+  juliaHelpOpener,
   fillTalk,
   spokenNameless,
   ALL_HATS,
@@ -34,6 +35,7 @@ import { closeDialogueBox, showDialogueBox, type BoxSpec } from './dialogue';
 import { icon } from '../art/ui';
 import { beltChip } from './beltChip';
 import { clock } from '../gameClock';
+import { profileMetJulia, rememberJuliaMet } from './juliaMet';
 
 // ---------------------------------------------------------------- modal base
 
@@ -142,7 +144,10 @@ export function showJulia(fromGreeting = false) {
       onClose: closeDialogue,
     });
   };
-  if (fromGreeting) root(JULIA_INTRO_FROM_GREETING);
+  const met = fromGreeting || profileMetJulia();
+  if (!met) rememberJuliaMet();
+  const opener = juliaHelpOpener(met);
+  if (opener === JULIA_INTRO_FROM_GREETING) root(opener);
   else root({ pt: fillTalk(JULIA_INTRO.pt, { name }), en: JULIA_INTRO.en }, spokenNameless(JULIA_INTRO.pt, { minute: clock.minutes() }));
 }
 
@@ -456,8 +461,13 @@ export function openProfileCard(a: PublicAvatar, actions: { request: (id: string
 
 // ---------------------------------------------------------------- kitnet decorator
 
-export function buildDecorPanel(actions: { buy: (id: string) => void; rotate: (uid: string) => void; pickup: (uid: string) => void; exit: () => void }) {
+export function buildDecorPanel(actions: { buy: (id: string) => void; rotate: (uid: string) => void; pickup: (uid: string) => void; exit: () => void; help: () => void }) {
   let tab: 'meus' | 'loja' = 'meus';
+  // a tab switch is a 'decor' event too (the kitnet guide follows it)
+  const setTab = (t: 'meus' | 'loja') => {
+    tab = t;
+    game.emit('decor');
+  };
   const el = h('div', { class: 'decor', id: 'decor-panel', style: 'display:none' });
   const render = () => {
     if (!game.editMode) {
@@ -470,19 +480,33 @@ export function buildDecorPanel(actions: { buy: (id: string) => void; rotate: (u
     const selF = game.furniture.find((f) => f.uid === game.selectedFurniture);
     const selDef = selF ? furnitureById(selF.itemId) : null;
     el.replaceChildren(
-      h('div', { class: 'row' }, h('h3', null, 'Decorar a kitnet'), h('span', { class: 'spacer' }), h('button', { class: 'ghost', onclick: actions.exit }, '✕')),
+      h(
+        'div',
+        { class: 'row' },
+        h('h3', null, 'Decorar a kitnet'),
+        h('span', { class: 'spacer' }),
+        h('button', { class: 'decor-help', id: 'decor-help', onclick: actions.help, title: 'Como decorar? (How to decorate: show the guide again)', 'aria-label': 'Como decorar? (How to decorate)' }, '?'),
+        h('button', { class: 'ghost', id: 'decor-exit', onclick: actions.exit, 'aria-label': 'Fechar (Close)' }, '✕'),
+      ),
       en('Decorate: pick an item, then click a floor tile. R rotates.'),
-      h('div', { class: 'tabs', style: 'margin-top:8px' }, h('button', { class: tab === 'meus' ? 'on' : '', onclick: () => ((tab = 'meus'), render()) }, bi('Meus móveis', 'My items')), h('button', { class: tab === 'loja' ? 'on' : '', onclick: () => ((tab = 'loja'), render()), id: 'tab-loja' }, bi('Atelier', 'Shop'))),
+      h('div', { class: 'tabs', style: 'margin-top:8px' }, h('button', { class: tab === 'meus' ? 'on' : '', onclick: () => setTab('meus'), id: 'tab-meus' }, bi('Meus móveis', 'My items')), h('button', { class: tab === 'loja' ? 'on' : '', onclick: () => setTab('loja'), id: 'tab-loja' }, bi('Atelier', 'Shop'))),
       selF && selDef
         ? h(
             'div',
             { class: 'hintbox', style: 'margin-top:8px' },
             h('b', null, selDef.pt),
             en(selDef.en),
-            h('div', { class: 'row', style: 'margin-top:6px' }, h('button', { onclick: () => actions.rotate(selF.uid) }, bi('Girar', 'Rotate')), h('button', { onclick: () => actions.pickup(selF.uid) }, bi('Guardar', 'Pick up'))),
+            h('div', { class: 'row', style: 'margin-top:6px' }, h('button', { onclick: () => actions.rotate(selF.uid), id: 'decor-rotate' }, bi('Girar', 'Rotate')), h('button', { onclick: () => actions.pickup(selF.uid) }, bi('Guardar', 'Pick up'))),
           )
         : game.placing
-          ? h('div', { class: 'hintbox', style: 'margin-top:8px' }, `Colocando: ${furnitureById(game.placing.itemId)?.pt}`, en('Click a free floor tile. Press R to rotate, Esc to cancel.'))
+          ? h(
+              'div',
+              { class: 'hintbox', style: 'margin-top:8px' },
+              `Colocando: ${furnitureById(game.placing.itemId)?.pt}`,
+              en('Click a free floor tile. Press R to rotate, Esc to cancel.'),
+              // the same turn as R, for a phone (no keyboard)
+              h('div', { class: 'row', style: 'margin-top:6px' }, h('button', { onclick: () => game.placing && ((game.placing.rot = game.placing.rot === 0 ? 1 : 0), game.emit('decor')), id: 'decor-rotate' }, bi('Girar', 'Rotate'))),
+            )
           : '',
       tab === 'meus'
         ? h(
@@ -498,7 +522,7 @@ export function buildDecorPanel(actions: { buy: (id: string) => void; rotate: (u
                   onclick: () => {
                     game.selectedFurniture = null;
                     game.placing = game.placing?.itemId === id ? null : { itemId: id, rot: 0 };
-                    render();
+                    game.emit('decor');
                   },
                   'data-furniture': id,
                 },
@@ -527,5 +551,5 @@ export function buildDecorPanel(actions: { buy: (id: string) => void; rotate: (u
   game.on('profile', render);
   game.on('decor', render);
   game.on('room', render);
-  return { render };
+  return { render, tab: () => tab };
 }

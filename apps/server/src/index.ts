@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { createApp } from './app.js';
 import type { CookieSecure } from './auth.js';
 import { readOpsSmokeConfig } from './opsSmoke.js';
+import { closeDatabase, openDatabase } from './sqliteDb.js';
+import { exportSqliteToJson } from './sqliteExport.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT ?? 8787);
@@ -23,6 +25,19 @@ const SESSION_TTL_DAYS = Number(process.env.SESSION_TTL_DAYS ?? 30);
 const idleKickMs = Number.isFinite(IDLE_KICK_SECONDS) && IDLE_KICK_SECONDS > 0 ? IDLE_KICK_SECONDS * 1000 : 900_000;
 const opsSmoke = readOpsSmokeConfig();
 
+if (process.env.TB_SQLITE_EXPORT_JSON === '1') {
+  try {
+    const db = openDatabase(DATA_DIR);
+    const n = exportSqliteToJson(db, DATA_DIR);
+    console.log(`[sqlite] exported files=${n}`);
+    closeDatabase(DATA_DIR);
+  } catch {
+    console.error('[sqlite] export failed');
+    process.exit(1);
+  }
+  process.exit(0);
+}
+
 const app = createApp({
   dataDir: DATA_DIR,
   clientDist: CLIENT_DIST,
@@ -34,6 +49,7 @@ const app = createApp({
   allowedOrigins: ALLOWED_ORIGINS,
   sessionTtlMs: Number.isFinite(SESSION_TTL_DAYS) && SESSION_TTL_DAYS > 0 ? SESSION_TTL_DAYS * 24 * 60 * 60_000 : undefined,
   opsSmoke,
+  sqliteBackups: true,
 });
 
 app.server.listen(PORT, HOST, () => {
@@ -45,7 +61,7 @@ app.server.listen(PORT, HOST, () => {
 
 const shutdown = () => {
   void app.close().finally(() => process.exit(0));
-  setTimeout(() => process.exit(0), 2000).unref();
+  setTimeout(() => process.exit(0), 15_000).unref();
 };
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);

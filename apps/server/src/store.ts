@@ -47,7 +47,7 @@ export function todaySaoPaulo(): string {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' });
 }
 
-/** Where profiles persist. Node: JSON file. Browser solo mode: localStorage. Tests: none. */
+/** Where profiles persist. Node: SQLite. Browser solo mode: localStorage. Tests: none. */
 export interface PersistenceAdapter {
   load(): StoredProfile[];
   save(rows: StoredProfile[]): void;
@@ -71,6 +71,7 @@ export class ProfileStore {
   private byId = new Map<string, StoredProfile>();
   private byToken = new Map<string, string>();
   private timer: ReturnType<typeof setTimeout> | null = null;
+  private closed = false;
 
   constructor(private adapter: PersistenceAdapter | null) {
     if (!adapter) return;
@@ -112,16 +113,27 @@ export class ProfileStore {
     this.save();
   }
 
-  /** Debounced write. */
+  /** Debounced write. After `shutdown`, further saves are ignored. */
   save() {
-    if (!this.adapter || this.timer) return;
+    if (this.closed || !this.adapter || this.timer) return;
     this.timer = setTimeout(() => {
       this.timer = null;
-      this.flush();
+      if (!this.closed) this.flush();
     }, 800);
   }
 
   flush() {
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    if (this.closed) return;
+    this.adapter?.save([...this.byId.values()]);
+  }
+
+  /** Flush once and ignore later debounced saves (process shutdown). */
+  shutdown() {
+    this.closed = true;
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;

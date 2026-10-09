@@ -88,6 +88,7 @@ import { isDialogueBoxOpen, setDialogueHost, showDialogueBox } from './ui/dialog
 import { mountTracker, openJournal, runPrelude } from './ui/recados';
 import { heartsWith } from './ui/recadoView';
 import { openNpcTalk } from './ui/npcTalk';
+import { profileMetJulia } from './ui/juliaMet';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed } from './ui/feira';
 import { bindFeiraGames, closeFeiraGame, feiraGameOpen, onFeiraGameMsg, openFeiraCart, openFeiraSign } from './ui/feiraGames';
 import { openCaderno, setArrivalReplay } from './ui/caderno';
@@ -96,6 +97,7 @@ import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAca
 import { openLeaderboards } from './ui/leaderboards';
 import { askPadariaDoor, bindPadariaOwn, chooseBakery, onPadariaDoor, openHouseCounter, openPadariaBook, syncPadariaFloor, welcomeOwner } from './ui/padariaOwn';
 import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia } from './ui/airportTutorial';
+import { kitnetGuideRunning, kitnetWorldGuide, mountKitnetGuide, startKitnetGuide } from './ui/kitnetGuide';
 import { flyHeardWord } from './ui/heardWord';
 import { talkIdleOpen } from './ui/talkIdle';
 import { cameraFrameAt, captureFrame, celebrateWord, celebrateWords, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
@@ -254,6 +256,8 @@ function talkTo(npc: NpcDef['id']) {
   const speaker = game.liveNpcs(now()).find((n) => n.id === npc);
   const idle = speaker ? talkIdleOpen(npc, speaker.idleLines, game.profile?.diary, clock.minutes()) : null;
   const vendor = npc === 'tia_lu' || npc === 'ze' || npc === 'chico' || npc === 'rosa';
+  // read before `talk`: that message pays bond at once, and an idle line can sit on screen until the profile push lands
+  const juliaMet = npc === 'julia' && profileMetJulia();
   // the server counts the talk for NPCs without a Conversa (bond +2 once a day, `falar` steps); the bakers count it through the scene / Conversa,
   // the vendors through their stall panel (it sends `talk` itself)
   if (!vendor && npc !== 'carlos' && npc !== 'graca') net.send({ t: 'talk', npc });
@@ -262,7 +266,7 @@ function talkTo(npc: NpcDef['id']) {
     runPrelude(npc, {
       accept: (id) => net.send({ t: 'recados', action: 'accept', id }),
       give: (to, itemId) => net.send({ t: 'give', npc: to, itemId }),
-      proceed: () => talkFlow(npc),
+      proceed: () => talkFlow(npc, juliaMet),
     });
   if (!speaker || !idle) return proceed();
   let went = false;
@@ -287,7 +291,7 @@ function talkTo(npc: NpcDef['id']) {
   sendLine(idle.anchor);
 }
 
-function talkFlow(npc: NpcDef['id']) {
+function talkFlow(npc: NpcDef['id'], juliaMet = false) {
   closeDialogue();
   if (npc === 'tia_lu' || npc === 'ze' || npc === 'chico' || npc === 'rosa') {
     // a vendor resting on a bench (Tia Lu in the afternoon) is not serving: the closed note
@@ -331,6 +335,7 @@ function talkFlow(npc: NpcDef['id']) {
       onLine: (anchor) => sendLine(anchor),
       buyFilm: () => net.send({ t: 'diary', action: 'buyFilm' }),
       openMat: () => openBout(),
+      juliaAlreadyMet: npc === 'julia' ? juliaMet : undefined,
     });
   }
 }
@@ -570,6 +575,8 @@ function updateGuides() {
     } else if (g) add(guideAt(g.kind, g.id, g.lift, g.label));
     return;
   }
+  // the kitnet guide's floor steps: a free tile for the piece in hand, or the piece to rotate
+  if (r.room === 'kitnet') add(kitnetWorldGuide());
   if (r.room === 'rua') {
     if (!t.carlos) add(guideAt('portal', 'praca_padaria', 110, 'Padaria →'));
     else if (!t.chapeu) add(guideAt('portal', 'rua_praca_1', 60, 'Chapéus: Praça ↓'));
@@ -788,7 +795,7 @@ net.on((m: ServerMsg) => {
         markAirportStep('onibus');
         setTimeout(() => toast('info', 'Bem-vindo à Vila Ipê! A Júlia te espera na praça: siga a Rua pra oeste.', 'Welcome to Vila Ipê! Júlia is waiting in the square: follow the street west.'), 900);
       }
-      if (m.room === 'kitnet' && m.ownerId === game.profile?.id && !game.profile?.tutorial.cadeira)
+      if (m.room === 'kitnet' && m.ownerId === game.profile?.id && !game.profile?.tutorial.cadeira && !kitnetGuideRunning())
         toast('info', 'Sua kitnet! Clique em “Decorar” e coloque sua cadeira.', 'Your apartment! Click “Decorar” (top right) and place your free chair.');
       // your own padaria: what is where, the first time you stand in it
       if (m.padaria?.owner) setTimeout(welcomeOwner, 900);
@@ -1130,7 +1137,9 @@ function startGame() {
       game.emit('decor');
       game.emit('hud');
     },
+    help: startKitnetGuide,
   });
+  mountKitnetGuide({ tab: () => decor?.tab() ?? 'meus', onStep: updateGuides });
   const idleTalk = new IdleTalk();
   setInterval(() => {
     const npcs = game.liveNpcs(now());
@@ -1365,6 +1374,7 @@ document.addEventListener('keydown', (e) => {
   }
   if ((e.key === 'r' || e.key === 'R') && game.placing) {
     game.placing.rot = game.placing.rot === 0 ? 1 : 0;
+    game.emit('decor');
   }
   if (e.key === 'Escape') {
     game.placing = null;
@@ -1572,6 +1582,8 @@ window.__tb = {
   get decor() {
     return decor;
   },
+  /** The kitnet first-visit guide: running or not, and its world arrow (the tile it suggests), for the shots and e2e. */
+  kitnetGuide: () => ({ running: kitnetGuideRunning(), world: kitnetWorldGuide() }),
   /** Treino no tatame: the live overlay and the feed the world scene reads (e2e and shots). */
   bout: {
     get ui() {

@@ -1,7 +1,10 @@
 # Tudo Bem — single container: Node room server + static client + the Jev chat-safety model.
 FROM node:22-alpine AS build
 WORKDIR /app
-RUN corepack enable
+# pnpm runs node-gyp for better-sqlite3 (see onlyBuiltDependencies). The musl prebuild is already
+# in the package, so Python and make are enough for node-gyp to notice it and skip the compile.
+# The runtime image uses the glibc prebuild from the sqlite stage, not this Alpine binary.
+RUN apk add --no-cache python3 make && corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages/shared/package.json packages/shared/
 COPY apps/server/package.json apps/server/
@@ -26,6 +29,18 @@ RUN echo '{"private":true}' > package.json \
   && find . -mindepth 2 -maxdepth 2 -type d ! -path ./linux/x64 -exec rm -rf {} + \
   && rm -f linux/x64/libonnxruntime_providers_*
 
+# better-sqlite3 ships a glibc prebuild (prebuilds/linux-x64.node). Install it on bookworm so the
+# runtime image does not pick up the musl binary from the Alpine build stage. If a future release
+# drops that prebuild, node-gyp needs python3, make, and g++ in this stage.
+FROM node:22-bookworm-slim AS sqlite
+WORKDIR /sqlite
+# Copy the manifest only to read the version. Installing it in place fails: it depends on
+# workspace:* and npm would try to install the whole server package.
+COPY apps/server/package.json /tmp/server-package.json
+RUN npm install --omit=dev --no-audit --no-fund \
+    "better-sqlite3@$(node -p "require('/tmp/server-package.json').dependencies['better-sqlite3']")" \
+  && node -e "const D=require('better-sqlite3'); const db=new D('/tmp/t.sqlite'); db.pragma('journal_mode=WAL'); if (db.pragma('journal_mode',{simple:true})!=='wal') { console.error('journal', db.pragma('journal_mode',{simple:true})); process.exit(1); } console.log('better-sqlite3', db.prepare('select sqlite_version() v').get().v);"
+
 FROM node:22-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production \
@@ -33,8 +48,9 @@ ENV NODE_ENV=production \
     DATA_DIR=/data \
     CLIENT_DIST=/app/public \
     TB_JEV_MODEL_DIR=/app/models/jev-tox-small
-# The server is bundled by esbuild (ws included); only ONNX Runtime's native addon stays in node_modules.
+# The server is bundled by esbuild (ws included). ONNX Runtime and better-sqlite3 stay native.
 COPY --from=ort /ort/node_modules ./node_modules
+COPY --from=sqlite /sqlite/node_modules/better-sqlite3 ./node_modules/better-sqlite3
 COPY --from=model /models ./models
 COPY --from=build /app/apps/server/dist/index.js ./server.js
 COPY --from=build /app/apps/client/dist ./public

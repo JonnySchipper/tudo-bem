@@ -4,6 +4,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { OPS_SMOKE_EMAIL } from '@tudobem/shared';
 import { AccountStore, AttemptLimiter, accountsFileAdapter, hashPassword, parseCookies, verifyPassword, type ScryptParams } from './auth.js';
+import { closeDatabase, openDatabase } from './sqliteDb.js';
 
 /** Cheap params keep the suite fast; production uses SCRYPT_DEFAULT. */
 const FAST: ScryptParams = { N: 1024, r: 8, p: 1 };
@@ -28,7 +29,10 @@ describe('password hashing', () => {
 describe('AccountStore', () => {
   let dir = '';
   afterEach(() => {
-    if (dir) fs.rmSync(dir, { recursive: true, force: true });
+    if (dir) {
+      closeDatabase(dir);
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
     dir = '';
   });
 
@@ -56,9 +60,11 @@ describe('AccountStore', () => {
     if (!r.ok) throw new Error('register failed');
     const cookie = a.createSession(r.account.id);
     a.linkProfile(r.account.id, 'p-123');
-    const raw = fs.readFileSync(path.join(dir, 'accounts.json'), 'utf8');
+    const db = openDatabase(dir);
+    const raw = [...(db.prepare('SELECT json FROM accounts').all() as { json: string }[]), ...(db.prepare('SELECT json FROM sessions').all() as { json: string }[])].map((r) => r.json).join('\n');
     expect(raw).not.toContain('coxinha-quente');
     expect(raw).not.toContain(cookie);
+    expect(raw).toContain('scrypt$');
 
     const b = new AccountStore(accountsFileAdapter(dir), { scrypt: FAST });
     expect(b.accountForSession(cookie)?.email).toBe('bia@exemplo.com');

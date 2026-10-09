@@ -1,6 +1,6 @@
 /**
  * Player academies. Same shape as the profile store: an adapter loads and saves the rows.
- * Node writes `academies.json`. Solo mode uses localStorage. Tests pass null (memory only).
+ * Node writes the SQLite `academies` table. Solo mode uses localStorage. Tests pass null (memory only).
  * Browser-safe: no `process`, no `node:fs`.
  */
 import { normalizeAcademy, type PlayerAcademy } from '@tudobem/shared';
