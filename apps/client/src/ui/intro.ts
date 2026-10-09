@@ -447,8 +447,9 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
     const parrots = mountIntroParrots(root, panel, reduced, {
       band: () => skyBand,
       waitForStart: enterReady,
-      // The painted parts only — the header box spans the whole empty left column on desktop.
-      keepClear: () => [title, taglines, root.classList.contains('intro-phase-auth') ? panel : null],
+      // Only the sign-in card stays clear. The wordmark box includes transparent padding, so clipping
+      // birds out of it made them vanish at an invisible edge; near birds now pass in front of the logo.
+      keepClear: () => [root.classList.contains('intro-phase-auth') ? panel : null],
     });
     teardowns.push(parrots.teardown);
 
