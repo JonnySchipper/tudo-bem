@@ -1308,3 +1308,8 @@ body.view-pixel #world {
     linear-gradient(180deg, rgba(255, 190, 120, 0.06), rgba(120, 60, 50, 0.18));
   mix-blend-mode: soft-light;
 }
+
+/* The login-screen Admin modal must sit above the intro gate (z 35); default .backdrop is z 20. */
+.backdrop[data-modal='intro-admin'] {
+  z-index: 40;
+}
