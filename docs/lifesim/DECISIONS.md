@@ -1346,7 +1346,7 @@ Branch `lifesim/academia-art`. Art for "Treino no tatame" (brief: `ACADEMIA-REDE
 
 ## Academia roll redesign (gameplay)
 
-Branch `lifesim/academia-game`. "Treino no tatame" as built from `ACADEMIA-REDESIGN.md`: the match is IN THE WORLD on the academia mat (no modal), the server owns the bout, the pure rules live in `packages/shared`. Shots: `docs/lifesim/shots/academia/` (`scripts/academia-shots.mjs`: desktop, phone portrait, phone landscape, and the partner's side). The art is the other branch's (`ACADEMIA-REDESIGN.md`, `apps/client/assets-src/README.md`), merged here from `lifesim/main`.
+Branch `lifesim/academia-game`. "Treino no tatame" as built from `ACADEMIA-REDESIGN.md`: the match is IN THE WORLD on the academia mat (no modal), the server owns the bout, the pure rules live in `packages/shared`. Shots: `docs/lifesim/shots/academia/` (desktop, phone portrait, phone landscape, and the partner's side; the v1 script that took them was retired with Tatame v3). The art is the other branch's (`ACADEMIA-REDESIGN.md`, `apps/client/assets-src/README.md`), merged here from `lifesim/main`.
 
 ### The rules (numbers; `packages/shared/src/bout.ts`, `academia.ts`, `challenges.ts`)
 

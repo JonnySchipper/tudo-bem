@@ -152,9 +152,9 @@ async function deal(a: Client, move: string) {
   await a.send({ t: 'bout', v: 2, action: 'pick', seq: b.seq, move });
 }
 
-/** Make the partner's next move this one (the feint slot is the commit the server honours first). */
-const force = (a: Client, move: string) => {
-  a.s.bout!.feint = move as never;
+/** Make the partner's next move this one (the server's test-only slot, honoured whenever legal); `feint` plays it as a feint. */
+const force = (a: Client, move: string, feint = false) => {
+  a.s.bout!.forced = { move: move as never, feint };
 };
 
 describe('Treino no tatame v3 (server)', () => {
@@ -460,7 +460,7 @@ describe('Treino no tatame v3 (server)', () => {
     a.s.bout!.rng = () => 0;
     a.s.bout!.plan = { move: 'double_leg', kind: 'queda' };
     await pick(a, 'hold');
-    force(a, 'collar_tie');
+    force(a, 'collar_tie', true);
     advance(100);
     const d = a.last('defend')!;
     expect(d.call).toBeUndefined();
@@ -470,6 +470,89 @@ describe('Treino no tatame v3 (server)', () => {
     advance(d.leadMs + 50);
     await a.send({ t: 'bout', v: 2, action: 'defend', seq: d.seq, step: 0, cmd: 'base', ms: 100 });
     expect(a.last('resolve')).toMatchObject({ landed: true, how: 'wrong', feint: true });
+  });
+
+  it('from blue belt a partner that changed plans (no feint) is described as it is: the line names the move it plays', async () => {
+    const { a } = await setup();
+    a.s.profile!.bjj = { belt: 'azul', stripes: 0, wins: 20, unlocked: ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar', 'sleeve_grip', 'knee_on_belly', 'body_lock', 'sprawl', 'scissor_sweep'] };
+    await start(a, 'helena');
+    advance(1000);
+    a.s.bout!.rng = () => 0;
+    a.s.bout!.plan = { move: 'double_leg', kind: 'queda' };
+    await pick(a, 'hold');
+    force(a, 'collar_tie');
+    advance(100);
+    const d = a.last('defend')!;
+    expect(d.call).toBeUndefined();
+    expect(d.line.pt).toBe('Helena vai pegar a sua gola.');
+    expect(d.attack).toBe('pegada');
+  });
+
+  it('a feint picked at the offer is dropped when it would run into the brace you just raised', async () => {
+    const { a } = await setup();
+    a.s.profile!.bjj = { belt: 'azul', stripes: 0, wins: 20, unlocked: ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar', 'sleeve_grip', 'knee_on_belly', 'body_lock', 'sprawl', 'scissor_sweep'] };
+    await start(a, 'rafael');
+    advance(1000);
+    a.s.bout!.rng = () => 0;
+    await deal(a, 'sprawl');
+    a.s.bout!.feint = 'double_leg';
+    await tapChain(a);
+    expect(a.last('resolve')!.st.brace?.you).toBe('base');
+    advance(100);
+    const msgs = [...a.bout()].reverse();
+    const partnerMove = msgs.map((m) => (m.phase === 'defend' ? m.move.id : m.phase === 'resolve' && m.actor === 'partner' ? m.move : null)).find(Boolean);
+    expect(partnerMove).toBeTruthy();
+    expect(partnerMove).not.toBe('double_leg');
+    const res = msgs.find((m) => m.phase === 'resolve' && m.actor === 'partner');
+    if (res && res.phase === 'resolve') expect(res.feint).toBeUndefined();
+  });
+
+  it('the pick never shrinks behind a brace: a move the partner’s Base would stop is left out before the four are kept', async () => {
+    const { a } = await setup();
+    a.s.profile!.bjj = { belt: 'roxa', stripes: 2, wins: 100, unlocked: ['double_leg', 'body_lock', 'single_leg', 'collar_tie', 'sleeve_grip', 'posture'] };
+    await start(a);
+    advance(1000);
+    a.s.bout!.rng = () => 0;
+    await pick(a, 'hold');
+    force(a, 'sprawl');
+    advance(100);
+    const p = a.last('pick')!;
+    expect(p.st.brace?.partner).toBe('base');
+    // the three takedowns are braced out before the cut: four cards stay (the grips, Postura, and the Base the rank fills in)
+    const ids = p.cards.map((c) => c.id);
+    expect(ids).toHaveLength(4);
+    expect(ids).toEqual(expect.arrayContaining(['collar_tie', 'sleeve_grip', 'posture']));
+    for (const t of ['double_leg', 'body_lock', 'single_leg']) expect(ids).not.toContain(t);
+  });
+
+  it('a move that is no longer legal when its chain ends is played as a hold: the match goes on', async () => {
+    const { a } = await setup();
+    await start(a);
+    advance(1000);
+    await deal(a, 'double_leg');
+    const c = a.last('chain')!;
+    a.s.bout!.mat.position = { kind: 'mount', top: 'you' };
+    await tapChain(a);
+    const r = a.last('resolve')!;
+    expect(r).toMatchObject({ actor: 'you', move: 'hold', how: 'hold' });
+    expect(r.seq).toBeGreaterThanOrEqual(c.seq);
+    advance(2000);
+    const next = a.lastBout()!;
+    expect(next).not.toBe(r);
+    expect(['pick', 'defend', 'resolve', 'chain']).toContain(next.phase);
+  });
+
+  it('a tap whose ms is not a number is timed by the server gap (null, true and an empty string are not 0 ms)', async () => {
+    for (const ms of [null, true, '']) {
+      const { a } = await setup();
+      await start(a);
+      advance(1000);
+      await deal(a, 'collar_tie');
+      const c = a.last('chain')!;
+      advance(1200);
+      await a.send({ t: 'bout', v: 2, action: 'tap', seq: c.seq, step: 0, cmd: 'pega', ms: ms as never });
+      expect(a.last('resolve')!.grades, String(ms)).toEqual(['boa']);
+    }
   });
 
   it('plays a full sixteen-exchange match by taps, and every beat is a pick, a chain, a defense or a resolve', async () => {

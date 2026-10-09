@@ -1283,7 +1283,7 @@ export interface MatCard {
 }
 
 /** needs_br: true — the card's one line: what a move does if it lands. No position names, only who ends on top. */
-export function moveDoes(state: MatState, actor: MatSide, id: MatMoveId): Bilingual {
+export function moveDoes(state: MatState, actor: MatSide, id: MatMoveId, effect?: MatEffect | null): Bilingual {
   const g = state.grips[actor];
   const theirs = state.grips[other(actor)];
   switch (id) {
@@ -1306,7 +1306,7 @@ export function moveDoes(state: MatState, actor: MatSide, id: MatMoveId): Biling
       return { pt: 'Sai de baixo', en: 'Gets out from under' };
   }
   if (SUBS.has(id)) return { pt: 'Vale a vitória!', en: 'Wins the match!' };
-  const e = matEffect(state, actor, id);
+  const e = effect !== undefined ? effect : matEffect(state, actor, id);
   if (!e) return { pt: '', en: '' };
   if (e.points > 0) return { pt: `+${e.points} · você por cima`, en: `+${e.points} · you on top` };
   return e.toAhead === (actor === 'you' ? 'you' : 'partner') ? { pt: 'Você por cima', en: 'You on top' } : { pt: '', en: '' };
@@ -1321,7 +1321,7 @@ function cardOf(state: MatState, id: MatMoveId, answers: readonly MatMoveId[], f
     chain: chainFor(state, 'you', id, foeDefense).length,
     points: e?.points ?? 0,
     answers: answers.includes(id),
-    does: moveDoes(state, 'you', id),
+    does: moveDoes(state, 'you', id, e),
     // needs_br: true
     ...(SUBS.has(id) ? { risk: { pt: 'Se errar: você por baixo', en: 'Miss: you end on the bottom' } } : {}),
   };
@@ -1339,7 +1339,8 @@ export const MAX_CARDS = 4;
  */
 export function offerCards(state: MatState, allowed: readonly MatMoveId[], plan: MatPlan | null, foeDefense = 0): MatCard[] {
   const st: MatState = state.actor === 'you' ? state : { ...state, actor: 'you' };
-  const legal = matLegalMoves(st, 'you', allowed).filter((id) => id !== 'hold');
+  // a move the partner's brace would stop is not a card: left out before the cut to four, so the pick never shrinks
+  const legal = matLegalMoves(st, 'you', allowed).filter((id) => id !== 'hold' && !braceBlocks(st, 'you', id));
   const answers = plan ? planAnswers(st, plan, legal) : [];
   const all = legal.map((id) => cardOf(st, id, answers, foeDefense));
   const combos = new Set(COMBOS.map((c) => c.move));

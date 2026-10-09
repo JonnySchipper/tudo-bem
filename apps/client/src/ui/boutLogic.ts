@@ -262,7 +262,8 @@ export function coachTip(o: { winner: 'you' | 'partner' | 'draw' | 'none'; reaso
   if (o.winner === 'none') return null;
   if (o.winner === 'you' && o.reason === 'finalizacao') return { pt: 'Que final! O último Aperta! é rápido: toque sem esperar.', en: 'What a finish! The last Aperta! is quick: tap without waiting.' };
   if (o.winner === 'partner' && o.reason === 'finalizacao')
-    return { pt: 'Contra o final, toque Sai! três vezes, rápido.', en: 'Against a finish, tap Sai! three times, fast.' };
+    // no count: it is three Sai! against most partners and four against Daniel (saiCount). needs_br: true
+    return { pt: 'Contra o final, toque Sai! sem parar, rápido.', en: 'Against a finish, keep tapping Sai!, fast.' };
   if (o.you === 0 && o.them === 0)
     return has('double_leg')
       ? { pt: 'Pegue a gola primeiro: a Queda fica com um comando só.', en: 'Take the collar first: the takedown is then one command.' }

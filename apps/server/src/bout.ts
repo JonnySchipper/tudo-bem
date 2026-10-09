@@ -135,8 +135,10 @@ export interface BoutSession {
   drillMove: MatMoveId | null;
   /** The partner's telegraphed next move, shown with your pick. */
   plan: MatPlan | null;
-  /** From blue belt: the move the partner will actually do instead of the telegraphed one. */
+  /** From blue belt: the move the partner will actually do instead of the telegraphed one (re-checked on its turn). */
   feint: MatMoveId | null;
+  /** Tests only: the partner's next move, played whenever it is legal (`feint` marks it as a feint). Never set in play. */
+  forced?: { move: MatMoveId; feint?: boolean } | null;
   beat: Beat | null;
   /** What the partner has seen of you this match (its read for the AI). */
   seen: { chains: number; landed: number; attacks: number; blocked: number };
@@ -297,9 +299,8 @@ export class BoutEngine {
     return { yours: fightMoves({ belt: prog.belt, unlocked: prog.unlocked, opponentBelt: prog.belt }), theirs: botMoves(prog.belt, prog.belt) };
   }
 
-  /** The partner's AI, with what it has seen of you so far. */
-  private ctx(s: Session, b: BoutSession): BotCtx {
-    const { yours, theirs } = this.pools(s);
+  /** The partner's AI, with what it has seen of you so far (`pools` computed once per beat by the caller). */
+  private ctx(b: BoutSession, { yours, theirs }: { yours: MatMoveId[]; theirs: MatMoveId[] }): BotCtx {
     return {
       allowed: theirs,
       foeAllowed: yours,
@@ -314,17 +315,18 @@ export class BoutEngine {
     const b = this.live(s, token);
     if (!b || b.mat.over) return;
     if (b.mat.actor === 'them') return this.botTurn(s, b);
-    const { yours } = this.pools(s);
+    const pools = this.pools(s);
     b.phase = 'pick';
     b.beat = null;
     b.seq = ++this.seq;
     b.offerAt = this.d.now();
     b.pickMs = this.d.testHints ? 8_000 : PICK_MS;
-    const ctx = this.ctx(s, b);
+    const ctx = this.ctx(b, pools);
     b.plan = planBot(b.mat, ctx);
     // from blue belt an aggressive partner may show one attack and do another
     b.feint = shouldFeint(b.level, b.partner.aggression, b.rng()) ? feintMove(b.mat, b.plan, ctx) : null;
-    const cards = offerCards(b.mat, yours, b.plan, b.partner.defense).filter((c) => !braceBlocks(b.mat, 'you', c.move));
+    // offerCards leaves out what the partner's brace would stop before it keeps four, so the pick never shrinks
+    const cards = offerCards(b.mat, pools.yours, b.plan, b.partner.defense);
     b.offered = [...cards.map((c) => c.move), 'hold'];
     s.send({
       t: 'bout',
@@ -359,8 +361,7 @@ export class BoutEngine {
     const id: MatMoveId | null = isMatMove(raw) && b.offered.includes(raw) && matLegalMoves(b.mat, 'you', this.pools(s).yours).includes(raw) ? raw : auto ? 'hold' : null;
     if (!id) return;
     if (!auto) b.beats++;
-    if (id === 'hold') return this.resolve(s, b, 'you', id, true, auto ? 'hold' : 'hold', []);
-    if (braceBlocks(b.mat, 'you', id)) return this.resolve(s, b, 'you', id, false, 'blocked', []);
+    if (id === 'hold') return this.resolve(s, b, 'you', id, true, 'hold', []);
     const want = chainFor(b.mat, 'you', id, b.partner.defense);
     const windows = chainWindows(want, id, b.level, b.first);
     b.phase = 'chain';
@@ -410,7 +411,8 @@ export class BoutEngine {
     if (gap < -NET_GRACE_MS) return null; // before the pad was even up: ignored
     const w = beat.windows[beat.step]!;
     if (gap > w + NET_GRACE_MS) return 'tarde';
-    const claimed = Number.isFinite(Number(ms)) ? Math.max(0, Number(ms)) : gap;
+    // only a real number is a claim (null, true or '' would read as 0 ms): anything else falls back to the server's own gap
+    const claimed = typeof ms === 'number' && Number.isFinite(ms) ? Math.max(0, ms) : gap;
     const eff = Math.max(claimed, gap - NET_GRACE_MS);
     return gradeTap(beat.want[beat.step]!, typeof got === 'string' ? got : '', eff, w);
   }
@@ -477,19 +479,32 @@ export class BoutEngine {
   // ---------------------------------------------------------------- the partner's turn
 
   private botTurn(s: Session, b: BoutSession) {
-    const ctx = this.ctx(s, b);
-    const { theirs } = this.pools(s);
-    const legal = matLegalMoves(b.mat, 'them', theirs);
+    const pools = this.pools(s);
+    const ctx = this.ctx(b, pools);
+    const legal = matLegalMoves(b.mat, 'them', pools.theirs);
     let move: MatMoveId;
     let feint = false;
     let replanned = false;
-    if (b.feint && legal.includes(b.feint)) {
-      move = b.feint;
-      feint = true;
+    const forced = b.forced;
+    b.forced = null;
+    if (forced && legal.includes(forced.move)) {
+      move = forced.move;
+      feint = !!forced.feint;
     } else {
       const pick = botCommit(b.mat, b.plan, ctx);
       move = pick.move;
       replanned = pick.replanned;
+      // a feint chosen at the pick is played only if it still stands: not into a brace you just raised, and kept by the same re-read
+      // (inertia) as a telegraphed move; otherwise the partner does what botCommit says
+      const f = b.feint;
+      if (f && legal.includes(f) && !braceBlocks(b.mat, 'them', f)) {
+        const keep = botCommit(b.mat, { move: f, kind: planKindOf(b.mat, 'them', f) }, ctx);
+        if (keep.move === f && !keep.replanned) {
+          move = f;
+          feint = true;
+          replanned = false;
+        }
+      }
     }
     const shownPlan = b.plan;
     b.plan = null;
@@ -512,8 +527,9 @@ export class BoutEngine {
     b.seq = ++this.seq;
     b.beat = { kind: 'defend', seq: b.seq, move, want: Array.from({ length: count }, () => d), windows: Array.from({ length: count }, () => w), step: 0, openAt: this.d.now() + lead, grades: [], feint, replanned };
     const from = artOf(b.mat.position);
-    // the attack line: what it really is at white belt; from blue, the telegraph you were shown (a feint does not give itself away in words)
-    const shown = b.level >= 4 && shownPlan ? shownPlan.kind : planKindOf(b.mat, 'them', move);
+    // the attack line says what the move is; only a deliberate feint (from blue belt) keeps the telegraph you were shown, so it does not
+    // give itself away in words. A partner that simply changed plans is described as it is.
+    const shown = b.level >= 4 && feint && shownPlan ? shownPlan.kind : planKindOf(b.mat, 'them', move);
     s.send({
       t: 'bout',
       v: 2,
@@ -547,8 +563,16 @@ export class BoutEngine {
   ) {
     b.phase = 'resolve';
     b.beat = null;
-    const res = resolveMat(b.mat, actor, id, landed, { perfect: o.perfect, defended: o.defended });
-    if (!res.ok) return;
+    let res = resolveMat(b.mat, actor, id, landed, { perfect: o.perfect, defended: o.defended });
+    if (!res.ok) {
+      // the move is no longer legal (the mat moved under it): play it as a hold, so the match goes on instead of stalling
+      id = 'hold';
+      how = 'hold';
+      grades = [];
+      o = {};
+      res = resolveMat({ ...b.mat, actor }, actor, 'hold', true);
+      if (!res.ok) return this.d.schedule(() => this.offer(s, b.token), 0);
+    }
     b.mat = res.state;
     const holdMs = this.pause(id === 'hold' ? 500 : res.from !== res.to || res.submission || res.points > 0 ? 900 : 700);
     s.send({
