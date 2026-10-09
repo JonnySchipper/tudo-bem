@@ -174,3 +174,29 @@ export function footprintRect(p: PropDef): Rect {
   const { w, h } = propSize(p);
   return { x0: p.x * T, y0: p.y * T, x1: (p.x + w) * T, y1: (p.y + h) * T };
 }
+
+/** Art that carries a sign or is the thing a reading word is written on (a board, a post, a lamp). The twinkle sits on the top of these. */
+const SIGN_ART = /placa|lousa|painel|letreiro|vaga|poste|lamp/;
+/** Taller art than this is a building front, not a sign: the hotspot box already marks the painted lettering on it. */
+const SIGN_ART_MAX_H = 80;
+
+/**
+ * Where the twinkle of a reading word goes (world px, centred on x, the top of the star at y): the top of the sign art that stands on the hotspot's
+ * footprint, or the top of the footprint box when there is none. `box` is the hotspot box in px; `arts` are the world rects of the room's sprites
+ * with their manifest key. The sign must line up with the box sideways (half of their span in common) and end on its rows (the footprint is the floor
+ * the sign stands on, so the art's bottom is inside the box or one tile below it).
+ */
+export function glintSpot(box: Rect, arts: readonly { key: string; rect: Rect }[]): { x: number; y: number } {
+  let best: { rect: Rect; iou: number } | null = null;
+  for (const a of arts) {
+    const r = a.rect;
+    if (!SIGN_ART.test(a.key) || r.y1 - r.y0 > SIGN_ART_MAX_H) continue;
+    if (r.y1 < box.y0 || r.y1 > box.y1 + T) continue;
+    const common = Math.min(r.x1, box.x1) - Math.max(r.x0, box.x0);
+    const span = Math.max(r.x1, box.x1) - Math.min(r.x0, box.x0);
+    const iou = common / span;
+    if (iou >= 0.5 && (!best || iou > best.iou)) best = { rect: r, iou };
+  }
+  if (best && best.rect.y0 < box.y0) return { x: (best.rect.x0 + best.rect.x1) / 2, y: best.rect.y0 + 3 };
+  return { x: (box.x0 + box.x1) / 2, y: box.y0 + 3 };
+}
