@@ -37,7 +37,7 @@ export interface StackItem {
     show?: boolean;
     /** Academy stamp glyph, members only. */
     mark?: string;
-    /** Beta founder “f” mark beside the nameplate. */
+    /** Beta founder mark (a pixel “f” tile) beside the nameplate. */
     founder?: boolean;
     /** Subscription founder badge. A separate mark; it does not change the plate tier. */
     subBadge?: boolean;
@@ -515,14 +515,12 @@ export class LabelLayer {
         }
         if (s.plate.founder) {
           el.founder.style.display = '';
-          el.founder.textContent = 'f';
           el.founder.setAttribute('role', 'img');
           const founderTip = `${FOUNDER_BADGE.pt} · ${FOUNDER_BADGE.en}`;
           el.founder.setAttribute('aria-label', founderTip);
           el.founder.setAttribute('title', founderTip);
         } else {
           el.founder.style.display = 'none';
-          el.founder.replaceChildren();
         }
         if (s.plate.subBadge) {
           el.subBadge.style.display = '';

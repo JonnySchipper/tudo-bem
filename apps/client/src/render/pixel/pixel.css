@@ -96,36 +96,17 @@
   background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='7' height='8' shape-rendering='crispEdges'><rect width='7' height='8' fill='%232a2233'/><rect x='1' y='1' width='5' height='6' fill='%23f2c230'/><rect x='2' y='2' width='3' height='1' fill='%23fff59a'/><rect x='3' y='3' width='1' height='1' fill='%23c45c26'/><rect x='2' y='4' width='1' height='1' fill='%233f8a4a'/><rect x='4' y='4' width='1' height='1' fill='%233f8a4a'/><rect x='3' y='5' width='1' height='1' fill='%232e6a3a'/></svg>") center / 14px 16px no-repeat;
 }
 
+/* Beta founder mark: a 7x8 pixel "f" tile drawn at 2x (whole CSS px, so it stays crisp at every camera zoom; the overlay never scales).
+   Same footprint as the subscription badge, so a plate with both stays one even row. */
 .wl-founder {
   flex-shrink: 0;
   pointer-events: auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  width: 15px;
-  height: 15px;
+  display: inline-block;
+  width: 14px;
+  height: 16px;
   margin-top: -1px;
-  font-family: var(--font-title, 'Baloo 2', system-ui, sans-serif);
-  font-size: 12px;
-  font-weight: 800;
-  font-style: italic;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  color: #2a2233;
-  background: #f2c230;
-  border: 2px solid #2a2233;
-  box-shadow: inset 0 0 0 1px #ffe9a8;
-  clip-path: polygon(
-    0 2px,
-    2px 0,
-    calc(100% - 2px) 0,
-    100% 2px,
-    100% calc(100% - 2px),
-    calc(100% - 2px) 100%,
-    2px 100%,
-    0 calc(100% - 2px)
-  );
+  image-rendering: pixelated;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='7' height='8' shape-rendering='crispEdges'><rect x='1' width='5' height='8' fill='%232a2233'/><rect y='1' width='7' height='6' fill='%232a2233'/><rect x='1' y='1' width='5' height='6' fill='%23f2c230'/><rect x='1' y='1' width='2' height='1' fill='%23fff59a'/><rect x='1' y='6' width='5' height='1' fill='%23d39a1f'/><rect x='3' y='1' width='2' height='1' fill='%232a2233'/><rect x='2' y='2' width='1' height='5' fill='%232a2233'/><rect x='1' y='3' width='4' height='1' fill='%232a2233'/><rect x='1' y='6' width='3' height='1' fill='%232a2233'/></svg>") center / 14px 16px no-repeat;
 }
 
 .wl-stack .wl-plate {

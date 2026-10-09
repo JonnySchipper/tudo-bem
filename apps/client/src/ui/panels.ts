@@ -579,7 +579,7 @@ export function openProfileCard(a: PublicAvatar, actions: { request: (id: string
       closeBtn(() => close()),
       canvas,
       h('h2', null, a.name),
-      h('div', { class: 'row', style: 'justify-content:center' }, tierChip(a.nameplate ?? 'verde', { id: 'profile-plate' }), a.founder ? h('span', { class: 'wl-founder founder-chip', title: `${FOUNDER_BADGE.pt} · ${FOUNDER_BADGE.en}` }, 'f') : null, h('span', { style: 'font-weight:700;color:var(--ink-soft)' }, `trate por: ${pronoun}`)),
+      h('div', { class: 'row', style: 'justify-content:center' }, tierChip(a.nameplate ?? 'verde', { id: 'profile-plate' }), a.founder ? h('span', { class: 'wl-founder founder-chip', role: 'img', 'aria-label': `${FOUNDER_BADGE.pt} · ${FOUNDER_BADGE.en}`, title: `${FOUNDER_BADGE.pt} · ${FOUNDER_BADGE.en}` }) : null, h('span', { style: 'font-weight:700;color:var(--ink-soft)' }, `trate por: ${pronoun}`)),
       a.belt ? h('div', { class: 'row', style: 'justify-content:center;margin-top:8px' }, beltChip(a.belt)) : null,
       en(`${tierRule(a.nameplate ?? 'verde').en} nameplate: earned in the Escola by words mastered. Plates come from learning, never from money.`),
       h(
