@@ -224,8 +224,8 @@ export function buildHud(actions: HudActions) {
         openFeedback();
       },
     },
-    h('b', { class: 'pt' }, FEEDBACK_COPY.button.pt),
-    h('i', { class: 'hud-gloss' }, FEEDBACK_COPY.button.en),
+    h('i', { class: 'fala-bubble', 'aria-hidden': 'true' }),
+    h('span', { class: 'hud-feedback-words' }, h('b', { class: 'pt' }, FEEDBACK_COPY.button.pt), h('i', { class: 'hud-gloss' }, FEEDBACK_COPY.button.en)),
   );
   const burger = h('button', { class: 'hud-btn hud-burger hud-slab', id: 'btn-burger', type: 'button', 'aria-expanded': 'false', 'aria-controls': 'hud-actions', 'aria-label': 'Menu (Menu)' }, icon('burger', 32));
   const scrim = h('div', { class: 'hud-scrim', 'aria-hidden': 'true' });

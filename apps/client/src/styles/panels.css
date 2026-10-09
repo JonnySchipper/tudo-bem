@@ -456,26 +456,78 @@ html {
   outline-offset: 0;
 }
 
-.feedback-cats {
+/* the title carries the same speech bubble as the HUD chip */
+.backdrop > .panel h2.feedback-title {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  gap: 10px;
+  padding-right: 48px;
+}
+
+/* the note: lined paper with a margin, the counter tucked in its corner */
+.feedback-note {
+  position: relative;
+}
+
+.feedback-note textarea.feedback-field {
+  display: block;
+  min-height: 104px;
+  padding: 8px 12px 22px 18px;
+  line-height: 24px;
+  border: 0;
+  background-color: #fffdf8;
+  background-image:
+    linear-gradient(90deg, transparent 10px, #e8a0a0 10px 12px, transparent 12px),
+    linear-gradient(transparent 23px, #d9e3ef 23px);
+  background-size:
+    100% 100%,
+    100% 24px;
+  background-position:
+    0 0,
+    0 8px;
+  background-repeat: no-repeat, repeat-y;
+  background-attachment: local, local;
+  box-shadow:
+    0 0 0 2px #b9a27c,
+    inset 0 2px 0 rgba(87, 60, 44, 0.08);
+}
+
+.feedback-count {
+  position: absolute;
+  right: 10px;
+  bottom: 4px;
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+
+.feedback-count.near {
+  color: #a13f15;
+}
+
+.feedback-cats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .backdrop > .panel button.feedback-cat {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  min-height: 44px;
-  padding: 6px 12px 8px;
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 2px;
+  min-height: 72px;
+  padding: 8px 6px 9px;
   border: 0;
   border-radius: 0;
   background: #fffdf8;
   color: var(--ink);
   font: inherit;
   font-weight: 800;
-  text-align: left;
+  text-align: center;
+  transition: none;
   box-shadow:
     0 -2px 0 0 #b9a27c,
     0 2px 0 0 #b9a27c,
@@ -484,26 +536,243 @@ html {
     inset 0 -3px 0 0 var(--hud-paper-lo, #ead7b8);
 }
 
-.backdrop > .panel button.feedback-cat i {
+.backdrop > .panel button.feedback-cat b {
+  font-family: var(--font-pixel);
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.1;
+}
+
+.backdrop > .panel button.feedback-cat i:not(.feedback-glyph) {
   font-style: italic;
   font-weight: 600;
   font-size: 11px;
+  line-height: 1.15;
   color: var(--ink-soft);
 }
 
+.backdrop > .panel button.feedback-cat:hover {
+  background: #fff6ea;
+}
+
+/* picked: pressed into the paper, ink edge, a check in the corner */
 .backdrop > .panel button.feedback-cat[aria-pressed='true'] {
   background: #f7d9b4;
+  transform: translateY(2px);
   box-shadow:
-    0 -2px 0 0 #b9a27c,
-    0 2px 0 0 #b9a27c,
-    -2px 0 0 0 #b9a27c,
-    2px 0 0 0 #b9a27c,
-    inset 0 -3px 0 0 var(--terracota);
+    0 -2px 0 0 #7a3a16,
+    0 2px 0 0 #7a3a16,
+    -2px 0 0 0 #7a3a16,
+    2px 0 0 0 #7a3a16,
+    inset 0 3px 0 0 rgba(122, 58, 22, 0.18);
+}
+
+.backdrop > .panel button.feedback-cat[aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 16px;
+  height: 16px;
+  background: var(--verde, #2e8a55);
+  box-shadow: 0 0 0 2px #1d3a31;
+}
+
+.backdrop > .panel button.feedback-cat[aria-pressed='true']::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: -2px;
+  right: -1px;
+  width: 4px;
+  height: 7px;
+  border: solid #fff8ec;
+  border-width: 0 2px 2px 0;
+  transform: rotate(40deg);
+}
+
+/* the kind glyphs, in blocks: a warning sign, a light bulb, a heart */
+.feedback-glyph {
+  position: relative;
+  display: block;
+  width: 22px;
+  height: 22px;
+  margin-bottom: 3px;
+}
+
+.glyph-bug::before {
+  content: '!';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-pixel);
+  font-style: normal;
+  font-weight: 700;
+  font-size: 15px;
+  color: #fff8ec;
+  background: var(--terracota);
+  box-shadow: 0 0 0 2px #7a3a16;
+}
+
+.glyph-idea::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff6c8 0 3px, #f2c230 3px);
+  box-shadow: 0 0 0 2px #8a6410;
+}
+
+.glyph-idea::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 15px;
+  width: 8px;
+  height: 6px;
+  background: repeating-linear-gradient(#9a9a92 0 2px, #cfc8bc 2px 3px);
+  box-shadow: 0 0 0 2px #573c2c;
+}
+
+.glyph-love::before {
+  content: '';
+  position: absolute;
+  inset: 1px 0 0;
+  background: #e05a5a;
+  clip-path: polygon(0 18%, 18% 0, 41% 0, 50% 14%, 59% 0, 82% 0, 100% 18%, 100% 45%, 50% 100%, 0 45%);
 }
 
 .feedback-signed {
-  margin: 10px 0 4px;
+  position: relative;
+  margin: 12px 0 4px;
+  padding: 6px 10px 6px 30px;
+  font-size: 0.9rem;
   font-weight: 700;
+  background: rgba(79, 154, 106, 0.12);
+  box-shadow: inset 3px 0 0 var(--verde, #2e8a55);
+}
+
+.feedback-signed::before {
+  content: '✓';
+  position: absolute;
+  left: 12px;
+  top: 6px;
+  font-family: var(--font-pixel);
+  color: var(--verde, #2e8a55);
+}
+
+/* Obrigado: the note slides into an envelope that closes with the kind as its wax seal */
+.feedback-thanks {
+  text-align: center;
+}
+
+.backdrop > .panel.feedback-thanks h2 {
+  margin-top: 4px;
+}
+
+.feedback-letter {
+  position: relative;
+  width: 96px;
+  height: 78px;
+  margin: 2px auto 6px;
+}
+
+.feedback-letter > i {
+  position: absolute;
+  display: block;
+}
+
+.letter-note {
+  left: 16px;
+  top: 0;
+  width: 64px;
+  height: 44px;
+  background: repeating-linear-gradient(#fffdf8 0 7px, #d9e3ef 7px 8px);
+  box-shadow: 0 0 0 2px #b9a27c;
+  animation: letter-in 0.5s cubic-bezier(0.5, 0, 0.75, 0.4) 0.1s both;
+}
+
+.letter-env {
+  left: 6px;
+  bottom: 0;
+  width: 84px;
+  height: 50px;
+  background: #f2d7ae;
+  box-shadow:
+    0 0 0 3px var(--hud-ink, #573c2c),
+    0 5px 0 rgba(20, 10, 6, 0.2);
+}
+
+.letter-flap {
+  left: 6px;
+  bottom: 22px;
+  width: 84px;
+  height: 28px;
+  background: #e2bf8c;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transform-origin: top;
+  transform: scaleY(-1);
+  animation: letter-shut 0.3s steps(3, end) 0.6s forwards;
+}
+
+.letter-seal {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-left: -16px;
+  background: #fff6d6;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--hud-ink, #573c2c);
+  animation: letter-seal 0.35s cubic-bezier(0.2, 1.5, 0.4, 1) 0.9s both;
+}
+
+.letter-seal .feedback-glyph {
+  margin: 0;
+  transform: scale(0.8);
+}
+
+@keyframes letter-in {
+  from {
+    transform: translateY(-26px) rotate(-6deg);
+  }
+  to {
+    transform: translateY(32px);
+  }
+}
+
+@keyframes letter-shut {
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes letter-seal {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+
+@media (max-width: 400px) {
+  .backdrop > .panel button.feedback-cat {
+    min-height: 66px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feedback-letter *,
+  .backdrop > .panel button.feedback-cat {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+  }
 }
 
 .feedback-err {

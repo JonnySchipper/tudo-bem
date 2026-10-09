@@ -174,17 +174,70 @@
 /* Fala — always on the strip, desktop and phone, one tap to the note form. */
 .hud-feedback {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0;
+  gap: 8px;
   flex: none;
-  min-width: 64px;
   height: 44px;
-  padding: 2px 10px 4px;
+  padding: 2px 10px 4px 9px;
   cursor: pointer;
   font: inherit;
   line-height: 1.05;
+}
+
+.hud-feedback-words {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* a speech bubble drawn in blocks: terracotta, three cream dots, a stepped tail */
+.fala-bubble {
+  position: relative;
+  display: block;
+  flex: none;
+  width: 22px;
+  height: 15px;
+  margin-bottom: 4px;
+  background: var(--terracota);
+  box-shadow:
+    0 0 0 2px var(--hud-ink),
+    inset 0 2px 0 #e07a40;
+}
+
+.fala-bubble::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 6px;
+  width: 3px;
+  height: 3px;
+  background: #fff3e0;
+  box-shadow:
+    5px 0 0 #fff3e0,
+    10px 0 0 #fff3e0;
+}
+
+.fala-bubble::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: calc(100% + 2px);
+  width: 6px;
+  height: 6px;
+  background: var(--hud-ink);
+  clip-path: polygon(0 0, 100% 0, 100% 34%, 67% 34%, 67% 67%, 34% 67%, 34% 100%, 0 100%);
+}
+
+.hud-feedback:hover .fala-bubble,
+.hud-feedback:focus-visible .fala-bubble {
+  animation: fala-nudge 0.4s steps(2, end) 1;
+}
+
+@keyframes fala-nudge {
+  50% {
+    transform: translateY(-2px) rotate(-6deg);
+  }
 }
 
 .hud-feedback .pt {
@@ -907,6 +960,35 @@ body:has(.dbx) .bottombar {
     display: none;
   }
 
+  /* Fala on the phone strip: the bubble over a small label, as wide as the burger, so the left plate keeps its room */
+  .hud-feedback {
+    flex-direction: column;
+    gap: 0;
+    width: 48px;
+    padding: 4px 0 2px;
+  }
+
+  .hud-feedback .fala-bubble {
+    margin-bottom: 6px;
+  }
+
+  .hud-feedback .fala-bubble::after {
+    left: 15px;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 67% 100%, 67% 67%, 34% 67%, 34% 34%, 0 34%);
+  }
+
+  .hud-feedback .hud-gloss {
+    display: none;
+  }
+
+  .hud-feedback-words {
+    align-items: center;
+  }
+
+  .hud-feedback .pt {
+    font-size: 11px;
+  }
+
   button.hud-burger {
     display: grid;
     place-items: center;
@@ -1226,7 +1308,8 @@ body:has(.hud-actions.open) .toasts {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .toast {
-    animation: none;
+  .toast,
+  .fala-bubble {
+    animation: none !important;
   }
 }
