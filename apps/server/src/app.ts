@@ -30,7 +30,7 @@ import {
   type CookieSecure,
   type ScryptParams,
 } from './auth.js';
-import { feedbackLimiter, handleFeedbackApi } from './feedbackApi.js';
+import { handleFeedbackApi } from './feedbackApi.js';
 import { FeedbackStore } from './feedbackStore.js';
 import { readAdminAuthConfig, type AdminAuthConfig } from './adminAuth.js';
 import { handleBillingApi } from './billing/http.js';
@@ -112,7 +112,6 @@ export function createApp(opts: AppOptions) {
   const padarias = new PadariaStore(padariaFileAdapter(dataDir));
   const layouts = new LayoutStore(layoutFileAdapter(dataDir));
   const feedback = new FeedbackStore(feedbackFileAdapter(dataDir));
-  const feedbackLimit = feedbackLimiter();
   const feedbackAdmin = opts.feedbackAdmin ?? readAdminAuthConfig();
   const billing = opts.billing ?? readBillingConfig(process.env);
   const accounts = new AccountStore(accountsFileAdapter(dataDir), { sessionTtlMs: opts.sessionTtlMs, scrypt: opts.scrypt });
@@ -202,7 +201,6 @@ export function createApp(opts: AppOptions) {
       return handleFeedbackApi(req, res, {
         store: feedback,
         accounts,
-        limiter: feedbackLimit,
         admin: feedbackAdmin,
         moderation: world.services.moderation,
         allowedOrigins,
