@@ -30,6 +30,8 @@ export interface BoxSpec {
   expression: Expression;
   /** The NPC's line: typed out at 45 chars/s, the EN gloss behind the toggle. */
   line: { pt: string; en?: string } | null;
+  /** What 🔊 Ouvir plays when it is not the line itself (the line without the player's name: one clip for every player). */
+  listen?: string;
   /** The NPC is thinking (an AI turn is on its way): a pulsing "…" instead of the line. */
   thinking?: boolean;
   /** What the player said last ("Você: …"). */
@@ -133,7 +135,7 @@ function buildPortrait(s: BoxSpec): HTMLElement {
 }
 
 function build(s: BoxSpec): HTMLElement[] {
-  const listenText = s.line?.pt ?? '';
+  const listenText = s.listen ?? s.line?.pt ?? '';
   const head = h(
     'div',
     { class: 'dbx-head' },

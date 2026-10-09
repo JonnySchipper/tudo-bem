@@ -10,7 +10,8 @@ import { JULIA_INTRO, JULIA_INTRO_FROM_GREETING, JULIA_TREE } from './juliaTalk.
 import { localizeGreetingText } from './clock.js';
 import { DIARY_WORDS } from './diary.js';
 import { luciaSpokenLines } from './escolaCopy.js';
-import type { NpcId } from './rooms.js';
+import { airportSpokenLines } from './airportTalk.js';
+import { ROOMS, type NpcId } from './rooms.js';
 import { correriaSpokenLines } from './correriaSpeech.js';
 
 /**
@@ -136,6 +137,11 @@ export function collectSpokenLines(): SpokenLine[] {
   // every diary word (the escola plays it on each reveal, the Caderno on 🔊), and Dona Lúcia at her desk
   for (const w of DIARY_WORDS) add('ui', w.pt, `diary ${w.id}`);
   for (const text of luciaSpokenLines()) add('lucia', text, 'escola lucia');
+
+  // the airport staff (Célia, Agente Paulo), and the line a click-to-talk opens with (an unheard idle line, greeting by the hour)
+  for (const l of airportSpokenLines()) add(l.speaker, l.text, `airport ${l.speaker}`);
+  for (const room of Object.values(ROOMS))
+    for (const npc of room.npcs) npc.idleLines.forEach((l, i) => MINUTES.forEach((minute) => add(npc.id, localizeGreetingText(l.pt, minute), `idle ${npc.id}.idle${i}`)));
 
   return out;
 }

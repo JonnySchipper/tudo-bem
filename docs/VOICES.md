@@ -15,7 +15,7 @@ speech synthesis (the robot) is only the last-resort fallback for text that cann
 `pnpm test` fails with the exact missing lines if you forget step 3. `pnpm tts:check` lists them without needing the network.
 
 Requirements for `pnpm tts`: `pip install edge-tts` (or `EDGE_TTS=/path/to/edge-tts`) and outbound access to `speech.platform.bing.com`.
-Cloud sessions: allow that host in the environment's network settings.
+Cloud sessions: allow that host in the environment's network settings; the bake passes the session's `HTTPS_PROXY` to edge-tts.
 
 ## What is and isn't found automatically
 
