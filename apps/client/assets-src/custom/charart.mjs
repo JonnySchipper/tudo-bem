@@ -1,27 +1,51 @@
-// Authored character pieces (Phase 3): face variants, extras, hair add-ons, emote gestures, idle-pose props, NPC pieces.
+// Authored character pieces (Phase 3): eyes and face variants, extras, hair add-ons, emote gestures, idle-pose props, NPC pieces.
 // Patterns use the shared legend of charedit.mjs and are stamped per frame onto the body / head anchors, so they follow the walk bob,
 // the sit poses and the bow. Coordinates are frame pixels of the reference frame (16 wide, feet at row 31, head top at row 10).
 import { R, T } from './hats.mjs';
 
 const P = (y0, rows, x0 = 0) => ({ y0, rows, x0 });
 
-// ---- face styles: brows / lines / blush over the pack's 1 px eyes (eyes are at y 20-21; x 5 and 10 seen from the front)
+// ---- eyes (wave 3): authored per face style, 2 px wide (the pack's were one lash pixel over one iris pixel), head anchored. Front: the
+// left eye is x 5-6, the right 9-10, the iris on the outer side and the white on the inner side (the pack's layout, so the portraits still
+// find them). Side: x 10-11, the iris in front. suave: a soft 2x2; doce: a tall 2x3; marcante: a long lash flicking outward; maduro: 2x2
+// with its amber iris. The blink frame closes them to a lid line one row down.
+const EYES = (iris, { tall = false, flick = false } = {}) => ({
+  S: tall
+    ? P(9, [T(5, 'oo..oo'), T(5, `${iris}N..N${iris}`), T(5, `${iris}N..N${iris}`)])
+    : P(10, [flick ? T(4, 'ooo..ooo') : T(5, 'oo..oo'), T(5, `${iris}N..N${iris}`)]),
+  E: tall ? P(9, [T(10, 'oo'), T(10, `N${iris}`), T(10, `N${iris}`)]) : P(10, [T(10, flick ? 'ooo' : 'oo'), T(10, `N${iris}`)]),
+});
+export const EYE_ART = {
+  suave: EYES('D'),
+  marcante: EYES('S', { flick: true }),
+  doce: EYES('H', { tall: true }),
+  maduro: EYES('A'),
+};
+/** closed eyes, one idle frame in six */
+export const BLINK_ART = { S: P(11, [T(5, 'oo..oo')]), E: P(11, [T(10, 'oo')]) };
+
+// ---- face styles: brows, mouth, nose and blush over the eyes (eyes at y 19-21 from the front; the mouth on the jaw row 22)
+const E16 = '.'.repeat(16);
 export const FACE_ART = {
-  suave: null,
-  // strong, angled brows
+  // soft: light brows in the hair colour, a small calm mouth
+  suave: {
+    S: P(8, [T(5, 'jj..jj'), E16, E16, E16, T(7, 'MM')]),
+    E: P(8, [T(10, 'jj'), E16, E16, E16, T(11, 'M')]),
+  },
+  // strong: heavy brows angled by their shade (one row, so the long lashes under them stay their own line), a nose shadow
   marcante: {
-    S: P(8, [T(4, 'hh....hh'), T(6, 'h..h')]),
-    E: P(8, [T(10, 'hhh'), T(12, 'h')]),
+    S: P(8, [T(4, 'hhi..ihh'), E16, E16, T(8, 'q'), T(7, 'MM')]),
+    E: P(8, [T(10, 'hhi'), E16, E16, T(12, 'q'), T(11, 'M')]),
   },
-  // sweet: short raised brows and blush
+  // sweet: short raised brows, blush, a small mouth
   doce: {
-    S: P(8, [T(5, 'j....j'), '.'.repeat(16), '.'.repeat(16), '.'.repeat(16), T(3, 'PP......PP'), T(3, 'PP......PP')]),
-    E: P(8, [T(11, 'j'), '.'.repeat(16), '.'.repeat(16), '.'.repeat(16), T(9, 'PP'), T(9, 'PP')]),
+    S: P(8, [T(5, 'j....j'), E16, E16, E16, T(3, 'PP..MM..PP'), T(3, 'PP......PP')]),
+    E: P(8, [T(11, 'j'), E16, E16, E16, T(9, 'PPM'), T(9, 'PP')]),
   },
-  // mature: thin brows and smile lines
+  // mature: thin brows, a nose shadow, smile lines beside the mouth
   maduro: {
-    S: P(8, [T(4, 'iii..iii'), '.'.repeat(16), '.'.repeat(16), '.'.repeat(16), T(3, 'p......p'.slice(0, 1) + '.'.repeat(8) + 'p')]),
-    E: P(8, [T(10, 'iii'), '.'.repeat(16), '.'.repeat(16), '.'.repeat(16), T(12, 'p')]),
+    S: P(8, [T(4, 'iii..iii'), E16, E16, T(8, 'q'), T(3, 'p...MM...p')]),
+    E: P(8, [T(10, 'iii'), E16, E16, T(12, 'q'), T(11, 'Mp')]),
   },
 };
 export const FACE_ALPHA = { P: 150 };

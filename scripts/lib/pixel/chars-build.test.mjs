@@ -45,11 +45,11 @@ describe('character layer build (import)', () => {
     expect(sig.size).toBe(15);
   });
 
-  it('every hair style is hair-keyed, and the 9 styles are all different', () => {
+  it('every hair style is hair-keyed (plus the translucent glint), and the 9 styles are all different', () => {
     const sig = new Set();
     for (const style of Object.keys(HAIR_BASE)) {
       const img = out.layers[`hair_${style}`];
-      expect(strays(img, keys('hair')), style).toEqual([]);
+      expect(strays(img, [...keys('hair'), '#000000', '#fff6e6']), style).toEqual([]);
       sig.add(Buffer.from(img.data).toString('base64'));
     }
     expect(sig.size).toBe(Object.keys(HAIR_BASE).length);

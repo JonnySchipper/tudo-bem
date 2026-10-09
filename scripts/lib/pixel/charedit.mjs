@@ -154,6 +154,8 @@ export const LEGEND = {
   y: '#f2b22b', Y: '#fff59a', g: '#3d8a4e', G: '#5cb85c', R: '#d93232', B: '#8a5a3c', P: '#e0707a', L: '#9d9dc3', K: '#1f1f2e',
   /** mural coral — flower crowns and market totes, a fixed hue so it survives a hat recolor */
   C: '#e07a5f',
+  /** the authored faces (wave 3): eye white, the four iris colours (brown, green, slate, amber) and the mouth, fixed on every skin tone */
+  N: '#f6f1ea', D: '#4f3328', H: '#3f7a4e', S: '#46506e', A: '#8a5a1e', M: '#8a3f3a',
 };
 
 /**

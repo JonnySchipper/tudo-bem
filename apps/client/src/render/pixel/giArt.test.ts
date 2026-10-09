@@ -1,7 +1,7 @@
 /**
- * The gi layer as generated (`public/pixel/chars/npc_gi.png`, assets-src/custom/gi.mjs): the belt is one row, with a knot and two tails,
- * the lapels cross in a V, and the pieces follow the sitting frames. Reads the sheet the game ships, so a re-import that bulks the belt
- * up again fails here.
+ * The character sheets as generated (`public/pixel/chars/*.png`, assets-src/custom/gi.mjs, charart.mjs): the gi's belt is one row, with
+ * a knot and two tails, the lapels cross in a V, the pieces follow the sitting frames; every face has two-pixel eyes that blink, brows
+ * and a mouth. Reads the sheets the game ships, so a re-import that bulks the belt up or blanks the faces again fails here.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -104,5 +104,58 @@ describe('the generated gi sheet', () => {
     expect(at(28).some((v) => top.includes(v))).toBe(true);
     expect(at(28).some((v) => bottom.includes(v))).toBe(false);
     expect(at(31).some((v) => bottom.includes(v))).toBe(true);
+  });
+});
+
+describe('the generated faces', () => {
+  const NAVY = packed('#3a3a50');
+  const WHITE = packed('#f6f1ea');
+  const MOUTH = packed('#8a3f3a');
+
+  it('front idle: each eye is a lash over an iris and a white, two pixels wide, on every face style', async () => {
+    for (const style of ['suave', 'marcante', 'doce', 'maduro']) {
+      const f = frame(await sheet(`eyes_${style}`), 0, 0);
+      const lash = style === 'doce' ? 19 : 20; // doce's eyes are a row taller
+      expect(f.get('6,21'), style).toBe(WHITE);
+      expect(f.get('9,21'), style).toBe(WHITE);
+      expect(f.get('5,21'), style).not.toBe(WHITE);
+      expect(f.get('5,21'), style).toBeDefined();
+      expect(f.get(`5,${lash}`), style).toBe(NAVY);
+      expect(f.get(`6,${lash}`), style).toBe(NAVY);
+    }
+  });
+
+  it('one idle frame in six blinks (front and side), and the walk never does', async () => {
+    const s = await sheet('eyes_suave');
+    const whites = (row: number, col: number) => [...frame(s, row, col).values()].filter((v) => v === WHITE).length;
+    for (const row of [0, 1, 2]) {
+      for (let col = 0; col < 6; col++) expect(whites(row, col) > 0, `row ${row} col ${col}`).toBe(col !== 4);
+    }
+    for (let col = 0; col < 6; col++) expect(whites(4, col)).toBeGreaterThan(0);
+  });
+
+  it('every face style has brows and a mouth on the jaw row; the side view has the mouth at the front', async () => {
+    for (const style of ['suave', 'marcante', 'doce', 'maduro']) {
+      const front = frame(await sheet(`face_${style}`), 0, 0);
+      expect(front.get('7,22'), style).toBe(MOUTH);
+      expect(front.get('8,22'), style).toBe(MOUTH);
+      expect([...front.keys()].some((k) => k.endsWith(',18')), style).toBe(true);
+      const side = frame(await sheet(`face_${style}`), 2, 0);
+      expect(side.get('11,22'), style).toBe(MOUTH);
+    }
+  });
+
+  it('the body has a cheek contour on the front frames and the hair a glint', async () => {
+    const body = frame(await sheet('body_medio'), 0, 0);
+    const shade = packed(KEY_RAMPS.skin[1]);
+    expect(body.get('3,19')).toBe(shade);
+    expect(body.get('12,19')).toBe(shade);
+    const { data, width } = await sheet('hair_curto');
+    let glints = 0;
+    for (let y = 0; y < 32; y++) for (let x = 0; x < 16; x++) {
+      const a = data[(y * width + x) * 4 + 3];
+      if (a > 0 && a < 255 && data[(y * width + x) * 4] > 200) glints++;
+    }
+    expect(glints).toBe(3);
   });
 });
