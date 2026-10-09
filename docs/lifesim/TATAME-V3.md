@@ -83,6 +83,7 @@ Fixed sequences per move (the "technique", learnable like a fighting-game input;
 
 Rules of the chain:
 - **Window** per command: `cmdWindowMs(level) = round(2200 × max(0.5, 1 − 0.05 × level))` (level = `bjjLevel`: 2.2 s for a new white belt, 1.76 s at blue, 1.1 s floor). A first-ever match (wins 0) gets ×1.4.
+- **Comfort windows** (round 3): while the belt is white, every window of the next match (chain, defense, Sai!) is ×`comfortScale(lossStreak) = 1 + 0.12 × min(3, lossStreak)` (×1.36 at most), stacked with the first-match slack. `lossStreak` (on `BjjProgress`) counts losses in a row; a win or a draw sets it back to 0, a quit does not count. From blue belt it is 1. Nothing is shown or said: it just gets a little easier until the player wins.
 - A tap within 45% of the window is **Perfeito!**, within the window **Boa!**, wrong or late is a miss and the chain stops there ("Errou!" / "Tarde!").
 - The move **lands only when every command is hit.** A miss plays the move's miss clip from where it broke (the stumble). A missed submission still drops the attacker to the bottom of the guard (the risk that makes the finish a decision).
 - **Pegada bonus:** the collar grip makes every throw chain one command shorter (min 1); both grips open Arremesso (as today). The sleeve grip is the shield: your defense windows ×1.35 while you hold it. Grips slip after three of your turns, Postura strips one. Lone-collar punishment and the odds parts are gone.
@@ -155,6 +156,8 @@ Commands: Pega!, Puxa!, Empurra!, Gira!, Levanta!, Aperta!, Postura!, Base!, Tra
   | Helena | 6% | 51% | 96% |
   | Daniel | 4% | 45% | 92% |
   | Rafael (blue) | 0% | 27% | 76% |
+
+  **Comfort windows** (round 3): with the loss streak carried from match to match, a weak player wins **31%** of a 300-match series against Mateus (13% on the same seeds without them).
 
   Every average target and Mateus-strong are met. Three are out of reach with the defense-window knobs: the weak player against Mateus (10%, target 25–35%) and against Rafael (0%, target ≥ 10%), because a 0.6 player misses 40% of its taps whatever the window and with Virar it has to win each position again (wider windows lift it to 23–37% only with the average player at 79–88%); and the strong player against Rafael (76%, target < 70%), because the speed term that would pull Rafael down sinks Felipe below 40% first.
 

@@ -555,6 +555,54 @@ describe('Treino no tatame v3 (server)', () => {
     }
   });
 
+  it('comfort windows: losses in a row widen a white belt’s next match quietly; a win or a draw resets it; a quit does not count', async () => {
+    const { a } = await setup();
+    await start(a);
+    await holdOut(a, 0, 2);
+    expect(a.last('end')!.winner).toBe('partner');
+    expect(a.s.profile!.bjj.lossStreak).toBe(1);
+    // the next match: every window ×1.12 (chain and defense), and nothing in the messages says so
+    a.inbox.length = 0;
+    await start(a);
+    advance(1000);
+    await deal(a, 'collar_tie');
+    expect(a.last('chain')!.windowMs).toEqual([Math.round(2200 * 1.12)]);
+    await a.send({ t: 'bout', v: 2, action: 'quit' });
+    expect(a.s.profile!.bjj.lossStreak).toBe(1);
+    a.inbox.length = 0;
+    await start(a);
+    await holdOut(a, 0, 2);
+    await start(a);
+    await holdOut(a, 0, 2);
+    await start(a);
+    await holdOut(a, 0, 2);
+    expect(a.s.profile!.bjj.lossStreak).toBe(4);
+    a.inbox.length = 0;
+    await start(a);
+    advance(1000);
+    await deal(a, 'collar_tie');
+    // three losses or more: ×1.36, no further
+    expect(a.last('chain')!.windowMs).toEqual([Math.round(2200 * 1.36)]);
+    await a.send({ t: 'bout', v: 2, action: 'quit' });
+    await start(a);
+    await holdOut(a, 0, 0);
+    expect(a.last('end')!.winner).toBe('draw');
+    expect(a.s.profile!.bjj.lossStreak).toBe(0);
+    a.s.profile!.bjj.lossStreak = 2;
+    await start(a);
+    await holdOut(a, 2, 0);
+    expect(a.s.profile!.bjj.lossStreak).toBe(0);
+  });
+
+  it('comfort windows stop at blue belt', async () => {
+    const { a } = await setup();
+    a.s.profile!.bjj = { belt: 'azul', stripes: 0, wins: 20, unlocked: ['collar_tie'], lossStreak: 3 };
+    await start(a);
+    advance(1000);
+    await deal(a, 'collar_tie');
+    expect(a.last('chain')!.windowMs).toEqual([Math.round(2200 * 0.8)]);
+  });
+
   it('plays a full sixteen-exchange match by taps, and every beat is a pick, a chain, a defense or a resolve', async () => {
     const { a } = await setup();
     await start(a);

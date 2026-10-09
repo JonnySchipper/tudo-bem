@@ -16,6 +16,7 @@ import { mulberry32 } from './meveum.js';
 import {
   CMD_WINDOW_MS,
   ESCAPE_DEF,
+  comfortScale,
   PERFECT_SHARE,
   START_RATES,
   botAi,
@@ -90,7 +91,8 @@ export interface SimOut {
 }
 
 /** One match on the server's loop: pick from the cards, run the chain, the partner's turn with a defense beat. */
-export function simMatch(seed: number, p: SimPlayer, partner: PartnerProfile, belt: Belt = 'branca', first = false): SimOut {
+/** One match. `scale` is the comfort windows (`comfortScale` of the player's losses in a row; the server applies it at white belt). */
+export function simMatch(seed: number, p: SimPlayer, partner: PartnerProfile, belt: Belt = 'branca', first = false, scale = 1): SimOut {
   const rng = mulberry32(seed);
   const style = matStyle(partner);
   const level = LEVEL[belt];
@@ -109,12 +111,12 @@ export function simMatch(seed: number, p: SimPlayer, partner: PartnerProfile, be
       if (braceBlocks(st, actor, id)) return { land: 0, stopped: 1 };
       if (actor === 'you') {
         const cmds = chainFor(st, 'you', id, partner.defense);
-        return { land: chainWindows(cmds, id, level, first).reduce((a, w) => a * tapP(p, w, true, level), 1), stopped: 0 };
+        return { land: chainWindows(cmds, id, level, first, scale).reduce((a, w) => a * tapP(p, w, true, level), 1), stopped: 0 };
       }
       const clean = partnerClean(style.accuracy, chainFor(st, 'them', id).length);
       const d = defenseOf(st, 'them', id);
       if (!d) return { land: clean, stopped: 0 };
-      const w = defWindowMs(level, style.speed, st.grips.you.sleeve, first) * (d === 'sai' ? SAI_SHARE : 1) * (isEscape(st, 'them', id) ? ESCAPE_DEF : 1);
+      const w = defWindowMs(level, style.speed, st.grips.you.sleeve, first, scale) * (d === 'sai' ? SAI_SHARE : 1) * (isEscape(st, 'them', id) ? ESCAPE_DEF : 1);
       const def = Math.pow(tapP(p, w), d === 'sai' ? saiCount(style.defense) : 1);
       return { land: clean * (1 - def), stopped: clean * def };
     },
@@ -143,7 +145,7 @@ export function simMatch(seed: number, p: SimPlayer, partner: PartnerProfile, be
         continue;
       }
       const cmds = chainFor(st, 'you', id, partner.defense);
-      const windows = chainWindows(cmds, id, level, first);
+      const windows = chainWindows(cmds, id, level, first, scale);
       let landed = true;
       let allPerfect = true;
       for (const w of windows) {
@@ -190,7 +192,7 @@ export function simMatch(seed: number, p: SimPlayer, partner: PartnerProfile, be
       // white belt: Bia calls it. From blue: the player taps what the telegraph implied, so a feint is answered wrong.
       const shown = plan ? defenseOf({ ...st }, 'them', plan.move) : d;
       const wrong = level >= 4 && feinted && shown !== d;
-      const w = defWindowMs(level, style.speed, st.grips.you.sleeve, first) * (d === 'sai' ? SAI_SHARE : 1) * (isEscape(st, 'them', id) ? ESCAPE_DEF : 1);
+      const w = defWindowMs(level, style.speed, st.grips.you.sleeve, first, scale) * (d === 'sai' ? SAI_SHARE : 1) * (isEscape(st, 'them', id) ? ESCAPE_DEF : 1);
       let ok = !wrong;
       for (let i = 0; ok && i < (d === 'sai' ? saiCount(style.defense) : 1); i++) ok = tap(p, w, rng) !== 'miss';
       seen.attacks++;
@@ -218,6 +220,20 @@ export function winRate(n: number, p: SimPlayer, who: PartnerProfile, belt: Belt
 }
 
 const mateus = partner('mateus');
+
+/** A series of matches with the loss streak carried (the server's comfort windows), against the same series without them. */
+export function seriesRate(n: number, p: SimPlayer, who: PartnerProfile, seed0 = 9000): { wins: number; plain: number } {
+  let streak = 0;
+  let wins = 0;
+  let plain = 0;
+  for (let i = 0; i < n; i++) {
+    const r = simMatch(seed0 + i, p, who, 'branca', false, comfortScale(streak));
+    if (r.st.winner === 'you') wins++;
+    streak = r.st.winner === 'them' ? streak + 1 : 0;
+    if (simMatch(seed0 + i, p, who, 'branca').st.winner === 'you') plain++;
+  }
+  return { wins: wins / n, plain: plain / n };
+}
 const rafael = partner('rafael');
 
 /** The win-rate table (TATAME-V3 §I, round 2): partner, belt, and the share of matches won by weak / average / strong players. */
@@ -267,6 +283,17 @@ describe('tatame v3 simulation (TATAME-V3 §I targets)', () => {
     expect(avg).toBeGreaterThanOrEqual(0.25);
     expect(avg).toBeLessThanOrEqual(0.4);
     expect(winRate(300, player(0.95), rafael, 'azul').wins).toBeLessThan(0.8);
+  }, 120_000);
+
+  /**
+   * Comfort windows: a weak player who keeps losing gets a little more time (×1.12 a loss in a row, ×1.36 at most) until a win or a
+   * draw. Played as a series against Mateus with the streak carried from match to match, as on the account.
+   */
+  it('comfort windows: a weak player playing a series against Mateus wins at least 20% of 300 matches', () => {
+    const r = seriesRate(300, player(0.6), mateus);
+    if (process.env.TB_SIM_REPORT) console.log(`series: weak vs Mateus with comfort windows ${(r.wins * 100).toFixed(0)}% (without ${(r.plain * 100).toFixed(0)}%)`);
+    expect(r.wins).toBeGreaterThanOrEqual(0.2);
+    expect(r.wins).toBeGreaterThan(r.plain);
   }, 120_000);
 
   it('the partner finishes some matches too, and the escapes are played (Virar, the defense beat on top)', () => {

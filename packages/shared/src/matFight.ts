@@ -231,17 +231,35 @@ export const WINDUP_MS = 700;
 /** Three all-Perfeito chains in a row are a Vantagem. */
 export const RITMO_RUN = 3;
 
-/** One command's window at this bjj level (`bjjLevel`): 2.2 s for a new white belt, 1.76 s at blue, 1.1 s at the floor. */
-export function cmdWindowMs(level: number, first = false): number {
+/** Comfort windows: each loss in a row (up to three) widens a white belt's windows by this much. */
+export const COMFORT_STEP = 0.12;
+export const COMFORT_MAX_LOSSES = 3;
+
+/**
+ * Comfort windows, a quiet rubber band for a struggling beginner: `1 + 0.12 × min(3, losses in a row)` (×1.36 at most). The server
+ * applies it to every window of a white belt's next match (chain, defense, Sai!), stacked with the first-match slack; from blue belt it
+ * is 1. Nothing about it is shown to the player.
+ */
+export function comfortScale(lossStreak: number): number {
+  const n = Math.max(0, Math.min(COMFORT_MAX_LOSSES, Math.floor(Number.isFinite(lossStreak) ? lossStreak : 0)));
+  return Math.round((1 + COMFORT_STEP * n) * 100) / 100;
+}
+
+/**
+ * One command's window at this bjj level (`bjjLevel`): 2.2 s for a new white belt, 1.76 s at blue, 1.1 s at the floor. `first` is the
+ * first-match slack, `scale` the comfort windows (`comfortScale`).
+ */
+export function cmdWindowMs(level: number, first = false, scale = 1): number {
   const lv = Math.max(0, Number.isFinite(level) ? level : 0);
   const ms = Math.round(CMD_WINDOW_MS * Math.max(0.5, 1 - 0.05 * lv));
-  return first ? Math.round(ms * FIRST_MATCH_SLACK) : ms;
+  const s = Number.isFinite(scale) && scale > 0 ? scale : 1;
+  return Math.round(ms * (first ? FIRST_MATCH_SLACK : 1) * s);
 }
 
 /** The defense window against a partner of this `speed`: Felipe (0.9) gives about 0.62 of a chain window, Helena (0.32) about 0.75. */
-export function defWindowMs(level: number, speed: number, sleeve: boolean, first = false): number {
+export function defWindowMs(level: number, speed: number, sleeve: boolean, first = false, scale = 1): number {
   const f = Math.max(0.3, DEF_BASE - DEF_SPEED * Math.max(0, Math.min(1, speed)));
-  return Math.round(cmdWindowMs(level, first) * f * (sleeve ? SLEEVE_SHIELD : 1));
+  return Math.round(cmdWindowMs(level, first, scale) * f * (sleeve ? SLEEVE_SHIELD : 1));
 }
 
 export type TapGrade = 'perfeito' | 'boa' | 'errou' | 'tarde';
@@ -635,8 +653,8 @@ export function chainFor(state: MatState, actor: MatSide, id: MatMoveId, foeDefe
 }
 
 /** Each command's window: the level's window, the first-match slack, and the tight last Aperta! of a finish. */
-export function chainWindows(cmds: readonly MatCommand[], id: MatMoveId, level: number, first = false): number[] {
-  const w = cmdWindowMs(level, first);
+export function chainWindows(cmds: readonly MatCommand[], id: MatMoveId, level: number, first = false, scale = 1): number[] {
+  const w = cmdWindowMs(level, first, scale);
   return cmds.map((c, i) => (SUBS.has(id) && i === cmds.length - 1 && c === 'aperta' ? Math.round(w * FINAL_SQUEEZE) : w));
 }
 

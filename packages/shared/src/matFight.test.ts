@@ -4,6 +4,8 @@ import { diaryWord } from './diary.js';
 import {
   CLEAN_LIFT,
   CLEAN_MAX,
+  DEF_BASE,
+  DEF_SPEED,
   COMBOS,
   COMMANDS,
   COMMAND_LABEL,
@@ -26,6 +28,7 @@ import {
   chainWindows,
   chooseBot,
   cmdWindowMs,
+  comfortScale,
   defWindowMs,
   defenseOf,
   drillPosition,
@@ -141,6 +144,17 @@ describe('chains', () => {
     expect(cmdWindowMs(0, true)).toBe(3080);
     expect(chainWindows(['pega', 'gira', 'levanta', 'aperta'], 'armbar', 0)).toEqual([2200, 2200, 2200, 1760]);
     expect(chainWindows(['puxa', 'levanta'], 'double_leg', 4)).toEqual([1760, 1760]);
+  });
+
+  it('comfort windows: 1 + 0.12 per loss in a row, three at most, stacked with the first-match slack', () => {
+    expect([0, 1, 2, 3, 4, 9].map(comfortScale)).toEqual([1, 1.12, 1.24, 1.36, 1.36, 1.36]);
+    expect(comfortScale(-2)).toBe(1);
+    expect(comfortScale(Number.NaN)).toBe(1);
+    expect(cmdWindowMs(0, false, comfortScale(3))).toBe(Math.round(2200 * 1.36));
+    expect(cmdWindowMs(0, true, comfortScale(1))).toBe(Math.round(2200 * 1.4 * 1.12));
+    expect(cmdWindowMs(0, false, 1)).toBe(cmdWindowMs(0));
+    expect(chainWindows(['pega', 'gira'], 'body_lock', 0, false, 1.24)).toEqual([2728, 2728]);
+    expect(defWindowMs(0, 0.5, false, false, 1.36)).toBe(Math.round(cmdWindowMs(0, false, 1.36) * (DEF_BASE - DEF_SPEED * 0.5)));
   });
 
   it('the defense window follows the partner speed and widens with your sleeve', () => {

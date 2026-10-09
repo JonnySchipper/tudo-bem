@@ -23,8 +23,13 @@ import {
 describe('belts, stripes and the profile', () => {
   it('a fresh profile is a white belt with one move on each gag track, and no stripes', () => {
     const starters = ['collar_tie', 'double_leg', 'hook_sweep', 'posture', 'passar', 'armbar'];
-    expect(normalizeBjj()).toEqual({ belt: 'branca', stripes: 0, wins: 0, unlocked: starters });
-    expect(normalizeBjj(null)).toEqual({ belt: 'branca', stripes: 0, wins: 0, unlocked: starters });
+    expect(normalizeBjj()).toEqual({ belt: 'branca', stripes: 0, wins: 0, unlocked: starters, lossStreak: 0 });
+    expect(normalizeBjj(null)).toEqual({ belt: 'branca', stripes: 0, wins: 0, unlocked: starters, lossStreak: 0 });
+    // the loss streak is kept, defaults to 0 and is never negative or fractional
+    expect(normalizeBjj({ wins: 3, lossStreak: 2 }).lossStreak).toBe(2);
+    expect(normalizeBjj({ wins: 3, lossStreak: -4 }).lossStreak).toBe(0);
+    expect(normalizeBjj({ wins: 3, lossStreak: 2.7 }).lossStreak).toBe(2);
+    expect(normalizeBjj({ wins: 3, lossStreak: 'x' as never }).lossStreak).toBe(0);
     expect(normalizeBjj({ belt: 'branca', stripes: 0, wins: 0, unlocked: ['collar_tie'] }).unlocked).toEqual(starters);
   });
 
@@ -121,7 +126,8 @@ describe('belts, stripes and the profile', () => {
 
   it('a belt is only ever earned: there is no way to buy one (no price, no shop field)', () => {
     const p = normalizeBjj({ belt: 'azul', stripes: 0, wins: 0 } as never);
-    expect(Object.keys(p).sort()).toEqual(['belt', 'stripes', 'unlocked', 'wins']);
+    // lossStreak is the comfort windows' count (losses in a row), not a purchase
+    expect(Object.keys(p).sort()).toEqual(['belt', 'lossStreak', 'stripes', 'unlocked', 'wins']);
     expect(JSON.stringify(PARTNERS)).not.toMatch(/price|preço|coins|cost/i);
   });
 });

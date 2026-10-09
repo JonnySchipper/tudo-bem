@@ -35,6 +35,7 @@ import {
   cardsInText,
   chainFor,
   chainWindows,
+  comfortScale,
   completeDrill,
   defWindowMs,
   defenseOf,
@@ -122,6 +123,8 @@ export interface BoutSession {
   level: number;
   /** a first-ever match (wins 0): every window ×1.4, and the coach notes */
   first: boolean;
+  /** Comfort windows: every window of this match ×`comfortScale(lossStreak)` while the belt is white (1 from blue). Not shown. */
+  comfort: number;
   rng: Rng;
   mat: MatState;
   phase: Phase;
@@ -253,6 +256,7 @@ export class BoutEngine {
       partner,
       level: bjjLevel(prog),
       first: prog.wins === 0,
+      comfort: prog.belt === 'branca' ? comfortScale(prog.lossStreak ?? 0) : 1,
       rng: mulberry32(seed),
       mat: newMat(),
       phase: 'intro',
@@ -363,7 +367,7 @@ export class BoutEngine {
     if (!auto) b.beats++;
     if (id === 'hold') return this.resolve(s, b, 'you', id, true, 'hold', []);
     const want = chainFor(b.mat, 'you', id, b.partner.defense);
-    const windows = chainWindows(want, id, b.level, b.first);
+    const windows = chainWindows(want, id, b.level, b.first, b.comfort);
     b.phase = 'chain';
     b.seq = ++this.seq;
     b.beat = { kind: 'chain', seq: b.seq, move: id, want, windows, step: 0, openAt: this.d.now(), grades: [] };
@@ -518,7 +522,7 @@ export class BoutEngine {
     if (!d) return this.resolve(s, b, 'them', move, true, 'landed', [], { feint, replanned });
     const count = d === 'sai' ? saiCount(b.partner.defense) : 1;
     // an escape from under is slower than a throw (ESCAPE_DEF); each Sai! of the mash is a share of a window
-    const w = Math.round(defWindowMs(b.level, b.partner.speed, b.mat.grips.you.sleeve, b.first) * (d === 'sai' ? SAI_SHARE : 1) * (isEscape(b.mat, 'them', move) ? ESCAPE_DEF : 1));
+    const w = Math.round(defWindowMs(b.level, b.partner.speed, b.mat.grips.you.sleeve, b.first, b.comfort) * (d === 'sai' ? SAI_SHARE : 1) * (isEscape(b.mat, 'them', move) ? ESCAPE_DEF : 1));
     const lead = WINDUP_MS;
     // white belt: Bia calls the right defense (listening); from blue the telegraph alone says what is coming (reading)
     const call = b.level < 4 ? d : undefined;
@@ -601,6 +605,7 @@ export class BoutEngine {
       partner,
       level: bjjLevel(s.profile!.bjj),
       first: false,
+      comfort: 1,
       rng: mulberry32(1),
       mat,
       phase: 'drill',
@@ -725,6 +730,8 @@ export class BoutEngine {
     }
     let bond = 0;
     if (played) {
+      // losses in a row (a win or a draw sets it back): the next white-belt match gets a little more time (comfortScale)
+      prog = { ...prog, lossStreak: winner === 'partner' ? (prog.lossStreak ?? 0) + 1 : 0 };
       const b2 = boutBond(winner, prog, addCalendarDays(this.d.today?.() ?? today(), s.profile?.testDayOffset ?? 0));
       prog = b2.next;
       bond = b2.gain;
