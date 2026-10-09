@@ -12,7 +12,8 @@ const PORT = Number(process.env.PORT ?? 8787);
 const HOST = process.env.HOST ?? '0.0.0.0';
 const DATA_DIR = process.env.DATA_DIR ?? path.resolve(process.cwd(), 'data');
 const CLIENT_DIST = process.env.CLIENT_DIST ?? [path.resolve(here, '../../client/dist'), path.resolve(process.cwd(), 'apps/client/dist')].find((p) => fs.existsSync(p));
-const ROOM_CAP = Number(process.env.ROOM_CAP ?? 16);
+const ROOM_CAP_RAW = Number(process.env.ROOM_CAP ?? 16);
+const ROOM_CAP = Number.isFinite(ROOM_CAP_RAW) && ROOM_CAP_RAW >= 1 ? Math.floor(ROOM_CAP_RAW) : 16;
 /** Praça / Academia ambiance CPUs: `on` for “feel” playtests (default), `off` for empty-room playtests. */
 const CPU_AMBIANCE = (process.env.LIVEOPS_CPU_AMBIANCE ?? 'on').toLowerCase() !== 'off';
 /** Idle kick after this many seconds without real input (default 15 min). */
@@ -63,5 +64,19 @@ const shutdown = () => {
   void app.close().finally(() => process.exit(0));
   setTimeout(() => process.exit(0), 15_000).unref();
 };
+// A stray rejection (a fire-and-forget promise somewhere) is logged; the world keeps running.
+process.on('unhandledRejection', (reason) => {
+  console.error('[process] unhandled rejection', reason);
+});
+// After an uncaught exception the process state is unknown: save profiles synchronously, best effort, and exit so Fly restarts the machine.
+process.on('uncaughtException', (err) => {
+  console.error('[process] uncaught exception', err);
+  try {
+    app.store.flush();
+  } catch (e) {
+    console.error('[process] profile flush failed', e);
+  }
+  process.exit(1);
+});
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
