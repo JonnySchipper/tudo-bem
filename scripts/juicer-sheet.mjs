@@ -4,13 +4,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
-import { juicerParts, JUICER_STEPS, GLASS_LEVELS } from '../apps/client/assets-src/custom/juicer.mjs';
+import { juicerParts, JUICER_FRAME_KEYS, GLASS_LEVELS } from '../apps/client/assets-src/custom/juicer.mjs';
 
 const out = process.argv[2] ?? 'docs/lifesim/shots/juicer/sheet.png';
 const parts = new Map(juicerParts().map((p) => [p.key, p]));
 const S = 6, PAD = 12;
 const rows = [
-  JUICER_STEPS.map((s) => `balcao/juicer_${s}`),
+  JUICER_FRAME_KEYS.map((s) => `balcao/juicer_${s}`),
   [...Array.from({ length: GLASS_LEVELS }, (_, k) => `balcao/juice_glass_${k}`), 'balcao/juice_glass_spill'],
   ['balcao/orange_p', 'balcao/orange_m', 'balcao/orange_g', 'balcao/laranjas'],
 ];

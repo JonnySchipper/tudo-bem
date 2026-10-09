@@ -7,7 +7,7 @@
    "data": "atlas/outdoor.json",
    "w": 1024,
    "h": 1984,
-   "frames": 1180
+   "frames": 1181
   },
   "bjj": {
    "image": "atlas/bjj.png",
@@ -14413,10 +14413,10 @@
   "balcao/juicer_idle": {
    "atlas": "outdoor",
    "frame": "balcao/juicer_idle",
-   "w": 34,
-   "h": 36,
-   "ax": 17,
-   "ay": 35,
+   "w": 40,
+   "h": 42,
+   "ax": 20,
+   "ay": 41,
    "footprint": [
     1,
     1
@@ -14428,10 +14428,10 @@
   "balcao/juicer_roll": {
    "atlas": "outdoor",
    "frame": "balcao/juicer_roll",
-   "w": 34,
-   "h": 36,
-   "ax": 17,
-   "ay": 35,
+   "w": 40,
+   "h": 42,
+   "ax": 20,
+   "ay": 41,
    "footprint": [
     1,
     1
@@ -14443,10 +14443,10 @@
   "balcao/juicer_cut": {
    "atlas": "outdoor",
    "frame": "balcao/juicer_cut",
-   "w": 34,
-   "h": 36,
-   "ax": 17,
-   "ay": 35,
+   "w": 40,
+   "h": 42,
+   "ax": 20,
+   "ay": 41,
    "footprint": [
     1,
     1
@@ -14458,10 +14458,10 @@
   "balcao/juicer_press": {
    "atlas": "outdoor",
    "frame": "balcao/juicer_press",
-   "w": 34,
-   "h": 36,
-   "ax": 17,
-   "ay": 35,
+   "w": 40,
+   "h": 42,
+   "ax": 20,
+   "ay": 41,
    "footprint": [
     1,
     1
@@ -14473,10 +14473,10 @@
   "balcao/juicer_pour": {
    "atlas": "outdoor",
    "frame": "balcao/juicer_pour",
-   "w": 34,
-   "h": 36,
-   "ax": 17,
-   "ay": 35,
+   "w": 40,
+   "h": 42,
+   "ax": 20,
+   "ay": 41,
    "footprint": [
     1,
     1
@@ -14488,10 +14488,25 @@
   "balcao/juicer_peel": {
    "atlas": "outdoor",
    "frame": "balcao/juicer_peel",
-   "w": 34,
-   "h": 36,
-   "ax": 17,
-   "ay": 35,
+   "w": 40,
+   "h": 42,
+   "ax": 20,
+   "ay": 41,
+   "footprint": [
+    1,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": null
+  },
+  "balcao/juicer_ready": {
+   "atlas": "outdoor",
+   "frame": "balcao/juicer_ready",
+   "w": 40,
+   "h": 42,
+   "ax": 20,
+   "ay": 41,
    "footprint": [
     1,
     1

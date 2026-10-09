@@ -50,6 +50,8 @@ import {
   CRATE_KEY,
   HOPPER_NEXT,
   JUICER_SPOT,
+  JUICE_CHAMBER,
+  JUICE_GAUGE,
   JUICE_GLASS_SPOT,
   JUICE_LINE_ROWS,
   JUICE_SPOUT,
@@ -58,6 +60,7 @@ import {
   juiceRows,
   juicerKey,
   orangeKey,
+  type JuicerFrame,
   CHAPA_ITEM_SCALE,
   CHAPA_SLOTS,
   CHAPA_SPOT,
@@ -102,6 +105,9 @@ export interface CounterHost {
 const D = { board: 2000, piece: 2010, tray: 2020, item: 2030, customer: 2100, fx: 2300, hud: 2400 } as const;
 const WALK_PX_S = 46;
 const POP_MS = 1500;
+/** How long an overflowed glass shows its spill frame, and how long a short glass takes to run out. */
+const SPILL_MS = 1100;
+const DRAIN_MS = 420;
 
 type Img = Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle;
 
@@ -214,6 +220,19 @@ export class CounterStage {
   private nextOrange: Piece | null = null;
   /** The glass just overflowed (a server `juice_bad` spill): show the overflow frame until then. */
   private spillUntil = 0;
+  /**
+   * The orange that overflowed the glass. The server empties the glass at once, so the stage plays that orange through the machine
+   * here: the glass rises past the line to the rim, and when the pour ends it spills (`spillUntil`, drips, a shake).
+   */
+  private ghost: { prev: number; fill: number; at: number; spilt: boolean } | null = null;
+  /** A short glass tipped out (a server `juice_bad` short): its level runs down to nothing from `from`. */
+  private drain: { from: number; at: number } | null = null;
+  /** A finished glass on its way from the drip tray to its slot on the tray (the slot's miniature waits until it lands). */
+  private flight: { img: Img; from: Spot; to: Spot; t: number; dur: number; idx: number } | null = null;
+  /** The glass level drawn on the last frame (a spill or a toss starts from it). */
+  private lastFill = 0;
+  /** The orange count whose arrival at the line was already cheered (one "na linha" per glass). */
+  private lineCheered = -1;
   /** The last juicer step drawn (a splash on entering the press). */
   private lastStep = 'idle';
   private register: Piece | null = null;
@@ -399,7 +418,7 @@ export class CounterStage {
       click: () => togglePour(),
     });
     // the espremedor: a tap anywhere on it drops one orange; the glass on its tray is its own target (tap it at the line)
-    btn('juicer', 'cr-juicer', JUICER_SPOT, 34, 36, 'Espremedor', 'Juicer · 1 tap = 1 orange', { click: () => on.on.juiceDrop() });
+    btn('juicer', 'cr-juicer', JUICER_SPOT, 40, 42, 'Espremedor', 'Juicer · 1 tap = 1 orange', { click: () => on.on.juiceDrop() });
     btn('juice-glass', 'cr-glass', { x: JUICE_GLASS_SPOT.x, y: JUICE_GLASS_SPOT.y + 1 }, 16, 14, '', 'Glass: tap it at the line', { click: () => on.on.juiceTake() });
     {
       const glass = this.hot.get('juice-glass')!.el;
@@ -440,6 +459,11 @@ export class CounterStage {
     this.bellUntil = 0;
     this.pouring = false;
     this.spillUntil = 0;
+    this.ghost = null;
+    this.drain = null;
+    this.dropFlight();
+    this.lastFill = 0;
+    this.lineCheered = -1;
     this.lastStep = 'idle';
     this.nudge = { x: 0, y: 0 };
   }
@@ -452,6 +476,7 @@ export class CounterStage {
     for (const p of [...this.items.values(), this.trayBase, this.bag, this.plate, this.chapa, this.coffee, this.cup, this.juicer, this.glass, this.nextOrange, this.register, this.bell, this.jar, ...this.trayMinis, ...this.chapaItems]) p?.hide();
     this.clearCustomers();
     this.clearParticles();
+    this.dropFlight();
     if (this.baker) {
       this.baker.bubble.remove();
       this.baker = null;
@@ -504,6 +529,7 @@ export class CounterStage {
     this.syncBaker(snap);
     this.drawMeters(snap, age);
     this.stepParticles(dt);
+    this.stepFlight(dt);
     this.stepHops(dt);
     this.placeHot(snap);
     this.stepPops();
@@ -546,7 +572,8 @@ export class CounterStage {
     this.trayBase!.set(tray.length >= 7 ? ART.trayFull : ART.tray);
     while (this.trayMinis.length < tray.length) this.trayMinis.push(new Piece(this.h, D.item + 1, TRAY_SPOT));
     this.trayMinis.forEach((m, i) => {
-      if (i >= tray.length) return m.hide();
+      // a juice glass still flying over from the machine lands in its slot before the miniature shows
+      if (i >= tray.length || this.flight?.idx === i) return m.hide();
       m.set(itemKey(tray[i]!), { scale: TRAY_ITEM_SCALE, spot: traySlot(i) });
     });
     if (tray.length > this.lastTray.length) {
@@ -590,38 +617,66 @@ export class CounterStage {
     this.lastTips = snap.stats.tips;
   }
 
-  /** Where the juicer is in its cycle for this frame ('idle' when no orange is going through). */
+  /** Where the juicer is in its cycle for this frame ('idle' when no orange is going through); a spilling orange plays through too. */
   private juiceStep(snap: CorreriaSnap, age: number): ReturnType<typeof juicerStep> {
-    return snap.juice ? juicerStep(snap.juice.age + age) : 'idle';
+    if (snap.juice) return juicerStep(snap.juice.age + age);
+    return this.ghost ? juicerStep(this.nowMs - this.ghost.at) : 'idle';
   }
 
   /**
-   * The espremedor: the machine frame by the step of its cycle (roll, cut, press, pour, peel), the glass filling from the level before
-   * this orange to the new one while it pours, the next orange waiting in the hopper, the overflow frame after a spill. Under reduced
-   * motion the cycle is not played: the machine stays idle and the glass shows the server's level at once.
+   * The espremedor: the machine frame by the step of its cycle (roll, cut, press, pour, peel; `ready` with the green lamp once the
+   * glass is at the line), the glass filling from the level before this orange to the new one while it pours, the next orange waiting
+   * on the feeder, and the beats that win or lose the glass: "na linha" when it reaches the line, the overflow (the orange plays
+   * through, the glass rises to the rim and spills), a short glass tipped out. Under reduced motion the cycle is not played: the
+   * machine stays idle (or ready) and the glass shows the server's level at once.
    */
   private drawJuicer(snap: CorreriaSnap, age: number, open: Set<string> | null): void {
     const locked = !!open && !SUCO_ITEMS.some((id) => open.has(id));
     const reduced = this.h.reduced();
     const j = snap.juice;
+    // a new orange (the server's glass is back) ends a spill or a toss still on screen
+    if (j) {
+      this.ghost = null;
+      this.drain = null;
+    }
     const step = reduced ? 'idle' : this.juiceStep(snap, age);
-    this.juicer!.set(juicerKey(step), { alpha: locked ? 0.4 : 1 });
+    if (this.ghost && step === 'idle') this.ghost = null;
+    const atLine = !!j && step === 'idle' && j.fill >= JUICE.goodMin;
+    const frame: JuicerFrame = atLine ? 'ready' : step;
+    this.juicer!.set(juicerKey(frame), { alpha: locked ? 0.4 : 1 });
     if (step === 'press' && this.lastStep !== 'press') this.splash();
     if (step === 'peel' && this.lastStep !== 'peel') this.peelDrop();
     this.lastStep = step;
-    // the next orange sits at the chute mouth (while one rolls in, the machine frame draws it)
+    // the beat when the pour ends: this orange either brought the glass to the line or took it over the rim
+    const t = j ? j.age + age : this.ghost ? this.nowMs - this.ghost.at : 0;
+    const poured = reduced || t >= JUICE.cycleMs * 0.84;
+    if (j && poured && j.prev < JUICE.goodMin && j.fill >= JUICE.goodMin && this.lineCheered !== j.oranges) {
+      this.lineCheered = j.oranges;
+      this.popWord(JUICE_GLASS_SPOT.x, JUICE_GLASS_SPOT.y - 14, 'na linha!', 'at the line', 'good');
+      this.sparkle(JUICE_GLASS_SPOT.x, JUICE_GLASS_SPOT.y - 12, 0x8ff0a4);
+    }
+    if (!j) this.lineCheered = -1;
+    const g = this.ghost;
+    if (g && !g.spilt && poured) {
+      g.spilt = true;
+      this.overflow();
+    }
+    // the next orange waits on the feeder (while one rolls in, the machine frame draws it)
     const next = snap.hopper?.[0];
     if (next && !locked && step !== 'roll') this.nextOrange!.set(orangeKey(next));
     else this.nextOrange!.hide();
-    // the glass: overflow for a moment after a spill, else the level (eased from `prev` during the pour, in whole rows)
+    // the glass: the overflow frame after a spill, a tipped-out glass running down, else the level (eased while it pours, whole rows)
+    const fill = this.shownFill(snap, age);
+    this.lastFill = j ? fill : 0;
     if (this.nowMs < this.spillUntil) this.glass!.set(juiceGlassKey('spill'));
-    else if (j) this.glass!.set(juiceGlassKey(juiceRows(this.shownFill(snap, age))));
+    else if (g || j || this.drain) this.glass!.set(juiceGlassKey(juiceRows(fill)));
     else if (!locked) this.glass!.set(juiceGlassKey(0));
     else this.glass!.hide();
     const hot = this.hot.get('juicer');
     if (hot) {
       hot.el.disabled = locked;
       hot.el.dataset.step = step;
+      hot.el.dataset.frame = frame;
       const word = hot.el.querySelector<HTMLElement>('.cr-next-word');
       const w = next ? SIZE_WORD[next] : null;
       const text = w ? `${w.pt}|${w.en}` : '';
@@ -635,20 +690,31 @@ export class CounterStage {
       glass.el.disabled = locked;
       const fill = j?.fill ?? 0;
       glass.el.dataset.state = !j ? 'empty' : fill >= JUICE.goodMin ? 'ready' : 'short';
+      // what the glass is showing besides its level (e2e and shots): an overflow, a tipped-out glass
+      glass.el.dataset.fx = this.nowMs < this.spillUntil ? 'spill' : this.ghost ? 'overfill' : this.drain ? 'drain' : '';
     }
   }
 
-  /** The juice level to draw: the server's, or on its way there while this orange pours. */
+  /** The juice level to draw: the server's, or on its way there while this orange pours (a spilling one too, a tipped-out one running down). */
   private shownFill(snap: CorreriaSnap, age: number): number {
     const j = snap.juice;
-    if (!j) return 0;
-    if (this.h.reduced()) return j.fill;
-    const t = j.age + age;
+    const src = j ? { prev: j.prev, fill: j.fill, t: j.age + age } : this.ghost ? { prev: this.ghost.prev, fill: this.ghost.fill, t: this.nowMs - this.ghost.at } : null;
+    if (!src) {
+      const d = this.drain;
+      if (!d) return 0;
+      const u = (this.nowMs - d.at) / DRAIN_MS;
+      if (u >= 1 || this.h.reduced()) {
+        this.drain = null;
+        return 0;
+      }
+      return d.from * (1 - u);
+    }
+    if (this.h.reduced()) return src.fill;
     const a = JUICE.cycleMs * 0.58;
     const b = JUICE.cycleMs * 0.84;
-    if (t <= a) return j.prev;
-    if (t >= b) return j.fill;
-    return j.prev + ((j.fill - j.prev) * (t - a)) / (b - a);
+    if (src.t <= a) return src.prev;
+    if (src.t >= b) return src.fill;
+    return src.prev + ((src.fill - src.prev) * (src.t - a)) / (b - a);
   }
 
   /** A few juice drops off the press (crisp 1 px squares, no tween of the sprite itself). */
@@ -656,10 +722,106 @@ export class CounterStage {
     if (this.h.reduced()) return;
     const s = this.h.scene;
     for (let i = 0; i < 4; i++) {
-      const img = this.h.world(s.add.rectangle(JUICER_SPOT.x + 1 + (i - 1.5) * 2, JUICER_SPOT.y - 19, 1, 1, i % 2 ? 0xffb43a : 0xf6a021, 1)).setOrigin(0, 0);
+      const img = this.h.world(s.add.rectangle(JUICE_CHAMBER.x + (i - 1.5) * 2, JUICE_CHAMBER.y, 1, 1, i % 2 ? 0xffb43a : 0xf6a021, 1)).setOrigin(0, 0);
       img.setDepth(D.fx);
       this.particles.push({ img, vx: (i - 1.5) * 9, vy: -14 - Math.random() * 6, life: 0, max: 0.35, grav: 120 });
     }
+  }
+
+  /** The glass overflows: the spill frame for a moment, juice running over the rim and down onto the drip tray, a shake, a 💦. */
+  private overflow(): void {
+    this.spillUntil = this.nowMs + SPILL_MS;
+    this.kick();
+    this.popAt(JUICE_GLASS_SPOT.x, JUICE_GLASS_SPOT.y - 16, '💦');
+    if (this.h.reduced()) return;
+    const s = this.h.scene;
+    for (let i = 0; i < 8; i++) {
+      const side = i % 2 ? 1 : -1;
+      const img = this.h.world(s.add.rectangle(JUICE_GLASS_SPOT.x + side * (6 + (i % 3)), JUICE_GLASS_SPOT.y - 11 + (i >> 1), 1, 1, i % 3 ? 0xf6a021 : 0xffd778, 1)).setOrigin(0, 0);
+      img.setDepth(D.fx);
+      this.particles.push({ img, vx: side * (6 + Math.random() * 10), vy: -8 - Math.random() * 10, life: 0, max: 0.55, grav: 140 });
+    }
+  }
+
+  /** A short glass tipped out: it runs down to nothing, a few drops fall off the tray. */
+  private tipOut(from: number): void {
+    this.drain = { from, at: this.nowMs };
+    this.popAt(JUICE_GLASS_SPOT.x, JUICE_GLASS_SPOT.y - 16, '…');
+    if (this.h.reduced()) return;
+    const s = this.h.scene;
+    for (let i = 0; i < 3; i++) {
+      const img = this.h.world(s.add.rectangle(JUICE_GLASS_SPOT.x - 3 + i * 3, JUICE_GLASS_SPOT.y, 1, 1, 0xf6a021, 1)).setOrigin(0, 0);
+      img.setDepth(D.fx);
+      this.particles.push({ img, vx: (i - 1) * 4, vy: 4, life: 0, max: 0.4, grav: 90 });
+    }
+  }
+
+  /** A little burst of pixels (the glass at the line, a glass landing on the tray). */
+  private sparkle(x: number, y: number, color: number): void {
+    if (this.h.reduced()) return;
+    const s = this.h.scene;
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      const img = this.h.world(s.add.rectangle(Math.round(x), Math.round(y), 1, 1, i % 2 ? color : 0xfff2d0, 1)).setOrigin(0, 0);
+      img.setDepth(D.fx);
+      this.particles.push({ img, vx: Math.cos(a) * 26, vy: Math.sin(a) * 26 - 8, life: 0, max: 0.4, grav: 40 });
+    }
+  }
+
+  /** The finished glass leaves the drip tray in a hop and lands in its slot on the tray. */
+  private flyGlass(fill: number, idx: number): void {
+    this.dropFlight();
+    if (this.h.reduced() || idx < 0) return;
+    const d = this.h.manifest.sprites[juiceGlassKey(juiceRows(fill))];
+    if (!d) return;
+    const from = { x: JUICE_GLASS_SPOT.x, y: JUICE_GLASS_SPOT.y };
+    const img = this.h.world(this.h.scene.add.image(from.x, from.y, d.atlas, d.frame)).setOrigin(...originOf(d)).setDepth(D.fx);
+    this.flight = { img, from, to: traySlot(idx), t: 0, dur: 0.46, idx };
+  }
+
+  private stepFlight(dt: number): void {
+    const f = this.flight;
+    if (!f) return;
+    f.t += dt;
+    const u = Math.min(1, f.t / f.dur);
+    // an arc over the counter, shrinking to the tray's miniature size as it lands
+    const x = f.from.x + (f.to.x - f.from.x) * u;
+    const y = f.from.y + (f.to.y - f.from.y) * u - Math.sin(u * Math.PI) * 26;
+    f.img.setPosition(Math.round(x), Math.round(y)).setScale(1 - (1 - TRAY_ITEM_SCALE * 1.4) * u);
+    if (u < 1) return;
+    const idx = f.idx;
+    this.dropFlight();
+    this.sparkle(f.to.x, f.to.y - 6, 0xffd778);
+    const m = this.trayMinis[idx];
+    if (m) {
+      m.set(itemKey(correriaFeed.snap?.tray[idx] ?? 'suco_de_laranja'), { scale: TRAY_ITEM_SCALE, spot: traySlot(idx) });
+      this.hop.push({ piece: m, t: 0, dur: 0.24 });
+    }
+  }
+
+  private dropFlight(): void {
+    this.flight?.img.destroy();
+    this.flight = null;
+  }
+
+  /** A short word that rises off a piece, Portuguese first with the gloss under it when English is on (`good` green, `bad` red). */
+  private popWord(wx: number, wy: number, pt: string, en: string, tone: 'good' | 'bad'): void {
+    if (!this.popsEl) return;
+    const el = document.createElement('div');
+    el.className = `cr-pop cr-pop-word ${tone}`;
+    const b = document.createElement('b');
+    b.textContent = pt;
+    el.append(b);
+    if (correriaFeed.showEn) {
+      const i = document.createElement('i');
+      i.textContent = en;
+      el.append(i);
+    }
+    const { px, py } = this.h.toCanvas(wx, wy);
+    el.style.left = `${Math.round(px)}px`;
+    el.style.top = `${Math.round(py)}px`;
+    this.popsEl.append(el);
+    this.pops.push({ el, wx, wy, until: this.nowMs + POP_MS });
   }
 
   /** The two spent peels tumble the last pixels into the bin (bagaço). */
@@ -878,7 +1040,7 @@ export class CounterStage {
       const fill = (snap.pour.age + age) / snap.pourMs;
       const zone = pourZone(fill);
       const x = 117;
-      const top = -16;
+      const top = COFFEE_SPOT.y - 38;
       const hgt = 34;
       const max = 1.3;
       const yOf = (f: number) => top + hgt - Math.round((hgt * Math.min(max, Math.max(0, f))) / max);
@@ -894,24 +1056,25 @@ export class CounterStage {
     this.drawJuiceMeter(g, snap, age);
   }
 
-  /** Juicer: a fill bar beside the machine (the good band green, the line a red notch), and the stream while an orange pours. */
+  /**
+   * Juicer: the sight gauge on the machine fills with the glass (orange under the line, green in the good band, red over it; the art
+   * marks the band and the line on the tube), and the stream runs from the spout while an orange pours.
+   */
   private drawJuiceMeter(g: Phaser.GameObjects.Graphics, snap: CorreriaSnap, age: number): void {
     const j = snap.juice;
-    if (!j && this.nowMs >= this.spillUntil) return;
-    const fill = this.nowMs < this.spillUntil ? JUICE.spillAt + 0.05 : this.shownFill(snap, age);
-    const x = 117;
-    const top = JUICER_SPOT.y - 33;
-    const hgt = 28;
-    const max = 1.3;
-    const yOf = (f: number) => top + hgt - Math.round((hgt * Math.min(max, f)) / max);
-    g.fillStyle(0x1b1210, 0.9).fillRect(x - 1, top - 1, 5, hgt + 2);
-    g.fillStyle(0x2e8a55, 0.9).fillRect(x, yOf(JUICE.spillAt), 3, yOf(JUICE.goodMin) - yOf(JUICE.spillAt));
-    const col = fill < JUICE.goodMin ? 0xf2c230 : fill <= JUICE.spillAt ? 0xffb43a : 0xc0392b;
-    const yy = yOf(fill);
-    g.fillStyle(col, 1).fillRect(x, yy, 3, top + hgt - yy);
-    g.fillStyle(0xd93232, 1).fillRect(x - 1, yOf(1), 5, 1);
+    const spilling = this.nowMs < this.spillUntil;
+    if (!j && !spilling && !this.ghost && !this.drain) return;
+    const fill = spilling ? JUICE_GAUGE.max : this.shownFill(snap, age);
+    const { x, y, w, h, max } = JUICE_GAUGE;
+    const rows = Math.round((h * Math.min(max, Math.max(0, fill))) / max);
+    if (rows > 0) {
+      const col = fill > JUICE.spillAt ? 0xd93232 : fill >= JUICE.goodMin ? 0x4fd06a : 0xf6a021;
+      g.fillStyle(col, 1).fillRect(x, y + h - rows, w, rows);
+      // the meniscus: a pale top row
+      g.fillStyle(fill > JUICE.spillAt ? 0xff8575 : fill >= JUICE.goodMin ? 0xc8ffd0 : 0xffd778, 1).fillRect(x, y + h - rows, w, 1);
+    }
     // the stream from the spout into the glass while this orange pours
-    if (j && !this.h.reduced() && this.juiceStep(snap, age) === 'pour') {
+    if ((j || this.ghost) && !this.h.reduced() && this.juiceStep(snap, age) === 'pour') {
       const surface = JUICE_GLASS_SPOT.y - 2 - juiceRows(fill);
       g.fillStyle(0xf6a021, 1).fillRect(JUICE_SPOUT.x, JUICE_SPOUT.y, 1, Math.max(1, surface - JUICE_SPOUT.y));
     }
@@ -946,14 +1109,19 @@ export class CounterStage {
         this.popAt(COFFEE_SPOT.x, COFFEE_SPOT.y - 40, e.why === 'spill' ? '💦' : '…');
         break;
       case 'juice_ok':
-        this.popAt(JUICER_SPOT.x, JUICER_SPOT.y - 24, '🍊');
+        // the glass is won: it hops off the drip tray onto the tray
+        this.popAt(JUICE_GLASS_SPOT.x, JUICE_GLASS_SPOT.y - 16, '🍊');
+        this.flyGlass(Math.max(this.lastFill, e.fill), snap.tray.lastIndexOf(e.item));
         break;
       case 'juice_bad':
         if (e.why === 'spill') {
-          this.spillUntil = this.nowMs + 900;
-          this.kick();
-        }
-        this.popAt(JUICER_SPOT.x, JUICER_SPOT.y - 24, e.why === 'spill' ? '💦' : '…');
+          // the server already emptied the glass: play this orange through the machine, then spill (at once under reduced motion)
+          this.ghost = { prev: this.lastFill, fill: e.fill, at: this.nowMs, spilt: false };
+          if (this.h.reduced()) {
+            this.ghost = null;
+            this.overflow();
+          }
+        } else this.tipOut(this.lastFill);
         break;
       case 'no':
         if (this.pouring && !snap.pour) this.pouring = false;

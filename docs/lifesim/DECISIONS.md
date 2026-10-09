@@ -1643,10 +1643,20 @@ Suco de laranja is no longer a grab from the fridge. It comes off the espremedor
 - **When it unlocks.** Suco is the step after pão na chapa on `MENU_LADDER` (one new item every 2 completed shifts, so the 7th item opens at 10). That shift's pay bump is the usual +6%.
 - **The card.** Lesson id is `espremedor`, not the item id, so a player who already saw the old suco card still gets this one once. On screen, not spoken. `pendingLesson` still shows the packing card first when that one is due.
 - **Old saves.** `normalizeCorreria` with no `taught` and shifts already played marks every old item card and `where` as seen. It does not mark `espremedor`, so the juicer card still shows once. A save that already lists `taught` is kept as it is.
-- **Reduced motion.** The cycle is not played: the machine stays on the idle frame and the glass jumps to the server's level.
+- **Reduced motion.** The cycle is not played: the machine stays on the idle frame (or `ready`) and the glass jumps to the server's level.
 - **On screen.** The camera `NEED` is 162×216 and `FOCUS` sits at (80, 40), so the tower (it starts above the old shelf) stays under the HUD and the zoom backs off a step when the free band is short. The lesson card is tall enough that Entendi is inside the card. Shelf taps (`#cr-hot`, z-index 12 as a body sibling) paint over `#ui`, so while a step lesson is open (`body.cr-lesson-open`) `#ui` stacks above the taps and the card ignores pointer events except Entendi.
 - **Free beta.** Nothing here is bought. The shift still pays the existing virtual RV, scaled by the menu as before.
 - All new Portuguese is `needs_br`.
+
+### Polish pass (#148, 2026-10-08)
+
+Client only. The rules, `JUICE`, the protocol and the pay are unchanged.
+
+- **The machine.** Now 40×42 (was 34×36). It has a clear dome heaped with oranges, a feeder cradle where the next orange waits, an orange crown that reads **SUCO**, a bigger chamber window, three lamps (amber = running, green = glass at the line, red = stop) and a sight gauge on the right. The new `balcao/juicer_ready` frame is idle with the green lamp lit. It is a frame, not a step of `juicerStep`, so `#cr-juicer[data-step]` stays the cycle step and `data-frame` says `ready`.
+- **Room for it.** The column is still x 115..157 and the board still starts at y -66, so `NEED` and the zoom are unchanged. The juicer stands at y -24, the coffee machine at 28, the chapa at 75 (grill slots at 65) and the plate at 86. They all moved down into the empty part of the column. The old side meter at x 117 would sit on the wider machine, so the gauge on the machine replaces it: orange under the line, green in the good band, red over it.
+- **Every beat moves the glass.** Reaching the line lights the green lamp and pops a green "na linha!" word with a few sparkles. The overlay chimes (`line` sfx) and says "Na linha! Toque no copo." The overflow is now visible: the server empties the glass at once, so the stage plays that orange through the machine itself (a "ghost"). The glass rises to the rim, then the spill frame shows with drops and a shake. A short glass runs down to nothing (`data-fx="drain"`). A good glass hops off the drip tray in an arc and lands in its slot on the tray, and the slot's miniature waits for it. Under reduced motion none of this animates: the frames change at once.
+- **Tap targets.** Nothing new is tappable and the lesson card CSS is untouched (`body.cr-lesson-open`, no `:has()`). Pop words have `pointer-events: none`.
+- **Shots.** `scripts/juicer-shots.mjs` now also writes `taken_*` (the glass in the air) and `spill_*` (one orange too many), checks the green lamp on the finished glass, and freezes on the first pour frame (software GL frames are slow).
 
 ## Feira cart games: daily rotation, Tapioca (2026-10-08)
 

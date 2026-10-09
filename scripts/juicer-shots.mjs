@@ -9,7 +9,8 @@
  * The built client is served by that server. The page runs the world in-page (`?solo&rolltest&crtest`), the same way
  * `scripts/correria-shots.mjs` does, so the profile can be seeded: 10 completed shifts puts suco de laranja on the menu
  * (the step after pão na chapa) and `taught` lists the old suco card but not `espremedor`, so the one-time juicer lesson shows.
- * Shots land in docs/lifesim/shots/juicer/: lesson, cycle (cut / press / pour, glass filling, line visible), served (glass at the line).
+ * Shots land in docs/lifesim/shots/juicer/: lesson, cycle (the pour, glass filling, line visible), served (glass at the line, the green
+ * lamp lit, "na linha!"), taken (the glass hopping onto the tray) and spill (one orange too many: the glass overflows).
  */
 import { chromium } from 'playwright-core';
 import fs from 'node:fs';
@@ -86,8 +87,8 @@ async function freezeMidCycle(page) {
       const tick = () => {
         const step = stepOf();
         if (step === 'pour' && !pourAt) pourAt = performance.now();
-        // a little way into the pour, so the stream and the rising level are both on screen
-        if (pourAt && performance.now() - pourAt > 70) {
+        // on the pour (the stream is on screen); software GL frames are slow, so freeze on the first pour frame seen
+        if (pourAt) {
           window.__tb.renderer.scene.scene.pause();
           const j = juice();
           resolve({ step, fill: j?.fill ?? null, prev: j?.prev ?? null });
@@ -199,7 +200,58 @@ async function run(view) {
     assert(glass.step === 'idle', `machine idle on the finished glass (${glass.step})`);
     assert(glass.state === 'ready', `glass ready (${glass.state})`);
     await sleep(250);
+    const lamp = await page.evaluate(() => document.querySelector('#cr-juicer')?.dataset.frame ?? '');
+    assert(lamp === 'ready', `green lamp on the finished glass (${lamp})`);
     await shot('served');
+
+    // take it: the glass hops off the drip tray onto the tray (freeze it in the air)
+    const flying = await page.evaluate(() => new Promise((resolve) => {
+      const before = window.__tb.correria.feed.snap?.tray.length ?? 0;
+      document.querySelector('#cr-juice-glass')?.click();
+      const until = performance.now() + 2500;
+      const tick = () => {
+        const tray = window.__tb.correria.feed.snap?.tray ?? [];
+        if (tray.length > before) {
+          setTimeout(() => {
+            window.__tb.renderer.scene.scene.pause();
+            resolve({ tray });
+          }, 120);
+        } else if (performance.now() > until) resolve({ tray });
+        else requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }));
+    log('taken', JSON.stringify(flying));
+    assert(flying.tray.includes('suco_de_laranja'), `suco on the tray (${flying.tray.join(',')})`);
+    await shot('taken');
+    await resume(page);
+    await sleep(700);
+
+    // overfill one: keep feeding the machine past the line until the glass spills, freeze on the overflow
+    const spill = await page.evaluate(() => new Promise((resolve) => {
+      const fx = () => document.querySelector('#cr-juice-glass')?.dataset.fx ?? '';
+      const step = () => document.querySelector('#cr-juicer')?.dataset.step ?? '';
+      const started = performance.now();
+      let taps = 0;
+      const tick = () => {
+        if (fx() === 'spill') {
+          window.__tb.renderer.scene.scene.pause();
+          resolve({ fx: 'spill', taps });
+          return;
+        }
+        if (performance.now() - started > 9000) return resolve({ fx: fx() || 'timeout', taps });
+        if (step() === 'idle' && fx() === '') {
+          document.querySelector('#cr-juicer')?.click();
+          taps++;
+        }
+        setTimeout(tick, 60);
+      };
+      tick();
+    }));
+    log('spill', JSON.stringify(spill));
+    assert(spill.fx === 'spill', `the glass overflowed (${spill.fx})`);
+    await shot('spill');
+    await resume(page);
 
     const bad = errors.filter((e) => !/WebGL|GL_INVALID|gpu/i.test(e));
     assert(!bad.length, `no page errors (${bad.join(' | ')})`);

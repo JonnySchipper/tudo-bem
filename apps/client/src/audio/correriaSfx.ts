@@ -23,7 +23,8 @@ export type CorreriaSfx =
   | 'tick'
   | 'slap'
   | 'sigh'
-  | 'juicer';
+  | 'juicer'
+  | 'line';
 
 export function noise(ctx: AudioContext, white: AudioBuffer, dest: AudioNode, when: number, dur: number, type: BiquadFilterType, f0: number, f1: number, peak: number, q = 0.8, attack = 0.01) {
   const src = ctx.createBufferSource();
@@ -134,6 +135,11 @@ export function playCorreriaSfx(ctx: AudioContext, dest: AudioNode, white: Audio
       tone(ctx, dest, now + 0.2, 110, 150, 0.28, 0.035, 'sawtooth');
       noise(ctx, white, dest, now + 0.36, 0.2, 'bandpass', 700, 420, 0.07, 1.8, 0.02);
       tone(ctx, dest, now + 0.4, 260, 340, 0.14, 0.02, 'sine');
+      break;
+    case 'line':
+      // the glass reached the line: two bright plinks up a fourth, like the green lamp coming on
+      tone(ctx, dest, now, 1175, 1175, 0.12, 0.05, 'triangle');
+      tone(ctx, dest, now + 0.08, 1568, 1568, 0.22, 0.05, 'triangle');
       break;
   }
 }
