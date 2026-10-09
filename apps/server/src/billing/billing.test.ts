@@ -8,6 +8,8 @@ import WebSocket from 'ws';
 import { DEFAULT_APPEARANCE, FOUNDER_BANNER_ID, type ServerMsg } from '@tudobem/shared';
 import { ADMIN_DEV_PASSWORD } from '../adminAuth.js';
 import { createApp } from '../app.js';
+import { BillingEventLog } from '../adminStores.js';
+import { openDatabase } from '../sqliteDb.js';
 import { DevBillingProvider } from './devProvider.js';
 import { billingConfigured, readBillingConfig } from './provider.js';
 import { LemonSqueezyProvider, normalizeLemonEvent } from './lemonsqueezy.js';
@@ -213,6 +215,15 @@ describe('billing HTTP and admin auth', () => {
     expect(ended.profile.founderBanner).toBe(true);
     expect(ended.profile.bubbleStyle).toBe('classic');
     expect(ended.profile.furniture[FOUNDER_BANNER_ID]).toBe(1);
+    // the admin dashboard's webhook history: one row per signed event, the bad signature is not logged
+    const history = new BillingEventLog(openDatabase(dir)).list();
+    expect(history.map((e) => [e.eventId, e.outcome])).toEqual([
+      ['evt_exp', 'applied'],
+      ['evt_cancel', 'applied'],
+      ['evt_pay', 'duplicate'],
+      ['evt_pay', 'applied'],
+    ]);
+    expect(history[0]!.profileId).toBe(ana.id);
     ana.ws.close();
   });
 
