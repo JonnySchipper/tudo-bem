@@ -1,6 +1,6 @@
 // BJJ pair animation: 4-frame struggle loops, transitions between adjacent ladder positions, and the finish / win / bump / face-off sets.
 import { clonePose, lerpPair, lerpFighter, shiftFighter, FX_COL, W, H } from './bjj-rig.mjs';
-import { F, mirror, positionPose } from './bjj-poses.mjs';
+import { F, mirror, positionPose, rawPose, centreShift, shiftPair } from './bjj-poses.mjs';
 
 const add = (a, b) => [a[0] + b[0], a[1] + b[1]];
 const pair = (A, B, top = 'A', fx) => ({ A, B, top, ...(fx ? { fx } : {}) });
@@ -128,7 +128,13 @@ export function winRaise(f) {
 // ------------------------------------------------------------------ finish: rear choke, B taps the mat
 
 export function finishTap(f) {
-  const base = positionPose('costas');
+  const dx = centreShift('costas');
+  const p = finishTapRaw(f);
+  return { ...shiftPair(p, dx), fx: p.fx.map((fx) => (cv, put) => fx(cv, (c, x, y, hex) => put(c, x + Math.round(dx * 0.84), y, hex))) };
+}
+
+function finishTapRaw(f) {
+  const base = rawPose('costas');
   const A = clonePose(base.A), B = clonePose(base.B);
   // A: arm cinched around B's neck
   A.hands = [[31.5, 29.5], [32.5, 33.5]];

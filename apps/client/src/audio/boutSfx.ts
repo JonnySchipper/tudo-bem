@@ -6,7 +6,7 @@
 
 import { vca } from './synth';
 
-export type BoutSfx = 'slap' | 'cheer' | 'gasp' | 'claps' | 'whistle' | 'tapout' | 'gong' | 'tick' | 'hit' | 'whoosh' | 'mount' | 'sub' | 'win' | 'loss';
+export type BoutSfx = 'slap' | 'cheer' | 'gasp' | 'claps' | 'whistle' | 'tapout' | 'gong' | 'tick' | 'hit' | 'whoosh' | 'mount' | 'sub' | 'win' | 'loss' | 'grip';
 
 function noise(ctx: AudioContext, white: AudioBuffer, dest: AudioNode, when: number, dur: number, type: BiquadFilterType, f0: number, f1: number, peak: number, q = 0.8, attack = 0.01) {
   const src = ctx.createBufferSource();
@@ -70,6 +70,7 @@ export const SFX_TRIM_DB: Record<BoutSfx, number> = {
   sub: 10,
   win: 9,
   loss: 13,
+  grip: 13,
 };
 
 export function playBoutSfx(ctx: AudioContext, out: AudioNode, white: AudioBuffer, kind: BoutSfx): void {
@@ -174,6 +175,12 @@ function playBoutSfxNow(ctx: AudioContext, out: AudioNode, white: AudioBuffer, k
     case 'loss':
       thump(ctx, dest, now, 392, 370, 0.2, 0.06, 'triangle');
       thump(ctx, dest, now + 0.16, 311, 280, 0.26, 0.05, 'triangle');
+      break;
+    case 'grip':
+      // a fist closing on the gi and yanking it tight: a quick cloth rustle, then the snap of the fabric going taut
+      noise(ctx, white, dest, now, 0.05, 'bandpass', 2600, 1800, 0.06, 1.4, 0.004);
+      noise(ctx, white, dest, now + 0.045, 0.035, 'highpass', 3800, 2200, 0.2, 0.9, 0.001);
+      thump(ctx, dest, now + 0.045, 260, 140, 0.05, 0.08, 'triangle');
       break;
   }
 }

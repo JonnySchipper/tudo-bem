@@ -72,7 +72,7 @@ import { LabelLayer, type GuideItem, type StackItem } from './labels';
 import { T, cssZoomFor, deviceZoomFor, feet, outdoorFraming, roomFraming, snapToDevice, tileToWorld, worldToCanvas, type CamState, type Insets, type Rect } from './coords';
 import { pickHit, type HitBox } from './hit';
 import { boutZoomStep, dialogueFraming, easeOut, stepBlend } from './dialogueCam';
-import { BoutStage } from './boutStage';
+import { BoutStage, type StageHost } from './boutStage';
 import { boutFeed } from './boutFeed';
 import { CounterStage } from './correriaStage';
 import { correriaFeed } from './correriaFeed';
@@ -327,7 +327,7 @@ export class WorldScene extends Phaser.Scene {
   preload(): void {
     const m = this.m;
     const b = this.base;
-    for (const [name, a] of Object.entries(m.atlases)) this.load.atlas(name, b + a.image, b + a.data);
+    for (const [name, a] of Object.entries(m.atlases)) if (!a.lazy) this.load.atlas(name, b + a.image, b + a.data);
     this.load.image('terrainTs', b + m.terrain.tileset);
     for (const [key, f] of Object.entries(m.fx)) this.load.image(`fx:${key}`, b + f.file);
     // what you can carry: the praça snacks, the padaria counter menu, and the empties they leave
@@ -379,6 +379,14 @@ export class WorldScene extends Phaser.Scene {
       releaseSheet: (k) => this.sheets.release(k),
       playerAppearance: () => game.self?.pub.appearance ?? null,
       bia: () => this.biaView(),
+      loadAtlas: (name, done) => {
+        const a = this.m.atlases[name];
+        if (!a || this.textures.exists(name)) return done();
+        this.load.atlas(name, this.base + a.image, this.base + a.data);
+        this.load.once(`filecomplete-atlasjson-${name}`, () => done());
+        this.load.once('loaderror', () => done());
+        this.load.start();
+      },
       crowd: () => this.crowdSpots(),
       mat: () => this.matCenter(),
       placar: () => this.placarAnchor(),
@@ -1354,9 +1362,9 @@ export class WorldScene extends Phaser.Scene {
   }
 
   /** Professora Bia's avatar view (the referee), if she is in the room. */
-  private biaView(): { sprite: Phaser.GameObjects.Sprite; wx: number; wy: number; depth: number } | null {
+  private biaView(): ReturnType<StageHost['bia']> {
     const v = this.avatars.get('npc-prof');
-    return v ? { sprite: v.sprite, wx: v.wx, wy: v.wy, depth: v.sprite.depth } : null;
+    return v ? { sprite: v.sprite, shadow: v.shadow, wx: v.wx, wy: v.wy, depth: v.sprite.depth } : null;
   }
 
   /** The spectators: every CPU in the room, with the world px of the top of its head (where the cheer pops up). */

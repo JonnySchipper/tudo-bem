@@ -87,7 +87,7 @@ const atlasItems = { outdoor: [] };
 const sprites = manifest.sprites;
 
 function addFrame(atlas, name, img) {
-  atlasItems[atlas].push({ name, img });
+  (atlasItems[atlas] ??= []).push({ name, img });
 }
 
 function baseEntry(def, img, anchor) {
@@ -126,6 +126,12 @@ async function emitParts(def, parts) {
     const m = { ...(key === def.key ? def : {}), ...(part.meta ?? {}), key };
     const frames = part.frames ?? [part.img];
     const first = frames[0];
+    // a part may live in its own atlas (`atlas`): the bjj match frames, loaded only when a match starts
+    if (part.atlas) {
+      addFrame(part.atlas, key, first);
+      sprites[key] = { ...baseEntry(m, first, part.anchor), atlas: part.atlas };
+      continue;
+    }
     await savePng(first, path.join(CUSTOM_PNG, key.replaceAll('/', '_') + '.png'));
     if (part.frames) {
       const names = frames.map((f, i) => { const n = `${key}/${i}`; addFrame('outdoor', n, f); return n; });
@@ -258,7 +264,7 @@ for (const [name, items] of Object.entries(atlasItems)) {
   json.meta.image = `${name}.png`;
   await savePng(atlas, path.join(OUT, `atlas/${name}.png`));
   fs.writeFileSync(path.join(OUT, `atlas/${name}.json`), JSON.stringify(json));
-  manifest.atlases[name] = { image: `atlas/${name}.png`, data: `atlas/${name}.json`, w: atlas.w, h: atlas.h, frames: items.length };
+  manifest.atlases[name] = { image: `atlas/${name}.png`, data: `atlas/${name}.json`, w: atlas.w, h: atlas.h, frames: items.length, ...(map.atlas[name]?.lazy ? { lazy: true } : {}) };
 }
 
 // ------------------------------------------------------------------ terrain tileset

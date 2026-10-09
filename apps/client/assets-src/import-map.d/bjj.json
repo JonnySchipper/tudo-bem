@@ -4,6 +4,6 @@
     {"key":"bjj/pair_de_pe_0","kind":"derive","fn":"bjjSet","shadow":null},
     {"key":"props/bandeira_br","kind":"derive","fn":"bjjBandeira","args":{"kind":"br"},"footprint":[1,1],"shadow":"fx/shadow_16"},
     {"key":"props/bandeira_sp","kind":"derive","fn":"bjjBandeira","args":{"kind":"sp"},"footprint":[1,1],"shadow":"fx/shadow_16"},
-    {"key":"props/placar","kind":"derive","fn":"bjjPlacar","footprint":[2,1],"shadow":"fx/shadow_32"}
+    {"key":"props/placar","kind":"derive","fn":"bjjPlacar","footprint":[1,1],"shadow":"fx/shadow_32"}
   ]
 }

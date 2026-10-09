@@ -1,9 +1,13 @@
 // BJJ pair sprites: a tiny pixel "puppet" renderer. Each fighter is a head disc, a torso capsule, two arms and two legs (two-bone IK
 // from shoulder / hip to a hand / foot target), drawn as outlined stickers (navy outline, light from the upper left) in key colors:
 // skin / hair from KEY_RAMPS (fighter A) or skin2 / hair2 (fighter B), gi white (A) or blue (B), belt key ramp (A) or a black belt (B).
+// The gi is a real gi: a jacket with a thick collar and crossed lapels (a V of chest under them), a skirt below the belt with the
+// jacket's opening edge, loose sleeves with a dark cuff at the wrist, pants with a cuff at the ankle, the belt knot and its two tails.
+// Each head also carries the optional hair pieces of bjjKeys.ts (volume, bun, beard), switched on or off by the runtime swap.
 // Poses are plain objects (see bjj-poses.mjs); transitions interpolate poses; struggle loops jiggle them.
 import { blank, setPx, hexPx } from '../../../../scripts/lib/pixel/img.mjs';
 import { KEY_RAMPS } from '../../../client/src/render/pixel/palette.ts';
+import { HAIR_KEYS } from '../../../client/src/render/pixel/bjjKeys.ts';
 
 export const W = 64;
 export const H = 48;
@@ -19,10 +23,10 @@ export const FX_COL = { y: '#ffe57b', Y: '#fff59a', o: '#f8d239', w: '#ffffff' }
 export const GI_PALETTE = [OL, ...GI_WHITE, ...GI_BLUE, ...BELT_BLACK, ...Object.values(FX_COL)];
 
 export const FIGHTERS = {
-  A: { gi: GI_WHITE, skin: KEY_RAMPS.skin, hair: KEY_RAMPS.hair, belt: KEY_RAMPS.belt },
-  /** Professora Bia (referee): white gi, black belt, skin / hair on the standard key ramps. */
-  R: { gi: GI_WHITE, skin: KEY_RAMPS.skin, hair: KEY_RAMPS.hair, belt: BELT_BLACK },
-  B: { gi: GI_BLUE, skin: KEY_RAMPS.skin2, hair: KEY_RAMPS.hair2, belt: BELT_BLACK },
+  A: { gi: GI_WHITE, skin: KEY_RAMPS.skin, hair: KEY_RAMPS.hair, belt: KEY_RAMPS.belt, extra: HAIR_KEYS.A },
+  /** Professora Bia (referee): white gi, black belt, skin / hair on the standard key ramps, no optional hair pieces. */
+  R: { gi: GI_WHITE, skin: KEY_RAMPS.skin, hair: KEY_RAMPS.hair, belt: BELT_BLACK, extra: null },
+  B: { gi: GI_BLUE, skin: KEY_RAMPS.skin2, hair: KEY_RAMPS.hair2, belt: BELT_BLACK, extra: HAIR_KEYS.B },
 };
 
 const LIGHT = [-0.7071, -0.7071];
@@ -35,12 +39,20 @@ const norm = (a) => { const l = len(a) || 1; return [a[0] / l, a[1] / l]; };
 const lerp = (a, b, t) => a + (b - a) * t;
 const lerp2 = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t)];
 const perp = (a) => [-a[1], a[0]];
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
-/** Canvas of hex strings. */
-export function canvas(w = W, h = H) {
-  return { px: new Array(w * h).fill(null), w, h };
+/** Canvas of hex strings. `ox`, `oy` offset every write (a bigger canvas around the same authored coordinates, for the move clips). */
+export function canvas(w = W, h = H, ox = 0, oy = 0) {
+  return { px: new Array(w * h).fill(null), w, h, ox, oy };
 }
-export const put = (cv, x, y, hex) => { if (x >= 0 && y >= 0 && x < cv.w && y < cv.h) cv.px[y * cv.w + x] = hex; };
+export const put = (cv, x, y, hex) => {
+  const X = x + (cv.ox ?? 0), Y = y + (cv.oy ?? 0);
+  if (X >= 0 && Y >= 0 && X < cv.w && Y < cv.h) cv.px[Y * cv.w + X] = hex;
+};
+const get = (cv, x, y) => {
+  const X = x + (cv.ox ?? 0), Y = y + (cv.oy ?? 0);
+  return X >= 0 && Y >= 0 && X < cv.w && Y < cv.h ? cv.px[Y * cv.w + X] : undefined;
+};
 
 /** Stamps a group of capsules/discs as one outlined sticker. segs: [{a,b,ra,rb,mat}] ; color(pixel) -> hex. */
 function maskOf(segs) {
@@ -61,7 +73,8 @@ function maskOf(segs) {
         if (d > rr) continue;
         const key = y * 256 + x;
         const prev = m.get(key);
-        const score = d / rr;
+        // `pri` lets a short trim segment (a cuff) win the pixels it shares with the limb it sits on
+        const score = d / rr - (s.pri ?? 0);
         if (!prev || score < prev.score) m.set(key, { x, y, score, nx: o[0] / rr, ny: o[1] / rr, seg: s });
       }
     }
@@ -69,11 +82,13 @@ function maskOf(segs) {
   return m;
 }
 
+const NEIGH = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+
 function stamp(cv, segs, color, outline = OL) {
   const m = maskOf(segs);
   if (outline) {
     for (const { x, y } of m.values()) {
-      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      for (const [dx, dy] of NEIGH) {
         const k = (y + dy) * 256 + (x + dx);
         if (!m.has(k)) put(cv, x + dx, y + dy, outline);
       }
@@ -143,15 +158,14 @@ export function scalePose(P) {
  * Pose fields (all points in canvas px, y down):
  *   head, up (unit-ish vector chin -> crown), face ('front' | 'three' | 'profile' | 'back'), side (vector the face looks toward, profile/three),
  *   chest, hip, hands [h0,h1], feet [f0,f1], bendA [±1,±1], bendL [±1,±1], spread (shoulder), hsp (hip),
+ *   fists [bool, bool] (a hand closed on the other's gi: a bigger fist), eyes ('shut'), back (the torso shows its back),
  *   z: { arm0, arm1, leg0, leg1, torso, head: 'under' | 'far' | 'over' | number }
  */
 export function fighterParts(P, who) {
-  const pal = FIGHTERS[who];
   const parts = [];
   const axis = norm(sub(P.hip, P.chest));
   const pr = perp(axis);
   const spread = P.spread ?? 0.7, hsp = P.hsp ?? 0.5;
-  const base = 0; // fighter z base is added by the caller
   const zOf = (name, dflt) => {
     const o = P.z?.[name];
     if (o === 'under') return -200 + dflt;
@@ -161,57 +175,111 @@ export function fighterParts(P, who) {
     return dflt;
   };
 
-  // legs
+  // legs: loose gi pants, a cuff at the ankle, a bare foot
   for (let i = 0; i < 2; i++) {
     const sgn = i === 0 ? 1 : -1;
     const hipJ = add(P.hip, mul(pr, sgn * hsp * DIM.rt));
     const { elbow: knee, end } = P.knees?.[i] ? { elbow: P.knees[i], end: P.feet[i] } : twoBone(hipJ, P.feet[i], DIM.leg[0], DIM.leg[1], P.bendL?.[i] ?? 1);
     const far = P.z?.['leg' + i] === 'far';
+    const dir = norm(sub(end, knee));
     const segs = [
-      { a: hipJ, b: knee, ra: 1.95, rb: 1.8, mat: 'gi' },
-      { a: knee, b: end, ra: 1.8, rb: 1.55, mat: 'gi' },
-      { a: add(end, mul(norm(sub(end, knee)), 1.0)), b: add(end, mul(norm(sub(end, knee)), 1.6)), ra: 1.5, rb: 1.3, mat: 'skin' },
+      { a: hipJ, b: knee, ra: 2.05, rb: 1.85, mat: 'gi' },
+      { a: knee, b: end, ra: 1.85, rb: 1.7, mat: 'gi' },
+      { a: add(end, mul(dir, -0.35)), b: add(end, mul(dir, 0.2)), ra: 1.75, rb: 1.75, mat: 'cuff', pri: 0.25 },
+      { a: add(end, mul(dir, 1.0)), b: add(end, mul(dir, 1.6)), ra: 1.5, rb: 1.3, mat: 'skin' },
     ];
     parts.push({ z: zOf('leg' + i, 1 + i * 0.1), segs, far, name: 'leg' });
   }
-  // torso
-  const tsegs = [{ a: P.chest, b: P.hip, ra: DIM.rt, rb: DIM.rt - 0.3, mat: 'gi' }];
-  parts.push({ z: zOf('torso', 3), segs: tsegs, torso: { axis, pr, chest: P.chest, hip: P.hip, back: !!P.back }, name: 'torso' });
-  // belt tails
-  const bp = lerp2(P.chest, P.hip, 0.8);
-  const tailBase = add(bp, mul(pr, 0.6));
-  const tail1 = add(tailBase, add(mul(axis, 2.6), mul(pr, 1.2)));
-  const tail2 = add(tailBase, add(mul(axis, 2.2), mul(pr, -0.9)));
-  parts.push({ z: zOf('torso', 3) + 0.5, segs: [{ a: tailBase, b: tail1, ra: 0.8, rb: 0.7, mat: 'belt' }, { a: tailBase, b: tail2, ra: 0.8, rb: 0.7, mat: 'belt' }], name: 'tails' });
+  // torso: the jacket (lapels, belt and skirt are shaded per pixel, see torsoColor)
+  const tsegs = [{ a: P.chest, b: P.hip, ra: DIM.rt, rb: DIM.rt - 0.25, mat: 'gi' }];
+  parts.push({ z: zOf('torso', 3), segs: tsegs, torso: { axis, pr, chest: P.chest, hip: P.hip, back: !!P.back, side: P.side ?? [1, 0], face: P.face ?? 'profile' }, name: 'torso' });
+  // belt tails, hanging from the knot
+  const bp = lerp2(P.chest, P.hip, BELT_AT);
+  const tailBase = add(bp, mul(pr, 0.7));
+  const tail1 = add(tailBase, add(mul(axis, 3.0), mul(pr, 1.3)));
+  const tail2 = add(tailBase, add(mul(axis, 2.5), mul(pr, -0.6)));
+  parts.push({ z: zOf('torso', 3) + 0.5, segs: [{ a: tailBase, b: tail1, ra: 0.85, rb: 0.75, mat: 'belt' }, { a: tailBase, b: tail2, ra: 0.85, rb: 0.75, mat: 'belt' }], name: 'tails' });
   // head
   parts.push({ z: zOf('head', 5), segs: [{ a: P.head, b: P.head, ra: P.rh ?? DIM.rh, rb: P.rh ?? DIM.rh, mat: 'head' }], head: P, name: 'head' });
-  // arms
+  // arms: loose sleeves to the wrist, a dark cuff, the hand (a bigger fist when it holds the other's gi)
   for (let i = 0; i < 2; i++) {
     const sgn = i === 0 ? 1 : -1;
     const sh = add(P.chest, mul(pr, sgn * spread * DIM.rt));
     const { elbow, end } = P.elbows?.[i] ? { elbow: P.elbows[i], end: P.hands[i] } : twoBone(sh, P.hands[i], DIM.arm[0], DIM.arm[1], P.bendA?.[i] ?? 1);
     const dirW = norm(sub(end, elbow));
     const far = P.z?.['arm' + i] === 'far';
+    const fist = !!P.fists?.[i];
     const segs = [
-      { a: sh, b: elbow, ra: 1.3, rb: 1.2, mat: 'gi' },
-      { a: elbow, b: end, ra: 1.2, rb: 1.1, mat: 'gi' },
-      { a: add(end, mul(dirW, 0.7)), b: add(end, mul(dirW, 1.2)), ra: 1.3, rb: 1.2, mat: 'skin' },
+      { a: sh, b: elbow, ra: 1.45, rb: 1.35, mat: 'gi' },
+      { a: elbow, b: end, ra: 1.35, rb: 1.3, mat: 'gi' },
+      { a: add(end, mul(dirW, -0.25)), b: add(end, mul(dirW, 0.15)), ra: 1.4, rb: 1.4, mat: 'cuff', pri: 0.25 },
+      { a: add(end, mul(dirW, 0.75)), b: add(end, mul(dirW, fist ? 1.3 : 1.2)), ra: fist ? 1.5 : 1.3, rb: fist ? 1.45 : 1.2, mat: 'skin' },
     ];
     parts.push({ z: zOf('arm' + i, 7 + i * 0.1), segs, far, name: 'arm' });
   }
-  void base;
   return parts;
 }
 
+/** Where the belt sits down the torso (0 chest .. 1 hip). */
+const BELT_AT = 0.74;
+
 function colorFor(part, pal) {
+  if (part.name === 'torso') return torsoColor(part, pal);
   return (v) => {
     const far = part.far;
     const lit = litOf(v);
-    if (part.name === 'head') return null; // handled elsewhere
     const m = v.seg.mat;
     if (m === 'skin') return pal.skin[Math.min(3, Math.max(1, rankOf(lit, far)))];
     if (m === 'belt') return pal.belt[Math.min(2, Math.max(0, rankOf(lit, far) - 1))];
+    // the cuff is the dark inside of the sleeve / pant opening
+    if (m === 'cuff') return pal.gi[Math.max(0, Math.min(1, rankOf(lit, far) - 1))];
     return pal.gi[rankOf(lit, far)];
+  };
+}
+
+/**
+ * The jacket, one pixel at a time. Front: a thick collar that runs down as two lapels crossing at the sternum (the chest shows in the V
+ * above), the lapel's edge carrying on to the belt; the belt band with its knot; the skirt under the belt with the jacket's opening.
+ * Back: the collar band across the neck and the centre seam.
+ */
+function torsoColor(part, pal) {
+  const { axis, pr, chest, hip, back, side, face } = part.torso;
+  const L = len(sub(hip, chest)) || 1;
+  const beltU0 = BELT_AT * L - 0.7, beltU1 = beltU0 + 1.5;
+  // in profile the V sits toward the side the fighter faces
+  const facing = face === 'front' ? 0 : clamp(dot2(norm(side), pr), -1, 1);
+  const c0 = facing * 1.3;
+  const wScale = 1 - 0.35 * Math.abs(facing);
+  const apexU = 0.42 * L;
+  return (v) => {
+    const lit = litOf(v);
+    const rank = rankOf(lit, false);
+    const p = [v.x + 0.5, v.y + 0.5];
+    const o = sub(p, chest);
+    const u = dot2(o, axis);
+    const s = dot2(o, pr);
+    if (u >= beltU0 && u < beltU1) {
+      if (Math.abs(s - c0 * 0.6 - 0.6) < 0.75 && !back) return pal.belt[2];
+      return pal.belt[u < beltU0 + 0.75 ? 1 : 0];
+    }
+    if (back) {
+      if (u < -DIM.rt + 1.6) return pal.gi[Math.max(2, rank)];
+      if (Math.abs(s) < 0.5 && u < beltU0) return pal.gi[Math.max(0, rank - 1)];
+      return pal.gi[rank];
+    }
+    if (u < apexU) {
+      const w = 2.1 * wScale * clamp((apexU - u) / (apexU + DIM.rt), 0, 1);
+      const d = Math.abs(s - c0 * clamp((apexU - u) / apexU, 0, 1)) - w;
+      if (d < -1.05) return u < apexU * 0.3 ? pal.skin[rank >= 2 ? 2 : 1] : pal.gi[Math.max(0, rank - 1)];
+      if (d < 0.15) return pal.gi[rank >= 2 ? 3 : 2];
+      if (d < 0.95) return pal.gi[Math.max(0, Math.min(1, rank - 1))];
+      return pal.gi[rank];
+    }
+    // below the crossing: the top lapel's edge runs on down to the belt, and the skirt opens under it
+    const edge = lerp(0, 1.4, clamp((u - apexU) / Math.max(0.1, beltU0 - apexU), 0, 1)) + c0 * 0.3;
+    if (u < beltU0 && Math.abs(s - edge) < 0.55) return pal.gi[Math.max(0, Math.min(1, rank - 1))];
+    if (u >= beltU1 && Math.abs(s - 1.0 - c0 * 0.3) < 0.5) return pal.gi[Math.max(0, Math.min(1, rank - 1))];
+    return pal.gi[rank];
   };
 }
 
@@ -220,12 +288,14 @@ function drawHead(cv, part, pal) {
   const c = P.head, up = norm(P.up ?? [0, -1]);
   const face = P.face ?? 'profile';
   const side = norm(P.side ?? [1, 0]);
+  const rh = P.rh ?? DIM.rh;
   const hairLine = P.hairLine ?? 0.25;
+  const ex = pal.extra;
   const m = stamp(cv, part.segs, (v) => {
     const lit = litOf(v);
     const o = [v.x + 0.5 - c[0], v.y + 0.5 - c[1]];
-    const bu = dot2(o, up) / (P.rh ?? DIM.rh);
-    const sa = dot2(o, side) / (P.rh ?? DIM.rh);
+    const bu = dot2(o, up) / rh;
+    const sa = dot2(o, side) / rh;
     let hair = false;
     if (face === 'back') hair = true;
     else if (bu > hairLine) hair = true;
@@ -236,6 +306,8 @@ function drawHead(cv, part, pal) {
       return pal.hair[r];
     }
     const r = lit > 0.45 ? 3 : lit > -0.5 ? 2 : 1;
+    // the lower face: a beard key over the skin (the runtime turns it back into skin for a clean-shaven fighter)
+    if (ex && face !== 'back' && bu < -0.2 && (face === 'front' ? Math.abs(sa) < 0.85 : sa > -0.1)) return ex.beard[r - 1];
     return pal.skin[r];
   });
   // face details
@@ -249,7 +321,7 @@ function drawHead(cv, part, pal) {
     px(at(su, ss), OL); px(at(su, ss - gz), '#ffffff');
   };
   if (face === 'front') {
-    { const k = (P.rh ?? DIM.rh) * 0.34; eye(-0.5, -k, 1); eye(-0.5, k, -1); }
+    { const k = rh * 0.34; eye(-0.5, -k, 1); eye(-0.5, k, -1); }
     px(at(-2.6, 0.4), pal.skin[1]);
   } else if (face === 'three') {
     eye(-0.5, 0.6, 1); eye(-0.5, 2.7, 1);
@@ -258,39 +330,74 @@ function drawHead(cv, part, pal) {
     eye(-0.5, 2.6, 1);
     px(at(-2.6, 3.0), pal.skin[1]);
   }
+  if (ex) hairPieces(cv, m, P, c, up, side, face, rh, ex);
 }
 
-function drawTorsoDetail(cv, part, pal) {
-  const { axis, pr, chest, hip } = part.torso;
-  const neck = add(chest, mul(axis, -1.4));
-  const apex = lerp2(chest, hip, 0.62);
-  const line = (a, b, hex) => {
-    let [x0, y0] = [Math.floor(a[0]), Math.floor(a[1])];
-    const [x1, y1] = [Math.floor(b[0]), Math.floor(b[1])];
-    const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
-    let err = dx + dy;
-    for (;;) {
-      put(cv, x0, y0, hex);
-      if (x0 === x1 && y0 === y1) break;
-      const e2 = 2 * err;
-      if (e2 >= dy) { err += dy; x0 += sx; }
-      if (e2 <= dx) { err += dx; y0 += sy; }
-    }
+/**
+ * The optional hair pieces, drawn only where the canvas is still empty (so a piece never eats a pixel another part needs when it is
+ * switched off): the volume is a ring around the crown and the back of the head, the bun a knot on top of the crown at the back.
+ * The head's own outline under the volume becomes the seam key (hair when the volume is on, outline when it is off).
+ */
+function hairPieces(cv, headMask, P, c, up, side, face, rh, ex) {
+  const back = face === 'front' ? [0, 0] : face === 'back' ? [0, 0] : mul(side, -1);
+  const put1 = (x, y, hex) => { if (get(cv, x, y) === null) put(cv, x, y, hex); };
+  const shade = (o) => {
+    const l = norm(o);
+    const lit = l[0] * LIGHT[0] + l[1] * LIGHT[1];
+    return lit > 0.35 ? 2 : lit > -0.35 ? 1 : 0;
   };
-  if (!part.torso.back) line(add(neck, mul(pr, 1.8)), apex, pal.gi[1]);
-  if (!part.torso.back) line(add(neck, mul(pr, -1.8)), apex, pal.gi[1]);
-  // belt band across the torso at 80%
-  const bp = lerp2(chest, hip, 0.8);
-  for (let t = -3; t <= 3; t += 0.5) {
-    const p = add(bp, mul(pr, t));
-    const x = Math.floor(p[0]), y = Math.floor(p[1]);
-    put(cv, x, y, pal.belt[1]);
-    const p2 = add(p, mul(axis, 1));
-    put(cv, Math.floor(p2[0]), Math.floor(p2[1]), pal.belt[0]);
+  // volume: a ring 1.6 px thick around the crown, wider toward the back of the head, never over the face
+  const vol = new Set();
+  const R = Math.ceil(rh + 3);
+  for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
+    const x = Math.floor(c[0]) + dx, y = Math.floor(c[1]) + dy;
+    const o = [x + 0.5 - c[0], y + 0.5 - c[1]];
+    const d = len(o);
+    const dir = norm(o);
+    const bu = dot2(dir, up), bs = dot2(dir, back);
+    if (bu < -0.25 && bs < 0.5) continue;
+    if (face !== 'back' && face !== 'front' && dot2(dir, side) > 0.35 && bu < 0.55) continue;
+    const thick = 1.3 + 0.9 * Math.max(0, bs) + 0.3 * Math.max(0, bu);
+    if (d <= rh || d > rh + thick) continue;
+    if (headMask.has(y * 256 + x)) continue;
+    if (get(cv, x, y) !== null) continue;
+    vol.add(y * 256 + x);
   }
-  // knot
-  const kp = add(bp, mul(pr, 0.5));
-  put(cv, Math.floor(kp[0]), Math.floor(kp[1]), pal.belt[2]);
+  for (const k of vol) {
+    const x = k % 256, y = Math.floor(k / 256);
+    put(cv, x, y, ex.vol[shade([x + 0.5 - c[0], y + 0.5 - c[1]])]);
+  }
+  for (const k of vol) {
+    const x = k % 256, y = Math.floor(k / 256);
+    for (const [dx, dy] of NEIGH) {
+      const nk = (y + dy) * 256 + (x + dx);
+      if (vol.has(nk) || headMask.has(nk)) continue;
+      const cur = get(cv, x + dx, y + dy);
+      if (cur === null) put(cv, x + dx, y + dy, ex.volOl);
+      else if (cur === OL) put(cv, x + dx, y + dy, ex.volSeam);
+    }
+  }
+  // bun: a small knot up and back from the crown
+  const bc = add(c, add(mul(up, rh + 0.4), mul(back, rh * 0.45)));
+  const bun = new Set();
+  for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
+    const x = Math.floor(bc[0]) + dx, y = Math.floor(bc[1]) + dy;
+    const o = [x + 0.5 - bc[0], y + 0.5 - bc[1]];
+    if (len(o) > 1.9) continue;
+    if (headMask.has(y * 256 + x)) continue;
+    const cur = get(cv, x, y);
+    if (cur !== null && !ex.vol.includes(cur) && cur !== ex.volOl && cur !== OL) continue;
+    bun.add(y * 256 + x);
+  }
+  for (const k of bun) {
+    const x = k % 256, y = Math.floor(k / 256);
+    if (get(cv, x, y) !== null) continue; // only on empty pixels: the bun is optional
+    put(cv, x, y, ex.bun[shade([x + 0.5 - bc[0], y + 0.5 - bc[1]])]);
+  }
+  for (const k of bun) {
+    const x = k % 256, y = Math.floor(k / 256);
+    for (const [dx, dy] of NEIGH) if (!bun.has((y + dy) * 256 + x + dx) && get(cv, x + dx, y + dy) === null) put(cv, x + dx, y + dy, ex.bunOl);
+  }
 }
 
 /** Draws one fighter into the canvas parts list (caller sorts all parts by z). */
@@ -300,18 +407,15 @@ export function drawFighterAll(cv, items) {
     const pal = FIGHTERS[it.who];
     const part = it.part;
     if (part.name === 'head') drawHead(cv, part, pal);
-    else {
-      stamp(cv, part.segs, colorFor(part, pal));
-      if (part.name === 'torso') drawTorsoDetail(cv, part, pal);
-    }
+    else stamp(cv, part.segs, colorFor(part, pal));
   }
 }
 
 /**
  * Renders a pair pose { A: fighterPose, B: fighterPose, top: 'A'|'B', fx?: [...] } to a hex canvas.
  */
-export function renderPair(pair) {
-  const cv = canvas();
+export function renderPair(pair, size) {
+  const cv = size ? canvas(size.w, size.h, size.ox, size.oy) : canvas();
   const items = [];
   for (const who of ['A', 'B']) {
     const P = pair[who];
@@ -347,6 +451,8 @@ export function clonePose(P) {
   o.feet = P.feet.map((h) => [...h]);
   if (P.knees) o.knees = P.knees.map((h) => (h ? [...h] : h));
   if (P.elbows) o.elbows = P.elbows.map((h) => (h ? [...h] : h));
+  if (P.fists) o.fists = [...P.fists];
+  if (P.z) o.z = { ...P.z };
   return o;
 }
 
@@ -382,6 +488,21 @@ export function shiftFighter(P, dx, dy, parts = ['head', 'chest', 'hip', 'hands'
   return o;
 }
 
+/**
+ * Turns a whole fighter about `pivot` by `deg` (y down, positive = clockwise on screen): every joint and the head's up / side vectors,
+ * so a thrown body is redrawn upside down with its own light and outline (not a rotated bitmap).
+ */
+export function rotateFighter(P, pivot, deg) {
+  const o = resolve(P);
+  const a = (deg * Math.PI) / 180, ca = Math.cos(a), sa = Math.sin(a);
+  const rp = (p) => { const d = sub(p, pivot); return [pivot[0] + d[0] * ca - d[1] * sa, pivot[1] + d[0] * sa + d[1] * ca]; };
+  const rv = (v) => [v[0] * ca - v[1] * sa, v[0] * sa + v[1] * ca];
+  for (const k of POINT_KEYS) o[k] = rp(o[k]);
+  o.hands = o.hands.map(rp); o.feet = o.feet.map(rp); o.knees = o.knees.map(rp); o.elbows = o.elbows.map(rp);
+  o.up = rv(o.up ?? [0, -1]); o.side = rv(o.side ?? [1, 0]);
+  return o;
+}
+
 /** One standalone fighter (the referee sprites) on a w x h canvas; the pose is given in drawn space (no pair scaling). */
 export function renderSingle(P, who = 'R', w = 16, h = 32, fx = []) {
   const cv = canvas(w, h);
@@ -398,7 +519,7 @@ export function stampPattern(cv, x, y, rows, skin) {
   rows.forEach((r, j) => [...r].forEach((c, i) => { if (c !== '.') m.add((y + j) * 256 + x + i); }));
   for (const k of m) {
     const px = k % 256, py = Math.floor(k / 256);
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!m.has(k + dy * 256 + dx)) put(cv, px + dx, py + dy, OL);
+    for (const [dx, dy] of NEIGH) if (!m.has(k + dy * 256 + dx)) put(cv, px + dx, py + dy, OL);
   }
   rows.forEach((r, j) => [...r].forEach((c, i) => { if (c !== '.') put(cv, x + i, y + j, col[c]); }));
 }

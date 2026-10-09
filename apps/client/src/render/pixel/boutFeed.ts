@@ -31,6 +31,10 @@ export type StageCue =
       aheadFrom: 'you' | 'partner' | null;
       aheadTo: 'you' | 'partner' | null;
       ms: number;
+      /** who played the move (the clip's mover) */
+      actor?: 'you' | 'partner';
+      /** the move that ends the match: its big frame and landing play in slow motion */
+      finale?: boolean;
     };
 
 export interface FeedPartner {

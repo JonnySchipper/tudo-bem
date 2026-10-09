@@ -16,6 +16,7 @@ import {
   type ClientMsg,
   INTENTS,
   isMatMove,
+  isSubmission,
   MOVE_LABEL,
   moveTaughtAt,
   nextStripe,
@@ -32,6 +33,7 @@ import { beltChip } from './beltChip';
 import { boutFeed } from '../render/pixel/boutFeed';
 import { CARTOON_MS, GAG_TRACKS, THINK_MS, cartoonFor } from '../render/pixel/gagCartoon';
 import { mountCharPreview } from '../render/pixel/charPreview';
+import { BEATS, IMPACT } from '../render/pixel/bjjClips';
 import {
   callOf,
   coachTip,
@@ -51,6 +53,9 @@ import {
 } from './boutLogic';
 
 type Msg<P extends BoutServerMsg['phase']> = Extract<BoutServerMsg, { phase: P }>;
+
+/** When the stage juice of a move lands (the flash, the word pops, the grip snap): the clip's big frame (bjjClips.ts BEATS / IMPACT). */
+const GRIP_SNAP_AT = BEATS.normal[IMPACT];
 /** a client bout message without its `t` and `v` (distributed over the actions) */
 type BoutBody = Extract<ClientMsg, { t: 'bout' }> extends infer M ? (M extends unknown ? Omit<M, 't' | 'v'> : never) : never;
 
@@ -487,13 +492,14 @@ export class BoutUI {
           en('Go for the finish'),
         )
       : null;
+    const rail = h('div', { class: `move-cards n${cards.length + (holdBtn ? 1 : 0)}`, id: 'gag-moves' }, ...cards, holdBtn);
     this.body.replaceChildren(
       h(
         'div',
         { class: 'bout-intents', id: 'bout-intents', 'data-finish': String(m.finish), 'data-seq': String(m.seq) },
         h('div', { class: `bout-ask${plan ? ' has-plan' : ''}` }, h('span', { class: 'bout-ask-you' }, h('span', { class: 'pt' }, 'Sua vez'), en('Your move')), plan, this.quitBtn()),
         fin,
-        h('div', { class: `move-cards n${cards.length + (holdBtn ? 1 : 0)}`, id: 'gag-moves' }, ...cards, holdBtn),
+        h('div', { class: 'mc-carousel', id: 'gag-carousel' }, rail, this.cardNav(rail)),
         needs,
         this.timerBar(),
       ),
@@ -501,12 +507,47 @@ export class BoutUI {
     this.measure();
   }
 
+  /**
+   * On a phone the move cards are one swipeable row (a horizontal carousel), so every card is a swipe away and the panel stays short
+   * enough for the fighters: arrows either side and a dot per card, the dots of the cards on screen lit. Wider screens show every card.
+   */
+  private cardNav(rail: HTMLElement): HTMLElement {
+    const items = [...rail.children] as HTMLElement[];
+    const dots = items.map((_, i) => h('i', { class: 'mc-dot', 'data-i': String(i) }));
+    const step = (dir: number) => {
+      const w = items[0]?.getBoundingClientRect().width ?? 120;
+      rail.scrollBy({ left: dir * (w + 6), behavior: 'smooth' });
+    };
+    // needs_br: true — the swipe hint
+    const prev = h('button', { class: 'mc-arrow prev', type: 'button', 'aria-label': 'Golpes anteriores (Previous moves)', onclick: () => step(-1) }, '‹');
+    const next = h('button', { class: 'mc-arrow next', type: 'button', 'aria-label': 'Mais golpes (More moves)', onclick: () => step(1) }, '›');
+    const nav = h('div', { class: 'mc-nav', 'aria-hidden': 'false' }, prev, h('span', { class: 'mc-dots' }, ...dots), next);
+    let raf = 0;
+    const paint = () => {
+      raf = 0;
+      const r = rail.getBoundingClientRect();
+      items.forEach((el, i) => {
+        const b = el.getBoundingClientRect();
+        dots[i]!.classList.toggle('on', b.right > r.left + 8 && b.left < r.right - 8);
+      });
+      const overflow = rail.scrollWidth > rail.clientWidth + 4;
+      nav.classList.toggle('needed', overflow);
+      prev.toggleAttribute('disabled', rail.scrollLeft <= 2);
+      next.toggleAttribute('disabled', rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 2);
+    };
+    rail.addEventListener('scroll', () => {
+      if (!raf) raf = requestAnimationFrame(paint);
+    });
+    requestAnimationFrame(paint);
+    return nav;
+  }
+
   private pickIntent(seq: number, intent: string): void {
     if (this.locked || seq !== this.seq) return;
     this.locked = true;
     this.sfx('tick');
     this.send({ action: 'intent', seq, intent: intent as never });
-    this.body.querySelectorAll('button').forEach((b) => b.setAttribute('disabled', ''));
+    this.body.querySelectorAll('button:not(.mc-arrow)').forEach((b) => b.setAttribute('disabled', ''));
     this.body.querySelector(`[data-intent="${intent}"]`)?.classList.add('picked');
   }
 
@@ -703,6 +744,8 @@ export class BoutUI {
       aheadFrom: from?.ahead ?? null,
       aheadTo: m.st.ahead,
       ms: CARTOON_MS,
+      actor: m.actor === 'partner' ? 'partner' : 'you',
+      finale: landed && (matchOver || isSubmission(move)),
     });
     this.markCartoon(move, cartoon.read);
     // every answer reads as ground gained or lost (the control meter, from your seat), whoever moved
@@ -722,13 +765,8 @@ export class BoutUI {
           'data-read': cartoon.read,
           'data-ground': ground.dir,
         },
-        h('span', { class: 'bout-who' }, who),
-        h('b', { class: 'bout-banner' }, tried.pt),
-        en(tried.en),
-        h('span', { class: 'bout-outcome' }, outcome.pt),
-        en(outcome.en),
-        ...moments.map((l) => h('span', { class: 'bout-moment' }, h('span', { class: 'pt' }, l.pt), en(l.en))),
-        replan,
+        h('span', { class: 'bout-rhead' }, h('span', { class: 'bout-who' }, who), h('b', { class: 'bout-banner' }, tried.pt), en(tried.en)),
+        // the ground read sits right under the move, big, and lands on the clip's impact: it stays readable while the move plays
         h(
           'span',
           { class: `bout-ground ${ground.dir}`, id: 'bout-ground', 'data-delta': String(ground.delta) },
@@ -736,6 +774,7 @@ export class BoutUI {
           h('span', { class: 'pt' }, ground.pt),
           en(ground.en),
         ),
+        h('span', { class: 'bout-rfoot' }, h('span', { class: 'bout-outcome' }, outcome.pt), en(outcome.en), ...moments.map((l) => h('span', { class: 'bout-moment' }, h('span', { class: 'pt' }, l.pt), en(l.en))), replan),
       ),
     );
     for (const c of cuesForResolve(m)) {
@@ -745,12 +784,15 @@ export class BoutUI {
     // the flash, the word pops and the ground arrow land at the cartoon's impact, not when the move is announced
     this.clearJuice();
     const juice = cuesForGrip(m, this.partnerName);
-    if (juice.length) {
+    // the grip snap: a fist closing on the gi (or ripping one off) is heard on the clip's snap frame
+    const snap = (m.grip ?? []).some((e) => e.kind === 'grip' || e.kind === 'strip');
+    if (juice.length || snap) {
       this.juice.push(
         window.setTimeout(() => {
           if (this.closedFlag) return;
           for (const c of juice) boutFeed.push(c);
-        }, Math.round(CARTOON_MS * 0.42)),
+          if (snap) this.sfx('grip');
+        }, Math.round(CARTOON_MS * GRIP_SNAP_AT)),
       );
     }
     this.playMatSound(m.sound);

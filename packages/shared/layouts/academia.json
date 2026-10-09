@@ -17,8 +17,8 @@
     {
       "id": "fila",
       "kind": "quadro_fila",
-      "x": 9,
-      "y": 1,
+      "x": 10,
+      "y": 2,
       "blocks": true,
       "action": "bjj_roll",
       "interact": {
@@ -119,10 +119,11 @@
     {
       "id": "placar",
       "kind": "cenario",
-      "x": 8,
-      "y": 3,
-      "w": 2,
+      "x": 9,
+      "y": 2,
+      "w": 1,
       "h": 1,
+      "ox": -6,
       "blocks": false,
       "art": "props/placar"
     },
