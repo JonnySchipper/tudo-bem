@@ -1,7 +1,7 @@
 import type { Bilingual, RoomId, Tile } from './types.js';
 import { OFFSTAGE_NPCS, ROOMS, type NpcId } from './rooms.js';
 import { greetingFor, type Greeting } from './clock.js';
-import { sameNpcRole } from './schedules.js';
+import { bakerOnDuty, sameNpcRole, scheduleAt, SCHEDULES } from './schedules.js';
 import { MG_ITEMS, type Rng } from './meveum.js';
 import { hotspotById } from './hotspots.js';
 import { isNpcId, type BondMap } from './bonds.js';
@@ -68,10 +68,17 @@ export interface RecadoState {
   talked?: NpcId[];
   /** NPCs the player already got the good-Conversa bond from on `day`. */
   graded?: NpcId[];
+  /** The "Vizinho do dia" bonus for `RECADOS_PER_DAY` recados done on `day` was paid. */
+  bonus?: boolean;
 }
 
 export const RECADOS_PER_DAY = 3;
 export const RECADO_MAX_ACTIVE = 3;
+/** RV for finishing `RECADOS_PER_DAY` recados in one game day ("Vizinho do dia"), paid once per day on top of each recado's own reward. */
+export const RECADO_DAY_BONUS_RV = 15;
+
+/** Is today's "Vizinho do dia" bonus earned and not paid yet? */
+export const dayBonusDue = (st: Pick<RecadoState, 'done' | 'bonus'>): boolean => !st.bonus && st.done.length >= RECADOS_PER_DAY;
 
 // ---------- items and the bag ----------
 
@@ -270,7 +277,14 @@ export function normalizeRecados(raw: unknown): RecadoState {
     done: ids(r.done),
     talked: npcs(r.talked),
     graded: npcs(r.graded),
+    ...(r.bonus === true ? { bonus: true } : {}),
   };
+}
+
+/** Take an active recado off the list (the player gave up on it). It goes back on today's offer, so it can be taken again. Never mutates. */
+export function dropRecado(st: RecadoState, id: string): RecadoState | null {
+  if (!st.active.some((a) => a.id === id)) return null;
+  return { ...st, active: st.active.filter((a) => a.id !== id), offered: st.offered.includes(id) ? st.offered : [...st.offered, id] };
 }
 
 // ---------- wire views ----------
@@ -336,4 +350,92 @@ export function describeStep(step: RecadoStep): Bilingual {
         : { pt: `Cumprimente ${who}.`, en: `Greet ${whoEn}.` };
     }
   }
+}
+
+// ---------- where a step happens (the world markers, the arrows, the "where" line) ----------
+
+/** The NPC a step is done with, if any (`pedir` and `entregar` with Seu Carlos also count with Dona Graça at the counter). */
+export function stepNpc(step: RecadoStep): NpcId | null {
+  switch (step.kind) {
+    case 'falar':
+    case 'pedir':
+    case 'entregar':
+      return step.npc;
+    case 'cumprimentar':
+      return step.npc ?? null;
+    default:
+      return null;
+  }
+}
+
+/** The NPC who actually stands for `npc` at this minute: the baker on duty for Seu Carlos's counter, otherwise the NPC itself. */
+export const stepNpcAt = (npc: NpcId, minute: number): NpcId => (npc === 'carlos' ? bakerOnDuty(minute) : npc);
+
+export interface NpcWhere {
+  npc: NpcId;
+  /** The room they are in (for `em_casa`: the room of their home door). */
+  room: RoomId | null;
+  /** Out in the world now (false: at home). */
+  out: boolean;
+  /** At home: the game minute they come back out (0..1439). */
+  backAt?: number;
+}
+
+/** Where an NPC is at a game minute: their schedule slot, or the room that lists them (an NPC without a schedule never moves). */
+export function npcWhere(npc: NpcId, minute: number): NpcWhere {
+  const slot = scheduleAt(npc, minute);
+  if (slot) {
+    if (slot.activity !== 'em_casa') return { npc, room: slot.room, out: true };
+    // the next slot that is out, wrapping past midnight
+    const slots = scheduleOut()[npc] ?? [];
+    const m = ((Math.floor(minute) % 1440) + 1440) % 1440;
+    const next = slots.find((f) => f > m) ?? slots[0];
+    return { npc, room: slot.room, out: false, ...(next !== undefined ? { backAt: next } : {}) };
+  }
+  const room = (Object.keys(ROOMS) as RoomId[]).find((r) => ROOMS[r].npcs.some((n) => n.id === npc)) ?? null;
+  return { npc, room, out: true };
+}
+
+/** Per NPC: the minutes a slot that is out in the world starts after a slot at home (when they come back out). */
+let SCHEDULE_OUT: Partial<Record<NpcId, number[]>> | null = null;
+function scheduleOut(): Partial<Record<NpcId, number[]>> {
+  if (SCHEDULE_OUT) return SCHEDULE_OUT;
+  const out: Partial<Record<NpcId, number[]>> = {};
+  for (const npc of Object.keys(SCHEDULES) as NpcId[]) {
+    const starts: number[] = [];
+    for (let m = 0; m < 1440; m++) {
+      const s = scheduleAt(npc, m)!;
+      if (s.from === m && s.activity !== 'em_casa' && scheduleAt(npc, (m + 1439) % 1440)?.activity === 'em_casa') starts.push(m);
+    }
+    if (starts.length) out[npc] = starts;
+  }
+  return (SCHEDULE_OUT = out);
+}
+
+/** Where the current step of a recado happens at a game minute: the room, and the NPC there (null for a room or a sign). */
+export function stepWhere(step: RecadoStep, minute: number): { room: RoomId | null; npc: NpcId | null; out: boolean; backAt?: number } {
+  if (step.kind === 'ir') return { room: step.room, npc: null, out: true };
+  if (step.kind === 'ler') return { room: hotspotById(step.hotspotId)?.room ?? null, npc: null, out: true };
+  const npc = stepNpc(step);
+  if (!npc) return { room: null, npc: null, out: true };
+  const w = npcWhere(stepNpcAt(npc, minute), minute);
+  return { room: w.room, npc: w.npc, out: w.out, ...(w.backAt !== undefined ? { backAt: w.backAt } : {}) };
+}
+
+/** "8h" / "8h30" (how a Brazilian sign writes it) and "8:00" / "8:30" for the English line. */
+const hhmm = (minute: number): { pt: string; en: string } => {
+  const h = Math.floor(minute / 60);
+  const m = String(minute % 60).padStart(2, '0');
+  return { pt: m === '00' ? `${h}h` : `${h}h${m}`, en: `${h}:${m}` };
+};
+
+// needs_br: true (templated "where" lines)
+/** A short "where" for an NPC: the room's name, or "em casa · volta às 8h" while they are at home. */
+export function whereLine(w: { room: RoomId | null; out: boolean; backAt?: number }): Bilingual | null {
+  if (!w.out) {
+    return w.backAt !== undefined
+      ? { pt: `Em casa · volta às ${hhmm(w.backAt).pt}`, en: `At home · back at ${hhmm(w.backAt).en}` }
+      : { pt: 'Em casa agora', en: 'At home now' };
+  }
+  return w.room ? { pt: ROOMS[w.room].name, en: ROOMS[w.room].gloss } : null;
 }

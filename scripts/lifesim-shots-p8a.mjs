@@ -149,7 +149,7 @@ async function run(browser, vp) {
   await shot(page, vp, 'journal_bag');
   await page.keyboard.press('Escape');
 
-  // 5. to Nanda: "Entregar café com leite"
+  // 5. to Nanda: "Trouxe café com leite pra você!"
   await interact(page, { portal: 'padaria_praca' });
   await waitRoom(page, 'praca');
   await sleep(1000);
@@ -161,7 +161,7 @@ async function run(browser, vp) {
   await box(page, 'give-nanda');
   await typed(page);
   await sleep(500);
-  assert((await page.textContent('#dialogue-box')).includes('Entregar café com leite'), 'give chip: Entregar café com leite');
+  assert((await page.textContent('#dialogue-box')).includes('Trouxe café com leite'), 'give chip: Trouxe café com leite pra você!');
   await shot(page, vp, 'give_chip');
   await page.click('#dialogue-box [data-chip="0"]');
   await page.waitForSelector('#recado-done', { timeout: 8000 });

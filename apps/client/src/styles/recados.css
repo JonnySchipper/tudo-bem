@@ -770,3 +770,163 @@ body:has(#hud-actions.open) .kg-card {
 @keyframes aero-stamp {
   from { transform: rotate(-6deg) scale(1.8); opacity: 0; }
 }
+
+/* ---------------------------------------------------------------- offers on screen (the overhaul: an errand is visible before you talk to anyone)
+ * The gold "!" is the same badge the world draws over a neighbour (pixel.css .wl-quest), so the tracker and the street speak one language. */
+
+.rtrack-bang,
+.rt-bang {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 18px;
+  flex: none;
+  font: 900 13px/1 var(--font-pixel, var(--font-title));
+  font-style: normal;
+  color: #3a2410;
+  background: #ffd23f;
+  border: 2px solid #3a2410;
+  box-shadow: inset 0 -2px 0 #e0a419;
+}
+
+.rtrack-head .rtrack-bang {
+  animation: wl-quest-bob 0.9s steps(2, jump-none) infinite alternate;
+}
+
+/* the offer badge sits on the portrait's corner */
+.rt-giver,
+.rj-face-wrap {
+  position: relative;
+  flex: none;
+}
+
+.rt-giver .rt-bang,
+.rj-face-wrap .rt-bang {
+  position: absolute;
+  right: -6px;
+  top: -6px;
+}
+
+.rtrack-row.offer {
+  background: rgba(255, 210, 63, 0.16);
+}
+
+.rt-title em.rt-new {
+  color: #8a5a00;
+  text-transform: uppercase;
+  font-size: 0.8em;
+}
+
+.rt-where {
+  font-size: 0.74em;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rtrack-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 5px 4px;
+  margin-bottom: 2px;
+  font-size: 0.8em;
+  line-height: 1.2;
+  background: #fff3c4;
+  border: 2px solid #3a2410;
+}
+
+.rtrack-intro .en {
+  display: block;
+  font-size: 0.92em;
+  color: var(--ink-soft);
+}
+
+.rtrack-intro-x {
+  margin-left: auto;
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0;
+  font-size: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rtrack-head .rtrack-bang { animation: none; }
+}
+
+/* journal: the day's goal, the ask, where to go, Aceitar / Deixar pra depois */
+.rj-day {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+  background: #fff3c4;
+  border: 2px solid var(--px-ink, #573c2c);
+}
+
+.rj-day.paid {
+  background: #e5f1e3;
+}
+
+.rj-day .en {
+  display: block;
+  font-size: 0.82em;
+}
+
+.rj-stars {
+  font-size: 1.4em;
+  letter-spacing: 2px;
+  color: #d39a1f;
+  text-shadow: 0 1px 0 #3a2410;
+}
+
+.rj-ask {
+  margin: 4px 0 0;
+  font-style: italic;
+  font-size: 0.92em;
+}
+
+.rj-ask .en {
+  display: block;
+  font-size: 0.86em;
+}
+
+.rj-stepl.preview {
+  margin-top: 6px;
+}
+
+.rj-where {
+  margin: 6px 0 0;
+  font-size: 0.86em;
+  font-weight: 700;
+}
+
+.rj-where .en {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9em;
+}
+
+.rj-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.rj-actions button {
+  min-height: 36px;
+  padding: 4px 12px;
+}
+
+.rj-full {
+  color: var(--ink-soft);
+  font-size: 0.82em;
+}
+
+.rj-full .en {
+  display: block;
+}

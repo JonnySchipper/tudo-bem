@@ -97,6 +97,17 @@ function nearestPortal(room: RoomId, from: Tile, to: RoomId) {
   return best;
 }
 
+/**
+ * The way out of `room` toward `to` for someone standing on `from`: the nearest portal into the next room of the shortest public route.
+ * Null when already there or there is no route. The recado arrows use it to point at the right door when the next step is in another room.
+ */
+export function nextPortalToward(room: RoomId, from: Tile, to: RoomId): PortalDef | null {
+  if (room === to) return null;
+  const rooms = roomRoute(room, to);
+  const next = rooms?.[1];
+  return next ? (nearestPortal(room, from, next) ?? null) : null;
+}
+
 /** The legs of a walk from `fromTile` in `fromRoom` to `toTile` in `toRoom`, hopping through the portals (doors and edges) in between. */
 function route(fromRoom: RoomId, fromTile: Tile, toRoom: RoomId, toTile: Tile, vanishAtEnd: boolean): NpcLeg[] {
   const rooms = fromRoom === toRoom ? [fromRoom] : roomRoute(fromRoom, toRoom);

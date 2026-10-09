@@ -82,7 +82,7 @@ export type ClientMsg =
   | { t: 'read'; hotspotId: string }
   /** The player opened the greeting dialogue with an NPC that has no Conversa (Nanda, Júlia): fires the recado engine's `talked` event. */
   | { t: 'talk'; npc: NpcId }
-  | { t: 'recados'; action: 'accept' | 'list'; id?: string }
+  | { t: 'recados'; action: 'accept' | 'drop' | 'list'; id?: string }
   /** The feira (Phase 9): ask a vendor the price of one good, then pay for a quantity with tray pieces (centavos: 50, 100, 200, 500, 1000, 2000). */
   | { t: 'feira'; action: 'price'; vendor: VendorId; itemId: string }
   | { t: 'feira'; action: 'pay'; vendor: VendorId; itemId: string; qty: number; paid: number[] }
@@ -601,7 +601,7 @@ export type ServerMsg =
   | { t: 'emote'; id: string; kind: EmoteKind }
   | { t: 'chat'; id: string; name: string; text: string; gloss: string | null; lang: 'pt' | 'en' | 'mix'; action: SafetyAction }
   /** `tag` marks notices the client presents in its own way: a recado step, the giver's thanks, a friendship milestone. */
-  | { t: 'notice'; level: NoticeLevel; pt: string; en: string; tag?: 'recado_step' | 'recado_thanks' | 'bond' }
+  | { t: 'notice'; level: NoticeLevel; pt: string; en: string; tag?: 'recado_step' | 'recado_thanks' | 'recado_accept' | 'recado_bonus' | 'bond' }
   | { t: 'reward'; amount: number; coins: number; reason: Bilingual }
   /** Cartela stamp earned or card paid out (HUD toast / banner). */
   | { t: 'cartela'; stamps: number; todayCount: number; activity: CartelaActivity; paid: boolean }
@@ -628,7 +628,7 @@ export type ServerMsg =
   | { t: 'parrotHint'; word: Bilingual }
   | { t: 'tutorial'; step: TutorialStep }
   /** The recados board: offered (not yet accepted), in progress, and ids finished today. Sent on `recados` requests, on join and after every change. */
-  | { t: 'recados'; day: number; offered: RecadoOfferView[]; active: RecadoActiveView[]; done: string[] }
+  | { t: 'recados'; day: number; offered: RecadoOfferView[]; active: RecadoActiveView[]; done: string[]; /** today's "Vizinho do dia" bonus was paid */ bonus?: boolean }
   /** The feira's answer to `price`: what the vendor says and what each offered quantity costs (centavos). */
   | { t: 'feira'; phase: 'price'; vendor: VendorId; itemId: string; options: PriceOption[]; line: Bilingual }
   /**
