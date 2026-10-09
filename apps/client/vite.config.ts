@@ -51,13 +51,17 @@ const gzip = promisify(zlib.gzip);
  */
 function precompress(): Plugin {
   let outDir = '';
+  let write = true;
   return {
     name: 'tudobem-precompress',
     apply: 'build',
     configResolved(cfg) {
       outDir = path.resolve(cfg.root, cfg.build.outDir);
+      write = cfg.build.write !== false;
     },
     async closeBundle() {
+      // in-memory builds (write: false, e.g. academia-lock.test.ts) have nothing on disk to compress
+      if (!write || !fs.existsSync(outDir)) return;
       const files = (fs.readdirSync(outDir, { recursive: true }) as string[]).map((f) => path.join(outDir, f)).filter((f) => PRECOMPRESS.test(f) && fs.statSync(f).isFile());
       let raw = 0;
       let br = 0;
