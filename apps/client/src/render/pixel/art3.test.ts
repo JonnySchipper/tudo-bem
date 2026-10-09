@@ -10,6 +10,15 @@ import { fencePieces, furnitureArtKey, propArtKey, propSlices } from './props';
 const manifest = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../../../public/pixel/manifest.json'), 'utf8')) as Manifest;
 const has = (k: string) => k in manifest.sprites;
 
+describe('Placar da Vila board art (#151)', () => {
+  it('the Praça leaderboard stands on its own wooden board, not the academia mat scoreboard', () => {
+    const board = ROOMS.praca.props.find((p) => p.action === 'leaderboard');
+    expect(board?.art).toBe('props/placar_vila');
+    expect(manifest.sprites['props/placar_vila']).toMatchObject({ w: 52, h: 56 });
+    expect(ROOMS.academia.props.find((p) => p.id === 'placar')?.art).toBe('props/placar');
+  });
+});
+
 describe('art track 3 coverage (manifest vs rooms and catalog)', () => {
   it('every floor char of every room has terrain art (no calçada fallbacks)', () => {
     for (const r of Object.values(ROOMS)) for (const ch of new Set(r.floor.join(''))) expect(manifest.terrain.layers[ch] ?? manifest.terrain.layers[FLOOR_SUBSTITUTE[ch]], `${r.id} floor '${ch}'`).toBeTruthy();

@@ -6,8 +6,8 @@
    "image": "atlas/outdoor.png",
    "data": "atlas/outdoor.json",
    "w": 1024,
-   "h": 1920,
-   "frames": 1170
+   "h": 1984,
+   "frames": 1172
   }
  },
  "terrain": {
@@ -13635,6 +13635,28 @@
     "w": 69,
     "h": 14,
     "ax": 22,
+    "ay": 1
+   }
+  },
+  "props/placar_vila": {
+   "atlas": "outdoor",
+   "frame": "props/placar_vila",
+   "w": 52,
+   "h": 56,
+   "ax": 26,
+   "ay": 54,
+   "footprint": [
+    2,
+    1
+   ],
+   "anim": null,
+   "overhead": null,
+   "shadow": "fx/shadow_32",
+   "cast": {
+    "frame": "props/placar_vila#cast",
+    "w": 79,
+    "h": 15,
+    "ax": 26,
     "ay": 1
    }
   },
