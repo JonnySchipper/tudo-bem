@@ -19,11 +19,13 @@ import { JevModelSafety, jevSelfCheck, loadOnnxToxModel } from './services/jevMo
 import type { ChatSafetyService } from './services/interfaces.js';
 import { handleConversaApi } from './conversaApi.js';
 import { ConversaMemory } from './conversaMemory.js';
-import { staticCacheControl } from './cacheControl.js';
+import { serveStatic } from './httpStatic.js';
+import { applySecurityHeaders } from './securityHeaders.js';
 import { legalPageFile } from './legalPages.js';
 import {
   AccountStore,
   accountsFileAdapter,
+  clientIp,
   defaultLimiters,
   handleAuthApi,
   originAllowed,
@@ -31,9 +33,12 @@ import {
   type CookieSecure,
   type ScryptParams,
 } from './auth.js';
-import { handleFeedbackApi } from './feedbackApi.js';
+import { defaultFeedbackLimits, handleFeedbackApi } from './feedbackApi.js';
+import { handleModerationApi } from './moderationApi.js';
+import { IpConnectionCap, MessageBucket, readWsLimits, WS_POLICY_CLOSE, type WsLimitConfig } from './wsLimits.js';
+import { handleAccountApi } from './accountApi.js';
 import { FeedbackStore } from './feedbackStore.js';
-import { readAdminAuthConfig, type AdminAuthConfig } from './adminAuth.js';
+import { AdminLoginGuard, readAdminAuthConfig, type AdminAuthConfig } from './adminAuth.js';
 import { handleBillingApi } from './billing/http.js';
 import { billingConfigured, readBillingConfig } from './billing/provider.js';
 import { publicAppConfig, readOpsSmokeConfig, type OpsSmokeConfig } from './opsSmoke.js';
@@ -69,6 +74,8 @@ export interface AppOptions {
   billingFetch?: (input: string, init?: RequestInit) => Promise<Response>;
   /** Hourly online backups under `dataDir/backups`, and one on shutdown when the last copy is older than an hour. */
   sqliteBackups?: boolean;
+  /** WebSocket abuse limits (wsLimits.ts). Omit to read the env (`TB_WS_*`). */
+  wsLimits?: Partial<WsLimitConfig>;
 }
 
 /** Server chat safety: the Jev model behind the stub when a model folder is configured, else the stub alone. */
@@ -90,19 +97,12 @@ function chatSafety(dir: string | undefined): ChatSafetyService & { status?: Jev
 }
 
 /** WebSocket close codes the client understands (see apps/client/src/net.ts). */
-export const CLOSE_CODES: Record<CloseReason, number> = { replaced: 4000, idle: 4001, logout: 4002, admin: 4003 };
+export const CLOSE_CODES: Record<CloseReason, number> = { replaced: 4000, idle: 4001, logout: 4002, admin: 4003, banned: 4004 };
+/** Server restart (RFC 6455 1012). Sent to every socket on shutdown; the client shows "restarting" and reconnects. */
+export const CLOSE_RESTART = 1012;
+/** How long shutdown waits for sockets and HTTP keep-alives before cutting them. */
+export const SHUTDOWN_GRACE_MS = 2_000;
 
-const MIME: Record<string, string> = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.ico': 'image/x-icon',
-  '.json': 'application/json',
-  '.webmanifest': 'application/manifest+json',
-  '.woff2': 'font/woff2',
-};
 
 export function createApp(opts: AppOptions) {
   const { dataDir, clientDist } = opts;
@@ -118,10 +118,14 @@ export function createApp(opts: AppOptions) {
   const layouts = new LayoutStore(layoutFileAdapter(dataDir));
   const feedback = new FeedbackStore(feedbackFileAdapter(dataDir));
   const feedbackAdmin = opts.feedbackAdmin ?? readAdminAuthConfig();
+  // One wrong-password throttle for the admin secret over WebSocket and HTTP.
+  const adminGuard = new AdminLoginGuard();
+  const feedbackLimits = defaultFeedbackLimits();
   const billing = opts.billing ?? readBillingConfig(process.env);
   const accounts = new AccountStore(accountsFileAdapter(dataDir), { sessionTtlMs: opts.sessionTtlMs, scrypt: opts.scrypt });
   const fixedPapagaios = repairPapagaios((email) => accounts.profileIdForEmail(email), store);
   if (fixedPapagaios.length) console.log(`[papagaio] restored colours for ${fixedPapagaios.join(', ')}`);
+  const moderation = new FileModerationQueue(path.join(dataDir, 'moderation.jsonl'));
   const safety = chatSafety(opts.jevModelDir ?? (process.env.TB_JEV_MODEL_DIR || undefined));
   const world = new World(
     store,
@@ -130,9 +134,9 @@ export function createApp(opts: AppOptions) {
       gloss: new PhrasebookGloss(),
       npc: new AuthoredNpcDialogue(),
       student: new InMemoryStudentModel(),
-      moderation: new FileModerationQueue(path.join(dataDir, 'moderation.jsonl')),
+      moderation,
     },
-    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, idleKickMs: opts.idleKickMs, academies, padarias, feiraGames, feiraCart, layouts },
+    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, adminGuard, idleKickMs: opts.idleKickMs, academies, padarias, feiraGames, feiraCart, layouts },
   );
   const conversaMemory = new ConversaMemory({ store, onProfileChanged: (playerId) => world.pushProfileById(playerId) });
   // Test servers (TB_TEST_CLOCK_CONTROL=1, never set on prod) lift the 10-signups-per-hour-per-IP cap: e2e:all signs up 10+ accounts from 127.0.0.1.
@@ -145,11 +149,28 @@ export function createApp(opts: AppOptions) {
     void accounts.ensureSmokeAccount(opsSmoke.email, opsSmoke.password).catch((e) => console.error('[ops-smoke] seed failed', e));
   }
 
-  const server = http.createServer(async (req, res) => {
-    const url = new URL(req.url ?? '/', 'http://x');
+  /** Admin bearer (same secret as GET /api/feedback): unlocks the counts on /healthz. */
+  const isAdmin = (req: http.IncomingMessage) => {
+    const m = /^Bearer\s+(.+)$/i.exec(String(req.headers.authorization ?? ''));
+    if (!m || !feedbackAdmin.ready || !feedbackAdmin.password) return false;
+    return adminGuard.attempt(AdminLoginGuard.keys({ ip: clientIp(req) }), m[1]!.trim(), feedbackAdmin.password, 'healthz') === 'ok';
+  };
+
+  const onRequest = async (req: http.IncomingMessage, res: http.ServerResponse) => {
+    applySecurityHeaders(req, res);
+    let url: URL;
+    try {
+      url = new URL(req.url ?? '/', 'http://x');
+    } catch {
+      res.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' });
+      return res.end('Bad request');
+    }
     if (url.pathname === '/healthz') {
-      res.writeHead(200, { 'content-type': 'application/json' });
-      return res.end(JSON.stringify({ ok: true, ...world.stats(), accounts: accounts.count(), gameMinute: world.gameMinuteNow(), jev: safety.status?.() ?? { state: 'stub' } }));
+      const jev = safety.status?.() ?? { state: 'stub' };
+      // Public: liveness, the Jev model state and the game clock (shown in game anyway). Player counts need the admin bearer.
+      const body = { ok: true, gameMinute: world.gameMinuteNow(), jev: { state: jev.state } };
+      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+      return res.end(JSON.stringify(isAdmin(req) ? { ...body, ...world.stats(), accounts: accounts.count(), jev } : body));
     }
     // Test only: `POST /__test/clock?min=510` sets the game clock to 08:30 (e2e runs pin it). Off unless TB_TEST_CLOCK_CONTROL=1.
     if (url.pathname === '/__test/clock' && process.env.TB_TEST_CLOCK_CONTROL === '1') {
@@ -209,8 +230,34 @@ export function createApp(opts: AppOptions) {
         admin: feedbackAdmin,
         moderation: world.services.moderation,
         allowedOrigins,
+        adminGuard,
+        limits: feedbackLimits,
       }).catch((e) => {
         console.error('[feedback] handler error', e);
+        if (!res.headersSent) res.writeHead(500);
+        res.end();
+      });
+    }
+    if (url.pathname === '/api/moderation') {
+      return handleModerationApi(req, res, { admin: feedbackAdmin, adminGuard, moderation: world.services.moderation });
+    }
+    if (url.pathname.startsWith('/api/account/')) {
+      return handleAccountApi(req, res, {
+        accounts,
+        store,
+        academies,
+        padarias,
+        feedback,
+        feiraGames,
+        moderation,
+        forgetLive: (accountId, profileId) => world.forgetAccount(accountId, profileId),
+        limiters,
+        admin: feedbackAdmin,
+        adminGuard,
+        allowedOrigins,
+        cookieSecure: opts.cookieSecure,
+      }).catch((e) => {
+        console.error('[account] handler error', e);
         if (!res.headersSent) res.writeHead(500);
         res.end();
       });
@@ -224,7 +271,12 @@ export function createApp(opts: AppOptions) {
         memory: conversaMemory,
         clockMinutes: () => world.gameMinuteNow(),
         dateKey: () => conversaDateKey(),
+        allowedOrigins,
         playerIdFor: (r) => accounts.accountForSession(sessionCookieOf(r))?.profileId,
+      }).catch((e) => {
+        console.error('[conversa] handler error', e);
+        if (!res.headersSent) res.writeHead(500);
+        res.end();
       });
     }
     if (!clientDist) {
@@ -242,15 +294,15 @@ export function createApp(opts: AppOptions) {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' });
       return fs.createReadStream(file).pipe(res);
     }
-    const rel = path.normalize(decodeURIComponent(url.pathname)).replace(/^([/\\])+/, '');
-    let file = path.join(clientDist, rel);
-    if (!file.startsWith(clientDist) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(clientDist, 'index.html');
-    const ext = path.extname(file);
-    res.writeHead(200, {
-      'content-type': MIME[ext] ?? 'application/octet-stream',
-      'cache-control': staticCacheControl(url, ext),
+    serveStatic(req, res, url, clientDist);
+  };
+  // One bad request must never take the world down: log it, answer 500 without the stack.
+  const server = http.createServer((req, res) => {
+    onRequest(req, res).catch((e) => {
+      console.error('[http] handler error', req.method, req.url, e);
+      if (!res.headersSent) res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' });
+      res.end();
     });
-    fs.createReadStream(file).pipe(res);
   });
 
   const wss = new WebSocketServer({
@@ -268,8 +320,16 @@ export function createApp(opts: AppOptions) {
    */
   const HEARTBEAT_MISSES = 3;
   const missed = new WeakMap<WebSocket, number>();
+  const wsLimits = { ...readWsLimits(), ...opts.wsLimits };
+  const ipCap = new IpConnectionCap(wsLimits.maxPerIp);
 
   wss.on('connection', (ws, req) => {
+    const ip = clientIp(req);
+    if (!ipCap.acquire(ip)) {
+      ws.on('error', () => {});
+      return ws.close(WS_POLICY_CLOSE, 'too many connections');
+    }
+    ws.once('close', () => ipCap.release(ip));
     missed.set(ws, 0);
     ws.on('pong', () => missed.set(ws, 0));
     // An oversized frame closes this socket. Without a listener the 'error' event takes the process down.
@@ -283,18 +343,32 @@ export function createApp(opts: AppOptions) {
         if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(m));
       },
       (reason) => ws.close(CLOSE_CODES[reason], reason),
-      { accountId: account?.id },
+      { accountId: account?.id, ip: clientIp(req) },
     );
+    // A socket that never says hello, or has no signed-in session, does not get to hold a connection open.
+    let helloed = false;
+    const helloTimer = setTimeout(() => {
+      if (!helloed || !account) ws.close(WS_POLICY_CLOSE, 'hello timeout');
+    }, wsLimits.helloTimeoutMs);
+    const bucket = new MessageBucket(wsLimits);
     ws.on('message', (data) => {
+      if (!bucket.take()) {
+        if (bucket.abusive) ws.close(WS_POLICY_CLOSE, 'rate limit');
+        return;
+      }
       let msg: ClientMsg;
       try {
         msg = JSON.parse(String(data));
       } catch {
         return;
       }
+      if (msg?.t === 'hello') helloed = true;
       world.handle(session, msg).catch((e) => console.error('[world] handler error', e));
     });
-    ws.on('close', () => world.disconnect(session));
+    ws.on('close', () => {
+      clearTimeout(helloTimer);
+      world.disconnect(session);
+    });
   });
 
   const heartbeat = setInterval(() => {
@@ -321,34 +395,79 @@ export function createApp(opts: AppOptions) {
   backupKick?.unref();
   backupTimer?.unref();
 
+  let closing: Promise<void> | null = null;
+  /** Write every store. `final` ends the profile store (later saves are ignored). Returns the names that failed. */
+  const persistAll = (final: boolean): string[] => {
+    const failed: string[] = [];
+    const steps: [string, () => void][] = [
+      ['profiles', () => (final ? store.shutdown() : store.flush())],
+      ['feiraGames', () => feiraGames.persist()],
+      ['feiraCart', () => feiraCart.persist()],
+      ['academies', () => academies.save()],
+      ['padarias', () => padarias.save()],
+      ['feedback', () => feedback.save()],
+    ];
+    for (const [name, step] of steps) {
+      try {
+        step();
+      } catch (e) {
+        failed.push(name);
+        console.error(`[shutdown] ${name} write failed`, e);
+      }
+    }
+    return failed;
+  };
+
   return {
     server,
     wss,
     world,
     store,
     accounts,
-    async close() {
-      clearInterval(heartbeat);
-      clearInterval(idleSweep);
-      if (backupKick) clearTimeout(backupKick);
-      if (backupTimer) clearInterval(backupTimer);
-      for (const ws of wss.clients) ws.terminate();
-      wss.close();
-      await new Promise<void>((resolve) => server.close(() => resolve()));
-      feiraGames.persist();
-      feiraCart.persist();
-      academies.save();
-      padarias.save();
-      feedback.save();
-      store.shutdown();
-      if (opts.sqliteBackups) {
-        try {
-          await backupDatabase(openDatabase(dataDir), dataDir);
-        } catch {
-          console.error('[sqlite] shutdown backup failed');
+    /**
+     * Graceful stop. Order: write every store first (a SIGKILL after the grace period loses nothing), close
+     * sockets with 1012 (clients show "restarting" and reconnect), stop HTTP and cut lingering connections after
+     * SHUTDOWN_GRACE_MS, write again (disconnects stamped lastSeen), back up last. A second call (second signal)
+     * gets the same promise. Rejects when the final write fails, so the process can exit non-zero.
+     */
+    close() {
+      closing ??= (async () => {
+        clearInterval(heartbeat);
+        clearInterval(idleSweep);
+        if (backupKick) clearTimeout(backupKick);
+        if (backupTimer) clearInterval(backupTimer);
+        persistAll(false);
+        for (const ws of wss.clients) {
+          try {
+            ws.close(CLOSE_RESTART, 'restart');
+          } catch {
+            ws.terminate();
+          }
         }
-      }
-      closeDatabase(dataDir);
+        wss.close();
+        await new Promise<void>((resolve) => {
+          const force = setTimeout(() => {
+            for (const ws of wss.clients) ws.terminate();
+            server.closeAllConnections();
+          }, SHUTDOWN_GRACE_MS);
+          force.unref?.();
+          server.close(() => {
+            clearTimeout(force);
+            resolve();
+          });
+        });
+        const failed = persistAll(true);
+        if (opts.sqliteBackups && !failed.length) {
+          try {
+            await backupDatabase(openDatabase(dataDir), dataDir);
+          } catch {
+            console.error('[sqlite] shutdown backup failed');
+          }
+        }
+        closeDatabase(dataDir);
+        if (failed.length) throw new Error(`[shutdown] could not write: ${failed.join(', ')}`);
+      })();
+      return closing;
     },
   };
 }

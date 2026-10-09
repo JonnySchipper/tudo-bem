@@ -832,7 +832,8 @@ body.intro-active #world {
   align-items: center;
   gap: 10px;
   margin: 8px 0;
-  color: #a58a6c;
+  /* 4.6:1 or better on every intro card paper (the old #a58a6c was 2.9:1) */
+  color: #76603f;
   font-weight: 800;
   font-size: 0.8em;
   text-transform: uppercase;
@@ -1312,4 +1313,54 @@ body.view-pixel #world {
 /* The login-screen Admin modal must sit above the intro gate (z 35); default .backdrop is z 20. */
 .backdrop[data-modal='intro-admin'] {
   z-index: 40;
+}
+
+/* Compact English glosses inside tabs, buttons, the panel title and the music pill. */
+.intro-tab .en,
+.intro-submit .en,
+.intro-music-label .en,
+#intro-panel-title .en,
+.intro-legal .en {
+  font-size: 0.62em;
+  font-weight: 600;
+  line-height: 1.1;
+  color: inherit;
+  opacity: 0.85;
+}
+
+.intro-tab .en,
+.intro-submit .en,
+.intro-music-label .en {
+  display: block;
+}
+
+.intro-legal .en {
+  display: block;
+  font-size: 0.9em;
+}
+
+/* Login: "Esqueci a senha" (no email provider: Google or a note to the team). Sign up: the Terms / Privacy line. */
+.intro-forgot,
+.intro-consent {
+  font-size: 0.78em;
+  color: var(--ink-soft);
+  font-weight: 600;
+  margin: 8px 0 0;
+  text-align: center;
+}
+
+.intro-forgot summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.intro-forgot p {
+  margin: 6px 0 0;
+  text-align: left;
+}
+
+.intro-forgot .en,
+.intro-consent .en {
+  display: block;
+  font-style: italic;
 }

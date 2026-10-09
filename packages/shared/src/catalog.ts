@@ -69,7 +69,8 @@ export const FURNITURE: FurnitureDef[] = [
 ];
 
 /** Every new kitnet comes with one free chair so the first placement is instant. */
-export const STARTER_FURNITURE: Record<string, number> = { cadeira_madeira: 1 };
+/** Nothing for free: the 10 RV kitnet gift buys the first chair (a wooden chair costs 10). */
+export const STARTER_FURNITURE: Record<string, number> = {};
 export const STARTER_HATS: string[] = [];
 
 /**

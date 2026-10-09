@@ -45,7 +45,7 @@ export const GOOGLE_AUTH_ENV = {
 } as const;
 
 /** JSON shape of every /api/auth response. `account: null` after logout. */
-export type AuthResponse = { ok: true; account: { email: string; hasProfile: boolean } | null } | { ok: false; code: AuthErrorCode; pt: string; en: string };
+export type AuthResponse = { ok: true; account: { email: string; hasProfile: boolean; /** Signs in with Google (no usable password). */ google?: boolean } | null } | { ok: false; code: AuthErrorCode; pt: string; en: string };
 
 export const AUTH_COPY = {
   taken: { pt: 'Já existe uma conta com esse e-mail. Que tal entrar?', en: 'An account with this email already exists. Try signing in.' },

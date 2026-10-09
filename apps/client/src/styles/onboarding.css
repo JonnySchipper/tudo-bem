@@ -772,6 +772,11 @@ body.in-desembarque #aero-tut {
   color: var(--verde-dark, #1f6640);
 }
 
+/* a panel the player opens (Célia, the agente, the menu) comes first: the next-steps card steps aside until it closes */
+#ui:has(> .backdrop:not(.clear)) > .aero-next {
+  display: none;
+}
+
 .aero-next .aero-next-goal {
   display: flex;
   gap: 8px;

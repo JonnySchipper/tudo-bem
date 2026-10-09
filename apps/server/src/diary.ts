@@ -92,7 +92,7 @@ export class DiaryTracker {
     p.diary = p.diary ?? [];
     // the same hand-over the catch-up popup uses, so a new arrival and a resident get the same camera and starter roll
     handCamera(p);
-    this.d.store.save();
+    this.d.store.save(p.id);
     this.d.pushProfile(s);
     if (!first) return;
     this.cardWords(s);
@@ -185,7 +185,7 @@ export class DiaryTracker {
     if (image) {
       p.photos = [{ id: crypto.randomUUID(), at: this.d.now(), image, ...(fresh[0] ? { wordId: fresh[0].id } : {}) }, ...normalizePhotos(p.photos)].slice(0, PHOTO_KEEP);
     }
-    this.d.store.save();
+    this.d.store.save(p.id);
     this.d.pushProfile(s);
     if (image) this.d.pushPhotos?.(s);
     for (const w of fresh) this.d.onWord?.(s, w);
@@ -222,7 +222,7 @@ export class DiaryTracker {
     if (p.coins < FILM.price) return this.d.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
     p.coins -= FILM.price;
     p.film = Math.min(99, normalizeFilm(p.film) + FILM.pack);
-    this.d.store.save();
+    this.d.store.save(p.id);
     this.d.pushProfile(s);
     // needs_br: true
     s.send({
@@ -262,7 +262,7 @@ export class DiaryTracker {
     const granted = grantDiaryWord(p.diary, word.id, via);
     if (!granted.ok) return;
     p.diary = granted.earned;
-    this.d.store.save();
+    this.d.store.save(p.id);
     this.d.pushProfile(s);
     this.announce(s, word, via);
     this.d.onWord?.(s, word);
@@ -280,7 +280,7 @@ export class DiaryTracker {
       got.push(e);
     }
     if (!got.length) return;
-    this.d.store.save();
+    this.d.store.save(p.id);
     this.d.pushProfile(s);
     for (const e of got) this.d.onWord?.(s, e.word);
     if (got.length === 1) return this.announce(s, got[0]!.word, got[0]!.via);
@@ -320,7 +320,7 @@ export class DiaryTracker {
       const got = grantDiaryWord(p.diary, word.id, 'game');
       if (!got.ok) continue;
       p.diary = got.earned;
-      this.d.store.save();
+      this.d.store.save(p.id);
       this.d.pushProfile(s);
       this.announce(s, got.word, 'game');
       this.d.onWord?.(s, got.word);
@@ -338,7 +338,7 @@ export class DiaryTracker {
     const got = grantDiaryWord(p.diary, game.grantWordId, 'game');
     if (!got.ok) return null;
     p.diary = got.earned;
-    this.d.store.save();
+    this.d.store.save(p.id);
     this.d.pushProfile(s);
     this.announce(s, got.word, 'game');
     return got.word;

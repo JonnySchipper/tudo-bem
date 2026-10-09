@@ -1,6 +1,9 @@
 # fly launch --no-deploy --copy-config  (then)  fly volumes create tudobem_data --size 1  &&  fly deploy
 app = "tudo-bem"
 primary_region = "iad"
+# SIGINT (Fly's default kill_signal) starts the graceful close in apps/server/src/index.ts: write the stores,
+# close sockets with 1012, back up. The server gives itself 25 s; Fly waits this long before SIGKILL.
+kill_timeout = "30s"
 
 [build]
   dockerfile = "Dockerfile"
@@ -27,6 +30,8 @@ primary_region = "iad"
 [mounts]
   source = "tudobem_data"
   destination = "/data"
+  # Fly takes a daily volume snapshot; keep two weeks of them (restore steps: docs/SQLITE.md).
+  snapshot_retention = 14
 
 [[vm]]
   size = "shared-cpu-1x"

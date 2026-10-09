@@ -1,6 +1,6 @@
 /**
  * Hidden admin panel (opened from a plain-looking credits line). Login asks the server for the password;
- * once unlocked, kick players, pin the shared clock / weather, and grant RV to yourself.
+ * once unlocked, kick / mute / ban players, review reports, pin the shared clock / weather, and grant RV to yourself.
  */
 import { WEATHER_COPY, WEATHER_KINDS, formatClock, type AdminPlayerRow, type AdminSubscriberRow, type ClientMsg, type FeiraCartAdminGame, type FeiraGameId, type ServerMsg, type Weather } from '@tudobem/shared';
 import { clock } from '../gameClock';
@@ -8,6 +8,7 @@ import { game } from '../state';
 import { h, en } from './dom';
 import { closeModal, modalId, openModal } from './modal.js';
 import { adminTestesSection, bindAdminTestes, onAdminTestState } from './adminTestes.js';
+import { adminModerationSection, moderationButtons, renderBanned, renderModeration } from './adminModeration.js';
 
 export type AdminSend = (m: Extract<ClientMsg, { t: 'admin' }>) => void;
 
@@ -73,6 +74,8 @@ export function onAdminMsg(m: Extract<ServerMsg, { t: 'admin' } | { t: 'sky' }>)
   if (m.phase === 'feiraCart') renderFeiraCart(m.day, m.featured, m.games);
   if (m.phase === 'subscribers') renderSubscribers(m.subscribers);
   if (m.phase === 'testes') onAdminTestState(m.state);
+  if (m.phase === 'moderation') renderModeration(m.items);
+  if (m.phase === 'banned') renderBanned(m.banned);
 }
 
 function showAuthError(pt: string): void {
@@ -162,6 +165,7 @@ function openAdminPanel(): void {
     en('Online now — kick frees their seat.', true),
     playersEl,
     h('button', { class: 'ghost', id: 'admin-refresh', onclick: () => sendAdmin?.({ t: 'admin', action: 'list' }) }, 'Atualizar lista'),
+    ...adminModerationSection(sendAdmin),
     h('h3', null, 'Horário'),
     en('Shared neighborhood clock.', true),
     h(
@@ -286,13 +290,18 @@ function renderPlayers(players: AdminPlayerRow[]): void {
       p.id === me
         ? h('span', { class: 'admin-you' }, 'você')
         : h(
-            'button',
-            {
-              type: 'button',
-              class: 'admin-kick',
-              onclick: () => sendAdmin?.({ t: 'admin', action: 'kick', targetId: p.id }),
-            },
-            'Kick',
+            'span',
+            { class: 'admin-sub-actions' },
+            h(
+              'button',
+              {
+                type: 'button',
+                class: 'admin-kick',
+                onclick: () => sendAdmin?.({ t: 'admin', action: 'kick', targetId: p.id }),
+              },
+              'Kick',
+            ),
+            moderationButtons(p.id, p.name),
           ),
     );
     playersEl.append(row);

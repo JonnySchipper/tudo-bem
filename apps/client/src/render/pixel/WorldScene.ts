@@ -82,7 +82,7 @@ import { CounterStage } from './correriaStage';
 import { correriaFeed } from './correriaFeed';
 import { FOCUS, NEED } from './correriaArt';
 import { roomKey, syncViews } from './reconcile';
-import { DEPTH, PROP_LIGHT, fencePieces, footprintRect, inflate, propAnchor, propClickKind, propDepth, furnitureArtKey, propArtKey, propPlaceholderKey, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
+import { DEPTH, PROP_LIGHT, fencePieces, footprintRect, inflate, propAnchor, propClickKind, propDepth, furnitureArtKey, propArtKey, propPlaceholderKey, glintSpot, propSlices, propSize, spriteRect, standingDepth, unionRect } from './props';
 import { sceneryFor, type WireRun } from './scenery';
 import { SURROUND_TILES, surroundFor, surroundReachFor, type Surround } from './surround';
 import { CROSS_PIXELS, TAP_COLORS, ringPixels, tapFrame, type TapCue } from './tapMark';
@@ -431,11 +431,21 @@ export class WorldScene extends Phaser.Scene {
   /** One twinkle per reading word in the room, at the top of the thing it is written on. Shown only while the word is unread (`syncGlints`). */
   private buildGlints(def: RoomDef): void {
     const tex = this.glintTexture();
+    // the art of the room's props, to find the sign board a word is written on (the hotspot box is only the floor it stands on)
+    const arts: { key: string; rect: Rect }[] = [];
+    for (const p of def.props) {
+      const key = propArtKey(p);
+      const d = key ? this.m.sprites[key] : undefined;
+      if (!key || !d) continue;
+      const a = propAnchor(p);
+      arts.push({ key, rect: spriteRect(Math.round(a.wx), Math.round(a.wy), d) });
+    }
     for (const hs of hotspotsInRoom(def.id)) {
       const word = wordForSign(hs.id);
       if (!word) continue;
       const b = hotspotBox(hs);
-      const img = this.reg(this.add.image(((b.x0 + b.x1) / 2) * T, b.y0 * T + 3, tex)).setDepth(DEPTH.overhead - 10).setVisible(false);
+      const at = glintSpot({ x0: b.x0 * T, y0: b.y0 * T, x1: b.x1 * T, y1: b.y1 * T }, arts);
+      const img = this.reg(this.add.image(at.x, at.y, tex)).setDepth(DEPTH.overhead - 10).setVisible(false);
       this.glints.push({ word: word.id, img, phase: hash01(b.x0 * 13 + b.y0 * 7) * Math.PI * 2 });
     }
   }
@@ -2252,14 +2262,14 @@ export class WorldScene extends Phaser.Scene {
     const selfView = selfId ? this.avatars.get(selfId) : undefined;
     if (this.stall?.closed) {
       const p = at(this.stall.wx, this.stall.wy - 30);
-      stacks.push({ key: 'stall:closed', x: p.px, y: p.py, plate: { text: 'Fechado · volta às 8h', kind: 'npc' }, bubbles: [] });
+      stacks.push({ key: 'stall:closed', x: p.px, y: p.py, plate: { text: 'Fechado · volta às 8h', gloss: 'Closed · back at 8 am', kind: 'npc' }, bubbles: [] });
     }
     // the feira's banner says it is closed outside 06:00-13:00
     if (this.feiraStalls.length && !feiraOpen(clock.minutes())) {
       const b = def.props.find((q) => q.id === 'feira_livre');
       if (b) {
         const p = at((b.x + (b.w ?? 1) / 2) * T, b.y * T - 22);
-        stacks.push({ key: 'feira:closed', x: p.px, y: p.py, plate: { text: 'Feira fechada · volta às 6h', kind: 'npc' }, bubbles: [] });
+        stacks.push({ key: 'feira:closed', x: p.px, y: p.py, plate: { text: 'Feira fechada · volta às 6h', gloss: 'Market closed · back at 6 am', kind: 'npc' }, bubbles: [] });
       }
     }
     for (const [id, v] of this.avatars) {

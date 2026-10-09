@@ -20,7 +20,7 @@
       <p class="brand"><a href="/"><img class="tb-logo tb-logo-banner" src="/brand/tb-logo-banner.png" alt="Tudo Bem" width="1073" height="386" decoding="async" /></a></p>
       <article class="card">
         <h1>Privacy Policy</h1>
-        <p class="effective">Effective October 7, 2026</p>
+        <p class="effective">Effective October 9, 2026</p>
 
         <p>
           Tudo Bem is a free browser game for learning Brazilian Portuguese, at
@@ -54,7 +54,12 @@
         <p>
           We also store when the account was created and when you last signed in. If you already have an
           email account and later use Continue with Google with that same email, we link the Google
-          identifier to the existing account.
+          identifier to the existing account. From then on that account signs in with Google only: the old
+          password stops working, and devices that were signed in with it are signed out.
+        </p>
+        <p>
+          In the game, the <strong>Conta</strong> (Account) panel in the settings menu lets you change your
+          password, sign out on every device, download your data, and delete your account.
         </p>
 
         <h2>What the game saves</h2>
@@ -71,6 +76,7 @@
             A short Portuguese summary of a recent conversation with a character, when that feature has
             something to remember. The summary is not a copy of the chat
           </li>
+          <li>Your friends list: the other players you added as friends</li>
         </ul>
         <p>
           Ordinary chat in a place is shown to the people who are there with you. We do not save a full
@@ -85,8 +91,14 @@
           about another player.
         </p>
         <p>
-          You can send a feedback note from the game. We save the note, the category if you pick one,
-          and a contact (an email or a nickname) only if you type one.
+          You can send a feedback note from the game. We save the note, the category if you pick one, the
+          place you were in, and a contact (an email or a nickname) only if you type one. If you are signed
+          in, we also save your account id and player id with the note instead of a contact, so we can
+          match it to your account. We never save your email address with a note.
+        </p>
+        <p>
+          We keep the safety log and feedback notes until we have reviewed them and no longer need them.
+          There is no automatic deletion yet. Deleting your account removes the entries we can match to it.
         </p>
 
         <h2>AI conversations</h2>
@@ -94,8 +106,9 @@
           Some conversations with characters are written by an AI model from xAI (api.x.ai), when that
           service is configured on the server. For
           those turns we send xAI the text of the conversation — what you typed and what the character
-          said — together with instructions for the model, so it can reply. At the end of a conversation
-          we may also ask xAI for a short summary.
+          said — together with instructions for the model, so it can reply. The instructions include your
+          character name, the pronoun you picked, and the saved summary of earlier conversations with that
+          character, if there is one. At the end of a conversation we may also ask xAI for a short summary.
         </p>
         <p>
           The full transcript of that conversation stays in the server’s memory only while it is recent.
@@ -120,23 +133,54 @@
         <p>If you play a solo copy with no server, the character can be stored only on that device.</p>
         <p>We do not use advertising cookies or analytics cookies.</p>
         <p>
+          <strong>IP addresses.</strong> The server uses your IP address to limit repeated sign-in attempts,
+          signups, and feedback notes. Those counters live in the server’s memory, drop old entries after
+          at most an hour, and are not written to the database. A wrong admin password is written to the
+          server log with the IP address it came from. Our host keeps server logs only for a short time.
+        </p>
+        <p>
           The game page loads typefaces from Google Fonts (fonts.googleapis.com and fonts.gstatic.com).
+        </p>
+
+        <h2>Where it is stored</h2>
+        <p>
+          The game server and its database run on Fly.io, in the United States. The database is backed up
+          every hour onto the same server storage. We keep the 48 most recent backups, so a backup is
+          replaced after about 48 hours of the server running.
         </p>
 
         <h2>Who else sees information</h2>
         <ul>
           <li>Other players in the same place see your character name, look, and chat.</li>
+          <li>
+            Leaderboards in the game show character names and scores (words learned, study streak) to every
+            player, not only the people in the same place.
+          </li>
+          <li>Your friends see when you are online and which place you are in.</li>
+          <li>Fly.io hosts the server and the database, as described above.</li>
           <li>Google processes Continue with Google, as described above.</li>
           <li>xAI processes conversation text when the AI conversation feature is on, as described above.</li>
         </ul>
         <p>We do not sell personal information.</p>
 
-        <h2>Deletion</h2>
+        <h2>Your data and deletion</h2>
         <p>
-          Email <a href="mailto:team@playtudobem.com">team@playtudobem.com</a> from the address on the
-          account, or tell us that address, and ask us to delete it. We will delete the account and the
-          gameplay data tied to it, and we will remove moderation and feedback entries we can match to
-          that account. There is no delete button in the game during this beta.
+          <strong>Download.</strong> In the game, open the settings menu, then <strong>Conta</strong>
+          (Account), then <strong>Baixar meus dados</strong> (Download my data). You get a JSON file with
+          your account details (not the password hash) and everything saved for your character.
+        </p>
+        <p>
+          <strong>Delete.</strong> In the same panel, <strong>Apagar conta</strong> (Delete account) asks for
+          your password, or, for an account that signs in with Google, for the account email typed out.
+          Deleting removes the account and its sessions, your character and its progress, your pictures,
+          academies and bakeries you founded, your place in other players’ friends lists and academies, the
+          feedback notes saved with your account, and safety-log entries filed by you or about you. It
+          happens at once and cannot be undone. Copies in the hourly backups are replaced within about 48
+          hours of the server running, as described above.
+        </p>
+        <p>
+          If you cannot sign in, email <a href="mailto:team@playtudobem.com">team@playtudobem.com</a> from the
+          address on the account, or tell us that address, and we will delete it for you.
         </p>
 
         <h2>Changes</h2>

@@ -2,10 +2,12 @@ import type { ClientMsg, ServerMsg } from '@tudobem/shared';
 
 type Handler = (m: ServerMsg) => void;
 
-export type NetStatus = 'open' | 'closed' | 'connecting' | 'failed' | 'replaced' | 'idle' | 'loggedOut';
+export type NetStatus = 'open' | 'closed' | 'connecting' | 'failed' | 'replaced' | 'idle' | 'loggedOut' | 'restarting';
 
 /** Server close codes that mean "don't reconnect on your own" (apps/server/src/app.ts CLOSE_CODES). */
-const TERMINAL_CLOSE: Record<number, NetStatus> = { 4000: 'replaced', 4001: 'idle', 4002: 'loggedOut', 4003: 'idle' };
+const TERMINAL_CLOSE: Record<number, NetStatus> = { 4000: 'replaced', 4001: 'idle', 4002: 'loggedOut', 4003: 'idle', 4004: 'idle' };
+/** The server is restarting (deploy, Fly auto-stop): RFC 6455 1012, sent by apps/server/src/app.ts on shutdown. */
+export const CLOSE_RESTART = 1012;
 
 export interface NetLike {
   readonly solo: boolean;
@@ -20,8 +22,20 @@ export interface NetLike {
 
 /** How long a socket may sit in CONNECTING before we treat it as dead. */
 export const NET_CONNECT_TIMEOUT_MS = 8_000;
-/** Failed sockets before the automatic loop stops and the UI asks the player to retry. */
-export const NET_MAX_RETRIES = 4;
+/**
+ * Failed sockets before the automatic loop stops and the UI asks the player to retry. With the backoff below
+ * this is about a minute or more: long enough for a deploy or a cold start of a stopped machine.
+ */
+export const NET_MAX_RETRIES = 10;
+/** Backoff: 1 s, 2 s, 4 s, … capped here, each with jitter so a restart does not get every client at once. */
+export const NET_RETRY_BASE_MS = 1_000;
+export const NET_RETRY_MAX_MS = 15_000;
+
+/** Wait before reconnect attempt `attempt` (1-based): between half and all of the capped exponential step. */
+export function reconnectDelay(attempt: number, random: () => number = Math.random): number {
+  const step = Math.min(NET_RETRY_MAX_MS, NET_RETRY_BASE_MS * 2 ** Math.max(0, attempt - 1));
+  return Math.round(step / 2 + (step / 2) * Math.min(1, Math.max(0, random())));
+}
 
 const WS_CONNECTING = 0;
 const WS_OPEN = 1;
@@ -49,6 +63,8 @@ export class Net implements NetLike {
   private rejoin = false;
   /** A close the player has to answer (replaced, idle, logout). Coming back from the camera must not undo it. */
   private terminal: NetStatus | null = null;
+  /** The last drop was a server restart (1012); kept through the retries until a socket opens. */
+  private restarting = false;
   private connectTimer: ReturnType<typeof setTimeout> | undefined;
   private retryTimer: ReturnType<typeof setTimeout> | undefined;
   private pingTimer: ReturnType<typeof setInterval> | undefined;
@@ -58,8 +74,23 @@ export class Net implements NetLike {
   constructor(
     private url: string,
     private createSocket: (url: string) => NetSocket = (u) => new WebSocket(u) as unknown as NetSocket,
+    private random: () => number = Math.random,
   ) {
     this.watchPage();
+    this.watchNetwork();
+  }
+
+  /** The device got its network back: try now instead of waiting out the backoff, with a fresh budget. */
+  networkOnline() {
+    if (!this.started || this.terminal || this.pageHidden || this.socketLive()) return;
+    this.attempts = 0;
+    this.rejoin = false;
+    this.begin();
+  }
+
+  private watchNetwork() {
+    const win = globalThis.window as (Window & typeof globalThis) | undefined;
+    win?.addEventListener?.('online', () => this.networkOnline());
   }
 
   /**
@@ -195,6 +226,7 @@ export class Net implements NetLike {
       }
       clearTimeout(this.connectTimer);
       this.attempts = 0;
+      this.restarting = false;
       this.onStatus('open');
       this.onOpen();
       // A queued tray submit belongs to the socket that died. Replaying it can burn the
@@ -237,8 +269,10 @@ export class Net implements NetLike {
         this.onStatus('failed');
         return;
       }
-      this.onStatus('closed');
-      const delay = Math.min(8_000, 500 * 2 ** (this.attempts - 1));
+      // A restart close says the server is coming back: same loop, its own message.
+      if (e.code === CLOSE_RESTART) this.restarting = true;
+      this.onStatus(this.restarting ? 'restarting' : 'closed');
+      const delay = reconnectDelay(this.attempts, this.random);
       this.retryTimer = setTimeout(() => {
         if (gen !== this.generation) return;
         if (this.pageHidden) {

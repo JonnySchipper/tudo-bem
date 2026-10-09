@@ -5,6 +5,7 @@ import type { GoogleOAuthConfig, GoogleTokenPayload } from './googleAuth.js';
 import { verifyGoogleIdToken } from './googleAuth.js';
 import { ADMIN_WRONG_PASSWORD, adminPasswordMatches, type AdminAuthConfig } from './adminAuth.js';
 import { accountsFileAdapter } from './fileStore.js';
+import { AttemptLimiter } from './attemptLimiter.js';
 import type { OpsSmokeConfig } from './opsSmoke.js';
 import type { AccountLink } from './world.js';
 
@@ -81,43 +82,18 @@ export async function verifyPassword(password: string, stored: string): Promise<
 
 // ---------------------------------------------------------------- rate limiting
 
-/** Sliding-window failure counter (in memory; one Fly machine). */
-export class AttemptLimiter {
-  private hits = new Map<string, number[]>();
-  constructor(
-    private max: number,
-    private windowMs: number,
-    private now: () => number = Date.now,
-  ) {}
-
-  blocked(key: string): boolean {
-    return this.recent(key).length >= this.max;
-  }
-
-  hit(key: string) {
-    const list = this.recent(key);
-    list.push(this.now());
-    this.hits.set(key, list);
-    if (this.hits.size > 10_000) this.prune();
-  }
-
-  reset(key: string) {
-    this.hits.delete(key);
-  }
-
-  private recent(key: string) {
-    const cutoff = this.now() - this.windowMs;
-    return (this.hits.get(key) ?? []).filter((t) => t > cutoff);
-  }
-
-  private prune() {
-    for (const k of [...this.hits.keys()]) if (!this.recent(k).length) this.hits.delete(k);
-  }
-}
+export { AttemptLimiter };
 
 // ---------------------------------------------------------------- store
 
-export type AuthResult = { ok: true; account: Account } | { ok: false; code: AuthErrorCode; pt: string; en: string };
+export type AuthResult =
+  | {
+      ok: true;
+      account: Account;
+      /** Google was just linked to an existing email account: its password was replaced and its old sessions revoked. */
+      linked?: true;
+    }
+  | { ok: false; code: AuthErrorCode; pt: string; en: string };
 
 export interface AccountStoreOptions {
   now?: () => number;
@@ -127,6 +103,9 @@ export interface AccountStoreOptions {
 
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60_000;
 const SESSION_REFRESH_MS = 24 * 60 * 60_000;
+
+/** Wrong current password on a change or a deletion (the shared login copy talks about email + password). */
+export const PASSWORD_WRONG = { pt: 'Senha atual incorreta.', en: 'Current password is wrong.' };
 
 function sha256(v: string) {
   return crypto.createHash('sha256').update(v).digest('hex');
@@ -201,7 +180,23 @@ export class AccountStore implements AccountLink {
       if (existing.googleSub && existing.googleSub !== payload.sub) {
         return { ok: false, code: 'google', ...AUTH_COPY.googleEmail };
       }
-      if (!existing.googleSub) existing.googleSub = payload.sub;
+      if (!existing.googleSub) {
+        // First Google link to an email account. Nothing proved the password was set by whoever owns this
+        // inbox (there is no email verification), so a pre-registered account must not keep a way in:
+        // the password becomes unusable and every older session ends. Google is the way in from now on.
+        const unusable = await hashPassword(crypto.randomBytes(32).toString('base64url'), this.params);
+        // Re-check after the hash: the account may have been deleted or linked meanwhile.
+        if (this.byId.get(existing.id) !== existing) return { ok: false, code: 'google', ...AUTH_COPY.googleInvalid };
+        if (existing.googleSub && existing.googleSub !== payload.sub) return { ok: false, code: 'google', ...AUTH_COPY.googleEmail };
+        if (!existing.googleSub) {
+          existing.googleSub = payload.sub;
+          existing.passwordHash = unusable;
+          this.revokeAllSessions(existing.id);
+          existing.lastLoginAt = this.now();
+          this.save();
+          return { ok: true, account: existing, linked: true };
+        }
+      }
       existing.lastLoginAt = this.now();
       this.save();
       return { ok: true, account: existing };
@@ -265,6 +260,60 @@ export class AccountStore implements AccountLink {
     this.sessions.delete(s.hash);
     this.save();
     return this.byId.get(s.accountId);
+  }
+
+  /** End every session of an account, or every one but `keepRaw` (the cookie of the device asking). Returns how many ended. */
+  revokeAllSessions(accountId: string, keepRaw?: string): number {
+    const keep = keepRaw ? sha256(keepRaw) : null;
+    let n = 0;
+    for (const [h, s] of this.sessions) {
+      if (s.accountId !== accountId || h === keep) continue;
+      this.sessions.delete(h);
+      n++;
+    }
+    if (n) this.save();
+    return n;
+  }
+
+  /**
+   * Check the current password, store a hash of the new one and end the account's other sessions.
+   * `keepRaw` is the cookie of the device making the change, which stays signed in.
+   */
+  async changePassword(accountId: string, current: string, next: string, keepRaw?: string): Promise<AuthResult> {
+    const account = this.byId.get(accountId);
+    if (!account) return { ok: false, code: 'unauthenticated', ...AUTH_COPY.unauthenticated };
+    if (!(await this.checkPassword(account, current))) return { ok: false, code: 'credentials', ...PASSWORD_WRONG };
+    const pw = validatePassword(next);
+    if (!pw.ok) return { ok: false, code: 'password', ...pw.reason };
+    const passwordHash = await hashPassword(pw.value, this.params);
+    // The account may have been deleted while the hash ran.
+    if (this.byId.get(accountId) !== account) return { ok: false, code: 'unauthenticated', ...AUTH_COPY.unauthenticated };
+    account.passwordHash = passwordHash;
+    this.revokeAllSessions(accountId, keepRaw);
+    this.save();
+    return { ok: true, account };
+  }
+
+  /** Constant-ish cost password check for an account the caller already holds (re-entry before a sensitive change). */
+  async checkPassword(account: Account, password: string): Promise<boolean> {
+    if (typeof password !== 'string' || !password || password.length > 1024) return false;
+    return verifyPassword(password, account.passwordHash);
+  }
+
+  /** Account by email (normalized), for the admin deletion path. */
+  byEmailGet(email: string): Account | undefined {
+    return this.byId.get(this.byEmail.get(normalizeEmail(email)) ?? '');
+  }
+
+  /** Remove an account and all its sessions, and persist right away. Part of the deletion cascade (accountDelete.ts). */
+  removeAccount(accountId: string): boolean {
+    const account = this.byId.get(accountId);
+    if (!account) return false;
+    for (const [h, s] of this.sessions) if (s.accountId === accountId) this.sessions.delete(h);
+    this.byId.delete(accountId);
+    if (this.byEmail.get(account.email) === accountId) this.byEmail.delete(account.email);
+    this.save();
+    return true;
   }
 
   profileIdFor(accountId: string) {
@@ -372,6 +421,11 @@ function cookie(value: string, maxAgeSec: number, secure: boolean) {
   return [`${SESSION_COOKIE}=${value}`, 'Path=/', 'HttpOnly', 'SameSite=Lax', `Max-Age=${maxAgeSec}`, secure ? 'Secure' : ''].filter(Boolean).join('; ');
 }
 
+/** Set-Cookie value that clears the session cookie (account deletion). */
+export function clearSessionCookie(req: IncomingMessage, mode: CookieSecure = 'auto'): string {
+  return cookie('', 0, isHttps(req, mode));
+}
+
 /**
  * Browsers always send Origin on WebSocket upgrades and fetch POSTs. A cookie-bearing request from
  * another site is refused (CSRF / cross-site WebSocket hijacking). Non-browser clients send none.
@@ -387,9 +441,19 @@ export function originAllowed(req: IncomingMessage, allowed: readonly string[] =
   }
 }
 
-export function clientIp(req: IncomingMessage): string {
-  const fly = req.headers['fly-client-ip'];
-  if (typeof fly === 'string' && fly) return fly;
+/**
+ * The address rate limits key on. Fly-Client-IP is only trusted on Fly (FLY_APP_NAME is set there and its proxy overwrites the header);
+ * anywhere else a client could send it to dodge the limits. Behind another proxy, TB_TRUST_PROXY=1 trusts the first X-Forwarded-For hop.
+ */
+export function clientIp(req: IncomingMessage, env: Record<string, string | undefined> = process.env): string {
+  if (env.FLY_APP_NAME) {
+    const fly = req.headers['fly-client-ip'];
+    if (typeof fly === 'string' && fly.trim()) return fly.trim();
+  } else if (env.TB_TRUST_PROXY === '1') {
+    const xff = req.headers['x-forwarded-for'];
+    const first = (Array.isArray(xff) ? xff[0] : xff)?.split(',')[0]?.trim();
+    if (first) return first;
+  }
   return req.socket.remoteAddress ?? 'unknown';
 }
 
@@ -427,7 +491,7 @@ export function defaultLimiters(now: () => number = Date.now, signupMax = 10): A
 
 const MAX_BODY = 8 * 1024;
 
-function readJson(req: IncomingMessage): Promise<Record<string, unknown> | null> {
+export function readJson(req: IncomingMessage): Promise<Record<string, unknown> | null> {
   return new Promise((resolve) => {
     let size = 0;
     const chunks: Buffer[] = [];
@@ -460,7 +524,7 @@ function send(res: ServerResponse, status: number, body: AuthResponse, setCookie
 }
 
 const fail = (code: AuthErrorCode, copy: { pt: string; en: string }): AuthResponse => ({ ok: false, code, ...copy });
-const okBody = (a: Account): AuthResponse => ({ ok: true, account: { email: a.email, hasProfile: !!a.profileId } });
+const okBody = (a: Account): AuthResponse => ({ ok: true, account: { email: a.email, hasProfile: !!a.profileId, ...(a.googleSub ? { google: true } : {}) } });
 
 type AdminGateFail = { ok: false; status: number; body: AuthResponse };
 
@@ -483,7 +547,9 @@ function verifyAdminGate(
   return { ok: true };
 }
 
-/** POST /api/auth/register · POST /api/auth/login · POST /api/auth/logout · GET /api/auth/me */
+/**
+ * POST /api/auth/register · /login · /logout · /logout-all · /password (current + next; other sessions end) · GET /api/auth/me
+ */
 export async function handleAuthApi(req: IncomingMessage, res: ServerResponse, deps: AuthApiDeps): Promise<void> {
   const url = new URL(req.url ?? '/', 'http://x');
   const action = url.pathname.replace(/^\/api\/auth\/?/, '');
@@ -539,9 +605,8 @@ export async function handleAuthApi(req: IncomingMessage, res: ServerResponse, d
     const ip = clientIp(req);
     const gate = verifyAdminGate(deps.adminAuth, limiters, ip, adminPassword);
     if (!gate.ok) return send(res, gate.status, gate.body);
-    if (limiters.signup.blocked(ip)) return send(res, 429, fail('rate', AUTH_COPY.rate));
+    if (!limiters.signup.take(ip)) return send(res, 429, fail('rate', AUTH_COPY.rate));
     const account = await accounts.createFreshSmokeAccount(deps.opsSmoke.password);
-    limiters.signup.hit(ip);
     return send(res, 200, okBody(account), cookie(accounts.createSession(account.id), maxAge, secure));
   }
 
@@ -554,20 +619,21 @@ export async function handleAuthApi(req: IncomingMessage, res: ServerResponse, d
     const body = await readJson(req);
     const credential = typeof body?.credential === 'string' ? body.credential : '';
     const ip = clientIp(req);
-    if (limiters.ip.blocked(ip)) return send(res, 429, fail('rate', AUTH_COPY.rate));
+    // Reserve before the network verify; a token that checks out gives the slot back.
+    if (!limiters.ip.take(ip)) return send(res, 429, fail('rate', AUTH_COPY.rate));
     const verify = deps.verifyGoogleIdToken ?? verifyGoogleIdToken;
     const payload = await verify(credential, cfg.clientId);
-    if (!payload) {
-      limiters.ip.hit(ip);
-      return send(res, 401, fail('google', AUTH_COPY.googleInvalid));
-    }
+    if (!payload) return send(res, 401, fail('google', AUTH_COPY.googleInvalid));
+    limiters.ip.release(ip);
     const r = await accounts.loginWithGoogle(payload);
     if (!r.ok) return send(res, r.code === 'google' ? 409 : 400, fail(r.code, r));
+    // A first link revoked the account's older sessions: close their live sockets too.
+    if (r.linked) deps.onLogout?.(r.account.id);
     limiters.ip.reset(ip);
     return send(res, 200, okBody(r.account), cookie(accounts.createSession(r.account.id), maxAge, secure));
   }
 
-  if (req.method !== 'POST' || !['register', 'login', 'logout'].includes(action)) {
+  if (req.method !== 'POST' || !['register', 'login', 'logout', 'logout-all', 'password'].includes(action)) {
     return send(res, 404, fail('bad_request', AUTH_COPY.badRequest));
   }
   // JSON-only + same-origin: a cross-site <form> can't produce either, so no CSRF token is needed.
@@ -581,28 +647,68 @@ export async function handleAuthApi(req: IncomingMessage, res: ServerResponse, d
     return send(res, 200, { ok: true, account: null }, cookie('', 0, secure));
   }
 
+  if (action === 'logout-all') {
+    const account = accounts.accountForSession(sessionCookieOf(req));
+    if (!account) return send(res, 401, fail('unauthenticated', AUTH_COPY.unauthenticated), cookie('', 0, secure));
+    accounts.revokeAllSessions(account.id);
+    deps.onLogout?.(account.id);
+    return send(res, 200, { ok: true, account: null }, cookie('', 0, secure));
+  }
+
   const body = await readJson(req);
   if (!body) return send(res, 400, fail('bad_request', AUTH_COPY.badRequest));
   const email = typeof body.email === 'string' ? body.email : '';
   const password = typeof body.password === 'string' ? body.password : '';
   const ip = clientIp(req);
 
+  if (action === 'password') {
+    const raw = sessionCookieOf(req);
+    const account = accounts.accountForSession(raw);
+    if (!account) return send(res, 401, fail('unauthenticated', AUTH_COPY.unauthenticated));
+    const current = typeof body.current === 'string' ? body.current : '';
+    const next = typeof body.next === 'string' ? body.next : '';
+    // Same budget as a login for this account: a stolen cookie cannot brute-force the current password.
+    const key = `acct:${account.id}`;
+    if (!limiters.login.take(key)) return send(res, 429, fail('rate', AUTH_COPY.rate));
+    if (!limiters.ip.take(ip)) {
+      limiters.login.release(key);
+      return send(res, 429, fail('rate', AUTH_COPY.rate));
+    }
+    const r = await accounts.changePassword(account.id, current, next, raw);
+    if (!r.ok) {
+      // Only a wrong current password counts as a failed attempt.
+      if (r.code !== 'credentials') {
+        limiters.login.release(key);
+        limiters.ip.release(ip);
+      }
+      return send(res, r.code === 'credentials' ? 401 : r.code === 'unauthenticated' ? 401 : 400, fail(r.code, r));
+    }
+    limiters.login.reset(key);
+    limiters.ip.release(ip);
+    return send(res, 200, okBody(r.account), cookie(raw!, maxAge, secure));
+  }
+
   if (action === 'register') {
-    if (limiters.signup.blocked(ip)) return send(res, 429, fail('rate', AUTH_COPY.rate));
+    // Reserve the slot before the slow hash, so parallel signups can't all pass the check. Only a created account keeps it.
+    if (!limiters.signup.take(ip)) return send(res, 429, fail('rate', AUTH_COPY.rate));
     const r = await accounts.register(email, password, body.confirm18 === true);
-    if (!r.ok) return send(res, r.code === 'taken' ? 409 : 400, fail(r.code, r));
-    limiters.signup.hit(ip);
+    if (!r.ok) {
+      limiters.signup.release(ip);
+      return send(res, r.code === 'taken' ? 409 : 400, fail(r.code, r));
+    }
     return send(res, 201, okBody(r.account), cookie(accounts.createSession(r.account.id), maxAge, secure));
   }
 
   const key = normalizeEmail(email);
-  if (limiters.login.blocked(key) || limiters.ip.blocked(ip)) return send(res, 429, fail('rate', AUTH_COPY.rate));
-  const r = await accounts.login(email, password);
-  if (!r.ok) {
-    limiters.login.hit(key);
-    limiters.ip.hit(ip);
-    return send(res, 401, fail(r.code, r));
+  // Count the attempt before the scrypt await: parallel guesses each take a slot, and a success gives it back.
+  if (!limiters.login.take(key)) return send(res, 429, fail('rate', AUTH_COPY.rate));
+  if (!limiters.ip.take(ip)) {
+    limiters.login.release(key);
+    return send(res, 429, fail('rate', AUTH_COPY.rate));
   }
+  const r = await accounts.login(email, password);
+  if (!r.ok) return send(res, 401, fail(r.code, r));
   limiters.login.reset(key);
+  limiters.ip.release(ip);
   return send(res, 200, okBody(r.account), cookie(accounts.createSession(r.account.id), maxAge, secure));
 }

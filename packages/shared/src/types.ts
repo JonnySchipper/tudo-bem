@@ -181,8 +181,12 @@ export interface PrivateProfile {
   /** Bought the kimono at the Academia vestiário; enables the gi look everywhere. */
   giOwned?: boolean;
   friends: string[];
+  /** Players this profile blocked: their chat, emotes and friend requests never reach it. Missing on older saves. */
+  blocked?: string[];
   tutorial: Record<TutorialStep, boolean>;
   tutorialRewarded: boolean;
+  /** The one-time RV gift for first entering your own kitnet has been paid. Missing on older saves. */
+  kitnetGiftPaid?: boolean;
   createdAt: number;
   /** Today's kiosk mission (the server rolls it over each day). */
   mission?: DailyMission;

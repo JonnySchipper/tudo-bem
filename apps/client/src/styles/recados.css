@@ -618,6 +618,29 @@ body:has(#hud-actions.open) .kg-card {
   }
 }
 
+.kg-head .en {
+  font-size: 0.7em;
+  font-weight: 400;
+}
+
+/* a checklist line: the Portuguese, with its English under it */
+.kg-step {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.kg-step > * {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.kg-step .en {
+  font-size: 0.82em;
+  font-weight: 400;
+}
+
 .kg-head {
   cursor: default;
 }

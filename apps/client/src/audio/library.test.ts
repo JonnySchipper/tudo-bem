@@ -3,7 +3,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { viewNode } from '@tudobem/shared';
-import { clipKey, findClip, pickPtVoice, TTS_MANIFEST } from './library';
+import { clipKey, findClip, loadTtsManifest, pickPtVoice } from './library';
+
+const TTS_MANIFEST = await loadTtsManifest();
 
 const audioDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../public/audio/tts');
 

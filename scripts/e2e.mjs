@@ -371,6 +371,19 @@ async function main() {
   await page.evaluate(() => document.activeElement?.blur?.());
   await page.keyboard.press('Escape');
   await page.click('#btn-caderno');
+  // the Diário opens on its Início; the Caderno de palavras is its last tab. The book first swings its cover open and the
+  // pages slap in (about 2s of animation); a player taps the tab once the book is open, so wait for that before clicking.
+  await waitFor(
+    page,
+    () => {
+      const book = document.querySelector('[data-modal="caderno"] .panel.jb');
+      return !!book && !book.getAnimations({ subtree: true }).some((a) => a.playState === 'running' && !a.effect?.target?.closest?.('.jb-spread'));
+    },
+    null,
+    15_000,
+    'the Diário cover is open',
+  );
+  await page.click('[data-modal="caderno"] [data-journal-tab="caderno"]', { timeout: 15_000 });
   await page.waitForSelector('[data-modal="caderno"] [data-card="lex.padaria.coxinha"]', { timeout: 5000 });
   assert(!(await page.textContent('[data-modal="caderno"] [data-card="lex.padaria.coxinha"] .cad-pt')).includes('???'), 'Caderno shows a word the sign taught');
   await shot(page, '03c_caderno');
@@ -638,13 +651,17 @@ async function main() {
   await goArea(page, 'rua'); // the kitnet door is on the west half
   log(`academia bout ok: ${result.winner} by ${result.reason}, ${result.moves} beats`);
 
-  // 7. Kitnet: place the free chair
+  // 7. Kitnet: the first-visit gift (10 RV) buys the wooden chair, then place it (there is no free starter chair)
   await interact(page, { portal: 'praca_kitnet' });
   await waitFor(page, () => window.__tb.game.room?.room === 'kitnet', null, 15_000, 'kitnet');
   await sleep(500);
   // a first visit: the Decorar guide comes up and pulses the control it wants next (force: the bounce never reads as "stable")
   assert(await page.evaluate(() => window.__tb.kitnetGuide().running), 'the Decorar guide greets a first kitnet visit');
   await page.click('#btn-decor', { force: true });
+  await page.click('#tab-loja', { force: true });
+  await page.click('[data-buy-furniture="cadeira_madeira"]', { force: true });
+  await waitFor(page, () => (window.__tb.game.profile?.furniture.cadeira_madeira ?? 0) >= 1, null, 5000, 'chair bought');
+  await page.click('#tab-meus', { force: true });
   await page.click('[data-furniture="cadeira_madeira"]', { force: true });
   await clickTileHit(page, 3, 4);
   await waitFor(page, () => window.__tb.game.furniture.length === 1, null, 5000, 'chair placed');
