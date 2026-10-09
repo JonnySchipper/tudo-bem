@@ -149,11 +149,12 @@ async function main() {
       page,
       () => {
         const f = window.__tb.drawnFrames();
-        return f.includes('props/carrinho_feira') && f.includes('props/placa_feira');
+        // the cart wears Pastel's own plaque, never the TAPIOCA one
+        return f.includes('props/carrinho_feira_pastel') && !f.includes('props/carrinho_feira') && f.includes('props/placa_feira');
       },
       null,
       12_000,
-      'pastel cart and sign sprites',
+      'pastel cart (PASTEL plaque) and sign sprites',
     );
     const on = await world(page);
     assert(on.gameCart && on.sign, 'turning Pastel on did not put the cart and the sign back');

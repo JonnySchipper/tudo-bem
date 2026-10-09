@@ -5,6 +5,7 @@ import { HOTSPOTS } from './hotspots.js';
 import { RECADOS } from './recados.js';
 import { ROOMS, buildGrid, isWalkable, key } from './rooms.js';
 import {
+  FEIRA_CART_ART,
   FEIRA_CART_WORLD_IDS,
   FEIRA_DAILY_PAID_RUNS,
   FEIRA_GAME_MAX_SCORE,
@@ -23,6 +24,7 @@ import {
   feiraCartShown,
   feiraGameActive,
   feiraPayout,
+  feiraRoomFor,
   judgeFeiraResult,
   medalTallies,
   medalsForDay,
@@ -268,6 +270,31 @@ describe('feira cart switch', () => {
     expect(featuredEnabled('1970-01-01', enabledFeiraGameIds(cfg, '1970-01-01'))).toBe('pastel');
     expect(featuredEnabled('1970-01-02', enabledFeiraGameIds(cfg, '1970-01-02'))).toBeNull();
     expect(feiraCartShown({ closed: true, game: null })).toBe(false);
+  });
+
+  it('dresses the cart for the featured game, so a Pastel or Caldo day never shows the TAPIOCA plaque', () => {
+    const art = (game: (typeof FEIRA_IMPLEMENTED_GAMES)[number]) =>
+      feiraRoomFor(ROOMS.feira, { closed: false, game }).props.find((p) => p.id === 'carrinho_jogos')!.art;
+    expect(art('tapioca')).toBe('props/carrinho_feira');
+    expect(art('pastel')).toBe('props/carrinho_feira_pastel');
+    expect(art('caldo')).toBe('props/carrinho_feira_caldo');
+    expect(new Set(FEIRA_IMPLEMENTED_GAMES.map((g) => FEIRA_CART_ART[g])).size).toBe(FEIRA_IMPLEMENTED_GAMES.length);
+    // nothing featured: no cart at all; another room is untouched
+    const hidden = feiraRoomFor(ROOMS.feira, { closed: true, game: null });
+    for (const id of FEIRA_CART_WORLD_IDS) expect(hidden.props.some((p) => p.id === id)).toBe(false);
+    expect(feiraRoomFor(ROOMS.praca, { closed: false, game: 'pastel' })).toBe(ROOMS.praca);
+    // only the cart's art changes: same props, same blocking
+    const pastel = feiraRoomFor(ROOMS.feira, { closed: false, game: 'pastel' });
+    expect(pastel.props.map((p) => p.id)).toEqual(ROOMS.feira.props.map((p) => p.id));
+  });
+
+  it('keeps lamps out of the cart plaque, and marks free slots with a lettered VAGA slate (never a blank board)', () => {
+    const cart = ROOMS.feira.props.find((p) => p.id === 'carrinho_jogos')!;
+    for (const lamp of ROOMS.feira.props.filter((p) => p.kind === 'poste')) {
+      const inFront = lamp.y > cart.y && lamp.y <= cart.y + 3 && lamp.x >= cart.x - 1 && lamp.x <= cart.x + 3;
+      expect(inFront, lamp.id).toBe(false);
+    }
+    for (const p of ROOMS.feira.props.filter((q) => q.id.startsWith('vaga_'))) expect(p.art).toBe('feira/vaga');
   });
 
   it('does not point a recado, a readable sign, or a diary object at a hidden cart game', () => {

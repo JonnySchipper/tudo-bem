@@ -17,6 +17,7 @@ import './styles/feiraGames.css';
 import './styles/feiraCaldo.css';
 import './styles/townMap.css';
 import './styles/onboarding.css';
+import './styles/feiraStall.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
