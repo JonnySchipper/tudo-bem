@@ -17,6 +17,7 @@ import {
   greetingKind,
   ITEMS,
   itemById,
+  itemWithArticle,
   normalizeBag,
   normalizeRecados,
   npcName,
@@ -461,5 +462,15 @@ describe('drop and the day bonus', () => {
     expect(normalizeRecados({ day: 2, bonus: 'yes' }).bonus).toBeUndefined();
     const rolled = rollRecadoDay({ recados: { ...freshRecadoState(), day: 1, done: ['a', 'b', 'c'], bonus: true } }, 2, mulberry32(1));
     expect(rolled.bonus).toBeUndefined();
+  });
+});
+
+describe('naming an item in a sentence', () => {
+  it('uses the card’s gender for um / uma, and no article for a plural', () => {
+    expect(itemWithArticle('coxinha')).toBe('uma coxinha');
+    expect(itemWithArticle('cafe_com_leite')).toBe('um café com leite');
+    expect(itemWithArticle('banana')).toBe('uma banana');
+    expect(itemWithArticle('flores')).toBe('flores');
+    for (const it of ITEMS) expect(it.gender, it.id).toBeDefined();
   });
 });

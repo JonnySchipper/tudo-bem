@@ -219,6 +219,8 @@ interface StackEl {
   hidden: boolean;
   /** true while a part of the stack would sit under the HUD (then the whole stack is not drawn) */
   occluded: boolean;
+  /** true while only the bubbles would sit under the HUD (they hide; the plate stays) */
+  bubblesOccluded: boolean;
   /** each bubble's `bottom` before any de-overlap lift (CSS px above the anchor) */
   baseBottoms: number[];
   plateBottom: string;
@@ -397,22 +399,24 @@ export class LabelLayer {
         .filter((r) => r.width > 0 && r.height > 0)
         .map((r) => ({ l: r.left, r: r.right, t: r.top, b: r.bottom }));
     }
+    const hit = (part: HTMLElement): boolean => {
+      if (!this.hudRects.length || part.style.display === 'none') return false;
+      const r = part.getBoundingClientRect();
+      return !!r.width && underHud({ l: r.left, r: r.right, t: r.top, b: r.bottom }, this.hudRects);
+    };
     for (const el of this.stacks.values()) {
       if (el.hidden) continue;
-      let under = false;
-      if (this.hudRects.length) {
-        for (const part of [el.plateRow, ...el.bubbles.map((b) => b.root)]) {
-          if (part.style.display === 'none') continue;
-          const r = part.getBoundingClientRect();
-          if (r.width && underHud({ l: r.left, r: r.right, t: r.top, b: r.bottom }, this.hudRects)) {
-            under = true;
-            break;
-          }
-        }
+      // the plate (and its recado marker) under the HUD: the whole stack goes. Only a bubble under it: just the bubbles go, so a neighbour's
+      // name and "!" stay readable while a line they say rises under the top bar.
+      const plateUnder = hit(el.plateRow) || (el.quest.style.display !== 'none' && hit(el.quest));
+      const bubblesUnder = !plateUnder && el.bubbles.some((b) => hit(b.root));
+      if (plateUnder !== el.occluded) {
+        el.occluded = plateUnder;
+        el.root.style.visibility = plateUnder ? 'hidden' : '';
       }
-      if (under !== el.occluded) {
-        el.occluded = under;
-        el.root.style.visibility = under ? 'hidden' : '';
+      if (bubblesUnder !== el.bubblesOccluded) {
+        el.bubblesOccluded = bubblesUnder;
+        for (const b of el.bubbles) b.root.style.visibility = bubblesUnder ? 'hidden' : '';
       }
     }
   }
@@ -441,7 +445,7 @@ export class LabelLayer {
     quest.style.display = 'none';
     plateRow.append(crown, plate, subBadge, founder, quest);
     root.appendChild(plateRow);
-    return { root, plateRow, plate, founder, subBadge, crown, quest, bubbles: [], side: 'left', plateKey: '', plateW: 0, plateH: 0, transform: '', hidden: false, occluded: false, baseBottoms: [], plateBottom: '' };
+    return { root, plateRow, plate, founder, subBadge, crown, quest, bubbles: [], side: 'left', plateKey: '', plateW: 0, plateH: 0, transform: '', hidden: false, occluded: false, bubblesOccluded: false, baseBottoms: [], plateBottom: '' };
   }
 
   private createBubble(): BubbleEl {
@@ -577,6 +581,7 @@ export class LabelLayer {
       let be = el.bubbles[i];
       if (!be) {
         be = this.createBubble();
+        if (el.bubblesOccluded) be.root.style.visibility = 'hidden';
         el.bubbles[i] = be;
         el.root.appendChild(be.root);
       }

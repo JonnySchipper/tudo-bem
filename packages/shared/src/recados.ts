@@ -87,28 +87,37 @@ export interface ItemDef {
   name: Bilingual;
   /** Curriculum card id, when the word already has a card. */
   cardId?: string;
+  /** Grammatical gender, for "um café" / "uma coxinha". `pl`: a plural noun said without an article ("flores"). */
+  gender?: 'm' | 'f' | 'pl';
 }
 
 /** Explicit picks for recados. Ids match the padaria shelf ids in `meveum.ts` (`pao`, `pao_de_queijo`, `cafe_com_leite`). */
 const EXTRA_ITEMS: ItemDef[] = [
   // needs_br: true (no curriculum cards yet; see "Proposed cards" in the decisions note)
-  { id: 'jornal', name: { pt: 'jornal', en: 'newspaper' } },
-  { id: 'flores', name: { pt: 'flores', en: 'flowers' } },
-  { id: 'banana', name: { pt: 'banana', en: 'banana' } },
+  { id: 'jornal', name: { pt: 'jornal', en: 'newspaper' }, gender: 'm' },
+  { id: 'flores', name: { pt: 'flores', en: 'flowers' }, gender: 'pl' },
+  { id: 'banana', name: { pt: 'banana', en: 'banana' }, gender: 'f' },
   // the feira (Phase 9). needs_br: true
-  { id: 'laranja', name: { pt: 'laranja', en: 'orange' } },
-  { id: 'maca', name: { pt: 'maçã', en: 'apple' } },
-  { id: 'alface', name: { pt: 'alface', en: 'lettuce' } },
-  { id: 'tomate', name: { pt: 'tomate', en: 'tomato' } },
-  { id: 'caldo_de_cana', name: { pt: 'caldo de cana', en: 'sugarcane juice' } },
+  { id: 'laranja', name: { pt: 'laranja', en: 'orange' }, gender: 'f' },
+  { id: 'maca', name: { pt: 'maçã', en: 'apple' }, gender: 'f' },
+  { id: 'alface', name: { pt: 'alface', en: 'lettuce' }, gender: 'f' },
+  { id: 'tomate', name: { pt: 'tomate', en: 'tomato' }, gender: 'm' },
+  { id: 'caldo_de_cana', name: { pt: 'caldo de cana', en: 'sugarcane juice' }, gender: 'm' },
 ];
 
 /** Everything that can sit in the bag: the whole padaria shelf (names come from its cards) plus the extras. */
 export const ITEMS: readonly ItemDef[] = [
-  ...MG_ITEMS.map((i) => ({ id: i.id, name: { pt: i.card.form, en: i.card.gloss_en }, cardId: i.card.id })),
+  ...MG_ITEMS.map((i) => ({ id: i.id, name: { pt: i.card.form, en: i.card.gloss_en }, cardId: i.card.id, gender: i.card.gender ?? 'm' })),
   ...EXTRA_ITEMS,
 ];
 export const itemById = (id: unknown): ItemDef | undefined => (typeof id === 'string' ? ITEMS.find((i) => i.id === id) : undefined);
+
+/** "uma coxinha", "um café com leite", "flores": how you name one of it in a sentence. needs_br: true */
+export function itemWithArticle(id: string): string {
+  const it = itemById(id);
+  if (!it) return id;
+  return it.gender === 'pl' ? it.name.pt : `${it.gender === 'f' ? 'uma' : 'um'} ${it.name.pt}`;
+}
 
 export const BAG_MAX_PER_ITEM = 20;
 
@@ -345,9 +354,10 @@ export function describeStep(step: RecadoStep): Bilingual {
     case 'cumprimentar': {
       const who = step.npc ? npcName(step.npc) : 'alguém';
       const whoEn = step.npc ? npcName(step.npc) : 'someone';
+      // the greeting is said in the chat (a wave does not count): the line says so, or nobody finds out how
       return step.timeCorrect
-        ? { pt: `Cumprimente ${who} (bom dia, boa tarde ou boa noite, conforme a hora).`, en: `Greet ${whoEn} (bom dia, boa tarde or boa noite, to match the time).` }
-        : { pt: `Cumprimente ${who}.`, en: `Greet ${whoEn}.` };
+        ? { pt: `Cumprimente ${who} no chat: bom dia, boa tarde ou boa noite, conforme a hora.`, en: `Greet ${whoEn} in the chat: bom dia, boa tarde or boa noite, to match the time.` }
+        : { pt: `Cumprimente ${who}: chegue perto e diga “Oi!” no chat.`, en: `Greet ${whoEn}: walk up and say “Oi!” in the chat.` };
     }
   }
 }

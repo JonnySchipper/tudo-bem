@@ -875,12 +875,6 @@ body:has(#hud-actions.open) .kg-card {
   font-size: 0.82em;
 }
 
-.rj-stars {
-  font-size: 1.4em;
-  letter-spacing: 2px;
-  color: #d39a1f;
-  text-shadow: 0 1px 0 #3a2410;
-}
 
 .rj-ask {
   margin: 4px 0 0;
@@ -891,10 +885,6 @@ body:has(#hud-actions.open) .kg-card {
 .rj-ask .en {
   display: block;
   font-size: 0.86em;
-}
-
-.rj-stepl.preview {
-  margin-top: 6px;
 }
 
 .rj-where {
@@ -912,15 +902,101 @@ body:has(#hud-actions.open) .kg-card {
 .rj-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px 12px;
   align-items: center;
+  justify-content: space-between;
   margin-top: 8px;
 }
 
-.rj-actions button {
-  min-height: 36px;
-  padding: 4px 12px;
+.rj-actions .rj-where {
+  margin: 0;
 }
+
+.rj-actions .rj-accept {
+  margin-left: auto;
+  min-height: 40px;
+  padding: 4px 18px;
+}
+
+.rj-actions .rj-drop {
+  margin-left: auto;
+  min-height: 32px;
+  padding: 2px 10px;
+  font-size: 0.82em;
+  color: var(--ink-soft);
+}
+
+/* an offer's steps, one compact numbered row */
+.rj-route {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  font-size: 0.84em;
+}
+
+.rj-route li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 7px 1px 2px;
+  background: #fffaf0;
+  border: 2px solid rgba(87, 60, 44, 0.35);
+}
+
+.rj-route li b {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  font-size: 0.85em;
+  color: #fff;
+  background: var(--terracota-dark);
+}
+
+/* the day's stars: earned ones gold, the rest an outline */
+.rj-stars,
+.rtrack-stars {
+  display: inline-flex;
+  gap: 1px;
+  letter-spacing: 0;
+}
+
+.rj-stars i,
+.rtrack-stars i {
+  font-style: normal;
+  color: #b9a58a;
+}
+
+.rj-stars i.on,
+.rtrack-stars i.on {
+  color: #e0a419;
+  text-shadow: 0 1px 0 #3a2410;
+}
+
+.rj-stars {
+  font-size: 1.5em;
+}
+
+.rtrack-head .rtrack-stars {
+  font-size: 15px;
+}
+
+.rtrack-stars.paid i.on {
+  animation: rt-star 1.6s steps(4, end) infinite alternate;
+}
+
+@keyframes rt-star {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.35); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rtrack-stars.paid i.on { animation: none; }
+}
+
 
 .rj-full {
   color: var(--ink-soft);
@@ -929,4 +1005,32 @@ body:has(#hud-actions.open) .kg-card {
 
 .rj-full .en {
   display: block;
+}
+
+/* the third errand of the day: Vizinho do dia on the thanks card */
+.rd-bonus {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin-top: 6px;
+  padding: 3px 8px;
+  background: #fff3c4;
+  border: 2px solid #3a2410;
+}
+
+.rd-bonus .rd-stars {
+  color: #e0a419;
+  text-shadow: 0 1px 0 #3a2410;
+  letter-spacing: 1px;
+}
+
+.rd-bonus .en {
+  font-size: 0.82em;
+  color: var(--ink-soft);
+}
+
+/* a modal has the screen: the thanks card waits under it (the tracker does the same) */
+body:has(.backdrop) .recado-done {
+  display: none;
 }

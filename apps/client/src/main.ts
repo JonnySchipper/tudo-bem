@@ -782,7 +782,8 @@ function updateGuides() {
   }
   // the errand on top of the tracker: an arrow to the neighbour or the sign it needs, or to the door toward their room
   const errand = recadoGuide();
-  if (errand && !renderer.guides.some((g) => g.x === errand.x && g.y === errand.y)) add(errand);
+  // a sign already standing there (the tutorial's "Padaria: pela Rua ↑") points the same way: one label, not two on top of each other
+  if (errand && !renderer.guides.some((g) => Math.abs(g.x - errand.x) + Math.abs(g.y - errand.y) <= 3)) add(errand);
 }
 
 /** Where the first active recado's current step points: its NPC or sign in this room, else the way out toward their room. Nothing while they are at home. */
@@ -1110,8 +1111,8 @@ net.on((m: ServerMsg) => {
       break;
     }
     case 'notice':
-      // a recado step and the giver's thanks have their own presentation (the tracker's ✓, the thanks card)
-      if (m.tag !== 'recado_step' && m.tag !== 'recado_thanks') toast(m.level, m.pt, m.en);
+      // a recado step, the giver's thanks and the day bonus have their own presentation (the tracker's ✓, the thanks card)
+      if (m.tag !== 'recado_step' && m.tag !== 'recado_thanks' && m.tag !== 'recado_bonus') toast(m.level, m.pt, m.en);
       break;
     case 'cartela': {
       const line = stampNotice(m.activity, m.stamps, m.paid);

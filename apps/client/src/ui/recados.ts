@@ -3,7 +3,7 @@
  * panel with today's offered / active / done recados, the Mochila and the hearts, the "recado done" card, the heart-up toast, and the
  * offer / hand-over beats NPCs open their dialogue with.
  */
-import { describeStep, itemById, npcName, recadoById, type NpcId } from '@tudobem/shared';
+import { describeStep, itemById, itemWithArticle, npcName, recadoById, type NpcId } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi, ui } from './dom';
 import { icon } from '../art/ui';
@@ -15,7 +15,7 @@ import { foodIcon, npcPortrait } from './pixelArt';
 import { showDialogueBox } from './dialogue';
 import { closeDialogue } from './panels';
 import { clock } from '../gameClock';
-import { greetingFor, greetingCap, RECADO_MAX_ACTIVE } from '@tudobem/shared';
+import { greetingFor, greetingCap, RECADO_DAY_BONUS_RV, RECADO_MAX_ACTIVE } from '@tudobem/shared';
 import {
   activeWhere,
   advancedKeys,
@@ -84,8 +84,8 @@ const markIntroSeen = (): void => {
   }
 };
 
-/** "★★☆ 2/3": the day's three recados toward the Vizinho do dia bonus. */
-const dayStars = (d: DayProgress): string => '★'.repeat(d.done) + '☆'.repeat(Math.max(0, d.goal - d.done));
+/** "★★☆": the day's three recados toward the Vizinho do dia bonus; earned stars gold, the rest an empty outline. */
+const starEls = (d: DayProgress): HTMLElement[] => Array.from({ length: d.goal }, (_, i) => h('i', { class: i < d.done ? 'on' : '' }, i < d.done ? '★' : '☆'));
 
 const heartsEl = (points: number | undefined, cls = 'hearts'): HTMLElement => {
   const v = heartsView(points);
@@ -110,6 +110,7 @@ export function mountTracker(openJournal: () => void): { refresh: () => void } {
   let flashTimer = 0;
   let peekTimer = 0;
   let peeking = false;
+  let offersPeeked = false;
   const compact = () => window.matchMedia(COMPACT_QUERY).matches;
   const stored = (): boolean | null => {
     try {
@@ -164,8 +165,16 @@ export function mountTracker(openJournal: () => void): { refresh: () => void } {
       }, 1500);
       peek();
     }
+    // a phone keeps the tracker folded: open it for a few seconds when an errand is taken, and once when today's offers first show up
+    const taken = prevBoard && board ? board.active.some((a) => !prevBoard!.active.some((b) => b.id === a.id)) : false;
+    if (taken || (!offersPeeked && board?.offered.length && (board.active.length ?? 0) < RECADO_MAX_ACTIVE)) {
+      offersPeeked = true;
+      peek();
+    }
+    // the third errand of the day also pays Vizinho do dia: the same card says so (the server's notice for it is not toasted)
+    const bonusNow = !!(prevBoard && board?.bonus && !prevBoard.bonus);
     for (const d of finishedRecados(prevBoard, board)) {
-      showRecadoDone(d.id);
+      showRecadoDone(d.id, bonusNow);
       ambience.sting('recado');
     }
     for (const up of heartUps(prevBond, p?.bond)) {
@@ -187,7 +196,7 @@ export function mountTracker(openJournal: () => void): { refresh: () => void } {
       h('b', null, 'Recados'),
       // collapsed on a phone the head is all there is: a gold "!" says a neighbour is waiting
       ...(offers ? [h('span', { class: 'rtrack-bang', title: 'Novo recado · New errand', 'aria-label': `${offers} recados novos (new errands)` }, '!')] : []),
-      h('small', { title: `Vizinho do dia: ${day.done}/${day.goal} · Neighbour of the day` }, day.paid ? '★ ✓' : dayStars(day)),
+      h('small', { class: `rtrack-stars${day.paid ? ' paid' : ''}`, title: `Vizinho do dia: ${day.done}/${day.goal} · Neighbour of the day`, 'aria-label': `Vizinho do dia ${day.done}/${day.goal}` }, starEls(day)),
       h('span', { class: 'rtrack-caret', 'aria-hidden': 'true' }),
     );
     const intro =
@@ -245,7 +254,7 @@ function entryRow(e: TrackerEntry, justDone: boolean, open: () => void): HTMLEle
 // ---------------------------------------------------------------- done card
 
 /** The giver says thanks: a card with their portrait, the line, and the RV + friendship reward. Not modal: the world keeps moving. */
-export function showRecadoDone(id: string): void {
+export function showRecadoDone(id: string, dayBonus = false): void {
   const d = recadoById(id);
   if (!d) return;
   document.querySelector('.recado-done')?.remove();
@@ -265,6 +274,8 @@ export function showRecadoDone(id: string): void {
         h('span', { class: 'rd-heart' }, icon('coracao', 16), `+${d.reward.bond}`),
         d.reward.itemId ? h('span', { class: 'rd-item' }, foodIcon(d.reward.itemId, 2), itemById(d.reward.itemId)?.name.pt ?? '') : null,
       ),
+      // needs_br: true
+      dayBonus ? h('div', { class: 'rd-bonus' }, h('span', { class: 'rd-stars', 'aria-hidden': 'true' }, '★★★'), h('b', null, `Vizinho do dia! +${RECADO_DAY_BONUS_RV} RV`), en('Neighbour of the day!', true)) : null,
     ),
   );
   ui().append(card);
@@ -291,7 +302,7 @@ export function openJournal(): void {
       h(
         'div',
         { class: `rj-day${day.paid ? ' paid' : ''}`, id: 'rj-day' },
-        h('span', { class: 'rj-stars', 'aria-hidden': 'true' }, dayStars(day)),
+        h('span', { class: 'rj-stars', 'aria-hidden': 'true' }, ...starEls(day)),
         h(
           'span',
           null,
@@ -300,18 +311,6 @@ export function openJournal(): void {
         ),
       ),
     );
-
-    if (j.tutorial) {
-      const t = j.tutorial;
-      sections.push(
-        h(
-          'section',
-          { class: 'rj-sec welcome' },
-          h('h3', null, npcPortrait('julia', 'feliz', 'rj-face'), h('span', null, h('b', null, 'Bem-vindo à Vila Ipê'), h('small', null, 'Welcome to Vila Ipê · de Júlia')), h('em', null, t.entry.progress)),
-          h('ol', { class: 'rj-steps' }, ...t.steps.map((s) => h('li', { class: s.done ? 'done' : '' }, h('span', { class: 'box' }, s.done ? '✓' : ''), h('span', null, s.pt, en(s.en, true))))),
-        ),
-      );
-    }
 
     sections.push(
       h(
@@ -334,8 +333,12 @@ export function openJournal(): void {
                     h('div', { class: 'rj-title' }, a.title.pt, h('small', null, `de ${npcName(a.giver)}`), h('em', null, `+${a.reward.rv} RV · ♥${a.reward.bond}`)),
                     en(a.title.en, true),
                     h('ul', { class: 'rj-stepl' }, ...stepStates(a, def, describeStep).map((s) => h('li', { class: s.state }, h('span', { class: 'mk' }, s.state === 'done' ? '✓' : s.state === 'now' ? '▸' : '·'), h('span', null, s.text.pt, en(s.text.en, true))))),
-                    whereEl(activeWhere(a, minute)),
-                    h('div', { class: 'rj-actions' }, h('button', { class: 'ghost small rj-drop', type: 'button', onclick: () => actions.drop(a.id) }, bi('Deixar pra depois', 'Put aside'))),
+                    h(
+                      'div',
+                      { class: 'rj-actions' },
+                      whereEl(activeWhere(a, minute)),
+                      h('button', { class: 'ghost rj-drop', type: 'button', title: 'Put aside: it goes back on today’s list', onclick: () => actions.drop(a.id) }, 'Deixar pra depois'),
+                    ),
                   ),
                 );
               }),
@@ -368,13 +371,15 @@ export function openJournal(): void {
                     h('div', { class: 'rj-title' }, o.title.pt, h('small', null, `de ${npcName(o.giver)}`), h('em', null, `+${o.reward.rv} RV · ♥${o.reward.bond}`)),
                     en(o.title.en, true),
                     h('p', { class: 'rj-ask', lang: 'pt-BR' }, `“${o.ask.pt}”`, en(`“${o.ask.en}”`, true)),
-                    def ? h('ol', { class: 'rj-stepl preview' }, ...def.steps.map((st) => describeStep(st)).map((t) => h('li', { class: 'later' }, h('span', { class: 'mk' }, '·'), h('span', null, t.pt, en(t.en, true))))) : null,
-                    whereEl(giverWhere(o.giver, minute), npcName(o.giver)),
+                    // the steps as one compact numbered row (the English on hover): what you sign up for, at a glance
+                    def ? h('ol', { class: 'rj-route' }, ...def.steps.map((st) => describeStep(st)).map((t, i) => h('li', { title: t.en }, h('b', null, String(i + 1)), t.pt))) : null,
                     h(
                       'div',
                       { class: 'rj-actions' },
-                      h('button', { class: 'primary small rj-accept', type: 'button', disabled: full, onclick: () => actions.accept(o.id) }, bi('Aceitar', 'Accept')),
-                      full ? h('small', { class: 'rj-full' }, `Máximo de ${RECADO_MAX_ACTIVE} de uma vez`, en(`${RECADO_MAX_ACTIVE} at a time`, true)) : null,
+                      whereEl(giverWhere(o.giver, minute), npcName(o.giver)),
+                      full
+                        ? h('small', { class: 'rj-full' }, `Máximo de ${RECADO_MAX_ACTIVE} de uma vez`, en(`${RECADO_MAX_ACTIVE} at a time`, true))
+                        : h('button', { class: 'primary rj-accept', type: 'button', onclick: () => actions.accept(o.id) }, bi('Aceitar', 'Accept')),
                     ),
                   ),
                 );
@@ -384,6 +389,18 @@ export function openJournal(): void {
         j.done.length ? h('div', { class: 'rj-done' }, h('b', null, `✓ Feitos hoje: ${j.done.length}`), ...j.done.map((d) => h('span', { class: 'rj-chip' }, d.title.pt))) : null,
       ),
     );
+
+    if (j.tutorial) {
+      const t = j.tutorial;
+      sections.push(
+        h(
+          'section',
+          { class: 'rj-sec welcome' },
+          h('h3', null, npcPortrait('julia', 'feliz', 'rj-face'), h('span', null, h('b', null, 'Bem-vindo à Vila Ipê'), h('small', null, 'Welcome to Vila Ipê · de Júlia')), h('em', null, t.entry.progress)),
+          h('ol', { class: 'rj-steps' }, ...t.steps.map((s) => h('li', { class: s.done ? 'done' : '' }, h('span', { class: 'box' }, s.done ? '✓' : ''), h('span', null, s.pt, en(s.en, true))))),
+        ),
+      );
+    }
 
     sections.push(
       h(
@@ -468,7 +485,7 @@ function giveBeat(npc: NpcId, options: ReturnType<typeof giveOptions>, hooks: Pr
   const g = greetingCap(greetingFor(clock.minutes()));
   const chips = [
     // the player says it: the hand-over is a line of Portuguese, not a menu verb. needs_br: true
-    ...options.map((o) => ({ pt: `Trouxe ${o.name.pt} pra você!`, en: `I brought you ${o.name.en}! (hand it over)` })),
+    ...options.map((o) => ({ pt: `Trouxe ${itemWithArticle(o.itemId)} pra você!`, en: `Here’s your ${o.name.en}! (hand it over)` })),
     { pt: 'Só conversar', en: 'Just chat' },
   ];
   showDialogueBox({
