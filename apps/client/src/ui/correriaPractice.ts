@@ -135,25 +135,24 @@ export class CorreriaPractice {
     const body = this.step === 'paid' ? practicePaid(this.paid.tip, this.paid.points) : s.body;
     const btn = (cls: string, pt: string, en: string, onclick: () => void, id?: string) => h('button', { type: 'button', class: `cr-coach-btn ${cls}`, ...(id ? { id } : {}), onclick }, h('span', { class: 'pt' }, pt), h('span', { class: 'gloss' }, en));
     this.card.dataset.step = this.step;
-    this.card.replaceChildren(
-      ...[
-        h(
-          'div',
-          { class: 'cr-coach-head' },
-          h('b', { class: 'cr-coach-n', 'aria-label': `Passo ${n} de ${PRACTICE_STEPS.length}` }, `${n}/${PRACTICE_STEPS.length}`),
-          h('span', { class: 'cr-coach-kick' }, 'Treino', h('span', { class: 'gloss' }, 'Practice')),
-          this.step === 'paid' ? null : btn('skip', 'Pular', 'Skip', () => this.finish(), 'cr-coach-skip'),
-        ),
-        h('h3', { class: 'cr-coach-title' }, h('span', { class: 'pt' }, s.title.pt), h('span', { class: 'gloss' }, s.title.en)),
-        h('p', { class: 'cr-coach-body' }, h('span', { class: 'pt' }, body.pt), h('span', { class: 'gloss' }, body.en)),
-        this.hint ? h('p', { class: 'cr-coach-hint' }, h('span', { class: 'pt' }, this.hint.pt), h('span', { class: 'gloss' }, this.hint.en)) : null,
-        this.step === 'read' ? h('div', { class: 'cr-coach-row' }, btn('next', 'Próximo', 'Next', () => this.go('cafe'), 'cr-coach-next')) : null,
-        this.step === 'paid'
-          ? h('div', { class: 'cr-coach-row' }, btn('next', 'Começar o turno', 'Start the shift', () => this.finish(), 'cr-coach-start'), btn('again', 'Treinar de novo', 'Practice again', () => this.restart(), 'cr-coach-again'))
-          : null,
-        h('ol', { class: 'cr-coach-dots', 'aria-hidden': 'true' }, ...PRACTICE_STEPS.map((x, i) => h('li', { class: i < n - 1 ? 'done' : i === n - 1 ? 'on' : '' }))),
-      ].filter((node): node is HTMLElement => node != null),
-    );
+    const nodes: (HTMLElement | null)[] = [
+      h(
+        'div',
+        { class: 'cr-coach-head' },
+        h('b', { class: 'cr-coach-n', 'aria-label': `Passo ${n} de ${PRACTICE_STEPS.length}` }, `${n}/${PRACTICE_STEPS.length}`),
+        h('span', { class: 'cr-coach-kick' }, 'Treino', h('span', { class: 'gloss' }, 'Practice')),
+        this.step === 'paid' ? null : btn('skip', 'Pular', 'Skip', () => this.finish(), 'cr-coach-skip'),
+      ),
+      h('h3', { class: 'cr-coach-title' }, h('span', { class: 'pt' }, s.title.pt), h('span', { class: 'gloss' }, s.title.en)),
+      h('p', { class: 'cr-coach-body' }, h('span', { class: 'pt' }, body.pt), h('span', { class: 'gloss' }, body.en)),
+      this.hint ? h('p', { class: 'cr-coach-hint' }, h('span', { class: 'pt' }, this.hint.pt), h('span', { class: 'gloss' }, this.hint.en)) : null,
+      this.step === 'read' ? h('div', { class: 'cr-coach-row' }, btn('next', 'Próximo', 'Next', () => this.go('cafe'), 'cr-coach-next')) : null,
+      this.step === 'paid'
+        ? h('div', { class: 'cr-coach-row' }, btn('next', 'Começar o turno', 'Start the shift', () => this.finish(), 'cr-coach-start'), btn('again', 'Treinar de novo', 'Practice again', () => this.restart(), 'cr-coach-again'))
+        : null,
+      h('ol', { class: 'cr-coach-dots', 'aria-hidden': 'true' }, ...PRACTICE_STEPS.map((x, i) => h('li', { class: i < n - 1 ? 'done' : i === n - 1 ? 'on' : '' }))),
+    ];
+    this.card.replaceChildren(...nodes.filter((node): node is HTMLElement => node != null));
   }
 
   /** Every frame: the glow on what to tap (the HUD and the shelf buttons are redrawn, so it is put back each time). */
