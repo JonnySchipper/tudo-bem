@@ -587,6 +587,91 @@ body.in-aeroporto #recado-tracker {
   display: none;
 }
 
+/* ---------------------------------------------------------------- the kitnet first-visit guide (ui/kitnetGuide.ts)
+ * The airport card's look: bottom left on a desktop (the Decorar panel takes the right, the cartela and the toasts the top left), the
+ * tracker's corner on a phone (the Decorar sheet comes up from the bottom). It steps aside while the phone menu is open. */
+
+body.kitnet-guide-on #recado-tracker {
+  display: none;
+}
+
+.kg-card[hidden],
+.kg-pointer[hidden],
+body:has(#hud-actions.open) .kg-card {
+  display: none;
+}
+
+.kg-card {
+  left: calc(12px + var(--safe-left, 0px));
+  right: auto;
+  top: auto;
+  bottom: calc(16px + var(--safe-bottom, 0px));
+}
+
+/* a phone: the whole width, under the pills (kitnetGuide.ts sets the exact top) */
+@media (max-width: 640px), (max-height: 520px) {
+  .rtrack.kg-card {
+    top: calc(var(--hud-bottom, 60px) + 10px);
+    bottom: auto;
+    width: calc(100vw - 20px - var(--safe-left, 0px) - var(--safe-right, 0px));
+    max-width: 420px;
+  }
+}
+
+.kg-head {
+  cursor: default;
+}
+
+.kg-head:hover {
+  background: transparent;
+}
+
+.kg-head .spacer {
+  flex: 1;
+}
+
+.kg-icon {
+  background: #2e9e5b;
+}
+
+.kg-skip {
+  min-height: 0;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.kg-skip .en {
+  font-size: 0.85em;
+}
+
+.kg-broke {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 8px 6px;
+  font-size: 0.82em;
+}
+
+.kg-broke .en {
+  font-size: 0.9em;
+}
+
+.kg-broke button {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+/* the game's bouncing pixel arrow, pointing at a HUD or panel control: the box is pinned at the arrow tip */
+.kg-pointer {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+
 /* the HUD button the current step needs */
 .tut-pulse {
   position: relative;

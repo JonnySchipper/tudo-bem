@@ -18,7 +18,7 @@ export const FEEDBACK_CONTACT_MAX = 80;
 export const FEEDBACK_CATEGORIES = ['bug', 'idea', 'love'] as const;
 export type FeedbackCategory = (typeof FEEDBACK_CATEGORIES)[number];
 
-export type FeedbackCode = 'empty' | 'short' | 'long' | 'category' | 'contact' | 'pii' | 'unsafe' | 'rate' | 'bad_request' | 'offline';
+export type FeedbackCode = 'empty' | 'short' | 'long' | 'category' | 'contact' | 'pii' | 'unsafe' | 'bad_request' | 'offline';
 
 /** needs_br — player-facing copy for the Fala button and form. */
 export const FEEDBACK_COPY: Record<
@@ -42,7 +42,6 @@ export const FEEDBACK_COPY: Record<
   | 'category'
   | 'contact'
   | 'pii'
-  | 'rate'
   | 'bad_request'
   | 'offline',
   Bilingual
@@ -67,7 +66,6 @@ export const FEEDBACK_COPY: Record<
   category: { pt: 'Escolhe problema, ideia ou gostei.', en: 'Pick a problem, an idea, or something you love.' },
   contact: { pt: 'Esse contato não parece certo.', en: "That contact doesn't look right." },
   pii: { pt: 'Deixa o contato no campo de contato, não dentro do recado.', en: 'Put a way to reach you in the contact field, not inside the note.' },
-  rate: { pt: 'Calma, já recebemos o seu recado. Tenta de novo mais tarde.', en: 'We already got your note. Try again later.' },
   bad_request: { pt: 'Não deu pra ler esse recado.', en: "We couldn't read that note." },
   offline: { pt: 'Não deu pra enviar agora. Tenta de novo daqui a pouco.', en: "Couldn't send just now. Try again in a moment." },
 };

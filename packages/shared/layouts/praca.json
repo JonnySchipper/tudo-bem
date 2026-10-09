@@ -427,7 +427,7 @@
         "pt": "Placar da Vila",
         "en": "Village board"
       },
-      "art": "props/placar"
+      "art": "props/placar_vila"
     },
     {
       "id": "lampada_p3",

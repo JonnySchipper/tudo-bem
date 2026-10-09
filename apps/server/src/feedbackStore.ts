@@ -1,11 +1,11 @@
 /**
  * Player feedback notes. Same shape as the other JSON stores: an adapter loads and saves the file.
- * Node writes `feedback.json` (mode 0600 — a guest may have typed a contact). Tests pass null.
+ * Node writes the SQLite `feedback` table (the database file is mode 0600 — a guest may have typed a contact). Tests pass null.
  */
 import type { FeedbackCategory } from '@tudobem/shared';
 import type { RoomId } from '@tudobem/shared';
 
-export const FEEDBACK_FILE_MAX = 2000;
+export const FEEDBACK_FILE_MAX = 20000;
 
 export interface FeedbackRow {
   id: string;

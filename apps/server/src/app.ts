@@ -9,6 +9,7 @@ import { ProfileStore } from './store.js';
 import { AcademyStore } from './academyStore.js';
 import { PadariaStore } from './padariaStore.js';
 import { academyFileAdapter, feedbackFileAdapter, feiraCartFileAdapter, feiraGamesFileAdapter, fileAdapter, layoutFileAdapter, padariaFileAdapter } from './fileStore.js';
+import { backupDatabase, closeDatabase, openDatabase } from './sqliteDb.js';
 import { LayoutStore } from './layoutStore.js';
 import { FeiraCartStore } from './feiraCart.js';
 import { FeiraGamesStore } from './feiraGames.js';
@@ -30,7 +31,7 @@ import {
   type CookieSecure,
   type ScryptParams,
 } from './auth.js';
-import { feedbackLimiter, handleFeedbackApi } from './feedbackApi.js';
+import { handleFeedbackApi } from './feedbackApi.js';
 import { FeedbackStore } from './feedbackStore.js';
 import { readAdminAuthConfig, type AdminAuthConfig } from './adminAuth.js';
 import { handleBillingApi } from './billing/http.js';
@@ -66,6 +67,8 @@ export interface AppOptions {
   billing?: import('./billing/provider.js').BillingConfig;
   /** Test double for the Lemon Squeezy HTTP client. */
   billingFetch?: (input: string, init?: RequestInit) => Promise<Response>;
+  /** Hourly online backups under `dataDir/backups`, and one on shutdown when the last copy is older than an hour. */
+  sqliteBackups?: boolean;
 }
 
 /** Server chat safety: the Jev model behind the stub when a model folder is configured, else the stub alone. */
@@ -103,6 +106,8 @@ const MIME: Record<string, string> = {
 
 export function createApp(opts: AppOptions) {
   const { dataDir, clientDist } = opts;
+  // Open (and migrate) before any store constructor. A failed import must abort startup; ProfileStore would otherwise catch the error and later save an empty set.
+  openDatabase(dataDir);
   const store = new ProfileStore(fileAdapter(dataDir));
   const feiraGamesFile = feiraGamesFileAdapter(dataDir);
   const feiraGames = new FeiraGamesStore(() => feiraGamesFile.load(), (state) => feiraGamesFile.save(state), () => Date.now());
@@ -112,7 +117,6 @@ export function createApp(opts: AppOptions) {
   const padarias = new PadariaStore(padariaFileAdapter(dataDir));
   const layouts = new LayoutStore(layoutFileAdapter(dataDir));
   const feedback = new FeedbackStore(feedbackFileAdapter(dataDir));
-  const feedbackLimit = feedbackLimiter();
   const feedbackAdmin = opts.feedbackAdmin ?? readAdminAuthConfig();
   const billing = opts.billing ?? readBillingConfig(process.env);
   const accounts = new AccountStore(accountsFileAdapter(dataDir), { sessionTtlMs: opts.sessionTtlMs, scrypt: opts.scrypt });
@@ -202,7 +206,6 @@ export function createApp(opts: AppOptions) {
       return handleFeedbackApi(req, res, {
         store: feedback,
         accounts,
-        limiter: feedbackLimit,
         admin: feedbackAdmin,
         moderation: world.services.moderation,
         allowedOrigins,
@@ -310,24 +313,42 @@ export function createApp(opts: AppOptions) {
     world.sweepFeiraGames();
   }, opts.idleSweepMs ?? 15_000);
 
+  const runBackup = () => {
+    void backupDatabase(openDatabase(dataDir), dataDir).catch(() => console.error('[sqlite] backup failed'));
+  };
+  const backupKick = opts.sqliteBackups ? setTimeout(runBackup, 60_000) : null;
+  const backupTimer = opts.sqliteBackups ? setInterval(runBackup, 60 * 60 * 1000) : null;
+  backupKick?.unref();
+  backupTimer?.unref();
+
   return {
     server,
     wss,
     world,
     store,
     accounts,
-    close() {
+    async close() {
       clearInterval(heartbeat);
       clearInterval(idleSweep);
+      if (backupKick) clearTimeout(backupKick);
+      if (backupTimer) clearInterval(backupTimer);
       for (const ws of wss.clients) ws.terminate();
       wss.close();
-      store.flush();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
       feiraGames.persist();
       feiraCart.persist();
       academies.save();
       padarias.save();
       feedback.save();
-      return new Promise<void>((resolve) => server.close(() => resolve()));
+      store.shutdown();
+      if (opts.sqliteBackups) {
+        try {
+          await backupDatabase(openDatabase(dataDir), dataDir);
+        } catch {
+          console.error('[sqlite] shutdown backup failed');
+        }
+      }
+      closeDatabase(dataDir);
     },
   };
 }
