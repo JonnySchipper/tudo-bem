@@ -43,11 +43,8 @@ describe('carry', () => {
     }
   });
 
-  it('points empties at an icon that is already on a full item', () => {
-    expect(carryOf('coco_vazio')?.tex).toBe('agua_de_coco');
-    expect(carryOf('saquinho_vazio')?.tex).toBe('pipoca_salgada');
-    expect(carryOf('copinho_vazio')?.tex).toBe('cafezinho');
-    expect(carryOf('copo_vazio')?.tex).toBe('agua');
+  it('gives every empty its own drawn icon, not a full item tinted grey', () => {
+    for (const id of ['coco_vazio', 'saquinho_vazio', 'copinho_vazio', 'copo_vazio']) expect(carryOf(id)?.tex).toBe(id);
     expect(carryOf('pipoca_doce')?.tex).toBe('pipoca_doce');
   });
 });

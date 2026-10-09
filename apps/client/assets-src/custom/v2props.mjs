@@ -221,20 +221,25 @@ async function pipoqueiro(ctx) {
   return [{ img: out, anchor: [24, 44] }];
 }
 
-/** Carrinho de água de coco: the umbrella cart repainted green and white, a pile of green coconuts, an ice box with cut ones and a COCO board. */
+/**
+ * Carrinho de água de coco: the umbrella cart repainted green and white, a stacked pile of green coconuts in the left bin, cut ones with
+ * straws standing in ice on the right, and a COCO board on the front.
+ */
 async function cocoCart(ctx) {
   const cart = stripSoftAlpha(await ctx.load(VEH + 'Fruit_Flowers_Cart_1.png'));
   const img = blank(56, 64);
   paste(img, cart, 0, 0);
-  // repaint the umbrella (rows 9..37): green and cream gores that keep the pack's shading.
+  // repaint the umbrella: green and cream gores that keep the pack's shading.
   // The canopy is a dome seen from above; the gores radiate from the hub (the pale pixels
-  // at x 16..17, y 14..15), not from the middle of the disc.
+  // at x 16..17, y 14..15), not from the middle of the disc. Only inside the canopy's
+  // outline: the cart's top rail behind it is the same warm wood and must stay wood.
   const cx = 16.5, cy = 14.5;
+  const canopy = (x, y) => ((x + 0.5 - 16.5) / 16.2) ** 2 + ((y + 0.5 - 21.5) / 13.2) ** 2 <= 1;
   const GREEN = ['#2e7177', '#367f82', '#49928f', '#5ea592'];
   const CREAM = ['#c6bdd5', '#d8d0e0', '#ebe4f2', '#f8f8f8'];
   for (let y = 9; y < 38; y++) for (let x = 0; x < 36; x++) {
     const i = (y * 56 + x) * 4;
-    if (!img.data[i + 3]) continue;
+    if (!img.data[i + 3] || !canopy(x, y)) continue;
     const r = img.data[i], g = img.data[i + 1], b = img.data[i + 2];
     const sat = Math.max(r, g, b) - Math.min(r, g, b);
     if (sat < 55) continue; // navy outline, grey pole, white hub
@@ -245,27 +250,35 @@ async function cocoCart(ctx) {
     const hex = (gore ? CREAM : GREEN)[idx];
     img.data[i] = parseInt(hex.slice(1, 3), 16); img.data[i + 1] = parseInt(hex.slice(3, 5), 16); img.data[i + 2] = parseInt(hex.slice(5, 7), 16);
   }
-  // coconuts: green ellipsoids, a pyramid in the left compartment, three cut ones in the ice box on the right
-  const coco = (x, y) => {
-    shape(img, ell(x + 3, y + 3, 3.4, 3.4), [x + 3, y + 3, 3.4, 3.4], ['#3f7a42', '#5da23d', '#7fb84a', '#b8d97a'], { ol: NAVY, t: [0.8, 0.3, -0.1] });
-    put(img, x + 3, y, '#cbd58a'); put(img, x + 2, y, '#e3e8b0');
+  // coconuts: green ellipsoids lit from the upper left, each with a dark-green rim so a heap still reads as separate nuts.
+  // Drawn back to front (top of the heap first) so every front nut overlaps the one behind it.
+  const SHELL = ['#2f5a2a', '#4f8a35', '#74b043', '#b8d97a'];
+  const coco = (cx_, cy_, r = 3.3) => {
+    shape(img, ell(cx_, cy_, r, r * 0.92), [cx_, cy_, r, r], SHELL, { ol: '#1f3a1c', t: [0.8, 0.3, -0.1] });
+    put(img, Math.round(cx_ - 1.5), Math.round(cy_ - 1.6), '#e3e8b0');
   };
-  for (const [x, y] of [[8, 44], [14, 44], [11, 40], [8, 49], [14, 49], [11, 45]]) coco(x, y);
-  for (const [x, y] of [[24, 44], [31, 44], [27, 41]]) {
-    coco(x, y);
-    line(img, x + 3, y, x + 5, y - 5, C.r3); put(img, x + 5, y - 5, C.r1); // a straw
+  // the left bin (wood front x 5..21, top edge y 35): a pyramid of whole coconuts standing up out of it
+  for (const [x, y] of [[13, 29.5], [9.8, 32.6], [16.4, 32.6], [6.8, 35.8], [13.1, 35.8], [19.3, 35.8]]) coco(x, y);
+  // the ice box on the right (dark inside x 22..40, y 36..46): crushed ice, three cut coconuts with straws standing in it
+  for (let y = 37; y < 46; y++) for (let x = 23; x < 39; x++) {
+    const r = h2(x, y, 17);
+    put(img, x, y, y < 39 ? (r < 0.5 ? '#f8f8f8' : '#d8e8f0') : r < 0.3 ? '#ffffff' : r < 0.75 ? '#c6dceb' : '#9ab8cf');
   }
-  // ice
-  for (let x = 23; x < 38; x += 2) put(img, x, 49, C.lav4);
-  // the chalkboard sign on a stick on the right (the handle side)
-  const s = blank(24, 18);
-  fillRect(s, 11, 9, 2, 9, K.br2);
-  const w = width3('COCO') + 4;
-  fillRect(s, 1, 0, w, 10, NAVY); fillRect(s, 2, 1, w - 2, 8, C.navy2);
-  fillRect(s, 2, 1, w - 2, 1, C.slate);
-  drawText3(s, 3, 2, 'COCO', C.white);
-  hline(s, 3, 8, w - 4, C.b1);
-  paste(img, s, 34, 40);
+  for (const [x, y] of [[26, 35.5], [31.5, 34.6], [36.8, 35.5]]) {
+    coco(x, y, 3);
+    // the cut top: husk rim and pale flesh, and a red-and-white straw leaning out
+    put(img, Math.round(x) - 1, Math.round(y) - 3, '#d8cc98'); put(img, Math.round(x), Math.round(y) - 3, '#fffaf0'); put(img, Math.round(x) + 1, Math.round(y) - 3, '#d8cc98');
+    line(img, Math.round(x), Math.round(y) - 4, Math.round(x) + 2, Math.round(y) - 9, C.r3);
+    put(img, Math.round(x) + 1, Math.round(y) - 6, C.white); put(img, Math.round(x) + 2, Math.round(y) - 9, C.r1);
+  }
+  // the board on the front of the ice box: navy frame, cream face, green letters, a green coconut dot either side
+  const w = width3('COCO') + 8;
+  const bx = 23, by = 46;
+  fillRect(img, bx, by, w, 9, NAVY);
+  fillRect(img, bx + 1, by + 1, w - 2, 7, '#f8f8f8');
+  hline(img, bx + 1, by + 7, w - 2, '#d8d0e0');
+  drawText3(img, bx + 4, by + 2, 'COCO', '#2e7177');
+  put(img, bx + 2, by + 4, '#4f8a35'); put(img, bx + w - 3, by + 4, '#4f8a35');
   return [{ img, anchor: [24, 62] }];
 }
 

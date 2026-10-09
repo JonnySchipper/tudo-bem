@@ -1122,7 +1122,10 @@ function startGame() {
     chat: (text) => net.send({ t: 'chat', text }),
     emote: (kind: EmoteKind) => net.send({ t: 'emote', kind }),
     stand: () => net.send({ t: 'stand' }),
-    carry: (action) => net.send({ t: 'carry', action }),
+    carry: (action) => {
+      game.carryIntent = { action, at: performance.now() };
+      net.send({ t: 'carry', action });
+    },
     openMap: () => openMap((room) => joinRoom(room)),
     openCredits,
     openSupport: () => {
