@@ -234,21 +234,17 @@ export function mountKitnetGuide(opts: { tab: () => 'meus' | 'loja'; onStep: () 
     if (changed) opts.onStep();
   }
 
-  /** The buy step when nothing in the Atelier is affordable yet: say so, and offer to go on with what is already in storage. */
+  /** The buy step when nothing in the Atelier is affordable yet: say so (the first-visit gift normally covers the chair). */
   function extras(id: KitnetGuideStepId): HTMLElement[] {
     const p = game.profile;
     if (id !== 'comprar' || !p || suggestPurchase(p.coins)) return [];
     const c = cheapestFurniture();
-    const have = Object.values(p.furniture).some((n) => n > 0);
     return [
       h(
         'div',
         { class: 'kg-broke' },
         h('span', { lang: 'pt-BR' }, `Você tem ${p.coins} RV e o mais barato custa ${c.price}. Ganhe RV com os recados!`),
         en(`You have ${p.coins} RV and the cheapest piece costs ${c.price}. Earn RV doing errands (Recados)!`),
-        have
-          ? h('button', { type: 'button', class: 'green', id: 'kitnet-guide-use', onclick: () => ((progress.skippedBuy = true), render()) }, 'Usar o que já tenho', en(' use what I have', true))
-          : null,
       ),
     ];
   }

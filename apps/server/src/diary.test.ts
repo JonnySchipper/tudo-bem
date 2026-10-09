@@ -349,6 +349,7 @@ describe('arrival, camera, diary and the escola', () => {
     expect(a.last('roomState')?.room).toBe('kitnet');
     await a.send({ t: 'diary', action: 'photo', anchors: ['cadeira_madeira'] });
     expect(a.all('error').some((e) => e.code === 'far')).toBe(true);
+    await a.send({ t: 'buy', kind: 'furniture', itemId: 'cadeira_madeira' });
     await a.send({ t: 'furniture', action: 'place', itemId: 'cadeira_madeira', x: 3, y: 4, rot: 0 });
     await a.send({ t: 'diary', action: 'photo', anchors: ['cadeira_madeira', 'janela_rua', 'kitnet_parede', 'cama', 'poltrona_verde'] });
     const shot = photoMsgs(a).at(-1)!;

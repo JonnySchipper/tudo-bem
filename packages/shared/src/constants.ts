@@ -99,6 +99,8 @@ export const TUTORIAL_STEPS: { id: TutorialStep; pt: string; en: string }[] = [
 export const ECONOMY = {
   startingCoins: 10,
   tutorialBonus: 25,
+  /** Paid once, the first time you walk into your own kitnet, so the furniture step of the tutorial is always affordable. */
+  kitnetGift: 10,
   sceneMin: 6,
   sceneMax: 14,
   /** Full payouts per NPC per day before decay. */
