@@ -8,7 +8,11 @@ import { World, type CloseReason } from './world.js';
 import { ProfileStore } from './store.js';
 import { AcademyStore } from './academyStore.js';
 import { PadariaStore } from './padariaStore.js';
-import { academyFileAdapter, feedbackFileAdapter, feiraCartFileAdapter, feiraGamesFileAdapter, fileAdapter, layoutFileAdapter, padariaFileAdapter } from './fileStore.js';
+import { academyFileAdapter, feedbackFileAdapter, feiraCartFileAdapter, feiraGamesFileAdapter, fileAdapter, gameConfigFileAdapter, layoutFileAdapter, padariaFileAdapter } from './fileStore.js';
+import { GameConfig } from './gameConfig.js';
+import { createAdminApi } from './adminApi.js';
+import { AdminSessions } from './adminSession.js';
+import { AdminAudit, BillingEventLog, FeedbackTriage } from './adminStores.js';
 import { backupDatabase, closeDatabase, openDatabase } from './sqliteDb.js';
 import { LayoutStore } from './layoutStore.js';
 import { FeiraCartStore } from './feiraCart.js';
@@ -107,8 +111,11 @@ export const SHUTDOWN_GRACE_MS = 2_000;
 export function createApp(opts: AppOptions) {
   const { dataDir, clientDist } = opts;
   // Open (and migrate) before any store constructor. A failed import must abort startup; ProfileStore would otherwise catch the error and later save an empty set.
-  openDatabase(dataDir);
+  const db = openDatabase(dataDir);
   const store = new ProfileStore(fileAdapter(dataDir));
+  const config = new GameConfig(gameConfigFileAdapter(dataDir));
+  const audit = new AdminAudit(db);
+  const billingEvents = new BillingEventLog(db);
   const feiraGamesFile = feiraGamesFileAdapter(dataDir);
   const feiraGames = new FeiraGamesStore(() => feiraGamesFile.load(), (state) => feiraGamesFile.save(state), () => Date.now());
   const feiraCartFile = feiraCartFileAdapter(dataDir);
@@ -136,8 +143,33 @@ export function createApp(opts: AppOptions) {
       student: new InMemoryStudentModel(),
       moderation,
     },
-    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, adminGuard, idleKickMs: opts.idleKickMs, academies, padarias, feiraGames, feiraCart, layouts },
+    { roomCap: opts.roomCap, ambiance: opts.ambiance, accounts, adminGuard, idleKickMs: opts.idleKickMs, academies, padarias, feiraGames, feiraCart, layouts, config },
   );
+  const handleAdminApi = createAdminApi({
+    ctx: {
+      store,
+      accounts,
+      academies,
+      padarias,
+      feedback,
+      feiraGames,
+      moderation,
+      world: world.adminHost(),
+      config,
+      audit,
+      billingEvents,
+      triage: new FeedbackTriage(db),
+    },
+    admin: feedbackAdmin,
+    adminGuard,
+    sessions: new AdminSessions(),
+    db,
+    dataDir,
+    allowedOrigins: opts.allowedOrigins ?? [],
+    cookieSecure: opts.cookieSecure,
+    jevStatus: () => safety.status?.() ?? { state: 'stub' },
+    startedAt: Date.now(),
+  });
   const conversaMemory = new ConversaMemory({ store, onProfileChanged: (playerId) => world.pushProfileById(playerId) });
   // Test servers (TB_TEST_CLOCK_CONTROL=1, never set on prod) lift the 10-signups-per-hour-per-IP cap: e2e:all signs up 10+ accounts from 127.0.0.1.
   const limiters = defaultLimiters(Date.now, process.env.TB_TEST_CLOCK_CONTROL === '1' ? 200 : 10);
@@ -217,6 +249,7 @@ export function createApp(opts: AppOptions) {
         store,
         sync: (userId) => world.syncEntitlements(userId),
         fetchImpl: opts.billingFetch,
+        logEvent: (e) => billingEvents.add(e),
       }).catch((e) => {
         console.error('[billing] handler error', e);
         if (!res.headersSent) res.writeHead(500);
@@ -234,6 +267,13 @@ export function createApp(opts: AppOptions) {
         limits: feedbackLimits,
       }).catch((e) => {
         console.error('[feedback] handler error', e);
+        if (!res.headersSent) res.writeHead(500);
+        res.end();
+      });
+    }
+    if (url.pathname.startsWith('/api/admin/')) {
+      return handleAdminApi(req, res).catch((e) => {
+        console.error('[admin] handler error', e);
         if (!res.headersSent) res.writeHead(500);
         res.end();
       });
@@ -284,7 +324,8 @@ export function createApp(opts: AppOptions) {
       return res.end('Tudo Bem server is running. In dev, open the Vite client at http://localhost:5173');
     }
     // Privacy and terms are real HTML. Without this, /privacy falls through to the game shell and looks blank.
-    const legalName = legalPageFile(url.pathname);
+    // /admin is the dashboard page (admin.html): it holds no data and no secret, every call it makes is checked server-side.
+    const legalName = url.pathname === '/admin' || url.pathname === '/admin/' ? 'admin.html' : legalPageFile(url.pathname);
     if (legalName) {
       const file = path.join(clientDist, legalName);
       if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
@@ -424,6 +465,9 @@ export function createApp(opts: AppOptions) {
     world,
     store,
     accounts,
+    config,
+    audit,
+    adminApi: handleAdminApi,
     /**
      * Graceful stop. Order: write every store first (a SIGKILL after the grace period loses nothing), close
      * sockets with 1012 (clients show "restarting" and reconnect), stop HTTP and cut lingering connections after

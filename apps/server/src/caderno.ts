@@ -15,6 +15,8 @@ import type { Session } from './world.js';
 
 export interface CadernoDeps {
   now: () => number;
+  /** RV for one finished group (gameConfig.ts `cadernoGroupRv`). Omitted = the shipped CADERNO_GROUP_RV. */
+  groupRv?: () => number;
   store: ProfileStore;
   /** Pays RV through the world's normal reward path (coins, `reward` message, profile push). */
   reward: (s: Session, amount: number, reason: Bilingual) => void;
@@ -71,7 +73,7 @@ export class CadernoTracker {
     for (const id of fresh) {
       const label = cadernoGroups().find((g) => g.id === id)?.label ?? { pt: id, en: id };
       // needs_br: true
-      this.d.reward(s, CADERNO_GROUP_RV, { pt: `Caderno completo: ${label.pt}!`, en: `Notebook complete: ${label.en}!` });
+      this.d.reward(s, this.d.groupRv?.() ?? CADERNO_GROUP_RV, { pt: `Caderno completo: ${label.pt}!`, en: `Notebook complete: ${label.en}!` });
     }
   }
 }

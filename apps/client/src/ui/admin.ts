@@ -38,6 +38,16 @@ export function bindDesignAdmin(fn: (m: Extract<ServerMsg, { t: 'admin' }>) => v
   onDesignAdmin = fn;
 }
 
+/** Set by the dashboard's design link: the next successful admin login opens design mode instead of the panel. */
+let designOnUnlock = false;
+
+/** `/?design=<room>` (designLink.ts): ask for the admin password, then go straight into design mode. */
+export function openDesignFromLink(): void {
+  if (unlocked) return void openDesignMode();
+  designOnUnlock = true;
+  openAdminLogin();
+}
+
 async function openDesignMode(): Promise<void> {
   if (!sendAdmin) return;
   const send = sendAdmin;
@@ -61,7 +71,10 @@ export function onAdminMsg(m: Extract<ServerMsg, { t: 'admin' } | { t: 'sky' }>)
   }
   if (m.phase === 'auth') {
     unlocked = m.ok;
-    if (m.ok) openAdminPanel();
+    if (m.ok && designOnUnlock) {
+      designOnUnlock = false;
+      void openDesignMode();
+    } else if (m.ok) openAdminPanel();
     else if (authError) showAuthError(m.pt);
     else if (modalId() === 'admin') {
       // Socket lost its admin flag (reconnect): bounce back to the password form.

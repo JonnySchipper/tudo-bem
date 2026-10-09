@@ -224,6 +224,17 @@ export function layoutFileAdapter(dataDir: string): { load: () => unknown; save:
   };
 }
 
+/** Dashboard game-variable overrides (gameConfig.ts). Missing row means every value is the shipped default. */
+export function gameConfigFileAdapter(dataDir: string): { load: () => unknown; save: (state: unknown) => void } {
+  const db = dbFor(dataDir);
+  return {
+    load: () => loadKv(db, 'gameConfig'),
+    save: (state) => {
+      if (writable(db)) saveKv(db, 'gameConfig', state);
+    },
+  };
+}
+
 export function accountsFileAdapter(dataDir: string): AccountPersistence {
   const db = dbFor(dataDir);
   return {

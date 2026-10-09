@@ -174,10 +174,12 @@ import { FeiraCartStore, memoryFeiraCart } from './feiraCart.js';
 import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria.js';
 import { BoutEngine, type BoutSession } from './bout.js';
 import { CartelaTracker } from './cartela.js';
-import { ADMIN_MONEY_MAX, ADMIN_TOO_MANY, ADMIN_WRONG_PASSWORD, AdminLoginGuard, readAdminAuthConfig } from './adminAuth.js';
+import { ADMIN_TOO_MANY, ADMIN_WRONG_PASSWORD, AdminLoginGuard, readAdminAuthConfig } from './adminAuth.js';
 import { DevBillingProvider } from './billing/devProvider.js';
 import { publishLayoutPullRequest } from './designGithub.js';
 import { LayoutStore } from './layoutStore.js';
+import { GameConfig } from './gameConfig.js';
+import { adminWorldHost, type AdminWorldHost } from './adminWorld.js';
 import { CHAT_LOG_LINES, hasBlocked, moderationRows, ReportLimiter, snapshotLines, type ChatLogLine } from './playerModeration.js';
 import { FriendRequests } from './friendRequests.js';
 import { safeSchedule } from './safeTimer.js';
@@ -244,6 +246,8 @@ export interface WorldOptions {
   githubToken?: string | null;
   /** Test double for the GitHub REST client. */
   githubFetch?: typeof fetch;
+  /** Tunable game variables (gameConfig.ts). The Node server passes the SQLite-backed one; omitted = shipped defaults. */
+  config?: GameConfig;
 }
 
 /** What the World needs from the account store (kept tiny so world.ts stays browser-safe for solo mode). */
@@ -338,7 +342,9 @@ export class World {
   /** Pending friend requests (persisted on the target's profile). */
   private readonly friendReqs: FriendRequests;
   private readonly reportLimiter = new ReportLimiter();
-  private readonly cap: number;
+  /** Room cap from the host (env `ROOM_CAP`). The dashboard's `roomCap` override wins when set. */
+  private readonly baseCap: number;
+  readonly config: GameConfig;
   private readonly now: () => number;
   private readonly schedule: (fn: () => void, ms: number) => void;
   private readonly ambiance: boolean;
@@ -355,7 +361,7 @@ export class World {
   private readonly npcs: NpcDirector;
   private npcTicking = false;
   private readonly accounts?: AccountLink;
-  readonly idleKickMs: number;
+  private readonly baseIdleKickMs: number;
   private seq = 0;
   /** Recados, bag and bonds (HOWTO Phase 8). The world only reports events to it. */
   private readonly recados: RecadoTracker;
@@ -387,7 +393,8 @@ export class World {
     readonly services: Services,
     opts: WorldOptions = {},
   ) {
-    this.cap = Math.max(1, Math.min(DEFAULT_ROOM_CAP, Number.isFinite(opts.roomCap) ? opts.roomCap! : DEFAULT_ROOM_CAP));
+    this.config = opts.config ?? new GameConfig();
+    this.baseCap = Math.max(1, Math.min(DEFAULT_ROOM_CAP, Number.isFinite(opts.roomCap) ? opts.roomCap! : DEFAULT_ROOM_CAP));
     this.now = opts.now ?? Date.now;
     // guarded: a throw in an NPC tick, walk, bout or Correria clock is logged instead of crashing the world
     this.schedule = opts.schedule ?? safeSchedule;
@@ -418,7 +425,7 @@ export class World {
       this.githubToken = fromEnv || undefined;
     }
     this.githubFetch = opts.githubFetch;
-    this.idleKickMs = Math.max(1000, opts.idleKickMs ?? IDLE_KICK_MS);
+    this.baseIdleKickMs = Math.max(1000, opts.idleKickMs ?? IDLE_KICK_MS);
     this.cartela = new CartelaTracker({
       now: () => this.now(),
       store,
@@ -466,7 +473,7 @@ export class World {
       rng: () => this.rng(),
       pin: opts.feiraPin,
     });
-    this.caderno = new CadernoTracker({ now: () => this.now(), store, reward: (s, a, r) => this.reward(s, a, r), pushProfile: (s) => this.pushProfile(s) });
+    this.caderno = new CadernoTracker({ now: () => this.now(), groupRv: () => this.config.get('cadernoGroupRv'), store, reward: (s, a, r) => this.reward(s, a, r), pushProfile: (s) => this.pushProfile(s) });
     this.diary = new DiaryTracker({
       store,
       reward: (s, a, r) => this.reward(s, a, r),
@@ -547,6 +554,15 @@ export class World {
       allowOwnedShift: (s) => this.correriaAllowed(s),
       testHints: opts.testMg ?? readEnv('TB_TEST_MG') === '1',
     });
+  }
+
+  private get cap(): number {
+    return this.config.isOverridden('roomCap') ? this.config.get('roomCap') : this.baseCap;
+  }
+
+  /** No real input for this long and the player is kicked. The dashboard's `idleKickMinutes` override wins when set. */
+  get idleKickMs(): number {
+    return this.config.isOverridden('idleKickMinutes') ? this.config.get('idleKickMinutes') * 60_000 : this.baseIdleKickMs;
   }
 
   // ---------- connection lifecycle ----------
@@ -1006,9 +1022,14 @@ export class World {
     p.nameplate = this.services.student.nameplateFor(p);
     p.lastSeen = this.now();
     const layouts = this.layouts.overrides();
+    const profile = this.privateProfile(p);
+    if (p.replayFlight) {
+      delete p.replayFlight;
+      this.store.save(p.id);
+    }
     s.send({
       t: 'welcome',
-      profile: this.privateProfile(p),
+      profile,
       token: p.token,
       serverNow: this.personalNow(p),
       weather: this.weatherPin,
@@ -1039,7 +1060,7 @@ export class World {
       pronoun,
       appearance,
       nameplate: 'verde',
-      coins: ECONOMY.startingCoins,
+      coins: this.config.get('startingCoins'),
       hats: [...STARTER_HATS],
       hat: null,
       furniture: { ...STARTER_FURNITURE },
@@ -1133,7 +1154,7 @@ export class World {
     this.pushProfile(s);
     if (!p.tutorialRewarded && TUTORIAL_STEPS.every((t) => p.tutorial[t.id])) {
       p.tutorialRewarded = true;
-      this.reward(s, ECONOMY.tutorialBonus, { pt: 'Primeiros passos completos! Bem-vindo ao bairro!', en: 'First steps complete! Welcome to the neighborhood!' });
+      this.reward(s, this.config.get('tutorialBonus'), { pt: 'Primeiros passos completos! Bem-vindo ao bairro!', en: 'First steps complete! Welcome to the neighborhood!' });
     }
   }
 
@@ -1257,7 +1278,7 @@ export class World {
   }
 
   /**
-   * First time in your own kitnet: ECONOMY.kitnetGift RV, so the tutorial's furniture step can always be paid for.
+   * First time in your own kitnet: the `kitnetGift` RV (gameConfig.ts), so the tutorial's furniture step can always be paid for.
    * Players who already have the chair step done or furniture down (older saves) get nothing.
    */
   private kitnetGift(s: Session, inst: Instance) {
@@ -1265,7 +1286,7 @@ export class World {
     if (!p || inst.def.id !== 'kitnet' || inst.ownerId !== p.id || p.kitnetGiftPaid) return;
     p.kitnetGiftPaid = true;
     if (p.tutorial.cadeira || p.apartment.length > 0) return this.store.save(p.id);
-    this.reward(s, ECONOMY.kitnetGift, { pt: 'Presente de boas-vindas pra sua kitnet: compre um móvel!', en: 'A welcome gift for your apartment: go buy a piece of furniture!' });
+    this.reward(s, this.config.get('kitnetGift'), { pt: 'Presente de boas-vindas pra sua kitnet: compre um móvel!', en: 'A welcome gift for your apartment: go buy a piece of furniture!' });
   }
 
   /** The game clock: real time plus the test offset. Everything the players see as time of day comes from here. */
@@ -1676,10 +1697,44 @@ export class World {
 
   private adminMoney(s: Session, amount: number) {
     const n = Math.floor(Number(amount));
-    if (!Number.isFinite(n) || n < 1 || n > ADMIN_MONEY_MAX) {
-      return this.err(s, 'admin', `Pode adicionar de 1 a ${ADMIN_MONEY_MAX} RV por vez.`, `You can add 1 to ${ADMIN_MONEY_MAX} RV at a time.`);
+    const max = this.config.get('adminGrantMax');
+    if (!Number.isFinite(n) || n < 1 || n > max) {
+      return this.err(s, 'admin', `Pode adicionar de 1 a ${max} RV por vez.`, `You can add 1 to ${max} RV at a time.`);
     }
     this.reward(s, n, { pt: 'Admin: reais virtuais', en: 'Admin: virtual reais' });
+  }
+
+  /** What the admin dashboard (adminApi.ts) may do to the live world. Every caller has already passed the admin cookie check. */
+  adminHost(): AdminWorldHost {
+    return adminWorldHost({
+      sessions: () => this.sessions.values(),
+      instances: () => this.instances.values(),
+      sessionByProfile: (id) => this.sessionByProfile(id),
+      pushProfile: (s) => this.pushProfile(s),
+      broadcastAvatar: (s) => this.broadcastAvatar(s),
+      kick: (s, reason, last) => this.kick(s, reason, last),
+      dropAccount: (accountId) => this.dropAccount(accountId),
+      forgetAccount: (accountId, profileId) => this.forgetAccount(accountId, profileId),
+      classify: (text, nameplate) => this.services.safety.classify(text, { playerId: 'admin', room: '-', nameplate, recent: [] }),
+      feiraCartView: () => this.feiraGames.cartView(),
+      setFeiraCart: (game, mode) => {
+        if (!this.feiraGames.setCartMode(game, mode)) return false;
+        const msg = this.feiraGames.cartMsg();
+        for (const sess of this.sessions.values()) if (sess.profile) sess.send(msg);
+        return true;
+      },
+      layoutOverrides: () => this.layouts.overrides().map((o) => ({ room: o.room, objects: o.objects.length })),
+      revertLayout: (room) => {
+        if (!this.layouts.has(room)) return false;
+        revertRoomProps(room);
+        this.noteLayout(room);
+        this.layouts.set(room, null);
+        this.broadcastLayout(room, null);
+        return true;
+      },
+      markBoardsDirty: () => this.leaderboards.markDirty(),
+      now: () => this.now(),
+    });
   }
 
   /** Game minute (0..1439), for the HTTP Conversa flow (it has no session): the NPCs greet by it. */
@@ -2313,7 +2368,7 @@ export class World {
     s.send({ t: 'notice', level: 'info', pt: `✓ ${def.pt}`, en: def.en });
     if (!m.rewarded && MISSION_STEPS.every((x) => m.steps[x.id])) {
       m.rewarded = true;
-      this.reward(s, MISSION_REWARD, MISSION_COPY.done);
+      this.reward(s, this.config.get('missionReward'), MISSION_COPY.done);
     } else {
       this.store.save(p.id);
       this.pushProfile(s);
@@ -2545,8 +2600,9 @@ export class World {
     } else {
       if (!p.parrotOwned || !p.parrotEquipped) return;
       const now = this.now();
-      if (now - s.lastHintAt < ECONOMY.parrotHintCooldownMs) {
-        const wait = Math.ceil((ECONOMY.parrotHintCooldownMs - (now - s.lastHintAt)) / 1000);
+      const cooldownMs = this.config.get('parrotHintCooldownSec') * 1000;
+      if (now - s.lastHintAt < cooldownMs) {
+        const wait = Math.ceil((cooldownMs - (now - s.lastHintAt)) / 1000);
         return s.send({ t: 'notice', level: 'info', pt: `O papagaio está descansando (${wait}s).`, en: `Your parrot is resting (${wait}s).` });
       }
       s.lastHintAt = now;
