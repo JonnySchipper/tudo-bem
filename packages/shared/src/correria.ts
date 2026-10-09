@@ -264,6 +264,36 @@ export function shiftItemPool(ctx: Pick<ShiftCtx, 'shifts' | 'menuIds'>): MgItem
 }
 export const whereRequired = (itemCount: number): boolean => itemCount >= WHERE_MENU_AT;
 
+/** Where a counter stands on the ladder: what is open, what this shift added, and the next item with the shifts still to go. */
+export interface MenuLadderView {
+  /** Open item ids, in teaching order. */
+  open: string[];
+  /** Items this shift added (empty on the first shift and when the menu did not grow). */
+  fresh: string[];
+  /** The next item to open, or null when this counter's menu is complete. */
+  next: string | null;
+  /** Completed shifts still needed before `next` opens (0 when there is none). */
+  nextIn: number;
+  /** Items this counter can ever open (the ladder after an owned-room cap). */
+  total: number;
+}
+export function menuLadder(shifts: number, menuIds?: readonly string[]): MenuLadderView {
+  const n = Math.max(0, Math.floor(Number.isFinite(shifts) ? shifts : 0));
+  const inLadder = (ids: string[]) => MENU_LADDER.filter((id) => ids.includes(id)) as string[];
+  const open = inLadder(shiftItemPool({ shifts: n, menuIds }).map((i) => i.id));
+  const prev = n > 0 ? shiftItemPool({ shifts: n - 1, menuIds }).map((i) => i.id) : open;
+  const allow = menuIds?.length ? new Set(menuIds) : null;
+  const reach = MENU_LADDER.filter((id) => !allow || allow.has(id));
+  const k = MENU_LADDER.findIndex((id) => !open.includes(id) && (!allow || allow.has(id)));
+  return {
+    open,
+    fresh: open.filter((id) => !prev.includes(id)),
+    next: k >= 0 ? MENU_LADDER[k]! : null,
+    nextIn: k >= 0 ? Math.max(1, (k - 1) * ITEM_EVERY_SHIFTS - n) : 0,
+    total: reach.length,
+  };
+}
+
 /** One-time card at the start of the shift that first opens an item (or packing). On screen, not spoken. */
 export interface CounterLesson {
   id: string;
@@ -272,11 +302,11 @@ export interface CounterLesson {
 }
 const step = (pt: string, en: string): Bilingual => ({ pt, en });
 const LESSONS: Record<string, CounterLesson> = {
-  cafe: { id: 'cafe', title: step('Café', 'Coffee'), steps: [step('Toque na cafeteira para começar a servir.', 'Tap the coffee machine to start the pour.'), step('A xícara enche sozinha. Toque de novo na hora certa.', 'The cup fills on its own. Tap again at the right time.'), step('Cedo demais fica curto; tarde demais derrama.', 'Too early comes up short; too late spills.')] },
+  cafe: { id: 'cafe', title: step('Café', 'Coffee'), steps: [step('Toque na cafeteira para começar a servir.', 'Tap the coffee machine to start the pour.'), step('A xícara enche sozinha. Toque de novo quando ficar verde: “Agora!”', 'The cup fills on its own. Tap again when it turns green: “Agora!” (now!)'), step('Cedo demais fica curto; tarde demais derrama.', 'Too early comes up short; too late spills.')] },
   pao: { id: 'pao', title: step('Pão francês', 'French bread roll'), steps: [step('Pegue o pão na vitrine.', 'Take the bread from the display case.'), step('Ponha na bandeja e entregue.', 'Put it on the tray and serve.')] },
   agua: { id: 'agua', title: step('Água', 'Water'), steps: [step('A água fica na geladeira.', 'The water is in the fridge.'), step('Toque nela para pôr na bandeja.', 'Tap it to put it on the tray.')] },
   pao_de_queijo: { id: 'pao_de_queijo', title: step('Pão de queijo', 'Cheese bread'), steps: [step('Pegue o pão de queijo na vitrine.', 'Take the cheese bread from the display case.')] },
-  cafe_com_leite: { id: 'cafe_com_leite', title: step('Café com leite', 'Coffee with milk'), steps: [step('O café com leite sai da cafeteira, como o café.', 'Coffee with milk comes from the machine, like coffee.'), step('Toque para começar e toque de novo na hora certa.', 'Tap to start, then tap again at the right time.')] },
+  cafe_com_leite: { id: 'cafe_com_leite', title: step('Café com leite', 'Coffee with milk'), steps: [step('O café com leite sai da cafeteira, como o café.', 'Coffee with milk comes from the machine, like coffee.'), step('Toque para começar e toque de novo no “Agora!”', 'Tap to start, then tap again at “Agora!” (now!)')] },
   suco_de_laranja: {
     id: JUICER_LESSON_ID,
     title: step('Suco de laranja: o espremedor', 'Orange juice: the juicer'),
@@ -348,6 +378,9 @@ export function pourVerdict(heldMs: number, fullMs: number = POUR.fullMs): { fil
   const fill = Math.max(0, heldMs) / fullMs;
   return { fill, verdict: fill < POUR.goodMin ? 'short' : fill > POUR.spillAt ? 'spill' : 'ok' };
 }
+/** What the machine shows while a pour runs: still filling, "Agora!" (a tap now lands it, same window as `pourVerdict`), or overflowing. */
+export type PourZone = 'filling' | 'agora' | 'over';
+export const pourZone = (fill: number): PourZone => (fill < POUR.goodMin ? 'filling' : fill <= POUR.spillAt ? 'agora' : 'over');
 /** 0 = idle, 1..4 -> `coffee_pour_<0..3>` is `fill` bucket 0..3. */
 export const pourFrame = (fill: number): 0 | 1 | 2 | 3 => (fill < 0.25 ? 0 : fill < 0.5 ? 1 : fill < 0.75 ? 2 : 3);
 
@@ -898,6 +931,56 @@ export function newShift(ctx: ShiftCtx): Shift {
   };
 }
 
+/** The practice order of the first-time tutorial: café, pão francês and suco, one item per station. */
+export const PRACTICE_MENU: readonly string[] = ['cafe', 'pao', 'suco_de_laranja'];
+/** Practice patience: the client tops it up every tick, so the customer never walks out. */
+export const PRACTICE_PATIENCE_MS = 100_000;
+
+/**
+ * The first-time tutorial's shift: one written order (a coffee, a French roll, an orange juice) already at the counter, no queue behind it,
+ * level Verde (no "Quanto é?"). The client runs it locally with `shiftAct` / `shiftAdvance`; it never reaches the server and pays no RV.
+ */
+export function practiceShift(seed: number, baker: 'carlos' | 'graca' = 'carlos'): Shift {
+  const sh = newShift({ seed, level: 0, unlocked: [], shifts: FULL_MENU_SHIFTS, menuIds: PRACTICE_MENU, saturday: false, minute: 9 * 60, baker, regulars: [] });
+  const lines: MgOrderLine[] = PRACTICE_MENU.map((itemId) => ({ itemId, qty: 1 }));
+  const [a, b, c] = lines as [MgOrderLine, MgOrderLine, MgOrderLine];
+  const order: MgOrder = {
+    customer: 'Ana',
+    lines,
+    mods: [],
+    pt: `Bom dia! Me vê ${linePt(a)}, ${linePt(b)} e ${linePt(c)}, por favor.`,
+    en: `Good morning! I’ll have ${lineEn(a)}, ${lineEn(b)} and ${lineEn(c)}, please.`,
+    timeMs: orderTimeMs(lines, []),
+    authored: true,
+  };
+  sh.customers.push({
+    id: sh.nextId++,
+    who: { key: 'cpu:Ana', name: 'Ana', fem: true },
+    regular: false,
+    special: false,
+    greet: null,
+    wave: 0,
+    mode: 'written',
+    said: { pt: order.pt, en: order.en },
+    order,
+    follow: null,
+    followAt: null,
+    followFired: false,
+    state: 'front',
+    arrivedAt: 0,
+    readyAt: 0,
+    frontAt: 0,
+    patienceMax: PRACTICE_PATIENCE_MS,
+    patience: PRACTICE_PATIENCE_MS,
+    mistakes: 0,
+    replays: 0,
+    ask: null,
+  });
+  // nobody else comes: the shift is over once Ana is served
+  sh.spawned = CORRERIA_TOTAL;
+  return sh;
+}
+
 function mulberry(seed: number): Rng {
   let a = seed >>> 0;
   return () => {
@@ -1388,6 +1471,8 @@ export interface CorreriaSnap {
   lesson: CounterLesson | null;
   /** "+1 item no cardápio: pagamento +6%" when the menu grew this shift. */
   bump: Bilingual | null;
+  /** The menu ladder for this shift: what is open, what just opened, what comes next. */
+  ladder: MenuLadderView;
   over: boolean;
 }
 
@@ -1438,6 +1523,7 @@ export function shiftSnapshot(sh: Shift): CorreriaSnap {
     payMul: menuPayMul(shiftItemPool(sh.ctx).length),
     lesson: sh.ctx.lesson ?? null,
     bump: sh.ctx.bump ?? null,
+    ladder: menuLadder(sh.ctx.shifts ?? 0, sh.ctx.menuIds),
     over: sh.over,
   };
 }

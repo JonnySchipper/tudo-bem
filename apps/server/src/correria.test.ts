@@ -231,6 +231,8 @@ describe('Correria no Balcão, server side', () => {
     expect(a.s.profile!.coins).toBe(coins0 + end.end.coins);
     expect(a.s.profile!.tutorial.meveum).toBe(true);
     expect(a.s.profile!.correria).toMatchObject({ shifts: 1, stars: end.end.stars, paid: 1 });
+    // the end card's ladder is the next shift's: one more shift and água opens
+    expect(end.end.ladder).toMatchObject({ open: ['cafe', 'pao'], fresh: [], next: 'agua', nextIn: 1 });
     expect(a.s.mg).toBeUndefined();
     // more shifts the same day: only the first DAILY_PAID_SHIFTS pay RV, stars always count
     let blocked = 0;

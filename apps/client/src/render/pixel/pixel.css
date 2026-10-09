@@ -279,6 +279,119 @@
   --ink: #2a2233;
 }
 
+/* a sign: the Portuguese, its English under it, and (first visit) a kicker over it */
+.wl-plate-guide .wl-guide-pt,
+.wl-plate-guide .wl-guide-en,
+.wl-plate-guide .wl-guide-kick {
+  display: block;
+  text-align: center;
+}
+
+.wl-plate-guide .wl-guide-en {
+  font-size: 0.82em;
+  font-weight: 700;
+  font-style: italic;
+}
+
+.wl-plate-guide .wl-guide-kick {
+  margin-bottom: 1px;
+  font-size: 0.78em;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: #8a2a14;
+}
+
+/* a game's start spot: a bigger gold sign over the bobbing arrow */
+.wl-guide-play .wl-plate-guide {
+  padding: 4px 11px 5px;
+  font-size: 14px;
+}
+
+.wl-guide-first .wl-plate-guide {
+  animation: wl-sign-pulse 1.1s ease-in-out infinite;
+}
+
+/* the ring on the start tile: gold, glowing, breathing */
+.wl-spot {
+  width: 0;
+  height: 0;
+}
+
+.wl-spot::before,
+.wl-spot::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--wl-tile, 32px) * -0.6);
+  top: calc(var(--wl-tile, 32px) * -0.3);
+  width: calc(var(--wl-tile, 32px) * 1.2);
+  height: calc(var(--wl-tile, 32px) * 0.6);
+  border-radius: 50%;
+}
+
+.wl-spot::before {
+  background: radial-gradient(closest-side, rgba(255, 216, 74, 0.55), rgba(255, 216, 74, 0.18) 70%, transparent);
+  animation: wl-spot-glow 1.4s ease-in-out infinite;
+}
+
+.wl-spot::after {
+  border: 3px solid #ffd84a;
+  box-shadow:
+    0 0 10px 2px rgba(255, 216, 74, 0.8),
+    inset 0 0 8px rgba(255, 216, 74, 0.6);
+  animation: wl-spot-ring 1.4s ease-out infinite;
+}
+
+@keyframes wl-spot-glow {
+  0%,
+  100% {
+    opacity: 0.65;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes wl-spot-ring {
+  0% {
+    transform: scale(0.7);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.25);
+    opacity: 0.15;
+  }
+}
+
+@keyframes wl-sign-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+/* a shop sign on a street door: wood, cream letters, no arrow */
+.wl-guide-door .wl-plate-guide {
+  --edge: #3b2314;
+  --fill: #8a5a32;
+  --ink: #fff3d6;
+  font-size: 12.5px;
+}
+
+.wl-guide-door .wl-plate-guide .wl-guide-en {
+  color: #ffe9a8;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wl-guide-first .wl-plate-guide,
+  .wl-spot::before,
+  .wl-spot::after {
+    animation: none;
+  }
+}
+
 /* ---- speech bubbles: the ui/bubble 9-slice at 2x; the tail is bottom-left (mirrored copy: bottom-right) ---- */
 .wl-stack {
   left: 0;

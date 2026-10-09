@@ -2130,7 +2130,8 @@ export class WorldScene extends Phaser.Scene {
       const w = tileToWorld(g.x, g.y);
       const lift = Math.min(48, Math.max(12, g.lift * 0.3));
       const p = at(w.wx, w.wy - lift);
-      return { key: `g${i}`, x: p.px, y: p.py, label: g.label };
+      const floor = at(w.wx, w.wy);
+      return { key: `g${i}`, x: p.px, y: p.py, label: g.label, en: g.en, kind: g.kind, first: g.first, floor: { x: floor.px, y: floor.py, tile: (T * k.zoom) / k.dpr } };
     });
     const view = { w: k.w / k.dpr, h: k.h / k.dpr };
     this.host.labels.update(stacks, guides, view, this.host.insets());
