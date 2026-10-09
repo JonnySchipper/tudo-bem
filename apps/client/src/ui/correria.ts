@@ -171,6 +171,7 @@ export class CorreriaUI {
     if (this.a.practice) return this.a.practice.restart();
     const round = this.a.practiceRound;
     this.mountTeach(HELP_TITLE, [...HELP_STEPS], null, undefined, round ? { pt: '🎓 Fazer o treino', en: 'Practice round', onclick: () => round() } : undefined);
+    this.root.querySelector('#cr-lesson')?.classList.add('cr-help-card');
   }
 
   /** The shift is on (a state came and no end card yet). */

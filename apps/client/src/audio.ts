@@ -1,5 +1,6 @@
 import { game } from './state';
 import { ambience } from './ambience';
+import { speechChunks } from '@tudobem/shared';
 import { findClip, pickPtVoice } from './audio/library';
 
 const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
@@ -122,17 +123,34 @@ export function speak(text: string, opts: { force?: boolean; rate?: number; spea
     noteUnbaked(opts.speaker, raw);
     fallback(raw, opts.rate, gen, release);
   };
-  if (!clip) return goFallback();
+  // an assembled line ("Me vê dois pães e um café") has no clip of its own: its phrases do, and they play back to back
+  const parts = clip ? [clip] : chunkClips(raw, opts.speaker);
+  if (!parts) return goFallback();
 
   const el = audioEl();
   const rate = opts.rate ?? 0.92;
-  el.src = clipUrl(clip.file);
   el.playbackRate = Math.min(1.35, Math.max(0.55, rate / 0.92));
-  el.onended = () => gen === voiceGen && release();
+  let i = 0;
+  const playNext = () => {
+    if (gen !== voiceGen) return;
+    if (i >= parts.length) return release();
+    el.src = clipUrl(parts[i++]!.file);
+    el.playbackRate = Math.min(1.35, Math.max(0.55, rate / 0.92));
+    const pending = el.play();
+    if (!pending) return goFallback();
+    void pending.catch(() => goFallback());
+  };
+  el.onended = playNext;
   el.onerror = () => goFallback();
-  const pending = el.play();
-  if (!pending) return goFallback();
-  void pending.catch(() => goFallback());
+  playNext();
+}
+
+/** The clips of a line's phrases, in order, only when every phrase has one (a half-recorded sentence would be worse than the robot). */
+function chunkClips(text: string, speaker?: string) {
+  const chunks = speechChunks(text);
+  if (chunks.length < 2) return null;
+  const clips = chunks.map((c) => findClip(c, speaker));
+  return clips.every((c) => c !== null) ? (clips as NonNullable<(typeof clips)[number]>[]) : null;
 }
 
 if (import.meta.env.DEV) {

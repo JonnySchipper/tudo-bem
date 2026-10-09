@@ -658,6 +658,13 @@ body.cr-on .toasts {
   color: #d8ffe6;
 }
 
+/* "Como jogar": dim everything behind the card so the counter does not show through and compete with the text */
+.cr-lesson.cr-help-card {
+  box-shadow:
+    4px 4px 0 #14101a,
+    0 0 0 100vmax rgba(20, 16, 26, 0.82);
+}
+
 /* a shift that opened an item: gold edge and a kicker over the title */
 .cr-lesson.grew {
   border-color: #7a5a10;
