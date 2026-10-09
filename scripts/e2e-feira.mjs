@@ -16,7 +16,7 @@ import { findChrome } from './lib/chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { assert, sleep, waitFor } from './lib/meveum-play.mjs';
-import { assertPageClock, requirePinnedClock } from './lib/clock-pin.mjs';
+import { assertPageClock, jumpClock, requirePinnedClock } from './lib/clock-pin.mjs';
 import { goArea } from './lib/areas.mjs';
 import { finishArrival } from './lib/arrival.mjs';
 
@@ -88,6 +88,7 @@ async function main() {
   log('start, game time', hhmm(await minutes(page)));
 
   if (PHASE === 'day') {
+    await jumpClock(BASE, 540);
     await waitFor(page, () => window.__tb.clock.minutes() >= 540 && window.__tb.clock.minutes() < 600, null, 120_000, '09:00');
     // the feira is its own area now: walk off the praça's east edge, then to Tia Lu's customer spot (7,6), she stands in front of her stall at (7,5)
     await goArea(page, 'feira');
@@ -156,6 +157,7 @@ async function main() {
     log('under-payment:', await line(page));
     await page.keyboard.press('Escape');
   } else {
+    await jumpClock(BASE, 940);
     await waitFor(page, () => window.__tb.clock.minutes() >= 940 && window.__tb.clock.minutes() < 1000, null, 120_000, '15:40');
     await goArea(page, 'feira');
     await walkTo(page, 7, 6);

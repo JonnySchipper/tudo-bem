@@ -15,7 +15,7 @@ import { findChrome } from './lib/chrome.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { assert, playShift, sleep, startShiftFromPedido, waitFor } from './lib/correria-play.mjs';
-import { assertPageClock, requirePinnedClock } from './lib/clock-pin.mjs';
+import { assertPageClock, jumpClock, requirePinnedClock } from './lib/clock-pin.mjs';
 import { goArea } from './lib/areas.mjs';
 import { finishArrival } from './lib/arrival.mjs';
 
@@ -76,6 +76,7 @@ async function main() {
   log('start, game time', hhmm(await minutes(page)));
 
   if (PHASE === 'a') {
+    await jumpClock(BASE, 1260);
     await waitFor(page, () => window.__tb.clock.minutes() >= 1260, null, 120_000, '21:00');
     await walkTo(page, 19, 3); // in front of Nanda's stall (the praça)
     await waitIdleAt(page, 19, 3);
@@ -95,6 +96,7 @@ async function main() {
     log('hat shop opens from the closed stall:', note.trim());
   } else {
     // Seu Carlos on a bench at 22:30
+    await jumpClock(BASE, 1350);
     await waitFor(page, () => window.__tb.clock.minutes() >= 1350 && window.__tb.clock.minutes() < 1400, null, 150_000, '22:30');
     await walkTo(page, 24, 21); // in front of banco_2
     await waitIdleAt(page, 24, 21);
@@ -112,6 +114,7 @@ async function main() {
     await goArea(page, 'rua');
     await walkTo(page, 4, 6);
     await waitIdleAt(page, 4, 6);
+    await jumpClock(BASE, 1380);
     await waitFor(page, () => window.__tb.clock.minutes() >= 1380 && window.__tb.clock.minutes() < 1420, null, 150_000, '23:00');
     await join(page, 'praca_padaria', 'padaria');
     await waitFor(page, () => [...window.__tb.game.avatars.values()].some((a) => a.pub.npc === 'graca'), null, 8000, 'Graça at the counter');

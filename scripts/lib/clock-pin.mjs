@@ -9,6 +9,7 @@
  *
  * `requirePinnedClock(base, { min, max })` reads `/healthz`, tries to set the hour when the server allows it and otherwise fails fast with the
  * exact environment to start the server with. `assertPageClock(page, ...)` repeats the check against `__tb.clock` once the page is in the world.
+ * `jumpClock(base, minute)` skips ahead to an hour a script would otherwise wait for in real time.
  */
 const GAME_DAY_MS = 48 * 60 * 1000;
 const CLOCK_OFFSET_MS = 17 * 2 * 60 * 1000;
@@ -64,6 +65,25 @@ export async function requirePinnedClock(base, { min = DAY_MIN - 15, max = DAY_M
       `  or let the script set the hour itself:  TB_TEST_CLOCK_CONTROL=1 pnpm start\n` +
       `  (pnpm e2e:all starts a server like that for you; \`node scripts/lib/clock-pin.mjs <HH:MM>\` prints the offset for any hour.)`,
   );
+}
+
+/**
+ * Skip ahead to `minute` instead of waiting for it in real time, when the server has `TB_TEST_CLOCK_CONTROL=1` (the server pushes the new sky
+ * to the pages already in the world). Never goes back: a clock already at or past `minute` is left alone. Returns whether it jumped; on any
+ * other server it does nothing and the caller's wait for the hour still works, just slower.
+ */
+export async function jumpClock(base, minute) {
+  const root = new URL(base).origin;
+  try {
+    const cur = (await (await fetch(`${root}/healthz`)).json()).gameMinute;
+    if (typeof cur !== 'number' || cur >= minute) return false;
+    const r = await fetch(`${root}/__test/clock?min=${Math.round(minute)}`, { method: 'POST' });
+    if (!r.ok) return false;
+    console.log(`  · game clock ${hhmm(cur)} -> ${hhmm((await r.json()).gameMinute)} (jumped, not waited)`);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 /** Same check from inside the page (`__tb.clock`), for after the player is in the world. */

@@ -1336,12 +1336,14 @@ export class World {
 
   /**
    * Test only (the server wires it to `/__test/clock` when `TB_TEST_CLOCK_CONTROL=1`): shift the game clock so it reads `minute` (0..1439) right now.
-   * Timers and the real day are untouched; clients that join afterwards sync to it.
+   * Timers and the real day are untouched; connected clients get a sky push, and clients that join afterwards sync to it.
    */
   setClockMinute(minute: number): number {
     const target = Math.max(0, Math.min(1439.99, minute));
     const cur = gameMinutesExact(this.clockNow());
     this.clockOffsetMs += (((target - cur) % 1440) + 1440) % 1440 * MS_PER_GAME_MINUTE;
+    // players already in the world follow the jump (their sky and NPC hours), not just the ones who join next
+    this.pushSky();
     return gameMinutes(this.clockNow());
   }
 
