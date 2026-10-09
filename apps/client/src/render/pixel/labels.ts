@@ -251,22 +251,24 @@ async function mirrorImage(url: string): Promise<string> {
   return c.toDataURL('image/png');
 }
 
+/**
+ * The belt worn along the bottom edge of the plate, drawn like a real one: the belt colour with the rank bar near the end (black, red on a
+ * black belt) and the earned stripes taped on the bar. Other players' plates carry no stripe count, so their bar is bare.
+ */
 function beltBar(belt: Belt, stripes?: number): HTMLElement {
   const bar = document.createElement('i');
   bar.className = `wl-belt belt-${belt}`;
   bar.setAttribute('aria-hidden', 'true');
-  const band = document.createElement('i');
-  band.className = 'bar';
-  band.style.background = BELT_COLORS[belt];
-  bar.append(band);
-  if (stripes !== undefined) {
-    const n = Math.min(STRIPES_PER_BELT, Math.max(0, stripes));
-    for (let i = 0; i < STRIPES_PER_BELT; i++) {
-      const pip = document.createElement('i');
-      pip.className = i < n ? 'pip on' : 'pip';
-      bar.append(pip);
-    }
+  bar.style.setProperty('--belt', BELT_COLORS[belt]);
+  const rank = document.createElement('i');
+  rank.className = 'rank';
+  const n = stripes === undefined ? 0 : Math.min(STRIPES_PER_BELT, Math.max(0, stripes));
+  for (let i = 0; i < n; i++) {
+    const tape = document.createElement('i');
+    tape.className = 'tape';
+    rank.append(tape);
   }
+  bar.append(rank);
   return bar;
 }
 
@@ -481,7 +483,7 @@ export class LabelLayer {
         el.plateRow.style.display = '';
         el.plate.style.display = '';
         el.plate.textContent = s.plate.text;
-        el.plate.className = `wl-plate wl-plate-${s.plate.kind}${tier ? ` wl-tier wl-tier-${tier}` : ''}`;
+        el.plate.className = `wl-plate wl-plate-${s.plate.kind}${tier ? ` wl-tier wl-tier-${tier}` : ''}${s.plate.belt ? ' wl-has-belt' : ''}`;
         el.plate.replaceChildren();
         if (tier) {
           // the colour and a shape (sun, drop, star, crown): readable without telling colours apart

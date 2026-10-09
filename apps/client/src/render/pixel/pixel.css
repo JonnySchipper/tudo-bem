@@ -81,6 +81,29 @@
   max-width: min(280px, 92vw);
 }
 
+.wl-stack .wl-plate-row {
+  filter: drop-shadow(0 2px 0 rgba(20, 14, 30, 0.35));
+}
+
+.wl-plate-player::before,
+.wl-plate-me::before,
+.wl-plate-npc::before {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), inset 0 -2px 0 rgba(0, 0, 0, 0.16);
+}
+
+.wl-plate-player,
+.wl-plate-me,
+.wl-plate-npc {
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+.wl-plate-player.wl-tier-amarelo,
+.wl-plate-me.wl-tier-amarelo,
+.wl-plate-player.wl-tier-dourado,
+.wl-plate-me.wl-tier-dourado {
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
 .wl-stack .wl-plate-row.wl-plate-off {
   opacity: 0;
   pointer-events: none;
@@ -157,29 +180,47 @@
   --fill: #2f5d50;
 }
 
+/* The belt worn along the bottom of the plate (labels.ts beltBar): a dark seam, the belt colour, the rank bar near the end with the earned
+   stripes taped on it. It spans the plate's fill edge to edge, so it reads the same on every plate colour and every name length. */
+.wl-plate.wl-has-belt {
+  min-width: 48px;
+  padding-bottom: 11px;
+}
+
 .wl-belt {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  margin-top: 2px;
-}
-
-.wl-belt .bar {
-  flex: 1;
-  height: 4px;
-  min-width: 14px;
-  border: 1px solid #1c1c28;
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  height: 7px;
   box-sizing: border-box;
+  border-top: 1px solid rgba(20, 14, 30, 0.75);
+  background: var(--belt);
+  box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
 }
 
-.wl-belt .pip {
-  width: 3px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.35);
+.wl-belt .rank {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 7px;
+  width: 15px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1px;
+  padding: 0 2px;
+  box-sizing: border-box;
+  background: #16121e;
 }
 
-.wl-belt .pip.on {
-  background: #fff;
+.wl-belt.belt-preta .rank {
+  background: #c0282d;
+}
+
+.wl-belt .tape {
+  width: 2px;
+  background: #fbf7ee;
 }
 
 .wl-plate-me {
