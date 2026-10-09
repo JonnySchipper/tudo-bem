@@ -70,12 +70,16 @@ Fixed sequences per move (the "technique", learnable like a fighting-game input;
 | passar from side / knee (to the top, 4 pts) | Empurra · Gira |
 | knee_on_belly (Joelho) | Levanta · Empurra |
 | back_take (Encaixe) | Puxa · Gira · Pega |
-| frame as an escape (side, knee, top) | Empurra · Gira |
-| escape_back (Sair) | Empurra · Gira · Levanta |
+| frame as an escape (side, knee, top), the stripe lesson | Empurra (resets the exchange) |
+| escape_back (Sair), the stripe lesson | Empurra · Gira (resets the exchange) |
+| virar (Virar), everyone from day one, under side / knee / top | Empurra · Gira (keeps the exchange) |
+| virar from the back | Empurra · Gira · Levanta |
 | americana | Pega · Empurra · Aperta |
 | armbar (Braço) | Pega · Gira · Levanta · Aperta |
 | rnc (Pescoço) | Pega · Gira · Aperta |
 | hold (Segurar) | no chain |
+
+**Virar** (round 2, 2026-10-09) is the way out from under that every fighter has from day one, like Segurar: it is not in `UNLOCK_ORDER`. It lands in the guard with the escaper underneath, scores nothing and does not start the exchange again (the top fighter cannot farm the same pass by letting it happen). Trava! stops it; the guard brace (Recuperar) does not. Card: "Sai de baixo", kind defense. No new art: it drives the Recuperar clip (Sair's from the back). The stripe lessons stay strictly better: Recuperar is one command and Sair two, and both reset the exchange. The AI values an escape by the ground it recovers, so a partner escapes when it is under and still sweeps once it is in the guard; the player on top gets a Trava! beat while climbing.
 
 Rules of the chain:
 - **Window** per command: `cmdWindowMs(level) = round(2200 × max(0.5, 1 − 0.05 × level))` (level = `bjjLevel`: 2.2 s for a new white belt, 1.76 s at blue, 1.1 s floor). A first-ever match (wins 0) gets ×1.4.
@@ -94,14 +98,14 @@ The partner's move was chosen by the existing AI (`planBot` / `botCommit`) and t
 | --- | --- | --- | --- |
 | 1 | Postura! | Posture! | a grip (pegada) |
 | 2 | Base! | Base! | a takedown or a sweep (queda, raspagem) |
-| 3 | Trava! | Block! | a pass or a climb (passagem) |
+| 3 | Trava! | Block! | a pass or a climb (passagem), or an escape from under (Virar, Recuperar, Sair) |
 | 4 | Sai! | Get out! | a finish (final): see below |
 
    At white belt Bia **calls the right defense** ("Base!") as the pad appears: it is a listening task. From blue belt on she is silent and the telegraph alone says what is coming: it is a reading task (queda → Base). The EN gloss under each button says what it stops while English help is on.
-2. The window: `defWindowMs = cmdWindowMs(level) × (1.1 − 0.4 × partner.speed) × (your sleeve grip ? 1.35 : 1)`. Felipe's attacks give you ~0.74 of a chain window, Helena's ~0.97.
+2. The window: `defWindowMs = cmdWindowMs(level) × (0.82 − 0.22 × partner.speed) × (your sleeve grip ? 1.35 : 1)`, and ×1.4 against an escape from under (Virar, Recuperar, Sair: slower than a throw). Felipe's attacks give you 0.62 of a chain window, Rafael's 0.68, Daniel's 0.71, Mateus's 0.72, Helena's 0.75. (Tuned in `matSim.test.ts`; the first draft's 1.1 − 0.4 × speed made every partner a pushover.)
 3. Right in time → **Defendeu!** The partner's miss clip plays. If the move was a scoring attack, that is a **Vantagem** for you (the brace rule of v2, now earned by a tap). Wrong or late → the move lands in full (their hit clip, points, the position change).
 4. A **brace** you put up on your turn (Postura / Base / Recuperar) still auto-blocks the matching attack with no tap needed and gives the Vantagem. That is the strategic trade: spend your turn for a sure block, or attack and trust your reaction.
-5. **Partner clean chance:** `clean = accuracy − 0.04 × (chainLength − 1)`. A partner that is not clean botches on their own: Bia says "Errou!", the miss clip plays, no defense beat (sloppy Felipe feels sloppy). This replaces the old accuracy edge.
+5. **Partner clean chance:** `clean = min(0.95, accuracy + 0.2 − 0.04 × (chainLength − 1))` (tuned: Felipe 0.74 on a grip and 0.70 on a two-command move, Mateus 0.80, Helena, Daniel and Rafael 0.92–0.95). A partner that is not clean botches on their own: Bia says "Errou!", the miss clip plays, no defense beat (sloppy Felipe feels sloppy). This replaces the old accuracy edge.
 6. **Partner submission on you:** three windows of **Sai!** in a row (an escape mash). Miss any and you tap out ("Final!" for them). Daniel's (defense ≥ 0.75) is four.
 7. **Feints:** from blue belt, a partner with aggression ≥ 0.5 feints with chance `0.15 × aggression`: the telegraph names one kind, the move is another legal one (the server picks the second-best plan of a different attack kind). Bia does not warn. A feint that you still block is a normal block.
 8. The partner's hold ("Mateus segura.") is a half-second beat with no pad.
@@ -140,7 +144,19 @@ Commands: Pega!, Puxa!, Empurra!, Gira!, Levanta!, Aperta!, Postura!, Base!, Tra
 - `chain` carries the whole sequence (`cmds[]`, `windowMs[]`, the move, the clip to drive) so the client runs the rhythm locally. The server validates each tap: the step order, the command, and `ms` against its own clock (issue time + the windows so far + 450 ms of network grace, `TB_TEST_ROLL` relaxes nothing: the e2e taps the commands it is sent). A late or wrong tap, or the server deadline passing with no tap, resolves the chain as a miss at that step. The same for `defend`.
 - The AI's expected value no longer reads a percent table. `landChance(move, side)` is: for the partner, its clean chance × (1 − the player's observed block rate this match, starting at 0.5); for the player's replies, the player's observed chain success rate this match (starting at 0.7). Both are tracked in the bout session.
 - The drill: `chain` with `drill: true` (no windows), then the existing `completeDrill`.
-- The simulation (`matSim.test.ts`) models a player by `tapAccuracy` and `reactionShare` and reports win rates per partner for weak (0.6), average (0.8) and strong (0.95) players. Targets: a new white belt beats Mateus 45–60% of the time at 0.8; a 0.95 player beats Rafael under 70%; a 0.6 player still wins 25–35% against Mateus.
+- The simulation (`matSim.test.ts`) models a player by `tapAccuracy` and `reactionShare` and reports win rates per partner for weak (0.6), average (0.8) and strong (0.95) players. Targets (round 2): Mateus weak 25–35%, average 45–60%, strong over 75%; Felipe average 45–60%; Helena and Daniel average 40–55%; Rafael (blue belt) average 25–40%, strong under 70%, weak at least 10%; a finish in over 10% of average-vs-Mateus matches.
+
+  The tuned result (300 matches per cell, white belt unless noted):
+
+  | partner | weak 0.6 | average 0.8 | strong 0.95 |
+  | --- | --- | --- | --- |
+  | Mateus | 10% | 59% (finish 11%) | 96% |
+  | Felipe | 7% | 48% | 92% |
+  | Helena | 6% | 51% | 96% |
+  | Daniel | 4% | 45% | 92% |
+  | Rafael (blue) | 0% | 27% | 76% |
+
+  Every average target and Mateus-strong are met. Three are out of reach with the defense-window knobs: the weak player against Mateus (10%, target 25–35%) and against Rafael (0%, target ≥ 10%), because a 0.6 player misses 40% of its taps whatever the window and with Virar it has to win each position again (wider windows lift it to 23–37% only with the average player at 79–88%); and the strong player against Rafael (76%, target < 70%), because the speed term that would pull Rafael down sinks Felipe below 40% first.
 
 ### J. Removed
 - The percent table, `matOdds` parts, `movePercent`, the "waiting for a grip" row, the carousel of five cards, `MAT_THINK_MS`, the v1 quiz phases (`challenge`, `finish_end`) and the client code that drew them, the momentum simulation in `bout.ts` that nothing calls (keep the referee lines, crowd cues, clock format and event types that the stage still uses).
