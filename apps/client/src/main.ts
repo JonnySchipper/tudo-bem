@@ -1181,7 +1181,14 @@ function startGame() {
     },
     openMap: () => {
       markDesembStep('mapa');
-      openMap((room) => joinRoom(room));
+      openMap((room) => {
+        // the intro (arrivals hall, then the airport until Célia's hand-over) has no way out by map: finish it, or skip it in the hall
+        if (game.profile && firstRoom(game.profile) !== null && (inDesembarque() || inAirport())) {
+          toast('info', 'Termine os primeiros passos antes de sair.', 'Finish the first steps before you leave (you can skip the tutorial in the arrivals hall).');
+          return;
+        }
+        joinRoom(room);
+      });
     },
     openCredits,
     openSupport: () => {
