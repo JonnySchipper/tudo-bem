@@ -1,10 +1,10 @@
 /**
  * Caldo de cana — the multitasking Feira cart game.
  *
- * Customers ask for a sugarcane juice with a flavor and either gelo or puro. The player loads cane,
- * turns the press, catches the juice in a cup (a miss spills), pumps the flavor, adds ice when asked,
- * and serves before the customer leaves. Several orders wait at once. Neglecting the press overflows
- * it. A mistake annoys the customer and costs points; it never ends the run.
+ * Customers ask for a sugarcane juice with a flavor and either gelo or puro. The player feeds cane,
+ * holds the flywheel to press it, lets go when the cup reaches its line (short or over the rim is a soft
+ * fail), squeezes the flavor, adds ice when asked, and serves before the customer leaves. Several orders
+ * wait at once. A mistake annoys the customer and costs points; it never ends the run.
  *
  * Orders are a pure function of the run seed, so the server scores the same list the player saw.
  *
@@ -15,6 +15,8 @@ import { mulberry32 } from './meveum.js';
 import {
   FEIRA_GAME_MAX_SCORE,
   FEIRA_GAME_MODULES,
+  FEIRA_REGULARS,
+  feiraFreshFace,
   type FeiraCustomerOrder,
   type FeiraGameModule,
   type FeiraOrderOutcome,
@@ -45,30 +47,36 @@ const GAP_MS = 4_200;
 export const CALDO_CUSTOMERS = 12;
 export const CALDO_PATIENCE_MS = 24_000;
 
-/** One crank fills a cup if it is under the spout. Juice left in the press drains; a second crank with a full press overflows. */
-export const CALDO_PRESS = {
-  crankJuice: 62,
-  cupFull: 48,
-  drainPerSec: 22,
-  overflow: 100,
+/**
+ * The press. Hold the flywheel and the cane goes through the rollers: juice runs from the spout while you hold.
+ * One cane gives `canePerCup` cups' worth. The cup has a line (level 1): let go anywhere from `lineFrom` up to
+ * `overAt` for a clean pour. Short of `lineFrom` is "faltou"; past `overAt` it runs over the rim and spills.
+ */
+export const CALDO_CRANK = {
+  /** Cup fill per second of cranking (1 = the line). About 1.4 s from empty to the line. */
+  fillPerSec: 0.72,
+  /** How much juice one cane holds, in cups (1 = one cup to the line). */
+  canePerCup: 1.6,
+  lineFrom: 0.86,
+  overAt: 1.08,
+  /** The cup holds this much (the drawing's brim). */
+  max: 1.3,
 } as const;
+
+export type CaldoFill = 'short' | 'line' | 'over';
+
+/** Judge a cup by how far it was filled (1 = the line). */
+export function caldoFill(level: number): CaldoFill {
+  if (level < CALDO_CRANK.lineFrom) return 'short';
+  if (level > CALDO_CRANK.overAt) return 'over';
+  return 'line';
+}
 
 export interface CaldoOrder extends FeiraCustomerOrder {
   flavor: CaldoFlavor;
   ice: CaldoIce;
   line: Bilingual;
 }
-
-const WHO: { id: string; name: string }[] = [
-  { id: 'nanda', name: 'Nanda' },
-  { id: 'julia', name: 'Júlia' },
-  { id: 'tia_lu', name: 'Tia Lu' },
-  { id: 'rosa', name: 'Dona Rosa' },
-  { id: 'chico', name: 'Seu Chico' },
-  { id: 'ze', name: 'Seu Zé' },
-  { id: 'graca', name: 'Dona Graça' },
-  { id: 'lucia', name: 'Dona Lúcia' },
-];
 
 function lineFor(flavor: CaldoFlavor, ice: CaldoIce, polite: boolean): Bilingual {
   const f = CALDO_FLAVOR_LABEL[flavor];
@@ -91,14 +99,11 @@ export function caldoOrders(seed: number): CaldoOrder[] {
   const rng = mulberry32(seed >>> 0);
   const out: CaldoOrder[] = [];
   let at = FIRST_AT;
-  const used = new Set<string>();
+  const recent: string[] = [];
   for (let i = 0; i < CALDO_CUSTOMERS; i++) {
     const flavor = CALDO_FLAVORS[Math.floor(rng() * CALDO_FLAVORS.length)]!;
     const ice: CaldoIce = rng() < 0.62 ? 'gelo' : 'puro';
-    let who = WHO[Math.floor(rng() * WHO.length)]!;
-    if (used.has(who.id) && WHO.length > 1) who = WHO.find((w) => !used.has(w.id)) ?? who;
-    used.clear();
-    used.add(who.id);
+    const who = feiraFreshFace(FEIRA_REGULARS[Math.floor(rng() * FEIRA_REGULARS.length)]!, recent);
     const polite = rng() < 0.7;
     out.push({
       at,
@@ -175,9 +180,11 @@ export function caldoServeQuality(opts: {
   iceOk: boolean;
   spilled: boolean;
   patienceLeft: number;
+  /** Served short of the line (the cup is not full). */
+  short?: boolean;
 }): FeiraQuality {
   if (opts.patienceLeft <= 0 || !opts.flavorOk) return 'miss';
-  if (!opts.iceOk || opts.spilled) return 'soft';
+  if (!opts.iceOk || opts.spilled || opts.short) return 'soft';
   return opts.patienceLeft > 0.45 ? 'perfect' : 'ok';
 }
 
@@ -204,8 +211,28 @@ export const CALDO_SPILL: Bilingual = {
 };
 
 export const CALDO_OVERFLOW: Bilingual = {
-  pt: 'A moenda transbordou!',
-  en: 'The press overflowed!',
+  pt: 'Transbordou o copo!',
+  en: 'The cup ran over!',
+};
+
+export const CALDO_SHORT: Bilingual = {
+  pt: 'Faltou caldo no copo.',
+  en: 'The cup is not full.',
+};
+
+export const CALDO_LINE: Bilingual = {
+  pt: 'Na linha!',
+  en: 'Right on the line!',
+};
+
+export const CALDO_NO_CANE: Bilingual = {
+  pt: 'Põe mais cana!',
+  en: 'Put in more cane!',
+};
+
+export const CALDO_NO_CUP: Bilingual = {
+  pt: 'Sem copo! Caiu no balcão.',
+  en: 'No cup! It went on the counter.',
 };
 
 export const CALDO_THANKS: Bilingual = {

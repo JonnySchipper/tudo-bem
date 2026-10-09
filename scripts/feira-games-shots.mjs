@@ -61,6 +61,8 @@ async function enter(page) {
   await finishArrival(page);
   await sleep(800);
   await page.evaluate(() => window.__tb.setClock({ time: '10:30', weather: 'sol' }));
+  // the airport's first-visit card would sit over every shot
+  await page.evaluate(() => document.getElementById('aero-next-ok')?.click());
   await goArea(page, 'feira');
   await sleep(1500);
 }

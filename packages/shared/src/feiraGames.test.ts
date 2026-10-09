@@ -37,7 +37,9 @@ import {
   withoutHiddenFeiraCart,
   type FeiraDayScore,
 } from './feiraGames.js';
-import { tapiocaOrders, tapiocaServeQuality } from './feiraTapioca.js';
+import { pastelOrders } from './feiraPastel.js';
+import { caldoOrders } from './feiraCaldo.js';
+import { TAPIOCA_SPREAD, tapiocaOrders, tapiocaServeQuality, tapiocaSpread } from './feiraTapioca.js';
 import './feiraPastel.js';
 import './feiraCaldo.js';
 
@@ -142,6 +144,20 @@ describe('feira scoring and payout', () => {
     expect(tapiocaServeQuality('early', true, 0.8)).toBe('soft');
     expect(tapiocaServeQuality('late', true, 0.8)).toBe('soft');
     expect(tapiocaServeQuality('perfect', true, 0.8)).toBe('perfect');
+  });
+
+  it('judges the goma spread: holes or a spill over the rim cap the order at soft', () => {
+    expect(tapiocaSpread(0.2)).toBe('thin');
+    expect(tapiocaSpread(TAPIOCA_SPREAD.evenFrom)).toBe('even');
+    expect(tapiocaSpread(1)).toBe('even');
+    expect(tapiocaSpread(TAPIOCA_SPREAD.evenTo)).toBe('even');
+    expect(tapiocaSpread(TAPIOCA_SPREAD.evenTo + 0.01)).toBe('thick');
+    expect(tapiocaServeQuality('perfect', true, 0.8, 'thin')).toBe('soft');
+    expect(tapiocaServeQuality('perfect', true, 0.8, 'thick')).toBe('soft');
+    expect(tapiocaServeQuality('perfect', false, 0.8, 'thin')).toBe('miss');
+    expect(tapiocaServeQuality('perfect', true, 0.8, 'even')).toBe('perfect');
+    // about a second of holding lands an even disc
+    expect(tapiocaSpread(TAPIOCA_SPREAD.fillPerSec * 0.9)).toBe('even');
   });
 });
 
@@ -306,5 +322,18 @@ describe('feira cart switch', () => {
     }
     for (const h of HOTSPOTS) expect(ids.has(h.id), h.id).toBe(false);
     for (const p of DIARY_PLACEMENTS) expect(ids.has(p.id), p.id).toBe(false);
+  });
+});
+
+describe('cart customers', () => {
+  it('never puts the same regular at the counter twice among any three in a row', () => {
+    for (const seed of [1, 7, 42, 99, 12345, 0xdeadbeef]) {
+      for (const orders of [tapiocaOrders(seed), pastelOrders(seed), caldoOrders(seed)]) {
+        for (let i = 2; i < orders.length; i++) {
+          const three = new Set([orders[i - 2]!.who, orders[i - 1]!.who, orders[i]!.who]);
+          expect(three.size).toBe(3);
+        }
+      }
+    }
   });
 });

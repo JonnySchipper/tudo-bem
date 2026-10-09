@@ -13,6 +13,8 @@ import { mulberry32 } from './meveum.js';
 import {
   FEIRA_GAME_MAX_SCORE,
   FEIRA_GAME_MODULES,
+  FEIRA_REGULARS,
+  feiraFreshFace,
   type FeiraCustomerOrder,
   type FeiraGameModule,
   type FeiraOrderOutcome,
@@ -51,17 +53,6 @@ export interface TapiocaOrder extends FeiraCustomerOrder {
   line: Bilingual;
 }
 
-const WHO: { id: string; name: string }[] = [
-  { id: 'nanda', name: 'Nanda' },
-  { id: 'julia', name: 'Júlia' },
-  { id: 'tia_lu', name: 'Tia Lu' },
-  { id: 'rosa', name: 'Dona Rosa' },
-  { id: 'chico', name: 'Seu Chico' },
-  { id: 'ze', name: 'Seu Zé' },
-  { id: 'graca', name: 'Dona Graça' },
-  { id: 'lucia', name: 'Dona Lúcia' },
-];
-
 function lineFor(filling: TapiocaFilling, polite: boolean): Bilingual {
   const f = TAPIOCA_FILLING_LABEL[filling];
   if (polite) {
@@ -81,16 +72,11 @@ export function tapiocaOrders(seed: number): TapiocaOrder[] {
   const rng = mulberry32(seed >>> 0);
   const out: TapiocaOrder[] = [];
   let at = FIRST_AT;
-  const used = new Set<string>();
+  const recent: string[] = [];
   for (let i = 0; i < TAPIOCA_CUSTOMERS; i++) {
     const filling = TAPIOCA_FILLINGS[Math.floor(rng() * TAPIOCA_FILLINGS.length)]!;
-    let who = WHO[Math.floor(rng() * WHO.length)]!;
-    // avoid the same face twice in a row when we can
-    if (used.has(who.id) && WHO.length > 1) {
-      who = WHO.find((w) => !used.has(w.id)) ?? who;
-    }
-    used.clear();
-    used.add(who.id);
+    // nobody stands at the counter twice among three in a row
+    const who = feiraFreshFace(FEIRA_REGULARS[Math.floor(rng() * FEIRA_REGULARS.length)]!, recent);
     const polite = rng() < 0.65;
     out.push({
       at,
@@ -180,11 +166,30 @@ export function tapiocaFlip(ageMs: number): FlipVerdict {
   return 'perfect';
 }
 
-/** Client-side quality for one served tapioca. Wrong filling is always a miss. A bad flip caps the order at soft. */
-export function tapiocaServeQuality(flip: FlipVerdict, fillingOk: boolean, patienceLeft: number): FeiraQuality {
+/**
+ * Spreading the goma: the player holds the sieve over the pan and the disc fills. `coverage` is how much of the
+ * pan's ring got covered (1 = edge to edge). Too little leaves holes, too much runs over the rim.
+ * Holding fills it at `fillPerSec`, so about 0.9 s lands an even disc.
+ */
+export const TAPIOCA_SPREAD = { evenFrom: 0.8, evenTo: 1.12, fillPerSec: 1.1, max: 1.4 } as const;
+
+export type SpreadVerdict = 'thin' | 'even' | 'thick';
+
+/** Judge a spread from its coverage (0..`TAPIOCA_SPREAD.max`). */
+export function tapiocaSpread(coverage: number): SpreadVerdict {
+  if (coverage < TAPIOCA_SPREAD.evenFrom) return 'thin';
+  if (coverage > TAPIOCA_SPREAD.evenTo) return 'thick';
+  return 'even';
+}
+
+/**
+ * Client-side quality for one served tapioca. Wrong filling is always a miss. A bad flip or an uneven spread
+ * (holes, or goma over the rim) caps the order at soft.
+ */
+export function tapiocaServeQuality(flip: FlipVerdict, fillingOk: boolean, patienceLeft: number, spread: SpreadVerdict = 'even'): FeiraQuality {
   if (!fillingOk) return 'miss';
   if (patienceLeft <= 0) return 'miss';
-  if (flip !== 'perfect') return 'soft';
+  if (flip !== 'perfect' || spread !== 'even') return 'soft';
   return patienceLeft > 0.45 ? 'perfect' : 'ok';
 }
 
@@ -192,6 +197,19 @@ export const TAPIOCA_POP: Record<'perfect' | 'soft' | 'miss', Bilingual> = {
   perfect: { pt: 'Perfeito!', en: 'Perfect!' },
   soft: { pt: 'Quase!', en: 'Close!' },
   miss: { pt: 'Ih…', en: 'Oh…' },
+};
+
+/** Pops for the spread and the fold. needs_br: true */
+export const TAPIOCA_SPREAD_POP: Record<SpreadVerdict, Bilingual> = {
+  thin: { pt: 'Ficou com buraco.', en: 'It has holes.' },
+  even: { pt: 'Bem espalhada!', en: 'Nicely spread!' },
+  thick: { pt: 'Passou da borda.', en: 'It ran over the edge.' },
+};
+
+export const TAPIOCA_FLIP_POP: Record<FlipVerdict, Bilingual> = {
+  early: { pt: 'Rasgou! Cedo demais.', en: 'It tore! Too early.' },
+  perfect: { pt: 'Virou no ponto!', en: 'Flipped right on time!' },
+  late: { pt: 'Grudou! Passou do ponto.', en: 'It stuck! Too late.' },
 };
 
 /** Mild annoyance when the filling is wrong. needs_br: true */

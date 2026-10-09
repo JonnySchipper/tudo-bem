@@ -13,6 +13,8 @@ import { mulberry32 } from './meveum.js';
 import {
   FEIRA_GAME_MAX_SCORE,
   FEIRA_GAME_MODULES,
+  FEIRA_REGULARS,
+  feiraFreshFace,
   type FeiraCustomerOrder,
   type FeiraGameModule,
   type FeiraOrderOutcome,
@@ -115,17 +117,6 @@ export interface PastelOrder extends FeiraCustomerOrder {
   line: Bilingual;
 }
 
-const WHO: { id: string; name: string }[] = [
-  { id: 'nanda', name: 'Nanda' },
-  { id: 'julia', name: 'Júlia' },
-  { id: 'tia_lu', name: 'Tia Lu' },
-  { id: 'rosa', name: 'Dona Rosa' },
-  { id: 'chico', name: 'Seu Chico' },
-  { id: 'ze', name: 'Seu Zé' },
-  { id: 'graca', name: 'Dona Graça' },
-  { id: 'lucia', name: 'Dona Lúcia' },
-];
-
 function lineFor(filling: PastelFilling, polite: boolean): Bilingual {
   const name = PASTEL_RECIPE[filling].label;
   if (polite) {
@@ -150,14 +141,11 @@ export function pastelOrders(seed: number): PastelOrder[] {
   const rng = mulberry32(seed >>> 0);
   const out: PastelOrder[] = [];
   let at = FIRST_AT;
-  const used = new Set<string>();
+  const recent: string[] = [];
   for (let i = 0; i < PASTEL_CUSTOMERS; i++) {
     const pool = pastelComboTurn(i) ? PASTEL_COMBO : PASTEL_SIMPLE;
     const filling = pool[Math.floor(rng() * pool.length)]!;
-    let who = WHO[Math.floor(rng() * WHO.length)]!;
-    if (used.has(who.id) && WHO.length > 1) who = WHO.find((w) => !used.has(w.id)) ?? who;
-    used.clear();
-    used.add(who.id);
+    const who = feiraFreshFace(FEIRA_REGULARS[Math.floor(rng() * FEIRA_REGULARS.length)]!, recent);
     const polite = rng() < 0.65;
     out.push({
       at,
@@ -283,7 +271,7 @@ export function pastelServeQuality(doneness: PastelDoneness, fillingOk: boolean,
   return 'soft';
 }
 
-export const PASTEL_POP: Record<'perfect' | 'ok' | 'soft' | 'raw' | 'miss' | 'fire' | 'out' | 'wrong' | 'need', Bilingual> = {
+export const PASTEL_POP: Record<'perfect' | 'ok' | 'soft' | 'raw' | 'miss' | 'fire' | 'out' | 'wrong' | 'need' | 'rack' | 'trash' | 'dough', Bilingual> = {
   perfect: { pt: 'Dourado!', en: 'Golden!' },
   ok: { pt: 'No ponto.', en: 'Just right.' },
   soft: { pt: 'Queimou…', en: 'Burnt…' },
@@ -293,7 +281,13 @@ export const PASTEL_POP: Record<'perfect' | 'ok' | 'soft' | 'raw' | 'miss' | 'fi
   out: { pt: 'Ufa, apagou!', en: 'Phew, it is out!' },
   wrong: { pt: 'Hmm, não era esse recheio.', en: 'Hmm, that was not the filling.' },
   need: { pt: 'Fecha com o garfo primeiro.', en: 'Crimp it with the fork first.' },
+  rack: { pt: 'O escorredor está cheio.', en: 'The draining rack is full.' },
+  trash: { pt: 'Pro lixo.', en: 'Into the bin.' },
+  dough: { pt: 'Pega a massa primeiro.', en: 'Take the dough first.' },
 };
+
+/** How many pulled pastéis fit on the draining rack beside the fryer. */
+export const PASTEL_RACK = 3;
 
 /** What the customer mutters when a pastel is on fire. needs_br: true */
 export const PASTEL_SHEEPISH: Bilingual = {
