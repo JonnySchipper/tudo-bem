@@ -19,7 +19,8 @@ import { JevModelSafety, jevSelfCheck, loadOnnxToxModel } from './services/jevMo
 import type { ChatSafetyService } from './services/interfaces.js';
 import { handleConversaApi } from './conversaApi.js';
 import { ConversaMemory } from './conversaMemory.js';
-import { staticCacheControl } from './cacheControl.js';
+import { serveStatic } from './httpStatic.js';
+import { applySecurityHeaders } from './securityHeaders.js';
 import { legalPageFile } from './legalPages.js';
 import {
   AccountStore,
@@ -33,7 +34,7 @@ import {
 } from './auth.js';
 import { handleFeedbackApi } from './feedbackApi.js';
 import { FeedbackStore } from './feedbackStore.js';
-import { readAdminAuthConfig, type AdminAuthConfig } from './adminAuth.js';
+import { adminPasswordMatches, readAdminAuthConfig, type AdminAuthConfig } from './adminAuth.js';
 import { handleBillingApi } from './billing/http.js';
 import { billingConfigured, readBillingConfig } from './billing/provider.js';
 import { publicAppConfig, readOpsSmokeConfig, type OpsSmokeConfig } from './opsSmoke.js';
@@ -92,18 +93,6 @@ function chatSafety(dir: string | undefined): ChatSafetyService & { status?: Jev
 /** WebSocket close codes the client understands (see apps/client/src/net.ts). */
 export const CLOSE_CODES: Record<CloseReason, number> = { replaced: 4000, idle: 4001, logout: 4002, admin: 4003 };
 
-const MIME: Record<string, string> = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.ico': 'image/x-icon',
-  '.json': 'application/json',
-  '.webmanifest': 'application/manifest+json',
-  '.woff2': 'font/woff2',
-};
-
 export function createApp(opts: AppOptions) {
   const { dataDir, clientDist } = opts;
   // Open (and migrate) before any store constructor. A failed import must abort startup; ProfileStore would otherwise catch the error and later save an empty set.
@@ -145,11 +134,27 @@ export function createApp(opts: AppOptions) {
     void accounts.ensureSmokeAccount(opsSmoke.email, opsSmoke.password).catch((e) => console.error('[ops-smoke] seed failed', e));
   }
 
-  const server = http.createServer(async (req, res) => {
-    const url = new URL(req.url ?? '/', 'http://x');
+  /** Admin bearer (same secret as GET /api/feedback): unlocks the counts on /healthz. */
+  const isAdmin = (req: http.IncomingMessage) => {
+    const m = /^Bearer\s+(.+)$/i.exec(String(req.headers.authorization ?? ''));
+    return !!(m && feedbackAdmin.ready && feedbackAdmin.password && adminPasswordMatches(m[1]!.trim(), feedbackAdmin.password));
+  };
+
+  const onRequest = async (req: http.IncomingMessage, res: http.ServerResponse) => {
+    applySecurityHeaders(req, res);
+    let url: URL;
+    try {
+      url = new URL(req.url ?? '/', 'http://x');
+    } catch {
+      res.writeHead(400, { 'content-type': 'text/plain; charset=utf-8' });
+      return res.end('Bad request');
+    }
     if (url.pathname === '/healthz') {
-      res.writeHead(200, { 'content-type': 'application/json' });
-      return res.end(JSON.stringify({ ok: true, ...world.stats(), accounts: accounts.count(), gameMinute: world.gameMinuteNow(), jev: safety.status?.() ?? { state: 'stub' } }));
+      const jev = safety.status?.() ?? { state: 'stub' };
+      // Public: liveness, the Jev model state and the game clock (shown in game anyway). Player counts need the admin bearer.
+      const body = { ok: true, gameMinute: world.gameMinuteNow(), jev: { state: jev.state } };
+      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+      return res.end(JSON.stringify(isAdmin(req) ? { ...body, ...world.stats(), accounts: accounts.count(), jev } : body));
     }
     // Test only: `POST /__test/clock?min=510` sets the game clock to 08:30 (e2e runs pin it). Off unless TB_TEST_CLOCK_CONTROL=1.
     if (url.pathname === '/__test/clock' && process.env.TB_TEST_CLOCK_CONTROL === '1') {
@@ -225,6 +230,10 @@ export function createApp(opts: AppOptions) {
         clockMinutes: () => world.gameMinuteNow(),
         dateKey: () => conversaDateKey(),
         playerIdFor: (r) => accounts.accountForSession(sessionCookieOf(r))?.profileId,
+      }).catch((e) => {
+        console.error('[conversa] handler error', e);
+        if (!res.headersSent) res.writeHead(500);
+        res.end();
       });
     }
     if (!clientDist) {
@@ -242,15 +251,15 @@ export function createApp(opts: AppOptions) {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache' });
       return fs.createReadStream(file).pipe(res);
     }
-    const rel = path.normalize(decodeURIComponent(url.pathname)).replace(/^([/\\])+/, '');
-    let file = path.join(clientDist, rel);
-    if (!file.startsWith(clientDist) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(clientDist, 'index.html');
-    const ext = path.extname(file);
-    res.writeHead(200, {
-      'content-type': MIME[ext] ?? 'application/octet-stream',
-      'cache-control': staticCacheControl(url, ext),
+    serveStatic(req, res, url, clientDist);
+  };
+  // One bad request must never take the world down: log it, answer 500 without the stack.
+  const server = http.createServer((req, res) => {
+    onRequest(req, res).catch((e) => {
+      console.error('[http] handler error', req.method, req.url, e);
+      if (!res.headersSent) res.writeHead(500, { 'content-type': 'text/plain; charset=utf-8' });
+      res.end();
     });
-    fs.createReadStream(file).pipe(res);
   });
 
   const wss = new WebSocketServer({

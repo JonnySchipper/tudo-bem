@@ -387,9 +387,19 @@ export function originAllowed(req: IncomingMessage, allowed: readonly string[] =
   }
 }
 
-export function clientIp(req: IncomingMessage): string {
-  const fly = req.headers['fly-client-ip'];
-  if (typeof fly === 'string' && fly) return fly;
+/**
+ * The address rate limits key on. Fly-Client-IP is only trusted on Fly (FLY_APP_NAME is set there and its proxy overwrites the header);
+ * anywhere else a client could send it to dodge the limits. Behind another proxy, TB_TRUST_PROXY=1 trusts the first X-Forwarded-For hop.
+ */
+export function clientIp(req: IncomingMessage, env: Record<string, string | undefined> = process.env): string {
+  if (env.FLY_APP_NAME) {
+    const fly = req.headers['fly-client-ip'];
+    if (typeof fly === 'string' && fly.trim()) return fly.trim();
+  } else if (env.TB_TRUST_PROXY === '1') {
+    const xff = req.headers['x-forwarded-for'];
+    const first = (Array.isArray(xff) ? xff[0] : xff)?.split(',')[0]?.trim();
+    if (first) return first;
+  }
   return req.socket.remoteAddress ?? 'unknown';
 }
 

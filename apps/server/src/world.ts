@@ -369,7 +369,7 @@ export class World {
     readonly services: Services,
     opts: WorldOptions = {},
   ) {
-    this.cap = Math.max(1, Math.min(DEFAULT_ROOM_CAP, opts.roomCap ?? DEFAULT_ROOM_CAP));
+    this.cap = Math.max(1, Math.min(DEFAULT_ROOM_CAP, Number.isFinite(opts.roomCap) ? opts.roomCap! : DEFAULT_ROOM_CAP));
     this.now = opts.now ?? Date.now;
     this.schedule = opts.schedule ?? ((fn, ms) => void (setTimeout(fn, ms) as unknown as { unref?: () => void }).unref?.());
     this.ambiance = !!opts.ambiance;
