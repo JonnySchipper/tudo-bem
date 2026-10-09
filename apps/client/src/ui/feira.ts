@@ -183,12 +183,12 @@ function render() {
     const goods = v.goods.map((id) => goodById(id)!);
     chips = [...goods.map((x) => ({ pt: askChip(x).pt, en: askChip(x).en })), { pt: `Só estou olhando, ${obrigad()}.`, en: 'I’m just looking, thanks.' }];
     onChip = (i) => (i < goods.length ? ask(askChip(goods[i]!).pt) : endNow());
-    input = { id: 'feira-input', placeholder: 'Pergunte o preço em português…', send: 'Perguntar', onSend: (text, el) => ((el.value = ''), ask(text)), disabled: s.waiting };
+    input = { id: 'feira-input', placeholder: 'Pergunte o preço em português… (Ask the price in Portuguese)', send: 'Perguntar', onSend: (text, el) => ((el.value = ''), ask(text)), disabled: s.waiting };
   } else if (s.phase === 'qty' && g) {
     const cents = (q: number) => priceFor(g.itemId, q) ?? 0;
     chips = [...g.qtys.map((q) => ({ pt: qtyChip(g, q).pt, en: `${qtyChip(g, q).en} · ${moneyLabel(cents(q))}` })), { pt: `Agora não, ${obrigad()}.`, en: 'Not now, thanks.' }];
     onChip = (i) => (i < g.qtys.length ? pickQty(g.qtys[i]!) : back('Pois não. Mais alguma coisa?', 'Sure. Anything else?'));
-    input = { id: 'feira-input', placeholder: 'Quantos? Responda em português…', send: 'Responder', onSend: (text, el) => ((el.value = ''), typedQty(text)) };
+    input = { id: 'feira-input', placeholder: 'Quantos? Responda em português… (How many? Answer in Portuguese)', send: 'Responder', onSend: (text, el) => ((el.value = ''), typedQty(text)) };
   } else if (s.phase === 'pay') {
     extras = trayEl(s);
   } else if (s.phase === 'done') {

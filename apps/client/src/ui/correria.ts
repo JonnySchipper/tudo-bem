@@ -224,7 +224,7 @@ export class CorreriaUI {
       // one more tap within 3 s ends the shift and pays what was served
       this.quitArmed = performance.now() + 3000;
       this.quitBtn.classList.add('armed');
-      this.quitBtn.textContent = 'Sair?';
+      this.quitBtn.textContent = 'Sair? · Leave?';
       window.setTimeout(() => {
         this.quitArmed = 0;
         this.quitBtn.classList.remove('armed');
@@ -575,7 +575,7 @@ export class CorreriaUI {
       card.type === 'choice'
         ? h('div', { class: 'cr-ask-opts' }, ...card.options.map((o) => h('button', { type: 'button', class: 'cr-opt', 'data-value': String(o.value), onclick: () => this.act({ a: 'answer', value: o.value }) }, h('span', { class: 'pt' }, o.pt), h('span', { class: 'en' }, o.label))))
         : (() => {
-            const input = h('input', { type: 'text', id: 'cr-ask-input', class: 'cr-ask-input', placeholder: 'Escreva o total…', autocomplete: 'off', inputmode: 'text', 'aria-label': 'Total em reais' }) as HTMLInputElement;
+            const input = h('input', { type: 'text', id: 'cr-ask-input', class: 'cr-ask-input', placeholder: 'Escreva o total… (Type the total)', autocomplete: 'off', inputmode: 'text', 'aria-label': 'Total em reais (Total in reais)' }) as HTMLInputElement;
             const go = () => {
               if (input.value.trim()) this.act({ a: 'answer', value: input.value });
             };

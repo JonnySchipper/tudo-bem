@@ -86,7 +86,7 @@ function boxSpecFor(o: DialogueOpts): BoxSpec {
     feedback: o.feedback ? h('span', { class: `feedback dbx-feedback s${score}` }, `${o.feedback.text.pt} · ${o.feedback.text.en}`) : null,
     extras: o.extras,
     chips: o.chips,
-    input: o.chips.length && o.onType ? { id: 'scene-type', placeholder: 'Responda em português…', send: 'Responder', onSend: (text) => o.onType?.(text) } : null,
+    input: o.chips.length && o.onType ? { id: 'scene-type', placeholder: 'Responda em português… (Answer in Portuguese)', send: 'Responder', onSend: (text) => o.onType?.(text) } : null,
     footer: o.footer,
     onChip: o.onChoose,
     onClose: o.onClose,
@@ -271,8 +271,8 @@ interface StallCard {
 function stallCard(s: StallCard): HTMLElement {
   const short = s.owned ? 0 : shortBy(s.coins, s.price);
   const tag = s.owned
-    ? h('span', { class: `stall-tag ${s.using ? 'using' : 'mine'}` }, s.using ? s.usingLabel : '✓ Seu')
-    : h('span', { class: `price price-tag ${s.price === 0 ? 'free' : ''}` }, s.price === 0 ? 'Grátis' : [h('span', { class: 'coin' }), ` ${s.price}`]);
+    ? h('span', { class: `stall-tag ${s.using ? 'using' : 'mine'}` }, s.using ? s.usingLabel : '✓ Seu · Yours')
+    : h('span', { class: `price price-tag ${s.price === 0 ? 'free' : ''}` }, s.price === 0 ? 'Grátis · Free' : [h('span', { class: 'coin' }), ` ${s.price}`]);
   const cls = ['item-card', 'stall-card', s.owned ? 'owned' : 'sale', s.using ? 'using' : '', s.selected ? 'sel' : '', short ? 'cant' : '', s.fresh ? 'just-bought' : ''];
   return h(
     'div',
@@ -281,7 +281,7 @@ function stallCard(s: StallCard): HTMLElement {
     h('div', { class: 'item-icon-box hat-icon-box' }, s.icon),
     h('div', { class: 'name' }, s.pt),
     en(s.en),
-    short ? h('span', { class: 'short' }, `Faltam ${short} RV`) : null,
+    short ? h('span', { class: 'short' }, `Faltam ${short} RV`, en(` · ${short} RV short`, true)) : null,
     s.button,
     s.fresh ? h('span', { class: 'stall-stamp', 'aria-hidden': 'true' }, s.fresh) : null,
   );

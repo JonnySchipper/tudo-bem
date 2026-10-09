@@ -240,7 +240,7 @@ function renderHome(greet: boolean) {
       h(
         'div',
         { class: 'escola-stat', id: 'escola-goal' },
-        h('span', { class: 'escola-goal-head' }, h('b', null, 'Meta de hoje'), h('span', { class: 'escola-goal-n' }, `${Math.min(xp, 999)}/${st.goal} XP`)),
+        h('span', { class: 'escola-goal-head' }, h('b', null, 'Meta de hoje', en(' · Daily goal', true)), h('span', { class: 'escola-goal-n' }, `${Math.min(xp, 999)}/${st.goal} XP`)),
         bar(xp / st.goal, goalMet ? 'met' : ''),
         goalPick,
       ),
@@ -746,7 +746,7 @@ function renderDone(s: EscolaSummary) {
         h(
           'div',
           { class: 'escola-stat', id: 'escola-sum-goal' },
-          h('span', { class: 'escola-goal-head' }, h('b', null, s.goalMet || s.dayXp >= s.goal ? 'Meta cumprida!' : 'Meta de hoje'), h('span', { class: 'escola-goal-n' }, `${s.dayXp}/${s.goal} XP`)),
+          h('span', { class: 'escola-goal-head' }, h('b', null, s.goalMet || s.dayXp >= s.goal ? 'Meta cumprida!' : 'Meta de hoje', en(s.goalMet || s.dayXp >= s.goal ? ' · Goal met!' : ' · Daily goal', true)), h('span', { class: 'escola-goal-n' }, `${s.dayXp}/${s.goal} XP`)),
           bar(s.dayXp / s.goal, s.dayXp >= s.goal ? 'met' : ''),
         ),
       ),

@@ -3,7 +3,7 @@ import { closeModal, openModal } from './modal';
 import { fetchPublicConfig } from '../auth/config';
 import { mountGoogleSignIn } from '../auth/googleSignIn';
 import { introAlreadyPassed, markIntroPassed, readAuthSession, writeAuthSession } from '../auth/session';
-import { h, ui } from './dom';
+import { h, en, ui } from './dom';
 import { artCredit } from './credits';
 import { mountIntroParrots, type SkyBand } from './introParrots';
 import { createIntroHeroScene } from './introHeroScene';
@@ -62,7 +62,7 @@ export function runIntroGate({ guestEntersWorld = true }: { guestEntersWorld?: b
     const heroScene = createIntroHeroScene();
     const veil = h('div', { class: 'intro-veil tb-world-veil', 'aria-hidden': 'true' });
     const glow = h('div', { class: 'intro-layer intro-glow', 'aria-hidden': 'true' });
-    const skipBtn = h('button', { type: 'button', class: 'intro-skip', id: 'intro-skip' }, 'Pular', h('span', { class: 'intro-skip-arrow', 'aria-hidden': 'true' }, '›'));
+    const skipBtn = h('button', { type: 'button', class: 'intro-skip', id: 'intro-skip' }, 'Pular', en(' skip', true), h('span', { class: 'intro-skip-arrow', 'aria-hidden': 'true' }, '›'));
 
     let enterDone = false;
     let resolveEnter!: () => void;

@@ -649,7 +649,7 @@ export class BoutUI {
   }
 
   private typedArea(seq: number, c: ChallengeView): HTMLElement {
-    const input = h('input', { type: 'text', class: 'bout-typed-input', id: 'bout-typed', maxLength: c.maxLen ?? 24, autocomplete: 'off', autocapitalize: 'none', spellcheck: false, 'aria-label': 'Sua resposta (Your answer)', placeholder: 'Escreva aqui…' }) as HTMLInputElement;
+    const input = h('input', { type: 'text', class: 'bout-typed-input', id: 'bout-typed', maxLength: c.maxLen ?? 24, autocomplete: 'off', autocapitalize: 'none', spellcheck: false, 'aria-label': 'Sua resposta (Your answer)', placeholder: 'Escreva aqui… (Type here)' }) as HTMLInputElement;
     const send = () => {
       const text = input.value.trim();
       if (this.locked || seq !== this.seq || !text) return;

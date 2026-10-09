@@ -175,7 +175,7 @@ function boxSpec(s: ConversaState): BoxSpec {
     ],
     extras: s.ended && s.grade ? buildScoreCard(s.grade, s.payout, s.meter, s.rvNote) : null,
     chips: s.ended || waiting ? [] : s.chips.map((c) => ({ pt: addressed(s.npcId, c.pt), en: addressed(s.npcId, c.en) })),
-    input: s.ended ? null : { id: 'conversa-input', placeholder: 'Responda em português…', send: CONVERSA_COPY.enviar.pt, onSend: (_t, el) => void handleSend(el), disabled: waiting },
+    input: s.ended ? null : { id: 'conversa-input', placeholder: 'Responda em português… (Answer in Portuguese)', send: CONVERSA_COPY.enviar.pt, onSend: (_t, el) => void handleSend(el), disabled: waiting },
     footer: s.ended
       ? h('button', { class: 'primary', onclick: handleClose }, bi(CONVERSA_COPY.continuar.pt, CONVERSA_COPY.continuar.en))
       : h(

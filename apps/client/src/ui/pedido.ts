@@ -97,7 +97,7 @@ function boxSpec(s: PedidoState): BoxSpec {
   const ended = s.view.end;
   const expr = ended ? (s.payout && s.payout > 0 ? 'feliz' : 'neutro') : expressionForScore(s.lastScore);
   const dailyCopy = s.dailyBlocked
-    ? h('div', { class: 'daily-blocked', 'data-needs-br': 'true' }, h('span', { class: 'blocked-icon' }, '📅'), h('b', { lang: 'pt-BR' }, 'Já pediu hoje!'), h('small', { lang: 'pt-BR' }, 'Volte amanhã.'))
+    ? h('div', { class: 'daily-blocked', 'data-needs-br': 'true' }, h('span', { class: 'blocked-icon' }, '📅'), h('b', { lang: 'pt-BR' }, 'Já pediu hoje!'), h('small', { lang: 'pt-BR' }, 'Volte amanhã.'), en('You already ordered today. Come back tomorrow.'))
     : null;
   const extras = h(
     'div',
@@ -116,7 +116,7 @@ function boxSpec(s: PedidoState): BoxSpec {
     feedback: !ended && s.lastScore !== undefined ? buildScoreIndicator(s.lastScore) : null,
     extras,
     chips: ended ? [] : s.view.chips.map((c) => ({ pt: c.pt, en: c.en })),
-    input: ended ? null : { id: 'pedido-input', placeholder: 'Responda em português…', send: 'Enviar', onSend: (_t, el) => handleSend(el) },
+    input: ended ? null : { id: 'pedido-input', placeholder: 'Responda em português… (Answer in Portuguese)', send: 'Enviar', onSend: (_t, el) => handleSend(el) },
     footer: ended
       ? h(
           'div',

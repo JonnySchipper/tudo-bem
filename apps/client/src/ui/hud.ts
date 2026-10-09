@@ -321,7 +321,7 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
       hint.textContent = `${input.value.length}/${MAX_CHAT_LEN}`;
       hint.className = 'hint';
     } else {
-      hint.textContent = v.action === 'warn' ? 'Vai com aviso' : v.action === 'escalate' ? 'Vai pra revisão' : 'Não pode';
+      hint.textContent = v.action === 'warn' ? 'Vai com aviso · Sends with a warning' : v.action === 'escalate' ? 'Vai pra revisão · Goes to review' : 'Não pode · Not allowed';
       hint.className = 'hint warn';
       hint.title = v.note?.en ?? '';
     }
