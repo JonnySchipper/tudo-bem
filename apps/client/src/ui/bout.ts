@@ -121,7 +121,7 @@ interface MatchViews {
     move: HTMLElement;
     line: HTMLElement;
     ring: HTMLElement;
-    ringFg: SVGCircleElement;
+    ringFg: SVGRectElement;
     bar: HTMLElement;
     word: HTMLElement;
     dots: HTMLElement;
@@ -506,12 +506,14 @@ export class BoutUI {
     this.view('pick').replaceChildren(pickRoot);
 
     // the pad: the command word in its ring, the dots, the grade, the escape bar, the two pads
-    const ringFg = svgCircle('fg');
+    // the timer ring is a pill around the word (a long word like Empurra! does not fit a circle); it empties as the window runs
+    const ringFg = ringPath('fg');
     const ringSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    ringSvg.setAttribute('viewBox', '0 0 36 36');
+    ringSvg.setAttribute('viewBox', '0 0 200 80');
+    ringSvg.setAttribute('preserveAspectRatio', 'none');
     ringSvg.setAttribute('aria-hidden', 'true');
     ringFg.style.strokeDasharray = String(RING_LEN);
-    ringSvg.append(svgCircle('bg'), ringFg);
+    ringSvg.append(ringPath('bg'), ringFg);
     const word = h('div', { class: 'cmd-word', id: 'bout-cmdword', role: 'status', 'aria-live': 'assertive', 'aria-atomic': 'true' });
     const cmdBar = h('div', { class: 'cmd-bar', 'aria-hidden': 'true' }, h('i'));
     const ring = h('div', { class: 'cmd-ring', id: 'bout-ring', role: 'timer', 'aria-label': 'Tempo (Time)' }, ringSvg, word);
@@ -1330,13 +1332,17 @@ export class BoutUI {
   };
 }
 
-const RING_LEN = 94.25;
-function svgCircle(cls: string): SVGCircleElement {
-  const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-  c.setAttribute('class', cls);
-  c.setAttribute('cx', '18');
-  c.setAttribute('cy', '18');
-  c.setAttribute('r', '15');
-  c.setAttribute('fill', 'none');
-  return c;
+/** The ring's outline is normalised to this length (`pathLength`), so the dash offset is simply the share of the window gone. */
+const RING_LEN = 100;
+function ringPath(cls: string): SVGRectElement {
+  const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  r.setAttribute('class', cls);
+  r.setAttribute('x', '4');
+  r.setAttribute('y', '4');
+  r.setAttribute('width', '192');
+  r.setAttribute('height', '72');
+  r.setAttribute('rx', '36');
+  r.setAttribute('fill', 'none');
+  r.setAttribute('pathLength', String(RING_LEN));
+  return r;
 }
