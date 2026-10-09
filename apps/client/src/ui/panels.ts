@@ -36,6 +36,7 @@ import { newlyOwned, shortBy, splitStall } from './stallLogic';
 import { furnitureIcon, expressionForScore } from './pixelArt';
 import { speak } from '../audio';
 import { closeDialogueBox, showDialogueBox, type BoxSpec } from './dialogue';
+import { openVilaGuide } from './vilaGuide';
 import { icon } from '../art/ui';
 import { beltChip } from './beltChip';
 import { clock } from '../gameClock';
@@ -145,9 +146,15 @@ export function showJulia(fromGreeting = false) {
       line,
       key: 'talk-julia',
       chips: JULIA_TREE.map((j) => j.q),
-      // four questions on keys 1-4; leaving is the button (or Esc)
+      // the questions on keys 1-5; leaving is the button (or Esc)
       footer: h('button', { class: 'ghost', onclick: closeDialogue }, bi('Tchau, Júlia!', 'Bye, Júlia!')),
-      onChoose: (i) => (i < JULIA_TREE.length ? root(JULIA_TREE[i].a) : closeDialogue()),
+      onChoose: (i) => {
+        const j = JULIA_TREE[i];
+        if (!j) return closeDialogue();
+        root(j.a);
+        // "O que tem pra fazer aqui?": she points at the guide card, which opens over her answer
+        if (j.guide) openVilaGuide();
+      },
       onClose: closeDialogue,
     });
   };
@@ -544,7 +551,7 @@ export function openFriends(actions: { request: (id: string) => void; accept: (i
             h('span', { class: 'spacer' }),
             f.online && f.room && f.room !== 'kitnet' ? h('button', { class: 'green', onclick: () => (actions.hop(f.room!, f.instanceId), close()) }, bi('Ir até', 'Join')) : '',
             h('button', { onclick: () => (actions.hop('kitnet', null, f.id), close()) }, bi('Visitar kitnet', 'Visit apt')),
-            h('button', { class: 'ghost', onclick: () => actions.remove(f.id) }, 'Remover'),
+            h('button', { class: 'ghost', onclick: () => actions.remove(f.id) }, bi('Remover', 'Remove')),
           ),
         ),
       ),
@@ -604,7 +611,7 @@ export function openProfileCard(
       closeBtn(() => close()),
       canvas,
       h('h2', null, a.name),
-      h('div', { class: 'row', style: 'justify-content:center' }, tierChip(a.nameplate ?? 'verde', { id: 'profile-plate' }), a.founder ? h('span', { class: 'wl-founder founder-chip', role: 'img', 'aria-label': `${FOUNDER_BADGE.pt} · ${FOUNDER_BADGE.en}`, title: `${FOUNDER_BADGE.pt} · ${FOUNDER_BADGE.en}` }) : null, h('span', { style: 'font-weight:700;color:var(--ink-soft)' }, `trate por: ${pronoun}`)),
+      h('div', { class: 'row', style: 'justify-content:center' }, tierChip(a.nameplate ?? 'verde', { id: 'profile-plate' }), a.founder ? h('span', { class: 'wl-founder founder-chip', role: 'img', 'aria-label': `${FOUNDER_BADGE.pt} · ${FOUNDER_BADGE.en}`, title: `${FOUNDER_BADGE.pt} · ${FOUNDER_BADGE.en}` }) : null, h('span', { style: 'font-weight:700;color:var(--ink-soft)' }, `trate por: ${pronoun}`, en(` · call them: ${({ ele: 'he', ela: 'she', nome: 'name only' } as const)[a.pronoun]}`, true))),
       a.belt ? h('div', { class: 'row', style: 'justify-content:center;margin-top:8px' }, beltChip(a.belt)) : null,
       en(`${tierRule(a.nameplate ?? 'verde').en} nameplate: earned in the Escola by words mastered. Plates come from learning, never from money.`),
       h(

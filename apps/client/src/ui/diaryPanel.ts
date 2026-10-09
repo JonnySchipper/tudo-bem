@@ -61,7 +61,7 @@ export function syncCameraFrame(x?: number, y?: number) {
   }
   const n = game.profile.film ?? 0;
   const film = document.getElementById('camera-film');
-  if (film) film.textContent = n === 1 ? '1 filme' : `${n} filmes`;
+  if (film) film.textContent = n === 1 ? '1 filme · 1 shot left' : `${n} filmes · ${n} shots left`;
   el.classList.toggle('empty', n < 1);
 }
 
@@ -198,7 +198,7 @@ function celebrate(m: QueuedWord<HTMLElement>) {
     word,
     en(m.en),
     m.progress ? h('p', { class: 'celebrate-progress', id: 'photo-progress' }, `${m.areaPt ?? ''}: ${m.progress}`) : null,
-    h('button', { type: 'button', class: 'primary', id: 'photo-close', onclick: close }, 'Que bom!'),
+    h('button', { type: 'button', class: 'primary', id: 'photo-close', onclick: close }, 'Que bom!', h('span', { class: 'en' }, ' · Great!')),
   );
   const card = h('div', { id: 'photo-celebrate', role: 'status', class: from ? 'heard' : '' }, burst, inner);
   document.getElementById('ui')?.append(card);
@@ -271,7 +271,7 @@ export function showPhoto(m: ShotMsg) {
     print.classList.add(m.ok ? 'new-word' : m.empty ? 'saved' : 'known');
     const cap = print.querySelector('.print-cap');
     cap?.replaceChildren(
-      ...(m.ok || m.empty ? [] : [h('span', { class: 'print-kicker' }, 'Já no diário')]),
+      ...(m.ok || m.empty ? [] : [h('span', { class: 'print-kicker', title: 'Already in your Diário' }, 'Já no diário · already have it')]),
       ...(words.length > 1 ? [h('span', { class: 'print-more' }, `+${words.length - 1}`)] : []),
       h('b', { class: 'print-pt', lang: 'pt-BR' }, m.pt),
       h('span', { class: 'print-en en plain' }, m.en),

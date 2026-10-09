@@ -1,24 +1,34 @@
 /**
- * How to play each minigame, in English (the player may have no Portuguese yet), with the controls on a computer and on a phone. The
- * game's own Portuguese name sits in the title. `selector` is the game's root element: it is in the page only while the game is open
+ * The first-time cards, in English (the player may have no Portuguese yet). Two kinds:
+ * - `game`: how to play a minigame, with the controls on a computer and on a phone.
+ * - `place`: how a panel or an activity works (the Diário, Recados, the Cartela, a Conversa, the camera, ...): what it is for and the rules
+ *   a new player would otherwise only learn by bumping into them.
+ * The game's own Portuguese name sits in the title. `selector` is the root element: it is in the page only while the thing is open
  * (ui/howToPlay.ts watches for it). Pure data, tested.
  */
+import { CARTELA_REWARD, CONVERSA_MAX_PLAYER_MSGS, CONVERSA_RV, ECONOMY, FILM, MISSION_REWARD, RECADO_MAX_ACTIVE } from '@tudobem/shared';
+
 export interface HowToPlay {
   id: string;
+  /** `game` (default): a minigame, "How to play" with controls. `place`: a panel or activity, "How it works". */
+  kind?: 'game' | 'place';
   /** The game's root while it is open. */
   selector: string;
   pt: string;
   en: string;
   goal: string;
   steps: string[];
-  desktop: string;
-  phone: string;
+  /** Controls. Required for a game; optional for a place. */
+  desktop?: string;
+  phone?: string;
+  /** Rooms where the card does not open by itself (a guided tutorial already explains it there). The "?" still works. */
+  quietIn?: readonly string[];
 }
 
 export const HOW_TO_PLAY: readonly HowToPlay[] = [
   {
     id: 'correria',
-    selector: '#correria',
+    selector: '#correria:not(.cr-practice)',
     pt: 'Correria no Balcão',
     en: 'Rush at the bakery counter',
     goal: 'Customers order in Portuguese. Make what they ask for and serve it before they run out of patience.',
@@ -122,14 +132,150 @@ export const HOW_TO_PLAY: readonly HowToPlay[] = [
     phone: 'Tap chips or type, then tap the money and Pagar.',
   },
   {
-    id: 'pedido',
-    selector: '#dialogue-box[data-dialogue="pedido"]',
-    pt: 'Pedido',
-    en: 'Ordering at the bakery',
-    goal: 'Order from Seu Carlos in Portuguese.',
-    steps: ['Pick a reply, or type your own order (like “Me vê um pão na chapa, por favor”).', 'Answer his questions.'],
-    desktop: 'Click a chip or press its number, or type and press Enter.',
-    phone: 'Tap a chip, or type and tap Enviar.',
+    id: 'balcao',
+    kind: 'place',
+    selector: '#dialogue-box[data-dialogue^="counter-"]',
+    pt: 'Balcão da padaria',
+    en: 'Ordering at the bakery counter',
+    goal: 'Order from the baker in Portuguese. Each reply is what you would say at a real padaria.',
+    steps: [
+      'Each chip is an order, like “Me vê um pão na chapa”, with its price in RV.',
+      'Pick one: you pay, and it goes into your bag (Recados → Mochila). Errands sometimes ask you to bring one to a neighbour.',
+      'Conversa opens a short chat with the baker in Portuguese, graded at the end.',
+      'The bakery game, Correria no Balcão, is at the order rail next to the counter.',
+    ],
+    desktop: 'Click a chip or press its number. Esc closes.',
+    phone: 'Tap a chip.',
+  },
+  {
+    id: 'conversa',
+    kind: 'place',
+    selector: '#dialogue-box[data-dialogue="conversa"]',
+    pt: 'Conversa',
+    en: 'A real chat in Portuguese',
+    goal: 'A short chat with the baker. Write in Portuguese; at the end you get a friendly grade.',
+    steps: [
+      'The Goal line under the name says what to talk about.',
+      'Type your answer in Portuguese, or tap a suggested reply. Short and simple is fine.',
+      `You have up to ${CONVERSA_MAX_PLAYER_MSGS} messages. Then the bill (A conta) shows your grade.`,
+      `A good grade pays up to ${CONVERSA_RV.pass} RV. One Conversa per neighbour per day. Only you see it.`,
+    ],
+    desktop: 'Type and press Enter, or click a reply.',
+    phone: 'Type and tap Enviar, or tap a reply.',
+  },
+  {
+    id: 'recados',
+    kind: 'place',
+    selector: '.backdrop[data-modal="recados"]',
+    pt: 'Recados',
+    en: 'Errands, your bag and your friends',
+    goal: 'Neighbours ask you for small favours (recados). Doing them pays RV and makes friends.',
+    steps: [
+      'A neighbour with an errand asks when you talk to them. Pode deixar! says yes, Agora não says not now.',
+      `You can carry ${RECADO_MAX_ACTIVE} errands at once. The Recados list near the top of the screen shows the next step. Tap it to open this page.`,
+      'Steps are things like: talk to someone, read a sign, buy something and hand it over (Entregar).',
+      'Hearts ♥ grow when you talk and help. At 2 ♥ they use your name, at 4 ♥ there is a new Conversa topic, at 6 ♥ a gift for your kitnet.',
+      `Bem-vindo à Vila Ipê is Júlia’s welcome list. Finish its 8 steps for a ${ECONOMY.tutorialBonus} RV bonus.`,
+    ],
+  },
+  {
+    id: 'diario',
+    kind: 'place',
+    selector: '.backdrop[data-modal="caderno"]',
+    pt: 'Diário',
+    en: 'Your word collection',
+    goal: 'Every word you find in Vila Ipê is kept here as a sticker, place by place.',
+    steps: [
+      'You find words three ways: take photos with the camera, read signs, and listen when people talk to you.',
+      'Tap a sticker to hear it. Each tab is a place. Fotos keeps your photos. Caderno keeps the words from signs and menus.',
+      'Practise your words at the Escola with Dona Lúcia. Words go from Nova (new) to Aprendendo (learning), Quase lá (almost) and Dominada (mastered).',
+      'Pra revisar counts the words due for practice. XP and dias seguidos (days in a row) come from Escola lessons.',
+    ],
+  },
+  {
+    id: 'cartela',
+    kind: 'place',
+    selector: '.backdrop[data-modal="cartela"]',
+    pt: 'Cartela do bairro',
+    en: 'Neighbourhood stamp card',
+    goal: `Do different things around the Vila to collect stamps. Seven stamps fill the card and pay ${CARTELA_REWARD} RV.`,
+    steps: [
+      'Each activity gives one stamp a day: a jiu-jitsu roll at the Academia, a shift of Correria no Balcão at the Padaria, a visit to the Feira, and a Conversa in the Praça.',
+      'So you can earn up to 4 stamps a day (Hoje means today). The day changes at midnight, New York time.',
+      'The Conversa stamp only counts a Conversa held in the Praça: Seu Carlos sits on a bench there in the late evening (from 22:00 on the game clock).',
+      'A full card pays out and a fresh card starts. Nothing is lost if you skip a day.',
+    ],
+  },
+  {
+    id: 'missao',
+    kind: 'place',
+    selector: '.backdrop[data-modal="kiosk"]',
+    pt: 'Missão do dia',
+    en: 'Daily mission',
+    goal: `Three small steps, once a day, for a bonus of ${MISSION_REWARD} RV.`,
+    steps: [
+      'Take today’s mission with the button.',
+      'The steps tick off by themselves as you play. A chip at the top of the screen shows how far you are.',
+      'A new mission comes the next day.',
+    ],
+  },
+  {
+    id: 'camera',
+    kind: 'place',
+    selector: '#camera-banner',
+    quietIn: ['aeroporto'],
+    pt: 'Câmera',
+    en: 'Camera',
+    goal: 'Photograph things to collect their words for your Diário.',
+    steps: [
+      'Aim at something and click: that is the photo. The camera closes after each photo.',
+      'Each new thing inside the frame becomes a new word in your Diário.',
+      'Each photo uses one film (filme). How many you have left is on the banner. Photos at the airport are free.',
+      `Out of film? Buy a roll of ${FILM.pack} from Júlia in the Praça for ${FILM.price} RV.`,
+    ],
+    desktop: 'Move the mouse to aim, click to take the photo. Click Câmera again to put it away.',
+    phone: 'Tap the thing you want to photograph.',
+  },
+  {
+    id: 'kimono',
+    kind: 'place',
+    selector: '#dialogue-box[data-dialogue^="gi-"]',
+    pt: 'Kimono e faixas',
+    en: 'Gi and belts',
+    goal: 'Jiu-jitsu at the Academia is a Portuguese listening game. You buy a gi once, then train with Professora Bia’s partners.',
+    steps: [
+      'You need a gi (kimono) to train. You buy it once, and the white belt comes free.',
+      'Each win counts toward a stripe (listra) on your belt. A stripe teaches a new move and opens new partners.',
+      'Four stripes make the next belt. Your belt shows at the top of the screen and on your nameplate.',
+      'A loss never takes a stripe away.',
+    ],
+  },
+  {
+    id: 'academias',
+    kind: 'place',
+    selector: '.backdrop[data-modal="academy"]',
+    pt: 'Academias do bairro',
+    en: 'Neighbourhood academies (teams)',
+    goal: 'Academies are teams founded by players. Visit one, train on its mat, or join the team.',
+    steps: [
+      'Visitar takes you to its floor, where you can train on its mat.',
+      'Joining is free. Members train in the team’s gi.',
+      'Founding your own academy takes a brown belt.',
+    ],
+  },
+  {
+    id: 'placar-feira',
+    kind: 'place',
+    selector: '.backdrop[data-modal="feira-sign"]',
+    pt: 'Placar da Feira',
+    en: 'Market board',
+    goal: 'Today’s best scores at the market cart game.',
+    steps: [
+      'There is one cart game each day (tapioca, pastel or caldo de cana). Play it at the cart next to this board.',
+      'The top 3 for today are shown live.',
+      'At midnight (New York time), 1st, 2nd and 3rd place each win a gold, silver or bronze medal to keep.',
+      'Your medals are on the first page of your Diário.',
+    ],
   },
 ];
 

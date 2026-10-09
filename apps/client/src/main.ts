@@ -113,6 +113,7 @@ import { desembGuide, inDesembarque, markDesembStep, mountDesembTutorial, resetD
 import { firstRoom } from './ui/desembarqueLogic';
 import { thanksFor } from './ui/airportTutorialLogic';
 import { installHowToPlay } from './ui/howToPlay';
+import { maybeShowVilaGuide, openVilaGuide } from './ui/vilaGuide';
 import { doorTagsFor, showRoomIntro } from './ui/wayfinding';
 import { flyHeardWord } from './ui/heardWord';
 import { talkIdleOpen } from './ui/talkIdle';
@@ -708,6 +709,15 @@ function updateGuides() {
   }
   // the kitnet guide's floor steps: a free tile for the piece in hand, or the piece to rotate
   if (r.room === 'kitnet') add(kitnetWorldGuide());
+  // the Vila's first stop is Júlia (the bus toast sends you to her): until you have met her, one arrow, to her or the way to her
+  if (p.arrivalIntroDone !== false && (r.room === 'rua_leste' || r.room === 'rua' || r.room === 'praca') && !profileMetJulia()) {
+    const julia = guideAt('npc', 'julia', 120, 'Júlia · sua guia', 'Júlia · your guide: talk to her');
+    if (julia) add(julia);
+    else if (r.room === 'rua_leste') add(guideAt('portal', 'leste_rua_1', 60, '← Júlia: pela Rua', '← Júlia: via the Street'));
+    else if (r.room === 'rua') add(guideAt('portal', 'rua_praca_1', 60, 'Júlia: Praça ↓', 'Júlia: Square ↓'));
+    else add(guideAt('portal', 'praca_rua_1', 60, 'Júlia: pela Rua ↑', 'Júlia: via the Street ↑'));
+    return;
+  }
   if (r.room === 'rua') {
     if (!t.carlos) add(guideAt('portal', 'praca_padaria', 110, 'Padaria →', 'Bakery →'));
     else if (!t.chapeu) add(guideAt('portal', 'rua_praca_1', 60, 'Chapéus: Praça ↓', 'Hats: Square ↓'));
@@ -942,6 +952,8 @@ net.on((m: ServerMsg) => {
         toast('info', 'Sua kitnet! Clique em “Decorar” e coloque sua cadeira.', 'Your apartment! Click “Decorar” (top right) and place your free chair.');
       // your own padaria: what is where, the first time you stand in it
       if (m.padaria?.owner) setTimeout(welcomeOwner, 900);
+      // the first time in the Vila: one card with what there is to do (it waits for the welcome toast and any dialogue to clear)
+      maybeShowVilaGuide(m.room);
       if (m.room === 'padaria' && !m.padaria && !game.profile?.tutorial.carlos)
         setTimeout(() => {
           // whoever is at the counter greets you the way the hour asks (bom dia / boa tarde / boa noite)
@@ -1225,6 +1237,11 @@ function startGame() {
     openCaderno: () => {
       markDesembStep('diario');
       openDiario();
+    },
+    openGuide: () => {
+      closeModal();
+      closeDialogue();
+      openVilaGuide();
     },
     replayTutorial: () => {
       closeModal();

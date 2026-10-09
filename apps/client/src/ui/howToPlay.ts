@@ -1,7 +1,8 @@
 /**
- * The first time a minigame opens, a short how-to-play card (in English, with the controls for a computer and a phone) sits over it; a
- * "?" button stays in the corner while the game is open, to read it again. After the first time the card waits for the "?". Each game
- * is found by its root element (`HOW_TO_PLAY[].selector`), so the games themselves need not know about this.
+ * The first time a minigame, panel or activity opens, a short card (in English; for a game, with the controls for a computer and a phone)
+ * sits over it; a "?" button stays in the corner while it is open, to read it again. After the first time the card waits for the "?".
+ * Each one is found by its root element (`HOW_TO_PLAY[].selector`), so the games and panels themselves need not know about this.
+ * A card never lands on top of a new-word card or the Diário reveal: it waits until they are gone.
  */
 import { game } from '../state';
 import { h, ui } from './dom';
@@ -36,14 +37,24 @@ export function openHowToPlay(id: string): void {
   closeHowToPlay();
   const close = () => card.remove();
   const ok = h('button', { type: 'button', class: 'primary', id: 'howto-ok', onclick: close }, 'Got it · Entendi!');
+  const kicker = g.kind === 'place' ? 'How it works' : 'How to play';
+  // a game lists both sets of controls (yours first); a place shows only the line for this device, when it has one
+  const mine = touch() ? g.phone : g.desktop;
+  const other = touch() ? g.desktop : g.phone;
+  const controls =
+    g.kind === 'place'
+      ? mine
+        ? h('dl', { class: 'howto-controls' }, h('dt', null, touch() ? 'Phone' : 'Computer'), h('dd', null, mine))
+        : null
+      : h('dl', { class: 'howto-controls' }, h('dt', null, touch() ? 'Phone' : 'Computer'), h('dd', null, mine ?? ''), h('dt', null, touch() ? 'Computer' : 'Phone'), h('dd', null, other ?? ''));
   const card = h(
     'div',
-    { class: 'howto-card', id: 'howto-card', role: 'dialog', 'aria-label': `How to play: ${g.en}`, 'data-game': g.id },
-    h('p', { class: 'howto-kicker' }, 'How to play'),
-    h('h3', null, g.pt, h('span', { class: 'en' }, ` · ${g.en}`)),
+    { class: `howto-card howto-${g.kind ?? 'game'}`, id: 'howto-card', role: 'dialog', 'aria-label': `${kicker}: ${g.en}`, 'data-game': g.id },
+    h('p', { class: 'howto-kicker' }, kicker),
+    h('h3', null, g.pt, h('span', { class: 'en' }, g.en)),
     h('p', { class: 'howto-goal' }, g.goal),
     h('ol', null, ...g.steps.map((s) => h('li', null, s))),
-    h('dl', { class: 'howto-controls' }, h('dt', null, touch() ? 'Phone' : 'Computer'), h('dd', null, touch() ? g.phone : g.desktop), h('dt', null, touch() ? 'Computer' : 'Phone'), h('dd', null, touch() ? g.desktop : g.phone)),
+    controls,
     h('div', { class: 'howto-foot' }, ok),
   );
   // the card stops clicks and keys reaching the game under it until it is closed
@@ -76,15 +87,34 @@ function sync() {
   const id = g?.id ?? null;
   if (id === current) return;
   current = id;
+  // a card left from the thing that just closed goes with it
+  const stale = document.getElementById('howto-card');
+  if (stale && stale.dataset.game !== id) stale.remove();
   help?.remove();
   help = null;
   if (!g) {
     closeHowToPlay();
     return;
   }
-  help = h('button', { type: 'button', class: 'howto-help', id: 'howto-help', 'aria-label': `How to play ${g.en}`, title: 'How to play', onclick: () => openHowToPlay(g.id) }, '?');
+  const label = g.kind === 'place' ? 'How it works' : 'How to play';
+  help = h('button', { type: 'button', class: 'howto-help', id: 'howto-help', 'aria-label': `${label}: ${g.en}`, title: label, onclick: () => openHowToPlay(g.id) }, '?');
   ui().append(help);
-  if (!seen(g.id)) window.setTimeout(() => current === g.id && openHowToPlay(g.id), 350);
+  // a guided tutorial that already explains it here keeps the card for the "?" (it opens by itself the next time, somewhere else)
+  if (!seen(g.id) && !quietHere(g)) autoOpen(g.id);
+}
+
+const quietHere = (g: HowToPlay): boolean => !!g.quietIn?.includes(game.room?.room ?? '');
+
+/** Something else is telling the player something right now: a new-word card, the Diário reveal, another how-to card, the Vila guide. */
+const busy = (): boolean => !!document.getElementById('photo-celebrate') || !!document.getElementById('howto-card') || !!document.getElementById('vila-guide');
+
+/** Open the first-time card once nothing else is on top; give up if the thing closes first. */
+function autoOpen(id: string, wait = 350): void {
+  window.setTimeout(() => {
+    if (current !== id || seen(id)) return;
+    if (busy()) return autoOpen(id, 500);
+    openHowToPlay(id);
+  }, wait);
 }
 
 /** Watch for games opening and closing (once, at game start). */

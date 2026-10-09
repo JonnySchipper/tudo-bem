@@ -31,6 +31,8 @@ import { FEEDBACK_COPY, carryAction } from '@tudobem/shared';
 import { openFeedback } from './feedback';
 import { openAccount } from './account';
 import { tierIcon, tierName } from './plate';
+import { wireHudNote } from './hudNotes';
+import { CARTELA_RULE, hudShows } from './hudNotesData';
 import { showSupportButton } from './supportGate';
 import { fetchPublicConfig } from '../auth/config';
 
@@ -72,6 +74,8 @@ export interface HudActions {
   toggleEnglish: () => void;
   /** Back to the arrivals hall to play the guided tutorial again (settings). */
   replayTutorial: () => void;
+  /** Ajustes → Guia: the Vila Ipê guide card (what there is to do). */
+  openGuide: () => void;
   /** Multiplayer only (solo has no account). */
   logout?: () => void;
 }
@@ -154,6 +158,11 @@ export function buildHud(actions: HudActions) {
   const plate = h('span', { class: 'hud-verde', id: 'hud-plate' }, icon('verde', 16), 'Verde');
   // a gentle reminder, never a notification: today's escola goal until it is met, and the streak flame
   const goalChip = h('span', { class: 'hud-goal', id: 'escola-goal-pill', style: 'display:none' });
+  const beltEl = h('span', { class: 'hud-belt', id: 'hud-belt', style: 'display:none', title: 'Faixa · Your jiu-jitsu belt — click to see how it grows' });
+  // each stat explains itself on a click (hudNotes.ts): what it is and how it grows
+  wireHudNote(beltEl, 'belt', 'Faixa: what your belt means');
+  wireHudNote(plate, 'plate', 'Placa: what your nameplate colour means');
+  wireHudNote(goalChip, 'goal', 'Meta: today’s Escola goal');
 
   // ---- the actions: one set of buttons, an icon bar on desktop and a drawer on a phone
   const btn = (id: string, ico: IconName, pt: string, enText: string, onclick: () => void, cls = '') =>
@@ -186,6 +195,7 @@ export function buildHud(actions: HudActions) {
   englishBtn.title = 'Inglês embaixo do português / English under the Portuguese (your choice; the nameplate colour never changes it)';
   const creditsBtn = btn('btn-credits', 'info', 'Créditos', 'Credits', actions.openCredits);
   const tutorialBtn = btn('btn-tutorial', 'mark', 'Tutorial', 'Replay the tutorial', actions.replayTutorial);
+  const guideBtn = btn('btn-guide', 'map', 'Guia', 'How the Vila works', actions.openGuide);
   const supportBtn = btn('btn-support', 'coracao', 'Apoiar', 'Support', actions.openSupport);
   // hidden until /api/config says checkout is switched on (or the player already has perks): no price ads in the free beta
   let billingReady = false;
@@ -205,6 +215,7 @@ export function buildHud(actions: HudActions) {
     soundBtn,
     englishBtn,
     supportBtn,
+    guideBtn,
     tutorialBtn,
     creditsBtn,
     accountBtn,
@@ -213,7 +224,12 @@ export function buildHud(actions: HudActions) {
   const gearWrap = h('div', { class: 'hud-gear-wrap' }, gear, menu);
   const drawerPlateChip = h('span', { class: 'hud-verde' }, icon('verde', 16), 'Verde');
   const drawerPlate = h('span', { class: 'hud-drawer-head' }, drawerPlateChip, h('span', { class: 'hud-drawer-hint' }, 'Menu'));
+  wireHudNote(drawerPlateChip, 'plate', 'Placa: what your nameplate colour means');
   const cameraBtn = btn('btn-camera', 'camera', 'Câmera', 'Camera', actions.toggleCamera);
+  // the Vila's own buttons wait for the Vila: the arrivals hall and the airport teach only what is on screen there
+  const recadosBtn = btn('btn-recados', 'recados', 'Recados', 'Errands', actions.openRecados);
+  const wardrobeBtn = btn('btn-wardrobe', 'hat', 'Chapéus', 'My hats', actions.openWardrobe);
+  const friendsBtn = btn('btn-friends', 'friends', 'Amigos', 'Friends', actions.openFriends);
   cameraBtn.style.display = 'none';
   const actionsNav = h(
     'nav',
@@ -221,11 +237,11 @@ export function buildHud(actions: HudActions) {
     drawerPlate,
     decorBtn,
     btn('btn-map', 'map', 'Mapa', 'Map', actions.openMap),
-    btn('btn-recados', 'recados', 'Recados', 'Errands', actions.openRecados),
+    recadosBtn,
     btn('btn-caderno', 'caderno', 'Diário', 'Diary', actions.openCaderno),
     cameraBtn,
-    btn('btn-wardrobe', 'hat', 'Chapéus', 'My hats', actions.openWardrobe),
-    btn('btn-friends', 'friends', 'Amigos', 'Friends', actions.openFriends),
+    wardrobeBtn,
+    friendsBtn,
     gearWrap,
   );
   const feedbackBtn = h(
@@ -260,7 +276,7 @@ export function buildHud(actions: HudActions) {
     h(
       'div',
       { class: 'hud-right' },
-      h('div', { class: 'hud-stats hud-slab' }, h('span', { class: 'hud-belt', id: 'hud-belt' }), plate, goalChip, h('span', { class: 'hud-rv', id: 'hud-rv', title: 'Reais Virtuais (RV) — soft currency' }, icon('rv', 16), coins)),
+      h('div', { class: 'hud-stats hud-slab' }, beltEl, plate, goalChip, h('span', { class: 'hud-rv', id: 'hud-rv', title: 'Reais Virtuais (RV) — soft currency' }, icon('rv', 16), coins)),
       feedbackBtn,
       burger,
       actionsNav,
@@ -422,17 +438,24 @@ const phMq = window.matchMedia(COMPACT_QUERY);  const setPh = () => (input.place
     }
     if (p) {
       paintHudBelt(p.bjj);
+      const shows = hudShows(p);
+      beltEl.style.display = shows.belt ? '' : 'none';
+      plate.style.display = shows.plate ? '' : 'none';
+      drawerPlateChip.style.display = shows.plate ? '' : 'none';
+      cartelaPill.style.display = shows.cartela ? '' : 'none';
+      cartelaPill.title = `${CARTELA_COPY.title.en}: ${CARTELA_RULE}`;
+      for (const b of [recadosBtn, wardrobeBtn, friendsBtn]) b.style.display = shows.vila ? '' : 'none';
       coins.textContent = String(p.coins);
       coins.title = `${p.coins} RV`;
       const tier = p.nameplate ?? 'verde';
-      const plateTitle = `Placa ${tierName(tier)}: ${tierRule(tier).en} nameplate, earned in the Escola by words mastered. English help is your own setting (Ajustes).`;
+      const plateTitle = `Placa ${tierName(tier)}: ${tierRule(tier).en} nameplate, earned in the Escola by words mastered. Click to see how it grows.`;
       for (const el of [plate, drawerPlateChip]) {
         el.className = `hud-verde hud-tier-${tier}`;
         el.title = plateTitle;
         el.replaceChildren(tier === 'verde' ? icon('verde', 16) : tierIcon(tier), tierName(tier));
       }
       const goal = escolaGoalChip(p);
-      goalChip.style.display = goal ? '' : 'none';
+      goalChip.style.display = goal && shows.goal ? '' : 'none';
       if (goal) {
         goalChip.title = goal.title;
         goalChip.classList.toggle('met', goal.met);
