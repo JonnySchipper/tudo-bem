@@ -31,6 +31,7 @@ For a native Brazilian Portuguese reviewer (informal São Paulo register, A1 for
 - [Q. Other new Portuguese in the interface and in painted signs](#q-misc) (5)
 - [S. Arrival, camera, escola and cartela polish (client)](#s-polish) (4)
 - [R. Proposed cards for the Curriculum team](#r-proposed-cards)
+- [V. Diário: the sticker album (client)](#v-diario) (39)
 
 ## A. Time of day, weekdays and weather
 
@@ -698,6 +699,53 @@ What a vendor says away from the open stall (Tia Lu on her praça bench, 13:00-1
 | 510 | Tá bom, {obrigad}! Até amanhã! | Okay, thanks! See you tomorrow! | `apps/client/src/ui/feira.ts` | Player chip after the buy answer | |
 | 511 | Depois da feira | (role line in the box) | `apps/client/src/ui/feira.ts` | Shown under the vendor's name off duty, where the stall box says "Barraca da feira" | |
 
+## V. Diário: the sticker album (client)
+
+<a id="v-diario"></a>
+The Diário redone as an álbum de figurinhas: index tabs per place, a numbered slot per word, a card per word. All in `apps/client/src/ui/journal.ts` and `journalView.ts`. None of it is spoken (the card plays the word's existing clip), so it needs no TTS. **needs_br.**
+
+| # | PT | EN | Where | Note | OK? |
+|---|---|---|---|---|---|
+| 512 | Nova · Aprendendo · Quase lá · Dominada | New · Learning · Almost there · Mastered | `ui/journalView.ts` (`MASTERY_LABEL`) | How far the Escola has taken a word (box 0, 1-2, 3-4, 5) | |
+| 513 | Foto · Placa · Conversa · Jogo | Photo · Sign · Talk · Game | `ui/journalView.ts` (`SOURCE_LABEL`) | How a word is found; filter buttons and sticker badges | |
+| 514 | Fotografada em: {lugar} | Photographed in: {place} | `ui/journalView.ts` (`howFound`) | {lugar} is the chapter name (Praça, Rua...) | |
+| 515 | Fotografe algo em: {lugar} | Photograph something in: {place} | `ui/journalView.ts` (`howFound`) | Hint on an empty slot; never names the object | |
+| 516 | Lida numa placa | Read on a sign | `ui/journalView.ts` (`howFound`) |  | |
+| 517 | Leia uma placa em: {lugar} | Read a sign in: {place} | `ui/journalView.ts` (`howFound`) | Hint on an empty slot | |
+| 518 | Ouvida de {nome} | Heard from {name} | `ui/journalView.ts` (`howFound`) | {nome}: Seu Carlos, Júlia... | |
+| 519 | Converse com {nome} | Talk to {name} | `ui/journalView.ts` (`howFound`) | Hint on an empty slot | |
+| 520 | Ganha jogando com {nome} | Won in a game with {name} | `ui/journalView.ts` (`howFound`) | Check the agreement: *a palavra* foi ganha | |
+| 521 | Vença um jogo com {nome} | Win a game with {name} | `ui/journalView.ts` (`howFound`) | Hint on an empty slot | |
+| 522 | Diário de {nome} | {name}'s diary | `ui/journal.ts` (Início) | Title page | |
+| 523 | VILA IPÊ · SP | (stamp) | `ui/journal.ts` (Início) | Rubber stamp on the title page | |
+| 524 | {n} palavras no seu diário · de {total} | {n} of {total} words found | `ui/journal.ts` (Início) | Big counter in a ring | |
+| 525 | dia seguido · dias seguidos | day streak | `ui/journal.ts` (Início) | Escola streak | |
+| 526 | pra revisar | due in the Escola | `ui/journal.ts` (Início) |  | |
+| 527 | Procurar no diário… · Procurar em {lugar}… | Search your words · Search {place} | `ui/journal.ts` | Search placeholders | |
+| 528 | {n} figurinha nova! · {n} figurinhas novas! | New since your last visit | `ui/journal.ts` (Início) | Figurinha = album sticker | |
+| 529 | Últimas palavras | Your latest words | `ui/journal.ts` (Início) |  | |
+| 530 | Seu diário está esperando a primeira palavra. | Your diary is waiting for its first word | `ui/journal.ts` (Início) | Empty diary | |
+| 531 | Capítulos · Capítulo {n} | Chapters · Chapter {n} | `ui/journal.ts` |  | |
+| 532 | {n} palavra · {n} palavras · Nenhuma palavra encontrada | found in your diary · Nothing in your diary matches | `ui/journal.ts` (search) |  | |
+| 533 | COMPLETO! | (stamp) | `ui/journal.ts` (chapter) | Every word of a place found | |
+| 534 | {pct}% · ★ {n} dominadas | {pct}% found · {n} mastered | `ui/journal.ts` (chapter) |  | |
+| 535 | Todas | All | `ui/journal.ts` (chapter) | Source filter | |
+| 536 | Álbum · Recentes · A–Z · Domínio | Album order · Newest · A to Z · Best known | `ui/journal.ts` (chapter) | Sort buttons | |
+| 537 | Mostrar o que falta | Show the empty slots | `ui/journal.ts` (chapter) | Checkbox | |
+| 538 | {n} de {total} | words found | `ui/journal.ts` (chapter) | Counter over the stickers | |
+| 539 | Nenhuma palavra com isso. · Nada aqui ainda. | No word in this chapter matches · Nothing here yet: go and find some! | `ui/journal.ts` (chapter) |  | |
+| 540 | Nova! | (tag) | `ui/journal.ts` (sticker) | On a sticker earned since the last visit | |
+| 541 | Ouvir | Listen | `ui/journal.ts` (word card) | Button | |
+| 542 | Ainda não encontrada | Not found yet | `ui/journal.ts` (word card) |  | |
+| 543 | Você domina esta palavra! | You have mastered this word | `ui/journal.ts` (word card) |  | |
+| 544 | A Escola quer revisar esta hoje. | The Escola wants to review it today | `ui/journal.ts` (word card) |  | |
+| 545 | Estude na Escola da Praça para fixar. | Study it at the Escola to make it stick | `ui/journal.ts` (word card) |  | |
+| 546 | Continue estudando na Escola. | Keep studying it at the Escola | `ui/journal.ts` (word card) |  | |
+| 547 | {n} foto · {n} fotos · {n} filme · {n} filmes | shots left · Júlia sells film | `ui/journal.ts` (Fotos) |  | |
+| 548 | Nenhuma foto ainda. | No photos yet: open the camera and click something in the world | `ui/journal.ts` (Fotos) |  | |
+| 549 | Ver figurinha | See the sticker | `ui/journal.ts` (photo card) | Button | |
+| 550 | Início | Overview | `ui/journal.ts` (tabs) | First index tab | |
+
 ## Totals
 
-511 numbered strings in sections A to Q, S, T and U, plus 9 proposed-card entries.
+550 numbered strings in sections A to Q, S, T, U and V, plus 9 proposed-card entries.

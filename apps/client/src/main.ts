@@ -12,6 +12,7 @@ import './styles/stalls.css';
 import './styles/bout.css';
 import './styles/correria.css';
 import './styles/diary.css';
+import './styles/journal.css';
 import './styles/escola.css';
 import './styles/feiraGames.css';
 import './styles/feiraCaldo.css';
@@ -101,7 +102,7 @@ import { openNpcTalk } from './ui/npcTalk';
 import { profileMetJulia } from './ui/juliaMet';
 import { onFeiraError, onFeiraMsg, openFeira, openFeiraClosed, openFeiraOffDuty } from './ui/feira';
 import { bindFeiraGames, closeFeiraGame, feiraGameOpen, onFeiraGameMsg, openFeiraCart, openFeiraSign } from './ui/feiraGames';
-import { openCaderno, setArrivalReplay } from './ui/caderno';
+import { openDiario, setArrivalReplay, syncJournalBadge } from './ui/journal';
 import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAcademyFloor } from './ui/academy';
 import { openLeaderboards } from './ui/leaderboards';
@@ -441,7 +442,7 @@ function openTalk(npc: NpcDef['id'], juliaMet = false) {
 function readHotspot(hs: HotspotDef) {
   closeDialogue();
   if (hs.room === 'desembarque') markDesembStep('placa');
-  openHotspotCard(hs, { onSave: (cards) => openCaderno(cards[0]?.split('.')[1], cards) });
+  openHotspotCard(hs, { onSave: (cards) => openDiario({ cadernoGroup: cards[0]?.split('.')[1], highlight: cards }) });
   net.send({ t: 'read', hotspotId: hs.id });
 }
 
@@ -1207,7 +1208,7 @@ function startGame() {
     },
     openCaderno: () => {
       markDesembStep('diario');
-      openCaderno();
+      openDiario();
     },
     replayTutorial: () => {
       closeModal();
@@ -1688,6 +1689,8 @@ setArrivalReplay(() => {
   net.send({ t: 'arrival', action: 'replay' });
   joinRoom('aeroporto');
 });
+// the Diário button counts the words earned since the Diário was last opened
+game.on('profile', syncJournalBadge);
 
 function frame(ts: number) {
   try {
