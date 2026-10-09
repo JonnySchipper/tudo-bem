@@ -9,6 +9,7 @@ import { playBoutSfx, type BoutSfx } from './audio/boutSfx';
 import { playCorreriaSfx, type CorreriaSfx } from './audio/correriaSfx';
 import { DIARY_SFX, playDiarySfx, type DiarySfx } from './audio/diarySfx';
 import { FLIGHT_SFX, playFlightSfx, type FlightSfx } from './audio/flightSfx';
+import { CARRY_SFX, playCarrySfx, type CarrySfx } from './audio/carrySfx';
 
 const CORRERIA_SFX = ['grab', 'sizzle', 'ready', 'burnt', 'pop', 'pour', 'glug', 'ding', 'clink', 'chain', 'cash', 'paper', 'chime', 'nope', 'combo', 'tick', 'slap', 'sigh', 'juicer'] as const;
 
@@ -629,14 +630,22 @@ class Ambience {
     }
   }
 
-  /** One bout sound effect (mat slap, crowd, whistle...). Silent until the browser lets the context run; goes through the same duck gain as the beds. */
-  sfx(kind: BoutSfx | CorreriaSfx | DiarySfx | FlightSfx) {
+  /** One sound effect (mat slap, crowd, whistle, a bite...). `gain` below 1 plays it quieter (someone else, further away). Silent until the browser lets the context run; goes through the same duck gain as the beds. */
+  sfx(kind: BoutSfx | CorreriaSfx | DiarySfx | CarrySfx | FlightSfx, gain = 1) {
     const ctx = this.ctx;
     if (!ctx || !this.bedIn || !this.unlocked || ctx.state !== 'running') return;
     this.whiteBuf ??= whiteBuffer(ctx, 1);
     try {
-      const out = this.duckGain ?? this.bedIn;
+      let out: AudioNode = this.duckGain ?? this.bedIn;
+      if (gain < 1) {
+        // quieter for someone else across the room; the node is collected once the effect's sources stop
+        const g = ctx.createGain();
+        g.gain.value = Math.max(0, gain);
+        g.connect(out);
+        out = g;
+      }
       if ((FLIGHT_SFX as readonly string[]).includes(kind)) playFlightSfx(ctx, out, this.whiteBuf, kind as FlightSfx);
+      else if ((CARRY_SFX as readonly string[]).includes(kind)) playCarrySfx(ctx, out, this.whiteBuf, kind as CarrySfx);
       else if ((DIARY_SFX as readonly string[]).includes(kind)) playDiarySfx(ctx, out, this.whiteBuf, kind as DiarySfx);
       else if ((CORRERIA_SFX as readonly string[]).includes(kind)) playCorreriaSfx(ctx, out, this.whiteBuf, kind as CorreriaSfx);
       else playBoutSfx(ctx, out, this.whiteBuf, kind as BoutSfx);
