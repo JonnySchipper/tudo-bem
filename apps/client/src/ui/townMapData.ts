@@ -283,6 +283,7 @@ const place = (id: RoomId, hit: Box[], art: Px[]): MapSpot => ({ id, room: id, .
 /** Every room of the shared room list: drawn as its own place, or reached through another place (shown there as "você está aqui"). */
 export const ROOM_ON_MAP: Record<RoomId, MapSpot | { via: RoomId }> = {
   aeroporto: place('aeroporto', [[66, 4, 84, 42]], aeroportoArt()),
+  desembarque: { via: 'aeroporto' },
   kitnet: place('kitnet', [[70, 46, 30, 38]], kitnetArt()),
   padaria: place('padaria', [[103, 56, 38, 28]], padariaArt()),
   academia: place('academia', [[162, 52, 40, 32]], academiaArt()),
