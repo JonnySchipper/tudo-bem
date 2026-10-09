@@ -8,6 +8,8 @@
     "julia": { "voice": "pt-BR-FranciscaNeural", "rate": "+2%", "pitch": "+1Hz", "about": "Júlia, guia da praça: clear and friendly" },
     "prof": { "voice": "pt-BR-FranciscaNeural", "rate": "+4%", "pitch": "-4Hz", "about": "Professora Bia: calm and firm" },
     "comissaria": { "voice": "pt-BR-FranciscaNeural", "rate": "-2%", "pitch": "+6Hz", "about": "Comissária Lia, the arrivals hall: gentle and welcoming" },
+    "celia": { "voice": "pt-BR-FranciscaNeural", "rate": "-3%", "pitch": "-3Hz", "about": "Célia, the airport information desk: patient and kind" },
+    "agente": { "voice": "pt-BR-AntonioNeural", "rate": "-4%", "pitch": "-3Hz", "about": "Agente Paulo, passport control: formal, a little stern" },
     "lucia": { "voice": "pt-BR-FranciscaNeural", "rate": "-4%", "pitch": "-2Hz", "about": "Lúcia" },
     "tia_lu": { "voice": "pt-BR-FranciscaNeural", "rate": "-4%", "pitch": "-5Hz", "about": "Tia Lu, feira: warm and a little loud" },
     "rosa": { "voice": "pt-BR-FranciscaNeural", "rate": "-8%", "pitch": "+5Hz", "about": "Dona Rosa, flores: soft" },

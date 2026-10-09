@@ -57,10 +57,15 @@ const profile = (page) => page.evaluate(() => window.__tb.game.profile);
 /** D12: the padaria's baker at the game clock the server runs (Seu Carlos 06:00-22:00, Dona Graça 22:00-06:00). The e2e must pass at any hour. */
 const bakerNow = (page) => page.evaluate(() => (window.__tb.clock.minutes() >= 360 && window.__tb.clock.minutes() < 1320 ? { id: 'carlos', name: 'Seu Carlos' } : { id: 'graca', name: 'Dona Graça' }));
 
+/** Tap a floor tile (pointer events — the world listens on pointerup, not click). */
 async function clickTile(page, x, y, lift = 0) {
   const p = await page.evaluate(([x, y]) => window.__tb.tileToClient(x, y), [x, y]);
   const scale = await page.evaluate(() => window.__tb.renderer.cam.scale);
-  await page.mouse.click(p.px, p.py - lift * scale);
+  const px = p.px;
+  const py = p.py - lift * scale;
+  const canvas = page.locator('canvas#world');
+  await canvas.dispatchEvent('pointerdown', { pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, clientX: px, clientY: py });
+  await canvas.dispatchEvent('pointerup', { pointerId: 1, pointerType: 'mouse', isPrimary: true, button: 0, clientX: px, clientY: py });
 }
 
 /**

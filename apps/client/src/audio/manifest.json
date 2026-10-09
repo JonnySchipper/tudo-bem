@@ -8,6 +8,8 @@
     "julia": "pt-BR-FranciscaNeural",
     "prof": "pt-BR-FranciscaNeural",
     "comissaria": "pt-BR-FranciscaNeural",
+    "celia": "pt-BR-FranciscaNeural",
+    "agente": "pt-BR-AntonioNeural",
     "lucia": "pt-BR-FranciscaNeural",
     "tia_lu": "pt-BR-FranciscaNeural",
     "rosa": "pt-BR-FranciscaNeural",
@@ -11716,10 +11718,322 @@
       "file": "lucia-732f5fe856.mp3"
     },
     {
-      "id": "comissaria-d293b32fd0",
-      "voice": "comissaria",
-      "text": "Aqui é o desembarque. Siga para o aeroporto pela porta de vidro.",
-      "file": "comissaria-d293b32fd0.mp3"
+      "id": "celia-ca21d79478",
+      "voice": "celia",
+      "text": "Bem-vindo ao Brasil! A Júlia deixou este pacote pra você.",
+      "file": "celia-ca21d79478.mp3"
+    },
+    {
+      "id": "celia-a4105b3969",
+      "voice": "celia",
+      "text": "Precisa de ajuda?",
+      "file": "celia-a4105b3969.mp3"
+    },
+    {
+      "id": "celia-24664ed376",
+      "voice": "celia",
+      "text": "Clica em Câmera, mira e clica de novo. A palavra do que aparece vai pro diário.",
+      "file": "celia-24664ed376.mp3"
+    },
+    {
+      "id": "celia-f0c9263162",
+      "voice": "celia",
+      "text": "Lá fora, depois das portas. O 875 vai direto pra Vila Ipê.",
+      "file": "celia-f0c9263162.mp3"
+    },
+    {
+      "id": "celia-c71e9c0047",
+      "voice": "celia",
+      "text": "Cada coisa nova que você faz no bairro vale um carimbo. Com 7, você ganha 5 RV!",
+      "file": "celia-c71e9c0047.mp3"
+    },
+    {
+      "id": "agente-158b571366",
+      "voice": "agente",
+      "text": "Bom dia! Passaporte, por favor.",
+      "file": "agente-158b571366.mp3"
+    },
+    {
+      "id": "agente-7155d041dc",
+      "voice": "agente",
+      "text": "Hmm… agora é bom dia. Tenta de novo!",
+      "file": "agente-7155d041dc.mp3"
+    },
+    {
+      "id": "agente-b55b8a2e55",
+      "voice": "agente",
+      "text": "Boa tarde! Passaporte, por favor.",
+      "file": "agente-b55b8a2e55.mp3"
+    },
+    {
+      "id": "agente-203a37a212",
+      "voice": "agente",
+      "text": "Hmm… agora é boa tarde. Tenta de novo!",
+      "file": "agente-203a37a212.mp3"
+    },
+    {
+      "id": "agente-774b6f3f5f",
+      "voice": "agente",
+      "text": "Boa noite! Passaporte, por favor.",
+      "file": "agente-774b6f3f5f.mp3"
+    },
+    {
+      "id": "agente-fe95544f03",
+      "voice": "agente",
+      "text": "Hmm… agora é boa noite. Tenta de novo!",
+      "file": "agente-fe95544f03.mp3"
+    },
+    {
+      "id": "agente-45c1418cc4",
+      "voice": "agente",
+      "text": "Qual é o motivo da viagem?",
+      "file": "agente-45c1418cc4.mp3"
+    },
+    {
+      "id": "agente-31574eeb27",
+      "voice": "agente",
+      "text": "Bem-vindo ao Brasil! Pode passar. Boa estadia!",
+      "file": "agente-31574eeb27.mp3"
+    },
+    {
+      "id": "nanda-6c6d85bb9e",
+      "voice": "nanda",
+      "text": "Esse boné verde fica legal!",
+      "file": "nanda-6c6d85bb9e.mp3"
+    },
+    {
+      "id": "nanda-76e1a054f1",
+      "voice": "nanda",
+      "text": "Hoje tem boné verde de graça!",
+      "file": "nanda-76e1a054f1.mp3"
+    },
+    {
+      "id": "nanda-3e6bd1319b",
+      "voice": "nanda",
+      "text": "Hoje o sol tá forte.",
+      "file": "nanda-3e6bd1319b.mp3"
+    },
+    {
+      "id": "julia-9a829c2e19",
+      "voice": "julia",
+      "text": "Oi! Precisa de ajuda? Fala comigo!",
+      "file": "julia-9a829c2e19.mp3"
+    },
+    {
+      "id": "julia-fb01b9ab4b",
+      "voice": "julia",
+      "text": "A padaria do Seu Carlos é ali!",
+      "file": "julia-fb01b9ab4b.mp3"
+    },
+    {
+      "id": "julia-4ab8304bae",
+      "voice": "julia",
+      "text": "O vizinho senta aqui de manhã.",
+      "file": "julia-4ab8304bae.mp3"
+    },
+    {
+      "id": "julia-dfc0eec015",
+      "voice": "julia",
+      "text": "Bora dar um passeio?",
+      "file": "julia-dfc0eec015.mp3"
+    },
+    {
+      "id": "tia_lu-3d593f0023",
+      "voice": "tia_lu",
+      "text": "Olha a banana! Três por cinco!",
+      "file": "tia_lu-3d593f0023.mp3"
+    },
+    {
+      "id": "tia_lu-f0805c7660",
+      "voice": "tia_lu",
+      "text": "Laranja doce, freguesa!",
+      "file": "tia_lu-f0805c7660.mp3"
+    },
+    {
+      "id": "tia_lu-fd43ed7266",
+      "voice": "tia_lu",
+      "text": "Maçã fresquinha, leva uma!",
+      "file": "tia_lu-fd43ed7266.mp3"
+    },
+    {
+      "id": "ze-248d84e6e6",
+      "voice": "ze",
+      "text": "Olha o tomate! Bem vermelhinho!",
+      "file": "ze-248d84e6e6.mp3"
+    },
+    {
+      "id": "ze-527c3c2f33",
+      "voice": "ze",
+      "text": "Alface fresca, freguesa!",
+      "file": "ze-527c3c2f33.mp3"
+    },
+    {
+      "id": "chico-f9b97b8bc7",
+      "voice": "chico",
+      "text": "Pastel quentinho!",
+      "file": "chico-f9b97b8bc7.mp3"
+    },
+    {
+      "id": "chico-8cf2596d08",
+      "voice": "chico",
+      "text": "Caldo de cana geladinho!",
+      "file": "chico-8cf2596d08.mp3"
+    },
+    {
+      "id": "rosa-dad708db57",
+      "voice": "rosa",
+      "text": "Flores, freguesa!",
+      "file": "rosa-dad708db57.mp3"
+    },
+    {
+      "id": "rosa-cbaff91577",
+      "voice": "rosa",
+      "text": "Flor bonita pra casa, leva!",
+      "file": "rosa-cbaff91577.mp3"
+    },
+    {
+      "id": "carlos-98f63673e5",
+      "voice": "carlos",
+      "text": "Pão quentinho saindo!",
+      "file": "carlos-98f63673e5.mp3"
+    },
+    {
+      "id": "carlos-9176e1b60b",
+      "voice": "carlos",
+      "text": "Bom dia! Vai um cafezinho?",
+      "file": "carlos-9176e1b60b.mp3"
+    },
+    {
+      "id": "carlos-c0ddd57d10",
+      "voice": "carlos",
+      "text": "Boa tarde! Vai um cafezinho?",
+      "file": "carlos-c0ddd57d10.mp3"
+    },
+    {
+      "id": "carlos-452c7f4330",
+      "voice": "carlos",
+      "text": "Boa noite! Vai um cafezinho?",
+      "file": "carlos-452c7f4330.mp3"
+    },
+    {
+      "id": "carlos-8d4649d9a2",
+      "voice": "carlos",
+      "text": "Chega mais, pode pedir!",
+      "file": "carlos-8d4649d9a2.mp3"
+    },
+    {
+      "id": "graca-17b825ed83",
+      "voice": "graca",
+      "text": "De noite o pão sai quentinho!",
+      "file": "graca-17b825ed83.mp3"
+    },
+    {
+      "id": "graca-2e0b5d3502",
+      "voice": "graca",
+      "text": "Bom dia! Bora de cafezinho?",
+      "file": "graca-2e0b5d3502.mp3"
+    },
+    {
+      "id": "graca-f3ad91ac34",
+      "voice": "graca",
+      "text": "Boa tarde! Bora de cafezinho?",
+      "file": "graca-f3ad91ac34.mp3"
+    },
+    {
+      "id": "graca-8142d9bdf3",
+      "voice": "graca",
+      "text": "Boa noite! Bora de cafezinho?",
+      "file": "graca-8142d9bdf3.mp3"
+    },
+    {
+      "id": "graca-0b8a6b2889",
+      "voice": "graca",
+      "text": "Ih, a noite é longa. Chega mais!",
+      "file": "graca-0b8a6b2889.mp3"
+    },
+    {
+      "id": "prof-9107e89646",
+      "voice": "prof",
+      "text": "Bora treinar?",
+      "file": "prof-9107e89646.mp3"
+    },
+    {
+      "id": "prof-f937fc0c7a",
+      "voice": "prof",
+      "text": "Respeito primeiro, depois o tatame.",
+      "file": "prof-f937fc0c7a.mp3"
+    },
+    {
+      "id": "prof-75b9bbb727",
+      "voice": "prof",
+      "text": "Água é vida. Bebe bastante!",
+      "file": "prof-75b9bbb727.mp3"
+    },
+    {
+      "id": "prof-5998b78856",
+      "voice": "prof",
+      "text": "Cumprimente com um sorriso.",
+      "file": "prof-5998b78856.mp3"
+    },
+    {
+      "id": "prof-363e1194cc",
+      "voice": "prof",
+      "text": "O parceiro te espera no tatame.",
+      "file": "prof-363e1194cc.mp3"
+    },
+    {
+      "id": "prof-73c8ae7b0b",
+      "voice": "prof",
+      "text": "Isso é disciplina.",
+      "file": "prof-73c8ae7b0b.mp3"
+    },
+    {
+      "id": "lucia-77d27a117b",
+      "voice": "lucia",
+      "text": "Vamos praticar uma palavra?",
+      "file": "lucia-77d27a117b.mp3"
+    },
+    {
+      "id": "lucia-677b026139",
+      "voice": "lucia",
+      "text": "A aula é curtinha.",
+      "file": "lucia-677b026139.mp3"
+    },
+    {
+      "id": "lucia-0711a2c193",
+      "voice": "lucia",
+      "text": "Como é o seu nome?",
+      "file": "lucia-0711a2c193.mp3"
+    },
+    {
+      "id": "lucia-9eaf819498",
+      "voice": "lucia",
+      "text": "A lição de hoje é curtinha.",
+      "file": "lucia-9eaf819498.mp3"
+    },
+    {
+      "id": "celia-d9864bc459",
+      "voice": "celia",
+      "text": "Bem-vindo ao Brasil!",
+      "file": "celia-d9864bc459.mp3"
+    },
+    {
+      "id": "celia-77c8041597",
+      "voice": "celia",
+      "text": "Precisa de ajuda? É só perguntar.",
+      "file": "celia-77c8041597.mp3"
+    },
+    {
+      "id": "agente-efa2a28edf",
+      "voice": "agente",
+      "text": "Próximo, por favor!",
+      "file": "agente-efa2a28edf.mp3"
+    },
+    {
+      "id": "agente-1aabb53c1b",
+      "voice": "agente",
+      "text": "Passaporte, por favor.",
+      "file": "agente-1aabb53c1b.mp3"
     },
     {
       "id": "comissaria-d198393bde",
@@ -11732,6 +12046,12 @@
       "voice": "comissaria",
       "text": "A porta do aeroporto é ali embaixo.",
       "file": "comissaria-235be7666b.mp3"
+    },
+    {
+      "id": "comissaria-d293b32fd0",
+      "voice": "comissaria",
+      "text": "Aqui é o desembarque. Siga para o aeroporto pela porta de vidro.",
+      "file": "comissaria-d293b32fd0.mp3"
     },
     {
       "id": "carlos-f0eea8e48e",

@@ -10,6 +10,7 @@
  * The lines come from `collectSpokenLines` (packages/shared/src/spokenLines.ts) plus content/tts/extra-lines.json; who says them and how they
  * sound is content/voices.json. Adding dialogue to the game needs nothing else: write it, run `pnpm tts`, commit the new mp3s + manifest.json.
  * Needs `pip install edge-tts` (or EDGE_TTS=/path/to/edge-tts) and outbound access to speech.platform.bing.com.
+ * edge-tts ignores HTTPS_PROXY on its own, so a set HTTPS_PROXY (or https_proxy) is passed to it as --proxy (cloud sessions need this).
  */
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -59,6 +60,7 @@ if (CHECK) {
   process.exit(missing.length ? 1 : 0);
 }
 
+const PROXY = process.env.HTTPS_PROXY || process.env.https_proxy;
 const TTS = [process.env.EDGE_TTS, 'edge-tts', '/workspace/venvs/tts/bin/edge-tts'].filter(Boolean).find((c) => spawnSync(c, ['--help'], { stdio: 'ignore' }).status === 0);
 
 function synth(speaker, text, file) {
@@ -66,6 +68,7 @@ function synth(speaker, text, file) {
   const argv = ['--voice', c.voice, '--text', text, '--write-media', file];
   if (c.rate) argv.push(`--rate=${c.rate}`);
   if (c.pitch) argv.push(`--pitch=${c.pitch}`);
+  if (PROXY) argv.push(`--proxy=${PROXY}`);
   return new Promise((resolve, reject) => {
     const child = spawn(TTS, argv, { stdio: ['ignore', 'ignore', 'pipe'] });
     let err = '';
