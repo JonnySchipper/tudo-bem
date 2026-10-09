@@ -13,7 +13,11 @@ function rowEl(r: BoardRow, kind: 'words' | 'streak') {
   return h(
     'div',
     { class: `r lb-row${r.you ? ' you' : ''}` },
-    h('span', { class: 'lb-rank' }, `#${r.rank}`),
+    h(
+      'span',
+      { class: 'lb-rank', 'aria-label': `#${r.rank}` },
+      r.rank <= 3 ? h('i', { class: `lb-medal medal-${r.rank}` }, String(r.rank)) : `#${r.rank}`,
+    ),
     h('b', { class: 'lb-name' }, r.name),
     r.you ? h('span', { class: 'lb-you' }, bi('você', 'you')) : '',
     h('span', { class: 'spacer' }),
@@ -32,7 +36,7 @@ function list(titlePt: string, titleEn: string, rows: BoardRow[], kind: 'words' 
   const { board, youOut } = splitBoard(rows);
   return h(
     'div',
-    { class: 'lb-board' },
+    { class: `lb-board lb-${kind}` },
     h('h3', null, titlePt, en(` ${titleEn}`, true)),
     h(
       'div',
