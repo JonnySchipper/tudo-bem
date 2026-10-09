@@ -13,8 +13,9 @@ every place has its own level (see below).
 | `academia.mp3` | Academia: a soft samba pulse, the hook on vibes |
 | `bout.mp3` | Treino no tatame: batucada and brass on the hook |
 | `feira.mp3` | Feira Livre while it is open (06:00-13:00): "Baião da Feira", the theme's forró cousin in A mixolydian (sanfona, pife, zabumba, triângulo); it opens with the hook in one baião bar and its bridge is the theme's own A section changes |
+| `voo.mp3` | The flight in (the new-account cutscene, night cabin to the seatbelt sign): "Céu de Madrugada", a slow toada at 76 BPM (flute, felt-piano ripples, strings, star bells, no drums) that quotes the hook once, then sings its own tune over the theme's A changes and its bridge, under the engines' hum |
 | `praca-golden.mp3`, `praca-night.mp3` | Two of the phrases that drift over the Praça (golden hour, night) |
-| `sting-*.mp3` | Recado done, daily mission, bout win, bout loss |
+| `sting-*.mp3` | Recado done, daily mission, bout win, bout loss, `sting-pouso` (the plane touching down in Brazil: the whole hook on flute and vibes at 96 BPM, a strummed Dmaj9 and a surdo on the landing) |
 | `sting-diario` (no MP3 yet) | The journal reveal in the arrivals hall (a new player's first word): the hook's five pitches as a slow music box at 92 BPM over Dmaj9 → Gmaj9 → Dmaj9, answered by A F♯ E falling home to D. The arrivals hall (`desembarque`) itself plays the kitnet's quiet bed |
 
 ## Levels
@@ -24,11 +25,12 @@ All loudness lives in `apps/client/src/audio/mix.ts` as targets (integrated LUFS
 | | LUFS |
 | --- | --- |
 | Intro | -22.5 |
+| The flight in (cutscene, under Lia's voice) | -26 |
 | Bout | -25.5 |
 | Radio (before the window and the distance) | -27 |
 | Padaria / Feira / Academia / Padaria at night / Kitnet | -28.5 / -29 / -29.5 / -30 / -30.5 |
 | Praça phrases | -30.5 to -32 |
-| Stingers | -23.5 (mission, win) to -31 (RV, door); the journal reveal -26 |
+| Stingers | -23.5 (mission, win) to -31 (RV, door); the journal reveal -26; the touchdown -24 |
 
 `calibration.json` holds what each one measures at unity gain, so the gain is target minus measurement.
 

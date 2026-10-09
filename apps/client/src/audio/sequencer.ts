@@ -102,6 +102,7 @@ export const FEELS: Record<ArrangementKind | 'phrase', Feel> = {
   bout: { swing: 0.12, jitter: 0.002, vel: 0.08, layBack: 0 },
   // forró sits straighter than bossa, pushed rather than laid back
   feira: { swing: 0.06, jitter: 0.004, vel: 0.1, layBack: 0.004 },
+  voo: { swing: 0.06, jitter: 0.01, vel: 0.1, layBack: 0.02 },
   phrase: { swing: 0.1, jitter: 0.008, vel: 0.1, layBack: 0.015 },
 };
 
@@ -152,6 +153,7 @@ export const MIX: Partial<Record<ArrangementKind, Partial<Record<Voice, number>>
   academia: { harm: 4, bass: 0.5, cavaco: 3.5, pandeiro: 3, shaker: 4.5, clave: 3.5 },
   bout: { stab: 3.5, bass: 1, surdo: 2, pandeiro: -2, shaker: 4, clave: 1.5 },
   feira: { sanfona: 2, pife: -1.5, triangle: 3 },
+  voo: { bass: 4, pad: 3, arp: 8, harm: 1 },
 };
 
 /** Per-arrangement instrument swaps: the padaria's pad is the accordion, the night one is a felt piano, and so on. */
@@ -162,6 +164,8 @@ const SWAPS: Partial<Record<ArrangementKind, Partial<Record<Voice, Inst>>>> = {
   kitnet: { pad: 'felt' },
   // the sanfona's left hand plays the chord chops
   feira: { accordion: 'sanfona' },
+  // the flight in: flute on the tune, strings for the pad, the felt piano ripples
+  voo: { mel: 'flute', pad: 'strings', arp: 'felt' },
 };
 
 /** Play timed notes (a phrase or a stinger) starting at `when`. `swap` retunes voices to the mood's instruments. */

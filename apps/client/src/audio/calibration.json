@@ -7,7 +7,8 @@
     "kitnet": -24.25,
     "academia": -24.86,
     "bout": -23.02,
-    "feira": -21.41
+    "feira": -21.41,
+    "voo": -22.19
   },
   "phrase": {
     "morning": -24.28,
@@ -25,6 +26,7 @@
     "win": -22.02,
     "lose": -26.2,
     "door": -30.74,
-    "diario": -26.82
+    "diario": -26.82,
+    "pouso": -21.48
   }
 }

@@ -19,11 +19,13 @@ import './styles/townMap.css';
 import './styles/onboarding.css';
 import './styles/feiraStall.css';
 import './styles/feiraStage.css';
+import './styles/flight.css';
 import './styles/onboarding.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
 import {
+  DEFAULT_APPEARANCE,
   MISSION_COPY,
   ROOMS,
   TUTORIAL_STEPS,
@@ -111,6 +113,7 @@ import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAge
 import { kitnetGuideRunning, kitnetWorldGuide, mountKitnetGuide, startKitnetGuide } from './ui/kitnetGuide';
 import { desembGuide, inDesembarque, markDesembStep, mountDesembTutorial, resetDesembTutorial } from './ui/desembarqueTutorial';
 import { firstRoom } from './ui/desembarqueLogic';
+import { flightIntroActive, playFlightIntro } from './ui/flightIntro';
 import { thanksFor } from './ui/airportTutorialLogic';
 import { installHowToPlay } from './ui/howToPlay';
 import { maybeShowVilaGuide, openVilaGuide } from './ui/vilaGuide';
@@ -863,6 +866,8 @@ net.on((m: ServerMsg) => {
       localStorage.setItem(TOKEN_KEY, m.token);
       game.profile = m.profile;
       if (m.layouts) for (const row of m.layouts) applyServerLayout(row.room, row.objects);
+      // the avatar creator was up: this account was made just now
+      const justCreated = onboarding !== null;
       closeOnboarding();
       onboarding = null;
       if (!started) startGame();
@@ -870,7 +875,15 @@ net.on((m: ServerMsg) => {
       const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'rua_leste' || last === 'feira' || last === 'escola' || last === 'aeroporto' || last === 'desembarque';
       // a new arrival starts in the arrivals hall (the guided tutorial), then the airport until Célia's hand-over; everybody else comes
       // back where they were, or to the praça
-      joinRoom(firstRoom(m.profile) ?? (remembered ? last : 'praca'));
+      const room = firstRoom(m.profile) ?? (remembered ? last : 'praca');
+      if (justCreated && room === 'desembarque') {
+        // a brand-new account flies in first (the cutscene), and lands in the arrivals hall
+        renderer.hold?.(true);
+        void playFlightIntro({ name: m.profile.name, appearance: m.profile.appearance }).then(() => {
+          renderer.hold?.(false);
+          joinRoom(firstRoom(game.profile ?? m.profile) ?? 'desembarque');
+        });
+      } else if (!flightIntroActive()) joinRoom(room);
       syncGrants((id) => net.send({ t: 'grant', id }));
       game.emit('profile');
       break;
@@ -1816,6 +1829,11 @@ window.__tb = {
   renderer,
   net,
   rooms: ROOMS,
+  /** Play the new-account cutscene (the flight in) over whatever is on screen, for shots and checks. */
+  flight: () => {
+    renderer.hold?.(true);
+    return playFlightIntro({ name: game.profile?.name ?? 'Jonny', appearance: game.profile?.appearance ?? { ...DEFAULT_APPEARANCE } }).then(() => renderer.hold?.(false));
+  },
   /** Sprite keys the pixel view drew as placeholders. */
   get artMissing(): string[] {
     return 'artMissing' in renderer ? (renderer as { artMissing: string[] }).artMissing : [];

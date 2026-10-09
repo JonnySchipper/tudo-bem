@@ -4,6 +4,7 @@
  * the praça (or the room it was in) and is only waited for. Either way the page ends in the praça.
  */
 export async function finishArrival(page) {
+  await skipFlight(page);
   await page.waitForFunction(() => window.__tb?.game?.profile && window.__tb.game.room, null, { timeout: 20_000 });
   await quietFirstTimeCards(page);
   const needs = await page.evaluate(() => window.__tb.game.profile.arrivalIntroDone === false);
@@ -52,6 +53,14 @@ async function dismissWordCards(page) {
       while (document.getElementById('photo-close') === gone && performance.now() - started < 700) await sleep(30);
     }
   });
+}
+
+/** A brand-new account flies in first (the cutscene, ui/flightIntro.ts): skip it, as its "Pular" button does. No-op for other accounts. */
+export async function skipFlight(page) {
+  await page.waitForFunction(() => window.__tb?.game?.profile || document.querySelector('.flight-intro'), null, { timeout: 20_000 });
+  if (!(await page.$('.flight-intro .fl-skip'))) return;
+  await page.click('.flight-intro .fl-skip');
+  await page.waitForFunction(() => !document.querySelector('.flight-intro'), null, { timeout: 8_000 });
 }
 
 /**

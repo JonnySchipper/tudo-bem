@@ -8,6 +8,7 @@ import { FOOTSTEPS, SILENT_MIX, stepPitch, type ZoneMix } from './audio/zones';
 import { playBoutSfx, type BoutSfx } from './audio/boutSfx';
 import { playCorreriaSfx, type CorreriaSfx } from './audio/correriaSfx';
 import { DIARY_SFX, playDiarySfx, type DiarySfx } from './audio/diarySfx';
+import { FLIGHT_SFX, playFlightSfx, type FlightSfx } from './audio/flightSfx';
 import { CARRY_SFX, playCarrySfx, type CarrySfx } from './audio/carrySfx';
 
 const CORRERIA_SFX = ['grab', 'sizzle', 'ready', 'burnt', 'pop', 'pour', 'glug', 'ding', 'clink', 'chain', 'cash', 'paper', 'chime', 'nope', 'combo', 'tick', 'slap', 'sigh', 'juicer'] as const;
@@ -23,13 +24,14 @@ const CORRERIA_SFX = ['grab', 'sizzle', 'ready', 'burnt', 'pop', 'pour', 'glug',
  * Academia: a soft samba pulse with the hook; the bout swaps it for a batucada and brass stabs on the hook.
  * Feira (06:00-13:00, while it is open): "Baião da Feira", the theme's forró cousin, over the crowd and the outdoor zones; closed, it is the Praça's bed.
  * When it closes with you in it the trio plays to the end of its phrase and then fades out slowly, never cut off mid-tune.
- * Stingers (recado, heart, RV, mission, Caderno, win, lose, the padaria door) are fragments of the same tune.
+ * The flight in (the new-account cutscene): the cabin's engine hum under "Céu de Madrugada", the theme as a slow toada; the touchdown stinger.
+ * Stingers (recado, heart, RV, mission, Caderno, win, lose, the padaria door, the touchdown) are fragments of the same tune.
  * Every level comes from audio/mix (measured loudness targets), and everything goes through one master limiter.
  * Unlocks on the first gesture, crossfades on room change (each bed picks its tune up where it left it), ducks under speech.
  */
 
 type Source = AudioBufferSourceNode | OscillatorNode;
-type Scene = 'intro' | 'bout';
+type Scene = 'intro' | 'bout' | 'voo';
 type BedId = RoomId | Scene | 'padariaNight';
 
 /** A bed that comes back within this long picks its tune up where it left it; after that it starts from the top. */
@@ -342,6 +344,13 @@ function buildBed(ctx: AudioContext, dest: AudioNode, room: BedId, world: () => 
         src.start(t);
         src.stop(t + 0.09);
       }, 5400);
+  } else if (room === 'voo') {
+    // the cabin: the engines' low roar and the air system's hiss, under the toada
+    keep(...loopNoise(ctx, gain, buf, 170, 'lowpass', 0.09, 0.6));
+    keep(...loopNoise(ctx, gain, buf, 900, 'bandpass', 0.012, 0.5));
+    const [drone, droneGain] = tone(ctx, gain, 87, 'sine', 0.012);
+    keep(drone, droneGain);
+    band('voo', gain);
   } else if (room === 'academia') {
     keep(...loopNoise(ctx, gain, buf, 300, 'lowpass', 0.03, 0.5));
     band('academia', gain);
@@ -475,7 +484,7 @@ class Ambience {
    */
   setScene(scene: Scene | null) {
     if (this.scene === scene) return;
-    const leaving = (this.playing === 'intro' || this.playing === 'bout') && scene !== this.playing;
+    const leaving = (this.playing === 'intro' || this.playing === 'bout' || this.playing === 'voo') && scene !== this.playing;
     this.scene = scene;
     if (scene && this.enabled) this.ensureContext()?.resume().catch(() => {});
     this.sync(leaving ? INTRO_FADE_OUT : FADE);
@@ -622,7 +631,7 @@ class Ambience {
   }
 
   /** One sound effect (mat slap, crowd, whistle, a bite...). `gain` below 1 plays it quieter (someone else, further away). Silent until the browser lets the context run; goes through the same duck gain as the beds. */
-  sfx(kind: BoutSfx | CorreriaSfx | DiarySfx | CarrySfx, gain = 1) {
+  sfx(kind: BoutSfx | CorreriaSfx | DiarySfx | CarrySfx | FlightSfx, gain = 1) {
     const ctx = this.ctx;
     if (!ctx || !this.bedIn || !this.unlocked || ctx.state !== 'running') return;
     this.whiteBuf ??= whiteBuffer(ctx, 1);
@@ -635,7 +644,8 @@ class Ambience {
         g.connect(out);
         out = g;
       }
-      if ((CARRY_SFX as readonly string[]).includes(kind)) playCarrySfx(ctx, out, this.whiteBuf, kind as CarrySfx);
+      if ((FLIGHT_SFX as readonly string[]).includes(kind)) playFlightSfx(ctx, out, this.whiteBuf, kind as FlightSfx);
+      else if ((CARRY_SFX as readonly string[]).includes(kind)) playCarrySfx(ctx, out, this.whiteBuf, kind as CarrySfx);
       else if ((DIARY_SFX as readonly string[]).includes(kind)) playDiarySfx(ctx, out, this.whiteBuf, kind as DiarySfx);
       else if ((CORRERIA_SFX as readonly string[]).includes(kind)) playCorreriaSfx(ctx, out, this.whiteBuf, kind as CorreriaSfx);
       else playBoutSfx(ctx, out, this.whiteBuf, kind as BoutSfx);
