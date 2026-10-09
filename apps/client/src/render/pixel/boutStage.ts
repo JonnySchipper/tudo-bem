@@ -925,9 +925,9 @@ export class BoutStage {
     this.refUntil = signal ? this.nowMs + REF_SHOW_MS : 0;
   }
 
-  /** The referee's spot: off the mat's east edge, level with the fighters (world px of her feet). */
+  /** The referee's spot: off the mat's east edge, under the scoreboard, a step in front of the fighters (world px of her feet). */
   private refSpot(mat: { x: number; y: number; x1: number }): { x: number; y: number } {
-    return { x: Math.round(mat.x1 + REF_GAP), y: Math.round(mat.y + PAIR_DROP + 8) };
+    return { x: Math.round(mat.x1 + REF_GAP), y: Math.round(mat.y + PAIR_DROP + 16) };
   }
 
   private updateRef(mat: { x: number; y: number; x1: number }): void {
@@ -1102,6 +1102,9 @@ export class BoutStage {
       pos: this.pos,
       top: this.top,
       frame: this.pair?.texture.key ?? null,
+      clip: this.clip ? `${this.clip.def.move}@${this.clip.def.from}:${this.clip.hit ? 'hit' : 'miss'}:${this.clip.shown}` : null,
+      flip: this.flip,
+      matchAtlas: this.matchAtlas,
       visible: !!this.pair?.visible,
       placeholder: !!this.ph?.visible,
       ref: !!this.refSprite?.visible,

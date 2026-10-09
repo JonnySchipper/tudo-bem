@@ -7,8 +7,10 @@
  *   SHOTS_DIR (default docs/lifesim/shots/jiu-jitsu), VIEWS=desktop,phone, BOUTS (max matches per view, default 3)
  *
  * A blue belt plays Mateus reading the telegraph (the card that answers it, else the best percent). It shoots the lobby, the first pick
- * (meter, chips, telegraph), a brace answer on offer, a grip held, a combo on offer, each big move mid-cartoon (Queda, Arrastar, Puxar,
- * Arremesso, Postura, Base), a Vantagem pop, ground gained and lost, and the end card. It also checks the HUD while it plays.
+ * (meter, chips, telegraph), a brace answer on offer, a grip held, a combo on offer, each big move at its big frame (the grip snap, the
+ * body in the air) and at its landing (Queda, Arrastar, Puxar, Arremesso, Postura, Base), a Vantagem pop, ground gained and lost, and the
+ * end card. Then (`--partners=0` to skip) a first look at each of the other sparring partners on the mat. It also checks the HUD and
+ * that the moves play their baked clips (#166) while it plays.
  */
 import { chromium } from 'playwright-core';
 import { spawn } from 'node:child_process';
@@ -29,6 +31,7 @@ const flag = (name) => process.argv.find((a) => a.startsWith(`--${name}=`))?.sli
 const SHOTS = path.resolve(ROOT, flag('out') ?? process.env.SHOTS_DIR ?? 'docs/lifesim/shots/jiu-jitsu');
 const VIEWS = (flag('views') ?? process.env.VIEWS ?? 'desktop,phone').split(',');
 const BOUTS = Number(flag('bouts') ?? process.env.BOUTS ?? 3);
+const PARTNERS = (flag('partners') ?? '1') !== '0';
 const PORT = Number(process.env.JJ_PORT ?? 9213);
 const CHROME = findChrome();
 assert(CHROME, 'Chrome/Chromium not found: set CHROME_PATH');
@@ -87,7 +90,8 @@ async function run(name, base) {
     if (took.has(label)) return;
     await shot(label);
   };
-  const checks = { meter: false, chips: false, plan: false, answer: false, brace: false, combo: false, ground: new Set(), moves: new Set(), vantagem: false };
+  const checks = { meter: false, chips: false, plan: false, answer: false, brace: false, combo: false, ground: new Set(), moves: new Set(), vantagem: false, clips: new Set() };
+  const stage = () => page.evaluate(() => window.__tb.renderer?.info?.()?.bout ?? null).catch(() => null);
   try {
     await page.goto(`${base}${base.includes('?') ? '&' : '?'}solo&notype=1&rolltest&tbclockmin=${offsetMinFor(DAY_MIN)}`);
     await page.click('#intro-enter');
@@ -141,15 +145,33 @@ async function run(name, base) {
           })
           .catch(() => null);
         if (r?.chips) checks.chips = true;
+        if (r?.cartoon) {
+          const s = await stage();
+          if (s?.mode === 'clip' && s.frame) checks.clips.add(r.cartoon);
+        }
         if (r?.vantagem && !checks.vantagem) {
           checks.vantagem = true;
           await once('vantagem');
         }
         if (r?.cartoon && r.correct && BIG_MOVES.includes(r.cartoon) && !checks.moves.has(r.cartoon)) {
           checks.moves.add(r.cartoon);
-          // into the routine, near the impact
-          await sleep(650);
-          await once(`move_${r.cartoon}`);
+          // the clip's big frame (the snap, the body in the air), then its landing: wait for the stage to show them (a slow phone run
+          // would otherwise shoot the idle after the move)
+          // (the headless phone renders a few frames a second: also wait for the panel's slide-in to have painted)
+          const frame = (n) =>
+            page
+              .waitForFunction(
+                (k) => {
+                  const res = document.querySelector('#bout-resolve');
+                  return (window.__tb.renderer?.info?.()?.bout?.clip ?? '').endsWith(`:${k}`) && !!res && getComputedStyle(res).opacity === '1';
+                },
+                n,
+                { timeout: 2500, polling: 'raf' },
+              )
+              .then(() => true)
+              .catch(() => false);
+          if (await frame(4)) await once(`move_${r.cartoon}`);
+          if (await frame(5)) await once(`move_${r.cartoon}_land`);
         }
         if (r?.ground && r.ground !== 'even' && r.word && !checks.ground.has(r.ground)) {
           checks.ground.add(r.ground);
@@ -191,6 +213,23 @@ async function run(name, base) {
     }
     polling = false;
     await poll;
+    // each other sparring partner on the mat: their own gi, skin and hair
+    if (PARTNERS) {
+      await page.click('#bout-leave');
+      await sleep(800);
+      for (const id of ['felipe', 'helena', 'daniel', 'rafael']) {
+        await openBout(page);
+        await startBout(page, id);
+        await waitFor(page, () => document.querySelector('#bout')?.getAttribute('data-phase') === 'intent', null, 20_000, `${id} first pick`);
+        await sleep(700);
+        await shot(`partner_${id}`);
+        await page.click('.bout-quit');
+        await page.click('.bout-quit');
+        await waitFor(page, () => !document.querySelector('#bout-root'), null, 10_000, `${id} left`);
+        await sleep(900);
+      }
+    }
+    assert(checks.clips.size > 0, 'the moves play their baked clips');
     assert(checks.meter, 'the control meter is on the pick screen');
     assert(checks.plan, 'the partner telegraphs its next move');
     assert(checks.brace, 'a brace card is offered');
@@ -199,7 +238,7 @@ async function run(name, base) {
     const art = await page.evaluate(() => window.__tb.artMissing.filter((k) => k.startsWith('bjj/') || k === 'props/placar'));
     assert(art.length === 0, `no bout art is missing (${art.join(', ')})`);
     assert(!errors.length, `no page errors (${errors.join(' | ')})`);
-    log('checks', JSON.stringify({ ...checks, ground: [...checks.ground], moves: [...checks.moves] }));
+    log('checks', JSON.stringify({ ...checks, ground: [...checks.ground], moves: [...checks.moves], clips: [...checks.clips] }));
   } finally {
     await browser.close();
   }
