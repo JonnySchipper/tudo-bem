@@ -600,7 +600,21 @@ export const CARLOS_AUTHORED_FALLBACK: { opener: Bilingual; beats: AuthoredBeat[
   ],
 };
 
-export function authoredFallbackTurn(text: string, history: ConversaLine[]): { response: Bilingual; chips: Bilingual[]; end: boolean } {
+/** The authored chips address Seu Carlos; another NPC behind the same counter (Dona Graça) is addressed by her own name. */
+export function addressNpc(npcId: NpcId | undefined, text: string): string {
+  const name = npcId && npcId !== 'carlos' ? CONVERSA_CAST[npcId]?.name : undefined;
+  return name ? text.replace(/Seu Carlos/g, name) : text;
+}
+
+const addressChip = (npcId: NpcId | undefined, c: Bilingual): Bilingual => ({ pt: addressNpc(npcId, c.pt), en: addressNpc(npcId, c.en) });
+
+/** Scripted reply when there is no AI. `npcId` (default Seu Carlos) is who the player chips address. */
+export function authoredFallbackTurn(text: string, history: ConversaLine[], npcId?: NpcId): { response: Bilingual; chips: Bilingual[]; end: boolean } {
+  const turn = authoredBeat(text, history);
+  return { ...turn, chips: turn.chips.map((c) => addressChip(npcId, c)) };
+}
+
+function authoredBeat(text: string, history: ConversaLine[]): { response: Bilingual; chips: Bilingual[]; end: boolean } {
   const norm = strip(text);
   const salt = history.length;
   for (const beat of CARLOS_AUTHORED_FALLBACK.beats) {
@@ -738,10 +752,15 @@ export function parseAiResponse(raw: string): ConversaTurnResponse | null {
     const chips = Array.isArray(parsed.chips)
       ? parsed.chips.filter((c: unknown) => typeof c === 'string').map((c: string) => ({ pt: c, en: '' }))
       : [];
+    // A real 0 stays 0 (the rubric's "unusable"); only a missing or non-numeric score defaults to 2.
+    const score = (v: unknown): Score03 => {
+      const n = typeof v === 'number' || (typeof v === 'string' && v.trim() !== '') ? Math.round(Number(v)) : NaN;
+      return (Number.isFinite(n) ? Math.max(0, Math.min(3, n)) : 2) as Score03;
+    };
     const scores: ConversaScores = {
-      portuguese: Math.max(0, Math.min(3, Number(parsed.scores?.portuguese) || 2)) as Score03,
-      grammar: Math.max(0, Math.min(3, Number(parsed.scores?.grammar) || 2)) as Score03,
-      conversation: Math.max(0, Math.min(3, Number(parsed.scores?.conversation) || 2)) as Score03,
+      portuguese: score(parsed.scores?.portuguese),
+      grammar: score(parsed.scores?.grammar),
+      conversation: score(parsed.scores?.conversation),
     };
     const tip = typeof parsed.tip === 'string' && parsed.tip ? { pt: parsed.tip, en: '' } : null;
     const end = parsed.end === true;
@@ -796,16 +815,18 @@ const FILL_CHIPS = ['Me vê um pão na chapa, por favor.', 'Um café com leite, 
  * Last step before a turn is returned: Gate B on the line, every chip, and the tip.
  * A banned line becomes a safe counter question. Repeated chip sets are rotated.
  */
-export function presentConversaTurn(turn: ConversaTurnResponse, priorChips: string[] = [], minute?: number): ConversaTurnResponse {
+export function presentConversaTurn(turn: ConversaTurnResponse, priorChips: string[] = [], minute?: number, npcId?: NpcId): ConversaTurnResponse {
   const gated = applyConversaGateB({
     line: turn.line.pt,
-    chips: turn.chips.map((c) => c.pt),
+    chips: turn.chips.map((c) => addressNpc(npcId, c.pt)),
     tip: turn.tip?.pt ?? null,
   });
   const linePt = gated.line ?? 'Quer mais alguma coisa?';
   let chipPts = diverseChips(gated.chips, priorChips);
   if (chipPts.length < 2 && !turn.end) chipPts = diverseChips(FILL_CHIPS, priorChips);
-  const enByPt = new Map(turn.chips.map((c) => [c.pt, c.en]));
+  // the rotated / fill sets are written for Seu Carlos too
+  chipPts = chipPts.map((pt) => addressNpc(npcId, pt));
+  const enByPt = new Map(turn.chips.map((c) => [addressNpc(npcId, c.pt), addressNpc(npcId, c.en)]));
   // a greeting that starts the NPC's line or a chip follows the game hour (bom dia / boa tarde / boa noite)
   const at = (l: Bilingual): Bilingual => (minute === undefined ? l : localizeGreeting(l, minute));
   return {
@@ -847,7 +868,7 @@ export function offlineConversaOpen(npcId: NpcId, minute?: number): {
     tip: null,
     end: false,
     order: {},
-  }, [], minute);
+  }, [], minute, npcId);
   return { npcName: cast.name, subject, line: presented.line, chips: presented.chips, maxTurns: CONVERSA_MAX_PLAYER_MSGS };
 }
 
