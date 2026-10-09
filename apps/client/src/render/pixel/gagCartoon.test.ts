@@ -21,6 +21,7 @@ const MOVES: MatMoveId[] = [
   'sprawl',
   'frame',
   'escape_back',
+  'virar',
   'armbar',
   'americana',
   'rnc',

@@ -53,6 +53,7 @@ export type MatMoveId =
   | 'armbar'
   | 'americana'
   | 'rnc'
+  | 'virar'
   | 'hold';
 
 export type MatKind = 'standing' | 'closed_guard' | 'side_control' | 'knee_on_belly' | 'mount' | 'back_control';
@@ -165,6 +166,8 @@ export const MOVE_LABEL: Record<MatMoveId, Bilingual> = {
   armbar: { pt: 'Braço', en: 'Armbar' },
   americana: { pt: 'Americana', en: 'Arm lock' },
   rnc: { pt: 'Pescoço', en: 'Rear naked choke' },
+  // needs_br: true — Virar: everyone's way out from under (no stripe), a plain verb
+  virar: { pt: 'Virar', en: 'Turn over' },
   hold: { pt: 'Segurar', en: 'Hold' },
 };
 
@@ -216,6 +219,8 @@ export const FINAL_SQUEEZE = 0.8;
 export const DEF_BASE = 0.8;
 export const DEF_SPEED = 0.4;
 export const SLEEVE_SHIELD = 1.35;
+/** An escape from under (Virar, Recuperar, Sair) is slower than a throw: the defense window against it is this much longer. */
+export const ESCAPE_DEF = 1.3;
 /** Each Sai! of the escape mash against a finish is this share of a defense window. */
 export const SAI_SHARE = 0.75;
 /** Network slack the server gives every deadline on top of the window (it never relaxes the grade). */
@@ -338,9 +343,17 @@ export function fightMoves(args: { belt: Belt; unlocked: readonly MatMoveId[]; o
   return withCombos(own);
 }
 
-/** The bot is a student at `belt`: the whole pool of that belt, then the cross-rank cap. */
+/**
+ * Moves every fighter has from day one, whatever the stripes: Segurar, and Virar (the plain way out from under). Neither is in
+ * UNLOCK_ORDER; the stripe lessons Recuperar and Sair stay strictly better escapes (shorter, and they reset the exchange).
+ */
+export const ALWAYS_MOVES: readonly MatMoveId[] = ['hold', 'virar'];
+
+/** The bot is a student at `belt`: the whole pool of that belt, then the cross-rank cap, plus the moves everyone has. */
 export function botMoves(belt: Belt, opponentBelt: Belt): MatMoveId[] {
-  return fightMoves({ belt, unlocked: rankPool(belt), opponentBelt });
+  const out = fightMoves({ belt, unlocked: rankPool(belt), opponentBelt });
+  if (!out.includes('virar')) out.push('virar');
+  return out;
 }
 
 const emptyGrips = (): GripFlags => ({ collar: false, sleeve: false });
@@ -391,6 +404,7 @@ function viewKind(pos: MatPosition, actor: MatSide): View {
 export function moveLegal(pos: MatPosition, actor: MatSide, id: MatMoveId): boolean {
   if (id === 'hold') return true;
   const v = viewKind(pos, actor);
+  if (id === 'virar') return v === 'side_bottom' || v === 'knee_bottom' || v === 'mount_bottom' || v === 'back_bottom';
   switch (id) {
     case 'collar_tie':
     case 'sleeve_grip':
@@ -453,7 +467,7 @@ export function braceRested(state: MatState, actor: MatSide, id: MatMoveId): boo
 
 export function matLegalMoves(state: MatState, actor: MatSide, allowed: readonly MatMoveId[]): MatMoveId[] {
   const set = new Set<MatMoveId>(withCombos(allowed));
-  set.add('hold');
+  for (const id of ALWAYS_MOVES) set.add(id);
   return (Object.keys(MOVE_LABEL) as MatMoveId[]).filter(
     (id) => set.has(id) && moveLegal(state.position, actor, id) && gripReady(state, actor, id) && !gripHeld(state, actor, id) && braceRested(state, actor, id),
   );
@@ -519,6 +533,10 @@ const SWEEPS = new Set<MatMoveId>(['hook_sweep', 'scissor_sweep', 'hip_bump']);
 const PASSES = new Set<MatMoveId>(['passar', 'knee_on_belly', 'back_take']);
 
 export const isSubmission = (id: MatMoveId): boolean => SUBS.has(id);
+/** The ways out from under: Virar (everyone), Recuperar as an escape (not the guard brace), Sair from the back. */
+export function isEscape(state: MatState, actor: MatSide, id: MatMoveId): boolean {
+  return id === 'virar' || id === 'escape_back' || (id === 'frame' && viewKind(state.position, actor) !== 'closed_bottom');
+}
 export const isTakedown = (id: MatMoveId): boolean => TAKEDOWNS.has(id);
 
 export function attackOf(id: MatMoveId): MatAttack | null {
@@ -545,7 +563,7 @@ function braceOf(state: MatState, actor: MatSide, id: MatMoveId): MatBrace | nul
 export function defenseOf(state: MatState, actor: MatSide, id: MatMoveId): MatDefense | null {
   if (id === 'collar_tie' || id === 'sleeve_grip') return 'postura';
   if (TAKEDOWNS.has(id) || SWEEPS.has(id) || id === 'sleeve_pull') return 'base';
-  if (PASSES.has(id) || id === 'escape_back') return 'trava';
+  if (PASSES.has(id) || id === 'escape_back' || id === 'virar') return 'trava';
   if (id === 'frame') return braceOf(state, actor, id) ? null : 'trava';
   if (SUBS.has(id)) return 'sai';
   return null;
@@ -556,6 +574,8 @@ const BRACE_DEFENSE: Record<MatBrace, MatDefense> = { postura: 'postura', base: 
 
 /** The other fighter's brace is waiting for exactly this move: it stops it with no tap, and that is the defender's Vantagem. */
 export function braceBlocks(state: MatState, actor: MatSide, id: MatMoveId): boolean {
+  // the guard brace (Recuperar) waits for a pass; it does not stop the other fighter turning over from under
+  if (id === 'virar') return false;
   const b = state.brace?.[other(actor)];
   const d = defenseOf(state, actor, id);
   return !!b && !!d && BRACE_DEFENSE[b] === d;
@@ -563,7 +583,7 @@ export function braceBlocks(state: MatState, actor: MatSide, id: MatMoveId): boo
 
 // ---------------------------------------------------------------- chains
 
-const BASE_CHAIN: Record<Exclude<MatMoveId, 'hold' | 'frame' | 'passar'>, readonly MatCommand[]> = {
+const BASE_CHAIN: Record<Exclude<MatMoveId, 'hold' | 'frame' | 'passar' | 'virar'>, readonly MatCommand[]> = {
   collar_tie: ['pega'],
   sleeve_grip: ['pega'],
   posture: ['levanta'],
@@ -579,7 +599,8 @@ const BASE_CHAIN: Record<Exclude<MatMoveId, 'hold' | 'frame' | 'passar'>, readon
   scissor_sweep: ['puxa', 'empurra', 'gira'],
   knee_on_belly: ['levanta', 'empurra'],
   back_take: ['puxa', 'gira', 'pega'],
-  escape_back: ['empurra', 'gira', 'levanta'],
+  // the stripe lesson Sair: one command shorter than Virar from the back
+  escape_back: ['empurra', 'gira'],
   americana: ['pega', 'empurra', 'aperta'],
   armbar: ['pega', 'gira', 'levanta', 'aperta'],
   rnc: ['pega', 'gira', 'aperta'],
@@ -588,7 +609,10 @@ const BASE_CHAIN: Record<Exclude<MatMoveId, 'hold' | 'frame' | 'passar'>, readon
 /** The move's own chain from here, before grips, braces and the partner's defense: the "technique" the drill teaches. */
 export function baseChain(state: MatState, actor: MatSide, id: MatMoveId): MatCommand[] {
   if (id === 'hold') return [];
-  if (id === 'frame') return braceOf(state, actor, id) ? ['empurra'] : ['empurra', 'gira'];
+  // Recuperar is one command, as the guard brace and as the escape (the stripe lesson beats Virar's two)
+  if (id === 'frame') return ['empurra'];
+  // Virar, everyone's escape: two commands, three from the back
+  if (id === 'virar') return viewKind(state.position, actor) === 'back_bottom' ? ['empurra', 'gira', 'levanta'] : ['empurra', 'gira'];
   if (id === 'passar') return viewKind(state.position, actor) === 'closed_top' ? ['empurra', 'levanta', 'gira'] : ['empurra', 'gira'];
   return [...BASE_CHAIN[id]];
 }
@@ -901,6 +925,8 @@ function applySuccess(st: MatState, actor: MatSide, id: MatMoveId, events: MatEv
   if (id === 'scissor_sweep') return landed('mount');
   if (id === 'hip_bump') return landed('side_control');
   if (id === 'frame' || id === 'escape_back') return { ...stay, position: place(actor, 'closed_guard', false), resetScored: true };
+  // Virar gets out but does not start the exchange again: the top fighter cannot farm the same points by letting it happen
+  if (id === 'virar') return { ...stay, position: place(actor, 'closed_guard', false) };
   if (SUBS.has(id)) return { ...stay, submission: true };
   return stay;
 }
@@ -982,12 +1008,18 @@ const ATTACK_GAIN: Partial<Record<MatMoveId, number>> = {
   back_take: 4.9,
 };
 
+/** What an attack is worth to the AI's threat read; an escape is worth the ground it recovers (back to the bottom of the guard). */
+function attackGain(st: MatState, s: MatSide, id: MatMoveId): number {
+  if (isEscape(st, s, id) && st.position.kind !== 'standing') return Math.max(0, POS_VALUE[st.position.kind] - POS_VALUE.closed_guard);
+  return ATTACK_GAIN[id] ?? 0;
+}
+
 /** The best attack `s` could make from here, as an expected gain. */
 function threat(st: MatState, s: MatSide, ai: MatAi): number {
   let best = 0;
   const seen: MatState = st.actor === s ? st : { ...st, actor: s };
   for (const id of ai.allowed[s]) {
-    const gain = ATTACK_GAIN[id];
+    const gain = attackGain(st, s, id);
     if (!gain || !moveLegal(st.position, s, id) || !gripReady(st, s, id)) continue;
     const p = ai.odds(seen, s, id).land;
     if (p * gain > best) best = p * gain;
@@ -1086,7 +1118,7 @@ export function planKindOf(state: MatState, actor: MatSide, id: MatMoveId): MatP
   if (PASSES.has(id)) return 'subir';
   if (SUBS.has(id)) return 'finalizar';
   if (id === 'frame' && viewKind(state.position, actor) === 'closed_bottom') return 'travar';
-  if (id === 'frame' || id === 'escape_back') return 'sair';
+  if (id === 'frame' || id === 'escape_back' || id === 'virar') return 'sair';
   return 'segurar';
 }
 
@@ -1099,9 +1131,16 @@ export interface BotCtx {
   rates?: MatRates;
 }
 
+/** A fighter's pool plus the moves everyone has (Virar), for the AI's read. */
+export const withAlways = (moves: readonly MatMoveId[]): MatMoveId[] => {
+  const out = withCombos(moves);
+  for (const id of ALWAYS_MOVES) if (id !== 'hold' && !out.includes(id)) out.push(id);
+  return out;
+};
+
 export function botAi(ctx: BotCtx): MatAi {
   const style = ctx.style ?? NEUTRAL;
-  return { style, allowed: { them: withCombos(ctx.allowed), you: withCombos(ctx.foeAllowed ?? ctx.allowed) }, odds: partnerOdds(style, ctx.rates) };
+  return { style, allowed: { them: withAlways(ctx.allowed), you: withAlways(ctx.foeAllowed ?? ctx.allowed) }, odds: partnerOdds(style, ctx.rates) };
 }
 
 /** Every legal partner move with its two-ply value. */
@@ -1175,7 +1214,7 @@ export function planAnswers(state: MatState, plan: MatPlan, legal: readonly MatM
     case 'passar':
     case 'subir':
     case 'finalizar':
-      return pick(['frame', 'escape_back', 'hook_sweep', 'scissor_sweep', 'hip_bump']);
+      return pick(['frame', 'escape_back', 'virar', 'hook_sweep', 'scissor_sweep', 'hip_bump']);
     case 'sair':
       return pick(['armbar', 'americana', 'rnc', 'passar', 'knee_on_belly', 'back_take']);
     default:
@@ -1259,6 +1298,7 @@ export function moveDoes(state: MatState, actor: MatSide, id: MatMoveId): Biling
     case 'frame':
       return braceOf(state, actor, id) ? { pt: 'Trava a passagem dele', en: 'Blocks their pass' } : { pt: 'Sai de baixo', en: 'Gets out from under' };
     case 'escape_back':
+    case 'virar':
       return { pt: 'Sai de baixo', en: 'Gets out from under' };
   }
   if (SUBS.has(id)) return { pt: 'Vale a vitória!', en: 'Wins the match!' };
@@ -1270,7 +1310,7 @@ export function moveDoes(state: MatState, actor: MatSide, id: MatMoveId): Biling
 
 function cardOf(state: MatState, id: MatMoveId, answers: readonly MatMoveId[], foeDefense: number): MatCard {
   const e = matEffect(state, 'you', id);
-  const kind: MatCardKind = SUBS.has(id) ? 'finish' : (e?.points ?? 0) > 0 ? 'attack' : braceOf(state, 'you', id) || id === 'frame' || id === 'escape_back' ? 'defense' : 'setup';
+  const kind: MatCardKind = SUBS.has(id) ? 'finish' : (e?.points ?? 0) > 0 ? 'attack' : braceOf(state, 'you', id) || id === 'frame' || id === 'escape_back' || id === 'virar' ? 'defense' : 'setup';
   return {
     move: id,
     kind,

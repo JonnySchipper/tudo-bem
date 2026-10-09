@@ -11,6 +11,7 @@ import {
   BOUT_PROTOCOL_VERSION,
   COMMAND_LABEL,
   DEFENSE_LABEL,
+  ESCAPE_DEF,
   EXCHANGE_CLOCK_MS,
   INTRO_MS,
   MAT_TURNS,
@@ -43,6 +44,7 @@ import {
   fightMoves,
   grantDiaryWord,
   gradeTap,
+  isEscape,
   isHitGrade,
   isMatMove,
   matLegalMoves,
@@ -500,7 +502,8 @@ export class BoutEngine {
     const d = defenseOf(b.mat, 'them', move);
     if (!d) return this.resolve(s, b, 'them', move, true, 'landed', [], { feint, replanned });
     const count = d === 'sai' ? saiCount(b.partner.defense) : 1;
-    const w = Math.round(defWindowMs(b.level, b.partner.speed, b.mat.grips.you.sleeve, b.first) * (d === 'sai' ? SAI_SHARE : 1));
+    // an escape from under is slower than a throw (ESCAPE_DEF); each Sai! of the mash is a share of a window
+    const w = Math.round(defWindowMs(b.level, b.partner.speed, b.mat.grips.you.sleeve, b.first) * (d === 'sai' ? SAI_SHARE : 1) * (isEscape(b.mat, 'them', move) ? ESCAPE_DEF : 1));
     const lead = WINDUP_MS;
     // white belt: Bia calls the right defense (listening); from blue the telegraph alone says what is coming (reading)
     const call = b.level < 4 ? d : undefined;

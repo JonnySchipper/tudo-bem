@@ -27,7 +27,7 @@ export const GAG_TRACKS: readonly GagTrack[] = [
   { id: 'grips', pt: 'Pegada', en: 'Grips', moves: ['collar_tie', 'sleeve_grip'] },
   { id: 'takedowns', pt: 'Quedas', en: 'Takedowns', moves: ['hip_throw', 'collar_drag', 'double_leg', 'body_lock', 'single_leg', 'sleeve_pull'] },
   { id: 'sweeps', pt: 'Raspagem', en: 'Sweeps', moves: ['hook_sweep', 'scissor_sweep', 'hip_bump'] },
-  { id: 'defense', pt: 'Defesa', en: 'Defense', moves: ['posture', 'sprawl', 'frame', 'escape_back'] },
+  { id: 'defense', pt: 'Defesa', en: 'Defense', moves: ['posture', 'sprawl', 'frame', 'escape_back', 'virar'] },
   { id: 'passes', pt: 'Passagem', en: 'Passes', moves: ['passar', 'knee_on_belly', 'back_take'] },
   { id: 'subs', pt: 'Final', en: 'Submissions', moves: ['armbar', 'americana', 'rnc'] },
 ];
@@ -73,6 +73,7 @@ const SIGNATURE: Record<MatMoveId, { x: number; y: number; rot: number }> = {
   sprawl: { x: -22, y: 18, rot: 14 },
   frame: { x: 32, y: -6, rot: -12 },
   escape_back: { x: -8, y: -14, rot: 40 },
+  virar: { x: 26, y: -10, rot: 30 },
   armbar: { x: 16, y: -22, rot: -36 },
   americana: { x: -18, y: -16, rot: 32 },
   rnc: { x: -30, y: 6, rot: -20 },

@@ -12,6 +12,7 @@ import {
   MAT_TURNS,
   MAT_WORD_IDS,
   MAX_CARDS,
+  MOVE_LABEL,
   RITMO_RUN,
   START_RATES,
   UNLOCK_ORDER,
@@ -29,6 +30,7 @@ import {
   feintMove,
   fightMoves,
   gradeTap,
+  isEscape,
   isSubmission,
   isTakedown,
   matEffect,
@@ -99,8 +101,12 @@ describe('chains', () => {
     expect(baseChain(at('knee_on_belly', 'you'), 'you', 'passar')).toEqual(['empurra', 'gira']);
     expect(baseChain(at('side_control', 'you'), 'you', 'knee_on_belly')).toEqual(['levanta', 'empurra']);
     expect(baseChain(at('mount', 'you'), 'you', 'back_take')).toEqual(['puxa', 'gira', 'pega']);
-    expect(baseChain(at('side_control', 'them'), 'you', 'frame')).toEqual(['empurra', 'gira']);
-    expect(baseChain(at('back_control', 'them'), 'you', 'escape_back')).toEqual(['empurra', 'gira', 'levanta']);
+    // the stripe escapes are shorter than everyone's Virar: Recuperar one command, Sair two
+    expect(baseChain(at('side_control', 'them'), 'you', 'frame')).toEqual(['empurra']);
+    expect(baseChain(at('back_control', 'them'), 'you', 'escape_back')).toEqual(['empurra', 'gira']);
+    expect(baseChain(at('side_control', 'them'), 'you', 'virar')).toEqual(['empurra', 'gira']);
+    expect(baseChain(at('mount', 'them'), 'you', 'virar')).toEqual(['empurra', 'gira']);
+    expect(baseChain(at('back_control', 'them'), 'you', 'virar')).toEqual(['empurra', 'gira', 'levanta']);
     expect(baseChain(at('mount', 'you'), 'you', 'americana')).toEqual(['pega', 'empurra', 'aperta']);
     expect(baseChain(at('mount', 'you'), 'you', 'armbar')).toEqual(['pega', 'gira', 'levanta', 'aperta']);
     expect(baseChain(at('back_control', 'you'), 'you', 'rnc')).toEqual(['pega', 'gira', 'aperta']);
@@ -582,13 +588,56 @@ describe('cross-rank cap', () => {
   it('same belt: each fighter is limited to the moves they personally have (and what their grips open)', () => {
     expect(fightMoves({ belt: 'azul', unlocked: ['collar_tie', 'sleeve_grip'], opponentBelt: 'azul' })).toEqual(['collar_tie', 'sleeve_grip', 'collar_drag', 'sleeve_pull', 'hip_throw']);
     expect(fightMoves({ belt: 'branca', unlocked: ['sleeve_grip'], opponentBelt: 'branca' })).toEqual(['sleeve_grip', 'sleeve_pull']);
-    expect(botMoves('branca', 'branca')).toEqual(withCombos(rankPool('branca')));
-    expect(botMoves('marrom', 'branca')).toEqual(withCombos(rankPool('branca')));
+    // the bot's pool is its belt's, plus Virar (everyone has it, like Segurar)
+    expect(botMoves('branca', 'branca')).toEqual([...withCombos(rankPool('branca')), 'virar']);
+    expect(botMoves('marrom', 'branca')).toEqual([...withCombos(rankPool('branca')), 'virar']);
     // the combos are never stripe awards
     for (const c of COMBOS) expect(UNLOCK_ORDER.some((u) => u.move === c.move)).toBe(false);
   });
 });
 
+describe('Virar: everyone’s way out from under', () => {
+  it('is legal only underneath (side, knee, top, back), for a white belt with no escape lessons, and is never a stripe award', () => {
+    for (const kind of ['side_control', 'knee_on_belly', 'mount', 'back_control'] as const) {
+      expect(matLegalMoves(at(kind, 'them'), 'you', ['collar_tie'])).toContain('virar');
+      expect(matLegalMoves(at(kind, 'you'), 'you', ['collar_tie'])).not.toContain('virar');
+    }
+    expect(matLegalMoves(newMat(), 'you', ['collar_tie'])).not.toContain('virar');
+    expect(matLegalMoves(at('closed_guard', 'them'), 'you', ['collar_tie'])).not.toContain('virar');
+    expect(UNLOCK_ORDER.some((u) => u.move === 'virar')).toBe(false);
+  });
+
+  it('lands in the guard with the escaper underneath, scores nothing and keeps the exchange (no farming the pass)', () => {
+    const st: MatState = { ...at('mount', 'them'), actor: 'you', scored: ['them:mount'] };
+    const r = resolveMat(st, 'you', 'virar', true);
+    expect(r.state.position).toEqual({ kind: 'closed_guard', top: 'them' });
+    expect(r.points).toBe(0);
+    expect(r.state.scored).toEqual(['them:mount']);
+    // the stripe escape is the full recovery: it starts the exchange again
+    expect(resolveMat(st, 'you', 'frame', true).state.scored).toEqual([]);
+  });
+
+  it('is stopped by Trava!, not by the guard brace, and the card says what it does without a position name', () => {
+    const st = at('side_control', 'them');
+    expect(defenseOf(st, 'you', 'virar')).toBe('trava');
+    expect(braceBlocks({ ...st, brace: { you: null, them: 'recuperar' } }, 'you', 'virar')).toBe(false);
+    expect(isEscape(st, 'you', 'virar')).toBe(true);
+    expect(isEscape(at('closed_guard', 'them'), 'you', 'frame')).toBe(false);
+    const card = offerCards({ ...st, actor: 'you' }, ['collar_tie', 'double_leg', 'passar', 'armbar'], null).find((c) => c.move === 'virar');
+    expect(card).toMatchObject({ kind: 'defense', chain: 2, does: { pt: 'Sai de baixo', en: 'Gets out from under' } });
+    expect(MOVE_LABEL.virar).toEqual({ pt: 'Virar', en: 'Turn over' });
+  });
+
+  it('the partner escapes when it is under, and still prefers a sweep once it is in the guard', () => {
+    const ctx = { allowed: botMoves('branca', 'branca') };
+    for (const kind of ['side_control', 'mount'] as const) {
+      const st: MatState = { ...at(kind, 'you'), actor: 'them' };
+      expect(planBot(st, ctx).move).toBe('virar');
+    }
+    const guard: MatState = { ...at('closed_guard', 'you'), actor: 'them' };
+    expect(planBot(guard, ctx).move).toBe('hook_sweep');
+  });
+});
 
 describe('mat diary words', () => {
   const HEADS = [

@@ -808,7 +808,8 @@ export class BoutStage {
       }
       case 'land': {
         const d = this.clip;
-        if (d?.driven && d.def.move === c.move) {
+        // the clip the move drives (Virar plays the stripe escapes' frames)
+        if (d?.driven && d.def.move === (clipDef(c.move, c.from)?.move ?? c.move)) {
           d.driven = false;
           d.autoMs = 0;
           d.hit = c.hit;
