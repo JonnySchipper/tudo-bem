@@ -16,6 +16,7 @@ import './styles/escola.css';
 import './styles/feiraGames.css';
 import './styles/feiraCaldo.css';
 import './styles/townMap.css';
+import './styles/onboarding.css';
 import './styles/feiraStall.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
@@ -104,8 +105,13 @@ import { syncGrants } from './ui/grants';
 import { askElevator, bindAcademy, onAcademyDirectory, openAcademyBoard, syncAcademyFloor } from './ui/academy';
 import { openLeaderboards } from './ui/leaderboards';
 import { askPadariaDoor, bindPadariaOwn, chooseBakery, onPadariaDoor, openHouseCounter, openPadariaBook, syncPadariaFloor, welcomeOwner } from './ui/padariaOwn';
-import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia } from './ui/airportTutorial';
+import { airportGuide, inAirport, markAirportStep, mountAirportTutorial, openAgente, openCelia, showAirportNext } from './ui/airportTutorial';
 import { kitnetGuideRunning, kitnetWorldGuide, mountKitnetGuide, startKitnetGuide } from './ui/kitnetGuide';
+import { desembGuide, inDesembarque, markDesembStep, mountDesembTutorial, resetDesembTutorial } from './ui/desembarqueTutorial';
+import { firstRoom } from './ui/desembarqueLogic';
+import { thanksFor } from './ui/airportTutorialLogic';
+import { installHowToPlay } from './ui/howToPlay';
+import { doorTagsFor, showRoomIntro } from './ui/wayfinding';
 import { flyHeardWord } from './ui/heardWord';
 import { talkIdleOpen } from './ui/talkIdle';
 import { cameraFrameAt, captureFrame, celebrateWord, celebrateWords, dropPendingPrint, setWordGate, showPhoto, shutter, shutterJam, syncCameraBanner, syncCameraFrame } from './ui/diaryPanel';
@@ -308,8 +314,29 @@ function vendorOffDuty(npc: NpcId): boolean {
   return vendorTalkMode({ room: game.room?.room, activity: game.avatars.get(`npc-${npc}`)?.pub.activity }, clock.minutes()) === 'off_duty';
 }
 
+/** The arrivals hall's flight attendant, after her welcome (the first word): where you are and where the door is. needs_br: true */
+function openComissaria() {
+  const line = { pt: 'Aqui é o desembarque. Siga para o aeroporto pela porta de vidro.', en: 'This is arrivals. Go on to the airport through the glass door.' };
+  speak(line.pt, { speaker: 'comissaria' });
+  showDialogueBox({
+    key: 'talk-comissaria',
+    npcId: 'comissaria',
+    speaker: 'Comissária Lia',
+    role: 'Comissária de bordo',
+    expression: 'feliz',
+    line,
+    chips: [thanksFor(game.profile?.pronoun)],
+    onChip: () => {
+      closeDialogue();
+      npcSay('comissaria', { pt: 'Boa estadia!', en: 'Enjoy your stay!' });
+    },
+    onClose: closeDialogue,
+  });
+}
+
 function talkTo(npc: NpcDef['id']) {
   closeDialogue();
+  if (npc === 'comissaria') markDesembStep('falar');
   // the player chose to talk: an unheard idle line is this conversation's first line in the box (passing chatter stays a bubble and teaches nothing).
   // A vendor's idle lines are stall calls, so off duty they open with their own small talk instead.
   const speaker = game.liveNpcs(now()).find((n) => n.id === npc);
@@ -395,6 +422,8 @@ function openTalk(npc: NpcDef['id'], juliaMet = false) {
     openCelia(staffHooks);
   } else if (npc === 'agente') {
     openAgente(staffHooks);
+  } else if (npc === 'comissaria') {
+    openComissaria();
   } else {
     // Nanda, Júlia and Professora Bia (the live NPC you clicked): a short greeting in the dialogue box (Nanda offers "Ver chapéus", Júlia her help)
     openNpcTalk(npc, {
@@ -410,6 +439,7 @@ function openTalk(npc: NpcDef['id'], juliaMet = false) {
 /** Open the sign's card and tell the server (`read`: the words count as seen, a recado's `ler` step advances). */
 function readHotspot(hs: HotspotDef) {
   closeDialogue();
+  if (hs.room === 'desembarque') markDesembStep('placa');
   openHotspotCard(hs, { onSave: (cards) => openCaderno(cards[0]?.split('.')[1], cards) });
   net.send({ t: 'read', hotspotId: hs.id });
 }
@@ -641,6 +671,16 @@ function updateGuides() {
     const first = t.carlos && practiceNeeded(localStorage.getItem(PRACTICE_KEY), !!t.meveum);
     return g ? { ...g, en, kind: 'play' as const, first } : null;
   };
+  if (r.room === 'desembarque') {
+    // the arrivals hall's guided tutorial: one arrow, on whatever the current step needs (none on a HUD step: that button pulses)
+    const g = desembGuide();
+    if (g?.kind === 'tile') add({ x: g.x ?? 0, y: g.y ?? 0, lift: g.lift, label: g.label });
+    else if (g?.kind === 'hotspot') {
+      const hs = hotspotById(g.id);
+      if (hs) add({ x: hs.x + ((hs.w ?? 1) - 1) / 2, y: hs.y + (hs.h ?? 1) - 1, lift: g.lift, label: g.label });
+    } else if (g) add(guideAt(g.kind, g.id, g.lift, g.label));
+    return;
+  }
   if (r.room === 'aeroporto') {
     // the airport tutorial: one arrow, on whatever the current step needs
     const g = airportGuide();
@@ -800,9 +840,10 @@ net.on((m: ServerMsg) => {
       onboarding = null;
       if (!started) startGame();
       const last = sessionStorage.getItem(LAST_ROOM_KEY);
-      const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'rua_leste' || last === 'feira' || last === 'escola' || last === 'aeroporto';
-      // a new arrival lands at the airport (the tutorial); everybody else comes back where they were, or to the praça
-      joinRoom(m.profile.arrivalIntroDone === false ? 'aeroporto' : remembered ? last : 'praca');
+      const remembered = last === 'padaria' || last === 'kitnet' || last === 'academia' || last === 'rua' || last === 'rua_leste' || last === 'feira' || last === 'escola' || last === 'aeroporto' || last === 'desembarque';
+      // a new arrival starts in the arrivals hall (the guided tutorial), then the airport until Célia's hand-over; everybody else comes
+      // back where they were, or to the praça
+      joinRoom(firstRoom(m.profile) ?? (remembered ? last : 'praca'));
       syncGrants((id) => net.send({ t: 'grant', id }));
       game.emit('profile');
       break;
@@ -841,6 +882,8 @@ net.on((m: ServerMsg) => {
       const keepMg = !!correriaUi?.open && game.room?.room === m.room;
       // off the airport bus: the tutorial's last step is done, and the Vila says hello
       const offTheBus = game.room?.room === 'aeroporto' && m.room === 'rua_leste';
+      // out of the arrivals hall's doors: its last step, and the airport's "what next"
+      const outOfHall = game.room?.room === 'desembarque' && m.room === 'aeroporto';
       // a new room state (a join, a reconnect) ends any bout: the server dropped it too
       boutUi?.destroy();
       boutUi = null;
@@ -869,6 +912,11 @@ net.on((m: ServerMsg) => {
       updateGuides();
       game.emit('room');
       game.emit('decor');
+      if (outOfHall) {
+        markDesembStep('porta');
+        net.send({ t: 'arrival', action: 'landed' });
+        if (game.profile?.arrivalIntroDone === false) setTimeout(showAirportNext, 700);
+      } else showRoomIntro(m.room, doorTagsFor(ROOMS[m.room]), game.profile?.id);
       if (offTheBus) {
         markAirportStep('onibus');
         setTimeout(() => toast('info', 'Bem-vindo à Vila Ipê! A Júlia te espera na praça: siga a Rua pra oeste.', 'Welcome to Vila Ipê! Júlia is waiting in the square: follow the street west.'), 900);
@@ -951,6 +999,7 @@ net.on((m: ServerMsg) => {
       a.sitOnArrive = m.sit;
       a.pub.sitting = false;
       game.emit('avatars');
+      if (m.id === game.profile?.id) markDesembStep('andar');
       break;
     }
     case 'avatarUpdated': {
@@ -970,12 +1019,14 @@ net.on((m: ServerMsg) => {
     case 'emote': {
       const a = game.avatars.get(m.id);
       if (a) a.emote = { kind: m.kind, t0: now() / 1000 };
+      if (m.id === game.profile?.id) markDesembStep('chat');
       break;
     }
     case 'chat': {
       const a = game.avatars.get(m.id);
       // Live Ops lock: CPUs never chat — guard against server bugs/injection
       if (a && !a.pub.cpu) a.bubbles.push({ text: m.text, gloss: game.englishHelp ? m.gloss : null, at: now() });
+      if (m.id === game.profile?.id) markDesembStep('chat');
       break;
     }
     case 'notice':
@@ -1090,7 +1141,7 @@ net.on((m: ServerMsg) => {
     case 'tutorial': {
       const s = TUTORIAL_STEPS.find((x) => x.id === m.step);
       // in the airport the checklist ticks these itself (in its own words: "Ande pelo terminal", not "pela praça")
-      const ticked = inAirport() && (m.step === 'andar' || m.step === 'sentar' || m.step === 'acenar');
+      const ticked = (inAirport() || inDesembarque()) && (m.step === 'andar' || m.step === 'sentar' || m.step === 'acenar');
       if (s && !ticked) toast('reward', `✓ ${s.pt}`, s.en);
       updateGuides();
       break;
@@ -1127,7 +1178,10 @@ function startGame() {
       game.carryIntent = { action, at: performance.now() };
       net.send({ t: 'carry', action });
     },
-    openMap: () => openMap((room) => joinRoom(room)),
+    openMap: () => {
+      markDesembStep('mapa');
+      openMap((room) => joinRoom(room));
+    },
     openCredits,
     openSupport: () => {
       void openSupport({
@@ -1144,8 +1198,14 @@ function startGame() {
       });
     },
     openCaderno: () => {
-      markAirportStep('diario');
+      markDesembStep('diario');
       openCaderno();
+    },
+    replayTutorial: () => {
+      closeModal();
+      closeDialogue();
+      resetDesembTutorial();
+      joinRoom('desembarque');
     },
     toggleCamera: () => {
       if (!game.profile?.hasCamera) return;
@@ -1203,6 +1263,14 @@ function startGame() {
   });
   mountTracker(openJournal);
   mountAirportTutorial(updateGuides);
+  mountDesembTutorial({
+    onStep: updateGuides,
+    skip: () => {
+      net.send({ t: 'arrival', action: 'landed' });
+      joinRoom('aeroporto');
+    },
+  });
+  installHowToPlay();
   decor = buildDecorPanel({
     buy: (id) => net.send({ t: 'buy', kind: 'furniture', itemId: id }),
     rotate: (uid) => {

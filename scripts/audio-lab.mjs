@@ -11,6 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
+import { findChrome } from './lib/chrome.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CLIENT = path.join(ROOT, 'apps/client');
@@ -18,7 +19,7 @@ const { createServer } = createRequire(path.join(CLIENT, 'package.json'))('vite'
 
 const [mode = 'levels', arg] = process.argv.slice(2);
 
-const exe = ['/opt/pw-browsers/chromium', process.env.CHROMIUM].find((p) => p && fs.existsSync(p));
+const exe = ['/opt/pw-browsers/chromium', process.env.CHROMIUM].find((p) => p && fs.existsSync(p)) ?? findChrome();
 const server = await createServer({ root: CLIENT, configFile: false, logLevel: 'error', server: { port: 5199, strictPort: false } });
 await server.listen();
 const url = server.resolvedUrls.local[0];
@@ -50,7 +51,7 @@ function wav(file, r) {
 }
 
 const BEDS = ['intro', 'radio', 'padaria', 'padariaNight', 'kitnet', 'academia', 'bout', 'feira'];
-const STINGS = ['recado', 'heart', 'coin', 'mission', 'caderno', 'win', 'lose', 'door'];
+const STINGS = ['recado', 'heart', 'coin', 'mission', 'caderno', 'win', 'lose', 'door', 'diario'];
 
 const MOOD_PHRASES = (await server.ssrLoadModule('/src/audio/conductor.ts')).MOOD_PHRASES;
 const bedJob = (kind) => ({ what: 'arr', kind, boost: kind === 'intro' ? 1 : 0 });
@@ -92,7 +93,7 @@ if (mode === 'calibrate') {
     ['feira', { what: 'arr', kind: 'feira', gain: levels.bed('feira') }],
     ['praca-golden', { what: 'phrase', kind: 'bridge', mood: 'golden', gain: levels.phrase('golden') }],
     ['praca-night', { what: 'phrase', kind: 'close', mood: 'night', gain: levels.phrase('night') }],
-    ...['recado', 'mission', 'win', 'lose'].map((k) => [`sting-${k}`, { what: 'sting', kind: k, gain: levels.sting(k) }]),
+    ...['recado', 'mission', 'win', 'lose', 'diario'].map((k) => [`sting-${k}`, { what: 'sting', kind: k, gain: levels.sting(k) }]),
   ];
   const only = process.argv[4];
   for (const [name, job] of out.filter(([n]) => !only || n === only)) {

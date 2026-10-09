@@ -86,9 +86,10 @@ export type ClientMsg =
   | { t: 'heard'; cardIds: string[] }
   /**
    * Finish the arrival: at the airport's information desk Célia hands over the camera, the cartela and Júlia's note, whose words go into the
-   * diary. Once. `replay` (a visit to the airport from the diary's Chegada area): only the note's missing words.
+   * diary. Once. `replay` (a visit to the airport from the diary's Chegada area): only the note's missing words. `landed`: the arrivals hall
+   * (`ROOMS.desembarque`) is done or skipped, so the next login goes to the airport instead.
    */
-  | { t: 'arrival'; action: 'finish' | 'replay' }
+  | { t: 'arrival'; action: 'finish' | 'replay' | 'landed' }
   /**
    * Claim a catch-up grant: a feature that shipped after this player already lived here.
    * The server hands it over only when the profile is still owed it (`owedGrants`).

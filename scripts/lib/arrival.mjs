@@ -6,6 +6,16 @@
 export async function finishArrival(page) {
   await page.waitForFunction(() => window.__tb?.game?.profile && window.__tb.game.room, null, { timeout: 20_000 });
   const needs = await page.evaluate(() => window.__tb.game.profile.arrivalIntroDone === false);
+  // a brand-new account starts in the arrivals hall (the guided tutorial): mark it done and go on to the airport
+  const hall = await page.evaluate(() => window.__tb.game.profile.desembarqueDone === false);
+  if (hall) {
+    await page.waitForFunction(() => window.__tb.game.room?.room === 'desembarque', null, { timeout: 10_000 });
+    await page.evaluate(() => {
+      window.__tb.net.send({ t: 'arrival', action: 'landed' });
+      window.__tb.net.send({ t: 'join', room: 'aeroporto' });
+    });
+    await page.evaluate(() => document.getElementById('aero-next-ok')?.click());
+  }
   if (needs) {
     await page.waitForFunction(() => window.__tb.game.room?.room === 'aeroporto', null, { timeout: 10_000 });
     await page.evaluate(() => window.__tb.net.send({ t: 'arrival', action: 'finish' }));
@@ -15,7 +25,7 @@ export async function finishArrival(page) {
     await dismissWordCards(page);
   }
   const room = await page.evaluate(() => window.__tb.game.room?.room);
-  if (room === 'aeroporto') await page.evaluate(() => window.__tb.net.send({ t: 'join', room: 'praca' }));
+  if (room === 'aeroporto' || room === 'desembarque') await page.evaluate(() => window.__tb.net.send({ t: 'join', room: 'praca' }));
   await page.waitForFunction(() => window.__tb.game.room?.room === 'praca', null, { timeout: 10_000 });
 }
 

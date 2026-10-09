@@ -1,6 +1,6 @@
 /**
- * Every one of the 489 catalog words has a real way to be earned, and the way matches its source: a player who does only what the word's
- * row says (stand near the object and shoot it, read the sign, hear the line, win the game) ends with all 489 in the diary, each earned
+ * Every one of the 490 catalog words has a real way to be earned, and the way matches its source: a player who does only what the word's
+ * row says (stand near the object and shoot it, read the sign, hear the line, win the game) ends with all 490 in the diary, each earned
  * from its own source and none twice.
  */
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -73,7 +73,7 @@ const have = (c: Client) => new Set(c.s.profile!.diary ?? []);
 describe('every catalog word can be earned from its own source', () => {
   beforeEach(() => setGameTime(10));
 
-  it('earns all 489, and each only the way its row says', async () => {
+  it('earns all 490, and each only the way its row says', async () => {
     const world = new World(
       new ProfileStore(null),
       { safety: new JevStubSafety(), gloss: new PhrasebookGloss(), npc: new AuthoredNpcDialogue(), student: new InMemoryStudentModel(), moderation: new MemoryModerationQueue() },
@@ -184,8 +184,8 @@ describe('every catalog word can be earned from its own source', () => {
     for (const w of DIARY_WORDS.filter((x) => x.source === 'game')) expect(have(a).has(w.id), `game: ${w.pt}`).toBe(true);
 
     // all of them, once each
-    expect(a.s.profile!.diary).toHaveLength(489);
-    expect(new Set(a.s.profile!.diary).size).toBe(489);
+    expect(a.s.profile!.diary).toHaveLength(490);
+    expect(new Set(a.s.profile!.diary).size).toBe(490);
     expect(DIARY_WORDS.every((w) => have(a).has(w.id))).toBe(true);
   }, 120_000);
 });
