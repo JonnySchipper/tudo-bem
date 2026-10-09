@@ -251,7 +251,7 @@
   font-family: var(--font-body);
   font-style: italic;
   font-weight: 700;
-  font-size: 9px;
+  font-size: 11px;
   color: var(--ink-soft);
 }
 
@@ -770,7 +770,7 @@ button.hud-burger,
 }
 
 .emotes button .btn-label .en {
-  font-size: 10px;
+  font-size: 11px;
   margin: 0;
 }
 
@@ -915,6 +915,8 @@ body:has(.dbx) .bottombar {
 
   .brand {
     flex: 1 1 0;
+    /* the room mark (32px) never shrinks under the clock at 360–390px */
+    min-width: 32px;
   }
 
   .brand .logo,
@@ -1248,8 +1250,9 @@ body:has(.dbx) .bottombar {
     bottom: 150px;
   }
 
-  /* the airport's tutorial card takes the tracker's corner and most of the width; the Cartela chip would sit on it (it is for the praça) */
-  body.in-aeroporto #cartela-pill {
+  /* the airport and arrivals tutorial cards take the tracker's corner and most of the width; the Cartela chip would sit on them (it is for the praça) */
+  body.in-aeroporto #cartela-pill,
+  body.in-desembarque #cartela-pill {
     display: none;
   }
 }

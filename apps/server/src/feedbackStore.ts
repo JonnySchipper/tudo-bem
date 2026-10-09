@@ -97,6 +97,20 @@ export class FeedbackStore {
     return row;
   }
 
+  /** Drop every note that matches (account deletion). Saves when something went. Returns how many. */
+  removeWhere(match: (row: FeedbackRow) => boolean): number {
+    const before = this.items.length;
+    this.items = this.items.filter((row) => !match(row));
+    const n = before - this.items.length;
+    if (n) this.save();
+    return n;
+  }
+
+  /** Rows that match, oldest first (data export). */
+  filter(match: (row: FeedbackRow) => boolean): FeedbackRow[] {
+    return this.items.filter(match);
+  }
+
   /** Newest first. `since` is an inclusive createdAt floor (ms). */
   list(opts: { limit: number; since?: number } = { limit: 50 }): FeedbackRow[] {
     const since = opts.since ?? 0;

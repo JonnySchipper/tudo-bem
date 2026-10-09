@@ -25,6 +25,12 @@ import {
   isStallHat,
   npcAvatarId,
   ADMIN_KICKED_COPY,
+  BANNED_COPY,
+  BLOCK_MAX,
+  MUTE_MAX_MINUTES,
+  REPORT_RECENT_MS,
+  isReportReason,
+  mutedCopy,
   IDLE_KICK_MS,
   IDLE_WARN_MS,
   WEATHER_KINDS,
@@ -168,10 +174,13 @@ import { FeiraCartStore, memoryFeiraCart } from './feiraCart.js';
 import { CorreriaEngine, CORRERIA_RESUME_MS, type CorreriaRun } from './correria.js';
 import { BoutEngine, type BoutSession } from './bout.js';
 import { CartelaTracker } from './cartela.js';
-import { ADMIN_MONEY_MAX, ADMIN_WRONG_PASSWORD, adminPasswordMatches, readAdminAuthConfig } from './adminAuth.js';
+import { ADMIN_MONEY_MAX, ADMIN_TOO_MANY, ADMIN_WRONG_PASSWORD, AdminLoginGuard, readAdminAuthConfig } from './adminAuth.js';
 import { DevBillingProvider } from './billing/devProvider.js';
 import { publishLayoutPullRequest } from './designGithub.js';
 import { LayoutStore } from './layoutStore.js';
+import { CHAT_LOG_LINES, hasBlocked, moderationRows, ReportLimiter, snapshotLines, type ChatLogLine } from './playerModeration.js';
+import { FriendRequests } from './friendRequests.js';
+import { safeSchedule } from './safeTimer.js';
 
 export interface Services {
   safety: ChatSafetyService;
@@ -216,6 +225,8 @@ export interface WorldOptions {
    * pass `null` to disable admin on this world.
    */
   adminPassword?: string | null;
+  /** Wrong-password throttle for the admin login. app.ts shares one with the HTTP admin checks; omitted = this world's own. */
+  adminGuard?: AdminLoginGuard;
   /** Player academies. Omit for an in-memory store (tests, and any caller that does not persist). */
   academies?: AcademyStore;
   /** Player-owned padarias (Fundar). Omit for in-memory only. */
@@ -241,7 +252,7 @@ export interface AccountLink {
   linkProfile(accountId: string, profileId: string): void;
 }
 
-export type CloseReason = 'replaced' | 'idle' | 'logout' | 'admin';
+export type CloseReason = 'replaced' | 'idle' | 'logout' | 'admin' | 'banned';
 
 interface AvatarState {
   from: Tile;
@@ -267,6 +278,8 @@ export interface Session {
   close: (reason: CloseReason) => void;
   /** Signed-in account (from the session cookie on the WebSocket upgrade). */
   accountId?: string;
+  /** Client IP of the WebSocket upgrade (admin login throttle). Unset in solo mode and tests. */
+  ip?: string;
   lastActiveAt: number;
   idleWarned: boolean;
   profile?: StoredProfile;
@@ -302,6 +315,8 @@ export class Instance {
   readonly npcSeen = new Map<NpcId, string>();
   /** The last few delivered chat lines (oldest first): context for the Jev model. */
   readonly recentChat: { playerId: string; text: string }[] = [];
+  /** A longer, timestamped tail of delivered lines: what a report snapshots (never the reporter's copy). */
+  readonly chatLog: ChatLogLine[] = [];
   constructor(
     readonly id: string,
     readonly def: RoomDef,
@@ -320,7 +335,9 @@ export const MG_RESUME_MS = CORRERIA_RESUME_MS;
 export class World {
   readonly sessions = new Map<string, Session>();
   private instances = new Map<string, Instance>();
-  private incomingFriendReqs = new Map<string, Set<string>>();
+  /** Pending friend requests (persisted on the target's profile). */
+  private readonly friendReqs: FriendRequests;
+  private readonly reportLimiter = new ReportLimiter();
   private readonly cap: number;
   private readonly now: () => number;
   private readonly schedule: (fn: () => void, ms: number) => void;
@@ -333,6 +350,7 @@ export class World {
   private weatherPin: Weather | null = null;
   /** Server-side admin password, or null when the panel is off. */
   private readonly adminPassword: string | null;
+  private readonly adminGuard: AdminLoginGuard;
   /** The neighbours: schedules, positions, walks (pure function of the game clock). */
   private readonly npcs: NpcDirector;
   private npcTicking = false;
@@ -369,9 +387,11 @@ export class World {
     readonly services: Services,
     opts: WorldOptions = {},
   ) {
-    this.cap = Math.max(1, Math.min(DEFAULT_ROOM_CAP, opts.roomCap ?? DEFAULT_ROOM_CAP));
+    this.cap = Math.max(1, Math.min(DEFAULT_ROOM_CAP, Number.isFinite(opts.roomCap) ? opts.roomCap! : DEFAULT_ROOM_CAP));
     this.now = opts.now ?? Date.now;
-    this.schedule = opts.schedule ?? ((fn, ms) => void (setTimeout(fn, ms) as unknown as { unref?: () => void }).unref?.());
+    // guarded: a throw in an NPC tick, walk, bout or Correria clock is logged instead of crashing the world
+    this.schedule = opts.schedule ?? safeSchedule;
+    this.friendReqs = new FriendRequests(store);
     this.ambiance = !!opts.ambiance;
     this.rng = opts.rng ?? Math.random;
     this.testRollHints = opts.testRollHints ?? readEnv('TB_TEST_ROLL') === '1';
@@ -383,6 +403,7 @@ export class World {
       const cfg = readAdminAuthConfig();
       this.adminPassword = cfg.ready && cfg.password ? cfg.password : null;
     }
+    this.adminGuard = opts.adminGuard ?? new AdminLoginGuard();
     this.npcs = new NpcDirector(() => this.clockNow());
     this.accounts = opts.accounts;
     this.academies = opts.academies ?? new AcademyStore(null);
@@ -530,8 +551,8 @@ export class World {
 
   // ---------- connection lifecycle ----------
 
-  connect(id: string, send: (m: ServerMsg) => void, close: (reason: CloseReason) => void, auth: { accountId?: string } = {}): Session {
-    const s: Session = { id, send, close, accountId: auth.accountId, lastActiveAt: this.now(), idleWarned: false, chatTimes: [], lastHintAt: 0, carry: null };
+  connect(id: string, send: (m: ServerMsg) => void, close: (reason: CloseReason) => void, auth: { accountId?: string; ip?: string } = {}): Session {
+    const s: Session = { id, send, close, accountId: auth.accountId, ip: auth.ip, lastActiveAt: this.now(), idleWarned: false, chatTimes: [], lastHintAt: 0, carry: null };
     this.sessions.set(id, s);
     return s;
   }
@@ -544,7 +565,7 @@ export class World {
     this.sessions.delete(s.id);
     if (s.profile) {
       s.profile.lastSeen = this.now();
-      this.store.save();
+      this.store.save(s.profile.id);
       this.notifyFriendsOfPresence(s.profile.id);
     }
   }
@@ -575,11 +596,29 @@ export class World {
         s.send({ t: 'idleWarning', msLeft, ...idleWarningCopy(warnWindow) });
       }
     }
+    this.pruneMemory();
+  }
+
+  /** Drop per-player memory nobody can use any more (stats of players who left, expired Correria parks). */
+  private pruneMemory() {
+    const live = new Set<string>();
+    for (const s of this.sessions.values()) if (s.profile) live.add(s.profile.id);
+    this.services.student.prune?.(live);
+    this.correria.prune();
   }
 
   /** Close every live socket of an account (used on logout). */
   dropAccount(accountId: string) {
     for (const s of [...this.sessions.values()]) if (s.accountId === accountId) this.kick(s, 'logout');
+  }
+
+  /** Account deletion (accountDelete.ts): close its sockets and rebuild the boards that may show its character. */
+  forgetAccount(accountId: string, profileId?: string) {
+    this.dropAccount(accountId);
+    if (profileId) {
+      this.friendReqs.forget(profileId);
+    }
+    this.leaderboards.markDirty();
   }
 
   private kick(s: Session, reason: CloseReason, last?: ServerMsg) {
@@ -628,7 +667,9 @@ export class World {
       case 'chat':
         return this.chat(s, msg.text);
       case 'report':
-        return this.report(s, msg.targetId, msg.text);
+        return this.report(s, msg.targetId, msg.reason);
+      case 'block':
+        return this.block(s, msg.action, msg.targetId);
       case 'portal':
         return this.portal(s, msg.portalId);
       case 'scene':
@@ -851,7 +892,7 @@ export class World {
       createdAt: this.now(),
     };
     this.padarias.add(row);
-    this.store.save();
+    this.store.save(p.id);
     this.pushProfile(s);
     this.broadcastAvatar(s);
     s.send({ t: 'notice', level: 'reward', pt: `${row.name}: porta aberta! Chapéu de padeiro na cabeça.`, en: `${row.name} is open! Baker’s hat on.` });
@@ -876,7 +917,7 @@ export class World {
     p.coins -= check.cost;
     applyPadariaUpgrade(row, kind);
     this.padarias.save();
-    this.store.save();
+    this.store.save(p.id);
     this.pushProfile(s);
     this.pushPadariaFloor(row.id);
     if (kind === 'size2' || kind === 'size3')
@@ -947,10 +988,11 @@ export class World {
   private linkAccount(accountId: string, p: StoredProfile) {
     p.accountId = accountId;
     this.accounts!.linkProfile(accountId, p.id);
-    this.store.save();
+    this.store.save(p.id);
   }
 
   private attachProfile(s: Session, p: StoredProfile) {
+    if (p.banned) return this.kick(s, 'banned', { t: 'kicked', reason: 'banned', ...BANNED_COPY });
     for (const other of this.sessions.values()) {
       if (other !== s && other.profile?.id === p.id) {
         other.send({ t: 'notice', level: 'warn', pt: 'Você entrou em outra aba.', en: 'You signed in from another tab.' });
@@ -974,8 +1016,7 @@ export class World {
     });
     if (p.photos?.length) this.pushPhotos(s);
     this.notifyFriendsOfPresence(p.id);
-    const incoming = this.incomingFriendReqs.get(p.id);
-    if (incoming?.size) this.sendFriends(s);
+    if (this.friendReqs.incoming(p.id).length) this.sendFriends(s);
   }
 
   private createProfile(s: Session, m: Extract<ClientMsg, { t: 'createProfile' }>) {
@@ -1034,13 +1075,13 @@ export class World {
     const p = s.profile!;
     if (p.desembarqueDone !== false) return;
     p.desembarqueDone = true;
-    this.store.save();
+    this.store.save(p.id);
     this.pushProfile(s);
   }
 
   private updateAppearance(s: Session, a: Appearance) {
     s.profile!.appearance = sanitizeAppearance(a);
-    this.store.save();
+    this.store.save(s.profile!.id);
     this.pushProfile(s);
     this.broadcastAvatar(s);
   }
@@ -1065,7 +1106,7 @@ export class World {
     if (!p || typeof id !== 'string' || id.length > 64) return;
     const result = claimGrant(p, id);
     if (!result.ok) return this.pushProfile(s);
-    this.store.save();
+    this.store.save(p.id);
     this.pushProfile(s);
     s.send({ t: 'notice', level: 'info', pt: result.notice.pt, en: result.notice.en });
   }
@@ -1078,7 +1119,7 @@ export class World {
   private reward(s: Session, amount: number, reason: Bilingual) {
     if (amount <= 0 || !s.profile) return;
     s.profile.coins += amount;
-    this.store.save();
+    this.store.save(s.profile.id);
     s.send({ t: 'reward', amount, coins: s.profile.coins, reason });
     this.pushProfile(s);
   }
@@ -1087,7 +1128,7 @@ export class World {
     const p = s.profile!;
     if (p.tutorial[step]) return;
     p.tutorial[step] = true;
-    this.store.save();
+    this.store.save(p.id);
     s.send({ t: 'tutorial', step });
     this.pushProfile(s);
     if (!p.tutorialRewarded && TUTORIAL_STEPS.every((t) => p.tutorial[t.id])) {
@@ -1223,7 +1264,7 @@ export class World {
     const p = s.profile;
     if (!p || inst.def.id !== 'kitnet' || inst.ownerId !== p.id || p.kitnetGiftPaid) return;
     p.kitnetGiftPaid = true;
-    if (p.tutorial.cadeira || p.apartment.length > 0) return this.store.save();
+    if (p.tutorial.cadeira || p.apartment.length > 0) return this.store.save(p.id);
     this.reward(s, ECONOMY.kitnetGift, { pt: 'Presente de boas-vindas pra sua kitnet: compre um móvel!', en: 'A welcome gift for your apartment: go buy a piece of furniture!' });
   }
 
@@ -1328,7 +1369,7 @@ export class World {
       st.best = Math.max(st.best, o.streak);
       st.lastDay = localDay(now - 86_400_000, st.tz);
     }
-    this.store.save();
+    this.store.save(p.id);
     this.pushProfile(s);
     return true;
   }
@@ -1353,14 +1394,14 @@ export class World {
           en: 'Admin is off on this server.',
         });
       }
-      if (!adminPasswordMatches(msg.password, this.adminPassword)) {
+      const keys = AdminLoginGuard.keys({ ip: s.ip, accountId: s.accountId, socket: s.id });
+      const verdict = this.adminGuard.attempt(keys, typeof msg.password === 'string' ? msg.password : '', this.adminPassword, 'ws login');
+      if (verdict !== 'ok') {
         s.admin = false;
-        return s.send({
-          t: 'admin',
-          phase: 'auth',
-          ok: false,
-          ...ADMIN_WRONG_PASSWORD,
-        });
+        s.send({ t: 'admin', phase: 'auth', ok: false, ...(verdict === 'wrong' ? ADMIN_WRONG_PASSWORD : ADMIN_TOO_MANY) });
+        // Repeated failures: drop the socket so guessing needs a reconnect (and the IP / account keys still hold).
+        if (this.adminGuard.blocked(keys)) this.kick(s, 'admin', { t: 'kicked', reason: 'admin', ...ADMIN_TOO_MANY });
+        return;
       }
       s.admin = true;
       s.send({ t: 'admin', phase: 'auth', ok: true });
@@ -1382,6 +1423,11 @@ export class World {
     }
     if (msg.action === 'list') return this.adminList(s);
     if (msg.action === 'kick') return this.adminKick(s, msg.targetId);
+    if (msg.action === 'mute') return this.adminMute(s, msg.targetId, msg.minutes);
+    if (msg.action === 'ban') return this.adminBan(s, msg.targetId, true);
+    if (msg.action === 'unban') return this.adminBan(s, msg.targetId, false);
+    if (msg.action === 'banned') return this.adminBanned(s);
+    if (msg.action === 'moderation') return s.send({ t: 'admin', phase: 'moderation', items: moderationRows(this.services.moderation.recent(1000), 100) });
     if (msg.action === 'money') return this.adminMoney(s, msg.amount);
     if (msg.action === 'clock') {
       const minute = this.setClockMinute(msg.minute);
@@ -1444,7 +1490,7 @@ export class World {
       now: () => this.now(),
       getProfile: (userId) => this.store.get(userId),
       afterChange: (userId) => {
-        this.store.save();
+        this.store.save(userId);
         this.syncEntitlements(userId);
       },
     });
@@ -1461,7 +1507,7 @@ export class World {
     const p = this.store.get(String(targetId ?? ''));
     if (!p) return this.err(s, 'admin', 'Não achei esse perfil.', 'No profile with that id.');
     revokeTestSubscription(p, this.now());
-    this.store.save();
+    this.store.save(p.id);
     this.syncEntitlements(p.id);
     this.adminSubscribers(s);
     s.send({ t: 'notice', level: 'info', pt: 'Assinatura de teste encerrada.', en: 'Test subscription ended.' });
@@ -1578,6 +1624,56 @@ export class World {
     s.send({ t: 'notice', level: 'info', pt: `${name} saiu da Praça.`, en: `${name} left the Praça.` });
   }
 
+  private adminMute(s: Session, targetId: string, minutes: number) {
+    const target = this.store.get(String(targetId ?? ''));
+    if (!target || target.id === s.profile?.id) return this.err(s, 'admin', 'Não achei esse perfil.', 'No profile with that id.');
+    const m = Math.floor(Number(minutes));
+    if (!Number.isFinite(m) || m < 0 || m > MUTE_MAX_MINUTES)
+      return this.err(s, 'admin', `De 0 a ${MUTE_MAX_MINUTES} minutos.`, `0 to ${MUTE_MAX_MINUTES} minutes.`);
+    if (m === 0) delete target.mutedUntil;
+    else target.mutedUntil = this.now() + m * 60_000;
+    this.store.save(target.id);
+    const ts = this.sessionByProfile(target.id);
+    if (ts && m > 0) ts.send({ t: 'notice', level: 'warn', ...mutedCopy(m * 60_000) });
+    s.send({
+      t: 'notice',
+      level: 'info',
+      pt: m ? `${target.name} sem chat por ${m} min.` : `Chat de ${target.name} liberado.`,
+      en: m ? `${target.name} muted for ${m} min.` : `${target.name} unmuted.`,
+    });
+  }
+
+  /** A ban sticks to the profile (so to its account): it is checked every time the profile enters the world. */
+  private adminBan(s: Session, targetId: string, ban: boolean) {
+    const target = this.store.get(String(targetId ?? ''));
+    if (!target || target.id === s.profile?.id) return this.err(s, 'admin', 'Não achei esse perfil.', 'No profile with that id.');
+    if (ban) {
+      target.banned = { at: this.now() };
+      this.store.save(target.id);
+      const ts = this.sessionByProfile(target.id);
+      if (ts) this.kick(ts, 'banned', { t: 'kicked', reason: 'banned', ...BANNED_COPY });
+      this.adminList(s);
+    } else {
+      delete target.banned;
+      this.store.save(target.id);
+    }
+    this.adminBanned(s);
+    s.send({
+      t: 'notice',
+      level: 'info',
+      pt: ban ? `${target.name} foi banido(a).` : `${target.name} pode voltar.`,
+      en: ban ? `${target.name} is banned.` : `${target.name} can come back.`,
+    });
+  }
+
+  private adminBanned(s: Session) {
+    const banned = this.store
+      .all()
+      .filter((p) => p.banned)
+      .map((p) => ({ id: p.id, name: p.name, at: p.banned!.at }));
+    s.send({ t: 'admin', phase: 'banned', banned });
+  }
+
   private adminMoney(s: Session, amount: number) {
     const n = Math.floor(Number(amount));
     if (!Number.isFinite(n) || n < 1 || n > ADMIN_MONEY_MAX) {
@@ -1603,7 +1699,11 @@ export class World {
     for (const inst of this.instances.values()) {
       if (!inst.members.size) continue;
       anyone = true;
-      this.npcSync(inst);
+      try {
+        this.npcSync(inst);
+      } catch (e) {
+        console.error('[world] npc tick failed', inst.id, e);
+      }
     }
     if (anyone) this.schedule(() => this.npcTick(), NPC_TICK_MS);
     else this.npcTicking = false;
@@ -1752,6 +1852,11 @@ export class World {
     for (const member of inst.members.values()) if (member !== except) member.send(m);
   }
 
+  /** Like `broadcast`, but members who blocked `fromId` don't get it (chat lines, emotes). */
+  private broadcastFrom(inst: Instance, fromId: string, m: ServerMsg) {
+    for (const member of inst.members.values()) if (!hasBlocked(member.profile, fromId)) member.send(m);
+  }
+
   private broadcastAvatar(s: Session) {
     if (s.instance) this.broadcast(s.instance, { t: 'avatarUpdated', avatar: this.publicAvatar(s) });
   }
@@ -1818,7 +1923,7 @@ export class World {
 
   private emote(s: Session, kind: EmoteKind) {
     if (!s.instance || !EMOTES.includes(kind)) return;
-    this.broadcast(s.instance, { t: 'emote', id: s.profile!.id, kind });
+    this.broadcastFrom(s.instance, s.profile!.id, { t: 'emote', id: s.profile!.id, kind });
     if (kind !== 'oi') return;
     this.completeStep(s, 'acenar');
     s.instance.crowd?.onWave(this.currentTile(s).tile);
@@ -1833,6 +1938,7 @@ export class World {
     if (!inst || typeof raw !== 'string') return;
     const text = raw.slice(0, MAX_CHAT_LEN);
     const now = this.now();
+    if (p.mutedUntil && p.mutedUntil > now) return s.send({ t: 'notice', level: 'warn', ...mutedCopy(p.mutedUntil - now) });
     s.chatTimes = s.chatTimes.filter((t) => now - t < CHAT_RATE.windowMs);
     if (s.chatTimes.length >= CHAT_RATE.max)
       return s.send({ t: 'notice', level: 'warn', pt: 'Calma! Uma mensagem de cada vez.', en: 'Easy! Too many messages — wait a few seconds.' });
@@ -1846,9 +1952,11 @@ export class World {
     if (verdict.action === 'warn') this.flag(s, 'chat', verdict, text);
     // Delivered verbatim: player chat is never rewritten (CEO-LOCKS §3).
     const { gloss, lang } = await this.services.gloss.gloss(verdict.text);
-    this.broadcast(inst, { t: 'chat', id: p.id, name: p.name, text: verdict.text, gloss, lang, action: verdict.action });
+    this.broadcastFrom(inst, p.id, { t: 'chat', id: p.id, name: p.name, text: verdict.text, gloss, lang, action: verdict.action });
     inst.recentChat.push({ playerId: p.id, text: verdict.text });
     if (inst.recentChat.length > JEV_CONTEXT_LINES) inst.recentChat.shift();
+    inst.chatLog.push({ playerId: p.id, text: verdict.text, at: this.now() });
+    if (inst.chatLog.length > CHAT_LOG_LINES) inst.chatLog.shift();
     if (verdict.action === 'warn' && verdict.note) s.send({ t: 'notice', level: 'warn', pt: verdict.note.pt, en: verdict.note.en });
     this.completeStep(s, 'conversar');
     this.caderno.used(s, verdict.text);
@@ -1890,21 +1998,74 @@ export class World {
     });
   }
 
-  private report(s: Session, targetId: string, text?: string) {
+  private report(s: Session, rawTarget: string, rawReason?: unknown) {
     const p = s.profile!;
+    const targetId = String(rawTarget ?? '').slice(0, 64);
+    const target = targetId && targetId !== p.id ? this.store.get(targetId) : undefined;
+    const now = this.now();
+    // Only someone online now or seen in the last little while: no reports against ids picked out of thin air.
+    if (!target || (!this.sessionByProfile(target.id) && now - (target.lastSeen ?? 0) > REPORT_RECENT_MS))
+      return this.err(s, 'report', 'Não encontramos essa pessoa por aqui.', "We couldn't find that player around here.");
+    const verdict = this.reportLimiter.check(p.id, target.id, now);
+    if (verdict === 'dupe') return s.send({ t: 'notice', level: 'info', pt: 'Você já denunciou essa pessoa. Nossa equipe vai olhar.', en: 'You already reported this player. Our team will look.' });
+    if (verdict !== 'ok') return s.send({ t: 'notice', level: 'warn', pt: 'Muitas denúncias seguidas. Tente de novo mais tarde.', en: 'Too many reports in a row. Try again later.' });
+    this.reportLimiter.record(p.id, target.id, now);
+    const reason = isReportReason(rawReason) ? rawReason : 'outro';
+    // The evidence is what the server delivered in the reporter's room, never text the client sends.
+    const lines = snapshotLines(s.instance?.chatLog ?? [], target.id, now);
     this.services.moderation.push({
       kind: 'report',
       surface: 'profile',
       playerId: p.id,
       playerName: p.name,
       room: s.instance?.id ?? '-',
-      text: String(text ?? '').slice(0, 200),
-      labels: [],
-      targetId: String(targetId).slice(0, 32),
+      text: lines.at(-1) ?? '',
+      labels: [reason],
+      targetId: target.id,
+      targetName: target.name,
+      reason,
+      lines,
       status: 'pending',
-      at: this.now(),
+      at: now,
     });
     s.send({ t: 'notice', level: 'info', pt: 'Obrigado! Nossa equipe vai dar uma olhada.', en: 'Thanks! Our safety team will take a look.' });
+  }
+
+  /** Block / unblock: the blocker stops getting the other player's chat, emotes and friend requests. */
+  private block(s: Session, action: 'block' | 'unblock', rawTarget: string) {
+    const p = s.profile!;
+    const targetId = String(rawTarget ?? '').slice(0, 64);
+    if (!targetId || targetId === p.id) return;
+    const list = (p.blocked ??= []);
+    if (action === 'unblock') {
+      p.blocked = list.filter((id) => id !== targetId);
+      this.store.save(p.id);
+      this.pushProfile(s);
+      return s.send({ t: 'notice', level: 'info', pt: 'Desbloqueado.', en: 'Unblocked.' });
+    }
+    if (action !== 'block') return;
+    const target = this.store.get(targetId);
+    if (!target) return;
+    if (!list.includes(target.id)) {
+      if (list.length >= BLOCK_MAX) return this.err(s, 'block', 'Sua lista de bloqueio está cheia.', 'Your block list is full.');
+      list.push(target.id);
+    }
+    // A block ends the friendship and drops pending requests both ways.
+    this.friendReqs.delete(p.id, target.id);
+    this.friendReqs.delete(target.id, p.id);
+    if (p.friends.includes(target.id) || target.friends.includes(p.id)) {
+      p.friends = p.friends.filter((f) => f !== target.id);
+      target.friends = target.friends.filter((f) => f !== p.id);
+      const ts = this.sessionByProfile(target.id);
+      if (ts) {
+        this.pushProfile(ts);
+        this.sendFriends(ts);
+      }
+    }
+    this.store.save(p.id, target.id);
+    this.pushProfile(s);
+    this.sendFriends(s);
+    s.send({ t: 'notice', level: 'info', pt: `Você bloqueou ${target.name}.`, en: `You blocked ${target.name}.` });
   }
 
   // ---------- Seu Carlos scene ----------
@@ -2008,7 +2169,7 @@ export class World {
         p.daily.pedidoRvGranted[sc.npc] = spDate;
         if (payout > 0) this.reward(s, payout, { pt: 'Café da manhã com o Seu Carlos', en: 'Breakfast with Seu Carlos' });
       }
-      this.store.save();
+      this.store.save(p.id);
     }
     const said = typed ? { pt: typed, en: res.said.pt } : res.said;
     s.send({ t: 'scene', view: res.view, lastScore: res.score, feedback: SCORE_FEEDBACK[res.score], said, payout, dailyBlocked });
@@ -2076,7 +2237,7 @@ export class World {
       }
       p.bubbleStyle = msg.style;
     }
-    this.store.save();
+    this.store.save(p.id);
     this.pushProfile(s);
     this.broadcastAvatar(s);
   }
@@ -2101,7 +2262,7 @@ export class World {
       return this.err(s, 'petName', decision.reason.pt, decision.reason.en);
     }
     p.petNames = { ...(p.petNames ?? {}), [pet]: decision.name };
-    this.store.save();
+    this.store.save(p.id);
     this.pushProfile(s);
     this.broadcastAvatar(s);
   }
@@ -2137,7 +2298,7 @@ export class World {
     const m = this.missionOf(s.profile!);
     if (!m.taken) {
       m.taken = true;
-      this.store.save();
+      this.store.save(s.profile!.id);
     }
     this.pushProfile(s);
   }
@@ -2154,7 +2315,7 @@ export class World {
       m.rewarded = true;
       this.reward(s, MISSION_REWARD, MISSION_COPY.done);
     } else {
-      this.store.save();
+      this.store.save(p.id);
       this.pushProfile(s);
     }
   }
@@ -2177,7 +2338,7 @@ export class World {
       p.coins -= GI_PRICE;
       p.giOwned = true;
       p.bjj = normalizeBjj({ ...(p.bjj ?? {}), belt: 'branca', stripes: 0, wins: p.bjj?.wins ?? 0 });
-      this.store.save();
+      this.store.save(p.id);
       s.send({
         t: 'notice',
         level: 'reward',
@@ -2196,7 +2357,7 @@ export class World {
       if (result === 'coins') return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
       if (result === 'equipped') return this.equipParrotColor(s, itemId);
       const color = parrotColorById(itemId)!;
-      this.store.save();
+      this.store.save(p.id);
       s.send({ t: 'notice', level: 'reward', pt: `${color.pt} no ombro!`, en: `${color.en} on your shoulder!` });
       this.pushProfile(s);
       this.broadcastAvatar(s);
@@ -2210,7 +2371,7 @@ export class World {
       if (p.coins < hat.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet — play “Me vê um…” or talk to Seu Carlos.');
       p.coins -= hat.price;
       p.hats.push(hat.id);
-      this.store.save();
+      this.store.save(p.id);
       s.send({ t: 'notice', level: 'reward', pt: `Nanda: “${hat.pt}? Fica bem em você!”`, en: `Nanda: “${hat.en}? Looks good on you!”` });
       this.pushProfile(s);
       return this.equipHat(s, hat.id);
@@ -2221,7 +2382,7 @@ export class World {
     if (p.coins < item.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
     p.coins -= item.price;
     p.furniture[item.id] = (p.furniture[item.id] ?? 0) + 1;
-    this.store.save();
+    this.store.save(p.id);
     s.send({ t: 'notice', level: 'reward', pt: `Comprou: ${item.pt}`, en: `Bought: ${item.en}` });
     this.pushProfile(s);
   }
@@ -2230,7 +2391,7 @@ export class World {
     const p = s.profile!;
     if (hatId !== null && !p.hats.includes(hatId)) return;
     p.hat = hatId;
-    this.store.save();
+    this.store.save(p.id);
     this.pushProfile(s);
     this.broadcastAvatar(s);
     if (hatId) this.completeStep(s, 'chapeu');
@@ -2250,7 +2411,7 @@ export class World {
     if (p.coins < snack.price) return this.err(s, 'coins', 'Faltam reais virtuais!', 'Not enough RV coins yet.');
     p.coins -= snack.price;
     s.carry = snack.id;
-    this.store.save();
+    this.store.save(p.id);
     // the water cooler gives, it does not sell
     if (snack.price === 0) s.send({ t: 'notice', level: 'info', pt: `Pegou: ${snack.pt}`, en: `Picked up: ${snack.en}` });
     else s.send({ t: 'notice', level: 'reward', pt: `Comprou: ${snack.pt}`, en: `Bought: ${snack.en}` });
@@ -2291,7 +2452,7 @@ export class World {
           os.send({ t: 'notice', level: 'reward', pt: `${p.name} comprou ${card?.form ?? itemId} na ${owned.name}: +${price} RV`, en: `${p.name} bought ${card?.gloss_en ?? itemId} at ${owned.name}: +${price} RV` });
         }
       }
-      this.store.save();
+      this.store.save(...(owner ? [p.id, owner.id] : [p.id]));
       s.send({ t: 'notice', level: 'reward', pt: `Comprou: ${card?.form ?? itemId}`, en: `Bought: ${card?.gloss_en ?? itemId}` });
       this.pushProfile(s);
       this.broadcastAvatar(s);
@@ -2316,7 +2477,7 @@ export class World {
     // ordering at the counter is talking to the baker (friendship, `falar` steps), as the breakfast scene used to be
     this.recados.onEvent(s, { kind: 'talked', npc: baker.id });
     this.recados.onEvent(s, { kind: 'ordered', npc: 'carlos', items: [{ itemId, qty: 1 }] });
-    this.store.save();
+    this.store.save(p.id);
     const item = itemById(itemId);
     s.send({ t: 'notice', level: 'reward', pt: `Comprou: ${item?.name.pt ?? itemId}`, en: `Bought: ${item?.name.en ?? itemId}` });
     this.pushProfile(s);
@@ -2358,7 +2519,7 @@ export class World {
     p.parrotOwned = true;
     p.parrotColor = colorId;
     p.parrotEquipped = true;
-    this.store.save();
+    this.store.save(p.id);
     this.pushProfile(s);
     this.broadcastAvatar(s);
   }
@@ -2394,7 +2555,7 @@ export class World {
       if (card) s.send({ t: 'parrotHint', word: { pt: card.form, en: card.gloss_en } });
       return;
     }
-    this.store.save();
+    this.store.save(p.id);
     this.pushProfile(s);
     this.broadcastAvatar(s);
   }
@@ -2431,7 +2592,7 @@ export class World {
       const [f] = p.apartment.splice(idx, 1);
       p.furniture[f.itemId] = (p.furniture[f.itemId] ?? 0) + 1;
     }
-    this.store.save();
+    this.store.save(p.id);
     this.pushProfile(s);
     this.broadcast(inst, { t: 'furnitureState', furniture: p.apartment });
   }
@@ -2458,22 +2619,22 @@ export class World {
     if (action === 'request') {
       if (p.friends.includes(target.id)) return this.err(s, 'friend', 'Vocês já são amigos!', 'You’re already friends!');
       // A crossed request is an accept.
-      if (this.incomingFriendReqs.get(p.id)?.has(target.id)) return this.friend(s, 'accept', target.id);
-      let set = this.incomingFriendReqs.get(target.id);
-      if (!set) this.incomingFriendReqs.set(target.id, (set = new Set()));
-      set.add(p.id);
+      if (this.friendReqs.has(p.id, target.id)) return this.friend(s, 'accept', target.id);
+      if (hasBlocked(p, target.id)) return this.err(s, 'friend', 'Desbloqueie essa pessoa primeiro.', 'Unblock this player first.');
+      // Blocked by the target: it looks sent, but nothing reaches them.
+      if (hasBlocked(target, p.id)) return s.send({ t: 'notice', level: 'info', pt: `Pedido de amizade enviado para ${target.name}.`, en: `Friend request sent to ${target.name}.` });
+      this.friendReqs.add(target.id, p.id);
       const ts = this.sessionByProfile(target.id);
       ts?.send({ t: 'friendRequest', fromId: p.id, fromName: p.name });
       if (ts) this.sendFriends(ts);
       return s.send({ t: 'notice', level: 'info', pt: `Pedido de amizade enviado para ${target.name}.`, en: `Friend request sent to ${target.name}.` });
     }
     if (action === 'accept') {
-      const set = this.incomingFriendReqs.get(p.id);
-      if (!set?.has(target.id)) return;
-      set.delete(target.id);
+      if (!this.friendReqs.has(p.id, target.id)) return;
+      this.friendReqs.delete(p.id, target.id);
       if (!p.friends.includes(target.id)) p.friends.push(target.id);
       if (!target.friends.includes(p.id)) target.friends.push(p.id);
-      this.store.save();
+      this.store.save(p.id, target.id);
       const ts = this.sessionByProfile(target.id);
       ts?.send({ t: 'notice', level: 'reward', pt: `${p.name} aceitou sua amizade!`, en: `${p.name} accepted your friend request!` });
       if (ts) {
@@ -2481,11 +2642,11 @@ export class World {
         this.sendFriends(ts);
       }
     } else if (action === 'decline') {
-      this.incomingFriendReqs.get(p.id)?.delete(target.id);
+      this.friendReqs.delete(p.id, target.id);
     } else {
       p.friends = p.friends.filter((f) => f !== target.id);
       target.friends = target.friends.filter((f) => f !== p.id);
-      this.store.save();
+      this.store.save(p.id, target.id);
       const ts = this.sessionByProfile(target.id);
       if (ts) {
         this.pushProfile(ts);
@@ -2513,11 +2674,13 @@ export class World {
           nameplate: f.nameplate,
         };
       });
-    const incoming = [...(this.incomingFriendReqs.get(p.id) ?? [])]
+    const incoming = this.friendReqs
+      .incoming(p.id)
       .map((id) => this.store.get(id))
       .filter((f): f is StoredProfile => !!f)
       .map((f) => ({ id: f.id, name: f.name }));
-    s.send({ t: 'friends', friends, incoming });
+    const blocked = (p.blocked ?? []).map((id) => ({ id, name: this.store.get(id)?.name ?? '?' }));
+    s.send({ t: 'friends', friends, incoming, blocked });
   }
 
   private notifyFriendsOfPresence(profileId: string) {

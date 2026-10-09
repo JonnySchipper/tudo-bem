@@ -65,7 +65,7 @@ import { game, type ClientAvatar, type PendingAction } from './state';
 import { Net, wsUrl, type NetLike } from './net';
 import { clock, parseTimeOfDay } from './gameClock';
 import { IdleTalk } from './idleTalk';
-import { LocalNet } from './localNet';
+import { CRASH_COPY, installCrashHandlers, showReloadScreen } from './ui/crash';
 import { initPixelArt } from './ui/pixelArt';
 import type { Guide, Hit, WorldView } from './render/view';
 import type { TapCue } from './render/pixel/tapMark';
@@ -137,6 +137,9 @@ import { installViewport } from './ui/viewport';
 import { arrowForKey, stepForHeld, stepTarget, type Arrow } from './ui/keys';
 import { installUiArt } from './art/ui';
 
+/** Static deploys (no WebSocket server) run the World in-page. `?solo` forces it anywhere. */
+const SOLO = import.meta.env.VITE_LOCAL_WORLD === '1' || new URLSearchParams(location.search).has('solo');
+installCrashHandlers({ report: !import.meta.env.DEV && !SOLO });
 installUiArt();
 /** The pixel manifest feeds the DOM art (icons, portraits, ui kit) in both views. A failed load leaves the old chrome and no icons. */
 const pixelArtReady = initPixelArt();
@@ -156,10 +159,21 @@ const canvas = document.getElementById('world') as HTMLCanvasElement;
 // The pixel view (top-down, Phaser) is the only world view. The isometric renderer was deleted in Phase 5; `?view=iso` is ignored.
 if (new URLSearchParams(location.search).get('view') === 'iso') console.info('[view] the isometric view was removed; drawing the pixel view');
 document.body.classList.add('view-pixel');
-const renderer: WorldView = new (await import('./render/pixel/PixelView')).PixelView(canvas);
-/** Static deploys (no WebSocket server) run the World in-page. `?solo` forces it anywhere. */
-const SOLO = import.meta.env.VITE_LOCAL_WORLD === '1' || new URLSearchParams(location.search).has('solo');
-const net: NetLike = SOLO ? new LocalNet() : new Net(wsUrl());
+// The title screen goes up now; the Phaser chunk (~1.2 MB) and, in solo, the in-page World download behind it.
+const pixelViewChunk = import('./render/pixel/PixelView');
+const localNetChunk = SOLO ? import('./localNet') : null;
+const introGate = passIntroGate();
+let renderer: WorldView;
+let net: NetLike;
+try {
+  renderer = new (await pixelViewChunk).PixelView(canvas);
+  net = localNetChunk ? new (await localNetChunk).LocalNet() : new Net(wsUrl());
+} catch (e) {
+  // a chunk that failed to download (flaky network, a deploy that replaced the hashed files) would leave a blank page
+  console.error('[boot] failed to load the world', e);
+  showReloadScreen(CRASH_COPY.load);
+  throw e;
+}
 game.solo = SOLO;
 
 let hud: ReturnType<typeof buildHud> | null = null;
@@ -806,6 +820,7 @@ net.onStatus = (s) => {
     return;
   }
   reconnectBanner(null);
+  if (s === 'restarting') return overlayMessage('O servidor está reiniciando… · Server restarting…', () => net.retry());
   overlayMessage('Reconectando… · Reconnecting…', () => net.retry());
 };
 
@@ -1127,6 +1142,7 @@ net.on((m: ServerMsg) => {
     case 'friends':
       game.friends = m.friends;
       game.incoming = m.incoming;
+      game.blockedPeople = m.blocked ?? [];
       game.emit('friends');
       break;
     case 'friendRequest':
@@ -1233,6 +1249,7 @@ function startGame() {
         remove: (id) => net.send({ t: 'friend', action: 'remove', targetId: id }),
         hop: (room, instanceId, ownerId) => joinRoom(room, instanceId ?? undefined, ownerId),
         refresh: () => net.send({ t: 'friends' }),
+        unblock: (id) => net.send({ t: 'block', action: 'unblock', targetId: id }),
       }),
     openWardrobe: () => openHatShop('wardrobe', { buy: () => {}, equip: (id) => net.send({ t: 'equipHat', hatId: id }) }),
     toggleDecor: () => {
@@ -1403,7 +1420,8 @@ function handleClickInner(hit: Hit | null) {
       if (a && a.pub.id !== game.room.selfId)
         openProfileCard(a.pub, {
           request: (id) => net.send({ t: 'friend', action: 'request', targetId: id }),
-          report: (id) => net.send({ t: 'report', targetId: id, text: a.bubbles.at(-1)?.text }),
+          report: (id, reason) => net.send({ t: 'report', targetId: id, reason }),
+          block: (id, on) => net.send({ t: 'block', action: on ? 'block' : 'unblock', targetId: id }),
           wave: () => net.send({ t: 'emote', kind: 'oi' }),
         });
       break;
@@ -1745,15 +1763,23 @@ setInterval(() => {
 
 // ---------------------------------------------------------------- boot
 
-async function boot() {
+/** The session check and title screen. Started before the world chunk is awaited, so it touches no module state (boot() copies the result). */
+async function passIntroGate(): Promise<boolean> {
   // A live session skips the title screen, so a refresh drops straight back into the world.
-  if (!SOLO) signedIn = await hasServerSession();
-  if (!signedIn) {
+  let ok = !SOLO && (await hasServerSession());
+  if (!ok) {
     // Multiplayer is account-only, so a tab without a session always gets the sign-in card.
     if (!SOLO) sessionStorage.removeItem(INTRO_PASSED_KEY);
+    document.getElementById('boot-loading')?.remove();
     const entry = await runIntroGate({ guestEntersWorld: SOLO });
-    signedIn = !SOLO && entry.mode === 'auth';
+    ok = !SOLO && entry.mode === 'auth';
   }
+  return ok;
+}
+
+async function boot() {
+  signedIn = await introGate;
+  document.getElementById('boot-loading')?.remove();
   game.music = ambience.enabled;
   // Phaser starts only now (intro closed, or skipped by a live session); it crashed some GPUs when booted under the title blur.
   if ('start' in renderer) (renderer as { start: () => void }).start();

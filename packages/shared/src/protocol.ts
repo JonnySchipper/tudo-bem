@@ -28,6 +28,7 @@ import type { Weather } from './weather.js';
 import type { FeiraBoardRow, FeiraCartAdminGame, FeiraCartMode, FeiraCartSchedule, FeiraGameId, FeiraMedalTally, FeiraOrderOutcome } from './feiraGames.js';
 import type { BoardRow } from './leaderboards.js';
 import type { AdminTestSnapshot } from './adminTestes.js';
+import type { AdminBannedRow, ModerationRow, ReportReason } from './moderation.js';
 
 /** Client → server messages. JSON over a single WebSocket at /ws. */
 export type ClientMsg =
@@ -41,7 +42,10 @@ export type ClientMsg =
   | { t: 'stand' }
   | { t: 'emote'; kind: EmoteKind }
   | { t: 'chat'; text: string }
-  | { t: 'report'; targetId: string; text?: string }
+  /** `text` is ignored: the server snapshots the target's recent lines itself. */
+  | { t: 'report'; targetId: string; reason?: ReportReason; text?: string }
+  /** Hide a player's chat, emotes and friend requests from you (and undo it). Persisted on your profile. */
+  | { t: 'block'; action: 'block' | 'unblock'; targetId: string }
   | { t: 'portal'; portalId: string }
   | { t: 'scene'; action: 'start'; npc: NpcId }
   | { t: 'scene'; action: 'choose'; chip: number }
@@ -134,6 +138,12 @@ export type ClientMsg =
   | { t: 'admin'; action: 'logout' }
   | { t: 'admin'; action: 'list' }
   | { t: 'admin'; action: 'kick'; targetId: string }
+  /** Pause a player's chat for `minutes` (0 lifts it). */
+  | { t: 'admin'; action: 'mute'; targetId: string; minutes: number }
+  | { t: 'admin'; action: 'ban'; targetId: string }
+  | { t: 'admin'; action: 'unban'; targetId: string }
+  | { t: 'admin'; action: 'banned' }
+  | { t: 'admin'; action: 'moderation' }
   | { t: 'admin'; action: 'money'; amount: number }
   | { t: 'admin'; action: 'clock'; minute: number }
   | { t: 'admin'; action: 'weather'; weather: Weather | null }
@@ -546,8 +556,8 @@ export type ServerMsg =
   /** Multiplayer needs an email + password account; this socket has no valid session cookie. */
   | { t: 'authRequired' }
   | { t: 'idleWarning'; msLeft: number; pt: string; en: string }
-  /** Sent right before the server closes the socket (idle = 4001, admin = 4003) to free the seat. */
-  | { t: 'kicked'; reason: 'idle' | 'admin'; pt: string; en: string }
+  /** Sent right before the server closes the socket (idle = 4001, admin = 4003, banned = 4004) to free the seat. */
+  | { t: 'kicked'; reason: 'idle' | 'admin' | 'banned'; pt: string; en: string }
   | { t: 'profile'; profile: PrivateProfile }
   | RoomStateMsg
   /** Live sky sync: game-clock stamp and optional weather pin (`null` clears the pin). Sent on admin changes and with welcome. */
@@ -556,6 +566,8 @@ export type ServerMsg =
   | { t: 'admin'; phase: 'auth'; ok: false; pt: string; en: string }
   | { t: 'admin'; phase: 'players'; players: AdminPlayerRow[] }
   | { t: 'admin'; phase: 'subscribers'; subscribers: AdminSubscriberRow[] }
+  | { t: 'admin'; phase: 'moderation'; items: ModerationRow[] }
+  | { t: 'admin'; phase: 'banned'; banned: AdminBannedRow[] }
   | { t: 'admin'; phase: 'testes'; state: AdminTestSnapshot }
   | { t: 'admin'; phase: 'disabled'; pt: string; en: string }
   /** Feira cart switches. `featured` is today's playable game, or null when the cart is closed. */
@@ -594,7 +606,8 @@ export type ServerMsg =
   | ConversaServerMsg
   | BoutServerMsg
   | { t: 'furnitureState'; furniture: PlacedFurniture[] }
-  | { t: 'friends'; friends: FriendInfo[]; incoming: { id: string; name: string }[] }
+  /** `blocked`: the people this player blocked, for the unblock list. */
+  | { t: 'friends'; friends: FriendInfo[]; incoming: { id: string; name: string }[]; blocked?: { id: string; name: string }[] }
   | { t: 'friendRequest'; fromId: string; fromName: string }
   | { t: 'parrotHint'; word: Bilingual }
   | { t: 'tutorial'; step: TutorialStep }

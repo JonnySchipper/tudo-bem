@@ -1,5 +1,3 @@
-import manifest from './manifest.json';
-
 export interface TtsLine {
   id: string;
   /** The speaker (a key of content/voices.json): who says it, and so which voice the clip was baked with. */
@@ -15,8 +13,6 @@ export interface TtsManifest {
   lines: TtsLine[];
 }
 
-export const TTS_MANIFEST = manifest as TtsManifest;
-
 /** Match prebaked clips across curly quotes and odd spacing. */
 export function clipKey(text: string): string {
   return text
@@ -29,13 +25,41 @@ export function clipKey(text: string): string {
 
 const byKey = new Map<string, TtsLine>();
 const bySpeaker = new Map<string, TtsLine>();
-for (const line of TTS_MANIFEST.lines) {
-  const key = clipKey(line.text);
-  if (!byKey.has(key)) byKey.set(key, line);
-  bySpeaker.set(`${line.voice}\n${key}`, line);
+let indexed: TtsManifest | null = null;
+let loading: Promise<TtsManifest> | null = null;
+
+function indexManifest(m: TtsManifest): TtsManifest {
+  byKey.clear();
+  bySpeaker.clear();
+  for (const line of m.lines) {
+    const key = clipKey(line.text);
+    if (!byKey.has(key)) byKey.set(key, line);
+    bySpeaker.set(`${line.voice}\n${key}`, line);
+  }
+  indexed = m;
+  return m;
 }
 
-/** The clip for a line: the speaker's own take first, then the same words in any other cast voice (better than a robot). */
+/**
+ * The clip list (~280 KB of JSON) is its own chunk, fetched once on first need so it stays out of the boot bundle. A failed load is
+ * forgotten so the next line retries; until then `findClip` answers null and speech falls back to the system voice.
+ */
+export function loadTtsManifest(): Promise<TtsManifest> {
+  if (indexed) return Promise.resolve(indexed);
+  loading ??= import('./manifest.json').then(
+    (mod) => indexManifest((mod.default ?? mod) as TtsManifest),
+    (e: unknown) => {
+      loading = null;
+      throw e;
+    },
+  );
+  return loading;
+}
+
+/** True once `loadTtsManifest` has finished: `findClip` then answers from the full list. */
+export const ttsManifestReady = (): boolean => indexed !== null;
+
+/** The clip for a line: the speaker's own take first, then the same words in any other cast voice (better than a robot). Null until the manifest has loaded. */
 export function findClip(text: string, speaker?: string): TtsLine | null {
   const key = clipKey(text);
   return (speaker ? bySpeaker.get(`${speaker}\n${key}`) : undefined) ?? byKey.get(key) ?? null;

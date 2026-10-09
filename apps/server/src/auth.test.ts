@@ -94,9 +94,18 @@ describe('AccountStore', () => {
 
     const pw = await store.register('leo@exemplo.com', 'senha-boa-123', false);
     expect(pw.ok).toBe(true);
+    // Someone may have pre-registered this email: linking Google ends the password and every older session.
+    const squatter = store.createSession(pw.ok ? pw.account.id : '');
     const link = await store.loginWithGoogle({ sub: 'google-sub-2', email: 'leo@exemplo.com', emailVerified: true });
-    expect(link).toMatchObject({ ok: true });
+    expect(link).toMatchObject({ ok: true, linked: true });
     if (link.ok) expect(link.account.googleSub).toBe('google-sub-2');
+    expect(store.accountForSession(squatter)).toBeUndefined();
+    expect(await store.login('leo@exemplo.com', 'senha-boa-123')).toMatchObject({ ok: false, code: 'credentials' });
+    // Later Google sign-ins are plain logins: nothing more is revoked.
+    const mine = store.createSession(pw.ok ? pw.account.id : '');
+    const relog = await store.loginWithGoogle({ sub: 'google-sub-2', email: 'leo@exemplo.com', emailVerified: true });
+    expect(relog.ok && relog.linked).toBeFalsy();
+    expect(store.accountForSession(mine)?.email).toBe('leo@exemplo.com');
 
     if (pw.ok) {
       pw.account.googleSub = 'other-sub';
@@ -126,7 +135,51 @@ describe('AccountStore', () => {
   });
 });
 
+describe('password change, sign-out everywhere, removal', () => {
+  it('changes the password with the current one and keeps only the asking session', async () => {
+    const store = new AccountStore(null, { scrypt: FAST });
+    const r = await store.register('rui@exemplo.com', 'velha-senha-1', false);
+    if (!r.ok) throw new Error('register failed');
+    const here = store.createSession(r.account.id);
+    const there = store.createSession(r.account.id);
+    expect(await store.changePassword(r.account.id, 'errada-senha', 'nova-senha-22', here)).toMatchObject({ ok: false, code: 'credentials' });
+    expect(await store.changePassword(r.account.id, 'velha-senha-1', 'curta', here)).toMatchObject({ ok: false, code: 'password' });
+    expect(store.accountForSession(there)).toBeTruthy();
+    expect(await store.changePassword(r.account.id, 'velha-senha-1', 'nova-senha-22', here)).toMatchObject({ ok: true });
+    expect(store.accountForSession(here)?.id).toBe(r.account.id);
+    expect(store.accountForSession(there)).toBeUndefined();
+    expect(await store.login('rui@exemplo.com', 'velha-senha-1')).toMatchObject({ ok: false });
+    expect(await store.login('rui@exemplo.com', 'nova-senha-22')).toMatchObject({ ok: true });
+
+    store.createSession(r.account.id);
+    expect(store.revokeAllSessions(r.account.id)).toBe(2);
+    expect(store.accountForSession(here)).toBeUndefined();
+  });
+
+  it('removes an account, its email and its sessions', async () => {
+    const store = new AccountStore(null, { scrypt: FAST });
+    const r = await store.register('sai@exemplo.com', 'senha-boa-123', false);
+    if (!r.ok) throw new Error('register failed');
+    const c = store.createSession(r.account.id);
+    expect(store.removeAccount(r.account.id)).toBe(true);
+    expect(store.get(r.account.id)).toBeUndefined();
+    expect(store.byEmailGet('sai@exemplo.com')).toBeUndefined();
+    expect(store.accountForSession(c)).toBeUndefined();
+    // The email is free again.
+    expect(await store.register('sai@exemplo.com', 'senha-boa-123', false)).toMatchObject({ ok: true });
+  });
+});
+
 describe('helpers', () => {
+  it('take() reserves a slot up front and release() gives it back', () => {
+    const lim = new AttemptLimiter(2, 1000, () => 0);
+    expect(lim.take('k')).toBe(true);
+    expect(lim.take('k')).toBe(true);
+    expect(lim.take('k')).toBe(false);
+    lim.release('k');
+    expect(lim.take('k')).toBe(true);
+  });
+
   it('limits repeated failures in a sliding window', () => {
     let t = 0;
     const lim = new AttemptLimiter(3, 1000, () => t);

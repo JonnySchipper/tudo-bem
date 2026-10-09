@@ -14,6 +14,7 @@ import type { TapCue } from './tapMark';
 import { HUD_COMPACT_QUERY, T, bufferPixels, canvasToWorld, hudInsets, tileAtWorld, tileCenterToCanvas, worldToCanvas, type Insets } from './coords';
 import { game } from '../../state';
 import { uiScale } from '../../ui/hudLayout';
+import { CRASH_COPY, isWebglError, showReloadScreen, type Bilingual } from '../../ui/crash';
 
 export class PixelView implements WorldView {
   /** `scale` is CSS px per art px (HOWTO §5.4); e2e's clickTile multiplies by it. */
@@ -44,6 +45,8 @@ export class PixelView implements WorldView {
     void this.boot().catch((e) => {
       this.started = false;
       console.error('[pixel] boot failed', e);
+      // without this the player sees an empty world with the tutorial on top (WebGL unsupported, a GPU that refuses the context)
+      showWorldLost(isWebglError(e) ? CRASH_COPY.webgl : CRASH_COPY.load);
     });
   }
 
@@ -261,24 +264,6 @@ export class PixelView implements WorldView {
 }
 
 /** The "recarregar" overlay shown when the world can no longer draw (lost WebGL context, stopped render loop): never a silent blank world. */
-export function showWorldLost(): void {
-  {
-      if (document.getElementById('gl-lost')) return;
-      const box = document.createElement('div');
-      box.id = 'gl-lost';
-      box.setAttribute('role', 'alert');
-      box.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#1d1b26;color:#f5e6d3;font:600 18px/1.4 system-ui,sans-serif;text-align:center;padding:24px';
-      const t = document.createElement('div');
-      t.textContent = 'A imagem do mundo parou. Recarregue a página para voltar à praça.';
-      const en = document.createElement('div');
-      en.style.cssText = 'font-size:14px;opacity:.7;font-weight:500';
-      en.textContent = 'The world view stopped. Reload the page to get back to the praça.';
-      const b = document.createElement('button');
-      b.id = 'gl-lost-reload';
-      b.textContent = 'Recarregar';
-      b.style.cssText = 'padding:10px 22px;border:0;border-radius:6px;background:#d4a017;color:#2a2233;font:700 16px system-ui,sans-serif;cursor:pointer';
-      b.onclick = () => location.reload();
-      box.append(t, en, b);
-      document.body.append(box);
-  }
+export function showWorldLost(copy: Bilingual = CRASH_COPY.lost): void {
+  showReloadScreen(copy);
 }

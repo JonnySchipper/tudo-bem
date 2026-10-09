@@ -19,6 +19,9 @@ import {
   npcDefById,
   tierRule,
   FOUNDER_BADGE,
+  REPORT_REASONS,
+  REPORT_REASON_LABELS,
+  type ReportReason,
   type Bilingual,
   type NpcDef,
   type PublicAvatar,
@@ -512,7 +515,7 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
 
 // ---------------------------------------------------------------- friends
 
-export function openFriends(actions: { request: (id: string) => void; accept: (id: string) => void; decline: (id: string) => void; remove: (id: string) => void; hop: (roomId: RoomId, instanceId: string | null, ownerId?: string) => void; refresh: () => void }) {
+export function openFriends(actions: { request: (id: string) => void; accept: (id: string) => void; decline: (id: string) => void; remove: (id: string) => void; hop: (roomId: RoomId, instanceId: string | null, ownerId?: string) => void; refresh: () => void; unblock: (id: string) => void }) {
   const body = h('div');
   const render = () => {
     const others = [...game.avatars.values()].filter((a) => a.pub.id !== game.room?.selfId && !a.pub.cpu && !a.pub.npc);
@@ -545,6 +548,12 @@ export function openFriends(actions: { request: (id: string) => void; accept: (i
           ),
         ),
       ),
+      game.blockedPeople.length ? h('div', { class: 'section-title' }, 'Bloqueados', en(' Blocked', true)) : '',
+      h(
+        'div',
+        { class: 'list-rows', id: 'blocked-list' },
+        ...game.blockedPeople.map((b) => h('div', { class: 'r' }, h('b', null, b.name), h('span', { class: 'spacer' }), h('button', { class: 'ghost', onclick: () => actions.unblock(b.id) }, bi('Desbloquear', 'Unblock')))),
+      ),
       h('div', { class: 'section-title' }, 'Nesta sala', en(' In this room', true)),
       h(
         'div',
@@ -569,10 +578,23 @@ export function openFriends(actions: { request: (id: string) => void; accept: (i
   const close = openModal('friends', h('div', { class: 'panel' }, closeBtn(() => close()), h('h2', null, 'Amigos'), en('Friends — see who’s online and hop over.'), body), { onClose: off });
 }
 
-export function openProfileCard(a: PublicAvatar, actions: { request: (id: string) => void; report: (id: string) => void; wave: () => void }) {
+export function openProfileCard(
+  a: PublicAvatar,
+  actions: { request: (id: string) => void; report: (id: string, reason: ReportReason) => void; block: (id: string, on: boolean) => void; wave: () => void },
+) {
   const canvas = h('canvas', { style: 'width:168px;height:216px;image-rendering:pixelated' });
   const preview = mountCharPreview(canvas, () => ({ appearance: a.appearance, hat: a.hat, parrot: a.parrot }));
   const isFriend = game.profile?.friends.includes(a.id);
+  const isBlocked = !!game.profile?.blocked?.includes(a.id);
+  // Report asks why first (one tap per reason); the server attaches what this player actually said.
+  const reasons = h(
+    'div',
+    { class: 'row report-reasons', id: 'report-reasons', style: 'display:none;justify-content:center;flex-wrap:wrap;margin-top:8px' },
+    h('div', { style: 'width:100%;text-align:center;font-weight:700' }, 'Por quê?', en(' Why are you reporting?', true)),
+    ...REPORT_REASONS.map((r) =>
+      h('button', { class: 'ghost', 'data-reason': r, onclick: () => (actions.report(a.id, r), close()) }, bi(REPORT_REASON_LABELS[r].pt, REPORT_REASON_LABELS[r].en)),
+    ),
+  );
   const pronoun = { ele: 'ele', ela: 'ela', nome: 'só o nome' }[a.pronoun];
   const close = openModal(
     'profile',
@@ -590,8 +612,10 @@ export function openProfileCard(a: PublicAvatar, actions: { request: (id: string
         { class: 'row', style: 'justify-content:center;margin-top:12px' },
         h('button', { onclick: () => (actions.wave(), close()) }, bi('Acenar', 'Wave')),
         isFriend ? h('span', { class: 'feedback' }, 'Amigo') : h('button', { class: 'green', onclick: () => (actions.request(a.id), close()), id: 'btn-add-friend' }, bi('Adicionar amigo', 'Add friend')),
-        h('button', { class: 'ghost', onclick: () => (actions.report(a.id), close()) }, bi('Denunciar', 'Report')),
+        h('button', { class: 'ghost', id: 'btn-report', onclick: () => (reasons.style.display = reasons.style.display === 'none' ? 'flex' : 'none') }, bi('Denunciar', 'Report')),
+        h('button', { class: 'ghost', id: 'btn-block', onclick: () => (actions.block(a.id, !isBlocked), close()) }, isBlocked ? bi('Desbloquear', 'Unblock') : bi('Bloquear', 'Block')),
       ),
+      reasons,
     ),
     { onClose: () => preview.stop() },
   );
