@@ -5,28 +5,20 @@
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { prepareFeedback, type FeedbackCode } from '@tudobem/shared';
-import { AttemptLimiter, clientIp, originAllowed, sessionCookieOf, type AccountStore } from './auth.js';
+import { originAllowed, sessionCookieOf, type AccountStore } from './auth.js';
 import { adminPasswordMatches, type AdminAuthConfig } from './adminAuth.js';
 import type { FeedbackStore } from './feedbackStore.js';
 import type { ModerationQueue } from './services/interfaces.js';
 
-/** Accepted notes per IP (and per account, when signed in) each hour. */
-export const FEEDBACK_HOURLY_MAX = 8;
-const HOUR_MS = 60 * 60_000;
 const MAX_BODY = 8 * 1024;
 
 export interface FeedbackApiDeps {
   store: FeedbackStore;
   accounts: AccountStore;
-  limiter: AttemptLimiter;
   admin: AdminAuthConfig;
   moderation: ModerationQueue;
   allowedOrigins?: readonly string[];
   now?: () => number;
-}
-
-export function feedbackLimiter(now: () => number = Date.now): AttemptLimiter {
-  return new AttemptLimiter(FEEDBACK_HOURLY_MAX, HOUR_MS, now);
 }
 
 function send(res: ServerResponse, status: number, body: unknown) {
@@ -130,17 +122,10 @@ export async function handleFeedbackApi(req: IncomingMessage, res: ServerRespons
   }
 
   const account = deps.accounts.accountForSession(sessionCookieOf(req));
-  const ip = clientIp(req);
-  const keys = [`ip:${ip}`, ...(account ? [`acct:${account.id}`] : [])];
-  if (keys.some((key) => deps.limiter.blocked(key))) {
-    fail(res, 429, 'rate', 'Calma, já recebemos o seu recado. Tenta de novo mais tarde.', 'We already got your note. Try again later.');
-    return;
-  }
 
   const prepared = prepareFeedback(body);
   if (!prepared.ok) {
     if (prepared.code === 'unsafe' || prepared.queue) {
-      for (const key of keys) deps.limiter.hit(key);
       if (prepared.queue) {
         deps.moderation.push({
           kind: prepared.queue.action,
@@ -171,6 +156,5 @@ export async function handleFeedbackApi(req: IncomingMessage, res: ServerRespons
     profileId: account?.profileId ?? null,
     room: prepared.value.room,
   });
-  for (const key of keys) deps.limiter.hit(key);
   send(res, 201, { ok: true });
 }
