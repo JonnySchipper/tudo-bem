@@ -28,6 +28,7 @@ describe('uncaught error handling', () => {
     expect(isWebglError(new Error('manifest.json: HTTP 404'))).toBe(false);
     expect(ignorable('Script error.')).toBe(true);
     expect(ignorable('ResizeObserver loop completed with undelivered notifications.')).toBe(true);
+    expect(ignorable('NotAllowedError: play() failed because the user didn\'t interact')).toBe(true);
     expect(ignorable('TypeError: x is undefined')).toBe(false);
     expect(describeError(new TypeError('boom'))).toBe('TypeError: boom');
     expect(describeError({ a: 1 })).toBe('{"a":1}');

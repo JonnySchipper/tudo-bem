@@ -78,9 +78,9 @@ export class ErrorGate {
   }
 }
 
-/** Browser-extension noise and cross-origin "Script error." carry nothing we can act on. */
+/** Browser-extension noise, cross-origin "Script error." and media play() refusals (autoplay, an interrupted clip) carry nothing we can act on. */
 export function ignorable(msg: string): boolean {
-  return /^Script error\.?$/i.test(msg) || /ResizeObserver loop/i.test(msg) || /extension:\/\//i.test(msg);
+  return /^Script error\.?$/i.test(msg) || /ResizeObserver loop/i.test(msg) || /extension:\/\//i.test(msg) || /^(AbortError|NotAllowedError)\b/.test(msg);
 }
 
 /** The /api/feedback body for an automatic report (8–500 chars, category bug). */
