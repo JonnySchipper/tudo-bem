@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { FLIGHT_CABIN, collectSpokenLines, flightSpokenLines, letterGreeting } from '@tudobem/shared';
-import { flightScale, irisRadius } from './flightIntroLogic';
+import { FLIGHT_FRESH_MS, flightScale, irisRadius, shouldPlayFlightIntro } from './flightIntroLogic';
 
 describe('the flight-in cutscene', () => {
   it('scales the pixel canvas by whole numbers that fit the art', () => {
@@ -36,5 +36,29 @@ describe('the flight-in cutscene', () => {
   it('greets the player by name in Júlia’s letter', () => {
     expect(letterGreeting('Bia')).toBe('Oi, Bia!');
     expect(letterGreeting('  ')).toBe('Oi!');
+  });
+
+  describe('the welcome trigger', () => {
+    const now = 1_000_000_000_000;
+    const fresh = { createdAt: now - 5_000, desembarqueDone: false };
+    const base = { room: 'desembarque', justCreated: false, seen: false, profile: fresh, now };
+
+    it('plays for an account the creator just made', () => {
+      expect(shouldPlayFlightIntro({ ...base, justCreated: true })).toBe(true);
+    });
+    it('still plays for a fresh account when the page lost track of the creator (reload, reconnect, redirect)', () => {
+      expect(shouldPlayFlightIntro(base)).toBe(true);
+    });
+    it('never replays once seen', () => {
+      expect(shouldPlayFlightIntro({ ...base, justCreated: true, seen: true })).toBe(false);
+    });
+    it('does not play for existing accounts', () => {
+      expect(shouldPlayFlightIntro({ ...base, profile: { createdAt: now - FLIGHT_FRESH_MS - 1, desembarqueDone: false } })).toBe(false);
+      expect(shouldPlayFlightIntro({ ...base, profile: { createdAt: now - 5_000, desembarqueDone: true } })).toBe(false);
+      expect(shouldPlayFlightIntro({ ...base, profile: { desembarqueDone: false } })).toBe(false);
+    });
+    it('only lands in the arrivals hall', () => {
+      expect(shouldPlayFlightIntro({ ...base, room: 'aeroporto', justCreated: true })).toBe(false);
+    });
   });
 });

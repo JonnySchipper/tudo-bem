@@ -115,6 +115,7 @@ import { desembGuide, inDesembarque, markDesembStep, mountDesembTutorial, resetD
 import { firstRoom } from './ui/desembarqueLogic';
 import { designLinkRoom, watchDesignLink } from './ui/designLink';
 import { flightIntroActive, playFlightIntro } from './ui/flightIntro';
+import { shouldPlayFlightIntro } from './ui/flightIntroLogic';
 import { thanksFor } from './ui/airportTutorialLogic';
 import { installHowToPlay } from './ui/howToPlay';
 import { maybeShowVilaGuide, openVilaGuide } from './ui/vilaGuide';
@@ -881,8 +882,10 @@ net.on((m: ServerMsg) => {
       const linked = justCreated || firstRoom(m.profile) ? null : designLinkRoom();
       if (linked) watchDesignLink();
       const room = linked ?? firstRoom(m.profile) ?? (remembered ? last : 'praca');
-      if (justCreated && room === 'desembarque') {
+      const seenKey = `tb_flight_seen_${m.profile.id}`;
+      if (shouldPlayFlightIntro({ room, justCreated, seen: localStorage.getItem(seenKey) === '1', profile: m.profile, now: Date.now() })) {
         // a brand-new account flies in first (the cutscene), and lands in the arrivals hall
+        localStorage.setItem(seenKey, '1');
         renderer.hold?.(true);
         void playFlightIntro({ name: m.profile.name, appearance: m.profile.appearance }).then(() => {
           renderer.hold?.(false);
