@@ -59,6 +59,9 @@ export const LIGHT_PRESETS: Record<string, LightPreset> = {
   'aero/placa_desembarque': { lights: [{ x: 0, y: -34, r: 30, color: '#eaf2ff', squash: 0.55, glow: 0.4, halo: true }] },
   'aero/informacoes': { lights: [{ x: 0, y: -18, r: 32, color: '#ffd690', squash: 0.75, glow: 0.4, halo: true }] },
   'aero/lanchonete': { lights: [{ x: 0, y: -30, r: 42, color: '#ffc46a', squash: 0.75, glow: 0.45, halo: true }] },
+  // the feira's bunting over the aisle (96 px overhead, wire at its top): warm bulbs along the wire, so the aisle between the folded stalls
+  // reads at night like the praça's lit corners, and the puddles under it catch them in the rain
+  'props/bandeirinhas_b': { lights: stringLights(84, -18, 4, '#ffcf7a') },
 };
 
 /** The preset of a sprite key, the generic one when the prop is flagged, else none. */
