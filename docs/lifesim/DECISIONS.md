@@ -1721,7 +1721,6 @@ The credits admin panel has a Testes section for the signed-in admin's own profi
 - **Shots.** `docs/lifesim/shots/admin/`.
 
 
-<<<<<<< HEAD
 ## Mapa: one big illustrated map (#173, 2026-10-08)
 
 The Mapa panel is now one pixel-art map of Vila Ipê. The named room cards and the per-area minimap tabs are gone (`ui/minimap.ts` was removed).
@@ -1733,7 +1732,7 @@ The Mapa panel is now one pixel-art map of Vila Ipê. The named room cards and t
 - **Coming soon.** Praia (sea, sand, a coconut kiosk, parasols, a boat) and Fazenda (barn, fence, animals, fields) sit on the map edges. They are desaturated under a pixel fog, with an "Em breve · Coming soon" ribbon. Tapping one shows a small bilingual teaser and never travels. Copy is marked `needs_br`. The teaser is not spoken, so it needs no TTS.
 - **Screens.** Desktop: the map fits the window at about 3.6× (1280×800). Phone: a full-screen sheet where the map fills the height (about 3.4 px per art pixel, so every place is at least 44 px) and pans sideways, starting centred on you.
 - **Shots.** `docs/lifesim/shots/map-redo/`, from `scripts/map-redo-shots.mjs`. The script also checks that a click on every place joins that room and that Praia and Fazenda never travel.
-=======
+
 ## Feira cart polish (2026-10-08)
 
 One cart look for Tapioca, Pastel and Caldo de cana (#149). Display only: the server still scores every run (500 cap, 8–20 RV, 25 flawless, first 3 runs a day pay), and every game still ships off in the admin registry.
@@ -1743,4 +1742,3 @@ One cart look for Tapioca, Pastel and Caldo de cana (#149). Display only: the se
 - **Stall kit.** `ui/feiraStall.ts` + `styles/feiraStall.css`: a cart roof (FEIRA plate, the game's banner, a scalloped awning), counter props, an order ticket (icon of the order) on each customer, a freguesia meter in the HUD (starts in the middle; each served customer moves it right, each one who leaves moves it left), floating +pts and "Foi embora", and shakes on a torn or stuck flip, a fire, a spill or an overflow. Tapioca's flip meter and Pastel's fry meter show the sweet spot (`feiraMeterWindow`); Caldo pops when a cup is full.
 - **End card.** Stamped with ground gained or lost from served vs. left (`feiraEndTier`: Barraca lotada!, Ganhou freguesia, Freguesia na mesma, Perdeu freguesia). Score, RV, best and place are the server's numbers.
 - **Code.** `packages/shared/src/feiraStall.ts` (+ tests), `apps/client/src/ui/feiraStall.ts`, `apps/client/src/styles/feiraStall.css`, `apps/client/assets-src/custom/v2props.mjs` (`feiraGameCart`), `apps/client/assets-src/custom/feira.mjs` (`vagaSign`).
->>>>>>> 902769208 (Feira cart e2e checks the PASTEL plaque; decisions; Chrome path)
