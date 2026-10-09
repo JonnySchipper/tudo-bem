@@ -43,8 +43,6 @@ export class CorreriaUI {
   private showEn = readShowEnglish();
   private closedFlag = false;
   private ended = false;
-  /** The card on screen is a paid shift, not the lost-slip card. A late lost reply must not cover it. */
-  private paidEnd = false;
   private sayUntil = 0;
   private askSig = '';
   private mirrorSig = '';
@@ -223,9 +221,8 @@ export class CorreriaUI {
   handle(m: MgServerMsg): void {
     if (this.closedFlag) return;
     if (m.phase === 'state') return this.onState(m.snap, m.ev, !!m.resync);
-    // A tap that was already in flight when the shift paid comes back as "perdi a comanda". That reply
-    // must not replace the payout headline the player (and the Phase 0 play path) is looking at.
-    if (m.lost && this.paidEnd) return;
+    // an act still in flight when the shift ended gets "no open shift" back: keep the real end card
+    if (m.lost && this.ended) return;
     this.onEnd(m);
   }
 
@@ -235,7 +232,6 @@ export class CorreriaUI {
     this.snapAt = performance.now();
     if (first || this.ended) {
       this.ended = false;
-      this.paidEnd = false;
       document.body.classList.remove('cr-ended');
       this.root.querySelector('#mg-end')?.remove();
       this.panel.classList.remove('ended');
@@ -541,7 +537,6 @@ export class CorreriaUI {
 
   private onEnd(m: Extract<MgServerMsg, { phase: 'end' }>): void {
     this.ended = true;
-    this.paidEnd = !lost;
     this.closeTeach();
     document.body.classList.add('cr-ended');
     const lost = !!m.lost;
@@ -582,7 +577,6 @@ export class CorreriaUI {
     this.panel.classList.remove('ended');
     this.snap = null;
     this.ended = false;
-    this.paidEnd = false;
     this.teachId = '';
     this.bumpShown = false;
     this.closeTeach();
