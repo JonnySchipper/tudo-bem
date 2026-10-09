@@ -651,13 +651,17 @@ async function main() {
   await goArea(page, 'rua'); // the kitnet door is on the west half
   log(`academia bout ok: ${result.winner} by ${result.reason}, ${result.moves} beats`);
 
-  // 7. Kitnet: place the free chair
+  // 7. Kitnet: the first-visit gift (10 RV) buys the wooden chair, then place it (there is no free starter chair)
   await interact(page, { portal: 'praca_kitnet' });
   await waitFor(page, () => window.__tb.game.room?.room === 'kitnet', null, 15_000, 'kitnet');
   await sleep(500);
   // a first visit: the Decorar guide comes up and pulses the control it wants next (force: the bounce never reads as "stable")
   assert(await page.evaluate(() => window.__tb.kitnetGuide().running), 'the Decorar guide greets a first kitnet visit');
   await page.click('#btn-decor', { force: true });
+  await page.click('#tab-loja', { force: true });
+  await page.click('[data-buy-furniture="cadeira_madeira"]', { force: true });
+  await waitFor(page, () => (window.__tb.game.profile?.furniture.cadeira_madeira ?? 0) >= 1, null, 5000, 'chair bought');
+  await page.click('#tab-meus', { force: true });
   await page.click('[data-furniture="cadeira_madeira"]', { force: true });
   await clickTileHit(page, 3, 4);
   await waitFor(page, () => window.__tb.game.furniture.length === 1, null, 5000, 'chair placed');
