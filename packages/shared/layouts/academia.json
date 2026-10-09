@@ -128,6 +128,15 @@
       "art": "props/placar"
     },
     {
+      "id": "bandeira_br",
+      "kind": "cenario",
+      "x": 10,
+      "y": 0,
+      "blocks": false,
+      "art": "props/bandeira_br",
+      "ox": -4
+    },
+    {
       "id": "d_cronometro",
       "kind": "cenario",
       "x": 8,
