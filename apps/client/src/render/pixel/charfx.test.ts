@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { highlightEdges, outlineSheet, outlineShade } from './charfx';
+import { highlightEdges, outlineSheet, outlineShade, shadeEdges } from './charfx';
 
 const G = { frameW: 8, frameH: 8, cols: 1, rows: 1 };
 const NAVY: [number, number, number] = [0x3a, 0x3a, 0x50];
@@ -82,5 +82,36 @@ describe('highlightEdges (top-left light)', () => {
     expect(px(d, 3, 4).r).toBeGreaterThan(100); // left edge
     expect(px(d, 4, 4).r).toBe(100); // bottom-right of the fill
     expect(px(d, 2, 2).r).toBe(NAVY[0]); // the outline itself
+  });
+});
+
+describe('shadeEdges (bottom-right shade)', () => {
+  /** a 5x5 navy ring around a 3x3 grey fill at (2..4, 2..4) */
+  function block(): Uint8ClampedArray {
+    const d = new Uint8ClampedArray(8 * 8 * 4);
+    for (let y = 1; y < 6; y++) for (let x = 1; x < 6; x++) put(d, x, y, y > 1 && y < 5 && x > 1 && x < 5 ? [100, 100, 100] : NAVY);
+    return d;
+  }
+
+  it('darkens and cools the pixels just inside the bottom and right outline, and leaves the lit top-left edge alone', () => {
+    const d = block();
+    shadeEdges(d, G);
+    expect(px(d, 4, 4).r).toBeLessThan(100); // bottom-right corner of the fill
+    expect(px(d, 3, 4).r).toBeLessThan(100); // bottom edge
+    expect(px(d, 2, 4).r).toBeLessThan(100); // the underside stays in shade on the lit left side too
+    expect(px(d, 4, 3).r).toBeLessThan(100); // right edge
+    expect(px(d, 2, 2).r).toBe(100); // top-left of the fill: the light's side
+    expect(px(d, 4, 2).r).toBe(100); // the top edge wins over the right edge
+    expect(px(d, 3, 3).r).toBe(100); // the interior
+    const corner = px(d, 4, 4);
+    expect(corner.b).toBeGreaterThan(corner.r); // cooled, not just darker
+    expect(px(d, 1, 1).r).toBe(NAVY[0]); // the outline itself
+  });
+
+  it('with the highlight, a part gets a lit side and a shaded side', () => {
+    const d = block();
+    highlightEdges(d, G);
+    shadeEdges(d, G);
+    expect(luma(px(d, 2, 2))).toBeGreaterThan(luma(px(d, 4, 4)) + 20);
   });
 });

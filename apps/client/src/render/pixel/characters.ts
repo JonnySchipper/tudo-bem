@@ -122,8 +122,10 @@ export const CHAR_LAYERS = {
   regularHat: ['hat_npc_toque', 'hat_npc_panama', 'hat_npc_bucket', 'hat_npc_coroa'] as const,
   regularProp: ['prop_npc_avental', 'prop_npc_sacola', 'prop_npc_verdura', 'prop_npc_pastel', 'prop_npc_buque'] as const,
   apron: 'npc_apron',
-  /** the BJJ gi pieces (lapels and black belt) over the white camisa + calça outfit */
+  /** the BJJ gi pieces (collar, crossed lapels, belt with knot and tails, jacket skirt) over the camisa + calça outfit */
   gi: 'npc_gi',
+  /** the academy stamp on the gi (a crest on the back and the chest), on the accent ramp */
+  giPatch: 'gi_patch',
   gestures: 'emote_gestures',
   phone: 'acc_phone',
 } as const;
@@ -257,6 +259,7 @@ export function allLayerKeys(): string[] {
     for (const t of TOPS) for (const bo of BOTTOMS) keys.add(OUTFITS[t][bo].layer + CHAR_LAYERS.bodySuffix[b]);
     keys.add(CHAR_LAYERS.apron + CHAR_LAYERS.bodySuffix[b]);
     keys.add(CHAR_LAYERS.gi + CHAR_LAYERS.bodySuffix[b]);
+    keys.add(CHAR_LAYERS.giPatch + CHAR_LAYERS.bodySuffix[b]);
     keys.add('pose_bracos' + CHAR_LAYERS.bodySuffix[b]);
   }
   for (const k of Object.values(CHAR_LAYERS.hair)) keys.add(k);

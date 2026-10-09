@@ -9,8 +9,9 @@ const ramps = (a: Appearance, key: string) => lookForAppearance(a).layers.find((
 describe('looks (layers + ramp colors)', () => {
   it('skin, hair, cloth and shoe colors come from the appearance indices', () => {
     const l = lookForAppearance(base);
-    expect(l.layers[0]).toEqual({ key: 'body_medio', ramps: { skin: SKIN_TONES[2] } });
-    expect(l.layers.find((x) => x.key === 'outfit_camiseta_calca')?.ramps).toEqual({ top: CLOTH_COLORS[3], bottom: CLOTH_COLORS[4], shoes: SHOE_COLORS[0] });
+    expect(l.layers[0]).toEqual({ key: 'body_medio', ramps: { skin: SKIN_TONES[2] }, hl: true });
+    // the outfit takes the skin too: the blouse's neckline shows it
+    expect(l.layers.find((x) => x.key === 'outfit_camiseta_calca')?.ramps).toEqual({ top: CLOTH_COLORS[3], bottom: CLOTH_COLORS[4], shoes: SHOE_COLORS[0], skin: SKIN_TONES[2] });
     expect(ramps(base, 'hair_curto')).toEqual({ hair: HAIR_COLORS[1] });
   });
 

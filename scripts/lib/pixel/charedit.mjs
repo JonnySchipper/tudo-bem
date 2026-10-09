@@ -75,6 +75,14 @@ export function outfitBand(y, bottom) {
 }
 
 /**
+ * The feet row the colour bands are cut from. The front / back sit frames (canonical rows 8 and 11) are the idle frame lowered 4 px with
+ * the legs cut off at the frame's edge, so their last opaque row is the pants, not the shoes: measuring from it painted the shirt in
+ * the pants colour and the pants as shoes on everyone sitting on a bench facing the camera.
+ */
+export const SIT_FRONT_DROP = 4;
+export const bandFeetRow = (a, r) => (r === 8 || r === 11 ? a.bottom + SIT_FRONT_DROP : a.bottom);
+
+/**
  * Converts a raw canonical outfit sheet to key colors: the pixels of each band (torso / pants / shoes) keep their own luminance order
  * and are mapped onto the top / bottom / shoes key ramps. Outline colors stay as they are.
  */
@@ -84,11 +92,12 @@ export function keyOutfit(img, an) {
     for (const { r, c } of frames()) {
       const a = anchorOf(an, r, c);
       if (!a) continue;
+      const feet = bandFeetRow(a, r);
       for (let y = 0; y < FRAME_H; y++) for (let x = 0; x < FRAME_W; x++) {
         if (!alphaAt(img, fx(c, x), fy(r, y))) continue;
         const hex = hexAt(img, fx(c, x), fy(r, y));
         if (OUTLINES.has(hex)) continue;
-        fn(outfitBand(y, a.bottom), hex, fx(c, x), fy(r, y));
+        fn(outfitBand(y, feet), hex, fx(c, x), fy(r, y));
       }
     }
   };

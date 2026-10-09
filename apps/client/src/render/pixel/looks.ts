@@ -2,7 +2,7 @@
  * Character looks (HOWTO §6 Phase 3): an `Appearance` (+ hat, + NPC extras) becomes an ordered list of layers with the ramp colors to
  * swap in. Pure: no Phaser, no DOM. The layers are drawn back to front by `composeRgba` (charcompose.ts).
  */
-import { academyOutfit, CLOTH_COLORS, DEFAULT_APPEARANCE, HAIR_COLORS, garbParts, SHOE_COLORS, SKIN_TONES, hatById, type AcademyGi, type Appearance, type Belt, type BodyType, type NpcId } from '@tudobem/shared';
+import { academyOutfit, BELT_COLORS, CLOTH_COLORS, CRESTS, DEFAULT_APPEARANCE, HAIR_COLORS, garbParts, SHOE_COLORS, SKIN_TONES, hatById, type AcademyGi, type Appearance, type Belt, type BodyType, type NpcId } from '@tudobem/shared';
 import { CHAR_LAYERS, GARBS, HAT_LIFT, hatLayer, outfitKey, pick, type GarbColors, type GarbPiece, type IdleEntry } from './characters';
 import type { Ramps } from './charcompose';
 
@@ -12,7 +12,7 @@ export interface LookLayer {
   ramps?: Ramps;
   /** exact colour swaps (the belt colour on the gi layer) */
   map?: Record<string, string>;
-  /** top-left light on the edges of this layer (hair, outfit: crown and shoulders) */
+  /** the light on this layer's edges (body, hair, outfit): top-left lit, bottom-right in shade, so the volumes read */
   hl?: boolean;
 }
 
@@ -35,20 +35,19 @@ export interface LookOptions {
   hat?: string | HatSpec | null;
   /** apron color (NPC piece) */
   apron?: string | null;
-  /** BJJ gi pieces (crossed lapels, black belt) over the outfit */
+  /** BJJ gi pieces (collar, crossed lapels, the belt with its knot and tails, the jacket skirt) over the outfit */
   gi?: boolean;
-  /** with `gi`: the belt colour worn (the gi layer's black belt is recoloured); Professora Bia keeps hers black */
+  /** with `gi`: the belt colour worn (the gi layer's belt is on its own ramp); unset is a black belt (Professora Bia) */
   belt?: Belt;
+  /** with `gi`: the academy stamp, a crest on the back and the chest of the jacket (members on their academy floor) */
+  stamp?: keyof typeof CRESTS | null;
 }
 
-/** The gi layer's belt colours (`npc_gi.png`: band `#3a3a50`, shade and knot `#1f1f2e`) -> the colours of an earned belt. */
-export const GI_BELT_MAP: Record<Belt, Record<string, string>> = {
-  branca: { '#3a3a50': '#f3efe6', '#1f1f2e': '#bfb8a8' },
-  azul: { '#3a3a50': '#4177c9', '#1f1f2e': '#2a4f8d' },
-  roxa: { '#3a3a50': '#7a45b0', '#1f1f2e': '#4d2878' },
-  marrom: { '#3a3a50': '#7a4a28', '#1f1f2e': '#4a2c16' },
-  preta: { '#3a3a50': '#2a2a36', '#1f1f2e': '#14141c' },
-};
+/**
+ * The belt colour the gi layer's `belt` ramp is built from: the band, its knot light, and the knot shade and tail tips darker. The
+ * white belt is a touch warmer and greyer than the white gi so it still reads as its own cloth on it.
+ */
+export const GI_BELT_BASE: Record<Belt, string> = { ...BELT_COLORS, branca: '#e9e3d6' };
 
 const pickColor = (list: readonly string[], i: number | undefined): string => list[Number.isInteger(i) && (i as number) >= 0 && (i as number) < list.length ? (i as number) : 0];
 
@@ -87,15 +86,19 @@ export function lookForAppearance(a: Appearance, opts: LookOptions = {}): Look {
   const garbLayer = (p: GarbPiece): LookLayer => ({ key: p.warped ? p.key + suffix : p.key, ramps: p.ramps(gc) });
   const layers: LookLayer[] = [
     ...garb.filter((p) => p.slot === 'under').map(garbLayer),
-    { key: CHAR_LAYERS.body[body], ramps: { skin } },
+    { key: CHAR_LAYERS.body[body], ramps: { skin }, hl: true },
     { key: face.eyes },
     { key: face.overlay, ramps: { hair } },
   ];
   const under = extra && extra.order === 'under-hair' ? extra : null;
   const over = extra && extra.order === 'over-hair' ? extra : null;
-  layers.push({ key: outfitKey(a.top, a.bottom, body), ramps: { top, bottom, shoes }, hl: true });
+  layers.push({ key: outfitKey(a.top, a.bottom, body), ramps: { top, bottom, shoes, skin }, hl: true });
   if (opts.apron) layers.push({ key: CHAR_LAYERS.apron + suffix, ramps: { accent: opts.apron } });
-  if (opts.gi) layers.push({ key: CHAR_LAYERS.gi + suffix, ...(opts.belt ? { map: GI_BELT_MAP[opts.belt] } : {}) });
+  if (opts.gi) {
+    // the jacket is the top colour, the chest in the V the skin, the belt its earned colour
+    layers.push({ key: CHAR_LAYERS.gi + suffix, ramps: { top, skin, belt: GI_BELT_BASE[opts.belt ?? 'preta'] } });
+    if (opts.stamp) layers.push({ key: CHAR_LAYERS.giPatch + suffix, ramps: { accent: CRESTS[opts.stamp].fill } });
+  }
   for (const p of garb) if (p.slot === 'outfit') layers.push(garbLayer(p));
   for (const l of idle.layers) layers.push({ key: idle.warped ? l + suffix : l, ramps: { top, skin } });
   if (under) layers.push({ key: under.layer, ramps: under.ramps.length ? { hair } : undefined });
@@ -122,7 +125,7 @@ export function academyUniformKey(pub: { gi?: boolean; academyGi?: AcademyGi | n
  * Guests keep the vestiário gi or street clothes, with no academy stamp.
  */
 export function lookForAvatar(pub: { appearance: Appearance; hat: string | null; gi?: boolean; belt?: Belt; academyGi?: AcademyGi | null }): Look {
-  if (pub.academyGi) return lookForAppearance(academyOutfit(pub.appearance, pub.academyGi.color), { hat: pub.hat, gi: true, belt: pub.belt ?? 'branca' });
+  if (pub.academyGi) return lookForAppearance(academyOutfit(pub.appearance, pub.academyGi.color), { hat: pub.hat, gi: true, belt: pub.belt ?? 'branca', stamp: pub.academyGi.stamp });
   if (pub.gi) return lookForAppearance(pub.appearance, { hat: pub.hat, gi: true, belt: pub.belt ?? 'branca' });
   return lookForAppearance(pub.appearance, { hat: pub.hat });
 }

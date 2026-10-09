@@ -120,7 +120,7 @@ No emote falls back to the 2 px bounce any more; the renderer keeps that bounce 
 | `body_medio` (skin ramp), `body_medio__esguio`, `__forte` | Body_01 | the two width variants (see below) |
 | `eyes_suave / marcante / doce / maduro` | Eyes_01 / 04 / 02 / 05 (the pack's eyes differ by iris color only) | |
 | `face_marcante / doce / maduro` (`face_suave` is empty) | | brows, blush (semi-transparent) and smile lines, anchored to the eye row |
-| `outfit_<top>_<bottom>` x 3 body types (15 x 3) | Outfit_01 (camiseta, regata), 10 (moletom), 08 (camisa), 11 (blusa); torso, pants and shoes are re-keyed onto the top, bottom and shoes ramps | pants edits: bermuda (pants stop a row early, legs split), saia (A-line flare); regata (sleeves removed) |
+| `outfit_<top>_<bottom>` x 3 body types (15 x 3) | Outfit_01 (camiseta, regata), 10 (moletom), 08 (camisa), 11 (blusa); torso, pants and shoes are re-keyed onto the top, bottom and shoes ramps | pants edits: bermuda (pants stop a row early, legs split), saia (A-line flare); regata (sleeves removed); per-top details (`topdetail.mjs`, wave 3) |
 | `hair_curto`, `raspado`, `undercut`, `cacheado`, `ondulado`, `longo` | Hairstyle 12 / 20 / 26 / 25 / 07 / 15 | |
 | `hair_black` (black power) | Hairstyle 25, grown by 2 px with a redrawn outline | the puff |
 | `hair_coque`, `hair_trancas` | Hairstyle 16 | the bun, and two front braids (one long back braid seen from behind) |
@@ -129,10 +129,12 @@ No emote falls back to the 2 px bounce any more; the renderer keeps that bounce 
 | `hat_bone_verde`, `hat_panama`, `hat_chapeu_chef`, `hat_gorro_listrado` | Accessory 04 (snapback), 08 (detective hat), 18 (chef), 11 (beanie) recolored onto the hat / accent ramps | the beanie stripes |
 | `hat_chapeu_palha`, `viseira_azul`, `boina_vermelha`, `chapeu_sol`, `bucket_amarelo`, `capacete_bike`, `coroa_flores`, `cartola`, `pano` | | drawn in `hats.mjs`, stamped on each frame's head (S, E, N; W is E mirrored) so they follow the walk bob and the bow |
 | `emote_gestures`, `pose_cafe`, `pose_bolsa`, `pose_bracos`, `pose_bolsos`, `pose_cintura`, `npc_apron` | | body-anchored props (`charart.mjs`); `pose_*` only have pixels on the idle rows |
+| `npc_gi`, `gi_patch` x 3 body types | | the jiu-jitsu gi over the camisa + calça outfit and the academy stamp on it (`gi.mjs`, see "Characters, wave 3") |
 | `acc_phone` | Smartphone_1 (row 6) | |
 
 **Recolorable ramps.** Every outfit has all three: torso -> `top`, pants -> `bottom`, shoes -> `shoes`. Bands are cut by row relative to the frame's feet
-row, so a white shirt over white pants still gets two different colors. Hair, beard, mustache, brows and braids use `hair`; hats use `hat`
+row (`bandFeetRow`: the front / back sit frames are the idle frame lowered 4 px with the legs cut off, so their bands are cut from the lowered feet row,
+not from the last opaque row), so a white shirt over white pants still gets two different colors. Hair, beard, mustache, brows and braids use `hair`; hats use `hat`
 (HatDef.color) and `accent` (HatDef.accent); gestures and pose props use `skin` and `top`; the NPC apron uses `accent`. Outline navy is never swapped.
 
 **Body types.** Width is baked per layer at import (`charedit.mjs warpLayer`, on body-attached layers only: body, outfits, the crossed-arms pose, the
@@ -197,6 +199,28 @@ Contact sheets: `node scripts/pixel-contact.mjs --set floors|walls|padaria|kitne
 - **Emote art**: the gestures in `emote_gestures` (`charart.mjs`: `wave`, `thumb`, `handsUp`, `laugh`), the pop-up bubbles `fx/emote_<kind>` and the 8 x 10 parrot (`custom/emotefx.mjs`).
 - **Runtime, not art**: the outer outline and the top-left light are applied when a look is composed (`render/pixel/charfx.ts`), so they follow any recolor and body type and never need a re-import.
 - Review tools: `node scripts/character-lineup.mjs`, `scripts/character-peek.mjs <out> <scale> <spec.json>`, `scripts/character-dump.mjs <layer> <row> <col>`, `scripts/cpu-looks-dump.mjs`.
+
+## Characters, wave 3: the avatar plus-up
+
+- **The gi** (`custom/gi.mjs`, layers `npc_gi` + `__esguio` / `__forte`): built per frame from the outfit's alpha, standing, walking, sitting (the
+  front / back sits are lowered 4 px, the side sits keep the standing torso over the lap: `torsoFeetRow`, `torsoSpan`), the emotes and the phone loop.
+  Top down: the pack's neck line is the collar's dark edge (from behind, a light collar band across the shoulders), the lapel seams run down in a V
+  from it to the knot in the pack's inner navy (`#46465e`, so they read on a white gi) with the lapels lit beside them, the wearer's right lapel
+  crossing over; **one belt row** on the `belt` key ramp (`#406040 #608060 #80a080`: knot shade and tail tips, band, knot light) with a two-pixel knot
+  and two tails of two rows; the jacket's skirt in the cloth's shade where the shirt / pants waist line used to be; sleeve cuffs in the shade. Cloth is
+  on the `top` ramp, so an academy's blue / black / red gi recolours the whole jacket. The belt used to be two rows plus a knot and tails on a
+  five-row torso; the runtime builds its ramp from the earned belt (`GI_BELT_BASE` in `looks.ts`; the white belt is a touch warmer and greyer than
+  the white gi so it reads on it; no belt is Bia's black one).
+- **The academy stamp** (`gi_patch`): a 4x2 crest on the back and a 1x2 one on the chest, `accent` ramp, swapped for the crest's fill
+  (`CRESTS[stamp].fill`) when a member wears the academy gi; a vestiário gi has no layer, so it stays plain.
+- **Per-top details** (`custom/topdetail.mjs`, on every `outfit_*` sheet, in the `top` ramp): tee sleeve hems; hoodie hood rim, drawstrings and
+  kangaroo pocket (the hood's shadow on the back); shirt collar points and chest pocket; blouse V neck (the `skin` ramp: the outfit layer now takes
+  `skin` too) with a light trim and puffed sleeve tops. The regata is cut from the detailed tee.
+- **Runtime shade** (`render/pixel/charfx.ts shadeEdges`, with `highlightEdges` on the body, hair and outfit layers): the pixels just inside the
+  silhouette on the bottom and right get a cooler shade, so every part has a lit side and a shaded side (the far cheek, the right sleeve and leg, the
+  underside of the fringe, the sole of a shoe) without a second authored colour. The portraits are composed through the same code, so they carry it.
+- Review: `node scripts/character-lineup.mjs` has an "Academia gi" section; before / after shots in `docs/lifesim/shots/avatars-v3/`. Contract test on
+  the shipped sheet: `src/render/pixel/giArt.test.ts` (one belt row, tails, the V, the sits, the stamp, the top details, the sit bands).
 
 ## Academia roll art (`bjj/*`, `props/placar`)
 

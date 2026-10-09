@@ -1,7 +1,7 @@
 /** Look -> composed sheet pixels. Pure (needs decoded layers, not a DOM), so it is unit tested with fake layers. */
 import { composeRgba, type RgbaLayer } from './charcompose';
 import { applyBodyHeight, frameBottoms, type Geometry } from './bodytype';
-import { highlightEdges, outlineSheet } from './charfx';
+import { highlightEdges, outlineSheet, shadeEdges } from './charfx';
 import type { Look } from './looks';
 
 export interface LayerSource {
@@ -26,7 +26,11 @@ export function composeLook(src: LayerSource, look: Look): Uint8ClampedArray {
       }
       continue;
     }
-    layers.push({ data: d.data, ramps: l.ramps, map: l.map, post: l.hl ? (px) => highlightEdges(px, src.geometry) : undefined });
+    const lit = (px: Uint8ClampedArray) => {
+      highlightEdges(px, src.geometry);
+      shadeEdges(px, src.geometry);
+    };
+    layers.push({ data: d.data, ramps: l.ramps, map: l.map, post: l.hl ? lit : undefined });
   }
   let rgba = composeRgba(src.sheetW * src.sheetH * 4, layers);
   const body = look.body === 'medio' ? undefined : src.layer('body_medio');
