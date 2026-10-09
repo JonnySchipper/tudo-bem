@@ -1102,7 +1102,7 @@ net.on((m: ServerMsg) => {
       break;
     case 'bout':
       // a pending stripe lesson opens straight into the drill (no lobby): that message must open the overlay too
-      if ((m.phase === 'lobby' || m.phase === 'drill') && (!boutUi || !boutUi.open)) {
+      if ((m.phase === 'lobby' || (m.phase === 'chain' && m.drill)) && (!boutUi || !boutUi.open)) {
         boutUi = new BoutUI({
           send: (msg) => net.send(msg),
           closed: () => {
@@ -1818,6 +1818,10 @@ window.__tb = {
       return boutUi;
     },
     feed: boutFeed,
+    /** The live beat on the pad (`?rolltest` only): the words to tap, the step, the windows, the right defense. The e2e taps from it. */
+    get beat() {
+      return new URLSearchParams(location.search).has('rolltest') ? (boutUi?.debugBeat() ?? null) : null;
+    },
   },
   /** Correria no Balcão: the live overlay and the feed the world scene reads (e2e and shots). */
   correria: {

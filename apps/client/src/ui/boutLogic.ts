@@ -3,12 +3,21 @@
  * the overlay prints. Unit tested (boutLogic.test.ts). Tatame v3 "Comando" (docs/lifesim/TATAME-V3.md).
  */
 import {
+  COMMANDS,
   COMMAND_LABEL,
+  DEFENSES,
   DEFENSE_LABEL,
   GRADE_LABEL,
   MAT_CALLS,
   REF_LINES,
+  boutStepLabel,
+  endLine,
+  gradeTap,
+  isHitGrade,
   type Bilingual,
+  type BoutReason,
+  type BoutSnapshot,
+  type BoutWinner,
   type BoutServerMsg,
   type CrowdCue,
   type MatAttack,
@@ -72,13 +81,104 @@ export const gradeLine = (g: TapGrade): Bilingual => GRADE_LABEL[g];
 /** The chain's own call when it lands with nothing else to say (all Perfeito, or Boa!). */
 export const chainGrade = (grades: readonly TapGrade[]): TapGrade => (grades.length && grades.every((g) => g === 'perfeito') ? 'perfeito' : 'boa');
 
+/**
+ * The beat on the pad, as the client runs it: the words to tap, each one's window, the step on screen, the grades so far. The server
+ * judges every tap again on its own clock; this is what the overlay shows the instant a button is pressed.
+ */
+export interface PadBeat {
+  kind: 'chain' | 'defend' | 'drill';
+  want: readonly (MatCommand | MatDefense)[];
+  /** each step's window (ms); the drill's are 0: no timer */
+  windows: readonly number[];
+  step: number;
+  grades: TapGrade[];
+  /** the beat is decided on this side (every step hit, or a miss); the server's resolve follows */
+  over: boolean;
+}
+
+export function padBeat(kind: PadBeat['kind'], want: readonly (MatCommand | MatDefense)[], windows: readonly number[]): PadBeat {
+  return { kind, want: [...want], windows: [...windows], step: 0, grades: [], over: want.length === 0 };
+}
+
+/**
+ * One press on the pad, `ms` after the current word appeared. A hit moves on to the next word; a miss (the wrong button, or past the
+ * window) ends the beat there. The drill has no clock and no miss: the wrong button is simply not the next step (grade null).
+ */
+export function padTap(b: PadBeat, got: string, ms: number): { beat: PadBeat; grade: TapGrade | null } {
+  if (b.over || b.step >= b.want.length) return { beat: b, grade: null };
+  const want = b.want[b.step]!;
+  if (b.kind === 'drill') {
+    if (got !== want) return { beat: b, grade: null };
+    const step = b.step + 1;
+    return { beat: { ...b, step, grades: [...b.grades, 'boa'], over: step >= b.want.length }, grade: 'boa' };
+  }
+  const grade = gradeTap(want, got, ms, b.windows[b.step] ?? 0);
+  if (!isHitGrade(grade)) return { beat: { ...b, grades: [...b.grades, grade], over: true }, grade };
+  const step = b.step + 1;
+  return { beat: { ...b, step, grades: [...b.grades, grade], over: step >= b.want.length }, grade };
+}
+
+/** The current word's window ran out with no press (Tarde!). The drill never runs out. */
+export function padExpired(b: PadBeat, ms: number): boolean {
+  return b.kind !== 'drill' && !b.over && b.step < b.want.length && ms > (b.windows[b.step] ?? 0);
+}
+
+export const padTimeout = (b: PadBeat): PadBeat => ({ ...b, grades: [...b.grades, 'tarde'], over: true });
+
+/** The beat's step dots: done, the one on screen, still to come, and where it broke. */
+export const padDots = (b: PadBeat): DotState[] => stepDots(b.want.length, b.step, b.over && b.step < b.want.length);
+
+/** Every command of the chain was Perfeito (one step of Ritmo). */
+export const padPerfect = (b: PadBeat): boolean => b.over && b.step >= b.want.length && b.grades.every((g) => g === 'perfeito');
+
+/** Desktop keys: `1`–`6` press the pad button at that place (the command pad's six, the defense pad's four). Null: not a pad key. */
+export function padKey(key: string, size: number): number | null {
+  const n = Number(key);
+  return Number.isInteger(n) && n >= 1 && n <= size ? n - 1 : null;
+}
+
+/** The pad buttons in their fixed order. */
+export const COMMAND_PAD: readonly MatCommand[] = COMMANDS;
+export const DEFENSE_PAD: readonly MatDefense[] = DEFENSES;
+
+/**
+ * needs_br: true — who is on top, then how big the lead is (Em pé / Você por cima · Pressão). The #49 lock: never a position name.
+ */
+export function posLine(s: Pick<BoutSnapshot, 'position' | 'ahead' | 'rung'>): Bilingual {
+  if (s.position === 'de_pe' || !s.ahead) return { pt: 'Em pé', en: 'Standing' };
+  const step = boutStepLabel(s.rung);
+  return s.ahead === 'you' ? { pt: `Você por cima · ${step.pt}`, en: `You on top · ${step.en}` } : { pt: `Você por baixo · ${step.pt}`, en: `You underneath · ${step.en}` };
+}
+
+/** needs_br: true — the drill's first line (Bia hands the move over). Spoken. */
+export const DRILL_LINE: Bilingual = { pt: 'Agora você.', en: 'Your turn.' };
+
 // ---------------------------------------------------------------- resolve
 
-/** Lines Bia speaks (they are baked; anything else on the overlay is read, not spoken). */
+/** Bia's calls a resolve may speak (they are baked; anything else on the overlay is read, not spoken). */
 export const SPOKEN_CALLS: readonly string[] = [
   ...Object.values(MAT_CALLS).map((c) => c.pt),
   ...Object.values(REF_LINES).map((c) => c.pt),
   ...Object.values(GRADE_LABEL).map((c) => c.pt),
+];
+
+const END_WINNERS: BoutWinner[] = ['you', 'partner', 'draw'];
+const END_REASONS: Exclude<BoutReason, 'quit'>[] = ['finalizacao', 'pontos', 'vantagens', 'empate'];
+
+/**
+ * Every line Professora Bia (speaker `prof`) says on the mat, exactly as the overlay speaks it: the ten pad words, the grades, her
+ * calls, "Combate!", the drill's "Agora você." and the end lines. Each one is in content/tts/extra-lines.json (boutLogic.test.ts).
+ */
+export const BIA_LINES: readonly string[] = [
+  ...new Set([
+    ...COMMANDS.map((c) => COMMAND_LABEL[c].pt),
+    ...DEFENSES.map((d) => DEFENSE_LABEL[d].pt),
+    ...Object.values(GRADE_LABEL).map((c) => c.pt),
+    ...Object.values(MAT_CALLS).map((c) => c.pt),
+    REF_LINES.combate.pt,
+    DRILL_LINE.pt,
+    ...END_WINNERS.flatMap((w) => END_REASONS.map((r) => endLine(w, r).pt)),
+  ]),
 ];
 
 /**
@@ -96,7 +196,7 @@ export function resolveLine(m: Pick<Msg<'resolve'>, 'say' | 'how' | 'landed' | '
 
 /** What Bia says aloud for a resolve: her call, or the chain's grade when a move of yours lands with no call. Null: silence. */
 export function resolveSpeech(m: Pick<Msg<'resolve'>, 'say' | 'how' | 'landed' | 'actor' | 'grades'>): string | null {
-  if (m.say && SPOKEN_CALLS.includes(m.say.pt)) return m.say.pt;
+  if (m.say && SPOKEN_CALLS.includes(m.say.pt) && m.say.pt !== MAT_CALLS.errou.pt) return m.say.pt;
   if (m.how === 'late') return GRADE_LABEL.tarde.pt;
   if (m.how === 'hold') return null;
   if (m.actor === 'you' && m.landed) return GRADE_LABEL[chainGrade(m.grades ?? [])].pt;
