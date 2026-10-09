@@ -1,0 +1,410 @@
+{
+  "room": "kitnet",
+  "objects": [
+    {
+      "id": "cama",
+      "kind": "cama",
+      "x": 6,
+      "y": 1,
+      "w": 2,
+      "h": 2,
+      "blocks": true
+    },
+    {
+      "id": "cozinha",
+      "kind": "cozinha",
+      "x": 1,
+      "y": 0,
+      "w": 2,
+      "h": 1,
+      "blocks": true
+    },
+    {
+      "id": "d_fogao",
+      "kind": "cenario",
+      "x": 0,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/fogao",
+      "ox": -4
+    },
+    {
+      "id": "d_pia",
+      "kind": "cenario",
+      "x": 3,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/pia",
+      "ox": -4
+    },
+    {
+      "id": "d_torneira",
+      "kind": "cenario",
+      "x": 3,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/torneira",
+      "ox": 4
+    },
+    {
+      "id": "d_frigideira",
+      "kind": "cenario",
+      "x": 3,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/frigideira",
+      "ox": -4
+    },
+    {
+      "id": "d_tampa",
+      "kind": "cenario",
+      "x": 3,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/tampa",
+      "ox": 4
+    },
+    {
+      "id": "d_micro_ondas",
+      "kind": "cenario",
+      "x": 4,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/micro_ondas",
+      "ox": -4
+    },
+    {
+      "id": "d_chaleira",
+      "kind": "cenario",
+      "x": 4,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/chaleira",
+      "ox": -4
+    },
+    {
+      "id": "d_prato",
+      "kind": "cenario",
+      "x": 2,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/prato",
+      "ox": -4
+    },
+    {
+      "id": "d_garfo",
+      "kind": "cenario",
+      "x": 1,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/garfo",
+      "ox": -4
+    },
+    {
+      "id": "d_sabao",
+      "kind": "cenario",
+      "x": 0,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/sabao",
+      "ox": -4
+    },
+    {
+      "id": "d_racao",
+      "kind": "cenario",
+      "x": 5,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/racao",
+      "ox": -4
+    },
+    {
+      "id": "d_pote",
+      "kind": "cenario",
+      "x": 5,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/pote",
+      "ox": -4
+    },
+    {
+      "id": "d_travesseiro",
+      "kind": "cenario",
+      "x": 6,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/travesseiro",
+      "ox": -4
+    },
+    {
+      "id": "d_fronha",
+      "kind": "cenario",
+      "x": 6,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/fronha",
+      "ox": 4
+    },
+    {
+      "id": "d_lencol",
+      "kind": "cenario",
+      "x": 7,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/lencol",
+      "ox": -4
+    },
+    {
+      "id": "d_cobertor",
+      "kind": "cenario",
+      "x": 7,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/cobertor",
+      "ox": 4
+    },
+    {
+      "id": "d_edredom",
+      "kind": "cenario",
+      "x": 5,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/edredom",
+      "ox": 4
+    },
+    {
+      "id": "d_colchao",
+      "kind": "cenario",
+      "x": 5,
+      "y": 2,
+      "blocks": false,
+      "art": "diary/colchao",
+      "ox": -4
+    },
+    {
+      "id": "d_abajur",
+      "kind": "cenario",
+      "x": 5,
+      "y": 2,
+      "blocks": false,
+      "art": "diary/abajur",
+      "ox": 4
+    },
+    {
+      "id": "d_despertador",
+      "kind": "cenario",
+      "x": 5,
+      "y": 3,
+      "blocks": false,
+      "art": "diary/despertador",
+      "ox": -4
+    },
+    {
+      "id": "d_oculos",
+      "kind": "cenario",
+      "x": 6,
+      "y": 3,
+      "blocks": false,
+      "art": "diary/oculos",
+      "ox": -4
+    },
+    {
+      "id": "d_cabide",
+      "kind": "cenario",
+      "x": 7,
+      "y": 3,
+      "blocks": false,
+      "art": "diary/cabide",
+      "ox": -4
+    },
+    {
+      "id": "d_guarda_roupa",
+      "kind": "cenario",
+      "x": 5,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/guarda_roupa",
+      "ox": 4
+    },
+    {
+      "id": "d_comoda",
+      "kind": "cenario",
+      "x": 4,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/comoda",
+      "ox": 4
+    },
+    {
+      "id": "d_cortina",
+      "kind": "cenario",
+      "x": 4,
+      "y": 1,
+      "blocks": false,
+      "art": "diary/cortina",
+      "ox": 4
+    },
+    {
+      "id": "d_espelho",
+      "kind": "cenario",
+      "x": 2,
+      "y": 3,
+      "blocks": false,
+      "art": "diary/espelho",
+      "ox": -4
+    },
+    {
+      "id": "d_chinelo",
+      "kind": "cenario",
+      "x": 1,
+      "y": 4,
+      "blocks": false,
+      "art": "diary/chinelo",
+      "ox": -4
+    },
+    {
+      "id": "d_chuveiro",
+      "kind": "cenario",
+      "x": 7,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/chuveiro",
+      "ox": -4
+    },
+    {
+      "id": "d_box",
+      "kind": "cenario",
+      "x": 7,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/box",
+      "ox": -4
+    },
+    {
+      "id": "d_toalha",
+      "kind": "cenario",
+      "x": 7,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/toalha",
+      "ox": 4
+    },
+    {
+      "id": "d_xampu",
+      "kind": "cenario",
+      "x": 6,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/xampu",
+      "ox": -4
+    },
+    {
+      "id": "d_escova",
+      "kind": "cenario",
+      "x": 6,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/escova",
+      "ox": -4
+    },
+    {
+      "id": "d_creme",
+      "kind": "cenario",
+      "x": 7,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/creme",
+      "ox": -4
+    },
+    {
+      "id": "d_pente",
+      "kind": "cenario",
+      "x": 6,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/pente",
+      "ox": -4
+    },
+    {
+      "id": "d_perfume",
+      "kind": "cenario",
+      "x": 5,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/perfume",
+      "ox": -4
+    },
+    {
+      "id": "d_varal",
+      "kind": "cenario",
+      "x": 3,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/varal",
+      "ox": -4
+    },
+    {
+      "id": "d_pregador",
+      "kind": "cenario",
+      "x": 4,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/pregador",
+      "ox": -4
+    },
+    {
+      "id": "d_tomada",
+      "kind": "cenario",
+      "x": 2,
+      "y": 2,
+      "blocks": false,
+      "art": "diary/tomada",
+      "ox": -4
+    },
+    {
+      "id": "d_interruptor",
+      "kind": "cenario",
+      "x": 2,
+      "y": 3,
+      "blocks": false,
+      "art": "diary/interruptor",
+      "ox": 4
+    },
+    {
+      "id": "d_carregador",
+      "kind": "cenario",
+      "x": 3,
+      "y": 2,
+      "blocks": false,
+      "art": "diary/carregador",
+      "ox": -4
+    },
+    {
+      "id": "d_extensao",
+      "kind": "cenario",
+      "x": 4,
+      "y": 2,
+      "blocks": false,
+      "art": "diary/extensao",
+      "ox": -4
+    },
+    {
+      "id": "d_retrato",
+      "kind": "cenario",
+      "x": 5,
+      "y": 3,
+      "blocks": false,
+      "art": "diary/retrato",
+      "ox": 4
+    },
+    {
+      "id": "d_chave",
+      "kind": "cenario",
+      "x": 1,
+      "y": 4,
+      "blocks": false,
+      "art": "diary/chave",
+      "ox": 4
+    }
+  ]
+}

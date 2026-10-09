@@ -1,0 +1,496 @@
+{
+  "room": "rua_leste",
+  "objects": [
+    {
+      "id": "academia",
+      "kind": "fachada",
+      "x": 0,
+      "y": 0,
+      "w": 10,
+      "h": 6,
+      "blocks": true,
+      "label": {
+        "pt": "Academia do Bairro",
+        "en": "Neighborhood Academy"
+      },
+      "art": "facades/academia"
+    },
+    {
+      "id": "casa_3",
+      "kind": "fachada",
+      "x": 10,
+      "y": 0,
+      "w": 6,
+      "h": 6,
+      "blocks": true,
+      "label": {
+        "pt": "Escola da Praça",
+        "en": "Square school"
+      },
+      "art": "casas/terraco_azul"
+    },
+    {
+      "id": "empena_2",
+      "kind": "fachada",
+      "x": 16,
+      "y": 0,
+      "w": 3,
+      "h": 6,
+      "blocks": true,
+      "art": "casas/empena"
+    },
+    {
+      "id": "lampada_n5",
+      "kind": "poste",
+      "x": 13,
+      "y": 7,
+      "blocks": true,
+      "art": "props/lamp_old"
+    },
+    {
+      "id": "placa",
+      "kind": "placa_rua",
+      "x": 2,
+      "y": 7,
+      "blocks": true,
+      "label": {
+        "pt": "Rua dos Ipês",
+        "en": "Ipê Street (street sign)"
+      }
+    },
+    {
+      "id": "lixeira_n2",
+      "kind": "lixeira",
+      "x": 14,
+      "y": 6,
+      "blocks": true
+    },
+    {
+      "id": "saco_lixo",
+      "kind": "saco_lixo",
+      "x": 14,
+      "y": 13,
+      "blocks": true
+    },
+    {
+      "id": "floreira_n3",
+      "kind": "floreira",
+      "x": 3,
+      "y": 6,
+      "blocks": true
+    },
+    {
+      "id": "floreira_n4",
+      "kind": "floreira",
+      "x": 13,
+      "y": 6,
+      "blocks": true
+    },
+    {
+      "id": "bici_3",
+      "kind": "cenario",
+      "x": 12,
+      "y": 7,
+      "w": 1,
+      "h": 1,
+      "blocks": true,
+      "art": "props/bicicletario"
+    },
+    {
+      "id": "ponto",
+      "kind": "ponto_onibus",
+      "x": 6,
+      "y": 12,
+      "w": 3,
+      "blocks": true,
+      "label": {
+        "pt": "Ponto de ônibus",
+        "en": "Bus stop"
+      }
+    },
+    {
+      "id": "placa_aeroporto",
+      "kind": "cenario",
+      "x": 9,
+      "y": 12,
+      "w": 1,
+      "h": 1,
+      "blocks": false,
+      "art": "aero/placa_onibus"
+    },
+    {
+      "id": "poste_4",
+      "kind": "poste",
+      "x": 4,
+      "y": 13,
+      "blocks": true
+    },
+    {
+      "id": "lampada_s2",
+      "kind": "poste",
+      "x": 2,
+      "y": 13,
+      "blocks": true,
+      "art": "props/lamp_old"
+    },
+    {
+      "id": "lixeira_s1",
+      "kind": "lixeira",
+      "x": 3,
+      "y": 13,
+      "blocks": true
+    },
+    {
+      "id": "lixeira_s2",
+      "kind": "lixeira",
+      "x": 5,
+      "y": 12,
+      "blocks": true
+    },
+    {
+      "id": "arv_n2",
+      "kind": "arvore",
+      "x": 2,
+      "y": 14,
+      "w": 2,
+      "blocks": true,
+      "art": "props/arvore_rua"
+    },
+    {
+      "id": "arv_n3",
+      "kind": "arvore",
+      "x": 15,
+      "y": 7,
+      "w": 2,
+      "blocks": true,
+      "art": "props/arvore_rua"
+    },
+    {
+      "id": "estac_12_1",
+      "kind": "cenario",
+      "x": 12,
+      "y": 12,
+      "w": 5,
+      "h": 1,
+      "blocks": true,
+      "art": "vehicles/park_taxi_r"
+    },
+    {
+      "id": "flor_s1",
+      "kind": "sebe",
+      "x": 10,
+      "y": 13,
+      "w": 2,
+      "blocks": true,
+      "art": "props/flor_vermelha"
+    },
+    {
+      "id": "flor_s2",
+      "kind": "sebe",
+      "x": 15,
+      "y": 13,
+      "w": 2,
+      "blocks": true,
+      "art": "props/flor_mista"
+    },
+    {
+      "id": "arv_s6",
+      "kind": "arvore",
+      "x": 5,
+      "y": 14,
+      "w": 2,
+      "blocks": true,
+      "art": "props/arvore_rua"
+    },
+    {
+      "id": "arbusto_s2",
+      "kind": "sebe",
+      "x": 11,
+      "y": 14,
+      "blocks": true,
+      "art": "props/bush_flower"
+    },
+    {
+      "id": "sebe_s_1",
+      "kind": "sebe",
+      "x": 1,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_s_3",
+      "kind": "sebe",
+      "x": 3,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_s_5",
+      "kind": "sebe",
+      "x": 5,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_s_7",
+      "kind": "sebe",
+      "x": 7,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_s_9",
+      "kind": "sebe",
+      "x": 9,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_s_11",
+      "kind": "sebe",
+      "x": 11,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_s_13",
+      "kind": "sebe",
+      "x": 13,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_s_15",
+      "kind": "sebe",
+      "x": 15,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "arbusto_se",
+      "kind": "sebe",
+      "x": 0,
+      "y": 15,
+      "blocks": true,
+      "art": "props/bush_flower"
+    },
+    {
+      "id": "arbusto_seam",
+      "kind": "sebe",
+      "x": 0,
+      "y": 14,
+      "blocks": true,
+      "art": "props/bush_flower"
+    },
+    {
+      "id": "sebe_s_17",
+      "kind": "sebe",
+      "x": 17,
+      "y": 15,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "d_caminhao",
+      "kind": "cenario",
+      "x": 1,
+      "y": 11,
+      "w": 3,
+      "blocks": false,
+      "art": "diary/caminhao"
+    },
+    {
+      "id": "d_ambulancia",
+      "kind": "cenario",
+      "x": 10,
+      "y": 11,
+      "w": 3,
+      "blocks": false,
+      "art": "diary/ambulancia"
+    },
+    {
+      "id": "d_esquina",
+      "kind": "cenario",
+      "x": 14,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/esquina"
+    },
+    {
+      "id": "d_macaneta",
+      "kind": "cenario",
+      "x": 13,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/macaneta"
+    },
+    {
+      "id": "d_retrovisor",
+      "kind": "cenario",
+      "x": 13,
+      "y": 13,
+      "blocks": false,
+      "art": "diary/retrovisor"
+    },
+    {
+      "id": "d_porta_malas",
+      "kind": "cenario",
+      "x": 14,
+      "y": 14,
+      "blocks": false,
+      "art": "diary/porta_malas"
+    },
+    {
+      "id": "d_farol",
+      "kind": "cenario",
+      "x": 15,
+      "y": 14,
+      "blocks": false,
+      "art": "diary/farol"
+    },
+    {
+      "id": "d_volante",
+      "kind": "cenario",
+      "x": 12,
+      "y": 13,
+      "blocks": false,
+      "art": "diary/volante"
+    },
+    {
+      "id": "d_buzina",
+      "kind": "cenario",
+      "x": 16,
+      "y": 14,
+      "blocks": false,
+      "art": "diary/buzina"
+    },
+    {
+      "id": "d_cone",
+      "kind": "cenario",
+      "x": 8,
+      "y": 14,
+      "blocks": false,
+      "art": "diary/cone"
+    },
+    {
+      "id": "d_tapume",
+      "kind": "cenario",
+      "x": 7,
+      "y": 14,
+      "blocks": false,
+      "art": "diary/tapume"
+    },
+    {
+      "id": "d_andaime",
+      "kind": "cenario",
+      "x": 9,
+      "y": 13,
+      "blocks": false,
+      "art": "diary/andaime"
+    },
+    {
+      "id": "d_escada",
+      "kind": "cenario",
+      "x": 10,
+      "y": 14,
+      "blocks": false,
+      "art": "diary/escada"
+    },
+    {
+      "id": "d_cruzamento",
+      "kind": "cenario",
+      "x": 3,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/cruzamento"
+    },
+    {
+      "id": "d_skate",
+      "kind": "cenario",
+      "x": 5,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/skate"
+    },
+    {
+      "id": "d_patinete",
+      "kind": "cenario",
+      "x": 9,
+      "y": 7,
+      "blocks": false,
+      "art": "diary/patinete"
+    },
+    {
+      "id": "barreira_l_8",
+      "kind": "cerca",
+      "x": 17,
+      "y": 8,
+      "w": 2,
+      "h": 4,
+      "blocks": true,
+      "art": "cerca_rua"
+    },
+    {
+      "id": "sebe_l_6",
+      "kind": "sebe",
+      "x": 17,
+      "y": 6,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_l_7",
+      "kind": "sebe",
+      "x": 17,
+      "y": 7,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_l_12",
+      "kind": "sebe",
+      "x": 17,
+      "y": 12,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_l_13",
+      "kind": "sebe",
+      "x": 17,
+      "y": 13,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    },
+    {
+      "id": "sebe_l_14",
+      "kind": "sebe",
+      "x": 17,
+      "y": 14,
+      "w": 2,
+      "blocks": true,
+      "art": "props/hedge_wide"
+    }
+  ]
+}
