@@ -323,6 +323,31 @@ describe('Correria no Balcão, server side', () => {
     expect(taught.sort()).toEqual([...expected].sort());
   });
 
+  it('a tap after the payout does not replace it with a lost slip', async () => {
+    const world = makeWorld();
+    const a = await player(world);
+    await a.send({ t: 'mg', action: 'start' });
+    await playShiftOut(world, a);
+    const paid = endOf(a)!;
+    expect(paid.lost).toBeFalsy();
+    expect(paid.end.coins).toBeGreaterThan(0);
+    const ends = () => a.all('mg').filter((m) => m.phase === 'end');
+    expect(ends()).toHaveLength(1);
+    await a.send({ t: 'mg', action: 'sync' });
+    await act(a, { a: 'serve' });
+    await act(a, { a: 'clear' });
+    expect(ends()).toEqual([paid]);
+
+    // Jogar de novo opens a real shift again, and a sync on it is a snapshot.
+    a.inbox.length = 0;
+    await a.send({ t: 'mg', action: 'start' });
+    expect(states(a).length).toBeGreaterThan(0);
+    const before = states(a).length;
+    await a.send({ t: 'mg', action: 'sync' });
+    expect(states(a).length).toBeGreaterThan(before);
+    expect(a.all('mg').some((m) => m.phase === 'end')).toBe(false);
+  });
+
   it('a server restart that lost the shift answers sync and actions with a lost card and no RV', async () => {
     const world = makeWorld();
     const a = await player(world);
