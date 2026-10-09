@@ -59,6 +59,15 @@ interface ClipRun {
   t0: number;
   ms: number;
   shown: number;
+  /**
+   * Tatame v3: the clip is driven by the taps. While `driven`, the wind-up frame (0–3) only moves on a `step` cue (or by itself over
+   * `autoMs`, the partner's wind-up) and the clip never ends; a `land` cue then plays from `landFrom` to the last frame over `ms`.
+   */
+  driven?: boolean;
+  autoMs?: number;
+  landFrom?: number;
+  /** the miss clip's keys, swapped in when a driven move does not land */
+  missKeys?: string[];
 }
 
 export interface StageHost {
@@ -545,13 +554,56 @@ export class BoutStage {
     return true;
   }
 
+  /** Tatame v3: a move driven by the taps (the clip's wind-up shows, frame by command). False when there is no clip to drive. */
+  private startDriven(c: Extract<StageCue, { t: 'windup' }>, now: number): boolean {
+    const def = clipDef(c.move, c.from);
+    if (!def || this.matchAtlas !== 'ready') return false;
+    const keys = Array.from({ length: CLIP_FRAMES }, (_, i) => clipKey(def.move, def.from, true, i));
+    const missKeys = Array.from({ length: CLIP_FRAMES }, (_, i) => clipKey(def.move, def.from, false, i));
+    if (!this.haveAll(keys)) return false;
+    this.clearCartoon();
+    this.clip = {
+      def,
+      keys,
+      missKeys: this.haveAll(missKeys) ? missKeys : undefined,
+      hit: true,
+      actor: c.actor,
+      flip: c.from === 'de_pe' ? c.actor === 'partner' : this.flip,
+      slow: false,
+      to: c.from,
+      aheadTo: c.aheadFrom,
+      t0: now,
+      ms: 1,
+      shown: 0,
+      driven: true,
+      autoMs: c.ms ?? 0,
+    };
+    this.clipActor = c.actor;
+    this.mode = 'clip';
+    this.pos = c.from;
+    this.top = c.from === 'de_pe' ? null : c.aheadFrom;
+    return true;
+  }
+
   /** Step the clip: frame by beat; the grip snap kicks the camera, a landing throws the mat dust, the end hands over to the idle loop. */
   private stepClip(now: number, a: { x: number; y: number }): void {
     const c = this.clip;
     if (!c) return this.goFight();
+    if (c.driven) {
+      // the wind-up holds on its frame until the next command (or plays by itself over the partner's wind-up)
+      if (c.autoMs && c.autoMs > 0) {
+        const f = Math.min(3, Math.floor(((now - c.t0) / c.autoMs) * 4));
+        if (f > c.shown) {
+          c.shown = f;
+          if (f === 3) this.kick(1);
+        }
+      }
+      return;
+    }
     const u = (now - c.t0) / c.ms;
     if (u >= 1) return this.landClip(c);
-    const i = clipFrameAt(u, c.slow);
+    const from = c.landFrom ?? -1;
+    const i = from >= 0 ? Math.min(CLIP_FRAMES - 1, from + Math.floor(u * (CLIP_FRAMES - from))) : clipFrameAt(u, c.slow);
     if (i === c.shown) return;
     c.shown = i;
     const side = c.flip ? -1 : 1;
@@ -734,6 +786,44 @@ export class BoutStage {
           this.mode = 'win';
           this.setFrames(presentFrames((k) => !!this.h.manifest.sprites[k], Array.from({ length: FRAMES.winRaise }, (_, i) => winRaiseKey(i))), 3, false);
         }
+        break;
+      }
+      case 'windup': {
+        if (this.startDriven(c, now)) break;
+        // no clip for this move (or the match atlas is still loading): hold the pose; the landing plays the cartoon
+        this.clip = null;
+        this.mode = 'fight';
+        break;
+      }
+      case 'step': {
+        const d = this.clip;
+        if (!d?.driven) break;
+        const f = Math.max(d.shown, Math.min(3, c.frame));
+        if (f !== d.shown) {
+          d.shown = f;
+          this.kick(1);
+          if (d.def.family === 'grip' && f === 3) this.puff(a.x + (d.flip ? -6 : 6), a.y - 18, 2);
+        }
+        break;
+      }
+      case 'land': {
+        const d = this.clip;
+        // the clip the move drives (Virar plays the stripe escapes' frames)
+        if (d?.driven && d.def.move === (clipDef(c.move, c.from)?.move ?? c.move)) {
+          d.driven = false;
+          d.autoMs = 0;
+          d.hit = c.hit;
+          if (!c.hit && d.missKeys) d.keys = d.missKeys;
+          // a hit goes on from the big frame (the impact); a miss stumbles on from where it broke
+          d.landFrom = c.hit ? Math.min(d.shown + 1, 4) : d.shown;
+          d.to = c.to;
+          d.aheadTo = c.aheadTo;
+          d.slow = !!c.finale && c.hit && !this.h.reduced();
+          d.t0 = now;
+          d.ms = Math.max(1, c.ms * (d.slow ? 1.6 : 1));
+          break;
+        }
+        this.onCue({ t: 'cartoon', move: c.move, hit: c.hit, from: c.from, to: c.to, aheadFrom: c.aheadFrom, aheadTo: c.aheadTo, ms: c.ms, actor: c.actor, finale: c.finale }, mat);
         break;
       }
       case 'cartoon': {
@@ -1102,7 +1192,7 @@ export class BoutStage {
       pos: this.pos,
       top: this.top,
       frame: this.pair?.texture.key ?? null,
-      clip: this.clip ? `${this.clip.def.move}@${this.clip.def.from}:${this.clip.hit ? 'hit' : 'miss'}:${this.clip.shown}` : null,
+      clip: this.clip ? `${this.clip.def.move}@${this.clip.def.from}:${this.clip.driven ? 'windup' : this.clip.hit ? 'hit' : 'miss'}:${this.clip.shown}` : null,
       flip: this.flip,
       matchAtlas: this.matchAtlas,
       visible: !!this.pair?.visible,

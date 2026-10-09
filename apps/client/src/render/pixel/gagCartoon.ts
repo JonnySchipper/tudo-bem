@@ -5,12 +5,14 @@
  *
  * needs_br: true — Pegada, Quedas, Raspagem, Passagem. Defesa and Final are already on the bout chrome.
  */
-import { MAT_CARTOON_MS, MAT_THINK_MS, isMatMove, type BjjPositionId, type MatMoveId } from '@tudobem/shared';
+import { isMatMove, type BjjPositionId, type MatMoveId } from '@tudobem/shared';
 
-/** How long the move's cartoon plays before the pose is allowed to change. Shared with the server pick clock. */
-export const CARTOON_MS = MAT_CARTOON_MS;
-/** After your cartoon, the opponent sits with the decision before their attempt is shown. */
-export const THINK_MS = MAT_THINK_MS;
+/**
+ * Tatame v3: a move the taps did not drive (Hold, a botch, a brace block, the partner's move with no defense beat, or no baked clip)
+ * plays whole over this long. A driven move only plays its landing (`LAND_MS`): the wind-up already played with the taps.
+ */
+export const CARTOON_MS = 900;
+export const LAND_MS = 650;
 
 export type GagTrackId = 'grips' | 'takedowns' | 'sweeps' | 'defense' | 'passes' | 'subs';
 
@@ -25,7 +27,7 @@ export const GAG_TRACKS: readonly GagTrack[] = [
   { id: 'grips', pt: 'Pegada', en: 'Grips', moves: ['collar_tie', 'sleeve_grip'] },
   { id: 'takedowns', pt: 'Quedas', en: 'Takedowns', moves: ['hip_throw', 'collar_drag', 'double_leg', 'body_lock', 'single_leg', 'sleeve_pull'] },
   { id: 'sweeps', pt: 'Raspagem', en: 'Sweeps', moves: ['hook_sweep', 'scissor_sweep', 'hip_bump'] },
-  { id: 'defense', pt: 'Defesa', en: 'Defense', moves: ['posture', 'sprawl', 'frame', 'escape_back'] },
+  { id: 'defense', pt: 'Defesa', en: 'Defense', moves: ['posture', 'sprawl', 'frame', 'escape_back', 'virar'] },
   { id: 'passes', pt: 'Passagem', en: 'Passes', moves: ['passar', 'knee_on_belly', 'back_take'] },
   { id: 'subs', pt: 'Final', en: 'Submissions', moves: ['armbar', 'americana', 'rnc'] },
 ];
@@ -71,6 +73,7 @@ const SIGNATURE: Record<MatMoveId, { x: number; y: number; rot: number }> = {
   sprawl: { x: -22, y: 18, rot: 14 },
   frame: { x: 32, y: -6, rot: -12 },
   escape_back: { x: -8, y: -14, rot: 40 },
+  virar: { x: 26, y: -10, rot: 30 },
   armbar: { x: 16, y: -22, rot: -36 },
   americana: { x: -18, y: -16, rot: 32 },
   rnc: { x: -30, y: 6, rot: -20 },

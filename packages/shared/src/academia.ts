@@ -110,6 +110,11 @@ export interface BjjProgress {
   /** Bond points paid today for bouts (a small daily cap keeps friendship from being farmed). */
   bondDay?: string;
   bondToday?: number;
+  /**
+   * Losses in a row (a win or a draw sets it back to 0; a quit does not count). While the belt is white it quietly widens the next
+   * match's windows (`comfortScale`). Never shown to the player.
+   */
+  lossStreak?: number;
 }
 
 /** Belt and stripes from a win count. Wins are the source of truth on the account. */
@@ -188,7 +193,8 @@ export function normalizeBjj(p?: Partial<BjjProgress> | null): BjjProgress {
   let pending: MatMoveId | null = isMatMove(p?.pendingDrill) ? p!.pendingDrill! : null;
   if (pending && (unlocked.includes(pending) || !through.includes(pending) || pending !== taught)) pending = null;
   if (!pending && taught && (LATER_AWARDS as readonly MatMoveId[]).includes(taught) && !unlocked.includes(taught)) pending = taught;
-  const out: BjjProgress = { belt, stripes, wins, unlocked, ...(pending ? { pendingDrill: pending } : {}) };
+  const lossStreak = Math.max(0, Math.floor(Number(p?.lossStreak) || 0));
+  const out: BjjProgress = { belt, stripes, wins, unlocked, ...(pending ? { pendingDrill: pending } : {}), lossStreak };
   if (typeof p?.bondDay === 'string') out.bondDay = p.bondDay;
   if (Number.isFinite(Number(p?.bondToday))) out.bondToday = Math.max(0, Math.floor(Number(p!.bondToday)));
   return out;

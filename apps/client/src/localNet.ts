@@ -109,9 +109,9 @@ export class LocalNet implements NetLike {
     return this.world?.enableFeiraGame(id) ?? false;
   }
 
-  /** Test/shots hook (`?rolltest` only): the live bout state of the in-page world, to stage a moment (a full pegada at the top of the ladder). */
-  debugBout(): { st: Record<string, unknown> } | null {
-    return new URLSearchParams(location.search).has('rolltest') ? ((this.session?.bout as unknown as { st: Record<string, unknown> } | undefined) ?? null) : null;
+  /** Test/shots hook (`?rolltest` only): the live bout of the in-page world (`mat` is the Tatame v3 state), to stage a moment (the top, a grip). */
+  debugBout(): { mat: Record<string, unknown>; phase: string } | null {
+    return new URLSearchParams(location.search).has('rolltest') ? ((this.session?.bout as unknown as { mat: Record<string, unknown>; phase: string } | undefined) ?? null) : null;
   }
 
   /** Test/shots hook (`?rolltest` only): the in-page session, to stage a moment (a blue belt unlocks every partner). */

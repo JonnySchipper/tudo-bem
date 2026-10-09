@@ -135,6 +135,8 @@ const GROUP_LABELS: Record<string, Bilingual> = {
   padaria: { pt: 'Padaria', en: 'Bakery' },
   social: { pt: 'Cumprimentos', en: 'Greetings' },
   num: { pt: 'Números', en: 'Numbers' },
+  // needs_br: true — the mat's ten commands (Treino no tatame)
+  tatame: { pt: 'Tatame', en: 'On the mat' },
 };
 
 export interface CadernoGroup {

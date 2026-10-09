@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { MatMoveId } from '@tudobem/shared';
-import { CARTOON_MS, GAG_TRACKS, THINK_MS, cartoonFor, sampleCartoon, trackOf } from './gagCartoon';
+import { CARTOON_MS, GAG_TRACKS, LAND_MS, cartoonFor, sampleCartoon, trackOf } from './gagCartoon';
 
 const MOVES: MatMoveId[] = [
   'collar_tie',
@@ -21,6 +21,7 @@ const MOVES: MatMoveId[] = [
   'sprawl',
   'frame',
   'escape_back',
+  'virar',
   'armbar',
   'americana',
   'rnc',
@@ -93,10 +94,10 @@ describe('move cartoons', () => {
     }
   });
 
-  it('is a short beat, slow enough to read, with a pause before the opponent shows their hand', () => {
-    expect(CARTOON_MS).toBeGreaterThan(1200);
-    expect(CARTOON_MS).toBeLessThan(2500);
-    expect(THINK_MS).toBeGreaterThan(2000);
-    expect(THINK_MS).toBeLessThan(5000);
+  it('is a short beat that fits the resolve, with no thinking pause', () => {
+    // Tatame v3: no thinking pause; a whole move fits the 0.6–0.9 s resolve beat, a driven landing a little less
+    expect(CARTOON_MS).toBeGreaterThanOrEqual(600);
+    expect(CARTOON_MS).toBeLessThanOrEqual(900);
+    expect(LAND_MS).toBeLessThan(CARTOON_MS);
   });
 });

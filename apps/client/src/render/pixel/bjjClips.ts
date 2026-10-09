@@ -88,8 +88,15 @@ export const SLAM_FAMILIES: readonly ClipFamily[] = ['shoot', 'throw', 'drag', '
 const tag = (s: string) => s.replace(/[^a-z_]/g, '');
 export const clipKey = (move: string, from: string, hit: boolean, i: number): string => `bjj/mv_${tag(move)}__${tag(from)}_${hit ? 'h' : 'm'}_${i}`;
 
+/**
+ * Virar (everyone's escape, no art of its own) plays the stripe escapes' frames: Recuperar's from the side, the knee and the top, Sair's
+ * from the back.
+ */
+const clipMove = (move: string, from: string): string => (move === 'virar' ? (from === 'costas' ? 'escape_back' : 'frame') : move);
+
 export function clipDef(move: string, from: string): ClipDef | null {
-  return CLIPS.find((c) => c.move === move && c.from === from) ?? null;
+  const m = clipMove(move, from);
+  return CLIPS.find((c) => c.move === m && c.from === from) ?? null;
 }
 
 /** Which frame of a clip shows at `u` (0..1 of the cartoon). */

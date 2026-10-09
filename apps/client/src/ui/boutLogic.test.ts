@@ -1,227 +1,305 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { MOMENTUM_THRESHOLD, MOVE_LABEL, REF_LINES, type BoutServerMsg, type BoutSnapshot } from '@tudobem/shared';
-import { GAG_TRACKS } from '../render/pixel/gagCartoon';
-import { callOf, clockAt, crowdForResolve, cuesForEnd, cuesForFinishEnd, cuesForResolve, ladderDots, matGlossLocked, matRootClass, momentumFrac, resultBanner, moveHint, oddsTone, coachTip, cuesForGrip, gripEventLine, gripLife, groundRead, isBraceMove, meterFrac } from './boutLogic';
+import { COMMANDS, COMMAND_LABEL, DEFENSES, DEFENSE_LABEL, MAT_CALLS, MOVE_LABEL, REF_LINES, type BoutServerMsg, type BoutSnapshot } from '@tudobem/shared';
+import {
+  BIA_LINES,
+  COACH_NOTES,
+  COMMAND_PAD,
+  DEFENSE_FOR,
+  DEFENSE_PAD,
+  DRILL_LINE,
+  callOf,
+  chainGrade,
+  chevrons,
+  coachTip,
+  crowdForResolve,
+  cuesForEnd,
+  cuesForGrip,
+  cuesForResolve,
+  defenseAnswer,
+  gripEventLine,
+  gripLife,
+  groundRead,
+  matGlossLocked,
+  matRootClass,
+  meterFrac,
+  padBeat,
+  padDots,
+  padExpired,
+  padKey,
+  padLabel,
+  padPerfect,
+  padTap,
+  padTimeout,
+  posLine,
+  resolveLine,
+  resolveSpeech,
+  ringFrac,
+  stepDots,
+  windupFrame,
+} from './boutLogic';
 
 type Resolve = Extract<BoutServerMsg, { phase: 'resolve' }>;
-type FinishEnd = Extract<BoutServerMsg, { phase: 'finish_end' }>;
 type End = Extract<BoutServerMsg, { phase: 'end' }>;
 
-const snap = (over: Partial<BoutSnapshot> = {}): BoutSnapshot => ({ rung: 0, momentum: 0, points: { you: 0, partner: 0 }, adv: { you: 0, partner: 0 }, pegada: 0, pegadaB: 0, clockMs: 300_000, exchange: 1, position: 'de_pe', ahead: null, streak: 0, ...over });
-const resolve = (over: Partial<Resolve> = {}): Resolve => ({ t: 'bout', v: 1, phase: 'resolve', seq: 1, st: snap(), intent: 'puxar', yours: { correct: true, speed: 0.4, fast: false, timeout: false }, partner: { intent: 'empurrar', correct: false }, delta: 3, events: [], holdMs: 1300, ...over });
+const snap = (over: Partial<BoutSnapshot> = {}): BoutSnapshot => ({ rung: 0, points: { you: 0, partner: 0 }, adv: { you: 0, partner: 0 }, clockMs: 120_000, exchange: 1, turns: 16, position: 'de_pe', ahead: null, ...over });
+const resolve = (over: Partial<Resolve> = {}): Resolve => ({
+  t: 'bout',
+  v: 2,
+  phase: 'resolve',
+  seq: 1,
+  st: snap(),
+  actor: 'you',
+  move: 'double_leg',
+  landed: true,
+  how: 'landed',
+  points: 0,
+  events: [],
+  holdMs: 900,
+  from: 'de_pe',
+  aheadFrom: null,
+  ...over,
+});
+
+/** Position and submission names the #49 lock keeps out of the overlay. */
+const NAMES = /guarda|montada|costas|cem quilos|joelho na|kimura|triângulo|mata-leão|finaliza|submission|closed guard|half guard|side control|knee on belly|back control|\bmount\b|\boss\b|\brola\b|gracie/i;
 
 describe('Verde glosses on the mat', () => {
   it('locks English on for Verde, and leaves every later plate behind bout-noen', () => {
     expect(matGlossLocked('verde')).toBe(true);
     expect(matGlossLocked(undefined)).toBe(true);
-    expect(matGlossLocked(null)).toBe(true);
-    expect(matRootClass('verde')).toBe('bout-root bout-grip');
-    expect(matRootClass(null)).toBe('bout-root bout-grip');
+    expect(matRootClass('verde')).toBe('bout-root bout-v3');
     for (const plate of ['amarelo', 'azul', 'roxo', 'dourado'] as const) {
       expect(matGlossLocked(plate)).toBe(false);
-      expect(matRootClass(plate)).toBe('bout-root bout-grip bout-noen');
+      expect(matRootClass(plate)).toBe('bout-root bout-v3 bout-noen');
     }
   });
 
-  it('move names, category labels and coach lines all carry an English gloss', () => {
-    for (const [id, label] of Object.entries(MOVE_LABEL)) {
-      expect(label.pt.trim().length, id).toBeGreaterThan(0);
-      expect(label.en.trim().length, id).toBeGreaterThan(0);
-      expect(label.en, id).not.toBe(label.pt);
+  it('every pad word, move name, coach note and tip carries an English gloss', () => {
+    for (const w of [...COMMANDS, ...DEFENSES]) {
+      const l = padLabel(w);
+      expect(l.pt, w).toMatch(/!$/);
+      expect(l.en.trim().length, w).toBeGreaterThan(0);
     }
-    for (const track of GAG_TRACKS) {
-      expect(track.en.trim().length, track.id).toBeGreaterThan(0);
-      expect(track.en, track.id).not.toBe(track.pt);
-    }
+    for (const [id, label] of Object.entries(MOVE_LABEL)) expect(label.en, id).not.toBe('');
+    for (const note of Object.values(COACH_NOTES)) expect(note.en).not.toBe(note.pt);
     const tips = [
       coachTip({ winner: 'you', reason: 'finalizacao', you: 2, them: 0, unlocked: [] }),
-      coachTip({ winner: 'partner', reason: 'finalizacao', you: 0, them: 2, unlocked: ['frame'] }),
+      coachTip({ winner: 'partner', reason: 'finalizacao', you: 0, them: 2, unlocked: [] }),
       coachTip({ winner: 'partner', reason: 'pontos', you: 0, them: 2, unlocked: [] }),
       coachTip({ winner: 'draw', reason: 'empate', you: 1, them: 1, unlocked: [] }),
       coachTip({ winner: 'you', reason: 'pontos', you: 4, them: 1, unlocked: ['armbar'] }),
-      coachTip({ winner: 'you', reason: 'pontos', you: 2, them: 0, unlocked: [] }),
+      coachTip({ winner: 'you', reason: 'pontos', you: 4, them: 1, unlocked: [], perfect: 9 }),
+      coachTip({ winner: 'you', reason: 'pontos', you: 0, them: 0, unlocked: ['double_leg'] }),
     ];
     for (const tip of tips) {
       expect(tip?.en.trim().length).toBeGreaterThan(0);
-      expect(tip?.en).not.toBe(tip?.pt);
+      expect(`${tip?.pt} ${tip?.en}`).not.toMatch(NAMES);
     }
-    for (const id of Object.keys(MOVE_LABEL)) {
-      const hint = moveHint(id, id === 'armbar' ? { points: 0, to: 'montada', toAhead: 'you', submission: true, riskBottom: true } : { points: 2, to: 'cem_quilos', toAhead: 'you', submission: false, riskBottom: false });
-      if (!hint.pt) continue;
-      expect(hint.en.trim().length, id).toBeGreaterThan(0);
-    }
+    expect(coachTip({ winner: 'none', reason: 'quit', you: 0, them: 0, unlocked: [] })).toBeNull();
   });
 });
 
-describe('bout UI logic', () => {
-  it('the momentum bar shows progress to the next rung, -1..1', () => {
-    expect(momentumFrac(0)).toBe(0);
-    expect(momentumFrac(MOMENTUM_THRESHOLD / 2)).toBeCloseTo(0.5);
-    expect(momentumFrac(-MOMENTUM_THRESHOLD)).toBe(-1);
-    expect(momentumFrac(999)).toBe(1);
+describe('the pads', () => {
+  it('six commands and four defenses in the fixed order of the keys', () => {
+    expect(COMMAND_PAD.map((c) => COMMAND_LABEL[c].pt)).toEqual(['Pega!', 'Puxa!', 'Empurra!', 'Gira!', 'Levanta!', 'Aperta!']);
+    expect(DEFENSE_PAD.map((d) => DEFENSE_LABEL[d].pt)).toEqual(['Postura!', 'Base!', 'Trava!', 'Sai!']);
+    expect(padKey('1', 6)).toBe(0);
+    expect(padKey('6', 6)).toBe(5);
+    expect(padKey('5', 4)).toBeNull();
+    expect(padKey('h', 4)).toBeNull();
+    expect(padKey('0', 6)).toBeNull();
   });
 
-  it('the ladder has nine steps with the current one marked', () => {
-    const d = ladderDots(2);
-    expect(d).toHaveLength(9);
-    expect(d.filter((x) => x.here).map((x) => x.rung)).toEqual([2]);
-    expect(d.filter((x) => x.filled).map((x) => x.rung)).toEqual([0, 1, 2]);
-    expect(ladderDots(-3).filter((x) => x.filled).map((x) => x.rung)).toEqual([-3, -2, -1, 0]);
-    expect(ladderDots(0).filter((x) => x.filled).map((x) => x.rung)).toEqual([0]);
-    expect(ladderDots(99).find((x) => x.here)?.rung).toBe(4);
+  it('a chain beat: hits move on, Perfeito inside 45% of the window, a wrong button ends it there', () => {
+    let b = padBeat('chain', ['puxa', 'gira', 'levanta'], [2000, 2000, 2000]);
+    expect(padDots(b)).toEqual(['here', 'todo', 'todo']);
+    let r = padTap(b, 'puxa', 500);
+    expect(r.grade).toBe('perfeito');
+    b = r.beat;
+    expect(b.step).toBe(1);
+    expect(padDots(b)).toEqual(['done', 'here', 'todo']);
+    r = padTap(b, 'gira', 1500);
+    expect(r.grade).toBe('boa');
+    b = r.beat;
+    r = padTap(b, 'pega', 100);
+    expect(r.grade).toBe('errou');
+    expect(r.beat.over).toBe(true);
+    expect(padDots(r.beat)).toEqual(['done', 'done', 'broke']);
+    // nothing after the beat is over
+    expect(padTap(r.beat, 'levanta', 100).grade).toBeNull();
   });
 
-  it('the result strip: quick, right, missed, out of time', () => {
-    expect(resultBanner({ yours: { correct: true, speed: 1, fast: true, timeout: false } }).pt).toBe('Rápido!');
-    expect(resultBanner({ yours: { correct: true, speed: 0.1, fast: false, timeout: false } }).pt).toBe('Certo!');
-    expect(resultBanner({ yours: { correct: false, speed: 0, fast: false, timeout: false } }).pt).toBe('Errou!');
-    expect(resultBanner({ yours: { correct: false, speed: 0, fast: false, timeout: true } }).pt).toBe('Tempo!');
+  it('the window running out is Tarde!; a late press is Tarde! too; all Perfeito is one step of Ritmo', () => {
+    const b = padBeat('chain', ['pega'], [1000]);
+    expect(padExpired(b, 900)).toBe(false);
+    expect(padExpired(b, 1001)).toBe(true);
+    const late = padTimeout(b);
+    expect(late.over).toBe(true);
+    expect(late.grades).toEqual(['tarde']);
+    expect(padTap(b, 'pega', 1200).grade).toBe('tarde');
+    const done = padTap(b, 'pega', 300).beat;
+    expect(done.over).toBe(true);
+    expect(padPerfect(done)).toBe(true);
+    expect(padPerfect(padTap(b, 'pega', 800).beat)).toBe(false);
+    expect(chainGrade(['perfeito', 'perfeito'])).toBe('perfeito');
+    expect(chainGrade(['perfeito', 'boa'])).toBe('boa');
   });
 
-  it("a scramble becomes a transition cue, Bia's call and a crowd cue, in that order", () => {
-    const m = resolve({
-      st: snap({ rung: 1, position: 'guarda_fechada', ahead: 'you', streak: 1 }),
-      events: [
-        { type: 'transition', from: 'de_pe', to: 'guarda_fechada', rungFrom: 0, rungTo: 1, gain: 'you' },
-        { type: 'points', side: 'you', pts: 2, signal: 'pontos2', line: REF_LINES.pontos2 },
-      ],
-    });
-    const cues = cuesForResolve(m);
-    expect(cues.map((c) => c.t)).toEqual(['transition', 'ref', 'crowd']);
-    expect(cues[1]).toEqual({ t: 'ref', signal: 'pontos2' });
-    expect(cues[2]).toEqual({ t: 'crowd', cue: 'points_you' });
-    expect(callOf(m)).toEqual(REF_LINES.pontos2);
+  it('the drill has no clock: the wrong button is just not the next step, and it never runs out', () => {
+    const b = padBeat('drill', ['pega', 'gira'], [0, 0]);
+    expect(padExpired(b, 60_000)).toBe(false);
+    const wrong = padTap(b, 'aperta', 10_000);
+    expect(wrong.grade).toBeNull();
+    expect(wrong.beat).toBe(b);
+    const right = padTap(b, 'pega', 10_000);
+    expect(right.grade).toBe('boa');
+    expect(right.beat.step).toBe(1);
   });
 
-  it('the louder call wins when two points land at once, and an advantage is called when nothing else is', () => {
-    const m = resolve({
-      events: [
-        { type: 'points', side: 'you', pts: 2, signal: 'pontos2', line: REF_LINES.pontos2 },
-        { type: 'points', side: 'you', pts: 4, signal: 'pontos4', line: REF_LINES.pontos4 },
-      ],
-    });
-    expect(callOf(m)?.pt).toBe('Quatro pontos!');
-    expect(callOf(resolve({ events: [{ type: 'advantage', side: 'you', signal: 'vantagem', line: REF_LINES.vantagem }] }))?.pt).toBe('Vantagem!');
-    expect(callOf(resolve())).toBeNull();
-    expect(crowdForResolve(resolve({ events: [{ type: 'advantage', side: 'you', signal: 'vantagem', line: REF_LINES.vantagem }] }))).toBe('advantage');
+  it('a defense beat: the Sai! mash is one press per window; the answer is Bia’s call, else what the attack needs', () => {
+    let b = padBeat('defend', ['sai', 'sai', 'sai'], [900, 900, 900]);
+    for (let i = 0; i < 3; i++) b = padTap(b, 'sai', 300).beat;
+    expect(b.over).toBe(true);
+    expect(b.grades).toHaveLength(3);
+    expect(defenseAnswer({ call: 'base', attack: 'queda' })).toBe('base');
+    expect(defenseAnswer({ attack: 'passagem' })).toBe('trava');
+    expect(DEFENSE_FOR).toEqual({ pegada: 'postura', queda: 'base', raspagem: 'base', passagem: 'trava', final: 'sai' });
   });
 
-  it('a miss and a quick right answer each have their own small cue; a near thing makes the crowd gasp', () => {
-    expect(cuesForResolve(resolve({ yours: { correct: false, speed: 0, fast: false, timeout: false } }))[0]).toEqual({ t: 'miss' });
-    expect(cuesForResolve(resolve({ yours: { correct: true, speed: 1, fast: true, timeout: false } }))[0]).toEqual({ t: 'hit', strength: 1 });
-    expect(crowdForResolve(resolve({ st: snap({ momentum: MOMENTUM_THRESHOLD * 0.8 }) }))).toBe('near');
-    expect(crowdForResolve(resolve({ yours: { correct: false, speed: 0, fast: false, timeout: true } }))).toBe('miss');
-    expect(crowdForResolve(resolve())).toBeNull();
-    expect(cuesForResolve(resolve({ st: snap({ streak: 4 }) })).some((c) => c.t === 'long')).toBe(true);
+  it('the wind-up builds a frame per command (0–3) and the chevrons are the chain length', () => {
+    expect([0, 1, 2, 3].map((d) => windupFrame(d, 3))).toEqual([0, 1, 2, 3]);
+    expect(windupFrame(1, 1)).toBe(3);
+    expect(windupFrame(1, 4)).toBe(1);
+    expect(windupFrame(4, 4)).toBe(3);
+    expect(chevrons(1)).toBe('›');
+    expect(chevrons(3)).toBe('›››');
+    expect(stepDots(2, 0)).toEqual(['here', 'todo']);
+    expect(ringFrac(0, 2000)).toBe(1);
+    expect(ringFrac(1000, 2000)).toBe(0.5);
+    expect(ringFrac(5000, 2000)).toBe(0);
+    expect(ringFrac(100, 0)).toBe(1);
+  });
+});
+
+describe('resolve and end cues', () => {
+  it('points: Bia signals them, the crowd cheers the scorer, and her call is the line she speaks', () => {
+    const m = resolve({ points: 2, say: REF_LINES.pontos2, events: [{ type: 'points', side: 'you', pts: 2, signal: 'pontos2', line: REF_LINES.pontos2 }] });
+    expect(cuesForResolve(m)).toEqual([{ t: 'ref', signal: 'pontos2' }, { t: 'crowd', cue: 'points_you' }]);
+    expect(resolveLine(m, 'Mateus').pt).toBe('Dois pontos!');
+    expect(resolveSpeech(m)).toBe('Dois pontos!');
+    expect(callOf(m)?.pt).toBe('Dois pontos!');
   });
 
-  it("finalização results: the tap, the escape back to guard, the partner's tap", () => {
-    const fe = (over: Partial<FinishEnd>): FinishEnd => ({ t: 'bout', v: 1, phase: 'finish_end', kind: 'finalizacao', success: true, st: snap({ rung: 1, position: 'guarda_fechada', ahead: 'you' }), line: REF_LINES.parar, signal: 'parar', holdMs: 1800, ...over });
-    const prev = snap({ rung: 4, position: 'montada', ahead: 'you' });
-    expect(cuesForFinishEnd(fe({}), prev).map((c) => c.t)).toEqual(['finish', 'ref', 'crowd']);
-    const failed = cuesForFinishEnd(fe({ success: false, signal: null }), prev);
-    expect(failed[0]).toMatchObject({ t: 'transition', from: 'montada', to: 'guarda_fechada', gain: null });
-    expect(failed.some((c) => c.t === 'escaped')).toBe(true);
-    expect(cuesForFinishEnd(fe({ kind: 'escape', success: false }), prev)[0]).toEqual({ t: 'finish', winner: 'partner' });
-    expect(cuesForFinishEnd(fe({ kind: 'escape', success: true, signal: null }), snap({ rung: -4, position: 'costas', ahead: 'partner' })).some((c) => c.t === 'escaped')).toBe(true);
+  it('a defended attack is Defendeu! (and a Vantagem when it was worth points); a botch is Errou!; a hold is silent', () => {
+    const def = resolve({ actor: 'partner', landed: false, how: 'defended', say: MAT_CALLS.vantagem, grip: [{ kind: 'defended', side: 'you', adv: true }], events: [{ type: 'advantage', side: 'you', signal: 'vantagem', line: REF_LINES.vantagem }] });
+    expect(resolveSpeech(def)).toBe('Vantagem!');
+    expect(crowdForResolve(def)).toBe('advantage');
+    const plain = resolve({ actor: 'partner', landed: false, how: 'defended', say: MAT_CALLS.defendeu });
+    expect(resolveLine(plain, 'Mateus').pt).toBe('Defendeu!');
+    expect(crowdForResolve(plain)).toBe('escape');
+    const botch = resolve({ actor: 'partner', landed: false, how: 'botched', say: MAT_CALLS.errou });
+    expect(resolveLine(botch, 'Mateus').pt).toBe('Errou!');
+    expect(resolveSpeech(botch)).toBe('Errou!');
+    const hold = resolve({ actor: 'partner', move: 'hold', how: 'hold', say: MOVE_LABEL.hold });
+    expect(resolveLine(hold, 'Mateus').pt).toBe('Mateus segura.');
+    expect(resolveSpeech(hold)).toBeNull();
+    const late = resolve({ landed: false, how: 'late', say: MAT_CALLS.errou, grades: ['perfeito', 'tarde'] });
+    expect(resolveLine(late, 'Mateus').pt).toBe('Tarde!');
+    expect(resolveSpeech(late)).toBe('Tarde!');
+  });
+
+  it('your landed chain with no call is graded aloud: Perfeito! when every tap was', () => {
+    expect(resolveSpeech(resolve({ move: 'collar_tie', say: MOVE_LABEL.collar_tie, grades: ['perfeito'] }))).toBe('Perfeito!');
+    expect(resolveSpeech(resolve({ move: 'collar_tie', say: MOVE_LABEL.collar_tie, grades: ['boa'] }))).toBe('Boa!');
+    expect(resolveLine(resolve({ move: 'collar_tie', say: MOVE_LABEL.collar_tie }), 'Mateus').pt).toBe('Pegar a gola');
+  });
+
+  it('a Ritmo pops a Que ritmo! word and flashes; a throw that lands flashes harder; the ground reads gained or lost', () => {
+    const m = resolve({ grip: [{ kind: 'ritmo', side: 'you' }], meterFrom: 0, meterTo: 20, events: [{ type: 'transition', from: 'de_pe', to: 'cem_quilos', rungFrom: 0, rungTo: 2, gain: 'you' }] });
+    const cues = cuesForGrip(m, 'Mateus');
+    expect(cues).toContainEqual({ t: 'flash', strength: 2 });
+    expect(cues).toContainEqual({ t: 'pop', kind: 'vantagem', side: 'you', text: 'Que ritmo!' });
+    expect(cues).toContainEqual({ t: 'ground', dir: 'gain', delta: 20 });
+    expect(groundRead(10, 4).dir).toBe('loss');
+    expect(groundRead(3, 3).dir).toBe('even');
+    expect(meterFrac(0)).toBe(0.5);
+    expect(meterFrac(-100)).toBe(0);
+  });
+
+  it('grip moments name the side that made them; a grip counts down to its slip', () => {
+    expect(gripEventLine({ kind: 'grip', side: 'you', grip: 'collar' }, 'Mateus').pt).toBe('Pegou a gola!');
+    expect(gripEventLine({ kind: 'strip', side: 'partner', grips: ['sleeve'] }, 'Mateus').pt).toBe('Mateus soltou a sua pegada!');
+    expect(gripEventLine({ kind: 'defended', side: 'you', adv: false }, 'Mateus').pt).toBe('Defendeu!');
+    expect(gripLife(0).left).toBe(3);
+    expect(gripLife(2).pt).toBe('Vai escorregar!');
   });
 
   it('the end: a win raises a hand and Bia calls the victory; a quit shows nothing', () => {
-    const end = (over: Partial<End>): End => ({ t: 'bout', v: 1, phase: 'end', winner: 'you', reason: 'pontos', st: snap(), rv: 12, bjj: { belt: 'branca', stripes: 1, wins: 5, unlocked: ['collar_tie'] }, belt: 'branca', stripeUp: true, beltUp: false, bond: 3, line: { pt: 'Vitória nos pontos!', en: 'x' }, thanks: { pt: 'Obrigado pela partida.', en: 'x' }, signal: 'vitoria', ...over });
-    expect(cuesForEnd(end({})).map((c) => c.t)).toEqual(['end', 'ref', 'crowd']);
-    expect(cuesForEnd(end({ winner: 'none', reason: 'quit', signal: null }))).toEqual([]);
-  });
-
-  it('the scoreboard clock runs 2x while an exchange is on and holds otherwise', () => {
-    expect(clockAt(300_000, 5_000, 2, true)).toBe('4:50');
-    expect(clockAt(300_000, 5_000, 2, false)).toBe('5:00');
-    expect(clockAt(10_000, 99_000, 2, true)).toBe('0:00');
-  });
-});
-
-describe('move picker hints and the end-card tip (polish)', () => {
-  const NAMES = /guarda|montada|costas|cem quilos|joelho na|finaliza|submission|closed guard|side control|\bmount\b/i;
-
-  it('says what a move does without naming a position', () => {
-    expect(moveHint('collar_tie', undefined).pt).toBe('Queda mais forte');
-    expect(moveHint('double_leg', { points: 2, to: 'cem_quilos', toAhead: 'you', submission: false, riskBottom: false }).pt).toBe('+2 · você por cima');
-    const arm = moveHint('armbar', { points: 0, to: 'montada', toAhead: 'you', submission: true, riskBottom: true });
-    expect(arm.pt).toBe('Vale a vitória!');
-    expect(arm.risk?.pt).toBe('Se errar: você por baixo');
-    expect(moveHint('hold', undefined).pt).toBe('Passa a vez');
-    const all = ['collar_tie', 'posture', 'sprawl', 'frame', 'hold'].map((id) => moveHint(id, undefined)).concat([arm]);
-    expect(all.flatMap((x) => [x.pt, x.en, x.risk?.pt ?? '', x.risk?.en ?? '']).join(' ')).not.toMatch(NAMES);
-  });
-
-  it('reads the odds as good, fair or a long shot', () => {
-    expect([oddsTone(70), oddsTone(45), oddsTone(18), oddsTone(undefined)]).toEqual(['good', 'fair', 'long', 'good']);
-  });
-
-  it('Bia gives one tip that fits the result and the moves you have', () => {
-    expect(coachTip({ winner: 'none', reason: 'quit', you: 0, them: 0, unlocked: [] })).toBeNull();
-    expect(coachTip({ winner: 'draw', reason: 'empate', you: 0, them: 0, unlocked: ['double_leg'] })?.pt).toContain('Queda');
-    expect(coachTip({ winner: 'partner', reason: 'finalizacao', you: 0, them: 0, unlocked: ['frame'] })?.pt).toContain('Recuperar');
-    const tips = (['you', 'partner', 'draw'] as const).flatMap((w) =>
-      ['pontos', 'finalizacao', 'empate'].map((r) => coachTip({ winner: w, reason: r, you: 2, them: 1, unlocked: ['armbar', 'frame', 'double_leg'] })),
-    );
-    expect(tips.flatMap((t) => [t?.pt ?? '', t?.en ?? '']).join(' ')).not.toMatch(NAMES);
-  });
-});
-
-describe('Tatame v2: ground, grips, braces', () => {
-  it('reads every move as ground gained or lost from the player seat, and only a still meter as even', () => {
-    expect(groundRead(0, 24)).toMatchObject({ dir: 'gain', delta: 24, pt: 'Você ganhou terreno' });
-    expect(groundRead(10, -7)).toMatchObject({ dir: 'loss', delta: -17, pt: 'Você perdeu terreno' });
-    expect(groundRead(5, 5).dir).toBe('even');
-    expect(groundRead(undefined, undefined).dir).toBe('even');
-    expect(meterFrac(-100)).toBe(0);
-    expect(meterFrac(0)).toBe(0.5);
-    expect(meterFrac(100)).toBe(1);
-    expect(meterFrac(250)).toBe(1);
-  });
-
-  it('names each grip moment for the side that made it, with an English gloss', () => {
-    const lines = [
-      gripEventLine({ kind: 'grip', side: 'you', grip: 'collar' }, 'Mateus'),
-      gripEventLine({ kind: 'grip', side: 'partner', grip: 'sleeve' }, 'Mateus'),
-      gripEventLine({ kind: 'strip', side: 'partner', grips: ['collar'] }, 'Mateus'),
-      gripEventLine({ kind: 'slip', side: 'you', grips: ['sleeve'] }, 'Mateus'),
-      gripEventLine({ kind: 'brace', side: 'you', brace: 'base' }, 'Mateus'),
-      gripEventLine({ kind: 'blocked', side: 'you' }, 'Mateus'),
-    ];
-    expect(lines.map((l) => l.pt)).toEqual(['Pegou a gola!', 'Mateus pegou a manga!', 'Mateus soltou a sua pegada!', 'Sua pegada escorregou!', 'Base firme!', 'Vantagem pra você!']);
-    for (const l of lines) expect(l.en.length).toBeGreaterThan(0);
-  });
-
-  it('turns a resolved move into stage juice: a flash on a throw, Vantagem pops on a blocked attack, a ground arrow', () => {
-    const thrown = resolve({
-      actor: 'you',
-      events: [{ type: 'transition', from: 'de_pe', to: 'cem_quilos', rungFrom: 0, rungTo: 2, gain: 'you' }],
-      grip: [],
-      meterFrom: 9,
-      meterTo: 44,
+    const end = (over: Partial<End>): End => ({
+      t: 'bout',
+      v: 2,
+      phase: 'end',
+      winner: 'you',
+      reason: 'finalizacao',
+      st: snap(),
+      rv: 18,
+      bjj: { belt: 'branca', stripes: 0, wins: 1, unlocked: [] },
+      belt: 'branca',
+      stripeUp: false,
+      beltUp: false,
+      bond: 3,
+      line: { pt: 'Final! Vitória sua!', en: 'Finish! You win!' },
+      thanks: { pt: 'Obrigado pela partida.', en: 'Thanks for the match.' },
+      signal: 'vitoria',
+      ...over,
     });
-    expect(cuesForGrip(thrown, 'Mateus')).toEqual([
-      { t: 'flash', strength: 2 },
-      { t: 'ground', dir: 'gain', delta: 35 },
-    ]);
-    const blocked = resolve({ actor: 'partner', partner: { intent: 'double_leg', correct: false }, grip: [{ kind: 'blocked', side: 'you' }], meterFrom: 0, meterTo: 12 });
-    const cues = cuesForGrip(blocked, 'Mateus');
-    expect(cues).toContainEqual({ t: 'pop', kind: 'vantagem', side: 'you', text: 'Vantagem!' });
-    expect(cues).toContainEqual({ t: 'flash', strength: 1 });
-    expect(cues.at(-1)).toEqual({ t: 'ground', dir: 'gain', delta: 12 });
-    const held = resolve({ grip: [{ kind: 'grip', side: 'you', grip: 'collar' }], meterFrom: 0, meterTo: 0 });
-    expect(cuesForGrip(held, 'Mateus')).toEqual([{ t: 'pop', kind: 'grip', side: 'you', text: 'Pegou a gola!' }]);
+    expect(cuesForEnd(end({}))).toEqual([{ t: 'end', winner: 'you', reason: 'finalizacao' }, { t: 'ref', signal: 'vitoria' }, { t: 'crowd', cue: 'tap' }]);
+    expect(cuesForEnd(end({ winner: 'none', reason: 'quit' }))).toEqual([]);
   });
 
-  it('draws Postura, Base and the closed-guard Recuperar as brace buttons, and counts a grip down to its slip', () => {
-    expect(isBraceMove('posture', undefined)).toBe(true);
-    expect(isBraceMove('sprawl', undefined)).toBe(true);
-    expect(isBraceMove('frame', { pt: 'Trava a passagem dele', en: 'Blocks their pass' })).toBe(true);
-    expect(isBraceMove('frame', undefined)).toBe(false);
-    expect(isBraceMove('double_leg', undefined)).toBe(false);
-    expect(gripLife(0)).toMatchObject({ left: 3 });
-    expect(gripLife(1).pt).toBe('2 turnos');
-    expect(gripLife(2).pt).toBe('Vai escorregar!');
+  it('the position line says who is on top and how big the lead is, never a position name', () => {
+    expect(posLine({ position: 'de_pe', ahead: null, rung: 0 }).pt).toBe('Em pé');
+    expect(posLine({ position: 'cem_quilos', ahead: 'you', rung: 2 }).pt).toBe('Você por cima · Pressão');
+    expect(posLine({ position: 'montada', ahead: 'partner', rung: -4 }).pt).toBe('Você por baixo · Final');
+    for (const [position, rung] of [['guarda_fechada', 1], ['joelho', 3], ['costas', 4]] as const) {
+      const l = posLine({ position, ahead: 'you', rung });
+      expect(`${l.pt} ${l.en}`).not.toMatch(NAMES);
+    }
+  });
+});
+
+describe("Bia's voice on the mat", () => {
+  it('speaks only her baked lines: the ten pad words, the grades, her calls, Combate!, Agora você. and the end lines', () => {
+    for (const w of [...COMMANDS.map((c) => COMMAND_LABEL[c].pt), ...DEFENSES.map((d) => DEFENSE_LABEL[d].pt)]) expect(BIA_LINES).toContain(w);
+    for (const l of ['Perfeito!', 'Boa!', 'Errou!', 'Tarde!', 'Defendeu!', 'Escapou!', 'Que ritmo!', 'Combate!', 'Dois pontos!', 'Vantagem!', 'Final!', DRILL_LINE.pt, 'Final! Vitória sua!', 'Vitória nos pontos!', 'Empate!']) {
+      expect(BIA_LINES).toContain(l);
+    }
+    expect(new Set(BIA_LINES).size).toBe(BIA_LINES.length);
+    expect(BIA_LINES.join(' | ')).not.toMatch(NAMES);
+    // every line a resolve can speak is one of hers
+    const samples: Partial<Resolve>[] = [
+      { say: MAT_CALLS.final },
+      { say: MAT_CALLS.four },
+      { say: MAT_CALLS.three },
+      { say: MAT_CALLS.escapou, landed: false, how: 'missed' },
+      { say: MAT_CALLS.ritmo },
+      { say: MOVE_LABEL.double_leg, grades: ['perfeito', 'perfeito'] },
+      { say: MAT_CALLS.errou, landed: false, how: 'wrong' },
+      { say: MAT_CALLS.errou, landed: false, how: 'late' },
+      { actor: 'partner', say: MOVE_LABEL.passar, landed: true, how: 'landed' },
+    ];
+    for (const s of samples) {
+      const said = resolveSpeech(resolve(s));
+      if (said) expect(BIA_LINES, said).toContain(said);
+    }
+  });
+
+  it('every one of her lines is listed for baking in content/tts/extra-lines.json as speaker prof', () => {
+    const file = path.resolve(import.meta.dirname, '../../../../content/tts/extra-lines.json');
+    const lines = (JSON.parse(fs.readFileSync(file, 'utf8')) as { lines: { speaker: string; text: string }[] }).lines;
+    const prof = new Set(lines.filter((l) => l.speaker === 'prof').map((l) => l.text));
+    expect(BIA_LINES.filter((l) => !prof.has(l))).toEqual([]);
   });
 });

@@ -22,6 +22,18 @@ export type StageCue =
   | { t: 'pop'; kind: 'vantagem' | 'grip' | 'strip' | 'slip' | 'brace'; side: 'you' | 'partner'; text: string }
   /** The move's ground read: an arrow over the pair toward who gained the ground. */
   | { t: 'ground'; dir: 'gain' | 'loss'; delta: number }
+  /**
+   * Tatame v3: a move driven by the taps. The clip's wind-up (frames 0–3) shows and holds; `ms` makes it play by itself (the
+   * partner's wind-up before the defense pad).
+   */
+  | { t: 'windup'; move: string; from: BjjPositionId; aheadFrom: 'you' | 'partner' | null; actor: 'you' | 'partner'; ms?: number }
+  /** a command landed: the wind-up moves on to this frame (0–3) */
+  | { t: 'step'; frame: number }
+  /**
+   * The driven move resolves: a hit plays the impact, the landing and the settle (frames 4–7); a miss plays the miss clip from where
+   * it broke. With no driven clip on the mat (Hold, a botch, a missing clip) it plays the whole move as a cartoon.
+   */
+  | { t: 'land'; move: string; hit: boolean; from: BjjPositionId; to: BjjPositionId; aheadFrom: 'you' | 'partner' | null; aheadTo: 'you' | 'partner' | null; ms: number; actor: 'you' | 'partner'; finale?: boolean }
   | {
       t: 'cartoon';
       move: string;
