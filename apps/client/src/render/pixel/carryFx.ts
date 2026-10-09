@@ -27,6 +27,9 @@ const RAISE = 200;
 const BITES_END = 700;
 const BITES = 3;
 
+/** When each bite or sip lands, in ms from the start of the beat (the sounds are scheduled on these). */
+export const BITE_MS: readonly number[] = Array.from({ length: BITES }, (_, i) => RAISE + (i * (BITES_END - RAISE)) / BITES);
+
 export interface BeatPose {
   /** 0 = in the hand, 1 = at the mouth. */
   lift: number;

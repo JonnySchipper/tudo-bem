@@ -65,6 +65,8 @@ import { roofHall } from './roofLights';
 import { aoForOverhead, aoForSprite } from './ao';
 import { AmbientLife, ambientHandlesProp } from './ambient';
 import { ZoneFeed } from '../../audio/zonesFeed';
+import { ambience } from '../../ambience';
+import { carrySfxFor, carrySfxGain } from '../../audio/carrySfx';
 import { FrameProbe, LowFxGovernor, reducedMotion } from './perf';
 import { clock } from '../../gameClock';
 import { buildTerrainLayers } from './terrainLayers';
@@ -1900,6 +1902,7 @@ export class WorldScene extends Phaser.Scene {
     const intent = a.pub.id === game.room?.selfId && game.carryIntent && performance.now() - game.carryIntent.at < 5000 ? game.carryIntent.action : null;
     const move = old ? carryMove(prevKey, key, intent) : 'swap';
     const beat = (move === 'eat' || move === 'drink') && !reducedMotion();
+    if (move === 'eat' || move === 'drink') this.carrySound(a, prevKey);
     if (key) {
       const tex = `carry:${carryOf(key)!.tex}`;
       if (this.textures.exists(tex)) {
@@ -1919,6 +1922,16 @@ export class WorldScene extends Phaser.Scene {
     }
     if (move === 'eat' || carryOf(prevKey)?.kind === 'food') this.carryCrumbs(old.x, old.y, depth);
     old.destroy();
+  }
+
+  /** The bites or sips of a Comer / Beber (`carrySfx.ts`), timed to the beat; played with reduced motion too, where the beat is skipped. */
+  private carrySound(a: ClientAvatar, prevKey: string): void {
+    const kind = carrySfxFor(prevKey);
+    const me = game.self?.pub;
+    if (!kind || !game.sound || !me) return;
+    const self = a.pub.id === me.id;
+    const gain = carrySfxGain(self, Math.hypot(a.pub.x - me.x, a.pub.y - me.y));
+    if (gain > 0) ambience.sfx(kind, gain);
   }
 
   /** Jogar fora: an arc into the lixeira in reach (the bin bounces as it lands), else onto the ground a step ahead, where it hops and fades. */
