@@ -67,6 +67,21 @@ try {
   await shot('journal');
   await page.keyboard.press('Escape');
 
+  // first-time help: a panel's "?" reads its How it works card, and Ajustes → Guia brings back the Vila guide
+  await page.click('#cartela-pill');
+  await page.waitForSelector('[data-modal="cartela"]', { timeout: 5000 });
+  await page.click('#howto-help');
+  await page.waitForSelector('#howto-card[data-game="cartela"]', { timeout: 4000 });
+  await page.click('#howto-ok');
+  await page.keyboard.press('Escape');
+  await page.click('#btn-menu');
+  await page.click('#btn-guide');
+  await page.waitForSelector('#vila-guide', { timeout: 4000 });
+  await shot('guide');
+  await page.click('#vila-guide-ok');
+  await page.waitForSelector('#vila-guide', { state: 'detached', timeout: 4000 });
+  log('How it works (Cartela) and the Vila guide open on demand');
+
   // the feira at the Hortifrúti corner (any hour): it is at the banca on the rua, so walk off the praça's north edge first
   await goArea(page, 'rua');
   await page.evaluate(() => window.__tb.interact({ prop: 'hortifruti' }));

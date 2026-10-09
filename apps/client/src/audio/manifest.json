@@ -139,6 +139,12 @@
       "file": "julia-e753437801.mp3"
     },
     {
+      "id": "julia-1a6fc7f579",
+      "voice": "julia",
+      "text": "Muita coisa! Dá uma olhada no guia da Vila.",
+      "file": "julia-1a6fc7f579.mp3"
+    },
+    {
       "id": "julia-218329ef07",
       "voice": "julia",
       "text": "É só clicar no chão! Pra sentar, clique num banco.",
@@ -151,16 +157,16 @@
       "file": "julia-d9c503b993.mp3"
     },
     {
-      "id": "julia-79229ba989",
+      "id": "julia-15bff486a1",
       "voice": "julia",
-      "text": "Ali, na porta com o toldo vermelho! O Seu Carlos adora conversar.",
-      "file": "julia-79229ba989.mp3"
+      "text": "Na Rua dos Ipês, logo acima da praça! É a porta com o toldo vermelho.",
+      "file": "julia-15bff486a1.mp3"
     },
     {
-      "id": "julia-e97b61f876",
+      "id": "julia-213dbc7ca4",
       "voice": "julia",
-      "text": "Tome café com o Seu Carlos e jogue a “Correria no Balcão” no balcão. Depois compre um chapéu com a Nanda!",
-      "file": "julia-e97b61f876.mp3"
+      "text": "Faça uns recados pros vizinhos e jogue a “Correria no Balcão” na padaria. Depois compre um chapéu com a Nanda!",
+      "file": "julia-213dbc7ca4.mp3"
     },
     {
       "id": "tia_lu-cc0f54207a",

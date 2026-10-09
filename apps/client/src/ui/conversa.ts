@@ -125,7 +125,7 @@ function buildScoreCard(grade: ConversaGrade, payout: number, meter: ConversaMet
       { class: 'score-axis' },
       h('span', { class: 'axis-label' }, axis.pt, h('small', { class: 'axis-en' }, axis.en)),
       h('div', { class: 'track' }, h('div', { class: 'fill', style: `width:${pct}%` })),
-      h('small', { class: 'tip' }, axis.tip.pt),
+      h('small', { class: 'tip' }, axis.tip.pt, en(axis.tip.en, true)),
     );
   });
 
@@ -163,7 +163,7 @@ function boxSpec(s: ConversaState): BoxSpec {
     key: 'conversa',
     npcId: s.npcId,
     speaker: s.npcName,
-    role: s.subjectTitle.pt,
+    role: `${s.subjectTitle.pt} · ${s.subjectTitle.en}`,
     meta: s.ended ? null : `${s.turn}/${s.maxTurns}`,
     expression: expressionForGrade(s.ended ? s.grade : null),
     line: s.ended || waiting || !npcLine ? null : { pt: npcLine.pt, en: npcLine.en },
@@ -171,7 +171,9 @@ function boxSpec(s: ConversaState): BoxSpec {
     said: s.ended ? null : said,
     notes: [
       s.offline ? h('small', { class: 'dbx-note offline-note' }, CONVERSA_COPY.offline.pt, en(CONVERSA_COPY.offline.en, true)) : null,
-      s.history.length <= 1 && !s.ended ? h('small', { class: 'dbx-note private-note' }, CONVERSA_COPY.private.pt) : null,
+      // the first turn says what the chat is for (the goal the grade checks) and that nobody else sees it
+      s.history.length <= 1 && !s.ended ? h('small', { class: 'dbx-note goal-note' }, bi(`Meta: ${s.subjectGoal.pt}`, `Goal: ${s.subjectGoal.en}`)) : null,
+      s.history.length <= 1 && !s.ended ? h('small', { class: 'dbx-note private-note' }, CONVERSA_COPY.private.pt, en(CONVERSA_COPY.private.en, true)) : null,
     ],
     extras: s.ended && s.grade ? buildScoreCard(s.grade, s.payout, s.meter, s.rvNote) : null,
     chips: s.ended || waiting ? [] : s.chips.map((c) => ({ pt: addressed(s.npcId, c.pt), en: addressed(s.npcId, c.en) })),
@@ -453,7 +455,8 @@ export async function openConversa(
     );
 
     if (response.phase === 'blocked') {
-      console.log('[conversa] Blocked:', response.reason);
+      // say why (one Conversa a day per neighbour), instead of a click that does nothing
+      toast('info', response.pt, response.en);
       quickOrder = null;
       closeCallback = null;
       return;

@@ -920,3 +920,44 @@ body.in-desembarque #aero-tut {
   opacity: 0;
   transition: opacity 0.6s ease;
 }
+
+/* ---------------------------------------------------------------- the Vila Ipê guide (ui/vilaGuide.ts): what there is to do, once */
+
+.vila-guide {
+  width: min(480px, calc(100vw - 24px));
+}
+
+.vila-guide .vila-guide-list {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.vila-guide .vila-guide-list dt {
+  font-family: var(--font-pixel, var(--font-title));
+  color: var(--terracota-dark, #8f3e15);
+  white-space: nowrap;
+}
+
+.vila-guide .vila-guide-list dd {
+  margin: 0;
+}
+
+.vila-guide .vila-guide-tip {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  background: #fff8e4;
+  border: 2px solid var(--px-ink, #573c2c);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+/* a top-bar stat that explains itself on a click (ui/hudNotes.ts) */
+.hud-stats [data-note]:hover,
+.hud-stats [data-note]:focus-visible {
+  outline: 2px solid var(--amarelo, #f2c230);
+  outline-offset: 2px;
+}

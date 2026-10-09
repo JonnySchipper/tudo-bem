@@ -1,7 +1,15 @@
 import type { Bilingual } from './types.js';
 
-/** Júlia's tutorial Q&A (authored, client-only chips: no rewards, so no server authority). Spoken by the 'julia' voice. */
-export const JULIA_TREE: { q: Bilingual; a: Bilingual }[] = [
+/**
+ * Júlia's tutorial Q&A (authored, client-only chips: no rewards, so no server authority). Spoken by the 'julia' voice.
+ * `guide`: the answer also opens the Vila Ipê guide card (what there is to do). Needs_br: every PT line.
+ */
+export const JULIA_TREE: { q: Bilingual; a: Bilingual; guide?: true }[] = [
+  {
+    q: { pt: 'O que tem pra fazer aqui?', en: 'What is there to do here?' },
+    a: { pt: 'Muita coisa! Dá uma olhada no guia da Vila.', en: 'Lots! Take a look at the Vila guide.' },
+    guide: true,
+  },
   { q: { pt: 'Como eu ando?', en: 'How do I walk?' }, a: { pt: 'É só clicar no chão! Pra sentar, clique num banco.', en: 'Just click the floor! To sit, click a bench.' } },
   {
     q: { pt: 'Como eu falo com as pessoas?', en: 'How do I talk to people?' },
@@ -9,13 +17,13 @@ export const JULIA_TREE: { q: Bilingual; a: Bilingual }[] = [
   },
   {
     q: { pt: 'Onde fica a padaria?', en: 'Where is the bakery?' },
-    a: { pt: 'Ali, na porta com o toldo vermelho! O Seu Carlos adora conversar.', en: 'Right there — the door with the red awning! Seu Carlos loves to chat.' },
+    a: { pt: 'Na Rua dos Ipês, logo acima da praça! É a porta com o toldo vermelho.', en: 'On Rua dos Ipês, just north of the square! The door with the red awning.' },
   },
   {
     q: { pt: 'Como ganho reais virtuais?', en: 'How do I earn RV coins?' },
     a: {
-      pt: 'Tome café com o Seu Carlos e jogue a “Correria no Balcão” no balcão. Depois compre um chapéu com a Nanda!',
-      en: 'Have breakfast with Seu Carlos and play “Correria no Balcão” (Counter Rush) at the counter. Then buy a hat from Nanda!',
+      pt: 'Faça uns recados pros vizinhos e jogue a “Correria no Balcão” na padaria. Depois compre um chapéu com a Nanda!',
+      en: 'Do errands (recados) for the neighbours and play “Correria no Balcão” (Counter Rush) at the bakery. Then buy a hat from Nanda!',
     },
   },
 ];
