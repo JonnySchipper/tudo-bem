@@ -473,4 +473,82 @@ export async function feiraGameSign() {
   outlineAround(img);
   return [{ img, anchor: [22, 50] }];
 }
+/**
+ * The Praça's Placar da Vila (52x56): a wooden village notice board under a little terracotta roof with bunting, a cream PLACAR
+ * plaque and two pinned sheets — a book (words learned) and a flame (streak) — each ruled with gold / silver / bronze ranking rows.
+ * Not the mat scoreboard (props/placar), which stays in the academia.
+ */
+export async function vilaBoard() {
+  const img = blank(52, 56);
+  // posts and feet
+  for (const x of [7, 42]) {
+    fillRect(img, x, 8, 3, 46, C.w4);
+    fillRect(img, x, 8, 1, 46, C.w2);
+    fillRect(img, x + 2, 8, 1, 46, C.w6);
+  }
+  fillRect(img, 5, 52, 7, 2, C.w5);
+  fillRect(img, 40, 52, 7, 2, C.w5);
+  hline(img, 5, 52, 7, C.w3); hline(img, 40, 52, 7, C.w3);
+  // terracotta roof: two rows of rounded tiles under a ridge beam
+  fillRect(img, 4, 1, 44, 2, C.w5);
+  hline(img, 4, 1, 44, C.w3);
+  for (let y = 3; y < 9; y++) {
+    const inset = Math.max(0, 8 - y) - 1;
+    for (let x = 1 + inset; x < 51 - inset; x++) {
+      const k = (x + (y >= 6 ? 2 : 0)) % 4;
+      put(img, x, y, y === 5 || y === 8 ? K.te5 : k === 0 ? K.te4 : k === 1 ? K.te0 : K.te2);
+    }
+  }
+  // festa bunting under the eave
+  const flags = [C.r2, C.y2, C.g2, C.b2, C.p1];
+  for (let i = 0; i < 9; i++) {
+    const x = 4 + i * 5, c = flags[i % flags.length];
+    fillRect(img, x, 9, 3, 1, c);
+    put(img, x + 1, 10, c);
+  }
+  // board: wooden frame around warm planks
+  fillRect(img, 3, 11, 46, 33, C.w3);
+  hline(img, 3, 11, 46, C.w1); vline(img, 3, 11, 33, C.w1);
+  hline(img, 3, 43, 46, C.w5); vline(img, 48, 11, 33, C.w5);
+  fillRect(img, 5, 13, 42, 29, C.w5);
+  for (let y = 13; y < 42; y += 5) hline(img, 5, y, 42, C.w6);
+  for (let y = 14; y < 42; y += 5) hline(img, 5, y, 42, K.br1);
+  // PLACAR plaque, nailed on
+  fillRect(img, 11, 14, 30, 9, NAVY);
+  fillRect(img, 12, 15, 28, 7, C.cr1);
+  hline(img, 12, 15, 28, C.cr0); hline(img, 12, 21, 28, C.cr3);
+  drawText3(img, 15, 16, 'PLACAR', K.te5, C.cr3);
+  put(img, 13, 18, C.w5); put(img, 39, 18, C.w5);
+  // two pinned sheets: words (book) and streak (flame), three ranked rows each
+  const MEDALS = [[C.y3, C.y0], [C.mist2, C.white], [K.te2, K.or0]];
+  const sheet = (x0, icon, lens) => {
+    fillRect(img, x0, 24, 18, 17, NAVY);
+    fillRect(img, x0 + 1, 25, 16, 15, C.cr0);
+    hline(img, x0 + 1, 39, 16, C.cr2); vline(img, x0 + 16, 25, 15, C.cr2);
+    put(img, x0 + 8, 24, C.r3); put(img, x0 + 8, 23, C.r1); // pin
+    icon(x0 + 6, 26);
+    lens.forEach((len, i) => {
+      const y = 31 + i * 3;
+      const [m, shine] = MEDALS[i];
+      fillRect(img, x0 + 2, y, 2, 2, m); put(img, x0 + 2, y, shine);
+      hline(img, x0 + 5, y + 1, len, C.slate);
+      hline(img, x0 + 13, y + 1, 2, K.te4);
+    });
+  };
+  const book = (x, y) => {
+    // an open book: green cover under two white pages, a spine and two lines of text per page
+    fillRect(img, x - 1, y + 1, 8, 4, C.g3);
+    fillRect(img, x, y, 3, 4, C.white); fillRect(img, x + 4, y, 3, 4, C.white);
+    vline(img, x + 3, y + 1, 4, C.sp0);
+    for (const ly of [y + 1, y + 2]) { hline(img, x, ly, 2, C.mist); hline(img, x + 5, ly, 2, C.mist); }
+  };
+  const flame = (x, y) => {
+    put(img, x + 3, y, C.r1); fillRect(img, x + 2, y + 1, 2, 1, C.r1); fillRect(img, x + 1, y + 2, 4, 2, C.r2);
+    fillRect(img, x + 2, y + 2, 2, 2, C.y3); put(img, x + 2, y + 3, C.y1);
+  };
+  sheet(7, book, [7, 6, 5]);
+  sheet(27, flame, [6, 7, 4]);
+  outlineAround(img);
+  return [{ img, anchor: [26, 54] }];
+}
 void flat; void sub; void and; void grid; void crop; void rect; void flipH; void NAVY;

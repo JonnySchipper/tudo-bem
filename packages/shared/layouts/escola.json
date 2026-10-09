@@ -1,0 +1,220 @@
+{
+  "room": "escola",
+  "objects": [
+    {
+      "id": "carteira",
+      "kind": "mesa",
+      "x": 4,
+      "y": 3,
+      "blocks": true,
+      "action": "escola",
+      "interact": {
+        "x": 4,
+        "y": 4
+      },
+      "label": {
+        "pt": "Praticar palavras",
+        "en": "Practice words"
+      }
+    },
+    {
+      "id": "quadro_escola",
+      "kind": "quadro_foto",
+      "x": 8,
+      "y": 2,
+      "blocks": true,
+      "label": {
+        "pt": "Escola da Praça",
+        "en": "Square school"
+      }
+    },
+    {
+      "id": "cadeira_escola",
+      "kind": "cadeira_padaria",
+      "x": 5,
+      "y": 4,
+      "blocks": false,
+      "seat": "NE"
+    },
+    {
+      "id": "d_lapis",
+      "kind": "cenario",
+      "x": 4,
+      "y": 2,
+      "blocks": false,
+      "art": "diary/lapis",
+      "ox": -4
+    },
+    {
+      "id": "d_caneta",
+      "kind": "cenario",
+      "x": 4,
+      "y": 2,
+      "blocks": false,
+      "art": "diary/caneta",
+      "ox": 4
+    },
+    {
+      "id": "d_borracha",
+      "kind": "cenario",
+      "x": 3,
+      "y": 3,
+      "blocks": false,
+      "art": "diary/borracha",
+      "ox": -4
+    },
+    {
+      "id": "d_caderno",
+      "kind": "cenario",
+      "x": 3,
+      "y": 3,
+      "blocks": false,
+      "art": "diary/caderno",
+      "ox": 4
+    },
+    {
+      "id": "d_livro",
+      "kind": "cenario",
+      "x": 5,
+      "y": 3,
+      "blocks": false,
+      "art": "diary/livro",
+      "ox": -4
+    },
+    {
+      "id": "d_estojo",
+      "kind": "cenario",
+      "x": 5,
+      "y": 3,
+      "blocks": false,
+      "art": "diary/estojo",
+      "ox": 4
+    },
+    {
+      "id": "d_apontador",
+      "kind": "cenario",
+      "x": 6,
+      "y": 4,
+      "blocks": false,
+      "art": "diary/apontador",
+      "ox": -4
+    },
+    {
+      "id": "d_regua",
+      "kind": "cenario",
+      "x": 6,
+      "y": 4,
+      "blocks": false,
+      "art": "diary/regua",
+      "ox": 4
+    },
+    {
+      "id": "d_tesoura",
+      "kind": "cenario",
+      "x": 5,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/tesoura",
+      "ox": -4
+    },
+    {
+      "id": "d_cola",
+      "kind": "cenario",
+      "x": 5,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/cola",
+      "ox": 4
+    },
+    {
+      "id": "d_apagador",
+      "kind": "cenario",
+      "x": 1,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/apagador",
+      "ox": -4
+    },
+    {
+      "id": "d_globo",
+      "kind": "cenario",
+      "x": 9,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/globo",
+      "ox": -4
+    },
+    {
+      "id": "d_dicionario",
+      "kind": "cenario",
+      "x": 8,
+      "y": 0,
+      "blocks": false,
+      "art": "diary/dicionario",
+      "ox": -4
+    },
+    {
+      "id": "d_grampeador",
+      "kind": "cenario",
+      "x": 7,
+      "y": 4,
+      "blocks": false,
+      "art": "diary/grampeador",
+      "ox": -4
+    },
+    {
+      "id": "d_clipe",
+      "kind": "cenario",
+      "x": 7,
+      "y": 4,
+      "blocks": false,
+      "art": "diary/clipe",
+      "ox": 4
+    },
+    {
+      "id": "d_pasta",
+      "kind": "cenario",
+      "x": 6,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/pasta",
+      "ox": -4
+    },
+    {
+      "id": "d_cracha",
+      "kind": "cenario",
+      "x": 7,
+      "y": 3,
+      "blocks": false,
+      "art": "diary/cracha",
+      "ox": -4
+    },
+    {
+      "id": "d_sino",
+      "kind": "cenario",
+      "x": 9,
+      "y": 5,
+      "blocks": false,
+      "art": "diary/sino",
+      "ox": -4
+    },
+    {
+      "id": "d_corredor",
+      "kind": "cenario",
+      "x": 9,
+      "y": 6,
+      "blocks": false,
+      "art": "diary/corredor",
+      "ox": -4
+    },
+    {
+      "id": "d_patio",
+      "kind": "cenario",
+      "x": 9,
+      "y": 4,
+      "blocks": false,
+      "art": "diary/patio",
+      "ox": -4
+    }
+  ]
+}

@@ -7,6 +7,7 @@
  *   SHOTS_DIR=docs/lifesim/shots/leaderboards node scripts/leaderboard-shots.mjs
  */
 import { chromium } from 'playwright-core';
+import sharp from 'sharp';
 import fs from 'node:fs';
 import path from 'node:path';
 import { findChrome } from './lib/chrome.mjs';
@@ -98,7 +99,21 @@ async function shoot(viewport, tag) {
   }
 }
 
+/** The Placar da Vila sprite cut from the committed atlas, at 6x on a calçada-ish backdrop (art review, no browser needed). */
+async function boardCloseup() {
+  const atlas = JSON.parse(fs.readFileSync('apps/client/public/pixel/atlas/outdoor.json', 'utf8'));
+  const { x, y, w, h } = atlas.frames['props/placar_vila'].frame;
+  const sprite = await sharp('apps/client/public/pixel/atlas/outdoor.png').extract({ left: x, top: y, width: w, height: h }).toBuffer();
+  await sharp(sprite)
+    .resize(w * 6, h * 6, { kernel: 'nearest' })
+    .flatten({ background: '#9a7a62' })
+    .extend({ top: 24, bottom: 24, left: 24, right: 24, background: '#9a7a62' })
+    .png()
+    .toFile(path.join(SHOTS, 'board-art-6x.png'));
+}
+
 try {
+  await boardCloseup();
   await shoot({ width: 1280, height: 800 }, '1280');
   await shoot({ width: 390, height: 844 }, '390');
   console.log('leaderboard shots ->', SHOTS);

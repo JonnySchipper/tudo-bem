@@ -5,7 +5,7 @@
 import type { FeedbackCategory } from '@tudobem/shared';
 import type { RoomId } from '@tudobem/shared';
 
-export const FEEDBACK_FILE_MAX = 2000;
+export const FEEDBACK_FILE_MAX = 20000;
 
 export interface FeedbackRow {
   id: string;
