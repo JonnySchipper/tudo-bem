@@ -14,13 +14,9 @@ import {
   MISSION_REWARD,
   MISSION_STEPS,
   ROOMS,
-  feiraCartShown,
   furnitureById,
-  withoutHiddenFeiraCart,
   hatById,
   npcDefById,
-  npcPosesIn,
-  poseWalk,
   tierRule,
   FOUNDER_BADGE,
   type Bilingual,
@@ -31,13 +27,12 @@ import {
 } from '@tudobem/shared';
 import { game } from '../state';
 import { h, en, bi, ui, clear } from './dom';
-import { TIER_HEX, tierChip } from './plate';
+import { tierChip } from './plate';
 import { mountCharPreview, setHatIcon } from '../render/pixel/charPreview';
 import { furnitureIcon, expressionForScore } from './pixelArt';
 import { speak } from '../audio';
 import { closeDialogueBox, showDialogueBox, type BoxSpec } from './dialogue';
 import { icon } from '../art/ui';
-import { drawMinimap } from './minimap';
 import { beltChip } from './beltChip';
 import { clock } from '../gameClock';
 import { profileMetJulia, rememberJuliaMet } from './juliaMet';
@@ -375,83 +370,6 @@ export function openHatShop(mode: 'shop' | 'wardrobe', actions: { buy: (id: stri
     const el = document.getElementById('shop-coins');
     if (el && game.profile) el.textContent = `${game.profile.coins} RV`;
   });
-}
-
-// ---------------------------------------------------------------- map
-
-/** The four open-air areas of Vila Ipê (the street is two), in walking order (split into areas), each with its minimap in the Mapa panel. */
-const AREAS: { id: RoomId; pt: string; en: string }[] = [
-  { id: 'rua', pt: 'Rua dos Ipês', en: 'Ipê Street' },
-  { id: 'rua_leste', pt: 'Rua dos Ipês (leste)', en: 'Ipê Street (east)' }, // needs_br: true
-  { id: 'praca', pt: 'Praça Central', en: 'Central Square' },
-  { id: 'feira', pt: 'Feira Livre', en: 'Street Market' },
-];
-const isArea = (r: RoomId | undefined | null): r is RoomId => AREAS.some((a) => a.id === r);
-
-/** The pixel minimap of one area with its doors, the neighbours and "você" (you only show in the area you are in). */
-function mapView(areaId: RoomId): HTMLElement {
-  const self = game.self;
-  const inArea = game.room?.room === areaId;
-  const here = inArea && self ? (self.path.at(-1) ?? self.from) : null;
-  // the neighbours where they are now: live avatars when you are in the area, otherwise the schedule at the game clock
-  const npcs = inArea
-    ? game.liveNpcs(performance.now())
-    : npcPosesIn(areaId, clock.now()).map((p) => ({ name: npcDefById(p.npc)?.name ?? p.npc, ...poseWalk(p, clock.now()).tile }));
-  const meColor = TIER_HEX[game.profile?.nameplate ?? 'verde'];
-  const mapRoom = areaId === 'feira' ? withoutHiddenFeiraCart(ROOMS.feira, feiraCartShown(game.feiraCart)) : ROOMS[areaId];
-  const canvas = drawMinimap(mapRoom, here, npcs, meColor);
-  canvas.setAttribute('aria-label', `Mapa: ${ROOMS[areaId].name}`);
-  return h('div', { class: 'minimap-wrap' }, canvas, h('div', { class: 'minimap-key' }, h('span', { class: 'k door' }), ' portas e saídas ', h('span', { class: 'k npc' }), ' vizinhos ', h('span', { class: 'k me', style: `background:${meColor}` }), ' você'));
-}
-
-export function openMap(go: (room: RoomId) => void) {
-  const card = (room: RoomId | null, pt: string, enText: string, colors: [string, string] | null, locked = false, light = false) =>
-    h(
-      'button',
-      { class: `map-card ${locked ? 'locked' : ''} ${light ? 'light' : ''}`, style: colors ? `--card:${colors[0]};--card2:${colors[1]}` : '', disabled: locked, onclick: () => room && (go(room), close()), 'data-room': room ?? '' },
-      h('div', null, h('b', null, pt), en(enText)),
-      h('div', null, h('span', { class: 'linecolor' }), locked ? h('span', { style: 'margin-left:8px;font-weight:800' }, 'Em breve') : null),
-    );
-  // the minimap shows one area at a time: tabs for the four areas, the one you are in first
-  let shown: RoomId = isArea(game.room?.room) ? game.room!.room! : 'praca';
-  const mapBox = h('div', { class: 'map-areas' });
-  const tabs = h('div', { class: 'map-tabs', role: 'tablist' });
-  const renderMap = () => {
-    tabs.replaceChildren(
-      ...AREAS.map((a) =>
-        h('button', { class: `map-tab ${a.id === shown ? 'on' : ''}`, role: 'tab', 'aria-selected': String(a.id === shown), 'data-area': a.id, onclick: () => ((shown = a.id), renderMap()) }, a.pt),
-      ),
-    );
-    mapBox.replaceChildren(mapView(shown));
-  };
-  renderMap();
-  const close = openModal(
-    'map',
-    h(
-      'div',
-      { class: 'panel' },
-      closeBtn(() => close()),
-      h('h2', null, 'São Paulo · Vila Ipê'),
-      en('Four areas side by side: walk off an edge to go next door. Fast travel is free between places you know.'),
-      tabs,
-      mapBox,
-      h(
-        'div',
-        { class: 'map-grid' },
-        card('rua', 'Rua dos Ipês', 'Ipê Street (west) — padaria, newsstand, apartments', ['#7a6a5a', '#d8cbb6']),
-        card('rua_leste', 'Rua dos Ipês (leste)', 'Ipê Street (east) — academy, school, bus stop', ['#7a6a5a', '#c9b99a']), // needs_br: true
-        card('praca', 'Praça Central', 'Central Square — fountain, hats, parrot, missions', ['#d9532b', '#f2c230']),
-        card('feira', 'Feira Livre', 'Street market — fruit, vegetables, pastel, flowers (6 am–1 pm)', ['#4f8a3c', '#e8a94f']),
-        card('padaria', 'Padaria do Seu Carlos', 'Bakery — breakfast + “Correria no Balcão”', ['#a8452c', '#e8a94f']),
-        card('academia', 'Academia do Bairro', 'Word-game roll — academy Portuguese (not real MA training)', ['#2f5f7a', '#8ab4c8']),
-        card('escola', 'Escola da Praça', 'Practice diary words — the door is on Rua dos Ipês', ['#2f6f4e', '#c9e2c2']),
-        card('kitnet', 'Minha kitnet', 'My studio apartment — decorate', ['#f5e6d3', '#a8c5d4'], false, true),
-        card('aeroporto', 'Aeroporto', 'Airport — where you landed: the first-steps tutorial (bus 875)', ['#2e8a55', '#f8d239']),
-        card(null, 'Estação de Metrô', 'Subway (Phase 1)', null, true),
-        card(null, 'Praia', 'Beach day trip (Phase 2)', null, true),
-      ),
-    ),
-  );
 }
 
 // ---------------------------------------------------------------- friends

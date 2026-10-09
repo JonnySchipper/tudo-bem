@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Shots of the three open-air areas (split into areas): rua, praca, feira at 17:30 (sol), desktop 1280x800 and phone 390x844, as the game frames
- * them for a player (the camera follows the avatar) and as a whole-map overview, plus the Mapa panel with each area's minimap.
+ * them for a player (the camera follows the avatar) and as a whole-map overview. The Mapa panel has its own shots: scripts/map-redo-shots.mjs.
  *
  *   BASE_URL=http://localhost:9851 node scripts/split-shots.mjs [--only=rua,praca] [--time=17:30]
  * Needs a server with TB_TEST_CLOCK_CONTROL=1. Output: docs/lifesim/shots/split/<viewport>_<area>_<view>_<hhmm>.png (SHOTS_DIR to override).
@@ -63,14 +63,6 @@ for (const vp of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'phone'
     await sleep(1200);
     await page.screenshot({ path: path.join(OUT, `${vp.name}_${area}_map_${tag}.png`) });
     await page.evaluate(() => window.__tb.renderer.setShot(null));
-    // the Mapa panel with this area's minimap
-    await page.evaluate(() => document.getElementById('btn-map').click());
-    await page.waitForSelector('.map-tab', { timeout: 5000 });
-    await page.click(`.map-tab[data-area="${area}"]`);
-    await sleep(300);
-    await page.screenshot({ path: path.join(OUT, `${vp.name}_${area}_minimap.png`) });
-    await page.keyboard.press('Escape');
-    await sleep(300);
     console.log(`${vp.name} ${area} ok`);
   }
   await ctx.close();

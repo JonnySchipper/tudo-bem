@@ -160,47 +160,6 @@ html.px-ui .backdrop > .panel,
     inset 0 -3px 0 0 #f7d9b4;
 }
 
-.map-card {
-  border: 0;
-  border-radius: 0;
-  box-shadow:
-    0 -2px 0 0 var(--hud-ink, #573c2c),
-    0 2px 0 0 var(--hud-ink, #573c2c),
-    -2px 0 0 0 var(--hud-ink, #573c2c),
-    2px 0 0 0 var(--hud-ink, #573c2c),
-    inset 0 -4px 0 0 rgba(0, 0, 0, 0.18),
-    inset 0 3px 0 0 rgba(255, 255, 255, 0.28);
-  margin: 2px;
-  transition: none;
-}
-
-.map-card.light {
-  border: 0;
-}
-
-.map-card b {
-  font-family: var(--font-pixel);
-  font-weight: 700;
-}
-
-.map-card:not(.locked):hover {
-  transform: none;
-  filter: brightness(1.06);
-}
-
-.linecolor {
-  border-radius: 0;
-}
-
-.minimap {
-  box-shadow:
-    0 -2px 0 0 var(--hud-ink, #573c2c),
-    0 2px 0 0 var(--hud-ink, #573c2c),
-    -2px 0 0 0 var(--hud-ink, #573c2c),
-    2px 0 0 0 var(--hud-ink, #573c2c);
-  border: 0;
-}
-
 /* section headings inside panels (journal, Caderno) */
 .backdrop > .panel h3 {
   font-family: var(--font-pixel);
@@ -250,63 +209,7 @@ html {
   font-weight: 800;
 }
 
-/* ---------------------------------------------------------------- Wave 2: the map's room cards join the panel system */
-
-/* the map's room cards: flat pixel colour with a hard stepped band along the bottom instead of the smooth gradient */
-.map-card {
-  background: var(--card, #e5572f);
-  position: relative;
-  overflow: hidden;
-}
-
-.map-card::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 12px;
-  background: repeating-linear-gradient(90deg, var(--card2, #f2c230) 0 8px, transparent 8px 16px);
-  opacity: 0.5;
-  pointer-events: none;
-}
-
-.map-card.locked {
-  background: #b9aea0 !important;
-}
-
-.map-card.locked::after {
-  opacity: 0.18;
-}
-
 /* phones: Me vê um is a full-bleed sheet with its own padding; leave room for the awning and the close key */
-/* Mapa: tabs for the three open-air areas (split into areas) */
-.map-tabs {
-  display: flex;
-  gap: 6px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin: 8px 0 4px;
-}
-.map-tab {
-  padding: 4px 12px;
-  font-weight: 800;
-  border: 0;
-  cursor: pointer;
-  background: var(--hud-paper, #f5e6d3);
-  color: var(--hud-ink, #573c2c);
-  box-shadow: 0 -2px 0 0 var(--hud-ink, #573c2c), 0 2px 0 0 var(--hud-ink, #573c2c), -2px 0 0 0 var(--hud-ink, #573c2c), 2px 0 0 0 var(--hud-ink, #573c2c);
-}
-.map-tab.on {
-  background: var(--hud-ink, #573c2c);
-  color: var(--hud-paper, #f5e6d3);
-}
-.map-areas .minimap {
-  image-rendering: pixelated;
-  width: min(100%, calc(var(--mm-cols, 40) * 8px));
-  height: auto;
-}
-
 /* Damas (checkers) at the praça table: a wooden board, real pieces that slide */
 .panel.checkers-panel {
   width: min(460px, calc(100vw - 24px));

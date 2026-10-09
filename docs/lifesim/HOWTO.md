@@ -528,7 +528,7 @@ Each phase lists **Goal · Steps · Done when · Tests · Screenshots · Don't**
 5. Move the praça NPCs (Júlia near the kiosk, Nanda at her stall) and the ambiance data (`PRACA_AMBIANCE` spots, door spots and entries in `packages/shared/src/ambiance.ts`) to the new map. Update `cpuTarget` only if 🧑 JONNY agrees (a bigger map may want more CPUs).
 6. Update the guide arrows in `main.ts updateGuides()` to the new coordinates (better: look them up by prop/portal id, not raw x/y).
 7. Update e2e for the new map. Phase 0 made most steps id-based; fix the rest.
-8. The Mapa panel (`openMap` in `ui/panels.ts`) shows a pixel minimap: render the terrain at 2 px per tile into a canvas once, then mark doors, NPCs and yourself.
+8. The Mapa panel (`openMap` in `ui/townMap.ts`) is one illustrated pixel map of the town. A new room fails to compile until it has an entry in `ROOM_ON_MAP` (`ui/townMapData.ts`): either its own place (tap areas plus pixel art) or `{ via: <room> }` for a room inside another place. `townMapData.test.ts` checks that places do not overlap and that each place's pixels stay inside its tap area.
 
 **Done when:** you can walk the whole neighborhood, enter and leave all three interiors, the tutorial and daily mission still complete, e2e passes, and the Beauty checklist passes.
 **Screenshots:** p5 set, plus 4 extra: the street, the fountain, the building row, and the full map at 1× (a debug `?shot=map` mode that zooms out to fit).

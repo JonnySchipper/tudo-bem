@@ -958,64 +958,6 @@ button:disabled {
   font-size: 1.1em;
 }
 
-.map-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 10px;
-}
-
-.map-card {
-  border-radius: 16px;
-  padding: 14px;
-  color: white;
-  min-height: 110px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  cursor: pointer;
-  border: 0;
-  text-align: left;
-  font: inherit;
-}
-
-.map-card b {
-  font-family: var(--font-title);
-  font-size: 1.25em;
-  line-height: 1.1;
-}
-
-.map-card .en {
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.map-card .en::before {
-  content: '';
-}
-
-.map-card.light {
-  color: #2a2233;
-  border: 2px solid #8B5E3C;
-}
-
-.map-card.light .en {
-  color: rgba(42, 34, 51, 0.75);
-}
-
-.map-card.locked {
-  background: #9c8f9f !important;
-  cursor: not-allowed;
-  opacity: 0.75;
-}
-
-.linecolor {
-  display: inline-block;
-  width: 36px;
-  height: 6px;
-  border-radius: 3px;
-  background: var(--amarelo);
-  margin-top: 6px;
-}
-
 .card-profile {
   width: min(360px, calc(100vw - 24px));
   text-align: center;
@@ -1722,7 +1664,6 @@ select {
     box-sizing: border-box;
   }
 
-  .map-card,
   .shelves button,
   .mods button,
   .item-card button {

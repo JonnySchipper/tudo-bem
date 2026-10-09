@@ -7,7 +7,6 @@ body.cd-on .topbar,
 body.cd-on .bottombar,
 body.cd-on .hud-actions,
 body.cd-on .hud-burger,
-body.cd-on .minimap,
 body.cd-on #world-labels {
   display: none !important;
 }

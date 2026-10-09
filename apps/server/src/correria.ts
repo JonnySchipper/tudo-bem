@@ -89,6 +89,8 @@ const EMPTY_END: CorreriaEnd = { served: 0, perfect: 0, second: 0, left: 0, poin
 export class CorreriaEngine {
   private seq = 0;
   private parked = new Map<string, { run: CorreriaRun; room: string; at: number }>();
+  /** Sessions whose shift already paid out on this socket. A late tap must not be told the slip was lost. */
+  private settled = new WeakSet<Session>();
   constructor(private readonly d: CorreriaDeps) {}
 
   /** Test hook: the shift in progress. */
@@ -162,6 +164,7 @@ export class CorreriaEngine {
     shift.debug = this.d.testHints;
     const run: CorreriaRun = { token: ++this.seq, shift, last: this.d.now(), lastSent: 0 };
     s.mg = run;
+    this.settled.delete(s);
     this.send(s, run, []);
     this.armTick(s, run);
   }
@@ -288,6 +291,7 @@ export class CorreriaEngine {
         ? { pt: `Turno fechado na ${house}! O caixa fez ${coins} reais virtuais.`, en: `Shift closed at ${house}! The till made ${coins} RV.` }
         : carlos;
     s.send({ t: 'mg', phase: 'end', end, carlos: line });
+    this.settled.add(s);
   }
 
   private quit(s: Session, run: CorreriaRun): void {
@@ -323,6 +327,8 @@ export class CorreriaEngine {
 
   /** The client still holds a shift this session has none for: resume a parked one, or end in the open with nothing paid (a restart lands here). */
   private noOpenShift(s: Session, action: string): void {
+    // The payout card is already on the way. A sync or tap that crossed the finish line is not a lost slip.
+    if (this.settled.has(s)) return;
     const park = this.fresh(s);
     if (park) {
       if (action === 'quit') {

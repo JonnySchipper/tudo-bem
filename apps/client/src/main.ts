@@ -14,6 +14,7 @@ import './styles/diary.css';
 import './styles/escola.css';
 import './styles/feiraGames.css';
 import './styles/feiraCaldo.css';
+import './styles/townMap.css';
 import { runIntroGate } from './ui/intro';
 import { hasServerSession, signOut } from './auth/client';
 import { INTRO_PASSED_KEY } from './auth/session';
@@ -73,13 +74,13 @@ import {
   modalId,
   openFriends,
   openHatShop,
-  openMap,
   openProfileCard,
   showJulia,
   showParrotPerch,
   wireParrotShop,
   showScene,
 } from './ui/panels';
+import { openMap } from './ui/townMap';
 import { openPedido, updatePedido, closePedido, isPedidoOpen } from './ui/pedido';
 import { openCredits } from './ui/credits';
 import { openSupport } from './ui/support';

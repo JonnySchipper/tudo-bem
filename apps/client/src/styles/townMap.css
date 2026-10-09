@@ -1,0 +1,333 @@
+/* ================================================================ the Mapa: one illustrated pixel map of Vila Ipê (ui/townMap.ts) */
+
+html.px-ui .backdrop > .panel.townmap,
+.backdrop > .panel.townmap {
+  width: min(1240px, calc(100vw - 24px));
+  max-height: calc(100dvh - 24px);
+  padding: 40px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.townmap > h2 {
+  margin: 0;
+}
+
+.townmap > h2 + .en {
+  margin-bottom: 8px;
+  padding-right: 52px;
+}
+
+.tm-scroll {
+  position: relative;
+  align-self: center;
+  max-width: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-x pan-y pinch-zoom;
+  box-shadow:
+    0 -3px 0 0 var(--hud-ink, #573c2c),
+    0 3px 0 0 var(--hud-ink, #573c2c),
+    -3px 0 0 0 var(--hud-ink, #573c2c),
+    3px 0 0 0 var(--hud-ink, #573c2c);
+  margin: 3px;
+  background: #2d79b0;
+}
+
+/* the map keeps its 8:5 shape and fills what the screen allows */
+.tm-stage {
+  position: relative;
+  aspect-ratio: 320 / 200;
+  width: min(calc(100vw - 62px), 1196px, calc((100dvh - 150px) * 1.6));
+}
+
+.tm-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tm-spot {
+  cursor: pointer;
+  outline: none;
+  transition: transform 0.08s steps(2), filter 0.08s steps(2);
+}
+
+.tm-spot .tm-hit {
+  pointer-events: all;
+}
+
+/* the place is the button: it lifts and glows (hover only where there is a real pointer: a tap would leave it stuck on a phone) */
+.tm-spot:focus-visible,
+.tm-spot.sel {
+  transform: translateY(-2px);
+  filter: drop-shadow(0 0 1px #fff7c2) drop-shadow(0 0 2px #f2c230) drop-shadow(0 2px 0 rgba(42, 26, 18, 0.45));
+}
+
+@media (hover: hover) {
+  .tm-spot:hover {
+    transform: translateY(-2px);
+    filter: drop-shadow(0 0 1px #fff7c2) drop-shadow(0 0 2px #f2c230) drop-shadow(0 2px 0 rgba(42, 26, 18, 0.45));
+  }
+
+  .tm-spot.soon:hover {
+    filter: drop-shadow(0 0 2px #fffdf8);
+    transform: none;
+  }
+
+  .tm-spot.soon:hover .tm-art {
+    filter: grayscale(0.3);
+  }
+}
+
+.tm-spot.soon {
+  cursor: help;
+}
+
+.tm-spot.soon .tm-art {
+  filter: grayscale(0.55) contrast(0.9);
+}
+
+.tm-spot.soon:focus-visible,
+.tm-spot.soon.sel {
+  filter: drop-shadow(0 0 2px #fffdf8);
+  transform: none;
+}
+
+.tm-spot.soon.sel .tm-art {
+  filter: grayscale(0.3);
+}
+
+/* the name tag: Portuguese first, English after */
+.tm-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  pointer-events: none;
+  padding: 3px 10px 4px;
+  white-space: nowrap;
+  font-family: var(--font-pixel);
+  font-size: clamp(1rem, 1.6vw, 1.35rem);
+  line-height: 1.05;
+  text-align: center;
+  color: var(--hud-ink, #573c2c);
+  background: var(--hud-paper, #fbf1e3);
+  box-shadow:
+    0 -2px 0 0 var(--hud-ink, #573c2c),
+    0 2px 0 0 var(--hud-ink, #573c2c),
+    -2px 0 0 0 var(--hud-ink, #573c2c),
+    2px 0 0 0 var(--hud-ink, #573c2c),
+    0 5px 0 0 rgba(20, 10, 6, 0.35);
+  opacity: 0;
+  visibility: hidden;
+}
+
+.tm-label b {
+  font-weight: 400;
+  color: var(--terracota-dark, #b8401f);
+}
+
+.tm-label .tm-en {
+  font-family: var(--font-body);
+  font-size: 0.72em;
+  font-weight: 800;
+  color: var(--ink-soft, #6b5a4a);
+}
+
+.tm-label .tm-again {
+  display: none;
+  font-family: var(--font-body);
+  font-size: 0.62em;
+  font-weight: 800;
+  color: var(--sp-green, #2f5d50);
+}
+
+.tm-label.hover,
+.tm-label.on {
+  opacity: 1;
+  visibility: visible;
+}
+
+.tm-label.on .tm-again {
+  display: block;
+}
+
+.tm-label.soon {
+  display: none;
+}
+
+/* "Em breve · Coming soon": a ribbon across the fogged edge */
+.tm-ribbon {
+  position: absolute;
+  z-index: 1;
+  transform: translate(-50%, -50%) rotate(-8deg);
+  pointer-events: none;
+  padding: 4px 10px 5px;
+  white-space: nowrap;
+  font-family: var(--font-pixel);
+  font-size: clamp(0.95rem, 1.5vw, 1.3rem);
+  line-height: 1;
+  color: #fff8ec;
+  background: var(--terracota, #e5572f);
+  box-shadow:
+    0 -2px 0 0 #7a3a16,
+    0 2px 0 0 #7a3a16,
+    -2px 0 0 0 #7a3a16,
+    2px 0 0 0 #7a3a16,
+    0 5px 0 0 rgba(20, 10, 6, 0.35);
+}
+
+.tm-ribbon span {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 0.7em;
+}
+
+.tm-ribbon.static {
+  position: static;
+  display: inline-block;
+  transform: rotate(-3deg);
+  margin-bottom: 6px;
+}
+
+/* você está aqui: a pin bouncing over the place you are in */
+.tm-here {
+  position: absolute;
+  z-index: 3;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: tm-bob 1.2s steps(2) infinite;
+}
+
+.tm-here-text {
+  display: grid;
+  justify-items: center;
+  padding: 2px 8px 3px;
+  font-size: clamp(0.8rem, 1.2vw, 1rem);
+  line-height: 1.05;
+  white-space: nowrap;
+  color: #fff8ec;
+  background: var(--sp-green, #2f5d50);
+  box-shadow:
+    0 -2px 0 0 #1d3a31,
+    0 2px 0 0 #1d3a31,
+    -2px 0 0 0 #1d3a31,
+    2px 0 0 0 #1d3a31;
+  order: 1;
+}
+
+.tm-here-text b {
+  font-family: var(--font-pixel);
+  font-weight: 400;
+  font-size: 1.25em;
+}
+
+.tm-here-text span {
+  font-weight: 800;
+  font-size: 0.75em;
+  opacity: 0.9;
+}
+
+/* the pin: a pixel drop under the tag */
+.tm-pin {
+  order: 2;
+  width: 12px;
+  height: 14px;
+  margin-top: 2px;
+  background: var(--terracota, #e5572f);
+  clip-path: polygon(0 0, 100% 0, 100% 57%, 67% 57%, 67% 86%, 50% 100%, 33% 86%, 33% 57%, 0 57%);
+  filter: drop-shadow(0 2px 0 rgba(20, 10, 6, 0.4));
+}
+
+@keyframes tm-bob {
+  50% {
+    transform: translate(-50%, calc(-100% - 4px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tm-here {
+    animation: none;
+  }
+}
+
+/* the coming-soon teaser: a small card over the map, never travel */
+.tm-teaser {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  width: min(360px, calc(100% - 32px));
+  padding: 12px 14px;
+  background: var(--hud-paper, #fbf1e3);
+  box-shadow:
+    0 -3px 0 0 var(--hud-ink, #573c2c),
+    0 3px 0 0 var(--hud-ink, #573c2c),
+    -3px 0 0 0 var(--hud-ink, #573c2c),
+    3px 0 0 0 var(--hud-ink, #573c2c),
+    0 8px 0 0 rgba(20, 10, 6, 0.4);
+}
+
+.tm-teaser[hidden] {
+  display: none;
+}
+
+.tm-teaser h3 {
+  margin: 0 0 4px;
+  font-size: 1.5rem;
+}
+
+.tm-teaser h3 .tm-en {
+  font-family: var(--font-body);
+  font-size: 0.6em;
+  font-weight: 800;
+  color: var(--ink-soft, #6b5a4a);
+}
+
+.tm-teaser-pt {
+  margin: 0 0 2px;
+  font-weight: 700;
+}
+
+.tm-teaser .row {
+  margin-top: 8px;
+}
+
+/* phones: the map is a full-screen sheet, taller than wide, so it pans sideways (big places, big tap targets) */
+@media (max-width: 640px) {
+  html.px-ui .backdrop > .panel.townmap,
+  .backdrop > .panel.townmap {
+    width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    padding: calc(40px + var(--safe-top, 0px)) 8px calc(10px + var(--safe-bottom, 0px));
+  }
+
+  .backdrop > .panel.townmap .close {
+    top: calc(30px + var(--safe-top, 0px));
+  }
+
+  .tm-scroll {
+    flex: 1;
+    align-self: stretch;
+  }
+
+  .tm-stage {
+    width: auto;
+    height: 100%;
+    min-height: 420px;
+  }
+
+  .tm-label {
+    font-size: 1.15rem;
+  }
+}
