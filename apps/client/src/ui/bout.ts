@@ -993,10 +993,13 @@ export class BoutUI {
     void r.call.offsetWidth;
     r.call.classList.add('pop');
     const moments = (m.grip ?? []).filter((e) => e.kind !== 'blocked' && e.kind !== 'defended' && e.kind !== 'ritmo').map((e) => gripEventLine(e, this.partnerName));
+    // a defense that earned the Vantagem still says what you did
+    if (m.how === 'defended' && call.pt !== MAT_CALLS.defendeu.pt) moments.unshift(MAT_CALLS.defendeu);
     // needs_br: true — Mudou de plano! (the partner dropped the move it showed you)
     const replan = actor === 'partner' && (m.replanned || m.feint) ? { pt: 'Mudou de plano!', en: 'Changed plans!' } : null;
     const extra = [...moments, ...(replan ? [replan] : [])].slice(0, 2);
     r.line.replaceChildren(h('span', { class: 'en call-en' }, call.en), ...extra.map((l) => h('span', { class: 'bout-moment' }, h('span', { class: 'pt' }, l.pt), en(l.en))));
+    r.line.hidden = !r.line.textContent;
     const ground = groundRead(m.meterFrom ?? from?.meter, m.meterTo ?? m.st.meter);
     r.ground.className = `bout-ground ${ground.dir}`;
     r.ground.dataset.delta = String(ground.delta);
@@ -1187,20 +1190,20 @@ export class BoutUI {
   private renderTop(): void {
     const s = this.snap;
     if (!this.board || !this.board.clock.isConnected) {
+      // needs_br: true — each number carries its own caption (Pontos, Vant), the clock says Tempo
       const cell = (cls: string, label: string) => h('span', { class: `bout-num ${cls}`, 'data-k': label });
-      const youPts = cell('pts', 'pontos');
-      const youAdv = cell('adv', 'vant');
-      const themPts = cell('pts', 'pontos');
-      const themAdv = cell('adv', 'vant');
+      const youPts = cell('pts', 'Pontos');
+      const youAdv = cell('adv', 'Vant');
+      const themPts = cell('pts', 'Pontos');
+      const themAdv = cell('adv', 'Vant');
       const youName = h('span', { class: 'nm' });
       const themName = h('span', { class: 'nm' });
       const belt = h('i', { class: 'belt-dot' });
       const clock = h('b', { id: 'bout-clock-t' });
       const turn = h('span', { class: 'bout-turn', id: 'bout-turn' });
-      // needs_br: true — Pontos, Vant(agens), Tempo: the board's three columns
       this.top.replaceChildren(
         h('div', { class: 'bout-side you' }, h('span', { class: 'bout-name' }, belt, youName), youPts, youAdv),
-        h('div', { class: 'bout-mid' }, h('div', { class: 'bout-clock', id: 'bout-clock', 'data-k': 'tempo' }, clock, h('span', null, 'Tempo')), h('div', { class: 'bout-labels' }, h('span', null, 'Pontos'), h('span', null, 'Vant')), turn),
+        h('div', { class: 'bout-mid' }, h('div', { class: 'bout-clock', id: 'bout-clock', 'data-k': 'tempo' }, clock, h('span', null, 'Tempo')), turn),
         h('div', { class: 'bout-side partner' }, h('span', { class: 'bout-name' }, themName), themPts, themAdv),
       );
       this.board = { youName, youPts, youAdv, themName, themPts, themAdv, clock, turn, belt };

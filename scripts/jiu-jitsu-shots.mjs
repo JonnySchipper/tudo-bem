@@ -6,9 +6,12 @@
  *   BASE_URL=http://localhost:9211/ node scripts/jiu-jitsu-shots.mjs     # or shoot a solo build you already serve
  *   --out=dir (or SHOTS_DIR, default docs/lifesim/shots/jiu-jitsu-v3), --views=desktop,phone, --bouts=N (max matches per view, default 2),
  *   --partners=0 skips the first look at the other partners
+ * `?rolltest` squeezes the server's resolve beats to 5% for the e2e; `boutpace=100` holds them five times as long as in play, so a
+ * slow headless screenshot (software GL, a few frames a second on the 2x phone) still catches the call on the panel. The command and
+ * defense windows are the game's own: the timed pad beats are shot at CSS pixels (`fast`) so the capture does not outlast them.
  *
- * A white belt with three stripes (Bia still calls the defenses) plays Mateus: the first card that scores (the finish when it is on
- * offer), every command tapped fast on the pad (Perfeito!), every defense answered. It shoots the lobby, the pick, a chain as the first
+ * A white belt with three stripes (Bia still calls the defenses) plays Mateus: two holds so Mateus attacks first, then the first card
+ * that scores (the finish when it is on offer), every command tapped fast on the pad (Perfeito!), every defense answered. It shoots the lobby, the pick, a chain as the first
  * word comes up, the same chain mid-way with its Perfeito!, the partner's attack with the defense pad, a Defendeu!, a takedown landing on
  * the mat, the finish, and the end card. It checks the moves play their baked clips driven by the taps (the wind-up frames) as it goes.
  */
@@ -82,36 +85,24 @@ async function run(name, base) {
   page.on('pageerror', (e) => errors.push(String(e)));
   let n = 0;
   const took = new Set();
-  const shot = async (label) => {
+  const shot = async (label, fast = false) => {
     took.add(label);
     const file = `${name}_${String(++n).padStart(2, '0')}_${label}.png`;
-    await page.screenshot({ path: path.join(SHOTS, file) });
+    // the headless page paints a few frames a second: finish the panel's slide-in instead of shooting it half-faded. `fast` shoots at
+    // CSS pixels (a 2x phone capture with software GL can outlast a command's window, and the grade on screen would be Tarde! by then)
+    await page.screenshot({ path: path.join(SHOTS, file), animations: 'disabled', ...(fast ? { scale: 'css' } : {}) });
     log(file);
   };
   /** Shoot a moment only the first time it shows up. */
-  const once = async (label) => {
+  const once = async (label, fast = false) => {
     if (took.has(label)) return false;
-    await shot(label);
+    await shot(label, fast);
     return true;
   };
   const stage = () => page.evaluate(() => window.__tb.renderer?.info?.()?.bout ?? null).catch(() => null);
-  /** Wait for the mat clip to reach a frame (`:4` the impact, `:5` the landing) and the resolve panel to have painted. */
-  const clipAt = (frames) =>
-    page
-      .waitForFunction(
-        (fs) => {
-          const clip = window.__tb.renderer?.info?.()?.bout?.clip ?? '';
-          const res = document.querySelector('#bout-resolve');
-          return fs.some((k) => clip.endsWith(`:${k}`)) && !!res && getComputedStyle(res).opacity === '1';
-        },
-        frames,
-        { timeout: 2500, polling: 'raf' },
-      )
-      .then(() => true)
-      .catch(() => false);
   const checks = { meter: false, plan: false, chevrons: false, windup: new Set(), clips: new Set(), perfect: 0 };
   try {
-    await page.goto(`${base}${base.includes('?') ? '&' : '?'}solo&notype=1&rolltest&tbclockmin=${offsetMinFor(DAY_MIN)}`);
+    await page.goto(`${base}${base.includes('?') ? '&' : '?'}solo&notype=1&rolltest&boutpace=100&tbclockmin=${offsetMinFor(DAY_MIN)}`);
     await page.click('#intro-enter');
     await page.click('#intro-skip');
     await page.waitForSelector('#intro-guest', { state: 'visible' });
@@ -140,6 +131,10 @@ async function run(name, base) {
       window.__tb.game.profile.bjj = { ...bjj };
     }, WHITE3);
 
+    // the arrivals card can come up late, after the helper looked for it: close it so it does not sit over the mat
+    await page.evaluate(() => document.getElementById('aero-next-ok')?.click());
+    // shots only: the panel's 0.18 s slide-in takes seconds on a software-GL phone page (a few frames a second); paint views at once
+    await page.addStyleTag({ content: '.bout-view, .bout-banner.pop, .cmd-grade.pop, .cmd-word.pulse, .pad-btn.hit, .pad-btn.miss { animation: none !important; }' });
     await openBout(page);
     await sleep(900);
     await shot('lobby');
@@ -149,7 +144,8 @@ async function run(name, base) {
     while (bouts < BOUTS) {
       bouts++;
       const result = await playBout(page, {
-        pick: 'bold',
+        // hold the first two picks so Mateus attacks (the defense pad, a Defendeu!), then go for the takedown, the pass and the finish
+        pick: (n) => (n < 2 && !took.has('defendeu') ? 'safe' : 'bold'),
         tapMs: 90,
         onBeat: async (b) => {
           if (b.phase === 'pick') {
@@ -162,19 +158,22 @@ async function run(name, base) {
             if (hud.you.length) await once('grip_held');
           } else if (b.phase === 'chain' && b.step === 0 && b.total >= 2 && !took.has('chain')) {
             await sleep(120);
-            await once('chain');
+            await once('chain', true);
           } else if (b.phase === 'defend' && !took.has('defense')) {
-            await once('defense');
+            await once('defense', true);
           } else if (b.phase === 'resolve' && b.resolve) {
             const r = b.resolve;
             if (r.how === 'defended' && r.actor === 'partner') {
               await sleep(150);
               await once('defendeu');
             } else if (r.actor === 'you' && r.correct && THROWS.includes(r.move ?? '') && !took.has('throw_land')) {
-              if (await clipAt([5, 6])) await once('throw_land');
+              // the landing: the impact frame has passed, the partner is on the mat
+              await sleep(200);
+              await once('throw_land');
             } else if (r.actor === 'you' && r.correct && SUBS.includes(r.move ?? '') && !took.has('finish')) {
-              if (await clipAt([5, 6, 7])) await once('finish');
-              else await once('finish');
+              // the finish lands in slow motion: the squeeze, then the tap
+              await sleep(350);
+              await once('finish');
             }
           }
         },
@@ -188,7 +187,7 @@ async function run(name, base) {
               .waitForFunction(() => !!document.querySelector('#bout-grade.g-perfeito'), null, { timeout: 600 })
               .then(() => true)
               .catch(() => false);
-            if (perfect) await once('chain_perfeito');
+            if (perfect) await once('chain_perfeito', true);
           }
         },
       });

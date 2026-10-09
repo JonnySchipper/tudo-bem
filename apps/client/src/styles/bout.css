@@ -30,6 +30,16 @@ body.bout-on .hover-label {
   display: none !important;
 }
 
+/* the game's "?" (How to play) leaves the bottom to the pad: it waits under the scoreboard, on the right (the toasts take the left) */
+body.bout-on .howto-help {
+  top: calc(var(--bout-top, 72px) + 14px + var(--safe-top));
+  bottom: auto;
+  left: auto;
+  right: calc(10px + var(--safe-right));
+  width: 36px;
+  height: 36px;
+}
+
 body.bout-on .toasts {
   top: calc(var(--bout-top, 72px) + 10px + var(--safe-top));
   z-index: 60;
@@ -137,6 +147,19 @@ body.bout-on .toasts {
   grid-column: 2;
 }
 
+/* each number's caption under it: Pontos, Vant */
+.bout-num::after {
+  content: attr(data-k);
+  display: block;
+  margin-top: 1px;
+  font-size: 8px;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-shadow: none;
+  color: #bfb3d6;
+}
+
 .bout-num.adv {
   grid-column: 3;
   font-size: 20px;
@@ -168,17 +191,11 @@ body.bout-on .toasts {
 }
 
 .bout-clock span,
-.bout-labels,
 .bout-turn {
   font-size: 10px;
   color: #bfb3d6;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-}
-
-.bout-labels {
-  display: flex;
-  gap: 8px;
 }
 
 .bout-top .en {
@@ -1029,6 +1046,10 @@ body.bout-on .toasts {
 .bout-cmd[data-mode='defend'] .cmd-tag {
   background: var(--bout-red);
   color: #fff;
+}
+
+.bout-cmd[data-mode='defend'] .cmd-tag .en {
+  color: #ffe3dc;
 }
 
 .cmd-move .pt {
@@ -1916,6 +1937,8 @@ body.bout-on .toasts {
   display: grid;
   justify-items: center;
   gap: 2px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .bout-end-grid {
@@ -2019,9 +2042,11 @@ body.bout-on .toasts {
     padding: 0 6px;
     margin: 0 4px;
   }
-  .bout-labels,
   .bout-turn {
     font-size: 9px;
+  }
+  .bout-num::after {
+    font-size: 7px;
   }
   .bout-panel {
     width: calc(100vw - 10px);
@@ -2204,6 +2229,9 @@ body.bout-on .toasts {
   .pad-btn .pt {
     font-size: 17px;
   }
+  .bout-pad.defs .pad-btn .en {
+    font-size: 9px;
+  }
   .bout-banner {
     font-size: 28px;
   }
@@ -2276,9 +2304,9 @@ body.bout-on .toasts {
   .bout-name {
     font-size: 11px;
   }
-  .bout-labels,
   .bout-clock span,
-  .bout-turn {
+  .bout-turn,
+  .bout-num::after {
     display: none;
   }
   .bout-panel {

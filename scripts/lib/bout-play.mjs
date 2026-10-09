@@ -11,6 +11,13 @@ import { sleep, waitFor } from './meveum-play.mjs';
 export async function openBout(page) {
   await page.evaluate(() => window.__tb.interact({ prop: 'fila' }));
   await page.waitForSelector('#bout[data-phase="lobby"]', { timeout: 15_000 });
+  await dismissHowTo(page);
+}
+
+/** The game's "How to play" card opens over the lobby the first time: close it the way a player does. */
+export async function dismissHowTo(page) {
+  const card = await page.waitForSelector('#howto-card[data-game="bout"]', { timeout: 1500 }).catch(() => null);
+  if (card) await page.click('#howto-ok').catch(() => {});
 }
 
 /** Pick a partner (default: the suggested one) and start the match. */
@@ -107,7 +114,8 @@ function choose(cards, how) {
 }
 
 /**
- * Play the match to its end card. `pick` is the card strategy ('read' | 'bold' | 'safe'); `right(n)` says whether the n-th tap (chain or
+ * Play the match to its end card. `pick` is the card strategy ('read' | 'bold' | 'safe', or `(n, beat) => strategy` for the n-th pick);
+ * `right(n)` says whether the n-th tap (chain or
  * defense, counted from 0) presses the right button; `tapMs` is how long the player waits before a tap (fast taps are Perfeito).
  * `onBeat(info, page)` is awaited once per new beat on screen (a pick, each step of a chain or a defense, a resolve) before acting;
  * `onTap(info, page)` right after each tap. Returns what the end card says and how many beats and taps were played.
@@ -125,10 +133,14 @@ export async function playBout(page, { pick = 'bold', right = () => true, tapMs 
       continue;
     }
     if (b.phase === 'end') break;
+    if (process.env.BOUT_DEBUG && `${b.phase}:${b.seq}:${b.step}:${b.open}` !== globalThis.__boutLast) {
+      globalThis.__boutLast = `${b.phase}:${b.seq}:${b.step}:${b.open}`;
+      console.log('    beat', b.phase, b.mode, b.seq, b.step, b.want, b.open, b.resolve ? JSON.stringify(b.resolve) : '');
+    }
     if (b.phase === 'pick' && b.pickSeq && b.cards.length >= 0 && !seen.has(`pick:${b.pickSeq}`)) {
       seen.add(`pick:${b.pickSeq}`);
       if (onBeat) await onBeat({ ...b }, page);
-      const id = choose(b.cards, pick);
+      const id = choose(b.cards, typeof pick === 'function' ? pick(moves, b) : pick);
       const clicked = await page.evaluate(
         ({ id, seq }) => {
           if (document.querySelector('#bout')?.getAttribute('data-phase') !== 'pick') return false;
